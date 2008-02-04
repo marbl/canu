@@ -9,16 +9,8 @@ sub findUMDOverlapper() {
 sub UMDOverlapper (@) {
     my @fragFiles  = @_;
 
-    caFailure("Either doUseUMDOverlapper or doUseOverlapper must be true.\n") if (getGlobal("doUseUMDOverlapper") == 0 && getGlobal("doUseOverlapper") == 0);
-    
-    goto alldone if (getGlobal("doUseUMDOverlapper") == 0);
-    
-    # when using UMD overlapper, skip OBT (umd overlap has OBT built-in)
-    setGlobal("doUseOverlapper", 0);
-    setGlobal("doOverlapTrimming", 0);
-    setGlobal("doMeryl", 0);
-        
     goto alldone if (-d "$wrk/$asm.ovlStore");
+    goto alldone if (getGlobal("ovlOverlapper") ne "umd");
 
     my $outDir  = "1-overlapper";
     system("mkdir $wrk/$outDir") if (! -d "$wrk/$outDir");

@@ -105,7 +105,6 @@ sub terminate ($) {
 
         my $cmd;
         $cmd  = "$bin/dumpSingletons ";
-        $cmd .= " -f $wrk/$asm.frgStore ";
         $cmd .= " -g $wrk/$asm.gkpStore ";
         $cmd .= " -c $cgwDir/$asm -n $lastckp -S ";
         $cmd .= "> $termDir/$asm.singleton.fasta ";

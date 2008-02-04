@@ -7,7 +7,7 @@ sub runMeryl ($$$$) {
     my $merType   = shift @_;
     my $cmd;
 
-    if (getGlobal("doMeryl") == 0) {
+    if ($merThresh == 0) {
         touch "$wrk/0-mercounts/$asm.nmers.$merType.fasta";
         return;
     }
@@ -54,8 +54,8 @@ sub runMeryl ($$$$) {
         my $ofile = "$wrk/0-mercounts/$asm-ms$merSize-mt$merThresh-ms$merSkip.$merType.fasta";
 
         if ($merComp > 0) {
-            print STDERR "ERROR!  merOverlap and merCompression not supported without\n";
-            print STDERR "        installing kmer (http://sourceforge.net/projects/kmer/).\n";
+            print STDERR "ERROR!  merCompression not supported without installing kmer\n";
+            print STDERR "        (http://sourceforge.net/projects/kmer/).\n";
             print STDERR "If you have installed kmer, then your build is broken, as I\n";
             print STDERR "did not find the correct 'meryl' (meryl -V should have said Mighty).\n";
             die;
@@ -88,13 +88,16 @@ sub meryl {
 
     my $ovlc = 0;
     my $obtc = 0;
-    my $type = getGlobal("merOverlap");
 
-    $ovlc = getGlobal("merCompression") if (($type eq "both") || ($type eq "ovl"));
-    $obtc = getGlobal("merCompression") if (($type eq "both") || ($type eq "obt"));
+    if (getGlobal("ovlOverlapper") eq "umd") {
+        caFailure("meryl() attempted to compute mer counts for the umd overlapper?\n");
+    }
 
-    runMeryl(getGlobal('merSizeOvl'), $ovlc, getGlobal("merylOvlThreshold"), "ovl");
-    runMeryl(getGlobal('merSizeObt'), $obtc, getGlobal("merylObtThreshold"), "obt");
+    $ovlc = getGlobal("merCompression") if (getGlobal("ovlOverlapper") eq "mer");
+    $obtc = getGlobal("merCompression") if (getGlobal("obtOverlapper") eq "mer");
+
+    runMeryl(getGlobal('ovlMerSize'), $ovlc, getGlobal("ovlMerThreshold"), "ovl");
+    runMeryl(getGlobal('obtMerSize'), $obtc, getGlobal("obtMerThreshold"), "obt");
 }
 
 1;

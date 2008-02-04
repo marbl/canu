@@ -3,6 +3,7 @@ use strict;
 sub overlapTrim {
 
     return if (getGlobal("doOverlapTrimming") == 0);
+    return if (getGlobal("ovlOverlapper") eq "umd");
 
     goto alldone if (-e "$wrk/0-overlaptrim/overlaptrim.success");
 
@@ -68,7 +69,7 @@ sub overlapTrim {
         $cmd  = "$bin/overlapStore ";
         $cmd .= " -c $wrk/$asm.obtStore ";
         $cmd .= " -g $wrk/$asm.gkpStore ";
-        $cmd .= " -M " . getGlobal('ovlSortMemory');
+        $cmd .= " -M " . getGlobal('ovlStoreMemory');
         $cmd .= " -L $wrk/0-overlaptrim/$asm.ovllist";
         $cmd .= " > $wrk/0-overlaptrim/$asm.overlapstore.err 2>&1";
 
@@ -119,7 +120,6 @@ sub overlapTrim {
             caFailure("Failed to merge trimming.\n");
         }
     }
-
 
     #  Add "-delete" to remove, instead of fix, chimera and spurs.
     #

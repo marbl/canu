@@ -131,91 +131,154 @@ sub setGlobal ($$) {
         setGlobal("merSizeOvl", $val);
         return;
     }
+    #  Special case -- overlapper sets both obtOverlapper and ovlOverlapper.
+    if ($var eq "overlapper") {
+        setGlobal("obtOverlapper", $val);
+        setGlobal("ovlOverlapper", $val);
+        return;
+    }
     caFailure("ERROR: $var is not a valid option.\n") if (!exists($global{$var}));
     $global{$var} = $val;
 }
 
 sub setDefaults () {
-    $global{"binRoot"}                     = undef;
 
-    $global{"gkpBelieveInputStdDev"}           = 1;
-    
+    #  The rules:
+    #
+    #  1) Before changing these defaults, read the (printed) documentation.
+    #  2) After changing, update the documentation.
+    #  3) Add new defaults in the correct section.
+    #  4) Keep defaults in the same order as the documentation.
+    #  5) UPDATE THE DOCUMENTATION.
+    #
+
+    #####  Error Rates
+
+    $global{"ovlErrorRate"}                = 0.06;
+    $global{"utgErrorRate"}                = 15;
+    $global{"cnsErrorRate"}                = 0.06;
+    $global{"cgwErrorRate"}                = 0.10;
+
+    #####  Stopping conditions
+
+    $global{"stopAfter"}                   = undef;
+
+    #####  General Configuration Options (aka miscellany)
+
+    $global{"binRoot"}                     = undef;
+    $global{"grid"}                        = undef;
+
+    $global{"doBackupFragStore"}           = 1;
+
+    $global{"fakeUIDs"}                    = 0;
+    $global{"uidServer"}                   = undef;
+
+    $global{"scratch"}                     = "/tmp";
+
+    #####  Sun Grid Engine
+
+    $global{"useGrid"}                     = 0;
+    $global{"scriptOnGrid"}                = 0;
+
+    $global{"ovlOnGrid"}                   = 1;
+    $global{"frgCorrOnGrid"}               = 0;
+    $global{"ovlCorrOnGrid"}               = 0;
+    $global{"cnsOnGrid"}                   = 1;
+
+    $global{"maxGridJobSize"}		   = undef;
+
+    $global{"sge"}                         = undef;
+    $global{"sgeScript"}                   = undef;
+    $global{"sgeOverlap"}                  = undef;
+    $global{"sgeConsensus"}                = undef;
+    $global{"sgeFragmentCorrection"}       = undef;
+    $global{"sgeOverlapCorrection"}        = undef;
+
+    #####  Preoverlap
+
+    $global{"gkpBelieveInputStdDev"}       = 0;
+
+    #####  Overlap Based Trimming
+
+    $global{"doOverlapTrimming"}           = 1;
+    $global{"vectorIntersect"}             = undef;
+
+    #####  Overlapper
+
+    $global{"obtOverlapper"}               = "ovl";
+    $global{"ovlOverlapper"}               = "ovl";
+
+    $global{"ovlThreads"}                  = 2;
+    $global{"ovlStart"}                    = 1;
+    $global{"ovlHashBlockSize"}            = 200000;
+    $global{"ovlRefBlockSize"}             = 2000000;
+    $global{"ovlMemory"}                   = "2GB";
+    $global{"ovlStoreMemory"}              = 1024;
+
+    $global{"ovlMerSize"}                  = 22;
+    $global{"ovlMerThreshold"}             = 500;
+
+    $global{"obtMerSize"}                  = 22;
+    $global{"obtMerThreshold"}             = 1000;
+
+    $global{"merThreads"}                  = 2;
+    $global{"merCompression"}              = 1;
+
+    $global{"umdOverlapperFlags"}          = "-calculate-trims -use-uncleaned-reads";
+
+    #####  Mers
+
+    $global{"merylMemory"}                 = 800;
+
+    #####  Fragment/Overlap Error Correction
+
+    $global{"frgCorrBatchSize"}            = 200000;
+    $global{"doFragmentCorrection"}        = 1;
+    $global{"frgCorrThreads"}              = 2;
+    $global{"frgCorrConcurrency"}          = 1;
+    $global{"ovlCorrBatchSize"}            = 200000;
+    $global{"ovlCorrConcurrency"}          = 4;
+
+    #####  Unitigger & BOG Options
+
+    $global{"unitigger"}                   = "utg";
+
+    $global{"utgGenomeSize"}               = undef;
+    $global{"utgEdges"}                    = undef;
+    $global{"utgFragments"}                = undef;
+    $global{"utgBubblePopping"}            = 1;
+    $global{"utgRecalibrateGAR"}           = 1;
+
+    $global{"bogPromiscuous"}              = 0;
+    $global{"bogEjectUnhappyContain"}      = 0;
+    $global{"bogBadMateDepth"}             = 7;
+
+    #####  Scaffolder Options
+
     $global{"cgwOutputIntermediate"}       = 0;
     $global{"cgwPurgeCheckpoints"}         = 1;
     $global{"cgwDemoteRBP"}                = 1;
-    $global{"cgwDistanceSampleSize"}       = 1000;
 
-    $global{"cleanup"}                     = "none";
+    $global{"astatLowBound"}		   = 1;
+    $global{"astatHighBound"}		   = 5;
+
+    $global{"stoneLevel"}                  = 2;
+
+    $global{"computeInsertSize"}           = 0;
+    $global{"cgwDistanceSampleSize"}       = 100;
+
+    $global{"doResolveSurrogates"}         = 1;
+
+    $global{"doExtendClearRanges"}         = 2;
+    $global{"extendClearRangesStepSize"}   = undef;
+
+    #####  Consensus Options
 
     $global{"cnsPartitions"}               = 128;
     $global{"cnsMinFrags"}                 = 75000;
     $global{"cnsConcurrency"}              = 2;
-    $global{"cnsOnGrid"}                   = 1;
 
-    $global{"delayInterleavedMerging"}     = 0;
-    $global{"doBackupFragStore"}           = 1;
-    $global{"doExtendClearRanges"}         = 2;
-    $global{"extendClearRangesStepSize"}   = undef;
-    $global{"doFragmentCorrection"}        = 1;
-    $global{"doOverlapTrimming"}           = 1;
-    $global{"doResolveSurrogates"}         = 1;
-    $global{"doUpdateDistanceRecords"}     = 1;
-    $global{"fakeUIDs"}                    = 0;
-
-    $global{"frgCorrBatchSize"}            = 200000;
-    $global{"frgCorrOnGrid"}               = 0;
-    $global{"frgCorrThreads"}              = 2;
-    $global{"frgCorrConcurrency"}          = 1;
-
-    $global{"grid"}                        = "Linux-amd64";
-
-    $global{"help"}                        = 0;
-    $global{"version"}			   = 0;
-    $global{"fields"}			   = 0;
-
-    #  Undocumented!
-    $global{"doMeryl"}                     = 1;
-    $global{"merylMemory"}                 = 800;
-    $global{"merylObtThreshold"}           = 1000;
-    $global{"merylOvlThreshold"}           = 500;
-    $global{"merSizeObt"}                  = 22;
-    $global{"merSizeOvl"}                  = 22;
-
-    $global{"maxGridJobSize"}		   = undef;
-
-    $global{"ovlCorrBatchSize"}            = 200000;
-    $global{"ovlCorrOnGrid"}               = 0;
-    $global{"ovlCorrConcurrency"}          = 4;
-    $global{"ovlHashBlockSize"}            = 200000;   # 150000
-    $global{"ovlStart"}                    = 1;
-    $global{"ovlMemory"}                   = "2GB";   # 2GB
-    $global{"ovlRefBlockSize"}             = 2000000; # 5000000
-    $global{"ovlSortMemory"}               = 1024;
-    $global{"ovlStoreMemory"}              = 1024;
-    $global{"ovlThreads"}                  = 2;
-    $global{"ovlOnGrid"}                   = 1;
-    
-    $global{"doUseOverlapper"}             = 1;                # use the default overlapper step
-    $global{"doUseUMDOverlapper"}          = 0;                # use UMD overlapper (these two are exclusive)
-    $global{"umdOverlapperFlags"}          = "-calculate-trims -use-uncleaned-reads";  # any parameters to supply to UMD overlapper
-
-    $global{"merOverlap"}                  = "none";  # obt or ovl or both
-    $global{"merOverlapThreads"}           = 2;
-    $global{"merCompression"}              = 1;       # used only if merOverlap != none
-
-    $global{"executionWrapper"}            = undef;
-    $global{"scratch"}                     = "/tmp";
-    $global{"scriptOnGrid"}                = 0;
-
-    #  Undocumented!
-    $global{"sge"}                         = undef;    #  Options to all qsub
-    $global{"sgeScript"}                   = undef;    #  Options to qsub of the script (high-memory)
-    $global{"sgeOverlap"}                  = undef;    #  Options to overlap jobs
-    $global{"sgeConsensus"}                = undef;    #  Options to consensus jobs
-    $global{"sgeFragmentCorrection"}       = undef;    #  Options to fragment correction jobs
-    $global{"sgeOverlapCorrection"}        = undef;    #  Options to overlap correction jobs
-
-    $global{"stoneLevel"}                  = 2;
+    #####  Terminator Options
 
     $global{"createAGP"}                   = 0;
     $global{"createACE"}                   = 0;
@@ -225,27 +288,13 @@ sub setDefaults () {
     $global{"merQCmemory"}                 = 1024;
     $global{"merQCmerSize"}                = 22;
 
-    $global{"stopAfter"}                   = undef;
-    $global{"uidServer"}                   = undef;
-    $global{"utgEdges"}                    = undef;
-    $global{"utgErrorRate"}                = 15;
-    $global{"utgFragments"}                = undef;
-    $global{"utgBubblePopping"}            = 1;
-    $global{"utgGenomeSize"}               = undef;
-    $global{"utgRecalibrateGAR"}           = 1;
-    $global{"useGrid"}                     = 0;
-    $global{"useBogUnitig"}                = 0;
-    $global{"bogPromiscuous"}              = 0;
-    $global{"bogEjectUnhappyContain"}      = 0;
-    $global{"bogBadMateDepth"}             = undef;
-    $global{"vectorIntersect"}             = undef;
+    $global{"cleanup"}                     = "none";
 
-    $global{"ovlErrorRate"}                = 0.06;
-    $global{"cgwErrorRate"}                = 0.10;
-    $global{"cnsErrorRate"}                = 0.06;
+    #####  Ugly, command line options passed to printHelp()
 
-    $global{"astatLowBound"}		   = 1;
-    $global{"astatHighBound"}		   = 5;
+    $global{"help"}                        = 0;
+    $global{"version"}			   = 0;
+    $global{"fields"}			   = 0;
 
     $global{"specFile"}                    = undef;
 }
@@ -332,7 +381,7 @@ sub setParameters ($@) {
 
     #  Decode on a set of binaries to use
     #
-    $bin = $gin = setBinDirectory( undef);
+    $bin = $gin = setBinDirectory(undef);
     $gin        = setBinDirectory(getGlobal("grid"))  if (getGlobal("useGrid") == 1);
 
     #  We assume the grid is the same as the local, which will sting
@@ -383,15 +432,20 @@ sub setParameters ($@) {
 
 
 sub printHelp () {
+
     if ( getGlobal("version")) {
 	my @full_pName = split('/',$0);
 	my $pName = $full_pName[$#full_pName]; 
 	print "$pName $MY_VERSION\n";
 	exit(0);
-    } elsif (getGlobal("help")) {
+    }
+
+    if (getGlobal("help")) {
         print $HELPTEXT;
 	exit(0);
-    } elsif ( getGlobal("fields") ) {
+    }
+
+    if ( getGlobal("fields") ) {
         foreach my $k (sort keys %global) {
             if (defined(getGlobal($k))) {
                 print substr("$k                             ", 0, 30) . getGlobal($k) . "\n";
@@ -659,8 +713,7 @@ sub runCommand ($$) {
     my $d = time();
     print STDERR "----------------------------------------START $t\n$cmd\n";
 
-    my $execwrap = getGlobal("executionWrapper");
-    my $rc = 0xffff & system("cd $dir && $execwrap $cmd");
+    my $rc = 0xffff & system("cd $dir && $cmd");
 
     $t = localtime();
     print STDERR "----------------------------------------END $t (", time() - $d, " seconds)\n";

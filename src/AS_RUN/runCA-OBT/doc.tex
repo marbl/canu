@@ -8,10 +8,6 @@
 \usepackage{longtable}
 \sloppy
 
-
-%\begin{tabularx}{\linewidth}{lX}
-
-
 %  A few float parameters
 %
 \renewcommand{\dbltopfraction}{0.9}
@@ -199,8 +195,8 @@ overlapper are highly recommended.
 perl $ASMBIN/runCA-OBT.pl \
   -d /assembly/bigfoot-hybrid \
   -p bigfoot \
-  useBogUnitig=1 \
-  merOverlap=both \
+  unitigger=bog \
+  overlapper=mer \
   abi3730.frg \
   flx.sff
 \end{verbatim}
@@ -333,10 +329,11 @@ surrogates in scaffolds  & \$prefix.posmap.surrscf \\
 \section{Options}
 
 \subsection{Error Rates}
-\label{sec:errorrates}
+\label{sec:erates}
 
-There are four configurable error rates.  $utg \le ovl \le cns \le
-cgw$.  Usually, $ovl = cns$.
+There are four configurable error rates, described below.
+
+$utg \le ovl \le cns \le cgw$.  Usually, $ovl = cns$.
 
 Error rates set via environment variables (AS\_OVL\_ERROR\_RATE,
 AS\_CGW\_ERROR\_RATE and AS\_CNS\_ERROR\_RATE) will be used, unless they are
@@ -344,26 +341,33 @@ changed via the spec file or command line options.
 
 Note that the unitigger error rate cannot be set via the environment.
 
-
 \begin{longtable}{lp{3.0in}}
 
 ovlErrorRate={\it float} &
-For both Overlap Based Trimming and normal overlaps, expressed as a fraction error, $0.0 \le error \le 0.25$.
+Error limit on overlaps, for both Overlap Based Trimming and normal
+overlaps.  The overlapper modules will not report overlaps over this
+limit.
+Expressed as a fraction error, $0.0 \le error \le 0.25$.
 The default is 0.06 (6\% error).
 \\
 
 utgErrorRate={\it integer} &
-The error rate above which unitigger discards overlaps, expressed as errors per thousand.
+The error rate above which unitigger discards overlaps.
+Expressed as errors per thousand bases.
 The default is 15 (1.5\% error).
 \\
 
 cnsErrorRate={\it float} &
-Error rate for consensus, expressed as a fraction error, $0.0 \le error \le 0.25$.
+Error rate for consensus.  Consensus will expect to find alignments
+below this level, but it doesn't strictly enforce it.
+Expressed as a fraction error, $0.0 \le error \le 0.25$.
 The default is 0.06 (6\% error).
 \\
 
 cgwErrorRate={\it float} &
-Error rate for scaffolder, expressed as a fraction error, $0.0 \le error \le 0.25$.
+Error rate for scaffolder.  Scaffolder will try to merge unitigs and
+contigs up to this error rate.
+Expressed as a fraction error, $0.0 \le error \le 0.25$.
 The default is 0.10 (10\% error).
 \\
 
@@ -376,10 +380,10 @@ The default is 0.10 (10\% error).
 \runCA\ can stop after various modules have computed.  There is no
 corresponding {\it startBefore} option because \runCA\ requires a very
 specific directory layout that is both difficult to describe and
-difficult to recreate manually.  {\em XXXX but it is possible to get
-much the same effect using the {\it do*} options, and having some
-Stores around.}
+difficult to recreate manually.  It {\em is} however possible to get
+much the same effect using the {\it do*} options.
 
+The default, obviously, is to not stop early.
 
 \begin{longtable}{lp{3.0in}}
 
@@ -431,16 +435,9 @@ this defaults to the location of \runCA.
 grid={\it string} &
 The architecture of the machines in the grid. This should be the name
 of the Celera Assembler directory containing the grid binaries, for
-example, ``Linux-i686'', ``Darwin-ppc'', ``OSF1-alpha'' and
+example, ``Linux-i686'', ``Darwin-ppc'', ``OSF1-alpha'' or
 ``FreeBSD0-amd64''.  If not specified, it defaults to the architecture
-of the current host, or ``Linux-i686'' if that exists.
-\\
-
-useGrid={\it integer} &
-If zero, no module will use the grid.  If non-zero, the grid will be
-used for modules that support it, and that are enabled.  Each module
-may independently decide to not use the grid.  The default is to not
-use the grid.
+of the current host.
 \\
 
 doBackupFragStore={\it integer} &
@@ -457,31 +454,120 @@ starting from this value.  The default is to use real UID's.
 uidServer={\it string} &
 Pass this string to modules that access the UID server (currently,
 {\tt AS\_TER/terminator} and {\tt AS\_OBT/dumpDistanceEstimates}).
-This is undefined by default.
-\\
-
-executionWrapper={\it string} &
-If defined, this program is used to execute the components of the
-assembler.  The program should behave similarily to {\it e.g.}, {\tt
-/usr/bin/time}.  It should take no options, treat the first command
-line argument as the executable to run, and pass all remaining
-arguments to that executable..  This is undefined by default.
-
-An unfortunate quirk:  Some commands are implemented as a pipeline, 
-e.g., ``cat file1 file2 | dosomething''.  The wrapper is executed
-using perl's system() function:
-
-system(``cd somewhere \&\& wrapper cat file1 file2 | dosomething'').
-
-This means that the wrapper only ``sees'' ``cat file1 file2''.
+This is empty by default.
 \\
 
 scratch={\it string} &
 A path to a local scratch disk.  Used to store the output of overlap and
-consensus as they execute.  This is {\tt /scratch} by default.
+consensus as they execute.  This is {\tt /tmp} by default.
+\\
+\end{longtable}
+
+
+\subsection{Sun Grid Engine Options}
+
+\runCA has extremely flexible (read: complicated) SGE support.  By
+default, SGE is not used, and all components of the assembler are run
+on the machine you start \runCA on.
+
+Enabling {\tt useGrid=1} will let {\tt overlapper} and {\tt consensus}
+use the grid, however, these must be manually submitted (a submission
+command is provided, so it's not difficult).  After each stage
+finished, you must restart \runCA to proceed with the assembly.  This
+method allows the large memory components of the assembler to run on a
+machine with no grid access, but still manually use a grid for the
+computationally expensive pieces.  For a long time, JCVI had a large
+memory Alpha not on the grid, and we ran \runCA there.  The filesystem
+was shared between the Alpha and the grid, and we used this mode for
+large assemblies.  It's a pain, though, so get your sysadmin to put
+the big machine on the grid.
+
+Enabling {\tt scriptOnGrid=1} will launch \runCA on the grid, and
+\runCA will take care of submitting all parallel components, and
+restarting \runCA after each finishes.
+
+\begin{longtable}{lp{3.0in}}
+
+useGrid={\it integer} &
+If zero, no module will use the grid.  If non-zero, the grid will be
+used for modules that support it, and that are enabled.  Each module
+may independently decide to not use the grid.  The default is to not
+use the grid.
+\\
+
+scriptOnGrid={\it integer} &
+If zero, run only the parallel components on the grid.  If one, submit
+the controlling script (aka \runCA) to the grid.  This is disabled by
+default.
+\\
+
+ovlOnGrid={\it integer} &
+If zero, do not use the grid for overlapping.  This is enabled by
+default, however, {\em useGrid} is not enabled by default, thus,
+overlapping, by default is not done on the grid.
+\\
+
+frgCorrOnGrid={\it integer} &
+If zero, do not use the grid.  Fragment error correction makes heavy
+use of the fragment store.  Unless your grid has fast
+access to this store, use of the grid is strongly discouraged.
+\\
+
+ovlCorrOnGrid={\it integer} &
+If zero, do not use the grid.  XXXXX.  Unless your grid has fast
+access to this store, use of the grid is strongly discouraged.
+\\
+
+cnsOnGrid={\it integer} &
+If zero, do not use the grid for consensus.  This is enabled by
+default, however, {\em useGrid} is not enabled by default, thus,
+consensus, by default is not done on the grid.
+\\
+
+maxGridJobSize={\it integer} &
+Submit no more than this many jobs concurrently.
+\\
+
+sge={\it string} &
+{\it string} is passed to the {\tt qsub} command used to submit ANY job to the grid.
+\\
+
+sgeScript={\it string} &
+{\it string} is passed to the {\tt qsub} command used to submit \runCA to the grid.
+\\
+
+sgeOverlap={\it string} &
+{\it string} is passed to the {\tt qsub} command used to submit overlap jobs to the grid.
+\\
+
+sgeConsensus={\it string} &
+{\it string} is passed to the {\tt qsub} command used to submit consnsus jobs to the grid.
+\\
+
+sgeFragmentCorrection={\it string} &
+{\it string} is passed to the {\tt qsub} command used to submit fragment correction jobs to the grid.
+\\
+
+sgeOverlapCorrection={\it string} &
+{\it string} is passed to the {\tt qsub} command used to submit overlap correction jobs to the grid.
 \\
 
 \end{longtable}
+
+
+
+\subsection{Gatekeeper Options}
+\label{sec:gkpopts}
+
+\begin{longtable}{lp{3.0in}}
+gkpBelieveInputStdDev={\it integer} &
+If zero, {\tt gatekeeper} is suspicious of insert size estimates with
+too large / too small standard deviations, and will reset them to be
+$0.1 * mean$.  The default is to be suspicious.  See also {\tt
+computeInsertSize} in Section~\ref{sec:scafopts}.
+\\
+\end{longtable}
+
 
 \subsection{Overlap Based Trimming Options}
 \label{sec:obtopts}
@@ -508,7 +594,6 @@ problem fixed, the resulting clear range, and any evidence for the
 change.
 \end{enumerate}
 
-
 \begin{longtable}{lp{3.0in}}
 doOverlapTrimming={\it integer} &
 If non-zero, do overlap-based trimming.  The default is to do overlap
@@ -521,18 +606,7 @@ each read.  Format {\it uid vector-left vector-right}, one UID per
 line.  Coordiates are base-based.
 \\
 
-immutableFrags={\it path} &
-The path to a file containing a list of uids that should not be
-modified by overlap-based trimming.  One UID per line.
-\\
-
-ovlSortMemory={\it integer} &
-The amount of memory, in megabytes, to use for sorting overlaps.  The
-default is to use 1024MB memory.
-\\
-
 \end{longtable}
-
 
 
 \subsection{Overlapper Options}
@@ -555,6 +629,20 @@ ovlRefBlockSize}, and using {\it ovlHashBlockSize} to control the number of
 jobs.  See {\it ovlMemory}.
 
 \begin{longtable}{lp{3.0in}}
+overlapper={\em ovl} or {\em mer} or {\em umd} &
+Select which overlapper to use.
+If {\em umd} is used, OBT is disabled.
+Default is {\em ovl}.
+\\
+
+obtOverlapper={\em ovl} or {\em mer} &
+Select which overlapper to use for computing OBT overlaps.
+\\
+
+ovlOverlapper={\em ovl} or {\em mer} or {\em umd} &
+Select which overlapper to use for computing normal overlaps.
+\\
+
 ovlThreads={\it integer} &
 The number of compute threads to use.  Usually the number of CPUs your
 host has.  Even if your grid schedules N jobs per N CPU host, there is
@@ -571,7 +659,7 @@ overlaps.  You should probably also use {\it stopAfter=overlapper}.
 ovlHashBlockSize={\it integer} &
 The number of fragments to use for hash table construction.
 Overlapper will, internally, fragment this range so as to not exceed
-its memory limit.  The default is 40,000 fragments.
+its memory limit.  The default is 200,000 fragments.
 \\
 
 ovlRefBlockSize={\it integer} &
@@ -582,48 +670,68 @@ is 2,000,000 fragments.
 ovlMemory={\it integer} &
 One of a set of predefined memory sizes, optionally followed by any
 detailed overlap memory switched (not documented here).  The memory sizes are:
-{\it 256MB},
-{\it 1GB},
-{\it 2GB},
-{\it 4GB},
-{\it 8GB} and
-{\it 16GB}.
-\\
-
-ovlOnGrid={\it integer} &
-If zero, do not use the grid for overlapping.  This is enabled by
-default, however, {\em useGrid} is not enabled by default, thus,
-overlapping, by default is not done on the grid.
+{\it 256MB}, {\it 1GB}, {\it 2GB}, {\it 4GB}, {\it 8GB} and {\it 16GB}.
+The default is {\it 2GB}.
 \\
 
 ovlStoreMemory={\it integer} &
-The amount of memory, in megabytes, to use for building the overlap
-store.  It is critical that this value be as large as possible,
-especially with large assemblies.  The default is 1024MB memory.
+The amount of memory, in megabytes, to use for building overlap
+stores.  The default is 1024MB memory.
 \\
 
-merSize={\it integer} &
-Sets both {\it merSizeObt} and {\it merSizeOvl}.
-\\
 
-merSizeObt={\it integer} &
-Sets the overlapper and meryl k-mer size used when computing overlaps
-for Overlap Based Trimming.
-\\
-
-merSizeOvl={\it integer} &
+ovlMerSize={\it integer} &
 Sets the overlapper and meryl k-mer size used when computing normal
-overlaps.
+overlaps.  Default: 22.
 \\
 
-merylObtThreshold={\tt integer} &
+ovlMerThreshold={\tt integer} &
 Mers with count larger than this value will not be used to seed
-overlaps for Overlap Based Trimming.
+normal overlaps.  Only for {\em ovl} overlapper.  The special value {\it 0}
+disables mer counting for OVL.  Default: 500.
 \\
 
-merylOvlThreshold={\tt integer} &
+
+obtMerSize={\it integer} &
+Sets the overlapper and meryl k-mer size used when computing overlaps
+for Overlap Based Trimming.  Default: 22.
+\\
+
+obtMerThreshold={\tt integer} &
 Mers with count larger than this value will not be used to seed
-normal overlaps.
+overlaps for Overlap Based Trimming.  Only for {\em ovl} overlapper.  The special value {\it 0}
+disables mer counting for OBT.  Default: 1000.
+\\
+
+
+merThreads={\it integer} &
+The number of compute threads to use.  Usually the number of CPUs your
+host has.
+The default is 2 threads.
+\\
+
+merCompression={\it integer} &
+If the mer overlapper is enabled, compress homopolymer runs to this many letters.
+For example, {\tt ACTTTAAC} with merCompression=1 would be {\tt ACTAC}.
+The default is 1.
+\\
+
+umdOverlapperFlags={\it string} &
+Flags supplied to the UMD overlapper.  Default: ``-calculate-trims -use-uncleaned-reads''.
+\\
+
+\end{longtable}
+
+\subsection{Meryl Options}
+\label{sec:merylopts}
+
+A far superior {\em meryl} mer counter is available if CA is compiled
+with {\em kmer} support.
+
+\begin{longtable}{lp{3.0in}}
+merylMemory={\it integer} &
+Amount of memory that meryl is allowed to use.  Only if {\em kmer} is
+used.  Default: 800MB.
 \\
 \end{longtable}
 
@@ -669,28 +777,18 @@ frgCorrThreads={\it integer} &
 The number of threads to use for fragment error correction.
 \\
 
-frgCorrOnGrid={\it integer} &
-If zero, do not use the grid.  Fragment error correction makes heavy
-use of the fragment store.  Unless your grid has fast
-access to this store, use of the grid is strongly discouraged.
-\\
-
 frgCorrConcurrency={\it integer} &
-If the grid is not enabled, run this many fragment correction jobs at the same
+If the grid is NOT enabled, run this many fragment correction jobs at the same
 time.  Default is 1.
 \\
 
 ovlCorrBatchSize={\it integer} &
-{\it more documentation needed!}  1,000,000 uses about 2.5GB memory.  400,000 uses 750MB.
-\\
-
-ovlCorrOnGrid={\it integer} &
-If zero, do not use the grid.  XXXXX.  Unless your grid has fast
-access to this store, use of the grid is strongly discouraged.
+{\it documentation needed!}  1,000,000 uses about 2.5GB memory.  400,000 uses 750MB.
+Default: 200,000.
 \\
 
 ovlCorrConcurrency={\it integer} &
-If the grid is not enabled, run this many overlap correction jobs at the same
+If the grid is NOT enabled, run this many overlap correction jobs at the same
 time.  Default is 4.
 \\
 \end{longtable}
@@ -700,21 +798,27 @@ time.  Default is 4.
 
 \subsection{Unitigger Options}
 
+The Best Overlap Graph (BOG) is an implementaiton of a simpler
+algorithm for building unitigs.  See Section~\ref{sec:erates} for
+a discussion about error rates.
+
 \begin{longtable}{lp{3.0in}}
+unitigger={\em utg} or {\em bog} &
+Use the original unitigger, or the best overlap graph unitigger.
+Default: utg.
+\\
+
 utgGenomeSize={\it integer} &
-The genome size, in bases, to force unitigger to use.  This option is
-for advanced use only, and is not usually specified.
+The genome size, in bases, to force unitigger to use.  By default,
+unitigger will supply a reasonable estimate, and this option is not
+usually specified.
 \\
 
 utgEdges={\it integer} &
-The estimated number of edges unitigger will encounter.  If you find that unitigger
-is exhausting its process size, setting this to slightly more than the actual number of edges
-might help.  Otherwise, do not use.
-\\
-
-utgErrorRate={\it integer} &
-The error rate above which unitigger discards overlaps, expressed as errors per thousand.
-The default is 15 (1.5\% error).
+The estimated number of edges unitigger will encounter.  If you find
+that unitigger is exhausting its process size, setting this to
+slightly more than the actual number of edges might help.  Otherwise,
+do not use.
 \\
 
 utgFragments={\it integer} &
@@ -727,51 +831,93 @@ Otherwise, do not use.
 utgBubblePopping={\it integer} &
 If zero, do not pop bubbles in unitigger.  If one, pop bubbles.  Default is to pop bubbles.
 \\
+
+utgRecalibrateGAR={\it integer} &
+If one, recalibrate the global fragment arrival rate based on large unitigs.  Default is to recalibrate.
+\\
+
+bogPromiscuous={\it integer} &
+Default 0.
+\\
+
+bogEjectUnhappyContain={\it integer} &
+Default 0.
+\\
+
+bogBadMateDepth={\it integer} &
+Split unitigs with more than this number of overlapping bad mates.  Default 7.
+\\
+
 \end{longtable}
 
 
-
 \subsection{Scaffolder Options}
+\label{sec:scafopts}
 
 \begin{longtable}{lp{3.0in}}
 
 cgwOutputIntermediate={\it integer} &
 if non-zero, intermediate CGW runs will output the .cgw,
-.cgw\_scaffolds and .cgw\_contigs files.  The default is to not output
+.cgw\_scaffolds and .cgw\_contigs files.  The default is to NOT output
 these files.
 \\
 
 cgwPurgeCheckpoints={\it integer} &
-If non-zero (the default) remove all but the final CGW checkpoint file.
+If non-zero (the default) remove all but the final CGW checkpoint file
+after cgw finishes successfully.
+\\
+
+cgwDemoteRBP={\it integer} &
+If one, demote some unitigs to repeat status based on patterns in
+overlaps.  Default is one.
+\\
+
+astatLowBound={\it integer} &
+Default: 1.
+\\
+
+astatHighBound={\it integer} &
+Default: 5.
 \\
 
 stoneLevel={\it integer} &
-The amount of stones thrown in the last iteration of cgw.
+The aggressiveness of stone throwing in the last iteration of cgw.  Default: 2.
 \\
 
-delayInterleavedMerging={\it integer} &
-If non-zero, interleaved scaffold merging will be performed only when
-stones are thrown, usually the last iteration of cgw, in particular,
-after all iterations of {\it extendClearRanges}.  The default is to
-not delay merging, and do merging in the very first cgw.
+computeInsertSize={\it integer} &
+If non-zero, compute a scratch scaffolding to better estimate insert
+sizes before scaffolding starts.  The estimates are updated in the
+gatekeeper store, which replaces the original values.  This is
+reasonably expensive for large assemblies, but does generally if
+slightly improve the result.  Note that insert size estimates are also
+re-estimated while scaffolding, but not updated in the gatekeeper
+store.  The default is to compute the initial update for assemblies
+with fewer than 100,000 fragments.
 \\
 
-doExtendClearRanges={\it integer} &
-If non-zero, do that many round of {\it extendClearRanges}.  Stones are disabled
-until after all rounds.
-\\
-
-doUpdateDistanceRecords={\it integer} &
-If non-zero, update the distance records after each round of {\it extendClearRanges}.  THIS IS
-CURRENTLY BROKEN.  Instead, if {\it updateDistanceType} is ``pre'', distance records are
-updated by computing a scratch cgw before the normal scaffolding process starts.
+cgwDistanceSampleSize={\it integer} &
+Do not update insert size estimates unless there are this many mates to use as evidence.
+Default: 100.
 \\
 
 doResolveSurrogates={\it integer} &
 If non-zero, resolve surrogates.
 \\
-\end{longtable}
 
+doExtendClearRanges={\it integer} &
+If non-zero, do that many rounds of {\it extendClearRanges}.  Stones are disabled
+until after all rounds.
+\\
+
+extendClearRangesStepSize={\it integer} &
+Run extendClearRanges in batches of this many scaffolds.  The default
+is to use the larger of 5000 or one eigthth the number of scaffolds,
+whichever is larger.  Note that a cgw checkpoint and a gatekeeper store
+backup are saved for each batch; it is VERY easy to run out of disk space
+on a large assembly if the step size is too small.
+\\
+
+\end{longtable}
 
 
 \subsection{Consensus Options}
@@ -780,7 +926,7 @@ These options apply to both post-unitigger and post-scaffolder consensus.
 
 \begin{longtable}{lp{3.0in}}
 cnsPartitions={\it integer} &
-The approximate number of partitions unitigger/scaffolder will
+The approximate number of partitions unitigger and scaffolder will
 generate for consensus.  There will be no more than this, but likely
 will be fewer.  The default is 128 partitions, or partitions
 consisting of about {\it cnsMinFrags} fragments, whichever results in fewer
@@ -790,12 +936,6 @@ partitions.
 cnsMinFrags={\it integer} &
 The minimum number of fragments in a consensus partition.  Default
 is 75,000.
-\\
-
-cnsOnGrid={\it integer} &
-If zero, do not use the grid for consensus.  This is enabled by
-default, however, {\em useGrid} is not enabled by default, thus,
-consensus, by default is not done on the grid.
 \\
 
 cnsConcurrency={\it integer} &
@@ -808,11 +948,11 @@ time.  Default is 2.
 \subsection{Terminator Options}
 \begin{longtable}{lp{3.0in}}
 createAGP={\it integer} &
-If non-zero, create an AGP file for the scaffolds.  Default is 1.
+If non-zero, create an AGP file for the scaffolds.  Default is 0.
 \\
 
 createACE={\it integer} &
-If non-zero, create an ACE file for the scaffolds.  Default is 1.
+If non-zero, create an ACE file for the scaffolds.  Default is 0.
 \\
 
 createPosMap={\it integer} &
@@ -821,12 +961,20 @@ variation records, etc, with contig and scaffold coordinates.  Default
 is 1.
 \\
 
+merQC={\it integer} &
+If one, compute a mer based QC report.  The default is to NOT compute the report.
+\\
+
 merQCmemory={\it integer} &
 Use xMB of memory, at most, when computing the merQC.  Default is 1024MB.
 \\
 
 merQCmerSize={\it integer} &
 Use size k mers for the merQC.  Default is 22.
+\\
+
+cleanup={\it string} &
+Remove temporary/intermediate files after the assembly finishes.
 \\
 
 \end{longtable}

@@ -93,16 +93,30 @@ sub checkMerOverlapper ($) {
 sub checkOverlap {
     my $isTrim = shift @_;
 
-    return if (-d "$wrk/$asm.ovlStore");
-
     caFailure("checkOverlap()-- I need to know if I'm trimming or assembling!\n") if (!defined($isTrim));
 
-    if ((getGlobal("merOverlap") eq "both") ||
-        ((getGlobal("merOverlap") eq "obt") && ($isTrim eq "trim")) ||
-        ((getGlobal("merOverlap") eq "ovl") && ($isTrim ne "trim"))) {
-        checkMerOverlapper($isTrim);
+    if ($isTrim eq "trim") {
+        return if (-d "$wrk/$asm.obtStore");
+        if      (getGlobal("obtOverlapper") eq "ovl") {
+            checkOverlapper($isTrim);
+        } elsif (getGlobal("obtOverlapper") eq "mer") {
+            checkMerOverlapper($isTrim);
+        } elsif (getGlobal("obtOverlapper") eq "umd") {
+            caError("checkOverlap() wanted to check umd overlapper for obt?\n");
+        } else {
+            caError("checkOverlap() unknown obt overlapper?\n");
+        }
     } else {
-        checkOverlapper($isTrim);
+        return if (-d "$wrk/$asm.ovlStore");
+        if      (getGlobal("ovlOverlapper") eq "ovl") {
+            checkOverlapper($isTrim);
+        } elsif (getGlobal("ovlOverlapper") eq "mer") {
+            checkMerOverlapper($isTrim);
+        } elsif (getGlobal("ovlOverlapper") eq "umd") {
+            #  Nop.
+        } else {
+            caError("checkOverlap() unknown ovl overlapper?\n");
+        }
     }
 }
 

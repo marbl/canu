@@ -9,18 +9,18 @@ sub unitigger (@) {
         system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");
 
         my $l = getGlobal("utgGenomeSize");
-        my $m = getGlobal("utgEdges");
         my $e = getGlobal("utgErrorRate");
-        my $n = getGlobal("utgFragments");
-        my $u = getGlobal("utgBubblePopping");
+
         my $B = int($numFrags / getGlobal("cnsPartitions"));
         $B = getGlobal("cnsMinFrags") if ($B < getGlobal("cnsMinFrags"));
 
-        my $bmd = getGlobal("bogBadMateDepth");
+        my $unitigger = getGlobal("unitigger");
 
         my $cmd;
 
-        if ($global{'useBogUnitig'}) {
+        if ($unitigger eq "bog") {
+            my $bmd = getGlobal("bogBadMateDepth");
+
             $cmd  = "$bin/buildUnitigs ";
             $cmd .= " -O $wrk/$asm.ovlStore ";
             $cmd .= " -G $wrk/$asm.gkpStore ";
@@ -32,7 +32,11 @@ sub unitigger (@) {
             $cmd .= " -m $bmd " if (defined($bmd));
             $cmd .= " -o $wrk/4-unitigger/$asm ";
             $cmd .= " > $wrk/4-unitigger/unitigger.out 2>$wrk/4-unitigger/unitigger.err";
-        } else {
+        } elsif ($unitigger eq "utg") {
+            my $m = getGlobal("utgEdges");
+            my $n = getGlobal("utgFragments");
+            my $u = getGlobal("utgBubblePopping");
+
             $cmd  = "$bin/unitigger ";
             $cmd .= " -k " if (getGlobal("utgRecalibrateGAR") == 1);
             $cmd .= " -B $B ";
@@ -45,6 +49,8 @@ sub unitigger (@) {
             $cmd .= " -o $wrk/4-unitigger/$asm ";
             $cmd .= " -I $wrk/$asm.ovlStore ";
             $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
+        } else {
+            caFailure("Unknown unitigger $unitigger.\n");
         }
 
         if (runCommand("$wrk/4-unitigger", $cmd)) {

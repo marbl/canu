@@ -5,7 +5,6 @@ sub createOverlapJobs($) {
     my $isTrim = shift @_;
 
     return if (-d "$wrk/$asm.ovlStore");
-    return if (getGlobal("doUseOverlapper") == 0);
 
     caFailure("createOverlapJobs()-- Help!  I have no frags!\n") if ($numFrags == 0);
     caFailure("createOverlapJobs()-- I need to know if I'm trimming or assembling!\n") if (!defined($isTrim));
@@ -16,24 +15,37 @@ sub createOverlapJobs($) {
 
     my $outDir  = "1-overlapper";
     my $ovlOpt  = "";
-    my $merSize = getGlobal("merSizeOvl");
+    my $merSize = getGlobal("ovlMerSize");
     my $merComp = getGlobal("merCompression");
 
     if ($isTrim eq "trim") {
         $outDir  = "0-overlaptrim-overlap";
         $ovlOpt  = "-G";
-        $merSize = getGlobal("merSizeObt");
+        $merSize = getGlobal("obtMerSize");
     }
 
     system("mkdir $wrk/$outDir") if (! -d "$wrk/$outDir");
 
     return if (-e "$wrk/$outDir/jobsCreated.success");
 
-    #  mer overlapper here
+    #  umd overlapper here
+    #
+    if (getGlobal("ovlOverlapper") eq "umd") {
+        #  For Sergey:
+        #
+        #  UMDoverlapper() needs to dump the gkpstore, run UMD, build
+        #  the ovlStore and update gkpStore with new clear ranges.
+        #  The explicit call to UMDoverlapper in main() can then go away.
+        #  OBT is smart enough to disable itself if umd is enabled.
+        #
+        #UMDoverlapper();
+        #return;
+    }
 
-    if ((getGlobal("merOverlap") eq "both") ||
-        ((getGlobal("merOverlap") eq "obt") && ($isTrim eq "trim")) ||
-        ((getGlobal("merOverlap") eq "ovl") && ($isTrim ne "trim"))) {
+    #  mer overlapper here
+    #
+    if ((($isTrim eq "trim") && (getGlobal("obtOverlapper") eq "mer")) ||
+        (($isTrim ne "trim") && (getGlobal("ovlOverlapper") eq "mer"))) {
         merOverlapper($isTrim);
         return;
     }

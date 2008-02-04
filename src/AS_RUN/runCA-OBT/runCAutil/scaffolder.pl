@@ -57,7 +57,6 @@ sub CGW ($$$$$$) {
     $cmd  = "$bin/cgw $ckp -c -j $astatLow -k $astatHigh -r 5 -s $stoneLevel ";
     $cmd .= " -S 0 " if (($finalRun == 0)   || (getGlobal("doResolveSurrogates") == 0));
     $cmd .= " -G "   if (($finalRun == 0)   && (getGlobal("cgwOutputIntermediate") == 0));
-    $cmd .= " -M "   if (($stoneLevel == 0) && (getGlobal("delayInterleavedMerging") == 1));
     $cmd .= " -z "   if (getGlobal("cgwDemoteRBP") == 1);
     $cmd .= " -m $sampleSize";
     $cmd .= " -g $wrk/$asm.gkpStore ";
@@ -186,7 +185,6 @@ sub eCR ($$$) {
 sub updateDistanceRecords ($) {
     my $thisDir = shift @_;
 
-    return if (getGlobal("doUpdateDistanceRecords") == 0);
     return if (-e "$wrk/$thisDir/cgw.distupdate.success");
 
     #  Older versions needed to actually compute the updated
@@ -218,11 +216,10 @@ sub scaffolder ($) {
 
     #  Do an initial CGW to update distances, then update the
     #  gatekeeper.  This initial run shouldn't be used for later
-    #  CGW'ing.  We need to check explicitly for
-    #  doUpdateDistanceRecords, otherwise that CGW() is run, _then_ we
-    #  check if we should update.
+    #  CGW'ing.
     #
-    if (getGlobal("doUpdateDistanceRecords")) {
+    if ((getGlobal("computeInsertSize") == 1) ||
+        (getGlobal("computeInsertSize") == 0) && ($numFrags < 100000)) {
         updateDistanceRecords(CGW("6-clonesize", undef, $cgiFile, $stoneLevel, undef, 0));
     }
 

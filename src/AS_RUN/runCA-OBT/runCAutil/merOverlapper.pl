@@ -4,7 +4,6 @@ sub merOverlapper($) {
     my $isTrim = shift @_;
 
     return if (-d "$wrk/$asm.ovlStore");
-    return if (getGlobal("doUseOverlapper") == 0);
 
     caFailure("createOverlapJobs()-- Help!  I have no frags!\n") if ($numFrags == 0);
     caFailure("createOverlapJobs()-- I need to know if I'm trimming or assembling!\n") if (!defined($isTrim));
@@ -15,13 +14,13 @@ sub merOverlapper($) {
 
     my $outDir  = "1-overlapper";
     my $ovlOpt  = "";
-    my $merSize = getGlobal("merSizeOvl");
+    my $merSize = getGlobal("ovlMerSize");
     my $merComp = getGlobal("merCompression");
 
     if ($isTrim eq "trim") {
         $outDir  = "0-overlaptrim-overlap";
         $ovlOpt  = "-G";
-        $merSize = getGlobal("merSizeObt");
+        $merSize = getGlobal("obtMerSize");
     }
 
     system("mkdir $wrk/$outDir") if (! -d "$wrk/$outDir");
@@ -41,7 +40,7 @@ sub merOverlapper($) {
     #
     if (! -e "$wrk/$outDir/$asm.ovm") {
         $cmd  = "$bin/overmerry";
-        $cmd .= " -t " . getGlobal("merOverlapThreads");
+        $cmd .= " -t " . getGlobal("merThreads");
         $cmd .= " -g $wrk/$asm.gkpStore";
         $cmd .= " -m $merSize";
         $cmd .= " -c $merComp";

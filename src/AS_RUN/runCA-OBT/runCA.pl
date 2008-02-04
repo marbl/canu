@@ -9,7 +9,9 @@ my @cgbFiles;
 my $cgiFile;
 my $scaffoldDir;
 
-# the UMD overlapper would need to run first because it creates a modified frag file with the computed clear range
+# The UMD overlapper needs to run first because it creates a modified
+# frag file with the computed clear range
+
 my @steps = (
              'UMDOverlap',                '@fragFiles = UMDOverlapper(@fragFiles)',
              'Pre-overlap',               'preoverlap(@fragFiles)',
