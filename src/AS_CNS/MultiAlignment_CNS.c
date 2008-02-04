@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.179 2008-01-24 18:03:22 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.180 2008-02-04 14:04:11 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -2944,6 +2944,8 @@ AllocateMemoryForReads(Read **reads, int32 nr, int32 len,
 {
   int i, j;    
 
+  assert(nr > 0);
+
   *reads = (Read *)safe_malloc(nr*sizeof(Read));
   for (i=0; i<nr; i++) 
     {
@@ -2964,6 +2966,8 @@ static void
 AllocateMemoryForAlleles(Allele **alleles, int32 nr, int32 *na)
 {
   int j;
+
+  assert(nr > 0);
 
   *na = 0;
   *alleles = (Allele *)safe_calloc(nr, sizeof(Allele));
@@ -3445,6 +3449,12 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
           // Calculate the total number of reads, vreg.nr (corresponding to any allele)
           for (j=vreg.beg; j<vreg.end; j++)
             GetReadIidsAndNumReads(cids[j], &vreg);
+
+          //  BPW:  Hmmm.  How do we have no reads here?
+          if (vreg.nr == 0) {
+            fprintf(stderr, "no reads for vreg beg=%d end=%d SKIPPING IT (bug?)\n", vreg.beg, vreg.end);
+            continue;
+          }
 
           // Allocate memrory for reads
           AllocateMemoryForReads(&vreg.reads, vreg.nr, vreg.end - vreg.beg,
