@@ -219,7 +219,7 @@ sub scaffolder ($) {
     #  CGW'ing.
     #
     if ((getGlobal("computeInsertSize") == 1) ||
-        (getGlobal("computeInsertSize") == 0) && ($numFrags < 100000)) {
+        (getGlobal("computeInsertSize") == 0) && ($numFrags < 1000000)) {
         updateDistanceRecords(CGW("6-clonesize", undef, $cgiFile, $stoneLevel, undef, 0));
     }
 
