@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_main.c,v 1.62 2008-01-03 22:43:11 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_main.c,v 1.63 2008-02-04 16:33:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,12 +51,12 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "The first usage will append to or create a GateKeeper store:\n");
-  fprintf(stdout, "  -a                     append to existing tore\n");
+  fprintf(stdout, "  -a                     append to existing store\n");
   fprintf(stdout, "  -o <gkpStore>          append to or create gkpStore\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  -T                     do not check minimum length (for OBT)\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "  -D                     do NOT limit insert size stddev to 10% of the mean\n");
+  fprintf(stdout, "  -D                     do NOT limit insert size stddev to 10%% of the mean\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  -E <error.frg>         write errors to this file\n");
   fprintf(stdout, "\n");
