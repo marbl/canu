@@ -41,7 +41,7 @@ sub createPostScaffolderConsensusJobs ($) {
         $cmd  = "$bin/gatekeeper -P $wrk/8-consensus/FragPartition.txt $wrk/$asm.gkpStore ";
         $cmd .= "> $wrk/8-consensus/$asm.partitioned.err 2>&1";
 
-         "Failed.\n" if (runCommand("$wrk/8-consensus", $cmd));
+        caFailure("Failed.\n") if (runCommand("$wrk/8-consensus", $cmd));
         touch("$wrk/8-consensus/$asm.partitioned");
     }
 
