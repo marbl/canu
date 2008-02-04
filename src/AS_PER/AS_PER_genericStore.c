@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.25 2008-02-03 22:47:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.26 2008-02-04 04:09:41 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -406,9 +406,9 @@ convertStoreToMemoryStore(StoreStruct *source) {
 
   //  These should be true for a disk-based store, and false for a
   //  memory store.
-  assert(source->firstElem == 1);
-  assert(source->fp        != NULL);
-  assert(source->buffer    == NULL);
+  assert(source->firstElem    == 1);
+  assert(source->fp           != NULL);
+  assert(source->memoryBuffer == NULL);
 
   source->allocatedSize   = sizeof(StoreStruct) + (source->lastElem - source->firstElem + 1) * source->elementSize;
   source->memoryBuffer    = (char *)safe_calloc(sizeof(char), source->allocatedSize);
@@ -450,9 +450,9 @@ convertStoreToPartialMemoryStore(StoreStruct *source,
 
   //  These should be true for a disk-based store, and false for a
   //  memory store.
-  assert(source->firstElem == 1);
-  assert(source->fp        != NULL);
-  assert(source->buffer    == NULL);
+  assert(source->firstElem    == 1);
+  assert(source->fp           != NULL);
+  assert(source->memoryBuffer == NULL);
 
   if (source->storeType == STRING_STORE) {
     sourceOffset    = sizeof(StoreStruct) + firstElem - source->firstElem;
