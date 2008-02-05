@@ -68,17 +68,24 @@ if [ "x$target" = "x" ] ; then
 fi
 
 
-
+#
 #  Look for the python headers.  We don't need the libraries.  This is
 #  used by atac-driver/chainer only.
 #
-python=`which python`
-if [ x$python = x ] ; then
-  echo "You don't seem to have python installed; no 'python' in your path."
-  exit 1
+
+if [ x$PYTHONHOME != x ] ; then
+  echo Found envorinment variable PYTHONHOME = $PYTHONHOME.
+  python=`echo $PYTHONHOME | cut -d: -f 1`
+else
+  python=`which python`
+  if [ x$python = x ] ; then
+    echo "You don't seem to have python installed; no 'python' in your path."
+    exit 1
+  fi
+  python=`dirname $python`
+  python=`dirname $python`
 fi
-python=`dirname $python`
-python=`dirname $python`
+
 if [ -e $python/include/python2.5/Python.h ]
 then
   CFLAGS_PYTHON="-I$python/include/python2.5"
