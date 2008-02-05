@@ -6,9 +6,38 @@ sub findUMDOverlapper() {
    
    return $bin;
 }
-sub UMDOverlapper (@) {
-    my @fragFiles  = @_;
 
+sub getUMDClearRange ($) {
+    my $dir     = shift @_;
+    my $fileName = "$asm.obtClrRange";
+
+    open(F, "ls -1 -d $wrk/$dir/*overlapperRunDir* |");    
+    open(G, ">$wrk/$dir/$fileName") or caFailure("Failed to write '$wrk/$dir/$fileName'\n");    
+    while (<F>) {
+        chomp;
+
+        open(T, "< $_/revisedOrigTrimsForReads.txt") or caFailure("Failed to open '$_/revisedOrigTrimsForReads.txt'\n");
+        while (<T>) {
+           my @trimData = split(/\s+/,$_);
+           my $uid = $trimData[0];
+           my $bgn = $trimData[1];
+           my $end = $trimData[2];
+           
+           if ($bgn < $end) {
+             print G "frg uid $uid obt $bgn $end\n";
+           } else {
+             print G "frg uid $uid obt $end $bgn\n";
+           }           
+        }
+        close(T);
+    }
+    close(F);
+    close(G);
+    
+    return $fileName;
+}
+
+sub UMDoverlapper () {
     goto alldone if (-d "$wrk/$asm.ovlStore");
     goto alldone if (getGlobal("ovlOverlapper") ne "umd");
 
@@ -20,29 +49,13 @@ sub UMDOverlapper (@) {
     my $jobID = "0000001";
     system("mkdir $wrk/$outDir/$jobID") if (! -d "$wrk/$outDir/$jobID");
 
-    #cat the frg files together
-    my $frgFile = "";
-    my $failedFiles = 0;
-    
-    my $cmd = "";
-    if (@fragFiles > 1) {
-       $frgFile = "$wrk/$outDir/$asm.frg";
-       $cmd = "cat ";
-       foreach my $frg (@fragFiles) {
-         if (! -e $frg) {
-            print STDERR "MISSING: $frg\n";
-            next;
-            $failedFiles++;
-         }
-         $cmd .= "$frg ";
-       }
-       caFailure("Files supplied on command line not found.\n") if ($failedFiles);    
-       $cmd .= " > $frgFile";
-       runCommand("$wrk/$outDir", $cmd);
-    } else {
-       $frgFile = $fragFiles[0];
+    #dump the frag file from gkp if it does not exist already
+    if ( ! -s "$wrk/$asm.frg" ) {
+       if (runCommand($wrk, "$bin/gatekeeper -dumpfrg $wrk/$asm.gkpStore 2> $wrk/gatekeeper.err | grep -v 'No source' > $wrk/$asm.frg")) {
+          caFailure("Failed to dump gatekeeper store for UMD overlapper");
+       }    
     }
-
+    
     # create a job list (we have only one job for right now)
     open(SUB, "> $wrk/$outDir/ovljobs.dat") or caFailure("Failed to open '$wrk/$outDir/ovljobs.dat'\n");
     print SUB "$jobID ";   print SUB "\n";
@@ -51,17 +64,24 @@ sub UMDOverlapper (@) {
     
     # run frg file command
     #
-    $cmd = "";
-   
-    $cmd  = "$umdOvlBin/runUMDOverlapper ";
+    my $cmd  = "$umdOvlBin/runUMDOverlapper ";
     $cmd .= getGlobal("umdOverlapperFlags") . " ";
-    $cmd .= "$frgFile $wrk/$outDir/$jobID/$asm.umd.frg ";
+    $cmd .= "$wrk/$asm.frg $wrk/$outDir/$jobID/$asm.umd.frg ";
     $cmd .= " > $wrk/$outDir/$jobID/overlapper.out 2>$wrk/$outDir/$jobID/overlapper.err";
    
     if (runCommand("$wrk/$outDir", $cmd)) {
       caFailure("Failed to run UMD overlapper.\n");
     }   
 
+    # update the gkpStore with newly computed clear ranges
+    my $trimFile = getUMDClearRange($outDir);
+    $cmd = "";
+    $cmd .= "$bin/gatekeeper --edit ";
+    $cmd .= "$wrk/$outDir/$trimFile $wrk/$asm.gkpStore";
+    if (runCommand("$wrk/$outDir", $cmd)) {
+      caFailure("Failed to update OBT trims.\n");
+    }   
+    
     # now create the binary overlaps
     $cmd = "";
     $cmd .= "cat $wrk/$outDir/$jobID/$asm.umd.reliable.overlaps | ";
@@ -72,15 +92,11 @@ sub UMDOverlapper (@) {
     if (runCommand("$wrk/$outDir", $cmd)) {
       caFailure("Failed to create overlaps .\n");
     }   
- 
-    @fragFiles = ( "$wrk/$outDir/$jobID/$asm.umd.frg" );
-    print STDERR "The frag files are now @fragFiles\n";
-   
+        
     touch("$wrk/$outDir/$jobID/$jobID.success");
     stopAfter("overlapper");
    
-  alldone:    
-    return @fragFiles;
+  alldone:
 }
 
 1;

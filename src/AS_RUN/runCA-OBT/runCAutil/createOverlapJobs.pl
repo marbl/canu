@@ -38,8 +38,8 @@ sub createOverlapJobs($) {
         #  The explicit call to UMDoverlapper in main() can then go away.
         #  OBT is smart enough to disable itself if umd is enabled.
         #
-        #UMDoverlapper();
-        #return;
+        UMDoverlapper();
+        return;
     }
 
     #  mer overlapper here
