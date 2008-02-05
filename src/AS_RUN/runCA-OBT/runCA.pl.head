@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-my $MY_VERSION = " 1.6 (Build " . (qw/$Revision: 1.7 $/)[1] . ")";
+my $MY_VERSION = " 4.3 (Build " . (qw/$Revision: 1.8 $/)[1] . ")";
 
 my $HELPTEXT = qq~Run a whole-genome shotgun assembly using Celera Assembler.
 
@@ -19,6 +19,9 @@ my $HELPTEXT = qq~Run a whole-genome shotgun assembly using Celera Assembler.
   -help	            This text
   -version          Outputs the Celera Assembler Version
   -fields           Outputs the specfile fields
+
+See the complete runCA documentation for more information at:  
+http://wgs-assembler.wiki.sourceforge.net/
 ~;
 
 use strict;
