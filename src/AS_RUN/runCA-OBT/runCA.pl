@@ -101,7 +101,7 @@ setParameters($specFile, @specOpts);
 
 printHelp();
 
-if (!@fragFiles) {
+if (!$isContinuation && !@fragFiles) {
     die "No frg files given on the command line.\nTry $0 -h for help.\n\n";
 }
 
