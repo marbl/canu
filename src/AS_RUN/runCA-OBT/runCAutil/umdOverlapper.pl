@@ -74,6 +74,7 @@ sub UMDoverlapper () {
     }   
 
     # update the gkpStore with newly computed clear ranges
+    backupFragStore("beforeUMDOverlapper");
     my $trimFile = getUMDClearRange($outDir);
     $cmd = "";
     $cmd .= "$bin/gatekeeper --edit ";
