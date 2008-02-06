@@ -101,7 +101,13 @@ setParameters($specFile, @specOpts);
 
 printHelp();
 
-if (!$isContinuation && !@fragFiles) {
+#  Fail immediately if we run the script on the grid, and the gkpStore
+#  directory doesn't exist and we have no input files.  Without this
+#  check we'd fail only after being scheduled on the grid.
+#
+if ((getGlobal("scriptOnGrid") == 1) &&
+    (! -d "$wrk/$asm.gkpStore") &&
+    (scalar(@fragFiles) == 0)) {
     die "No frg files given on the command line.\nTry $0 -h for help.\n\n";
 }
 
