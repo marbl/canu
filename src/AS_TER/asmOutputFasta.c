@@ -320,7 +320,7 @@ processSCF(SnapScaffoldMesg *scf_mesg) {
     reversed[0] = FALSE;
   } else {
     int i;
-    reversed[0] = ((scf_mesg->contig_pairs[0].orient == BA_AB) || (scf_mesg->contig_pairs[0].orient == AB_BA)) ? TRUE : FALSE;
+    reversed[0] = ((scf_mesg->contig_pairs[0].orient == BA_AB) || (scf_mesg->contig_pairs[0].orient == BA_BA)) ? TRUE : FALSE;
     for (i=0; i<scf_mesg->num_contig_pairs; i++)
       reversed[i+1] = ((scf_mesg->contig_pairs[i].orient == BA_AB) || (scf_mesg->contig_pairs[i].orient == AB_BA)) ? !reversed[i] : reversed[i];
   }
