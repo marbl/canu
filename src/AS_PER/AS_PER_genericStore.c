@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.26 2008-02-04 04:09:41 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.27 2008-02-07 22:37:28 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -199,6 +199,9 @@ void
 getIndexStore(StoreStruct *s, int64 index, void *buffer) {
   int64 offset = computeOffset(s,index);
 
+  assert(s->storeType == INDEX_STORE);
+  assert(index > 0);
+
   if (s->memoryBuffer) {
     memcpy(buffer, s->memoryBuffer + offset, s->elementSize);
   } else {
@@ -217,7 +220,9 @@ getIndexStore(StoreStruct *s, int64 index, void *buffer) {
 
 void *
 getIndexStorePtr(StoreStruct *s, int64 index) {
+  assert(s->storeType == INDEX_STORE);
   assert(s->memoryBuffer);
+  assert(index > 0);
   if (index > s->lastElem)
     return(NULL);
   return((void *)(s->memoryBuffer + computeOffset(s,index)));
@@ -230,6 +235,7 @@ getStringStore(StoreStruct *s, int64 offset, void *buffer, uint32 maxLength, uin
   int64 actualOffset;
 
   assert(s->storeType == STRING_STORE);
+  assert(offset > 0);
 
   actualOffset = offset - s->firstElem;
 
@@ -271,14 +277,37 @@ char *
 getStringStorePtr(StoreStruct *s, int64 offset, uint32 *actualLength) {
   assert(s->memoryBuffer);
   assert(s->storeType == STRING_STORE);
+  assert(offset > 0);
 
   if (offset >= s->lastElem) {
     *actualLength = 0;
     return(NULL);
   }
 
-  memcpy(actualLength, s->memoryBuffer + offset - s->firstElem + sizeof(StoreStruct), sizeof(uint32));
-  return(s->memoryBuffer + offset - s->firstElem + sizeof(StoreStruct) + sizeof(uint32));
+  memcpy(actualLength, s->memoryBuffer + sizeof(StoreStruct) + offset - s->firstElem, sizeof(uint32));
+
+  //  Not exactly ideal, but we don't store long stuff here anyway.
+  //  There's no real reason for asserting this, just in the hope that
+  //  if there is corruption of some goofy crud, we'll get a bogus
+  //  length.
+  //
+  if (*actualLength > 1048576) {
+    fprintf(stderr, "getStringStorePtr()--  WOW!  actualLength is big = "F_U32".\n", *actualLength);
+    fprintf(stderr, "memBuf + 4 = %c%c%c%c%c%c%c%c\n",
+            s->memoryBuffer[sizeof(StoreStruct) + offset - s->firstElem + 0],
+            s->memoryBuffer[sizeof(StoreStruct) + offset - s->firstElem + 1],
+            s->memoryBuffer[sizeof(StoreStruct) + offset - s->firstElem + 2],
+            s->memoryBuffer[sizeof(StoreStruct) + offset - s->firstElem + 3],
+            s->memoryBuffer[sizeof(StoreStruct) + offset - s->firstElem + 4],
+            s->memoryBuffer[sizeof(StoreStruct) + offset - s->firstElem + 5],
+            s->memoryBuffer[sizeof(StoreStruct) + offset - s->firstElem + 6],
+            s->memoryBuffer[sizeof(StoreStruct) + offset - s->firstElem + 7]);
+  }
+  assert(*actualLength <= 1048576);
+
+  assert(offset - s->firstElem + *actualLength + sizeof(uint32) <= s->lastElem);
+
+  return(s->memoryBuffer + sizeof(StoreStruct) + offset - s->firstElem + sizeof(uint32));
 }
 
 
@@ -290,6 +319,8 @@ setIndexStore(StoreStruct *s, int64 index, void *element) {
   assert(s->readOnly == FALSE);
   assert(s->firstElem <= index);
   assert(s->lastElem >= index);
+
+  assert(index > 0);
 
   if (s->memoryBuffer) {
     memcpy(s->memoryBuffer + computeOffset(s, index), element, s->elementSize);

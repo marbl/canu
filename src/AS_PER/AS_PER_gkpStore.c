@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.47 2008-02-03 22:47:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.48 2008-02-07 22:37:28 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -560,7 +560,7 @@ loadGatekeeperSTRtoUID(GateKeeperStore *gkp) {
     //SaveHashTable_AS(name, gkpStore->STRtoUID);
 
     char          *uidptr = NULL;
-    int64          uidoff = 0;
+    int64          uidoff = 1;
     uint32         actlen = 0;
 
     while ((uidptr = getStringStorePtr(gkp->uid, uidoff, &actlen)) != NULL) {
@@ -571,7 +571,8 @@ loadGatekeeperSTRtoUID(GateKeeperStore *gkp) {
         assert(0);
       }
 
-      uidoff += actlen + 1;
+#warning violates stringStore encapsulation
+      uidoff += sizeof(uint32) + actlen;
     }
   }
   assert(gkp->STRtoUID != NULL);
