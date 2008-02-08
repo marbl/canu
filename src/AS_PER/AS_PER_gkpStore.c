@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.48 2008-02-07 22:37:28 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.49 2008-02-08 23:09:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -557,22 +557,29 @@ loadGatekeeperSTRtoUID(GateKeeperStore *gkp) {
     gkp->uid = convertStoreToMemoryStore(gkp->uid);
 
     gkp->STRtoUID = CreateStringHashTable_AS(32 * 1024);
-    //SaveHashTable_AS(name, gkpStore->STRtoUID);
 
     char          *uidptr = NULL;
     int64          uidoff = 1;
+    int64          nxtoff = 1;
     uint32         actlen = 0;
 
-    while ((uidptr = getStringStorePtr(gkp->uid, uidoff, &actlen)) != NULL) {
+    while ((uidptr = getStringStorePtr(gkp->uid, uidoff, &actlen, &nxtoff)) != NULL) {
+      if (strlen(uidptr) != actlen) {
+        int i;
+        fprintf(stderr, "loadGatekeeperSTRtoUID()-- string '%s' length %d != stored actlen = %d\n",
+                uidptr, strlen(uidptr), actlen);
+        for (i=0; i<strlen(uidptr); i++)
+          fprintf(stderr, "[%2d] %3d '%c'\n", i, uidptr[i], uidptr[i]);
+      }
+      assert(strlen(uidptr) == actlen);
+
       if (InsertInHashTable_AS(gkp->STRtoUID,
                                (INTPTR)uidptr, actlen,
                                uidoff, 0) == HASH_FAILURE) {
         fprintf(stderr, "loadGatekeeperSTRtoUID()-- failed to insert uid '%s' into store; already there?!\n", uidptr);
         assert(0);
       }
-
-#warning violates stringStore encapsulation
-      uidoff += sizeof(uint32) + actlen;
+      uidoff = nxtoff;
     }
   }
   assert(gkp->STRtoUID != NULL);
@@ -609,8 +616,9 @@ AS_GKP_getUID(GateKeeperStore *gkp, AS_UID uid) {
 
   if (uid.isString) {
     uint32  actlen = 0;
+    int64   uidoff = 0;
     loadGatekeeperSTRtoUID(gkp);
-    uid.UIDstring = getStringStorePtr(gkp->uid, uid.UID, &actlen);
+    uid.UIDstring = getStringStorePtr(gkp->uid, uid.UID, &actlen, &uidoff);
   }
 
   return(uid);
@@ -638,13 +646,14 @@ AS_GKP_addUID(GateKeeperStore *gkp, AS_UID uid) {
   if (LookupInHashTable_AS(gkp->STRtoUID, (INTPTR)uid.UIDstring, len, &loc, 0) == FALSE) {
     char    *str = NULL;
     uint32   act = 0;
+    int64    off = 0;
 
     loc = getLastElemStore(gkp->uid) + 1;
 
     //  Stash the UID on disk.
     appendStringStore(gkp->uid, uid.UIDstring, len);
 
-    str = getStringStorePtr(gkp->uid, loc, &act);
+    str = getStringStorePtr(gkp->uid, loc, &act, &off);
 
     if (InsertInHashTable_AS(gkp->STRtoUID,
                              (INTPTR)str, len,
@@ -967,6 +976,7 @@ static
 void
 getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
   uint32            actualLength = 0;
+  int64             nextOffset   = 0;
   StoreStruct      *store        = NULL;
 
   fr->hasSEQ = 0;
@@ -988,7 +998,8 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
                        fr->gkfr.seqOffset,
                        fr->seq,
                        MAX_SEQ_LENGTH,
-                       &actualLength);
+                     &actualLength,
+                     &nextOffset);
       fr->seq[actualLength] = 0;
     }
   }
@@ -1001,10 +1012,11 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
       if (gkp->partmap)
         store = gkp->partqlt;
       getStringStore(store,
-                       fr->gkfr.qltOffset,
-                       fr->qlt,
-                       MAX_SEQ_LENGTH,
-                       &actualLength);
+                     fr->gkfr.qltOffset,
+                     fr->qlt,
+                     MAX_SEQ_LENGTH,
+                     &actualLength,
+                     &nextOffset);
       fr->qlt[actualLength] = 0;
       decodeSequenceQuality(fr->qlt, fr->seq, fr->qlt);
     }
@@ -1016,10 +1028,11 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
       if (gkp->partmap)
         store = gkp->parthps;
       getStringStore(store,
-                       fr->gkfr.hpsOffset,
-                       fr->hps,
-                       MAX_HPS_LENGTH,
-                       &actualLength);
+                     fr->gkfr.hpsOffset,
+                     fr->hps,
+                     MAX_HPS_LENGTH,
+                     &actualLength,
+                     &nextOffset);
       fr->hps[actualLength] = 0;
     }
   }
@@ -1030,10 +1043,11 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
       if (gkp->partmap)
         store = gkp->partsrc;
       getStringStore(store,
-                       fr->gkfr.srcOffset,
-                       fr->src,
-                       MAX_SRC_LENGTH,
-                       &actualLength);
+                     fr->gkfr.srcOffset,
+                     fr->src,
+                     MAX_SRC_LENGTH,
+                     &actualLength,
+                     &nextOffset);
       fr->src[actualLength] = 0;
     }
   }

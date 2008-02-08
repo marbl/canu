@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.27 2008-02-07 22:37:28 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.28 2008-02-08 23:09:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -230,9 +230,11 @@ getIndexStorePtr(StoreStruct *s, int64 index) {
 
 
 void
-getStringStore(StoreStruct *s, int64 offset, void *buffer, uint32 maxLength, uint32 *actualLength) {
+getStringStore(StoreStruct *s, int64 offset, char *buffer, uint32 maxLength, uint32 *actualLength, int64 *nextOffset) {
   uint32 length = 0;
   int64 actualOffset;
+
+  buffer[0] = 0;
 
   assert(s->storeType == STRING_STORE);
   assert(offset > 0);
@@ -248,7 +250,7 @@ getStringStore(StoreStruct *s, int64 offset, void *buffer, uint32 maxLength, uin
     assert(length + actualOffset + sizeof(uint32) <= s->lastElem);
 
     if (length > 0)
-      memcpy(buffer, s->memoryBuffer + actualOffset + sizeof(StoreStruct) + sizeof(uint32), length);
+      memcpy(buffer, s->memoryBuffer + actualOffset + sizeof(StoreStruct) + sizeof(uint32), length + 1);
   } else {
     AS_UTL_fseek(s->fp, (off_t) (actualOffset + sizeof(StoreStruct)), SEEK_SET);
     if (s->lastWasWrite)
@@ -262,25 +264,30 @@ getStringStore(StoreStruct *s, int64 offset, void *buffer, uint32 maxLength, uin
     assert(length <= maxLength);
     assert(length + actualOffset + sizeof(uint32) <= s->lastElem);
 
-    if (length != AS_UTL_safeRead(s->fp,buffer,"getStringStore",sizeof(char), length)) {
-      fprintf(stderr, "getStringStore()-- Failed to read all "F_U32" bytes.  Incomplete store?\n", length);
-      exit(1);
+    if (length > 0) {
+      if (length + 1 != AS_UTL_safeRead(s->fp,buffer,"getStringStore",sizeof(char), length + 1)) {
+        fprintf(stderr, "getStringStore()-- Failed to read all "F_U32" bytes.  Incomplete store?\n", length);
+        exit(1);
+      }
     }
 
     s->lastWasWrite = 0;
   }
 
+  //  Careful!  Precedence of ? sucks.
+  *nextOffset   = offset + sizeof(uint32) + ((length > 0) ? length + 1 : 0);
   *actualLength = length;
 }
 
 char *
-getStringStorePtr(StoreStruct *s, int64 offset, uint32 *actualLength) {
+getStringStorePtr(StoreStruct *s, int64 offset, uint32 *actualLength, int64 *nextOffset) {
   assert(s->memoryBuffer);
   assert(s->storeType == STRING_STORE);
   assert(offset > 0);
 
-  if (offset >= s->lastElem) {
+  if (offset + sizeof(uint32) > s->lastElem) {
     *actualLength = 0;
+    *nextOffset   = 0;
     return(NULL);
   }
 
@@ -291,21 +298,11 @@ getStringStorePtr(StoreStruct *s, int64 offset, uint32 *actualLength) {
   //  if there is corruption of some goofy crud, we'll get a bogus
   //  length.
   //
-  if (*actualLength > 1048576) {
-    fprintf(stderr, "getStringStorePtr()--  WOW!  actualLength is big = "F_U32".\n", *actualLength);
-    fprintf(stderr, "memBuf + 4 = %c%c%c%c%c%c%c%c\n",
-            s->memoryBuffer[sizeof(StoreStruct) + offset - s->firstElem + 0],
-            s->memoryBuffer[sizeof(StoreStruct) + offset - s->firstElem + 1],
-            s->memoryBuffer[sizeof(StoreStruct) + offset - s->firstElem + 2],
-            s->memoryBuffer[sizeof(StoreStruct) + offset - s->firstElem + 3],
-            s->memoryBuffer[sizeof(StoreStruct) + offset - s->firstElem + 4],
-            s->memoryBuffer[sizeof(StoreStruct) + offset - s->firstElem + 5],
-            s->memoryBuffer[sizeof(StoreStruct) + offset - s->firstElem + 6],
-            s->memoryBuffer[sizeof(StoreStruct) + offset - s->firstElem + 7]);
-  }
   assert(*actualLength <= 1048576);
-
   assert(offset - s->firstElem + *actualLength + sizeof(uint32) <= s->lastElem);
+
+  //  Careful!  Precedence of ? sucks.
+  *nextOffset = offset + sizeof(uint32) + ((*actualLength > 0) ? *actualLength + 1 : 0);
 
   return(s->memoryBuffer + sizeof(StoreStruct) + offset - s->firstElem + sizeof(uint32));
 }
@@ -354,15 +351,16 @@ appendIndexStore(StoreStruct *s, void *element) {
 }
 
 void
-appendStringStore(StoreStruct *s, void *str, uint32 len) {
+appendStringStore(StoreStruct *s, char *str, uint32 len) {
 
   assert(s->readOnly == FALSE);
   assert(s->storeType == STRING_STORE);
 
   int64 offset = sizeof(StoreStruct) + s->lastElem;
 
-  if (str)
-    len++;  //  write the null byte
+  //  Make sure the string is zero terminated.
+  if ((str) && (len > 0))
+    assert(str[len] == 0);
 
   if (s->memoryBuffer) {
     int64 desiredSize = offset + len + sizeof(uint32);
@@ -371,19 +369,25 @@ appendStringStore(StoreStruct *s, void *str, uint32 len) {
       s->memoryBuffer  = (char *)safe_realloc(s->memoryBuffer, s->allocatedSize);
     }
     memcpy(s->memoryBuffer + offset, &len, sizeof(uint32));
-    memcpy(s->memoryBuffer + offset + sizeof(uint32), str, len);
+    if (len > 0)
+      memcpy(s->memoryBuffer + offset + sizeof(uint32), str, len + 1);
   } else {
     AS_UTL_fseek(s->fp, (off_t) offset, SEEK_SET);
     if (s->lastWasWrite == 0)
       fflush(s->fp);
 
     AS_UTL_safeWrite(s->fp, &len, "appendStringStore", sizeof(uint32), 1);
-    AS_UTL_safeWrite(s->fp, str, "appendStringStore", sizeof(char), len);
+    if (len > 0)
+      AS_UTL_safeWrite(s->fp, str, "appendStringStore", sizeof(char), len + 1);
     s->lastWasWrite = 1;
   }
 
-  s->lastElem += len + sizeof(uint32);
-  s->isDirty = 1;
+  //  Just painful.  If the string was empty, we wrote nothing.
+  //  Otherwise, we wrote len+1 bytes.
+  //
+  //  Careful!  Precedence of ? sucks.
+  s->lastElem += sizeof(uint32) + ((len > 0) ? len + 1 : 0);
+  s->isDirty   = 1;
 }
 
 
@@ -408,14 +412,15 @@ resetStream(StreamStruct *ss, int64 startIndex, int64 endIndex) {
 
 int
 nextStream(StreamStruct *ss, void *buffer, uint32 maxLength, uint32 *actualLength) {
+  uint32 nextOffset = 0;
+
   if (ss->startIndex > ss->endIndex)
     return(0);
   if (ss->store->storeType == INDEX_STORE) {
     getIndexStore(ss->store, ss->startIndex, buffer);
     ss->startIndex++;
   } else {
-    getStringStore(ss->store, ss->startIndex, buffer, maxLength, actualLength);
-    ss->startIndex += *actualLength + sizeof(uint32);
+    getStringStore(ss->store, ss->startIndex, buffer, maxLength, actualLength, &ss->startIndex);
   }
   return(1);
 }
@@ -472,6 +477,7 @@ convertStoreToPartialMemoryStore(StoreStruct *source,
   StoreStruct *target         = NULL;
   int64        sourceOffset    = 0;
   int64        sourceMaxOffset = 0;
+  int64        bytesRead       = 0;
 
   if (firstElem <= 0)
     firstElem = source->firstElem;
@@ -522,13 +528,15 @@ convertStoreToPartialMemoryStore(StoreStruct *source,
 
   AS_UTL_fseek(source->fp, (off_t)sourceOffset, SEEK_SET);
   fflush(source->fp);
-  if (AS_UTL_safeRead(source->fp,
-                      target->memoryBuffer + sizeof(StoreStruct),
-                      "convertStoreToPartialMemoryStore",
-                      sizeof(char),
-                      sourceMaxOffset - sourceOffset) != sourceMaxOffset - sourceOffset) {
-    fprintf(stderr, "convertStoreToPartialMemoryStore()-- failed to convert store (label '%s') to memory store.\n",
-            source->storeLabel);
+
+  bytesRead = AS_UTL_safeRead(source->fp,
+                              target->memoryBuffer + sizeof(StoreStruct),
+                              "convertStoreToPartialMemoryStore",
+                              sizeof(char),
+                              sourceMaxOffset - sourceOffset);
+  if (bytesRead != sourceMaxOffset - sourceOffset) {
+    fprintf(stderr, "convertStoreToPartialMemoryStore()-- failed to convert store (label '%s') to memory store.\n", source->storeLabel);
+    fprintf(stderr, "convertStoreToPartialMemoryStore()-- wanted to read %d bytes, actually read %d.\n", sourceMaxOffset - sourceOffset, bytesRead);
     exit(1);
   }
 
