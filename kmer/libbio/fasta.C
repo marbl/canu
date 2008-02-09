@@ -105,7 +105,12 @@ fastaFile::openFile(const char *filename) {
   while ((!f->_filebuffer->eof()) && whitespaceSymbol[f->_filebuffer->get()])
     f->_filebuffer->next();
 
-  if (f->_filebuffer->get() == '>') {
+  //  If we get a fasta record separator assume it's a fasta file.  If
+  //  it's eof, the file is empty, and we might as well return this
+  //  fasta file and let the client deal with the lack of sequence.
+  //
+  if ((f->_filebuffer->get() == '>') ||
+      (f->_filebuffer->eof() == true)) {
     f->_filebuffer->seek(0);
     return(f);
   }
