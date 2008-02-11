@@ -19,9 +19,10 @@ sub runMeryl ($$$$) {
 
         if (! -e "$wrk/0-mercounts/$asm-ms$merSize-cm$merComp.mcdat") {
             my $merylMemory = getGlobal("merylMemory");
+	    my $merylThreads = getGlobal("merylThreads");
 
             $cmd .= "$bin/meryl ";
-            $cmd .= " -B -C -v -m $merSize -memory $merylMemory -c $merComp ";
+            $cmd .= " -B -C -v -m $merSize -memory $merylMemory -threads $merylThreads -c $merComp ";
             $cmd .= " -s $wrk/$asm.gkpStore ";
             $cmd .= " -o $wrk/0-mercounts/$asm-ms$merSize-cm$merComp ";
             $cmd .= "> $wrk/0-mercounts/meryl.out 2>&1";
