@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char rcsid[] = "$Id: Consensus_CNS.c,v 1.60 2007-10-29 06:36:18 brianwalenz Exp $";
+static const char rcsid[] = "$Id: Consensus_CNS.c,v 1.61 2008-02-11 19:02:01 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -403,7 +403,6 @@ main (int argc, char **argv) {
         if (num_contig_failures <= MAX_NUM_CONTIG_FAILURES) {
           fprintf(stderr, "MultiAlignContig failed for contig %d\n", pcontig->iaccession);
           writeFailure(outName, pmesg);
-          break;
         } else {
           fprintf(stderr, "MultiAlignContig failed more than MAX_NUM_CONTIG_FAILURES times.  Fail.");
           exit(1);
