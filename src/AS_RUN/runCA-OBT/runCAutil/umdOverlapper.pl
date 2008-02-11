@@ -49,8 +49,16 @@ sub UMDoverlapper () {
     my $jobID = "0000001";
     system("mkdir $wrk/$outDir/$jobID") if (! -d "$wrk/$outDir/$jobID");
 
+    my $vi = getGlobal("vectorIntersect");
+    
     #dump the frag file from gkp if it does not exist already
-    if ( ! -s "$wrk/$asm.frg" ) {
+    # should check if vector clear then dump vec range else dump this range
+    if (defined($vi)) {
+       if (runCommand($wrk, "$bin/gatekeeper -clear VEC -dumpfrg $wrk/$asm.gkpStore 2> $wrk/gatekeeper.err | grep -v 'No source' > $wrk/$asm.vec.frg")) {
+          caFailure("Failed to dump gatekeeper store for UMD overlapper");
+       }
+    }
+    elsif ( ! -s "$wrk/$asm.frg" ) {
        if (runCommand($wrk, "$bin/gatekeeper -dumpfrg $wrk/$asm.gkpStore 2> $wrk/gatekeeper.err | grep -v 'No source' > $wrk/$asm.frg")) {
           caFailure("Failed to dump gatekeeper store for UMD overlapper");
        }    
@@ -66,7 +74,15 @@ sub UMDoverlapper () {
     #
     my $cmd  = "$umdOvlBin/runUMDOverlapper ";
     $cmd .= getGlobal("umdOverlapperFlags") . " ";
-    $cmd .= "$wrk/$asm.frg $wrk/$outDir/$jobID/$asm.umd.frg ";
+
+    # when we have vector clear, pass it to the overlapper, otherwise tell the overlapper to figure it out
+    if (defined($vi)) {
+       $cmd .= "-vector-trim-file $wrk/$asm.vec.frg $wrk/$asm.vec.frg "
+    } else {
+       $cmd .= "-calculate-trims $wrk/$asm.frg ";
+    }
+    
+    $cmd .= "$wrk/$outDir/$jobID/$asm.umd.frg ";
     $cmd .= " > $wrk/$outDir/$jobID/overlapper.out 2>$wrk/$outDir/$jobID/overlapper.err";
    
     if (runCommand("$wrk/$outDir", $cmd)) {

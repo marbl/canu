@@ -224,11 +224,12 @@ sub setDefaults () {
     $global{"merThreads"}                  = 2;
     $global{"merCompression"}              = 1;
 
-    $global{"umdOverlapperFlags"}          = "-calculate-trims -use-uncleaned-reads";
+    $global{"umdOverlapperFlags"}          = "-use-uncleaned-reads -trim-error-rate 0.03 -max-minimizer-cutoff 150";
 
     #####  Mers
 
     $global{"merylMemory"}                 = 800;
+    $global{"merylThreads"}                = 1;
 
     #####  Fragment/Overlap Error Correction
 
