@@ -125,10 +125,10 @@ sub getGlobal ($) {
 sub setGlobal ($$) {
     my $var = shift @_;
     my $val = shift @_;
-    #  Special case -- merSize sets both merSizeObt and merSizeOvl.
+    #  Special case -- merSize sets both obtMerSize and ovlMerSize.
     if ($var eq "merSize") {
-        setGlobal("merSizeObt", $val);
-        setGlobal("merSizeOvl", $val);
+        setGlobal("obtMerSize", $val);
+        setGlobal("ovlMerSize", $val);
         return;
     }
     #  Special case -- overlapper sets both obtOverlapper and ovlOverlapper.
