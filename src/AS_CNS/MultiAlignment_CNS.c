@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.180 2008-02-04 14:04:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.181 2008-02-13 19:28:11 eliv Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -6416,8 +6416,8 @@ GetConsensusForAbacus(VarRegion  *vreg, Read *reads, Abacus *abacus,
   // Call consensus
   for (i=0; i<3*abacus->window_width; i++) 
     {
-      int bcount0[6] = {0, 0, 0, 0, 0, 0};
-      int bcount1[6] = {0, 0, 0, 0, 0, 0};
+      int bcount0[CNS_NALPHABET] = CNS_NALPHABET_NULL_ARRAY;
+      int bcount1[CNS_NALPHABET] = CNS_NALPHABET_NULL_ARRAY;
       int best_count0=0, second_best_count0=0;
       int best_count1=0, second_best_count1=0;
       char cbase0, cbase1;

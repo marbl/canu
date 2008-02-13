@@ -32,6 +32,7 @@
 #define CNS_MAX_QV 60
 // 1/28/2008 - include the N character in the allowed alphabet
 #define CNS_NALPHABET 7
+#define CNS_NALPHABET_NULL_ARRAY {0, 0, 0, 0, 0, 0, 0}
 #define CNS_NP 32 
 
 #define COMPARE_ARGS char *aseq, char *bseq, int beg, int end, int opposite, double erate, double thresh, int minlen, CompareOptions what
