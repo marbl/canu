@@ -34,7 +34,6 @@ seqStream::seqStream(const char *filename, bool finishMe) {
   setFile(filename);
   if (finishMe)
     finish();
-  _fileTimeStamp = timeOfFile(filename);
 }
 
 seqStream::seqStream(seqFile *S, bool finishMe) {
