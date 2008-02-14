@@ -31,13 +31,9 @@ extern "C" {
 #include "AS_MER_gkpStore_to_FastABase.H"
 
 #include "bio++.H"
-#include "positionDB.H"
 #include "sweatShop.H"
-
-
-//  using external mer counts - we'll need to extend the posDB to have
-//  more stuff in it, or construct another mer lookup hash.
-
+#include "positionDB.H"
+#include "libmeryl.H"
 
 
 
@@ -70,21 +66,30 @@ kmerhitcompare(const void *a, const void *b) {
     return(-1);
   if (A->cnt > B->cnt)
     return(1);
+#if 1
+  if (A->qpos < B->qpos)
+    return(-1);
+  if (A->qpos > B->qpos)
+    return(1);
+  if (A->tpos < B->tpos)
+    return(-1);
+  if (A->tpos > B->tpos)
+    return(1);
+#endif
   return(0);
 }
-
-
 
 
 
 class ovmGlobalData {
 public:
   ovmGlobalData() {
-    gkpPath     = 0L;
-    merSize     = 23;
-    compression = 1;
-    maxCount    = 40;
-    numThreads  = 4;
+    gkpPath       = 0L;
+    merCountsFile = 0L;
+    merSize       = 23;
+    compression   = 1;
+    maxCount      = 4000;
+    numThreads    = 4;
 
     qGK  = 0L;
     qFS  = 0L;
@@ -99,7 +104,7 @@ public:
     tBeg = 1;
     tEnd = 0;
 
-    outputName  = 0L;
+    outputName = 0L;
     outputFile = 0L;
   };
 
@@ -196,13 +201,27 @@ public:
         exit(1);
       }
 
+      //  Build an existDB for the merCounts.
+
+      merylStreamReader *merylFile = 0L;
+      if (merCountsFile)
+        merylFile = new merylStreamReader(merCountsFile);
+
+      //  Continue with building the positionDB.
+
       tKB = new kMerBuilder(merSize, compression, 0L);
 
       tSS = new seqStream(tGK, true);
       tSS->setSeparator('.', 1);
 
+      //  XXX  Should use maxCount to prune the table a bit.  positionDB doesn't
+      //  support pruning by a merylFile count though.
+#warning not pruning positionDB
+
       tMS = new merStream(tKB, tSS);
-      tPS = new positionDB(tMS, merSize, 0, 0L, 0L, maxCount, true);  //  This interface is in kmer r1544
+      tPS = new positionDB(tMS, merSize, 0, 0L, 0L, merylFile, 0, 0, true);  //  This interface is in kmer r1598
+
+      delete merylFile;
     }
 
     //
@@ -226,6 +245,7 @@ public:
   //  Command line parameters
   //
   char    *gkpPath;
+  char    *merCountsFile;
   uint32   merSize;
   uint32   compression;
   uint32   maxCount;
@@ -419,38 +439,66 @@ ovmWorker(void *G, void *T, void *S) {
   ovmComputation   *s = (ovmComputation *)S;
 
   OVSoverlap        overlap;
-
+ 
   t->hitsLen = 0;
-
-  //  We can "simulate" a canonical mercount by getting the count
-  //  for both forward and reverse.
 
   merStream *sMSTR  = new merStream(t->qKB, s->seq, s->beg, s->end - s->beg);
   uint32    *sSPAN  = new uint32 [s->end - s->beg];
 
+  //fprintf(stderr, "ovmWorker: iid="u32bitFMT"\n", s->iid);
+
   while (sMSTR->nextMer()) {
-    u64bit  qpos = sMSTR->thePositionInSequence();
+    u64bit  qpos   = sMSTR->thePositionInSequence();
+    u64bit  fcount = 0;
+    u64bit  rcount = 0;
+    u64bit  tcount = 0;
 
     sSPAN[qpos] = sMSTR->theFMer().getMerSpan();
     assert(qpos <= s->end - s->beg);
 
     if (sMSTR->theFMer() == sMSTR->theRMer()) {
-      g->tPS->get(sMSTR->theFMer(), t->posnF, t->posnFMax, t->posnFLen);
-      if (t->posnFLen > 1)
+      g->tPS->get(sMSTR->theFMer(), t->posnF, t->posnFMax, t->posnFLen, fcount);
+
+      if (fcount < g->maxCount) {
         for (u32bit i=0; i<t->posnFLen; i++)
-          t->addHit(g->tSS, s->iid, qpos, t->posnF[i], t->posnFLen, 1, 0);
+          t->addHit(g->tSS, s->iid, qpos, t->posnF[i], fcount, 1, 0);
+      }
     } else {
-      g->tPS->get(sMSTR->theFMer(), t->posnF, t->posnFMax, t->posnFLen);
-      g->tPS->get(sMSTR->theRMer(), t->posnR, t->posnRMax, t->posnRLen);
+      g->tPS->get(sMSTR->theFMer(), t->posnF, t->posnFMax, t->posnFLen, fcount);
+      g->tPS->get(sMSTR->theRMer(), t->posnR, t->posnRMax, t->posnRLen, rcount);
 
-      u64bit totalLen = t->posnFLen + t->posnRLen - 1;  //  the canonical mer count
+      //  If we don't have a mer counts file, then we need to add the
+      //  f and r counts to get the canonical count.  If we do have
+      //  the mer counts, it is assumed those counts are canonical, we
+      //  just have to pick the biggest -- if we don't find one mer,
+      //  that count will be zero.
+      //
+      if (g->merCountsFile == 0L) {
+        tcount = fcount + rcount;
+        //  Sanity
+        assert(t->posnFLen == fcount);
+        assert(t->posnRLen == rcount);
+      } else {
+        tcount = (fcount > rcount) ? fcount : rcount;
+        //  Check sanity - if both mers are present, the counts should
+        //  be the same.
+        if ((t->posnFLen > 0) && (t->posnRLen > 0))
+          assert(fcount == rcount);
+        if ((t->posnFLen > 0) || (t->posnRLen > 0))
+          assert(tcount > 0);
 
-      if (t->posnFLen > 1)
+        assert(tcount >= t->posnFLen);
+        assert(tcount >= t->posnRLen);
+        assert(tcount >= t->posnFLen + t->posnRLen);
+      }
+
+
+      if (tcount < g->maxCount) {
         for (u32bit i=0; i<t->posnFLen; i++)
-          t->addHit(g->tSS, s->iid, qpos, t->posnF[i], totalLen, 0, 1);
-      if (t->posnRLen > 1)
+          t->addHit(g->tSS, s->iid, qpos, t->posnF[i], tcount, 0, 1);
         for (u32bit i=0; i<t->posnRLen; i++)
-          t->addHit(g->tSS, s->iid, qpos, t->posnR[i], totalLen, 0, 0);
+          t->addHit(g->tSS, s->iid, qpos, t->posnR[i], tcount, 0, 0);
+      }
     }
   }
 
@@ -487,7 +535,9 @@ ovmWorker(void *G, void *T, void *S) {
 
 
 
-  for (u32bit i=0; i<t->hitsLen; i++) {
+  for (u32bit i=0; i<t->hitsLen; ) {
+    //fprintf(stderr, "FILTER STARTS i="u32bitFMT" tseq="u64bitFMT" tpos="u64bitFMT" qpos="u64bitFMT"\n",
+    //          i, t->hits[i].tseq, t->hits[i].tpos, t->hits[i].qpos);
 
     //  By the definition of our sort, the least common mer is the
     //  first hit in the list for each pair of sequences.
@@ -528,6 +578,7 @@ ovmWorker(void *G, void *T, void *S) {
 
     //  Save off the B vs A overlap
     //
+#if 0
     overlap.a_iid = s->iid;
     overlap.b_iid = t->hits[i].tseq;
 
@@ -541,21 +592,18 @@ ovmWorker(void *G, void *T, void *S) {
 
       overlap.dat.mer.a_pos = s->tln - t->hits[i].qpos - 1;
       overlap.dat.mer.b_pos = othlen - t->hits[i].tpos - 1;
-
-#if ADJUST_LEFT_END
-      //  This only works for non-compressed seeds.
-      overlap.dat.mer.a_pos -= g->merSize;  //  sSPAN[t->hits[i].qpos];
-      overlap.dat.mer.b_pos -= g->merSize;  //  we don't have the span of the table-based mer
-#endif
-
     }
     s->addOverlap(&overlap);
+#endif
 
     //  Now, skip ahead until we find the next pair.
     //
     u64bit  lastiid = t->hits[i].tseq;
-    while ((i < t->hitsLen) && (t->hits[i].tseq == lastiid))
+    while ((i < t->hitsLen) && (t->hits[i].tseq == lastiid)) {
+      //fprintf(stderr, "FILTER OUT i="u32bitFMT" tseq="u64bitFMT" tpos="u64bitFMT" qpos="u64bitFMT"\n",
+      //        i, t->hits[i].tseq, t->hits[i].tpos, t->hits[i].qpos);
       i++;
+    }
   }  //  over all hits
 }
 
@@ -607,6 +655,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-c") == 0) {
       g->compression = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-mc") == 0) {
+      g->merCountsFile = argv[++arg];
+
     } else if (strcmp(argv[arg], "-t") == 0) {
       g->numThreads = atoi(argv[++arg]);
 
@@ -636,6 +687,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -m merSize      mer size in bases\n");
     fprintf(stderr, "  -c compression  compression level; homopolymer runs longer than this length\n");
     fprintf(stderr, "                    are compressed to exactly this length\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -mc counts      file of mercounts\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -t numThreads   number of compute threads\n");
     fprintf(stderr, "\n");

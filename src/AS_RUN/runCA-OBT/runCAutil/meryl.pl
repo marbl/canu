@@ -1,14 +1,19 @@
 use strict;
 
-sub runMeryl ($$$$) {
-    my $merSize   = shift @_;
-    my $merComp   = shift @_;
-    my $merThresh = shift @_;
-    my $merType   = shift @_;
+sub runMeryl ($$$$$$) {
+    my $merSize      = shift @_;
+    my $merComp      = shift @_;
+    my $merCanonical = shift @_;
+    my $merThresh    = shift @_;
+    my $merType      = shift @_;
+    my $merDump      = shift @_;
     my $cmd;
 
+    #  The fasta file we should be creating.
+    my $ffile = "$wrk/0-mercounts/$asm.nmers.$merType.fasta";
+
     if ($merThresh == 0) {
-        touch "$wrk/0-mercounts/$asm.nmers.$merType.fasta";
+        touch $ffile;
         return;
     }
 
@@ -17,14 +22,17 @@ sub runMeryl ($$$$) {
         #  Use the better meryl!  This is straightforward.  We count,
         #  then we dump.
 
-        if (! -e "$wrk/0-mercounts/$asm-ms$merSize-cm$merComp.mcdat") {
+        #  Intermediate file
+        my $ofile = "$wrk/0-mercounts/$asm$merCanonical-ms$merSize-cm$merComp";
+
+        if (! -e "$ofile.mcdat") {
             my $merylMemory = getGlobal("merylMemory");
 	    my $merylThreads = getGlobal("merylThreads");
 
             $cmd .= "$bin/meryl ";
-            $cmd .= " -B -C -v -m $merSize -memory $merylMemory -threads $merylThreads -c $merComp ";
-            $cmd .= " -s $wrk/$asm.gkpStore ";
-            $cmd .= " -o $wrk/0-mercounts/$asm-ms$merSize-cm$merComp ";
+            $cmd .= " -B $merCanonical -v -m $merSize -memory $merylMemory -threads $merylThreads -c $merComp ";
+            $cmd .= " -s $wrk/$asm.gkpStore:obt ";
+            $cmd .= " -o $ofile ";
             $cmd .= "> $wrk/0-mercounts/meryl.out 2>&1";
 
             if (runCommand("$wrk/0-mercounts", $cmd)) {
@@ -32,15 +40,20 @@ sub runMeryl ($$$$) {
             }
         }
 
-        if (! -e "$wrk/0-mercounts/$asm.nmers.$merType.fasta") {
-            $cmd  = "$bin/meryl ";
-            $cmd .= "-Dt -n $merThresh ";
-            $cmd .= "-s $wrk/0-mercounts/$asm-ms$merSize-cm$merComp ";
-            $cmd .= "> $wrk/0-mercounts/$asm.nmers.$merType.fasta ";
+        #  We only need the ascii dump if we're doing overlapper, mer
+        #  overlapper reads meryl directly.
+        #
+        if ($merDump) {
+            if (! -e $ffile) {
+                $cmd  = "$bin/meryl ";
+                $cmd .= "-Dt -n $merThresh ";
+                $cmd .= "-s $ofile ";
+                $cmd .= "> $ffile ";
 
-            if (runCommand("$wrk/0-mercounts", $cmd)) {
-                unlink "$wrk/0-mercounts/$asm.nmers.$merType.fasta";
-                caFailure("Failed.\n");
+                if (runCommand("$wrk/0-mercounts", $cmd)) {
+                    unlink $ffile;
+                    caFailure("Failed.\n");
+                }
             }
         }
     } elsif (merylVersion() eq "CA") {
@@ -52,10 +65,20 @@ sub runMeryl ($$$$) {
         #  But that's tough, especially if we allow mer compression.
 
         my $merSkip = 10;
-        my $ofile = "$wrk/0-mercounts/$asm-ms$merSize-mt$merThresh-ms$merSkip.$merType.fasta";
+
+        #  Intermediate file
+        my $ofile = "$wrk/0-mercounts/$asm-ms$merSize-mt$merThresh-mk$merSkip.$merType.fasta";
 
         if ($merComp > 0) {
             print STDERR "ERROR!  merCompression not supported without installing kmer\n";
+            print STDERR "        (http://sourceforge.net/projects/kmer/).\n";
+            print STDERR "If you have installed kmer, then your build is broken, as I\n";
+            print STDERR "did not find the correct 'meryl' (meryl -V should have said Mighty).\n";
+            die;
+        }
+
+        if ($merCanonical ne "-C") {
+            print STDERR "ERROR!  mer overlapper not supported without installing kmer\n";
             print STDERR "        (http://sourceforge.net/projects/kmer/).\n";
             print STDERR "If you have installed kmer, then your build is broken, as I\n";
             print STDERR "did not find the correct 'meryl' (meryl -V should have said Mighty).\n";
@@ -76,9 +99,7 @@ sub runMeryl ($$$$) {
             }
         }
 
-        if (! -e "$wrk/0-mercounts/$asm.nmers.$merType.fasta") {
-            symlink("$ofile", "$wrk/0-mercounts/$asm.nmers.$merType.fasta");
-        }
+        symlink($ofile, $ffile) if (! -e $ffile);
     } else {
         caFailure("Unknown meryl version.\n");
     }
@@ -87,18 +108,32 @@ sub runMeryl ($$$$) {
 sub meryl {
     system("mkdir $wrk/0-mercounts") if (! -d "$wrk/0-mercounts");
 
-    my $ovlc = 0;
-    my $obtc = 0;
-
     if (getGlobal("ovlOverlapper") eq "umd") {
         caFailure("meryl() attempted to compute mer counts for the umd overlapper?\n");
     }
 
-    $ovlc = getGlobal("merCompression") if (getGlobal("ovlOverlapper") eq "mer");
-    $obtc = getGlobal("merCompression") if (getGlobal("obtOverlapper") eq "mer");
+    my $ovlc = 0;  #  No compression, unless we're the mer overlapper
+    my $obtc = 0;
 
-    runMeryl(getGlobal('ovlMerSize'), $ovlc, getGlobal("ovlMerThreshold"), "ovl");
-    runMeryl(getGlobal('obtMerSize'), $obtc, getGlobal("obtMerThreshold"), "obt");
+    my $ovlC = "-C";  #  Canonical, unless we're the mer overlapper
+    my $obtC = "-C";  #  (except the mer overlapper now wants canonical)
+
+    my $ovlD = 1;  #  Dump, unless we're the mer overlapper
+    my $obtD = 1;
+
+    if (getGlobal("ovlOverlapper") eq "mer") {
+        $ovlc = getGlobal("merCompression");
+        $ovlC = "-C";
+        $ovlD = 0;
+    }
+    if (getGlobal("obtOverlapper") eq "mer") {
+        $obtc = getGlobal("merCompression");
+        $obtC = "-C";
+        $obtD = 0;
+    }
+
+    runMeryl(getGlobal('ovlMerSize'), $ovlc, $ovlC, getGlobal("ovlMerThreshold"), "ovl", $ovlD);
+    runMeryl(getGlobal('obtMerSize'), $obtc, $obtC, getGlobal("obtMerThreshold"), "obt", $obtD);
 }
 
 1;
