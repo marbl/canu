@@ -256,7 +256,7 @@ sub merOverlapper($) {
             $SGE .= "  -j y -o $wrk/$outDir/seeds/\\\$TASK_ID.out \\\n";
             $SGE .= "  $wrk/$outDir/overmerry.sh\n";
 
-            my $waitTag = submitBatchJobs("ovl", $SGE, $ovmJobs, $ovlThreads);
+            my $waitTag = submitBatchJobs("mer", $SGE, $ovmJobs, $ovlThreads);
             submitScript($waitTag) if (runningOnGrid());
             exit(0);
         } else {
@@ -304,7 +304,7 @@ sub merOverlapper($) {
             $SGE .= "  -j y -o $wrk/$outDir/olaps/\\\$TASK_ID.out \\\n";
             $SGE .= "  $wrk/$outDir/olap-from-seeds.sh\n";
 
-            my $waitTag = submitBatchJobs("ovl", $SGE, $olpJobs, $ovlThreads);
+            my $waitTag = submitBatchJobs("olp", $SGE, $olpJobs, $ovlThreads);
             submitScript("$waitTag") if (runningOnGrid());
             exit(0);
         } else {
