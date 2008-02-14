@@ -24,9 +24,9 @@ sub getUMDClearRange ($) {
            my $end = $trimData[2];
            
            if ($bgn < $end) {
-             print G "frg uid $uid obt $bgn $end\n";
+             print G "frg uid $uid obt all $bgn $end\n";
            } else {
-             print G "frg uid $uid obt $end $bgn\n";
+             print G "frg uid $uid obt all $end $bgn\n";
            }           
         }
         close(T);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.5 2007-11-08 12:38:12 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.6 2008-02-14 21:10:40 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,7 +38,7 @@ static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.5 2007-11-08 12:38:12 brianwa
 #define munch(S)  { while (*(S) &&  isspace(*(S))) (S)++; }
 #define crunch(S) { while (*(S) && !isspace(*(S))) (S)++; }
 
-
+#define EDIT_ALL_CLR "ALL"
 
 
 void
@@ -114,13 +114,49 @@ void
 setClear(GateKeeperFragmentRecord *gkfr, char *E, uint32 which, int update) {
   int b = gkfr->clearBeg[which];
   int e = gkfr->clearEnd[which];
-  gkfr->clearBeg[which] = strtoul(E, &E, 10);
-  munch(E);
-  gkfr->clearEnd[which] = strtoul(E, &E, 10);
-  if (which == AS_READ_CLEAR_VEC)
+  int start = 0;
+  int end   = 0;
+  int updateAll = 0;
+
+
+  /* possible formats are CLR start end or CLR ALL start end
+   * here, we grab the next word and see if it is equal to all or not
+   */
+  char *next = E;
+  crunch(E);
+  // put terminator character for next
+  {
+    char *t = E;
+    munch(E);
+    *t = '\0';
+  }
+
+  if (strcasecmp(next, EDIT_ALL_CLR) == 0) {
+     // update all clear ranges
+     start = strtoul(E, &E, 10);
+     munch(E);
+     end = strtoul(E, &E, 10);
+     updateAll = 1;
+  } else {
+    gkfr->clearBeg[which] = strtoul(next, NULL, 10);
+    munch(E);
+    gkfr->clearEnd[which] = strtoul(E, &E, 10);
+  }
+
+  if (which == AS_READ_CLEAR_VEC) {
     gkfr->hasVectorClear = 1;
+  }
   if (which == AS_READ_CLEAR_QLT)
     gkfr->hasQualityClear = 1;
+
+  if (updateAll) {
+     for (; which <= AS_READ_CLEAR_LATEST; which++) {
+       gkfr->clearBeg[which] = start;
+       gkfr->clearEnd[which] = end;
+   }
+   which = AS_READ_CLEAR_LATEST; 
+  }
+
   if (update)
     fprintf(stdout, "frg uid %s %s %d %d -> %d %d\n",
             AS_UID_toString(gkfr->readUID),
