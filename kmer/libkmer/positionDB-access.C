@@ -1,23 +1,34 @@
-#include "positionDB.H"
 #include "bio++.H"
+#include "positionDB.H"
 
 
 void
 positionDB::loadPositions(u64bit   J,
                           u64bit*& posn,
                           u64bit&  posnMax,
-                          u64bit&  posnLen) {
+                          u64bit&  posnLen,
+                          u64bit&  count) {
 
-  u64bit  sizs[2] = {_pptrWidth, 1};
-  u64bit  vals[2] = {0};
+  u64bit  sizs[3] = {_pptrWidth, 1, _sizeWidth};
+  u64bit  vals[3] = {0, 0, 1};
 
-  getDecodedValues(_buckets, J + _chckWidth, 2, sizs, vals);
+  getDecodedValues(_buckets, J + _chckWidth, (_sizeWidth == 0) ? 2 : 3, sizs, vals);
+
+  //  If the size is stored, the count is updated to the correct
+  //  thing.  If it's not stored, the count is set to 1 by the default
+  //  value of vals[2], and reset after we get the number of positions
+  //  stored.
+  //
+  count = vals[2];
 
   if (vals[1]) {
     posn[posnLen++] = vals[0];
   } else {
     u64bit ptr  = vals[0] * _posnWidth;
     u64bit len  = getDecodedValue(_positions, ptr, _posnWidth);
+
+    if (_sizeWidth == 0)
+      count = len;
 
     if (posnMax < posnLen + len) {
       delete [] posn;
@@ -42,7 +53,8 @@ bool
 positionDB::get(u64bit   mer,
                 u64bit*& posn,
                 u64bit&  posnMax,
-                u64bit&  posnLen) {
+                u64bit&  posnLen,
+                u64bit&  count) {
   u64bit  h = HASH(mer);
   u64bit  c = CHECK(mer);
   u64bit st = getDecodedValue(_hashTable, h * _hashWidth,              _hashWidth);
@@ -65,7 +77,7 @@ positionDB::get(u64bit   mer,
 
   for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin) {
     if (c == getDecodedValue(_buckets, J, _chckWidth)) {
-      loadPositions(J, posn, posnMax, posnLen);
+      loadPositions(J, posn, posnMax, posnLen, count);
       return(true);
     }
   }
@@ -118,6 +130,26 @@ positionDB::count(u64bit mer) {
       return(getDecodedValue(_positions, vals[0] * _posnWidth, _posnWidth));
     }
   }
+
+  return(0);
+}
+
+
+u64bit
+positionDB::setCount(u64bit mer, u64bit count) {
+  u64bit  h = HASH(mer);
+  u64bit  c = CHECK(mer);
+  u64bit st = getDecodedValue(_hashTable, h * _hashWidth,              _hashWidth);
+  u64bit ed = getDecodedValue(_hashTable, h * _hashWidth + _hashWidth, _hashWidth);
+
+  if (st == ed)
+    return(0);
+
+  for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin)
+    if (c == getDecodedValue(_buckets, J, _chckWidth)) {
+      setDecodedValue(_buckets, J + _chckWidth + _pptrWidth + 1, _sizeWidth, count);
+      return(count);
+    }
 
   return(0);
 }

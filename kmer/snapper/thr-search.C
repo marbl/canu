@@ -129,9 +129,10 @@ doSearch(searcherState       *state,
          u32bit              &theHitsLen,
          u32bit              &theHitsMax,
          logMsg              *theLog) {
-  encodedQuery  *query  = 0L;
-  hitMatrix     *matrix = 0L;
+  encodedQuery  *query      = 0L;
+  hitMatrix     *matrix     = 0L;
   double         startTime  = 0.0;
+  u64bit         count      = 0;
 
   if (state->KB == 0L)
     state->KB = new kMerBuilder(config._KBmerSize,
@@ -154,7 +155,7 @@ doSearch(searcherState       *state,
   startTime = getTime();
   matrix = new hitMatrix(seq->sequenceLength(), query->numberOfMersInQuery(), idx, theLog);
   for (u32bit qidx=0; qidx<query->numberOfMersActive(); qidx++) {
-    if (positions->get(query->getMer(qidx), state->posn, state->posnMax, state->posnLen)) {
+    if (positions->get(query->getMer(qidx), state->posn, state->posnMax, state->posnLen, count)) {
 #if 0
       fprintf(stderr, "rc=%d qidx="u32bitFMT" pos="u32bitFMT" mer="u64bitHEX" hits="u64bitFMT"\n",
               rc, qidx, query->getPosn(qidx), query->getMer(qidx), state->posnLen);
@@ -218,7 +219,7 @@ doSearch(searcherState       *state,
       u32bit                GENhi  = theHits[h]._dsHi;
 
       merStream            *MS     = new merStream(state->KB, GENseq, GENlo, GENhi - GENlo);
-      positionDB           *PS     = new positionDB(MS, config._KBmerSize, 0, 0L, 0L, 0, false);
+      positionDB           *PS     = new positionDB(MS, config._KBmerSize, 0, 0L, 0L, 0L, 0, 0, false);
       hitMatrix            *HM     = new hitMatrix(seq->sequenceLength(), query->numberOfMersInQuery(), idx, theLog);
 
       //  We find the number of hits we would get if we use a
@@ -228,6 +229,7 @@ doSearch(searcherState       *state,
 
       u32bit numHitsAtCount[COUNT_MAX] = { 0 };
       u32bit countLimit                = 0;
+      u64bit count                     = 0;
 
       u32bit numMers = 0;
 #ifdef SHOW_HIT_DISCARDING
@@ -237,7 +239,7 @@ doSearch(searcherState       *state,
 #endif
 
       for (u32bit qidx=0; qidx<query->numberOfMersActive(); qidx++) {
-        if (PS->get(query->getMer(qidx), state->posn, state->posnMax, state->posnLen)) {
+        if (PS->get(query->getMer(qidx), state->posn, state->posnMax, state->posnLen, count)) {
           numMers++;
 
           if (state->posnLen < COUNT_MAX)
@@ -269,7 +271,7 @@ doSearch(searcherState       *state,
 #endif
 
       for (u32bit qidx=0; qidx<query->numberOfMersActive(); qidx++) {
-        if (PS->get(query->getMer(qidx), state->posn, state->posnMax, state->posnLen)) {
+        if (PS->get(query->getMer(qidx), state->posn, state->posnMax, state->posnLen, count)) {
           if (state->posnLen <= countLimit) {
             for (u32bit x=0; x<state->posnLen; x++)
               state->posn[x] += GENlo + config._useList.startOf(theHits[h]._dsIdx);

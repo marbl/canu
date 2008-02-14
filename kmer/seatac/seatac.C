@@ -143,7 +143,7 @@ main(int argc, char **argv) {
     kMerBuilder KB(config._merSize);
     merStream  *MS = new merStream(&KB, &config._useList);
 
-    positions = new positionDB(MS, config._merSize, config._merSkip, maskDB, onlyDB, 0, config._beVerbose);
+    positions = new positionDB(MS, config._merSize, config._merSkip, maskDB, onlyDB, 0L, 0, 0, config._beVerbose);
 
     delete    MS;
 

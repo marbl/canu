@@ -121,6 +121,9 @@ u64bit
 existDB::count(u64bit mer) {
   u64bit c, h, st, ed, ct;
 
+  if (_counts == 0L)
+    return(0);
+
   if (_compressedHash) {
     h  = HASH(mer) * _hshWidth;
     st = getDecodedValue(_hashTable, h,             _hshWidth);

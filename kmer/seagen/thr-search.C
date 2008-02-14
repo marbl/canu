@@ -14,6 +14,7 @@ doSearch(searcherState *state,
 
   //  Get the hits
   double startTime = getTime();
+  u64bit count     = 0;
 
   hitMatrix *matrix = new hitMatrix(query->bpTotal(),
                                     query->bpCovered(false),
@@ -24,7 +25,8 @@ doSearch(searcherState *state,
         (config._positions->get(query->getMer(qi, isReverse),
                                 state->posn,
                                 state->posnMax,
-                                state->posnLen)))
+                                state->posnLen,
+                                count)))
       matrix->addHits(qi, state->posn, state->posnLen);
 
   state->searchTime += getTime() - startTime;

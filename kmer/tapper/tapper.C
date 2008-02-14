@@ -47,7 +47,7 @@ main(int argc, char **argv) {
 
   seqStream  *SS = new seqStream(genName, true);
   merStream  *MS = new merStream(new kMerBuilder(merSize), SS);
-  positionDB *PS = new positionDB(MS, merSize, 0, 0L, 0L, 0, beVerbose, true);
+  positionDB *PS = new positionDB(MS, merSize, 0, 0L, 0L, 0L, 0, 0, beVerbose, true);
   delete MS;  MS=0L;
   delete SS;  SS=0L;
 

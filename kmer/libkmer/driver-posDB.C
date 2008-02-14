@@ -57,10 +57,11 @@ test1(char *filename) {
   seqStream         *C       = new seqStream(filename, true);
   kMerBuilder        KB(MERSIZE);
   merStream         *T       = new merStream(&KB, C);
-  positionDB        *M       = new positionDB(T, MERSIZE, 0, 0L, 0L, 0, true);
+  positionDB        *M       = new positionDB(T, MERSIZE, 0, 0L, 0L, 0L, 0, 0, true);
   u64bit            *posn    = new u64bit [1024];
   u64bit             posnMax = 1024;
   u64bit             posnLen = u64bitZERO;
+  u64bit             count   = u64bitZERO;
   u32bit             missing = u32bitZERO;
   u32bit             failed  = u32bitZERO;
   char               str[33];
@@ -72,9 +73,10 @@ test1(char *filename) {
 
   while (T->nextMer()) {
     if (M->get(T->theFMer(),
-                posn,
-                posnMax,
-                posnLen)) {
+               posn,
+               posnMax,
+               posnLen,
+               count)) {
 
       missing = u32bitZERO;
       for (u32bit i=0; i<posnLen; i++)
@@ -117,10 +119,11 @@ test2(char *filename, char *query) {
   seqStream         *C       = new seqStream(filename, true);
   kMerBuilder        KB(MERSIZE);
   merStream         *T       = new merStream(&KB, C);
-  positionDB        *M       = new positionDB(T, MERSIZE, 0, 0L, 0L, 0, true);
+  positionDB        *M       = new positionDB(T, MERSIZE, 0, 0L, 0L, 0L, 0, 0, true);
   u64bit            *posn    = new u64bit [1024];
   u64bit             posnMax = 1024;
   u64bit             posnLen = u64bitZERO;
+  u64bit             count   = u64bitZERO;
   char               str[33];
 
   delete T;
@@ -131,17 +134,19 @@ test2(char *filename, char *query) {
 
   while (T->nextMer()) {
     if (M->get(T->theFMer(),
-                posn,
-                posnMax,
-                posnLen)) {
+               posn,
+               posnMax,
+               posnLen,
+               count)) {
       fprintf(stdout, "Got a F match for mer=%s at "u64bitFMT"/"u64bitFMT" (in mers), numMatches="u64bitFMT"\n",
               T->theFMer().merToString(str), T->theSequenceNumber(), T->thePositionInStream(), posnLen);
     }
 
     if (M->get(T->theRMer(),
-                posn,
-                posnMax,
-                posnLen)) {
+               posn,
+               posnMax,
+               posnLen,
+               count)) {
       fprintf(stdout, "Got a R match for mer=%s at "u64bitFMT"/"u64bitFMT" (in mers), numMatches="u64bitFMT"\n",
               T->theRMer().merToString(str), T->theSequenceNumber(), T->thePositionInStream(), posnLen);
     }
@@ -292,7 +297,7 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Building table with merSize "u32bitFMT", merSkip "u32bitFMT"\n", mersize, merskip);
 
-  positionDB *positions = new positionDB(MS, mersize, merskip, maskDB, onlyDB, 0, true);
+  positionDB *positions = new positionDB(MS, mersize, merskip, maskDB, onlyDB, 0L, 0, 0, true);
 
   fprintf(stderr, "Dumping positions table to '%s'\n", outputFile);
 

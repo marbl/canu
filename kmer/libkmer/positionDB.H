@@ -30,41 +30,48 @@
 #undef DEBUGREBUILD
 
 class existDB;
+class merylStreamReader;
 
 class positionDB {
 public:
   positionDB(char const    *filename,
              bool           loadData=true);
 
-  positionDB(merStream     *MS,
-             u32bit         merSize,
-             u32bit         merSkip,
-             existDB       *mask,
-             existDB       *only,
-             u32bit         maxCount,
-             bool           beVerbose,
-             bool           isForMismatches = false);
+  positionDB(merStream         *MS,
+             u32bit             merSize,
+             u32bit             merSkip,
+             existDB           *mask,
+             existDB           *only,
+             merylStreamReader *counts,
+             u32bit             minCount,
+             u32bit             maxCount,
+             bool               beVerbose,
+             bool               isForMismatches = false);
 
   ~positionDB();
 
 private:
-  void  build(merStream   *MS,
-              existDB     *mask,
-              existDB     *only,
-              u32bit       maxCount,
-              bool         beVerbose);
+  void  build(merStream         *MS,
+              existDB           *mask,
+              existDB           *only,
+              merylStreamReader *counts,
+              u32bit             minCount,
+              u32bit             maxCount,
+              bool               beVerbose);
 
 private:
   void        loadPositions(u64bit      v,
                             u64bit*&    posn,
                             u64bit&     posnMax,
-                            u64bit&     posnLen);
+                            u64bit&     posnLen,
+                            u64bit&     count);
 
 public:
   bool        get(u64bit      mer,
                   u64bit*&    posn,
                   u64bit&     posnMax,
-                  u64bit&     posnLen);
+                  u64bit&     posnLen,
+                  u64bit&     count);
   bool        getMismatch(u64bit      mer,
                           u64bit      numMismatches,
                           u64bit*&    posn,
@@ -73,8 +80,12 @@ public:
   bool        exists(u64bit   mer);
   u64bit      count(u64bit    mer);
 
+private:
+  u64bit      setCount(u64bit mer, u64bit count);
+
   //  Save or load a built table
   //
+public:
   void        saveState(char const *filename);
   bool        loadState(char const *filename, bool beNoisy=false, bool loadData=true);
 

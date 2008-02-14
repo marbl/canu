@@ -64,7 +64,7 @@ main(int argc, char **argv) {
   } else {
     kMerBuilder KB(config._merSize);
     merStream  *MS = new merStream(&KB, &config._useList);
-    config._positions = new positionDB(MS, config._merSize, config._merSkip, 0L, 0L, 0, config._beVerbose);
+    config._positions = new positionDB(MS, config._merSize, config._merSkip, 0L, 0L, 0L, 0, 0, config._beVerbose);
     delete    MS;
 
     if (config._tableFileName) {

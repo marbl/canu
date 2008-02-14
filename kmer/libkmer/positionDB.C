@@ -2,9 +2,10 @@
 #include <stdlib.h>
 #include <new>
 
+#include "bio++.H"
 #include "positionDB.H"
 #include "existDB.H"
-#include "bio++.H"
+#include "libmeryl.H"
 
 #undef ERROR_CHECK_COUNTING
 #undef ERROR_CHECK_COUNTING_ENCODING
@@ -37,14 +38,16 @@ positionDB::positionDB(char const    *filename,
 }
 
 
-positionDB::positionDB(merStream   *MS,
-                       u32bit       merSize,
-                       u32bit       merSkip,
-                       existDB     *mask,
-                       existDB     *only,
-                       u32bit       maxCount,
-                       bool         beVerbose,
-                       bool         isForMismatches) {
+positionDB::positionDB(merStream          *MS,
+                       u32bit              merSize,
+                       u32bit              merSkip,
+                       existDB            *mask,
+                       existDB            *only,
+                       merylStreamReader  *counts,
+                       u32bit              minCount,
+                       u32bit              maxCount,
+                       bool                beVerbose,
+                       bool                isForMismatches) {
   memset(this, 0, sizeof(positionDB));
 
   //  Guesstimate a nice table size based on the number of input mers
@@ -157,22 +160,30 @@ positionDB::positionDB(merStream   *MS,
   _posnWidth             = u64bitZERO;
   _sizeWidth             = 0;
 
+  if (maxCount == 0)
+    maxCount = ~u32bitZERO;
+
+  if (counts)
+    _sizeWidth = (maxCount < ~u32bitZERO) ? logBaseTwo64(maxCount+1) : 32;
+
   _shift1                = _merSizeInBits - _tableSizeInBits;
   _shift2                = _shift1 / 2;
   _mask1                 = u64bitMASK(_tableSizeInBits);
   _mask2                 = u64bitMASK(_shift1);
 
-  build(MS, mask, only, maxCount, beVerbose);
+  build(MS, mask, only, counts, minCount, maxCount, beVerbose);
 }
 
 
 
 void
-positionDB::build(merStream *MS,
-                  existDB     *mask,
-                  existDB     *only,
-                  u32bit       maxCount,
-                  bool         beVerbose) {
+positionDB::build(merStream          *MS,
+                  existDB            *mask,
+                  existDB            *only,
+                  merylStreamReader  *counts,
+                  u32bit              minCount,
+                  u32bit              maxCount,
+                  bool                beVerbose) {
 
   _bucketSizes           = 0L;
   _countingBuckets       = 0L;
@@ -212,8 +223,6 @@ positionDB::build(merStream *MS,
     exit(1);
   }
 
-  if (maxCount == 0)
-    maxCount = ~u32bitZERO;
 
   ////////////////////////////////////////////////////////////////////////////////
   //
@@ -687,7 +696,10 @@ positionDB::build(merStream *MS,
       //  We're in bucket b, looking at mer _sortedChck[stM].  Ask the
       //  only/mask if that exists, if so do/do not include the mer.
       //
-      bool useMer = true;
+      bool    useMer = true;
+
+      if (edM - stM < minCount)
+        useMer = false;
 
       if (edM - stM > maxCount)
         useMer = false;
@@ -720,7 +732,7 @@ positionDB::build(merStream *MS,
             if (r < m)
               m = r;
           }
-          if (!only->exists(m))
+          if (only->exists(m) == false)
             useMer = false;
         }
       }
@@ -864,6 +876,65 @@ positionDB::build(merStream *MS,
 
     _hashWidth = newHashWidth;
   }
+
+
+  //  If supplied, add in any counts.  The meryl table is, sadly, in
+  //  the wrong order, and we must hash and search.
+  //
+  //  Meryl _should_ be storing only forward mers, but we have no way
+  //  of checking.
+  //
+  //  After all counts are loaded, check if we can compress the counts
+  //  space any.  Check if the largestMerylCount is much smaller than
+  //  the space it is stored in.  If so, we can compress the table.
+  //
+  u64bit  largestMerylCount = 0;
+  u64bit  countsLoaded      = 0;
+
+  if (counts) {
+    while (counts->nextMer()) {
+      kMer    k = counts->theFMer();
+      u64bit  c = counts->theCount();
+      u64bit  f = setCount(k, c);
+      k.reverseComplement();
+      u64bit  r = setCount(k, c);
+
+      if (f + r > 0) {
+        countsLoaded++;
+        if (largestMerylCount < c)
+          largestMerylCount = c;
+      }
+    }
+
+    fprintf(stderr, "    Loaded "u64bitFMT" mercounts; largest is "u64bitFMT".\n", countsLoaded, largestMerylCount);
+
+    if (logBaseTwo64(largestMerylCount + 1) < _sizeWidth) {
+      fprintf(stderr, "    Compress sizes from "u32bitFMT" bits to "u32bitFMT" bits.\n",
+              _sizeWidth,
+              (u32bit)logBaseTwo64(largestMerylCount + 1));
+
+      u64bit oSiz[4] = { _chckWidth, _pptrWidth, 1, _sizeWidth };
+      u64bit nSiz[4] = { _chckWidth, _pptrWidth, 1, logBaseTwo64(largestMerylCount + 1) };
+      u64bit vals[4] = { 0, 0, 0, 0 };
+
+      u64bit  oP = 0, oS = oSiz[0] + oSiz[1] + oSiz[2] + oSiz[3];
+      u64bit  nP = 0, nS = nSiz[0] + nSiz[1] + nSiz[2] + nSiz[3];
+
+      assert(nS < oS);
+
+      for (u64bit b=0; b<_numberOfDistinct; b++) {
+        getDecodedValues(_buckets, oP, 4, oSiz, vals);
+        setDecodedValues(_buckets, nP, 4, nSiz, vals);
+
+        oP += oS;
+        nP += nS;
+      }
+
+      _sizeWidth = nSiz[3];
+      _wFin      = _chckWidth + _pptrWidth + 1 + _sizeWidth;
+    }
+  }
+
 
 
 #ifdef TEST_NASTY_BUGS

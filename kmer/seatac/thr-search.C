@@ -42,6 +42,7 @@ doSearch(searcherState *state,
   double         startTime  = 0.0;
   u64bit         mer        = u64bitZERO;
   u32bit         pos        = u32bitZERO;
+  u64bit         count      = 0;
 
   //  Build and mask the query
   //
@@ -55,7 +56,7 @@ doSearch(searcherState *state,
   matrix = new hitMatrix(seq->sequenceLength(), idx);
 
   while (query->getMer(mer, pos) == true)
-    if (positions->get(mer, state->posn, state->posnMax, state->posnLen))
+    if (positions->get(mer, state->posn, state->posnMax, state->posnLen, count))
       matrix->addHits(pos, state->posn, state->posnLen);
 
   state->searchTime += getTime() - startTime;

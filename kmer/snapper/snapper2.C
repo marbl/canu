@@ -326,6 +326,8 @@ main(int argc, char **argv) {
                                config._merSkip,
                                maskDB,
                                onlyDB,
+                               0L,
+                               0,
                                config._ignoreThreshold,
                                config._beVerbose);
 

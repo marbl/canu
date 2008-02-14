@@ -21,7 +21,6 @@ public:
   merylStreamReader(const char *fn, u32bit ms=0);
   ~merylStreamReader();
 
-  //  theRMer() is used in existDB-create-from-meryl.C:61, 62, 166
   kMer           &theFMer(void)  { return(_thisMer); };
 
   u64bit          theCount(void) { return(_thisMerCount); };

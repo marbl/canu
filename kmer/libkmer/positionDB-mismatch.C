@@ -91,9 +91,10 @@ positionDB::getMismatch(u64bit   mer,
           u64bit  diffs = chk ^ mer;
           u64bit  d1    = diffs & u64bitNUMBER(0x5555555555555555);
           u64bit  d2    = diffs & u64bitNUMBER(0xaaaaaaaaaaaaaaaa);
+          u64bit  count = 0;
 
           if (countNumberOfSetBits64(d1 | (d2 >> 1)) == numMismatches)
-            loadPositions(J, posn, posnMax, posnLen);
+            loadPositions(J, posn, posnMax, posnLen, count);
         }
       }
     }
