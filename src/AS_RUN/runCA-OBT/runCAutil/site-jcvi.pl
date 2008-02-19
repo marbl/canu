@@ -1,7 +1,8 @@
 use File::Copy;
 use FindBin qw($Bin);
 
-my ($username) = getpwuid($>); 
+use Mail::Mailer;
+my ($username) = getpwuid($>) . '@jcvi.org'; 
 
 sub localDefaults () {
 
@@ -43,7 +44,8 @@ sub localSetup($) {
         #create .clv file
         my $clv_cmd = "awk '{print \$1,\$5,\$6}' $asm.seq.features > $wrk/$clvFile";
         system($clv_cmd);
-        setGlobal("vectorIntersect", $clvFile);
+        setGlobal("vectorIntersect", "$wrk/$clvFile");
+        $commandLineOptions .= qq( "vectorIntersect=$wrk/$clvFile" );
     }
 }
 
@@ -64,9 +66,10 @@ sub localFinish ($) {
 sub localFailure ($) {
     my $msg        = shift @_;
 
-    open(MAIL,"| mail -s 'Assembly Failed' $username");
-	print MAIL "$msg\n";
-    close MAIL;
+    my $mailer = new Mail::Mailer;
+    $mailer->open({ To => $username, Subject => 'Assembly Failed'});
+	print $mailer "$msg\n";
+    $mailer->close;
 }
 
 
@@ -77,7 +80,10 @@ sub localPostTerminator($) {
 sub localFinalize() {
 
     # now send out a notice e-mail
-    system("echo $wrk | mail -s 'Assembly completed' $username");
+    my $mailer = new Mail::Mailer;
+    $mailer->open({ To => $username, Subject => 'Assembly completed'});
+	print $mailer "$wrk\n";
+    $mailer->close;
 }
 
 
