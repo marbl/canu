@@ -28,7 +28,6 @@ sub createOverlapCorrectionJobs {
     print F "frgBeg=`expr \$jobid \\* $ovlCorrBatchSize - $ovlCorrBatchSize + 1`\n";
     print F "frgEnd=`expr \$jobid \\* $ovlCorrBatchSize`\n";
     print F "if [ \$frgEnd -ge $numFrags ] ; then\n";
-    #print F "  frgEnd=`expr $numFrags - 1`\n";
     print F "  frgEnd=$numFrags\n";
     print F "fi\n";
     print F "frgBeg=`printf %08d \$frgBeg`\n";
@@ -71,7 +70,7 @@ sub createOverlapCorrectionJobs {
         my $SGE;
         $SGE  = "qsub $sge $sgeOverlapCorrection -r y -N NAME ";
         $SGE .= "-t MINMAX ";
-        $SGE .= " -j y -o /dev/null ";
+        $SGE .= " -j y -o $wrk/3-ovlcorr/correct.sh.\\\$TASK_ID.err ";
         $SGE .= "$wrk/3-ovlcorr/correct.sh\n";
 
 	my $numThreads = 1;
@@ -89,7 +88,7 @@ sub createOverlapCorrectionJobs {
         #  Run the correction job right here, right now.
 
         for (my $i=1; $i<=$jobs; $i++) {
-            &scheduler::schedulerSubmit("sh $wrk/3-ovlcorr/correct.sh $i > /dev/null 2>&1");
+            &scheduler::schedulerSubmit("sh $wrk/3-ovlcorr/correct.sh $i > $wrk/3-ovlcorr/correct.sh.\\\$TASK_ID.err 2>&1");
         }
 
         &scheduler::schedulerSetNumberOfProcesses($global{"ovlCorrConcurrency"});
