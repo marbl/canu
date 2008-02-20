@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.3 2007-11-08 12:38:12 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.4 2008-02-20 22:46:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -128,7 +128,7 @@ AS_GKP_reportError(int error, ...) {
     errorSs[AS_GKP_LKG_SELF_LINK          ] = "# LKG Error: link from fragment to itself.\n";
     errorSs[AS_GKP_LKG_UNSUPPORTED_TYPE   ] = "# LKG Error: Unsupported link type.\n";
     errorSs[AS_GKP_LKG_FRG_DOESNT_EXIST   ] = "# LKG Error: Fragment not previously defined.\n";
-    errorMs[AS_GKP_LKG_FRG_DELETED        ] = "# LKG Error: Fragment is marked as deleted.\n";
+    errorSs[AS_GKP_LKG_FRG_DELETED        ] = "# LKG Error: Fragment is marked as deleted.\n";
 
     errorSs[AS_GKP_LKG_ALREADY_MATED      ] = "# LKG Error: Fragment already mated.\n";
 
@@ -138,7 +138,6 @@ AS_GKP_reportError(int error, ...) {
 
     errorSs[AS_GKP_SFF_UID_ERROR          ] = "# SFF Error: 454 Universal Accession Number out of range.\n";
     errorSs[AS_GKP_SFF_ALREADY_EXISTS     ] = "# SFF Error: Fragment exists, can't add it again.\n";
-
 
     errorSs[AS_GKP_UNKNOWN_MESSAGE        ] = "# GKP Error: Unknown message.\n";
   }
