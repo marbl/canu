@@ -1,17 +1,14 @@
 #!/usr/bin/perl
-
-#A file with all the (recent) commits to the source tree.  Annotated
-#with the time when any tags were placed, search for TAG: or BRANCH: to
-#see when.
-
+#
+# A file with all the (recent) commits to the source tree.  Annotated
+# with the time when any tags were placed, search for TAG: or BRANCH:
+# to see when.
+#
 # One can use the following script to generate an update though you'll
 # need to edit the $date var to be appropriate for your time frame
-# then perl COMMITS >> COMMITS should do the update
-# Might want to prune some of the early stuff at some point
-
-#Please remove any prefix (like "/cvsroot/wgs-assembler/src/") from the
-#filenames, to save a little space.
-
+# then perl COMMITS >> COMMITS should do the update Might want to
+# prune some of the early stuff at some point
+#
 #--------------------------------------------------------------------------------
 
 use strict;
@@ -76,17 +73,14 @@ foreach my $l (@keys) {
 
     if ((defined($logs{$l})) && (length($logs{$l} > 0))) {
         print "----------------------------------------\n";
-        $logs{$l} =~ s'/cvsroot/wgs-assembler/src/''g;
+        $logs{$l} =~ s!/cvsroot/wgs-assembler/src/!!g;
         print "$logs{$l}\n";
         print "$l\n";
         undef $logs{$l};
     }
 }
+
 __END__
---------------------------------------------------------------------------------
-
-
-
 
 ----------------------------------------
 2006/03/16 19:51:58	1.54	eliv	AS_CNS/MultiAlignment_CNS.c
@@ -10941,9 +10935,11 @@ columns with variation will be grouped.
 ----------------------------------------
 2007/10/25 16:49:42	1.32	gdenisov	AS_CGW/eCR.c
 
-
 Replaced constant CNS_OPTIONS_SMOOTH_WIN_DEFAULT with new constant,
 CNS_OPTIONS_MIN_ANCHOR_DEFAULT
+
+TAG: VERSION-4_10-RELEASE (about here; runCA.pl v1.26 is in 4.10, see
+commit on 10/30 from moweis)
 
 ----------------------------------------
 2007/10/25 21:34:07	1.4	moweis	AS_RUN/arun/tools/Ca2ta.java
@@ -10954,8 +10950,11 @@ Ca2ta - more formating updates, Bug in generating clr file
 ----------------------------------------
 2007/10/26 14:21:28	1.5	moweis	AS_RUN/arun/tools/Ca2ta.java
 
-Outputs the correct .contig for gbaf and gvp.  Only issue compared to ca2ta.pl's .contig
-is that reads that have the same offset and length within the contig, ca2ta doesn't specify how to order their output, so its left per the random hash lookup.  So when comparing with a ca2ta.pl contig, you may find a few reads swapped around.
+Outputs the correct .contig for gbaf and gvp.  Only issue compared to
+ca2ta.pl's .contig is that reads that have the same offset and length
+within the contig, ca2ta doesn't specify how to order their output, so
+its left per the random hash lookup.  So when comparing with a
+ca2ta.pl contig, you may find a few reads swapped around.
 
 ----------------------------------------
 2007/10/29 06:10:36	1.35	brianwalenz	AS_CGW/CIScaffoldT_Cleanup_CGW.c
@@ -11943,6 +11942,8 @@ Phase out use of aserver_new.
 We get distupdate err messages from the dummy libraries that pullfrag
 creates, so don't die because of them.
 
+TAG: VERSION-4_20-RELEASE
+
 ----------------------------------------
 2008/01/10 16:11:23     1.33    skoren  AS_RUN/Makefile
 2008/01/10 16:10:33     1.29    skoren  AS_RUN/runCA-OBT/runCA.pl
@@ -12019,4 +12020,304 @@ fixed incorrect restart when using UMD overlapper
 
 fragUID, mateUID and mergeUid vars are only used for printing, so make
 them uint64 and call AS_UID_toInteger() on their sources.
+
+----------------------------------------
+2008/01/28 21:06:29     1.33    skoren  AS_CNS/MultiAlignment_CNS.h
+
+allowed BaseCall to call N as a valid base (in addition to -, A, C, G,
+T). It was crashing when the only coverage for a position was a read
+with an N.
+
+----------------------------------------
+2008/01/29 20:02:06     1.3     skoren  AS_ARD/BCPOutput.cc
+2008/01/29 20:02:06     1.3     skoren  AS_ARD/DBTextOutput.cc
+2008/01/29 20:02:06     1.3     skoren  AS_ARD/SQLOutput.cc
+
+converted warnings to TODOs
+
+----------------------------------------
+2008/01/31 05:18:09     1.10    brianwalenz     AS_MSG/convert-v1-to-v2.pl
+2008/01/31 05:18:09     1.7     brianwalenz     AS_MSG/tracedb-to-frg.pl
+2008/01/31 05:18:09     1.3     brianwalenz     AS_RUN/asmQC/asmToFasta.pl
+2008/01/31 05:18:09     1.7     brianwalenz     AS_RUN/asmQC/ca2ace.pl
+2008/01/31 05:18:09     1.28    brianwalenz     AS_RUN/asmQC/caqc.pl
+2008/01/31 05:18:09     1.2     brianwalenz     AS_SHR/Extract_Contigs_From_ACE_StackFree.pl
+2008/01/31 05:18:09     1.8     brianwalenz     AS_TER/buildFragContigPosMap.pl
+
+Change regex's from \w or \d to \S, to support non-integer UIDs better.
+
+----------------------------------------
+2008/01/31 16:46:52     1.76    eliv    AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Make OBT.specFile defaults regular defaults to unify runCA and carun.
+
+----------------------------------------
+2008/01/31 17:48:15     1.7     skoren  AS_ARD/Makefile
+
+enforce requirement of Sybase version 15.0 in Makefile
+
+----------------------------------------
+2008/01/31 18:40:31     1.31    skoren  AS_GKP/AS_GKP_dump.c
+
+updated dump to dump decoded quality values correctly as well as fix
+incorrect mate uid dump
+
+----------------------------------------
+2008/01/31 20:52:24     1.24    brianwalenz     AS_RUN/runCA-OBT/doc.tex
+
+Add how to build, how to run hybrid, a little on the outputs.
+
+----------------------------------------
+2008/02/01 18:56:20     1.32    skoren  AS_GKP/AS_GKP_dump.c
+
+update to use the utility function AS_UTL_writeFastA for fasta output
+
+----------------------------------------
+2008/02/01 20:44:37     1.77    eliv    AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Fix silly typo.
+
+----------------------------------------
+2008/02/01 20:50:44     1.23    eliv    AS_CGB/AS_CGB_cgb.c
+
+Turn back on prints when arrival rate is recalculated, at Grangers request.
+
+----------------------------------------
+2008/02/01 21:05:30     1.24    brianwalenz     AS_PER/AS_PER_genericStore.c
+
+Computing the size of an in memory store wrong; didn't account for the
+last element.
+
+----------------------------------------
+2008/02/01 21:22:12     1.25    eliv    AS_RUN/runCA-OBT/runCAutil/preoverlap.pl
+
+Don't create asm.frg file if it already exists, could overwrite users data.
+
+----------------------------------------
+2008/02/01 21:23:27     1.10    eliv    AS_RUN/runCA-OBT/runCAutil/site-jcvi.pl
+
+Delete assembly console code, since it's retiring.
+
+----------------------------------------
+2008/02/01 21:31:47     1.30    eliv    AS_RUN/runCA-OBT/runCA.pl
+
+Move localSetup after checkDirs since it assumes the workdir is created already.
+
+----------------------------------------
+2008/02/03 22:47:23     1.4     brianwalenz     AS_GKP/AS_GKP_bench.c
+2008/02/03 22:47:23     1.10    brianwalenz     AS_GKP/AS_GKP_buildPartition.c
+2008/02/03 22:47:23     1.35    brianwalenz     AS_GKP/AS_GKP_checkFrag.c
+2008/02/03 22:47:23     1.8     brianwalenz     AS_GKP/AS_GKP_rearrange.c
+2008/02/03 22:47:23     1.8     brianwalenz     AS_GKP/AS_GKP_sff.c
+2008/02/03 22:47:23     1.25    brianwalenz     AS_PER/AS_PER_genericStore.c
+2008/02/03 22:47:23     1.47    brianwalenz     AS_PER/AS_PER_gkpStore.c
+
+String store and index store disagreed on if the first element was at
+position 0 or position 1.  This then confused shared code (like loading
+the store into memory) because the amount of data was either end-beg or
+end-beg+1.  Now the string store starts at element 1, like the index
+store always did.
+
+----------------------------------------
+2008/02/04 04:09:41     1.26    brianwalenz     AS_PER/AS_PER_genericStore.c
+
+Silly, misnamed struct member broke compilation.
+
+----------------------------------------
+2008/02/04 14:04:11     1.180   brianwalenz     AS_CNS/MultiAlignment_CNS.c
+
+A very low coverage 454-only assembly was failing in the variant detection
+code.  This commit consists of a patch to ignore the problem, along with
+yet another nasty warning message.
+
+----------------------------------------
+2008/02/04 14:45:40     1.25    brianwalenz     AS_RUN/runCA-OBT/doc.tex
+2008/02/04 14:45:40     1.31    brianwalenz     AS_RUN/runCA-OBT/runCA.pl
+2008/02/04 14:45:40     1.16    brianwalenz     AS_RUN/runCA-OBT/runCAutil/checkOverlap.pl
+2008/02/04 14:45:40     1.44    brianwalenz     AS_RUN/runCA-OBT/runCAutil/createOverlapJobs.pl
+2008/02/04 14:45:40     1.6     brianwalenz     AS_RUN/runCA-OBT/runCAutil/merOverlapper.pl
+2008/02/04 14:45:40     1.19    brianwalenz     AS_RUN/runCA-OBT/runCAutil/meryl.pl
+2008/02/04 14:45:40     1.36    brianwalenz     AS_RUN/runCA-OBT/runCAutil/overlapTrim.pl
+2008/02/04 14:45:40     1.45    brianwalenz     AS_RUN/runCA-OBT/runCAutil/scaffolder.pl
+2008/02/04 14:45:40     1.44    brianwalenz     AS_RUN/runCA-OBT/runCAutil/terminate.pl
+2008/02/04 14:45:40     1.5     brianwalenz     AS_RUN/runCA-OBT/runCAutil/umdOverlapper.pl
+2008/02/04 14:45:40     1.28    brianwalenz     AS_RUN/runCA-OBT/runCAutil/unitigger.pl
+2008/02/04 14:45:40     1.78    brianwalenz     AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Make the doc and the code agree.  Fix LOTS of pesky annoying minor broken
+bits.  A few options have changed name, but nothing that (I think) is in
+widespread use.
+
+----------------------------------------
+2008/02/04 16:33:42     1.63    brianwalenz     AS_GKP/AS_GKP_main.c
+
+Cosmetic fixes to command line help.
+
+----------------------------------------
+2008/02/04 18:37:41     1.32    eliv    AS_RUN/runCA-OBT/runCA.pl
+
+Add a check to make sure we have frgs to work on.
+
+----------------------------------------
+2008/02/04 19:47:16     1.46    eliv    AS_RUN/runCA-OBT/runCAutil/scaffolder.pl
+
+Auto compute insert size if fewer then 1m reads, half less then the flies.
+
+----------------------------------------
+2008/02/04 21:28:32     1.11    eliv    AS_RUN/runCA-OBT/runCAutil/site-jcvi.pl
+
+Make sure localPostTerminator is defined.
+
+----------------------------------------
+2008/02/04 21:45:21     1.29    eliv    AS_RUN/runCA-OBT/runCAutil/createConsensusJobs.pl
+
+Add seemingly missing caFailure call.
+
+----------------------------------------
+2008/02/05 13:01:06     1.26    brianwalenz     AS_RUN/runCA-OBT/doc.tex
+
+Parameter change.
+
+----------------------------------------
+2008/02/05 13:41:51     1.33    skoren  AS_RUN/runCA-OBT/runCA.pl
+2008/02/05 13:41:51     1.45    skoren  AS_RUN/runCA-OBT/runCAutil/createOverlapJobs.pl
+2008/02/05 13:41:51     1.6     skoren  AS_RUN/runCA-OBT/runCAutil/umdOverlapper.pl
+
+modified UMD overlapper parameters to follow new runCA standard (use
+ovlOverlapper=umd instead of doUseUMDOverlapper=1)
+
+----------------------------------------
+2008/02/05 14:22:02     1.7     skoren  AS_RUN/runCA-OBT/runCAutil/umdOverlapper.pl
+
+backup frag store before updating clear ranges
+
+----------------------------------------
+2008/02/05 14:38:55     1.34    eliv    AS_RUN/runCA-OBT/runCA.pl
+
+Only check for frgs if not a continuation run.
+
+----------------------------------------
+2008/02/05 15:28:22     1.8     eliv    AS_RUN/runCA-OBT/runCA.pl.head
+
+Add url to sourceforge wiki and update version number to 4.3.
+
+----------------------------------------
+2008/02/06 21:51:03     1.35    brianwalenz     AS_RUN/runCA-OBT/runCA.pl
+
+Third try....fail early if on grid, no frag files, and no gkpStore.
+
+----------------------------------------
+2008/02/07 21:01:33     1.3     brianwalenz     AS_TER/asmOutputFasta.c
+
+Bug in scaffold generation resulted in some scaffolds having all contigs
+reverse-complemnted.  Order was ok, orientation was backwards.
+
+----------------------------------------
+2008/02/07 22:37:28     1.27    brianwalenz     AS_PER/AS_PER_genericStore.c
+2008/02/07 22:37:28     1.48    brianwalenz     AS_PER/AS_PER_gkpStore.c
+
+Add lots of asserts to AS_PER_genericStore; fix bug in AS_PER_gkpStore when
+long/string UIDs are used.
+
+----------------------------------------
+2008/02/08 20:20:38     1.27    skoren  AS_RUN/runCA-OBT/doc.tex
+
+add reference to UMD overlapper web page for detail instruction
+
+----------------------------------------
+2008/02/08 23:09:58     1.28    brianwalenz     AS_PER/AS_PER_genericStore.c
+2008/02/08 23:09:58     1.17    brianwalenz     AS_PER/AS_PER_genericStore.h
+2008/02/08 23:09:58     1.49    brianwalenz     AS_PER/AS_PER_gkpStore.c
+
+More string store breakage. Terminating zeros were stored as part of the
+string, and the length of the string included that zero.  This caused
+long UID lookups to fail.  Several places were violating the store
+encapsulation; those are fixed too.
+
+----------------------------------------
+2008/02/11 18:54:43     1.8     skoren  AS_RUN/runCA-OBT/runCAutil/umdOverlapper.pl
+2008/02/11 18:54:43     1.79    skoren  AS_RUN/runCA-OBT/runCAutil/util.pl
+
+modify to use updated UMD overlapper options, also dump vector clear
+frg file when we have vector input so UMD overlapper knows about it
+
+----------------------------------------
+2008/02/11 19:02:01     1.61    brianwalenz     AS_CNS/Consensus_CNS.c
+
+Remove 'break' that was, umm, breaking too early.  If a contig failed,
+the break terminated execution, instead of letting consensus finish the
+input.
+
+----------------------------------------
+2008/02/11 19:28:20     1.28    skoren  AS_RUN/runCA-OBT/doc.tex
+2008/02/11 19:28:20     1.20    skoren  AS_RUN/runCA-OBT/runCAutil/meryl.pl
+
+added merylThreads option to control number of threads used
+
+----------------------------------------
+2008/02/12 14:25:50     1.2     eliv    AS_RUN/runCA-OBT/OBT.specFile
+2008/02/12 14:25:50     1.3     eliv    AS_RUN/runCA-OBT/metaGenomic.specFile
+2008/02/12 14:25:50     1.2     eliv    AS_RUN/runCA-OBT/noOBT.specFile
+2008/02/12 14:25:50     1.2     eliv    AS_RUN/runCA-OBT/noVec.specFile
+
+Update to new option names.
+
+----------------------------------------
+2008/02/12 18:55:20     1.80    eliv    AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Fix a missed param name change merSizeObt->obtMerSize.
+
+----------------------------------------
+2008/02/13 19:28:11     1.181   eliv    AS_CNS/MultiAlignment_CNS.c
+2008/02/13 19:28:11     1.34    eliv    AS_CNS/MultiAlignment_CNS.h
+
+Fix temp arrays of size CNS_NALPHABET to new size.
+
+TAG: VERSION-4_30-RELEASE
+
+----------------------------------------
+2008/02/14 08:59:48     1.17    brianwalenz     AS_MER/overmerry.C
+2008/02/14 08:59:49     1.7     brianwalenz     AS_RUN/runCA-OBT/runCAutil/merOverlapper.pl
+2008/02/14 08:59:49     1.21    brianwalenz     AS_RUN/runCA-OBT/runCAutil/meryl.pl
+
+Finish overmerry parallelization and segmentation.
+
+----------------------------------------
+2008/02/14 16:26:23     1.8     brianwalenz     AS_RUN/runCA-OBT/runCAutil/merOverlapper.pl
+
+Rename sge jobs.
+
+----------------------------------------
+2008/02/14 21:10:40     1.6     skoren  AS_GKP/AS_GKP_edit.c
+2008/02/14 21:10:40     1.9     skoren  AS_RUN/runCA-OBT/runCAutil/umdOverlapper.pl
+
+modified the gkp editor to have an option to update all clear range
+values after the given one and updated umd overlapper run to use this
+option for updating the OBT range
+
+----------------------------------------
+2008/02/19 17:14:46     1.12    eliv    AS_RUN/runCA-OBT/runCAutil/site-jcvi.pl
+
+Fix auto vectorIntersect setting via seq.features and mail too.
+
+----------------------------------------
+2008/02/20 10:48:56     1.23    brianwalenz     AS_RUN/runCA-OBT/runCAutil/createFragmentCorrectionJobs.pl
+2008/02/20 10:48:56     1.20    brianwalenz     AS_RUN/runCA-OBT/runCAutil/createOverlapCorrectionJobs.pl
+
+Redirect script output to a file, not /dev/null.
+
+----------------------------------------
+2008/02/20 10:51:09     1.50    brianwalenz     AS_PER/AS_PER_gkpStore.c
+2008/02/20 10:51:09     1.4     brianwalenz     AS_UTL/AS_UTL_UID.c
+
+Bug in string UIDs.  Looking up a UID would sometimes end up with a bogus
+dangling pointer.  Now, always reset the string to that stored in the store.
+
+----------------------------------------
+2008/02/20 10:53:30     1.17    brianwalenz     AS_GKP/AS_GKP_checkBatch.c
+2008/02/20 10:53:30     1.36    brianwalenz     AS_GKP/AS_GKP_checkFrag.c
+2008/02/20 10:53:30     1.20    brianwalenz     AS_GKP/AS_GKP_checkLibrary.c
+2008/02/20 10:53:30     1.18    brianwalenz     AS_GKP/AS_GKP_checkLink.c
+
+Remove block of dead code.
 
