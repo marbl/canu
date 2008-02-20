@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.49 2008-02-08 23:09:58 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.50 2008-02-20 10:51:09 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -598,8 +598,11 @@ AS_GKP_getUIDfromString(GateKeeperStore *gkp, AS_UID uid) {
   if (LookupInHashTable_AS(gkp->STRtoUID,
                            (INTPTR)uid.UIDstring, strlen(uid.UIDstring),
                            &loc, 0)) {
+    uint32  actlen = 0;
+    int64   uidoff = 0;
     uid.isString  = 1;
     uid.UID       = loc;
+    uid.UIDstring = getStringStorePtr(gkp->uid, uid.UID, &actlen, &uidoff);
   } else {
     uid = AS_UID_undefined();
   }

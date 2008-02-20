@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-// $Id: AS_UTL_UID.c,v 1.3 2007-11-15 14:27:50 skoren Exp $
+// $Id: AS_UTL_UID.c,v 1.4 2008-02-20 10:51:09 brianwalenz Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,6 +67,7 @@ AS_UID_getUIDfromString(AS_UID uid) {
                             &loc, 0))) {
     uid.isString  = 1;
     uid.UID       = loc;
+    uid.UIDstring = AS_UID_strings + uid.UID;
   } else {
     uid = AS_UID_undefined();
   }
