@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLink.c,v 1.17 2007-11-08 12:38:12 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLink.c,v 1.18 2008-02-20 10:53:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,15 +40,6 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
 
   if (lkg_mesg->action == AS_IGNORE)
     return 0;
-
-#if 0
-  //  Process all the incoming UIDs.
-  //
-  AS_UID_setGatekeeper(gkpStore);  //  doesn't need to be done all the time
-  lkg_mesg->frag1    = AS_UID_process(lkg_mesg->frag1);
-  lkg_mesg->frag2    = AS_UID_process(lkg_mesg->frag2);
-  lkg_mesg->distance = AS_UID_process(lkg_mesg->distance);
-#endif
 
   //  Check that the fragments are different
   //

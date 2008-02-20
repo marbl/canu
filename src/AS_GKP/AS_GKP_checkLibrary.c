@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.19 2007-11-08 12:38:12 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.20 2008-02-20 10:53:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -126,13 +126,6 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
   clearGateKeeperLibraryRecord(&gkpl);
 
   checkLibraryDistances(lib_mesg, believeInputStdDev);
-
-#if 0
-  //  Process all the incoming UIDs.
-  //
-  AS_UID_setGatekeeper(gkpStore);  //  doesn't need to be done all the time
-  lib_mesg->eaccession = AS_UID_process(lib_mesg->eaccession);
-#endif
 
   if (lib_mesg->action == AS_ADD) {
     AS_IID     iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);

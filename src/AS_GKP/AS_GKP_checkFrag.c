@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.35 2008-02-03 22:47:23 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.36 2008-02-20 10:53:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -288,14 +288,6 @@ Check_FragMesg(FragMesg            *frg_mesg,
     checkfraginitialized = 1;
   }
 
-#if 0
-  //  Process all the incoming UIDs.
-  //
-  AS_UID_setGatekeeper(gkpStore);  //  doesn't need to be done all the time
-  frg_mesg->eaccession  = AS_UID_process(frg_mesg->eaccession);
-  frg_mesg->library_uid = AS_UID_process(frg_mesg->library_uid);
-  frg_mesg->plate_uid   = AS_UID_process(frg_mesg->plate_uid);
-#endif
 
   if (frg_mesg->action == AS_ADD) {
     GateKeeperFragmentRecord gkf = {0};
