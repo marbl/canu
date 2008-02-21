@@ -181,7 +181,7 @@ glen_est_truncadjusted.pl: dataQC/$@
 	@cp dataQC/$@ $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
-%.specFile: 
+%.specFile: runCA-OBT/%.specFile
 	@cp runCA-OBT/$@ $(LOCAL_BIN)
 
 fragmentDepth: fragmentDepth.o libCA.a
