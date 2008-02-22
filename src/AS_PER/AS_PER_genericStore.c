@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.28 2008-02-08 23:09:58 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.29 2008-02-22 15:43:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,26 +84,28 @@ closeStore(StoreStruct *s) {
 
   //  Flush the memory-resident store to our disk backing.
   //
-  if ((s->memoryBuffer) && (s->isDirty)) {
-    assert(s->readOnly == FALSE);
-    rewind(s->fp);
-    AS_UTL_safeWrite(s->fp,
-                     s->memoryBuffer, "writeUpdate",
-                     sizeof(char),
-                     sizeof(StoreStruct) + (s->lastElem - s->firstElem + 1) * s->elementSize);
-  }
+  if (s->fp) {
+    if ((s->memoryBuffer) && (s->isDirty)) {
+      assert(s->readOnly == FALSE);
+      rewind(s->fp);
+      AS_UTL_safeWrite(s->fp,
+                       s->memoryBuffer, "writeUpdate",
+                       sizeof(char),
+                       sizeof(StoreStruct) + (s->lastElem - s->firstElem + 1) * s->elementSize);
+    }
 
-  //  If we're dirty write the header.  Yes, we overwrite the header
-  //  stored in the memory buffer.
-  //
-  if (s->isDirty) {
-    rewind(s->fp);
-    AS_UTL_safeWrite(s->fp, s, "writeHeader", sizeof(StoreStruct), 1);
-  }
+    //  If we're dirty write the header.  Yes, we overwrite the header
+    //  stored in the memory buffer.
+    //
+    if (s->isDirty) {
+      rewind(s->fp);
+      AS_UTL_safeWrite(s->fp, s, "writeHeader", sizeof(StoreStruct), 1);
+    }
 
-  if ((s->fp) && (fclose(s->fp) != 0)) {
-    fprintf(stderr, "Failed to close the store; this usually means your disk is full.\n");
-    exit(1);
+    if (fclose(s->fp) != 0) {
+      fprintf(stderr, "Failed to close the store; this usually means your disk is full.\n");
+      exit(1);
+    }
   }
 
   safe_free(s->memoryBuffer);
@@ -118,9 +120,6 @@ closeStore(StoreStruct *s) {
 StoreStruct *
 createIndexStore(const char *path, const char *storeLabel, int32 elementSize, int64 firstID) {
   StoreStruct *s = (StoreStruct *)safe_calloc(sizeof(StoreStruct), 1);
-
-  assert(path != NULL);
-  assert(strlen(path) < FILENAME_MAX);
 
   strncpy(s->storeLabel, storeLabel, 7);
 
@@ -137,19 +136,25 @@ createIndexStore(const char *path, const char *storeLabel, int32 elementSize, in
   s->readOnly        = 0;
   s->lastWasWrite    = 0;
 
-  errno = 0;
-  s->fp = fopen(path, "w+");
-  if (errno) {
-    fprintf(stderr,"createIndexStore()-- Failure opening Store %s for w+: %s\n", path, strerror(errno));
-    exit(1);
+  if (path) {
+    assert(strlen(path) < FILENAME_MAX);
+
+    errno = 0;
+    s->fp = fopen(path, "w+");
+    if (errno) {
+      fprintf(stderr,"createIndexStore()-- Failure opening Store %s for w+: %s\n", path, strerror(errno));
+      exit(1);
+    }
+
+    if (WRITING_BUFFER > 0)
+      setbuffer(s->fp,
+                s->diskBuffer = (char *)safe_calloc(sizeof(char), WRITING_BUFFER),
+                WRITING_BUFFER);
+
+    AS_UTL_safeWrite(s->fp, s, "writeHeader", sizeof(StoreStruct), 1);
+  } else {
+    s = convertStoreToMemoryStore(s);
   }
-
-  if (WRITING_BUFFER > 0)
-    setbuffer(s->fp,
-              s->diskBuffer = (char *)safe_calloc(sizeof(char), WRITING_BUFFER),
-              WRITING_BUFFER);
-
-  AS_UTL_safeWrite(s->fp, s, "writeHeader", sizeof(StoreStruct), 1);
 
   return(s);
 }
@@ -158,8 +163,8 @@ StoreStruct *
 createStringStore(const char *path, const char *storeLabel) {
   StoreStruct *s = (StoreStruct *)safe_calloc(sizeof(StoreStruct), 1);
 
-  assert(path != NULL);
-  assert(strlen(path) < FILENAME_MAX);
+  //  If path is NULL, the newly created store is an in-core store, with no
+  //  disk backing.
 
   strncpy(s->storeLabel, storeLabel, 7);
 
@@ -176,19 +181,25 @@ createStringStore(const char *path, const char *storeLabel) {
   s->readOnly        = 0;
   s->lastWasWrite    = 0;
 
-  errno = 0;
-  s->fp = fopen(path, "w+");
-  if (errno) {
-    fprintf(stderr,"createStringStore()-- Failure opening Store %s for w+: %s\n", path, strerror(errno));
-    exit(1);
+  if (path) {
+    assert(strlen(path) < FILENAME_MAX);
+
+    errno = 0;
+    s->fp = fopen(path, "w+");
+    if (errno) {
+      fprintf(stderr,"createStringStore()-- Failure opening Store %s for w+: %s\n", path, strerror(errno));
+      exit(1);
+    }
+
+    if (WRITING_BUFFER > 0)
+      setbuffer(s->fp,
+                s->diskBuffer = (char *)safe_calloc(sizeof(char), WRITING_BUFFER),
+                WRITING_BUFFER);
+
+    AS_UTL_safeWrite(s->fp, s, "writeHeader", sizeof(StoreStruct), 1);
+  } else {
+    s = convertStoreToMemoryStore(s);
   }
-
-  if (WRITING_BUFFER > 0)
-    setbuffer(s->fp,
-              s->diskBuffer = (char *)safe_calloc(sizeof(char), WRITING_BUFFER),
-              WRITING_BUFFER);
-
-  AS_UTL_safeWrite(s->fp, s, "writeHeader", sizeof(StoreStruct), 1);
 
   return(s);
 }
@@ -350,12 +361,13 @@ appendIndexStore(StoreStruct *s, void *element) {
   setIndexStore(s, ++s->lastElem, element);
 }
 
-void
+int64
 appendStringStore(StoreStruct *s, char *str, uint32 len) {
 
   assert(s->readOnly == FALSE);
   assert(s->storeType == STRING_STORE);
 
+  int64 retval = 0;
   int64 offset = sizeof(StoreStruct) + s->lastElem;
 
   //  Make sure the string is zero terminated.
@@ -365,8 +377,26 @@ appendStringStore(StoreStruct *s, char *str, uint32 len) {
   if (s->memoryBuffer) {
     int64 desiredSize = offset + len + sizeof(uint32);
     if (s->allocatedSize <= desiredSize) {
+      char *oldbuffer = s->memoryBuffer;
+
+#if 0
+      //
+      //  Useful for playing with string UID reallocation bugs.
+      //
+      fprintf(stderr, "REALLOCATE from %d to %d\n",
+              s->allocatedSize, desiredSize + 2 * 1024 * 1024);
+      size_t oldsize = s->allocatedSize;
+      s->allocatedSize = desiredSize + 2 * 1024 * 1024;
+      char *n = safe_calloc(s->allocatedSize, 1);
+      memcpy(n, s->memoryBuffer, oldsize);
+      safe_free(s->memoryBuffer);
+      s->memoryBuffer = n;
+#else
       s->allocatedSize = desiredSize + 32 * 1024 * 1024;
       s->memoryBuffer  = (char *)safe_realloc(s->memoryBuffer, s->allocatedSize);
+#endif
+
+      retval = s->memoryBuffer - oldbuffer;
     }
     memcpy(s->memoryBuffer + offset, &len, sizeof(uint32));
     if (len > 0)
@@ -388,6 +418,8 @@ appendStringStore(StoreStruct *s, char *str, uint32 len) {
   //  Careful!  Precedence of ? sucks.
   s->lastElem += sizeof(uint32) + ((len > 0) ? len + 1 : 0);
   s->isDirty   = 1;
+
+  return(retval);
 }
 
 
@@ -442,28 +474,30 @@ convertStoreToMemoryStore(StoreStruct *source) {
 
   //  These should be true for a disk-based store, and false for a
   //  memory store.
+
   assert(source->firstElem    == 1);
-  assert(source->fp           != NULL);
   assert(source->memoryBuffer == NULL);
 
   source->allocatedSize   = sizeof(StoreStruct) + (source->lastElem - source->firstElem + 1) * source->elementSize;
   source->memoryBuffer    = (char *)safe_calloc(sizeof(char), source->allocatedSize);
 
-  fflush(source->fp);
-  rewind(source->fp);
-
   //  Copy the data to the memory store.  NOTE that even though we
   //  copy the header, it is UNUSED -- we use the values stored in the
   //  object itself.
 
-  if (AS_UTL_safeRead(source->fp,
-                      source->memoryBuffer,
-                      "convertStoreMemoryStore",
-                      sizeof(char),
-                      source->allocatedSize) != source->allocatedSize) {
-    fprintf(stderr, "convertStoreToMemoryStore()-- failed to convert store (label '%s') to memory store.\n",
-            source->storeLabel);
-    exit(1);
+  if (source->fp) {
+    fflush(source->fp);
+    rewind(source->fp);
+
+    if (AS_UTL_safeRead(source->fp,
+                        source->memoryBuffer,
+                        "convertStoreMemoryStore",
+                        sizeof(char),
+                        source->allocatedSize) != source->allocatedSize) {
+      fprintf(stderr, "convertStoreToMemoryStore()-- failed to convert store (label '%s') to memory store.\n",
+              source->storeLabel);
+      exit(1);
+    }
   }
 
   return(source);
@@ -487,8 +521,8 @@ convertStoreToPartialMemoryStore(StoreStruct *source,
 
   //  These should be true for a disk-based store, and false for a
   //  memory store.
+
   assert(source->firstElem    == 1);
-  assert(source->fp           != NULL);
   assert(source->memoryBuffer == NULL);
 
   if (source->storeType == STRING_STORE) {
@@ -525,19 +559,21 @@ convertStoreToPartialMemoryStore(StoreStruct *source,
   //  Copy the data to the memory store.  The first
   //  sizeof(StoreStruct) bytes are unused -- this would be the
   //  header.
+  //
+  if (source->fp) {
+    fflush(source->fp);
+    AS_UTL_fseek(source->fp, (off_t)sourceOffset, SEEK_SET);
 
-  AS_UTL_fseek(source->fp, (off_t)sourceOffset, SEEK_SET);
-  fflush(source->fp);
-
-  bytesRead = AS_UTL_safeRead(source->fp,
-                              target->memoryBuffer + sizeof(StoreStruct),
-                              "convertStoreToPartialMemoryStore",
-                              sizeof(char),
-                              sourceMaxOffset - sourceOffset);
-  if (bytesRead != sourceMaxOffset - sourceOffset) {
-    fprintf(stderr, "convertStoreToPartialMemoryStore()-- failed to convert store (label '%s') to memory store.\n", source->storeLabel);
-    fprintf(stderr, "convertStoreToPartialMemoryStore()-- wanted to read %d bytes, actually read %d.\n", sourceMaxOffset - sourceOffset, bytesRead);
-    exit(1);
+    bytesRead = AS_UTL_safeRead(source->fp,
+                                target->memoryBuffer + sizeof(StoreStruct),
+                                "convertStoreToPartialMemoryStore",
+                                sizeof(char),
+                                sourceMaxOffset - sourceOffset);
+    if (bytesRead != sourceMaxOffset - sourceOffset) {
+      fprintf(stderr, "convertStoreToPartialMemoryStore()-- failed to convert store (label '%s') to memory store.\n", source->storeLabel);
+      fprintf(stderr, "convertStoreToPartialMemoryStore()-- wanted to read %d bytes, actually read %d.\n", sourceMaxOffset - sourceOffset, bytesRead);
+      exit(1);
+    }
   }
 
   closeStore(source);

@@ -90,7 +90,7 @@ void          appendIndexStore(StoreStruct *store, void *element);
 StoreStruct  *createStringStore(const char *StorePath, const char *storeType);
 void          getStringStore(StoreStruct *s, int64 offset, char *buffer, uint32 maxLength, uint32 *actualLength, int64 *nextOffset);
 char         *getStringStorePtr(StoreStruct *s, int64 offset, uint32 *actualLength, int64 *nextOffset);
-void          appendStringStore(StoreStruct *store, char *str, uint32 len);
+int64         appendStringStore(StoreStruct *store, char *str, uint32 len);
 
 StreamStruct *openStream(StoreStruct *sh);
 void          resetStream(StreamStruct *sh, int64 startIndex, int64 endIndex);
