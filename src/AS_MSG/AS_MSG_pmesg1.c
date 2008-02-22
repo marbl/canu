@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.19 2007-11-21 19:26:36 skoren Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.20 2008-02-22 15:48:08 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,13 +64,8 @@ GetUIDUIDMatePairType(AS_UID *UID1, AS_UID *UID2, FILE *fin) {
 
   ReadLine(fin,TRUE);
 
-  UID1->isString  = 0;
-  UID1->UID       = 0;
-  UID1->UIDstring = NULL;
-
-  UID2->isString  = 0;
-  UID2->UID       = 0;
-  UID2->UIDstring = NULL;
+  (*UID1)  = AS_UID_undefined();
+  (*UID2)  = AS_UID_undefined();
 
   char *str = AS_MSG_globals->curLine; 
   char *currLoc = str;

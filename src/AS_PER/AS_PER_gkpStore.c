@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.50 2008-02-20 10:51:09 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.51 2008-02-22 15:48:08 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -530,25 +530,19 @@ void clearGateKeeperFragmentRecord(GateKeeperFragmentRecord *g) {
 //  For numeric UIDs (those with both isString and UID valid), you can
 //  do a UID to IID mapping.
 //
-//  String UIDs (those with only UIDstring defined) must be added to
-//  the store first.  The UIDstring itself is stored in a String
-//  store, just like sequence and source.  The index into this store
-//  is saved in the (isString, UID) pair.
+//  String UIDs must be added to the store first.  The string itself
+//  is stored in a StringStore just like sequence and source.  The
+//  index into this store is saved in an AS_UID.  The string you pass
+//  in can be a temporary.
 //
-//  A hash must be maintained that maps the UIDstring to the location
-//  in the store (which is also exactly the (isString, UID) pair.
-//  This will be used to lookup a string UID.
+//  A hash must be maintained that maps the strings to the location in
+//  the store (which is also exactly the (isString, UID) pair.  This
+//  will be used to lookup a string UID.
 //
 //  The gkp files are:
 //    'u2i' -> the UID to IID mapping
 //    'uid' -> the string store itself
 //
-//  CODE DUPLICATION:
-//
-//  AS_GKP_getUIDfromString() == AS_UID_getUIDfromString()
-//  AS_GKP_getUID()           == AS_UID_getUID()
-//  AS_GKP_addUID()           == AS_GKP_addUID()
-//  
 
 static
 void
@@ -586,67 +580,64 @@ loadGatekeeperSTRtoUID(GateKeeperStore *gkp) {
 }
 
 
-//  Takes a uid, with UIDstring set, populates the rest of the uid
-//  (isString, UID).
+//  Given a string, returns the AS_UID for it.
 //
 AS_UID
-AS_GKP_getUIDfromString(GateKeeperStore *gkp, AS_UID uid) {
+AS_GKP_getUIDfromString(GateKeeperStore *gkp, char *uidstr) {
+  AS_UID  uid = AS_UID_undefined();
   uint64  loc = 0;
 
   loadGatekeeperSTRtoUID(gkp);
 
   if (LookupInHashTable_AS(gkp->STRtoUID,
-                           (INTPTR)uid.UIDstring, strlen(uid.UIDstring),
+                           (INTPTR)uidstr, strlen(uidstr),
                            &loc, 0)) {
     uint32  actlen = 0;
     int64   uidoff = 0;
     uid.isString  = 1;
     uid.UID       = loc;
-    uid.UIDstring = getStringStorePtr(gkp->uid, uid.UID, &actlen, &uidoff);
   } else {
     uid = AS_UID_undefined();
   }
   return(uid);
 }
 
-//  Takes a uid with (isString, UID) set (and without UIDstring set),
-//  returns a uid with all three set.
+//  Given an AS_UID, returns a pointer to the string.
 //
-AS_UID
-AS_GKP_getUID(GateKeeperStore *gkp, AS_UID uid) {
-
-  uid.UIDstring = NULL;
+char *
+AS_GKP_getUIDstring(GateKeeperStore *gkp, AS_UID uid) {
+  char *retval = NULL;
 
   if (uid.isString) {
     uint32  actlen = 0;
     int64   uidoff = 0;
+    assert(gkp != NULL);
     loadGatekeeperSTRtoUID(gkp);
-    uid.UIDstring = getStringStorePtr(gkp->uid, uid.UID, &actlen, &uidoff);
+    retval = getStringStorePtr(gkp->uid, uid.UID, &actlen, &uidoff);
   }
 
-  return(uid);
+  return(retval);
 }
 
 
-//  Adds a uid (UIDstring) to the store, populates the rest of the UID.
+//  Given a string, creates a new AS_UID for it.  If the UID already
+//  exists, a duplicate is NOT added.
 //
 AS_UID
-AS_GKP_addUID(GateKeeperStore *gkp, AS_UID uid) {
+AS_GKP_addUID(GateKeeperStore *gkp, char *uidstr) {
 
-  //  Could probably just return...might want to verify that this
-  //  UIDstring is the same as the UID.
+  assert(uidstr != NULL);
 
-  assert((uid.isString == 0) && (uid.UID == 0) && (uid.UIDstring != NULL));
-
+  AS_UID     uid;
   uint64     loc    = 0;
-  uint64     len    = strlen(uid.UIDstring);
+  uint64     len    = strlen(uidstr);
 
   loadGatekeeperSTRtoUID(gkp);
 
   //  If the UID is already in the store, just return as if it was
   //  new.  Otherwise, add it to the store.
 
-  if (LookupInHashTable_AS(gkp->STRtoUID, (INTPTR)uid.UIDstring, len, &loc, 0) == FALSE) {
+  if (LookupInHashTable_AS(gkp->STRtoUID, (INTPTR)uidstr, len, &loc, 0) == FALSE) {
     char    *str = NULL;
     uint32   act = 0;
     int64    off = 0;
@@ -654,24 +645,39 @@ AS_GKP_addUID(GateKeeperStore *gkp, AS_UID uid) {
     loc = getLastElemStore(gkp->uid) + 1;
 
     //  Stash the UID on disk.
-    appendStringStore(gkp->uid, uid.UIDstring, len);
+    off = appendStringStore(gkp->uid, uidstr, len);
+
+    //  If our string store changed, update all the pointers in our hash table.
+    if (off)
+      UpdatePointersInHashTable_AS(gkp->STRtoUID, off);
 
     str = getStringStorePtr(gkp->uid, loc, &act, &off);
 
     if (InsertInHashTable_AS(gkp->STRtoUID,
                              (INTPTR)str, len,
                              loc, 0) == HASH_FAILURE) {
-      fprintf(stderr, "AS_GKP_addUID()-- failed to insert uid '%s' into store; already there?!\n", uid.UIDstring);
+      fprintf(stderr, "AS_GKP_addUID()-- failed to insert uid '%s' into store; already there?!\n", uidstr);
       assert(0);
     }
   }
 
   uid.isString  = 1;
   uid.UID       = loc;
-  uid.UIDstring = NULL;  //  its not valid until we get().
 
   return(uid);
 }
+
+
+GateKeeperStore *
+AS_GKP_createGateKeeperStoreForUIDs(void) {
+  GateKeeperStore  *gkpStore = (GateKeeperStore *)safe_calloc(1, sizeof(GateKeeperStore));
+
+  gkpStore->uid      = createStringStore(NULL, "uid");
+  gkpStore->STRtoUID = CreateStringHashTable_AS(32 * 1024);
+
+  return(gkpStore);
+}
+
 
 
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.44 2007-11-08 12:38:15 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.45 2008-02-22 15:48:08 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -523,12 +523,12 @@ getGateKeeperLibrary(GateKeeperStore *gkp, int libiid) {
 }
 
 
-//  The following three functions should not be used.  They are needed
-//  only by AS_UTL_UID.c, which handles all the UID strings.
+//  The following four functions should not be used, unless you are AS_UTL_UID.c.
 //
-AS_UID   AS_GKP_getUIDfromString(GateKeeperStore *gkp, AS_UID uid);
-AS_UID   AS_GKP_getUID(GateKeeperStore *gkp, AS_UID uid);
-AS_UID   AS_GKP_addUID(GateKeeperStore *gkp, AS_UID uid);
+AS_UID              AS_GKP_getUIDfromString(GateKeeperStore *gkp, char *uidstr);
+char               *AS_GKP_getUIDstring(GateKeeperStore *gkp, AS_UID uid);
+AS_UID              AS_GKP_addUID(GateKeeperStore *gkp, char *uidstr);
+GateKeeperStore    *AS_GKP_createGateKeeperStoreForUIDs(void);
 
 AS_IID   getGatekeeperUIDtoIID(GateKeeperStore *gkp, AS_UID uid, uint32 *type);
 int      setGatekeeperUIDtoIID(GateKeeperStore *gkp, AS_UID uid, AS_IID iid, uint32 type);

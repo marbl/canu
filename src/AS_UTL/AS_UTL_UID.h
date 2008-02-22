@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-// $Id: AS_UTL_UID.h,v 1.1 2007-11-08 12:38:16 brianwalenz Exp $
+// $Id: AS_UTL_UID.h,v 1.2 2008-02-22 15:48:08 brianwalenz Exp $
 
 #ifndef AS_UTL_UID_H
 #define AS_UTL_UID_H
@@ -54,25 +54,15 @@
 typedef struct {
   uint64   isString:1;
   uint64   UID:63;
-  char    *UIDstring;
-#ifdef TRUE32BIT
-  char    *pad;
-#endif
 } AS_UID;
 
 
-//  Possibly not correct anymore, but more or less so.
+//      isString  UID
+//  0)  0         = 0      -- empty UID; invalid
 //
-//      isString  UID   UIDstring
-//  0)  0         = 0   NULL       -- empty UID; invalid
+//  1)  0         > 0      -- UID is the integer UID
 //
-//  1)  0         > 0   NULL       -- UID is the integer UID
-//
-//  2)  1         = 0   either     -- UID is a pointer to the UID in the store
-//                                    UIDstring (if defined) is the character UID string
-//
-//  3)  0         = 0   defined    -- A uid just input.  AS_UID_process() must be called
-//                                    before this uid can be used.
+//  2)  1        >= 0      -- UID is a pointer to the UID in the store
 
 
 
@@ -109,7 +99,6 @@ AS_UID_fromInteger(uint64 uidn) {
 
   uid.isString  = ((uidn & mask) != 0);
   uid.UID       = (uidn & ~mask);
-  uid.UIDstring = NULL;
 
   assert(uid.UID == (uidn & ~mask));
   assert(AS_UID_toInteger(uid) == uidn);
@@ -134,7 +123,6 @@ AS_UID_undefined(void) {
   AS_UID   uid;
   uid.isString  = 0;
   uid.UID       = 0;
-  uid.UIDstring = NULL;
   return(uid);
 }
 
@@ -143,12 +131,7 @@ static
 inline
 int
 AS_UID_isDefined(AS_UID uid) {
-  if ((uid.UID > 0) || (uid.isString == 1))
-    return(TRUE);
-  if (uid.UIDstring != NULL)
-    fprintf(stderr, "AS_UID_isDefined()-- uid has not been processUID()'d (UIDstring='%s'\n", uid.UIDstring);
-  assert(uid.UIDstring == NULL);
-  return(FALSE);
+  return((uid.UID > 0) || (uid.isString == 1));
 };
 
 //  A special case, used only by terminator.  Please do not use.
