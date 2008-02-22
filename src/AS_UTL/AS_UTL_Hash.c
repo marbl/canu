@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.13 2007-12-08 03:15:17 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.14 2008-02-22 15:47:24 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -542,6 +542,33 @@ LookupTypeInHashTable_AS(HashTable_AS *table,
   LookupInHashTable_AS(table, key, keylen, NULL, &typ);
   return(typ);
 }
+
+
+
+
+//  Offset all the key values (assumed to be pointers to some array).
+//  This can be used when the array holding the data gets reallocated.
+//  
+//  The alternative was to start using the Heap type, but that then
+//  transfers complexity (LOTS) to the end algorithm that is expecting
+//  an array or items.
+//
+void
+UpdatePointersInHashTable_AS(HashTable_AS *table, int64 difference) {
+  HeapIterator_AS  iter;
+  HashNode_AS     *node;
+
+  InitHeapIterator_AS(table->allocated, &iter);
+
+  node = (HashNode_AS *)NextHeapIterator_AS(&iter);
+
+  while (node) {
+    if (node->isFree == 0)
+      node->key += difference;
+    node = (HashNode_AS *)NextHeapIterator_AS(&iter);
+  }
+}
+
 
 
 

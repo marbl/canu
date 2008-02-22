@@ -102,6 +102,7 @@ int           ExistsInHashTable_AS     (HashTable_AS *table, uint64 key, uint32 
 uint64        LookupValueInHashTable_AS(HashTable_AS *table, uint64 key, uint32 keylen);
 uint32        LookupTypeInHashTable_AS (HashTable_AS *table, uint64 key, uint32 keylen);
 
+void          UpdatePointersInHashTable_AS(HashTable_AS *table, int64 difference);
 
 void          SaveHashTable_AS(char *name, HashTable_AS *table);
 
