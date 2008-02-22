@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.32 2008-02-01 18:56:20 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.33 2008-02-22 18:19:18 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -414,13 +414,14 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
         if (libiid > 0)
           libuid = getGateKeeperLibrary(gkp, libiid)->libraryUID;
 
-        unsigned int   clrBeg = getFragRecordClearRegionBegin(&fr, dumpClear);
-        unsigned int   clrEnd = getFragRecordClearRegionEnd  (&fr, dumpClear);
-        char          *seq = getFragRecordSequence(&fr);
+        unsigned int   clrBeg   = getFragRecordClearRegionBegin(&fr, dumpClear);
+        unsigned int   clrEnd   = getFragRecordClearRegionEnd  (&fr, dumpClear);
+        char          *seqStart = getFragRecordSequence(&fr);
 
         if (dumpQuality) 
-          seq = getFragRecordQuality(&fr);
+          seqStart = getFragRecordQuality(&fr);
 
+        char          *seq      = seqStart+clrBeg;
         seq[clrEnd] = 0;
 
         if (dumpQuality >=2) {
