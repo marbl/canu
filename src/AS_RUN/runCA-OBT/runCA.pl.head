@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-my $MY_VERSION = " 4.3 (Build " . (qw/$Revision: 1.8 $/)[1] . ")";
+my $MY_VERSION = " 4.3 (Build " . (qw/$Revision: 1.9 $/)[1] . ")";
 
 my $HELPTEXT = qq~Run a whole-genome shotgun assembly using Celera Assembler.
 
@@ -11,7 +11,7 @@ my $HELPTEXT = qq~Run a whole-genome shotgun assembly using Celera Assembler.
 
  options:
   -d <dir>          Use <dir> as the working directory. Required
-  -p <prefix>       Use <prefix> as the output prefix. (default: 'asm')
+  -p <prefix>       Use <prefix> as the output prefix. Required
   -s <specfile>     Read options from the specifications file <specfile>.
   		    <specfile> can also be one of the following key words:
 		    [no]OBT - run with[out] OBT
@@ -38,6 +38,6 @@ use POSIX qw(ceil floor);
 
 #  Set some not reasonable defaults.
 $wrk = undef;
-$asm = "asm";
+$asm = undef;
 $JCVI = 0;
 $invocation = $0; 

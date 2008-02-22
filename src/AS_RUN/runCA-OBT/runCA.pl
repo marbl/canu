@@ -97,6 +97,8 @@ while (scalar(@ARGV)) {
     }
 }
 
+setGlobal("help",1) unless $asm;
+
 setParameters($specFile, @specOpts);
 
 printHelp();
