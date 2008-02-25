@@ -25,30 +25,12 @@ sub checkOverlapper ($) {
     my $jobIndex   = 1;
     my $failedJobs = 0;
 
-    open(F, "> $wrk/$outDir/overlap-restart.sh");
-    print F "#!/bin/sh\n\n";
-
     while (scalar(@bat) > 0) {
         my $batchName = shift @bat;
         my $jobName   = shift @job;
 
         if (! -e "$wrk/$outDir/$batchName/$jobName.success") {
             print STDERR "$wrk/$outDir/$batchName/$jobName failed, job index $jobIndex.\n";
-
-            if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
-                my $sge        = getGlobal("sge");
-                my $sgeOverlap = getGlobal("sgeOverlap");
-
-                print F "qsub $sge $sgeOverlap -r y -N ovl_${asm} \\\n";
-                print F "  -t $jobIndex \\\n";
-                print F "  -j y -o $wrk/$outDir/overlap.\\\$TASK_ID.out \\\n";
-                print F "  -e $wrk/$outDir/overlap.\\\$TASK_ID.err \\\n";
-                print F "  $wrk/$outDir/overlap.sh\n";
-            } else {
-                my $out = substr("0000" . $jobIndex, -4);
-                print F "$wrk/$outDir/overlap.sh $jobIndex > $wrk/$outDir/$out.out 2>&1\n";
-            }
-
             $failedJobs++;
         }
 
@@ -57,9 +39,7 @@ sub checkOverlapper ($) {
 
     close(F);
 
-    if ($failedJobs) {
-        caFailure("$failedJobs failed.  See $wrk/$outDir/overlap-restart.sh for resubmission commands.\n");
-    }
+    caFailure("$failedJobs failed.\n") if ($failedJobs);
 }
 
 

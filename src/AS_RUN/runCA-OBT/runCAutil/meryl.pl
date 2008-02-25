@@ -7,6 +7,7 @@ sub runMeryl ($$$$$$) {
     my $merThresh    = shift @_;
     my $merType      = shift @_;
     my $merDump      = shift @_;
+    my $bin          = getBinDirectory();
     my $cmd;
 
     #  The fasta file we should be creating.
@@ -14,6 +15,10 @@ sub runMeryl ($$$$$$) {
 
     if ($merThresh == 0) {
         touch $ffile;
+        return;
+    }
+
+    if (-e $ffile) {
         return;
     }
 

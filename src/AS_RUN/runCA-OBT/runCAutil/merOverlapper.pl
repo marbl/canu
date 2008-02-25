@@ -122,20 +122,10 @@ sub merOverlapper($) {
         print F "  echo Job previously completed successfully.\n";
         print F "  exit\n";
         print F "fi\n";
-        print F "\n";
-        print F "echo \\\n";
-        print F "$bin/overmerry \\\n";
-        print F " -g  $wrk/$asm.gkpStore \\\n";
-        if ($ovmJobs > 1) {
-            print F " -mc $wrk/0-mercounts/$asm-C-ms$merSize-cm$merComp \\\n";
-            print F " -tb \$minid -te \$maxid \\\n";
-        }
-        print F " -m $merSize \\\n";
-        print F " -c $merComp \\\n";
-        print F " -t " . getGlobal("merThreads") . "\\\n";
-        print F " -o $wrk/$outDir/seeds/\$jobid.ovm\n";
-        print F "\n";
-        print F "$bin/overmerry \\\n";
+
+        print F getBinDirectoryShellCode();
+
+        print F "\$bin/overmerry \\\n";
         print F " -g  $wrk/$asm.gkpStore \\\n";
         if ($ovmJobs > 1) {
             print F " -mc $wrk/0-mercounts/$asm-C-ms$merSize-cm$merComp \\\n";
@@ -192,9 +182,10 @@ sub merOverlapper($) {
         print F "  echo Job previously completed successfully.\n";
         print F "  exit\n";
         print F "fi\n";
-        print F "\n";
 
-        print F "$bin/olap-from-seeds \\\n";
+        print F getBinDirectoryShellCode();
+
+        print F "\$bin/olap-from-seeds \\\n";
         print F " -a -b \\\n";
         print F " -t 1 \\\n";
         print F " -S $wrk/$outDir/$asm.merStore \\\n";
@@ -206,7 +197,7 @@ sub merOverlapper($) {
             print F " \$minid \$maxid \\\n";
             print F " > $wrk/$outDir/olaps/$asm.\$jobid.ovb.err 2>&1 \\\n";
             print F " &&  \\\n";
-            print F "$gin/acceptableOBToverlap \\\n";
+            print F "\$bin/acceptableOBToverlap \\\n";
             print F " < $wrk/$outDir/olaps/\$jobid.ovr \\\n";
             print F " > $wrk/$outDir/olaps/\$jobid.ovb \\\n";
         } else {
@@ -275,6 +266,7 @@ sub merOverlapper($) {
     }
 
     if (! -e "$wrk/$outDir/$asm.merStore") {
+        my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/overlapStore";
         $cmd .= " -c $wrk/$outDir/$asm.merStore";

@@ -100,19 +100,10 @@ sub createOverlapJobs($) {
     print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
     print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
     print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
-    print F "\n";
-    print F "echo \\\n";
-    print F "$gin/overlap $ovlOpt -M $ovlMemory -t $ovlThreads \\\n";
-    print F "  \$opt \\\n";
-    print F "  -k $merSize \\\n";
-    print F "  -k $wrk/0-mercounts/$asm.nmers.obt.fasta \\\n" if ($isTrim eq "trim");
-    print F "  -k $wrk/0-mercounts/$asm.nmers.ovl.fasta \\\n" if ($isTrim ne "trim");
-    print F "  -o $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n"   if ($isTrim eq "trim");
-    print F "  -o $wrk/$outDir/\$bat/\$job.ovb \\\n"          if ($isTrim ne "trim");
-    print F "  $wrk/$asm.gkpStore\n";
-    print F "\n";
-    print F "\n";
-    print F "$gin/overlap $ovlOpt -M $ovlMemory -t $ovlThreads \\\n";
+
+    print F getBinDirectoryShellCode();
+
+    print F "\$bin/overlap $ovlOpt -M $ovlMemory -t $ovlThreads \\\n";
     print F "  \$opt \\\n";
     print F "  -k $merSize \\\n";
     print F "  -k $wrk/0-mercounts/$asm.nmers.obt.fasta \\\n" if ($isTrim eq "trim");
@@ -123,7 +114,7 @@ sub createOverlapJobs($) {
 
     if ($isTrim eq "trim") {
         print F "&& \\\n";
-        print F "$gin/acceptableOBToverlap \\\n";
+        print F "\$bin/acceptableOBToverlap \\\n";
         print F "  < $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n";
         print F "  > $wrk/$outDir/\$bat/\$job.ovb \\\n";
     }

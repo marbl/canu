@@ -27,6 +27,7 @@ sub mergeFragmentCorrection {
 
         caFailure("$failedJobs failed.  Good luck.\n") if ($failedJobs);
             
+        my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/cat-corrects ";
         $cmd .= "-L $wrk/2-frgcorr/cat-corrects.corrlist ";

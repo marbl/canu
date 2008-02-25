@@ -5,6 +5,8 @@ sub unitigger (@) {
 
     goto alldone if (scalar(@cgbFiles) > 0);
 
+    my $bin = getBinDirectory();
+
     if (! -e "$wrk/4-unitigger/unitigger.success") {
         system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");
 

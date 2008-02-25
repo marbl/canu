@@ -51,6 +51,7 @@ sub CGW ($$$$$$) {
 
     my $sampleSize = getGlobal("cgwDistanceSampleSize");
     
+    my $bin = getBinDirectory();
     my $cmd;
     my $astatLow = getGlobal("astatLowBound");
     my $astatHigh = getGlobal("astatHighBound");
@@ -142,6 +143,7 @@ sub eCR ($$$) {
 
             $lastckp = findLastCheckpoint($thisDir);
 
+            my $bin = getBinDirectory();
             my $cmd;
             $cmd  = "$bin/extendClearRanges ";
             $cmd .= " -g $wrk/$asm.gkpStore ";
@@ -190,6 +192,7 @@ sub updateDistanceRecords ($) {
     #  Older versions needed to actually compute the updated
     #  distances.  Now, cgw outputs it!  Yay!
 
+    my $bin = getBinDirectory();
     my $cmd;
     my $gkpErrorFile = "$wrk/$thisDir/gkp.distupdate.err";
     $cmd  = "$bin/gatekeeper ";

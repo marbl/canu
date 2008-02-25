@@ -1,5 +1,3 @@
-use File::Copy;
-use FindBin qw($Bin);
 
 use Mail::Mailer;
 my ($username) = getpwuid($>) . '@jcvi.org'; 

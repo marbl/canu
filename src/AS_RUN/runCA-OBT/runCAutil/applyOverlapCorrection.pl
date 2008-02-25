@@ -8,6 +8,8 @@ sub applyOverlapCorrection {
 
     my $ovlCorrBatchSize    = getGlobal("ovlCorrBatchSize");
 
+    my $bin = getBinDirectory();
+
     if (! -e "$wrk/3-ovlcorr/update-erates.success") {
         my $failedJobs = 0;
 

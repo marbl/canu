@@ -21,6 +21,7 @@ sub createPostScaffolderConsensusJobs ($) {
     $partitionSize = getGlobal("cnsMinFrags") if ($partitionSize < getGlobal("cnsMinFrags"));
 
     if (! -e "$wrk/8-consensus/partitionSDB.success") {
+        my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/PartitionSDB -all -seqstore $cgwDir/$asm.SeqStore -version $lastckpt -fragsper $partitionSize -input $cgwDir/$asm.cgw_contigs ";
         $cmd .= "> $wrk/8-consensus/partitionSDB.err 2>&1";
@@ -37,6 +38,7 @@ sub createPostScaffolderConsensusJobs ($) {
     }
 
     if (! -e "$wrk/8-consensus/$asm.partitioned") {
+        my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/gatekeeper -P $wrk/8-consensus/FragPartition.txt $wrk/$asm.gkpStore ";
         $cmd .= "> $wrk/8-consensus/$asm.partitioned.err 2>&1";
@@ -86,20 +88,10 @@ sub createPostScaffolderConsensusJobs ($) {
     print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
     print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
     print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
-    print F "\n";
-    print F "echo \\\n";
-    print F "$gin/consensus \\\n";
-    print F "  -s $cgwDir/$asm.SeqStore \\\n";
-    print F "  -V $lastckpt \\\n";
-    print F "  -p \$jobp \\\n";
-    print F "  -S \$jobp \\\n";
-    print F "  -m \\\n";
-    print F "  -o $wrk/8-consensus/$asm.cns_contigs.\$jobp \\\n";
-    print F "  $wrk/$asm.gkpStore \\\n";
-    print F "  $cgwDir/$asm.cgw_contigs.\$jobp \\\n";
-    print F " > $wrk/8-consensus/$asm.cns_contigs.\$jobp.err 2>&1\n";
-    print F "\n";
-    print F "$gin/consensus \\\n";
+
+    print F getBinDirectoryShellCode();
+
+    print F "\$bin/consensus \\\n";
     print F "  -s $cgwDir/$asm.SeqStore \\\n";
     print F "  -V $lastckpt \\\n";
     print F "  -p \$jobp \\\n";

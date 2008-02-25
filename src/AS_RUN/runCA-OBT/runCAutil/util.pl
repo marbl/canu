@@ -55,62 +55,103 @@ sub submitBatchJobs($$$$) {
 }
 
 
-#  Decide what host we are on, and the the bin directory
-#  appropriately
+#  Decide what bin directory to use.
 #
-sub setBinDirectory ($) {
-    my $gridarch = shift @_;
-    my $thisarch;
-    my $binRoot;
+#  When we are running on SGE, the path of this perl script is NOT
+#  always the correct architecture.  If the submission host is
+#  FreeBSD, but the grid is Linux, the BSD box will submit
+#  FreeBSD/bin/runCA.pl to the grid -- unless it knows in advance,
+#  there is no way to pick the correct one.  The grid host then has to
+#  have enough smarts to choose the correct binaries, and that is what
+#  we're doing here.
+#
+#  To make it more trouble, shell scripts need to do all this by
+#  themselves.
+#
+sub getBinDirectory () {
+    my $installDir;
 
-    #  Assume the current binary path is the correct one.
-    #
-    $binRoot = "$FindBin::Bin";
-    my @t = split '/', $binRoot;
-    pop @t;
-    $thisarch = pop @t;
-    $binRoot  = join '/', @t;
+    ###
+    ### CODE DUPLICATION WITH getBinDirectoryShellCode
+    ###
 
-    #  Guess what platform we're on, unless we've been told already.
-    #
-    #  Check, and warn, if the user is trying something strange, like
-    #  running the wrong binaries for this host, or running pointing to
-    #  binaries other than the ones associated with this script.
+    #  Assume the current binary path is the path to the global CA
+    #  install directory.
 
-    if (defined($gridarch)) {
-        $thisarch = $gridarch;
-    } else {
-        my $hostF = `uname`;
-        my $machF = `uname -m`;
-        chomp $hostF;
-        chomp $machF;
+    #  CODE DUPLICATION!!!
+    my @t = split '/', "$FindBin::Bin";
+    pop @t;                      #  bin
+    pop @t;                      #  arch, e.g., FreeBSD-amd64
+    my $installDir = join '/', @t;  #  path to the assembler
+    #  CODE DUPLICATION!!!
 
-        $machF = "amd64"  if ($machF eq "x86_64");
-        $machF = "ppc"    if ($machF eq "Power Macintosh");
-        
-        if ($thisarch ne "$hostF-$machF") {
-            print STDERR "WARNING: You're running the script from the $bin directory,\n";
-            print STDERR "         but are on a $hostF-$machF.\n";
+    #  Guess what platform we are currently running on.
+
+    my $syst = `uname -s`;    chomp $syst;  #  OS implementation
+    my $arch = `uname -m`;    chomp $arch;  #  Hardware platform
+    my $name = `uname -n`;    chomp $name;  #  Name of the system
+
+    $arch = "amd64"  if ($arch eq "x86_64");
+    $arch = "ppc"    if ($arch eq "Power Macintosh");
+
+    my $path = "$installDir/$syst-$arch/bin";
+
+    my $pathMap = getGlobal("pathMap");
+    if (defined($pathMap)) {
+        open(F, "< $pathMap") or caFailure("Failed to open pathMap '$pathMap'.\n");
+        while (<F>) {
+            my ($n, $b) = split '\s+', $_;
+            $path = $b if ($name eq $n);
         }
+        close(F);
     }
 
-    my $t = getGlobal("binRoot");
-    if ((defined($t)) && ($binRoot ne $t)) {
-        print STDERR "WARNING: I appear to be installed in $binRoot, but you\n";
-        print STDERR "         specified a bin directory of $t in the spec file.\n";
-        $binRoot = $t;
-    }
-    if (!defined($binRoot)) {
-        $binRoot = $t;
-    }
-    if (!defined($binRoot)) {
-        my $errStr = "ERROR: I'm not installed in the assembler tree, and you\n";
-        $errStr .= "       didn't specify a binDir in the spec file.\n";
-        caFailure($errStr);
-    }
-
-    return("$binRoot/$thisarch/bin");
+    return($path);
 }
+
+sub getBinDirectoryShellCode () {
+    my $string;
+
+    #  CODE DUPLICATION!!!
+    my @t = split '/', "$FindBin::Bin";
+    pop @t;                      #  bin
+    pop @t;                      #  arch, e.g., FreeBSD-amd64
+    my $installDir = join '/', @t;  #  path to the assembler
+    #  CODE DUPLICATION!!!
+
+    $string  = "\n";
+    $string .= "syst=`uname -s`\n";
+    $string .= "arch=`uname -m`\n";
+    $string .= "name=`uname -n`\n";
+    $string .= "\n";
+    $string .= "if [ \"\$arch\" = \"x86_64\" ] ; then\n";
+    $string .= "  arch=\"amd64\"\n";
+    $string .= "fi\n";
+    $string .= "if [ \"\$arch\" = \"Power Macintosh\" ] ; then\n";
+    $string .= "  arch=\"ppc\"\n";
+    $string .= "fi\n";
+    $string .= "\n";
+    $string .= "bin=\"$installDir/\$syst-\$arch/bin\"\n";
+    $string .= "\n";
+
+    my $pathMap = getGlobal("pathMap");
+    if (defined($pathMap)) {
+        open(PM, "< $pathMap") or caFailure("Failed to open pathMap '$pathMap'.\n");
+        while (<PM>) {
+            my ($n, $b) = split '\s+', $_;
+            $string .= "if [ \"\$name\" = \"$n\" ] ; then\n";
+            $string .= "  bin=\"$b\"\n";
+            $string .= "fi\n";
+        }
+        close(PM);
+        $string .= "\n";
+    }
+
+    return($string);
+}
+
+
+
 
 
 #  Return the second argument, unless the first argument is found in
@@ -165,15 +206,14 @@ sub setDefaults () {
 
     #####  General Configuration Options (aka miscellany)
 
-    $global{"binRoot"}                     = undef;
-    $global{"grid"}                        = undef;
-
     $global{"doBackupFragStore"}           = 1;
 
     $global{"fakeUIDs"}                    = 0;
     $global{"uidServer"}                   = undef;
 
     $global{"scratch"}                     = "/tmp";
+
+    $global{"pathMap"}                     = undef;
 
     #####  Sun Grid Engine
 
@@ -335,16 +375,16 @@ sub setParameters ($@) {
     }
 
     if (defined($specFile)) {
-        my $binRoot = "$FindBin::Bin";
+        my $bin = "$FindBin::Bin";
 	
         if (-e "$specFile") {
             open(F, "< $specFile") or caFailure("Couldn't open '$specFile'\n");
-        } elsif (-e "$binRoot/$specFile") {
-            open(F, "< $binRoot/$specFile") or caFailure("Couldn't open '$binRoot/$specFile'\n");
-        } elsif (-e "$binRoot/$specFile.specFile") {
-            open(F, "< $binRoot/$specFile.specFile") or caFailure("Couldn't open '$binRoot/$specFile.specFile'\n");
+        } elsif (-e "$bin/$specFile") {
+            open(F, "< $bin/$specFile") or caFailure("Couldn't open '$bin/$specFile'\n");
+        } elsif (-e "$bin/$specFile.specFile") {
+            open(F, "< $bin/$specFile.specFile") or caFailure("Couldn't open '$bin/$specFile.specFile'\n");
         } else {
-            caFailure("You gave me a specFile, but I couldn't find '$specFile' or '$binRoot/$specFile' or '$binRoot/$specFile.specFile'!\n");
+            caFailure("You gave me a specFile, but I couldn't find '$specFile' or '$bin/$specFile' or '$bin/$specFile.specFile'!\n");
         }
         while (<F>) {
             chomp;
@@ -379,27 +419,24 @@ sub setParameters ($@) {
     #
     makeAbsolute("vectorIntersect");
     makeAbsolute("scratch");
+    makeAbsolute("pathMap");
 
-    #  Decode on a set of binaries to use
+    #  PIck a nice looking set of binaries, and check them.
     #
-    $bin = $gin = setBinDirectory(undef);
-    $gin        = setBinDirectory(getGlobal("grid"))  if (getGlobal("useGrid") == 1);
+    {
+        my $bin = getBinDirectory();
 
-    #  We assume the grid is the same as the local, which will sting
-    #  us if the poor user actually goofed and gave us the wrong grid,
-    #  or didn't compile for the grid.
-    #
-    if (! -e "$gin/gatekeeper") {
-#        print STDERR "WARNING: Didn't find binaries for the grid in $gin.\n";
-#        print STDERR "         Using $bin instead.\n";
-        $gin = $bin;
+        caFailure("Can't find 'gatekeeper' program in $bin.  Possibly incomplete installation.\n") if (! -x "$bin/gatekeeper");
+        caFailure("Can't find 'meryl' program in $bin.  Possibly incomplete installation.\n") if (! -x "$bin/meryl");
+        caFailure("Can't find 'overlap' program in $bin.  Possibly incomplete installation.\n") if (! -x "$bin/overlap");
+        caFailure("Can't find 'unitigger' program in $bin.  Possibly incomplete installation.\n") if (! -x "$bin/unitigger");
+        caFailure("Can't find 'cgw' program in $bin.  Possibly incomplete installation.\n") if (! -x "$bin/cgw");
+        caFailure("Can't find 'consensus' program in $bin.  Possibly incomplete installation.\n") if (! -x "$bin/consensus");
+        caFailure("Can't find 'terminator' program in $bin.  Possibly incomplete installation.\n") if (! -x "$bin/terminator");
     }
 
-    caFailure("Can't find local bin/gatekeeper in $bin\n") if (! -e "$bin/gatekeeper");
-    caFailure("Can't find grid bin/gatekeeper in $gin\n")  if (! -e "$gin/gatekeeper");
-
-    #  Set the globally accessible error rates.  Adjust them
-    #  if they look strange.
+    #  Set the globally accessible error rates.  Adjust them if they
+    #  look strange.
     #
     #  We must have:     ovl <= cns <= cgw
     #  We usually have:  ovl == cns <= cgw
@@ -538,6 +575,7 @@ sub findLastCheckpoint ($) {
 sub findNumScaffoldsInCheckpoint ($$) {
     my $dir     = shift @_;
     my $lastckp = shift @_;
+    my $bin     = getBinDirectory();
 
     open(F, "cd $wrk/$dir && $bin/getNumScaffolds ../$asm.gkpStore $asm $lastckp 2> /dev/null |");
     my $numscaf = <F>;  chomp $numscaf;
@@ -550,10 +588,10 @@ sub findNumScaffoldsInCheckpoint ($$) {
 }
 
 
-sub getNumberOfFragsInStore ($$$) {
-    my $bin = shift @_;
+sub getNumberOfFragsInStore ($$) {
     my $wrk = shift @_;
     my $asm = shift @_;
+    my $bin = getBinDirectory();
 
     return(0) if (! -e "$wrk/$asm.gkpStore/frg");
 
@@ -570,14 +608,16 @@ sub getNumberOfFragsInStore ($$$) {
 #  Decide if we have the CA meryl or the Mighty one.
 #
 sub merylVersion () {
-    my $v = "unknown";
+    my $bin = getBinDirectory();
+    my $ver = "unknown";
+
     open(F, "$bin/meryl -V |");
     while (<F>) {
-        $v = "CA"     if (m/CA/);
-        $v = "Mighty" if (m/Mighty/);
+        $ver = "CA"     if (m/CA/);
+        $ver = "Mighty" if (m/Mighty/);
     }
     close(F);
-    return($v);
+    return($ver);
 }
 
 
@@ -641,8 +681,6 @@ sub submitScript ($) {
 
     return if (getGlobal("scriptOnGrid") == 0);
 
-    my $perl = "/usr/bin/env perl";
-
     my $output = findNextScriptOutputFile();
     my $script = "$output.sh";
     my $cmd;
@@ -655,9 +693,19 @@ sub submitScript ($) {
     print F "#  .tcshrc (or .bashrc, limited testing), and so they don't setup\n";
     print F "#  SGE (or ANY other paths, etc) properly.  For the record,\n";
     print F "#  interactive SGE logins (qlogin, etc) DO set the environment.\n";
-    print F "#\n";
+    print F "\n";
     print F ". \$SGE_ROOT/\$SGE_CELL/common/settings.sh\n";
-    print F "$perl $0 $commandLineOptions\n";
+    print F "\n";
+    print F "#  On the off chance that there is a pathMap, and the host we\n";
+    print F "#  eventually get scheduled on doesn't see other hosts, we decide\n";
+    print F "#  at run time where the binary is.\n";
+
+    print F getBinDirectoryShellCode();
+
+    print F "hostname\n";
+    print F "echo \$bin\n";
+
+    print F "/usr/bin/env perl \$bin/runCA $commandLineOptions\n";
     close(F);
 
     my $sge       = getGlobal("sge");

@@ -22,6 +22,7 @@ sub createPostUnitiggerConsensusJobs (@) {
         }
         close(G);
 
+        my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/gatekeeper -P ";
         $cmd .= "$wrk/5-consensus/$asm.partFile ";
@@ -83,17 +84,10 @@ sub createPostUnitiggerConsensusJobs (@) {
     print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
     print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
     print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
-    print F "\n";
-    print F "echo \\\n";
-    print F "$gin/consensus \\\n";
-    print F "  -G -U \\\n";
-    print F "  -m -S \$jobp \\\n";
-    print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";
-    print F "  $wrk/$asm.gkpStore \\\n";
-    print F "  \$cgbfile \\\n";
-    print F " > $wrk/5-consensus/${asm}_\$jobp.err 2>&1\n";
-    print F "\n";
-    print F "$gin/consensus \\\n";
+
+    print F getBinDirectoryShellCode();
+
+    print F "\$bin/consensus \\\n";
     print F "  -G -U \\\n";
     print F "  -m -S \$jobp \\\n";
     print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";

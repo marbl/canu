@@ -423,22 +423,6 @@ Stop after the consensus after scaffolding finishes.
 \subsection{General Configuration Options}
 
 \begin{longtable}{lp{3.0in}}
-binRoot={\it path} &
-The path to the wgs-assembler build directory.  This is the directory
-where the Celera Assembler {\it src/} directory is.  If our {\it
-gatekeeper} binary is located in {\it
-/opt/software/wgs-assembler/FreeBSD/bin/gatekeeper}, then we would
-specify {\it binRoot=/opt/software/wgs-assembler}.  If not specified,
-this defaults to the location of \runCA.
-\\
-
-grid={\it string} &
-The architecture of the machines in the grid. This should be the name
-of the Celera Assembler directory containing the grid binaries, for
-example, ``Linux-i686'', ``Darwin-ppc'', ``OSF1-alpha'' or
-``FreeBSD0-amd64''.  If not specified, it defaults to the architecture
-of the current host.
-\\
 
 doBackupFragStore={\it integer} &
 If zero, do not backup the fragment store before steps that modify it.
@@ -461,6 +445,28 @@ scratch={\it string} &
 A path to a local scratch disk.  Used to store the output of overlap and
 consensus as they execute.  This is {\tt /tmp} by default.
 \\
+
+pathMap={\it string} &
+A file containing a mapping of hostname to directory.  The directory
+should contain the Celera Assembler binaries.  In most cases, runCA can
+determine the correct binaries to use, and this option is not needed.
+
+This option is useful in heterogeneous environments.  For example, Bri
+was comparing FreeBSD 7.0 to FreeBSD 6.3.  Both builds wanted to call
+the binary directory ``FreeBSD-amd64'', and neither host could run the
+other hosts binaries.  A pathMap was created to tell where the
+binaries are for that specific machine.
+
+\begin{verbatim}
+node5.home /home/work/wgs/7.0/FreeBSD-amd64/bin
+node6.home /home/work/wgs/7.0/FreeBSD-i386/bin
+node7.home /home/work/wgs/6.3/FreeBSD-amd64/bin
+node8.home /home/work/wgs/6.3/FreeBSD-i386/bin
+\end{verbatim}
+
+Be sure to use the hostname as returned by ``uname -n''.
+\\
+
 \end{longtable}
 
 

@@ -12,6 +12,7 @@ sub createOverlapStore {
         }
     }
 
+    my $bin = getBinDirectory();
     my $cmd;
     $cmd  = "$bin/overlapStore ";
     $cmd .= " -c $wrk/$asm.ovlStore ";

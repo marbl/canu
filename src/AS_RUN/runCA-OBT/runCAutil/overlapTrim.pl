@@ -18,6 +18,7 @@ sub overlapTrim {
 
         backupFragStore("beforeInitialTrim");
 
+        my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/initialTrim -update -q 12 ";
         $cmd .= " -log $wrk/0-overlaptrim/$asm.initialTrimLog ";
@@ -38,6 +39,7 @@ sub overlapTrim {
 
         backupFragStore("beforePrefixDelete");
 
+        my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/prefixDelete ";
         $cmd .= " -log $wrk/0-overlaptrim/$asm.prefixDeleteLog ";
@@ -65,6 +67,7 @@ sub overlapTrim {
             caFailure("Failed to generate a list of all the overlap files.\n");
         }
 
+        my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/overlapStore ";
         $cmd .= " -c $wrk/$asm.obtStore ";
@@ -85,6 +88,7 @@ sub overlapTrim {
     if ((! -e "$wrk/0-overlaptrim/$asm.ovl.consolidated") &&
         (! -e "$wrk/0-overlaptrim/$asm.ovl.consolidated.bz2")) {
 
+        my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/consolidate ";
         $cmd .= " -ovs $wrk/$asm.obtStore";
@@ -107,6 +111,7 @@ sub overlapTrim {
 
         backupFragStore("beforeTrimMerge");
 
+        my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/merge-trimming ";
         $cmd .= "-log $wrk/0-overlaptrim/$asm.mergeLog ";
@@ -128,6 +133,7 @@ sub overlapTrim {
 
         backupFragStore("beforeChimera");
 
+        my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/chimera ";
         $cmd .= " -gkp $wrk/$asm.gkpStore ";

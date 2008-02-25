@@ -12,13 +12,6 @@ sub createFragmentCorrectionJobs {
     #  Figure out how many jobs there are
     my $jobs = int($numFrags / ($batchSize-1)) + 1;
 
-    my $correctfrags;
-    if (getGlobal('frgCorrOnGrid')) {
-        $correctfrags = "$gin/correct-frags";
-    } else {
-        $correctfrags = "$bin/correct-frags";
-    }
-
     open(F, "> $wrk/2-frgcorr/correct.sh") or caFailure("Failed to write to '$wrk/2-frgcorr/correct.sh'\n");
     print F "#!/bin/sh\n\n";
     print F "jobid=\$SGE_TASK_ID\n";
@@ -52,8 +45,10 @@ sub createFragmentCorrectionJobs {
     print F "  echo Job previously completed successfully.\n";
     print F "  exit\n";
     print F "fi\n";
-    print F "\n";
-    print F "$correctfrags \\\n";
+
+    print F getBinDirectoryShellCode();
+
+    print F "\$bin/correct-frags \\\n";
     print F "  -t $numThreads \\\n";
     print F "  -S $wrk/$asm.ovlStore \\\n";
     print F "  -o $wrk/2-frgcorr/\$jobid.frgcorr \\\n";

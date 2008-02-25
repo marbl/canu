@@ -4,7 +4,7 @@ use strict;
 sub preoverlap {
     my @fragFiles = @_;
 
-    $numFrags = getNumberOfFragsInStore($bin, $wrk, $asm);
+    $numFrags = getNumberOfFragsInStore($wrk, $asm);
 
     #  Return if there are fragments in the store, and die if there
     #  are no fragments and no source files.
@@ -34,6 +34,7 @@ sub preoverlap {
         }
         caFailure("Files supplied on command line not found.\n") if ($failedFiles);
 
+        my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/gatekeeper -o $wrk/$asm.gkpStore ";
         $cmd .= " -T " if (getGlobal("doOverlapTrimming"));
@@ -51,15 +52,17 @@ sub preoverlap {
 
     my $vi = getGlobal("vectorIntersect");
     if ((defined($vi)) && (! -e "$wrk/0-preoverlap/$asm.vectorClearLoaded")) {
+        my $bin = getBinDirectory();
         if (runCommand("$wrk/0-preoverlap", "$bin/gatekeeper -a -v $vi -o $wrk/$asm.gkpStore > $wrk/0-preoverlap/$asm.vectorClearLoaded.err 2>&1")) {
             caFailure("Failed.\n");
         }
         touch("$wrk/0-preoverlap/$asm.vectorClearLoaded");
     }
         
-    $numFrags = getNumberOfFragsInStore($bin, $wrk, $asm);
+    $numFrags = getNumberOfFragsInStore($wrk, $asm);
 
     if ( ! -s "$wrk/$asm.frg" ) { # don't overwrite if it's already there
+        my $bin = getBinDirectory();
         if (runCommand($wrk, "$bin/gatekeeper -dumpfrg $wrk/$asm.gkpStore 2> $wrk/gatekeeper.err | grep -v 'No source' > $wrk/$asm.frg")) {
             unlink "$wrk/$asm.frg";
         }    

@@ -61,7 +61,7 @@ sub terminate ($) {
     my $cgwDir = shift @_;
     $cgwDir = "$wrk/7-CGW" if (!defined($cgwDir));
 
-
+    my $bin  = getBinDirectory();
     my $perl = "/usr/bin/env perl";
 
     my $termDir = "$wrk/9-terminator";

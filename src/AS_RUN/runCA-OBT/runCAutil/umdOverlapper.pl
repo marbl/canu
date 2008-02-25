@@ -1,12 +1,5 @@
 use strict;
 
-sub findUMDOverlapper() {
-   # double check we can find the executable in path/bin/exec
-   caFailure("Unable to find the UMD Overlapper executable.\n") if (! -e "$bin/runUMDOverlapper");
-   
-   return $bin;
-}
-
 sub getUMDClearRange ($) {
     my $dir     = shift @_;
     my $fileName = "$asm.obtClrRange";
@@ -44,13 +37,13 @@ sub UMDoverlapper () {
     my $outDir  = "1-overlapper";
     system("mkdir $wrk/$outDir") if (! -d "$wrk/$outDir");
     
-    my $umdOvlBin = findUMDOverlapper();
-
     my $jobID = "0000001";
     system("mkdir $wrk/$outDir/$jobID") if (! -d "$wrk/$outDir/$jobID");
 
     my $vi = getGlobal("vectorIntersect");
-    
+
+    my $bin = getBinDirectory();
+
     #dump the frag file from gkp if it does not exist already
     # should check if vector clear then dump vec range else dump this range
     if (defined($vi)) {
@@ -72,7 +65,7 @@ sub UMDoverlapper () {
     
     # run frg file command
     #
-    my $cmd  = "$umdOvlBin/runUMDOverlapper ";
+    my $cmd  = "$bin/runUMDOverlapper ";
     $cmd .= getGlobal("umdOverlapperFlags") . " ";
 
     # when we have vector clear, pass it to the overlapper, otherwise tell the overlapper to figure it out
