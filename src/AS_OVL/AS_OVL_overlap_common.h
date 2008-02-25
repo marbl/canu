@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.42 2007-11-20 16:03:20 eliv Exp $
- * $Revision: 1.42 $
+ * $Id: AS_OVL_overlap_common.h,v 1.43 2008-02-25 11:07:44 brianwalenz Exp $
+ * $Revision: 1.43 $
 */
 
 
@@ -711,8 +711,8 @@ fprintf (stderr, "Running Fragment version, AS_READ_MAX_LEN = %d\n",
               Max_Hash_Data_Len = 110000000;  //  Was 75000000
             } else if (strcmp (optarg, "1GB") == 0) {
               Hash_Mask_Bits    = 21;
-              Max_Hash_Strings  = 40000;
-              Max_Hash_Data_Len = 30000000;
+              Max_Hash_Strings  = 50000;      //  Was 40000
+              Max_Hash_Data_Len = 75000000;   //  Was 30000000
             } else if (strcmp (optarg, "256MB") == 0) {
               Hash_Mask_Bits    = 19;
               Max_Hash_Strings  = 10000;
