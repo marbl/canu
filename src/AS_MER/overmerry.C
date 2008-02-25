@@ -723,4 +723,6 @@ main(int argc, char **argv) {
   delete g;
 
   fprintf(stderr, "\nSuccess!  Bye.\n");
+
+  return(0);
 }
