@@ -165,7 +165,7 @@ processIUM(IntUnitigMesg *ium_mesg) {
 
   int len = degap(ium_mesg->consensus, ium_mesg->quality);
 
-  if (ium_mesg->num_frags > minNumFragsInUnitig) {
+  if ((UTGseqout) && (ium_mesg->num_frags > minNumFragsInUnitig)) {
     AS_UTL_writeFastA(UTGseqout,
                       ium_mesg->consensus, len,
                       ">ium"F_IID" length=%d num_frags="F_IID" Astat=%.2f\n",
@@ -192,7 +192,7 @@ processUTG(SnapUnitigMesg  *utg_mesg) {
 
   int len = degap(utg_mesg->consensus, utg_mesg->quality);
 
-  if (utg_mesg->num_frags > minNumFragsInUnitig) {
+  if ((UTGseqout) && (utg_mesg->num_frags > minNumFragsInUnitig)) {
     AS_UTL_writeFastA(UTGseqout,
                       utg_mesg->consensus, len,
                       ">utg"F_IID" length=%d num_frags="F_IID" Astat=%.2f\n",
@@ -228,24 +228,13 @@ processCCO(SnapConConMesg *cco_mesg) {
   cd->len          = cco_mesg->length;
   cd->isPlaced     = FALSE;
   cd->isDegenerate = FALSE;
-    
+
   //  By definition, a degenerate contig has one unitig and is
   //  unplaced.
   //
-  //  one version used (numUtg == 1) && (unitig is not placed)
-  //  one version used (numUtg == 1) && (contig is not placed)
-  //
-  //AS_IID utgIID =  (AS_IID)LookupValueInHashTable_AS(uid2iid, AS_UID_toInteger(cco_mesg->unitigs[0].eident), 0);
-  //if (isPlacedUnitig[utgIID])  //  true if (utg_mesg->status == AS_SEP)
-  //  cd->notDegenerate = TRUE;
-
-  if (cco_mesg->placed  == AS_UNPLACED)
-    cd->isPlaced = TRUE;
-
-  if ((cco_mesg->num_unitigs == 1) &&
-      (cco_mesg->placed      == AS_UNPLACED))
-    cd->isDegenerate = TRUE;
-
+  cd->isPlaced     = (cco_mesg->placed == AS_PLACED);
+  cd->isDegenerate = (cco_mesg->placed == AS_UNPLACED) && (cco_mesg->num_unitigs == 1);
+                      
   memcpy(cd->cns, cco_mesg->consensus, cco_mesg->length);
   memcpy(cd->qlt, cco_mesg->quality,   cco_mesg->length);
 
@@ -263,20 +252,22 @@ processCCO(SnapConConMesg *cco_mesg) {
 
   ctgData[cco_mesg->iaccession] = cd;
 
-  AS_UTL_writeFastA(CCOseqout,
-                    cd->cns, cd->len,
-                    ">ctg%s,"F_IID" placed=%s degenerate=%s\n",
-                    AS_UID_toString(cco_mesg->eaccession),
-                    cco_mesg->iaccession,
-                    (cd->isPlaced)     ? "true" : "false",
-                    (cd->isDegenerate) ? "true" : "false");
-  AS_UTL_writeFastA(CCOqltout,
-                    cd->qlt, cd->len,
-                    ">ctg%s,"F_IID" placed=%s degenerate=%s\n",
-                    AS_UID_toString(cco_mesg->eaccession),
-                    cco_mesg->iaccession,
-                    (cd->isPlaced)     ? "true" : "false",
-                    (cd->isDegenerate) ? "true" : "false");
+  if (CCOseqout) {
+    AS_UTL_writeFastA(CCOseqout,
+                      cd->cns, cd->len,
+                      ">ctg%s,"F_IID" placed=%s degenerate=%s\n",
+                      AS_UID_toString(cco_mesg->eaccession),
+                      cco_mesg->iaccession,
+                      (cd->isPlaced)     ? "true" : "false",
+                      (cd->isDegenerate) ? "true" : "false");
+    AS_UTL_writeFastA(CCOqltout,
+                      cd->qlt, cd->len,
+                      ">ctg%s,"F_IID" placed=%s degenerate=%s\n",
+                      AS_UID_toString(cco_mesg->eaccession),
+                      cco_mesg->iaccession,
+                      (cd->isPlaced)     ? "true" : "false",
+                      (cd->isDegenerate) ? "true" : "false");
+  }
 }
 
 
@@ -291,12 +282,14 @@ processDSC(SnapDegenerateScaffoldMesg *dsc_mesg) {
 
   //fprintf(stderr, "DSC: "F_IID" %s len: %d\n", ctgIID, AS_UID_toString(dsc_mesg->econtig), cd->len);
 
-  AS_UTL_writeFastA(DSCseqout,
-                    cd->cns, cd->len,
-                    ">dsc%s\n", AS_UID_toString(dsc_mesg->econtig));
-  AS_UTL_writeFastA(DSCqltout,
-                    cd->qlt, cd->len,
-                    ">dsc%s\n", AS_UID_toString(dsc_mesg->econtig));
+  if (DSCseqout) {
+    AS_UTL_writeFastA(DSCseqout,
+                      cd->cns, cd->len,
+                      ">dsc%s ctg%s\n", AS_UID_toString1(dsc_mesg->eaccession), AS_UID_toString2(dsc_mesg->econtig));
+    AS_UTL_writeFastA(DSCqltout,
+                      cd->qlt, cd->len,
+                      ">dsc%s ctg%s\n", AS_UID_toString1(dsc_mesg->eaccession), AS_UID_toString2(dsc_mesg->econtig));
+  }
 }
 
 
@@ -311,6 +304,10 @@ processSCF(SnapScaffoldMesg *scf_mesg) {
   int           scfLen = 0;
   int           scfPos = 0;
   int           i;
+
+  //  Probably should process it, but I don't see any error checking below, so why?
+  if (SCFseqout == NULL)
+    return;
 
   //  Orientation of each contig
 
@@ -379,8 +376,6 @@ processSCF(SnapScaffoldMesg *scf_mesg) {
     scfPos += ctgData[ctgIID]->len;
   }
 
-
-
   //  Output
 
   AS_UTL_writeFastA(SCFseqout,
@@ -421,12 +416,19 @@ main(int argc, char **argv) {
   char              name[FILENAME_MAX];
   char             *infile = NULL;
 
+  int               dumpUnitigs   = 1;
+  int               dumpContigs   = 1;
+  int               dumpScaffolds = 1;
+
   int arg=1;
   int err=0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-U") == 0) {
+      dumpUnitigs = 0;
     } else if (strcmp(argv[arg], "-C") == 0) {
+      dumpContigs = 0;
     } else if (strcmp(argv[arg], "-S") == 0) {
+      dumpScaffolds = 0;
     } else if (strcmp(argv[arg], "-p") == 0) {
       prefix = argv[++arg];
     } else if (strcmp(argv[arg], "-n") == 0) {
@@ -446,9 +448,9 @@ main(int argc, char **argv) {
   if (err > 0) {
     fprintf(stderr, "usage: %s [options] -p prefix < asmfile\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -U         dump unitigs\n");
-    fprintf(stderr, "  -C         dump contigs\n");
-    fprintf(stderr, "  -S         dump scaffolds\n");
+    fprintf(stderr, "  -U         do NOT dump unitigs\n");
+    fprintf(stderr, "  -C         do NOT dump contigs\n");
+    fprintf(stderr, "  -S         do NOT dump scaffolds\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -p         write files named 'prefix.contig.fasta', etc.\n");
     fprintf(stderr, "\n");
@@ -467,18 +469,22 @@ main(int argc, char **argv) {
   }
 
   uid2iid = CreateScalarHashTable_AS(32 * 1024);
-  
-  UTGseqout = openOutput(prefix, "utgcns");
-  UTGqltout = openOutput(prefix, "utgqlt");
 
-  CCOseqout = openOutput(prefix, "ctgcns");
-  CCOqltout = openOutput(prefix, "ctgqlt");
+  if (dumpUnitigs) {
+    UTGseqout = openOutput(prefix, "utgcns");
+    UTGqltout = openOutput(prefix, "utgqlt");
+  }
+  if (dumpContigs) {
+    CCOseqout = openOutput(prefix, "ctgcns");
+    CCOqltout = openOutput(prefix, "ctgqlt");
+  }
+  if (dumpScaffolds) {
+    DSCseqout = openOutput(prefix, "dsccns");
+    DSCqltout = openOutput(prefix, "dscqlt");
 
-  DSCseqout = openOutput(prefix, "dsccns");
-  DSCqltout = openOutput(prefix, "dscqlt");
-
-  SCFseqout = openOutput(prefix, "scfcns");
-  SCFqltout = openOutput(prefix, "scfqlt");
+    SCFseqout = openOutput(prefix, "scfcns");
+    SCFqltout = openOutput(prefix, "scfqlt");
+  }
 
   FILE *F = stdin;
   if (infile)
@@ -506,17 +512,21 @@ main(int argc, char **argv) {
 
   errno = 0;
 
-  fclose(UTGseqout);
-  fclose(UTGqltout);
+  if (dumpUnitigs) {
+    fclose(UTGseqout);
+    fclose(UTGqltout);
+  }
+  if (dumpContigs) {
+    fclose(CCOseqout);
+    fclose(CCOqltout);
+  }
+  if (dumpScaffolds) {
+    fclose(DSCseqout);
+    fclose(DSCqltout);
 
-  fclose(CCOseqout);
-  fclose(CCOqltout);
-
-  fclose(DSCseqout);
-  fclose(DSCqltout);
-
-  fclose(SCFseqout);
-  fclose(SCFqltout);
+    fclose(SCFseqout);
+    fclose(SCFqltout);
+  }
 
   if (errno) {
     fprintf(stderr, "WARNING:  Some files didn't close properly -- check disk space!\n");
