@@ -18,16 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_UTL_timer.h,v 1.4 2005-03-22 19:49:30 jason_miller Exp $	 */
-/***************************************************************************
- *  AS_UTL_timer
- *  
- *  Saul A. Kravitz 7/99
- *
- *  Simple timer object using ISO-C's clock() API.
- *  Resolution of clock is machine dependent (CLOCKS_PER_SEC)
- *  
- **************************************************************************/
+
+ //  Simple timer object using ISO-C's clock() API.
+ //  Resolution of clock is machine dependent (CLOCKS_PER_SEC)
+ //    Saul A. Kravitz 7/99
+
 #ifndef AS_UTL_TIMER_H
 #define AS_UTL_TIMER_H
 
@@ -50,7 +45,6 @@ typedef struct{
   int64 cycles;
 }TimerT;
 
-struct rusage timeUsage;
 
 /* Initialize a Timer struction */
 static void InitTimerT(TimerT *timer){
@@ -67,6 +61,8 @@ static void InitTimerT(TimerT *timer){
 
 /* Start the Timer */
 static void StartTimerT(TimerT *timer){
+  struct rusage timeUsage;
+
   timer->running = 1;
   timer->startTime = clock();
   timer->stopTime = 0;
@@ -88,7 +84,8 @@ static double StopTimerT(TimerT *timer){
   long stopTime, startTime;
   time_t deltaInSeconds;
   long stopTimeInSeconds, startTimeInSeconds;
-  
+  struct rusage timeUsage;
+
   if(timer->running == 0)
     return (double)0.0;
   timer->running = 0;

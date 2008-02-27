@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.12 2007-04-16 17:36:29 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.13 2008-02-27 15:10:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -40,6 +40,8 @@ static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.12 2007-04-16 17:36:29 brianw
 #include "Globals_CGW.h"
 
 #define INITIAL_NUM_DISTS 10
+
+Global_CGW *GlobalData;
 
 Global_CGW *CreateGlobal_CGW(void){
   Global_CGW *g = (Global_CGW *)safe_calloc(1, sizeof(Global_CGW));

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: Globals_CGW.h,v 1.14 2007-09-05 11:22:11 brianwalenz Exp $	 */
+/* 	$Id: Globals_CGW.h,v 1.15 2008-02-27 15:10:13 brianwalenz Exp $	 */
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
@@ -88,14 +88,12 @@ typedef struct Global_CGW_tag {
 }Global_CGW;
 
 
-Global_CGW *GlobalData;
-
-
+extern Global_CGW *GlobalData;
 
 extern Global_CGW *CreateGlobal_CGW(void);
-extern void DeleteGlobal_CGW(Global_CGW *);
+extern void        DeleteGlobal_CGW(Global_CGW *);
 
-extern int  SetFileNamePrefix_CGW(Global_CGW *data, char *name);
+extern int         SetFileNamePrefix_CGW(Global_CGW *data, char *name);
 
 /****************************************************************************/
 static FILE *  File_Open
