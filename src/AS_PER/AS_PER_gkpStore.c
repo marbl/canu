@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.52 2008-02-27 15:49:01 skoren Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.53 2008-02-27 16:35:33 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -943,7 +943,7 @@ getNumGateKeeperRandomFragments(GateKeeperStore *gkp) {
    resetFragStream(fs, begIID, endIID);
 
    while (nextFragStream(fs, &fr)) {
-      if (!getFragRecordIsNonRandom(fs)) {
+      if (!getFragRecordIsNonRandom(&fr)) {
          counter++;
       } 
    }
