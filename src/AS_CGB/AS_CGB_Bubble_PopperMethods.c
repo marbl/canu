@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_Bubble_PopperMethods.c,v 1.7 2007-07-19 09:50:27 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_Bubble_PopperMethods.c,v 1.8 2008-02-27 17:06:59 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -259,13 +259,15 @@ BP_discriminator(BubblePopper_t bp)
                      BG_vertices(bp->bg),
 		     BP_chunkFrags(bp),
 		     BP_chunks(bp),
-		     start_c);
+		     start_c,
+                     bp->gkpStore);
 
   num_rand_frags += count_the_randomly_sampled_fragments_in_a_chunk(
                       BG_vertices(bp->bg),
 		      BP_chunkFrags(bp),
 		      BP_chunks(bp),
-		      end_c);
+		      end_c,
+                      bp->gkpStore);
 
   for (i = 0; i < BP_numFrags(bp); ++i) {
     type = get_typ_fragment(BG_vertices(bp->bg), BP_getFrag(bp, i));

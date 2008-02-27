@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.23 2008-02-01 20:50:44 eliv Exp $";
+static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.24 2008-02-27 17:06:59 skoren Exp $";
 
 //  This module builds the chunk graph from the fragment essential
 //  overlap graph with contained fragments as an augmentation, and
@@ -976,19 +976,25 @@ int
 count_the_randomly_sampled_fragments_in_a_chunk(Tfragment   frags[],
                                                 TChunkFrag  chunkfrags[],
                                                 TChunkMesg  thechunks[],
-                                                IntChunk_ID chunk_index) { 
+                                                IntChunk_ID chunk_index,
+                                                GateKeeperStore *gkp) { 
   IntFragment_ID   nf = 0;
   AChunkMesg      *ch = GetAChunkMesg(thechunks,chunk_index);
   int              num_frags = ch->num_frags;
   IntFragment_ID   ii = 0;
   
   for(ii=0;ii<num_frags;ii++) {
-    FragType type = get_typ_fragment(frags, *GetVA_AChunkFrag(chunkfrags,ch->f_list+ii));
+    IntFragment_ID i = *GetVA_AChunkFrag(chunkfrags,ch->f_list+ii);
+    FragType type = get_typ_fragment(frags, i);
+    IntFragment_ID iid = get_iid_fragment(frags, i);
+    fragRecord frg;
+
+    getFrag(gkp, iid, &frg, 0);
 
     // Only AS_READ, and AS_EXTR fragments are to be used in Gene
     // Myers coverage discriminator A-statistic.
     //
-    if (type == AS_READ || type == AS_EXTR)
+    if ((type == AS_READ || type == AS_EXTR) && !getFragRecordIsNonRandom(&frg))
       nf++;
   }
   return(nf);
@@ -1004,7 +1010,8 @@ compute_the_global_fragment_arrival_rate(int           recalibrate,
                                          Tedge        *edges,
                                          float         estimated_global_fragment_arrival_rate,
                                          TChunkFrag   *chunkfrags,
-                                         TChunkMesg   *thechunks) { 
+                                         TChunkMesg   *thechunks,
+                                         GateKeeperStore *gkp) { 
   IntChunk_ID ichunk = 0;
   int64  total_rho = 0;
   IntFragment_ID total_nfrags = 0;
@@ -1015,7 +1022,7 @@ compute_the_global_fragment_arrival_rate(int           recalibrate,
   
   for(ichunk=0;ichunk<nchunks;ichunk++) {
     int64  rho = GetAChunkMesg(thechunks,ichunk)->rho; // The sum of overhangs ...
-    int    nf  = count_the_randomly_sampled_fragments_in_a_chunk (frags, chunkfrags, thechunks, ichunk);
+    int    nf  = count_the_randomly_sampled_fragments_in_a_chunk (frags, chunkfrags, thechunks, ichunk, gkp);
 
     total_rho       += rho;
     total_nfrags    += ( nf > 0 ? nf - 1 : 0 );
@@ -1081,7 +1088,7 @@ compute_the_global_fragment_arrival_rate(int           recalibrate,
 
 	if ((int)rho > 10000) {
           int num_10000 = (int)rho / 10000;
-          int nf = count_the_randomly_sampled_fragments_in_a_chunk (frags, chunkfrags, thechunks, ichunk);
+          int nf = count_the_randomly_sampled_fragments_in_a_chunk (frags, chunkfrags, thechunks, ichunk, gkp);
           float local_arrival_rate = ((float)(nf-1)) / ((float)rho);
 
 	  assert(num_10000 > 0);
@@ -1174,7 +1181,8 @@ void chunk_graph_build_1(const char * const Graph_Store_File_Prefix,
                          Tedge         edges[],
                          float         *global_fragment_arrival_rate,
                          TChunkFrag    *chunkfrags,
-                         TChunkMesg    *thechunks) {
+                         TChunkMesg    *thechunks,
+                         GateKeeperStore *gkp) {
 
   make_the_chunks(frags, edges, chunkfrags, thechunks);
 
@@ -1189,7 +1197,8 @@ void chunk_graph_build_1(const char * const Graph_Store_File_Prefix,
                                                                                edges,
                                                                                *global_fragment_arrival_rate,
                                                                                chunkfrags,
-                                                                               thechunks);
+                                                                               thechunks,
+                                                                               gkp);
    
   // Now that the global fragment arrival rate is available, we set
   // the coverage statistic.
@@ -1204,7 +1213,8 @@ void chunk_graph_build_1(const char * const Graph_Store_File_Prefix,
                                                    count_the_randomly_sampled_fragments_in_a_chunk(frags,
                                                                                                    chunkfrags,
                                                                                                    thechunks,
-                                                                                                   chunk_index),
+                                                                                                   chunk_index,
+                                                                                                   gkp),
                                                    (*global_fragment_arrival_rate) );
   }
 

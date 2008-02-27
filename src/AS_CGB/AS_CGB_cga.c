@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.19 2007-07-25 10:29:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.20 2008-02-27 17:06:59 skoren Exp $";
 
 //  A chunk graph analyzer. This functional unit computes graph
 //  statistics, and writes the chunk graph in the term representation
@@ -944,7 +944,8 @@ static void analyze_the_chunks(FILE *fout,
                                const int64  nbase_in_genome,
                                const int recalibrate_global_arrival_rate,
                                const float cgb_unique_cutoff,
-                               const float global_fragment_arrival_rate) {
+                               const float global_fragment_arrival_rate,
+                               GateKeeperStore *gkp) {
 
   IntChunk_ID ichunk;
   IntFragment_ID num_of_chunks[MAX_NUM_CHUNK_LABELS]={0};
@@ -1030,7 +1031,7 @@ static void analyze_the_chunks(FILE *fout,
     const int64  nbase_essential_in_chunk = GetVA_AChunkMesg(thechunks,ichunk)->bp_length;
 
     const int number_of_randomly_sampled_fragments_in_chunk
-      = count_the_randomly_sampled_fragments_in_a_chunk ( frags, chunkfrags, thechunks, ichunk);
+      = count_the_randomly_sampled_fragments_in_a_chunk ( frags, chunkfrags, thechunks, ichunk, gkp);
     const float coverage_statistic = compute_coverage_statistic ( rho,
                                                                   number_of_randomly_sampled_fragments_in_chunk,
                                                                   global_fragment_arrival_rate );
@@ -1375,7 +1376,8 @@ static void analyze_the_chunks(FILE *fout,
                                              edges,
                                              global_fragment_arrival_rate,
                                              chunkfrags,
-                                             thechunks);
+                                             thechunks,
+                                             gkp);
     
     {
       IntFragment_ID ifrag;
@@ -1494,7 +1496,8 @@ static void analyze_the_chunks(FILE *fout,
 
 void
 chunk_graph_analysis(THeapGlobals *heapva,
-                     UnitiggerGlobals *rg) {
+                     UnitiggerGlobals *rg,
+                     GateKeeperStore *gkp) {
   char strtmp2[FILENAME_MAX];
 
   sprintf(strtmp2,"%s.cga.0",rg->Output_Graph_Store_Prefix);
@@ -1519,7 +1522,8 @@ chunk_graph_analysis(THeapGlobals *heapva,
                      heapva->nbase_in_genome,
                      rg->recalibrate_global_arrival_rate,
                      rg->cgb_unique_cutoff,
-                     heapva->global_fragment_arrival_rate);
+                     heapva->global_fragment_arrival_rate,
+                     gkp);
 
   fclose(fcga);
   fclose(fcam);

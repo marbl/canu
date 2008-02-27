@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_CGB_all.h,v 1.23 2007-09-05 11:22:10 brianwalenz Exp $
+//  $Id: AS_CGB_all.h,v 1.24 2008-02-27 17:06:59 skoren Exp $
 
 #ifndef AS_CGB_ALL_INCLUDE
 #define AS_CGB_ALL_INCLUDE
@@ -298,7 +298,8 @@ void count_fragment_and_edge_labels(Tfragment frags[],
 int count_the_randomly_sampled_fragments_in_a_chunk(Tfragment   frags[],
                                                     TChunkFrag  chunkfrags[],
                                                     TChunkMesg  thechunks[],
-                                                    IntChunk_ID chunk_index);
+                                                    IntChunk_ID chunk_index,
+                                                    GateKeeperStore *gkp);
 
 
 //  recalibrate: boolean flag to recalibrate global arrival rate to
@@ -312,7 +313,8 @@ float compute_the_global_fragment_arrival_rate(int           recalibrate,
                                                Tedge        *edges,
                                                float         estimated_global_fragment_arrival_rate,
                                                TChunkFrag   *chunkfrags,
-                                               TChunkMesg   *thechunks);
+                                               TChunkMesg   *thechunks,
+                                               GateKeeperStore *gkp);
 
 //  AS_CGB_cgb.c (end)
 ////////////////////////////////////////

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_main.c,v 1.15 2007-07-25 10:29:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_main.c,v 1.16 2008-02-27 17:06:59 skoren Exp $";
 
 #include "AS_UTL_version.h"  
 #include "AS_CGB_all.h"
@@ -46,7 +46,8 @@ void chunk_graph_build_1(const char * const Graph_Store_File_Prefix,
                          Tedge     edges[],
                          float         *global_fragment_arrival_rate,
                          TChunkFrag    *chunkfrags,
-                         TChunkMesg    *thechunks);
+                         TChunkMesg    *thechunks,
+                         GateKeeperStore *gkpStore);
 
 
 static IntEdge_ID get_the_thickest_dvt_overlap_from_vertex
@@ -345,10 +346,9 @@ static void maskout_overlaps_touching_crappy_fragments
 
 
 int main_cgb(THeapGlobals  * heapva,
-             UnitiggerGlobals * rg) {
+             UnitiggerGlobals * rg,
+             GateKeeperStore *gkpStore) {
 
-  GateKeeperStore *gkpStore = openGateKeeperStore(rg->frag_store, FALSE);
-  
   //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "After reading the fragment graph store");
   //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges);
 
@@ -398,7 +398,11 @@ int main_cgb(THeapGlobals  * heapva,
       // Only AS_READ & AS_EXTR fragments are to be used in Gene Myers
       // coverage statistic.
       //
-      if((type != AS_READ) && (type != AS_EXTR))
+      IntFragment_ID iid = get_iid_fragment(heapva->frags, ifrag);
+      fragRecord frg;
+      getFrag(gkpStore, iid, &frg, 0);
+      
+      if((type != AS_READ) && (type != AS_EXTR) || getFragRecordIsNonRandom(&frg))
         num_of_guides_total++;
 
       set_cid_fragment(heapva->frags,ifrag,ifrag); // While we are here ....
@@ -437,7 +441,8 @@ int main_cgb(THeapGlobals  * heapva,
                         heapva->edges,
                         &(heapva->global_fragment_arrival_rate),
                         heapva->chunkfrags,
-                        heapva->thechunks);
+                        heapva->thechunks,
+                        gkpStore);
 
     //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "In main after build 1");
 
@@ -449,7 +454,6 @@ int main_cgb(THeapGlobals  * heapva,
   //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "After switching the containment direction");
 #endif // SWITCH_CONTAINMENT_DIRECTION_CGB
 
-  closeGateKeeperStore(gkpStore);
 
   return(0);
 }

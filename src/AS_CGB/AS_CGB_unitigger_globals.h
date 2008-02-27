@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_CGB_unitigger_globals.h,v 1.14 2007-07-25 10:29:50 brianwalenz Exp $
+//  $Id: AS_CGB_unitigger_globals.h,v 1.15 2008-02-27 17:06:59 skoren Exp $
 
 #ifndef AS_CGB_UNITIGGER_GLOBALS_INCLUDE
 #define AS_CGB_UNITIGGER_GLOBALS_INCLUDE
@@ -236,6 +236,7 @@ int main_fgb (THeapGlobals  * heapva,
               UnitiggerGlobals * rg);
 
 int main_cgb(THeapGlobals  * heapva,
-             UnitiggerGlobals * rg);
+             UnitiggerGlobals * rg,
+             GateKeeperStore *gkpStore);
 
 #endif // AS_CGB_UNITIGGER_GLOBALS_INCLUDE

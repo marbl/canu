@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.27 2007-11-08 12:38:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.28 2008-02-27 17:06:59 skoren Exp $";
 
 #include "AS_UTL_version.h"
 #include "AS_CGB_all.h"
@@ -29,7 +29,8 @@ extern int REAPER_VALIDATION;
 
 void
 chunk_graph_analysis(THeapGlobals *heapva,
-                     UnitiggerGlobals *rg);
+                     UnitiggerGlobals *rg,
+                     GateKeeperStore *gkp);
 
 
 void
@@ -39,7 +40,8 @@ output_the_chunks(Tfragment     *frags,
                   TChunkMesg    *thechunks,
                   float          global_fragment_arrival_rate,
                   int            fragment_count_target,
-                  char          *Graph_Store_File_Prefix) {
+                  char          *Graph_Store_File_Prefix,
+                  GateKeeperStore *gkp) {
 
   IntChunk_ID       chunk_index;
   IntChunk_ID       nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
@@ -84,7 +86,8 @@ output_the_chunks(Tfragment     *frags,
                                                        count_the_randomly_sampled_fragments_in_a_chunk(frags,
                                                                                                        chunkfrags,
                                                                                                        thechunks,
-                                                                                                       chunk_index),
+                                                                                                       chunk_index,
+                                                                                                       gkp),
                                                        global_fragment_arrival_rate);
     achunk.status         = AS_UNASSIGNED;
     achunk.unique_rept    = AS_FORCED_NONE;
@@ -392,6 +395,7 @@ int
 main(int argc, char **argv) {
   THeapGlobals     *heapva = (THeapGlobals      *)safe_calloc(sizeof(THeapGlobals), 1);
   UnitiggerGlobals *rg     = (UnitiggerGlobals  *)safe_calloc(sizeof(UnitiggerGlobals), 1);
+  GateKeeperStore *gkpStore;
 
   rg->work_limit_per_candidate_edge = 1000;
   rg->dvt_double_sided_threshold_fragment_end_degree = 1;
@@ -415,6 +419,7 @@ main(int argc, char **argv) {
 
   //BasicUnitigger( argc, argv, gstate, heapva, rg);
 
+  gkpStore = openGateKeeperStore(rg->frag_store, FALSE);
  again:
   heapva->frags             = CreateVA_Afragment (rg->maxfrags);
   heapva->edges             = CreateVA_Aedge     (rg->maxedges); 
@@ -424,7 +429,7 @@ main(int argc, char **argv) {
   heapva->global_fragment_arrival_rate = 0;
 
   main_fgb(heapva, rg);
-  main_cgb(heapva, rg);
+  main_cgb(heapva, rg, gkpStore);
 
   //  End of BasicUnitigger
 
@@ -449,7 +454,6 @@ main(int argc, char **argv) {
     sprintf(rg->bubble_overlaps_filename, "%s.bubble_edges.ovl", rg->Output_Graph_Store_Prefix);
     FILE *bfp = fopen(rg->bubble_overlaps_filename, "w");
 
-    GateKeeperStore *gkpStore = openGateKeeperStore(rg->frag_store, FALSE);
     AS_CGB_Bubble_find_and_remove_bubbles(gkpStore,
                                           heapva->frags, heapva->edges,
                                           heapva->thechunks, heapva->chunkfrags, 
@@ -457,7 +461,6 @@ main(int argc, char **argv) {
                                           bfp,
                                           stderr,
                                           rg->Output_Graph_Store_Prefix);
-    closeGateKeeperStore(gkpStore);
     fclose(bfp);
 
     /* NOTE: 0's in following call indicate use of defaults. */
@@ -490,7 +493,7 @@ main(int argc, char **argv) {
     goto again;
   }
 
-  chunk_graph_analysis(heapva, rg);
+  chunk_graph_analysis(heapva, rg, gkpStore);
 
   output_the_chunks(heapva->frags,
                     heapva->edges,
@@ -498,8 +501,10 @@ main(int argc, char **argv) {
                     heapva->thechunks,
                     heapva->global_fragment_arrival_rate,
                     rg->fragment_count_target,
-                    rg->Output_Graph_Store_Prefix);
+                    rg->Output_Graph_Store_Prefix,
+                    gkpStore);
 
+  closeGateKeeperStore(gkpStore);
 
 
   // Determine the blessed overlaps.  They are the overlaps
