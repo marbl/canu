@@ -30,11 +30,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.37 2008-01-02 18:28:45 eliv Exp $
- * $Revision: 1.37 $
+ * $Id: BuildUnitigs.cc,v 1.38 2008-02-27 17:07:27 skoren Exp $
+ * $Revision: 1.38 $
  */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.37 2008-01-02 18:28:45 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.38 2008-02-27 17:07:27 skoren Exp $";
 
 //  System include files
 
@@ -163,7 +163,12 @@ main (int argc, char * argv []) {
     ovlStore = AS_OVS_openOverlapStore(OVL_Store_Path);
 
     AS_BOG::MateChecker mateChecker;
-    int numFrgsInGKP = mateChecker.readStore(GKP_Store_Path);
+    int numFrgsInGKP = mateChecker.readStore(GKP_Store_Path);    
+    GateKeeperStore *gkpStore = openGateKeeperStore(GKP_Store_Path, FALSE);
+    int numRandFrgInGKP = getNumGateKeeperRandomFragments(gkpStore);
+    closeGateKeeperStore(gkpStore);
+    
+    
     // must be before creating the scoring objects, because it sets their size
     //   AS_BOG::BOG_Runner bogRunner(getLastElemFragStore() need to fix to get size of gkpStore;
     //AS_BOG::BOG_Runner bogRunner(AS_OVS_lastFragInStore(ovlStore));
@@ -199,11 +204,8 @@ main (int argc, char * argv []) {
 	utg.build(cg);
 
 	std::cerr << "Reporting.\n" << std::endl;
-        mateChecker.checkUnitigGraph(utg);
-
-        // should be number of Random frags when that's supported
-        float globalARate = utg.getGlobalArrivalRate(cg->getNumFragments(), genome_size);
-
+        mateChecker.checkUnitigGraph(utg);        
+        float globalARate = utg.getGlobalArrivalRate(numRandFrgInGKP, genome_size);
         AS_BOG::Unitig::setGlobalArrivalRate(globalARate);
 
         std::cerr << "Global Arrival Rate: " << globalARate << "\n";
