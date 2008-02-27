@@ -132,12 +132,28 @@ ifeq ($(OSTYPE), Darwin)
   CC               = gcc
   CXX              = g++
   ARCH_CFLAGS      = -D_THREAD_SAFE
-  ifeq ($(BUILDDEBUG), 1)
-    ARCH_CFLAGS   += -g
-  else
-    # -fast breaks Bri's OS 10.3.9 G5 with "out of stack space" so we backed off to -O3.
-    ARCH_CFLAGS   += -O3
+
+  ifeq ($(MACHINETYPE), ppc)
+    ifeq ($(BUILDDEBUG), 1)
+      ARCH_CFLAGS   += -g
+    else
+      #  -fast breaks Bri's OS 10.3.9 G5 with "out of stack space" so we backed off to -O3.
+      ARCH_CFLAGS   += -O3
+    endif
   endif
+
+# -mpim-altivec
+
+  ifeq ($(MACHINETYPE), i386)
+    ifeq ($(BUILDDEBUG), 1)
+      ARCH_CFLAGS   += -m64 -g
+      ARCH_LDFLAGS  += -m64
+    else
+      ARCH_CFLAGS   += -m64 -fast
+      ARCH_LDFLAGS  += -m64
+    endif
+  endif
+
   ARCH_LIB         = /usr/local/lib /usr/X11R6/lib
 endif
 
