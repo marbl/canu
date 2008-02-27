@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.45 2008-02-22 15:48:08 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.46 2008-02-27 15:49:01 skoren Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -492,6 +492,8 @@ getNumGateKeeperFragments(GateKeeperStore *gkp) {
   return(getLastElemStore(gkp->frg));
 }
 
+int32
+getNumGateKeeperRandomFragments(GateKeeperStore *gkp);
 
 static
 void

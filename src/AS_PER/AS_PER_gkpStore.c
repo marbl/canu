@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.51 2008-02-22 15:48:08 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.52 2008-02-27 15:49:01 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -927,6 +927,30 @@ AS_PER_encodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
   lmesg->num_features = nf;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
+//  Return the count of the frgs in the store that are random
+//
+
+int32
+getNumGateKeeperRandomFragments(GateKeeperStore *gkp) {
+   int32 counter = 0;
+   fragRecord    fr = {0};
+   FragStream   *fs = openFragStream(gkp, FRAG_S_INF);
+
+   int32 begIID = getFirstElemStore(gkp->frg);
+   int32 endIID = getLastElemStore(gkp->frg);
+   resetFragStream(fs, begIID, endIID);
+
+   while (nextFragStream(fs, &fr)) {
+      if (!getFragRecordIsNonRandom(fs)) {
+         counter++;
+      } 
+   }
+   closeFragStream(fs);
+    
+   return counter;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
