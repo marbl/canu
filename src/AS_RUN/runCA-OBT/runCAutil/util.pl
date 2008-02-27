@@ -247,13 +247,13 @@ sub setDefaults () {
 
     $global{"obtOverlapper"}               = "ovl";
     $global{"ovlOverlapper"}               = "ovl";
+    $global{"ovlStoreMemory"}              = 1024;
 
     $global{"ovlThreads"}                  = 2;
     $global{"ovlStart"}                    = 1;
     $global{"ovlHashBlockSize"}            = 200000;
     $global{"ovlRefBlockSize"}             = 2000000;
     $global{"ovlMemory"}                   = "2GB";
-    $global{"ovlStoreMemory"}              = 1024;
 
     $global{"ovlMerSize"}                  = 22;
     $global{"ovlMerThreshold"}             = 500;
@@ -261,8 +261,10 @@ sub setDefaults () {
     $global{"obtMerSize"}                  = 22;
     $global{"obtMerThreshold"}             = 1000;
 
-    $global{"merThreads"}                  = 2;
     $global{"merCompression"}              = 1;
+    $global{"merOverlapperThreads"}        = 2;
+    $global{"merOverlapperSeedBatchSize"}  = 100000;
+    $global{"merOverlapperExtendBatchSize"}= 75000;
 
     $global{"umdOverlapperFlags"}          = "-use-uncleaned-reads -trim-error-rate 0.03 -max-minimizer-cutoff 150";
 

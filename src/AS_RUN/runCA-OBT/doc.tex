@@ -634,6 +634,9 @@ For large assemblies, the author advocates using a large {\it
 ovlRefBlockSize}, and using {\it ovlHashBlockSize} to control the number of
 jobs.  See {\it ovlMemory}.
 
+Three options exist to select the style of overlapper to use, and one to
+control how much memory is used to build a store of overlaps.
+
 \begin{longtable}{lp{3.0in}}
 overlapper={\em ovl} or {\em mer} or {\em umd} &
 Select which overlapper to use.
@@ -648,6 +651,21 @@ Select which overlapper to use for computing OBT overlaps.
 ovlOverlapper={\em ovl} or {\em mer} or {\em umd} &
 Select which overlapper to use for computing normal overlaps.
 \\
+
+ovlStoreMemory={\it integer} &
+The amount of memory, in megabytes, to use for building overlap
+stores.  The default is 1024MB memory.
+\\
+\end{longtable}
+
+\subsubsection{Classic Overlapper Options}
+
+The classic overlapper is tried and true.  It operates much like a
+classic seed-and-extend algorithm, but is highly tuned to operate on
+short sequences, and to look for overlaps that would promote assembly,
+instead of sequence homology.
+
+\begin{longtable}{lp{3.0in}}
 
 ovlThreads={\it integer} &
 The number of compute threads to use.  Usually the number of CPUs your
@@ -680,15 +698,9 @@ detailed overlap memory switched (not documented here).  The memory sizes are:
 The default is {\it 2GB}.
 \\
 
-ovlStoreMemory={\it integer} &
-The amount of memory, in megabytes, to use for building overlap
-stores.  The default is 1024MB memory.
-\\
-
-
 ovlMerSize={\it integer} &
-Sets the overlapper and meryl k-mer size used when computing normal
-overlaps.  Default: 22.
+Sets the ovl overlapper, mer overlapper and meryl k-mer size used when
+computing normal overlaps.  Default: 22.
 \\
 
 ovlMerThreshold={\tt integer} &
@@ -697,10 +709,9 @@ normal overlaps.  Only for {\em ovl} overlapper.  The special value {\it 0}
 disables mer counting for OVL.  Default: 500.
 \\
 
-
 obtMerSize={\it integer} &
-Sets the overlapper and meryl k-mer size used when computing overlaps
-for Overlap Based Trimming.  Default: 22.
+Sets the ovl overlapper, mer overlapper and meryl k-mer size used when
+computing overlaps for Overlap Based Trimming.  Default: 22.
 \\
 
 obtMerThreshold={\tt integer} &
@@ -708,24 +719,59 @@ Mers with count larger than this value will not be used to seed
 overlaps for Overlap Based Trimming.  Only for {\em ovl} overlapper.  The special value {\it 0}
 disables mer counting for OBT.  Default: 1000.
 \\
+\end{longtable}
 
 
-merThreads={\it integer} &
+\subsubsection{Mer Overlapper Options}
+
+Like the classic overlapper, the mer overlapper also uses a
+seed-and-extend methodology.  However, all seeds are found first,
+allowing a second pass to examine all overlaps for a given fragment.
+The second pass computes the first half of Fragment Error Correction
+(Section~\ref{sec:frgcorr}).
+
+The mer overlapper also uses Classic Overlapper options {\tt
+obtMerSize} and {\tt ovlMerSize}.
+
+\begin{longtable}{lp{3.0in}}
+merCompression={\it integer} &
+If the mer overlapper is used, compress homopolymer runs to this many
+letters.  This value applies to the meryl mer counts too.  For
+example, {\tt ACTTTAAC} with merCompression=1 would be {\tt ACTAC}.
+The default is 1.
+\\
+
+merOverlapperThreads={\it integer} &
 The number of compute threads to use.  Usually the number of CPUs your
 host has.
 The default is 2 threads.
 \\
 
-merCompression={\it integer} &
-If the mer overlapper is enabled, compress homopolymer runs to this many letters.
-For example, {\tt ACTTTAAC} with merCompression=1 would be {\tt ACTAC}.
-The default is 1.
+merOverlapperSeedBatchSize={\it integer} &
+The number of fragments used per batch of seed finding.  The amount
+of memory used is directly proportional to the number of fragments.
+(sorry, no documentation on what that relationship is, yet).
+The default is 100,000 fragments.
 \\
 
+merOverlapperExtendBatchSize={\it integer} &
+The number of fragments used per batch of seed extension.  The amount
+of memory used is directly proportional to the number of fragments.
+See option {\tt frgCorrBatchSize} in Section~\ref{sec:frgcorr} for
+hits, but use those numbers with caution.
+The default is 75,000 fragments.
+\\
+
+\end{longtable}
+
+The UMD overlapper combines fragment trimming with overlapping.
+
+\subsubsection{UMD Overlapper Options}
+
+\begin{longtable}{lp{3.0in}}
 umdOverlapperFlags={\it string} &
 Flags supplied to the UMD overlapper.  Default: ``-calculate-trims -use-uncleaned-reads''.
 \\
-
 \end{longtable}
 
 \subsection{Meryl Options}
@@ -748,6 +794,7 @@ used.  Default: 1 thread.
 
 
 \subsection{Fragment Error Correction Options}
+\label{sec:frgcorr}
 
 \begin{longtable}{lp{3.0in}}
 frgCorrBatchSize={\it integer} &

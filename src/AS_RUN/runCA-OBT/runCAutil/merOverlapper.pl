@@ -41,10 +41,6 @@ sub merOverlapper($) {
     caFailure("merOverlapper()-- Help!  I have no frags!\n") if ($numFrags == 0);
     caFailure("merOverlapper()-- I need to know if I'm trimming or assembling!\n") if (!defined($isTrim));
 
-    my $ovlThreads        = getGlobal("ovlThreads");
-    my $ovlMemory         = getGlobal("ovlMemory");
-    my $scratch           = getGlobal("scratch");
-
     my $outDir  = "1-overlapper";
     my $ovlOpt  = "";
     my $merSize = getGlobal("ovlMerSize");
@@ -74,10 +70,10 @@ sub merOverlapper($) {
     }
 
 
-    my $ovmBatchSize = getGlobal("ovlHashBlockSize");
+    my $ovmBatchSize = getGlobal("merOverlapperSeedBatchSize");
     my $ovmJobs      = int($numFrags / ($ovmBatchSize-1)) + 1;
 
-    my $olpBatchSize = getGlobal("ovlCorrBatchSize");
+    my $olpBatchSize = getGlobal("merOverlapperExtendBatchSize");
     my $olpJobs      = int($numFrags / ($olpBatchSize-1)) + 1;
 
 
@@ -133,7 +129,7 @@ sub merOverlapper($) {
         }
         print F " -m $merSize \\\n";
         print F " -c $merComp \\\n";
-        print F " -t " . getGlobal("merThreads") . "\\\n";
+        print F " -t " . getGlobal("merOverlapperThreads") . "\\\n";
         print F " -o $wrk/$outDir/seeds/\$jobid.ovm \\\n";
         print F " > $wrk/$outDir/seeds/\$jobid.ovm.err 2>&1 \\\n";
         print F "&& \\\n";
@@ -247,7 +243,7 @@ sub merOverlapper($) {
             $SGE .= "  -j y -o $wrk/$outDir/seeds/\\\$TASK_ID.out \\\n";
             $SGE .= "  $wrk/$outDir/overmerry.sh\n";
 
-            my $waitTag = submitBatchJobs("mer", $SGE, $ovmJobs, $ovlThreads);
+            my $waitTag = submitBatchJobs("mer", $SGE, $ovmJobs, getGlobal("merOverlapperThreads"));
             submitScript($waitTag) if (runningOnGrid());
             exit(0);
         } else {
@@ -296,7 +292,7 @@ sub merOverlapper($) {
             $SGE .= "  -j y -o $wrk/$outDir/olaps/\\\$TASK_ID.out \\\n";
             $SGE .= "  $wrk/$outDir/olap-from-seeds.sh\n";
 
-            my $waitTag = submitBatchJobs("olp", $SGE, $olpJobs, $ovlThreads);
+            my $waitTag = submitBatchJobs("olp", $SGE, $olpJobs, 1);
             submitScript("$waitTag") if (runningOnGrid());
             exit(0);
         } else {
