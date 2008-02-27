@@ -2,7 +2,6 @@ use strict;
 
 sub createOverlapCorrectionJobs {
     my $ovlCorrBatchSize    = getGlobal("ovlCorrBatchSize");
-    my $scratch             = getGlobal("scratch");
 
     return if (getGlobal("doFragmentCorrection") == 0);
     return if (-e "$wrk/3-ovlcorr/jobsCreated.success");
@@ -38,17 +37,12 @@ sub createOverlapCorrectionJobs {
     print F "if [ ! -e $wrk/3-ovlcorr/$asm-\$frgBeg-\$frgEnd.success ] ; then\n";
     print F "  \$bin/correct-olaps \\\n";
     print F "    -S $wrk/$asm.ovlStore \\\n";
-    print F "    -e $scratch/$asm-\$frgBeg-\$frgEnd.erate \\\n";
+    print F "    -e $wrk/3-ovlcorr/$asm-\$frgBeg-\$frgEnd.erate \\\n";
     print F "    $wrk/$asm.gkpStore \\\n";
     print F "    $wrk/2-frgcorr/$asm.corr \\\n";
     print F "    \$frgBeg \$frgEnd \\\n";
     print F "   > $wrk/3-ovlcorr/$asm-\$frgBeg-\$frgEnd.err 2>&1 \\\n";
     print F "  &&  \\\n";
-    print F "  cp -p $scratch/$asm-\$frgBeg-\$frgEnd.erate \\\n";
-    print F "        $wrk/3-ovlcorr/$asm-\$frgBeg-\$frgEnd.erate \\\n";
-    print F "  &&  \\\n";
-    print F "  rm -f $scratch/$asm-\$frgBeg-\$frgEnd.erate \\\n";
-    print F "  && \\\n";
     print F "  touch $wrk/3-ovlcorr/$asm-\$frgBeg-\$frgEnd.success\n";
     print F "fi\n";
     close(F);

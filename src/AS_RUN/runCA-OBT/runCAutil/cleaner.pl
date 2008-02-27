@@ -63,7 +63,6 @@ sub cleaner () {
         rmrf("7-[0-9]-ECR");
         rmrf("7-CGW");
         rmrf("8-consensus");
-        rmrf("scratch");
         rmrf("$asm.SeqStore");
         rmrf("$asm.asm");
         rmrf("$asm.frg");

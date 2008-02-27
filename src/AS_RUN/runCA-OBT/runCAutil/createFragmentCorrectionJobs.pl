@@ -3,7 +3,6 @@ use strict;
 sub createFragmentCorrectionJobs {
     my $batchSize   = getGlobal("frgCorrBatchSize");
     my $numThreads  = getGlobal("frgCorrThreads");
-    my $scratch     = getGlobal("scratch");
 
     return if (getGlobal("doFragmentCorrection") == 0);
     return if (-e "$wrk/2-frgcorr/jobsCreated.success");

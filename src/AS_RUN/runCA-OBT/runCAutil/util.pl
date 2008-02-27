@@ -211,8 +211,6 @@ sub setDefaults () {
     $global{"fakeUIDs"}                    = 0;
     $global{"uidServer"}                   = undef;
 
-    $global{"scratch"}                     = "/tmp";
-
     $global{"pathMap"}                     = undef;
 
     #####  Sun Grid Engine
@@ -420,7 +418,6 @@ sub setParameters ($@) {
     #  Fiddle with filenames to make them absolute paths.
     #
     makeAbsolute("vectorIntersect");
-    makeAbsolute("scratch");
     makeAbsolute("pathMap");
 
     #  PIck a nice looking set of binaries, and check them.
@@ -510,25 +507,6 @@ sub checkDirectories () {
     chmod 0755, "$wrk";
 
     caFailure("ERROR: Directory '$wrk' doesn't exist (-d option) and couldn't be created.\n") if (! -d $wrk);
-
-    #  Check that we have scratch space, or try to make one in the
-    #  work directory.
-
-    #  See if we can use the supplied scratch space.  Previous
-    #  behavior was to attempt to make the directory.
-    #
-    my $scratch = getGlobal("scratch");
-    if (! -d $scratch) {
-        $scratch = "$wrk/scratch";
-        system("mkdir -p $scratch");
-        setGlobal("scratch", $scratch);
-    }
-
-    #  If still not created, die.
-    #
-    if (! -d $scratch) {
-        caFailure("ERROR:  Scratch directory '$scratch' doesn't exist, and couldn't be created!\n");
-    }
 }
 
 
