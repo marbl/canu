@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.181 2008-02-13 19:28:11 eliv Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.182 2008-02-27 15:48:03 skoren Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -2818,13 +2818,13 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
   (*v_list)[*nvars].nr_conf_alleles = (char*)safe_calloc(num_reported_alleles,
                                                          (2+2)* sizeof(char));
   (*v_list)[*nvars].var_seq = (char*)safe_malloc(num_reported_alleles*
-                                                 (vreg.end-vreg.beg+2)* sizeof(char));
+                                                 (vreg.end-vreg.beg+1)* sizeof(char));
   (*v_list)[*nvars].conf_read_iids= 
     (char*)safe_calloc(vreg.nr, (15+2)*sizeof(char));
   NumVARRecords++;
   {
     int al, rd;
-    int32 shift   = vreg.end-vreg.beg+2;
+    int32 shift   = vreg.end-vreg.beg+1;
     int distant_read_id = -42, distant_allele_id = -42;
     if (vreg.nca < 2)
       {
@@ -2839,7 +2839,7 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
     OutputAlleles(stderr, &vreg);
 #endif
 
-    for (m=0; m<vreg.end-vreg.beg; m++)
+    for (m=0; m<vreg.end-vreg.beg; m++)    
       {
         for (al=num_reported_alleles-1; al >=0; al--)
           {
