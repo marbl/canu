@@ -74,46 +74,24 @@ AS_OVL_CMN_OBJS = $(AS_OVL_CMN_SRCS:.c=.o)
 SEED_OLAP_SRCS = OlapFromSeedsOVL.c
 SEED_OLAP_OBJS = $(SEED_OLAP_SRCS:.c=.o)
 
-AS_SRCS = $(AS_OVL_SRCS) $(AS_OVL_CA_SRCS) $(AS_OVL_CMN_SRCS) $(SEED_OLAP_SRCS)
-AS_OBJS = $(AS_SRCS:.c=.o)
-  
-AS_OVL_PROGS    = overlap overlap_ca
-SEED_OLAP_PROGS = olap-from-seeds
-
-AS_PROGS	  = $(AS_OVL_PROGS) $(SEED_OLAP_PROGS)
-LIBRARIES = libAS_OVL.a
-
-CORRECT_SRCS = FragCorrectOVL.c ShowCorrectsOVL.c CorrectOlapsOVL.c DeleteOlapsOVL.c FilterOlapsOVL.c CatCorrectsOVL.c CatEratesOVL.c
+CORRECT_SRCS = FragCorrectOVL.c ShowCorrectsOVL.c CorrectOlapsOVL.c CatCorrectsOVL.c CatEratesOVL.c
 CORRECT_OBJS = $(CORRECT_SRCS:.c=.o)
 
-SCREEN_SRCS = AutoScreenOVL.c CombineMUMsOVL.c RemoveDupScreenOVL.c removedups.c
-SCREEN_OBJS = $(SCREEN_SRCS:.c=.o)
-
-TOOL_SRCS = get-degrees.c fgbovlhits.c rev-olaps.c Hit_Limit_OVL.c
-TOOL_OBJS = $(TOOL_SRCS:.c=.o)
-
-CXX_SOURCES =  olapcoverage.cc
-CXX_OBJECTSS = $(TOOL_CXX_SRCS:.cc=.o)
-
-LIBSOURCES =  MatchListOVL.c SharedOVL.c
-#OlapStoreOVL.c
+LIBSOURCES =  SharedOVL.c
 LIBOBJECTS = $(LIBSOURCES:.c=.o)
 
-SOURCES = $(AS_SRCS) $(CORRECT_SRCS) $(LIBSOURCES)
+SOURCES = $(AS_OVL_SRCS) $(AS_OVL_CA_SRCS) $(AS_OVL_CMN_SRCS) $(SEED_OLAP_SRCS) $(CORRECT_SRCS) $(LIBSOURCES)
 OBJECTS = $(SOURCES:.cc=.o)
 
-CORRECT_PROGS   = correct-frags show-corrects correct-olaps delete-olaps filter-olaps cat-corrects cat-erates
-
+AS_OVL_PROGS    = overlap overlap_ca
 SEED_OLAP_PROGS = olap-from-seeds
+CORRECT_PROGS   = correct-frags show-corrects correct-olaps cat-corrects cat-erates
 
-OBSOLETE        =
-SCREEN_PROGS    = auto-screen combine-mums remove-dup-screen removedups
-TOOL_PROGS      = get-degrees olapcoverage fgbovlhits rev-olaps hit-limit
-
-PROGS     = $(AS_PROGS) $(CORRECT_PROGS)
-SCRIPTS   = $(AS_SCRIPTS)
+PROGS      = $(AS_OVL_PROGS) $(SEED_OLAP_PROGS) $(CORRECT_PROGS)
+SCRIPTS    = $(AS_SCRIPTS)
+LIBRARIES  = libAS_OVL.a
 LIBRARIES += libCA.a
-LIBS = libCA.a
+LIBS       = libCA.a
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -140,53 +118,22 @@ endif
 all:    $(OBJECTS) $(LIBRARIES) $(PROGS) $(SCRIPTS)
 	@test -n nop
 
-
 libAS_OVL.a: $(LIBOBJECTS) AS_OVL_delcher.o
+libCA.a:     $(LIBOBJECTS) AS_OVL_delcher.o
 
-libCA.a: $(LIBOBJECTS) AS_OVL_delcher.o
-
-
-auto-screen:  AutoScreenOVL.o $(LIBS)
-
-cat-corrects:  CatCorrectsOVL.o AS_OVL_delcher.o $(LIBS)
-
-cat-erates:  CatEratesOVL.o AS_OVL_delcher.o $(LIBS)
-
-combine-mums:  CombineMUMsOVL.o AS_OVL_delcher.o $(LIBS)
-
-correct-frags:  FragCorrectOVL.o AS_OVL_delcher.o $(LIBS)
-
+show-corrects:  ShowCorrectsOVL.o AS_OVL_delcher.o $(LIBS)
+update-erates:  UpdateEratesOVL.o AS_OVL_delcher.o $(LIBS)
+force-erates:   ForceEratesOVL.o  AS_OVL_delcher.o $(LIBS)
+cat-corrects:   CatCorrectsOVL.o  AS_OVL_delcher.o $(LIBS)
+cat-erates:     CatEratesOVL.o    AS_OVL_delcher.o $(LIBS)
+correct-frags:  FragCorrectOVL.o  AS_OVL_delcher.o $(LIBS)
 correct-olaps:  CorrectOlapsOVL.o AS_OVL_delcher.o $(LIBS)
 
-delete-olaps:  DeleteOlapsOVL.o AS_OVL_delcher.o $(LIBS)
-
-filter-olaps:  FilterOlapsOVL.o AS_OVL_delcher.o $(LIBS)
-
-get-degrees:  get-degrees.o $(LIBS)
-
-hit-limit:  Hit_Limit_OVL.o
-
-olapcoverage:  olapcoverage.o
+overlap:    $(AS_OVL_OBJS)    $(AS_OVL_CMN_OBJS) $(LIBS)
+overlap_ca: $(AS_OVL_CA_OBJS) $(AS_OVL_CMN_OBJS) $(LIBS)
 
 olap-from-seeds:  OlapFromSeedsOVL.o AS_OVL_delcher.o $(LIBS)
 
-fgbovlhits:  fgbovlhits.o
-
-remove-dup-screen:  RemoveDupScreenOVL.o AS_OVL_delcher.o $(LIBS)
-
-removedups:  removedups.o  AS_OVL_delcher.o libAS_UTL.a
-
-rev-olaps:  rev-olaps.o
-
-show-corrects:  ShowCorrectsOVL.o AS_OVL_delcher.o $(LIBS)
-
-update-erates:  UpdateEratesOVL.o AS_OVL_delcher.o $(LIBS)
-
-force-erates:  ForceEratesOVL.o AS_OVL_delcher.o $(LIBS)
-
-overlap: $(AS_OVL_OBJS) $(AS_OVL_CMN_OBJS) $(LIBS)
-
-overlap_ca: $(AS_OVL_CA_OBJS) $(AS_OVL_CMN_OBJS) $(LIBS)
 
 runUMDOverlapper: $(UMD_OVL)/runUMDOverlapper.perl
 	@cp $< $(LOCAL_BIN)/$@

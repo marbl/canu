@@ -18,49 +18,24 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*************************************************
-* Module:  FragCorrectOVL.c
-* Description:
-*   Based on overlaps between DNA fragment sequences, make corrections
-*   to single bases in the sequences.
-* 
-*    Programmer:  A. Delcher
-*       Started:   4 Dec 2000
-* 
-* Assumptions:
-* 
-* Notes:
-*
-*************************************************/
 
-/* RCS info
- * $Id: FragCorrectOVL.c,v 1.24 2007-11-08 12:38:14 brianwalenz Exp $
- * $Revision: 1.24 $
-*/
+//  Based on overlaps between DNA fragment sequences, make corrections
+//  to single bases in the sequences.
+//
+//   Programmer:  A. Delcher
+//      Started:   4 Dec 2000
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.24 2007-11-08 12:38:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.25 2008-02-27 10:37:33 brianwalenz Exp $";
 
-
-//  System include files
-
-#include  <stdlib.h>
 #include  <stdio.h>
+#include  <stdlib.h>
 #include  <assert.h>
-#include  <fcntl.h>
-#include  <string.h>
-#include  <unistd.h>
 #include  <pthread.h>
-
-
-//  Local include files
 
 #include  "AS_OVL_delcher.h"
 #include  "AS_PER_gkpStore.h"
-#include  "AS_MSG_pmesg.h"
-#include  "AS_UTL_version.h"
 #include  "FragCorrectOVL.h"
 #include  "AS_OVS_overlapStore.h"
-
 
 //  Constants
 
@@ -241,32 +216,32 @@ static int  Extend_Fragments = FALSE;
     // Set by  -e  option
 static int  Failed_Olaps = 0;
     // Counts overlaps that didn't make the error bound
-static Frag_Info_t  * Frag;
+static Frag_Info_t  * Frag = NULL;
     // Sequence and vote information for current range of fragments
     // being corrected
-static Frag_List_t  Frag_List;
+static Frag_List_t  Frag_List = {0};
     // List of ids and sequences of fragments with overlaps to fragments
     // in  Frag .  Allows simultaneous access by threads.
-static GateKeeperStore  *gkpStore;
+static GateKeeperStore  *gkpStore = NULL;
     // Fragment store from which fragments are loaded
-static FragStream  *Frag_Stream;
+static FragStream  *Frag_Stream = NULL;
     // Stream to extract fragments from internal store
-static char  * gkpStore_Path;
+static char  * gkpStore_Path = NULL;
     // Name of directory containing fragment store from which to get fragments
-static int32  Hi_Frag_IID;
-    // Internal ID of last fragment in frag store to process
-static GateKeeperStore  *Internal_gkpStore;
+static GateKeeperStore  *Internal_gkpStore = NULL;
     // Holds partial frag store to be processed simultanously by
     // multiple threads
+static int32  Lo_Frag_IID = -1;
+    // Internal ID of first fragment in frag store to process
+static int32  Hi_Frag_IID = -1;
+    // Internal ID of last fragment in frag store to process
 static int  Kmer_Len = DEFAULT_KMER_LEN;
     // Length of minimum exact match in overlap to confirm base pairs
-static int32  Lo_Frag_IID;
-    // Internal ID of first fragment in frag store to process
-static time_t  Now;
+static time_t  Now = 0;
     // Used to get current time
-static int  Num_Frags;
+static int  Num_Frags = 0;
     // Number of fragments being corrected
-static int  Num_Olaps;
+static int  Num_Olaps = 0;
     // Number of overlaps being used
 static int  Num_PThreads = DEFAULT_NUM_PTHREADS;
     // Number of pthreads to process overlaps/corrections;
@@ -275,7 +250,7 @@ static Olap_Info_t  * Olap = NULL;
 static int  Olaps_From_Store = FALSE;
     // Indicates if overlap info comes from  get-olaps  or from
     // a binary overlap store
-static char  * Olap_Path;
+static char  * Olap_Path = NULL;
     // Name of file containing a sorted list of overlaps
 static pthread_mutex_t  Print_Mutex;
     // To make debugging printout come out together
@@ -1523,142 +1498,96 @@ static void  Output_Corrections
 
 
 
-static void  Parse_Command_Line
-    (int argc, char * argv [])
+static
+void
+Parse_Command_Line(int argc, char **argv) {
 
-//  Get options and parameters from command line with  argc
-//  arguments in  argv [0 .. (argc - 1)] .
+  argc = AS_configure(argc, argv);
 
-  {
-   int  ch, errflg = FALSE;
-   char  * p;
-
-   argc = AS_configure(argc, argv);
-
-   optarg = NULL;
-
-   while  (! errflg
-             && ((ch = getopt (argc, argv, "d:eF:hk:o:pS:t:v:V:x:")) != EOF))
-     switch  (ch)
-       {
-        case  'd' :
-          Degree_Threshold = (int) strtol (optarg, & p, 10);
-          if  (p == optarg)
-              {
-               fprintf (stderr, "ERROR:  Illegal degree threshold \"%s\"\n",
-                        optarg);
-               errflg = TRUE;
-              }
-          break;
-
-        case  'e' :
-          Extend_Fragments = TRUE;
-          break;
-
-        case  'F' :
-          Olap_Path = optarg;
-          break;
-
-        case  'h' :
-          errflg = TRUE;
-          break;
-
-        case  'k' :
-          Kmer_Len = (int) strtol (optarg, & p, 10);
-          if  (p == optarg || Kmer_Len <= 1)
-              {
-               fprintf (stderr, "ERROR:  Illegal k-mer length \"%s\"\n",
-                        optarg);
-               errflg = TRUE;
-              }
-          break;
-
-        case  'o' :
-          Correction_Filename = optarg;
-          break;
-
-        case  'p' :
-          Use_Haplo_Ct = FALSE;
-          break;
-
-        case  'S' :
-          Olap_Path = optarg;
-          Olaps_From_Store = TRUE;
-          break;
-
-        case  't' :
-          Num_PThreads = (int) strtol (optarg, & p, 10);
-          fprintf (stderr, "Number of pthreads set to %d\n", Num_PThreads);
-          break;
-
-        case  'v' :
-          Verbose_Level = (int) strtol (optarg, & p, 10);
-          fprintf (stderr, "Verbose level set to %d\n", Verbose_Level);
-          break;
-
-        case  'V' :
-          Vote_Qualify_Len = (int) strtol (optarg, & p, 10);
-          fprintf (stderr, "Correction min-match len set to %d\n", Vote_Qualify_Len);
-          break;
-
-        case  'x' :
-          End_Exclude_Len = (int) strtol (optarg, & p, 10);
-          if  (p == optarg || End_Exclude_Len < 0)
-              {
-               fprintf (stderr, "ERROR:  Illegal end-exclude length \"%s\"\n",
-                        optarg);
-               errflg = TRUE;
-              }
-          break;
-
-        case  '?' :
-          fprintf (stderr, "Unrecognized option -%c\n", optopt);
-
-        default :
-          errflg = TRUE;
-       }
-
-   if  (errflg || optind != argc - 3)
-       {
-        Usage (argv [0]);
-        exit (EXIT_FAILURE);
-       }
-
-   if  (Olap_Path == NULL)
-       {
-        fprintf (stderr, "ERROR:  Must specify overlaps with -F or -S\n");
-        exit (EXIT_FAILURE);
-       }
-
-   gkpStore_Path = argv [optind ++];
-
-   Lo_Frag_IID = (int) strtol (argv [optind], & p, 10);
-   if  (p == optarg || Lo_Frag_IID < 1)
-       {
-        fprintf (stderr, "ERROR:  Illegal low fragment IID \"%s\"\n",
-                 argv [optind]);
-        Usage (argv [0]);
-        exit (EXIT_FAILURE);
-       }
-   optind ++;
-
-   if  (strcmp (argv [optind], "end") == 0)
-       {
-        Hi_Frag_IID = INT_MAX;
-        p = NULL;
-       }
-     else
-       Hi_Frag_IID = (int) strtol (argv [optind], & p, 10);
-   if  (p == argv [optind] || Hi_Frag_IID < Lo_Frag_IID)
-       {
-        fprintf (stderr, "ERROR:  Illegal high fragment IID \"%s\"\n",
-                 argv [optind]);
-        Usage (argv [0]);
-        exit (EXIT_FAILURE);
-       }
-
-   return;
+  int arg = 1;
+  int err = 0;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-d") == 0) {
+      Degree_Threshold = strtol(argv[++arg], NULL, 10);
+      if (Degree_Threshold < 0)
+        fprintf (stderr, "ERROR:  Illegal degree threshold '%s'\n", argv[arg]), err++;
+    } else if (strcmp(argv[arg], "-e") == 0) {
+      Extend_Fragments = TRUE;
+    } else if (strcmp(argv[arg], "-F") == 0) {
+      Olap_Path = argv[++arg];
+    } else if (strcmp(argv[arg], "-h") == 0) {
+      err++;
+    } else if (strcmp(argv[arg], "-k") == 0) {
+      Kmer_Len = strtol(argv[++arg], NULL, 10);
+      if  (Kmer_Len <= 1)
+        fprintf (stderr, "ERROR:  Illegal k-mer length '%s'\n", argv[arg]), err++;
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      Correction_Filename = argv[++arg];
+    } else if (strcmp(argv[arg], "-p") == 0) {
+      Use_Haplo_Ct = FALSE;
+    } else if (strcmp(argv[arg], "-S") == 0) {
+      Olap_Path = argv[++arg];
+      Olaps_From_Store = TRUE;
+    } else if (strcmp(argv[arg], "-t") == 0) {
+      Num_PThreads = strtol(argv[++arg], NULL, 10);
+    } else if (strcmp(argv[arg], "-v") == 0) {
+      Verbose_Level = strtol(argv[++arg], NULL, 10);
+    } else if (strcmp(argv[arg], "-V") == 0) {
+      Vote_Qualify_Len = strtol(argv[++arg], NULL, 10);
+    } else if (strcmp(argv[arg], "-x") == 0) {
+      End_Exclude_Len = strtol(argv[++arg], NULL, 10);
+      if  (End_Exclude_Len < 0)
+        fprintf (stderr, "ERROR:  Illegal end-exclude length '%s'\n", argv[arg]), err++;
+    } else {
+      if (gkpStore_Path == NULL) {
+        gkpStore_Path = argv[arg];
+        fprintf(stderr, "gkpStore = '%s'\n", gkpStore_Path);
+      } else if (Lo_Frag_IID < 1) {
+        Lo_Frag_IID = strtol(argv[arg], NULL, 10);
+        if  (Lo_Frag_IID < 1)
+          fprintf (stderr, "ERROR:  Illegal low fragment IID '%s'\n", argv[arg]), err++;
+      } else if (Hi_Frag_IID < 1) {
+        Hi_Frag_IID = strtol(argv[arg], NULL, 10);
+        if  (Hi_Frag_IID < 1)
+          fprintf (stderr, "ERROR:  Illegal high fragment IID '%s'\n", argv[arg]), err++;
+        if (Hi_Frag_IID < Lo_Frag_IID)
+          fprintf (stderr, "ERROR:  Illegal lo/high fragment IIDs: lo=%d > hi=%d\n",
+                   Lo_Frag_IID, Hi_Frag_IID), err++;
+      } else {
+        fprintf(stderr, "ERROR: Unrecognized option '%s'.\n", argv[arg]), err++;
+      }
+    }
+    arg++;
   }
+
+  if ((err > 0) || (Olap_Path == NULL) || (gkpStore_Path == NULL)) {
+    fprintf(stderr, "USAGE:  %s [-ehp] [-d DegrThresh] [-k KmerLen] [-x ExcludeLen]\n", argv[0]);
+    fprintf(stderr, "           [-F OlapFile] [-S OlapStore] [-o CorrectFile]\n");
+    fprintf(stderr, "           [-t NumPThreads] [-v VerboseLevel]\n");
+    fprintf(stderr, "           [-V Vote_Qualify_Len]\n");
+    fprintf(stderr, "           <FragStore> <lo> <hi>\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Makes corrections to fragment sequence based on overlaps\n");
+    fprintf(stderr, "and recomputes overlaps on corrected fragments\n");
+    fprintf(stderr, "Fragments come from <FragStore> <lo> and <hi> specify\n");
+    fprintf(stderr, "the range of fragments to modify\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Options:\n");
+    fprintf(stderr, "-d   set keep flag on end of frags with less than this many olaps\n");
+    fprintf(stderr, "-F   specify file of sorted overlaps to use (in the format produced\n");
+    fprintf(stderr, "     by  get-olaps\n");
+    fprintf(stderr, "-h   print this message\n");
+    fprintf(stderr, "-k   minimum exact-match region to prevent change\n");
+    fprintf(stderr, "-o   specify output file to hold correction info\n");
+    fprintf(stderr, "-p   don't use haplotype counts to correct\n");
+    fprintf(stderr, "-S   specify the binary overlap store containing overlaps to use\n");
+    fprintf(stderr, "-t   set number of p-threads to use\n");
+    fprintf(stderr, "-v   specify level of verbose outputs, higher is more\n");
+    fprintf(stderr, "-V   specify number of exact match bases around an error to vote to change\n");
+    fprintf(stderr, "-x   length of end of exact match to exclude in preventing change\n");
+    exit(1);
+  }
+}
 
 
 
@@ -2482,45 +2411,3 @@ static void  Threaded_Stream_Old_Frags
 
    return;
   }
-
-
-
-static void  Usage
-    (char * command)
-
-//  Print to stderr description of options and command line for
-//  this program.   command  is the command that was used to
-//  invoke it.
-
-  {
-   fprintf (stderr,
-           "USAGE:  %s [-ehp] [-d DegrThresh] [-k KmerLen] [-x ExcludeLen]\n"
-           "           [-F OlapFile] [-S OlapStore] [-o CorrectFile]\n"
-           "           [-t NumPThreads] [-v VerboseLevel]\n"
-           "           [-V Vote_Qualify_Len]\n"
-           "           <FragStore> <lo> <hi>\n"
-           "\n"
-           "Makes corrections to fragment sequence based on overlaps\n"
-           "and recomputes overlaps on corrected fragments\n"
-           "Fragments come from <FragStore> <lo> and <hi> specify\n"
-           "the range of fragments to modify\n"
-           "\n"
-           "Options:\n"
-           "-d   set keep flag on end of frags with less than this many olaps\n"
-           "-F   specify file of sorted overlaps to use (in the format produced\n"
-           "     by  get-olaps\n"
-           "-h   print this message\n"
-           "-k   minimum exact-match region to prevent change\n"
-           "-o   specify output file to hold correction info\n"
-           "-p   don't use haplotype counts to correct\n"
-           "-S   specify the binary overlap store containing overlaps to use\n"
-           "-t   set number of p-threads to use\n"
-           "-v   specify level of verbose outputs, higher is more\n"
-           "-V   specify number of exact match bases around an error to vote to change\n"
-           "-x   length of end of exact match to exclude in preventing change\n",
-           command);
-
-   return;
-  }
-
-

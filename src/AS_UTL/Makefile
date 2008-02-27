@@ -32,8 +32,6 @@ LIB_SOURCES = AS_UTL_Hash.c \
               AS_UTL_interval.c \
               UnionFind_AS.c \
               AS_UTL_skiplist.c \
-              getopt.c \
-              getopt1.c \
               AS_UTL_alloc.c \
               AS_UTL_fileIO.c \
               AS_UTL_qsort_mt.c \

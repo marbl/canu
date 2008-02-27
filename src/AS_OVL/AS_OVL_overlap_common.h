@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.43 2008-02-25 11:07:44 brianwalenz Exp $
- * $Revision: 1.43 $
+ * $Id: AS_OVL_overlap_common.h,v 1.44 2008-02-27 10:37:33 brianwalenz Exp $
+ * $Revision: 1.44 $
 */
 
 
@@ -65,7 +65,6 @@
 #include  <string.h>
 #include  <unistd.h>
 #include  <float.h>
-#include  "../AS_UTL/getopt.h" /*  Use AS_UTL getopt, not the system one  */
 
 /*************************************************************************/
 /* Local include files */
@@ -195,29 +194,17 @@ static int  Extra_String_Subcount = 0;
 static int  Frag_Olap_Limit = FRAG_OLAP_LIMIT;
     //  Maximum number of overlaps for end of an old fragment against
     //  a single hash table of frags, in each orientation
-static double  Genome_Len = -1.0;
-    //  Estimated genome length read by  -K  option.  Used to compute
-    //  k-mer hit limit.
 static Check_Vector_t  * Hash_Check_Array = NULL;
     //  Bit vector to eliminate impossible hash matches
 static int  Hash_String_Num_Offset = 1;
 static Hash_Bucket_t  * Hash_Table;
-static int  Hi_Hit_Limit = DEFAULT_HI_HIT_LIMIT;
-    //  Any kmer in the hash table with this many or more references
-    //  is not used to initiate overlaps.  Set by  -K  option.
 static int  Ignore_Clear_Range = FALSE;
     //  If true will use entire read sequence, ignoring the
     //  clear range values
 static int  Ignore_Screen_Info = FALSE;
     //  If true will ignore screen messages with fragments
-static double  Kmer_Freq_Bound = -1.0;
-    //  Target number of kmers in genome to compute  Hi_Hit_Limit
-    //  from.  Gotten from  -K  option.
 static int64  Kmer_Hits_With_Olap_Ct = 0;
 static int64  Kmer_Hits_Without_Olap_Ct = 0;
-static double  Kmer_Prob_Limit = -1.0;
-    //  Probability threshold for setting  Hi_Hit_Limit .
-    //  Gotten from  -K  option.
 static uint64  * Loc_ID = NULL;
     //  Locale ID field of each frag in hash table if in  Contig_Mode .
 static int  Min_Olap_Len = DEFAULT_MIN_OLAP_LEN;
@@ -417,8 +404,8 @@ static void  Find_Overlaps
     (char [], int, char [], Int_Frag_ID_t, Direction_t, Work_Area_t *);
 static void  Flip_Screen_Range
     (Screen_Info_t * screen, int len);
-static void  Get_Range
-    (char * s, char ch, int * lo, int * hi);
+static int  Get_Range
+    (char * value, char * flag, int * lo, int * hi);
 static int  Has_Bad_Window
     (char a [], int n, int window_len, int threshold);
 static String_Ref_t  Hash_Find
@@ -433,8 +420,6 @@ static int  Interval_Intersection
     (int, int, int, int);
 static int  Lies_On_Alignment
     (int, int, int, int, Work_Area_t *);
-static void  Mail_Error_Message
-    (char * person, int num, char * store);
 static void  Mark_Screened_Ends_Chain
     (String_Ref_t ref);
 static void  Mark_Screened_Ends_Single
@@ -483,8 +468,6 @@ static void  Set_Left_Delta
      Work_Area_t * WA);
 static void  Set_Right_Delta
     (int e, int d, Work_Area_t * WA);
-static void  Set_Screened_Ends
-    (void);
 static void  Show_Alignment
     (char *, char *, Olap_Info_t *);
 static void  Show_Match
@@ -505,399 +488,294 @@ static void  Show_SNPs
 
 
 
-int  main  (int argc, char * argv [])
+static
+int
+Get_Range(char *value, char *flag, int * lo, int * hi) {
+  char *s = value;
+
+  if (*s == '-')
+    *lo = 0;
+  else
+    *lo = strtol(s, &s, 10);
+
+  if (*s != '-') {
+    fprintf(stderr, "ERROR:  No hyphen in -%c range '%s'\n", flag, value);
+    return(1);
+  }
+
+  s++;
+
+  if (*s == 0)
+    *hi = INT_MAX;
+  else
+    *hi = strtol(s, &s, 10);
+
+  if (*lo > *hi) {
+    fprintf (stderr, "ERROR:  Numbers reversed in -%c range '%s'\n", flag, value);
+    return(1);
+  }
+
+  return(0);
+}
+
+
+int
+main(int argc, char **argv) {
+  char  bolfile_name[FILENAME_MAX] = {0};
+  char  Outfile_Name[FILENAME_MAX] = {0};
+  char  iidlist_file_name[FILENAME_MAX] = {0};
+  int  illegal;
+  char  * p;
 
   {
-   char  bolfile_name[FILENAME_MAX] = {0};
-   char  Outfile_Name[FILENAME_MAX] = {0};
-   char  iidlist_file_name[FILENAME_MAX] = {0};
-   int  illegal;
-   char  * p;
-
-   fprintf(stderr, "Version: %s\n",CM_ID);
+    time_t  now = time (NULL);
+    fprintf(stderr, "Version: %s\n",CM_ID);
 #ifdef CONTIG_OVERLAPPER_VERSION
-fprintf (stderr, "Running Contig version, AS_READ_MAX_LEN = %d\n",
-         AS_READ_MAX_LEN);
+    fprintf (stderr, "Running Contig version, AS_READ_MAX_LEN = %d\n", AS_READ_MAX_LEN);
 #else
-fprintf (stderr, "Running Fragment version, AS_READ_MAX_LEN = %d\n",
-         AS_READ_MAX_LEN);
+    fprintf (stderr, "Running Fragment version, AS_READ_MAX_LEN = %d\n", AS_READ_MAX_LEN);
+#endif
+    fprintf (stderr, "### Starting at  %s\n", ctime (& now));
+  }
+
+  argc = AS_configure(argc, argv);
+
+  fprintf (stderr, "### Bucket size = " F_SIZE_T " bytes\n", sizeof (Hash_Bucket_t));
+  fprintf (stderr, "### Read error rate = %.2f%%\n", 100.0 * AS_READ_ERROR_RATE);
+  fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE);
+
+  {
+    int err=0;
+    int arg=1;
+    while (arg < argc) {
+
+      if        (strcmp(argv[arg], "-b") == 0) {
+        strcpy(bolfile_name, argv[++arg]);
+      } else if (strcmp(argv[arg], "-c") == 0) {
+        Contig_Mode = TRUE;
+      } else if (strcmp(argv[arg], "-G") == 0) {
+        Doing_Partial_Overlaps = TRUE;
+      } else if (strcmp(argv[arg], "-h") == 0) {
+        err += Get_Range (argv[arg+1], argv[arg], & Lo_Hash_Frag, & Hi_Hash_Frag);
+        arg++;
+      } else if (strcmp(argv[arg], "-I") == 0) {
+        strcpy(iidlist_file_name, argv[++arg]);
+      } else if (strcmp(argv[arg], "-k") == 0) {
+        arg++;
+        if ((isdigit(argv[arg][0]) && (argv[arg][1] == 0)) ||
+            (isdigit(argv[arg][0]) && isdigit(argv[arg][1]) && (argv[arg][2] == 0))) {
+          Kmer_Len = atoi(argv[arg]);
+        } else {
+          Kmer_Skip_File = File_Open (argv[arg], "r");
+        }
+      } else if (strcmp(argv[arg], "-l") == 0) {
+        Frag_Olap_Limit = strtol(argv[++arg], NULL, 10);
+        if  (Frag_Olap_Limit < 1)
+          Frag_Olap_Limit = INT_MAX;
+      } else if (strcmp(argv[arg], "-m") == 0) {
+        Unique_Olap_Per_Pair = FALSE;
+      } else if (strcmp(argv[arg], "-M") == 0) {
+        arg++;
+#ifdef CONTIG_OVERLAPPER_VERSION
+        if        (strcmp (argv[arg], "8GB") == 0) {
+          Hash_Mask_Bits    = 24;
+          Max_Hash_Data_Len = 400000000;
+        } else if (strcmp (argv[arg], "4GB") == 0) {
+          Hash_Mask_Bits    = 23;
+          Max_Hash_Data_Len = 180000000;
+        } else if (strcmp (argv[arg], "2GB") == 0) {
+          Hash_Mask_Bits    = 22;
+          Max_Hash_Data_Len = 110000000;  //  Was 75000000
+        } else if (strcmp (argv[arg], "1GB") == 0) {
+          Hash_Mask_Bits    = 21;
+          Max_Hash_Data_Len = 30000000;
+        } else if (strcmp (argv[arg], "256MB") == 0) {
+          Hash_Mask_Bits    = 19;
+          Max_Hash_Data_Len = 6000000;
+        } else {
+          fprintf(stderr, "ERROR:  Unknown memory size '%s'\n", argv[arg]);
+          fprintf(stderr, "Valid values are '8GB', '4GB', '2GB', '1GB', '256MB'\n");
+          err++;
+        }
+        Max_Hash_Strings  = 3 * Max_Hash_Data_Len / AS_READ_MAX_LEN;
+        if  (Max_Hash_Strings > MAX_STRING_NUM)
+          Max_Hash_Strings = MAX_STRING_NUM;
+        Max_Frags_In_Memory_Store = OVL_Min_int (2 * Max_Hash_Data_Len / MAX_FRAG_LEN, MAX_OLD_BATCH_SIZE);
+#else
+        if        (strcmp (argv[arg], "16GB") == 0) {
+          if (STRING_NUM_BITS <= 19) {
+            fprintf(stderr, "16GB run module requires STRING_NUM_BITS > 19.\n");
+            exit(1);
+          } else {
+            fprintf(stderr, "\nWARNING:\n");
+            fprintf(stderr, "WARNING:  '-M 16GB' not tuned to use less than 16GB!\n");
+            fprintf(stderr, "WARNING:  It will use more!\n");
+            fprintf(stderr, "WARNING:\n\n");
+          }
+
+          //  Read this if you're considering using -M 16GB.  You
+          //  can up the Hash_Mask_Bits to 25.  The data set BPW
+          //  tested with was highly repetitive, and so 24 was
+          //  actually better, letting 1.5M reads (barely) fit
+          //  into 24GB memory.
+          //
+          //  You'll certainly want to adjust Max_Hash_Strings,
+          //  and Max_Hash_Data_Len; run it once, watch the table
+          //  building results, and then increase/decrease to get
+          //  the table loaded around 70%.
+
+          Hash_Mask_Bits    = 24;
+          Max_Hash_Strings  = 1500000;
+          Max_Hash_Data_Len = 1200000000;
+
+        } else if (strcmp (argv[arg], "8GB") == 0) {
+          Hash_Mask_Bits    = 24;
+          Max_Hash_Strings  = 512000;
+          Max_Hash_Data_Len = 400000000;
+        } else if (strcmp (argv[arg], "4GB") == 0) {
+          Hash_Mask_Bits    = 23;
+          Max_Hash_Strings  = 250000;
+          Max_Hash_Data_Len = 180000000;
+        } else if (strcmp (argv[arg], "2GB") == 0) {
+          Hash_Mask_Bits    = 22;
+          Max_Hash_Strings  = 150000;     //  Was 100000
+          Max_Hash_Data_Len = 110000000;  //  Was 75000000
+        } else if (strcmp (argv[arg], "1GB") == 0) {
+          Hash_Mask_Bits    = 21;
+          Max_Hash_Strings  = 50000;      //  Was 40000
+          Max_Hash_Data_Len = 75000000;   //  Was 30000000
+        } else if (strcmp (argv[arg], "256MB") == 0) {
+          Hash_Mask_Bits    = 19;
+          Max_Hash_Strings  = 10000;
+          Max_Hash_Data_Len = 6000000;
+        } else {
+          fprintf(stderr, "ERROR:  Unknown memory size '%s'\n", argv[arg]);
+          fprintf(stderr, "Valid values are '8GB', '4GB', '2GB', '1GB', '256MB'\n");
+          err++;
+        }
+        Max_Frags_In_Memory_Store = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
 #endif
 
-   argc = AS_configure(argc, argv);
+      } else if (strcmp(argv[arg], "--hashbits") == 0) {
+        Hash_Mask_Bits = atoi(argv[++arg]);
+      } else if (strcmp(argv[arg], "--hashstrings") == 0) {
+        Max_Hash_Strings = atoi(argv[++arg]);
+        Max_Frags_In_Memory_Store = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
+      } else if (strcmp(argv[arg], "--hashdatalen") == 0) {
+        Max_Hash_Data_Len = atoi(argv[++arg]);
+      } else if (strcmp(argv[arg], "--hashload") == 0) {
+        Max_Hash_Load = atof(argv[++arg]);
 
-   {
-     time_t  now = time (NULL);
-     fprintf (stderr, "### Starting at  %s\n", ctime (& now));
-   }
+      } else if (strcmp(argv[arg], "-o") == 0) {
+        strcpy(Outfile_Name, argv[++arg]);
+      } else if (strcmp(argv[arg], "-p") == 0) {
+        Full_ProtoIO_Output = TRUE;
+      } else if (strcmp(argv[arg], "-r") == 0) {
+        err += Get_Range (argv[arg+1], argv[arg], & Lo_Old_Frag, & Hi_Old_Frag);
+        arg++;
+      } else if (strcmp(argv[arg], "-s") == 0) {
+        Ignore_Screen_Info = TRUE;
+      } else if (strcmp(argv[arg], "-t") == 0) {
+        Num_PThreads = (int) strtol (argv[++arg], & p, 10);
+        if  (Num_PThreads < 1)
+          Num_PThreads = 1;
+      } else if (strcmp(argv[arg], "-u") == 0) {
+        Unique_Olap_Per_Pair = TRUE;
+      } else if (strcmp(argv[arg], "-v") == 0) {
+        Min_Olap_Len = (int) strtol (argv[++arg], & p, 10);
+      } else if (strcmp(argv[arg], "-w") == 0) {
+        Use_Window_Filter = TRUE;
+      } else if (strcmp(argv[arg], "-x") == 0) {
+        Ignore_Clear_Range = TRUE;
+      } else if (strcmp(argv[arg], "-z") == 0) {
+        Use_Hopeless_Check = FALSE;
+      } else {
+        if (Frag_Store_Path == NULL) {
+          Frag_Store_Path = argv[arg];
+        } else if (Contig_Mode && (BACtig_Store_Path == NULL)) {
+          if  (bolfile_name[0] == 0)
+            fprintf (stderr, "ERROR:  No .BOL file name specified\n"), exit(1);
+          if  (Outfile_Name[0] != 0)
+            fprintf (stderr, "WARNING:  Output file name '%s' ignored - output is in -b file '%s'\n",
+                     Outfile_Name, bolfile_name);
+          BOL_File = File_Open (bolfile_name, "w");
+          BACtig_Store_Path = argv[arg];
+        } else {
+          fprintf(stderr, "Unknown option '%s'\n", argv[arg]);
+          err++;
+        }
+      }
+      arg++;
+    }
 
-   fprintf (stderr, "### Bucket size = " F_SIZE_T " bytes\n", sizeof (Hash_Bucket_t));
-   fprintf (stderr, "### Read error rate = %.2f%%\n", 100.0 * AS_READ_ERROR_RATE);
-   fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE);
+    //  Fix up some flags if we're allowing high error rates.
+    //
+    if (AS_OVL_ERROR_RATE > 0.06) {
+      if (Use_Window_Filter)
+        fprintf(stderr, "High error rates requested -- window-filter turned off despite -w flag!\n");
+      Use_Window_Filter  = FALSE;
+      Use_Hopeless_Check = FALSE;
+    }
 
-   illegal = 0;
+    if (Max_Hash_Strings == 0)
+      fprintf(stderr, "* No memory model supplied; -M needed!\n"), err++;
 
-   { /* Parse the argument list using "man 3 getopt". */ 
-     int ch, errflg = 0;
-     int optindex = 0;
-     int opt = 0;
+    if (Kmer_Len == 0)
+      fprintf(stderr, "* No kmer length supplied; -k needed!\n"), err++;
 
-     //  Order is important in this list.
-     static struct option ovlopts[] = { { "hashbits",    1, 0, 0 },
-                                        { "hashstrings", 1, 0, 0 },
-                                        { "hashdatalen", 1, 0, 0 },
-                                        { "hashload",    1, 0, 0 },
-                                        { 0, 0, 0, 0 } };
+    if (Max_Hash_Strings > MAX_STRING_NUM)
+      fprintf(stderr, "Too many strings (--hashstrings), must be less than %d\n", MAX_STRING_NUM), err++;
 
-     optarg = NULL;
-     while  (! errflg
-               && ((ch = getopt_long (argc, argv,
-                                      "b:cGh:I:k:K:l:mM:o:Pr:st:uv:wxz",
-                                      ovlopts, &optindex)) != EOF))
-       switch  (ch)
-         {
-           case 0:
-             if        (strcmp(ovlopts[optindex].name, "hashbits") == 0) {
-               Hash_Mask_Bits = atoi(optarg);
-             } else if (strcmp(ovlopts[optindex].name, "hashstrings") == 0) {
-               Max_Hash_Strings = atoi(optarg);
-               Max_Frags_In_Memory_Store = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
-             } else if (strcmp(ovlopts[optindex].name, "hashdatalen") == 0) {
-               Max_Hash_Data_Len = atoi(optarg);
-             } else if (strcmp(ovlopts[optindex].name, "hashload") == 0) {
-               Max_Hash_Load = atof(optarg);
-             }
-             break;
-          case  'b' :
-            strcpy(bolfile_name, optarg);
-            break;
-          case  'c':
-            Contig_Mode = TRUE;
-            break;
-          case  'G' :
-            Doing_Partial_Overlaps = TRUE;
-            break;
-          case  'h' :
-            Get_Range (optarg, ch, & Lo_Hash_Frag, & Hi_Hash_Frag);
-            break;
-          case  'I' :
-            strcpy(iidlist_file_name, optarg);
-            break;
-          case  'k' :
-            if ((isdigit(optarg[0]) && (optarg[1] == 0)) ||
-                (isdigit(optarg[0]) && isdigit(optarg[1]) && (optarg[2] == 0))) {
-              Kmer_Len = atoi(optarg);
-            } else {
-              Kmer_Skip_File = File_Open (optarg, "r");
-            }
-            break;
-          case  'K' :
-            if  (optarg [0] == '[')
-                {
-                 if  (sscanf (optarg, "[%lf,%lf,%lf]", & Genome_Len,
-                              & Kmer_Freq_Bound, & Kmer_Prob_Limit)
-                        != 3)
-                     {
-                      fprintf (stderr,
-                               "ERROR:  Bad format for K option.  \n"
-                               "Should be \"[%%lf,%%d,%%lf]\"\n");
-                      exit (EXIT_FAILURE);
-                     }
+    if ((!Contig_Mode) && (Outfile_Name[0] == 0))
+      fprintf (stderr, "ERROR:  No output file name specified\n"), err++;
 
-                 // Hi_Hit_Limit  needs to be calculated for each hash table
-                 // since it depends on the amount of data in the table.
+    if ((err) || (Frag_Store_Path == NULL)) {
+      fprintf(stderr, "USAGE:  %s [options] <gkpStorePath>\n");
+      fprintf(stderr, "\n");
+      fprintf(stderr, "-b <fn>     in contig mode, specify the output file\n");
+      fprintf(stderr, "-c          contig mode.  Use 2 frag stores.  First is\n");
+      fprintf(stderr, "            for reads; second is for contigs\n");
+      fprintf(stderr, "-G          do partial overlaps\n");
+      fprintf(stderr, "-h <range>  to specify fragments to put in hash table\n");
+      fprintf(stderr, "            Implies LSF mode (no changes to frag store)\n");
+      fprintf(stderr, "-I          designate a file of frag iids to limit olaps to\n");
+      fprintf(stderr, "            (Contig mode only)\n");
+      fprintf(stderr, "-k          if one or two digits, the length of a kmer, otherwise\n");
+      fprintf(stderr, "            the filename containing a list of kmers to ignore in\n");
+      fprintf(stderr, "            the hash table\n");
+      fprintf(stderr, "-l          specify the maximum number of overlaps per\n");
+      fprintf(stderr, "            fragment-end per batch of fragments.\n");
+      fprintf(stderr, "-m          allow multiple overlaps per oriented fragment pair\n");
+      fprintf(stderr, "-M          specify memory size.  Valid values are '8GB', '4GB',\n");
+      fprintf(stderr, "            '2GB', '1GB', '256MB'.  (Not for Contig mode)\n");
+      fprintf(stderr, "-o          specify output file name\n");
+      fprintf(stderr, "-P          write protoIO output (if not -G)\n");
+      fprintf(stderr, "-r <range>  specify old fragments to overlap\n");
+      fprintf(stderr, "-s          ignore screen information with fragments\n");
+      fprintf(stderr, "-t <n>      use <n> parallel threads\n");
+      fprintf(stderr, "-u          allow only 1 overlap per oriented fragment pair\n");
+      fprintf(stderr, "-v <n>      only output overlaps of <n> or more bases\n");
+      fprintf(stderr, "-w          filter out overlaps with too many errors in a window\n");
+      fprintf(stderr, "-x          ignore the clear ranges on reads and use the \n");
+      fprintf(stderr, "            full sequence\n");
+      fprintf(stderr, "-z          skip the hopeless check\n");
+      fprintf(stderr, "\n");
+      fprintf(stderr, "--hashbits n     Use n bits for the hash mask.\n");
+      fprintf(stderr, "--hashstrings n  Use at most n strings per hash table.\n");
+      fprintf(stderr, "--hashdatalen n  Use at most n bytes for the hash table.\n");
+      fprintf(stderr, "--hashload f     Load to at most 0.0 < f < 1.0 capacity (default 0.7).\n");
+      exit(1);
+    }
 
-                 fprintf (stderr,
-                          "Genome_Len = %.0lf  Kmer_Freq_Bound = %.0lf"
-                          "  Kmer_Prob_Limit = %.4e\n",
-                          Genome_Len, Kmer_Freq_Bound, Kmer_Prob_Limit);
-                }
-            else
-                {
-                 Hi_Hit_Limit = (int) strtol (optarg, & p, 10);
-                 if  (p == optarg || Hi_Hit_Limit <= 1)
-                     {
-                      fprintf (stderr, "ERROR:  Illegal number kmer hit limit \"%s\"\n",
-                               optarg);
-                      exit (-1);
-                     }
-                 if  (Hi_Hit_Limit > HIGHEST_KMER_LIMIT)
-                     fprintf (stderr,
-                              "WARNING:  kmer hit limit = %d is too large, ignored\n",
-                              Hi_Hit_Limit);
-                }
-            break;
-          case  'l' :
-            Frag_Olap_Limit = (int) strtol (optarg, & p, 10);
-            if  (p == optarg)
-                {
-                 fprintf (stderr,
-                          "ERROR:  Illegal number for frag olap limit \"%s\"\n",
-                          optarg);
-                 exit (-1);
-                }
-            if  (Frag_Olap_Limit < 1)
-                Frag_Olap_Limit = INT_MAX;
-            break;
-          case  'm' :
-            Unique_Olap_Per_Pair = FALSE;
-            break;
-          case  'M' :
-#ifdef CONTIG_OVERLAPPER_VERSION
-            if        (strcmp (optarg, "8GB") == 0) {
-              Hash_Mask_Bits    = 24;
-              Max_Hash_Data_Len = 400000000;
-            } else if (strcmp (optarg, "4GB") == 0) {
-              Hash_Mask_Bits    = 23;
-              Max_Hash_Data_Len = 180000000;
-            } else if (strcmp (optarg, "2GB") == 0) {
-              Hash_Mask_Bits    = 22;
-              Max_Hash_Data_Len = 110000000;  //  Was 75000000
-            } else if (strcmp (optarg, "1GB") == 0) {
-              Hash_Mask_Bits    = 21;
-              Max_Hash_Data_Len = 30000000;
-            } else if (strcmp (optarg, "256MB") == 0) {
-              Hash_Mask_Bits    = 19;
-              Max_Hash_Data_Len = 6000000;
-            }
-            else {
-              fprintf(stderr, "ERROR:  Unknown memory size \"%s\"\n", optarg);
-              fprintf(stderr, "Valid values are '8GB', '4GB', '2GB', '1GB', '256MB'\n");
-              errflg ++;
-            }
-            Max_Hash_Strings  = 3 * Max_Hash_Data_Len / AS_READ_MAX_LEN;
-            if  (Max_Hash_Strings > MAX_STRING_NUM)
-                Max_Hash_Strings = MAX_STRING_NUM;
-            Max_Frags_In_Memory_Store
-                 = OVL_Min_int (2 * Max_Hash_Data_Len / MAX_FRAG_LEN,
-                        MAX_OLD_BATCH_SIZE);
-#else
-            if        (strcmp (optarg, "16GB") == 0) {
-              if (STRING_NUM_BITS <= 19) {
-                fprintf(stderr, "16GB run module requires STRING_NUM_BITS > 19.\n");
-                exit(1);
-              } else {
-                fprintf(stderr, "\nWARNING:\n");
-                fprintf(stderr, "WARNING:  \"-M 16GB\" not tuned to use less than 16GB!\n");
-                fprintf(stderr, "WARNING:  It will use more!\n");
-                fprintf(stderr, "WARNING:\n\n");
-              }
+    assert(NULL == Out_Stream);
+    assert(NULL == Out_BOF);
 
-              //  Read this if you're considering using -M 16GB.  You
-              //  can up the Hash_Mask_Bits to 25.  The data set BPW
-              //  tested with was highly repetitive, and so 24 was
-              //  actually better, letting 1.5M reads (barely) fit
-              //  into 24GB memory.
-              //
-              //  You'll certainly want to adjust Max_Hash_Strings,
-              //  and Max_Hash_Data_Len; run it once, watch the table
-              //  building results, and then increase/decrease to get
-              //  the table loaded around 70%.
+    if (Full_ProtoIO_Output)
+      Out_Stream = File_Open (Outfile_Name, "w");
+    else
+      Out_BOF    = AS_OVS_createBinaryOverlapFile(Outfile_Name, FALSE);
+  }
 
-              Hash_Mask_Bits    = 24;
-              Max_Hash_Strings  = 1500000;
-              Max_Hash_Data_Len = 1200000000;
-
-            } else if (strcmp (optarg, "8GB") == 0) {
-              Hash_Mask_Bits    = 24;
-              Max_Hash_Strings  = 512000;
-              Max_Hash_Data_Len = 400000000;
-            } else if (strcmp (optarg, "4GB") == 0) {
-              Hash_Mask_Bits    = 23;
-              Max_Hash_Strings  = 250000;
-              Max_Hash_Data_Len = 180000000;
-            } else if (strcmp (optarg, "2GB") == 0) {
-              Hash_Mask_Bits    = 22;
-              Max_Hash_Strings  = 150000;     //  Was 100000
-              Max_Hash_Data_Len = 110000000;  //  Was 75000000
-            } else if (strcmp (optarg, "1GB") == 0) {
-              Hash_Mask_Bits    = 21;
-              Max_Hash_Strings  = 50000;      //  Was 40000
-              Max_Hash_Data_Len = 75000000;   //  Was 30000000
-            } else if (strcmp (optarg, "256MB") == 0) {
-              Hash_Mask_Bits    = 19;
-              Max_Hash_Strings  = 10000;
-              Max_Hash_Data_Len = 6000000;
-            } else {
-              fprintf(stderr, "ERROR:  Unknown memory size \"%s\"\n", optarg);
-              fprintf(stderr, "Valid values are '8GB', '4GB', '2GB', '1GB', '256MB'\n");
-              errflg ++;
-            }
-            Max_Frags_In_Memory_Store = OVL_Min_int (Max_Hash_Strings,
-                 MAX_OLD_BATCH_SIZE);
-#endif
-            break;
-          case  'o' :
-            strcpy(Outfile_Name, optarg);
-            break;
-          case  'P' :
-            Full_ProtoIO_Output = TRUE;
-            break;
-          case  'r' :
-            Get_Range (optarg, ch, & Lo_Old_Frag, & Hi_Old_Frag);
-            break;
-          case  's' :
-            Ignore_Screen_Info = TRUE;
-            break;
-          case  't' :
-            Num_PThreads = (int) strtol (optarg, & p, 10);
-            if  (p == optarg)
-                {
-                 fprintf (stderr, "ERROR:  Illegal number of threads \"%s\"\n",
-                          optarg);
-                 exit (-1);
-                }
-            if  (Num_PThreads < 1)
-                Num_PThreads = 1;
-            break;
-          case  'u' :
-            Unique_Olap_Per_Pair = TRUE;
-            break;
-          case  'v' :
-            Min_Olap_Len = (int) strtol (optarg, & p, 10);
-            break;
-          case  'w' :
-            Use_Window_Filter = TRUE;
-            break;
-          case  'x' :
-            Ignore_Clear_Range = TRUE;
-            break;
-          case  'z' :
-            Use_Hopeless_Check = FALSE;
-            break;
-          case  '?' :
-            fprintf (stderr, "Unrecognized option -%c\n", optopt);
-          default :
-            errflg++;
-         }
-
-     //  Fix up some flags if we're allowing high error rates.
-     //
-     if (AS_OVL_ERROR_RATE > 0.06) {
-       if (Use_Window_Filter)
-         fprintf(stderr, "High error rates requested -- window-filter turned off despite -w flag!\n");
-
-       Use_Window_Filter  = FALSE;
-       Use_Hopeless_Check = FALSE;
-     }
-
-     if (Max_Hash_Strings == 0) {
-       fprintf(stderr, "* No memory model supplied; -M needed!\n");
-       illegal = 1;
-     }
-
-     if (Kmer_Len == 0) {
-       fprintf(stderr, "* No kmer length supplied; -k needed!\n");
-       illegal = 1;
-     }
-
-     if (Max_Hash_Strings > MAX_STRING_NUM) {
-       fprintf(stderr, "Too many strings (--hashstrings), must be less than %d\n", MAX_STRING_NUM);
-       illegal = 1;
-     }
-     
-     if  ((illegal == 1)
-          || (argc - optind != 2 && Contig_Mode)
-          || (argc - optind != 1 && ! Contig_Mode))
-       {
-         fprintf (stderr,
-                  "USAGE:  %s [options] "
-                  "<FragStorePath>]\n"
-                  "Uses FragStore in <FragStorePath>\n"
-                  "\n"
-                  "-b <fn>     in contig mode, specify the output file\n"
-                  "-c          contig mode.  Use 2 frag stores.  First is\n"
-                  "            for reads; second is for contigs\n"
-                  "-G          do partial overlaps\n"
-                  "-h <range>  to specify fragments to put in hash table\n"
-                  "            Implies LSF mode (no changes to frag store)\n"
-                  "-I          designate a file of frag iids to limit olaps to\n"
-                  "            (Contig mode only)\n"
-                  "-k          if one or two digits, the length of a kmer, otherwise\n"
-                  "            the filename containing a list of kmers to ignore in\n"
-                  "            the hash table\n"
-                  "-K          to designate limit on repetitive kmer hits to\n"
-                  "            ignore in hash table\n"
-                  "            [g,c,p] is special format to set K value automatically\n"
-                  "            so that the probability of K or more hits in a genome\n"
-                  "            of length g containing c copies of the kmer is\n"
-                  "            less than p  (Put in quotes to get past the shell.)\n"
-                  "-l          specify the maximum number of overlaps per\n"
-                  "            fragment-end per batch of fragments.\n"
-                  "-m          allow multiple overlaps per oriented fragment pair\n"
-                  "-M          specify memory size.  Valid values are '8GB', '4GB',\n"
-                  "            '2GB', '1GB', '256MB'.  (Not for Contig mode)\n"
-                  "-o          specify output file name\n"
-                  "-P          write protoIO output (if not -G)\n"
-                  "-r <range>  specify old fragments to overlap\n"
-                  "-s          ignore screen information with fragments\n"
-                  "-t <n>      use <n> parallel threads\n"
-                  "-u          allow only 1 overlap per oriented fragment pair\n"
-                  "-v <n>      only output overlaps of <n> or more bases\n"
-                  "-w          filter out overlaps with too many errors in a window\n"
-                  "-x          ignore the clear ranges on reads and use the \n"
-                  "            full sequence\n"
-                  "-z          skip the hopeless check\n"
-                  "\n"
-                  "--hashbits n     Use n bits for the hash mask.\n"
-                  "--hashstrings n  Use at most n strings per hash table.\n"
-                  "--hashdatalen n  Use at most n bytes for the hash table.\n"
-                  "--hashload f     Load to at most 0.0 < f < 1.0 capacity (default 0.7).\n",
-                  argv [0]);
-         exit (EXIT_FAILURE);
-       }
-
-     Frag_Store_Path = argv [optind ++];
-
-     if  (optind < argc)
-         {
-               if  (! Contig_Mode)
-                   {
-                    fprintf (stderr,
-                             "ERROR:  Extraneous command-line argument \"%s\"\n",
-                             argv [optind]);
-                    exit (EXIT_FAILURE);
-                   }
-
-               if  (bolfile_name[0] == 0)
-                   {
-                    fprintf (stderr,
-                             "ERROR:  No .BOL file name specified\n");
-                    exit (EXIT_FAILURE);
-                   }
-               BOL_File = File_Open (bolfile_name, "w");
-
-               if  (Outfile_Name[0] != 0)
-                   {
-                    fprintf (stderr,
-                             "WARNING:  Output file name \"%s\" ignored\n",
-                             Outfile_Name);
-                    // Only .bol file is produced
-                   }
-
-               BACtig_Store_Path = argv [optind];
-
-
-          optind ++;
-         }
-     else if  (Outfile_Name[0] == 0)
-         {
-          fprintf (stderr, "ERROR:  No output file name specified\n");
-          exit (EXIT_FAILURE);
-         }
-       else
-         {
-	   assert(NULL == Out_Stream);
-	   assert(NULL == Out_BOF);
-
-           if (Full_ProtoIO_Output)
-             Out_Stream = File_Open (Outfile_Name, "w");
-           else
-             Out_BOF    = AS_OVS_createBinaryOverlapFile(Outfile_Name, FALSE);
-         }
-
-     /* End of command line parsing */
-   }
-   
 #if  SHOW_STATS
  assert(NULL == Stat_File);
  Stat_File = File_Open (STAT_FILE_NAME, "w"); 
@@ -946,7 +824,7 @@ fprintf (stderr, "Running Fragment version, AS_READ_MAX_LEN = %d\n",
             }
         if  (! testOpenGateKeeperStore(BACtig_Store_Path, FALSE))
             {
-             fprintf (stderr, "ERROR:  BACtig store \"%s\" does NOT exist\n",
+             fprintf (stderr, "ERROR:  BACtig store '%s' does NOT exist\n",
                       BACtig_Store_Path);
              exit (EXIT_FAILURE);
             }
@@ -1039,7 +917,7 @@ fprintf (Stat_File, "Edit_Dist_Ct = %lld\n", Edit_Dist_Ct);
 fprintf (Stat_File, "Matches = %lld\n", Match_Ct);
 fprintf (Stat_File, "%lld collisions in %lld finds\n", Collision_Ct, Hash_Find_Ct);
 // fprintf (Stat_File, "String_Olap_Size = %ld\n", WA -> String_Olap_Size);
-fprintf (stderr, "Stats written to file \"%s\"\n", STAT_FILE_NAME);
+fprintf (stderr, "Stats written to file '%s'\n", STAT_FILE_NAME);
 fclose (Stat_File);
 #endif
 
@@ -1624,30 +1502,6 @@ Align_Ct [String_Ct] = (Align_Entry_t *)
    fprintf (stderr, "strings read = %d  total_len = " F_S64 "\n",
             String_Ct, total_len);
    Used_Data_Len = total_len;
-
-   if  (Genome_Len > 0.0)
-       {
-        double  avg_frag_kmers;
-        double  genome_kmers;
-
-        avg_frag_kmers
-            = ((double) total_len / String_Ct - Kmer_Len)
-                 / (1 + HASH_KMER_SKIP);
-        genome_kmers = 2 * (Genome_Len - (Kmer_Len - 1));
-        Hi_Hit_Limit
-            = 1 + Binomial_Hit_Limit (Kmer_Freq_Bound * avg_frag_kmers/genome_kmers,
-                                      String_Ct - 1, Kmer_Prob_Limit);
-        // "1 +" because one kmer is automatically present from first fragment
-        // probability is for other fragments to hit it too
-
-        if  (Hi_Hit_Limit < MIN_CALC_KMER)
-            Hi_Hit_Limit = MIN_CALC_KMER;
-       }
-   fprintf (stderr, "### Kmer hash hit limit = %d\n", Hi_Hit_Limit);
-   if  (Hi_Hit_Limit > HIGHEST_KMER_LIMIT)
-       fprintf (stderr, "  is too large and has no effect\n");
-     else
-       Set_Screened_Ends ();
 
 #if  SHOW_STATS
 fprintf (Stat_File, "Num_Strings:\n %10ld\n", String_Ct);
@@ -2260,7 +2114,7 @@ static void  Find_End_Annotations
   {
    char  * p;
 
-   fprintf (stderr, "source = \"%s\"\n", s);
+   fprintf (stderr, "source = '%s'\n", s);
 
    (* left) = (* right) = (* other) = ' ';
    p = strtok (s, "\n\r");        // frag id tag
@@ -2505,53 +2359,6 @@ static void  Flip_Screen_Range
 
 
 
-static void  Get_Range
-    (char * s, char ch, int * lo, int * hi)
-
-//  Extract the string range specified in string  s  into
-//  (* lo)  and  (* hi) .   ch  is the option letter associated
-//  with this range.
-
-  {
-   char  * p;
-
-   p = strchr (s, '-');
-   if  (p == NULL)
-       {
-        fprintf (stderr, "ERROR:  No hyphen in  -%c  range \"%s\"\n",
-                 ch, s);
-        exit (-1);
-       }
-   if  (p == s)
-       (* lo) = 0;
-   else if  (sscanf (optarg, "%d", lo) != 1)
-       {
-        fprintf (stderr, "ERROR:  Bad first number in  -%c  range \"%s\"\n",
-                 ch, s);
-        exit (-1);
-       }
-   p ++;
-   if  ((* p) == '\0')
-       (* hi) = INT_MAX;
-   else if  (sscanf (p, "%d", hi) != 1)
-       {
-        fprintf (stderr, "ERROR:  Bad first number in  -%c  range \"%s\"\n",
-                 ch, s);
-        exit (-1);
-       }
-
-   if  ((* lo) > (* hi))
-       {
-        fprintf (stderr, "ERROR:  Numbers reversed in  -%c  range \"%s\"\n",
-                 ch, s);
-        exit (-1);
-       }
-
-   return;
-  }
-
-
-
 
 static String_Ref_t  Hash_Find
     (uint64 Key, int64 Sub, char * S, int64 * Where, int * hi_hits)
@@ -2561,8 +2368,8 @@ static String_Ref_t  Hash_Find
 //  reference in the hash table if there is one, or else a reference
 //  with the  Empty bit set true.  Set  (* Where)  to the subscript in
 //  Extra_Ref_Space  where the reference was found if it was found there.
-//  Set  (* hi_hits)  to  TRUE  if hash table entry is found and has
-//  at least  Hi_Hit_Limit  references; otherwise, set to  FALSE .
+//  Set  (* hi_hits)  to  TRUE  if hash table entry is found but is empty
+//  because it was screened out, otherwise set to FALSE.
 
   {
    String_Ref_t  H_Ref;
@@ -2600,8 +2407,7 @@ Hash_Find_Ct ++;
                   if  (Hash_Table [Sub] . Hits [i] < 255)
                       Hash_Table [Sub] . Hits [i] ++;
 #endif
-                  if  (Hash_Table [Sub] . Hits [i] >= Hi_Hit_Limit
-                         || is_empty)
+                  if  (is_empty)
                       {
                        H_Ref . Empty = TRUE;
                        (* hi_hits) = TRUE;
@@ -3146,70 +2952,6 @@ static int  Lies_On_Alignment
 
    return  (abs (new_diag - diag) <= SHIFT_SLACK);
   }
-
-
-
-#if 0
-int  OVL_Max_int
-    (int a, int b)
-
-//  Return the larger of  a  and  b .
-
-  {
-   if  (a < b)
-       return  b;
-
-   return  a;
-  }
-
-
-
-int  OVL_Min_int
-    (int a, int b)
-
-//  Return the smaller of  a  and  b .
-
-  {
-   if  (a < b)
-       return  a;
-
-   return  b;
-  }
-#endif
-
-
-
-static void  Mail_Error_Message
-    (char * person, int num, char * store)
-
-//  E-mail an error message to  person  about error number
-//  num  on store  store .
-
-  {
-   FILE  * message_file = NULL;
-   char  filename [1000];
-
-   sprintf (filename, "/tmp/lsfovlerr.%d.msg", getpid ());
-   message_file = fopen (filename, "w");
-   if  (message_file != NULL)
-       {
-        char  buff [1000];
-
-        fprintf (message_file, 
-                 "Overlap error %d  store %s\n"
-                 "%s\n",
-                 num, store, strerror (num));
-        fclose (message_file);
-        sprintf (buff, "mail %s < %s",
-                 person, filename);
-        system (buff);
-        sprintf (buff, "rm -f %s", filename);
-        system (buff);
-       }
-
-   return;
-  }
-
 
 
 static void  Mark_Screened_Ends_Chain
@@ -5531,29 +5273,6 @@ static void  Set_Right_Delta
   }
 
 
-
-static void  Set_Screened_Ends
-    (void)
-
-//  Set  left/right_end_screened  fields true in global  String_Info
-//  for reads with a kmer count higher than  Hi_Hit_Limit
-//  sufficiently near the respective end of the the string.
-//  Also mark the hash table entry as empty so it won't be
-//  coalesced.
-
-  {
-   int  i, j;
-
-   for  (i = 0;  i < HASH_TABLE_SIZE;  i ++)
-     for  (j = 0;  j < Hash_Table [i] . Entry_Ct;  j ++)
-       if  (Hash_Table [i] . Hits [j] >= Hi_Hit_Limit)
-           {
-            Mark_Screened_Ends_Chain (Hash_Table [i] . Entry [j]);
-            Hash_Table [i] . Entry [j] . Empty = TRUE;
-           }
-
-   return;
-  }
 
 
 
