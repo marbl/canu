@@ -6,12 +6,11 @@ sub mergeFragmentCorrection {
 
     return if (getGlobal("doFragmentCorrection") == 0);
 
-    my $batchSize  = getGlobal("frgCorrBatchSize");
+    my $batchSize  = (getGlobal("ovlOverlapper") eq "mer") ? getGlobal("merOverlapperExtendBatchSize") : getGlobal("frgCorrBatchSize");
     my $jobs       = int($numFrags / ($batchSize-1)) + 1;
     my $failedJobs = 0;
 
     if (! -e "$wrk/2-frgcorr/$asm.corr") {
-
         open(F, "> $wrk/2-frgcorr/cat-corrects.corrlist");
         for (my $i=1; $i<=$jobs; $i++) {
             my $jobid = substr("0000" . $i, -4);
