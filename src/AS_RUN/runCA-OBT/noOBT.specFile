@@ -6,3 +6,4 @@ ovlHashBlockSize=200000
 doOverlapTrimming=0
 computeInsertSize=1
 gkpBelieveInputStdDev=1
+vectorIntersect=/dev/null
