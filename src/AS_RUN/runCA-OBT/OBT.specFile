@@ -1,10 +1,8 @@
 useGrid=0
-vectorIntersect=in.clv
 cnsPartitions=1
 frgCorrBatchSize=200000
 ovlCorrBatchSize=200000
 ovlHashBlockSize=200000
 doOverlapTrimming=1
 computeInsertSize=1
-cgwDistanceSampleSize=1000
 gkpBelieveInputStdDev=1

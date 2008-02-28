@@ -5,5 +5,4 @@ ovlCorrBatchSize=200000
 ovlHashBlockSize=200000
 doOverlapTrimming=0
 computeInsertSize=1
-cgwDistanceSampleSize=1000
 gkpBelieveInputStdDev=1
