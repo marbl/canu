@@ -249,8 +249,12 @@ sub merOverlapper($) {
         } else {
             for (my $i=1; $i<=$ovmJobs; $i++) {
                 my $out = substr("0000" . $i, -4);
-                runCommand("$wrk/$outDir", "$wrk/$outDir/overmerry.sh $i > $wrk/$outDir/seeds/$out.out 2>&1");
+                #runCommand("$wrk/$outDir", "$wrk/$outDir/overmerry.sh $i > $wrk/$outDir/seeds/$out.out 2>&1");
+                &scheduler::schedulerSubmit("sh $wrk/$outDir/overmerry.sh $i > $wrk/$outDir/seeds/$out.out 2>&1");
             }
+
+            &scheduler::schedulerSetNumberOfProcesses(getGlobal("merOverlapperSeedConcurrency"));
+            &scheduler::schedulerFinish();
         }
     }
 
@@ -298,8 +302,12 @@ sub merOverlapper($) {
         } else {
             for (my $i=1; $i<=$olpJobs; $i++) {
                 my $out = substr("0000" . $i, -4);
-                runCommand("$wrk/$outDir", "$wrk/$outDir/olap-from-seeds.sh $i > $wrk/$outDir/olaps/$out.out 2>&1");
+                #runCommand("$wrk/$outDir", "$wrk/$outDir/olap-from-seeds.sh $i > $wrk/$outDir/olaps/$out.out 2>&1");
+                &scheduler::schedulerSubmit("sh $wrk/$outDir/olap-from-seeds.sh $i > $wrk/$outDir/olaps/$out.out 2>&1");
             }
+
+            &scheduler::schedulerSetNumberOfProcesses(getGlobal("merOverlapperExtendConcurrency"));
+            &scheduler::schedulerFinish();
         }
     }
 

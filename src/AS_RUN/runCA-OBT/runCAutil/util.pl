@@ -264,6 +264,9 @@ sub setDefaults () {
     $global{"merOverlapperSeedBatchSize"}  = 100000;
     $global{"merOverlapperExtendBatchSize"}= 75000;
 
+    $global{"merOverlapperSeedConcurrency"}  = 1;
+    $global{"merOverlapperExtendConcurrency"}= 1;
+
     $global{"umdOverlapperFlags"}          = "-use-uncleaned-reads -trim-error-rate 0.03 -max-minimizer-cutoff 150";
 
     #####  Mers
