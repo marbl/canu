@@ -51,6 +51,7 @@ SCRIPTS = runCA \
           caqc-diff.pl \
           ca2ace.pl \
           asmToAGP.pl \
+          runBoth.pl \
           mateLinkIIDRanges.rb \
           markUniqueUnique.rb \
           toggleAndRun.sh \
@@ -138,6 +139,10 @@ caqc_help.ini: asmQC/caqc_help.ini
 	@chmod 775 $(LOCAL_BIN)/$@
 
 caqc.pl: asmQC/caqc.pl
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+runBoth.pl: runCA-OBT/runBoth.pl
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
