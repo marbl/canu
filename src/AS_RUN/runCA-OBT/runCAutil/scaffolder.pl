@@ -49,8 +49,17 @@ sub CGW ($$$$$$) {
 
     system("ln -s ../$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp") if (defined($lastDir));
 
+    if (-e "$wrk/$thisDir/cgw.out") {
+        my $ckp = findLastCheckpoint($thisDir);
+        my $ver = "00";
+        while (-e "$wrk/$thisDir/cgw.out.$ver.ckp.$ckp") {
+            $ver++;
+        }
+        rename "$wrk/$thisDir/cgw.out", "$wrk/$thisDir/cgw.out.$ver.ckp.$ckp" 
+    }
+
     my $sampleSize = getGlobal("cgwDistanceSampleSize");
-    
+
     my $bin = getBinDirectory();
     my $cmd;
     my $astatLow = getGlobal("astatLowBound");
@@ -65,7 +74,15 @@ sub CGW ($$$$$$) {
     $cmd .= " $wrk/$thisDir/$asm.cgi ";
     $cmd .= " > $wrk/$thisDir/cgw.out 2>&1";
     if (runCommand("$wrk/$thisDir", $cmd)) {
-        caFailure("Failed.\n");
+        print STDERR "SCAFFOLDER FAILED.  Here's what it didn't like (the last 30 lines of cgw.out):\n";
+        print STDERR "----------------------------------------\n";
+        open(Z, "tail -30 $wrk/$thisDir/cgw.out |");
+        while (<Z>) {
+            print STDERR $_;
+        }
+        close(Z);
+        print STDERR "----------------------------------------\n";
+        caFailure("See the errors at the end of $wrk/$thisDir/cgw.out.\n");
     }
 
 
