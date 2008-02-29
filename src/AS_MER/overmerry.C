@@ -36,7 +36,6 @@ extern "C" {
 #include "libmeryl.H"
 
 
-
 //  Instead of using the internal overlap, which has enough extra
 //  stuff in it that we cannot store a sequence iid for the table
 //  sequence and have it be small, we make our own overlap structure.
@@ -52,33 +51,21 @@ struct kmerhit {
 };
 
 
-
 //  Sort by increasing iid, and increasing count.
 int
 kmerhitcompare(const void *a, const void *b) {
   const kmerhit *A = (const kmerhit *)a;
   const kmerhit *B = (const kmerhit *)b;
-  if (A->tseq < B->tseq)
-    return(-1);
-  if (A->tseq > B->tseq)
-    return(1);
-  if (A->cnt < B->cnt)
-    return(-1);
-  if (A->cnt > B->cnt)
-    return(1);
-#if 1
-  if (A->qpos < B->qpos)
-    return(-1);
-  if (A->qpos > B->qpos)
-    return(1);
-  if (A->tpos < B->tpos)
-    return(-1);
-  if (A->tpos > B->tpos)
-    return(1);
-#endif
+  if (A->tseq < B->tseq)  return(-1);
+  if (A->tseq > B->tseq)  return(1);
+  if (A->cnt < B->cnt)    return(-1);
+  if (A->cnt > B->cnt)    return(1);
+  if (A->qpos < B->qpos)  return(-1);
+  if (A->qpos > B->qpos)  return(1);
+  if (A->tpos < B->tpos)  return(-1);
+  if (A->tpos > B->tpos)  return(1);
   return(0);
 }
-
 
 
 class ovmGlobalData {
@@ -88,7 +75,7 @@ public:
     merCountsFile = 0L;
     merSize       = 23;
     compression   = 1;
-    maxCount      = 4000;
+    maxCount      = 0;
     numThreads    = 4;
 
     qGK  = 0L;
@@ -203,9 +190,50 @@ public:
 
       //  Build an existDB for the merCounts.
 
-      merylStreamReader *merylFile = 0L;
-      if (merCountsFile)
-        merylFile = new merylStreamReader(merCountsFile);
+      merylStreamReader *MF = 0L;
+      if (merCountsFile) {
+        MF = new merylStreamReader(merCountsFile);
+
+        //  Examine the counts, pick a reasonable upper limit.
+
+        if (maxCount == 0) {
+          uint64  distinct   = 0;
+          uint64  total      = 0;
+
+          for (uint32 i=0; (i < MF->histogramLength()) && (maxCount == 0); i++) {
+            distinct += MF->histogram(i);
+            total    += MF->histogram(i) * i;
+
+            if ((distinct / (double)MF->numberOfDistinctMers()) > 0.99) {
+              fprintf(stderr, "Set maxCount to "u32bitFMT", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
+                      i, 100.0 * distinct / MF->numberOfDistinctMers(), 100.0 * total / MF->numberOfTotalMers());
+              maxCount = i;
+            }
+            if ((i > 100) && ((total / (double)MF->numberOfTotalMers()) > 0.66)) {
+              fprintf(stderr, "Set maxCount to "u32bitFMT", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
+                      i, 100.0 * distinct / MF->numberOfDistinctMers(), 100.0 * total / MF->numberOfTotalMers());
+              maxCount = i;
+            }
+          }
+
+          if (MF->histogramMaximumCount() < 500) {
+            fprintf(stderr, "Disable maxCount because the highest count in the input is "u64bitFMT".\n",
+                    MF->histogramMaximumCount());
+            maxCount = 500;
+          }
+        }
+      }
+
+      if (maxCount == 0) {
+        //  This only really occurs for small assemblies and we
+        //  essentially unlimit the max.  To compute it properly we'd
+        //  need to build a histogram of counts in the posDB (and so
+        //  we'd need to make an iterator for that) and redo the logic
+        //  for the MF above.  Not worth it.
+        //
+        fprintf(stderr, "WARNING!  No merylCounts file, and no guess on maxCount supplied.  We won't limit by count.\n");
+        maxCount = 1024 * 1024 * 1024;
+      }
 
       //  Continue with building the positionDB.
 
@@ -215,13 +243,13 @@ public:
       tSS->setSeparator('.', 1);
 
       //  XXX  Should use maxCount to prune the table a bit.  positionDB doesn't
-      //  support pruning by a merylFile count though.
+      //  support pruning by a MF count though.
 #warning not pruning positionDB
 
       tMS = new merStream(tKB, tSS);
-      tPS = new positionDB(tMS, merSize, 0, 0L, 0L, merylFile, 0, 0, true);  //  This interface is in kmer r1598
+      tPS = new positionDB(tMS, merSize, 0, 0L, 0L, MF, 0, 0, true);  //  This interface is in kmer r1598
 
-      delete merylFile;
+      delete MF;
     }
 
     //
