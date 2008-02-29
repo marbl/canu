@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.8 2008-02-03 22:47:23 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.9 2008-02-29 12:22:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,8 +51,11 @@ typedef struct {
   uint16   number_of_flows_per_read;
   uint8    flowgram_format_code;
 
-  char     flow_chars[SFF_NUMBER_OF_FLOWS_MAX];     //  h->number_of_flows_per_read
-  char     key_sequence[SFF_KEY_SEQUENCE_MAX];      //  h->key_length
+  char    *flow_chars;        //  h->number_of_flows_per_read
+  char    *key_sequence;      //  h->key_length
+
+  void    *data_block;
+  uint32   data_block_len;
 
   uint32   swap_endianess;
 } sffHeader;
@@ -67,14 +70,15 @@ typedef struct {
   uint16   clip_adapter_left;
   uint16   clip_adapter_right;
 
-  char     name[SFF_NAME_LENGTH_MAX];                     //  r->name_length
+  char    *name;                 //  r->name_length
+  uint16  *flowgram_values;      //  h->number_of_flows_per_read
+  uint8   *flow_index_per_base;  //  r->number_of_bases
+  char    *bases;                //  r->number_of_bases
+  uint8   *quality_scores;       //  r->number_of_bases
+  char    *quality;              //  quality_scores converted to CA-format qv
 
-  uint16   flowgram_values[SFF_NUMBER_OF_FLOWS_MAX];      //  h->number_of_flows_per_read
-  uint8    flow_index_per_base[SFF_NUMBER_OF_BASES_MAX];  //  r->number_of_bases
-  char     bases[SFF_NUMBER_OF_BASES_MAX];                //  r->number_of_bases
-  uint8    quality_scores[SFF_NUMBER_OF_BASES_MAX];       //  r->number_of_bases
-
-  char     quality[SFF_NUMBER_OF_BASES_MAX];              //  quality_scores converted to CA-format qv
+  void    *data_block;
+  uint32   data_block_len;
 } sffRead;
 
 
@@ -107,8 +111,6 @@ static
 void
 readsff_header(FILE *sff, sffHeader *h) {
 
-  memset(h, 0, sizeof(sffHeader));
-
   AS_UTL_safeRead(sff, h, "readsff_header_1", 31, 1);
 
   if (h->magic_number != 0x2e736666) {
@@ -123,9 +125,18 @@ readsff_header(FILE *sff, sffHeader *h) {
   }
 
   assert(h->magic_number == 0x2e736666);
-  assert(h->number_of_flows_per_read < SFF_NUMBER_OF_FLOWS_MAX);
-  assert(h->key_length < SFF_KEY_SEQUENCE_MAX);
-  
+
+  uint32 newlen = h->number_of_flows_per_read + h->key_length + 2;
+  if (h->data_block_len < newlen) {
+    h->data_block_len = newlen;
+    h->data_block     = safe_realloc(h->data_block, h->data_block_len);
+  }
+
+  memset(h->data_block, 0, h->data_block_len);
+
+  h->flow_chars   = h->data_block;
+  h->key_sequence = h->data_block + (h->number_of_flows_per_read + 1) * sizeof(char);
+
   AS_UTL_safeRead(sff,  h->flow_chars,   "readsff_header_2", sizeof(char), h->number_of_flows_per_read);
   AS_UTL_safeRead(sff,  h->key_sequence, "readsff_header_3", sizeof(char), h->key_length);
 
@@ -166,8 +177,6 @@ static
 void
 readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
 
-  memset(r, 0, sizeof(sffRead));
-
   AS_UTL_safeRead(sff, r, "readsff_read_1", 16, 1);
 
   if (h->swap_endianess) {
@@ -180,8 +189,29 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
     r->clip_adapter_right = uint16Swap(r->clip_adapter_right);
   }
 
-  assert(r->read_header_length < SFF_NAME_LENGTH_MAX);
-  assert(r->number_of_bases < SFF_NUMBER_OF_BASES_MAX);
+  //  Can you say UGLY?  Hey, it's a lot better than what I originally came up with.
+
+  uint32 ss[6];
+  ss[0] = (r->name_length + 1)          * sizeof(char);
+  ss[1] = (h->number_of_flows_per_read) * sizeof(uint16) + ss[0];
+  ss[2] = (r->number_of_bases)          * sizeof(uint8)  + ss[1];
+  ss[3] = (r->number_of_bases + 1)      * sizeof(char)   + ss[2];
+  ss[4] = (r->number_of_bases + 1)      * sizeof(char)   + ss[3];
+  ss[5] = (r->number_of_bases + 1)      * sizeof(char)   + ss[4];
+
+  if (r->data_block_len < ss[5]) {
+    r->data_block_len = ss[5];
+    r->data_block     = safe_realloc(r->data_block, r->data_block_len);
+  }
+
+  memset(r->data_block, 0, r->data_block_len);
+
+  r->name                 = r->data_block;
+  r->flowgram_values      = r->data_block + ss[0];
+  r->flow_index_per_base  = r->data_block + ss[1];
+  r->bases                = r->data_block + ss[2];
+  r->quality_scores       = r->data_block + ss[3];
+  r->quality              = r->data_block + ss[4];
 
   AS_UTL_safeRead(sff, r->name, "readsff_read_2", sizeof(char), r->name_length);
   r->name[r->name_length] = 0;
@@ -218,11 +248,6 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
     uint64  junk;
     AS_UTL_safeRead(sff, &junk, "readsff_read_8", sizeof(char), 8 - padding_length);
   }
-
-#if 0
-  fprintf(stderr, "%s\n", r->bases);
-  fprintf(stderr, "%s\n", r->quality);
-#endif
 }
 
 
@@ -230,7 +255,7 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
 static
 AS_UID
 readsff_constructUIDFromName(char *name, int constructReadUID) {
-  char  libname[16] = {0};
+  char  libname[32] = {0};
 
   assert(strlen(name) == 14);
 
@@ -379,10 +404,6 @@ Load_SFF(FILE *sff) {
     assert((r->clip_quality_left == 0) || (h->key_length <= r->clip_quality_left));
     assert((r->clip_adapter_left == 0) || (h->key_length <= r->clip_adapter_left));
 
-#if 0
-    fprintf(stderr, "%3d %3d %3d %3d ", r->clip_quality_left, r->clip_quality_right, r->clip_adapter_left, r->clip_adapter_right);
-#endif
-
     if (clq == 0)  clq = h->key_length + 1;
     if (crq == 0)  crq = r->number_of_bases;
 
@@ -407,7 +428,6 @@ Load_SFF(FILE *sff) {
       gkf.hasQualityClear = 0;
       gkf.clearBeg[AS_READ_CLEAR_QLT] = 0;
       gkf.clearEnd[AS_READ_CLEAR_QLT] = 0;
-
     }
 
     if ((r->clip_adapter_left > 0) && (r->clip_adapter_right > 0)) {
@@ -428,14 +448,23 @@ Load_SFF(FILE *sff) {
       gkf.clearEnd[AS_READ_CLEAR_VEC] = 0;
     }
 
-#if 0
-    fprintf(stderr, "-- %3d %3d %3d %3d\n",
-            gkf.clearBeg[AS_READ_CLEAR_QLT],
-            gkf.clearEnd[AS_READ_CLEAR_QLT],
-            gkf.clearBeg[AS_READ_CLEAR_VEC],
-            gkf.clearEnd[AS_READ_CLEAR_VEC]);
-#endif
+    if (r->number_of_bases > AS_READ_MAX_LEN) {
+      AS_GKP_reportError(AS_GKP_SFF_TOO_LONG, r->name, r->number_of_bases, AS_READ_MAX_LEN);
+      gkpStore->gkp.sffWarnings++;
+      
+      r->number_of_bases = AS_READ_MAX_LEN;
 
+      r->bases  [AS_READ_MAX_LEN + h->key_length] = 0;
+      r->quality[AS_READ_MAX_LEN + h->key_length] = 0;
+
+      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+        if (gkf.clearBeg[which] > AS_READ_MAX_LEN)
+          gkf.clearBeg[which] = AS_READ_MAX_LEN;
+        if (gkf.clearEnd[which] > AS_READ_MAX_LEN)
+          gkf.clearEnd[which] = AS_READ_MAX_LEN;
+      }
+    }
+     
 
     //  Now add the fragment to the store
     //
@@ -443,7 +472,7 @@ Load_SFF(FILE *sff) {
 
     gkf.seqLen = strlen(r->bases + h->key_length);
     gkf.hpsLen = 0;
-    gkf.srcLen = strlen(r->name);
+    gkf.srcLen = 0;
 
     gkf.seqOffset = getLastElemStore(gkpStore->seq) + 1;
     gkf.qltOffset = getLastElemStore(gkpStore->qlt) + 1;
@@ -460,25 +489,18 @@ Load_SFF(FILE *sff) {
                           r->quality + h->key_length);
     appendStringStore(gkpStore->qlt, encodedsequence, gkf.seqLen);
 
-    appendStringStore(gkpStore->hps, NULL,    0);
-    appendStringStore(gkpStore->src, r->name, gkf.srcLen);
+    appendStringStore(gkpStore->hps, NULL, 0);
+    appendStringStore(gkpStore->src, NULL, 0);
 
     gkpStore->gkp.sffLoaded++;
-
-#if 0
-    fprintf(stderr, "Added '%s' of length %d  clears %d %d %d %d -- %d %d %d %d %d %d %d %d\n",
-            r->name,
-            r->number_of_bases,
-            r->clip_quality_left, r->clip_quality_right,
-            r->clip_adapter_left, r->clip_adapter_right,
-            gkf.clearBeg[AS_READ_CLEAR_ORIG], gkf.clearEnd[AS_READ_CLEAR_ORIG],
-            gkf.clearBeg[AS_READ_CLEAR_QLT],  gkf.clearEnd[AS_READ_CLEAR_QLT],
-            gkf.clearBeg[AS_READ_CLEAR_VEC],  gkf.clearEnd[AS_READ_CLEAR_VEC],
-            gkf.clearBeg[AS_READ_CLEAR_LATEST], gkf.clearEnd[AS_READ_CLEAR_LATEST]);
-#endif
   }
 
   fprintf(stderr, "Added %d 454 reads.\n", rn);
+
+  safe_free(h->data_block);
+  safe_free(h);
+  safe_free(r->data_block);
+  safe_free(r);
 
   return(0);
 }
