@@ -5,7 +5,7 @@
 \PortraitPage
 \def\baselinestretch{1.0}
 \def\thepage{{\footnotesize\arabic{page}}}
-\def\today{15~October 2007}
+\def\today{22~October 2007}
 
 \def\Pgm#1{\texttt{#1}}
 \def\correctfrags{\Pgm{correct-frags}}
@@ -464,6 +464,15 @@ The main program steps are these:
     \eq
   \item
     Quality values are not used yet.  They probably should be.
+  \item
+    Code exists to display the multi-alignments.  The routine is
+    \verb`Display_Multialignment` and is automatically executed
+    if the verbose level (set by the \verb`-v` option) is greater
+    than zero.
+  \item
+    There are lots of extra debugging outputs in the code, as well as
+    comments here changes could/should be made.  They are indicated
+    by \verb`//**ALD` comments.
   \etn
   
 \en
@@ -686,6 +695,11 @@ assemblies.
 \item
   Don't-know characters (\ie, N's) are not handled in the current code.
   They will mismatch any A,C.G,T but match each other.
+\item
+  There are some leftover references to ``shredded reads'' in the code.
+  They are handle differently, \eg, no attempts are made to correct them.
+  I don't think they are used anymore---perhaps the flag to identify
+  them no longer exists?
 \en
 
 \end{document}
