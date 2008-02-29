@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.20 2007-11-08 12:38:14 brianwalenz Exp $
- * $Revision: 1.20 $
+ * $Id: OlapFromSeedsOVL.c,v 1.21 2008-02-29 16:26:30 adelcher Exp $
+ * $Revision: 1.21 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.20 2007-11-08 12:38:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.21 2008-02-29 16:26:30 adelcher Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -172,6 +172,52 @@ static void  Add_Homopoly_Vote
 
    return;
   }
+
+
+
+static void  Adjust_For_Compressed_Seeds
+  (int * a_offset, int * b_offset, char * * a_part, char * * b_part)
+
+  // Check the length of the homopoly runs at the beginning of strings
+  //  (* a_part)  and  (* b_part)  and if they are different, advance
+  // the pointer of the string with the longer run to make the runs
+  // the same length.  Also advance the corresponding  (* a_offset)
+  // or  (* b_offset) .  This only matters if the seed position
+  // that determines the strings lies at the left end of the alignment,
+  // but that won't be determined until later (in the case of partial
+  // overlaps) so it is easier to do it here.
+
+{
+  char  * p = (* a_part), * q = (* b_part);
+  int  i, j;
+
+  if (* p == '\0' || * q == '\0' || * p != * q)
+    {
+      fprintf (stderr, "ERROR:  Bad seed position at line %d in file %s\n",
+               __LINE__, __FILE__);
+      fprintf (stderr, "* a_part = %-.30s\n", p);
+      fprintf (stderr, "* b_part = %-.30s\n", q);
+      exit (EXIT_FAILURE);
+    }
+
+  for (i = 1; p [i] == p [0]; i ++)
+    ;
+  for (j = 1; q [j] == q [0]; j ++)
+    ;
+
+  if (i < j)
+    {
+      (* b_part) += j - i;
+      (* b_offset) += j - i;
+    }
+  else if (j < i)
+    {
+      (* a_part) += i - j;
+      (* a_offset) += i - j;
+    }
+
+  return;
+}
 
 
 
@@ -2263,8 +2309,8 @@ static void  Extract_Needed_Frags
         // Used in Process_Seed to ignore overlaps between two "shredded" reads
         // Perhaps should check for external reads now
 
-      clear_start = getFragRecordClearRegionBegin (&frag_read, AS_READ_CLEAR_OBT);
-      clear_end = getFragRecordClearRegionEnd (&frag_read, AS_READ_CLEAR_OBT);
+      clear_start = getFragRecordClearRegionBegin (&frag_read, Clear_Range_Used);
+      clear_end = getFragRecordClearRegionEnd (&frag_read, Clear_Range_Used);
       raw_len = getFragRecordSequenceLength (&frag_read);
       seq_ptr = getFragRecordSequence (&frag_read);
 
@@ -3051,7 +3097,7 @@ static void  Parse_Command_Line
    optarg = NULL;
 
    while  (! errflg
-             && ((ch = getopt (argc, argv, "abc:d:eF:Ghk:o:pS:t:v:V:x:y:z")) != EOF))
+             && ((ch = getopt (argc, argv, "abc:C:d:eF:Ghk:o:pS:t:v:V:x:y:z")) != EOF))
      switch  (ch)
        {
         case  'a' :
@@ -3064,6 +3110,35 @@ static void  Parse_Command_Line
 
         case  'c' :
           Correction_Filename = optarg;
+          break;
+
+        case  'C' :
+          if (strcmp (optarg, "AS_READ_CLEAR_ORIG") == 0)
+            Clear_Range_Used = AS_READ_CLEAR_ORIG;
+          else if (strcmp (optarg, "AS_READ_CLEAR_QLT") == 0)
+            Clear_Range_Used = AS_READ_CLEAR_QLT;
+          else if (strcmp (optarg, "AS_READ_CLEAR_VEC") == 0)
+            Clear_Range_Used = AS_READ_CLEAR_VEC;
+          else if (strcmp (optarg, "AS_READ_CLEAR_OBTINI") == 0)
+            Clear_Range_Used = AS_READ_CLEAR_OBTINI;
+          else if (strcmp (optarg, "AS_READ_CLEAR_OBT") == 0)
+            Clear_Range_Used = AS_READ_CLEAR_OBT;
+          else if (strcmp (optarg, "AS_READ_CLEAR_UTG") == 0)
+            Clear_Range_Used = AS_READ_CLEAR_UTG;
+          else if (strcmp (optarg, "AS_READ_CLEAR_ECR1") == 0)
+            Clear_Range_Used = AS_READ_CLEAR_ECR1;
+          else if (strcmp (optarg, "AS_READ_CLEAR_ECR2") == 0)
+            Clear_Range_Used = AS_READ_CLEAR_ECR2;
+          else if (strcmp (optarg, "AS_READ_CLEAR_UNTRIM") == 0)
+            Clear_Range_Used = AS_READ_CLEAR_UNTRIM;
+          else if (strcmp (optarg, "AS_READ_CLEAR_LATEST") == 0)
+            Clear_Range_Used = AS_READ_CLEAR_LATEST;
+          else
+            {
+              fprintf (stderr, "ERROR:  Unrecognized clear range type \"%s\"\n",
+                       optarg);
+              errflg = TRUE;
+            }
           break;
 
         case  'd' :
@@ -3642,6 +3717,8 @@ static void  Process_Seed
       b_part = rev_seq + b_offset;
      }
 
+   Adjust_For_Compressed_Seeds (& a_offset, & b_offset, & a_part, & b_part);
+
    if (Verbose_Level > 0)
       printf ("b_part = %p  is ascii %d  rev_seq is %d\n",
            b_part, (int) (* b_part), (int) (* rev_seq));
@@ -3971,8 +4048,8 @@ static void  Read_Frags
         // Perhaps should check for external reads now
 
 
-      clear_start = getFragRecordClearRegionBegin (&frag_read, AS_READ_CLEAR_OBT);
-      clear_end = getFragRecordClearRegionEnd (&frag_read, AS_READ_CLEAR_OBT);
+      clear_start = getFragRecordClearRegionBegin (&frag_read, Clear_Range_Used);
+      clear_end = getFragRecordClearRegionEnd (&frag_read, Clear_Range_Used);
       raw_len = getFragRecordSequenceLength (&frag_read);
       if (AS_READ_MAX_LEN < raw_len)
         {
@@ -5283,8 +5360,8 @@ static void  Stream_Old_Frags
         // Used in Process_Seed to ignore overlaps between two "shredded" reads
         // Perhaps should check for external reads now
 
-      clear_start = getFragRecordClearRegionBegin (&frag_read, AS_READ_CLEAR_OBT);
-      clear_end = getFragRecordClearRegionEnd (&frag_read, AS_READ_CLEAR_OBT);
+      clear_start = getFragRecordClearRegionBegin (&frag_read, Clear_Range_Used);
+      clear_end = getFragRecordClearRegionEnd (&frag_read, Clear_Range_Used);
       raw_len = getFragRecordSequenceLength (&frag_read);
       seq_ptr = getFragRecordSequence (&frag_read);
       is_homopoly = Is_Homopoly_Type (&frag_read, gkpStore);
@@ -5586,7 +5663,7 @@ static void  Usage
    if (q == NULL)
      q = command;
    
-   fprintf (stderr,
+   fprintf (stderr, "\n"
         "USAGE:  %s [-behp] [-d DegrThresh] [-k ConfLen] [-x ExcludeLen]\n"
         "     [-F OlapFile|-S OlapStore] [-c CorrectFile] [-o OlapOutput]\n"
         "     [-t NumPThreads] [-v VerboseLevel] [-V Vote_Qualify_Len]\n"
@@ -5604,6 +5681,8 @@ static void  Usage
         "        a_iid < b_iid\n"
         "-b      Output binary overlap messages\n"
         "-c <f>  Output corrections to file <f>\n"
+        "-C <s>  Use clear range <s> for reads.  Default value is\n"
+        "        AS_READ_CLEAR_OBT\n"
         "-d <n>  Set keep flag in correction record on end of frags with less\n"
         "        than <n> olaps\n"
         "-e      Extend fragments beyond 3' clear range\n"

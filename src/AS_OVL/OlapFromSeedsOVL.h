@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.11 2007-11-08 12:38:14 brianwalenz Exp $
- * $Revision: 1.11 $
+ * $Id: OlapFromSeedsOVL.h,v 1.12 2008-02-29 16:26:30 adelcher Exp $
+ * $Revision: 1.12 $
 */
 
 
@@ -266,6 +266,8 @@ static double  Char_Match_Value = 0.0;
 static int  Check_Correlated_Differences = FALSE;
   // If set true by the -w option then check for confirmed differences
   // in columns to eliminate overlaps
+static int  Clear_Range_Used = AS_READ_CLEAR_OBT;
+  // Which clear range in read store to use
 static char  * Correction_Filename = DEFAULT_CORRECTION_FILENAME;
   // Name of file to which correction information is sent
 static int  Degree_Threshold = DEFAULT_DEGREE_THRESHOLD;
@@ -358,6 +360,10 @@ static int  Vote_Qualify_Len = DEFAULT_VOTE_QUALIFY_LEN;
 
 //  Static Functions
 
+static void  Add_Homopoly_Vote
+  (Vote_Tally_t * vote, int hp_len);
+static void  Adjust_For_Compressed_Seeds
+  (int * a_offset, int * b_offset, char * * a_part, char * * b_part);
 static void  Analyze_Alignment
   (int delta [], int delta_len, char * a_part, char * b_part,
    int a_len, int b_len, int a_offset, int sub);
