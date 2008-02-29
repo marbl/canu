@@ -35,7 +35,8 @@ LOCAL_WORK  = $(shell cd ../..; pwd)
 
 AS_CNS_SRCS = $(LIB_SOURCES) \
               Consensus_CNS.c \
-              AS_CNS_asmReBaseCall.c
+              AS_CNS_asmReBaseCall.c \
+              SeqAn_CNS.c
 
 AS_CNS_OBJS = $(AS_CNS_SRCS:.c=.o)
 
@@ -44,7 +45,8 @@ OBJECTS   = $(AS_CNS_OBJS)
 LIBRARIES = libAS_CNS.a libCA.a
 
 PROGS = consensus \
-        asmReBaseCall
+        asmReBaseCall \
+	     SeqAn_CNS
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -59,3 +61,4 @@ LIBS =  libCA.a
 
 consensus:                    Consensus_CNS.o                $(LIBS)
 asmReBaseCall:                AS_CNS_asmReBaseCall.o         $(LIBS)
+SeqAn_CNS:	                  SeqAn_CNS.o                    $(LIBS)

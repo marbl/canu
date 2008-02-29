@@ -2,6 +2,7 @@ use strict;
 
 sub createPostUnitiggerConsensusJobs (@) {
     my @cgbFiles  = @_;
+    my $consensusType = getGlobal("consensus"); 
 
     if (! -e "$wrk/5-consensus/$asm.partitioned") {
 
@@ -84,18 +85,32 @@ sub createPostUnitiggerConsensusJobs (@) {
     print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
     print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
     print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
-
+    
     print F getBinDirectoryShellCode();
-
-    print F "\$bin/consensus \\\n";
-    print F "  -G -U \\\n";
-    print F "  -m -S \$jobp \\\n";
-    print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";
-    print F "  $wrk/$asm.gkpStore \\\n";
-    print F "  \$cgbfile \\\n";
-    print F " >> $wrk/5-consensus/${asm}_\$jobp.err 2>&1 \\\n";
-    print F "&& \\\n";
-    print F "touch $wrk/5-consensus/${asm}_\$jobp.success\n";
+    
+    if ($consensusType eq "cns") {             
+       print F "\$bin/consensus \\\n";
+       print F "  -G -U \\\n";
+       print F "  -m -S \$jobp \\\n";
+       print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";
+       print F "  $wrk/$asm.gkpStore \\\n";
+       print F "  \$cgbfile \\\n";
+       print F " >> $wrk/5-consensus/${asm}_\$jobp.err 2>&1 \\\n";
+       print F "&& \\\n";
+       print F "touch $wrk/5-consensus/${asm}_\$jobp.success\n";
+    } elsif ($consensusType eq "seqan") {       
+       print F "\$bin/SeqAn_CNS \\\n";
+       print F "  -G $wrk/$asm.gkpStore \\\n";
+       print F "  -c \$cgbfile \\\n";
+       print F "  -s \$bin/graph_consensus \\\n";
+       print F "  -w $wrk/8-consensus/ \\\n";
+       print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";
+       print F " >> $wrk/5-consensus/${asm}_\$jobp.err 2>&1 \\\n";
+       print F "&& \\\n";
+       print F "touch $wrk/5-consensus/${asm}_\$jobp.success\n";
+    } else {
+       caFailure("Unknown consensus type $consensusType.\n");
+    }
     close(F);
 
     chmod 0755, "$wrk/5-consensus/consensus.sh";
@@ -145,7 +160,6 @@ sub postUnitiggerConsensus (@) {
     #
     #  Create and/or run consensus jobs
     #
-
     createPostUnitiggerConsensusJobs(@cgbFiles) if (! -e "$wrk/5-consensus/jobsCreated.success");
 
     #

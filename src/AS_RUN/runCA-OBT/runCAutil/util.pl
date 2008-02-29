@@ -321,6 +321,7 @@ sub setDefaults () {
     $global{"cnsPartitions"}               = 128;
     $global{"cnsMinFrags"}                 = 75000;
     $global{"cnsConcurrency"}              = 2;
+    $global{"consensus"}                   = "cns";
 
     #####  Terminator Options
 

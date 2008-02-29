@@ -6,6 +6,7 @@ use strict;
 
 sub createPostScaffolderConsensusJobs ($) {
     my $cgwDir   = shift @_;
+    my $consensusType = getGlobal("consensus"); 
 
     return if (-e "$wrk/8-consensus/jobsCreated.success");
 
@@ -91,18 +92,32 @@ sub createPostScaffolderConsensusJobs ($) {
 
     print F getBinDirectoryShellCode();
 
-    print F "\$bin/consensus \\\n";
-    print F "  -s $cgwDir/$asm.SeqStore \\\n";
-    print F "  -V $lastckpt \\\n";
-    print F "  -p \$jobp \\\n";
-    print F "  -S \$jobp \\\n";
-    print F "  -m \\\n";
-    print F "  -o $wrk/8-consensus/$asm.cns_contigs.\$jobp \\\n";
-    print F "  $wrk/$asm.gkpStore \\\n";
-    print F "  $cgwDir/$asm.cgw_contigs.\$jobp \\\n";
-    print F " >> $wrk/8-consensus/$asm.cns_contigs.\$jobp.err 2>&1 \\\n";
-    print F "&& \\\n";
-    print F "touch $wrk/8-consensus/$asm.cns_contigs.\$jobp.success\n";
+    if ($consensusType eq "cns") {
+       print F "\$bin/consensus \\\n";
+       print F "  -s $cgwDir/$asm.SeqStore \\\n";
+       print F "  -V $lastckpt \\\n";
+       print F "  -p \$jobp \\\n";
+       print F "  -S \$jobp \\\n";
+       print F "  -m \\\n";
+       print F "  -o $wrk/8-consensus/$asm.cns_contigs.\$jobp \\\n";
+       print F "  $wrk/$asm.gkpStore \\\n";
+       print F "  $cgwDir/$asm.cgw_contigs.\$jobp \\\n";
+       print F " >> $wrk/8-consensus/$asm.cns_contigs.\$jobp.err 2>&1 \\\n";
+       print F "&& \\\n";
+       print F "touch $wrk/8-consensus/$asm.cns_contigs.\$jobp.success\n";
+    } elsif ($consensusType eq "seqan") {
+       print F "\$bin/SeqAn_CNS \\\n";
+       print F "  -G $wrk/$asm.gkpStore \\\n";
+       print F "  -c $cgwDir/$asm.cgw_contigs.\$jobp \\\n";
+       print F "  -s \$bin/graph_consensus \\\n";
+       print F "  -w $wrk/8-consensus/ \\\n";
+       print F "  -o $wrk/8-consensus/$asm.cns_contigs.\$jobp \\\n";
+       print F " >> $wrk/8-consensus/$asm.cns_contigs.\$jobp.err 2>&1 \\\n";
+       print F "&& \\\n";
+       print F "touch $wrk/8-consensus/$asm.cns_contigs.\$jobp.success\n";
+    } else {
+       caFailure("Unknown consensus type $consensusType.\n");
+    }
     print F "exit 0\n";
     close(F);
 
