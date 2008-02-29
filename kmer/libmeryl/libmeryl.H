@@ -14,7 +14,8 @@
 //  numUnique    the total number of mers with count of one
 //  numDistinct  the total number of distinct mers in this file
 //  numTotal     the total number of mers in this file
-//
+
+#define LIBMERYL_HISTOGRAM_MAX  1048576
 
 class merylStreamReader {
 public:
@@ -33,6 +34,11 @@ public:
   u64bit          numberOfUniqueMers(void)   { return(_numUnique); };
   u64bit          numberOfDistinctMers(void) { return(_numDistinct); };
   u64bit          numberOfTotalMers(void)    { return(_numTotal); };
+
+  u64bit          histogram(u32bit i)         { return((i < _histogramLen) ? _histogram[i] : ~u64bitZERO); };
+  u64bit          histogramLength(void)       { return(_histogramLen); };
+  u64bit          histogramHuge(void)         { return(_histogramHuge); };
+  u64bit          histogramMaximumCount(void) { return(_histogramMaxValue); };
 
   bool            nextMer(void);
   bool            validMer(void) { return(_validMer); };
@@ -55,6 +61,11 @@ private:
   u64bit                 _numDistinct;
   u64bit                 _numTotal;
 
+  u64bit                 _histogramHuge;       // number that are bigger than Len
+  u64bit                 _histogramLen;        // number of entries in the histo
+  u64bit                 _histogramMaxValue;   // highest count ever seen
+  u64bit                *_histogram;
+
   bool                   _validMer;
 };
 
@@ -69,11 +80,6 @@ merylStreamReader::nextMer(void) {
     _thisBucketSize = _IDX->getNumber();
     _thisBucket++;
   }
-
-#if 0
-  fprintf(stderr, "thisBucket: "u64bitFMT" (max "u64bitFMT") size "u64bitFMT"\n",
-          _thisBucket, _numBuckets, _thisBucketSize);
-#endif
 
   if (_thisBucket >= _numBuckets)
     return(_validMer = false);
@@ -95,11 +101,6 @@ merylStreamReader::nextMer(void) {
 
   return(true);
 }
-
-
-
-
-
 
 
 class merylStreamWriter {
@@ -129,6 +130,11 @@ private:
   u64bit                 _numUnique;
   u64bit                 _numDistinct;
   u64bit                 _numTotal;
+
+  u64bit                 _histogramHuge;       // number that are bigger than Len
+  u64bit                 _histogramLen;        // number of entries in the histo
+  u64bit                 _histogramMaxValue;   // highest count ever seen
+  u64bit                *_histogram;
 
   kMer                   _thisMer;
   u64bit                 _thisMerCount;

@@ -1,5 +1,11 @@
 #include "libmeryl.H"
 
+//                      0123456789012345
+static char *ImagicV = "merylStreamIv02\n";
+static char *ImagicX = "merylStreamIvXX\n";
+static char *DmagicV = "merylStreamDv02\n";
+static char *DmagicX = "merylStreamDvXX\n";
+
 
 merylStreamReader::merylStreamReader(const char *fn, u32bit ms) {
 
@@ -22,33 +28,39 @@ merylStreamReader::merylStreamReader(const char *fn, u32bit ms) {
 
   //  Verify that they are what they should be, and read in the header
   //
-  char  Imagic[16];
-  char  Dmagic[16];
-  bool  fail = false;
+  char    Imagic[16] = {0};
+  char    Dmagic[16] = {0};
+  bool    fail       = false;
+
   for (u32bit i=0; i<16; i++) {
     Imagic[i] = _IDX->getBits(8);
     Dmagic[i] = _DAT->getBits(8);
   }
-  if (strncmp(Imagic, "merylStreamIv01\n", 16) != 0) {
-    if (strncmp(Imagic, "merylStreamIvXX\n", 16) == 0) {
-      fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcidx is an INCOMPLETE merylStream index file!\n", fn);
-      fail = true;
-    } else {
-      fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcidx isn't a merylStream index file!\n", fn);
-      fail = true;
-    }
+  if (strncmp(Imagic, ImagicX, 16) == 0) {
+    fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcidx is an INCOMPLETE merylStream index file!\n", fn);
+    fail = true;
   }
-  if (strncmp(Dmagic, "merylStreamDv01\n", 16) != 0) {
-    if (strncmp(Dmagic, "merylStreamDvXX\n", 16) == 0) {
-      fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcidx is an INCOMPLETE merylStream data file!\n", fn);
-      fail = true;
-    } else {
-      fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcdat isn't a merylStream data file!\n", fn);
-      fail = true;
-    }
+  if (strncmp(Imagic, ImagicX, 13) != 0) {
+    fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcidx is not a merylStream index file!\n", fn);
+    fail = true;
+  }
+  if (strncmp(Dmagic, DmagicX, 16) == 0) {
+    fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcdat is an INCOMPLETE merylStream data file!\n", fn);
+    fail = true;
+  }
+  if (strncmp(Dmagic, DmagicX, 13) != 0) {
+    fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcdat is not a merylStream data file!\n", fn);
+    fail = true;
+  }
+  if ((Imagic[13] != Dmagic[13]) ||
+      (Imagic[14] != Dmagic[14])) {
+    fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcidx and %s.mcdat are different versions!\n", fn, fn);
+    fail = true;
   }
   if (fail)
     exit(1);
+
+  u32bit version = atoi(Imagic + 13);
 
   _merSizeInBits  = _IDX->getBits(32) << 1;
   _merCompression = _IDX->getBits(32);
@@ -58,6 +70,21 @@ merylStreamReader::merylStreamReader(const char *fn, u32bit ms) {
   _numUnique      = _IDX->getBits(64);
   _numDistinct    = _IDX->getBits(64);
   _numTotal       = _IDX->getBits(64);
+
+  _histogramHuge     = 0;
+  _histogramLen      = 0;
+  _histogramMaxValue = 0;
+  _histogram         = 0L;
+
+  if ((Imagic[13] == '0') && (Imagic[14] == '2')) {
+    _histogramHuge     = _IDX->getBits(64);
+    _histogramLen      = _IDX->getBits(64);
+    _histogramMaxValue = _IDX->getBits(64);
+    _histogram         = new u64bit [_histogramLen];
+
+    for (u32bit i=0; i<_histogramLen; i++)
+      _histogram[i] = _IDX->getBits(64);
+  }
 
   _thisBucket     = u64bitZERO;
   _thisBucketSize = _IDX->getNumber();
@@ -93,6 +120,7 @@ merylStreamReader::merylStreamReader(const char *fn, u32bit ms) {
 merylStreamReader::~merylStreamReader() {
   delete _IDX;
   delete _DAT;
+  delete [] _histogram;
 }
 
 
@@ -131,32 +159,8 @@ merylStreamWriter::merylStreamWriter(const char *fn,
   _thisMer.clear();
   _thisMerCount   = u64bitZERO;
 
-  //  Write the headers
-  //    16 bytes for a magic cookie
-  //        The IDX gets "merylStreamIv01\n"
-  //        The DAT gets "merylStreamDv01\n"
-  //     4 bytes for merSize
-  //     4 bytes for prefixSize
-  //     8 bytes for numUnique
-  //     8 bytes for numDistinct
-  //     8 bytes for numTotal
-
-  _IDX->putBits('m',  8);
-  _IDX->putBits('e',  8);
-  _IDX->putBits('r',  8);
-  _IDX->putBits('y',  8);
-  _IDX->putBits('l',  8);
-  _IDX->putBits('S',  8);
-  _IDX->putBits('t',  8);
-  _IDX->putBits('r',  8);
-  _IDX->putBits('e',  8);
-  _IDX->putBits('a',  8);
-  _IDX->putBits('m',  8);
-  _IDX->putBits('I',  8);
-  _IDX->putBits('v',  8);
-  _IDX->putBits('X',  8);
-  _IDX->putBits('X',  8);
-  _IDX->putBits('\n', 8);
+  for (u32bit i=0; i<16; i++)
+    _IDX->putBits(ImagicX[i], 8);
 
   _IDX->putBits(_merSizeInBits >> 1, 32);
   _IDX->putBits(_merCompression, 32);
@@ -165,22 +169,22 @@ merylStreamWriter::merylStreamWriter(const char *fn,
   _IDX->putBits(_numDistinct, 64);
   _IDX->putBits(_numTotal,    64);
 
-  _DAT->putBits('m',  8);
-  _DAT->putBits('e',  8);
-  _DAT->putBits('r',  8);
-  _DAT->putBits('y',  8);
-  _DAT->putBits('l',  8);
-  _DAT->putBits('S',  8);
-  _DAT->putBits('t',  8);
-  _DAT->putBits('r',  8);
-  _DAT->putBits('e',  8);
-  _DAT->putBits('a',  8);
-  _DAT->putBits('m',  8);
-  _DAT->putBits('D',  8);
-  _DAT->putBits('v',  8);
-  _DAT->putBits('X',  8);
-  _DAT->putBits('X',  8);
-  _DAT->putBits('\n', 8);
+  _histogramHuge     = 0;
+  _histogramLen      = LIBMERYL_HISTOGRAM_MAX;
+  _histogramMaxValue = 0;
+  _histogram         = new u64bit [_histogramLen];
+
+  for (u32bit i=0; i<_histogramLen; i++)
+    _histogram[i] = 0;
+
+  _IDX->putBits(_histogramHuge, 64);
+  _IDX->putBits(_histogramLen, 64);
+  _IDX->putBits(_histogramMaxValue, 64);
+  for (u32bit i=0; i<_histogramLen; i++)
+    _IDX->putBits(_histogram[i], 64);
+
+  for (u32bit i=0; i<16; i++)
+    _DAT->putBits(DmagicX[i], 8);
 }
 
 
@@ -204,22 +208,10 @@ merylStreamWriter::~merylStreamWriter() {
   //  Seek back to the start and rewrite the magic numbers
   //
   _IDX->seek(0);
-  _IDX->putBits('m',  8);
-  _IDX->putBits('e',  8);
-  _IDX->putBits('r',  8);
-  _IDX->putBits('y',  8);
-  _IDX->putBits('l',  8);
-  _IDX->putBits('S',  8);
-  _IDX->putBits('t',  8);
-  _IDX->putBits('r',  8);
-  _IDX->putBits('e',  8);
-  _IDX->putBits('a',  8);
-  _IDX->putBits('m',  8);
-  _IDX->putBits('I',  8);
-  _IDX->putBits('v',  8);
-  _IDX->putBits('0',  8);
-  _IDX->putBits('1',  8);
-  _IDX->putBits('\n', 8);
+  _DAT->seek(0);
+
+  for (u32bit i=0; i<16; i++)
+    _IDX->putBits(ImagicV[i], 8);
 
   _IDX->putBits(_merSizeInBits >> 1, 32);
   _IDX->putBits(_merCompression, 32);
@@ -228,26 +220,18 @@ merylStreamWriter::~merylStreamWriter() {
   _IDX->putBits(_numDistinct, 64);
   _IDX->putBits(_numTotal,    64);
 
-  delete _IDX;
+  _IDX->putBits(_histogramHuge, 64);
+  _IDX->putBits(_histogramLen, 64);
+  _IDX->putBits(_histogramMaxValue, 64);
+  for (u32bit i=0; i<_histogramLen; i++)
+    _IDX->putBits(_histogram[i], 64);
 
-  _DAT->seek(0);
-  _DAT->putBits('m',  8);
-  _DAT->putBits('e',  8);
-  _DAT->putBits('r',  8);
-  _DAT->putBits('y',  8);
-  _DAT->putBits('l',  8);
-  _DAT->putBits('S',  8);
-  _DAT->putBits('t',  8);
-  _DAT->putBits('r',  8);
-  _DAT->putBits('e',  8);
-  _DAT->putBits('a',  8);
-  _DAT->putBits('m',  8);
-  _DAT->putBits('D',  8);
-  _DAT->putBits('v',  8);
-  _DAT->putBits('0',  8);
-  _DAT->putBits('1',  8);
-  _DAT->putBits('\n', 8);
+  for (u32bit i=0; i<16; i++)
+    _DAT->putBits(DmagicV[i], 8);
+
+  delete _IDX;
   delete _DAT;
+  delete [] _histogram;
 }
 
 
@@ -257,13 +241,15 @@ merylStreamWriter::writeMer(void) {
   if (_thisMerCount == 0)
     return;
 
-#if 0
-  char  str[1025];
-  fprintf(stderr, "Saving mer '%s' with count "u32bitFMT"\n", _thisMer.merToString(str), _thisMerCount);
-#endif
-
   _numTotal += _thisMerCount;
   _numDistinct++;
+
+  if (_thisMerCount < LIBMERYL_HISTOGRAM_MAX)
+    _histogram[_thisMerCount]++;
+  else
+    _histogramHuge++;
+  if (_histogramMaxValue < _thisMerCount)
+    _histogramMaxValue = _thisMerCount;
 
   if (_thisMerCount == 1) {
     _thisMer.writeToBitPackedFile(_DAT, _merDataSize);
@@ -297,10 +283,6 @@ merylStreamWriter::addMer(kMer &mer, u32bit count) {
   //  count.
   //
   if (mer == _thisMer) {
-#if 0
-    char str[1024], sts[1024];
-    fprintf(stderr, "add one mer=%s thisMer=%s\n", mer.merToString(str), _thisMer.merToString(sts));
-#endif
     _thisMerCount += count;
     return;
   }
@@ -320,7 +302,6 @@ merylStreamWriter::addMer(kMer &mer, u32bit count) {
   val = mer.startOfMer(_prefixSize);
 
   while (_thisBucket < val) {
-    //fprintf(stderr, "bucket "u64bitFMT" with size "u64bitFMT"\n", _thisBucket, _thisBucketSize);
     _IDX->putNumber(_thisBucketSize);
     _thisBucketSize = 0;
     _thisBucket++;
