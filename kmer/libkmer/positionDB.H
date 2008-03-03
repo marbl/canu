@@ -67,18 +67,24 @@ private:
                             u64bit&     count);
 
 public:
-  bool        get(u64bit      mer,
-                  u64bit*&    posn,
-                  u64bit&     posnMax,
-                  u64bit&     posnLen,
-                  u64bit&     count);
-  bool        getMismatch(u64bit      mer,
-                          u64bit      numMismatches,
-                          u64bit*&    posn,
-                          u64bit&     posnMax,
-                          u64bit&     posnLen);
-  bool        exists(u64bit   mer);
-  u64bit      count(u64bit    mer);
+  bool        getExact(u64bit      mer,
+                       u64bit*&    posn,
+                       u64bit&     posnMax,
+                       u64bit&     posnLen,
+                       u64bit&     count);
+  bool        existsExact(u64bit   mer);
+  u64bit      countExact(u64bit    mer);
+
+  bool        getUpToNMismatches(u64bit      mer,
+                                 u64bit      maxMismatches,
+                                 u64bit*&    posn,
+                                 u64bit&     posnMax,
+                                 u64bit&     posnLen);
+  bool        getExactlyNMismatches(u64bit      mer,
+                                    u64bit      numMismatches,
+                                    u64bit*&    posn,
+                                    u64bit&     posnMax,
+                                    u64bit&     posnLen);
 
 private:
   u64bit      setCount(u64bit mer, u64bit count);
@@ -100,6 +106,7 @@ public:
 
 
   bool         checkREBUILD(u64bit m) {
+#define DEBUGREBUILD
 #ifdef DEBUGREBUILD
     u64bit h = HASH(m);
     u64bit c = CHECK(m);

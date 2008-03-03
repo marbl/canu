@@ -132,7 +132,6 @@ doSearch(searcherState       *state,
   encodedQuery  *query      = 0L;
   hitMatrix     *matrix     = 0L;
   double         startTime  = 0.0;
-  u64bit         count      = 0;
 
   if (state->KB == 0L)
     state->KB = new kMerBuilder(config._KBmerSize,
@@ -155,7 +154,9 @@ doSearch(searcherState       *state,
   startTime = getTime();
   matrix = new hitMatrix(seq->sequenceLength(), query->numberOfMersInQuery(), idx, theLog);
   for (u32bit qidx=0; qidx<query->numberOfMersActive(); qidx++) {
-    if (positions->get(query->getMer(qidx), state->posn, state->posnMax, state->posnLen, count)) {
+    u64bit  count = 0;
+
+    if (positions->getExact(query->getMer(qidx), state->posn, state->posnMax, state->posnLen, count)) {
 #if 0
       fprintf(stderr, "rc=%d qidx="u32bitFMT" pos="u32bitFMT" mer="u64bitHEX" hits="u64bitFMT"\n",
               rc, qidx, query->getPosn(qidx), query->getMer(qidx), state->posnLen);
@@ -239,7 +240,7 @@ doSearch(searcherState       *state,
 #endif
 
       for (u32bit qidx=0; qidx<query->numberOfMersActive(); qidx++) {
-        if (PS->get(query->getMer(qidx), state->posn, state->posnMax, state->posnLen, count)) {
+        if (PS->getExact(query->getMer(qidx), state->posn, state->posnMax, state->posnLen, count)) {
           numMers++;
 
           if (state->posnLen < COUNT_MAX)
@@ -271,7 +272,7 @@ doSearch(searcherState       *state,
 #endif
 
       for (u32bit qidx=0; qidx<query->numberOfMersActive(); qidx++) {
-        if (PS->get(query->getMer(qidx), state->posn, state->posnMax, state->posnLen, count)) {
+        if (PS->getExact(query->getMer(qidx), state->posn, state->posnMax, state->posnLen, count)) {
           if (state->posnLen <= countLimit) {
             for (u32bit x=0; x<state->posnLen; x++)
               state->posn[x] += GENlo + config._useList.startOf(theHits[h]._dsIdx);
@@ -283,7 +284,7 @@ doSearch(searcherState       *state,
             //  values.  Or we could simply reset the counts to the global
             //  value.
             //
-            HM->addHits(query->getPosn(qidx), state->posn, state->posnLen, positions->count(query->getMer(qidx)));
+            HM->addHits(query->getPosn(qidx), state->posn, state->posnLen, positions->countExact(query->getMer(qidx)));
           }
         }
       }

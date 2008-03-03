@@ -36,9 +36,9 @@ test-maskonly-passed:
 test-rebuild: test-rebuild.C ../positionDB.H
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-rebuild.o test-rebuild.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-rebuild test-rebuild.o $(LIBS)
-	./test-rebuild 20 23
-	echo test-rebuild-passed PASSED
-	rm xp* junk*
+	./test-rebuild
+	@echo test-rebuild-passed PASSED
+	rm -f xp* junk*
 
 position-passed: position-passed1 position-passed2 exist-fast-passed
 	touch position-passed

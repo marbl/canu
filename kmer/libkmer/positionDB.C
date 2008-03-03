@@ -91,7 +91,9 @@ positionDB::positionDB(merStream          *MS,
   //  The mismatch search bogs down if the tblBits is too small --
   //  this makes buckets larger, and we spend more time searching.
   //
-#define MINSIZE 30
+  //  30 was fast, but 16GB, and slow to build
+  //
+#define MINSIZE 20
   if ((isForMismatches) && (sm < MINSIZE) && (MINSIZE < lg))
     sm = MINSIZE;
 
@@ -105,7 +107,7 @@ positionDB::positionDB(merStream          *MS,
     exit(1);
   }
 
-#if 0
+#if 1
   fprintf(stderr, "        sm         = "u64bitFMT"\n", sm);
   fprintf(stderr, "        lg         = "u64bitFMT"\n", lg);
   fprintf(stderr, "        merSize    = "u32bitFMT" bits\n", 2 * merSize);
@@ -130,16 +132,18 @@ positionDB::positionDB(merStream          *MS,
       u32bit  s2 = s1 / 2;
 
       if (((i % 2) == 1) || ((s1 % 2) == 1) || ((s2 % 2) == 1)) {
-        //fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT" SKIP.\n",
-        //        i, merSize, posnWidth, approxMers, mm);
+        fprintf(stderr, "tblBits="u64bitFMT" s1="u32bitFMT" s2="u32bitFMT" -- merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT" SKIP.\n",
+                i, s1, s2, merSize, posnWidth, approxMers, mm);
         continue;
       }
     }
 
-    //fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT".\n",
-    //        i, merSize, posnWidth, approxMers, mm);
-
     if (mm < mins) {
+      {
+        u32bit s1 = 2*merSize-i;
+        fprintf(stderr, "tblBits="u64bitFMT" s1="u32bitFMT" s2="u32bitFMT" -- merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT" SMALLER.\n",
+                i, s1, s1/2, merSize, posnWidth, approxMers, mm);
+      }
       mini = i;
       mins = mm;
     }
@@ -147,8 +151,11 @@ positionDB::positionDB(merStream          *MS,
 
   _tableSizeInBits = mini;
 
-  //fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers)\n",
-  //        _tableSizeInBits, merSize, posnWidth, approxMers);
+  {
+    u32bit s1 = 2*merSize-_tableSizeInBits;
+    fprintf(stderr, "tblBits="u64bitFMT" s1="u32bitFMT" s2="u32bitFMT" -- merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) FINAL\n",
+            _tableSizeInBits, s1, s1/2, merSize, posnWidth, approxMers);
+  }
 
   _merSizeInBases        = merSize;
   _merSizeInBits         = 2 * _merSizeInBases;
@@ -170,6 +177,12 @@ positionDB::positionDB(merStream          *MS,
   _shift2                = _shift1 / 2;
   _mask1                 = u64bitMASK(_tableSizeInBits);
   _mask2                 = u64bitMASK(_shift1);
+
+  fprintf(stderr, "merSizeInBits   "u64bitFMT"\n", _merSizeInBits);
+  fprintf(stderr, "hashWidth       "u64bitFMT"\n", _hashWidth);
+  fprintf(stderr, "chckWidth       "u64bitFMT"\n", _chckWidth);
+  fprintf(stderr, "shift1          "u64bitFMT"\n", _shift1);
+  fprintf(stderr, "shift2          "u64bitFMT"\n", _shift2);
 
   build(MS, mask, only, counts, minCount, maxCount, beVerbose);
 }

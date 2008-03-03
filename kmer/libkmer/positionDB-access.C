@@ -50,11 +50,11 @@ positionDB::loadPositions(u64bit   J,
 
 
 bool
-positionDB::get(u64bit   mer,
-                u64bit*& posn,
-                u64bit&  posnMax,
-                u64bit&  posnLen,
-                u64bit&  count) {
+positionDB::getExact(u64bit   mer,
+                     u64bit*& posn,
+                     u64bit&  posnMax,
+                     u64bit&  posnLen,
+                     u64bit&  count) {
   u64bit  h = HASH(mer);
   u64bit  c = CHECK(mer);
   u64bit st = getDecodedValue(_hashTable, h * _hashWidth,              _hashWidth);
@@ -87,7 +87,7 @@ positionDB::get(u64bit   mer,
 
 
 bool
-positionDB::exists(u64bit mer) {
+positionDB::existsExact(u64bit mer) {
   u64bit  h = HASH(mer);
   u64bit  c = CHECK(mer);
   u64bit st = getDecodedValue(_hashTable, h * _hashWidth,              _hashWidth);
@@ -105,7 +105,7 @@ positionDB::exists(u64bit mer) {
 
 
 u64bit
-positionDB::count(u64bit mer) {
+positionDB::countExact(u64bit mer) {
   u64bit  h = HASH(mer);
   u64bit  c = CHECK(mer);
   u64bit st = getDecodedValue(_hashTable, h * _hashWidth,              _hashWidth);

@@ -17,40 +17,6 @@
 
 #define MERSIZE 20
 
-char const *usage =
-"usage: %s [args]\n"
-"       -mersize k         The size of the mers, default=20.\n"
-"       -merskip k         The skip between mers, default=0\n"
-"       -use a-b,c         Specify which sequences to use, default=all\n"
-"       -merbegin b        Build on a subset of the mers, starting at mer #b, default=all mers\n"
-"       -merend e          Build on a subset of the mers, ending at mer #e, default=all mers\n"
-"       -sequence s.fasta  Input sequences.\n"
-"       -output p.posDB    Output filename.\n"
-"\n"
-"       To dump information about an image:\n"
-"         -dump datafile\n"
-"\n"
-"       To run sanity tests:\n"
-"         -buildonly [build opts] sequence.fasta\n"
-"           --  just builds a table and exits\n"
-"         -existence [build opts] sequence.fasta\n"
-"           --  builds (or reads) a table reports if any mers\n"
-"               in sequence.fasta cannot be found\n"
-"         -extra [build opts] sequence.fasta\n"
-"           --  builds (or reads) a table reports if any mers\n"
-"               NOT in sequence.fasta are be found\n"
-"         -test1 sequence.fasta\n"
-"           --  Tests if each and every mer is found in the\n"
-"               positionDB.  Reports if it doesn't find a mer\n"
-"               at the correct position.  Doesn't report if table\n"
-"               has too much stuff.\n"
-"         -test2 db.fasta sequence.fasta\n"
-"           --  Builds a positionDB from db.fasta, then searches\n"
-"               the table for each mer in sequence.fasta.  Reports\n"
-"               all mers it finds.\n"
-"            -- This is a silly test and you shouldn't do it.\n";
-
-
 
 int
 test1(char *filename) {
@@ -72,11 +38,11 @@ test1(char *filename) {
   }
 
   while (T->nextMer()) {
-    if (M->get(T->theFMer(),
-               posn,
-               posnMax,
-               posnLen,
-               count)) {
+    if (M->getExact(T->theFMer(),
+                    posn,
+                    posnMax,
+                    posnLen,
+                    count)) {
 
       missing = u32bitZERO;
       for (u32bit i=0; i<posnLen; i++)
@@ -133,20 +99,20 @@ test2(char *filename, char *query) {
   T = new merStream(&KB, C);
 
   while (T->nextMer()) {
-    if (M->get(T->theFMer(),
-               posn,
-               posnMax,
-               posnLen,
-               count)) {
+    if (M->getExact(T->theFMer(),
+                    posn,
+                    posnMax,
+                    posnLen,
+                    count)) {
       fprintf(stdout, "Got a F match for mer=%s at "u64bitFMT"/"u64bitFMT" (in mers), numMatches="u64bitFMT"\n",
               T->theFMer().merToString(str), T->theSequenceNumber(), T->thePositionInStream(), posnLen);
     }
 
-    if (M->get(T->theRMer(),
-               posn,
-               posnMax,
-               posnLen,
-               count)) {
+    if (M->getExact(T->theRMer(),
+                    posn,
+                    posnMax,
+                    posnLen,
+                    count)) {
       fprintf(stdout, "Got a R match for mer=%s at "u64bitFMT"/"u64bitFMT" (in mers), numMatches="u64bitFMT"\n",
               T->theRMer().merToString(str), T->theSequenceNumber(), T->thePositionInStream(), posnLen);
     }
@@ -193,7 +159,37 @@ main(int argc, char **argv) {
   char            *outputFile = 0L;
 
   if (argc < 3) {
-    fprintf(stderr, usage, argv[0]);
+    fprintf(stderr, "usage: %s [args]\n", argv[0]);
+    fprintf(stderr, "       -mersize k         The size of the mers, default=20.\n");
+    fprintf(stderr, "       -merskip k         The skip between mers, default=0\n");
+    fprintf(stderr, "       -use a-b,c         Specify which sequences to use, default=all\n");
+    fprintf(stderr, "       -merbegin b        Build on a subset of the mers, starting at mer #b, default=all mers\n");
+    fprintf(stderr, "       -merend e          Build on a subset of the mers, ending at mer #e, default=all mers\n");
+    fprintf(stderr, "       -sequence s.fasta  Input sequences.\n");
+    fprintf(stderr, "       -output p.posDB    Output filename.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "       To dump information about an image:\n");
+    fprintf(stderr, "         -dump datafile\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "       To run sanity tests:\n");
+    fprintf(stderr, "         -buildonly [build opts] sequence.fasta\n");
+    fprintf(stderr, "           --  just builds a table and exits\n");
+    fprintf(stderr, "         -existence [build opts] sequence.fasta\n");
+    fprintf(stderr, "           --  builds (or reads) a table reports if any mers\n");
+    fprintf(stderr, "               in sequence.fasta cannot be found\n");
+    fprintf(stderr, "         -extra [build opts] sequence.fasta\n");
+    fprintf(stderr, "           --  builds (or reads) a table reports if any mers\n");
+    fprintf(stderr, "               NOT in sequence.fasta are be found\n");
+    fprintf(stderr, "         -test1 sequence.fasta\n");
+    fprintf(stderr, "           --  Tests if each and every mer is found in the\n");
+    fprintf(stderr, "               positionDB.  Reports if it doesn't find a mer\n");
+    fprintf(stderr, "               at the correct position.  Doesn't report if table\n");
+    fprintf(stderr, "               has too much stuff.\n");
+    fprintf(stderr, "         -test2 db.fasta sequence.fasta\n");
+    fprintf(stderr, "           --  Builds a positionDB from db.fasta, then searches\n");
+    fprintf(stderr, "               the table for each mer in sequence.fasta.  Reports\n");
+    fprintf(stderr, "               all mers it finds.\n");
+    fprintf(stderr, "            -- This is a silly test and you shouldn't do it.\n");
     exit(1);
   }
 

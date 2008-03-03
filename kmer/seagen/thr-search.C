@@ -22,11 +22,11 @@ doSearch(searcherState *state,
 
   for (u32bit qi=0; qi<query->numberOfMers(); qi++)
     if ((query->getSkip(qi, isReverse) == false) &&
-        (config._positions->get(query->getMer(qi, isReverse),
-                                state->posn,
-                                state->posnMax,
-                                state->posnLen,
-                                count)))
+        (config._positions->getExact(query->getMer(qi, isReverse),
+                                     state->posn,
+                                     state->posnMax,
+                                     state->posnLen,
+                                     count)))
       matrix->addHits(qi, state->posn, state->posnLen);
 
   state->searchTime += getTime() - startTime;

@@ -56,7 +56,7 @@ doSearch(searcherState *state,
   matrix = new hitMatrix(seq->sequenceLength(), idx);
 
   while (query->getMer(mer, pos) == true)
-    if (positions->get(mer, state->posn, state->posnMax, state->posnLen, count))
+    if (positions->getExact(mer, state->posn, state->posnMax, state->posnLen, count))
       matrix->addHits(pos, state->posn, state->posnLen);
 
   state->searchTime += getTime() - startTime;
