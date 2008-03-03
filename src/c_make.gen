@@ -207,6 +207,7 @@
 ####  Figure out what we're building on.  (Duplicated in AS_MER/Makefile!)
 
 OSTYPE      = $(shell echo `uname`)
+OSVERSION   = $(shell echo `uname -r`)
 MACHINETYPE = $(shell echo `uname -m`)
 
 ifeq ($(MACHINETYPE), x86_64)
@@ -216,10 +217,15 @@ ifeq ($(MACHINETYPE), Power Macintosh)
   MACHINETYPE = ppc
 endif
 
+LOCAL_NAME=$(OSTYPE)-$(MACHINETYPE)
+
+#  Bri occasionally finds it useful to have the version of the os in the name.
+#LOCAL_NAME=$(OSTYPE)-$(OSVERSION)-$(MACHINETYPE)
+
 #### Set up paths
 
 LOCAL_INC=$(LOCAL_WORK)/inc
-LOCAL_OS=$(LOCAL_WORK)/$(OSTYPE)-$(MACHINETYPE)
+LOCAL_OS=$(LOCAL_WORK)/$(LOCAL_NAME)
 LOCAL_BIN=$(LOCAL_OS)/bin
 LOCAL_LIB=$(LOCAL_OS)/lib
 LOCAL_OBJ=$(LOCAL_OS)/obj
