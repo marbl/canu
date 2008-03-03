@@ -16,6 +16,7 @@ extern unsigned char   decompressSymbol[256];
 extern unsigned char   complementSymbol[256];
 extern unsigned char   validCompressedSymbol[256];
 extern unsigned char   IUPACidentity[128][128];
+extern unsigned char   baseToColor[128][128];
 
 void initCompressionTablesForACGTSpace(void);
 void initCompressionTablesForColorSpace(void);

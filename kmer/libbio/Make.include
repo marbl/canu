@@ -59,4 +59,4 @@ $/libbio.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} $/alphabet.o
 $/alphabet.c: $/alphabet.h
 $/alphabet.h: $/alphabet-generate.c $/alphabet-acgtspace.c $/alphabet-colorspace.c
 	$(CC) $(CFLAGS) $(CFLAGS_COMPILE) -o `dirname $@`/a.out $<
-	cd `dirname $@` ; ./a.out && rm -f a.out
+	cd `dirname $@` ; ./a.out && rm -f ./a.out
