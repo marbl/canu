@@ -1,15 +1,15 @@
 #!/usr/bin/env perl
 
-my $MY_VERSION = " 4.3 (Build " . (qw/$Revision: 1.10 $/)[1] . ")";
+my $MY_VERSION = " 4.3 (Build " . (qw/$Revision: 1.11 $/)[1] . ")";
 
 my $HELPTEXT = qq~Run a whole-genome shotgun assembly using Celera Assembler.
 
- usage: runCA [options] <frg>
+ usage: runCA -d <dir> -p <prefix> [options] <frg>
  
  inputs: 
   <frg>       Sequence file (.frg) generated e.g. by pullfrag.
 
- options:
+ arguments:
   -d <dir>          Use <dir> as the working directory. Required
   -p <prefix>       Use <prefix> as the output prefix. Required
   -s <specfile>     Read options from the specifications file <specfile>.
@@ -22,6 +22,9 @@ my $HELPTEXT = qq~Run a whole-genome shotgun assembly using Celera Assembler.
 
 See the complete runCA documentation for more information at:  
 http://wgs-assembler.wiki.sourceforge.net/
+
+or for JCVI internal users documentation can be found at:
+http://intranet.jcvi.org/cms/CeleraAssembler
 ~;
 
 use strict;
