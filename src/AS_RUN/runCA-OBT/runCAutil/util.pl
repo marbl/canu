@@ -381,7 +381,7 @@ sub setParameters ($@) {
     if (defined($specFile)) {
         my $bin = "$FindBin::Bin";
 	
-        if (-e "$specFile") {
+        if (-e $specFile && ! -d $specFile) {
             open(F, "< $specFile") or caFailure("Couldn't open '$specFile'\n");
         } elsif (-e "$bin/$specFile") {
             open(F, "< $bin/$specFile") or caFailure("Couldn't open '$bin/$specFile'\n");
