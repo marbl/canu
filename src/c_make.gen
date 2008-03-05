@@ -283,12 +283,12 @@ endif
 
 #### Make expected directories
 define make_expected_directories
-if [ ! -e $(LOCAL_OS)  ] ; then mkdir $(LOCAL_OS)  ; fi ; \
-if [ ! -e $(LOCAL_BIN) ] ; then mkdir $(LOCAL_BIN) ; fi ; \
-if [ ! -e $(LOCAL_OBJ) ] ; then mkdir $(LOCAL_OBJ) ; fi ; \
-if [ ! -e $(LOCAL_LIB) ] ; then mkdir $(LOCAL_LIB) ; fi ; \
-if [ ! -e $(LOCAL_DEP) ] ; then mkdir $(LOCAL_DEP) ; fi ; \
-if [ ! -e $(LOCAL_INC) ] ; then mkdir $(LOCAL_INC) ; fi ;
+if [ ! -d $(LOCAL_OS)  ] ; then mkdir $(LOCAL_OS)  ; fi ; \
+if [ ! -d $(LOCAL_BIN) ] ; then mkdir $(LOCAL_BIN) ; fi ; \
+if [ ! -d $(LOCAL_OBJ) ] ; then mkdir $(LOCAL_OBJ) ; fi ; \
+if [ ! -d $(LOCAL_LIB) ] ; then mkdir $(LOCAL_LIB) ; fi ; \
+if [ ! -d $(LOCAL_DEP) ] ; then mkdir $(LOCAL_DEP) ; fi ; \
+if [ ! -d $(LOCAL_INC) ] ; then mkdir $(LOCAL_INC) ; fi ;
 endef
 dummy_expected_directories := $(shell $(make_expected_directories))
 
