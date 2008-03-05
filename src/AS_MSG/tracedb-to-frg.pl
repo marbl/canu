@@ -682,9 +682,9 @@ sub runFRG ($) {
     if ($frgfile =~ m/xml.(.*)\.(\d+)$/) {
         $prefix = $1;
         $index  = $2;
-        open(X, "< xml.$prefix")           or die "Failed to open 'xml.$prefix' for read\n";
-        open(F, "< fasta.$prefix")         or die "Failed to open 'fasta.$prefix' for read\n";
-        open(Q, "< qual.$prefix")          or die "Failed to open 'qual.$prefix' for read\n";
+        open(X, "< xml.$prefix.$index")    or die "Failed to open 'xml.$prefix.$index' for read\n";
+        open(F, "< fasta.$prefix.$index")  or die "Failed to open 'fasta.$prefix.$index' for read\n";
+        open(Q, "< qual.$prefix.$index")   or die "Failed to open 'qual.$prefix.$index' for read\n";
         open(L, "< $prefix.$index.frglib") or die "Failed to open '$prefix.$index.frglib' for read\n";
     }
 

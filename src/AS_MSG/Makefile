@@ -69,3 +69,7 @@ convert-v1-to-v2: convert-v1-to-v2.pl
 tester: AS_MSG_pmesg_test AS_MSG_testfile.in
 	AS_MSG_pmesg_test -d < AS_MSG_testfile.in > testfile.out
 	diff -w -n AS_MSG_testfile.in testfile.out
+
+perlmodule:
+	cd p5-AS-MSG-Parser && perl ./Makefile.PL AS_BASE=$(LOCAL_WORK) INSTALL_BASE=$(LOCAL_OS)
+	cd p5-AS-MSG-Parser && make install
