@@ -485,15 +485,15 @@ ovmWorker(void *G, void *T, void *S) {
     assert(qpos <= s->end - s->beg);
 
     if (sMSTR->theFMer() == sMSTR->theRMer()) {
-      g->tPS->get(sMSTR->theFMer(), t->posnF, t->posnFMax, t->posnFLen, fcount);
+      g->tPS->getExact(sMSTR->theFMer(), t->posnF, t->posnFMax, t->posnFLen, fcount);
 
       if (fcount < g->maxCount) {
         for (u32bit i=0; i<t->posnFLen; i++)
           t->addHit(g->tSS, s->iid, qpos, t->posnF[i], fcount, 1, 0);
       }
     } else {
-      g->tPS->get(sMSTR->theFMer(), t->posnF, t->posnFMax, t->posnFLen, fcount);
-      g->tPS->get(sMSTR->theRMer(), t->posnR, t->posnRMax, t->posnRLen, rcount);
+      g->tPS->getExact(sMSTR->theFMer(), t->posnF, t->posnFMax, t->posnFLen, fcount);
+      g->tPS->getExact(sMSTR->theRMer(), t->posnR, t->posnRMax, t->posnRLen, rcount);
 
       //  If we don't have a mer counts file, then we need to add the
       //  f and r counts to get the canonical count.  If we do have
