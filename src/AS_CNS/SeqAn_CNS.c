@@ -38,7 +38,7 @@
 #define munch(S)  { while (*(S) &&  isspace(*(S))) (S)++; }
 #define crunch(S) { while (*(S) && !isspace(*(S))) (S)++; }
 
-#define AS_SEQAN_MAX_HEADER_LENGTH     5
+#define AS_SEQAN_MAX_HEADER_LENGTH     4
 #define AS_SEQAN_MAX_LINE_LENGTH      80
 #define AS_SEQAN_MAX_BUFFER_LENGTH  1024
 #define AS_SEQAN_MAX_RESULT_LENGTH  AS_FRAG_MAX_LEN+AS_SEQAN_MAX_HEADER_LENGTH
@@ -137,9 +137,22 @@ void updateRecord(IntUnitigMesg *ium_mesg, char * inFile, char *seqAn, char *wrk
       // read the dln line
       fgets(line, AS_SEQAN_MAX_RESULT_LENGTH, tempOut);
       chomp(line);
-      if (strlen(line) > 5) { 
-         fprintf(stderr, "Found some dln field\n"); exit(1);
+      sscanf(line,"dln:"F_S32, &ium_mesg->f_list[currRead].delta_length);
+      
+      fgets(line, AS_SEQAN_MAX_RESULT_LENGTH, tempOut);
+      chomp(line);      
+
+      if (ium_mesg->f_list[currRead].delta_length > 0) {
+         char *dlnStr = line+AS_SEQAN_MAX_HEADER_LENGTH;
+
+         ium_mesg->f_list[currRead].delta = (int32 *)safe_malloc(sizeof(int32) * ium_mesg->f_list[currRead].delta_length);
+         int i = 0;
+         while (i < ium_mesg->f_list[currRead].delta_length) {            
+            ium_mesg->f_list[currRead].delta[i] = (int32) strtol(dlnStr,&dlnStr,10);
+            i++;
+         }
       }
+      
       // read blank line
       fgets(line, AS_SEQAN_MAX_RESULT_LENGTH, tempOut);
    }
@@ -192,9 +205,23 @@ void updateICMRecord(IntConConMesg *icm_mesg, char * inFile, char *seqAn, char *
       // read the dln line
       fgets(line, AS_SEQAN_MAX_RESULT_LENGTH, tempOut);
       chomp(line);
-      if (strlen(line) > 5) { 
-         fprintf(stderr, "Found some dln field\n"); exit(1);
+      sscanf(line,"dln:"F_S32, &icm_mesg->pieces[currRead].delta_length);
+      
+      // read the del line      
+      fgets(line, AS_SEQAN_MAX_RESULT_LENGTH, tempOut);
+      chomp(line);
+            
+      if (icm_mesg->pieces[currRead].delta_length > 0) {
+         char *dlnStr = line+AS_SEQAN_MAX_HEADER_LENGTH;
+         
+         icm_mesg->pieces[currRead].delta = (int32 *)safe_malloc(sizeof(int32) * icm_mesg->pieces[currRead].delta_length);
+         int i = 0;
+         while (i < icm_mesg->pieces[currRead].delta_length) {            
+            icm_mesg->pieces[currRead].delta[i] = (int32) strtol(dlnStr,&dlnStr,10);
+            i++;
+         }
       }
+
       // read blank line
       fgets(line, AS_SEQAN_MAX_RESULT_LENGTH, tempOut);
    }

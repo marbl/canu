@@ -20,6 +20,44 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
+LOCAL_WORK = $(shell cd ../..; pwd)
+
+#
+# gmake Makefile for AS_CNS, Consensus Modules
+
+#  SEQ_AN should point to a configured, compiled and installed copy of
+#  http://www.seqan.de/
+#
+#  We attempt to find it in the same place that our src/ directory is.
+
+
+#  We'd like to include the global include (c_make.as) to get these
+#  definitions, but we cannot without defining rules.
+
+OSTYPE      = $(shell echo `uname`)
+MACHINETYPE = $(shell echo `uname -m`)
+
+ifeq ($(MACHINETYPE), x86_64)
+  MACHINETYPE = amd64
+endif
+ifeq ($(MACHINETYPE), Power Macintosh)
+  MACHINETYPE = ppc
+endif
+
+#  This isn't perfect; if we're building debug here, we _usually_ want
+#  to use the debug SeqAn.  But checking if SeqAn exists, and failing if
+#  we don't find the debug SeqAn, is a little tricky.
+ifneq "$(origin SEQ_AN)" "environment"
+
+ifeq ($(shell ls -d $(LOCAL_WORK)/seqan/$(OSTYPE)-$(MACHINETYPE)-debug 2> /dev/null), $(LOCAL_WORK)/seqan/$(OSTYPE)-$(MACHINETYPE)-debug)
+  SEQ_AN = $(LOCAL_WORK)/seqan/$(OSTYPE)-$(MACHINETYPE)-debug
+endif
+
+ifeq ($(shell ls -d $(LOCAL_WORK)/seqan/$(OSTYPE)-$(MACHINETYPE) 2> /dev/null), $(LOCAL_WORK)/seqan/$(OSTYPE)-$(MACHINETYPE))
+  SEQ_AN = $(LOCAL_WORK)/seqan/$(OSTYPE)-$(MACHINETYPE)
+endif
+
+endif
 
 LIB_SOURCES = Array_CNS.c \
               MultiAlign.c \
@@ -46,12 +84,18 @@ LIBRARIES = libAS_CNS.a libCA.a
 
 PROGS = consensus \
         asmReBaseCall \
-	     SeqAn_CNS
+	SeqAn_CNS
+
+SCRIPTS =
+
+ifdef SEQ_AN
+  SCRIPTS += graph_consensus 
+endif
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(LIB_OBJECTS) $(LIBRARIES) $(OBJECTS) $(PROGS)
+all: $(LIB_OBJECTS) $(LIBRARIES) $(OBJECTS) $(PROGS) $(SCRIPTS)
 	@test -n nop
 
 libAS_CNS.a: $(LIB_OBJECTS)
@@ -61,4 +105,8 @@ LIBS =  libCA.a
 
 consensus:                    Consensus_CNS.o                $(LIBS)
 asmReBaseCall:                AS_CNS_asmReBaseCall.o         $(LIBS)
-SeqAn_CNS:	                  SeqAn_CNS.o                    $(LIBS)
+SeqAn_CNS:                    SeqAn_CNS.o                    $(LIBS)
+graph_consensus: 	      $(SEQ_AN)/demos/graph_consensus
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+

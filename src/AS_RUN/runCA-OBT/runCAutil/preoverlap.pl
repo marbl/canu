@@ -50,6 +50,7 @@ sub preoverlap {
         }
     }
 
+    generateVectorTrim();
     my $vi = getGlobal("vectorIntersect");
     if ((defined($vi)) && (! -e "$wrk/0-preoverlap/$asm.vectorClearLoaded")) {
         my $bin = getBinDirectory();

@@ -240,6 +240,8 @@ sub setDefaults () {
 
     $global{"doOverlapTrimming"}           = 1;
     $global{"vectorIntersect"}             = undef;
+    $global{"vectorTrimmer"}               = "ca";
+    $global{"figaroFlags"}               = "-T 30 -M 100 -E 500 -V f";
 
     #####  Overlapper
 
@@ -263,9 +265,6 @@ sub setDefaults () {
     $global{"merOverlapperThreads"}        = 2;
     $global{"merOverlapperSeedBatchSize"}  = 100000;
     $global{"merOverlapperExtendBatchSize"}= 75000;
-
-    $global{"merOverlapperSeedConcurrency"}  = 1;
-    $global{"merOverlapperExtendConcurrency"}= 1;
 
     $global{"umdOverlapperFlags"}          = "-use-uncleaned-reads -trim-error-rate 0.03 -max-minimizer-cutoff 150";
 

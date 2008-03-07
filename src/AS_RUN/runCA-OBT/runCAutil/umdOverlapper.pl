@@ -1,6 +1,6 @@
 use strict;
 
-sub getUMDClearRange ($) {
+sub getUMDOverlapperClearRange ($) {
     my $dir     = shift @_;
     my $fileName = "$asm.obtClrRange";
 
@@ -84,7 +84,7 @@ sub UMDoverlapper () {
 
     # update the gkpStore with newly computed clear ranges
     backupFragStore("beforeUMDOverlapper");
-    my $trimFile = getUMDClearRange($outDir);
+    my $trimFile = getUMDOverlapperClearRange($outDir);
     $cmd = "";
     $cmd .= "$bin/gatekeeper --edit ";
     $cmd .= "$wrk/$outDir/$trimFile $wrk/$asm.gkpStore";
@@ -102,7 +102,10 @@ sub UMDoverlapper () {
     if (runCommand("$wrk/$outDir", $cmd)) {
       caFailure("Failed to create overlaps .\n");
     }   
-        
+    
+    #cleanup    
+    rmrf("$wrk/$asm.vec.frg");
+    
     touch("$wrk/$outDir/$jobID/$jobID.success");
     stopAfter("overlapper");
    

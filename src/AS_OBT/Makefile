@@ -20,10 +20,44 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
+LOCAL_WORK = $(shell cd ../..; pwd)
+
 #
 # gmake Makefile for AS_OBT, Overlap Based Trimming
 
-LOCAL_WORK = $(shell cd ../..; pwd)
+#  FIGARO should point to a configured, compiled and installed copy of
+#  http://amos.sourceforge.net/Figaro/Figaro.html
+#
+#  We attempt to find it in the same place that our src/ directory is.
+
+
+#  We'd like to include the global include (c_make.as) to get these
+#  definitions, but we cannot without defining rules.
+
+OSTYPE      = $(shell echo `uname`)
+MACHINETYPE = $(shell echo `uname -m`)
+
+ifeq ($(MACHINETYPE), x86_64)
+  MACHINETYPE = amd64
+endif
+ifeq ($(MACHINETYPE), Power Macintosh)
+  MACHINETYPE = ppc
+endif
+
+#  This isn't perfect; if we're building debug here, we _usually_ want
+#  to use the debug figaro.  But checking if figaro exists, and failing if
+#  we don't find the debug figaro, is a little tricky.
+ifneq "$(origin FIGARO)" "environment"
+
+ifeq ($(shell ls -d $(LOCAL_WORK)/figaro/$(OSTYPE)-$(MACHINETYPE)-debug 2> /dev/null), $(LOCAL_WORK)/figaro/$(OSTYPE)-$(MACHINETYPE)-debug)
+  FIGARO = $(LOCAL_WORK)/figaro/$(OSTYPE)-$(MACHINETYPE)-debug
+endif
+
+ifeq ($(shell ls -d $(LOCAL_WORK)/figaro/$(OSTYPE)-$(MACHINETYPE) 2> /dev/null), $(LOCAL_WORK)/figaro/$(OSTYPE)-$(MACHINETYPE))
+  FIGARO = $(LOCAL_WORK)/figaro/$(OSTYPE)-$(MACHINETYPE)
+endif
+
+endif
 
 SOURCES = acceptableOBToverlap.c \
           chimera.C \
@@ -45,6 +79,10 @@ PROGS   = acceptableOBToverlap \
           prefixDelete \
           getNumScaffolds
 SCRIPTS = 
+ifdef FIGARO
+  SCRIPTS += figaro
+endif
+
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -60,3 +98,8 @@ chimera:              chimera.o util++.o readOverlap.o          -lAS_OVS -lAS_PE
 prefixDelete:         prefixDelete.o                                     -lAS_PER -lAS_UTL
 
 getNumScaffolds: getNumScaffolds.o libCA.a
+
+figaro: $(FIGARO)/figaro
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+

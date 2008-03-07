@@ -85,9 +85,21 @@ Optional, download, configure, compile and install the UMD Overlapper.  UMD Over
 % cd ../..
 \end{verbatim}
 
+Optional, download, configure, compile and install Figaro.  Figaro is developed at the University of Maryland. For detailed usage and run instructions, visit http://amos.sourceforge.net/Figaro/Figaro.html.
+
+\begin{verbatim}
+% curl -o Figaro.tar.gz http://internap.dl.sourceforge.net/sourceforge/amos/Figaro-1.05.tar.gz
+% gzip -dc Figaro.tar.gz | tar -xf -
+% mkdir -p figaro
+% mv Figaro-1.05 figaro/Linux-amd64
+% cd figaro/Linux-amd64
+% make install
+% cd ../..
+\end{verbatim}
+
 Compile and install the Celera Assembler.  Binaries are installed into
 an architecture specific directory, for example, Linux-amd64.  If kmer
-or UMD Overlapper as compiled, this step will also copy those modules
+or UMD Overlapper or figaro are compiled, this step will also copy those modules
 to the architecture specific directory.
 
 \begin{verbatim}
@@ -97,8 +109,8 @@ to the architecture specific directory.
 
 Check that several key executables exist.  ``overmerry'' is built if
 kmer is installed, ``runUMDOverlapper'' is built if the UMD overlapper
-is installed.  This directory can be moved to a system-wide location
-if desired.
+is installed, ``figaro'' is built if figaro is installed.  This directory 
+can be moved to a system-wide location if desired.
 
 \begin{verbatim}
 % cd ..
@@ -107,6 +119,7 @@ if desired.
 % ls -l Linux-amd64/bin/cgw
 % ls -l Linux-amd64/bin/overmerry
 % ls -l Linux-amd64/bin/runUMDOverlapper
+% ls -l Linux-amd64/bin/figaro
 \end{verbatim}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -556,7 +569,6 @@ sgeOverlapCorrection={\it string} &
 \end{longtable}
 
 
-
 \subsection{Gatekeeper Options}
 \label{sec:gkpopts}
 
@@ -566,6 +578,30 @@ If zero, {\tt gatekeeper} is suspicious of insert size estimates with
 too large / too small standard deviations, and will reset them to be
 $0.1 * mean$.  The default is to be suspicious.  See also {\tt
 computeInsertSize} in Section~\ref{sec:scafopts}.
+\\
+\end{longtable}
+
+
+\subsection{Vector Trimming Options}
+\begin{longtable}{lp{3.0in}}
+vectorIntersect={\it path} &
+The path to a file containing a list of the vector clear range for
+each read.  Format {\it uid vector-left vector-right}, one UID per
+line.  Coordiates are base-based.
+\\
+vectorTrimmer={\em ca} or {\em umd} or {\em figaro} &
+Select which vector trimmer to use. The default is {\em ca} (see ~\ref{sec:obtopts}). 
+If {\em vectorIntersect} is provided this parameter is not used. Note that setting both 
+vectorTrimmmer={\em umd} and overlapper={\em umd} is redundant as the UMD overlapper 
+runs vector trimming by default.
+\\
+\end{longtable}
+
+\subsubsection{Figaro Vector Trimmer Options}
+
+\begin{longtable}{lp{3.0in}}
+figaroFlags={\it string} &
+Flags supplied to the figaro vector trimmer.  Default: ``-T 30 -M 100 -E 500 -V f''.
 \\
 \end{longtable}
 
@@ -600,13 +636,6 @@ doOverlapTrimming={\it integer} &
 If non-zero, do overlap-based trimming.  The default is to do overlap
 based trimming.
 \\
-
-vectorIntersect={\it path} &
-The path to a file containing a list of the vector clear range for
-each read.  Format {\it uid vector-left vector-right}, one UID per
-line.  Coordiates are base-based.
-\\
-
 \end{longtable}
 
 
@@ -773,7 +802,7 @@ The UMD overlapper combines fragment trimming with overlapping.
 
 \begin{longtable}{lp{3.0in}}
 umdOverlapperFlags={\it string} &
-Flags supplied to the UMD overlapper.  Default: ``-calculate-trims -use-uncleaned-reads''.
+Flags supplied to the UMD overlapper.  Default: ``-use-uncleaned-reads -trim-error-rate 0.03 -max-minimizer-cutoff 150''.
 \\
 \end{longtable}
 
