@@ -40,9 +40,9 @@
 #    tracedb-to-frg.pl -sgeoptions '-P project -A account etc' -sge xml*
 #
 #  Otherwise, you'll need to run (sequentially) with:
-#    tracedb-to-frg.pl -xml xml*
-#    tracedb-to-frg.pl -lib xml*
-#    tracedb-to-frg.pl -frg xml*
+#    tracedb-to-frg.pl -xml xml  (once per file)
+#    tracedb-to-frg.pl -lib xml* (ALL xml files)
+#    tracedb-to-frg.pl -frg xml  (once per file)
 #
 #  Output goes in the CURRENT DIRECTORY.
 #
@@ -55,7 +55,7 @@
 #  hypocrea_jecorina.2.001.frg -- fragment data
 #  hypocrea_jecorina.2.002.frg --   one per input fasta/qual pair
 #  hypocrea_jecorina.3.lkg.frg -- mate info
-#  
+#
 #
 #  Other output:
 #    *.lib -- a map from TA frag id to TA library id, along with some
@@ -78,11 +78,11 @@ my %seqLibIDFix;
 my $version = 2;
 
 my @sgefiles;
-my $sgeOptions;
-my $xmlfile;
+my $sgeOptions = undef;
+my $xmlfile    = undef;
 my @libfiles;
-my $frgfile;
-
+my $frgfile    = undef;
+my $forNewbler = 0;
 
 while (scalar(@ARGV) > 0) {
     my $arg = shift @ARGV;
@@ -98,6 +98,10 @@ while (scalar(@ARGV) > 0) {
         @libfiles = @ARGV;
         undef @ARGV;
     } elsif ($arg eq "-frg") {
+        $forNewbler = 0;
+        $frgfile = shift @ARGV;
+    } elsif ($arg eq "-newbler") {
+        $forNewbler = 1;
         $frgfile = shift @ARGV;
     } else {
         die "unknown option '$arg'.\n";
@@ -117,7 +121,8 @@ my $tcat = "";
 runSGE(@sgefiles) if (defined(@sgefiles));
 runXML($xmlfile)  if (defined($xmlfile));
 runLIB(@libfiles) if (defined(@libfiles));
-runFRG($frgfile)  if (defined($frgfile));
+runFRG($frgfile)  if (defined($frgfile) && ($forNewbler == 0));
+runNBL($frgfile)  if (defined($frgfile) && ($forNewbler == 1));
 
 #  everybody should have exited already.  if not, it's an error.
 die "Someone didn't exit properly.\n";
@@ -130,7 +135,7 @@ die "Someone didn't exit properly.\n";
 my $fhdr;
 my $qhdr;
 
-sub readXML {
+sub readXML () {
     my ($xid, $type, $template, $end, $lib, $libsize, $libstddev) = (".", ".", ".", ".", ".", ".", ".");
     my ($clrl, $clrr, $clvl, $clvr, $clql, $clqr, $clr, $clv, $clq);  #  need to be = undef!
     my $rgi;
@@ -214,7 +219,8 @@ sub readXML {
 }
 
 
-sub readFasta {
+sub readFasta ($) {
+    my $convert = shift @_;
     my $fstr;
 
     while (!eof(F)) {
@@ -235,9 +241,13 @@ sub readFasta {
             }
         } else {
             my $q = $_;
-            $q =~ s/^\s+//;
-            $q =~ s/\s+$//;
-            $fstr .= $q;
+            if ($convert) {
+                $q =~ s/^\s+//;
+                $q =~ s/\s+$//;
+                $fstr .= $q;
+            } else {
+                $fstr .= "$q\n";
+            }
         }
     }
 
@@ -248,7 +258,8 @@ sub readFasta {
 }
 
 
-sub readQual {
+sub readQual ($) {
+    my $convert = shift @_;
     my $qstr;
 
     while (!eof(Q)) {
@@ -270,12 +281,15 @@ sub readQual {
         } else {
             my $q = $_;
 
-            $q =~ s/^\s+//;
-            $q =~ s/\s+$//;
-
-            foreach my $qv (split '\s+', $q) {
-                if ($qv > 60) {$qv = 60;}
-                $qstr .= chr(ord('0') + $qv);
+            if ($convert) {
+                $q =~ s/^\s+//;
+                $q =~ s/\s+$//;
+                foreach my $qv (split '\s+', $q) {
+                    if ($qv > 60) {$qv = 60;}
+                    $qstr .= chr(ord('0') + $qv);
+                }
+            } else {
+                $qstr .= "$q\n";
             }
         }
     }
@@ -299,7 +313,7 @@ sub runSGE (@) {
         $prefix = $1 if ($xmlfile =~ m/xml.(.*)\.\d+$/);
     }
 
-    die "Didn't find prefix.\n" if (!defined($prefix));
+    die "runSGE()-- Didn't find prefix.\n" if (!defined($prefix));
 
     open(X, "> tafrgX-$prefix.sh") or die;
     open(L, "> tafrgL-$prefix.sh") or die;
@@ -447,7 +461,7 @@ sub runLIB (@) {
             $prefix = $1;
         }
 
-        die "Didn't find the prefix in any of the input files (did you give me the xml?).\n" if (!defined($prefix));
+        die "runLIB()-- Didn't find the prefix in any of the input files (did you give me the xml?).\n" if (!defined($prefix));
         open(F, "< $prefix.lib")    or die "Failed to open '$prefix.lib'\n";
 
         while (<F>) {
@@ -708,8 +722,8 @@ sub runFRG ($) {
 
     while ($haveMore) {
         my ($xid, $type, $template, $end, $lib, $libsize, $libstddev, $clr, $clv, $clq) = readXML();
-        my ($sid, $seq) = readFasta();
-        my ($qid, $qlt) = readQual();
+        my ($sid, $seq) = readFasta(1);
+        my ($qid, $qlt) = readQual(1);
 
         if (($type eq "WGS") ||
             ($type eq "SHOTGUN") ||
@@ -792,6 +806,133 @@ sub runFRG ($) {
     close(FRG);
 
     rename "$prefix.2.$index.frg.bz2.tmp", "$prefix.2.$index.frg.bz2";
+
+    exit(0);
+}
+
+
+
+sub runNBL ($) {
+    my $frgfile = shift @_;
+    my $prefix;
+    my $index;
+
+    if ($frgfile =~ m/xml.(.*)\.(\d+).bz2$/) {
+        $prefix = $1;
+        $index  = $2;
+        open(X, "bzip2 -dc xml.$prefix.$index.bz2   | $tcat") or die "Failed to open 'xml.$prefix.$index.bz2' for read\n";
+        open(F, "bzip2 -dc fasta.$prefix.$index.bz2 | $tcat") or die "Failed to open 'fasta.$prefix.$index.bz2' for read\n";
+        open(Q, "bzip2 -dc qual.$prefix.$index.bz2  | $tcat") or die "Failed to open 'qual.$prefix.$index.bz2' for read\n";
+        open(L, "< $prefix.$index.frglib")                    or die "Failed to open '$prefix.$index.frglib' for read\n";
+    }
+
+    if ($frgfile =~ m/xml.(.*)\.(\d+).gz$/) {
+        $prefix = $1;
+        $index  = $2;
+        open(X, "gzip -dc xml.$prefix.$index.gz   | $tcat") or die "Failed to open 'xml.$prefix.$index.gz' for read\n";
+        open(F, "gzip -dc fasta.$prefix.$index.gz | $tcat") or die "Failed to open 'fasta.$prefix.$index.gz' for read\n";
+        open(Q, "gzip -dc qual.$prefix.$index.gz  | $tcat") or die "Failed to open 'qual.$prefix.$index.gz' for read\n";
+        open(L, "< $prefix.$index.frglib")                  or die "Failed to open '$prefix.$index.frglib' for read\n";
+    }
+
+    if ($frgfile =~ m/xml.(.*)\.(\d+)$/) {
+        $prefix = $1;
+        $index  = $2;
+        open(X, "< xml.$prefix.$index")    or die "Failed to open 'xml.$prefix.$index' for read\n";
+        open(F, "< fasta.$prefix.$index")  or die "Failed to open 'fasta.$prefix.$index' for read\n";
+        open(Q, "< qual.$prefix.$index")   or die "Failed to open 'qual.$prefix.$index' for read\n";
+        open(L, "< $prefix.$index.frglib") or die "Failed to open '$prefix.$index.frglib' for read\n";
+    }
+
+    if (-e "$prefix.2.$index.frg.bz2") {
+        exit(0);
+    }
+
+    open(FNA, "> $prefix.2.$index.fna.tmp")      or die "Failed to open '$prefix.2.$index.fna.tmp' for write\n";
+    open(QNA, "> $prefix.2.$index.fna.qual.tmp") or die "Failed to open '$prefix.2.$index.fna.qual.tmp' for write\n";
+
+    my $haveMore = 1;
+    $haveMore  = !eof(X);
+    $haveMore &= !eof(F);
+    $haveMore &= !eof(Q);
+    $haveMore &= !eof(L);
+
+    while ($haveMore) {
+        my ($xid, $type, $template, $end, $lib, $libsize, $libstddev, $clr, $clv, $clq) = readXML();
+        my ($sid, $seq) = readFasta(0);
+        my ($qid, $qlt) = readQual(0);
+
+        $end = "F" if ($end eq "FORWARD");
+        $end = "R" if ($end eq "REVERSE");
+
+        if (($type eq "WGS") ||
+            ($type eq "SHOTGUN") ||
+            ($type eq "CLONEEND") ||
+            ($type eq "454")) {
+            my $lll = <L>;
+            my $lid;
+            ($lid, $lib) = split '\s+', $lll;
+
+            my $len = length $seq;
+
+            #  Incomplete clear; WUGSC Dros Yakuba only gave the left
+            #  vector clear.
+            #
+            $clv = "0$clv"    if ($clv =~ m/^,\d+$/);
+            $clq = "0$clq"    if ($clq =~ m/^,\d+$/);
+            $clr = "0$clr"    if ($clr =~ m/^,\d+$/);
+
+            $clv = "$clv$len" if ($clv =~ m/^\d+,$/);
+            $clq = "$clq$len" if ($clq =~ m/^\d+,$/);
+            $clr = "$clr$len" if ($clr =~ m/^\d+,$/);
+
+            $clr = "0,$len" if (!defined($clr));
+
+            #  Because some centers apparently cannot count, we need
+            #  to check the clear ranges.
+            #
+            if ($clv =~ m/^(\d+),(\d+)$/) { $clv = "$1,$len" if ($2 > $len); }
+            if ($clq =~ m/^(\d+),(\d+)$/) { $clq = "$1,$len" if ($2 > $len); }
+            if ($clr =~ m/^(\d+),(\d+)$/) { $clr = "$1,$len" if ($2 > $len); }
+
+            $clv =~ s/,/-/;
+            $clq =~ s/,/-/;
+            $clr =~ s/,/-/;
+
+            #  Newbler is picky about clear ranges.  It wants them to
+            #  actually include sequence.  This ugly construction
+            #  omits reads with empty clear ranges.
+            #
+            if ($clr =~ m/(\d+)-(\d+)/) {
+                if ($1 < $2) {
+                    if (($xid eq $sid) && ($xid eq $qid) && ($xid eq $lid)) {
+                        print FNA ">$xid template=$template dir=$end library=$lib trim=$clr\n$seq";
+                        print QNA ">$xid template=$template dir=$end library=$lib trim=$clr\n$qlt";
+                    } else {
+                        print STDERR "ID mismatch: X='$xid' =?= S='$sid'\n";
+                        print STDERR "ID mismatch: X='$xid' =?= Q='$qid'\n";
+                        print STDERR "ID mismatch: X='$xid' =?= L='$lid'\n";
+                        die;
+                    }
+                }
+            }
+        }
+
+        $haveMore  = !eof(X);
+        $haveMore &= !eof(F);
+        $haveMore &= !eof(Q);
+        $haveMore &= !eof(L);
+    }
+   
+    close(L);
+    close(Q);
+    close(F);
+    close(X);
+    close(FNA);
+    close(QNA);
+
+    rename "$prefix.2.$index.fna.tmp",      "$prefix.2.$index.fna";
+    rename "$prefix.2.$index.fna.qual.tmp", "$prefix.2.$index.fna.qual";
 
     exit(0);
 }
