@@ -55,10 +55,10 @@ SCRIPTS = runCA \
           mateLinkIIDRanges.rb \
           markUniqueUnique.rb \
           toggleAndRun.sh \
-          OBT.specFile \
-          noOBT.specFile \
-          noVec.specFile \
-          metaGenomic.specFile
+          spec/OBT.specFile \
+          spec/noOBT.specFile \
+          spec/noVec.specFile \
+          spec/metaGenomic.specFile
 
 
 #  JCVI likes to have both a modified (carun) and unmodified (runCA)
@@ -109,85 +109,88 @@ carun: runCA-OBT/runCA.pl.head $(CARUNLOCAL) runCA-OBT/runCAutil/util.pl runCA-O
 	@chmod 775 $(LOCAL_BIN)/$@
 
 ca_observer.plx: runCA-OBT/ca_observer.plx
-	@cp $< $(LOCAL_BIN)/$@
+	@cp -p $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 aget.pl: runCA-OBT/aget.pl
-	@cp $< $(LOCAL_BIN)/$@
+	@cp -p $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 ametrics.plx: runCA-OBT/ametrics.plx
-	@cp $< $(LOCAL_BIN)/$@
+	@cp -p $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 mateLinkIIDRanges.rb: asmQC/mateLinkIIDRanges.rb
-	@cp $< $(LOCAL_BIN)/$@
+	@cp -p $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 markUniqueUnique.rb: asmQC/markUniqueUnique.rb
-	@cp $< $(LOCAL_BIN)/$@
+	@cp -p $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 toggleAndRun.sh: runCA-OBT/toggleAndRun.sh
-	@cp $< $(LOCAL_BIN)/$@
+	@cp -p $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 TIGR: asmQC/TIGR
 	@cp -rp $< $(LOCAL_BIN)
 
 caqc_help.ini: asmQC/caqc_help.ini
-	@cp $< $(LOCAL_BIN)/$@
+	@cp -p $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 caqc.pl: asmQC/caqc.pl
-	@cp $< $(LOCAL_BIN)/$@
+	@cp -p $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 runBoth.pl: runCA-OBT/runBoth.pl
-	@cp $< $(LOCAL_BIN)/$@
+	@cp -p $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 caqc-diff.pl: asmQC/caqc-diff.pl
-	@cp $< $(LOCAL_BIN)/$@
+	@cp -p $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 ca2ace.pl: asmQC/ca2ace.pl TIGR
-	@cp $< $(LOCAL_BIN)/$@
+	@cp -p $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 asmToAGP.pl: asmQC/asmToAGP.pl
-	@cp $< $(LOCAL_BIN)/$@
+	@cp -p $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 assemblyCompare: testing/assemblyCompare.pl
-	@cp testing/assemblyCompare.pl $(LOCAL_BIN)/$@
+	@cp -p testing/assemblyCompare.pl $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 qcCompare: testing/qcCompare.pl
-	@cp testing/qcCompare.pl $(LOCAL_BIN)/$@
+	@cp -p testing/qcCompare.pl $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 tampaCompare: testing/tampaCompare.pl
-	@cp testing/tampaCompare.pl $(LOCAL_BIN)/$@
+	@cp -p testing/tampaCompare.pl $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 mummerCompare: testing/mummerCompare.pl
-	@cp testing/mummerCompare.pl $(LOCAL_BIN)/$@
+	@cp -p testing/mummerCompare.pl $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 apply_assembler: testing/apply_assembler.pl
-	@cp testing/apply_assembler.pl $(LOCAL_BIN)/$@
+	@cp -p testing/apply_assembler.pl $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 testVersionOnPlatform.sh: testing/$@
-	@cp testing/$@ $(LOCAL_BIN)/$@
+	@cp -p testing/$@ $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 glen_est_truncadjusted.pl: dataQC/$@
-	@cp dataQC/$@ $(LOCAL_BIN)/$@
+	@cp -p dataQC/$@ $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
-%.specFile: runCA-OBT/%.specFile
-	@cp runCA-OBT/$@ $(LOCAL_BIN)
+spec:
+	@mkdir $(LOCAL_BIN)/spec
+
+spec/%.specFile: spec runCA-OBT/spec/%.specFile
+	@cp -p runCA-OBT/$@ $(LOCAL_BIN)/spec
 
 fragmentDepth: fragmentDepth.o libCA.a
