@@ -1,0 +1,30 @@
+utgBubblePopping=0
+utgErrorRate=120
+utgGenomeSize=100000000
+ovlErrorRate=0.14
+cnsErrorRate=0.14
+cgwErrorRate=0.14
+merSizeOvl=14
+doFragmentCorrection=0
+doResolveSurrogates=1
+doExtendClearRanges=1
+doOverlapTrimming=1
+createAGP=1
+createPosMap=1
+useBogUnitig=0
+vectorIntersect=vectorIntersect
+
+useGrid        = 1
+scriptOnGrid   = 0
+
+sge                   = -A assembly -P 215010
+sgeScript             = -pe threaded 1 -l arch=lx*64 -l memory=30G
+sgeOverlap            = -pe threaded 4 -l arch=lx*64 -l memory=4G -p -25
+sgeConsensus          =                -l arch=lx*64 -l memory=2G -p -25
+
+ovlMemory        = 4GB --hashload 0.7 --hashstrings 60000
+ovlThreads       = 4
+ovlHashBlockSize = 180000
+ovlRefBlockSize  = 4000000
+
+extendClearRangesStepSize=100000

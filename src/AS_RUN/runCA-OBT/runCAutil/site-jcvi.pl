@@ -4,17 +4,34 @@ my ($username) = getpwuid($>) . '@jcvi.org';
 
 sub localDefaults () {
 
+    #  This sets some options JCVI likes to use for microbes.
+    #
+    #  These two used to be fixed, but the defaults work:
+    #
+    #  cnsPartitions     -- Partitions are no smaller than 75,000 fragments.  If you
+    #                       have more than that, you'll want to pay the cost of a
+    #                       partitioning so you can get more CPU.
+    #  computeInsertSize -- Enabled if you have fewer than 1,000,000 fragments.
+
     setGlobal("sge", ' -P 08010 -b n -l msc');
     setGlobal("sgeOverlap", ' -pe threaded 2');
     setGlobal("useGrid", 1);
     setGlobal("scriptOnGrid", 1);
-    setGlobal("cnsPartitions", 1);  # since it's microbes, no need to partition
+    setGlobal("gkpBelieveInputStdDev", 1);  # Problems will be fixed by computeInsertSize
 }
 
 
 
 sub localOption($@) {
     my $arg = shift;
+
+    #  If the user gave us a vectorIntersect option, DISABLE the
+    #  requirement of seq.features below.  A complete abuse of
+    #  quasi-private data.
+    #
+    if ($arg =~ m/^vectorIntersect/) {
+        $global{vectorIntersectSupplied} = 1;
+    }
     return (0, @_);
 }
 
@@ -33,9 +50,13 @@ sub localSetup($) {
       copy("$asm.seq.features", "$wrk/$asm.seq.features") or die "Could not copy: $asm.seq.features\n";
     }
 
-    my $vi = getGlobal("vectorIntersect");
     my $clvFile = "in.clv";
-    if( !defined($vi) and !-e "$wrk/$clvFile" ) {
+
+    #  If there is no vectorIntersect, and vectorIntersect= was not
+    #  set (the noVec.specfile sets this to disable this block) and
+    #  the clv file isn't already there, make one.
+
+    if ( !defined(getGlobal("vectorIntersect")) and !defined($global{"vectorIntersectSupplied"}) and !-e "$wrk/$clvFile" ) {
         if ( !-e "$asm.seq.features" ) {
             die("ERROR: Unable to create vector intersect file (.clv). Please provide the $asm.seq.features file.\n")
         }

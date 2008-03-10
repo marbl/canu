@@ -166,6 +166,10 @@ sub getGlobal ($) {
 sub setGlobal ($$) {
     my $var = shift @_;
     my $val = shift @_;
+    #  If no value, set the field to undefined, the default for many of the options.
+    if ($val eq "") {
+        $val = undef;
+    }
     #  Special case -- merSize sets both obtMerSize and ovlMerSize.
     if ($var eq "merSize") {
         setGlobal("obtMerSize", $val);
@@ -381,8 +385,8 @@ sub setParameters ($@) {
     }
 
     if (defined($specFile)) {
-        my $bin = "$FindBin::Bin";
-	
+        my $bin = "$FindBin::Bin/spec";
+
         if (-e $specFile && ! -d $specFile) {
             open(F, "< $specFile") or caFailure("Couldn't open '$specFile'\n");
         } elsif (-e "$bin/$specFile") {

@@ -1,0 +1,6 @@
+#  By default, carun (JCVI's internal version of runCA) looks for
+#  the vector clear ranges in a fixed-name file.  This disables
+#  that behavior.  For non-JCVI users, it does nothing over
+#  what the default runCA behavior does.
+#
+vectorIntersect=

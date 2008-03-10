@@ -1,0 +1,29 @@
+# A sample spec file for assembling metagenomics / environmental
+# samples, from Sanger reads.
+
+#  We up the error rates.  12% unitigs and 14% for everything else.
+#
+utgErrorRate=120
+ovlErrorRate=0.14
+cnsErrorRate=0.14
+cgwErrorRate=0.14
+
+# Disable bubble popping.  Unreliable and/or WRONG for environmental
+# samples.
+#
+utgBubblePopping=0
+
+# Use a smaller mer size to encourage finding overlaps at 14% error,
+# both for OBT and OVL.
+#
+merSize=14
+
+# Fragment correction is unreliable with low coverage and/or
+# environmental samples.  Disable.
+#
+doFragmentCorrection=0
+
+# We only want ONE iteration of clear range extension; the default is
+# 2 iterations.
+#
+doExtendClearRanges=1

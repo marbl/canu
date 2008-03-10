@@ -1,9 +1,0 @@
-useGrid=0
-cnsPartitions=1
-frgCorrBatchSize=200000
-ovlCorrBatchSize=200000
-ovlHashBlockSize=200000
-doOverlapTrimming=0
-computeInsertSize=1
-gkpBelieveInputStdDev=1
-vectorIntersect=/dev/null
