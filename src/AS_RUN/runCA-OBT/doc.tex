@@ -217,8 +217,32 @@ perl $ASMBIN/runCA-OBT.pl \
 \subsubsection{Flies}
 
 No special setting are needed, however, using the grid ({tt
-useGrid=1}) is suggested.  If possible, use local disk for the
-fragment store.  See {\em Mammals} below.
+useGrid=1}) is suggested.  See {\em Mammals} below.
+
+Our default specFile for a test-assembly of a fly uses SGE and
+increases the memory allowed.  It is presented as yet another example:
+
+\begin{verbatim}
+useGrid      = 1
+scriptOnGrid = 1
+
+fakeUIDs = 1
+
+merylMemory  = 4000
+
+sge          = -A assembly
+sgeScript    = -pe thread 1
+sgeOverlap   = -pe thread 2 -p -999
+sgeConsensus = -p -999
+
+ovlMemory        = 4GB --hashload 0.8 --hashstrings 100000
+ovlThreads       = 4
+ovlHashBlockSize = 180000
+ovlRefBlockSize  = 4000000
+
+frgCorrBatchSize = 600000
+frgCorrThreads   = 4
+\end{verbatim}
 
 \subsubsection{Mammals}
 
@@ -233,8 +257,6 @@ overrides some reasonable defaults.
 Fragment correction also benefits greatly by increasing the batch
 size.  See the {\tt frgCorrBatchSize} below for details.  At this
 size, we might as well use all processors available.
-
-Our settings are then:
 
 \begin{verbatim}
 useGrid=1
@@ -577,10 +599,11 @@ sgeOverlapCorrection={\it string} &
 
 \begin{longtable}{lp{3.0in}}
 gkpBelieveInputStdDev={\it integer} &
-If zero, {\tt gatekeeper} is suspicious of insert size estimates with
-too large / too small standard deviations, and will reset them to be
-$0.1 * mean$.  The default is to be suspicious.  See also {\tt
-computeInsertSize} in Section~\ref{sec:scafopts}.
+If true (1), {\tt gatekeeper} blindly trusts all input insert sizes.
+If false (0), {\tt gatekeeper} will reset too large / too small standard
+deviations to $0.1 * mean$.  Acceptable insert sizes are $0.1*mean <
+std.dev. < \frac{1}{3}*mean$.  The default is to reset input insert sizes.
+See also {\tt computeInsertSize} in Section~\ref{sec:scafopts}.
 \\
 \end{longtable}
 
@@ -660,6 +683,9 @@ the amount of parallelization one wishes to get and use that.  To get
 For large assemblies, the author advocates using a large {\it
 ovlRefBlockSize}, and using {\it ovlHashBlockSize} to control the number of
 jobs.  See {\it ovlMemory}.
+
+Section~\ref{sec:erates} discusses how to change the allowed error rate with
+the {\tt ovlErrorRate} option.
 
 Three options exist to select the style of overlapper to use, and one to
 control how much memory is used to build a store of overlaps.

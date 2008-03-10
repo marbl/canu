@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.20 2008-02-20 10:53:30 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.21 2008-03-10 21:07:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,19 +87,19 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
     lib_mesg->stddev = 0.1 * lib_mesg->mean;
   }
 
-  if (lib_mesg->mean < 3.0 * lib_mesg->stddev) {
-    AS_GKP_reportError(AS_GKP_LIB_STDDEV_TOO_BIG,
-                       AS_UID_toString(lib_mesg->eaccession), lib_mesg->stddev, lib_mesg->mean, 0.1 * lib_mesg->mean);
-    if (lib_mesg->action == AS_ADD)
-      gkpStore->gkp.libWarnings++;
-    lib_mesg->stddev = 0.1 * lib_mesg->mean;
-  }
-
-  //  What's the 0.001 for?  If we reset the stddev in any of the
-  //  blocks above, we can still fail the test below, because
-  //  floating point math sucks.
-
   if (believeInputStdDev == 0) {
+    if (lib_mesg->mean < 3.0 * lib_mesg->stddev) {
+      AS_GKP_reportError(AS_GKP_LIB_STDDEV_TOO_BIG,
+                         AS_UID_toString(lib_mesg->eaccession), lib_mesg->stddev, lib_mesg->mean, 0.1 * lib_mesg->mean);
+      if (lib_mesg->action == AS_ADD)
+        gkpStore->gkp.libWarnings++;
+      lib_mesg->stddev = 0.1 * lib_mesg->mean;
+    }
+
+    //  What's the 0.001 for?  If we reset the stddev in any of the
+    //  blocks above, we can still fail the test below, because
+    //  floating point math sucks.
+
     if (lib_mesg->stddev + 0.001 < 0.1 * lib_mesg->mean) {
       AS_GKP_reportError(AS_GKP_LIB_STDDEV_TOO_SMALL,
                          AS_UID_toString(lib_mesg->eaccession), lib_mesg->mean, lib_mesg->stddev, 0.1 * lib_mesg->mean);

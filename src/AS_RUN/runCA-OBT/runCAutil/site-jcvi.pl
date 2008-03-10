@@ -17,7 +17,6 @@ sub localDefaults () {
     setGlobal("sgeOverlap", ' -pe threaded 2');
     setGlobal("useGrid", 1);
     setGlobal("scriptOnGrid", 1);
-    setGlobal("gkpBelieveInputStdDev", 1);  # Problems will be fixed by computeInsertSize
 }
 
 
