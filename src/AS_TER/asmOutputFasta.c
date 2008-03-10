@@ -19,8 +19,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-// $ Id:  $
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -44,11 +42,11 @@ char  *prefix               = NULL;
 FILE   *UTGseqout = NULL;
 FILE   *UTGqltout = NULL;
 
+FILE   *DEGseqout = NULL;
+FILE   *DEGqltout = NULL;
+
 FILE   *CCOseqout = NULL;
 FILE   *CCOqltout = NULL;
-
-FILE   *DSCseqout = NULL;
-FILE   *DSCqltout = NULL;
 
 FILE   *SCFseqout = NULL;
 FILE   *SCFqltout = NULL;
@@ -60,7 +58,6 @@ typedef struct {
   char  *cns;
   char  *qlt;
   int    len;
-  int    isPlaced;
   int    isDegenerate;
 } ctgData_t;
 
@@ -195,15 +192,15 @@ processUTG(SnapUnitigMesg  *utg_mesg) {
   if ((UTGseqout) && (utg_mesg->num_frags > minNumFragsInUnitig)) {
     AS_UTL_writeFastA(UTGseqout,
                       utg_mesg->consensus, len,
-                      ">utg"F_IID" length=%d num_frags="F_IID" Astat=%.2f\n",
-                      utg_mesg->iaccession,
+                      ">utg%s length=%d num_frags="F_IID" Astat=%.2f\n",
+                      AS_UID_toString(utg_mesg->eaccession),
                       strlen(utg_mesg->consensus),
                       utg_mesg->num_frags,
                       utg_mesg->coverage_stat);
     AS_UTL_writeFastA(UTGqltout,
                       utg_mesg->quality, len,
-                      ">utg"F_IID" length=%d num_frags="F_IID" Astat=%.2f\n",
-                      utg_mesg->iaccession,
+                      ">utg%s length=%d num_frags="F_IID" Astat=%.2f\n",
+                      AS_UID_toString(utg_mesg->eaccession),
                       strlen(utg_mesg->consensus),
                       utg_mesg->num_frags,
                       utg_mesg->coverage_stat);
@@ -226,13 +223,11 @@ processCCO(SnapConConMesg *cco_mesg) {
   cd->cns          = (char *)safe_malloc(sizeof(char) * (cco_mesg->length + 1));
   cd->qlt          = (char *)safe_malloc(sizeof(char) * (cco_mesg->length + 1));
   cd->len          = cco_mesg->length;
-  cd->isPlaced     = FALSE;
   cd->isDegenerate = FALSE;
 
-  //  By definition, a degenerate contig has one unitig and is
-  //  unplaced.
+  //  By definition, a degenerate contig has one unitig and is unplaced.
+  //  In reality, those two conditions always occur together.
   //
-  cd->isPlaced     = (cco_mesg->placed == AS_PLACED);
   cd->isDegenerate = (cco_mesg->placed == AS_UNPLACED) && (cco_mesg->num_unitigs == 1);
                       
   memcpy(cd->cns, cco_mesg->consensus, cco_mesg->length);
@@ -252,21 +247,18 @@ processCCO(SnapConConMesg *cco_mesg) {
 
   ctgData[cco_mesg->iaccession] = cd;
 
-  if (CCOseqout) {
+  //  We'll write DEG when we see a DSC message -- so we can get the
+  //  scaffold id on the defline.
+
+  if ((cd->isDegenerate == 0) && (CCOseqout)) {
     AS_UTL_writeFastA(CCOseqout,
                       cd->cns, cd->len,
-                      ">ctg%s,"F_IID" placed=%s degenerate=%s\n",
-                      AS_UID_toString(cco_mesg->eaccession),
-                      cco_mesg->iaccession,
-                      (cd->isPlaced)     ? "true" : "false",
-                      (cd->isDegenerate) ? "true" : "false");
+                      ">ctg%s\n",
+                      AS_UID_toString(cco_mesg->eaccession));
     AS_UTL_writeFastA(CCOqltout,
                       cd->qlt, cd->len,
-                      ">ctg%s,"F_IID" placed=%s degenerate=%s\n",
-                      AS_UID_toString(cco_mesg->eaccession),
-                      cco_mesg->iaccession,
-                      (cd->isPlaced)     ? "true" : "false",
-                      (cd->isDegenerate) ? "true" : "false");
+                      ">ctg%s\n",
+                      AS_UID_toString(cco_mesg->eaccession));
   }
 }
 
@@ -277,18 +269,22 @@ processDSC(SnapDegenerateScaffoldMesg *dsc_mesg) {
   AS_IID        ctgIID = LookupValueInHashTable_AS(uid2iid, AS_UID_toInteger(dsc_mesg->econtig), 0);
   ctgData_t    *cd     = ctgData[ctgIID];
 
-  if (cd->isDegenerate == FALSE)
+  if (cd->isDegenerate == FALSE) {
+    fprintf(stderr, "WARNING:  DSC %s is not marked as a degenerate contig (CTG %s).\n",
+            AS_UID_toString1(dsc_mesg->eaccession),
+            AS_UID_toString2(dsc_mesg->econtig));
     return;
+  }
 
   //fprintf(stderr, "DSC: "F_IID" %s len: %d\n", ctgIID, AS_UID_toString(dsc_mesg->econtig), cd->len);
 
-  if (DSCseqout) {
-    AS_UTL_writeFastA(DSCseqout,
+  if (DEGseqout) {
+    AS_UTL_writeFastA(DEGseqout,
                       cd->cns, cd->len,
-                      ">dsc%s ctg%s\n", AS_UID_toString1(dsc_mesg->eaccession), AS_UID_toString2(dsc_mesg->econtig));
-    AS_UTL_writeFastA(DSCqltout,
+                      ">ctg%s dsc%s \n", AS_UID_toString2(dsc_mesg->econtig), AS_UID_toString1(dsc_mesg->eaccession));
+    AS_UTL_writeFastA(DEGqltout,
                       cd->qlt, cd->len,
-                      ">dsc%s ctg%s\n", AS_UID_toString1(dsc_mesg->eaccession), AS_UID_toString2(dsc_mesg->econtig));
+                      ">ctg%s dsc%s\n", AS_UID_toString2(dsc_mesg->econtig), AS_UID_toString1(dsc_mesg->eaccession));
   }
 }
 
@@ -416,15 +412,18 @@ main(int argc, char **argv) {
   char              name[FILENAME_MAX];
   char             *infile = NULL;
 
-  int               dumpUnitigs   = 1;
-  int               dumpContigs   = 1;
-  int               dumpScaffolds = 1;
+  int               dumpUnitigs     = 1;
+  int               dumpDegenerates = 1;
+  int               dumpContigs     = 1;
+  int               dumpScaffolds   = 1;
 
   int arg=1;
   int err=0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-U") == 0) {
       dumpUnitigs = 0;
+    } else if (strcmp(argv[arg], "-D") == 0) {
+      dumpDegenerates = 0;
     } else if (strcmp(argv[arg], "-C") == 0) {
       dumpContigs = 0;
     } else if (strcmp(argv[arg], "-S") == 0) {
@@ -449,6 +448,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "usage: %s [options] -p prefix < asmfile\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -U         do NOT dump unitigs\n");
+    fprintf(stderr, "  -D         do NOT dump degenerates\n");
     fprintf(stderr, "  -C         do NOT dump contigs\n");
     fprintf(stderr, "  -S         do NOT dump scaffolds\n");
     fprintf(stderr, "\n");
@@ -475,13 +475,14 @@ main(int argc, char **argv) {
     UTGqltout = openOutput(prefix, "utgqlt");
   }
   if (dumpContigs) {
+    DEGseqout = openOutput(prefix, "degcns");
+    DEGqltout = openOutput(prefix, "degqlt");
+  }
+  if (dumpContigs) {
     CCOseqout = openOutput(prefix, "ctgcns");
     CCOqltout = openOutput(prefix, "ctgqlt");
   }
   if (dumpScaffolds) {
-    DSCseqout = openOutput(prefix, "dsccns");
-    DSCqltout = openOutput(prefix, "dscqlt");
-
     SCFseqout = openOutput(prefix, "scfcns");
     SCFqltout = openOutput(prefix, "scfqlt");
   }
@@ -516,14 +517,15 @@ main(int argc, char **argv) {
     fclose(UTGseqout);
     fclose(UTGqltout);
   }
+  if (dumpDegenerates) {
+    fclose(DEGseqout);
+    fclose(DEGqltout);
+  }
   if (dumpContigs) {
     fclose(CCOseqout);
     fclose(CCOqltout);
   }
   if (dumpScaffolds) {
-    fclose(DSCseqout);
-    fclose(DSCqltout);
-
     fclose(SCFseqout);
     fclose(SCFqltout);
   }

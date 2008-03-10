@@ -79,8 +79,7 @@ sub terminate ($) {
         $cmd .= " -s $fakeUIDs "                if ($fakeUIDs != 0);
         $cmd .= " $uidServer "                  if (defined($uidServer));
         $cmd .= " -g $wrk/$asm.gkpStore ";
-        $cmd .= " -o $termDir/$asm.asm ";
-        $cmd .= " -m $termDir/$asm.map ";
+        $cmd .= " -o $termDir/$asm ";
         $cmd .= " > $termDir/terminator.err 2>&1 ";
         if (runCommand("$termDir", $cmd)) {
             rename "$termDir/$asm.asm", "$termDir/$asm.asm.FAILED";
@@ -132,16 +131,78 @@ sub terminate ($) {
                 caFailure("buildFragContigMap failed.\n");
             }
         }
-        if (! -e "$termDir/$asm.posmap.frgscf.sorted") {
-            if (runCommand("$termDir", "sort -k2n -T $termDir $termDir/$asm.posmap.frgscf > $termDir/$asm.posmap.frgscf.sorted")) {
-                rename "$termDir/$asm.posmap.frgscf.histogram", "$termDir/$asm.posmap.frgscf.histogram.FAILED";
-            } else {
-                runCommand("$termDir", "$bin/fragmentDepth -min       0 -max    3000 < $termDir/$asm.posmap.frgscf.sorted > $termDir/$asm.posmap.frgscf.histogram1");
-                runCommand("$termDir", "$bin/fragmentDepth -min    3001 -max   10000 < $termDir/$asm.posmap.frgscf.sorted > $termDir/$asm.posmap.frgscf.histogram2");
-                runCommand("$termDir", "$bin/fragmentDepth -min   10001 -max 1000000 < $termDir/$asm.posmap.frgscf.sorted > $termDir/$asm.posmap.frgscf.histogram3");
-                runCommand("$termDir", "$bin/fragmentDepth -min 1000001              < $termDir/$asm.posmap.frgscf.sorted > $termDir/$asm.posmap.frgscf.histogram4");
+    }
+
+    ########################################
+    #
+    #  Generate a read depth histogram
+    #
+    ########################################
+    if ((getGlobal("createPosMap") > 0) && (! -e "$termDir/$asm.qc.readdepth")) {
+        my $cmd;
+
+        #  Youch.  Run five commands, do something if all are successful.
+
+        $cmd  = "sort -k2n -T $termDir $termDir/$asm.posmap.frgscf > $termDir/$asm.posmap.frgscf.sorted &&";
+        $cmd .= "$bin/fragmentDepth -min       0 -max    3000 < $termDir/$asm.posmap.frgscf.sorted > $termDir/$asm.posmap.frgscf.histogram1 && ";
+        $cmd .= "$bin/fragmentDepth -min    3001 -max   10000 < $termDir/$asm.posmap.frgscf.sorted > $termDir/$asm.posmap.frgscf.histogram2 && ";
+        $cmd .= "$bin/fragmentDepth -min   10001 -max 1000000 < $termDir/$asm.posmap.frgscf.sorted > $termDir/$asm.posmap.frgscf.histogram3 && ";
+        $cmd .= "$bin/fragmentDepth -min 1000001              < $termDir/$asm.posmap.frgscf.sorted > $termDir/$asm.posmap.frgscf.histogram4 && ";
+
+        if (runCommand("$termDir", $cmd) == 0) {
+            my @H1;
+            my @H2;
+            my @H3;
+            my @H4;
+            my $histMax = 0;
+
+            open(G, "<  $termDir/$asm.posmap.frgscf.histogram1") or caFailure("Failed to open '$termDir/$asm.posmap.frgscf.histogram1'\n");
+            while (<G>) {
+                my ($v, $s) = split '\s+', $_;
+                $H1[$v] = $s;
+                $histMax = $v if ($histMax < $v);
+            }
+            close(G);
+
+            open(G, "<  $termDir/$asm.posmap.frgscf.histogram2") or caFailure("Failed to open '$termDir/$asm.posmap.frgscf.histogram2'\n");
+            while (<G>) {
+                my ($v, $s) = split '\s+', $_;
+                $H2[$v] = $s;
+                $histMax = $v if ($histMax < $v);
+            }
+            close(G);
+
+            open(G, "<  $termDir/$asm.posmap.frgscf.histogram3") or caFailure("Failed to open '$termDir/$asm.posmap.frgscf.histogram3'\n");
+            while (<G>) {
+                my ($v, $s) = split '\s+', $_;
+                $H3[$v] = $s;
+                $histMax = $v if ($histMax < $v);
+            }
+            close(G);
+
+            open(G, "<  $termDir/$asm.posmap.frgscf.histogram4") or caFailure("Failed to open '$termDir/$asm.posmap.frgscf.histogram4'\n");
+            while (<G>) {
+                my ($v, $s) = split '\s+', $_;
+                $H4[$v] = $s;
+                $histMax = $v if ($histMax < $v);
+            }
+            close(G);
+
+            open(G, "> $termDir/$asm.qc.readdepth");
+            print G "\n[Read Depth Histogram]\n";
+            print G "d    < 3Kbp    < 10Kbp   < 1Mbp    < inf\n";
+            for (my $v=0; $v<=$histMax; $v++) {
+                printf(G "%-4d %-10d %-10d %-10d %-10d\n", $v, int($H1[$v]), int($H2[$v]), int($H3[$v]), int($H4[$v]));
             }
         }
+
+        #  Remove our temporary files.
+
+        unlink "$termDir/$asm.posmap.frgscf.sorted";
+        unlink "$termDir/$asm.posmap.frgscf.histogram1";
+        unlink "$termDir/$asm.posmap.frgscf.histogram2";
+        unlink "$termDir/$asm.posmap.frgscf.histogram3";
+        unlink "$termDir/$asm.posmap.frgscf.histogram4";
     }
 
 
@@ -205,54 +266,12 @@ sub terminate ($) {
             close(G);
         }
 
-        my @H1;
-        my @H2;
-        my @H3;
-        my @H4;
-        my $histMax = 0;
-        if (-e "$termDir/$asm.posmap.frgscf.histogram1") {
-            open(G, "<  $termDir/$asm.posmap.frgscf.histogram1") or caFailure("Failed to open '$termDir/$asm.posmap.frgscf.histogram1'\n");
+        if (-e "$termDir/$asm.qc.readdepth") {
+            open(G, "< $termDir/$asm.qc.readdepth") or caFailure("Failed to open '$termDir/$asm.qc.readdepth'\n");
             while (<G>) {
-                my ($v, $s) = split '\s+', $_;
-                $H1[$v] = $s;
-                $histMax = $v if ($histMax < $v);
+                print F $_;
             }
             close(G);
-        }
-        if (-e "$termDir/$asm.posmap.frgscf.histogram2") {
-            open(G, "<  $termDir/$asm.posmap.frgscf.histogram2") or caFailure("Failed to open '$termDir/$asm.posmap.frgscf.histogram2'\n");
-            while (<G>) {
-                my ($v, $s) = split '\s+', $_;
-                $H2[$v] = $s;
-                $histMax = $v if ($histMax < $v);
-            }
-            close(G);
-        }
-        if (-e "$termDir/$asm.posmap.frgscf.histogram3") {
-            open(G, "<  $termDir/$asm.posmap.frgscf.histogram3") or caFailure("Failed to open '$termDir/$asm.posmap.frgscf.histogram3'\n");
-            while (<G>) {
-                my ($v, $s) = split '\s+', $_;
-                $H3[$v] = $s;
-                $histMax = $v if ($histMax < $v);
-            }
-            close(G);
-        }
-        if (-e "$termDir/$asm.posmap.frgscf.histogram4") {
-            open(G, "<  $termDir/$asm.posmap.frgscf.histogram4") or caFailure("Failed to open '$termDir/$asm.posmap.frgscf.histogram4'\n");
-            while (<G>) {
-                my ($v, $s) = split '\s+', $_;
-                $H4[$v] = $s;
-                $histMax = $v if ($histMax < $v);
-            }
-            close(G);
-        }
-
-        
-        print F "\n[Read Depth Histogram]\n";
-        print F "d    < 3Kbp    < 10Kbp   < 1Mbp    < inf\n";
-        for (my $v=0; $v<=$histMax; $v++) {
-            printf(F "%-4d %-10d %-10d %-10d %-10d\n",
-                   $v, int($H1[$v]), int($H2[$v]), int($H3[$v]), int($H4[$v]));
         }
 
         close(F);

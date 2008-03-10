@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.23 2007-11-08 12:38:15 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.24 2008-03-10 02:42:28 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -65,31 +65,15 @@ UIDserver       *uids;
 
 void
 DumpIID2UIDmap(VA_TYPE(AS_UID) *map,
-               char *execname,
-               char *prefix,
-               char *name,
-               char *label) {
-  FILE    *F = NULL;
-  char     N[1024];
+               char *label,
+               FILE *F) {
   int      i;
-
-  sprintf(N, name, prefix);
-  errno = 0;
-  F = fopen(N, "w");
-  if (errno) {
-    fprintf(stderr, "%s: Couldn't open '%s' for write: %s\n", execname, N, strerror(errno));
-    exit(1);
-  }
-
-  fprintf(F, "%s\n", label);
 
   for(i=0; i<GetNumAS_UIDs(map); i++){
     AS_UID  di = *GetAS_UID(map,i);
     if (AS_UID_isDefined(di))
-      fprintf(F,"%d\t%s\n", i, AS_UID_toString(di));
+      fprintf(F,"%s\t%d\t%s\n", label, i, AS_UID_toString(di));
   }
-
-  fclose(F);
 }
 
 AS_UID
@@ -675,8 +659,7 @@ convertIDS(GenericMesg *pmesg,
 
 
 int main (int argc, char *argv[]) {
-  char *outputFileName     = NULL;
-  char *mapFileName        = NULL;
+  char *outputPrefix       = NULL;
   char *gkpStoreName       = NULL;
 
   uint64      uidStart     = 0;
@@ -704,11 +687,9 @@ int main (int argc, char *argv[]) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-g") == 0) {
       gkpStoreName = argv[++arg];
-    } else if (strcmp(argv[arg], "-m") == 0) {
-      mapFileName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-o") == 0) {
-      outputFileName = argv[++arg];
+      outputPrefix = argv[++arg];
 
     } else if (strcmp(argv[arg], "-s") == 0) {
         uidStart = strtoul(argv[++arg], NULL, 10);
@@ -728,10 +709,9 @@ int main (int argc, char *argv[]) {
     arg++;
   }
   if ((gkpStoreName == NULL) || (err)) {
-    fprintf(stderr, "usage: %s -g gkpStore [-o output.asm] [-m mapprefix] [-s firstUID] [-n namespace] [-E server] [-h]\n", argv[0]);
+    fprintf(stderr, "usage: %s -g gkpStore [-o prefix] [-s firstUID] [-n namespace] [-E server] [-h]\n", argv[0]);
     fprintf(stderr, "  -g gkpStore      mandatory path to the gatekeeper store\n");
-    fprintf(stderr, "  -o output.asm    write the output here, otherwise to stdout\n");
-    fprintf(stderr, "  -m mapprefix     write IID to UID mappings to files with this prefix\n");
+    fprintf(stderr, "  -o prefix        write the output here, otherwise to stdout (.asm appended)\n");
     fprintf(stderr, "  -s firstUID      don't use real UIDs, but start counting from here\n");
     fprintf(stderr, "  -n namespace     use this UID namespace\n");
     fprintf(stderr, "  -E server        use this UID server\n");
@@ -777,14 +757,16 @@ int main (int argc, char *argv[]) {
 
   //  We still use the gkpStore for getting library info, so leave it open for now.
 
-  if ((outputFileName == NULL) || (strcmp(outputFileName, "-") == 0)) {
-    outputFileName = NULL;
+  if ((outputPrefix == NULL) || (strcmp(outputPrefix, "-") == 0)) {
+    outputPrefix = NULL;
     fileOutput = stdout;
   } else {
+    char N[FILENAME_MAX] = {0};
+    sprintf(N, "%s.asm", outputPrefix);
     errno = 0;
-    fileOutput = fopen(outputFileName, "w");
+    fileOutput = fopen(N, "w");
     if (errno) {
-      fprintf(stderr, "%s: Couldn't open '%s' for write: %s\n", outputFileName, strerror(errno));
+      fprintf(stderr, "%s: Couldn't open '%s' for write: %s\n", N, strerror(errno));
       exit(1);
     }
   }
@@ -858,21 +840,35 @@ int main (int argc, char *argv[]) {
   fprintf(stderr, "numIAF:%d numIUM:%d numIUL:%d numICM:%d numICL:%d numISL:%d numISF:%d numIMD:%d numIDS:%d\n",
           numIAF, numIUM, numIUL, numICM, numICL, numISL, numISF, numIMD, numIDS);
 
-  if (outputFileName)
+  if (outputPrefix)
     fclose(fileOutput);
 
   fprintf(stderr, "Assembly file complete.\n");
 
   fprintf(stderr, "Writing IID to UID mapping files.\n");
 
-  DumpIID2UIDmap(FRGmap, argv[0], mapFileName, "%s.fragment.iidtouid", "Fragment IID2UID map");
-  DumpIID2UIDmap(IUMmap, argv[0], mapFileName, "%s.unitig.iidtouid",   "Unitig IID2UID map");
-  DumpIID2UIDmap(ICMmap, argv[0], mapFileName, "%s.contig.iidtouid",   "Contig IID2UID map");
-  DumpIID2UIDmap(ISFmap, argv[0], mapFileName, "%s.scaffold.iidtouid", "Scaffold IID2UID map");
-  DumpIID2UIDmap(DSTmap, argv[0], mapFileName, "%s.distrib.iidtouid",  "Distrib IID2UID map");
-  DumpIID2UIDmap(DSCmap, argv[0], mapFileName, "%s.degeneratecontig.iidtouid", "Degenerate Contig IID to Scaffold UID map");
+  {
+    FILE    *F = NULL;
+    char     N[1024];
+    sprintf(N, "%s.iidtouid", outputPrefix);
+    errno = 0;
+    F = fopen(N, "w");
+    if (errno) {
+      fprintf(stderr, "%s: Couldn't open '%s' for write: %s\n", argv[0], N, strerror(errno));
+      exit(1);
+    }
 
-  fprintf(stderr, "IID to UID mapping files complete.\n");
+    DumpIID2UIDmap(FRGmap, "FRG", F);
+    DumpIID2UIDmap(IUMmap, "UTG", F);
+    DumpIID2UIDmap(ICMmap, "CTG", F);
+    DumpIID2UIDmap(ISFmap, "SCF", F);
+    DumpIID2UIDmap(DSTmap, "LIB", F);
+    DumpIID2UIDmap(DSCmap, "DSC", F);
+
+    fclose(F);
+
+    fprintf(stderr, "IID to UID mapping files complete.\n");
+  }
 
   //  CANNOT close this before dumping IID to UID maps -- needed for
   //  UID lookups!

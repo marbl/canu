@@ -274,8 +274,11 @@ of if the fragment was deleted and why.
 \subsection{Assembled Sequences}
 
 Five sequence types are output: singleton reads, unitigs, contigs,
-scaffolds and degenerate scaffolds.  All but singleton reads also have
-quality values in a separate file.
+scaffolds and degenerates.  A degenerate is a unitig that was never
+placed in a scaffold; however, it has both a contig UID and a
+(degenerate) scaffold UID.
+
+All but singleton reads also have quality values in a separate file.
 
 \begin{center}
 \begin{tabular}{|c|c|}
@@ -286,14 +289,14 @@ singleton reads      & {\tt \$prefix.singleton.fasta} \\
 unitigs              & {\tt \$prefix.utgcns.fasta} \\
                      & {\tt \$prefix.utgqlt.fasta} \\
 \hline
+degenerates          & {\tt \$prefix.degcns.fasta} \\
+                     & {\tt \$prefix.degqlt.fasta} \\
+\hline
 contigs              & {\tt \$prefix.ctgcns.fasta} \\
                      & {\tt \$prefix.ctgqlt.fasta} \\
 \hline
 scaffolds            & {\tt \$prefix.scfcns.fasta} \\
                      & {\tt \$prefix.scfqlt.fasta} \\
-\hline
-degenerate scaffolds & {\tt \$prefix.dsccns.fasta} \\
-                     & {\tt \$prefix.dscqlt.fasta} \\
 \hline
 \end{tabular}
 \end{center}
