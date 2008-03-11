@@ -391,9 +391,28 @@ processSCF(SnapScaffoldMesg *scf_mesg) {
 
 FILE *openOutput(char *prefix, char *label) {
   char  N[FILENAME_MAX];
+  static int once = 0;
+  const char* fsa = "fasta";
+  const char* notFsa = "notFasta";
+  const char* suffix = fsa;
+  const char* readme =
+"These qlt files are not strictly fasta because a > is a valid quality value and\n \
+could occasionally occur at the beginning of a line. See sourceforge for more\n \
+documentation and for feedback http://wgs-assembler.sf.net\n";
+
   FILE *F;
 
-  sprintf(N, "%s.%s.fasta", prefix, label);
+  if (NULL != strstr(label,"qlt")) {
+      suffix = notFsa;
+      if (!once) {
+          once++;
+          F = fopen("README.notFasta", "w");
+          fwrite( readme, sizeof(char), strlen(readme), F);
+          fclose(F);
+      }
+
+  }
+  sprintf(N, "%s.%s.%s", prefix, label, suffix);
 
   errno = 0;
   F = fopen(N, "w");
