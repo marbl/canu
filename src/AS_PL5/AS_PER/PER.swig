@@ -35,13 +35,8 @@
 %import AS_global.h
 #undef __cplusplus
 
-#ifdef AS_IID
 #define __IID AS_IID
 #define __UID AS_UID
-#else
-#define __IID CDS_IID_t
-#define __UID CDS_UID_t
-#endif
 
 %apply unsigned int *OUTPUT { uint32 *start, uint32 *end };
 %apply unsigned int *OUTPUT { __IID *iid, uint32 *type };
