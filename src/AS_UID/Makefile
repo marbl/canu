@@ -43,6 +43,11 @@ ifeq ($(SITE_NAME), LOCAL)
   SITEOBJS       += SYS_UIDclient_LOCAL.o
 endif
 
+ifeq ($(SITE_NAME), BRI)
+  SOURCES        += SYS_UIDclient_LOCAL.c
+  SITEOBJS       += SYS_UIDclient_LOCAL.o
+endif
+
 OBJECTS = $(SOURCES:.c=.o)
 
 ## Now include c_make.as with the updated SOURCES and OBJECTS

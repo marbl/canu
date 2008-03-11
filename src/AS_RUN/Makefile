@@ -73,6 +73,10 @@ ifeq ($(SITE_NAME),JCVI)
   CARUNLOCAL = runCA-OBT/runCAutil/site-jcvi.pl
 endif
 
+ifeq ($(SITE_NAME),BRI)
+  RUNCALOCAL = runCA-OBT/runCAutil/site-bri.pl
+endif
+
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 

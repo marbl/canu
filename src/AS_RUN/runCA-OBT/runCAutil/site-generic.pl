@@ -6,9 +6,6 @@
 #  progress, users can use the web to display this info.  Finally, you
 #  can post-process the assembly.
  
-sub localFinalize() {
-}
-
 sub localDefaults() {
 }
 
@@ -62,6 +59,9 @@ sub localFailure ($) {
 
 sub localPostTerminator($) {
     my $terminatorDirectory = shift @_;
+}
+
+sub localFinalize() {
 }
 
 1;

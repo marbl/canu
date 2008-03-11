@@ -1,27 +1,27 @@
 #
-# $Id: site_name.as,v 1.7 2007-03-28 13:59:05 skoren Exp $
+# $Id: site_name.as,v 1.8 2008-03-11 03:34:43 brianwalenz Exp $
 #
 # Set the name of the site/location where the assembler is buing built.
 #
 # This mostly controls the behavior of the UID client/server, but
-# may affect other components.
+# may affect other components.  When adding a new site, modifications
+# are needed in:
+#   AS_RUN -- Makefile and runCA/runCAutil/site*
+#   AS_ARD -- Makefile (experimental, only enabled for JCVI)
+#   AS_UID -- Makefile
 #
-# Other site-specific settings can be made in c_make.as.
+# Site-specific compilation settings can be made in c_make.as.
 #
-# The default site name is invalid to force the user to pick the correct
-# site.  A reasonable default would be the LOCAL site, but this would
-# generate numerous errors at TIGR and JCVI when those users forget to
-# set the proper site name.
+# The default site name is invalid to force the user to pick the
+# correct site.  A reasonable default would be the LOCAL site, but
+# this would generate numerous errors at JCVI when those users forget
+# to set the proper site name.
 
 ifeq ($(SITE_NAME),)
 
   #  The default site.
   #
   SITE_NAME=CELERA
-
-  #  TIGR uses a SOAP server to get UIDs.
-  #
-  #SITE_NAME=TIGR
 
   #  JCVI uses a web server via curl to get UIDs.
   #
@@ -31,8 +31,12 @@ ifeq ($(SITE_NAME),)
   #  to remember what the last UID used is.
   #
   #SITE_NAME=LOCAL
+
+  #  "BRI" is like "LOCAL", but adds some customization to runCA.
+  #
+  #SITE_NAME=LOCAL
 endif
 
-ifeq (,$(findstring $(SITE_NAME),"JCVI LOCAL"))
-  $(error Invalid SITE_NAME $(SITE_NAME).  Must be one of JCVI, LOCAL.  Please edit this file)
+ifeq (,$(findstring $(SITE_NAME),"JCVI LOCAL BRI"))
+  $(error Invalid SITE_NAME $(SITE_NAME).  Must be one of JCVI, LOCAL, BRI.  Please edit this file)
 endif
