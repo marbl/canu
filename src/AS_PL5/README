@@ -1,0 +1,31 @@
+
+What is it?
+===========
+
+This library allows to parse Celera message files using the C parser
+used internally by Celera.
+
+
+Where is the doc?
+=================
+
+After installation, the doc is available via perldoc: 
+
+  perldoc AS::MSG::Parser
+
+
+Where is the source tree?
+=========================
+
+Available from within the University of Maryland, from the darc repository at:
+
+http://genome1.umd.edu/darcsweb/darcsweb.cgi?r=AS_MSG;a=summary
+
+
+
+How does one compile the source?
+================================
+
+% perl Makefile.PL AS_BASE=../.. PREFIX=../../Linux-amd64
+% make
+% make install

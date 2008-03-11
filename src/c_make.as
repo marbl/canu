@@ -65,7 +65,7 @@ ifeq ($(OSTYPE), Linux)
 #  CC         = /bioinfo/assembly/gcc/gcc-4.2.1/amd64/bin/gcc
 #  CXX        = /bioinfo/assembly/gcc/gcc-4.2.1/amd64/bin/g++
 
-  ARCH_CFLAGS = -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+  ARCH_CFLAGS = -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -fPIC
 
   ARCH_CFLAGS    += -pthread
   ARCH_LDFLAGS   += -pthread
