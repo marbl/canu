@@ -9,8 +9,8 @@
  */
 static const char *MessageTypeStruct[NUM_OF_REC_TYPES + 1] = {
   NULL,
-  "AuditMesg", "VersionMesg", "FragMesg", "FragMesg", NULL, 
-  "LinkType", NULL, "DistanceMesg", NULL, "LibraryMesg",
+  "AuditMesg", "VersionMesg", "FragMesg", "InternalFragMesg", NULL, 
+  "LinkMesg", NULL, "DistanceMesg", NULL, "LibraryMesg",
   NULL, NULL, "OverlapMesg", NULL, "UnitigOverlapMesg",
   "IntUnitigMesg", "IntUnitigLinkMesg", "IntContigLinkMesg", "AugFragMesg", "IntScaffoldMesg",
   "IntMateDistMesg", "IntAugFragMesg", "SnapUnitigMesg", "SnapUnitigLinkMesg", "IntConConMesg",

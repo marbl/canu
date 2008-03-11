@@ -95,7 +95,6 @@
   void initialize();
   void next_message(OutMesg *nmesg, void **ty, int *own);
   void write_message();
-  void message(OutMesg *nmesg, void **ty, int *own);
   const char *message_type();
 }
 
