@@ -36,6 +36,7 @@ sub runMeryl ($$$$$$) {
 
             $cmd .= "$bin/meryl ";
             $cmd .= " -B $merCanonical -v -m $merSize -memory $merylMemory -threads $merylThreads -c $merComp ";
+            $cmd .= " -L $merThresh ";
             $cmd .= " -s $wrk/$asm.gkpStore:obt ";
             $cmd .= " -o $ofile ";
             $cmd .= "> $wrk/0-mercounts/meryl.out 2>&1";
