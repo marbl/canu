@@ -32,7 +32,7 @@ positionDB::positionDB(char const    *filename,
                        bool           loadData) {
   memset(this, 0, sizeof(positionDB));
   if (loadState(filename, true, loadData) == false) {
-    fprintf(stderr, "positionDB()-- Tried to read state from '%s', but failed.\n", filename);
+    fprintf(MSG_OUTPUT, "positionDB()-- Tried to read state from '%s', but failed.\n", filename);
     exit(1);
   }
 }
@@ -132,7 +132,7 @@ positionDB::positionDB(merStream          *MS,
       u32bit  s2 = s1 / 2;
 
       if (((i % 2) == 1) || ((s1 % 2) == 1) || ((s2 % 2) == 1)) {
-        fprintf(stderr, "tblBits="u64bitFMT" s1="u32bitFMT" s2="u32bitFMT" -- merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT" SKIP.\n",
+        fprintf(stderr, "tblBits="u64bitFMT" s1="u32bitFMT" s2="u32bitFMT" -- merSize="u32bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT" SKIP.\n",
                 i, s1, s2, merSize, posnWidth, approxMers, mm);
         continue;
       }
@@ -141,7 +141,7 @@ positionDB::positionDB(merStream          *MS,
     if (mm < mins) {
       {
         u32bit s1 = 2*merSize-i;
-        fprintf(stderr, "tblBits="u64bitFMT" s1="u32bitFMT" s2="u32bitFMT" -- merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT" SMALLER.\n",
+        fprintf(stderr, "tblBits="u64bitFMT" s1="u32bitFMT" s2="u32bitFMT" -- merSize="u32bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT" SMALLER.\n",
                 i, s1, s1/2, merSize, posnWidth, approxMers, mm);
       }
       mini = i;
@@ -153,7 +153,7 @@ positionDB::positionDB(merStream          *MS,
 
   {
     u32bit s1 = 2*merSize-_tableSizeInBits;
-    fprintf(stderr, "tblBits="u64bitFMT" s1="u32bitFMT" s2="u32bitFMT" -- merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) FINAL\n",
+    fprintf(stderr, "tblBits="u32bitFMT" s1="u32bitFMT" s2="u32bitFMT" -- merSize="u32bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) FINAL\n",
             _tableSizeInBits, s1, s1/2, merSize, posnWidth, approxMers);
   }
 
@@ -178,11 +178,11 @@ positionDB::positionDB(merStream          *MS,
   _mask1                 = u64bitMASK(_tableSizeInBits);
   _mask2                 = u64bitMASK(_shift1);
 
-  fprintf(stderr, "merSizeInBits   "u64bitFMT"\n", _merSizeInBits);
-  fprintf(stderr, "hashWidth       "u64bitFMT"\n", _hashWidth);
-  fprintf(stderr, "chckWidth       "u64bitFMT"\n", _chckWidth);
-  fprintf(stderr, "shift1          "u64bitFMT"\n", _shift1);
-  fprintf(stderr, "shift2          "u64bitFMT"\n", _shift2);
+  fprintf(stderr, "merSizeInBits   "u32bitFMT"\n", _merSizeInBits);
+  fprintf(stderr, "hashWidth       "u32bitFMT"\n", _hashWidth);
+  fprintf(stderr, "chckWidth       "u32bitFMT"\n", _chckWidth);
+  fprintf(stderr, "shift1          "u32bitFMT"\n", _shift1);
+  fprintf(stderr, "shift2          "u32bitFMT"\n", _shift2);
 
   build(MS, mask, only, counts, minCount, maxCount, beVerbose);
 }
@@ -669,7 +669,6 @@ positionDB::build(merStream          *MS,
     u64bit ed = _bucketSizes[b+1];
     u32bit le = ed - st;
 
-
     //  Unpack the check values
     //
     for (u64bit i=st, J=st * _wCnt; i<ed; i++, J += _wCnt) {
@@ -905,6 +904,11 @@ positionDB::build(merStream          *MS,
   u64bit  countsLoaded      = 0;
 
   if (counts) {
+    if (beVerbose)
+      fprintf(stderr, "    Loading "u64bitFMT" mercounts.\n", counts->numberOfDistinctMers());
+
+    C = new speedCounter("    %7.2f Mmercounts -- %5.2f Mmercounts/second\r", 1000000.0, 0x1fffff, beVerbose);
+
     while (counts->nextMer()) {
       kMer    k = counts->theFMer();
       u64bit  c = counts->theCount();
@@ -917,14 +921,20 @@ positionDB::build(merStream          *MS,
         if (largestMerylCount < c)
           largestMerylCount = c;
       }
+
+      C->tick();
     }
 
-    fprintf(stderr, "    Loaded "u64bitFMT" mercounts; largest is "u64bitFMT".\n", countsLoaded, largestMerylCount);
+    delete C;
+
+    if (beVerbose)
+      fprintf(stderr, "    Loaded "u64bitFMT" mercounts; largest is "u64bitFMT".\n", countsLoaded, largestMerylCount);
 
     if (logBaseTwo64(largestMerylCount + 1) < _sizeWidth) {
-      fprintf(stderr, "    Compress sizes from "u32bitFMT" bits to "u32bitFMT" bits.\n",
-              _sizeWidth,
-              (u32bit)logBaseTwo64(largestMerylCount + 1));
+      if (beVerbose)
+        fprintf(stderr, "    Compress sizes from "u32bitFMT" bits to "u32bitFMT" bits.\n",
+                _sizeWidth,
+                (u32bit)logBaseTwo64(largestMerylCount + 1));
 
       u64bit oSiz[4] = { _chckWidth, _pptrWidth, 1, _sizeWidth };
       u64bit nSiz[4] = { _chckWidth, _pptrWidth, 1, logBaseTwo64(largestMerylCount + 1) };
@@ -935,19 +945,24 @@ positionDB::build(merStream          *MS,
 
       assert(nS < oS);
 
+      C = new speedCounter("    %7.2f Mmercounts -- %5.2f Mmercounts/second\r", 1000000.0, 0x1fffff, beVerbose);
+
       for (u64bit b=0; b<_numberOfDistinct; b++) {
         getDecodedValues(_buckets, oP, 4, oSiz, vals);
         setDecodedValues(_buckets, nP, 4, nSiz, vals);
 
         oP += oS;
         nP += nS;
+
+        C->tick();
       }
+
+      delete C;
 
       _sizeWidth = nSiz[3];
       _wFin      = _chckWidth + _pptrWidth + 1 + _sizeWidth;
     }
   }
-
 
 
 #ifdef TEST_NASTY_BUGS
