@@ -333,6 +333,7 @@ public:
   };
 
   ~ovmThreadData() {
+    delete    qKB;
     delete [] posnF;
     delete [] posnR;
     delete [] hits;
@@ -532,8 +533,10 @@ ovmWorker(void *G, void *T, void *S) {
 
   delete sMSTR;
 
-  if (t->hitsLen == 0)
+  if (t->hitsLen == 0) {
+    delete [] sSPAN;
     return;
+  }
 
 
   //  We have all the hits for this frag.  Sort them by sequence
@@ -633,6 +636,8 @@ ovmWorker(void *G, void *T, void *S) {
       i++;
     }
   }  //  over all hits
+
+  delete [] sSPAN;
 }
 
 
