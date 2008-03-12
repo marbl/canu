@@ -97,8 +97,6 @@ sub generateVectorTrim ($) {
     return if ($trimmer eq "ca");
     return if (-e "$wrk/$outDir/trim.success");
         
-    my $trimFile = undef;
-    
     #dump the fasta file from gkp
     if ( ! -e "$wrk/$asm.fasta" ) {
        if (runCommand($wrk, "$bin/gatekeeper -dumpfastaseq -clear UNTRIM $wrk/$asm.gkpStore 2> $wrk/$outDir/gatekeeper.err > $wrk/$asm.fasta")) {
