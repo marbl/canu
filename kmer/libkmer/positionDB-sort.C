@@ -143,7 +143,7 @@ positionDB::sortAndRepackBucket(u64bit b) {
   for (u64bit i=st, J=st * _wCnt; i<ed; i++, J += _wCnt) {
     vals[0] = _sortedChck[i-st];
     vals[1] = _sortedPosn[i-st];
-    vals[3] = 0;
+    vals[2] = 0;
     setDecodedValues(_countingBuckets, J, 3, lens, vals);
   }
 }
