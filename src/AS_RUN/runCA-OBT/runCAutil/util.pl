@@ -238,14 +238,14 @@ sub setDefaults () {
 
     #####  Preoverlap
 
-    $global{"gkpBelieveInputStdDev"}       = 0;
+    $global{"gkpFixInsertSizes"}           = 1;
 
     #####  Overlap Based Trimming
 
     $global{"doOverlapTrimming"}           = 1;
     $global{"vectorIntersect"}             = undef;
     $global{"vectorTrimmer"}               = "ca";
-    $global{"figaroFlags"}               = "-T 30 -M 100 -E 500 -V f";
+    $global{"figaroFlags"}                 = "-T 30 -M 100 -E 500 -V f";
 
     #####  Overlapper
 

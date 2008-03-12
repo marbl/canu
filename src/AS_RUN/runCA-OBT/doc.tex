@@ -598,11 +598,12 @@ sgeOverlapCorrection={\it string} &
 \label{sec:gkpopts}
 
 \begin{longtable}{lp{3.0in}}
-gkpBelieveInputStdDev={\it integer} &
-If true (1), {\tt gatekeeper} blindly trusts all input insert sizes.
-If false (0), {\tt gatekeeper} will reset too large / too small standard
-deviations to $0.1 * mean$.  Acceptable insert sizes are $0.1*mean <
-std.dev. < \frac{1}{3}*mean$.  The default is to reset input insert sizes.
+gkpFixInsertSizes={\it integer} &
+If true (1), {\tt gatekeeper} will fix insert size estimates that have
+a too large or too small standard deviation.  Acceptable insert sizes
+estimates are $0.1*mean < std.dev. < \frac{1}{3}*mean$.  If the
+standard deviation is outside this range, it is reset to $0.1 * mean$.
+The default is to fix estimates.
 See also {\tt computeInsertSize} in Section~\ref{sec:scafopts}.
 \\
 \end{longtable}

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.21 2008-03-10 21:07:05 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.22 2008-03-12 16:20:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +30,7 @@ static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.21 2008-03-10 21:07:0
 
 int
 Check_DistanceMesg(DistanceMesg    *dst_mesg,
-                   int              believeInputStdDev) {
+                   int              fixInsertSizes) {
   LibraryMesg  lmesg;
 
   //  Upconvert to a real LibraryMesg, then pass it on to the library
@@ -48,14 +48,14 @@ Check_DistanceMesg(DistanceMesg    *dst_mesg,
   lmesg.features     = NULL;
   lmesg.values       = NULL;
 
-  return(Check_LibraryMesg(&lmesg, believeInputStdDev));
+  return(Check_LibraryMesg(&lmesg, fixInsertSizes));
 }
 
 
 
 void
 checkLibraryDistances(LibraryMesg *lib_mesg,
-                      int          believeInputStdDev) {
+                      int          fixInsertSizes) {
 
   if (lib_mesg->link_orient == 'U')
     return;
@@ -87,7 +87,7 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
     lib_mesg->stddev = 0.1 * lib_mesg->mean;
   }
 
-  if (believeInputStdDev == 0) {
+  if (fixInsertSizes) {
     if (lib_mesg->mean < 3.0 * lib_mesg->stddev) {
       AS_GKP_reportError(AS_GKP_LIB_STDDEV_TOO_BIG,
                          AS_UID_toString(lib_mesg->eaccession), lib_mesg->stddev, lib_mesg->mean, 0.1 * lib_mesg->mean);
@@ -113,7 +113,7 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
 
 int
 Check_LibraryMesg(LibraryMesg      *lib_mesg,
-                  int                believeInputStdDev) {
+                  int                fixInsertSizes) {
 
   GateKeeperLibraryRecord  gkpl;
 
@@ -125,7 +125,7 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
 
   clearGateKeeperLibraryRecord(&gkpl);
 
-  checkLibraryDistances(lib_mesg, believeInputStdDev);
+  checkLibraryDistances(lib_mesg, fixInsertSizes);
 
   if (lib_mesg->action == AS_ADD) {
     AS_IID     iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);

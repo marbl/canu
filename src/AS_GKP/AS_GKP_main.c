@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_main.c,v 1.63 2008-02-04 16:33:42 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_main.c,v 1.64 2008-03-12 16:20:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,7 +56,7 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "\n");
   fprintf(stdout, "  -T                     do not check minimum length (for OBT)\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "  -D                     do NOT limit insert size stddev to 10%% of the mean\n");
+  fprintf(stdout, "  -F                     fix invalid insert size estimates\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  -E <error.frg>         write errors to this file\n");
   fprintf(stdout, "\n");
@@ -389,7 +389,7 @@ main(int argc, char **argv) {
   int              assembler          = AS_ASSEMBLER_GRANDE;
   int              firstFileArg       = 0;
   char            *errorFile          = NULL;
-  int              believeInputStdDev = 0;
+  int              fixInsertSizes     = 0;
 
   //  Options for partitioning
   //
@@ -444,8 +444,8 @@ main(int argc, char **argv) {
       assembler = AS_ASSEMBLER_OBT;
     } else if (strcmp(argv[arg], "-E") == 0) {
       errorFile = argv[++arg];
-    } else if (strcmp(argv[arg], "-D") == 0) {
-      believeInputStdDev = 1;
+    } else if (strcmp(argv[arg], "-F") == 0) {
+      fixInsertSizes = 1;
 
     } else if (strcmp(argv[arg], "-P") == 0) {
       partitionFile = argv[++arg];
@@ -716,9 +716,9 @@ main(int argc, char **argv) {
         } else if (pmesg->t == MESG_BAT) {
           success = Check_BatchMesg((BatchMesg *)pmesg->m);
         } else if (pmesg->t == MESG_DST) {
-          success = Check_DistanceMesg((DistanceMesg *)pmesg->m, believeInputStdDev);
+          success = Check_DistanceMesg((DistanceMesg *)pmesg->m, fixInsertSizes);
         } else if (pmesg->t == MESG_LIB) {
-          success = Check_LibraryMesg((LibraryMesg *)pmesg->m, believeInputStdDev);
+          success = Check_LibraryMesg((LibraryMesg *)pmesg->m, fixInsertSizes);
         } else if (pmesg->t == MESG_FRG) {
           success = Check_FragMesg((FragMesg *)pmesg->m, assembler);
         } else if (pmesg->t == MESG_LKG) {
