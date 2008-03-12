@@ -89,9 +89,10 @@ sub terminate ($) {
     }
 
 
+    my $asmOutputFasta = "$bin/asmOutputFasta";
     if (! -e "$termDir/$asm.scfcns.fasta") {
         my $cmd;
-        $cmd  = "$bin/asmOutputFasta -p $termDir/$asm $termDir/$asm.asm ";
+        $cmd  = "$asmOutputFasta -p $termDir/$asm $termDir/$asm.asm ";
         if (runCommand("$termDir", $cmd)) {
             rename "$termDir/$asm.scfcns.fasta", "$termDir/$asm.scfcns.fasta.FAILED";
             caFailure("Failed.\n");
@@ -324,25 +325,13 @@ sub terminate ($) {
         #  time.
 
         if (! -e "$termDir/mercy/$asm.ctgNorm.fasta") {
-            $cmd  = "$bin/asmOutputContigsFasta    < $termDir/$asm.asm > $termDir/mercy/$asm.ctgNorm.fasta";
-            if (runCommand("$termDir/mercy", $cmd)) {
-                print STDERR "Failed.\n";
-                unlink "$termDir/mercy/$asm.ctgNorm.fasta";
-            }
+            link "$termDir/$asm.ctgcns.fasta", "$termDir/mercy/$asm.ctgNorm.fasta";
         }
         if (! -e "$termDir/mercy/$asm.ctgDreg.fasta") {
-            $cmd  = "$bin/asmOutputContigsFasta -D < $termDir/$asm.asm > $termDir/mercy/$asm.ctgDreg.fasta";
-            if (runCommand("$termDir/mercy", $cmd)) {
-                print STDERR "Failed.\n";
-                unlink "$termDir/mercy/$asm.ctgDreg.fasta";
-            }
+            link "$termDir/$asm.degcns.fasta", "$termDir/mercy/$asm.ctgDreg.fasta";
         }
         if (! -e "$termDir/mercy/$asm.ctgAll.fasta") {
-            $cmd  = "$bin/asmOutputContigsFasta -d < $termDir/$asm.asm > $termDir/mercy/$asm.ctgAll.fasta";
-            if (runCommand("$termDir/mercy", $cmd)) {
-                print STDERR "Failed.\n";
-                unlink "$termDir/mercy/$asm.ctgAll.fasta";
-            }
+            $cmd  = "cat $termDir/$asm.{ctg,deg}cns.fasta > $termDir/mercy/$asm.ctgAll.fasta";
         }
 
         if ((! -e "$termDir/mercy/$asm-ms$ms-ctgNorm.mcidx") &&
