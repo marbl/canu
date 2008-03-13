@@ -21,4 +21,4 @@
 #
 #  For non-JCVI users, it does nothing.
 #
-vectorIntersect=
+vectorIntersect=/dev/null

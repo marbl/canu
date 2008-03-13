@@ -19,3 +19,8 @@
 #  Disable the Overlap Based Trimming algorithm.
 #
 doOverlapTrimming=0
+
+#
+# Since no overlap trimming no need for vectorIntersect, but carun wants it set
+#
+vectorIntersect=/dev/null
