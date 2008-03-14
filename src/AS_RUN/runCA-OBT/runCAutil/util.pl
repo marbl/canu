@@ -79,7 +79,7 @@ sub getBinDirectory () {
     #  install directory.
 
     #  CODE DUPLICATION!!!
-    my @t = split '/', "$FindBin::Bin";
+    my @t = split '/', "$FindBin::RealBin";
     pop @t;                      #  bin
     pop @t;                      #  arch, e.g., FreeBSD-amd64
     my $installDir = join '/', @t;  #  path to the assembler
@@ -113,7 +113,7 @@ sub getBinDirectoryShellCode () {
     my $string;
 
     #  CODE DUPLICATION!!!
-    my @t = split '/', "$FindBin::Bin";
+    my @t = split '/', "$FindBin::RealBin";
     pop @t;                      #  bin
     pop @t;                      #  arch, e.g., FreeBSD-amd64
     my $installDir = join '/', @t;  #  path to the assembler
@@ -385,7 +385,7 @@ sub setParameters ($@) {
     }
 
     if (defined($specFile)) {
-        my $bin = "$FindBin::Bin/spec";
+        my $bin = "$FindBin::RealBin/spec";
 
         if (-e $specFile && ! -d $specFile) {
             open(F, "< $specFile") or caFailure("Couldn't open '$specFile'\n");
