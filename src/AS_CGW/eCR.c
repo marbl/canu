@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.33 2007-11-08 12:38:11 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.34 2008-03-14 16:05:29 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -245,14 +245,21 @@ main(int argc, char **argv) {
   //  try to get an overlap.  Unless we set 'alligner', that will
   //  crash.
   //
+  //  Previous to 14 Mar 2008 we used Local_Overlap_AS_forCNS for the
+  //  aligner.  This caused problems with a large environmental
+  //  sample.  BPW is guessing that Local_Overlap found an alignment
+  //  that DP_Compare (used by the rest of CGW) couldn't handle.
+  //
+  //  On Dros Ana, DP_Compare closed 2011 gaps, compared to 2016 with
+  //  Local_Overlap.
+  //
+  GlobalData->aligner=DP_Compare;
+  ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, TRUE);
+
   //  After the graph is loaded, we reopen the gatekeeper store for
   //  read/write.
   //
-  GlobalData->aligner=Local_Overlap_AS_forCNS;
-  ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, TRUE);
-
   closeGateKeeperStore(ScaffoldGraph->gkpStore);
-
   ScaffoldGraph->gkpStore = openGateKeeperStore(GlobalData->Gatekeeper_Store_Name, TRUE);
   if(ScaffoldGraph->gkpStore == NULL){
     fprintf(stderr, "%s: Failed to open the gatekeeper store '%s' for read/write.  Bye.\n", argv[0], GlobalData->Gatekeeper_Store_Name);
@@ -306,7 +313,7 @@ main(int argc, char **argv) {
       continue;
 
     fprintf(stderr,"\n=====================================================================\n");
-    fprintf(stderr,"examing scaffold %d, size %f\n", sid, scaff->bpLength.mean);
+    fprintf(stderr,"examining scaffold %d, size %f\n", sid, scaff->bpLength.mean);
 
 #if 1
     //  Reset all the fragments in the scaffold to the correct clear
