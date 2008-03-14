@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.36 2007-12-12 09:30:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.37 2008-03-14 16:10:47 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2268,8 +2268,8 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
 //  This version tries several ways of finding the overlap
 //  relationship if tryHarder is set.
 //
-//  Returns true if it succeeded -- this is only used internally.  The
-//  function will return success, or it will cause a crash.
+//  Returns true if it succeeded.  Previous behavior was to return
+//  success or crash.
 //
 //  BPW claims ownership.
 //
@@ -2441,14 +2441,15 @@ ContigContainment(CIScaffoldT  *scaffold,
     } 
   }
 
+
   // if we STILL do not have an overlap AND we have been relatively
   // conservative finding overlaps...get out the big guns, redo the whole thing.
   //
   if ((contigOverlap == NULL) && (tryHarder) && (GlobalData->aligner == DP_Compare)) {
-    int success = 0;
-
+    fprintf(stderr, "RETRY with Local_Overlap_AS_forCNS.\n");
+ 
     GlobalData->aligner = Local_Overlap_AS_forCNS;
-    success = ContigContainment(scaffold, prevCI, thisCI, overlapEdge, tryHarder);
+    int success = ContigContainment(scaffold, prevCI, thisCI, overlapEdge, tryHarder);
     GlobalData->aligner = DP_Compare;
 
     //  If we found an overlap, then all the necessary side effects
@@ -2460,14 +2461,33 @@ ContigContainment(CIScaffoldT  *scaffold,
   }
 
 
+  //  High error rate assemblies have trouble in eCR.  eCR finds
+  //  overlaps at CGW_ERATE + 0.02, builds a new contig, and then dies
+  //  when it calls RecomputeOffsetsInScaffold() (which calls us).
+  //  eCR uses Local_Overlap_AS_forCNS exclusively, and so we try yet
+  //  again, using that.
+  //
+  if ((contigOverlap == NULL) && (tryHarder == 1) && (GlobalData->aligner == Local_Overlap_AS_forCNS)) {
+    fprintf(stderr, "RETRY with higher error rate.\n");
+ 
+    AS_CGW_ERROR_RATE += 0.02;
+    int success = ContigContainment(scaffold, prevCI, thisCI, overlapEdge, 2);
+    AS_CGW_ERROR_RATE -= 0.02;
+ 
+    if (success)
+      return(success);
+  }
+ 
+
   if (contigOverlap == NULL) {
     fprintf(stderr, "================================================================================\n");
     dumpContigInfo(leftContig);
     dumpContigInfo(rightContig);
-    fprintf(stderr, "no overlap found between "F_CID" and "F_CID", aborting...\n", leftContig->id, rightContig->id);
+    fprintf(stderr, "* No overlap found between "F_CID" and "F_CID".  Fail.\n", leftContig->id, rightContig->id);
+    return(FALSE);
   }
-  assert(contigOverlap != NULL);
-  
+  //assert(contigOverlap != NULL);
+
   // contigs need to be reversed
   if (contigOverlap->begpos < 0) {
     NodeCGW_T *t = leftContig;
@@ -2568,6 +2588,10 @@ ContigContainment(CIScaffoldT  *scaffold,
       GlobalData->aligner = DP_Compare;
     }
 
+    if (mergeStatus == FALSE) {
+      fprintf(stderr, "* CreateAContigInScaffold() failed.\n");
+      return(FALSE);
+    }
     assert(mergeStatus == TRUE);
   }
 

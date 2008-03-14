@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.23 2007-08-04 22:27:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.24 2008-03-14 16:10:47 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1336,7 +1336,10 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
             // We want to merge the two contigs immediately, since these are problematic,
             // but we know we want to overlap these guys.
             //
-            ContigContainment(scaffold, prevCI, thisCI, overlapEdge, TRUE);
+            if (ContigContainment(scaffold, prevCI, thisCI, overlapEdge, TRUE) != TRUE) {
+              fprintf(stderr, "ContigContainment failed.\n");
+              assert(0);
+            }
 
             if (debug.leastSquaresGapsLV > 1) {
               fprintf(stderr, "AFTER ContigContainment, scaffold "F_CID" %s connected\n",
@@ -1372,7 +1375,10 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
             // When we find a containment relationship in a scaffold we want to merge the two contigs
             // immediately, since containments have the potential to induce situations that are confusing
             // for least squares
-            ContigContainment(scaffold, prevCI, thisCI, overlapEdge, TRUE);
+            if (ContigContainment(scaffold, prevCI, thisCI, overlapEdge, TRUE) != TRUE) {
+              fprintf(stderr, "ContigContainment failed.\n");
+              assert(0);
+            }
 
             if (debug.leastSquaresGapsLV > 1) {
               fprintf(stderr, "AFTER ContigContainment, scaffold "F_CID" %s connected\n",
