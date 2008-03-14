@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.25 2007-11-08 12:38:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.26 2008-03-14 16:07:04 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -1735,75 +1735,15 @@ Overlap* OverlapContigs(NodeCGW_T *contig1, NodeCGW_T *contig2,
                       (GlobalData->aligner == Local_Overlap_AS_forCNS) ?
                       AS_FIND_LOCAL_OVERLAP : AS_FIND_ALIGN);
 
-  if (tempOlap1 != NULL)
-    {
-      /*
-        fprintf(GlobalData->stderrc, F_CID ", " F_CID " ahang: " F_COORD ", bhang:" F_COORD "\n",
-        contig1->id, contig2->id, tempOlap1->begpos, tempOlap1->endpos);
-      */
-      return tempOlap1;
-    }
-  else
-    {
-      fprintf(GlobalData->stderrc, F_CID ", " F_CID " do not overlap\n",
-              contig1->id, contig2->id);
-      // dumpContigInfo(contig1);
-      // dumpContigInfo(contig2);
-
-      return NULL;	
-    }
-}
-
-
-Overlap* OverlapContigsLocal(NodeCGW_T *contig1, NodeCGW_T *contig2, 
-                             ChunkOrientationType overlapOrientation,
-                             CDS_COORD_t minAhang, CDS_COORD_t maxAhang,
-                             int computeAhang)
-{
-  Overlap * tempOlap1;
-  char *seq1, *seq2;
-  double erate, thresh;
-  CDS_COORD_t minlen;
-
-  assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
-  erate = AS_CGW_ERROR_RATE;
-  thresh = CGW_DP_THRESH;
-  minlen = CGW_DP_MINLEN;
-
-  // if computeAhang is TRUE, allow a lot of slide in ahang
-  if (computeAhang == TRUE)
-    {
-      minAhang = - (CDS_COORD_t) contig2->bpLength.mean;
-      maxAhang = (CDS_COORD_t) contig1->bpLength.mean;
-      minlen -= 3;  // we subtract 3 because of an asymmetry in DP_COMPARE re AB_BA and BA_AB
-    }
-
-  if(consensus1 == NULL)
-    {
-      consensus1 = CreateVA_char(2048);
-      consensus2 = CreateVA_char(2048);
-      quality1 = CreateVA_char(2048);
-      quality2 = CreateVA_char(2048);
-    }else{
-      ResetVA_char(consensus1);
-      ResetVA_char(consensus2);
-      ResetVA_char(quality1);
-      ResetVA_char(quality2);
-    }
-  // Get the consensus sequences for both chunks from the Store
-  GetConsensus(ScaffoldGraph->RezGraph, contig1->id, consensus1, quality1);
-  GetConsensus(ScaffoldGraph->RezGraph, contig2->id, consensus2, quality2);
-
-  seq1 = Getchar(consensus1, 0);
-  seq2 = Getchar(consensus2, 0);
-
-  // tempOlap1 is a static down inside of DP_Compare
-  tempOlap1 = Local_Overlap_AS_forCNS(seq1, seq2,
-                                      minAhang,
-                                      maxAhang,
-                                      (overlapOrientation == AB_BA ||
-                                       overlapOrientation == BA_AB),
-                                      erate, thresh, minlen,
-                                      AS_FIND_LOCAL_OVERLAP);
-  return tempOlap1;
+  if (tempOlap1 != NULL) {
+    //fprintf(GlobalData->stderrc, F_CID ", " F_CID " ahang: " F_COORD ", bhang:" F_COORD "\n",
+    //        contig1->id, contig2->id, tempOlap1->begpos, tempOlap1->endpos);
+    return tempOlap1;
+  } else {
+    fprintf(GlobalData->stderrc, F_CID ", " F_CID " do not overlap\n",
+            contig1->id, contig2->id);
+    // dumpContigInfo(contig1);
+    // dumpContigInfo(contig2);
+    return NULL;	
+  }
 }
