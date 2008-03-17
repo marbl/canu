@@ -75,6 +75,21 @@ use strict;
 #
 my %seqLibIDFix;
 
+#  This allows one to include only certain libraries in the output, or
+#  to ignore specific libraries.  We'll do all the work, and just skip
+#  the output steps.
+#
+my %seqLibExclude;
+my %seqLibInclude;
+
+#  Insetad of using the prefix of the ncbi files, we can define the
+#  output name.  Do not define xmlNam, xmlIdx or tmpDir.
+#
+my $xmlNam;
+my $xmlIdx;
+my $tmpDir;
+my $outNam;  # = "my-output-prefix";
+
 my $version = 2;
 
 my @sgefiles;
@@ -83,6 +98,7 @@ my $xmlfile    = undef;
 my @libfiles;
 my $frgfile    = undef;
 my $forNewbler = 0;
+my $onlyOption = undef;
 
 while (scalar(@ARGV) > 0) {
     my $arg = shift @ARGV;
@@ -103,6 +119,10 @@ while (scalar(@ARGV) > 0) {
     } elsif ($arg eq "-newbler") {
         $forNewbler = 1;
         $frgfile = shift @ARGV;
+    } elsif ($arg eq "-only") {
+        $outNam    = shift @ARGV;
+        $seqLibInclude{$outNam} = 1;
+        $onlyOption = "-only $outNam";
     } else {
         die "unknown option '$arg'.\n";
     }
@@ -112,6 +132,9 @@ if (!defined(@sgefiles) && !defined($xmlfile) && !defined(@libfiles) && !defined
     print STDERR "       $0 [-xml xml*] [-lib xml*] [-frg xml*]  //  Each stage independently\n";
     exit(1);
 }
+
+my $slexc = scalar(keys %seqLibExclude);
+my $slinc = scalar(keys %seqLibInclude);
 
 my $tcat = "";
 #$tcat = "/home/bri/bin/tcat.osx |"             if (-x "/home/bri/bin/tcat.osx");
@@ -163,10 +186,7 @@ sub readXML () {
         if (m!^\s*<SEQ_LIB_ID>(.*)</!i) {
             if ($lib eq ".") {
                 $lib = $1;
-
-                if (defined($seqLibIDFix{$lib})) {
-                    $lib = $seqLibIDFix{$lib};
-                }
+                $lib = $seqLibIDFix{$lib} if (exists($seqLibIDFix{$lib}));
             }
         }
         if (m!^\s*<LIBRARY_ID>(.*)</!i) {
@@ -306,18 +326,25 @@ sub readQual ($) {
 sub runSGE (@) {
     my @sgefiles = @_;
 
-    my $prefix;
     foreach my $xmlfile (@sgefiles) {
-        $prefix = $1 if ($xmlfile =~ m/xml.(.*)\.\d+.bz2$/);
-        $prefix = $1 if ($xmlfile =~ m/xml.(.*)\.\d+.gz$/);
-        $prefix = $1 if ($xmlfile =~ m/xml.(.*)\.\d+$/);
+        $xmlNam = $1 if ($xmlfile =~ m/xml.(.*)\.\d+.bz2$/);
+        $xmlNam = $1 if ($xmlfile =~ m/xml.(.*)\.\d+.gz$/);
+        $xmlNam = $1 if ($xmlfile =~ m/xml.(.*)\.\d+$/);
     }
 
-    die "runSGE()-- Didn't find prefix.\n" if (!defined($prefix));
+    $tmpDir = "tafrg-$xmlNam";
+    system("mkdir $tmpDir") if (! -e "$tmpDir");
 
-    open(X, "> tafrgX-$prefix.sh") or die;
-    open(L, "> tafrgL-$prefix.sh") or die;
-    open(F, "> tafrgF-$prefix.sh") or die;
+    die "runSGE()-- Didn't find prefix.\n" if (!defined($xmlNam));
+
+    my $jid = $xmlNam;
+    if (defined($outNam)) {
+        $jid = $outNam;
+    }
+
+    open(X, "> $tmpDir/tafrgX-$jid.sh") or die;
+    open(L, "> $tmpDir/tafrgL-$jid.sh") or die;
+    open(F, "> $tmpDir/tafrgF-$jid.sh") or die;
 
     print X "#!/bin/sh\n";
     print X "#\n";
@@ -332,7 +359,7 @@ sub runSGE (@) {
     print L "#\$ -A assembly\n";
     print L "#\$ -j y\n";
     print L "#\n";
-    print L "perl $0 -lib ";
+    print L "perl $0 $onlyOption -lib ";
 
     print F "#!/bin/sh\n";
     print F "#\n";
@@ -347,13 +374,13 @@ sub runSGE (@) {
         $nf++;
 
         print X "if [ \$SGE_TASK_ID -eq $nf ] ; then\n";
-        print X "  perl $0 -xml $xmlfile\n";
+        print X "  perl $0 $onlyOption -xml $xmlfile\n";
         print X "fi\n";
 
         print L "\\\n  $xmlfile";
 
         print F "if [ \$SGE_TASK_ID -eq $nf ] ; then\n";
-        print F "  perl $0 -frg $xmlfile\n";
+        print F "  perl $0 $onlyOption -frg $xmlfile\n";
         print F "fi\n";
     }
 
@@ -363,15 +390,15 @@ sub runSGE (@) {
     close(L);
     close(F);
 
-    system("chmod +x tafrgX-$prefix.sh");
-    system("chmod +x tafrgL-$prefix.sh");
-    system("chmod +x tafrgF-$prefix.sh");
+    system("chmod +x $tmpDir/tafrgX-$jid.sh");
+    system("chmod +x $tmpDir/tafrgL-$jid.sh");
+    system("chmod +x $tmpDir/tafrgF-$jid.sh");
 
     #  -b n  is the default; TIGR IT decided to change the default.
 
-    system("qsub -b n -p -5 -N tafrgX-$prefix                          -t 1-$nf -o tafrgX-$prefix-\\\$TASK_ID.out $sgeOptions ./tafrgX-$prefix.sh") and die;
-    system("qsub -b n -p -4 -N tafrgL-$prefix -hold_jid tafrgX-$prefix          -o tafrgL-$prefix.out             $sgeOptions ./tafrgL-$prefix.sh") and die;
-    system("qsub -b n -p -6 -N tafrgF-$prefix -hold_jid tafrgL-$prefix -t 1-$nf -o tafrgF-$prefix-\\\$TASK_ID.out $sgeOptions ./tafrgF-$prefix.sh") and die;
+    system("qsub -b n -p -5 -N tfX-$jid                    -t 1-$nf -o $tmpDir/tafrgX-$jid-\\\$TASK_ID.out $sgeOptions ./$tmpDir/tafrgX-$jid.sh") and die;
+    system("qsub -b n -p -4 -N tfL-$jid -hold_jid tfX-$jid          -o $tmpDir/tafrgL-$jid.out             $sgeOptions ./$tmpDir/tafrgL-$jid.sh") and die;
+    system("qsub -b n -p -6 -N tfF-$jid -hold_jid tfL-$jid -t 1-$nf -o $tmpDir/tafrgF-$jid-\\\$TASK_ID.out $sgeOptions ./$tmpDir/tafrgF-$jid.sh") and die;
 
     exit(0);
 }
@@ -379,31 +406,36 @@ sub runSGE (@) {
 
 sub runXML ($) {
     my $xmlfile = shift @_;
-    my $prefix;
     my %types;
 
-    if ($xmlfile =~ m/xml.(.*\.\d+).bz2$/) {
-        $prefix = $1;
-        open(X, "bzip2 -dc xml.$prefix.bz2 | $tcat") or die "Failed to open xml.$prefix.bz2\n";
+    if ($xmlfile =~ m/xml.(.*)\.(\d+).bz2$/) {
+        $xmlNam = $1;
+        $xmlIdx = $2;
+        open(X, "bzip2 -dc xml.$xmlNam.$xmlIdx.bz2 | $tcat") or die "Failed to open xml.$xmlNam.$xmlIdx.bz2\n";
     }
 
-    if ($xmlfile =~ m/xml.(.*\.\d+).gz$/) {
-        $prefix = $1;
-        open(X, "gzip  -dc xml.$prefix.gz  | $tcat") or die "Failed to open xml.$prefix.gz\n";
+    if ($xmlfile =~ m/xml.(.*)\.(\d+).gz$/) {
+        $xmlNam = $1;
+        $xmlIdx = $2;
+        open(X, "gzip  -dc xml.$xmlNam.$xmlIdx.gz  | $tcat") or die "Failed to open xml.$xmlNam.$xmlIdx.gz\n";
     }
 
-    if ($xmlfile =~ m/xml.(.*\.\d+)$/) {
-        $prefix = $1;
-        open(X, "< xml.$prefix") or die "Failed to open xml.$prefix\n";
+    if ($xmlfile =~ m/xml.(.*)\.(\d+)$/) {
+        $xmlNam = $1;
+        $xmlIdx = $2;
+        open(X, "< xml.$xmlNam.$xmlIdx") or die "Failed to open xml.$xmlNam.$xmlIdx\n";
     }
 
-    die "Didn't understand file '$xmlfile'.\n" if (!defined($prefix));
+    $tmpDir = "tafrg-$xmlNam";
+    system("mkdir $tmpDir") if (! -e "$tmpDir");
 
-    if (-e "$prefix.lib") {
+    die "Didn't understand file '$xmlfile'.\n" if (!defined($xmlNam));
+
+    if (-e "$tmpDir/$xmlNam.$xmlIdx.lib") {
         exit(0);
     }
 
-    open(L, "> $prefix.lib.tmp") or die "Failed to open '$prefix.lib.tmp' for write.\n";
+    open(L, "> $tmpDir/$xmlNam.$xmlIdx.lib.tmp") or die "Failed to open '$tmpDir/$xmlNam.$xmlIdx.lib.tmp' for write.\n";
 
     while (!eof(X)) {
         my ($xid, $type, $template, $end, $lib, $libsize, $libstddev, $clr, $clv, $clq) = readXML();
@@ -421,11 +453,11 @@ sub runXML ($) {
     close(L);
     close(X);
 
-    rename "$prefix.lib.tmp", "$prefix.lib";
+    rename "$tmpDir/$xmlNam.$xmlIdx.lib.tmp", "$tmpDir/$xmlNam.$xmlIdx.lib";
 
-    foreach my $k (sort keys %types) {
-        print "$prefix\t$k\t$types{$k}\n";
-    }
+    #foreach my $k (sort keys %types) {
+    #    print "$xmlNam.$xmlIdx\t$k\t$types{$k}\n";
+    #}
 
     exit(0);
 }
@@ -439,34 +471,46 @@ sub runLIB (@) {
     my %link;
     my %dist;
     my %distNeeded;
-    my $distUID = 6660000;  #  Starting UID for distances
-
-    my $numDist = 0;
-    my $numMate = 0;
-    my $numFrag = 0;
-
-    my $prefix;
 
     foreach my $xmlfile (@libfiles) {
 
-        if ($xmlfile =~ m/xml.(.*\.\d+).bz2$/) {
-            $prefix = $1;
+        if ($xmlfile =~ m/xml.(.*)\.(\d+).bz2$/) {
+            $xmlNam = $1;
+            $xmlIdx = $2;
         }
 
-        if ($xmlfile =~ m/xml.(.*\.\d+).gz$/) {
-            $prefix = $1;
+        if ($xmlfile =~ m/xml.(.*)\.(\d+).gz$/) {
+            $xmlNam = $1;
+            $xmlIdx = $2;
         }
 
-        if ($xmlfile =~ m/xml.(.*\.\d+)$/) {
-            $prefix = $1;
+        if ($xmlfile =~ m/xml.(.*)\.(\d+)$/) {
+            $xmlNam = $1;
+            $xmlIdx = $2;
         }
 
-        die "runLIB()-- Didn't find the prefix in any of the input files (did you give me the xml?).\n" if (!defined($prefix));
-        open(F, "< $prefix.lib")    or die "Failed to open '$prefix.lib'\n";
+        die "runLIB()-- Didn't find the prefix in any of the input files (did you give me the xml?).\n" if (!defined($xmlNam));
+
+        $tmpDir = "tafrg-$xmlNam";
+        system("mkdir $tmpDir") if (! -e "$tmpDir");
+
+        $outNam = $xmlNam if (!defined($outNam));
+
+        if ((-e "$outNam.1.lib.frg") && (-e "$outNam.3.lkg.frg")) {
+            print STDERR "Nothing to do.  '$outNam.1.lib.frg' and '$outNam.3.lkg.frg' exist.\n";
+            print STDERR "(If later steps fail, remove these two files to recompute intermediate results)\n";
+            exit(0);
+        }
+
+        open(F, "< $tmpDir/$xmlNam.$xmlIdx.lib") or die "Failed to open '$tmpDir/$xmlNam.$xmlIdx.lib'\n";
 
         while (<F>) {
             chomp;
             my ($id, $template, $end, $lib, $mn, $sd, $clr, $clv, $clq) = split '\s+', $_;
+
+            #  Skip it?
+            next if (($slexc > 0) &&  exists($seqLibExclude{$lib}));
+            next if (($slinc > 0) && !exists($seqLibInclude{$lib}));
 
             if (($mn < 1000) || ($sd == 0)) {
                 undef $mn;
@@ -483,7 +527,6 @@ sub runLIB (@) {
             if (!defined($mean{$lib}) && defined($mn)) {
                 $mean{$lib} = $mn;
                 $stddev{$lib} = $sd;
-                $numDist++;
             }
 
             $distNeeded{$lib}++;
@@ -492,18 +535,8 @@ sub runLIB (@) {
         close(F);
     }
 
-    if ($prefix =~ m/^(.*)\.\d+$/) {
-        $prefix = $1;
-    } else {
-        die "Malformed prefix '$prefix'\n";
-    }
-
-    if ((-e "$prefix.1.lib.frg") && (-e "$prefix.3.lkg.frg")) {
-        exit(0);
-    }
-
-    open(LIB, "> $prefix.1.lib.frg.tmp") or die "Failed to open LIB output '$prefix.1.lib.frg.tmp'\n";
-    open(LKG, "> $prefix.3.lkg.frg.tmp") or die "Failed to open LKG output '$prefix.3.lkg.frg.tmp'\n";
+    open(LIB, "> $outNam.1.lib.frg.tmp") or die "Failed to open LIB output '$outNam.1.lib.frg.tmp'\n";
+    open(LKG, "> $outNam.3.lkg.frg.tmp") or die "Failed to open LKG output '$outNam.3.lkg.frg.tmp'\n";
 
     if ($version > 1) {
         print LIB "{VER\n";
@@ -515,39 +548,33 @@ sub runLIB (@) {
         print LKG "}\n";
     }
 
-    foreach my $d (keys %distNeeded) {
+    foreach my $distUID (keys %distNeeded) {
 
         #  Make a new bogus distance if the input never defined a valid one.
         #
-        if (!defined($mean{$d})) {
-            print STDERR "WARNING: creating bogus distance for library '$d'\n";
-            $mean{$d} = 2000;
-            $stddev{$d} = 666;
+        if (!defined($mean{$distUID})) {
+            print STDERR "WARNING: creating bogus distance for library '$distUID'\n";
+            $mean{$distUID}   = 2000;
+            $stddev{$distUID} = 666;
         }
 
-        #  HACK!  Use the original library id for the distUID; otherwise,
-        #  $distUID is a global and updated for each new distance record.
-        #
-        #$distUID = $d;
-        
         #  And output.
         #
         if ($version == 1) {
             print LIB "{DST\n";
             print LIB "act:A\n";
             print LIB "acc:$distUID\n";
-            print LIB "mea:$mean{$d}\n";
-            print LIB "std:$stddev{$d}\n";
+            print LIB "mea:$mean{$distUID}\n";
+            print LIB "std:$stddev{$distUID}\n";
             print LIB "}\n";
         } else {
             print LIB "{LIB\n";
             print LIB "act:A\n";
             print LIB "acc:$distUID\n";
             print LIB "ori:I\n";
-            print LIB "mea:$mean{$d}\n";
-            print LIB "std:$stddev{$d}\n";
+            print LIB "mea:$mean{$distUID}\n";
+            print LIB "std:$stddev{$distUID}\n";
             print LIB "src:\n";
-            print LIB "NCBI:$d\n";
             print LIB ".\n";
             print LIB "nft:0\n";
             print LIB "fea:\n";
@@ -555,35 +582,48 @@ sub runLIB (@) {
             print LIB "}\n";
         }
 
-        $dist{$d} = $distUID;
-        $distUID++;
+        $dist{$distUID} = $distUID;
     }
 
     foreach my $xmlfile (@libfiles) {
-        my $prefix;
+        my $numMate = 0;
+        my $numFrag = 0;
 
-        if ($xmlfile =~ m/xml.(.*\.\d+).bz2$/) {
-            $prefix = $1;
+        if ($xmlfile =~ m/xml.(.*)\.(\d+).bz2$/) {
+            $xmlNam = $1;
+            $xmlIdx = $2;
         }
 
-        if ($xmlfile =~ m/xml.(.*\.\d+).gz$/) {
-            $prefix = $1;
+        if ($xmlfile =~ m/xml.(.*)\.(\d+).gz$/) {
+            $xmlNam = $1;
+            $xmlIdx = $2;
         }
 
-        if ($xmlfile =~ m/xml.(.*\.\d+)$/) {
-            $prefix = $1;
+        if ($xmlfile =~ m/xml.(.*)\.(\d+)$/) {
+            $xmlNam = $1;
+            $xmlIdx = $2;
         }
 
-        open(L, "> $prefix.frglib.tmp") or die "Failed to open '$prefix.frglib.tmp' for write.\n";
-        open(F, "< $prefix.lib")        or die "Failed to open '$prefix.lib' for read\n";
+        my $writeFrgLib = 0;
+        if (! -e "$tmpDir/$xmlNam.$xmlIdx.frglib") {
+            $writeFrgLib = 1;
+            open(L, "> $tmpDir/$xmlNam.$xmlIdx.frglib.tmp") or die "Failed to open '$tmpDir/$xmlNam.$xmlIdx.frglib.tmp' for write.\n";
+        }
+
+        open(F, "< $tmpDir/$xmlNam.$xmlIdx.lib") or die "Failed to open '$tmpDir/$xmlNam.$xmlIdx.lib' for read\n";
 
         while (<F>) {
-            chomp;
             my ($id, $template, $end, $lib, $mn, $sd, $clr, $clv, $clq) = split '\s+', $_;
 
             #  Remember which library this frag came from.
             #
-            print L "$id\t$dist{$lib}\n";
+            if ($writeFrgLib) {
+                print L "$id\t$dist{$lib}\n";
+            }
+
+            #  Skip it?
+            next if (($slexc > 0) &&  exists($seqLibExclude{$lib}));
+            next if (($slinc > 0) && !exists($seqLibInclude{$lib}));
 
             #  Baylor sea urchin data, early, has more than one mate per
             #  template.  We assume those are well ordered, and just let
@@ -635,11 +675,6 @@ sub runLIB (@) {
 
                     $numMate++;
 
-                    #  Uncomment this to do a little sanity checking here
-                    #  (uses lots of memory).  It will probably report if
-                    #  a template has more than two frags, because the end
-                    #  test above will fail.  ????????
-
                     delete $link{$template}
                 } else {
                     $link{$template} = "$id\0$end";
@@ -648,23 +683,27 @@ sub runLIB (@) {
 
             $numFrag++;
         }
-        close(F);
-        close(L);
 
-        rename "$prefix.frglib.tmp", "$prefix.frglib";
+        if ($writeFrgLib) {
+            close(L);
+            rename "$tmpDir/$xmlNam.$xmlIdx.frglib.tmp", "$tmpDir/$xmlNam.$xmlIdx.frglib";
+        }
+
+        close(F);
 
         my $percMated = 0;
         if ($numFrag > 0) {
             $percMated = int(10000 * 2 * $numMate / $numFrag) / 100;
         }
-        print STDERR "$prefix: frags=$numFrag links=$numMate ($percMated%)\n";
+
+        print STDERR "$xmlNam.$xmlIdx: frags=$numFrag links=$numMate ($percMated%)\n";
     }
 
     close(LKG);
     close(LIB);
 
-    rename "$prefix.1.lib.frg.tmp", "$prefix.1.lib.frg";
-    rename "$prefix.3.lkg.frg.tmp", "$prefix.3.lkg.frg";
+    rename "$outNam.1.lib.frg.tmp", "$outNam.1.lib.frg";
+    rename "$outNam.3.lkg.frg.tmp", "$outNam.3.lkg.frg";
 
     exit(0);
 }
@@ -672,48 +711,45 @@ sub runLIB (@) {
 
 sub runFRG ($) {
     my $frgfile = shift @_;
-    my $prefix;
-    my $index;
 
     if ($frgfile =~ m/xml.(.*)\.(\d+).bz2$/) {
-        $prefix = $1;
-        $index  = $2;
-        open(X, "bzip2 -dc xml.$prefix.$index.bz2   | $tcat") or die "Failed to open 'xml.$prefix.$index.bz2' for read\n";
-        open(F, "bzip2 -dc fasta.$prefix.$index.bz2 | $tcat") or die "Failed to open 'fasta.$prefix.$index.bz2' for read\n";
-        open(Q, "bzip2 -dc qual.$prefix.$index.bz2  | $tcat") or die "Failed to open 'qual.$prefix.$index.bz2' for read\n";
-        open(L, "< $prefix.$index.frglib")                    or die "Failed to open '$prefix.$index.frglib' for read\n";
+        $xmlNam = $1;
+        $xmlIdx  = $2;
+        open(X, "bzip2 -dc xml.$xmlNam.$xmlIdx.bz2   | $tcat") or die "Failed to open 'xml.$xmlNam.$xmlIdx.bz2' for read\n";
+        open(F, "bzip2 -dc fasta.$xmlNam.$xmlIdx.bz2 | $tcat") or die "Failed to open 'fasta.$xmlNam.$xmlIdx.bz2' for read\n";
+        open(Q, "bzip2 -dc qual.$xmlNam.$xmlIdx.bz2  | $tcat") or die "Failed to open 'qual.$xmlNam.$xmlIdx.bz2' for read\n";
     }
 
     if ($frgfile =~ m/xml.(.*)\.(\d+).gz$/) {
-        $prefix = $1;
-        $index  = $2;
-        open(X, "gzip -dc xml.$prefix.$index.gz   | $tcat") or die "Failed to open 'xml.$prefix.$index.gz' for read\n";
-        open(F, "gzip -dc fasta.$prefix.$index.gz | $tcat") or die "Failed to open 'fasta.$prefix.$index.gz' for read\n";
-        open(Q, "gzip -dc qual.$prefix.$index.gz  | $tcat") or die "Failed to open 'qual.$prefix.$index.gz' for read\n";
-        open(L, "< $prefix.$index.frglib")                  or die "Failed to open '$prefix.$index.frglib' for read\n";
+        $xmlNam = $1;
+        $xmlIdx  = $2;
+        open(X, "gzip -dc xml.$xmlNam.$xmlIdx.gz   | $tcat") or die "Failed to open 'xml.$xmlNam.$xmlIdx.gz' for read\n";
+        open(F, "gzip -dc fasta.$xmlNam.$xmlIdx.gz | $tcat") or die "Failed to open 'fasta.$xmlNam.$xmlIdx.gz' for read\n";
+        open(Q, "gzip -dc qual.$xmlNam.$xmlIdx.gz  | $tcat") or die "Failed to open 'qual.$xmlNam.$xmlIdx.gz' for read\n";
     }
 
     if ($frgfile =~ m/xml.(.*)\.(\d+)$/) {
-        $prefix = $1;
-        $index  = $2;
-        open(X, "< xml.$prefix.$index")    or die "Failed to open 'xml.$prefix.$index' for read\n";
-        open(F, "< fasta.$prefix.$index")  or die "Failed to open 'fasta.$prefix.$index' for read\n";
-        open(Q, "< qual.$prefix.$index")   or die "Failed to open 'qual.$prefix.$index' for read\n";
-        open(L, "< $prefix.$index.frglib") or die "Failed to open '$prefix.$index.frglib' for read\n";
+        $xmlNam = $1;
+        $xmlIdx  = $2;
+        open(X, "< xml.$xmlNam.$xmlIdx")    or die "Failed to open 'xml.$xmlNam.$xmlIdx' for read\n";
+        open(F, "< fasta.$xmlNam.$xmlIdx")  or die "Failed to open 'fasta.$xmlNam.$xmlIdx' for read\n";
+        open(Q, "< qual.$xmlNam.$xmlIdx")   or die "Failed to open 'qual.$xmlNam.$xmlIdx' for read\n";
     }
 
-    if (-e "$prefix.2.$index.frg.bz2") {
+    $tmpDir = "tafrg-$xmlNam";
+    system("mkdir $tmpDir") if (! -e "$tmpDir");
+
+    open(L, "< $tmpDir/$xmlNam.$xmlIdx.frglib") or die "Failed to open '$tmpDir/$xmlNam.$xmlIdx.frglib' for read\n";
+
+    $outNam = $xmlNam if (!defined($outNam));
+
+    if (-e "$outNam.2.$xmlIdx.frg.bz2") {
         exit(0);
     }
 
-    open(FRG, "| $tcat bzip2 -9c > $prefix.2.$index.frg.bz2.tmp") or die "Failed to open '$prefix.2.$index.frg.bz2.tmp' for write\n";
-    #open(FRG, "> $prefix.2.$index.frg.tmp") or die "Failed to open $prefix.2.$index.frg.tmp\n";
-    if ($version > 1) {
-        print FRG "{VER\n";
-        print FRG "ver:$version\n";
-        print FRG "}\n";
-    }
+    open(FRG, "| $tcat bzip2 -9c > $outNam.2.$xmlIdx.frg.bz2.tmp") or die "Failed to open '$outNam.2.$xmlIdx.frg.bz2.tmp' for write\n";
 
+    my $numFrags = 0;
     my $haveMore = 1;
     $haveMore  = !eof(X);
     $haveMore &= !eof(F);
@@ -725,78 +761,88 @@ sub runFRG ($) {
         my ($sid, $seq) = readFasta(1);
         my ($qid, $qlt) = readQual(1);
 
-        if (($type eq "WGS") ||
-            ($type eq "SHOTGUN") ||
-            ($type eq "CLONEEND") ||
-            ($type eq "454")) {
-            my $lll = <L>;
-            my $lid;
-            ($lid, $lib) = split '\s+', $lll;
-
-            my $len = length $seq;
-
-            #  Incomplete clear; WUGSC Dros Yakuba only gave the left
-            #  vector clear.
-            #
-            $clv = "0$clv"    if ($clv =~ m/^,\d+$/);
-            $clq = "0$clq"    if ($clq =~ m/^,\d+$/);
-            $clr = "0$clr"    if ($clr =~ m/^,\d+$/);
-
-            $clv = "$clv$len" if ($clv =~ m/^\d+,$/);
-            $clq = "$clq$len" if ($clq =~ m/^\d+,$/);
-            $clr = "$clr$len" if ($clr =~ m/^\d+,$/);
-
-            $clr = "0,$len" if (!defined($clr));
-
-            #  Because some centers apparently cannot count, we need
-            #  to check the clear ranges.
-            #
-            if ($clv =~ m/^(\d+),(\d+)$/) { $clv = "$1,$len" if ($2 > $len); }
-            if ($clq =~ m/^(\d+),(\d+)$/) { $clq = "$1,$len" if ($2 > $len); }
-            if ($clr =~ m/^(\d+),(\d+)$/) { $clr = "$1,$len" if ($2 > $len); }
-
-            if (($xid eq $sid) && ($xid eq $qid) && ($xid eq $lid)) {
-                if ($version == 1) {
-                    print FRG "{FRG\n";
-                    print FRG "act:A\n";
-                    print FRG "acc:$xid\n";
-                    print FRG "typ:R\n";
-                    print FRG "src:\n.\n";
-                    print FRG "etm:0\n";
-                    print FRG "seq:\n$seq\n.\n";
-                    print FRG "qlt:\n$qlt\n.\n";
-                    print FRG "clr:$clr\n";
-                    print FRG "}\n";
-                } else {
-                    print FRG "{FRG\n";
-                    print FRG "act:A\n";
-                    print FRG "acc:$xid\n";
-                    print FRG "rnd:1\n";
-                    print FRG "sta:G\n";
-                    print FRG "lib:$lib\n";
-                    print FRG "pla:0\n";
-                    print FRG "loc:0\n";
-                    print FRG "src:\n.\n";
-                    print FRG "seq:\n$seq\n.\n";
-                    print FRG "qlt:\n$qlt\n.\n";
-                    print FRG "hps:\n.\n";
-                    print FRG "clv:$clv\n" if (defined($clv));
-                    print FRG "clq:$clq\n" if (defined($clq));
-                    print FRG "clr:$clr\n";
-                    print FRG "}\n";
-                }
-            } else {
-                print STDERR "ID mismatch: X='$xid' =?= S='$sid'\n";
-                print STDERR "ID mismatch: X='$xid' =?= Q='$qid'\n";
-                print STDERR "ID mismatch: X='$xid' =?= L='$lid'\n";
-                die;
-            }
-        }
-
         $haveMore  = !eof(X);
         $haveMore &= !eof(F);
         $haveMore &= !eof(Q);
         $haveMore &= !eof(L);
+
+        next if (($type ne "WGS") &&
+                 ($type ne "SHOTGUN") &&
+                 ($type ne "CLONEEND") &&
+                 ($type ne "454"));
+
+        my $lid = <L>;
+        ($lid, $lib) = split '\s+', $lid;
+
+        #  Skip it?.
+        #
+        next if (($slexc > 0) &&  exists($seqLibExclude{$lib}));
+        next if (($slinc > 0) && !exists($seqLibInclude{$lib}));
+
+        my $len = length $seq;
+
+        #  Incomplete clear; WUGSC Dros Yakuba only gave the left
+        #  vector clear.
+        #
+        $clv = "0$clv"    if ($clv =~ m/^,\d+$/);
+        $clq = "0$clq"    if ($clq =~ m/^,\d+$/);
+        $clr = "0$clr"    if ($clr =~ m/^,\d+$/);
+
+        $clv = "$clv$len" if ($clv =~ m/^\d+,$/);
+        $clq = "$clq$len" if ($clq =~ m/^\d+,$/);
+        $clr = "$clr$len" if ($clr =~ m/^\d+,$/);
+
+        $clr = "0,$len" if (!defined($clr));
+
+        #  Because some centers apparently cannot count, we need
+        #  to check the clear ranges.
+        #
+        if ($clv =~ m/^(\d+),(\d+)$/) { $clv = "$1,$len" if ($2 > $len); }
+        if ($clq =~ m/^(\d+),(\d+)$/) { $clq = "$1,$len" if ($2 > $len); }
+        if ($clr =~ m/^(\d+),(\d+)$/) { $clr = "$1,$len" if ($2 > $len); }
+
+        if (($xid eq $sid) && ($xid eq $qid) && ($xid eq $lid)) {
+            if ($version == 1) {
+                print FRG "{FRG\n";
+                print FRG "act:A\n";
+                print FRG "acc:$xid\n";
+                print FRG "typ:R\n";
+                print FRG "src:\n.\n";
+                print FRG "etm:0\n";
+                print FRG "seq:\n$seq\n.\n";
+                print FRG "qlt:\n$qlt\n.\n";
+                print FRG "clr:$clr\n";
+                print FRG "}\n";
+            } else {
+                if ($numFrags == 0) {
+                    print FRG "{VER\n";
+                    print FRG "ver:$version\n";
+                    print FRG "}\n";
+                }
+                print FRG "{FRG\n";
+                print FRG "act:A\n";
+                print FRG "acc:$xid\n";
+                print FRG "rnd:1\n";
+                print FRG "sta:G\n";
+                print FRG "lib:$lib\n";
+                print FRG "pla:0\n";
+                print FRG "loc:0\n";
+                print FRG "src:\n.\n";
+                print FRG "seq:\n$seq\n.\n";
+                print FRG "qlt:\n$qlt\n.\n";
+                print FRG "hps:\n.\n";
+                print FRG "clv:$clv\n" if (defined($clv));
+                print FRG "clq:$clq\n" if (defined($clq));
+                print FRG "clr:$clr\n";
+                print FRG "}\n";
+            }
+            $numFrags++;
+        } else {
+            print STDERR "ID mismatch: X='$xid' =?= S='$sid'\n";
+            print STDERR "ID mismatch: X='$xid' =?= Q='$qid'\n";
+            print STDERR "ID mismatch: X='$xid' =?= L='$lid'\n";
+            die;
+        }
     }
    
     close(L);
@@ -805,7 +851,8 @@ sub runFRG ($) {
     close(X);
     close(FRG);
 
-    rename "$prefix.2.$index.frg.bz2.tmp", "$prefix.2.$index.frg.bz2";
+    rename "$outNam.2.$xmlIdx.frg.bz2.tmp", "$outNam.2.$xmlIdx.frg.bz2";
+    unlink "$outNam.2.$xmlIdx.frg.bz2" if ($numFrags == 0);
 
     exit(0);
 }
@@ -814,42 +861,44 @@ sub runFRG ($) {
 
 sub runNBL ($) {
     my $frgfile = shift @_;
-    my $prefix;
-    my $index;
 
     if ($frgfile =~ m/xml.(.*)\.(\d+).bz2$/) {
-        $prefix = $1;
-        $index  = $2;
-        open(X, "bzip2 -dc xml.$prefix.$index.bz2   | $tcat") or die "Failed to open 'xml.$prefix.$index.bz2' for read\n";
-        open(F, "bzip2 -dc fasta.$prefix.$index.bz2 | $tcat") or die "Failed to open 'fasta.$prefix.$index.bz2' for read\n";
-        open(Q, "bzip2 -dc qual.$prefix.$index.bz2  | $tcat") or die "Failed to open 'qual.$prefix.$index.bz2' for read\n";
-        open(L, "< $prefix.$index.frglib")                    or die "Failed to open '$prefix.$index.frglib' for read\n";
+        $xmlNam = $1;
+        $xmlIdx  = $2;
+        open(X, "bzip2 -dc xml.$xmlNam.$xmlIdx.bz2   | $tcat") or die "Failed to open 'xml.$xmlNam.$xmlIdx.bz2' for read\n";
+        open(F, "bzip2 -dc fasta.$xmlNam.$xmlIdx.bz2 | $tcat") or die "Failed to open 'fasta.$xmlNam.$xmlIdx.bz2' for read\n";
+        open(Q, "bzip2 -dc qual.$xmlNam.$xmlIdx.bz2  | $tcat") or die "Failed to open 'qual.$xmlNam.$xmlIdx.bz2' for read\n";
     }
 
     if ($frgfile =~ m/xml.(.*)\.(\d+).gz$/) {
-        $prefix = $1;
-        $index  = $2;
-        open(X, "gzip -dc xml.$prefix.$index.gz   | $tcat") or die "Failed to open 'xml.$prefix.$index.gz' for read\n";
-        open(F, "gzip -dc fasta.$prefix.$index.gz | $tcat") or die "Failed to open 'fasta.$prefix.$index.gz' for read\n";
-        open(Q, "gzip -dc qual.$prefix.$index.gz  | $tcat") or die "Failed to open 'qual.$prefix.$index.gz' for read\n";
-        open(L, "< $prefix.$index.frglib")                  or die "Failed to open '$prefix.$index.frglib' for read\n";
+        $xmlNam = $1;
+        $xmlIdx  = $2;
+        open(X, "gzip -dc xml.$xmlNam.$xmlIdx.gz   | $tcat") or die "Failed to open 'xml.$xmlNam.$xmlIdx.gz' for read\n";
+        open(F, "gzip -dc fasta.$xmlNam.$xmlIdx.gz | $tcat") or die "Failed to open 'fasta.$xmlNam.$xmlIdx.gz' for read\n";
+        open(Q, "gzip -dc qual.$xmlNam.$xmlIdx.gz  | $tcat") or die "Failed to open 'qual.$xmlNam.$xmlIdx.gz' for read\n";
     }
 
     if ($frgfile =~ m/xml.(.*)\.(\d+)$/) {
-        $prefix = $1;
-        $index  = $2;
-        open(X, "< xml.$prefix.$index")    or die "Failed to open 'xml.$prefix.$index' for read\n";
-        open(F, "< fasta.$prefix.$index")  or die "Failed to open 'fasta.$prefix.$index' for read\n";
-        open(Q, "< qual.$prefix.$index")   or die "Failed to open 'qual.$prefix.$index' for read\n";
-        open(L, "< $prefix.$index.frglib") or die "Failed to open '$prefix.$index.frglib' for read\n";
+        $xmlNam = $1;
+        $xmlIdx  = $2;
+        open(X, "< xml.$xmlNam.$xmlIdx")    or die "Failed to open 'xml.$xmlNam.$xmlIdx' for read\n";
+        open(F, "< fasta.$xmlNam.$xmlIdx")  or die "Failed to open 'fasta.$xmlNam.$xmlIdx' for read\n";
+        open(Q, "< qual.$xmlNam.$xmlIdx")   or die "Failed to open 'qual.$xmlNam.$xmlIdx' for read\n";
     }
 
-    if (-e "$prefix.2.$index.frg.bz2") {
+    $tmpDir = "tafrg-$xmlNam";
+    system("mkdir $tmpDir") if (! -e "$tmpDir");
+
+    open(L, "< $tmpDir/$xmlNam.$xmlIdx.frglib") or die "Failed to open '$tmpDir/$xmlNam.$xmlIdx.frglib' for read\n";
+
+    $outNam = $xmlNam if (!defined($outNam));
+
+    if (-e "$outNam.2.$xmlIdx.frg.bz2") {
         exit(0);
     }
 
-    open(FNA, "> $prefix.2.$index.fna.tmp")      or die "Failed to open '$prefix.2.$index.fna.tmp' for write\n";
-    open(QNA, "> $prefix.2.$index.fna.qual.tmp") or die "Failed to open '$prefix.2.$index.fna.qual.tmp' for write\n";
+    open(FNA, "> $outNam.2.$xmlIdx.fna.tmp")      or die "Failed to open '$outNam.2.$xmlIdx.fna.tmp' for write\n";
+    open(QNA, "> $outNam.2.$xmlIdx.fna.qual.tmp") or die "Failed to open '$outNam.2.$xmlIdx.fna.qual.tmp' for write\n";
 
     my $haveMore = 1;
     $haveMore  = !eof(X);
@@ -931,8 +980,8 @@ sub runNBL ($) {
     close(FNA);
     close(QNA);
 
-    rename "$prefix.2.$index.fna.tmp",      "$prefix.2.$index.fna";
-    rename "$prefix.2.$index.fna.qual.tmp", "$prefix.2.$index.fna.qual";
+    rename "$outNam.2.$xmlIdx.fna.tmp",      "$outNam.2.$xmlIdx.fna";
+    rename "$outNam.2.$xmlIdx.fna.qual.tmp", "$outNam.2.$xmlIdx.fna.qual";
 
     exit(0);
 }
