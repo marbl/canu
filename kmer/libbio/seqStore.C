@@ -1,4 +1,8 @@
 
+#undef DUMPBLOCKS
+#undef DEBUG_GET
+#undef DEBUG_SEEK
+
 seqStore::seqStore() {
   _numBlocks        = 0;
   _blockInfo        = 0L;
@@ -63,7 +67,6 @@ seqStore::loadStore(const char *filename, seqStream *ss) {
       (fileExists(blocksName) == false))
     return(false);
 
-#if 1
   //  If 'filename' exists, assume it's the source fasta file.  We
   //  want to ensure that our seqStream is at least as current as
   //  that.
@@ -78,14 +81,13 @@ seqStore::loadStore(const char *filename, seqStream *ss) {
     fprintf(stderr, "seqStore::loadStore()-- WARNING: source '%s' is newer than the existing store!  Can't load!\n", filename);
     return(false);
   }
-#endif
 
   //  Open the file, read the header.
 
   errno = 0;
   FILE *BLOCKS = fopen(blocksName, "r");
   if (errno)
-    fprintf(stderr, "seqStream::loadStore()-- Failed to open blocks file '%s': %s\n",
+    fprintf(stderr, "seqStore::loadStore()-- Failed to open blocks file '%s': %s\n",
             blocksName, strerror(errno)), exit(1);
 
   fread(cigam,             sizeof(char),   16, BLOCKS);
@@ -93,19 +95,19 @@ seqStore::loadStore(const char *filename, seqStream *ss) {
   fread(&_numberOfACGT,    sizeof(u64bit), 1,  BLOCKS);
 
   if (errno)
-    fprintf(stderr, "seqStream::loadStore()-- Failed to read header in seqStore '%s': %s\n",
+    fprintf(stderr, "seqStore::loadStore()-- Failed to read header in seqStore '%s': %s\n",
             filename, strerror(errno)), exit(1);
 
-  strcpy(magic, "seqStore.v1");
+  strcpy(magic, "seqStore.v2");
   if (strncmp(magic, cigam, 16) != 0)
-    fprintf(stderr, "seqStream::loadStore()-- '%s' isn't a seqStream file.\n", filename), exit(1);
+    fprintf(stderr, "seqStore::loadStore()-- '%s' isn't a seqStore file; got '%s', expected '%s'.\n", filename, cigam, magic), exit(1);
 
   //  The store construction adds a sentinal block at the end; that's the +1.
   _blockInfo = new seqStoreBlock [_numBlocks + 1];
   fread(_blockInfo, sizeof(seqStoreBlock), _numBlocks + 1, BLOCKS);
 
   if (errno)
-    fprintf(stderr, "seqStream::loadStore()-- Failed to read "u64bitFMT" blocks: %s\n", _numBlocks, strerror(errno)), exit(1);
+    fprintf(stderr, "seqStore::loadStore()-- Failed to read "u64bitFMT" blocks: %s\n", _numBlocks, strerror(errno)), exit(1);
 
   fclose(BLOCKS);
 
@@ -164,7 +166,7 @@ seqStore::buildStore(const char *filename, seqStream *ss) {
             blocksName, strerror(errno)), exit(1);
 
   //             012345678901234567
-  strcpy(magic, "seqStore.v1.PRTL");
+  strcpy(magic, "seqStore.v2.PRTL");
   fwrite(magic,            sizeof(char),   16, BLOCKS);
   fwrite(&numBlocks,       sizeof(u64bit), 1,  BLOCKS);
   fwrite(&numACGT,         sizeof(u64bit), 1,  BLOCKS);
@@ -281,7 +283,7 @@ seqStore::buildStore(const char *filename, seqStream *ss) {
 
   //             012345678901234567
   memset(magic, 0, 16);
-  strcpy(magic, "seqStore.v1");
+  strcpy(magic, "seqStore.v2");
   fwrite(magic,            sizeof(char),   16, BLOCKS);
   fwrite(&numBlocks,       sizeof(u64bit), 1,  BLOCKS);
   fwrite(&numACGT,         sizeof(u64bit), 1,  BLOCKS);
@@ -294,8 +296,6 @@ seqStore::buildStore(const char *filename, seqStream *ss) {
 
 
 
-#undef DEBUG_GET
-
 unsigned char
 seqStore::get(void) {
 
@@ -304,8 +304,12 @@ seqStore::get(void) {
     _thisBlock++;
     _thisBlockPosition = 0;
 
-    if (_blockInfo[_thisBlock]._isACGT)
+    if (_blockInfo[_thisBlock]._isACGT) {
+      if (_blockInfo[_thisBlock]._posInBPF != _streamFile->tell())
+        fprintf(stderr, "ERROR: _blockInfo[_thisBlock]._posInBPF="u64bitFMT" != "u64bitFMT"=_streamFile->tell()\n",
+                _blockInfo[_thisBlock]._posInBPF, _streamFile->tell());
       assert(_blockInfo[_thisBlock]._posInBPF == _streamFile->tell());
+    }
   }
 
   if (_thisBlock >= _numBlocks) {
@@ -371,7 +375,7 @@ seqStore::seek(u64bit pos) {
 
   //  Use a binary search if there are lots of blocks, otherwise, linear search.
 
-#if 0
+#ifdef DEBUG_SEEK
   fprintf(stderr, "seqStore::seek()-- looking for posInBPF "u64bitFMT"\n", pos);
   for (u32bit i=0; i<_numBlocks; i++)
     fprintf(stderr, "block["u32bitFMT"]: acgt:"u64bitFMT" iid:"u64bitFMT" posInSeq:"u64bitFMT" posInStrOff:"u64bitFMT" posInBPF:"u64bitFMT" len:"u64bitFMT"\n",
@@ -421,7 +425,7 @@ seqStore::seek(u64bit pos) {
     }
   }
 
-#if 0
+#ifdef DEBUG_SEEK
   fprintf(stderr, "seqStore::seek()--  found block="u32bitFMT" posInBPF: "u64bitFMT" nextBlock: "u64bitFMT"\n",
           block, _blockInfo[block]._posInBPF, _blockInfo[block+1]._posInBPF);
 #endif

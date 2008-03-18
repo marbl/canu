@@ -73,21 +73,20 @@ public:
 private:
 
   //  Limits:
-  //   16 million -- length of a single block of data (efficiency only)
-  //    1 billion -- length of a single sequence
-  //   16 billion -- number of sequences in a single file
+  //    4 billion -- number of sequences in a single file
+  //    2 billion -- length of a single block of data
+  //    2 billion -- length of a single sequence
   // 1024 billion -- length of a single file
   //
   struct seqStoreBlock {
     u64bit      _isACGT:1;        // block is acgt
     u64bit      _seqIID:32;       // (4e9) iid of the sequence we are in
-    u64bit      _posInSeq:30;     // (1e9) position in sequence
+    u64bit      _posInSeq:31;     // (2e9) position in sequence
 
-    //  Add this to _posInBPF to get the positionInStream
-    u64bit      _posInStrOff:32;
+    u64bit      _posInStrOff:32;  // (4e9) add this to _posInBPF to get the positionInStream
+    u64bit      _len:31;          // (1e9) length of block
 
     u64bit      _posInBPF:40;     // (1024e9) position in the bit file of sequence
-    u64bit      _len:24;          // (16e6) length of block
   };
 
   u64bit                _numBlocks;
