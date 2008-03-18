@@ -107,7 +107,9 @@ positionDB::positionDB(merStream          *MS,
     exit(1);
   }
 
-#if 1
+#if 0
+  //  Useful for debugging, but generates LOTS of verbage in
+  //  production snapper.
   fprintf(stderr, "        sm         = "u64bitFMT"\n", sm);
   fprintf(stderr, "        lg         = "u64bitFMT"\n", lg);
   fprintf(stderr, "        merSize    = "u32bitFMT" bits\n", 2 * merSize);
@@ -132,14 +134,15 @@ positionDB::positionDB(merStream          *MS,
       u32bit  s2 = s1 / 2;
 
       if (((i % 2) == 1) || ((s1 % 2) == 1) || ((s2 % 2) == 1)) {
-        fprintf(stderr, "tblBits="u64bitFMT" s1="u32bitFMT" s2="u32bitFMT" -- merSize="u32bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT" SKIP.\n",
-                i, s1, s2, merSize, posnWidth, approxMers, mm);
+        if (beVerbose)
+          fprintf(stderr, "tblBits="u64bitFMT" s1="u32bitFMT" s2="u32bitFMT" -- merSize="u32bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT" SKIP.\n",
+                  i, s1, s2, merSize, posnWidth, approxMers, mm);
         continue;
       }
     }
 
     if (mm < mins) {
-      {
+      if (beVerbose) {
         u32bit s1 = 2*merSize-i;
         fprintf(stderr, "tblBits="u64bitFMT" s1="u32bitFMT" s2="u32bitFMT" -- merSize="u32bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT" SMALLER.\n",
                 i, s1, s1/2, merSize, posnWidth, approxMers, mm);
@@ -151,7 +154,7 @@ positionDB::positionDB(merStream          *MS,
 
   _tableSizeInBits = mini;
 
-  {
+  if (beVerbose) {
     u32bit s1 = 2*merSize-_tableSizeInBits;
     fprintf(stderr, "tblBits="u32bitFMT" s1="u32bitFMT" s2="u32bitFMT" -- merSize="u32bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) FINAL\n",
             _tableSizeInBits, s1, s1/2, merSize, posnWidth, approxMers);
@@ -178,11 +181,13 @@ positionDB::positionDB(merStream          *MS,
   _mask1                 = u64bitMASK(_tableSizeInBits);
   _mask2                 = u64bitMASK(_shift1);
 
+#if 0
   fprintf(stderr, "merSizeInBits   "u32bitFMT"\n", _merSizeInBits);
   fprintf(stderr, "hashWidth       "u32bitFMT"\n", _hashWidth);
   fprintf(stderr, "chckWidth       "u32bitFMT"\n", _chckWidth);
   fprintf(stderr, "shift1          "u32bitFMT"\n", _shift1);
   fprintf(stderr, "shift2          "u32bitFMT"\n", _shift2);
+#endif
 
   build(MS, mask, only, counts, minCount, maxCount, beVerbose);
 }
