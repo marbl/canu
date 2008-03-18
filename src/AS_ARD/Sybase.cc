@@ -388,7 +388,7 @@ void Sybase::checkError(int32 ret, const char * str) {
          ct_exit(context, CS_FORCE_EXIT);
          cs_ctx_drop(context);
       }
-      exit(-1);
+      exit(1);
    }
 }
 

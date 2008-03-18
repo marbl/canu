@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.52 2007-11-02 22:36:56 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.53 2008-03-18 07:02:42 brianwalenz Exp $";
 
 
 
@@ -376,7 +376,7 @@ int main(int argc, char *argv[]){
           if(preMergeRezLevel < 0){
             fprintf(GlobalData->stderrc,"* pre-first-scaffold-merge repeatRezLevel must be >= 0\n");
             fprintf(stderr,"* pre-first-scaffold-merge repeatRezLevel must be >= 0\n");
-            exit(-99);
+            exit(1);
           }
           fprintf(GlobalData->stderrc,"* pre-first-scaffold-merge repeatRezLevel set to %d\n", preMergeRezLevel);
           break;

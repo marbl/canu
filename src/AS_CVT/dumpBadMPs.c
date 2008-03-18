@@ -71,7 +71,7 @@ void Usage(char * prog, char * message)
           
           "\t-d     process degenerate scaffolds\n"
           "\t\t     default is to process only real scaffolds\n");
-  exit(-1);
+  exit(1);
 }
 
 

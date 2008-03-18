@@ -33,11 +33,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_ChunkGraph.cc,v 1.13 2007-12-05 23:46:57 brianwalenz Exp $
- * $Revision: 1.13 $
+ * $Id: AS_BOG_ChunkGraph.cc,v 1.14 2008-03-18 07:02:42 brianwalenz Exp $
+ * $Revision: 1.14 $
  */
 
-static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.13 2007-12-05 23:46:57 brianwalenz Exp $";
+static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.14 2008-03-18 07:02:42 brianwalenz Exp $";
 
 //  System include files
 
@@ -87,7 +87,7 @@ namespace AS_BOG{
             return(_chunkable_array[src_frag_id].three_prime);
         }else{
             fprintf(stderr, "Bad fragment_end_type.\n");
-            exit(-1);
+            exit(1);
         }
     }
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: processInter.cc,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
+/* $Id: processInter.cc,v 1.6 2008-03-18 07:02:45 brianwalenz Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -308,7 +308,7 @@ int main(int argc, char ** argv)
   if(!flib.good())
   {
     cerr << "Failed to open " << libFilename << " for reading\n";
-    exit(-1);
+    exit(1);
   }
   // cerr << "Reading clone library data from file " << libFilename << endl;
   ReadCloneLibs(libs, flib);
@@ -321,7 +321,7 @@ int main(int argc, char ** argv)
     if(!fe.good())
     {
       cerr << "Failed to open " << ewFilename << " for reading\n";
-      exit(-1);
+      exit(1);
     }
     // cerr << "Reading inter-sequence mate pairs from " << ewFilename << endl;
     ReadInterSequenceMPs(icmps, fe, interScope);
@@ -342,7 +342,7 @@ int main(int argc, char ** argv)
     if(!fmp.good())
     {
       cerr << "Failed to open " << mpFilename << " for reading\n";
-      exit(-1);
+      exit(1);
     }
     cerr << "Reading satisfied matepairs from " << mpFilename << endl;
     ReadMatePairs(mps, fmp);
@@ -390,7 +390,7 @@ int main(int argc, char ** argv)
   if(!fo.good())
   {
     cerr << "Failed to open " << fname << " for writing\n";
-    exit(-1);
+    exit(1);
   }
   
   // write ata header lines

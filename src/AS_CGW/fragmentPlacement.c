@@ -213,7 +213,7 @@ void InitCIFragTInChunkIterator(CGWFragIterator* frags,NodeCGW_T *chunk, int inc
   if(chunk->flags.bits.isScaffold){
     fprintf(stderr,"We haven't coded fragment iteration over scaffolds!\n");
     assert(0);
-    exit(-99);
+    exit(1);
     frags->isUtg = frags->isCtg = 0;
   }
   else if(chunk->flags.bits.isContig){

@@ -72,7 +72,7 @@ int main(int argc, char ** argv)
             "\t-a        write assembly coordinates\n"
             "\t\t        default is fasta file coordinates\n",
             argv[0]);
-    exit(-1);
+    exit(1);
   }
 
   {

@@ -103,7 +103,7 @@ int main(int argc, char ** argv)
       if(asmFilename == NULL || prefix == NULL || server == NULL || database == NULL || user == NULL)
       {
          std::cerr << "Usage: " << argv[0] << " -a asmFilename -o prefix -S server_name -D database_name -U user_name [-B bcp_path -E EUID server -n EUID namespace -s startEUID]\n";            
-         exit(-1);
+         exit(1);
       }
 
       // inputs a password without echoing
@@ -118,7 +118,7 @@ int main(int argc, char ** argv)
       if(asmFilename == NULL)
       {
          std::cerr << "Usage: " << argv[0] << " -a asmFilename [ -E EUID server -n EUID namespace -s startEUID]\n";            
-         exit(-1);
+         exit(1);
       }
 
       out = new DBTextOutput();

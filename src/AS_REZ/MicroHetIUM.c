@@ -755,7 +755,7 @@ main(int argc, char **argv) {
             default:
               fprintf(stderr,"AS_REZ_print_IUM_diffs doesn't know what you want to print\n");
               AS_REZ_free_alignment(ali);
-              exit(-1);
+              exit(1);
           }
 
           AS_REZ_free_alignment(ali);

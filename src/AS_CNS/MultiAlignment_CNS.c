@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.182 2008-02-27 15:48:03 skoren Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.183 2008-03-18 07:02:43 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -2862,7 +2862,7 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
                         OutputReads(stderr, vreg.reads, vreg.nr, vreg.end-vreg.beg);
                         OutputDistMatrix(stderr, &vreg);
                         OutputAlleles(stderr, &vreg);
-                        exit(-1);
+                        exit(1);
                       }
 #endif
 

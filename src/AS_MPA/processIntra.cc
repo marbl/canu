@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: processIntra.cc,v 1.10 2006-10-08 08:47:39 brianwalenz Exp $ */
+/* $Id: processIntra.cc,v 1.11 2008-03-18 07:02:46 brianwalenz Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -337,7 +337,7 @@ int main(int argc, char ** argv)
   if(!flib.good())
   {
     cerr << "Failed to open " << libFilename << " for reading\n";
-    exit(-1);
+    exit(1);
   }
   // cerr << "Reading clone library data from file " << libFilename << endl;
   ReadCloneLibs(libs, flib);
@@ -368,7 +368,7 @@ int main(int argc, char ** argv)
     if(!fmp.good())
     {
       cerr << "Failed to open " << mpFilename << " for reading\n";
-      exit(-1);
+      exit(1);
     }
     // cerr << "Reading mate pair data in file " << mpFilename << endl;
     ReadMatePairs(mps, fmp);
@@ -581,7 +581,7 @@ int main(int argc, char ** argv)
     if(!listOS.good())
     {
       cerr << "Failed to open " << tempFN << " for writing\n";
-      exit(-1);
+      exit(1);
     }
   }
   listOS << "SeqID\t"

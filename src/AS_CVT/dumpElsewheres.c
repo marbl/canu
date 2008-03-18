@@ -72,7 +72,7 @@ int main(int argc, char ** argv)
             "Usage: %s [-s assemblyStore] [-u scaffoldUID]\n"
             "\t-u is optional. default is all scaffolds\n",
             argv[0]);
-    exit(-1);
+    exit(1);
   }
 
   {

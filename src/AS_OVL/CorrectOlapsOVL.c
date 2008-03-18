@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.27 2007-11-08 12:38:14 brianwalenz Exp $
- * $Revision: 1.27 $
+ * $Id: CorrectOlapsOVL.c,v 1.28 2008-03-18 07:02:46 brianwalenz Exp $
+ * $Revision: 1.28 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.27 2007-11-08 12:38:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.28 2008-03-18 07:02:46 brianwalenz Exp $";
 
 
 //  System include files
@@ -755,7 +755,7 @@ static char  Complement
         return  'n';
       default :
         fprintf (stderr, "ERROR(complement):  Unexpected character `%c\'\n", ch);
-        exit (-1);
+        exit(1);
      }
 
    return  'x';    // Just to make the compiler happy

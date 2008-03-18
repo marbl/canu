@@ -29,7 +29,7 @@
 #include "MultiAlignStore_CNS.h"
 #include "MultiAlignment_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.21 2007-11-08 12:38:11 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.22 2008-03-18 07:02:43 brianwalenz Exp $";
 
 static HashTable_AS *utgUID2IID;
 
@@ -60,7 +60,7 @@ static IntUnitigMesg* convert_UTG_to_IUM(SnapUnitigMesg* utgMesg)
     if(ExistsInHashTable_AS(utgUID2IID,AS_UID_toInteger(utgMesg->eaccession), 0)){
       fprintf(stderr,"Encountered UTG UID %s more than once! DIE!\n",
 	      AS_UID_toString(utgMesg->eaccession));
-      exit(-1);
+      exit(1);
     }
     InsertInHashTable_AS(utgUID2IID, AS_UID_toInteger(utgMesg->eaccession), 0, utgMesg->iaccession, 0);
   }
@@ -93,7 +93,7 @@ static IntUnitigMesg* convert_UTG_to_IUM(SnapUnitigMesg* utgMesg)
       if( iid == 0 ){
 	fprintf(stderr,"Error: Unknown uid fragment ID %s at %s:%d\n",
 		AS_UID_toString(utgMesg->f_list[i].eident),__FILE__,__LINE__);
-	exit(-1);
+	exit(1);
       }
       
       iumMesg->f_list[i].ident       = iid;
@@ -166,7 +166,7 @@ static IntConConMesg* convert_CCO_to_ICM(SnapConConMesg* ccoMesg)
       if( iid == 0 ){
 	fprintf(stderr,"Error: Unknown uid fragment ID %s at %s:%d\n",
 		AS_UID_toString(ccoMesg->pieces[i].eident),__FILE__,__LINE__);
-	exit(-1);
+	exit(1);
       }
       icmMesg->pieces[i].ident       = iid;
       icmMesg->pieces[i].delta_length = ccoMesg->pieces[i].delta_length;
@@ -189,7 +189,7 @@ static IntConConMesg* convert_CCO_to_ICM(SnapConConMesg* ccoMesg)
       if (!ExistsInHashTable_AS(utgUID2IID, AS_UID_toInteger(ccoMesg->unitigs[i].eident), 0)) {
 	fprintf(stderr,"Error: Reference before definition for unitig UID %s at %s:%d\n",
 		AS_UID_toString(ccoMesg->pieces[i].eident),__FILE__,__LINE__);
-	exit(-1);
+	exit(1);
       }
       icmMesg->unitigs[i].ident        = LookupValueInHashTable_AS(utgUID2IID, AS_UID_toInteger(ccoMesg->unitigs[i].eident), 0);
       icmMesg->unitigs[i].position     = ccoMesg->unitigs[i].position;
@@ -357,7 +357,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.21 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.22 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 

@@ -68,7 +68,7 @@ int main(int argc, char ** argv)
     fprintf(stderr,
             "Usage: %s [-s assemblyStore] [-m mapStore]\n",
             argv[0]);
-    exit(-1);
+    exit(1);
   }
 
   {

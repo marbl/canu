@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: processInterCG.cc,v 1.8 2005-10-14 20:26:37 catmandew Exp $ */
+/* $Id: processInterCG.cc,v 1.9 2008-03-18 07:02:45 brianwalenz Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -206,7 +206,7 @@ int main(int argc, char ** argv)
   if(!flib.good())
   {
     cerr << "Failed to open " << libFilename << " for reading\n";
-    exit(-1);
+    exit(1);
   }
   // cerr << "Reading clone library data from file " << libFilename << endl;
   ReadCloneLibs(libs, flib);
@@ -220,7 +220,7 @@ int main(int argc, char ** argv)
   if(!fe.good())
   {
     cerr << "Failed to open " << inFilename << " for reading\n";
-    exit(-1);
+    exit(1);
   }
   while(fe.getline(line, LINE_SIZE-1))
   {
@@ -241,7 +241,7 @@ int main(int argc, char ** argv)
   if(!listOS.good())
   {
     cerr << "Failed to open " << fname << " for writing\n";
-    exit(-1);
+    exit(1);
   }
   listOS << "thisSeqID\t"
          << "thisLeft\t"
@@ -260,7 +260,7 @@ int main(int argc, char ** argv)
     if(!gnuOS.good())
     {
       cerr << "Failed to open " << fname << " for writing\n";
-      exit(-1);
+      exit(1);
     }
   }
   
@@ -275,7 +275,7 @@ int main(int argc, char ** argv)
     if(!ataOS.good())
     {
       cerr << "Failed to open " << fname << " for writing\n";
-      exit(-1);
+      exit(1);
     }
     // write ata header lines
     ataOS << "! format ata 1.0\n";
@@ -449,7 +449,7 @@ int main(int argc, char ** argv)
                 break;
               default:
                 cerr << "Unknown matepair type: " << mpii << endl;
-                exit(-100);
+                exit(1);
                 break;
             } // switch
             

@@ -77,7 +77,7 @@ int main(int argc, char ** argv)
             "Usage: %s [-s assemblyStore] [-m mapStore] [-u chromUID]\n"
             "\t-u is optional. default is all chromosome/segments\n",
             argv[0]);
-    exit(-1);
+    exit(1);
   }
 
   {

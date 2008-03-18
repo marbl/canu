@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: getUniqueMatchesFromCGM.c,v 1.5 2007-02-08 02:46:00 brianwalenz Exp $ */
+/* $Id: getUniqueMatchesFromCGM.c,v 1.6 2008-03-18 07:02:45 brianwalenz Exp $ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,15 +44,15 @@ int main(int argc, char ** argv)
   int singleCount = 0;
   int zeroCount = 0;
 
-  if(argc != 4) exit(-1);
+  if(argc != 4) exit(1);
 
   // celegram file
   fp = fopen(argv[1], "r");
-  if(fp == NULL) exit(-1);
+  if(fp == NULL) exit(1);
 
   // uid file
   fp2 = fopen(argv[2], "r");
-  if(fp2 == NULL) exit(-1);
+  if(fp2 == NULL) exit(1);
 
   fprintf(stderr, "Reading count file & uid file\n");
   for(id = 0, fgets(line, 1023, fp); fgets(line, 1023, fp); id++)
@@ -79,7 +79,7 @@ int main(int argc, char ** argv)
   fclose(fp2);
 
   fp = fopen(argv[3], "r");
-  if(fp == NULL) exit(-1);
+  if(fp == NULL) exit(1);
   fprintf(stderr, "Writing uniquely mapped fragment list\n");
   while(fgets(line, 1023, fp))
   {
@@ -104,7 +104,7 @@ int main(int argc, char ** argv)
         else
         {
           fprintf(stderr, "ERROR!\n%s\n", string);
-          exit(-1);
+          exit(1);
         }
         acceptedCount++;
       }

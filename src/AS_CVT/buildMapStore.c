@@ -78,7 +78,7 @@ int main(int argc, char ** argv)
     fprintf(stderr,
             "Usage: %s [-s assemblyStore] [-m mapStore] [-c chromFile] [-f fragFile]\n",
             argv[0]);
-    exit(-1);
+    exit(1);
   }
 
   {

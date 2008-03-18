@@ -73,7 +73,7 @@ int main(int argc, char ** argv)
     fprintf(stderr,
             "Usage: %s -a asmFilename -s storePath [-g gkpStore]\n",
             argv[0]);
-    exit(-1);
+    exit(1);
   }
 
   if(gkpStorePath == NULL)

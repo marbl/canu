@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: getIntervalIntersections.cc,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
+/* $Id: getIntervalIntersections.cc,v 1.6 2008-03-18 07:02:45 brianwalenz Exp $ */
 #include <cstdio>
 #include <iostream>
 #include <fstream>
@@ -155,7 +155,7 @@ void Usage(char * progname, char * message)
   cerr << "  -i requires file2 intervals to not span file1 intervals\n";
   cerr << "  -q requires file2 intervals to not be spanned by file1 intervals\n";
   cerr << "\tfields per line in files: start len\n";
-  exit(-1);
+  exit(1);
 }
 
 int main(int argc, char ** argv)

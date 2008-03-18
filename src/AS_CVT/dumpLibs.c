@@ -48,7 +48,7 @@ int main(int argc, char ** argv)
   if(asmStorePath == NULL)
   {
     fprintf(stderr, "Usage: %s [-s asmStore]\n", argv[0]);
-    exit(-1);
+    exit(1);
   }
 
   {

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: analyzeMummerMapping.cc,v 1.4 2006-10-08 08:47:39 brianwalenz Exp $ */
+/* $Id: analyzeMummerMapping.cc,v 1.5 2008-03-18 07:02:45 brianwalenz Exp $ */
 #include <cstdio>  // for sscanf
 #include <cmath>
 #include <cassert>
@@ -1090,7 +1090,7 @@ void readScaffFile(char * filename, map<CDS_UID_t, MappedScaffold> & assembly)
   if(!fin.good())
   {
     cerr << "Failed to open " << filename << " for reading\n";
-    exit(-1);
+    exit(1);
   }
 
   cerr << "Reading file " << filename << endl;
@@ -1117,7 +1117,7 @@ void readShowCoordsFile(char * filename,
   if(!fin.good())
   {
     cerr << "Failed to open " << filename << " for reading\n";
-    exit(-1);
+    exit(1);
   }
 
   cerr << "Reading file " << filename << endl;

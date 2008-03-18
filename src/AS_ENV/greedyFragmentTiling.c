@@ -406,7 +406,7 @@ OVSoverlap better_olap(OVSoverlap a, OVSoverlap b, int startingFrg, int offAEnd,
 
     default:
       fprintf(stderr,"Unknown criterion for best overlap! exit \n");
-      exit(-1);
+      exit(1);
       break;
   }
 }
@@ -609,11 +609,11 @@ void setUpRestrictions(int last_stored_frag,char *listfile,int *usabilityArray){
   while(fscanf(frglist,"%s",range)==1){
     if(strlen(range)>255){
       fprintf(stderr,"Sloppy coding: range string %s ran out of memory; exit!\n",range);
-      exit(-4);
+      exit(1);
     }
     if(strstr(range,",")!=NULL){
       fprintf(stderr,"the IID restriction code doesn't really support comma-separated lists yet;exit!\n");
-      exit(-4);
+      exit(1);
     }
     if(strstr(range,"-")!=NULL){
       int b,e,i;
@@ -790,7 +790,7 @@ int main (int argc , char * argv[] ) {
             n = strlen(c);
             if(n==249&&optarg[249]!='\0'){
               fprintf(stderr,"Not enough memory for iid list path!\n");
-              exit(-4);
+              exit(1);
             }
           }
           break;
@@ -802,7 +802,7 @@ int main (int argc , char * argv[] ) {
             n = strlen(c);
             if(n==249&&optarg[249]!='\0'){
               fprintf(stderr,"Not enough memory for iid list path!\n");
-              exit(-4);
+              exit(1);
             }
           }
           break;
@@ -856,7 +856,7 @@ int main (int argc , char * argv[] ) {
     if( !setFullGkp || !setFullOvl )
       {
 	usage(argv[0]);
-	exit (-1);
+	exit(1);
       }
   }
   
@@ -906,7 +906,7 @@ int main (int argc , char * argv[] ) {
     if(favorSameSample==0&&favorSameSampleAsSeed==0){
       //      favorSameSample=AS_OVS_encodeQuality(DEFAULT_SAMPLE_ADVANTAGE); 
       fprintf(stderr,"Unexpected settings in %s :  -s <read UID to sample file> specified without positive value for -S or -T -- abort!\n",argv[0]);
-      exit(-1);
+      exit(1);
     }
   }
 #endif

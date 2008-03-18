@@ -25,12 +25,12 @@
       Definitions of functions declared in  delcher.h
    Assumptions:  Input meets specifications in the ProtoIO documents
  *********************************************************************/
-static char fileID[] = "$Id: AS_OVL_delcher.c,v 1.6 2007-08-23 14:57:26 adelcher Exp $";
+static char fileID[] = "$Id: AS_OVL_delcher.c,v 1.7 2008-03-18 07:02:46 brianwalenz Exp $";
 
 
 /* RCS info
- * $Id: AS_OVL_delcher.c,v 1.6 2007-08-23 14:57:26 adelcher Exp $
- * $Revision: 1.6 $
+ * $Id: AS_OVL_delcher.c,v 1.7 2008-03-18 07:02:46 brianwalenz Exp $
+ * $Revision: 1.7 $
 */
 
 
@@ -79,21 +79,10 @@ FILE *  File_Open
      }
    if  (fp == NULL)
        {
-#if 0
-        char  buff [1000];
-#endif
-
         fprintf (stderr, "ERROR %d:  Could not open file  %s \n",
                  errno, Filename);
         perror (strerror (errno));
-#if  0
-        sprintf (buff, "mail Randall.Bolanos \n"
-                 "Overlap error %d  file %s\n"
-                 "%s\n%c\n",
-                 errno, Filename, strerror (errno), '\04');
-        system (buff);
-#endif
-        exit (FILE_OPEN_FAILURE);
+        exit (1);
        }
 
    return  fp;

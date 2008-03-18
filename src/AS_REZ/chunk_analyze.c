@@ -38,11 +38,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: chunk_analyze.c,v 1.10 2007-04-16 17:34:16 brianwalenz Exp $
- * $Revision: 1.10 $
+ * $Id: chunk_analyze.c,v 1.11 2008-03-18 07:02:47 brianwalenz Exp $
+ * $Revision: 1.11 $
 */
 
-static char fileID[] = "$Id: chunk_analyze.c,v 1.10 2007-04-16 17:34:16 brianwalenz Exp $";
+static char fileID[] = "$Id: chunk_analyze.c,v 1.11 2008-03-18 07:02:47 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -120,7 +120,7 @@ int main  (int argc, char * argv [])
    if  (argc < 2)
        {
         fprintf (stderr, "USAGE:  %s <cgb-file>\n", argv [0]);
-        exit (-1);
+        exit(1);
        }
 
    infile = fopen (argv [1], "r");
@@ -128,7 +128,7 @@ int main  (int argc, char * argv [])
        {
         fprintf (stderr, "ERROR:  Could not open file %s\n",
                  argv [1]);
-        exit (-1);
+        exit(1);
        }
 
    Cam_File = fopen ("chunk_analyze.cam", "w");

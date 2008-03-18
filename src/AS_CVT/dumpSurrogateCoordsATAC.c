@@ -58,7 +58,7 @@ int main(int argc, char ** argv)
   if(inputStoreName == NULL || deflineFilename == NULL || assemblyName == NULL)
   {
     fprintf(stderr, "Usage: %s [-s asmStore] [-d deflineFile] [-n assemblyName]\n", argv[0]);
-    exit(-1);
+    exit(1);
   }
 
   {

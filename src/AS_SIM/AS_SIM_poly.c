@@ -91,7 +91,7 @@ static void *ckalloc(int size)
   if ((m = malloc(size)) == NULL)
     { fprintf(stdout,"\n\t*** Out of Memory (%s requesting %d bytes)\n",
               ProgName,size);
-      exit (2);
+      exit (1);
     }
   return (m);
 }
@@ -100,7 +100,7 @@ static void *ckrealloc(void *m,int size)
 { if ((m = realloc(m,size)) == NULL)
     { fprintf(stdout,"\n\t*** Out of Memory (%s requesting %d bytes)\n",
               ProgName,size);
-      exit (2);
+      exit (1);
     }
   return (m);
 }

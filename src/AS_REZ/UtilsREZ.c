@@ -31,7 +31,7 @@
 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: UtilsREZ.c,v 1.7 2007-04-16 15:35:41 brianwalenz Exp $";
+static char CM_ID[] = "$Id: UtilsREZ.c,v 1.8 2008-03-18 07:02:47 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -231,44 +231,6 @@ int Interval_Intersection (int a, int b, int c, int d) {
   else
     return  1 + MIN (b, d) - MAX (a, c);
 }
-
-
-/*--------------------------------------------------------------------*/
-/* Error Handling */
-/*--------------------------------------------------------------------*/
-
-#if 0
-static char ErrorString[NumOfErrorsREZ][30] = 
-{
-  "FILE ERROR",
-  "MEMORY ERROR",
-  "PRECONDITION ERROR"
-};
-
-
-void error(ErrorCodeREZ err, const char* errorMesg,  ExitStatusREZ ex, 
-	   const char* file, int line)
-{
-  /************************************************************************/ 
-  /* The function checks whether the error code err is valid. If not it   */
-  /* issues an error message. Otherwise it issues the error message given */
-  /* by errorMesg and exits with status ex.                               */
-  /************************************************************************/
-
-  int intErr = (int)err;
-  if( intErr < 0 || intErr >= NumOfErrorsREZ )
-    {
-    fprintf(stderr,"ERROR in error function : Invalid ErrorCode %d ",intErr);
-    exit(EXIT_FAILURE_REZ);
-  }
-  fprintf(stderr,"%s in file %s, line %d : %s\n",
-	  ErrorString[intErr],file,line,errorMesg);
-  
-  exit(ex);
-}
-#endif
-
-
 
 
 FILE*  file_open(const char* fileName, const char* mode)

@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.21 2008-02-29 16:26:30 adelcher Exp $
- * $Revision: 1.21 $
+ * $Id: OlapFromSeedsOVL.c,v 1.22 2008-03-18 07:02:46 brianwalenz Exp $
+ * $Revision: 1.22 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.21 2008-02-29 16:26:30 adelcher Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.22 2008-03-18 07:02:46 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -94,7 +94,7 @@ if (0)
  Display_Alignment (a, a_end, b, b_end, delta, delta_len, a_end);
  Show_Homopoly_Match_Array (stdout, hp_array, errors);
 
- exit (-12);
+ exit(EXIT_FAILURE);
 }
 
    gkpStore = openGateKeeperStore(gkpStore_Path, FALSE);
@@ -197,7 +197,7 @@ static void  Adjust_For_Compressed_Seeds
                __LINE__, __FILE__);
       fprintf (stderr, "* a_part = %-.30s\n", p);
       fprintf (stderr, "* b_part = %-.30s\n", q);
-      exit (EXIT_FAILURE);
+      exit(EXIT_FAILURE);
     }
 
   for (i = 1; p [i] == p [0]; i ++)
@@ -244,7 +244,7 @@ static void  Analyze_Alignment
         fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
         fprintf (stderr, "Negative length:  a_len = %d  b_len = %d  sub = %d\n",
                  a_len, b_len, sub);
-        exit (-3);
+        exit(1);
        }
 
    vote [0] . frag_sub = -1;
@@ -278,7 +278,7 @@ static void  Analyze_Alignment
                  default :
                    fprintf (stderr, "ERROR:  [1] Bad sequence char \'%c\' (ASCII %d)\n",
                             b_part [j], (int) b_part [j]);
-                   exit (1);
+                   exit(EXIT_FAILURE);
                 }
               ct ++;           
              }
@@ -307,7 +307,7 @@ static void  Analyze_Alignment
                default :
                  fprintf (stderr, "ERROR:  [2] Bad sequence char \'%c\' (ASCII %d)\n",
                           b_part [j], (int) b_part [j]);
-                   exit (2);
+                   exit(EXIT_FAILURE);
               }
            ct ++;
            j ++;
@@ -349,7 +349,7 @@ static void  Analyze_Alignment
                          b_part [j], (int) b_part [j]);
                 fprintf (stderr, "i = %d  a_len = %d  j = %d  b_len = %d\n",
                          i, a_len, j, b_len);
-                exit (3);
+                exit(EXIT_FAILURE);
              }
            ct ++;           
           }
@@ -561,7 +561,7 @@ if (0)
          // need to adjust mod_seq, mod_len and mod_dp here because of
          // eliminated reads
          fprintf (stderr, "Check_Correlated_Differences not implemented\n");
-         exit (EXIT_FAILURE);
+         exit(EXIT_FAILURE);
         }
      }
 
@@ -838,7 +838,7 @@ static void  Cast_Insert_Vote
       default :
         fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
         fprintf (stderr, "Bad character value %u not in range 0..3\n", ch);
-        exit (EXIT_FAILURE);
+        exit(EXIT_FAILURE);
      }
 
    return;
@@ -866,7 +866,7 @@ static void  Cast_New_Vote_Char
       default :
         fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
         fprintf (stderr, "Bad type %d\n", (int) type);
-        exit (EXIT_FAILURE);
+        exit(EXIT_FAILURE);
      }
 
    switch (tolower (ch))
@@ -894,7 +894,7 @@ static void  Cast_New_Vote_Char
       default :
         fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
         fprintf (stderr, "Bad character '%c' (%d)\n", ch, (int) ch);
-        exit (EXIT_FAILURE);
+        exit(EXIT_FAILURE);
      }
 
    return;
@@ -922,7 +922,7 @@ static void  Cast_New_Vote_Code
       default :
         fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
         fprintf (stderr, "Bad type %d\n", (int) type);
-        exit (EXIT_FAILURE);
+        exit(EXIT_FAILURE);
      }
 
    if (code < 4)
@@ -934,7 +934,7 @@ static void  Cast_New_Vote_Code
      {
       fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
       fprintf (stderr, "Bad character code '%u\n", code);
-      exit (EXIT_FAILURE);
+      exit(EXIT_FAILURE);
      }
 
    return;
@@ -985,7 +985,7 @@ static void  Cast_Substitution_Vote
       default :
         fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
         fprintf (stderr, "Bad character value %u not in range 0..3\n", ch);
-        exit (EXIT_FAILURE);
+        exit(EXIT_FAILURE);
      }
 
    return;
@@ -1079,7 +1079,7 @@ static int  Char_Matches
       default :
         fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
         fprintf (stderr, "Bad character %c not A,C,G,T,X,-\n", ch);
-        exit (EXIT_FAILURE);
+        exit(EXIT_FAILURE);
      }
 
    return (x == code);
@@ -1101,7 +1101,7 @@ static int  Char_To_Code
      {
       fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
       fprintf (stderr, "Bad character %c (%d) not A,C,G,T,-\n", ch, (int) ch);
-      exit (EXIT_FAILURE);
+      exit(EXIT_FAILURE);
      }
 
    return (p - s);
@@ -1121,7 +1121,7 @@ static int  Code_To_Char
      {
       fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
       fprintf (stderr, "Bad code %u\n", code);
-      exit (EXIT_FAILURE);
+      exit(EXIT_FAILURE);
      }
 
    return s [code];
@@ -1149,7 +1149,7 @@ static char  Complement
         return  'n';
       default :
         fprintf (stderr, "ERROR(complement):  Unexpected character `%c\'\n", ch);
-        exit (-1);
+        exit(EXIT_FAILURE);
      }
 
    return  'x';    // Just to make the compiler happy
@@ -1244,7 +1244,7 @@ static void  Convert_Delta_To_Diff
       fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
       fprintf (stderr, "Negative length:  a_len = %d  b_len = %d\n",
            a_len, b_len);
-      exit (-3);
+      exit(EXIT_FAILURE);
      }
 
    i = j = ct = 0;
@@ -1276,7 +1276,7 @@ static void  Convert_Delta_To_Diff
                  fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
                  fprintf (stderr, "Bad sequence char \'%c\' (ASCII %d)\n",
                       b_part [i], (int) b_part [i]);
-                 exit (EXIT_FAILURE);
+                 exit(EXIT_FAILURE);
               }
             ct ++;
             p = 0;
@@ -1316,7 +1316,7 @@ static void  Convert_Delta_To_Diff
               fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
               fprintf (stderr, "Bad sequence char \'%c\' (ASCII %d)\n",
                    b_part [i], (int) b_part [i]);
-              exit (EXIT_FAILURE);
+              exit(EXIT_FAILURE);
            }
          ct ++;
          j ++;
@@ -1347,7 +1347,7 @@ static void  Convert_Delta_To_Diff
               fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
               fprintf (stderr, "Bad sequence char \'%c\' (ASCII %d)\n",
                    b_part [i], (int) b_part [i]);
-              exit (EXIT_FAILURE);
+              exit(EXIT_FAILURE);
            }
          ct ++;
          p = 0;
@@ -2319,7 +2319,7 @@ static void  Extract_Needed_Frags
          fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
          fprintf (stderr, "Read %u is too long:  %d bp; max is %d\n",
               frag_iid, clear_end - clear_start, AS_READ_MAX_LEN);
-         exit (-1);
+         exit(EXIT_FAILURE);
         }
 
       // Make sure that we have a valid lowercase sequence string
@@ -2425,7 +2425,7 @@ static void  Get_Seeds_From_Store
      {
       fprintf (stderr, "ERROR:  Read iid range is backwards:  lo = %d  hi = %d\n",
            lo_id, hi_id);
-      exit (-1);
+      exit(EXIT_FAILURE);
      }
 
     ovs = AS_OVS_openOverlapStore (path);
@@ -2555,7 +2555,7 @@ static char  Homopoly_Should_Be
       default :
         fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
         fprintf (stderr, "Bad current char \'%c\' (ASCII %d)\n", curr, (int) curr);
-        exit (EXIT_FAILURE);
+        exit(EXIT_FAILURE);
      }
 
    if ((mx_ct > 1 && * tot == mx_ct)      // unanimous
@@ -2604,7 +2604,7 @@ static void  Initialize_Globals
      {
       fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
       fprintf (stderr, "No overlap output path specified\n");
-      exit (EXIT_FAILURE);
+      exit(EXIT_FAILURE);
      }
    switch (OVL_Output_Type)
      {
@@ -2617,7 +2617,7 @@ static void  Initialize_Globals
       case OVL_STORE :
         fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
         fprintf (stderr, "Directly outputting overlaps to binary store not permitted\n");
-        exit (EXIT_FAILURE);
+        exit(EXIT_FAILURE);
      }
 
    offset = 2;
@@ -2821,7 +2821,7 @@ static void  Modify_For_Inserts
                 {
                  fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
                  fprintf (stderr, "Insertions before start of reference sequence\n");
-                 exit (EXIT_FAILURE);
+                 exit(EXIT_FAILURE);
                 }
               else
                 mod_dp -> a_lo --;
@@ -3243,13 +3243,13 @@ static void  Parse_Command_Line
    if  (errflg || optind != argc - 3)
        {
         Usage (argv [0]);
-        exit (EXIT_FAILURE);
+        exit(EXIT_FAILURE);
        }
 
    if  (Olap_Path == NULL)
        {
         fprintf (stderr, "ERROR:  Must specify overlaps with -F or -S\n");
-        exit (EXIT_FAILURE);
+        exit(EXIT_FAILURE);
        }
 
    gkpStore_Path = argv [optind ++];
@@ -3260,7 +3260,7 @@ static void  Parse_Command_Line
         fprintf (stderr, "ERROR:  Illegal low fragment IID \"%s\"\n",
                  argv [optind]);
         Usage (argv [0]);
-        exit (EXIT_FAILURE);
+        exit(EXIT_FAILURE);
        }
    optind ++;
 
@@ -3276,7 +3276,7 @@ static void  Parse_Command_Line
         fprintf (stderr, "ERROR:  Illegal high fragment IID \"%s\"\n",
                  argv [optind]);
         Usage (argv [0]);
-        exit (EXIT_FAILURE);
+        exit(EXIT_FAILURE);
        }
 
    //  Set, finally, the global variables that are based on
@@ -3723,7 +3723,7 @@ static void  Process_Seed
       printf ("b_part = %p  is ascii %d  rev_seq is %d\n",
            b_part, (int) (* b_part), (int) (* rev_seq));
    if (! isalpha (* b_part) || ! isalpha (* rev_seq))
-      exit (-1);
+      exit(EXIT_FAILURE);
 
    if (Verbose_Level > 0)
      {
@@ -3774,7 +3774,7 @@ static void  Process_Seed
            "  a_ch=%c  b_ch=%c\n", olap -> a_iid, olap -> b_iid,
            olap -> a_hang, olap -> b_hang, olap -> orient == INNIE ? 'I' : 'N',
            * a_part, * b_part);
-      exit (EXIT_FAILURE);
+      exit(EXIT_FAILURE);
      }
 
    // 
@@ -3843,7 +3843,7 @@ static void  Process_Seed
                (Frag [sub] . is_homopoly_type ? 'T' : 'F'),
                (is_homopoly ? 'T' : 'F'),
                match_to_end ? 'T' : 'F');
-      exit (EXIT_FAILURE);
+      exit(EXIT_FAILURE);
      }
 
    remaining_errors = allowed_errors - left_errors;
@@ -4014,7 +4014,7 @@ static void  Read_Frags
         fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
         fprintf (stderr, "Hi frag %d is past last store frag %d\n",
                  Hi_Frag_IID, high_store_frag);
-        exit (EXIT_FAILURE);
+        exit(EXIT_FAILURE);
        }
 
    Num_Frags = 1 + Hi_Frag_IID - Lo_Frag_IID;
@@ -4056,7 +4056,7 @@ static void  Read_Frags
          fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
          fprintf (stderr, "Read %u is too long:  %d bp; max is %d\n",
               getFragRecordIID (&frag_read), raw_len, AS_READ_MAX_LEN);
-         exit (-1);
+         exit(EXIT_FAILURE);
         }
 
       seq_ptr = getFragRecordSequence (&frag_read);
@@ -4160,7 +4160,7 @@ static void  Read_Seeds
         if (Num_Olaps == 0)
           {
            fprintf (stderr, "No overlaps read, nothing to do\n");
-           exit (EXIT_FAILURE);
+           exit(EXIT_FAILURE);
           }
 
         Olap = (Olap_Info_t *) safe_realloc (Olap, Num_Olaps * sizeof (Olap_Info_t));
@@ -4374,7 +4374,7 @@ static void  Set_Insert_Sizes
              {
               fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
               fprintf (stderr, "Insertion before beginning of ref string\n");
-              exit (-1);
+              exit(EXIT_FAILURE);
              }
            if (++ i_ct > insert_size [j - 1])
              insert_size [j - 1] = i_ct;
@@ -5294,7 +5294,7 @@ static char  Standard_Should_Be
       default :
         fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
         fprintf (stderr, "Bad current char \'%c\' (ASCII %d)\n", curr, (int) curr);
-        exit (EXIT_FAILURE);
+        exit(EXIT_FAILURE);
      }
 
 //**ALD
@@ -5371,7 +5371,7 @@ static void  Stream_Old_Frags
          fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
          fprintf (stderr, "Read %u is too long:  %d bp; max is %d\n",
               frag_iid, clear_end - clear_start, AS_READ_MAX_LEN);
-         exit (-1);
+         exit(EXIT_FAILURE);
         }
 
       // Make sure that we have a valid lowercase sequence string
@@ -5440,7 +5440,7 @@ void *  Threaded_Process_Stream
            fprintf (stderr, "frag_list iid = %d  next_olap = %d  i = %d\n",
                     wa -> frag_list -> entry [i] . id,
                     Olap [wa -> next_olap] . b_iid, i);
-           exit (EXIT_FAILURE);
+           exit(EXIT_FAILURE);
           }
 
       wa -> rev_id = -1;
@@ -5481,7 +5481,7 @@ fprintf (stderr, "Thread %d processed %d olaps at %s",
 pthread_mutex_unlock (& Print_Mutex);
 
 //   if  (wa -> thread_id > 0)
-       pthread_exit (ptr);
+       pthread_exit(ptr);
 
    return  ptr;
   }
@@ -5568,7 +5568,7 @@ static void  Threaded_Stream_Old_Frags
              {
               fprintf (stderr, "pthread_create error at line %d:  %s\n",
                        __LINE__, strerror (status));
-              exit (-3);
+              exit(EXIT_FAILURE);
              }
         }
 
@@ -5605,7 +5605,7 @@ static void  Threaded_Stream_Old_Frags
              {
               fprintf (stderr, "pthread_join error at line %d:  %s\n",
                        __LINE__, strerror (status));
-              exit (-3);
+              exit(EXIT_FAILURE);
              }
         }
 

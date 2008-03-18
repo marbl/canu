@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: pullFragmentLocations.cc,v 1.6 2006-10-08 08:47:39 brianwalenz Exp $ */
+/* $Id: pullFragmentLocations.cc,v 1.7 2008-03-18 07:02:46 brianwalenz Exp $ */
 
 #include <cstdio>  // for sscanf
 #include <iostream>
@@ -45,7 +45,7 @@ int main(int argc, char ** argv)
   
   ifstream fuids(argv[1], ios::in);
   if(!fuids.good())
-    exit(-1);
+    exit(1);
   map<CDS_UID_t, int> uids;
   char line[2048];
   while(fuids.getline(line, 2047))
@@ -61,7 +61,7 @@ int main(int argc, char ** argv)
     
     ifstream fin(argv[i], ios::in);
     if(!fin.good())
-      exit(-2);
+      exit(1);
 
     while(fin.getline(line, 2047))
     {

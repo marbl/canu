@@ -68,13 +68,13 @@ char *get_sequence(FILE *input, char **seq, char **name )
 	    int l;
 	    if(linebuf[0] != '>'){
 		fprintf(stderr,"Abort: Couldn't resolve defline %s\n",linebuf);
-		exit(-1);
+		exit(1);
 	    }
 	    l=strlen(linebuf);
 	    if(l>2048){
 	      fprintf(stderr,"identifier %s too long -- abort!\n",
 		      linebuf);
-	      exit(-2);
+	      exit(1);
 	    }
 	    strcpy(newname,linebuf+1);
 	    newname[l-2]='\0';
@@ -82,14 +82,14 @@ char *get_sequence(FILE *input, char **seq, char **name )
 	    if(sscanf(linebuf,">%s",newname)!=1){
 	      if(sscanf(linebuf,"> %s",newname)!=1){
 		fprintf(stderr,"Abort: Couldn't resolve defline %s\n",linebuf);
-		exit(-1);
+		exit(1);
 	      }
 	    } 
 	  }
 	  if(strlen(newname)>2047){
 	    fprintf(stderr,"identifier %s too long -- abort!\n",
 		    newname);
-	    exit(-2);
+	    exit(1);
 	  }
 	  newname = (char *)safe_realloc(newname,strlen(newname)+1);
 	  *name = newname;
@@ -106,13 +106,13 @@ char *get_sequence(FILE *input, char **seq, char **name )
 	  int l; 
 	  if(linebuf[0] != '>'){
 	    fprintf(stderr,"Abort: Couldn't resolve defline %s\n",linebuf);
-	    exit(-1);
+	    exit(1);
 	  }
 	  l=strlen(linebuf);
 	  if(l>2048){
 	    fprintf(stderr,"identifier %s too long -- abort!\n",
 		    linebuf);
-	    exit(-2);
+	    exit(1);
 	  }
 	  strcpy(newname,linebuf+1);
 	  newname[l-2]='\0';
@@ -120,7 +120,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
 	  if(sscanf(linebuf,">%s",newname)!=1){
 	    if(sscanf(linebuf,"> %s",newname)!=1){
 	      fprintf(stderr,"Abort: Couldn't resolve defline %s\n",linebuf);
-	      exit(-1);
+	      exit(1);
 	    }
 	  } 
 	}

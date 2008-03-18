@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: rotatePoints.cc,v 1.4 2005-03-22 19:48:58 jason_miller Exp $ */
+/* $Id: rotatePoints.cc,v 1.5 2008-03-18 07:02:46 brianwalenz Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <string>
@@ -30,7 +30,7 @@ int main(int argc, char ** argv)
   if(argc != 2)
   {
     cerr << "Usage: " << argv[0] << " degrees-to-rotate < infile > outfile\n";
-    exit(-1);
+    exit(1);
   }
   
   Point<int> p;

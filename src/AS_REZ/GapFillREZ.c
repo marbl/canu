@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.35 2007-09-05 11:22:16 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.36 2008-03-18 07:02:46 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -3326,14 +3326,14 @@ static void  Choose_Safe_Chunks
         {
           fprintf (stderr, "YIKES:  got contig %p (cid %d) twice\n",
                    contig, contig -> id);
-          exit (-1);
+          exit(1);
         }
       cid = contig -> id;
       if  (cid == prev_cid)
         {
           fprintf (stderr, "YIKES:  got cid %d twice from different contigs\n",
                    cid);
-          exit (-1);
+          exit(1);
         }
       prev_contig = contig;
       prev_cid = cid;

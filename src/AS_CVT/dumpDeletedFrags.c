@@ -50,7 +50,7 @@ int main(int argc, char ** argv)
   if(inputStoreName == NULL)
   {
     fprintf(stderr, "Usage: %s [-s inputStore]\n", argv[0]);
-    exit(-1);
+    exit(1);
   }
 
   {

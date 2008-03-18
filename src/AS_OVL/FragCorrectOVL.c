@@ -25,7 +25,7 @@
 //   Programmer:  A. Delcher
 //      Started:   4 Dec 2000
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.25 2008-02-27 10:37:33 brianwalenz Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.26 2008-03-18 07:02:46 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -436,7 +436,7 @@ static void  Analyze_Alignment
        {
         fprintf (stderr, "ERROR:  a_len = %d  b_len = %d  sub = %d\n",
                  a_len, b_len, sub);
-        exit (-3);
+        exit (1);
        }
 
    vote [0] . frag_sub = -1;
@@ -499,7 +499,7 @@ static void  Analyze_Alignment
                default :
                  fprintf (stderr, "ERROR:  [2] Bad sequence char \'%c\' (ASCII %d)\n",
                           b_part [j], (int) b_part [j]);
-                   exit (2);
+                   exit (1);
               }
            ct ++;
            j ++;
@@ -541,7 +541,7 @@ static void  Analyze_Alignment
                          b_part [j], (int) b_part [j]);
                 fprintf (stderr, "i = %d  a_len = %d  j = %d  b_len = %d\n",
                          i, a_len, j, b_len);
-                exit (3);
+                exit (1);
              }
            ct ++;           
           }
@@ -786,7 +786,7 @@ static char  Complement
         return  'n';
       default :
         fprintf (stderr, "ERROR(complement):  Unexpected character `%c\'\n", ch);
-        exit (-1);
+        exit(1);
      }
 
    return  'x';    // Just to make the compiler happy
@@ -1826,7 +1826,7 @@ static void  Process_Olap
        printf ("b_part = %p  is ascii %d  rev_seq is %d\n",
                b_part, (int) (* b_part), (int) (* rev_seq));
    if  (! isalpha (* b_part) || ! isalpha (* rev_seq))
-       exit (-1);
+       exit(1);
 
    if  (Verbose_Level > 0)
        {
@@ -1884,7 +1884,7 @@ if  (a_end < 0 || a_end > a_part_len || b_end < 0 || b_end > b_part_len)
               a_part_len, b_part_len);
      fprintf (stderr, "a_iid = %d  b_iid = %d  match_to_end = %c\n",
               olap -> a_iid, olap -> b_iid, match_to_end ? 'T' : 'F');
-     exit (-3);
+     exit (1);
     }
 
 
@@ -2359,7 +2359,7 @@ static void  Threaded_Stream_Old_Frags
              {
               fprintf (stderr, "pthread_create error at line %d:  %s\n",
                        __LINE__, strerror (status));
-              exit (-3);
+              exit (1);
              }
         }
 
@@ -2396,7 +2396,7 @@ static void  Threaded_Stream_Old_Frags
              {
               fprintf (stderr, "pthread_join error at line %d:  %s\n",
                        __LINE__, strerror (status));
-              exit (-3);
+              exit (1);
              }
         }
 

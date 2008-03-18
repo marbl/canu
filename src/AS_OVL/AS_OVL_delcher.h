@@ -28,8 +28,8 @@
 
 
 /* RCS info
- * $Id: AS_OVL_delcher.h,v 1.6 2007-08-23 14:57:26 adelcher Exp $
- * $Revision: 1.6 $
+ * $Id: AS_OVL_delcher.h,v 1.7 2008-03-18 07:02:46 brianwalenz Exp $
+ * $Revision: 1.7 $
 */
 
 
@@ -50,15 +50,6 @@
 #include  <unistd.h>
 
 #include  "AS_global.h"
-
-#ifndef  EXIT_FAILURE
-  #define  EXIT_FAILURE  -1
-#endif
-#ifndef  EXIT_SUCCESS
-  #define  EXIT_SUCCESS  0
-#endif
-
-#define  FILE_OPEN_FAILURE   134
 
 extern int  Global_Debug_Flag;
   // Flag for debugging

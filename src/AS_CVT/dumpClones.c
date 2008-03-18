@@ -90,7 +90,7 @@ int main(int argc, char ** argv)
             "\t-M     print if mate is missing from assembly\n"
             "\t-u uid limit to this scaffold. multiple -u's okay\n"
             "\t         (default is all)\n");
-    exit(-1);
+    exit(1);
   }
 
   {

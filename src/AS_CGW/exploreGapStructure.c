@@ -65,7 +65,7 @@ main (int argc , char * argv[] ) {
       (GlobalData->Gatekeeper_Store_Name[0] == 0)) {
     fprintf(stderr, "usage: %s -g <gkpStore> -c <ckptName> -n <ckptNum> -d distance_from_end\n",
             argv[0]);
-    exit(-1);
+    exit(1);
   }
 
   ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, FALSE);

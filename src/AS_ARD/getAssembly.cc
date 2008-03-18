@@ -62,7 +62,7 @@ void checkError(CS_RETCODE ret, const char * str) {
          ct_exit(context, CS_FORCE_EXIT);
          cs_ctx_drop(context);
       }
-      exit(-1);
+      exit(1);
    }
 }
 
@@ -1126,7 +1126,7 @@ int main(int argc, char ** argv)
       if(asmFilename == NULL || prefix == NULL || server == NULL || database == NULL || user == NULL)
       {
          std::cerr << "Usage: " << argv[0] << " -a asmFilename -o prefix -S server_name -D database_name -U user_name [-B bcp_path -E EUID server -n EUID namespace -s startEUID]\n";            
-         exit(-1);
+         exit(1);
       }
 
       // inputs a password without echoing

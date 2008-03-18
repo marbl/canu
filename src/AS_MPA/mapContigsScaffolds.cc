@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: mapContigsScaffolds.cc,v 1.4 2005-03-22 19:48:58 jason_miller Exp $ */
+/* $Id: mapContigsScaffolds.cc,v 1.5 2008-03-18 07:02:45 brianwalenz Exp $ */
 #include <cstdio>
 #include <iostream>
 #include <fstream>
@@ -31,7 +31,7 @@ int main(int argc, char ** argv)
   {
     cerr << "Usage: " << argv[0] << "  allGaps.txt   all.out\n";
     cerr << "contigs written to stderr, scaffolds to stdout\n";
-    exit(-1);
+    exit(1);
     
   }
 
@@ -39,13 +39,13 @@ int main(int argc, char ** argv)
   if(!fi1.good())
   {
     cerr << "File " << argv[1] << " ain't workin'\n";
-    exit(-2);
+    exit(1);
   }
   ifstream fi2(argv[2], ios::in);
   if(!fi2.good())
   {
     cerr << "File " << argv[2] << " ain't workin'\n";
-    exit(-2);
+    exit(1);
   }
 
   // read a line in from all.out

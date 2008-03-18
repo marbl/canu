@@ -99,7 +99,7 @@ int main(int argc, char ** argv)
     fprintf(stderr,
             "If run with -i, fragments in multiply placed surrogates will\n"
             "be listed multiple times, once for each placement of the surrogate\n\n");
-    exit(-1);
+    exit(1);
   }
 
   {

@@ -80,7 +80,7 @@ int main(int argc, char ** argv)
             "\t-l      print mate links (extra fields on same line)\n"
             "\t-u      print unreferenced fragments that are in scaffolds\n",
             argv[0]);
-    exit(-1);
+    exit(1);
   }
 
   {

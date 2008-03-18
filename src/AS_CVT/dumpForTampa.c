@@ -95,7 +95,7 @@ int main(int argc, char ** argv)
             "\t-s store    assembly store with all the data\n"
             "\t-u uid      limit to this scaffold. multiple -u's okay\n"
             "\t              (default is all)\n");
-    exit(-1);
+    exit(1);
   }
 
   {

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: compareAssemblyMPs.cc,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
+/* $Id: compareAssemblyMPs.cc,v 1.6 2008-03-18 07:02:45 brianwalenz Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -607,7 +607,7 @@ int main(int argc, char ** argv)
   if(!flib.good())
   {
     cerr << "Failed to open " << libFilename << " for reading\n";
-    exit(-1);
+    exit(1);
   }
   cerr << "Reading clone library data from file " << libFilename << endl;
   ReadCloneLibs(libs, flib);

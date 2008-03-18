@@ -50,7 +50,7 @@
 #include "AS_global.h"
 #include "AS_UTL_rand.h"
 
-char FragVersion[] = "$Revision: 1.3 $";
+char FragVersion[] = "$Revision: 1.4 $";
 
 double drand48();
 void   srand48();
@@ -200,7 +200,7 @@ char *ckalloc(int size)
 { char *m;
   if ((m = (char *) malloc(size)) == NULL)
     { fprintf(stderr,"Out of Memory (frag %d)\n",size);
-      exit (2);
+      exit (1);
     }
   return (m);
 }
@@ -1879,7 +1879,7 @@ void getfile(void)
         { buffer = (char *) realloc(buffer,sizeof(char)*(2*top + 1));
           if (buffer == NULL)
             { fprintf(stderr,"Frag Error: Out of Memory (frag %d)\n",2*top+1);
-              exit (2);
+              exit (1);
             }
           top *= 2;
         }
