@@ -23,7 +23,7 @@
 //  The maximum size of a mer.  You get 32 bases per word, so
 //  KMER_WORDS=4 will get you up to a 128-mer.
 //
-#define KMER_WORDS  1
+#define KMER_WORDS  5
 
 #include "kmeriface.H"
 

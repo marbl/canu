@@ -14,9 +14,8 @@ public:
   void    setMerSize(u32bit ms);
   u32bit  getMerSize(void) const { return(_merSize); };
 
-#warning setMerSpan, getMerSpan also not implemented
-  void    setMerSpan(u32bit ms);
-  u32bit  getMerSpan(void) const;
+  void    setMerSpan(u32bit ms)  { _merSpan = ms; };
+  u32bit  getMerSpan(void) const { return(_merSpan); };
 
   kMerHuge  &reverseComplement(void) {
     for (u32bit i=0, j=KMER_WORDS-1; i<KMER_WORDS/2; i++, j--) {
@@ -37,11 +36,6 @@ public:
     *this >>= KMER_WORDS * 64 - 2 * _merSize;
 
     return(*this);
-  };
-
-
-  kMerTiny  &convertToColorSpace(kMerTiny &csmer) {
-#error convertToColorSpace not implemented
   };
 
 
@@ -303,6 +297,7 @@ private:
   //  are a spaced seed, it is the weight.
   //
   u32bit   _merSize;
+  u32bit   _merSpan;
 
   //  The mask is used to make sure the mer has only _merSize bases
   //  set -- we can get more than that if we shift to the left.  The
@@ -327,6 +322,7 @@ inline
 void
 kMerHuge::setMerSize(u32bit ms) {
   _merSize      = ms;
+  _merSpan      = ms;
   _lastWord     = (2 * ms - 2) / 64;
   _lastShift    = (2 * ms - 2) % 64;
 
@@ -359,6 +355,8 @@ kMerHuge::setMerSize(u32bit ms) {
 }
 
 
+
+
 inline
 char *
 kMerHuge::merToString(char *instr) const {
@@ -369,13 +367,13 @@ kMerHuge::merToString(char *instr) const {
     lastWord++;
 
   if (_merSize & u32bitMASK(5)) {
-    ::merToString(_merSize & u32bitMASK(5), MERWORD(lastWord), str);
+    u64bitToMerString(_merSize & u32bitMASK(5), MERWORD(lastWord), str);
     str += _merSize & u32bitMASK(5);
   }
 
   while (lastWord > 0) {
     lastWord--;
-    ::merToString(32, MERWORD(lastWord), str);
+    u64bitToMerString(32, MERWORD(lastWord), str);
     str += 32;
   }
 

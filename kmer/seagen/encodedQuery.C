@@ -61,29 +61,6 @@ encodedQuery::~encodedQuery() {
 
 
 
-inline
-u64bit
-stringToMer(u32bit ms, char *str) {
-  u64bit  mer = 0L;
-
-  for (u32bit i=0; i<ms; i++) {
-    mer <<= 2;
-    mer  |= compressSymbol[str[i]];
-  }
-
-  return(mer);
-}
-
-
-inline
-char *
-merToString(u32bit ms, u64bit mer, char *str) {
-  for (u32bit i=0; i<ms; i++)
-    str[ms-i-1] = decompressSymbol[(mer >> (2*i)) & 0x03];
-  str[ms] = 0;
-  return(str);
-}
-
 
 void
 encodedQuery::test(seqInCore *S) {
@@ -178,8 +155,8 @@ encodedQuery::test(seqInCore *S) {
 
     if (getSkip(i, true) == false) {
       if (getMer(i, true) != _r_mers[i]) {
-        merToString(_merSize, getMer(i, true), mer1);
-        merToString(_merSize, _r_mers[i], mer2);
+        u64bitToMerString(_merSize, getMer(i, true), mer1);
+        u64bitToMerString(_merSize, _r_mers[i], mer2);
         fprintf(stderr, "encodedQuery::test()-- mers["u32bitFMTW(4)"] incorrect:  Acc:"u64bitHEX" %s   Real:"u64bitHEX" %s\n",
                 i,
                 getMer(i, true), mer1,
