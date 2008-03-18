@@ -134,8 +134,8 @@ Place the assembly in {\it directory}, if {\it directory} doesn't exist,
 create it.  This is a required option.
 \\
 -p {\it prefix} &
-Call the assembly {\it prefix}, for example, 'prefix.asm'.  If not
-specified, the prefix {\tt asm} is used.
+Call the assembly {\it prefix}, for example, 'prefix.asm'. This is a required
+option.
 \\
 -s {\it specfile} &
 Read options from the specifications file {\it specfile}.  These
@@ -301,6 +301,8 @@ placed in a scaffold; however, it has both a contig UID and a
 (degenerate) scaffold UID.
 
 All but singleton reads also have quality values in a separate file.
+These quality files are not quite fasta files because the character > is a valid
+quality value and can occasionally occur at the begining of a line as such.
 
 \begin{center}
 \begin{tabular}{|c|c|}
@@ -309,16 +311,16 @@ All but singleton reads also have quality values in a separate file.
 singleton reads      & {\tt \$prefix.singleton.fasta} \\
 \hline
 unitigs              & {\tt \$prefix.utgcns.fasta} \\
-                     & {\tt \$prefix.utgqlt.fasta} \\
+                     & {\tt \$prefix.utgqlt.notFasta} \\
 \hline
 degenerates          & {\tt \$prefix.degcns.fasta} \\
-                     & {\tt \$prefix.degqlt.fasta} \\
+                     & {\tt \$prefix.degqlt.notFasta} \\
 \hline
 contigs              & {\tt \$prefix.ctgcns.fasta} \\
-                     & {\tt \$prefix.ctgqlt.fasta} \\
+                     & {\tt \$prefix.ctgqlt.notFasta} \\
 \hline
 scaffolds            & {\tt \$prefix.scfcns.fasta} \\
-                     & {\tt \$prefix.scfqlt.fasta} \\
+                     & {\tt \$prefix.scfqlt.notFasta} \\
 \hline
 \end{tabular}
 \end{center}
