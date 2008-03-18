@@ -257,7 +257,7 @@ freeDiskSpace(char *path) {
   if (stat(path, &fst) == 0) {
     if (statfs(path, &dst) == -1) {
       perror("statfs");
-      exit(-1);
+      exit(1);
     }
   } else {
     //  Doesn't exist.  Try to find the directory that the file goes into.
@@ -280,7 +280,7 @@ freeDiskSpace(char *path) {
 
     if (statfs(p, &dst) == -1) {
       perror("statfs");
-      exit(-1);
+      exit(1);
     }
 
     free(p);

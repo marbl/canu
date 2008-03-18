@@ -306,7 +306,7 @@ configuration::read(int argc, char **argv) {
 
   if (_maskFileName && _onlyFileName) {
     fprintf(stderr, "ERROR:  At most one of -mask and -only may be used.\n");
-    exit(-1);
+    exit(1);
   }
 
   //
@@ -314,7 +314,7 @@ configuration::read(int argc, char **argv) {
   //
   if (_merSkip >= _merSize) {
     fprintf(stderr, "ERROR:  Mers are not adjacent; make sure merskip <= mersize.\n");
-    exit(-1);
+    exit(1);
   }
 
   //  Fail if we don't get reasonable signal criteria
