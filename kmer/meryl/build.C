@@ -9,10 +9,6 @@
 
 void runThreaded(merylArgs *args);
 
-//  Define this to remove temporary files.  You probably want it
-//  defined.
-#define REMOVE_TEMPORARY_FILES
-
 //  You probably want this to be the same as KMER_WORDS, but in rare
 //  cases, it can be less.
 //
@@ -28,9 +24,17 @@ typedef u64bit  sortedList_t;
 
 #else
 
+//  Special case, we can save the positions of the mers.  This eats
+//  space like crazy.
+//
+#define WITH_POSITIONS
+
 class sortedList_t {
 public:
   u64bit    _w[SORTED_LIST_WIDTH];
+#ifdef WITH_POSITIONS
+  u32bit    _p;
+#endif
 
   bool operator<(sortedList_t &that) {
     for (u32bit i=SORTED_LIST_WIDTH; i--; ) {
@@ -51,6 +55,7 @@ public:
   sortedList_t &operator=(sortedList_t &that) {
     for (u32bit i=SORTED_LIST_WIDTH; i--; )
       _w[i] = that._w[i];
+    _p = that._p;
     return(*this);
   };
 };
@@ -290,8 +295,7 @@ prepareBatch(merylArgs *args) {
     fprintf(stderr, "  numBuckets         = "u64bitFMT" ("u32bitFMT" bits)\n", args->numBuckets, args->numBuckets_log2);
     fprintf(stderr, "  bucketPointerWidth = "u32bitFMT"\n", args->bucketPointerWidth);
     fprintf(stderr, "  merDataWidth       = "u32bitFMT"\n", args->merDataWidth);
-    fprintf(stderr, "Sorry!  Your data width can't fit into SORTED_LIST_WIDTH=%d 64-bit words.\n",
-            SORTED_LIST_WIDTH);
+    fprintf(stderr, "Sorry!  merSize too big!  Increase KMER_WORDS to count more than %d-mers.\n", 32 * KMER_WORDS);
     exit(1);
   }
 
@@ -323,6 +327,9 @@ runSegment(merylArgs *args, u64bit segment) {
   u32bit              *bucketSizes = 0L;
   u64bit              *bucketPointers = 0L;
   u64bit              *merDataArray[SORTED_LIST_WIDTH] = { 0L };
+#ifdef WITH_POSITIONS
+  u32bit              *merPosnArray = 0L;
+#endif
 
   //  If this segment exists already, skip it.
   //
@@ -356,6 +363,9 @@ runSegment(merylArgs *args, u64bit segment) {
     fprintf(stderr, " Allocating "u64bitFMT"MB for mer storage ("u32bitFMT" bits wide).\n",
             (args->mersPerBatch * args->merDataWidth + 64) >> 23, args->merDataWidth);
 
+  //  Mer storage - if mers are bigger than 32, we allocate full
+  //  words.  The last allocation is always a bitPacked array.
+
   for (u64bit mword=0, width=args->merDataWidth; width > 0; ) {
     if (width >= 64) {
       merDataArray[mword] = new u64bit [ args->mersPerBatch + 1 ];
@@ -367,6 +377,12 @@ runSegment(merylArgs *args, u64bit segment) {
     }
   }
 
+#ifdef WITH_POSITIONS
+  if (args->beVerbose)
+    fprintf(stderr, " Allocating "u64bitFMT"MB for mer position storage.\n",
+            (args->mersPerBatch * 32 + 32) >> 23);
+  merPosnArray = new u32bit [ args->mersPerBatch + 1 ];
+#endif
 
   if (args->beVerbose)
     fprintf(stderr, " Allocating "u64bitFMT"MB for bucket pointer table ("u32bitFMT" bits wide).\n",
@@ -467,9 +483,6 @@ runSegment(merylArgs *args, u64bit segment) {
       :
       M->theFMer();
 
-    //  additionally, we can use the real bitPackedArray here, since everything
-    //  is fixed size.
-
     u64bit  element = preDecrementDecodedValue(bucketPointers,
                                                args->hash(m) * args->bucketPointerWidth,
                                                args->bucketPointerWidth);
@@ -498,6 +511,10 @@ runSegment(merylArgs *args, u64bit segment) {
     }
 #endif
 
+#ifdef WITH_POSITIONS
+    merPosnArray[element] = M->thePositionInStream();
+#endif
+
     C->tick();
   }
 
@@ -513,7 +530,7 @@ runSegment(merylArgs *args, u64bit segment) {
                             args->merSize, args->merComp,
                             args->numBuckets_log2);
 
-  //  Sort each bucked into sortedList, then output the mers
+  //  Sort each bucket into sortedList, then output the mers
   //
   sortedList_t  *sortedList    = 0L;
   u32bit         sortedListMax = 0;
@@ -560,20 +577,19 @@ runSegment(merylArgs *args, u64bit segment) {
     //
 #if SORTED_LIST_WIDTH == 1
     for (u64bit i=st, J=st*args->merDataWidth; i<ed; i++, J += args->merDataWidth)
-      sortedList[i-st] = getDecodedValue(merDataArray[0],
-                                         J,
-                                         args->merDataWidth);
+      sortedList[i-st] = getDecodedValue(merDataArray[0], J, args->merDataWidth);
 #else
     for (u64bit i=st; i<ed; i++) {
+#ifdef WITH_POSITIONS
+      sortedList[i-st]._p = merPosnArray[i];
+#endif
       for (u64bit mword=0, width=args->merDataWidth; width>0; ) {
         if (width >= 64) {
           sortedList[i-st]._w[mword] = merDataArray[mword][i];
           width -= 64;
           mword++;
         } else {
-          sortedList[i-st]._w[mword] = getDecodedValue(merDataArray[mword],
-                                                       i * width,
-                                                       width);
+          sortedList[i-st]._w[mword] = getDecodedValue(merDataArray[mword], i * width, width);
           width = 0;
         }
       }
@@ -597,7 +613,7 @@ runSegment(merylArgs *args, u64bit segment) {
 
     //  Dump the list of mers to the file.
     //
-    kMer  mer(args->merSize);
+    kMer   mer(args->merSize);
 
     for (u32bit t=0; t<sortedListLen; t++) {
       C->tick();
@@ -612,19 +628,13 @@ runSegment(merylArgs *args, u64bit segment) {
 #endif
       mer.setBits(args->merDataWidth, args->numBuckets_log2, bucket);
 
-
-#if 0
-#if SORTED_LIST_WIDTH == 1
-      {
-        char ms[33];
-        fprintf(stderr, u64bitFMTW(6)" - "u32bitFMTW(2)": "u64bitHEX" %s\n",
-                bucket, t, sortedList[t], mer.merToString(ms));
-      }
-#endif
-#endif
-
       //  Add it
+#ifdef WITH_POSITIONS
+      W->addMer(mer, 1, sortedList[t]._p);
+#else
       W->addMer(mer);
+#endif
+
     }
   }
 
@@ -637,6 +647,10 @@ runSegment(merylArgs *args, u64bit segment) {
 
   for (u32bit x=0; x<SORTED_LIST_WIDTH; x++)
     delete [] merDataArray[x];
+
+#ifdef WITH_POSITIONS
+  delete [] merPosnArray;
+#endif
 
   delete [] bucketPointers;
 
@@ -798,7 +812,6 @@ build(merylArgs *args) {
 
   //  If we just merged, delete the merstream file
   //
-#ifdef REMOVE_TEMPORARY_FILES
   if (doMerge) {
     char *filename = new char [strlen(args->outputFile) + 17];
 
@@ -807,5 +820,4 @@ build(merylArgs *args) {
 
     delete [] filename;
   }
-#endif
 }

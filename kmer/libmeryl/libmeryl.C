@@ -5,6 +5,8 @@ static char *ImagicV = "merylStreamIv02\n";
 static char *ImagicX = "merylStreamIvXX\n";
 static char *DmagicV = "merylStreamDv02\n";
 static char *DmagicX = "merylStreamDvXX\n";
+static char *PmagicV = "merylStreamPv02\n";
+static char *PmagicX = "merylStreamPvXX\n";
 
 
 merylStreamReader::merylStreamReader(const char *fn, u32bit ms) {
@@ -24,17 +26,23 @@ merylStreamReader::merylStreamReader(const char *fn, u32bit ms) {
   sprintf(inpath, "%s.mcdat", fn);
   _DAT = new bitPackedFile(inpath);
 
+  sprintf(inpath, "%s.mcpos", fn);
+  if (fileExists(inpath))
+    _POS = new bitPackedFile(inpath);
+
   delete [] inpath;
 
   //  Verify that they are what they should be, and read in the header
   //
   char    Imagic[16] = {0};
   char    Dmagic[16] = {0};
+  char    Pmagic[16] = {0};
   bool    fail       = false;
 
   for (u32bit i=0; i<16; i++) {
     Imagic[i] = _IDX->getBits(8);
     Dmagic[i] = _DAT->getBits(8);
+    Pmagic[i] = _POS->getBits(8);
   }
   if (strncmp(Imagic, ImagicX, 16) == 0) {
     fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcidx is an INCOMPLETE merylStream index file!\n", fn);
@@ -57,6 +65,7 @@ merylStreamReader::merylStreamReader(const char *fn, u32bit ms) {
     fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcidx and %s.mcdat are different versions!\n", fn, fn);
     fail = true;
   }
+#warning not checking pmagic
   if (fail)
     exit(1);
 
@@ -94,6 +103,9 @@ merylStreamReader::merylStreamReader(const char *fn, u32bit ms) {
   _thisMer.clear();
   _thisMerCount   = u64bitZERO;
 
+  _thisMerPositionsMax = 0;
+  _thisMerPositions    = 0L;
+
   _validMer       = true;
 
 #ifdef SHOW_VARIABLES
@@ -120,6 +132,8 @@ merylStreamReader::merylStreamReader(const char *fn, u32bit ms) {
 merylStreamReader::~merylStreamReader() {
   delete _IDX;
   delete _DAT;
+  delete _POS;
+  delete [] _thisMerPositions;
   delete [] _histogram;
 }
 
@@ -137,6 +151,9 @@ merylStreamWriter::merylStreamWriter(const char *fn,
 
   sprintf(outpath, "%s.mcdat", fn);
   _DAT = new bitPackedFile(outpath, 0, true);
+
+  sprintf(outpath, "%s.mcpos", fn);
+  _POS = new bitPackedFile(outpath, 0, true);
 
   delete [] outpath;
 
@@ -185,6 +202,9 @@ merylStreamWriter::merylStreamWriter(const char *fn,
 
   for (u32bit i=0; i<16; i++)
     _DAT->putBits(DmagicX[i], 8);
+
+  for (u32bit i=0; i<16; i++)
+    _POS->putBits(PmagicX[i], 8);
 }
 
 
@@ -231,6 +251,7 @@ merylStreamWriter::~merylStreamWriter() {
 
   delete _IDX;
   delete _DAT;
+  delete _POS;
   delete [] _histogram;
 }
 
@@ -266,7 +287,7 @@ merylStreamWriter::writeMer(void) {
 
 
 void
-merylStreamWriter::addMer(kMer &mer, u32bit count) {
+merylStreamWriter::addMer(kMer &mer, u32bit count, u32bit position) {
   u64bit  val;
 
   //  Fail if we see a smaller mer than last time.
@@ -278,6 +299,11 @@ merylStreamWriter::addMer(kMer &mer, u32bit count) {
     fprintf(stderr, "merylStreamWriter::addMer()-- this: %s\n", mer.merToString(str));
     exit(1);
   }
+
+  //  If there was a position given, write it.
+  //
+  if (position != ~u32bitZERO)
+    _POS->putBits(position, 32);
 
   //  If the new mer is the same as the last one just increase the
   //  count.

@@ -26,6 +26,8 @@ public:
 
   u64bit          theCount(void) { return(_thisMerCount); };
 
+  u32bit          getPosition(u32bit i);
+
   u32bit          merSize(void)         { return(_merSizeInBits >> 1); };
   u32bit          merCompression(void)  { return(_merCompression); };
 
@@ -45,6 +47,7 @@ public:
 private:
   bitPackedFile         *_IDX;
   bitPackedFile         *_DAT;
+  bitPackedFile         *_POS;
 
   u32bit                 _merSizeInBits;
   u32bit                 _merCompression;
@@ -57,6 +60,9 @@ private:
   kMer                   _thisMer;
   u64bit                 _thisMerCount;
 
+  u32bit                 _thisMerPositionsMax;
+  u32bit                *_thisMerPositions;
+
   u64bit                 _numUnique;
   u64bit                 _numDistinct;
   u64bit                 _numTotal;
@@ -68,6 +74,15 @@ private:
 
   bool                   _validMer;
 };
+
+
+inline
+u32bit
+merylStreamReader::getPosition(u32bit i) {
+  if ((i < _thisMerCount) && (_POS))
+    return(_thisMerPositions[i]);
+  return(~u32bitZERO);
+}
 
 
 inline
@@ -99,6 +114,17 @@ merylStreamReader::nextMer(void) {
 
   _thisBucketSize--;
 
+  if (_POS) {
+    if (_thisMerPositionsMax < _thisMerCount) {
+      delete [] _thisMerPositions;
+      _thisMerPositionsMax = _thisMerCount + 1024;
+      _thisMerPositions    = new u32bit [_thisMerPositionsMax];
+    }
+    for (u32bit i=0; i<_thisMerCount; i++) {
+      _thisMerPositions[i] = _POS->getBits(32);
+    }
+  }
+
   return(true);
 }
 
@@ -112,12 +138,13 @@ public:
 
   ~merylStreamWriter();
 
-  void                    addMer(kMer &mer, u32bit count=1);
+  void                    addMer(kMer &mer, u32bit count=1, u32bit position=~u32bitZERO);
 private:
   void                    writeMer(void);
 
   bitPackedFile         *_IDX;
   bitPackedFile         *_DAT;
+  bitPackedFile         *_POS;
 
   u32bit                 _merSizeInBits;
   u32bit                 _merCompression;

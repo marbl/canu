@@ -408,16 +408,14 @@ merylArgs::merylArgs(int argc, char **argv) {
         fprintf(stderr, "ERROR: unknown math personality %s\n", argv[arg]);
         exit(1);
       }
-    } else if (strcmp(argv[arg], "-Dc") == 0) {
-      personality = 'c';
-    } else if (strcmp(argv[arg], "-Dp") == 0) {
-      personality = 'p';
     } else if (strcmp(argv[arg], "-Dt") == 0) {
       personality = 't';
+    } else if (strcmp(argv[arg], "-Dp") == 0) {
+      personality = 'p';
+    } else if (strcmp(argv[arg], "-Dc") == 0) {
+      personality = 'c';
     } else if (strcmp(argv[arg], "-Dh") == 0) {
       personality = 'h';
-    } else if (strcmp(argv[arg], "-D2") == 0) {
-      personality = '2';
     } else if (strcmp(argv[arg], "-memory") == 0) {
       arg++;
       memoryLimit = strtou64bit(argv[arg], 0L);

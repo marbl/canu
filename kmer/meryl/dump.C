@@ -23,6 +23,22 @@ dumpThreshold(merylArgs *args) {
 
 
 void
+dumpPositions(merylArgs *args) {
+  merylStreamReader   *M = new merylStreamReader(args->inputFile);
+  char                 str[1025];
+
+  while (M->nextMer()) {
+    fprintf(stdout, ">"u64bitFMT, M->theCount());
+    for (u32bit i=0; i<M->theCount(); i++)
+      fprintf(stdout, " "u32bitFMT, M->getPosition(i));
+    fprintf(stdout, "\n%s\n", M->theFMer().merToString(str));
+  }
+
+  delete M;
+}
+
+
+void
 countUnique(merylArgs *args) {
   merylStreamReader   *M = new merylStreamReader(args->inputFile);
 

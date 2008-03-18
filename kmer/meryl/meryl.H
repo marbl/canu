@@ -107,6 +107,7 @@ void unaryOperations(merylArgs *args);
 
 void dump(merylArgs *args);
 void dumpThreshold(merylArgs *args);
+void dumpPositions(merylArgs *args);
 void countUnique(merylArgs *args);
 void plotDistanceBetweenMers(merylArgs *args);
 void plotHistogram(merylArgs *args);

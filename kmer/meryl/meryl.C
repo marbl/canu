@@ -22,6 +22,9 @@ main(int argc, char **argv) {
     case 't':
       dumpThreshold(args);
       break;
+    case 'p':
+      dumpPositions(args);
+      break;
     case 'c':
       countUnique(args);
       break;
