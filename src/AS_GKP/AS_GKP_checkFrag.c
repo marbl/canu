@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.37 2008-03-19 16:29:30 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.38 2008-03-19 19:49:59 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,6 +58,7 @@ checkSequenceAndQuality(FragMesg *frg_mesg) {
       AS_GKP_reportError(AS_GKP_FRG_INVALID_CHAR_SEQ,
                          AS_UID_toString(frg_mesg->eaccession), s[p], p);
       s[p] = 'N';
+      q[p] = '0';
       failed = 1;
     }
   }
@@ -67,6 +68,7 @@ checkSequenceAndQuality(FragMesg *frg_mesg) {
     } else {
       AS_GKP_reportError(AS_GKP_FRG_INVALID_CHAR_QLT,
                          AS_UID_toString(frg_mesg->eaccession), q[p], p);
+
       q[p] = '0';
       failed = 1;
     }
