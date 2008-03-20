@@ -1,4 +1,5 @@
 
+use File::Copy;
 use Mail::Mailer;
 my ($username) = getpwuid($>) . '@jcvi.org'; 
 
