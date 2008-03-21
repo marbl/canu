@@ -34,11 +34,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.73 2007-12-26 19:11:00 brianwalenz Exp $
- * $Revision: 1.73 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.74 2008-03-21 22:05:28 brianwalenz Exp $
+ * $Revision: 1.74 $
  */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.73 2007-12-26 19:11:00 brianwalenz Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.74 2008-03-21 22:05:28 brianwalenz Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -1028,6 +1028,7 @@ namespace AS_BOG{
     //////////////////////////////////////////////////////////////////////////////
 
     Unitig::~Unitig(void){
+        fprintf(stderr, "DELETING Unitig %d\n", id());
         if(dovetail_path_ptr!=NULL) delete dovetail_path_ptr;
     }
 
@@ -1049,6 +1050,8 @@ namespace AS_BOG{
         }
 
         dovetail_path_ptr->push_back( node );
+
+        fprintf(stderr, "Added frag %d to unitig %d at %d,%d\n", node.ident, id(), node.position.bgn, node.position.end);
     }
 
     void Unitig::addFrag( DoveTailNode node, int offset) {
@@ -1078,7 +1081,7 @@ namespace AS_BOG{
 
         DoveTailPath::const_iterator dtp_iter;
         if (dovetail_path_ptr == NULL || dovetail_path_ptr->empty()) {
-            fprintf(stderr,"NULL dovetailpath\n");
+            //fprintf(stderr,"NULL dovetailpath\n");
             return 1;
         }
 
@@ -1164,59 +1167,15 @@ namespace AS_BOG{
     //////////////////////////////////////////////////////////////////////////////
 
     long Unitig::getLength(void){
-	// The length of the unitig is just the position of the fragment 
-	//   with the large begin or end value 
-
-        if(dovetail_path_ptr->size()==0){
-            std::cerr << "This Unitig has an empty fragPositions." << std::endl;	
-        }
         return _length;
-        // Dead code below, since length is now tracked in addFrag as reads are added
-        
-        // used to use getLastBackboneNode(), but that's not required to be the 
-        // highest base, we can have a read stick out further, but not contain the last
-        int bgn = 0;
-        int end = 0;
-        DoveTailPath::reverse_iterator rIter = dovetail_path_ptr->rbegin();
-        for(;rIter != dovetail_path_ptr->rend(); rIter++) {
-            DoveTailNode node = *rIter;
-            if (node.contained)
-                continue;
-            if (isReverse(node.position)) {
-                if (node.position.bgn > end) {
-                    end = node.position.bgn;
-                    bgn = node.position.end;
-                }
-                else if ( node.position.bgn < bgn ) {
-                    break; // past all potenially longer reads, stop
-                }
-            } else { // forward read
-                if (node.position.end > end) {
-                    end = node.position.end;
-                    bgn = node.position.bgn;
-                }
-                else if ( node.position.end < bgn ) {
-                    break;
-                }
-            }
-        }
-        return end;
     }
 
     //////////////////////////////////////////////////////////////////////////////
     long Unitig::getSumFragLength(void){
-	// The length of the unitig is just the position of the fragment 
-	//   with the large begin or end value 
-
         long sum=0;
 
-        if(dovetail_path_ptr->size()==0){
-            std::cerr << "This Unitig has an empty dovetail." << std::endl;	
-        }
-
         DoveTailPath::const_iterator fpm_itr;
-        for(
-            fpm_itr=dovetail_path_ptr->begin();
+        for(fpm_itr=dovetail_path_ptr->begin();
             fpm_itr!=dovetail_path_ptr->end();
             fpm_itr++){
 
@@ -1229,21 +1188,16 @@ namespace AS_BOG{
 
     long Unitig::getNumFrags(void){
 
-        //		if(_numFrags!=-1){
-        //			return(_numFrags);
-        //		}
         if (!dovetail_path_ptr->empty()) {
             _numFrags = dovetail_path_ptr->size();
-            return _numFrags;
+        } else {
+          long num_dovetailing_frags = dovetail_path_ptr->size();
+          long num_contained_frags   = 0;
+
+          // Total frags are the sum
+          _numFrags = num_dovetailing_frags + num_contained_frags;
         }
-
-        long num_dovetailing_frags = dovetail_path_ptr->size();
-        long num_contained_frags=0;
-
-        // Total frags are the sum
-        _numFrags = num_dovetailing_frags + num_contained_frags;
         return(_numFrags);
-
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -1698,16 +1652,16 @@ namespace AS_BOG{
                     newTig = new Unitig();              // create next new unitig
                     // record offset of start of new unitig
                     offset = reverse ? -frg.position.end : -frg.position.bgn;
-                    fprintf(stderr,"Offset is %d for frg %d %d,%d ",
+                    fprintf(stderr,"Offset is %d for frg %d %d,%d\n",
                             offset,frg.ident,frg.position.bgn,frg.position.end);
                     newTig->addFrag( frg, offset );     // add frag as 1st in unitig
                 }
                 else if (breakPoint.fragEnd.end ==  FIVE_PRIME && reverse ||
                          breakPoint.fragEnd.end == THREE_PRIME && !reverse ) {
                     // break at right end of frg, frg goes in existing tig
+                    newTig->addFrag( frg, offset );     // add frag as last
                     fprintf(stderr,"  Break tig %d after %d num %d\n",
                             tig->id(), breakPoint.fragEnd.id, breakPoint.fragNumber);
-                    newTig->addFrag( frg, offset );     // add frag as last
                     newTig = new Unitig();              // create new empty unitig
                 } else {
                     // logically impossible!
@@ -1856,6 +1810,8 @@ namespace AS_BOG{
 
         ium_mesg_ptr->iaccession = iumiid++;
 
+        fprintf(stderr, "Unitig %d is IUM %d\n", (*utg_itr)->id(), ium_mesg_ptr->iaccession);
+
         fragment_count += ium_mesg_ptr->num_frags;
 
         if ((fragment_count_target >= 0) &&
@@ -1976,9 +1932,9 @@ namespace AS_BOG{
 
             Unitig* tig = *iter;
             BestEdgeCounts cnts = countInternalBestEdges(tig);
-            std::cerr << "Tig " << tig->id() << " overlap counts, dovetail " << cnts.dovetail
-                      << " oneWayBest " << cnts.oneWayBest << " neither " << cnts.neither
-                      << " contained " << cnts.contained << std::endl;
+            //std::cerr << "Tig " << tig->id() << " overlap counts, dovetail " << cnts.dovetail
+            //          << " oneWayBest " << cnts.oneWayBest << " neither " << cnts.neither
+            //          << " contained " << cnts.contained << std::endl;
             allTigs += cnts;
         }
         return allTigs;

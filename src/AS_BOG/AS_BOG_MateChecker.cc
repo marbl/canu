@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.44 2007-12-05 23:46:57 brianwalenz Exp $
- * $Revision: 1.44 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.45 2008-03-21 22:05:28 brianwalenz Exp $
+ * $Revision: 1.45 $
  */
 
 #include <math.h>
@@ -340,6 +340,106 @@ namespace AS_BOG{
                 prevNumSplits = numSplits;
         }
 
+
+        //  After splitting, check for discontinuous unitigs.  What
+        //  occasionally happens:
+        //
+        //  ---------1
+        //    ----------2
+        //       ----3
+        //            -------4
+        //
+        //  We split at fragment 2.  We're not sure if fragment 3
+        //  should be contained in fragment 2 -- it's mate could be
+        //  later on (say, fragment 6).  BPW has seen this example,
+        //  and fragment 3 is also not labeled as contained in 2 (at
+        //  least, tigGraph.bog_ptr->isContained(3) == false and/or
+        //  tigGraph.bog_ptr->containHaveEdgeTo(3, 2) == false).
+        //
+        //  After splitting, we have #1 and #2 in a new unitig, and #3
+        //  and #4 in another unitig.  #3 and #4 are not overlapping,
+        //  resulting in consensus failures.
+        //
+        for (UnitigsIter unitigIter = tigGraph.unitigs->begin();
+             unitigIter != tigGraph.unitigs->end();
+             unitigIter++) {
+
+            Unitig  *unitig = *unitigIter;
+
+            if ((unitig == NULL) ||
+                (unitig->dovetail_path_ptr->empty()) ||
+                (unitig->dovetail_path_ptr->size() == 1))
+                continue;
+
+
+            //  The original flavor of this code (currently in the
+            //  #if0 below) would eject the first fragment if it had
+            //  containment issues.  Perhaps we should still do that.
+            //
+            //  This has all sorts of problems, like what to do with
+            //  contained fragments, and was the inspiration for this
+            //  current block of code (the example in the comment at
+            //  the start.
+
+
+            //  Check for discontinuities
+
+            DoveTailConstIter     fragIter = unitig->dovetail_path_ptr->begin();
+            int                   maxEnd   = 0;
+
+            DoveTailNode         *splitFrags    = new DoveTailNode [unitig->dovetail_path_ptr->size()];
+            int                   splitFragsLen = 0;
+            int                   splitOffset   = 0;
+
+            while (fragIter != unitig->dovetail_path_ptr->end()) {
+
+                //  True only if this is the first frag, or we just split.
+                if (splitFragsLen == 0) {
+                    maxEnd      = MAX(fragIter->position.bgn, fragIter->position.end);
+                    splitOffset = MIN(fragIter->position.bgn, fragIter->position.end);
+                }
+
+                //  We require at least 10bp of overlap between
+                //  fragments.  If we don't have that, split off the
+                //  fragments we've seen.
+                //
+                if (maxEnd - 10 < MIN(fragIter->position.bgn, fragIter->position.end)) {
+                    Unitig *dangler = new Unitig;
+
+                    fprintf(stderr, "Dangling Fragments in unitig %d -> move them to unitig %d\n", unitig->id(), dangler->id());
+
+                    for (int i=0; i<splitFragsLen; i++)
+                        dangler->addFrag(splitFrags[i], splitOffset);
+
+                    splitFragsLen = 0;
+
+                    tigGraph.unitigs->push_back(dangler);
+                }  //  End break
+
+                splitFrags[splitFragsLen++] = *fragIter;
+
+                maxEnd = MAX(maxEnd, MAX(fragIter->position.bgn, fragIter->position.end));
+
+                fragIter++;
+            }  //  End of unitig fragment iteration
+
+            //  If we split this unitig, the length of the frags in
+            //  splitFrags will be less than the length of the path in
+            //  this unitg.  If so, rebuild this unitig.
+            //
+            if (splitFragsLen != unitig->dovetail_path_ptr->size()) {
+                delete unitig->dovetail_path_ptr;
+
+                unitig->dovetail_path_ptr = new DoveTailPath;
+
+                for (int i=0; i<splitFragsLen; i++)
+                    unitig->addFrag(splitFrags[i], splitOffset);
+            }
+
+            delete [] splitFrags;
+        }  //  End of discontinuity splitting
+
+
         // Now we'll chuck out the contained frags that have unhappy mates
         // Plus some important cleanup of uncovered reads
         ejectUnhappyContains( tigGraph );
@@ -362,62 +462,89 @@ namespace AS_BOG{
             int tigLen  = tig->getLength();
 
             MateLocation positions(this);
+
             // Build mate position table
             positions.buildTable( tig );
+
             // Build good and bad mate graphs
             MateCounts* cnts = positions.buildHappinessGraphs( tigLen, _globalStats );
             allMates += *cnts;
             delete cnts;
 
-            // output the graphs
-            fprintf(stderr,"Per 300 bases good graph unitig %ld size %ld:\n",tig->id(),tigLen);
-            long sum = 0;
-            for(int i=0; i < tigLen; i++) {
-                if (i > 1 && i % 300 == 0) {
-                    fprintf(stderr,"%d ", sum / 300);
-                    sum = 0;
-                }
-                sum += (*positions.goodGraph)[ i ];
-            }
-            IntervalList *fwdBads,*revBads;
-            fprintf(stderr,"\nPer 300 bases bad fwd graph:\n");
-            fwdBads = findPeakBad( positions.badFwdGraph, tigLen );
-            fprintf(stderr,"\nPer 300 bases bad rev graph:\n");
-            revBads = findPeakBad( positions.badRevGraph, tigLen );
-
             // save position of singleton tig for case of a contain contain
             IdMap singleIds;
-            // save original path to iterate through
-            DoveTailPath *old = tig->dovetail_path_ptr;
 
-            DoveTailConstIter tigIter = old->begin();
+            // save original path to iterate through, make new one to
+            // add reads back into
+
+            DoveTailPath *oldpath = tig->dovetail_path_ptr;
+            tig->dovetail_path_ptr = new DoveTailPath;
+
+            DoveTailConstIter tigIter = oldpath->begin();
             int bgnShift = 0;
-            // make sure 1st and 2nd frag overlap, otherwise make 1st singleton
+
+            //  Check for discontinuities
+
+#if 0
+            //  Make sure 1st and 2nd frag overlap, otherwise make 1st
+            //  singleton
+
             bool overlapFound = false;
             while (!overlapFound) {
-                if (old->size() > 1 && tigIter != old->end()) {
+                if (oldpath->size() > 1 && tigIter != oldpath->end()) {
                     DoveTailNode first  = *(tigIter);
                     DoveTailNode second = *(tigIter+1);
-                    BestContainment* cntn = tigGraph.bog_ptr->getBestContainer( second.ident);
+
+                    BestContainment* cntn = tigGraph.bog_ptr->getBestContainer(second.ident);
+
                     if ( cntn != NULL && cntn->container == first.ident ) {
+                        //  Second is contained in the first.
+                        //
                         overlapFound = true;
+
                     } else if ( tigGraph.bog_ptr->isContained( first.ident ) &&
                                 !tigGraph.bog_ptr->containHaveEdgeTo( first.ident, second.ident)) {
+                        //  First is contained, and it's not contained in the second.
+                        //
+                        fprintf(stderr, "Non overlap start %d is contained in %d.\n",
+                                first.ident,
+                                tigGraph.bog_ptr->getBestContainer(first.ident)->container);
+
                         Unitig* singleton = new Unitig;
                         singleton->addFrag( first );
                         singleIds[ first.ident ] = singletons->size();
+
+                        bgnShift = -MIN( second.position.bgn, second.position.end );
+
+                        second = *(++tigIter);  //  Nop for second, needed to advance to the next frag.
+
+#if 0
+                        //  For any frags contained in the new unitig,
+                        //  move them there.  bgnShift (should) never
+                        //  change since we're just adding in
+                        //  containees.
+
+                        while ((tigGraph.bog_ptr->isContained(second.ident) &&
+                                (tig->fragIn(tigGraph.bog_ptr->getBestContainer(second.ident)->container) == singleton->id()))) {
+                            singleton->addFrag(second );
+                            singleIds[ second.ident ] = singletons->size();
+                            second = *(++tigIter);
+                        }
+#endif
                         singletons->push_back( singleton );
-                        tigIter++;
-                        bgnShift = MIN( second.position.bgn, second.position.end );
-                        fprintf(stderr,"Non overlap start %d %d\n",first.ident,second.ident);
+                    } else {
+                        //  OK by default, I guess.
+                        overlapFound = true;
                     }
-                    else overlapFound = true;
+                } else {
+                    overlapFound = true;
                 }
-                else overlapFound = true;
             }
-            // Create new one to add reads back to
-            tig->dovetail_path_ptr = new DoveTailPath;
-            for(; tigIter != old->end(); tigIter++) {
+#endif
+
+            //  eject unhappies
+
+            for(; tigIter != oldpath->end(); tigIter++) {
                 DoveTailNode frag = *tigIter;
                 if (BogOptions::ejectUnhappyContained && frag.contained ) {
                     MateLocationEntry mloc = positions.getById( frag.ident );
@@ -427,8 +554,7 @@ namespace AS_BOG{
                         singleton->addFrag( frag, bgnShift );
                         singleIds[ frag.ident ] = singletons->size();
                         singletons->push_back( singleton );
-                    }
-                    else {    
+                    } else {    
                         // contained, but not bad mate what to do with it?
                         IdMapConstIter found = singleIds.find( frag.contained );
                         if ( found != singleIds.end() ) { // contained in unhappy singleton
@@ -446,14 +572,16 @@ namespace AS_BOG{
                             tig->addFrag( frag, bgnShift );
                         }
                     }
-                } else { // non-contained, just add back to dovetail path
+                } else {
+                    // non-contained, just add back to dovetail path
                     tig->addFrag( frag, bgnShift );
                 }
             }
-            delete old;
+
+            delete oldpath;
         }
-        tigGraph.unitigs->insert( tigGraph.unitigs->end(), singletons->begin(),
-                                  singletons->end() );
+        tigGraph.unitigs->insert( tigGraph.unitigs->end(), singletons->begin(), singletons->end() );
+
         std::cerr << allMates;
     }
 
@@ -472,6 +600,9 @@ namespace AS_BOG{
         for(iuid i=n; i <=m ; i++)
             graph->at(i) += val;
     }
+
+    //  True if interval a contains interval b.
+    //
     bool contains( SeqInterval a, SeqInterval b) {
         int aMin,aMax,bMin,bMax;
         if (isReverse(a)) { aMin = a.end; aMax = a.bgn; }
@@ -483,7 +614,9 @@ namespace AS_BOG{
         else
             return false;
     }
-    ///////////////////////////////////////////////////////////////////////////
+
+    //  Returns the intersection of intervals a and b.
+    //
     SeqInterval intersection( SeqInterval a, SeqInterval b) {
         SeqInterval retVal = NULL_SEQ_LOC;
         int aMin,aMax,bMin,bMax;
@@ -520,9 +653,11 @@ namespace AS_BOG{
     // hold over from testing if we should use 5' or 3' for range generation, now must use 3'
     FragmentEnds* MateChecker::computeMateCoverage( Unitig* tig, BestOverlapGraph* bog_ptr ) {
         int tigLen = tig->getLength();
+
         MateLocation positions(this);
         // Build mate position table
         positions.buildTable( tig );
+
         // Build good and bad mate graphs
         MateCounts *unused = positions.buildHappinessGraphs( tigLen, _globalStats );
         delete unused;
@@ -621,12 +756,16 @@ namespace AS_BOG{
                     revIter++;
                 }
             }
+
             fprintf(stderr,"Bad peak from %d to %d\n",bad.bgn,bad.end);
+
             for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++) {
                 DoveTailNode frag = *tigIter;
                 SeqInterval loc = frag.position;
+
                 // Don't want to go past range and break in wrong place
                 assert( loc.bgn <= bad.end+1 || loc.end <= bad.end+1 );
+
                 // keep track of current and previous uncontained contig end
                 // so that we can split apart contained reads that don't overlap each other
                 if ( !bog_ptr->isContained(frag.ident) )
@@ -634,8 +773,8 @@ namespace AS_BOG{
 
                 bool breakNow = false;
                 MateLocationEntry mloc = positions.getById( frag.ident );
-                if (mloc.id1 != 0 && mloc.isBad) { // only break on bad mates
 
+                if (mloc.id1 != 0 && mloc.isBad) { // only break on bad mates
                     if ( isFwdBad && bad.bgn <= loc.end ) {
                         breakNow = true;
                     } else if ( !isFwdBad && (loc.bgn >= bad.end) ||
@@ -648,6 +787,7 @@ namespace AS_BOG{
                         breakNow = true;
                     }
                 }
+
                 if (breakNow) {
                     combine = false;
                     lastBreakBBEnd = currBackboneEnd;
@@ -665,22 +805,30 @@ namespace AS_BOG{
                     bp.inFrags = 10;
                     breaks->push_back( bp );
                 }
+
                 if ( lastBreakBBEnd != 0 && lastBreakBBEnd > MAX(loc.bgn,loc.end)) {
-                    // change use ++ & -- instead of +1 so we can use list
-                    tigIter++;
+
                     DoveTailConstIter nextPos = tigIter;
-                    tigIter--;
+                    nextPos++;
+
                     if (nextPos != tig->dovetail_path_ptr->end()) {
-                        //                        if ((NULL_SEQ_LOC == overlap || diff < DEFAULT_MIN_OLAP_LEN) || 
+
                         if ( contains( loc, nextPos->position ) ) {
                             // Contains the next one, so skip it
                         } else {
                             SeqInterval overlap = intersection(loc, nextPos->position);
                             int diff = abs( overlap.end - overlap.bgn);
-                            if ((NULL_SEQ_LOC == overlap || diff < DEFAULT_MIN_OLAP_LEN) || 
-                                (bog_ptr->isContained( frag.ident ) &&
-                                 !bog_ptr->containHaveEdgeTo( frag.ident, nextPos->ident))) {
-                                // no overlap between this and the next frg, break after frg
+
+                            //  No overlap between this and the next
+                            //  frag, or the overlap is tiny, or this
+                            //  frag is contained, but not contained
+                            //  in the next frag; Break after this
+                            //  frag.
+                            //
+                            if ((NULL_SEQ_LOC == overlap) || 
+                                (diff < DEFAULT_MIN_OLAP_LEN) || 
+                                (bog_ptr->isContained( frag.ident ) && !bog_ptr->containHaveEdgeTo( frag.ident, nextPos->ident))) {
+
                                 fragment_end_type fragEndInTig = THREE_PRIME;
                                 if (isReverse( loc ))
                                     fragEndInTig = FIVE_PRIME;
