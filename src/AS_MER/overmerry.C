@@ -609,7 +609,8 @@ ovmWorker(void *G, void *T, void *S) {
 
     //  Save off the B vs A overlap
     //
-#if 0
+
+#if 1    //**ALD added back--needed for read error correction
     overlap.a_iid = s->iid;
     overlap.b_iid = t->hits[i].tseq;
 
