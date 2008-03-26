@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.19 2007-12-05 23:46:57 brianwalenz Exp $
- * $Revision: 1.19 $
+ * $Id: AS_BOG_MateChecker.hh,v 1.20 2008-03-26 06:02:36 brianwalenz Exp $
+ * $Revision: 1.20 $
  */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
@@ -97,10 +97,16 @@ namespace AS_BOG{
     struct MateChecker{
         ~MateChecker();
 
-        iuid readStore(const char *);   // reads the gkpStore mate info into memory
+        // Main entry point for running mate splitting
+        void checkUnitigGraph( UnitigGraph& );
+
+        // reads the gkpStore mate info into memory
+        iuid readStore(const char *);
 
         // returns the mate iid for the given iid, or zero if none
         MateInfo getMateInfo(iuid);
+
+    private:
 
         // Checks size of mates internal to unitig
         LibraryStats* computeLibraryStats( Unitig* );
@@ -113,9 +119,6 @@ namespace AS_BOG{
 
         // Computes stddev and mate coverage over all unitigs
         void computeGlobalLibStats( UnitigGraph& );
-
-        // Main entry point for running mate splitting
-        void checkUnitigGraph( UnitigGraph& );
 
     private:
         MateMap _mates;
@@ -151,7 +154,11 @@ namespace AS_BOG{
             badFwdGraph = new std::vector<short>;
             badRevGraph = new std::vector<short>;
         };
-        ~MateLocation();
+        ~MateLocation() {
+            delete goodGraph;
+            delete badFwdGraph;
+            delete badRevGraph;
+        };
 
         bool startEntry( iuid, iuid, SeqInterval);
         bool addMate( iuid, iuid, SeqInterval);
@@ -163,13 +170,12 @@ namespace AS_BOG{
 
         void buildTable( Unitig *);
         MateCounts* buildHappinessGraphs( int tigLen, LibraryStats &);
-        
+
         std::vector<short>* goodGraph;
         std::vector<short>* badFwdGraph;
         std::vector<short>* badRevGraph;
 
     private:
-
         MateLocTable _table;
         IdMap _iidIndex;
         MateChecker* _checker;

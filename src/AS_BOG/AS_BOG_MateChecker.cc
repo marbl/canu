@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.45 2008-03-21 22:05:28 brianwalenz Exp $
- * $Revision: 1.45 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.46 2008-03-26 06:02:36 brianwalenz Exp $
+ * $Revision: 1.46 $
  */
 
 #include <math.h>
@@ -311,12 +311,14 @@ namespace AS_BOG{
     ///////////////////////////////////////////////////////////////////////////
     // main entry point into mate checking code
     void MateChecker::checkUnitigGraph( UnitigGraph& tigGraph ) {
+
         if ( ! BogOptions::useGkpStoreLibStats )
             computeGlobalLibStats( tigGraph );
 
         int numSplits = 1;
         int iterNum = 1;
         int prevNumSplits = 0;
+
         while (numSplits > 0) {
             UnitigVector* splits = new UnitigVector(); // save split unitigs
             UnitigsIter tigEditIter = tigGraph.unitigs->begin();
@@ -360,6 +362,26 @@ namespace AS_BOG{
         //  and #4 in another unitig.  #3 and #4 are not overlapping,
         //  resulting in consensus failures.
         //
+        //  It's sometimes slightly messier:
+        //
+        //  ---------1
+        //    ----------2
+        //      -------2a
+        //       ----3
+        //            -------4
+        //
+        //  We still split at 2.  2a is marked as comtained in 2.
+        //  For the same reasons, we want to end up with three unitgs:
+        //
+        //    a)  1, 2
+        //    b)  2a, 3
+        //    c)  4
+        //
+        //  In general, if the first fragment of a unitig is contained,
+        //  we break that fragment off into a new unitig.  We then
+        //  examine the rest of the unitig for any discontunities, and
+        //  move those fragments into the new unitig.
+
         for (UnitigsIter unitigIter = tigGraph.unitigs->begin();
              unitigIter != tigGraph.unitigs->end();
              unitigIter++) {
@@ -371,46 +393,69 @@ namespace AS_BOG{
                 (unitig->dovetail_path_ptr->size() == 1))
                 continue;
 
-
-            //  The original flavor of this code (currently in the
-            //  #if0 below) would eject the first fragment if it had
-            //  containment issues.  Perhaps we should still do that.
-            //
-            //  This has all sorts of problems, like what to do with
-            //  contained fragments, and was the inspiration for this
-            //  current block of code (the example in the comment at
-            //  the start.
-
-
             //  Check for discontinuities
 
             DoveTailConstIter     fragIter = unitig->dovetail_path_ptr->begin();
             int                   maxEnd   = 0;
 
+            int                   containBreak = 0;
+
             DoveTailNode         *splitFrags    = new DoveTailNode [unitig->dovetail_path_ptr->size()];
             int                   splitFragsLen = 0;
-            int                   splitOffset   = 0;
+
+            MateLocation         *matePositions = NULL;
 
             while (fragIter != unitig->dovetail_path_ptr->end()) {
 
-                //  True only if this is the first frag, or we just split.
+                //  If this is the first frag in this block (we are at
+                //  the start of a unitig, or just split off a new
+                //  unitig), the end.
+                //
                 if (splitFragsLen == 0) {
-                    maxEnd      = MAX(fragIter->position.bgn, fragIter->position.end);
-                    splitOffset = MIN(fragIter->position.bgn, fragIter->position.end);
+                    maxEnd      =  MAX(fragIter->position.bgn, fragIter->position.end);
+
+                    //  But if this first guy is contained in something else,
+                    //  we want to split it off.  Set a flag to do that, remember
+                    //  the end of the next guy (to see if removing the first guy
+                    //  disconnects the unitig), and continue.
+                    //
+                    if (tigGraph.bog_ptr->isContained(fragIter->ident)) {
+                        if (matePositions == NULL) {
+                            matePositions = new MateLocation(this);
+                            matePositions->buildTable(unitig);
+                            delete matePositions->buildHappinessGraphs(unitig->getLength(), _globalStats);
+                        }
+
+                        MateLocationEntry mloc = matePositions->getById(fragIter->ident);
+
+                        if (mloc.isBad ) {
+                            containBreak = 1;
+
+                            splitFrags[splitFragsLen++] = *fragIter;
+
+                            fragIter++;
+                            if (fragIter != unitig->dovetail_path_ptr->end())
+                                maxEnd = MAX(maxEnd, MAX(fragIter->position.bgn, fragIter->position.end));
+
+                            continue;
+                        }
+                    }
                 }
 
-                //  We require at least 10bp of overlap between
-                //  fragments.  If we don't have that, split off the
-                //  fragments we've seen.
+                //  We require at least 10bp of overlap between fragments.  If
+                //  we don't have that, split off the fragments we've seen.
                 //
                 if (maxEnd - 10 < MIN(fragIter->position.bgn, fragIter->position.end)) {
                     Unitig *dangler = new Unitig;
 
                     fprintf(stderr, "Dangling Fragments in unitig %d -> move them to unitig %d\n", unitig->id(), dangler->id());
 
+                    int splitOffset = -MIN(splitFrags[0].position.bgn, splitFrags[0].position.end);
+
                     for (int i=0; i<splitFragsLen; i++)
                         dangler->addFrag(splitFrags[i], splitOffset);
 
+                    containBreak  = 0;
                     splitFragsLen = 0;
 
                     tigGraph.unitigs->push_back(dangler);
@@ -423,20 +468,53 @@ namespace AS_BOG{
                 fragIter++;
             }  //  End of unitig fragment iteration
 
-            //  If we split this unitig, the length of the frags in
-            //  splitFrags will be less than the length of the path in
-            //  this unitg.  If so, rebuild this unitig.
+            //  If containBreak is set, removing the first fragment
+            //  did not break the unitig.  We can now safely remove it
+            //  and rebuild the unitig.
             //
-            if (splitFragsLen != unitig->dovetail_path_ptr->size()) {
+            //  Otherwise, if we split this unitig, the length of the
+            //  frags in splitFrags will be less than the length of
+            //  the path in this unitg.  If so, rebuild this unitig.
+            //
+            if (containBreak) {
+                Unitig *dangler = new Unitig;
+
+                fprintf(stderr, "Dangling Fragments in unitig %d -> move them to unitig %d\n", unitig->id(), dangler->id());
+
+                int splitOffset = -MIN(splitFrags[0].position.bgn, splitFrags[0].position.end);
+
+                dangler->addFrag(splitFrags[0], splitOffset);
+                tigGraph.unitigs->push_back(dangler);
+
+                //  I'm sure someone clever could figure out how to remove this duplication
+                fprintf(stderr, "Rebuild unitig %d\n", unitig->id());
                 delete unitig->dovetail_path_ptr;
 
                 unitig->dovetail_path_ptr = new DoveTailPath;
+
+                splitOffset = -MIN(splitFrags[1].position.bgn, splitFrags[1].position.end);
+
+                for (int i=1; i<splitFragsLen; i++)
+                    unitig->addFrag(splitFrags[i], splitOffset);
+
+            } else if (splitFragsLen != unitig->dovetail_path_ptr->size()) {
+                //  I'm sure someone clever could figure out how to remove this duplication
+                fprintf(stderr, "Rebuild unitig %d\n", unitig->id());
+                delete unitig->dovetail_path_ptr;
+
+                unitig->dovetail_path_ptr = new DoveTailPath;
+
+                int splitOffset = -MIN(splitFrags[0].position.bgn, splitFrags[0].position.end);
 
                 for (int i=0; i<splitFragsLen; i++)
                     unitig->addFrag(splitFrags[i], splitOffset);
             }
 
             delete [] splitFrags;
+            delete    matePositions;
+
+            splitFrags    = NULL;
+            matePositions = NULL;
         }  //  End of discontinuity splitting
 
 
@@ -448,9 +526,14 @@ namespace AS_BOG{
     ///////////////////////////////////////////////////////////////////////////
 
     void MateChecker::ejectUnhappyContains(UnitigGraph& tigGraph ) {
+
+        if (BogOptions::ejectUnhappyContained == false)
+            return;
+
         MateCounts allMates;
         UnitigVector* singletons = new UnitigVector(); // save singleton unitigs
         UnitigsIter tigEditIter = tigGraph.unitigs->begin();
+
         for(; tigEditIter != tigGraph.unitigs->end(); tigEditIter++) {
             if (*tigEditIter == NULL ) 
                 continue;
@@ -459,15 +542,9 @@ namespace AS_BOG{
             if (tig->dovetail_path_ptr->empty() || tig->dovetail_path_ptr->size() == 1)
                 continue;
 
-            int tigLen  = tig->getLength();
-
             MateLocation positions(this);
-
-            // Build mate position table
             positions.buildTable( tig );
-
-            // Build good and bad mate graphs
-            MateCounts* cnts = positions.buildHappinessGraphs( tigLen, _globalStats );
+            MateCounts* cnts = positions.buildHappinessGraphs(tig->getLength(), _globalStats );
             allMates += *cnts;
             delete cnts;
 
@@ -477,106 +554,60 @@ namespace AS_BOG{
             // save original path to iterate through, make new one to
             // add reads back into
 
-            DoveTailPath *oldpath = tig->dovetail_path_ptr;
+            DoveTailPath      *oldpath = tig->dovetail_path_ptr;
+
             tig->dovetail_path_ptr = new DoveTailPath;
 
-            DoveTailConstIter tigIter = oldpath->begin();
             int bgnShift = 0;
-
-            //  Check for discontinuities
-
-#if 0
-            //  Make sure 1st and 2nd frag overlap, otherwise make 1st
-            //  singleton
-
-            bool overlapFound = false;
-            while (!overlapFound) {
-                if (oldpath->size() > 1 && tigIter != oldpath->end()) {
-                    DoveTailNode first  = *(tigIter);
-                    DoveTailNode second = *(tigIter+1);
-
-                    BestContainment* cntn = tigGraph.bog_ptr->getBestContainer(second.ident);
-
-                    if ( cntn != NULL && cntn->container == first.ident ) {
-                        //  Second is contained in the first.
-                        //
-                        overlapFound = true;
-
-                    } else if ( tigGraph.bog_ptr->isContained( first.ident ) &&
-                                !tigGraph.bog_ptr->containHaveEdgeTo( first.ident, second.ident)) {
-                        //  First is contained, and it's not contained in the second.
-                        //
-                        fprintf(stderr, "Non overlap start %d is contained in %d.\n",
-                                first.ident,
-                                tigGraph.bog_ptr->getBestContainer(first.ident)->container);
-
-                        Unitig* singleton = new Unitig;
-                        singleton->addFrag( first );
-                        singleIds[ first.ident ] = singletons->size();
-
-                        bgnShift = -MIN( second.position.bgn, second.position.end );
-
-                        second = *(++tigIter);  //  Nop for second, needed to advance to the next frag.
-
-#if 0
-                        //  For any frags contained in the new unitig,
-                        //  move them there.  bgnShift (should) never
-                        //  change since we're just adding in
-                        //  containees.
-
-                        while ((tigGraph.bog_ptr->isContained(second.ident) &&
-                                (tig->fragIn(tigGraph.bog_ptr->getBestContainer(second.ident)->container) == singleton->id()))) {
-                            singleton->addFrag(second );
-                            singleIds[ second.ident ] = singletons->size();
-                            second = *(++tigIter);
-                        }
-#endif
-                        singletons->push_back( singleton );
-                    } else {
-                        //  OK by default, I guess.
-                        overlapFound = true;
-                    }
-                } else {
-                    overlapFound = true;
-                }
-            }
-#endif
 
             //  eject unhappies
 
-            for(; tigIter != oldpath->end(); tigIter++) {
-                DoveTailNode frag = *tigIter;
-                if (BogOptions::ejectUnhappyContained && frag.contained ) {
-                    MateLocationEntry mloc = positions.getById( frag.ident );
-                    if (mloc.id1 != 0 && mloc.isBad ) {
-                        // make contain bad a singleton unitig
-                        Unitig* singleton = new Unitig;
-                        singleton->addFrag( frag, bgnShift );
-                        singleIds[ frag.ident ] = singletons->size();
-                        singletons->push_back( singleton );
-                    } else {    
-                        // contained, but not bad mate what to do with it?
-                        IdMapConstIter found = singleIds.find( frag.contained );
-                        if ( found != singleIds.end() ) { // contained in unhappy singleton
-                            if (mloc.id1 == 0) { // unmated, so follow container
-                                iuid offset = found->second;
-                                (*singletons)[ offset ]->addFrag( frag );
-                                singleIds[ frag.ident ] = offset;
-                                fprintf(stderr,"Contain placed in singleton frg %d off %d tig %d\n",
-                                        frag.ident, offset, (*singletons)[ offset ]->id());
-                            } else { // happy mate leave in place
-                                frag.contained = 0; // Might pick something else
-                                tig->addFrag( frag, bgnShift );
-                            }
-                        } else { // mated, so good mate
-                            tig->addFrag( frag, bgnShift );
-                        }
-                    }
-                } else {
-                    // non-contained, just add back to dovetail path
-                    tig->addFrag( frag, bgnShift );
+            for(DoveTailIter frag = oldpath->begin(); frag != oldpath->end(); frag++) {
+
+                if (frag->contained == 0) {
+                    // not contained, just add back to dovetail path
+                    tig->addFrag( *frag, bgnShift );
+                    continue;
                 }
-            }
+
+                MateLocationEntry mloc = positions.getById( frag->ident );
+
+                if (mloc.id1 != 0 && mloc.isBad ) {
+                    // make contain bad a singleton unitig
+                    Unitig* singleton = new Unitig;
+                    singleton->addFrag( *frag, bgnShift );
+                    singleIds[ frag->ident ] = singletons->size();
+                    singletons->push_back( singleton );
+                    continue;
+                }
+
+                // contained, but not bad mate what to do with it?
+                IdMapConstIter found = singleIds.find( frag->contained );
+
+                if (found == singleIds.end()) {
+                    //  mated, good mate
+                    tig->addFrag( *frag, bgnShift );
+                    continue;
+                }
+
+                // contained in unhappy singleton
+
+                if (mloc.id1 != 0) {
+                    // happy mate leave in place
+                    frag->contained = 0; // Might pick something else
+                    tig->addFrag( *frag, bgnShift );
+                    continue;
+                }
+
+                // unmated, frag follows container
+
+                iuid offset = found->second;
+                (*singletons)[ offset ]->addFrag( *frag );
+                singleIds[ frag->ident ] = offset;
+                fprintf(stderr,"Contain placed in singleton frg %d off %d tig %d\n",
+                        frag->ident, offset, (*singletons)[ offset ]->id());
+
+            }  //  over all frags
 
             delete oldpath;
         }
@@ -655,10 +686,7 @@ namespace AS_BOG{
         int tigLen = tig->getLength();
 
         MateLocation positions(this);
-        // Build mate position table
         positions.buildTable( tig );
-
-        // Build good and bad mate graphs
         MateCounts *unused = positions.buildHappinessGraphs( tigLen, _globalStats );
         delete unused;
 
@@ -899,17 +927,18 @@ namespace AS_BOG{
     ///////////////////////////////////////////////////////////////////////////
     
     void MateLocation::buildTable( Unitig *tig) {
-        DoveTailConstIter tigIter = tig->dovetail_path_ptr->begin();
-        for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++) {
-            DoveTailNode frag = *tigIter;
-            iuid fragId = frag.ident;
-            MateInfo mateInfo = _checker->getMateInfo( fragId );
-            iuid mateId = mateInfo.mate;
+
+        for(DoveTailConstIter frag = tig->dovetail_path_ptr->begin();
+            frag != tig->dovetail_path_ptr->end();
+            frag++) {
+
+            MateInfo mateInfo = _checker->getMateInfo( frag->ident );
+
             if ( mateInfo.mate != NULL_FRAG_ID ) {
-                if (hasFrag( mateId ) )
-                    addMate( tig->id(), fragId, frag.position );
+                if (hasFrag( mateInfo.mate ) )
+                    addMate( tig->id(), frag->ident, frag->position );
                 else
-                    startEntry( tig->id(), fragId, frag.position );
+                    startEntry( tig->id(), frag->ident, frag->position );
             }
         }
         sort();
@@ -1101,13 +1130,6 @@ namespace AS_BOG{
         _table.push_back( entry );
         _iidIndex[ fragID ] = _table.size()-1;
         return true;
-    }
-
-    ///////////////////////////////////////////////////////////////////////////
-    MateLocation::~MateLocation() {
-        delete goodGraph;
-        delete badFwdGraph;
-        delete badRevGraph;
     }
 
     ///////////////////////////////////////////////////////////////////////////
