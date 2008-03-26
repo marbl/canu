@@ -80,7 +80,10 @@ main(int argc, char **argv) {
     fprintf(stderr, "Failed to open fragStore %s!\n", frgStore);
     exit(1);
   }
-  fragRecord *fr = new_fragRecord();
+
+  gkpStore->frg = convertStoreToMemoryStore(gkpStore->frg);
+
+  fragRecord fr;
 
   uint64  iid   = 0;
   uint32  left  = 0;
@@ -95,7 +98,7 @@ main(int argc, char **argv) {
     //  points.  All the values from the mapping are off by the original
     //  clear range, we add it back in as we decode the string.
 
-    getFrag(gkp, iid, fr, FRAG_S_INF | FRAG_S_QLT);
+    getFrag(gkp, iid, &fr, FRAG_S_INF | FRAG_S_QLT);
 
     uint32 qltLQ1 = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT);
     uint32 qltRQ1 = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT);

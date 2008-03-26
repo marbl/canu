@@ -84,6 +84,8 @@ main(int argc, char **argv) {
     exit(1);
   }
 
+  gkp->frg = convertStoreToMemoryStore(gkp->frg);
+
   uint32        firstElem = getFirstElemFragStore(gkp);
   uint32        lastElem  = getLastElemFragStore(gkp) + 1;
 

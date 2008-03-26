@@ -750,7 +750,8 @@ main(int argc, char **argv) {
   int err=0;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-gkp", 2) == 0) {
-      gkp = openGateKeeperStore(argv[++arg], doUpdate);
+      gkp      = openGateKeeperStore(argv[++arg], doUpdate);
+      gkp->frg = convertStoreToMemoryStore(gkp->frg);
     } else if (strncmp(argv[arg], "-ovs", 2) == 0) {
       if (ovsprimary == NULL)
         ovsprimary = AS_OVS_openOverlapStore(argv[++arg]);
