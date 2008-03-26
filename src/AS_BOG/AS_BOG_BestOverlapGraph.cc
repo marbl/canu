@@ -37,11 +37,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.47 2008-01-02 18:28:45 eliv Exp $
- * $Revision: 1.47 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.48 2008-03-26 03:17:13 brianwalenz Exp $
+ * $Revision: 1.48 $
  */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.47 2008-01-02 18:28:45 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.48 2008-03-26 03:17:13 brianwalenz Exp $";
 
 //  System include files
 #include<iostream>
@@ -514,7 +514,21 @@ namespace AS_BOG{
         //   determines whether the overlap is containment or dovetailing,
         //   then stores the overlap in the BestOverlapGraph member variables.
 
-        // store real edges from contained frags to help with unhappy mate splitting
+        //  Store real edges from contained frags to help with unhappy
+        //  mate splitting
+        //
+        //  If A was previously found to be a containee, and
+        //
+        //  a < 0           b < 10
+        //        ----------..
+        //  ......------------
+        //
+        //  a > 0           b > -10
+        //  ......-----------
+        //        ---------.......
+        //
+        //  That looks wrong.
+        //
         if (isContained( olap.a_iid ) ) {
             if ( ( olap.dat.ovl.a_hang < 0 && olap.dat.ovl.b_hang < 10) ||
                  ( olap.dat.ovl.a_hang > 0 && olap.dat.ovl.b_hang > -10) )
