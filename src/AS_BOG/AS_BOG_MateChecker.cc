@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.46 2008-03-26 06:02:36 brianwalenz Exp $
- * $Revision: 1.46 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.47 2008-03-27 04:49:33 brianwalenz Exp $
+ * $Revision: 1.47 $
  */
 
 #include <math.h>
@@ -412,7 +412,7 @@ namespace AS_BOG{
                 //  unitig), the end.
                 //
                 if (splitFragsLen == 0) {
-                    maxEnd      =  MAX(fragIter->position.bgn, fragIter->position.end);
+                    maxEnd =  MAX(fragIter->position.bgn, fragIter->position.end);
 
                     //  But if this first guy is contained in something else,
                     //  we want to split it off.  Set a flag to do that, remember
@@ -435,7 +435,7 @@ namespace AS_BOG{
 
                             fragIter++;
                             if (fragIter != unitig->dovetail_path_ptr->end())
-                                maxEnd = MAX(maxEnd, MAX(fragIter->position.bgn, fragIter->position.end));
+                                maxEnd = MAX(fragIter->position.bgn, fragIter->position.end);
 
                             continue;
                         }
