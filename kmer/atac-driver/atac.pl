@@ -241,7 +241,7 @@ sub parseArgs {
         $seq1 = "$pwd/$seq1" if ($seq1 !~ m!^/!);
     }
     if (defined($seq2)) {
-        $seq2 = "$pwd/$seq2" if ($seq1 !~ m!^/!);
+        $seq2 = "$pwd/$seq2" if ($seq2 !~ m!^/!);
     }
 
     system("mkdir $ATACdir")        if (! -d "$ATACdir");
