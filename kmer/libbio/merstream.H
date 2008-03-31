@@ -213,14 +213,9 @@ merStream::nextMer(u32bit skip) {
 
   //  Compute if we've hit our iteration limit.
   //
-  if (_ss_file) {
-    u64bit acgtp = _ss_file->acgtPosForMerStream(theFMer().getMerSpan()) + 1;
-
-    //fprintf(stderr, "acgtPos: "u64bitFMT";  _ss_end "u64bitFMT"\n", acgtp, _ss_end);
-
-    if (_ss_end <= acgtp)
-      return(false);
-  }
+  if ((_ss_file) &&
+      (_ss_file->acgtPosForMerStream(theFMer().getMerSpan()) >= _ss_end))
+    return(false);
 
   return(true);
 }
