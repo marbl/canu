@@ -1,0 +1,351 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#include "bio++.H"
+#include "libmeryl.H"
+
+
+class merMaskedSequence {
+public:
+  merMaskedSequence(char *fastaName, char *merylName) {
+    _numSeq = 0;
+    _seqLen = 0L;
+    _masking = 0L;
+
+    strcpy(_fastaName, fastaName);
+    strcpy(_merylName, merylName);
+
+    strcpy(_maskMersName, merylName);
+    strcat(_maskMersName, ".maskMers");
+
+    if (fileExists(_maskMersName))
+      loadMasking();
+    else
+      buildMasking();
+  };
+  ~merMaskedSequence() {
+    delete [] _seqLen;
+    for (u32bit i=0; i<_numSeq; i++)
+      delete [] _masking[i];
+    delete [] _masking;
+  };
+
+public:
+  u32bit     numSeq(void)                { return(_numSeq); };
+  u32bit     seqLen(u32bit i)            { return(_seqLen[i]); };
+  char       masking(u32bit s, u32bit p) { return(_masking[s][p]); };
+
+  char      *merylName(void)             { return(_merylName); };
+
+private:
+  void       loadMasking(void);      //  Read the masking from the saved file
+  void       saveMasking(void);      //  Write the masking to a file
+  void       buildMasking(void);     //  Read the mers to build the masking
+
+  u32bit    _numSeq;
+  u32bit   *_seqLen;
+  char    **_masking;
+
+  char      _fastaName[FILENAME_MAX];
+  char      _merylName[FILENAME_MAX];
+  char      _maskMersName[FILENAME_MAX];
+};
+
+
+void
+merMaskedSequence::loadMasking(void) {
+  FILE  *maskMersFile = fopen(_maskMersName, "r");
+
+  fread(&_numSeq, sizeof(u32bit), 1,       maskMersFile);
+
+  _seqLen = new u32bit [_numSeq];
+  _masking = new char * [_numSeq];
+
+  fprintf(stderr, u32bitFMT" sequences in '%s'\n", _numSeq, _fastaName);
+
+  fread( _seqLen,  sizeof(u32bit), _numSeq, maskMersFile);
+
+  for (u32bit i=0; i<_numSeq; i++) {
+    _masking[i] = new char [_seqLen[i]];
+    memset(_masking[i], 'g', sizeof(char) * _seqLen[i]);
+  }
+
+  for (u32bit i=0; i<_numSeq; i++)
+    fread(_masking[i], sizeof(char), _seqLen[i], maskMersFile);
+
+  fclose(maskMersFile);
+}
+
+
+void
+merMaskedSequence::saveMasking(void) {
+  FILE  *maskMersFile = fopen(_maskMersName, "w");
+
+  fwrite(&_numSeq, sizeof(u32bit), 1,       maskMersFile);
+  fwrite( _seqLen, sizeof(u32bit), _numSeq, maskMersFile);
+
+  for (u32bit i=0; i<_numSeq; i++)
+    fwrite(_masking[i], sizeof(char), _seqLen[i], maskMersFile);
+
+  fclose(maskMersFile);
+}
+
+
+void
+merMaskedSequence::buildMasking(void) {
+  seqFile       *F   = openSeqFile(_fastaName);
+  seqStream     *STR = new seqStream(F, true);
+  //seqStore      *STO = new seqStore(fastaName, STR);
+
+  _numSeq = STR->numberOfSequences();
+  _seqLen = new u32bit [_numSeq];
+  _masking = new char * [_numSeq];
+
+  fprintf(stderr, u32bitFMT" sequences in '%s'\n", _numSeq, _fastaName);
+
+  for (u32bit i=0; i<_numSeq; i++) {
+    _seqLen[i] = STR->lengthOf(i);
+    _masking[i] = new char [_seqLen[i]];
+    memset(_masking[i], 'g', sizeof(char) * _seqLen[i]);
+  }
+
+  //  g -> gap in sequence
+  //  u -> unique mer
+  //  r -> repeat mer
+
+  merylStreamReader *MS = new merylStreamReader(_merylName);
+  speedCounter      *CT = new speedCounter(" Masking mers in sequence: %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, true);
+
+  while (MS->nextMer()) {
+    //fprintf(stderr, "mer count="u64bitFMT" pos="u32bitFMT"\n", MS->theCount(), MS->getPosition(0));
+
+    if (MS->theCount() == 1) {
+      u32bit p = MS->getPosition(0);
+      u32bit s = STR->sequenceNumberOfPosition(p);
+      p -= STR->startOf(s);
+
+      _masking[s][p] = 'u';
+    } else {
+      for (u32bit i=0; i<MS->theCount(); i++) {
+        u32bit p = MS->getPosition(i);
+        u32bit s = STR->sequenceNumberOfPosition(p);
+        p -= STR->startOf(s);
+
+        _masking[s][p] = 'r';
+      }
+    }
+
+    CT->tick();
+  }
+
+  delete CT;
+
+  delete MS;
+
+  //delete STO;
+  delete STR;
+  delete F;
+
+  saveMasking();
+}
+
+
+void
+computeDensity(merMaskedSequence *S) {
+  char    outputName[FILENAME_MAX];
+  FILE   *outputFile;
+  u32bit  windowSizeMax = 10000;
+
+  for (u32bit s=0; s<S->numSeq(); s++) {
+    sprintf(outputName, "%s.density.seq"u32bitFMTW(02), S->merylName(), s);
+    outputFile = fopen(outputName, "w");
+
+    //  Not the most efficient, but good enough for us right now.
+
+    for (u32bit p=0; p<S->seqLen(0); p++) {
+      u32bit  windowSize    = 0;
+      u32bit  uniqueSum     = 0;
+      u32bit  repeatSum     = 0;
+      u32bit  gapSum        = 0;
+
+      for (windowSize=0; (windowSize < windowSizeMax) && (p < S->seqLen(s)); windowSize++, p++) {
+        char m = S->masking(s, p);
+
+        if (m == 'u')  uniqueSum++;
+        if (m == 'g')  gapSum++;
+        if (m == 'r')  repeatSum++;
+      }
+
+      fprintf(outputFile, "%f %f %f\n",
+              (double)uniqueSum / windowSize,
+              (double)repeatSum / windowSize,
+              (double)gapSum    / windowSize);
+    }
+
+    fclose(outputFile);
+  }
+}
+
+
+void
+computeMateRescue(merMaskedSequence *S) {
+  char    outputName[FILENAME_MAX];
+  FILE   *outputFile;
+  u32bit  mean      = 2800;
+  u32bit  stddev    = 500;
+
+  assert(mean > stddev);
+
+  u32bit   histogramLen = 1000;
+  u32bit  *histogram    = new u32bit [histogramLen];
+
+  //  For each 'r' mer, compute the number of 'u' mers
+  //  that are within some mean +- stddev range.
+  //
+  //  We count for two blocks:
+  //
+  //            |   <- mean ->   |  <- mean ->    |
+  //  ---[block1]---------------mer---------------[block2]---
+  //
+  //  Once we know that, we can compute the probability that
+  //  a repeat mer can be rescued.
+  //
+  //  p1 = uniq/total   -- for 1 X coverage
+  //  pn = 1 - (1-p1)^n -- for n X coverage
+  //
+
+  for (u32bit s=0; s<S->numSeq(); s++) {
+
+    u32bit  numR = 0;
+
+    for (u32bit p=0; p<S->seqLen(s); p++)
+      if (S->masking(s, p) == 'r')
+        numR++;
+
+    fprintf(stderr, "numR="u32bitFMT"\n", numR);
+
+    memset(histogram, 0, sizeof(u32bit) * histogramLen);
+
+    for (u32bit p=0; p<S->seqLen(s); p++) {
+      if (S->masking(s, p) == 'r') {
+        u32bit  numU  = 0;
+        u32bit  numT  = 0;
+        u32bit  b1l   = 0;
+        u32bit  b1h   = 0;
+        u32bit  b2l   = 0;
+        u32bit  b2h   = 0;
+
+        //  Painfully choose min/max ranges.
+
+        if (stddev < mean) {
+          //  Regions will not overlap.
+
+          b1l = p - mean - stddev;
+          if (p < mean + stddev)
+            b1l = 0;
+
+          b1h = p - mean + stddev;
+          if (p < mean - stddev)
+            b1h = 0;
+
+          b2l = p + mean - stddev;
+          b2h = p + mean + stddev;
+
+        } else {
+          //  Regions will overlap.
+
+          b1l = p - mean - stddev;
+          if (p < mean + stddev)
+            b1l = 0;
+
+          b1h = p + mean + stddev;
+        }
+
+        if (b1h > S->seqLen(s)) b1h = S->seqLen(s);
+        if (b2h > S->seqLen(s)) b2h = S->seqLen(s);
+
+        numT = (b1h - b1l) + (b2h - b2l);
+
+        for (u32bit l=b1l; l < b1h; l++)
+          if (S->masking(s, l) == 'u')
+            numU++;
+
+        for (u32bit l=b2l; l < b2h; l++)
+          if (S->masking(s, l) == 'u')
+            numU++;
+
+        double p1 = (double)numU / (double)numT;
+
+        assert(p1 <= 1.0);
+
+        if (p1 == 0.5)
+          fprintf(stderr, "pos: "u32bitFMT" b1: %d %d   b2: %d %d\n", p, b1l, b1h, b2l, b2h);
+
+        histogram[(u32bit)floor(1000 * p1)]++;
+      }
+    }
+
+    sprintf(outputName, "%s.mateRescue.seq"u32bitFMTW(02), S->merylName(), s);
+    outputFile = fopen(outputName, "w");
+
+    u32bit  cumulative = 0;
+
+    for (u32bit i=0; i<histogramLen; i++) {
+      cumulative += histogram[i];
+      fprintf(outputFile, "%f\t"u32bitFMT"\t"u32bitFMT"\n", i / 10.0, histogram[i], cumulative);
+    }
+
+    fclose(outputFile);
+  }
+
+  delete [] histogram;
+}
+
+
+
+int
+main(int argc, char **argv) {
+  char     *merylName  = 0L;
+  char     *fastaName  = 0L;
+
+  bool      doDensity  = false;
+  bool      doRescue   = false;
+
+  int arg=1;
+  int err=0;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-mers") == 0) {
+      merylName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-seq") == 0) {
+      fastaName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-d") == 0) {
+      doDensity = true;
+
+    } else if (strcmp(argv[arg], "-r") == 0) {
+      doRescue = true;
+
+    } else {
+      fprintf(stderr, "unknown option '%s'\n", argv[arg]);
+      err++;
+    }
+    arg++;
+  }
+  if ((err) || (merylName == 0L) || (fastaName == 0L)) {
+    fprintf(stderr, "usage: %s -mers mers -seq fasta > output\n", argv[0]);
+    exit(1);
+  }
+
+  merMaskedSequence *S = new merMaskedSequence(fastaName, merylName);
+
+  if (doDensity)
+    computeDensity(S);
+
+  if (doRescue)
+    computeMateRescue(S);
+
+  return(0);
+}

@@ -14,20 +14,39 @@ void runThreaded(merylArgs *args);
 //
 #define SORTED_LIST_WIDTH  KMER_WORDS
 
+//  Enable WITH_POSITIONS in libmeryl.H.
+
 //  to make the sorted list be wider, we also need to store wide
 //  things in the bitpackedarray buckets.  probably easy (do multiple
 //  adds of data, each at most 64 bits) but not braindead.
 
 #if SORTED_LIST_WIDTH == 1
 
-typedef u64bit  sortedList_t;
+class sortedList_t {
+public:
+  u64bit    _w;
+#ifdef WITH_POSITIONS
+  u32bit    _p;
+#endif
+
+  bool operator<(sortedList_t &that) {
+    return(_w < that._w);
+  };
+
+  bool operator>=(sortedList_t &that) {
+    return(_w >= that._w);
+  };
+
+  sortedList_t &operator=(sortedList_t &that) {
+    _w = that._w;
+#ifdef WITH_POSITIONS
+    _p = that._p;
+#endif
+    return(*this);
+  };
+};
 
 #else
-
-//  Special case, we can save the positions of the mers.  This eats
-//  space like crazy.
-//
-#define WITH_POSITIONS
 
 class sortedList_t {
 public:
@@ -55,7 +74,9 @@ public:
   sortedList_t &operator=(sortedList_t &that) {
     for (u32bit i=SORTED_LIST_WIDTH; i--; )
       _w[i] = that._w[i];
+#ifdef WITH_POSITIONS
     _p = that._p;
+#endif
     return(*this);
   };
 };
@@ -565,24 +586,23 @@ runSegment(merylArgs *args, u64bit segment) {
       sortedListMax = 2 * sortedListLen;
     }
 
-    //  XXX:  We shouldn't need this, but alpha does.
-    //
-    //  If we don't use all the words in SORTED_LIST_WIDTH, we
-    //  definitely leave the higher ones unset, and that will case the
-    //  sort to be random.
+    //  Clear out the sortedList -- if we don't, we leave the high
+    //  bits unset which will probably make the sort random.
     //
     bzero(sortedList, sizeof(sortedList_t) * sortedListLen);
 
     //  Unpack the mers into the sorting array
     //
-#if SORTED_LIST_WIDTH == 1
-    for (u64bit i=st, J=st*args->merDataWidth; i<ed; i++, J += args->merDataWidth)
-      sortedList[i-st] = getDecodedValue(merDataArray[0], J, args->merDataWidth);
-#else
-    for (u64bit i=st; i<ed; i++) {
 #ifdef WITH_POSITIONS
+    for (u64bit i=st; i<ed; i++)
       sortedList[i-st]._p = merPosnArray[i];
 #endif
+
+#if SORTED_LIST_WIDTH == 1
+    for (u64bit i=st, J=st*args->merDataWidth; i<ed; i++, J += args->merDataWidth)
+      sortedList[i-st]._w = getDecodedValue(merDataArray[0], J, args->merDataWidth);
+#else
+    for (u64bit i=st; i<ed; i++) {
       for (u64bit mword=0, width=args->merDataWidth; width>0; ) {
         if (width >= 64) {
           sortedList[i-st]._w[mword] = merDataArray[mword][i];
@@ -621,7 +641,7 @@ runSegment(merylArgs *args, u64bit segment) {
       //  Build the complete mer
       //
 #if SORTED_LIST_WIDTH == 1
-      mer.setWord(0, sortedList[t]);
+      mer.setWord(0, sortedList[t]._w);
 #else
       for (u64bit mword=0; mword < SORTED_LIST_WIDTH; mword++)
         mer.setWord(mword, sortedList[t]._w[mword]);
@@ -630,9 +650,9 @@ runSegment(merylArgs *args, u64bit segment) {
 
       //  Add it
 #ifdef WITH_POSITIONS
-      W->addMer(mer, 1, sortedList[t]._p);
+      W->addMer(mer, 1, &sortedList[t]._p);
 #else
-      W->addMer(mer);
+      W->addMer(mer, 1, 0L);
 #endif
 
     }
@@ -746,7 +766,7 @@ build(merylArgs *args) {
   //
   //  The command line is
   //
-  //  ./meryl -M add [-v] -s batch1 -s batch2 ... -s batchN -o outputFile
+  //  ./meryl -M merge [-v] -s batch1 -s batch2 ... -s batchN -o outputFile
   //
   if ((doMerge) && (args->segmentLimit > 1)) {
 
@@ -759,7 +779,7 @@ build(merylArgs *args) {
 
     arga[argc] = false;  argv[argc++] = "meryl-build-merge";
     arga[argc] = false;  argv[argc++] = "-M";
-    arga[argc] = false;  argv[argc++] = "add";
+    arga[argc] = false;  argv[argc++] = "merge";
 
     if (args->beVerbose) {
       arga[argc] = false;
@@ -777,12 +797,6 @@ build(merylArgs *args) {
 
     arga[argc] = false;  argv[argc++] = "-o";
     arga[argc] = false;  argv[argc++] = args->outputFile;
-
-#if 0
-    if (args->beVerbose)
-      for (u32bit i=0; i<argc; i++)
-        fprintf(stderr, "mergeArg[%2d] = '%s'\n", i, argv[i]);
-#endif
 
     merylArgs *addArgs = new merylArgs(argc, argv);
     multipleOperations(addArgs);
@@ -804,6 +818,8 @@ build(merylArgs *args) {
       sprintf(filename, "%s.batch"u32bitFMT".mcidx", args->outputFile, i);
       unlink(filename);
       sprintf(filename, "%s.batch"u32bitFMT".mcdat", args->outputFile, i);
+      unlink(filename);
+      sprintf(filename, "%s.batch"u32bitFMT".mcpos", args->outputFile, i);
       unlink(filename);
     }
 

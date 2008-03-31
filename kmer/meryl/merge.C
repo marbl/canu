@@ -18,7 +18,8 @@ multipleOperations(merylArgs *args) {
     fprintf(stderr, "ERROR - no output file specified.\n");
     exit(1);
   }
-  if ((args->personality != PERSONALITY_MIN) &&
+  if ((args->personality != PERSONALITY_MERGE) &&
+      (args->personality != PERSONALITY_MIN) &&
       (args->personality != PERSONALITY_MINEXIST) &&
       (args->personality != PERSONALITY_MAX) &&
       (args->personality != PERSONALITY_ADD) &&
@@ -31,8 +32,6 @@ multipleOperations(merylArgs *args) {
     fprintf(stderr, "ERROR - this is a coding error, not a user error.\n");
     exit(1);
   }
-
-
 
   merylStreamReader  **R = new merylStreamReader* [args->mergeFilesLen];
   merylStreamWriter   *W = 0L;
@@ -55,11 +54,8 @@ multipleOperations(merylArgs *args) {
     fail |= (merComp != R[i]->merCompression());
   }
 
-  if (fail) {
-    fprintf(stderr, "ERROR:  mer sizes (or compression level) differ.\n");
-    exit(1);
-  }
-
+  if (fail)
+    fprintf(stderr, "ERROR:  mer sizes (or compression level) differ.\n"), exit(1);
 
   //  Open the output file, using the largest prefix size found in the
   //  input/mask files.
@@ -69,12 +65,7 @@ multipleOperations(merylArgs *args) {
     if (prefixSize < R[i]->prefixSize())
       prefixSize = R[i]->prefixSize();
 
-  W = new merylStreamWriter(args->outputFile,
-                            merSize,
-                            merComp,
-                            prefixSize);
-
-
+  W = new merylStreamWriter(args->outputFile, merSize, merComp, prefixSize);
 
   //  We will find the smallest mer in any file, and count the number of times
   //  it is present in the input files.
@@ -84,6 +75,9 @@ multipleOperations(merylArgs *args) {
   kMer     currentMer;                      //  The current mer we're operating on
   u32bit   currentCount     =  u32bitZERO;  //  The count (operation dependent) of this mer
   u32bit   currentTimes     =  u32bitZERO;  //  Number of files it's in
+
+  u32bit   currentPositionsMax =  0;
+  u32bit  *currentPositions    =  0L;
 
   kMer     thisMer;                         //  The mer we just read
   u32bit   thisFile         = ~u32bitZERO;  //  The file we read it from
@@ -124,17 +118,17 @@ multipleOperations(merylArgs *args) {
     }
 
     //  If we've hit a different mer, write out the last one
-    //
     if ((moreInput == false) || (thisMer != currentMer)) {
       switch (args->personality) {
         case PERSONALITY_MIN:
           if (currentTimes == args->mergeFilesLen)
             W->addMer(currentMer, currentCount);
           break;
+        case PERSONALITY_MERGE:
         case PERSONALITY_MINEXIST:
         case PERSONALITY_MAX:
         case PERSONALITY_ADD:
-          W->addMer(currentMer, currentCount);
+          W->addMer(currentMer, currentCount, currentPositions);
           break;
         case PERSONALITY_AND:
           if (currentTimes == args->mergeFilesLen)
@@ -166,20 +160,40 @@ multipleOperations(merylArgs *args) {
       C->tick();
     }
 
-
     //  All done?  Exit.
     if (moreInput == false)
       continue;
 
-
-    //  Move the file we just read from to the next mer
-    //
-    R[thisFile]->nextMer();
-
-
     //  Perform the operation
-    //
     switch (args->personality) {
+      case PERSONALITY_MERGE:
+        if (R[thisFile]->thePositions()) {
+          if (currentPositionsMax == 0) {
+            currentPositionsMax = 1048576;
+            currentPositions    = new u32bit [currentPositionsMax];
+          }
+
+          if (currentPositionsMax < currentCount + thisCount) {
+            while (currentPositionsMax < currentCount + thisCount)
+              currentPositionsMax *= 2;
+
+            u32bit *t = new u32bit [currentPositionsMax];
+            memcpy(t, currentPositions, sizeof(u32bit) * currentCount);
+            delete [] currentPositions;
+            currentPositions = t;
+          }
+
+          if (thisCount < 16) {
+            u32bit *p = R[thisFile]->thePositions();
+            for (u32bit i=0; i<thisCount; i++)
+              currentPositions[currentCount + i] = p[i];
+          } else {
+            memcpy(currentPositions + currentCount, R[thisFile]->thePositions(), sizeof(u32bit) * thisCount);
+          }
+        }
+        //  Otherwise, we're the same as ADD.
+        currentCount += thisCount;
+        break;
       case PERSONALITY_MIN:
       case PERSONALITY_MINEXIST:
         if (currentTimes == 0) {
@@ -211,13 +225,8 @@ multipleOperations(merylArgs *args) {
 
     currentTimes++;
 
-#if 0
-    char str[1024];
-    currentMer.merToString(str);
-    if (str[0] == 'C')
-      fprintf(stdout, "'%s'/"u32bitFMTW(2)" file="u32bitFMTW(2)"\n",
-              str, currentCount, thisFile);
-#endif
+    //  Move the file we just read from to the next mer
+    R[thisFile]->nextMer();
   }
 
   for (u32bit i=0; i<args->mergeFilesLen; i++)

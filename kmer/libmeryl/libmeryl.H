@@ -15,18 +15,26 @@
 //  numDistinct  the total number of distinct mers in this file
 //  numTotal     the total number of mers in this file
 
-#define LIBMERYL_HISTOGRAM_MAX  1048576
+//  WITH_POSITIONS -- tell meryl and libmeryl to count mers
+//  remembering the location the mer came from.
+//
+#define WITH_POSITIONS
 
 class merylStreamReader {
 public:
   merylStreamReader(const char *fn, u32bit ms=0);
   ~merylStreamReader();
 
-  kMer           &theFMer(void)  { return(_thisMer); };
+  kMer           &theFMer(void)      { return(_thisMer);          };
+  u64bit          theCount(void)     { return(_thisMerCount);     };
 
-  u64bit          theCount(void) { return(_thisMerCount); };
-
-  u32bit          getPosition(u32bit i);
+#ifdef WITH_POSITIONS
+  u32bit         *thePositions(void)    { return(_thisMerPositions); };
+  u32bit          getPosition(u32bit i) { return(((_POS) && (i < _thisMerCount)) ? _thisMerPositions[i] : ~u32bitZERO); };
+#else
+  u32bit         *thePositions(void)    { return(0L);          };
+  u32bit          getPosition(u32bit i) { return(~u32bitZERO); };
+#endif
 
   u32bit          merSize(void)         { return(_merSizeInBits >> 1); };
   u32bit          merCompression(void)  { return(_merCompression); };
@@ -47,7 +55,9 @@ public:
 private:
   bitPackedFile         *_IDX;
   bitPackedFile         *_DAT;
+#ifdef WITH_POSITIONS
   bitPackedFile         *_POS;
+#endif
 
   u32bit                 _merSizeInBits;
   u32bit                 _merCompression;
@@ -60,8 +70,10 @@ private:
   kMer                   _thisMer;
   u64bit                 _thisMerCount;
 
+#ifdef WITH_POSITIONS
   u32bit                 _thisMerPositionsMax;
   u32bit                *_thisMerPositions;
+#endif
 
   u64bit                 _numUnique;
   u64bit                 _numDistinct;
@@ -76,59 +88,6 @@ private:
 };
 
 
-inline
-u32bit
-merylStreamReader::getPosition(u32bit i) {
-  if ((i < _thisMerCount) && (_POS))
-    return(_thisMerPositions[i]);
-  return(~u32bitZERO);
-}
-
-
-inline
-bool
-merylStreamReader::nextMer(void) {
-
-  //  Use a while here, so that we skip buckets that are empty
-  //
-  while ((_thisBucketSize == 0) && (_thisBucket < _numBuckets)) {
-    _thisBucketSize = _IDX->getNumber();
-    _thisBucket++;
-  }
-
-  if (_thisBucket >= _numBuckets)
-    return(_validMer = false);
-
-  //  Before you get rid of the clear() -- if, say, the list of mers
-  //  is sorted and we can shift the mer to make space for the new
-  //  stuff -- make sure that nobody is calling reverseComplement()!
-  //
-  _thisMer.clear();
-  _thisMer.readFromBitPackedFile(_DAT, _merDataSize);
-  _thisMer.setBits(_merDataSize, _prefixSize, _thisBucket);
-
-  _thisMerCount = 1;
-
-  if (_DAT->getBits(1))
-    _thisMerCount = _DAT->getNumber() + 2;
-
-  _thisBucketSize--;
-
-  if (_POS) {
-    if (_thisMerPositionsMax < _thisMerCount) {
-      delete [] _thisMerPositions;
-      _thisMerPositionsMax = _thisMerCount + 1024;
-      _thisMerPositions    = new u32bit [_thisMerPositionsMax];
-    }
-    for (u32bit i=0; i<_thisMerCount; i++) {
-      _thisMerPositions[i] = _POS->getBits(32);
-    }
-  }
-
-  return(true);
-}
-
-
 class merylStreamWriter {
 public:
   merylStreamWriter(const char *filePrefix,
@@ -138,13 +97,16 @@ public:
 
   ~merylStreamWriter();
 
-  void                    addMer(kMer &mer, u32bit count=1, u32bit position=~u32bitZERO);
+  //  Unless WITH_POSITIONS, 'positions' is unused.
+  void                    addMer(kMer &mer, u32bit count=1, u32bit *positions=0L);
 private:
   void                    writeMer(void);
 
   bitPackedFile         *_IDX;
   bitPackedFile         *_DAT;
+#ifdef WITH_POSITIONS
   bitPackedFile         *_POS;
+#endif
 
   u32bit                 _merSizeInBits;
   u32bit                 _merCompression;

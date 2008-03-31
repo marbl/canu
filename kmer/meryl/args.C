@@ -364,7 +364,9 @@ merylArgs::merylArgs(int argc, char **argv) {
       personality = 'S';
     } else if (strcmp(argv[arg], "-M") == 0) {
       arg++;
-      if        (strcmp(argv[arg], "min") == 0) {
+      if        (strcmp(argv[arg], "merge") == 0) {
+        personality = PERSONALITY_MERGE;
+      } else if (strcmp(argv[arg], "min") == 0) {
         personality = PERSONALITY_MIN;
       } else if (strcmp(argv[arg], "minexist") == 0) {
         personality = PERSONALITY_MINEXIST;

@@ -38,19 +38,19 @@ unaryOperations(merylArgs *args) {
     case PERSONALITY_LEQ:
       while (R->nextMer())
         if (R->theCount() <= args->desiredCount)
-          W->addMer(R->theFMer(), R->theCount());
+          W->addMer(R->theFMer(), R->theCount(), R->thePositions());
       break;
 
     case PERSONALITY_GEQ:
       while (R->nextMer())
         if (R->theCount() >= args->desiredCount)
-          W->addMer(R->theFMer(), R->theCount());
+          W->addMer(R->theFMer(), R->theCount(), R->thePositions());
       break;
 
     case PERSONALITY_EQ:
       while (R->nextMer())
         if (R->theCount() == args->desiredCount)
-          W->addMer(R->theFMer(), R->theCount());
+          W->addMer(R->theFMer(), R->theCount(), R->thePositions());
       break;
   }
 
