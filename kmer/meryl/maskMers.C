@@ -164,21 +164,26 @@ computeDensity(merMaskedSequence *S) {
 
     //  Not the most efficient, but good enough for us right now.
 
-    for (u32bit p=0; p<S->seqLen(0); p++) {
+    for (u32bit p=0; p<S->seqLen(s); ) {
       u32bit  windowSize    = 0;
       u32bit  uniqueSum     = 0;
       u32bit  repeatSum     = 0;
       u32bit  gapSum        = 0;
 
-      for (windowSize=0; (windowSize < windowSizeMax) && (p < S->seqLen(s)); windowSize++, p++) {
+      while ((windowSize < windowSizeMax) &&
+             (p < S->seqLen(s))) {
         char m = S->masking(s, p);
 
         if (m == 'u')  uniqueSum++;
         if (m == 'g')  gapSum++;
         if (m == 'r')  repeatSum++;
+
+        windowSize++;
+        p++;
       }
 
-      fprintf(outputFile, "%f %f %f\n",
+      fprintf(outputFile, u32bitFMT"\t%f\t%f\t%f\n",
+              p - windowSize,
               (double)uniqueSum / windowSize,
               (double)repeatSum / windowSize,
               (double)gapSum    / windowSize);
@@ -198,8 +203,10 @@ computeMateRescue(merMaskedSequence *S) {
 
   assert(mean > stddev);
 
+  //  +1 because a value of 1.0 == histogramLen
+  //
   u32bit   histogramLen = 1000;
-  u32bit  *histogram    = new u32bit [histogramLen];
+  u32bit  *histogram    = new u32bit [histogramLen + 1];
 
   //  For each 'r' mer, compute the number of 'u' mers
   //  that are within some mean +- stddev range.
@@ -230,8 +237,6 @@ computeMateRescue(merMaskedSequence *S) {
 
     for (u32bit p=0; p<S->seqLen(s); p++) {
       if (S->masking(s, p) == 'r') {
-        u32bit  numU  = 0;
-        u32bit  numT  = 0;
         u32bit  b1l   = 0;
         u32bit  b1h   = 0;
         u32bit  b2l   = 0;
@@ -264,9 +269,12 @@ computeMateRescue(merMaskedSequence *S) {
         }
 
         if (b1h > S->seqLen(s)) b1h = S->seqLen(s);
+        if (b1l > S->seqLen(s)) b1l = S->seqLen(s);  //  Not needed.
         if (b2h > S->seqLen(s)) b2h = S->seqLen(s);
+        if (b2l > S->seqLen(s)) b2l = S->seqLen(s);  //  Yes, needed!
 
-        numT = (b1h - b1l) + (b2h - b2l);
+        u32bit  numU = 0;
+        u32bit  numT = (b1h - b1l) + (b2h - b2l);
 
         for (u32bit l=b1l; l < b1h; l++)
           if (S->masking(s, l) == 'u')
@@ -276,14 +284,14 @@ computeMateRescue(merMaskedSequence *S) {
           if (S->masking(s, l) == 'u')
             numU++;
 
-        double p1 = (double)numU / (double)numT;
+        if (numU > numT) {
+          fprintf(stderr, "FAILED:  numU="u32bitFMT" > numT="u32bitFMT"\n", numU, numT);
+          fprintf(stderr, "s="u32bitFMT" b1: "u32bitFMT"-"u32bitFMT" b2: "u32bitFMT"-"u32bitFMT"\n",
+                  s, b1l, b1h, b2l, b2h);
+          assert(numU <= numT);
+        }
 
-        assert(p1 <= 1.0);
-
-        if (p1 == 0.5)
-          fprintf(stderr, "pos: "u32bitFMT" b1: %d %d   b2: %d %d\n", p, b1l, b1h, b2l, b2h);
-
-        histogram[(u32bit)floor(1000 * p1)]++;
+        histogram[histogramLen * numU / numT]++;
       }
     }
 
@@ -292,9 +300,12 @@ computeMateRescue(merMaskedSequence *S) {
 
     u32bit  cumulative = 0;
 
-    for (u32bit i=0; i<histogramLen; i++) {
+    for (u32bit i=0; i<=histogramLen; i++) {
       cumulative += histogram[i];
-      fprintf(outputFile, "%f\t"u32bitFMT"\t"u32bitFMT"\n", i / 10.0, histogram[i], cumulative);
+      fprintf(outputFile, "%f\t"u32bitFMT"\t%f\n",
+              i / (double)histogramLen,
+              histogram[i],
+              cumulative / (double)numR);
     }
 
     fclose(outputFile);
