@@ -8,13 +8,13 @@
 
 #define MAX_COVERAGE 51
 
-
 class merMaskedSequence {
 public:
   merMaskedSequence(char *fastaName, char *merylName) {
     _numSeq = 0;
     _seqLen = 0L;
     _masking = 0L;
+    _merSize = 0;
 
     strcpy(_fastaName, fastaName);
     strcpy(_merylName, merylName);
@@ -41,6 +41,8 @@ public:
 
   char      *merylName(void)             { return(_merylName); };
 
+  u32bit     merSize(void)               { return(_merSize); };
+
 private:
   void       loadMasking(void);      //  Read the masking from the saved file
   void       saveMasking(void);      //  Write the masking to a file
@@ -49,6 +51,8 @@ private:
   u32bit    _numSeq;
   u32bit   *_seqLen;
   char    **_masking;
+
+  u32bit    _merSize;
 
   char      _fastaName[FILENAME_MAX];
   char      _merylName[FILENAME_MAX];
@@ -60,14 +64,15 @@ void
 merMaskedSequence::loadMasking(void) {
   FILE  *maskMersFile = fopen(_maskMersName, "r");
 
-  fread(&_numSeq, sizeof(u32bit), 1,       maskMersFile);
+  fread(&_numSeq,  sizeof(u32bit), 1, maskMersFile);
+  fread(&_merSize, sizeof(u32bit), 1, maskMersFile);
 
   _seqLen = new u32bit [_numSeq];
   _masking = new char * [_numSeq];
 
   fprintf(stderr, u32bitFMT" sequences in '%s'\n", _numSeq, _fastaName);
 
-  fread( _seqLen,  sizeof(u32bit), _numSeq, maskMersFile);
+  fread( _seqLen,   sizeof(u32bit), _numSeq, maskMersFile);
 
   for (u32bit i=0; i<_numSeq; i++) {
     _masking[i] = new char [_seqLen[i]];
@@ -85,8 +90,9 @@ void
 merMaskedSequence::saveMasking(void) {
   FILE  *maskMersFile = fopen(_maskMersName, "w");
 
-  fwrite(&_numSeq, sizeof(u32bit), 1,       maskMersFile);
-  fwrite( _seqLen, sizeof(u32bit), _numSeq, maskMersFile);
+  fwrite(&_numSeq,  sizeof(u32bit), 1,       maskMersFile);
+  fwrite(&_merSize, sizeof(u32bit), 1,       maskMersFile);
+  fwrite( _seqLen,  sizeof(u32bit), _numSeq, maskMersFile);
 
   for (u32bit i=0; i<_numSeq; i++)
     fwrite(_masking[i], sizeof(char), _seqLen[i], maskMersFile);
@@ -101,9 +107,10 @@ merMaskedSequence::buildMasking(void) {
   seqStream     *STR = new seqStream(F, true);
   //seqStore      *STO = new seqStore(fastaName, STR);
 
-  _numSeq = STR->numberOfSequences();
-  _seqLen = new u32bit [_numSeq];
+  _numSeq  = STR->numberOfSequences();
+  _seqLen  = new u32bit [_numSeq];
   _masking = new char * [_numSeq];
+  _merSize = 0;
 
   fprintf(stderr, u32bitFMT" sequences in '%s'\n", _numSeq, _fastaName);
 
@@ -119,6 +126,8 @@ merMaskedSequence::buildMasking(void) {
 
   merylStreamReader *MS = new merylStreamReader(_merylName);
   speedCounter      *CT = new speedCounter(" Masking mers in sequence: %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, true);
+
+  _merSize = MS->merSize();
 
   while (MS->nextMer()) {
     //fprintf(stderr, "mer count="u64bitFMT" pos="u32bitFMT"\n", MS->theCount(), MS->getPosition(0));
@@ -310,11 +319,18 @@ computeMateRescue(merMaskedSequence *S) {
 
     //delete CT;
 
-    for (int x=1; x<MAX_COVERAGE; x++)
-      fprintf(stderr, " Examining repeats: "u32bitFMT" repeats total - expect to rescue %.1f (%.2f%%) at %dX coverage\n",
-              numRT, numRR[x], 100.0*numRR[x]/numRT, x);
+    sprintf(outputName, "%s.mateRescue.seq"u32bitFMTW(02)",out", S->merylName(), s);
+    outputFile = fopen(outputName, "w");
 
-    sprintf(outputName, "%s.mateRescue.seq"u32bitFMTW(02), S->merylName(), s);
+    fprintf(outputFile, "seqIID\tmerSize\t#totalRepeats\texpectedRescue\tXcoverage\n");
+
+    for (u32bit x=1; x<MAX_COVERAGE; x++)
+      fprintf(outputFile, u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%.0f\t"u32bitFMT"\n",
+              s, S->merSize(), numRT, numRR[x], x);
+
+    fclose(outputFile);
+
+    sprintf(outputName, "%s.mateRescue.seq"u32bitFMTW(02)".histogram", S->merylName(), s);
     outputFile = fopen(outputName, "w");
 
     fprintf(outputFile, "#pRescue\tnumRepeats\tfraction_repeats_higher_probability\n");
