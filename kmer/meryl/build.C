@@ -125,9 +125,9 @@ submitPrepareBatch(merylArgs *args) {
   fprintf(F, "%s -forcebuild %s\n", args->execName, args->options);
   fclose(F);
 
-  if (args->sgeOptions)
+  if (args->sgeMergeOpt)
     sprintf(cmd, "qsub -cwd -b n -j y -o %s-prepare.err %s -N mp%s %s-prepare.sh",
-            args->outputFile, args->sgeOptions, args->sgeJobName, args->outputFile);
+            args->outputFile, args->sgeMergeOpt, args->sgeJobName, args->outputFile);
   else
     sprintf(cmd, "qsub -cwd -b n -j y -o %s-prepare.err -N mp%s %s-prepare.sh",
             args->outputFile, args->sgeJobName, args->outputFile);
@@ -156,9 +156,9 @@ submitCountBatches(merylArgs *args) {
   fprintf(F, "%s -v -countbatch $batchnum -o %s\n", args->execName, args->outputFile);
   fclose(F);
 
-  if (args->sgeOptions)
+  if (args->sgeBuildOpt)
     sprintf(cmd, "qsub -t 1-"u64bitFMT" -cwd -b n -j y -o %s-count-\\$TASK_ID.err %s -N mc%s %s-count.sh",
-            args->segmentLimit, args->outputFile, args->sgeOptions, args->sgeJobName, args->outputFile);
+            args->segmentLimit, args->outputFile, args->sgeBuildOpt, args->sgeJobName, args->outputFile);
   else
     sprintf(cmd, "qsub -t 1-"u64bitFMT" -cwd -b n -j y -o %s-count-\\$TASK_ID.err -N mc%s %s-count.sh",
             args->segmentLimit, args->outputFile, args->sgeJobName, args->outputFile);
@@ -180,9 +180,9 @@ submitCountBatches(merylArgs *args) {
   fprintf(F, "%s -mergebatch -o %s\n", args->execName, args->outputFile);
   fclose(F);
 
-  if (args->sgeOptions)
+  if (args->sgeMergeOpt)
     sprintf(cmd, "qsub -hold_jid mc%s -cwd -b n -j y -o %s-merge.err %s -N mm%s %s-merge.sh",
-            args->sgeJobName, args->outputFile, args->sgeOptions, args->sgeJobName, args->outputFile);
+            args->sgeJobName, args->outputFile, args->sgeMergeOpt, args->sgeJobName, args->outputFile);
   else
     sprintf(cmd, "qsub -hold_jid mc%s -cwd -b n -j y -o %s-merge.err -N mm%s %s-merge.sh",
             args->sgeJobName, args->outputFile, args->sgeJobName, args->outputFile);

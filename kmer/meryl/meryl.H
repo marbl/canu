@@ -68,7 +68,8 @@ public:
   u32bit            batchNumber;
 
   char             *sgeJobName;
-  char             *sgeOptions;
+  char             *sgeBuildOpt;
+  char             *sgeMergeOpt;
   bool              isOnGrid;
 
   u32bit            lowCount;

@@ -144,8 +144,8 @@ const char *usagestring =
 "        -sge        jobname      unique job name for this execution.  Meryl will submit\n"
 "                                 jobs with name mpjobname, ncjobname, nmjobname, for\n"
 "                                 phases prepare, count and merge.\n"
-"        -sgeoptions \"options\"    any additional options to sge, e.g.,\n"
-"                                 \"-p -153 -pe thread 2 -A merylaccount\"\n"
+"        -sgebuild \"options\"    any additional options to sge, e.g.,\n"
+"        -sgemerge \"options\"    \"-p -153 -pe thread 2 -A merylaccount\"\n"
 "                                 N.B. - -N will be ignored\n"
 "                                 N.B. - be sure to quote the options\n"
 "\n"
@@ -245,7 +245,8 @@ merylArgs::merylArgs(int argc, char **argv) {
   batchNumber        = 0;
 
   sgeJobName         = 0L;
-  sgeOptions         = 0L;
+  sgeBuildOpt        = 0L;
+  sgeMergeOpt        = 0L;
 
   //  We could possibly do (getenv("SGE_TASK_ID") != 0L), but then we
   //  break on non-SGE grids.
@@ -448,8 +449,10 @@ merylArgs::merylArgs(int argc, char **argv) {
       batchNumber = u32bitZERO;
     } else if (strcmp(argv[arg], "-sge") == 0) {
       sgeJobName = argv[++arg];
-    } else if (strcmp(argv[arg], "-sgeoptions") == 0) {
-      sgeOptions = argv[++arg];
+    } else if (strcmp(argv[arg], "-sgebuild") == 0) {
+      sgeBuildOpt = argv[++arg];
+    } else if (strcmp(argv[arg], "-sgemerge") == 0) {
+      sgeMergeOpt = argv[++arg];
     } else if (strcmp(argv[arg], "-forcebuild") == 0) {
       isOnGrid = true;
     } else {
@@ -504,12 +507,13 @@ merylArgs::merylArgs(const char *prefix) {
 
   fread(this, sizeof(merylArgs), 1, F);
 
-  execName   = readString(F);
-  inputFile  = readString(F);
-  outputFile = readString(F);
-  statsFile  = readString(F);
-  sgeJobName = readString(F);
-  sgeOptions = readString(F);
+  execName    = readString(F);
+  inputFile   = readString(F);
+  outputFile  = readString(F);
+  statsFile   = readString(F);
+  sgeJobName  = readString(F);
+  sgeBuildOpt = readString(F);
+  sgeMergeOpt = readString(F);
 
   mergeFiles = new char* [mergeFilesLen];
   for (u32bit i=0; i<mergeFilesLen; i++)
@@ -553,12 +557,13 @@ merylArgs::writeConfig(void) {
 
   fwrite(this, sizeof(merylArgs), 1, F);
 
-  writeString(execName,   F);
-  writeString(inputFile,  F);
-  writeString(outputFile, F);
-  writeString(statsFile,  F);
-  writeString(sgeJobName, F);
-  writeString(sgeOptions, F);
+  writeString(execName,    F);
+  writeString(inputFile,   F);
+  writeString(outputFile,  F);
+  writeString(statsFile,   F);
+  writeString(sgeJobName,  F);
+  writeString(sgeBuildOpt, F);
+  writeString(sgeMergeOpt, F);
 
   for (u32bit i=0; i<mergeFilesLen; i++)
     writeString(mergeFiles[i], F);
