@@ -6,6 +6,8 @@
 #include "bio++.H"
 #include "libmeryl.H"
 
+#define MAX_COVERAGE 51
+
 
 class merMaskedSequence {
 public:
@@ -156,11 +158,13 @@ void
 computeDensity(merMaskedSequence *S) {
   char    outputName[FILENAME_MAX];
   FILE   *outputFile;
-  u32bit  windowSizeMax = 10000;
+  u32bit  windowSizeMax = 1000;
 
   for (u32bit s=0; s<S->numSeq(); s++) {
     sprintf(outputName, "%s.density.seq"u32bitFMTW(02), S->merylName(), s);
     outputFile = fopen(outputName, "w");
+
+    fprintf(outputFile, "#window\tunique\trepeat\tgaps\n");
 
     //  Not the most efficient, but good enough for us right now.
 
@@ -199,7 +203,7 @@ computeMateRescue(merMaskedSequence *S) {
   char    outputName[FILENAME_MAX];
   FILE   *outputFile;
 
-  s32bit  mean      = 2800;
+  s32bit  mean      = 3000;
   s32bit  stddev    = 500;
 
   assert(mean > 3 * stddev);
@@ -247,22 +251,18 @@ computeMateRescue(merMaskedSequence *S) {
 
 
   for (u32bit s=0; s<S->numSeq(); s++) {
-
-    u32bit  numRT = 0;  //  num repeats total
-    double  numRR = 0;  //  num repeats rescued (expected)
-
-    for (u32bit p=0; p<S->seqLen(s); p++)
-      if (S->masking(s, p) == 'r')
-        numRT++;
-
-    //fprintf(stderr, " Examining repeats: %7.2f Krepeats total\n", numRT / 1000.0);
+    double  numRR[MAX_COVERAGE] = {0};  //  num repeats rescued (expected) for [] X coverage
 
     memset(histogram, 0, sizeof(u32bit) * (histogramLen + 1));
 
     //speedCounter *CT = new speedCounter(" Examining repeats: %7.2f Krepeats -- %5.2f Krepeats/second\r", 1000.0, 0x1ffff, true);
 
+    u32bit  numRT = 0;  //  num repeats total
+
     for (s32bit p=0; p<S->seqLen(s); p++) {
       if (S->masking(s, p) == 'r') {
+        numRT++;
+
         s32bit b1l = (s32bit)floor(p - mean - 3 * stddev);
         s32bit b1h = (s32bit)ceil (p - mean + 3 * stddev);
 
@@ -277,28 +277,32 @@ computeMateRescue(merMaskedSequence *S) {
         if (b2h > S->seqLen(s)) b2h = S->seqLen(s);
         if (b2l > S->seqLen(s)) b2l = S->seqLen(s);
 
-        double  numU = 0;
+        double  pRescue = 0.0;
+        double  pRepeat = 0.0;
 
         //fprintf(stderr, "b1: %d-%d  b2:%d-%d\n", b1l, b1h, b2l, b2h);
 
         for (s32bit l=b1l; l<b1h; l++) {
           if (S->masking(s, l) == 'u')
-            numU += normal[l - p + mean + normalZero];
+            pRescue += normal[l - p + mean + normalZero];
         }
 
         for (s32bit l=b2l; l<b2h; l++) {
           if (S->masking(s, l) == 'u')
-            numU += normal[l - p - mean + normalZero];
+            pRescue += normal[l - p - mean + normalZero];
         }
 
         //  We're summing over two distributions.
-        numU /= 2.0;
+        pRescue /= 2.0;
+        pRepeat  = 1.0 - pRescue;
 
-        numRR += numU;
+        for (u32bit x=1; x<MAX_COVERAGE; x++) {
+          numRR[x] += 1 - pRepeat;
+          pRepeat *= (1.0 - pRescue);
+        }
 
-        //fprintf(stderr, "%f %f\n", numU, numT);
-
-        histogram[(s32bit)floor(histogramLen * numU)]++;
+        //  Histogram of the probability of rescuing a repeat
+        histogram[(s32bit)floor(histogramLen * pRescue)]++;
 
         //CT->tick();
       }
@@ -306,10 +310,14 @@ computeMateRescue(merMaskedSequence *S) {
 
     //delete CT;
 
-    fprintf(stderr, " Examining repeats: "u32bitFMT" repeats total - expect to rescue %f (%f%%)\n", numRT, numRR, 100.0*numRR/numRT);
+    for (int x=1; x<MAX_COVERAGE; x++)
+      fprintf(stderr, " Examining repeats: "u32bitFMT" repeats total - expect to rescue %.1f (%.2f%%) at %dX coverage\n",
+              numRT, numRR[x], 100.0*numRR[x]/numRT, x);
 
     sprintf(outputName, "%s.mateRescue.seq"u32bitFMTW(02), S->merylName(), s);
     outputFile = fopen(outputName, "w");
+
+    fprintf(outputFile, "#pRescue\tnumRepeats\tfraction_repeats_higher_probability\n");
 
     u32bit  cumulative = 0;
 
@@ -318,7 +326,7 @@ computeMateRescue(merMaskedSequence *S) {
       fprintf(outputFile, "%f\t"u32bitFMT"\t%f\n",
               i / (double)histogramLen,
               histogram[i],
-              cumulative / (double)numRT);
+              1.0 - cumulative / (double)numRT);
     }
 
     fclose(outputFile);
