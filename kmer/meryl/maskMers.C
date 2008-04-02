@@ -198,10 +198,11 @@ void
 computeMateRescue(merMaskedSequence *S) {
   char    outputName[FILENAME_MAX];
   FILE   *outputFile;
-  u32bit  mean      = 2800;
-  u32bit  stddev    = 500;
 
-  assert(mean > stddev);
+  s32bit  mean      = 2800;
+  s32bit  stddev    = 500;
+
+  assert(mean > 3 * stddev);
 
   //  +1 because a value of 1.0 == histogramLen
   //
@@ -223,77 +224,89 @@ computeMateRescue(merMaskedSequence *S) {
   //  pn = 1 - (1-p1)^n -- for n X coverage
   //
 
+  double *normal     = 0L;
+  s32bit  normalZero = 0;
+
+  {
+    double  a = 1.0 / (stddev * sqrt(2 * M_PI));
+    double  c = 2 * stddev * stddev;
+
+    s32bit  b1l = (s32bit)floor(-3 * stddev);
+    s32bit  b1h = (s32bit)ceil ( 3 * stddev);
+
+    normal     = new double [b1h - b1l + 1];
+    normalZero = -b1l;
+
+    for (s32bit l=0; l<b1h - b1l + 1; l++)
+      normal[l] = 0.0;
+
+    for (s32bit l=b1l; l<b1h; l++)
+      normal[l + normalZero] = a * exp(- l*l / c);
+  }
+
+
+
   for (u32bit s=0; s<S->numSeq(); s++) {
 
-    u32bit  numR = 0;
+    u32bit  numRT = 0;  //  num repeats total
+    double  numRR = 0;  //  num repeats rescued (expected)
 
     for (u32bit p=0; p<S->seqLen(s); p++)
       if (S->masking(s, p) == 'r')
-        numR++;
+        numRT++;
 
-    fprintf(stderr, "numR="u32bitFMT"\n", numR);
+    //fprintf(stderr, " Examining repeats: %7.2f Krepeats total\n", numRT / 1000.0);
 
-    memset(histogram, 0, sizeof(u32bit) * histogramLen);
+    memset(histogram, 0, sizeof(u32bit) * (histogramLen + 1));
 
-    for (u32bit p=0; p<S->seqLen(s); p++) {
+    //speedCounter *CT = new speedCounter(" Examining repeats: %7.2f Krepeats -- %5.2f Krepeats/second\r", 1000.0, 0x1ffff, true);
+
+    for (s32bit p=0; p<S->seqLen(s); p++) {
       if (S->masking(s, p) == 'r') {
-        u32bit  b1l   = 0;
-        u32bit  b1h   = 0;
-        u32bit  b2l   = 0;
-        u32bit  b2h   = 0;
+        s32bit b1l = (s32bit)floor(p - mean - 3 * stddev);
+        s32bit b1h = (s32bit)ceil (p - mean + 3 * stddev);
 
-        //  Painfully choose min/max ranges.
+        s32bit b2l = (s32bit)floor(p + mean - 3 * stddev);
+        s32bit b2h = (s32bit)ceil (p + mean + 3 * stddev);
 
-        if (stddev < mean) {
-          //  Regions will not overlap.
-
-          b1l = p - mean - stddev;
-          if (p < mean + stddev)
-            b1l = 0;
-
-          b1h = p - mean + stddev;
-          if (p < mean - stddev)
-            b1h = 0;
-
-          b2l = p + mean - stddev;
-          b2h = p + mean + stddev;
-
-        } else {
-          //  Regions will overlap.
-
-          b1l = p - mean - stddev;
-          if (p < mean + stddev)
-            b1l = 0;
-
-          b1h = p + mean + stddev;
-        }
-
+        if (b1l < 0)            b1l = 0;
+        if (b1h < 0)            b1h = 0;
         if (b1h > S->seqLen(s)) b1h = S->seqLen(s);
-        if (b1l > S->seqLen(s)) b1l = S->seqLen(s);  //  Not needed.
+
+        if (b2l < 0)            b2l = 0;
         if (b2h > S->seqLen(s)) b2h = S->seqLen(s);
-        if (b2l > S->seqLen(s)) b2l = S->seqLen(s);  //  Yes, needed!
+        if (b2l > S->seqLen(s)) b2l = S->seqLen(s);
 
-        u32bit  numU = 0;
-        u32bit  numT = (b1h - b1l) + (b2h - b2l);
+        double  numU = 0;
 
-        for (u32bit l=b1l; l < b1h; l++)
+        //fprintf(stderr, "b1: %d-%d  b2:%d-%d\n", b1l, b1h, b2l, b2h);
+
+        for (s32bit l=b1l; l<b1h; l++) {
           if (S->masking(s, l) == 'u')
-            numU++;
-
-        for (u32bit l=b2l; l < b2h; l++)
-          if (S->masking(s, l) == 'u')
-            numU++;
-
-        if (numU > numT) {
-          fprintf(stderr, "FAILED:  numU="u32bitFMT" > numT="u32bitFMT"\n", numU, numT);
-          fprintf(stderr, "s="u32bitFMT" b1: "u32bitFMT"-"u32bitFMT" b2: "u32bitFMT"-"u32bitFMT"\n",
-                  s, b1l, b1h, b2l, b2h);
-          assert(numU <= numT);
+            numU += normal[l - p + mean + normalZero];
         }
 
-        histogram[histogramLen * numU / numT]++;
+        for (s32bit l=b2l; l<b2h; l++) {
+          if (S->masking(s, l) == 'u')
+            numU += normal[l - p - mean + normalZero];
+        }
+
+        //  We're summing over two distributions.
+        numU /= 2.0;
+
+        numRR += numU;
+
+        //fprintf(stderr, "%f %f\n", numU, numT);
+
+        histogram[(s32bit)floor(histogramLen * numU)]++;
+
+        //CT->tick();
       }
     }
+
+    //delete CT;
+
+    fprintf(stderr, " Examining repeats: "u32bitFMT" repeats total - expect to rescue %f (%f%%)\n", numRT, numRR, 100.0*numRR/numRT);
 
     sprintf(outputName, "%s.mateRescue.seq"u32bitFMTW(02), S->merylName(), s);
     outputFile = fopen(outputName, "w");
@@ -305,7 +318,7 @@ computeMateRescue(merMaskedSequence *S) {
       fprintf(outputFile, "%f\t"u32bitFMT"\t%f\n",
               i / (double)histogramLen,
               histogram[i],
-              cumulative / (double)numR);
+              cumulative / (double)numRT);
     }
 
     fclose(outputFile);
