@@ -2,8 +2,8 @@
 #include <stdlib.h>
 
 #include "bio++.H"
+#include "libmeryl.H"
 #include "meryl.H"
-
 
 //  Takes a memory limit in MB, returns the number of mers that we can
 //  fit in that memory size, assuming optimalNumberOfBuckets() below
@@ -28,13 +28,19 @@ estimateNumMersInMemorySize(u32bit merSize,
   //
   u64bit memLimt = ((u64bit)mem) << 23;
 
+  //  Positions consume space too, but only if enabled.
+  //
+  u64bit posPerMer = 0;
+#ifdef WITH_POSITIONS
+  posPerMer = 32;
+#endif
+
   //  Limit the number of entries in the bucket pointer table to
   //  50 bits -- thus, the prefix of each mer is at most 25.
   //
   u32bit  tMax = 2*merSize - 2;
   if (tMax > 50)
     tMax = 50;
-
 
   for (u64bit t=2; t < tMax; t++) {
 
@@ -65,18 +71,16 @@ estimateNumMersInMemorySize(u32bit merSize,
         //  release bucketSizes, and so we only estimate the maximum
         //  in core (not allocated) size.
         //
-        u64bit n = (memLimt - bucketsize) / (2*merSize - t);
+        u64bit n = (memLimt - bucketsize) / (2*merSize - t + posPerMer);
 
         //  We can stop now if our computed number of mers is outside the range that
         //  the bucket pointer table can address.
         //
         if ((Nmin <= n) && (n <= Nmax)) {
 
-#if 0
-          fprintf(stderr, "prefixSize="u64bitFMTW(2)" numMers="u64bitFMTW(9)" memory=%.3fMB\n",
-                  t, n,
-                  (((u64bitONE << t) * logBaseTwo64(n) + n * (2*merSize - t)) >> 3) / 1048576.0);
-#endif
+          //fprintf(stderr, "prefixSize="u64bitFMTW(2)" numMers="u64bitFMTW(9)" memory=%.3fMB\n",
+          //        t, n,
+          //        (((u64bitONE << t) * logBaseTwo64(n) + n * (2*merSize - t + posPerMer)) >> 3) / 1048576.0);
 
           //  Remember the settings with the highest number of mers, if
           //  more than zero mers.
@@ -93,10 +97,11 @@ estimateNumMersInMemorySize(u32bit merSize,
   }
 
   if (beVerbose)
-    fprintf(stdout, "Can fit "u64bitFMT" mers into table with prefix of "u64bitFMT" bits, using %8.3fMB\n",
+    fprintf(stdout, "Can fit "u64bitFMT" mers into table with prefix of "u64bitFMT" bits, using %8.3fMB (%8.3fMB for positions)\n",
             maxN,
             bestT,
-            (((u64bitONE << bestT) * logBaseTwo64(maxN) + maxN * (2*merSize - bestT)) >> 3) / 1048576.0);
+            (((u64bitONE << bestT) * logBaseTwo64(maxN) + maxN * (2*merSize - bestT + posPerMer)) >> 3) / 1048576.0,
+            ((maxN * posPerMer) >> 3) / 1048576.0);
 
   return(maxN);
 }
@@ -112,6 +117,14 @@ optimalNumberOfBuckets(u32bit merSize,
   u64bit s      = 0;
   u64bit hwidth = logBaseTwo64(numMers);
 
+  //  Positions consume space too, but only if enabled.  Probably
+  //  doesn't matter here.
+  //
+  u64bit posPerMer = 0;
+#ifdef WITH_POSITIONS
+  posPerMer = 32;
+#endif
+
   //  Find the table size (in bits, h) that minimizes memory usage
   //  for the given merSize and numMers
   //
@@ -121,7 +134,7 @@ optimalNumberOfBuckets(u32bit merSize,
   //
   u64bit hmax = 64 - logBaseTwo64(hwidth + numMers * (2 * merSize - h));
   for (h=2; h<=hmax && h<2*merSize; h++) {
-    s = (u64bitONE << h) * hwidth + numMers * (2 * merSize - h);
+    s = (u64bitONE << h) * hwidth + numMers * (2 * merSize - h + posPerMer);
 
     //fprintf(stderr, "optimalNumberOfBuckets()-- h="u64bitFMT" s="u64bitFMT"\n", h, s);
 
