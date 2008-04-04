@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.184 2008-04-04 20:18:36 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.185 2008-04-04 20:30:54 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -7818,9 +7818,9 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     int   frag = 0;
     int   cntr = 0;
 
-    for (frag=0; frag<unitig->num_frags; frag++) {
+    for (frag=1; frag<unitig->num_frags; frag++) {
       if (unitig->f_list[frag].contained) {
-        for (cntr=0; cntr<frag; cntr++) {
+        for (cntr=frag-1; cntr>=0; cntr--) {
           if (unitig->f_list[frag].contained == unitig->f_list[cntr].ident) {
             int cbeg = MIN(unitig->f_list[cntr].position.bgn, unitig->f_list[cntr].position.end);
             int fbeg = MIN(unitig->f_list[frag].position.bgn, unitig->f_list[frag].position.end);
