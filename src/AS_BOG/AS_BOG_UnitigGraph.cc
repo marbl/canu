@@ -34,11 +34,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.74 2008-03-21 22:05:28 brianwalenz Exp $
- * $Revision: 1.74 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.75 2008-04-04 20:38:13 brianwalenz Exp $
+ * $Revision: 1.75 $
  */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.74 2008-03-21 22:05:28 brianwalenz Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.75 2008-04-04 20:38:13 brianwalenz Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -1028,7 +1028,6 @@ namespace AS_BOG{
     //////////////////////////////////////////////////////////////////////////////
 
     Unitig::~Unitig(void){
-        fprintf(stderr, "DELETING Unitig %d\n", id());
         if(dovetail_path_ptr!=NULL) delete dovetail_path_ptr;
     }
 
