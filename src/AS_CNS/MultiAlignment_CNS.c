@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.183 2008-03-18 07:02:43 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.184 2008-04-04 20:18:36 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -4277,11 +4277,10 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
   return 1;
 }
 
-int MarkAsContained(int32 fid) {
+void MarkAsContained(int32 fid) {
   Fragment *frag = GetFragment(fragmentStore,fid);
   assert(frag != NULL);
   frag->contained = 1;
-  return 1;
 }
 
 int IsContained(int32 fid) {
@@ -7458,7 +7457,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
                      VA_TYPE(char) *quality, 
                      VA_TYPE(int32) *deltas, 
                      CNS_PrintKey printwhat, 
-                     int mark_contains, 
+                     int mark_contains,
                      Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
                      CNS_Options *opp) 
 {
@@ -7466,20 +7465,6 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
   // (due to overlap failure)
   int32 fid,i,align_to;
   int32 num_reads=0,num_columns=0;
-
-  int do_rez=1;
-  // command line arg that is now obsolete
-  // mark_contains is used in the case where post-unitigging processes 
-  // (SplitUnitig, extendClearRange,e.g.) are used to re-align unitigs after 
-  // fragments have been altered... With an extended clear range, 
-  // the fragment may now "contain" another which it used to be a dovetail 
-  // relationship with, or which used to contain it.  The mark_contains flag 
-  // tells MultiAlignUnitig that there may be such a new relationship, and that 
-  // it should be detected and marked as the alignment is being formed.
-  // Without this marking, the multialignment is likely to have pieces 
-  // which are not properly aligned, and which will appear as block indels 
-  // (large gap-blocks) which will foil future overlaps involving
-  // the consensus sequence of this "reformed" unitig
 
   int score_reduction;
   int complement;
@@ -7546,7 +7531,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
         DeleteMANode(ma->lid);
         return EXIT_FAILURE;
     }
-  }
+  }  //  all frags
 
   ma = CreateMANode(unitig->iaccession);
   assert(ma->lid == 0);
@@ -7749,11 +7734,29 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
         DeleteMANode(ma->lid);
         return EXIT_FAILURE;
       }
-    }
+    }  //  if !olap_success
 
-    if ( mark_contains && otype == AS_CONTAINMENT ) { 
+    // mark_contains is used in the case where post-unitigging
+    // processes (SplitUnitig, extendClearRange,e.g.) are used to
+    // re-align unitigs after fragments have been altered...
+    //
+    // With an extended clear range, the fragment may now "contain"
+    // another which it used to be a dovetail relationship with, or
+    // which used to contain it.  The mark_contains flag tells
+    // MultiAlignUnitig that there may be such a new relationship, and
+    // that it should be detected and marked as the alignment is being
+    // formed.
+    //
+    // Without this marking, the multialignment is likely to have
+    // pieces which are not properly aligned, and which will appear as
+    // block indels (large gap-blocks) which will foil future overlaps
+    // involving the consensus sequence of this "reformed" unitig
+    //
+    // This USED to be an option -- enabled only for eCR -- but now on
+    // for everyone.  (2008-04-04, BPW)
+    //
+    if (otype == AS_CONTAINMENT)
       MarkAsContained(i);
-    }
 
 #ifdef NEW_UNITIGGER_INTERFACE
     i_afrag = (i<align_to) ? i : align_to;
@@ -7773,7 +7776,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     is_aligned[align_to] = 1;
 #endif
 
-  } /* loop through all the unitigs */
+  }  //  over all frags
 
 #ifdef NEW_UNITIGGER_INTERFACE
   safe_free(is_pointed);
@@ -7806,28 +7809,69 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
   unitig->quality = Getchar(quality,0);
   GetMANodePositions(ma->lid, num_frags,unitig->f_list, 0,NULL, deltas);
   unitig->length = GetNumchars(sequence)-1;
-  if ( do_rez) {
-    char **multia = NULL;
-    int **id_array = NULL;
-    int depth;
-    int i;
-    int rc;
-    char srcadd[32];
-    int addlen;
-    double prob_value=0;
 
-    rc = MANode2Array(ma, &depth, &multia, &id_array,0);
-    if ( rc ) {
-      prob_value = AS_REZ_MP_MicroHet_prob(multia,
-                                           id_array,
-                                           gkpStore,
-                                           unitig->length,
-                                           depth);
-    } else {
-      prob_value = 0;
+  //  Fix up our containments.  Sometimes consensus will move a
+  //  fragment out of the containment relationship, and this causes
+  //  headaches later on.
+  //
+  {
+    int   frag = 0;
+    int   cntr = 0;
+
+    for (frag=0; frag<unitig->num_frags; frag++) {
+      if (unitig->f_list[frag].contained) {
+        for (cntr=0; cntr<frag; cntr++) {
+          if (unitig->f_list[frag].contained == unitig->f_list[cntr].ident) {
+            int cbeg = MIN(unitig->f_list[cntr].position.bgn, unitig->f_list[cntr].position.end);
+            int fbeg = MIN(unitig->f_list[frag].position.bgn, unitig->f_list[frag].position.end);
+
+            int cend = MAX(unitig->f_list[cntr].position.bgn, unitig->f_list[cntr].position.end);
+            int fend = MAX(unitig->f_list[frag].position.bgn, unitig->f_list[frag].position.end);
+
+            if ((fbeg < cbeg) || (cend > cend)) {
+              fprintf(stderr, "WARNING: FRAG %d (%d,%d) is NOT contained in %d (%d,%d)\n",
+                      unitig->f_list[frag].ident, unitig->f_list[frag].position.bgn, unitig->f_list[frag].position.end,
+                      unitig->f_list[cntr].ident, unitig->f_list[cntr].position.bgn, unitig->f_list[cntr].position.end);
+
+              unitig->f_list[frag].contained = 0;
+            }
+          }
+        }
+      }
+    }
+  }
+
+
+
+  //  do_rez
+  {
+    char   srcadd[32] = {0};
+    int    addlen = 0;
+    double prob_value = 0.0;
+
+    {
+      int    depth  = 0;
+      char **multia = NULL;
+      int  **id_array = NULL;
+      if (MANode2Array(ma, &depth, &multia, &id_array,0)) {
+        prob_value = AS_REZ_MP_MicroHet_prob(multia,
+                                             id_array,
+                                             gkpStore,
+                                             unitig->length,
+                                             depth);
+        
+        for (i=0;i<depth;i++) {
+          safe_free(multia[2*i]);
+          safe_free(multia[2*i+1]);
+          safe_free(id_array[i]);
+        }
+        safe_free(multia);
+        safe_free(id_array);
+      }
     }
 
     addlen = sprintf(srcadd,"\nmhp:%e",prob_value); 
+
 #ifdef AS_ENABLE_SOURCE
     if ( unitig->source != NULL ) {
       memcpy(&SRCBUFFER[0],unitig->source,strlen(unitig->source)+1);
@@ -7838,15 +7882,6 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
       unitig->source = &SRCBUFFER[0];
     }
 #endif
-    if ( rc ) {
-      for (i=0;i<depth;i++) {
-        safe_free(multia[2*i]);
-        safe_free(multia[2*i+1]);
-        safe_free(id_array[i]);
-      }
-      safe_free(multia);
-      safe_free(id_array);
-    }
   }
 
   DeleteHashTable_AS(fragmentMap);
@@ -8992,9 +9027,10 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
           safe_free(offsets);
           return NULL;
         }
-        if ( otype == AS_CONTAINMENT ) { 
+
+        if (otype == AS_CONTAINMENT)
           MarkAsContained(i);
-        }
+
         ApplyAlignment(afrag->lid,0,bfrag->lid,ahang,Getint32(trace,0));
       } /* loop through all contigs */
 
