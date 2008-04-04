@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.28 2007-12-08 22:20:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.29 2008-04-04 05:35:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1080,6 +1080,7 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
     currInterval = GetVA_SeqInterval(csis, currI);
     fprintf(GlobalData->stderrc, "\t" F_COORD "," F_COORD, currInterval->bgn, currInterval->end);
   }
+  fprintf(GlobalData->stderrc, "\n");
 #endif
 
   //
