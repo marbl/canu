@@ -37,11 +37,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.48 2008-03-26 03:17:13 brianwalenz Exp $
- * $Revision: 1.48 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.49 2008-04-04 20:37:19 brianwalenz Exp $
+ * $Revision: 1.49 $
  */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.48 2008-03-26 03:17:13 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.49 2008-04-04 20:37:19 brianwalenz Exp $";
 
 //  System include files
 #include<iostream>
@@ -182,25 +182,18 @@ namespace AS_BOG{
   void BestOverlapGraph::addContainEdge( iuid contain, iuid otherRead ) {
     _best_containments[ contain ].overlapsAreSorted = false;
     _best_containments[ contain ].overlaps.push_back( otherRead );
-    //fprintf(stderr, "add %d to %d\n", otherRead, contain);
   }
+
   bool BestOverlapGraph::containHaveEdgeTo( iuid contain, iuid otherRead ) {
 
     if (_best_containments.find( contain ) == _best_containments.end())
       return(false);
 
-    //fprintf(stderr, "search %d in %d (really)\n", otherRead, contain);
-
     if (_best_containments[ contain ].overlapsAreSorted == false) {
       std::sort(_best_containments[ contain ].overlaps.begin(),
-                _best_containments[ contain ].overlaps.end());              //  less<iuid>()
+                _best_containments[ contain ].overlaps.end());
       _best_containments[ contain ].overlapsAreSorted = true;
     }
-
-    if (std::binary_search(_best_containments[ contain ].overlaps.begin(),
-                           _best_containments[ contain ].overlaps.end(),
-                           otherRead))
-      //fprintf(stderr, "found %d in %d\n", otherRead, contain);
 
     return(std::binary_search(_best_containments[ contain ].overlaps.begin(),
                               _best_containments[ contain ].overlaps.end(),
