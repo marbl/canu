@@ -91,6 +91,9 @@ public:
     tBeg = 1;
     tEnd = 0;
 
+    table_clrBeg       = 0L;
+    table_untrimLength = 0L;
+
     outputName = 0L;
     outputFile = 0L;
   };
@@ -104,6 +107,9 @@ public:
 
     closeFragStream(qFS);
     closeGateKeeperStore(qGK);
+
+    delete [] table_clrBeg;
+    delete [] table_untrimLength;
 
     delete tPS;
     delete tMS;
@@ -153,8 +159,8 @@ public:
 
       resetFragStream(fs, tBeg, tEnd);
 
-      table_clrBeg       = new uint32 [tEnd - tBeg];
-      table_untrimLength = new uint32 [tEnd - tBeg];
+      table_clrBeg       = new uint32 [tEnd - tBeg + 1];
+      table_untrimLength = new uint32 [tEnd - tBeg + 1];
 
       while (nextFragStream(fs, &fr)) {
         table_clrBeg      [getFragRecordIID(&fr) - tBeg] = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBT);
@@ -750,7 +756,7 @@ main(int argc, char **argv) {
   ss->numberOfWorkers(g->numThreads);
 
   for (u32bit w=0; w<g->numThreads; w++)
-    ss->setThreadData(w, new ovmThreadData(g));
+    ss->setThreadData(w, new ovmThreadData(g));  //  these leak
 
   ss->run(g, true);  //  true == verbose
 
