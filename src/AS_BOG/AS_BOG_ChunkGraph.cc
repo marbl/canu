@@ -33,11 +33,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_ChunkGraph.cc,v 1.14 2008-03-18 07:02:42 brianwalenz Exp $
- * $Revision: 1.14 $
+ * $Id: AS_BOG_ChunkGraph.cc,v 1.15 2008-04-07 02:37:42 brianwalenz Exp $
+ * $Revision: 1.15 $
  */
 
-static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.14 2008-03-18 07:02:42 brianwalenz Exp $";
+static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.15 2008-04-07 02:37:42 brianwalenz Exp $";
 
 //  System include files
 
@@ -65,15 +65,9 @@ namespace AS_BOG{
     //////////////////////////////////////////////////////////////////////////////
 	
     ChunkGraph::~ChunkGraph(void){
-        if(_edgePathLen != NULL){
-            delete[] _edgePathLen;
-        }
-        if(_chunkable_array != NULL){
-            delete[] _chunkable_array;
-        }
-        if(_chunk_lengths != NULL){
-            delete[] _chunk_lengths;
-        }
+        delete[] _edgePathLen;
+        delete[] _chunkable_array;
+        delete[] _chunk_lengths;
     }
 
 
@@ -225,8 +219,7 @@ namespace AS_BOG{
         // if we end because of a circle, mark points in circle same cnt
         if (seen.find( fragEnd ) != seen.end()) {
             iuid circleLen = cnt - _edgePathLen[index];
-            fprintf(stderr,"Circle len %d frag %d end %d\n",
-                    circleLen, fragEnd.id, fragEnd.end);
+            //fprintf(stderr,"Circle len %d frag %d end %d\n", circleLen, fragEnd.id, fragEnd.end);
             FragmentEnd currEnd = fragEnd;
             do {
                 seen.erase( currEnd );

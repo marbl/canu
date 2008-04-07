@@ -34,11 +34,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.75 2008-04-04 20:38:13 brianwalenz Exp $
- * $Revision: 1.75 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.76 2008-04-07 02:37:42 brianwalenz Exp $
+ * $Revision: 1.76 $
  */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.75 2008-04-04 20:38:13 brianwalenz Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.76 2008-04-07 02:37:42 brianwalenz Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -266,7 +266,9 @@ namespace AS_BOG{
         iuid tigIdToAdd = (*visited_map)[ joiner ];
         while (joiner != 0 && joined->find(tigIdToAdd) == joined->end() &&
                visited_map->find(joiner) != visited_map->end()) {
+#warning DANGEROUS assume unitig is at id-1 in vector
             Unitig* tigToAdd = unitigs->at( tigIdToAdd - 1);
+            assert(tigToAdd->id() == tigIdToAdd);
             // Code assumes joining only from end of unitig
             if ( beforeLast != 0 ) // ok to join singleton though
                 assert( beginId != tig->dovetail_path_ptr->front().ident);
@@ -363,6 +365,8 @@ namespace AS_BOG{
                                                 tigToAdd->dovetail_path_ptr->end() );
             }
             delete tigToAdd;
+#warning DANGEROUS assume unitig is at id-1 in vector
+            assert(unitigs->at(tigIdToAdd-1)->id() == tigIdToAdd);
             unitigs->at( tigIdToAdd - 1) = NULL;
             joined->insert(tigIdToAdd);
             bestEdge = nextJoiner( tig, beforeLast,

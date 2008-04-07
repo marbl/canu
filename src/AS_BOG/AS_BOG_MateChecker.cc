@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.47 2008-03-27 04:49:33 brianwalenz Exp $
- * $Revision: 1.47 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.48 2008-04-07 02:37:42 brianwalenz Exp $
+ * $Revision: 1.48 $
  */
 
 #include <math.h>
@@ -452,8 +452,55 @@ namespace AS_BOG{
 
                     int splitOffset = -MIN(splitFrags[0].position.bgn, splitFrags[0].position.end);
 
-                    for (int i=0; i<splitFragsLen; i++)
-                        dangler->addFrag(splitFrags[i], splitOffset);
+                    for (int i=0; i<splitFragsLen; i++) {
+                        BestContainment *bestcont   = tigGraph.bog_ptr->getBestContainer(splitFrags[i].ident);
+
+                        if ((i == 0) ||
+                            (bestcont == NULL) ||
+                            (dangler->fragIn(bestcont->container) == dangler->id())) {
+                            //  Add to the dangler if it's the first frag, or its best container is in the dangler already.
+                            //
+                            dangler->addFrag(splitFrags[i], splitOffset);
+                        } else {
+                            //  Otherwise, add it where its best container is.
+                            //
+
+#warning DANGEROUS assume unitig is at id-1 in vector
+                            Unitig         *thatUnitig = tigGraph.unitigs->at(dangler->fragIn(bestcont->container) - 1);
+                            DoveTailNode   *container  = 0L;
+                            int             offset     = 0;
+
+                            assert(thatUnitig->id() == dangler->fragIn(bestcont->container));
+
+                            fprintf(stderr, "Dangling Fragment %d has best edge to fragment %d in unitig %d (not in unitig %d)\n",
+                                    splitFrags[i].ident, bestcont->container, thatUnitig->id(), dangler->id());
+
+                            //  Apparently, no way to retrieve a single fragment from a unitig without
+                            //  searching for it.
+                            //
+                            for (DoveTailIter it=thatUnitig->dovetail_path_ptr->begin(); it != thatUnitig->dovetail_path_ptr->end(); it++) {
+                                if (it->ident == bestcont->container) {
+                                    offset = it->position.bgn + bestcont->a_hang;
+                                }
+                            }
+
+                            //  Adjust fragment to start of unitig.
+                            {
+                                int adj = MIN(splitFrags[i].position.bgn, splitFrags[i].position.end);
+                                splitFrags[i].position.end -= adj;
+                                splitFrags[i].position.bgn -= adj;
+                            }
+
+                            //  Make sure it's marked as contained.
+                            splitFrags[i].contained = bestcont->container;
+
+                            //  Orientation should be OK.  All we've  done since the
+                            //  unitig was built was to  split at various spots.
+
+                            thatUnitig->addFrag(splitFrags[i], offset);
+                            thatUnitig->sort();
+                        }
+                    }
 
                     containBreak  = 0;
                     splitFragsLen = 0;
@@ -613,7 +660,7 @@ namespace AS_BOG{
         }
         tigGraph.unitigs->insert( tigGraph.unitigs->end(), singletons->begin(), singletons->end() );
 
-        std::cerr << allMates;
+        //std::cerr << allMates;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -691,13 +738,15 @@ namespace AS_BOG{
         delete unused;
 
         // For debugging purposes output the table
-        MateLocIter posIter = positions.begin();
-        for(posIter = positions.begin(); posIter != positions.end(); posIter++){
+#if 0
+        for(MateLocIter posIter = positions.begin(); posIter != positions.end(); posIter++){
             MateLocationEntry loc = *posIter;
             std::cerr << loc << std::endl;
         }
+#endif
 
         // do something with the good and bad graphs
+#if 0
         fprintf(stderr,"Per 300 bases good graph unitig %ld size %ld:\n",tig->id(),tigLen);
         long sum = 0;
         for(int i=0; i < tigLen; i++) {
@@ -707,17 +756,17 @@ namespace AS_BOG{
             }
             sum += positions.goodGraph->at( i );
         }
-        IntervalList *fwdBads,*revBads;
-        fprintf(stderr,"\nPer 300 bases bad fwd graph:\n");
-        fwdBads = findPeakBad( positions.badFwdGraph, tigLen );
-        fprintf(stderr,"\nPer 300 bases bad rev graph:\n");
-        revBads = findPeakBad( positions.badRevGraph, tigLen );
+#endif
 
-        fprintf(stderr,"Num fwdBads is %d\n",fwdBads->size());
-        fprintf(stderr,"Num revBads is %d\n",revBads->size());
+        //fprintf(stderr,"\nPer 300 bases bad fwd graph:\n");
+        IntervalList *fwdBads = findPeakBad( positions.badFwdGraph, tigLen );
+        //fprintf(stderr,"\nPer 300 bases bad rev graph:\n");
+        IntervalList *revBads = findPeakBad( positions.badRevGraph, tigLen );
+
+        //fprintf(stderr,"Num fwdBads is %d\n",fwdBads->size());
+        //fprintf(stderr,"Num revBads is %d\n",revBads->size());
+
         FragmentEnds* breaks = new FragmentEnds(); // return value
-
-        posIter  = positions.begin();
 
         iuid backBgn; // Start position of final backbone unitig
         DoveTailNode backbone = tig->getLastBackboneNode(backBgn);
@@ -886,6 +935,7 @@ namespace AS_BOG{
     ///////////////////////////////////////////////////////////////////////////
 
     IntervalList* findPeakBad( std::vector<short>* badGraph, int tigLen ) {
+#if 0
         long sum = 0;
         for(int i=0; i < tigLen; i++) {
             if (i > 1 && i % 300 == 0) {
@@ -895,6 +945,7 @@ namespace AS_BOG{
             sum += badGraph->at( i );
         }
         fprintf(stderr,"\n");
+#endif
         IntervalList* peakBads = new IntervalList();
         SeqInterval   peak = NULL_SEQ_LOC;
         int badBegin, peakBad, lastBad;
@@ -969,8 +1020,8 @@ namespace AS_BOG{
         badRevGraph->resize( tigLen+1 );
 
         MateCounts *cnts = new MateCounts();
-        MateLocIter  posIter  = begin();
-        for(;        posIter != end(); posIter++) {
+
+        for(MateLocIter  posIter  = begin(); posIter != end(); posIter++) {
             MateLocationEntry loc = *posIter;
             iuid fragId         =  loc.id1;
             MateInfo mateInfo   =  _checker->getMateInfo( fragId );
