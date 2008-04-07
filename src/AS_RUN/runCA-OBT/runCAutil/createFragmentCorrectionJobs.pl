@@ -67,7 +67,7 @@ sub createFragmentCorrectionJobs {
         my $sgeFragmentCorrection = getGlobal("sgeFragmentCorrection");
 
         my $SGE;
-        $SGE  = "qsub $sge $sgeFragmentCorrection -r y -N NAME ";
+        $SGE  = "qsub $sge $sgeFragmentCorrection -N NAME ";
         $SGE .= "-t MINMAX ";
         $SGE .= " -j y -o $wrk/2-frgcorr/\\\$TASK_ID.err ";
         $SGE .= "$wrk/2-frgcorr/correct.sh\n";

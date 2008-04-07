@@ -232,6 +232,8 @@ sub setDefaults () {
     $global{"sge"}                         = undef;
     $global{"sgeScript"}                   = undef;
     $global{"sgeOverlap"}                  = undef;
+    $global{"sgeMerOverlapSeed"}           = undef;
+    $global{"sgeMerOverlapExtend"}         = undef;
     $global{"sgeConsensus"}                = undef;
     $global{"sgeFragmentCorrection"}       = undef;
     $global{"sgeOverlapCorrection"}        = undef;
@@ -702,9 +704,9 @@ sub submitScript ($) {
     my $sgeScript = getGlobal("sgeScript");
 
     if (!defined($waitTag) || ($waitTag eq "")) {
-        $cmd = "qsub $sge $sgeScript -cwd -r y -N runCA_${asm} -j y -o $output $script";
+        $cmd = "qsub $sge $sgeScript -cwd -N runCA_${asm} -j y -o $output $script";
     } else {
-        $cmd = "qsub $sge $sgeScript -cwd -r y -N runCA_${asm} -j y -o $output -hold_jid \"$waitTag\" $script";
+        $cmd = "qsub $sge $sgeScript -cwd -N runCA_${asm} -j y -o $output -hold_jid \"$waitTag\" $script";
     }
 
     system("chmod +x $script");

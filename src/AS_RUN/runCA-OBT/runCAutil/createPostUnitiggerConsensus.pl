@@ -120,7 +120,7 @@ sub createPostUnitiggerConsensusJobs (@) {
         my $sgeConsensus = getGlobal("sgeConsensus");
 
         my $SGE;
-        $SGE  = "qsub $sge $sgeConsensus -r y -N NAME ";
+        $SGE  = "qsub $sge $sgeConsensus -N NAME ";
         $SGE .= "-t MINMAX ";
         $SGE .= "-j y -o /dev/null ";
         $SGE .= "$wrk/5-consensus/consensus.sh\n";

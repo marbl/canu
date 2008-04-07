@@ -213,7 +213,7 @@ sub createOverlapJobs($) {
         my $sgeOverlap = getGlobal("sgeOverlap");
 
         my $SGE;
-        $SGE  = "qsub $sge $sgeOverlap -r y -N NAME \\\n";
+        $SGE  = "qsub $sge $sgeOverlap -N NAME \\\n";
         $SGE .= "  -t MINMAX \\\n";
         $SGE .= "  -j y -o $wrk/$outDir/overlap.\\\$TASK_ID.out \\\n";
         $SGE .= "  $wrk/$outDir/overlap.sh\n";

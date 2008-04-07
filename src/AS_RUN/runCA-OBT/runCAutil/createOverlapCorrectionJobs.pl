@@ -56,7 +56,7 @@ sub createOverlapCorrectionJobs {
         my $sgeOverlapCorrection  = getGlobal("sgeOverlapCorrection");
 
         my $SGE;
-        $SGE  = "qsub $sge $sgeOverlapCorrection -r y -N NAME ";
+        $SGE  = "qsub $sge $sgeOverlapCorrection -N NAME ";
         $SGE .= "-t MINMAX ";
         $SGE .= " -j y -o $wrk/3-ovlcorr/correct.sh.\\\$TASK_ID.err ";
         $SGE .= "$wrk/3-ovlcorr/correct.sh\n";

@@ -235,10 +235,10 @@ sub merOverlapper($) {
     if (findOvermerryFailures($outDir, $ovmJobs) > 0) {
         if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
             my $sge        = getGlobal("sge");
-            my $sgeOverlap = getGlobal("sgeOverlap");
+            my $sgeOverlap = getGlobal("sgeMerOverlapSeed");
 
             my $SGE;
-            $SGE  = "qsub $sge $sgeOverlap -r y -N NAME \\\n";
+            $SGE  = "qsub $sge $sgeOverlap -N NAME \\\n";
             $SGE .= "  -t MINMAX \\\n";
             $SGE .= "  -j y -o $wrk/$outDir/seeds/\\\$TASK_ID.out \\\n";
             $SGE .= "  $wrk/$outDir/overmerry.sh\n";
@@ -288,10 +288,10 @@ sub merOverlapper($) {
     if (findOlapFromSeedsFailures($outDir, $olpJobs) > 0) {
         if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
             my $sge        = getGlobal("sge");
-            my $sgeOverlap = getGlobal("sgeOverlap");
+            my $sgeOverlap = getGlobal("sgeMerOverlapExtend");
 
             my $SGE;
-            $SGE  = "qsub $sge $sgeOverlap -r y -N NAME \\\n";
+            $SGE  = "qsub $sge $sgeOverlap -N NAME \\\n";
             $SGE .= "  -t MINMAX \\\n";
             $SGE .= "  -j y -o $wrk/$outDir/olaps/\\\$TASK_ID.out \\\n";
             $SGE .= "  $wrk/$outDir/olap-from-seeds.sh\n";

@@ -62,12 +62,12 @@ sub preoverlap {
         
     $numFrags = getNumberOfFragsInStore($wrk, $asm);
 
-    if ( ! -s "$wrk/$asm.frg" ) { # don't overwrite if it's already there
-        my $bin = getBinDirectory();
-        if (runCommand($wrk, "$bin/gatekeeper -dumpfrg $wrk/$asm.gkpStore 2> $wrk/gatekeeper.err | grep -v 'No source' > $wrk/$asm.frg")) {
-            unlink "$wrk/$asm.frg";
-        }    
-    }
+    #if ( ! -s "$wrk/$asm.frg" ) { # don't overwrite if it's already there
+    #    my $bin = getBinDirectory();
+    #    if (runCommand($wrk, "$bin/gatekeeper -dumpfrg $wrk/$asm.gkpStore 2> $wrk/gatekeeper.err | grep -v 'No source' > $wrk/$asm.frg")) {
+    #        unlink "$wrk/$asm.frg";
+    #    }    
+    #}
 
  stopafter:
     stopAfter("initialStoreBuilding");    
