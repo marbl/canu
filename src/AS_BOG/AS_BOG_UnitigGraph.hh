@@ -34,15 +34,15 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.38 2007-12-26 19:11:00 brianwalenz Exp $
- * $Revision: 1.38 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.39 2008-04-08 22:23:01 brianwalenz Exp $
+ * $Revision: 1.39 $
  */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.38 2007-12-26 19:11:00 brianwalenz Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.39 2008-04-08 22:23:01 brianwalenz Exp $";
 
 #include <set>
 #include <iostream>
@@ -98,7 +98,7 @@ namespace AS_BOG{
 
     struct Unitig{
 
-        Unitig(iuid =nextId++);		
+        Unitig(bool report=false);
         ~Unitig(void);		
 
         // Sort frags by position on the unitig
@@ -132,8 +132,7 @@ namespace AS_BOG{
         static iuid getNextId();
         static void setNextId(iuid);
 
-        void addFrag( DoveTailNode );
-        void addFrag( DoveTailNode, int offset ); // shift by offset before adding
+        void addFrag(DoveTailNode, int offset=0, bool report=false);
 
         static iuid fragIn(iuid);
         static void resetFragUnitigMap(iuid numFrags);

@@ -34,11 +34,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.77 2008-04-08 19:20:52 brianwalenz Exp $
- * $Revision: 1.77 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.78 2008-04-08 22:23:01 brianwalenz Exp $
+ * $Revision: 1.78 $
  */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.77 2008-04-08 19:20:52 brianwalenz Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.78 2008-04-08 22:23:01 brianwalenz Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -125,10 +125,6 @@ namespace AS_BOG{
                                     fp_dst_frag_id, 
                                     tp_dst_frag_id);
                 
-                if(!(unitig_id%10000)){
-                    std::cerr << ".";
-                }
-
                 // Allocated a new unitig node
                 Unitig *utg=new Unitig;
                 unitig_id = utg->id();
@@ -176,7 +172,6 @@ namespace AS_BOG{
 
             }
         }
-        std::cerr << std::endl;
 
         // Pick up frags missed above, possibly circular unitigs
         for(frag_idx=1; frag_idx<=num_frags; frag_idx++){
@@ -202,6 +197,7 @@ namespace AS_BOG{
                 }
             }
         }
+
         if (BogOptions::unitigIntersectBreaking) { 
             printUnitigBreaks();
             breakUnitigs();
@@ -1009,27 +1005,34 @@ namespace AS_BOG{
 
     //////////////////////////////////////////////////////////////////////////////
 
-    Unitig::Unitig(iuid accession){
-        // Initialize values to unlikely values
-        _localArrivalRate=-1;
-        _covStat=FLT_MAX;
-        _length=-1;
-        _numFrags=-1;
-        _numRandomFrags=-1;
-        _avgRho = -1;
+    Unitig::Unitig(bool report){
+        _localArrivalRate = -1;
+        _covStat          = FLT_MAX;
+        _length           = -1;
+        _numFrags         = -1;
+        _numRandomFrags   = -1;
+        _avgRho           = -1;
         dovetail_path_ptr = new DoveTailPath;
-        _id=accession;
-        std::cerr << "Creating Unitig " << _id << std::endl;
+        _id               = nextId++;
+
+        if (report)
+            fprintf(stderr, "Creating Unitig %d\n", _id);
     }
     //////////////////////////////////////////////////////////////////////////////
 
     Unitig::~Unitig(void){
-        if(dovetail_path_ptr!=NULL) delete dovetail_path_ptr;
+        delete dovetail_path_ptr;
     }
 
     //////////////////////////////////////////////////////////////////////////////
 
-    void Unitig::addFrag( DoveTailNode node) {
+    void Unitig::addFrag( DoveTailNode node, int offset, bool report) {
+
+        node.position.bgn += offset;
+        node.position.end += offset;
+
+        assert(node.position.bgn >= 0);
+        assert(node.position.end >= 0);
 
         // keep track of the unitig a frag is in
         _inUnitig[ node.ident ] = id();
@@ -1039,22 +1042,13 @@ namespace AS_BOG{
         if ( frgEnd > _length)
             _length = frgEnd;
 
-        if ( node.contained ) {
-            if ( _inUnitig[ node.contained ] != id())
-                node.contained = NULL_FRAG_ID;
-        }
+        if ((node.contained) && (_inUnitig[node.contained] != id()))
+            node.contained = NULL_FRAG_ID;
 
-        dovetail_path_ptr->push_back( node );
+        dovetail_path_ptr->push_back(node);
 
-        fprintf(stderr, "Added frag %d to unitig %d at %d,%d\n", node.ident, id(), node.position.bgn, node.position.end);
-    }
-
-    void Unitig::addFrag( DoveTailNode node, int offset) {
-        node.position.bgn += offset;
-        assert( node.position.bgn >= 0 );
-        node.position.end += offset;
-        assert( node.position.end >= 0 );
-        addFrag( node );
+        if (report)
+            fprintf(stderr, "Added frag %d to unitig %d at %d,%d\n", node.ident, id(), node.position.bgn, node.position.end);
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -1786,15 +1780,18 @@ namespace AS_BOG{
       int         fragment_count         = 0;
       int         file_count             = 1;
       char        filename[FILENAME_MAX] = {0};
-      FILE       *file                   = NULL;
       int         iumiid                 = 0;
       GenericMesg mesg;
 
       // Open up the initial output file
 
       sprintf(filename, "%s_%03d.cgb", fileprefix, file_count++);
-      file = fopen(filename,"w");
+      FILE *file = fopen(filename,"w");
       assert(NULL != file);
+
+      sprintf(filename, "%s.iidmap", fileprefix, file_count++);
+      FILE *iidm = fopen(filename,"w");
+      assert(NULL != iidm);
 
       // Step through all the unitigs
 
@@ -1809,7 +1806,7 @@ namespace AS_BOG{
 
         ium_mesg_ptr->iaccession = iumiid++;
 
-        fprintf(stderr, "Unitig %d is IUM %d\n", (*utg_itr)->id(), ium_mesg_ptr->iaccession);
+        fprintf(iidm, "Unitig %d == IUM %d\n", (*utg_itr)->id(), ium_mesg_ptr->iaccession);
 
         fragment_count += ium_mesg_ptr->num_frags;
 
@@ -1831,6 +1828,7 @@ namespace AS_BOG{
       }
 
       fclose(file);
+      fclose(iidm);
     }
 
     //////////////////////////////////////////////////////////////////////////////
