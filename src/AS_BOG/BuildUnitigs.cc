@@ -30,11 +30,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.38 2008-02-27 17:07:27 skoren Exp $
- * $Revision: 1.38 $
+ * $Id: BuildUnitigs.cc,v 1.39 2008-04-08 22:21:15 brianwalenz Exp $
+ * $Revision: 1.39 $
  */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.38 2008-02-27 17:07:27 skoren Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.39 2008-04-08 22:21:15 brianwalenz Exp $";
 
 //  System include files
 
@@ -56,6 +56,7 @@ using std::endl;
 using std::map;
 using std::set;
 using std::vector;
+
 using AS_BOG::BestOverlapGraph;
 using AS_BOG::BogOptions;
 
@@ -66,7 +67,7 @@ extern "C" {
 #include "AS_CGB_histo.h"
 }
 
-void outputHistograms(AS_BOG::UnitigGraph *);
+void outputHistograms(AS_BOG::UnitigGraph *, FILE *);
 
 int
 main (int argc, char * argv []) {
@@ -200,16 +201,14 @@ main (int argc, char * argv []) {
 	std::cout << std::endl;
 
 	AS_BOG::UnitigGraph utg(bogRunner.metrics[i]);
-	std::cerr << "Building Unitigs.\n" << std::endl;
+
 	utg.build(cg);
 
-	std::cerr << "Reporting.\n" << std::endl;
         mateChecker.checkUnitigGraph(utg);        
+
         float globalARate = utg.getGlobalArrivalRate(numRandFrgInGKP, genome_size);
         AS_BOG::Unitig::setGlobalArrivalRate(globalARate);
 
-        std::cerr << "Global Arrival Rate: " << globalARate << "\n";
-        std::cerr << "There were " << utg.unitigs->size() << " unitigs generated.\n";
 
         //  Ugh.  If we're doing multiple error rates, make a new
         //  prefix for each, which references the percent error
@@ -224,13 +223,31 @@ main (int argc, char * argv []) {
           utg.writeIUMtoFile(output_prefix, fragment_count_target);
         }
 
-        AS_BOG::BestEdgeCounts cnts = utg.countInternalBestEdges();
-        std::cerr << std::endl << "Overall best edge counts: dovetail " << cnts.dovetail
-                  << " oneWayBest " << cnts.oneWayBest << " neither " << cnts.neither
-                  << std::endl << std::endl;
 
-        outputHistograms( &utg );
-	std::cerr << "///////////////////////////////////////////////////////////\n" << std::endl;
+        {
+          char  filename[FILENAME_MAX] = {0};
+          if (bogRunner.size() > 1)
+            sprintf(filename, "%s_%05.2f.cga.0", output_prefix,
+                    AS_OVS_decodeQuality(bogRunner.metrics[i]->mismatchCutoff) * 100.0);
+          else
+            sprintf(filename, "%s.cga.0", output_prefix);
+          FILE *stats = fopen(filename,"w");
+          assert(NULL != stats);
+
+          fprintf(stats, "Global Arrival Rate: %f\n", globalARate);
+          fprintf(stats, "There were %d unitigs generated.\n", utg.unitigs->size());
+
+          AS_BOG::BestEdgeCounts cnts = utg.countInternalBestEdges();
+
+          fprintf(stats, "Overall best edge counts: dovetail %d oneWayBest %d neither %d\n",
+                  cnts.dovetail,
+                  cnts.oneWayBest,
+                  cnts.neither);
+
+          outputHistograms( &utg, stats );
+
+          fclose(stats);
+        }
 
         delete bogRunner.metrics[i];
         delete cg;
@@ -247,7 +264,7 @@ main (int argc, char * argv []) {
 }
 
 
-void outputHistograms(AS_BOG::UnitigGraph *utg) {
+void outputHistograms(AS_BOG::UnitigGraph *utg, FILE *stats) {
     const int nsample=500;
     const int nbucket=500;
     MyHistoDataType zork;
@@ -285,10 +302,8 @@ void outputHistograms(AS_BOG::UnitigGraph *utg) {
 
         float arateF = u->getLocalArrivalRate() * 10000;
         int arate = static_cast<int>(rintf(arateF));
-        if (arate < 0) {
-            std::cerr << "Negative Local ArrivalRate " << arateF << " id " << u->id()
-                      << " arate " << arate << std::endl;
-        }
+        if (arate < 0)
+            fprintf(stats, "Negative Local ArrivalRate %f id %d arate %d\n", arateF, u->id(), arate);
         zork.sum_arrival = zork.min_arrival = zork.max_arrival = arate;
 
         zork.sum_rs_frags=zork.min_rs_frags=zork.max_rs_frags=0;
@@ -298,12 +313,16 @@ void outputHistograms(AS_BOG::UnitigGraph *utg) {
         add_to_histogram(covg_histogram, covg, &zork);
         add_to_histogram(arate_histogram, arate, &zork);
     }
-    std::cerr << "Length of Unitigs histogram" << std::endl;
-    print_histogram(stderr,length_of_unitigs_histogram, 0, 1);
-    std::cerr << "Unitig Coverage Stat histogram" << std::endl;
-    print_histogram(stderr,covg_histogram, 0, 1);
-    std::cerr << "Unitig Arrival Rate histogram" << std::endl;
-    print_histogram(stderr,arate_histogram, 0, 1);
+
+    fprintf(stats, "Length of Unitigs histogram\n");
+    print_histogram(stats,length_of_unitigs_histogram, 0, 1);
+
+    fprintf(stats, "Unitig Coverage Stat histogram\n");
+    print_histogram(stats,covg_histogram, 0, 1);
+
+    fprintf(stats, "Unitig Arrival Rate histogram\n");
+    print_histogram(stats,arate_histogram, 0, 1);
+
     free_histogram( length_of_unitigs_histogram );
     free_histogram( covg_histogram );
     free_histogram( arate_histogram );
