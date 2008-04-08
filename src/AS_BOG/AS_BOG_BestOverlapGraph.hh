@@ -34,8 +34,8 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.37 2008-01-02 18:28:45 eliv Exp $
- * $Revision: 1.37 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.38 2008-04-08 18:59:40 brianwalenz Exp $
+ * $Revision: 1.38 $
  */
 
 //  System include files
@@ -122,8 +122,16 @@ namespace AS_BOG{
         void setBestEdgeOverlap(const OVSoverlap& olap, float newScore);
         void setBestContainer(const OVSoverlap& olap, float newScore);
         iuid getNumFragments() { return lastFrg; }
-        bool isContained(const iuid);
-        BestContainment *getBestContainer(iuid frag_id);
+
+        bool isContained(const iuid fragid) {
+            return(_best_containments.find(fragid) != _best_containments.end());
+        };
+
+       // Given a containee, returns pointer to BestContainment record
+        BestContainment *getBestContainer(const iuid fragid) {
+            return((isContained(fragid)) ? &_best_containments[fragid] : NULL);
+        };
+
         void addContainEdge( iuid, iuid);
         bool containHaveEdgeTo( iuid, iuid);
         void printFrom(iuid begin, iuid end=0);

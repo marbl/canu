@@ -37,11 +37,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.49 2008-04-04 20:37:19 brianwalenz Exp $
- * $Revision: 1.49 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.50 2008-04-08 18:59:40 brianwalenz Exp $
+ * $Revision: 1.50 $
  */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.49 2008-04-04 20:37:19 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.50 2008-04-08 18:59:40 brianwalenz Exp $";
 
 //  System include files
 #include<iostream>
@@ -201,30 +201,17 @@ namespace AS_BOG{
   }
 
     void BestOverlapGraph::setBestContainer(const OVSoverlap& olap, float newScr) {
-
         BestContainment newBest;
-        newBest.container = olap.a_iid;
-        newBest.contain_score = newScr;
-        newBest.sameOrientation =  olap.dat.ovl.flipped ? false : true;
-        newBest.isPlaced        = false;
-        newBest.a_hang =  olap.dat.ovl.a_hang;
-        newBest.b_hang =  olap.dat.ovl.b_hang;
+
+        newBest.container         = olap.a_iid;
+        newBest.contain_score     = newScr;
+        newBest.a_hang            = olap.dat.ovl.a_hang;
+        newBest.b_hang            = olap.dat.ovl.b_hang;
+        newBest.sameOrientation   = olap.dat.ovl.flipped ? false : true;
+        newBest.isPlaced          = false;
+        newBest.overlapsAreSorted = false;
+
         _best_containments[ olap.b_iid ] = newBest;
-    }
-    bool BestOverlapGraph::isContained(const iuid fragIID) {
-        std::map<iuid,BestContainment>::const_iterator i =
-            _best_containments.find( fragIID ); 
-        if ( i != _best_containments.end() ) 
-            return true;
-        else
-            return false;
-    }
-    // Given a containee, returns pointer to BestContainment record
-    BestContainment* BestOverlapGraph::getBestContainer(iuid containee) {
-        if ( isContained( containee ) ) 
-            return &_best_containments[containee];
-        else
-            return NULL;
     }
 
     ///////////////////////////////////////////////////////////////////////////
