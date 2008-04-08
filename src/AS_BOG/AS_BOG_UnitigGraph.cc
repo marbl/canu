@@ -34,11 +34,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.76 2008-04-07 02:37:42 brianwalenz Exp $
- * $Revision: 1.76 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.77 2008-04-08 19:20:52 brianwalenz Exp $
+ * $Revision: 1.77 $
  */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.76 2008-04-07 02:37:42 brianwalenz Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.77 2008-04-08 19:20:52 brianwalenz Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -634,27 +634,19 @@ namespace AS_BOG{
         }
     }
     //////////////////////////////////////////////////////////////////////////////
-    void UnitigGraph::accumulateSplitUnitigs( UnitigsIter tig, FragmentEnds* breaks,
-                                              UnitigVector* splits) {
+  void UnitigGraph::accumulateSplitUnitigs(UnitigsIter tig,
+                                           FragmentEnds* breaks,
+                                           UnitigVector* splits) {
         UnitigVector* newUs = breakUnitigAt( *tig, *breaks );
-        if (newUs == NULL)
-            return;
-        if (!newUs->empty()) {
-            // we have some new split up unitigs
-            int frgCnt = 0;
-            UnitigsConstIter newIter = newUs->begin();
-            // Number of frags should stay the same
-            for(;newIter != newUs->end(); newIter++) {
-                Unitig* tigTmp = *newIter;
-                frgCnt += tigTmp->dovetail_path_ptr->size();
-            }
-            fprintf(stderr,"Num frgs after splits is %d\n",frgCnt);
-            // store new unitigs
-            splits->insert( splits->end(), newUs->begin(), newUs->end());
-            // remove old unsplit unitig
+
+        // store new unitigs, remove the original unsplit unitig.
+        //
+        if ((newUs != NULL) && (newUs->empty() == false)) {
             delete *tig;
             *tig = NULL;
+            splits->insert(splits->end(), newUs->begin(), newUs->end());
         }
+
         delete newUs;
     }
     //////////////////////////////////////////////////////////////////////////////
@@ -1238,9 +1230,11 @@ namespace AS_BOG{
         int length = this->getLength();
         DoveTailNode first = dovetail_path_ptr->front();
         DoveTailNode last = dovetail_path_ptr->back();
+#if 0
         fprintf(stderr,"Before reverse 1st %d %d %d last %d %d %d\n",
                 first.ident,first.position.bgn,first.position.end,
                 last.ident,last.position.bgn,last.position.end);
+#endif
         DoveTailIter iter = dovetail_path_ptr->begin();
         for(; iter != dovetail_path_ptr->end(); iter++) {
             iter->position.bgn = length - iter->position.bgn;
@@ -1251,9 +1245,11 @@ namespace AS_BOG{
         reverse(dovetail_path_ptr->begin(),dovetail_path_ptr->end());
         first = dovetail_path_ptr->front();
         last = dovetail_path_ptr->back();
+#if 0
         fprintf(stderr,"After reverse 1st %d %d %d last %d %d %d\n",
                 first.ident,first.position.bgn,first.position.end,
                 last.ident,last.position.bgn,last.position.end);
+#endif
     }
     //////////////////////////////////////////////////////////////////////////////
     void Unitig::reverseComplement(int offset, BestOverlapGraph *bog_ptr) {
@@ -1597,16 +1593,19 @@ namespace AS_BOG{
     UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig, FragmentEnds &breaks) {
         if (breaks.empty())
             return NULL;
-        fprintf(stderr,"Before break size is %d, unitig %d\n",breaks.size(),tig->dovetail_path_ptr->size());
+
         lastBPCoord = 0;
         lastBPFragNum = 0;
+
         // remove small break points
         filterBreakPoints( tig, breaks );
-        fprintf(stderr,"After filter break size is %d\n",breaks.size());
+
         UnitigVector* splits = new UnitigVector(); // holds the new split unitigs
+
         // if we filtered all the breaks out return an empty list
         if (breaks.empty()) 
             return splits;
+
         Unitig* newTig = new Unitig(); // the first of the split unitigs
         splits->push_back( newTig );
         DoveTailIter dtIter = tig->dovetail_path_ptr->begin();
@@ -1626,7 +1625,8 @@ namespace AS_BOG{
                 if (nextBP.fragEnd.end != breakPoint.fragEnd.end)
                     bothEnds = true;
                 breaks.pop_front();
-                nextBP = breaks.front();
+                if (!breaks.empty())
+                    nextBP = breaks.front();
             }
             bool reverse = isReverse(frg.position);
             if (breakPoint.fragEnd.id == frg.ident) {
@@ -1655,8 +1655,8 @@ namespace AS_BOG{
                     newTig = new Unitig();              // create next new unitig
                     // record offset of start of new unitig
                     offset = reverse ? -frg.position.end : -frg.position.bgn;
-                    fprintf(stderr,"Offset is %d for frg %d %d,%d\n",
-                            offset,frg.ident,frg.position.bgn,frg.position.end);
+                    //fprintf(stderr,"Offset is %d for frg %d %d,%d\n",
+                    //        offset,frg.ident,frg.position.bgn,frg.position.end);
                     newTig->addFrag( frg, offset );     // add frag as 1st in unitig
                 }
                 else if (breakPoint.fragEnd.end ==  FIVE_PRIME && reverse ||
@@ -1687,14 +1687,13 @@ namespace AS_BOG{
                 if (newTig->dovetail_path_ptr->empty()) {
                     // if it's empty, this is it's 1st frag, store the offset
                     offset = reverse ? -frg.position.end : -frg.position.bgn;
-                    fprintf(stderr,"Offset is %d for frg %d %d,%d\n",
-                            offset,frg.ident,frg.position.bgn,frg.position.end);
+                    //fprintf(stderr,"Offset is %d for frg %d %d,%d\n",
+                    //        offset,frg.ident,frg.position.bgn,frg.position.end);
                 }
                 newTig->addFrag( frg, offset );
             }
         }
-        // should be zero
-        fprintf(stderr,"After break size is %d\n",breaks.size());
+
         return splits;
     }
 
@@ -1743,7 +1742,10 @@ namespace AS_BOG{
             if(impb->contained == impa->ident)
                 return(-1);
             if(impa->contained!=0 && impb->contained!=0)
-                return((*containPartialOrder)[impa->ident] - (*containPartialOrder)[impb->ident]);
+                if (containPartialOrder == NULL)
+                    return(0);
+                else
+                    return((*containPartialOrder)[impa->ident] - (*containPartialOrder)[impb->ident]);
             if(impa->contained!=0)
                 return(1);
             if(impb->contained!=0)
@@ -1753,8 +1755,7 @@ namespace AS_BOG{
     }
     //////////////////////////////////////////////////////////////////////////////
     void Unitig::sort() {
-        qsort( &(dovetail_path_ptr->front()), getNumFrags(),
-               sizeof(IntMultiPos), &IntMultiPosCmp );
+        qsort( &(dovetail_path_ptr->front()), getNumFrags(), sizeof(IntMultiPos), &IntMultiPosCmp );
     }
     //////////////////////////////////////////////////////////////////////////////
     IntUnitigMesg *Unitig::getIUM_Mesg(){
@@ -1762,24 +1763,19 @@ namespace AS_BOG{
         IntUnitigMesg *ium_mesg_ptr=new IntUnitigMesg;
         IntMultiPos *imp_msg_arr   = &(dovetail_path_ptr->front());
 
-        //void qsort(void *base, size_t nmemb, size_t size,
-        //  int(*compar)(const void *, const void *));
-        // Sort by 5' end of fragment position
-        //qsort(imp_msg_arr, getNumFrags(), sizeof(IntMultiPos), &IntMultiPosCmp);
-
         // Populate the IUM message with unitig info
 #ifdef AS_ENABLE_SOURCE
-        /*char*/		ium_mesg_ptr->source=AS_BOG_UNITIG_GRAPH_CC_CM_ID;
+        ium_mesg_ptr->source=AS_BOG_UNITIG_GRAPH_CC_CM_ID;
 #endif
-        /*float  */		ium_mesg_ptr->coverage_stat=getCovStat();
-        /*UnitigStatus*/	ium_mesg_ptr->status=AS_UNASSIGNED;
-        /*UnitigFUR*/   ium_mesg_ptr->unique_rept=AS_FORCED_NONE;
-        /*CDS_COORD_t*/		ium_mesg_ptr->length=getLength();
-        /*char* */		ium_mesg_ptr->consensus="";
-        /*char* */		ium_mesg_ptr->quality="";
-        /*int32*/		ium_mesg_ptr->forced=0;
-        /*int32*/		ium_mesg_ptr->num_frags=getNumFrags();
-        /*IntMultiPos* */	ium_mesg_ptr->f_list=imp_msg_arr;
+        ium_mesg_ptr->coverage_stat=getCovStat();
+        ium_mesg_ptr->status=AS_UNASSIGNED;
+        ium_mesg_ptr->unique_rept=AS_FORCED_NONE;
+        ium_mesg_ptr->length=getLength();
+        ium_mesg_ptr->consensus="";
+        ium_mesg_ptr->quality="";
+        ium_mesg_ptr->forced=0;
+        ium_mesg_ptr->num_frags=getNumFrags();
+        ium_mesg_ptr->f_list=imp_msg_arr;
 
         return(ium_mesg_ptr);
     }
