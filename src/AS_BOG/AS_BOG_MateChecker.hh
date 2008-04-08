@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.20 2008-03-26 06:02:36 brianwalenz Exp $
- * $Revision: 1.20 $
+ * $Id: AS_BOG_MateChecker.hh,v 1.21 2008-04-08 22:25:27 brianwalenz Exp $
+ * $Revision: 1.21 $
  */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
@@ -114,8 +114,8 @@ namespace AS_BOG{
         // Compute good and bad coverage graphs for a unitig, returns split points
         FragmentEnds* computeMateCoverage( Unitig*, BestOverlapGraph *);
 
-        // Make singleton unitigs out of unhappy contained reads
-        void ejectUnhappyContains( UnitigGraph& );
+        void moveContains(UnitigGraph&);
+        void splitDiscontinuousUnitigs(UnitigGraph&);
 
         // Computes stddev and mate coverage over all unitigs
         void computeGlobalLibStats( UnitigGraph& );
