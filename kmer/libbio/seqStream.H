@@ -1,4 +1,4 @@
-
+ 
 
 class seqStream {
 private:
@@ -45,9 +45,9 @@ public:
   //
   u32bit        numberOfSequences(void) { return(_useListLen); };
   u64bit        lengthOfSequences(void) { return(_lengthOfSequences); };
-  u64bit        lengthOf(u32bit s) { return((s >= _useListLen) ? ~u32bitZERO : _useList[s].length); };
-  u64bit        startOf(u32bit s)  { return((s >= _useListLen) ? ~u32bitZERO : _useList[s].start);  };
-  u64bit        IIDOf(u32bit s)    { return((s >= _useListLen) ? ~u32bitZERO : _useList[s].iid);    };
+  u64bit        lengthOf(u32bit s) { return((s >= _useListLen) ? ~u64bitZERO : _useList[s].length); };
+  u64bit        startOf(u32bit s)  { return((s >= _useListLen) ? ~u64bitZERO : _useList[s].start);  };
+  u64bit        IIDOf(u32bit s)    { return((s >= _useListLen) ? ~u64bitZERO : _useList[s].iid);    };
 
   //  For a chain position p, returns the s (above) for that position.
   u32bit        sequenceNumberOfPosition(u64bit p);
@@ -57,7 +57,7 @@ private:
   struct use_s {
     u32bit   iid;
     u32bit   length;
-    u32bit   start;
+    u64bit   start;
   };
 
   char        *_filename;
