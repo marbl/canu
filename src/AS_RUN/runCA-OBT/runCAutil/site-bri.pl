@@ -9,18 +9,18 @@ sub localDefaults() {
     #  occurs, and we don't know where the assembly directory is, so
     #  we can't make the pathMap there.
 
-    if (!defined(getGlobal("pathMap")) &&
-        (-d "/home/work/w/wgs/") &&
-        (! -e "/home/work/w/wgs/pathMap")) {
+    if (!defined(getGlobal("pathMap"))) {
         setGlobal("pathMap", "/home/work/w/wgs/pathMap");
 
-        open(F, "> /home/work/w/wgs/pathMap") or die;
-        print F "twobyfour.home  /home/work/w/wgs/FreeBSD-6.2-RELEASE-amd64/bin\n";
-        print F "node5.home      /home/work/w/wgs/FreeBSD-7.0-RELEASE-amd64/bin\n";
-        print F "node6.home      /home/work/w/wgs/FreeBSD-7.0-RELEASE-amd64/bin\n";
-        print F "node7.home      /home/work/w/wgs/FreeBSD-7.0-RELEASE-amd64/bin\n";
-        print F "node8.home      /home/work/w/wgs/FreeBSD-7.0-RELEASE-amd64/bin\n";
-        close(F);
+        if (! -e "/home/work/w/wgs/pathMap") {
+            open(F, "> /home/work/w/wgs/pathMap") or die;
+            print F "twobyfour.home  /home/work/w/wgs/FreeBSD-6.2-RELEASE-amd64/bin\n";
+            print F "node5.home      /home/work/w/wgs/FreeBSD-7.0-RELEASE-amd64/bin\n";
+            print F "node6.home      /home/work/w/wgs/FreeBSD-7.0-RELEASE-amd64/bin\n";
+            print F "node7.home      /home/work/w/wgs/FreeBSD-7.0-RELEASE-amd64/bin\n";
+            print F "node8.home      /home/work/w/wgs/FreeBSD-7.0-RELEASE-amd64/bin\n";
+            close(F);
+        }
     }
 }
 
