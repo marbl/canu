@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.49 2008-04-08 22:25:26 brianwalenz Exp $
- * $Revision: 1.49 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.50 2008-04-09 00:45:58 brianwalenz Exp $
+ * $Revision: 1.50 $
  */
 
 #include <math.h>
@@ -573,9 +573,6 @@ namespace AS_BOG{
             delete [] splitFrags;
             splitFrags    = NULL;
         }  //  End of discontinuity splitting
-    }
-
-    void MateChecker::ejectUnhappyContains(UnitigGraph& tigGraph ) {
     }
 
     ///////////////////////////////////////////////////////////////////////////
