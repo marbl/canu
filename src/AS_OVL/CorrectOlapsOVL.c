@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.28 2008-03-18 07:02:46 brianwalenz Exp $
- * $Revision: 1.28 $
+ * $Id: CorrectOlapsOVL.c,v 1.29 2008-04-10 15:15:10 adelcher Exp $
+ * $Revision: 1.29 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.28 2008-03-18 07:02:46 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.29 2008-04-10 15:15:10 adelcher Exp $";
 
 
 //  System include files
@@ -2063,30 +2063,34 @@ static void  Process_Olap
 }
 #endif
 
-   if  (delta_len > 0 && delta [0] == 1)
+   if  (delta_len > 0 && delta [0] == 1 && 0 < olap -> a_hang)
        {
-        int  i;
+        int  i, stop;
 
-        for  (i = 0;  i < delta_len && delta [i] == 1;  i ++)
+        stop = OVL_Min_int (delta_len, olap -> a_hang);
+        for  (i = 0;  i < stop && delta [i] == 1;  i ++)
           ;
-        assert (i == delta_len || delta [i] != -1);
+        assert (i == stop || delta [i] != -1);
         delta_len -= i;
         memmove (delta, delta + i, delta_len * sizeof (int));
         a_part += i;
         a_end -= i;
+        a_part_len -= i;
         errors -= i;
        }
-   else if  (delta_len > 0 && delta [0] == -1)
+   else if  (delta_len > 0 && delta [0] == -1 && olap -> a_hang < 0)
        {
-        int  i;
+        int  i, stop;
 
-        for  (i = 0;  i < delta_len && delta [i] == -1;  i ++)
+        stop = OVL_Min_int (delta_len, - olap -> a_hang);
+        for  (i = 0;  i < stop && delta [i] == -1;  i ++)
           ;
-        assert (i == delta_len || delta [i] != 1);
+        assert (i == stop || delta [i] != 1);
         delta_len -= i;
         memmove (delta, delta + i, delta_len * sizeof (int));
         b_part += i;
         b_end -= i;
+        b_part_len -= i;
         errors -= i;
        }
 
