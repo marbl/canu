@@ -99,7 +99,11 @@ while (scalar(@ARGV)) {
 
 setGlobal("help",1) unless $asm;
 
-setParameters($specFile, @specOpts);
+@fragFiles = setParametersFromFile($specFile, @fragFiles);
+
+setParametersFromCommandLine(@specOpts);
+
+setParameters();
 
 printHelp();
 

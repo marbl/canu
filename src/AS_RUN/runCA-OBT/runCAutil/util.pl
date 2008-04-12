@@ -362,9 +362,9 @@ sub makeAbsolute ($) {
     }
 }
 
-sub setParameters ($@) {
-    my $specFile = shift @_;
-    my @specOpts = @_;
+sub setParametersFromFile ($@) {
+    my $specFile  = shift @_;
+    my @fragFiles = @_;
 
     if (exists($ENV{'AS_OVL_ERROR_RATE'})) {
         setGlobal("ovlErrorRate", $ENV{'AS_OVL_ERROR_RATE'});
@@ -402,6 +402,7 @@ sub setParameters ($@) {
             chomp;
             next if (m/^\s*\#/);
             next if (m/^\s*$/);
+
             if (m/\s*(\w*)\s*=(.*)/) {
                 my ($var, $val) = ($1, $2);
                 print STDERR $_,"\n"; # echo the spec file
@@ -410,11 +411,24 @@ sub setParameters ($@) {
                 undef $val if ($val eq "undef");
                 setGlobal($var, $val);
             } else {
-                print STDERR "WARNING!  Invalid specFile line '$_'\n";
+                my $xx = $_;
+                $xx = "$ENV{'PWD'}/$xx" if ($xx !~ m!^/!);
+                if (-e $xx) {
+                    push @fragFiles, $xx;
+                } else {
+                    print STDERR "WARNING!  Invalid specFile line '$_'\n";
+                }
             }
         }
         close(F);
     }
+
+    return(@fragFiles);
+}
+
+
+sub setParametersFromCommandLine(@) {
+    my @specOpts = @_;
 
     foreach my $s (@specOpts) {
         if ($s =~ m/\s*(\w*)\s*=(.*)/) {
@@ -426,6 +440,10 @@ sub setParameters ($@) {
             print STDERR "WARNING!  Misformed specOption '$s'\n";
         }
     }
+}
+
+
+sub setParameters () {
 
     #  Fiddle with filenames to make them absolute paths.
     #
