@@ -238,6 +238,8 @@ sub setDefaults () {
     $global{"sgeFragmentCorrection"}       = undef;
     $global{"sgeOverlapCorrection"}        = undef;
 
+    $global{"sgePropagateHold"}            = undef;
+
     #####  Preoverlap
 
     $global{"gkpFixInsertSizes"}           = 1;
@@ -718,16 +720,19 @@ sub submitScript ($) {
     print F "/usr/bin/env perl \$bin/runCA $commandLineOptions\n";
     close(F);
 
-    my $sge       = getGlobal("sge");
-    my $sgeScript = getGlobal("sgeScript");
+    system("chmod +x $script");
 
-    if (!defined($waitTag) || ($waitTag eq "")) {
-        $cmd = "qsub $sge $sgeScript -cwd -N runCA_${asm} -j y -o $output $script";
+    my $sge         = getGlobal("sge");
+    my $sgeScript   = getGlobal("sgeScript");
+    my $sgePropHold = getGlobal("sgePropagateHold");
+
+    if (defined($waitTag)) {
+        $cmd  = "qsub $sge $sgeScript -cwd -N \"runCA_${asm}\" -j y -o $output -hold_jid \"$waitTag\" $script";
+        $cmd .= "&& qalter -hold_jid \"runCA_${asm}\" \"$sgePropHold\"" if (defined($sgePropHold));
     } else {
-        $cmd = "qsub $sge $sgeScript -cwd -N runCA_${asm} -j y -o $output -hold_jid \"$waitTag\" $script";
+        $cmd  = "qsub $sge $sgeScript -cwd -N \"runCA_${asm}\" -j y -o $output $script";
     }
 
-    system("chmod +x $script");
     system($cmd) and caFailure("Failed to submit script.\n");
 
     exit(0);

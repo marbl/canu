@@ -184,19 +184,35 @@ ovlMemory    =    1GB --hashload 0.8
 will set the {\tt ovlMemory} option to the value {\tt 1GB --hashload
 0.8}.  Whitespace is trimmed from both ends.
 
+Lines without an equals sign are interpreted as input fragment
+filenames.  Filenames can be either absolute
+(``/home/work/FRAGS/godzilla.frg'') or relative
+(``../FRAGS/godzilla.frg'').
+
 \subsection{Suggested Configurations}
 
-The following is some hints for running assemblies of various sizes.
+BPW initially disliked the specFile idea -- it was being incorrectly
+used as a global configuration file -- but has come to use it
+exclusively.  Placing all options and files for a single asssembly
+into one file allows for painless restarts, and captures exactly how
+the assembler was run.  He strongly encourages running the assembler
+as:
+\begin{verbatim}
+% runCA -p name -d name -s name.spec
+\end{verbatim}
+where the {\tt name.spec} file contains {\it all} command line
+options.
+
+The following are hints for running assemblies of various sizes.
 Emphasis here is on making the assembly run with acceptable
 computational performance.  It is left as an exercise to the reader to
-decide how to get acceptable algorithmic performance (i.e., a decent
-assembly).
+decide how to get an acceptable assembly.
 
 \subsubsection{Microbes}
 
 No special settings are needed.
 
-\subsubsection{Hybrid Assembly Microbes}
+\subsubsection{Hybrid Assembly of Microbes}
 
 An assembly using both long (ABI 3730) and short (454 FLX) reads is
 termed a ``hybrid'' assembly.  Starting with version 4.2, Celera
@@ -601,6 +617,21 @@ sgeOverlapCorrection={\it string} &
 {\it string} is passed to the {\tt qsub} command used to submit overlap correction jobs to the grid.
 \\
 
+sgePropagateHold={\it string} &
+
+This option can be used to have an SGE job run after SGE-based
+assemblies ade finished.  Launch the runCA command to assemble (be
+sure to set useGrid and scriptOnGrid), set sgePropagateHold to the
+name of the job -- not yet submitted -- that you want to run after
+runCA.  Immediately after launching runCA, submit the 'hold' job,
+using the -N option to set the name of the job.
+
+Example:
+\begin{verbatim}
+% runCA ... sgePropagateHold=afterAsm ....
+% qsub -cwd -j y -o hold.out -N afterAsm qc.sh
+\end{verbatim}
+\\
 \end{longtable}
 
 

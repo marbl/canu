@@ -161,8 +161,9 @@ if ($isContinuation) {
 
 
 #  If not already on the grid, see if we should be on the grid.
+#  N.B. the arg MUST BE undef.
 #
-submitScript("") if (!runningOnGrid());
+submitScript(undef) if (!runningOnGrid());
 
 
 #  Begin
