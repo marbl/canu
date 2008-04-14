@@ -458,12 +458,16 @@ sub setParameters () {
         my $bin = getBinDirectory();
 
         caFailure("Can't find 'gatekeeper' program in $bin.  Possibly incomplete installation.\n") if (! -x "$bin/gatekeeper");
-        caFailure("Can't find 'meryl' program in $bin.  Possibly incomplete installation.\n") if (! -x "$bin/meryl");
-        caFailure("Can't find 'overlap' program in $bin.  Possibly incomplete installation.\n") if (! -x "$bin/overlap");
-        caFailure("Can't find 'unitigger' program in $bin.  Possibly incomplete installation.\n") if (! -x "$bin/unitigger");
-        caFailure("Can't find 'cgw' program in $bin.  Possibly incomplete installation.\n") if (! -x "$bin/cgw");
-        caFailure("Can't find 'consensus' program in $bin.  Possibly incomplete installation.\n") if (! -x "$bin/consensus");
+        caFailure("Can't find 'meryl' program in $bin.  Possibly incomplete installation.\n")      if (! -x "$bin/meryl");
+        caFailure("Can't find 'overlap' program in $bin.  Possibly incomplete installation.\n")    if (! -x "$bin/overlap");
+        caFailure("Can't find 'unitigger' program in $bin.  Possibly incomplete installation.\n")  if (! -x "$bin/unitigger");
+        caFailure("Can't find 'cgw' program in $bin.  Possibly incomplete installation.\n")        if (! -x "$bin/cgw");
+        caFailure("Can't find 'consensus' program in $bin.  Possibly incomplete installation.\n")  if (! -x "$bin/consensus");
         caFailure("Can't find 'terminator' program in $bin.  Possibly incomplete installation.\n") if (! -x "$bin/terminator");
+
+        if ((getGlobal("obtOverlapper") eq "mer") || (getGlobal("ovlOverlapper") eq "mer")) {
+            caFailure("Can't find 'overmerry' program in $bin.  Possibly incomplete installation.\n") if (! -x "$bin/overmerry");
+        }
     }
 
     #  Set the globally accessible error rates.  Adjust them if they
