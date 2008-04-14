@@ -699,7 +699,6 @@ sub submitScript ($) {
 
     my $output = findNextScriptOutputFile();
     my $script = "$output.sh";
-    my $cmd;
 
     open(F, "> $script") or caFailure("Failed to open '$script' for writing\n");
     print F "#!/bin/sh\n";
@@ -729,15 +728,23 @@ sub submitScript ($) {
     my $sge         = getGlobal("sge");
     my $sgeScript   = getGlobal("sgeScript");
     my $sgePropHold = getGlobal("sgePropagateHold");
+    my $qcmd;
+    my $acmd;
 
     if (defined($waitTag)) {
-        $cmd  = "qsub $sge $sgeScript -cwd -N \"runCA_${asm}\" -j y -o $output -hold_jid \"$waitTag\" $script";
-        $cmd .= "&& qalter -hold_jid \"runCA_${asm}\" \"$sgePropHold\"" if (defined($sgePropHold));
+        $qcmd = "qsub $sge $sgeScript -cwd -N \"runCA_${asm}\" -j y -o $output -hold_jid \"$waitTag\" $script";
+        $acmd = "qalter -hold_jid \"runCA_${asm}\" \"$sgePropHold\"" if (defined($sgePropHold));
     } else {
-        $cmd  = "qsub $sge $sgeScript -cwd -N \"runCA_${asm}\" -j y -o $output $script";
+        $qcmd = "qsub $sge $sgeScript -cwd -N \"runCA_${asm}\" -j y -o $output $script";
     }
 
-    system($cmd) and caFailure("Failed to submit script.\n");
+    print STDERR "$qcmd\n";
+
+    system($qcmd) and caFailure("Failed to submit script.\n");
+
+    if (defined($acmd)) {
+        system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$sgePropHold'.\n";
+    }
 
     exit(0);
 }
@@ -755,8 +762,6 @@ sub caFailure ($) {
 #
 sub touch ($) {
     open(F, "> $_[0]") or caFailure("Failed to touch '$_[0]'\n");
-    #print F "$wrk\n";
-    #print F "process id: " . getppid() . "\n";
     close(F);
 }
 
