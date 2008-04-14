@@ -502,19 +502,14 @@ sub setParameters () {
 
 sub printHelp () {
 
-    if ( getGlobal("version")) {
-	my @full_pName = split('/',$0);
-	my $pName = $full_pName[$#full_pName]; 
-	print "$pName $MY_VERSION\n";
-	exit(0);
+    if (getGlobal("version")) {
+        my @full_pName = split('/',$0);
+        my $pName = $full_pName[$#full_pName]; 
+        print "$pName $MY_VERSION\n";
+        exit(0);
     }
 
-    if (getGlobal("help")) {
-        print $HELPTEXT;
-	exit(0);
-    }
-
-    if ( getGlobal("fields") ) {
+    if (getGlobal("fields")) {
         foreach my $k (sort keys %global) {
             if (defined(getGlobal($k))) {
                 print substr("$k                             ", 0, 30) . getGlobal($k) . "\n";
@@ -522,6 +517,11 @@ sub printHelp () {
                 print substr("$k                             ", 0, 30) . "<not defined>\n";
             }
         }
+        exit(0);
+    }
+
+    if (getGlobal("help")) {
+        print $HELPTEXT;
         exit(0);
     }
 }
