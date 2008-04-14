@@ -109,7 +109,7 @@ main(int argc, char **argv) {
 
   for (uint32 elem=firstElem; elem<lastElem; elem++) {
 
-    getFrag(gkp, elem, &fr1, FRAG_S_SEQ);
+    getFrag(gkp, elem, &fr1, FRAG_S_INF);
 
     if (getFragRecordIsDeleted(&fr1))
       continue;
@@ -122,6 +122,8 @@ main(int argc, char **argv) {
       if ((gkpl == NULL) || (gkpl->deletePerfectPrefixes == 0))
         continue;
     }
+
+    getFrag(gkp, elem, &fr1, FRAG_S_SEQ);
 
     char *seq1 = getFragRecordSequence(&fr1);
 
