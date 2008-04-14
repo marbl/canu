@@ -49,6 +49,14 @@ sub createOverlapJobs($) {
         return;
     }
 
+    #  To prevent infinite loops -- stop now if the overlap script
+    #  exists.  This will unfortunately make restarting from transient
+    #  failures non-trivial.
+    #
+    if (! -e "$wrk/$outDir/overlap.sh") {
+        caFailure("overlapper failed.");
+    }
+
     meryl();
 
     #  We make a giant job array for this -- we need to know hashBeg,

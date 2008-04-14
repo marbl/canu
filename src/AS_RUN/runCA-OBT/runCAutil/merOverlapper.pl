@@ -55,6 +55,14 @@ sub merOverlapper($) {
         $merType = "obt";
     }
 
+    #  To prevent infinite loops -- stop now if the overmerry script
+    #  exists.  This will unfortunately make restarting from transient
+    #  failures non-trivial.
+    #
+    if (! -e "$wrk/$outDir/overmerry.sh") {
+        caFailure("mer overlapper failed.");
+    }
+
     system("mkdir $wrk/$outDir")       if (! -d "$wrk/$outDir");
     system("mkdir $wrk/$outDir/seeds") if (! -d "$wrk/$outDir/seeds");
     system("mkdir $wrk/$outDir/olaps") if (! -d "$wrk/$outDir/olaps");
