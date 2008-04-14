@@ -16,6 +16,26 @@ my $cvsdir = "/home/work/nightly/wgs-assembler-cvs";
 #    'ddir' -- properly formatted directory name to do it in.  op ==
 #    checkout creates this directory.  If still supplied, it will
 #    force a checkout from that date.
+#
+#  rsync
+#     update the local repository in 'wgs-assembler-cvs'.
+#
+#  checkout date
+#     Date must be of the form yyyy-mm-dd-hhmm.  This will checkout
+#     the assembler current at that time.  If not present, the current
+#     time is assumed.
+#
+#  build date
+#     Builds the assembler checked out into 'date'.
+#
+#  assemble date specFile ....
+#     Launches runCA on each specFile, running it in directory 'date'.
+#     Each specFile must have a unique name; the assembly is named
+#     after the specFile.
+#
+#  summarize date
+#     Build a summary message for the directory 'date'.
+#
 
 {
     my $oper   = shift @ARGV;
@@ -24,8 +44,7 @@ my $cvsdir = "/home/work/nightly/wgs-assembler-cvs";
     my ($thisdate, $lastdate) = parseDate($ddir);
 
     if ($oper eq "rsync") {
-        print STDERR "NOT RSYNCing UNTIL DEVELOPMENT FINISHED.\n";
-        #runCommand($cvsdir, "rsync -av rsync://wgs-assembler.cvs.sourceforge.net/cvsroot/wgs-assembler/\* .");
+        system("cd $cvsdir && rsync -av rsync://wgs-assembler.cvs.sourceforge.net/cvsroot/wgs-assembler/\* . > rsync.out 2>&1");
     }
 
     if ($oper eq "checkout") {
@@ -36,16 +55,8 @@ my $cvsdir = "/home/work/nightly/wgs-assembler-cvs";
         build($thisdate);
     }
 
-    if ($oper eq "daily") {
-        daily($thisdate);
-    }
-
-    if ($oper eq "weekly") {
-        weekly($thisdate);
-    }
-
-    if ($oper eq "monthly") {
-        monthly($thisdate);
+    if ($oper eq "assemble") {
+        assemble($thisdate, @ARGV);
     }
 
     if (!defined($oper)) {
@@ -109,8 +120,8 @@ sub checkoutAndLog ($$) {
         return;
     }
 
-    runCommand($wrkdir, "mkdir $wrkdir/$thisdate");
-    runCommand($wrkdir, "mkdir $wrkdir/$thisdate/wgs");
+    system("mkdir $wrkdir/$thisdate");
+    system("mkdir $wrkdir/$thisdate/wgs");
 
 
     #  Convert time-names to dates that cvs can use.
@@ -132,8 +143,8 @@ sub checkoutAndLog ($$) {
         }
     }
 
-    runCommand("$wrkdir/$thisdate/wgs", "cvs -r -R -d $cvsdir -z3 co  -N    -D '$thisdatecvs' src > checkout.err 2>&1");
-    runCommand("$wrkdir/$thisdate/wgs", "cvs -r -R -d $cvsdir -z3 log -N -S -d '$lastdatecvs<$thisdatecvs' src > updates-raw");
+    system("cd $wrkdir/$thisdate/wgs && cvs -r -R -d $cvsdir -z3 co  -N    -D '$thisdatecvs' src > checkout.err 2>&1");
+    system("cd $wrkdir/$thisdate/wgs && cvs -r -R -d $cvsdir -z3 log -N -S -d '$lastdatecvs<$thisdatecvs' src > updates-raw");
 
     my $log;
     my $revs;
@@ -215,7 +226,7 @@ sub build ($) {
         return;
     }
 
-    runCommand("$wrkdir/$thisdate/wgs/src", "gmake > make.out.raw 2> make.err.raw");
+    system("cd $wrkdir/$thisdate/wgs/src && gmake > make.out.raw 2> make.err.raw");
 
     my %lines;
 
@@ -235,85 +246,57 @@ sub build ($) {
 
 
 
-sub daily ($) {
-    my $thisdate = shift @_;
+sub assemble ($@) {
+    my $thisdate  = shift @_;
+    my $cwd       = $ENV{'PWD'};
+    my $holds;
 
-    print STDERR "Submitting daily for $wrkdir/$thisdate\n";
-}
+    #  Script that will run (in the assembly directory) when an assembly is finished.
+    #
+    open(F, "> $wrkdir/$thisdate/assembly-done.sh");
+    print F "#!/bin/sh\n";
+    print F "ls -l\n";
+    print F "ls -ld */*\n";
+    close(F);
 
+    #  Script that will run (in the main directory) when all assemblies are finished.
+    #
+    open(F, "> $wrkdir/$thisdate/summarize.sh");
+    print F "#!/bin/sh\n";
+    print F "ls -l\n";
+    print F "ls -ld */*\n";
+    close(F);
 
+    foreach my $s (@_) {
+        my ($n, undef) = split '\.', $s;
 
-sub weekly ($) {
-    my $thisdate = shift @_;
+        print STDERR "----------------------------------------\n";
+        print STDERR "Submitting assembly '$n'.\n";
 
-    print STDERR "Submitting weekly for $wrkdir/$thisdate\n";
-}
+        my $arch;
 
+        #  Ripped from runCA/util.pl
+        my $syst = `uname -s`;    chomp $syst;  #  OS implementation
+        my $arch = `uname -m`;    chomp $arch;  #  Hardware platform
+        my $name = `uname -n`;    chomp $name;  #  Name of the system
 
+        $arch = "amd64"  if ($arch eq "x86_64");
+        $arch = "ppc"    if ($arch eq "Power Macintosh");
+        #  end of rip.
 
-sub monthly ($) {
-    my $thisdate = shift @_;
+        system("mkdir $wrkdir/$thisdate/$n");
+        system("cd $wrkdir/$thisdate    && perl $wrkdir/$thisdate/wgs/$syst-$arch/bin/runCA -p $n -d $n -s $cwd/$n.specFile sgePropagateHold=ca$n");
+        system("cd $wrkdir/$thisdate/$n && qsub -b n -cwd -j y -o assembly-done.out -hold_jid runCA_$n -N ca$n ../assembly-done.sh");
 
-    print STDERR "Submitting monthly for $wrkdir/$thisdate\n";
+        if (defined($holds)) {
+            $holds .= ",ca$n";
+        } else {
+            $holds  = "ca$n";
+        }
+    }
+
+    system("cd $wrkdir/$thisdate && qsub -b n -cwd -j y -o summarize.out -hold_jid $holds -N ca$thisdate summarize.sh");
 }
 
 
 exit(0);
-
-
-
-#  Utility to run a command and check the exit status, report time used.
-#
-sub runCommand ($$) {
-    my $dir = shift @_;
-    my $cmd = shift @_;
-
-    my $t = localtime();
-    my $d = time();
-    print STDERR "----------------------------------------START $t\n$cmd\n";
-
-    my $rc = 0xffff & system("cd $dir && $cmd");
-
-    $t = localtime();
-    print STDERR "----------------------------------------END $t (", time() - $d, " seconds)\n";
-
-    #  Pretty much copied from Programming Perl page 230
-
-    return(0) if ($rc == 0);
-
-    #  Bunch of busy work to get the names of signals.  Is it really worth it?!
-    #
-    my @signame;
-    if (defined($Config{sig_name})) {
-        my $i = 0;
-        foreach my $n (split('\s+', $Config{sig_name})) {
-            $signame[$i] = $n;
-            $i++;
-        }
-    }
-
-    my $error = "ERROR: $cmd\nERROR: Command failed with ";
-
-    if ($rc == 0xff00) {
-        $error .= "$!\n";
-    } else {
-        if ($rc & 0x80) {
-            $error .= "coredump from ";
-        }
-    
-        if ($rc > 0x80) {
-            $rc >>= 8;
-        }
-        $rc &= 127;
-
-        if (defined($signame[$rc])) {
-            $error .= "signal $signame[$rc] ($rc)\n";
-        } else {
-            $error .= "signal $rc\n";
-        }
-    }
-
-    print STDERR $error;
-
-    return(1);
-}
