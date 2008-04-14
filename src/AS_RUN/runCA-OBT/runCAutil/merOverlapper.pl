@@ -59,9 +59,7 @@ sub merOverlapper($) {
     #  exists.  This will unfortunately make restarting from transient
     #  failures non-trivial.
     #
-    if (! -e "$wrk/$outDir/overmerry.sh") {
-        caFailure("mer overlapper failed.");
-    }
+    caFailure("mer overlapper failed.") if (-e "$wrk/$outDir/overmerry.sh");
 
     system("mkdir $wrk/$outDir")       if (! -d "$wrk/$outDir");
     system("mkdir $wrk/$outDir/seeds") if (! -d "$wrk/$outDir/seeds");

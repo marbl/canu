@@ -53,9 +53,7 @@ sub createOverlapJobs($) {
     #  exists.  This will unfortunately make restarting from transient
     #  failures non-trivial.
     #
-    if (! -e "$wrk/$outDir/overlap.sh") {
-        caFailure("overlapper failed.");
-    }
+    caFailure("overlapper failed.") if (-e "$wrk/$outDir/overlap.sh");
 
     meryl();
 
