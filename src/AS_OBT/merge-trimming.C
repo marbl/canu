@@ -202,7 +202,7 @@ main(int argc, char **argv) {
         }
 
         if (logFile)
-          fprintf(logFile, "%s\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps)\n",
+          fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps)\n",
                   AS_UID_toString(uid), lid, qltL0, qltR0, l, r);
       } else {
         //  What?  No intersect...too small?  Delete it!
@@ -212,10 +212,10 @@ main(int argc, char **argv) {
 
         if (logFile)
           if (l < r)
-            fprintf(logFile, "%s\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps, intersection too short, deleted)\n",
+            fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps, intersection too short, deleted)\n",
                     AS_UID_toString(uid), lid, qltL0, qltR0, qltL1, qltR1);
           else
-            fprintf(logFile, "%s\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps, no intersection, deleted)\n",
+            fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps, no intersection, deleted)\n",
                     AS_UID_toString(uid), lid, qltL0, qltR0, qltL1, qltR1);
       }
 
@@ -243,7 +243,7 @@ main(int argc, char **argv) {
     //
     if ((gklr) && (gklr->doNotOverlapTrim)) {
       if (logFile)
-        fprintf(logFile, "%s\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (immutable)\n",
+        fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (immutable)\n",
                 AS_UID_toString(uid), lid, qltLQ1, qltRQ1, qltLQ1, qltRQ1);
     } else {
       uint32 min5   = atoi(W[1]) + qltLQ1;
@@ -444,7 +444,7 @@ main(int argc, char **argv) {
         stats[19]++;
 
         if (logFile)
-          fprintf(logFile, "%s\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (deleted, too short)\n",
+          fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (deleted, too short)\n",
                   AS_UID_toString(uid), iid, qltL, qltR, left, right);
 
         if (doModify)
@@ -453,7 +453,7 @@ main(int argc, char **argv) {
         stats[20]++;
 
         if (logFile)
-          fprintf(logFile, "%s\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n",
+          fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n",
                   AS_UID_toString(uid), iid, qltL, qltR, left, right);
 
         if (doModify) {
