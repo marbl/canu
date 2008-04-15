@@ -28,25 +28,7 @@
 qualityLookup   qual;
 
 
-//  Takes a fragRecord, returns clear ranges for some quality
-//  threshold.  Higher level than I wanted, but it obscures
-//  everything, and is exactly the interface that this and
-//  mergeTrimming.C want.
-//
-void
-doTrim(fragRecord *fr, double minQuality, uint32 &left, uint32 &right) {
-  static double  qltD[AS_READ_MAX_LEN];
-  char          *qltC   = getFragRecordQuality(fr);
-  uint32         qltLen = getFragRecordQualityLength(fr);
-
-  for (uint32 i=0; i<qltLen; i++)
-    qltD[i] = qual.lookupChar(qltC[i]);
-
-  findGoodQuality(qltD, qltLen, minQuality, left, right);
-}
-
-
-
+static
 void
 findGoodQuality(double  *qltD,
                 uint32   qltLen,
@@ -224,41 +206,25 @@ findGoodQuality(double  *qltD,
       }
     }
   }
-
-#if 0
-  //  Statistics - do we care?  Not really.  It's mostly for debugging stuff.
-  //  (the variables should be globals...)
-  //
-  uint32   overlapA = 0;  //  The winning style of overlap
-  uint32   overlapB = 0;
-  uint32   overlapC = 0;
-  uint32   overlapD = 0;
-
-  switch (winningStyle) {
-    case 0:
-      overlapA++;
-      break;
-    case 1:
-      fprintf(stderr, "overlapB\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n",
-              f[winningFPos].start, f[winningFPos].end,
-              r[winningRPos].start, r[winningRPos].end);
-      overlapB++;
-      break;
-    case 2:
-      fprintf(stderr, "overlapC\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n",
-              f[winningFPos].start, f[winningFPos].end,
-              r[winningRPos].start, r[winningRPos].end);
-      overlapC++;
-      break;
-    case 3:
-      fprintf(stderr, "overlapD\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n",
-              f[winningFPos].start, f[winningFPos].end,
-              r[winningRPos].start, r[winningRPos].end);
-      overlapD++;
-      break;
-    default:
-      fprintf(stderr, "OVERLAP HAD NO WINNING STYLE?\n");
-      break;
-  }
-#endif
 }
+
+
+
+//  Takes a fragRecord, returns clear ranges for some quality
+//  threshold.  Higher level than I wanted, but it obscures
+//  everything, and is exactly the interface that this and
+//  mergeTrimming.C want.
+//
+void
+doTrim(fragRecord *fr, double minQuality, uint32 &left, uint32 &right) {
+  static double  qltD[AS_READ_MAX_LEN];
+  char          *qltC   = getFragRecordQuality(fr);
+  uint32         qltLen = getFragRecordQualityLength(fr);
+
+  for (uint32 i=0; i<qltLen; i++)
+    qltD[i] = qual.lookupChar(qltC[i]);
+
+  findGoodQuality(qltD, qltLen, minQuality, left, right);
+}
+
+

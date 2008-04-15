@@ -39,11 +39,6 @@ void  doTrim(fragRecord *fr,
              uint32     &left,
              uint32     &right);
 
-void  findGoodQuality(double *qltD,
-                      uint32  qltLen,
-                      double  minQuality,
-                      uint32 &qltL,
-                      uint32 &qltR);
 
 //  A simple initialized array -- performs a quality letter -> quality
 //  value translation.
@@ -60,12 +55,8 @@ public:
   ~qualityLookup() {
   };
 
-  double lookupChar(char x) {
-    return(q[(uint32)x]);
-  };
-  double lookupNumber(uint32 x) {
-    return(q['0' + x]);
-  };
+  double lookupChar(char x)      { return(q[(uint32)x]);  };
+  double lookupNumber(uint32 x)  { return(q['0' + x]);    };
 
 private:
   double   q[255];
