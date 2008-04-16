@@ -34,15 +34,15 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.39 2008-04-08 22:23:01 brianwalenz Exp $
- * $Revision: 1.39 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.40 2008-04-16 10:26:27 brianwalenz Exp $
+ * $Revision: 1.40 $
  */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.39 2008-04-08 22:23:01 brianwalenz Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.40 2008-04-16 10:26:27 brianwalenz Exp $";
 
 #include <set>
 #include <iostream>
@@ -228,7 +228,6 @@ namespace AS_BOG{
                                      const UnitigBreakPoint &);
 
         UnitigVector* breakUnitigAt( Unitig *, FragmentEnds &);
-        // Single call point for breakUnitigAt(), saves new unitigs in last arg
         void accumulateSplitUnitigs( UnitigsIter, FragmentEnds *, UnitigVector *);
 
         // Counts status of best edges internal to a unitig

@@ -37,11 +37,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.50 2008-04-08 18:59:40 brianwalenz Exp $
- * $Revision: 1.50 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.51 2008-04-16 10:26:27 brianwalenz Exp $
+ * $Revision: 1.51 $
  */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.50 2008-04-08 18:59:40 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.51 2008-04-16 10:26:27 brianwalenz Exp $";
 
 //  System include files
 #include<iostream>
@@ -324,40 +324,7 @@ namespace AS_BOG{
 
     // Frag Store related data structures
 
-    uint16 BestOverlapGraph::fragLen( iuid iid ) {
-        // If fragLength is not already cached, compute it after reading it
-        //   in from the fragStore, store it and return it to the caller.
-        //if (BestOverlapGraph::fragLength[ iid ] == std::numeric_limits<uint16>::max()) 
-        //    fprintf(stderr, "NULL fragLen for %d\n",iid);
-        return BestOverlapGraph::fragLength[ iid ];
-    }
-
     ///////////////////////////////////////////////////////////////////////////
-
-    uint16 BestOverlapGraph::olapLength(iuid a_iid, iuid b_iid,
-                                        short a_hang, short b_hang ) {
-        // Computes overlap length given the amount of overhang in the
-        //   overlap record and fragment length (which is not in the
-        //   overlap record).
-        uint16 alen = fragLen(a_iid);
-        if (a_hang < 0) {
-            if (b_hang < 0 )
-                return alen + b_hang;
-            else { 
-                uint16 blen = fragLen(b_iid);
-                return blen + a_hang - b_hang; // spur or containment
-            }
-
-        } else {
-            if (b_hang < 0 )
-                return alen + b_hang - a_hang; // spur or containment
-            else
-                return alen - a_hang;
-        }
-    }
-    uint16 BestOverlapGraph::olapLength(const OVSoverlap& olap) {
-        return olapLength(olap.a_iid, olap.b_iid, olap.dat.ovl.a_hang, olap.dat.ovl.b_hang);
-    }
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -423,63 +390,27 @@ namespace AS_BOG{
         return false;
     }
     void BestOverlapGraph::scoreContainment(const OVSoverlap& olap) {
-        // This function builds the Containment graph by considering the specified
-        //   overlap record.  It's important to remember that the overlaps
-        //   must be passed in in sorted order of fragment A's iuid.  Also,
-        //   it is also very important that overlaps are doubly listed, ie.
-        //   if an overlap exists, an olap must be passed in where A overlaps with
-        //   B and an olap must later be passed in where B overlaps A.
-        //
-        // It calls the virtual score function to score the overlap,
-        //   determines whether the overlap is containment or dovetailing,
-        //   then stores the overlap in the BestOverlapGraph member variables.
 
-        // Compute the score for this overlap based on the virtual score function
-        float newScr = scoreOverlap(olap);
-
-        // If the score is 0, the overlap doesn't pass the scoring criteria at all
-        //   so don't store the overlap whether or not it's dovetailing or containment.
-        if ( newScr <= 0 )
+        // in the case of no hang, make the lower frag the container
+        if ((olap.dat.ovl.a_hang == 0) &&
+            (olap.dat.ovl.b_hang == 0) &&
+            (olap.a_iid > olap.b_iid))
             return;
 
-        // A contains B
-        if ( olap.dat.ovl.a_hang >= 0 && olap.dat.ovl.b_hang <= 0 ) {
-            //handle a contains b
-            // in the case of no hang, make the lower frag the container
-            if (olap.dat.ovl.a_hang == 0 && olap.dat.ovl.b_hang == 0 && olap.a_iid > olap.b_iid)
+        //  We only care if A contains B.
+
+        if ((olap.dat.ovl.a_hang >= 0) && (olap.dat.ovl.b_hang <= 0)) {
+            BestContainment *best = getBestContainer(olap.b_iid);
+
+            float newScr = scoreOverlap(olap);
+
+            if (newScr <= 0)
                 return;
 
-            short alignLen = olapLength( olap );
-            uint16 afrgLen = fragLen( olap.a_iid );
-            uint16 bfrgLen = fragLen( olap.b_iid );
-            if ( alignLen + 50 < (afrgLen < bfrgLen ? afrgLen:bfrgLen )) {
-                // spur, not containment
-                std::cout << "Spur "<< olap.a_iid <<" "<<olap.b_iid <<
-                    " olapLen "<< alignLen <<" alen "<< afrgLen <<
-                    " blen "<< bfrgLen <<std::endl;
-                return;
-            } 
-
-            //  Get the pointer to the container for the containee, B, if it exists
-            BestContainment *best = getBestContainer( olap.b_iid );
-
-            //  Set the containee, B, to the container, A, if any of the following conditions exist:
-            //     1.) a containment relationship/record doesn't exist
-            //     2.) the new relationship has a higher score
-            //     3.) Container fragment ID is nominally less than the existing container ID
-            if (NULL == best || newScr > best->contain_score || newScr == best->contain_score
-                && fragLen(best->container) < fragLen(olap.a_iid) ) {
-              //std::cout << olap.a_iid << " contains " << olap.b_iid <<" "<< fragLen(olap.a_iid) << std::endl; 
-              setBestContainer( olap, newScr );
+            if ((NULL == best) ||
+                (newScr > best->contain_score)) {
+              setBestContainer(olap, newScr);
             }
-
-            // B contains A, this code is commented out/unnecessary because the overlap
-            //   recorded is listed twice in the overlap store.
-        } else if ( olap.dat.ovl.a_hang <= 0 && olap.dat.ovl.b_hang >= 0 ) {
-            //handle b contains a
-             
-            //  Dove tailing overlap
-        } else {
         }
     }
     void BestOverlapGraph::scoreEdge(const OVSoverlap& olap) {
@@ -509,58 +440,54 @@ namespace AS_BOG{
         //
         //  That looks wrong.
         //
-        if (isContained( olap.a_iid ) ) {
-            if ( ( olap.dat.ovl.a_hang < 0 && olap.dat.ovl.b_hang < 10) ||
-                 ( olap.dat.ovl.a_hang > 0 && olap.dat.ovl.b_hang > -10) )
-                addContainEdge( olap.a_iid, olap.b_iid );
+        if (isContained(olap.a_iid)) {
+            if ((olap.dat.ovl.a_hang < 0 && olap.dat.ovl.b_hang < 10) ||
+                (olap.dat.ovl.a_hang > 0 && olap.dat.ovl.b_hang > -10) )
+                addContainEdge(olap.a_iid, olap.b_iid);
             return;
         }
 
-        if (isContained( olap.b_iid ) )
+        //  Skip contained fragments.
+        if (isContained(olap.a_iid) || isContained(olap.b_iid))
             return;
 
-        // Compute the score for this overlap based on the virtual score function
+        //  Skip containment overlaps.  Can this happen?  Yup.  How?
+        //  The overlap could be above our allowed error.
+        //
+        if (((olap.dat.ovl.a_hang >= 0) && (olap.dat.ovl.b_hang <= 0)) ||
+            ((olap.dat.ovl.a_hang <= 0) && (olap.dat.ovl.b_hang >= 0)))
+            return;
+
         float newScr = scoreOverlap(olap);
 
-        // If the score is 0, the overlap doesn't pass the scoring criteria at all
-        //   so don't store the overlap whether or not it's dovetailing or containment.
+        //  If the score is 0, the overlap doesn't pass the scoring
+        //  criteria at all so don't store the overlap whether or not
+        //  it's dovetailing or containment.
         if ( newScr <= 0 )
             return;
 
-        // A contains B
-        if ( olap.dat.ovl.a_hang >= 0 && olap.dat.ovl.b_hang <= 0 ) {
-            //handle a contains b
+        //  Dove tailing overlap
 
-            // B contains A, this code is commented out/unnecessary because the overlap
-            //   recorded is listed twice in the overlap store.
-        } else if ( olap.dat.ovl.a_hang <= 0 && olap.dat.ovl.b_hang >= 0 ) {
-            //handle b contains a
-             
-            //  Dove tailing overlap
-        } else {
-            // no containment, so score
+        //  Update the in degree for what A overlaps with if the current
+        //  A fragment is different than the previous one.
+        checkForNextFrag(olap);
 
-            // Update the in degree for what A overlaps with if the current
-            //   A fragment is different than the previous one.
-            checkForNextFrag(olap);
+        BestEdgeOverlap *best = getBestEdgeOverlap( olap.a_iid, AEnd(olap));
+        short olapLen = olapLength(olap);
 
-            BestEdgeOverlap *best = getBestEdgeOverlap( olap.a_iid, AEnd(olap));
-            short olapLen = olapLength(olap);
+        // Store the overlap if:
+        //   1.)  The score is better than what is already in the graph
+        //   2.)  If the scores are identical, the one with the longer length
+        //
+        // Since the order of how the overlaps are read in from the overlap
+        //   store are by A's increasing iuid, by default, if the score
+        //   and length are the same, the iuid of the lower value will be
+        //   kept.
 
-            // Store the overlap if:
-            //   1.)  The score is better than what is already in the graph
-            //   2.)  If the scores are identical, the one with the longer length
-            //
-            // Since the order of how the overlaps are read in from the overlap
-            //   store are by A's increasing iuid, by default, if the score
-            //   and length are the same, the iuid of the lower value will be
-            //   kept.
-
-            if (newScr > best->score || newScr == best->score &&
-                olapLen > bestLength ) {
-                setBestEdgeOverlap( olap, newScr );
-                bestLength = olapLen;
-            }
+        if ((newScr > best->score) ||
+            ((newScr == best->score) && (olapLen > bestLength))) {
+            setBestEdgeOverlap( olap, newScr );
+            bestLength = olapLen;
         }
     }
 
@@ -581,20 +508,6 @@ namespace AS_BOG{
 		std::endl;
 	}
     }
-#if 0
-    float LongIdentWeighted::scoreOverlap(const OVSoverlap& olap) {
-    // Computes the score for a Longest Edge BOG based on overlap length but
-    //   after applying an an error rate cutoff.
-
-        if (olap.dat.ovl.orig_erate > consensusCutoff )
-            return 0;
-        if (olap.dat.ovl.corr_erate > mismatchCutoff )
-            return 0;
-
-        short olapLen = olapLength(olap);
-        return(olapLen / sqrt( 1 + olap.dat.ovl.corr_erate));
-    }
-#endif
 
     ///////////////////////////////////////////////////////////////////////////
 

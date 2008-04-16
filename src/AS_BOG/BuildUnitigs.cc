@@ -30,11 +30,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.39 2008-04-08 22:21:15 brianwalenz Exp $
- * $Revision: 1.39 $
+ * $Id: BuildUnitigs.cc,v 1.40 2008-04-16 10:26:27 brianwalenz Exp $
+ * $Revision: 1.40 $
  */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.39 2008-04-08 22:21:15 brianwalenz Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.40 2008-04-16 10:26:27 brianwalenz Exp $";
 
 //  System include files
 
@@ -171,24 +171,16 @@ main (int argc, char * argv []) {
     
     
     // must be before creating the scoring objects, because it sets their size
-    //   AS_BOG::BOG_Runner bogRunner(getLastElemFragStore() need to fix to get size of gkpStore;
-    //AS_BOG::BOG_Runner bogRunner(AS_OVS_lastFragInStore(ovlStore));
     AS_BOG::BOG_Runner bogRunner(numFrgsInGKP);
 
     // Initialize our three different types of Best Overlap Graphs
-    //AS_BOG::ErateScore erScore;
-    //AS_BOG::LongestEdge lenScore;
-
-    int i;
-    for(i=0; i < erates.size(); i++) {
-       //bogRunner.push_back( new AS_BOG::LongIdentWeighted( erates[i] ) );
+    for(int i=0; i < erates.size(); i++)
         bogRunner.push_back( new AS_BOG::BestOverlapGraph( erates[i] ) );
-    }
+
     bogRunner.processOverlapStream(ovlStore, GKP_Store_Path);
 
-    ////////////////////////////////////////////////////////////////////////////
 
-    for(i=0; i<bogRunner.size(); i++){
+    for(int i=0; i<bogRunner.size(); i++){
         //AS_BOG::ChunkGraph *cg = new AS_BOG::ChunkGraph();
 	AS_BOG::PromiscuousChunkGraph *cg = new AS_BOG::PromiscuousChunkGraph();
 

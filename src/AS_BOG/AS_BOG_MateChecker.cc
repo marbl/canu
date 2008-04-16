@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.50 2008-04-09 00:45:58 brianwalenz Exp $
- * $Revision: 1.50 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.51 2008-04-16 10:26:27 brianwalenz Exp $
+ * $Revision: 1.51 $
  */
 
 #include <math.h>
@@ -324,6 +324,13 @@ namespace AS_BOG{
         if ( ! BogOptions::useGkpStoreLibStats )
             computeGlobalLibStats( tigGraph );
 
+        fprintf(stderr, "==> MOVE CONTAINS #1\n");
+        moveContains(tigGraph);
+
+        fprintf(stderr, "==> SPLIT DISCONTINUOUS #1\n");
+        splitDiscontinuousUnitigs(tigGraph);
+
+        fprintf(stderr, "==> SPLIT BAD MATES\n");
         for (int  ti=0; ti<tigGraph.unitigs->size(); ti++) {
             UnitigsIter tig = tigGraph.unitigs->begin() + ti;
 
@@ -335,8 +342,11 @@ namespace AS_BOG{
             delete breaks;
         }
 
-        moveContains(tigGraph);
+        fprintf(stderr, "==> SPLIT DISCONTINUOUS #1\n");
         splitDiscontinuousUnitigs(tigGraph);
+
+        fprintf(stderr, "==> MOVE CONTAINS #1\n");
+        moveContains(tigGraph);
     }
 
 
@@ -379,8 +389,14 @@ namespace AS_BOG{
 
                 if        ((fragIter->contained == 0) || (bestcont == NULL)) {
                     //  Not contained.  Leave the fragment here.
-                    frags[fragsLen++] = *fragIter;
 
+                    if (fragIter->contained)
+                        fprintf(stderr, "WARNING: frag %d is contained with no bestcontainer?!\n", fragIter->ident);
+                    assert(fragIter->contained == 0);
+
+                    frags[fragsLen] = *fragIter;
+                    frags[fragsLen].contained = 0;
+                    fragsLen++;
                 } else if ((thisUnitig->fragIn(fragIter->contained) == thisUnitig->id()) ||
                            (thisUnitig->fragIn(bestcont->container) == thisUnitig->id())) {
 
@@ -391,13 +407,15 @@ namespace AS_BOG{
                     //  isBad    -> and the mate is unhappy.
                     //
                     if ((mloc.id1 != 0) && (mloc.isBad == true)) {
-                        Unitig        *sing = new Unitig;
+                        Unitig        *sing = new Unitig(true);
                         DoveTailNode   frag = *fragIter;  //  To make it read/write
 
                         fprintf(stderr, "Ejecting unhappy contained fragment %d from unitig %d into new unitig %d\n",
                                 frag.ident, thisUnitig->id(), sing->id());
 
-                        sing->addFrag(*fragIter, -MIN(fragIter->position.bgn, fragIter->position.end));
+                        frag.contained = 0;
+
+                        sing->addFrag(frag, -MIN(frag.position.bgn, frag.position.end), true);
                         tigGraph.unitigs->push_back(sing);
                         thisUnitig = (*tigGraph.unitigs)[ti];  //  Reset the pointer; unitigs might be reallocated
                     } else {
@@ -406,47 +424,70 @@ namespace AS_BOG{
                     }
 
                 } else {
-                    //  Frag is contained, and his container is not here.  If happy, leave him here, but mark
-                    //  as not contained.  Otherwise, move to container.
+                    //  Frag is contained, and his container is not
+                    //  here.  If happy, leave him here if there is an
+                    //  overlap to some other fragment, but mark as
+                    //  not contained.
                     //
+                    //  If not happy, or no overlap found above, move
+                    //  to the unitig of his container.
+                    //
+                    bool  hasOverlap = false;
+
                     if ((mloc.id1 != 0) && (mloc.isBad == false)) {
+                        //  Mate is happy.
+
+                        for (int ff=0; (hasOverlap == false) && (ff<fragsLen); ff++)
+                            hasOverlap = tigGraph.bog_ptr->containHaveEdgeTo(fragIter->ident, frags[ff].ident);
+
+                        if (fragsLen == 0)
+                            hasOverlap = true;
+                    }
+
+                    if (hasOverlap) {
+                        //  Overlap exists to another fragment, OR the
+                        //  fragment is the first one.  Add it to this
+                        //  unitig.
+                        //
                         frags[fragsLen] = *fragIter;
                         frags[fragsLen].contained = 0;
                         fragsLen++;
                     } else {
+                        //  Mate is not happy, or is happy but has no
+                        //  overlap anymore.  Move him to the unitig
+                        //  of the container.
+
 #warning DANGEROUS assume unitig is at id-1 in vector
                         Unitig         *thatUnitig = tigGraph.unitigs->at(thisUnitig->fragIn(bestcont->container) - 1);
                         DoveTailNode    containee  = *fragIter;  //  To make it read/write
-                        int             offset     = 0;
 
                         assert(thatUnitig->id() == thisUnitig->fragIn(bestcont->container));
 
                         fprintf(stderr, "Moving contained fragment %d from unitig %d to be with its container %d in unitig %d\n",
                                 containee.ident, thisUnitig->id(), bestcont->container, thatUnitig->id());
 
-                        //  Apparently, no way to retrieve a single fragment from a unitig without
-                        //  searching for it.
+                        //  Apparently, no way to retrieve a single
+                        //  fragment from a unitig without searching
+                        //  for it.
                         //
-                        for (DoveTailIter it=thatUnitig->dovetail_path_ptr->begin(); it != thatUnitig->dovetail_path_ptr->end(); it++) {
+                        //  Orientation should be OK.  All we've done
+                        //  since the unitig was built was to split at
+                        //  various spots.  But we need to adjust the
+                        //  location of the read.
+                        //
+                        for (DoveTailIter it=thatUnitig->dovetail_path_ptr->begin(); it != thatUnitig->dovetail_path_ptr->end(); it++)
                             if (it->ident == bestcont->container) {
-                                offset = it->position.bgn + bestcont->a_hang;
-                            }
-                        }
+                                int offset = MIN(it->position.bgn, it->position.end) + bestcont->a_hang;
+                                int adj    = MIN(containee.position.bgn, containee.position.end);
 
-                        //  Adjust fragment to start of unitig.
-                        {
-                            int adj = MIN(containee.position.bgn, containee.position.end);
-                            containee.position.end -= adj;
-                            containee.position.bgn -= adj;
-                        }
+                                containee.position.bgn += offset - adj;
+                                containee.position.end += offset - adj;
+                            }
 
                         //  Make sure it's marked as contained.
                         containee.contained = bestcont->container;
 
-                        //  Orientation should be OK.  All we've  done since the
-                        //  unitig was built was to split at various spots.
-
-                        thatUnitig->addFrag(containee, offset);
+                        thatUnitig->addFrag(containee, 0, true);
 
                         //  Bump that new fragment up to be in the correct spot -- we can't use the
                         //  sort() method on Unitig, since we lost the containPartialOrder.
@@ -481,14 +522,20 @@ namespace AS_BOG{
 
                 thisUnitig->dovetail_path_ptr = new DoveTailPath;
 
-                int splitOffset = -MIN(frags[0].position.bgn, frags[0].position.end);
-
                 //  No need to resort.  Offsets only need adjustment if
                 //  the first fragment is thrown out.  If not,
                 //  splitOffset will be zero.
+                //
+                int splitOffset = -MIN(frags[0].position.bgn, frags[0].position.end);
+
+                //  This is where we clean up from the splitting not
+                //  dealing with contained fragments -- we force the
+                //  first frag to be uncontained.
+                //
+                frags[0].contained = 0;
 
                 for (int i=0; i<fragsLen; i++)
-                    thisUnitig->addFrag(frags[i], splitOffset);
+                    thisUnitig->addFrag(frags[i], splitOffset, true);
             }
 
             delete [] frags;
@@ -532,14 +579,17 @@ namespace AS_BOG{
                 //  we don't have that, split off the fragments we've seen.
                 //
                 if (maxEnd - 10 < MIN(fragIter->position.bgn, fragIter->position.end)) {
-                    Unitig *dangler = new Unitig;
+                    Unitig *dangler = new Unitig(true);
 
                     fprintf(stderr, "Dangling Fragments in unitig %d -> move them to unitig %d\n", unitig->id(), dangler->id());
 
                     int splitOffset = -MIN(splitFrags[0].position.bgn, splitFrags[0].position.end);
 
+                    //  This should already be true, but we force it still
+                    splitFrags[0].contained = 0;
+
                     for (int i=0; i<splitFragsLen; i++)
-                        dangler->addFrag(splitFrags[i], splitOffset);
+                        dangler->addFrag(splitFrags[i], splitOffset, true);
 
                     splitFragsLen = 0;
 
@@ -566,8 +616,11 @@ namespace AS_BOG{
 
                 int splitOffset = -MIN(splitFrags[0].position.bgn, splitFrags[0].position.end);
 
+                //  This should already be true, but we force it still
+                splitFrags[0].contained = 0;
+
                 for (int i=0; i<splitFragsLen; i++)
-                    unitig->addFrag(splitFrags[i], splitOffset);
+                    unitig->addFrag(splitFrags[i], splitOffset, true);
             }
 
             delete [] splitFrags;

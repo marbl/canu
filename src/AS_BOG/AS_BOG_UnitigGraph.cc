@@ -34,11 +34,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.78 2008-04-08 22:23:01 brianwalenz Exp $
- * $Revision: 1.78 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.79 2008-04-16 10:26:27 brianwalenz Exp $
+ * $Revision: 1.79 $
  */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.78 2008-04-08 22:23:01 brianwalenz Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.79 2008-04-16 10:26:27 brianwalenz Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -344,9 +344,8 @@ namespace AS_BOG{
             else
                 assert( bestEdge == threePrime );
 
-            int offset  = 1 + tigEnd - BestOverlapGraph::olapLength( beginId,
-                                                                     joiner, bestEdge->ahang, bestEdge->bhang
-                                                                     );
+            int offset  = 1 + tigEnd - BestOverlapGraph::olapLength(beginId, joiner, bestEdge->ahang, bestEdge->bhang);
+
             if (!reverse && joiner == first.ident) {
                 DoveTailPath::iterator addIter = tigToAdd->dovetail_path_ptr->begin();
                 for(;addIter != tigToAdd->dovetail_path_ptr->end(); addIter++) {
@@ -637,7 +636,7 @@ namespace AS_BOG{
 
         // store new unitigs, remove the original unsplit unitig.
         //
-        if ((newUs != NULL) && (newUs->empty() == false)) {
+        if (newUs != NULL) {
             delete *tig;
             *tig = NULL;
             splits->insert(splits->end(), newUs->begin(), newUs->end());
@@ -1042,12 +1041,12 @@ namespace AS_BOG{
         if ( frgEnd > _length)
             _length = frgEnd;
 
-        if ((node.contained) && (_inUnitig[node.contained] != id()))
-            node.contained = NULL_FRAG_ID;
+        //if ((node.contained) && (_inUnitig[node.contained] != id()))
+        //    node.contained = NULL_FRAG_ID;
 
         dovetail_path_ptr->push_back(node);
 
-        if (report)
+        if (report || true)
             fprintf(stderr, "Added frag %d to unitig %d at %d,%d\n", node.ident, id(), node.position.bgn, node.position.end);
     }
 
@@ -1316,147 +1315,166 @@ namespace AS_BOG{
 
     //////////////////////////////////////////////////////////////////////////////
     //Recursively place all contains under this one into the FragmentPositionMap
+    //
+    // Compute assuming that containee is the same orientation as container
+    //	if(cntnr_intvl.begin < cntnr_intvl.end)
+    //
+    // Container is in forward direction
+    //
+    // |=========F0============|
+    // 0          |=============CER=============>|
+    //                    |=====CEE=====>|
+    //
+    // |---Cro----|
+    //            |--Ceo--|
+    // |-------Cep--------|
+    //
+    // Cro = container offset from beginning of unitig = cntnr_intvl.begin
+    // Ceo = containee offset from 5' end of container = cntee->olap_offset
+    // Cep = containee offset from beginning of unitig = cntee_intvl.begin
+    // CEE fragment can be from either orientation since
+    //   definition of olap_offset is based on 3' origin.
+    //
+    // else if(cntnr_intvl.begin > cntnr_intvl.end)
+    //
+    // Container is in reverse direction
+    //
+    // |=========F0============|
+    // 0          |<============CER==============|
+    //                    |<====CEE======|
+    //
+    // |---Cro----|
+    //                                   |--Ceo--|
+    // |-------Cep-----------------------|
+    //
+    // Cro = container offset from beginning of unitig = cntnr_intvl.end
+    // Ceo = containee offset from 5' end of container = cntee->olap_offset
+    // Cep = containee offset from beginning of unitig = cntee_intvl.end
+    // CEE fragment can be from either orientation since
+    //   definition of olap_offset is based on 3' origin.
 
-    void Unitig::placeContains(const ContainerMap* cntnrp, BestContainmentMap *bestCtn,
-                               const iuid container, const SeqInterval intvl, const int level) {
+    void Unitig::placeContains(const ContainerMap* cntnrp,
+                               BestContainmentMap *bestCtn,
+                               const iuid containerId,
+                               const SeqInterval containerPos,
+                               const int level) {
         if (cntnrp->size() == 0)
             return;
 
-        ContainerMap::const_iterator ctmp_itr = cntnrp->find( container );
-        if (ctmp_itr != cntnrp->end() ) {
+        ContainerMap::const_iterator ctmp_itr = cntnrp->find( containerId );
 
-            ContaineeList::const_iterator cntee_itr;
-            for(cntee_itr  = ctmp_itr->second.begin();
-                cntee_itr != ctmp_itr->second.end(); cntee_itr++) {
-                iuid cntee = *cntee_itr;
-                BestContainment &best = (*bestCtn)[ cntee ];
+        if (ctmp_itr == cntnrp->end() )
+            return;
 
-                if (best.isPlaced)
-                    continue;
+        for(ContaineeList::const_iterator cntee_itr  = ctmp_itr->second.begin();
+            cntee_itr != ctmp_itr->second.end();
+            cntee_itr++) {
 
-                assert( best.container == container );
-                (*containPartialOrder)[ cntee ] = level;
-                if (level > maxContainDepth)
-                    maxContainDepth = level;
+            iuid cntee = *cntee_itr;
+            BestContainment &best = (*bestCtn)[ cntee ];
 
-                int offset = best.a_hang;
-                int bhang  = best.b_hang;
-                DoveTailNode pos;
-                pos.type         = AS_READ; /* Isolated FT VR */
-                pos.ident        = cntee;
-                pos.contained    = container;
-                pos.delta_length = 0;
-                pos.delta        = NULL;
+            if (best.isPlaced)
+                continue;
 
-                if(intvl.bgn < intvl.end) {
-                    pos.position.bgn = intvl.bgn + offset;
-                    pos.position.end = intvl.end + bhang;
-#ifdef NEW_UNITIGGER_INTERFACE
-                    pos.ident2       = container;
-                    pos.ahang        = offset;
-                    pos.bhang        = bhang;
-#endif
+            assert( best.container == containerId );
 
-                } else if (intvl.bgn > intvl.end) {
-                    pos.position.bgn = intvl.bgn - offset;
-                    pos.position.end = intvl.end - bhang;
-#ifdef NEW_UNITIGGER_INTERFACE
-                    pos.ident2       = container;
-                    // consensus seeems to need these reversed to get the
-                    // correct alignment
-                    pos.bhang        = -offset;
-                    pos.ahang        = -bhang;
-#endif
-                }else{
-                    std::cerr << "Error, container size is zero." << std::endl;
-                    assert(0);
-                }
-                // Swap ends if containee is not same strand as container
-                if(!best.sameOrientation){
-                    int tmp          = pos.position.bgn;
-                    pos.position.bgn = pos.position.end;
-                    pos.position.end = tmp;
-                }
+            (*containPartialOrder)[ cntee ] = level;
+            if (level > maxContainDepth)
+                maxContainDepth = level;
 
-                addFrag( pos );
-                best.isPlaced = true;
-                placeContains( cntnrp, bestCtn, cntee, pos.position, level+1);
+            if (cntee == 132732) {
+                fprintf(stderr, "132732\n");
             }
+
+            DoveTailNode pos;
+
+            pos.type         = AS_READ; /* Isolated FT VR */
+            pos.ident        = cntee;
+            pos.contained    = containerId;
+            pos.delta_length = 0;
+            pos.delta        = NULL;
+
+            if(containerPos.bgn < containerPos.end) {
+                //  Container is forward
+                pos.position.bgn = containerPos.bgn + best.a_hang;  //  BPW says "looks ok"
+                pos.position.end = containerPos.end + best.b_hang;
+#ifdef NEW_UNITIGGER_INTERFACE
+                pos.ident2       = container;
+                pos.ahang        = best.a_hang;
+                pos.bhang        = best.b_hang;
+#endif
+
+            } else if (containerPos.bgn > containerPos.end) {
+                //  Container is reverse
+                pos.position.bgn = containerPos.bgn - best.a_hang;  //  BPW says "suspicious"
+                pos.position.end = containerPos.end - best.b_hang;
+#ifdef NEW_UNITIGGER_INTERFACE
+                pos.ident2       = containerId;
+                pos.ahang        = - best.b_hang;   //  consensus seems to want these reversed
+                pos.bhang        = - best.a_hang;
+#endif
+            }else{
+                std::cerr << "Error, container size is zero." << std::endl;
+                assert(0);
+            }
+            // Swap ends if containee is not same strand as container
+            if(!best.sameOrientation){
+                int tmp          = pos.position.bgn;
+                pos.position.bgn = pos.position.end;
+                pos.position.end = tmp;
+            }
+
+            fprintf(stderr, "Added frag %d to unitig %d at %d,%d (contained in %d)\n",
+                    pos.ident, id(), pos.position.bgn, pos.position.end, pos.contained);
+
+            addFrag( pos, 0, false );
+            best.isPlaced = true;
+            placeContains( cntnrp, bestCtn, cntee, pos.position, level+1);
         }
     }
 
     void Unitig::recomputeFragmentPositions(ContainerMap *allcntnr_ptr,
-                                            BestContainmentMap *bestContain, BestOverlapGraph *bog_ptr) {
+                                            BestContainmentMap *bestContain,
+                                            BestOverlapGraph *bog_ptr) {
         long frag_ins_begin = 0;
         long frag_ins_end;
         iuid lastFrag = 0;
 #ifdef NEW_UNITIGGER_INTERFACE
         iuid nextFrag = 0;
 #endif
-        //std::cerr << "Positioning dovetails." << std::endl;
+
+        fprintf(stderr, "==> PLACING CONTAINED FRAGMENTS\n");
+
         // place dovetails in a row
         if (dovetail_path_ptr == NULL)
             return;
-        //        computeFragmentPositions( bog_ptr );
+
         containPartialOrder = new std::map<iuid,int>;
         long numDoveTail = dovetail_path_ptr->size();
         for(long i=0; i < numDoveTail; i++) {
             DoveTailNode *dt_itr = &(*dovetail_path_ptr)[i];
 
-            iuid fragId  = dt_itr->ident;
 #ifdef NEW_UNITIGGER_INTERFACE
             if ( nextFrag != 0 )
-                assert( nextFrag == fragId);
+                assert( nextFrag == dt_itr->ident);
             nextFrag = dt_itr->ident2;
 #endif
-            lastFrag = fragId;
+            lastFrag = dt_itr->ident;
 
-            placeContains( allcntnr_ptr, bestContain, fragId, dt_itr->position,1);
+            placeContains(allcntnr_ptr, bestContain, dt_itr->ident, dt_itr->position, 1);
         }
         this->sort();
         delete containPartialOrder;
         containPartialOrder = NULL;
-        // Compute assuming that containee is the same orientation as container
-        //	if(cntnr_intvl.begin < cntnr_intvl.end)
-
-        // Container is in forward direction
-        //
-        // |=========F0============|
-        // 0          |=============CER=============>|
-        //                    |=====CEE=====>|
-        //
-        // |---Cro----|
-        //            |--Ceo--|
-        // |-------Cep--------|
-        //
-        // Cro = container offset from beginning of unitig = cntnr_intvl.begin
-        // Ceo = containee offset from 5' end of container = cntee->olap_offset
-        // Cep = containee offset from beginning of unitig = cntee_intvl.begin
-        // CEE fragment can be from either orientation since
-        //   definition of olap_offset is based on 3' origin.
-
-        // else if(cntnr_intvl.begin > cntnr_intvl.end)
-
-        // Container is in reverse direction
-        //
-        // |=========F0============|
-        // 0          |<============CER==============|
-        //                    |<====CEE======|
-        //
-        // |---Cro----|
-        //                                   |--Ceo--|
-        // |-------Cep-----------------------|
-        //
-        // Cro = container offset from beginning of unitig = cntnr_intvl.end
-        // Ceo = containee offset from 5' end of container = cntee->olap_offset
-        // Cep = containee offset from beginning of unitig = cntee_intvl.end
-        // CEE fragment can be from either orientation since
-        //   definition of olap_offset is based on 3' origin.
-
     }
+
     //////////////////////////////////////////////////////////////////////////////
+
+
+
     int lastBPCoord   = 0;
     int lastBPFragNum = 0;
+
     UnitigBreakPoint UnitigGraph::selectSmall(const Unitig *tig,
                                               const FragmentEnds &smalls, const UnitigBreakPoint& big) {
         double difference = 0.0;
@@ -1528,15 +1546,17 @@ namespace AS_BOG{
 
     void UnitigGraph::filterBreakPoints(Unitig *tig, FragmentEnds &breaks) {
         UnitigBreakPoint fakeEnd = breaks.back();
+
         // Check for sentinal at end, not needed by MateChecker
         if (fakeEnd.inSize == std::numeric_limits<int>::max())
             breaks.pop_back();
+
         FragmentEnds smallBPs, newBPs;
         bool hadBig = false;
-        FragmentEnds::iterator iter = breaks.begin();
-        for(; iter != breaks.end(); iter++) {
+
+        for(FragmentEnds::iterator iter = breaks.begin(); iter != breaks.end(); iter++) {
             UnitigBreakPoint nextBP = *iter;
-            //if (nextBP.inSize > 2500) 
+
             if (nextBP.inFrags > 1 && nextBP.inSize > 500) {
                 hadBig = true;
                 // big one, compare against smalls
@@ -1583,8 +1603,10 @@ namespace AS_BOG{
         }
         breaks = newBPs;
     }
+
     // Doesn't handle contained frags yet
     UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig, FragmentEnds &breaks) {
+
         if (breaks.empty())
             return NULL;
 
@@ -1594,27 +1616,114 @@ namespace AS_BOG{
         // remove small break points
         filterBreakPoints( tig, breaks );
 
-        UnitigVector* splits = new UnitigVector(); // holds the new split unitigs
-
         // if we filtered all the breaks out return an empty list
         if (breaks.empty()) 
-            return splits;
+            return NULL;
 
-        Unitig* newTig = new Unitig(); // the first of the split unitigs
-        splits->push_back( newTig );
-        DoveTailIter dtIter = tig->dovetail_path_ptr->begin();
+        //  This is to catch a bug in....something before us.
+        //  Sometimes the breakpoint list contains nonsense that tells
+        //  us to split a unitig before the first fragment, or after
+        //  the last.
+        //
+        //  That code is pretty dense (and big) so instead we'll make
+        //  one pass through the list of breaks and see if we'd do any
+        //  splitting.
+        //
+        //  It's a huge code duplication of the main loop.
+        //
+        {
+            FragmentEnds breakstmp = breaks;
+
+            UnitigBreakPoint breakPoint = breakstmp.front();
+            breakstmp.pop_front();
+
+            UnitigBreakPoint nextBP;
+
+            int   newUnitigsConstructed = 0;
+            int   newUnitigExists = 0;
+
+            if (!breakstmp.empty())
+                nextBP = breakstmp.front();
+
+            for(DoveTailIter dtIter = tig->dovetail_path_ptr->begin(); dtIter != tig->dovetail_path_ptr->end(); dtIter++) {
+                DoveTailNode frg = *dtIter;
+
+                bool bothEnds = false;
+                while ( !breakstmp.empty() && nextBP.fragEnd.id == breakPoint.fragEnd.id ) {
+                    if (nextBP.fragEnd.end != breakPoint.fragEnd.end)
+                        bothEnds = true;
+                    breakstmp.pop_front();
+                    if (!breakstmp.empty())
+                        nextBP = breakstmp.front();
+                }
+
+                bool reverse = isReverse(frg.position);
+
+                if (breakPoint.fragEnd.id == frg.ident) {
+
+                    if (bothEnds) {
+                        newUnitigsConstructed++;
+                        newUnitigExists = 0;
+                    }
+
+                    else if (breakPoint.fragEnd.end ==  FIVE_PRIME && !reverse ||
+                             breakPoint.fragEnd.end == THREE_PRIME && reverse) {
+                        newUnitigsConstructed++;
+                        newUnitigExists = 1;
+                    }
+
+                    else if (breakPoint.fragEnd.end ==  FIVE_PRIME && reverse ||
+                             breakPoint.fragEnd.end == THREE_PRIME && !reverse ) {
+                        if (newUnitigExists == 0)
+                            newUnitigsConstructed++;
+                        newUnitigExists = 0;
+                    } else {
+                        assert(0);
+                    }
+
+                    if (breakstmp.empty()) {
+                        breakPoint.fragEnd.id = 0;
+                    } else {
+                        breakPoint = breakstmp.front();
+                        breakstmp.pop_front();
+                        if (!breakstmp.empty())
+                            nextBP = breakstmp.front();
+                    }
+                } else {
+                    if (newUnitigExists == 0) {
+                        newUnitigsConstructed++;
+                        newUnitigExists = 1;
+                    }
+                }
+            }
+
+            if (newUnitigsConstructed < 2) {
+                fprintf(stderr, "SPLITTING BUG DETECTED!  Adjusting for it.\n");
+                return NULL;
+            }
+
+        }  //  end of explicit split test
+        
+
+
+
+        UnitigVector *splits = new UnitigVector();
+        Unitig       *newTig = NULL;
+        int           offset = 0;
+
         UnitigBreakPoint breakPoint = breaks.front();
         breaks.pop_front();
-        bool bothEnds = false;
+
         UnitigBreakPoint nextBP;
+
         if (!breaks.empty())
             nextBP = breaks.front();
-        int frgCnt = 0;
-        int offset = 0;
-        for( ; dtIter != tig->dovetail_path_ptr->end(); dtIter++) {
-            frgCnt++;
+
+        for(DoveTailIter dtIter = tig->dovetail_path_ptr->begin(); dtIter != tig->dovetail_path_ptr->end(); dtIter++) {
             DoveTailNode frg = *dtIter;
+
             // reduce multiple breaks at the same fragment end down to one
+            bool bothEnds = false;
             while ( !breaks.empty() && nextBP.fragEnd.id == breakPoint.fragEnd.id ) {
                 if (nextBP.fragEnd.end != breakPoint.fragEnd.end)
                     bothEnds = true;
@@ -1622,68 +1731,101 @@ namespace AS_BOG{
                 if (!breaks.empty())
                     nextBP = breaks.front();
             }
+
             bool reverse = isReverse(frg.position);
+
             if (breakPoint.fragEnd.id == frg.ident) {
-                if (frg.contained) {
-                    fprintf(stderr,"Breaking untig on contained frg %d\n",frg.ident);
-                    frg.contained = NULL_FRAG_ID;
-                }
-                // At a fragment to break on
+
+                //  There is method to this madness.  The three if
+                //  blocks below have the same two basic code blocks
+                //  in various orders.
+                //
+                //  o One code block makes a new unitig.
+                //
+                //  o The other adds a fragment to it, possibly
+                //    remembering the beginning offset.
+                //
+                //  Finally, we delay making a new unitig until we are
+                //  absolutely sure we're going to put fragments into
+                //  it.
+                //
+
                 if (bothEnds) {
-                    // create singleton when breaking at both ends of a fragment
-                    fprintf(stderr,"  Breaking tig %d at both ends of %d num %d\n",
-                            tig->id(), breakPoint.fragEnd.id, breakPoint.fragNumber);
-                    newTig = new Unitig();              // create the singlenton
-                    splits->push_back( newTig );        // add to list of new untigs
-                    frg.position.bgn = 0;               // set begin and end
-                    frg.position.end = BestOverlapGraph::fragLen( frg.ident );
-                    newTig->addFrag( frg );             // add frag to unitig
-                    newTig = new Unitig();              // create next new unitig
-                    bothEnds = false;
+                    //
+                    //  Break at both ends, create a singleton for this fragment.
+                    //
+                    fprintf(stderr,"  Breaking tig %d at both ends of %d num %d\n", tig->id(), breakPoint.fragEnd.id, breakPoint.fragNumber);
+
+                    newTig = new Unitig();  //  always make a new unitig, we put a frag in it now
+                    splits->push_back( newTig );
+
+                    if (newTig->dovetail_path_ptr->empty())
+                        offset = reverse ? -frg.position.end : -frg.position.bgn;
+                    newTig->addFrag( frg, offset );
+
+                    newTig = NULL;  //  delay until we need to make it
                 }
+
                 else if (breakPoint.fragEnd.end ==  FIVE_PRIME && !reverse ||
                          breakPoint.fragEnd.end == THREE_PRIME && reverse) {
-                    // break at left end of frg, frg starts new tig
-                    fprintf(stderr,"  Break tig %d before %d num %d\n",
-                            tig->id(), breakPoint.fragEnd.id, breakPoint.fragNumber);
-                    newTig = new Unitig();              // create next new unitig
-                    // record offset of start of new unitig
-                    offset = reverse ? -frg.position.end : -frg.position.bgn;
-                    //fprintf(stderr,"Offset is %d for frg %d %d,%d\n",
-                    //        offset,frg.ident,frg.position.bgn,frg.position.end);
-                    newTig->addFrag( frg, offset );     // add frag as 1st in unitig
+                    //
+                    //  Break at left end of frg, frg starts new tig
+                    //
+                    fprintf(stderr,"  Break tig %d before %d num %d\n", tig->id(), breakPoint.fragEnd.id, breakPoint.fragNumber);
+
+                    newTig = new Unitig();  //  always make a new unitig, we put a frag in it now
+                    splits->push_back( newTig );
+
+                    if (newTig->dovetail_path_ptr->empty())
+                        offset = reverse ? -frg.position.end : -frg.position.bgn;
+                    newTig->addFrag( frg, offset );
                 }
+
                 else if (breakPoint.fragEnd.end ==  FIVE_PRIME && reverse ||
                          breakPoint.fragEnd.end == THREE_PRIME && !reverse ) {
-                    // break at right end of frg, frg goes in existing tig
-                    newTig->addFrag( frg, offset );     // add frag as last
-                    fprintf(stderr,"  Break tig %d after %d num %d\n",
-                            tig->id(), breakPoint.fragEnd.id, breakPoint.fragNumber);
-                    newTig = new Unitig();              // create new empty unitig
+                    //
+                    //  Break at right end of frg, frg goes in existing tig, then make new unitig
+                    //
+
+                    if (newTig == NULL) {  //  delayed creation?
+                        newTig = new Unitig();
+                        splits->push_back( newTig );
+                    }
+
+                    if (newTig->dovetail_path_ptr->empty())
+                        offset = reverse ? -frg.position.end : -frg.position.bgn;
+                    newTig->addFrag( frg, offset );
+
+                    fprintf(stderr,"  Break tig %d after %d num %d\n", tig->id(), breakPoint.fragEnd.id, breakPoint.fragNumber);
+
+                    //  Delay making a new unitig until we need it.
+                    newTig = NULL;
                 } else {
                     // logically impossible!
                     assert(0);
                 }
-                splits->push_back( newTig );           // add new tig to list of splits
+
+
+                // Done breaking, continue adding remaining frags to newTig
                 if (breaks.empty()) {
-                    // Done breaking, continue adding remaining frags to newTig
                     breakPoint.fragEnd.id = 0;
-                    continue;
-                }
-                else {
+                } else {
                     breakPoint = breaks.front();
                     breaks.pop_front();
                     if (!breaks.empty())
                         nextBP = breaks.front();
                 }
             } else {
-                // not a unitig break point fragment, add to current new tig
-                if (newTig->dovetail_path_ptr->empty()) {
-                    // if it's empty, this is it's 1st frag, store the offset
-                    offset = reverse ? -frg.position.end : -frg.position.bgn;
-                    //fprintf(stderr,"Offset is %d for frg %d %d,%d\n",
-                    //        offset,frg.ident,frg.position.bgn,frg.position.end);
+                //
+                //  frag is not a unitig break point fragment, add to current new tig
+                //
+
+                if (newTig == NULL) {  //  delayed creation?
+                    newTig = new Unitig();
+                    splits->push_back( newTig );
                 }
+                if (newTig->dovetail_path_ptr->empty())
+                    offset = reverse ? -frg.position.end : -frg.position.bgn;
                 newTig->addFrag( frg, offset );
             }
         }

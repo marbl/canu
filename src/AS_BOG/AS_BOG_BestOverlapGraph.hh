@@ -34,8 +34,8 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.38 2008-04-08 18:59:40 brianwalenz Exp $
- * $Revision: 1.38 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.39 2008-04-16 10:26:27 brianwalenz Exp $
+ * $Revision: 1.39 $
  */
 
 //  System include files
@@ -161,7 +161,18 @@ namespace AS_BOG{
           return(olapLength(olap));
 #endif
 
-#if 1
+#if 0
+          // The log for this is:
+          //   Add alternate scoring schema that wasn't tested much for posterity's sake.
+          //
+          if (olap.dat.ovl.orig_erate > consensusCutoff)
+              return 0;
+          if (olap.dat.ovl.corr_erate > mismatchCutoff)
+              return 0;
+          return(olapLength(olap) / sqrt(1 + olap.dat.ovl.corr_erate));
+#endif
+
+#if 0
           // Computes the score for a Longest Edge BOG based on
           // overlap length but after applying an an error rate
           // cutoff.
@@ -172,14 +183,65 @@ namespace AS_BOG{
             return 0;
           return olapLength(olap);
 #endif
+
+#if 1
+          //  BPW's new score
+          if (olap.dat.ovl.orig_erate > consensusCutoff)
+              return 0;
+          if (olap.dat.ovl.corr_erate > mismatchCutoff)
+              return 0;
+
+          int a_hang = olap.dat.ovl.a_hang;
+          int b_hang = olap.dat.ovl.b_hang;
+
+          int alen = fragLen(olap.a_iid);
+          int blen = fragLen(olap.b_iid);
+
+          //  anti-normal dovetail; score is length of overlap.
+          if ((a_hang < 0) && (b_hang < 0))
+              return(MIN((alen + b_hang), (blen + a_hang)));
+          
+          //  normal dovetail; score is length of overlap.
+          if ((a_hang >= 0) && (b_hang >= 0))
+              return(MIN((alen - a_hang), (blen - b_hang)));
+
+          //  A contains B
+          if ((a_hang < 0) && (b_hang >= 0))
+              return(blen * (1.0 - AS_OVS_decodeQuality(olap.dat.ovl.corr_erate)));
+
+          //  B contains A
+          if ((a_hang >= 0) && (b_hang < 0))
+              return(alen * (1.0 - AS_OVS_decodeQuality(olap.dat.ovl.corr_erate)));
+#endif
         };
 
         // FragStore related variables
         //These should be moved to protected
         static uint16 *fragLength;
-        static uint16 fragLen( iuid );
-        static uint16 olapLength( iuid, iuid, short, short);
-        static uint16 olapLength(const OVSoverlap& olap);
+
+        static uint16 fragLen( iuid iid ) {
+            return fragLength[ iid ];
+        };
+
+        static uint16 olapLength(iuid a_iid, iuid b_iid, short a_hang, short b_hang) {
+            int alen = fragLen(a_iid);
+            int blen = fragLen(b_iid);
+
+            if (a_hang < 0) {
+                if (b_hang < 0 )
+                    return alen + b_hang;
+                else
+                    return blen + a_hang - b_hang; // spur or containment
+            } else {
+                if (b_hang < 0 )
+                    return alen + b_hang - a_hang; // spur or containment
+                else
+                    return alen - a_hang;
+            }
+        };
+        static uint16 olapLength(const OVSoverlap& olap) {
+            return(olapLength(olap.a_iid, olap.b_iid, olap.dat.ovl.a_hang, olap.dat.ovl.b_hang));
+        };
 
         BestContainmentMap _best_containments;
 
@@ -202,21 +264,6 @@ namespace AS_BOG{
     }; //BestOverlapGraph
 
     ///////////////////////////////////////////////////////////////////////////
-
-#if 0
-    struct LongIdentWeighted : public BestOverlapGraph {
-        int mismatchCutoff;
-        int consensusCutoff;
-        LongIdentWeighted( float maxMismatch) : BestOverlapGraph()
-        {
-            mismatchCutoff  = AS_OVS_encodeQuality( maxMismatch / 100.0 );
-            consensusCutoff = AS_OVS_encodeQuality( AS_CNS_ERROR_RATE );
-            assert( consensusCutoff >= 0 ); // Set in AS_configure
-        }
-        int getThreshold() { return mismatchCutoff; }
-        float scoreOverlap( const OVSoverlap& olap);
-    };
-#endif
 
     struct BOG_Runner {
         BOG_Runner(int lastFrag) { BestOverlapGraph::lastFrg = lastFrag; }
