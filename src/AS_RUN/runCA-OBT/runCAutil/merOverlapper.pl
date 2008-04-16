@@ -55,12 +55,6 @@ sub merOverlapper($) {
         $merType = "obt";
     }
 
-    #  To prevent infinite loops -- stop now if the overmerry script
-    #  exists.  This will unfortunately make restarting from transient
-    #  failures non-trivial.
-    #
-    caFailure("mer overlapper failed.") if (-e "$wrk/$outDir/overmerry.sh");
-
     system("mkdir $wrk/$outDir")       if (! -d "$wrk/$outDir");
     system("mkdir $wrk/$outDir/seeds") if (! -d "$wrk/$outDir/seeds");
     system("mkdir $wrk/$outDir/olaps") if (! -d "$wrk/$outDir/olaps");
@@ -234,6 +228,14 @@ sub merOverlapper($) {
         meryl();
     }
 
+    #  To prevent infinite loops -- stop now if the overmerry script
+    #  exists.  This will unfortunately make restarting from transient
+    #  failures non-trivial.
+    #
+    my $ovmFailures = findOvermerryFailures($outDir, $ovmJobs);
+    if (($ovmFailures != 0) && ($ovmFailures < $ovmJobs)) {
+        caFailure("mer overlapper seed finding failed.");
+    }
 
     #  Submit to the grid (or tell the user to do it), or just run
     #  things here
@@ -287,6 +289,14 @@ sub merOverlapper($) {
     }
 
 
+    #  To prevent infinite loops -- stop now if the overmerry script
+    #  exists.  This will unfortunately make restarting from transient
+    #  failures non-trivial.
+    #
+    my $olpFailures = findOlapFromSeedsFailures($outDir, $olpJobs);
+    if (($olpFailures != 0) && ($olpFailures < $olpJobs)) {
+        caFailure("mer overlapper extension failed.");
+    }
 
     #  Submit to the grid (or tell the user to do it), or just run
     #  things here
