@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.9 2008-02-29 12:22:10 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.10 2008-04-16 09:32:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,6 +59,16 @@ typedef struct {
 
   uint32   swap_endianess;
 } sffHeader;
+
+typedef struct {
+  uint32    magic_number;
+  char      version[4];
+  uint32    manifest_length;
+  uint32    nothing;
+
+  char     *manifest;
+} sffManifest;
+
 
 typedef struct {
   //  The next block is read in one swoop from the sff file.  DO NOT MODIFY!
@@ -107,9 +117,49 @@ uint16Swap(uint16 x) {
 }
 
 
+
 static
 void
-readsff_header(FILE *sff, sffHeader *h) {
+readsff_manifest(FILE *sff, sffHeader *h, sffManifest *m) {
+
+  if (h->index_length == 0)
+    //  No manifest.
+    return;
+
+  if (AS_UTL_ftell(sff) != h->index_offset)
+    //  Not at the manifest.
+    return;
+
+  if (m->manifest)
+    //  Already got it?!
+    return;
+
+  AS_UTL_safeRead(sff, m, "readsff_manifest", sizeof(char), 16);
+
+  if (h->swap_endianess) {
+    m->magic_number    = uint32Swap(m->magic_number);
+    m->manifest_length = uint32Swap(m->manifest_length);
+  }
+
+  m->manifest = (char *)safe_malloc(sizeof(char) * m->manifest_length + 1);
+  AS_UTL_safeRead(sff, m->manifest, "readsff_manifest_text", sizeof(char), m->manifest_length);
+
+  m->manifest[m->manifest_length] = 0;
+
+  //  We only read the manifest.  There is still an index in there.
+
+  uint64  padding_length = h->index_length - 16 - m->manifest_length;
+  if (padding_length > 0) {
+    char *junk = (char *)safe_malloc(sizeof(char) * padding_length);
+    AS_UTL_safeRead(sff, junk, "readsff_manifest_pad", sizeof(char), padding_length);
+    safe_free(junk);
+  }
+}
+
+
+static
+void
+readsff_header(FILE *sff, sffHeader *h, sffManifest *m) {
 
   AS_UTL_safeRead(sff, h, "readsff_header_1", 31, 1);
 
@@ -147,18 +197,9 @@ readsff_header(FILE *sff, sffHeader *h) {
   }
 
   //  The spec says the index might be here, however, all files I've
-  //  seen have the index at the end of the file.  Don't get all worked
-  //  up about how wasteful this block seems.
+  //  seen have the index at the end of the file.
   //
-  //  We read just because if we are a popen()ed file, we cannot seek.
-  //
-  //  AS_UTL_fseek(sff, h->index_length, SEEK_CUR);
-  //
-  if ((h->index_length > 0) && (h->index_offset == h->header_length)) {
-    char *junk = (char *)safe_malloc(sizeof(char) * h->index_length);
-    AS_UTL_safeRead(sff, junk, "readsff_index", sizeof(char), h->index_length);
-    safe_free(junk);
-  }
+  readsff_manifest(sff, h, m);
 
 #if 0
   fprintf(stderr, "header: magic_number %8u\n", h->magic_number);
@@ -319,15 +360,29 @@ readsff_constructLibraryIIDFromName(char *name) {
 
     gkl.libraryUID = uid;
 
-    gkl.hpsIsFlowGram    = 1;
+    //  This crud is documented in AS_PER/AS_PER_gkpStore.h
+    //  Zero is the default, we set to make it explicit
 
-    gkl.deletePerfectPrefixes      = 1;
-    gkl.doNotTrustHomopolymerRuns  = 1;
+    gkl.spare2                      = 0;
+    gkl.spare1                      = 0;
 
-    gkl.orientation = AS_READ_ORIENT_UNKNOWN;
+    gkl.discardReadsWithNs          = 1;
+    gkl.doNotQVTrim                 = 1;
+    gkl.goodBadQVThreshold          = 1;  //  Effectively, don't QV trim, redundant
 
-    gkl.mean   = 0.0;
-    gkl.stddev = 0.0;
+    gkl.deletePerfectPrefixes       = 1;
+    gkl.doNotTrustHomopolymerRuns   = 1;
+    gkl.doNotOverlapTrim            = 0;
+    gkl.isNotRandom                 = 0;
+
+    gkl.hpsIsSomethingElse          = 0;
+    gkl.hpsIsFlowGram               = 1;
+    gkl.hpsIsPeakSpacing            = 0;
+
+    gkl.orientation                 = AS_READ_ORIENT_UNKNOWN;
+
+    gkl.mean                        = 0.0;
+    gkl.stddev                      = 0.0;
 
     appendIndexStore(gkpStore->lib, &gkl);
     setGatekeeperUIDtoIID(gkpStore, gkl.libraryUID, getLastElemStore(gkpStore->lib), AS_IID_LIB);
@@ -344,13 +399,14 @@ readsff_constructLibraryIIDFromName(char *name) {
 int
 Load_SFF(FILE *sff) {
 
-  sffHeader *h  = (sffHeader *)safe_calloc(sizeof(sffHeader), 1);
-  sffRead   *r  = (sffRead   *)safe_calloc(sizeof(sffRead),   1);
+  sffHeader   *h  = (sffHeader   *)safe_calloc(sizeof(sffHeader),   1);
+  sffManifest *m  = (sffManifest *)safe_calloc(sizeof(sffManifest), 1);
+  sffRead     *r  = (sffRead     *)safe_calloc(sizeof(sffRead),     1);
   int        rn = 0;
 
   char       encodedsequence[AS_FRAG_MAX_LEN+1] = {0};
 
-  readsff_header(sff, h);
+  readsff_header(sff, h, m);
 
   //  Construct a gkpLibraryRecord for this sff file.  Well, this is
   //  where we'd LIKE to do it, but since the sff doesn't give us any
@@ -448,6 +504,27 @@ Load_SFF(FILE *sff) {
       gkf.clearEnd[AS_READ_CLEAR_VEC] = 0;
     }
 
+    //  Look for n's in the sequence.  This is a signature of an
+    //  instrument problem.  Were we general, this would be
+    //  discardReadsWithNs (for your grepping pleasure)
+    {
+      int  x = 0;
+
+      for (x=0; x < r->number_of_bases; x++)
+        if ((r->bases[x] == 'n') || (r->bases[x] == 'N')) {
+          //  Trim out the N?
+          gkf.hasVectorClear = 1;
+          gkf.clearBeg[AS_READ_CLEAR_VEC] = 0;
+          gkf.clearEnd[AS_READ_CLEAR_VEC] = x - h->key_length;
+
+          //  Nah, just delete it.
+          gkf.deleted = 1;
+
+          AS_GKP_reportError(AS_GKP_SFF_N, AS_UID_toString(gkf.readUID));
+          break;
+        }
+    }
+
     if (r->number_of_bases > AS_READ_MAX_LEN) {
       AS_GKP_reportError(AS_GKP_SFF_TOO_LONG, r->name, r->number_of_bases, AS_READ_MAX_LEN);
       gkpStore->gkp.sffWarnings++;
@@ -495,10 +572,27 @@ Load_SFF(FILE *sff) {
     gkpStore->gkp.sffLoaded++;
   }
 
+  //  Read the manifest?
+  //
+  if (m->manifest_length == 0) {
+    //  We haven't read it yet.
+    readsff_manifest(sff, h, m);
+  }
+
+  if (m->manifest != NULL) {
+    //  Make sure that the reads have been rescored.
+
+    if (strstr(m->manifest, "<qualityScoreVersion>1.1.03</qualityScoreVersion>") == NULL) {
+      fprintf(stderr, "WARNING:  Fragments not rescored!\n");
+    }
+  }
+
   fprintf(stderr, "Added %d 454 reads.\n", rn);
 
   safe_free(h->data_block);
   safe_free(h);
+  safe_free(m->manifest);
+  safe_free(m);
   safe_free(r->data_block);
   safe_free(r);
 

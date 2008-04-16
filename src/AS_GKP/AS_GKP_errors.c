@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.5 2008-02-29 12:22:10 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.6 2008-04-16 09:32:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -90,6 +90,7 @@ AS_GKP_reportError(int error, ...) {
     errorMs[AS_GKP_SFF_UID_ERROR          ] = "# SFF Error: 454 Universal Accession Number '%s' out of range.\n";
     errorMs[AS_GKP_SFF_ALREADY_EXISTS     ] = "# SFF Error: Fragment %s exists, can't add it again.\n";
     errorMs[AS_GKP_SFF_TOO_LONG           ] = "# SFF Alert: Fragment %s trimmed from %d bases to (assembler maximum length) %d bases.\n";
+    errorMs[AS_GKP_SFF_N                  ] = "# SFF Alert: Fragment %s contains an N; deleted.\n";
 
     errorMs[AS_GKP_UNKNOWN_MESSAGE        ] = "# GKP Error: Unknown message with type %s.\n";
 
@@ -140,6 +141,7 @@ AS_GKP_reportError(int error, ...) {
     errorSs[AS_GKP_SFF_UID_ERROR          ] = "# SFF Error: 454 Universal Accession Number out of range.\n";
     errorSs[AS_GKP_SFF_ALREADY_EXISTS     ] = "# SFF Error: Fragment exists, can't add it again.\n";
     errorSs[AS_GKP_SFF_TOO_LONG           ] = "# SFF Alert: Fragment trimmed to assembler maximum length.\n";
+    errorSs[AS_GKP_SFF_N                  ] = "# SFF Alert: Fragment contains an N; deleted.\n";
 
     errorSs[AS_GKP_UNKNOWN_MESSAGE        ] = "# GKP Error: Unknown message.\n";
   }

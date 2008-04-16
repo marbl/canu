@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.46 2008-02-27 15:49:01 skoren Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.47 2008-04-16 09:32:34 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -74,15 +74,28 @@ typedef struct {
 
   char           comment[AS_PER_COMMENT_LEN];
 
-  //  Features: you can add boolean flags and small-value types to the
+  //  Features
+  //
+  //  You can add boolean flags and small-value types to the
   //  64-bit-wide bit-vector immediately below.  And just in case you
   //  need A LOT of space, you've got ONE-HUNDRED-AND-TWENTY-EIGHT
-  //  bits!!  (OK, minus 7, that are currently used).
+  //  bits!!
   //
-  //  The default value of these should be 0.
+  //  IMPORTANT!  The default value of these should be 0.  This can
+  //  make for some twisted logic, but consider adding an on/off flag
+  //  like doNotQVTrim and goodBadQVThreshold do.  The idea is that
+  //  value == 0 is interpreted as the 'default' value, and the on/off
+  //  restores what value 0 commonly means.
+  //
+  //  When adding new values, please update AS_GKP_checkLibrary.c and
+  //  AS_GKP_sff.c, thanks.
   //
   uint64         spare2:64;
-  uint64         spare1:54;
+  uint64         spare1:46;
+
+  uint64         discardReadsWithNs:1;         //  Default 0 -> allow reads with N's (unused, hardcoded into sff)
+  uint64         doNotQVTrim:1;                //  Default 0 -> do initial qv trimming in OBT
+  uint64         goodBadQVThreshold:6;         //  Default 0 -> threshold is 12 in initialTrim.C
 
   uint64         deletePerfectPrefixes:1;      //  Default 0 == don't delete
   uint64         doNotTrustHomopolymerRuns:1;  //  Default 0 == trust 'em

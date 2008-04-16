@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.22 2008-03-12 16:20:14 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.23 2008-04-16 09:32:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -144,6 +144,27 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
     gkpl.libraryUID   = lib_mesg->eaccession;
     gkpl.comment[0]   = 0;
 
+    //  This crud is documented in AS_PER/AS_PER_gkpStore.h
+    //  Zero is the default, we set to make it explicit
+
+    gkpl.spare2                     = 0;
+    gkpl.spare1                     = 0;
+
+    gkpl.discardReadsWithNs         = 0;
+    gkpl.doNotQVTrim                = 0;
+    gkpl.goodBadQVThreshold         = 12;
+
+    gkpl.deletePerfectPrefixes      = 0;
+    gkpl.doNotTrustHomopolymerRuns  = 0;
+    gkpl.doNotOverlapTrim           = 0;
+    gkpl.isNotRandom                = 0;
+
+    gkpl.hpsIsSomethingElse         = 0;
+    gkpl.hpsIsFlowGram              = 0;
+    gkpl.hpsIsPeakSpacing           = 0;
+
+    gkpl.orientation                = AS_READ_ORIENT_UNKNOWN;
+
     switch (lib_mesg->link_orient) {
       case 'U': gkpl.orientation = AS_READ_ORIENT_UNKNOWN;    break;
       case 'I': gkpl.orientation = AS_READ_ORIENT_INNIE;      break;
@@ -153,8 +174,8 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
       default:  gkpl.orientation = AS_READ_ORIENT_UNKNOWN;    break;
     }
 
-    gkpl.mean         = lib_mesg->mean;
-    gkpl.stddev       = lib_mesg->stddev;
+    gkpl.mean                       = lib_mesg->mean;
+    gkpl.stddev                     = lib_mesg->stddev;
 
 #ifdef AS_ENABLE_SOURCE
     if (lib_mesg->source)

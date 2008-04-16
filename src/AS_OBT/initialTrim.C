@@ -40,7 +40,6 @@ extern "C" {
 
 int
 main(int argc, char **argv) {
-  double  minQuality          = qual.lookupNumber(20);
   bool    doUpdate            = false;
   char   *gkpName             = 0L;
   FILE   *logFile             = 0L;
@@ -48,10 +47,7 @@ main(int argc, char **argv) {
   int arg = 1;
   int err = 0;
   while (arg < argc) {
-    if        (strncmp(argv[arg], "-quality", 2) == 0) {
-      minQuality = qual.lookupNumber(atoi(argv[++arg]));
-
-    } else if (strncmp(argv[arg], "-update", 2) == 0) {
+    if        (strncmp(argv[arg], "-update", 2) == 0) {
       doUpdate = true;
 
     } else if (strncmp(argv[arg], "-log", 2) == 0) {
@@ -106,14 +102,15 @@ main(int argc, char **argv) {
   uint32        finL = 0;
   uint32        finR = 0;
 
-  uint32        stat_immutable   = 0;
-  uint32        stat_noVecClr    = 0;
-  uint32        stat_noHQnonVec  = 0;
-  uint32        stat_HQtrim5     = 0;
-  uint32        stat_HQtrim3     = 0;
-  uint32        stat_LQtrim5     = 0;
-  uint32        stat_LQtrim3     = 0;
-  uint32        stat_tooShort    = 0;
+  uint32        stat_immutable      = 0;
+  uint32        stat_donttrim       = 0;
+  uint32        stat_noVecClr       = 0;
+  uint32        stat_noHQnonVec     = 0;
+  uint32        stat_HQtrim5        = 0;
+  uint32        stat_HQtrim3        = 0;
+  uint32        stat_LQtrim5        = 0;
+  uint32        stat_LQtrim3        = 0;
+  uint32        stat_tooShort       = 0;
 
   if (logFile)
     fprintf(logFile, "uid,iid\torigL\torigR\tqltL\tqltR\tvecL\tvecR\tfinalL\tfinalR\tdeleted?\n");
@@ -127,10 +124,21 @@ main(int argc, char **argv) {
     //  Bail now if we've been told to not modify this read.  We do
     //  not print a message in the log.
     //
-    if ((gklr) && (gklr->doNotOverlapTrim)) {
+    if        ((gklr) && (gklr->doNotOverlapTrim)) {
       stat_immutable++;
     } else {
-      doTrim(&fr, minQuality, qltL, qltR);
+
+      if ((gklr) && (gklr->doNotQVTrim)) {
+        stat_donttrim++;
+        qltL = 0;
+        qltR = getFragRecordSequenceLength(&fr);
+      } else {
+        double  minQuality = qual.lookupNumber(12);
+        if ((gklr) && (gklr->goodBadQVThreshold > 0))
+          minQuality = qual.lookupNumber(gklr->goodBadQVThreshold);
+
+        doTrim(&fr, minQuality, qltL, qltR);
+      }
 
       finL = qltL;
       finR = qltR;
@@ -197,6 +205,7 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Fragments with:\n");
   fprintf(stderr, " no changes allowed:           "F_U32"\n", stat_immutable);
+  fprintf(stderr, " no QV trim allowed:           "F_U32"\n", stat_donttrim);
   fprintf(stderr, " no vector clear range known:  "F_U32" (trimed to quality clear)\n", stat_noVecClr);
   fprintf(stderr, " no HQ non-vector sequence:    "F_U32" (deleted)\n", stat_noHQnonVec);
   fprintf(stderr, " HQ vector trimmed:            "F_U32" (trimmed to intersection)\n", stat_HQtrim5 + stat_HQtrim3);
