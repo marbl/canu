@@ -1,11 +1,26 @@
 #!/usr/bin/perl
 
+use strict;
+
 #  Simple hack to merge multiple QC reports into one.  Uses the first
 #  QC on the command line to figure out what fields exist, then writes
 #  a multiple column QC using those fields and data from all QC files
 #  on the command line.
 
-use strict;
+#  BUG: if one file is empty (say, the second file) then NO values
+#  are added to the columns, and we have just shifted all the values.
+#
+#  In this example, MU1/MU1.qc is actually the empty one, but it looks
+#  like OU1/OU1.qc is it.
+#
+#  [files]
+#                          MB1/MB1.qc      MU1/MU1.qc      OB1/OB1.qc      OU1/OU1.qc
+#  
+#  [Scaffolds]
+#  TotalScaffolds          1954            2046            3459           
+#  TotalContigsInScaffo    1954            2046            3459           
+#  MeanContigsPerScaffo    1.00            1.00            1.00           
+#  MinContigsPerScaffol    1               1               1              
 
 my @labels;
 my %values;
