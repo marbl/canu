@@ -33,11 +33,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_ChunkGraph.cc,v 1.15 2008-04-07 02:37:42 brianwalenz Exp $
- * $Revision: 1.15 $
+ * $Id: AS_BOG_ChunkGraph.cc,v 1.16 2008-04-17 08:14:05 brianwalenz Exp $
+ * $Revision: 1.16 $
  */
 
-static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.15 2008-04-07 02:37:42 brianwalenz Exp $";
+static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.16 2008-04-17 08:14:05 brianwalenz Exp $";
 
 //  System include files
 
@@ -152,14 +152,8 @@ namespace AS_BOG{
 			);
         }
         for(frag_id=1; frag_id<=num_frags; frag_id++){
-            iuid fpCnt,tpCnt;
-            //            fpCnt = countChunkWidth(frag_id, FIVE_PRIME);
-            fpCnt  = countFullWidth( frag_id, FIVE_PRIME);
-            ////            tpCnt = countChunkWidth(frag_id, THREE_PRIME);
-            tpCnt  = countFullWidth( frag_id, THREE_PRIME);
-            
             _chunk_lengths[frag_id-1].fragId = frag_id;
-            _chunk_lengths[frag_id-1].cnt    = MIN(fpCnt,tpCnt);
+            _chunk_lengths[frag_id-1].cnt    = countFullWidth(frag_id, FIVE_PRIME) + countFullWidth(frag_id, THREE_PRIME);
         }
         qsort( _chunk_lengths, num_frags, sizeof(_chunk_length), &ChunkGraph::sortChunkLens);
         fprintf(stderr,"Top chunkLength frgs %d cnt %d and %d cnt %d\n",
