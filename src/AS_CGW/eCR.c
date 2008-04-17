@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.34 2008-03-14 16:05:29 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.35 2008-04-17 08:26:07 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -134,6 +134,12 @@ main(int argc, char **argv) {
   int   arg              = 1;
   int   err              = 0;
 
+  //  Scaffold lists
+  int  *scfSkip = NULL, scfSkipLen = 0;
+  int  *scfOnly = NULL, scfOnlyLen = 0;
+  int  *gapSkip = NULL, gapSkipLen = 0;
+  int  *gapOnly = NULL, gapOnlyLen = 0;
+
   //  Loop counters
   int   sid         = 0;
   int   gapNumber   = 0;
@@ -190,25 +196,51 @@ main(int argc, char **argv) {
   GlobalData->stderrc  = stderr;
   GlobalData->timefp   = stderr;
 
+  //  Could be cleaner (allocate only if options are present) but not
+  //  simpler.
+  scfSkip = (int *)safe_malloc(sizeof(int) * argc);
+  scfOnly = (int *)safe_malloc(sizeof(int) * argc);
+  gapSkip = (int *)safe_malloc(sizeof(int) * argc);
+  gapOnly = (int *)safe_malloc(sizeof(int) * argc);
 
   while (arg < argc) {
     if        (strcmp(argv[arg], "-c") == 0) {
       strcpy(GlobalData->File_Name_Prefix, argv[++arg]);
+
     } else if (strcmp(argv[arg], "-g") == 0) {
       strcpy(GlobalData->Gatekeeper_Store_Name, argv[++arg]);
+
     } else if (strcmp(argv[arg], "-C") == 0) {
       startingGap = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-n") == 0) {
       ckptNum = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-b") == 0) {
       scaffoldBegin = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-e") == 0) {
       scaffoldEnd   = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-i") == 0) {
       iterNumber = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-v") == 0) {
       debug.eCRmainLV    = 1;
       debug.examineGapLV = 1;
+
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      scfOnly[scfOnlyLen++] = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-s") == 0) {
+      scfSkip[scfSkipLen++] = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-O") == 0) {
+      gapOnly[gapOnlyLen++] = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-S") == 0) {
+      gapSkip[gapSkipLen++] = atoi(argv[++arg]);
+
     } else {
       fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
       err++;
@@ -231,6 +263,11 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -C gap#      Start at a specific gap number\n");
     fprintf(stderr, "  -b scafBeg   Begin at a specific scaffold\n");
     fprintf(stderr, "  -e scafEnd   End at a specific scaffold\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -o scafIID   Process only this scaffold\n");
+    fprintf(stderr, "  -s scafIID   Skip this scaffold\n");
+    fprintf(stderr, "  -O gap#      Process only this gap\n");
+    fprintf(stderr, "  -S gap#      Skip this gap\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -i iterNum   The iteration of ECR; either 1 or 2\n");
     exit(1);
@@ -311,6 +348,37 @@ main(int argc, char **argv) {
         (scaff->type != REAL_SCAFFOLD) ||
         (scaff->info.Scaffold.numElements < 2))
       continue;
+
+    //  Are we supposed to do this scaffold?
+    //
+    {
+      int  skipScaffold = 0;
+      int  s;
+
+      if (scfOnlyLen > 0) {
+        int  doScaffold = 0;
+        
+        for (s=0; s<scfOnlyLen; s++)
+          if (scfOnly[s] == sid)
+            doScaffold = 1;
+
+        if (doScaffold == 0)
+          skipScaffold = 1;
+      }
+
+      if (scfSkipLen > 0) {
+        for (s=0; s<scfSkipLen; s++)
+          if (scfSkip[s] == sid)
+            skipScaffold = 1;
+      }
+
+      if (skipScaffold) {
+        fprintf(stderr,"\n=====================================================================\n");
+        fprintf(stderr,"skipping scaffold %d, size %f (command line told me to)\n", sid, scaff->bpLength.mean);
+        continue;
+      }
+    }
+
 
     fprintf(stderr,"\n=====================================================================\n");
     fprintf(stderr,"examining scaffold %d, size %f\n", sid, scaff->bpLength.mean);
@@ -435,6 +503,7 @@ main(int argc, char **argv) {
       if (rcontig->offsetAEnd.mean < rcontig->offsetBEnd.mean)
         rcontigOrientation = A_B;
 
+
       fprintf(stderr, "---------------------------------------------------------------\n");
       fprintf(stderr, "examining gap %d from lcontig %d (orient: %c, pos: %f, %f) to rcontig %d (orient: %c, pos: %f, %f), size: %lf \n", 
               gapNumber, 
@@ -493,20 +562,6 @@ main(int argc, char **argv) {
         fprintf(debug.eCRmainFP, "finished examining rcontig %d (orientation %c) \n", rcontig->id, rcontigOrientation);
 
 
-
-      //  Skip this gap if it is before the one we want to start at.
-      //
-      if (gapNumber < startingGap)
-        numLeftFrags = numRightFrags = 0;
-
-
-      //  This is a good place to check rcontig->id, lcontig->id,
-      //  gapNumber, etc and abort if that gap is causing problems.
-      //
-      //if (rcontig->id == 405527)
-      //  numLeftFrags = numRightFrags = 0;
-
-
       numExtendableGaps++;
 
       if (numLeftFrags > 0)
@@ -539,6 +594,49 @@ main(int argc, char **argv) {
       rightExtFragsArray[numRightFrags].fragOnEnd       = FALSE;
 
       numRightFrags++;
+
+
+      //  Are we supposed to do this gap?
+      //
+      {
+        int  skipGap = 0;
+        int  s;
+
+        if (gapOnlyLen > 0) {
+          int  doGap = 0;
+        
+          for (s=0; s<gapOnlyLen; s++)
+            if (gapOnly[s] == gapNumber)
+              doGap = 1;
+
+          if (doGap == 0)
+            skipGap = 1;
+        }
+
+        if (gapSkipLen > 0) {
+          for (s=0; s<gapSkipLen; s++)
+            if (gapSkip[s] == gapNumber)
+              skipGap = 1;
+        }
+
+        if (skipGap) {
+          fprintf(stderr, "skipping gap %d (command line told me to)\n", gapNumber);
+          numLeftFrags = numRightFrags = 0;
+        }
+      }
+
+
+      //  Skip this gap if it is before the one we want to start at.
+      //
+      if (gapNumber < startingGap)
+        numLeftFrags = numRightFrags = 0;
+
+
+      //  This is a good place to check rcontig->id, lcontig->id,
+      //  gapNumber, etc and abort if that gap is causing problems.
+      //
+      //if (rcontig->id == 405527)
+      //  numLeftFrags = numRightFrags = 0;
 
 
       //  In case we need to back out changes late in the extension, we save copies of the two contigs.
