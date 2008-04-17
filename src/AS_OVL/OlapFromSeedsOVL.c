@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.22 2008-03-18 07:02:46 brianwalenz Exp $
- * $Revision: 1.22 $
+ * $Id: OlapFromSeedsOVL.c,v 1.23 2008-04-17 14:14:20 adelcher Exp $
+ * $Revision: 1.23 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.22 2008-03-18 07:02:46 brianwalenz Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.23 2008-04-17 14:14:20 adelcher Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -3917,6 +3917,8 @@ static void  Process_Seed
       printf ("  match_to_end = %c\n", (new_match_to_end ? 'T' : 'F'));
       printf ("  a_align_end/len = %d/%d  b_align_end/len = %d/%d\n",
            new_a_end, a_part_len - a_end, new_b_end, b_part_len - b_end);
+      printf ("new_a_end = %d  a_end = %d  a_offset = %d  clear_len = %d\n",
+        new_a_end, a_end, a_offset, Frag [sub] . clear_len);
       Display_Alignment (a_part + a_end, new_a_end, b_part + b_end,
            new_b_end, new_delta, new_delta_len, a_part_len - a_end);
 //**ALD
@@ -3931,7 +3933,7 @@ static void  Process_Seed
 
    // If we're trying to extend past the clear range, a match past that point
    // counts as a match to the end
-   if (! new_match_to_end && new_a_end + a_end + a_offset >= Frag [sub] . clear_len - 1)
+   if (! new_match_to_end && new_a_end + a_end + a_offset >= Frag [sub] . clear_len)
      new_match_to_end = TRUE;
 
    // recalculate based on actual alignment--original was just estimated
@@ -5348,6 +5350,10 @@ static void  Stream_Old_Frags
       int32  rev_id;
       uint32  frag_iid;
       int  raw_len, result, shredded, is_homopoly;
+
+      if (Verbose_Level > 2)
+        if (i % 1000 == 0)
+           printf ("Stream_Old_Frags  i = %7d\n", i);
 
       frag_iid = (uint32) getFragRecordIID (&frag_read);
       if  (frag_iid < Olap [next_olap] . b_iid)
