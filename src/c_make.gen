@@ -395,30 +395,16 @@ $(PROGS):
 
 #### For making dependencies
 $(C_DEPS): $(LOCAL_DEP)/%.d: %.c
-	@echo Making .d dependency list for $<
-	@rm -f $@
-	@echo "$*.o $*.d: $< \\" > $@
-	@$(SHELL) -ec '$(CC) -c -E $(CFLAGS) $(INC_DIRS) $< | fgrep -v pragma | fgrep -v "built-in>" | fgrep -v "command" | sed -n -e '\''/^#/s/^.*[<"]\(.*\)[">].*$$/  \1 \\/p'\'' | sort -u | fgrep -v /include/ | fgrep -v $< | fgrep -v // | sed -e '\''$$s/ \\//'\''  >> $@'
+	@$(CC) -MM -MG $(CFLAGS) $(INC_DIRS) $< > $@
 
 $(CXX_DEPS_CC): $(LOCAL_DEP)/%.d: %.cc
-	@echo Making .d dependency list for $<
-	@rm -f $@
-	@echo "$*.o $*.d: $< \\" > $@
-	@$(SHELL) -ec '$(CXX) -c -E $(CPPFLAGS) $(CXXFLAGS) $(INC_DIRS) $< | fgrep -v pragma | fgrep -v "built-in>" | fgrep -v "command" | sed -n -e '\''/^#/s/^.*[<"]\(.*\)[">].*$$/  \1 \\/p'\'' | sort -u | fgrep -v /include/ | fgrep -v $< | fgrep -v // | sed -e '\''$$s/ \\//'\'' >> $@'
+	@$(CXX) -MM -MG $(CFLAGS) $(INC_DIRS) $< > $@
 
 $(CXX_DEPS_C): $(LOCAL_DEP)/%.d: %.C
-	@echo Making .d dependency list for $<
-	@rm -f $@
-	@echo "$*.o $*.d: $< \\" > $@
-	@$(SHELL) -ec '$(CXX) -c -E $(CPPFLAGS) $(CXXFLAGS) $(INC_DIRS) $< | fgrep -v pragma | fgrep -v "built-in>" | fgrep -v "command" | sed -n -e '\''/^#/s/^.*[<"]\(.*\)[">].*$$/  \1 \\/p'\'' | sort -u | fgrep -v /include/ | fgrep -v $< | fgrep -v // | sed -e '\''$$s/ \\//'\'' >> $@'
+	@$(CXX) -MM -MG $(CFLAGS) $(INC_DIRS) $< > $@
 
 $(CXX_DEPS_CPP): $(LOCAL_DEP)/%.d: %.cpp
-	@echo Making .d dependency list for $<
-	@rm -f $@
-	@echo "$*.o $*.d: $< \\" > $@
-	@$(SHELL) -ec '$(CXX) -c -E $(CPPFLAGS) $(CXXFLAGS) $(INC_DIRS) $< | fgrep -v pragma | fgrep -v "built-in>" | fgrep -v "command" | sed -n -e '\''/^#/s/^.*[<"]\(.*\)[">].*$$/  \1 \\/p'\'' | sort -u | fgrep -v /include/ | fgrep -v $< | fgrep -v // | sed -e '\''$$s/ \\//'\'' >> $@'
-
-
+	@$(CXX) -MM -MG $(CFLAGS) $(INC_DIRS) $< > $@
 
 #### Specific target to make objects
 objs: $(OBJECTS)
