@@ -33,8 +33,8 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.20 2007-12-05 23:46:57 brianwalenz Exp $
- * $Revision: 1.20 $
+ * $Id: AS_BOG_Datatypes.hh,v 1.21 2008-04-21 15:09:46 brianwalenz Exp $
+ * $Revision: 1.21 $
  */
 
 #ifndef INCLUDE_AS_BOG_DATATYPES
@@ -113,10 +113,10 @@ namespace AS_BOG{
 
     };
     inline bool operator==(FragmentEnd a, FragmentEnd b) {
-        if (a.id == b.id && a.end == b.end)
-            return true;
-        else
-            return false;
+        return((a.id == b.id) && (a.end == b.end));
+    };
+    inline bool operator!=(FragmentEnd a, FragmentEnd b) {
+        return((a.id |= b.id) || (a.end != b.end));
     };
     inline bool operator<(FragmentEnd a, FragmentEnd b) {
         if (a.id != b.id)
