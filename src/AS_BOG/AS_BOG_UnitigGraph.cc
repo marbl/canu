@@ -1547,13 +1547,10 @@ namespace AS_BOG{
         FragmentEnds smallBPs;
         FragmentEnds newBPs;
 
-        bool hadBig = false;
-
         for(FragmentEnds::iterator iter = breaks.begin(); iter != breaks.end(); iter++) {
             UnitigBreakPoint nextBP = *iter;
 
             if ((nextBP.inFrags > 1) && (nextBP.inSize > 500)) {
-                hadBig = true;
 
                 // big one, compare against smalls -- if we haven't
                 // seen this break point already.
@@ -1584,6 +1581,7 @@ namespace AS_BOG{
                             lastBPFragNum -= 1 + bContain;
                     }
 
+                    //  Haven't seen this break, so add it.
                     newBPs.push_back( nextBP );
                 }
             } else {
@@ -1596,9 +1594,7 @@ namespace AS_BOG{
 
         //  If we've got small ones saved, select one.
 
-        //  XXX  This used to only get triggered if hadBig was true!
-
-        if ((hadBig) && (smallBPs.empty() == false)) {
+        if (smallBPs.empty() == false) {
             UnitigBreakPoint small = selectSmall(tig, smallBPs, fakeEnd, lastBPCoord, lastBPFragNum);
             if (small.fragNumber > 0)
                 newBPs.push_back(small);
