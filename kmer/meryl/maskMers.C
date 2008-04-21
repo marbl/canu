@@ -8,6 +8,57 @@
 
 #define MAX_COVERAGE 51
 
+class mateRescueData {
+public:
+  mateRescueData() {
+    _mean       = 0;
+    _stddev     = 0;
+    _coverage   = 0;
+    _normal     = 0L;
+    _normalZero = 0;
+  };
+
+  void init(s32bit mean, s32bit stddev, u32bit coverage) {
+    _mean      = mean;
+    _stddev    = stddev;
+    _coverage  = coverage;
+
+    assert(_mean > 3 * _stddev);
+
+    double  a = 1.0 / (stddev * sqrt(2 * M_PI));
+    double  c = 2 * stddev * stddev;
+
+    s32bit  b1l = (s32bit)floor(-3 * stddev);
+    s32bit  b1h = (s32bit)ceil ( 3 * stddev);
+
+    _normal     = new double [b1h - b1l + 1];
+    _normalZero = -b1l;
+
+    for (s32bit l=0; l<b1h - b1l + 1; l++)
+      _normal[l] = 0.0;
+
+    for (s32bit l=b1l; l<b1h; l++)
+      _normal[l + _normalZero] = a * exp(- l*l / c);
+  };
+  ~mateRescueData() {
+  };
+
+  s32bit   mean(void)       { return(_mean); };
+  s32bit   stddev(void)     { return(_stddev); };
+  u32bit   coverage(void)   { return(_coverage); };
+
+  double   normal(s32bit p) { return(_normal[p + _normalZero]); };
+
+private:
+  s32bit  _mean;
+  s32bit  _stddev;
+  u32bit  _coverage;
+
+  double *_normal;
+  s32bit  _normalZero;
+};
+
+
 class merMaskedSequence {
 public:
   merMaskedSequence(char *fastaName, char *merylName) {
@@ -105,7 +156,6 @@ void
 merMaskedSequence::buildMasking(void) {
   seqFile       *F   = openSeqFile(_fastaName);
   seqStream     *STR = new seqStream(F, true);
-  //seqStore      *STO = new seqStore(fastaName, STR);
 
   _numSeq  = STR->numberOfSequences();
   _seqLen  = new u32bit [_numSeq];
@@ -155,7 +205,6 @@ merMaskedSequence::buildMasking(void) {
 
   delete MS;
 
-  //delete STO;
   delete STR;
   delete F;
 
@@ -208,14 +257,9 @@ computeDensity(merMaskedSequence *S) {
 
 
 void
-computeMateRescue(merMaskedSequence *S) {
+computeMateRescue(merMaskedSequence *S, mateRescueData *lib, u32bit libLen) {
   char    outputName[FILENAME_MAX];
   FILE   *outputFile;
-
-  s32bit  mean      = 3000;
-  s32bit  stddev    = 500;
-
-  assert(mean > 3 * stddev);
 
   //  +1 because a value of 1.0 == histogramLen
   //
@@ -237,25 +281,6 @@ computeMateRescue(merMaskedSequence *S) {
   //  pn = 1 - (1-p1)^n -- for n X coverage
   //
 
-  double *normal     = 0L;
-  s32bit  normalZero = 0;
-
-  {
-    double  a = 1.0 / (stddev * sqrt(2 * M_PI));
-    double  c = 2 * stddev * stddev;
-
-    s32bit  b1l = (s32bit)floor(-3 * stddev);
-    s32bit  b1h = (s32bit)ceil ( 3 * stddev);
-
-    normal     = new double [b1h - b1l + 1];
-    normalZero = -b1l;
-
-    for (s32bit l=0; l<b1h - b1l + 1; l++)
-      normal[l] = 0.0;
-
-    for (s32bit l=b1l; l<b1h; l++)
-      normal[l + normalZero] = a * exp(- l*l / c);
-  }
 
 
 
@@ -272,46 +297,63 @@ computeMateRescue(merMaskedSequence *S) {
       if (S->masking(s, p) == 'r') {
         numRT++;
 
-        s32bit b1l = (s32bit)floor(p - mean - 3 * stddev);
-        s32bit b1h = (s32bit)ceil (p - mean + 3 * stddev);
+        //  probability that we'll rescue this repeat with any mate pair
+        double  pRepeat = 1.0;
 
-        s32bit b2l = (s32bit)floor(p + mean - 3 * stddev);
-        s32bit b2h = (s32bit)ceil (p + mean + 3 * stddev);
+        //  We keep track of the probability we rescue this repeat
+        //  with additional coverage of libraries.  First 1x of the
+        //  first lib, then 2x of the first, etc, etc.
+        //
+        u32bit  RRidx   = 0;
 
-        if (b1l < 0)            b1l = 0;
-        if (b1h < 0)            b1h = 0;
-        if (b1h > S->seqLen(s)) b1h = S->seqLen(s);
+        for (u32bit l=0; l<libLen; l++) {
+          s32bit mean   = lib[l].mean();
+          s32bit stddev = lib[l].stddev();
 
-        if (b2l < 0)            b2l = 0;
-        if (b2h > S->seqLen(s)) b2h = S->seqLen(s);
-        if (b2l > S->seqLen(s)) b2l = S->seqLen(s);
+          s32bit b1l = (s32bit)floor(p - mean - 3 * stddev);
+          s32bit b1h = (s32bit)ceil (p - mean + 3 * stddev);
 
-        double  pRescue = 0.0;
-        double  pRepeat = 0.0;
+          s32bit b2l = (s32bit)floor(p + mean - 3 * stddev);
+          s32bit b2h = (s32bit)ceil (p + mean + 3 * stddev);
 
-        //fprintf(stderr, "b1: %d-%d  b2:%d-%d\n", b1l, b1h, b2l, b2h);
+          if (b1l < 0)            b1l = 0;
+          if (b1h < 0)            b1h = 0;
+          if (b1h > S->seqLen(s)) b1h = S->seqLen(s);
 
-        for (s32bit l=b1l; l<b1h; l++) {
-          if (S->masking(s, l) == 'u')
-            pRescue += normal[l - p + mean + normalZero];
+          if (b2l < 0)            b2l = 0;
+          if (b2h > S->seqLen(s)) b2h = S->seqLen(s);
+          if (b2l > S->seqLen(s)) b2l = S->seqLen(s);
+
+          //fprintf(stderr, "b1: %d-%d  b2:%d-%d\n", b1l, b1h, b2l, b2h);
+
+          //  probability we can rescue this repeat with this mate pair
+          double  pRescue = 0.0;
+
+          for (s32bit b=b1l; b<b1h; b++) {
+            if (S->masking(s, b) == 'u')
+              pRescue += lib[l].normal(b - p + mean);
+          }
+
+          for (s32bit b=b2l; b<b2h; b++) {
+            if (S->masking(s, b) == 'u')
+              pRescue += lib[l].normal(b - p - mean);
+          }
+
+          //  We're summing over two distributions.
+          pRescue /= 2.0;
+
+          //  Compute probability of rescuing with libraries we've
+          //  seen already, and the expected number of repeats
+          //  rescued.
+          //
+          for (u32bit x=0; x<lib[l].coverage(); x++) {
+            pRepeat *= (1.0 - pRescue);
+            numRR[++RRidx] += 1 - pRepeat;
+          }
+
+          //  Histogram of the probability of rescuing a repeat
+          histogram[(s32bit)floor(histogramLen * pRescue)]++;
         }
-
-        for (s32bit l=b2l; l<b2h; l++) {
-          if (S->masking(s, l) == 'u')
-            pRescue += normal[l - p - mean + normalZero];
-        }
-
-        //  We're summing over two distributions.
-        pRescue /= 2.0;
-        pRepeat  = 1.0 - pRescue;
-
-        for (u32bit x=1; x<MAX_COVERAGE; x++) {
-          numRR[x] += 1 - pRepeat;
-          pRepeat *= (1.0 - pRescue);
-        }
-
-        //  Histogram of the probability of rescuing a repeat
-        histogram[(s32bit)floor(histogramLen * pRescue)]++;
 
         //CT->tick();
       }
@@ -319,14 +361,20 @@ computeMateRescue(merMaskedSequence *S) {
 
     //delete CT;
 
-    sprintf(outputName, "%s.mateRescue.seq"u32bitFMTW(02)",out", S->merylName(), s);
+    sprintf(outputName, "%s.mateRescue.seq"u32bitFMTW(02)".out", S->merylName(), s);
     outputFile = fopen(outputName, "w");
 
-    fprintf(outputFile, "seqIID\tmerSize\t#totalRepeats\texpectedRescue\tXcoverage\n");
+    fprintf(outputFile, "seqIID\tmerSize\t#totalRepeats\texpectedRescue\tXcoverage\tmean\tstddev\n");
 
-    for (u32bit x=1; x<MAX_COVERAGE; x++)
-      fprintf(outputFile, u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%.0f\t"u32bitFMT"\n",
-              s, S->merSize(), numRT, numRR[x], x);
+    for (u32bit x=1, l=0, n=0; l<libLen; x++) {
+      fprintf(outputFile, u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%.0f\t"u32bitFMT"\t"s32bitFMT"\t"s32bitFMT"\n",
+              s, S->merSize(), numRT, numRR[x], x, lib[l].mean(), lib[l].stddev());
+      n++;
+      if (n >= lib[l].coverage()) {
+        l++;
+        n = 0;
+      }
+    }
 
     fclose(outputFile);
 
@@ -361,6 +409,9 @@ main(int argc, char **argv) {
   bool      doDensity  = false;
   bool      doRescue   = false;
 
+  mateRescueData  lib[MAX_COVERAGE];
+  u32bit          libLen  = 0;
+
   int arg=1;
   int err=0;
   while (arg < argc) {
@@ -375,6 +426,8 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-r") == 0) {
       doRescue = true;
+      lib[libLen++].init(atoi(argv[arg+1]), atoi(argv[arg+2]), atoi(argv[arg+3]));
+      arg += 3;
 
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
@@ -393,7 +446,7 @@ main(int argc, char **argv) {
     computeDensity(S);
 
   if (doRescue)
-    computeMateRescue(S);
+    computeMateRescue(S, lib, libLen);
 
   return(0);
 }
