@@ -157,6 +157,11 @@ ifeq ($(OSTYPE), Darwin)
   ARCH_LIB         = /usr/local/lib /usr/X11R6/lib
 endif
 
+# JCVI's Sun-Fire-880 5.10 Generic_118833-36 has a braindamaged
+# /bin/sh; the built-in "test" is broken.
+#
+# Use "gmake SHELL=/bin/bash".
+#
 ifeq ($(OSTYPE), SunOS)
   ifeq ($(MACHINETYPE), i86pc)
     CC             = gcc
@@ -164,15 +169,18 @@ ifeq ($(OSTYPE), SunOS)
     ARCH_CFLAGS    = -DBYTE_ORDER=LITTLE_ENDIAN
     ARCH_LDFLAGS  += -lm
   else
-    CC             = cc
-    CXX            = cxx
-    ARCH_CFLAGS    = -DBYTE_ORDER=BIG_ENDIAN -DMAP_FILE=0
-    ARCH_LDFLAGS  += -lsocket -lnsl
+    CC             = gcc
+    CXX            = g++
+    ARCH_CFLAGS    = -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -pthreads
+#    CC             = cc
+#    CXX            = cxx
+#    ARCH_CFLAGS    = -DBYTE_ORDER=BIG_ENDIAN -DMAP_FILE=0
   endif
   ifeq ($(BUILDDEBUG), 1)
     ARCH_CFLAGS   += -g
   else
-    ARCH_CFLAGS   += -fast
+    #  Try -fast if using cc/cxx
+    ARCH_CFLAGS   += -O
   endif
 endif
 
