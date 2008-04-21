@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.51 2008-04-16 10:26:27 brianwalenz Exp $
- * $Revision: 1.51 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.52 2008-04-21 17:52:16 brianwalenz Exp $
+ * $Revision: 1.52 $
  */
 
 #include <math.h>
@@ -332,13 +332,21 @@ namespace AS_BOG{
 
         fprintf(stderr, "==> SPLIT BAD MATES\n");
         for (int  ti=0; ti<tigGraph.unitigs->size(); ti++) {
-            UnitigsIter tig = tigGraph.unitigs->begin() + ti;
+            Unitig  *tig = (*tigGraph.unitigs)[ti];
 
-            if (*tig == NULL || (*tig)->getNumFrags() < 2)
+            if ((tig == NULL) || (tig->getNumFrags() < 2))
                 continue;
 
-            FragmentEnds* breaks = computeMateCoverage( *tig, tigGraph.bog_ptr );
-            tigGraph.accumulateSplitUnitigs( tig, breaks, tigGraph.unitigs );
+            FragmentEnds* breaks = computeMateCoverage(tig, tigGraph.bog_ptr);
+            UnitigVector* newUs  = tigGraph.breakUnitigAt(tig, *breaks);
+
+            if (newUs != NULL) {
+              delete tig;
+              (*tigGraph.unitigs)[ti] = NULL;
+              tigGraph.unitigs->insert(tigGraph.unitigs->end(), newUs->begin(), newUs->end());
+            }
+
+            delete newUs;
             delete breaks;
         }
 

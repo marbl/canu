@@ -34,15 +34,15 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.40 2008-04-16 10:26:27 brianwalenz Exp $
- * $Revision: 1.40 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.41 2008-04-21 17:52:17 brianwalenz Exp $
+ * $Revision: 1.41 $
  */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.40 2008-04-16 10:26:27 brianwalenz Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.41 2008-04-21 17:52:17 brianwalenz Exp $";
 
 #include <set>
 #include <iostream>
@@ -122,9 +122,6 @@ namespace AS_BOG{
         long getSumFragLength(void);
         long getNumRandomFrags(void); // For now, same as numFrags, but should be randomly sampled frag count
         DoveTailNode getLastBackboneNode(iuid&);
-        // For proto I/O messages
-        IntUnitigMesg *getIUM_Mesg();
-        void freeIUM_Mesg(IntUnitigMesg *ium_ptr);
 
         friend std::ostream& operator<< (std::ostream& os, Unitig& utg);
 
@@ -223,12 +220,13 @@ namespace AS_BOG{
 
         void filterBreakPoints( Unitig *, FragmentEnds &);
 
-        UnitigBreakPoint selectSmall(const Unitig *,
-                                     const FragmentEnds &,
-                                     const UnitigBreakPoint &);
+        UnitigBreakPoint selectSmall(const Unitig *tig,
+                                     const FragmentEnds &smalls,
+                                     const UnitigBreakPoint &big,
+                                     int   &lastBPCoord,
+                                     int   &lastBPFragNum);
 
         UnitigVector* breakUnitigAt( Unitig *, FragmentEnds &);
-        void accumulateSplitUnitigs( UnitigsIter, FragmentEnds *, UnitigVector *);
 
         // Counts status of best edges internal to a unitig
         BestEdgeCounts countInternalBestEdges( const Unitig *);
