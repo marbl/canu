@@ -34,15 +34,15 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.41 2008-04-21 17:52:17 brianwalenz Exp $
- * $Revision: 1.41 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.42 2008-04-22 07:20:17 brianwalenz Exp $
+ * $Revision: 1.42 $
  */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.41 2008-04-21 17:52:17 brianwalenz Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.42 2008-04-22 07:20:17 brianwalenz Exp $";
 
 #include <set>
 #include <iostream>
@@ -74,7 +74,6 @@ namespace AS_BOG{
     ///////////////////////////////////////////////////////////////////////
 
     typedef std::map<fragment_id, SeqInterval> FragmentPositionMap;
-    std::ostream& operator<< (std::ostream& os, FragmentPositionMap *fpm_ptr);
 
     inline bool isReverse( SeqInterval pos ) {
         return(pos.bgn > pos.end);
@@ -109,8 +108,9 @@ namespace AS_BOG{
         void computeFragmentPositions(BestOverlapGraph*);
 
         void shiftCoordinates(int);
-        void reverseComplement( );
-        void reverseComplement( int offset, BestOverlapGraph *);
+        void reverseComplement();
+        void reverseComplement(int offset, BestOverlapGraph *);
+
         // Accessor methods
         float getAvgRho(void);
         static void setGlobalArrivalRate(float global_arrival_rate);
@@ -123,16 +123,21 @@ namespace AS_BOG{
         long getNumRandomFrags(void); // For now, same as numFrags, but should be randomly sampled frag count
         DoveTailNode getLastBackboneNode(iuid&);
 
-        friend std::ostream& operator<< (std::ostream& os, Unitig& utg);
-
-        iuid id();
-        static iuid getNextId();
-        static void setNextId(iuid);
+        iuid         id(void) { return(_id); };
 
         void addFrag(DoveTailNode, int offset=0, bool report=false);
 
-        static iuid fragIn(iuid);
-        static void resetFragUnitigMap(iuid numFrags);
+        static iuid fragIn(iuid fragId) {
+            if (_inUnitig == NULL)
+                return 0;
+            return _inUnitig[fragId];
+        };
+
+        static void resetFragUnitigMap(iuid numFrags) {
+            if (_inUnitig == NULL)
+                _inUnitig = new iuid[numFrags+1];
+            memset(_inUnitig, 0, (numFrags+1) * sizeof(iuid));
+        };
 
         // Public Member Variables
         DoveTailPath *dovetail_path_ptr;
@@ -141,18 +146,19 @@ namespace AS_BOG{
         void placeContains( const ContainerMap *, BestContainmentMap*,
                             const iuid , const SeqInterval, const int level );
 
-        // Do not access these private variables directly, they may not be
-        //  computed yet, use accessors!
-        float _avgRho;
-        float _covStat;
-        long _length;
-        long _numFrags;
-        long _numRandomFrags;
-        float _localArrivalRate;
-        static iuid nextId;
-        iuid _id;
+        // Do not access these private variables directly, they may
+        // not be computed yet, use accessors!
+        //
+        float  _avgRho;
+        float  _covStat;
+        long   _length;
+        long   _numFrags;
+        long   _numRandomFrags;
+        float  _localArrivalRate;
+        iuid   _id;
+
+        static iuid   nextId;
         static float _globalArrivalRate;
-        // records if that frg has be incorporated into a unitg or not
         static iuid *_inUnitig;
 
     };
@@ -203,9 +209,6 @@ namespace AS_BOG{
 
         // Call this on a chunk graph pointer to build a unitig graph
         void build(ChunkGraph *cg_ptr);
-
-        // Debugging output operator
-        friend std::ostream& operator<< (std::ostream& os, UnitigGraph& utgrph);
 
         // For compatibility with the rest of the assembler
         void writeIUMtoFile(char *filename, int fragment_count_target);
@@ -271,8 +274,8 @@ namespace AS_BOG{
         // Compute the global arrival rate based on the unitig rho's.
         float _compute_global_arrival_rate(void);
 
-        FragmentEdgeList *unitigIntersect;
-        ContainerMap *cntnrmap_ptr;
+        FragmentEdgeList  unitigIntersect;
+        ContainerMap     *cntnrmap_ptr;
     };
 		
     ///////////////////////////////////////////////////////////////////////
