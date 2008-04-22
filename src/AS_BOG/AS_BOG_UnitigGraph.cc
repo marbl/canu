@@ -659,12 +659,6 @@ namespace AS_BOG{
                             tig->id(), (dtEnd == THREE_PRIME) ? '3' : '5', lastBackbone.ident, Unitig::fragIn(bEdge->frag_b_id), bEdge->frag_b_id);
                 }
 
-                //
-                //  XXX BUG, we were resetting node to be the last
-                //  backbone above, but then testing against current
-                //  dtFrag below...and then using node in tests.
-                //
-
                 FragmentEdgeList::const_iterator edge_itr = unitigIntersect.find( dtFrag );
 
                 if (edge_itr != unitigIntersect.end() ) {
