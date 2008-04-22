@@ -216,14 +216,6 @@ namespace AS_BOG{
         // Build containee list
         ContainerMap *_extract_containees(DoveTailPath *dtp_ptr, 
                                           ContainerMap *cntnrmap_ptr);
-        // Merge Unitigs by follow the bid's
-        void mergeAllUnitigs( std::map<iuid,iuid> *);
-        void mergeUnitigs(Unitig*, std::set<iuid> *, std::map<iuid,iuid> *);
-
-        // handles next iteration setup for mergUnitigs
-        BestEdgeOverlap* nextJoiner( Unitig*,
-                                     iuid &aPrev, iuid &fragA, int &tigEnd, bool &begRev,
-                                     BestEdgeOverlap *&fivePrime, BestEdgeOverlap *&threePrime );
 
         // Compute the global arrival rate based on the unitig rho's.
         float _compute_global_arrival_rate(void);
