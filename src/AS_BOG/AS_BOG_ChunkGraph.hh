@@ -18,32 +18,9 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*************************************************
- * Module:  AS_BOG_ChunkGraph.hh
- * Description:
- *	Data structure to keep track of if overlaps can be chunked together.
- *	We should be able to get rid of the data structure, but the rules
- *	for deciding whether a overlaps can be chunked together should be
- *	kept here.
- * 
- *    Programmer:  K. Li
- *       Started:  2 Aug 2005
- * 
- * Assumptions:
- * 
- * Notes:
- *
- *************************************************/
-
-/* RCS info
- * $Id: AS_BOG_ChunkGraph.hh,v 1.9 2007-12-05 23:46:57 brianwalenz Exp $
- * $Revision: 1.9 $
- */
 
 #ifndef INCLUDE_AS_BOG_CHUNKGRAPH
 #define INCLUDE_AS_BOG_CHUNKGRAPH
-
-static char AS_BOG_CHUNK_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_ChunkGraph.hh,v 1.9 2007-12-05 23:46:57 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -57,10 +34,7 @@ namespace AS_BOG{
         // Number of frags edges to cross in 
         static const short FRAG_WALK_NUM = 101;
 
-        // Constructor
         ChunkGraph(void);
-
-        // Destructor
         ~ChunkGraph(void);
 
         // Build the ChunkGraph, based on a BOG
@@ -72,22 +46,18 @@ namespace AS_BOG{
         virtual bool isChunkable( iuid frag_a_id, fragment_end_type which_end);
 
         // Returns IUID of 5' or 3' end of specified frag_id
-        //  Since there should only be one out/incoming connection
-        iuid getChunking(iuid src_frag_id, fragment_end_type whichEnd);
+        // Since there should only be one out/incoming connection
+        iuid getChunking(iuid src_frag_id,
+                         fragment_end_type whichEnd);
 
-        void getChunking(
-                         iuid src_frag_id, 
+        void getChunking(iuid src_frag_id, 
                          iuid& five_prime_dst_frag_id, iuid& three_prime_dst_frag_id);
 
-        void setChunking(
-                         iuid src_frag_id, 
+        void setChunking(iuid src_frag_id, 
                          iuid five_prime_dst_frag_id, iuid three_prime_dst_frag_id);
 
-        void printFrom(iuid begin, iuid end);
         long getNumFragments(void);
         long countSingletons(void);
-
-        friend std::ostream& operator<< (std::ostream& os, ChunkGraph &cg);
 
         void checkInDegree();
 
@@ -108,8 +78,6 @@ namespace AS_BOG{
         struct _chunk_length {
             iuid fragId;
             short cnt;
-            //short fpCnt;
-            //short tpCnt;
         };
 
         short countChunkWidth(iuid, fragment_end_type );

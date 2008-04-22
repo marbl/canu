@@ -18,29 +18,9 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*************************************************
- * Module:  AS_BOG_Datatypes.c
- * Description:
- *	Common datatypes
- * 
- *    Programmer:  K. Li
- *       Started:  20 July 2005
- * 
- * Assumptions:
- * 
- * Notes:
- *
- *************************************************/
-
-/* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.22 2008-04-22 09:30:04 brianwalenz Exp $
- * $Revision: 1.22 $
- */
 
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
-
-//  System include files
 
 #include <map>
 #include <list>
@@ -53,51 +33,10 @@ extern "C" {
 
 namespace AS_BOG{
 
-    typedef enum { 
-        UNDEFINED,
-
-        // Dovetailing overlaps
-        DOVE_NORMAL,		// AB_AB
-        // A ----->
-        // B    ----->
-        DOVE_INNIE,		// AB_BA
-        // A ----->
-        // B    <-----
-        DOVE_OUTTIE,		// BA_AB
-        // A    ----->
-        // B <-----
-        DOVE_ANTI_NORMAL,	// BA_BA (should be same as Normal if B is rc'd)
-        // 	A <-----
-        // 	B    <-----
-        // AKA 
-        // 	A    ----->
-        // 	B  ----->
-
-        // Containment overlaps
-        CONT_NORMAL,
-        // A -------->
-        // B   --->
-        CONT_INNIE,
-        // A -------->
-        // B   <---
-        CONT_OUTTIE,
-        // A <--------
-        // B   --->
-        CONT_ANTI_NORMAL,
-        // A <--------
-        // B   <---
-    } overlap_type;
-
     enum fragment_end_type {
         FIVE_PRIME, 	// 5' End of fragment
         THREE_PRIME 	// 3' End of Fragment
     };
-
-    typedef enum {
-        UNKNOWN,
-        FORWARD,
-        REVERSE
-    } orientation_type;
 
     typedef AS_IID    iuid;
     const iuid NULL_FRAG_ID=0;

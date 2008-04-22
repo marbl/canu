@@ -18,15 +18,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.53 2008-04-22 09:30:04 brianwalenz Exp $
- * $Revision: 1.53 $
- */
-
 #include <math.h>
 #include "AS_BOG_MateChecker.hh"
-#include "AS_OVL_overlap.h"  // For DEFAULT_MIN_OLAP_LEN
-#include "AS_UTL_alloc.h"    // For safe_calloc
+#include "AS_OVL_overlap.h"
+#include "AS_UTL_alloc.h"
 
 namespace AS_BOG{
     MateChecker::~MateChecker() {
@@ -79,11 +74,9 @@ namespace AS_BOG{
         return numFrgs;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
     
     IntervalList* findPeakBad( std::vector<short>* badGraph, int tigLen);
 
-    ///////////////////////////////////////////////////////////////////////////
 
     MateInfo MateChecker::getMateInfo(iuid fragID) {
         if (_mates.find( fragID ) == _mates.end())
@@ -92,7 +85,6 @@ namespace AS_BOG{
             return _mates[ fragID ];
     }
 
-    ///////////////////////////////////////////////////////////////////////////
 
     LibraryStats* MateChecker::computeLibraryStats(Unitig* tig) {
         IdMap goodMates;
@@ -215,7 +207,6 @@ namespace AS_BOG{
         return libs;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
     
     void MateChecker::computeGlobalLibStats( UnitigGraph& tigGraph ) {
         LibraryStats::iterator dcIter;
@@ -315,8 +306,6 @@ namespace AS_BOG{
 
 
 
-    ///////////////////////////////////////////////////////////////////////////
-    // main entry point into mate checking code
     void MateChecker::checkUnitigGraph( UnitigGraph& tigGraph ) {
 
         fprintf(stderr, "==> STARTING MATE BASED SPLITTING.\n");
@@ -636,7 +625,6 @@ namespace AS_BOG{
         }  //  End of discontinuity splitting
     }
 
-    ///////////////////////////////////////////////////////////////////////////
 
     void incrRange( std::vector<short>* graph, short val, iuid n, iuid m ) {
         if (n == m)
@@ -684,7 +672,7 @@ namespace AS_BOG{
         retVal.end = MIN( aMax, bMax );
         return retVal;
     }
-    ///////////////////////////////////////////////////////////////////////////
+
     // Assumes list is already sorted
     void combineOverlapping( IntervalList* list ) {
         IntervalList::iterator iter = list->begin();
@@ -699,7 +687,6 @@ namespace AS_BOG{
             }
         }
     }
-    ///////////////////////////////////////////////////////////////////////////
 
     // hold over from testing if we should use 5' or 3' for range generation, now must use 3'
     UnitigBreakPoints* MateChecker::computeMateCoverage( Unitig* tig, BestOverlapGraph* bog_ptr ) {
@@ -879,20 +866,8 @@ namespace AS_BOG{
         return breaks;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
 
     IntervalList* findPeakBad( std::vector<short>* badGraph, int tigLen ) {
-#if 0
-        long sum = 0;
-        for(int i=0; i < tigLen; i++) {
-            if (i > 1 && i % 300 == 0) {
-                fprintf(stderr,"%d ", sum / 300);
-                sum = 0;
-            }
-            sum += badGraph->at( i );
-        }
-        fprintf(stderr,"\n");
-#endif
         IntervalList* peakBads = new IntervalList();
         SeqInterval   peak = NULL_SEQ_LOC;
         int badBegin, peakBad, lastBad;
@@ -910,11 +885,6 @@ namespace AS_BOG{
                 lastBad = badGraph->at(i);
             } else {
                 if (badBegin > 0) {  // end bad region
-#if 0
-                    fprintf(stderr,"Bad mates >%d from %d to %d peak %d from %d to %d\n",
-                            -BogOptions::badMateBreakThreshold,
-                            badBegin,i-1,peakBad,peak.bgn,peak.end);
-#endif
                     peakBads->push_back( peak );
                     peakBad = lastBad = badBegin = 0;
                     peak = NULL_SEQ_LOC;
@@ -924,8 +894,7 @@ namespace AS_BOG{
         return peakBads;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-    
+
     void MateLocation::buildTable( Unitig *tig) {
 
         for(DoveTailConstIter frag = tig->dovetail_path_ptr->begin();
@@ -944,25 +913,7 @@ namespace AS_BOG{
         sort();
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-    
-    std::ostream& operator<< (std::ostream& os, MateCounts c) {
-        int sum = c.badOtherTig + c.otherTig + c.goodCircular + c.good + c.badOuttie +
-            c.badInnie + c.badAntiNormal + c.badNormal;
 
-        os << std::endl << "Total mates " << c.total << " should equal sum " << sum
-           << std::endl
-           << "Good innies " << c.good << " good circular mates " << c.goodCircular
-           << std::endl
-           << "Other unitig " << c.otherTig << " other tig dist exceeded " << c.badOtherTig
-           << std::endl
-           << "Bad Outtie " << c.badOuttie << " Bad Innie " << c.badInnie << std::endl
-           << "Bad Normal " << c.badNormal << " Bad Anti-normal " << c.badAntiNormal
-           << std::endl << std::endl;
-    }
-    
-    ///////////////////////////////////////////////////////////////////////////
-    
     MateCounts* MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& globalStats ) {
         goodGraph->resize( tigLen+1 );
         badFwdGraph->resize( tigLen+1 );
@@ -1127,7 +1078,6 @@ namespace AS_BOG{
         return cnts;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
 
     bool MateLocation::startEntry(iuid unitigID, iuid fragID, SeqInterval fragPos) {
         if ( _iidIndex.find( fragID) != _iidIndex.end() )
@@ -1148,7 +1098,6 @@ namespace AS_BOG{
         return true;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
 
     bool MateLocation::addMate(iuid unitigId, iuid fragId, SeqInterval fragPos) {
         iuid mateId = _checker->getMateInfo( fragId ).mate;
@@ -1165,7 +1114,6 @@ namespace AS_BOG{
         return true;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
 
     MateLocationEntry MateLocation::getById( iuid fragId ) {
         IdMapConstIter entryIndex = _iidIndex.find( fragId );
@@ -1175,7 +1123,6 @@ namespace AS_BOG{
             return _table[ entryIndex->second ];
     }
 
-    ///////////////////////////////////////////////////////////////////////////
 
     bool MateLocation::hasFrag(iuid fragId) {
         if ( _iidIndex.find( fragId ) == _iidIndex.end() )
@@ -1184,7 +1131,6 @@ namespace AS_BOG{
             return true;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
 
     void MateLocation::sort() {
         std::sort(begin(),end());
@@ -1196,15 +1142,4 @@ namespace AS_BOG{
             _iidIndex[ entry.id2 ] = i;
         }
     }
-
-    ///////////////////////////////////////////////////////////////////////////
-
-    std::ostream& operator<< (std::ostream& os, MateLocationEntry& e) {
-        int dist = e.pos2.bgn - e.pos1.bgn;
-        os << e.pos1.bgn <<","<< e.pos1.end <<" -> "<< e.pos2.bgn <<","<< e.pos2.end
-           << " "<< dist << " Frg " << e.id1 << " mate " << e.id2 << " isBad " << e.isBad ;
-        return os;
-    }
-
-    ///////////////////////////////////////////////////////////////////////////
 }

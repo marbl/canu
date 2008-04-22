@@ -18,28 +18,6 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*************************************************
- * Module:  AS_BOG_ChunkGraph.cc
- * Description:
- *	Data structure to keep track of if overlaps can be chunked together.
- * 
- *    Programmer:  K. Li
- *       Started:  2 Aug 2005
- * 
- * Assumptions:
- * 
- * Notes:
- *
- *************************************************/
-
-/* RCS info
- * $Id: AS_BOG_ChunkGraph.cc,v 1.17 2008-04-22 09:30:04 brianwalenz Exp $
- * $Revision: 1.17 $
- */
-
-static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.17 2008-04-22 09:30:04 brianwalenz Exp $";
-
-//  System include files
 
 #include<iostream>
 #include<vector>
@@ -52,9 +30,6 @@ static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.17 20
 
 namespace AS_BOG{
 
-    //////////////////////////////////////////////////////////////////////////////
-    // ChunkGraph
-
     ChunkGraph::ChunkGraph(void){
         _chunkable_array=NULL;
         _edgePathLen=NULL;
@@ -62,17 +37,12 @@ namespace AS_BOG{
         _max_fragments=0;
     }
 
-    //////////////////////////////////////////////////////////////////////////////
-	
     ChunkGraph::~ChunkGraph(void){
         delete[] _edgePathLen;
         delete[] _chunkable_array;
         delete[] _chunk_lengths;
     }
 
-
-    //////////////////////////////////////////////////////////////////////////////
-    // Accessor Functions
 
     iuid ChunkGraph::getChunking(iuid src_frag_id, fragment_end_type whichEnd){
         if(FIVE_PRIME == whichEnd){
@@ -85,29 +55,20 @@ namespace AS_BOG{
         }
     }
 
-    //////////////////////////////////////////////////////////////////////////////
-
-    void ChunkGraph::getChunking(
-                                 iuid src_frag_id,
+    void ChunkGraph::getChunking(iuid src_frag_id,
                                  iuid& five_prime_dst_frag_id, iuid& three_prime_dst_frag_id){
 
         five_prime_dst_frag_id=_chunkable_array[src_frag_id].five_prime;
         three_prime_dst_frag_id=_chunkable_array[src_frag_id].three_prime;
     }
 
-    //////////////////////////////////////////////////////////////////////////////
-
-    void ChunkGraph::setChunking(
-                                 iuid src_frag_id,
+    void ChunkGraph::setChunking(iuid src_frag_id,
                                  iuid five_prime_dst_frag_id, iuid three_prime_dst_frag_id){
 
         _chunkable_array[src_frag_id].five_prime=five_prime_dst_frag_id;
         _chunkable_array[src_frag_id].three_prime=three_prime_dst_frag_id;
-		
     }
 
-    //////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////
 
     void ChunkGraph::build(BestOverlapGraph *inBovlg){
         // This will go through all the nodes in the bovlg and
@@ -178,6 +139,7 @@ namespace AS_BOG{
         }
         return cnt;
     }
+
     FragmentEnd ChunkGraph::followPath( FragmentEnd anEnd ) {
         iuid frag = anEnd.fragId();
         if (anEnd.fragEnd() == FIVE_PRIME) 
@@ -195,6 +157,7 @@ namespace AS_BOG{
 
         return anEnd;
     }
+
     iuid ChunkGraph::countFullWidth(iuid firstFrag, fragment_end_type end) {
         iuid index = firstFrag * 2 + end;
         if ( _edgePathLen[index] != 0 )
@@ -241,20 +204,16 @@ namespace AS_BOG{
         }
         return max;
     }
+
     int ChunkGraph::sortChunkLens( const void *a, const void *b) {
         struct _chunk_length *frg1 = (struct _chunk_length*)a;
         struct _chunk_length *frg2 = (struct _chunk_length*)b;
-        /*        short cnt1 = min(frg1->fpCnt,frg1->tpCnt);
-                  short cnt2 = min(frg2->fpCnt,frg2->tpCnt);
-                  if ( cnt1 != cnt2 )
-                  return cnt2 - cnt1;
-        */
+
         if ( frg1->cnt != frg2->cnt )
             return frg2->cnt - frg1->cnt;
         else 
             return frg1->fragId - frg2->fragId;
     }
-    //////////////////////////////////////////////////////////////////////////////
 
     iuid ChunkGraph::nextFragByChunkLength() {
         static iuid pos = 0;
@@ -266,16 +225,12 @@ namespace AS_BOG{
         }
     }
 	
-    //////////////////////////////////////////////////////////////////////////////
-
-    bool ChunkGraph::isChunkable(
-                                 iuid frag_a_id, fragment_end_type which_end ) {
+    bool ChunkGraph::isChunkable(iuid frag_a_id, fragment_end_type which_end ) {
         // Given an edge (based on fragment ID and end), determines by looking at
         //   what the edge overlaps, whether the overlap is unambiguous.
 
         // Translate from fragment id to best overlap
-        BestEdgeOverlap *a_beo;
-        a_beo=bovlg->getBestEdgeOverlap(frag_a_id, which_end);
+        BestEdgeOverlap *a_beo=bovlg->getBestEdgeOverlap(frag_a_id, which_end);
 
         if(a_beo->in_degree==1){
 
@@ -301,8 +256,8 @@ namespace AS_BOG{
         }
 
     }
-    bool PromiscuousChunkGraph::isChunkable(
-                                            iuid frag_a_id, fragment_end_type which_end) { 
+
+    bool PromiscuousChunkGraph::isChunkable(iuid frag_a_id, fragment_end_type which_end) { 
 
         // Translate from fragment id to best overlap
         BestEdgeOverlap *a_beo=bovlg->getBestEdgeOverlap(frag_a_id, which_end);
@@ -316,27 +271,13 @@ namespace AS_BOG{
             return(false);
         }
     }
-    //////////////////////////////////////////////////////////////////////////////
 
-    void ChunkGraph::printFrom(iuid begin, iuid end){
-        iuid i;
-        for(i=begin; i<=end; i++){
-            std::cout << 
-                _chunkable_array[i].five_prime << " <= " <<
-                i << " => " <<
-                _chunkable_array[i].three_prime <<
-                std::endl;
-        }
-
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
 
     long ChunkGraph::getNumFragments(void){
         return(_max_fragments);		
     }
 
-    //////////////////////////////////////////////////////////////////////////////
+
 
     long ChunkGraph::countSingletons(void){
         iuid i;
@@ -350,23 +291,6 @@ namespace AS_BOG{
         return(num_singletons);
     }
 
-    //////////////////////////////////////////////////////////////////////////////
-
-    std::ostream& operator<< (std::ostream& os, ChunkGraph &cg){
-		
-        iuid i;
-        for(i=1; i<=cg._max_fragments; i++){
-            os << 
-                cg._chunkable_array[i].five_prime << " " <<
-                "[" << i << "] " <<
-                cg._chunkable_array[i].three_prime << " " <<
-                std::endl;
-
-        }
-
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
 
     void ChunkGraph::checkInDegree(){
 		
@@ -454,9 +378,6 @@ namespace AS_BOG{
 
         delete[] fivep_indegree_arr;
         delete[] threep_indegree_arr;
-
     }
-
-    //////////////////////////////////////////////////////////////////////////////
 
 } //AS_BOG namespace

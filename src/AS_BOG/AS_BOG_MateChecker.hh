@@ -18,11 +18,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.22 2008-04-22 09:30:04 brianwalenz Exp $
- * $Revision: 1.22 $
- */
-
 #ifndef INCLUDE_AS_BOG_MATECHEKER
 #define INCLUDE_AS_BOG_MATECHEKER
 
@@ -77,7 +72,6 @@ namespace AS_BOG{
         MateCounts() : badOtherTig(0), otherTig(0), total(0), goodCircular(0), good(0),
                        badOuttie(0), badInnie(0), badAntiNormal(0), badNormal(0)
         {}
-        friend std::ostream& operator<< (std::ostream&, MateCounts);
 
         MateCounts operator+= (MateCounts other) {
             badOtherTig   += other.badOtherTig;
@@ -92,7 +86,6 @@ namespace AS_BOG{
         }; 
     };
 
-    ///////////////////////////////////////////////////////////////////////////
 
     struct MateChecker{
         ~MateChecker();
@@ -126,7 +119,6 @@ namespace AS_BOG{
         LibraryStats _globalStats;
     };
 
-    ///////////////////////////////////////////////////////////////////////////
 
     struct MateLocationEntry {
         SeqInterval pos1;
@@ -137,7 +129,6 @@ namespace AS_BOG{
         iuid        unitig2; // in the future the table might be across unitigs
         bool        isBad;
     };
-    std::ostream& operator<< (std::ostream& os, MateLocationEntry&);
 
     static const MateLocationEntry NULL_MATE_ENTRY =
         {NULL_SEQ_LOC,NULL_SEQ_LOC,0,0,0,0};

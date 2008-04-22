@@ -18,39 +18,13 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*************************************************
- * Module:  AS_BOG_BestOverlapGraph.cc
- * Description:
- *    Data structure to contain the best overlaps and containments
- *    based on a defined metric.
- * 
- *    Programmer:  K. Li
- *       Started:  1 August 2005
- *
- *   Implementation: E. Venter
- *   Commented:    K. Li 
- * 
- * Assumptions:
- * 
- * Notes:
- *
- *************************************************/
 
-/* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.52 2008-04-22 09:30:04 brianwalenz Exp $
- * $Revision: 1.52 $
- */
-
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.52 2008-04-22 09:30:04 brianwalenz Exp $";
-
-//  System include files
 #include<iostream>
 #include<vector>
 #include<limits>
 #include<cmath>
 
 #include "AS_BOG_BestOverlapGraph.hh"
-//#include "AS_BOG_BestOverlapGraphVisitor.hh"
 
 extern "C" {
 #include "AS_PER_gkpStore.h"
@@ -59,10 +33,6 @@ extern "C" {
 #undef max
 namespace AS_BOG{
 
-    ///////////////////////////////////////////////////////////////////////////
-    //
-    //  Example:
-    //
     //  The overlap, pi, exists between A and B:
     //
     //  A -------------->
@@ -98,8 +68,6 @@ namespace AS_BOG{
         assert(0); // no contained
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-    // Constructor
 
     // Create BestOverlapGraph as an array of size max fragments.
     //     Assuming that our iuids start at index value of 1.
@@ -126,33 +94,25 @@ namespace AS_BOG{
         consensusCutoff = AS_OVS_encodeQuality( AS_CNS_ERROR_RATE );
     }
 
-    // Destructor
     BestOverlapGraph::~BestOverlapGraph(){
         delete[] _best_overlaps;
     }
 
-    // Interface to graph visitor
-    //void BestOverlapGraph::accept(BestOverlapGraphVisitor bog_vis){
-    //    bog_vis.visit(this);
-    //}
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Accessor Get Functions
 
     //  Given a fragment IUID and which end, returns pointer to
     //  BestOverlap node.  
-    BestEdgeOverlap *BestOverlapGraph::getBestEdgeOverlap(
-                                                          iuid frag_id, fragment_end_type which_end){
-
+    BestEdgeOverlap *BestOverlapGraph::getBestEdgeOverlap(iuid frag_id, fragment_end_type which_end){
         if(which_end == FIVE_PRIME)
             return(&_best_overlaps[frag_id].five_prime);
         else if(which_end == THREE_PRIME){
             return(&_best_overlaps[frag_id].three_prime);
         }
     }
+
     BestEdgeOverlap *BestOverlapGraph::getBestEdgeOverlap(FragmentEnd* end) {
         return getBestEdgeOverlap(end->fragId(),end->fragEnd());
     }
+
     void BestOverlapGraph::followOverlap(FragmentEnd* end) {
         BestEdgeOverlap* edge = getBestEdgeOverlap(end);
         *end = FragmentEnd(edge->frag_b_id, (edge->bend == FIVE_PRIME) ? THREE_PRIME : FIVE_PRIME);
@@ -213,11 +173,7 @@ namespace AS_BOG{
         _best_containments[ olap.b_iid ] = newBest;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////
-    // Graph creation methods
 
-    ///////////////////////////////////////////////////////////////////////////
     // Transitively removes redundant containments, so all containees in a container, refer
     // to the same container.  Algorithm will go through each element in the list of contained
     // fragments, and then for each element follow each container's container.
@@ -312,8 +268,6 @@ namespace AS_BOG{
         }
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////
 
     // Array of cached fragment lengths.  Initialized to 0.  Use BestOverlapGraph::fragLen(iuid)
     //   to access contents b/c method will read info from FragStore and populate
@@ -322,10 +276,6 @@ namespace AS_BOG{
     iuid BestOverlapGraph::lastFrg;
 
     // Frag Store related data structures
-
-    ///////////////////////////////////////////////////////////////////////////
-
-    ///////////////////////////////////////////////////////////////////////////
 
     void BestOverlapGraph::updateInDegree() {
         if (curFrag == 0)
@@ -490,25 +440,6 @@ namespace AS_BOG{
         }
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-
-    void BestOverlapGraph::printFrom(iuid begin, iuid end){
-        iuid i;
-
-	end=(end==0)?begin:end;
-
-	for(i=begin; i<=end; i++){
-	    std::cout << 
-		_best_overlaps[i].five_prime.frag_b_id << 
-		"<-" << i << "->" <<
-	        _best_overlaps[i].three_prime.frag_b_id << 
-		"\t" <<  _best_overlaps[i].five_prime.in_degree <<
-		"/" <<  _best_overlaps[i].three_prime.in_degree <<
-		std::endl;
-	}
-    }
-
-    ///////////////////////////////////////////////////////////////////////////
 
     void BOG_Runner::processOverlapStream(OverlapStore * my_store,
                                           const char* FRG_Store_Path ) {

@@ -16,51 +16,21 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*************************************************
- * Module:  BuildUnitigs.c
- * Description:
- * 
- *    Programmer:  K. Li
- *       Started:  09/19/2005
- * 
- * Assumptions:
- * 
- * Notes:
- *
- *************************************************/
 
-/* RCS info
- * $Id: BuildUnitigs.cc,v 1.40 2008-04-16 10:26:27 brianwalenz Exp $
- * $Revision: 1.40 $
- */
-
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.40 2008-04-16 10:26:27 brianwalenz Exp $";
-
-//  System include files
-
-#include<map>
-#include<set>
 #include<vector>
-#include<cmath>   // for ceil and log10
-#include<cstdlib> // for abs(int)
-#include<iostream>
-#include<sstream>
+#include<cmath>
+#include<cstdlib>
 
 #include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_BOG_ChunkGraph.hh"
 #include "AS_BOG_UnitigGraph.hh"
 #include "AS_BOG_MateChecker.hh"
 
-using std::cout;
-using std::endl;
-using std::map;
-using std::set;
 using std::vector;
 
 using AS_BOG::BestOverlapGraph;
 using AS_BOG::BogOptions;
 
-//  Local include files
 extern "C" {
 #include "getopt.h"
 #include "AS_OVS_overlapStore.h"
@@ -74,8 +44,6 @@ main (int argc, char * argv []) {
 
     OverlapStore  * ovlStore;
     OVSoverlap      olap;
-
-    fprintf(stderr, "%s\n\n", BUILD_UNITIGS_MAIN_CM_ID);
 
     argc = AS_configure(argc, argv);
 
@@ -159,7 +127,7 @@ main (int argc, char * argv []) {
         }
     }
 
-    std::cerr << "Genome Size: " << genome_size << std::endl;
+    fprintf(stderr, "Genome Size: "F_S64"\n", genome_size);
 
     ovlStore = AS_OVS_openOverlapStore(OVL_Store_Path);
 
@@ -187,10 +155,9 @@ main (int argc, char * argv []) {
 	//cg.checkInDegree(bogRunner.metrics[i]);
 	cg->build(bogRunner.metrics[i]);
 
-	std::cout << "Num Fragments: " << cg->getNumFragments() << std::endl;
-	std::cout << "Num Singletons: " << cg->countSingletons() << std::endl;
-	std::cout << "Num Containees: " << bogRunner.metrics[i]->_best_containments.size() << std::endl;
-	std::cout << std::endl;
+	fprintf(stderr, "Num Fragments:   %d\n", cg->getNumFragments());
+        fprintf(stderr, "Num Singletons:  %d\n", cg->countSingletons());
+        fprintf(stderr, "Num Containees:  %d\n", bogRunner.metrics[i]->_best_containments.size());
 
 	AS_BOG::UnitigGraph utg(bogRunner.metrics[i]);
 

@@ -18,27 +18,6 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*************************************************
- * Module:  AS_BOG_BestOverlapGraph.hh
- * Description:
- *        Data structure to contain the best overlaps and containments
- *        based on a defined metric.
- * 
- *    Programmer:  K. Li
- *       Started:  20 July 2005
- * 
- * Assumptions:
- * 
- * Notes:
- *
- *************************************************/
-
-/* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.39 2008-04-16 10:26:27 brianwalenz Exp $
- * $Revision: 1.39 $
- */
-
-//  System include files
 
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
@@ -52,8 +31,6 @@ extern "C" {
 }
 
 namespace AS_BOG{
-
-    ///////////////////////////////////////////////////////////////////////
 
     struct BestEdgeOverlap{
         iuid frag_b_id;
@@ -74,7 +51,6 @@ namespace AS_BOG{
         BestEdgeOverlap three_prime;
     };
 
-    ///////////////////////////////////////////////////////////////////////
 
     struct BestContainment{
 
@@ -96,7 +72,6 @@ namespace AS_BOG{
     //#warning why a map and not a vector or just an array
     typedef std::map<iuid, BestContainment> BestContainmentMap;
 
-    ///////////////////////////////////////////////////////////////////////
 
     struct BestOverlapGraph {
 
@@ -134,13 +109,11 @@ namespace AS_BOG{
 
         void addContainEdge( iuid, iuid);
         bool containHaveEdgeTo( iuid, iuid);
-        void printFrom(iuid begin, iuid end=0);
 
         // Graph building methods
         fragment_end_type AEnd(const OVSoverlap& olap);
         fragment_end_type BEnd(const OVSoverlap& olap);
         void processOverlap(const OVSoverlap& olap);
-        static overlap_type getType(const OVSoverlap & olap);
 
         float scoreOverlap(const OVSoverlap& olap) {
 
@@ -263,7 +236,6 @@ namespace AS_BOG{
 
     }; //BestOverlapGraph
 
-    ///////////////////////////////////////////////////////////////////////////
 
     struct BOG_Runner {
         BOG_Runner(int lastFrag) { BestOverlapGraph::lastFrg = lastFrag; }

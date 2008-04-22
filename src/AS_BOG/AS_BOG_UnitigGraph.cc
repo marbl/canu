@@ -19,21 +19,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/*************************************************
- * Module:  AS_BOG_UnitigGraph.cc
- * Description:
- *	Data structure to contain the unitig paths and how they connect to each
- *	other
- * 
- *    Programmer:  K. Li
- *       Started:  2 Aug 2005
- * 
- * Assumptions:
- * 
- * Notes:
- *
- *************************************************/
-
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
 #include <set>
@@ -49,14 +34,11 @@ extern "C" {
 #undef max
 namespace AS_BOG{
 
-    //////////////////////////////////////////////////////////////////////////////
-    
     int BogOptions::badMateBreakThreshold    = -7;
     bool BogOptions::unitigIntersectBreaking = false;
     bool BogOptions::ejectUnhappyContained   = false;
     bool BogOptions::useGkpStoreLibStats     = false;
 
-    //////////////////////////////////////////////////////////////////////////////
     UnitigGraph::UnitigGraph(BestOverlapGraph *in_bog_ptr) : bog_ptr(in_bog_ptr) {
         unitigs         = new UnitigVector;
     }
@@ -190,7 +172,7 @@ namespace AS_BOG{
         delete cntnrmap_ptr;
         cntnrmap_ptr = NULL;
     }
-    //////////////////////////////////////////////////////////////////////////////
+
     BestEdgeOverlap* UnitigGraph::nextJoiner( Unitig* tig, 
                                               iuid &aPrev, iuid &fragA, int &tigEnd, bool &begRev,
                                               BestEdgeOverlap *&fivePrime, BestEdgeOverlap *&threePrime ) {
@@ -224,7 +206,6 @@ namespace AS_BOG{
         return bestEdge;
     }
 
-    //////////////////////////////////////////////////////////////////////////////
     void UnitigGraph::mergeUnitigs(Unitig* tig, std::set<iuid> *joined,
                                    std::map<iuid,iuid> *visited_map) {
         iuid beforeLast, beginId, joiner;
@@ -349,9 +330,8 @@ namespace AS_BOG{
             tigIdToAdd = (*visited_map)[ joiner ];
         }
     }
-    //////////////////////////////////////////////////////////////////////////////
-    void UnitigGraph::mergeAllUnitigs( std::map<iuid,iuid> *visited_map) {
 
+    void UnitigGraph::mergeAllUnitigs( std::map<iuid,iuid> *visited_map) {
         std::set<iuid>* joined = new std::set<iuid>;
         UnitigVector* newTigs = new UnitigVector;
         UnitigVector::iterator tigIter = unitigs->begin();
@@ -373,7 +353,7 @@ namespace AS_BOG{
         unitigs = newTigs;
         delete joined;
     }
-    //////////////////////////////////////////////////////////////////////////////
+
     DoveTailNode Unitig::getLastBackboneNode(iuid &prevId) {
         DoveTailNode lastNonContain;
 
@@ -391,7 +371,6 @@ namespace AS_BOG{
         }
         return lastNonContain;
     }
-    //////////////////////////////////////////////////////////////////////////////
 
     void Unitig::computeFragmentPositions(BestOverlapGraph* bog_ptr) {
         if (dovetail_path_ptr == NULL || dovetail_path_ptr->empty())
@@ -610,7 +589,7 @@ namespace AS_BOG{
                     current_frag_id );
         }
     }
-    //////////////////////////////////////////////////////////////////////////////
+
     void UnitigGraph::breakUnitigs() {
 
         //  Stop when we've seen all current unitigs.  Replace tiMax
@@ -738,8 +717,6 @@ namespace AS_BOG{
 
 
 
-
-    //////////////////////////////////////////////////////////////////////////////
     void UnitigGraph::printUnitigBreaks() {
 
         for (int  ti=0; ti<unitigs->size(); ti++) {
@@ -770,7 +747,7 @@ namespace AS_BOG{
                 fprintf(stderr, "Bubble %d to %d len %d\n", firstBest->frag_b_id, lastBest->frag_b_id, tig->getLength());
         }
     }
-    //////////////////////////////////////////////////////////////////////////////
+
 
     void UnitigGraph::_build_container_map(BestContainmentMap *best_cntr) {
         cntnrmap_ptr = new ContainerMap;
@@ -791,7 +768,6 @@ namespace AS_BOG{
         std::cerr << "Num containers: " << cntnrmap_ptr->size() << std::endl;
     }
 
-    //////////////////////////////////////////////////////////////////////////////
 
     float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long genome_size){
 		
@@ -927,7 +903,6 @@ namespace AS_BOG{
 
     }
 
-    //////////////////////////////////////////////////////////////////////////////
 
     Unitig::Unitig(bool report){
         _localArrivalRate = -1;
@@ -942,13 +917,11 @@ namespace AS_BOG{
         if (report)
             fprintf(stderr, "Creating Unitig %d\n", _id);
     }
-    //////////////////////////////////////////////////////////////////////////////
 
     Unitig::~Unitig(void){
         delete dovetail_path_ptr;
     }
 
-    //////////////////////////////////////////////////////////////////////////////
 
     void Unitig::addFrag( DoveTailNode node, int offset, bool report) {
 
@@ -978,7 +951,6 @@ namespace AS_BOG{
                 fprintf(stderr, "Added frag %d to unitig %d at %d,%d\n", node.ident, id(), node.position.bgn, node.position.end);
     }
 
-    //////////////////////////////////////////////////////////////////////////////
 
     float Unitig::getAvgRho(void){
 
@@ -1028,7 +1000,6 @@ namespace AS_BOG{
         return(_avgRho);
     }
 
-    //////////////////////////////////////////////////////////////////////////////
 
     float Unitig::_globalArrivalRate = -1;
 
@@ -1049,7 +1020,6 @@ namespace AS_BOG{
         return _localArrivalRate;
     }
 
-    //////////////////////////////////////////////////////////////////////////////
 
     float Unitig::getCovStat(void){
 
@@ -1080,13 +1050,11 @@ namespace AS_BOG{
 
     }
 
-    //////////////////////////////////////////////////////////////////////////////
 
     long Unitig::getLength(void){
         return _length;
     }
 
-    //////////////////////////////////////////////////////////////////////////////
     long Unitig::getSumFragLength(void){
         long sum=0;
 
@@ -1100,7 +1068,6 @@ namespace AS_BOG{
         }
         return(sum);
     }
-    //////////////////////////////////////////////////////////////////////////////
 
     long Unitig::getNumFrags(void){
 
@@ -1116,7 +1083,6 @@ namespace AS_BOG{
         return(_numFrags);
     }
 
-    //////////////////////////////////////////////////////////////////////////////
 
     long Unitig::getNumRandomFrags(void){
 	// This is a placeholder, random frags should not contain guides, or other
@@ -1129,7 +1095,7 @@ namespace AS_BOG{
         _numRandomFrags=getNumFrags();
         return(_numRandomFrags);
     }
-    //////////////////////////////////////////////////////////////////////////////
+
     void Unitig::shiftCoordinates(int offset) {
         //simple version
         if (dovetail_path_ptr->empty()) {
@@ -1145,7 +1111,7 @@ namespace AS_BOG{
             assert( iter->position.end >= 0);
         }
     }
-    //////////////////////////////////////////////////////////////////////////////
+
     void Unitig::reverseComplement() {
         int length = this->getLength();
         DoveTailNode first = dovetail_path_ptr->front();
@@ -1161,7 +1127,7 @@ namespace AS_BOG{
         first = dovetail_path_ptr->front();
         last = dovetail_path_ptr->back();
     }
-    //////////////////////////////////////////////////////////////////////////////
+
     void Unitig::reverseComplement(int offset, BestOverlapGraph *bog_ptr) {
         iuid notUsed;
         DoveTailNode last  = getLastBackboneNode(notUsed);
@@ -1230,11 +1196,11 @@ namespace AS_BOG{
         dovetail_path_ptr = revP;
     }
 
-    //////////////////////////////////////////////////////////////////////////////
-    //Recursively place all contains under this one into the FragmentPositionMap
+    //
+    // Recursively place all contains under this one into the FragmentPositionMap
     //
     // Compute assuming that containee is the same orientation as container
-    //	if(cntnr_intvl.begin < cntnr_intvl.end)
+    //  if(cntnr_intvl.begin < cntnr_intvl.end)
     //
     // Container is in forward direction
     //
@@ -1378,9 +1344,6 @@ namespace AS_BOG{
         delete containPartialOrder;
         containPartialOrder = NULL;
     }
-
-    //////////////////////////////////////////////////////////////////////////////
-
 
 
 
@@ -1749,8 +1712,6 @@ namespace AS_BOG{
         return splits;
     }
 
-    //////////////////////////////////////////////////////////////////////////////
-
 
     int IntMultiPosCmp(const void *a, const void *b){
         IntMultiPos *impa=(IntMultiPos*)a;
@@ -1800,11 +1761,11 @@ namespace AS_BOG{
             return(0);
         }
     }
-    //////////////////////////////////////////////////////////////////////////////
+
     void Unitig::sort() {
         qsort( &(dovetail_path_ptr->front()), getNumFrags(), sizeof(IntMultiPos), &IntMultiPosCmp );
     }
-    //////////////////////////////////////////////////////////////////////////////
+
 
     void UnitigGraph::writeIUMtoFile(char *fileprefix, int fragment_count_target){
       int         fragment_count         = 0;
@@ -1875,7 +1836,6 @@ namespace AS_BOG{
       fclose(iidm);
     }
 
-    //////////////////////////////////////////////////////////////////////////////
 
     void UnitigGraph::readIUMsFromFile(const char *filename, iuid maxIID){
         FILE *iumIn = fopen( filename, "r");
@@ -1912,7 +1872,6 @@ namespace AS_BOG{
         }
     }
 
-    //////////////////////////////////////////////////////////////////////////////
 
     BestEdgeCounts UnitigGraph::countInternalBestEdges( const Unitig *tig) {
         DoveTailConstIter iter = tig->dovetail_path_ptr->begin();
@@ -1959,7 +1918,6 @@ namespace AS_BOG{
         return cnts;
     }
 
-    //////////////////////////////////////////////////////////////////////////////
 
     BestEdgeCounts UnitigGraph::countInternalBestEdges() {
         BestEdgeCounts allTigs;
@@ -1980,7 +1938,5 @@ namespace AS_BOG{
         }
         return allTigs;
     }
-
-    //////////////////////////////////////////////////////////////////////////////
 
 } //AS_BOG namespace

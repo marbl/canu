@@ -19,21 +19,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/*************************************************
- * Module:  AS_BOG_UnitigGraph.hh
- * Description:
- *	Data structure to contain the unitig paths and how they connect to each
- *	other
- * 
- *    Programmer:  K. Li
- *       Started:  20 July 2005
- * 
- * Assumptions:
- * 
- * Notes:
- *
- *************************************************/
-
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
@@ -87,7 +72,6 @@ namespace AS_BOG{
     //
     typedef std::list<UnitigBreakPoint> UnitigBreakPoints;
 
-    ///////////////////////////////////////////////////////////////////////
 
     struct Unitig{
 
@@ -157,24 +141,6 @@ namespace AS_BOG{
 
     };
 
-    ///////////////////////////////////////////////////////////////////////
-
-    struct UnitigOverlap{
-        // Contains the description of how unitigs are connected to
-        // each other
-			
-        iuid unitig_a;
-        orientation_type ori_a;
-
-        iuid unitig_b;
-        orientation_type ori_b;
-
-        overlap_type ovl_type;
-        int ovl_score;
-    };
-
-    ///////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////
 
     struct BestEdgeCounts{
         int oneWayBest;
@@ -229,14 +195,8 @@ namespace AS_BOG{
         BestEdgeCounts countInternalBestEdges( const Unitig *);
         BestEdgeCounts countInternalBestEdges( ); // all unitigs
 
-        ///////////////////////////////////////////////////////////////
-        // Member Variables
-
         // Unitigs are the dove tails and their contained fragments
         UnitigVector *unitigs;
-
-        // Overlaps are unitig overlaps
-        std::vector<UnitigOverlap*> overlaps;
 
         BestOverlapGraph *bog_ptr;
 
@@ -272,7 +232,6 @@ namespace AS_BOG{
         ContainerMap     *cntnrmap_ptr;
     };
 		
-    ///////////////////////////////////////////////////////////////////////
 };
 
 #endif
