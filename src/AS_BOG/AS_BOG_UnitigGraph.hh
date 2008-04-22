@@ -18,6 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
 /*************************************************
  * Module:  AS_BOG_UnitigGraph.hh
  * Description:
@@ -33,16 +34,8 @@
  *
  *************************************************/
 
-/* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.42 2008-04-22 07:20:17 brianwalenz Exp $
- * $Revision: 1.42 $
- */
-
-
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
-
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.42 2008-04-22 07:20:17 brianwalenz Exp $";
 
 #include <set>
 #include <iostream>
@@ -51,47 +44,48 @@ static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.42 
 
 namespace AS_BOG{
 
-    ///////////////////////////////////////////////////////////////////////
-    // For the sake of self-documenting code
+    typedef std::vector<iuid>                 FragmentList;
+    typedef std::map<iuid, FragmentList>      FragmentEdgeList;
 
-    typedef iuid container_id;
-    typedef iuid containee_id;
-    typedef iuid fragment_id;
-    typedef std::vector<fragment_id> FragmentList;
-    typedef std::map<iuid, FragmentList> FragmentEdgeList;
+    typedef IntMultiPos                       DoveTailNode;
+    typedef std::vector<DoveTailNode>         DoveTailPath;
 
-    ///////////////////////////////////////////////////////////////////////
-
-    typedef IntMultiPos DoveTailNode;
-    typedef std::vector<DoveTailNode> DoveTailPath;
-    typedef DoveTailPath::iterator    DoveTailIter;
+    typedef DoveTailPath::iterator            DoveTailIter;
     typedef DoveTailPath::const_iterator      DoveTailConstIter;
-    typedef DoveTailPath::reverse_iterator    DoveTailRIter;
 
-    typedef std::vector<iuid> ContaineeList;	
-    typedef std::map<container_id, ContaineeList> ContainerMap;
+    typedef std::vector<iuid>                 ContaineeList;	
+    typedef std::map<iuid, ContaineeList>     ContainerMap;
 
-    ///////////////////////////////////////////////////////////////////////
-
-    typedef std::map<fragment_id, SeqInterval> FragmentPositionMap;
+    typedef std::map<iuid, SeqInterval>       FragmentPositionMap;
 
     inline bool isReverse( SeqInterval pos ) {
         return(pos.bgn > pos.end);
     }
 
     struct UnitigBreakPoint {
-        int fragNumber;       // the number of the fragment in the unitig
-        int inSize;           // the size of the incoming unitig
-        int inFrags;          // the number of fragments in incoming unitig
-        SeqInterval position; // coordinates in unitig
-        FragmentEnd fragEnd;  // frag id and which end to break on 
+        int         fragNumber;       // the number of the fragment in the unitig
 
-        UnitigBreakPoint(iuid id=0, fragment_end_type end=FIVE_PRIME) :
-            fragEnd(id, end), fragNumber(0), inSize(0), inFrags(0) {
-            position.bgn = position.end = 0;
+        SeqInterval position;         // coordinates in unitig
+        FragmentEnd fragEnd;          // frag id and which end to break on 
+
+        iuid        inUnitig;         // iid of the incoming unitig
+        int         inSize;           // the size of the incoming unitig
+        int         inFrags;          // the number of fragments in incoming unitig
+
+        UnitigBreakPoint(iuid id=0, fragment_end_type end=FIVE_PRIME) {
+            fragNumber   = 0;
+            position.bgn = 0;
+            position.end = 0;
+            fragEnd      = FragmentEnd(id, end);
+            inUnitig     = 0;
+            inSize       = 0;
+            inFrags      = 0;
         }
     };
-    typedef std::list<UnitigBreakPoint> FragmentEnds;
+
+    //  Unfortunately, this does need to be a list.  Search for pop_front.
+    //
+    typedef std::list<UnitigBreakPoint> UnitigBreakPoints;
 
     ///////////////////////////////////////////////////////////////////////
 
@@ -221,15 +215,15 @@ namespace AS_BOG{
         void breakUnitigs();
         void printUnitigBreaks();
 
-        void filterBreakPoints( Unitig *, FragmentEnds &);
+        void filterBreakPoints( Unitig *, UnitigBreakPoints &);
 
         UnitigBreakPoint selectSmall(const Unitig *tig,
-                                     const FragmentEnds &smalls,
+                                     const UnitigBreakPoints &smalls,
                                      const UnitigBreakPoint &big,
                                      int   &lastBPCoord,
                                      int   &lastBPFragNum);
 
-        UnitigVector* breakUnitigAt( Unitig *, FragmentEnds &);
+        UnitigVector* breakUnitigAt( Unitig *, UnitigBreakPoints &);
 
         // Counts status of best edges internal to a unitig
         BestEdgeCounts countInternalBestEdges( const Unitig *);

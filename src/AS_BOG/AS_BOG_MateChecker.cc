@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.52 2008-04-21 17:52:16 brianwalenz Exp $
- * $Revision: 1.52 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.53 2008-04-22 09:30:04 brianwalenz Exp $
+ * $Revision: 1.53 $
  */
 
 #include <math.h>
@@ -337,8 +337,8 @@ namespace AS_BOG{
             if ((tig == NULL) || (tig->getNumFrags() < 2))
                 continue;
 
-            FragmentEnds* breaks = computeMateCoverage(tig, tigGraph.bog_ptr);
-            UnitigVector* newUs  = tigGraph.breakUnitigAt(tig, *breaks);
+            UnitigBreakPoints* breaks = computeMateCoverage(tig, tigGraph.bog_ptr);
+            UnitigVector*      newUs  = tigGraph.breakUnitigAt(tig, *breaks);
 
             if (newUs != NULL) {
               delete tig;
@@ -702,7 +702,7 @@ namespace AS_BOG{
     ///////////////////////////////////////////////////////////////////////////
 
     // hold over from testing if we should use 5' or 3' for range generation, now must use 3'
-    FragmentEnds* MateChecker::computeMateCoverage( Unitig* tig, BestOverlapGraph* bog_ptr ) {
+    UnitigBreakPoints* MateChecker::computeMateCoverage( Unitig* tig, BestOverlapGraph* bog_ptr ) {
         int tigLen = tig->getLength();
 
         MateLocation positions(this);
@@ -710,36 +710,10 @@ namespace AS_BOG{
         MateCounts *unused = positions.buildHappinessGraphs( tigLen, _globalStats );
         delete unused;
 
-        // For debugging purposes output the table
-#if 0
-        for(MateLocIter posIter = positions.begin(); posIter != positions.end(); posIter++){
-            MateLocationEntry loc = *posIter;
-            std::cerr << loc << std::endl;
-        }
-#endif
-
-        // do something with the good and bad graphs
-#if 0
-        fprintf(stderr,"Per 300 bases good graph unitig %ld size %ld:\n",tig->id(),tigLen);
-        long sum = 0;
-        for(int i=0; i < tigLen; i++) {
-            if (i > 1 && i % 300 == 0) {
-                fprintf(stderr,"%d ", sum / 300);
-                sum = 0;
-            }
-            sum += positions.goodGraph->at( i );
-        }
-#endif
-
-        //fprintf(stderr,"\nPer 300 bases bad fwd graph:\n");
         IntervalList *fwdBads = findPeakBad( positions.badFwdGraph, tigLen );
-        //fprintf(stderr,"\nPer 300 bases bad rev graph:\n");
         IntervalList *revBads = findPeakBad( positions.badRevGraph, tigLen );
 
-        //fprintf(stderr,"Num fwdBads is %d\n",fwdBads->size());
-        //fprintf(stderr,"Num revBads is %d\n",revBads->size());
-
-        FragmentEnds* breaks = new FragmentEnds(); // return value
+        UnitigBreakPoints* breaks = new UnitigBreakPoints();
 
         iuid backBgn; // Start position of final backbone unitig
         DoveTailNode backbone = tig->getLastBackboneNode(backBgn);

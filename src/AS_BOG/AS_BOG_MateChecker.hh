@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.21 2008-04-08 22:25:27 brianwalenz Exp $
- * $Revision: 1.21 $
+ * $Id: AS_BOG_MateChecker.hh,v 1.22 2008-04-22 09:30:04 brianwalenz Exp $
+ * $Revision: 1.22 $
  */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
@@ -112,7 +112,7 @@ namespace AS_BOG{
         LibraryStats* computeLibraryStats( Unitig* );
 
         // Compute good and bad coverage graphs for a unitig, returns split points
-        FragmentEnds* computeMateCoverage( Unitig*, BestOverlapGraph *);
+        UnitigBreakPoints* computeMateCoverage( Unitig*, BestOverlapGraph *);
 
         void moveContains(UnitigGraph&);
         void splitDiscontinuousUnitigs(UnitigGraph&);

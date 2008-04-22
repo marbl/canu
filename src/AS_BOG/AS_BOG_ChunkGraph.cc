@@ -33,11 +33,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_ChunkGraph.cc,v 1.16 2008-04-17 08:14:05 brianwalenz Exp $
- * $Revision: 1.16 $
+ * $Id: AS_BOG_ChunkGraph.cc,v 1.17 2008-04-22 09:30:04 brianwalenz Exp $
+ * $Revision: 1.17 $
  */
 
-static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.16 2008-04-17 08:14:05 brianwalenz Exp $";
+static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.17 2008-04-22 09:30:04 brianwalenz Exp $";
 
 //  System include files
 
@@ -174,21 +174,25 @@ namespace AS_BOG{
             cnt++;
             seen.insert(frag);
             anEnd = followPath(anEnd);
-            frag = anEnd.id;
+            frag = anEnd.fragId();
         }
         return cnt;
     }
     FragmentEnd ChunkGraph::followPath( FragmentEnd anEnd ) {
-        iuid frag = anEnd.id;
-        if (anEnd.end == FIVE_PRIME) 
+        iuid frag = anEnd.fragId();
+        if (anEnd.fragEnd() == FIVE_PRIME) 
             frag = _chunkable_array[frag].five_prime ;
         else 
             frag = _chunkable_array[frag].three_prime ;
 
         // advances to the next fragment, opposite end
         bovlg->followOverlap( &anEnd );
-        assert( frag == NULL_FRAG_ID || frag == anEnd.id ); 
-        anEnd.id = frag;
+
+        if (frag == NULL_FRAG_ID)
+          anEnd = FragmentEnd();
+        else
+          assert(frag == anEnd.fragId());
+
         return anEnd;
     }
     iuid ChunkGraph::countFullWidth(iuid firstFrag, fragment_end_type end) {
@@ -204,22 +208,22 @@ namespace AS_BOG{
             FragmentEnd nextEnd;
             nextEnd = followPath( fragEnd );
             fragEnd = nextEnd;
-            index = fragEnd.id * 2 + fragEnd.end;
+            index = fragEnd.fragId() * 2 + fragEnd.fragEnd();
         }
-        while (fragEnd.id != NULL_FRAG_ID && _edgePathLen[index] == 0);
-        if (fragEnd.id == NULL_FRAG_ID) {
+        while (fragEnd.fragId() != NULL_FRAG_ID && _edgePathLen[index] == 0);
+        if (fragEnd.fragId() == NULL_FRAG_ID) {
             return cnt;
         }
         // if we end because of a circle, mark points in circle same cnt
         if (seen.find( fragEnd ) != seen.end()) {
             iuid circleLen = cnt - _edgePathLen[index];
-            //fprintf(stderr,"Circle len %d frag %d end %d\n", circleLen, fragEnd.id, fragEnd.end);
+            //fprintf(stderr,"Circle len %d frag %d end %d\n", circleLen, fragEnd.fragId(), fragEnd.end);
             FragmentEnd currEnd = fragEnd;
             do {
                 seen.erase( currEnd );
                 _edgePathLen[index] = circleLen;
                 bovlg->followOverlap( &currEnd );
-                index = currEnd.id * 2 + currEnd.end;
+                index = currEnd.fragId() * 2 + currEnd.fragEnd();
             }
             while (!(fragEnd == currEnd));
         } else {
@@ -231,9 +235,9 @@ namespace AS_BOG{
         if (!seen.empty()) {
             FragmentEnd currEnd(firstFrag, end);
             do {
-                _edgePathLen[currEnd.id*2+currEnd.end] = cnt--;
+              _edgePathLen[currEnd.fragId()*2+currEnd.fragEnd()] = cnt--;
                 bovlg->followOverlap( &currEnd );
-            } while (currEnd.id != fragEnd.id);
+            } while (currEnd.fragId() != fragEnd.fragId());
         }
         return max;
     }

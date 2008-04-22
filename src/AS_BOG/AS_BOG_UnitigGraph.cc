@@ -619,10 +619,10 @@ namespace AS_BOG{
         int  tiMax = unitigs->size();
 
         for (int  ti=0; ti<tiMax; ti++) {
-            Unitig        *tig = (*unitigs)[ti];
-            FragmentEnds   breaks;
-            int            fragCount = 1;
-            DoveTailNode   lastBackbone;
+            Unitig             *tig = (*unitigs)[ti];
+            UnitigBreakPoints   breaks;
+            int                 fragCount = 1;
+            DoveTailNode        lastBackbone;
 
             tig->sort();
 
@@ -698,9 +698,15 @@ namespace AS_BOG{
                         }
 
                         fprintf(stderr, "unitig %d (%d frags, len %d) frag %d end %c' into unitig %d frag %d end %c' pos %d\n",
-                                Unitig::fragIn(inFrag), inTig->getNumFrags(),
-                                inTig->getLength(), inFrag, (bestEnd == FIVE_PRIME) ? '5' : '3',
-                                tig->id(), dtFrag, (bestEdge->bend == FIVE_PRIME) ? '5' : '3', pos );
+                                Unitig::fragIn(inFrag),
+                                inTig->getNumFrags(),
+                                inTig->getLength(),
+                                inFrag,
+                                (bestEnd == FIVE_PRIME) ? '5' : '3',
+                                tig->id(),
+                                dtFrag,
+                                (bestEdge->bend == FIVE_PRIME) ? '5' : '3',
+                                pos);
                     }
                 }
             }
@@ -1379,7 +1385,7 @@ namespace AS_BOG{
 
 
     UnitigBreakPoint UnitigGraph::selectSmall(const Unitig *tig,
-                                              const FragmentEnds &smalls,
+                                              const UnitigBreakPoints &smalls,
                                               const UnitigBreakPoint& big,
                                               int   &lastBPCoord,
                                               int   &lastBPFragNum) {
@@ -1390,25 +1396,25 @@ namespace AS_BOG{
         bool bRev    = isReverse(big.position);
         int bContain = 0;
 
-        int right    = (big.fragEnd.end == FIVE_PRIME) ? big.position.bgn : big.position.end;
+        int right    = (big.fragEnd.fragEnd() == FIVE_PRIME) ? big.position.bgn : big.position.end;
 
-        if (cntnrmap_ptr->find(big.fragEnd.id) != cntnrmap_ptr->end())
-            bContain = (*cntnrmap_ptr)[big.fragEnd.id].size();
+        if (cntnrmap_ptr->find(big.fragEnd.fragId()) != cntnrmap_ptr->end())
+            bContain = (*cntnrmap_ptr)[big.fragEnd.fragId()].size();
 
         if (((bRev == true)  && (big.fragEnd == THREE_PRIME)) ||
             ((bRev == false) && (big.fragEnd == FIVE_PRIME)))
             rFrgs -= 1 + bContain;
 
-        for(FragmentEnds::const_iterator sIter = smalls.begin(); sIter != smalls.end(); sIter++) {
+        for(UnitigBreakPoints::const_iterator sIter = smalls.begin(); sIter != smalls.end(); sIter++) {
             UnitigBreakPoint small = *sIter;
 
-            if (small.fragEnd.id == big.fragEnd.id)
+            if (small.fragEnd.fragId() == big.fragEnd.fragId())
                 continue; 
 
             bool rev  = isReverse(small.position);
             int sContain = 0;
             int lFrgs = small.fragNumber;
-            iuid sid  = small.fragEnd.id;
+            iuid sid  = small.fragEnd.fragId();
 
             // use middle of frag instead of end, to get some overlap
             double bp = (small.position.end + small.position.bgn) / 2.0;
@@ -1431,7 +1437,7 @@ namespace AS_BOG{
 
             if ((ratio > 1.8) && (diff > difference)) {
                 //fprintf(stderr, "Break frg %7d b %4d l %4d pos b %5d e %5.0f lRate %.4f\n", sid, lastBPFragNum, lFrgs, lastBPCoord, bp, lRate );
-                //fprintf(stderr, "     diff %4d r %4d pos %5d rRate %.4f ratio %.2f to frag %7d\n", rFrgs - lFrgs, rFrgs, right, rRate, ratio, big.fragEnd.id); 
+                //fprintf(stderr, "     diff %4d r %4d pos %5d rRate %.4f ratio %.2f to frag %7d\n", rFrgs - lFrgs, rFrgs, right, rRate, ratio, big.fragEnd.fragId()); 
                 //fprintf(stderr,"     select frg %d for break on arrival rate diff %.4f\n", sid, diff);
                 difference = diff;
                 selection = small;
@@ -1447,7 +1453,7 @@ namespace AS_BOG{
 
 
     void UnitigGraph::filterBreakPoints(Unitig *tig,
-                                        FragmentEnds &breaks) {
+                                        UnitigBreakPoints &breaks) {
 
         int lastBPCoord = 0;
         int lastBPFragNum = 0;
@@ -1457,10 +1463,10 @@ namespace AS_BOG{
         if (fakeEnd.inSize == std::numeric_limits<int>::max())
             breaks.pop_back();
 
-        FragmentEnds smallBPs;
-        FragmentEnds newBPs;
+        UnitigBreakPoints smallBPs;
+        UnitigBreakPoints newBPs;
 
-        for(FragmentEnds::iterator iter = breaks.begin(); iter != breaks.end(); iter++) {
+        for(UnitigBreakPoints::iterator iter = breaks.begin(); iter != breaks.end(); iter++) {
             UnitigBreakPoint nextBP = *iter;
 
             if ((nextBP.inFrags > 1) && (nextBP.inSize > 500)) {
@@ -1479,13 +1485,13 @@ namespace AS_BOG{
 
                     } else {
                         //  No smalls.  Update state to move past the current big breakpoint.
-                        lastBPCoord   = (nextBP.fragEnd.end == FIVE_PRIME) ? nextBP.position.bgn : nextBP.position.end;
+                        lastBPCoord   = (nextBP.fragEnd.fragEnd() == FIVE_PRIME) ? nextBP.position.bgn : nextBP.position.end;
                         lastBPFragNum = nextBP.fragNumber;
 
                         int bContain = 0;
 
-                        if ((cntnrmap_ptr != NULL) && (cntnrmap_ptr->find(nextBP.fragEnd.id) != cntnrmap_ptr->end()))
-                            bContain = (*cntnrmap_ptr)[nextBP.fragEnd.id].size();
+                        if ((cntnrmap_ptr != NULL) && (cntnrmap_ptr->find(nextBP.fragEnd.fragId()) != cntnrmap_ptr->end()))
+                            bContain = (*cntnrmap_ptr)[nextBP.fragEnd.fragId()].size();
 
                         bool bRev = isReverse(nextBP.position);
 
@@ -1518,7 +1524,7 @@ namespace AS_BOG{
     }
 
     // Doesn't handle contained frags yet
-    UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig, FragmentEnds &breaks) {
+    UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig, UnitigBreakPoints &breaks) {
 
         if (breaks.empty())
             return NULL;
@@ -1542,9 +1548,9 @@ namespace AS_BOG{
         //  It's a huge code duplication of the main loop.
         //
         {
-            FragmentEnds breakstmp = breaks;
+            UnitigBreakPoints breakstmp = breaks;
 
-            UnitigBreakPoint breakPoint = breakstmp.front();
+            UnitigBreakPoint  breakPoint = breakstmp.front();
             breakstmp.pop_front();
 
             UnitigBreakPoint nextBP;
@@ -1559,8 +1565,8 @@ namespace AS_BOG{
                 DoveTailNode frg = *dtIter;
 
                 bool bothEnds = false;
-                while ( !breakstmp.empty() && nextBP.fragEnd.id == breakPoint.fragEnd.id ) {
-                    if (nextBP.fragEnd.end != breakPoint.fragEnd.end)
+                while ( !breakstmp.empty() && nextBP.fragEnd.fragId() == breakPoint.fragEnd.fragId() ) {
+                    if (nextBP.fragEnd.fragEnd() != breakPoint.fragEnd.fragEnd())
                         bothEnds = true;
                     breakstmp.pop_front();
                     if (!breakstmp.empty())
@@ -1569,21 +1575,21 @@ namespace AS_BOG{
 
                 bool reverse = isReverse(frg.position);
 
-                if (breakPoint.fragEnd.id == frg.ident) {
+                if (breakPoint.fragEnd.fragId() == frg.ident) {
 
                     if (bothEnds) {
                         newUnitigsConstructed++;
                         newUnitigExists = 0;
                     }
 
-                    else if (breakPoint.fragEnd.end ==  FIVE_PRIME && !reverse ||
-                             breakPoint.fragEnd.end == THREE_PRIME && reverse) {
+                    else if (breakPoint.fragEnd.fragEnd() ==  FIVE_PRIME && !reverse ||
+                             breakPoint.fragEnd.fragEnd() == THREE_PRIME && reverse) {
                         newUnitigsConstructed++;
                         newUnitigExists = 1;
                     }
 
-                    else if (breakPoint.fragEnd.end ==  FIVE_PRIME && reverse ||
-                             breakPoint.fragEnd.end == THREE_PRIME && !reverse ) {
+                    else if (breakPoint.fragEnd.fragEnd() ==  FIVE_PRIME && reverse ||
+                             breakPoint.fragEnd.fragEnd() == THREE_PRIME && !reverse ) {
                         if (newUnitigExists == 0)
                             newUnitigsConstructed++;
                         newUnitigExists = 0;
@@ -1592,7 +1598,7 @@ namespace AS_BOG{
                     }
 
                     if (breakstmp.empty()) {
-                        breakPoint.fragEnd.id = 0;
+                        breakPoint.fragEnd = FragmentEnd();
                     } else {
                         breakPoint = breakstmp.front();
                         breakstmp.pop_front();
@@ -1634,8 +1640,8 @@ namespace AS_BOG{
 
             // reduce multiple breaks at the same fragment end down to one
             bool bothEnds = false;
-            while ( !breaks.empty() && nextBP.fragEnd.id == breakPoint.fragEnd.id ) {
-                if (nextBP.fragEnd.end != breakPoint.fragEnd.end)
+            while ( !breaks.empty() && nextBP.fragEnd.fragId() == breakPoint.fragEnd.fragId() ) {
+                if (nextBP.fragEnd.fragEnd() != breakPoint.fragEnd.fragEnd())
                     bothEnds = true;
                 breaks.pop_front();
                 if (!breaks.empty())
@@ -1644,7 +1650,7 @@ namespace AS_BOG{
 
             bool reverse = isReverse(frg.position);
 
-            if (breakPoint.fragEnd.id == frg.ident) {
+            if (breakPoint.fragEnd.fragId() == frg.ident) {
 
                 //  There is method to this madness.  The three if
                 //  blocks below have the same two basic code blocks
@@ -1664,7 +1670,7 @@ namespace AS_BOG{
                     //
                     //  Break at both ends, create a singleton for this fragment.
                     //
-                    fprintf(stderr,"  Breaking tig %d at both ends of %d num %d\n", tig->id(), breakPoint.fragEnd.id, breakPoint.fragNumber);
+                    fprintf(stderr,"  Breaking tig %d at both ends of %d num %d\n", tig->id(), breakPoint.fragEnd.fragId(), breakPoint.fragNumber);
 
                     newTig = new Unitig();  //  always make a new unitig, we put a frag in it now
                     splits->push_back( newTig );
@@ -1676,12 +1682,12 @@ namespace AS_BOG{
                     newTig = NULL;  //  delay until we need to make it
                 }
 
-                else if (breakPoint.fragEnd.end ==  FIVE_PRIME && !reverse ||
-                         breakPoint.fragEnd.end == THREE_PRIME && reverse) {
+                else if (breakPoint.fragEnd.fragEnd() ==  FIVE_PRIME && !reverse ||
+                         breakPoint.fragEnd.fragEnd() == THREE_PRIME && reverse) {
                     //
                     //  Break at left end of frg, frg starts new tig
                     //
-                    fprintf(stderr,"  Break tig %d before %d num %d\n", tig->id(), breakPoint.fragEnd.id, breakPoint.fragNumber);
+                    fprintf(stderr,"  Break tig %d before %d num %d\n", tig->id(), breakPoint.fragEnd.fragId(), breakPoint.fragNumber);
 
                     newTig = new Unitig();  //  always make a new unitig, we put a frag in it now
                     splits->push_back( newTig );
@@ -1691,8 +1697,8 @@ namespace AS_BOG{
                     newTig->addFrag( frg, offset );
                 }
 
-                else if (breakPoint.fragEnd.end ==  FIVE_PRIME && reverse ||
-                         breakPoint.fragEnd.end == THREE_PRIME && !reverse ) {
+                else if (breakPoint.fragEnd.fragEnd() ==  FIVE_PRIME && reverse ||
+                         breakPoint.fragEnd.fragEnd() == THREE_PRIME && !reverse ) {
                     //
                     //  Break at right end of frg, frg goes in existing tig, then make new unitig
                     //
@@ -1706,7 +1712,7 @@ namespace AS_BOG{
                         offset = reverse ? -frg.position.end : -frg.position.bgn;
                     newTig->addFrag( frg, offset );
 
-                    fprintf(stderr,"  Break tig %d after %d num %d\n", tig->id(), breakPoint.fragEnd.id, breakPoint.fragNumber);
+                    fprintf(stderr,"  Break tig %d after %d num %d\n", tig->id(), breakPoint.fragEnd.fragId(), breakPoint.fragNumber);
 
                     //  Delay making a new unitig until we need it.
                     newTig = NULL;
@@ -1718,7 +1724,7 @@ namespace AS_BOG{
 
                 // Done breaking, continue adding remaining frags to newTig
                 if (breaks.empty()) {
-                    breakPoint.fragEnd.id = 0;
+                    breakPoint.fragEnd = FragmentEnd();
                 } else {
                     breakPoint = breaks.front();
                     breaks.pop_front();

@@ -33,8 +33,8 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.21 2008-04-21 15:09:46 brianwalenz Exp $
- * $Revision: 1.21 $
+ * $Id: AS_BOG_Datatypes.hh,v 1.22 2008-04-22 09:30:04 brianwalenz Exp $
+ * $Revision: 1.22 $
  */
 
 #ifndef INCLUDE_AS_BOG_DATATYPES
@@ -104,26 +104,36 @@ namespace AS_BOG{
 
     typedef std::list<SeqInterval> IntervalList;
 
-    struct FragmentEnd {
-        iuid id;
-        fragment_end_type end;
+    class FragmentEnd {
+    public:
+        FragmentEnd(iuid id=0, fragment_end_type end=FIVE_PRIME) {
+            _id  = id;
+            _end = end;
+        };
 
-        FragmentEnd(iuid id=0, fragment_end_type end=FIVE_PRIME) :
-            id(id), end(end) {}
+        iuid               fragId(void)  const { return(_id); };
+        fragment_end_type  fragEnd(void) const { return(_end); };
 
+         bool operator==(FragmentEnd const that) const {
+             return((fragId() == that.fragId()) && (fragEnd() == that.fragEnd()));
+         };
+
+         bool operator!=(FragmentEnd const that) const {
+             return((fragId() != that.fragId()) || (fragEnd() != that.fragEnd()));
+         };
+
+         bool operator<(FragmentEnd const that) const {
+             if (fragId() != that.fragId())
+                 return fragId() < that.fragId();
+             else
+                 return fragEnd() < that.fragEnd();
+         };
+
+    private:
+        iuid              _id;
+        fragment_end_type _end;
     };
-    inline bool operator==(FragmentEnd a, FragmentEnd b) {
-        return((a.id == b.id) && (a.end == b.end));
-    };
-    inline bool operator!=(FragmentEnd a, FragmentEnd b) {
-        return((a.id |= b.id) || (a.end != b.end));
-    };
-    inline bool operator<(FragmentEnd a, FragmentEnd b) {
-        if (a.id != b.id)
-            return a.id < b.id;
-        else
-            return a.end < b.end;
-    };
+
 
     struct BogOptions {
         static int badMateBreakThreshold;
