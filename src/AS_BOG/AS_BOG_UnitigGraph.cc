@@ -672,14 +672,14 @@ namespace AS_BOG{
                         // check if it's incoming frag's 5' best edge.  If not, it must be the 3' edge.
                         fragment_end_type bestEnd  = FIVE_PRIME;
                         BestEdgeOverlap  *bestEdge = bog_ptr->getBestEdgeOverlap( inFrag, bestEnd );
-                        int               pos      = node.position.bgn;
 
                         if (bestEdge->frag_b_id != dtFrag) {
                             bestEnd  = THREE_PRIME;
                             bestEdge = bog_ptr->getBestEdgeOverlap( inFrag, bestEnd );
-                            pos      = node.position.end;
                             assert(bestEdge->frag_b_id == dtFrag);
                         }
+
+                        int pos = (bestEdge->bend == FIVE_PRIME) ? node.position.bgn : node.position.end;
 
 #warning DANGEROUS assume unitig is at id-1 in vector
                         Unitig *inTig = (*unitigs)[Unitig::fragIn(inFrag)-1];
