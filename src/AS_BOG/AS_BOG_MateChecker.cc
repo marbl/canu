@@ -99,21 +99,20 @@ namespace AS_BOG{
     DoveTailConstIter tigIter = tig->dovetail_path_ptr->begin();
     for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++) {
       DoveTailNode frag = *tigIter;
-      iuid fragId = frag.ident;
-      MateInfo mateInfo = getMateInfo( fragId );
+      MateInfo mateInfo = getMateInfo( frag.ident );
       if ( mateInfo.mate != NULL_FRAG_ID ) {
         numWithMate++;
         if ( tig->id() == Unitig::fragIn( mateInfo.mate ) ) {
           numInTig++;
-          SeqInterval fragPos = frag.position;
-          if (goodMates.find( fragId ) != goodMates.end()) {
+
+          if (goodMates.find( frag.ident ) != goodMates.end()) {
             // already seen it's mate
-            if (isReverse(fragPos)) {
-              if ( goodMates[fragId] == max )
+            if (isReverse(frag.position)) {
+              if ( goodMates[frag.ident] == max )
                 continue;
               // 2nd frag seen is reverse, so good orientation
-              long mateDist = fragPos.bgn - goodMates[fragId];
-              goodMates[fragId] = mateDist;
+              long mateDist = frag.position.bgn - goodMates[frag.ident];
+              goodMates[frag.ident] = mateDist;
               // Record the good distance for later stddev recalculation
               iuid distId = mateInfo.lib;
               if (_dists.find( distId ) == _dists.end()) {
@@ -134,20 +133,20 @@ namespace AS_BOG{
               }
             } else {
               // 2nd frag seen is forward, so bad
-              goodMates[fragId] = max;
+              goodMates[frag.ident] = max;
             }
           } else { // 1st of pair
-            if (isReverse(fragPos)) {
+            if (isReverse(frag.position)) {
               // 1st reversed, so bad
               goodMates[mateInfo.mate] = max;
             } else {
               // 1st forward, so good store begin
-              goodMates[mateInfo.mate] = fragPos.bgn;
+              goodMates[mateInfo.mate] = frag.position.bgn;
             }
           }
         } else {
           // mate in other unitig, just create histogram currently
-          otherUnitig.push_back( fragId );
+          otherUnitig.push_back( frag.ident );
           iuid otherTig = Unitig::fragIn( mateInfo.mate );
           if (otherTigHist.find( otherTig ) == otherTigHist.end())
             otherTigHist[ otherTig ] = 1;
