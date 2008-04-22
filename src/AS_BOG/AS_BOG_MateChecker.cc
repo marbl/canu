@@ -811,7 +811,7 @@ namespace AS_BOG{
             fragEndInTig = FIVE_PRIME;
 
           UnitigBreakPoint bp( frag.ident, fragEndInTig );
-          bp.position = frag.position;
+          bp.fragPos = frag.position;
           bp.inSize = 100000;
           bp.inFrags = 10;
           breaks->push_back( bp );
@@ -845,7 +845,7 @@ namespace AS_BOG{
                   fragEndInTig = FIVE_PRIME;
 
                 UnitigBreakPoint bp( frag.ident, fragEndInTig );
-                bp.position = loc;
+                bp.fragPos = loc;
                 bp.inSize = 100001;
                 bp.inFrags = 11;
                 breaks->push_back( bp );

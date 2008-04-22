@@ -48,21 +48,29 @@ namespace AS_BOG{
   }
 
   struct UnitigBreakPoint {
-    int         fragNumber;       // the number of the fragment in the unitig
-
-    SeqInterval position;         // coordinates in unitig
     FragmentEnd fragEnd;          // frag id and which end to break on 
+    SeqInterval fragPos;          // coordinates in unitig (used to get fwd/rev)
 
-    iuid        inUnitig;         // iid of the incoming unitig
+    //  Number of fragments before and after the fragment we break on.
+    //  "Before" always includes the frag we break on and any contains
+    //  in it, regardless of end.  Please fix that.
+    int         fragsBefore;
+    int         fragsAfter;
+
+    FragmentEnd inEnd;            // frag id of the incoming unitig
+
     int         inSize;           // the size of the incoming unitig
     int         inFrags;          // the number of fragments in incoming unitig
 
     UnitigBreakPoint(iuid id=0, fragment_end_type end=FIVE_PRIME) {
-      fragNumber   = 0;
-      position.bgn = 0;
-      position.end = 0;
       fragEnd      = FragmentEnd(id, end);
-      inUnitig     = 0;
+      fragPos.bgn  = 0;
+      fragPos.end  = 0;
+
+      fragsBefore  = 0;
+      fragsAfter   = 0;
+
+      inEnd        = FragmentEnd();
       inSize       = 0;
       inFrags      = 0;
     }
@@ -74,7 +82,6 @@ namespace AS_BOG{
 
 
   struct Unitig{
-
     Unitig(bool report=false);
     ~Unitig(void);		
 
@@ -138,7 +145,6 @@ namespace AS_BOG{
     static iuid   nextId;
     static float _globalArrivalRate;
     static iuid *_inUnitig;
-
   };
 
 
@@ -156,10 +162,10 @@ namespace AS_BOG{
       contained  += other.contained;
     } 
   };
+
   typedef std::vector<Unitig*> UnitigVector;
   typedef UnitigVector::iterator UnitigsIter;
   typedef UnitigVector::const_iterator UnitigsConstIter;
-  typedef UnitigVector::reverse_iterator UnitigsRIter;
 
   struct UnitigGraph{
     // This will store the entire set of unitigs that are generated
@@ -170,10 +176,7 @@ namespace AS_BOG{
     // Call this on a chunk graph pointer to build a unitig graph
     void build(ChunkGraph *cg_ptr);
 
-    // For compatibility with the rest of the assembler
     void writeIUMtoFile(char *filename, int fragment_count_target);
-
-    // For compatibility with the rest of the assembler
     void readIUMsFromFile(const char *filename, iuid maxIID);
 
     float getGlobalArrivalRate(long total_random_frags_in_genome=0, long genome_size=0);
