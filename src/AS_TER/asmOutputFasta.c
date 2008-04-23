@@ -81,6 +81,8 @@ computeGapSize(double gapsize) {
 //  Reverse complement the ACGT sequence in seq, and reverse the QV
 //  sequence in qlt.
 //
+//  Swiped into AS_GKP_sff.c
+//
 void
 reverseComplement(char *seq, char *qlt, int len) {
   char   inv[256] = {0};
