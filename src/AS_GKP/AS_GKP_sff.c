@@ -2,7 +2,7 @@
 /**************************************************************************
  * This file is part of Celera Assembler, a software program that 
  * assembles whole-genome shotgun reads into contigs and scaffolds.
- * Copyright (C) 2007, J. Craig Venter Institute
+ * Copyright (C) 2007-2008, J. Craig Venter Institute
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.10 2008-04-16 09:32:34 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.11 2008-04-23 15:53:51 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,11 +32,26 @@ static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.10 2008-04-16 09:32:34 brianwa
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_encodeSequenceQuality.h"
 
-#define SFF_KEY_SEQUENCE_MAX         64
 
-#define SFF_NAME_LENGTH_MAX         256
-#define SFF_NUMBER_OF_FLOWS_MAX     512
-#define SFF_NUMBER_OF_BASES_MAX    2048  //  The assembler itself cannot handle longer
+#define MATCH            0
+#define GAPA             1
+#define GAPB             2
+#define STOP             3
+
+#define MATCHSCORE       3
+#define GAPSCORE        -1
+#define MISMATCHSCORE   -2
+
+#undef  USE_454_TRIMMING
+
+typedef struct {
+  unsigned int  score  : 30;
+  unsigned int  action : 2;
+} dpCell;
+
+int    linkersLen = 1;
+char  *linkers[1] = { "GTTGGAACCGAAAGGGTTTGAATTCAAACCCTTTCGGTTCCAAC" };
+
 
 
 typedef struct {
@@ -58,9 +73,20 @@ typedef struct {
   uint32   data_block_len;
 
   uint32   swap_endianess;
+
+  //  Mate-finding DP related storage.
+  //
+  //  These really don't belong in here, but we know
+  //  this is allocated.
+  //
+  char     alignA[AS_READ_MAX_LEN + AS_READ_MAX_LEN + 2];
+  char     alignB[AS_READ_MAX_LEN + AS_READ_MAX_LEN + 2];
+  dpCell   matrix[AS_READ_MAX_LEN][AS_READ_MAX_LEN];
 } sffHeader;
 
+
 typedef struct {
+  //  The next block is read in one swoop from the sff file.  DO NOT MODIFY!
   uint32    magic_number;
   char      version[4];
   uint32    manifest_length;
@@ -86,6 +112,10 @@ typedef struct {
   char    *bases;                //  r->number_of_bases
   uint8   *quality_scores;       //  r->number_of_bases
   char    *quality;              //  quality_scores converted to CA-format qv
+
+  int      final_length;         //  trimmed, processed read, ready for
+  char    *final_bases;          //  loading.  NOT zero terminated.
+  char    *final_quality;        //  DO NOT ZERO TERMINATE.
 
   void    *data_block;
   uint32   data_block_len;
@@ -150,6 +180,7 @@ readsff_manifest(FILE *sff, sffHeader *h, sffManifest *m) {
 
   uint64  padding_length = h->index_length - 16 - m->manifest_length;
   if (padding_length > 0) {
+    //fprintf(stderr, "manifest pad "F_U64"\n", padding_length);
     char *junk = (char *)safe_malloc(sizeof(char) * padding_length);
     AS_UTL_safeRead(sff, junk, "readsff_manifest_pad", sizeof(char), padding_length);
     safe_free(junk);
@@ -192,25 +223,16 @@ readsff_header(FILE *sff, sffHeader *h, sffManifest *m) {
 
   uint64  padding_length = h->header_length - 31 - h->number_of_flows_per_read - h->key_length;
   if (padding_length > 0) {
-    uint64  junk;
-    AS_UTL_safeRead(sff, &junk, "readsff_header_4", sizeof(char), padding_length);
+    //fprintf(stderr, "header pad "F_U64"\n", padding_length);
+    char *junk = (char *)safe_malloc(sizeof(char) * padding_length);
+    AS_UTL_safeRead(sff, junk, "readsff_header_4", sizeof(char), padding_length);
+    safe_free(junk);
   }
 
   //  The spec says the index might be here, however, all files I've
   //  seen have the index at the end of the file.
   //
   readsff_manifest(sff, h, m);
-
-#if 0
-  fprintf(stderr, "header: magic_number %8u\n", h->magic_number);
-  fprintf(stderr, "header: version %d%d%d%d\n", h->version[0], h->version[1], h->version[2], h->version[3]);
-  fprintf(stderr, "header: index_offset %lu  index_length %u\n", h->index_offset, h->index_length);
-  fprintf(stderr, "header: number_of_reads %u\n", h->number_of_reads);
-  fprintf(stderr, "header: header_length %u\n", h->header_length);
-  fprintf(stderr, "header: key_length %u\n", h->key_length);
-  fprintf(stderr, "header: number_of_flows_per_read %u\n", h->number_of_flows_per_read);
-  fprintf(stderr, "header: flowgram_format_code %u\n", h->flowgram_format_code);
-#endif
 }
 
 
@@ -237,7 +259,7 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
   ss[1] = (h->number_of_flows_per_read) * sizeof(uint16) + ss[0];
   ss[2] = (r->number_of_bases)          * sizeof(uint8)  + ss[1];
   ss[3] = (r->number_of_bases + 1)      * sizeof(char)   + ss[2];
-  ss[4] = (r->number_of_bases + 1)      * sizeof(char)   + ss[3];
+  ss[4] = (r->number_of_bases + 1)      * sizeof(uint8)  + ss[3];
   ss[5] = (r->number_of_bases + 1)      * sizeof(char)   + ss[4];
 
   if (r->data_block_len < ss[5]) {
@@ -259,6 +281,7 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
 
   uint64  padding_length = r->read_header_length - 16 - r->name_length;
   if (padding_length > 0) {
+    //fprintf(stderr, "read pad 1 "F_U64"\n", padding_length);
     uint64  junk;
     AS_UTL_safeRead(sff, &junk, "readsff_read_3", sizeof(char), padding_length);
   }
@@ -286,8 +309,10 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
                     r->number_of_bases * sizeof(char) +
                     r->number_of_bases * sizeof(uint8)) % 8;
   if (padding_length > 0) {
-    uint64  junk;
-    AS_UTL_safeRead(sff, &junk, "readsff_read_8", sizeof(char), 8 - padding_length);
+    //fprintf(stderr, "read pad 2 "F_U64"\n", 8-padding_length);
+    char *junk = (char *)safe_malloc(sizeof(char) * padding_length);
+    AS_UTL_safeRead(sff, junk, "readsff_read_8", sizeof(char), 8 - padding_length);
+    safe_free(junk);
   }
 }
 
@@ -396,17 +421,506 @@ readsff_constructLibraryIIDFromName(char *name) {
 }
 
 
+
+static
+void
+processRead(sffHeader *h,
+            sffRead   *r, GateKeeperFragmentRecord *gkf) {
+
+  clearGateKeeperFragmentRecord(gkf);
+
+  gkf->readUID = readsff_constructUIDFromName(r->name, 1);
+
+  //  Read already loaded?  Can't load again.  Set UID;s and IID's
+  //  to zero to indicate this -- we'll catch it at the end.
+  //
+  if (getGatekeeperUIDtoIID(gkpStore, gkf->readUID, NULL)) {
+    AS_GKP_reportError(AS_GKP_SFF_ALREADY_EXISTS,
+                       AS_UID_toString(gkf->readUID));
+    gkpStore->gkp.sffErrors++;
+
+    gkf->readUID = AS_UID_undefined();
+    return;
+  }
+
+
+  gkf->libraryIID  = readsff_constructLibraryIIDFromName(r->name);
+  gkf->orientation = AS_READ_ORIENT_UNKNOWN;
+
+
+  //  Set clear ranges
+  //
+
+#ifdef USE_454_TRIMMING
+  //  Attempt to make sense of 454 supplied clear ranges.
+  //
+  //  These are base-based.  If either value is 0, that means the
+  //  value was not computed.
+  //
+  //  We have a policy decision here.  If only one of the ranges is
+  //  set, we can either ignore both, or set the unset one to the
+  //  maximum.  We set it to the maximum.
+  
+  int  clq = r->clip_quality_left;
+  int  crq = r->clip_quality_right;
+
+  assert((r->clip_quality_left == 0) || (h->key_length <= r->clip_quality_left));
+  assert((r->clip_adapter_left == 0) || (h->key_length <= r->clip_adapter_left));
+
+  if (clq == 0)  clq = h->key_length + 1;
+  if (crq == 0)  crq = r->number_of_bases;
+
+  int  which;
+  for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+    gkf->clearBeg[which] = clq - h->key_length - 1;
+    gkf->clearEnd[which] = crq - h->key_length;
+  }
+
+  if ((r->clip_quality_left > 0) && (r->clip_quality_right > 0)) {
+    gkf->hasQualityClear = 1;
+    gkf->clearBeg[AS_READ_CLEAR_QLT] = r->clip_quality_left  - h->key_length - 1;
+    gkf->clearEnd[AS_READ_CLEAR_QLT] = r->clip_quality_right - h->key_length;
+  } else if (r->clip_quality_left > 0) {
+    gkf->hasQualityClear = 1;
+    gkf->clearBeg[AS_READ_CLEAR_QLT] = r->clip_quality_left  - h->key_length - 1;
+    gkf->clearEnd[AS_READ_CLEAR_QLT] = r->number_of_bases - h->key_length;
+  } else if (r->clip_quality_right > 0) {
+    gkf->hasQualityClear = 1;
+    gkf->clearBeg[AS_READ_CLEAR_QLT] = 0;
+    gkf->clearEnd[AS_READ_CLEAR_QLT] = r->clip_quality_right - h->key_length;
+  } else {
+    gkf->hasQualityClear = 0;
+    gkf->clearBeg[AS_READ_CLEAR_QLT] = 0;
+    gkf->clearEnd[AS_READ_CLEAR_QLT] = 0;
+  }
+
+  if ((r->clip_adapter_left > 0) && (r->clip_adapter_right > 0)) {
+    gkf->hasVectorClear  = 1;
+    gkf->clearBeg[AS_READ_CLEAR_VEC] = r->clip_adapter_left  - h->key_length - 1;
+    gkf->clearEnd[AS_READ_CLEAR_VEC] = r->clip_adapter_right - h->key_length;
+  } else if (r->clip_adapter_left > 0) {
+    gkf->hasVectorClear  = 1;
+    gkf->clearBeg[AS_READ_CLEAR_VEC] = r->clip_adapter_left  - h->key_length - 1;
+    gkf->clearEnd[AS_READ_CLEAR_VEC] = r->number_of_bases - h->key_length;
+  } else if (r->clip_adapter_right > 0) {
+    gkf->hasVectorClear  = 1;
+    gkf->clearBeg[AS_READ_CLEAR_VEC] = 0;
+    gkf->clearEnd[AS_READ_CLEAR_VEC] = r->clip_adapter_right - h->key_length;
+  } else {
+    gkf->hasVectorClear = 0;
+    gkf->clearBeg[AS_READ_CLEAR_VEC] = 0;
+    gkf->clearEnd[AS_READ_CLEAR_VEC] = 0;
+  }
+#else
+  //  Don't trim at all.
+
+  int  which;
+  for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+    gkf->clearBeg[which] = 0;
+    gkf->clearEnd[which] = r->number_of_bases - h->key_length;
+  }
+#endif
+
+
+  //  Look for n's in the sequence.  This is a signature of an
+  //  instrument problem.  Were we general, this would be
+  //  discardReadsWithNs (for your grepping pleasure)
+  {
+    int  x = 0;
+
+    for (x=0; x < r->number_of_bases; x++) {
+      if ((r->bases[x] == 'n') || (r->bases[x] == 'N')) {
+
+        //  Trim out the N?
+        gkf->hasVectorClear = 1;
+        gkf->clearBeg[AS_READ_CLEAR_VEC] = 0;
+        gkf->clearEnd[AS_READ_CLEAR_VEC] = x - h->key_length;
+
+        //  Nah, just delete it.
+        gkf->deleted = 1;
+
+        AS_GKP_reportError(AS_GKP_SFF_N, AS_UID_toString(gkf->readUID));
+        break;
+      }
+    }
+  }
+
+
+  //  Too short?  Mark as deleted.
+  //
+  if (r->number_of_bases - h->key_length < AS_READ_MIN_LEN) {
+    AS_GKP_reportError(AS_GKP_SFF_TOO_SHORT, r->name, r->number_of_bases, AS_READ_MIN_LEN);
+    gkpStore->gkp.sffWarnings++;
+
+    gkf->deleted = 1;
+  }
+
+
+  //  Too long?  Trim it.
+  //
+  if (r->number_of_bases - h->key_length > AS_READ_MAX_LEN) {
+    AS_GKP_reportError(AS_GKP_SFF_TOO_LONG, r->name, r->number_of_bases, AS_READ_MAX_LEN);
+    gkpStore->gkp.sffWarnings++;
+      
+    r->number_of_bases = AS_READ_MAX_LEN;
+
+    r->bases  [AS_READ_MAX_LEN + h->key_length] = 0;
+    r->quality[AS_READ_MAX_LEN + h->key_length] = 0;
+
+    for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+      if (gkf->clearBeg[which] > AS_READ_MAX_LEN)
+        gkf->clearBeg[which] = AS_READ_MAX_LEN;
+      if (gkf->clearEnd[which] > AS_READ_MAX_LEN)
+        gkf->clearEnd[which] = AS_READ_MAX_LEN;
+    }
+  }
+
+  r->final_bases    = r->bases   + h->key_length;
+  r->final_quality  = r->quality + h->key_length;
+  r->final_length   = strlen(r->final_bases);
+}
+
+
+
+//  Swiped from asmOutputFasta.c
+//
+static
+void
+reverseComplement(char *seq, char *qlt, int len) {
+  char   inv[256] = {0};
+  char   c=0;
+  char  *s=seq,  *S=seq+len-1;
+  char  *q=qlt,  *Q=qlt+len-1;
+
+  inv['a'] = 't';
+  inv['c'] = 'g';
+  inv['g'] = 'c';
+  inv['t'] = 'a';
+  inv['n'] = 'n';
+  inv['A'] = 'T';
+  inv['C'] = 'G';
+  inv['G'] = 'C';
+  inv['T'] = 'A';
+  inv['N'] = 'N';
+  inv['-'] = '-';
+
+  while (s < S) {
+    c    = *s;
+    *s++ =  inv[*S];
+    *S-- =  inv[c];
+
+    c    = *q;
+    *q++ = *Q;
+    *Q-- =  c;
+  }
+
+  if (s == S)
+    *s = inv[*s];
+}
+
+
+static
+void
+processMate(sffHeader *h,
+            sffRead   *r,   GateKeeperFragmentRecord *gkf,
+            sffRead   *rm1, GateKeeperFragmentRecord *gkm1,
+            sffRead   *rm2, GateKeeperFragmentRecord *gkm2) {
+
+  gkm1->readUID = AS_UID_undefined();
+  gkm2->readUID = AS_UID_undefined();
+
+  //  Abort if this isn't a valid read -- processRead() might have already trashed it.
+  //
+  if ((gkf->deleted) || (AS_UID_isDefined(gkf->readUID) == 0))
+    return;
+
+  //  Otherwise, look for the mate linker.
+  //
+  char     *alignA = h->alignA;
+  char     *alignB = h->alignB;
+
+  dpCell  (*M)[AS_READ_MAX_LEN] = h->matrix;
+
+  char *stringA = linkers[0];
+  char *stringB = r->final_bases;
+
+  int   lenA = strlen(stringA);
+  int   lenB = strlen(stringB);
+
+  int   i, j;
+
+  for (i=0; i<lenA+1; i++) {
+    M[i][0].score  = 1 << 29;
+    M[i][0].action = STOP;
+  }
+
+  for (j=0; j<lenB+1; j++) {
+    M[0][j].score  = 1 << 29;
+    M[0][j].action = STOP;
+  }
+
+  int   scoreMax  = 0;
+
+  int   begI=0, endI=0, curI=0;
+  int   begJ=0, endJ=0, curJ=0;
+
+  for (i=1; i<=lenA; i++){
+    for (j=1; j<=lenB; j++){
+
+      //  Pick the max of these
+
+      int ul = M[i-1][j-1].score + ((stringA[i-1] == stringB[j-1]) ? MATCHSCORE : MISMATCHSCORE);
+      int lf = M[i-1][j].score + GAPSCORE;
+      int up = M[i][j-1].score + GAPSCORE;
+
+      // (i,j) is the beginning of a subsequence, our default behavior
+      M[i][j].score  = 1 << 29;
+      M[i][j].action = STOP;
+
+      if (M[i][j].score < ul) {
+        M[i][j].score  = ul;
+        M[i][j].action = MATCH;
+      }
+
+      if (M[i][j].score < lf) {
+        M[i][j].score  = lf;
+        M[i][j].action = GAPA;
+      }
+
+      if (M[i][j].score < up) {
+        M[i][j].score  = up;
+        M[i][j].action = GAPB;
+      }
+
+      if (scoreMax < M[i][j].score) {
+        scoreMax  = M[i][j].score;
+        endI = curI = i;
+        endJ = curJ = j;
+      }
+    }
+  }
+
+  int  alignLen  = 0;
+  int  matches   = 0;
+  int  terminate = 0;
+
+  while (terminate == 0) {
+    switch (M[curI][curJ].action) {
+      case STOP:
+        terminate = 1;
+        break;
+      case MATCH:
+        alignA[alignLen] = stringA[curI-1];
+        alignB[alignLen] = stringB[curJ-1];
+
+        if (alignA[alignLen] == alignB[alignLen]) {
+          alignA[alignLen] = tolower(alignA[alignLen]);
+          alignB[alignLen] = tolower(alignB[alignLen]);
+          matches++;
+        } else {
+          alignA[alignLen] = toupper(alignA[alignLen]);
+          alignB[alignLen] = toupper(alignB[alignLen]);
+        }
+
+        curI--;
+        curJ--;
+        alignLen++;
+        break;
+      case GAPA:
+        alignA[alignLen] = '-';
+        alignB[alignLen] = stringB[curJ-1];
+        curJ--;
+        alignLen++;
+        break;
+      case GAPB:
+        alignA[alignLen] = stringA[curI-1];
+        alignB[alignLen] = '-';
+        curI--;
+        alignLen++;
+        break;
+    }
+  }
+
+  begI = curI;
+  begJ = curJ;
+
+  alignA[alignLen] = 0;
+  alignB[alignLen] = 0;
+
+  //fprintf(stderr, "%d-%d %s\n", begI, endI, alignA);
+  //fprintf(stderr, "%d-%d %s\n", begJ, endJ, alignB);
+
+#ifdef USE_454_TRIMMING
+#error mates do not support trimming with 454 trim points
+#endif
+
+  //  Did we find enough of the linker to do something?
+
+  if ((alignLen >= 20) && (matches >= 96 * alignLen / 100)) {
+    int  lSize = begJ;
+    int  rSize = lenB - endJ;
+    int  which;
+
+    //  Adapter found on the left, but not enough to make a read.  Trim it out.
+    //
+    if (((lSize < 64) && (alignLen >= 40)) ||
+        ((lSize < 10) && (alignLen >= 20))) {
+      r->final_length = rSize;
+
+      r->final_bases   += endJ;
+      r->final_quality += endJ;
+
+      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+        gkf->clearBeg[which] = 0;
+        gkf->clearEnd[which] = r->final_length;
+      }
+    }
+
+    //  Adapter found on the right, but not enough to make a read.  Trim it out.
+    //
+    if (((rSize < 64) && (alignLen >= 40)) ||
+        ((rSize < 10) && (alignLen >= 20))) {
+      r->final_length = lSize;
+
+      r->final_bases  [r->final_length] = 0;
+      r->final_quality[r->final_length] = 0;
+
+      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+        gkf->clearBeg[which] = 0;
+        gkf->clearEnd[which] = r->final_length;
+      }
+    }
+
+    //  Adapter found in the middle, and enough to make two mated reads.
+    //
+    if ((alignLen >= 40) && (lSize >= 64) && (rSize >= 64)) {
+
+      memcpy(rm1, r, sizeof(sffRead));
+      memcpy(rm2, r, sizeof(sffRead));
+
+      memcpy(gkm1, gkf, sizeof(GateKeeperFragmentRecord));
+      memcpy(gkm2, gkf, sizeof(GateKeeperFragmentRecord));
+
+      //  1.  Make new UIDs for the two mated reads.  Nuke the old
+      //  read.  Make the mates.
+      //
+      //  WARNING!  See that getLastElemStore() below?  It is forcing us to
+      //  load the gkm1 read before the gkm2 read.
+      {
+        char  uid[64];
+        strcpy(uid, AS_UID_toString(gkf->readUID));
+        strcat(uid, "a");
+        gkm1->readUID = AS_UID_load(uid);
+        gkm1->readIID = getLastElemStore(gkpStore->frg) + 1;
+
+        strcpy(uid, AS_UID_toString(gkf->readUID));
+        strcat(uid, "b");
+        gkm2->readUID = AS_UID_load(uid);
+        gkm2->readIID = getLastElemStore(gkpStore->frg) + 2;
+
+        gkf->readUID = AS_UID_undefined();
+
+        gkm1->mateIID = gkm2->readIID;
+        gkm2->mateIID = gkm1->readIID;
+
+        gkm1->orientation = AS_READ_ORIENT_INNIE;
+        gkm2->orientation = AS_READ_ORIENT_INNIE;
+      }
+
+
+      //need to enable more strict checking on things loaded -- no embedded nulls for exampe (is that valid in encoded?)
+
+      //  2.  Construct new rm1, rm2.  Nuke the linker.  Reverse
+      //  complement -- inplace -- the rm2 read.
+      {
+        int j;
+
+        reverseComplement(r->final_bases, r->final_quality, lSize);
+
+        rm1->final_length = lSize;
+
+        for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+          gkm1->clearBeg[which] = 0;
+          gkm1->clearEnd[which] = rm1->final_length;
+        }
+
+        for (j=begJ; j<endJ; j++) {
+          r->final_bases[j]   = 0;
+          r->final_quality[j] = 0;
+        }
+
+        //reverseComplement(r->final_bases + endJ, r->final_quality + endJ, rSize);
+
+        rm2->final_length   = rSize;
+        rm2->final_bases   += endJ;
+        rm2->final_quality += endJ;
+
+        for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+          gkm2->clearBeg[which] = 0;
+          gkm2->clearEnd[which] = rm2->final_length;
+        }
+      }
+    }
+  }
+}
+
+
+
+static
+void
+addReadToStore(GateKeeperStore *gkp,
+               sffRead *r,
+               GateKeeperFragmentRecord *gkf) {
+  char       encodedsequence[AS_FRAG_MAX_LEN+1] = {0};
+
+  //  WARNING!  Search above for getLastElemStore() if you muck with this.
+  gkf->readIID = getLastElemStore(gkpStore->frg) + 1;
+
+  gkf->seqLen = r->final_length;
+  gkf->hpsLen = 0;
+  gkf->srcLen = 0;
+
+  gkf->seqOffset = getLastElemStore(gkpStore->seq) + 1;
+  gkf->qltOffset = getLastElemStore(gkpStore->qlt) + 1;
+  gkf->hpsOffset = getLastElemStore(gkpStore->hps) + 1;
+  gkf->srcOffset = getLastElemStore(gkpStore->src) + 1;
+
+  setGatekeeperUIDtoIID(gkpStore, gkf->readUID, gkf->readIID, AS_IID_FRG);
+  appendIndexStore(gkpStore->frg, gkf);
+
+  appendStringStore(gkpStore->seq, r->final_bases, gkf->seqLen);
+
+  encodeSequenceQuality(encodedsequence,
+                        r->final_bases,
+                        r->final_quality);
+  appendStringStore(gkpStore->qlt, encodedsequence, gkf->seqLen);
+
+  appendStringStore(gkpStore->hps, NULL, 0);
+  appendStringStore(gkpStore->src, NULL, 0);
+
+  gkpStore->gkp.sffLoaded++;
+}
+
+
+
 int
 Load_SFF(FILE *sff) {
 
-  sffHeader   *h  = (sffHeader   *)safe_calloc(sizeof(sffHeader),   1);
-  sffManifest *m  = (sffManifest *)safe_calloc(sizeof(sffManifest), 1);
-  sffRead     *r  = (sffRead     *)safe_calloc(sizeof(sffRead),     1);
-  int        rn = 0;
+  sffHeader   *h   = (sffHeader   *)safe_calloc(sizeof(sffHeader),   1);
+  sffManifest *m   = (sffManifest *)safe_calloc(sizeof(sffManifest), 1);
+  sffRead     *r   = (sffRead     *)safe_calloc(sizeof(sffRead),     1);
+  sffRead     *rm1 = (sffRead     *)safe_calloc(sizeof(sffRead),     1);
+  sffRead     *rm2 = (sffRead     *)safe_calloc(sizeof(sffRead),     1);
 
-  char       encodedsequence[AS_FRAG_MAX_LEN+1] = {0};
+  GateKeeperFragmentRecord *gkf  = (GateKeeperFragmentRecord *)safe_calloc(sizeof(GateKeeperFragmentRecord), 1);
+  GateKeeperFragmentRecord *gkm1 = (GateKeeperFragmentRecord *)safe_calloc(sizeof(GateKeeperFragmentRecord), 1);
+  GateKeeperFragmentRecord *gkm2 = (GateKeeperFragmentRecord *)safe_calloc(sizeof(GateKeeperFragmentRecord), 1);
+
+  int         libraryUpdated = 0;
 
   readsff_header(sff, h, m);
+
+  int         rn      = 0;
 
   //  Construct a gkpLibraryRecord for this sff file.  Well, this is
   //  where we'd LIKE to do it, but since the sff doesn't give us any
@@ -417,159 +931,43 @@ Load_SFF(FILE *sff) {
   gkpStore->gkp.sffInput += h->number_of_reads;
 
   for (rn=0; rn < h->number_of_reads; rn++) {
-    GateKeeperFragmentRecord gkf = {0};
-    clearGateKeeperFragmentRecord(&gkf);
-
     readsff_read(sff, h, r);
 
-    gkf.readUID = readsff_constructUIDFromName(r->name, 1);
-    gkf.readIID = 0;
-    gkf.mateIID = 0;
+    processRead(h, r, gkf);
+    processMate(h, r, gkf, rm1, gkm1, rm2, gkm2);
 
-    if (r->number_of_bases - h->key_length < AS_FRAG_MIN_LEN) {
-      //  This isn't _really_ an error, and we'll notice it if we
-      //  compare the sffInput to sffLoaded counts.
+    if (AS_UID_isDefined(gkf->readUID)) {
+      assert(AS_UID_isDefined(gkm1->readUID) == 0);
+      assert(AS_UID_isDefined(gkm2->readUID) == 0);
+
+      addReadToStore(gkpStore, r, gkf);
+    }
+
+    if (AS_UID_isDefined(gkm1->readUID) &&
+        AS_UID_isDefined(gkm2->readUID)) {
+      assert(AS_UID_isDefined(gkf->readUID) == 0);
+
+      //  WARNING!  These two reads MUST be added in this order.
       //
-      //gkpStore->gkp.sffErrors++;
-      continue;
-    }
+      addReadToStore(gkpStore, rm1, gkm1);
+      addReadToStore(gkpStore, rm2, gkm2);
 
-    if (getGatekeeperUIDtoIID(gkpStore, gkf.readUID, NULL)) {
-      AS_GKP_reportError(AS_GKP_SFF_ALREADY_EXISTS,
-                         AS_UID_toString(gkf.readUID));
-      gkpStore->gkp.sffErrors++;
-      continue;
-    }
+      //  Update the library to refect that there are mates present.
+      //  We guess at the insert size.
+      //
+      if (libraryUpdated == 0) {
+        GateKeeperLibraryRecord  gkl;
+        getIndexStore(gkpStore->lib, gkm1->libraryIID, &gkl);
 
-    gkf.libraryIID  = readsff_constructLibraryIIDFromName(r->name);
-    gkf.orientation = AS_READ_ORIENT_UNKNOWN;
+        gkl.orientation                 = AS_READ_ORIENT_INNIE;
+        gkl.mean                        = 3000.0;
+        gkl.stddev                      =  300.0;
 
-    //  Set clear ranges
-    //
-    //  These are base-based.  If either value is 0, that means the
-    //  value was not computed.
-    //
-    //  We have a policy decision here.  If only one of the ranges is
-    //  set, we can either ignore both, or set the unset one to the
-    //  maximum.  We set it to the maximum.
+        setIndexStore(gkpStore->lib, gkm1->libraryIID, &gkl);
 
-    int  clq = r->clip_quality_left;
-    int  crq = r->clip_quality_right;
-    int  which;
-
-    assert((r->clip_quality_left == 0) || (h->key_length <= r->clip_quality_left));
-    assert((r->clip_adapter_left == 0) || (h->key_length <= r->clip_adapter_left));
-
-    if (clq == 0)  clq = h->key_length + 1;
-    if (crq == 0)  crq = r->number_of_bases;
-
-    for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-      gkf.clearBeg[which] = clq - h->key_length - 1;
-      gkf.clearEnd[which] = crq - h->key_length;
-    }
-
-    if ((r->clip_quality_left > 0) && (r->clip_quality_right > 0)) {
-      gkf.hasQualityClear = 1;
-      gkf.clearBeg[AS_READ_CLEAR_QLT] = r->clip_quality_left  - h->key_length - 1;
-      gkf.clearEnd[AS_READ_CLEAR_QLT] = r->clip_quality_right - h->key_length;
-    } else if (r->clip_quality_left > 0) {
-      gkf.hasQualityClear = 1;
-      gkf.clearBeg[AS_READ_CLEAR_QLT] = r->clip_quality_left  - h->key_length - 1;
-      gkf.clearEnd[AS_READ_CLEAR_QLT] = r->number_of_bases - h->key_length;
-    } else if (r->clip_quality_right > 0) {
-      gkf.hasQualityClear = 1;
-      gkf.clearBeg[AS_READ_CLEAR_QLT] = 0;
-      gkf.clearEnd[AS_READ_CLEAR_QLT] = r->clip_quality_right - h->key_length;
-    } else {
-      gkf.hasQualityClear = 0;
-      gkf.clearBeg[AS_READ_CLEAR_QLT] = 0;
-      gkf.clearEnd[AS_READ_CLEAR_QLT] = 0;
-    }
-
-    if ((r->clip_adapter_left > 0) && (r->clip_adapter_right > 0)) {
-      gkf.hasVectorClear  = 1;
-      gkf.clearBeg[AS_READ_CLEAR_VEC] = r->clip_adapter_left  - h->key_length - 1;
-      gkf.clearEnd[AS_READ_CLEAR_VEC] = r->clip_adapter_right - h->key_length;
-    } else if (r->clip_adapter_left > 0) {
-      gkf.hasVectorClear  = 1;
-      gkf.clearBeg[AS_READ_CLEAR_VEC] = r->clip_adapter_left  - h->key_length - 1;
-      gkf.clearEnd[AS_READ_CLEAR_VEC] = r->number_of_bases - h->key_length;
-    } else if (r->clip_adapter_right > 0) {
-      gkf.hasVectorClear  = 1;
-      gkf.clearBeg[AS_READ_CLEAR_VEC] = 0;
-      gkf.clearEnd[AS_READ_CLEAR_VEC] = r->clip_adapter_right - h->key_length;
-    } else {
-      gkf.hasVectorClear = 0;
-      gkf.clearBeg[AS_READ_CLEAR_VEC] = 0;
-      gkf.clearEnd[AS_READ_CLEAR_VEC] = 0;
-    }
-
-    //  Look for n's in the sequence.  This is a signature of an
-    //  instrument problem.  Were we general, this would be
-    //  discardReadsWithNs (for your grepping pleasure)
-    {
-      int  x = 0;
-
-      for (x=0; x < r->number_of_bases; x++)
-        if ((r->bases[x] == 'n') || (r->bases[x] == 'N')) {
-          //  Trim out the N?
-          gkf.hasVectorClear = 1;
-          gkf.clearBeg[AS_READ_CLEAR_VEC] = 0;
-          gkf.clearEnd[AS_READ_CLEAR_VEC] = x - h->key_length;
-
-          //  Nah, just delete it.
-          gkf.deleted = 1;
-
-          AS_GKP_reportError(AS_GKP_SFF_N, AS_UID_toString(gkf.readUID));
-          break;
-        }
-    }
-
-    if (r->number_of_bases > AS_READ_MAX_LEN) {
-      AS_GKP_reportError(AS_GKP_SFF_TOO_LONG, r->name, r->number_of_bases, AS_READ_MAX_LEN);
-      gkpStore->gkp.sffWarnings++;
-      
-      r->number_of_bases = AS_READ_MAX_LEN;
-
-      r->bases  [AS_READ_MAX_LEN + h->key_length] = 0;
-      r->quality[AS_READ_MAX_LEN + h->key_length] = 0;
-
-      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-        if (gkf.clearBeg[which] > AS_READ_MAX_LEN)
-          gkf.clearBeg[which] = AS_READ_MAX_LEN;
-        if (gkf.clearEnd[which] > AS_READ_MAX_LEN)
-          gkf.clearEnd[which] = AS_READ_MAX_LEN;
+        libraryUpdated = 1;
       }
     }
-     
-
-    //  Now add the fragment to the store
-    //
-    gkf.readIID = getLastElemStore(gkpStore->frg) + 1;
-
-    gkf.seqLen = strlen(r->bases + h->key_length);
-    gkf.hpsLen = 0;
-    gkf.srcLen = 0;
-
-    gkf.seqOffset = getLastElemStore(gkpStore->seq) + 1;
-    gkf.qltOffset = getLastElemStore(gkpStore->qlt) + 1;
-    gkf.hpsOffset = getLastElemStore(gkpStore->hps) + 1;
-    gkf.srcOffset = getLastElemStore(gkpStore->src) + 1;
-
-    setGatekeeperUIDtoIID(gkpStore, gkf.readUID, gkf.readIID, AS_IID_FRG);
-    appendIndexStore(gkpStore->frg, &gkf);
-
-    appendStringStore(gkpStore->seq, r->bases + h->key_length, gkf.seqLen);
-
-    encodeSequenceQuality(encodedsequence,
-                          r->bases + h->key_length,
-                          r->quality + h->key_length);
-    appendStringStore(gkpStore->qlt, encodedsequence, gkf.seqLen);
-
-    appendStringStore(gkpStore->hps, NULL, 0);
-    appendStringStore(gkpStore->src, NULL, 0);
-
-    gkpStore->gkp.sffLoaded++;
   }
 
   //  Read the manifest?

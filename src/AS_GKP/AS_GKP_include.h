@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.37 2008-04-16 09:32:34 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.38 2008-04-23 15:53:51 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
@@ -178,8 +178,9 @@ AS_GKP_summarizeErrors(void);
 
 #define AS_GKP_SFF_ALREADY_EXISTS       39
 #define AS_GKP_SFF_UID_ERROR            40
-#define AS_GKP_SFF_TOO_LONG             41
-#define AS_GKP_SFF_N                    42
+#define AS_GKP_SFF_TOO_SHORT            41
+#define AS_GKP_SFF_TOO_LONG             42
+#define AS_GKP_SFF_N                    43
 
 #define AS_GKP_UNKNOWN_MESSAGE          50
 
