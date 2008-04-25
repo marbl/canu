@@ -170,21 +170,28 @@ namespace AS_BOG{
       int alen = fragLen(olap.a_iid);
       int blen = fragLen(olap.b_iid);
 
-      //  anti-normal dovetail; score is length of overlap.
+      double qlt = 1.0 - AS_OVS_decodeQuality(olap.dat.ovl.corr_erate) - AS_OVS_decodeQuality(olap.dat.ovl.orig_erate) / 10000;
+
+      //  Containments - the length of the overlaps are all the same.
+      //  We return the quality.
+      //
+      if ((a_hang >= 0) && (b_hang <= 0))
+        return(qlt);
+
+      if ((a_hang <= 0) && (b_hang >= 0))
+        return(qlt);
+
+      //  Dovetails - the length of the overlap is the score, but we
+      //  bias towards lower error.
+      //
       if ((a_hang < 0) && (b_hang < 0))
-        return(MIN((alen + b_hang), (blen + a_hang)));
-          
-      //  normal dovetail; score is length of overlap.
-      if ((a_hang >= 0) && (b_hang >= 0))
-        return(MIN((alen - a_hang), (blen - b_hang)));
+        return(alen + b_hang + 1.0 - qlt);
 
-      //  A contains B
-      if ((a_hang < 0) && (b_hang >= 0))
-        return(blen * (1.0 - AS_OVS_decodeQuality(olap.dat.ovl.corr_erate)));
+      if ((a_hang > 0) && (b_hang > 0))
+        return(alen - a_hang + 1.0 - qlt);
 
-      //  B contains A
-      if ((a_hang >= 0) && (b_hang < 0))
-        return(alen * (1.0 - AS_OVS_decodeQuality(olap.dat.ovl.corr_erate)));
+      //  Fail if we're here.
+      assert(0);
 #endif
     };
 
