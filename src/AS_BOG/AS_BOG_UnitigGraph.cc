@@ -1623,7 +1623,7 @@ namespace AS_BOG{
     FILE *file = fopen(filename,"w");
     assert(NULL != file);
 
-    sprintf(filename, "%s.iidmap", fileprefix, file_count++);
+    sprintf(filename, "%s.iidmap", fileprefix);
     FILE *iidm = fopen(filename,"w");
     assert(NULL != iidm);
 
