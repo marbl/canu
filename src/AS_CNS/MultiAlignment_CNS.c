@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.185 2008-04-04 20:30:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.186 2008-04-25 21:30:32 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -933,7 +933,8 @@ int32 AppendFragToLocalStore(FragType          type,
   fragment.iid = iid;
   fragment.type = type;
   fragment.complement = complement;
-  fragment.contained = contained; 
+  fragment.container_iid = contained; 
+  fragment.is_contained = (contained > 0) ? 1 : 0;
   fragment.deleted = 0; 
   fragment.manode = -1; 
   fragment.sequence = GetNumchars(sequenceStore);
@@ -968,9 +969,6 @@ int32 AppendFragToLocalStore(FragType          type,
   AppendVA_Fragment(fragmentStore,&fragment);
   return fragment.lid;
 }
-
-int32 AppendArtificialFragToLocalStore(FragType type, int32 iid, int complement,int32 contained,
-                                       UnitigType utype, char *seq, char *qlt, int len);
 
 //*********************************************************************************
 // Basic manipulation of Bead data 
@@ -4280,13 +4278,15 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
 void MarkAsContained(int32 fid) {
   Fragment *frag = GetFragment(fragmentStore,fid);
   assert(frag != NULL);
-  frag->contained = 1;
+  frag->is_contained  = 1;
+  if (frag->container_iid == 0)
+    frag->container_iid = 1;  //  WHY?!  Without, we get lots of big gaps in the alignment.
 }
 
 int IsContained(int32 fid) {
   Fragment *frag = GetFragment(fragmentStore,fid);
   assert(frag != NULL);
-  return frag->contained;
+  return((frag->is_contained) || (frag->container_iid > 0));
 }
 
 int32 ApplyIMPAlignment(int32 afid, int32 bfid, int32 ahang, int32 *trace) {
@@ -7368,74 +7368,6 @@ int MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
   return 1;
 }
 
-int RealignToConsensus(int32 mid,
-                       char *sequence,
-                       char *quality,
-                       int32 fid_bgn, 
-                       int32 fid_end, 
-                       Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
-                       CNS_Options *opp) 
-{
-  // this is prototype code code in development
-  static char cnstmpseq[2*AS_READ_MAX_LEN+1];
-  static char cnstmpqlt[2*AS_READ_MAX_LEN+1];
-  int i;
-  MANode *ma_realigned=NULL;
-  Fragment *afrag;
-  Bead *afirst;
-  Column *col;
-  int cns_fid;
-  char *stmp=cnstmpseq,*qtmp=cnstmpqlt;
-  int32 ahang;
-  int32 aoffset;
-  int olap_success;
-  int ovl=0;
-  OverlapType otype;
-  static VA_TYPE(int32) *trace=NULL;
-  if ( trace == NULL ) {
-    trace = CreateVA_int32(AS_READ_MAX_LEN);
-  } else {
-    ResetVA_int32(trace);
-  }
-  for (i=0;;i++){
-    if ( sequence[i] != '\0' ) {
-      if ( sequence[i] != '-' ) {
-        *stmp++ = sequence[i];
-        *qtmp++ = quality[i];
-      }
-    } else {
-      *stmp=sequence[i];
-      *qtmp=quality[i];
-      break;
-    }
-  }
-  if ( fid_end == -1 ) fid_end = GetNumFragments(fragmentStore);
-  cns_fid = AppendArtificialFragToLocalStore( (FragType)'c',
-                                              0, 
-                                              0,
-                                              0,
-                                              (UnitigType) 'X',
-                                              cnstmpseq,cnstmpqlt,stmp-cnstmpseq);
-  ma_realigned = CreateMANode(GetNumMANodes(manodeStore));
-  assert(ma_realigned!=NULL);
-  SeedMAWithFragment(ma_realigned->lid, cns_fid, 0, opp);
-  for (i=fid_bgn;i<fid_end;i++) {
-
-    afrag = GetFragment(fragmentStore,i);
-    afirst = GetBead(beadStore,afrag->beads);
-    col = GetColumn(columnStore,afirst->column_index);
-    aoffset = col->call;
-    // starting consensus bead  is call of columne where first a basepair is aligned
-    olap_success = GetAlignmentTrace(cns_fid, aoffset, i, &ahang, ovl, trace, &otype,DP_Compare,SHOW_OLAP,0);
-    UnAlignFragment(i);
-    ApplyAlignment(cns_fid,aoffset,i,ahang,Getint32(trace,0));
-    afrag->deleted = 0;
-    GetMultiAlignInStore(unitigStore, mid);
-    RefreshMANode(mid, 0, opp, NULL, NULL, 0, 0);
-  }
- 
-  return 1;
-}
 
 int32
 GetFragmentIndex(IntFragment_ID ident2, IntMultiPos *positions, int num_frags)
@@ -7567,17 +7499,11 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     i = 0;
     afrag = GetFragment(fragmentStore,i);
     bfrag = NULL;
-#endif
 
-    // check whether contained, if so
-    // align_to = containing
-    // else 
-
-#ifdef NEW_UNITIGGER_INTERFACE
-    //fprintf(stderr, "i=%d contained=%d align_to=%d num_frags=%d\n", i, afrag->contained, align_to, num_frags);
+    //fprintf(stderr, "i=%d contained=%d align_to=%d num_frags=%d\n", i, afrag->container_iid, align_to, num_frags);
 
     // Don't process the last fragment unless it is contained!
-    if ((i==num_frags-1) && !afrag->contained)
+    if ((i==num_frags-1) && !afrag->container_iid)
       continue;
     align_to = GetFragmentIndex(positions[i].ident2, positions, num_frags);
     if (align_to < 0)
@@ -7595,8 +7521,8 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     }
 
     //fprintf(stderr, "i= %d align_to= %d ident= %d ident2= %d a_contained=%d b_contained= %d ahang= %d bhang= %d num_frags=%d\n", 
-    //        i, align_to, positions[i].ident, positions[i].ident2, afrag->contained, 
-    //        bfrag->contained, ahang, positions[i].bhang, num_frags);
+    //        i, align_to, positions[i].ident, positions[i].ident2, afrag->container_iid, 
+    //        bfrag->container_iid, ahang, positions[i].bhang, num_frags);
     //fprintf(stderr, "Aligned: a=%d b=%d \n", is_aligned[i], is_aligned[align_to]);
 
     if (!is_aligned[i] && !is_aligned[align_to]) {
@@ -7624,16 +7550,19 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
         // If bfrag is contained, then afrag should be its container.
         // If bfrag is not contained, then afrag should be just uncontained
         //
-        if ( bfrag->contained ) {
-          while ( align_to>-1 ) {
-            if ( afrag->iid == bfrag->contained && afrag->contained != afrag->iid)
+        if ( bfrag->container_iid ) {
+          while ( align_to > -1 ) {
+            //fprintf(stderr, "afrag->iid=%d bfrag->container_iid=%d afrag->container_iid=%d afrag->iid=%d  align_to=%d\n",
+            //        afrag->iid, bfrag->container_iid, afrag->container_iid, afrag->iid, align_to);
+            if ( afrag->iid == bfrag->container_iid && afrag->container_iid != afrag->iid)
               break;
             align_to--;
             if ( align_to > -1)
               afrag = GetFragment(fragmentStore, align_to);
           }
         } else {
-          while ( align_to>0 && afrag->contained ) {
+          while ( align_to > 0 && afrag->container_iid > 0 ) {
+            //fprintf(stderr, "afrag: %d align_to %d\n", afrag->iid, align_to);
             align_to--;
             if (align_to > -1)
               afrag = GetFragment(fragmentStore, align_to);
@@ -7641,7 +7570,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
         }
         if ( align_to < 0 ) {
           if (VERBOSE_MULTIALIGN_OUTPUT) {
-            if (bfrag->contained)
+            if (bfrag->container_iid > 0)
               fprintf(stderr, "MultiAlignUnitig()-- bfrag %d is contained, but no container is found upstream\n", bfrag->iid);
             else
               fprintf(stderr, "MultiAlignUnitig()-- bfrag %d is not contained, and no uncontained afrag is found upstream\n", bfrag->iid);
@@ -7694,6 +7623,12 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 
         olap_success = GetAlignmentTrace(afrag->lid, 0, bfrag->lid, &ahang, ovl, trace, &otype,DP_Compare,DONT_SHOW_OLAP,0);
 
+        if (!olap_success) {
+          fprintf(stderr, "MultiAlignUnitig()-- MultiAlignUnitig: positions of %d (%c) and %d (%c) overlap, but GetAlignmentTrace (DEF) returns no overlap success estimated ahang: %d%s\n",
+                  afrag->iid,afrag->type,bfrag->iid,bfrag->type,
+                  ahang, (bfrag->container_iid)?" (reported contained)":"");
+        }
+
         // try again, perhaps with alternate overlapper
         if (! olap_success && COMPARE_FUNC != DP_Compare)
           olap_success = GetAlignmentTrace(afrag->lid, 0, bfrag->lid, &ahang, ovl, trace, &otype,COMPARE_FUNC,DONT_SHOW_OLAP,0);
@@ -7702,19 +7637,19 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 #ifndef NEW_UNITIGGER_INTERFACE       
           align_to--;
 #endif
-          fprintf(stderr, "MultiAlignUnitig()-- MultiAlignUnitig: positions of %d (%c) and %d (%c) overlap, but GetAlignmentTrace returns no overlap success estimated ahang: %d%s\n",
+          fprintf(stderr, "MultiAlignUnitig()-- MultiAlignUnitig: positions of %d (%c) and %d (%c) overlap, but GetAlignmentTrace (DPC) returns no overlap success estimated ahang: %d%s\n",
                   afrag->iid,afrag->type,bfrag->iid,bfrag->type,
-                  ahang, (bfrag->contained)?" (reported contained)":"");
+                  ahang, (bfrag->container_iid)?" (reported contained)":"");
         }
       }   //  while (!olap_success)
 
     if ( ! olap_success ) {
       if (VERBOSE_MULTIALIGN_OUTPUT) {
-        if ( bfrag->contained && afrag->iid != bfrag->contained ) {
+        if ( bfrag->container_iid && afrag->iid != bfrag->container_iid ) {
           // report a more meaningful error in the case were overlap with
           //   a declared contained isn't successful
           fprintf(stderr, "MultiAlignUnitig()-- Could not find overlap between bfrag %d (%c) and its containing fragment, %d.\n",
-                  bfrag->iid,bfrag->type, bfrag->contained);
+                  bfrag->iid,bfrag->type, bfrag->container_iid);
         } else {
           fprintf(stderr, "MultiAlignUnitig()-- Could (really) not find overlap between afrag %d (%c) and bfrag %d (%c); estimated ahang: %d\n",
                   afrag->iid,afrag->type,bfrag->iid,bfrag->type,ahang);
@@ -7760,7 +7695,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 
 #ifdef NEW_UNITIGGER_INTERFACE
     i_afrag = (i<align_to) ? i : align_to;
-    if (i_afrag && !is_pointed[i] && !afrag->contained && !bfrag->contained) {
+    if (i_afrag && !is_pointed[i] && !afrag->container_iid && !bfrag->container_iid) {
       fprintf(stderr, "Failed to process unitig %d: no fragment pointed to uncontained fragment %d.\n",
               unitig->iaccession, positions[i].ident);
       DeleteHashTable_AS(fragmentMap);
@@ -9192,101 +9127,3 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
   return cma; 
 }
 /* end of MergeMultiAlign */
-
-int32 AppendArtificialFragToLocalStore(FragType type, int32 iid, int complement,int32 contained,
-                                       UnitigType utype, char *seq, char *qlt, int len) {
-  static char seqbuffer[AS_READ_MAX_LEN+1];
-  static char qltbuffer[AS_READ_MAX_LEN+1];
-  char *sequence=seqbuffer,*quality=qltbuffer;
-  int i;
-  Fragment fragment;
-  
-  if ( len > AS_READ_MAX_LEN ) {
-    fprintf(stderr, "AppendArtificialFragToLocalStore: input too long for buffer");
-    assert(0);
-  }
-  for (i=0;i<len;i++) {
-    seqbuffer[i]=*seq++; 
-    qltbuffer[i]=*qlt++;
-  }
-  seqbuffer[len] = '\0';
-  qltbuffer[len] = '\0';
-#ifdef PRINTUIDS
-  fragment.uid=iid;
-#endif
-  fragment.source = NULL;
-  fragment.length = len;
-  fragment.n_components = 0;  // no component frags or unitigs
-  fragment.components = -1;
-  if (complement) {
-    SequenceComplement(sequence, quality);
-  }
-  fragment.lid = GetNumFragments(fragmentStore);
-  fragment.iid = iid;
-  fragment.type = type;
-  fragment.utype = utype;
-  fragment.complement = complement;
-  fragment.contained = contained; 
-  fragment.deleted = 0; 
-  fragment.sequence = GetNumchars(sequenceStore);
-  fragment.quality = GetNumchars(qualityStore);
-  fragment.beads = GetNumBeads(beadStore);
-  AppendRangechar(sequenceStore, fragment.length + 1, sequence);
-  AppendRangechar(qualityStore, fragment.length + 1, quality);
-  {Bead bead;
-    int32 boffset;
-    int32 soffset;
-    int32 foffset;
-    boffset = fragment.beads;
-    soffset = fragment.sequence;
-    bead.up = -1;
-    bead.down = -1;
-    bead.frag_index = fragment.lid;
-    bead.column_index = -1;
-    for (foffset = 0; foffset < fragment.length; foffset++ ) {
-      bead.foffset = foffset;
-      bead.boffset = boffset+foffset;
-      bead.soffset = soffset+foffset;
-      bead.next = bead.boffset +1;
-      bead.prev = bead.boffset -1;
-      if ( foffset == fragment.length-1) bead.next = -1;
-      if ( foffset == 0 ) bead.prev = -1;
-      SetVA_Bead(beadStore,boffset+foffset,&bead);
-    }
-  }
-  AppendVA_Fragment(fragmentStore,&fragment);
-  return fragment.lid;
-}
-
-int SetupSingleColumn(char *sequence, char *quality,
-                      char *frag_type, char *unitig_type, CNS_Options *opp) 
-{
-  // returns the columnd id in the columnStore
-  int32 fid,i;
-  MANode *ma;
-  int column_depth=0;
- 
-  if (sequence != NULL ) column_depth = strlen(sequence);
-  if ( column_depth==0 ) return -1;
-  RALPH_INIT = InitializeAlphTable();
-
-  for (i=0;i<column_depth;i++) {
-    fid = AppendArtificialFragToLocalStore((FragType)frag_type[i],
-                                           i, 
-                                           0,
-                                           0,
-                                           (UnitigType) unitig_type[i],
-                                           &sequence[i],&quality[i],1);
-  }
-
-
-  ma = CreateMANode(GetNumMANodes(manodeStore));
-  assert(ma->lid == 0);
-
-  SeedMAWithFragment(ma->lid, GetFragment(fragmentStore,0)->lid,0, opp);
-  for (i=1;i<column_depth;i++) {
-    ApplyAlignment(i-1,0,i,0,NULL);
-  }
-
-  return GetMANode(manodeStore,ma->lid)->first;
-}

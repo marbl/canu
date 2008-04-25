@@ -161,19 +161,19 @@ typedef struct {
 #ifdef PRINTUIDS
   uint64 uid;
 #endif
-  int32 lid;  // index in sequence/quality/fragment store
+  int32 lid;            // index in sequence/quality/fragment store
   int32 length;
   int complement;
-  int contained;
+  int container_iid;    // if non-zero, the iid of our container
+  int is_contained;     // if non-zero, consensus detected this fragment is contained
   int deleted;
   int manode;
-  int32 sequence;  // global index of first sequence character
-  int32 quality;  // global index of first quality character
-  int32 beads;  // global index of first "bead"
-  int32 n_components; // number of component frags (in case of "unitig" Fragments)
-  int32 components;  // global index of first component frag 
-  int32 bactig;  // global index of bactig backbone of unitig pseudo frag 
-  char *source;  // consensus just carried this through - no mods
+  int32 sequence;       // global index of first sequence character
+  int32 quality;        // global index of first quality character
+  int32 beads;          // global index of first "bead"
+  int32 n_components;   // number of component frags (in case of "unitig" Fragments)
+  int32 components;     // global index of first component frag 
+  char *source;         // consensus just carried this through - no mods
 } Fragment;
 
 VA_DEF(Fragment)
@@ -349,7 +349,7 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *, GateKeeperStore * ,
                                        uint32 , uint32 , int , Overlap *(*)(COMPARE_ARGS), CNS_Options *opp);
 
 void ResetStores(int32 num_frags, int32 num_columns);
-int SetupSingleColumn(char *, char *, char *, char *, CNS_Options *opp);
+
 int BaseCall(int32 , int , double *, VarRegion  *, int, char *, int, int,
              CNS_Options *);
 void ShowColumn(int32 cid);
