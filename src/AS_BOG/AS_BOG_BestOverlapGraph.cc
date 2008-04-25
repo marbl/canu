@@ -170,6 +170,8 @@ namespace AS_BOG{
     newBest.isPlaced          = false;
     newBest.overlapsAreSorted = false;
 
+    //fprintf(stderr, "bestContainer of frag %d is frag %d score = %f.\n", olap.b_iid, olap.a_iid, newScr);
+
     _best_containments[ olap.b_iid ] = newBest;
   }
 
@@ -362,6 +364,7 @@ namespace AS_BOG{
       }
     }
   }
+
   void BestOverlapGraph::scoreEdge(const OVSoverlap& olap) {
     // This function builds the BestOverlapGraph by considering the specified
     //   overlap record.  It's important to remember that the overlaps
@@ -444,23 +447,24 @@ namespace AS_BOG{
   void BOG_Runner::processOverlapStream(OverlapStore * my_store,
                                         const char* FRG_Store_Path ) {
 
-    // Open Frag store
     GateKeeperStore  *gkpStoreHandle = openGateKeeperStore( FRG_Store_Path, FALSE);
     FragStream       *fragStream = openFragStream( gkpStoreHandle, FRAG_S_INF);
     fragRecord        fsread;
 
-    // Allocate and Initialize fragLength array
     BestOverlapGraph::fragLength = new uint16[BestOverlapGraph::lastFrg+1];
-    memset( BestOverlapGraph::fragLength, std::numeric_limits<uint16>::max(),
-            sizeof(uint16)*(BestOverlapGraph::lastFrg+1));
-    iuid iid = 1;
+
+    BestOverlapGraph::fragLength[0] = std::numeric_limits<uint16>::max();
+
     while(nextFragStream( fragStream, &fsread)) {
       if (getFragRecordIsDeleted(&fsread)) {
-        iid++; continue;
+        //fprintf(stderr, "Loaded frag %d DELETED\n", getFragRecordIID(&fsread));
+        BestOverlapGraph::fragLength[getFragRecordIID(&fsread)] = std::numeric_limits<uint16>::max();
+      } else {
+        uint32 clrBgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_OBT);
+        uint32 clrEnd = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_OBT);
+        //fprintf(stderr, "Loaded frag %d clr %d-%d = %d\n", getFragRecordIID(&fsread), clrBgn, clrEnd, clrEnd-clrBgn);
+        BestOverlapGraph::fragLength[getFragRecordIID(&fsread)] = clrEnd - clrBgn;
       }
-      uint32 clrBgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_OBT);
-      uint32 clrEnd = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_OBT);
-      BestOverlapGraph::fragLength[ iid++ ] = clrEnd - clrBgn;
     }
     closeFragStream( fragStream ); 
     closeGateKeeperStore( gkpStoreHandle ); 
@@ -470,21 +474,18 @@ namespace AS_BOG{
     // second pass builds the overlap graph, excluding contained frags
         
     OVSoverlap olap;
-    while  (AS_OVS_readOverlapFromStore(my_store, &olap, AS_OVS_TYPE_OVL)) {
+    while  (AS_OVS_readOverlapFromStore(my_store, &olap, AS_OVS_TYPE_OVL))
       for(int j = 0; j < metrics.size(); j++)
         metrics[j]->scoreContainment( olap );
-    }
 
     AS_OVS_resetRangeOverlapStore(my_store);
 
-    while  (AS_OVS_readOverlapFromStore(my_store, &olap, AS_OVS_TYPE_OVL)) {
+    while  (AS_OVS_readOverlapFromStore(my_store, &olap, AS_OVS_TYPE_OVL))
       for(int j = 0; j < metrics.size(); j++)
         metrics[j]->scoreEdge( olap );
-    }
-    // Update degree on final frag
-    for(int j = 0; j < metrics.size(); j++) {
+
+    for(int j = 0; j < metrics.size(); j++)
       metrics[j]->updateInDegree();
-    }
   }
 
 } //AS_BOG namespace
