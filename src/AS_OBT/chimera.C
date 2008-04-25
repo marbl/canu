@@ -635,7 +635,7 @@ process(uint32           iid,
         //  Attempt to fix
         //
 
-        if (intervalMax < 40) {
+        if (intervalMax < AS_READ_MIN_LEN) {
           spurDeletedSmall++;
 
           printLogMessage(reportFile, &fr, uid, iid, intervalBeg, intervalEnd, doUpdate, "SPUR", "New length too small, fragment deleted");
@@ -675,7 +675,7 @@ process(uint32           iid,
         //  Attempt a fix
         //
 
-        if (intervalMax < 40) {
+        if (intervalMax < AS_READ_MIN_LEN) {
           chimeraDeletedSmall++;
 
           printLogMessage(reportFile, &fr, uid, iid, intervalBeg, intervalEnd, doUpdate, "CHIMERA", "New length too small, fragment deleted");
