@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.h,v 1.9 2007-10-08 13:40:18 adelcher Exp $
- * $Revision: 1.9 $
+ * $Id: SharedOVL.h,v 1.10 2008-04-28 18:27:16 adelcher Exp $
+ * $Revision: 1.10 $
 */
 
 
@@ -98,6 +98,9 @@
   // Other indel
 #define  HP_SUBST_SCORE            5
   // Substitution
+#define  HP_BREAK_PENALTY          3
+  // Penalty for match in homopoly string at homopoly repeat base when
+  // previous base is not a match
 #define  HOMOPOLY_SCORE_BITS       13
   // Number of bits to store scores in  Homopoly_Match_Entry_t
 #define  HOMOPOLY_VOTE_FACTOR      1
@@ -190,9 +193,10 @@ typedef struct
 // Function prototypes
 
 int  Fwd_Banded_Homopoly_Prefix_Match
-  (const char * AA, int m, const char * TT, int n, int score_limit,
-   int * return_score, int * a_end, int * t_end, int * match_to_end, int * delta,
-   int * delta_len, Alignment_Cell_t ea [], double match_value,
+  (const char * AA, int m, const char * TT, int n, int A_is_homopoly,
+   int T_is_homopoly, int score_limit, int * return_score,
+   int * a_end, int * t_end, int * match_to_end, int * delta,
+   int * delta_len, Alignment_Cell_t edit_space [], double match_value,
    int doing_partial);
 int  Fwd_Homopoly_Prefix_Match
   (const char * A, int m, const char * T, int n, int score_limit,

@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.c,v 1.6 2007-10-08 13:40:18 adelcher Exp $
- * $Revision: 1.6 $
+ * $Id: SharedOVL.c,v 1.7 2008-04-28 18:27:16 adelcher Exp $
+ * $Revision: 1.7 $
 */
 
 
@@ -46,8 +46,9 @@
 #define  MAX_SEQUENCE_LEN  2048
 
 int  Fwd_Banded_Homopoly_Prefix_Match
-  (const char * AA, int m, const char * TT, int n, int score_limit,
-   int * return_score, int * a_end, int * t_end, int * match_to_end, int * delta,
+  (const char * AA, int m, const char * TT, int n, int A_is_homopoly,
+   int T_is_homopoly, int score_limit, int * return_score,
+   int * a_end, int * t_end, int * match_to_end, int * delta,
    int * delta_len, Alignment_Cell_t edit_space [], double match_value,
    int doing_partial)
 
@@ -57,6 +58,8 @@ int  Fwd_Banded_Homopoly_Prefix_Match
 // one of those strings if possible without exceeding  score_limit
 // as the score of the alignment.  If  doing_partial  is true, however,
 // the alignment need not extend to the end of either string.
+//  A_is_homopoly  and  T_is_homopoly indicate which of the AA and TT
+// sequences have homopoly-type errors.
 // The return value is the number of
 // changes; set  return_score  to the score of the best alignment.
 // Set  a_end  and  b_end  to where the match ends (each is the number
@@ -223,6 +226,11 @@ int  Fwd_Banded_Homopoly_Prefix_Match
                ts += HP_SUBST_SCORE;
                te ++;
               }
+            else if (prev [j + shift - 1] . from != 0
+                     && (A_is_homopoly && 1 < i && A [i] == A [i - 1]
+                         || T_is_homopoly && 1 < offset + j
+                            && T [offset + j] == T [offset + j - 1]))
+              ts += HP_BREAK_PENALTY;
             if (ts < score)
               {
                score = ts;
@@ -270,6 +278,8 @@ int  Fwd_Banded_Homopoly_Prefix_Match
 
    if (Verbose_Level > 2)
      {
+      printf ("best_score=%d  global_best=%d  score_limit=%d\n", best_score,
+              global_best, score_limit);
       curr = edit_space;
       for (i = 0; i <= last_row; i ++)
         {

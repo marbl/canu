@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.23 2008-04-17 14:14:20 adelcher Exp $
- * $Revision: 1.23 $
+ * $Id: OlapFromSeedsOVL.c,v 1.24 2008-04-28 18:27:16 adelcher Exp $
+ * $Revision: 1.24 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.23 2008-04-17 14:14:20 adelcher Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.24 2008-04-28 18:27:16 adelcher Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -64,12 +64,14 @@ int  main
 if (0)
 {
  Alignment_Cell_t  ea [1000];
- Homopoly_Match_Entry_t  hp_space [40 * 40];
- Homopoly_Match_Entry_t  * hp_array [40];
+ Homopoly_Match_Entry_t  hp_space [60 * 60];
+ Homopoly_Match_Entry_t  * hp_array [60];
 // char  a [] = "gttaaggctaggggtcatccgacttaccaaccttgcaaac";
 // char  b [] = "gttaaggctagggggcatcccgacttaccaacccttgcaaac";
- char  a [] = "gttaaggctaggggtcatccgacttaccaact";
- char  b [] = "ttaaggctagggggcatcccgacttaccaacccttaca";
+// char  a [] = "gttaaggctaggggtcatccgacttaccaact";
+// char  b [] = "ttaaggctagggggcatcccgacttaccaacccttaca";
+ char  a [] = "aaaagtttacaacaaagtttacaacaaaataactatattggctcctcttgctgggcttg";
+ char  b [] = "aaaagtttacaacaaaataactatatttggctcctcttgctgggcttg";
  int  errors, score;
  int  a_end, b_end, match_to_end, delta [200], delta_len;
  int  i;
@@ -78,9 +80,10 @@ if (0)
    hp_array [i] = hp_space + i * (i + 1);
  printf ("Homopoly alignment:  a_lo/hi=%d/%d  b_lo/hi=%d/%d\n", 0,
       strlen (a), 0, strlen (b));
- errors = Fwd_Banded_Homopoly_Prefix_Match (a, strlen (a), b, strlen (b), 15, & score,
-      & a_end, & b_end, & match_to_end, delta, & delta_len, ea, Char_Match_Value,
-      Doing_Partial_Overlaps);
+ errors = Fwd_Banded_Homopoly_Prefix_Match
+   (a, strlen (a), b, strlen (b), FALSE, TRUE, 100, & score,
+    & a_end, & b_end, & match_to_end, delta, & delta_len, ea, Char_Match_Value,
+    Doing_Partial_Overlaps);
  printf ("errors=%d  score=%d  delta_len=%d\n", errors, score, delta_len);
  for (i = 0; i < delta_len; i ++)
    printf ("%3d: %6d\n", i, delta [i]);
@@ -3867,12 +3870,13 @@ static void  Process_Seed
               & new_a_end, & new_b_end, & new_match_to_end, new_delta,
               & new_delta_len, wa -> homopoly_edit_array);
    #else
-         raw_errors = Fwd_Banded_Homopoly_Prefix_Match (a_part + a_end,
-              a_part_len - a_end, b_part + b_end, b_part_len - b_end,
-              HOMOPOLY_SCORE_MULTIPLIER * allowed_errors, & score,
-              & new_a_end, & new_b_end, & new_match_to_end, new_delta,
-              & new_delta_len, wa -> banded_space, Char_Match_Value,
-              Doing_Partial_Overlaps);
+         raw_errors = Fwd_Banded_Homopoly_Prefix_Match
+           (a_part + a_end, a_part_len - a_end, b_part + b_end,
+            b_part_len - b_end, Frag [sub] . is_homopoly_type, is_homopoly,
+            HOMOPOLY_SCORE_MULTIPLIER * allowed_errors, & score,
+            & new_a_end, & new_b_end, & new_match_to_end, new_delta,
+            & new_delta_len, wa -> banded_space, Char_Match_Value,
+            Doing_Partial_Overlaps);
    #endif
          // adjust errors to equivalent non-homopoly error number
          new_errors = (int) ceil ((double) score / HOMOPOLY_SCORE_MULTIPLIER);
