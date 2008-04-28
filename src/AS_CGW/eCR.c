@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.35 2008-04-17 08:26:07 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.36 2008-04-28 04:41:47 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -919,7 +919,7 @@ main(int argc, char **argv) {
 
           //  unwind changes if one or the other fails
           //
-          if (gotNewLeftMA == FALSE || gotNewRightMA == FALSE)  
+          if (gotNewLeftMA == FALSE || gotNewRightMA == FALSE)
             goto dontkeepgap;
 
 
@@ -1001,20 +1001,20 @@ main(int argc, char **argv) {
 
           // have to call this routine with normalized positions
 
-          if (FALSE == CreateAContigInScaffold(scaff, ContigPositions, newOffsetAEnd, newOffsetBEnd)) {
+          closedGap = CreateAContigInScaffold(scaff, ContigPositions, newOffsetAEnd, newOffsetBEnd);
+
+          //  We might have reallocated the contig graph; lookup
+          //  the contig pointers again (yes, even if we fail).
+          //
+          rcontig = GetGraphNode(ScaffoldGraph->ContigGraph, rcontigID);
+          lcontig = GetGraphNode(ScaffoldGraph->ContigGraph, lcontigID);
+
+          if (closedGap == FALSE) {
             fprintf(stderr, "overlap found in extendClearRanges but not by CNS!\n");
             createAContigFailures++;
             goto dontkeepgap;
           }
 
-          //  We might have reallocated the contig graph; lookup
-          //  the contig pointers again.
-          //
-          rcontig = GetGraphNode(ScaffoldGraph->ContigGraph, rcontigID);
-          lcontig = GetGraphNode(ScaffoldGraph->ContigGraph, lcontigID);
-
-          closedGap = TRUE;
-					
           numGapsClosed++;
 
           totalBasesInClosedGaps += (int) gapSize.mean;
@@ -1060,7 +1060,7 @@ main(int argc, char **argv) {
 
         dontkeepgap:
           // if we didn't close gap for whatever reason undo all
-          // the frag and unitig changes
+          // the frag and unitig changes.
 
           fprintf(stderr, "DONTKEEPGAP!  did not close gap %d, contigs %d and %d, fragIids %9d and %9d\n", gapNumber, lcontig->id, rcontig->id, lFragIid, rFragIid);
 
