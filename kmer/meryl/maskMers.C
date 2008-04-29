@@ -63,7 +63,7 @@ private:
 
 class merMaskedSequence {
 public:
-  merMaskedSequence(char *fastaName_, char *merylName_) {
+  merMaskedSequence(char *fastaName_, char *merylName_, u32bit onlySeqIID_=~u32bitZERO) {
     _numSeq    = 0;
     _seqLen    = 0L;
     _masking   = 0L;
@@ -77,7 +77,7 @@ public:
     strcat(_maskMersName, ".maskMers");
 
     if (fileExists(_maskMersName))
-      loadMasking();
+      loadMasking(onlySeqIID_);
     else
       buildMasking();
   };
@@ -102,9 +102,9 @@ public:
   u32bit     merSize(void)                { return(_merSize); };
 
 private:
-  void       loadMasking(void);      //  Read the masking from the saved file
-  void       saveMasking(void);      //  Write the masking to a file
-  void       buildMasking(void);     //  Read the mers to build the masking
+  void       loadMasking(u32bit onlySeqIID_=~u32bitZERO);  //  Read the masking from the saved file
+  void       saveMasking(void);                            //  Write the masking to a file
+  void       buildMasking(void);                           //  Read the mers to build the masking
 
   u32bit    _numSeq;
   u32bit   *_seqLen;
@@ -120,7 +120,7 @@ private:
 
 
 void
-merMaskedSequence::loadMasking(void) {
+merMaskedSequence::loadMasking(u32bit onlySeqIID_) {
   FILE  *maskMersFile = fopen(_maskMersName, "r");
 
   fread(&_numSeq,  sizeof(u32bit), 1, maskMersFile);
@@ -135,16 +135,23 @@ merMaskedSequence::loadMasking(void) {
   fread( _seqLen,   sizeof(u32bit), _numSeq, maskMersFile);
 
   for (u32bit i=0; i<_numSeq; i++) {
-    _masking[i]  = new char   [_seqLen[i]];
-    _repeatID[i] = new u32bit [_seqLen[i]];
+    _masking[i]  = 0L;
+    _repeatID[i] = 0L;
 
-    memset(_masking[i],  'g', sizeof(char)   * _seqLen[i]);
-    memset(_repeatID[i],   0, sizeof(u32bit) * _seqLen[i]);
-  }
+    if ((onlySeqIID_ >= _numSeq) || (onlySeqIID_ == i)) {
+      fprintf(stderr, "Loading sequence "u32bitFMT" of length "u32bitFMT"\n", i, _seqLen[i]);
 
-  for (u32bit i=0; i<_numSeq; i++) {
-    fread(_masking[i],  sizeof(char),   _seqLen[i], maskMersFile);
-    fread(_repeatID[i], sizeof(u32bit), _seqLen[i], maskMersFile);
+      _masking[i]  = new char   [_seqLen[i]];
+      _repeatID[i] = new u32bit [_seqLen[i]];
+
+      //memset(_masking[i],  'g', sizeof(char)   * _seqLen[i]);
+      //memset(_repeatID[i],   0, sizeof(u32bit) * _seqLen[i]);
+
+      fread(_masking[i],  sizeof(char),   _seqLen[i], maskMersFile);
+      fread(_repeatID[i], sizeof(u32bit), _seqLen[i], maskMersFile);
+    } else {
+      _seqLen[i] = 0;
+    }
   }
 
   fclose(maskMersFile);
@@ -262,11 +269,18 @@ void
 computeDensity(merMaskedSequence *S) {
   char    outputName[FILENAME_MAX];
   FILE   *outputFile;
-  u32bit  windowSizeMax = 1000;
+  u32bit  windowSizeMax = 100000;
 
   for (u32bit s=0; s<S->numSeq(); s++) {
+
+    //  seqLen == 0 iff that sequence is not loaded.
+    if (S->seqLen(s) == 0)
+      continue;
+
     sprintf(outputName, "%s.density.seq"u32bitFMTW(02), S->merylName(), s);
     outputFile = fopen(outputName, "w");
+
+    fprintf(stderr, "Starting '%s'\n", outputName);
 
     fprintf(outputFile, "#window\tunique\trepeat\tgaps\n");
 
@@ -333,11 +347,17 @@ computeMateRescue(merMaskedSequence *S, mateRescueData *lib, u32bit libLen) {
   speedCounter *CT = new speedCounter(" Examining repeats: %7.2f Kbases -- %5.2f Kbases/second\r", 1000.0, 0x1ffff, true);
 
   for (u32bit s=0; s<S->numSeq(); s++) {
+
+    //  seqLen == 0 iff that sequence is not loaded.
+    if (S->seqLen(s) == 0)
+      continue;
+
+    fprintf(stderr, "Starting sequence "u32bitFMT"\n", s);
+
     double  numRR[MAX_COVERAGE] = {0};  //  num repeats rescued (expected) for [] X coverage
     double  numNR[MAX_COVERAGE] = {0};  //  num repeats nonrescuable (expected) for [] X coverage
 
     memset(histogram, 0, sizeof(u32bit) * (histogramLen + 1));
-
 
     u32bit  numRT = 0;  //  num repeats total
 
@@ -347,7 +367,6 @@ computeMateRescue(merMaskedSequence *S, mateRescueData *lib, u32bit libLen) {
       if (S->masking(s, p) == 'r') {
         numRT++;
 
-
         for (u32bit l=0; l<libLen; l++) {
           s32bit mean   = lib[l].mean();
           s32bit stddev = lib[l].stddev();
@@ -355,6 +374,7 @@ computeMateRescue(merMaskedSequence *S, mateRescueData *lib, u32bit libLen) {
 
           //  Build a list of the same repeat close to this guy.
           closeRepeatsLen = 0;
+
           if (S->repeatID(s, p) > 0) {
             s32bit pl = (s32bit)floor(p - 3 * stddev);
             s32bit ph = (s32bit)ceil (p + 3 * stddev);
@@ -362,20 +382,9 @@ computeMateRescue(merMaskedSequence *S, mateRescueData *lib, u32bit libLen) {
             if (pl < 0)             pl = 0;
             if (ph > S->seqLen(s))  ph = S->seqLen(s);
 
-            for (s32bit pi=pl; pi<ph; pi++) {
-              if ((S->repeatID(s, pi) == S->repeatID(s, p)) && (pi != p)) {
+            for (s32bit pi=pl; pi<ph; pi++)
+              if ((S->repeatID(s, pi) == S->repeatID(s, p)) && (pi != p))
                 closeRepeats[closeRepeatsLen++] = pi;
-              }
-            }
-
-#if 0
-            if (closeRepeatsLen > 0) {
-              fprintf(stderr, "closeRepeats for p="u32bitFMT, p);
-              for (u32bit cri=0; cri<closeRepeatsLen; cri++)
-                fprintf(stderr, " "u32bitFMT, closeRepeats[cri]);
-              fprintf(stderr, "\n");
-            }
-#endif
           }
 
 
@@ -395,7 +404,6 @@ computeMateRescue(merMaskedSequence *S, mateRescueData *lib, u32bit libLen) {
 
           //fprintf(stderr, "b1: %d-%d  b2:%d-%d\n", b1l, b1h, b2l, b2h);
 
-
           //  probability we can rescue this repeat with this mate pair
           double  pRescue = 0.0;
           double  pFailed = 0.0;
@@ -414,46 +422,45 @@ computeMateRescue(merMaskedSequence *S, mateRescueData *lib, u32bit libLen) {
           } else {
             //  Close repeats, gotta be slow.
             for (s32bit b=b1l; b<b1h; b++) {
-              s32bit  mrl = b + mean - 3 * stddev;
-              s32bit  mrh = b + mean + 3 * stddev;
+              if (S->masking(s, b) == 'u') {
+                s32bit  mrl = b + mean - 3 * stddev;
+                s32bit  mrh = b + mean + 3 * stddev;
 
-              bool    rescuable = true;
+                bool    rescuable = true;
 
-              for (u32bit cri=0; rescuable && cri<closeRepeatsLen; cri++)
-                if ((mrl <= closeRepeats[cri]) && (closeRepeats[cri] <= mrh)) {
-                  //fprintf(stderr, "pos "s32bitFMT" is not rescuable by pos "s32bitFMT"\n", p, b);
-                  rescuable = false;
-                }
+                for (u32bit cri=0; rescuable && cri<closeRepeatsLen; cri++)
+                  if ((mrl <= closeRepeats[cri]) && (closeRepeats[cri] <= mrh))
+                    rescuable = false;
 
-              if (S->masking(s, b) == 'u')
                 if (rescuable)
                   pRescue += lib[l].normal(b - p + mean);
                 else
                   pFailed += lib[l].normal(b - p + mean);
+              }
             }
 
             for (s32bit b=b2l; b<b2h; b++) {
-              s32bit  mrl = b - mean - 3 * stddev;
-              s32bit  mrh = b - mean + 3 * stddev;
+              if (S->masking(s, b) == 'u') {
+                s32bit  mrl = b - mean - 3 * stddev;
+                s32bit  mrh = b - mean + 3 * stddev;
 
-              bool    rescuable = true;
+                bool    rescuable = true;
 
-              for (u32bit cri=0; rescuable && cri<closeRepeatsLen; cri++)
-                if ((mrl <= closeRepeats[cri]) && (closeRepeats[cri] <= mrh)) {
-                  //fprintf(stderr, "pos "s32bitFMT" is not rescuable by pos "s32bitFMT"\n", p, b);
-                  rescuable = false;
-                }
+                for (u32bit cri=0; rescuable && cri<closeRepeatsLen; cri++)
+                  if ((mrl <= closeRepeats[cri]) && (closeRepeats[cri] <= mrh))
+                    rescuable = false;
 
-              if (S->masking(s, b) == 'u')
                 if (rescuable)
                   pRescue += lib[l].normal(b - p - mean);
                 else
                   pFailed += lib[l].normal(b - p - mean);
+              }
             }
           }
 
           //  We're summing over two distributions.
           pRescue /= 2.0;
+          pFailed /= 2.0;
 
           //  Compute probability of rescuing with libraries we've
           //  seen already, and the expected number of repeats
@@ -489,6 +496,8 @@ computeMateRescue(merMaskedSequence *S, mateRescueData *lib, u32bit libLen) {
 
     sprintf(outputName, "%s.mateRescue.seq"u32bitFMTW(02)".out", S->merylName(), s);
     outputFile = fopen(outputName, "w");
+
+    fprintf(stderr, "\nWriting '%s'\n", outputName);
 
     fprintf(outputFile, "seqIID\tmerSize\ttRepeat\teRescue\teFailed\tXcov\tmean\tstddev\n");
 
@@ -534,6 +543,8 @@ main(int argc, char **argv) {
   char     *merylName  = 0L;
   char     *fastaName  = 0L;
 
+  u32bit    onlySeqIID = ~u32bitZERO;
+
   bool      doDensity  = false;
   bool      doRescue   = false;
 
@@ -548,6 +559,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-seq") == 0) {
       fastaName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-only") == 0) {
+      onlySeqIID = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-d") == 0) {
       doDensity = true;
@@ -568,7 +582,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  merMaskedSequence *S = new merMaskedSequence(fastaName, merylName);
+  merMaskedSequence *S = new merMaskedSequence(fastaName, merylName, onlySeqIID);
 
   if (doDensity)
     computeDensity(S);
