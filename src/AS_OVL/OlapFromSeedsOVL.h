@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.12 2008-02-29 16:26:30 adelcher Exp $
- * $Revision: 1.12 $
+ * $Id: OlapFromSeedsOVL.h,v 1.13 2008-04-29 22:33:31 adelcher Exp $
+ * $Revision: 1.13 $
 */
 
 
@@ -82,6 +82,8 @@
   //  Default number of pthreads to use
 #define  DEFAULT_VOTE_QUALIFY_LEN    9
   //  Default value for bases surrounding SNP to vote for change
+#define  DISPLAY_WIDTH               60
+  //  Number of characters per line in alignments
 #define  EDIT_DIST_PROB_BOUND        1e-4
   //  Probability limit to "band" edit-distance calculation
   //  Determines  NORMAL_DISTRIB_THOLD
@@ -96,6 +98,9 @@
 #define  FRAGS_PER_BATCH             100000
   //  Number of old fragments to read into memory-based fragment
   //  store at a time for processing
+#define  HOMOPOLY_LEN_VARIATION      3
+  //  Homopolymer run-length differences greater than this
+  //  can be errors for correlated difference detection
 #define  MAX_FRAG_LEN                AS_READ_MAX_LEN
   //  The longest fragment allowed
 #define  MAX_DEGREE                  32767
@@ -364,6 +369,8 @@ static void  Add_Homopoly_Vote
   (Vote_Tally_t * vote, int hp_len);
 static void  Adjust_For_Compressed_Seeds
   (int * a_offset, int * b_offset, char * * a_part, char * * b_part);
+static void  Adjust_For_Eliminated
+  (char * ref, int * ref_len, Sequence_Diff_t * dp, int dp_ct);
 static void  Analyze_Alignment
   (int delta [], int delta_len, char * a_part, char * b_part,
    int a_len, int b_len, int a_offset, int sub);
@@ -410,7 +417,7 @@ static void  Convert_Delta_To_Diff
    Thread_Work_Area_t * wa);
 static void  Count_From_Diff
   (short int count [MAX_FRAG_LEN] [5], const char * seq, int seq_len,
-   const Sequence_Diff_t * dp);
+   int seq_is_homopoly, const Sequence_Diff_t * dp);
 static void  Determine_Homopoly_Corrections
     (FILE * fp, int sub, New_Vote_t * vote, char * seq,
      char * correct, int len);
@@ -426,11 +433,12 @@ static void  Display_Frags
   (void);
 static void  Display_Multialignment
   (FILE * fp, int sub, const char * ref, const char * anno, int ref_len,
-   const Sequence_Diff_t * dp, int dp_ct);
+   const Sequence_Diff_t * dp, int dp_ct, int skip_disregard);
 static void  Display_Partial_Diff
   (FILE * fp, const Sequence_Diff_t * dp, int lo, int hi, const char * a);
 static int  Eliminate_Correlated_Diff_Olaps
-  (int sub, const char * ref, int ref_len, Sequence_Diff_t * dp, int dp_ct);
+  (int sub, const char * ref, int ref_len, Sequence_Diff_t * dp, int dp_ct,
+   int ref_is_homopoly);
 static void  Extract_Needed_Frags
   (GateKeeperStore *store, int32 lo_frag, int32 hi_frag,
    Frag_List_t * list, int * next_olap);

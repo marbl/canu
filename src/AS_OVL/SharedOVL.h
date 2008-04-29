@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.h,v 1.10 2008-04-28 18:27:16 adelcher Exp $
- * $Revision: 1.10 $
+ * $Id: SharedOVL.h,v 1.11 2008-04-29 22:33:31 adelcher Exp $
+ * $Revision: 1.11 $
 */
 
 
@@ -235,6 +235,8 @@ void  Set_Rev_Delta
    int e, int d, int * leftover, int * t_end, int t_len);
 void  Show_Homopoly_Match_Array
   (FILE * fp, Homopoly_Match_Entry_t ** hp, int e);
+void  Show_Sequence_Diff
+  (FILE * fp, const Sequence_Diff_t * dp);
 int  Sign
   (int a);
 

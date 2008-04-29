@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.24 2008-04-28 18:27:16 adelcher Exp $
- * $Revision: 1.24 $
+ * $Id: OlapFromSeedsOVL.c,v 1.25 2008-04-29 22:33:31 adelcher Exp $
+ * $Revision: 1.25 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.24 2008-04-28 18:27:16 adelcher Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.25 2008-04-29 22:33:31 adelcher Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -218,6 +218,240 @@ static void  Adjust_For_Compressed_Seeds
       (* a_part) += i - j;
       (* a_offset) += i - j;
     }
+
+  return;
+}
+
+
+
+static void  Adjust_For_Eliminated
+  (char * ref, int * ref_len, Sequence_Diff_t * dp, int dp_ct)
+
+// Modify sequence  ref  of length  ref_len , if necessary, to remove
+// gaps introduced by sequences in  dp  with  disregard  set true.
+// Adjust  ref_len  and change other entries in  dp  if changes
+// are made.
+
+{
+  char  key [1 + MAX_FRAG_LEN];
+  unsigned char  marked_before [1 + MAX_FRAG_LEN];
+  int  marked_ct;
+  int  i, j, k, m;
+
+  for (i = 0; i < (* ref_len); i ++)
+    key [i] = ' ';
+  key [* ref_len] = '\0';
+
+//**ALD
+#if 0
+  for (i = 0; i < dp_ct; i ++)
+    {
+      printf ("\ndp [%d]  b_iid = %d  diff_len = %d\n", i,
+              dp [i] . b_iid, dp [i] . diff_len);
+      for (k = 0; k < dp [i] . diff_len; k ++)
+        printf (" %3d %d", dp [i] . de [k] . len, dp [i] . de [k] . action);
+      putchar ('\n');
+      Display_Diffs (stdout, dp + i, ref, * ref_len);
+    }
+#endif    
+
+  // first mark with 'x' positions in key where a disregard string
+  // indicates an insert in ref, i.e., a non-dash aligned with a dash
+  // in ref
+  marked_ct = 0;
+  for (i = 0; i < dp_ct; i ++)
+    if (dp [i] . disregard)
+      {
+        j = dp [i] . a_lo;
+        for (k = 0; k < dp [i] . diff_len; k ++)
+          {
+            j += dp [i] . de [k] . len;
+            switch (dp [i] . de [k] . action)
+              {
+              case 0 :    // insert
+                fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
+                fprintf (stderr, "Unexpected insert i=%d j=%d k=%d\n", i, j, k);
+                exit(EXIT_FAILURE);
+              case 1 :    // delete
+                j ++;
+                break;
+              case 2 :    // substitute
+                if (ref [j] == '-' && key [j] == ' ')
+                  {
+                    key [j] = 'x';
+                    marked_ct ++;
+                  }
+                j ++;
+                break;
+              case 3 :    // noop
+                // do nothing--should be end of alignment
+                break;
+              }
+          }
+      }
+
+//**ALD
+#if 0
+  printf ("initial marked_ct=%d  key:\n", marked_ct);
+  for (i = 0; i < (* ref_len); i += DISPLAY_WIDTH)
+    {
+      for (j = 0; j < DISPLAY_WIDTH && i + j < (* ref_len); j ++)
+        putchar (ref [i + j]);
+      putchar ('\n');
+      for (j = 0; j < DISPLAY_WIDTH && i + j < (* ref_len); j ++)
+        putchar (key [i + j]);
+      putchar ('\n');
+      putchar ('\n');
+    }
+#endif
+
+  // if nothing marked can return; nothing to do
+  if (marked_ct == 0)
+    return;
+
+  // now check if any non-disregard strings confirm an insert at
+  // an 'x' position.  If so, erase the 'x'
+  for (i = 0; i < dp_ct; i ++)
+    if (! dp [i] . disregard)
+      {
+        j = dp [i] . a_lo;
+        for (k = 0; k < dp [i] . diff_len; k ++)
+          {
+            j += dp [i] . de [k] . len;
+            switch (dp [i] . de [k] . action)
+              {
+              case 0 :    // insert
+                fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
+                fprintf (stderr, "Unexpected insert i=%d j=%d k=%d\n", i, j, k);
+                exit(EXIT_FAILURE);
+              case 1 :    // delete
+                j ++;
+                break;
+              case 2 :    // substitute
+                if (key [j] == 'x')
+                  {
+                    key [j] = ' ';
+                    marked_ct --;
+                  }
+                j ++;
+                break;
+              case 3 :    // noop
+                // do nothing--should be end of alignment
+                break;
+              }
+          }
+      }
+  
+//**ALD
+#if 0
+  printf ("after check good strings marked_ct=%d  key:\n", marked_ct);
+  for (i = 0; i < (* ref_len); i += DISPLAY_WIDTH)
+    {
+      for (j = 0; j < DISPLAY_WIDTH && i + j < (* ref_len); j ++)
+        putchar (ref [i + j]);
+      putchar ('\n');
+      for (j = 0; j < DISPLAY_WIDTH && i + j < (* ref_len); j ++)
+        putchar (key [i + j]);
+      putchar ('\n');
+      putchar ('\n');
+    }
+#endif
+
+  // if nothing marked can return; nothing to do
+  if (marked_ct == 0)
+    return;
+
+  // now adjust dp entries of good strings to ignore the 'x' positions
+  // first count the number of x's before each position so we can adjust a_lo/hi
+  marked_before [0] = 0;
+  for (i = 0; i <= (* ref_len); i ++)
+    marked_before [i + 1] = marked_before [i] + (key [i] == 'x' ? 1 : 0);
+    
+  for (i = 0; i < dp_ct; i ++)
+    if (! dp [i] . disregard)
+      {
+        int  combine = FALSE;
+        int  prev = -1;
+
+//**ALD
+#if 0
+  printf ("\ndp before adjustment\n");
+  Show_Sequence_Diff (stdout, dp + i);
+#endif
+        j = dp [i] . a_lo;
+        for (k = 0; k < dp [i] . diff_len; k ++)
+          {
+            if (combine)
+              {  // removed a deletion in prior iteration combine this
+                 // length with prev
+                dp [i] . de [prev] . len += dp [i] . de [k] . len;
+                dp [i] . de [prev] . action = dp [i] . de [k] . action;
+                combine = FALSE;
+              }
+            else
+              {
+                prev ++;
+                if (prev < k)
+                  dp [i] . de [prev] = dp [i] . de [k];
+              }
+            j += dp [i] . de [k] . len;
+            switch (dp [i] . de [k] . action)
+              {
+              case 0 :    // insert
+                // already checked that this doesn't happen
+                break;
+              case 1 :    // delete
+                if (key [j] == 'x')
+                  combine = TRUE;
+                j ++;
+                break;
+              case 2 :    // substitute
+                // already erased any x's here
+                j ++;
+                break;
+              case 3 :    // noop
+                // do nothing--should be end of alignment
+                break;
+              }
+          }
+        dp [i] . diff_len = prev + 1;
+        dp [i] . a_lo -= marked_before [dp [i] . a_lo];
+        dp [i] . a_hi -= marked_before [dp [i] . a_hi];
+
+//**ALD
+#if 0
+  printf ("\ndp after adjustment\n");
+  Show_Sequence_Diff (stdout, dp + i);
+#endif
+      }
+
+  // finally compress x's out of ref string
+  for (i = j = 0; i < (* ref_len); i ++)
+    if (key [i] != 'x')
+      {
+        if (j < i)
+          {
+           ref [j] = ref [i];
+           key [j] = key [i];  // not really needed
+          }
+        j ++;
+      }
+  (* ref_len) = j;
+
+//**ALD
+#if 0
+  printf ("final ref and key strings:\n");
+  for (i = 0; i < (* ref_len); i += DISPLAY_WIDTH)
+    {
+      for (j = 0; j < DISPLAY_WIDTH && i + j < (* ref_len); j ++)
+        putchar (ref [i + j]);
+      putchar ('\n');
+      for (j = 0; j < DISPLAY_WIDTH && i + j < (* ref_len); j ++)
+        putchar (key [i + j]);
+      putchar ('\n');
+      putchar ('\n');
+    }
+#endif
 
   return;
 }
@@ -540,7 +774,7 @@ static void  Analyze_Frag
 
 //**ALD
    if (Verbose_Level > 0)
-     Display_Multialignment (stdout, sub, mod_seq, NULL, mod_len, mod_dp, n);
+     Display_Multialignment (stdout, sub, mod_seq, NULL, mod_len, mod_dp, n, FALSE);
 
 //**ALD
 if (0)
@@ -554,18 +788,32 @@ if (0)
 //**ALD
    if (Check_Correlated_Differences)
      {
-      int  eliminated;
+       int  eliminated;
 
-      eliminated = Eliminate_Correlated_Diff_Olaps (sub, mod_seq, mod_len,
-           mod_dp, n);
+       eliminated = Eliminate_Correlated_Diff_Olaps
+         (sub, mod_seq, mod_len, mod_dp, n, Frag [sub] . is_homopoly_type);
 
-      if (0 < eliminated)
-        {
-         // need to adjust mod_seq, mod_len and mod_dp here because of
-         // eliminated reads
-         fprintf (stderr, "Check_Correlated_Differences not implemented\n");
-         exit(EXIT_FAILURE);
-        }
+       if (0 < eliminated)
+         {
+           // need to adjust mod_seq, mod_len and mod_dp here because of
+           // eliminated reads
+
+           if (Verbose_Level > 0)
+             {
+               printf ("\nMultialignment before eliminating reads\n");
+               Display_Multialignment
+                 (stdout, sub, mod_seq, NULL, mod_len, mod_dp, n, FALSE);
+             }
+
+           Adjust_For_Eliminated (mod_seq, & mod_len, mod_dp, n);
+
+           if (Verbose_Level > 0)
+             {
+               printf ("\nMultialignment after eliminating reads\n");
+               Display_Multialignment
+                 (stdout, sub, mod_seq, NULL, mod_len, mod_dp, n, TRUE);
+             }
+         }
      }
 
    // Output the overlaps
@@ -625,7 +873,8 @@ if (0)
 
 //**ALD
       if (Verbose_Level > 0)
-        Display_Multialignment (stdout, sub, mod_seq, correct, mod_len, mod_dp, n);
+        Display_Multialignment
+          (stdout, sub, mod_seq, correct, mod_len, mod_dp, n, TRUE);
      }
 
 
@@ -1379,45 +1628,72 @@ static void  Convert_Delta_To_Diff
 
 static void  Count_From_Diff
   (short int count [MAX_FRAG_LEN] [5], const char * seq, int seq_len,
-   const Sequence_Diff_t * dp)
+   int seq_is_homopoly, const Sequence_Diff_t * dp)
 
 // Increment the values in  count  corresponding to the characters represented
 // by the diffs in  dp  to the reference sequence  seq  of length  seq_len .
+//  seq_is_homopoly  is true iff  seq  can have homopolymer-run errors.
 
-  {
-   int  j, k, m, sub;
+{
+  int  homopoly_ct = 0;
+  int  doing_homopoly;
+  char  homopoly_char = 'x';
+  int  j, k, m, sub;
 
-   j = dp -> a_lo;
+  doing_homopoly = (seq_is_homopoly || dp -> is_homopoly_type);
+  j = dp -> a_lo;
 
-   for (k = 0; k < dp -> diff_len; k ++)
-     {
+  for (k = 0; k < dp -> diff_len; k ++)
+    {
       for (m = 0; m < dp -> de [k] . len; m ++)
         {
-         sub = Char_To_Code (seq [j]);
-         count [j] [sub] ++;
-         j ++;
+          sub = Char_To_Code (seq [j]);
+          count [j] [sub] ++;
+          homopoly_ct = 0;
+          homopoly_char = seq [j];
+          j ++;
         }
 
       switch (dp -> de [k] . action)
         {
-         case 0 :    // insert--shouldn't happen
-           break;
-         case 1 :    // delete
-           count [j] [4] ++;
-           j ++;
-           break;
-         case 2 :    // substitute
-           count [j] [dp -> de [k] . ch] ++;
-           j ++;
-           break;
-         case 3 :    // noop
-           // should be end of alignment
-           break;
+        case 0 :    // insert--shouldn't happen
+          break;
+        case 1 :    // delete
+          if (homopoly_char == seq [j])
+            homopoly_ct ++;
+          else
+            {
+              homopoly_ct = 0;
+              homopoly_char = 'x';
+            }
+          // dont count homopoly variation if <= HOMOPOLY_LEN_VARIATION
+          if (! doing_homopoly || homopoly_ct == 0
+              || HOMOPOLY_LEN_VARIATION < homopoly_ct)
+            count [j] [4] ++;
+          j ++;
+          break;
+        case 2 :    // substitute
+          if (homopoly_char == Code_To_Char (dp -> de [k] . ch) && seq [j] == '-')
+            homopoly_ct ++;
+          else
+            {
+              homopoly_ct = 0;
+              homopoly_char = 'x';
+            }
+          // dont count homopoly variation if <= HOMOPOLY_LEN_VARIATION
+          if (! doing_homopoly || homopoly_ct == 0
+              || HOMOPOLY_LEN_VARIATION < homopoly_ct)
+            count [j] [dp -> de [k] . ch] ++;
+          j ++;
+          break;
+        case 3 :    // noop
+          // should be end of alignment
+          break;
         }
-     }
+    }
 
-   return;
-  }
+  return;
+}
 
 
 
@@ -1722,8 +1998,6 @@ if (0)
 
 
 
-#define  DISPLAY_WIDTH   60
-
 static void  Display_Alignment
     (char * a, int a_len, char * b, int b_len, int delta [], int delta_ct,
      int capitalize_start)
@@ -1932,12 +2206,13 @@ static void  Display_Frags
 
 static void  Display_Multialignment
   (FILE * fp, int sub, const char * ref, const char * anno, int ref_len,
-   const Sequence_Diff_t * dp, int dp_ct)
+   const Sequence_Diff_t * dp, int dp_ct, int skip_disregard)
 
 // Display to  fp  the multialignment for read  sub  with gap-inserted sequence
 // of  ref  (having length  ref_len ) where the aligned sequences
 // are in  dp  which has  dp_len  entries.  If  anno  is not null
-// display it underneath  ref .
+// display it underneath  ref .  If  skip_disregard  is true, then
+// ignore entries in  dp  whose  disregard  flag is true.
 
   {
    Sequence_Diff_t  * mod_dp;
@@ -1984,7 +2259,7 @@ for (i = 0; i < dp_ct; i ++)
       if (ref_len < hi)
         hi = ref_len;
       for (i = 0; i < dp_ct; i ++)
-        if (! mod_dp [i] . disregard)
+        if (! (skip_disregard && mod_dp [i] . disregard))
           {
            fprintf (fp, "%7d:  ", mod_dp [i] . b_iid);
            Display_Partial_Diff (fp, mod_dp + i, lo, hi, ref);
@@ -2024,10 +2299,11 @@ static void  Display_Partial_Diff
    // see if entire region to print misses the alignment region
    if (hi <= dp -> a_lo || dp -> a_hi <= lo)
      {
-      for (j = lo; j < hi; j ++)
-        fputc (' ', fp);
-      fprintf (fp, " <\n");  // so can see the end of the line
-      return;
+       // show end of line and disregard flag
+       for (j = lo; j < hi; j ++)
+         fputc (' ', fp);
+       fprintf (fp, " < %s\n", (dp -> disregard ? "xxx" : ""));
+       return;
      }
 
    // print spaces for the part of the region that precedes the start
@@ -2084,14 +2360,16 @@ static void  Display_Partial_Diff
 
 
 static int  Eliminate_Correlated_Diff_Olaps
-  (int sub, const char * ref, int ref_len, Sequence_Diff_t * dp, int dp_ct)
+  (int sub, const char * ref, int ref_len, Sequence_Diff_t * dp, int dp_ct,
+   int ref_is_homopoly)
 
 // Set the  disregard  flag true for entries in  Frag [sub] . diff_list
 // that have sufficiently many confirmed differences to the reference
 // fragment.   ref  has the reference fragment with '-'s inserted for
 // the multialignment and  ref_len  is its length.
 //  dp  [i]  is the differences of sequence i to  ref  and  dp_ct
-// is the number of entries in  dp .  Return the number of reads
+// is the number of entries in  dp .   ref_is_homopoly  is true iff
+// the  ref  string has homopolymer errors.  Return the number of reads
 // eliminated.
 
   {
@@ -2116,7 +2394,7 @@ static int  Eliminate_Correlated_Diff_Olaps
      }
 
    for (i = 0; i < dp_ct; i ++)
-     Count_From_Diff (count, ref, ref_len, dp + i);
+     Count_From_Diff (count, ref, ref_len, ref_is_homopoly, dp + i);
 
    num_diff_cols = 0;
    for (i = 0; i < ref_len; i ++)
@@ -3100,7 +3378,7 @@ static void  Parse_Command_Line
    optarg = NULL;
 
    while  (! errflg
-             && ((ch = getopt (argc, argv, "abc:C:d:eF:Ghk:o:pS:t:v:V:x:y:z")) != EOF))
+             && ((ch = getopt (argc, argv, "abc:C:d:eF:Ghk:o:pS:t:v:V:wx:y:z")) != EOF))
      switch  (ch)
        {
         case  'a' :
@@ -3207,6 +3485,10 @@ static void  Parse_Command_Line
         case  'V' :
           Vote_Qualify_Len = (int) strtol (optarg, & p, 10);
           fprintf (stderr, "Correction min-match len set to %d\n", Vote_Qualify_Len);
+          break;
+
+        case  'w' :
+          Check_Correlated_Differences = TRUE;
           break;
 
         case  'x' :
@@ -5711,6 +5993,7 @@ static void  Usage
         "-v <n>  Set verbose level to <n>; higher is more debugging output\n"
         "-V <n>  Require <n> exact match bases around an error (combined count\n"
         "        on both sides) to vote to change a base\n"
+        "-w      Use correlated differences to disqualify overlaps\n"
         "-x <n>  Don't prevent correction on first and last <n> bp of exact match\n"
         "        regions (whose length is set by -k option).\n"
         "-y <x>  Allow max error rate of <x> in alignments (e.g., 0.03 for 3%% error)\n"

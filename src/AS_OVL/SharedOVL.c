@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.c,v 1.7 2008-04-28 18:27:16 adelcher Exp $
- * $Revision: 1.7 $
+ * $Id: SharedOVL.c,v 1.8 2008-04-29 22:33:31 adelcher Exp $
+ * $Revision: 1.8 $
 */
 
 
@@ -1623,6 +1623,27 @@ fprintf (fp, "e=%d\n", e);
 
    return;
   }
+
+
+
+void  Show_Sequence_Diff
+  (FILE * fp, const Sequence_Diff_t * dp)
+
+// Display to  fp  the values in  dp
+
+{
+  int  i;
+
+  fprintf (fp, "Sequence Diff:  b_iid=%d  a_lo/hi=%d/%d  b_lo/hi=%d/%d  b_len=%d\n",
+           dp -> b_iid, dp -> a_lo, dp -> a_hi, dp -> b_lo, dp -> b_hi, dp -> b_len);
+  fprintf (fp, "  diff_len=%d  disregard=%d  is_homopoly=%d  flipped=%d\n",
+           dp -> diff_len, dp -> disregard, dp -> is_homopoly_type, dp -> flipped);
+  for (i = 0; i < dp -> diff_len; i ++)
+    fprintf (fp, "  %2d:  %4d  %d  %d\n", i, dp -> de [i] . len,
+             dp -> de [i] . action, dp -> de [i] . ch);
+
+  return;
+}
 
 
 
