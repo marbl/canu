@@ -93,7 +93,7 @@ public:
 
 public:
   u32bit     numSeq(void)                 { return(_numSeq); };
-  u32bit     seqLen(u32bit i)             { return(_seqLen[i]); };
+  s32bit     seqLen(u32bit i)             { return(_seqLen[i]); };
   char       masking(u32bit s, u32bit p)  { return(_masking[s][p]); };
   u32bit     repeatID(u32bit s, u32bit p) { return(_repeatID[s][p]); };
 
@@ -105,7 +105,7 @@ private:
   void       buildMasking(void);                           //  Read the mers to build the masking
 
   u32bit    _numSeq;
-  u32bit   *_seqLen;
+  s32bit   *_seqLen;   //  signed just for convenience later (positions are signed for same reason)
   char    **_masking;
   u32bit  **_repeatID;
 
@@ -124,7 +124,7 @@ merMaskedSequence::loadMasking(u32bit onlySeqIID_) {
   fread(&_numSeq,  sizeof(u32bit), 1, maskMersFile);
   fread(&_merSize, sizeof(u32bit), 1, maskMersFile);
 
-  _seqLen   = new u32bit   [_numSeq];
+  _seqLen   = new s32bit   [_numSeq];
   _masking  = new char   * [_numSeq];
   _repeatID = new u32bit * [_numSeq];
 
@@ -180,7 +180,7 @@ merMaskedSequence::buildMasking(void) {
 
   _numSeq   = STR->numberOfSequences();
 
-  _seqLen   = new u32bit   [_numSeq];
+  _seqLen   = new s32bit   [_numSeq];
   _masking  = new char   * [_numSeq];
   _repeatID = new u32bit * [_numSeq];
 
@@ -284,7 +284,7 @@ computeDensity(merMaskedSequence *S, char *outputPrefix) {
 
     //  Not the most efficient, but good enough for us right now.
 
-    for (u32bit p=0; p<S->seqLen(s); ) {
+    for (s32bit p=0; p<S->seqLen(s); ) {
       u32bit  windowSize    = 0;
       u32bit  uniqueSum     = 0;
       u32bit  repeatSum     = 0;
@@ -314,33 +314,29 @@ computeDensity(merMaskedSequence *S, char *outputPrefix) {
 }
 
 
+//  For each 'r' mer, compute the number of 'u' mers
+//  that are within some mean +- stddev range.
+//
+//  We count for two blocks:
+//
+//            |   <- mean ->   |  <- mean ->    |
+//  ---[block1]---------------mer---------------[block2]---
+//
+//  Once we know that, we can compute the probability that
+//  a repeat mer can be rescued.
+//
+//  p1 = uniq/total   -- for 1 X coverage
+//  pn = 1 - (1-p1)^n -- for n X coverage
+
+
 void
 computeMateRescue(merMaskedSequence *S, char *outputPrefix, mateRescueData *lib, u32bit libLen) {
   char    outputName[FILENAME_MAX];
   FILE   *outputFile;
 
-  //  +1 because a value of 1.0 == histogramLen
-  //
-  u32bit   histogramLen = 1000;
-  u32bit  *histogram    = new u32bit [histogramLen + 1];
-
-  //  For each 'r' mer, compute the number of 'u' mers
-  //  that are within some mean +- stddev range.
-  //
-  //  We count for two blocks:
-  //
-  //            |   <- mean ->   |  <- mean ->    |
-  //  ---[block1]---------------mer---------------[block2]---
-  //
-  //  Once we know that, we can compute the probability that
-  //  a repeat mer can be rescued.
-  //
-  //  p1 = uniq/total   -- for 1 X coverage
-  //  pn = 1 - (1-p1)^n -- for n X coverage
-
   u32bit  closeRepeatsLen = 0;
   u32bit  closeRepeatsMax = 80000;
-  u32bit *closeRepeats    = new u32bit [closeRepeatsMax];
+  s32bit *closeRepeats    = new s32bit [closeRepeatsMax];
 
   speedCounter *CT = new speedCounter(" Examining repeats: %7.2f Kbases -- %5.2f Kbases/second\r", 1000.0, 0x1ffff, true);
 
@@ -355,8 +351,6 @@ computeMateRescue(merMaskedSequence *S, char *outputPrefix, mateRescueData *lib,
     double  numRR[MAX_COVERAGE] = {0};  //  num repeats rescued (expected) for [] X coverage
     double  numNR[MAX_COVERAGE] = {0};  //  num repeats nonrescuable (expected) for [] X coverage
 
-    memset(histogram, 0, sizeof(u32bit) * (histogramLen + 1));
-
     u32bit  numRT = 0;  //  num repeats total
 
     for (s32bit p=0; p<S->seqLen(s); p++) {
@@ -365,11 +359,13 @@ computeMateRescue(merMaskedSequence *S, char *outputPrefix, mateRescueData *lib,
       if (S->masking(s, p) == 'r') {
         numRT++;
 
+        //  Index over x-coverage in libraries.  MUST BE 1.
+        u32bit  ridx = 1;
+
         for (u32bit l=0; l<libLen; l++) {
           s32bit mean   = lib[l].mean();
           s32bit stddev = lib[l].stddev();
-
-
+          
           //  Build a list of the same repeat close to this guy.
           closeRepeatsLen = 0;
 
@@ -469,28 +465,23 @@ computeMateRescue(merMaskedSequence *S, char *outputPrefix, mateRescueData *lib,
           //  first lib, then 2x of the first, etc, etc.
           //
           {
-            double  pRepeat = 1.0;
-            u32bit  RRidx   = 0;
+            double  pR = 1.0;
+            double  pF = 1.0;
             for (u32bit x=0; x<lib[l].coverage(); x++) {
-              pRepeat *= (1.0 - pRescue);
-              numRR[++RRidx] += 1 - pRepeat;
+              //  Makes it here.  pRescue != 1.0
+              pR *= (1.0 - pRescue);
+              numRR[ridx] += 1 - pR;
+
+              pF *= (1.0 - pFailed);
+              numNR[ridx] += 1 - pF;
+
+              ridx++;
             }
           }
 
-          {
-            double  pRepeat = 1.0;
-            u32bit  RRidx   = 0;
-            for (u32bit x=0; x<lib[l].coverage(); x++) {
-              pRepeat *= (1.0 - pFailed);
-              numNR[++RRidx] += 1 - pRepeat;
-            }
-          }
-
-          //  Histogram of the probability of rescuing a repeat
-          histogram[(s32bit)floor(histogramLen * pRescue)]++;
-        }
-      }
-    }
+        }  // over all libs
+      }  //  if masking is not r
+    }  // over all positions
 
     sprintf(outputName, "%s.mateRescue.seq"u32bitFMTW(02)".out", outputPrefix, s);
     outputFile = fopen(outputName, "w");
@@ -510,28 +501,9 @@ computeMateRescue(merMaskedSequence *S, char *outputPrefix, mateRescueData *lib,
     }
 
     fclose(outputFile);
-
-    sprintf(outputName, "%s.mateRescue.seq"u32bitFMTW(02)".histogram", outputPrefix, s);
-    outputFile = fopen(outputName, "w");
-
-    fprintf(outputFile, "#pRescue\tnumRepeats\tfraction_repeats_higher_probability\n");
-
-    u32bit  cumulative = 0;
-
-    for (u32bit i=0; i<=histogramLen; i++) {
-      cumulative += histogram[i];
-      fprintf(outputFile, "%f\t"u32bitFMT"\t%f\n",
-              i / (double)histogramLen,
-              histogram[i],
-              1.0 - cumulative / (double)numRT);
-    }
-
-    fclose(outputFile);
   }
 
   delete CT;
-
-  delete [] histogram;
 }
 
 
