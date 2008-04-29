@@ -267,7 +267,7 @@ void
 computeDensity(merMaskedSequence *S, char *outputPrefix) {
   char    outputName[FILENAME_MAX];
   FILE   *outputFile;
-  u32bit  windowSizeMax = 100000;
+  u32bit  windowSizeMax = 10000;
 
   for (u32bit s=0; s<S->numSeq(); s++) {
 
@@ -333,12 +333,17 @@ void
 computeMateRescue(merMaskedSequence *S, char *outputPrefix, mateRescueData *lib, u32bit libLen) {
   char    outputName[FILENAME_MAX];
   FILE   *outputFile;
+  FILE   *outputData;
 
   u32bit  closeRepeatsLen = 0;
   u32bit  closeRepeatsMax = 80000;
   s32bit *closeRepeats    = new s32bit [closeRepeatsMax];
 
   speedCounter *CT = new speedCounter(" Examining repeats: %7.2f Kbases -- %5.2f Kbases/second\r", 1000.0, 0x1ffff, true);
+
+  u32bit  totalDepth = 0;
+  for (u32bit l=0; l<libLen; l++)
+    totalDepth += lib[l].coverage();
 
   for (u32bit s=0; s<S->numSeq(); s++) {
 
@@ -348,6 +353,12 @@ computeMateRescue(merMaskedSequence *S, char *outputPrefix, mateRescueData *lib,
 
     fprintf(stderr, "Starting sequence "u32bitFMT"\n", s);
 
+    sprintf(outputName, "%s.mateRescue.seq"u32bitFMTW(02)".out", outputPrefix, s);
+    outputFile = fopen(outputName, "w");
+
+    sprintf(outputName, "%s.mateRescue.seq"u32bitFMTW(02)".dat", outputPrefix, s);
+    outputData = fopen(outputName, "w");
+
     double  numRR[MAX_COVERAGE] = {0};  //  num repeats rescued (expected) for [] X coverage
     double  numNR[MAX_COVERAGE] = {0};  //  num repeats nonrescuable (expected) for [] X coverage
 
@@ -355,6 +366,9 @@ computeMateRescue(merMaskedSequence *S, char *outputPrefix, mateRescueData *lib,
 
     for (s32bit p=0; p<S->seqLen(s); p++) {
       CT->tick();
+
+      double pRtot = 0.0;
+      double pFtot = 0.0;
 
       if (S->masking(s, p) == 'r') {
         numRT++;
@@ -471,22 +485,21 @@ computeMateRescue(merMaskedSequence *S, char *outputPrefix, mateRescueData *lib,
               //  Makes it here.  pRescue != 1.0
               pR *= (1.0 - pRescue);
               numRR[ridx] += 1 - pR;
+              pRtot       += 1 - pR;
 
               pF *= (1.0 - pFailed);
               numNR[ridx] += 1 - pF;
+              pFtot       += 1 - pF;
 
               ridx++;
             }
           }
-
         }  // over all libs
+
+        fprintf(outputData, s32bitFMT"\t%f\t%f\n", p, pRtot / totalDepth, pFtot / totalDepth);
+
       }  //  if masking is not r
     }  // over all positions
-
-    sprintf(outputName, "%s.mateRescue.seq"u32bitFMTW(02)".out", outputPrefix, s);
-    outputFile = fopen(outputName, "w");
-
-    fprintf(stderr, "\nWriting '%s'\n", outputName);
 
     fprintf(outputFile, "seqIID\tmerSize\ttRepeat\teRescue\teFailed\tXcov\tmean\tstddev\n");
 
@@ -501,6 +514,7 @@ computeMateRescue(merMaskedSequence *S, char *outputPrefix, mateRescueData *lib,
     }
 
     fclose(outputFile);
+    fclose(outputData);
   }
 
   delete CT;
