@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.20 2008-02-22 15:48:08 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.21 2008-04-29 18:33:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1303,6 +1303,7 @@ static void Write_IUM_Mesg(FILE *fout, void *vmesg)
   PutText(fout,"qlt:",mesg->quality,TRUE);
   fprintf(fout,"for:"F_S32"\n",mesg->forced);
   fprintf(fout,"nfr:"F_S32"\n",mesg->num_frags);
+  assert(mesg->num_frags > 0);
   for (i=0; i < mesg->num_frags; ++i)
     Write_IMP_Mesg(fout,&(mesg->f_list[i]));
   fprintf(fout,"}\n");
