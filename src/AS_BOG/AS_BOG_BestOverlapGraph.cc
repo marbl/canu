@@ -392,6 +392,14 @@ namespace AS_BOG{
     //
     //  That looks wrong.
     //
+    //  From Eli: These are contained, but close either way.  We're
+    //  storing the non-containment edges for this fragment, plus a
+    //  few containment edges that are "close" to being dovetails.  "I
+    //  think there are cases when a change in the alignemtn
+    //  (consensus) will change which one is contained and screw up
+    //  the order, so having this 10 base fudge factor helps things
+    //  work out."
+    //
     if (isContained(olap.a_iid)) {
       if ((olap.dat.ovl.a_hang < 0 && olap.dat.ovl.b_hang < 10) ||
           (olap.dat.ovl.a_hang > 0 && olap.dat.ovl.b_hang > -10) )
