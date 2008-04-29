@@ -97,8 +97,6 @@ public:
   char       masking(u32bit s, u32bit p)  { return(_masking[s][p]); };
   u32bit     repeatID(u32bit s, u32bit p) { return(_repeatID[s][p]); };
 
-  char      *merylName(void)              { return(_merylName); };
-
   u32bit     merSize(void)                { return(_merSize); };
 
 private:
@@ -266,7 +264,7 @@ merMaskedSequence::buildMasking(void) {
 
 
 void
-computeDensity(merMaskedSequence *S) {
+computeDensity(merMaskedSequence *S, char *outputPrefix) {
   char    outputName[FILENAME_MAX];
   FILE   *outputFile;
   u32bit  windowSizeMax = 100000;
@@ -277,7 +275,7 @@ computeDensity(merMaskedSequence *S) {
     if (S->seqLen(s) == 0)
       continue;
 
-    sprintf(outputName, "%s.density.seq"u32bitFMTW(02), S->merylName(), s);
+    sprintf(outputName, "%s.density.seq"u32bitFMTW(02), outputPrefix, s);
     outputFile = fopen(outputName, "w");
 
     fprintf(stderr, "Starting '%s'\n", outputName);
@@ -317,7 +315,7 @@ computeDensity(merMaskedSequence *S) {
 
 
 void
-computeMateRescue(merMaskedSequence *S, mateRescueData *lib, u32bit libLen) {
+computeMateRescue(merMaskedSequence *S, char *outputPrefix, mateRescueData *lib, u32bit libLen) {
   char    outputName[FILENAME_MAX];
   FILE   *outputFile;
 
@@ -494,7 +492,7 @@ computeMateRescue(merMaskedSequence *S, mateRescueData *lib, u32bit libLen) {
       }
     }
 
-    sprintf(outputName, "%s.mateRescue.seq"u32bitFMTW(02)".out", S->merylName(), s);
+    sprintf(outputName, "%s.mateRescue.seq"u32bitFMTW(02)".out", outputPrefix, s);
     outputFile = fopen(outputName, "w");
 
     fprintf(stderr, "\nWriting '%s'\n", outputName);
@@ -513,7 +511,7 @@ computeMateRescue(merMaskedSequence *S, mateRescueData *lib, u32bit libLen) {
 
     fclose(outputFile);
 
-    sprintf(outputName, "%s.mateRescue.seq"u32bitFMTW(02)".histogram", S->merylName(), s);
+    sprintf(outputName, "%s.mateRescue.seq"u32bitFMTW(02)".histogram", outputPrefix, s);
     outputFile = fopen(outputName, "w");
 
     fprintf(outputFile, "#pRescue\tnumRepeats\tfraction_repeats_higher_probability\n");
@@ -540,8 +538,9 @@ computeMateRescue(merMaskedSequence *S, mateRescueData *lib, u32bit libLen) {
 
 int
 main(int argc, char **argv) {
-  char     *merylName  = 0L;
-  char     *fastaName  = 0L;
+  char     *merylName    = 0L;
+  char     *fastaName    = 0L;
+  char     *outputPrefix = 0L;
 
   u32bit    onlySeqIID = ~u32bitZERO;
 
@@ -563,12 +562,17 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-only") == 0) {
       onlySeqIID = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-output") == 0) {
+      outputPrefix = argv[++arg];
+
     } else if (strcmp(argv[arg], "-d") == 0) {
       doDensity = true;
 
     } else if (strcmp(argv[arg], "-r") == 0) {
-      doRescue = true;
-      lib[libLen++].init(atoi(argv[arg+1]), atoi(argv[arg+2]), atoi(argv[arg+3]));
+      if (atoi(argv[arg+3]) > 0) {
+        doRescue = true;
+        lib[libLen++].init(atoi(argv[arg+1]), atoi(argv[arg+2]), atoi(argv[arg+3]));
+      }
       arg += 3;
 
     } else {
@@ -577,18 +581,18 @@ main(int argc, char **argv) {
     }
     arg++;
   }
-  if ((err) || (merylName == 0L) || (fastaName == 0L)) {
-    fprintf(stderr, "usage: %s -mers mers -seq fasta [-d] [-r mean stddev coverage] > output\n", argv[0]);
+  if ((err) || (merylName == 0L) || (fastaName == 0L) || (outputPrefix == 0L)) {
+    fprintf(stderr, "usage: %s -mers mers -seq fasta -output prefix [-d] [-r mean stddev coverage]\n", argv[0]);
     exit(1);
   }
 
   merMaskedSequence *S = new merMaskedSequence(fastaName, merylName, onlySeqIID);
 
   if (doDensity)
-    computeDensity(S);
+    computeDensity(S, outputPrefix);
 
   if (doRescue)
-    computeMateRescue(S, lib, libLen);
+    computeMateRescue(S, outputPrefix, lib, libLen);
 
   return(0);
 }
