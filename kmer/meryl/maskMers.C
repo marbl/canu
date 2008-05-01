@@ -148,6 +148,8 @@ merMaskedSequence::loadMasking(u32bit onlySeqIID_) {
       fread(_masking[i],  sizeof(char),   _seqLen[i], maskMersFile);
       fread(_repeatID[i], sizeof(u32bit), _seqLen[i], maskMersFile);
     } else {
+      fseek(maskMersFile, sizeof(char)   * _seqLen[i], SEEK_CUR);
+      fseek(maskMersFile, sizeof(u32bit) * _seqLen[i], SEEK_CUR);
       _seqLen[i] = 0;
     }
   }
@@ -370,6 +372,12 @@ computeMateRescue(merMaskedSequence *S, char *outputPrefix, mateRescueData *lib,
       double pRtot = 0.0;
       double pFtot = 0.0;
 
+      if ((S->masking(s, p) != 'g') &&
+          (S->masking(s, p) != 'u') &&
+          (S->masking(s, p) != 'r'))
+        fprintf(stderr, "INVALID MASKING - got %d = %c\n", S->masking(s, p), S->masking(s, p));
+
+
       if (S->masking(s, p) == 'r') {
         numRT++;
 
@@ -498,7 +506,7 @@ computeMateRescue(merMaskedSequence *S, char *outputPrefix, mateRescueData *lib,
 
         fprintf(outputData, s32bitFMT"\t%f\t%f\n", p, pRtot / totalDepth, pFtot / totalDepth);
 
-      }  //  if masking is not r
+      }  //  if masking is r
     }  // over all positions
 
     fprintf(outputFile, "seqIID\tmerSize\ttRepeat\teRescue\teFailed\tXcov\tmean\tstddev\n");
