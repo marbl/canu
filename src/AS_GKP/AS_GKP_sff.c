@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.11 2008-04-23 15:53:51 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.12 2008-05-02 03:13:00 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +39,7 @@ static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.11 2008-04-23 15:53:51 brianwa
 #define STOP             3
 
 #define MATCHSCORE       3
-#define GAPSCORE        -1
+#define GAPSCORE        -2
 #define MISMATCHSCORE   -2
 
 #undef  USE_454_TRIMMING
@@ -618,31 +618,47 @@ reverseComplement(char *seq, char *qlt, int len) {
     *s = inv[*s];
 }
 
+static
+void
+reverse(char *a, char *b, int len) {
+  char   c=0;
+  char  *s=a,  *S=a+len-1;
+  char  *q=b,  *Q=b+len-1;
+
+  while (s < S) {
+    c    = *s;
+    *s++ =  *S;
+    *S-- =  c;
+
+    c    = *q;
+    *q++ = *Q;
+    *Q-- =  c;
+  }
+}
+
+
+typedef struct {
+  int   matches;
+  int   alignLen;
+  int   begI, begJ;
+  int   endI, endJ;
+  int   lenA, lenB;
+} alignLinker_s;
+
 
 static
 void
-processMate(sffHeader *h,
-            sffRead   *r,   GateKeeperFragmentRecord *gkf,
-            sffRead   *rm1, GateKeeperFragmentRecord *gkm1,
-            sffRead   *rm2, GateKeeperFragmentRecord *gkm2) {
+alignLinker(sffHeader      *h,
+            char           *sequence,
+            alignLinker_s  *a) {
 
-  gkm1->readUID = AS_UID_undefined();
-  gkm2->readUID = AS_UID_undefined();
-
-  //  Abort if this isn't a valid read -- processRead() might have already trashed it.
-  //
-  if ((gkf->deleted) || (AS_UID_isDefined(gkf->readUID) == 0))
-    return;
-
-  //  Otherwise, look for the mate linker.
-  //
   char     *alignA = h->alignA;
   char     *alignB = h->alignB;
 
   dpCell  (*M)[AS_READ_MAX_LEN] = h->matrix;
 
   char *stringA = linkers[0];
-  char *stringB = r->final_bases;
+  char *stringB = sequence;
 
   int   lenA = strlen(stringA);
   int   lenB = strlen(stringB);
@@ -684,12 +700,12 @@ processMate(sffHeader *h,
 
       if (M[i][j].score < lf) {
         M[i][j].score  = lf;
-        M[i][j].action = GAPA;
+        M[i][j].action = GAPB;
       }
 
       if (M[i][j].score < up) {
         M[i][j].score  = up;
-        M[i][j].action = GAPB;
+        M[i][j].action = GAPA;
       }
 
       if (scoreMax < M[i][j].score) {
@@ -747,39 +763,93 @@ processMate(sffHeader *h,
   alignA[alignLen] = 0;
   alignB[alignLen] = 0;
 
-  //fprintf(stderr, "%d-%d %s\n", begI, endI, alignA);
-  //fprintf(stderr, "%d-%d %s\n", begJ, endJ, alignB);
+  reverse(alignA, alignB, alignLen);
+
+  a->matches  = matches;
+  a->alignLen = alignLen;
+  a->begI     = begI;
+  a->begJ     = begJ;
+  a->endI     = endI;
+  a->endJ     = endJ;
+  a->lenA     = lenA;
+  a->lenB     = lenB;
+}
+
+static
+int
+processMate(sffHeader *h,
+            sffRead   *r,   GateKeeperFragmentRecord *gkf,
+            sffRead   *rm1, GateKeeperFragmentRecord *gkm1,
+            sffRead   *rm2, GateKeeperFragmentRecord *gkm2) {
+  alignLinker_s  al = {0};
+
+  //  Abort if this isn't a valid read -- processRead() might have already trashed it.
+  //
+  if ((gkf->deleted) || (AS_UID_isDefined(gkf->readUID) == 0))
+    return(0);
+
+  //  Otherwise, look for the mate linker.
+  //
+  alignLinker(h, r->final_bases, &al);
+
 
 #ifdef USE_454_TRIMMING
 #error mates do not support trimming with 454 trim points
 #endif
 
-  //  Did we find enough of the linker to do something?
+#if 0
+  int  lSize = al.begJ;
+  int  rSize = al.lenB - al.endJ;
+  fprintf(stderr, "fragment %d root=%s\n", getLastElemStore(gkpStore->frg) + 1, AS_UID_toString(gkf->readUID));
+  fprintf(stderr, "alignLen=%d matches=%d lSize=%d rSize=%d\n", al.alignLen, al.matches, lSize, rSize);
+  fprintf(stderr, "%d-%d %s\n", al.begI, al.endI, h->alignA);
+  fprintf(stderr, "%d-%d %s\n", al.begJ, al.endJ, h->alignB);
+#endif
 
-  if ((alignLen >= 20) && (matches >= 96 * alignLen / 100)) {
-    int  lSize = begJ;
-    int  rSize = lenB - endJ;
+  //  Did we find enough of the linker to do something?
+  //
+  int  goodAlignment = 0;
+
+  //  Good if kind of short, but high identity (1/20 = 95).
+  //
+  if ((al.alignLen >= 20) && (al.matches >= 96 * al.alignLen / 100))
+    goodAlignment = 1;
+
+  //  Good if long and lower identity (4/44 == 90.9).
+  //
+  if ((al.alignLen >= 40) && (al.matches >= 90 * al.alignLen / 100))
+    goodAlignment = 1;
+
+
+  if (goodAlignment) {
+    int  lSize = al.begJ;
+    int  rSize = al.lenB - al.endJ;
     int  which;
 
     //  Adapter found on the left, but not enough to make a read.  Trim it out.
     //
-    if (((lSize < 64) && (alignLen >= 40)) ||
-        ((lSize < 10) && (alignLen >= 20))) {
+    if (((lSize < 64) && (al.alignLen >= 40)) ||
+        ((lSize < 10) && (al.alignLen >= 20))) {
       r->final_length = rSize;
 
-      r->final_bases   += endJ;
-      r->final_quality += endJ;
+      r->final_bases   += al.endJ;
+      r->final_quality += al.endJ;
 
       for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
         gkf->clearBeg[which] = 0;
         gkf->clearEnd[which] = r->final_length;
       }
+
+      //  Recursively search for another copy of the linker.
+      processMate(h, r, gkf, NULL, NULL, NULL, NULL);
+
+      return(1);
     }
 
     //  Adapter found on the right, but not enough to make a read.  Trim it out.
     //
-    if (((rSize < 64) && (alignLen >= 40)) ||
-        ((rSize < 10) && (alignLen >= 20))) {
+    if (((rSize < 64) && (al.alignLen >= 40)) ||
+        ((rSize < 10) && (al.alignLen >= 20))) {
       r->final_length = lSize;
 
       r->final_bases  [r->final_length] = 0;
@@ -789,11 +859,28 @@ processMate(sffHeader *h,
         gkf->clearBeg[which] = 0;
         gkf->clearEnd[which] = r->final_length;
       }
+
+      //  Recursively search for another copy of the linker.
+      processMate(h, r, gkf, NULL, NULL, NULL, NULL);
+
+      return(1);
     }
 
     //  Adapter found in the middle, and enough to make two mated reads.
     //
-    if ((alignLen >= 40) && (lSize >= 64) && (rSize >= 64)) {
+    if ((al.alignLen >= 40) && (lSize >= 64) && (rSize >= 64)) {
+
+      //  If we get here, and the two mate reads are null, we have
+      //  found a second complete linker -- the original read is
+      //  "seq-link-seq-link-seq" and we don't know where to break.
+      //  The whole read is deleted in this case.
+      //
+      //  The mate is deleted later.
+      //
+      if ((rm1 == NULL) || (rm2 == NULL) || (gkm1 == NULL) || (gkm2 == NULL)) {
+        gkf->deleted = 1;
+        return(0);
+      }
 
       memcpy(rm1, r, sizeof(sffRead));
       memcpy(rm2, r, sizeof(sffRead));
@@ -844,7 +931,7 @@ processMate(sffHeader *h,
           gkm1->clearEnd[which] = rm1->final_length;
         }
 
-        for (j=begJ; j<endJ; j++) {
+        for (j=al.begJ; j<al.endJ; j++) {
           r->final_bases[j]   = 0;
           r->final_quality[j] = 0;
         }
@@ -852,16 +939,34 @@ processMate(sffHeader *h,
         //reverseComplement(r->final_bases + endJ, r->final_quality + endJ, rSize);
 
         rm2->final_length   = rSize;
-        rm2->final_bases   += endJ;
-        rm2->final_quality += endJ;
+        rm2->final_bases   += al.endJ;
+        rm2->final_quality += al.endJ;
 
         for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
           gkm2->clearBeg[which] = 0;
           gkm2->clearEnd[which] = rm2->final_length;
         }
       }
-    }
-  }
+
+      //  Recursively search for another copy of the linker.
+      processMate(h, rm1, gkm1, NULL, NULL, NULL, NULL);
+      processMate(h, rm2, gkm2, NULL, NULL, NULL, NULL);
+
+      //  If either is deleted now, then we found another linker in
+      //  the split read.
+      //
+      if ((gkm1->deleted) || (gkm2->deleted)) {
+#warning sff errors not reported here
+        gkm1->deleted = 1;
+        gkm2->deleted = 1;
+      }
+
+      return(1);
+    }  //  if match is in middle
+
+  }  //  if significant match
+
+  return(0);
 }
 
 
@@ -930,10 +1035,17 @@ Load_SFF(FILE *sff) {
 
   gkpStore->gkp.sffInput += h->number_of_reads;
 
+  //h->number_of_reads = 100;
+
   for (rn=0; rn < h->number_of_reads; rn++) {
     readsff_read(sff, h, r);
 
+    gkf->readUID  = AS_UID_undefined();
+    gkm1->readUID = AS_UID_undefined();
+    gkm2->readUID = AS_UID_undefined();
+
     processRead(h, r, gkf);
+
     processMate(h, r, gkf, rm1, gkm1, rm2, gkm2);
 
     if (AS_UID_isDefined(gkf->readUID)) {
