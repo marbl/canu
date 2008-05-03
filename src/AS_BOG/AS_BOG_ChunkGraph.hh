@@ -25,79 +25,73 @@
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
 
-namespace AS_BOG{
+struct ChunkGraph{
 
-  struct ChunkGraph{
+public:
 
-  public:
+  // Number of frags edges to cross in 
+  static const short FRAG_WALK_NUM = 101;
 
-    // Number of frags edges to cross in 
-    static const short FRAG_WALK_NUM = 101;
+  ChunkGraph(void);
+  ~ChunkGraph(void);
 
-    ChunkGraph(void);
-    ~ChunkGraph(void);
+  // Build the ChunkGraph, based on a BOG
+  void build(BestOverlapGraph *bovlg);		
 
-    // Build the ChunkGraph, based on a BOG
-    void build(BestOverlapGraph *bovlg);		
+  // Chunkability rule
+  bool isChunkable( BestEdgeOverlap *beo );
 
-    // Chunkability rule
-    bool isChunkable( BestEdgeOverlap *beo );
+  virtual bool isChunkable( iuid frag_a_id, fragment_end_type which_end);
 
-    virtual bool isChunkable( iuid frag_a_id, fragment_end_type which_end);
+  // Returns IUID of 5' or 3' end of specified frag_id
+  // Since there should only be one out/incoming connection
+  iuid getChunking(iuid src_frag_id,
+                   fragment_end_type whichEnd);
 
-    // Returns IUID of 5' or 3' end of specified frag_id
-    // Since there should only be one out/incoming connection
-    iuid getChunking(iuid src_frag_id,
-                     fragment_end_type whichEnd);
+  void getChunking(iuid src_frag_id, 
+                   iuid& five_prime_dst_frag_id, iuid& three_prime_dst_frag_id);
 
-    void getChunking(iuid src_frag_id, 
-                     iuid& five_prime_dst_frag_id, iuid& three_prime_dst_frag_id);
+  void setChunking(iuid src_frag_id, 
+                   iuid five_prime_dst_frag_id, iuid three_prime_dst_frag_id);
 
-    void setChunking(iuid src_frag_id, 
-                     iuid five_prime_dst_frag_id, iuid three_prime_dst_frag_id);
+  long getNumFragments(void);
+  long countSingletons(void);
 
-    long getNumFragments(void);
-    long countSingletons(void);
+  void checkInDegree();
 
-    void checkInDegree();
+  iuid nextFragByChunkLength();
 
-    iuid nextFragByChunkLength();
+  // follows the graph path to the next frag end
+  FragmentEnd followPath(FragmentEnd);
 
-    // follows the graph path to the next frag end
-    FragmentEnd followPath(FragmentEnd);
+protected:
+  BestOverlapGraph *bovlg;
 
-  protected:
-    BestOverlapGraph *bovlg;
+private:
 
-  private:
-
-    struct _chunk_unit_struct{
-      iuid five_prime;
-      iuid three_prime;
-    };
-    struct _chunk_length {
-      iuid fragId;
-      short cnt;
-    };
-
-    short countChunkWidth(iuid, fragment_end_type );
-    iuid countFullWidth(iuid, fragment_end_type );
-
-    static int sortChunkLens(const void*,const void*);
-
-    _chunk_unit_struct *_chunkable_array;
-    iuid *_edgePathLen;
-    _chunk_length *_chunk_lengths;
-    iuid _max_fragments;
-
+  struct _chunk_unit_struct{
+    iuid five_prime;
+    iuid three_prime;
+  };
+  struct _chunk_length {
+    iuid fragId;
+    short cnt;
   };
 
-  struct PromiscuousChunkGraph : public ChunkGraph {
-    bool isChunkable( iuid frag_id, fragment_end_type which_end);
-  };
+  short countChunkWidth(iuid, fragment_end_type );
+  iuid countFullWidth(iuid, fragment_end_type );
 
-} //AS_BOG namespace
+  static int sortChunkLens(const void*,const void*);
 
+  _chunk_unit_struct *_chunkable_array;
+  iuid *_edgePathLen;
+  _chunk_length *_chunk_lengths;
+  iuid _max_fragments;
+
+};
+
+struct PromiscuousChunkGraph : public ChunkGraph {
+  bool isChunkable( iuid frag_id, fragment_end_type which_end);
+};
 
 #endif
-

@@ -31,58 +31,52 @@ extern "C" {
 #include "AS_MSG_pmesg.h"
 }
 
-namespace AS_BOG{
+enum fragment_end_type {
+  FIVE_PRIME, 	// 5' End of fragment
+  THREE_PRIME 	// 3' End of Fragment
+};
 
-  enum fragment_end_type {
-    FIVE_PRIME, 	// 5' End of fragment
-    THREE_PRIME 	// 3' End of Fragment
+typedef AS_IID    iuid;
+const iuid NULL_FRAG_ID=0;
+
+typedef std::list<SeqInterval> IntervalList;
+
+class FragmentEnd {
+public:
+  FragmentEnd(iuid id=0, fragment_end_type end=FIVE_PRIME) {
+    _id  = id;
+    _end = end;
   };
 
-  typedef AS_IID    iuid;
-  const iuid NULL_FRAG_ID=0;
+  iuid               fragId(void)  const { return(_id); };
+  fragment_end_type  fragEnd(void) const { return(_end); };
 
-  typedef std::list<SeqInterval> IntervalList;
-
-  class FragmentEnd {
-  public:
-    FragmentEnd(iuid id=0, fragment_end_type end=FIVE_PRIME) {
-      _id  = id;
-      _end = end;
-    };
-
-    iuid               fragId(void)  const { return(_id); };
-    fragment_end_type  fragEnd(void) const { return(_end); };
-
-    bool operator==(FragmentEnd const that) const {
-      return((fragId() == that.fragId()) && (fragEnd() == that.fragEnd()));
-    };
-
-    bool operator!=(FragmentEnd const that) const {
-      return((fragId() != that.fragId()) || (fragEnd() != that.fragEnd()));
-    };
-
-    bool operator<(FragmentEnd const that) const {
-      if (fragId() != that.fragId())
-        return fragId() < that.fragId();
-      else
-        return fragEnd() < that.fragEnd();
-    };
-
-  private:
-    iuid              _id;
-    fragment_end_type _end;
+  bool operator==(FragmentEnd const that) const {
+    return((fragId() == that.fragId()) && (fragEnd() == that.fragEnd()));
   };
 
-
-  struct BogOptions {
-    static int badMateBreakThreshold;
-    static bool unitigIntersectBreaking;
-    static bool ejectUnhappyContained;
-    static bool useGkpStoreLibStats;
+  bool operator!=(FragmentEnd const that) const {
+    return((fragId() != that.fragId()) || (fragEnd() != that.fragEnd()));
   };
 
-} //AS_BOG namespace
+  bool operator<(FragmentEnd const that) const {
+    if (fragId() != that.fragId())
+      return fragId() < that.fragId();
+    else
+      return fragEnd() < that.fragEnd();
+  };
 
+private:
+  iuid              _id;
+  fragment_end_type _end;
+};
+
+
+struct BogOptions {
+  static int badMateBreakThreshold;
+  static bool unitigIntersectBreaking;
+  static bool ejectUnhappyContained;
+  static bool useGkpStoreLibStats;
+};
 
 #endif
-

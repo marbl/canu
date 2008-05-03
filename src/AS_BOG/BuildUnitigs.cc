@@ -28,16 +28,13 @@
 
 using std::vector;
 
-using AS_BOG::BestOverlapGraph;
-using AS_BOG::BogOptions;
-
 extern "C" {
 #include "getopt.h"
 #include "AS_OVS_overlapStore.h"
 #include "AS_CGB_histo.h"
 }
 
-void outputHistograms(AS_BOG::UnitigGraph *, FILE *);
+void outputHistograms(UnitigGraph *, FILE *);
 
 int
 main (int argc, char * argv []) {
@@ -131,7 +128,7 @@ main (int argc, char * argv []) {
 
   ovlStore = AS_OVS_openOverlapStore(OVL_Store_Path);
 
-  AS_BOG::MateChecker mateChecker;
+  MateChecker mateChecker;
   int numFrgsInGKP = mateChecker.readStore(GKP_Store_Path);    
   GateKeeperStore *gkpStore = openGateKeeperStore(GKP_Store_Path, FALSE);
   int numRandFrgInGKP = getNumGateKeeperRandomFragments(gkpStore);
@@ -139,18 +136,18 @@ main (int argc, char * argv []) {
     
     
   // must be before creating the scoring objects, because it sets their size
-  AS_BOG::BOG_Runner bogRunner(numFrgsInGKP);
+  BOG_Runner bogRunner(numFrgsInGKP);
 
   // Initialize our three different types of Best Overlap Graphs
   for(int i=0; i < erates.size(); i++)
-    bogRunner.push_back( new AS_BOG::BestOverlapGraph( erates[i] ) );
+    bogRunner.push_back( new BestOverlapGraph( erates[i] ) );
 
   bogRunner.processOverlapStream(ovlStore, GKP_Store_Path);
 
 
   for(int i=0; i<bogRunner.size(); i++){
-    //AS_BOG::ChunkGraph *cg = new AS_BOG::ChunkGraph();
-    AS_BOG::PromiscuousChunkGraph *cg = new AS_BOG::PromiscuousChunkGraph();
+    //ChunkGraph *cg = new ChunkGraph();
+    PromiscuousChunkGraph *cg = new PromiscuousChunkGraph();
 
     //cg.checkInDegree(bogRunner.metrics[i]);
     cg->build(bogRunner.metrics[i]);
@@ -159,14 +156,14 @@ main (int argc, char * argv []) {
     fprintf(stderr, "Num Singletons:  %d\n", cg->countSingletons());
     fprintf(stderr, "Num Containees:  %d\n", bogRunner.metrics[i]->_best_containments.size());
 
-    AS_BOG::UnitigGraph utg(bogRunner.metrics[i]);
+    UnitigGraph utg(bogRunner.metrics[i]);
 
     utg.build(cg);
 
     mateChecker.checkUnitigGraph(utg);        
 
     float globalARate = utg.getGlobalArrivalRate(numRandFrgInGKP, genome_size);
-    AS_BOG::Unitig::setGlobalArrivalRate(globalARate);
+    Unitig::setGlobalArrivalRate(globalARate);
 
 
     //  Ugh.  If we're doing multiple error rates, make a new
@@ -196,7 +193,7 @@ main (int argc, char * argv []) {
       fprintf(stats, "Global Arrival Rate: %f\n", globalARate);
       fprintf(stats, "There were %d unitigs generated.\n", utg.unitigs->size());
 
-      AS_BOG::BestEdgeCounts cnts = utg.countInternalBestEdges();
+      BestEdgeCounts cnts = utg.countInternalBestEdges();
 
       fprintf(stats, "Overall best edge counts: dovetail %d oneWayBest %d neither %d\n",
               cnts.dovetail,
@@ -223,7 +220,7 @@ main (int argc, char * argv []) {
 }
 
 
-void outputHistograms(AS_BOG::UnitigGraph *utg, FILE *stats) {
+void outputHistograms(UnitigGraph *utg, FILE *stats) {
   const int nsample=500;
   const int nbucket=500;
   MyHistoDataType zork;
@@ -239,10 +236,10 @@ void outputHistograms(AS_BOG::UnitigGraph *utg, FILE *stats) {
   extend_histogram(arate_histogram, sizeof(MyHistoDataType),
                    myindexdata,mysetdata,myaggregate,myprintdata);
 
-  AS_BOG::UnitigVector::const_iterator uiter = utg->unitigs->begin();
+  UnitigVector::const_iterator uiter = utg->unitigs->begin();
   for(;uiter != utg->unitigs->end(); uiter++) {
 
-    AS_BOG::Unitig *u = *uiter;
+    Unitig *u = *uiter;
     if (u == NULL)
       continue;
     zork.nsamples = 1;

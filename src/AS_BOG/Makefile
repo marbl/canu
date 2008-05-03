@@ -26,7 +26,8 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-TOOL_SRCS = BuildUnitigs.cc FindContainedFrags.cc ReadIUMs.cc
+TOOL_SRCS = BuildUnitigs.cc
+JUNK_SRCS = FindContainedFrags.cc ReadIUMs.cc
 
 HEADERS = $(shell ls *.hh | grep -v Datatypes)
 LIB_SOURCES = $(HEADERS:.hh=.cc)
@@ -40,7 +41,8 @@ OBJECTS =  $(LIB_OBJS)  $(TOOL_OBJS)
 AS_LIBRARIES = libCA.a
 SYS_LIBRARIES = 
 
-TOOL_PROGS = buildUnitigs findContainedFrags readIUMs
+TOOL_PROGS = buildUnitigs
+JUNK_PROGS = findContainedFrags readIUMs
 
 PROGS = $(TOOL_PROGS)
 
