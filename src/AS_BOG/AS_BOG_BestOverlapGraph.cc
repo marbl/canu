@@ -26,10 +26,6 @@
 
 #include "AS_BOG_BestOverlapGraph.hh"
 
-extern "C" {
-#include "AS_PER_gkpStore.h"
-}
-
 #undef max
 
 //  The overlap, pi, exists between A and B:
@@ -73,12 +69,16 @@ fragment_end_type BestOverlapGraph::BEnd(const OVSoverlap& olap) {
 //
 // AS_UTG_ERROR_RATE is fraction error, same as AS_CNS_ERROR_RATE.
 //
-BestOverlapGraph::BestOverlapGraph(double AS_UTG_ERROR_RATE) : curFrag(0) {
-  assert( lastFrg > 0 ); // Set in BOG_Runner constructor
+BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
+                                   OverlapStore        *ovlStore,
+                                   double               AS_UTG_ERROR_RATE) {
+  curFrag = 0;
 
-  _best_overlaps = new BestFragmentOverlap[lastFrg+1];
+  _fi = fi;
 
-  memset(_best_overlaps, 0, sizeof(BestFragmentOverlap)*(lastFrg+1));
+  _best_overlaps = new BestFragmentOverlap [fi->numFragments() + 1];
+
+  memset(_best_overlaps, 0, sizeof(BestFragmentOverlap) * (fi->numFragments() + 1));
 
   assert(AS_UTG_ERROR_RATE >= 0.0);
   assert(AS_UTG_ERROR_RATE <= AS_MAX_ERROR_RATE);
@@ -91,6 +91,22 @@ BestOverlapGraph::BestOverlapGraph(double AS_UTG_ERROR_RATE) : curFrag(0) {
 
   mismatchCutoff  = AS_OVS_encodeQuality( AS_UTG_ERROR_RATE );
   consensusCutoff = AS_OVS_encodeQuality( AS_CNS_ERROR_RATE );
+
+  // Go through the overlap stream in two passes:
+  // first pass finds the containments
+  // second pass builds the overlap graph, excluding contained frags
+
+  OVSoverlap olap;
+
+  AS_OVS_resetRangeOverlapStore(ovlStore);
+  while  (AS_OVS_readOverlapFromStore(ovlStore, &olap, AS_OVS_TYPE_OVL))
+    scoreContainment( olap );
+
+  AS_OVS_resetRangeOverlapStore(ovlStore);
+  while  (AS_OVS_readOverlapFromStore(ovlStore, &olap, AS_OVS_TYPE_OVL))
+    scoreEdge( olap );
+
+  updateInDegree();
 }
 
 BestOverlapGraph::~BestOverlapGraph(){
@@ -270,12 +286,6 @@ void BestOverlapGraph::removeTransitiveContainment() {
 }
 
 
-// Array of cached fragment lengths.  Initialized to 0.  Use BestOverlapGraph::fragLen(iuid)
-//   to access contents b/c method will read info from FragStore and populate
-//   record if not already read in.
-uint16         *BestOverlapGraph::fragLength;                        
-iuid BestOverlapGraph::lastFrg;
-
 // Frag Store related data structures
 
 void BestOverlapGraph::updateInDegree() {
@@ -448,49 +458,4 @@ void BestOverlapGraph::scoreEdge(const OVSoverlap& olap) {
     setBestEdgeOverlap( olap, newScr );
     bestLength = olapLen;
   }
-}
-
-
-void BOG_Runner::processOverlapStream(OverlapStore * my_store,
-                                      const char* FRG_Store_Path ) {
-
-  GateKeeperStore  *gkpStoreHandle = openGateKeeperStore( FRG_Store_Path, FALSE);
-  FragStream       *fragStream = openFragStream( gkpStoreHandle, FRAG_S_INF);
-  fragRecord        fsread;
-
-  BestOverlapGraph::fragLength = new uint16[BestOverlapGraph::lastFrg+1];
-
-  BestOverlapGraph::fragLength[0] = std::numeric_limits<uint16>::max();
-
-  while(nextFragStream( fragStream, &fsread)) {
-    if (getFragRecordIsDeleted(&fsread)) {
-      //fprintf(stderr, "Loaded frag %d DELETED\n", getFragRecordIID(&fsread));
-      BestOverlapGraph::fragLength[getFragRecordIID(&fsread)] = std::numeric_limits<uint16>::max();
-    } else {
-      uint32 clrBgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_OBT);
-      uint32 clrEnd = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_OBT);
-      //fprintf(stderr, "Loaded frag %d clr %d-%d = %d\n", getFragRecordIID(&fsread), clrBgn, clrEnd, clrEnd-clrBgn);
-      BestOverlapGraph::fragLength[getFragRecordIID(&fsread)] = clrEnd - clrBgn;
-    }
-  }
-  closeFragStream( fragStream ); 
-  closeGateKeeperStore( gkpStoreHandle ); 
-
-  // Go through the overlap stream in two passes:
-  // first pass finds the containments
-  // second pass builds the overlap graph, excluding contained frags
-        
-  OVSoverlap olap;
-  while  (AS_OVS_readOverlapFromStore(my_store, &olap, AS_OVS_TYPE_OVL))
-    for(int j = 0; j < metrics.size(); j++)
-      metrics[j]->scoreContainment( olap );
-
-  AS_OVS_resetRangeOverlapStore(my_store);
-
-  while  (AS_OVS_readOverlapFromStore(my_store, &olap, AS_OVS_TYPE_OVL))
-    for(int j = 0; j < metrics.size(); j++)
-      metrics[j]->scoreEdge( olap );
-
-  for(int j = 0; j < metrics.size(); j++)
-    metrics[j]->updateInDegree();
 }

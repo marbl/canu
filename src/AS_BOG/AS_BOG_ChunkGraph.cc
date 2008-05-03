@@ -68,40 +68,36 @@ void ChunkGraph::setChunking(iuid src_frag_id,
 }
 
 
-void ChunkGraph::build(BestOverlapGraph *inBovlg){
+void ChunkGraph::build(FragmentInfo *fi, BestOverlapGraph *inBovlg){
   // This will go through all the nodes in the bovlg and
   //   produce the ChunkGraph
   bovlg = inBovlg;
 
+  delete[] _edgePathLen;
+  delete[] _chunkable_array;
+  delete[] _chunk_lengths;
+
   // Initialize the chunk graph if necessary
-  iuid num_frags=bovlg->getNumFragments();
-  if(_edgePathLen != NULL){
-    delete[] _edgePathLen;
-  }
+  iuid num_frags = fi->numFragments();
+
   _edgePathLen = new iuid[(num_frags+1)*2];
   memset(_edgePathLen, 0, sizeof(iuid)*(num_frags+1)*2);
-  if(_chunkable_array != NULL){
-    delete[] _chunkable_array;
-  }
+
   _chunkable_array=new _chunk_unit_struct[num_frags+1];
-  if(_chunk_lengths != NULL){
-    delete[] _chunk_lengths;
-  }
+
   _chunk_lengths = new _chunk_length[num_frags];
+
   _max_fragments=num_frags;
 
   // Go through every fragment in the BOG
-  iuid frag_id;
-  for(frag_id=1; frag_id<=num_frags; frag_id++){
+  for(iuid frag_id=1; frag_id<=num_frags; frag_id++){
 
     // Grab 5' end, and check for chunkability
-    BestEdgeOverlap *fp_beo=
-      bovlg->getBestEdgeOverlap(frag_id, FIVE_PRIME);
+    BestEdgeOverlap *fp_beo= bovlg->getBestEdgeOverlap(frag_id, FIVE_PRIME);
     bool fp_chunkability=isChunkable(frag_id, FIVE_PRIME);
 			
     // Grab 3' end, and check for chunkability
-    BestEdgeOverlap *tp_beo=
-      bovlg->getBestEdgeOverlap(frag_id, THREE_PRIME);
+    BestEdgeOverlap *tp_beo= bovlg->getBestEdgeOverlap(frag_id, THREE_PRIME);
     bool tp_chunkability=isChunkable(frag_id, THREE_PRIME);
 
     // Save chunkability
@@ -110,11 +106,14 @@ void ChunkGraph::build(BestOverlapGraph *inBovlg){
                 (tp_chunkability)?tp_beo->frag_b_id:NULL_FRAG_ID
                 );
   }
-  for(frag_id=1; frag_id<=num_frags; frag_id++){
+
+  for(iuid frag_id=1; frag_id<=num_frags; frag_id++){
     _chunk_lengths[frag_id-1].fragId = frag_id;
     _chunk_lengths[frag_id-1].cnt    = countFullWidth(frag_id, FIVE_PRIME) + countFullWidth(frag_id, THREE_PRIME);
   }
+
   qsort( _chunk_lengths, num_frags, sizeof(_chunk_length), &ChunkGraph::sortChunkLens);
+
   fprintf(stderr,"Top chunkLength frgs %d cnt %d and %d cnt %d\n",
           _chunk_lengths[0].fragId, _chunk_lengths[0].cnt,
           _chunk_lengths[1].fragId, _chunk_lengths[1].cnt
@@ -271,12 +270,6 @@ bool PromiscuousChunkGraph::isChunkable(iuid frag_a_id, fragment_end_type which_
 }
 
 
-long ChunkGraph::getNumFragments(void){
-  return(_max_fragments);		
-}
-
-
-
 long ChunkGraph::countSingletons(void){
   iuid i;
   long num_singletons=0;
@@ -296,34 +289,19 @@ void ChunkGraph::checkInDegree(){
   int *threep_indegree_arr;
   long frag_id;
 
-  long num_frags=bovlg->getNumFragments();
-  fivep_indegree_arr=new int[num_frags+1];
-  threep_indegree_arr=new int[num_frags+1];
+  fivep_indegree_arr  = new int[_max_fragments + 1];
+  threep_indegree_arr = new int[_max_fragments + 1];
 
-  for(frag_id=0; frag_id<=num_frags; frag_id++){
+  for(frag_id=0; frag_id<=_max_fragments; frag_id++){
     fivep_indegree_arr[frag_id]=0;
     threep_indegree_arr[frag_id]=0;
   }
 
-  if(0){
-    BestContainmentMap::iterator itr;
-    for(
-        itr=bovlg->_best_containments.begin();
-        itr!=bovlg->_best_containments.end();
-        itr++){
-
-      std::cerr << itr->first << " Contained in " << itr->second.container << 
-        std::endl;
-    }
-  }
-
   BestEdgeOverlap	*fivep_overlap_ptr, *threep_overlap_ptr;
-  for(frag_id=1; frag_id<=num_frags; frag_id++){
+  for(frag_id=1; frag_id<=_max_fragments; frag_id++){
 
-    fivep_overlap_ptr=bovlg->getBestEdgeOverlap(
-                                                frag_id, FIVE_PRIME);
-    threep_overlap_ptr=bovlg->getBestEdgeOverlap(
-                                                 frag_id, THREE_PRIME);
+    fivep_overlap_ptr=bovlg->getBestEdgeOverlap(frag_id, FIVE_PRIME);
+    threep_overlap_ptr=bovlg->getBestEdgeOverlap(frag_id, THREE_PRIME);
 
     if(bovlg->_best_containments.find(frag_id)==
        bovlg->_best_containments.end()){
@@ -360,7 +338,7 @@ void ChunkGraph::checkInDegree(){
   }
 		
 
-  for(frag_id=1; frag_id<=num_frags; frag_id++){
+  for(frag_id=1; frag_id<=_max_fragments; frag_id++){
     BestEdgeOverlap *fp=bovlg->getBestEdgeOverlap(frag_id, FIVE_PRIME);
     BestEdgeOverlap *tp=bovlg->getBestEdgeOverlap(frag_id, THREE_PRIME);
 

@@ -34,13 +34,66 @@ extern "C" {
 
 #undef max
 
+void
+checkUnitigMembership(UnitigVector *unitigs, FragmentInfo *fi) {
+  int nutg = 0;
+  int nfrg = 0;
+
+  fprintf(stderr, "checkUnitigMembership()--  numfrags=%d\n", fi->numFragments());
+
+  iuid   *inUnitig = new iuid [fi->numFragments()+1];
+
+  for (int i=0; i<fi->numFragments()+1; i++)
+    inUnitig[i] = 987654321;
+
+  for (int  ti=0; ti<unitigs->size(); ti++) {
+    Unitig  *utg = (*unitigs)[ti];
+
+    if (utg) {
+      nutg++;
+      for (DoveTailIter it=utg->dovetail_path_ptr->begin(); it != utg->dovetail_path_ptr->end(); it++) {
+        if (it->ident >= fi->numFragments())
+          fprintf(stderr, "HUH?  ident=%d numfrags=%d\n", it->ident, fi->numFragments());
+        inUnitig[it->ident] = utg->id();
+        nfrg++;
+      }
+    }
+  }
+
+  int lost = 0;
+  int found = 0;
+
+  for (int i=0; i<fi->numFragments()+1; i++) {
+    if (fi->fragmentLength(i) > 0) {
+      if (inUnitig[i] == 0) {
+        fprintf(stderr, "ERROR frag %d is in unitig 0!\n", i);
+      } else if (inUnitig[i] != 987654321) {
+        found++;
+      } else {
+        fprintf(stderr, "ERROR frag %d disappeared!\n", i);
+        lost++;
+      }
+    }
+  }
+
+  fprintf(stderr, "checkUnitigMembership()-- nutg=%d nfrg=%d lost=%d found=%d\n", nutg, nfrg, lost, found);
+
+  assert(lost == 0);
+};
+
+
+
+
+
 int BogOptions::badMateBreakThreshold    = -7;
 bool BogOptions::unitigIntersectBreaking = false;
 bool BogOptions::ejectUnhappyContained   = false;
 bool BogOptions::useGkpStoreLibStats     = false;
 
-UnitigGraph::UnitigGraph(BestOverlapGraph *in_bog_ptr) : bog_ptr(in_bog_ptr) {
-  unitigs         = new UnitigVector;
+UnitigGraph::UnitigGraph(FragmentInfo *fi, BestOverlapGraph *in_bog_ptr) {
+  unitigs = new UnitigVector;
+  _fi     = fi;
+  bog_ptr = in_bog_ptr;
 }
 
 UnitigGraph::~UnitigGraph() {
@@ -58,21 +111,19 @@ iuid* Unitig::_inUnitig = NULL;
 
 void UnitigGraph::build(ChunkGraph *cg_ptr) {
 
-  iuid num_frags=cg_ptr->getNumFragments();
-
   iuid frag_idx;
   iuid fp_dst_frag_id, tp_dst_frag_id;
 
   // Initialize where we've been to nowhere; "Do not retraverse list"
-  Unitig::resetFragUnitigMap( num_frags );
+  Unitig::resetFragUnitigMap( _fi->numFragments() );
 
   BestContainmentMap *best_cntr = &(bog_ptr->_best_containments);
   _build_container_map(best_cntr);
 
   // Step through all the fragments 
-  std::cerr << "Building Unitigs from " << num_frags << " fragments.\n"; 
+  std::cerr << "Building Unitigs from " << _fi->numFragments() << " fragments.\n"; 
   while( frag_idx = cg_ptr->nextFragByChunkLength() ) {
-    if (BestOverlapGraph::fragLen(frag_idx) == std::numeric_limits<uint16>::max())
+    if (_fi->fragmentLength(frag_idx) == 0)
       continue; // Deleted frag
 
     // Check the map to so we don't visit a unitig twice (once from
@@ -109,7 +160,8 @@ void UnitigGraph::build(ChunkGraph *cg_ptr) {
           whichEnd = FIVE_PRIME;
 
         int len = utg->getLength();
-        int flen = BestOverlapGraph::fragLen(frag_idx);
+        int flen = _fi->fragmentLength(frag_idx);
+        assert(flen > 0);
         int ahng = tpBest->ahang;
         int offset = len - flen + ahng;
         fprintf(stderr, "Join unitig %d len %d at %d len %d and %d ahang %d offset %d\n",
@@ -131,7 +183,7 @@ void UnitigGraph::build(ChunkGraph *cg_ptr) {
   }
 
   // Pick up frags missed above, possibly circular unitigs
-  for(frag_idx=1; frag_idx<=num_frags; frag_idx++){
+  for(frag_idx=1; frag_idx<=_fi->numFragments(); frag_idx++){
     if (Unitig::fragIn( frag_idx ) == 0) {
       cg_ptr->getChunking( frag_idx, fp_dst_frag_id, tp_dst_frag_id);
 
@@ -159,13 +211,15 @@ void UnitigGraph::build(ChunkGraph *cg_ptr) {
     breakUnitigs();
   }
 
-  UnitigsConstIter uIter = unitigs->begin();
-  for (; uIter != unitigs->end(); uIter++ ) {
+   
+  for (UnitigsConstIter uIter = unitigs->begin(); uIter != unitigs->end(); uIter++ ) {
     Unitig* tig = *uIter;
     if (tig == NULL)
       continue;
     tig->recomputeFragmentPositions(cntnrmap_ptr, best_cntr, bog_ptr);
   }
+
+  checkUnitigMembership(unitigs, _fi);
 
   //fprintf(stderr,"Max contain depth is %d\n",maxContainDepth);
 
@@ -191,7 +245,7 @@ DoveTailNode Unitig::getLastBackboneNode(iuid &prevId) {
   return lastNonContain;
 }
 
-void Unitig::computeFragmentPositions(BestOverlapGraph* bog_ptr) {
+void Unitig::computeFragmentPositions(FragmentInfo *fi, BestOverlapGraph* bog_ptr) {
   if (dovetail_path_ptr == NULL || dovetail_path_ptr->empty())
     return;
   // we need to determine which orientation the first frag is in
@@ -200,7 +254,8 @@ void Unitig::computeFragmentPositions(BestOverlapGraph* bog_ptr) {
   int frag_begin,fragPrevEnd,fragNextEnd;
   frag_begin = fragPrevEnd = fragNextEnd = 0;
   iuid first = iter->ident;
-  int frag_end = BestOverlapGraph::fragLen(first);
+  int frag_end = fi->fragmentLength(first);
+  assert(frag_end > 0);
   fragPrevEnd = frag_end;
   if(  dovetail_path_ptr->size() == 1) {
     // still set singleton's coords
@@ -208,10 +263,8 @@ void Unitig::computeFragmentPositions(BestOverlapGraph* bog_ptr) {
     dovetail_path_ptr->front().position.end = frag_end;
     return;
   }
-  BestEdgeOverlap* bestEdge = bog_ptr->getBestEdgeOverlap(
-                                                          first, FIVE_PRIME );
-  BestEdgeOverlap* threeP = bog_ptr->getBestEdgeOverlap(
-                                                        first, THREE_PRIME );
+  BestEdgeOverlap* bestEdge = bog_ptr->getBestEdgeOverlap(first, FIVE_PRIME );
+  BestEdgeOverlap* threeP = bog_ptr->getBestEdgeOverlap(first, THREE_PRIME );
   fprintf(stderr,"1stFrag %d beg %d end %d\n",
           first, frag_begin, frag_end );
   iter++;
@@ -241,7 +294,8 @@ void Unitig::computeFragmentPositions(BestOverlapGraph* bog_ptr) {
     DoveTailNode* node = &*iter;
     //DoveTailNode* nextNode = &*(iter+1);
     bestEdge = bog_ptr->getBestEdgeOverlap( node->ident, whichEnd);
-    int currLen = BestOverlapGraph::fragLen(node->ident);
+    int currLen = fi->fragmentLength(node->ident);
+    assert(currLen > 0);
     // The end of the fragment can be calulated as start + length
     // or as end of previous frag + b_hang. They should be the same
     // if there are no gaps, but with gaps the 2nd method should be better
@@ -324,7 +378,8 @@ void UnitigGraph::populateUnitig( Unitig* unitig,
       dt_node.bhang = bestEdge->bhang;
     }
 #endif
-    int currLen = BestOverlapGraph::fragLen(current_frag_id);
+    int currLen = _fi->fragmentLength(current_frag_id);
+    assert(currLen > 0);
     // The end of the fragment can be calulated as start + length
     // or as end of previous frag + b_hang. They should be the same
     // if there are no gaps, but with gaps the 2nd method should be better
@@ -621,7 +676,7 @@ float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long 
       if (*iter == NULL)
         continue;
 
-      avg_rho = (*iter)->getAvgRho();
+      avg_rho = (*iter)->getAvgRho(_fi);
       total_rho += avg_rho;
       if (avg_rho > 10000.0)
         rho_gt_10000 += (size_t)avg_rho / 10000;
@@ -651,7 +706,7 @@ float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long 
       for( iter=unitigs->begin(); iter!=unitigs->end(); iter++) {
         if (*iter == NULL)
           continue;
-        avg_rho = (*iter)->getAvgRho();
+        avg_rho = (*iter)->getAvgRho(_fi);
         if (avg_rho > 10000.0) {
           const int num_10000 = (size_t)avg_rho / 10000;
           const float local_arrival_rate =
@@ -739,8 +794,6 @@ Unitig::Unitig(bool report){
   _localArrivalRate = -1;
   _covStat          = FLT_MAX;
   _length           = -1;
-  _numFrags         = -1;
-  _numRandomFrags   = -1;
   _avgRho           = -1;
   dovetail_path_ptr = new DoveTailPath;
   _id               = nextId++;
@@ -783,7 +836,7 @@ void Unitig::addFrag( DoveTailNode node, int offset, bool report) {
 }
 
 
-float Unitig::getAvgRho(void){
+float Unitig::getAvgRho(FragmentInfo *fi){
 
   if(dovetail_path_ptr->size() == 1) 
     _avgRho = 1;
@@ -807,13 +860,15 @@ float Unitig::getAvgRho(void){
   // Get first fragment's length
   dtp_iter=dovetail_path_ptr->begin();
   int ident1 = dtp_iter->ident;
-  long first_frag_len = BestOverlapGraph::fragLen(dtp_iter->ident);
+  long first_frag_len = fi->fragmentLength(dtp_iter->ident);
+  assert(first_frag_len > 0);
 
   // Get last fragment's length
   dtp_iter=dovetail_path_ptr->end();
   dtp_iter--;
   int ident2 = dtp_iter->ident;
-  long last_frag_len = BestOverlapGraph::fragLen(dtp_iter->ident);
+  long last_frag_len = fi->fragmentLength(dtp_iter->ident);
+  assert(last_frag_len > 0);
 
   // Get average of first and last fragment lengths
   double avg_frag_len = (last_frag_len + first_frag_len)/2.0;
@@ -844,15 +899,15 @@ void Unitig::setLocalArrivalRate(float local_arrival_rate){
   else
     _localArrivalRate = local_arrival_rate;
 }
-float Unitig::getLocalArrivalRate(){
+float Unitig::getLocalArrivalRate(FragmentInfo *fi){
   if (_localArrivalRate != -1 )
     return _localArrivalRate;
-  setLocalArrivalRate((getNumFrags() - 1) / getAvgRho());
+  setLocalArrivalRate((getNumFrags() - 1) / getAvgRho(fi));
   return _localArrivalRate;
 }
 
 
-float Unitig::getCovStat(void){
+float Unitig::getCovStat(FragmentInfo *fi){
 
   const float ln2=0.69314718055994530941723212145818;
 
@@ -870,8 +925,7 @@ float Unitig::getCovStat(void){
 
   if(_covStat == FLT_MAX){
     if(_globalArrivalRate > 0.0){
-      _covStat = (getAvgRho() * _globalArrivalRate) - 
-        (ln2 * (getNumFrags() -1));
+      _covStat = (getAvgRho(fi) * _globalArrivalRate) - (ln2 * (getNumFrags() -1));
     }else{
       _covStat = 0.0;
     }
@@ -886,45 +940,16 @@ long Unitig::getLength(void){
   return _length;
 }
 
-long Unitig::getSumFragLength(void){
-  long sum=0;
-
-  DoveTailPath::const_iterator fpm_itr;
-  for(fpm_itr=dovetail_path_ptr->begin();
-      fpm_itr!=dovetail_path_ptr->end();
-      fpm_itr++){
-
-    SeqInterval intrvl=fpm_itr->position;
-    sum += abs( intrvl.end - intrvl.bgn );
-  }
-  return(sum);
-}
-
 long Unitig::getNumFrags(void){
-
-  if (!dovetail_path_ptr->empty()) {
-    _numFrags = dovetail_path_ptr->size();
-  } else {
-    long num_dovetailing_frags = dovetail_path_ptr->size();
-    long num_contained_frags   = 0;
-
-    // Total frags are the sum
-    _numFrags = num_dovetailing_frags + num_contained_frags;
-  }
-  return(_numFrags);
+  return(dovetail_path_ptr->size());
 }
 
-
+// This is a placeholder, random frags should not contain guides, or
+// other fragments that are not randomly sampled across the whole
+// genome.
+//
 long Unitig::getNumRandomFrags(void){
-  // This is a placeholder, random frags should not contain guides, or other
-  //   fragments that are not randomly sampled across the whole genome.
-		
-  if(_numRandomFrags!=-1){
-    return(_numRandomFrags);
-  }	
-
-  _numRandomFrags=getNumFrags();
-  return(_numRandomFrags);
+  return(getNumFrags());
 }
 
 void Unitig::shiftCoordinates(int offset) {
@@ -1617,6 +1642,9 @@ void UnitigGraph::writeIUMtoFile(char *fileprefix, int fragment_count_target){
   int         iumiid                 = 0;
   GenericMesg mesg;
 
+  int nf = 0;
+  int nu = 0;
+
   // Open up the initial output file
 
   sprintf(filename, "%s_%03d.cgb", fileprefix, file_count++);
@@ -1629,22 +1657,31 @@ void UnitigGraph::writeIUMtoFile(char *fileprefix, int fragment_count_target){
 
   // Step through all the unitigs
 
-  for (UnitigVector::iterator utg_itr=unitigs->begin(); utg_itr != unitigs->end(); utg_itr++) {
-    Unitig        *utg = *utg_itr;
+  checkUnitigMembership(unitigs, _fi);
 
-    if (utg == NULL)
-      continue;
+  for (int  ti=0; ti<unitigs->size(); ti++) {
+    Unitig  *utg = (*unitigs)[ti];
 
-    if (utg->getNumFrags() == 0)
+    if (utg == NULL) {
+      //fprintf(stderr, "unitig %d is null, skip.\n", ti);
       continue;
+    }
+
+    if (utg->getNumFrags() == 0) {
+      fprintf(stderr, "unitig %d HAS NO FRAGS?\n", ti);
+      continue;
+    }
 
     IntUnitigMesg *ium_mesg_ptr = new IntUnitigMesg;
+
+    assert(utg->getLength() > 0);
+    assert(utg->getNumFrags() == utg->dovetail_path_ptr->size());
 
     ium_mesg_ptr->iaccession    = iumiid++;
 #ifdef AS_ENABLE_SOURCE
     ium_mesg_ptr->source        = "gen> @@ [0,0]";
 #endif
-    ium_mesg_ptr->coverage_stat = utg->getCovStat();
+    ium_mesg_ptr->coverage_stat = utg->getCovStat(_fi);
     ium_mesg_ptr->status        = AS_UNASSIGNED;
     ium_mesg_ptr->unique_rept   = AS_FORCED_NONE;
     ium_mesg_ptr->length        = utg->getLength();
@@ -1654,7 +1691,7 @@ void UnitigGraph::writeIUMtoFile(char *fileprefix, int fragment_count_target){
     ium_mesg_ptr->num_frags     = utg->getNumFrags();
     ium_mesg_ptr->f_list        = &(utg->dovetail_path_ptr->front());
 
-    fprintf(iidm, "Unitig %d == IUM %d\n", (*utg_itr)->id(), ium_mesg_ptr->iaccession);
+    fprintf(iidm, "Unitig %d == IUM %d (with %d frags)\n", utg->id(), ium_mesg_ptr->iaccession, utg->getNumFrags());
 
     fragment_count += ium_mesg_ptr->num_frags;
 
@@ -1670,16 +1707,23 @@ void UnitigGraph::writeIUMtoFile(char *fileprefix, int fragment_count_target){
     mesg.m = ium_mesg_ptr;
     mesg.t = MESG_IUM;
 
+    nf += ium_mesg_ptr->num_frags;
+    nu += 1;
+
     WriteProtoMesg_AS(file, &mesg);
 
     delete ium_mesg_ptr;
   }
+
+  fprintf(stderr, "nf=%d nu=%d\n", nf, nu);
 
   fclose(file);
   fclose(iidm);
 }
 
 
+#if 0
+//  Not used by BOG proper, and violates all sorts of encapsulation
 void UnitigGraph::readIUMsFromFile(const char *filename, iuid maxIID){
   FILE *iumIn = fopen( filename, "r");
   if (errno) {
@@ -1689,8 +1733,7 @@ void UnitigGraph::readIUMsFromFile(const char *filename, iuid maxIID){
   }
   Unitig::resetFragUnitigMap(maxIID+1);
   BestOverlapGraph::fragLength = new uint16[maxIID+1];
-  memset( BestOverlapGraph::fragLength, std::numeric_limits<uint16>::max(),
-          sizeof(uint16)*(maxIID+1) );
+  memset( BestOverlapGraph::fragLength, 0, sizeof(uint16)*(maxIID+1) );
 
   GenericMesg *pmesg = NULL;
   while ((ReadProtoMesg_AS( iumIn, &pmesg ) != EOF)) {
@@ -1714,6 +1757,7 @@ void UnitigGraph::readIUMsFromFile(const char *filename, iuid maxIID){
     }
   }
 }
+#endif
 
 
 BestEdgeCounts UnitigGraph::countInternalBestEdges( const Unitig *tig) {

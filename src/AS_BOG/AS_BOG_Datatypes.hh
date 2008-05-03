@@ -29,6 +29,8 @@
 extern "C" {
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
+#include "AS_OVS_overlapStore.h"
+#include "AS_PER_gkpStore.h"
 }
 
 enum fragment_end_type {
@@ -72,6 +74,111 @@ private:
 };
 
 
+class FragmentInfo {
+public:
+  FragmentInfo(GateKeeperStore *gkpStore) {
+    FragStream       *fs = openFragStream(gkpStore, FRAG_S_INF);
+    fragRecord        fr;
+
+    _numLibraries = getNumGateKeeperLibraries(gkpStore);
+    _numFragments = getNumGateKeeperFragments(gkpStore);
+
+    _fragLength    = new int  [_numFragments + 1];
+    _mateIID       = new iuid [_numFragments + 1];
+    _libIID        = new iuid [_numFragments + 1];
+
+    _mean          = new double [_numLibraries + 1];
+    _stddev        = new double [_numLibraries + 1];
+
+    _numFragsInLib = new int [_numLibraries + 1];
+    _numMatesInLib = new int [_numLibraries + 1];
+
+    for (int i=0; i<_numFragments + 1; i++) {
+      _fragLength[i] = 0;
+      _mateIID[i] = 0;
+      _libIID[i] = 0;
+    }
+
+    for (int i=0; i<_numLibraries + 1; i++) {
+      _mean[i]          = 0.0;
+      _stddev[i]        = 0.0;
+      _numFragsInLib[i] = 0;
+      _numMatesInLib[i] = 0;
+    }
+
+    for (int i=1; i<_numLibraries + 1; i++) {
+      _mean[i]          = getGateKeeperLibrary(gkpStore, i)->mean;
+      _stddev[i]        = getGateKeeperLibrary(gkpStore, i)->stddev;
+      _numFragsInLib[i] = 0;
+      _numMatesInLib[i] = 0;
+    }
+
+    int numDeleted = 0;
+    int numLoaded  = 0;
+
+    while(nextFragStream(fs, &fr)) {
+      iuid  iid = getFragRecordIID(&fr);
+      iuid  lib = getFragRecordLibraryIID(&fr);
+
+      if (getFragRecordIsDeleted(&fr)) {
+        numDeleted++;
+      } else {
+        _fragLength[iid] = (getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBT) -
+                            getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBT));
+        _mateIID[iid]    =  getFragRecordMateIID(&fr);;
+        _libIID[iid]     =  getFragRecordLibraryIID(&fr);
+
+        _numFragsInLib[lib]++;
+
+        if (_mateIID[iid])
+          _numMatesInLib[lib]++;
+
+        numLoaded++;
+      }
+    }
+
+    for (int i=0; i<_numLibraries + 1; i++) {
+      _numMatesInLib[i] /= 2;
+    }
+
+    fprintf(stderr, "Loaded %d alive fragments, skipped %d dead fragments.\n", numLoaded, numDeleted);
+
+    closeFragStream(fs); 
+  };
+  ~FragmentInfo() {
+    delete [] _fragLength;
+    delete [] _mateIID;
+    delete [] _libIID;
+  };
+
+  int     numFragments(void) { return(_numFragments); };
+  int     numLibraries(void) { return(_numLibraries); };
+
+  int     fragmentLength(iuid iid) { return(_fragLength[iid]); };
+  iuid    mateIID(iuid iid)        { return(_mateIID[iid]); };
+  iuid    libraryIID(iuid iid)     { return(_libIID[iid]);  };
+
+  double  mean(iuid iid)   { return(_mean[iid]); };
+  double  stddev(iuid iid) { return(_stddev[iid]); };
+
+  int     numMatesInLib(iuid iid) { return(_numMatesInLib[iid]); };
+
+private:
+  int      _numFragments;
+  int      _numLibraries;
+
+  int     *_fragLength;
+  iuid    *_mateIID;
+  iuid    *_libIID;
+
+  double  *_mean;
+  double  *_stddev;
+
+  int     *_numFragsInLib;
+  int     *_numMatesInLib;
+};
+
+
 struct BogOptions {
   static int badMateBreakThreshold;
   static bool unitigIntersectBreaking;
@@ -79,4 +186,6 @@ struct BogOptions {
   static bool useGkpStoreLibStats;
 };
 
+
 #endif
+

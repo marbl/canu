@@ -24,66 +24,35 @@
 #include "AS_OVL_overlap.h"
 #include "AS_UTL_alloc.h"
 
-MateChecker::~MateChecker() {
-}
 
-iuid MateChecker::readStore(const char* gkpStorePath) {
-  GateKeeperStore *gkpStore = openGateKeeperStore(gkpStorePath, FALSE);
+extern
+void
+checkUnitigMembership(UnitigVector *unitigs, FragmentInfo *fi);
 
-  iuid numDists = getNumGateKeeperLibraries(gkpStore);
-  iuid i;
-  for(i = 1; i <= numDists; i++){
-    GateKeeperLibraryRecord  *gkpl = getGateKeeperLibrary(gkpStore, i);
+
+
+
+MateChecker::MateChecker(FragmentInfo *fi) {
+
+  for(int i=1; i<=fi->numLibraries(); i++) {
     DistanceCompute dc;
-    dc.mean   = gkpl->mean;
-    dc.stddev = gkpl->stddev;
+
+    dc.mean      = fi->mean(i);
+    dc.stddev    = fi->stddev(i);
+    dc.numPairs  = fi->numMatesInLib(i);
+
     _globalStats[ i ] = dc;
   }
 
-  StreamStruct *frags = openStream(gkpStore->frg);
-  resetStream(frags, STREAM_FROMSTART, STREAM_UNTILEND);
+  _fi = fi;
+}
 
-  GateKeeperFragmentRecord gkpf;
-  iuid frgIID = 1;
-  while(nextStream(frags, &gkpf, 0, NULL)){
-    if (gkpf.mateIID != 0) {
-      MateInfo mi;
-      mi.mate = gkpf.mateIID;
-      mi.lib  = gkpf.libraryIID;
-      _mates[ gkpf.readIID ] = mi;
-
-      _globalStats[ mi.lib ].numPairs++;
-    }
-    frgIID++;
-  }
-  for(i = 1; i <= numDists; i++){
-    DistanceCompute *dc = &(_globalStats[i]);
-    fprintf(stderr, "Lib %d mean %.1f stddev %.1f numReads %d\n",
-            i, dc->mean, dc->stddev, dc->numPairs );
-
-    assert( dc->numPairs % 2 == 0);
-    dc->numPairs /= 2;
-  }
-
-  iuid numFrgs = getNumGateKeeperFragments( gkpStore );
-
-  std::cerr << "Frg count " << frgIID << " num in store " << numFrgs << std::endl;
-
-  closeStream(frags);
-  closeGateKeeperStore(gkpStore);
-  return numFrgs;
+MateChecker::~MateChecker() {
 }
 
     
 IntervalList* findPeakBad( std::vector<short>* badGraph, int tigLen);
 
-
-MateInfo MateChecker::getMateInfo(iuid fragID) {
-  if (_mates.find( fragID ) == _mates.end())
-    return NULL_MATE_INFO;
-  else
-    return _mates[ fragID ];
-}
 
 
 LibraryStats* MateChecker::computeLibraryStats(Unitig* tig) {
@@ -98,10 +67,10 @@ LibraryStats* MateChecker::computeLibraryStats(Unitig* tig) {
   DoveTailConstIter tigIter = tig->dovetail_path_ptr->begin();
   for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++) {
     DoveTailNode frag = *tigIter;
-    MateInfo mateInfo = getMateInfo( frag.ident );
-    if ( mateInfo.mate != NULL_FRAG_ID ) {
+
+    if (_fi->mateIID(frag.ident) != 0) {
       numWithMate++;
-      if ( tig->id() == Unitig::fragIn( mateInfo.mate ) ) {
+      if ( tig->id() == Unitig::fragIn( _fi->mateIID(frag.ident) ) ) {
         numInTig++;
 
         if (goodMates.find( frag.ident ) != goodMates.end()) {
@@ -113,7 +82,7 @@ LibraryStats* MateChecker::computeLibraryStats(Unitig* tig) {
             long mateDist = frag.position.bgn - goodMates[frag.ident];
             goodMates[frag.ident] = mateDist;
             // Record the good distance for later stddev recalculation
-            iuid distId = mateInfo.lib;
+            iuid distId = _fi->libraryIID(frag.ident);
             if (_dists.find( distId ) == _dists.end()) {
               DistanceList newDL;
               _dists[ distId ] = newDL;
@@ -137,16 +106,16 @@ LibraryStats* MateChecker::computeLibraryStats(Unitig* tig) {
         } else { // 1st of pair
           if (isReverse(frag.position)) {
             // 1st reversed, so bad
-            goodMates[mateInfo.mate] = max;
+            goodMates[_fi->mateIID(frag.ident)] = max;
           } else {
             // 1st forward, so good store begin
-            goodMates[mateInfo.mate] = frag.position.bgn;
+            goodMates[_fi->mateIID(frag.ident)] = frag.position.bgn;
           }
         }
       } else {
         // mate in other unitig, just create histogram currently
         otherUnitig.push_back( frag.ident );
-        iuid otherTig = Unitig::fragIn( mateInfo.mate );
+        iuid otherTig = Unitig::fragIn( _fi->mateIID(frag.ident) );
         if (otherTigHist.find( otherTig ) == otherTigHist.end())
           otherTigHist[ otherTig ] = 1;
         else
@@ -155,7 +124,6 @@ LibraryStats* MateChecker::computeLibraryStats(Unitig* tig) {
     }
   }
 
-#warning disabling computeLibraryStats mates-to-other-unitig output
 #if 0
   if (tig->dovetail_path_ptr->size() > 1 ) {
     fprintf(stderr,"Num frags in tig %ld\n",tig->dovetail_path_ptr->size());
@@ -187,7 +155,7 @@ LibraryStats* MateChecker::computeLibraryStats(Unitig* tig) {
     iuid mateDist = goodIter->second;
     if (mateDist == max)
       continue;
-    iuid distId = getMateInfo( fragId ).lib;
+    iuid distId = _fi->libraryIID(fragId);
     (*libs)[distId].sumSquares+=pow(mateDist-(*libs)[distId].mean,2);
   }
   // Calculate the real stddev
@@ -309,14 +277,20 @@ void MateChecker::checkUnitigGraph( UnitigGraph& tigGraph ) {
 
   fprintf(stderr, "==> STARTING MATE BASED SPLITTING.\n");
 
+  checkUnitigMembership(tigGraph.unitigs, _fi);
+
   if ( ! BogOptions::useGkpStoreLibStats )
     computeGlobalLibStats( tigGraph );
 
   fprintf(stderr, "==> MOVE CONTAINS #1\n");
   moveContains(tigGraph);
 
+  checkUnitigMembership(tigGraph.unitigs, _fi);
+
   fprintf(stderr, "==> SPLIT DISCONTINUOUS #1\n");
   splitDiscontinuousUnitigs(tigGraph);
+
+  checkUnitigMembership(tigGraph.unitigs, _fi);
 
   fprintf(stderr, "==> SPLIT BAD MATES\n");
   for (int  ti=0; ti<tigGraph.unitigs->size(); ti++) {
@@ -338,11 +312,17 @@ void MateChecker::checkUnitigGraph( UnitigGraph& tigGraph ) {
     delete breaks;
   }
 
+  checkUnitigMembership(tigGraph.unitigs, _fi);
+
   fprintf(stderr, "==> SPLIT DISCONTINUOUS #1\n");
   splitDiscontinuousUnitigs(tigGraph);
 
+  checkUnitigMembership(tigGraph.unitigs, _fi);
+
   fprintf(stderr, "==> MOVE CONTAINS #1\n");
   moveContains(tigGraph);
+
+  checkUnitigMembership(tigGraph.unitigs, _fi);
 }
 
 
@@ -368,7 +348,7 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
         (thisUnitig->dovetail_path_ptr->size() == 1))
       continue;
 
-    MateLocation positions(this);
+    MateLocation positions(_fi);
 
     positions.buildTable(thisUnitig);
     delete positions.buildHappinessGraphs(thisUnitig->getLength(), _globalStats);
@@ -691,7 +671,7 @@ void combineOverlapping( IntervalList* list ) {
 UnitigBreakPoints* MateChecker::computeMateCoverage( Unitig* tig, BestOverlapGraph* bog_ptr ) {
   int tigLen = tig->getLength();
 
-  MateLocation positions(this);
+  MateLocation positions(_fi);
   positions.buildTable( tig );
   MateCounts *unused = positions.buildHappinessGraphs( tigLen, _globalStats );
   delete unused;
@@ -900,10 +880,8 @@ void MateLocation::buildTable( Unitig *tig) {
       frag != tig->dovetail_path_ptr->end();
       frag++) {
 
-    MateInfo mateInfo = _checker->getMateInfo( frag->ident );
-
-    if ( mateInfo.mate != NULL_FRAG_ID ) {
-      if (hasFrag( mateInfo.mate ) )
+    if ( _fi->mateIID(frag->ident) != NULL_FRAG_ID ) {
+      if (hasFrag( _fi->mateIID(frag->ident) ) )
         addMate( tig->id(), frag->ident, frag->position );
       else
         startEntry( tig->id(), frag->ident, frag->position );
@@ -923,9 +901,8 @@ MateCounts* MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& global
   for(MateLocIter  posIter  = begin(); posIter != end(); posIter++) {
     MateLocationEntry loc = *posIter;
     iuid fragId         =  loc.id1;
-    MateInfo mateInfo   =  _checker->getMateInfo( fragId );
-    iuid mateId         =  mateInfo.mate;
-    iuid lib            =  mateInfo.lib;
+    iuid mateId         =  _fi->mateIID(fragId);
+    iuid lib            =  _fi->libraryIID(fragId);
     cnts->total++;
     DistanceCompute *gdc = &(globalStats[ lib ]);
     // Don't check libs that we didn't generate good stats for
@@ -1099,7 +1076,7 @@ bool MateLocation::startEntry(iuid unitigID, iuid fragID, SeqInterval fragPos) {
 
 
 bool MateLocation::addMate(iuid unitigId, iuid fragId, SeqInterval fragPos) {
-  iuid mateId = _checker->getMateInfo( fragId ).mate;
+  iuid mateId = _fi->mateIID(fragId);
   IdMapConstIter entryIndex = _iidIndex.find( mateId );
   if ( _iidIndex.find( fragId ) != _iidIndex.end() ||
        entryIndex == _iidIndex.end() )

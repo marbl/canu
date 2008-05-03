@@ -31,22 +31,13 @@ extern "C" {
 typedef std::map<iuid,iuid> IdMap;
 typedef IdMap::iterator IdMapIter;
 typedef IdMap::const_iterator IdMapConstIter;
+
 typedef std::vector<int> DistanceList;
 typedef DistanceList::const_iterator DistanceListCIter;
+
 typedef std::map<iuid,DistanceList> LibraryDistances;
 typedef LibraryDistances::const_iterator LibDistsConstIter;
 
-struct MateInfo {
-  iuid mate;
-  iuid lib;
-};
-typedef std::map<iuid,MateInfo> MateMap;
-static const MateInfo NULL_MATE_INFO = {0,0};
-inline bool operator==(MateInfo a, MateInfo b) {
-  if (a.mate == b.mate)
-    return(a.lib == b.lib);
-  return false;
-}
 static const SeqInterval NULL_SEQ_LOC = {0,0};
 
 struct DistanceCompute {
@@ -57,6 +48,7 @@ struct DistanceCompute {
   int numPairs;
   DistanceCompute() : stddev(0), mean(0), sumSquares(0), sumDists(0), numPairs(0) {}
 };
+
 typedef std::map<iuid,DistanceCompute> LibraryStats;
 
 struct MateCounts {
@@ -88,16 +80,11 @@ struct MateCounts {
 
 
 struct MateChecker{
+  MateChecker(FragmentInfo *fi);
   ~MateChecker();
 
   // Main entry point for running mate splitting
   void checkUnitigGraph( UnitigGraph& );
-
-  // reads the gkpStore mate info into memory
-  iuid readStore(const char *);
-
-  // returns the mate iid for the given iid, or zero if none
-  MateInfo getMateInfo(iuid);
 
 private:
 
@@ -114,9 +101,9 @@ private:
   void computeGlobalLibStats( UnitigGraph& );
 
 private:
-  MateMap _mates;
   LibraryDistances _dists; // all distances 
-  LibraryStats _globalStats;
+  LibraryStats     _globalStats;
+  FragmentInfo    *_fi;
 };
 
 
@@ -140,10 +127,11 @@ typedef MateLocTable::const_iterator MateLocCIter;
 class MateLocation {
 public:
 
-  MateLocation(MateChecker* const check) : _checker(check) {
+  MateLocation(FragmentInfo *fi) {
     goodGraph   = new std::vector<short>;
     badFwdGraph = new std::vector<short>;
     badRevGraph = new std::vector<short>;
+    _fi         = fi;
   };
   ~MateLocation() {
     delete goodGraph;
@@ -167,9 +155,9 @@ public:
   std::vector<short>* badRevGraph;
 
 private:
-  MateLocTable _table;
-  IdMap _iidIndex;
-  MateChecker* _checker;
+  MateLocTable  _table;
+  IdMap         _iidIndex;
+  FragmentInfo *_fi;
 };
 inline bool operator==(SeqInterval a, SeqInterval b) {
   if (a.bgn == b.bgn && a.end == b.end ||

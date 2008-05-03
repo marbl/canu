@@ -26,10 +26,6 @@
 
 #include "AS_BOG_Datatypes.hh"
 
-extern "C" {
-#include "AS_OVS_overlapStore.h"
-}
-
 struct BestEdgeOverlap{
   iuid frag_b_id;
   float score;
@@ -72,29 +68,18 @@ typedef std::map<iuid, BestContainment> BestContainmentMap;
 
 
 struct BestOverlapGraph {
-
-  friend class BOG_Runner;
-
-  // Constructor, parametrizing maximum number of overlaps
-  BestOverlapGraph(double AS_UTG_ERROR_RATE);
-
-  // Destructor
+  BestOverlapGraph(FragmentInfo *fi, OverlapStore *ovlStore, double erate);
   ~BestOverlapGraph();
-
-  // Interface to graph visitor
-  // accept(BestOverlapGraphVisitor bog_vis){
-  // bog_vis.visit(this);
-  // }
 
   // Accessor Functions
   BestEdgeOverlap *getBestEdgeOverlap(iuid frag_id, fragment_end_type which_end);
   BestEdgeOverlap *getBestEdgeOverlap(FragmentEnd*);
+
   // given a FragmentEnd sets it to the next FragmentEnd after following the
   // best edge
   void followOverlap(FragmentEnd*);
   void setBestEdgeOverlap(const OVSoverlap& olap, float newScore);
   void setBestContainer(const OVSoverlap& olap, float newScore);
-  iuid getNumFragments() { return lastFrg; }
 
   bool isContained(const iuid fragid) {
     return(_best_containments.find(fragid) != _best_containments.end());
@@ -165,8 +150,8 @@ struct BestOverlapGraph {
     int a_hang = olap.dat.ovl.a_hang;
     int b_hang = olap.dat.ovl.b_hang;
 
-    int alen = fragLen(olap.a_iid);
-    int blen = fragLen(olap.b_iid);
+    int alen = _fi->fragmentLength(olap.a_iid);
+    int blen = _fi->fragmentLength(olap.b_iid);
 
     double qlt = 1.0 - AS_OVS_decodeQuality(olap.dat.ovl.corr_erate) - AS_OVS_decodeQuality(olap.dat.ovl.orig_erate) / 10000;
 
@@ -193,17 +178,9 @@ struct BestOverlapGraph {
 #endif
   };
 
-  // FragStore related variables
-  //These should be moved to protected
-  static uint16 *fragLength;
-
-  static uint16 fragLen( iuid iid ) {
-    return fragLength[ iid ];
-  };
-
-  static uint16 olapLength(iuid a_iid, iuid b_iid, short a_hang, short b_hang) {
-    int alen = fragLen(a_iid);
-    int blen = fragLen(b_iid);
+  uint16  olapLength(iuid a_iid, iuid b_iid, short a_hang, short b_hang) {
+    int alen = _fi->fragmentLength(a_iid);
+    int blen = _fi->fragmentLength(b_iid);
 
     if (a_hang < 0) {
       if (b_hang < 0 )
@@ -217,7 +194,8 @@ struct BestOverlapGraph {
         return alen - a_hang;
     }
   };
-  static uint16 olapLength(const OVSoverlap& olap) {
+
+  uint16 olapLength(const OVSoverlap& olap) {
     return(olapLength(olap.a_iid, olap.b_iid, olap.dat.ovl.a_hang, olap.dat.ovl.b_hang));
   };
 
@@ -229,27 +207,18 @@ struct BestOverlapGraph {
   void updateInDegree(void);
   void removeTransitiveContainment();
 
-protected:
-  static iuid lastFrg;
-  iuid curFrag;
-  int bestLength;
-  BestFragmentOverlap* _best_overlaps;
+private:
+  iuid                  curFrag;
+  int                   bestLength;
+
+  BestFragmentOverlap *_best_overlaps;
+  FragmentInfo        *_fi;
 
 public:
   uint64 mismatchCutoff;
   uint64 consensusCutoff;
-
 }; //BestOverlapGraph
 
-
-struct BOG_Runner {
-  BOG_Runner(int lastFrag) { BestOverlapGraph::lastFrg = lastFrag; }
-  void push_back(BestOverlapGraph *bog) { metrics.push_back(bog); }
-  int  size() { return metrics.size(); }
-  void processOverlapStream(OverlapStore *, const char*);
-
-  std::vector<BestOverlapGraph *> metrics;
-};
 
 
 #endif //INCLUDE_AS_BOG_BESTOVERLAPGRAPH

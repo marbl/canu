@@ -36,7 +36,7 @@ public:
   ~ChunkGraph(void);
 
   // Build the ChunkGraph, based on a BOG
-  void build(BestOverlapGraph *bovlg);		
+  void build(FragmentInfo *fi, BestOverlapGraph *bovlg);		
 
   // Chunkability rule
   bool isChunkable( BestEdgeOverlap *beo );
@@ -54,7 +54,6 @@ public:
   void setChunking(iuid src_frag_id, 
                    iuid five_prime_dst_frag_id, iuid three_prime_dst_frag_id);
 
-  long getNumFragments(void);
   long countSingletons(void);
 
   void checkInDegree();
@@ -94,4 +93,6 @@ struct PromiscuousChunkGraph : public ChunkGraph {
   bool isChunkable( iuid frag_id, fragment_end_type which_end);
 };
 
+
 #endif
+

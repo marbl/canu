@@ -88,21 +88,20 @@ struct Unitig{
 
   // Compute unitig based on given dovetails and containments
   void recomputeFragmentPositions(ContainerMap *,BestContainmentMap*, BestOverlapGraph*);
-  void computeFragmentPositions(BestOverlapGraph*);
+  void computeFragmentPositions(FragmentInfo*, BestOverlapGraph*);
 
   void shiftCoordinates(int);
   void reverseComplement();
   void reverseComplement(int offset, BestOverlapGraph *);
 
   // Accessor methods
-  float getAvgRho(void);
+  float getAvgRho(FragmentInfo *fi);
   static void setGlobalArrivalRate(float global_arrival_rate);
   void setLocalArrivalRate(float local_arrival_rate);
-  float getLocalArrivalRate(void);
-  float getCovStat(void);
+  float getLocalArrivalRate(FragmentInfo *fi);
+  float getCovStat(FragmentInfo *fi);
   long getLength(void);
   long getNumFrags(void);
-  long getSumFragLength(void);
   long getNumRandomFrags(void); // For now, same as numFrags, but should be randomly sampled frag count
   DoveTailNode getLastBackboneNode(iuid&);
 
@@ -135,8 +134,6 @@ private:
   float  _avgRho;
   float  _covStat;
   long   _length;
-  long   _numFrags;
-  long   _numRandomFrags;
   float  _localArrivalRate;
   iuid   _id;
 
@@ -168,14 +165,16 @@ typedef UnitigVector::const_iterator UnitigsConstIter;
 struct UnitigGraph{
   // This will store the entire set of unitigs that are generated
   // It's just a unitig container.
-  UnitigGraph( BestOverlapGraph*);
+  UnitigGraph(FragmentInfo *fi, BestOverlapGraph *);
   ~UnitigGraph();
 
   // Call this on a chunk graph pointer to build a unitig graph
   void build(ChunkGraph *cg_ptr);
 
   void writeIUMtoFile(char *filename, int fragment_count_target);
+#if 0
   void readIUMsFromFile(const char *filename, iuid maxIID);
+#endif
 
   float getGlobalArrivalRate(long total_random_frags_in_genome=0, long genome_size=0);
 
@@ -221,10 +220,10 @@ private:
   // Compute the global arrival rate based on the unitig rho's.
   float _compute_global_arrival_rate(void);
 
+  FragmentInfo     *_fi;
+
   FragmentEdgeList  unitigIntersect;
   ContainerMap     *cntnrmap_ptr;
 };
 		
-
 #endif
-
