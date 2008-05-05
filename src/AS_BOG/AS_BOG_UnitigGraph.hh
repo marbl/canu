@@ -195,6 +195,8 @@ struct UnitigGraph{
   BestEdgeCounts countInternalBestEdges( const Unitig *);
   BestEdgeCounts countInternalBestEdges( ); // all unitigs
 
+  void           checkUnitigMembership(void);
+
   // Unitigs are the dove tails and their contained fragments
   UnitigVector *unitigs;
 

@@ -34,16 +34,20 @@ extern "C" {
 
 #undef max
 
+#define VERBOSEBUILD
+#define VERBOSEBREAK
+
+
 void
-checkUnitigMembership(UnitigVector *unitigs, FragmentInfo *fi) {
+UnitigGraph::checkUnitigMembership(void) {
   int nutg = 0;
   int nfrg = 0;
 
-  fprintf(stderr, "checkUnitigMembership()--  numfrags=%d\n", fi->numFragments());
+  fprintf(stderr, "checkUnitigMembership()--  numfrags=%d\n", _fi->numFragments());
 
-  iuid   *inUnitig = new iuid [fi->numFragments()+1];
+  iuid   *inUnitig = new iuid [_fi->numFragments()+1];
 
-  for (int i=0; i<fi->numFragments()+1; i++)
+  for (int i=0; i<_fi->numFragments()+1; i++)
     inUnitig[i] = 987654321;
 
   for (int  ti=0; ti<unitigs->size(); ti++) {
@@ -52,8 +56,8 @@ checkUnitigMembership(UnitigVector *unitigs, FragmentInfo *fi) {
     if (utg) {
       nutg++;
       for (DoveTailIter it=utg->dovetail_path_ptr->begin(); it != utg->dovetail_path_ptr->end(); it++) {
-        if (it->ident >= fi->numFragments())
-          fprintf(stderr, "HUH?  ident=%d numfrags=%d\n", it->ident, fi->numFragments());
+        if (it->ident > _fi->numFragments())
+          fprintf(stderr, "HUH?  ident=%d numfrags=%d\n", it->ident, _fi->numFragments());
         inUnitig[it->ident] = utg->id();
         nfrg++;
       }
@@ -63,8 +67,8 @@ checkUnitigMembership(UnitigVector *unitigs, FragmentInfo *fi) {
   int lost = 0;
   int found = 0;
 
-  for (int i=0; i<fi->numFragments()+1; i++) {
-    if (fi->fragmentLength(i) > 0) {
+  for (int i=0; i<_fi->numFragments()+1; i++) {
+    if (_fi->fragmentLength(i) > 0) {
       if (inUnitig[i] == 0) {
         fprintf(stderr, "ERROR frag %d is in unitig 0!\n", i);
       } else if (inUnitig[i] != 987654321) {
@@ -121,7 +125,9 @@ void UnitigGraph::build(ChunkGraph *cg_ptr) {
   _build_container_map(best_cntr);
 
   // Step through all the fragments 
-  std::cerr << "Building Unitigs from " << _fi->numFragments() << " fragments.\n"; 
+
+  fprintf(stderr, "==> BUILDING UNITIGS from %d fragments.\n", _fi->numFragments());
+
   while( frag_idx = cg_ptr->nextFragByChunkLength() ) {
     if (_fi->fragmentLength(frag_idx) == 0)
       continue; // Deleted frag
@@ -152,7 +158,9 @@ void UnitigGraph::build(ChunkGraph *cg_ptr) {
       if (Unitig::fragIn(tpId)) {
         if (tpId != 0 && utg->id() != Unitig::fragIn(tpId)) {
           unitigIntersect[tpId].push_back(frag_idx);
+#ifdef VERBOSEBUILD
           fprintf(stderr,"Unitig %5d 1st frag %7d -> Unitig %5d frag %7d\n", utg->id(), frag_idx, Unitig::fragIn(tpId), tpId );
+#endif
         }
       } else {
         // if other end is also 3' we need to walk of it's 5'
@@ -164,8 +172,10 @@ void UnitigGraph::build(ChunkGraph *cg_ptr) {
         assert(flen > 0);
         int ahng = tpBest->ahang;
         int offset = len - flen + ahng;
+#ifdef VERBOSEBUILD
         fprintf(stderr, "Join unitig %d len %d at %d len %d and %d ahang %d offset %d\n",
                 utg->id(), len, frag_idx, flen, tpBest->frag_b_id, ahng, offset );
+#endif
 
         utg->reverseComplement();
         populateUnitig( utg, tpBest->frag_b_id, whichEnd, cg_ptr, offset);
@@ -193,7 +203,9 @@ void UnitigGraph::build(ChunkGraph *cg_ptr) {
         // need to make populateUnitig break circle
         populateUnitig( utg, frag_idx, FIVE_PRIME, cg_ptr, 0 );
 
+#ifdef VERBOSEBUILD
         fprintf(stderr,"Circular unitig %d 1st frag %d\n", utg->id(), frag_idx);
+#endif
 
         unitigs->push_back(utg);
 
@@ -219,7 +231,7 @@ void UnitigGraph::build(ChunkGraph *cg_ptr) {
     tig->recomputeFragmentPositions(cntnrmap_ptr, best_cntr, bog_ptr);
   }
 
-  checkUnitigMembership(unitigs, _fi);
+  checkUnitigMembership();
 
   //fprintf(stderr,"Max contain depth is %d\n",maxContainDepth);
 
@@ -496,10 +508,12 @@ void UnitigGraph::breakUnitigs() {
         fragment_end_type  dtEnd = (isReverse(f->position)) ? THREE_PRIME : FIVE_PRIME;
         BestEdgeOverlap   *bEdge = bog_ptr->getBestEdgeOverlap(f->ident, dtEnd);
 
+#ifdef VERBOSEBREAK
         if ((bEdge) && (bEdge->frag_b_id > 0))
           fprintf(stderr,"unitig %d %c' frag %d points to unitig %d frag %d\n",
                   tig->id(), (dtEnd == THREE_PRIME) ? '3' : '5', f->ident,
                   Unitig::fragIn(bEdge->frag_b_id), bEdge->frag_b_id);
+#endif
       }
 
       //  Last fragment?
@@ -507,10 +521,12 @@ void UnitigGraph::breakUnitigs() {
         fragment_end_type  dtEnd = (isReverse(f->position)) ? FIVE_PRIME : THREE_PRIME;
         BestEdgeOverlap   *bEdge = bog_ptr->getBestEdgeOverlap(f->ident, dtEnd);
 
+#ifdef VERBOSEBREAK
         if ((bEdge) && (bEdge->frag_b_id > 0))
           fprintf(stderr,"unitig %d %c' frag %d points to unitig %d frag %d\n",
                   tig->id(), (dtEnd == THREE_PRIME) ? '3' : '5', f->ident,
                   Unitig::fragIn(bEdge->frag_b_id), bEdge->frag_b_id);
+#endif
       }
 #endif
 
@@ -553,6 +569,7 @@ void UnitigGraph::breakUnitigs() {
             //fprintf(stderr, "  NullBreak tig %5d at frag %7d\n", tig->id(), f->ident);
           }
 
+#ifdef VERBOSEBREAK
           fprintf(stderr, "unitig %d (%d frags, len %d) frag %d end %c' into unitig %d frag %d end %c' pos %d\n",
                   Unitig::fragIn(inFrag),
                   inTig->getNumFrags(),
@@ -563,6 +580,7 @@ void UnitigGraph::breakUnitigs() {
                   f->ident,
                   (bestEdge->bend == FIVE_PRIME) ? '5' : '3',
                   pos);
+#endif
         }
       }
     }
@@ -822,9 +840,6 @@ void Unitig::addFrag( DoveTailNode node, int offset, bool report) {
   int frgEnd = MAX( node.position.bgn, node.position.end);
   if ( frgEnd > _length)
     _length = frgEnd;
-
-  //if ((node.contained) && (_inUnitig[node.contained] != id()))
-  //    node.contained = NULL_FRAG_ID;
 
   dovetail_path_ptr->push_back(node);
 
@@ -1446,6 +1461,10 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig, UnitigBreakPoints &breaks)
   Unitig       *newTig = NULL;
   int           offset = 0;
 
+  //  Emit a log of unitig creation and fragment moves
+  //
+  bool          verbose = false;
+
   UnitigBreakPoint breakPoint = breaks.front();
   breaks.pop_front();
 
@@ -1501,14 +1520,15 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig, UnitigBreakPoints &breaks)
         //
         //  Break at both ends, create a singleton for this fragment.
         //
-        fprintf(stderr,"  Breaking tig %d at both ends of %d num %d\n", tig->id(), breakPoint.fragEnd.fragId(), breakPoint.fragsBefore);
+        if (verbose)
+          fprintf(stderr,"  Break tig %d at both ends of %d num %d\n", tig->id(), breakPoint.fragEnd.fragId(), breakPoint.fragsBefore);
 
-        newTig = new Unitig();  //  always make a new unitig, we put a frag in it now
+        newTig = new Unitig(verbose);  //  always make a new unitig, we put a frag in it now
         splits->push_back( newTig );
 
         if (newTig->dovetail_path_ptr->empty())
           offset = reverse ? -frg.position.end : -frg.position.bgn;
-        newTig->addFrag( frg, offset );
+        newTig->addFrag( frg, offset, verbose );
 
         newTig = NULL;  //  delay until we need to make it
       }
@@ -1518,14 +1538,15 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig, UnitigBreakPoints &breaks)
         //
         //  Break at left end of frg, frg starts new tig
         //
-        fprintf(stderr,"  Break tig %d before %d num %d\n", tig->id(), breakPoint.fragEnd.fragId(), breakPoint.fragsBefore);
+        if (verbose)
+          fprintf(stderr,"  Break tig %d before %d num %d\n", tig->id(), breakPoint.fragEnd.fragId(), breakPoint.fragsBefore);
 
-        newTig = new Unitig();  //  always make a new unitig, we put a frag in it now
+        newTig = new Unitig(verbose);  //  always make a new unitig, we put a frag in it now
         splits->push_back( newTig );
 
         if (newTig->dovetail_path_ptr->empty())
           offset = reverse ? -frg.position.end : -frg.position.bgn;
-        newTig->addFrag( frg, offset );
+        newTig->addFrag( frg, offset, verbose );
       }
 
       else if (breakPoint.fragEnd.fragEnd() ==  FIVE_PRIME && reverse ||
@@ -1535,15 +1556,16 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig, UnitigBreakPoints &breaks)
         //
 
         if (newTig == NULL) {  //  delayed creation?
-          newTig = new Unitig();
+          newTig = new Unitig(verbose);
           splits->push_back( newTig );
         }
 
         if (newTig->dovetail_path_ptr->empty())
           offset = reverse ? -frg.position.end : -frg.position.bgn;
-        newTig->addFrag( frg, offset );
+        newTig->addFrag( frg, offset, verbose );
 
-        fprintf(stderr,"  Break tig %d after %d num %d\n", tig->id(), breakPoint.fragEnd.fragId(), breakPoint.fragsBefore);
+        if (verbose)
+          fprintf(stderr,"  Break tig %d after %d num %d\n", tig->id(), breakPoint.fragEnd.fragId(), breakPoint.fragsBefore);
 
         //  Delay making a new unitig until we need it.
         newTig = NULL;
@@ -1568,12 +1590,12 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig, UnitigBreakPoints &breaks)
       //
 
       if (newTig == NULL) {  //  delayed creation?
-        newTig = new Unitig();
+        newTig = new Unitig(verbose);
         splits->push_back( newTig );
       }
       if (newTig->dovetail_path_ptr->empty())
         offset = reverse ? -frg.position.end : -frg.position.bgn;
-      newTig->addFrag( frg, offset );
+      newTig->addFrag( frg, offset, verbose );
     }
   }
 
@@ -1657,7 +1679,7 @@ void UnitigGraph::writeIUMtoFile(char *fileprefix, int fragment_count_target){
 
   // Step through all the unitigs
 
-  checkUnitigMembership(unitigs, _fi);
+  checkUnitigMembership();
 
   for (int  ti=0; ti<unitigs->size(); ti++) {
     Unitig  *utg = (*unitigs)[ti];
