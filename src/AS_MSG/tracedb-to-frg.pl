@@ -189,9 +189,9 @@ sub readXML () {
                 $lib = $seqLibIDFix{$lib} if (exists($seqLibIDFix{$lib}));
             }
         }
-        if (m!^\s*<LIBRARY_ID>(.*)</!i) {
-            $lib = $1;
-        }
+        #if (m!^\s*<LIBRARY_ID>(.*)</!i) {
+        #    $lib = $1;
+        #}
         
         #if (m!^\s*<RUN_GROUP_ID>(.*)</!i) {
         #    $rgi = $1;
@@ -508,9 +508,15 @@ sub runLIB (@) {
             chomp;
             my ($id, $template, $end, $lib, $mn, $sd, $clr, $clv, $clq) = split '\s+', $_;
 
+            #  Keep track of all the libraries we've seen.
+            $dist{$lib} = $lib;
+
             #  Skip it?
             next if (($slexc > 0) &&  exists($seqLibExclude{$lib}));
             next if (($slinc > 0) && !exists($seqLibInclude{$lib}));
+
+            #  Keep track of the libraries we need to output
+            $distNeeded{$lib}++;
 
             if (($mn < 1000) || ($sd == 0)) {
                 undef $mn;
@@ -528,8 +534,6 @@ sub runLIB (@) {
                 $mean{$lib} = $mn;
                 $stddev{$lib} = $sd;
             }
-
-            $distNeeded{$lib}++;
         }
 
         close(F);
@@ -581,8 +585,6 @@ sub runLIB (@) {
             print LIB ".\n";
             print LIB "}\n";
         }
-
-        $dist{$distUID} = $distUID;
     }
 
     foreach my $xmlfile (@libfiles) {
@@ -618,6 +620,9 @@ sub runLIB (@) {
             #  Remember which library this frag came from.
             #
             if ($writeFrgLib) {
+                if (! exists($dist{$lib})) {
+                    print STDERR "WARNING: $lib doesn't exist in %dist.\n";
+                }
                 print L "$id\t$dist{$lib}\n";
             }
 
@@ -739,12 +744,42 @@ sub runFRG ($) {
     $tmpDir = "tafrg-$xmlNam";
     system("mkdir $tmpDir") if (! -e "$tmpDir");
 
+    #print STDERR "lib == $tmpDir/$xmlNam.$xmlIdx.frglib\n";
     open(L, "< $tmpDir/$xmlNam.$xmlIdx.frglib") or die "Failed to open '$tmpDir/$xmlNam.$xmlIdx.frglib' for read\n";
 
     $outNam = $xmlNam if (!defined($outNam));
 
     if (-e "$outNam.2.$xmlIdx.frg.bz2") {
         exit(0);
+    }
+
+    #  Count how many fragments are in this lib.  If zero, just stop now.
+    #
+    {
+        my $fragsHere = 0;
+
+        open(LT, "< $tmpDir/$xmlNam.$xmlIdx.frglib") or die "Failed to open '$tmpDir/$xmlNam.$xmlIdx.frglib' for read\n";
+        while (<LT>) {
+            my $lid = <LT>;
+            my $lib;
+
+            ($lid, $lib) = split '\s+', $lid;
+
+            #  Skip it?.
+            #
+            next if (($slexc > 0) &&  exists($seqLibExclude{$lib}));
+            next if (($slinc > 0) && !exists($seqLibInclude{$lib}));
+
+            $fragsHere++;
+        }
+        close(LT);
+
+        if ($fragsHere == 0) {
+            print STDERR "No fragments we care about found in $tmpDir/$xmlNam.$xmlIdx.frglib.\n";
+            exit(0);
+        }
+
+        print STDERR "Found $fragsHere in $tmpDir/$xmlNam.$xmlIdx.frglib.\n";
     }
 
     open(FRG, "| $tcat bzip2 -9c > $outNam.2.$xmlIdx.frg.bz2.tmp") or die "Failed to open '$outNam.2.$xmlIdx.frg.bz2.tmp' for write\n";
