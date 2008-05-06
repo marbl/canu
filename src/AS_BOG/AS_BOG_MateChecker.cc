@@ -276,11 +276,19 @@ void MateChecker::checkUnitigGraph( UnitigGraph& tigGraph ) {
   if ( ! BogOptions::useGkpStoreLibStats )
     computeGlobalLibStats( tigGraph );
 
+  //  Move unhappy contained fragments before attempting mate based
+  //  splitting.  We know they're broken already, and if scaffolder
+  //  can put them back, we'll let it.
+  //
   fprintf(stderr, "==> MOVE CONTAINS #1\n");
   moveContains(tigGraph);
 
   tigGraph.checkUnitigMembership();
 
+  //  This should do absolutely nothing.  If it does, something is
+  //  broken.  By just ejecting unhappy contains, nothing should be
+  //  disconnected.
+  //
   fprintf(stderr, "==> SPLIT DISCONTINUOUS #1\n");
   splitDiscontinuousUnitigs(tigGraph);
 
@@ -308,13 +316,28 @@ void MateChecker::checkUnitigGraph( UnitigGraph& tigGraph ) {
 
   tigGraph.checkUnitigMembership();
 
-  fprintf(stderr, "==> SPLIT DISCONTINUOUS #1\n");
+  //  The splitting code above is not smart enough to move contained
+  //  fragments with containers.  This leaves unitigs disconnected.
+  //  We break those unitigs here.
+  //
+  fprintf(stderr, "==> SPLIT DISCONTINUOUS #2\n");
   splitDiscontinuousUnitigs(tigGraph);
 
   tigGraph.checkUnitigMembership();
 
-  fprintf(stderr, "==> MOVE CONTAINS #1\n");
+  //  But now, all the splitting probably screwed up happiness of
+  //  contained fragments, of left some unhappy fragments in a unitig
+  //  that just lost the container.
+  //
+  fprintf(stderr, "==> MOVE CONTAINS #2\n");
   moveContains(tigGraph);
+
+  tigGraph.checkUnitigMembership();
+
+  //  Do one last check for disconnected unitigs.
+  //
+  fprintf(stderr, "==> SPLIT DISCONTINUOUS #3\n");
+  splitDiscontinuousUnitigs(tigGraph);
 
   tigGraph.checkUnitigMembership();
 }
@@ -350,7 +373,7 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
     DoveTailNode         *frags         = new DoveTailNode [thisUnitig->dovetail_path_ptr->size()];
     int                   fragsLen      = 0;
 
-    bool                  verbose       = false;
+    bool                  verbose       = true;
 
     if (verbose)
       fprintf(stderr, "moveContain unitig %d\n", thisUnitig->id());
@@ -405,8 +428,9 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
         //  id1 != 0 -> we found the fragment in the mate happiness table
         //  isBad -> and the mate is unhappy.
         //
-
-        if ((mloc.id1 != 0) && (mloc.isBad == true)) {
+        //  See comment on similar if test below.
+        //
+        if ((mloc.id1 != 0) && (mloc.id2 != 0) && (mloc.isBad == true)) {
           Unitig        *sing = new Unitig(verbose);
           DoveTailNode   frag = *fragIter;  //  To make it read/write
 
@@ -446,16 +470,38 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
 
         //  What's id1 vs id2 in MateLocationEntry?  Dunno.  All I
         //  know is that if there is no mate present, one of those
-        //  will be 0.
+        //  will be 0.  (Similar test used above too.)
         //
         if ((mloc.id1 != 0) && (mloc.id2 != 0) && (mloc.isBad == false)) {
           //  Mate is happy.  Look for an overlap.
-          for (int ff=0; (hasOverlap == false) && (ff<fragsLen); ff++)
-            hasOverlap = tigGraph.bog_ptr->containHaveEdgeTo(fragIter->ident, frags[ff].ident);
 
-          //  Nothing before?  Good enough.
-          if (fragsLen == 0)
-            hasOverlap = true;
+          if (fragsLen == 0) {
+            //  Nothing before?  Check fragments after if there is an
+            //  overlap.  In rare cases, we eject the container, and the
+            //  containee had no overlap to fragments remaining.
+            //
+            //  This isn't bullet proof.  One of those overlaps might be
+            //  to a contained fragment that we eject later on.  So, we
+            //  only accept overlaps to non-contained fragments.
+            //
+            //  And we only need to check fragments that overlap in
+            //  the layout.
+            //
+            for (DoveTailIter ft=fragIter;
+                 ((hasOverlap == false) && 
+                  (ft != thisUnitig->dovetail_path_ptr->end()) &&
+                  (MAX(fragIter->position.bgn, fragIter->position.end) < MIN(ft->position.bgn, ft->position.end)));
+                 ft++)
+              if (tigGraph.bog_ptr->isContained(ft->ident) == false)
+                hasOverlap = tigGraph.bog_ptr->containHaveEdgeTo(fragIter->ident, ft->ident);
+           
+          } else {
+            //  Not the first fragment.  Make sure this guy overlaps
+            //  something alreay placed.
+            //
+            for (int ff=0; (hasOverlap == false) && (ff<fragsLen); ff++)
+              hasOverlap = tigGraph.bog_ptr->containHaveEdgeTo(fragIter->ident, frags[ff].ident);
+          }
         }
 
         if (hasOverlap) {
@@ -571,7 +617,7 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
 //
 void MateChecker::splitDiscontinuousUnitigs(UnitigGraph& tigGraph) {
 
-  bool  verbose = false;
+  bool  verbose = true;
 
   for (int  ti=0; ti<tigGraph.unitigs->size(); ti++) {
     Unitig  *unitig = (*tigGraph.unitigs)[ti];
