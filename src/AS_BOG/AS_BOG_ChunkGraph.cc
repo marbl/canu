@@ -60,14 +60,6 @@ void ChunkGraph::getChunking(iuid src_frag_id,
   three_prime_dst_frag_id=_chunkable_array[src_frag_id].three_prime;
 }
 
-void ChunkGraph::setChunking(iuid src_frag_id,
-                             iuid five_prime_dst_frag_id, iuid three_prime_dst_frag_id){
-
-  _chunkable_array[src_frag_id].five_prime=five_prime_dst_frag_id;
-  _chunkable_array[src_frag_id].three_prime=three_prime_dst_frag_id;
-}
-
-
 void ChunkGraph::build(FragmentInfo *fi, BestOverlapGraph *inBovlg){
   // This will go through all the nodes in the bovlg and
   //   produce the ChunkGraph
@@ -101,10 +93,8 @@ void ChunkGraph::build(FragmentInfo *fi, BestOverlapGraph *inBovlg){
     bool tp_chunkability=isChunkable(frag_id, THREE_PRIME);
 
     // Save chunkability
-    setChunking(frag_id, 
-                (fp_chunkability)?fp_beo->frag_b_id:NULL_FRAG_ID,
-                (tp_chunkability)?tp_beo->frag_b_id:NULL_FRAG_ID
-                );
+    _chunkable_array[frag_id].five_prime   = (fp_chunkability) ? fp_beo->frag_b_id : NULL_FRAG_ID;
+    _chunkable_array[frag_id].three_prime  = (tp_chunkability) ? tp_beo->frag_b_id : NULL_FRAG_ID;
   }
 
   for(iuid frag_id=1; frag_id<=num_frags; frag_id++){
@@ -121,20 +111,6 @@ void ChunkGraph::build(FragmentInfo *fi, BestOverlapGraph *inBovlg){
 
   delete[] _edgePathLen;
   _edgePathLen = NULL;
-}
-
-short ChunkGraph::countChunkWidth(iuid frag, fragment_end_type end) {
-  short cnt = 0;
-  std::set<iuid> seen;
-  FragmentEnd anEnd( frag, end);
-  while (cnt < FRAG_WALK_NUM && frag != NULL_FRAG_ID &&
-         seen.find(frag) == seen.end()) {
-    cnt++;
-    seen.insert(frag);
-    anEnd = followPath(anEnd);
-    frag = anEnd.fragId();
-  }
-  return cnt;
 }
 
 FragmentEnd ChunkGraph::followPath( FragmentEnd anEnd ) {
@@ -267,91 +243,4 @@ bool PromiscuousChunkGraph::isChunkable(iuid frag_a_id, fragment_end_type which_
   }else{
     return(false);
   }
-}
-
-
-long ChunkGraph::countSingletons(void){
-  iuid i;
-  long num_singletons=0;
-  for(i=1; i<=_max_fragments; i++){
-    if((_chunkable_array[i].five_prime == NULL_FRAG_ID) &&
-       (_chunkable_array[i].three_prime == NULL_FRAG_ID)){
-      num_singletons++;
-    }
-  }
-  return(num_singletons);
-}
-
-
-void ChunkGraph::checkInDegree(){
-		
-  int *fivep_indegree_arr;
-  int *threep_indegree_arr;
-  long frag_id;
-
-  fivep_indegree_arr  = new int[_max_fragments + 1];
-  threep_indegree_arr = new int[_max_fragments + 1];
-
-  for(frag_id=0; frag_id<=_max_fragments; frag_id++){
-    fivep_indegree_arr[frag_id]=0;
-    threep_indegree_arr[frag_id]=0;
-  }
-
-  BestEdgeOverlap	*fivep_overlap_ptr, *threep_overlap_ptr;
-  for(frag_id=1; frag_id<=_max_fragments; frag_id++){
-
-    fivep_overlap_ptr=bovlg->getBestEdgeOverlap(frag_id, FIVE_PRIME);
-    threep_overlap_ptr=bovlg->getBestEdgeOverlap(frag_id, THREE_PRIME);
-
-    if(bovlg->_best_containments.find(frag_id)==
-       bovlg->_best_containments.end()){
-
-      if(bovlg->_best_containments.find(fivep_overlap_ptr->frag_b_id)!=
-         bovlg->_best_containments.end()){
-        std::cerr << frag_id << "(5') best olaps w/ containee:" << 
-          fivep_overlap_ptr->frag_b_id << " contained in " << 
-          (bovlg->_best_containments[threep_overlap_ptr->frag_b_id].container) <<
-          std::endl;
-      }
-      if(bovlg->_best_containments.find(threep_overlap_ptr->frag_b_id)!=
-         bovlg->_best_containments.end()){
-        std::cerr << frag_id << "(3') best olaps w/ containee:" << 
-          threep_overlap_ptr->frag_b_id << " contained in " << 
-          (bovlg->_best_containments[threep_overlap_ptr->frag_b_id].container) <<
-          std::endl;
-      }
-
-
-      if(fivep_overlap_ptr->bend==FIVE_PRIME){
-        fivep_indegree_arr[fivep_overlap_ptr->frag_b_id]++;
-      }
-      if(fivep_overlap_ptr->bend==THREE_PRIME){
-        threep_indegree_arr[fivep_overlap_ptr->frag_b_id]++;
-      }
-      if(threep_overlap_ptr->bend==FIVE_PRIME){
-        fivep_indegree_arr[threep_overlap_ptr->frag_b_id]++;
-      }
-      if(threep_overlap_ptr->bend==THREE_PRIME){
-        threep_indegree_arr[threep_overlap_ptr->frag_b_id]++;
-      }
-    }
-  }
-		
-
-  for(frag_id=1; frag_id<=_max_fragments; frag_id++){
-    BestEdgeOverlap *fp=bovlg->getBestEdgeOverlap(frag_id, FIVE_PRIME);
-    BestEdgeOverlap *tp=bovlg->getBestEdgeOverlap(frag_id, THREE_PRIME);
-
-    std::cerr << frag_id << " " << fivep_indegree_arr[frag_id] << " " <<
-      threep_indegree_arr[frag_id] << " / " << fp->in_degree << " " << tp->in_degree <<
-      " [" << bovlg->getBestContainer(frag_id) << "]" <<
-      std::endl;
-
-    //fp->in_degree=fivep_indegree_arr[frag_id];
-    //tp->in_degree=threep_indegree_arr[frag_id];
-  }
-
-
-  delete[] fivep_indegree_arr;
-  delete[] threep_indegree_arr;
 }

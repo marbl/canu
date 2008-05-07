@@ -51,13 +51,6 @@ public:
   void getChunking(iuid src_frag_id, 
                    iuid& five_prime_dst_frag_id, iuid& three_prime_dst_frag_id);
 
-  void setChunking(iuid src_frag_id, 
-                   iuid five_prime_dst_frag_id, iuid three_prime_dst_frag_id);
-
-  long countSingletons(void);
-
-  void checkInDegree();
-
   iuid nextFragByChunkLength();
 
   // follows the graph path to the next frag end
@@ -77,7 +70,6 @@ private:
     short cnt;
   };
 
-  short countChunkWidth(iuid, fragment_end_type );
   iuid countFullWidth(iuid, fragment_end_type );
 
   static int sortChunkLens(const void*,const void*);
