@@ -210,7 +210,8 @@ private:
                       iuid src_frag_id, 
                       fragment_end_type whichEnd,
                       ChunkGraph *cg_ptr,
-                      int offset);
+                      int offset,
+                      bool verbose);
 
   // Inverts the containment map to key by container, instead of containee
   void _build_container_map(BestContainmentMap*);

@@ -118,6 +118,8 @@ void UnitigGraph::build(ChunkGraph *cg_ptr) {
   iuid frag_idx;
   iuid fp_dst_frag_id, tp_dst_frag_id;
 
+  bool verbose = true;
+
   // Initialize where we've been to nowhere; "Do not retraverse list"
   Unitig::resetFragUnitigMap( _fi->numFragments() );
 
@@ -129,22 +131,23 @@ void UnitigGraph::build(ChunkGraph *cg_ptr) {
   fprintf(stderr, "==> BUILDING UNITIGS from %d fragments.\n", _fi->numFragments());
 
   while( frag_idx = cg_ptr->nextFragByChunkLength() ) {
+
     if (_fi->fragmentLength(frag_idx) == 0)
-      continue; // Deleted frag
+      continue;
 
     // Check the map to so we don't visit a unitig twice (once from
     //   both ends)
     if( !Unitig::fragIn( frag_idx ) && 
         best_cntr->find(frag_idx) == best_cntr->end() ) { 
+
       cg_ptr->getChunking(frag_idx, 
                           fp_dst_frag_id, 
                           tp_dst_frag_id);
                 
-      // Allocated a new unitig node
-      Unitig *utg=new Unitig;
+      Unitig *utg=new Unitig(verbose);
 
       // create it going off the 5' end
-      populateUnitig( utg, frag_idx, FIVE_PRIME, cg_ptr, 0);
+      populateUnitig( utg, frag_idx, FIVE_PRIME, cg_ptr, 0, verbose);
 
       // now check if we can also go off 3' end
       fragment_end_type whichEnd = THREE_PRIME;
@@ -178,7 +181,7 @@ void UnitigGraph::build(ChunkGraph *cg_ptr) {
 #endif
 
         utg->reverseComplement();
-        populateUnitig( utg, tpBest->frag_b_id, whichEnd, cg_ptr, offset);
+        populateUnitig( utg, tpBest->frag_b_id, whichEnd, cg_ptr, offset, verbose);
       }
 
       // Store unitig in unitig graph
@@ -192,44 +195,130 @@ void UnitigGraph::build(ChunkGraph *cg_ptr) {
     }
   }
 
+  fprintf(stderr, "==> BUILDING UNITIGS catching missed fragments.\n");
+
   // Pick up frags missed above, possibly circular unitigs
   for(frag_idx=1; frag_idx<=_fi->numFragments(); frag_idx++){
-    if (Unitig::fragIn( frag_idx ) == 0) {
-      cg_ptr->getChunking( frag_idx, fp_dst_frag_id, tp_dst_frag_id);
 
-      if ( fp_dst_frag_id != NULL_FRAG_ID &&
-           tp_dst_frag_id != NULL_FRAG_ID ) {
-        Unitig *utg=new Unitig;
-        // need to make populateUnitig break circle
-        populateUnitig( utg, frag_idx, FIVE_PRIME, cg_ptr, 0 );
+    if (_fi->fragmentLength(frag_idx) == 0)
+      continue;
 
-#ifdef VERBOSEBUILD
-        fprintf(stderr,"Circular unitig %d 1st frag %d\n", utg->id(), frag_idx);
+    if (Unitig::fragIn(frag_idx) > 0)
+      continue;
+
+    cg_ptr->getChunking( frag_idx, fp_dst_frag_id, tp_dst_frag_id);
+
+#if 0
+    fprintf(stderr, "frag %d missed; fp_dst_frag_id=%d tp_dst_frag_id=%d contained=%d\n",
+            frag_idx, fp_dst_frag_id, tp_dst_frag_id, bog_ptr->isContained(frag_idx));
 #endif
 
-        unitigs->push_back(utg);
+    // XXX? need to make populateUnitig break circle
 
-      } else {
-        // Should both be null or neither null
-        // otherwise main loop failed to find it
-        assert( fp_dst_frag_id == NULL_FRAG_ID );
-        assert( tp_dst_frag_id == NULL_FRAG_ID );
-      }
+    if ((fp_dst_frag_id != NULL_FRAG_ID) &&
+        (tp_dst_frag_id != NULL_FRAG_ID)) {
+
+      Unitig *utg=new Unitig(true);
+
+      populateUnitig( utg, frag_idx, FIVE_PRIME, cg_ptr, 0, true );
+
+      unitigs->push_back(utg);
+    } else {
+      // Should both be null or neither null otherwise main loop
+      // failed to find it
+      assert(fp_dst_frag_id == NULL_FRAG_ID);
+      assert(tp_dst_frag_id == NULL_FRAG_ID);
     }
   }
+
+  fprintf(stderr, "==> BREAKING UNITIGS.\n");
 
   if (BogOptions::unitigIntersectBreaking) { 
     printUnitigBreaks();
     breakUnitigs();
   }
 
-   
-  for (UnitigsConstIter uIter = unitigs->begin(); uIter != unitigs->end(); uIter++ ) {
-    Unitig* tig = *uIter;
-    if (tig == NULL)
-      continue;
-    tig->recomputeFragmentPositions(cntnrmap_ptr, best_cntr, bog_ptr);
+  fprintf(stderr, "==> PLACING CONTAINED FRAGMENTS\n");
+
+  for (int  ti=0; ti<unitigs->size(); ti++) {
+    Unitig  *thisUnitig = (*unitigs)[ti];
+    if (thisUnitig)
+      thisUnitig->recomputeFragmentPositions(cntnrmap_ptr, best_cntr, bog_ptr);
   }
+
+  ////////////////////////////////////////
+  //
+  //  This is a huge hack to get around a bug somewhere before us.  We
+  //  seem to not be placing all fragments.  So, run through all
+  //  fragments, and for anything not placed, toss it into a new
+  //  unitig.  Let scaffolder figure out where to put it.
+  //
+  //  Notice the similarity between this code and checkUnitigMembership().
+  //
+  {
+    fprintf(stderr, "==> SEARCHING FOR ZOMBIES\n");
+
+    iuid   *inUnitig   = new iuid [_fi->numFragments()+1];
+    int     numZombies = 0;
+
+    //  Sorry, poor fella that has more than 987,654,321 unitigs.  I
+    //  can't imagine the rest of the pipeline would run though.
+    //
+    //  Mark fragments as dead.
+    //
+    for (int i=0; i<_fi->numFragments()+1; i++)
+      inUnitig[i] = 987654321;
+
+    //  ZZZzzzzaapaapppp!  IT'S ALIVE!
+    //
+    for (int  ti=0; ti<unitigs->size(); ti++) {
+      Unitig  *utg = (*unitigs)[ti];
+
+      if (utg)
+        for (DoveTailIter it=utg->dovetail_path_ptr->begin(); it != utg->dovetail_path_ptr->end(); it++)
+          inUnitig[it->ident] = utg->id();
+    }
+
+    //  Anything still dead?
+    //
+    for (int i=0; i<_fi->numFragments()+1; i++) {
+      if (_fi->fragmentLength(i) > 0) {
+        if (inUnitig[i] == 0) {
+          //  We'll catch this error inna second in checkUnitigMembership().
+        } else if (inUnitig[i] != 987654321) {
+          //  We'll count this inna second there too.
+        } else {
+          //  Ha!  Gotcha!  You're now a resurrected brain eating
+          //  zomibie?  Some day we'll figure out how to put you in
+          //  properly.  For now, enjoy the ride.
+
+          Unitig *utg = new Unitig(false);
+
+          DoveTailNode frag;
+
+          frag.type         = AS_READ;
+          frag.ident        = i;
+          frag.contained    = 0;
+          frag.delta_length = 0;
+          frag.delta        = NULL;
+
+          frag.position.bgn = 0;
+          frag.position.end = _fi->fragmentLength(i);
+
+          utg->addFrag(frag, 0, true);
+          unitigs->push_back(utg);
+
+          numZombies++;
+        }
+      }
+    }
+
+    if (numZombies > 0)
+      fprintf(stderr, "RESURRECTED %d ZOMBIE FRAGMENTS.\n", numZombies);
+
+    delete inUnitig;
+  }
+  ////////////////////////////////////////
 
   checkUnitigMembership();
 
@@ -356,7 +445,8 @@ void Unitig::computeFragmentPositions(FragmentInfo *fi, BestOverlapGraph* bog_pt
   }
 }
 void UnitigGraph::populateUnitig( Unitig* unitig,
-                                  iuid src_frag_id, fragment_end_type firstEnd, ChunkGraph *cg_ptr, int offset){
+                                  iuid src_frag_id, fragment_end_type firstEnd, ChunkGraph *cg_ptr, int offset,
+                                  bool verbose){
 
   // Note:  I only need BestOverlapGraph for it's frag_len and olap_length
 
@@ -425,7 +515,7 @@ void UnitigGraph::populateUnitig( Unitig* unitig,
 
     fragNextEnd = frag_end;
     fragPrevEnd = end;
-    unitig->addFrag(dt_node);
+    unitig->addFrag(dt_node, 0, verbose);
 
     // Prep the start position of the next fragment
     if (bestEdge->ahang < 0 && bestEdge->bhang < 0 ) {
@@ -1120,98 +1210,99 @@ void Unitig::placeContains(const ContainerMap* cntnrp,
   if (ctmp_itr == cntnrp->end() )
     return;
 
-  for(ContaineeList::const_iterator cntee_itr  = ctmp_itr->second.begin();
-      cntee_itr != ctmp_itr->second.end();
-      cntee_itr++) {
+  for(ContaineeList::const_iterator ci  = ctmp_itr->second.begin();
+      ci != ctmp_itr->second.end();
+      ci++) {
 
-    iuid cntee = *cntee_itr;
-    BestContainment &best = (*bestCtn)[ cntee ];
+    iuid             fragId = *ci;
+    BestContainment &best   = (*bestCtn)[ fragId ];
 
     if (best.isPlaced)
       continue;
 
     assert( best.container == containerId );
 
-    (*containPartialOrder)[ cntee ] = level;
+    (*containPartialOrder)[ fragId ] = level;
 
     //if (level > maxContainDepth)
     //    maxContainDepth = level;
 
-    DoveTailNode pos;
+    DoveTailNode frag;
 
-    pos.type         = AS_READ; /* Isolated FT VR */
-    pos.ident        = cntee;
-    pos.contained    = containerId;
-    pos.delta_length = 0;
-    pos.delta        = NULL;
+    frag.type         = AS_READ;
+    frag.ident        = fragId;
+    frag.contained    = containerId;
+    frag.delta_length = 0;
+    frag.delta        = NULL;
 
     if(containerPos.bgn < containerPos.end) {
       //  Container is forward
-      pos.position.bgn = containerPos.bgn + best.a_hang;  //  BPW says "looks ok"
-      pos.position.end = containerPos.end + best.b_hang;
+      frag.position.bgn = containerPos.bgn + best.a_hang;  //  BPW says "looks ok"
+      frag.position.end = containerPos.end + best.b_hang;
 #ifdef NEW_UNITIGGER_INTERFACE
-      pos.ident2       = container;
-      pos.ahang        = best.a_hang;
-      pos.bhang        = best.b_hang;
+      frag.ident2       = containerId;
+      frag.ahang        = best.a_hang;
+      frag.bhang        = best.b_hang;
 #endif
 
     } else if (containerPos.bgn > containerPos.end) {
       //  Container is reverse
-      pos.position.bgn = containerPos.bgn - best.a_hang;  //  BPW says "suspicious"
-      pos.position.end = containerPos.end - best.b_hang;
+      frag.position.bgn = containerPos.bgn - best.a_hang;  //  BPW says "suspicious"
+      frag.position.end = containerPos.end - best.b_hang;
 #ifdef NEW_UNITIGGER_INTERFACE
-      pos.ident2       = containerId;
-      pos.ahang        = - best.b_hang;   //  consensus seems to want these reversed
-      pos.bhang        = - best.a_hang;
+      frag.ident2       = containerId;
+      frag.ahang        = - best.b_hang;   //  consensus seems to want these reversed
+      frag.bhang        = - best.a_hang;
 #endif
     }else{
-      std::cerr << "Error, container size is zero." << std::endl;
-      assert(0);
-    }
-    // Swap ends if containee is not same strand as container
-    if(!best.sameOrientation){
-      int tmp          = pos.position.bgn;
-      pos.position.bgn = pos.position.end;
-      pos.position.end = tmp;
+      fprintf(stderr, "Container size is zero?\n");
+      assert(containerPos.bgn != containerPos.end);
     }
 
-    addFrag( pos, 0, false );
+    // Swap ends if containee is not same strand as container
+
+    if(!best.sameOrientation){
+      int tmp          = frag.position.bgn;
+      frag.position.bgn = frag.position.end;
+      frag.position.end = tmp;
+    }
+
+    addFrag( frag, 0, false );
     best.isPlaced = true;
-    placeContains( cntnrp, bestCtn, cntee, pos.position, level+1);
+    placeContains( cntnrp, bestCtn, frag.ident, frag.position, level+1);
   }
 }
 
 void Unitig::recomputeFragmentPositions(ContainerMap *allcntnr_ptr,
                                         BestContainmentMap *bestContain,
                                         BestOverlapGraph *bog_ptr) {
-  long frag_ins_begin = 0;
-  long frag_ins_end;
   iuid lastFrag = 0;
 #ifdef NEW_UNITIGGER_INTERFACE
   iuid nextFrag = 0;
 #endif
 
-  //fprintf(stderr, "==> PLACING CONTAINED FRAGMENTS\n");
-
   // place dovetails in a row
+
   if (dovetail_path_ptr == NULL)
     return;
 
   containPartialOrder = new std::map<iuid,int>;
-  long numDoveTail = dovetail_path_ptr->size();
-  for(long i=0; i < numDoveTail; i++) {
-    DoveTailNode *dt_itr = &(*dovetail_path_ptr)[i];
+
+  for (int i=0; i < dovetail_path_ptr->size(); i++) {
+    DoveTailNode *dt = &(*dovetail_path_ptr)[i];
 
 #ifdef NEW_UNITIGGER_INTERFACE
     if ( nextFrag != 0 )
-      assert( nextFrag == dt_itr->ident);
-    nextFrag = dt_itr->ident2;
+      assert( nextFrag == dt->ident);
+    nextFrag = dt->ident2;
 #endif
-    lastFrag = dt_itr->ident;
+    lastFrag = dt->ident;
 
-    placeContains(allcntnr_ptr, bestContain, dt_itr->ident, dt_itr->position, 1);
+    placeContains(allcntnr_ptr, bestContain, dt->ident, dt->position, 1);
   }
+
   this->sort();
+
   delete containPartialOrder;
   containPartialOrder = NULL;
 }
