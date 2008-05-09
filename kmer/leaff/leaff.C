@@ -9,6 +9,8 @@
 //
 #include <time.h>
 
+#include <algorithm>
+
 #include "bio++.H"
 
 void          simseq(char *,char *,int,int,int,int,double);
@@ -138,6 +140,9 @@ const char *usage =
 "                             -- of course, N= should be increased to give the\n"
 "                                appropriate depth of coverage\n"
 "\n"
+"       --stats\n"
+"                    Reports size statistics; number, N50, sum, largest.\n"
+"\n"
 "\n"
 "EXPERT OPTIONS\n"
 "       -A:  Read actions from 'file'\n"
@@ -259,7 +264,7 @@ printSequence(seqInCore   *b,
 
 
 int
-comp(const void *a, const void *b) {
+u32bit_compare(const void *a, const void *b) {
   const u32bit A = *((const u32bit *)a);
   const u32bit B = *((const u32bit *)b);
   if (A < B)
@@ -573,7 +578,7 @@ findAndPrintRandomSequences(u32bit num) {
     seqs[i] = t;
   }
 
-  qsort(seqs, num, sizeof(unsigned int), comp);
+  qsort(seqs, num, sizeof(u32bit), u32bit_compare);
 
   for (u32bit i=0; i<num; i++)
     printIID(seqs[i]);
@@ -1119,6 +1124,94 @@ dumpBlocks(void) {
 
 
 
+void
+stats(void) {
+  seqOnDisk   *S     = 0L;
+
+  failIfNoSource();
+  failIfNotRandomAccess();
+
+  bool                  V[256];
+  for (u32bit i=0; i<256; i++)
+    V[i] = false;
+  V['n'] = true;
+  V['N'] = true;
+
+  u32bit  numSeq = fasta->getNumberOfSequences();
+
+  //  sum of spans
+  //  lengths of spans (for N50 computation)
+  //  
+  u64bit    Ss = 0;
+  u32bit   *Ls = new u32bit [numSeq];
+
+  //  sum of bases
+  //  lengths of bases (for N50 computation)
+  //  
+  u64bit    Sb = 0;
+  u32bit   *Lb = new u32bit [numSeq];
+
+  for (u32bit i=0; i<numSeq; i++)
+    Ls[i] = Lb[i] = 0;
+
+  S = fasta->getSequenceOnDisk();
+  while (S) {
+    u32bit  len    = S->sequenceLength();
+    u32bit  span   = len;
+    u32bit  base   = len;
+
+    for (u32bit pos=1; pos<len; pos++) {
+      if (V[S->get()])
+        base--;
+      S->next();
+    }
+
+    Ss += span;
+    Sb += base;
+
+    Ls[S->getIID()] = span;
+    Lb[S->getIID()] = base;
+
+    delete S;
+    S = fasta->getSequenceOnDisk();
+  }
+
+  qsort(Ls, numSeq, sizeof(u32bit), u32bit_compare);
+  qsort(Lb, numSeq, sizeof(u32bit), u32bit_compare);
+
+  u32bit  n50s=0, n50b=0;
+
+  for (u32bit i=0, sum=0; sum < Ss/2; i++) {
+    n50s = Ls[i];
+    sum += Ls[i];
+  }
+
+  for (u32bit i=0, sum=0; sum < Sb/2; i++) {
+    n50b = Lb[i];
+    sum += Lb[i];
+  }
+
+  fprintf(stderr, "%s\n", fasta->getSourceName());
+  fprintf(stderr, "\n");
+  fprintf(stderr, "numSeqs  "u32bitFMT"\n", fasta->getNumberOfSequences());
+  fprintf(stderr, "\n");
+  fprintf(stderr, "SPAN\n");
+  fprintf(stderr, "n50      "u32bitFMTW(10)"\n", n50s);
+  fprintf(stderr, "smallest "u32bitFMTW(10)"\n", Ls[0]);
+  fprintf(stderr, "largest  "u32bitFMTW(10)"\n", Ls[numSeq-1]);
+  fprintf(stderr, "totLen   "u64bitFMTW(10)"\n", Ss);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "BASES\n");
+  fprintf(stderr, "n50      "u32bitFMTW(10)"\n", n50b);
+  fprintf(stderr, "smallest "u32bitFMTW(10)"\n", Lb[0]);
+  fprintf(stderr, "largest  "u32bitFMTW(10)"\n", Lb[numSeq-1]);
+  fprintf(stderr, "totLen   "u64bitFMTW(10)"\n", Sb);
+
+  delete [] Ls;
+  delete [] Lb;
+}
+
+
 
 
 void
@@ -1175,7 +1268,7 @@ processArray(int argc, char **argv) {
           fprintf(stderr, "Unknown or zero partition size '%s'\n", argv[arg]), exit(1);
         partitionByBucket(prefix, ps);
       }
-    } else if (strncmp(argv[arg], "--segment", 3) == 0) {
+    } else if (strncmp(argv[arg], "--segment", 4) == 0) {
       failIfNoSource();
       failIfNotRandomAccess();
       partitionBySegment(argv[arg+1], strtou32bit(argv[arg+2], 0L));
@@ -1185,6 +1278,8 @@ processArray(int argc, char **argv) {
       computeGCcontent(argv[arg]);
     } else if (strncmp(argv[arg], "--dumpblocks", 3) == 0) {
       dumpBlocks();
+    } else if (strncmp(argv[arg], "--stats", 4) == 0) {
+      stats();
     } else if (strncmp(argv[arg], "--errors", 3) == 0) {
       int    L = strtou32bit(argv[++arg], 0L);  //  Desired length
       int    l = 0;                             //  min of desired length, length of sequence
