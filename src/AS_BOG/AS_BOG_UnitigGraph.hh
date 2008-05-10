@@ -72,24 +72,6 @@ typedef std::list<UnitigBreakPoint> UnitigBreakPoints;
 
 
 
-
-struct BestEdgeCounts{
-  int oneWayBest;
-  int dovetail;
-  int neither;
-  int contained;
-
-  BestEdgeCounts() : oneWayBest(0), dovetail(0), neither(0), contained(0) {}
-  BestEdgeCounts operator+=(BestEdgeCounts other){
-    oneWayBest += other.oneWayBest;
-    dovetail   += other.dovetail;
-    neither    += other.neither;
-    contained  += other.contained;
-  } 
-};
-
-
-
 struct UnitigGraph{
   // This will store the entire set of unitigs that are generated
   // It's just a unitig container.
@@ -100,28 +82,25 @@ struct UnitigGraph{
   void build(ChunkGraph *cg_ptr);
 
   void writeIUMtoFile(char *filename, int fragment_count_target);
-#if 0
-  void readIUMsFromFile(const char *filename, iuid maxIID);
-#endif
 
   float getGlobalArrivalRate(long total_random_frags_in_genome=0, long genome_size=0);
 
-  void breakUnitigs();
-  void printUnitigBreaks();
+  void breakUnitigs(ContainerMap &cMap);
 
-  void filterBreakPoints( Unitig *, UnitigBreakPoints &);
+  void filterBreakPoints(ContainerMap &cMap,
+                         Unitig *,
+                         UnitigBreakPoints &);
 
-  UnitigBreakPoint selectSmall(const Unitig *tig,
+  UnitigBreakPoint selectSmall(ContainerMap &cMap,
+                               const Unitig *tig,
                                const UnitigBreakPoints &smalls,
                                const UnitigBreakPoint &big,
                                int   &lastBPCoord,
                                int   &lastBPFragNum);
 
-  UnitigVector* breakUnitigAt( Unitig *, UnitigBreakPoints &);
+  UnitigVector*  breakUnitigAt(ContainerMap &cMap, Unitig *, UnitigBreakPoints &);
 
-  // Counts status of best edges internal to a unitig
-  BestEdgeCounts countInternalBestEdges( const Unitig *);
-  BestEdgeCounts countInternalBestEdges( ); // all unitigs
+  void           countInternalBestEdges(FILE *);
 
   void           checkUnitigMembership(void);
 
@@ -133,28 +112,16 @@ struct UnitigGraph{
 private:
   // Given a fragment, it will follow it's overlaps until 
   //   the end, and add them to the unitig
-  void populateUnitig(
-                      Unitig* unitig, 
+  void populateUnitig(Unitig* unitig, 
                       iuid src_frag_id, 
                       fragment_end_type whichEnd,
                       ChunkGraph *cg_ptr,
                       int offset,
                       bool verbose);
 
-  // Inverts the containment map to key by container, instead of containee
-  void _build_container_map(BestContainmentMap*);
-
-  // Build containee list
-  ContainerMap *_extract_containees(DoveTailPath *dtp_ptr, 
-                                    ContainerMap *cntnrmap_ptr);
-
-  // Compute the global arrival rate based on the unitig rho's.
-  float _compute_global_arrival_rate(void);
-
   FragmentInfo     *_fi;
 
   FragmentEdgeList  unitigIntersect;
-  ContainerMap     *cntnrmap_ptr;
 };
 		
 #endif

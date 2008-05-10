@@ -505,17 +505,17 @@ void Unitig::reverseComplement(int offset, BestOverlapGraph *bog_ptr) {
 // CEE fragment can be from either orientation since
 //   definition of olap_offset is based on 3' origin.
 
-void Unitig::placeContains(const ContainerMap* cntnrp,
+void Unitig::placeContains(const ContainerMap &cMap,
                            BestContainmentMap *bestCtn,
                            const iuid containerId,
                            const SeqInterval containerPos,
                            const int level) {
-  if (cntnrp->size() == 0)
+  if (cMap.size() == 0)
     return;
 
-  ContainerMap::const_iterator ctmp_itr = cntnrp->find( containerId );
+  ContainerMap::const_iterator ctmp_itr = cMap.find( containerId );
 
-  if (ctmp_itr == cntnrp->end() )
+  if (ctmp_itr == cMap.end() )
     return;
 
   for(ContaineeList::const_iterator ci  = ctmp_itr->second.begin();
@@ -577,11 +577,11 @@ void Unitig::placeContains(const ContainerMap* cntnrp,
 
     addFrag( frag, 0, false );
     best.isPlaced = true;
-    placeContains( cntnrp, bestCtn, frag.ident, frag.position, level+1);
+    placeContains(cMap, bestCtn, frag.ident, frag.position, level+1);
   }
 }
 
-void Unitig::recomputeFragmentPositions(ContainerMap *allcntnr_ptr,
+void Unitig::recomputeFragmentPositions(ContainerMap &cMap,
                                         BestContainmentMap *bestContain,
                                         BestOverlapGraph *bog_ptr) {
   iuid lastFrag = 0;
@@ -606,7 +606,7 @@ void Unitig::recomputeFragmentPositions(ContainerMap *allcntnr_ptr,
 #endif
     lastFrag = dt->ident;
 
-    placeContains(allcntnr_ptr, bestContain, dt->ident, dt->position, 1);
+    placeContains(cMap, bestContain, dt->ident, dt->position, 1);
   }
 
   this->sort();

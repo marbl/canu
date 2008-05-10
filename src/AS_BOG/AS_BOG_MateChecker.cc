@@ -295,23 +295,28 @@ void MateChecker::checkUnitigGraph( UnitigGraph& tigGraph ) {
   tigGraph.checkUnitigMembership();
 
   fprintf(stderr, "==> SPLIT BAD MATES\n");
-  for (int  ti=0; ti<tigGraph.unitigs->size(); ti++) {
-    Unitig  *tig = (*tigGraph.unitigs)[ti];
+  {
+    //  Need to get rid of this cMap guy
+    ContainerMap       cMap;
 
-    if ((tig == NULL) || (tig->getNumFrags() < 2))
-      continue;
+    for (int  ti=0; ti<tigGraph.unitigs->size(); ti++) {
+      Unitig  *tig = (*tigGraph.unitigs)[ti];
 
-    UnitigBreakPoints* breaks = computeMateCoverage(tig, tigGraph.bog_ptr);
-    UnitigVector*      newUs  = tigGraph.breakUnitigAt(tig, *breaks);
+      if ((tig == NULL) || (tig->getNumFrags() < 2))
+        continue;
 
-    if (newUs != NULL) {
-      delete tig;
-      (*tigGraph.unitigs)[ti] = NULL;
-      tigGraph.unitigs->insert(tigGraph.unitigs->end(), newUs->begin(), newUs->end());
+      UnitigBreakPoints* breaks = computeMateCoverage(tig, tigGraph.bog_ptr);
+      UnitigVector*      newUs  = tigGraph.breakUnitigAt(cMap, tig, *breaks);
+
+      if (newUs != NULL) {
+        delete tig;
+        (*tigGraph.unitigs)[ti] = NULL;
+        tigGraph.unitigs->insert(tigGraph.unitigs->end(), newUs->begin(), newUs->end());
+      }
+
+      delete newUs;
+      delete breaks;
     }
-
-    delete newUs;
-    delete breaks;
   }
 
   tigGraph.checkUnitigMembership();

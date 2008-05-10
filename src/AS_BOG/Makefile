@@ -22,30 +22,16 @@
 #
 ###########################################################################
 #
-# gmake Makefile for AS_BOG
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-TOOL_SRCS = BuildUnitigs.cc
-JUNK_SRCS = FindContainedFrags.cc ReadIUMs.cc
-
-HEADERS     = AS_BOG_BestOverlapGraph.hh AS_BOG_ChunkGraph.hh AS_BOG_MateChecker.hh AS_BOG_Unitig.hh AS_BOG_UnitigGraph.hh AS_BOG_Datatypes.hh
 LIB_SOURCES = AS_BOG_BestOverlapGraph.cc AS_BOG_ChunkGraph.cc AS_BOG_MateChecker.cc AS_BOG_Unitig.cc AS_BOG_UnitigGraph.cc
+LIB_OBJECTS = $(LIB_SOURCES:.cc=.o) 
 
-SOURCES = $(LIB_SOURCES) $(TOOL_SRCS)
+SOURCES     = BuildUnitigs.cc $(LIB_SOURCES)
+OBJECTS     = BuildUnitigs.o  $(LIB_OBJECTS)
 
-TOOL_OBJS = $(TOOL_SRCS:.cc=.o)
-LIB_OBJS = $(LIB_SOURCES:.cc=.o) 
-OBJECTS =  $(LIB_OBJS)  $(TOOL_OBJS)
-
-AS_LIBRARIES = libCA.a
-SYS_LIBRARIES = 
-
-TOOL_PROGS = buildUnitigs
-JUNK_PROGS = findContainedFrags readIUMs
-
-PROGS = $(TOOL_PROGS)
-
+PROGS = buildUnitigs
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -53,8 +39,4 @@ include $(LOCAL_WORK)/src/c_make.as
 all:    $(OBJECTS) $(LIBRARIES) $(PROGS) 
 	@test -n nop
 
-buildUnitigs: BuildUnitigs.o $(LIB_OBJS) $(AS_LIBRARIES) $(SYS_LIBRARIES) 
-
-findContainedFrags:  FindContainedFrags.o $(LIB_OBJS) $(AS_LIBRARIES) $(SYS_LIBRARIES)
-
-readIUMs:  ReadIUMs.o $(LIB_OBJS) $(AS_LIBRARIES) $(SYS_LIBRARIES)
+buildUnitigs: BuildUnitigs.o $(LIB_OBJECTS) libCA.a

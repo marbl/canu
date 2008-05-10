@@ -210,12 +210,7 @@ main (int argc, char * argv []) {
     fprintf(stats, "Global Arrival Rate: %f\n", globalARate);
     fprintf(stats, "There were %d unitigs generated.\n", utg.unitigs->size());
 
-    BestEdgeCounts cnts = utg.countInternalBestEdges();
-
-    fprintf(stats, "Overall best edge counts: dovetail %d oneWayBest %d neither %d\n",
-            cnts.dovetail,
-            cnts.oneWayBest,
-            cnts.neither);
+    utg.countInternalBestEdges(stats);
 
     outputHistograms( &utg, fragInfo, stats );
 

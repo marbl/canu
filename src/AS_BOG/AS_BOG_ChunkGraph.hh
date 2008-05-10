@@ -29,19 +29,11 @@ struct ChunkGraph{
 
 public:
 
-  // Number of frags edges to cross in 
-  static const short FRAG_WALK_NUM = 101;
-
   ChunkGraph(void);
   ~ChunkGraph(void);
 
   // Build the ChunkGraph, based on a BOG
   void build(FragmentInfo *fi, BestOverlapGraph *bovlg);		
-
-  // Chunkability rule
-  bool isChunkable( BestEdgeOverlap *beo );
-
-  virtual bool isChunkable( iuid frag_a_id, fragment_end_type which_end);
 
   // Returns IUID of 5' or 3' end of specified frag_id
   // Since there should only be one out/incoming connection
@@ -53,13 +45,17 @@ public:
 
   iuid nextFragByChunkLength();
 
-  // follows the graph path to the next frag end
-  FragmentEnd followPath(FragmentEnd);
-
 protected:
   BestOverlapGraph *bovlg;
 
 private:
+
+  bool isChunkable( BestEdgeOverlap *beo );
+
+  virtual bool isChunkable( iuid frag_a_id, fragment_end_type which_end);
+
+  // follows the graph path to the next frag end
+  FragmentEnd followPath(FragmentEnd);
 
   struct _chunk_unit_struct{
     iuid five_prime;

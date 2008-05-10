@@ -56,8 +56,8 @@ iuid ChunkGraph::getChunking(iuid src_frag_id, fragment_end_type whichEnd){
 void ChunkGraph::getChunking(iuid src_frag_id,
                              iuid& five_prime_dst_frag_id, iuid& three_prime_dst_frag_id){
 
-  five_prime_dst_frag_id=_chunkable_array[src_frag_id].five_prime;
-  three_prime_dst_frag_id=_chunkable_array[src_frag_id].three_prime;
+  five_prime_dst_frag_id   = _chunkable_array[src_frag_id].five_prime;
+  three_prime_dst_frag_id  = _chunkable_array[src_frag_id].three_prime;
 }
 
 void ChunkGraph::build(FragmentInfo *fi, BestOverlapGraph *inBovlg){

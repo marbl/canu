@@ -53,7 +53,7 @@ struct Unitig{
   void sort();
 
   // Compute unitig based on given dovetails and containments
-  void recomputeFragmentPositions(ContainerMap *,BestContainmentMap*, BestOverlapGraph*);
+  void recomputeFragmentPositions(ContainerMap &,BestContainmentMap*, BestOverlapGraph*);
   void computeFragmentPositions(FragmentInfo*, BestOverlapGraph*);
 
   void shiftCoordinates(int);
@@ -92,8 +92,11 @@ struct Unitig{
   DoveTailPath *dovetail_path_ptr;
 
 private:
-  void placeContains( const ContainerMap *, BestContainmentMap*,
-                      const iuid , const SeqInterval, const int level );
+  void placeContains(const ContainerMap &,
+                     BestContainmentMap *,
+                     const iuid,
+                     const SeqInterval,
+                     const int level);
 
   // Do not access these private variables directly, they may
   // not be computed yet, use accessors!
