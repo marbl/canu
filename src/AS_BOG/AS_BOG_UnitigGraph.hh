@@ -107,6 +107,7 @@ struct Unitig{
 
   iuid         id(void) { return(_id); };
 
+  void addContainedFrag(DoveTailNode, BestContainment *bestcont, bool report=false);
   void addFrag(DoveTailNode, int offset=0, bool report=false);
 
   static iuid fragIn(iuid fragId) {

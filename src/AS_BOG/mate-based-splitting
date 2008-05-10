@@ -1,0 +1,130 @@
+How Unhappy contained fragment ejection works.
+
+Notes:
+
+a) The arrows and smilies in the diagram below indicate where the mate
+is, and if happy or not.
+
+b) The ^ reminds us that this fragment is claiming containment.
+
+c) The * is the point where we split.  The genie labels a fragment end
+as being the split point.
+
+d) The split code takes all fragments LISTED IN THE UNITIG STRUCTURE
+before that point.  It does not take all fragments that are PLACED
+before that point.  In particular, if the right end of fragment A is
+the split point, and fragment B is contained in A, fragment B -- which
+comes after the split point in the unitig structure -- remains where
+it is.
+
+
+This is now an integral part of the mate based splitting.  That routine is now:
+
+1 - moveContains()
+2 - splitDiscontinuous()
+3 - split()
+4 - splitDiscontinuous()
+5 - moveContains()
+6 - splitDiscontinuous()
+
+Step 1 was suggested by Granger.  I argue the motivation for it is
+that a contained fragment will have a high chance of being placed
+incorrectly without using the mate relationship.  By moving the
+contained frag out now, we don't penalize what could be otherwise an
+perfectly good unitig.
+
+Step 2 _should_ do nothing.  By ejecting just unhappy contained
+fragments, the unitig should still be connected.  Yes, the code tells
+you this fact.
+
+Step 3 does the mate-based splitting.  As far as I'm concerned,
+the Splitting Genie came in and chopped unitigs at specific fragment
+positions.
+
+Step 4 cleans up after splitting.  It catches this case:
+
+A----------------*
+   B---^---
+      C-^--
+             D-----------------
+
+After A is split off, fragments B and C are not connected to the rest
+of the unitig, and need to be removed to a new unitig.  This step MUST
+be done before we can eject unhappy contains, since B and C could
+interfere with that.  (As imlemented, I don't think it will, as we
+eject the first fragment in an unhappy pair.)
+
+Step 5 does the unhappy contained fragment ejection.
+
+This code does two things.  First, it moves fragments that have lost
+their container due to splitting.  Second, it ejects unhappily mated
+contained fragmetns, which is both straightforward and boring.
+
+The more interesting bit is how to clean up containment relationships
+after we split a unitig.
+
+A----------------*
+   B---^--- -> :-)
+      C-^--
+ :-) <- D--^----
+             E-----------------
+
+B, C and D are contained in A.  C is unmated.
+
+Fragment A (and those not shown before it) are split into a new
+unitig.  This leaves us with a broken -- because frags B, C and D are
+contained in something not here -- unitig:
+
+   B---^--- -> :-)
+      C-^--
+ :-) <- D--^----
+             E-----------------
+
+What should we do?
+
+Idea 1: Move contains with the container.  It is not a good idea to
+blindly move all contained fragments with the container.  This will
+just confuse any scaffolding attempts - we split because there are bad
+mates around here, and by keeping the contains with the container, we
+aren't breaking the unitig either as much as we should or at the
+correct spot.  Fragment B and its happy mate to the right, would try
+to get the split-off unitig back here.
+
+Idea 2: Eject all contained fragments that are in a unitig without
+their container, regardless of happiness.  B and D would be ejected to
+new singleton unitigs, letting scaffolder put them back.  Fragment C,
+with no mate, should be moved with the container.
+
+Idea 3: Eject all contained fragments that are in a unitig without
+their container, but only if they are not happy.  Ejected fragments
+are made singleton unitigs.  Fragment B is perfectly happy where it
+is, and can be left there -- IF IT HAS OVERLAPS to the rest of the
+unitig.  Fragment C is moved to be with its container.  Fragment D
+gets ejected to a singleton unitig.  (Note that the end result is a
+disconnected unitig, sigh.)
+
+Step 6 again cleans up.  It is needed to catch this case:
+
+A---------------*
+   B---^-- -> :-)
+      C-^------  -> :-(
+             D-----------------
+
+Step 3 splits at fragment A.  The resulting unitig is still connected,
+so step 4 does nothing.  Step 5 leaves fragment B where it is beacuse
+it's happy.  Step 5 next examines fragment C, and notices that it's
+not happy, and ejects it.  This leaves the unitig disconnected.
+
+This case has no problem:
+
+A---------------*
+   B---^------- -> :-(
+      C-^---
+             D-----------------
+
+Step 3 splits at fragment A.  The resulting unitig is still connected,
+so step 4 does nothing.  Step 5 ejects fragment B because it is
+unhappy.  Step 5 next examines fragment C, and notices that it's
+container is gone, and will move it there.  Step 6 has nothing to do,
+as the unitig (now just fragment D) is conntected.
+

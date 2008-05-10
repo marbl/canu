@@ -940,6 +940,59 @@ void Unitig::addFrag( DoveTailNode node, int offset, bool report) {
       fprintf(stderr, "Added frag %d to unitig %d at %d,%d\n", node.ident, id(), node.position.bgn, node.position.end);
 }
 
+void Unitig::addContainedFrag(DoveTailNode node, BestContainment *bestcont, bool report) {
+
+  //  This will add a contained fragment to a unitig, adjusting the
+  //  position as needed.  It is only needed when moving a contained
+  //  read from unitig A to unitig B.  It is NOT needed when
+  //  rebuilding a unitig.
+
+  assert(node.contained == bestcont->container);
+
+  //  Apparently, no way to retrieve a single fragment from a
+  //  unitig without searching for it.
+  //
+  //  Orientation should be OK.  All we've done since the
+  //  unitig was built was to split at various spots.  But we
+  //  need to adjust the location of the read.
+  //
+  for (DoveTailIter it=dovetail_path_ptr->begin(); it != dovetail_path_ptr->end(); it++)
+    if (it->ident == node.contained) {
+      int offset = MIN(it->position.bgn, it->position.end) + bestcont->a_hang;
+      int adj    = MIN(node.position.bgn, node.position.end);
+
+      node.position.bgn += offset - adj;
+      node.position.end += offset - adj;
+    }
+
+  addFrag(node, 0, report);
+
+  //  Bump that new fragment up to be in the correct spot -- we can't
+  //  use the sort() method on Unitig, since we lost the
+  //  containPartialOrder.
+  //
+  int             i = dovetail_path_ptr->size() - 1;
+  DoveTailNode   *f = &dovetail_path_ptr->front();
+
+  //  Only needed if the frag we just added (i) begins before the second to last frag.
+
+  if (MIN(f[i].position.bgn, f[i].position.end) < MIN(f[i-1].position.bgn, f[i-1].position.end)) {
+    DoveTailNode    containee    = f[i];
+    int             containeeMin = MIN(containee.position.bgn, containee.position.end);
+
+    while ((i > 0) &&
+           (containee.contained != f[i-1].ident) &&
+           (containeeMin < MIN(f[i-1].position.bgn, f[i-1].position.end))) {
+      f[i] = f[i-1];
+      i--;
+    }
+
+    f[i] = containee;
+  }
+}
+
+
+
 
 float Unitig::getAvgRho(FragmentInfo *fi){
 

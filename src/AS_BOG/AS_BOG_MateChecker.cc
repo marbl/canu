@@ -414,7 +414,8 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
                  (thisUnitig->fragIn(bestcont->container) == thisUnitig->id())) {
         //  CASE 2: Frag is contained, and his container is in this
         //  unitig.  Leave here, UNLESS he is an unhappy mate, in
-        //  which case we eject him to a new unitig.
+        //  which case we eject him to a new unitig.  (Unless we've
+        //  already ejected his mate)
 
 #if 0
         fprintf(stderr, "moveContain2 f=%d c=%d(%d b=%d(%d)\n",
@@ -425,22 +426,29 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
                 (bestcont == NULL) ? 0 : thisUnitig->fragIn(bestcont->container));
 #endif
 
+        //  Is he mated?  If not, we'll always leave here.
+        //
+        //  Is the mate here?  If not, we can leave here.
+        //
         //  id1 != 0 -> we found the fragment in the mate happiness table
         //  isBad -> and the mate is unhappy.
         //
         //  See comment on similar if test below.
         //
-        if ((mloc.id1 != 0) && (mloc.id2 != 0) && (mloc.isBad == true)) {
+        if ((_fi->mateIID(fragIter->ident) > 0) &&
+            (thisUnitig->fragIn(_fi->mateIID(fragIter->ident)) == thisUnitig->fragIn(fragIter->ident)) &&
+            (mloc.id1 != 0) &&
+            (mloc.id2 != 0) &&
+            (mloc.isBad == true)) {
           Unitig        *sing = new Unitig(verbose);
-          DoveTailNode   frag = *fragIter;  //  To make it read/write
 
           if (verbose)
             fprintf(stderr, "Ejecting unhappy contained fragment %d from unitig %d into new unitig %d\n",
-                    frag.ident, thisUnitig->id(), sing->id());
+                    fragIter->ident, thisUnitig->id(), sing->id());
 
-          frag.contained = 0;
+          fragIter->contained = 0;
 
-          sing->addFrag(frag, -MIN(frag.position.bgn, frag.position.end), verbose);
+          sing->addFrag(*fragIter, -MIN(fragIter->position.bgn, fragIter->position.end), verbose);
           tigGraph.unitigs->push_back(sing);
           thisUnitig = (*tigGraph.unitigs)[ti];  //  Reset the pointer; unitigs might be reallocated
         } else {
@@ -520,61 +528,38 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
           fragsLen++;
         } else {
           //  Mate is not happy, or is happy but has no overlap
-          //  anymore.  Move him to the unitig of the container.
+          //  anymore.  Or fragment is unmated.  Move him to the
+          //  unitig of the container.
 
 #warning DANGEROUS assume unitig is at id-1 in vector
           Unitig         *thatUnitig = tigGraph.unitigs->at(thisUnitig->fragIn(bestcont->container) - 1);
           DoveTailNode    containee  = *fragIter;  //  To make it read/write
 
-          assert(thatUnitig->id() == thisUnitig->fragIn(bestcont->container));
-
-          if (verbose)
-            fprintf(stderr, "Moving contained fragment %d from unitig %d to be with its container %d in unitig %d\n",
-                    containee.ident, thisUnitig->id(), bestcont->container, thatUnitig->id());
-
-          //  Apparently, no way to retrieve a single
-          //  fragment from a unitig without searching
-          //  for it.
+          //  If fragment is mated, move to a singleton, instead of with container.
           //
-          //  Orientation should be OK.  All we've done
-          //  since the unitig was built was to split at
-          //  various spots.  But we need to adjust the
-          //  location of the read.
-          //
-          for (DoveTailIter it=thatUnitig->dovetail_path_ptr->begin(); it != thatUnitig->dovetail_path_ptr->end(); it++)
-            if (it->ident == bestcont->container) {
-              int offset = MIN(it->position.bgn, it->position.end) + bestcont->a_hang;
-              int adj    = MIN(containee.position.bgn, containee.position.end);
+          if (_fi->mateIID(containee.ident) != 0) {
+            Unitig        *sing = new Unitig(verbose);
 
-              containee.position.bgn += offset - adj;
-              containee.position.end += offset - adj;
-            }
+            if (verbose)
+              fprintf(stderr, "Ejecting unhappy contained fragment %d from unitig %d into new unitig %d\n",
+                      containee.ident, thisUnitig->id(), sing->id());
 
-          //  Make sure it's marked as contained.
-          containee.contained = bestcont->container;
+            containee.contained = 0;
 
-          thatUnitig->addFrag(containee, 0, verbose);
+            sing->addFrag(containee, -MIN(containee.position.bgn, containee.position.end), verbose);
+            tigGraph.unitigs->push_back(sing);
+            thisUnitig = (*tigGraph.unitigs)[ti];  //  Reset the pointer; unitigs might be reallocated
+          } else {
+            assert(thatUnitig->id() == thisUnitig->fragIn(bestcont->container));
 
-          //  Bump that new fragment up to be in the correct spot -- we can't use the
-          //  sort() method on Unitig, since we lost the containPartialOrder.
+            if (verbose)
+              fprintf(stderr, "Moving contained fragment %d from unitig %d to be with its container %d in unitig %d\n",
+                      containee.ident, thisUnitig->id(), bestcont->container, thatUnitig->id());
 
-          {
-            int             i = thatUnitig->dovetail_path_ptr->size() - 1;
-            DoveTailNode   *f = &thatUnitig->dovetail_path_ptr->front();
+            //  Make sure it's marked as contained.
+            containee.contained = bestcont->container;
 
-            containee = f[i];
-
-            int             containeeMin = MIN(containee.position.bgn, containee.position.end);
-            bool            found = false;
-
-            while ((i > 0) &&
-                   (containee.contained != f[i-1].ident) &&
-                   (containeeMin < MIN(f[i-1].position.bgn, f[i-1].position.end))) {
-              f[i] = f[i-1];
-              i--;
-            }
-
-            f[i] = containee;
+            thatUnitig->addContainedFrag(containee, bestcont, verbose);
           }
         }  // end of moving unhappy contained to container unitig
       }  //  end of if blocks deciding what to do with a containee
@@ -649,23 +634,42 @@ void MateChecker::splitDiscontinuousUnitigs(UnitigGraph& tigGraph) {
       //  we don't have that, split off the fragments we've seen.
       //
       if (maxEnd - 10 < MIN(fragIter->position.bgn, fragIter->position.end)) {
-        Unitig *dangler = new Unitig(verbose);
 
-        if (verbose)
-          fprintf(stderr, "Dangling Fragments in unitig %d -> move them to unitig %d\n", unitig->id(), dangler->id());
+        //  If there is exactly one fragment, and it's contained, and
+        //  it's not mated, move it to the container.  (This has a
+        //  small positive benefit over just making every read a
+        //  singleton).
+        //
+        if ((splitFragsLen == 1) &&
+            (_fi->mateIID(splitFrags[0].ident) == 0) &&
+            (splitFrags[0].contained != 0)) {
 
-        int splitOffset = -MIN(splitFrags[0].position.bgn, splitFrags[0].position.end);
+          Unitig           *dangler  = (*tigGraph.unitigs)[splitFrags[0].contained];
+          BestContainment  *bestcont = tigGraph.bog_ptr->getBestContainer(splitFrags[0].ident);
 
-        //  This should already be true, but we force it still
-        splitFrags[0].contained = 0;
+          if (verbose)
+            fprintf(stderr, "Dangling contained fragment in unitig %d -> move them to container unitig %d\n", unitig->id(), dangler->id());
 
-        for (int i=0; i<splitFragsLen; i++)
-          dangler->addFrag(splitFrags[i], splitOffset, verbose);
+          dangler->addContainedFrag(splitFrags[0], bestcont, verbose);
+        } else {
+          Unitig *dangler = new Unitig(verbose);
 
-        splitFragsLen = 0;
+          if (verbose)
+            fprintf(stderr, "Dangling fragments in unitig %d -> move them to unitig %d\n", unitig->id(), dangler->id());
 
-        tigGraph.unitigs->push_back(dangler);
-        unitig = (*tigGraph.unitigs)[ti];
+          int splitOffset = -MIN(splitFrags[0].position.bgn, splitFrags[0].position.end);
+
+          //  This should already be true, but we force it still
+          splitFrags[0].contained = 0;
+
+          for (int i=0; i<splitFragsLen; i++)
+            dangler->addFrag(splitFrags[i], splitOffset, verbose);
+
+          splitFragsLen = 0;
+
+          tigGraph.unitigs->push_back(dangler);
+          unitig = (*tigGraph.unitigs)[ti];
+        }
       }  //  End break
 
       splitFrags[splitFragsLen++] = *fragIter;
