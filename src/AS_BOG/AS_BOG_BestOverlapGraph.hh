@@ -22,50 +22,9 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-#include <set>
-
 #include "AS_BOG_Datatypes.hh"
 
-struct BestEdgeOverlap{
-  iuid frag_b_id;
-  float score;
-  int in_degree;
-  fragment_end_type bend;                
-  short ahang;
-  short bhang;
-};
-
-struct BestFragmentOverlap{
-
-  // Contains information on what a known fragment overlaps.
-  // It is assumed that an index into an array of BestOverlap
-  // will tell us what fragment has this best overlap
-
-  BestEdgeOverlap five_prime; 
-  BestEdgeOverlap three_prime;
-};
-
-
-struct BestContainment{
-
-  // Contains what kind of containment relationship exists between
-  // fragment a and fragment b
-
-  iuid   container;
-  float  contain_score;
-
-  short  a_hang;
-  short  b_hang;
-  bool   sameOrientation;
-  bool   isPlaced;
-
-  bool overlapsAreSorted;
-  std::vector<iuid> overlaps;
-};
-
-//#warning why a map and not a vector or just an array
-typedef std::map<iuid, BestContainment> BestContainmentMap;
-
+#include <set>
 
 struct BestOverlapGraph {
   BestOverlapGraph(FragmentInfo *fi, OverlapStore *ovlStore, double erate);

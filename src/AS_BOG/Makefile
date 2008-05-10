@@ -29,8 +29,8 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 TOOL_SRCS = BuildUnitigs.cc
 JUNK_SRCS = FindContainedFrags.cc ReadIUMs.cc
 
-HEADERS = $(shell ls *.hh | grep -v Datatypes)
-LIB_SOURCES = $(HEADERS:.hh=.cc)
+HEADERS     = AS_BOG_BestOverlapGraph.hh AS_BOG_ChunkGraph.hh AS_BOG_MateChecker.hh AS_BOG_Unitig.hh AS_BOG_UnitigGraph.hh AS_BOG_Datatypes.hh
+LIB_SOURCES = AS_BOG_BestOverlapGraph.cc AS_BOG_ChunkGraph.cc AS_BOG_MateChecker.cc AS_BOG_Unitig.cc AS_BOG_UnitigGraph.cc
 
 SOURCES = $(LIB_SOURCES) $(TOOL_SRCS)
 

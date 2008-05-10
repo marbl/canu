@@ -74,6 +74,42 @@ private:
 };
 
 
+struct BestEdgeOverlap{
+  iuid frag_b_id;
+  float score;
+  int in_degree;
+  fragment_end_type bend;                
+  short ahang;
+  short bhang;
+};
+
+
+// Contains information on what a known fragment overlaps.
+// It is assumed that an index into an array of BestOverlap
+// will tell us what fragment has this best overlap
+struct BestFragmentOverlap{
+  BestEdgeOverlap five_prime; 
+  BestEdgeOverlap three_prime;
+};
+
+
+// Contains what kind of containment relationship exists between
+// fragment a and fragment b
+struct BestContainment{
+  iuid   container;
+  float  contain_score;
+
+  short  a_hang;
+  short  b_hang;
+  bool   sameOrientation;
+  bool   isPlaced;
+
+  bool overlapsAreSorted;
+  std::vector<iuid> overlaps;
+};
+typedef std::map<iuid, BestContainment> BestContainmentMap;
+
+
 class FragmentInfo {
 public:
   FragmentInfo(GateKeeperStore *gkpStore) {
