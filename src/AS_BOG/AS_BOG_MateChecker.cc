@@ -21,6 +21,7 @@
 
 #include <math.h>
 #include "AS_BOG_MateChecker.hh"
+#include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_OVL_overlap.h"
 #include "AS_UTL_alloc.h"
 
@@ -117,21 +118,6 @@ LibraryStats* MateChecker::computeLibraryStats(Unitig* tig) {
       }
     }
   }
-
-#if 0
-  if (tig->dovetail_path_ptr->size() > 1 ) {
-    fprintf(stderr,"Num frags in tig %ld\n",tig->dovetail_path_ptr->size());
-    fprintf(stderr,"Num frags with mate %d\n",numWithMate);
-    fprintf(stderr,"Num with mate in unitig %d\n",numInTig);
-    fprintf(stderr,"Num other unitig %d\n",otherUnitig.size());
-    IdMapConstIter histIter = otherTigHist.begin();
-    for(;histIter != otherTigHist.end(); histIter++) {
-      iuid libId = histIter->first;
-      iuid cnt   = histIter->second;
-      fprintf(stderr,"Num mates to unitig %ld is %ld.\n",libId,cnt);
-    }
-  }
-#endif
 
   // Calculate the unitig local mean
   LibraryStats::iterator dcIter = libs->begin();

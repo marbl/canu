@@ -23,64 +23,45 @@
 #define INCLUDE_AS_BOG_CHUNKGRAPH
 
 #include "AS_BOG_Datatypes.hh"
-#include "AS_BOG_BestOverlapGraph.hh"
+
+#define PROMISCUOUS
+
+struct BestOverlapGraph;
 
 struct ChunkGraph{
-
 public:
+  ChunkGraph(FragmentInfo *fi, BestOverlapGraph *bovlg);
+  ~ChunkGraph(void) {
+    delete [] _chunk_lengths;
+  };
 
-  ChunkGraph(void);
-  ~ChunkGraph(void);
+  iuid nextFragByChunkLength(void) {
+    static iuid pos = 0;
 
-  // Build the ChunkGraph, based on a BOG
-  void build(FragmentInfo *fi, BestOverlapGraph *bovlg);		
+    if (pos < _max_fragments)
+      return _chunk_lengths[pos++].fragId;
 
-  // Returns IUID of 5' or 3' end of specified frag_id
-  // Since there should only be one out/incoming connection
-  iuid getChunking(iuid src_frag_id,
-                   fragment_end_type whichEnd);
-
-  void getChunking(iuid src_frag_id, 
-                   iuid& five_prime_dst_frag_id, iuid& three_prime_dst_frag_id);
-
-  iuid nextFragByChunkLength();
-
-protected:
-  BestOverlapGraph *bovlg;
+    pos = 0;
+    return(0);
+  };
 
 private:
+  uint32 countFullWidth(BestOverlapGraph *BOG, iuid *, iuid, fragment_end_type );
 
-  bool isChunkable( BestEdgeOverlap *beo );
-
-  virtual bool isChunkable( iuid frag_a_id, fragment_end_type which_end);
-
-  // follows the graph path to the next frag end
-  FragmentEnd followPath(FragmentEnd);
-
-  struct _chunk_unit_struct{
-    iuid five_prime;
-    iuid three_prime;
-  };
   struct _chunk_length {
-    iuid fragId;
-    short cnt;
+    iuid   fragId;
+    uint32 cnt;
+
+    bool operator<(_chunk_length const that) const {
+      if (cnt == that.cnt)
+        return(fragId < that.fragId);
+      return(cnt > that.cnt);
+    };
   };
+  _chunk_length      *_chunk_lengths;
 
-  iuid countFullWidth(iuid, fragment_end_type );
-
-  static int sortChunkLens(const void*,const void*);
-
-  _chunk_unit_struct *_chunkable_array;
-  iuid *_edgePathLen;
-  _chunk_length *_chunk_lengths;
-  iuid _max_fragments;
-
+  iuid                _max_fragments;
 };
-
-struct PromiscuousChunkGraph : public ChunkGraph {
-  bool isChunkable( iuid frag_id, fragment_end_type which_end);
-};
-
 
 #endif
 

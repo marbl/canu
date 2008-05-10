@@ -186,9 +186,7 @@ main (int argc, char * argv []) {
 
   BestOverlapGraph      *BOG = new BestOverlapGraph(fragInfo, ovlStore, erate);
 
-  PromiscuousChunkGraph *cg  = new PromiscuousChunkGraph();
-  cg->build(fragInfo, BOG);
-
+  ChunkGraph *cg = new ChunkGraph(fragInfo, BOG);
   UnitigGraph utg(fragInfo, BOG);
   utg.build(cg);
 

@@ -19,228 +19,117 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#include<iostream>
-#include<vector>
-#include<set>
-#include<cassert>
-
-#include "AS_BOG_Datatypes.hh"
-#include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_BOG_ChunkGraph.hh"
+#include "AS_BOG_BestOverlapGraph.hh"
 
-ChunkGraph::ChunkGraph(void){
-  _chunkable_array=NULL;
-  _edgePathLen=NULL;
-  _chunk_lengths=NULL;
-  _max_fragments=0;
-}
+#include <algorithm>
 
-ChunkGraph::~ChunkGraph(void){
-  delete[] _edgePathLen;
-  delete[] _chunkable_array;
-  delete[] _chunk_lengths;
-}
+ChunkGraph::ChunkGraph(FragmentInfo *fi, BestOverlapGraph *BOG){
 
+  _max_fragments   = fi->numFragments();
 
-iuid ChunkGraph::getChunking(iuid src_frag_id, fragment_end_type whichEnd){
-  if(FIVE_PRIME == whichEnd){
-    return(_chunkable_array[src_frag_id].five_prime);
-  }else if(THREE_PRIME == whichEnd){
-    return(_chunkable_array[src_frag_id].three_prime);
-  }else{
-    fprintf(stderr, "Bad fragment_end_type.\n");
-    exit(1);
-  }
-}
+  iuid *pathLen = new iuid[(_max_fragments+1)*2];
+  memset(pathLen, 0, sizeof(iuid)*(_max_fragments+1)*2);
 
-void ChunkGraph::getChunking(iuid src_frag_id,
-                             iuid& five_prime_dst_frag_id, iuid& three_prime_dst_frag_id){
-
-  five_prime_dst_frag_id   = _chunkable_array[src_frag_id].five_prime;
-  three_prime_dst_frag_id  = _chunkable_array[src_frag_id].three_prime;
-}
-
-void ChunkGraph::build(FragmentInfo *fi, BestOverlapGraph *inBovlg){
-  // This will go through all the nodes in the bovlg and
-  //   produce the ChunkGraph
-  bovlg = inBovlg;
-
-  delete[] _edgePathLen;
-  delete[] _chunkable_array;
-  delete[] _chunk_lengths;
-
-  // Initialize the chunk graph if necessary
-  iuid num_frags = fi->numFragments();
-
-  _edgePathLen = new iuid[(num_frags+1)*2];
-  memset(_edgePathLen, 0, sizeof(iuid)*(num_frags+1)*2);
-
-  _chunkable_array=new _chunk_unit_struct[num_frags+1];
-
-  _chunk_lengths = new _chunk_length[num_frags];
-
-  _max_fragments=num_frags;
-
-  // Go through every fragment in the BOG
-  for(iuid frag_id=1; frag_id<=num_frags; frag_id++){
-
-    // Grab 5' end, and check for chunkability
-    BestEdgeOverlap *fp_beo= bovlg->getBestEdgeOverlap(frag_id, FIVE_PRIME);
-    bool fp_chunkability=isChunkable(frag_id, FIVE_PRIME);
-			
-    // Grab 3' end, and check for chunkability
-    BestEdgeOverlap *tp_beo= bovlg->getBestEdgeOverlap(frag_id, THREE_PRIME);
-    bool tp_chunkability=isChunkable(frag_id, THREE_PRIME);
-
-    // Save chunkability
-    _chunkable_array[frag_id].five_prime   = (fp_chunkability) ? fp_beo->frag_b_id : NULL_FRAG_ID;
-    _chunkable_array[frag_id].three_prime  = (tp_chunkability) ? tp_beo->frag_b_id : NULL_FRAG_ID;
-  }
-
-  for(iuid frag_id=1; frag_id<=num_frags; frag_id++){
+  _chunk_lengths   = new _chunk_length      [_max_fragments];
+  for(iuid frag_id=1; frag_id<=_max_fragments; frag_id++){
     _chunk_lengths[frag_id-1].fragId = frag_id;
-    _chunk_lengths[frag_id-1].cnt    = countFullWidth(frag_id, FIVE_PRIME) + countFullWidth(frag_id, THREE_PRIME);
+    _chunk_lengths[frag_id-1].cnt    = (countFullWidth(BOG, pathLen, frag_id, FIVE_PRIME) +
+                                        countFullWidth(BOG, pathLen, frag_id, THREE_PRIME));
   }
 
-  qsort( _chunk_lengths, num_frags, sizeof(_chunk_length), &ChunkGraph::sortChunkLens);
+  std::sort(_chunk_lengths, _chunk_lengths + _max_fragments);
 
-  fprintf(stderr,"Top chunkLength frgs %d cnt %d and %d cnt %d\n",
-          _chunk_lengths[0].fragId, _chunk_lengths[0].cnt,
-          _chunk_lengths[1].fragId, _chunk_lengths[1].cnt
-          );
-
-  delete[] _edgePathLen;
-  _edgePathLen = NULL;
+  delete[] pathLen;
 }
 
-FragmentEnd ChunkGraph::followPath( FragmentEnd anEnd ) {
-  iuid frag = anEnd.fragId();
-  if (anEnd.fragEnd() == FIVE_PRIME) 
-    frag = _chunkable_array[frag].five_prime ;
-  else 
-    frag = _chunkable_array[frag].three_prime ;
 
-  // advances to the next fragment, opposite end
-  bovlg->followOverlap( &anEnd );
-
-  if (frag == NULL_FRAG_ID)
-    anEnd = FragmentEnd();
-  else
-    assert(frag == anEnd.fragId());
-
-  return anEnd;
-}
-
-iuid ChunkGraph::countFullWidth(iuid firstFrag, fragment_end_type end) {
+uint32
+ChunkGraph::countFullWidth(BestOverlapGraph *BOG, iuid *pathLen, iuid firstFrag, fragment_end_type end) {
   iuid index = firstFrag * 2 + end;
-  if ( _edgePathLen[index] != 0 )
-    return _edgePathLen[index] != 0;
-  iuid cnt = 0;
+
+  if (pathLen[index] > 0)
+    return pathLen[index];
+
+  uint32                cnt    = 0;
+  uint32                cntMax = 0;
   std::set<FragmentEnd> seen;
-  FragmentEnd fragEnd( firstFrag, end );
-  do {
-    seen.insert(fragEnd);
-    _edgePathLen[index] = ++cnt;
-    FragmentEnd nextEnd;
-    nextEnd = followPath( fragEnd );
-    fragEnd = nextEnd;
-    index = fragEnd.fragId() * 2 + fragEnd.fragEnd();
+  FragmentEnd           lastEnd(firstFrag, end);
+
+  //  Until we run off the chain, or we hit a fragment with a known
+  //  length, compute the length FROM THE START.
+  //
+  while ((lastEnd.fragId() != NULL_FRAG_ID) &&
+         (pathLen[index] == 0)) {
+
+    seen.insert(lastEnd);
+
+    pathLen[index] = ++cnt;
+
+    //  Follow the path of lastEnd
+
+    iuid frag = ((lastEnd.fragEnd() == FIVE_PRIME) ?
+                 BOG->getBestEdgeOverlap(lastEnd.fragId(), FIVE_PRIME) ->frag_b_id :
+                 BOG->getBestEdgeOverlap(lastEnd.fragId(), THREE_PRIME)->frag_b_id);
+
+    if (frag == NULL_FRAG_ID) {
+      lastEnd = FragmentEnd();
+    } else {
+      BOG->followOverlap( &lastEnd );
+      assert(frag == lastEnd.fragId());
+    }
+
+    index = lastEnd.fragId() * 2 + lastEnd.fragEnd();
   }
-  while (fragEnd.fragId() != NULL_FRAG_ID && _edgePathLen[index] == 0);
-  if (fragEnd.fragId() == NULL_FRAG_ID) {
-    return cnt;
-  }
-  // if we end because of a circle, mark points in circle same cnt
-  if (seen.find( fragEnd ) != seen.end()) {
-    iuid circleLen = cnt - _edgePathLen[index];
-    //fprintf(stderr,"Circle len %d frag %d end %d\n", circleLen, fragEnd.fragId(), fragEnd.end);
-    FragmentEnd currEnd = fragEnd;
+
+  //  Check why we stopped.  If we've seen this fragment before, we
+  //  just encountered a cycle in the graph.  Adjust every node in the
+  //  cycle to have the correct length.
+  //
+  //  Otherwise, we've stopped because we've hit a fragment with a
+  //  known path length.
+
+  if (seen.find(lastEnd) != seen.end()) {
+    //  If we end because of a cycle, mark points in circle same count.
+    //  lastEnd will be the first fragment in the path that is in the
+    //  circle, the * below (the path follows the top edge around).
+    //
+    //  >---------*------\
+    //            |      |
+    //            \------/
+
+    //  pathLen[index] is the length of the path at the *.
+    //
+    iuid        circleLen = cnt - pathLen[index];
+    FragmentEnd currEnd   = lastEnd;
+
     do {
-      seen.erase( currEnd );
-      _edgePathLen[index] = circleLen;
-      bovlg->followOverlap( &currEnd );
+      pathLen[index] = circleLen;
+      BOG->followOverlap(&currEnd);
+
       index = currEnd.fragId() * 2 + currEnd.fragEnd();
-    }
-    while (!(fragEnd == currEnd));
-  } else {
-    // we encountered an already counted frag, so use it's length
-    cnt += _edgePathLen[index];
-  }
-  // if the whole thing wasn't a circle we still have a linear path left
-  iuid max = cnt;
-  if (!seen.empty()) {
-    FragmentEnd currEnd(firstFrag, end);
-    do {
-      _edgePathLen[currEnd.fragId()*2+currEnd.fragEnd()] = cnt--;
-      bovlg->followOverlap( &currEnd );
-    } while (currEnd.fragId() != fragEnd.fragId());
-  }
-  return max;
-}
+    } while (lastEnd != currEnd);
 
-int ChunkGraph::sortChunkLens( const void *a, const void *b) {
-  struct _chunk_length *frg1 = (struct _chunk_length*)a;
-  struct _chunk_length *frg2 = (struct _chunk_length*)b;
-
-  if ( frg1->cnt != frg2->cnt )
-    return frg2->cnt - frg1->cnt;
-  else 
-    return frg1->fragId - frg2->fragId;
-}
-
-iuid ChunkGraph::nextFragByChunkLength() {
-  static iuid pos = 0;
-  if (pos < _max_fragments)
-    return _chunk_lengths[pos++].fragId;
-  else {
-    pos = 0;
-    return pos;
-  }
-}
-	
-bool ChunkGraph::isChunkable(iuid frag_a_id, fragment_end_type which_end ) {
-  // Given an edge (based on fragment ID and end), determines by looking at
-  //   what the edge overlaps, whether the overlap is unambiguous.
-
-  // Translate from fragment id to best overlap
-  BestEdgeOverlap *a_beo=bovlg->getBestEdgeOverlap(frag_a_id, which_end);
-
-  if(a_beo->in_degree==1){
-
-    // Get B's overlap information
-    BestEdgeOverlap *b_beo;
-    b_beo=bovlg->getBestEdgeOverlap(a_beo->frag_b_id, a_beo->bend);
-
-    // If b points to a, as well
-    if((b_beo->frag_b_id == frag_a_id) &&
-       (b_beo->bend == which_end)
-       ){
-      // Check for unambiguous in degrees
-      if(b_beo->in_degree==1){
-        return(true);
-      }else{
-        return(false);
-      }
-    }else{
-      return(false);
-    }
-  }else{
-    return(false);
+  } else if (lastEnd.fragId() != NULL_FRAG_ID) {
+    //  Otherwise, if lastEnd is not NULL, we must have stopped
+    //  because of an existing path.
+    cnt += pathLen[index];
   }
 
-}
+  //  Our return value is now whatever count we're at.
+  cntMax = cnt;
 
-bool PromiscuousChunkGraph::isChunkable(iuid frag_a_id, fragment_end_type which_end) { 
+  //  Traverse the last again, converting path length from the start
+  //  to be path length from the end.  Notice that we stop at either
+  //  the end of the path -- either NULL or the first frag with known
+  //  length -- or the start of the circle.
+  //
+  FragmentEnd currEnd(firstFrag, end);
 
-  // Translate from fragment id to best overlap
-  BestEdgeOverlap *a_beo=bovlg->getBestEdgeOverlap(frag_a_id, which_end);
-  return true;
-  BestEdgeOverlap *b_beo=bovlg->getBestEdgeOverlap(a_beo->frag_b_id, a_beo->bend);
-
-  // If b points to a, as well
-  if((b_beo->frag_b_id == frag_a_id) && (b_beo->bend == which_end)) {
-    return(true);
-  }else{
-    return(false);
+  while (currEnd.fragId() != lastEnd.fragId()) {
+    pathLen[currEnd.fragId() * 2 + currEnd.fragEnd()] = cnt--;
+    BOG->followOverlap( &currEnd );
   }
+
+  return(cntMax);
 }

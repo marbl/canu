@@ -21,6 +21,7 @@
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
+#include "AS_BOG_BestOverlapGraph.hh"
 
 #include <limits>
 #include <cmath>
@@ -104,7 +105,6 @@ UnitigGraph::~UnitigGraph() {
 void UnitigGraph::build(ChunkGraph *cg_ptr) {
 
   iuid frag_idx;
-  iuid fp_dst_frag_id, tp_dst_frag_id;
 
   bool verbose = true;
 
@@ -140,10 +140,6 @@ void UnitigGraph::build(ChunkGraph *cg_ptr) {
     //   both ends)
     if( !Unitig::fragIn( frag_idx ) && 
         best_cntr->find(frag_idx) == best_cntr->end() ) { 
-
-      cg_ptr->getChunking(frag_idx, 
-                          fp_dst_frag_id, 
-                          tp_dst_frag_id);
                 
       Unitig *utg=new Unitig(verbose);
 
@@ -207,7 +203,8 @@ void UnitigGraph::build(ChunkGraph *cg_ptr) {
     if (Unitig::fragIn(frag_idx) > 0)
       continue;
 
-    cg_ptr->getChunking( frag_idx, fp_dst_frag_id, tp_dst_frag_id);
+    iuid fp_dst_frag_id = bog_ptr->getBestEdgeOverlap(frag_idx, FIVE_PRIME) ->frag_b_id;
+    iuid tp_dst_frag_id = bog_ptr->getBestEdgeOverlap(frag_idx, THREE_PRIME)->frag_b_id;
 
 #if 0
     fprintf(stderr, "frag %d missed; fp_dst_frag_id=%d tp_dst_frag_id=%d contained=%d\n",
@@ -403,7 +400,12 @@ void UnitigGraph::populateUnitig( Unitig* unitig,
       frag_begin  += bestEdge->ahang ;
     }
 
-    int chunkNextId = cg_ptr->getChunking(current_frag_id, whichEnd); 
+    assert((whichEnd == FIVE_PRIME) || (whichEnd == THREE_PRIME));
+
+    int chunkNextId = ((whichEnd == FIVE_PRIME) ? 
+                       bog_ptr->getBestEdgeOverlap(current_frag_id, FIVE_PRIME) ->frag_b_id :
+                       bog_ptr->getBestEdgeOverlap(current_frag_id, THREE_PRIME)->frag_b_id);
+
     if ( chunkNextId != NULL_FRAG_ID )
       assert( chunkNextId == next_frag_id );
 
