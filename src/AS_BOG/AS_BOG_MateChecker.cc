@@ -405,8 +405,7 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
                  (thisUnitig->fragIn(bestcont->container) == thisUnitig->id())) {
         //  CASE 2: Frag is contained, and his container is in this
         //  unitig.  Leave here, UNLESS he is an unhappy mate, in
-        //  which case we eject him to a new unitig.  (Unless we've
-        //  already ejected his mate)
+        //  which case we eject him to a new unitig.
 
 #if 0
         fprintf(stderr, "moveContain2 f=%d c=%d(%d b=%d(%d)\n",
@@ -420,14 +419,19 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
         //  Is he mated?  If not, we'll always leave here.
         //
         //  Is the mate here?  If not, we can leave here.
+        //  (We've since decided to eject both, but here's the test)
+        //    (thisUnitig->fragIn(_fi->mateIID(fragIter->ident)) == thisUnitig->fragIn(fragIter->ident)) &&
         //
         //  id1 != 0 -> we found the fragment in the mate happiness table
         //  isBad -> and the mate is unhappy.
         //
+        //  What's id1 vs id2 in MateLocationEntry?  Dunno.  All I
+        //  know is that if there is no mate present, one of those
+        //  will be 0.  (Similar test used above too.)
+        //
         //  See comment on similar if test below.
         //
         if ((_fi->mateIID(fragIter->ident) > 0) &&
-            (thisUnitig->fragIn(_fi->mateIID(fragIter->ident)) == thisUnitig->fragIn(fragIter->ident)) &&
             (mloc.id1 != 0) &&
             (mloc.id2 != 0) &&
             (mloc.isBad == true)) {
@@ -467,11 +471,13 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
 
         bool  hasOverlap = false;
 
-        //  What's id1 vs id2 in MateLocationEntry?  Dunno.  All I
-        //  know is that if there is no mate present, one of those
-        //  will be 0.  (Similar test used above too.)
+        //  See comment on similar if test above.
         //
-        if ((mloc.id1 != 0) && (mloc.id2 != 0) && (mloc.isBad == false)) {
+        if ((_fi->mateIID(fragIter->ident) > 0) &&
+            (mloc.id1 != 0) &&
+            (mloc.id2 != 0) &&
+            (mloc.isBad == false)) {
+
           //  Mate is happy.  Look for an overlap.
 
           if (fragsLen == 0) {
@@ -504,8 +510,7 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
         }
 
         if (hasOverlap) {
-          //  Overlap exists to another fragment, OR the fragment is
-          //  the first one.  Add it to this unitig.
+          //  Overlap exists to another fragment.  Add it to this unitig.
           //
           if (verbose)
             fprintf(stderr, "Removing containment relationship for fragment %d to keep it in unitig %d\n",
@@ -519,8 +524,8 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
           fragsLen++;
         } else {
           //  Mate is not happy, or is happy but has no overlap
-          //  anymore.  Or fragment is unmated.  Move him to the
-          //  unitig of the container.
+          //  anymore, or the fragment is not mated.  Eject to
+          //  container unitig (if not mated) or singleton (if mated).
 
 #warning DANGEROUS assume unitig is at id-1 in vector
           Unitig         *thatUnitig = tigGraph.unitigs->at(thisUnitig->fragIn(bestcont->container) - 1);
