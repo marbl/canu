@@ -635,7 +635,7 @@ void MateChecker::splitDiscontinuousUnitigs(UnitigGraph& tigGraph) {
             (_fi->mateIID(splitFrags[0].ident) == 0) &&
             (splitFrags[0].contained != 0)) {
 
-          Unitig           *dangler  = (*tigGraph.unitigs)[splitFrags[0].contained];
+          Unitig           *dangler  = (*tigGraph.unitigs)[unitig->fragIn(splitFrags[0].contained)];
           BestContainment  *bestcont = tigGraph.bog_ptr->getBestContainer(splitFrags[0].ident);
 
           if (verbose)
