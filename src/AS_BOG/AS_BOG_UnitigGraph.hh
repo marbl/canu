@@ -79,7 +79,7 @@ struct UnitigGraph{
   ~UnitigGraph();
 
   // Call this on a chunk graph pointer to build a unitig graph
-  void build(ChunkGraph *cg_ptr);
+  void build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking);
 
   void writeIUMtoFile(char *filename, int fragment_count_target);
 

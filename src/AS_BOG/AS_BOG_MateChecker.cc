@@ -50,6 +50,87 @@ IntervalList* findPeakBad( std::vector<short>* badGraph, int tigLen);
 
 
 
+void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThreshold) {
+
+  fprintf(stderr, "==> STARTING MATE BASED SPLITTING.\n");
+
+  tigGraph.checkUnitigMembership();
+
+  computeGlobalLibStats( tigGraph );
+
+  //  Move unhappy contained fragments before attempting mate based
+  //  splitting.  We know they're broken already, and if scaffolder
+  //  can put them back, we'll let it.
+  //
+  fprintf(stderr, "==> MOVE CONTAINS #1\n");
+  moveContains(tigGraph);
+
+  tigGraph.checkUnitigMembership();
+
+  //  This should do absolutely nothing.  If it does, something is
+  //  broken.  By just ejecting unhappy contains, nothing should be
+  //  disconnected.
+  //
+  fprintf(stderr, "==> SPLIT DISCONTINUOUS #1\n");
+  splitDiscontinuousUnitigs(tigGraph);
+
+  tigGraph.checkUnitigMembership();
+
+  fprintf(stderr, "==> SPLIT BAD MATES\n");
+  {
+    //  Need to get rid of this cMap guy
+    ContainerMap       cMap;
+
+    for (int  ti=0; ti<tigGraph.unitigs->size(); ti++) {
+      Unitig  *tig = (*tigGraph.unitigs)[ti];
+
+      if ((tig == NULL) || (tig->getNumFrags() < 2))
+        continue;
+
+      UnitigBreakPoints* breaks = computeMateCoverage(tig, tigGraph.bog_ptr, badMateBreakThreshold);
+      UnitigVector*      newUs  = tigGraph.breakUnitigAt(cMap, tig, *breaks);
+
+      if (newUs != NULL) {
+        delete tig;
+        (*tigGraph.unitigs)[ti] = NULL;
+        tigGraph.unitigs->insert(tigGraph.unitigs->end(), newUs->begin(), newUs->end());
+      }
+
+      delete newUs;
+      delete breaks;
+    }
+  }
+
+  tigGraph.checkUnitigMembership();
+
+  //  The splitting code above is not smart enough to move contained
+  //  fragments with containers.  This leaves unitigs disconnected.
+  //  We break those unitigs here.
+  //
+  fprintf(stderr, "==> SPLIT DISCONTINUOUS #2\n");
+  splitDiscontinuousUnitigs(tigGraph);
+
+  tigGraph.checkUnitigMembership();
+
+  //  But now, all the splitting probably screwed up happiness of
+  //  contained fragments, of left some unhappy fragments in a unitig
+  //  that just lost the container.
+  //
+  fprintf(stderr, "==> MOVE CONTAINS #2\n");
+  moveContains(tigGraph);
+
+  tigGraph.checkUnitigMembership();
+
+  //  Do one last check for disconnected unitigs.
+  //
+  fprintf(stderr, "==> SPLIT DISCONTINUOUS #3\n");
+  splitDiscontinuousUnitigs(tigGraph);
+
+  tigGraph.checkUnitigMembership();
+}
+
+
+
 LibraryStats* MateChecker::computeLibraryStats(Unitig* tig) {
   IdMap goodMates;
   iuid max = std::numeric_limits<iuid>::max(); // Sentinel value
@@ -251,87 +332,6 @@ void MateChecker::computeGlobalLibStats( UnitigGraph& tigGraph ) {
   }
 }
 
-
-
-void MateChecker::checkUnitigGraph( UnitigGraph& tigGraph ) {
-
-  fprintf(stderr, "==> STARTING MATE BASED SPLITTING.\n");
-
-  tigGraph.checkUnitigMembership();
-
-  if ( ! BogOptions::useGkpStoreLibStats )
-    computeGlobalLibStats( tigGraph );
-
-  //  Move unhappy contained fragments before attempting mate based
-  //  splitting.  We know they're broken already, and if scaffolder
-  //  can put them back, we'll let it.
-  //
-  fprintf(stderr, "==> MOVE CONTAINS #1\n");
-  moveContains(tigGraph);
-
-  tigGraph.checkUnitigMembership();
-
-  //  This should do absolutely nothing.  If it does, something is
-  //  broken.  By just ejecting unhappy contains, nothing should be
-  //  disconnected.
-  //
-  fprintf(stderr, "==> SPLIT DISCONTINUOUS #1\n");
-  splitDiscontinuousUnitigs(tigGraph);
-
-  tigGraph.checkUnitigMembership();
-
-  fprintf(stderr, "==> SPLIT BAD MATES\n");
-  {
-    //  Need to get rid of this cMap guy
-    ContainerMap       cMap;
-
-    for (int  ti=0; ti<tigGraph.unitigs->size(); ti++) {
-      Unitig  *tig = (*tigGraph.unitigs)[ti];
-
-      if ((tig == NULL) || (tig->getNumFrags() < 2))
-        continue;
-
-      UnitigBreakPoints* breaks = computeMateCoverage(tig, tigGraph.bog_ptr);
-      UnitigVector*      newUs  = tigGraph.breakUnitigAt(cMap, tig, *breaks);
-
-      if (newUs != NULL) {
-        delete tig;
-        (*tigGraph.unitigs)[ti] = NULL;
-        tigGraph.unitigs->insert(tigGraph.unitigs->end(), newUs->begin(), newUs->end());
-      }
-
-      delete newUs;
-      delete breaks;
-    }
-  }
-
-  tigGraph.checkUnitigMembership();
-
-  //  The splitting code above is not smart enough to move contained
-  //  fragments with containers.  This leaves unitigs disconnected.
-  //  We break those unitigs here.
-  //
-  fprintf(stderr, "==> SPLIT DISCONTINUOUS #2\n");
-  splitDiscontinuousUnitigs(tigGraph);
-
-  tigGraph.checkUnitigMembership();
-
-  //  But now, all the splitting probably screwed up happiness of
-  //  contained fragments, of left some unhappy fragments in a unitig
-  //  that just lost the container.
-  //
-  fprintf(stderr, "==> MOVE CONTAINS #2\n");
-  moveContains(tigGraph);
-
-  tigGraph.checkUnitigMembership();
-
-  //  Do one last check for disconnected unitigs.
-  //
-  fprintf(stderr, "==> SPLIT DISCONTINUOUS #3\n");
-  splitDiscontinuousUnitigs(tigGraph);
-
-  tigGraph.checkUnitigMembership();
-}
 
 
 
@@ -760,8 +760,37 @@ void combineOverlapping( IntervalList* list ) {
   }
 }
 
+
+IntervalList* findPeakBad(std::vector<short>* badGraph, int tigLen, int badMateBreakThreshold) {
+  IntervalList* peakBads = new IntervalList();
+  SeqInterval   peak = NULL_SEQ_LOC;
+  int badBegin, peakBad, lastBad;
+  peakBad = lastBad = badBegin = 0;
+  for(int i=0; i < tigLen; i++) {
+    if( badGraph->at( i ) <= badMateBreakThreshold ) {
+      if (badBegin == 0)  // start bad region
+        badBegin = i;
+      if(badGraph->at(i) < peakBad) {
+        peakBad   = badGraph->at(i);
+        peak.bgn = peak.end = i;
+      } else if (lastBad < 0 && lastBad == peakBad) {
+        peak.end = i-1;
+      }
+      lastBad = badGraph->at(i);
+    } else {
+      if (badBegin > 0) {  // end bad region
+        peakBads->push_back( peak );
+        peakBad = lastBad = badBegin = 0;
+        peak = NULL_SEQ_LOC;
+      }
+    }
+  }
+  return peakBads;
+}
+
+
 // hold over from testing if we should use 5' or 3' for range generation, now must use 3'
-UnitigBreakPoints* MateChecker::computeMateCoverage( Unitig* tig, BestOverlapGraph* bog_ptr ) {
+UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGraph* bog_ptr, int badMateBreakThreshold) {
   int tigLen = tig->getLength();
 
   MateLocation positions(_fi);
@@ -769,8 +798,8 @@ UnitigBreakPoints* MateChecker::computeMateCoverage( Unitig* tig, BestOverlapGra
   MateCounts *unused = positions.buildHappinessGraphs( tigLen, _globalStats );
   delete unused;
 
-  IntervalList *fwdBads = findPeakBad( positions.badFwdGraph, tigLen );
-  IntervalList *revBads = findPeakBad( positions.badRevGraph, tigLen );
+  IntervalList *fwdBads = findPeakBad( positions.badFwdGraph, tigLen, badMateBreakThreshold );
+  IntervalList *revBads = findPeakBad( positions.badRevGraph, tigLen, badMateBreakThreshold );
 
   UnitigBreakPoints* breaks = new UnitigBreakPoints();
 
@@ -936,34 +965,6 @@ UnitigBreakPoints* MateChecker::computeMateCoverage( Unitig* tig, BestOverlapGra
   delete fwdBads;
   delete revBads;
   return breaks;
-}
-
-
-IntervalList* findPeakBad( std::vector<short>* badGraph, int tigLen ) {
-  IntervalList* peakBads = new IntervalList();
-  SeqInterval   peak = NULL_SEQ_LOC;
-  int badBegin, peakBad, lastBad;
-  peakBad = lastBad = badBegin = 0;
-  for(int i=0; i < tigLen; i++) {
-    if( badGraph->at( i ) <= BogOptions::badMateBreakThreshold ) {
-      if (badBegin == 0)  // start bad region
-        badBegin = i;
-      if(badGraph->at(i) < peakBad) {
-        peakBad   = badGraph->at(i);
-        peak.bgn = peak.end = i;
-      } else if (lastBad < 0 && lastBad == peakBad) {
-        peak.end = i-1;
-      }
-      lastBad = badGraph->at(i);
-    } else {
-      if (badBegin > 0) {  // end bad region
-        peakBads->push_back( peak );
-        peakBad = lastBad = badBegin = 0;
-        peak = NULL_SEQ_LOC;
-      }
-    }
-  }
-  return peakBads;
 }
 
 

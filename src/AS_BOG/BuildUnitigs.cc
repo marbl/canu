@@ -118,6 +118,10 @@ main (int argc, char * argv []) {
   int   fragment_count_target = 0;
   char *output_prefix         = "bog";
 
+  bool  unitigIntersectBreaking = false;
+  bool  ejectUnhappyContained   = false;
+  int   badMateBreakThreshold   = -7;
+
   optarg = NULL;
   while(!argsDone && (ch = getopt(argc, argv,"B:o:O:G:e:m:s:bk"))) {
     switch(ch) {
@@ -139,7 +143,7 @@ main (int argc, char * argv []) {
         OVL_Store_Path = strdup(optarg);
         assert( OVL_Store_Path != NULL ); break;
       case 'b':
-        BogOptions::unitigIntersectBreaking = true; break;
+        unitigIntersectBreaking = true; break;
       case 'e':
         if (NULL != strstr(optarg,"."))
           //  Is floating point -- parts per hundred (aka percent error)
@@ -149,9 +153,9 @@ main (int argc, char * argv []) {
           erate = atof(optarg) / 1000.0;
         break;
       case 'k':
-        BogOptions::ejectUnhappyContained = true; break;
+        ejectUnhappyContained = true; break;
       case 'm':
-        BogOptions::badMateBreakThreshold = -atoi(optarg); break;
+        badMateBreakThreshold = -atoi(optarg); break;
       case 's':
         genome_size = atol(optarg); break;
       default:
@@ -188,10 +192,10 @@ main (int argc, char * argv []) {
 
   ChunkGraph *cg = new ChunkGraph(fragInfo, BOG);
   UnitigGraph utg(fragInfo, BOG);
-  utg.build(cg);
+  utg.build(cg, unitigIntersectBreaking);
 
   MateChecker  mateChecker(fragInfo);
-  mateChecker.checkUnitigGraph(utg);        
+  mateChecker.checkUnitigGraph(utg, badMateBreakThreshold);        
 
   float globalARate = utg.getGlobalArrivalRate(getNumGateKeeperRandomFragments(gkpStore), genome_size);
   Unitig::setGlobalArrivalRate(globalARate);

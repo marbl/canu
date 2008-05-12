@@ -214,14 +214,5 @@ private:
   int     *_numMatesInLib;
 };
 
-
-struct BogOptions {
-  static int badMateBreakThreshold;
-  static bool unitigIntersectBreaking;
-  static bool ejectUnhappyContained;
-  static bool useGkpStoreLibStats;
-};
-
-
 #endif
 

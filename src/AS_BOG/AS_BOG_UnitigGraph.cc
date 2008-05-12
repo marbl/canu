@@ -81,13 +81,6 @@ UnitigGraph::checkUnitigMembership(void) {
 
 
 
-
-
-int BogOptions::badMateBreakThreshold    = -7;
-bool BogOptions::unitigIntersectBreaking = false;
-bool BogOptions::ejectUnhappyContained   = false;
-bool BogOptions::useGkpStoreLibStats     = false;
-
 UnitigGraph::UnitigGraph(FragmentInfo *fi, BestOverlapGraph *in_bog_ptr) {
   unitigs = new UnitigVector;
   _fi     = fi;
@@ -102,7 +95,7 @@ UnitigGraph::~UnitigGraph() {
 }
 
 
-void UnitigGraph::build(ChunkGraph *cg_ptr) {
+void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking) {
 
   iuid frag_idx;
 
@@ -231,7 +224,7 @@ void UnitigGraph::build(ChunkGraph *cg_ptr) {
 
   fprintf(stderr, "==> BREAKING UNITIGS.\n");
 
-  if (BogOptions::unitigIntersectBreaking)
+  if (unitigIntersectBreaking)
     breakUnitigs(cMap);
 
   fprintf(stderr, "==> PLACING CONTAINED FRAGMENTS\n");

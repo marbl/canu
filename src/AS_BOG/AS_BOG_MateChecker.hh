@@ -83,8 +83,7 @@ struct MateChecker{
   MateChecker(FragmentInfo *fi);
   ~MateChecker();
 
-  // Main entry point for running mate splitting
-  void checkUnitigGraph( UnitigGraph& );
+  void checkUnitigGraph(UnitigGraph &, int badMateBreakThreshold);
 
 private:
 
@@ -92,7 +91,7 @@ private:
   LibraryStats* computeLibraryStats( Unitig* );
 
   // Compute good and bad coverage graphs for a unitig, returns split points
-  UnitigBreakPoints* computeMateCoverage( Unitig*, BestOverlapGraph *);
+  UnitigBreakPoints* computeMateCoverage(Unitig *, BestOverlapGraph *, int badMateBreakThreshold);
 
   void moveContains(UnitigGraph&);
   void splitDiscontinuousUnitigs(UnitigGraph&);
