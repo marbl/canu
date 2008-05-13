@@ -100,9 +100,8 @@ struct UnitigGraph{
 
   UnitigVector*  breakUnitigAt(ContainerMap &cMap, Unitig *, UnitigBreakPoints &);
 
-  void           countInternalBestEdges(FILE *);
-
   void           checkUnitigMembership(void);
+  void           reportOverlapsUsed(char *filename);
 
   // Unitigs are the dove tails and their contained fragments
   UnitigVector *unitigs;

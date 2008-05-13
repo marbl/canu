@@ -80,6 +80,73 @@ UnitigGraph::checkUnitigMembership(void) {
 };
 
 
+//  For every unitig, report the best overlaps contained in the
+//  unitig, and all overlaps contained in the unitig.
+void
+UnitigGraph::reportOverlapsUsed(char *filename) {
+
+  FILE *F = fopen(filename, "w");
+
+  if (F == NULL)
+    return;
+
+  for (int  ti=0; ti<unitigs->size(); ti++) {
+    Unitig  *utg = (*unitigs)[ti];
+
+    if (utg == NULL)
+      continue;
+
+    for (int fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
+      DoveTailNode  *frg = &(*utg->dovetail_path_ptr)[fi];
+
+      //  Where is our best overlap?  Contained or dovetail?
+
+      BestEdgeOverlap *bestedge5 = bog_ptr->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
+      BestEdgeOverlap *bestedge3 = bog_ptr->getBestEdgeOverlap(frg->ident, THREE_PRIME);
+
+      int              bestident5 = 0;
+      int              bestident3 = 0;
+
+      if (bestedge5)
+        bestident5 = bestedge5->frag_b_id;
+
+      if (bestedge3)
+        bestident3 = bestedge3->frag_b_id;
+
+      //  Now search ahead, reporting any overlap to any fragment.
+      //
+      for (int oi=fi+1; oi<utg->dovetail_path_ptr->size(); oi++) {
+        DoveTailNode  *ooo = &(*utg->dovetail_path_ptr)[oi];
+
+        int frgbgn = MIN(frg->position.bgn, frg->position.end);
+        int frgend = MAX(frg->position.bgn, frg->position.end);
+
+        int ooobgn = MIN(ooo->position.bgn, ooo->position.end);
+        int oooend = MAX(ooo->position.bgn, ooo->position.end);
+
+        if ((frgbgn <= ooobgn) && (ooobgn + 40 < frgend)) {
+          BestContainment *bestcont  = bog_ptr->getBestContainer(ooo->ident);
+
+          int              bestident  = 0;
+          if (bestcont)
+            bestident = bestcont->container;
+          
+          bool isBest = ((frg->ident == bestident) ||
+                         (ooo->ident == bestident5) ||
+                         (ooo->ident == bestident3));
+
+          fprintf(F, "%d\t%d%s\n", frg->ident, ooo->ident, (isBest) ? ((bestident) ? "\tbc" : "\tbe") : "");
+        }
+
+        if (frgend < ooobgn)
+          break;
+      }
+    }
+  }
+
+  fclose(F);
+}
+
 
 UnitigGraph::UnitigGraph(FragmentInfo *fi, BestOverlapGraph *in_bog_ptr) {
   unitigs = new UnitigVector;
@@ -185,6 +252,8 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking) {
     }
   }
 
+  reportOverlapsUsed("overlaps.afterbuild");
+
   fprintf(stderr, "==> BUILDING UNITIGS catching missed fragments.\n");
 
   // Pick up frags missed above, possibly circular unitigs
@@ -222,10 +291,14 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking) {
     }
   }
 
+  reportOverlapsUsed("overlaps.afterbuild2");
+
   fprintf(stderr, "==> BREAKING UNITIGS.\n");
 
   if (unitigIntersectBreaking)
     breakUnitigs(cMap);
+
+  reportOverlapsUsed("overlaps.afterbreak");
 
   fprintf(stderr, "==> PLACING CONTAINED FRAGMENTS\n");
 
@@ -234,6 +307,8 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking) {
     if (thisUnitig)
       thisUnitig->recomputeFragmentPositions(cMap, best_cntr, bog_ptr);
   }
+
+  reportOverlapsUsed("overlaps.aftercontains");
 
   ////////////////////////////////////////
   //
@@ -1225,65 +1300,4 @@ void UnitigGraph::writeIUMtoFile(char *fileprefix, int fragment_count_target){
 
   fclose(file);
   fclose(iidm);
-}
-
-
-
-
-void UnitigGraph::countInternalBestEdges(FILE *stats) {
-  int oneWayBest = 0;
-  int dovetail   = 0;
-  int neither    = 0;
-  int contained  = 0;
-
-  for (UnitigsConstIter fi = unitigs->begin(); fi != unitigs->end(); fi++){
-    if (*fi == NULL)
-      continue;
-
-    if ((*fi)->getNumFrags() == 0)
-      continue;
-
-    Unitig            *tig = *fi;
-
-    DoveTailNode       frag;
-    DoveTailNode       prev;
-    BestEdgeOverlap   *prevBest;
-    BestEdgeOverlap   *fragBest;
-    
-    for (DoveTailConstIter di = tig->dovetail_path_ptr->begin(); di != tig->dovetail_path_ptr->end(); di++) {
-      frag = *di;
-
-      if (di == tig->dovetail_path_ptr->begin()){
-        prev = frag;
-        continue;
-      }
-
-      if (frag.contained) {
-        contained++;
-        continue;
-      }
-
-      prevBest = bog_ptr->getBestEdgeOverlap(prev.ident, (isReverse(prev.position)) ? FIVE_PRIME  : THREE_PRIME);
-      fragBest = bog_ptr->getBestEdgeOverlap(frag.ident, (isReverse(frag.position)) ? THREE_PRIME : FIVE_PRIME);
-
-      if (prevBest->frag_b_id == frag.ident ) {
-        // Either one way best or dovetail
-        if (fragBest->frag_b_id == prev.ident)
-          dovetail++;
-        else
-          oneWayBest++;
-      } else {
-        // Either one way best or neither
-        if (fragBest->frag_b_id == prev.ident)
-          oneWayBest++;
-        else
-          neither++;
-      }
-
-      prev = frag;
-    }
-  }
-
-  fprintf(stats, "Overall best edge counts: dovetail %d oneWayBest %d contained %d neither %d\n",
-          dovetail, oneWayBest, contained, neither);
 }

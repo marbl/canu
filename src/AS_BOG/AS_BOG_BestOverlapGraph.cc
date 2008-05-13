@@ -107,6 +107,32 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
     scoreEdge( olap );
 
   updateInDegree();
+
+  //  Diagnostic.  Dump the best edges, count the number of contained
+  //  reads, etc.
+  {
+    FILE *BC = fopen("best.contains", "w");
+    FILE *BE = fopen("best.edges", "w");
+
+    if ((BC) && (BE)) {
+      fprintf(BC, "#fragId\tlibId\tbestCont\n");
+      fprintf(BE, "#fragId\tlibId\tbest5\tbest3\n");
+
+      for (int id=1; id<_fi->numFragments() + 1; id++) {
+        BestContainment *bestcont  = getBestContainer(id);
+        BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, FIVE_PRIME);
+        BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, THREE_PRIME);
+
+        if (bestcont)
+          fprintf(BC, "%d\t%d\t%d\n", id, _fi->libraryIID(id), bestcont->container);
+        else
+          fprintf(BE, "%d\t%d\t%d\t%d\n", id, _fi->libraryIID(id), bestedge5->frag_b_id, bestedge3->frag_b_id);
+      }
+
+      fclose(BC);
+      fclose(BE);
+    }
+  }
 }
 
 BestOverlapGraph::~BestOverlapGraph(){

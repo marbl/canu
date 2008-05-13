@@ -212,8 +212,6 @@ main (int argc, char * argv []) {
     fprintf(stats, "Global Arrival Rate: %f\n", globalARate);
     fprintf(stats, "There were %d unitigs generated.\n", utg.unitigs->size());
 
-    utg.countInternalBestEdges(stats);
-
     outputHistograms( &utg, fragInfo, stats );
 
     fclose(stats);

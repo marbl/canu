@@ -65,6 +65,7 @@ void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThresh
   fprintf(stderr, "==> MOVE CONTAINS #1\n");
   moveContains(tigGraph);
 
+  tigGraph.reportOverlapsUsed("overlaps.aftermatecheck1");
   tigGraph.checkUnitigMembership();
 
   //  This should do absolutely nothing.  If it does, something is
@@ -74,6 +75,7 @@ void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThresh
   fprintf(stderr, "==> SPLIT DISCONTINUOUS #1\n");
   splitDiscontinuousUnitigs(tigGraph);
 
+  tigGraph.reportOverlapsUsed("overlaps.aftermatecheck2");
   tigGraph.checkUnitigMembership();
 
   fprintf(stderr, "==> SPLIT BAD MATES\n");
@@ -101,6 +103,7 @@ void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThresh
     }
   }
 
+  tigGraph.reportOverlapsUsed("overlaps.aftermatecheck3");
   tigGraph.checkUnitigMembership();
 
   //  The splitting code above is not smart enough to move contained
@@ -110,6 +113,7 @@ void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThresh
   fprintf(stderr, "==> SPLIT DISCONTINUOUS #2\n");
   splitDiscontinuousUnitigs(tigGraph);
 
+  tigGraph.reportOverlapsUsed("overlaps.aftermatecheck4");
   tigGraph.checkUnitigMembership();
 
   //  But now, all the splitting probably screwed up happiness of
@@ -119,6 +123,7 @@ void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThresh
   fprintf(stderr, "==> MOVE CONTAINS #2\n");
   moveContains(tigGraph);
 
+  tigGraph.reportOverlapsUsed("overlaps.aftermatecheck5");
   tigGraph.checkUnitigMembership();
 
   //  Do one last check for disconnected unitigs.
@@ -126,6 +131,7 @@ void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThresh
   fprintf(stderr, "==> SPLIT DISCONTINUOUS #3\n");
   splitDiscontinuousUnitigs(tigGraph);
 
+  tigGraph.reportOverlapsUsed("overlaps.aftermatecheck6");
   tigGraph.checkUnitigMembership();
 }
 
