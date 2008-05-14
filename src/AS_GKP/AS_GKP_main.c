@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_main.c,v 1.64 2008-03-12 16:20:14 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_main.c,v 1.65 2008-05-14 22:19:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -210,13 +210,14 @@ constructIIDdumpFromIDFile(char *gkpStoreName, char *iidToDump, char *uidFileNam
     }
     fgets(L, 1024, F);
     while (!feof(F)) {
+      chomp(L);
       AS_UID  uid = AS_UID_lookup(L, NULL);
       AS_IID  iid = getGatekeeperUIDtoIID(gkp, uid, NULL);
 
       if (iid == 0)
-        fprintf(stderr, "%s: UID %s doesn't exist, ignored.\n", progName, AS_UID_toString(uid));
+        fprintf(stderr, "%s: UID %s doesn't exist, ignored.\n", progName, L);
       else if (iid >= lastElem)
-        fprintf(stderr, "%s: UID %s is IID "F_IID", and that's too big, ignored.\n", progName, AS_UID_toString(uid), iid);
+        fprintf(stderr, "%s: UID %s is IID "F_IID", and that's too big, ignored.\n", progName, L, iid);
       else
         iidToDump[iid]++;
 
@@ -418,7 +419,7 @@ main(int argc, char **argv) {
   uint64           dumpRandLength    = 0;
   char            *iidToDump         = NULL;
 
-  progName = progName;
+  progName = argv[0];
   gkpStore = NULL;
   errorFP  = stdout;
 

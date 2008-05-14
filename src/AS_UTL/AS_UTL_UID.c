@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-// $Id: AS_UTL_UID.c,v 1.5 2008-02-22 15:48:08 brianwalenz Exp $
+// $Id: AS_UTL_UID.c,v 1.6 2008-05-14 22:19:57 brianwalenz Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -115,7 +115,7 @@ AS_UID_lookup(char *uidstr, char **nxtstr) {
 
   assert(uidstr != NULL);
 
-  //  Bump up to the next word, then bump past the word.
+  //  Bump up to the next word.
   //
   while (*uidstr && isspace(*uidstr))  uidstr++;
 
@@ -174,7 +174,15 @@ AS_UID_lookup(char *uidstr, char **nxtstr) {
     uid.isString  = 0;
     uid.UID       = strtoull(uidstr, NULL, 10);
   } else {
-    uid = AS_GKP_getUIDfromString(AS_UID_getGatekeeper(), uidstr);
+
+    //  A common error (especially when reading from files) it to
+    //  leave whitespace at the ends.  We temporarily trim it off.
+    //
+    char  end = uidstr[len];
+
+    uidstr[len] = 0;
+    uid         = AS_GKP_getUIDfromString(AS_UID_getGatekeeper(), uidstr);
+    uidstr[len] = end;
   }
 
   //  Now bump past the uid, almost like strtoull does.

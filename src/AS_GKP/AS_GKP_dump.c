@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.33 2008-02-22 18:19:18 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.34 2008-05-14 22:19:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,9 +28,6 @@ static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.33 2008-02-22 18:19:18 skoren
 #include "AS_GKP_include.h"
 #include "AS_PER_encodeSequenceQuality.h"
 #include "AS_UTL_fasta.h"
-
-//  perl's chomp is pretty nice
-#define chomp(S) { char *t=S; while (*t) t++; t--; while (isspace(*t)) *t--=0; }
 
 
 void

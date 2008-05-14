@@ -51,11 +51,6 @@ int
 OVSoverlap_sort(const void *a, const void *b);
 
 
-//  perl's chomp is pretty nice
-//
-#define chomp(S) { char *t=S; while (*t) t++; t--; while (isspace(*t)) *t--=0; }
-
-
 #define OP_NONE           0
 #define OP_BUILD          1
 #define OP_MERGE          2

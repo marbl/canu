@@ -32,11 +32,6 @@
 #include "AS_UTL_fasta.h"
 #include "AS_UTL_fileIO.h"
 
-//  perl's chomp is pretty nice
-//
-#define chomp(S) { char *t=S; while (*t) t++; t--; while (isspace(*t)) *t--=0; }
-#define munch(S)  { while (*(S) &&  isspace(*(S))) (S)++; }
-#define crunch(S) { while (*(S) && !isspace(*(S))) (S)++; }
 
 #define AS_SEQAN_MAX_HEADER_LENGTH     4
 #define AS_SEQAN_MAX_LINE_LENGTH      80

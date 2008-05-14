@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_global.h,v 1.24 2007-11-08 12:38:11 brianwalenz Exp $
+//  $Id: AS_global.h,v 1.25 2008-05-14 22:19:57 brianwalenz Exp $
 
 //  This is the global include file that all C files in the AS
 //  subsystem should include.
@@ -39,7 +39,6 @@
 #include <time.h>
 
 #include "AS_UTL_alloc.h"
-
 
 #ifdef __alpha
 // used in AS_CNS/Array_CNS.h and AS_CNS/MultiAlignment_CNS.h
@@ -272,6 +271,12 @@ off_t ftello(FILE *stream );
   #define INT32_MIN INT_MIN
 #endif
 
+
+//  perl's chomp is pretty nice
+//  Not a great place to put this, but it's getting used all over.
+#define chomp(S)  { char *t=(S); while (*t) t++; t--; while (isspace(*t)) *t--=0; }
+#define munch(S)  { while (*(S) &&  isspace(*(S))) (S)++; }
+#define crunch(S) { while (*(S) && !isspace(*(S))) (S)++; }
 
 
 #include "AS_UTL_IID.h"

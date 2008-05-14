@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.6 2008-02-14 21:10:40 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.7 2008-05-14 22:19:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,12 +31,6 @@ static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.6 2008-02-14 21:10:40 skoren 
 #include "AS_GKP_include.h"
 #include "AS_PER_gkpStore.h"
 
-
-
-//  perl's chomp is pretty nice
-#define chomp(S)  { char *t=(S); while (*t) t++; t--; while (isspace(*t)) *t--=0; }
-#define munch(S)  { while (*(S) &&  isspace(*(S))) (S)++; }
-#define crunch(S) { while (*(S) && !isspace(*(S))) (S)++; }
 
 #define EDIT_ALL_CLR "ALL"
 
