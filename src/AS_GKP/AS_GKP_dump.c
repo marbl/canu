@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.34 2008-05-14 22:19:57 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.35 2008-05-15 21:42:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -660,6 +660,176 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
 
         WriteProtoMesg_AS(stdout, &pmesg);
       }
+    }
+  }
+
+  closeFragStream(fs);
+  closeGateKeeperStore(gkp);
+}
+
+
+
+
+void
+dumpGateKeeperAsNewbler(char       *gkpStoreName,
+                        char       *prefix,
+                        AS_IID      begIID,
+                        AS_IID      endIID,
+                        char       *iidToDump,
+                        int         doNotFixMates,
+                        int         dumpFRGClear) {
+  fragRecord        fr;
+  FragStream       *fs = NULL;
+
+  unsigned int      firstElem = 0;
+  unsigned int      lastElem = 0;
+
+  GenericMesg       pmesg;
+
+  LibraryMesg       libMesg;
+  DistanceMesg      dstMesg;
+  FragMesg          frgMesg;
+  LinkMesg          lnkMesg;
+
+  int               i;
+
+  int              *libToDump;
+  AS_UID           *libUID;
+  AS_UID           *frgUID;
+  int               mateAdded = 0;
+
+  GateKeeperStore   *gkp = openGateKeeperStore(gkpStoreName, FALSE);
+  if (gkp == NULL) {
+    fprintf(stderr, "Failed to open %s\n", gkpStoreName);
+    exit(1);
+  }
+
+  //  Someone could adjust the iidToDump and frgUID arrays to be
+  //  relative to begIID.
+
+  if (begIID < getFirstElemStore(gkp->frg))
+    begIID = getFirstElemStore(gkp->frg);
+  if (getLastElemStore(gkp->frg) < endIID)
+    endIID = getLastElemStore(gkp->frg);
+
+  if (iidToDump == NULL) {
+    iidToDump = (char *)safe_calloc(endIID + 1, sizeof(char));
+    for (i=begIID; i<=endIID; i++)
+      iidToDump[i] = 1;
+  }
+
+  //  Pass 1: Scan the fragments, build a list of libraries to dump,
+  //  also add in any mates that were omitted from the input.
+
+  fprintf(stderr, "Scanning store to find libraries used.\n");
+
+  libToDump = (int    *)safe_calloc(getLastElemStore(gkp->lib)+1, sizeof(int));
+  libUID    = (AS_UID *)safe_calloc(getLastElemStore(gkp->lib)+1, sizeof(AS_UID));
+  frgUID    = (AS_UID *)safe_calloc(endIID+1,                     sizeof(AS_UID));
+
+
+  fs = openFragStream(gkp, FRAG_S_INF);
+  resetFragStream(fs, begIID, endIID);
+
+  while (nextFragStream(fs, &fr)) {
+    frgUID[getFragRecordIID(&fr)] = getFragRecordUID(&fr);
+
+    if (iidToDump[getFragRecordIID(&fr)]) {
+      libToDump[getFragRecordLibraryIID(&fr)]++;
+
+      if ((getFragRecordMateIID(&fr) > 0) && (iidToDump[getFragRecordMateIID(&fr)] == 0)) {
+        mateAdded++;
+        if (doNotFixMates == 0)
+          iidToDump[getFragRecordMateIID(&fr)] = 1;
+      }
+    }
+  }
+
+  fprintf(stderr, "%sdded %d reads to maintain mate relationships.\n",
+          (doNotFixMates) ? "Would have a" : "A", mateAdded);
+
+  fprintf(stderr, "Dumping %d fragments from unknown library (version 1 has these)\n", libToDump[0]);
+
+  for (i=1; i<=getLastElemStore(gkp->lib); i++)
+    fprintf(stderr, "Dumping %d fragments from library IID %d\n", libToDump[i], i);
+
+  char  fname[FILENAME_MAX];
+  char  qname[FILENAME_MAX];
+
+  sprintf(fname, "%s.fna",      prefix);
+  sprintf(qname, "%s.fna.qual", prefix);
+
+  errno = 0;
+  FILE *f = fopen(fname, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open output file '%s': %s\n", fname, strerror(errno)), exit(1);
+
+  FILE *q = fopen(qname, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open output file '%s': %s\n", qname, strerror(errno)), exit(1);
+
+
+  for (i=1; i<=getLastElemStore(gkp->lib); i++) {
+    if (libToDump[i]) {
+      GateKeeperLibraryRecord  *gkpl = getGateKeeperLibrary(gkp, i);
+
+      //  We don't really need to cache UIDs anymore;
+      //  getGateKeeperLibrary should be doing this for us.  It's
+      //  already implemented, and slightly more efficient, so BPW
+      //  left it in.
+
+      libUID[i] = gkpl->libraryUID;
+    }
+  }
+
+  //  Dump fragments -- as soon as both reads in a mate are defined,
+  //  we dump the mate relationship.
+  //
+  fs = openFragStream(gkp, FRAG_S_ALL);
+  resetFragStream(fs, begIID, endIID);
+
+  while (nextFragStream(fs, &fr)) {
+    FragMesg  fmesg;
+    LinkMesg  lmesg;
+
+    if (iidToDump[getFragRecordIID(&fr)]) {
+      char    defline[1024];
+
+      if (getFragRecordMateIID(&fr)) {
+        AS_IID  id1 = getFragRecordIID(&fr);
+        AS_IID  id2 = getFragRecordMateIID(&fr);
+
+        sprintf(defline, ">%s template=%d+%d dir=%c library=%s trim=%d-%d\n",
+                //  ID
+                AS_UID_toString1(getFragRecordUID(&fr)),
+                //  template
+                (id1 < id2) ? id1 : id2,
+                (id1 < id2) ? id2 : id1,
+                //  dir
+                (id1 < id2) ? 'F' : 'R',
+                //  library
+                AS_UID_toString2(libUID[getFragRecordLibraryIID(&fr)]),
+                //  trim
+                getFragRecordClearRegionBegin(&fr, dumpFRGClear) + 1,
+                getFragRecordClearRegionEnd  (&fr, dumpFRGClear));
+      } else {
+        sprintf(defline, ">%s trim=%d-%d\n",
+                //  ID
+                AS_UID_toString1(getFragRecordUID(&fr)),
+                //  trim
+                getFragRecordClearRegionBegin(&fr, dumpFRGClear) + 1,
+                getFragRecordClearRegionEnd  (&fr, dumpFRGClear));
+      }
+
+      AS_UTL_writeFastA(f,
+                        getFragRecordSequence(&fr),
+                        getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_UNTRIM),
+                        defline, NULL);
+
+      AS_UTL_writeQVFastA(q,
+                          getFragRecordSequence(&fr),
+                          getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_UNTRIM),
+                          defline, NULL);
     }
   }
 

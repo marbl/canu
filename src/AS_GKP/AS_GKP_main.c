@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_main.c,v 1.65 2008-05-14 22:19:57 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_main.c,v 1.66 2008-05-15 21:42:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -104,6 +104,12 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "                              missing mated reads\n");
   fprintf(stdout, "    -clear <clr>           ...use clear range <clr>, default=ORIG\n");
   fprintf(stdout, "    -format2               ...extract using frg format version 2\n");
+  fprintf(stdout, "  -dumpnewbler <prefix>  extract LIB, FRG and LKG messages, write in a\n");
+  fprintf(stdout, "                         format appropriate for Newbler.  This will create\n");
+  fprintf(stdout, "                         files 'prefix.fna' and 'prefix.fna.qual'.  Options\n");
+  fprintf(stdout, "                         -donotfixmates and -clear also apply.\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  (1) - must have a -dump option, e.g., -uid file -tabular -dumpfragments some.gkpStore\n");
   fprintf(stdout, "\n");
@@ -155,6 +161,9 @@ usage(char *filename, int longhelp) {
     fprintf(stdout, "\n");
   }
 }
+
+#include <ctype.h>
+#include "overlapStore.h"
 
 char *
 constructIIDdumpFromIDFile(char *gkpStoreName, char *iidToDump, char *uidFileName, char *iidFileName) {
@@ -373,7 +382,8 @@ constructIIDdump(char  *gkpStoreName,
 #define DUMP_FRAGMENTS   4
 #define DUMP_FASTA       5
 #define DUMP_FRG         6
-#define DUMP_LASTFRG     7
+#define DUMP_NEWBLER     7
+#define DUMP_LASTFRG     8
 
 int
 main(int argc, char **argv) {
@@ -412,6 +422,7 @@ main(int argc, char **argv) {
   int              dumpFastaQuality  = 0;
   int              doNotFixMates     = 0;
   int              dumpFormat        = 1;
+  char            *newblerPrefix     = NULL;
   uint32           dumpRandLib       = 0;  //  0 means "from any library"
   uint32           dumpRandMateNum   = 0;
   uint32           dumpRandSingNum   = 0;  //  Not a command line option
@@ -514,6 +525,9 @@ main(int argc, char **argv) {
       dumpFastaQuality = 2;
     } else if (strcmp(argv[arg], "-dumpfrg") == 0) {
       dump = DUMP_FRG;
+    } else if (strcmp(argv[arg], "-dumpnewbler") == 0) {
+      dump = DUMP_NEWBLER;
+      newblerPrefix = argv[++arg];
     } else if (strcmp(argv[arg], "-donotfixmates") == 0) {
       doNotFixMates = 1;
 
@@ -602,6 +616,11 @@ main(int argc, char **argv) {
         dumpGateKeeperAsFRG(gkpStoreName, dumpFormat, begIID, endIID, iidToDump,
                             doNotFixMates,
                             dumpFRGClear);
+        break;
+      case DUMP_NEWBLER:
+        dumpGateKeeperAsNewbler(gkpStoreName, newblerPrefix, begIID, endIID, iidToDump,
+                                doNotFixMates,
+                                dumpFRGClear);
         break;
       case DUMP_LASTFRG:
         {
