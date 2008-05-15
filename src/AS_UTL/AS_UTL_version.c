@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: AS_UTL_version.c,v 1.13 2007-08-31 21:04:57 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_UTL_version.c,v 1.14 2008-05-15 00:34:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +31,6 @@ static const char CM_ID[] = "$Id: AS_UTL_version.c,v 1.13 2007-08-31 21:04:57 br
 #include "AS_UTL_fileIO.h"
 #include "AS_MSG_pmesg.h"
 
-#define crunch(S) { while (*(S)) (S)++; }
 
 int
 VersionStampADT(AuditMesg *adt_mesg, int argc, char **argv) {

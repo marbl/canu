@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_global.h,v 1.25 2008-05-14 22:19:57 brianwalenz Exp $
+//  $Id: AS_global.h,v 1.26 2008-05-15 00:34:56 brianwalenz Exp $
 
 //  This is the global include file that all C files in the AS
 //  subsystem should include.
@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <sys/types.h>
 
 #include <assert.h>
@@ -274,9 +275,17 @@ off_t ftello(FILE *stream );
 
 //  perl's chomp is pretty nice
 //  Not a great place to put this, but it's getting used all over.
+#ifndef chomp
 #define chomp(S)  { char *t=(S); while (*t) t++; t--; while (isspace(*t)) *t--=0; }
+#endif
+
+#ifndef munch
 #define munch(S)  { while (*(S) &&  isspace(*(S))) (S)++; }
+#endif
+
+#ifndef crunch
 #define crunch(S) { while (*(S) && !isspace(*(S))) (S)++; }
+#endif
 
 
 #include "AS_UTL_IID.h"
