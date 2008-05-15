@@ -386,7 +386,17 @@ double  mtRandomGaussian(mt_s *mt);
 //
 //  perl's chomp is pretty nice
 //
+#ifndef chomp
 #define chomp(S) { char *t=S; while (*t) t++; t--; while (isspace(*t)) *t--=0; }
+#endif
+
+#ifndef munch
+#define munch(S)  { while (*(S) &&  isspace(*(S))) (S)++; }
+#endif
+
+#ifndef crunch
+#define crunch(S) { while (*(S) && !isspace(*(S))) (S)++; }
+#endif
 
 
 #ifdef __cplusplus
