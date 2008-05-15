@@ -105,11 +105,10 @@ int main( int argc, char *argv[])
 
   int setGatekeeperStore = FALSE;
   int fragIID,mateIID;
-  uint64 fragUID,mateUID;
+  AS_UID fragUID,mateUID;
   char GKP_Store_Name[2000];
   GateKeeperStore *gkpStore;
   GateKeeperFragmentRecord gkpFrag,gkpMate;
-  uint64 uid, mateuid;
   char *seq1,*seq2,*qul1,*qul2,*clear1,*clear2;
   uint clr_bgn1,clr_end1;
   uint clr_bgn2,clr_end2;
@@ -211,7 +210,7 @@ int main( int argc, char *argv[])
     getGateKeeperFragment(gkpStore,fragIID,&gkpFrag);
     if(gkpFrag.deleted)continue;
 
-    fragUID = AS_UID_toInteger(gkpFrag.readUID);
+    fragUID = gkpFrag.readUID;
 
       //    if(getFrag(gkpStore,fragIID,fsread,FRAG_S_ALL)!=0){
       //      fprintf(stderr,"Couldn't get fragment from gkpStore for iid %d\n",fragIID);
@@ -240,7 +239,7 @@ int main( int argc, char *argv[])
     if(gkpFrag.mateIID == 0){
 
       // if no mate (or multiple mates), output fragment itself
-      printf(">" F_S64 "\n%s\n",fragUID,clear1);
+      printf(">%s\n%s\n",AS_UID_toString(fragUID),clear1);
 
     } else { // there are links
       mateIID = gkpFrag.mateIID;
@@ -250,7 +249,7 @@ int main( int argc, char *argv[])
       /*************************/
 
       getGateKeeperFragment(gkpStore,mateIID,&gkpFrag);
-      mateUID = AS_UID_toInteger(gkpFrag.readUID);
+      mateUID = gkpFrag.readUID;
 	
       if(mateIID<fragIID&&gkpFrag.deleted!=1)continue;
 
@@ -274,7 +273,7 @@ int main( int argc, char *argv[])
 
       if(gkpFrag.deleted){
 	// if no mate (or multiple mates), output fragment itself
-	printf(">" F_S64 "\n%s\n",mateUID,clear2);
+	printf(">%s\n%s\n",AS_UID_toString(mateUID),clear2);
 	continue;
       }
 
@@ -298,13 +297,13 @@ int main( int argc, char *argv[])
 	// if they don't overlap reasonably,
 
 	if(Ngaps){
-	  printf(">" F_S64 " from mated fragments " F_S64 " and " F_S64 "\n%sNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN%s\n",
-		 mergeUid,fragUID,mateUID,clear1,clear2);
+	  printf(">" F_S64 " from mated fragments %s and %s\n%sNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN%s\n",
+		 mergeUid,AS_UID_toString(fragUID),AS_UID_toString(mateUID),clear1,clear2);
 	} else {
 	  // output two sequences, but with a clone UID plus "a" or "b"
 	
-	  printf(">" F_S64 "a (fragment " F_S64 ")\n%s\n>" F_S64 "b (fragment " F_S64 ")\n%s\n",
-		 mergeUid,fragUID,clear1,mergeUid,mateUID,clear2);
+	  printf(">" F_S64 "a (fragment %s)\n%s\n>" F_S64 "b (fragment %s)\n%s\n",
+		 mergeUid,AS_UID_toString(fragUID),clear1,mergeUid,AS_UID_toString(mateUID),clear2);
 	}
 
       } else { // there is an overlap
@@ -414,7 +413,7 @@ int main( int argc, char *argv[])
 	}
 
 	printf(">" F_S64,mergeUid);
-	printf(" merged sequence of mated fragments " F_S64 " and " F_S64 "\n",fragUID,mateUID);
+	printf(" merged sequence of mated fragments %s and %s\n",AS_UID_toString(fragUID),AS_UID_toString(mateUID));
 	printf("%s\n",seq);
 
       }
