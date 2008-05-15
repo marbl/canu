@@ -56,3 +56,41 @@ AS_UTL_writeFastA(FILE *f,
   safe_free(o);
 }
 
+
+void
+AS_UTL_writeQVFastA(FILE *f,
+                    char *q, int ql,
+                    char *h, ...) {
+  va_list ap;
+  char   *o  = (char *)safe_malloc(sizeof(char) * (3*ql + 3*ql / 70 + 2));
+  int     qi = 0;
+  int     oi = 0;
+
+  //
+  //  20 values per line -> 60 letters per line.
+  //  |xx xx xx xx xx ..... xx|
+  //
+
+  while (qi < ql) {
+    o[oi++] = (q[qi] / 10) + '0';
+    o[oi++] = (q[qi] % 10) + '0';
+    o[oi++] = ' ';
+
+    qi++;
+
+    if ((qi % 20) == 0)
+      o[oi-1] = '\n';
+  }
+  if (o[oi-1] != '\n')
+    o[oi++] = '\n';
+  o[oi] = 0;
+
+  va_start(ap, h);
+  vfprintf(f, h, ap);
+  va_end(ap);
+
+  AS_UTL_safeWrite(f, o, "AS_UTL_writeQVFastA", sizeof(char), oi);
+
+  safe_free(o);
+}
+

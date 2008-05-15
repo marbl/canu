@@ -28,3 +28,11 @@ void
 AS_UTL_writeFastA(FILE *f,
                   char *s, int sl,
                   char *h, ...);
+
+//  Assumes a CA encoded QV string, and writes it to a fasta formated
+//  as 2-digit white space separated.
+//
+void
+AS_UTL_writeQVFastA(FILE *f,
+                    char *q, int ql,
+                    char *h, ...);
