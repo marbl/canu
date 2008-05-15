@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.25 2008-04-29 22:33:31 adelcher Exp $
- * $Revision: 1.25 $
+ * $Id: OlapFromSeedsOVL.c,v 1.26 2008-05-15 22:43:39 adelcher Exp $
+ * $Revision: 1.26 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.25 2008-04-29 22:33:31 adelcher Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.26 2008-05-15 22:43:39 adelcher Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -1633,6 +1633,9 @@ static void  Count_From_Diff
 // Increment the values in  count  corresponding to the characters represented
 // by the diffs in  dp  to the reference sequence  seq  of length  seq_len .
 //  seq_is_homopoly  is true iff  seq  can have homopolymer-run errors.
+// Counts are NOT incremented when either the ref or other sequence is homopoly
+// and there is a homopolymer run-length discrepancy of length
+// <= HOMOPOLY_LEN_VARIATION
 
 {
   int  homopoly_ct = 0;
@@ -1645,6 +1648,7 @@ static void  Count_From_Diff
 
   for (k = 0; k < dp -> diff_len; k ++)
     {
+      // count matches and track start of homopoly runs
       for (m = 0; m < dp -> de [k] . len; m ++)
         {
           sub = Char_To_Code (seq [j]);
@@ -2385,6 +2389,8 @@ static int  Eliminate_Correlated_Diff_Olaps
    int  ct, lo;
    int  i, j, k, q;
 
+   // first count the number of each character (including '-') at each
+   // column of the multialignment
    for (i = 0; i < ref_len; i ++)
      {
       for (j = 0; j < 5; j ++)
@@ -2396,6 +2402,8 @@ static int  Eliminate_Correlated_Diff_Olaps
    for (i = 0; i < dp_ct; i ++)
      Count_From_Diff (count, ref, ref_len, ref_is_homopoly, dp + i);
 
+   // now identify columns with sufficient numbers of differences, i.e.,
+   // with >= variation_ct for at least two different characters
    num_diff_cols = 0;
    for (i = 0; i < ref_len; i ++)
      {
@@ -2433,7 +2441,7 @@ static int  Eliminate_Correlated_Diff_Olaps
 
    for (i = 0; i < dp_ct; i ++)
      Set_Signature (signature + i, diff_col, num_diff_cols, dp + i,
-          ref, ref_len);
+          ref, ref_len, ref_is_homopoly);
 
    qsort (signature, dp_ct, sizeof (Difference_Signature_t), By_Diffs_And_Alpha);
 
@@ -5235,75 +5243,104 @@ static void  Set_Self_Votes
 
 static void  Set_Signature
   (Difference_Signature_t * signature, short int diff_col [], int num_diff_cols,
-   const Sequence_Diff_t * dp, const char * seq, int seq_len)
+   const Sequence_Diff_t * dp, const char * seq, int seq_len, int seq_is_homopoly)
 
 // Put characters in  signature -> seq  corresponding to the differences
 // between  dp  and  seq  at the column positions in  diff_col .
 // Put spaces into positions that are not different or are not
-// covered by the alignment.   seq_len  is the length of  seq .
+// covered by the alignment--this includes homopolymer run length discrepancies
+// that are <= HOMOPOLY_LEN_VARIATION.   seq_len  is the length of  seq .
+//  seq_is_homopoly  is true iff  seq  can have homopolymer-run errors.
 // Also set  signature -> diff_ct  to the number of non-space characters
 
-  {
-   int  i, j, k, m, ct, sub;
+{
+  int  homopoly_ct = 0;
+  int  doing_homopoly;
+  char  homopoly_char = 'x';
+  int  i, j, k, m, ct, sub;
 
-   j = dp -> a_lo;
-   for (i = 0; i < num_diff_cols && diff_col [i] < j; i ++)
-     signature -> seq [i] = ' ';
+  doing_homopoly = (seq_is_homopoly || dp -> is_homopoly_type);
+  j = dp -> a_lo;
 
-   ct = 0;
-   for (k = 0; k < dp -> diff_len; k ++)
-     {
+  // first put spaces for positions that precede the start of the alignment
+  for (i = 0; i < num_diff_cols && diff_col [i] < j; i ++)
+    signature -> seq [i] = ' ';
+
+  ct = 0;
+  for (k = 0; k < dp -> diff_len; k ++)
+    {
+      // put spaces in signature for matches and track start of homopoly runs
       for (m = 0; m < dp -> de [k] . len; m ++)
         {
-         if (i < num_diff_cols && j == diff_col [i])
-           signature -> seq [i ++] = ' ';
-         j ++;
+          if (i < num_diff_cols && j == diff_col [i])
+            signature -> seq [i ++] = ' ';
+          homopoly_ct = 0;
+          homopoly_char = seq [j];
+          j ++;
         }
 
       switch (dp -> de [k] . action)
         {
-         case 0 :    // insert--shouldn't happen
-           break;
-         case 1 :    // delete
-           if (i < num_diff_cols && j == diff_col [i])
-             {
-              if (seq [j] == '-')
+        case 0 :    // insert--shouldn't happen
+          break;
+        case 1 :    // delete
+          if (homopoly_char == seq [j])
+            homopoly_ct ++;
+          else
+            {
+              homopoly_ct = 0;
+              homopoly_char = 'x';
+            }
+          if (i < num_diff_cols && j == diff_col [i])
+            {
+              // put space in signature if -/- match or homopoly variation
+              if (seq [j] == '-' || doing_homopoly
+                    && (0 < homopoly_ct && homopoly_ct <= HOMOPOLY_LEN_VARIATION))
                 signature -> seq [i ++] = ' ';
               else
                 {
-                 signature -> seq [i ++] = '-';
-                 ct ++;
+                  signature -> seq [i ++] = '-';
+                  ct ++;
                 }
-             }
-           j ++;
-           break;
-         case 2 :    // substitute
-           if (i < num_diff_cols && j == diff_col [i])
-             {
+            }
+          j ++;
+          break;
+        case 2 :    // substitute
+          if (homopoly_char == Code_To_Char (dp -> de [k] . ch) && seq [j] == '-')
+            homopoly_ct ++;
+          else
+            {
+              homopoly_ct = 0;
+              homopoly_char = 'x';
+            }
+          if (i < num_diff_cols && j == diff_col [i])
+            {
               char ch = Code_To_Char (dp -> de [k] . ch);
-              if (ch == seq [j])
+              if (ch == seq [j] || doing_homopoly
+                    && (0 < homopoly_ct && homopoly_ct <= HOMOPOLY_LEN_VARIATION))
                 signature -> seq [i ++] = ' ';
               else
                 {
-                 signature -> seq [i ++] = ch;
-                 ct ++;
+                  signature -> seq [i ++] = ch;
+                  ct ++;
                 }
-             }
-           j ++;
-           break;
-         case 3 :    // noop
-           // should be end of alignment
-           break;
+            }
+          j ++;
+          break;
+        case 3 :    // noop
+          // should be end of alignment
+          break;
         }
-     }
+    }
 
-   for ( ; i < num_diff_cols; i ++)
-     signature -> seq [i] = ' ';
+  // fill rest of signature beyond end of alignment with spaces
+  for ( ; i < num_diff_cols; i ++)
+    signature -> seq [i] = ' ';
 
-   signature -> diff_ct = ct;
+  signature -> diff_ct = ct;
 
-   return;
-  }
+  return;
+}
 
 
 

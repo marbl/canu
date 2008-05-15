@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.13 2008-04-29 22:33:31 adelcher Exp $
- * $Revision: 1.13 $
+ * $Id: OlapFromSeedsOVL.h,v 1.14 2008-05-15 22:43:39 adelcher Exp $
+ * $Revision: 1.14 $
 */
 
 
@@ -504,7 +504,7 @@ static void  Set_Self_Votes
   (int sub, int frag_len);
 static void  Set_Signature
   (Difference_Signature_t * signature, short int diff_col [], int num_diff_cols,
-   const Sequence_Diff_t * dp, const char * seq, int seq_len);
+   const Sequence_Diff_t * dp, const char * seq, int seq_len, int seq_is_homopoly);
 static void  Set_Votes_From_Diffs
   (int sub, Sequence_Diff_t * dp);
 static void  Show_Corrections
