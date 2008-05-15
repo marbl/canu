@@ -298,12 +298,12 @@ int main( int argc, char *argv[])
 
 	if(Ngaps){
 	  printf(">" F_S64 " from mated fragments %s and %s\n%sNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN%s\n",
-		 mergeUid,AS_UID_toString(fragUID),AS_UID_toString(mateUID),clear1,clear2);
+		 mergeUid,AS_UID_toString1(fragUID),AS_UID_toString2(mateUID),clear1,clear2);
 	} else {
 	  // output two sequences, but with a clone UID plus "a" or "b"
 	
 	  printf(">" F_S64 "a (fragment %s)\n%s\n>" F_S64 "b (fragment %s)\n%s\n",
-		 mergeUid,AS_UID_toString(fragUID),clear1,mergeUid,AS_UID_toString(mateUID),clear2);
+		 mergeUid,AS_UID_toString1(fragUID),clear1,mergeUid,AS_UID_toString2(mateUID),clear2);
 	}
 
       } else { // there is an overlap
@@ -413,7 +413,7 @@ int main( int argc, char *argv[])
 	}
 
 	printf(">" F_S64,mergeUid);
-	printf(" merged sequence of mated fragments %s and %s\n",AS_UID_toString(fragUID),AS_UID_toString(mateUID));
+	printf(" merged sequence of mated fragments %s and %s\n",AS_UID_toString1(fragUID),AS_UID_toString2(mateUID));
 	printf("%s\n",seq);
 
       }
