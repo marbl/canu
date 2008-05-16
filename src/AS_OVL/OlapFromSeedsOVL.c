@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.26 2008-05-15 22:43:39 adelcher Exp $
- * $Revision: 1.26 $
+ * $Id: OlapFromSeedsOVL.c,v 1.27 2008-05-16 00:03:31 brianwalenz Exp $
+ * $Revision: 1.27 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.26 2008-05-15 22:43:39 adelcher Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.27 2008-05-16 00:03:31 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -1377,34 +1377,6 @@ static int  Code_To_Char
      }
 
    return s [code];
-  }
-
-
-
-static char  Complement
-    (char ch)
-
-/*  Return the DNA complement of  ch . */
-
-  {
-   switch  (tolower ((int) ch))
-     {
-      case  'a' :
-        return  't';
-      case  'c' :
-        return  'g';
-      case  'g' :
-        return  'c';
-      case  't' :
-        return  'a';
-      case  'n' :
-        return  'n';
-      default :
-        fprintf (stderr, "ERROR(complement):  Unexpected character `%c\'\n", ch);
-        exit(EXIT_FAILURE);
-     }
-
-   return  'x';    // Just to make the compiler happy
   }
 
 
@@ -4003,7 +3975,7 @@ static void  Process_Seed
       if  ((* rev_id) != olap -> b_iid)
           {
            strcpy (rev_seq, b_seq);
-           Rev_Complement (rev_seq);
+           reverseComplementSequence (rev_seq, 0);
            (* rev_id) = olap -> b_iid;
           }
       b_offset = olap -> b_hang;
@@ -4461,32 +4433,6 @@ static void  Read_Seeds
 
         Olap = (Olap_Info_t *) safe_realloc (Olap, Num_Olaps * sizeof (Olap_Info_t));
        }
-
-   return;
-  }
-
-
-
-static void  Rev_Complement
-    (char * s)
-
-/* Set string  s  to its DNA reverse complement. */
-
-  {
-   char  ch;
-   int  i, j, len;
-
-   len = strlen (s);
-
-   for  (i = 0, j = len - 1;  i < j;  i ++, j --)
-     {
-      ch = Complement (s [i]);
-      s [i] = Complement (s [j]);
-      s [j] = ch;
-     }
-
-   if  (i == j)
-       s [i] = Complement (s [i]);
 
    return;
   }

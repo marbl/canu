@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.13 2008-05-05 07:49:39 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.14 2008-05-16 00:03:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +28,7 @@ static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.13 2008-05-05 07:49:39 brianwa
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
+#include "AS_UTL_reverseComplement.h"
 #include "AS_GKP_include.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_encodeSequenceQuality.h"
@@ -578,62 +579,6 @@ processRead(sffHeader *h,
   r->final_bases    = r->bases   + h->key_length;
   r->final_quality  = r->quality + h->key_length;
   r->final_length   = strlen(r->final_bases);
-}
-
-
-
-//  Swiped from asmOutputFasta.c
-//
-static
-void
-reverseComplement(char *seq, char *qlt, int len) {
-  char   inv[256] = {0};
-  char   c=0;
-  char  *s=seq,  *S=seq+len-1;
-  char  *q=qlt,  *Q=qlt+len-1;
-
-  inv['a'] = 't';
-  inv['c'] = 'g';
-  inv['g'] = 'c';
-  inv['t'] = 'a';
-  inv['n'] = 'n';
-  inv['A'] = 'T';
-  inv['C'] = 'G';
-  inv['G'] = 'C';
-  inv['T'] = 'A';
-  inv['N'] = 'N';
-  inv['-'] = '-';
-
-  while (s < S) {
-    c    = *s;
-    *s++ =  inv[*S];
-    *S-- =  inv[c];
-
-    c    = *q;
-    *q++ = *Q;
-    *Q-- =  c;
-  }
-
-  if (s == S)
-    *s = inv[*s];
-}
-
-static
-void
-reverse(char *a, char *b, int len) {
-  char   c=0;
-  char  *s=a,  *S=a+len-1;
-  char  *q=b,  *Q=b+len-1;
-
-  while (s < S) {
-    c    = *s;
-    *s++ =  *S;
-    *S-- =  c;
-
-    c    = *q;
-    *q++ = *Q;
-    *Q-- =  c;
-  }
 }
 
 

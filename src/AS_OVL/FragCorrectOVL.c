@@ -25,7 +25,7 @@
 //   Programmer:  A. Delcher
 //      Started:   4 Dec 2000
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.26 2008-03-18 07:02:46 brianwalenz Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.27 2008-05-16 00:03:31 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -273,8 +273,6 @@ static int  By_B_IID
     (const void * a, const void * b);
 static void  Cast_Vote
     (Vote_Value_t val, int p, int sub);
-static char  Complement
-    (char);
 static void  Compute_Delta
     (int delta [], int * delta_len, int ** edit_array,
      int e, int d, int row);
@@ -313,8 +311,6 @@ static void  Read_Frags
     (void);
 static void  Read_Olaps
     (void);
-static void  Rev_Complement
-    (char * s);
 static void  Stream_Old_Frags
     (void);
 static int  Sign
@@ -762,34 +758,6 @@ static void  Cast_Vote
      }
 
    return;
-  }
-
-
-
-static char  Complement
-    (char ch)
-
-/*  Return the DNA complement of  ch . */
-
-  {
-   switch  (tolower ((int) ch))
-     {
-      case  'a' :
-        return  't';
-      case  'c' :
-        return  'g';
-      case  'g' :
-        return  'c';
-      case  't' :
-        return  'a';
-      case  'n' :
-        return  'n';
-      default :
-        fprintf (stderr, "ERROR(complement):  Unexpected character `%c\'\n", ch);
-        exit(1);
-     }
-
-   return  'x';    // Just to make the compiler happy
   }
 
 
@@ -1814,7 +1782,7 @@ static void  Process_Olap
         if  ((* rev_id) != olap -> b_iid)
             {
              strcpy (rev_seq, b_seq);
-             Rev_Complement (rev_seq);
+             reverseComplementSequence (rev_seq, 0);
              (* rev_id) = olap -> b_iid;
             }
         b_part = rev_seq;
@@ -2083,32 +2051,6 @@ static void  Read_Olaps
 
         Olap = (Olap_Info_t *) safe_realloc (Olap, Num_Olaps * sizeof (Olap_Info_t));
        }
-
-   return;
-  }
-
-
-
-static void  Rev_Complement
-    (char * s)
-
-/* Set string  s  to its DNA reverse complement. */
-
-  {
-   char  ch;
-   int  i, j, len;
-
-   len = strlen (s);
-
-   for  (i = 0, j = len - 1;  i < j;  i ++, j --)
-     {
-      ch = Complement (s [i]);
-      s [i] = Complement (s [j]);
-      s [j] = ch;
-     }
-
-   if  (i == j)
-       s [i] = Complement (s [i]);
 
    return;
   }

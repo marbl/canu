@@ -36,7 +36,9 @@ LIB_SOURCES = AS_UTL_Hash.c \
               AS_UTL_fileIO.c \
               AS_UTL_qsort_mt.c \
               AS_UTL_fasta.c \
-              AS_UTL_UID.c
+              AS_UTL_UID.c \
+              AS_UTL_reverseComplement.c
+
 LIB_OBJECTS = $(LIB_SOURCES:.c=.o)
 
 SOURCES     = $(LIB_SOURCES)

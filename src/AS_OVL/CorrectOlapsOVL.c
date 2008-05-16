@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.29 2008-04-10 15:15:10 adelcher Exp $
- * $Revision: 1.29 $
+ * $Id: CorrectOlapsOVL.c,v 1.30 2008-05-16 00:03:31 brianwalenz Exp $
+ * $Revision: 1.30 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.29 2008-04-10 15:15:10 adelcher Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.30 2008-05-16 00:03:31 brianwalenz Exp $";
 
 
 //  System include files
@@ -57,6 +57,7 @@ static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.29 2008-04-10 15:15:10 adelche
 #include  "AS_PER_gkpStore.h"
 #include  "AS_MSG_pmesg.h"
 #include  "AS_UTL_version.h"
+#include  "AS_UTL_reverseComplement.h"
 #include  "FragCorrectOVL.h"
 #include  "AS_OVS_overlapStore.h"
 
@@ -128,8 +129,6 @@ typedef  struct
   {
    char  * sequence;
    Adjust_t  * adjust;
-   int  celsim_start;
-   int  celsim_end;
    int  unitig1, lo1, hi1;
    int  unitig2, lo2, hi2;
    unsigned  keep_right : 1;    // set true if right overlap degree is low
@@ -167,11 +166,6 @@ static char  * Correct_File_Path;
     // Name of file containing fragment corrections
 static FILE  * Delete_fp = NULL;
     // File to which list of overlaps to delete is written if  -x  option is specified
-static char  * DNA_String = NULL;
-    // Genome string from which celsim got fragments
-    // Set by  -d  option
-static FILE  * Dump_Olap_fp = NULL;
-    // File to show true vs repeat-induced olaps before and after correction
 static int  * Edit_Array [AS_FRAG_MAX_LEN];
     // Use for alignment calculation.  Points into  Edit_Space .
     // (only MAX_ERRORS needed)
@@ -267,8 +261,6 @@ static int  By_Place
     (const void * a, const void * b);
 static int  Compare_Frags
     (char a [], char b []);
-static char  Complement
-    (char);
 static void  Correct_Frags
     (void);
 static void  Display_Alignment
@@ -277,8 +269,6 @@ static void  Display_Frags
     (void);
 static void  Dump_Erate_File
     (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * olap, uint64 num);
-static void  Dump_Olap
-    (Olap_Info_t * olap, double new_error_rate);
 static void  Fasta_Print
     (FILE * fp, char * s, char * hdr);
 static char  Filter
@@ -289,10 +279,6 @@ static void  Get_Canonical_Olap_Region
     (Olap_Info_t * olap, int sub, char * a_seq, char * b_seq,
      Adjust_t forw_adj [], int adj_ct,
      int frag_len, char * * a_part, char * * b_part);
-static int  Get_Celsim_Coords
-    (char * s, int * start, int * end);
-static void  Get_Celsim_String
-    (char s [], int start, int end);
 static void  Get_Olaps_From_Store
     (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * * olap, uint64 * num);
 static int  Hang_Adjust
@@ -332,8 +318,6 @@ static void  Read_Olaps
     (void);
 static void  Redo_Olaps
     (void);
-static void  Rev_Complement
-    (char * s);
 static int  Rev_Prefix_Edit_Dist
     (char A [], int m, char T [], int n, int Error_Limit,
      int * A_End, int * T_End, int * Match_To_End,
@@ -400,12 +384,6 @@ int  main
                       Erate_Path);
              Dump_Erate_File (Erate_Path, Lo_Frag_IID, Hi_Frag_IID, Olap, Num_Olaps);
             }
-       }
-
-   if  (Dump_Olap_fp != NULL)
-       {
-        fprintf (stderr, "Dumping overlaps\n");
-        fclose (Dump_Olap_fp);
        }
 
    fprintf (stderr, "%d/%d failed/total alignments (%.1f%%)\n",
@@ -735,34 +713,6 @@ static int  Compare_Frags
 
 
 
-static char  Complement
-    (char ch)
-
-/*  Return the DNA complement of  ch . */
-
-  {
-   switch  (tolower ((int) ch))
-     {
-      case  'a' :
-        return  't';
-      case  'c' :
-        return  'g';
-      case  'g' :
-        return  'c';
-      case  't' :
-        return  'a';
-      case  'n' :
-        return  'n';
-      default :
-        fprintf (stderr, "ERROR(complement):  Unexpected character `%c\'\n", ch);
-        exit(1);
-     }
-
-   return  'x';    // Just to make the compiler happy
-  }
-
-
-
 static void  Correct_Frags
     (void)
 
@@ -773,7 +723,6 @@ static void  Correct_Frags
    FILE  * fp;
    Correction_Output_t  msg;
    Correction_t  correct [MAX_FRAG_LEN];
-   char  celsim_string [MAX_FRAG_LEN];
    int  before_errors = 0, after_errors;
    int  num_corrects = 0;
    int  correcting = FALSE;
@@ -787,31 +736,10 @@ static void  Correct_Frags
           {
            if  (correcting)
                {
-                if  (DNA_String != NULL)
-                    {
-                     if  (Verbose_Level > 0)
-                         printf ("Frag %d before correction:\n", iid);
-
-                     Get_Celsim_String (celsim_string,
-                                        Frag [iid - Lo_Frag_IID] . celsim_start,
-                                        Frag [iid - Lo_Frag_IID] . celsim_end);
-                     before_errors
-                         = Compare_Frags (Frag [iid - Lo_Frag_IID] . sequence,
-                                          celsim_string);
-                    }
                 Apply_Seq_Corrects (& (Frag [iid - Lo_Frag_IID] . sequence),
                                     & (Frag [iid - Lo_Frag_IID] . adjust),
                                     & (Frag [iid - Lo_Frag_IID] . adjust_ct),
                                     correct, num_corrects, FALSE);
-                if  (DNA_String != NULL)
-                    {
-                     if  (Verbose_Level > 0)
-                         printf ("Frag %d after correction:\n", iid);
-                     after_errors
-                         = Compare_Frags (Frag [iid - Lo_Frag_IID] . sequence,
-                                          celsim_string);
-                     printf ("%7d %4d %4d\n", iid, before_errors, after_errors);
-                    }
                }
 
            iid = msg . frag . iid;
@@ -836,28 +764,10 @@ static void  Correct_Frags
 
    if  (correcting)
        {
-        if  (DNA_String != NULL)
-            {
-//             printf ("Frag %d before correction:\n", iid);
-             Get_Celsim_String (celsim_string,
-                                Frag [iid - Lo_Frag_IID] . celsim_start,
-                                Frag [iid - Lo_Frag_IID] . celsim_end);
-             before_errors
-                 = Compare_Frags (Frag [iid - Lo_Frag_IID] . sequence,
-                                  celsim_string);
-            }
         Apply_Seq_Corrects (& (Frag [iid - Lo_Frag_IID] . sequence),
                             & (Frag [iid - Lo_Frag_IID] . adjust),
                             & (Frag [iid - Lo_Frag_IID] . adjust_ct),
                             correct, num_corrects, FALSE);
-        if  (DNA_String != NULL)
-            {
-//             printf ("Frag %d after correction:\n", iid);
-             after_errors
-                 = Compare_Frags (Frag [iid - Lo_Frag_IID] . sequence,
-                                  celsim_string);
-             printf ("%7d %4d %4d\n", iid, before_errors, after_errors);
-            }
        }
 
    fclose (fp);
@@ -1027,41 +937,6 @@ static void  Dump_Erate_File
 
 
 
-static void  Dump_Olap
-    (Olap_Info_t * olap, double new_error_rate)
-
-//  Print to global  Dump_Olap_fp  the overlap in  olap  with
-//  its original error rate and  new_error_rate  and an
-//  indication of whether it's a true or repeat-induced overlap.
-//  Note  new_error_rate  is a fraction, not a percent.
-
-  {
-   int  olap_len;
-   int  i, j;
-
-   assert (DNA_String != NULL);
-   assert (Dump_Olap_fp != NULL);
-
-   i = olap -> a_iid - Lo_Frag_IID;
-   j = olap -> b_iid - Lo_Frag_IID;
-   if  (i < 0 || i >= Num_Frags)
-       return;
-   if  (j < 0 || j >= Num_Frags)
-       return;
-
-   olap_len = Intersect_Len (Frag [i] . celsim_start, Frag [i] . celsim_end,
-                             Frag [j] . celsim_start, Frag [j] . celsim_end);
-
-   fprintf (Dump_Olap_fp, "%7d %7d %4d %4d %2c %5.2f %5.2f %4d\n",
-            olap -> a_iid, olap -> b_iid, olap -> a_hang, olap -> b_hang,
-            olap -> orient, AS_OVS_decodeQuality(olap -> corr_erate) * 100.0,
-            100.0 * new_error_rate, olap_len);
-
-   return;
-  }
-
-
-
 static void  Fasta_Print
     (FILE * fp, char * s, char * hdr)
 
@@ -1174,7 +1049,7 @@ static void  Get_Canonical_Olap_Region
              if  (b_rev_id != olap -> b_iid)
                  {
                   strcpy (b_rev_seq, b_seq);
-                  Rev_Complement (b_rev_seq);
+                  reverseComplementSequence (b_rev_seq, 0);
                   b_rev_id = olap -> b_iid;
                   Make_Rev_Adjust (b_rev_adj, forw_adj, adj_ct, frag_len);
                  }
@@ -1211,7 +1086,7 @@ static void  Get_Canonical_Olap_Region
           else
             {
              strcpy (a_rev_seq, a_seq);
-             Rev_Complement (a_rev_seq);
+             reverseComplement (a_rev_seq);
              (* b_part) = a_rev_seq;
              if  (olap -> b_hang < 0)
                  {
@@ -1228,64 +1103,6 @@ static void  Get_Canonical_Olap_Region
        {
         Fasta_Print (stdout, (* a_part), "a_part");
         Fasta_Print (stdout, (* b_part), "b_part");
-       }
-
-   return;
-  }
-
-
-
-static int  Get_Celsim_Coords
-    (char * s, int * start, int * end)
-
-//  Find annotations in celsim source field  s  and put celsim
-//  start coordinate in  (* start)  and end coordinate in  (* end) .
-//  Return  TRUE  if successful,  FALSE  otherwise.
-
-  {
-   char  * p;
-
-//   fprintf (stderr, "source = \"%s\"\n", s);
-
-   p = strtok (s, "\n\r");        // frag id tag
-   if  (p == NULL)
-       return  FALSE;
-
-   p = strtok (NULL, "\n\r");     // frag coordinates in genome
-   if  (p == NULL)
-       return  FALSE;
-       
-   if  (sscanf (p, "[%d,%d]", start, end) == 2)
-       return  TRUE;
-
-   return  FALSE;
-  }
-
-
-
-static void  Get_Celsim_String
-    (char s [], int start, int end)
-
-//  Get subsequence  start .. end  from global  DNA_String  and
-//  put it into  s  (which is assumed to have enough space).
-//  Reverse complement the sequence if  start > end .
-
-  {
-   int  i, j;
-
-   if  (start < end)
-       {
-        j = 0;
-        for  (i = start;  i < end;  i ++)
-          s [j ++] = DNA_String [i];
-        s [j] = '\0';
-       }
-     else
-       {
-        j = 0;
-        for  (i = start - 1;  i >= end;  i --)
-          s [j ++] = Complement (DNA_String [i]);
-        s [j] = '\0';
        }
 
    return;
@@ -1693,20 +1510,9 @@ static void  Parse_Command_Line
    optarg = NULL;
 
    while  (! errflg
-             && ((ch = getopt (argc, argv, "d:e:F:o:Pq:S:v:X:")) != EOF))
+             && ((ch = getopt (argc, argv, "e:F:o:Pq:S:v:X:")) != EOF))
      switch  (ch)
        {
-        case  'd' :
-          fp = File_Open (optarg, "r");
-          DNA_String = Read_Fasta (fp);
-          fclose (fp);
-
-          Dump_Olap_fp = File_Open ("dump.olap", "w");
-
-          fprintf (stderr, "DNA_String len = " F_SIZE_T "\n",
-                   strlen (DNA_String));
-          break;
-
         case  'e' :
           Erate_Path = optarg;
           break;
@@ -2126,9 +1932,6 @@ static void  Process_Olap
    quality = errors / denom;
    olap -> corr_erate = AS_OVS_encodeQuality (quality);
 
-   if  (DNA_String != NULL)
-       Dump_Olap (olap, quality);
-
 #if  1
    if  (quality <= Quality_Threshold
         || (olap -> a_hang <= 0 && Frag [sub] . keep_left)
@@ -2256,15 +2059,6 @@ static void  Read_Frags
       seq_buff [clear_end] = '\0';
 
       Frag [i] . sequence = strdup (seq_buff + clear_start);
-
-      if  (! Get_Celsim_Coords (getFragRecordSource(&frag_read),
-                                & Frag [i] . celsim_start,
-                                & Frag [i] . celsim_end))
-          Frag [i] . celsim_start = Frag [i] . celsim_end = -1;
-#if  0
-      else
-        printf ("%5d:  [%6d,%6d]\n", i, Frag [i] . celsim_start, Frag [i] . celsim_end);
-#endif
      }
 
    closeFragStream (Frag_Stream);
@@ -2463,32 +2257,6 @@ static void  Redo_Olaps
 
    closeFragStream (Frag_Stream);
    closeGateKeeperStore (gkpStore);
-
-   return;
-  }
-
-
-
-static void  Rev_Complement
-    (char * s)
-
-/* Set string  s  to its DNA reverse complement. */
-
-  {
-   char  ch;
-   int  i, j, len;
-
-   len = strlen (s);
-
-   for  (i = 0, j = len - 1;  i < j;  i ++, j --)
-     {
-      ch = Complement (s [i]);
-      s [i] = Complement (s [j]);
-      s [j] = ch;
-     }
-
-   if  (i == j)
-       s [i] = Complement (s [i]);
 
    return;
   }
@@ -2750,7 +2518,6 @@ static void  Usage
        " <gkpStore>  using corrections in  <CorrectFile> \n"
        "\n"
        "Options:\n"
-       "-d <dna-file>  specifies celsim genome file from which fragments came\n"
        "-e <erate-file>  specifies binary file to dump corrected erates to\n"
        "                 for later updating of olap store by  update-erates \n"
        "-F             specify file of sorted overlaps to use (in the format\n"

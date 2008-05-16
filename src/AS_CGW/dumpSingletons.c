@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.22 2007-11-08 12:38:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.23 2008-05-16 00:03:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,6 +36,7 @@ static char CM_ID[] = "$Id: dumpSingletons.c,v 1.22 2007-11-08 12:38:11 brianwal
 #include "ScaffoldGraph_CGW.h"
 
 #include "AS_UTL_fasta.h"
+#include "AS_UTL_reverseComplement.h"
 
 #include "SYS_UIDclient.h"
 
@@ -58,7 +59,7 @@ getFragmentClear(int    iid,
   toprint[clr_end - clr_bgn] = 0;
 
   if (reversecomplement)
-    Complement_Seq(toprint);
+    reverseComplementSequence(toprint, clr_end - clr_bgn);
 
   return(getFragRecordUID(&fs));
 }

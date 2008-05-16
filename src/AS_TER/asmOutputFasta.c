@@ -29,6 +29,7 @@
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_fasta.h"
 #include "AS_UTL_Hash.h"
+#include "AS_UTL_reverseComplement.h"
 
 #include "MultiAlign.h"
 #include "MultiAlignStore_CNS.h"
@@ -76,45 +77,6 @@ computeGapSize(double gapsize) {
   return((int32)gapsize);
 }
 
-
-
-//  Reverse complement the ACGT sequence in seq, and reverse the QV
-//  sequence in qlt.
-//
-//  Swiped into AS_GKP_sff.c
-//
-void
-reverseComplement(char *seq, char *qlt, int len) {
-  char   inv[256] = {0};
-  char   c=0;
-  char  *s=seq,  *S=seq+len-1;
-  char  *q=qlt,  *Q=qlt+len-1;
-
-  inv['a'] = 't';
-  inv['c'] = 'g';
-  inv['g'] = 'c';
-  inv['t'] = 'a';
-  inv['n'] = 'n';
-  inv['A'] = 'T';
-  inv['C'] = 'G';
-  inv['G'] = 'C';
-  inv['T'] = 'A';
-  inv['N'] = 'N';
-  inv['-'] = '-';
-
-  while (s < S) {
-    c    = *s;
-    *s++ =  inv[*S];
-    *S-- =  inv[c];
-
-    c    = *q;
-    *q++ = *Q;
-    *Q-- =  c;
-  }
-
-  if (s == S)
-    *s = inv[*s];
-}
 
 
 void

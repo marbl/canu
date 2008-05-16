@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.14 2008-05-15 22:43:39 adelcher Exp $
- * $Revision: 1.14 $
+ * $Id: OlapFromSeedsOVL.h,v 1.15 2008-05-16 00:03:31 brianwalenz Exp $
+ * $Revision: 1.15 $
 */
 
 
@@ -406,8 +406,6 @@ static int  Char_To_Code
   (char ch);
 static int  Char_Matches
   (char ch, unsigned code);
-static char  Complement
-  (char);
 static void  Compute_Delta
   (int delta [], int * delta_len, int ** edit_array,
    int e, int d, int row);
@@ -480,8 +478,6 @@ static void  Read_Frags
   (void);
 static void  Read_Seeds
   (void);
-static void  Rev_Complement
-  (char * s);
 static void  Set_Diff_Entry
   (Diff_Entry_t ** de, int * pos, int * size, unsigned len, unsigned action,
    unsigned ch);

@@ -28,8 +28,8 @@
 
 
 /* RCS info
- * $Id: AS_OVL_delcher.h,v 1.7 2008-03-18 07:02:46 brianwalenz Exp $
- * $Revision: 1.7 $
+ * $Id: AS_OVL_delcher.h,v 1.8 2008-05-16 00:03:31 brianwalenz Exp $
+ * $Revision: 1.8 $
 */
 
 
@@ -50,6 +50,7 @@
 #include  <unistd.h>
 
 #include  "AS_global.h"
+#include  "AS_UTL_reverseComplement.h"
 
 extern int  Global_Debug_Flag;
   // Flag for debugging

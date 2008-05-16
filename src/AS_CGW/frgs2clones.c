@@ -31,75 +31,14 @@
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 #include "SYS_UIDclient.h"
+#include "AS_UTL_reverseComplement.h"
 #include "MultiAlignment_CNS.h"
 
 #define MAXSEQLEN 20000
 
 
-void RevCompl(char *seq, char *qul)
-{ static char WCinvert[256];
- static int Firstime = 1;
-
- if (Firstime)          /* Setup complementation array */
-   { 
-     int i;
-     Firstime = 0;
-     for(i = 0; i < 256;i++){
-       WCinvert[i] = '?';
-     }
-     WCinvert['a'] = 't';
-     WCinvert['c'] = 'g';
-     WCinvert['g'] = 'c';
-     WCinvert['t'] = 'a';
-     WCinvert['n'] = 'n';
-     WCinvert['A'] = 'T';
-     WCinvert['C'] = 'G';
-     WCinvert['G'] = 'C';
-     WCinvert['T'] = 'A';
-     WCinvert['N'] = 'N';
-     WCinvert['-'] = '-'; // added this to enable alignment of gapped consensi
-   }
-      
- { int len;                    /* Complement and reverse sequence */
- len = strlen(seq);
-
- { register char *s, *t;
- int c;
-
- s = seq;
- t = seq + (len-1);
- while (s < t)
-   { // Sanity Check!
-     assert(WCinvert[(int) *t] != '?' &&
-            WCinvert[(int) *s] != '?');
-
-     c = *s;
-     *s++ = WCinvert[(int) *t];
-     *t-- = WCinvert[c];
-   }
- if (s == t)
-   *s = WCinvert[(int) *s];
- }
-
- if (qul != NULL)
-   { register char *s, *t;   /* Reverse quality value array */
-   int c;
-    
-   s = qul;
-   t = qul + (len-1);
-   while (s < t)
-     { c = *s;
-     *s++ = *t;
-     *t-- = c;
-     }
-   }
- }
-}
-
-
-
-int main( int argc, char *argv[])
-{
+int
+main( int argc, char *argv[]) {
   char *inputPath;
   char *prefix;
 
@@ -406,7 +345,7 @@ int main( int argc, char *argv[])
 
 	  assert(len1+len2+50<MAXSEQLEN);
 	  strcpy(seq,clear1);
-	  RevCompl(clear2,NULL);
+	  reverseComplementSequence(clear2, strlen(clear2));
 	  strcpy(seq+into1,clear2+into2);
 	  assert(strlen(seq)<MAXSEQLEN);
 

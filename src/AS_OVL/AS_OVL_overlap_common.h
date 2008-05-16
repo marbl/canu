@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.44 2008-02-27 10:37:33 brianwalenz Exp $
- * $Revision: 1.44 $
+ * $Id: AS_OVL_overlap_common.h,v 1.45 2008-05-16 00:03:31 brianwalenz Exp $
+ * $Revision: 1.45 $
 */
 
 
@@ -76,7 +76,7 @@
 #include  "AS_OVL_overlap.h"
 #include  "AS_UTL_version.h"
 #include  "AS_UTL_fileIO.h"
-
+#include  "AS_UTL_reverseComplement.h"
 
 /*************************************************************************/
 /* Type definitions */
@@ -389,8 +389,6 @@ static void  Choose_Best_Partial
     (Olap_Info_t * olap, int ct, int deleted []);
 static void  Combine_Into_One_Olap
     (Olap_Info_t * olap, int ct, int deleted []);
-static char  Complement
-    (char);
 static void  Dump_Screen_Info
     (int frag_id, Screen_Info_t * screen, char dir);
 static Overlap_t  Extend_Alignment
@@ -456,8 +454,6 @@ static int  Read_Next_Frag
      uint32 * last_frag_read);
 static void  Read_uint32_List
     (char * file_name, uint32 * * list, int * n);
-static void  Rev_Complement
-    (char *, int);
 static int  Rev_Prefix_Edit_Dist
     (char *, int, char *, int, int, int *, int *, int *, int *,
      Work_Area_t *);
@@ -1900,35 +1896,6 @@ static void  Combine_Into_One_Olap
 
 
 
-static char  Complement
-    (char Ch)
-
-/*  Return the DNA complement of  Ch . */
-
-  {
-   switch  (tolower ((int) Ch))
-     {
-      case  'a' :
-        return  't';
-      case  'c' :
-        return  'g';
-      case  'g' :
-        return  'c';
-      case  't' :
-        return  'a';
-      case  DONT_KNOW_CHAR :
-        return  DONT_KNOW_CHAR;
-      default :
-        fprintf (stderr, "ERROR(complement):  Unexpected character `%c\'\n", Ch);
-        exit (-1);
-     }
-
-   return  'x';    // Just to make the compiler happy
-  }
-
-
-
-
 
 static void  Dump_Screen_Info
     (int frag_id, Screen_Info_t * screen, char dir)
@@ -3049,7 +3016,7 @@ static void  Mark_Skip_Kmers
         }
       Hash_Mark_Empty (key, line);
 
-      Rev_Complement (line, len);
+      reverseComplementSequence (line, len);
       key = 0;
       for  (i = 0;  i < len;  i ++)
         key |= (uint64) (Bit_Equivalent [(int) line [i]]) << (2 * i);
@@ -4290,7 +4257,7 @@ Dump_Screen_Info (Curr_String_Num, & (WA -> screen_info), 'f');
            Find_Overlaps (Frag, Len, quality, Curr_String_Num, FORWARD, WA);
 
 
-           Rev_Complement (Frag, Len);
+           reverseComplementSequence (Frag, Len);
            Reverse_String (quality, Len);
 
            Flip_Screen_Range (& (WA -> screen_info), Len);
@@ -4582,7 +4549,7 @@ void  Profile_Hits
 
 
             strcpy (rev_frag, frag);
-            Rev_Complement (rev_frag, len);
+            reverseComplementSequence (rev_frag, len);
 
             p = window = rev_frag;
             key = 0;
@@ -4926,29 +4893,6 @@ static void  Read_uint32_List
   }
 
 
-
-
-static void  Rev_Complement
-    (char * S, int Len)
-
-/* Set  S [0 .. Len - 1]  to its DNA reverse complement. */
-
-  {
-   char  Ch;
-   int  i, j;
-
-   for  (i = 0, j = Len - 1;  i < j;  i ++, j --)
-     {
-      Ch = Complement (S [i]);
-      S [i] = Complement (S [j]);
-      S [j] = Ch;
-     }
-
-   if  (i == j)
-       S [i] = Complement (S [i]);
-
-   return;
-  }
 
 
 
