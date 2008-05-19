@@ -571,7 +571,7 @@ sub findLastCheckpoint ($) {
     my $dir     = shift @_;
     my $lastckp = 0;
 
-    $dir = "$wrk/$dir" if (! -d $dir);
+    $dir = "$wrk/$dir" if (-d "$wrk/$dir");
 
     open(F, "ls -1 $dir/*ckp* |");
     while (<F>) {
