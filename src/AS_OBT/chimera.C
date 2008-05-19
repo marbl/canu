@@ -304,6 +304,9 @@ process(uint32           iid,
         uint32           ola,
         uint32           ora) {
 
+  int    slopSm = 20;  //  A little slop
+  int    slopLg = 2 * slopSm;
+
   if (overlap->length() > 0) {
     intervalList   IL;
     bool           leftIntervalHang[1025], rightIntervalHang[1025];
@@ -317,72 +320,60 @@ process(uint32           iid,
       switch (ovl->style) {
         case 5:
         case 7:
-          //  A is anchored on the left.
           hasPotentialChimera++;
-          IL.add(ovl->Abeg, ovl->Aend - ovl->Abeg - 10);
+          IL.add(ovl->Abeg, ovl->Aend - ovl->Abeg - slopSm);
           break;
 
         case 13:
 	  if ((ovl->Aend - ovl->Abeg) > 75) {
 	    hasPotentialChimera++;
-	    IL.add(ovl->Abeg + 10, ovl->Aend - ovl->Abeg - 20);
+	    IL.add(ovl->Abeg + slopSm, ovl->Aend - ovl->Abeg - slopLg);
 	  }
           break;
           
         case 10:
         case 11:
-          //  A is anchored on the right.
           hasPotentialChimera++;
-          IL.add(ovl->Abeg + 10, ovl->Aend - ovl->Abeg - 10);
+          IL.add(ovl->Abeg + slopSm, ovl->Aend - ovl->Abeg - slopSm);
           break;
 
         case 14:
 	  if ((ovl->Aend - ovl->Abeg) > 75) {
 	    hasPotentialChimera++;
-	    IL.add(ovl->Abeg + 10, ovl->Aend - ovl->Abeg - 20);
+	    IL.add(ovl->Abeg + slopSm, ovl->Aend - ovl->Abeg - slopLg);
 	  }
           break;
 
         case 6:
-          //  Trust normal overlaps except the last 10 bp
-          IL.add(ovl->Abeg + 10, ovl->Aend - ovl->Abeg - 10);
+          IL.add(ovl->Abeg, ovl->Aend - ovl->Abeg - slopSm);
           break;
         case 9:
-          //  Trust normal overlaps except the last 10 bp
-          IL.add(ovl->Abeg, ovl->Aend - ovl->Abeg - 10);
+          IL.add(ovl->Abeg + slopSm, ovl->Aend - ovl->Abeg - slopSm);
           break;
 
         case 1:
-          //  Trust containment, B contains A right
-          IL.add(ovl->Abeg + 10, ovl->Aend - ovl->Abeg - 10);
-          break;          
-
         case 2:
-          //  Trust containment, B contains A left
-          IL.add(ovl->Abeg, ovl->Aend - ovl->Abeg - 10);
-          break;          
-
         case 3:
-          //  Trust containment, B contains A both
           IL.add(ovl->Abeg, ovl->Aend - ovl->Abeg);
           break;          
 
         case 4:
+          IL.add(ovl->Abeg, ovl->Aend - ovl->Abeg - slopSm);
+          break;
         case 8:
+          IL.add(ovl->Abeg + slopSm, ovl->Aend - ovl->Abeg - slopSm);
+          break;
+
         case 12:
-          //  Trust containment, A contains B
-          IL.add(ovl->Abeg + 10, ovl->Aend - ovl->Abeg - 20);
+          IL.add(ovl->Abeg + slopSm, ovl->Aend - ovl->Abeg - slopLg);
           break;          
 
         case 0:
-          //  Don't trust things that look like duplicate reads.
           break;
 
         case 15:
-          //  Repeats.
-	  if ((ovl->Aend - ovl->Abeg) > 75) {
-	    IL.add(ovl->Abeg + 10, ovl->Aend - ovl->Abeg - 20);
-	  }
+	  if ((ovl->Aend - ovl->Abeg) > 75)
+	    IL.add(ovl->Abeg + slopSm, ovl->Aend - ovl->Abeg - slopLg);
           break;
 
         default:
