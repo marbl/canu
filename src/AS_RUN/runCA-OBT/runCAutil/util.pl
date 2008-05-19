@@ -273,9 +273,12 @@ sub setDefaults () {
     $global{"merOverlapperThreads"}        = 2;
     $global{"merOverlapperSeedBatchSize"}  = 100000;
     $global{"merOverlapperExtendBatchSize"}= 75000;
+    $global{"merOverlapperCorrelatedDiffs"}= 0;
 
     $global{"merOverlapperSeedConcurrency"}  = 1;
     $global{"merOverlapperExtendConcurrency"}= 1;
+
+    $global{"merOverlapperThreads"}        = 2;
 
     $global{"umdOverlapperFlags"}          = "-use-uncleaned-reads -trim-error-rate 0.03 -max-minimizer-cutoff 150";
 
