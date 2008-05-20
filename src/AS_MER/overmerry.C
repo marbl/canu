@@ -205,28 +205,88 @@ public:
         if (maxCount == 0) {
           uint64  distinct   = 0;
           uint64  total      = 0;
+          uint32  Xcoverage  = 8;
+          uint32  i;
 
-          for (uint32 i=0; (i < MF->histogramLength()) && (maxCount == 0); i++) {
+          //  Pass 0: try to deduce the X coverage we have.  The
+          //  pattern we should see in mer counts is an initial spike
+          //  for unique mers (these contain errors), then a drop into
+          //  a valley, and a bump at the X coverage.
+          //
+          //  .
+          //  .      ...
+          //  ..  ..........
+          //  .................
+          //
+          //  If this pattern is not found, we fallback to the default
+          //  guess of 8x coverage.
+          //
+          for (i=2; (i < MF->histogramLength()) && (MF->histogram(i-1) > MF->histogram(i)); i++) {
+            fprintf(stderr, "Xcoverage drop %d %d %d\n", i, MF->histogram(i-1), MF->histogram(i));
+          }
+
+          for (; (i < MF->histogramLength()) && (MF->histogram(i-1) < MF->histogram(i)); i++) {
+            fprintf(stderr, "Xcoverage incr %d %d %d\n", i, MF->histogram(i-1), MF->histogram(i));
+            Xcoverage = i;
+          }
+
+          fprintf(stderr, "Guessed X coverage is %d\n", Xcoverage);
+
+          //  Pass 1: look for a reasonable limit, using %distinct and %total.
+          //
+          for (i=0; (i < MF->histogramLength()) && (maxCount == 0); i++) {
             distinct += MF->histogram(i);
             total    += MF->histogram(i) * i;
 
-            if ((distinct / (double)MF->numberOfDistinctMers()) > 0.99) {
-              fprintf(stderr, "Set maxCount to "u32bitFMT", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
-                      i, 100.0 * distinct / MF->numberOfDistinctMers(), 100.0 * total / MF->numberOfTotalMers());
+            //  If we cover 99% of all the distinct mers, that's reasonable.
+            //
+            if ((distinct / (double)MF->numberOfDistinctMers()) > 0.99)
               maxCount = i;
-            }
-            if ((i > 100) && ((total / (double)MF->numberOfTotalMers()) > 0.66)) {
-              fprintf(stderr, "Set maxCount to "u32bitFMT", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
-                      i, 100.0 * distinct / MF->numberOfDistinctMers(), 100.0 * total / MF->numberOfTotalMers());
+
+            //  If we're a somewhat high count, and we're covering 2/3
+            //  of the total mers, assume that there are lots of
+            //  errors (or polymorphism) that are preventing us from
+            //  covering many distinct mers.
+            //
+            if ((i > 25 * Xcoverage) && ((total / (double)MF->numberOfTotalMers()) > 2.0 / 3.0))
               maxCount = i;
-            }
           }
 
-          if (MF->histogramMaximumCount() < 500) {
-            fprintf(stderr, "Disable maxCount because the highest count in the input is "u64bitFMT".\n",
-                    MF->histogramMaximumCount());
-            maxCount = 500;
+          fprintf(stderr, "Set maxCount to "u32bitFMT", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
+                  i, 100.0 * distinct / MF->numberOfDistinctMers(), 100.0 * total / MF->numberOfTotalMers());
+
+
+          //  Pass 2: if the limit is relatively small compared to our
+          //  guessed Xcoverage, and %total is high, keep going to
+          //  close 75% of the gap in total coverage.  So if the TC is
+          //  90%, we'd keep going until TC is 97.5%.
+          //
+          //  If we're WAY low compared to X coverage, close the gap
+          //  too, but not as much.  This only happens if we're
+          //  covering 99% of the distinct, so we're already in good
+          //  shape.  The genome doesn't appear to be very repetitive.
+          //
+          if (((maxCount <  5 * Xcoverage)) ||
+              ((maxCount < 50 * Xcoverage) && (total / (double)MF->numberOfTotalMers() > 0.90))) {
+            double  closeAmount = 0.75;
+
+            if (total / (double)MF->numberOfTotalMers() <= 0.90)
+              closeAmount = 0.5;
+
+            //  No, really.  This is just 0.75 * (1-TC) + TC
+            double  desiredTC = closeAmount + (1 - closeAmount) * total / (double)MF->numberOfTotalMers();
+
+            for (; (i < MF->histogramLength()) && (total / (double)MF->numberOfTotalMers() < desiredTC); i++) {
+              distinct += MF->histogram(i);
+              total    += MF->histogram(i) * i;
+            }
+
+            maxCount = i;
+
+            fprintf(stderr, "Reset maxCount to "u32bitFMT", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
+                    maxCount, 100.0 * distinct / MF->numberOfDistinctMers(), 100.0 * total / MF->numberOfTotalMers());
           }
+
         }
       }
 
