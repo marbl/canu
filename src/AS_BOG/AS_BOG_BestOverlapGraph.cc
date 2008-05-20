@@ -115,8 +115,8 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
     FILE *BE = fopen("best.edges", "w");
 
     if ((BC) && (BE)) {
-      fprintf(BC, "#fragId\tlibId\tbestCont\n");
-      fprintf(BE, "#fragId\tlibId\tbest5\tbest3\n");
+      fprintf(BC, "#fragId\tlibId\tmated\tbestCont\n");
+      fprintf(BE, "#fragId\tlibId\tmated\tbest5\tbest3\n");
 
       for (int id=1; id<_fi->numFragments() + 1; id++) {
         BestContainment *bestcont  = getBestContainer(id);
@@ -124,9 +124,9 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
         BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, THREE_PRIME);
 
         if (bestcont)
-          fprintf(BC, "%d\t%d\t%d\n", id, _fi->libraryIID(id), bestcont->container);
-        else
-          fprintf(BE, "%d\t%d\t%d\t%d\n", id, _fi->libraryIID(id), bestedge5->frag_b_id, bestedge3->frag_b_id);
+          fprintf(BC, "%d\t%d\t%c\t%d\n", id, _fi->libraryIID(id), (_fi->mateIID(id) > 0) ? 'm' : 'f', bestcont->container);
+        else if ((bestedge5->frag_b_id > 0) || (bestedge3->frag_b_id > 0))
+          fprintf(BE, "%d\t%d\t%d\t%d\n", id, _fi->libraryIID(id), (_fi->mateIID(id) > 0) ? 'm' : 'f', bestedge5->frag_b_id, bestedge3->frag_b_id);
       }
 
       fclose(BC);
