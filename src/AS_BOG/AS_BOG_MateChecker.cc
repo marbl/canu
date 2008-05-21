@@ -534,7 +534,7 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
           //  container unitig (if not mated) or singleton (if mated).
 
 #warning DANGEROUS assume unitig is at id-1 in vector
-          Unitig         *thatUnitig = tigGraph.unitigs->at(thisUnitig->fragIn(bestcont->container) - 1);
+          Unitig         *thatUnitig = (*tigGraph.unitigs)[thisUnitig->fragIn(bestcont->container) - 1];
           DoveTailNode    containee  = *fragIter;  //  To make it read/write
 
           //  If fragment is mated, move to a singleton, instead of with container.
@@ -646,7 +646,8 @@ void MateChecker::splitDiscontinuousUnitigs(UnitigGraph& tigGraph) {
             (_fi->mateIID(splitFrags[0].ident) == 0) &&
             (splitFrags[0].contained != 0)) {
 
-          Unitig           *dangler  = (*tigGraph.unitigs)[unitig->fragIn(splitFrags[0].contained)];
+#warning DANGEROUS assume unitig is at id-1 in vector
+          Unitig           *dangler  = (*tigGraph.unitigs)[unitig->fragIn(splitFrags[0].contained) - 1];
           BestContainment  *bestcont = tigGraph.bog_ptr->getBestContainer(splitFrags[0].ident);
 
           if (verbose)
