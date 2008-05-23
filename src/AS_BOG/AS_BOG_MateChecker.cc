@@ -668,11 +668,12 @@ void MateChecker::splitDiscontinuousUnitigs(UnitigGraph& tigGraph) {
           for (int i=0; i<splitFragsLen; i++)
             dangler->addFrag(splitFrags[i], splitOffset, verbose);
 
-          splitFragsLen = 0;
-
           tigGraph.unitigs->push_back(dangler);
           unitig = (*tigGraph.unitigs)[ti];
         }
+
+        //  We just split out these fragments.  Reset the list.
+        splitFragsLen = 0;
       }  //  End break
 
       splitFrags[splitFragsLen++] = *fragIter;
