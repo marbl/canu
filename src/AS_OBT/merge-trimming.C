@@ -35,12 +35,39 @@ readLine(FILE *F) {
   assert(strlen(line) < (lineMax-1));
 }
 
-uint32
-findModeOfFivePrimeMode(GateKeeperStore *gkp, char *ovlFile) {
-  uint32         mode5;
-  uint32         iid;
-  uint32         histo[2048] = {0};
+class mode5 {
+public:
+  mode5() {
+    memset(_histo, 0, sizeof(uint32) * AS_READ_MAX_LEN);
+    _mode5 = 999999999;
+  };
+  ~mode5() {
+  };
 
+  void  add(uint32 x) {
+    if (x < 2048)
+      _histo[x]++;
+  };
+
+  void   compute(void) {
+    _mode5 = 1;
+    for (uint32 i=1; i<2048; i++)
+      if (_histo[i] > _histo[_mode5])
+        _mode5 = i;
+  };
+
+  uint32 get(void) {
+    return(_mode5);
+  };
+
+private:
+  uint32   _histo[AS_READ_MAX_LEN];
+  uint32   _mode5;
+};
+
+mode5 *
+findModeOfFivePrimeMode(GateKeeperStore *gkp, char *ovlFile) {
+  mode5         *modes = new mode5 [getNumGateKeeperLibraries(gkp) + 1];
   fragRecord     fr;
 
   errno = 0;
@@ -51,31 +78,23 @@ findModeOfFivePrimeMode(GateKeeperStore *gkp, char *ovlFile) {
   readLine(O);
   while (!feof(O)) {
     splitToWords W(line);
-    iid   = atoi(W[0]);
-    mode5 = atoi(W[4]);
 
-    //  Grab the fragment to get the clear range, so we can find the real mode5
-    //
-    getFrag(gkp, iid, &fr, FRAG_S_INF);
+    AS_IID  id = atoi(W[0]);
+    getFrag(gkp, id, &fr, FRAG_S_INF);
 
-    mode5 += getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBTINI);
+    AS_IID  lb = getFragRecordLibraryIID(&fr);
 
-    if (mode5 < 2047)
-      histo[mode5]++;
+    modes[lb].add(atoi(W[4]) + getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBTINI));
 
     readLine(O);
   }
 
   fclose(O);
 
-  //  find the largest value -- but ignore zero!
-  //
-  mode5 = 1;
-  for (uint32 i=1; i<2048; i++)
-    if (histo[i] > histo[mode5])
-      mode5 = i;
+  for (uint32 i=0; i<=getNumGateKeeperLibraries(gkp); i++)
+    modes[i].compute();
 
-  return(mode5);
+  return(modes);
 }
 
 
@@ -151,12 +170,10 @@ main(int argc, char **argv) {
   double  minQuality = qual.lookupNumber(20);
 
 
-  //  Find the mode of the 5'mode.  Read the whole overlap-trim file, counting the 5'mode
+  //  Find the mode of the 5'mode.  Read the whole overlap-trim file,
+  //  counting the 5'mode
   //
-  uint32 modemode5 = findModeOfFivePrimeMode(gkp, ovlFile);
-
-  if (staFile)
-    fprintf(staFile, "Mode of the 5'-mode is "F_U32"\n", modemode5);
+  mode5 *modes = findModeOfFivePrimeMode(gkp, ovlFile);
 
 
   //  Stream through the overlap-trim file, applying some rules to
@@ -185,7 +202,18 @@ main(int argc, char **argv) {
       uint32 qltR1 = 0;
       AS_UID uid   = getFragRecordUID(&fr);
 
+      GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkp, getFragRecordLibraryIID(&fr));
+
+#ifdef BADIDEA
+      if ((gklr) && (gklr->doNotQVTrim)) {
+        qltL1 = 0;
+        qltR1 = 0;
+      } else {
+        doTrim(&fr, minQuality, qltL1, qltR1);
+      }
+#else
       doTrim(&fr, minQuality, qltL1, qltR1);
+#endif
 
       //  Pick the bigger of the L's and the lesser of the R's.  If
       //  L<R still, then the Q0 and Q1 trimming intersect, and we
@@ -236,8 +264,9 @@ main(int argc, char **argv) {
     uint32 qltLQ1 = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBTINI);
     uint32 qltRQ1 = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBTINI);
     AS_UID uid    = getFragRecordUID(&fr);
+    AS_IID lib    = getFragRecordLibraryIID(&fr);
 
-    GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkp, getFragRecordLibraryIID(&fr));
+    GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkp, lib);
 
     //  Only proceed if we're mutable.
     //
@@ -305,8 +334,24 @@ main(int argc, char **argv) {
         maxm3 = mode3;
       }
 
+#ifdef BADIDEA
+      if ((gklr) && (gklr->doNotQVTrim)) {
+        qltLQ1 = 0;
+        qltRQ1 = getFragRecordSequenceLength(&fr);
 
+        qltL   = min5;
+        if (mode5c > 4) qltL = mode5;
+        if (minm5c > 8) qltL = minm5;
+
+        qltR   = max3;
+        if (mode3c > 4) qltR = mode3;
+        if (maxm3c > 8) qltR = maxm3;
+      } else {
+        doTrim(&fr, minQuality, qltL, qltR);
+      }
+#else
       doTrim(&fr, minQuality, qltL, qltR);
+#endif
 
       uint32 left  = 0;
       uint32 right = 0;
@@ -326,9 +371,9 @@ main(int argc, char **argv) {
         stats[16]++;
         qltR = qltRQ1;
       }
-      if (qltL < modemode5) {
+      if (qltL < modes[lib].get()) {
         stats[0]++;
-        qltL = modemode5;
+        qltL = modes[lib].get();
       }
       if (qltR < qltL) {
         stats[17]++;
