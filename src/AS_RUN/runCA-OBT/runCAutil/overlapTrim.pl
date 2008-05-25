@@ -20,7 +20,7 @@ sub overlapTrim {
 
         my $bin = getBinDirectory();
         my $cmd;
-        $cmd  = "$bin/initialTrim -update ";
+        $cmd  = "$bin/initialTrim ";
         $cmd .= " -log $wrk/0-overlaptrim/$asm.initialTrimLog ";
         $cmd .= " -frg $wrk/$asm.gkpStore ";
         $cmd .= " > $wrk/0-overlaptrim/$asm.initialTrim.err 2>&1";

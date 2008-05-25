@@ -25,9 +25,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-//#include <string.h>
-//#include <ctype.h>
-//#include <math.h>
 
 extern "C" {
 #include "AS_global.h"
@@ -40,17 +37,13 @@ extern "C" {
 
 int
 main(int argc, char **argv) {
-  bool    doUpdate            = false;
   char   *gkpName             = 0L;
   FILE   *logFile             = 0L;
 
   int arg = 1;
   int err = 0;
   while (arg < argc) {
-    if        (strncmp(argv[arg], "-update", 2) == 0) {
-      doUpdate = true;
-
-    } else if (strncmp(argv[arg], "-log", 2) == 0) {
+    if        (strncmp(argv[arg], "-log", 2) == 0) {
       arg++;
       logFile = stderr;
       if (strcmp(argv[arg], "-") != 0) {
@@ -59,6 +52,7 @@ main(int argc, char **argv) {
         if (errno)
           fprintf(stderr, "Failed to open %s for writing the log: %s\n", argv[arg], strerror(errno)), exit(1);
       }
+
     } else if (strncmp(argv[arg], "-frg", 2) == 0) {
       gkpName = argv[++arg];
 
@@ -73,8 +67,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -q quality    Find quality trim points using 'quality' as the base.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -update       Update the clear range in the fragStore.\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "  -log X        Report the iid, original trim and new quality trim\n");
     fprintf(stderr, "  -frg F        Operate on this gkpStore\n");
     fprintf(stderr, "\n");
@@ -84,7 +76,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  GateKeeperStore  *gkpStore = openGateKeeperStore(gkpName, doUpdate);
+  GateKeeperStore  *gkpStore = openGateKeeperStore(gkpName, true);
   if (gkpStore == NULL) {
     fprintf(stderr, "Failed to open %s\n", gkpName);
     exit(1);
@@ -104,6 +96,7 @@ main(int argc, char **argv) {
 
   uint32        stat_immutable      = 0;
   uint32        stat_donttrim       = 0;
+  uint32        stat_alreadyDeleted = 0;
   uint32        stat_noVecClr       = 0;
   uint32        stat_noHQnonVec     = 0;
   uint32        stat_HQtrim5        = 0;
@@ -121,70 +114,70 @@ main(int argc, char **argv) {
 
     GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkpStore, getFragRecordLibraryIID(&fr));
 
-    //  Bail now if we've been told to not modify this read.  We do
-    //  not print a message in the log.
-    //
-    if        ((gklr) && (gklr->doNotOverlapTrim)) {
+    if (getFragRecordIsDeleted(&fr)) {
+      stat_alreadyDeleted++;
+      continue;
+    }
+
+    if ((gklr) && (gklr->doNotOverlapTrim)) {
       stat_immutable++;
+      continue;
+    }
+
+    if ((gklr) && (gklr->doNotQVTrim)) {
+      stat_donttrim++;
+      qltL = 0;
+      qltR = getFragRecordSequenceLength(&fr);
     } else {
+      double  minQuality = qual.lookupNumber(12);
+      if ((gklr) && (gklr->goodBadQVThreshold > 0))
+        minQuality = qual.lookupNumber(gklr->goodBadQVThreshold);
 
-      if ((gklr) && (gklr->doNotQVTrim)) {
-        stat_donttrim++;
-        qltL = 0;
-        qltR = getFragRecordSequenceLength(&fr);
+      doTrim(&fr, minQuality, qltL, qltR);
+    }
+
+    finL = qltL;
+    finR = qltR;
+
+    //  Intersect with the vector clear range, if it exists
+
+    if (fr.gkfr.hasVectorClear == false) {
+      //  no vector clear known, use the quality clear
+      stat_noVecClr++;
+
+    } else if ((fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] > finR) || (fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] < finL)) {
+      //  don't intersect; trust nobody
+      stat_noHQnonVec++;
+      finL = 0;
+      finR = 0;
+
+    } else {
+      //  They intersect.  Pick the largest begin and the smallest end
+
+      if (finL < fr.gkfr.clearBeg[AS_READ_CLEAR_VEC]) {
+        stat_HQtrim5++;
+        finL = fr.gkfr.clearBeg[AS_READ_CLEAR_VEC];
       } else {
-        double  minQuality = qual.lookupNumber(12);
-        if ((gklr) && (gklr->goodBadQVThreshold > 0))
-          minQuality = qual.lookupNumber(gklr->goodBadQVThreshold);
-
-        doTrim(&fr, minQuality, qltL, qltR);
+        stat_LQtrim5++;
       }
-
-      finL = qltL;
-      finR = qltR;
-
-      //  Intersect with the vector clear range, if it exists
-
-      if (fr.gkfr.hasVectorClear == false) {
-        //  no vector clear known, use the quality clear
-        stat_noVecClr++;
-
-      } else if ((fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] > finR) || (fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] < finL)) {
-        //  don't intersect; trust nobody
-        stat_noHQnonVec++;
-        finL = 0;
-        finR = 0;
-
+      if (fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] < finR) {
+        stat_HQtrim3++;
+        finR = fr.gkfr.clearEnd[AS_READ_CLEAR_VEC];
       } else {
-        //  They intersect.  Pick the largest begin and the smallest end
-
-        if (finL < fr.gkfr.clearBeg[AS_READ_CLEAR_VEC]) {
-          stat_HQtrim5++;
-          finL = fr.gkfr.clearBeg[AS_READ_CLEAR_VEC];
-        } else {
-          stat_LQtrim5++;
-        }
-        if (fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] < finR) {
-          stat_HQtrim3++;
-          finR = fr.gkfr.clearEnd[AS_READ_CLEAR_VEC];
-        } else {
-          stat_LQtrim3++;
-        }
-      }
-
-      //  Update the clear ranges
-
-      if ((finL + AS_FRAG_MIN_LEN) > finR)
-        stat_tooShort++;
-
-      if (doUpdate) {
-        setFragRecordClearRegion(&fr, finL, finR, AS_READ_CLEAR_OBTINI);
-        setFrag(gkpStore, iid, &fr);
-
-        if ((finL + AS_FRAG_MIN_LEN) > finR)
-          delFrag(gkpStore, iid);
+        stat_LQtrim3++;
       }
     }
+
+    //  Update the clear ranges
+
+    if ((finL + AS_FRAG_MIN_LEN) > finR)
+      stat_tooShort++;
+
+    setFragRecordClearRegion(&fr, finL, finR, AS_READ_CLEAR_OBTINI);
+    setFrag(gkpStore, iid, &fr);
+
+    if ((finL + AS_FRAG_MIN_LEN) > finR)
+      delFrag(gkpStore, iid);
 
     if (logFile)
       fprintf(logFile, "%s,"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"%s\n",
@@ -206,6 +199,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "Fragments with:\n");
   fprintf(stderr, " no changes allowed:           "F_U32"\n", stat_immutable);
   fprintf(stderr, " no QV trim allowed:           "F_U32"\n", stat_donttrim);
+  fprintf(stderr, " already deleted               "F_U32"\n", stat_alreadyDeleted);
   fprintf(stderr, " no vector clear range known:  "F_U32" (trimed to quality clear)\n", stat_noVecClr);
   fprintf(stderr, " no HQ non-vector sequence:    "F_U32" (deleted)\n", stat_noHQnonVec);
   fprintf(stderr, " HQ vector trimmed:            "F_U32" (trimmed to intersection)\n", stat_HQtrim5 + stat_HQtrim3);
