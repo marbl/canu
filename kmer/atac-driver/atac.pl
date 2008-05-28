@@ -63,6 +63,7 @@ my $seatac            = "$BINdir/seatac";
 my $chainer           = "$BINdir/AtacDriver.py";
 my $correctgaps       = "$BINdir/correctGaps";
 my $statsgenerator    = "$BINdir/statsGenerator";
+my $makeplot          = "perl $BINdir/makeplot.pl";
 
 die "Can't run $leaff\n"           if (! -x $leaff);
 die "Can't run $meryl\n"           if (! -x $meryl);
@@ -85,27 +86,29 @@ die "Can't run $statsgenerator\n"  if (! -x $statsgenerator);
 parseArgs();
 findSources();
 
-my $mercount1 = countMers($id1, $mersize, $merlimit);
-my $mercount2 = countMers($id2, $mersize, $merlimit);
 my $matches   = "${id1}vs${id2}";
 
-buildMask();
+if (! -e "$ATACdir/$matches.atac") {
+    my $mercount1 = countMers($id1, $mersize, $merlimit);
+    my $mercount2 = countMers($id2, $mersize, $merlimit);
 
-my @segmentIDs = findHits();
+    buildMask($mercount1, $mercount2);
 
-extendMatches(@segmentIDs);
+    my @segmentIDs = findHits();
 
-makeChains();
-closeGaps();
-makeClumps();
-generateStatistics();
-rewriteUIDs("$ATACdir/$matches.atac");
+    extendMatches(@segmentIDs);
 
-print STDERR "\n";
-print STDERR "Finished!  Output is:\n";
-print STDERR "  matches and runs -- $ATACdir/$matches.atac\n";
-print STDERR "  clumps           -- $ATACdir/$matches.*clump*.atac\n";
+    makeChains();
+    closeGaps();
+    makeClumps();
+    generateStatistics();
+    rewriteUIDs("$ATACdir/$matches.atac");
 
+    print STDERR "\n";
+    print STDERR "Finished!  Output is:\n";
+    print STDERR "  matches and runs -- $ATACdir/$matches.atac\n";
+    print STDERR "  clumps           -- $ATACdir/$matches.*clump*.atac\n";
+}
 
 #  Subroutines below!
 
@@ -245,6 +248,8 @@ sub parseArgs {
     }
 
     system("mkdir $ATACdir")        if (! -d "$ATACdir");
+    system("mkdir $ATACdir/work")   if (! -d "$ATACdir/work");
+    system("mkdir $ATACdir/stats")  if (! -d "$ATACdir/stats");
     system("mkdir $MERYLdir")       if (! -d "$MERYLdir");
 }
 
@@ -377,9 +382,11 @@ sub numberOfMers ($) {
 
 
 
-sub buildMask {
+sub buildMask ($$) {
+    my $mercount1 = shift @_;
+    my $mercount2 = shift @_;
 
-    return if (-e "$ATACdir/$matches.mask.done");
+    return if (-e "$ATACdir/work/$matches.mask.done");
 
         my $minFile="min.$mercount1.$mercount2";
 
@@ -387,7 +394,7 @@ sub buildMask {
         #  searching.  Obviously, only in-common mers can be found, we
         #  make a file of those mers here.
 
-        if (! -e "$ATACdir/$minFile.mcdat") {
+        if (! -e "$ATACdir/work/$minFile.mcdat") {
             print STDERR "Finding the min count between $mercount1 and $mercount2.\n";
             
             my $cmd;
@@ -395,17 +402,17 @@ sub buildMask {
             $cmd .= "-M min ";
             $cmd .= "-s $MERYLdir/$mercount1 ";
             $cmd .= "-s $MERYLdir/$mercount2 ";
-            $cmd .= "-o $ATACdir/$minFile ";
-            $cmd .= "-stats $ATACdir/$minFile.stats";
+            $cmd .= "-o $ATACdir/work/$minFile ";
+            $cmd .= "-stats $ATACdir/work/$minFile.stats";
 
             if (runCommand($cmd)) {
-                unlink "$ATACdir/$minFile.mcidx";
-                unlink "$ATACdir/$minFile.mcdat";
+                unlink "$ATACdir/work/$minFile.mcidx";
+                unlink "$ATACdir/work/$minFile.mcdat";
                 die "Failed to find the min count between $mercount1 and $mercount2\n";
             }
         }
 
-        die "Failed to make the mask?\n" if (! -e "$ATACdir/$minFile.mcdat");
+        die "Failed to make the mask?\n" if (! -e "$ATACdir/work/$minFile.mcdat");
 
         #  From that list of in-common mers (in-common and below some
         #  count) we want to make a list of the mers that can be used in
@@ -418,8 +425,8 @@ sub buildMask {
         #
         #  The negative 'exclude' list is the min mers, removed from the mers in id1.
         #
-        my $includeSize = (-s "$ATACdir/$minFile.mcdat");
-        my $excludeSize = (-s "$MERYLdir/$id1.ms$mersize.mcdat") - (-s "$ATACdir/$minFile.mcdat");
+        my $includeSize = (-s "$ATACdir/work/$minFile.mcdat");
+        my $excludeSize = (-s "$MERYLdir/$id1.ms$mersize.mcdat") - (-s "$ATACdir/work/$minFile.mcdat");
 
         print STDERR "includeSize is proportional to $includeSize.\n";
         print STDERR "excludeSize is proportional to $excludeSize.\n";
@@ -427,17 +434,17 @@ sub buildMask {
         #  But this sometimes breaks (if the mcidx files are different sizes), so we now
         #  pay the cost of actually counting the number of mers.
         #
-        $includeSize = numberOfMers("$ATACdir/$minFile");
+        $includeSize = numberOfMers("$ATACdir/work/$minFile");
         $excludeSize = numberOfMers("$MERYLdir/$id1.ms$mersize") - $includeSize;
 
         print STDERR "includeSize is exactly $includeSize mers.\n";
         print STDERR "excludeSize is exactly $excludeSize mers.\n";
 
         if ($includeSize < $excludeSize) {
-            rename "$ATACdir/$minFile.mcidx", "$ATACdir/$matches.include.mcidx";
-            rename "$ATACdir/$minFile.mcdat", "$ATACdir/$matches.include.mcdat";
+            rename "$ATACdir/work/$minFile.mcidx", "$ATACdir/work/$matches.include.mcidx";
+            rename "$ATACdir/work/$minFile.mcdat", "$ATACdir/work/$matches.include.mcdat";
         } else {
-            if (! -e "$ATACdir/$matches.exclude.mcdat") {
+            if (! -e "$ATACdir/work/$matches.exclude.mcdat") {
                 print STDERR "Finding 'exclude' mers!\n";
 
                 #  Our use of xor here is really just a subtraction.  We
@@ -449,20 +456,20 @@ sub buildMask {
                 $cmd  = "$meryl ";
                 $cmd .= "-M xor ";
                 $cmd .= "-s $MERYLdir/$id1.ms$mersize ";
-                $cmd .= "-s $ATACdir/$minFile ";
-                $cmd .= "-o $ATACdir/$matches.exclude ";
-                $cmd .= "-stats $ATACdir/$matches.exclude.stats";
+                $cmd .= "-s $ATACdir/work/$minFile ";
+                $cmd .= "-o $ATACdir/work/$matches.exclude ";
+                $cmd .= "-stats $ATACdir/work/$matches.exclude.stats";
 
                 if (runCommand($cmd)) {
-                    unlink "$ATACdir/$matches.exclude.mcidx";
-                    unlink "$ATACdir/$matches.exclude.mcdat";
+                    unlink "$ATACdir/work/$matches.exclude.mcidx";
+                    unlink "$ATACdir/work/$matches.exclude.mcdat";
                     die "Failed to make exclude mers!\n";
                 }
             }
 
-            if (-e "$ATACdir/$matches.exclude.mcdat") {
-                unlink "$ATACdir/$minFile.mcdat";
-                unlink "$ATACdir/$minFile.mcidx";
+            if (-e "$ATACdir/work/$matches.exclude.mcdat") {
+                unlink "$ATACdir/work/$minFile.mcdat";
+                unlink "$ATACdir/work/$minFile.mcidx";
             } else {
                 die "Failed to find exclude mers?\n";
             }
@@ -470,7 +477,7 @@ sub buildMask {
 
         #  Success!
         #
-        open(F, "> $ATACdir/$matches.mask.done");
+        open(F, "> $ATACdir/work/$matches.mask.done");
         close(F);
 
     exit(0) if ($merylOnly == 1);
@@ -497,7 +504,7 @@ sub findHits {
             }
         }
 
-        open(S, "> $ATACdir/$matches-segment-$segmentID");
+        open(S, "> $ATACdir/work/$matches-segment-$segmentID");
         print S $segments;
         close(S);
 
@@ -531,18 +538,18 @@ sub findHits {
         $cmd .= "-numthreads  $numThreads ";
         $cmd .= "-table       $MERYLdir/$id1.fasta ";
         $cmd .= "-stream      $MERYLdir/$id2.fasta ";
-        $cmd .= "-only        $ATACdir/$matches.include " if (-e "$ATACdir/$matches.include.mcdat");
-        $cmd .= "-mask        $ATACdir/$matches.exclude " if (-e "$ATACdir/$matches.exclude.mcdat");
-        $cmd .= "-use         $ATACdir/$matches-segment-$segmentID ";
-        $cmd .= "-output      $ATACdir/$matches-segment-$segmentID.matches ";
+        $cmd .= "-only        $ATACdir/work/$matches.include " if (-e "$ATACdir/work/$matches.include.mcdat");
+        $cmd .= "-mask        $ATACdir/work/$matches.exclude " if (-e "$ATACdir/work/$matches.exclude.mcdat");
+        $cmd .= "-use         $ATACdir/work/$matches-segment-$segmentID ";
+        $cmd .= "-output      $ATACdir/work/$matches-segment-$segmentID.matches ";
         $cmd .= "-filtername  $filtername " if (defined($filtername));
         $cmd .= "-filteropts  \"-1 $id1 -2 $id2 $filteropts\" ";
-        $cmd .= "> $ATACdir/$matches-$segmentID.out 2>&1";
+        $cmd .= "> $ATACdir/work/$matches-$segmentID.out 2>&1";
 
-        if (! -e "$ATACdir/$matches-segment-$segmentID.matches") {
+        if (! -e "$ATACdir/work/$matches-segment-$segmentID.matches") {
             if (runCommand($cmd)) {
-                unlink "$ATACdir/$matches-segment-$segmentID.matches.crash";
-                rename "$ATACdir/$matches-segment-$segmentID.matches", "$ATACdir/$matches-segment-$segmentID.matches.crash";
+                unlink "$ATACdir/work/$matches-segment-$segmentID.matches.crash";
+                rename "$ATACdir/work/$matches-segment-$segmentID.matches", "$ATACdir/work/$matches-segment-$segmentID.matches.crash";
                 die "Failed to run $matches-$segmentID\n";
             }
         }
@@ -556,13 +563,13 @@ sub findHits {
 sub extendMatches (@) {
     my @segmentIDs = @_;
 
-    return if (-e "$ATACdir/$matches.matches.extended");
+    return if (-e "$ATACdir/work/$matches.matches.extended");
 
     #  Check that each search finished.
     #
     foreach my $segmentID (@segmentIDs) {
-        if (! -e "$ATACdir/$matches-segment-$segmentID.matches") {
-            die "$ATACdir/$matches-segment-$segmentID.matches failed to complete.\n";
+        if (! -e "$ATACdir/work/$matches-segment-$segmentID.matches") {
+            die "$ATACdir/work/$matches-segment-$segmentID.matches failed to complete.\n";
         }
     }
 
@@ -572,7 +579,7 @@ sub extendMatches (@) {
 
     #  Build the header file.
     #
-    open(ATACFILE, "> $ATACdir/$matches.header") or die;
+    open(ATACFILE, "> $ATACdir/work/$matches.header") or die;
     print ATACFILE "!format atac 1.0\n";
     print ATACFILE  "#\n";
     print ATACFILE  "# Legend:\n";
@@ -633,14 +640,14 @@ sub extendMatches (@) {
     #
     my $cmd;
     $cmd  = "$BINdir/matchExtender $matchExtenderOpts ";
-    $cmd .= "$ATACdir/$matches.header ";
+    $cmd .= "$ATACdir/work/$matches.header ";
     foreach my $segmentID (@segmentIDs) {
-        $cmd .= " $ATACdir/$matches-segment-$segmentID.matches";
+        $cmd .= " $ATACdir/work/$matches-segment-$segmentID.matches";
     }
-    $cmd .= " > $ATACdir/$matches.matches.extended";
+    $cmd .= " > $ATACdir/work/$matches.matches.extended";
 
     if (runCommand($cmd)) {
-        rename "$ATACdir/$matches.matches.extended", "$ATACdir/$matches.matches.extended.FAILED";
+        rename "$ATACdir/work/$matches.matches.extended", "$ATACdir/work/$matches.matches.extended.FAILED";
         die "Failed.\n";
     }
 
@@ -654,7 +661,7 @@ if (0) {
     my $comma = $,;  $, = " ";
     my $slash = $\;  $\ = "\n";
     foreach my $segmentID (@segmentIDs) {
-        open(MATCHES, "< $ATACdir/$matches-segment-$segmentID.matches") or die "Failed to open '$ATACdir/$matches-segment-$segmentID.matches'\n";
+        open(MATCHES, "< $ATACdir/work/$matches-segment-$segmentID.matches") or die "Failed to open '$ATACdir/work/$matches-segment-$segmentID.matches'\n";
         while (<MATCHES>) {
             if (m/^M/) {
                 my @v = split '\s+', $_;
@@ -678,7 +685,7 @@ if (0) {
 
 
 sub makeChains {
-    return if (-e "$ATACdir/$matches.matches.extended.chained.atac");
+    return if (-e "$ATACdir/work/$matches.matches.extended.chained.atac");
 
     if (!defined($ENV{"TMPDIR"})) {
         print STDERR "WARNING:  TMPDIR not set, defaulting to '$ATACdir'.\n";
@@ -689,7 +696,7 @@ sub makeChains {
     #
     $ENV{'PYTHONPATH'} = "$LIBdir";
 
-    if (runCommand("python $chainer $ATACdir/$matches.matches.extended")) {
+    if (runCommand("python $chainer $ATACdir/work/$matches.matches.extended")) {
         print STDERR "PYTHONPATH=$ENV{'PYTHONPATH'}\n";
         die "Chainer failed.\n";
     }
@@ -703,17 +710,20 @@ sub closeGaps {
 
     my $cmd;
     $cmd  = "$correctgaps ";
-    $cmd .= " -m $ATACdir/$matches.matches.extended.chained.atac ";
-    $cmd .= " -l $ATACdir/$matches.matches.extended.chained.gapsclosed.log";
-    $cmd .= " > $ATACdir/$matches.matches.extended.chained.gapsclosed.atac";
+    $cmd .= " -m $ATACdir/work/$matches.matches.extended.chained.atac ";
+    $cmd .= " -l $ATACdir/work/$matches.matches.extended.chained.gapsclosed.log";
+    $cmd .= " > $ATACdir/work/$matches.matches.extended.chained.gapsclosed.atac";
 
     if (runCommand($cmd)) {
-        rename "$ATACdir/$matches.matches.extended.chained.gapsclosed.atac", "$ATACdir/$matches.matches.extended.chained.gapsclosed.FAILED";
+        rename "$ATACdir/work/$matches.matches.extended.chained.gapsclosed.atac", "$ATACdir/work/$matches.matches.extended.chained.gapsclosed.FAILED";
         die "Failed to close gaps!\n";
     }
 
+    if (! -e "$ATACdir/work/$matches.atac") {
+        system("ln -s $ATACdir/work/$matches.matches.extended.chained.gapsclosed.atac $ATACdir/work/$matches.atac");
+    }
     if (! -e "$ATACdir/$matches.atac") {
-        system("ln -s $ATACdir/$matches.matches.extended.chained.gapsclosed.atac $ATACdir/$matches.atac");
+        system("ln $ATACdir/work/$matches.matches.extended.chained.gapsclosed.atac $ATACdir/$matches.atac");
     }
 }
 
@@ -763,19 +773,27 @@ sub makeClumps {
 
 
 sub generateStatistics {
-    return if (-e "$ATACdir/stats/$matches.stats");
-
-    system("mkdir $ATACdir/stats") if (! -d "$ATACdir/stats");
-
     my $cmd;
-    $cmd  = "$statsgenerator ";
-    $cmd .= "-a $ATACdir/$matches.atac ";
-    $cmd .= "-p $ATACdir/stats/$matches ";
-    $cmd .= "-g A ";
-    $cmd .= "> $ATACdir/stats/$matches.stats";
-    if (runCommand($cmd)) {
-        rename "$ATACdir/stats/$matches.stats", "$ATACdir/stats/$matches.stats.FAILED";
-        die "Failed to ganerate statistics.\n";
+
+    if (! -e "$ATACdir/stats/$matches.stats") {
+        $cmd  = "$statsgenerator ";
+        $cmd .= "-a $ATACdir/$matches.atac ";
+        $cmd .= "-p $ATACdir/stats/$matches ";
+        $cmd .= "-g A ";
+        $cmd .= "> $ATACdir/stats/$matches.stats";
+        if (runCommand($cmd)) {
+            rename "$ATACdir/stats/$matches.stats", "$ATACdir/stats/$matches.stats.FAILED";
+            die "Failed to ganerate statistics.\n";
+        }
+    }
+
+    if (! -e "$ATACdir/stats/$matches.png") {
+        $cmd  = "$makeplot $ATACdir/$matches.atac $ATACdir/stats/$matches.png";
+        if (runCommand($cmd)) {
+            unlink "$ATACdir/stats/$matches.png";
+            unlink "$ATACdir/stats/$matches.ps";
+            die "Failed to ganerate dot plots.\n";
+        }
     }
 }
 

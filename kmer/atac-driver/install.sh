@@ -17,7 +17,7 @@ mkdir -p $installdir/lib
 #  Install binaries
 #
 binaries="../leaff/leaff ../meryl/meryl ../libkmer/existDB ../seatac/seatac"
-binaries="$binaries atac.pl matchExtender/matchExtender clumpMaker/clumpMaker gapShifter/correctGaps statsGenerator/statsGenerator"
+binaries="$binaries atac.pl makeplot.pl matchExtender/matchExtender clumpMaker/clumpMaker gapShifter/correctGaps statsGenerator/statsGenerator"
 
 for i in $binaries ; do
   #echo $i
