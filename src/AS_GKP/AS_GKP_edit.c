@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.7 2008-05-14 22:19:57 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.8 2008-05-31 06:11:36 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -642,8 +642,14 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
     fgets(L, 1024, F);
   }
 
-  if (errors)
-    fprintf(stderr, "%d errors detected.\n", errors);
+  closeGateKeeperStore(gkpStore);
 
-  exit(errors != 0);
+  if (errors) {
+    fprintf(stderr, "%d errors detected.\n", errors);
+    exit(1);
+  }
+
+  fprintf(stderr, "Success!\n", errors);
+
+  exit(0);
 }
