@@ -246,6 +246,7 @@ sub setDefaults () {
 
     #####  Overlap Based Trimming
 
+    $global{"perfectTrimming"}             = undef;  #  SECRET!
     $global{"doOverlapTrimming"}           = 1;
     $global{"vectorIntersect"}             = undef;
     $global{"vectorTrimmer"}               = "ca";
