@@ -41,9 +41,11 @@ CreateMultiAlignStoreT(void) {
 void
 ClearMultiAlignStoreT(MultiAlignStoreT *mas) {
   int    i;
-#ifdef __FreeBSD__
+
+#if 0
   //  BPW has had problems with ClearMultiAlignStoreT on FreeBSD --
-  //  it's just slow.
+  //  it's just slow.  Then again, he now can't run big assemblies,
+  //  so this is reenabled.
   int    u=0;
   for (i=0; i<mas->maMax; i++)
     if (mas->maPtr[i])
@@ -53,6 +55,7 @@ ClearMultiAlignStoreT(MultiAlignStoreT *mas) {
   fprintf(stderr, "ClearMultiAlignT()-- Bypassing!\n");
   return;
 #endif
+
   for (i=0; i<mas->maMax; i++)
     DeleteMultiAlignT(mas->maPtr[i]);
   memset(mas->maPtr, 0, mas->maMax * sizeof(MultiAlignT *));
