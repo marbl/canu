@@ -53,7 +53,7 @@ struct Unitig{
   void sort();
 
   // Compute unitig based on given dovetails and containments
-  void recomputeFragmentPositions(ContainerMap &,BestContainmentMap*, BestOverlapGraph*);
+  void recomputeFragmentPositions(ContainerMap &, BestOverlapGraph*);
   void computeFragmentPositions(FragmentInfo*, BestOverlapGraph*);
 
   void shiftCoordinates(int);
@@ -93,7 +93,7 @@ struct Unitig{
 
 private:
   void placeContains(const ContainerMap &,
-                     BestContainmentMap *,
+                     BestOverlapGraph *,
                      const iuid,
                      const SeqInterval,
                      const int level);

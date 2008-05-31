@@ -226,7 +226,7 @@ main (int argc, char * argv []) {
 
   fprintf(stderr, "Bye.\n");
 
-  return  0;
+  return 0;
 }
 
 

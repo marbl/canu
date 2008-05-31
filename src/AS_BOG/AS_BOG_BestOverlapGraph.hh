@@ -37,19 +37,16 @@ struct BestOverlapGraph {
   // given a FragmentEnd sets it to the next FragmentEnd after following the
   // best edge
   void followOverlap(FragmentEnd*);
-  void setBestEdgeOverlap(const OVSoverlap& olap, float newScore);
-  void setBestContainer(const OVSoverlap& olap, float newScore);
 
   bool isContained(const iuid fragid) {
-    return(_best_containments.find(fragid) != _best_containments.end());
+    return(_best_contains[fragid].isContained);
   };
 
   // Given a containee, returns pointer to BestContainment record
   BestContainment *getBestContainer(const iuid fragid) {
-    return((isContained(fragid)) ? &_best_containments[fragid] : NULL);
+    return((isContained(fragid)) ? &_best_contains[fragid] : NULL);
   };
 
-  void addContainEdge( iuid, iuid);
   bool containHaveEdgeTo( iuid, iuid);
 
   // Graph building methods
@@ -158,19 +155,13 @@ struct BestOverlapGraph {
     return(olapLength(olap.a_iid, olap.b_iid, olap.dat.ovl.a_hang, olap.dat.ovl.b_hang));
   };
 
-  BestContainmentMap _best_containments;
-
   bool checkForNextFrag(const OVSoverlap& olap);
   void scoreContainment(const OVSoverlap& olap);
   void scoreEdge(const OVSoverlap& olap);
-  void updateInDegree(void);
-  void removeTransitiveContainment();
 
 private:
-  iuid                  curFrag;
-  int                   bestLength;
-
   BestFragmentOverlap *_best_overlaps;
+  BestContainment     *_best_contains;
   FragmentInfo        *_fi;
 
 public:

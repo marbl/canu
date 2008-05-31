@@ -49,13 +49,13 @@ fragment_end_type BestOverlapGraph::AEnd(const OVSoverlap& olap) {
 
 fragment_end_type BestOverlapGraph::BEnd(const OVSoverlap& olap) {
   if (olap.dat.ovl.a_hang < 0 && olap.dat.ovl.b_hang < 0)
-    if ( olap.dat.ovl.flipped )
+    if (olap.dat.ovl.flipped)
       return FIVE_PRIME;
     else
       return THREE_PRIME;
 
   if (olap.dat.ovl.a_hang > 0 && olap.dat.ovl.b_hang > 0)
-    if ( olap.dat.ovl.flipped )
+    if (olap.dat.ovl.flipped)
       return THREE_PRIME;
     else
       return FIVE_PRIME;
@@ -72,13 +72,13 @@ fragment_end_type BestOverlapGraph::BEnd(const OVSoverlap& olap) {
 BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
                                    OverlapStore        *ovlStore,
                                    double               AS_UTG_ERROR_RATE) {
-  curFrag = 0;
-
   _fi = fi;
 
   _best_overlaps = new BestFragmentOverlap [fi->numFragments() + 1];
+  _best_contains = new BestContainment     [fi->numFragments() + 1];
 
   memset(_best_overlaps, 0, sizeof(BestFragmentOverlap) * (fi->numFragments() + 1));
+  memset(_best_contains, 0, sizeof(BestContainment)     * (fi->numFragments() + 1));
 
   assert(AS_UTG_ERROR_RATE >= 0.0);
   assert(AS_UTG_ERROR_RATE <= AS_MAX_ERROR_RATE);
@@ -89,8 +89,8 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
   fprintf(stderr, "BestOverlapGraph()-- UTG erate %.4f%%, CNS erate %.4f%%\n",
           100.0 * AS_UTG_ERROR_RATE, 100.0 * AS_CNS_ERROR_RATE);
 
-  mismatchCutoff  = AS_OVS_encodeQuality( AS_UTG_ERROR_RATE );
-  consensusCutoff = AS_OVS_encodeQuality( AS_CNS_ERROR_RATE );
+  mismatchCutoff  = AS_OVS_encodeQuality(AS_UTG_ERROR_RATE);
+  consensusCutoff = AS_OVS_encodeQuality(AS_CNS_ERROR_RATE);
 
   // Go through the overlap stream in two passes:
   // first pass finds the containments
@@ -100,13 +100,11 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
 
   AS_OVS_resetRangeOverlapStore(ovlStore);
   while  (AS_OVS_readOverlapFromStore(ovlStore, &olap, AS_OVS_TYPE_OVL))
-    scoreContainment( olap );
+    scoreContainment(olap);
 
   AS_OVS_resetRangeOverlapStore(ovlStore);
   while  (AS_OVS_readOverlapFromStore(ovlStore, &olap, AS_OVS_TYPE_OVL))
-    scoreEdge( olap );
-
-  updateInDegree();
+    scoreEdge(olap);
 
   //  Diagnostic.  Dump the best edges, count the number of contained
   //  reads, etc.
@@ -137,6 +135,7 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
 
 BestOverlapGraph::~BestOverlapGraph(){
   delete[] _best_overlaps;
+  delete[] _best_contains;
 }
 
 
@@ -145,9 +144,9 @@ BestOverlapGraph::~BestOverlapGraph(){
 BestEdgeOverlap *BestOverlapGraph::getBestEdgeOverlap(iuid frag_id, fragment_end_type which_end){
   if(which_end == FIVE_PRIME)
     return(&_best_overlaps[frag_id].five_prime);
-  else if(which_end == THREE_PRIME){
+  if(which_end == THREE_PRIME)
     return(&_best_overlaps[frag_id].three_prime);
-  }
+  return(NULL);
 }
 
 BestEdgeOverlap *BestOverlapGraph::getBestEdgeOverlap(FragmentEnd* end) {
@@ -159,225 +158,43 @@ void BestOverlapGraph::followOverlap(FragmentEnd* end) {
   *end = FragmentEnd(edge->frag_b_id, (edge->bend == FIVE_PRIME) ? THREE_PRIME : FIVE_PRIME);
 }
 
-//  Given an overlap, determines which record (iuid and end) and sets the newScore.
-void BestOverlapGraph::setBestEdgeOverlap(const OVSoverlap& olap, float newScore) {
+bool BestOverlapGraph::containHaveEdgeTo(iuid contain, iuid otherRead) {
+  BestContainment  *c = &_best_contains[contain];
+  bool              r = false;
 
-  if (AEnd(olap) == THREE_PRIME) {
-    _best_overlaps[ olap.a_iid ].three_prime.frag_b_id = olap.b_iid;
-    _best_overlaps[ olap.a_iid ].three_prime.score     = newScore;
-    _best_overlaps[ olap.a_iid ].three_prime.bend      = BEnd(olap);
-    _best_overlaps[ olap.a_iid ].three_prime.ahang     = olap.dat.ovl.a_hang;
-    _best_overlaps[ olap.a_iid ].three_prime.bhang     = olap.dat.ovl.b_hang;
-
-  }
-  if (AEnd(olap) == FIVE_PRIME) {
-    _best_overlaps[ olap.a_iid ].five_prime.frag_b_id = olap.b_iid;
-    _best_overlaps[ olap.a_iid ].five_prime.score     = newScore;
-    _best_overlaps[ olap.a_iid ].five_prime.bend      = BEnd(olap);
-    _best_overlaps[ olap.a_iid ].five_prime.ahang     = olap.dat.ovl.a_hang;
-    _best_overlaps[ olap.a_iid ].five_prime.bhang     = olap.dat.ovl.b_hang;
-  }
-}
-
-void BestOverlapGraph::addContainEdge( iuid contain, iuid otherRead ) {
-  _best_containments[ contain ].overlapsAreSorted = false;
-  _best_containments[ contain ].overlaps.push_back( otherRead );
-}
-
-bool BestOverlapGraph::containHaveEdgeTo( iuid contain, iuid otherRead ) {
-
-  if (_best_containments.find( contain ) == _best_containments.end())
-    return(false);
-
-  if (_best_containments[ contain ].overlapsAreSorted == false) {
-    std::sort(_best_containments[ contain ].overlaps.begin(),
-              _best_containments[ contain ].overlaps.end());
-    _best_containments[ contain ].overlapsAreSorted = true;
-  }
-
-  return(std::binary_search(_best_containments[ contain ].overlaps.begin(),
-                            _best_containments[ contain ].overlaps.end(),
-                            otherRead));
-}
-
-void BestOverlapGraph::setBestContainer(const OVSoverlap& olap, float newScr) {
-  BestContainment newBest;
-
-  newBest.container         = olap.a_iid;
-  newBest.contain_score     = newScr;
-  newBest.a_hang            = olap.dat.ovl.a_hang;
-  newBest.b_hang            = olap.dat.ovl.b_hang;
-  newBest.sameOrientation   = olap.dat.ovl.flipped ? false : true;
-  newBest.isPlaced          = false;
-  newBest.overlapsAreSorted = false;
-
-  //fprintf(stderr, "bestContainer of frag %d is frag %d score = %f.\n", olap.b_iid, olap.a_iid, newScr);
-
-  _best_containments[ olap.b_iid ] = newBest;
-}
-
-
-// Transitively removes redundant containments, so all containees in a container, refer
-// to the same container.  Algorithm will go through each element in the list of contained
-// fragments, and then for each element follow each container's container.
-void BestOverlapGraph::removeTransitiveContainment() {
-
-  // Loop through each containee that has been stored in _best_containments
-  for(std::map<iuid,BestContainment>::const_iterator it = _best_containments.begin();
-      it != _best_containments.end(); it++) {
-    iuid id = it->first;                     // Gets the iuid of the containee under analysis
-    BestContainment bst = it->second;        // Gets the BestContainment record of the containee under analysis
-
-    // Get container information based on containee id/containment record
-    bool sameOrient = bst.sameOrientation;
-    bool useAhang = true;
-
-    // For this std::map:
-    //   iuid is the containee iuid
-    //   BestContainment.container is the best container iuid
-    //       This finds the iterator if the containerOf(id) is contained, else returns
-    //       _best_containments.end() if not found.
-    //
-    // When this find returns, the i2 will point to id's container's container
-    std::map<iuid,BestContainment>::iterator i2 =
-      _best_containments.find( bst.container);
-
-    // Keep track of which container's we've looked at for each transitive path starting from
-    //   the containee under analysis.
-    std::map<iuid,BestContainment> found;
-    found[bst.container] = bst;
-
-    // Loop while the current container is a containee of another container 
-    while ( i2 != _best_containments.end() ) {
-      BestContainment nb = i2->second;
-      std::cout << id <<" "<<bst.container<<" "<< nb.container<< std::endl;
-
-      // Delete containee under analysis from _best_containments if its container is concontained
-      //   by itself.  ie if id's container is contained by id.  This eliminates ciruclar containment.
-      if ( nb.container == id ) {
-        _best_containments.erase( id );
-        std::cout << "Erase self" << std::endl;
-        break;
-      }
-
-      // Look through the list of containers we've already walked past to find
-      //   circular containment greater than one degree away.
-      std::map<iuid,BestContainment>::iterator seen= found.find( nb.container );
-
-      // If i2's container has already been traversed
-      if ( seen != found.end() ) { 
-
-        // Set id's container to the larger container.
-        _best_containments[ id ] = seen->second;
-        std::cout << "Circled " << seen->second.container<< std::endl;
-
-        // Remove the container of id's new larger container
-        _best_containments.erase( seen->second.container );
-        break;
-      }
-
-      // Set id's container to id's container's container, in this case
-      //   one transitive step away.
-      _best_containments[ id ] = nb;
-
-      // Keep track of what containers have been used.
-      found[ nb.container ] = nb;
-
-      // Reset the orientation of id's containment.
-      if (sameOrient) {
-        if (nb.sameOrientation) {
-          useAhang = true;
-          sameOrient =_best_containments[id].sameOrientation=true;
-        } else {
-          sameOrient =_best_containments[id].sameOrientation=false;
-          useAhang = false;
+  if (c->isContained) {
+    if (c->olapsLen < 16) {
+      for (int i=0; i<c->olapsLen; i++)
+        if (c->olaps[i] == otherRead) {
+          r = true;
+          break;
         }
-      } else {
-        if (nb.sameOrientation) {
-          sameOrient =_best_containments[id].sameOrientation=false;
-          useAhang = true;
-        } else {
-          useAhang = false;
-          sameOrient =_best_containments[id].sameOrientation=true;
-        }
+    } else {
+      if (c->olapsSorted == false) {
+        std::sort(c->olaps, c->olaps + c->olapsLen);
+        c->olapsSorted = true;
       }
-      found[nb.container].sameOrientation = sameOrient;
-      // make hang relative to new container
-      _best_containments[ id ].a_hang += useAhang ? bst.a_hang : abs(bst.b_hang); 
-
-      // Iterator to the i2's container
-      i2 = _best_containments.find( nb.container);
+      r = std::binary_search(c->olaps, c->olaps + c->olapsLen, otherRead);
     }
   }
+
+  return(r);
 }
 
 
-// Frag Store related data structures
-
-void BestOverlapGraph::updateInDegree() {
-  if (curFrag == 0)
-    return;
-  if ( ! isContained(curFrag) ) {
-    // Update B's in degree on A's 3' End
-    iuid bid = _best_overlaps[ curFrag ].three_prime.frag_b_id;
-    switch(_best_overlaps[ curFrag ].three_prime.bend){
-      case THREE_PRIME:
-        _best_overlaps[ bid ].three_prime.in_degree++; break;
-      case FIVE_PRIME:
-        _best_overlaps[ bid ].five_prime.in_degree++; break;
-      default: assert(0);
-    }
-
-    // Update B's in degree on A's 5' End
-    bid = _best_overlaps[ curFrag ].five_prime.frag_b_id;
-    switch(_best_overlaps[ curFrag ].five_prime.bend){
-      case THREE_PRIME:
-        _best_overlaps[ bid ].three_prime.in_degree++; break;
-      case FIVE_PRIME:
-        _best_overlaps[ bid ].five_prime.in_degree++; break;
-      default: assert(0);
-    }
-  }
-}
-bool BestOverlapGraph::checkForNextFrag(const OVSoverlap& olap) {
-  // Update the in_degrees whenever the incoming overlap's A's Fragment IUID changes.
-  //   Returns true, if the olap's A fragment ID has changed since the previous call,
-  //   else false.
-  //
-  // This method is only called by processOverlap, should make it private.
-  //
-  // Since the overlaps are coming in in order of A's iuid, 
-  //   its safe for us to assume that once the incoming overlap A iuid changes
-  //   that we are completely done processing overlaps from A's
-  //   fragment.   This implies that we know that A's best overlap
-  //   at this point will not change, so it's safe to update it's overlapping
-  //   partner's (B's), in degree for both ends of A.
-        
-  // In this code, the olap.a_iid is considered the "next" frag, so 
-  //   curFrag is the IID of the fragment prior to receiving this olap.
-  if (curFrag != olap.a_iid) {
-
-    // update in degree if not contained
-    updateInDegree();
-
-    // Set up the curFrag to refer to the incoming (next) fragment IUID	
-    curFrag = olap.a_iid;
-
-    // Initialize the overlap score for A
-    _best_overlaps[ olap.a_iid ].three_prime.score = 0;
-    _best_overlaps[ olap.a_iid ].five_prime.score = 0;
-    bestLength = 0;
-
-    // Means that A's fragment ID has changed since the previous
-    return true;
-  }
-
-  // Means that A's fragment ID is the same
-  return false;
-}
 void BestOverlapGraph::scoreContainment(const OVSoverlap& olap) {
 
-  // in the case of no hang, make the lower frag the container
+  //  Count the number of overlaps we have -- used by scoreEdge to
+  //  keep a list of dovetail overlaps to contained fragments.
+  //
+  //  GOOFY!  We're counting on A, but the rest of the routine uses B.
+  //
+  if ((olap.dat.ovl.a_hang < 0 && olap.dat.ovl.b_hang < 10) ||
+      (olap.dat.ovl.a_hang > 0 && olap.dat.ovl.b_hang > -10))
+    _best_contains[olap.a_iid].olapsMax++;
+
+  //  In the case of no hang, make the lower frag the container
+  //
   if ((olap.dat.ovl.a_hang == 0) &&
       (olap.dat.ovl.b_hang == 0) &&
       (olap.a_iid > olap.b_iid))
@@ -386,31 +203,28 @@ void BestOverlapGraph::scoreContainment(const OVSoverlap& olap) {
   //  We only care if A contains B.
 
   if ((olap.dat.ovl.a_hang >= 0) && (olap.dat.ovl.b_hang <= 0)) {
-    BestContainment *best = getBestContainer(olap.b_iid);
+    float             newScr = scoreOverlap(olap);
+    BestContainment  *c = &_best_contains[olap.b_iid];
 
-    float newScr = scoreOverlap(olap);
-
-    if (newScr <= 0)
-      return;
-
-    if ((NULL == best) ||
-        (newScr > best->contain_score)) {
-      setBestContainer(olap, newScr);
+    if ((newScr > 0) &&
+        (newScr > c->contain_score)) {
+      //  NOTE!  This is already initialized.  We do not need to, and
+      //  it is an error to, initialize olaps to zero!  (We're
+      //  counting olapsMax above, see?  This stupid bug took me about
+      //  an hour to find, grrr.)
+      c->container         = olap.a_iid;
+      c->contain_score     = newScr;
+      c->a_hang            = olap.dat.ovl.a_hang;
+      c->b_hang            = olap.dat.ovl.b_hang;
+      c->sameOrientation   = olap.dat.ovl.flipped ? false : true;
+      c->isContained       = true;
+      c->isPlaced          = false;
+      c->olapsSorted       = false;
     }
   }
 }
 
 void BestOverlapGraph::scoreEdge(const OVSoverlap& olap) {
-  // This function builds the BestOverlapGraph by considering the specified
-  //   overlap record.  It's important to remember that the overlaps
-  //   must be passed in in sorted order of fragment A's iuid.  Also,
-  //   it is also very important that overlaps are doubly listed, ie.
-  //   if an overlap exists, an olap must be passed in where A overlaps with
-  //   B and an olap must later be passed in where B overlaps A.
-  //
-  // It calls the virtual score function to score the overlap,
-  //   determines whether the overlap is containment or dovetailing,
-  //   then stores the overlap in the BestOverlapGraph member variables.
 
   //  Store real edges from contained frags to help with unhappy
   //  mate splitting
@@ -437,8 +251,12 @@ void BestOverlapGraph::scoreEdge(const OVSoverlap& olap) {
   //
   if (isContained(olap.a_iid)) {
     if ((olap.dat.ovl.a_hang < 0 && olap.dat.ovl.b_hang < 10) ||
-        (olap.dat.ovl.a_hang > 0 && olap.dat.ovl.b_hang > -10) )
-      addContainEdge(olap.a_iid, olap.b_iid);
+        (olap.dat.ovl.a_hang > 0 && olap.dat.ovl.b_hang > -10)) {
+      BestContainment *c = &_best_contains[olap.a_iid];
+      if (c->olaps == NULL)
+        c->olaps = new iuid [c->olapsMax];
+      c->olaps[c->olapsLen++] = olap.b_iid;
+    }
     return;
   }
 
@@ -458,30 +276,29 @@ void BestOverlapGraph::scoreEdge(const OVSoverlap& olap) {
   //  If the score is 0, the overlap doesn't pass the scoring
   //  criteria at all so don't store the overlap whether or not
   //  it's dovetailing or containment.
-  if ( newScr <= 0 )
+  if (newScr <= 0)
     return;
 
   //  Dove tailing overlap
 
-  //  Update the in degree for what A overlaps with if the current
-  //  A fragment is different than the previous one.
-  checkForNextFrag(olap);
-
-  BestEdgeOverlap *best = getBestEdgeOverlap( olap.a_iid, AEnd(olap));
-  short olapLen = olapLength(olap);
+  BestEdgeOverlap *best = getBestEdgeOverlap(olap.a_iid, AEnd(olap));
+  short            olapLen = olapLength(olap);
 
   // Store the overlap if:
   //   1.)  The score is better than what is already in the graph
   //   2.)  If the scores are identical, the one with the longer length
   //
   // Since the order of how the overlaps are read in from the overlap
-  //   store are by A's increasing iuid, by default, if the score
-  //   and length are the same, the iuid of the lower value will be
-  //   kept.
+  // store are by A's increasing iuid, by default, if the score and
+  // length are the same, the iuid of the lower value will be kept.
 
-  if ((newScr > best->score) ||
-      ((newScr == best->score) && (olapLen > bestLength))) {
-    setBestEdgeOverlap( olap, newScr );
-    bestLength = olapLen;
+  if ((newScr > best->olap_score) ||
+      ((newScr == best->olap_score) && (olapLen > best->olap_length))) {
+    best->frag_b_id    = olap.b_iid;
+    best->olap_score   = newScr;
+    best->olap_length  = olapLen;
+    best->bend         = BEnd(olap);
+    best->ahang        = olap.dat.ovl.a_hang;
+    best->bhang        = olap.dat.ovl.b_hang;
   }
 }

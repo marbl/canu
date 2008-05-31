@@ -506,7 +506,7 @@ void Unitig::reverseComplement(int offset, BestOverlapGraph *bog_ptr) {
 //   definition of olap_offset is based on 3' origin.
 
 void Unitig::placeContains(const ContainerMap &cMap,
-                           BestContainmentMap *bestCtn,
+                           BestOverlapGraph *bog,
                            const iuid containerId,
                            const SeqInterval containerPos,
                            const int level) {
@@ -523,12 +523,12 @@ void Unitig::placeContains(const ContainerMap &cMap,
       ci++) {
 
     iuid             fragId = *ci;
-    BestContainment &best   = (*bestCtn)[ fragId ];
+    BestContainment *best   =  bog->getBestContainer(fragId);
 
-    if (best.isPlaced)
+    if (best->isPlaced)
       continue;
 
-    assert( best.container == containerId );
+    assert( best->container == containerId );
 
     (*containPartialOrder)[ fragId ] = level;
 
@@ -545,22 +545,22 @@ void Unitig::placeContains(const ContainerMap &cMap,
 
     if(containerPos.bgn < containerPos.end) {
       //  Container is forward
-      frag.position.bgn = containerPos.bgn + best.a_hang;  //  BPW says "looks ok"
-      frag.position.end = containerPos.end + best.b_hang;
+      frag.position.bgn = containerPos.bgn + best->a_hang;  //  BPW says "looks ok"
+      frag.position.end = containerPos.end + best->b_hang;
 #ifdef NEW_UNITIGGER_INTERFACE
       frag.ident2       = containerId;
-      frag.ahang        = best.a_hang;
-      frag.bhang        = best.b_hang;
+      frag.ahang        = best->a_hang;
+      frag.bhang        = best->b_hang;
 #endif
 
     } else if (containerPos.bgn > containerPos.end) {
       //  Container is reverse
-      frag.position.bgn = containerPos.bgn - best.a_hang;  //  BPW says "suspicious"
-      frag.position.end = containerPos.end - best.b_hang;
+      frag.position.bgn = containerPos.bgn - best->a_hang;  //  BPW says "suspicious"
+      frag.position.end = containerPos.end - best->b_hang;
 #ifdef NEW_UNITIGGER_INTERFACE
       frag.ident2       = containerId;
-      frag.ahang        = - best.b_hang;   //  consensus seems to want these reversed
-      frag.bhang        = - best.a_hang;
+      frag.ahang        = - best->b_hang;   //  consensus seems to want these reversed
+      frag.bhang        = - best->a_hang;
 #endif
     }else{
       fprintf(stderr, "Container size is zero?\n");
@@ -569,20 +569,19 @@ void Unitig::placeContains(const ContainerMap &cMap,
 
     // Swap ends if containee is not same strand as container
 
-    if(!best.sameOrientation){
+    if(!best->sameOrientation){
       int tmp          = frag.position.bgn;
       frag.position.bgn = frag.position.end;
       frag.position.end = tmp;
     }
 
     addFrag( frag, 0, false );
-    best.isPlaced = true;
-    placeContains(cMap, bestCtn, frag.ident, frag.position, level+1);
+    best->isPlaced = true;
+    placeContains(cMap, bog, frag.ident, frag.position, level+1);
   }
 }
 
 void Unitig::recomputeFragmentPositions(ContainerMap &cMap,
-                                        BestContainmentMap *bestContain,
                                         BestOverlapGraph *bog_ptr) {
   iuid lastFrag = 0;
 #ifdef NEW_UNITIGGER_INTERFACE
@@ -606,7 +605,7 @@ void Unitig::recomputeFragmentPositions(ContainerMap &cMap,
 #endif
     lastFrag = dt->ident;
 
-    placeContains(cMap, bestContain, dt->ident, dt->position, 1);
+    placeContains(cMap, bog_ptr, dt->ident, dt->position, 1);
   }
 
   this->sort();

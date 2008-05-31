@@ -148,10 +148,10 @@ UnitigGraph::reportOverlapsUsed(char *filename) {
 }
 
 
-UnitigGraph::UnitigGraph(FragmentInfo *fi, BestOverlapGraph *in_bog_ptr) {
+UnitigGraph::UnitigGraph(FragmentInfo *fi, BestOverlapGraph *bp) {
   unitigs = new UnitigVector;
   _fi     = fi;
-  bog_ptr = in_bog_ptr;
+  bog_ptr = bp;
 }
 
 UnitigGraph::~UnitigGraph() {
@@ -163,34 +163,23 @@ UnitigGraph::~UnitigGraph() {
 
 
 void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking) {
-
-  iuid frag_idx;
-
   bool verbose = true;
 
   // Initialize where we've been to nowhere; "Do not retraverse list"
   Unitig::resetFragUnitigMap( _fi->numFragments() );
 
-  BestContainmentMap *best_cntr = &(bog_ptr->_best_containments);
-
   // Invert the containment map to key by container, instead of containee
   ContainerMap      cMap;
   
-  for(BestContainmentMap::const_iterator bstcnmap_itr  = best_cntr->begin(); 
-      bstcnmap_itr != best_cntr->end();
-      bstcnmap_itr++) {
-
-    iuid ctnee_id     = bstcnmap_itr->first;
-    iuid container_id = bstcnmap_itr->second.container;
-    
-    cMap[container_id].push_back(ctnee_id);
-  }
-
+  for (iuid c=0; c<=_fi->numFragments(); c++)
+    if (bog_ptr->isContained(c))
+      cMap[bog_ptr->getBestContainer(c)->container].push_back(c);
 
   // Step through all the fragments 
 
   fprintf(stderr, "==> BUILDING UNITIGS from %d fragments.\n", _fi->numFragments());
 
+  iuid frag_idx;
   while( frag_idx = cg_ptr->nextFragByChunkLength() ) {
 
     if (_fi->fragmentLength(frag_idx) == 0)
@@ -198,8 +187,8 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking) {
 
     // Check the map to so we don't visit a unitig twice (once from
     //   both ends)
-    if( !Unitig::fragIn( frag_idx ) && 
-        best_cntr->find(frag_idx) == best_cntr->end() ) { 
+    if ((Unitig::fragIn(frag_idx) == 0) && 
+        (bog_ptr->isContained(frag_idx) == false)) { 
                 
       Unitig *utg=new Unitig(verbose);
 
@@ -305,7 +294,7 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking) {
   for (int  ti=0; ti<unitigs->size(); ti++) {
     Unitig  *thisUnitig = (*unitigs)[ti];
     if (thisUnitig)
-      thisUnitig->recomputeFragmentPositions(cMap, best_cntr, bog_ptr);
+      thisUnitig->recomputeFragmentPositions(cMap, bog_ptr);
   }
 
   reportOverlapsUsed("overlaps.aftercontains");
