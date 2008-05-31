@@ -102,7 +102,6 @@ void         copyMultiAlignTFromSequenceDB(tSequenceDB *db, MultiAlignT *ma, int
 static
 void
 clearCacheSequenceDB(tSequenceDB *db) {
-  fprintf(stderr, "Clearing the SequenceDB cache.\n");
   ClearMultiAlignStoreT(db->UnitigStore);
   ClearMultiAlignStoreT(db->ContigStore);
 }
