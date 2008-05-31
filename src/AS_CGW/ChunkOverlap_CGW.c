@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.26 2008-03-14 16:07:04 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.27 2008-05-31 06:49:46 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -1550,15 +1550,11 @@ ChunkOverlapCheckT OverlapChunks( GraphCGW_T *graph,
     // if the input was not canonical we set the cid's and orientation
     // back to the input value (see als LookupOverlap)
     if( !olap.suspicious  && ! isCanonical ){
-#if 0
-      NodeCGW_T *a = GetGraphNode(graph, cidA);
-      NodeCGW_T *b = GetGraphNode(graph, cidB);
-#endif
       int swap;
 
       olap.spec.orientation = orientation;
 
-      // If this is non-canonical,s wap things back
+      // If this is non-canonical, swap things back
       olap.spec.cidA = cidA;
       olap.spec.cidB = cidB;
       swap = olap.BContainsA;
@@ -1567,58 +1563,8 @@ ChunkOverlapCheckT OverlapChunks( GraphCGW_T *graph,
       swap = olap.ahg;
       olap.ahg = olap.bhg;
       olap.bhg = swap;
-
-#if 0
-      // NEW!!!!
-      if(olap.AContainsB){
-        assert(olap.ahg > 0 && olap.bhg < 0);
-        switch(orientation){
-          case AB_AB:
-          case AB_BA:
-            olap.overlap = b->bpLength.mean - olap.bhg;
-            break;
-          case BA_AB:
-          case BA_BA:
-            olap.overlap = b->bpLength.mean + olap.ahg;
-            break;
-        }
-      }else if(olap.BContainsA){
-        assert(olap.bhg > 0 && olap.ahg < 0);
-		
-        switch(orientation){
-          case AB_AB:
-          case AB_BA:
-            olap.overlap = a->bpLength.mean - olap.ahg;
-            break;
-          case BA_AB:
-          case BA_BA:
-            olap.overlap = a->bpLength.mean + olap.bhg;
-            break;
-        }
-      }
-      // END NEW!
-#else
-      /*
-        The following adjustments are unnecessary as they change the
-        overlap value from the average of the two ways it can be
-        calculated to one or the other. The average is more stable &
-        reproducible.
-
-        // RENEW!!!!
-        if(olap.AContainsB){
-        assert(olap.ahg > 0 && olap.bhg < 0);
-        olap.overlap = b->bpLength.mean - olap.bhg;
-        }else if(olap.BContainsA){
-        assert(olap.bhg > 0 && olap.ahg < 0);
-        olap.overlap = a->bpLength.mean - olap.ahg;
-        }
-        // END RENEW!
-        */
-#endif
     }
   }
-
-  CheckScaffoldGraphCache(ScaffoldGraph); // flush the cache if it has gotten too big  
 
   if(olap.overlap==0){olap.quality=0;}
   return olap;

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.29 2007-11-08 12:38:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.30 2008-05-31 06:49:46 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -338,6 +338,8 @@ void OutputContigsFromMultiAligns(void){
         }
       }
     }
+
+    //clearCacheSequenceDB(sgraph->sequenceDB);
   }
   safe_free(icm_mesg.unitigs);
 }
@@ -717,6 +719,8 @@ void OutputUnitigsFromMultiAligns(void){
       if (GlobalData->cgwfp)
         WriteProtoMesg_AS(GlobalData->cgwfp,&pmesg);  //  write the unitig
     }
+
+    //clearCacheSequenceDB(sgraph->sequenceDB);
   }	// while NextGraphNode
 }
 

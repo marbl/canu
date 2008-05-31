@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.36 2008-03-18 07:02:46 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.37 2008-05-31 06:49:46 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -7416,7 +7416,7 @@ static void  Identify_Best_Rocks
             }
 
           if  (j % 51 == 50 || this_gap -> num_chunks >= 50)
-            CheckScaffoldGraphCache (ScaffoldGraph);
+            clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 
           // Now find the best chunk among the candidates.  Eliminate
           // any chunk that is contained in another candidate or
@@ -7459,9 +7459,9 @@ static void  Identify_Best_Rocks
           if  (best_chunk != NULL)
             best_chunk -> best = TRUE;
         }
-
-      CheckScaffoldGraphCache (ScaffoldGraph);
     }
+
+  clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 
   return;
 }
@@ -8665,7 +8665,7 @@ static void  New_Confirm_Stones_One_Scaffold
         }
     }
 
-  CheckScaffoldGraphCache (ScaffoldGraph);
+  clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 
   return;
 }
@@ -10327,8 +10327,9 @@ static void  Restore_Best_Rocks
               safe_free (rock_seq);
             }
         }
-      CheckScaffoldGraphCache (ScaffoldGraph);
     }
+
+  clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 
   return;
 }
@@ -12015,17 +12016,13 @@ int Throw_Stones
                    "* Stones CleanupScaffolds through scaffold %d\n",
                    scaff_id);
 
-          fprintf (stderr,
-                   "Writing Stone Checkpoint after %d stones at scaffold %d\n",
-                   total_stones, scaff_id);
           fprintf (GlobalData -> timefp,
                    "\n\nCheckpoint %d written during Stones CleanupScaffolds"
                    " after scaffold %d\n",
                    ScaffoldGraph -> checkPointIteration, scaff_id);
           CheckpointScaffoldGraph (ScaffoldGraph, 0);
 
-          // Clear cache if too large
-          CheckScaffoldGraphCache (ScaffoldGraph);
+          clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 
           stones_last_chkpt = total_stones;
         }

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.48 2007-11-08 12:38:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.49 2008-05-31 06:49:46 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -216,14 +216,15 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
         ProcessIUM_ScaffoldGraph(ium_mesg, GetMultiAlignUngappedLength(uma), FALSE);
 
         numIUM++;
-        if ((numIUM % 10000) == 0)
+        if ((numIUM % 10000) == 0) {
           fprintf(stderr, "processed "F_S32" IUM messages.\n", numIUM);
+          clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+        }
       }
     }
     fclose(infp);
   }
 
-  
   fprintf(stderr,"Processed %d IUM messages (max IUM acc = %d) with %d fragments\n",
           numIUM,
           (int)GetNumGraphNodes(ScaffoldGraph->CIGraph),

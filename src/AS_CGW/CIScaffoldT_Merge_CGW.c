@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.35 2008-01-16 22:13:08 eliv Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.36 2008-05-31 06:49:46 brianwalenz Exp $";
 
 
 #undef ORIG_MERGE_EDGE_INVERT
@@ -4317,9 +4317,6 @@ void ExamineUsableSEdgeSet(VA_TYPE(PtrT) *sEdges,
       continue;
     
     ExamineSEdgeForUsability(sEdges, curEdge, iSpec, verbose);
-#ifdef CHECKPOINT_ON_DEMAND
-    CheckpointOnDemand(EXIT_AFTER_CHECKPOINTING);
-#endif
   }
 }
 
@@ -5176,11 +5173,7 @@ int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
 
         // flags used in marking scaffolds for merging
         ResetScaffoldAndEdgeFlags(graph);
-      
-#ifdef CHECKPOINT_ON_DEMAND
-        CheckpointOnDemand(RETURN_AFTER_CHECKPOINTING);
-#endif
-  
+
         if(BuildSEdgesForMerging(graph,
                                  &sEdges, &overlapSEdges,
                                  &minWeightThreshold, TRUE,

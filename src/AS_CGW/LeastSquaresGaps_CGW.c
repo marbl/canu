@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.24 2008-03-14 16:10:47 brianwalenz Exp $";
+static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.25 2008-05-31 06:49:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1592,7 +1592,6 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
   }
 
   StopTimerT(&GlobalData->RecomputeOffsetsTimer);   /*  STOP */
-  CheckScaffoldGraphCache(ScaffoldGraph); // flush the cache if it has gotten too big
 
   freeRecomputeData(&data);
   return (RECOMPUTE_OK);
@@ -2265,6 +2264,10 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
         if (!redo)
           CheckCIScaffoldT(graph, scaffold);
       }
+
+      if ((sID % 100000) == 0)
+        clearCacheSequenceDB(graph->sequenceDB);
+
     }  //  end of sID loop
   return;
 }

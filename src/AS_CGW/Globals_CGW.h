@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: Globals_CGW.h,v 1.15 2008-02-27 15:10:13 brianwalenz Exp $	 */
+/* 	$Id: Globals_CGW.h,v 1.16 2008-05-31 06:49:46 brianwalenz Exp $	 */
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
@@ -40,7 +40,6 @@ typedef struct Global_CGW_tag {
   int32 maxDegree; // maximum edges to keep for 'nonUnique' nodes
   int32 maxDegreeUnique; // maximum edges to keep for 'Unique' nodes
   int outputCalculatedOffsets;
-  int saveCheckPoints;
   int repeatRezLevel;
   int stoneLevel;  // a variable that contains different alternatives of stone throwing //
   int ignoreChaffUnitigs;

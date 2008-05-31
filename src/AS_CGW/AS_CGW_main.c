@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.53 2008-03-18 07:02:42 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.54 2008-05-31 06:49:46 brianwalenz Exp $";
 
 
 
@@ -149,7 +149,6 @@ int main(int argc, char *argv[]){
   int ignoreChaffUnitigs = 0;
   int failOn_NoOverlapFound = 0; 
   int geneOutput = 1;  // output simulated coordinates
-  int checkPoint = 0;
   int dumpGraphs = 0;
   int outputOverlapOnlyContigEdges = 0;
   int doRezOnContigs = 1;
@@ -214,7 +213,7 @@ int main(int argc, char *argv[]){
 
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
-                                    "acde:f:g:hi:j:k:l:m:n:o:p:q:r:s:vxyz"
+                                    "ade:f:g:hi:j:k:l:m:n:o:p:q:r:s:vxyz"
                                     "ACD:EFGHIJK:L:N:MO:PQR:S:V:X:Y:Z"
 				    "4" )) != EOF)){
       switch(ch) {
@@ -380,9 +379,6 @@ int main(int argc, char *argv[]){
           }
           fprintf(GlobalData->stderrc,"* pre-first-scaffold-merge repeatRezLevel set to %d\n", preMergeRezLevel);
           break;
-        case 'c':
-          checkPoint = 1;
-          break;
         case 'd':
           dumpGraphs = 1;
           fprintf(GlobalData->stderrc,"* dumpGraphs set to 1\n");
@@ -523,7 +519,6 @@ int main(int argc, char *argv[]){
   fprintf(GlobalData->stderrc,"* Scaffolding will be performed on %s\n",
 	  (doRezOnContigs?"Contigs":"CIs"));
 
-  data->saveCheckPoints = checkPoint;
   data->outputCalculatedOffsets = (geneOutput == 0);
 
   if(checkpointChecker && restartFromCheckpoint < restartFromLogicalCheckpoint &&
@@ -548,9 +543,6 @@ int main(int argc, char *argv[]){
     ProcessInput(data, optind, argc, argv);    // Handle the rest of the first file
 
     LoadDistData();
-
-    CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_AFTER_READING_INPUT);
-
   } else {
     // Load the checkpoint from a file
     ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(data->File_Name_Prefix,restartFromCheckpoint, !immediateOutput);
@@ -566,6 +558,8 @@ int main(int argc, char *argv[]){
     }
   }
 
+  clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+
   if(restartFromLogicalCheckpoint < CHECKPOINT_AFTER_BUILDING_CIGRAPH) {
 
     // Split chimeric unitigs
@@ -573,9 +567,7 @@ int main(int argc, char *argv[]){
       fprintf(GlobalData->stderrc,"* Splitting chimeric input unitigs\n");
       fflush(GlobalData->stderrc);
       SplitInputUnitigs(ScaffoldGraph);
-      fprintf(GlobalData->timefp," Dumping checkpoint %d after SplitInputUnitigs\n",
-              ScaffoldGraph->checkPointIteration);	  
-      CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_AFTER_UNITIG_SPLITTING);
+      clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
     }
 
     if(restartFromLogicalCheckpoint < CHECKPOINT_AFTER_BUILDING_EDGES){
@@ -593,27 +585,18 @@ int main(int argc, char *argv[]){
 
       //    BuildCIEdges(ScaffoldGraph);
       BuildGraphEdgesDirectly(ScaffoldGraph->CIGraph);
-      if(checkPoint){
-        fprintf(GlobalData->stderrc," Dumping checkpoint %d after buildgraphedgesdirectly\n",
-                ScaffoldGraph->checkPointIteration); 
-        fprintf(GlobalData->timefp," Dumping checkpoint %d after buildgraphedgesdirectly\n",
-                ScaffoldGraph->checkPointIteration);
-        CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_AFTER_BUILDING_EDGES);
-      }
     }  //  checkpoint < CHECKPOINT_AFTER_BUILDING_EDGES
 
     // Compute all overlaps implied by mate links between pairs of unique unitigs
     ComputeOverlaps( ScaffoldGraph->CIGraph, TRUE, alignOverlaps);  
 
+    clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+
     CheckEdgesAgainstOverlapper(ScaffoldGraph->CIGraph);
     CheckSurrogateUnitigs();
-#if 0
-    PropagateTandemMarks(ScaffoldGraph->CIGraph);
-    if(GlobalData->debugLevel > 0){
-      CheckEdgesAgainstOverlapper(ScaffoldGraph->CIGraph);
-    }
-#endif
+
     MergeAllGraphEdges(ScaffoldGraph->CIGraph, FALSE);
+
     CheckEdgesAgainstOverlapper(ScaffoldGraph->CIGraph);
     CheckSurrogateUnitigs();
 
@@ -653,18 +636,11 @@ int main(int argc, char *argv[]){
 
     clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 
-    if(checkPoint){
-      fprintf(GlobalData->timefp," Dumping checkpoint %d after BuildInitialContigs\n",
-              ScaffoldGraph->checkPointIteration); 
-      CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_AFTER_BUILDING_SCAFFOLDS);
-    }
-
     CheckCIScaffoldTs(ScaffoldGraph);
     if(GlobalData->debugLevel > 0){
       CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
       CheckSurrogateUnitigs();
     }
-
   }  //  checkpoint < CHECKPOINT_AFTER_BUILDING_CIGRAPH
 
 
@@ -745,7 +721,7 @@ int main(int argc, char *argv[]){
     CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_1ST_SCAFF_MERGE+1);
   } // No immediate output
 
-  CheckScaffoldGraphCache(ScaffoldGraph);
+  clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 
   /*
     now that we are done with initial scaffold merge, we want to use the
@@ -835,7 +811,7 @@ int main(int argc, char *argv[]){
   }  // No immediate output
 
 
-  CheckScaffoldGraphCache(ScaffoldGraph);
+  clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 
   if  (immediateOutput == 0
        && (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_FINAL_ROCKS)
@@ -853,20 +829,12 @@ int main(int argc, char *argv[]){
           fprintf (GlobalData -> stderrc, "Threw additional %d rocks on iter %d\n",
                    extra_rocks, iter);
 
-          if  (extra_rocks > 0)
-            CheckScaffoldGraphCache (ScaffoldGraph);
+          clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
         }  while  (extra_rocks > 1 && iter < MAX_EXTRA_ROCKS_ITERS);
 
-      if  (checkPoint)
-        {
-          fprintf (GlobalData -> stderrc,
-                   "Checkpoint %d written after Final Rocks\n",
-                   ScaffoldGraph -> checkPointIteration);
-          fprintf (data->timefp,
-                   "Checkpoint %d written after Final Rocks\n",
-                   ScaffoldGraph -> checkPointIteration);
-          CheckpointScaffoldGraph (ScaffoldGraph, CHECKPOINT_BEFORE_FINAL_ROCKS+1);
-        }
+      fprintf (data->timefp, "Checkpoint %d written after Final Rocks\n",
+               ScaffoldGraph -> checkPointIteration);
+      CheckpointScaffoldGraph (ScaffoldGraph, CHECKPOINT_BEFORE_FINAL_ROCKS+1);
     }
 
 
@@ -892,7 +860,7 @@ int main(int argc, char *argv[]){
       //  We used to CleanupScaffolds() here, but Throw_Stones now
       //  does that inline.
 
-      clearCacheSequenceDB (ScaffoldGraph -> sequenceDB);
+      clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 
       fprintf (stderr, "Threw %d partial stones\n", partial_stones);
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
@@ -940,7 +908,7 @@ int main(int argc, char *argv[]){
                GlobalData -> stoneLevel);
       
       CleanupScaffolds (ScaffoldGraph, FALSE, NULLINDEX, FALSE);
-      clearCacheSequenceDB (ScaffoldGraph -> sequenceDB);
+      clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 
       fprintf (stderr, "Threw %d contained stones\n", contained_stones);
 
@@ -1037,7 +1005,7 @@ int main(int argc, char *argv[]){
   GenerateSurrogateStats("final");
   //  GenerateContigAlignmentStats("final");
 
-  CheckScaffoldGraphCache(ScaffoldGraph);
+  clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 
   FixupLengthsScaffoldTs(ScaffoldGraph);
   MarkMisplacedContigs();

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.23 2007-12-12 09:30:14 brianwalenz Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.24 2008-05-31 06:49:46 brianwalenz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -47,8 +47,6 @@
 #define RAT_RUN
 #endif
 
-#define CHECKPOINT_DEMAND_FILE   "/tmp/CheckpointScaffolderNow"
-#define CHECKPOINT_ON_DEMAND
 #define EXIT_AFTER_CHECKPOINTING 1
 #define RETURN_AFTER_CHECKPOINTING 2
 
@@ -148,13 +146,6 @@ void DestroyScaffoldGraph(ScaffoldGraphT *sgraph);
 
 /* Maintentance */
 
-static void CheckScaffoldGraphCache(ScaffoldGraphT *sgraph){
-  //#warning not flushing sequenceDB cache
-#if 0
-  if (sgraph->sequenceDB->totalCacheSize > MAX_SEQUENCEDB_CACHE_SIZE)
-    clearCacheSequenceDB(sgraph->sequenceDB);
-#endif
-}
 
 /* Dump a Celamy snapshot */
 void DumpScaffoldSnapshot(char *name);
@@ -474,7 +465,6 @@ void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold);
 */
 int CheckAllEdges(ScaffoldGraphT *sgraph, CDS_CID_t sid, CDS_CID_t cid);
 
-void CheckpointOnDemand(int whatToDoAfter);
 void CheckpointScaffoldGraph(ScaffoldGraphT *graph, int logicalCheckPoint);
 ScaffoldGraphT * LoadScaffoldGraphFromCheckpoint(char *name,
                                                  int32 checkPointNum,

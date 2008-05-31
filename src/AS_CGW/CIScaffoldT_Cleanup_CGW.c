@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.37 2008-03-14 16:10:47 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.38 2008-05-31 06:49:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1291,19 +1291,12 @@ int CleanupScaffolds(ScaffoldGraphT *sgraph, int lookForSmallOverlaps,
       didSomething |= CleanupAScaffold(sgraph,scaffold, lookForSmallOverlaps, maxContigsInMerge, deleteUnMergedSurrogates);
     
     if((scaffold->id % 10000) == 0){
+      clearCacheSequenceDB(sgraph->sequenceDB);
       fprintf(GlobalData->stderrc,"* CleanupScaffolds through scaffold " F_CID "\n", scaffold->id);
-      fflush(GlobalData->stderrc);
     }
-
-    if(getSizeOfCurrentSequenceDB(ScaffoldGraph->sequenceDB) > GlobalData->maxSequencedbSize){
-      fprintf(GlobalData->timefp, "\n\nCheckpoint %d written during CleanupScaffolds after scaffold " F_CID "\n",
-              ScaffoldGraph->checkPointIteration, scaffold->id);
-      fprintf(GlobalData->timefp, "Sorry, no way to know which logical checkpoint this really is!\n");
-      CheckpointScaffoldGraph(ScaffoldGraph, -1);
-    }
-
-    CheckScaffoldGraphCache(ScaffoldGraph);
   }
+
+  clearCacheSequenceDB(sgraph->sequenceDB);
 
   RecycleDeletedGraphElements(sgraph->RezGraph);
   return didSomething;

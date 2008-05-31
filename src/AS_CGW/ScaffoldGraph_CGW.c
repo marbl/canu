@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.29 2007-09-25 01:37:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.30 2008-05-31 06:49:46 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -78,48 +78,6 @@ ScaffoldGraphT *LoadScaffoldGraphFromCheckpoint( char *name,
   return graph;
 }
 
-
-void CheckpointOnDemand(int whatToDoAfter)
-{
-  FILE * fp;
-  if((fp = fopen(CHECKPOINT_DEMAND_FILE, "r")) != NULL)
-    {
-      fclose(fp);
-    
-      CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
-      fprintf( GlobalData->stderrc, "Checkpoint %d written during MergeScaffoldsAggressive demanded by user\n", ScaffoldGraph->checkPointIteration);
-      fprintf( GlobalData->timefp,"Checkpoint %d written during MergeScaffoldsAggressive demanded by user\n", ScaffoldGraph->checkPointIteration);
-      CheckpointScaffoldGraph(ScaffoldGraph, -1);
-    
-      if(0 != unlink( CHECKPOINT_DEMAND_FILE ))
-        {
-          fprintf(GlobalData->stderrc,
-                  "ALERT!!!!! Failed to remove checkpoint-on-demand file, %s\n",
-                  CHECKPOINT_DEMAND_FILE);
-          perror("Please remove it immediately!!!!\n");
-        }
-
-      switch(whatToDoAfter)
-        {
-          case EXIT_AFTER_CHECKPOINTING:
-            fprintf(GlobalData->stderrc,
-                    "FYI: Exiting after checkpointing on user demand!!\n");
-            exit(0);
-            break;
-          case RETURN_AFTER_CHECKPOINTING:
-            return;
-            break;
-          default:
-            fprintf(GlobalData->stderrc,
-                    "WARNING: Checkpoint written on user demand with invalid instruction.\n");
-            fprintf(GlobalData->stderrc,
-                    "\t\tOptions are to exit or continue running.\n");
-            fprintf(GlobalData->stderrc,
-                    "Continuing with run.\n");
-            break;
-        }
-    }
-}
 
 
 void CheckpointScaffoldGraph(ScaffoldGraphT *graph, int logicalCheckpoint){
@@ -883,10 +841,6 @@ void RebuildScaffolds(ScaffoldGraphT *ScaffoldGraph,
   }
 #endif
 
-  fprintf(GlobalData->stderrc,"* RebuildScaffolds save:%d  markShaky:%d\n",
-	  GlobalData->saveCheckPoints, markShakyBifurcations);
-  fflush(GlobalData->stderrc);
-
   TidyUpScaffolds (ScaffoldGraph);
 
   return;
@@ -912,7 +866,7 @@ void  TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph)
   BuildSEdges(ScaffoldGraph, FALSE);
   MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE);
 
-  clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+  //clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 }
 
 
@@ -974,15 +928,6 @@ void BuildScaffoldsFromFirstPriniciples(ScaffoldGraphT *ScaffoldGraph,
 	CheckCIScaffoldTs(ScaffoldGraph);
         // merge in stuff placed by rocks, assuming its position is correct!
 	CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE); 
-#if 0
-	// We want tor recompute the contig coordinates
-	// SAK **** Make sure our gap estimates are good before
-        // SAK **** rebuilding scaffolds
-	// SAK **** (This proved ineffectual)
-	LeastSquaresGapEstimates(ScaffoldGraph, TRUE, FALSE, TRUE,
-				 CHECK_CONNECTIVITY, FALSE);
-#endif
-	// Build Scaffolds of Discriminator Uniques
         
         // Transitive reduction of RezGraph followed by construction of SEdges
 	RebuildScaffolds(ScaffoldGraph, FALSE); 
@@ -995,8 +940,7 @@ void BuildScaffoldsFromFirstPriniciples(ScaffoldGraphT *ScaffoldGraph,
         //  So, if we've been running for 2 hours, AND we've not just completed
         //  the last iteration, checkpoint.
         //
-        if ((GlobalData->saveCheckPoints) &&
-            (time(0) - ctme > 120 * 60) && (iter+1 < MAX_OUTER_REZ_ITERATIONS)) {
+        if ((time(0) - ctme > 120 * 60) && (iter+1 < MAX_OUTER_REZ_ITERATIONS)) {
           ctme = time(0);
           fprintf(GlobalData->timefp, "* After RebuildScaffolds Rocks %d there are %d scaffolds\n",
                   iter, (int)GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph));

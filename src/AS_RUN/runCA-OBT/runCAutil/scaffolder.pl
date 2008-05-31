@@ -64,7 +64,7 @@ sub CGW ($$$$$$) {
     my $cmd;
     my $astatLow = getGlobal("astatLowBound");
     my $astatHigh = getGlobal("astatHighBound");
-    $cmd  = "$bin/cgw $ckp -c -j $astatLow -k $astatHigh -r 5 -s $stoneLevel ";
+    $cmd  = "$bin/cgw $ckp -j $astatLow -k $astatHigh -r 5 -s $stoneLevel ";
     $cmd .= " -S 0 " if (($finalRun == 0)   || (getGlobal("doResolveSurrogates") == 0));
     $cmd .= " -G "   if (($finalRun == 0)   && (getGlobal("cgwOutputIntermediate") == 0));
     $cmd .= " -z "   if (getGlobal("cgwDemoteRBP") == 1);
