@@ -102,6 +102,7 @@ void         copyMultiAlignTFromSequenceDB(tSequenceDB *db, MultiAlignT *ma, int
 static
 void
 clearCacheSequenceDB(tSequenceDB *db) {
+  fflush(db->dataFile[db->currentRevision]);
   ClearMultiAlignStoreT(db->UnitigStore);
   ClearMultiAlignStoreT(db->ContigStore);
 }

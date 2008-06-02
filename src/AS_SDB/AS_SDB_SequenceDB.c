@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.17 2007-10-24 21:04:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.18 2008-06-02 09:15:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,7 +70,7 @@ createSequenceDB(char *path) {
 
   sprintf(N,"%s/seqDB.v%03d.dat", db->path, 0);
   errno = 0;
-  F = fopen(N,"w");
+  F = fopen(N,"w+");
   if (errno)
     fprintf(stderr, "CreateSequenceDB()-- Failed to create '%s': %s\n",
             N, strerror(errno)), exit(1); 
