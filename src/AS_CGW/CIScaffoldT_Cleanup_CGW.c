@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.38 2008-05-31 06:49:46 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.39 2008-06-02 11:26:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1309,38 +1309,33 @@ int CleanupFailedMergesInScaffolds(ScaffoldGraphT *sgraph){
   int madeChanges = FALSE;
   fprintf(GlobalData->stderrc,"* CleanupFailedMergesInScaffolds\n");
 
-  /*
-    yanked rocks/stones may not be in scaffolds
-    without this step, some will inappropriately be degenerates
-  */
+  //  yanked rocks/stones may not be in scaffolds.  without this step,
+  //  some will inappropriately be degenerates
   ReScaffoldPseudoDegenerates();
   
-  if(!GlobalData->performCleanupScaffolds){
+  if (!GlobalData->performCleanupScaffolds)
     return 0;
-  }
 
   InitGraphNodeIterator(&scaffolds, sgraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
   while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL){
     int didSomething = TRUE;
     int iteration = 0;
+
     while(didSomething > 0){
-
       if(iteration == 0){
-
 	didSomething = CleanupAScaffold(sgraph,scaffold, FALSE, 16 , FALSE);
 	if(didSomething == 0)
 	  break;
 	if(didSomething > 0)
 	  madeChanges = TRUE;
-	fprintf(GlobalData->stderrc,"* Merge failure(16) in scaffold " F_CID " didSomething = %d \n", scaffold->id, didSomething);
+	//fprintf(GlobalData->stderrc,"* Merge failure(16) in scaffold " F_CID " didSomething = %d \n", scaffold->id, didSomething);
 
 	didSomething = CleanupAScaffold(sgraph,scaffold, FALSE, 4 , FALSE);
 	if(didSomething == 0)
 	  break;
 	if(didSomething > 0)
 	  madeChanges = TRUE;
-	fprintf(GlobalData->stderrc,"* Merge failure(4) in scaffold " F_CID " didSomething = %d \n", scaffold->id, didSomething);
-
+	//fprintf(GlobalData->stderrc,"* Merge failure(4) in scaffold " F_CID " didSomething = %d \n", scaffold->id, didSomething);
       }
 
       didSomething = CleanupAScaffold(sgraph,scaffold, FALSE, 3 , FALSE);
@@ -1348,15 +1343,19 @@ int CleanupFailedMergesInScaffolds(ScaffoldGraphT *sgraph){
 	break;
       if(didSomething > 0)
         madeChanges = TRUE;
-      fprintf(GlobalData->stderrc,"* Merge failure(3) in scaffold " F_CID " didSomething = %d iteration %d\n", scaffold->id, didSomething, iteration);
+      //fprintf(GlobalData->stderrc,"* Merge failure(3) in scaffold " F_CID " didSomething = %d iteration %d\n", scaffold->id, didSomething, iteration);
 
       didSomething = CleanupAScaffold(sgraph,scaffold, FALSE, 2 , FALSE);
       if(didSomething > 0)
 	madeChanges = TRUE;
-      fprintf(GlobalData->stderrc,"* After iteration %d  didSomething = %d\n", iteration, didSomething);
+      //fprintf(GlobalData->stderrc,"* After iteration %d  didSomething = %d\n", iteration, didSomething);
 
       iteration++;
     }
+
+    //  A little aggressive to do this every scaffold.  Hopefully
+    //  won't kill performance.
+    clearCacheSequenceDB(sgraph->sequenceDB);
   }
 
   RecycleDeletedGraphElements(sgraph->RezGraph);
