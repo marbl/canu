@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.54 2008-05-31 06:49:46 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.55 2008-06-02 11:26:11 brianwalenz Exp $";
 
 
 
@@ -27,7 +27,6 @@ static const char *usage =
 "usage: %s [options] -g <GatekeeperStoreName> -o <OutputPath> <InputCGB.ext>\n"
 "\n"
 "   [-a]           align overlaps  (default)\n"
-"   [-c]           Generate checkpoints\n"
 "   [-d]           DumpGraphs\n"
 "   [-e <thresh>]  Microhet score probability cutoff\n"
 "   [-g]           gkp Store path (required)\n"
@@ -253,7 +252,7 @@ int main(int argc, char *argv[]){
         case 'g':
           strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
           setGatekeeperStore = 1;
-          break;	  
+          break;
         case 'h':
           failOn_NoOverlapFound = 0;
           break;
@@ -717,7 +716,8 @@ int main(int argc, char *argv[]){
     AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
 
-    fprintf(data->timefp,"Checkpoint %d written after 1st Scaffold Merge\n",ScaffoldGraph->checkPointIteration);
+    fprintf(data->stderrc, "Checkpoint %d written after 1st Scaffold Merge\n",ScaffoldGraph->checkPointIteration);
+    fprintf(data->timefp,  "Checkpoint %d written after 1st Scaffold Merge\n",ScaffoldGraph->checkPointIteration);
     CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_1ST_SCAFF_MERGE+1);
   } // No immediate output
 
@@ -773,8 +773,8 @@ int main(int argc, char *argv[]){
     AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
 
-    fprintf(data->timefp, "Checkpoint %d written after Stone Throwing and CleanupScaffolds\n",
-            ScaffoldGraph->checkPointIteration);
+    fprintf(data->stderrc, "Checkpoint %d written after Stone Throwing and CleanupScaffolds\n", ScaffoldGraph->checkPointIteration);
+    fprintf(data->timefp,  "Checkpoint %d written after Stone Throwing and CleanupScaffolds\n", ScaffoldGraph->checkPointIteration);
     CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_STONES+1);
 
     GenerateLinkStats(ScaffoldGraph->CIGraph, "Stones", 0);
@@ -805,8 +805,8 @@ int main(int argc, char *argv[]){
     AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
 
-    fprintf(GlobalData->stderrc,"Checkpoint %d written after 2nd Aggressive Scaffold Merge\n",ScaffoldGraph->checkPointIteration);
-    fprintf(data->timefp,"Checkpoint %d written after 2nd Aggressive Scaffold Merge\n",ScaffoldGraph->checkPointIteration);
+    fprintf(data->stderrc, "Checkpoint %d written after 2nd Aggressive Scaffold Merge\n",ScaffoldGraph->checkPointIteration);
+    fprintf(data->timefp,  "Checkpoint %d written after 2nd Aggressive Scaffold Merge\n",ScaffoldGraph->checkPointIteration);
     CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_2ND_SCAFF_MERGE+1);
   }  // No immediate output
 
@@ -832,8 +832,8 @@ int main(int argc, char *argv[]){
           clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
         }  while  (extra_rocks > 1 && iter < MAX_EXTRA_ROCKS_ITERS);
 
-      fprintf (data->timefp, "Checkpoint %d written after Final Rocks\n",
-               ScaffoldGraph -> checkPointIteration);
+      fprintf(data->stderrc, "Checkpoint %d written after Final Rocks\n", ScaffoldGraph -> checkPointIteration);
+      fprintf(data->timefp,  "Checkpoint %d written after Final Rocks\n", ScaffoldGraph -> checkPointIteration);
       CheckpointScaffoldGraph (ScaffoldGraph, CHECKPOINT_BEFORE_FINAL_ROCKS+1);
     }
 
@@ -872,12 +872,8 @@ int main(int argc, char *argv[]){
       ResetContigOrientChecker(coc);
       AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
-      fprintf (GlobalData -> stderrc,
-               "Checkpoint %d written after Partial Stones\n",
-               ScaffoldGraph->checkPointIteration);
-      fprintf (data -> timefp,
-               "Checkpoint %d written after Partial Stones\n",
-               ScaffoldGraph->checkPointIteration);
+      fprintf(data->stderrc, "Checkpoint %d written after Partial Stones\n", ScaffoldGraph->checkPointIteration);
+      fprintf(data->timefp,  "Checkpoint %d written after Partial Stones\n", ScaffoldGraph->checkPointIteration);
       CheckpointScaffoldGraph (ScaffoldGraph, CHECKPOINT_BEFORE_PARTIAL_STONES+1);
 
       GenerateLinkStats (ScaffoldGraph -> CIGraph, "PStones", 0);
@@ -926,8 +922,8 @@ int main(int argc, char *argv[]){
       AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
 
-      fprintf(data -> timefp, "Checkpoint %d written after Final Contained Stones\n",
-              ScaffoldGraph->checkPointIteration);
+      fprintf(data->stderrc, "Checkpoint %d written after Final Contained Stones\n", ScaffoldGraph->checkPointIteration);
+      fprintf(data->timefp,  "Checkpoint %d written after Final Contained Stones\n", ScaffoldGraph->checkPointIteration);
       CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_FINAL_CONTAINED_STONES+1);
 
       GenerateLinkStats (ScaffoldGraph -> CIGraph, "CStones", 0);
@@ -944,19 +940,22 @@ int main(int argc, char *argv[]){
 
     // Try to cleanup failed merges, and if we do, generate a checkpoint
     if(CleanupFailedMergesInScaffolds(ScaffoldGraph)){
-      fprintf(data->timefp,"Checkpoint %d written after CleanupFailedMergesInScaffolds\n",ScaffoldGraph->checkPointIteration);
+
+      fprintf(data->stderrc, "Checkpoint %d written after CleanupFailedMergesInScaffolds\n",ScaffoldGraph->checkPointIteration);
+      fprintf(data->timefp,  "Checkpoint %d written after CleanupFailedMergesInScaffolds\n",ScaffoldGraph->checkPointIteration);
       CheckpointScaffoldGraph(ScaffoldGraph, -1);
 
       ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
       
       // This call deletes surrogate-only contigs that failed to merge
       if( CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, TRUE)){
-        fprintf(data->timefp,"Checkpoint %d written after DeleteAllSurrogateContigsFromFailedMerges\n",ScaffoldGraph->checkPointIteration);
+
+        fprintf(data->stderrc, "Checkpoint %d written after DeleteAllSurrogateContigsFromFailedMerges\n",ScaffoldGraph->checkPointIteration);
+        fprintf(data->timefp,  "Checkpoint %d written after DeleteAllSurrogateContigsFromFailedMerges\n",ScaffoldGraph->checkPointIteration);
         CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_FINAL_CLEANUP+1);
 	
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
-        fprintf(stderr,
-                "---Checking contig orders after final cleanup\n\n");
+        fprintf(stderr, "---Checking contig orders after final cleanup\n\n");
         CheckAllContigOrientationsInAllScaffolds(ScaffoldGraph, coc, POPULATE_COC_HASHTABLE);
 #endif
         ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
@@ -973,7 +972,8 @@ int main(int argc, char *argv[]){
 
     resolveSurrogates(placeAllFragsInSinglePlacedSurros, cutoffToInferSingleCopyStatus);
 
-    fprintf(GlobalData->timefp, "Checkpoint %d written after resolveSurrogates\n", ScaffoldGraph->checkPointIteration);
+    fprintf(data->stderrc, "Checkpoint %d written after resolveSurrogates\n", ScaffoldGraph->checkPointIteration);
+    fprintf(data->timefp,  "Checkpoint %d written after resolveSurrogates\n", ScaffoldGraph->checkPointIteration);
     CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_RESOLVE_SURROGATES+1);
   }
 
