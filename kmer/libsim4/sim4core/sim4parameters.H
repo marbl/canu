@@ -75,6 +75,11 @@ public:
   };
 
 
+  void  setSlideIntrons(bool x=true) {
+    _slideIntrons = x;
+  };
+
+
   void  setInterspecies(bool x=true) {
     _interspecies = x;
 
@@ -126,6 +131,8 @@ private:
   int           _wordSize;
   int           _wordSizeInt;
   int           _wordSizeExt;
+
+  bool          _slideIntrons;
 
   // Interspecies comparison options.
   //    _percentError is the former #defined P

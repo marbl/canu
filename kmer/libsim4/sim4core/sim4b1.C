@@ -273,10 +273,11 @@ Sim4::SIM4(int            *dist_ptr,
     adjustBoundariesOfMarginalExons(Lblock);
 
   /* Slide exon boundaries for optimal intron signals */
-  if (get_sync_flag(Lblock, Rblock, 6) == 1)
-    sync_slide_intron(6,&Lblock,st);
-  else
-    slide_intron(6,&Lblock,st);
+  if (globalParams->_slideIntrons)
+    if (get_sync_flag(Lblock, Rblock, 6) == 1)
+      sync_slide_intron(6,&Lblock,st);
+    else
+      slide_intron(6,&Lblock,st);
 
   /* decreasingly; script will be in reverse order */
   flip_list(&Lblock, &Rblock); 

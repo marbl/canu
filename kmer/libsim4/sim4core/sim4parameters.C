@@ -30,6 +30,8 @@ sim4parameters::sim4parameters() {
     _dontForceCanonicalSplicing = false;
     _forceStrandPrediction      = false;
 
+    _slideIntrons               = true;
+
     _interspecies               = false;
     _percentError               = 0.20;
     _match                      =  1;
