@@ -72,8 +72,11 @@ AS_UTL_writeQVFastA(FILE *f,
   //
 
   while (qi < ql) {
-    o[oi++] = (q[qi] / 10) + '0';
-    o[oi++] = (q[qi] % 10) + '0';
+    // decode the quality value
+    // we convert the qlt character to the integer value by subtracting '0' and take the significant digit by dividing by ten. Back to character by adding '0'
+    o[oi++] = (((((int)q[qi])-'0') / 10) + '0');
+    // same thing except now use mod
+    o[oi++] = (((((int)q[qi])-'0') % 10) + '0');
     o[oi++] = ' ';
 
     qi++;
