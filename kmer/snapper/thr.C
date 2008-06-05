@@ -108,7 +108,11 @@ searchThread(void *U) {
         //
         //  Polish the filtered hits
         //
-        char *o = doPolish(state, seq, theHits, theHitsLen, theLog);
+        char *o;
+        if (config._polishOptimally)
+          o = doPolishDP(state, seq, theHits, theHitsLen, theLog);
+        else
+          o = doPolishS4(state, seq, theHits, theHitsLen, theLog);
 
 
 #ifdef VERBOSE_SEARCH

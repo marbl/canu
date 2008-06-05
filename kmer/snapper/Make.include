@@ -12,11 +12,13 @@ src      := $/snapper2.C \
             $/thr-search.C \
             $/thr-filter.C \
             $/thr-polish.C \
+            $/thr-polish-dp.C \
             $/thr-loader.C \
             $/thr-deadlock.C \
             $/hitMatrix.C \
             $/hitMatrix-sort.C \
             $/snapper2.H
+
 
 $/.CXX_SRCS := $(filter %.C,${src})
 $/.CXX_EXES := $/snapper2

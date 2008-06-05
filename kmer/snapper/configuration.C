@@ -45,6 +45,7 @@ configuration::configuration(void) {
   _discardExonLength    = 64;
   _discardExonQuality   = 90;
   _splitMatches         = true;
+  _polishOptimally      = false;
 
   _dbFileName           = 0L;
   _psFileName           = 0L;
@@ -99,6 +100,8 @@ static char const *usageString =
 "    -merskip l              Skip l mers between.\n"
 "    -compression c          Compress homopolymer runs to c letters.\n"
 "    -template t             Use spaced seed template t.\n"
+"\n"
+"    -dp                     Optimially polish (broken)\n"
 "\n"
 "    -maxdiagonal d          Maximum diagonal gap within a hit (25).\n"
 "    -minhitlength l         Minimum length for a hit to be polished (0).\n"
@@ -220,6 +223,8 @@ configuration::read(int argc, char **argv) {
       _logmsgFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-stats") == 0) {
       _statsFileName = argv[++arg];
+    } else if (strcmp(argv[arg], "-dp") == 0) {
+      _polishOptimally = true;
     } else if (strcmp(argv[arg], "-maxdiagonal") == 0) {
       _maxDiagonal = strtou32bit(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-minhitlength") == 0) {

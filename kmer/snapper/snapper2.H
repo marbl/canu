@@ -365,6 +365,7 @@ public:
   u32bit           _discardExonLength;
   u32bit           _discardExonQuality;
   bool             _splitMatches;
+  bool             _polishOptimally;
 
   char            *_dbFileName;
   char            *_psFileName;
@@ -451,11 +452,18 @@ doFilter(searcherState       *state,
          logMsg              *theLog);
 
 char*
-doPolish(searcherState       *state,
-         seqInCore           *seq,
-         aHit               *&theHits,
-         u32bit              &theHitsLen,
-         logMsg              *theLog);
+doPolishS4(searcherState       *state,
+           seqInCore           *seq,
+           aHit               *&theHits,
+           u32bit              &theHitsLen,
+           logMsg              *theLog);
+
+char*
+doPolishDP(searcherState       *state,
+           seqInCore           *seq,
+           aHit               *&theHits,
+           u32bit              &theHitsLen,
+           logMsg              *theLog);
 
 
 

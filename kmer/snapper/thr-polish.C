@@ -3,11 +3,11 @@
 
 
 char*
-doPolish(searcherState       *state,
-         seqInCore           *seq,
-         aHit               *&theHits,
-         u32bit              &theHitsLen,
-         logMsg              *theLog) {
+doPolishS4(searcherState       *state,
+           seqInCore           *seq,
+           aHit               *&theHits,
+           u32bit              &theHitsLen,
+           logMsg              *theLog) {
   double   startTime = getTime();
   u32bit   outLen    = 0;
   u32bit   outMax    = 2 * 1024 * theHitsLen;
