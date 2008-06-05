@@ -69,63 +69,8 @@ Sim4::complement_exons(Exon **left, int M, int N) {
 }
 
 
-#if 0
-
-//  Dead code, 05 apr 2004, bpw
-
-void
-Sim4::check_consistency_intron_ori(Exon *exons, int match_ori, char *gene)
-{
-  Exon *t=exons;
-  int numG, numC, numE, numN;
-  
-  numG = numC = numE = numN = 0;
-
-  if (!t->toGEN) t = t->next_exon;
-  while (t && t->toGEN) {
-    if (t->next_exon  && t->next_exon->toGEN) {
-      switch (t->ori) {
-        case 'G':
-          numG++;
-          break;
-        case 'C':
-          numC++;
-          break;
-        case 'N':
-          numN++;
-          break;
-        case 'E':
-          numE++;
-          break;
-        default:
-          fatal("sim4b1.c: Unrecognized intron orientation.");
-      } 
-    }
-    t = t->next_exon;
-  }
-  if (numG && numC) 
-    fprintf(stderr, "Warning: Introns reported on both strands (%s).\n", gene);
-  else if ((numG && (match_ori==BWD)) || (numC && (match_ori==FWD))) 
-    fprintf(stderr, "Warning: Introns orientations inconsistent with the reported match strand (%s).\n", gene);
-  
-  if (numN) 
-    fprintf(stderr, "Warning: Ambiguous intron orientation (%s).\n", gene);
-  if (numE) 
-    fprintf(stderr, "Warning: Internal gap in the mRNA (%s).\n", gene);
-
-  return;
-}
-
-#endif
 
 
-void
-ABORT(int X, char *Y) {
-  if (X) {
-    fprintf(stderr, "ERROR: %s\n", Y);
-    kill(getpid(), 10);
-  }
-}
 
 
 void
