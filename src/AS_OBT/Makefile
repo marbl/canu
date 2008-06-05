@@ -89,15 +89,15 @@ include $(LOCAL_WORK)/src/c_make.as
 all: $(PROGS) $(SCRIPTS)
 	@test -n nop
 
-acceptableOBToverlap: acceptableOBToverlap.o                    -lAS_OVS -lAS_PER -lAS_UTL
-initialTrim:          initialTrim.o trim.o                               -lAS_PER -lAS_UTL
-consolidate:          consolidate.o util++.o readOverlap.o      -lAS_OVS -lAS_PER -lAS_UTL
-merge-trimming:       merge-trimming.o trim.o                            -lAS_PER -lAS_UTL
-chimera:              chimera.o util++.o readOverlap.o          -lAS_OVS -lAS_PER -lAS_UTL
+acceptableOBToverlap: acceptableOBToverlap.o                  libCA.a
+initialTrim:          initialTrim.o trim.o                    libCA.a
+consolidate:          consolidate.o util++.o readOverlap.o    libCA.a
+merge-trimming:       merge-trimming.o trim.o                 libCA.a
+chimera:              chimera.o util++.o readOverlap.o        libCA.a
 
-prefixDelete:         prefixDelete.o                                     -lAS_PER -lAS_UTL
+prefixDelete:         prefixDelete.o                          libCA.a
 
-getNumScaffolds: getNumScaffolds.o libCA.a
+getNumScaffolds:      getNumScaffolds.o                       libCA.a
 
 figaro: $(FIGARO)/figaro
 	@cp $< $(LOCAL_BIN)/$@
