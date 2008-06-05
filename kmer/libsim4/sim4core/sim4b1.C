@@ -273,11 +273,24 @@ Sim4::SIM4(int            *dist_ptr,
     adjustBoundariesOfMarginalExons(Lblock);
 
   /* Slide exon boundaries for optimal intron signals */
-  if (globalParams->_slideIntrons)
+  if (globalParams->_slideIntrons) {
     if (get_sync_flag(Lblock, Rblock, 6) == 1)
       sync_slide_intron(6,&Lblock,st);
     else
       slide_intron(6,&Lblock,st);
+  } else {
+    //  Set orientation flag on introns to be unknown -- this has an
+    //  undesired side effect of forcing the resulting match to have a
+    //  strand orientation the same as the intron orientation (if one
+    //  exon) instead of 'unknown'.
+    Exon *t0 = Lblock->next_exon;
+    Exon *t1 = NULL;
+
+    while (t0 && (t1=t0->next_exon) && t1->toGEN) {
+      t0->ori = 'E';
+      t0 = t1;
+    }
+  }
 
   /* decreasingly; script will be in reverse order */
   flip_list(&Lblock, &Rblock); 
