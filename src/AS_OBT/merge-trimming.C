@@ -204,47 +204,51 @@ main(int argc, char **argv) {
 
       GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkp, getFragRecordLibraryIID(&fr));
 
-#ifdef BADIDEA
-      if ((gklr) && (gklr->doNotQVTrim)) {
-        qltL1 = 0;
-        qltR1 = 0;
-      } else {
-        doTrim(&fr, minQuality, qltL1, qltR1);
-      }
-#else
-      doTrim(&fr, minQuality, qltL1, qltR1);
-#endif
+      //  If not already deleted, update the clear.  Updating the
+      //  clear on deleted fragments usually results in the log
+      //  showing merge-trimming deleted the fragment, which is
+      //  incorrect.
 
-      //  Pick the bigger of the L's and the lesser of the R's.  If
-      //  L<R still, then the Q0 and Q1 trimming intersect, and we
-      //  should use that intersection for the clear range.
-      //  Otherwise, delete the fragment.
-
-      uint32 l = (qltL0 < qltL1) ? qltL1 : qltL0;
-      uint32 r = (qltR0 < qltR1) ? qltR0 : qltR1;
-
-      if (l + AS_FRAG_MIN_LEN < r) {
-        if (doModify) {
-          setFragRecordClearRegion(&fr, l, r, AS_READ_CLEAR_OBT);
-          setFrag(gkp, lid, &fr);
+      if (getFragRecordIsDeleted(&fr) == 0) {
+        if ((gklr) && (gklr->doNotQVTrim)) {
+          //  Just leave it as is.  It should show up as a singleton.
+          //qltL1 = 0;
+          //qltR1 = 0;
+        } else {
+          doTrim(&fr, minQuality, qltL1, qltR1);
         }
 
-        if (logFile)
-          fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps)\n",
-                  AS_UID_toString(uid), lid, qltL0, qltR0, l, r);
-      } else {
-        //  What?  No intersect...too small?  Delete it!
-        //
-        if (doModify)
-          delFrag(gkp, lid);
+        //  Pick the bigger of the L's and the lesser of the R's.  If
+        //  L<R still, then the Q0 and Q1 trimming intersect, and we
+        //  should use that intersection for the clear range.
+        //  Otherwise, delete the fragment.
 
-        if (logFile)
-          if (l < r)
-            fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps, intersection too short, deleted)\n",
-                    AS_UID_toString(uid), lid, qltL0, qltR0, qltL1, qltR1);
-          else
-            fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps, no intersection, deleted)\n",
-                    AS_UID_toString(uid), lid, qltL0, qltR0, qltL1, qltR1);
+        uint32 l = (qltL0 < qltL1) ? qltL1 : qltL0;
+        uint32 r = (qltR0 < qltR1) ? qltR0 : qltR1;
+
+        if (l + AS_FRAG_MIN_LEN < r) {
+          if (doModify) {
+            setFragRecordClearRegion(&fr, l, r, AS_READ_CLEAR_OBT);
+            setFrag(gkp, lid, &fr);
+          }
+
+          if (logFile)
+            fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps)\n",
+                    AS_UID_toString(uid), lid, qltL0, qltR0, l, r);
+        } else {
+          //  What?  No intersect...too small?  Delete it!
+          //
+          if (doModify)
+            delFrag(gkp, lid);
+
+          if (logFile)
+            if (l < r)
+              fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps, intersection too short, deleted)\n",
+                      AS_UID_toString(uid), lid, qltL0, qltR0, qltL1, qltR1);
+            else
+              fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps, no intersection, deleted)\n",
+                      AS_UID_toString(uid), lid, qltL0, qltR0, qltL1, qltR1);
+        }
       }
 
       lid++;
@@ -334,6 +338,7 @@ main(int argc, char **argv) {
         maxm3 = mode3;
       }
 
+#undef BADIDEA
 #ifdef BADIDEA
       if ((gklr) && (gklr->doNotQVTrim)) {
         qltLQ1 = 0;
