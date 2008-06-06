@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.38 2008-06-06 16:09:22 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.39 2008-06-06 20:27:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -785,7 +785,13 @@ dumpGateKeeperAsNewbler(char       *gkpStoreName,
     FragMesg  fmesg;
     LinkMesg  lmesg;
 
-    if (iidToDump[getFragRecordIID(&fr)]) {
+    //  Newbler is not happy at all with clear ranges < 1 base.  We do
+    //  not dump those.
+
+    int  lclr = getFragRecordClearRegionBegin(&fr, dumpFRGClear) + 1;
+    int  rclr = getFragRecordClearRegionEnd  (&fr, dumpFRGClear);
+
+    if ((iidToDump[getFragRecordIID(&fr)]) && (lclr < rclr)) {
       char    defline[1024];
 
       if (getFragRecordMateIID(&fr)) {
@@ -803,15 +809,15 @@ dumpGateKeeperAsNewbler(char       *gkpStoreName,
                 //  library
                 AS_UID_toString2(libUID[getFragRecordLibraryIID(&fr)]),
                 //  trim
-                getFragRecordClearRegionBegin(&fr, dumpFRGClear) + 1,
-                getFragRecordClearRegionEnd  (&fr, dumpFRGClear));
+                lclr,
+                rclr);
       } else {
         sprintf(defline, ">%s trim=%d-%d\n",
                 //  ID
                 AS_UID_toString1(getFragRecordUID(&fr)),
                 //  trim
-                getFragRecordClearRegionBegin(&fr, dumpFRGClear) + 1,
-                getFragRecordClearRegionEnd  (&fr, dumpFRGClear));
+                lclr,
+                rclr);
       }
 
       AS_UTL_writeFastA(f,
