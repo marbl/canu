@@ -233,7 +233,11 @@ main(int argc, char **argv) {
     //
     //  We DO get duplicates in the normal partial overlap output.
     //
-    if (bseen[ovl->b_iid] == 0) {
+    //  The "1.0 *" is to remind us how to scale this down in the
+    //  future.
+    //
+    if ((AS_OVS_decodeQuality(ovl->dat.obt.erate) <= 1.0 * AS_OVL_ERROR_RATE) &&
+        (bseen[ovl->b_iid] == 0)) {
       if (numOverlaps < MAX_OVERLAPS_PER_FRAG) {
         idAlast            = ovl->a_iid;
         left[numOverlaps]  = ovl->dat.obt.a_beg;
