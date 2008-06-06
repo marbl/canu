@@ -171,6 +171,8 @@ main(int argc, char **argv) {
   OverlapStore  *ovsprimary   = 0L;
   OverlapStore  *ovssecondary = 0L;
 
+  argc = AS_configure(argc, argv);
+
   int arg=1;
   int err=0;
   while (arg < argc) {

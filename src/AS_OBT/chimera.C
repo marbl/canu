@@ -737,6 +737,8 @@ main(int argc, char **argv) {
   uint32  overflow = 0;
   uint32  notclear = 0;
 
+  argc = AS_configure(argc, argv);
+
   int arg=1;
   int err=0;
   while (arg < argc) {
