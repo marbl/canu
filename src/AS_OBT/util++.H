@@ -151,6 +151,7 @@ typedef uint64  intervalNumber;
 struct _intervalPair {
   intervalNumber    lo;
   intervalNumber    hi;
+  uint32            ct;
 };
 
 
@@ -204,7 +205,7 @@ public:
 
   intervalNumber      lo(uint32 i) { return(_list[i].lo); };
   intervalNumber      hi(uint32 i) { return(_list[i].hi); };
-
+  uint32              ct(uint32 i) { return(_list[i].ct); };
 private:
   bool                      _isSorted;
   uint32                    _listLen;
