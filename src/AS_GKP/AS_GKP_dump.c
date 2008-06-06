@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.37 2008-06-04 16:20:29 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.38 2008-06-06 16:09:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -803,14 +803,14 @@ dumpGateKeeperAsNewbler(char       *gkpStoreName,
                 //  library
                 AS_UID_toString2(libUID[getFragRecordLibraryIID(&fr)]),
                 //  trim
-                getFragRecordClearRegionBegin(&fr, dumpFRGClear)/* + 1*/,
+                getFragRecordClearRegionBegin(&fr, dumpFRGClear) + 1,
                 getFragRecordClearRegionEnd  (&fr, dumpFRGClear));
       } else {
         sprintf(defline, ">%s trim=%d-%d\n",
                 //  ID
                 AS_UID_toString1(getFragRecordUID(&fr)),
                 //  trim
-                getFragRecordClearRegionBegin(&fr, dumpFRGClear)/* + 1*/,
+                getFragRecordClearRegionBegin(&fr, dumpFRGClear) + 1,
                 getFragRecordClearRegionEnd  (&fr, dumpFRGClear));
       }
 
