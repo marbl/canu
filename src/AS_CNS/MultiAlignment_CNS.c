@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.186 2008-04-25 21:30:32 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.187 2008-06-06 19:07:50 gdenisov Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -2778,6 +2778,49 @@ OutputAlleles(FILE *fout, VarRegion *vreg)
 }
 
 static void
+SetConsensusToMajorAllele(int32 *cids, VarRegion vreg, CNS_Options *opp, int get_scores,
+                  int32 *conf_read_iids)
+{
+  int i,m;
+  char  cbase;
+  int read_id = vreg.alleles[0].read_ids[0];
+#if DEBUG_VAR_RECORDS
+  char *bases = (char*)safe_calloc((vreg.end-vreg.beg+1),sizeof(char));
+  bases[vreg.end-vreg.beg]='\0';
+  fprintf(stderr, "VAR beg= %d end= %d\n", vreg.beg, vreg.end);
+  OutputReads(stderr, vreg.reads, vreg.nr, vreg.end-vreg.beg);
+  OutputDistMatrix(stderr, &vreg);
+  OutputAlleles(stderr, &vreg);
+#endif
+  for (m=0; m<vreg.end-vreg.beg; m++)
+  {
+    int32   cid = cids[vreg.beg+m];
+    Column *column=GetColumn(columnStore,cid);
+    Bead   *call = GetBead(beadStore, column->call);
+
+    // Set the consensus base
+    cbase = vreg.reads[read_id].bases[m];
+    Setchar(sequenceStore, call->soffset, &cbase);
+#if DEBUG_VAR_RECORDS
+    bases[m]=cbase;
+  }
+  fprintf(stderr, "beg= %d end= %d Num_reads= %d \nConsensus= \n%s\n", vreg.beg, vreg.end, vreg.nr, bases);
+  fprintf(stderr, "Reads=\n");
+  for (read_id=0; read_id<vreg.nr; read_id++)
+  {
+    for (m=0; m<vreg.end-vreg.beg; m++)
+    {
+      fprintf(stderr, "%c", vreg.reads[read_id].bases[m]);
+    }
+    fprintf(stderr, "   allele=%d \n", vreg.reads[read_id].allele_id);
+  } 
+  safe_free(bases);
+#else
+  }
+#endif
+}
+
+static void
 PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist,
                   IntMultiVar **v_list, VarRegion vreg, CNS_Options *opp, int get_scores,
                   int32 *conf_read_iids)
@@ -3217,7 +3260,7 @@ show_reads(VarRegion *vreg)
 //*********************************************************************************
 int 
 RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars, 
-              IntMultiVar **v_list, int make_v_list, int get_scores)
+    IntMultiVar **v_list, int make_v_list, int get_scores)
 {
   // refresh columns from cid to end
   // if quality == -1, don't recall the consensus base
@@ -3370,8 +3413,8 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
       return 1;
     }
 
-  assert(nvars  != NULL);
-  assert(v_list != NULL);
+  assert(make_v_list == 1 || nvars  != NULL);
+  assert(make_v_list == 1 || v_list != NULL);
 
   // Proceed further only if accurate base calls are needed
   // Smoothen variation 
@@ -3484,7 +3527,8 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
               show_reads(&vreg);
           }
 #endif
-          is_phased = PhaseWithPrevVreg(vreg.nca, vreg.alleles, vreg.reads, 
+          if (make_v_list == 2)
+              is_phased = PhaseWithPrevVreg(vreg.nca, vreg.alleles, vreg.reads, 
                                         &allele_map,
                                         prev_nca, prev_nca_iid, prev_nca_iid_max,
                                         prev_ncr, prev_ncr_iid, prev_ncr_iid_max);
@@ -3559,8 +3603,12 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
             if (SHOW_ALLELES) OutputAlleles(stderr, &vreg);
 
             /* Store variations in a v_list */
-            PopulateVARRecord(is_phased, cids, nvars, &min_len_vlist, v_list,
-                              vreg, opp, get_scores, conf_read_iids);
+            if (make_v_list == 2)
+                PopulateVARRecord(is_phased, cids, nvars, &min_len_vlist, v_list,
+                    vreg, opp, get_scores, conf_read_iids);
+            else 
+                SetConsensusToMajorAllele(cids, vreg, opp, get_scores,
+                  conf_read_iids);
           }
 
           if (opp->smooth_win > 0)
@@ -3618,7 +3666,10 @@ int SeedMAWithFragment(int32 mid, int32 fid, int quality,
   }
   fragment->manode=mid;
 
-  RefreshMANode(mid, quality, opp, NULL, NULL, 0, 0); 
+  if (quality > 0)
+      RefreshMANode(mid, quality, opp, NULL, NULL, 1, 0); 
+  else
+      RefreshMANode(mid, quality, opp, NULL, NULL, 0, 0);
 
   return 1;
 }
@@ -5010,7 +5061,7 @@ int RemoveNullColumn(int32 nid) {
 //*********************************************************************************
 
 int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars, 
-                  CNS_Options *opp, int get_scores)
+    int32 utg_alleles, CNS_Options *opp, int get_scores)
 {
   MANode      *ma = NULL;
   int32 cid;
@@ -5044,9 +5095,11 @@ int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars,
     IntMultiVar *vl=NULL;
     int32 nv=0;
     int i, make_v_list=0;
- 
-    if (v_list && num_vars)
-      make_v_list = 1;
+
+    if (utg_alleles)
+        make_v_list = 1; 
+    else if (v_list && num_vars)
+        make_v_list = 2;
     RefreshMANode(mid, 1, opp, &nv, &vl, make_v_list, get_scores);
     if (make_v_list && num_vars)
       {
@@ -7242,7 +7295,7 @@ int AbacusRefine(MANode *ma, int32 from, int32 to, CNS_RefineLevel level,
         }
       start_column = GetColumn(columnStore, stab_bgn);
     }
-  RefreshMANode(ma->lid, 1, opp, NULL, NULL, 0, 0);
+  RefreshMANode(ma->lid, 1, opp, NULL, NULL, 1, 0);
   return score_reduction;
 }
 
@@ -7727,13 +7780,16 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 
   if ( ! unitig_forced ) {
     score_reduction = AbacusRefine(ma,0,-1,CNS_SMOOTH, opp);
-    MergeRefine(ma->lid, NULL, NULL, opp, 0);
+    MergeRefine(ma->lid, NULL, NULL, 1, opp, 1);
     AbacusRefine(ma,0,-1,CNS_POLYX, opp);
-    MergeRefine(ma->lid, NULL, NULL, opp, 0);
+    MergeRefine(ma->lid, NULL, NULL, 1, opp, 1);
     if (printwhat == CNS_VERBOSE)
       PrintAlignment(stderr,ma->lid,0,-1,printwhat);
     AbacusRefine(ma,0,-1,CNS_INDEL, opp);
-    MergeRefine(ma->lid, NULL, NULL, opp, 1);
+
+    // Split alleles and set consensus to the highest-weight alelle
+    // but don't produce the VAR record 
+    MergeRefine(ma->lid, NULL, NULL, 1, opp, 1);
 
     if (printwhat != CNS_QUIET && printwhat != CNS_STATS_ONLY)
       PrintAlignment(stderr,ma->lid,0,-1,printwhat);
@@ -7979,7 +8035,7 @@ MultiAlignContig(IntConConMesg *contig,
   fragmentMap = CreateScalarHashTable_AS(2*(num_frags+num_unitigs));
   for (i=0;i<num_frags;i++) {
     if (ExistsInHashTable_AS (fragmentMap, contig->pieces[i].ident, 0)) {
-      fprintf(stderr,"MultiAlignContig: Failure to insert ident %d in fragment hashtable, already present\n",contig->pieces[i].ident); 
+      fprintf(stderr, "MultiAlignContig: Failure to insert ident %d in fragment hashtable, already present\n",contig->pieces[i].ident); 
       //  If in a rush, just skip this frag, but you're better off fixing the input.
       assert(0);
     }
@@ -8198,7 +8254,7 @@ MultiAlignContig(IntConConMesg *contig,
   }
 
   AbacusRefine(ma,0,-1,CNS_SMOOTH, opp);
-  MergeRefine(ma->lid, NULL, NULL, opp, 0);
+  MergeRefine(ma->lid, NULL, NULL, 0, opp, 1);
   AbacusRefine(ma,0,-1,CNS_POLYX, opp);
 
   if (printwhat == CNS_VERBOSE) {
@@ -8208,7 +8264,7 @@ MultiAlignContig(IntConConMesg *contig,
 
   RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0, 0);
   AbacusRefine(ma,0,-1,CNS_INDEL, opp);
-  MergeRefine(ma->lid, &(contig->v_list), &(contig->num_vars), opp, 2);
+  MergeRefine(ma->lid, &(contig->v_list), &(contig->num_vars), 0, opp, 2);
 
   if ((printwhat == CNS_VERBOSE) ||
       (printwhat == CNS_VIEW_UNITIG)) { 
@@ -8322,7 +8378,7 @@ int MultiAlignContig_ReBasecall(MultiAlignT *cma, VA_TYPE(char) *sequence, VA_TY
     tracep[iup->delta_length]=0;
     ApplyIMPAlignment(afrag->lid,blid,ahang,tracep);
   }
-  RefreshMANode(ma->lid, 1, opp, &nv, &vl, 1, 0);
+  RefreshMANode(ma->lid, 1, opp, &nv, &vl, 2, 0);
   GetMANodeConsensus(ma->lid,sequence,quality);
   // DeleteVA_int32(trace);
   DeleteMANode(ma->lid);
