@@ -988,6 +988,13 @@ sub runNBL ($) {
             #  omits reads with empty clear ranges.
             #
             if ($clr =~ m/(\d+)-(\d+)/) {
+
+                #  Newbler uses base-based clear ranges; this script
+                #  uses space-based clear.
+                #
+                my $cll = $1 + 1;
+                my $clr = $2;
+
                 if ($1 < $2) {
                     if (($xid eq $sid) && ($xid eq $qid) && ($xid eq $lid)) {
                         print FNA ">$xid template=$template dir=$end library=$lib trim=$clr\n$seq";
