@@ -298,7 +298,9 @@ int GetMANodeConsensus(int32 mid, VA_TYPE(char) *, VA_TYPE(char) *);
 int GetMANodePositions(int32 , int, IntMultiPos *, int, IntUnitigPos *, 
                        VA_TYPE(int32) *);
 void PrintAlignment(FILE *, int32, int32, int32, CNS_PrintKey );
-int32 MergeRefine(int32 , IntMultiVar **, int32 *, CNS_Options *, int);
+
+int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars, 
+                  int32 utg_alleles, CNS_Options *opp, int get_scores);
 
 typedef enum {
   LEFT_SHIFT  = (int) 'L', // Left Shifted
