@@ -25,6 +25,7 @@ src    := $/bigQueue.C \
           $/md5.c \
           $/memory.c \
           $/palloc.c \
+          $/qsort_mt.c \
           $/readBuffer.C \
           $/readBuffer.H \
           $/speedCounter.C \
