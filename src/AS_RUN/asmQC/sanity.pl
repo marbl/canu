@@ -5,9 +5,9 @@ use Config;  #  for @signame
 
 #  The only two globals:
 #
-my $wrkdir = "/home/work/nightly";
-my $cvsdir = "/home/work/nightly/wgs-assembler-cvs";
-
+my $wrkdir  = "/home/work/nightly";
+my $wgscvs  = "/home/work/nightly/wgs-assembler-cvs";
+my $kmersvn = "/home/work/nightly/kmer-svn";
 
 #  Command line options are
 #
@@ -44,15 +44,19 @@ my $cvsdir = "/home/work/nightly/wgs-assembler-cvs";
     my ($thisdate, $lastdate) = parseDate($ddir);
 
     if ($oper eq "rsync") {
-        system("cd $cvsdir && rsync -av rsync://wgs-assembler.cvs.sourceforge.net/cvsroot/wgs-assembler/\* . > rsync.out 2>&1");
+        system("cd $wgscvs  && rsync -av rsync://wgs-assembler.cvs.sourceforge.net/cvsroot/wgs-assembler/\* . > rsync.out 2>&1");
+        system("cd $kmersvn && rsync -av kmer.svn.sourceforge.net::svn/kmer/\* . > rsync.out 2>&1");
     }
 
+
     if ($oper eq "checkout") {
-        checkoutAndLog($thisdate, $lastdate);
+        checkoutAndLogKmer($thisdate, $lastdate);
+        checkoutAndLogCA($thisdate, $lastdate);
     }
 
     if ($oper eq "build") {
-        build($thisdate);
+        buildKmer($thisdate);
+        buildCA($thisdate);
     }
 
     if ($oper eq "assemble") {
@@ -98,7 +102,9 @@ sub parseDate ($) {
     while (<F>) {
         chomp;
         if (m/^\d\d\d\d-\d\d-\d\d-\d\d\d\d$/) {
-            $lastdate = $_;
+            if ($_ ne $thisdate) {
+                $lastdate = $_;
+            }
         }
     }
     close(F);
@@ -109,20 +115,61 @@ sub parseDate ($) {
 }
 
 
-sub checkoutAndLog ($$) {
+sub checkoutAndLogKmer ($$) {
     my $thisdate = shift @_;
     my $lastdate = shift @_;
 
-    print STDERR "Checking out $wrkdir/$thisdate\n";
+    print STDERR "Checking out $wrkdir/$thisdate (KMER)\n";
 
-    if (-d "$wrkdir/$thisdate") {
-        print STDERR "$wrkdir/$thisdate already exists.  Please remove to rerun.\n";
+    if (-d "$wrkdir/$thisdate/wgs/kmer") {
+        print STDERR "$wrkdir/$thisdate/wgs/kmer already exists.  Please remove to rerun.\n";
         return;
     }
 
-    system("mkdir $wrkdir/$thisdate");
-    system("mkdir $wrkdir/$thisdate/wgs");
+    system("mkdir $wrkdir/$thisdate")     if (! -d "$wrkdir/$thisdate");
+    system("mkdir $wrkdir/$thisdate/wgs") if (! -d "$wrkdir/$thisdate/wgs");
 
+    #  Convert time-names to dates that svn can use.
+
+    my $thisdatesvn;
+    my $lastdatesvn;
+
+    my $tz = "-05:00";
+
+    if ($thisdate =~ m/(\d\d\d\d)-(\d\d)-(\d\d)-(\d\d)(\d\d)/) {
+        $thisdatesvn = "$1-$2-$3T$4:$5$tz";
+    } else {
+    }
+
+    if (defined($lastdate)) {
+        if ($lastdate =~ m/(\d\d\d\d)-(\d\d)-(\d\d)-(\d\d)(\d\d)/) {
+            $lastdatesvn = "$1-$2-$3T$4:$5$tz";
+        } else {
+        }
+    }
+
+    system("cd $wrkdir/$thisdate/wgs && svn co  -r \"{$thisdatesvn}\" file://$kmersvn/trunk kmer > kmer.checkout.err 2>&1");
+
+    if ($lastdate ne "") {
+        system("cd $wrkdir/$thisdate/wgs && svn log -r \"{$lastdatesvn}:{$thisdatesvn}\" kmer > kmer.updates");
+    }
+
+    print STDERR "$thisdate checked out!\n";
+}
+
+sub checkoutAndLogCA ($$) {
+    my $thisdate = shift @_;
+    my $lastdate = shift @_;
+
+    print STDERR "Checking out $wrkdir/$thisdate (CA)\n";
+
+    if (-d "$wrkdir/$thisdate/wgs/src") {
+        print STDERR "$wrkdir/$thisdate/wgs/src already exists.  Please remove to rerun.\n";
+        return;
+    }
+
+    system("mkdir $wrkdir/$thisdate")     if (! -d "$wrkdir/$thisdate");
+    system("mkdir $wrkdir/$thisdate/wgs") if (! -d "$wrkdir/$thisdate/wgs");
 
     #  Convert time-names to dates that cvs can use.
 
@@ -143,105 +190,136 @@ sub checkoutAndLog ($$) {
         }
     }
 
-    system("cd $wrkdir/$thisdate/wgs && cvs -r -R -d $cvsdir -z3 co  -N    -D '$thisdatecvs' src > checkout.err 2>&1");
-    system("cd $wrkdir/$thisdate/wgs && cvs -r -R -d $cvsdir -z3 log -N -S -d '$lastdatecvs<$thisdatecvs' src > updates-raw");
+    system("cd $wrkdir/$thisdate/wgs && cvs -r -R -d $wgscvs -z3 co  -N    -D '$thisdatecvs' src > src.checkout.err 2>&1");
 
-    my $log;
-    my $revs;
-    my $date;
-    my $auth;
-    my $chng;
-    my $file;
-    my $inlog;
-    my %logs;
-    my %logdate;
+    if ($lastdate ne "") {
+        system("cd $wrkdir/$thisdate/wgs && cvs -r -R -d $wgscvs -z3 log -N -S -d '$lastdatecvs<$thisdatecvs' src > src.updates.raw");
 
-    open(F, "< $wrkdir/$thisdate/wgs/updates-raw");
-    while (<F>) {
-        if (m/^==========.*========$/) {
-            $inlog = 0;
-            if (!defined($logs{$log})) {
-                $logs{$log}  = "$date\t$revs\t$chng\t$auth\t$file\n";
-            } else {
-                $logs{$log} .= "$date\t$revs\t$chng\t$auth\t$file\n";
+        my $log;
+        my $revs;
+        my $date;
+        my $auth;
+        my $chng;
+        my $file;
+        my $inlog;
+        my %logs;
+        my %logdate;
+
+        open(F, "< $wrkdir/$thisdate/wgs/src.updates.raw");
+        while (<F>) {
+            if (m/^==========.*========$/) {
+                $inlog = 0;
+                if (!defined($logs{$log})) {
+                    $logs{$log}  = "$date\t$revs\t$chng\t$auth\t$file\n";
+                } else {
+                    $logs{$log} .= "$date\t$revs\t$chng\t$auth\t$file\n";
+                }
+                $logdate{"$date\0$log"}++;
+                undef $log;
             }
-            $logdate{"$date\0$log"}++;
-            undef $log;
-        }
-        if (m/^----------------------------$/) {
-            $inlog = 0;
-            if (!defined($logs{$log})) {
-                $logs{$log}  = "$date\t$revs\t$chng\t$auth\t$file\n";
-            } else {
-                $logs{$log} .= "$date\t$revs\t$chng\t$auth\t$file\n";
+            if (m/^----------------------------$/) {
+                $inlog = 0;
+                if (!defined($logs{$log})) {
+                    $logs{$log}  = "$date\t$revs\t$chng\t$auth\t$file\n";
+                } else {
+                    $logs{$log} .= "$date\t$revs\t$chng\t$auth\t$file\n";
+                }
+                $logdate{"$date\0$log"}++;
+                undef $log;
             }
-            $logdate{"$date\0$log"}++;
-            undef $log;
+            if ($inlog) {
+                $log .= $_;
+            }
+            if (m/^RCS\s+file:\s+(.*),v/) {
+                $file = $1;
+                $file =~ s!$wgscvs/src/!!g;
+            }
+            if (m/^revision\s+(\d+.\d+)/) {
+                $revs = $1;
+            }
+            if (m/^date:\s+(.*);\s+author:\s+(.*);\s+state.*lines:\s+(.*)\s*$/) {
+                $date = $1;
+                $auth = $2;
+                $chng = $3;
+                $inlog = 1;
+            }
         }
-        if ($inlog) {
-            $log .= $_;
-        }
-        if (m/^RCS\s+file:\s+(.*),v/) {
-            $file = $1;
-            $file =~ s!$cvsdir/src/!!g;
-        }
-        if (m/^revision\s+(\d+.\d+)/) {
-            $revs = $1;
-        }
-        if (m/^date:\s+(.*);\s+author:\s+(.*);\s+state.*lines:\s+(.*)\s*$/) {
-            $date = $1;
-            $auth = $2;
-            $chng = $3;
-            $inlog = 1;
-        }
-    }
-    close(F);
+        close(F);
 
 
-    open(F, "> $wrkdir/$thisdate/wgs/updates");
-    my @keys = sort keys %logdate;
-    foreach my $l (@keys) {
-        my ($d, $l) = split '\0', $l;
-    
-        if ((defined($logs{$l})) && (length($logs{$l} > 0))) {
-            print F "----------------------------------------\n";
-            print F "$logs{$l}\n";
-            print F "$l\n";
-            undef $logs{$l};
+        open(F, "> $wrkdir/$thisdate/wgs/src.updates");
+        my @keys = sort keys %logdate;
+        foreach my $l (@keys) {
+            my ($d, $l) = split '\0', $l;
+            
+            if ((defined($logs{$l})) && (length($logs{$l} > 0))) {
+                print F "----------------------------------------\n";
+                print F "$logs{$l}\n";
+                print F "$l\n";
+                undef $logs{$l};
+            }
         }
+        close(F);
     }
-    close(F);
 
     print STDERR "$thisdate checked out!\n";
 }
 
 
-sub build ($) {
+sub buildKmer ($) {
     my $thisdate = shift @_;
 
-    print STDERR "Building $wrkdir/$thisdate\n";
+    print STDERR "Building KMER $wrkdir/$thisdate\n";
+
+    if (-e "$wrkdir/$thisdate/wgs/kmer/make.err") {
+        print STDERR "$wrkdir/$thisdate/wgs/kmer was already built once (successuflly or not).  Please cleanup first.\n";
+    } else {
+        system("cd $wrkdir/$thisdate/wgs/kmer && sh configure.sh > configure.out 2> configure.err");
+        system("cd $wrkdir/$thisdate/wgs/kmer && gmake install   > make.out.raw  2> make.err.raw");
+
+        my %lines;
+
+        open(F, "< $wrkdir/$thisdate/wgs/kmer/make.err.raw");
+        open(G, "> $wrkdir/$thisdate/wgs/kmer/make.err");
+        while (<F>) {
+            chomp;
+            next if (m/^ar:\s+creating/);
+            if (!exists($lines{$_})) {
+                $lines{$_}++;
+                print G "$_\n";
+            }
+        }
+        close(F);
+        close(G);
+    }
+}
+
+
+sub buildCA ($) {
+    my $thisdate = shift @_;
+
+    print STDERR "Building CA $wrkdir/$thisdate\n";
 
     if (-e "$wrkdir/$thisdate/wgs/src/make.err") {
-        print STDERR "$wrkdir/$thisdate was already built once (successuflly or not).  Please cleanup first.\n";
-        return;
-    }
+        print STDERR "$wrkdir/$thisdate/wgs/src was already built once (successuflly or not).  Please cleanup first.\n";
+    } else {
+        system("cd $wrkdir/$thisdate/wgs/src && gmake > make.out.raw 2> make.err.raw");
 
-    system("cd $wrkdir/$thisdate/wgs/src && gmake > make.out.raw 2> make.err.raw");
+        my %lines;
 
-    my %lines;
-
-    open(F, "< $wrkdir/$thisdate/wgs/src/make.err.raw");
-    open(G, "> $wrkdir/$thisdate/wgs/src/make.err");
-    while (<F>) {
-        chomp;
-        next if (m/^ar:\s+creating/);
-        if (!exists($lines{$_})) {
-            $lines{$_}++;
-            print G "$_\n";
+        open(F, "< $wrkdir/$thisdate/wgs/src/make.err.raw");
+        open(G, "> $wrkdir/$thisdate/wgs/src/make.err");
+        while (<F>) {
+            chomp;
+            next if (m/^ar:\s+creating/);
+            if (!exists($lines{$_})) {
+                $lines{$_}++;
+                print G "$_\n";
+            }
         }
+        close(F);
+        close(G);
     }
-    close(F);
-    close(G);
 }
 
 
