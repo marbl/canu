@@ -329,42 +329,127 @@ sub assemble ($@) {
     my $cwd       = $ENV{'PWD'};
     my $holds;
 
+    my $arch;
+
+    #  Ripped from runCA/util.pl
+    my $syst = `uname -s`;    chomp $syst;  #  OS implementation
+    my $arch = `uname -m`;    chomp $arch;  #  Hardware platform
+    my $name = `uname -n`;    chomp $name;  #  Name of the system
+
+    $arch = "amd64"  if ($arch eq "x86_64");
+    $arch = "ppc"    if ($arch eq "Power Macintosh");
+    #  end of rip.
+
+
+    #  Figure out which are specfiles and which are email addresses.
+    #
+    my @spec;
+    my @email;
+
+    foreach my $arg (@_) {
+        if ($arg =~ m/\@/) {
+            push @email, $arg;
+        } else {
+            push @spec, $arg;
+        }
+    }
+
+
     #  Script that will run (in the assembly directory) when an assembly is finished.
     #
     open(F, "> $wrkdir/$thisdate/assembly-done.sh");
     print F "#!/bin/sh\n";
-    print F "ls -l\n";
-    print F "ls -ld */*\n";
+    print F "\n";
+    print F "prefix=`cat prefix`\n";
+    print F "\n";
+    print F "if [ ! -e \$prefix.asm ] ; then\n";
+    print F "  echo \"Assembly result for `pwd`: FAILURE\"\n";
+    print F "  echo \"\"\n";
+    print F "  cat runCA.sge.out.[0-9][0-9] | tail\n";
+    print F "  exit\n";
+    print F "fi\n";
+    print F "\n";
+    print F "echo \"Assembly result for `pwd`: SUCCESS\"\n";
+    print F "echo \"\"\n";
+    print F "\n";
+    print F "if [ ! -e ../../ref/\$prefix/\$prefix.qc ] ; then\n";
+    print F "  echo \"No reference; no QC diff.\"\n";
+    print F "  echo \"\"\n";
+    print F "  cat \$prefix.qc\n";
+    print F "else\n";
+    print F "  ls -l ../../ref/\$prefix/\$prefix.qc\n";
+    print F "  ls -l \$prefix.qc\n";
+    print F "\n";
+    print F "  echo \"\"\n";
+    print F "\n";
+    print F "  diff --side-by-side ../../ref/\$prefix/\$prefix.qc \$prefix.qc\n";
+    print F "fi\n";
     close(F);
 
     #  Script that will run (in the main directory) when all assemblies are finished.
     #
-    open(F, "> $wrkdir/$thisdate/summarize.sh");
+    open(F, "> $wrkdir/$thisdate/summarize2.sh");
     print F "#!/bin/sh\n";
-    print F "ls -l\n";
-    print F "ls -ld */*\n";
+    print F "\n";
+    print F "echo \"Results for `pwd` (Finished at `date`).\"\n";
+    print F "echo \"\"\n";
+    print F "grep -h \"Assembly result\" */assembly-done.out\n";
+    print F "echo \"\"\n";
+    print F "echo \"\"\n";
+    print F "echo \"\"\n";
+    print F "echo \"================================================================================\"\n";
+    print F "echo \"KMER build errors\"\n";
+    print F "echo \"-----------------\"\n";
+    print F "echo \"\"\n";
+    print F "cat wgs/kmer/make.err\n";
+    print F "echo \"\"\n";
+    print F "echo \"\"\n";
+    print F "echo KMER changes\n";
+    print F "echo \"-----------\"\n";
+    print F "echo \"\"\n";
+    print F "cat wgs/kmer.updates\n";
+    print F "echo \"\"\n";
+    print F "echo \"\"\n";
+    print F "echo \"\"\n";
+    print F "echo \"================================================================================\"\n";
+    print F "echo \"CA build errors\"\n";
+    print F "echo \"---------------\"\n";
+    print F "echo \"\"\n";
+    print F "cat wgs/src/make.err\n";
+    print F "echo \"\"\n";
+    print F "echo \"\"\n";
+    print F "echo \"CA changes\"\n";
+    print F "echo \"----------\"\n";
+    print F "echo \"\"\n";
+    print F "cat wgs/src.updates\n";
+    print F "\n";
+    print F "for result in `ls */assembly-done.out` ; do\n";
+    print F "  echo \"\"\n";
+    print F "  echo \"\"\n";
+    print F "  echo \"\"\n";
+    print F "  echo \"================================================================================\"\n";
+    print F "  cat \$result\n";
+    print F "done\n";
     close(F);
 
-    foreach my $s (@_) {
+    open(F, "> $wrkdir/$thisdate/summarize.sh");
+    print F "sh $wrkdir/$thisdate/summarize2.sh > $wrkdir/$thisdate/summarize2.out\n";
+    print F "mail -s \"CAsanity $thisdate\" ", join ' ', @email, " < $wrkdir/$thisdate/summarize2.out\n";
+    close(F);
+
+    foreach my $s (@spec) {
         my ($n, undef) = split '\.', $s;
 
         print STDERR "----------------------------------------\n";
         print STDERR "Submitting assembly '$n'.\n";
 
-        my $arch;
-
-        #  Ripped from runCA/util.pl
-        my $syst = `uname -s`;    chomp $syst;  #  OS implementation
-        my $arch = `uname -m`;    chomp $arch;  #  Hardware platform
-        my $name = `uname -n`;    chomp $name;  #  Name of the system
-
-        $arch = "amd64"  if ($arch eq "x86_64");
-        $arch = "ppc"    if ($arch eq "Power Macintosh");
-        #  end of rip.
-
         system("mkdir $wrkdir/$thisdate/$n");
         system("cd $wrkdir/$thisdate    && perl $wrkdir/$thisdate/wgs/$syst-$arch/bin/runCA -p $n -d $n -s $cwd/$n.specFile sgePropagateHold=ca$n");
         system("cd $wrkdir/$thisdate/$n && qsub -b n -cwd -j y -o assembly-done.out -hold_jid runCA_$n -N ca$n ../assembly-done.sh");
+
+        open(F, "> $wrkdir/$thisdate/$n/prefix");
+        print F "$n\n";
+        close(F);
 
         if (defined($holds)) {
             $holds .= ",ca$n";
