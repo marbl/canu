@@ -3,44 +3,55 @@
 
 #include "bitPacking.h"
 
-
-extern u32bit fibonacciValuesLen;
-extern u64bit fibonacciValues[92];
-
-
-
 //  Routines to store and retrieve a Fibonacci encoded number to/from a
 //  bit packed word array based at 'ptr' and currently at location
 //  'pos'.  Both routines return the size of the encoded number in
 //  'siz'.
 //
-void
-setFibonacciEncodedNumber(u64bit *ptr,
-                          u64bit  pos,
-                          u64bit *siz,
-                          u64bit  val);
-
-u64bit
-getFibonacciEncodedNumber(u64bit *ptr,
-                          u64bit  pos,
-                          u64bit *siz);
-
-
-
-
-
 //  FibEncoding can store values up to 17,167,680,177,565 (slightly
 //  below 2^45, so at most a 44-bit number) in a 64-bit quantity.
 //
 //  93 bits (92 + 1) are needed to store up to 64-bit values.
 //
-//  1000 0's is 256 bytes = 2048 bits -> 2 bits each
-//  1000 1's is 376 bytes = 3008 bits -> 3 bits each
-//  1000 2's is 504 bytes = 4032 bits -> 4 bits each
-//  1000 3's is 504 bytes = 4032 bits -> 4 bits each
-//  1000 4's is 632 bytes = 5056 bits -> 5 bits each
+//  Remember that since we can't store 0, we increment all incoming
+//  values, so the actual space used is:
 //
+//    ####  bits
+//       0  2
+//       1  3
+//       2  4
+//       3  4
+//       4  5
+//       5  5
+//       6  5
+//       7  6
+//       8  6
+//       9  6
+//      10  6
+//      11  6
+//      12  7
+//      20  8
+//      33  9
+//      54  10
+//      88  11
+//     143  12
+//     232  13
+//     376  14
+//     609  15
+//     986  16
+//    1596  17
+//    2583  18
+//    4180  19
+//    6764  20
+//   10945  21
+//   17710  22
+//   28656  23
+//   46387  24
+//   75024  25
+//  121392  26
 
+extern u32bit fibonacciValuesLen;
+extern u64bit fibonacciValues[92];
 
 inline
 void
@@ -58,14 +69,12 @@ setFibonacciEncodedNumber(u64bit *ptr,
   //
   val++;
 
-
   //  Estimate a starting point for our search; we need a function
   //  that is always slightly more than fib()
   //
   //  Find the highest bit set, do a lookup
   //
   //  XXX: Still need this!
-
 
   while (fib-- > 0) {
     if (val >= fibonacciValues[fib]) {
