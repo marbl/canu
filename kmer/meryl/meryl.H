@@ -48,6 +48,7 @@ public:
 
   u32bit            merSize;
   u32bit            merComp;
+  bool              positionsEnabled;
 
   u64bit            numMersEstimated;
   u64bit            numMersActual;
@@ -94,11 +95,13 @@ public:
 u64bit
 estimateNumMersInMemorySize(u32bit merSize,
                             u32bit mem,
+                            bool   positionsEnabled,
                             bool   beVerbose);
 
 u32bit
 optimalNumberOfBuckets(u32bit merSize,
-                       u64bit numMers);
+                       u64bit numMers,
+                       bool   positionsEnabled);
 
 void estimate(merylArgs *args);
 void build(merylArgs *args);
@@ -111,7 +114,7 @@ void dump(merylArgs *args);
 void dumpThreshold(merylArgs *args);
 void dumpPositions(merylArgs *args);
 void countUnique(merylArgs *args);
-void plotDistanceBetweenMers(merylArgs *args);
+void dumpDistanceBetweenMers(merylArgs *args);
 void plotHistogram(merylArgs *args);
 
 #endif  //  MERYL_H

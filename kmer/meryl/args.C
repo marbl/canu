@@ -89,6 +89,7 @@ const char *usagestring =
 "     (-t in build) to minimize the memory usage.\n"
 "        -m #          (size of a mer; required)\n"
 "        -c #          (homopolymer compression; optional)\n"
+"        -p            (enable positions)\n"
 "        -s seq.fasta  (seq.fasta is scanned to determine the number of mers)\n"
 "        -n #          (compute params assuming file with this many mers in it)\n"
 "\n"
@@ -105,6 +106,7 @@ const char *usagestring =
 "        -U #          (DON'T save mers that occur more than # times)\n"
 "        -m #          (size of a mer; required)\n"
 "        -c #          (homopolymer compression; optional)\n"
+"        -p            (enable positions)\n"
 "        -s seq.fasta  (sequence to build the table for)\n"
 "        -o tblprefix  (output table prefix)\n"
 "        -v            (entertain the user)\n"
@@ -189,6 +191,7 @@ const char *usagestring =
 "\n"
 "-D:  Dump the table (not all of these work).\n"
 "\n"
+"     -Dd        Dump a histogram of the distance between the same mers.\n"
 "     -Dt        Dump mers >= a threshold.  Use -n to specify the threshold.\n"
 "     -Dc        Count the number of mers, distinct mers and unique mers.\n"
 "     -Dh        Dump (to stdout) a histogram of mer counts.\n"
@@ -220,6 +223,7 @@ merylArgs::merylArgs(int argc, char **argv) {
 
   merSize            = 20;
   merComp            = 0;
+  positionsEnabled   = false;
 
   doForward          = true;
   doReverse          = false;
@@ -320,6 +324,8 @@ merylArgs::merylArgs(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-c") == 0) {
       arg++;
       merComp = strtou32bit(argv[arg], 0L);
+    } else if (strcmp(argv[arg], "-p") == 0) {
+      positionsEnabled = true;
     } else if (strcmp(argv[arg], "-s") == 0) {
       arg++;
       delete [] inputFile;
@@ -411,6 +417,8 @@ merylArgs::merylArgs(int argc, char **argv) {
         fprintf(stderr, "ERROR: unknown math personality %s\n", argv[arg]);
         exit(1);
       }
+    } else if (strcmp(argv[arg], "-Dd") == 0) {
+      personality = 'd';
     } else if (strcmp(argv[arg], "-Dt") == 0) {
       personality = 't';
     } else if (strcmp(argv[arg], "-Dp") == 0) {

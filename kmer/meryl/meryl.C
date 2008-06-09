@@ -19,6 +19,9 @@ main(int argc, char **argv) {
       build(args);
       break;
 
+    case 'd':
+      dumpDistanceBetweenMers(args);
+      break;
     case 't':
       dumpThreshold(args);
       break;

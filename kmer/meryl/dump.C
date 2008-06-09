@@ -5,6 +5,7 @@
 #include "meryl.H"
 #include "libmeryl.H"
 
+#include <algorithm>
 
 void
 dumpThreshold(merylArgs *args) {
@@ -27,16 +28,16 @@ dumpPositions(merylArgs *args) {
   merylStreamReader   *M = new merylStreamReader(args->inputFile);
   char                 str[1025];
 
-#ifdef WITH_POSITIONS
-  while (M->nextMer()) {
-    fprintf(stdout, ">"u64bitFMT, M->theCount());
-    for (u32bit i=0; i<M->theCount(); i++)
-      fprintf(stdout, " "u32bitFMT, M->getPosition(i));
-    fprintf(stdout, "\n%s\n", M->theFMer().merToString(str));
+  if (M->hasPositions() == false) {
+    fprintf(stderr, "File '%s' contains no position information.\n", args->inputFile);
+  } else {
+    while (M->nextMer()) {
+      fprintf(stdout, ">"u64bitFMT, M->theCount());
+      for (u32bit i=0; i<M->theCount(); i++)
+        fprintf(stdout, " "u32bitFMT, M->getPosition(i));
+      fprintf(stdout, "\n%s\n", M->theFMer().merToString(str));
+    }
   }
-#else
-  fprintf(stderr, "This meryl not compiled with position support.\n");
-#endif
 
   delete M;
 }
@@ -105,5 +106,51 @@ plotHistogram(merylArgs *args) {
     }
   }
 
+  delete    M;
+}
+
+
+
+void
+dumpDistanceBetweenMers(merylArgs *args) {
+  merylStreamReader   *M = new merylStreamReader(args->inputFile);
+
+  //  This is now tough because we don't know where the sequences end,
+  //  and our positions encode position in the chain.
+
+  u32bit  histMax  = 64 * 1024 * 1024;
+  u64bit *hist     = new u64bit [histMax];
+  u64bit  histHuge = 0;
+
+  if (M->hasPositions() == false) {
+    fprintf(stderr, "File '%s' contains no position information.\n", args->inputFile);
+  } else {
+    while (M->nextMer()) {
+      std::sort(M->thePositions(), M->thePositions() + M->theCount());
+
+      for (u32bit i=1; i<M->theCount(); i++) {
+        u32bit d = M->getPosition(i) - M->getPosition(i-1);
+        if (d < histMax)
+          hist[d]++;
+        else
+          histHuge++;
+      }
+    }
+
+    u32bit maxd = 0;
+
+    for (u32bit d=0; d<histMax; d++)
+      if (hist[d])
+        maxd = d+1;
+
+    for (u32bit d=0; d<maxd; d++)
+      if (hist[d])
+        fprintf(stderr, u32bitFMT"\t"u64bitFMT"\n", d, hist[d]);
+
+    if (histHuge)
+      fprintf(stderr, "huge\t"u64bitFMT"\n", histHuge);
+  }
+
+  delete [] hist;
   delete    M;
 }

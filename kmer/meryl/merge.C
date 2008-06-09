@@ -65,7 +65,7 @@ multipleOperations(merylArgs *args) {
     if (prefixSize < R[i]->prefixSize())
       prefixSize = R[i]->prefixSize();
 
-  W = new merylStreamWriter(args->outputFile, merSize, merComp, prefixSize);
+  W = new merylStreamWriter(args->outputFile, merSize, merComp, prefixSize, args->positionsEnabled);
 
   //  We will find the smallest mer in any file, and count the number of times
   //  it is present in the input files.

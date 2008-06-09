@@ -15,10 +15,6 @@
 //  numDistinct  the total number of distinct mers in this file
 //  numTotal     the total number of mers in this file
 
-//  WITH_POSITIONS -- tell meryl and libmeryl to count mers
-//  remembering the location the mer came from.
-//
-#define WITH_POSITIONS
 
 class merylStreamReader {
 public:
@@ -28,13 +24,9 @@ public:
   kMer           &theFMer(void)      { return(_thisMer);          };
   u64bit          theCount(void)     { return(_thisMerCount);     };
 
-#ifdef WITH_POSITIONS
+  bool            hasPositions(void)    { return(_POS != 0L); };
   u32bit         *thePositions(void)    { return(_thisMerPositions); };
   u32bit          getPosition(u32bit i) { return(((_POS) && (i < _thisMerCount)) ? _thisMerPositions[i] : ~u32bitZERO); };
-#else
-  u32bit         *thePositions(void)    { return(0L);          };
-  u32bit          getPosition(u32bit i) { return(~u32bitZERO); };
-#endif
 
   u32bit          merSize(void)         { return(_merSizeInBits >> 1); };
   u32bit          merCompression(void)  { return(_merCompression); };
@@ -55,9 +47,36 @@ public:
 private:
   bitPackedFile         *_IDX;
   bitPackedFile         *_DAT;
-#ifdef WITH_POSITIONS
   bitPackedFile         *_POS;
-#endif
+
+  u64bit                  getIDXnumber(void) {
+    u64bit n = 1;
+
+    if (_idxIsPacked)
+      n = _IDX->getNumber();
+    else
+      n = _IDX->getBits(32);
+
+    return(n);
+  };
+  u64bit                  getDATnumber(void) {
+    u64bit n = 1;
+
+    if (_datIsPacked) {
+      if (_DAT->getBits(1))
+        n = _DAT->getNumber() + 2;
+    } else {
+      n = _DAT->getBits(32);
+    }
+
+    return(n);
+  };
+
+  //  Why not bool?  Seems like the bitPackedFile is incompatible
+  //  with bools.
+  u32bit                 _idxIsPacked;
+  u32bit                 _datIsPacked;
+  u32bit                 _posIsPacked;
 
   u32bit                 _merSizeInBits;
   u32bit                 _merCompression;
@@ -70,10 +89,8 @@ private:
   kMer                   _thisMer;
   u64bit                 _thisMerCount;
 
-#ifdef WITH_POSITIONS
   u32bit                 _thisMerPositionsMax;
   u32bit                *_thisMerPositions;
-#endif
 
   u64bit                 _numUnique;
   u64bit                 _numDistinct;
@@ -93,20 +110,41 @@ public:
   merylStreamWriter(const char *filePrefix,
                     u32bit merSize,          //  In bases
                     u32bit merComp,          //  A length, bases
-                    u32bit prefixSize);      //  In bits
-
+                    u32bit prefixSize,       //  In bits
+                    bool   positionsEnabled);
   ~merylStreamWriter();
 
-  //  Unless WITH_POSITIONS, 'positions' is unused.
   void                    addMer(kMer &mer, u32bit count=1, u32bit *positions=0L);
 private:
   void                    writeMer(void);
 
+  void                    setIDXnumber(u64bit n) {
+    if (_idxIsPacked)
+      _IDX->putNumber(n);
+    else
+      _IDX->putBits(n, 32);
+  };
+  void                    setDATnumber(u64bit n) {
+    if (_datIsPacked) {
+      if (n == 1) {
+        _DAT->putBits(u64bitZERO, 1);
+      } else {
+        _DAT->putBits(u64bitONE, 1);
+        _DAT->putNumber(n-2);
+      }
+    } else {
+      _DAT->putBits(n, 32);
+    }
+  };
+
+
   bitPackedFile         *_IDX;
   bitPackedFile         *_DAT;
-#ifdef WITH_POSITIONS
   bitPackedFile         *_POS;
-#endif
+
+  u32bit                 _idxIsPacked;
+  u32bit                 _datIsPacked;
+  u32bit                 _posIsPacked;
 
   u32bit                 _merSizeInBits;
   u32bit                 _merCompression;

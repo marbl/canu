@@ -32,7 +32,7 @@ unaryOperations(merylArgs *args) {
   //  leave them zero.
   //
   merylStreamReader   *R = new merylStreamReader(args->mergeFiles[0]);
-  merylStreamWriter   *W = new merylStreamWriter(args->outputFile, R->merSize(), R->merCompression(), R->prefixSize());
+  merylStreamWriter   *W = new merylStreamWriter(args->outputFile, R->merSize(), R->merCompression(), R->prefixSize(), R->hasPositions());
 
   switch (args->personality) {
     case PERSONALITY_LEQ:

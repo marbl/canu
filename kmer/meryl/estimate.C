@@ -12,6 +12,7 @@
 u64bit
 estimateNumMersInMemorySize(u32bit merSize,
                             u32bit mem,
+                            bool   positionsEnabled,
                             bool   beVerbose) {
   u64bit maxN    = 0;
   u64bit bestT   = 0;
@@ -31,9 +32,8 @@ estimateNumMersInMemorySize(u32bit merSize,
   //  Positions consume space too, but only if enabled.
   //
   u64bit posPerMer = 0;
-#ifdef WITH_POSITIONS
-  posPerMer = 32;
-#endif
+  if (positionsEnabled)
+    posPerMer = 32;
 
   //  Limit the number of entries in the bucket pointer table to
   //  50 bits -- thus, the prefix of each mer is at most 25.
@@ -110,7 +110,8 @@ estimateNumMersInMemorySize(u32bit merSize,
 
 u32bit
 optimalNumberOfBuckets(u32bit merSize,
-                       u64bit numMers) {
+                       u64bit numMers,
+                       bool   positionsEnabled) {
   u64bit opth   = ~u64bitZERO;
   u64bit opts   = ~u64bitZERO;
   u64bit h      = 0;
@@ -121,9 +122,8 @@ optimalNumberOfBuckets(u32bit merSize,
   //  doesn't matter here.
   //
   u64bit posPerMer = 0;
-#ifdef WITH_POSITIONS
-  posPerMer = 32;
-#endif
+  if (positionsEnabled)
+    posPerMer = 32;
 
   //  Find the table size (in bits, h) that minimizes memory usage
   //  for the given merSize and numMers
@@ -171,7 +171,7 @@ estimate(merylArgs *args) {
     C.finish();
   }
 
-  u32bit opth = optimalNumberOfBuckets(args->merSize, args->numMersEstimated);
+  u32bit opth = optimalNumberOfBuckets(args->merSize, args->numMersEstimated, args->positionsEnabled);
   u64bit memu = ((u64bitONE << opth)    * logBaseTwo64(args->numMersEstimated+1) +
                  args->numMersEstimated * (2 * args->merSize - opth));
 

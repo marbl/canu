@@ -48,7 +48,8 @@ binaryOperations(merylArgs *args) {
   merylStreamWriter *W = new merylStreamWriter(args->outputFile,
                                                A->merSize(),
                                                A->merCompression(),
-                                               (A->prefixSize() > B->prefixSize()) ? A->prefixSize() : B->prefixSize());
+                                               (A->prefixSize() > B->prefixSize()) ? A->prefixSize() : B->prefixSize(),
+                                               A->hasPositions());
 
 
 
