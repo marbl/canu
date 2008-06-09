@@ -43,7 +43,13 @@ public:
     for (u32bit i=0; i<KMER_WORDS; i++)
       MERWORD(i) = u64bitZERO;
   };
-
+  void    smallest(void) {
+    clear();
+  };
+  void    largest(void) {
+    clear();
+    reverseComplement();
+  };
 
 private:
   void     operator>>=(u32bit x) {
@@ -159,6 +165,13 @@ public:
       if (MERWORD(i) < r.MERWORD(i))  return(false);
     }
     return(true);
+  };
+  int     qsort_less(kMerHuge const &r) const {
+    for (u32bit i=KMER_WORDS; i--; ) {
+      if (MERWORD(i) < r.MERWORD(i))  return(-1);
+      if (MERWORD(i) > r.MERWORD(i))  return(1);
+    }
+    return(0);
   };
 
 

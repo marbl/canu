@@ -22,6 +22,13 @@ public:
   void    clear(void) {
     _md = u64bitZERO;
   };
+  void    smallest(void) {
+    clear();
+  };
+  void    largest(void) {
+    clear();
+    reverseComplement();
+  };
 
 private:
   void     operator>>=(u32bit x) {
@@ -49,11 +56,15 @@ public:
 public:
   bool    operator!=(kMerTiny const &r) const { return(_md != r._md); };
   bool    operator==(kMerTiny const &r) const { return(_md == r._md); };
-  bool    operator<(kMerTiny const &r) const  { return(_md <  r._md); };
-  bool    operator>(kMerTiny const &r) const  { return(_md >  r._md); };
+  bool    operator< (kMerTiny const &r) const { return(_md <  r._md); };
+  bool    operator> (kMerTiny const &r) const { return(_md >  r._md); };
   bool    operator<=(kMerTiny const &r) const { return(_md <= r._md); };
   bool    operator>=(kMerTiny const &r) const { return(_md >= r._md); };
-
+  int     qsort_less(kMerTiny const &r) const {
+    if (_md < r._md) return(-1);
+    if (_md > r._md) return( 1);
+    return(0);
+  };
 public:
   operator u64bit () const {return(_md);};
 
