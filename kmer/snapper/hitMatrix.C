@@ -34,6 +34,8 @@ hitMatrix::addMatch(u32bit         isunique,
   offset = (u32bit)(config._extendWeight * qsLo);
   if (offset < config._extendMinimum)
     offset = config._extendMinimum;
+  if (offset > config._extendMaximum)
+    offset = config._extendMaximum;
   if (dsLo < offset)
     dsLo = 0;
   else
@@ -42,6 +44,8 @@ hitMatrix::addMatch(u32bit         isunique,
   offset = (u32bit)(config._extendWeight * (_qsLen - qsHi));
   if (offset < config._extendMinimum)
     offset = config._extendMinimum;
+  if (offset > config._extendMaximum)
+    offset = config._extendMaximum;
   dsHi += offset;
 
 

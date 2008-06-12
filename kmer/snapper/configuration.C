@@ -17,7 +17,7 @@ configuration::configuration(void) {
   _doValidation         = false;
   _doValidationFileName = 0L;
 
-  _doAlignments         = true;
+  _doAlignments         = false;
 
   _Lo                   = 0.5;
   _Hi                   = 1.0;
@@ -28,6 +28,7 @@ configuration::configuration(void) {
   //  Alternate match extension scheme
   _extendWeight         = 2.0;
   _extendMinimum        = 100;
+  _extendMaximum        = 2000;
 
   _repeatThreshold      = 3;
 
@@ -111,7 +112,8 @@ static char const *usageString =
 "    -discardexonlength l    Discard exons less than l bp long (64).\n"
 "    -discardexonquality p   Discard exons less than p percent identity (90).\n"
 "    -extendweight w         For each unhit base, extend by this much (2).\n"
-"    -extendminimum e        Always extend hits by at least this much (100).\n"
+"    -extendminimum e        Extend hits by at least this much (100).\n"
+"    -extendmaximum e        Extend hits by at most this much (2000).\n"
 "    -repeatthreshold t      Tune hits to expect t local repeat count (3).\n"
 "\n"
 "Filter and Filter Validation:\n"
@@ -256,6 +258,8 @@ configuration::read(int argc, char **argv) {
       _extendWeight = atof(argv[++arg]);
     } else if (strncmp(argv[arg], "-extendminimum", 8) == 0) {
       _extendMinimum = strtou32bit(argv[++arg], 0L);
+    } else if (strncmp(argv[arg], "-extendmaximum", 8) == 0) {
+      _extendMaximum = strtou32bit(argv[++arg], 0L);
     } else if (strncmp(argv[arg], "-repeatthreshold", 8) == 0) {
       _repeatThreshold = strtou32bit(argv[++arg], 0L);
     } else if (strncmp(argv[arg], "-loaderhighwatermark", 8) == 0) {

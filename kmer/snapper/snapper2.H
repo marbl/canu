@@ -342,8 +342,9 @@ public:
 
   u32bit           _maxDiagonal;
 
-  u32bit           _extendMinimum;
   double           _extendWeight;
+  u32bit           _extendMinimum;
+  u32bit           _extendMaximum;
 
   u32bit           _repeatThreshold;
 
