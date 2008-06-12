@@ -616,7 +616,7 @@ sub getNumberOfFragsInStore ($$) {
 
     return(0) if (! -e "$wrk/$asm.gkpStore/frg");
 
-    open(F, "$bin/gatekeeper -L $wrk/$asm.gkpStore 2> /dev/null |") or caFailure("Failed to run gatekeeper to get the number of frags in the store.");
+    open(F, "$bin/gatekeeper -lastfragiid $wrk/$asm.gkpStore 2> /dev/null |") or caFailure("Failed to run gatekeeper to get the number of frags in the store.");
     $_ = <F>;    chomp $_;
     close(F);
 

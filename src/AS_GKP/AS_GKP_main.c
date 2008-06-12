@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_main.c,v 1.67 2008-06-12 03:41:29 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_main.c,v 1.68 2008-06-12 19:00:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,7 +56,7 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "\n");
   fprintf(stdout, "  -T                     do not check minimum length (for OBT)\n");
   fprintf(stdout, "  -F                     fix invalid insert size estimates\n");
-  fprintf(stdout, "  -P                     search for 454 paired end linker\n");
+  fprintf(stdout, "  -L                     search for 454 paired end linker\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  -E <error.frg>         write errors to this file\n");
   fprintf(stdout, "\n");
@@ -459,7 +459,7 @@ main(int argc, char **argv) {
       errorFile = argv[++arg];
     } else if (strcmp(argv[arg], "-F") == 0) {
       fixInsertSizes = 1;
-    } else if (strcmp(argv[arg], "-P") == 0) {
+    } else if (strcmp(argv[arg], "-L") == 0) {
       searchForLinker = 1;
 
     } else if (strcmp(argv[arg], "-P") == 0) {
@@ -498,9 +498,7 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-dumpinfo") == 0) {
       dump = DUMP_INFO;
-    } else if ((strcmp(argv[arg], "-lastfragiid") == 0) ||
-               (strcmp(argv[arg], "-L") == 0)) {
-      //  -L for compatability
+    } else if (strcmp(argv[arg], "-lastfragiid") == 0) {
       dump = DUMP_LASTFRG;
     } else if (strcmp(argv[arg], "-dumpbatch") == 0) {
       dump = DUMP_BATCHES;
