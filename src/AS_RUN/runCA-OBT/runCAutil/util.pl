@@ -243,6 +243,7 @@ sub setDefaults () {
     #####  Preoverlap
 
     $global{"gkpFixInsertSizes"}           = 1;
+    $global{"sffIsPairedEnd"}              = 1;
 
     #####  Overlap Based Trimming
 

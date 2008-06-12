@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.14 2008-05-16 00:03:30 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.15 2008-06-12 03:41:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -954,7 +954,7 @@ addReadToStore(GateKeeperStore *gkp,
 
 
 int
-Load_SFF(FILE *sff) {
+Load_SFF(FILE *sff, int searchForLinker) {
 
   sffHeader   *h   = (sffHeader   *)safe_calloc(sizeof(sffHeader),   1);
   sffManifest *m   = (sffManifest *)safe_calloc(sizeof(sffManifest), 1);
@@ -991,7 +991,8 @@ Load_SFF(FILE *sff) {
 
     processRead(h, r, gkf);
 
-    processMate(h, r, gkf, rm1, gkm1, rm2, gkm2);
+    if (searchForLinker)
+      processMate(h, r, gkf, rm1, gkm1, rm2, gkm2);
 
     if (AS_UID_isDefined(gkf->readUID)) {
       assert(AS_UID_isDefined(gkm1->readUID) == 0);

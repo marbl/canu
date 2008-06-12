@@ -157,9 +157,11 @@ sub preoverlap {
 
         my $bin = getBinDirectory();
         my $cmd;
-        $cmd  = "$bin/gatekeeper -o $wrk/$asm.gkpStore ";
+        $cmd  = "$bin/gatekeeper ";
+        $cmd .= " -o $wrk/$asm.gkpStore ";
         $cmd .= " -T " if (getGlobal("doOverlapTrimming"));
         $cmd .= " -F " if (getGlobal("gkpFixInsertSizes"));
+        $cmd .= " -P " if (getGlobal("sffIsPairedEnd") == 1);
         $cmd .= " -E $wrk/0-preoverlap/gatekeeper.errors ";
         $cmd .= "$gkpInput ";
         $cmd .= "> $wrk/0-preoverlap/gatekeeper.err 2>&1";
