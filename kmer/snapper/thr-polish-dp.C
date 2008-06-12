@@ -461,16 +461,6 @@ doPolishDP(searcherState       *state,
       }
     }
 
-#ifdef SHOW_POLISHING_EXPENSIVE
-    double elapsedTime = getTime() - startTime;
-    if (elapsedTime >= SHOW_POLISHING_EXPENSIVE) {
-      theLog->add("Hit %u out of %u (%u -> %u[%u-%u]) took %f seconds ().\n",
-                  h, theHitsLen,
-                  ESTseq->getIID(), GENseq->getIID(), theHits[h]._dsLo, theHits[h]._dsHi,
-                  elapsedTime);
-    }
-#endif
-
     state->polished++;
   }  //  over all hits
 
