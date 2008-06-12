@@ -45,7 +45,7 @@
 //  Define this to test the seeds when doing extension -- it tests
 //  if the seed is infact an exact match (in mspManager.C)
 //
-#define TEST_SEEDS_IN_EXTENSION
+//#define TEST_SEEDS_IN_EXTENSION
 
 
 //  Debug of sim4b1.C and related.
