@@ -101,8 +101,12 @@ public:
     //  We'd like to tie this into DEBUG_EXTENSION, but I want
     //  to keep those defines in the source file.  Oh well.
     //
-    fprintf(stderr, "mspManager::addHit()-- adding hit from GEN %d to %d and EST %d to %d (length = %d)\n", 
-            genPos-W, genPos, estPos-W, estPos, W);
+    fprintf(stderr, "mspManager::addHit()-- adding hit from GEN %d to %d and EST %d to %d (length = %d)  diag=%d lim=%d have %d\n", 
+            genPos-W, genPos, estPos-W, estPos, W,
+            estLen + genPos - estPos - 1,
+            _diagExt[estLen + genPos - estPos - 1],
+            genPos);
+
 #endif
 
     if (_diagExt[estLen + genPos - estPos - 1] <= genPos)

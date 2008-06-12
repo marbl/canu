@@ -3,9 +3,7 @@
 #include <strings.h>
 #include <math.h>
 #include <limits.h>
-#include "mspManager.H"
-#include "sim4defines.H"
-#include "exon.H"
+#include "sim4.H"
 
 #define  DEFAULT_L       8
 
@@ -150,6 +148,16 @@ mspManager::doLinking(int    weight,
   best    = -1;
   best_sc = INT_MIN;
 
+#if 0
+  for (u32bit i = 0; i < _numMSPs; ++i) {
+    fprintf(stderr, "LINK MSP %d -- %d-%d %d-%d score=%d,%d\n",
+            i,
+            _allMSPs[i].pos1, _allMSPs[i].pos1 + _allMSPs[i].len,
+            _allMSPs[i].pos2, _allMSPs[i].pos2 + _allMSPs[i].len,
+            _allMSPs[i].score, _allMSPs[i].linkingScore);
+  }
+#endif
+
   for (u32bit i = 0; i < _numMSPs; ++i) {
     f1 = _allMSPs[i].pos1;      /* start position in seq1 */
     f2 = _allMSPs[i].pos2;      /* start position in seq2 */
@@ -165,10 +173,11 @@ mspManager::doLinking(int    weight,
     for (u32bit j = 0; j < i; ++j) {
 
       //  12 == default word size.  A Magic Value.
+      int WS = 12;
 
       int vL = DEFAULT_L; 
-      if ((_allMSPs[i].pos2 + _allMSPs[i].len - _allMSPs[j].pos2 - _allMSPs[j].len > 2 * 12) &&
-          (_allMSPs[i].pos2 - _allMSPs[j].pos2 > 2 * 12))
+      if ((_allMSPs[i].pos2 + _allMSPs[i].len - _allMSPs[j].pos2 - _allMSPs[j].len > 2 * WS) &&
+          (_allMSPs[i].pos2 - _allMSPs[j].pos2 > 2 * WS))
         vL *= 2;
                         
       diff_diag = diag - _allMSPs[j].pos1 + _allMSPs[j].pos2;
