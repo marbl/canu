@@ -301,7 +301,15 @@ Sim4::run(sim4command *cmd) {
         //  but we need to reverse everything.  We can do this by just
         //  adding the seeds backwards!
         //
-        for (u32bit x=cmd->numberOfExternalSeeds(); x--; )
+        //  for (u32bit x=cmd->numberOfExternalSeeds(); x--; )
+        //
+        //  Not sure _why_ we wanted to add them backwards, but it
+        //  screws up the addHit logic of skipping seeds we have
+        //  extended through.  I vaguely remember some piece of sim4
+        //  external seeding needing to be done backwards.
+        //  Apparently, this isn't it.
+        //
+        for (u32bit x=0; x<cmd->numberOfExternalSeeds(); x++)
           if (cmd->externalSeedLength(x) > 0)
             _mspManager.addHit(_genSeq-1, _estSeq-1,
                                _genLen, _estLen,
