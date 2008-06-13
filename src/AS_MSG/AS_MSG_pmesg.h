@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.60 2008-06-13 04:21:02 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.61 2008-06-13 04:29:54 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
@@ -191,6 +191,14 @@ typedef enum {
   AS_UNITIG  = (int)'U',  //  Assembled unitig
   AS_CONTIG  = (int)'C'   //  Assembled contig
 } FragType;
+
+#define AS_FA_READ(type) 		((type == AS_READ) || (type == AS_EXTR))
+#define AS_FA_RANDOM(type) 		((type == AS_READ) || (type == AS_EXTR))
+#define AS_FA_SHREDDED(type) 		(0)
+#define AS_FA_CAN_HAVE_MATE(type) 	((type == AS_READ) || (type == AS_EXTR) || (type == AS_TRNR))
+#define AS_FA_GUIDE(type)         	(0)
+#define AS_FA_TRUSTED_FOR_CNS(type) 	((type == AS_READ) || (type == AS_TRNR))
+#define AS_FA_EXTERNAL_READ(type)	((type == AS_EXTR))
 
 typedef enum {
   AS_UNIQUE_UNITIG   = (int)'U',  // U-Unique
