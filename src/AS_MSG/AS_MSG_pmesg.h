@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.59 2007-12-17 19:30:10 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.60 2008-06-13 04:21:02 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
@@ -179,52 +179,18 @@ typedef struct {
 //  these types to catch the numerous places where the type of the
 //  read is assumed to be AS_READ.
 //
+//  After wasting a couple hours, BPW figured out why AS_UNITIG and
+//  AS_CONTIG are FragTypes.  Consensus is using the IMP to store both
+//  fragments and unitigs.
+//
 
 typedef enum {
   AS_READ    = (int)'R',  //  Celera Read
   AS_EXTR    = (int)'X',  //  External WGS read
   AS_TRNR    = (int)'T',  //  Transposon library read
-
-  //  These aren't FragTypes exactly, but are used in CGW/eCR/CNS like
-  //  they are.  Someone should figure out what they exactly are, and
-  //  fix this.
-  //
   AS_UNITIG  = (int)'U',  //  Assembled unitig
   AS_CONTIG  = (int)'C'   //  Assembled contig
 } FragType;
-
-
-/* Extended Granger's comment to fragment types
-
-AS_READ    Celera Read
-This should be a .trusted. randomly generated shotgun read from the entire
-DNA target sequence . usually a whole genome. Features: randomly sampled, trusted for consensus,
-can have a mate pair.
-
-AS_EXTR    External WGS read
-This should be an .untrusted. randomly generated shotgun read . same as above. Features:
-randomly sampled, untrusted for consensus, can have a untrusted mate pair
-
-AS_TRNR    Transposon library read
-Read was generated from a subclone of the target sequence using transposon .bombing..
-Features: nonrandom, might include information about subclone, trusted for consensus, can have
-mate pair but oriented in .outtie. rather .innie..
-
-type/attribute table for used types only 
-
-AS_READ	read			random	trusted			can have mate 
-AS_EXTR	read			random		external read	can have mate 
-AS_TRNR	read				trusted			can have mate 
-
-*/
-
-#define AS_FA_READ(type) 		((type == AS_READ) || (type == AS_EXTR))
-#define AS_FA_RANDOM(type) 		((type == AS_READ) || (type == AS_EXTR))
-#define AS_FA_SHREDDED(type) 		(0)
-#define AS_FA_CAN_HAVE_MATE(type) 	((type == AS_READ) || (type == AS_EXTR) || (type == AS_TRNR))
-#define AS_FA_GUIDE(type)         	(0)
-#define AS_FA_TRUSTED_FOR_CNS(type) 	((type == AS_READ) || (type == AS_TRNR))
-#define AS_FA_EXTERNAL_READ(type)	((type == AS_EXTR))
 
 typedef enum {
   AS_UNIQUE_UNITIG   = (int)'U',  // U-Unique
