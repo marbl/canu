@@ -134,7 +134,6 @@ bool SQLOutput::storeAFG2DB (
          AS_UID eaccession,  
          IntFragment_ID iaccession,
          MateStatType mate_status,
-         int32 chimeric,
          int32 chaff,
          CDS_COORD_t bgn,
          CDS_COORD_t end) {
@@ -143,13 +142,12 @@ bool SQLOutput::storeAFG2DB (
 
    sprintf(cmd, 
             "INSERT INTO AFG " \
-            "(afg_AssemblyID, afg_EUID, afg_CIID, afg_mst, afg_chi, afg_cha, afg_clr1, afg_clr2) " \
-            "VALUES ("F_U64", '"F_U64"', "F_CID", '%c', "F_S32", "F_S32", "F_S32", "F_S32")",
+            "(afg_AssemblyID, afg_EUID, afg_CIID, afg_mst, afg_cha, afg_clr1, afg_clr2) " \
+            "VALUES ("F_U64", '"F_U64"', "F_CID", '%c', "F_S32", "F_S32", "F_S32")",
                      assemblyID,
                      AS_UID_toInteger(eaccession),
                      iaccession,
                      static_cast<char>(mate_status),
-                     chimeric,
                      chaff,
                      bgn,
                      end

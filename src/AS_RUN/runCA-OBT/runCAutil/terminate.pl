@@ -125,9 +125,7 @@ sub terminate ($) {
 
     if (getGlobal("createPosMap") > 0) {
         if (! -e "$termDir/$asm.posmap.frgscf") {
-            my $cmd;
-            $cmd = "$perl $bin/buildFragContigPosMap.pl $asm.posmap < $termDir/$asm.asm";
-            if (runCommand("$termDir", $cmd)) {
+            if (runCommand("$termDir", "$bin/buildPosMap -o $asm < $termDir/$asm.asm")) {
                 rename "$termDir/$asm.posmap.frgscf", "$termDir/$asm.posmap.frgscf.FAILED";
                 caFailure("buildFragContigMap failed.\n");
             }

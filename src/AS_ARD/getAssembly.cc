@@ -370,7 +370,6 @@ std::cerr << "Running command " << command << std::endl;
                afg.eaccession = AS_UID_lookup(afg_EUID, NULL);
                afg.iaccession = afg_CIID;   
                afg.mate_status = (MateStatType)afg_mst;
-               afg.chimeric = afg_chi;
                afg.chaff = afg_cha;
                afg.clear_rng.bgn = afg_clr1;
                afg.clear_rng.end = afg_clr2;

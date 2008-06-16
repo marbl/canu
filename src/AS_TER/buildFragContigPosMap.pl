@@ -9,6 +9,12 @@
 
 use strict;
 
+print STDERR " ******************************************************************\n";
+print STDERR " **                                                              **\n";
+print STDERR " **  WARNING!  This is OBSOLETE code.  Use buildPosMap instead.  **\n";
+print STDERR " **                                                              **\n";
+print STDERR " ******************************************************************\n";
+
 #  SPECIAL for huref4!  Look for minAsmGap.
 
 my $minAsmGap = 20;

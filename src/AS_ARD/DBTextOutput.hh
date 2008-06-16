@@ -57,7 +57,6 @@ namespace AS_ARD {
                   AS_UID erefines,  
                   IntFragment_ID irefines,
                   MateStatType mate_status,
-                  int32 chimeric,
                   int32 chaff,
                   CDS_COORD_t begin,
                   CDS_COORD_t end);

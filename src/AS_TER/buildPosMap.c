@@ -48,6 +48,9 @@ int          ctgInfoLen = 0;
 ctgInfo_t   *ctgInfo    = NULL;
 
 
+FILE *frags  = NULL;
+FILE *mates  = NULL;
+
 FILE *frgutg = NULL;
 
 FILE *frgdeg = NULL;
@@ -67,7 +70,6 @@ FILE *utglen = NULL;
 FILE *deglen = NULL;
 FILE *ctglen = NULL;
 FILE *scflen = NULL;
-
 
 
 FILE *
@@ -103,68 +105,83 @@ processMDI(SnapMateDistMesg *mdi) {
 }
 
 
+char *
+decodeMateStatus(char mateStatusCode, char *mateStatus) {
 
-void
-processAFG(AugFragMesg *afg) {
-  char   mateStatus[256] = {0};
-
-  switch (afg->mate_status) {
+  switch (mateStatusCode) {
     case 'Z':
-      strcpy(mateStatus, "UNASSIGNED_MATE");
+      strcpy(mateStatus, "unassigned");
       break;
     case 'G':
-      strcpy(mateStatus, "GOOD_MATE");
+      strcpy(mateStatus, "good");
       break;
     case 'C':
-      strcpy(mateStatus, "BAD_SHORT_MATE");
+      strcpy(mateStatus, "badShort");
       break;
     case 'L':
-      strcpy(mateStatus, "BAD_LONG_MATE");
+      strcpy(mateStatus, "badLong");
       break;
     case 'S':
-      strcpy(mateStatus, "SAME_ORIENT_MATE");
+      strcpy(mateStatus, "badSame");
       break;
     case 'O':
-      strcpy(mateStatus, "OUTTIE_ORIENT_MATE");
+      strcpy(mateStatus, "badOuttie");
       break;
     case 'N':
-      strcpy(mateStatus, "NO_MATE");
+      strcpy(mateStatus, "notMated");
       break;
     case 'H':
-      strcpy(mateStatus, "BOTH_CHAFF_MATE");
+      strcpy(mateStatus, "bothChaff");
       break;
     case 'A':
-      strcpy(mateStatus, "CHAFF_MATE");
+      strcpy(mateStatus, "oneChaff");
       break;
     case 'D':
-      strcpy(mateStatus, "BOTH_DEGEN_MATE");
+      strcpy(mateStatus, "bothDegen");
       break;
     case 'E':
-      strcpy(mateStatus, "DEGEN_MATE");
+      strcpy(mateStatus, "oneDegen");
       break;
     case 'U':
-      strcpy(mateStatus, "BOTH_SURR_MATE");
+      strcpy(mateStatus, "bothSurrogate");
       break;
     case 'R':
-      strcpy(mateStatus, "SURR_MATE");
+      strcpy(mateStatus, "oneSurrogate");
       break;
     case 'F':
-      strcpy(mateStatus, "DIFF_SCAFF_MATE");
+      strcpy(mateStatus, "diffScaffold");
       break;
     default:
       strcpy(mateStatus, "ERROR");
       break;
   }
 
-  fprintf(stderr, "AFG\t%s\t%s\t%s\t%s\t%d\t%d\n",
-          AS_UID_toString(afg->eaccession),
-          mateStatus,
-          afg->chimeric ? "chimeric" : ".",
-          afg->chaff    ? "chaff"    : ".",
-          afg->clear_rng.bgn,
-          afg->clear_rng.end);
+  return(mateStatus);
 }
 
+
+void
+processAFG(AugFragMesg *afg) {
+  char   mateStatus[256] = {0};
+
+  fprintf(frags, "%s\t%d\t%d\t%s\t%s\n",
+          AS_UID_toString(afg->eaccession),
+          afg->clear_rng.bgn,
+          afg->clear_rng.end,
+          afg->chaff    ? "chaff"    : "placed",
+          decodeMateStatus(afg->mate_status, mateStatus));
+}
+
+
+void
+processAMP(AugMatePairMesg *amp) {
+  char   mateStatus[256] = {0};
+
+  fprintf(mates, "%s\t%s\t%s\n",
+          AS_UID_toString(amp->fragment1),
+          AS_UID_toString(amp->fragment2),
+          decodeMateStatus(amp->mate_status, mateStatus));
+}
 
 
 void
@@ -442,20 +459,18 @@ processSLK(SnapScaffoldLinkMesg *slk) {
 
 
 
-
-
 void
-transferFrg(FILE *frgctg, FILE *frgscf) {
-  int    lineMax = 65 * 1024 * 1024;
-  char  *line    = (char *)safe_malloc(lineMax * sizeof(char));
+transferFrg(FILE *ctg, FILE *scf) {
   char   frgUID[1024];
   char   ctgUID[1024];
   int    bgn;
   int    end;
   char   ori;
 
-  while (!feof(frgctg)) {
-    fscanf(frgctg, "%s %s %d %d %c ", frgUID, ctgUID, &bgn, &end, &ori);
+  rewind(ctg);
+
+  while (!feof(ctg)) {
+    fscanf(ctg, "%s %s %d %d %c ", frgUID, ctgUID, &bgn, &end, &ori);
 
     AS_UID uid = AS_UID_lookup(ctgUID, NULL);
     AS_IID iid = (AS_IID)LookupValueInHashTable_AS(uid2iid,
@@ -482,7 +497,7 @@ transferFrg(FILE *frgctg, FILE *frgscf) {
       else
         ori = ORIR;
 
-      fprintf(frgscf, "%s\t%s\t%d\t%d\t%c\n",
+      fprintf(scf, "%s\t%s\t%d\t%d\t%c\n",
               frgUID,
               AS_UID_toString(uid),
               bgn, end, ori);
@@ -495,7 +510,57 @@ transferFrg(FILE *frgctg, FILE *frgscf) {
 
 
 void
-transferVar(FILE *varctg, FILE *varscf) {
+transferVar(FILE *ctg, FILE *scf) {
+  char   varseq[16384];
+  char   ctgUID[1024];
+  int    bgn;
+  int    end;
+  int    num_reads;
+  int    num_conf_alleles;
+  int    min_anchor_size;
+  int    var_length;
+  char   nr_conf_alleles[16384];
+  char   weights[16384];
+  char   conf_read_iids[16384];
+
+  rewind(ctg);
+
+  while (!feof(ctg)) {
+    fscanf(ctg, "%s %s %d %d %d %d %d %d %s %s %s ",
+           varseq, ctgUID,
+           &bgn, &end, &num_reads, &num_conf_alleles, &min_anchor_size, &var_length,
+           nr_conf_alleles,
+           weights,
+           conf_read_iids);
+
+    AS_UID uid = AS_UID_lookup(ctgUID, NULL);
+    AS_IID iid = (AS_IID)LookupValueInHashTable_AS(uid2iid,
+                                                   AS_UID_toInteger(uid),
+                                                   0);
+
+    if (iid > 0) {
+      uid  = ctgInfo[iid].scfUID;
+
+      assert(AS_UID_isDefined(uid));
+
+      if (ctgInfo[iid].scfOri == ORIF) {
+        bgn = ctgInfo[iid].scfBgn + bgn;
+        end = ctgInfo[iid].scfBgn + end;
+      } else {
+        int tmp;
+        tmp = ctgInfo[iid].scfEnd - bgn;
+        bgn = ctgInfo[iid].scfEnd - end;
+        end = tmp;
+      }
+
+      fprintf(scf, "%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%s\t%s\n",
+              varseq, AS_UID_toString(uid),
+              bgn, end, num_reads, num_conf_alleles, min_anchor_size, var_length,
+              nr_conf_alleles,
+              weights,
+              conf_read_iids);
+    }
+  }
 }
 
 
@@ -503,17 +568,13 @@ transferVar(FILE *varctg, FILE *varscf) {
 
 int main (int argc, char *argv[]) {
   char *outputPrefix       = NULL;
-  char *gkpStoreName       = NULL;
 
   GenericMesg *pmesg       = NULL;
 
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-g") == 0) {
-      gkpStoreName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-o") == 0) {
+    if        (strcmp(argv[arg], "-o") == 0) {
       outputPrefix = argv[++arg];
 
     } else if (strcmp(argv[arg], "-h") == 0) {
@@ -525,10 +586,10 @@ int main (int argc, char *argv[]) {
     }
     arg++;
   }
-  if ((gkpStoreName == NULL) || (err)) {
-    fprintf(stderr, "usage: %s -g gkpStore -o prefix [-h] < prefix.asm\n", argv[0]);
-    fprintf(stderr, "  -g gkpStore      mandatory path to the gatekeeper store\n");
+  if ((outputPrefix == NULL) || (err)) {
+    fprintf(stderr, "usage: %s -o prefix [-h] < prefix.asm\n", argv[0]);
     fprintf(stderr, "  -o prefix        write the output here\n");
+    fprintf(stderr, "  -h               print help\n");
     fprintf(stderr, "\n");
     exit(1);
   }
@@ -537,6 +598,9 @@ int main (int argc, char *argv[]) {
 
   ctgInfo = (ctgInfo_t *)safe_calloc(ctgInfoMax, sizeof(ctgInfo_t));
 
+
+  frags  = openFile("frags",  outputPrefix, 1);
+  mates  = openFile("mates",  outputPrefix, 1);
 
   frgutg = openFile("frgutg", outputPrefix, 1);
 
@@ -559,38 +623,17 @@ int main (int argc, char *argv[]) {
   scflen = openFile("scflen", outputPrefix, 1);
 
 
-#if 0
-  fprintf(stderr, "Reading gatekeeper store\n");
-
-  gkpStore = openGateKeeperStore(gkpStoreName, FALSE);
-  fs       = openFragStream(gkpStore, FRAG_S_INF);
-  frgInfo = (frgInfo_t *)safe_calloc(getLastElemFragStore(gkpStore) + 1, sizeof(frgInfo_t));
-
-  while (nextFragStream(fs, &fr)) {
-    AS_IID    iid = getFragRecordIID(&fr);
-
-    frgInfo[iid].loaded   = 1;
-    frgInfo[iid].deleted  = getFragRecordIsDeleted(&fr);
-    frgInfo[iid].clearBeg = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_LATEST);
-    frgInfo[iid].clearEnd = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_LATEST);
-    frgInfo[iid].uid      = getFragRecordUID(&fr);
-
-    if ((uidStart > 0) &&
-        (AS_UID_isString(frgInfo[iid].uid) == FALSE) &&
-        (uidStart < AS_UID_toInteger(frgInfo[iid].uid)))
-      uidStart = AS_UID_toInteger(frgInfo[iid].uid) + 1;
-  }
-
-  closeFragStream(fs);
-#endif
-
   while(ReadProtoMesg_AS(stdin,&pmesg) != EOF){
     switch(pmesg->t){
       case MESG_MDI:
         //processMDI(pmesg->m);
         break;
+
       case MESG_AFG:
-        //processAFG(pmesg->m);
+        processAFG(pmesg->m);
+        break;
+      case MESG_AMP:
+        processAMP(pmesg->m);
         break;
 
       case MESG_UTG:
@@ -618,6 +661,9 @@ int main (int argc, char *argv[]) {
         break;
     }
   }
+
+  fclose(frags);
+  fclose(mates);
 
   fclose(frgutg);
 

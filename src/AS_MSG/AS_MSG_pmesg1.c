@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.25 2008-06-16 20:49:15 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.26 2008-06-16 22:53:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -524,13 +524,12 @@ Read_ISL_Mesg(FILE *fin) {
 static void *Read_AFG_Mesg(FILE *fin)
 { static AugFragMesg		mesg;
   char *line;
-  int32 i,j;
   
   mesg.eaccession = GetUIDIID("acc:",&mesg.iaccession,fin);
 
   mesg.mate_status = (MateStatType)GetType("mst:%1[ZGCLSONHADEURF]","mate status", fin);
 
-  GET_FIELD(mesg.chimeric,"chi:"F_S32,"chimeric flag");
+  GET_FIELD(mesg.chimeric_NOTUSED,"chi:"F_S32,"chimeric flag");
   GET_FIELD(mesg.chaff,"cha:"F_S32,"chaff flag");
   GET_PAIR(mesg.clear_rng.bgn,mesg.clear_rng.end,"clr:"F_COORD","F_COORD,"clear range");
   GetEOM(fin);
@@ -665,7 +664,7 @@ static void *Read_IAF_Mesg(FILE *fin)
   
   GET_FIELD(mesg.iaccession,"acc:"F_IID,"accession field");
   mesg.type = (FragType)GetType("typ:%1[RXELTFSUCBWG]","type", fin);
-  GET_FIELD(mesg.chimeric,"chi:"F_S32,"chimeric flag");
+  GET_FIELD(mesg.chimeric_NOTUSED,"chi:"F_S32,"chimeric flag");
   GET_FIELD(mesg.chaff,"cha:"F_S32,"chaff flag");
   GET_PAIR(mesg.clear_rng.bgn,mesg.clear_rng.end,"clr:"F_COORD","F_COORD,"clear range");
   mesg.mate_status = (MateStatType)GetType("mst:%1[ZGCLSONHADEURF]","mate status", fin);
@@ -1343,7 +1342,7 @@ static void Write_AFG_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"{AFG\n");
   fprintf(fout,"acc:(%s,"F_IID")\n",AS_UID_toString(mesg->eaccession),mesg->iaccession);
   fprintf(fout,"mst:%c\n",mesg->mate_status);
-  fprintf(fout,"chi:"F_S32"\n",mesg->chimeric);
+  fprintf(fout,"chi:0\n");  //  chimeric_NOTUSED
   fprintf(fout,"cha:"F_S32"\n",mesg->chaff);
   fprintf(fout,"clr:"F_COORD","F_COORD"\n", mesg->clear_rng.bgn,mesg->clear_rng.end);
   fprintf(fout,"}\n");
@@ -1435,7 +1434,7 @@ static void Write_IAF_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"{IAF\n");
   fprintf(fout,"acc:"F_IID"\n",mesg->iaccession);
   fprintf(fout,"typ:%c\n",(char) mesg->type);
-  fprintf(fout,"chi:"F_S32"\n",mesg->chimeric);
+  fprintf(fout,"chi:0\n");  //  chimeric_NOTUSED
   fprintf(fout,"cha:"F_S32"\n",mesg->chaff);
   fprintf(fout,"clr:"F_COORD","F_COORD"\n", mesg->clear_rng.bgn,mesg->clear_rng.end);
   fprintf(fout,"mst:%c\n",mesg->mate_status);

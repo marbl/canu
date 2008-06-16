@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.27 2008-06-16 20:49:15 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.28 2008-06-16 22:53:26 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -124,7 +124,6 @@ convertIAF(GenericMesg *pmesg,
   afgMesg.eaccession    = fragInfo[iafMesg->iaccession].uid;
   afgMesg.iaccession    = iafMesg->iaccession;
   afgMesg.mate_status   = iafMesg->mate_status;
-  afgMesg.chimeric      = iafMesg->chimeric;
   afgMesg.chaff         = iafMesg->chaff;
   afgMesg.clear_rng.bgn = fragInfo[iafMesg->iaccession].clearBeg;
   afgMesg.clear_rng.end = fragInfo[iafMesg->iaccession].clearEnd;

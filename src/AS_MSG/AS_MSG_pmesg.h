@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.65 2008-06-16 20:49:15 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.66 2008-06-16 22:53:26 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
@@ -618,7 +618,7 @@ typedef enum {
 typedef struct {
   IntFragment_ID  iaccession;
   FragType        type;
-  int32           chimeric;
+  int32           chimeric_NOTUSED;
   int32           chaff;
   SeqInterval     clear_rng;
   MateStatType    mate_status;
@@ -630,7 +630,7 @@ typedef struct {
   AS_UID          eaccession;
   IntFragment_ID  iaccession;              
   MateStatType    mate_status;
-  int32           chimeric;
+  int32           chimeric_NOTUSED;
   int32           chaff;
   SeqInterval     clear_rng;
 } AugFragMesg;

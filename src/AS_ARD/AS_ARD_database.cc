@@ -66,7 +66,6 @@ bool AS_ARD_database::addAFG2DB(AugFragMesg * afg) {
          afg->eaccession,
          afg->iaccession,
          afg->mate_status,
-         afg->chimeric,
          afg->chaff,
          afg->clear_rng.bgn,
          afg->clear_rng.end);

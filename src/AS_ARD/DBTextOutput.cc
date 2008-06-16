@@ -97,7 +97,6 @@ bool DBTextOutput::storeAFG2DB (
          AS_UID eaccession,  
          IntFragment_ID iaccession,
          MateStatType mate_status,
-         int32 chimeric,
          int32 chaff,
          CDS_COORD_t bgn,
          CDS_COORD_t end) {
@@ -105,7 +104,6 @@ bool DBTextOutput::storeAFG2DB (
           << AS_UID_toInteger(eaccession) << "\t"
           << iaccession << "\t"
           << static_cast<char>(mate_status) << "\t"
-          << chimeric << "\t"
           << chaff << "\t"
           << bgn  << "\t"
           << end  << "\n";

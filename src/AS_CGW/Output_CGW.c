@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.32 2008-06-16 20:49:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.33 2008-06-16 22:53:26 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -139,7 +139,6 @@ void OutputFrags(ScaffoldGraphT *graph){
     iaf.type           = (FragType)cifrag->type;
     iaf.chaff          = cifrag->flags.bits.isChaff;
     iaf.mate_status    = cifrag->flags.bits.mateDetail;
-    iaf.chimeric       = 0;
     iaf.clear_rng.bgn  = -1;
     iaf.clear_rng.end  = -1;
 
