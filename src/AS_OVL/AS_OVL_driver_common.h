@@ -26,8 +26,8 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.23 2007-11-08 12:38:13 brianwalenz Exp $
- * $Revision: 1.23 $
+ * $Id: AS_OVL_driver_common.h,v 1.24 2008-06-16 06:12:32 brianwalenz Exp $
+ * $Revision: 1.24 $
  */
 
 
@@ -143,20 +143,11 @@ int  OverlapDriver(int argc, char **argv)
   for  (i = 1;  i < Num_PThreads;  i ++)
     Initialize_Work_Area (thread_wa + i, i);
 
-#if  SHOW_PROGRESS
-  Start_Time = clock ();
-#endif
-
   if  (Contig_Mode)
     Next_Fragment_Index = 1;
   else
     Next_Fragment_Index = getLastElemFragStore (OldFragStore) + 1;
 
-
-
-#if  USE_SOURCE_FIELD
-  Source_Log_File = File_Open ("ovl-srcinfo.log", "w");
-#endif
 
   {
     int  id;
@@ -226,10 +217,6 @@ int  OverlapDriver(int argc, char **argv)
           Last_Hash_Frag = Last_Hash_Frag_Read;
         }
 
-#if  DO_KMER_HITS_PROFILE
-      break;
-#endif
-
       resetFragStream (HashFragStream, STREAM_FROMSTART,
                        STREAM_UNTILEND);
 
@@ -253,7 +240,6 @@ int  OverlapDriver(int argc, char **argv)
           IID_Lo = 0;
         }
 
-#if  ! SCREEN_CHECK_ONLY
       while  (lowest_old_frag <= highest_old_frag)
         {
           Frag_Segment_Lo = lowest_old_frag;
@@ -335,33 +321,13 @@ int  OverlapDriver(int argc, char **argv)
                 lowest_old_frag = INT_MAX;
             }
         }
-#endif
                  
       closeFragStream (HashFragStream);
       closeGateKeeperStore (hash_frag_store);
 
-
-#if  SHOW_PROGRESS
-      Stop_Time = clock ();
-      fprintf (stderr, "Table:%d %7.1f sec %7ld olaps\n",
-               Table_Ct, (double) (Stop_Time - Start_Time) / CLOCKS_PER_SEC,
-               Olap_Ct);
-      Table_Ct ++;
-      Olap_Ct = 0;
-      Start_Time = clock ();
-#endif
-
       Now = time (NULL);
       fprintf (stderr, "### Done batch #%d   %s", Batch_Num, ctime (& Now));
-
-#if  ANALYZE_HITS && ! DO_KMER_HITS_PROFILE
-      Output_High_Hit_Frags ();
-#endif
     }
-
-#if  DO_KMER_HITS_PROFILE
-  Profile_Hits ();
-#endif
 
 
   Cleanup_Work_Area (thread_wa);
@@ -371,14 +337,6 @@ int  OverlapDriver(int argc, char **argv)
   safe_free (thread_id);
   safe_free (new_stream_segment);
   safe_free (old_stream_segment);
-
-#if  ANALYZE_HITS
-  fclose (High_Hits_File);
-#endif
-
-#if  USE_SOURCE_FIELD
-  fclose (Source_Log_File);
-#endif
 
   fprintf (stderr, "Total fragments read = " F_S64 "\n", Total_Frags_Read);
 
@@ -534,36 +492,3 @@ static int  ReadFrags
   }
   return  TRUE;
 }
-
-
-
-/******************************************************************************/
-
-#if  ANALYZE_HITS && ! SHOW_HI_HIT_KMERS
-/* Function stripWhiteSpace:
-   Input:  source   string of maximum length maxlen
-   maxlen   maximum length of source
-   Output: target
-   
-   Description:
-   Copy non-space characters from source to target.
-*/
-
-void  stripWhiteSpace
-(char *target, char *source, int maxlen)
-
-{
-  int i = 0;
-  *target = '\0';
-  while(i < maxlen){
-    if(!isspace(*source)){
-      *target++ = *source;
-      i++;
-    }
-    if(*source == '\0')
-      break;
-    source++;
-  }
-
-}
-#endif

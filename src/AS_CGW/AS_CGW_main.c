@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.55 2008-06-02 11:26:11 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.56 2008-06-16 06:12:31 brianwalenz Exp $";
 
 
 
@@ -114,7 +114,6 @@ static const char *usage =
 #include "Input_CGW.h"
 #include "Output_CGW.h"
 #include "SplitChunks_CGW.h"
-#include "GreedyOverlapREZ.h"
 #include "CommonREZ.h"
 #include "RepeatRez.h"
 #include "Stats_CGW.h"

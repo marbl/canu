@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.30 2008-05-31 06:49:46 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.31 2008-06-16 06:12:31 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -39,7 +39,6 @@ static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.30 2008-05-31 06:49:46 brian
 #include "ScaffoldGraphIterator_CGW.h"
 #include "RepeatRez.h"
 #include "CommonREZ.h"
-#include "GreedyOverlapREZ.h"
 #include "Stats_CGW.h"
 #include "Checkpoints_CGW.h"
 

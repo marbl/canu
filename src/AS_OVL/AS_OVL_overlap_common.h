@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.45 2008-05-16 00:03:31 brianwalenz Exp $
- * $Revision: 1.45 $
+ * $Id: AS_OVL_overlap_common.h,v 1.46 2008-06-16 06:12:32 brianwalenz Exp $
+ * $Revision: 1.46 $
 */
 
 
@@ -118,11 +118,7 @@ typedef  struct Hash_Bucket
   {
    String_Ref_t  Entry [ENTRIES_PER_BUCKET];
    unsigned char  Check [ENTRIES_PER_BUCKET];
-#if  ANALYZE_HITS
-   unsigned  Hits [ENTRIES_PER_BUCKET];
-#else
    unsigned char  Hits [ENTRIES_PER_BUCKET];
-#endif
    int16  Entry_Ct;
   }  Hash_Bucket_t;
 
@@ -132,15 +128,6 @@ typedef  struct Hash_Frag_Info
    unsigned int  left_end_screened : 1;
    unsigned int  right_end_screened : 1;
   }  Hash_Frag_Info_t;
-
-#if  DO_OLAP_ALIGN_PROFILE
-typedef  int  Align_Entry_t [6];
-    //  Holds counts of what matched at a base position in an
-    //  overlap alignment.  Entries  [0 .. 3]  represent
-    //  a, c, g, t, resp.;  entry  [4]  is for insertions;
-    //  entry  [5]  is for deletions.
-typedef  Align_Entry_t  * Align_Ct_t;
-#endif
 
 
 /*************************************************************************/
@@ -155,10 +142,6 @@ FILE  * Stat_File = NULL;
 static Distrib_t  Olap_Len_Dist, Num_Olaps_Dist, Kmer_Freq_Dist, Kmer_Hits_Dist;
 static Distrib_t  String_Olap_Dist, Hits_Per_Olap_Dist, Diag_Dist, Gap_Dist;
 static Distrib_t  Exacts_Per_Olap_Dist, Edit_Depth_Dist, Hash_Hits_Dist;
-#endif
-
-#if  LIST_TOTALLY_SCREENED
-static FILE  * Total_Screen_File = NULL;
 #endif
 
 static int64  Bad_Short_Window_Ct = 0;
@@ -274,16 +257,6 @@ static int64  Total_Overlaps = 0;
 static int64  Contained_Overlap_Ct = 0;
 static int64  Dovetail_Overlap_Ct = 0;
 
-#if  USE_SOURCE_FIELD
-#define  MAX_SOURCE_LENGTH    2048
-static char  Global_Left_Annotation, Global_Right_Annotation;
-static char  Global_Other_Annotation;
-static char  * Left_Repeat_Tag = NULL;
-static char  * Right_Repeat_Tag = NULL;
-static char  * Other_Repeat_Tag = NULL;
-FILE  * Source_Log_File = NULL;
-#endif
-
 #if  SHOW_SNPS
 static int  Global_SNP_A_Id, Global_SNP_B_Id;
 static int  Global_Match_SNP_Bin [20] = {0};
@@ -293,13 +266,6 @@ static int  Global_Hi_Qual_Bin [20] = {0};
 static int  Global_Olap_Ct = 0;
 static int  Global_Unscreened_Ct = 0;
 #endif
-
-#if  DO_OLAP_ALIGN_PROFILE
-Align_Ct_t  * Align_Ct = NULL;
-int  Align_Ct_Size = 0;
-Align_Entry_t  * Align_P;
-#endif
-
 
 /*************************************************************************/
 /* External Global Definitions */
@@ -356,10 +322,6 @@ int  IID_List_Len = 0;
 pthread_mutex_t  FragStore_Mutex;
 pthread_mutex_t  Write_Proto_Mutex;
 
-#if  ANALYZE_HITS
-FILE  * High_Hits_File = NULL;
-#endif
-
 
 /*************************************************************************/
 /* Function prototypes for internal static functions */
@@ -394,10 +356,6 @@ static void  Dump_Screen_Info
 static Overlap_t  Extend_Alignment
     (Match_Node_t *, char *, int, char *, int, int *, int *,
      int *, int *, int *, Work_Area_t *);
-#if  USE_SOURCE_FIELD
-static void  Find_End_Annotations
-    (char * s, int frag_len, char * L, char * R);
-#endif
 static void  Find_Overlaps
     (char [], int, char [], Int_Frag_ID_t, Direction_t, Work_Area_t *);
 static void  Flip_Screen_Range
@@ -466,11 +424,6 @@ static void  Set_Right_Delta
     (int e, int d, Work_Area_t * WA);
 static void  Show_Alignment
     (char *, char *, Olap_Info_t *);
-static void  Show_Match
-    (Match_Node_t *, char *, char *);
-static void  Show_Overlap
-    (char *, int, char * a_quality,
-     char *, int, char * b_quality, Olap_Info_t *);
 #if  SHOW_SNPS
 static void  Show_SNPs
     (char * a, int a_len, char * a_quality,
@@ -784,10 +737,6 @@ main(int argc, char **argv) {
  }
 #endif
 
-#if  LIST_TOTALLY_SCREENED
-   Total_Screen_File = File_Open (TOTAL_SCREEN_FILE_NAME, "w");
-#endif
-
    //  We know enough now to set the hash function variables, and some
    //  other random variables.
    //
@@ -875,10 +824,6 @@ main(int argc, char **argv) {
    OverlapDriver(argc, argv);
    /****************************************/
 
-#ifdef  CHECK_SCREENING
-Dump_Screen_Info (0, NULL, 'x');
-#endif
-
    if (Out_Stream)
       fclose (Out_Stream);
    Out_Stream = NULL;
@@ -915,10 +860,6 @@ fprintf (Stat_File, "%lld collisions in %lld finds\n", Collision_Ct, Hash_Find_C
 // fprintf (Stat_File, "String_Olap_Size = %ld\n", WA -> String_Olap_Size);
 fprintf (stderr, "Stats written to file '%s'\n", STAT_FILE_NAME);
 fclose (Stat_File);
-#endif
-
-#if  LIST_TOTALLY_SCREENED
-   fclose (Total_Screen_File);
 #endif
 
    fprintf (stderr, " Kmer hits without olaps = %lld\n", Kmer_Hits_Without_Olap_Ct);
@@ -979,43 +920,6 @@ fclose (Stat_File);
  fprintf (stderr, "### Finished at  %s\n", ctime (& now));
 }
 
-#if  DO_OLAP_ALIGN_PROFILE
-//  Print the alignment counts for the fragments in the hash table
-{
- int  i, k;
- int  len;
-
- for  (k = Lo_Hash_Frag;  k <= Hi_Hash_Frag;  k ++)
-   {
-    char  * Align_String = Data + String_Start [k - Hash_String_Num_Offset];
-
-    printf ("\n> Frag %d:\n", k);
-
-    len = strlen (Align_String);
-    Align_P = Align_Ct [k - Hash_String_Num_Offset];
-
-    for  (i = 0;  i < len;  i ++)
-      {
-       int  j, sum = 0, max = -1;
-
-       printf ("%c", Align_String [i]);
-       for  (j = 0;  j < 6;  j ++)
-         {
-          printf (" %6d", Align_P [i] [j]);
-          if  (Align_P [i] [j] > max)
-              max = Align_P [i] [j];
-          sum += Align_P [i] [j];
-         }
-       if  (Align_P [i] [Bit_Equivalent [Align_String [i]]] != max)
-           printf ("  **** not majority");
-       else if  (Align_P [i] [Bit_Equivalent [Align_String [i]]] < 0.9 * sum)
-           printf ("  <<<< %4.1f%%",
-                   100.0 * Align_P [i] [Bit_Equivalent [Align_String [i]]] / sum);
-       putchar ('\n');
-      }
-   }
-}
-#endif
 
 fprintf (stderr, "### Return from main\n");
    return  0;
@@ -1382,12 +1286,6 @@ int  Build_Hash_Index
       int  extra, len;
       size_t  new_len;
 
-#if  USE_SOURCE_FIELD
-      Left_Repeat_Tag [String_Ct] = Global_Left_Annotation;
-      Right_Repeat_Tag [String_Ct] = Global_Right_Annotation;
-      Other_Repeat_Tag [String_Ct] = Global_Other_Annotation;
-#endif
-
       if  (frag_status == DELETED_FRAG)
           {
            Sequence_Buffer [0] = '\0';
@@ -1432,23 +1330,6 @@ int  Build_Hash_Index
       extra = new_len % (HASH_KMER_SKIP + 1);
       if  (extra > 0)
           new_len += 1 + HASH_KMER_SKIP - extra;
-
-#if  DO_OLAP_ALIGN_PROFILE
-if  (Align_Ct_Size == 0)
-    {
-     Align_Ct_Size = 200;
-     Align_Ct = (Align_Ct_t *)
-                    safe_malloc (Align_Ct_Size * sizeof (Align_Ct_t));
-    }
-if  (String_Ct >= Align_Ct_Size - 1)
-    {
-     Align_Ct_Size *= 2;
-     Align_Ct = (Align_Ct_t *)
-                    safe_realloc (Align_Ct, Align_Ct_Size * sizeof (Align_Ct_t));
-    }
-Align_Ct [String_Ct] = (Align_Entry_t *)
-                               safe_calloc (1 + len, sizeof (Align_Entry_t));
-#endif
 
       if  (new_len > Data_Len)
           {
@@ -1572,13 +1453,6 @@ Collision_Ct = 0;
                }  while  (! ref . Last);
             }
        }
-
-#if  SHOW_PROGRESS
-Stop_Time = clock ();
-fprintf (stderr, "Time to build hash table for %d fragments = %.1f sec\n",
-            String_Ct, (double) (Stop_Time - Start_Time) / CLOCKS_PER_SEC);
-Start_Time = clock ();
-#endif
 
    safe_free (screen . range);
 
@@ -1897,45 +1771,6 @@ static void  Combine_Into_One_Olap
 
 
 
-static void  Dump_Screen_Info
-    (int frag_id, Screen_Info_t * screen, char dir)
-
-//  Show screen information (if any) in  screen  for frag number
-//   frag_id .   dir  indicates whether the fragment screen info
-//  has been reversed (because the fragment was reverse-complemented).
-
-
-  {
-   static FILE  * dump_file = NULL;
-   int  i;
-
-   if  (dir == 'x')
-       {
-        fclose (dump_file);
-        return;
-       }
-
-   if  (dump_file == NULL)
-       {
-        dump_file = File_Open ("screendump.out", "w");
-       }
-
-//   if  (screen -> num_matches == 0)
-//       return;
-
-   fprintf (dump_file, "%7d%c: ", frag_id, dir);
-   for  (i = 0;  i < screen -> num_matches;  i ++)
-     {
-      fprintf (dump_file, "  %3d,%-3d%c",
-               screen -> range [i] . bgn,
-               screen -> range [i] . end,
-               screen -> range [i] . last ? '*' : ' ');
-     }
-   fprintf (dump_file, "\n");
-
-   return;
-  }
-
 
 static Overlap_t  Extend_Alignment
     (Match_Node_t * Match, char * S, int S_Len, char * T, int T_Len,
@@ -2067,50 +1902,6 @@ static Overlap_t  Extend_Alignment
 
 
 
-#if  USE_SOURCE_FIELD
-static void  Find_End_Annotations
-    (char * s, int frag_len, char * left, char * right, char * other)
-
-//  Find annotations in celsim source field  s  and put character code
-//  of one on the left end of fragment in  (* left)  and one on the right
-//  end of the fragment in  (* right) .  If there is a non-end annotation
-//  put it into  (* Other) .  If any is missing, set it to a blank
-//  character.  Modifies string  s .   frag_len  is the length of the
-//  fragment.
-
-  {
-   char  * p;
-
-   fprintf (stderr, "source = '%s'\n", s);
-
-   (* left) = (* right) = (* other) = ' ';
-   p = strtok (s, "\n\r");        // frag id tag
-   if  (p == NULL)
-       return;
-   p = strtok (NULL, "\n\r");     // frag coordinates in genome
-   if  (p == NULL)
-       return;
-   while  ((p = strtok (NULL, "\n\r")) != NULL)
-     {
-      int  n, repeat_start, repeat_stop, frag_start, frag_stop;
-      char  tag [MAX_SOURCE_LENGTH];
-
-      n = sscanf (p, "%s [%d,%d] [%d,%d]", tag, & repeat_start, & repeat_stop,
-                  & frag_start, & frag_stop);
-      if  (n != 5)
-          break;
-      if  (frag_start == 0 || frag_stop == 0)
-          (* left) = tag [0];
-      if  (frag_start == frag_len || frag_stop == frag_len)
-          (* right) = tag [0];
-      if  (frag_start != 0 && frag_stop != 0
-               && frag_start != frag_len && frag_stop != frag_len)
-          (* other) = tag [0];
-     }
-
-   return;
-  }
-#endif
 
 
 
@@ -2370,10 +2161,6 @@ Hash_Find_Ct ++;
              T = Data + String_Start [H_Ref . String_Num] + H_Ref . Offset;
              if  (strncmp (S, T, Kmer_Len) == 0)
                  {
-#if  ANALYZE_HITS && ! DO_KMER_HITS_PROFILE
-                  if  (Hash_Table [Sub] . Hits [i] < 255)
-                      Hash_Table [Sub] . Hits [i] ++;
-#endif
                   if  (is_empty)
                       {
                        H_Ref . Empty = TRUE;
@@ -2399,55 +2186,6 @@ Collision_Ct ++;
 
 
 
-static int  Hash_Hits
-    (uint64 key, char * s)
-
-//  Search for string  s  with hash key  key  in the global
-//  Hash_Table  and, if found, return the number of hits
-//  recorded for it.  If not found, return  0 .
-
-  {
-#if  ANALYZE_HITS
-   unsigned char  key_check;
-   int64  ct, probe, sub;
-
-   sub = HASH_FUNCTION (key);
-   key_check = KEY_CHECK_FUNCTION (key);
-   probe = PROBE_FUNCTION (key);
-
-   ct = 0;
-   do
-     {
-      int  i;
-
-      for  (i = 0;  i < Hash_Table [sub] . Entry_Ct;  i ++)
-        if  (Hash_Table [sub] . Check [i] == key_check)
-            {
-             String_Ref_t  h_ref;
-             char  * t;
-
-             h_ref = Hash_Table [sub] . Entry [i];
-
-             if  (! h_ref . Last && ! h_ref . Empty)
-                 h_ref = Extra_Ref_Space
-                             [(h_ref . String_Num << OFFSET_BITS) + h_ref . Offset];
-
-             t = Data + String_Start [h_ref . String_Num] + h_ref . Offset;
-             if  (strncmp (s, t, Kmer_Len) == 0)
-                 return  Hash_Table [sub] . Hits [i];
-            }
-
-      if  (Hash_Table [sub] . Entry_Ct < ENTRIES_PER_BUCKET)
-          return  0;
-
-      sub = (sub + probe) % HASH_TABLE_SIZE;
-     }  while  (++ ct < HASH_TABLE_SIZE);
-#endif
-
-   return  0;
-  }
-
-
 
 static int  Has_Bad_Window
     (char a [], int n, int window_len, int threshold)
@@ -2468,10 +2206,6 @@ static int  Has_Bad_Window
    j = 0;
    if  (sum >= threshold)
        {
-#if  SHOW_BAD_WINDOWS
-        printf (">>> Window [%d .. %d]  sum = %d\n",
-                j, i - 1, sum);
-#endif
         return  TRUE;
        }
 
@@ -2481,10 +2215,6 @@ static int  Has_Bad_Window
       sum += a [i ++];
       if  (sum >= threshold)
           {
-#if  SHOW_BAD_WINDOWS
-           printf (">>> Window [%d .. %d]  sum = %d\n",
-                   j, i - 1, sum);
-#endif
            return  TRUE;
           }
      }
@@ -2533,12 +2263,8 @@ static void  Hash_Insert
                   Ref . Last = FALSE;
                   Hash_Table [Sub] . Entry [i] = Ref;
 
-#if  ANALYZE_HITS && DO_KMER_HITS_PROFILE
-                  Hash_Table [Sub] . Hits [i] ++;
-#else
                   if  (Hash_Table [Sub] . Hits [i] < HIGHEST_KMER_LIMIT)
                       Hash_Table [Sub] . Hits [i] ++;
-#endif
 
                   return;
                  }
@@ -2714,12 +2440,6 @@ static void  Initialize_Globals
    Kind_Of_Frag = (FragType *) safe_calloc (Max_Hash_Strings, sizeof (FragType));
    Screen_Sub = (int *) safe_calloc (Max_Hash_Strings, sizeof (int));
 
-#if  USE_SOURCE_FIELD
-   Left_Repeat_Tag = (char *) safe_malloc (Max_Hash_Strings);
-   Right_Repeat_Tag = (char *) safe_malloc (Max_Hash_Strings);
-   Other_Repeat_Tag = (char *) safe_malloc (Max_Hash_Strings);
-#endif
-
 #if  SHOW_STATS
  Init_Distrib (& Olap_Len_Dist, 14);
  {
@@ -2755,18 +2475,6 @@ static void  Initialize_Globals
    for  (i = 0;  i <= 20;  i ++)
      Kmer_Hits_Dist . Thold [i] = 100.0 * i;
  }
-#if  ANALYZE_HITS
- Init_Distrib (& Hash_Hits_Dist, 32);
- {
-   int  i;
-   for  (i = 0;  i <= 10;  i ++)
-     Hash_Hits_Dist . Thold [i] = 10.0 * i;
-   for  (i = 11;  i <= 20;  i ++)
-     Hash_Hits_Dist . Thold [i] = 100.0 * (i - 9);
-   for  (i = 21;  i <= 31;  i ++)
-     Hash_Hits_Dist . Thold [i] = 1000.0 * (i - 19);
- }
-#endif
  Init_Distrib (& String_Olap_Dist, 28);
  {
    int  i;
@@ -2813,11 +2521,6 @@ Init_Distrib (& Edit_Depth_Dist, 26);
 }
 #endif
 
-#if  SHOW_PROGRESS
-Table_Ct = 1;
-Olap_Ct = 0;
-Start_Time = clock ();
-#endif
    return;
   }
 
@@ -3131,122 +2834,6 @@ static int64  Next_Odd_Prime
 
 
 
-#if  ANALYZE_HITS
-#define  MIN_HI_HIT_KMERS     200
-#define  HIT_THRESHOLD        100
-
-void  Output_High_Hit_Frags
-    (void)
-
-//  From the fragments used to build the hash table print those that
-//  contain at least  MIN_HI_HIT_KMERS  kmers that were hit at least
-//   HIT_THRESHOLD  times.
-
-  {
-   int  i, j;
-
-   if  (High_Hits_File == NULL)
-       {
-        High_Hits_File = File_Open ("highhits.out", "w");
-        fprintf (High_Hits_File, "Fragments with >= %d kmers hit >= %d times\n",
-                 MIN_HI_HIT_KMERS, HIT_THRESHOLD);
-       }
-   for  (i = 0;  i < String_Ct;  i ++)
-     {
-      char  * p, * window;
-      int  curr_sub, offset, screen_lo, screen_hi;
-      int  high_hits = 0;
-      uint64  key, key_is_bad;
-      int  frag_hits [AS_READ_MAX_LEN + 1];
-
-      if  (String_Info [i] . length < Kmer_Len)
-          continue;
-
-      curr_sub = Screen_Sub [i];
-      if  (curr_sub == 0)
-          screen_lo = screen_hi = INT_MAX;
-        else
-          {
-           screen_lo = Screen_Space [curr_sub] . bgn;
-           screen_hi = Screen_Space [curr_sub] . end;
-          }
-
-      p = window = Data + String_Start [i];
-      key = key_is_bad = 0;
-      offset = 0;
-      for  (j = 0;  j < Kmer_Len;  j ++)
-        {
-         key_is_bad |= (uint64) (Char_Is_Bad [* p]) << j;
-         key |= (uint64) (Bit_Equivalent [* (p ++)]) << (2 * j);
-        }
-
-      while  ((* p) != '\0')
-        {
-         if  (offset <= screen_lo - Kmer_Len + WINDOW_SCREEN_OLAP
-                  && ! key_is_bad)
-             frag_hits [offset] = Hash_Hits (key, window);
-           else
-             frag_hits [offset] = -1;
-
-         if  (frag_hits [offset] >= HIT_THRESHOLD)
-             high_hits ++;
-
-         if  (offset == screen_hi - 1 - WINDOW_SCREEN_OLAP)
-             {
-              if  (Screen_Space [curr_sub] . last)
-                  screen_lo = screen_hi = INT_MAX;
-                else
-                  {
-                   curr_sub ++;
-                   screen_lo = Screen_Space [curr_sub] . bgn;
-                   screen_hi = Screen_Space [curr_sub] . end;
-                  }
-             }
-
-         window ++;
-         offset ++;
-
-         key_is_bad >>= 1;
-         key_is_bad |= (uint64) (Char_Is_Bad [* p]) << (Kmer_Len - 1);
-         key >>= 2;
-         key |= (uint64)
-                    (Bit_Equivalent [* (p ++)]) << (2 * (Kmer_Len - 1));
-        }
-
-      if  (high_hits >= MIN_HI_HIT_KMERS)
-          {
-           int  ct = 0, lo = -1, hi;
-           long int  sum;
-           double  avg;
-
-           for  (j = 0;  j < String_Info [i] . length;  j ++)
-             if  (frag_hits [j] >= HIT_THRESHOLD)
-                 {
-                  if  (lo == -1)
-                      lo = j;
-                  hi = j + Kmer_Len - 1;
-                 }
-           sum = 0;
-           for  (j = lo;  j < hi - Kmer_Len;  j ++)
-             sum += frag_hits [j];
-           avg = (double) sum / (1 + hi - lo);
-           fprintf (High_Hits_File,
-                    ">Frag #%d  %d .. %d  hi_ct_positions = %d  avg_hits = %.1f\n",
-                    i + Hash_String_Num_Offset, lo, hi, high_hits, avg);
-           ct = 0;
-           for  (j = lo;  j <= hi;  j ++)
-             {
-              fputc (Data [String_Start [i] + j], High_Hits_File);
-              ct ++;
-              if  (ct % DISPLAY_WIDTH == 0 || j == hi)
-                  fputc ('\n', High_Hits_File);
-             }
-          }
-     }
-
-   return;
-  }
-#endif
 
 
 
@@ -3270,9 +2857,6 @@ static void  Output_Overlap
    outputMesg.m = &ovMesg; 
    outputMesg.t = MESG_OVL;
 
-#if  SHOW_PROGRESS
-Olap_Ct ++;
-#endif
 #if  SHOW_STATS
 Overlap_Ct ++;
 #endif
@@ -3350,12 +2934,6 @@ if  (Contig_Mode)
         ovMesg.quality = olap -> quality;
         ovMesg.min_offset = olap -> s_lo - (olap -> max_diag - this_diag);
         ovMesg.max_offset = olap -> s_lo + (this_diag - olap -> min_diag);
-#if  USE_SOURCE_FIELD
-        if  (ovMesg.min_offset + 3 < ovMesg.ahg)
-          fprintf (Source_Log_File, "%4d %4d %4d %c\n", ovMesg.min_offset,
-                   ovMesg.ahg, ovMesg.max_offset,
-                   Left_Repeat_Tag [T_ID - Hash_String_Num_Offset]);
-#endif
        }
      else
        {
@@ -3380,12 +2958,6 @@ if  (Contig_Mode)
         ovMesg.quality =  olap -> quality;
         ovMesg.min_offset = olap -> t_lo - (this_diag - olap -> min_diag);
         ovMesg.max_offset = olap -> t_lo + (olap -> max_diag - this_diag);
-#if  USE_SOURCE_FIELD
-        if  (ovMesg.min_offset + 3 < ovMesg.ahg)
-          fprintf (Source_Log_File, "%4d %4d %4d %c\n", ovMesg.min_offset,
-                   ovMesg.ahg, ovMesg.max_offset,
-                   Right_Repeat_Tag [T_ID - Hash_String_Num_Offset]);
-#endif
        }
 
    assert (ovMesg.min_offset <= ovMesg.ahg && ovMesg.ahg <= ovMesg.max_offset);
@@ -3977,19 +3549,6 @@ static void  Process_Matches
         {
           if  (! deleted [i])
             {
-#if  SHOW_OVERLAPS
-              {
-
-#if  DO_OLAP_ALIGN_PROFILE
-                Align_P = Align_Ct [T_ID - Hash_String_Num_Offset];
-#else
-                printf ("\nA = %d  B = %d  quality = %.4f  A_Len = %d  B_Len = %d\n",
-                        S_ID, T_ID, p -> quality, S_Len, t_len);
-#endif
-
-                Show_Overlap (S, S_Len, S_quality, T, t_len, T_quality, p);
-              }
-#endif
 
 #define  SHOW_V_ALIGN  0
               rejected = FALSE;
@@ -4073,25 +3632,11 @@ static void  Process_Matches
                   if  (Has_Bad_Window (q_diff, q_len,
                                        BAD_WINDOW_LEN, BAD_WINDOW_VALUE))
                     {
-#if  SHOW_BAD_WINDOWS
-                      printf ("\n>>>At least %d errors in window of length %d\n",
-                              BAD_WINDOW_VALUE / QUALITY_CUTOFF, BAD_WINDOW_LEN);
-                      printf ("\nA = %d  B = %d  quality = %.4f\n",
-                              S_ID, T_ID, p -> quality);
-                      Show_Overlap (S, S_Len, S_quality, T, t_len, T_quality, p);
-#endif
                       rejected = TRUE;
                       Bad_Short_Window_Ct ++;
                     }
                   else if  (Has_Bad_Window (q_diff, q_len, 100, 240))
                     {
-#if  SHOW_BAD_WINDOWS
-                      printf ("\n###At least %d errors in window of length %d\n",
-                              240 / QUALITY_CUTOFF, 100);
-                      printf ("\nA = %d  B = %d  quality = %.4f\n",
-                              S_ID, T_ID, p -> quality);
-                      Show_Overlap (S, S_Len, S_quality, T, t_len, T_quality, p);
-#endif
                       rejected = TRUE;
                       Bad_Long_Window_Ct ++;
                     }
@@ -4213,47 +3758,14 @@ void  Process_Overlaps
                       Curr_String_Num, Len);
         else
           {
-#if DEBUGSTREAM
-fprintf(stderr,"* Calling Find_Overlaps for string FORWARD%d olaps = %ld\n",
-        Curr_String_Num, Olap_Ct);
-#endif      
 
 #if  SHOW_STATS
 Overlap_Ct = 0;
 Kmer_Hits_Ct = 0;
 #endif
 
-
-#ifdef  CHECK_SCREENING
-Dump_Screen_Info (Curr_String_Num, & (WA -> screen_info), 'f');
-#endif
-
            WA -> A_Olaps_For_Frag = WA -> B_Olaps_For_Frag = 0;
 
-#if  0  // Special Mouse
-{
- int  j;
- char  * p, * window;
- uint64  key;
-
- printf (">> Kmer frequencies in hash table for frag %d\n", Curr_String_Num);
- p = window = Frag;
- key = 0;
-
- for  (j = 0;  j < Kmer_Len - 1;  j ++)
-   {
-    key |= (uint64) (Bit_Equivalent [* (p ++)]) << (2 * j);
-    printf ("%c %6s\n", * (p - 1), "-");
-   }
-
- while  ((* p) != '\0')
-   {
-    key |= (uint64) (Bit_Equivalent [* (p ++)]) << (2 * (Kmer_Len - 1));
-    printf ("%c %6d\n", * (p - 1), Hash_Hits (key, window ++));
-    key >>= 2;
-   }
-}
-#endif
            Find_Overlaps (Frag, Len, quality, Curr_String_Num, FORWARD, WA);
 
 
@@ -4261,10 +3773,6 @@ Dump_Screen_Info (Curr_String_Num, & (WA -> screen_info), 'f');
            Reverse_String (quality, Len);
 
            Flip_Screen_Range (& (WA -> screen_info), Len);
-
-#ifdef  CHECK_SCREENING
-Dump_Screen_Info (Curr_String_Num, & (WA -> screen_info), 'r');
-#endif
 
            WA -> A_Olaps_For_Frag = WA -> B_Olaps_For_Frag = 0;
 
@@ -4475,196 +3983,6 @@ if  (WA -> String_Olap_Space [i] . Match_List == 0)
 
 
 
-#define  PROFILE_INFILE_NAME  dan5.inp
-    //  Name of file of fragments to profile kmer hits on
-
-void  Profile_Hits
-    (void)
-
-//  Show for each fragment in  PROFILE_INFILE_NAME  at each kmer
-//  position the number of kmer occurrences in the hash table.
-//  Does both forward and reverse complement sense of each fragment.
-//  After that, separately print all kmers in the hash table
-//  that occur at least  MIN_HITS  times.
-//  Output goes to standard output.
-
-  {
-#if  ANALYZE_HITS && ! SHOW_HI_HIT_KMERS
-// #if  0  // Special Mouse
-   Input_Stream  profile_stream;
-   MessageType  imesgtype;
-   GenericMesg  * pmesg;
-   InternalFragMesg  * ifg_mesg;
-   char  frag [2 * AS_READ_MAX_LEN];
-   char  rev_frag [2 * AS_READ_MAX_LEN];
-   int  ct [2 * AS_READ_MAX_LEN];
-   int  rev_ct [2 * AS_READ_MAX_LEN];
-   Screen_Info_t  screen;
-   const int  MIN_HITS = 100;
-   int  status;
-   int  kmer_ct, i, j;
-
-   screen . range = (Screen_Range_t *) safe_malloc
-                         (INIT_SCREEN_MATCHES * sizeof (Screen_Range_t));
-   screen . match_len = INIT_SCREEN_MATCHES;
-   screen . num_matches = 0;
-
-   printf ("\nStart Profile\n");
-
-   profile_stream = File_Open ("dan5.inp", "r");     // inp file
-
-   while  (EOF != ReadProtoMesg_AS (profile_stream, & pmesg))
-     {
-      imesgtype = pmesg -> t;
-      switch  (imesgtype)
-        {
-         case MESG_IFG:
-           {
-            int  j, len;
-            char  * p, * window;
-            uint64  key;
-
-            ifg_mesg = pmesg -> m;
-            stripWhiteSpace (frag, ifg_mesg -> sequence, AS_READ_MAX_LEN * 2);
-            len = strlen (frag);
-            
-            for  (j = 0;  j < len;  j ++)
-              frag [j] = tolower (frag [j]);
-
-            p = window = frag;
-            key = 0;
-
-            for  (j = 0;  j < Kmer_Len - 1;  j ++)
-              {
-               ct [j] = -1;
-               key |= (uint64) (Bit_Equivalent [* (p ++)]) << (2 * j);
-              }
-
-            while  ((* p) != '\0')
-              {
-               key |= (uint64) (Bit_Equivalent [* (p ++)]) << (2 * (Kmer_Len - 1));
-               ct [j ++] = Hash_Hits (key, window ++);
-               key >>= 2;
-              }
-
-
-            strcpy (rev_frag, frag);
-            reverseComplementSequence (rev_frag, len);
-
-            p = window = rev_frag;
-            key = 0;
-
-            for  (j = 0;  j < Kmer_Len - 1;  j ++)
-              {
-               rev_ct [j] = -1;
-               key |= (uint64) (Bit_Equivalent [* (p ++)]) << (2 * j);
-              }
-
-            while  ((* p) != '\0')
-              {
-               key |= (uint64) (Bit_Equivalent [* (p ++)]) << (2 * (Kmer_Len - 1));
-               rev_ct [j ++] = Hash_Hits (key, window ++);
-               key >>= 2;
-              }
-
-
-            printf ("\n> Frag %d:  %s\n", ifg_mesg -> iaccession, ifg_mesg -> source);
-            printf ("%8s   %8s\n", "Forward", "Reverse");
-            for  (j = 0;  j < len;  j ++)
-              {
-               if  (j >= Kmer_Len - 1)
-                   printf ("%c %6d", frag [j], ct [j]);
-                 else
-                   printf ("%c %6s", frag [j], "-");
-               if  (j >= Kmer_Len - 1)
-                   printf ("     %c %6d\n",
-                           rev_frag [len - 1 - j], rev_ct [len - 1 - j + Kmer_Len - 1]);
-                 else
-                   printf ("     %c %6s\n", rev_frag [len - 1 - j], "-");
-              }
-           }
-        }
-     }
-
-   fclose (profile_stream);
-
-   printf ("\nKmers with at least %d occurrences\n", MIN_HITS);
-   kmer_ct = 0;
-   for  (i = 0;  i < HASH_TABLE_SIZE;  i ++)
-     for  (j = 0;  j < Hash_Table [i] . Entry_Ct;  j ++)
-       {
-        String_Ref_t  h_ref;
-        char  * p;
-
-        kmer_ct ++;
-        if  (Hash_Table [i] . Hits [j] >= MIN_HITS)
-            {
-             h_ref = Hash_Table [i] . Entry [j];
-             if  (! h_ref . Last)
-                 h_ref = Extra_Ref_Space
-                             [(h_ref . String_Num << 10) + h_ref . Offset];
-
-             p = Data + String_Start [h_ref . String_Num] + h_ref . Offset;
-             printf ("%.20s %7d\n", p, Hash_Table [i] . Hits [j]);
-            }
-       }
-   printf ("\nTotal kmers = %d\n", kmer_ct);
-#endif
-
-#if  SHOW_HI_HIT_KMERS
-// #if  0   // Special Mouse
-{
- Distrib_t  Hash_Hits_Dist;
- FILE  * fp = NULL;
- const int  MIN_HITS = 100;
- int  i, j;
-
- Init_Distrib (& Hash_Hits_Dist, 381);
- {
-   int  i;
-   for  (i = 0;  i <= 100;  i ++)
-     Hash_Hits_Dist . Thold [i] = i;
-   for  (i = 101;  i <= 190;  i ++)
-     Hash_Hits_Dist . Thold [i] = 10.0 * (i - 90);
-   for  (i = 191;  i <= 380;  i ++)
-     Hash_Hits_Dist . Thold [i] = 100.0 * (i - 180);
- }
-
- fp = File_Open ("hihits.kmer", "w");
- for  (i = 0;  i < HASH_TABLE_SIZE;  i ++)
-   for  (j = 0;  j < Hash_Table [i] . Entry_Ct;  j ++)
-     {
-      String_Ref_t  h_ref;
-      char  * p;
-
-      Incr_Distrib (& Hash_Hits_Dist, Hash_Table [i] . Hits [j]);
-
-      if  (Hash_Table [i] . Hits [j] >= MIN_HITS)
-          {
-           String_Ref_t  h_ref;
-           char  * p;
-
-           h_ref = Hash_Table [i] . Entry [j];
-           if  (! h_ref . Last)
-               h_ref = Extra_Ref_Space
-                           [(h_ref . String_Num << 10) + h_ref . Offset];
-
-           p = Data + String_Start [h_ref . String_Num] + h_ref . Offset;
-           fprintf (fp, "%.20s %7d\n", p, Hash_Table [i] . Hits [j]);
-          }
-     }
- fclose (fp);
-
- Print_Distrib (Hash_Hits_Dist, "Hash Table Kmer Hits");
-
- fclose (Stat_File);
-}
-#endif
-
-   return;
-  }
-
-
 
 static void  Put_String_In_Hash
     (int i)
@@ -4679,9 +3997,6 @@ static void  Put_String_In_Hash
    int  kmers_inserted = 0;
    int  skip_ct;
    int  screen_sub, screen_lo, screen_hi;
-#if  SCREEN_CHECK_ONLY
-   int  kmers_screened = 0;
-#endif
    uint64  key, key_is_bad;
    int  j;
 
@@ -4718,15 +4033,9 @@ static void  Put_String_In_Hash
    if  ((int) (ref . Offset) <= screen_lo - Kmer_Len + WINDOW_SCREEN_OLAP
             && ! key_is_bad)
        {
-#if  ! SCREEN_CHECK_ONLY
         Hash_Insert (ref, key, window);
-#endif
         kmers_inserted ++;
        }
-#if  SCREEN_CHECK_ONLY
-     else
-       kmers_screened ++;
-#endif
 
    while  ((* p) != '\0')
      {
@@ -4758,20 +4067,10 @@ static void  Put_String_In_Hash
                      <= screen_lo - Kmer_Len + WINDOW_SCREEN_OLAP
                && ! key_is_bad)
           {
-#if  ! SCREEN_CHECK_ONLY
            Hash_Insert (ref, key, window);
-#endif
            kmers_inserted ++;
           }
-#if  SCREEN_CHECK_ONLY
-        else
-          kmers_screened ++;
-#endif
      }
-#if  LIST_TOTALLY_SCREENED
-   if  (kmers_inserted == 0)
-       fprintf (Total_Screen_File, "%ld\n", first_frag_id + i);
-#endif
 
    return;
   }
@@ -4795,9 +4094,6 @@ static int  Read_Next_Frag
   {
    int  return_val, success, match_ct;
    size_t  i, frag_len;
-#if  USE_SOURCE_FIELD
-   char  frag_source [MAX_SOURCE_LENGTH + 1];
-#endif
    char   *seqptr;
    char   *qltptr;
 
@@ -4851,13 +4147,6 @@ static int  Read_Next_Frag
    screen -> num_matches        = 0;
    screen -> left_end_screened  = FALSE;
    screen -> right_end_screened = FALSE;
-
-#if  USE_SOURCE_FIELD
-   getSource_ReadStruct (myRead, frag_source, MAX_SOURCE_LENGTH);
-   Find_End_Annotations (frag_source, frag_len,
-                         & Global_Left_Annotation,
-                         & Global_Right_Annotation);
-#endif
 
    return (VALID_FRAG);
   }
@@ -5293,193 +4582,6 @@ void  Show_Alignment
      }
   }
 
-
-
-static void  Show_Match
-    (Match_Node_t * P, char * S, char * T)
-
-//  Show the match information in  P 's match node for strings
-//  S  and  T .
-
-  {
-   printf (
-   "  Start = %3d  Offset = %3d  Len = %3d\n",
-                P -> Start, P -> Offset, P -> Len);
-   printf ("    %-s\n", S + P -> Start);
-   printf ("    %-s\n", T + P -> Offset);
-  }
-
-
-
-static void  Show_Overlap
-    (char * a, int a_len, char * a_quality,
-     char * b, int b_len, char * b_quality, Olap_Info_t * p)
-
-//  Show the overlap recorded in  (* p)  between strings  A  and  B ,
-//  with lengths  A_Len  and  B_Len, respectively.
-
-  {
-   int  i, j, k, m, diag, top_len, bottom_len;
-   char  top [2000], bottom [2000];
-   char  q_top [2000], q_bottom [2000];
-
-#if  DO_OLAP_ALIGN_PROFILE
-i = p -> s_lo;
-j = p -> t_lo;
-for  (k = 0;  k < p -> delta_ct;  k ++)
-  {
-   for  (m = 1;  m < abs (p -> delta [k]);  m ++)
-     {
-      Align_P [j] [Bit_Equivalent [a [i]]] ++;
-      i ++;
-      j ++;
-     }
-   if  (p -> delta [k] > 0)
-       {
-        Align_P [j] [4] ++;          // insert
-        i ++;
-       }
-     else
-       {
-        Align_P [j] [5] ++;          // delete
-        j ++;
-       }
-  }
-while  (i < a_len && j < b_len)
-  {
-   Align_P [j] [Bit_Equivalent [a [i]]] ++;
-   i ++;
-   j ++;
-  }
-
-return;
-#endif
-
-
-   top_len = bottom_len = 0;
-   diag = p -> t_lo - p -> s_lo;
-   if  (diag >= 0)
-       for  (i = j = 0;  j < diag;  j ++)
-         {
-          q_top [top_len] = ' ';
-          q_bottom [bottom_len] = b_quality [j] + QUALITY_BASE_CHAR;
-          top [top_len ++] = ' ';
-          bottom [bottom_len ++] = b [j];
-         }
-     else
-       for  (i = j = 0;  i < - diag;  i ++)
-         {
-          q_top [top_len] = a_quality [i] + QUALITY_BASE_CHAR;
-          q_bottom [bottom_len] = ' ';
-          top [top_len ++] = a [i];
-          bottom [bottom_len ++] = ' ';
-         }
-
-   while  (i < p -> s_lo && j < p -> t_lo)
-     {
-      q_top [top_len] = a_quality [i] + QUALITY_BASE_CHAR;
-      q_bottom [bottom_len] = b_quality [j] + QUALITY_BASE_CHAR;
-      top [top_len ++] = a [i ++];
-      bottom [bottom_len ++] = b [j ++];
-     }
-   if  (i != p -> s_lo || j != p -> t_lo)
-       {
-        printf ("OOOPS\n");
-        exit (-4);
-       }
-
-
-   for  (k = 0;  k < p -> delta_ct;  k ++)
-     {
-      for  (m = 1;  m < abs (p -> delta [k]);  m ++)
-        {
-         q_top [top_len] = a_quality [i] + QUALITY_BASE_CHAR;
-         top [top_len ++] = a [i ++];
-        }
-      if  (p -> delta [k] < 0)
-          {
-           q_top [top_len] = ' ';
-           top [top_len ++] = '-';
-          }
-        else
-          {
-           q_top [top_len] = a_quality [i] + QUALITY_BASE_CHAR;
-           top [top_len ++] = a [i ++];
-          }
-     }
-   while  (i < a_len)
-     {
-      q_top [top_len] = a_quality [i] + QUALITY_BASE_CHAR;
-      top [top_len ++] = a [i ++];
-     }
-   q_top [top_len] = '\0';
-   top [top_len] = '\0';
-     
-
-   for  (k = 0;  k < p -> delta_ct;  k ++)
-     {
-      for  (m = 1;  m < abs (p -> delta [k]);  m ++)
-        {
-         q_bottom [bottom_len] = b_quality [j] + QUALITY_BASE_CHAR;
-         bottom [bottom_len ++] = b [j ++];
-        }
-      if  (p -> delta [k] > 0)
-          {
-           q_bottom [bottom_len] = ' ';
-           bottom [bottom_len ++] = '-';
-          }
-        else
-          {
-           q_bottom [bottom_len] = b_quality [j] + QUALITY_BASE_CHAR;
-           bottom [bottom_len ++] = b [j ++];
-          }
-     }
-   while  (j < b_len)
-     {
-      q_bottom [bottom_len] = b_quality [j] + QUALITY_BASE_CHAR;
-      bottom [bottom_len ++] = b [j ++];
-     }
-   q_bottom [bottom_len] = '\0';
-   bottom [bottom_len] = '\0';
-
-
-   for  (i = 0;  i < top_len || i < bottom_len;  i += DISPLAY_WIDTH)
-     {
-      putchar ('\n');
-      printf ("A: ");
-      for  (j = 0;  j < DISPLAY_WIDTH && i + j < top_len;  j ++)
-        putchar (top [i + j]);
-      putchar ('\n');
-      printf ("B: ");
-      for  (j = 0;  j < DISPLAY_WIDTH && i + j < bottom_len;  j ++)
-        putchar (bottom [i + j]);
-      putchar ('\n');
-      printf ("   ");
-      for  (j = 0;  j < DISPLAY_WIDTH && i + j < bottom_len && i + j < top_len;
-                j ++)
-        if  (top [i + j] == ' ' || bottom [i + j] == ' '
-               ||  top [i + j] == bottom [i + j])
-            putchar (' ');
-        else if  (top [i + j] == DONT_KNOW_CHAR
-                    || bottom [i + j] == DONT_KNOW_CHAR)
-            putchar ('?');
-          else
-            putchar ('^');
-      putchar ('\n');
-#if  0
-      printf ("   ");
-      for  (j = 0;  j < DISPLAY_WIDTH && i + j < top_len;  j ++)
-        putchar (q_top [i + j]);
-      putchar ('\n');
-      printf ("   ");
-      for  (j = 0;  j < DISPLAY_WIDTH && i + j < bottom_len;  j ++)
-        putchar (q_bottom [i + j]);
-      putchar ('\n');
-#endif
-     }
-
-   return;
-  }
 
 
 

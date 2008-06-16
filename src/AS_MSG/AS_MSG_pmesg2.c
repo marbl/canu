@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.9 2007-12-28 19:08:20 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.10 2008-06-16 06:12:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -239,16 +239,13 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
 static void *Read_FRG_Mesg(FILE *fin)
 { return Read_Frag_Mesg(fin,MESG_FRG); }
 
-static void *Read_IFG_Mesg(FILE *fin)
-{ return Read_Frag_Mesg(fin,MESG_IFG); }
-
 
 static
 void
 Write_Frag_Mesg(FILE *fout,void *vmesg,int frag_class) {
   FragMesg *mesg = (FragMesg *) vmesg;
 
-  assert((frag_class == MESG_FRG) || (frag_class == MESG_IFG));
+  assert(frag_class == MESG_FRG);
 
   fprintf(fout,"{%s\n",MessageTypeName[frag_class]);
   fprintf(fout,"act:%c\n",mesg->action);
@@ -285,9 +282,6 @@ Write_Frag_Mesg(FILE *fout,void *vmesg,int frag_class) {
 
 static void Write_FRG_Mesg(FILE *fout,void *mesg)
 { Write_Frag_Mesg(fout,mesg,MESG_FRG); }
-
-static void Write_IFG_Mesg(FILE *fout,void *mesg)
-{ Write_Frag_Mesg(fout,mesg,MESG_IFG); }
 
 
 
@@ -345,13 +339,10 @@ void AS_MSG_setFormatVersion2(void) {
   ct[MESG_LIB].writer  = Write_LIB_Mesg;
   ct[MESG_LIB].size    = sizeof(LibraryMesg);
 
-  //  The FragMesg FRG, IFG messages are updated.
+  //  The FragMesg FRG message is updated.
 
   ct[MESG_FRG].reader  = Read_FRG_Mesg;
   ct[MESG_FRG].writer  = Write_FRG_Mesg;
-
-  ct[MESG_IFG].reader  = Read_IFG_Mesg;
-  ct[MESG_IFG].writer  = Write_IFG_Mesg;
 
   //  The LinkMesg LKG is updated.
 

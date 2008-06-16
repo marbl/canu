@@ -16,7 +16,6 @@
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "Output_CGW.h"
-#include "GreedyOverlapREZ.h"
 #include "CommonREZ.h"
 #include "RepeatRez.h"
 #include "AS_ALN_aligners.h"

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.27 2008-05-31 06:49:46 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.28 2008-06-16 06:12:31 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -36,7 +36,6 @@ static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.27 2008-05-31 06:49:46 brianw
 #include "ScaffoldGraph_CGW.h"    // For DeleteCIOverlapEdge
 #include "AS_ALN_aligners.h"
 #include "ChunkOverlap_CGW.h"
-#include "GreedyOverlapREZ.h"
 #include "CommonREZ.h"
 #include "UtilsREZ.h"
 

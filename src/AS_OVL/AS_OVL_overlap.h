@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.24 2007-11-08 12:38:13 brianwalenz Exp $
- * $Revision: 1.24 $
+ * $Id: AS_OVL_overlap.h,v 1.25 2008-06-16 06:12:32 brianwalenz Exp $
+ * $Revision: 1.25 $
 */
 
 
@@ -384,11 +384,7 @@
 #define  STRING_OLAP_MASK        (STRING_OLAP_MODULUS - 1)
     //  To compute hash function into the String_Olap hash table.
 #define  THREAD_STACKSIZE        (16 * 512 * 512)
-//#define  THREAD_STACKSIZE        (2 * 512 * 512)
     //  The amount of stack space to allocate to each thread.
-#define  TOTAL_SCREEN_FILE_NAME          "total-screen.lst"
-    //  Name of file where list of totally screened fragments put
-    //  if  LIST_TOTALLY_SCREENED != 0
 #define  VALID_FRAG              1
     //  Indicates fragment was valid in the fragment store
 #define  WINDOW_SCREEN_OLAP      10
@@ -408,43 +404,9 @@
     //  Gives secondary hash function.  Force to be odd so that will be relatively
     //  prime wrt the hash table size, which is a power of 2.
 
-#define  INPUT_FILENAME_EXTENSION   ".urc"
-#define  OUTPUT_FILENAME_EXTENSION  ".ovl"
-    //  For proto-I/O files
 
-#define  ANALYZE_HITS             0
-#define  DEBUG                    0
-#define  DEBUG7                   0
-#define  DEBUG8                   0
-#define  DO_OLAP_ALIGN_PROFILE    0
-    //  If  1  take overlap alignments and count frequency of occurrence
-    //  of bases at each base of hash-table fragments
-    //  ** Need to set  SHOW_OVERLAPS  to  1  also **
-#define  DO_KMER_HITS_PROFILE     0
-    //  If  1  show hash-table kmer frequency at each base of fragments
-    //  read in separately.
-    //  ** Need to set  ANALYZE_HITS  to  1  also **
-#define  LIST_TOTALLY_SCREENED    0
-    //  If  1  creates a file named  TOTAL_SCREEN_FILE_NAME  with IID's
-    //  of frag's that were totally screened when being put in the
-    //  hash table
-#define  SCREEN_CHECK_ONLY        0
-    //  If  1  only check screening on hash table frags.  Don't
-    //  really put them in the hash table and don't overlap anything
-    //  against them
-#define  SHOW_BAD_WINDOWS         0
-#define  SHOW_HI_HIT_KMERS        0
-    //  If  1  dump frequent kmers from hash table after building it
-    //  and then exit immediately.  Need to set  ANALYZE_HITS  to  1
-    //  and  DO_KMER_HITS_PROFILE  also
-#define  SHOW_OVERLAPS            0
-#define  SHOW_PROGRESS            0
 #define  SHOW_SNPS                0
 #define  SHOW_STATS               0
-#define  SHOW_THREAD_PROGRESS     0
-#define  DEBUGSTREAM              0
-#define  TEST_DP_BPT_CODE         0
-#define  USE_SOURCE_FIELD         0
 
 #include <pthread.h>
 
@@ -599,48 +561,18 @@ extern pthread_mutex_t  Write_Proto_Mutex;
 
 int  Build_Hash_Index
     (FragStream *stream, int32 First_Frag_ID, fragRecord *myRead);
-void  Coalesce_Screen_Info
-    (Screen_Range_t space [], int lo, int * hi);
-void  Copy_Branches_To_Store
-    (FragStream *stream, GateKeeperStore *store, fragRecord *myRead);
-void  Dump_Stored_Branch_Info
-    (FragStream *stream, fragRecord *myRead);
 void  Initialize_Work_Area
     (Work_Area_t *, int);
-#if 0
-int  OVL_Max_int
-    (int, int);
-int  OVL_Min_int
-    (int, int);
-#endif
-void  Output_Hash_Table_Branch_Pts
-    (void);
-void  Output_High_Hit_Frags
-    (void);
 int  OverlapDriver
     (int argc, char **argv);
 void  Process_Overlaps
     (FragStream *stream, Work_Area_t *);
-void  Profile_Hits
-    (void);
 int  Sign
     (int);
-void  stripWhiteSpace
-    (char * target, char * source, int maxlen);
 
 
 #define OVL_Max_int(a,b) ((a) < (b) ? (b) : (a))
 #define OVL_Min_int(a,b) ((a) < (b) ? (a) : (b))
-
-
-#if  USE_SOURCE_FIELD
-extern FILE  * Source_Log_File;
-#endif
-
-#if  ANALYZE_HITS
-extern FILE  * High_Hits_File;
-#endif
-
 
 #endif
 

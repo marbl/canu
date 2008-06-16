@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.21 2008-04-29 18:33:14 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.22 2008-06-16 06:12:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -224,8 +224,6 @@ Read_Frag_Mesg(FILE *fin, int frag_class) {
 static void *Read_FRG_Mesg(FILE *fin)
 { return Read_Frag_Mesg(fin,MESG_FRG); } 
 
-static void *Read_IFG_Mesg(FILE *fin)
-{ return Read_Frag_Mesg(fin,MESG_IFG); }
 
 
 static void *Read_OVL_Mesg(FILE *fin)
@@ -1129,7 +1127,7 @@ static void Write_LKG_Mesg(FILE *fout, void *vmesg)
 static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class) {
   FragMesg *mesg = (FragMesg *) vmesg;
 
-  assert((frag_class == MESG_FRG) || (frag_class == MESG_IFG));
+  assert(frag_class == MESG_FRG);
 
   fprintf(fout,"{%s\n",MessageTypeName[frag_class]);
   fprintf(fout,"act:%c\n",mesg->action);
@@ -1152,9 +1150,6 @@ static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class) {
 
 static void Write_FRG_Mesg(FILE *fout, void *vmesg)
 { Write_Frag_Mesg(fout,vmesg,MESG_FRG); }
-
-static void Write_IFG_Mesg(FILE *fout, void *vmesg)
-{ Write_Frag_Mesg(fout,vmesg,MESG_IFG); }
 
 
 static void Write_OVL_Mesg(FILE *fout, void *vmesg)
@@ -1751,7 +1746,7 @@ static AS_MSG_callrecord CallTable1[NUM_OF_REC_TYPES + 1] = {
   {"{ADT", Read_ADT_Mesg, Write_ADT_Mesg, sizeof(AuditMesg) },
   {"{VER", Read_VER_Mesg, Write_VER_Mesg, sizeof(VersionMesg)  },
   {"{FRG", Read_FRG_Mesg, Write_FRG_Mesg, sizeof(FragMesg)  },
-  {"{IFG", Read_IFG_Mesg, Write_IFG_Mesg, sizeof(InternalFragMesg) },
+  {"", NULL, NULL, 0l },
   {"", NULL, NULL, 0l },
   {"{LKG", Read_LKG_Mesg, Write_LKG_Mesg, sizeof(LinkMesg) },
   {"", NULL, NULL, 0l },

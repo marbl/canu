@@ -24,30 +24,22 @@
 
 LOCAL_WORK = $(shell cd ../../; pwd)
 
-LIN_ALG_LIB = libAS_LIN.a
-
-#ifeq ($(OSTYPE), osf3.2)
-#LIN_ALG_LIB = libdxml.so
-#endif
-
-LIBSOURCES = \
-             ConsistencyChecksREZ.c \
+LIBSOURCES = ConsistencyChecksREZ.c \
              GapFillREZ.c \
              GapWalkerREZ.c \
-             GreedyOverlapREZ.c \
              StatisticsREZ.c \
              UpdateREZ.c \
              UtilsREZ.c \
              MicroHetREZ.c
 
-SOURCES = MicroHetIUM.c batchify.c chunk_analyze.c $(LIBSOURCES)
+SOURCES = MicroHetIUM.c $(LIBSOURCES)
 
 OBJECTS    = $(SOURCES:.c=.o) 
 LIBOBJECTS = $(LIBSOURCES:.c=.o) 
 
 LIBRARIES  = libAS_REZ.a libCA.a
 
-PROGS = batchify chunk_analyze MicroHetIUM
+PROGS = MicroHetIUM
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -58,9 +50,5 @@ libAS_REZ.a: $(LIBOBJECTS)
 
 libCA.a: $(LIBOBJECTS)
 
-
-batchify:              batchify.o libCA.a
-
-chunk_analyze:         chunk_analyze.o libCA.a
 
 MicroHetIUM:           MicroHetIUM.o libCA.a

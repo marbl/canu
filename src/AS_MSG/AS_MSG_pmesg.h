@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.61 2008-06-13 04:29:54 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.62 2008-06-16 06:12:31 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
@@ -56,7 +56,7 @@ typedef struct {
 
 typedef enum {
   MESG_NUL = 0,
-  MESG_ADT, MESG_VER, MESG_FRG, MESG_IFG, MESG_SPo, // 5
+  MESG_ADT, MESG_VER, MESG_FRG, MESG_SPq, MESG_SPo, // 5
   MESG_LKG, MESG_SPg, MESG_DST, MESG_IDT, MESG_LIB, // 10
   MESG_SPc, MESG_SP1, MESG_OVL, MESG_SPf, MESG_UOM, // 15
   MESG_IUM, MESG_IUL, MESG_ICL, MESG_AFG, MESG_ISF, // 20
@@ -72,7 +72,7 @@ typedef enum {
 
 static const char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "NUL",
-  "ADT", "VER", "FRG", "IFG", "SPo", // 5
+  "ADT", "VER", "FRG", "SPq", "SPo", // 5
   "LKG", "SPg", "DST", "IDT", "LIB", // 10
   "SPc", "SP1", "OVL", "SPf", "UOM", // 15
   "IUM", "IUL", "ICL", "AFG", "ISF", // 20  
@@ -209,7 +209,7 @@ typedef enum {
   AS_OTHER_UNITIG    = (int)'X'   // Unspecified surrogate unitig
 } UnitigType;
 
-/* Fragment messages, FRG, IFG */
+/* Fragment messages, FRG */
 
 typedef struct {
   ActionType   		action;
