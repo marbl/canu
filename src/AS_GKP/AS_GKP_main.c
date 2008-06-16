@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_main.c,v 1.69 2008-06-16 16:58:54 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_main.c,v 1.70 2008-06-16 23:09:17 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,9 +46,9 @@ void
 usage(char *filename, int longhelp) {
   fprintf(stdout, "usage1: %s -o gkpStore [append/create options] <input.frg> <input.frg> ...\n", filename);
   fprintf(stdout, "usage2: %s -P partitionfile gkpStore\n", filename);
-  fprintf(stdout, "usage3: %s [dump-options] gkpStore\n", filename);
+  fprintf(stdout, "usage3: %s [id-selection] [options] [format] gkpStore\n", filename);
   fprintf(stdout, "\n");
-  fprintf(stdout, "\n");
+  fprintf(stdout, "----------------------------------------------------------------------\n");
   fprintf(stdout, "The first usage will append to or create a GateKeeper store:\n");
   fprintf(stdout, "  -a                     append to existing store\n");
   fprintf(stdout, "  -o <gkpStore>          append to or create gkpStore\n");
@@ -64,29 +64,47 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "                         example: -a -v vectorfile -o that.gkpStore\n");
   fprintf(stdout, "                         format: 'UID vec-clr-begin vec-clr-end'\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "\n");
+  fprintf(stdout, "----------------------------------------------------------------------\n");
   fprintf(stdout, "The second usage will partition an existing store, allowing\n");
   fprintf(stdout, "the entire store partition to be loaded into memory.\n");
   fprintf(stdout, "  -P <partitionfile>     a list of (partition fragiid)\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "\n");
+  fprintf(stdout, "----------------------------------------------------------------------\n");
   fprintf(stdout, "The third usage will dump the contents of a GateKeeper store.\n");
+  fprintf(stdout, "There are THREE components to a dump, what to dump, options, and format.\n");
+  fprintf(stdout, "The first two are optional, the last is mandatory.  Examples:\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "  Dump metainfo for the first 100 fragments\n");
+  fprintf(stdout, "    gatekeeper -b 1 -e 100 -tabular -dumpfragments my.gkpStore > first100.tsv\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "  Dump a random 25% of the reads in the first library\n");
+  fprintf(stdout, "    gatekeeper -randomsubset 1 0.25 -dumpfrg my.gkpStore > random25.frg\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "  Dump fasta sequence for the UIDs in 'uidFile'\n");
+  fprintf(stdout, "    gatekeeper -uid uidFile -dumpfastaseq -dumpfrg my.gkpStore > file.fasta\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "  -----------------------------------\n");
   fprintf(stdout, "  [selection of what objects to dump]\n");
-  fprintf(stdout, "  -b <begin-iid>          dump starting at this batch, library or read (1)\n");
-  fprintf(stdout, "  -e <ending-iid>         dump stopping after this iid (1)\n");
-  fprintf(stdout, "  -uid <uid-file>         dump only objects listed in 'uid-file' (1)\n");
-  fprintf(stdout, "  -iid <iid-file>         dump only objects listed in 'iid-file' (1)\n");
+  fprintf(stdout, "  -----------------------------------\n");
+  fprintf(stdout, "  -b <begin-iid>          dump starting at this batch, library or read\n");
+  fprintf(stdout, "  -e <ending-iid>         dump stopping after this iid\n");
+  fprintf(stdout, "  -uid <uid-file>         dump only objects listed in 'uid-file'\n");
+  fprintf(stdout, "  -iid <iid-file>         dump only objects listed in 'iid-file'\n");
   fprintf(stdout, "  -randommated  <lib> <n> pick n mates (2n frags) at random from library lib\n");
   fprintf(stdout, "  -randomsubset <lib> <f> dump a random fraction f of library lib\n");
   fprintf(stdout, "  -randomlength <lib> <l> dump a random fraction of library lib, fraction picked\n");
   fprintf(stdout, "                          so that the untrimmed length is close to l\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "  [how to dump it]\n");
+  fprintf(stdout, "  ---------\n");
+  fprintf(stdout, "  [options]\n");
+  fprintf(stdout, "  ---------\n");
   fprintf(stdout, "  -tabular               dump info, batches, libraries or fragments in a tabular\n");
   fprintf(stdout, "                         format (for -dumpinfo, -dumpbatch, -dumplibraries,\n");
   fprintf(stdout, "                         and -dumpfragments, ignores -withsequence and -clear)\n");
   fprintf(stdout, "\n");
+  fprintf(stdout, "  ----------------\n");
   fprintf(stdout, "  [format of dump]\n");
+  fprintf(stdout, "  ----------------\n");
   fprintf(stdout, "  -dumpinfo              print information on the store\n");
   fprintf(stdout, "    -lastfragiid         just print the last IID in the store\n");
   fprintf(stdout, "  -dumpbatch             dump all batch records\n");
@@ -107,11 +125,6 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "                         format appropriate for Newbler.  This will create\n");
   fprintf(stdout, "                         files 'prefix.fna' and 'prefix.fna.qual'.  Options\n");
   fprintf(stdout, "                         -donotfixmates and -clear also apply.\n");
-  fprintf(stdout, "\n");
-  fprintf(stdout, "\n");
-  fprintf(stdout, "\n");
-  fprintf(stdout, "  (1) - must have a -dump option, e.g., -uid file -tabular -dumpfragments some.gkpStore\n");
-  fprintf(stdout, "\n");
   fprintf(stdout, "\n");
   if (longhelp == 0) {
     fprintf(stdout, "Use '-h' to get a discussion of what gatekeeper is.\n");
