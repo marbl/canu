@@ -211,9 +211,6 @@ processCCO(SnapConConMesg *cco_mesg) {
 
   ctgData[cco_mesg->iaccession] = cd;
 
-  //  We'll write DEG when we see a DSC message -- so we can get the
-  //  scaffold id on the defline.
-
   if ((cd->isDegenerate == 0) && (CCOseqout)) {
     AS_UTL_writeFastA(CCOseqout,
                       cd->cns, cd->len,
@@ -224,34 +221,17 @@ processCCO(SnapConConMesg *cco_mesg) {
                       ">ctg%s\n",
                       AS_UID_toString(cco_mesg->eaccession));
   }
-}
-
-
-
-void
-processDSC(SnapDegenerateScaffoldMesg *dsc_mesg) {
-  AS_IID        ctgIID = LookupValueInHashTable_AS(uid2iid, AS_UID_toInteger(dsc_mesg->econtig), 0);
-  ctgData_t    *cd     = ctgData[ctgIID];
-
-  if (cd->isDegenerate == FALSE) {
-    fprintf(stderr, "WARNING:  DSC %s is not marked as a degenerate contig (CTG %s).\n",
-            AS_UID_toString1(dsc_mesg->eaccession),
-            AS_UID_toString2(dsc_mesg->econtig));
-    return;
-  }
-
-  //fprintf(stderr, "DSC: "F_IID" %s len: %d\n", ctgIID, AS_UID_toString(dsc_mesg->econtig), cd->len);
-
-  if (DEGseqout) {
+  if ((cd->isDegenerate == 1) && (DEGseqout)) {
     AS_UTL_writeFastA(DEGseqout,
                       cd->cns, cd->len,
-                      ">ctg%s dsc%s \n", AS_UID_toString2(dsc_mesg->econtig), AS_UID_toString1(dsc_mesg->eaccession));
+                      ">deg%s\n",
+                      AS_UID_toString(cco_mesg->eaccession));
     AS_UTL_writeFastA(DEGqltout,
                       cd->qlt, cd->len,
-                      ">ctg%s dsc%s\n", AS_UID_toString2(dsc_mesg->econtig), AS_UID_toString1(dsc_mesg->eaccession));
+                      ">deg%s\n",
+                      AS_UID_toString(cco_mesg->eaccession));
   }
 }
-
 
 
 
@@ -484,9 +464,6 @@ main(int argc, char **argv) {
         break;
       case MESG_CCO:
         processCCO((SnapConConMesg *)pmesg->m);
-        break;
-      case MESG_DSC:
-        processDSC((SnapDegenerateScaffoldMesg *)pmesg->m);
         break;
       case MESG_SCF:
         processSCF((SnapScaffoldMesg *)pmesg->m);

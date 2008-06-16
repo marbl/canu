@@ -162,8 +162,6 @@ namespace AS_ARD {
                   uint32 num_contributing,
                   PlacementStatusType status) = 0;         
 
-         virtual bool storeDSC2DB(AS_UID eaccession, AS_UID econtig) = 0;         
-         
          virtual bool storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs) = 0;
          
          virtual bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient) = 0;
@@ -202,7 +200,6 @@ namespace AS_ARD {
          virtual bool commitCLKList2DB() = 0;
          virtual bool commitCLKJMP2DB() = 0;
          virtual bool commitCLKJMPList2DB() = 0;
-         virtual bool commitDSC2DB() = 0;
          virtual bool commitSCF2DB() = 0;
          virtual bool commitCTP2DB() = 0;
          virtual bool commitCTPList2DB() = 0;

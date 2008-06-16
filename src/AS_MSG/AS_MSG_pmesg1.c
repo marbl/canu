@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.22 2008-06-16 06:12:31 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.23 2008-06-16 06:54:51 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1011,22 +1011,6 @@ static void *Read_SCF_Mesg(FILE *fin)
   return(&mesg);
 }
 
-static void *Read_DSC_Mesg(FILE *fin) {
-  static SnapDegenerateScaffoldMesg	mesg;
-  mesg.eaccession = GetUID("acc:",fin);
-  mesg.econtig    = GetUID("ctg:",fin);
-  GetEOM(fin);
-  return(&mesg);
-}
-
-static void *Read_IDS_Mesg(FILE *fin) {
-  static IntDegenerateScaffoldMesg	mesg;
-  GET_FIELD(mesg.icontig,"ctg:"F_IID,"contig ID");
-  GetEOM(fin);
-  return(&mesg);
-}
-
-
 
 static void *Read_MDI_Mesg(FILE *fin)
 { static SnapMateDistMesg	mesg;
@@ -1681,23 +1665,6 @@ static void Write_SCF_Mesg(FILE *fout, void *vmesg)
   return;
 }
 
-static void Write_DSC_Mesg(FILE *fout, void *vmesg)
-{ SnapDegenerateScaffoldMesg *mesg = (SnapDegenerateScaffoldMesg *) vmesg;
-  fprintf(fout,"{DSC\n");
-  fprintf(fout,"acc:%s\n",AS_UID_toString(mesg->eaccession));
-  fprintf(fout,"ctg:%s\n",AS_UID_toString(mesg->econtig));
-  fprintf(fout,"}\n");
-  return;
-}
-
-static void Write_IDS_Mesg(FILE *fout, void *vmesg)
-{ IntDegenerateScaffoldMesg *mesg = (IntDegenerateScaffoldMesg *) vmesg;
-  fprintf(fout,"{IDS\n");
-  fprintf(fout,"ctg:"F_IID"\n",mesg->icontig);
-  fprintf(fout,"}\n");
-  return;
-}
-
 
 static void Write_MDI_Mesg(FILE *fout, void *vmesg)
 { SnapMateDistMesg *mesg = (SnapMateDistMesg *) vmesg;
@@ -1783,8 +1750,8 @@ static AS_MSG_callrecord CallTable1[NUM_OF_REC_TYPES + 1] = {
   {"", NULL, NULL, 0l },
   {"", NULL, NULL, 0l },
   {"", NULL, NULL, 0l },
-  {"{IDS", Read_IDS_Mesg, Write_IDS_Mesg, sizeof(IntDegenerateScaffoldMesg) },
-  {"{DSC", Read_DSC_Mesg, Write_DSC_Mesg, sizeof(SnapDegenerateScaffoldMesg) },
+  {"", NULL, NULL, 0l },
+  {"", NULL, NULL, 0l },
   {"{SLK", Read_SLK_Mesg, Write_SLK_Mesg, sizeof(SnapScaffoldLinkMesg) },
   {"{ISL", Read_ISL_Mesg, Write_ISL_Mesg, sizeof(InternalScaffoldLinkMesg) },
   {"", NULL, NULL, 0l },

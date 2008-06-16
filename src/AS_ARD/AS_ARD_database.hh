@@ -54,7 +54,6 @@ namespace AS_ARD {
          bool addVARAFG2DB  (AS_UID varID, CDS_CID_t readID);
 
          bool addCLK2DB     (SnapContigLinkMesg *);
-         bool addDSC2DB     (SnapDegenerateScaffoldMesg *);
          bool addSCF2SDB    (SnapScaffoldMesg *);
          bool addCTP2DB     (AS_UID scfID, SnapContigPairs * ctp, CDS_COORD_t &scfLen);
          bool addCTPList2DB (AS_UID ctpID, AS_UID ccoID);

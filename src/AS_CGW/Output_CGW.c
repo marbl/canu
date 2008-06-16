@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.30 2008-05-31 06:49:46 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.31 2008-06-16 06:54:51 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -315,20 +315,12 @@ void OutputContigsFromMultiAligns(void){
           WriteProtoMesg_AS(GlobalData->ctgfp,&pmesg);
       }else{
         if(ctg->scaffoldID == NULLINDEX) {// contig is not placed
-          GenericMesg		mesg;
-          IntDegenerateScaffoldMesg dsc_mesg;
           NodeCGW_T *unitig = GetGraphNode(ScaffoldGraph->CIGraph, ctg->info.Contig.AEndCI);
           
           assert(unitig != NULL);
           if(unitig->info.CI.numInstances == 0){ // If this unitig has been placed as a surrogate, don't output contig
-            dsc_mesg.icontig = ctg->id;
-            mesg.m = &dsc_mesg;
-            mesg.t = MESG_IDS;
-            
             if (GlobalData->ctgfp)
               WriteProtoMesg_AS(GlobalData->ctgfp,&pmesg); // write the contig
-            if (GlobalData->scffp)
-              WriteProtoMesg_AS(GlobalData->scffp,&mesg);  // write the associated degenerate scaffold
           }else{
             // do nothing. The unitig in this contig appears as a surrogate elsewhere in the assembly
           }

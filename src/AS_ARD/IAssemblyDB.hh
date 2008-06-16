@@ -42,14 +42,13 @@ namespace AS_ARD {
          int numULK;
          int numCCO;
          int numCLK;
-         int numDSC;
          int numSCF;
       
          UIDserver * uids;
          IDBOutput * db;
       
       public:   
-         IAssemblyDB(IDBOutput * out) : db(out), numMDI(0), numAFG(0), numUTG(0), numULK(0), numCCO(0), numCLK(0), numDSC(0), numSCF(0){};
+         IAssemblyDB(IDBOutput * out) : db(out), numMDI(0), numAFG(0), numUTG(0), numULK(0), numCCO(0), numCLK(0), numSCF(0){};
          virtual ~IAssemblyDB() { delete db; };
 
          virtual bool LoadDatabaseFromASMFile(FILE * fi, UIDserver * uid) = 0;

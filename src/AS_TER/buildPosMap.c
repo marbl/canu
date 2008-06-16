@@ -50,9 +50,9 @@ ctgInfo_t   *ctgInfo    = NULL;
 
 FILE *frgutg = NULL;
 
-FILE *frgdsc = NULL;
-FILE *utgdsc = NULL;
-FILE *vardsc = NULL;
+FILE *frgdeg = NULL;
+FILE *utgdeg = NULL;
+FILE *vardeg = NULL;
 
 FILE *frgctg = NULL;
 FILE *utgctg = NULL;
@@ -64,7 +64,7 @@ FILE *ctgscf = NULL;
 FILE *varscf = NULL;
 
 FILE *utglen = NULL;
-FILE *dsclen = NULL;
+FILE *deglen = NULL;
 FILE *ctglen = NULL;
 FILE *scflen = NULL;
 
@@ -216,16 +216,6 @@ processUTG(SnapUnitigMesg *utg) {
 
 
 
-void
-processDSC(SnapDegenerateScaffoldMesg *dsc) {
-
-  fprintf(stderr, "DSC\t%s\t%s\n",
-          AS_UID_toString1(dsc->econtig),
-          AS_UID_toString2(dsc->eaccession));
-#warning also should print length
-}
-
-
 
 void
 processULK(SnapUnitigLinkMesg *ulk) {
@@ -250,11 +240,11 @@ processCCO(SnapConConMesg *cco) {
   FILE  *var = varctg;
 
   if ((cco->placed == AS_UNPLACED) && (cco->num_unitigs == 1)) {
-    //  Degenerate, use dsc files.
-    len = dsclen;
-    frg = frgdsc;
-    utg = utgdsc;
-    var = vardsc;
+    //  Degenerate, use deg files.
+    len = deglen;
+    frg = frgdeg;
+    utg = utgdeg;
+    var = vardeg;
   }
 
 
@@ -550,9 +540,9 @@ int main (int argc, char *argv[]) {
 
   frgutg = openFile("frgutg", outputPrefix, 1);
 
-  frgdsc = openFile("frgdsc", outputPrefix, 1);
-  utgdsc = openFile("utgdsc", outputPrefix, 1);
-  vardsc = openFile("vardsc", outputPrefix, 1);
+  frgdeg = openFile("frgdeg", outputPrefix, 1);
+  utgdeg = openFile("utgdeg", outputPrefix, 1);
+  vardeg = openFile("vardeg", outputPrefix, 1);
 
   frgctg = openFile("frgctg", outputPrefix, 1);
   utgctg = openFile("utgctg", outputPrefix, 1);
@@ -564,7 +554,7 @@ int main (int argc, char *argv[]) {
   varscf = openFile("varscf", outputPrefix, 1);
 
   utglen = openFile("utglen", outputPrefix, 1);
-  dsclen = openFile("dsclen", outputPrefix, 1);
+  deglen = openFile("deglen", outputPrefix, 1);
   ctglen = openFile("ctglen", outputPrefix, 1);
   scflen = openFile("scflen", outputPrefix, 1);
 
@@ -606,9 +596,6 @@ int main (int argc, char *argv[]) {
       case MESG_UTG:
         processUTG(pmesg->m);
         break;
-      case MESG_DSC:
-        //processDSC(pmesg->m);
-        break;
       case MESG_ULK:
         //processULK(pmesg->m);
         break;
@@ -634,9 +621,9 @@ int main (int argc, char *argv[]) {
 
   fclose(frgutg);
 
-  fclose(frgdsc);
-  fclose(utgdsc);
-  fclose(vardsc);
+  fclose(frgdeg);
+  fclose(utgdeg);
+  fclose(vardeg);
 
   fclose(frgctg);
   fclose(utgctg);
@@ -644,7 +631,7 @@ int main (int argc, char *argv[]) {
 
   fclose(utglen);
   fclose(ctglen);
-  fclose(dsclen);
+  fclose(deglen);
   fclose(scflen);
 
   fclose(ctgscf);

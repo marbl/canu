@@ -48,7 +48,6 @@ const char BCPOutput::UPS_FILENAME[MAX_FILE_LEN] = "UPS";
 const char BCPOutput::VAR_FILENAME[MAX_FILE_LEN] = "VAR";
 const char BCPOutput::VAR_ALLELE_FILENAME[MAX_FILE_LEN] = "VAR_ALLELE";
 const char BCPOutput::VAR_AFG_FILENAME[MAX_FILE_LEN] = "VAR_AFG";
-const char BCPOutput::DSC_FILENAME[MAX_FILE_LEN] = "DSC";
 const char BCPOutput::SCF_FILENAME[MAX_FILE_LEN] = "SCF";
 const char BCPOutput::CTP_FILENAME[MAX_FILE_LEN] = "CTP";
 const char BCPOutput::CTP_LIST_FILENAME[MAX_FILE_LEN] = "CTP_LIST";
@@ -69,7 +68,7 @@ BCPOutput::BCPOutput(
       clkBCP(NULL),clkListBCP(NULL),clkJmpBCP(NULL),clkJmpListBCP(NULL),
       ccoBCP(NULL),ccoMpsBCP(NULL),upsBCP(NULL),
       varBCP(NULL),varAlleleBCP(NULL),varAFGBCP(NULL),
-      dscBCP(NULL),scfBCP(NULL),ctpBCP(NULL),ctpListBCP(NULL),cpsBCP(NULL) {
+      scfBCP(NULL),ctpBCP(NULL),ctpListBCP(NULL),cpsBCP(NULL) {
 
    int len = 0;
    assert (_prefix != NULL);
@@ -670,18 +669,6 @@ bool BCPOutput::storeCLK2DB(
    return true;
 }
 
-bool BCPOutput::storeDSC2DB(AS_UID eaccession, AS_UID econtig) {
-   if (dscBCP == NULL) {
-      dscBCP = openFile(DSC_FILENAME);
-   }
-   
-   (*dscBCP) << assemblyID << "\t"
-                  << AS_UID_toInteger(eaccession) << "\t"
-                  << AS_UID_toInteger(econtig) << "\n";
-
-   return true;
-}
-
 bool BCPOutput::storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs) {
    if (scfBCP == NULL) {
       scfBCP = openFile(SCF_FILENAME);
@@ -971,17 +958,6 @@ bool BCPOutput::commitCLKJMPList2DB() {
 
    SQLOutput::commitCLKJMPList2DB();
    return result && runBCP(CLK_JMP_LIST_FILENAME);
-}
-
-bool BCPOutput::commitDSC2DB() { 
-   if (dscBCP == NULL) { return true; }
-   
-   bool result = closeFile(&dscBCP);
-   
-   updateFile(DSC_FILENAME, CCO_UID_to_MSGID, 2);
-
-   SQLOutput::commitDSC2DB();
-   return result && runBCP(DSC_FILENAME);
 }
 
 bool BCPOutput::commitSCF2DB()  { 

@@ -150,7 +150,6 @@ namespace AS_ARD {
                   float std_deviation,
                   uint32 num_contributing,
                   PlacementStatusType status);
-         bool storeDSC2DB(AS_UID eaccession, AS_UID econtig);
          bool storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs);
          bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient);         
          bool storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID);
@@ -174,7 +173,6 @@ namespace AS_ARD {
          bool commitCLKList2DB() { return true; };
          bool commitCLKJMP2DB() { return true; };
          bool commitCLKJMPList2DB() { return true; };
-         bool commitDSC2DB() { return true; };
          bool commitSCF2DB() { return true; };
          bool commitCTP2DB() { return true; };
          bool commitCTPList2DB() { return true; };

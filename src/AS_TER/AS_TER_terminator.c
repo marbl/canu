@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.24 2008-03-10 02:42:28 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.25 2008-06-16 06:54:51 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -58,7 +58,6 @@ VA_TYPE(AS_UID) *IUMmap;
 VA_TYPE(AS_UID) *ICMmap;
 VA_TYPE(AS_UID) *ISFmap;
 VA_TYPE(AS_UID) *FRGmap;
-VA_TYPE(AS_UID) *DSCmap;
 VA_TYPE(AS_UID) *DSTmap;
 
 UIDserver       *uids;
@@ -629,34 +628,6 @@ convertIMD(GenericMesg     *pmesg,
 }
 
 
-void
-convertIDS(GenericMesg *pmesg,
-           FILE        *fileOutput) {
-
-  IntDegenerateScaffoldMesg   *idsMesg = (IntDegenerateScaffoldMesg*) pmesg->m;
-  SnapDegenerateScaffoldMesg   dscMesg;
-
-  if (existsUID(ICMmap, idsMesg->icontig) == 0) {
-    fprintf(stderr,"IDS: reference before definition error for contig ID "F_IID"\n", idsMesg->icontig);
-    exit(1);
-  }
-  if (existsUID(DSCmap, idsMesg->icontig)) {
-    fprintf(stderr,"IDS: duplicate definition for contig ID "F_IID"\n", idsMesg->icontig);
-    exit(1);
-  }
-
-  dscMesg.eaccession = AS_UID_fromInteger(getUID(uids));
-  dscMesg.econtig    = lookupUID(ICMmap, idsMesg->icontig);
-
-  SetAS_UID(DSCmap, idsMesg->icontig, &dscMesg.eaccession);
-
-  pmesg->m = &dscMesg;
-  pmesg->t = MESG_DSC;
-
-  WriteProtoMesg_AS(fileOutput,pmesg);
-}
-
-
 
 int main (int argc, char *argv[]) {
   char *outputPrefix       = NULL;
@@ -676,7 +647,6 @@ int main (int argc, char *argv[]) {
   int numISL = 0;
   int numISF = 0;
   int numIMD = 0;
-  int numIDS = 0;
 
   GateKeeperStore *gkpStore;
   FragStream      *fs;
@@ -729,7 +699,6 @@ int main (int argc, char *argv[]) {
   ICMmap        = CreateVA_AS_UID(8192);
   ISFmap        = CreateVA_AS_UID(8192);
   FRGmap        = CreateVA_AS_UID(65536);
-  DSCmap        = CreateVA_AS_UID(8192);
   DSTmap        = CreateVA_AS_UID(64);
 
   fprintf(stderr, "Reading gatekeeper store\n");
@@ -821,24 +790,19 @@ int main (int argc, char *argv[]) {
         numMSG += 102;
         numIMD++;
         break;
-      case MESG_IDS :
-        convertIDS(pmesg, fileOutput);
-        numMSG += 89;
-        numIDS++;
-        break;
       default:
         break;
     }
 
     if (numMSG > 462583) {
       numMSG = 0;
-      fprintf(stderr, "numIAF:%d numIUM:%d numIUL:%d numICM:%d numICL:%d numISL:%d numISF:%d numIMD:%d numIDS:%d\n",
-              numIAF, numIUM, numIUL, numICM, numICL, numISL, numISF, numIMD, numIDS);
+      fprintf(stderr, "numIAF:%d numIUM:%d numIUL:%d numICM:%d numICL:%d numISL:%d numISF:%d numIMD:%d\n",
+              numIAF, numIUM, numIUL, numICM, numICL, numISL, numISF, numIMD);
     }
   }
 
-  fprintf(stderr, "numIAF:%d numIUM:%d numIUL:%d numICM:%d numICL:%d numISL:%d numISF:%d numIMD:%d numIDS:%d\n",
-          numIAF, numIUM, numIUL, numICM, numICL, numISL, numISF, numIMD, numIDS);
+  fprintf(stderr, "numIAF:%d numIUM:%d numIUL:%d numICM:%d numICL:%d numISL:%d numISF:%d numIMD:%d\n",
+          numIAF, numIUM, numIUL, numICM, numICL, numISL, numISF, numIMD);
 
   if (outputPrefix)
     fclose(fileOutput);
@@ -863,7 +827,6 @@ int main (int argc, char *argv[]) {
     DumpIID2UIDmap(ICMmap, "CTG", F);
     DumpIID2UIDmap(ISFmap, "SCF", F);
     DumpIID2UIDmap(DSTmap, "LIB", F);
-    DumpIID2UIDmap(DSCmap, "DSC", F);
 
     fclose(F);
 
@@ -881,7 +844,6 @@ int main (int argc, char *argv[]) {
   DeleteVA_AS_UID(ICMmap);
   DeleteVA_AS_UID(ISFmap);
   DeleteVA_AS_UID(FRGmap);
-  DeleteVA_AS_UID(DSCmap);
   DeleteVA_AS_UID(DSTmap);
 
   return(0);

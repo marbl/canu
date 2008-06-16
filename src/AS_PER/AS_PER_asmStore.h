@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_asmStore.h,v 1.16 2007-11-08 12:38:14 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_asmStore.h,v 1.17 2008-06-16 06:54:51 brianwalenz Exp $	 */
 #ifndef AS_PER_ASMSTORE_H
 #define AS_PER_ASMSTORE_H
 /*************************************************************************
@@ -47,17 +47,12 @@
 #include "AS_UTL_fileIO.h"
 #include "AS_UTL_Hash.h"
 
-// overload some iid types for assembly store
-//
-// BPW - why are we overlading and not using a different namespace?
-//
 #define AS_IID_AFG  0
 #define AS_IID_MDI  1
 #define AS_IID_UTG  2
 #define AS_IID_CCO  3
-#define AS_IID_DSC  4
-#define AS_IID_SCF  5
-#define AS_IID_CHR  6
+#define AS_IID_SCF  4
+#define AS_IID_CHR  5
 
 typedef int32     ASM_BucketRecord;
 typedef AS_IID    ASM_IIDRecord;
@@ -137,13 +132,6 @@ typedef struct
 
 typedef struct
 {
-  AS_UID       uid;
-  IntContig_ID contigIndex;
-} ASM_DSCRecord;
-
-
-typedef struct
-{
   float         asmMean;
   float         asmStddev;
   CDS_COORD_t   storeMean;
@@ -185,7 +173,7 @@ static int32 getNum ## type ## s(type ## Store store){\
 }
 
 // Stores
-#define NUM_ASM_FILES 17
+#define NUM_ASM_FILES 16
 
 // in addition to asm.phash, there are the following files
 
@@ -209,9 +197,6 @@ ASMSTORE_DEF(ASM_IID)
   
 // for asm.cco
 ASMSTORE_DEF(ASM_CCO)
-
-// for asm.dsc
-ASMSTORE_DEF(ASM_DSC)
 
 // for asm.scg
 ASMSTORE_DEF(ASM_Gap)
@@ -250,8 +235,6 @@ typedef struct
   ASM_CCOStore     ccoStore;
   ASM_IIDStore     ccfStore;
   ASM_IIDStore     ccuStore;
-  
-  ASM_DSCStore     dscStore;
   
   ASM_SCFStore     scfStore;
   ASM_GapStore     scgStore;

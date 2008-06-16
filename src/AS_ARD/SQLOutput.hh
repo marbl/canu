@@ -178,7 +178,6 @@ protected:
                   float std_deviation,
                   uint32 num_contributing,
                   PlacementStatusType status);
-         virtual bool storeDSC2DB(AS_UID eaccession, AS_UID econtig);
          virtual bool storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs);
          virtual bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient);         
          virtual bool storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID);
@@ -205,7 +204,6 @@ protected:
          virtual bool commitCLKJMP2DB();
          virtual bool commitCLKJMPList2DB();
 
-         virtual bool commitDSC2DB();
          virtual bool commitSCF2DB();
          virtual bool commitCTP2DB();
          virtual bool commitCTPList2DB();

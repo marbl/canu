@@ -668,22 +668,6 @@ std::cerr << "The value os mean and std is " << mean_distance << " " << std_devi
    return true;
 }
 
-bool SQLOutput::storeDSC2DB(AS_UID eaccession, AS_UID econtig) {
-   char cmd[Sybase::MAX_STR_LEN];   
-
-   uint64 cco = static_cast<uint64>(LookupValueInHashTable_AS(CCO_UID_to_MSGID, AS_UID_toInteger(econtig), 0));
-   sprintf(cmd, 
-            "INSERT INTO DSC " \
-            "(dsc_AssemblyID, dsc_EUID, dsc_cco_MSG_ID) " \
-            "VALUES ("F_U64", '"F_U64"', "F_U64")",
-                     assemblyID,
-                     AS_UID_toInteger(eaccession),
-                     cco
-            );
-
-   return getConnection()->sqlCommand(cmd);
-}
-
 bool SQLOutput::storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs) {
    char cmd[Sybase::MAX_STR_LEN];   
 
@@ -887,10 +871,6 @@ bool SQLOutput::commitCLKJMPList2DB() {
    }
    
    return true;
-}
-
-bool SQLOutput::commitDSC2DB() { 
-   return true; 
 }
 
 bool SQLOutput::commitSCF2DB()  { 

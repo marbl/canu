@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.62 2008-06-16 06:12:31 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.63 2008-06-16 06:54:51 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
@@ -64,7 +64,7 @@ typedef enum {
   MESG_CCO, MESG_CLK, MESG_SCF, MESG_MDI, MESG_BAT, // 30  
   MESG_SPl, MESG_SPn, MESG_SPm, MESG_SP2, MESG_IBI, // 35
   MESG_SP3, MESG_SP4, MESG_SP5, MESG_SP6, MESG_SP7, // 40
-  MESG_IDS, MESG_DSC, MESG_SLK, MESG_ISL, MESG_SPk, // 45
+  MESG_SPs, MESG_SPr, MESG_SLK, MESG_ISL, MESG_SPk, // 45
   MESG_SPd, MESG_SP8, MESG_SP9, MESG_SPa, MESG_EOF  // 50
 } MessageType;
 
@@ -80,7 +80,7 @@ static const char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "CCO", "CLK", "SCF", "MDI", "BAT", // 30  
   "SPl", "SPn", "SPm", "SP2", "IBI", // 35
   "SP3", "SP4", "SP5", "SP6", "SP7", // 40
-  "IDS", "DSC", "SLK", "ISL", "SPk", // 45
+  "SPs", "SPr", "SLK", "ISL", "SPk", // 45
   "SPd", "SP8", "SP9", "SPa", "EOF"  // 50
 };
 
@@ -687,12 +687,6 @@ typedef struct {
   IntContigPairs  *contig_pairs;
 } IntScaffoldMesg;
 
-/* IDS message */
-
-typedef struct {
-  IntContig_ID icontig;
-} IntDegenerateScaffoldMesg;
-
 
 /* Genome Snapshot typedefs */
 /****************************/
@@ -815,12 +809,6 @@ typedef struct {
   int32			num_contig_pairs;
   SnapContigPairs   	*contig_pairs; // changed in comparison to internal message
 } SnapScaffoldMesg;
-
-/* DSC message */
-typedef struct {
-  AS_UID                eaccession;
-  AS_UID                econtig;
-} SnapDegenerateScaffoldMesg;
 
 /* MDI message */
 typedef struct {

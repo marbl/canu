@@ -388,14 +388,6 @@ bool DBTextOutput::storeCLK2DB(
    return true;
 }
 
-bool DBTextOutput::storeDSC2DB(AS_UID eaccession, AS_UID econtig) {
-   std::cerr << assemblyID << "\t"
-                  << AS_UID_toInteger(eaccession) << "\t"
-                  << AS_UID_toInteger(econtig) << "\n";
-
-   return true;
-}
-
 bool DBTextOutput::storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs) {
    std::cerr << assemblyID << "\t"
                   << AS_UID_toInteger(eaccession) << "\t"

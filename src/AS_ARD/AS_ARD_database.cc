@@ -380,10 +380,6 @@ bool AS_ARD_database::addCLK2DB(SnapContigLinkMesg * clk) {
    return result;
 }
 
-bool AS_ARD_database::addDSC2DB(SnapDegenerateScaffoldMesg * dsc) {
-   return db->storeDSC2DB(dsc->eaccession, dsc->econtig);
-}
-
 bool AS_ARD_database::addSCF2SDB(SnapScaffoldMesg * scf) {
    bool result = false;
    int i = 0;
@@ -493,19 +489,8 @@ bool AS_ARD_database::addGenericMesg2DB(GenericMesg * gen) {
       result = addCCO2DB(static_cast<SnapConConMesg *>(gen->m));
       numCCO++;
       break;
-    case MESG_DSC:
-      db->commitCCO2DB();
-      db->commitCCOMPS2DB();
-      db->commitUPS2DB();
-      db->commitVAR2DB();
-      db->commitVARAllele2DB();
-      db->commitVARAFG2DB();
-
-      result = addDSC2DB(static_cast<SnapDegenerateScaffoldMesg *>(gen->m));
-      numDSC++;
-      break;
     case MESG_CLK:      
-      db->commitDSC2DB();
+      db->commitCCO2DB();
 
       result = addCLK2DB(static_cast<SnapContigLinkMesg *>(gen->m));
       numCLK++;

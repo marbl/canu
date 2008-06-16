@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_asmStore.c,v 1.10 2007-08-10 06:53:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_asmStore.c,v 1.11 2008-06-16 06:54:51 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_asmStore
@@ -65,8 +65,6 @@ char * ASM_Filenames[NUM_ASM_FILES] =
   "asm.cco",
   "asm.ccf",
   "asm.ccu",
-  
-  "asm.dsc",
   
   "asm.scf",
   "asm.scg",
@@ -237,9 +235,6 @@ AssemblyStore * OpenAssemblyStoreCommon(char * path, char *mode)
   sprintf(name, "%s/asm.ccu", asmStore->storePath);
   asmStore->ccuStore = openASM_IIDStore(name, mode);
   
-  sprintf(name, "%s/asm.dsc", asmStore->storePath);
-  asmStore->dscStore = openASM_DSCStore(name, mode);
-  
   sprintf(name, "%s/asm.scf", asmStore->storePath);
   asmStore->scfStore = openASM_SCFStore(name, mode);
   sprintf(name, "%s/asm.scg", asmStore->storePath);
@@ -259,7 +254,6 @@ AssemblyStore * OpenAssemblyStoreCommon(char * path, char *mode)
      NULL == asmStore->ccoStore ||
      NULL == asmStore->ccfStore ||
      NULL == asmStore->ccuStore ||
-     NULL == asmStore->dscStore ||
      NULL == asmStore->scfStore ||
      NULL == asmStore->scgStore ||
      NULL == asmStore->sccStore)
@@ -386,9 +380,6 @@ AssemblyStore * CreateAssemblyStore(char * path,
   sprintf(name,"%s/asm.ccu", asmStore->storePath);
   asmStore->ccuStore = createASM_IIDStore(name, "ccu",1);
 
-  sprintf(name,"%s/asm.dsc", asmStore->storePath);
-  asmStore->dscStore = createASM_DSCStore(name, "dsc",1);
-
   sprintf(name,"%s/asm.scf", asmStore->storePath);
   asmStore->scfStore = createASM_SCFStore(name, "scf",1);
   sprintf(name,"%s/asm.scg", asmStore->storePath);
@@ -473,9 +464,6 @@ void CloseAssemblyStore(AssemblyStore *asmStore)
     closeStore(asmStore->ccfStore);
   if(asmStore->ccuStore != NULL)
     closeStore(asmStore->ccuStore);
-  
-  if(asmStore->dscStore != NULL)
-    closeStore(asmStore->dscStore);
   
   if(asmStore->scfStore != NULL)
     closeStore(asmStore->scfStore); 

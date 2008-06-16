@@ -54,7 +54,6 @@ namespace AS_ARD {
          static const char VAR_FILENAME[MAX_FILE_LEN];
          static const char VAR_ALLELE_FILENAME[MAX_FILE_LEN];
          static const char VAR_AFG_FILENAME[MAX_FILE_LEN];
-         static const char DSC_FILENAME[MAX_FILE_LEN];
          static const char SCF_FILENAME[MAX_FILE_LEN];
          static const char CTP_FILENAME[MAX_FILE_LEN];
          static const char CTP_LIST_FILENAME[MAX_FILE_LEN];
@@ -101,7 +100,6 @@ namespace AS_ARD {
          std::fstream * varBCP;
          std::fstream * varAlleleBCP;
          std::fstream * varAFGBCP;
-         std::fstream * dscBCP;
          std::fstream * scfBCP;
          std::fstream * ctpBCP;         
          std::fstream * ctpListBCP;
@@ -234,7 +232,6 @@ namespace AS_ARD {
                   float std_deviation,
                   uint32 num_contributing,
                   PlacementStatusType status);
-         bool storeDSC2DB(AS_UID eaccession, AS_UID econtig);
          bool storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs);
          bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient);         
          bool storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID);
@@ -259,7 +256,6 @@ namespace AS_ARD {
          bool commitCLKList2DB();
          bool commitCLKJMP2DB();
          bool commitCLKJMPList2DB();
-         bool commitDSC2DB();
          bool commitSCF2DB();
          bool commitCTP2DB();
          bool commitCTPList2DB();
