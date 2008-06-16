@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-// $Id: AS_UTL_UID.h,v 1.2 2008-02-22 15:48:08 brianwalenz Exp $
+// $Id: AS_UTL_UID.h,v 1.3 2008-06-16 18:07:43 brianwalenz Exp $
 
 #ifndef AS_UTL_UID_H
 #define AS_UTL_UID_H
@@ -47,9 +47,7 @@
 //  returned, and one should AS_UID_load() the uid into the store.
 //
 //  To print a UID, use AS_UID_toString(uid) to convert it to a static
-//  character string.  AS_UID_toString1(), AS_UID_toString2() and
-//  AS_UTL_toString3() do the same thing, just with a different static
-//  buffer.
+//  character string.
 
 typedef struct {
   uint64   isString:1;
@@ -107,12 +105,11 @@ AS_UID_fromInteger(uint64 uidn) {
 
 
 
-//  Return a (static) character string containing the UID.
+//  Return a (static) character string containing the UID.  It
+//  selects, round-robin, a static buffer from a set of 16.  See the
+//  implementation.
 //
 char    *AS_UID_toString(AS_UID uid);
-char    *AS_UID_toString1(AS_UID uid);
-char    *AS_UID_toString2(AS_UID uid);
-char    *AS_UID_toString3(AS_UID uid);
 
 
 //  Return the undefined / uninitialized UID.

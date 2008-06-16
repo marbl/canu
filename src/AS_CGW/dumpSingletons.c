@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.23 2008-05-16 00:03:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.24 2008-06-16 18:07:43 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -175,8 +175,8 @@ main( int argc, char **argv) {
                         toprint, strlen(toprint),
                         ">"F_U64" /type=mini_scaffold /frgs=(%s,%s)\n",
                         getUID(uids),
-                        AS_UID_toString2(fUID),
-                        AS_UID_toString3(mUID));
+                        AS_UID_toString(fUID),
+                        AS_UID_toString(mUID));
     }
   }
 

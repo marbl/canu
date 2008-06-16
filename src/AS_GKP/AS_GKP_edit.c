@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.8 2008-05-31 06:11:36 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.9 2008-06-16 18:07:43 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -355,13 +355,13 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
         gkfr.mateIID = getGatekeeperUIDtoIID(gkpStore, n, NULL);
         if (update)
           fprintf(stdout, "frg uid %s mateiid "F_IID" -> mateiid "F_IID" mateuid %s\n",
-                  AS_UID_toString1(gkfr.readUID), o, gkfr.mateIID, AS_UID_toString2(n));
+                  AS_UID_toString(gkfr.readUID), o, gkfr.mateIID, AS_UID_toString(n));
       } else if (strcasecmp(ACT, "readuid") == 0) {
         AS_UID    o = gkfr.readUID;
         gkfr.readUID = AS_UID_lookup(E, &E);  //  I _really_ hope you know what you're doing
         if (update)
           fprintf(stdout, "frg iid "F_IID" readuid %s -> %s\n",
-                  gkfr.readIID, AS_UID_toString1(o), AS_UID_toString2(gkfr.readUID));
+                  gkfr.readIID, AS_UID_toString(o), AS_UID_toString(gkfr.readUID));
       } else if (strcasecmp(ACT, "libiid") == 0) {
         AS_IID    o = gkfr.libraryIID;
         gkfr.libraryIID = AS_IID_fromString(E, &E);
@@ -374,13 +374,13 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
         gkfr.libraryIID = getGatekeeperUIDtoIID(gkpStore, n, NULL);
         if (update)
           fprintf(stdout, "frg uid %s libiid "F_IID" -> libiid "F_IID" libuid %s\n",
-                  AS_UID_toString1(gkfr.readUID), o, gkfr.libraryIID, AS_UID_toString2(n));
+                  AS_UID_toString(gkfr.readUID), o, gkfr.libraryIID, AS_UID_toString(n));
       } else if (strcasecmp(ACT, "plate") == 0) {
         AS_UID    o = gkfr.plateUID;
         gkfr.plateUID = AS_UID_lookup(E, &E);
         if (update)
           fprintf(stdout, "frg uid %s plate %s -> %s\n",
-                  AS_UID_toString1(gkfr.readUID), AS_UID_toString2(o), AS_UID_toString3(gkfr.plateUID));
+                  AS_UID_toString(gkfr.readUID), AS_UID_toString(o), AS_UID_toString(gkfr.plateUID));
       } else if (strcasecmp(ACT, "platelocation") == 0) {
         uint32 o = gkfr.plateLocation;
         gkfr.plateLocation = strtoul(E, &E, 10);

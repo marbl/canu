@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-// $Id: AS_UTL_UID.c,v 1.6 2008-05-14 22:19:57 brianwalenz Exp $
+// $Id: AS_UTL_UID.c,v 1.7 2008-06-16 18:07:43 brianwalenz Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,57 +47,38 @@ AS_UID_getGatekeeper(void) {
 
 
 
-
-
-static
-inline
+//  A very common operation is to print a bunch of UIDs at the same
+//  time.  We allow printing of up to 16 UIDs at the same time.
+//
 char *
-AS_UID_toStringBuffer(AS_UID uid, char *buffer) {
+AS_UID_toString(AS_UID uid) {
+  static  int    localindex  = 0;
+  static  char  *localbuffer = NULL;
 
-  assert(buffer != NULL);
+  localindex++;
+
+  if (localbuffer == NULL) {
+    localindex  = 0;
+    localbuffer = (char *)safe_malloc(sizeof(char) * 16 * (MAX_UID_LENGTH + 1));
+  }
+
+  if (localindex >= 16)
+    localindex = 0;
+
+  char *retbuffer = localbuffer + localindex * (MAX_UID_LENGTH + 1);
 
   if (uid.isString) {
     char  *uidstr = AS_GKP_getUIDstring(AS_UID_getGatekeeper(), uid);
 
     if (uidstr)
-      sprintf(buffer, "%s", uidstr);
+      sprintf(retbuffer, "%s", uidstr);
     else
-      sprintf(buffer, "CAx%llu", uid.UID);
+      sprintf(retbuffer, "CAx%llu", uid.UID);
   } else {
-    sprintf(buffer, "%llu", uid.UID);
+    sprintf(retbuffer, "%llu", uid.UID);
   }
 
-  return(buffer);
-}
-
-//  A very common operation is to print a bunch of UIDs at the same
-//  time.  We allow printing of one UID (AS_UID_toString()), or up to
-//  three.
-//
-//  This is HUGELY error prone.  What was I thinking?
-
-char *
-AS_UID_toString(AS_UID uid) {
-  static  char  localbuffer[MAX_UID_LENGTH + 1];
-  return(AS_UID_toStringBuffer(uid, localbuffer));
-}
-
-char *
-AS_UID_toString1(AS_UID uid) {
-  static  char  localbuffer[MAX_UID_LENGTH + 1];
-  return(AS_UID_toStringBuffer(uid, localbuffer));
-}
-
-char *
-AS_UID_toString2(AS_UID uid) {
-  static  char  localbuffer[MAX_UID_LENGTH + 1];
-  return(AS_UID_toStringBuffer(uid, localbuffer));
-}
-
-char *
-AS_UID_toString3(AS_UID uid) {
-  static  char  localbuffer[MAX_UID_LENGTH + 1];
-  return(AS_UID_toStringBuffer(uid, localbuffer));
+  return(retbuffer);
 }
 
 

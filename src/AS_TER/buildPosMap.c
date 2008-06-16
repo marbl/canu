@@ -201,8 +201,8 @@ processUTG(SnapUnitigMesg *utg) {
     }
 
     fprintf(frgutg, "%s\t%s\t%d\t%d\t%c\n",
-            AS_UID_toString1(utg->f_list[i].eident),
-            AS_UID_toString2(utg->eaccession),
+            AS_UID_toString(utg->f_list[i].eident),
+            AS_UID_toString(utg->eaccession),
             bgn, end, ori);
   }
 
@@ -277,7 +277,7 @@ processCCO(SnapConConMesg *cco) {
 
     fprintf(var, "%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%s\t%s\n",
             cco->vars[i].var_seq,
-            AS_UID_toString1(cco->eaccession),
+            AS_UID_toString(cco->eaccession),
             bgn, end,
             cco->vars[i].num_reads,
             cco->vars[i].num_conf_alleles,
@@ -303,8 +303,8 @@ processCCO(SnapConConMesg *cco) {
     }
 
     fprintf(frg, "%s\t%s\t%d\t%d\t%c\n",
-            AS_UID_toString1(cco->pieces[i].eident),
-            AS_UID_toString2(cco->eaccession),
+            AS_UID_toString(cco->pieces[i].eident),
+            AS_UID_toString(cco->eaccession),
             bgn, end, ori);
   }
 
@@ -323,8 +323,8 @@ processCCO(SnapConConMesg *cco) {
     }
 
     fprintf(utg, "%s\t%s\t%d\t%d\t%c\n",
-            AS_UID_toString1(cco->unitigs[i].eident),
-            AS_UID_toString2(cco->eaccession),
+            AS_UID_toString(cco->unitigs[i].eident),
+            AS_UID_toString(cco->eaccession),
             bgn, end, ori);
   }
 }
@@ -389,8 +389,8 @@ processSCF(SnapScaffoldMesg *scf) {
       ctgInfo[ctgIID].scfOri = ori;
 
       fprintf(ctgscf, "%s\t%s\t%d\t%d\t%c\n",
-              AS_UID_toString1(scf->contig_pairs[i].econtig1),
-              AS_UID_toString2(scf->eaccession),
+              AS_UID_toString(scf->contig_pairs[i].econtig1),
+              AS_UID_toString(scf->eaccession),
               bgn, end, ori);
     }
 
@@ -418,8 +418,8 @@ processSCF(SnapScaffoldMesg *scf) {
       ctgInfo[ctgIID].scfOri = ori;
 
       fprintf(ctgscf, "%s\t%s\t%d\t%d\t%c\n",
-              AS_UID_toString1(scf->contig_pairs[i].econtig2),
-              AS_UID_toString2(scf->eaccession),
+              AS_UID_toString(scf->contig_pairs[i].econtig2),
+              AS_UID_toString(scf->eaccession),
               bgn, end, ori);
     }
   }

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.39 2008-06-06 20:27:02 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.40 2008-06-16 18:07:43 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -302,9 +302,9 @@ dumpGateKeeperFragments(char       *gkpStoreName,
 
       if (asTable) {
         fprintf(stdout, "%s\t"F_IID"\t%s\t"F_IID"\t%s\t"F_IID"\t%d\t%d\t%s\t%s\t%d\t%d\t%d\n",
-                AS_UID_toString1(getFragRecordUID(&fr)), getFragRecordIID(&fr),
-                AS_UID_toString2(mateuid), mateiid,
-                AS_UID_toString3(libuid), libiid,
+                AS_UID_toString(getFragRecordUID(&fr)), getFragRecordIID(&fr),
+                AS_UID_toString(mateuid), mateiid,
+                AS_UID_toString(libuid), libiid,
                 getFragRecordIsDeleted(&fr),
                 getFragRecordIsNonRandom(&fr),
                 AS_READ_STATUS_NAMES[fr.gkfr.status],
@@ -424,18 +424,18 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
         if (dumpQuality >=2) {
            AS_UTL_writeQVFastA(stdout, seq, clrEnd-clrBeg,
 		">%s,"F_IID" mate=%s,"F_IID" lib=%s,"F_IID" clr=%s,%d,%d deleted=%d\n",
-                AS_UID_toString1(getFragRecordUID(&fr)), getFragRecordIID(&fr),
-                AS_UID_toString2(mateuid), mateiid,
-                AS_UID_toString3(libuid), libiid,
+                AS_UID_toString(getFragRecordUID(&fr)), getFragRecordIID(&fr),
+                AS_UID_toString(mateuid), mateiid,
+                AS_UID_toString(libuid), libiid,
                 AS_READ_CLEAR_NAMES[dumpClear], clrBeg, clrEnd,
                 getFragRecordIsDeleted(&fr));
 
         } else {
 	   AS_UTL_writeFastA(stdout, seq, clrEnd-clrBeg,
 		">%s,"F_IID" mate=%s,"F_IID" lib=%s,"F_IID" clr=%s,%d,%d deleted=%d\n",
-                	AS_UID_toString1(getFragRecordUID(&fr)), getFragRecordIID(&fr),
-                	AS_UID_toString2(mateuid), mateiid,
-                	AS_UID_toString3(libuid), libiid,
+                	AS_UID_toString(getFragRecordUID(&fr)), getFragRecordIID(&fr),
+                	AS_UID_toString(mateuid), mateiid,
+                	AS_UID_toString(libuid), libiid,
                 	AS_READ_CLEAR_NAMES[dumpClear], clrBeg, clrEnd,
                 	getFragRecordIsDeleted(&fr));
 	}
@@ -800,21 +800,21 @@ dumpGateKeeperAsNewbler(char       *gkpStoreName,
 
         sprintf(defline, ">%s template=%d+%d dir=%c library=%s trim=%d-%d\n",
                 //  ID
-                AS_UID_toString1(getFragRecordUID(&fr)),
+                AS_UID_toString(getFragRecordUID(&fr)),
                 //  template
                 (id1 < id2) ? id1 : id2,
                 (id1 < id2) ? id2 : id1,
                 //  dir
                 (id1 < id2) ? 'F' : 'R',
                 //  library
-                AS_UID_toString2(libUID[getFragRecordLibraryIID(&fr)]),
+                AS_UID_toString(libUID[getFragRecordLibraryIID(&fr)]),
                 //  trim
                 lclr,
                 rclr);
       } else {
         sprintf(defline, ">%s trim=%d-%d\n",
                 //  ID
-                AS_UID_toString1(getFragRecordUID(&fr)),
+                AS_UID_toString(getFragRecordUID(&fr)),
                 //  trim
                 lclr,
                 rclr);

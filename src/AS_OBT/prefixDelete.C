@@ -255,8 +255,8 @@ main(int argc, char **argv) {
             if (deleted == 0) {
               delFrag(gkp, deletedIID);
               fprintf(stdout, "%s,%d\t%s,%d\tlen="F_U32"\tdeleted=%s\n",
-                      AS_UID_toString1(getFragRecordUID(&fr1)), getFragRecordIID(&fr1),
-                      AS_UID_toString2(getFragRecordUID(&fr2)), getFragRecordIID(&fr2),
+                      AS_UID_toString(getFragRecordUID(&fr1)), getFragRecordIID(&fr1),
+                      AS_UID_toString(getFragRecordUID(&fr2)), getFragRecordIID(&fr2),
                       len,
                       AS_UID_toString(deletedUID));
             }

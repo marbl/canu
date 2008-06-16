@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.38 2008-03-19 19:49:59 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.39 2008-06-16 18:07:43 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -195,8 +195,8 @@ setLibrary(GateKeeperFragmentRecord *gkf, FragMesg *frg_mesg) {
 
   if (AS_IID_isDefined(gkf->libraryIID) == FALSE) {
     AS_GKP_reportError(AS_GKP_FRG_UNKNOWN_LIB,
-                       AS_UID_toString1(frg_mesg->eaccession),
-                       AS_UID_toString2(frg_mesg->library_uid));
+                       AS_UID_toString(frg_mesg->eaccession),
+                       AS_UID_toString(frg_mesg->library_uid));
     return(1);
   }
 
