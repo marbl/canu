@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.25 2008-06-16 06:54:51 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.26 2008-06-16 16:58:55 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -34,7 +34,6 @@ static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.25 2008-06-16 06:54:51
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
-#include "AS_UTL_version.h"
 #include "SYS_UIDclient.h"
 
 
@@ -746,10 +745,6 @@ int main (int argc, char *argv[]) {
 
   while(ReadProtoMesg_AS(stdin,&pmesg) != EOF){
     switch(pmesg->t){
-      case MESG_ADT :
-        VersionStampADT((AuditMesg *)pmesg->m, argc, argv);
-        WriteProtoMesg_AS(fileOutput,pmesg);
-        break;
       case MESG_IAF :
         convertIAF(pmesg, fileOutput);
         numMSG += 1;

@@ -26,8 +26,8 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.24 2008-06-16 06:12:32 brianwalenz Exp $
- * $Revision: 1.24 $
+ * $Id: AS_OVL_driver_common.h,v 1.25 2008-06-16 16:58:54 brianwalenz Exp $
+ * $Revision: 1.25 $
  */
 
 
@@ -39,7 +39,6 @@
 #include  "AS_MSG_pmesg.h"
 #include  "AS_OVL_overlap.h"
 #include  "AS_UTL_Var.h"
-#include  "AS_UTL_version.h"
 
 static int64  First_Hash_Frag = -1;
 static int64   Last_Hash_Frag;

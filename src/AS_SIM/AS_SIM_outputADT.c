@@ -51,23 +51,6 @@ static int trim_eol(char * const tool,const size_t nstrlen)
 
 void outputADT(char *tool, char *version, char *commentString)
 {
-  
-  GenericMesg outMesg;
-  AuditMesg auditMesg;
-  AuditLine auditLine;
-
-  fprintf(stderr,"tool = <%s>  version = <%s>\n", tool, version);
-  auditLine.complete = CREATION_TIME;
-  auditLine.name = tool;
-  auditLine.version = version;
-  auditLine.comment = commentString;
-  auditLine.next = NULL;
-
-  auditMesg.list = &auditLine;
-  outMesg.m = &auditMesg;
-  outMesg.t = MESG_ADT;
-
-  WriteProtoMesg_AS(stdout,&outMesg);
 }
 
 static void outputBAT

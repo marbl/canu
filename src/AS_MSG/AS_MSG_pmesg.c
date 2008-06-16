@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.43 2007-11-08 12:38:13 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.44 2008-06-16 16:58:54 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg_internal.h"
 
@@ -287,41 +287,6 @@ PutText(FILE *fout,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-void
-AppendAuditLine_AS(AuditMesg *adt, AuditLine *adl,
-                   time_t t, char *name, char *version, char *comment) {
-  AuditLine *list;
-
-  // Skip over the entire list, stopping at the last element
-  if(adt->list) {
-    for (list = adt->list; list->next != NULL; list = list->next);
-
-    list->next = adl;
-  }else{
-    adt->list = adl;
-  }
-
-  adl->complete = t;
-  adl->name     = name;
-  adl->version  = version;
-  adl->comment  = comment;
-  adl->next     = NULL;
-}
-
-
-
-
 static
 void
 AS_MSG_globalsInitialize(void) {
@@ -407,6 +372,44 @@ ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg) {
     AS_MSG_globals->curLineNum++;
     if (fgets(AS_MSG_globals->curLine,MAX_LINE_LEN,fin) == NULL)
       return (EOF);
+
+    //  Brute force skip ADT messages.
+    //
+    //  Some legacy pipelines still produce these, but we don't care.  Format is:
+    //
+    //  {ADT
+    //  {ADL
+    //  who:name
+    //  ctm:1206563351
+    //  vsn:1.00
+    //  com:
+    //  comments
+    //  .
+    //  }
+    //  {ADL
+    //  ...
+    //  }
+    //  {ADL
+    //  ...
+    //  }
+    //  .
+    //  }
+    //
+    if ((AS_MSG_globals->curLine[0] == '{') &&
+        (AS_MSG_globals->curLine[1] == 'A') &&
+        (AS_MSG_globals->curLine[2] == 'D') &&
+        (AS_MSG_globals->curLine[3] == 'T')) {
+      while (strncmp(ReadLine(fin,TRUE),"{ADL",4) == 0) {
+        while (strncmp(ReadLine(fin,TRUE),".",1) != 0)
+          //  Do nothing.
+          ;
+        GetEOM(fin);
+      }
+      GetEOM(fin);
+
+      //  Force us to read another message
+      AS_MSG_globals->curLine[0] = '#';
+    }
   } while (AS_MSG_globals->curLine[0] == '#');
 
   if (errno)

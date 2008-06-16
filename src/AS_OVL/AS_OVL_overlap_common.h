@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.46 2008-06-16 06:12:32 brianwalenz Exp $
- * $Revision: 1.46 $
+ * $Id: AS_OVL_overlap_common.h,v 1.47 2008-06-16 16:58:54 brianwalenz Exp $
+ * $Revision: 1.47 $
 */
 
 
@@ -74,7 +74,6 @@
 #include  "AS_PER_gkpStore.h"
 #include  "AS_MSG_pmesg.h"
 #include  "AS_OVL_overlap.h"
-#include  "AS_UTL_version.h"
 #include  "AS_UTL_fileIO.h"
 #include  "AS_UTL_reverseComplement.h"
 
@@ -799,27 +798,6 @@ main(int argc, char **argv) {
 
    OldFragStore = openGateKeeperStore(Frag_Store_Path, FALSE);
    
-#if  ! (SHOW_SNPS)
-   if  (! Contig_Mode &&
-        ! Doing_Partial_Overlaps &&
-        Full_ProtoIO_Output &&
-        Out_Stream)
-       {
-        GenericMesg   * pmesg = (GenericMesg *) safe_malloc (sizeof (GenericMesg));
-        AuditMesg  * adtmesg = (AuditMesg *) safe_malloc (sizeof (AuditMesg));
-
-        pmesg->t = MESG_ADT;
-        adtmesg -> list = NULL;
-        VersionStampADT(adtmesg, argc, argv);
-
-	pmesg -> m = adtmesg;
-        WriteProtoMesg_AS (Out_Stream, pmesg);
-
-        safe_free (adtmesg);
-        safe_free (pmesg);
-       }
-#endif
-
    /****************************************/
    OverlapDriver(argc, argv);
    /****************************************/

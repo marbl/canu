@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_FGB_io.c,v 1.27 2007-11-08 12:38:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_FGB_io.c,v 1.28 2008-06-16 16:58:54 brianwalenz Exp $";
 
 //  Fragment Overlap Graph Builder file input and output.  This
 //  functional unit reads a *.ovl prototype i/o file an massages it
@@ -33,7 +33,6 @@ static char CM_ID[] = "$Id: AS_FGB_io.c,v 1.27 2007-11-08 12:38:11 brianwalenz E
 #include <time.h>
 
 #include "AS_global.h"
-#include "AS_UTL_version.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_CGB_all.h"
 #include "AS_OVS_overlapStore.h"

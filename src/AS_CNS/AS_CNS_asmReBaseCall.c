@@ -19,17 +19,15 @@
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_Var.h"
 #include "UtilsREZ.h"
-#include "AS_UTL_version.h"
 #include "AS_PER_genericStore.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_UTL_Hash.h"
-#include "AS_UTL_version.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_GKP_include.h"
 #include "MultiAlignStore_CNS.h"
 #include "MultiAlignment_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.22 2008-03-18 07:02:43 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.23 2008-06-16 16:58:54 brianwalenz Exp $";
 
 static HashTable_AS *utgUID2IID;
 
@@ -357,7 +355,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.22 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.23 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 
@@ -425,14 +423,6 @@ int main (int argc, char *argv[]) {
 	    WriteProtoMesg_AS(stdout,pmesg); // write out the modified contig message
 	    break;
 	  }
-          case MESG_ADT:
-          {
-	    AuditMesg *adt_mesg;
-	    adt_mesg = (AuditMesg *)(pmesg->m);
-	    VersionStampADT(adt_mesg,argc,argv);
-	    WriteProtoMesg_AS(stdout,pmesg);
-          }
-          break;
           default:
             WriteProtoMesg_AS(stdout,pmesg);
         }

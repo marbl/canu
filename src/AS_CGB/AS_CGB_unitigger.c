@@ -19,9 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.28 2008-02-27 17:06:59 skoren Exp $";
+static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.29 2008-06-16 16:58:54 brianwalenz Exp $";
 
-#include "AS_UTL_version.h"
 #include "AS_CGB_all.h"
 #include "AS_CGB_Bubble.h"
 

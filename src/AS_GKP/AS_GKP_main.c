@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_main.c,v 1.68 2008-06-12 19:00:21 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_main.c,v 1.69 2008-06-16 16:58:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +31,6 @@ static char const *rcsid = "$Id: AS_GKP_main.c,v 1.68 2008-06-12 19:00:21 brianw
 #include "AS_global.h"
 #include "AS_PER_genericStore.h"
 #include "AS_PER_gkpStore.h"
-#include "AS_UTL_version.h"
 #include "AS_UTL_fileIO.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_GKP_include.h"
@@ -732,9 +731,7 @@ main(int argc, char **argv) {
       while (EOF != ReadProtoMesg_AS(inFile, &pmesg)) {
         int success = 0;
 
-        if (pmesg->t == MESG_ADT) {
-          //  Ignore
-        } else if (pmesg->t == MESG_BAT) {
+        if        (pmesg->t == MESG_BAT) {
           success = Check_BatchMesg((BatchMesg *)pmesg->m);
         } else if (pmesg->t == MESG_DST) {
           success = Check_DistanceMesg((DistanceMesg *)pmesg->m, fixInsertSizes);

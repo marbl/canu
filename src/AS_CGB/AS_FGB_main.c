@@ -19,9 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_FGB_main.c,v 1.21 2007-09-05 11:22:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_FGB_main.c,v 1.22 2008-06-16 16:58:54 brianwalenz Exp $";
 
-#include "AS_UTL_version.h"  
 #include "AS_CGB_all.h"
 
 int (*compare_edge_function)(const void *a, const void *b);

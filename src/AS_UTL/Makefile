@@ -28,7 +28,6 @@ LIB_SOURCES = AS_UTL_Hash.c \
               AS_UTL_heap.c \
               AS_UTL_Var.c \
               AS_UTL_rand.c \
-              AS_UTL_version.c \
               AS_UTL_interval.c \
               UnionFind_AS.c \
               AS_UTL_skiplist.c \

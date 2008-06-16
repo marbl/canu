@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.10 2008-06-16 06:12:31 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.11 2008-06-16 16:58:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -322,7 +322,6 @@ void AS_MSG_setFormatVersion2(void) {
   AS_MSG_setFormatVersion1();
 
   //  VersionMesg VER doesn't change from format 1.
-  //  AuditRecord and AuditLine don't change from format 1.
 
   //  DistanceMesg DST does not exist in version 2.
   //  The internal version (IDT) does exist.

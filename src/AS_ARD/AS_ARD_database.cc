@@ -453,10 +453,6 @@ bool AS_ARD_database::addGenericMesg2DB(GenericMesg * gen) {
   // by convention, in the ASM file all messages of one type are together so we commit when we get to the next type
   switch(gen->t)
   {
-    case MESG_ADT:
-      // ignore adl messages
-      result = true;
-      break;      
     case MESG_MDI:
       result = addMDI2DB(static_cast<SnapMateDistMesg *>(gen->m));
       numMDI++;

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.63 2008-06-16 06:54:51 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.64 2008-06-16 16:58:54 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
@@ -56,32 +56,24 @@ typedef struct {
 
 typedef enum {
   MESG_NUL = 0,
-  MESG_ADT, MESG_VER, MESG_FRG, MESG_SPq, MESG_SPo, // 5
-  MESG_LKG, MESG_SPg, MESG_DST, MESG_IDT, MESG_LIB, // 10
-  MESG_SPc, MESG_SP1, MESG_OVL, MESG_SPf, MESG_UOM, // 15
-  MESG_IUM, MESG_IUL, MESG_ICL, MESG_AFG, MESG_ISF, // 20
-  MESG_IMD, MESG_IAF, MESG_UTG, MESG_ULK, MESG_ICM, // 25
-  MESG_CCO, MESG_CLK, MESG_SCF, MESG_MDI, MESG_BAT, // 30  
-  MESG_SPl, MESG_SPn, MESG_SPm, MESG_SP2, MESG_IBI, // 35
-  MESG_SP3, MESG_SP4, MESG_SP5, MESG_SP6, MESG_SP7, // 40
-  MESG_SPs, MESG_SPr, MESG_SLK, MESG_ISL, MESG_SPk, // 45
-  MESG_SPd, MESG_SP8, MESG_SP9, MESG_SPa, MESG_EOF  // 50
+  MESG_BAT, MESG_VER, MESG_DST, MESG_LIB, MESG_FRG, MESG_LKG,
+  MESG_OVL,
+  MESG_UOM,
+  MESG_IAF, MESG_IMD, MESG_IUM, MESG_IUL, MESG_ICM, MESG_ICL, MESG_ISF, MESG_ISL,
+  MESG_AFG, MESG_MDI, MESG_UTG, MESG_ULK, MESG_CCO, MESG_CLK, MESG_SCF, MESG_SLK, 
+  MESG_EOF
 } MessageType;
 
 #define NUM_OF_REC_TYPES MESG_EOF
 
 static const char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "NUL",
-  "ADT", "VER", "FRG", "SPq", "SPo", // 5
-  "LKG", "SPg", "DST", "IDT", "LIB", // 10
-  "SPc", "SP1", "OVL", "SPf", "UOM", // 15
-  "IUM", "IUL", "ICL", "AFG", "ISF", // 20  
-  "IMD", "IAF", "UTG", "ULK", "ICM", // 25 
-  "CCO", "CLK", "SCF", "MDI", "BAT", // 30  
-  "SPl", "SPn", "SPm", "SP2", "IBI", // 35
-  "SP3", "SP4", "SP5", "SP6", "SP7", // 40
-  "SPs", "SPr", "SLK", "ISL", "SPk", // 45
-  "SPd", "SP8", "SP9", "SPa", "EOF"  // 50
+  "BAT", "VER", "DST", "LIB", "FRG", "LKG",
+  "OVL",
+  "UOM",
+  "IAF", "IMD", "IUM", "IUL", "ICM", "ICL", "ISF", "ISL",
+  "AFG", "MDI", "UTG", "ULK", "CCO", "CLK", "SCF", "SLK", 
+  "EOF"
 };
 
 /*Generic message object handle */
@@ -98,22 +90,6 @@ typedef struct InternalBatchMesgTag {
   AS_UID        eaccession;
   char         *comment;
 }BatchMesg;
-
-/* ADL record */
-
-typedef struct AuditLineTag {
-  struct AuditLineTag  *next;
-  char                 *name;
-  time_t               complete;
-  char                 *version;
-  char                 *comment;
-} AuditLine;
-
-/* ADT message */
-
-typedef struct {
-  AuditLine *list;
-} AuditMesg;
 
 /* VER message */
 
@@ -703,13 +679,6 @@ typedef struct {
   int32         *delta;
 } SnapMultiPos;
 
-/* EPS messages */
-typedef struct {
-  FragType     type;
-  AS_UID       eident;
-  SeqInterval  position;
-} SnapElementPos;
-
 /* UTG Message */
 typedef struct {
   AS_UID          eaccession;  // changed in comparison to internal message
@@ -859,11 +828,5 @@ void       AS_MSG_setFormatVersion(int format);
 
 int        ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg);
 int        WriteProtoMesg_AS(FILE *fout, GenericMesg *mesg);
-
-void       AppendAuditLine_AS(AuditMesg *adt_mesg,
-                              AuditLine *auditLine,
-                              time_t t, char *name,
-                              char *version, char *comment);
-
 
 #endif  /* AS_MSG_PMESG_INCLUDE */
