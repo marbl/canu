@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.24 2008-06-16 16:58:54 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.25 2008-06-16 20:49:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -537,6 +537,16 @@ static void *Read_AFG_Mesg(FILE *fin)
   return(&mesg);
 }
 
+static void *Read_AMP_Mesg(FILE *fin)
+{ static AugMatePairMesg	mesg;
+  
+  mesg.fragment1 = GetUID("frg:",fin);
+  mesg.fragment2 = GetUID("frg:",fin);
+  mesg.mate_status = (MateStatType)GetType("mst:%1[ZGCLSONHADEURF]","mate status", fin);
+  GetEOM(fin);
+  return(&mesg);
+}
+
 static void Read_ICP_Mesg(FILE *fin, IntContigPairs *icp)
 {
   GET_FIELD(icp->contig1,"ct1:"F_IID,"contig 1 id");
@@ -658,6 +668,17 @@ static void *Read_IAF_Mesg(FILE *fin)
   GET_FIELD(mesg.chimeric,"chi:"F_S32,"chimeric flag");
   GET_FIELD(mesg.chaff,"cha:"F_S32,"chaff flag");
   GET_PAIR(mesg.clear_rng.bgn,mesg.clear_rng.end,"clr:"F_COORD","F_COORD,"clear range");
+  mesg.mate_status = (MateStatType)GetType("mst:%1[ZGCLSONHADEURF]","mate status", fin);
+  GetEOM(fin);
+  return(&mesg);
+}
+
+
+static void *Read_IAM_Mesg(FILE *fin)
+{ static IntAugMatePairMesg	mesg;
+  
+  GET_FIELD(mesg.fragment1,"frg:"F_IID,"accession field");
+  GET_FIELD(mesg.fragment2,"frg:"F_IID,"accession field");
   mesg.mate_status = (MateStatType)GetType("mst:%1[ZGCLSONHADEURF]","mate status", fin);
   GetEOM(fin);
   return(&mesg);
@@ -1329,6 +1350,17 @@ static void Write_AFG_Mesg(FILE *fout, void *vmesg)
   return;
 }
 
+static void Write_AMP_Mesg(FILE *fout, void *vmesg)
+{ AugMatePairMesg *mesg = (AugMatePairMesg *) vmesg;
+  
+  fprintf(fout,"{AMP\n");
+  fprintf(fout,"frg:%s\n",AS_UID_toString(mesg->fragment1));
+  fprintf(fout,"frg:%s\n",AS_UID_toString(mesg->fragment2));
+  fprintf(fout,"mst:%c\n",mesg->mate_status);
+  fprintf(fout,"}\n");
+  return;
+}
+
 static void Write_ICP_Mesg(FILE *fout, IntContigPairs *mesg)
 {
   fprintf(fout,"{ICP\n");
@@ -1410,6 +1442,19 @@ static void Write_IAF_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"}\n");
   return;
 }
+
+static void Write_IAM_Mesg(FILE *fout, void *vmesg)
+{ IntAugMatePairMesg *mesg = (IntAugMatePairMesg *) vmesg;
+  
+  fprintf(fout,"{IAM\n");
+  fprintf(fout,"frg:"F_IID"\n",mesg->fragment1);
+  fprintf(fout,"frg:"F_IID"\n",mesg->fragment2);
+  fprintf(fout,"mst:%c\n",mesg->mate_status);
+  fprintf(fout,"}\n");
+  return;
+}
+
+
 
 /* Genome Snapshot output routines */
 /***********************************/
@@ -1667,8 +1712,9 @@ static AS_MSG_callrecord CallTable1[NUM_OF_REC_TYPES + 1] = {
   {"{OVL", Read_OVL_Mesg, Write_OVL_Mesg, sizeof(OverlapMesg) },
   {"{UOM", Read_UOM_Mesg, Write_UOM_Mesg, sizeof(UnitigOverlapMesg) },
 
-  {"{IAF", Read_IAF_Mesg, Write_IAF_Mesg, sizeof(IntAugFragMesg) },
   {"{IMD", Read_IMD_Mesg, Write_IMD_Mesg, sizeof(IntMateDistMesg) },
+  {"{IAF", Read_IAF_Mesg, Write_IAF_Mesg, sizeof(IntAugFragMesg) },
+  {"{IAM", Read_IAM_Mesg, Write_IAM_Mesg, sizeof(IntAugMatePairMesg) },
   {"{IUM", Read_IUM_Mesg, Write_IUM_Mesg, sizeof(IntUnitigMesg) },
   {"{IUL", Read_IUL_Mesg, Write_IUL_Mesg, sizeof(IntUnitigLinkMesg) },
   {"{ICM", Read_ICM_Mesg, Write_ICM_Mesg, sizeof(IntConConMesg) },
@@ -1676,8 +1722,9 @@ static AS_MSG_callrecord CallTable1[NUM_OF_REC_TYPES + 1] = {
   {"{ISF", Read_ISF_Mesg, Write_ISF_Mesg, sizeof(IntScaffoldMesg) },
   {"{ISL", Read_ISL_Mesg, Write_ISL_Mesg, sizeof(InternalScaffoldLinkMesg) },
 
-  {"{AFG", Read_AFG_Mesg, Write_AFG_Mesg, sizeof(AugFragMesg) },
   {"{MDI", Read_MDI_Mesg, Write_MDI_Mesg, sizeof(SnapMateDistMesg) },
+  {"{AFG", Read_AFG_Mesg, Write_AFG_Mesg, sizeof(AugFragMesg) },
+  {"{AMP", Read_AMP_Mesg, Write_AMP_Mesg, sizeof(AugMatePairMesg) },
   {"{UTG", Read_UTG_Mesg, Write_UTG_Mesg, sizeof(SnapUnitigMesg) },
   {"{ULK", Read_ULK_Mesg, Write_ULK_Mesg, sizeof(SnapUnitigLinkMesg) },
   {"{CCO", Read_CCO_Mesg, Write_CCO_Mesg, sizeof(SnapConConMesg) },

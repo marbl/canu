@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.64 2008-06-16 16:58:54 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.65 2008-06-16 20:49:15 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
@@ -59,8 +59,8 @@ typedef enum {
   MESG_BAT, MESG_VER, MESG_DST, MESG_LIB, MESG_FRG, MESG_LKG,
   MESG_OVL,
   MESG_UOM,
-  MESG_IAF, MESG_IMD, MESG_IUM, MESG_IUL, MESG_ICM, MESG_ICL, MESG_ISF, MESG_ISL,
-  MESG_AFG, MESG_MDI, MESG_UTG, MESG_ULK, MESG_CCO, MESG_CLK, MESG_SCF, MESG_SLK, 
+  MESG_IMD, MESG_IAF, MESG_IAM, MESG_IUM, MESG_IUL, MESG_ICM, MESG_ICL, MESG_ISF, MESG_ISL,
+  MESG_MDI, MESG_AFG, MESG_AMP, MESG_UTG, MESG_ULK, MESG_CCO, MESG_CLK, MESG_SCF, MESG_SLK, 
   MESG_EOF
 } MessageType;
 
@@ -71,8 +71,8 @@ static const char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "BAT", "VER", "DST", "LIB", "FRG", "LKG",
   "OVL",
   "UOM",
-  "IAF", "IMD", "IUM", "IUL", "ICM", "ICL", "ISF", "ISL",
-  "AFG", "MDI", "UTG", "ULK", "CCO", "CLK", "SCF", "SLK", 
+  "IMD", "IAF", "IAM", "IUM", "IUL", "ICM", "ICL", "ISF", "ISL",
+  "MDI", "AFG", "AMP", "UTG", "ULK", "CCO", "CLK", "SCF", "SLK", 
   "EOF"
 };
 
@@ -634,6 +634,22 @@ typedef struct {
   int32           chaff;
   SeqInterval     clear_rng;
 } AugFragMesg;
+
+/* IAM message */
+
+typedef struct {
+  AS_IID          fragment1;
+  AS_IID          fragment2;
+  MateStatType    mate_status;
+} IntAugMatePairMesg;
+
+/* AMP message */
+
+typedef struct {
+  AS_UID          fragment1;
+  AS_UID          fragment2;
+  MateStatType    mate_status;
+} AugMatePairMesg;
 
 /* IMD message */
 

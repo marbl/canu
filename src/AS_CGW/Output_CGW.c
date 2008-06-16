@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.31 2008-06-16 06:54:51 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.32 2008-06-16 20:49:15 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -95,9 +95,7 @@ void OutputMateDists(ScaffoldGraphT *graph){
 /* Must be called after OutputMateDists */
 void OutputFrags(ScaffoldGraphT *graph){
   CDS_CID_t		i;
-  int numFrags = GetNumInfoByIIDs(graph->iidToFragIndex);
-  GenericMesg		pmesg;
-  IntAugFragMesg af_mesg;
+
   int goodMates = 0;
   int ctenUntrust=0;
   int ctenTrust  =0;
@@ -107,16 +105,14 @@ void OutputFrags(ScaffoldGraphT *graph){
   int cunknown   =0;
   int cinvalid   =0;
   int cwrongScf  =0;
-
-  InfoByIID *info = GetInfoByIID(graph->iidToFragIndex,0);
-  
-  pmesg.m = &af_mesg;
-  pmesg.t = MESG_IAF;
   
   // Output fragments in iid order
   //
-  for(i = 0; i < numFrags; i++, info++){
-    CIFragT *cifrag;
+  for(i = 0; i < GetNumInfoByIIDs(graph->iidToFragIndex); i++) {
+    CIFragT          *cifrag = NULL;
+    InfoByIID        *info   = GetInfoByIID(graph->iidToFragIndex, i);
+    GenericMesg       pmesg;
+    IntAugFragMesg    iaf;
 
     if(!info->set)
       continue;
@@ -139,27 +135,65 @@ void OutputFrags(ScaffoldGraphT *graph){
     //  Terminator sets the final fragment clear range based on the
     //  fragStore.
 
-    af_mesg.iaccession     = cifrag->iid;
-    af_mesg.type           = (FragType)cifrag->type;
-    af_mesg.chaff          = cifrag->flags.bits.isChaff;
-    af_mesg.mate_status    = cifrag->flags.bits.mateDetail;
-    af_mesg.chimeric       = 0;
-    af_mesg.clear_rng.bgn  = -1;
-    af_mesg.clear_rng.end  = -1;
+    iaf.iaccession     = cifrag->iid;
+    iaf.type           = (FragType)cifrag->type;
+    iaf.chaff          = cifrag->flags.bits.isChaff;
+    iaf.mate_status    = cifrag->flags.bits.mateDetail;
+    iaf.chimeric       = 0;
+    iaf.clear_rng.bgn  = -1;
+    iaf.clear_rng.end  = -1;
+
+    pmesg.m = &iaf;
+    pmesg.t = MESG_IAF;
 
     if (GlobalData->cgwfp)
       WriteProtoMesg_AS(GlobalData->cgwfp,&pmesg);
   }
 
-  fprintf(GlobalData->stderrc,"* Saw %d good mates\n", goodMates);
-  fprintf(GlobalData->stderrc,"* Saw %d trusted mates (good)\n", ctrusted);
-  fprintf(GlobalData->stderrc,"* Saw %d tentative trusted mates (good)\n", ctenTrust);
-  fprintf(GlobalData->stderrc,"* Saw %d tentative untrusted mates (bad)\n", ctenUntrust);
-  fprintf(GlobalData->stderrc,"* Saw %d untrusted mates (bad)\n", cuntrust);
-  fprintf(GlobalData->stderrc,"* Saw %d large variance mates (unused)\n", clongvar);
-  fprintf(GlobalData->stderrc,"* Saw %d between scaffold mates (unused)\n", cwrongScf);
-  fprintf(GlobalData->stderrc,"* Saw %d unknown mates (unused)\n", cunknown);
-  fprintf(GlobalData->stderrc,"* Saw %d invalid mates (no mate)\n", cinvalid);
+  // Output mates in iid order
+  //
+  for(i = 0; i < GetNumInfoByIIDs(graph->iidToFragIndex); i++) {
+    CIFragT            *cif1 = NULL, *cif2 = NULL;
+    InfoByIID          *inf1 = NULL, *inf2 = NULL;
+    GenericMesg         pmesg;
+    IntAugMatePairMesg  iam;
+
+    inf1 = GetInfoByIID(graph->iidToFragIndex, i);
+    
+    if(!inf1->set)
+      continue;
+
+    cif1 = GetCIFragT(graph->CIFrags, inf1->fragIndex);
+
+    if (cif1->mateOf < 1)
+      continue;
+
+    cif2 = GetCIFragT(graph->CIFrags, cif1->mateOf);
+
+    if (cif1->iid > cif2->iid)
+      continue;
+
+    inf2 = GetInfoByIID(graph->iidToFragIndex, cif2->iid);
+
+    if(!inf2->set)
+      continue;
+
+    assert(inf1->fragIndex == cif2->mateOf);
+    assert(inf2->fragIndex == cif1->mateOf);
+
+    assert(cif1->flags.bits.edgeStatus == cif2->flags.bits.edgeStatus);
+    assert(cif1->flags.bits.mateDetail == cif2->flags.bits.mateDetail);
+
+    iam.fragment1   = cif1->iid;
+    iam.fragment2   = cif2->iid;
+    iam.mate_status = cif1->flags.bits.mateDetail;
+
+    pmesg.m = &iam;
+    pmesg.t = MESG_IAM;
+
+    if (GlobalData->cgwfp)
+      WriteProtoMesg_AS(GlobalData->cgwfp,&pmesg);
+  }
 }
 
 

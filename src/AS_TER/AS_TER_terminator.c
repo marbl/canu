@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.26 2008-06-16 16:58:55 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.27 2008-06-16 20:49:15 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -37,6 +37,7 @@ static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.26 2008-06-16 16:58:55
 #include "SYS_UIDclient.h"
 
 
+//  Info loaded from gatekeeper.
 typedef struct {
   int32       loaded:1;
   int32       deleted:1;
@@ -115,7 +116,7 @@ convertIAF(GenericMesg *pmesg,
   assert(iafMesg->clear_rng.bgn == -1);
   assert(iafMesg->clear_rng.end == -1);
 
-  if (existsUID(IUMmap, iafMesg->iaccession)) {
+  if (existsUID(FRGmap, iafMesg->iaccession)) {
     fprintf(stderr, "IAF: Spotted FRG internal ID "F_IID" second time\n", iafMesg->iaccession);
     exit(1);
   }
@@ -132,6 +133,32 @@ convertIAF(GenericMesg *pmesg,
 
   pmesg->m = &afgMesg;
   pmesg->t = MESG_AFG;
+
+  WriteProtoMesg_AS(fileOutput, pmesg);
+}
+
+
+void
+convertIAM(GenericMesg *pmesg,
+           FILE        *fileOutput) {
+  IntAugMatePairMesg *iamMesg = (IntAugMatePairMesg *)pmesg->m;
+  AugMatePairMesg     ampMesg;
+
+  if (!existsUID(FRGmap, iamMesg->fragment1)) {
+    fprintf(stderr, "IAM:  reference before definition error for fragment ID "F_IID"\n", iamMesg->fragment1);
+    exit(1);
+  }
+  if (!existsUID(FRGmap, iamMesg->fragment2)) {
+    fprintf(stderr, "IAM:  reference before definition error for fragment ID "F_IID"\n", iamMesg->fragment2);
+    exit(1);
+  }
+
+  ampMesg.fragment1   = fragInfo[iamMesg->fragment1].uid;
+  ampMesg.fragment2   = fragInfo[iamMesg->fragment2].uid;
+  ampMesg.mate_status = iamMesg->mate_status;
+
+  pmesg->m = &ampMesg;
+  pmesg->t = MESG_AMP;
 
   WriteProtoMesg_AS(fileOutput, pmesg);
 }
@@ -639,6 +666,7 @@ int main (int argc, char *argv[]) {
 
   int numMSG = 0;
   int numIAF = 0;
+  int numIAM = 0;
   int numIUM = 0;
   int numIUL = 0;
   int numICM = 0;
@@ -750,6 +778,11 @@ int main (int argc, char *argv[]) {
         numMSG += 1;
         numIAF++;
         break;
+      case MESG_IAM :
+        convertIAM(pmesg, fileOutput);
+        numMSG += 1;
+        numIAM++;
+        break;
       case MESG_IUM :
         convertIUM(pmesg, fileOutput);
         numMSG += 19;
@@ -791,13 +824,13 @@ int main (int argc, char *argv[]) {
 
     if (numMSG > 462583) {
       numMSG = 0;
-      fprintf(stderr, "numIAF:%d numIUM:%d numIUL:%d numICM:%d numICL:%d numISL:%d numISF:%d numIMD:%d\n",
-              numIAF, numIUM, numIUL, numICM, numICL, numISL, numISF, numIMD);
+      fprintf(stderr, "numIAF:%d numIAM:%d numIUM:%d numIUL:%d numICM:%d numICL:%d numISL:%d numISF:%d numIMD:%d\n",
+              numIAF, numIAM, numIUM, numIUL, numICM, numICL, numISL, numISF, numIMD);
     }
   }
 
-  fprintf(stderr, "numIAF:%d numIUM:%d numIUL:%d numICM:%d numICL:%d numISL:%d numISF:%d numIMD:%d\n",
-          numIAF, numIUM, numIUL, numICM, numICL, numISL, numISF, numIMD);
+  fprintf(stderr, "numIAF:%d numIAM:%d numIUM:%d numIUL:%d numICM:%d numICL:%d numISL:%d numISF:%d numIMD:%d\n",
+          numIAF, numIAM, numIUM, numIUL, numICM, numICL, numISL, numISF, numIMD);
 
   if (outputPrefix)
     fclose(fileOutput);

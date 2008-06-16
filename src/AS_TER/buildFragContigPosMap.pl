@@ -62,6 +62,7 @@ while (!eof(STDIN)) {
 
     if (($tag eq "{MDI") ||
         ($tag eq "{AFG") ||
+        ($tag eq "{AMP") ||
         ($tag eq "{ULK") ||
         ($tag eq "{CLK") ||
         ($tag eq "{SLK")) {
