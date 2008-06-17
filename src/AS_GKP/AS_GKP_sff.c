@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.15 2008-06-12 03:41:29 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.16 2008-06-17 03:38:20 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +32,36 @@ static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.15 2008-06-12 03:41:29 brianwa
 #include "AS_GKP_include.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_encodeSequenceQuality.h"
+
+//  Problems with this code:
+//
+//  1) It's possibly too aggressive when looking for linker.  It is
+//  happy with 35 bases of alignment out of a 44bp linker, with 3
+//  errors.
+//
+//  2) It needs to be done when OBT is done.  Ideally, after
+//  merge-trimming, but before chimera.  Or, heck, during chimera.
+//  But that creates a large headache -- we'd need to add new
+//  fragments
+//
+//  To do that, we could abuse the clv to denote linker detected here,
+//  but not acted on.
+//
+//
+//  As it is now, most of the linker is detected, either by this or by
+//  OBT.  On p.ging, half1, I only see
+//
+//  81530[218-0-0] 0[0-44] <25-0-100-forward-unknown>
+//  edef=>E8YURXS01C8F4B,91131 mate=0,0 lib=LIBSFFE8YURXS01,1 clr=OBT,0,218 deleted=0
+//  ddef=>linker
+//  193-217 (20-44) <25-0-100>
+//  gaattcaaaccctttcggttccaac
+//  gaattcaaaccctttcggttccaac
+//
+//  after trimming.  This one was not detected because trimming got
+//  rid of 30bp at the end of the read -- when gatekeeper was looking
+//  for linker, it saw 25bp match, and 30bp more stuff on the other
+//  side.  Not enough to split.
 
 
 #define MATCH            0
@@ -727,6 +757,7 @@ processMate(sffHeader *h,
             sffRead   *rm1, GateKeeperFragmentRecord *gkm1,
             sffRead   *rm2, GateKeeperFragmentRecord *gkm2) {
   alignLinker_s  al = {0};
+  int  linkerLength  = strlen(linkers[0]);
 
   //  Abort if this isn't a valid read -- processRead() might have already trashed it.
   //
@@ -747,169 +778,193 @@ processMate(sffHeader *h,
   int  rSize = al.lenB - al.endJ;
   fprintf(stderr, "fragment %d root=%s\n", getLastElemStore(gkpStore->frg) + 1, AS_UID_toString(gkf->readUID));
   fprintf(stderr, "alignLen=%d matches=%d lSize=%d rSize=%d\n", al.alignLen, al.matches, lSize, rSize);
-  fprintf(stderr, "%d-%d %s\n", al.begI, al.endI, h->alignA);
-  fprintf(stderr, "%d-%d %s\n", al.begJ, al.endJ, h->alignB);
+  fprintf(stderr, "%3d-%3d %s\n", al.begI, al.endI, h->alignA);
+  fprintf(stderr, "%3d-%3d %s\n", al.begJ, al.endJ, h->alignB);
 #endif
 
-  //  Did we find enough of the linker to do something?
+  //  Did we find enough of the linker to do something?  We just need to throw out the
+  //  obviously bad stuff.  When we get shorter and shorter, it's hard to define
+  //  reasonable cutoffs.
   //
   int  goodAlignment = 0;
 
-  //  Good if kind of short, but high identity (1/20 = 95).
-  //
-  if ((al.alignLen >= 20) && (al.matches >= 96 * al.alignLen / 100))
+  if ((al.alignLen >= 5) && (al.matches + 1 >= al.alignLen))
+    goodAlignment = 1;
+  if ((al.alignLen >= 10) && (al.matches + 2 >= al.alignLen))
+    goodAlignment = 1;
+  if ((al.alignLen >= 20) && (al.matches + 3 >= al.alignLen))
+    goodAlignment = 1;
+  if ((al.alignLen >= 40) && (al.matches + 4 >= al.alignLen))
     goodAlignment = 1;
 
-  //  Good if long and lower identity (4/44 == 90.9).
+  if (goodAlignment == 0)
+    return(0);
+
+
+  int  linkerHead = al.begI;
+  int  linkerTail = linkerLength - al.endI;
+
+  int  lSize      = al.begJ;
+  int  rSize      = al.lenB - al.endJ;
+
+  int  which;
+
+
+  //  Adapter found on the left, but not enough to make a read.  Trim it out.
   //
-  if ((al.alignLen >= 40) && (al.matches >= 90 * al.alignLen / 100))
-    goodAlignment = 1;
+  if (((lSize < 64) && (al.alignLen >= 35)) ||
+      ((lSize < 16) && (al.alignLen >= 16)) ||
+      ((lSize <  8) && (al.alignLen >=  8) && (linkerTail < 5)) ||
+      ((lSize <  2) && (al.alignLen >=  5) && (linkerTail < 5))) {
+    r->final_length = rSize;
+
+    r->final_bases   += al.endJ;
+    r->final_quality += al.endJ;
+
+    for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+      gkf->clearBeg[which] = 0;
+      gkf->clearEnd[which] = r->final_length;
+    }
+
+    //  Recursively search for another copy of the linker.
+    processMate(h, r, gkf, NULL, NULL, NULL, NULL);
+
+    return(1);
+  }
 
 
-  if (goodAlignment) {
+  //  Adapter found on the right, but not enough to make a read.  Trim it out.
+  //
+  if (((rSize < 64) && (al.alignLen >= 35)) ||
+      ((rSize < 16) && (al.alignLen >= 16)) ||
+      ((rSize <  8) && (al.alignLen >=  8) && (linkerHead < 5)) ||
+      ((rSize <  2) && (al.alignLen >=  5) && (linkerHead < 5))) {
+    r->final_length = lSize;
+
+    r->final_bases  [r->final_length] = 0;
+    r->final_quality[r->final_length] = 0;
+
+    for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+      gkf->clearBeg[which] = 0;
+      gkf->clearEnd[which] = r->final_length;
+    }
+
+    //  Recursively search for another copy of the linker.
+    processMate(h, r, gkf, NULL, NULL, NULL, NULL);
+
+    return(1);
+  }
+
+
+  //  Adapter found in the middle, and enough to make two mated reads.
+  //
+  if ((al.alignLen >= 35) && (lSize >= 64) && (rSize >= 64)) {
+
+    //  If we get here, and the two mate reads are null, we have
+    //  found a second complete linker -- the original read is
+    //  "seq-link-seq-link-seq" and we don't know where to break.
+    //  The whole read is deleted in this case.
+    //
+    //  The mate is deleted later.
+    //
+    if ((rm1 == NULL) || (rm2 == NULL) || (gkm1 == NULL) || (gkm2 == NULL)) {
+      gkf->deleted = 1;
+      return(0);
+    }
+
+    memcpy(rm1, r, sizeof(sffRead));
+    memcpy(rm2, r, sizeof(sffRead));
+
+    memcpy(gkm1, gkf, sizeof(GateKeeperFragmentRecord));
+    memcpy(gkm2, gkf, sizeof(GateKeeperFragmentRecord));
+
+    //  1.  Make new UIDs for the two mated reads.  Nuke the old
+    //  read.  Make the mates.
+    //
+    //  WARNING!  See that getLastElemStore() below?  It is forcing us to
+    //  load the gkm1 read before the gkm2 read.
+    {
+      char  uid[64];
+      strcpy(uid, AS_UID_toString(gkf->readUID));
+      strcat(uid, "a");
+      gkm1->readUID = AS_UID_load(uid);
+      gkm1->readIID = getLastElemStore(gkpStore->frg) + 1;
+
+      strcpy(uid, AS_UID_toString(gkf->readUID));
+      strcat(uid, "b");
+      gkm2->readUID = AS_UID_load(uid);
+      gkm2->readIID = getLastElemStore(gkpStore->frg) + 2;
+
+      gkf->readUID = AS_UID_undefined();
+
+      gkm1->mateIID = gkm2->readIID;
+      gkm2->mateIID = gkm1->readIID;
+
+      gkm1->orientation = AS_READ_ORIENT_INNIE;
+      gkm2->orientation = AS_READ_ORIENT_INNIE;
+    }
+
+    //need to enable more strict checking on things loaded -- no embedded nulls for exampe (is that valid in encoded?)
+
+    //  2.  Construct new rm1, rm2.  Nuke the linker.  Reverse
+    //  complement -- inplace -- the rm2 read.
+    {
+      int j;
+
+      reverseComplement(r->final_bases, r->final_quality, lSize);
+
+      rm1->final_length = lSize;
+
+      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+        gkm1->clearBeg[which] = 0;
+        gkm1->clearEnd[which] = rm1->final_length;
+      }
+
+      for (j=al.begJ; j<al.endJ; j++) {
+        r->final_bases[j]   = 0;
+        r->final_quality[j] = 0;
+      }
+
+      //reverseComplement(r->final_bases + endJ, r->final_quality + endJ, rSize);
+
+      rm2->final_length   = rSize;
+      rm2->final_bases   += al.endJ;
+      rm2->final_quality += al.endJ;
+
+      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+        gkm2->clearBeg[which] = 0;
+        gkm2->clearEnd[which] = rm2->final_length;
+      }
+    }
+
+    //  Recursively search for another copy of the linker.
+    processMate(h, rm1, gkm1, NULL, NULL, NULL, NULL);
+    processMate(h, rm2, gkm2, NULL, NULL, NULL, NULL);
+
+    //  If either is deleted now, then we found another linker in
+    //  the split read.
+    //
+    if ((gkm1->deleted) || (gkm2->deleted)) {
+#warning sff errors not reported here
+      gkm1->deleted = 1;
+      gkm2->deleted = 1;
+    }
+
+    return(1);
+  }  //  if match is in middle
+
+
+  //  Significant alignment, but we didn't do anything with it.  Why?
+
+  {
     int  lSize = al.begJ;
     int  rSize = al.lenB - al.endJ;
-    int  which;
-
-    //  Adapter found on the left, but not enough to make a read.  Trim it out.
-    //
-    if (((lSize < 64) && (al.alignLen >= 40)) ||
-        ((lSize < 10) && (al.alignLen >= 20))) {
-      r->final_length = rSize;
-
-      r->final_bases   += al.endJ;
-      r->final_quality += al.endJ;
-
-      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-        gkf->clearBeg[which] = 0;
-        gkf->clearEnd[which] = r->final_length;
-      }
-
-      //  Recursively search for another copy of the linker.
-      processMate(h, r, gkf, NULL, NULL, NULL, NULL);
-
-      return(1);
-    }
-
-    //  Adapter found on the right, but not enough to make a read.  Trim it out.
-    //
-    if (((rSize < 64) && (al.alignLen >= 40)) ||
-        ((rSize < 10) && (al.alignLen >= 20))) {
-      r->final_length = lSize;
-
-      r->final_bases  [r->final_length] = 0;
-      r->final_quality[r->final_length] = 0;
-
-      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-        gkf->clearBeg[which] = 0;
-        gkf->clearEnd[which] = r->final_length;
-      }
-
-      //  Recursively search for another copy of the linker.
-      processMate(h, r, gkf, NULL, NULL, NULL, NULL);
-
-      return(1);
-    }
-
-    //  Adapter found in the middle, and enough to make two mated reads.
-    //
-    if ((al.alignLen >= 40) && (lSize >= 64) && (rSize >= 64)) {
-
-      //  If we get here, and the two mate reads are null, we have
-      //  found a second complete linker -- the original read is
-      //  "seq-link-seq-link-seq" and we don't know where to break.
-      //  The whole read is deleted in this case.
-      //
-      //  The mate is deleted later.
-      //
-      if ((rm1 == NULL) || (rm2 == NULL) || (gkm1 == NULL) || (gkm2 == NULL)) {
-        gkf->deleted = 1;
-        return(0);
-      }
-
-      memcpy(rm1, r, sizeof(sffRead));
-      memcpy(rm2, r, sizeof(sffRead));
-
-      memcpy(gkm1, gkf, sizeof(GateKeeperFragmentRecord));
-      memcpy(gkm2, gkf, sizeof(GateKeeperFragmentRecord));
-
-      //  1.  Make new UIDs for the two mated reads.  Nuke the old
-      //  read.  Make the mates.
-      //
-      //  WARNING!  See that getLastElemStore() below?  It is forcing us to
-      //  load the gkm1 read before the gkm2 read.
-      {
-        char  uid[64];
-        strcpy(uid, AS_UID_toString(gkf->readUID));
-        strcat(uid, "a");
-        gkm1->readUID = AS_UID_load(uid);
-        gkm1->readIID = getLastElemStore(gkpStore->frg) + 1;
-
-        strcpy(uid, AS_UID_toString(gkf->readUID));
-        strcat(uid, "b");
-        gkm2->readUID = AS_UID_load(uid);
-        gkm2->readIID = getLastElemStore(gkpStore->frg) + 2;
-
-        gkf->readUID = AS_UID_undefined();
-
-        gkm1->mateIID = gkm2->readIID;
-        gkm2->mateIID = gkm1->readIID;
-
-        gkm1->orientation = AS_READ_ORIENT_INNIE;
-        gkm2->orientation = AS_READ_ORIENT_INNIE;
-      }
-
-
-      //need to enable more strict checking on things loaded -- no embedded nulls for exampe (is that valid in encoded?)
-
-      //  2.  Construct new rm1, rm2.  Nuke the linker.  Reverse
-      //  complement -- inplace -- the rm2 read.
-      {
-        int j;
-
-        reverseComplement(r->final_bases, r->final_quality, lSize);
-
-        rm1->final_length = lSize;
-
-        for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-          gkm1->clearBeg[which] = 0;
-          gkm1->clearEnd[which] = rm1->final_length;
-        }
-
-        for (j=al.begJ; j<al.endJ; j++) {
-          r->final_bases[j]   = 0;
-          r->final_quality[j] = 0;
-        }
-
-        //reverseComplement(r->final_bases + endJ, r->final_quality + endJ, rSize);
-
-        rm2->final_length   = rSize;
-        rm2->final_bases   += al.endJ;
-        rm2->final_quality += al.endJ;
-
-        for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-          gkm2->clearBeg[which] = 0;
-          gkm2->clearEnd[which] = rm2->final_length;
-        }
-      }
-
-      //  Recursively search for another copy of the linker.
-      processMate(h, rm1, gkm1, NULL, NULL, NULL, NULL);
-      processMate(h, rm2, gkm2, NULL, NULL, NULL, NULL);
-
-      //  If either is deleted now, then we found another linker in
-      //  the split read.
-      //
-      if ((gkm1->deleted) || (gkm2->deleted)) {
-#warning sff errors not reported here
-        gkm1->deleted = 1;
-        gkm2->deleted = 1;
-      }
-
-      return(1);
-    }  //  if match is in middle
-
-  }  //  if significant match
+    fprintf(stderr, "fragment %d root=%s\n", getLastElemStore(gkpStore->frg) + 1, AS_UID_toString(gkf->readUID));
+    fprintf(stderr, "alignLen=%d matches=%d lSize=%d rSize=%d\n", al.alignLen, al.matches, lSize, rSize);
+    fprintf(stderr, "%3d-%3d %s\n", al.begI, al.endI, h->alignA);
+    fprintf(stderr, "%3d-%3d %s\n", al.begJ, al.endJ, h->alignB);
+    fprintf(stderr, "%s\n", r->final_bases);
+  }
 
   return(0);
 }
