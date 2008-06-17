@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.48 2008-06-17 04:44:10 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.49 2008-06-17 19:52:16 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -261,6 +261,11 @@ typedef struct{
   uint32           plateLocation:8;
   uint32           sffLinkerDetectedButNotTrimmed:1;
   uint32           pad1:12;
+
+  //  If this structure ever gets changed (either adding or removing
+  //  data) see the comment about "unioned data" in AS_GKP_sff.c.
+  //  And/or talk to Bri.  Remind him about adding a third OBT range,
+  //  removing UTG, and fixing the only-two-runs-of-ECR problem.
 
   uint64           seqLen:12;
   uint64           hpsLen:12;

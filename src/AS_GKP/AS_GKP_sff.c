@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.17 2008-06-17 04:44:10 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.18 2008-06-17 19:52:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -808,8 +808,27 @@ processMate(sffHeader *h,
   }  //  if match is in middle
 
   //  Significant alignment, but we didn't do anything with it.  Why?
+  //  Overload some of the later clear ranges to convey this
+  //  information to downstream processes.
+  //
+  //  We have 64 bits split into 4 16 bit words.  We want to store the
+  //  position of the match in both the linker and the read, as well
+  //  as length and number of matches.  Six things.  If we assume the
+  //  linker is 255bp or smaller, we can pack.
+  //
+  //  This could benefit from having 64-bits of generic unioned data
+  //  in the fragment record.
 
   gkf->sffLinkerDetectedButNotTrimmed = 1;
+
+  gkf->hasVectorClear  = 0;
+  gkf->hasQualityClear = 0;
+
+  gkf->clearBeg[AS_READ_CLEAR_QLT] = (al.begI     << 8) | al.endI;     //  linker coords
+  gkf->clearEnd[AS_READ_CLEAR_QLT] = (al.alignLen << 8) | al.matches;  //  quality
+
+  gkf->clearBeg[AS_READ_CLEAR_VEC] = al.begJ;  //  read coords
+  gkf->clearEnd[AS_READ_CLEAR_VEC] = al.endJ;
 
   if (0) {
     int  lSize = al.begJ;

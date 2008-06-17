@@ -187,8 +187,8 @@ main(int argc, char **argv) {
               getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_ORIG),
               qltL,
               qltR,
-              fr.gkfr.clearBeg[AS_READ_CLEAR_VEC],
-              fr.gkfr.clearEnd[AS_READ_CLEAR_VEC],
+              (fr.gkfr.hasVectorClear) ? getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_VEC) : 0,
+              (fr.gkfr.hasVectorClear) ? getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_VEC) : 0,
               finL,
               finR,
               ((finL + AS_FRAG_MIN_LEN) > finR) ? " (deleted)" : "");

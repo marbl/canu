@@ -44,19 +44,80 @@ extern "C" {
 FILE   *summaryFile = stdout;
 FILE   *reportFile  = stdout;
 
+uint32   chimeraDetected     = 0;
+uint32   chimeraDeletedSmall = 0;
+uint32   spurDetected        = 0;
+uint32   spurDeletedSmall    = 0;
+uint32   noInniePair         = 0;
+uint32   noChimericOvl       = 0;
+uint32   fullCoverage        = 0;
+
 #define F_U32W(X)  "%" #X F_U32P
 #define F_U64W(X)  "%" #X F_U64P
 
 
 class clear_t {
 public:
+  uint64   pad1:7;
   uint64   length:11;
   uint64   origL:11;
   uint64   origR:11;
   uint64   ovlpL:11;
   uint64   ovlpR:11;
   uint64   deleted:1;
+  uint64   doNotOBT:1;
+
+  uint64   pad2:9;
+  uint64   linkBeg:8;  
+  uint64   linkEnd:8;
+  uint64   fragBeg:11;
+  uint64   fragEnd:11;
+  uint64   alignLen:8;
+  uint64   alignMatches:8;
+  uint64   fragHasLinker:1;
+
+  AS_UID   uid;
 };
+
+
+clear_t *
+readClearRanges(GateKeeperStore *gkp) {
+  FragStream       *fs    = openFragStream(gkp, FRAG_S_INF);
+  fragRecord        fr;
+  clear_t          *clear = new clear_t [getLastElemFragStore(gkp) + 1];
+
+  while (nextFragStream(fs, &fr)) {
+    AS_IID                    iid  = getFragRecordIID(&fr);
+    GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkp, getFragRecordLibraryIID(&fr));
+
+    clear[iid].pad1          = 0;
+    clear[iid].length        = getFragRecordSequenceLength(&fr);
+    clear[iid].ovlpL         = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBT);
+    clear[iid].ovlpR         = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBT);
+    clear[iid].origL         = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBTINI);
+    clear[iid].origR         = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBTINI);
+    clear[iid].deleted       = getFragRecordIsDeleted(&fr) ? 1 : 0;
+    clear[iid].doNotOBT      = ((gklr) && (gklr->doNotOverlapTrim)) ? 1 : 0;
+
+    clear[iid].pad2          = 0;
+    clear[iid].linkBeg       = (fr.gkfr.clearBeg[AS_READ_CLEAR_QLT] >> 8) & 0xff;
+    clear[iid].linkEnd       = (fr.gkfr.clearBeg[AS_READ_CLEAR_QLT]     ) & 0xff;
+    clear[iid].fragBeg       =  fr.gkfr.clearBeg[AS_READ_CLEAR_VEC];
+    clear[iid].fragEnd       =  fr.gkfr.clearEnd[AS_READ_CLEAR_VEC];
+    clear[iid].alignLen      = (fr.gkfr.clearEnd[AS_READ_CLEAR_QLT] >> 8) & 0xff;
+    clear[iid].alignMatches  = (fr.gkfr.clearEnd[AS_READ_CLEAR_QLT]     ) & 0xff;
+    clear[iid].fragHasLinker =  fr.gkfr.sffLinkerDetectedButNotTrimmed;
+
+    clear[iid].uid           = getFragRecordUID(&fr);
+  }
+
+  closeFragStream(fs);
+
+  return(clear);
+}
+
+
+
 
 
 class overlap2_t {
@@ -162,7 +223,7 @@ public:
     _ovlLen++;
   };
 
-  void          print(FILE *out, uint32 i) {
+  void          print(FILE *out, uint32 i) const {
     fprintf(out,
             F_U64"\t"F_U64"\t"F_U64"\t"F_U64"\t"F_U64"\t"F_U64"\t"F_U64"\t--\t"F_U64"\t"F_U64"\t"F_U64"\t"F_U64,
             _iid, _ovl[i].Biid, _ovl[i].style,
@@ -180,10 +241,10 @@ public:
     fprintf(out, "\n");
   };
 
-  uint32        length(void) {
+  uint32        length(void) const {
     return(_ovlLen);
   };
-  overlap2_t    *get(uint32 i) {
+  overlap2_t    *get(uint32 i) const {
     if (i < _ovlLen)
       return(_ovl + i);
     else
@@ -200,40 +261,6 @@ private:
 
 
 
-uint32   chimeraDetected     = 0;
-uint32   chimeraDeletedSmall = 0;
-uint32   spurDetected        = 0;
-uint32   spurDeletedSmall    = 0;
-uint32   noInniePair         = 0;
-uint32   noChimericOvl       = 0;
-uint32   fullCoverage        = 0;
-
-
-
-
-
-//  Reads both clear ranges, packs into a 64-bit integer.
-//
-clear_t *
-readClearRanges(GateKeeperStore *gkp) {
-  FragStream       *fs    = openFragStream(gkp, FRAG_S_INF);
-  fragRecord        fr;
-  clear_t          *clear = new clear_t [getLastElemFragStore(gkp) + 1];
-
-  while (nextFragStream(fs, &fr)) {
-    AS_IID         iid = getFragRecordIID(&fr);
-    clear[iid].length  = getFragRecordSequenceLength(&fr);
-    clear[iid].ovlpL   = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBT);
-    clear[iid].ovlpR   = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBT);
-    clear[iid].origL   = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBTINI);
-    clear[iid].origR   = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBTINI);
-    clear[iid].deleted = getFragRecordIsDeleted(&fr) ? 1 : 0;
-  }
-
-  closeFragStream(fs);
-
-  return(clear);
-}
 
 
 
@@ -263,9 +290,10 @@ printReport(FILE          *reportFile,
 
 void
 printLogMessage(FILE         *reportFile,
-                fragRecord   *fr,
                 AS_UID        uid,
                 AS_IID        iid,
+                uint32        obtBgn,
+                uint32        obtEnd,
                 uint32        intervalBeg,
                 uint32        intervalEnd,
                 bool          doUpdate,
@@ -277,8 +305,8 @@ printLogMessage(FILE         *reportFile,
             AS_UID_toString(uid),
             iid,
             type,
-            getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT),
-            getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT),
+            obtBgn,
+            obtEnd,
             intervalBeg,
             intervalEnd,
             message,
@@ -295,15 +323,17 @@ printLogMessage(FILE         *reportFile,
 //    Look for chimeric and spur patterns.
 //
 void
-process(uint32           iid,
-        GateKeeperStore *gkp,
-        bool             doUpdate,
-        overlapList     *overlap,
-        uint32           ola,
-        uint32           ora) {
+process(const AS_IID           iid,
+        const clear_t         *clear,
+              GateKeeperStore *gkp,
+              bool             doUpdate,
+        const overlapList     *overlap) {
 
   if (overlap->length() <= 0)
     return;
+
+  uint32           ola = clear[iid].ovlpL;
+  uint32           ora = clear[iid].ovlpR;
 
   int    slopSm = 20;  //  A little slop
 
@@ -669,15 +699,8 @@ process(uint32           iid,
   }
 
 
-  fragRecord        fr;
 
-  getFrag(gkp, iid, &fr, FRAG_S_INF);
-
-  AS_UID uid = getFragRecordUID(&fr);
-
-  GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkp, getFragRecordLibraryIID(&fr));
-
-  if ((doUpdate) && (gklr) && (gklr->doNotOverlapTrim))
+  if ((doUpdate) && (clear[iid].doNotOBT))
     doUpdate = false;
 
   if (isSpur) {
@@ -686,21 +709,23 @@ process(uint32           iid,
     if (intervalMax < AS_READ_MIN_LEN) {
       spurDeletedSmall++;
 
-      printLogMessage(reportFile, &fr, uid, iid, intervalBeg, intervalEnd, doUpdate, "SPUR", "New length too small, fragment deleted");
+      printLogMessage(reportFile, clear[iid].uid, iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "SPUR", "New length too small, fragment deleted");
 
       if (doUpdate)
         delFrag(gkp, iid);
     } else {
-      printLogMessage(reportFile, &fr, uid, iid, intervalBeg, intervalEnd, doUpdate, "SPUR", "Length OK");
+      printLogMessage(reportFile, clear[iid].uid, iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "SPUR", "Length OK");
 
       if (doUpdate) {
+        fragRecord fr = {0};
+        getFrag(gkp, iid, &fr, FRAG_S_INF);
         setFragRecordClearRegion(&fr, intervalBeg, intervalEnd, AS_READ_CLEAR_OBT);
         setFrag(gkp, iid, &fr);
       }
     }
 
 #ifdef WITH_FULL_REPORT
-    printReport(reportFile, "SPUR", uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, overlap);
+    printReport(reportFile, "SPUR", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, overlap);
 #endif
   } else if ((IL.numberOfIntervals() > 1) &&
              (hasPotentialChimera > 0) &&
@@ -710,43 +735,45 @@ process(uint32           iid,
     if (intervalMax < AS_READ_MIN_LEN) {
       chimeraDeletedSmall++;
 
-      printLogMessage(reportFile, &fr, uid, iid, intervalBeg, intervalEnd, doUpdate, "CHIMERA", "New length too small, fragment deleted");
+      printLogMessage(reportFile, clear[iid].uid, iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "CHIMERA", "New length too small, fragment deleted");
 
       if (doUpdate)
         delFrag(gkp, iid);
     } else {
-      printLogMessage(reportFile, &fr, uid, iid, intervalBeg, intervalEnd, doUpdate, "CHIMERA", "Length OK");
+      printLogMessage(reportFile, clear[iid].uid, iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "CHIMERA", "Length OK");
 
       if (doUpdate) {
+        fragRecord fr = {0};
+        getFrag(gkp, iid, &fr, FRAG_S_INF);
         setFragRecordClearRegion(&fr, intervalBeg, intervalEnd, AS_READ_CLEAR_OBT);
         setFrag(gkp, iid, &fr);
       }
     }
 
 #ifdef WITH_REPORT_FULL
-    printReport(reportFile, "CHIMERA", uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, overlap);
+    printReport(reportFile, "CHIMERA", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, overlap);
 #endif
   } else if (IL.numberOfIntervals() == 1) {
     fullCoverage++;
 
 #ifdef WITH_REPORT_FULL
-    printReport(reportFile, "FULL COVERAGE", uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, overlap);
+    printReport(reportFile, "FULL COVERAGE", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, overlap);
 #endif
   } else if (hasPotentialChimera == 0) {
     noChimericOvl++;
 
 #ifdef WITH_REPORT_FULL
-    printReport(reportFile, "NO CHIMERIC OVERLAPS", uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, overlap);
+    printReport(reportFile, "NO CHIMERIC OVERLAPS", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, overlap);
 #endif
   } else if (hasInniePair == 0) {
     noInniePair++;
 
 #ifdef WITH_REPORT_FULL
-    printReport(reportFile, "NO INNIE PAIR", uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, overlap);
+    printReport(reportFile, "NO INNIE PAIR", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, overlap);
 #endif
   } else {
 #ifdef WITH_REPORT_FULL
-    printReport(reportFile, "NOT CHIMERA", uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, overlap);
+    printReport(reportFile, "NOT CHIMERA", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, overlap);
 #endif
   }
 
@@ -774,7 +801,6 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strncmp(argv[arg], "-gkp", 2) == 0) {
       gkp      = openGateKeeperStore(argv[++arg], doUpdate);
-      gkp->frg = convertStoreToMemoryStore(gkp->frg);
     } else if (strncmp(argv[arg], "-ovs", 2) == 0) {
       if (ovsprimary == NULL)
         ovsprimary = AS_OVS_openOverlapStore(argv[++arg]);
@@ -796,21 +822,17 @@ main(int argc, char **argv) {
   }
   if ((gkp == 0L) || (ovsprimary == 0L) || (err)) {
     fprintf(stderr, "usage: %s [-1] -gkp <gkpStore> -ovs <ovsStore> [opts]\n", argv[0]);
-    fprintf(stderr, "  -delete         instead of fixing chimera, delete them\n");
     fprintf(stderr, "  -summary S      write a summary of the fixes to S\n");
     fprintf(stderr, "  -report R       write a detailed report of the fixes to R\n");
     exit(1);
   }
 
-  uint32           idAlast, olalast, oralast;
-
-  uint32           idA, idB;
+  AS_IID           idA, idB, idAlast;
   char             ori;
   uint32           leftA, rightA, lenA;
   uint32           leftB, rightB, lenB;
   double           error;
   clear_t         *clear = readClearRanges(gkp);
-  uint64           maxIID      = 65536;
   overlapList     *overlap = new overlapList;
 
   if (summaryName) {
@@ -854,13 +876,11 @@ main(int argc, char **argv) {
     error  = AS_OVS_decodeQuality(ovl->dat.obt.erate);
 
     if (idA != idAlast) {
-      process(idAlast, gkp, doUpdate, overlap, olalast, oralast);
+      process(idAlast, clear, gkp, doUpdate, overlap);
       delete overlap;
       overlap = new overlapList;
     }
     idAlast = ovl->a_iid;
-    olalast = ola;
-    oralast = ora;
 
 #ifdef REPORT_OVERLAPS
     if (reportFile)
@@ -1071,7 +1091,7 @@ main(int argc, char **argv) {
     ovl = readOverlap(ovsprimary, ovssecondary);
   }
 
-  process(idAlast, gkp, doUpdate, overlap, olalast, oralast);
+  process(idAlast, clear, gkp, doUpdate, overlap);
   delete overlap;
 
   closeGateKeeperStore(gkp);
