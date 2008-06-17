@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.47 2008-04-16 09:32:34 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.48 2008-06-17 04:44:10 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -259,7 +259,8 @@ typedef struct{
   uint32           hasVectorClear:1;
   uint32           hasQualityClear:1;
   uint32           plateLocation:8;
-  uint32           pad1:13;
+  uint32           sffLinkerDetectedButNotTrimmed:1;
+  uint32           pad1:12;
 
   uint64           seqLen:12;
   uint64           hpsLen:12;

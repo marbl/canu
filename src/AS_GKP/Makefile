@@ -46,6 +46,5 @@ include $(LOCAL_WORK)/src/c_make.as
 all:    $(OBJECTS) $(LIBRARIES) $(PROGS)
 	@test -n nop
 
-gatekeeper: AS_GKP_main.o $(GKPSRC:.c=.o) libAS_PER.a libAS_MSG.a libAS_UTL.a
-
-gatekeeperbench: AS_GKP_bench.o libAS_PER.a libAS_MSG.a libAS_UTL.a
+gatekeeper:      AS_GKP_main.o $(GKPSRC:.c=.o) libCA.a
+gatekeeperbench: AS_GKP_bench.o                libCA.a

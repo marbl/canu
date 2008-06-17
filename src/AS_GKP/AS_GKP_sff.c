@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.16 2008-06-17 03:38:20 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.17 2008-06-17 04:44:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +32,7 @@ static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.16 2008-06-17 03:38:20 brianwa
 #include "AS_GKP_include.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_encodeSequenceQuality.h"
+#include "AS_ALN_bruteforcedp.h"
 
 //  Problems with this code:
 //
@@ -64,21 +65,7 @@ static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.16 2008-06-17 03:38:20 brianwa
 //  side.  Not enough to split.
 
 
-#define MATCH            0
-#define GAPA             1
-#define GAPB             2
-#define STOP             3
-
-#define MATCHSCORE       3
-#define GAPSCORE        -2
-#define MISMATCHSCORE   -2
-
 #undef  USE_454_TRIMMING
-
-typedef struct {
-  unsigned int  score  : 30;
-  unsigned int  action : 2;
-} dpCell;
 
 int    linkersLen = 1;
 char  *linkers[1] = { "GTTGGAACCGAAAGGGTTTGAATTCAAACCCTTTCGGTTCCAAC" };
@@ -612,144 +599,6 @@ processRead(sffHeader *h,
 }
 
 
-typedef struct {
-  int   matches;
-  int   alignLen;
-  int   begI, begJ;
-  int   endI, endJ;
-  int   lenA, lenB;
-} alignLinker_s;
-
-
-static
-void
-alignLinker(sffHeader      *h,
-            char           *sequence,
-            alignLinker_s  *a) {
-
-  char     *alignA = h->alignA;
-  char     *alignB = h->alignB;
-
-  dpCell  (*M)[AS_READ_MAX_LEN] = h->matrix;
-
-  char *stringA = linkers[0];
-  char *stringB = sequence;
-
-  int   lenA = strlen(stringA);
-  int   lenB = strlen(stringB);
-
-  int   i, j;
-
-  for (i=0; i<lenA+1; i++) {
-    M[i][0].score  = 1 << 29;
-    M[i][0].action = STOP;
-  }
-
-  for (j=0; j<lenB+1; j++) {
-    M[0][j].score  = 1 << 29;
-    M[0][j].action = STOP;
-  }
-
-  int   scoreMax  = 0;
-
-  int   begI=0, endI=0, curI=0;
-  int   begJ=0, endJ=0, curJ=0;
-
-  for (i=1; i<=lenA; i++){
-    for (j=1; j<=lenB; j++){
-
-      //  Pick the max of these
-
-      int ul = M[i-1][j-1].score + ((stringA[i-1] == stringB[j-1]) ? MATCHSCORE : MISMATCHSCORE);
-      int lf = M[i-1][j].score + GAPSCORE;
-      int up = M[i][j-1].score + GAPSCORE;
-
-      // (i,j) is the beginning of a subsequence, our default behavior
-      M[i][j].score  = 1 << 29;
-      M[i][j].action = STOP;
-
-      if (M[i][j].score < ul) {
-        M[i][j].score  = ul;
-        M[i][j].action = MATCH;
-      }
-
-      if (M[i][j].score < lf) {
-        M[i][j].score  = lf;
-        M[i][j].action = GAPB;
-      }
-
-      if (M[i][j].score < up) {
-        M[i][j].score  = up;
-        M[i][j].action = GAPA;
-      }
-
-      if (scoreMax < M[i][j].score) {
-        scoreMax  = M[i][j].score;
-        endI = curI = i;
-        endJ = curJ = j;
-      }
-    }
-  }
-
-  int  alignLen  = 0;
-  int  matches   = 0;
-  int  terminate = 0;
-
-  while (terminate == 0) {
-    switch (M[curI][curJ].action) {
-      case STOP:
-        terminate = 1;
-        break;
-      case MATCH:
-        alignA[alignLen] = stringA[curI-1];
-        alignB[alignLen] = stringB[curJ-1];
-
-        if (alignA[alignLen] == alignB[alignLen]) {
-          alignA[alignLen] = tolower(alignA[alignLen]);
-          alignB[alignLen] = tolower(alignB[alignLen]);
-          matches++;
-        } else {
-          alignA[alignLen] = toupper(alignA[alignLen]);
-          alignB[alignLen] = toupper(alignB[alignLen]);
-        }
-
-        curI--;
-        curJ--;
-        alignLen++;
-        break;
-      case GAPA:
-        alignA[alignLen] = '-';
-        alignB[alignLen] = stringB[curJ-1];
-        curJ--;
-        alignLen++;
-        break;
-      case GAPB:
-        alignA[alignLen] = stringA[curI-1];
-        alignB[alignLen] = '-';
-        curI--;
-        alignLen++;
-        break;
-    }
-  }
-
-  begI = curI;
-  begJ = curJ;
-
-  alignA[alignLen] = 0;
-  alignB[alignLen] = 0;
-
-  reverse(alignA, alignB, alignLen);
-
-  a->matches  = matches;
-  a->alignLen = alignLen;
-  a->begI     = begI;
-  a->begJ     = begJ;
-  a->endI     = endI;
-  a->endJ     = endJ;
-  a->lenA     = lenA;
-  a->lenB     = lenB;
-}
-
 static
 int
 processMate(sffHeader *h,
@@ -766,7 +615,12 @@ processMate(sffHeader *h,
 
   //  Otherwise, look for the mate linker.
   //
-  alignLinker(h, r->final_bases, &al);
+  alignLinker(h->alignA,
+              h->alignB,
+              linkers[0],
+              r->final_bases,
+              h->matrix,
+              &al);
 
 
 #ifdef USE_454_TRIMMING
@@ -953,10 +807,11 @@ processMate(sffHeader *h,
     return(1);
   }  //  if match is in middle
 
-
   //  Significant alignment, but we didn't do anything with it.  Why?
 
-  {
+  gkf->sffLinkerDetectedButNotTrimmed = 1;
+
+  if (0) {
     int  lSize = al.begJ;
     int  rSize = al.lenB - al.endJ;
     fprintf(stderr, "fragment %d root=%s\n", getLastElemStore(gkpStore->frg) + 1, AS_UID_toString(gkf->readUID));
