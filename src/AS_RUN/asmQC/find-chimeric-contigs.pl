@@ -5,18 +5,16 @@ use strict;
 #  Given an assembly, map the contigs to a reference and report
 #  errors -- chimerism, collapses, crud on the ends, etc.
 
-my $snapper = "/home/work/w/kmer/snapper/snapper2";
-my $extent  = "/home/work/w/kmer/sim4dbutils/convertToExtent";
-my $leaff   = "/home/work/w/kmer/leaff/leaff";
-my $sim4th  = "/home/work/w/kmer/sim4db/sim4th";
-
-$snapper = "/home/work/trimbug/wgs/kmer/snapper/snapper2";
+my $snapper = "wgs/kmer/snapper/snapper2";
+my $extent  = "wgs/kmer/sim4dbutils/convertToExtent";
+my $leaff   = "wgs/kmer/leaff/leaff";
+my $sim4th  = "wgs/kmer/sim4db/sim4th";
 
 my $asm = shift @ARGV;
-my $ref = "/home/work/FRAGS-BOGpaper/psychromonas_sp__cnpt3/CNPT3.fasta";
+my $ref = shift @ARGV;
 
-die "No assembly supplied.\n"      if (!defined($asm));
-die "Assembly '$asm' not found.\n" if (! -e $asm);
+die "usage: $0 asm/asm.fasta ref.fasta\n" if (!defined($asm) || ! -e $asm);
+die "usage: $0 asm/asm.fasta ref.fasta\n" if (!defined($ref) || ! -e $ref);
 
 my %contigStatus;
 my %contigLength;

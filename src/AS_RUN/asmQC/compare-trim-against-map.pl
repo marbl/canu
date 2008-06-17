@@ -11,11 +11,8 @@ my $convert    = "wgs/kmer/FreeBSD-amd64/bin/convertToExtent";
 my $gkp = shift @ARGV;
 my $ref = shift @ARGV;
 
-$ref = "CNPT3.fasta"  if (!defined($ref));
-
-if (!defined($gkp)) {
-    die "usage: $0 asm/asm.gkpStore [ref.fasta]\n";
-}
+die "usage: $0 asm/asm.gkpStore ref.fasta\n" if (!defined($gkp) || ! -d $gkp);
+die "usage: $0 asm/asm.gkpStore ref.fasta\n" if (!defined($ref) || ! -e $ref);
 
 if (! -e "$gkp/reads-untrimmed.fasta") {
     system("$gatekeeper -dumpfastaseq -clear OBT $gkp > $gkp/reads-untrimmed.fasta");
