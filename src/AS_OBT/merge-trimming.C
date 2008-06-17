@@ -338,7 +338,7 @@ main(int argc, char **argv) {
         maxm3 = mode3;
       }
 
-#undef BADIDEA
+#define BADIDEA
 #ifdef BADIDEA
       if ((gklr) && (gklr->doNotQVTrim)) {
         qltLQ1 = 0;
