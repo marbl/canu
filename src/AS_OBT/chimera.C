@@ -35,6 +35,7 @@ extern "C" {
 #include "AS_OVS_overlapStore.h"
 }
 
+
 //  WITH_REPORT_FULL will report unmodified fragments.
 //  REPORT_OVERLAPS  will print the incoming overlaps in the log.
 //
@@ -191,8 +192,8 @@ public:
       case 8:
       case 12:
         //  Containment overlap
-        if ((ori == 'f') && (((Abeg >= Bbeg) && (Abeg - Bbeg < 30))
-                             || ((Abeg < Bbeg) && (Bbeg - Abeg < 30)))) {
+        if ((ori == 'f') && (((Abeg >= Bbeg) && (Abeg - Bbeg < 30)) ||
+                             ((Abeg <  Bbeg) && (Bbeg - Abeg < 30)))) {
           style = 0;
         }
         break;          
@@ -288,6 +289,10 @@ printReport(FILE          *reportFile,
 }
 
 
+
+
+
+
 void
 printLogMessage(FILE         *reportFile,
                 AS_UID        uid,
@@ -302,13 +307,9 @@ printLogMessage(FILE         *reportFile,
 
   if (reportFile)
     fprintf(reportFile, "%s,"F_IID" %s Trimmed from "F_U32W(4)" "F_U32W(4)" to "F_U32W(4)" "F_U32W(4)".  %s, gatekeeper store %s.\n",
-            AS_UID_toString(uid),
-            iid,
-            type,
-            obtBgn,
-            obtEnd,
-            intervalBeg,
-            intervalEnd,
+            AS_UID_toString(uid), iid, type,
+            obtBgn, obtEnd,
+            intervalBeg, intervalEnd,
             message,
             doUpdate ? "updated" : "not updated");
 }
@@ -317,11 +318,7 @@ printLogMessage(FILE         *reportFile,
 
 
 
-//    Sort each overlapList?
-//    Build an interval list using all overlaps.
-//    Squash the list, see if it intersects.
-//    Look for chimeric and spur patterns.
-//
+
 void
 process(const AS_IID           iid,
         const clear_t         *clear,
@@ -332,14 +329,154 @@ process(const AS_IID           iid,
   if (overlap->length() <= 0)
     return;
 
-  uint32           ola = clear[iid].ovlpL;
-  uint32           ora = clear[iid].ovlpR;
+  if ((doUpdate) && (clear[iid].doNotOBT))
+    doUpdate = false;
 
-  int    slopSm = 20;  //  A little slop
+  //fprintf(stderr, "process %s,"F_IID"\n", AS_UID_toString(clear[iid].uid), iid);
 
-  intervalList   IL;
-  uint32         hasPotentialChimera = 0;
-  uint32         hasInniePair        = 0;
+  int              slopSm = 20;  //  A little slop
+
+  uint32           loLinker = clear[iid].fragBeg;
+  uint32           hiLinker = clear[iid].fragEnd;
+  bool             isLinker = false;
+
+
+  //  If this read has left over linker from gatekeeper, we need to
+  //  decide, now, if that region is supported by overlaps.  If it
+  //  isn't we need to remove overlaps from here so that it is
+  //  properly detected as chimeric.
+  //
+  if (clear[iid].fragHasLinker) {
+    uint32  isectbefore = 0;
+    uint32  isect       = 0;
+    uint32  isectafter  = 0;
+
+    uint32  slop = slopSm;
+
+    //  Count the number of overlaps intersecting this region, compare
+    //  to the number of overlaps in the surrounding areas.
+    //
+    //               ---this---
+    //               ----------        not isect; doesn't span more than the region
+    //     --------------------------- isect
+    //        ------                   isectbefore
+    //   ------                        not before, too far away
+    //                          -----  isectafter
+    //        -------------            **
+    //
+    //  ** - This is trouble.  If this region is genomic dna and not
+    //  linker, we expect to have more than enough true isect to
+    //  notice it.  Ideally, we'd be using the overlap types (as
+    //  above) to notice that this overlap has more sequence spurring
+    //  off because it diagrees with the linker.
+    //
+    for (uint32 i=0; i<overlap->length(); i++) {
+      overlap2_t  *ovl   = overlap->get(i);
+      uint32       ovllo = ovl->Abeg;
+      uint32       ovlhi = ovl->Aend;
+
+      if (ovl->style == 0)
+        continue;
+
+      //  Overlap ends within 5bp of the beginning of the region
+      if ((ovlhi <= loLinker + slop) && (loLinker <= ovlhi + slop))
+        isectbefore++;
+
+      //  Overlap spans 5bp more than both ends of the region
+      if ((ovllo + slop <= loLinker) && (hiLinker + slop <= ovlhi))
+        isect++;
+
+      //  Overlap begins within 5bp of the end of the region
+      if ((ovllo <= hiLinker + slop) && (hiLinker <= ovllo + slop))
+        isectafter++;
+    }
+
+
+    if (isect == 0)
+      isLinker = true;
+
+    if ((isect == 1) && ((isectbefore >= 4) || (isectafter >= 4)))
+      isLinker = true;
+
+    if ((isect == 1) && (isectbefore >= 2) && (isectafter == 0))
+      isLinker = true;
+
+    if ((isect == 1) && (isectbefore == 0) && (isectafter >= 2))
+      isLinker = true;
+
+
+    //  Truncate the overlaps to linker bits.
+    //
+    if (isLinker == true) {
+#ifdef DEBUG_ISLINKER
+      fprintf(stderr, "frag %s,"F_IID" region "F_U32"-"F_U32" isectbefore "F_U32" isect "F_U32" isectafter "F_U32"\n",
+              AS_UID_toString(clear[iid].uid), iid,
+              loLinker, hiLinker, isectbefore, isect, isectafter);
+#endif
+
+      for (uint32 i=0; i<overlap->length(); i++) {
+        overlap2_t  *ovl = overlap->get(i);
+        uint32       ovllo = ovl->Abeg;
+        uint32       ovlhi = ovl->Aend;
+
+        if (ovl->style == 0)
+          continue;
+
+        //  Overlap spans the region
+        if ((ovllo <= loLinker) && (hiLinker <= ovlhi)) {
+          ovl->style = 16;  //  Invalid style, will be ignored
+#ifdef DEBUG_ISLINKER
+          fprintf(stderr, "  overlap "F_U32"-"F_U32" --> "F_U32"-"F_U32" delete\n", ovllo, ovlhi, 0, 0);
+#endif
+          continue;
+        }
+
+        //  Overlap ends inside the region - trim it
+        if ((ovllo < loLinker) && (loLinker < ovlhi)) {
+          uint32 trim = ovlhi - loLinker;
+          ovl->Aend   -= trim;
+          ovl->Arhang += trim;
+          ovl->Bend   -= trim;
+          ovl->Brhang += trim;
+          ovl->style  |= 0x04 | 0x01;
+          if ((loLinker > ovlhi) || (ovl->Abeg > ovl->Aend) || (ovl->Aend - ovl->Abeg < 40)) {
+            ovl->style = 16;
+#ifdef DEBUG_ISLINKER
+            fprintf(stderr, "  overlap "F_U32"-"F_U32" --> "F_U32"-"F_U32" begin delete\n", ovllo, ovlhi, ovl->Abeg, ovl->Aend);
+          } else {
+            fprintf(stderr, "  overlap "F_U32"-"F_U32" --> "F_U32"-"F_U32" begin\n", ovllo, ovlhi, ovl->Abeg, ovl->Aend);
+#endif
+          }
+          continue;
+        }
+
+        //  Overlap starts inside the region - trim it
+        if ((ovllo < hiLinker) && (hiLinker < ovlhi)) {
+          uint32 trim = hiLinker - ovllo;
+          ovl->Abeg   += trim;
+          ovl->Alhang += trim;
+          ovl->Bbeg   += trim;
+          ovl->Blhang += trim;
+          ovl->style  |= 0x08 | 0x02;
+          if ((ovllo > hiLinker) || (ovl->Abeg > ovl->Aend) || (ovl->Aend - ovl->Abeg < 40)) {
+            ovl->style = 16;
+#ifdef DEBUG_ISLINKER
+            fprintf(stderr, "  overlap "F_U32"-"F_U32" --> "F_U32"-"F_U32" end delete\n", ovllo, ovlhi, ovl->Abeg, ovl->Aend);
+          } else {
+            fprintf(stderr, "  overlap "F_U32"-"F_U32" --> "F_U32"-"F_U32" end\n", ovllo, ovlhi, ovl->Abeg, ovl->Aend);
+#endif
+          }
+          continue;
+        }
+      }
+    }
+  }
+
+
+  intervalList     IL;
+  uint32           hasPotentialChimera = 0;
+  uint32           hasInniePair        = 0;
+
 
   for (uint32 i=0; i<overlap->length(); i++) {
     overlap2_t  *ovl = overlap->get(i);
@@ -402,12 +539,9 @@ process(const AS_IID           iid,
         if ((ovl->Aend - ovl->Abeg) > 75)
           IL.add(ovl->Abeg + slopSm, ovl->Aend - ovl->Abeg - 2*slopSm);
         break;
-
-      default:
-        fprintf(stderr, "UNCLASSIFIED OVERLAP TYPE "F_U64"\n", ovl->style);
-        break;
     }
   }
+
 
   IL.merge();
 
@@ -423,6 +557,8 @@ process(const AS_IID           iid,
   bool           rightIntervalHang[1025];
   bool           isSpur = false;
 
+  uint32         ola = clear[iid].ovlpL;
+  uint32         ora = clear[iid].ovlpR;
 
   //  Run through the overlaps again, counting the number of innie
   //  pairs across each gap in the intervals.
@@ -593,10 +729,6 @@ process(const AS_IID           iid,
             isRightSpur = true;
           }
           break;
-      
-        default:
-          fprintf(stderr, "UNCLASSIFIED OVERLAP TYPE "F_U64"\n", ovl->style);
-          break;
       }
     }
 
@@ -626,9 +758,15 @@ process(const AS_IID           iid,
   //
   //
 
-  uint32  intervalBeg = 0;
-  uint32  intervalEnd = 0;
-  uint32  intervalMax = 0;
+  //  BUG?  If these are set to zero -- the behaviour before Bri
+  //  mucked around with the linker stuff in v1.27 -- this fails the
+  //  assert below.  Bri couldn't figure out what was going on, other
+  //  than the leftIntervalHang and rightIntervalHang aren't set??
+  //
+  uint32  intervalBeg = IL.lo(0);
+  uint32  intervalEnd = IL.hi(0);
+  uint32  intervalMax = intervalEnd - intervalBeg;
+
   {
     uint32  currentBeg = ola;
     bool    ignoreLast = false;
@@ -656,7 +794,6 @@ process(const AS_IID           iid,
 
 
     for (uint32 interval=0; interval<IL.numberOfIntervals(); interval++) {
-
       if (leftIntervalHang[interval]) {
         //  If this interval (currentBeg <-> IL.lo() - slopSm) is the biggest, save it.
         if (IL.lo(interval) > intervalMax + slopSm + currentBeg) {
@@ -679,7 +816,7 @@ process(const AS_IID           iid,
 	currentBeg = IL.hi(interval) + slopSm;
       }
     }
-
+ 
     //  Check the last interval.  Why?  'currentBeg' could start
     //  before the last interval.  But it only does this if the last
     //  interval has a rightIntervalHang[].  We explicitly disallow
@@ -692,16 +829,37 @@ process(const AS_IID           iid,
     if ((rightIntervalHang[IL.numberOfIntervals()-1] == false) &&
         (ignoreLast == false) &&
         (IL.hi(IL.numberOfIntervals()-1) - currentBeg > intervalMax)) {
+
+      //  But abort if the interval makes no sense.  Bri had a bug
+      //  that this was catching, and left the check for now.
+      //
+      if (currentBeg >= ora) {
+        fprintf(stderr, "Yikes!  curBeg="F_U32" intervalMax="F_U32"\n", currentBeg, intervalMax);
+        for (uint32 interval=0; interval<IL.numberOfIntervals(); interval++)
+          fprintf(stderr, "int %d-%d\n", IL.lo(interval), IL.hi(interval));
+        for (uint32 i=0; i<overlap->length(); i++) {
+          overlap2_t  *ovl = overlap->get(i);
+          fprintf(stderr, "ovl %d-%d %d-%d\n", ovl->Abeg, ovl->Aend, ovl->Bbeg, ovl->Bend);
+        }
+      }
+
       intervalBeg = currentBeg;
       intervalEnd = ora;
       intervalMax = intervalEnd - intervalBeg;
     }
   }
 
+  assert(intervalBeg < intervalEnd);
 
+  bool   isChimera = false;
 
-  if ((doUpdate) && (clear[iid].doNotOBT))
-    doUpdate = false;
+  if ((IL.numberOfIntervals() > 1) && (hasPotentialChimera > 0) && (hasInniePair > 0))
+    //  The classic chimera pattern.
+    isChimera = true;
+
+  if ((IL.numberOfIntervals() > 1) && (isLinker))
+    //  Chimera induced by having linker in the middle.
+    isChimera = true;
 
   if (isSpur) {
     spurDetected++;
@@ -727,9 +885,7 @@ process(const AS_IID           iid,
 #ifdef WITH_FULL_REPORT
     printReport(reportFile, "SPUR", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, overlap);
 #endif
-  } else if ((IL.numberOfIntervals() > 1) &&
-             (hasPotentialChimera > 0) &&
-             (hasInniePair > 0)) {
+  } else if (isChimera) {
     chimeraDetected++;
 
     if (intervalMax < AS_READ_MIN_LEN) {

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.18 2008-06-17 19:52:16 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.19 2008-06-19 05:02:43 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -636,17 +636,22 @@ processMate(sffHeader *h,
   fprintf(stderr, "%3d-%3d %s\n", al.begJ, al.endJ, h->alignB);
 #endif
 
-  //  Did we find enough of the linker to do something?  We just need to throw out the
-  //  obviously bad stuff.  When we get shorter and shorter, it's hard to define
-  //  reasonable cutoffs.
+  //  Did we find enough of the linker to do something?  We just need
+  //  to throw out the obviously bad stuff.  When we get shorter and
+  //  shorter, it's hard to define reasonable cutoffs.
+  //
+  //  Things that are called good here, but are actually bad, will be
+  //  examined in OBT's chimera.  If there are no overlaps spanning,
+  //  they'll be trimmed out, usually by being called chimeric.
   //
   int  goodAlignment = 0;
+  int  bestAlignment = 0;
 
-  if ((al.alignLen >= 5) && (al.matches + 1 >= al.alignLen))
+  if ((al.alignLen >=  5) && (al.matches + 1 >= al.alignLen))
     goodAlignment = 1;
-  if ((al.alignLen >= 10) && (al.matches + 2 >= al.alignLen))
+  if ((al.alignLen >= 15) && (al.matches + 2 >= al.alignLen))
     goodAlignment = 1;
-  if ((al.alignLen >= 20) && (al.matches + 3 >= al.alignLen))
+  if ((al.alignLen >= 30) && (al.matches + 3 >= al.alignLen))
     goodAlignment = 1;
   if ((al.alignLen >= 40) && (al.matches + 4 >= al.alignLen))
     goodAlignment = 1;
@@ -654,22 +659,19 @@ processMate(sffHeader *h,
   if (goodAlignment == 0)
     return(0);
 
+  if ((al.alignLen >= 42) && (al.matches + 2 >= al.alignLen))
+    bestAlignment = 1;
 
-  int  linkerHead = al.begI;
-  int  linkerTail = linkerLength - al.endI;
 
-  int  lSize      = al.begJ;
-  int  rSize      = al.lenB - al.endJ;
+  int  lSize = al.begJ;
+  int  rSize = al.lenB - al.endJ;
 
   int  which;
 
 
   //  Adapter found on the left, but not enough to make a read.  Trim it out.
   //
-  if (((lSize < 64) && (al.alignLen >= 35)) ||
-      ((lSize < 16) && (al.alignLen >= 16)) ||
-      ((lSize <  8) && (al.alignLen >=  8) && (linkerTail < 5)) ||
-      ((lSize <  2) && (al.alignLen >=  5) && (linkerTail < 5))) {
+  if ((bestAlignment) && (lSize < 64)) {
     r->final_length = rSize;
 
     r->final_bases   += al.endJ;
@@ -689,10 +691,7 @@ processMate(sffHeader *h,
 
   //  Adapter found on the right, but not enough to make a read.  Trim it out.
   //
-  if (((rSize < 64) && (al.alignLen >= 35)) ||
-      ((rSize < 16) && (al.alignLen >= 16)) ||
-      ((rSize <  8) && (al.alignLen >=  8) && (linkerHead < 5)) ||
-      ((rSize <  2) && (al.alignLen >=  5) && (linkerHead < 5))) {
+  if ((bestAlignment) && (rSize < 64)) {
     r->final_length = lSize;
 
     r->final_bases  [r->final_length] = 0;
@@ -712,7 +711,7 @@ processMate(sffHeader *h,
 
   //  Adapter found in the middle, and enough to make two mated reads.
   //
-  if ((al.alignLen >= 35) && (lSize >= 64) && (rSize >= 64)) {
+  if ((bestAlignment) && (lSize >= 64) && (rSize >= 64)) {
 
     //  If we get here, and the two mate reads are null, we have
     //  found a second complete linker -- the original read is

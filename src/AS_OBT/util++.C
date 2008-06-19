@@ -29,12 +29,6 @@
 
 #include "util++.H"
 
-
-//  Define this to print some debugging information
-//
-//#define DEBUG_LIST
-
-
 intervalList::intervalList() {
   _isSorted = true;
   _listLen  = 0;
@@ -67,7 +61,7 @@ intervalList::operator=(intervalList &src) {
 void
 intervalList::add(intervalNumber position, intervalNumber length) {
 
-#ifdef DEBUG_LIST
+#if 0
   fprintf(stderr, "Adding %u - %u\n", position, position+length);
 #endif
 
@@ -85,9 +79,6 @@ intervalList::add(intervalNumber position, intervalNumber length) {
 
   if ((_listLen > 0) &&
       (_list[_listLen-1].lo > _list[_listLen].lo)) {
-#ifdef DEBUG_LIST
-    fprintf(stderr, "list isn't sorted\n");
-#endif
     _isSorted = false;
   }
 
@@ -112,12 +103,8 @@ intervalList_sort_helper(const void *a, const void *b) {
 void
 intervalList::sort(void) {
 
-  if (_isSorted) {
-#ifdef DEBUG_LIST
-    fprintf(stderr, "List is already sorted!\n");
-#endif
+  if (_isSorted)
     return;
-  }
 
   if (_listLen > 1)
     qsort(_list, _listLen, sizeof(_intervalPair), intervalList_sort_helper);
@@ -137,6 +124,12 @@ intervalList::merge(void) {
   sort();
 
   while (nextInterval < _listLen) {
+
+#if 0
+    fprintf(stderr, "merge "F_U64"-"F_U64" <- "F_U64"-"F_U64"\n",
+            _list[thisInterval].lo, _list[thisInterval].hi,
+            _list[nextInterval].lo, _list[nextInterval].hi);
+#endif
 
     if ((_list[thisInterval].lo == 0) &&
         (_list[thisInterval].hi == 0)) {
