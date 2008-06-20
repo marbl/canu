@@ -31,8 +31,8 @@
 
 HashTable_AS   *uid2iid      = NULL;
 
-#define ORIR '1'
-#define ORIF '0'
+#define ORIR 'r'
+#define ORIF 'f'
 
 
 typedef struct {
