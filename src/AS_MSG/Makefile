@@ -24,51 +24,29 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-LIBRARIES = libAS_MSG.a libCA.a
+SOURCES    = AS_MSG_pmesg.c AS_MSG_pmesg1.c AS_MSG_pmesg2.c remove_fragment.c ExtractMessages.c
+OBJECTS    = $(SOURCES:.c=.o)
+PROGS      = AS_MSG_pmesg_test remove_fragment extractmessages
+LIBRARIES  = libAS_MSG.a libCA.a
+SCRIPTS    = convert-fasta-to-v2.pl convert-v1-to-v2.pl tracedb-to-frg.pl
 
-SOURCES = AS_MSG_pmesg.c      \
-          AS_MSG_pmesg1.c     \
-          AS_MSG_pmesg2.c     \
-          remove_fragment.c   \
-          AS_MSG_pmesg_test.c \
-          ExtractMessages.c
-
-OBJECTS = $(SOURCES:.c=.o)
-
-PROGS = AS_MSG_pmesg_test \
-        remove_fragment   \
-	extractmessages
-
-SCRIPTS = convert-fasta-to-v2 \
-	  convert-v1-to-v2
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(PROGS)
-	@test -n nop
+all: $(OBJECTS) $(LIBRARIES) $(PROGS) $(SCRIPTS)
+	@cp -f convert-fasta-to-v2.pl $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/convert-fasta-to-v2.pl
+	@cp convert-v1-to-v2.pl $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/convert-v1-to-v2.pl
+	@cp tracedb-to-frg.pl $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/tracedb-to-frg.pl
 
 libAS_MSG.a:       AS_MSG_pmesg.o AS_MSG_pmesg1.o AS_MSG_pmesg2.o
-
 libCA.a:           AS_MSG_pmesg.o AS_MSG_pmesg1.o AS_MSG_pmesg2.o
 
-AS_MSG_pmesg_test: AS_MSG_pmesg_test.o libCA.a
-
 remove_fragment:   remove_fragment.o   libCA.a
-
 extractmessages:   ExtractMessages.o   libCA.a
-
-convert-fasta-to-v2: convert-fasta-to-v2.pl
-	@cp $< $(LOCAL_BIN)/$@
-	@chmod 775 $(LOCAL_BIN)/$@
-
-convert-v1-to-v2: convert-v1-to-v2.pl
-	@cp $< $(LOCAL_BIN)/$@
-	@chmod 775 $(LOCAL_BIN)/$@
-
-tester: AS_MSG_pmesg_test AS_MSG_testfile.in
-	AS_MSG_pmesg_test -d < AS_MSG_testfile.in > testfile.out
-	diff -w -n AS_MSG_testfile.in testfile.out
 
 perlmodule:
 	cd p5-AS-MSG-Parser && perl ./Makefile.PL AS_BASE=$(LOCAL_WORK) INSTALL_BASE=$(LOCAL_OS)
