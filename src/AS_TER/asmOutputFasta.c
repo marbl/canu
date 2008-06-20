@@ -38,19 +38,22 @@
 //  Parameters
 //
 int    minNumFragsInUnitig  = 0;
-char  *prefix               = NULL;
 
-FILE   *UTGseqout = NULL;
-FILE   *UTGqltout = NULL;
+FILE   *UTGseqout = NULL;  //  bases; .fasta
+FILE   *UTGqltout = NULL;  //  CA encoded quality values; .qv
+FILE   *UTGquaout = NULL;  //  NCBI encoded quality values; .qual
 
 FILE   *DEGseqout = NULL;
 FILE   *DEGqltout = NULL;
+FILE   *DEGquaout = NULL;
 
 FILE   *CCOseqout = NULL;
 FILE   *CCOqltout = NULL;
+FILE   *CCOquaout = NULL;
 
 FILE   *SCFseqout = NULL;
 FILE   *SCFqltout = NULL;
+FILE   *SCFquaout = NULL;
 
 
 //  Shared Data
@@ -141,6 +144,13 @@ processIUM(IntUnitigMesg *ium_mesg) {
                       strlen(ium_mesg->consensus),
                       ium_mesg->num_frags,
                       ium_mesg->coverage_stat);
+    AS_UTL_writeQVFastA(UTGquaout,
+                        ium_mesg->quality, len,
+                        ">ium"F_IID" length=%d num_frags="F_IID" Astat=%.2f\n",
+                        ium_mesg->iaccession,
+                        strlen(ium_mesg->consensus),
+                        ium_mesg->num_frags,
+                        ium_mesg->coverage_stat);
   }
 }
 
@@ -168,6 +178,13 @@ processUTG(SnapUnitigMesg  *utg_mesg) {
                       strlen(utg_mesg->consensus),
                       utg_mesg->num_frags,
                       utg_mesg->coverage_stat);
+    AS_UTL_writeQVFastA(UTGquaout,
+                        utg_mesg->quality, len,
+                        ">utg%s length=%d num_frags="F_IID" Astat=%.2f\n",
+                        AS_UID_toString(utg_mesg->eaccession),
+                        strlen(utg_mesg->consensus),
+                        utg_mesg->num_frags,
+                        utg_mesg->coverage_stat);
   }
 }
 
@@ -220,6 +237,10 @@ processCCO(SnapConConMesg *cco_mesg) {
                       cd->qlt, cd->len,
                       ">ctg%s\n",
                       AS_UID_toString(cco_mesg->eaccession));
+    AS_UTL_writeQVFastA(CCOquaout,
+                        cd->qlt, cd->len,
+                        ">ctg%s\n",
+                        AS_UID_toString(cco_mesg->eaccession));
   }
   if ((cd->isDegenerate == 1) && (DEGseqout)) {
     AS_UTL_writeFastA(DEGseqout,
@@ -230,6 +251,10 @@ processCCO(SnapConConMesg *cco_mesg) {
                       cd->qlt, cd->len,
                       ">deg%s\n",
                       AS_UID_toString(cco_mesg->eaccession));
+    AS_UTL_writeQVFastA(DEGquaout,
+                        cd->qlt, cd->len,
+                        ">deg%s\n",
+                        AS_UID_toString(cco_mesg->eaccession));
   }
 }
 
@@ -324,6 +349,9 @@ processSCF(SnapScaffoldMesg *scf_mesg) {
   AS_UTL_writeFastA(SCFqltout,
                     scfqlt, scfPos,
                     ">scf%s\n", AS_UID_toString(scf_mesg->eaccession));
+  AS_UTL_writeQVFastA(SCFquaout,
+                      scfqlt, scfPos,
+                      ">scf%s\n", AS_UID_toString(scf_mesg->eaccession));
 
   safe_free(reversed);
   safe_free(scfcns);
@@ -333,30 +361,11 @@ processSCF(SnapScaffoldMesg *scf_mesg) {
 
 
 
-FILE *openOutput(char *prefix, char *label) {
+FILE *openOutput(char *prefix, char *template) {
   char  N[FILENAME_MAX];
-  static int once = 0;
-  const char* fsa = "fasta";
-  const char* notFsa = "notFasta";
-  const char* suffix = fsa;
-  const char* readme =
-"These qlt files are not strictly fasta because a > is a valid quality value and\n \
-could occasionally occur at the beginning of a line. See sourceforge for more\n \
-documentation and for feedback http://wgs-assembler.sf.net\n";
-
   FILE *F;
 
-  if (NULL != strstr(label,"qlt")) {
-      suffix = notFsa;
-      if (!once) {
-          once++;
-          F = fopen("README.notFasta", "w");
-          fwrite( readme, sizeof(char), strlen(readme), F);
-          fclose(F);
-      }
-
-  }
-  sprintf(N, "%s.%s.%s", prefix, label, suffix);
+  sprintf(N, template, prefix);
 
   errno = 0;
   F = fopen(N, "w");
@@ -373,6 +382,7 @@ int
 main(int argc, char **argv) {
   GenericMesg      *pmesg;
   char              name[FILENAME_MAX];
+  char             *prefix = NULL;
   char             *infile = NULL;
 
   int               dumpUnitigs     = 1;
@@ -405,22 +415,34 @@ main(int argc, char **argv) {
     }
     arg++;
   }
+  if (prefix == NULL)
+    err++;
   if (isatty(fileno(stdin)) && (infile == NULL))
     err++;
   if (err > 0) {
     fprintf(stderr, "usage: %s [options] -p prefix < asmfile\n", argv[0]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -p         write files named 'prefix.XXX.TYPE', etc.\n");
+    fprintf(stderr, "                 XXX =  type of object\n");
+    fprintf(stderr, "                        utg - unitig\n");
+    fprintf(stderr, "                        deg - degenerate\n");
+    fprintf(stderr, "                        ctg - contig\n");
+    fprintf(stderr, "                        scf - scaffold\n");
+    fprintf(stderr, "                 TYPE = type of sequence\n");
+    fprintf(stderr, "                        fasta - acgt bases\n");
+    fprintf(stderr, "                        qv    - Celera encoded quality values\n");
+    fprintf(stderr, "                        qual  - NCBI encoded quality values\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -U         do NOT dump unitigs\n");
     fprintf(stderr, "  -D         do NOT dump degenerates\n");
     fprintf(stderr, "  -C         do NOT dump contigs\n");
     fprintf(stderr, "  -S         do NOT dump scaffolds\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -p         write files named 'prefix.contig.fasta', etc.\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "UNITIG OPTIONS\n");
     fprintf(stderr, "  -n nf      dump only unitigs with at least nf reads\n");
     fprintf(stderr, "             in them.  Default is 0 (dump all unitigs).\n");
     fprintf(stderr, "\n");
+#if 0
     fprintf(stderr, "\n");
     fprintf(stderr, "CONTIG OPTIONS\n");
     fprintf(stderr, "\n");
@@ -428,26 +450,31 @@ main(int argc, char **argv) {
     fprintf(stderr, "SCAFFOLD OPTIONS\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
+#endif
     exit(1);
   }
 
   uid2iid = CreateScalarHashTable_AS(32 * 1024);
 
   if (dumpUnitigs) {
-    UTGseqout = openOutput(prefix, "utgcns");
-    UTGqltout = openOutput(prefix, "utgqlt");
+    UTGseqout = openOutput(prefix, "%s.utg.fasta");
+    UTGqltout = openOutput(prefix, "%s.utg.qv");
+    UTGquaout = openOutput(prefix, "%s.utg.qual");
   }
   if (dumpContigs) {
-    DEGseqout = openOutput(prefix, "degcns");
-    DEGqltout = openOutput(prefix, "degqlt");
+    DEGseqout = openOutput(prefix, "%s.deg.fasta");
+    DEGqltout = openOutput(prefix, "%s.deg.qv");
+    DEGquaout = openOutput(prefix, "%s.deg.qual");
   }
   if (dumpContigs) {
-    CCOseqout = openOutput(prefix, "ctgcns");
-    CCOqltout = openOutput(prefix, "ctgqlt");
+    CCOseqout = openOutput(prefix, "%s.ctg.fasta");
+    CCOqltout = openOutput(prefix, "%s.ctg.qv");
+    CCOquaout = openOutput(prefix, "%s.ctg.qual");
   }
   if (dumpScaffolds) {
-    SCFseqout = openOutput(prefix, "scfcns");
-    SCFqltout = openOutput(prefix, "scfqlt");
+    SCFseqout = openOutput(prefix, "%s.scf.fasta");
+    SCFqltout = openOutput(prefix, "%s.scf.qv");
+    SCFquaout = openOutput(prefix, "%s.scf.qual");
   }
 
   FILE *F = stdin;
@@ -476,18 +503,22 @@ main(int argc, char **argv) {
   if (dumpUnitigs) {
     fclose(UTGseqout);
     fclose(UTGqltout);
+    fclose(UTGquaout);
   }
   if (dumpDegenerates) {
     fclose(DEGseqout);
     fclose(DEGqltout);
+    fclose(DEGquaout);
   }
   if (dumpContigs) {
     fclose(CCOseqout);
     fclose(CCOqltout);
+    fclose(CCOquaout);
   }
   if (dumpScaffolds) {
     fclose(SCFseqout);
     fclose(SCFqltout);
+    fclose(SCFquaout);
   }
 
   if (errno) {
