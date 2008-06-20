@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.28 2008-01-31 05:18:09 brianwalenz Exp $
+# $Id: caqc.pl,v 1.29 2008-06-20 20:10:42 brianwalenz Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -20,7 +20,7 @@ use File::Copy;
 use Math::BigFloat;
 use FindBin qw($Bin);
 
-my $MY_VERSION = "caqc Version 2.13 (Build " . (qw/$Revision: 1.28 $/)[1] . ")";
+my $MY_VERSION = "caqc Version 2.13 (Build " . (qw/$Revision: 1.29 $/)[1] . ")";
 
 # Constants
 my $MINQUAL    = 20;
@@ -1741,7 +1741,7 @@ MAIN:
         $fm->close() or die("Could not close $prefix.qc.metrics ($!)");
 
     }
-    my $badMateFile = 'badMateFragmentIDs.txt';
+    my $badMateFile = "$prefix.badMateFragmentIDs";
 
     # sort on UID of UTG, or CCO, then begin position, then end
     # UTGs should only be unplaced surrogates
