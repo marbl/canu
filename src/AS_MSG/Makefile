@@ -26,7 +26,7 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 
 SOURCES    = AS_MSG_pmesg.c AS_MSG_pmesg1.c AS_MSG_pmesg2.c remove_fragment.c ExtractMessages.c
 OBJECTS    = $(SOURCES:.c=.o)
-PROGS      = AS_MSG_pmesg_test remove_fragment extractmessages
+PROGS      = remove_fragment extractmessages
 LIBRARIES  = libAS_MSG.a libCA.a
 SCRIPTS    = convert-fasta-to-v2.pl convert-v1-to-v2.pl tracedb-to-frg.pl
 
