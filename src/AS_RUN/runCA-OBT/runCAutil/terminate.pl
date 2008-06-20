@@ -86,6 +86,7 @@ sub terminate ($) {
             rename "$termDir/$asm.map", "$termDir/$asm.map.FAILED";
             caFailure("Failed.\n");
         }
+        unlink "$termDir/terminator.err";
     }
 
 
@@ -113,6 +114,7 @@ sub terminate ($) {
             print STDERR "Failed.\n";
             rename "$termDir/$asm.singleton.fasta", "$termDir/$asm.singleton.fasta.FAILED";
         }
+        unlink "$termDir/dumpSingletons.err";
     }
 
 
@@ -211,26 +213,15 @@ sub terminate ($) {
     #
     ########################################
 
-
-    my $ruby;
-    system("/usr/bin/env ruby -v >/dev/null 2>&1");
-    $ruby = "/usr/bin/env ruby" if ($? == 0);
-    if (defined($ruby) && (! -e "$termDir/mateLinkIIDRanges.txt")) {
-        my $cmd;
-        $cmd = "$bin/mateLinkIIDRanges.rb $wrk/$asm.gkpStore $bin > $termDir/mateLinkIIDRanges.txt";
-#        if (runCommand($termDir, $cmd)) {
-#            rename "$termDir/mateLinkIIDRanges.txt", "$termDir/mateLinkIIDRanges.txt.FAILED";
-#        }
-    }
-
     if (! -e "$termDir/$asm.qc") {
         my $qcOptions;
 
-        if (! -e "$termDir/$asm.dumpinfo") {
-            if (runCommand($termDir, "$bin/gatekeeper -dumpinfo $wrk/$asm.gkpStore > $termDir/$asm.gkpinfo 2> $termDir/$asm.gkpinfo.err")) {
-                unlink "$termDir/$asm.gkpinfo";
-            }
-        }
+        #if (! -e "$termDir/$asm.dumpinfo") {
+        #    if (runCommand($termDir, "$bin/gatekeeper -dumpinfo $wrk/$asm.gkpStore > $termDir/$asm.gkpinfo 2> $termDir/$asm.gkpinfo.err")) {
+        #        unlink "$termDir/$asm.gkpinfo";
+        #    }
+        #    unlink "$termDir/$asm.gkpinfo.err";
+        #}
     	if ( -e "$wrk/$asm.frg" ) {
             link "$wrk/$asm.frg", "$termDir/$asm.frg";
             $qcOptions = "-metrics";
@@ -277,6 +268,10 @@ sub terminate ($) {
         }
 
         close(F);
+
+        unlink "$wrk/5-consensus/consensus.stats.summary";
+        unlink "$wrk/8-consensus/consensus.stats.summary";
+        unlink "$termDir/$asm.qc.readdepth";
     }
 
 
