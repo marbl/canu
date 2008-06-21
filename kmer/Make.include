@@ -31,3 +31,5 @@ $(eval $(call Include,${LIBKMER/}))
 $(eval $(call Include,${LIBMERYL/}))
 $(eval $(call Include,${LIBBIO/}))
 $(eval $(call Include,${LIBUTL/}))
+
+$/.REAL-CLEAN     := $/Make.compilers $/Make.rules $/Makefile $/makepath $/makepath.c
