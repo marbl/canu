@@ -82,17 +82,14 @@ include $(LOCAL_WORK)/src/c_make.as
 all: $(OBJECTS) $(LIBRARIES) $(PROGS) $(SCRIPTS)
 	@test -n nop
 
-RUNCAOBTUTIL = runCA-OBT/runCAutil/applyOverlapCorrection.pl \
-               runCA-OBT/runCAutil/checkOverlap.pl \
+RUNCAOBTUTIL = runCA-OBT/runCAutil/checkOverlap.pl \
                runCA-OBT/runCAutil/createConsensusJobs.pl \
-               runCA-OBT/runCAutil/createFragmentCorrectionJobs.pl \
-               runCA-OBT/runCAutil/createOverlapCorrectionJobs.pl \
                runCA-OBT/runCAutil/merOverlapper.pl \
                runCA-OBT/runCAutil/createOverlapJobs.pl \
                runCA-OBT/runCAutil/createOverlapStore.pl \
                runCA-OBT/runCAutil/createPostUnitiggerConsensus.pl \
-               runCA-OBT/runCAutil/mergeFragmentCorrection.pl \
                runCA-OBT/runCAutil/meryl.pl \
+               runCA-OBT/runCAutil/overlapCorrection.pl \
                runCA-OBT/runCAutil/overlapTrim.pl \
                runCA-OBT/runCAutil/preoverlap.pl \
                runCA-OBT/runCAutil/scaffolder.pl \
