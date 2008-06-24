@@ -6,21 +6,13 @@ LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
 LIBKMER/    :=$(call MakePath,$/../libkmer/)
 LIBSIM4/    :=$(call MakePath,$/../libsim4/)
 
-src      := $/tapper.C \
-            $/tapper.H
-
-$/.CXX_SRCS := $(filter %.C,${src}) $/sample-and-color.C
-$/.CXX_EXES := $/tapper $/sample-and-color
+$/.CXX_SRCS := $/tapper.C $/sample-and-color.C $/check-overlap.C
+$/.CXX_EXES := $/tapper   $/sample-and-color   $/check-overlap
 
 $/.CLEAN     :=$/*.o
 
 $(eval $/%.d $/%.o:  CXXFLAGS+= -I${LIBUTL/} -I${LIBBIO/} -I${LIBMERYL/} -I${LIBKMER/} -I${LIBSIM4/})
 
 $/sample-and-color:  $/sample-and-color.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-
-$/tapper:     $/tapper.o \
-              ${LIBSIM4/}libsim4.a \
-              ${LIBKMER/}libkmer.a \
-              ${LIBMERYL/}libmeryl.a \
-              ${LIBBIO/}libbio.a \
-              ${LIBUTL/}libutil.a
+$/check-overlap:     $/check-overlap.o    ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/tapper:            $/tapper.o           ${LIBSIM4/}libsim4.a ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a

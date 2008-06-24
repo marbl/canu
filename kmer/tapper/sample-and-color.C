@@ -9,11 +9,13 @@ int
 main(int argc, char **argv) {
 
   if (argv[1] == 0L) {
-    fprintf(stderr, "usage: %s some.fasta\n", argv[0]);
+    fprintf(stderr, "usage: %s N some.fasta\n", argv[0]);
     exit(1);
   }
 
-  seqFile    *F = openSeqFile(argv[1]);
+  int         N = atoi(argv[1]);
+
+  seqFile    *F = openSeqFile(argv[2]);
   seqInCore  *s = F->getSequenceInCore();
 
   u32bit  pos = 0;
@@ -23,7 +25,7 @@ main(int argc, char **argv) {
 
   mt_s   *mtctx = mtInit(time(0));
 
-  for (u32bit i=0; i<2; i++) {
+  for (u32bit i=0; i<N; i++) {
     pos = mtRandom32(mtctx) % (len - MS);
 
     char  n = 'N';
@@ -43,6 +45,15 @@ main(int argc, char **argv) {
       l = n;
     }
 #endif
+
+    //  Insert an error.
+
+    if (0) {
+      u32bit e = mtRandom32(mtctx) % MS;
+      seq[e] = seq[e] + 1;
+      if (seq[e] > '4')
+        seq[e] = '0';
+    }
 
     //seq[10] = 3 - seq[10];
 

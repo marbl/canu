@@ -75,6 +75,8 @@ public:
   bool        existsExact(u64bit   mer);
   u64bit      countExact(u64bit    mer);
 
+  void        setUpMismatchMatcher(u32bit nErrorsAllowed);
+
   bool        getUpToNMismatches(u64bit      mer,
                                  u64bit      maxMismatches,
                                  u64bit*&    posn,
@@ -217,6 +219,14 @@ private:
   u32bit      _sortedMax;
   u64bit     *_sortedChck;
   u64bit     *_sortedPosn;
+
+  //  For the mismatch matcher
+  u32bit      _nErrorsAllowed;
+  u32bit      _hashedErrorsLen;
+  u32bit      _hashedErrorsMax;
+  u64bit     *_hashedErrors;
+
+
 };
 
 #endif  //  POSITIONDB_H

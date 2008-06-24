@@ -3,71 +3,6 @@
 #include "positionDB.H"
 
 
-#if 0
-
-gdb -silent --args \
-./tapper \
-  -numthreads 1 \
-  -genomic /home/work/FRAGS/M063/CNPT3.fasta \
-  -color   /home/work/FRAGS/M063/CNPT3.colored \
-  -queries /home/work/FRAGS/M063/solid/AMY20070504_1_TIGR_JCV11_F3.csfasta
-
-
-rm randomgenome* && \
-../leaff/leaff -G 1 100 100 > randomgenome.fasta && \
-./sample-and-color randomgenome.fasta > randomgenome.tags && \
-./tapper \
-  -numthreads 1 \
-  -genomic randomgenome.fasta \
-  -color   randomgenome.color \
-  -queries randomgenome.tags > randomgenome.hits
-
-#endif
-
-
-//  Converts an acgt sequence to a color-space sequence.  Sequences
-//  can be the same.
-//
-void
-convertACGTtoColor(char *color, char *acgt, u32bit len) {
-  char       l = 'n';  //  We always start the color encoding assuming the -1 letter is a gap
-  char       n = 0;
-
-  for (u32bit i=0; i<len; i++) {
-    n        = acgt[i];
-    color[i] = baseToColor[l][n];
-    l        = n;
-  }
-}
-
-
-void
-rewriteFileAsColorACGT(char *acgtname, char  *colorname) {
-  seqFile    *F  = openSeqFile(acgtname);
-
-  if (fileExists(colorname)) {
-    fprintf(stderr, "ColorFastA '%s' exists.  NOT recreating.\n", colorname);
-    return;
-  }
-
-  fprintf(stderr, "Rewriting '%s' as ColorFastA '%s'.\n", acgtname, colorname);
-
-  errno = 0;
-  FILE       *CF = fopen(colorname, "w");
-  if (errno)
-    fprintf(stderr, "Failed to create '%s': %s\n", colorname, strerror(errno)), exit(1);
-
-  while (F->eof() == false) {
-    seqInCore *f = F->getSequenceInCore();
-    convertACGTtoColor(f->sequence(), f->sequence(), f->sequenceLength());
-    fprintf(CF, "%s\n%s\n", f->header(), f->sequence());
-    delete f;
-  }
-
-  delete F;
-  fclose(CF);
-}
-
 #include "tapperGlobalData.H"
 #include "tapperThreadData.H"
 #include "tapperHit.H"
@@ -113,7 +48,6 @@ tapperWriter(void *G, void *S) {
 
   delete s;
 }
-
 
 
 
@@ -164,15 +98,11 @@ tapperWorker(void *G, void *T, void *S) {
   t->posn2fLen = 0;
   t->posn2rLen = 0;
 
-  fprintf(stderr, "FWD1\n");
-  g->PS->getUpToNMismatches(s->tag1f, 1, t->posn1f, t->posn1fMax, t->posn1fLen);
-  //fprintf(stderr, "BWD1\n");
-  //g->PS->getUpToNMismatches(s->tag1r, 1, t->posn1r, t->posn1rMax, t->posn1rLen);
+  g->PS->getUpToNMismatches(s->tag1f, 3, t->posn1f, t->posn1fMax, t->posn1fLen);
+  g->PS->getUpToNMismatches(s->tag1r, 3, t->posn1r, t->posn1rMax, t->posn1rLen);
 
-  fprintf(stderr, "FWD2\n");
-  g->PS->getUpToNMismatches(s->tag2f, 1, t->posn2f, t->posn2fMax, t->posn2fLen);
-  //fprintf(stderr, "BWD2\n");
-  //g->PS->getUpToNMismatches(s->tag2r, 1, t->posn2r, t->posn2rMax, t->posn2rLen);
+  g->PS->getUpToNMismatches(s->tag2f, 3, t->posn2f, t->posn2fMax, t->posn2fLen);
+  g->PS->getUpToNMismatches(s->tag2r, 3, t->posn2r, t->posn2rMax, t->posn2rLen);
 
   //  Now need to make sense of this stuff.
   //
@@ -220,7 +150,7 @@ tapperWorker(void *G, void *T, void *S) {
   //  Stuff all the good hits into tappeComputation's hits entry.
 
   for (u32bit i=0; i<hitsLen; i++) {
-    tapperHit  h;
+    tapperHit  h = {0};
 
     u64bit  so  = (hits[i] >> 33) & u64bitMASK(31);
     u64bit  po  = (hits[i] >> 2)  & u64bitMASK(31);
@@ -231,10 +161,10 @@ tapperWorker(void *G, void *T, void *S) {
 
     if (ta2) {
       h.setOrientation(0, 0, 1, rev);
-      h.tag1pos = po;
+      h.tag2pos = po;
     } else {
       h.setOrientation(1, rev, 0, 0);
-      h.tag2pos = po;
+      h.tag1pos = po;
     }
 
     s->addHit(h);

@@ -61,7 +61,7 @@ public:
 
   void writeHits(FILE *OF) {
     for (u32bit i=0; i<hitsLen; i++)
-      hits[i].writeHit(OF, tag1name, tag1f, tag2r, tag2name, tag2f, tag2r);
+      hits[i].writeHit(OF, tag1name, tag1f, tag1r, tag2name, tag2f, tag2r);
   };
 
 public:
