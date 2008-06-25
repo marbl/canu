@@ -21,6 +21,7 @@ extern "C" {
 //  reversecomplement.c
 //
 char *reverseComplementSequence(char *seq, u32bit seqlen);
+char *reverseString(char *seq, u32bit seqlen);
 
 
 //  halign
