@@ -8,7 +8,7 @@ initCompressionTablesForColorSpace(void) {
 
   for (i=0; i<128; i++)
     for (j=0; j<128; j++)
-      baseToColor[i][j] = 0;  //  Invalid
+      baseToColor[i][j] = '.';  //  Invalid
 
   //  Supports transforming a base sequence to a color sequence.
 
@@ -60,6 +60,32 @@ initCompressionTablesForColorSpace(void) {
       baseToColor[toupper(i)][tolower(j)] = baseToColor[i][j];
       baseToColor[tolower(i)][tolower(j)] = baseToColor[i][j];
     }
+
+  //  Supports composing colors
+
+  baseToColor['0']['0'] = '0';
+  baseToColor['0']['1'] = '1';
+  baseToColor['0']['2'] = '2';
+  baseToColor['0']['3'] = '3';
+  baseToColor['0']['4'] = '4';
+
+  baseToColor['1']['0'] = '1';
+  baseToColor['1']['1'] = '0';
+  baseToColor['1']['2'] = '3';
+  baseToColor['1']['3'] = '2';
+  baseToColor['1']['4'] = '4';
+
+  baseToColor['2']['0'] = '2';
+  baseToColor['2']['1'] = '3';
+  baseToColor['2']['2'] = '0';
+  baseToColor['2']['3'] = '1';
+  baseToColor['2']['4'] = '4';
+
+  baseToColor['3']['0'] = '3';
+  baseToColor['3']['1'] = '2';
+  baseToColor['3']['2'] = '1';
+  baseToColor['3']['3'] = '0';
+  baseToColor['3']['4'] = '4';
 
   //  Supports transforming color sequence to base sequence.
 
