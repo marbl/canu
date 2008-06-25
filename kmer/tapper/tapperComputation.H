@@ -1,3 +1,6 @@
+
+#define TAGNAMEMAX  1024
+
 class tapperComputation {
 public:
   tapperComputation(seqInCore *a, seqInCore *b) {
@@ -17,22 +20,19 @@ public:
     tag2f.setMerSize(tag1size); tag2f.setMerSpan(tag1size);
     tag2r.setMerSize(tag1size); tag2r.setMerSpan(tag2size);
 
-    strncpy(tag1name, a->header() + 1, 64);
-    tag1name[63] = 0;
+    strncpy(tag1name, a->header() + 1, TAGNAMEMAX);
+    tag1name[TAGNAMEMAX-1] = 0;
 
-    strncpy(tag2name, b->header() + 1, 64);
-    tag2name[63] = 0;
+    strncpy(tag2name, b->header() + 1, TAGNAMEMAX);
+    tag2name[TAGNAMEMAX-1] = 0;
 
     u32bit seqlen = a->sequenceLength();
 
-    //  Yes, i=2.  The first letter in the tag is the last in the
-    //  adapter, and it's not in the tag.  We need to skip it.  The
-    //  second letter (the first color) is biased by the adapter, and
-    //  it will be an error 75% of the time.  Skip it too.
-    //
     for (u32bit i=0; i<seqlen; i++) {
       tag1fseq[i] = a->sequence()[i];
       tag2fseq[i] = b->sequence()[i];
+      tag1rseq[i] = tag1fseq[i];
+      tag2rseq[i] = tag2fseq[i];
     }
 
     //  Rebuild the tag, for reverse-complement.  Add a new base to
@@ -57,24 +57,23 @@ public:
     //     A C A G G T
     //
 
-    char  l1 = tag1fseq[0];
-    char  l2 = tag2fseq[0];
+    char  l1 = tag1rseq[0];
+    char  l2 = tag2rseq[0];
 
-    tag1rseq[0] = tag1fseq[0];
-    tag2rseq[0] = tag2fseq[0];
+    fprintf(stderr, "l1=%c\n", l1);
 
     for (u32bit i=1; i<seqlen; i++) {
-      tag1rseq[i] = tag1fseq[i];
-      tag2rseq[i] = tag2fseq[i];
       l1 = baseToColor[l1][tag1rseq[i]];
       l2 = baseToColor[l2][tag2rseq[i]];
+      fprintf(stderr, "l1=%c\n", l1);
     }
+
 
     tag1rseq[seqlen] = baseToColor[l1]['A'];
     tag2rseq[seqlen] = baseToColor[l2]['A'];
 
-    tag1rseq[seqlen+1] = 'A';
-    tag2rseq[seqlen+1] = 'A';
+    tag1rseq[seqlen+1] = 'T';
+    tag2rseq[seqlen+1] = 'T';
 
     tag1rseq[seqlen+2] = 0;
     tag2rseq[seqlen+2] = 0;
@@ -91,6 +90,11 @@ public:
 
     //  Now just push the seqs into mers.
 
+    //  Yes, i=2.  The first letter in the tag is the last in the
+    //  adapter, and it's not in the tag.  We need to skip it.  The
+    //  second letter (the first color) is biased by the adapter, and
+    //  it will be an error 75% of the time.  Skip it too.
+    //
     for (u32bit i=2; i<seqlen; i++) {
       tag1f += compressSymbol[tag1fseq[i]];
       tag1r += compressSymbol[tag1rseq[i]];
@@ -131,8 +135,8 @@ public:
   u32bit      tag1size;
   u32bit      tag2size;
 
-  char        tag1name[64];
-  char        tag2name[64];
+  char        tag1name[1024];
+  char        tag2name[1024];
 
   char        tag1fseq[64], tag1rseq[64];
   char        tag2fseq[64], tag2rseq[64];

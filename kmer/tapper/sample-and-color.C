@@ -4,7 +4,7 @@
 //  Reads a fastafile, samples randomly and outputs colorspace tags.
 
 //  Max of 33 for now.
-#define MS 33
+#define MS 23
 
 int
 main(int argc, char **argv) {
@@ -40,6 +40,8 @@ main(int argc, char **argv) {
 
     bool   doForward = (mtRandom32(mtctx) & 0x1000) == 0x1000;
 
+    doForward = false;
+
     if (doForward) {
       //  Forward
       u32bit sp = pos;
@@ -51,9 +53,9 @@ main(int argc, char **argv) {
       }
     } else {
       //  Reverse
-      u32bit sp = pos + MS;
+      u32bit sp = pos + MS - 1;
       for (u32bit x=1; x<=MS; x++) {
-        n = s->sequence()[sp--];
+        n = complementSymbol[s->sequence()[sp--]];
         cor[x] = n;
         seq[x] = baseToColor[l][n];
         l = n;
@@ -64,10 +66,9 @@ main(int argc, char **argv) {
 
     char     errors[256] = {0};
     char     errort[256] = {0};
-    u32bit   nerr = 3;
+    u32bit   nerr = 0;
 
-#if 1
-    for (u32bit xx=mtRandom32(mtctx) % nerr + 1; xx-- > 0; ) {
+    for (u32bit xx=0; xx<nerr; xx++) {
       u32bit e = mtRandom32(mtctx) % MS + 1;
       char   o = seq[e];
       seq[e] = seq[e] + 1;
@@ -76,10 +77,10 @@ main(int argc, char **argv) {
       sprintf(errort, "_%c-%c@%d", o, seq[e], e);
       strcat(errors, errort);
     }
-#endif
 
     //seq[ 1]++;   if (seq[ 1] > '3')   seq[ 1] = '0';
     //seq[33]++;   if (seq[33] > '3')   seq[33] = '0';
+    seq[10]++;   if (seq[10] > '3')   seq[10] = '0';
 
     fprintf(stdout, ">i"u32bitFMT"_p"u32bitFMT"_%s%s\n%s\n", i, pos, cor+1, errors, seq);
   }

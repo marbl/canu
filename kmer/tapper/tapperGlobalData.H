@@ -86,7 +86,7 @@ public:
 
     if (maxError == 0) {
       fprintf(stderr, "tapper: initialize()- maxError is 0 -- use snapper!\n");
-      exit(1);
+      //exit(1);
     }
 
     PS->setUpMismatchMatcher(maxError);

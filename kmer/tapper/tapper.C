@@ -206,17 +206,22 @@ alignToReference(tapperGlobalData *g,
   for (ti=2, si=po+1; ti<len; ti++, si++) {
     ref[ti] = baseToColor[seq[si-1]][seq[si]];
 
-    if (tag[ti] != ref[ti]) {
+    if (ref[ti] != tag[ti]) {
       errp[errs] = ti;
       errs++;
     }
   }
 
+  tag[len] = 0;
+  ref[len] = 0;
+
   //  Note that errp[] is actaully 1-based; the first position is never
   //  an error; it's the reference base.
 
-  if ((errs == 0) || (g->maxError < errs))
+  if ((errs == 0) || (errs > g->maxError)) {
+    fprintf(stdout, "error "u32bitFMT" %s -- %s at ref pos "u32bitFMT"\n", errs, tag, ref, po);
     return(errs);
+  }
 
   //  Compose the colors.  If these are the same, we call the two
   //  colors 'consistent' - the ACGT reads begin and end with the same
@@ -322,8 +327,7 @@ alignToReference(tapperGlobalData *g,
   tagACGT[len-1] = 0;
   refACGT[len-1] = 0;
 
-  fprintf(stderr, "tag:%s/%s\nref:%s/%s\n", tag, tagACGT, ref, refACGT);
-
+  //fprintf(stderr, "tag:%s/%s\nref:%s/%s\n", tag, tagACGT, ref, refACGT);
   
   return(errs);
 }
@@ -393,8 +397,10 @@ tapperWorkerSingle(void *G, void *T, void *S) {
   g->PS->getUpToNMismatches(s->tag1f, g->maxError, t->posn1f, t->posn1fMax, t->posn1fLen);
   g->PS->getUpToNMismatches(s->tag1r, g->maxError, t->posn1r, t->posn1rMax, t->posn1rLen);
 
-  if (t->posn1fLen + t->posn1rLen == 0)
+  if (t->posn1fLen + t->posn1rLen == 0) {
+    fprintf(stdout, "no hits for %s\n", s->tag1name);
     return;
+  }
 
   if (t->hits1Max < t->posn1fLen + t->posn1rLen) {
     t->hits1Max = t->posn1fLen + t->posn1rLen;
@@ -444,6 +450,8 @@ tapperWorkerSingle(void *G, void *T, void *S) {
       }
 
       s->addHit(h);
+    } else {
+      fprintf(stdout, "too many errors ("u32bitFMT") for %s\n", mm, s->tag1name);
     }
   }
 }
