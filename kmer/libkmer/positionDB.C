@@ -93,9 +93,11 @@ positionDB::positionDB(merStream          *MS,
   //
   //  30 was fast, but 16GB, and slow to build
   //
+#if 0
 #define MINSIZE 20
   if ((isForMismatches) && (sm < MINSIZE) && (MINSIZE < lg))
     sm = MINSIZE;
+#endif
 
   if (sm > lg) {
     fprintf(stderr, "ERROR:  too many mers for this mersize!\n");
@@ -129,6 +131,7 @@ positionDB::positionDB(merStream          *MS,
 
     //  If the ts is even, and shift1 is even, and shift2 is even,
     //  this is a valid tablesize to consider.
+#if 0
     if (isForMismatches) {
       u32bit  s1 = 2 * merSize - i;
       u32bit  s2 = s1 / 2;
@@ -140,6 +143,7 @@ positionDB::positionDB(merStream          *MS,
         continue;
       }
     }
+#endif
 
     if (mm < mins) {
       if (beVerbose) {

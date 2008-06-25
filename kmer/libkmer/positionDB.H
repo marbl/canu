@@ -225,8 +225,6 @@ private:
   u32bit      _hashedErrorsLen;
   u32bit      _hashedErrorsMax;
   u64bit     *_hashedErrors;
-
-
 };
 
 #endif  //  POSITIONDB_H

@@ -1,10 +1,6 @@
 #include "positionDB.H"
 #include "bio++.H"
 
-#include "hashIterator.H"
-
-#define DEBUG_MISMATCH
-
 
 static
 int
@@ -15,6 +11,7 @@ stringscmp(const void *A, const void *B) {
   if (a > b)  return(1);
   return(0);
 }
+
 
 static
 u32bit
@@ -31,6 +28,7 @@ makeUnique(u64bit *strings, u32bit stringsLen) {
   }
   return(len+1);
 }
+
 
 static
 void
@@ -344,10 +342,10 @@ positionDB::getUpToNMismatches(u64bit   mer,
         d2    = diffs & u64bitNUMBER(0xaaaaaaaaaaaaaaaa);
         err = countNumberOfSetBits64(d1 | (d2 >> 1));
 
-        fprintf(stderr, "mer "u64bitHEX" -- chk "u64bitHEX" (full)\n", mer, chk);
+        //fprintf(stderr, "mer "u64bitHEX" -- chk "u64bitHEX" (full)\n", mer, chk);
 
         if (err <= numMismatches) {
-          fprintf(stderr, "mer:"u64bitHEX" -- "u64bitFMT" MISMATCHES\n", mer, err);
+          //fprintf(stderr, "mer:"u64bitHEX" -- "u64bitFMT" MISMATCHES\n", mer, err);
           u64bit c = 0;
           loadPositions(J, posn, posnMax, posnLen, c);
         }
