@@ -7,6 +7,8 @@ public:
   u32bit  numThreads;
   bool    beVerbose;
 
+  bool    isMated;
+
   u32bit  tagSize;
   u32bit  maxError;
 
@@ -16,6 +18,7 @@ public:
   merStream  *MS;
   positionDB *PS;
 
+  FastACache *GS;
 
   tapperGlobalData() {
     genName   = 0L;
@@ -23,7 +26,9 @@ public:
     qryName   = 0L;
 
     numThreads = 2;
-    beVerbose  = true;
+    beVerbose  = false;
+
+    isMated    = false;
 
     tagSize   = 0;
     maxError  = 3;
@@ -33,6 +38,8 @@ public:
     SS = 0L;
     MS = 0L;
     PS = 0L;
+
+    GS = 0L;
   };
 
   ~tapperGlobalData() {
@@ -40,6 +47,7 @@ public:
     delete PS;
     delete MS;
     delete SS;
+    delete GS;
   }
 
   void   initialize(void) {
@@ -62,6 +70,11 @@ public:
       QF->rewind();
     }
 
+    if (tagSize > 32) {
+      fprintf(stderr, "tag size too big for this implementation.\n");
+      exit(1);
+    }
+
     fprintf(stderr, "Building seqStream\n");
     SS = new seqStream(colName, true);
 
@@ -77,6 +90,8 @@ public:
     }
 
     PS->setUpMismatchMatcher(maxError);
+
+    GS = new FastACache(genName, 0, true, false);
   };
 
 private:
@@ -115,8 +130,9 @@ private:
       delete f;
     }
 
-    delete F;
     fclose(CF);
+
+    delete F;
   };
 
 };
