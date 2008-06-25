@@ -158,8 +158,8 @@ main(int argc, char **argv) {
 
   //  For every possible placement in the string construct a mask of where we can change the hash
 
-  u64bit  totpat = 0;
-  u64bit  toterr = 0;
+  u32bit  totpat = 0;
+  u32bit  toterr = 0;
 
   u64bit  m1,  m2,  m3,  m4,  m5,  m6;
   u64bit *e1, *e2, *e3, *e4, *e5, *e6;
