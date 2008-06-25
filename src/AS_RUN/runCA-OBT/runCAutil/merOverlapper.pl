@@ -59,16 +59,11 @@ sub merOverlapper($) {
     system("mkdir $wrk/$outDir/seeds") if (! -d "$wrk/$outDir/seeds");
     system("mkdir $wrk/$outDir/olaps") if (! -d "$wrk/$outDir/olaps");
 
-    #  Make the 2-frgcorr directory (to hold the corrections
-    #  output) and claim that fragment correction is all done.
-    #  after this, the rest of the fragment/overlap correction
-    #  pipeline Just Works.
+    #  Make the directory (to hold the corrections output) and claim
+    #  that fragment correction is all done.  after this, the rest of
+    #  the fragment/overlap correction pipeline Just Works.
     #
-    if ($isTrim ne "trim") {
-        system("mkdir $wrk/2-frgcorr") if (! -d "$wrk/2-frgcorr");
-        touch("$wrk/2-frgcorr/jobsCreated.success");
-    }
-
+    system("mkdir $wrk/3-overlapcorrection") if ((! -d "$wrk/3-overlapcorrection") && ($isTrim ne "trim"));
 
     my $ovmBatchSize = getGlobal("merOverlapperSeedBatchSize");
     my $ovmJobs      = int($numFrags / ($ovmBatchSize-1)) + 1;
@@ -198,13 +193,13 @@ sub merOverlapper($) {
             print F " > $wrk/$outDir/olaps/\$jobid.ovb \\\n";
         } else {
             print F "-w \\\n" if (getGlobal("merOverlapperCorrelatedDiffs"));
-            print F " -c $wrk/2-frgcorr/\$jobid.frgcorr \\\n";
+            print F " -c $wrk/3-overlapcorrection/\$jobid.frgcorr.WORKING \\\n";
             print F " -o $wrk/$outDir/olaps/\$jobid.ovb \\\n";
             print F " $wrk/$asm.gkpStore \\\n";
             print F " \$minid \$maxid \\\n";
             print F " > $wrk/$outDir/olaps/$asm.\$jobid.ovb.err 2>&1 \\\n";
             print F "&& \\\n";
-            print F "touch $wrk/2-frgcorr/\$jobid.success \\\n";
+            print F "mv $wrk/3-overlapcorrection/\$jobid.frgcorr.WORKING $wrk/3-overlapcorrection/\$jobid.frgcorr \\\n";
         }
 
         print F "&& \\\n";
