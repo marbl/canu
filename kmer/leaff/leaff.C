@@ -462,10 +462,12 @@ printRandomlyGeneratedSequence(u32bit n, u32bit s, u32bit l) {
 
   for (u32bit i=0; i<n; i++) {
     u32bit j = s + (mtRandom32(mtctx) % (l-s));
+    u32bit p = 0;
 
-    seq[j] = 0;
-    while (j)
-      seq[--j] = bases[mtRandom32(mtctx) & 0x3];            
+    seq[j] = '\n';
+
+    while (p < j)
+      seq[p++] = bases[mtRandom32(mtctx) & 0x3];            
 
     if (withDefLine)
       if (specialDefLine)
@@ -473,7 +475,7 @@ printRandomlyGeneratedSequence(u32bit n, u32bit s, u32bit l) {
       else
         fprintf(stdout, ">"u32bitFMT"\n", i);
 
-    fprintf(stdout, "%s\n", seq);
+    fwrite(seq, sizeof(char), j+1, stdout);
   }
 
   delete [] seq;
