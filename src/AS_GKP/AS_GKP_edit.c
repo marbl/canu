@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.9 2008-06-16 18:07:43 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.10 2008-06-26 18:12:17 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,6 +63,8 @@ updateVectorClear(char *vectorClearFile, char *gkpStoreName) {
     AS_UID    uid = AS_UID_lookup(pine, &pine);
     int       l   = strtol(pine, &pine, 10);
     int       r   = strtol(pine, &pine, 10);
+    int       ll;
+    int       rr;
 
     if (AS_UID_isDefined(uid) == FALSE) {
       fprintf(stderr, "unexpected line: %s", line);
@@ -74,13 +76,29 @@ updateVectorClear(char *vectorClearFile, char *gkpStoreName) {
 
         fr.gkfr.hasVectorClear = 1;
 
+        //  Silently flip coordinates if needed.
         if (l < r) {
-          fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = l - 1;  //  Assume they are base-based.
-          fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = r;
+          ll = l - 1;
+          rr = r;
         } else {
-          fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = r - 1;
-          fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = l;
+          ll = r - 1;
+          rr = ll;
         }
+
+        //  Not silently fix invalid coords.
+        if ((ll < 0) ||
+            (rr < 0) ||
+            (ll >= AS_READ_MAX_LEN) ||
+            (rr >= AS_READ_MAX_LEN)) {
+          if (ll <  0)                  ll = 0;
+          if (rr >= AS_READ_MAX_LEN)    ll = AS_READ_MAX_LEN-1;
+          if (ll <  0)                  rr = 0;
+          if (rr >= AS_READ_MAX_LEN)    rr = AS_READ_MAX_LEN-1;
+          fprintf(stderr, "WARNING:  Fixing vector clear range for %s from (%d,%d) to (%d,%d).\n", l, r, ll, rr);
+        }
+
+        fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = ll;
+        fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = rr;
 
         setFrag(gkpStore, iid, &fr);
         nupdate++;
