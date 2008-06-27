@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -25,22 +25,22 @@
 *   reads and use them to determine if the pair actually overlaps.
 *   These overlaps are then used to correct errors in reads based
 *   on the alignment of all overlapping reads to a given read.
-* 
+*
 *    Programmer:  A. Delcher
 *       Started:  15 February 2007
-* 
+*
 * Assumptions:
-* 
+*
 * Notes:
 *
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.27 2008-05-16 00:03:31 brianwalenz Exp $
- * $Revision: 1.27 $
+ * $Id: OlapFromSeedsOVL.c,v 1.28 2008-06-27 06:29:18 brianwalenz Exp $
+ * $Revision: 1.28 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.27 2008-05-16 00:03:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.28 2008-06-27 06:29:18 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -253,7 +253,7 @@ static void  Adjust_For_Eliminated
       putchar ('\n');
       Display_Diffs (stdout, dp + i, ref, * ref_len);
     }
-#endif    
+#endif
 
   // first mark with 'x' positions in key where a disregard string
   // indicates an insert in ref, i.e., a non-dash aligned with a dash
@@ -341,7 +341,7 @@ static void  Adjust_For_Eliminated
               }
           }
       }
-  
+
 //**ALD
 #if 0
   printf ("after check good strings marked_ct=%d  key:\n", marked_ct);
@@ -366,7 +366,7 @@ static void  Adjust_For_Eliminated
   marked_before [0] = 0;
   for (i = 0; i <= (* ref_len); i ++)
     marked_before [i + 1] = marked_before [i] + (key [i] == 'x' ? 1 : 0);
-    
+
   for (i = 0; i < dp_ct; i ++)
     if (! dp [i] . disregard)
       {
@@ -517,7 +517,7 @@ static void  Analyze_Alignment
                             b_part [j], (int) b_part [j]);
                    exit(EXIT_FAILURE);
                 }
-              ct ++;           
+              ct ++;
              }
          i ++;
          j ++;
@@ -588,7 +588,7 @@ static void  Analyze_Alignment
                          i, a_len, j, b_len);
                 exit(EXIT_FAILURE);
              }
-           ct ++;           
+           ct ++;
           }
       i ++;
       j ++;
@@ -1309,7 +1309,7 @@ static int  Char_Matches
 
   {
    unsigned  x;
-   
+
    switch (tolower (ch))
      {
       case  'a' :
@@ -2019,7 +2019,7 @@ static void  Display_Alignment
       j ++;
      }
    top [top_len] = '\0';
-     
+
 
    i = j = 0;
    for  (k = 0;  k < delta_ct;  k ++)
@@ -2283,7 +2283,7 @@ static void  Display_Partial_Diff
      }
 
    // print spaces for the part of the region that precedes the start
-   // of the alignment if any 
+   // of the alignment if any
    for (j = lo; j < dp -> a_lo && j < hi; j ++)
      fputc (' ', fp);
 
@@ -2488,7 +2488,7 @@ static int  Eliminate_Correlated_Diff_Olaps
         {
          j = signature [i] . sub;
          printf ("%3d:  %3d %7d %7d %3d  %s  %s\n", i, j,
-              Frag [sub] . diff_list [j] . b_iid, dp [j] . b_iid, 
+              Frag [sub] . diff_list [j] . b_iid, dp [j] . b_iid,
               signature [i] . diff_ct, signature [i] . seq,
               (signature [i] . disregard ? "xxx" : ""));
         }
@@ -2993,7 +2993,7 @@ static int  Is_Homopoly_Type
 
   {
    GateKeeperLibraryRecord  * libp;
-   
+
    libp = getGateKeeperLibrary (gkp, getFragRecordLibraryIID (fr));
 
    if (libp == NULL)
@@ -3032,7 +3032,7 @@ static void  Modify_For_Inserts
 
 // Make  mod_dp  be a modified version of  dp  that allows for extra insertions
 // after each position.  The number of insertions needed after position  i
-// is in  insert_size [i] . 
+// is in  insert_size [i] .
 
   {
    unsigned  ct;
@@ -3157,7 +3157,7 @@ static void  Output_Correction_Header
    out . frag . keep_right = (Frag [sub] . right_degree < Degree_Threshold);
    out . frag . iid = Lo_Frag_IID + sub;
    fwrite (& out, sizeof (Correction_Output_t), 1, fp);
-   
+
    return;
   }
 
@@ -3229,7 +3229,7 @@ static void  Output_Corrections
                   }
               if  (tmp >= MIN_HAPLO_OCCURS)
                   haplo_ct ++;
-              
+
               tmp = Frag [i] . vote [j] . c_subst;
               total += tmp;
               if  (tmp > max)
@@ -3240,7 +3240,7 @@ static void  Output_Corrections
                   }
               if  (tmp >= MIN_HAPLO_OCCURS)
                   haplo_ct ++;
-              
+
               tmp = Frag [i] . vote [j] . g_subst;
               total += tmp;
               if  (tmp > max)
@@ -3251,7 +3251,7 @@ static void  Output_Corrections
                   }
               if  (tmp >= MIN_HAPLO_OCCURS)
                   haplo_ct ++;
-              
+
               tmp = Frag [i] . vote [j] . t_subst;
               total += tmp;
               if  (tmp > max)
@@ -3294,7 +3294,7 @@ static void  Output_Corrections
                   }
               if  (tmp >= MIN_HAPLO_OCCURS)
                   ins_haplo_ct ++;
-              
+
               tmp = Frag [i] . vote [j] . g_insert;
               ins_total += tmp;
               if  (tmp > ins_max)
@@ -3304,7 +3304,7 @@ static void  Output_Corrections
                   }
               if  (tmp >= MIN_HAPLO_OCCURS)
                   ins_haplo_ct ++;
-              
+
               tmp = Frag [i] . vote [j] . t_insert;
               ins_total += tmp;
               if  (tmp > ins_max)
@@ -4042,7 +4042,7 @@ static void  Process_Seed
       exit(EXIT_FAILURE);
      }
 
-   // 
+   //
    a_part_len = strlen (a_part);
    b_part_len = strlen (b_part);
    a_len = a_offset + a_part_len;
@@ -4295,7 +4295,7 @@ static void  Read_Frags
    Internal_gkpStore
        = loadGateKeeperStorePartial (gkpStore_Path, Lo_Frag_IID, Hi_Frag_IID);
 #endif
-   
+
    Frag_Stream = openFragStream (Internal_gkpStore, FRAG_S_SEQ);
    resetFragStream (Frag_Stream, Lo_Frag_IID, Hi_Frag_IID);
 
@@ -4715,7 +4715,7 @@ if (Global_Debug_Flag)
       last_j = dp -> a_hi;
       skip_last = FALSE;
      }
-   
+
 //**ALD
 if (Global_Debug_Flag)
   printf ("first_j=%d  last_j=%d\n", first_j, last_j);
@@ -5002,7 +5002,7 @@ if (Global_Debug_Flag)
       last_j = dp -> a_hi;
       skip_last = FALSE;
      }
-   
+
 //**ALD
 if (Global_Debug_Flag)
   printf ("first_j=%d  last_j=%d\n", first_j, last_j);
@@ -5431,7 +5431,7 @@ static void  Show_Frag_Votes
            (v -> homopoly_ct == 0 ? 0.0
                 : (1.0 * v -> homopoly_sum) / v -> homopoly_ct));
      }
-   
+
    return;
   }
 
@@ -5448,10 +5448,10 @@ static void  Show_New_Votes
      fprintf (fp, "%3d: %c  %3u %3u %3u %3u %3u  %3u %3u %3u %3u %3u  %4d %5.1f  %4d %5.1f\n",
           i, seq [i],
           vp [i] . hp_char_ct [0], vp [i] . hp_char_ct [1], vp [i] . hp_char_ct [2],
-          vp [i] . hp_char_ct [3], vp [i] . hp_char_ct [4], 
+          vp [i] . hp_char_ct [3], vp [i] . hp_char_ct [4],
           vp [i] . nonhp_char_ct [0], vp [i] . nonhp_char_ct [1],
           vp [i] . nonhp_char_ct [2], vp [i] . nonhp_char_ct [3],
-          vp [i] . nonhp_char_ct [4], 
+          vp [i] . nonhp_char_ct [4],
           vp [i] . homopoly_ct,
           (vp [i] . homopoly_ct == 0 ? 0.0
              : vp [i] . homopoly_sum / vp [i] . homopoly_ct),
@@ -5472,7 +5472,7 @@ static void  Show_Votes
 
    for  (i = 0;  i < Num_Frags;  i ++)
      Show_Frag_Votes (fp, i);
-   
+
    return;
   }
 
@@ -5611,7 +5611,7 @@ static void  Stream_Old_Frags
    hi_frag = Olap [Num_Olaps - 1] . b_iid;
 
    resetFragStream (Frag_Stream, lo_frag, hi_frag);
-   
+
    next_olap = 0;
    for (i = 0; nextFragStream (Frag_Stream, &frag_read)
         && next_olap < Num_Olaps; i ++)
@@ -5888,7 +5888,7 @@ static void  Threaded_Stream_Old_Frags
       curr_frag_list = next_frag_list;
       next_frag_list = save_frag_list;
      }
-   
+
 #ifdef USE_STORE_DIRECTLY_STREAM
    closeGateKeeperStore (Internal_gkpStore);
 #endif
@@ -5937,7 +5937,7 @@ static void  Usage
        q = p + 1;
    if (q == NULL)
      q = command;
-   
+
    fprintf (stderr, "\n"
         "USAGE:  %s [-behp] [-d DegrThresh] [-k ConfLen] [-x ExcludeLen]\n"
         "     [-F OlapFile|-S OlapStore] [-c CorrectFile] [-o OlapOutput]\n"

@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -46,7 +46,7 @@ void PopulateDerivedInstance(ASM_InstanceRecord * childInGrand,
 {
   childInGrand->containerIndex = grandIndex;
   childInGrand->next = 0;
-  
+
   if(parentInGrand.bgn < parentInGrand.end)
   {
     childInGrand->pos.bgn = parentInGrand.bgn + childInParent.bgn;
@@ -142,14 +142,14 @@ void AppendNewUnitigFragmentInstances(AssemblyStore * asmStore,
   ASM_CCORecord cco;
   ASM_InstanceRecord ins;
   ASM_InstanceRecord contigIns;
-  
+
   for(i = firstFrag; i < firstFrag + numFrags; i++)
   {
     getASM_IIDStore(asmStore->utfStore, i, &afgIndex);
     getASM_AFGStore(asmStore->afgStore, afgIndex, &afg);
 
     if(afg.deleted) continue;  // shouldn't happen!
-    
+
     afg.inDegenerate = inDegenerate;
 
     if(unitigStatus == AS_SEP)
@@ -213,7 +213,7 @@ void PrintFragmentScaffoldCoordinates(AssemblyStore * asmStore,
   // int32 numSCFs = getNumASM_SCFs(asmStore->scfStore);
   int32 numAFGs = getNumASM_AFGs(asmStore->afgStore);
   int32 printed;
-  
+
   // format is fragment, contig, scaffold, 5p in scaffold, 3p in scaffold
   // and if mated: mate, lib
   for(i = 1; i <= numAFGs; i++)
@@ -221,7 +221,7 @@ void PrintFragmentScaffoldCoordinates(AssemblyStore * asmStore,
     getASM_AFGStore(asmStore->afgStore, i, &afg);
 
     if(afg.deleted) continue;
-    
+
     printed = FALSE;
     if(afg.chaff)
     {
@@ -263,12 +263,12 @@ void PrintFragmentScaffoldCoordinates(AssemblyStore * asmStore,
           {
             fprintf(fo, F_UID " %c %c " F_UID " (" F_COORD "," F_COORD ") ",
                     afg.uid, (char) afg.type,
-                    (afg.inSurrogate || scaffIns.next != 0) ? 'S' : 
+                    (afg.inSurrogate || scaffIns.next != 0) ? 'S' :
                      (afg.unreferenced ? 'U' : 'R'),
                     scf.uid, scaffIns.pos.bgn, scaffIns.pos.end);
             printed = TRUE;
           }
-          
+
           while(doInstances && scaffIns.next && contigIns.next)
           {
             getASM_InstanceStore(asmStore->asiStore, scaffIns.next, &scaffIns);
@@ -333,13 +333,13 @@ void PrintReadsPlaced(AssemblyStore * asmStore,
   ASM_InstanceRecord contigIns;
   ASM_InstanceRecord scaffIns;
   int32 numAFGs = getNumASM_AFGs(asmStore->afgStore);
-  
+
   for(i = 1; i <= numAFGs; i++)
   {
     getASM_AFGStore(asmStore->afgStore, i, &afg);
 
     if(afg.deleted) continue;
-    
+
     if(afg.chaff)
     {
       if(doChaff)
@@ -385,14 +385,14 @@ void PrintReadsPlaced(AssemblyStore * asmStore,
             fprintf(fo, F_UID " %c%c" F_UID " " F_COORD " " F_COORD
                     " %d " F_UID " " F_UID " " F_COORD " " F_COORD "\n",
                     afg.uid, (char) afg.type,
-                    (afg.inSurrogate || scaffIns.next != 0) ? 'S' : 
+                    (afg.inSurrogate || scaffIns.next != 0) ? 'S' :
                     (afg.unreferenced ? 'U' : 'R'), afg.uid,
                     afg.asmClr.bgn + 1, afg.asmClr.end - afg.asmClr.bgn,
                     ((contigIns.pos.bgn < contigIns.pos.end) ? 0 : 1),
                     cco.uid, scf.uid,
                     contigIns.pos.bgn, scaffIns.pos.bgn);
           }
-          
+
           while(doInstances && scaffIns.next && contigIns.next)
           {
             getASM_InstanceStore(asmStore->aciStore, afg.cInsIndex, &contigIns);
@@ -402,7 +402,7 @@ void PrintReadsPlaced(AssemblyStore * asmStore,
             fprintf(fo, F_UID " %c%c" F_UID " " F_COORD " " F_COORD
                     " %d " F_UID " " F_UID " " F_COORD " " F_COORD "\n",
                     afg.uid, (char) afg.type,
-                    (afg.inSurrogate || scaffIns.next != 0) ? 'S' : 
+                    (afg.inSurrogate || scaffIns.next != 0) ? 'S' :
                     (afg.unreferenced ? 'U' : 'R'), afg.uid,
                     afg.asmClr.bgn + 1, afg.asmClr.end - afg.asmClr.bgn,
                     ((contigIns.pos.bgn < contigIns.pos.end) ? 0 : 1),
@@ -426,7 +426,7 @@ int AddMDI2Store(AssemblyStore * asmStore, SnapMateDistMesg * smdm)
   mdi.numBuckets = smdm->num_buckets;
   for(i = 0; i < mdi.numBuckets; i++)
     appendASM_BucketStore(asmStore->bktStore, &smdm->histogram[i]);
-  
+
   mdi.uid = smdm->erefines;
   mdi.asmMean = smdm->mean;
   mdi.asmStddev = smdm->stddev;
@@ -458,11 +458,11 @@ int AddAFG2Store(AssemblyStore * asmStore, AugFragMesg * afg)
 {
   ASM_AFGRecord myAFG;
   GateKeeperFragmentRecord gkfr;
-  
+
   if(asmStore->gkpStore == NULL)
-  { 
+  {
     memset(&myAFG, 0, sizeof(ASM_AFGRecord));
-  
+
     myAFG.uid = afg->eaccession;
     myAFG.deleted = FALSE;
     appendASM_AFGStore(asmStore->afgStore, &myAFG);
@@ -481,7 +481,7 @@ int AddAFG2Store(AssemblyStore * asmStore, AugFragMesg * afg)
   myAFG.chaff = afg->chaff;
   myAFG.chimeric = afg->chimeric;
   myAFG.asmClr = afg->clear_rng;
-  
+
   // get link fields and original clear range - 1:1 correspondence between AFGs & gkfrs
   if(asmStore->gkpStore != NULL)
   {
@@ -505,7 +505,7 @@ int AddUTG2Store(AssemblyStore * asmStore, SnapUnitigMesg * sum)
   IntChunk_ID unitigIndex = getNumASM_UTGs(asmStore->utgStore) + 1;
 
   memset(&utg, 0, sizeof(ASM_UTGRecord));
-  
+
   utg.uid = sum->eaccession;
   utg.coverageStat = sum->coverage_stat;
   utg.status = sum->status;
@@ -525,7 +525,7 @@ int AddUTG2Store(AssemblyStore * asmStore, SnapUnitigMesg * sum)
               sum->f_list[i].eident);
     }
     appendASM_IIDStore(asmStore->utfStore, &iid);
-    
+
     getASM_AFGStore(asmStore->afgStore, iid, &afg);
     afg.unitigIndex = unitigIndex;
     afg.type = sum->f_list[i].type;
@@ -536,7 +536,7 @@ int AddUTG2Store(AssemblyStore * asmStore, SnapUnitigMesg * sum)
 
   appendASM_UTGStore(asmStore->utgStore, &utg);
   InsertInHashTable_AS(asmStore->hashTable, utg.uid, 0, getLastElemStore(asmStore->utgStore), AS_IID_UTG);
-  
+
   return 0;
 }
 
@@ -549,21 +549,21 @@ int AddCCO2Store(AssemblyStore * asmStore, SnapConConMesg * sccm)
   ASM_InstanceRecord ins;
   int i;
   IntContig_ID contigIndex = getNumASM_CCOs(asmStore->ccoStore) + 1;
-  
+
 #ifdef DEBUG_ASMDATA
   fprintf(stderr, "Adding CCO " F_UID "\n", sccm->eaccession);
 #endif
 
   memset(&cco, 0, sizeof(ASM_CCORecord));
-  
+
   cco.uid = sccm->eaccession;
   cco.length = sccm->length;
   cco.numFrags = sccm->num_pieces;
   cco.firstFrag = getNumASM_IIDs(asmStore->ccfStore) + 1;
-  
+
   cco.numUnitigs = sccm->num_unitigs;
   cco.firstUnitig = getNumASM_IIDs(asmStore->ccuStore) + 1;
-  
+
   for(i = 0; i < cco.numFrags; i++)
   {
     CDS_IID_t  iid;
@@ -584,7 +584,7 @@ int AddCCO2Store(AssemblyStore * asmStore, SnapConConMesg * sccm)
     AppendInstance(asmStore->aciStore, ins, &(afg.cInsIndex));
     setASM_AFGStore(asmStore->afgStore, iid, &afg);
   }
-  
+
   for(i = 0; i < cco.numUnitigs; i++)
   {
     CDS_IID_t  iid;
@@ -631,7 +631,7 @@ void PrintSurrogateCoordinates(AssemblyStore * asmStore, FILE * fo)
   ASM_InstanceRecord scaffIns;
   int32 sInsIndex;
   int numUTGs = getNumASM_UTGs(asmStore->utgStore);
-  
+
   for(j = 1, i = 1; i <= numUTGs; i++)
   {
     getASM_UTGStore(asmStore->utgStore, i, &utg);
@@ -661,7 +661,7 @@ void PrintSurrogateSeqInterval(ASM_UTGStore utgStore,
                                FILE * fo)
 {
   ASM_UTGRecord utg;
-  
+
   // print surrogate interval;
   if(contigPos.bgn < contigPos.end)
   {
@@ -716,7 +716,7 @@ void PrintSurrogateSequenceCoordinates(AssemblyStore * asmStore, FILE * fo)
   int numCCOs = getNumASM_CCOs(asmStore->ccoStore);
   CDS_COORD_t maxLength = 0;
   CDS_IID_t * nonU;
-  
+
   for(i = 1; i <= numCCOs; i++)
   {
     getASM_CCOStore(asmStore->ccoStore, i, &cco);
@@ -726,7 +726,7 @@ void PrintSurrogateSequenceCoordinates(AssemblyStore * asmStore, FILE * fo)
   maxLength += 10000; // for safety...
   nonU = (CDS_IID_t *) safe_calloc(maxLength, sizeof(CDS_IID_t));
   assert(nonU != NULL);
-  
+
   for(i = 1; i <= numCCOs; i++)
   {
     getASM_CCOStore(asmStore->ccoStore, i, &cco);
@@ -780,7 +780,7 @@ void PrintSurrogateSequenceCoordinates(AssemblyStore * asmStore, FILE * fo)
         // unitig may be in contig multiple times...
         getASM_InstanceStore(asmStore->uciStore, utg.cInsIndex, &contigIns);
         assert(contigIns.containerIndex == i);
-        
+
         start = MIN(contigIns.pos.bgn, contigIns.pos.end);
         end = MAX(contigIns.pos.bgn, contigIns.pos.end);
         for(k = start; k < end; k++)
@@ -857,7 +857,7 @@ int AddDSC2Store(AssemblyStore * asmStore, SnapDegenerateScaffoldMesg * sdsm)
 #ifdef DEBUG_ASMDATA
   fprintf(stderr, "Adding DSC " F_UID "\n", sdsm->eaccession);
 #endif
-  
+
   // look up the cco
   iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, sdsm->econtig, 0);
   if (iid == 0)
@@ -874,10 +874,10 @@ int AddDSC2Store(AssemblyStore * asmStore, SnapDegenerateScaffoldMesg * sdsm)
                           iid,
                           TRUE,
                           &offset, AS_FORWARD);
-  
+
   appendASM_DSCStore(asmStore->dscStore, &dsc);
   InsertInHashTable_AS(asmStore->hashTable, dsc.uid, 0, getLastElemStore(asmStore->dscStore), AS_IID_DSC);
-  
+
   return 0;
 }
 
@@ -893,7 +893,7 @@ int AddSCF2Store(AssemblyStore * asmStore, SnapScaffoldMesg * ssm)
 #ifdef DEBUG_ASMDATA
   fprintf(stderr, "Adding SCF " F_UID "\n", ssm->eaccession);
 #endif
-  
+
   scf.uid = ssm->eaccession;
   scf.numContigs = ssm->num_contig_pairs + 1;
   scf.firstContig = getNumASM_IIDs(asmStore->sccStore) + 1;
@@ -954,7 +954,7 @@ int AddSCF2Store(AssemblyStore * asmStore, SnapScaffoldMesg * ssm)
   {
     ASM_IIDRecord contigIID;
     ASM_CCORecord cco;
-    
+
     // print out the length of the scaffold
     getASM_IIDStore(asmStore->sccStore, scf.firstContig + scf.numContigs - 1,
                     &contigIID);
@@ -1060,7 +1060,7 @@ void SetUnitigAndFragmentScaffoldCoordinates(AssemblyStore * asmStore)
       getASM_CCOStore(asmStore->ccoStore, ucIns.containerIndex, &cco);
 
       utg.inDegenerate = cco.inDegenerate;
-      
+
       // populate the unitig's coords in the scaffold from
       // unitig in contig & contig in scaffold
       PopulateDerivedInstance(&usIns,
@@ -1097,7 +1097,7 @@ void InitializeAFGStore(AssemblyStore * asmStore)
     return;
   numFRGs = getNumGateKeeperFragments(asmStore->gkpStore);
   memset(&afg, 0, sizeof(ASM_AFGRecord));
-  
+
   for(i = 1; i <= numFRGs; i++)
   {
     getGateKeeperFragment(asmStore->gkpStore, i, &gkfr);
@@ -1120,7 +1120,7 @@ AssemblyStore * CreateAssemblyStoreFromASMFile(FILE * fi,
 
   assert(fi != NULL &&
          storePath != NULL);
-  
+
   asmStore = CreateAssemblyStore(storePath, gkpStorePath);
 
   if(asmStore->gkpStore != NULL)
@@ -1145,7 +1145,7 @@ AssemblyStore * CreateAssemblyStoreFromASMFile(FILE * fi,
 
   fprintf(stderr, "Setting unitig and fragment scaffold coordinates\n");
   SetUnitigAndFragmentScaffoldCoordinates(asmStore);
-  
+
   return asmStore;
 }
 
@@ -1176,7 +1176,7 @@ int PopulateAndAppendMatePair(CloneData * cd,
     rightAFG = afg1;
     rightIns = ins1;
   }
-  
+
   mp->leftUID = leftAFG->uid;
   mp->rightUID = rightAFG->uid;
   mp->fivePrimes.bgn = leftIns->pos.bgn;
@@ -1257,7 +1257,7 @@ void AddContigFragmentsToCloneData(AssemblyStore * asmStore,
   ASM_MatePair mp;
   ASM_MDIRecord mdi;
   ASM_AFGRecord afg2;
-          
+
   getASM_CCOStore(asmStore->ccoStore, contigIndex, &cco);
 
   // iterate over fragments in this contig
@@ -1276,9 +1276,9 @@ void AddContigFragmentsToCloneData(AssemblyStore * asmStore,
 
           if(canonicalOnly && afg1.uid > afg2.uid)
             break;
-          
+
           memset(&mp, 0, sizeof(ASM_MatePair));
-          
+
           // get the fragment's scaffold instance & scaffold records
           getASM_InstanceStore(asmStore->asiStore, afg1.sInsIndex, &ins1);
           if(cco.inDegenerate)
@@ -1291,7 +1291,7 @@ void AddContigFragmentsToCloneData(AssemblyStore * asmStore,
             getASM_SCFStore(asmStore->scfStore, ins1.containerIndex, &scf);
             mp.containerUID = scf.uid;
           }
-          
+
           // get the distance record
           getASM_MDIStore(asmStore->mdiStore, afg1.library, &mdi);
           mp.distUID = mdi.uid;
@@ -1398,7 +1398,7 @@ void PrintInnieMatePairs(VA_TYPE(ASM_MatePair) * mps, FILE * fo)
   int i;
   ASM_MatePair * myMPs = GetVA_ASM_MatePair(mps, 0);
   int32 numMPs = GetNumVA_ASM_MatePair(mps);
-  
+
   for(i = 0; i < numMPs; i++)
   {
     fprintf(fo,
@@ -1416,7 +1416,7 @@ void PrintMatePairs(VA_TYPE(ASM_MatePair) * mps,
   int i;
   ASM_MatePair * myMPs = GetVA_ASM_MatePair(mps, 0);
   int32 numMPs = GetNumVA_ASM_MatePair(mps);
-  
+
   for(i = 0; i < numMPs; i++)
   {
     fprintf(fo, "%c\t" F_UID "\t" F_UID "\t" F_UID "\t" F_COORD "\t" F_COORD "\n",
@@ -1433,7 +1433,7 @@ void PrintPartialMatePairs(VA_TYPE(ASM_MatePair) * mps,
   int i;
   ASM_MatePair * myMPs = GetVA_ASM_MatePair(mps, 0);
   int32 numMPs = GetNumVA_ASM_MatePair(mps);
-  
+
   for(i = 0; i < numMPs; i++)
   {
     fprintf(fo, "%c\t" F_UID "\t" F_UID "\t" F_UID "\t" F_UID "\t" F_COORD "\n",
@@ -1464,7 +1464,7 @@ void PrintMissingCloneData(CDS_UID_t containerUID,
 }
 
 
-void WriteBinaryMatePairs(char * fpref, char type, 
+void WriteBinaryMatePairs(char * fpref, char type,
                           VA_TYPE(ASM_MatePair) * mps)
 {
   char filename[4096];
@@ -1472,17 +1472,17 @@ void WriteBinaryMatePairs(char * fpref, char type,
   ASM_MatePair * mp0 = GetVA_ASM_MatePair(mps, 0);
   int32 numMPs = GetNumVA_ASM_MatePair(mps);
   int numIW;
-  
+
   sprintf(filename, "%s_%c.bdat", fpref, type);
   fp = fopen(filename, "w");
   assert(fp != NULL);
 
   numIW = fwrite(&numMPs, sizeof(numMPs), 1, fp);
   assert(numIW == 1);
-  
+
   numIW = fwrite(mp0, sizeof(ASM_MatePair), numMPs, fp);
   assert(numIW == numMPs);
-  
+
   fclose(fp);
 }
 
@@ -1598,7 +1598,7 @@ void PrintUnreferencedFrags(AssemblyStore * asmStore, FILE * fo)
   }
 }
 
-   
+
 void PrintMissingFrags(AssemblyStore * asmStore, FILE * fo)
 {
   int32 i;
@@ -1748,7 +1748,7 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
       /*
         STRETCHED INNIE MATES
         for each innie mate pair for which right 5' - left 5' > x
-          
+
                   | |         2  3
         right bp  V |
                     |
@@ -1769,7 +1769,7 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
         getASM_AFGStore(asmStore->afgStore, iid, &afg);
         if(fragTypes[afg.type] == 0)
           continue;
-        
+
         iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, 0);
         getASM_MDIStore(asmStore->mdiStore, iid, &mdi);
 
@@ -1805,7 +1805,7 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
       /*
         COMPRESSED INNIE MATES
         for each innie mate pair for which right 5' - left 5' < n
-          
+
                     |
        right end of |   1      2
         insertion   |
@@ -1825,7 +1825,7 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
         getASM_AFGStore(asmStore->afgStore, iid, &afg);
         if(fragTypes[afg.type] == 0)
           continue;
-        
+
         iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, 0);
         getASM_MDIStore(asmStore->mdiStore, iid, &mdi);
 
@@ -1860,7 +1860,7 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
     case ASM_Normal:
       /*
         NORMAL MATES
-          
+
                   n |  1
         right bp    |
                   u |  0
@@ -1881,7 +1881,7 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
         getASM_AFGStore(asmStore->afgStore, iid, &afg);
         if(fragTypes[afg.type] == 0)
           continue;
-        
+
         iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, 0);
         getASM_MDIStore(asmStore->mdiStore, iid, &mdi);
 
@@ -1914,7 +1914,7 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
     case ASM_Antinormal:
       /*
         ANTINORMAL MATES
-          
+
                   | |  0  1
         right bp  v |
                     |
@@ -1935,7 +1935,7 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
         getASM_AFGStore(asmStore->afgStore, iid, &afg);
         if(fragTypes[afg.type] == 0)
           continue;
-        
+
         iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, 0);
         getASM_MDIStore(asmStore->mdiStore, iid, &mdi);
 
@@ -1968,7 +1968,7 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
     case ASM_OuttieLR:
       /*
         OUTTIE MATES
-          
+
                   n |           1
         right bp    |
                   u |           2
@@ -1989,7 +1989,7 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
         getASM_AFGStore(asmStore->afgStore, iid, &afg);
         if(fragTypes[afg.type] == 0)
           continue;
-        
+
         iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, iid);
         getASM_MDIStore(asmStore->mdiStore, iid, &mdi);
 
@@ -2022,7 +2022,7 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
     case ASM_OuttieM:
       /*
         Region between Outtie matepairs
-          
+
                     |
        right frag   |   1      2
                     |
@@ -2042,10 +2042,10 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
         getASM_AFGStore(asmStore->afgStore, iid, &afg);
         if(fragTypes[afg.type] == 0)
           continue;
-        
+
         {
           ASM_Quad q;
-          
+
           q.leftUID = afg.uid;
           // lower left
           q.pts[0].bgn = mp->fivePrimes.bgn;
@@ -2073,7 +2073,7 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
   }
   return quads;
 }
-  
+
 
 void PrintQuadrilaterals(VA_TYPE(ASM_Quad) * quads,
                          ASM_OutputType ot,
@@ -2228,7 +2228,7 @@ void PrintFastaFragmentCoordinates(AssemblyStore * asmStore, FILE * fo)
     int32 ccoIndex;
     CDS_COORD_t offset = 0;
     CDS_COORD_t lastCoord = 0;
-    
+
     getASM_SCFStore(asmStore->scfStore, scfIndex, &scf);
     for(ccoIndex = scf.firstContig;
         ccoIndex < scf.firstContig + scf.numContigs;
@@ -2238,7 +2238,7 @@ void PrintFastaFragmentCoordinates(AssemblyStore * asmStore, FILE * fo)
       ASM_CCORecord cco;
       int32 afgIndex;
       CDS_COORD_t delta;
-      
+
       getASM_IIDStore(asmStore->sccStore, ccoIndex, &contigIID);
       getASM_CCOStore(asmStore->ccoStore, contigIID, &cco);
 
@@ -2249,7 +2249,7 @@ void PrintFastaFragmentCoordinates(AssemblyStore * asmStore, FILE * fo)
         delta = MAX(20, delta);
         offset += delta;
       }
-      
+
       for(afgIndex = cco.firstFrag;
           afgIndex < cco.firstFrag + cco.numFrags;
           afgIndex++)
@@ -2257,7 +2257,7 @@ void PrintFastaFragmentCoordinates(AssemblyStore * asmStore, FILE * fo)
         ASM_IIDRecord afgIID;
         ASM_AFGRecord afg;
         ASM_InstanceRecord cIns;
-        
+
         getASM_IIDStore(asmStore->ccfStore, afgIndex, &afgIID);
         getASM_AFGStore(asmStore->afgStore, afgIID, &afg);
 
@@ -2284,7 +2284,7 @@ void PrintFastaFragmentCoordinates(AssemblyStore * asmStore, FILE * fo)
                   offset + cco.length - cIns.pos.end);
         }
       }
-      
+
     }
   }
 }
@@ -2407,7 +2407,7 @@ MapStore * CreateMapStoreFromFiles(AssemblyStore * asmStore,
   {
     ASM_CHRRecord chr;
     int numParsed;
-    
+
     while(fgets(line, 4095, chromFp))
     {
       if(line[0] == '#') continue;
@@ -2428,7 +2428,7 @@ MapStore * CreateMapStoreFromFiles(AssemblyStore * asmStore,
     int32 i;
     int32 numAFGs = getNumASM_AFGs(asmStore->afgStore);
     ASM_InstanceRecord ins;
-    
+
     memset(&ins, 0, sizeof(ASM_InstanceRecord));
     for(i = 1; i <= numAFGs; i++)
       appendASM_InstanceStore(mapStore->finStore, &ins);
@@ -2444,7 +2444,7 @@ MapStore * CreateMapStoreFromFiles(AssemblyStore * asmStore,
     int fragIndex;
     int chrIndex;
     CDS_COORD_t bgn, end;
-    
+
     while(fgets(line, 4095, fragFp))
     {
       CDS_IID_t  iid;
@@ -2464,7 +2464,7 @@ MapStore * CreateMapStoreFromFiles(AssemblyStore * asmStore,
         assert(0);
       }
       fragIndex = iid;
-      
+
       // look up chr IID
       iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, chromUID, 0);
       if (iid == 0)
@@ -2473,7 +2473,7 @@ MapStore * CreateMapStoreFromFiles(AssemblyStore * asmStore,
         assert(0);
       }
       chrIndex = iid;
-      
+
       // update the chromosome's list of fragments
       getASM_CHRStore(mapStore->chrStore, chrIndex, &chr);
       if(chr.lastFrag != 0)
@@ -2527,7 +2527,7 @@ void PrintMapStore(AssemblyStore * asmStore,
   {
     getASM_InstanceStore(mapStore->finStore, i, &ins);
     if(ins.containerIndex == 0) continue;
-    
+
     getASM_AFGStore(asmStore->afgStore, i, &afg);
     getASM_CHRStore(mapStore->chrStore, ins.containerIndex, &chr);
     fprintf(fo, F_UID " " F_UID " " F_COORD " " F_COORD "\n",
@@ -2564,20 +2564,20 @@ void PrintChromosomeElsewheres(AssemblyStore * asmStore,
     getASM_InstanceStore(mapStore->finStore, nextIndex, &ins1);
     getASM_AFGStore(asmStore->afgStore, nextIndex, &afg1);
     assert(ins1.containerIndex == chrIndex);
-    
+
     // look up mate
     if(afg1.mate > 0)
     {
           ASM_MDIRecord mdi;
           ASM_AFGRecord afg2;
           ASM_InstanceRecord ins2;
-          
+
           CDS_IID_t iid = afg1.mate;
 
           getASM_AFGStore(asmStore->afgStore, iid, &afg2);
           getASM_InstanceStore(mapStore->finStore, iid, &ins2);
           getASM_MDIStore(asmStore->mdiStore, afg1.library, &mdi);
-          
+
           // are they in the same container?
           if(ins1.containerIndex != ins2.containerIndex &&
              ins2.containerIndex != 0)
@@ -2620,15 +2620,15 @@ void PrintScaffoldElsewheres(AssemblyStore * asmStore,
     for(s = scf1.firstContig; s < scf1.firstContig + scf1.numContigs; s++)
     {
       ASM_CCORecord cco;
-      
+
       getASM_IIDStore(asmStore->sccStore, s, &contigIndex);
       getASM_CCOStore(asmStore->ccoStore, contigIndex, &cco);
-      
+
       for(i = cco.firstFrag; i < cco.firstFrag + cco.numFrags; i++)
       {
         ASM_IIDRecord iid1;
         ASM_AFGRecord afg1;
-        
+
         getASM_IIDStore(asmStore->ccfStore, i, &iid1);
         getASM_AFGStore(asmStore->afgStore, iid1, &afg1);
 
@@ -2645,23 +2645,23 @@ void PrintScaffoldElsewheres(AssemblyStore * asmStore,
             ASM_InstanceRecord ins1;
             ASM_InstanceRecord ins2;
             ASM_MDIRecord mdi;
-            
+
             iid2 = afg1.mate;
             getASM_AFGStore(asmStore->afgStore, iid2, &afg2);
-            
+
             if(afg2.chaff ||
                afg2.sInsIndex == 0 ||
                afg2.inDegenerate ||
                afg2.inSurrogate)
               break;
-            
+
             // get the distance record
             getASM_MDIStore(asmStore->mdiStore, afg1.library, &mdi);
-            
+
             // get the instances
             getASM_InstanceStore(asmStore->asiStore, afg1.sInsIndex, &ins1);
             getASM_InstanceStore(asmStore->asiStore, afg2.sInsIndex, &ins2);
-            
+
             // if the mate is multiply placed or is in a different scaffold
             if(!afg2.inDegenerate && ins2.next == 0 &&
                ins1.containerIndex != ins2.containerIndex)
@@ -2669,7 +2669,7 @@ void PrintScaffoldElsewheres(AssemblyStore * asmStore,
               ASM_SCFRecord scf2;
               getASM_SCFStore(asmStore->scfStore,
                               ins2.containerIndex, &scf2);
-              
+
               if(!canonicalOnly || scf1.uid > scf2.uid)
                 fprintf(fo, F_UID " " F_UID " " F_COORD " %s " F_UID " " F_UID " " F_COORD " %s " F_UID "\n",
                         afg1.uid, scf1.uid, ins1.pos.bgn,
@@ -2715,7 +2715,7 @@ CloneData * GetChromosomeCloneData(AssemblyStore * asmStore,
     getASM_InstanceStore(mapStore->finStore, nextIndex, &ins1);
     getASM_AFGStore(asmStore->afgStore, nextIndex, &afg1);
     assert(ins1.containerIndex == chrIndex);
-    
+
     // look up mate
     if(afg1.mate > 0)
     {
@@ -2723,7 +2723,7 @@ CloneData * GetChromosomeCloneData(AssemblyStore * asmStore,
           ASM_AFGRecord afg2;
           ASM_InstanceRecord ins2;
           ASM_MatePair mp;
-          
+
           CDS_IID_t iid = afg1.mate;
 
           getASM_AFGStore(asmStore->afgStore, iid, &afg2);
@@ -2731,7 +2731,7 @@ CloneData * GetChromosomeCloneData(AssemblyStore * asmStore,
           getASM_MDIStore(asmStore->mdiStore, afg1.library, &mdi);
           mp.containerUID = containerUID;
           mp.distUID = mdi.uid;
-          
+
           // are they in the same container?
           if(ins1.containerIndex != ins2.containerIndex)
           {
@@ -2760,7 +2760,7 @@ CDS_COORD_t GetScaffoldLength(AssemblyStore * asmStore, int32 index)
   ASM_SCFRecord scf;
   ASM_IIDRecord contigIndex;
   ASM_CCORecord cco;
-  
+
   getASM_SCFStore(asmStore->scfStore, index, &scf);
   getASM_IIDStore(asmStore->sccStore,
                   scf.firstContig + scf.numContigs - 1,
@@ -2779,7 +2779,7 @@ void PrintATACScaffoldGenomicAxis(AssemblyStore * asmStore,
 {
   ASM_SCFRecord scf;
   CDS_COORD_t length;
-  
+
   getASM_SCFStore(asmStore->scfStore, index, &scf);
   length = GetScaffoldLength(asmStore, index);
   fprintf(fo, "G s s" F_UID " %s " F_COORD " 0 . 0 " F_COORD " 0 0 0 0 " F_UID " " F_UID "\n",
@@ -2795,7 +2795,7 @@ void PrintDeflineATACAxes(AssemblyStore * asmStore,
 {
   CDS_COORD_t offset = 0;
   char line[1024];
-  
+
   while(fgets(line, 1023, dfp))
   {
     CDS_UID_t uid = STR_TO_UID(&line[1], NULL, 10);

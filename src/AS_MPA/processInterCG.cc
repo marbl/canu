@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: processInterCG.cc,v 1.9 2008-03-18 07:02:45 brianwalenz Exp $ */
+/* $Id: processInterCG.cc,v 1.10 2008-06-27 06:29:17 brianwalenz Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -77,11 +77,11 @@ char * MatePairLabel[MPI_NUM_INDICES] =
 
   PLAN:
     Read in clone library length estimates
-    
+
     Read in all intra-sequence mate pairs for a given sequence/assembly
       store each mate pair twice (by left and by right frag coord)
       sort by 'left' coorinate
-      
+
     Read in all inter-sequence mate pairs for a given sequence/assembly
       Maintain separate list of mates for each other sequence
         optionally omit lower numbered sequences to avoid duplication
@@ -115,7 +115,7 @@ void Usage(char * progname, char * message)
   cerr << "\t                default is " << CONFIRMATION_THRESHOLD << endl;
   cerr << "\t-a            generate ATA-formatted output\n";
   cerr << "\t-g            generate gnuplot output\n";
-  
+
   cerr << endl;
   exit(1);
 }
@@ -234,7 +234,7 @@ int main(int argc, char ** argv)
 
   // open output files
   char fname[1024];
-  
+
   ofstream listOS;
   sprintf(fname, "%s.%s.inter.breakpoints.txt", assembly, sequence);
   listOS.open(fname, ios::out);
@@ -251,7 +251,7 @@ int main(int argc, char ** argv)
          << "otherLength\t"
          << "Orientation\t"
          << "NumMPs\n";
-  
+
   ofstream gnuOS;
   if(printGnuplot)
   {
@@ -263,7 +263,7 @@ int main(int argc, char ** argv)
       exit(1);
     }
   }
-  
+
   ofstream ataOS;
   ID_TYPE atacCount;
   sscanf(sequence, F_MPID, &atacCount);
@@ -281,12 +281,12 @@ int main(int argc, char ** argv)
     ataOS << "! format ata 1.0\n";
     ataOS << "# numStddevs=" << numStddevs << endl;
   }
-  
+
   // totals for summary output
-  int totals[MPI_NUM_INDICES]; 
+  int totals[MPI_NUM_INDICES];
   for(int mpii = 0; mpii < MPI_NUM_INDICES; mpii++)
     totals[mpii] = 0;
-  
+
   // iterate over all other sequences in the set
   set<ID_TYPE>::iterator siter;
   for(siter = otherSequences.begin();
@@ -299,12 +299,12 @@ int main(int argc, char ** argv)
 
     if(printGnuplot)
       gnuOS << "# " << otherSeqID << endl;
-    
+
     vector<MatePair> mps;
     ifstream fel(inFilename, ios::in);
     ReadInterSequenceMPs(mps, fel, otherSeqID);
     fel.close();
-    
+
     list<MatePair> mpl[MPI_NUM_INDICES];
     int badLibMatePairCount = 0;
     for(int i = 0; i < mps.size(); i++)
@@ -332,10 +332,10 @@ int main(int argc, char ** argv)
     for(int mpii = 0; mpii < MPI_INVERSION; mpii++)
     {
       if(mpii == MPI_COMPRESSED) continue;
-      
+
       if(mpl[mpii].size() > 1)
         mpl[mpii].sort();
-      
+
       list<MatePair>::iterator mpli;
       for(mpli = mpl[mpii].begin(); mpli != mpl[mpii].end(); mpli++)
       {
@@ -350,16 +350,16 @@ int main(int argc, char ** argv)
             mpp[j].setY(mpp[j].getY() - SEQ_OFFSET);
         mppsMap[mpii][mpli->getLeftFragUID()] = mpp;
       }
-      
+
       if(mpps[mpii].size() > 0)
       {
         // do the clustering
         vector<CompositeMPPolygon<UNIT_TYPE> > pmpps; // problematic
         vector<CompositeMPPolygon<UNIT_TYPE> > fmpps; // filtered out
-        
+
         ClusterMPPs(mpps[mpii], cmpps[mpii], pmpps, fmpps,
                     (MatePairIndex_e) MPI_NORMAL, filterThresh);
-        
+
         // de-rotate & shift composite polygons
         for(int i = 0; i < mpps[mpii].size(); i++)
         {
@@ -369,7 +369,7 @@ int main(int argc, char ** argv)
               mpps[mpii][i][j][k].setY(mpps[mpii][i][j][k].getY() -
                                        SEQ_OFFSET);
         }
-        
+
         for(int i = 0; i < cmpps[mpii].size(); i++)
         {
           cmpps[mpii][i].rotateByDegrees(-45);
@@ -452,7 +452,7 @@ int main(int argc, char ** argv)
                 exit(1);
                 break;
             } // switch
-            
+
             // print basic output
             listOS << sequence << "\t"
                    << leftThis << "\t"
@@ -462,7 +462,7 @@ int main(int argc, char ** argv)
                    << rightOther - leftOther << "\t"
                    << orient << "\t"
                    << cmpps[mpii][i].getNumMPs() << endl;
-            
+
           } // faux scope
         } // loop over composite polygons
       } // if there are matepairs
@@ -478,11 +478,11 @@ int main(int argc, char ** argv)
   if(printGnuplot)
     gnuOS.close();
   listOS.close();
-  
+
   for(int mpii = 0; mpii < MPI_INVERSION; mpii++)
     if(mpii != MPI_COMPRESSED)
       cout << totals[mpii] << " confirmed "
            << MatePairLabel[mpii] << " inter-sequence intervals\n";
-  
+
   return 0;
 }

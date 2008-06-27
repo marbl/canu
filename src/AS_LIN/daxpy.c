@@ -6,7 +6,7 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int daxpy_(integer *n, doublereal *da, doublereal *dx, 
+/* Subroutine */ int daxpy_(integer *n, doublereal *da, doublereal *dx,
 	integer *incx, doublereal *dy, integer *incy)
 {
 
@@ -18,14 +18,14 @@
     static integer i, m, ix, iy, mp1;
 
 
-/*     constant times a vector plus a vector.   
-       uses unrolled loops for increments equal to one.   
-       jack dongarra, linpack, 3/11/78.   
-       modified 12/3/93, array(1) declarations changed to array(*)   
+/*     constant times a vector plus a vector.
+       uses unrolled loops for increments equal to one.
+       jack dongarra, linpack, 3/11/78.
+       modified 12/3/93, array(1) declarations changed to array(*)
 
 
-    
-   Parameter adjustments   
+
+   Parameter adjustments
        Function Body */
 #define DY(I) dy[(I)-1]
 #define DX(I) dx[(I)-1]
@@ -41,7 +41,7 @@
 	goto L20;
     }
 
-/*        code for unequal increments or equal increments   
+/*        code for unequal increments or equal increments
             not equal to 1 */
 
     ix = 1;
@@ -61,7 +61,7 @@
     }
     return 0;
 
-/*        code for both increments equal to 1   
+/*        code for both increments equal to 1
 
 
           clean-up loop */

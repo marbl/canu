@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -23,19 +23,19 @@
 * Module:  SharedOVL.c
 * Description:
 *   Functions shared by overlap programs
-* 
+*
 *    Programmer:  A. Delcher
 *       Started:   15 February 2007
-* 
+*
 * Assumptions:
-* 
+*
 * Notes:
 *
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.c,v 1.8 2008-04-29 22:33:31 adelcher Exp $
- * $Revision: 1.8 $
+ * $Id: SharedOVL.c,v 1.9 2008-06-27 06:29:18 brianwalenz Exp $
+ * $Revision: 1.9 $
 */
 
 
@@ -83,7 +83,7 @@ int  Fwd_Banded_Homopoly_Prefix_Match
    int  i, j;
 
    // offset subscripts to start at 1
-   A = AA - 1; 
+   A = AA - 1;
    T = TT - 1;
 
    global_best = INT_MAX;
@@ -497,7 +497,7 @@ if (0 && best_end_score < MAX_HOMOPOLY_SCORE)
          Set_Fwd_Homopoly_Delta (delta, delta_len, edit_array, best_end_e, best_end_d);
          (* match_to_end) = TRUE;
          (* return_score) = best_end_score;
-        
+
          return  best_end_e;
         }
 
@@ -506,7 +506,7 @@ if (0 && best_end_score < MAX_HOMOPOLY_SCORE)
       if (MIN_RATIO_E < e)
         {
          // trim cells whose score/len ratio is worse than 1.5 times the min
-         best_ratio = 1.5 * best_ratio + EPSILON;  
+         best_ratio = 1.5 * best_ratio + EPSILON;
          if (best_ratio < best_end_ratio)
            best_ratio = best_end_ratio;
 
@@ -1028,7 +1028,7 @@ if (0 && best_end_score < MAX_HOMOPOLY_SCORE)
          (* t_end) = - (bp -> len) - best_end_d;
          (* match_to_end) = TRUE;
          (* return_score) = best_end_score;
-        
+
          return  best_end_e;
         }
 
@@ -1036,7 +1036,7 @@ if (0 && best_end_score < MAX_HOMOPOLY_SCORE)
       if (MIN_RATIO_E < e)
         {
          // trim cells whose score/len ratio is worse than 1.5 times the min
-         best_ratio = 1.5 * best_ratio + EPSILON;  
+         best_ratio = 1.5 * best_ratio + EPSILON;
          if (best_end_ratio < best_ratio)
            best_ratio = best_end_ratio;
 
@@ -1343,7 +1343,7 @@ void  Set_Fwd_Banded_Delta
            offset -= width [r];
            curr = edit_space + offset + c - indent [r];
            break;
-           
+
          case +1 :  // go top
            assert (0 < r);
            if (first)

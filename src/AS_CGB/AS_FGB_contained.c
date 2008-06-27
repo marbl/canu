@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[]  = "$Id: AS_FGB_contained.c,v 1.6 2007-07-19 09:50:32 brianwalenz Exp $";
+static char CM_ID[]  = "$Id: AS_FGB_contained.c,v 1.7 2008-06-27 06:29:13 brianwalenz Exp $";
 
 // Determines the contained status of the fragments.
 
@@ -56,19 +56,19 @@ void check_containment_edges
 	   /* The other overlaps ... */
 	   (AS_CGB_REMOVED_BY_DUPLICATE_DVT == ines) ||
 	   (AS_CGB_REMOVED_BY_DUPLICATE_CON == ines));
-    
+
     if((AS_CGB_REMOVED_BY_DUPLICATE_DVT != ines) &&
        (AS_CGB_REMOVED_BY_DUPLICATE_CON != ines)
        ) {
       assert(!((iahg<0)&&(ibhg<0)));
       assert((!(iahg<0))||(ibhg>=0)); /* if A then B  is (!A)||(B). */
       assert((!(ibhg<0))||(iahg>=0)); /* if A then B  is (!A)||(B). */
-      
+
       if(!( is_a_dvt_simple(iahg,ibhg) ||
             ((is_a_toc_simple(iahg,ibhg) || is_a_frc_simple(iahg,ibhg))
              && (ines == AS_CGB_CONTAINED_EDGE))
            )) {
-	fprintf(stderr,"XX " F_IID " " F_IID " " F_IID " " F_IID " " F_IID " %d %d %d\n", 
+	fprintf(stderr,"XX " F_IID " " F_IID " " F_IID " " F_IID " " F_IID " %d %d %d\n",
 		ie, aid, bid,
 		iavx, ibvx, iahg, ibhg, ines);
 	fprintf(stderr,"Break the containment tie!!\n");
@@ -89,7 +89,7 @@ void contained_fragment_marking_frc
   { IntFragment_ID iv; for(iv=0; iv<nfrag; iv++) {
     set_con_fragment(frags,iv,FALSE);
   }}
-  
+
   { IntEdge_ID ie; for(ie=0; ie<nedge; ie++) {
     const IntFragment_ID iavx = get_avx_edge(edges,ie);
     const IntFragment_ID ibvx = get_bvx_edge(edges,ie);

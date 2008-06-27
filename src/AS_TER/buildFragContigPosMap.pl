@@ -276,7 +276,7 @@ while (!eof(STDIN)) {
             #  If there are del's read them too -- we could read in
             #  $dln integers, but we could also just skip the rest of
             #  the message!  Some del's are multiple lines!
-            # 
+            #
             if ($jnk ne "}") {
                 skipRecord();
             }

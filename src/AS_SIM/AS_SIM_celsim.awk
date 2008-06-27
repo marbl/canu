@@ -2,21 +2,21 @@ BEGIN {
 #
 ###########################################################################
 #
-# This file is part of Celera Assembler, a software program that 
+# This file is part of Celera Assembler, a software program that
 # assembles whole-genome shotgun reads into contigs and scaffolds.
 # Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received (LICENSE.txt) a copy of the GNU General Public 
+#
+# You should have received (LICENSE.txt) a copy of the GNU General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
@@ -36,9 +36,9 @@ BEGIN {
     base    = 1;
     prompt = 0;
     protoflag = " -P ";
-    split("$Revision: 1.4 $", revFields, " ");
+    split("$Revision: 1.5 $", revFields, " ");
     revision = revFields[2];
-    split("$Date: 2005-03-22 19:49:27 $", dateFields, " ");
+    split("$Date: 2008-06-27 06:29:21 $", dateFields, " ");
     date = dateFields[2];
     print STDERR "date = " date " revision = " revision;
     while (base < ARGC-1)
@@ -87,7 +87,7 @@ BEGIN {
         notdone = 0;
         exit (1);
       }
-    
+
     pfile = ARGV[1] = ARGV[ARGC-1];
     ARGC  = 2;
     numFields = split(pfile,fields,".");
@@ -102,7 +102,7 @@ BEGIN {
 n#	print "File extension " fields[numFields] " is invalid -- try .sim\n";
 #	exit(1);
 #      }else{
-	
+
 	prefix = "";
 	for(i = 1; i < numFields; i++){
 	  prefix = prefix fields[i];
@@ -111,7 +111,7 @@ n#	print "File extension " fields[numFields] " is invalid -- try .sim\n";
       }
 #    }
 
-   
+
     frgfile = prefix ".frg";
     outfile = prefix ".cms";
 #    notfile = prefix ".not." seed;
@@ -123,7 +123,7 @@ n#	print "File extension " fields[numFields] " is invalid -- try .sim\n";
     qltfile = prefix ".qlt"
 #CMM    dnafile = ".dna." seed;
     dnafile = prefix ".dna"
-    
+
     phase = -1;
     npoly = 0;
     ptotl = 0.;
@@ -176,7 +176,7 @@ n#	print "File extension " fields[numFields] " is invalid -- try .sim\n";
     if (phase == 0)
       make_dna();
     else
-      make_polys(pcopy); 
+      make_polys(pcopy);
     phase = 1;
     for (i = 2; i <= NF; i++)
       pweight[npoly+(i-1)] = $i;
@@ -258,11 +258,11 @@ END {
 	exit(1);
       }
     }else if (notations > 0){
-      
+
       if(!fastaOutput)
 	print "*** Poly > 1 -- No fragment labelling applied\n";
     }
-    
+
     if(!fastaOutput && sawcmdlinebatchflag){
       system("tobatches -b " cmdlinebatchsize " " prefix);
     }
@@ -291,7 +291,7 @@ END {
     else if (phase == 2)
       { if (items == 0 && NF >= 1)
           {  j = 2;
-	  fnum = $1; 
+	  fnum = $1;
 	  items++;
 #	  print STDERR "items " items " fnum = " fnum ;
 	    }
@@ -330,7 +330,7 @@ function make_dna()
 	cleanup(1);
       }
      # print "*** Celsim Input was:\n" >> adlfile;
-      perlcmd = "echo \" ********Celsim Input ******** \">> "adlfile; 
+      perlcmd = "echo \" ********Celsim Input ******** \">> "adlfile;
      #      print STDERR perlcmd;
       if(system(perlcmd) != 0){
 	print STDERR " *** Error outputing comment";
@@ -341,13 +341,13 @@ function make_dna()
 	print STDERR " *** Error in cat input to adlfile";
 	cleanup(1);
       }
-      perlcmd = "echo \" ********End Celsim Input ******** \">> "adlfile; 
+      perlcmd = "echo \" ********End Celsim Input ******** \">> "adlfile;
       if(system(perlcmd) != 0){
 	print STDERR " *** Error outputting comment";
 	cleanup(1);
       }
 
-      
+
     }
   if (comment)
     { if (overwrite(outfile)) return;
@@ -436,7 +436,7 @@ function make_sample()
   cwght = 0.;
   lind  = 0;
   for (i = 1; i <= npoly; i++)
-    { 
+    {
       close(comfile);
       print "< " prefix ".poly." i  >comfile;
       print STDERR "< " prefix ".poly." i ;
@@ -469,7 +469,7 @@ function make_sample()
        print STDERR command;
 	print STDERR massageSpec;
 	print STDERR fragspec;
-	
+
       }else{
 	command = "$AS_ROOT/bin/frag -s " c uni " -F -N " comfile " >> " sname
       }
@@ -516,11 +516,11 @@ function make_sample()
 }
 
 function cleanup(ecode)
-{  
+{
   exit(ecode); # TEMPORARY, for debug
   if (phase >= 0){
     if(keepDNA == 0)
-      system("rm -f " dnafile); 
+      system("rm -f " dnafile);
     if(notations > 0)
       system("rm " notfile);
   }
@@ -537,7 +537,7 @@ function cleanup(ecode)
 
 function overwrite(name)
 { if (system("test -e " name) == 0)
-    { 
+    {
       if(prompt){
 	printf "  Overwrite %s [y/n]? ", name;
 	getline answer <"/dev/stdin";
@@ -547,7 +547,7 @@ function overwrite(name)
 	  return (1);
       }else{
 	  system("rm " name);
-      }	
+      }
     }
   return (0);
 }

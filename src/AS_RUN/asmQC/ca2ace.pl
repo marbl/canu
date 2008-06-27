@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl
 
 
-# $Id: ca2ace.pl,v 1.7 2008-01-31 05:18:09 brianwalenz Exp $
+# $Id: ca2ace.pl,v 1.8 2008-06-27 06:29:19 brianwalenz Exp $
 #
 # Converts from a Celera .asm file to a new .ace file
 #
@@ -21,13 +21,13 @@ if (! defined $base){
     die ("Foundation cannot be created.  FATAL!\n");
 }
 
-my $VERSION = '$Revision: 1.7 $ ';
+my $VERSION = '$Revision: 1.8 $ ';
 $base->setVersionInfo($VERSION);
 
 my $HELPTEXT = q~
    ca2ace [opts] [infile]
-       
-   Options:   
+
+   Options:
         -i <infile>.asm TIGR .asm file.  Must end in .asm
         -o <outfile>    Output file, by default <infile>.ace
         -c <chromat_dir> Location of the chromatograms
@@ -135,7 +135,7 @@ seek IN, 0, 0;
 # file
 #
 # * when all contigs are done generate output file header and concatenate
-# output temp file to output. 
+# output temp file to output.
 
 
 # counters for the useful information
@@ -166,7 +166,7 @@ my %rend;      # right end of sequences
 my $al;        # aligned coordinates (asm_lend, rend)
 my $ar;
 my $end5;      # clear range
-my $end3; 
+my $end3;
 my $contigLen; # # bases in the contig
 my $contigSeq;
 
@@ -289,7 +289,7 @@ while (my $record = getCARecord(\*IN)){
     }
     $prevRecord = $rec;
     $prevCO = $contigid;
-         
+
 
     if ($rec eq "CCO" || $rec eq "UTG"){
         if ($rec eq "UTG" && $$fields{sta} ne "S"){
@@ -321,7 +321,7 @@ while (my $record = getCARecord(\*IN)){
 	}
 	push @ctgOut, "\n";
 	$nContigs++;
-	
+
 	push @ctgOut, "BQ\n";
 	my @qualvals;
 	# .ace qualities are only assigned to unpadded bases
@@ -339,10 +339,10 @@ while (my $record = getCARecord(\*IN)){
 	    }
 	    push @ctgOut, " ", join(" ", @qualvals[$i .. $end]), "\n";
 	}
-	
+
 	push @ctgOut, "\n";
 
-	
+
 	%seqClr = ();
 	%seqAlnClr = ();
 	%seqAlnRng = ();
@@ -388,7 +388,7 @@ while (my $record = getCARecord(\*IN)){
 		    my $tmp = $asmr;
 		    $asmr = $asml;
 		    $asml = $tmp;
-		    
+
 		    $tmp = $seqr;
 		    $seqr = $seql;
 		    $seql = $tmp;
@@ -402,7 +402,7 @@ while (my $record = getCARecord(\*IN)){
 		    if ($gapindex <= $#gaps && $seqj > $gaps[$gapindex]){
 			print STDERR "Weird $seqName, $seqj > $gaps[$gapindex]\n";
 		    }
-		    # this here is a fix for cases when the last gap index 
+		    # this here is a fix for cases when the last gap index
 		    # is equal to the length of the sequence.  In this case
 		    # the sequence gets an extra gap at the very end (which
 		    # I might add, is completely stupid).
@@ -413,7 +413,7 @@ while (my $record = getCARecord(\*IN)){
 			$gapindex++;
 #                       print "GE $gapindex\n";
 		    }
-		    
+
 		    push @outseqA, substr($sequence, $j, 1);
 		}
 		my $outseq = join '',@outseqA;
@@ -424,8 +424,8 @@ while (my $record = getCARecord(\*IN)){
 #		print "!$outseq\n";
 
 		$seqAlnRng{$seqName} = sprintf("%d %d", $asml + 1, $asmr);
-		$seqAlnClr{$seqName} = sprintf("%d %d", 
-					       (($seql < $seqr)?$seql + 1:$seql), 
+		$seqAlnClr{$seqName} = sprintf("%d %d",
+					       (($seql < $seqr)?$seql + 1:$seql),
 					       (($seql < $seqr)?$seqr : $seqr + 1));
 		my $off = $asml;
 		my $ori = ($seql > $seqr) ? "C" : "U";
@@ -458,24 +458,24 @@ while (my $record = getCARecord(\*IN)){
 		}
 #		print "QA $end5 $end3 $seql $seqr ", length($sequence), " ", length($outseq), "\n";
 		$end5++; #all coordinates are 1 based
-		push @seqOut, sprintf("QA %d %d %d %d\n", 
+		push @seqOut, sprintf("QA %d %d %d %d\n",
 				     $end5, $end3, $end5, $end3);
 		my $chrmfile = "$seqName.scf";
         #my $phdfile = `/bin/echo ../phd_dir/*.$seqName.phd.1`;
 		my $phdfile = "$seqName.phd.1";
 		my $time;
-		
+
 		if (defined $phdfile && -r "../phd_dir/$phdfile"){
 		    $time = `$GREP TIME ../phd_dir/$phdfile`;
 		    $time =~ s/TIME: //;
 		}
-		
+
 		if (! defined $time){
 		    $time = localtime;
-		} 
-		
+		}
+
 		my $dir = ($ori eq "C") ? "rev" : "forw";
-		
+
         my $ds = "DS CHROMAT_FILE: $chrmfile PHD_FILE: $phdfile CHEM:term DYE:big TIME: $time";
         if ( exists $fidToInfo{ $fid } ) {
             my ($center,$ti,$traceName,$lib,$template,$dir) = split ',', $fidToInfo{ $fid };
@@ -503,7 +503,7 @@ while (my $record = getCARecord(\*IN)){
 	}
 	$nBS++;
 	push @ctgOut, "BS $seqOff{$prev} $contigLen $prev\n";
-	
+
 	$coLine = "CO $contigid $contigLen $nseqs $nBS U\n";
     } # if CCO or UTG
 } # while each record
@@ -536,7 +536,7 @@ sub get_seq($$$)
     }
 
     my ($rec, $fields, $recs) = parseCARecord($record);
-    
+
     if ($rec ne "FRG"){
         print STDERR "wierd error in get_seq, expecting frg\n";
         return;

@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -75,7 +75,7 @@ main( int argc, char *argv[]) {
 
   argc = AS_configure(argc, argv);
 
-  { /* Parse the argument list using "man 3 getopt". */ 
+  { /* Parse the argument list using "man 3 getopt". */
     int ch,errflg=0;
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
@@ -87,7 +87,7 @@ main( int argc, char *argv[]) {
         case 'g':
           strcpy( GKP_Store_Name, argv[optind - 1]);
           setGatekeeperStore = TRUE;
-          break;	  
+          break;
         case 'N':
           Ngaps=1;
           break;
@@ -138,7 +138,7 @@ main( int argc, char *argv[]) {
   /*************************/
   // over all fragments, check for overlap with (previously unseen) mate
   /*************************/
-  
+
   lastfrg = getLastElemFragStore (gkpStore) ;
   for (fragIID = 1; fragIID <= lastfrg; fragIID++){
 
@@ -189,7 +189,7 @@ main( int argc, char *argv[]) {
 
       getGateKeeperFragment(gkpStore,mateIID,&gkpFrag);
       mateUID = gkpFrag.readUID;
-	
+
       if(mateIID<fragIID&&gkpFrag.deleted!=1)continue;
 
       //      if(getFrag(gkpStore,mateIID,fsmate,FRAG_S_ALL)!=0){
@@ -232,7 +232,7 @@ main( int argc, char *argv[]) {
 	 ( (ovl->begpos<0||ovl->endpos<0) &&
 	   ((len1+len2)-abs(ovl->begpos)-abs(ovl->endpos))/2<100)
 	 ){
-	
+
 	// if they don't overlap reasonably,
 
 	if(Ngaps){
@@ -240,7 +240,7 @@ main( int argc, char *argv[]) {
 		 mergeUid,AS_UID_toString(fragUID),AS_UID_toString(mateUID),clear1,clear2);
 	} else {
 	  // output two sequences, but with a clone UID plus "a" or "b"
-	
+
 	  printf(">" F_S64 "a (fragment %s)\n%s\n>" F_S64 "b (fragment %s)\n%s\n",
 		 mergeUid,AS_UID_toString(fragUID),clear1,mergeUid,AS_UID_toString(mateUID),clear2);
 	}
@@ -259,7 +259,7 @@ main( int argc, char *argv[]) {
 	  ium.source = "";
 #endif
 	  ium.forced = FALSE;
-	  ium.coverage_stat = 10; 
+	  ium.coverage_stat = 10;
 	  ium.status = 'U';
 	  ium.num_frags = 2;
 	  ium.f_list = &(the_imps[0]);
@@ -282,7 +282,7 @@ main( int argc, char *argv[]) {
 	    the_imps[1].delta_length = 0;
 	    the_imps[1].delta        = NULL;
 	  }
-	  ium.length = ( ium.f_list[0].position.end >  ium.f_list[1].position.bgn ) ? 
+	  ium.length = ( ium.f_list[0].position.end >  ium.f_list[1].position.bgn ) ?
 	    ium.f_list[0].position.end :  ium.f_list[1].position.bgn;
 
 
@@ -299,7 +299,7 @@ main( int argc, char *argv[]) {
 	    Overlap *(*COMPARE_FUNC)(COMPARE_ARGS)=Local_Overlap_AS_forCNS;
 	    //Overlap *(*COMPARE_FUNC)(COMPARE_ARGS)=DP_Compare;
 
-	    
+
 	    if(ovl->begpos<0){
 	      allow_neg_hang=1;
 	    }
@@ -338,7 +338,7 @@ main( int argc, char *argv[]) {
 	    clr_end=j;
 	  }
 
-	} else { // do not run consensus 
+	} else { // do not run consensus
 
 	  int into1 = len1;
 	  int into2 = strlen(clear2)-ovl->endpos;

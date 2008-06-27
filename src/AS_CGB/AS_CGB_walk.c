@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_walk.c,v 1.5 2007-07-19 09:50:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_walk.c,v 1.6 2008-06-27 06:29:13 brianwalenz Exp $";
 
 //  Walks the skeleton fragment overlap graph to determine if an
 //  overlap is transitively inferable from the skeleton fragment
@@ -117,21 +117,21 @@ int is_there_an_overlap_path(const Tfragment *frags,
 
   if((*work_tally_per_candidate_edge >=
       work_limit_per_candidate_edge)) return FALSE;
-  
+
   if(search_depth >= walk_depth) {
     //search_path_histogram[search_depth]++;
     return FALSE; // For backward compatability...
   }
-  
+
   // Set up a locally rooted depth first search.  We are depending on
   // visited_a[] and visited_b[] to be initialized out of the range
   // [0,2*nfrag-1] before the rooted depth first search begins.
-  
+
   visited_a[CIS2O(current_avx,current_asx)]=CIS2O(target_avx,target_asx);
   visited_b[CIS2O(current_avx,current_asx)]=CIS2O(target_bvx,target_bsx);
 
-  // for each edge ir1 adjacent to v 
-  for(in1=0;in1<nnode;in1++) { 
+  // for each edge ir1 adjacent to v
+  for(in1=0;in1<nnode;in1++) {
     // Assume dovetail and to-contained edges sorted for increasing ahg.
     // What about FROM_CONTAINED edges??
     const IntEdge_ID  ir1 = ir0+in1;
@@ -147,20 +147,20 @@ int is_there_an_overlap_path(const Tfragment *frags,
     // A containment edge to a locally contained fragment from the
     // containing fragment.
 
-    
+
     if((*work_tally_per_candidate_edge
         >= work_limit_per_candidate_edge)) return FALSE;
     (*work_tally_per_candidate_edge) ++;
     // This appears to be the correct place, but hey.
-    
+
     if( // Restrictions on overlap type
        ((ir1_is_dovetail && target_is_dovetail) ||
         (ir1_is_to_contained && target_is_to_contained) ||
         (ir1_is_from_contained && target_is_from_contained))
       ) // Restrictions on overlap type
     {
-    
-      const int new_last_edge_was_containment = 
+
+      const int new_last_edge_was_containment =
 	last_edge_was_containment &&  ir1_is_from_contained;
         // The path is restricted to be (FRC)*(DVT)* .
         // This logic depends on "last_edge_was_containment"
@@ -173,18 +173,18 @@ int is_there_an_overlap_path(const Tfragment *frags,
       const IntFragment_ID ir1bvx = get_bvx_edge(edges,ir1);
       const int        ir1bsx = get_bsx_edge(edges,ir1);
       const int        ir1bhg = get_bhg_edge(edges,ir1);
-      
+
       const IntFragment_ID new_avx = ir1bvx;
       const int            new_asx = !ir1bsx;
       const int new_ahg = current_ahg + ir1ahg;
       const int new_bhg = current_bhg + ir1bhg;
-      
+
 #ifndef JUST_OVERHANGS
       const int new_aln = target_aln;
       const int new_bln = get_length_fragment(frags,ir1bvx);
       // Note that since we are constructing the path from the
       // A-side that new_aln and target_aln are equal.
-      
+
       const int target_alp = target_aln - target_ahg;
       const int target_blp = target_bln - target_bhg;
       const int new_alp = new_aln - new_ahg;
@@ -192,14 +192,14 @@ int is_there_an_overlap_path(const Tfragment *frags,
       // Note that we are implicitly using Granger^s extended
       // fragments when new_ahg < 0 or new_bhg < 0.
 #endif // JUST_OVERHANGS
-      
+
 #ifdef WALK_DEPTH_DIAGNOSTICS
       search_depth_histogram[search_depth]++;
-#endif      
+#endif
       assert(current_avx == ir1avx);
       assert(current_asx == ir1asx);
-      
-      // Each middle fragment must include the target overlap sequence. 
+
+      // Each middle fragment must include the target overlap sequence.
       if(
         /* If a middle fragment does not include the target overlap,
            then exit the path. */
@@ -215,7 +215,7 @@ int is_there_an_overlap_path(const Tfragment *frags,
            )
 #endif // JUST_OVERHANGS
         ) continue;
-      
+
 #define ABS(a) ((a)>= 0 ?(a):-(a))
 
       if(search_depth > 0) {
@@ -248,7 +248,7 @@ int is_there_an_overlap_path(const Tfragment *frags,
                    current_ahg,  // Use zero at the top level.
                    current_bhg,  // Use zero at the top level.
                    new_last_edge_was_containment); // From target_nes at the top level.
-         }   
+         }
 #endif // PRINT_WALK
             return TRUE; // A chord overlap!!
           } else {
@@ -261,7 +261,7 @@ int is_there_an_overlap_path(const Tfragment *frags,
       // target_asx) before, then terminate the search.  This makes
       // the graph search into a local DFS where the root of the DFS
       // is (target_avx,target_asx).
-      
+
       // Depth first search only: if (visited(new_avx,new_asx) ==
       // FALSE) for this local search, then do not follow a redundant
       // sub-path.
@@ -271,15 +271,15 @@ int is_there_an_overlap_path(const Tfragment *frags,
          ==CIS2O(target_avx,target_asx))
         &&
         (visited_b[CIS2O(new_avx,new_asx)]
-         ==CIS2O(target_bvx,target_bsx)) 
+         ==CIS2O(target_bvx,target_bsx))
         ) continue;
-      
+
       {
        int iflag = is_there_an_overlap_path
         ( frags, edges,
           target_avx, target_asx,
 #ifdef MATCH_TARGET_EDGE
-          target_bvx, target_bsx, 
+          target_bvx, target_bsx,
           target_ahg, target_bhg,
 	  target_nes,
           target_is_dovetail,
@@ -289,7 +289,7 @@ int is_there_an_overlap_path(const Tfragment *frags,
 #endif // MATCH_TARGET_EDGE
           /* recursion variables: */
           (search_depth+1), // Use zero at the top level.
-          new_avx, new_asx, 
+          new_avx, new_asx,
           new_ahg, new_bhg,
           new_last_edge_was_containment,
           /* search path limiting: */
@@ -297,7 +297,7 @@ int is_there_an_overlap_path(const Tfragment *frags,
           tolerance,
           visited_a, // Was this fragment seen from the target overlap before?
 #ifdef MATCH_TARGET_EDGE
-          visited_b, 
+          visited_b,
 #endif // MATCH_TARGET_EDGE
           work_limit_per_candidate_edge,
           // Maximum number of edges to explore per candidate edge.
@@ -322,16 +322,16 @@ int is_there_an_overlap_path(const Tfragment *frags,
                    target_bsx,
                    target_ahg,
                    target_bhg,
-                   target_nes,          
+                   target_nes,
                    search_depth, // Use zero at the top level.
                    get_iid_fragment(frags,current_avx),  // Use target_avx at the top level.
                    current_asx,  // Use target_asx at the top level.
-                   get_iid_fragment(frags,ir1bvx), 
-                   ir1bsx,  
+                   get_iid_fragment(frags,ir1bvx),
+                   ir1bsx,
                    current_ahg,  // Use zero at the top level.
                    current_bhg,  // Use zero at the top level.
                    new_last_edge_was_containment); // From target_nes at the top level.
-         }   
+         }
 #endif // PRINT_WALK
          return iflag; // propagate a eureka
        }

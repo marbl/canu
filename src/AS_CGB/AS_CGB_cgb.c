@@ -1,34 +1,34 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.24 2008-02-27 17:06:59 skoren Exp $";
+static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.25 2008-06-27 06:29:13 brianwalenz Exp $";
 
 //  This module builds the chunk graph from the fragment essential
 //  overlap graph with contained fragments as an augmentation, and
 //  writes the chunk graph using the assembler message library.
-// 
+//
 //  Author: Clark Mobarry
 //
 //  The basic chunk data structures are:
-// 
+//
 //  (1) a segmented array of type "TChunkFrag" called chunkfrags[] used
 //  to store the fragments of each chunk,
 //
@@ -39,7 +39,7 @@ static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.24 2008-02-27 17:06:59 skoren Exp $
 //
 //  The first three arrays are segmented to store variable length
 //  information for the chunks.  Each member of the last array has a
-//  segment header index into each of the three previous arrays. 
+//  segment header index into each of the three previous arrays.
 
 #include "AS_CGB_all.h"
 
@@ -81,7 +81,7 @@ check_edge_trimming(Tfragment *frags, Tedge *edges) {
   IntFragment_ID nfrag = GetNumFragments(frags);
   IntEdge_ID     ie;
   IntFragment_ID ifrag;
-  int            is; 
+  int            is;
 
   for(ifrag=0; ifrag<nfrag; ifrag++) {
     Tlab ilab = get_lab_fragment(frags,ifrag);
@@ -220,7 +220,7 @@ add_fragment_to_chunk(int pass,
 
   //  If we're a bad fragment type, don't continue
   //
-  if ((AS_CGB_UNLABELED_FRAG        == ilabel) || 
+  if ((AS_CGB_UNLABELED_FRAG        == ilabel) ||
       (AS_CGB_HANGING_CRAPPY_FRAG   == ilabel) ||
       (AS_CGB_ORPHANEDCONT_FRAG     == ilabel) ||
       (AS_CGB_MARKED_BREAKER_FRAG   == ilabel) ||
@@ -239,14 +239,14 @@ add_fragment_to_chunk(int pass,
     //  Set up to search from the essential vertex iavx/iasx
     IntEdge_ID ir0 = get_segstart_vertex(frags,iavx,iasx);
     IntEdge_ID ir1 = ir0 + get_seglen_vertex(frags,iavx,iasx);
-      
+
     //  Begin examining the edges from this vertex
     for(irc=ir0; irc<ir1; irc++) {
 
       //  These are set for the coverage discriminator statistics
-      int iahg = get_ahg_edge(edges,irc); 
+      int iahg = get_ahg_edge(edges,irc);
       int ibhg = get_bhg_edge(edges,irc);
-	
+
       // These are set for orienting the fragments to the chunk
       // coordinates.
       IntFragment_ID ibvx = get_bvx_edge(edges,irc);
@@ -259,7 +259,7 @@ add_fragment_to_chunk(int pass,
       // flag that says whether the suffix of the A/B fragment is in
       // the overlap. Let iahg/ibhg be the number of base pairs of the
       // A/B fragment not in the overlap region.
-        
+
       // Here iasx==TRUE for both:
       // frag A ------------>       normal-dovetail (ibsx==FALSE), and
       // frag B       ---------->
@@ -270,16 +270,16 @@ add_fragment_to_chunk(int pass,
       // frag B       ---------->
       // frag A <------------        antinormal-dovetail (ibsx==TRUE).
       // frag B       <----------
-        
+
       // The overlap detector does not emit antinormal overlaps since
       // they are redundant with normal overlaps if we are allowed to
       // swap the A and B fragments. Thus there are only three
       // independent orientations for dovetail overlaps if we are
       // allowed to swap the A and B fragments.
-        
+
       // There are only two independent orientations for containment overlaps
       // if we are allowed to swap the A and B fragments.
-        
+
       // Here iasx==TRUE for both:
       // frag A ---------------->     normal-contained (ibsx==FALSE), and
       // frag B       ------->...
@@ -291,7 +291,7 @@ add_fragment_to_chunk(int pass,
       // frag A <----------------     antinormal-contained (ibsx==TRUE).
       // frag B       <-------...
       // Those dots (...) are to graphically represent a non-positive ibhg.
-        
+
       // Begin checking for the allowed overlap types.
 
       if (((AS_CGB_CONTAINED_EDGE == inese) &&
@@ -302,7 +302,7 @@ add_fragment_to_chunk(int pass,
         //  Found a containment edge
 
         int jlabel = get_lab_fragment(frags,ibvx);
-          
+
         if ((AS_CGB_UNPLACEDCONT_FRAG == jlabel) ||
             (AS_CGB_SINGLECONT_FRAG   == jlabel)) {
 
@@ -314,7 +314,7 @@ add_fragment_to_chunk(int pass,
           int64 joffseta = ioffseta + (iforward^iasx ? -ibhg : iahg);
           int64 joffsetb = ioffsetb + (iforward^iasx ? -iahg : ibhg);
           int64 offset_error = AS_CGB_TRANSITIVE_SLOP_ALPHA + (int)(AS_CGB_TRANSITIVE_SLOP_EPSILON * get_length_fragment(frags,ibvx));
-          
+
           // During the first pass discover the number of times a
           // fragment can be contained in different chunks.
           //
@@ -373,7 +373,7 @@ add_fragment_to_chunk(int pass,
       *max_ahg_of_contained = max_ahg;
   }  //  over both ivsx (ends?)
 }
-  
+
 
 
 
@@ -386,7 +386,7 @@ add_fragment_to_chunk(int pass,
 static
 IntEdge_ID
 find_intrachunk_edge(Tfragment frags[],
-                     Tedge edges[], 
+                     Tedge edges[],
                      IntFragment_ID  iavx, int  iasx,
                      IntFragment_ID *ibvx, int *ibsx) {
 
@@ -468,16 +468,16 @@ make_a_chunk(const int         pass,
      ((AS_CGB_MULTICONT_FRAG      == ilabel) && (pass >= 2))) {
 
     add_fragment_to_chunk(pass,
-                          frags, edges, ichunk, 
+                          frags, edges, ichunk,
                           vid,
                           TRUE,
                           sum_of_ahg,
                           sum_of_bhg,
                           ftic,
-                          chunkfrags, 
-                          nfrag_essential_in_chunk, 
+                          chunkfrags,
+                          nfrag_essential_in_chunk,
                           nbase_essential_sampled_in_chunk,
-                          nfrag_contained_in_chunk, 
+                          nfrag_contained_in_chunk,
                           nbase_contained_sampled_in_chunk,
                           &max_ahg_of_contained_first,
                           &max_bhg_of_contained_last);
@@ -490,7 +490,7 @@ make_a_chunk(const int         pass,
     (*nbase_essential_in_chunk) = get_length_fragment(frags,vid);
     return;
   }
-  
+
   //  INTRACHUNK && times==0 --> for circular chunks
   //
   assert((AS_CGB_INTERCHUNK_FRAG    == ilabel) ||
@@ -499,10 +499,10 @@ make_a_chunk(const int         pass,
 
   {
     //  Find the first intra-chunk edge of the chunk
-    
+
     IntFragment_ID iedge_prefix = find_intrachunk_edge(frags,edges,iavx,FALSE,&ibvx,&ibsx);
     IntFragment_ID iedge_suffix = find_intrachunk_edge(frags,edges,iavx,TRUE,&ibvx,&ibsx);
-    
+
     alab = get_lab_fragment(frags,iavx);
 
     //  If the first fragment is not a AS_CGB_INTRACHUNK_FRAG fragment,
@@ -512,7 +512,7 @@ make_a_chunk(const int         pass,
          (AS_CGB_INTRACHUNK_FRAG == alab) ||
          ((((iedge_prefix == AS_CGB_EDGE_NOT_VISITED) &&
             (iedge_suffix != AS_CGB_EDGE_NOT_VISITED)) ||
-           ((iedge_prefix != AS_CGB_EDGE_NOT_VISITED) && 
+           ((iedge_prefix != AS_CGB_EDGE_NOT_VISITED) &&
             (iedge_suffix == AS_CGB_EDGE_NOT_VISITED)) )))) {
       fprintf(stderr,"Make A Chunk pass=%d\n",pass);
       fprintf(stderr,"ichunk,iid,iavx,lab=" F_IID "," F_IID "," F_IID ",%d\n",
@@ -527,16 +527,16 @@ make_a_chunk(const int         pass,
               iedge_prefix,iedge_suffix);
     }
     assert((AS_CGB_INTRACHUNK_FRAG == alab) ||
-           (((iedge_prefix == AS_CGB_EDGE_NOT_VISITED) && 
+           (((iedge_prefix == AS_CGB_EDGE_NOT_VISITED) &&
              (iedge_suffix != AS_CGB_EDGE_NOT_VISITED)) ||
-            ((iedge_prefix != AS_CGB_EDGE_NOT_VISITED) && 
+            ((iedge_prefix != AS_CGB_EDGE_NOT_VISITED) &&
              (iedge_suffix == AS_CGB_EDGE_NOT_VISITED))));
 
     iasx  = (iedge_prefix == AS_CGB_EDGE_NOT_VISITED);
     iedge = (iasx ? iedge_suffix : iedge_prefix);
-    
+
     iavx  = get_avx_edge(edges,iedge);
-    iasx  = get_asx_edge(edges,iedge); /* True if the suffix of the first fragment is in the chunk. */ 
+    iasx  = get_asx_edge(edges,iedge); /* True if the suffix of the first fragment is in the chunk. */
     ibvx  = get_bvx_edge(edges,iedge);
     ibsx  = get_bsx_edge(edges,iedge);
 
@@ -547,7 +547,7 @@ make_a_chunk(const int         pass,
     if (!(((AS_CGB_INTRACHUNK_FRAG    == blab) ||
            (AS_CGB_INTERCHUNK_FRAG    == blab) ||
            (AS_CGB_HANGING_CHUNK_FRAG == blab))))
-      fprintf(stdout,"FIRST INTRACHUNK EDGE iedge,iafr,iavx,iasx,ibfr,ibvx,ibsx,alab,blab "F_IID","F_IID","F_IID",%d,"F_IID","F_IID",%d,%d,%d\n", 
+      fprintf(stdout,"FIRST INTRACHUNK EDGE iedge,iafr,iavx,iasx,ibfr,ibvx,ibsx,alab,blab "F_IID","F_IID","F_IID",%d,"F_IID","F_IID",%d,%d,%d\n",
               iedge, get_iid_fragment(frags,iavx), iavx, iasx, get_iid_fragment(frags,ibvx), ibvx, ibsx, alab, blab);
     assert((AS_CGB_INTRACHUNK_FRAG    == blab) ||
            (AS_CGB_INTERCHUNK_FRAG    == blab) ||
@@ -567,15 +567,15 @@ make_a_chunk(const int         pass,
   *chunk_asx = !iasx;
 
   add_fragment_to_chunk(pass,
-                        frags, edges, ichunk, 
+                        frags, edges, ichunk,
                         vid, iasx,
                         sum_of_ahg,
                         sum_of_bhg,
                         ftic,
-                        chunkfrags, 
-                        nfrag_essential_in_chunk, 
+                        chunkfrags,
+                        nfrag_essential_in_chunk,
                         nbase_essential_sampled_in_chunk,
-                        nfrag_contained_in_chunk, 
+                        nfrag_contained_in_chunk,
                         nbase_contained_sampled_in_chunk,
                         &max_ahg_of_contained_first,
                         &max_bhg_of_contained);
@@ -599,15 +599,15 @@ make_a_chunk(const int         pass,
       case AS_CGB_INTRACHUNK_FRAG:
         //  CMM says "Process all INTRACHUNK frags."
         add_fragment_to_chunk(pass,
-                              frags, edges, ichunk, 
+                              frags, edges, ichunk,
                               ibvx, !ibsx,
                               sum_of_ahg,
                               sum_of_bhg,
                               ftic,
-                              chunkfrags, 
-                              nfrag_essential_in_chunk, 
+                              chunkfrags,
+                              nfrag_essential_in_chunk,
                               nbase_essential_sampled_in_chunk,
-                              nfrag_contained_in_chunk, 
+                              nfrag_contained_in_chunk,
                               nbase_contained_sampled_in_chunk,
                               &max_ahg_of_contained,
                               &max_bhg_of_contained);
@@ -617,7 +617,7 @@ make_a_chunk(const int         pass,
 
         //  Check that the chunk didn't end.
         if (iedge == AS_CGB_EDGE_NOT_VISITED)
-          fprintf(stdout,"AN INTRACHUNK EDGE iedge,iafr,iavx,iasx,ibfr,ibvx,ibsx = "F_IID","F_IID","F_IID",%d,"F_IID","F_IID",%d\n", 
+          fprintf(stdout,"AN INTRACHUNK EDGE iedge,iafr,iavx,iasx,ibfr,ibvx,ibsx = "F_IID","F_IID","F_IID",%d,"F_IID","F_IID",%d\n",
                   iedge,get_iid_fragment(frags,iavx),iavx,iasx,get_iid_fragment(frags,ibvx),ibvx,ibsx);
         assert(iedge != AS_CGB_EDGE_NOT_VISITED);
         break;
@@ -625,15 +625,15 @@ make_a_chunk(const int         pass,
       case AS_CGB_INTERCHUNK_FRAG:
         //  CMM says "This is the last INTERCHUNK frag we're going to process."
         add_fragment_to_chunk(pass,
-                              frags, edges, ichunk, 
+                              frags, edges, ichunk,
                               ibvx, !ibsx,
                               sum_of_ahg,
                               sum_of_bhg,
                               ftic,
-                              chunkfrags, 
-                              nfrag_essential_in_chunk, 
+                              chunkfrags,
+                              nfrag_essential_in_chunk,
                               nbase_essential_sampled_in_chunk,
-                              nfrag_contained_in_chunk, 
+                              nfrag_contained_in_chunk,
                               nbase_contained_sampled_in_chunk,
                               &max_ahg_of_contained,
                               &max_bhg_of_contained_last);
@@ -643,7 +643,7 @@ make_a_chunk(const int         pass,
         //  Check that the chunk ended.
         iedge = find_intrachunk_edge(frags,edges,iavx,iasx,&ibvx,&ibsx);
         if (iedge != AS_CGB_EDGE_NOT_VISITED)
-          fprintf(stdout,"AN INTERCHUNK EDGE iedge,iafr,iavx,iasx,ibfr,ibvx,ibsx = "F_IID","F_IID","F_IID",%d,"F_IID","F_IID",%d\n", 
+          fprintf(stdout,"AN INTERCHUNK EDGE iedge,iafr,iavx,iasx,ibfr,ibvx,ibsx = "F_IID","F_IID","F_IID",%d,"F_IID","F_IID",%d\n",
                   iedge,get_iid_fragment(frags,iavx),iavx,iasx,get_iid_fragment(frags,ibvx),ibvx,ibsx);
         assert(iedge == AS_CGB_EDGE_NOT_VISITED);
 
@@ -752,7 +752,7 @@ fill_a_chunk_starting_at(const int pass,
   assert(GetNumVA_AChunkFrag(chunkfrags) == irec_start_of_chunk + nfrag_in_chunk);
 
   assert(nfrag_in_chunk > 0);
-    
+
   AChunkMesg ch = {0};
 
   ch.iaccession   = ichunk;
@@ -817,14 +817,14 @@ make_the_chunks(Tfragment frags[],
     //
     // Clear the container fragment IID.
     //
-    for(vid=0;vid<GetNumFragments(frags);vid++) { 
+    for(vid=0;vid<GetNumFragments(frags);vid++) {
       ftic[vid] = 0;
 
       set_cid_fragment(frags,vid,CHUNK_NOT_VISITED);
       set_o3p_fragment(frags,vid,0);
       set_o5p_fragment(frags,vid,0);
 
-      set_container_fragment(frags,vid,0); 
+      set_container_fragment(frags,vid,0);
 
       if (AS_CGB_SINGLECONT_FRAG == get_lab_fragment(frags,vid))
 	set_lab_fragment(frags,vid,AS_CGB_UNPLACEDCONT_FRAG);
@@ -871,7 +871,7 @@ make_the_chunks(Tfragment frags[],
 
     //  Check that fragments used more than once are labeled properly.
     //
-    for(vid=0;vid<GetNumFragments(frags);vid++) { 
+    for(vid=0;vid<GetNumFragments(frags);vid++) {
       if ((ftic[vid] > 1)) {
         Tlab lab = get_lab_fragment(frags,vid);
         if ((lab != AS_CGB_UNPLACEDCONT_FRAG) &&
@@ -906,14 +906,14 @@ make_the_chunks(Tfragment frags[],
   for(vid=0;vid<nfrag;vid++)
     if (get_lab_fragment(frags,vid) == AS_CGB_UNPLACEDCONT_FRAG)
       set_lab_fragment(frags,vid,AS_CGB_ORPHANEDCONT_FRAG);
-    
+
   for(vid=0;vid<nfrag;vid++)
     if ((ftic[vid] == 0) && (get_lab_fragment(frags,vid) != AS_CGB_DELETED_FRAG))
       fill_a_chunk_starting_at(2, vid,
                                frags, edges,
                                ftic,
                                chunkfrags, thechunks);
-  
+
 
 
   // Quality control!!!  Check that each fragment is refered to once
@@ -977,12 +977,12 @@ count_the_randomly_sampled_fragments_in_a_chunk(Tfragment   frags[],
                                                 TChunkFrag  chunkfrags[],
                                                 TChunkMesg  thechunks[],
                                                 IntChunk_ID chunk_index,
-                                                GateKeeperStore *gkp) { 
+                                                GateKeeperStore *gkp) {
   IntFragment_ID   nf = 0;
   AChunkMesg      *ch = GetAChunkMesg(thechunks,chunk_index);
   int              num_frags = ch->num_frags;
   IntFragment_ID   ii = 0;
-  
+
   for(ii=0;ii<num_frags;ii++) {
     IntFragment_ID i = *GetVA_AChunkFrag(chunkfrags,ch->f_list+ii);
     FragType type = get_typ_fragment(frags, i);
@@ -1011,7 +1011,7 @@ compute_the_global_fragment_arrival_rate(int           recalibrate,
                                          float         estimated_global_fragment_arrival_rate,
                                          TChunkFrag   *chunkfrags,
                                          TChunkMesg   *thechunks,
-                                         GateKeeperStore *gkp) { 
+                                         GateKeeperStore *gkp) {
   IntChunk_ID ichunk = 0;
   int64  total_rho = 0;
   IntFragment_ID total_nfrags = 0;
@@ -1019,7 +1019,7 @@ compute_the_global_fragment_arrival_rate(int           recalibrate,
   float computed_global_fragment_arrival_rate_tmp = 0.f;
   float best_global_fragment_arrival_rate;
   const IntChunk_ID nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
-  
+
   for(ichunk=0;ichunk<nchunks;ichunk++) {
     int64  rho = GetAChunkMesg(thechunks,ichunk)->rho; // The sum of overhangs ...
     int    nf  = count_the_randomly_sampled_fragments_in_a_chunk (frags, chunkfrags, thechunks, ichunk, gkp);
@@ -1033,7 +1033,7 @@ compute_the_global_fragment_arrival_rate(int           recalibrate,
     fprintf(fout,"Total rho    = "F_S64"\n", total_rho);
     fprintf(fout,"Total nfrags = "F_IID"\n", total_nfrags);
     computed_global_fragment_arrival_rate_tmp = ( total_rho > 0 ? ((float)total_nfrags)/((float)total_rho) : 0.f );
-  
+
     fprintf(fout,"Estimated genome length = "F_S64"\n", nbase_in_genome);
     fprintf(fout,"Estimated global_fragment_arrival_rate=%f\n", (estimated_global_fragment_arrival_rate));
     fprintf(fout,"Computed global_fragment_arrival_rate =%f\n", computed_global_fragment_arrival_rate_tmp);
@@ -1068,7 +1068,7 @@ compute_the_global_fragment_arrival_rate(int           recalibrate,
     size_t arrival_rate_array_size = 0;
 
     for(ichunk=0;ichunk<nchunks;ichunk++) {
-      const int64  rho 
+      const int64  rho
 	= GetAChunkMesg(thechunks,ichunk)->rho; // The sum of overhangs ...
       if((int)rho > 10000){
 	arrival_rate_array_size += (int)rho / 10000;
@@ -1199,7 +1199,7 @@ void chunk_graph_build_1(const char * const Graph_Store_File_Prefix,
                                                                                chunkfrags,
                                                                                thechunks,
                                                                                gkp);
-   
+
   // Now that the global fragment arrival rate is available, we set
   // the coverage statistic.
 
@@ -1223,7 +1223,7 @@ void chunk_graph_build_1(const char * const Graph_Store_File_Prefix,
     num_chimeras = count_chimeras(chimeras_file, cgb_unique_cutoff, frags, edges, chunkfrags, thechunks);
     check_edge_trimming( frags, edges);
   }
-    
+
   if( spurs_file ) {
     uint32 num_crappies = 0;
     num_crappies = count_crappies(spurs_file, cgb_unique_cutoff, frags, edges, chunkfrags, thechunks);

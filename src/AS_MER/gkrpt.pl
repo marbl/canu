@@ -55,7 +55,7 @@ foreach my $kmer (sort { $kmers{$b} <=> $kmers{$a} } (keys %kmers)){
       $realcount = $nextcount;
       $realkmer = $tmpkmer;
       $maxkmer = $curkmer;
-    }     
+    }
     substr($curkmer, -1) = "C";
     if (defined($kmers{$curkmer})){
       $nextcount = $kmers{$curkmer};
@@ -151,7 +151,7 @@ foreach my $kmer (sort { $kmers{$b} <=> $kmers{$a} } (keys %kmers)){
       $realcount = $nextcount;
       $realkmer = $tmpkmer;
       $maxkmer = $curkmer;
-    }     
+    }
     substr($curkmer, 0, 1) = "C";
     if (defined($kmers{$curkmer})){
       $nextcount = $kmers{$curkmer};

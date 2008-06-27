@@ -1,7 +1,7 @@
 #include "MSG.h"
 #include <string.h>
 #include "swigperlrun.h"
- 
+
 /* Map message type to struct name of message.
  * What to do of the SPx (x = o, g, c, 1-9, a, d, ...)?
  * What about IDT? IBI?
@@ -9,7 +9,7 @@
  */
 static const char *MessageTypeStruct[NUM_OF_REC_TYPES + 1] = {
   NULL,
-  "AuditMesg", "VersionMesg", "FragMesg", "InternalFragMesg", NULL, 
+  "AuditMesg", "VersionMesg", "FragMesg", "InternalFragMesg", NULL,
   "LinkMesg", NULL, "DistanceMesg", NULL, "LibraryMesg",
   NULL, NULL, "OverlapMesg", NULL, "UnitigOverlapMesg",
   "IntUnitigMesg", "IntUnitigLinkMesg", "IntContigLinkMesg", "AugFragMesg", "IntScaffoldMesg",
@@ -30,7 +30,7 @@ static void init_message_type_info()
 #define STR_LEN 100
   char str[STR_LEN+1];
   str[STR_LEN] = '\0';
-  
+
  if(!message_type_info_init) {
     for(i = 0; i < NUM_OF_REC_TYPES; i++) {
       if(MessageTypeStruct[i]) {
@@ -111,7 +111,7 @@ void Parser_next_message(Parser *parser, OutMesg *nmesg, void **ty, int *own)
       WriteProtoMesg_AS(parser->out, parser->pmesg);
     }
   }
-  
+
   parser->ty = MessageTypeSwigTypeInfo[parser->pmesg->t];
   if(!parser->ty) {
     *nmesg = *ty = NULL;

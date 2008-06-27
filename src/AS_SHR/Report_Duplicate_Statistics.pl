@@ -22,7 +22,7 @@
 #
 ##########################################################################
 
-# $Id: Report_Duplicate_Statistics.pl,v 1.1 2006-01-10 22:44:42 kli1000 Exp $
+# $Id: Report_Duplicate_Statistics.pl,v 1.2 2008-06-27 06:29:21 brianwalenz Exp $
 
 ###############################################################################
 
@@ -31,7 +31,7 @@ use Getopt::Std;
 
 print "Started...\n";
 
-my $usage = "usage: 
+my $usage = "usage:
 $0 <fasta files...>
 	This program will:
 		Will read in a FASTA file, and print out id's that have the same sequence.
@@ -58,7 +58,7 @@ while($fname=shift){
 	my ($defline, $prev_defline, $sequence);
 	while(<FASTA_FH>){
 		chomp;
-		
+
 		if(/^>/){
 			$defline=$_;
 			if($sequence ne ""){

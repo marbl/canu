@@ -2,27 +2,27 @@
 #
 ###########################################################################
 #
-# This file is part of Celera Assembler, a software program that 
+# This file is part of Celera Assembler, a software program that
 # assembles whole-genome shotgun reads into contigs and scaffolds.
 # Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received (LICENSE.txt) a copy of the GNU General Public 
+#
+# You should have received (LICENSE.txt) a copy of the GNU General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
 #
-# $Id: filterExplain.sh,v 1.5 2005-12-16 22:13:07 catmandew Exp $
+# $Id: filterExplain.sh,v 1.6 2008-06-27 06:29:17 brianwalenz Exp $
 #
 #  rm toProcess.txt
 #fi
@@ -35,7 +35,7 @@ if [ -z ${Offset} ] || [ ${Offset} == "bell-style" ]; then
 fi
 
 
-if [ ! -f toProcess.txt ]; then 
+if [ ! -f toProcess.txt ]; then
   for file in `ls 0[0-9][0-9]_all.csv`; do
     chr=${file%%_*}
     tail +9 ${file} | sed 's/,//g' | gawk -v o=${Offset} -v c=${chr} \

@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: wpack.c,v 1.6 2007-03-09 03:05:58 brianwalenz Exp $ */
+/* $Id: wpack.c,v 1.7 2008-06-27 06:29:22 brianwalenz Exp $ */
 
 #undef DEBUG
 
@@ -108,7 +108,7 @@ typedef struct win_struct {             /* window */
   int   clip_x1,clip_y1,clip_x2,clip_y2;
   int   origin_x,origin_y;
   int   is_clipped;                     /* If a new clipping region is used */
-  int   is_visible;  
+  int   is_visible;
   int   batch_mode;
   int   draw_mode;
   Font  fid;
@@ -229,7 +229,7 @@ void set_up_colors(int depth)
   for (cunused = ncol; cunused > 0; cunused--)
     if (XAllocColorCells(dpy,their_cmap,0,&planes,0,unpixels,cunused) != 0)
       break;
-  
+
   for (i = 0; i < ncol; i++)
     color_own[i] = 0;
   for (i = 0; i < cunused; i++)
@@ -275,7 +275,7 @@ void set_up_colors(int depth)
 */
 
   free(pixels);
-} 
+}
 
 static void init_callback_table(void);
 
@@ -381,7 +381,7 @@ void winpack_main_loop()
   {
     XEvent event;
 
-    while (app)  
+    while (app)
       {
         XtAppNextEvent(app,&event);
         XtDispatchEvent(&event);
@@ -467,7 +467,7 @@ void winpack_unmonitor_fd(int fd)
    int slot;
    slot = find_callback(fd);
    if(slot < 0) return;
-   
+
    XtRemoveInput(callback_table[slot].x_id);
    callback_table[slot].fd = -1;
 }
@@ -862,7 +862,7 @@ window_desc win_new(x,y,w,h,event_proc,data,title)
     result->pm = XCreatePixmap(dpy,XtWindow(result->widget),w,h,depth);
     result->cur_cursor = 0;
 
-    gcval.foreground = black; 
+    gcval.foreground = black;
     gcval.background = white;
     gcval.cap_style  = CapButt;
     gcval.join_style = JoinMiter;
@@ -899,7 +899,7 @@ void win_free(win)
         if (p)
           p->next = WP(win)->next;
       }
-      
+
     XFreePixmap(dpy,WP(win)->pm);
     XFreeGC(dpy,WP(win)->gc);
     XtDestroyWidget(WP(win)->shell);
@@ -941,7 +941,7 @@ void  win_set_data(win,data)
   opaque_pointer data;
   {
     if (!win) return;
-    WP(win)->user_data = data; 
+    WP(win)->user_data = data;
   }
 
 /*---------------------------------------------*/
@@ -952,11 +952,11 @@ opaque_pointer win_get_data(win)
     if (!win) return 0;
     return WP(win)->user_data;
   }
-  
+
 /*---------------------------------------------*/
 
 void win_set_handler(win, p)
-  window_desc win; 
+  window_desc win;
   event_handler_proc p;
   {
     if (!win) return;
@@ -985,7 +985,7 @@ void win_set_pos(win,x,y)
     XtSetArg(args[1],XtNy,y);
     XtSetValues(WP(win)->shell,args,2);
   }
-  
+
 /*---------------------------------------------*/
 
 void win_get_pos(win, x_result, y_result)
@@ -997,7 +997,7 @@ void win_get_pos(win, x_result, y_result)
     *x_result = WP(win)->shell->core.x;
     *y_result = WP(win)->shell->core.y;
   }
-  
+
 /*---------------------------------------------*/
 
 void win_set_size(win,w,h)
@@ -1227,11 +1227,11 @@ void win_get_clip(win,x1_result,y1_result,x2_result,y2_result)
   int *x1_result,*y1_result,*x2_result,*y2_result;
   {
     if (!win || !x1_result || !y1_result || !x2_result || !y2_result) return;
-    
+
     /* return clip region translated into local coordinates */
-    *x1_result = WP(win)->clip_x1 - WP(win)->origin_x; 
+    *x1_result = WP(win)->clip_x1 - WP(win)->origin_x;
     *y1_result = WP(win)->clip_y1 - WP(win)->origin_y;
-    *x2_result = WP(win)->clip_x2 - WP(win)->origin_x; 
+    *x2_result = WP(win)->clip_x2 - WP(win)->origin_x;
     *y2_result = WP(win)->clip_y2 - WP(win)->origin_y;
   }
 
@@ -1242,11 +1242,11 @@ void bm_get_clip(bm,x1_result,y1_result,x2_result,y2_result)
   int *x1_result,*y1_result,*x2_result,*y2_result;
   {
     if (!bm || !x1_result || !y1_result || !x2_result || !y2_result) return;
-    
+
     /* return clip region translated into local coordinates */
-    *x1_result = BP(bm)->clip_x1 - BP(bm)->origin_x; 
+    *x1_result = BP(bm)->clip_x1 - BP(bm)->origin_x;
     *y1_result = BP(bm)->clip_y1 - BP(bm)->origin_y;
-    *x2_result = BP(bm)->clip_x2 - BP(bm)->origin_x; 
+    *x2_result = BP(bm)->clip_x2 - BP(bm)->origin_x;
     *y2_result = BP(bm)->clip_y2 - BP(bm)->origin_y;
   }
 
@@ -1260,7 +1260,7 @@ void mt_end_clip_to(MT_OBJECT *o)
   if (!win) return;
   win_get_size(win,&w,&h);
   XSetClipMask(dpy,WP(win)->gc,None);
-  WP(win)->clip_x1 = 0;      
+  WP(win)->clip_x1 = 0;
   WP(win)->clip_y1 = 0;
   WP(win)->clip_x2 = w;
   WP(win)->clip_y2 = h;
@@ -1275,7 +1275,7 @@ void win_reset_clip(win)
     if (!win) return;
     win_get_size(win,&w,&h);
     XSetClipMask(dpy,WP(win)->gc,None);
-    WP(win)->clip_x1 = 0;      
+    WP(win)->clip_x1 = 0;
     WP(win)->clip_y1 = 0;
     WP(win)->clip_x2 = w;
     WP(win)->clip_y2 = h;
@@ -1293,7 +1293,7 @@ void bm_reset_clip(bm)
     w = bm_width(bm);
     h = bm_height(bm);
     XSetClipMask(dpy,BP(bm)->gc,None);
-    BP(bm)->clip_x1 = 0;      
+    BP(bm)->clip_x1 = 0;
     BP(bm)->clip_y1 = 0;
     BP(bm)->clip_x2 = w;
     BP(bm)->clip_y2 = h;
@@ -1331,7 +1331,7 @@ void win_set_origin(win, x, y)
     WP(win)->origin_x += x;
     WP(win)->origin_y += y;
   }
-  
+
 /*---------------------------------------------*/
 
 void bm_set_origin(bm, x, y)
@@ -1343,7 +1343,7 @@ void bm_set_origin(bm, x, y)
     BP(bm)->origin_x += x;
     BP(bm)->origin_y += y;
   }
-  
+
 /*---------------------------------------------*/
 
 void win_restore_origin(win, x, y)
@@ -1355,7 +1355,7 @@ void win_restore_origin(win, x, y)
     WP(win)->origin_x = x;
     WP(win)->origin_y = y;
   }
-  
+
 /*---------------------------------------------*/
 
 void bm_restore_origin(bm, x, y)
@@ -1379,7 +1379,7 @@ void win_get_origin(win, x, y)
     if (x) *x = WP(win)->origin_x;
     if (y) *y = WP(win)->origin_y;
   }
-  
+
 /*---------------------------------------------*/
 
 void bm_get_origin(bm, x, y)
@@ -1391,12 +1391,12 @@ void bm_get_origin(bm, x, y)
     if (x) *x = BP(bm)->origin_x;
     if (y) *y = BP(bm)->origin_y;
   }
-  
+
 /*---------------------------------------------*/
 
 int win_trivial_reject(win, x1, y1, x2, y2)
   window_desc win;
-  int x1; 
+  int x1;
   int y1;
   int x2;
   int y2;
@@ -1407,7 +1407,7 @@ int win_trivial_reject(win, x1, y1, x2, y2)
     x1 += WP(win)->origin_x; y1 += WP(win)->origin_y;
     x2 += WP(win)->origin_x; y2 += WP(win)->origin_y;
 
-    return 
+    return
       (y1 > WP(win)->clip_y2 && y2 > WP(win)->clip_y2) ||
       (y1 < WP(win)->clip_y1 && y2 < WP(win)->clip_y1) ||
       (x1 > WP(win)->clip_x2 && x2 > WP(win)->clip_x2) ||
@@ -1418,7 +1418,7 @@ int win_trivial_reject(win, x1, y1, x2, y2)
 
 int bm_trivial_reject(bm, x1, y1, x2, y2)
   bitmap_desc bm;
-  int x1; 
+  int x1;
   int y1;
   int x2;
   int y2;
@@ -1429,7 +1429,7 @@ int bm_trivial_reject(bm, x1, y1, x2, y2)
     x1 += BP(bm)->origin_x; y1 += BP(bm)->origin_y;
     x2 += BP(bm)->origin_x; y2 += BP(bm)->origin_y;
 
-    return 
+    return
       (y1 > BP(bm)->clip_y2 && y2 > BP(bm)->clip_y2) ||
       (y1 < BP(bm)->clip_y1 && y2 < BP(bm)->clip_y1) ||
       (x1 > BP(bm)->clip_x2 && x2 > BP(bm)->clip_x2) ||
@@ -1438,7 +1438,7 @@ int bm_trivial_reject(bm, x1, y1, x2, y2)
 
 /*---------------------------------------------*/
 
-void win_clear_rect(win,x1,y1,x2,y2) 
+void win_clear_rect(win,x1,y1,x2,y2)
   window_desc win;
   int x1,y1,x2,y2;
   {
@@ -1472,7 +1472,7 @@ void win_clear_rect(win,x1,y1,x2,y2)
 
 /*---------------------------------------------*/
 
-void bm_clear_rect(bm,x1,y1,x2,y2) 
+void bm_clear_rect(bm,x1,y1,x2,y2)
   bitmap_desc bm;
   int x1,y1,x2,y2;
   {
@@ -1521,7 +1521,7 @@ void win_end_batch(win)
     int w, h;
 
     if (!win) return;
-    if (WP(win)->batch_mode) 
+    if (WP(win)->batch_mode)
       {
         win_get_size(win,&w,&h);
         XCopyArea(dpy,WP(win)->pm,WP(win)->xwin,blkgc,0,0,w,h,0,0);
@@ -1664,7 +1664,7 @@ font_desc font_default(void)
   {
     font_desc result;
     char *fontname;
-    
+
     fontname = XGetDefault(dpy,"winpack","Font");
     if (!fontname) fontname = STD_FONT;
     result = font_open(fontname);
@@ -1691,7 +1691,7 @@ void font_string_size(font,str,w_result,h_result,baseline_result)
   {
     if (!font || !str || !w_result || !h_result || !baseline_result)
       return;
-    
+
     *w_result = XTextWidth((XFontStruct*)font,str,strlen(str));
     *h_result = ((XFontStruct*)font)->ascent + ((XFontStruct*)font)->descent;
     *baseline_result = ((XFontStruct*)font)->descent;
@@ -1702,7 +1702,7 @@ void mt_string_size(char *str, int *w_result, int *h_result, int *baseline_resul
 
     if (!str || !w_result || !h_result || !baseline_result)
       return;
-    
+
     font = font_default();
     *w_result = XTextWidth((XFontStruct*)font,str,strlen(str));
     *h_result = ((XFontStruct*)font)->ascent + ((XFontStruct*)font)->descent;
@@ -1721,7 +1721,7 @@ extern int XDrawImageString(
     const char*         /* string */,
     int                 /* length */
 #endif
-);    
+);
 
 extern int XDrawString(
 #if NeedFunctionPrototypes
@@ -1733,7 +1733,7 @@ extern int XDrawString(
     const char*         /* string */,
     int                 /* length */
 #endif
-);  
+);
 
 void win_draw_string(window_desc win, int x, int y, char *str, font_desc font, drawing_mode mode)
   {
@@ -1742,7 +1742,7 @@ void win_draw_string(window_desc win, int x, int y, char *str, font_desc font, d
     if (!win || !str || !font) return;
 
     /* translate from local to global coords */
-    x += WP(win)->origin_x; 
+    x += WP(win)->origin_x;
     y += WP(win)->origin_y;
 
     if (WP(win)->fid != FP(font)->fid)
@@ -1773,7 +1773,7 @@ void mt_draw_text(MT_OBJECT *o, int x, int y, char *str)
   font = font_default();
   if (str == NULL) return;
 
-  x += o->xl; 
+  x += o->xl;
   y += o->yl;
 
   if (o->type == BITMAP)
@@ -1821,7 +1821,7 @@ void mt_draw_title(MT_OBJECT *o, int x, int y, char *str)
     font = font_open("*-helvetica-bold-r-*-*-14-*-*-*-*-*-*-*");
   if (str == NULL) return;
 
-  x += o->xl; 
+  x += o->xl;
   y += o->yl;
 
   if (o->type == BITMAP)
@@ -1873,7 +1873,7 @@ void bm_draw_string(bm,x,y,str,font,mode)
     if (!bm || !str || !font) return;
 
     /* translate from local to global coords */
-    x += BP(bm)->origin_x; 
+    x += BP(bm)->origin_x;
     y += BP(bm)->origin_y;
 
     /*** xx need to cache font in bm as in windows (?) ****
@@ -1948,7 +1948,7 @@ bitmap_desc bm_read_file(filename)
     gcval.join_style = JoinMiter;
     if (r == BitmapSuccess)
       {
-        bm->gc = 
+        bm->gc =
           XCreateGC(dpy,bm->pm,
                     GCForeground|GCBackground|GCCapStyle|GCJoinStyle,
                     &gcval);
@@ -2020,7 +2020,7 @@ int w, h;
 int bm_width(bm)
   bitmap_desc bm;
   {
-    if (!bm) 
+    if (!bm)
       return 0;
     else
       return (BP(bm)->width);
@@ -2031,7 +2031,7 @@ int bm_width(bm)
 int bm_height(bm)
   bitmap_desc bm;
   {
-    if (!bm) 
+    if (!bm)
       return 0;
     else
       return (BP(bm)->height);
@@ -2059,11 +2059,11 @@ void bm_draw_pixel(bm,x,y,mode)
     if (!bm) return;
 
     /* translate from local to global coords */
-    x += BP(bm)->origin_x; 
+    x += BP(bm)->origin_x;
     y += BP(bm)->origin_y;
 
-    if (bm && x >= BP(bm)->clip_x1 && x <= BP(bm)->clip_x2 && 
-	      y >= BP(bm)->clip_y1 && y <= BP(bm)->clip_y2) 
+    if (bm && x >= BP(bm)->clip_x1 && x <= BP(bm)->clip_x2 &&
+	      y >= BP(bm)->clip_y1 && y <= BP(bm)->clip_y2)
       { set_bm_mode(bm,mode);
 
         XDrawPoint(dpy,BP(bm)->pm,BP(bm)->gc,x,y);
@@ -2080,11 +2080,11 @@ void win_draw_pixel(win,x,y,mode)
     if (!win) return;
 
     /* translate from local to global coords */
-    x += WP(win)->origin_x; 
+    x += WP(win)->origin_x;
     y += WP(win)->origin_y;
 
-    if (win && x >= WP(win)->clip_x1 && x <= WP(win)->clip_x2 && 
-	       y >= WP(win)->clip_y1 && y <= WP(win)->clip_y2) 
+    if (win && x >= WP(win)->clip_x1 && x <= WP(win)->clip_x2 &&
+	       y >= WP(win)->clip_y1 && y <= WP(win)->clip_y2)
       { set_win_mode(win,mode);
 
         if (!WP(win)->batch_mode)
@@ -2097,11 +2097,11 @@ void mt_draw_pixel(MT_OBJECT *o, int x, int y)
 { window_desc win;
   bitmap_desc bm;
 
-  x += o->xl; 
+  x += o->xl;
   y += o->yl;
 
-  if (x >= o->xl && x <= o->xh && 
-      y >= o->yl && y <= o->yh) 
+  if (x >= o->xl && x <= o->xh &&
+      y >= o->yl && y <= o->yh)
     if (o->type == BITMAP)
       { bm = (bitmap_desc) (o->wpwin);
         set_bm_mode(bm,MODE_SRC);
@@ -2128,7 +2128,7 @@ int bm_get_pixel(bm,x,y)
     if (!bm) return -1;
 
     /* translate from local to global coords */
-    x += BP(bm)->origin_x; 
+    x += BP(bm)->origin_x;
     y += BP(bm)->origin_y;
 
     if (x < 0 || y < 0) return -1;
@@ -2174,7 +2174,7 @@ int win_get_pixel(win,x,y)
     if (!win) return -1;
 
     /* translate from local to global coords */
-    x += WP(win)->origin_x; 
+    x += WP(win)->origin_x;
     y += WP(win)->origin_y;
 
     if (x < 0 || y < 0) return -1;
@@ -2196,9 +2196,9 @@ void bm_raster_op(dst,dx,dy,w,h,src,sx,sy,mode)
     if (!src || !dst) return;
 
     /* translate from local to global coords */
-    dx += BP(dst)->origin_x; 
+    dx += BP(dst)->origin_x;
     dy += BP(dst)->origin_y;
-    sx += BP(src)->origin_x; 
+    sx += BP(src)->origin_x;
     sy += BP(src)->origin_y;
 
     set_bm_mode(dst,mode);
@@ -2221,9 +2221,9 @@ void win_raster_op(dst,dx,dy,w,h,src,sx,sy,mode)
     if (!src || !dst) return;
 
     /* translate from local to global coords */
-    dx += WP(dst)->origin_x; 
+    dx += WP(dst)->origin_x;
     dy += WP(dst)->origin_y;
-    sx += BP(src)->origin_x; 
+    sx += BP(src)->origin_x;
     sy += BP(src)->origin_y;
 
     set_win_mode(dst,mode);
@@ -2248,9 +2248,9 @@ void wp_win_saveblk(dst,dx,dy,w,h,src,sx,sy,mode)
     if (!src || !dst) return;
 
     /* translate from local to global coords */
-    dx += BP(dst)->origin_x; 
+    dx += BP(dst)->origin_x;
     dy += BP(dst)->origin_y;
-    sx += WP(src)->origin_x; 
+    sx += WP(src)->origin_x;
     sy += WP(src)->origin_y;
 
     set_bm_mode(dst,mode);
@@ -2269,9 +2269,9 @@ void bm_pattern_raster_op(dst,dx,dy,w,h,pat,sx,sy,mode)
     if (!dst || !pat) return;
 
     /* translate from local to global coords */
-    dx += BP(dst)->origin_x; 
+    dx += BP(dst)->origin_x;
     dy += BP(dst)->origin_y;
-    sx += BP(pat)->origin_x; 
+    sx += BP(pat)->origin_x;
     sy += BP(pat)->origin_y;
 
     pm = XCreatePixmap(dpy,root,w,h,depth);
@@ -2302,9 +2302,9 @@ void win_pattern_raster_op(dst,dx,dy,w,h,pat,sx,sy,mode)
     if (!dst || !pat) return;
 
     /* translate from local to global coords */
-    dx += WP(dst)->origin_x; 
+    dx += WP(dst)->origin_x;
     dy += WP(dst)->origin_y;
-    sx += BP(pat)->origin_x; 
+    sx += BP(pat)->origin_x;
     sy += BP(pat)->origin_y;
 
     pm = XCreatePixmap(dpy,root,w,h,depth);
@@ -2334,7 +2334,7 @@ void win_draw_bitmap(win,x,y,bm,mode)
     if (!win || !bm) return;
 
     /* translate from local to global coords */
-    x += WP(win)->origin_x; 
+    x += WP(win)->origin_x;
     y += WP(win)->origin_y;
 
     set_win_mode(win,mode);
@@ -2356,7 +2356,7 @@ void bm_draw_bitmap(on_bm,x,y,bm,mode)
     if (!on_bm || !bm) return;
 
     /* translate from local to global coords */
-    x += BP(bm)->origin_x; 
+    x += BP(bm)->origin_x;
     y += BP(bm)->origin_y;
 
     set_bm_mode(on_bm,mode);
@@ -2536,7 +2536,7 @@ void bm_fill(bm,x, y, nv)
     if (!bm) return;
 
     /* translate from local to global coords */
-    x += BP(bm)->origin_x; 
+    x += BP(bm)->origin_x;
     y += BP(bm)->origin_y;
 
     w = BP(bm)->width;
@@ -2615,7 +2615,7 @@ void win_fill(win,x, y, nv)
     if (!win) return;
 
     /* translate from local to global coords */
-    x += WP(win)->origin_x; 
+    x += WP(win)->origin_x;
     y += WP(win)->origin_y;
 
     w = win_width(win);
@@ -2641,7 +2641,7 @@ void win_fill(win,x, y, nv)
 	if (x < cx1 || y < cy1 || x > cx2 || y < cy2) return;
 
 	/* establish region to bring over from server */
-        rx = cx1; 
+        rx = cx1;
         ry = cy1;
 	rw = cx2 - rx;
 	rh = cx2 - ry;
@@ -2684,7 +2684,7 @@ skip:       for (x++; x<=x2 && XGetPixel(im,x,y)!=ov; x++);
     }
 
     XPutImage(dpy,WP(win)->pm,blkgc,im,0,0,rx,ry,rw,rh);
-    if (!WP(win)->batch_mode) 
+    if (!WP(win)->batch_mode)
       XPutImage(dpy,WP(win)->xwin,blkgc,im,0,0,rx,ry,rw,rh);
     XDestroyImage(im);
   }
@@ -2697,17 +2697,17 @@ skip:       for (x++; x<=x2 && XGetPixel(im,x,y)!=ov; x++);
 
 /*
  *  The code following this point is mostly due to
- *  
+ *
  *      Mic Kaczmarczik
  *      User Services Unix Support Group
  *      UT Austin Computation Center
  *      Austin, Texas
- *  
+ *
  *      Internet:       mic@emx.utexas.edu
  *      UUCP:           ...!uunet!cs.utexas.edu!ut-emx!mic
  *      BITNET:         mic@utaivc
  *      THENET:         utaivc::mic
- *  
+ *
  *  This code reads X Bitmaps, Sun Icons, and Sun Rasterfiles interchangeably.
  *
  *  Arizona mods were to allow use with depth-not-one displays.
@@ -2716,13 +2716,13 @@ skip:       for (x++; x<=x2 && XGetPixel(im,x,y)!=ov; x++);
 /* Copyright, 1987, Massachusetts Institute of Technology */
 
 /*
- *      Code to read bitmaps from disk files. Interprets 
+ *      Code to read bitmaps from disk files. Interprets
  *      data from X10 and X11 bitmap files and creates
  *      Pixmap representations of files. Returns Pixmap
  *      ID and specifics about image.
  *
  *      Modified for speedup by Jim Becker, changed image
- *      data parsing logic (removed some fscanf()s). 
+ *      data parsing logic (removed some fscanf()s).
  *      Aug 5, 1988
  *
  *      Sun rasterfile and Suntools icon support by
@@ -2734,7 +2734,7 @@ skip:       for (x++; x<=x2 && XGetPixel(im,x,y)!=ov; x++);
  *      by Martin Boyer.
  *
  * Note that this file and ../Xmu/RdBitF.c look very similar....  Keep them
- * that way (but don't use common source code so that people can have one 
+ * that way (but don't use common source code so that people can have one
  * without the other).
  */
 
@@ -2750,7 +2750,7 @@ static int _ReadIconFile(Display *, Drawable, FILE *,
                      int *, int *, Pixmap *, int *, int *);
 static int msb_int(unsigned char *);
 static void pixtoX11(unsigned char *, int, int);
-static unsigned int 
+static unsigned int
     decode_image(unsigned char *inpix, unsigned char *utpix, unsigned int lin);
 
 /*
@@ -2835,7 +2835,7 @@ static void initHexTable(void)
     hexTable[' '] = -1; hexTable[','] = -1;
     hexTable['}'] = -1; hexTable['\n'] = -1;
     hexTable['\t'] = -1;
-        
+
     initialized = True;
 }
 
@@ -2848,7 +2848,7 @@ static int NextInt(FILE *fstream)
     int value = 0;
     int gotone = 0;
     int done = 0;
-    
+
     /* loop, accumulate hex value until find delimiter  */
     /* skip any initial delimiters found in read stream */
 
@@ -2928,7 +2928,7 @@ _ReadBitmapFile(Display *display, Drawable d, FILE *fstream,
             }
             continue;
         }
-    
+
         if (sscanf(line, "static short %s = {", name_and_type) == 1)
           version10p = 1;
         else if (sscanf(line,"static unsigned char %s = {",name_and_type) == 1)
@@ -2945,7 +2945,7 @@ _ReadBitmapFile(Display *display, Drawable d, FILE *fstream,
 
         if (strcmp("bits[]", type))
           continue;
-    
+
         if (!ww || !hh)
           RETURN (BitmapFileInvalid);
 
@@ -2958,7 +2958,7 @@ _ReadBitmapFile(Display *display, Drawable d, FILE *fstream,
 
         size = bytes_per_line * hh;
         data = (char *) Xmalloc ((unsigned int) size);
-        if (!data) 
+        if (!data)
           RETURN (BitmapNoMemory);
 
         if (version10p) {
@@ -2977,7 +2977,7 @@ _ReadBitmapFile(Display *display, Drawable d, FILE *fstream,
             int bytes;
 
             for (bytes=0, ptr=data; bytes<size; bytes++, ptr++) {
-                if ((value = NextInt(fstream)) < 0) 
+                if ((value = NextInt(fstream)) < 0)
                   RETURN (BitmapFileInvalid);
                 *ptr=value;
             }
@@ -3050,7 +3050,7 @@ _ReadRasterFile(Display *display, Drawable d, FILE *fstream,
   /*
    * read in header and convert MSBFirst 4-byte longwords into integers
    */
-  if (fread(&ras, sizeof(ras), 1, fstream) < 1) 
+  if (fread(&ras, sizeof(ras), 1, fstream) < 1)
           RETURN (BitmapFileInvalid);
 
   ras.magic = msb_int((unsigned char *)&ras.magic);
@@ -3107,7 +3107,7 @@ _ReadRasterFile(Display *display, Drawable d, FILE *fstream,
                     != imagebytes))
                   RETURN (BitmapFileInvalid);
   }
-          
+
 
   /*
    * Convert the bitmap data to X 11 format (basically unpad lines with
@@ -3160,7 +3160,7 @@ _ReadIconFile(Display *display, Drawable d, FILE *fstream,
 #ifdef  RETURN
 #undef  RETURN
 #endif
-#define RETURN(code) { if (data) Xfree(data); return (code); } 
+#define RETURN(code) { if (data) Xfree(data); return (code); }
 
   /*
    * The string "Format_version=1" signifies a Sun icon file. If found,
@@ -3212,7 +3212,7 @@ _ReadIconFile(Display *display, Drawable d, FILE *fstream,
    * Could of course be done faster.
    */
   nbytes = 0;
-  cp = data; 
+  cp = data;
   while (nbytes < iconbytes) {
           if (fscanf(fstream," 0x%2x%2x", &c1, &c2) != 2)
                   RETURN (BitmapFileInvalid);
@@ -3222,7 +3222,7 @@ _ReadIconFile(Display *display, Drawable d, FILE *fstream,
                   RETURN (BitmapFileInvalid);
   }
 
-          
+
   /*
    * Convert the data into X 11 format and create a pixmap from it.
    * It might be more efficient to query the server for the preferred
@@ -3301,7 +3301,7 @@ _ReadIconFile(Display *display, Drawable d, FILE *fstream,
  */
 
 static
-unsigned int 
+unsigned int
 decode_image(unsigned char *inpix, unsigned char *outpix, unsigned int lin)
 {
     register unsigned char   value;
@@ -3342,7 +3342,7 @@ static int msb_int(unsigned char *cp)
  * used to convert between MSBFirst and LSBFirst image formats.
  */
 
-static char revtable[256] = { 
+static char revtable[256] = {
             0, -128,   64,  -64,   32,  -96,   96,  -32,
            16, -112,   80,  -48,   48,  -80,  112,  -16,
             8, -120,   72,  -56,   40,  -88,  104,  -24,

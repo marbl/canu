@@ -54,7 +54,7 @@ class Unitig
         @lastFrag = 0
         @internalFrags = {}
     end
-    
+
     def has_frag?(frag)
         if @firstFrag == frag || @lastFrag == frag ||
            @internalFrags.has_key?(frag)
@@ -108,11 +108,11 @@ def readUnitigsFromIUMFile(iumFile)
 #            next if nfr == 1
             utg = Unitig.new(acc)
             utg.firstFrag = mid
-            
+
             line = iumFile.readTo('pos:')
             b,e = line.chop[4,line.length].split(',')
             whichEnd = "5'"
-            whichEnd = "3'" if e < b 
+            whichEnd = "3'" if e < b
 
             $firstLast[ mid ] = whichEnd
 
@@ -128,7 +128,7 @@ def readUnitigsFromIUMFile(iumFile)
                     lastNonContain = mid
                     b,e = iumFile.readline.chop[4..-1].split(',')
                     whichEnd = "3'"
-                    whichEnd = "5'" if e < b 
+                    whichEnd = "5'" if e < b
                 end
             end
             if lastNonContain == 0
@@ -212,7 +212,7 @@ def readUnitigsFromAsmFile(asmFile)
             line = asmFile.readTo('num:')
             num = line[4,line.length].to_i
 #            next if num < 2 || mean < 1
-#            next if num < 2 
+#            next if num < 2
             if ulk.has_key?( ut1 )
                 if ulk[ut1].has_key?(ut2)
                     ulk[ut1][ut2] += 1
@@ -278,7 +278,7 @@ unitigs.each_pair do |acc,utg|
         puts "Skip #{acc} first frag #{utg.firstFrag} with 0 edge."
     elsif !$fragsUnitig.has_key?(firstEdge)
         puts "Skip #{acc} first frag #{utg.firstFrag} singleton edge."
-    else 
+    else
 #        graph.add_edge( utg.accession, $fragsUnitig[firstEdge])
         color = 'black'
         otherUtg = $fragsUnitig[firstEdge]
@@ -299,11 +299,11 @@ unitigs.each_pair do |acc,utg|
         raise "nil lastEdge #{acc} #{utg.lastFrag}"
     elsif lastEdge == '0'
         puts "Skip #{acc} last frag #{utg.lastFrag} with '0' edge."
-    elsif lastEdge == 0 
+    elsif lastEdge == 0
         puts "Skip #{acc} last frag #{utg.lastFrag} with 0 edge."
     elsif not $fragsUnitig.has_key?(lastEdge)
         puts "Skip #{acc} last frag #{utg.lastFrag} singleton edge."
-    else 
+    else
 #        graph.add_edge( utg.accession, $fragsUnitig[lastEdge])
         color = 'black'
         otherUtg = $fragsUnitig[lastEdge]
@@ -347,7 +347,7 @@ def findAdjacentAtDepth(graph, startNode, maxDepth)
 end
 def graphToRDot(graph)
     nodes = {}
-    graph.each_edge { |u,v| 
+    graph.each_edge { |u,v|
         key = "#{u} #{v}"
         yek = "#{v} #{u}"
         key,u,v = yek,v,u if $edgeInfo.has_key?( yek )
@@ -398,7 +398,7 @@ graph.add_edges(*links)
 #node = '0'
 #graph.write_to_graphic_file('ps','allutg')
 #graph.each_vertex {|v| puts "#{v}"}
-#puts graph.adjacent_vertices( node ) 
+#puts graph.adjacent_vertices( node )
 #graph.depth_first_visit( node, visitor) {}
 #fgraph = graph.vertices_filtered_by {|v| visitor.distance_to_root(v) < 4}
 #fgraph = findAdjacentAtDepth(graph, node, 2)

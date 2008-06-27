@@ -1,5 +1,5 @@
 #!/usr/local/bin/perl
-# $Id: arun.pl,v 1.3 2007-11-26 16:20:34 eliv Exp $
+# $Id: arun.pl,v 1.4 2008-06-27 06:29:19 brianwalenz Exp $
 #
 # Given input from STDIN, generates and runs shell script
 # on the grid or on the local machine with AserverConsole support.
@@ -9,7 +9,7 @@
 
 # Program configuration
 my @MY_DEPENDS = ( "TIGR::Foundation", "TIGR::ConfigFile" );
-my $MY_VERSION = " 1.7 (Build " . (qw/$Revision: 1.3 $/)[1] . ")";
+my $MY_VERSION = " 1.7 (Build " . (qw/$Revision: 1.4 $/)[1] . ")";
 my $HELPTEXT =
   qq~
 Given input from STDIN, generates and runs shell script
@@ -17,17 +17,17 @@ on the grid or on the local machine with Aserver Console support.
 
  usage: arun [options] <prefix> [copy_options]
 	    arun -cancel <id>
- 
+
  copy options (only one of the following options allowed) (default: medCopy):
   -maxCopy [<dir>]  Copy max output to <dir> (default: current directory)
-  -medCopy [<dir>]  Copy med output to <dir> (default: current directory) 
+  -medCopy [<dir>]  Copy med output to <dir> (default: current directory)
   -minCopy [<dir>]  Copy min output to <dir> (default: current directory)
   -custCopy <f>[,<dir>] Customized copy.  Two parameters given (comma-separated):
                     -File name: lists the file extentions to copy
-                    -Output dir name: name of local directory to copy to 
+                    -Output dir name: name of local directory to copy to
                     (default: current directory)
   -noCopy           Do not make local copy.
-  
+
  options:
   -alias <a>        Identify the request as <a> on Aserver Console
   -cancel <id> 	    Cancel assembly request <id>
@@ -37,8 +37,8 @@ on the grid or on the local machine with Aserver Console support.
   -localHost        Assemble on this host (default: on grid)
   -localDisk        Use current directory to assemble. (default: aserver)
   -D <name>         Specify project name (displayed on Aserver Console).
-                    Use -D test for debugging. (default: frg prefix) 
-  -[no]notify    	Send email upon completion/error and create BITS case 
+                    Use -D test for debugging. (default: frg prefix)
+  -[no]notify    	Send email upon completion/error and create BITS case
                     for errors. (default: notify)
   -after            Print the generated shell script and exit
   -cont <req_id>    Use the request id given for continuation.
@@ -46,13 +46,13 @@ on the grid or on the local machine with Aserver Console support.
   -service <s>      Provide the service type:
                     CA - for Celera Assemblies
                     TA - for TIGR Assemblies
-                    POST - for Post Assembly processes                    
-  -test             Run in debug mode (same as -D test -nonotify)  
+                    POST - for Post Assembly processes
+  -test             Run in debug mode (same as -D test -nonotify)
   -wait             Wait for job completion before exiting.
-       
- Genomic Assembly Pipeline: 
+
+ Genomic Assembly Pipeline:
  https://intranet.jcvi.org/cms/SE/GAP
- Tracking assembly requests:  
+ Tracking assembly requests:
  http://assemblyconsole.tigr.org/
 ~;
 
@@ -77,7 +77,7 @@ use File::Copy;        # copy()
 # default config file for arun
 my $DEFAULT_INSTALL_DIR = "/usr/local/common/ARUN";
 my $ARUN_CONFIG_FILE = "ARUN.conf";
-my $install_dir = $ENV{'ARUN_INSTALL_DIR'};    
+my $install_dir = $ENV{'ARUN_INSTALL_DIR'};
 
 # The arun Config file object
 my $arun_cf = undef;
@@ -153,7 +153,7 @@ my @recipeLines = ();
 sub initializeConfig($) {
 
     my $configFile = shift;
-    $install_dir = $DEFAULT_INSTALL_DIR if ( !defined $install_dir );    
+    $install_dir = $DEFAULT_INSTALL_DIR if ( !defined $install_dir );
     $configFile = $install_dir . '/' . $ARUN_CONFIG_FILE if ( !defined $configFile );
 
     # The arun Config file object
@@ -185,8 +185,8 @@ sub initializeConfig($) {
         $props_file       = $marshalling_base .'/'. $arun_cf->getOption("propfile",'jcvi');
         $support_email    = $arun_cf->getOption('support_email','jcvi');
     }
-    
-    $config_completed = 1;    
+
+    $config_completed = 1;
 }
 
 sub jcviOptions($$$$$$$$) {
@@ -198,10 +198,10 @@ sub jcviOptions($$$$$$$$) {
     my $custCopyStr = shift;
     my $fast = shift;
     my $notify = shift;
-        
+
     bail("Unsupported option ('jcvi' flag must be set).")
-        if ( defined $alias or defined $cancel_reqId or defined $maxDest 
-                or defined $minDest or defined $medDest or defined $custCopyStr 
+        if ( defined $alias or defined $cancel_reqId or defined $maxDest
+                or defined $minDest or defined $medDest or defined $custCopyStr
                 or defined $fast or defined $notify);
 }
 
@@ -236,20 +236,20 @@ sub prepare_script($$$$$) {
     my $generationTime =   `date`; chomp($generationTime);
     my $invocation     = $tf_object->getProgramInfo("invocation");
 
-    my $output_fh = new IO::File ">$output_file"    
+    my $output_fh = new IO::File ">$output_file"
       or bail("Could not create executable file: '$output_file'. Error Code: $!");
     print $output_fh "#!/bin/sh\n";
-    print $output_fh 
+    print $output_fh
 "echo \"arun_header> Arun Generated file by $whoami on $generationTime\"\n";
     print $output_fh "echo \"arun_header> Arun Invocation: $0 $invocation\"\n";
     print $output_fh "echo \"arun_header> Arun Version: $MY_VERSION\"\n";
     print $output_fh "echo \"arun_header> User Directory: $origdir\"\n";
     print $output_fh "echo \"arun_header> Work Directory: $outdir\"\n";
     print $output_fh "echo \"arun_header> Running on `hostname`\"\n";
-    print $output_fh 
+    print $output_fh
 "echo \"arun_header> --------------------------------------------------------\"\n";
     print $output_fh "cp $origdir/arun.log $outdir/log/.\n";
-    
+
     if ( $jcvi == 1) {
         print $output_fh "#Make sure that SYBASE is defined in the environment.\n";
         print $output_fh "echo \$SYBASE | grep -i sybase > /dev/null 2>&1\n";
@@ -277,7 +277,7 @@ sub prepare_script($$$$$) {
 
     #new size of recipe lines to execute
     my $size = @recipeLines;
-    
+
     #Description of the current command, used for logging and error handling
     my $command = 'Initializing';
     for ( my $counter = 0 ; $counter < $size ; $counter++ ) {
@@ -291,7 +291,7 @@ sub prepare_script($$$$$) {
                     print $output_fh "$ca_observer --appendlog=1 --logfile=$ca_observerLog --event=finish --name=\"$command\" --retval=0 --props=$props_file --host=`hostname` --message=\"Command with name: '$command' finished\"\n"
                 } else {
                     print $output_fh "echo \"Step $cmd_count: '$command' finished\"";
-                }                
+                }
             }
             $cmd_count++;
             $command = $1;
@@ -338,11 +338,11 @@ sub prepare_script($$$$$) {
             print $output_fh "STATUS=\$?\n";
             print $output_fh "echo \"arun_stat> STATUS=\$STATUS\"\n";
             print $output_fh "TIME_FINAL=`/bin/date +\%s`\n";
-            print $output_fh 
+            print $output_fh
               "EXECTIME=`/usr/bin/expr \$TIME_FINAL - \$TIME_INIT`\n";
-            print $output_fh 
+            print $output_fh
               "echo \"arun_time> Done. Took \$EXECTIME seconds.\"\n";
-            print $output_fh 
+            print $output_fh
 "if [ \$STATUS != 0 ]; then\necho \"arun_stat> ERROR, exit status = \$STATUS\"\n";
             print $output_fh "$ca_observer --appendlog=1 --logfile=$ca_observerLog  --event=failure --name=\"$command\" --retval=0 --props=$props_file --host=`hostname` --message=\"Command with name: '$command' failed\"\n"
                 if ( $jcvi == 1 );
@@ -360,15 +360,15 @@ sub prepare_script($$$$$) {
     #If getMode set, call to aget will be added to the recipe (but not counted as one of the steps)
     if ( defined($getMode) and $jcvi == 1 ) {
         my $agetCmd;
-        if ( $getMode ne $AGET_MAX_MODE and 
-             $getMode ne $AGET_MED_MODE and 
+        if ( $getMode ne $AGET_MAX_MODE and
+             $getMode ne $AGET_MED_MODE and
              $getMode ne $AGET_MIN_MODE ) {     #CUSTOMIZE, $getMode is the list file name
            $agetCmd =  "$aget -L $getMode";
         } else {
            $agetCmd =  "$aget -mode $getMode";
-        }        
+        }
         $agetCmd .= "  $request_id $resdir >> $outdir/$CMD_LOG";
-        
+
         print $output_fh  "cd $outdir\n";
         print $output_fh "$ca_observer --appendlog=1 --logfile=$ca_observerLog --event=start --name=aget --retval=0 --props=$props_file --host=`hostname` --message=\"Command with name: 'aget' started\"\n";
         print $output_fh "$agetCmd\n";
@@ -384,7 +384,7 @@ sub prepare_script($$$$$) {
     }
     print $output_fh  "chmod 664 $outdir/$CMD_LOG\n";
     print $output_fh  "exit\n";
-    close $output_fh 
+    close $output_fh
       or bail("Error closing '$output_file'. Error Code: $!");
     chmod 0755, $output_file
         or die ("Unable to change mode: $!");
@@ -420,7 +420,7 @@ sub init_prop_file($$$) {
         print $props_fh "email=$notify\n";
         print $props_fh "support_email=$support_email\n";
     }
-    close $props_fh 
+    close $props_fh
       or bail("Error closing '$props_file'. Error Code: $!");
 }
 
@@ -585,13 +585,13 @@ sub printRecipeAfter($) {
     my $script_fh = new IO::File "<$script"
       or bail( "Could not open script file: '$script'. Error Code: $!" );
 
-    my @script_array = <$script_fh>; 
+    my @script_array = <$script_fh>;
     foreach (@script_array) {
         print STDOUT $_;
-    }    
-    close $script_fh 
+    }
+    close $script_fh
       or bail("Error closing '$script'. Error Code: $!");
-    
+
     setStatusFinished();
     exit 0;
 }
@@ -604,7 +604,7 @@ sub printRecipeAfter($) {
 sub setStatusFinished () {
     if ( $config_completed == 1 and defined $request_id and $jcvi == 1 ) {
         init_db_connection() unless defined $dbh;
-    
+
         #Set Status
         my $start_query =
     "update Request set status = \'F\', job_terminated = convert(smalldatetime,getdate()) where request_id = $request_id";
@@ -613,7 +613,7 @@ sub setStatusFinished () {
           or bail( "Cannot prepare $start_query: " . $dbh->errstr );
         defined $qh->execute()
           or bail( "Database query \'$start_query\' failed: " . $dbh->errstr );
-    
+
         #Set Progress
         my $progress_query =
           "update Process set progress = 100 where request_id = $request_id";
@@ -631,23 +631,23 @@ sub setStatusFinished () {
 #Output: none
 #Usage:  Create invocation script
 sub createInvocationScript($) {
-    my $invocation = shift; 
+    my $invocation = shift;
     my $invocation_script = $arun_cf->getOption('invocation_script');
     #writing the invocation
     my $invo_fh = new IO::File ">$invocation_script"
       or bail("Cannot open '$invocation_script'. Error code: $!");
-     
+
     if ( !defined $invocation or $invocation =~ /^\s*$/ ) {
         $invocation = $0,$tf_object->getProgramInfo("invocation");
     }
-    
+
     my $cust_name  = getpwuid($<);
     my $hostname   = hostname();
     print $invo_fh "invocation: $invocation\n";
     print $invo_fh "username: $cust_name\n";
     print $invo_fh "hostname: $hostname\n";
     print $invo_fh "userdir: $basedir\n";
-    close $invo_fh 
+    close $invo_fh
       or bail("Error closing '$invocation_script'. Error Code: $!");
 
 }
@@ -655,18 +655,18 @@ sub createInvocationScript($) {
 #Name:   readRecipe
 #Input:  recipe_file name
 #Output: none
-#Usage:  Reads recipe file into memory 
-sub readRecipe() {    
+#Usage:  Reads recipe file into memory
+sub readRecipe() {
     @recipeLines = <STDIN>;
 }
 
 #Name:   writeRecipeToFile
 #Input:  working_dir
 #Output: none
-#Usage:  Output the input recipe to file (for logging purposes) 
+#Usage:  Output the input recipe to file (for logging purposes)
 sub writeRecipeToFile($) {
     my $working_dir = shift;
-    
+
     my $recipeFilePath = "$working_dir/scripts/$inputRecipe";
     my $recipe_fh = new IO::File (">$recipeFilePath")
       or bail("Cannot write to: '$recipeFilePath'. Error code: $!");
@@ -675,33 +675,33 @@ sub writeRecipeToFile($) {
     }
     close $recipe_fh;
 }
-        
+
 
 
 #Name:   checkRequiredFiles
 #Input:  user_dir, prefix
 #Output: none
-#Usage:  Checks the required files from the recipe 
+#Usage:  Checks the required files from the recipe
 sub checkRequiredFiles($$) {
-    
+
     my $user_dir = shift;
     my $prefix = shift;
-    
+
     foreach my $recipeLine (@recipeLines) {
         if ( $recipeLine =~ /^##REQUIRED\s*(.+)/ ) {
             my $requiredStr = $1;
             $requiredStr =~ s/PREFIX/$prefix/g;
             my @requiredArray = split(/\s+/, $requiredStr);
             foreach my $requiredFile (@requiredArray) {
-                if ( $requiredFile !~ /^\s*$/ ) {                    
+                if ( $requiredFile !~ /^\s*$/ ) {
                     if ( !-r "$user_dir/$requiredFile") {
                         my $tmpFile = $requiredFile;
                         $tmpFile =~ s/$prefix/tmp/g;
-                        my $bailMsg = "Missing required file '$user_dir/$requiredFile' for specified recipe."; 
+                        my $bailMsg = "Missing required file '$user_dir/$requiredFile' for specified recipe.";
                         if ( -r "$user_dir/$tmpFile") {
                             $bailMsg .= "\nBut found $tmpFile.  Did you mean to run with 'tmp' instead of '$prefix'?";
                         }
-                        bail($bailMsg); 
+                        bail($bailMsg);
                     }
                     push @requiredFiles, $requiredFile;
                 }
@@ -713,31 +713,31 @@ sub checkRequiredFiles($$) {
 #Name:   copyRequiredFiles
 #Input:  user_dir - input directory, working_dir - output directory
 #Output: none
-#Usage:  Copies the required Files (as determined in checkRequiredFiles) to the output dir 
+#Usage:  Copies the required Files (as determined in checkRequiredFiles) to the output dir
 sub copyRequiredFiles ($$) {
     my $user_dir = shift;
-    my $working_dir = shift;    
+    my $working_dir = shift;
     foreach my $file (@requiredFiles) {
         copy("$user_dir/$file","$working_dir/$file");
-    }    
+    }
 }
 
 #Name:   prefixProjectSetup
 #Input:  project name (from command line)
 #Output: user_dir - the directory of the frg file
 #        project_out - the project name to use
-#        prefix - the prefix of the project to use 
+#        prefix - the prefix of the project to use
 #Usage:  Determines the prefix, project names
 sub prefixProjectSetup($) {
     my $project_in = shift;
-    
+
     my $prefix = undef;
     my $project_out = undef;
     my $user_dir = undef;
-    
+
     # Setup assembly prefix
     my $argvSize = scalar(@ARGV);
-    
+
     if ( $argvSize != 1 ) {
         bail("Please specify an assembly prefix.");
     }
@@ -758,13 +758,13 @@ sub prefixProjectSetup($) {
     # If not defined via command-line, get from .project file,
     # else get from ASSEMBLY Prefix
     if ( !defined $project_in ) {
-        my $project_file = "$prefix.project"; 
+        my $project_file = "$prefix.project";
         if ( -e "$project_file" ) {
             my $project_fh = new IO::File "<$project_file"
                 or bail("Cannot open: '$project_file'. Error code: $!");
             my @prjFileLines = <$project_fh>;
             chomp( $project_out = $prjFileLines[0] );
-            close $project_fh 
+            close $project_fh
                 or bail("Error closing '$project_file'. Error Code: $!");
         }
         else {
@@ -772,16 +772,16 @@ sub prefixProjectSetup($) {
         }
     }
     else {
-        $project_out = $project_in;    
+        $project_out = $project_in;
     }
 
     return $user_dir, $project_out, $prefix;
 }
 
 #Name:   setupWorkDirectory
-#Input:  request_id - request id of current job 
+#Input:  request_id - request id of current job
 #Output: working_dir - path to the working directory
-#Usage:  Setup the working directory, copies over continue directory if provided 
+#Usage:  Setup the working directory, copies over continue directory if provided
 sub setupWorkDirectory($$$$$) {
 
     my $request_id = shift;
@@ -791,9 +791,9 @@ sub setupWorkDirectory($$$$$) {
     my $curr_dir = shift; #Typically is the same as user_dir, but in case user is running
                           #from a different directory than that where the original files are located
                           #(user_dir)
-        
+
     my $working_dir = $localDisk ? $curr_dir :"$marshalling_base/$request_id";
-        
+
     my $progress = "Assembly output being written to \'$working_dir\'";
     print STDOUT "$progress...\n";
     $tf_object->logLocal( "$progress", 1 );
@@ -805,32 +805,32 @@ sub setupWorkDirectory($$$$$) {
 
     $CMD_LOG =~ s/REQUEST_ID/$request_id/g;
     $CMD_ERR =~ s/REQUEST_ID/$request_id/g;
-    
+
     if (!defined $continue_ReqId) {
         # Copy the required (unless continuation)
-        copyRequiredFiles($user_dir,$working_dir) if ( !$localDisk );    
-        
+        copyRequiredFiles($user_dir,$working_dir) if ( !$localDisk );
+
         # creating the log directory for storing the log files
         mkdir( "$working_dir/log", 0777 ) unless -d "$working_dir/log";
         # create scripts directory
         mkdir "$working_dir/scripts", 0777 unless -d "$working_dir/scripts";
-        
+
     } else {
         $tf_object->runCommand("cp -r $marshalling_base/$continue_ReqId/* $marshalling_base/$request_id/.");
         unlink $props_file,
                "$marshalling_base/$request_id/scripts/$generatedScript";
     }
-    
+
     return $working_dir;
 }
 
 #Name:   continueValidation
-#Input:  continue_ReqId - request if job to continue 
+#Input:  continue_ReqId - request if job to continue
 #Output: none
-#Usage:  Validate the continuation directory 
+#Usage:  Validate the continuation directory
 sub continueValidation($) {
     my $continue_ReqId = shift;
-    
+
     bail ("Continuation not possible '$marshalling_base/$continue_ReqId' does not exist.")
         if ( !-e "$marshalling_base/$continue_ReqId");
 }
@@ -838,10 +838,10 @@ sub continueValidation($) {
 #Name:   cdToWorkingDirectory
 #Input:  working_dir
 #Output: none
-#Usage:  Change directory to working directory 
+#Usage:  Change directory to working directory
 sub cdToWorkingDirectory($) {
     my $working_dir = shift;
-    
+
     # Change directory to working directory
     chdir $working_dir or bail("Failed to cd to $working_dir");
     $tf_object->logLocal( "changing to \'$working_dir\'", 1 );
@@ -851,10 +851,10 @@ sub cdToWorkingDirectory($) {
 #Name:   validateServiceType
 #Input:  $service - Service Name
 #Output: none
-#Usage:  Validates the service type option and sets it to default if not set 
+#Usage:  Validates the service type option and sets it to default if not set
 sub validateServiceType($) {
     my $service = shift;
-    
+
     if ( !defined $service) {
         $service = $DEFAULT_SERVICE_NAME;
         return;
@@ -863,7 +863,7 @@ sub validateServiceType($) {
     } else {
         $service = $SERVICE_HASH{$service};
     }
-    
+
     return $service;
 }
 
@@ -871,7 +871,7 @@ sub validateServiceType($) {
 #Name:   checkAgetOptions
 #Input:  Copy options
 #Output: none
-#Usage:  Checks for violations of aget options (which are mutually exclusive)). 
+#Usage:  Checks for violations of aget options (which are mutually exclusive)).
 sub checkAgetOptions($$$$$$) {
     my $noCopy = shift;
     my $minDest = shift;
@@ -880,20 +880,20 @@ sub checkAgetOptions($$$$$$) {
     my $custCopyStr = shift;
     my $localDisk = shift;
 
-    if ( defined $localDisk and 
+    if ( defined $localDisk and
         (defined $minDest or defined $medDest or defined $maxDest or defined $custCopyStr) ) {
         bail("'-localDisk' option is not compatible with '---Copy' options");
     }
     my $numDefined = 0;
-    $numDefined++ if( defined $noCopy ); 
-    $numDefined++ if( defined $minDest ); 
+    $numDefined++ if( defined $noCopy );
+    $numDefined++ if( defined $minDest );
     $numDefined++ if( defined $maxDest );
     $numDefined++ if( defined $medDest );
     $numDefined++ if( defined $custCopyStr );
-    
+
     bail("The options: 'noCopy' 'minCopy' 'medCopy' 'maxCopy' 'custCopy' are mutually exclusive, please choose one.")
         if ( $numDefined > 1 );
-}    
+}
 
 #Name:   agetSetup
 #Input:  minDest - command-line option
@@ -901,7 +901,7 @@ sub checkAgetOptions($$$$$$) {
 #        maxDest - command-line option
 #Output: getMode - aget mode
 #        copyDir - directory to copy to
-#Usage:  Setup variables for calling aget 
+#Usage:  Setup variables for calling aget
 sub agetSetup($$$$$) {
     my $user_dir    = shift;
     my $minDest     = shift;
@@ -912,13 +912,13 @@ sub agetSetup($$$$$) {
     #Default output directory is the user invocation directory
     my $copy_dir = File::Spec->rel2abs($user_dir);
     my $getMode = $AGET_MED_MODE;
-       
+
     if ( defined $custCopyStr ) {
         my ($custCopyFile,$custCopyDir) = split (',',,$custCopyStr);
         bail ("Unable to read file: $custCopyFile") if ( !-r $custCopyFile );
         $copy_dir = File::Spec->rel2abs($custCopyDir)  if ( defined $custCopyDir and $custCopyDir ne '' );
-        $getMode = $custCopyFile; 
-    } 
+        $getMode = $custCopyFile;
+    }
     elsif ( defined $minDest ) {
         $copy_dir = File::Spec->rel2abs($minDest)  if ( $minDest ne '' );
         $getMode = $AGET_MIN_MODE;
@@ -929,36 +929,36 @@ sub agetSetup($$$$$) {
     }
     elsif ( defined $medDest ) {
         $copy_dir = File::Spec->rel2abs($medDest) if ( $medDest ne '' );
-    }  
+    }
 
     # Create local directory for aget, if specified
     if ( defined($getMode) && ( !-e $copy_dir ) ) {
         mkdir( $copy_dir, 0777 ) unless -d "$copy_dir";
     }
-    
+
     return $getMode, $copy_dir;
 }
 
 #Name:   setDebugLevel
 #Input:  none
 #Output: none
-#Usage:  Use command-line option and config value to set debug level 
+#Usage:  Use command-line option and config value to set debug level
 sub setDebugLevel() {
     # Update debug level for logging if it is not specified by the user
     $tf_object->setDebugLevel($arun_cf->getOption('debug_default'))
-        if ( !defined $tf_object->getDebugLevel() );             
+        if ( !defined $tf_object->getDebugLevel() );
     $debug = $tf_object->getDebugLevel();
 }
 
 #Name:   executeScript
-#Input:  offgrid - specifies to run locally 
+#Input:  offgrid - specifies to run locally
 #        shell_script - script to run
 #        working_dir - directory where script will run
 #        getMode - aget mode
 #        copy_dir - directory for aget to copy to
 #        wait - wait for job completion before exiting
 #Output: none
-#Usage:  Executing the generated script 
+#Usage:  Executing the generated script
 sub executeScript($$$$$$$) {
 
     my $offgrid = shift;
@@ -968,7 +968,7 @@ sub executeScript($$$$$$$) {
     my $copy_dir = shift;
     my $wait = shift;
     my $fast = shift;
-    
+
     my $ca_cmd;
     my $runMsg = "Running the command \'$ca_cmd\'";
     my $msg    = "Running the CA request";
@@ -985,7 +985,7 @@ sub executeScript($$$$$$$) {
           $arun_cf->getOption('grid_cmd','jcvi')
           . " -o $working_dir/$CMD_LOG -e $working_dir/$CMD_ERR";
         $ca_cmd .= ' ' . $arun_cf->getOption('grid_sync','jcvi') . ' ' if ($wait);
-        $ca_cmd .= ' ' . $arun_cf->getOption('grid_fast','jcvi') . ' ' if ($fast);        
+        $ca_cmd .= ' ' . $arun_cf->getOption('grid_fast','jcvi') . ' ' if ($fast);
         $ca_cmd .= " $shell_script";
         $runMsg .= ' on the grid.';
         $msg    .= " on the grid.\n";
@@ -1018,7 +1018,7 @@ sub executeScript($$$$$$$) {
     }
     print STDOUT
 "Please check the console for your job's status at \nhttp://aserver.tigr.org:8080/AserverConsole/\n";
-    
+
 }
 
 # =============================== MAIN ======================================
@@ -1032,8 +1032,8 @@ MAIN:
     my $localDisk       = undef;    # Use current directory to execute
     my $version         = undef;    # Version option
     my $prefix          = undef;    # Prefix of required files
-    my $project         = undef;    # Specify project name for ASDB 
-    my $maxDest         = undef;    # maxCopy option (optionally dir name)    
+    my $project         = undef;    # Specify project name for ASDB
+    my $maxDest         = undef;    # maxCopy option (optionally dir name)
     my $minDest         = undef;    # minCopy option (optionally dir name)
     my $medDest         = undef;    # medCopy option (optionally dir name)
     my $noCopy          = undef;    # noCopy option
@@ -1041,16 +1041,16 @@ MAIN:
     my $custCopyFile    = undef;
     my $custCopyDir     = undef;
     my $cancel_reqId    = undef;    # cancel job option
-    my $getMode         = undef;    # agetMode    
+    my $getMode         = undef;    # agetMode
     my $configFile      = undef;    # optional user specified config file
     my $continue_ReqId  = undef;
     my $invocation      = undef;    # User invocation of calling program
-    my $service         = undef;             
+    my $service         = undef;
     my $notify          = 1;        # Enabled by default
     my $test            = undef;
     my $wait            = undef;    # Wait for job completion before exiting
-    my $fast            = undef;    
-    
+    my $fast            = undef;
+
     # Directory variables
     my $working_dir = undef;    #location the recipe file will execute out of
     my $copy_dir = undef;       #location where aget will copy files
@@ -1068,7 +1068,7 @@ MAIN:
         'minCopy:s', \$minDest,         'maxCopy:s', \$maxDest,
         'medCopy:s', \$medDest,         'noCopy',    \$noCopy,
         'custCopy=s',\$custCopyStr,     'local',     \$local,
-        'offgrid|localHost', \$offgrid, 'localDisk', \$localDisk,  
+        'offgrid|localHost', \$offgrid, 'localDisk', \$localDisk,
         'after',      \$after,          'fast',      \$fast,
         'notify!',   \$notify,          'version|V', \$version,
         'D=s',       \$project,         'config=s',  \$configFile,
@@ -1091,13 +1091,13 @@ MAIN:
     # Check aget options - ensure mutual exclusivity
     checkAgetOptions($noCopy,$minDest,$medDest,$maxDest,$custCopyStr,$localDisk)
         if ( $jcvi == 1 );
-    
+
     #validate service type
     $service = validateServiceType($service)
         if ( $jcvi == 1 );
     # Set debug level
     setDebugLevel();
-    
+
     # User request to cancel job for a request_id
     cancelJob($cancel_reqId) if (defined $cancel_reqId && $jcvi == 1);
 
@@ -1107,10 +1107,10 @@ MAIN:
     if ( defined $test) {
         $notify = 0;
         $project = 'test';
-    }  
-    # Set up prefix and $project 
+    }
+    # Set up prefix and $project
     ($user_dir, $project, $prefix) = prefixProjectSetup($project);
-    
+
     # When testing, set the alias to the project name (unless an alias is already provided),
     # this helps to identify the test projects on the aserver console, otherwise, they all
     # show up as 'test'
@@ -1118,43 +1118,43 @@ MAIN:
 
     # Read recipe into memory
     readRecipe();
-        
+
     # Check that required recipe files exist
-    checkRequiredFiles($user_dir,$prefix);    
-    
+    checkRequiredFiles($user_dir,$prefix);
+
     # Aget setup, unless noCopy specified
     ($getMode, $copy_dir) = agetSetup($user_dir,$minDest, $medDest, $maxDest,$custCopyStr)
         if (!defined $noCopy and !defined $localDisk and $jcvi == 1 );
-    
+
     # Request id setup
     if ($jcvi == 1) {
         $request_id = asdbInit( $project, $alias, $service)
     } else {
         $request_id = time();
     }
-    
+
     # Setup working directory
     $working_dir = setupWorkDirectory($request_id, $user_dir, $continue_ReqId, $localDisk, $curr_dir);
-    
+
     # Change cwd to working directory
     cdToWorkingDirectory($working_dir);
-    
+
     # Create invocation script, used be Aserver Console
     createInvocationScript($invocation);
-    
+
     # Output the input recipe to file (for logging purposes)
     writeRecipeToFile($working_dir);
-        
+
     # Generate the outputted script from the recipe
     my $shell_script = prepare_script(
-        $prefix,          $user_dir,     $working_dir,   
-        $copy_dir,        $getMode,      
+        $prefix,          $user_dir,     $working_dir,
+        $copy_dir,        $getMode,
     );
 
     # If after, generate but do not execute the script
     printRecipeAfter($shell_script) if ($after);
-                    
-    # Prepare prop file for ca_observer        
+
+    # Prepare prop file for ca_observer
     init_prop_file( $copy_dir, $notify, $prefix ) if ($jcvi == 1);
 
     # Execute script
@@ -1226,30 +1226,30 @@ sub cancelJob ($) {
     my $cancelId = shift;
 
     $tf_object->logLocal( "Call to cancelJob for jobid: $cancelId", 3 );
-    
-    my $gridSubmissionLog = "$marshalling_base/$cancelId/" . $arun_cf->getOption('submission_log');    
-    
+
+    my $gridSubmissionLog = "$marshalling_base/$cancelId/" . $arun_cf->getOption('submission_log');
+
     bail("Couldn't cancel $cancelId, $marshalling_base/$cancelId does not exist.\n")
         if ( !-e "$marshalling_base/$cancelId");
     bail("Couldn't cancel $cancelId, $gridSubmissionLog does not exist.\n")
         if ( !-e "$gridSubmissionLog");
-      
+
     #Retrieved grid job number from log file for this request_id
     my $grepLine =
       `grep \"Your job\" $gridSubmissionLog`;
     chomp($grepLine);
     bail("Couldn't cancel $cancelId, couldn't find qsub ID.\n")
         if ( $grepLine !~ /^Your job (\d+)/ );
-        
+
     my $qdel_result = `qdel $1`;
-    $tf_object->logLocal( "Command to cancel: $qdel_result", 3 );    
+    $tf_object->logLocal( "Command to cancel: $qdel_result", 3 );
     chomp($qdel_result);
     bail("The command qdel $1 was not successful")
         if ( $qdel_result =~ /^denied/ );
     print STDOUT "Job $cancelId has been cancelled.\n";
     $request_id = $cancelId;
-    $tf_object->logLocal( "Call to cancel_request", 3 );    
-    
+    $tf_object->logLocal( "Call to cancel_request", 3 );
+
     cancel_request();
     exit;
 }

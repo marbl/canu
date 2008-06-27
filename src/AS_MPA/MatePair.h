@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: MatePair.h,v 1.8 2006-11-14 19:58:22 eliv Exp $ */
+/* $Id: MatePair.h,v 1.9 2008-06-27 06:29:16 brianwalenz Exp $ */
 #ifndef MATEPAIR_H
 #define MATEPAIR_H
 
@@ -81,7 +81,7 @@ public:
       ID_TYPE leftSeqID, rightSeqID;
       UNIT_TYPE left5p, right5p;
       char leftO[4], rightO[4];
-      
+
       sscanf(line, F_MPID " %d " F_MPID " %s " F_MPID " %d "
              F_MPID " %s " F_MPID,
              &leftUID, &leftSeqID, &left5p, leftO,
@@ -91,7 +91,7 @@ public:
       pRightFrag.set(rightUID, right5p, rightO, rightSeqID);
       setOrientFromFrags();
     }
-  
+
   void setFromString(char * line, ID_TYPE seqID = BOGUS_ID)
     {
       ID_TYPE leftUID, rightUID;
@@ -120,7 +120,7 @@ public:
           break;
       }
     }
-  
+
   const FragmentPosition & getLeftFrag() const {return pLeftFrag;}
   ID_TYPE getLeftFragUID() const {return pLeftFrag.getUID();}
   UNIT_TYPE getLeftCoord() const {return pLeftFrag.getFiveP();}
@@ -146,7 +146,7 @@ public:
       return ((pRightFrag.getSequenceID() == pLeftFrag.getSequenceID()) ?
               pRightFrag.getSequenceID() : BOGUS_ID);
     }
-      
+
   bool isWithinDelta(const MatePair & other, UNIT_TYPE delta) const
     {
       return(getLeftCoord() + delta >= other.getLeftCoord() &&
@@ -159,7 +159,7 @@ public:
     {
       return (getLeftCoord() < other.getLeftCoord());
     }
-  
+
   bool intersects(UNIT_TYPE left, UNIT_TYPE right) const
     {
       return(getLeftCoord() < right && left < getRightCoord());
@@ -168,7 +168,7 @@ public:
     {
       return intersects(other.getLeftCoord(), other.getRightCoord());
     }
-  
+
   bool spans(UNIT_TYPE left, UNIT_TYPE right) const
     {
       return(getLeftCoord() < left && right < getRightCoord());
@@ -233,7 +233,7 @@ public:
          << " > /rightUID=" << pRightFrag.getUID()
          << " /libUID=" << pLibUID << endl;
     }
-  
+
   friend ostream & operator<<(ostream & os, const MatePair & mp)
     {
       switch(mp.pOrient)
@@ -286,7 +286,7 @@ private:
           break;
       }
     }
-  
+
   void setOrientFromFrags()
     {
       if(pLeftFrag.pointsRight())

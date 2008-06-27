@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: findMPSets.cc,v 1.7 2007-05-14 09:27:12 brianwalenz Exp $ */
+/* $Id: findMPSets.cc,v 1.8 2008-06-27 06:29:17 brianwalenz Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <fstream>
@@ -113,26 +113,26 @@ int main(int argc, char ** argv)
   list<Rectangle<ID_TYPE, UNIT_TYPE> >::iterator iter2;
   list<TwoDIntervalClique<ID_TYPE, UNIT_TYPE> >::iterator titer1;
   int i;
-  
+
   ReadInputAsMBRs(rects1, cin);
 
 #ifdef FEEDBACK_FMPS
   cerr << "Read " << rects1.size() << " rectangles\n";
 #endif
-  
+
   map<ID_TYPE, int> id2Index;
   vector<Rectangle<ID_TYPE, UNIT_TYPE> > rects2;
   for(i = 0, iter1 = rects1.begin(); iter1 != rects1.end(); iter1++, i++)
   {
     rects2.push_back(*iter1);
     id2Index[iter1->getID()] = i;
-    
+
 #ifdef DEBUG_FMPS
     cerr << rects2[i] << endl;
 #endif
-    
+
   }
-  
+
 #ifdef FEEDBACK_FMPS
   cerr << "Grouping rectangles.\n";
 #endif
@@ -186,7 +186,7 @@ int main(int argc, char ** argv)
       cerr << *titer1 << endl;
   }
 #endif
-  
+
   // now, within each twoDI, find maximal cliques
   vector<TwoDIntervalClique<ID_TYPE, UNIT_TYPE> > ctdis;
   int ti;
@@ -203,7 +203,7 @@ int main(int argc, char ** argv)
       vector<Rectangle<ID_TYPE, UNIT_TYPE> > rects3;
       list<ID_TYPE> ids = titer1->getIDs();
       list<ID_TYPE>::iterator liter;
-      
+
       for(liter = ids.begin(); liter != ids.end(); liter++)
         rects3.push_back(rects2[id2Index[*liter]]);
 
@@ -213,7 +213,7 @@ int main(int argc, char ** argv)
       for(r3iter = rects3.begin(); r3iter != rects3.end(); r3iter++)
         cerr << *r3iter << endl;
 #endif
-      
+
       IntervalSetCoverSolver<ID_TYPE, UNIT_TYPE> iscs(rects3);
       ctdis.clear();
       iscs.solve(ctdis);

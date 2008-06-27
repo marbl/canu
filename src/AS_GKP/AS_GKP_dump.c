@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.40 2008-06-16 18:07:43 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.41 2008-06-27 06:29:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -147,7 +147,7 @@ void
 dumpGateKeeperBatches(char       *gkpStoreName,
                       AS_IID      begIID,
                       AS_IID      endIID,
-                      char       *iidToDump, 
+                      char       *iidToDump,
                       int         asTable) {
   GateKeeperStore   *gkp = openGateKeeperStore(gkpStoreName, FALSE);
   if (gkp == NULL) {
@@ -195,7 +195,7 @@ void
 dumpGateKeeperLibraries(char       *gkpStoreName,
                         AS_IID      begIID,
                         AS_IID      endIID,
-                        char       *iidToDump, 
+                        char       *iidToDump,
                         int         asTable) {
   GateKeeperStore   *gkp = openGateKeeperStore(gkpStoreName, FALSE);
   if (gkp == NULL) {
@@ -249,7 +249,7 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
 
       AS_PER_encodeLibraryFeaturesCleanup(&lmesg);
     }
-  }       
+  }
 
   closeGateKeeperStore(gkp);
 }
@@ -260,7 +260,7 @@ void
 dumpGateKeeperFragments(char       *gkpStoreName,
                         AS_IID      begIID,
                         AS_IID      endIID,
-                        char       *iidToDump, 
+                        char       *iidToDump,
                         int         dumpWithSequence,
                         int         dumpClear,
                         int         asTable) {
@@ -352,7 +352,7 @@ dumpGateKeeperFragments(char       *gkpStoreName,
         }
 
         for (i=0; i <= AS_READ_CLEAR_LATEST; i++) {
-          fprintf(stdout, "fragmentClear%-6s     = %d,%d\n", 
+          fprintf(stdout, "fragmentClear%-6s     = %d,%d\n",
                   AS_READ_CLEAR_NAMES[i],
                   fr.gkfr.clearBeg[i], fr.gkfr.clearEnd[i]);
         }
@@ -374,7 +374,7 @@ void
 dumpGateKeeperAsFasta(char       *gkpStoreName,
                       AS_IID      begIID,
                       AS_IID      endIID,
-                      char       *iidToDump, 
+                      char       *iidToDump,
                       int         dumpAllReads,
                       int         dumpClear,
                       int         dumpQuality) {
@@ -415,7 +415,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
         unsigned int   clrEnd   = getFragRecordClearRegionEnd  (&fr, dumpClear);
         char          *seqStart = getFragRecordSequence(&fr);
 
-        if (dumpQuality) 
+        if (dumpQuality)
           seqStart = getFragRecordQuality(&fr);
 
         char          *seq      = seqStart+clrBeg;

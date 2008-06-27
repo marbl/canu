@@ -22,7 +22,7 @@
 #
 ##########################################################################
 
-# $Id: Shred_Contigs.pl,v 1.4 2008-01-11 21:16:09 eliv Exp $
+# $Id: Shred_Contigs.pl,v 1.5 2008-06-27 06:29:21 brianwalenz Exp $
 
 use strict;
 use Getopt::Std;
@@ -76,7 +76,7 @@ print STDERR "Processing FASTA file...\n";
 my ($defline, $prev_defline, $sequence);
 while(<$fasta_fh>){
 	chomp;
-	
+
 	if(/^>/){
 		$defline=$_;
 		if($sequence ne ""){
@@ -120,7 +120,7 @@ sub process_record{
 			${$end_shred_ref}[$shred_idx]-${$begin_shred_ref}[$shred_idx]);
 
         my $frgId = $uidServ->incrUID;
-		print STDOUT 
+		print STDOUT
             ">$frgId " ,
 			"/contig=$seq_id\.$shred_idx " ,
 			"/target_coverage=$avg_cov " ,

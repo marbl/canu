@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_Bubble_Popper.c,v 1.15 2007-11-08 12:38:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_Bubble_Popper.c,v 1.16 2008-06-27 06:29:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,7 +43,7 @@ extern int max_indel_AS_ALN_LOCOLAP_GLOBAL;
 #define BP_SQR(x) ((x) * (x))
 
 void
-BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks, 
+BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
 	TChunkFrag cfrgs[], float global_arrival_rate,
         GateKeeperStore *gkpStore,
         const char * fileprefix)
@@ -61,7 +61,7 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
   bp->chunkFrags = cfrgs;
   bp->globalArrivalRate = global_arrival_rate;
   bp->gkpStore = gkpStore;
-  
+
   bp->vidToBid     = (int *)safe_malloc(sizeof(int) * GetNumFragments(BG_vertices(bg)));
 
   bp->topDistArray = (int *)safe_malloc(sizeof(int) * POPPER_MAX_BUBBLE_SIZE);
@@ -76,7 +76,7 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
     /* This is a hack for DP_compare.  It might not be necessary. */
     bp->bubMesgs[i].sequence[0] = '\0';
     (bp->bubMesgs[i].sequence)++;
-    
+
     bp->bubMesgs[i].quality = NULL;
   }
 
@@ -138,7 +138,7 @@ BP_reset(BubblePopper_t bp)
       else
 	BP_setAdj(bp, i, j, 1);
 }
-    
+
 
 TChunkMesg *
 BP_chunks(BubblePopper_t bp)
@@ -161,7 +161,7 @@ BP_getChunk(BubblePopper_t bp, IntChunk_ID cid)
 }
 
 
-IntFragment_ID 
+IntFragment_ID
 BP_numFrags(BubblePopper_t bp)
 {
   return bp->curBubSize;
@@ -182,7 +182,7 @@ BP_getBID(BubblePopper_t bp, IntFragment_ID vid)
 }
 
 
-int 
+int
 BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
 {
   int reversed = FALSE, orientation = FALSE;
@@ -303,7 +303,7 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
       (4519491 == aln_msg->bifrag)
 
       ) &&
-     (NULL != aln_msg)       
+     (NULL != aln_msg)
      ) {
     fprintf(BUB_LOG_G, "BUBA orientation=%d reversed=%d\n", orientation, reversed);
     fprintf(BUB_LOG_G,
@@ -322,7 +322,7 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
     // fprintf(BUB_LOG_G, "BUBC delta=");
   }
 #endif // AS_CGB_BUBBLE_VERBOSE2
-  
+
   /* Copy overlap message. */
   bp->bubOlaps[bp->numOlaps].ahg = aln_msg->ahg;
   bp->bubOlaps[bp->numOlaps].min_offset = aln_msg->ahg;
@@ -361,23 +361,23 @@ BP_getAdj(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
 int
 BP_getAdj_VID(BubblePopper_t bp, IntFragment_ID vid1, IntFragment_ID vid2)
 {
-  return bp->adj[bp->vidToBid[vid1] * POPPER_MAX_BUBBLE_SIZE + 
+  return bp->adj[bp->vidToBid[vid1] * POPPER_MAX_BUBBLE_SIZE +
 		bp->vidToBid[vid2]];
 }
 
 
-void 
+void
 BP_setAdj(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2, int v)
 {
   bp->adj[bid1 * POPPER_MAX_BUBBLE_SIZE + bid2] = v;
 }
 
 
-void 
-BP_setAdj_VID(BubblePopper_t bp, IntFragment_ID vid1, IntFragment_ID vid2, 
+void
+BP_setAdj_VID(BubblePopper_t bp, IntFragment_ID vid1, IntFragment_ID vid2,
 	      int v)
 {
-  bp->adj[bp->vidToBid[vid1] * POPPER_MAX_BUBBLE_SIZE + 
+  bp->adj[bp->vidToBid[vid1] * POPPER_MAX_BUBBLE_SIZE +
 	 bp->vidToBid[vid2]] = v;
 }
 
@@ -427,7 +427,7 @@ AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, IntFragment_ID start,
     tmp = BP_getFrag(bp, r);
     for (e = BGEI_bgn(bp->bg, &e_it, tmp, bgeiOut, bub_e_flags);
 	 !BGEI_end(&e_it);
-	 e = BGEI_next(bp->bg, &e_it, bub_e_flags)) 
+	 e = BGEI_next(bp->bg, &e_it, bub_e_flags))
       BP_setAdj(bp, r, bp->vidToBid[BG_getOppositeVertex(bp->bg, e, tmp)],1);
   }
 
@@ -439,15 +439,15 @@ AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, IntFragment_ID start,
 	    BG_V_getDistance(bp->bg, bp->bubFrags[r]));
   }
 #endif
-  
+
 #if AS_CGB_BUBBLE_VERY_VERBOSE
   fprintf(BUB_LOG_G, "\nPre Transitive Closure Adjacency Array\n");
   for (r = 0; r < num_frags; r++) {
-    for (c = 0; c < num_frags; c++) 
+    for (c = 0; c < num_frags; c++)
       fprintf(BUB_LOG_G, "%d  ", BP_getAdj(bp, r, c));
     fprintf(BUB_LOG_G, "\n");
   }
-#endif 
+#endif
 
   bp->numFragsInBubbles += num_frags;
   bp->totalDistSpannedByBubbles += bub_size;
@@ -467,7 +467,7 @@ AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, IntFragment_ID start,
     *num_olaps = 0;
     return NULL;
   }
-  
+
   /* Compute transitive closure */
 
   BP_transitive_closure(bp);
@@ -476,12 +476,12 @@ AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, IntFragment_ID start,
   {
     fprintf(BUB_LOG_G, "\nPost Transitive Closure Adjacency Array\n");
     for (r = 0; r < num_frags; r++) {
-      for (c = 0; c < num_frags; c++) 
+      for (c = 0; c < num_frags; c++)
 	fprintf(BUB_LOG_G, "%d  ", BP_getAdj(bp, r, c));
       fprintf(BUB_LOG_G, "\n");
     }
   }
-#endif 
+#endif
 
   /* Find potentially missing overlaps */
 
@@ -495,17 +495,17 @@ AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, IntFragment_ID start,
 	    max_block_diff_size = max_indel_AS_ALN_LOCOLAP_GLOBAL;
 	}
       }
-  
+
 #if AS_CGB_BUBBLE_VERY_VERBOSE
   {
     fprintf(BUB_LOG_G, "\nPost Affine Overlap Adjacency Array\n");
     for (r = 0; r < num_frags; r++) {
-      for (c = 0; c < num_frags; c++) 
+      for (c = 0; c < num_frags; c++)
 	fprintf(BUB_LOG_G, "%d  ", BP_getAdj(bp, r, c));
       fprintf(BUB_LOG_G, "\n");
     }
   }
-#endif 
+#endif
 
   /* Find longest path in DAG (if possible).  If all fragments are
      on the path, keep the bubble; otherwise, reject it. */
@@ -514,16 +514,16 @@ AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, IntFragment_ID start,
 #if AS_CGB_BUBBLE_VERY_VERBOSE
   fprintf(BUB_LOG_G, "Found path of length %d.\n", path_len);
 #endif
-  
+
   bub_closed = ((path_len + 1) == num_frags);
-  
+
 #if AS_CGB_BUBBLE_VERBOSE
-  if (bub_closed) 
+  if (bub_closed)
     fprintf(BUB_LOG_G, "SUMMARY:  Bubble should be popped!\n\n");
   else
     fprintf(BUB_LOG_G, "SUMMARY:  Bubble should be REJECTED!\n\n");
 #endif
-  
+
   if (bub_closed) {
     bp->numBubblesCollapsed++;
     bp->numFragsInCollapsedBubbles += num_frags;
@@ -532,12 +532,12 @@ AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, IntFragment_ID start,
     if (bp->sdiffFile)
       fprintf(bp->sdiffFile, "%d\n", max_block_diff_size);
   if (bp->nfragspopFile)
-    fprintf(bp->nfragspopFile, "%d\n", num_frags + 1);  
-    
+    fprintf(bp->nfragspopFile, "%d\n", num_frags + 1);
+
     *num_olaps = bp->numOlaps;
     return bp->bubOlaps;
   }
-  else { 
+  else {
     *num_olaps = 0;
     return NULL;
   }
@@ -553,13 +553,13 @@ AS_CGB_Bubble_Popper_destroy(BubblePopper_t bp)
     (bp->bubMesgs[i].sequence)--; /* Other end of the hack in _init() */
     safe_free(bp->bubMesgs[i].sequence);
   }
-  
+
 #ifndef DONT_ALLOC_OLAP_DELTAS
   for (i = 0; i < BP_SQR(POPPER_MAX_BUBBLE_SIZE); ++i) {
     safe_free(bp->bubOlaps[i].delta);
   }
 #endif // DONT_ALLOC_OLAP_DELTAS
-  
+
   BG_destroy(bp->bg);
   safe_free(bp->vidToBid); // proportional to the number of fragments
 
@@ -569,7 +569,7 @@ AS_CGB_Bubble_Popper_destroy(BubblePopper_t bp)
   safe_free(bp->bubMesgs); // POPPER_MAX_BUBBLE_SIZE
   safe_free(bp->adj);      // BP_SQR(POPPER_MAX_BUBBLE_SIZE)
   safe_free(bp->bubOlaps); // BP_SQR(POPPER_MAX_BUBBLE_SIZE)
-  
+
   if (bp->nfragsFile)
     fclose(bp->nfragsFile);
   if (bp->nfragspopFile)

@@ -1,4 +1,4 @@
-# $Id: AsmLib.pm,v 1.1 2006-09-04 07:15:37 brianwalenz Exp $
+# $Id: AsmLib.pm,v 1.2 2008-06-27 06:29:20 brianwalenz Exp $
 #
 # File: AsmLib.pm
 # Authors: Mihai Pop
@@ -29,7 +29,7 @@
 
 =head1 NAME
 
-AsmLib - A library of perl routines for processing Celera .frg, .asm files and 
+AsmLib - A library of perl routines for processing Celera .frg, .asm files and
 TIGR .contig, .seq, and .qual files.
 
 =head1 SYNOPSIS
@@ -47,9 +47,9 @@ package TIGR::AsmLib;
 
 use strict;
 
-## configuration management            
+## configuration management
 our $VERSION = "2.00";
-our $VERSION_STRING = "$VERSION (Build " . (qw/$Revision: 1.1 $/ )[1] . ")";
+our $VERSION_STRING = "$VERSION (Build " . (qw/$Revision: 1.2 $/ )[1] . ")";
 our @DEPEND = ();
 
 BEGIN {
@@ -90,7 +90,7 @@ Reads from stdin the text between "extreme" { and } .
     {B
     }
    }
- 
+
 Returns the whole: {A{B}}
 
 =cut
@@ -98,7 +98,7 @@ Returns the whole: {A{B}}
 sub getCARecord
 {
     my $file = shift;
-    
+
     my $level = 0;
     my $block = "";
 
@@ -190,7 +190,7 @@ sub parseCARecord
           $level = 1;
 
           my $thisrec = ++$#recs;
-          
+
           $recs[$thisrec] = "$lines[$i]\n";
           $i++;
           while ($level > 0 && $i < $#lines){
@@ -213,7 +213,7 @@ sub parseCARecord
           }
       } # subrecord
     } # for $i...
-    
+
     return ($type, \%fields, \@recs);
 } # parseCARecord
 
@@ -326,21 +326,21 @@ Inputs are:
    $seqleft, $seqright - alignment range within sequence
    $asml, $asmr - alignment range within consensus
    $type - type of output:
-           contig -  output is in TIGR .contig format 
+           contig -  output is in TIGR .contig format
            asm    -  output is in TIGR .asm format
 
 =cut
 
 sub printSequenceRecord
 {
-    my($file, $name, $seq, $offset, $rc, 
+    my($file, $name, $seq, $offset, $rc,
        $seqleft, $seqright, $asml, $asmr, $type) = @_;
 
     if ($type eq "contig"){
-      print $file "\#$name($offset) [$rc] ", 
-      length($seq), 
+      print $file "\#$name($offset) [$rc] ",
+      length($seq),
       " bases, 00000000 checksum. {$seqleft $seqright} <$asml $asmr>\n";
-      
+
       print_sequence($file, $seq);
     }
 
@@ -401,11 +401,11 @@ sub printFastaQual
     my($header) = $_[1];
     my($quals) = $_[2];
     my(@qv);
- 
+
     print $file ">$header\n";
 
     @qv = split(' ', $quals);
-    
+
     for (my $j = 0; $j <= $#qv; $j += 17){
         print $file join(" ", @qv[$j .. $j + 16]), "\n";
     }

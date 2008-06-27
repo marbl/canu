@@ -146,14 +146,14 @@ void olap_ref_swap(OVSoverlap *o){
     ---->  x
 
 
-			 
+
     ---->  x
     <---- y
-			
+
 
     ----> y
-    <---- x  
-  */            
+    <---- x
+  */
   int t=o->a_iid;
   o->a_iid=o->b_iid;
   o->a_iid=t;
@@ -179,7 +179,7 @@ void olap_reverse(OVSoverlap *o){
 
 
   or
- 
+
   ---> x
   <--- y
 
@@ -196,7 +196,7 @@ void olap_reverse(OVSoverlap *o){
 
 double binom(int i,int n,double p){
   //  (n choose i)*p^i*(1-p)*(n-i)
-  return exp ( lgamma(n+1.) - lgamma(n-i+1.) - lgamma(i+1.) 
+  return exp ( lgamma(n+1.) - lgamma(n-i+1.) - lgamma(i+1.)
 	       + ((double)i)*log(p) + ((double)(n-i))*log(1.-p));
 }
 
@@ -204,7 +204,7 @@ double get_95pct_upper(int L, double obsrate){
 
   // given an observed rate of event, in L observations, we want to find an upper bound on the underlying rate;
   // i.e. a rate that is so high that 95% of the time, we'd expect to observe more events than we really do
-  
+
   //  absolute brute force:
 
   double lop = 0;
@@ -218,7 +218,7 @@ double get_95pct_upper(int L, double obsrate){
       obsrate,L);*/
 
   do{
-    int i; 
+    int i;
     double cum=0;
     try = (hip+lop)/2.;
     for(i=0;i<=n;i++){
@@ -238,9 +238,9 @@ double get_95pct_upper(int L, double obsrate){
   //  fprintf(stderr,"... decided on %f\n",try);
 
   return (try);
-}  
-    
-				  
+}
+
+
 
 int isDeadEnd(int frg, int offAEnd, double erate, int useCorrected, int skipContaining, int minlen,int frglen){
 
@@ -277,13 +277,13 @@ int isDeadEnd(int frg, int offAEnd, double erate, int useCorrected, int skipCont
     if( (offAEnd ? (olap. dat . ovl . a_hang < 0) : (olap. dat . ovl.b_hang > 0))){
       return 0;
     }
-  } 
+  }
   return 1;
 }
 
 
 
-OVSoverlap better_olap(OVSoverlap a, OVSoverlap b, int startingFrg, int offAEnd, BestMeasure bestType, int frglen, 
+OVSoverlap better_olap(OVSoverlap a, OVSoverlap b, int startingFrg, int offAEnd, BestMeasure bestType, int frglen,
 			     int useCorrected, int skipContaining, int minlen, int avoidDeadEnds, double erate ){
 
   int aThick, bThick;
@@ -314,7 +314,7 @@ OVSoverlap better_olap(OVSoverlap a, OVSoverlap b, int startingFrg, int offAEnd,
 
     aIsDead = isDeadEnd(a.b_iid,aOtherAEnd,erate,useCorrected,skipContaining,minlen,get_clr_len(a.b_iid));
     bIsDead = isDeadEnd(b.b_iid,bOtherAEnd,erate,useCorrected,skipContaining,minlen,get_clr_len(b.b_iid));
-    
+
     // if status is different, then prefer the live one ...
     if(aIsDead<bIsDead)return a;
     if(aIsDead>bIsDead)return b;
@@ -323,7 +323,7 @@ OVSoverlap better_olap(OVSoverlap a, OVSoverlap b, int startingFrg, int offAEnd,
   switch (bestType){
 
     case BEST_MEANS_LOWEST_ERROR:
-      if(useCorrected){ 
+      if(useCorrected){
         if(a.dat . ovl . corr_erate>=b.dat . ovl . corr_erate){
           return b;
         } else {
@@ -377,7 +377,7 @@ OVSoverlap better_olap(OVSoverlap a, OVSoverlap b, int startingFrg, int offAEnd,
       }
       break;
 
-  
+
     case BEST_MEANS_BEST_UPPER_BOUND:
 
       // we will take the length of the overlap plus the number of errors observed and compute the
@@ -398,7 +398,7 @@ OVSoverlap better_olap(OVSoverlap a, OVSoverlap b, int startingFrg, int offAEnd,
         upperA = get_95pct_upper(olenA, AS_OVS_decodeQuality(a.dat . ovl . orig_erate)+.0009);
         upperB = get_95pct_upper(olenB, AS_OVS_decodeQuality(b.dat . ovl . orig_erate)+.0009);
       }
-    
+
 
       }
       break;
@@ -439,11 +439,11 @@ int lowestErrorSort(const void *A,const void *B){
   }
 
   return 0;
-    
-} 
+
+}
 
 // setupolaps() returns a count of usable olaps and sets *retolaps to point to
-// a block of memory containing them ... but the memory is static (i.e. the 
+// a block of memory containing them ... but the memory is static (i.e. the
 // calling routine does not own the memory) and should not be freed!
 int setupolaps(int id, int offAEnd,BestMeasure bestType,double erate,int useCorrected,int skipContaining,int minlen, int frglen,int avoidDeadEnds,OVSoverlap **retolaps, double favorSameSample,double favorSameSampleAsSeed){
 
@@ -559,19 +559,19 @@ int best_overlap_off_end(int id, int offAEnd,BestMeasure bestType,OVSoverlap *be
   int retval=0;
 
   i=0;
-  while(i<numOvls&&(maxOvlsToConsider == -1 
+  while(i<numOvls&&(maxOvlsToConsider == -1
 		    || (i < maxOvlsToConsider)
 		    || (useCorrectedErate ? (olaps[i].dat . ovl . corr_erate == olaps[maxOvlsToConsider].dat . ovl . corr_erate) :  (olaps[i].dat . ovl . orig_erate == olaps[maxOvlsToConsider].dat . ovl . orig_erate)))){
-		    
+
     /*
       while(i<numOvls&&(maxOvlsToConsider == -1 || i<maxOvlsToConsider)){
     */
 
     OVSoverlap olap = olaps[i];
-    
+
     if(goodOlap==0){
       goodOlap=1;
-      bestolap=olap; 
+      bestolap=olap;
     } else {
       bestolap=better_olap(bestolap,olap, id, offAEnd,bestType,frglen,useCorrected,skipContaining,minlen,avoidDeadEnds,erate);
     }
@@ -624,7 +624,7 @@ void setUpRestrictions(int last_stored_frag,char *listfile,int *usabilityArray){
 	usabilityArray[i]=1;
       }
     } else {
-      int i = atoi(range); 
+      int i = atoi(range);
       assert(i>0&&i<=last_stored_frag);
       usabilityArray[i]=1;
     }
@@ -634,7 +634,7 @@ void setUpRestrictions(int last_stored_frag,char *listfile,int *usabilityArray){
 
 
 void usage(char *pgm){
-  fprintf (stderr, 
+  fprintf (stderr,
            "USAGE:  %s -g <GkpStoreName> -o <full_ovlStore> -n <startingFrgNum> [-C] [-e <erate cutoff>] [-E] [-m <minlen>] [-Q] [-D] [-N <maxovls>] [-i <file specifying IIDs to use> | -I <file specifying IIDs to use>] [-R] [-s <uid2sample file> [-S <same-sample bonus> | -T <same-sample-as-seed bonus>]] [-P] [-5 | -3]\n"
            "\t-n startingFrgNum = fragment to walk out from\n"
            "\t-e specifies the maximum mismatch rate (as a fraction, i.e. .01 means one percent)\n"
@@ -686,7 +686,7 @@ int ovlThickness(OVSoverlap o, int frglen, int afrg, int Aend){
 
   if(o.a_iid == afrg){
     return frglen + (Aend ? o.dat . ovl . b_hang : -o. dat . ovl . a_hang);
-  } 
+  }
 
   if(o.dat . ovl . flipped){
     if(Aend){
@@ -716,19 +716,19 @@ int main (int argc , char * argv[] ) {
   char full_map[1000];
   char setSubsetMap=0;
   char setFullMap=0;
-  char full_ovlPath[1000];  
+  char full_ovlPath[1000];
   char full_gkpPath[1000];
   char sampleFileName[1000];
   double favorSameSample=0;
   double favorSameSampleAsSeed=0;
-  FILE *sampleFile;  
+  FILE *sampleFile;
   int setFullGkp=0;
   int setFullOvl=0;
   int bestType = BEST_MEANS_THICKEST;
   int startingFrgNum=0;
   int seediid;
   int stillGoing=0;
-  int Aend=-1; 
+  int Aend=-1;
   int currFrg=-1;
   int firstExtend=-1;
 
@@ -757,7 +757,7 @@ int main (int argc , char * argv[] ) {
 
   argc = AS_configure(argc, argv);
 
-  { /* Parse the argument list using "man 3 getopt". */ 
+  { /* Parse the argument list using "man 3 getopt". */
     int ch,errflg=0;
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,"BCDe:Ef:g:m:n:N:o:PQs:S:T:i:I:R53")) != EOF)){
@@ -858,7 +858,7 @@ int main (int argc , char * argv[] ) {
 	exit(1);
       }
   }
-  
+
   assert(! (fivePonly&&threePonly) );
 
   assert(AS_CNS_ERROR_RATE >= AS_OVS_decodeQuality(maxError));
@@ -903,7 +903,7 @@ int main (int argc , char * argv[] ) {
       if(iid>0) iid2sample[iid]=smp;
     }
     if(favorSameSample==0&&favorSameSampleAsSeed==0){
-      //      favorSameSample=AS_OVS_encodeQuality(DEFAULT_SAMPLE_ADVANTAGE); 
+      //      favorSameSample=AS_OVS_encodeQuality(DEFAULT_SAMPLE_ADVANTAGE);
       fprintf(stderr,"Unexpected settings in %s :  -s <read UID to sample file> specified without positive value for -S or -T -- abort!\n",argv[0]);
       exit(1);
     }
@@ -985,7 +985,7 @@ int main (int argc , char * argv[] ) {
 	printf("%d  %d %d %s\n",currFrg,ahang,ahang+frglen, Aend?"<--":"-->");
       }
       built5End = 1;
-      
+
       if(numOvls>0){
 	stillGoing = best_overlap_off_end(currFrg, Aend, bestType,&o,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,olaps,numOvls);
 	if(stillGoing){
@@ -1051,7 +1051,7 @@ int main (int argc , char * argv[] ) {
 	} else {
 	  printf("SEEN: %d  %d %d %s\n",currFrg,ahang,ahang+frglen, Aend?"<--":"-->");
 	  stillGoing=0;
-	}   
+	}
 	seen[currFrg]++;
    assert(seen[currFrg]<(char)127);
       } else {
@@ -1067,7 +1067,7 @@ int main (int argc , char * argv[] ) {
     }
 
     //    fprintf(stderr,"now for the other end...\n");
-    
+
     stillGoing=1;
     Aend=0;
     currFrg=seediid;
@@ -1095,7 +1095,7 @@ int main (int argc , char * argv[] ) {
 	} else {
 	  printf("%d %d %d %s\n",currFrg,leftEnd,rightEnd,!Aend?"<--":"-->");
 	}
-      }      
+      }
 
       if(numOvls>0){
 	stillGoing = best_overlap_off_end(currFrg, Aend, bestType,&o,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,olaps,numOvls);
@@ -1114,7 +1114,7 @@ int main (int argc , char * argv[] ) {
 	      }
 	    }
 	  }
- 
+
 
 	  if(o.a_iid==currFrg){
 	    currFrg=o.b_iid;
@@ -1164,12 +1164,12 @@ int main (int argc , char * argv[] ) {
 	stillGoing=0;
       }
     }
-     
+
      // mark seed as seen so it cannot be used again
      seen[seediid]++;
   }
 
-  finished_with_ovlStore();  
+  finished_with_ovlStore();
   exit(0);
 }
 

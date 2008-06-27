@@ -2,7 +2,7 @@
 # (c) Copyright 2003 The Institute for Genomic Research.  All rights reserved.
 
 ###########################################################################
-# $Id: ca2ta.pl,v 1.1 2007-07-03 19:53:59 moweis Exp $
+# $Id: ca2ta.pl,v 1.2 2008-06-27 06:29:19 brianwalenz Exp $
 #
 # Author: Mihai Pop / Erik Ferlanti / Abhilasha Chaudhary
 #
@@ -28,14 +28,14 @@ use TIGR::Foundation;
 use TIGR::AsmLib;
 
 # ============================  Constants ==================================
-my $VERSION = "Version 3.20 (Build " . (qw/$Revision: 1.1 $/ )[1] . ")";
+my $VERSION = "Version 3.20 (Build " . (qw/$Revision: 1.2 $/ )[1] . ")";
 my $HELPTEXT = qq~
 Analyze and convert Celera Assembler assembly artifacts to TIGR usable objects.
 
   ca2ta [options] <prefix>.asm
 
   options:
-    -nofasta        Do not create .fasta files for contigs, placed contigs 
+    -nofasta        Do not create .fasta files for contigs, placed contigs
                     and degenerate contigs output
     -nosurrfasta    Do not create .fasta files for surrogate contigs output
     -nodegenerates  Do not create .degenerates and .degenerates.fasta output
@@ -44,9 +44,9 @@ Analyze and convert Celera Assembler assembly artifacts to TIGR usable objects.
     -report         Generate a report detailing unitig information
     -unitigs        Print only the unitig records to .contig file
     -coveragestats  Run getCoverage to generate quality class and redundancy
-    -nocontig       Do not create the <prefix>.contig, <prefix>.placed.contig, 
+    -nocontig       Do not create the <prefix>.contig, <prefix>.placed.contig,
                     <prefix>.degenerates.contig and <prefix>.tasm files
-   
+
 ca2ta converts CA output <prefix>.asm into <prefix>.fasta, <prefix>.contig, and
 <prefix>.tasm similar to the corresponding outputs of TA.  The <prefix>.tasm
 file is suitable for uploading to the database using aloader.  Files or links
@@ -181,7 +181,7 @@ MAIN:
     if ($err == 0){
         $tf->bail("Command line parsing failed.  See -h option");
     }
-    
+
     ### try to read and open the input .asm file
     if (isReadableFile($ARGV[0])) {
         $asm_fh = new IO::File "$ARGV[0]" or
@@ -223,9 +223,9 @@ MAIN:
 
     $frag_fh = new IO::File "$fragfname" or
         $tf->bail("Cannot open $fragfname: $!");
-    
+
     $tf->logLocal("Getting date from file &fragfname ...", 1);
-      
+
     my $record;
     while ( $record = getCARecord( $frag_fh ) ) {
       my $type;
@@ -234,21 +234,21 @@ MAIN:
       }
 
       my ( $type, $fields, $recs ) = parseCARecord($record);
-      if ( $type eq 'BAT' ) {  #BAT is the first message of a frg        
-	    $timesecs = $$fields{'crt'};          
+      if ( $type eq 'BAT' ) {  #BAT is the first message of a frg
+	    $timesecs = $$fields{'crt'};
       } elsif ( $type eq 'ADT' ) {  #ADT is the second message of a frg
         my ( $lrec, $lfield, $lrecs ) = parseCARecord( $$recs[0] ); #Read the ADL
         $who      = $$lfield{'who'};
       } else {
         last;
-      }        
+      }
     }
-    
+
     $who = $ENV{USER} if ( !defined $who or $who eq '');
-    
+
     my ($seconds, $minutes, $hours, $day_of_month, $month, $year,
         $wday, $yday, $isdst) = localtime($timesecs);
-    
+
     my $time_type = undef;
     if($hours >= 12) {
        $time_type = "PM";
@@ -265,7 +265,7 @@ MAIN:
     $date = sprintf("%02d/%02d/%02d %02d:%02d:%02d",
                $month+1, $day_of_month, $year, $hours, $minutes, $seconds);
     $date = $date." $time_type";
-  
+
     $frag_fh->seek(0,SEEK_SET);
 
     # parse the asm file and gather the relevant information
@@ -274,7 +274,7 @@ MAIN:
     while ( defined(my $seekpos = tell $asm_fh) and
             ($record = getCARecord($asm_fh)) ) {
         my ($rec, $fields, $recs) = parseCARecord($record);
-        
+
         if ($rec eq "AFG"){ # augmented fragment
             processAugmentedFragment($fields,$recs);
         } elsif ($rec eq "UTG") { # unitig record
@@ -309,7 +309,7 @@ MAIN:
         foreach my $contig_id (sort keys %contigs) {
             checkForSeparableUnitigs($contig_id);
         }
-        
+
         if ($ureport) {
             generateUnitigReport($unitigname, $unitig_config);
         }
@@ -317,11 +317,11 @@ MAIN:
         ### print contigs to .contig and .fasta files
         $tf->logLocal("Printing contigs to $contigname, $pcontigname," .
                       " and $dcontigname...", 1);
-        
+
         my($contig_fh,$pcontig_fh,$dcontig_fh,$seek_contig_fh,
-           $seek_tasm_fh,$seek_surr_contig_fh,$orig_contig_fh, 
+           $seek_tasm_fh,$seek_surr_contig_fh,$orig_contig_fh,
            $scontig_fh);
-        
+
         if (!$nocontig ) {
            $contig_fh = new IO::File "> $contigname" or
               $tf->bail("Cannot create $contigname: $!");
@@ -329,8 +329,8 @@ MAIN:
               $tf->bail("Cannot create $pcontigname: $!");
            $dcontig_fh = new IO::File "> $dcontigname" or
               $tf->bail("Cannot create $dcontigname: $!");
-        }   
-           
+        }
+
         $orig_contig_fh = new IO::File ">$orig_contigname" or
            $tf->bail("Cannot open \"$orig_contigname\": $!\n");
         $scontig_fh = new IO::File "> $scontigname" or
@@ -344,7 +344,7 @@ MAIN:
            $seek_surr_contig_fh = new IO::File "> $seek_surr_contig_name" or
               $tf->bail("Cannot create file $seek_surr_contig_name: $!");
         }
-        
+
         my($fasta_fh,$sfasta_fh,$pfasta_fh,$dfasta_fh);
         if(!$nofasta ){
            $tf->logLocal("Printing all contigs to $fastafname", 1);
@@ -353,7 +353,7 @@ MAIN:
            $tf->logLocal("Printing placed contigs to $pfastafname", 1);
            $pfasta_fh = new IO::File "> $pfastafname" or
               $tf->bail("Cannot create $pfastafname: $!");
-        
+
            if(! $nodegen) {
               $tf->logLocal("Printing degenerate contigs to $degenfastafname",
                             1);
@@ -361,26 +361,26 @@ MAIN:
                  $tf->bail("Cannot create $degenfastafname: $!");
 	   }
         }
-        
+
         if(!$nosurrfasta) {
            $tf->logLocal("Printing surrogate contigs to $sfastafname", 1);
            $sfasta_fh = new IO::File "> $sfastafname" or
               $tf->bail("Cannot create $sfastafname: $!");
         }
-        
+
         my $prev_pos = 0;
         foreach my $contig_id (sort keys %contigs) {
            $tf->logLocal("Printing contig id '$contig_id' to " .
                          "$contigname and $fastafname...", 9);
            printContig($contig_fh, $contig_id, 'contig') if (!$nocontig);
            printContig($orig_contig_fh, $contig_id, 'contig');
-           
+
            if($nocontig) {
 	      my $pos = tell($orig_contig_fh);
 	      $seek_contig_fh->print("$contig_id $prev_pos $pos ");
               $prev_pos = $pos;
            }
-           
+
            if(!$nofasta) {
 	      printFasta($fasta_fh, $contig_id);
            }
@@ -395,7 +395,7 @@ MAIN:
 		 printContig($pcontig_fh, $contig_id, 'contig');
               }
               printFasta($pfasta_fh, $contig_id) if (!$nofasta);
-           } 
+           }
            else {
               $tf->logLocal("Printing contig id '$contig_id' to " .
                             "$dcontigname and $degenfastafname...", 9);
@@ -406,17 +406,17 @@ MAIN:
               else {
 		 printContig($dcontig_fh, $contig_id, 'contig');
               }
-              printFasta($dfasta_fh, $contig_id) if ((!$nofasta) && 
+              printFasta($dfasta_fh, $contig_id) if ((!$nofasta) &&
                                                      (!$nodegen));
            }
         }
-     
+
         my $prev_pos1 = 0;
         foreach my $contig_id (sort keys %separable_unitigs) {
            $tf->logLocal("Printing promoted unitig id '$contig_id' to " .
                          "$scontigname...", 9);
            printUnitig($scontig_fh, $contig_id, 'contig');
-           
+
            if($nocontig) {
 	      my $pos = tell($scontig_fh);
 	      $seek_surr_contig_fh->print("$contig_id $prev_pos1 $pos\n");
@@ -430,7 +430,7 @@ MAIN:
            }
         }
 
-        if(defined $contig_fh) { 
+        if(defined $contig_fh) {
            $contig_fh->close();
         }
         if(defined $pcontig_fh) {
@@ -445,7 +445,7 @@ MAIN:
         if(defined $seek_surr_contig_fh) {
            $seek_surr_contig_fh->close();
         }
-        if(defined $orig_contig_fh) { 
+        if(defined $orig_contig_fh) {
            $orig_contig_fh->close();
         }
         if(defined $scontig_fh) {
@@ -459,11 +459,11 @@ MAIN:
         }
         if(defined $dfasta_fh) {
            $dfasta_fh->close();
-	} 
+	}
         if(defined $sfasta_fh) {
            $sfasta_fh->close();
 	}
-       
+
         if (defined $coverage_stats) {
             ### process contigs using getCoverage to generate quality class
             ### and redundancy information
@@ -509,7 +509,7 @@ MAIN:
                  printContig($orig_tasm_fh, $contig_id, 'asm', 'first');
 	      }
               $first = 0;
-           } 
+           }
            else {
               if(! $nocontig) {
                  printContig($tasm_fh, $contig_id, 'asm');
@@ -518,7 +518,7 @@ MAIN:
                  printContig($orig_tasm_fh, $contig_id, 'asm');
 	      }
            }
-       
+
            if($nocontig) {
 	      my $pos = tell($orig_tasm_fh);
 	      $seek_tasm_fh->print("$contig_id $prev_pos $pos\n");
@@ -528,7 +528,7 @@ MAIN:
 
         ## print out the promoted unitigs to the .tasm file
         $tf->logLocal("Printing non-unique unitigs to $tigrasmname...", 1);
-        
+
         foreach my $contig_id (sort keys %unitigs_to_contigs) {
            if(! $nocontig) {
               $tf->logLocal("Printing contig id '$contig_id' to " .
@@ -537,7 +537,7 @@ MAIN:
            }
            printUnitig($nuu_tasm_fh, $contig_id, 'asm');
         }
-        
+
         if(defined $tasm_fh) {
            $tasm_fh->close();
         }
@@ -552,7 +552,7 @@ MAIN:
         if ( ! $nofeat ) {
            outputFeatures($featurename);
         }
-        
+
         if ( ! $nodegen ) {
            outputDegenerates($degenfname);
         }
@@ -564,7 +564,7 @@ MAIN:
     if(defined $asm_fh) {
        $asm_fh->close();
     }
-    
+
     exit(0);
 }
 
@@ -587,7 +587,7 @@ sub checkForSeparableUnitigs {
         my($utg,$upos) = split /~~/, $utgr;
         my $u_nseqs = $unitigs{$utg}->{'nseq'};
         my $utype = $unitigs{$utg}->{'type'};
-        
+
         if ($utype eq 'S' and $separable_unitigs{$utg} > 1) {
             $tf->logLocal("Found non-unique type S unitig $utg in " .
                           "contig $contig_id with $u_nseqs seqs", 4);
@@ -675,9 +675,9 @@ sub processAugmentedFragment {
     my $fields = shift;
     my $recs = shift;
     my $id = getCAId($$fields{acc});
-  
+
     $tf->logLocal("Processing AFG $id...", 9);
-    
+
     if ($#$recs != -1) {
         $tf->logLocal("Fragment $id matches " . $#$recs + 1 . " screens", 1);
     }
@@ -758,7 +758,7 @@ sub processContig {
     my $unitig_fh = shift;
 
     my $id = getCAId($$fields{acc});
-   
+
     $tf->logLocal("Gathering info for contig $id...", 9);
     $asmpos{$id} = $seekpos;
 
@@ -768,7 +768,7 @@ sub processContig {
     my $nseq = $$fields{npc};
     $contigs{$id}->{'len'} = $len;
     $contigs{$id}->{'nseq'} = $nseq;
-   
+
     # here we parse the individual unitigs aligned to the contig
     for (my $i = 0; $i <= $#$recs; $i++){
         my ($sid, $sfs, $srecs) = parseCARecord($$recs[$i]);
@@ -802,16 +802,16 @@ sub printContig {
     my $contig_id = shift;
     my $ftype = shift;
     my $first = shift or 0;
-    
+
     my($rec,$fields,$recs) = getAsmRecord($contig_id);
     my $id = getCAId($$fields{acc});
 
     my $len = $$fields{len};
     my $lseq = $$fields{cns};
     my $nseq = $$fields{npc};
-  
+
     my $seq_len = length($lseq);
-     
+
     # if the length of the contig consensus is  zero do not print the contig
     if(length($lseq) == 0) {
         $tf->logLocal("WARNING: The contig $id consensus length is zero", 4);
@@ -833,7 +833,7 @@ sub printContig {
     }
 
     my $ra_offsets = buildOffsets($lseq);
-    
+
     $tf->logLocal("Printing aligned sequences for contig $id...", 9);
     my $tmpfile = "tmpfile";
     if(-e $tmpfile) {
@@ -860,7 +860,7 @@ sub printContig {
             $seqs{$id}->{"start"} = $start;
             $seqs{$id}->{"end"} = $end;
             $seqs{$id}->{"len"} = length $sequence;
-                   
+
         } else {
             $tf->logLocal("Record $sid (type $$sfs{typ}) not a contig" .
                          " sequence, ignoring", 9);
@@ -869,7 +869,7 @@ sub printContig {
     close $tmp_fh;
     $tmp_fh = new IO::File "$tmpfile" or
            $tf->bail("Cannot create $tmpfile: $!");
-    foreach my $seq_id ( sort { 
+    foreach my $seq_id ( sort {
 	if(($seqs{$a}->{"offset"}) < ($seqs{$b}->{"offset"})) {
 	    return -1;
         }
@@ -887,17 +887,17 @@ sub printContig {
         elsif(($seqs{$a}->{"offset"}) > ($seqs{$b}->{"offset"})) {
 	    return 1;
         } } (keys %seqs)) {
-     
+
         my $start = $seqs{$seq_id}->{"start"};
         my $end = $seqs{$seq_id}->{"end"};
         my $seq_record = undef;
-        
+
         if ( ! seek $tmp_fh, $start, 0) {
            $tf->bail("Trouble seeking to position $start in tmpfile");
         }
-      
+
         if(!defined read($tmp_fh, $seq_record, ($end - $start))) {
-           $tf->bail("Could not read the sequence information from the tmpfile"); 
+           $tf->bail("Could not read the sequence information from the tmpfile");
         }
         print $fh $seq_record;
     }
@@ -920,7 +920,7 @@ sub printContig {
 sub buildOffsets {
     my $lseq = shift;
     my @offsets = ();
-    
+
     $#offsets = length($lseq) - 1;
     my $coord = 0;
     for (my $i = 0; $i < length($lseq); $i++){
@@ -1005,7 +1005,7 @@ sub printUnitig {
     my $unitig_id = shift;
     my $ftype = shift;
     my $reverse = shift || undef;
-    
+
     my($rec,$fields,$recs) = getAsmRecord($unitig_id);
     my $uid = getCAId($$fields{acc});
 
@@ -1022,7 +1022,7 @@ sub printUnitig {
 
     if ($ftype eq 'asm') {
        print_consensus($fh, $uid, $len, $nseq, $lseq, $ftype, $UNITIG_IDENT);
-    } 
+    }
     elsif ($ftype eq 'contig') {
        print_consensus($fh, $uid, $len, $nseq, $lseq, $ftype);
     }
@@ -1045,7 +1045,7 @@ sub printUnitig {
             print_aligned($fh, $seqnames{$id}, $sequence, $asml, $rc,
                           $seqleft, $seqright, $$ra_offsets[$asml],
                           $$ra_offsets[$asmr - 1], $ftype);
-        } 
+        }
         else {
             $tf->logLocal("Record $sid (type $$sfs{typ}) not a unitig" .
                          " sequence, ignoring", 9);
@@ -1146,7 +1146,7 @@ sub calculateUngappedPos($$) {
       }
       $gapped_count++;
    }
-   return $ungapped_count;          
+   return $ungapped_count;
 }
 
 ######################################################################
@@ -1185,23 +1185,23 @@ sub outputFeatures {
                               "gaps...", 4);
                 $unique = 1;
             }
-            
+
             if ($unique) {
                $type = $UNIQUE_FEAT_TYPE;
                $name = $utg;
-            } 
+            }
             else {
                $type = $NONUNIQUE_FEAT_TYPE;
                if (exists $nu_unitig_count{$utg}) {
                     $nu_unitig_count{$utg}++;
-               } 
+               }
                else {
                     $nu_unitig_count{$utg} = 0;
                }
                $name = create_name($nu_unitig_count{$utg},$utg);
             }
             my $unitig_start = $ustart;
-            my $unitig_end = $uend; 
+            my $unitig_end = $uend;
             my $ungapped_unitig_start = calculateUngappedPos($contig_data, $unitig_start);
             my $ungapped_unitig_end = calculateUngappedPos($contig_data, $unitig_end);
             my $id = "";
@@ -1210,7 +1210,7 @@ sub outputFeatures {
             my $method = $PROGRAM;
             my $assignby = $ENV{'USER'};
             my $comment = "CA_UNITIG ID: $utg";
-         
+
             print $feat_fh "    <Feature Id=\"$id\" Type=\"$type\" Class=\"$class\" Name=\"$uname\" ".
 		           "Method=\"$method\" Assignby=\"$assignby\">\n";
             print $feat_fh "      <Location End5=\"$ungapped_unitig_start\" ".
@@ -1289,7 +1289,7 @@ sub generateUnitigReport($$) {
     my %unitig_hash = ();
     my $unitig_fh = new IO::File ">$unitigname" or
         $tf->bail("Cannot open \"$unitigname\": $!\n");
- 
+
     my $config_fh = new IO::File ">$unitig_config" or
        $tf->bail("Cannot open \"$unitig_config\": $!\n");
 
@@ -1321,13 +1321,13 @@ Unitig(s):
        if(defined $unitig_hash{$utg}) {
 	  $unitig_count = $unitig_hash{$utg};
           $unitig_count++;
-          $unitig_hash{$utg} = $unitig_count; 
+          $unitig_hash{$utg} = $unitig_count;
        }
        else {
           $unitig_count++;
-          $unitig_hash{$utg} = $unitig_count; 
+          $unitig_hash{$utg} = $unitig_count;
        }
-       printConfigInfo($k, $contig_len, $utg, $upos, $config_fh, 
+       printConfigInfo($k, $contig_len, $utg, $upos, $config_fh,
                        $unitig_count);
     }
 print $unitig_fh qq~
@@ -1390,10 +1390,10 @@ Unitigs Promoted to Contigs
 Length: $unitigs{$k}->{'len'}
 Seqs: $unitigs{$k}->{'nseq'}
 In contig(s): $in_contig
- 
+
 ~;
        }
-    } 
+    }
     print $unitig_fh qq~
 -----------------------------
 Totals
@@ -1437,7 +1437,7 @@ sub printConfigInfo {
     my $contig_type = undef;
     if (exists $scaffold_contigs{$contig}) {
        $contig_type = "CA_CONTIG";
-    } 
+    }
     else {
        $contig_type = "CA_DEGEN";
     }
@@ -1451,19 +1451,19 @@ sub printConfigInfo {
     my @aligns = split(/,/,$upos);
     my $start = $aligns[0];
     my $end =  $aligns[1];
-    
+
     print $unitig_fh "contig_alignstart=$start\n";
     print $unitig_fh "contig_alignend=$end\n";
 
     $u_gaps =~ s/\n/ /g;
     my @gaps = split(/ /,$u_gaps);
     my $gaps = join ",", @gaps;
-          
+
     print $unitig_fh "unitig_length=$ulen\n";
     print $unitig_fh "unitig_gaps=$gaps\n";
 
     if(defined $separable_unitigs{$utg}) {
-  
+
        if ($separable_unitigs{$utg} > 1) {
           my $unitig_cons = getUnitigSequence($utg, $start, $end);
           print $unitig_fh "unitig_cons=$unitig_cons\n";
@@ -1481,7 +1481,7 @@ sub printConfigInfo {
        print $unitig_fh "unitig_type=NON_SURROGATE\n";
        print $unitig_fh "unitig_promotion=promoted\n";
     }
-    print $unitig_fh "\n";       
+    print $unitig_fh "\n";
 }
 
 sub getUnitigSequence {
@@ -1537,13 +1537,13 @@ sub calculateContigInfo {
     my $max_asmr = 0;
 
     foreach $contig_line (@lines) {
-     
+
        if($contig_line =~ /$CONTIG_HEADER_PARSE/) {
           if(defined $contig_id) {
              if($max_asmr < $contig_num_bases) {
                 my $non_cov_len = $contig_num_bases - $max_asmr;
-                $contig_len -= $non_cov_len;  
-             }   
+                $contig_len -= $non_cov_len;
+             }
              my $red = 0;
              if($contig_len != 0) {
                 $red = ($total_seq_len/$contig_len);
@@ -1554,12 +1554,12 @@ sub calculateContigInfo {
              $prev_asm_right = undef;
              $contig_num_bases = undef;
              $tasm_subs{$contig_id} = $redundancy;
-          } 
+          }
           $contig_id = $1;
           $contig_len = $3;
           $contig_num_bases = $contig_len;
        }
-       elsif($contig_line =~ /$CONTIG_SEQ_HEADER_PARSE/) { 
+       elsif($contig_line =~ /$CONTIG_SEQ_HEADER_PARSE/) {
           my $seq_id = $1;
           my $offset = $2;
           $num_bases = $4;
@@ -1568,11 +1568,11 @@ sub calculateContigInfo {
           if($asm_right > $max_asmr) {
              $max_asmr = $asm_right;
           }
-              
+
           $total_seq_len += (($asm_right - $asm_left) + 1);
-      
+
           if(defined $prev_asm_right) {
-             if(($asm_left > $prev_asm_right) && 
+             if(($asm_left > $prev_asm_right) &&
                 ($prev_asm_right > $max_asmr)) {
 	        my $non_cov_len = ($asm_left - $prev_asm_right) - 1;
                 $contig_len -= $non_cov_len;
@@ -1581,20 +1581,20 @@ sub calculateContigInfo {
           else { # first sequence
 	     if($asm_left > 1) {
                 my $non_cov_len = ($asm_left - 1);
-          
-                $contig_len -= $non_cov_len;   
-             }   
+
+                $contig_len -= $non_cov_len;
+             }
           }
           $prev_asm_right = $asm_right;
       }
    }
 
    if(defined $contig_id) {
-   
+
       if($max_asmr < $contig_num_bases) {
          my $non_cov_len = $contig_num_bases - $max_asmr;
-         $contig_len -= $non_cov_len;  
-      }   
+         $contig_len -= $non_cov_len;
+      }
       my $red = 0;
       if($contig_len != 0) {
          $red = ($total_seq_len/$contig_len);
@@ -1604,7 +1604,7 @@ sub calculateContigInfo {
       $prev_asm_right = undef;
       $contig_num_bases = undef;
       $tasm_subs{$contig_id} = $redundancy;
-   }   
+   }
 }
 
 ######################################################################
@@ -1622,7 +1622,7 @@ sub processMPS {
     my $cgaps = shift || undef;
     my $id = getCAId($$sfs{mid});
     my $asms = $$sfs{pos};
-   
+
     $asms =~ /(\d+),(\d+)/;
     if (! defined $1){
         $tf->bail("Badly formed position record: $$sfs{pos}");
@@ -1882,7 +1882,7 @@ sub print_consensus {
     } elsif ($how eq "asm") {
         my $strip = $sequence;
         $strip =~ s/-//g;
-       
+
         my $quality = "";
         my $redundancy = "";
         if(defined $tasm_subs{$id}) {
@@ -1892,7 +1892,7 @@ sub print_consensus {
         for (my $i = 0; $i < length($sequence); $i++) {
            $quality .= "06";
         }
-      
+
         if ( ! $first ) {
             print $file "|\n";
         }
@@ -1915,7 +1915,7 @@ ed_date\t$date
 comment\t$type ID: $id
 frameshift\t
 ca_contig_id\t$id
-mod_date\t$date 
+mod_date\t$date
 ~;
         return;
     } elsif ($how eq "fasta") {

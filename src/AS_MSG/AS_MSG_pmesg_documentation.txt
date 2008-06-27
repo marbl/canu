@@ -35,7 +35,7 @@ API.
 This library was not written to support multiple threads.  Extension
 to multithreading will not be straightforward.
 
-3	Assembler Message Routine API 
+3	Assembler Message Routine API
 
 The prototype assembler message library is file based.  This allows
 the components of the Celera assembler to be separate tasks on
@@ -52,7 +52,7 @@ duplicating and freeing these objects.  This allows for opaque memory
 management as long as the only pointer to the specific message is
 through the generic message.
 
-typedef struct { 
+typedef struct {
   void         *m;         // A pointer to the message object
   MessageType  t;          // The message type
   int32        s;          // The message size in bytes
@@ -82,7 +82,7 @@ trashed by the next call to the routine.
 The return value is EOF if an end of file is encountered occurs,
 otherwise the return value is zero indicating success.
 
-3.3	Message Writing 
+3.3	Message Writing
 
 WriteProtoMesg_AS(FILE *fout, GenericMesg *mesg) writes a generic mesg
 to the file 'fout', returning a negative value if an error occurred.

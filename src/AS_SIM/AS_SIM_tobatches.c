@@ -1,29 +1,29 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* RCS info
- * $Id: AS_SIM_tobatches.c,v 1.6 2007-01-29 20:41:22 brianwalenz Exp $
+ * $Id: AS_SIM_tobatches.c,v 1.7 2008-06-27 06:29:21 brianwalenz Exp $
  */
 
 
-/********************************************************************** 
+/**********************************************************************
 
 1. Overview
 
@@ -33,7 +33,7 @@ fragment read message file and produces a family of files that
 represent daily batches of fragment reads.
 
 2. Memory Usage
-Minimal.  
+Minimal.
 
 3. Interface
 
@@ -59,16 +59,16 @@ This executable is incorporated into the celsim AWK script.
 
 **********************************************************************/
 
-/********************************************************************** 
+/**********************************************************************
 
 Module:
 
 tobatch [-P] [-b <batch size>] filename.ext
 
-Description: 
+Description:
 
 This executable takes a proto-msg file and chops it into batches
-of about <batch size> in number of records. 
+of about <batch size> in number of records.
 A batch may be smaller if there is not enough data.
 
 -b <batch size>: Specifies the desired batch size.  The default batch
@@ -76,7 +76,7 @@ size is 200,000 records.
 
 filename: This is the file name to be read.
 
-Assumptions: 
+Assumptions:
 
 The input file must use the protomesg package.
 
@@ -111,7 +111,7 @@ The input file must use the protomesg package.
 void outputBAT(FILE *fout, char *name,
                char *comment, CDS_UID_t eid)
 {
-  
+
   GenericMesg outMesg;
   BatchMesg batchMesg;
 
@@ -144,8 +144,8 @@ int main(int argc, char *argv[])
   GenericMesg   *pmesg;
 
   FILE *fin,*fout;
-  
-   { /* Parse the argument list using "man 3 getopt". */ 
+
+   { /* Parse the argument list using "man 3 getopt". */
      int ch,errflg=0,illegal = 0;
      optarg = NULL;
      while (!errflg && ((ch = getopt(argc, argv, "b:")) != EOF))
@@ -172,16 +172,16 @@ int main(int argc, char *argv[])
      }
      if(illegal == 1)
        {
-	 fprintf (stderr, 
-		  "USAGE: %s [-P] [-b <batch size>] <dataset_name>\n", 
+	 fprintf (stderr,
+		  "USAGE: %s [-P] [-b <batch size>] <dataset_name>\n",
 		  argv [0]);
 	 exit (EXIT_FAILURE);
        }
      /* End of command line parsing */
    }
-   
+
   fprintf(stderr,__FILE__ " "  __DATE__ " " __TIME__ "\n");
-  fprintf(stderr,"$Id: AS_SIM_tobatches.c,v 1.6 2007-01-29 20:41:22 brianwalenz Exp $\n");
+  fprintf(stderr,"$Id: AS_SIM_tobatches.c,v 1.7 2008-06-27 06:29:21 brianwalenz Exp $\n");
   fprintf(stderr,"Batch size = %d\n",batch_size);
 
   fin = fopen(File_Name,"r");
@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
   for(ifile=1;(ifile<10000)&&notdone;ifile++){
     int okay_to_chop_here =TRUE;
     strcpy(strtmp,File_Prefix);
-    sprintf(strlabel,"_%05d.",ifile); /* This width of 4 constrains us 
+    sprintf(strlabel,"_%05d.",ifile); /* This width of 4 constrains us
 					to 10000 files per dataset batch.*/
     strcat(strtmp,strlabel);
     strcat(strtmp,File_Suffix);
@@ -210,7 +210,7 @@ int main(int argc, char *argv[])
     }
     time(&tp1); fprintf(stderr,"Begin writing %s\n",strtmp);
     fflush(NULL);
-    
+
     for(imsg=0; (imsg<batch_size); imsg++) {
       if((imsg >= batch_size ) && (okay_to_chop_here)) break;
 

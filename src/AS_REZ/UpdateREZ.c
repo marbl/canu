@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -28,12 +28,12 @@
 		 log info is sent to <inputFile>.cgwlog
 
     Programmer:  S. Lonardi (stelo@cs.purdue.edu)
- 
+
        Written:  17 May 99
 
  **********************************************************************/
 
-static char fileID[] = "$Id: UpdateREZ.c,v 1.11 2007-08-18 13:13:22 brianwalenz Exp $";
+static char fileID[] = "$Id: UpdateREZ.c,v 1.12 2008-06-27 06:29:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -72,7 +72,7 @@ int Trust_Edges(ScaffoldGraphT * sgraph,
     next;
   int
     marked = 0;
-  ChunkInstanceT 
+  ChunkInstanceT
     * next_chunk;
 # if DEBUG_UPDATE > 1
   char
@@ -106,7 +106,7 @@ int Trust_Edges(ScaffoldGraphT * sgraph,
 		unique.scaff_id = next_chunk->scaffoldID;
 		unique.start = next_chunk->offsetAEnd;
 		unique.end = next_chunk->offsetBEnd;
-	
+
 		if (Is_Edge_Consistent(edge, table[cid], &unique)) {
 		  if (Is_Edge_Orientation_Consistent(edge, table[cid], &unique)) {
 			SetEdgeStatus(sgraph->RezGraph, edge, TENTATIVE_TRUSTED_EDGE_STATUS);
@@ -157,7 +157,7 @@ int Trust_Edges(ScaffoldGraphT * sgraph,
 #     endif
     }
 #   if DEBUG_UPDATE > 1
-    fprintf(stderr,"  -=> edge %d->%d (edge weight %d, new status %d, mean %f, var %f) (other end sid %d, %s) * %s", 
+    fprintf(stderr,"  -=> edge %d->%d (edge weight %d, new status %d, mean %f, var %f) (other end sid %d, %s) * %s",
 			cid,
 			next,
 			edge->edgesContributing,
@@ -189,10 +189,10 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
   // RebuildSEdges is TRUE then we will rebuild SEdges. if the flag
   // ChiSquare is TRUE then we will compute the ChiSquare test at
   // each scaffold. returns the number of inserted chunks
-  // if scaffId is -1 we fill in all scaffolds, otherwise the scaffold 
+  // if scaffId is -1 we fill in all scaffolds, otherwise the scaffold
   // with number scaffId
   // noRecompute is TRUE placing surrogates (walking/stones) and FALSE for placing rocks
-  // copyAllOverlaps is FALSE for walking, TRUE for stones 
+  // copyAllOverlaps is FALSE for walking, TRUE for stones
 
   int
     scaff_id,
@@ -207,18 +207,18 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
     * fc;
   CIScaffoldT
     *scaffold;
-  
+
 #if UPDATE_PARANOID_CHECKING > 0
   CIScaffoldTIterator  CIs;
 #endif
-  
+
 #if 0
   RecomputeOffsetsStatus  res;
 #endif
-  
+
   Gap_Chunk_t
     * * table = (Gap_Chunk_t * *)safe_calloc(num_chunks, sizeof(Gap_Chunk_t *));
-  ChunkInstanceT 
+  ChunkInstanceT
     * chunk;
 
 # if DEBUG_UPDATE > 1
@@ -302,7 +302,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
       *internalScaffold;
     CIScaffoldTIterator
       internalChunks;
-    ChunkInstanceT 
+    ChunkInstanceT
       *internalChunk;
     //
     // get the scaffold
@@ -353,22 +353,22 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 	  //
 	  // loop over the chunks that are slated to go in this gap
 	  //
-      for  (k = 0;  k < fc->num_chunks;  k++) 
+      for  (k = 0;  k < fc->num_chunks;  k++)
       {
         int keep = FALSE;
         int l;
         int chunkScaffID;
         CIScaffoldT  * chunkScaffold;
-        
+
         if  (! fc -> chunk [k] . keep)
           continue;
-        
+
         chunkScaffID
           = GetGraphNode (ScaffoldGraph -> RezGraph,
                           fc -> chunk [k] . chunk_id) -> scaffoldID;
         chunkScaffold = GetCIScaffoldT (sgraph -> CIScaffolds, chunkScaffID);
         // scaffold the current chunk is in. Has ID chunkScaffID
-        
+
         /* scaffold ID must be different */
 #if DEBUG_UPDATE > 1
         fprintf(stderr,"chunk %d, scaff_id = %d chunkScaffID = %d \n",fc->chunk[k].chunk_id,scaff_id,chunkScaffID);
@@ -388,11 +388,11 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
           while((internalChunk = NextCIScaffoldTIterator(&internalChunks)) != NULL)
           {
 #if DEBUG_UPDATE > 1
-            fprintf(stderr,"chunk id = %d, internalChunkID %d \n",fc->chunk[k].chunk_id,internalChunk->id);  
+            fprintf(stderr,"chunk id = %d, internalChunkID %d \n",fc->chunk[k].chunk_id,internalChunk->id);
 #endif
             keep = FALSE;
             // see if the this chunk from "chunkScaffold" is among the chunks slated for this gap
-            for  (l=0;  l<fc->num_chunks; l++) 
+            for  (l=0;  l<fc->num_chunks; l++)
               if( fc->chunk[l].chunk_id == internalChunk->id )
                 keep = TRUE;
             /* one chunk was not in the fc so we do not keep any chunk in the
@@ -400,12 +400,12 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
             if( keep == FALSE )
               break;
           }
-          
+
           // now loop through the chunks slated for this gap and mark the ones from chunkScaffold
           // according to whether or not chunkScaffold is going to be absorbed
-          for  (l=0;  l<fc->num_chunks; l++) 
-          { 
-            ChunkInstanceT *ci = GetGraphNode(ScaffoldGraph->RezGraph, fc->chunk[l].chunk_id);	
+          for  (l=0;  l<fc->num_chunks; l++)
+          {
+            ChunkInstanceT *ci = GetGraphNode(ScaffoldGraph->RezGraph, fc->chunk[l].chunk_id);
 #if DEBUG_UPDATE > 1
             fprintf(stderr,"ci->scaffoldID = %d\n",ci->scaffoldID);
 #endif
@@ -419,7 +419,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
                 RemoveCIFromScaffold(ScaffoldGraph,chunkScaffold,ci, TRUE);
                 fc->chunk[l].keep = TRUE;
                 fc->chunk[l].split = FALSE;
-                
+
               }
               else
               {
@@ -432,7 +432,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
           }
           if( keep )
           {
-            chunkScaffold->flags.bits.isDead = TRUE;  
+            chunkScaffold->flags.bits.isDead = TRUE;
 # if DEBUG_GAP_WALKER > -1
             fprintf (stderr,
                      "GW:  Killed Scaffold %d and inserted its contigs into Scaffold %d\n",
@@ -448,8 +448,8 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 #if DEBUG_UPDATE > 1
 		fprintf(stderr,"Chunk Scaff ID = %d, scaff_id= %d \n",GetGraphNode(ScaffoldGraph->RezGraph, fc->chunk[k].chunk_id)->scaffoldID, scaff_id);
 #endif
- 
-		if( GetGraphNode(ScaffoldGraph->RezGraph, fc->chunk[k].chunk_id)->scaffoldID == scaff_id ) 
+
+		if( GetGraphNode(ScaffoldGraph->RezGraph, fc->chunk[k].chunk_id)->scaffoldID == scaff_id )
 		  fc->chunk[k].keep = FALSE;
 
 #       if DEBUG_UPDATE > 1
@@ -464,13 +464,13 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 				fc->chunk[k].keep ? "to keep" : "not to keep",
 				fc->chunk[k].split ? "to split" : "not to split");
 #       endif
-	
+
 
 		//
-		// if the bit keep is set AND the chunk is not the from or destination chunk  
+		// if the bit keep is set AND the chunk is not the from or destination chunk
 		// then we try to insert the CI
 		//
-		//	if( GetGraphNode(ScaffoldGraph->RezGraph, fc->chunk[k].chunk_id)->scaffoldID != NULLINDEX ) 
+		//	if( GetGraphNode(ScaffoldGraph->RezGraph, fc->chunk[k].chunk_id)->scaffoldID != NULLINDEX )
 		//	  fprintf(stderr,"*** Skipping chunk already in Scaffold\n");
 		//	else
 		if (fc->chunk[k].keep )
@@ -486,14 +486,14 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 #         endif
 #         endif
 
-	 
+
 		  // mark the edges of this chunk: if no edges are trusted,
 		  // avoid inserting this chunk
 		  //
 		  if( markTrusted )
 		  {
 			trusted_edges = Trust_Edges(sgraph, fill_chunks, table, scaff_id, cid);
-	      
+
 #         if DEBUG_UPDATE > 1
 			fprintf(stderr,
 					"-=> TOTAL marked edges for chunk %d is %d\n",
@@ -605,7 +605,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 
 			// first we split the chunk
 			splitCid = SplitUnresolvedContig(sgraph->RezGraph, cid, NULL, copyAllOverlaps);
-	      
+
 			// now we insert the surrogate into the scaffold
 			// remember that it has a different number
 			//  fprintf(stderr, "BEFORE Inserting %d \n",splitCid);
@@ -630,16 +630,16 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 							   fc->chunk[k].start, fc->chunk[k].end, TRUE, NO_CONTIGGING);
 		  }
 
-		  chunk = GetGraphNode(sgraph->RezGraph, cid);    
+		  chunk = GetGraphNode(sgraph->RezGraph, cid);
 		  assert(chunk != NULL);
-	  
+
 		  //
 		  // remember that we touched this scaffold and the
 		  // number of insertions
 		  //
 		  scaffold_modified = TRUE;
 		  inserted++;
-	  
+
 
 
 #         if DEBUG_UPDATE > 1
@@ -674,7 +674,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 							  FALSE, &CIs);
       while (chunk = NextCIScaffoldTIterator(&CIs))
 		CheckTrustedEdges(sgraph, chunk->cid);
-#     endif   
+#     endif
 
 #     if DEBUG_UPDATE > 1
       fprintf (stderr,
@@ -682,14 +682,14 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 			   scaff_id,
 			   IsScaffoldInternallyConnected(sgraph, scaffold));
 #     endif
-     
+
 #     if UPDATE_PARANOID_CHECKING > 0
       //
       // check the damage
       //
       if (IsScaffoldInternallyConnected(sgraph, scaffold) != 1)
 		fprintf(stderr, "* error: the scaffold has been disconnected\n");
-#     endif   
+#     endif
 
 #if  0   // Set to 0 for Granger's new way
       //
@@ -751,7 +751,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 			fprintf(stderr, "* error: recompute failed for unknown reasons for scaffold %d\n", scaff_id);
 			break;
 		}
-	  
+
 	  }
 #endif
 
@@ -777,8 +777,8 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 							  FALSE, &CIs);
       while (chunk = NextCIScaffoldTIterator(&CIs))
 		CheckTrustedEdges(sgraph, chunk->cid);
-#     endif   
-   
+#     endif
+
 #     if DEBUG_UPDATE > 1
       fprintf(stderr,
 			  "\n-=> After adjustement\n");

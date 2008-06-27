@@ -6,19 +6,19 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received (LICENSE.txt) a copy of the GNU General Public 
+#
+# You should have received (LICENSE.txt) a copy of the GNU General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
 #
-# $Id: tampaCompare.pl,v 1.4 2005-12-16 22:12:38 catmandew Exp $
+# $Id: tampaCompare.pl,v 1.5 2008-06-27 06:29:21 brianwalenz Exp $
 #
 
 # Program to compare tampa output files
@@ -74,7 +74,7 @@ use strict;
 use FileHandle;
 use Getopt::Long;
 
-my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.4 $/ )[1]. ")";
+my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.5 $/ )[1]. ")";
 my $MY_APPLICATION = "tampaCompare";
 
 my $HELPTEXT = qq~
@@ -85,14 +85,14 @@ Compare two sets of TAMPA output files
                              ...
 
     -d refDir        The directory with the 'reference' genome
-  
+
     -a refAssembly   The 'reference' assembly name prefix
                         These two files must exist:
                            refDir/refAssembly.intra.summary.tampa
                            refDir/refAssembly.inter.summary.tampa
 
     -d queryDir1        The directory with the first 'query' genome
-  
+
     -a queryAssembly1   The first 'query' assembly name prefix
                         These two files must exist:
                            queryDir1/queryAssembly1.intra.summary.tampa
@@ -104,7 +104,7 @@ Compare two sets of TAMPA output files
 
     options:
       -h               Print help.
-  
+
       -v <level>       Set verbosity to level.
 
 $MY_VERSION
@@ -135,7 +135,7 @@ if($helpRequested)
   exit 0;
 }
 
-# at least 2 assemblies and 
+# at least 2 assemblies and
 if($#dirs < 1 || $#dirs != $#assemblies)
 {
   print STDERR "Please specify two or more directories & assembly names\n\n";
@@ -204,7 +204,7 @@ for(my $i = 1; $i <= $#dirs; $i++)
          $dirs[0], $assemblies[$0]);
   printf("Query Directory and Assembly:     %s\t%s\n",
          $dirs[$i], $assemblies[$i]);
-  
+
   # loop over intra & inter
   for(my $j = 0; $j <= $#LTYPES; $j++)
   {
@@ -232,7 +232,7 @@ for(my $i = 1; $i <= $#dirs; $i++)
         {
           $pctDelta = 100 * $delta / $rFields[$j][$interest[$j]{$foi}];
         }
-        
+
         printf("%s\t%d\t%d\t%.2f\t%.2f\n",
                $foi,
                $rFields[$j][$interest[$j]{$foi}],
@@ -262,7 +262,7 @@ sub GetTAMPATotals($$$)
   while(<$ifh>)
   {
     s/[\n\r\cZ]//g;
-    
+
     @fields = split "\t";
     last if($fields[0] eq "Totals");
   }

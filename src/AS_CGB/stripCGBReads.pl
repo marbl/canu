@@ -55,7 +55,7 @@ while (my $rec = getRecord(\*STDIN))
           {
             my ($fid, $ff, $rrecs) = parseRecord($f);
             next if $ff->{mid} eq $mid;
-            
+
             if ($ff->{con} eq $mid)
             {
               print STDERR "Read $ff->{mid} was contained by $mid, repointing\n";
@@ -67,7 +67,7 @@ while (my $rec = getRecord(\*STDIN))
 
             $rec .= sprintf("{IMP\ntyp:%s\nmid:%s\ncon:%s\npos:%s\ndln:%s\ndel:\n}\n",
                             $ffields->{typ}, $ff->{mid}, $ff->{con}, $ff->{pos}, $ff->{dln}, $ff->{del});
-            
+
           }
 
           $rec .= "}\n";

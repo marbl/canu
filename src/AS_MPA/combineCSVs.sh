@@ -2,27 +2,27 @@
 #
 ###########################################################################
 #
-# This file is part of Celera Assembler, a software program that 
+# This file is part of Celera Assembler, a software program that
 # assembles whole-genome shotgun reads into contigs and scaffolds.
 # Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received (LICENSE.txt) a copy of the GNU General Public 
+#
+# You should have received (LICENSE.txt) a copy of the GNU General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
 #
-# $Id: combineCSVs.sh,v 1.5 2005-12-16 22:13:07 catmandew Exp $
+# $Id: combineCSVs.sh,v 1.6 2008-06-27 06:29:17 brianwalenz Exp $
 #
 
 
@@ -52,9 +52,9 @@ function PopulateWorkingFile
 function DoRaw
 {
   PopulateWorkingFile ${1} intraChromosome
-  
+
   gawk '{printf("%d ", $1);for(i=3;i<=NF;i+=7){printf(", %d ", $i)}printf("\n")}' tempWorking.txt > ALL_${1}Raw.csv
-  
+
   # do unmapped ${1} Raw for Celera assemblies
   rm tempWorking.txt
   for assembly in "${CeleraAssemblies[@]}"; do
@@ -71,9 +71,9 @@ function DoRaw
 function DoConfirmed
 {
   PopulateWorkingFile ${1} intraChromosome
-  
+
   gawk '{printf("%d ", $1);for(i=5;i<=NF;i+=7){printf(", %d ", $i)}printf("\n")}' tempWorking.txt > ALL_${1}Confirmed.csv
-  
+
   # do unmapped ${1} Confirmed for Celera assemblies
   rm tempWorking.txt
   for assembly in "${CeleraAssemblies[@]}"; do
@@ -90,9 +90,9 @@ function DoConfirmed
 function DoConfirmedTranspositions
 {
   PopulateWorkingFile transposition intraChromosome
-  
+
   gawk '{printf("%d ", $1);for(i=5;i<=NF;i+=6){printf(", %d ", $i)}printf("\n")}' tempWorking.txt > ALL_${1}Confirmed.csv
-  
+
   # do unmapped ${1} Confirmed for Celera assemblies
   rm tempWorking.txt
   for assembly in "${CeleraAssemblies[@]}"; do
@@ -199,7 +199,7 @@ for assembly in "${AllAssemblies[@]}"; do
   echo -n ", ${assembly} " >> ${ttFile}
 done
 echo "" >> ${ttFile}
-  
+
 
 ######################################################################
 # satisfied: two columns - chrom & count

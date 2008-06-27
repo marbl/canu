@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ChunkOverlap_CGW.h,v 1.8 2007-08-18 11:42:07 brianwalenz Exp $	 */
+/* 	$Id: ChunkOverlap_CGW.h,v 1.9 2008-06-27 06:29:14 brianwalenz Exp $	 */
 
 /* ChunkOverlap_CGW provides tools for invoking Gene's dpalign tool to compute
    overlaps between chunks.  Such overlaps are first 'collected' and then 'computed'.
@@ -32,7 +32,7 @@
    then the overlap is stored with the lower numbered chunk first
    if(orientation is antinormal -- BA_BA)
    then the overlap is stored as an normal overlap with the chunks reversed
-	    
+
    The idea of the collection phase, is to determine the maximal overlap range between
    two chunks that is worth computing.  So, during the construction of the raw
    mate edges for the extended chunk graph, any mate link that implies a possible overlap is
@@ -44,7 +44,7 @@
    an option, these overlap edges can also be added to the extended chunk graph.  The implied
    overlaps that are detected are thus added to the set of raw edge mates prior to merging.
 
-   Once the extended chunk graph has been merged, we look for potential overlaps between 
+   Once the extended chunk graph has been merged, we look for potential overlaps between
    unique chunks that are implied by the confirmed edges are checked.  These overlaps are NOT
    added tot he extended chunk graph, but are simply stored in the database for later
    retrieval in the scaffold construction code.
@@ -62,15 +62,15 @@
    computation, and which function computed the quality value.
    Whenever a new method for computing the quality of an overlap should be tested,
    one should augment ChunkOverlapCheckT by the appropriate bit and add a value
-   to the enum QualityFuncsT. 
+   to the enum QualityFuncsT.
 
    The function LookupQualityOverlap takes the same arguments as LookupOverlap
-   with an additional argument for the quality function and the quality value. 
+   with an additional argument for the quality function and the quality value.
    It first looks up the overlap
    in the hash table. If it has the appropriate quality bit set the quality is returned.
    If not, the quality is computed using the appropriate quality function and stored
    in the hash table. In addition, the appropriate bit is set indicating that computation.
-   
+
 
 */
 

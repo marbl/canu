@@ -44,7 +44,7 @@ $CA_BIN/meryl -m $KMER -n $NMER -K 10 \
    > meryl.out \
    2> meryl.err
 
-#> Overlapper, first run  
+#> Overlapper, first run
 
 mkdir -p $WORKDIR/0-overlap && cd $WORKDIR/0-overlap
 $CA_BIN/lastfraginstore $WORKDIR/$PREFIX.frgStore  >lastfraginstore.out
@@ -53,12 +53,12 @@ HIFRAGID=`sed 's/Last frag in store is iid = //'  < lastfraginstore.out `
 $CA_BIN/overlap -P -G -M $MEMORY -t 2 -h 1-$HIFRAGID -r 0-$HIFRAGID \
   -k $WORKDIR/0-preoverlap/$PREFIX.${KMER}mers${NMER}.fasta \
   -o $PREFIX.ovl \
-  $WORKDIR/$PREFIX.frgStore  
+  $WORKDIR/$PREFIX.frgStore
 
 #> Convert overlaps from text to binary
 
 cd $WORKDIR/0-overlap
-$CA_BIN/overlap-convert -b $PREFIX.ovl $PREFIX.ovb 
+$CA_BIN/overlap-convert -b $PREFIX.ovl $PREFIX.ovb
 
 #> Sort overlaps.
 
@@ -91,18 +91,18 @@ $CA_BIN/chimera  \
   -frg $WORKDIR/$PREFIX.frgStore  \
   -summary $PREFIX.chimera.summary  \
   -report $PREFIX.chimera.report  \
-  < $PREFIX.ovl.sorted  2> $PREFIX.chimera.err 
+  < $PREFIX.ovl.sorted  2> $PREFIX.chimera.err
 
 #> Delete links for deleted frags
 
 cd $WORKDIR/0-trim
 $CA_BIN/deleteLinks  \
-  -f $WORKDIR/$PREFIX.frgStore \ 
+  -f $WORKDIR/$PREFIX.frgStore \
   -g $WORKDIR/$PREFIX.gkpStore  \
   > $PREFIX.deletelinks.out 2>&1
 
 
-#> Overlapper, second run  
+#> Overlapper, second run
 
 mkdir -p $WORKDIR/1-overlap && cd $WORKDIR/1-overlap
 $CA_BIN/lastfraginstore $WORKDIR/$PREFIX.frgStore  >lastfraginstore.out
@@ -111,14 +111,14 @@ HIFRAGID=`sed 's/Last frag in store is iid = //'  < lastfraginstore.out `
 $CA_BIN/overlap -P -M $MEMORY -t 2 -h 1-$HIFRAGID -r 0-$HIFRAGID \
   -k $WORKDIR/0-preoverlap/$PREFIX.${KMER}mers${NMER}.fasta \
   -o $PREFIX.ovl \
-  $WORKDIR/$PREFIX.frgStore  
+  $WORKDIR/$PREFIX.frgStore
 
 #> Create overlap store
 
 cd $WORKDIR/1-overlap
 $CA_BIN/grow-olap-store -cfS -M 1024 \
   -o $WORKDIR/$PREFIX.ovlStore   $PREFIX.ovl  \
-  > grow-olap-store.out 2> grow-olap-store.err 
+  > grow-olap-store.out 2> grow-olap-store.err
 
 #> Verifying overlap store exists (fails when there are no overlaps)
 OVL_EXIST=`ls $WORKDIR/$PREFIX.ovlStore | wc -l`
@@ -127,22 +127,22 @@ if [ $OVL_EXIST == 0 ]; then \
   CONTINUE=false; \
 fi
 $CONTINUE
-#> Fragment correction  
+#> Fragment correction
 
 mkdir -p $WORKDIR/2-frgcorr && cd $WORKDIR/2-frgcorr
 $CA_BIN/correct-frags -t 2 \
   -S $WORKDIR/$PREFIX.ovlStore -o $PREFIX.frgcorr  \
-  $WORKDIR/$PREFIX.frgStore  1  $HIFRAGID  > correct-frags.err 2>&1 
+  $WORKDIR/$PREFIX.frgStore  1  $HIFRAGID  > correct-frags.err 2>&1
 $CA_BIN/cat-corrects  -o $PREFIX.corr  \
   $PREFIX.frgcorr > cat-corrects.out 2> cat-corrects.err
 
 #> Overlap error correction
 
-mkdir -p $WORKDIR/3-ovlcorr && cd $WORKDIR/3-ovlcorr 
+mkdir -p $WORKDIR/3-ovlcorr && cd $WORKDIR/3-ovlcorr
 $CA_BIN/correct-olaps \
   -S $WORKDIR/$PREFIX.ovlStore   -e $PREFIX.erate \
   $WORKDIR/$PREFIX.frgStore  $WORKDIR/2-frgcorr/$PREFIX.corr  \
-  1  $HIFRAGID  > correct-olaps.err 2>&1 
+  1  $HIFRAGID  > correct-olaps.err 2>&1
 # In single-partition mode, move file to simulate cat-erates
 cd $WORKDIR/3-ovlcorr && mv -f $PREFIX.erate $PREFIX.erates
 
@@ -169,11 +169,11 @@ ls -1 *.ofg > $PREFIX.ofgList
 # Note Brian uses -B 75000. Code supports B=0 => single partition.
 # The -e 15 parameter equates to 1.5% assumed sequencing error.
 # This generates $PREFIX.cgb file.
-cd $WORKDIR/4-unitigger 
+cd $WORKDIR/4-unitigger
 $CA_BIN/unitigger -c -P -A 1 -d 1 -x 1 -z 10 -j 5 $GENOMELENGTH_L -U $BUBBLE -e $ERATE -f \
   -F $WORKDIR/$PREFIX.frgStore  -o $PREFIX.fgbStore  \
   -L $PREFIX.ofgList  -I $WORKDIR/$PREFIX.ovlStore  \
-  > unitigger.out  2> unitigger.err 
+  > unitigger.out  2> unitigger.err
 cp $WORKDIR/4-unitigger/$PREFIX.cga.0 $WORKDIR/.
 
 #> Consensus on unitigs
@@ -196,14 +196,14 @@ mkdir -p $WORKDIR/6-distances && cd $WORKDIR/6-distances
 # The -o creates $PROJECT.SeqStore directory.
 $CA_BIN/cgw  -c -j $ASTATLOW -k $ASTATHIGH -r 5 -s 2 -w 0 -T -P    \
   -f $WORKDIR/$PREFIX.frgStore  -g $WORKDIR/$PREFIX.gkpStore  \
-  -o $PREFIX  $WORKDIR/$PREFIX.cgi  > cgw.out 2>&1 
+  -o $PREFIX  $WORKDIR/$PREFIX.cgi  > cgw.out 2>&1
 # SeqStore needed by subsequent cgw calls. Move it up one level.
 mv -f $PREFIX.SeqStore $WORKDIR
 ln -s $WORKDIR/$PREFIX.SeqStore .
 
 # Begin : determine max checkpoint number
 ls -1 $PREFIX.ckp.*   > pipe01
-sed 's/.ckp./ /'      < pipe01 > pipe02 
+sed 's/.ckp./ /'      < pipe01 > pipe02
 awk '{print $2 ;}'    < pipe02 > pipe03
 sort -nr              < pipe03 > pipe04
 MAXCHKPT=`head -n 1 pipe04`
@@ -228,7 +228,7 @@ $CA_BIN/gatekeeper  -X -Q -C -P \
 
 #> Initial scaffolds
 
-mkdir -p $WORKDIR/7-0-scaffold && cd $WORKDIR/7-0-scaffold 
+mkdir -p $WORKDIR/7-0-scaffold && cd $WORKDIR/7-0-scaffold
 ln -s $WORKDIR/$PREFIX.SeqStore .
 $CA_BIN/cgw  -c -j $ASTATLOW -k $ASTATHIGH -r 5 -s 0 -w 0 -T -P  \
   -f $WORKDIR/$PREFIX.frgStore  -g $WORKDIR/$PREFIX.gkpStore  \
@@ -237,7 +237,7 @@ $CA_BIN/cgw  -c -j $ASTATLOW -k $ASTATHIGH -r 5 -s 0 -w 0 -T -P  \
 
 # Begin : determine max checkpoint number
 ls -1 $PREFIX.ckp.*   > pipe01
-sed 's/.ckp./ /'      < pipe01 > pipe02 
+sed 's/.ckp./ /'      < pipe01 > pipe02
 awk '{print $2 ;}'    < pipe02 > pipe03
 sort -nr              < pipe03 > pipe04
 MAXCHKPT=`head -n 1 pipe04`
@@ -259,7 +259,7 @@ MAXCHKPT=`ls -1 $PREFIX.ckp.* | sed 's/.ckp./ /' | awk '{print $2 ;}' | sort -nr
 
 #> Secondary scaffolds
 
-mkdir -p $WORKDIR/7-2-scaffold && cd $WORKDIR/7-2-scaffold 
+mkdir -p $WORKDIR/7-2-scaffold && cd $WORKDIR/7-2-scaffold
 ln -s $WORKDIR/$PREFIX.SeqStore .
 ln -s $WORKDIR/7-1-extend/$PREFIX.ckp.$MAXCHKPT .
 # The -R option says to start from previous checkpoint.
@@ -271,7 +271,7 @@ $CA_BIN/cgw -y -N 3 -c -j $ASTATLOW -k $ASTATHIGH -r 5 -s 0 -w 0 -T -P   \
 
 # Begin : determine max checkpoint number
 ls -1 $PREFIX.ckp.*   > pipe01
-sed 's/.ckp./ /'      < pipe01 > pipe02 
+sed 's/.ckp./ /'      < pipe01 > pipe02
 awk '{print $2 ;}'    < pipe02 > pipe03
 sort -nr              < pipe03 > pipe04
 MAXCHKPT=`head -n 1 pipe04`
@@ -292,7 +292,7 @@ $CA_BIN/extendClearRanges  -B  -c $PREFIX  -n $MAXCHKPT     \
 
 # Begin : determine max checkpoint number
 ls -1 $PREFIX.ckp.*   > pipe01
-sed 's/.ckp./ /'      < pipe01 > pipe02 
+sed 's/.ckp./ /'      < pipe01 > pipe02
 awk '{print $2 ;}'    < pipe02 > pipe03
 sort -nr              < pipe03 > pipe04
 MAXCHKPT=`head -n 1 pipe04`
@@ -301,7 +301,7 @@ rm     pipe01 pipe02 pipe03 pipe04
 
 #> Tertiary scaffolds
 
-mkdir -p $WORKDIR/7-4-scaffold && cd $WORKDIR/7-4-scaffold 
+mkdir -p $WORKDIR/7-4-scaffold && cd $WORKDIR/7-4-scaffold
 ln -s $WORKDIR/$PREFIX.SeqStore .
 ln -s $WORKDIR/7-3-extend/$PREFIX.ckp.$MAXCHKPT .
 # The -R option says to start from previous checkpoint.
@@ -313,7 +313,7 @@ $CA_BIN/cgw -y -N 3 -c -j $ASTATLOW -k $ASTATHIGH -r 5 -s 2 -w 0 -T -P   \
 
 # Begin : determine max checkpoint number
 ls -1 $PREFIX.ckp.*   > pipe01
-sed 's/.ckp./ /'      < pipe01 > pipe02 
+sed 's/.ckp./ /'      < pipe01 > pipe02
 awk '{print $2 ;}'    < pipe02 > pipe03
 sort -nr              < pipe03 > pipe04
 MAXCHKPT=`head -n 1 pipe04`
@@ -322,7 +322,7 @@ rm     pipe01 pipe02 pipe03 pipe04
 
 #> Resolve surrogates
 
-mkdir -p $WORKDIR/7-5-resolve && cd $WORKDIR/7-5-resolve 
+mkdir -p $WORKDIR/7-5-resolve && cd $WORKDIR/7-5-resolve
 ln -s $WORKDIR/$PREFIX.SeqStore .
 ln -s $WORKDIR/7-4-scaffold/$PREFIX.ckp.$MAXCHKPT .
 $CA_BIN/resolveSurrogates   -c $PREFIX  -n $MAXCHKPT  -1   \
@@ -331,7 +331,7 @@ $CA_BIN/resolveSurrogates   -c $PREFIX  -n $MAXCHKPT  -1   \
 
 # Begin : determine max checkpoint number
 ls -1 $PREFIX.ckp.*   > pipe01
-sed 's/.ckp./ /'      < pipe01 > pipe02 
+sed 's/.ckp./ /'      < pipe01 > pipe02
 awk '{print $2 ;}'    < pipe02 > pipe03
 sort -nr              < pipe03 > pipe04
 MAXCHKPT=`head -n 1 pipe04`
@@ -340,7 +340,7 @@ rm     pipe01 pipe02 pipe03 pipe04
 
 #> Final scaffolds
 
-mkdir -p $WORKDIR/7-6-scaffold && cd $WORKDIR/7-6-scaffold 
+mkdir -p $WORKDIR/7-6-scaffold && cd $WORKDIR/7-6-scaffold
 ln -s $WORKDIR/$PREFIX.SeqStore .
 ln -s $WORKDIR/7-5-resolve/$PREFIX.ckp.$MAXCHKPT .
 # We use -N 14 for the very last cgw run.
@@ -351,7 +351,7 @@ $CA_BIN/cgw -y -N 14 -c -j $ASTATLOW -k $ASTATHIGH -r 5 -s 2 -w 0 -T -P   \
 
 # Begin : determine max checkpoint number
 ls -1 $PREFIX.ckp.*   > pipe01
-sed 's/.ckp./ /'      < pipe01 > pipe02 
+sed 's/.ckp./ /'      < pipe01 > pipe02
 awk '{print $2 ;}'    < pipe02 > pipe03
 sort -nr              < pipe03 > pipe04
 MAXCHKPT=`head -n 1 pipe04`
@@ -360,17 +360,17 @@ rm     pipe01 pipe02 pipe03 pipe04
 
 #> Consensus on scaffolds
 
-mkdir -p $WORKDIR/8-consensus && cd $WORKDIR/8-consensus 
+mkdir -p $WORKDIR/8-consensus && cd $WORKDIR/8-consensus
 ln -s $WORKDIR/7-6-scaffold/$PREFIX.cgw_contigs .
 # Brian uses -p and -S and -m to specify partition, but we do not.
 $CA_BIN/consensus \
   -P -s $WORKDIR/$PREFIX.SeqStore  -V $MAXCHKPT    \
   -o $PREFIX.cns_contigs  $WORKDIR/$PREFIX.frgStore   \
-  $PREFIX.cgw_contigs > consensus.err 2>&1 
+  $PREFIX.cgw_contigs > consensus.err 2>&1
 
 #> Terminator
 
-mkdir -p $WORKDIR/9-terminator && cd $WORKDIR/9-terminator 
+mkdir -p $WORKDIR/9-terminator && cd $WORKDIR/9-terminator
 assert_exists $WORKDIR/7-6-scaffold/$PREFIX.cgw  \
     $WORKDIR/8-consensus/$PREFIX.cns_contigs   \
     $WORKDIR/7-6-scaffold/$PREFIX.cgw_scaffolds > /dev/null
@@ -379,7 +379,7 @@ cat $WORKDIR/7-6-scaffold/$PREFIX.cgw  \
     $WORKDIR/7-6-scaffold/$PREFIX.cgw_scaffolds  \
   | $CA_BIN/terminator -P $EUIDSERVICE \
   -f $WORKDIR/$PREFIX.frgStore  -g $WORKDIR/$PREFIX.gkpStore  \
-  -o $PREFIX.asm  -m $PREFIX.map  > terminator.err 2>&1 
+  -o $PREFIX.asm  -m $PREFIX.map  > terminator.err 2>&1
 cd $WORKDIR
 ln -s 9-terminator/$PREFIX.asm .
 
@@ -398,7 +398,7 @@ cd $WORKDIR
 $CA_BIN/dumpSingletons  \
   -f $WORKDIR/$PREFIX.frgStore  -g $WORKDIR/$PREFIX.gkpStore   \
   -c $WORKDIR/7-6-scaffold/$PREFIX -n $MAXCHKPT -U -S  \
-  > $PREFIX.singleton.fasta   2> dumpSingletons.err 
+  > $PREFIX.singleton.fasta   2> dumpSingletons.err
 
 #> Generate contig FASTA files (includes degenerates)
 cd $WORKDIR

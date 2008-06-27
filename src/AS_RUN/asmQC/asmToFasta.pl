@@ -129,7 +129,7 @@ sub startXML{
            eval "$match";
            $species =~ s/\s+$//;
            $defLine = " [organism=$species] [strain=$strain] [gcode=$gcode]";
-                                                    
+
            $p->setHandlers(Start => undef);
        }
    }
@@ -142,7 +142,7 @@ while (my $record = getCARecord(\*STDIN)){
     my ($rec, $fields, $recs) = parseCARecord($record);
     if ($rec eq "CCO"){
         my $id = getCAId($$fields{acc});
-        
+
         my $len = $$fields{len};
         my $seq = $$fields{cns};
         my $qlt = $$fields{qlt};
@@ -178,7 +178,7 @@ while (my $record = getCARecord(\*STDIN)){
         my $scfId = $1;
         outputContigs($fields->{ctg},$fields->{ctg},0,'N',$scfId);
     }
-        
+
 }
 # don't include unplaced contigs
 #for my $id (keys %contigs) {

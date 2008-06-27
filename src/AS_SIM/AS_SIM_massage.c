@@ -1,26 +1,26 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*
    Module:      FASTA to 3-code CA Messages Converter.
-   Description: 
+   Description:
        Massage is a small filter (i.e. reads stdin and produces stdout).
 
        The input is expected to be the output of a call to "frag" with
@@ -67,8 +67,8 @@ static char *ProgName;  /* Program name 'poly' */
 
 static int Uniform = FALSE;
 static int BacEnds = 0;
-static int UBacs = 0;   
-static int LBacs = 0;   
+static int UBacs = 0;
+static int LBacs = 0;
 static int shreddedFBacs = 0;
 static int Bactigs = 0;
 static int fullBacs = 0;
@@ -174,7 +174,7 @@ void copyQuality(int FragLen, char *quality){
 }
 
 void getFastaQuality(FILE *fin, int length, char *quality)
-{ 
+{
   char *line = quality;
   int c;
   int got=0;
@@ -184,7 +184,7 @@ void getFastaQuality(FILE *fin, int length, char *quality)
   } else {
 	ungetc(c,fin);
   }
-  while (got<length) { 
+  while (got<length) {
     c = toupper(fgetc(fin));
     *line = c;
     if(*line == ' ') {
@@ -201,33 +201,33 @@ void getFastaQuality(FILE *fin, int length, char *quality)
 }
 
 int getBacLengths(FILE *bacin)
-{ 
+{
   int icnt, cntBactigs;
   char buffer[256];
-  
+
   fgets(buffer, 256, bacin);
   cntBactigs = atoi(buffer);
-  
+
   // fprintf( stderr, "cntBactigs = %d\n", cntBactigs);
-  
+
   bacLengths = (InternalBactigMesg *) malloc (cntBactigs * sizeof(InternalBactigMesg));
-  if (bacLengths == NULL) 
+  if (bacLengths == NULL)
   {
 	fprintf( stderr, "Failed to malloc space for bacLengths\n");
 	exit(1);
   }
-  
+
   for (icnt = 0; icnt < cntBactigs; icnt++)
   {
 	CDS_UID_t accession;
 	int length, numMatched;
-	
-	fgets(buffer, 256, bacin);	
+
+	fgets(buffer, 256, bacin);
 	numMatched = sscanf(buffer, F_UID " %d", &accession, &length);
 	assert(numMatched == 2);
 	bacLengths[icnt].eaccession = accession;
 	bacLengths[icnt].length = length;
-  }  
+  }
   return cntBactigs;
 }
 
@@ -246,7 +246,7 @@ void mate_link(CDS_UID_t frg1, CDS_UID_t frg2){
 
 void outputBAC(int type, CDS_UID_t distacnum, CDS_UID_t locacnum, CDS_UID_t sequence_id, int64 BacGenomeBegin, int64 BacGenomeEnd)
 {
-  
+
   GenericMesg outMesg;
   BacMesg bacMesg;
   char buffer[200];
@@ -273,7 +273,7 @@ void outputBAC(int type, CDS_UID_t distacnum, CDS_UID_t locacnum, CDS_UID_t sequ
 	sprintf(buffer, "BAC ends\n");
 	bacMesg.source = buffer;
   }
-	
+
   outMesg.m = &bacMesg;
   outMesg.t = MESG_BAC;
 
@@ -287,31 +287,31 @@ void outputBAC(int type, CDS_UID_t distacnum, CDS_UID_t locacnum, CDS_UID_t sequ
 }
 
 void output(int direct)
-{ 
+{
   if(direct == -2)
 	return;
-  
+
   fflush(stderr);
   assert(SequenceLength > 0);
-  
+
   OutFrgMesg.clear_rng.bgn = BTrim;
   OutFrgMesg.clear_rng.end = SequenceLength - ETrim;
 
   assert( OutFrgMesg.source != NULL );
   assert( OutFrgMesg.clear_rng.bgn >= 0);
   assert( OutFrgMesg.clear_rng.end <= SequenceLength);
-  
+
 #ifdef DEBUG
   fprintf(stderr,"* Output SequenceLength:%d clr:" F_COORD "," F_COORD
           " clrL:%d gen:(" F_S64 "," F_S64 ") genL:" F_S64 "\n\t%s",
-		  SequenceLength,  
+		  SequenceLength,
 		  OutFrgMesg.clear_rng.bgn, OutFrgMesg.clear_rng.end,
 		  abs(OutFrgMesg.clear_rng.bgn - OutFrgMesg.clear_rng.end),
-		  BegInterval, EndInterval, 
+		  BegInterval, EndInterval,
 		  abs(EndInterval - BegInterval),
 		  OutFrgMesg.source);
 #endif
-  
+
   if (BacEnds)
 	OutFrgMesg.type = AS_EBAC;
   else if (LBacs)
@@ -326,7 +326,7 @@ void output(int direct)
 	OutFrgMesg.type = AS_FULLBAC;
   else
 	OutFrgMesg.type = AS_READ;
-  
+
   if (qltfile == NULL ) {
 	if (LBacs || UBacs || shreddedFBacs || Bactigs || fullBacs)
 	  copyBACQuality(SequenceLength, OutFrgMesg.quality);
@@ -336,11 +336,11 @@ void output(int direct)
 	getFastaQuality(qltfile, SequenceLength, OutFrgMesg.quality);
 	assert(strlen(OutFrgMesg.sequence) == strlen(OutFrgMesg.quality));
   }
-  
+
   if(SequenceLength < 50)
 	fprintf(stderr," Fragment length is wierd: %d\n",
 			SequenceLength);
-  
+
   {
 	int i;
 	char *c;
@@ -354,7 +354,7 @@ void output(int direct)
 	}
   }
   WriteProtoMesg_AS(stdout,&OutMesg);
-  
+
   if(direct == -1){
 	mate_link(FragId -1 , FragId);
   }
@@ -368,20 +368,20 @@ void output(int direct)
 
 
 void process(void)
-{ 
+{
   int  forward = 0, length = 0;
   //char *end = NULL, *start = NULL;
   char *start = NULL;
   char buffer[INPUTMAX] = {0};
   int didOutputBAC = 0;
   int64 BacGenomeBegin = -1, BacGenomeEnd = -1;  // where the BAC actually is in the genome
-  
+
   //  FILE *test = fopen("test.out","w");
   forward = -2;  /* State variable: no record in progress */
   FalseMate = 0;
-  buffer[INPUTMAX-2] = '\n'; 
-  
-  while (fgets(buffer,INPUTMAX,stdin) != NULL){ 
+  buffer[INPUTMAX-2] = '\n';
+
+  while (fgets(buffer,INPUTMAX,stdin) != NULL){
 	//	  fprintf(test,"%s",buffer);
 	//	  fflush(test);
 	if (buffer[INPUTMAX-2] != '\n')
@@ -390,16 +390,16 @@ void process(void)
 	exit(1);
 	}
 	if (*buffer != '>')  /* sequence line, echo to output */
-	{ 
+	{
 	  int bufLength = strlen(buffer);
-	  
-	  
+
+
 	  // New and 'improved' protoio handles this differently than its predecessor
 	  // Strip newline from end of string.
 	  if(length < 50 && bufLength < 10)
 		fprintf(stderr,"* Wired line length %d read %s\n",
 				bufLength, buffer);
-	  
+
 	  if(*buffer != '\n'){
 		assert(buffer[bufLength -1] == '\n');
 		buffer[--bufLength] = '\0';
@@ -409,7 +409,7 @@ void process(void)
 	  SequenceLength = length;
 	}
 	else
-	{ 
+	{
 	  char *interval = strstr(buffer + 1,"[");
 #ifdef DEBUG
 	  fprintf(stderr,"* found a header interval = %x\n",
@@ -424,13 +424,13 @@ void process(void)
 	    int numMatched = sscanf(interval+1, F_S64 "," F_S64 "]",
 				    &b, &e);
 	    assert(numMatched ==2);
-	    
+
 	    if (LBacs)
 	      {
 		b += LBacOffset;
 		e += LBacOffset;
 	      }
-		 
+
 	    // The clear range is the the entire fragment length - a uniformly distributed
 	    // piece at either end in the range of 0-50 base pairs.
 	    // How much to trim from fragment to make clear range
@@ -438,12 +438,12 @@ void process(void)
 	    BTrim =  MAX(0,tmpB); // Trim from frag prefix
 	    tmpE= GetRand_AS(MinSuffixUnclear,MaxSuffixUnclear, Uniform); // Trim from frag suffix
 	    ETrim =  MAX(0,tmpE);
-	    
+
 	    assert(BTrim >= 0);
 	    assert(ETrim >= 0);
-	    
+
 	    assert(b < e);
-	    
+
 	    if(strstr(interval,"REVERSED")){
 	      BegInterval = e - BTrim;
 	      EndInterval = b + ETrim;
@@ -456,11 +456,11 @@ void process(void)
 	    if(strstr(interval + 1, "False")){
 	      FalseMate = 1;
 #ifdef DEBUG
-	      fprintf(stderr,"* Detected false mate \n%s\n", buffer); 
+	      fprintf(stderr,"* Detected false mate \n%s\n", buffer);
 #endif
 	    }
 	  }
-	  
+
 	  // look for bactig_id
 	  interval = strstr(buffer + 1,"bactig_id:");
 	  if (interval)
@@ -476,7 +476,7 @@ void process(void)
 		OutFrgMesg.locale_pos.bgn = 0;
 		OutFrgMesg.locale_pos.end = 0;
 	  }
-	  
+
 	  // look for locpos
 	  interval = strstr(buffer + 1,"locpos[");
 	  if (interval)
@@ -492,7 +492,7 @@ void process(void)
 		OutFrgMesg.locale_pos.bgn = 0;
 		OutFrgMesg.locale_pos.end = 0;
 	  }
-	  
+
 	  // look for genomepos
 	  interval = strstr(buffer + 1,"genomepos[");
 	  if (interval)
@@ -509,10 +509,10 @@ void process(void)
 		BacGenomeBegin = -1;
 		BacGenomeEnd = -1;
 	  }
-	  
+
 	  // New protoio handles this differently than before, we don't need the newline
 	  OutFrgMesg.entry_time = tp;
-	  
+
 	  start = buffer + 1;
 	  while (isspace(*start))
 		start += 1;
@@ -538,7 +538,7 @@ void process(void)
 			  if (!didOutputBAC)
 			  {
                             /*
-                            fprintf( stderr, "AS_UBAC: %d, DistId: " F_UID ", OutFrgMesg.elocale: " F_UID ", OutFrgMesg.eseq_id: " F_UID "\n", 
+                            fprintf( stderr, "AS_UBAC: %d, DistId: " F_UID ", OutFrgMesg.elocale: " F_UID ", OutFrgMesg.eseq_id: " F_UID "\n",
                                      AS_UBAC, DistId, OutFrgMesg.elocale, OutFrgMesg.eseq_id);
                             */
 				outputBAC( AS_UBAC, DistId, OutFrgMesg.elocale, OutFrgMesg.eseq_id, BacGenomeBegin, BacGenomeEnd);
@@ -550,7 +550,7 @@ void process(void)
 			  if (!didOutputBAC)
 			  {
                             /*
-                            fprintf( stderr, "AS_UBAC: %d, DistId: " F_UID ", OutFrgMesg.elocale: " F_UID ", OutFrgMesg.eseq_id: " F_UID "\n", 
+                            fprintf( stderr, "AS_UBAC: %d, DistId: " F_UID ", OutFrgMesg.elocale: " F_UID ", OutFrgMesg.eseq_id: " F_UID "\n",
                                      AS_UBAC, DistId, OutFrgMesg.elocale, OutFrgMesg.eseq_id);
                             */
 				outputBAC( AS_LBAC, DistId, OutFrgMesg.elocale, OutFrgMesg.eseq_id, BacGenomeBegin, BacGenomeEnd);
@@ -561,7 +561,7 @@ void process(void)
 			{
 			  if (!didOutputBAC)
 			  {
-				//fprintf( stderr, "AS_FBAC: %d, DistId: " F_UID ", OutFrgMesg.elocale: " F_UID ", OutFrgMesg.eseq_id: " F_UID "\n", 
+				//fprintf( stderr, "AS_FBAC: %d, DistId: " F_UID ", OutFrgMesg.elocale: " F_UID ", OutFrgMesg.eseq_id: " F_UID "\n",
 				//	AS_FBAC, DistId, OutFrgMesg.elocale, OutFrgMesg.eseq_id);
 				outputBAC( AS_FBAC, DistId, OutFrgMesg.elocale, OutFrgMesg.eseq_id, BacGenomeBegin, BacGenomeEnd);
 				didOutputBAC = 1;
@@ -581,15 +581,15 @@ void process(void)
 			forward = -1;  /* reverse read of pair in progress */
 			break;
 		  default:
-		  { 
+		  {
 			fprintf(stdout,"\n\t*** %s: Unparsable FASTA header\n\t\t%s\n",
 					ProgName,buffer);
 			exit(1);
 		  }
 		}
-		
-		sprintf(OutFrgMesg.source, 
-			F_UID "%c %s\n[" F_S64 "," F_S64 "]", 
+
+		sprintf(OutFrgMesg.source,
+			F_UID "%c %s\n[" F_S64 "," F_S64 "]",
 			fragID, direction, (FalseMate == 1?"False Mate":""),
                         BegInterval, EndInterval);
 		FalseMate = 0;
@@ -603,18 +603,18 @@ void process(void)
   output(forward);
   //  fclose(test);
 }
-  
+
 
 /* >>>> MAIN / TOP <<<< */
 
-int main(int argc, char *argv[]){ 
+int main(int argc, char *argv[]){
   char *end1, *end2;
   CDS_UID_t elocale = 0, eseq_id = 0, ebactig_id = 0;
   ProgName = argv[0];
-  
+
 /* Process program flags. */
 
-  { /* Parse the argument list using "man 3 getopt". */ 
+  { /* Parse the argument list using "man 3 getopt". */
 	int ch,errflg=0;
 	optarg = NULL;
 
@@ -663,10 +663,10 @@ int main(int argc, char *argv[]){
 		  elocale = STR_TO_UID(argv[optind++], &end1, 10);
 		  eseq_id = STR_TO_UID(argv[optind++], &end1, 10);
 		  fprintf(stderr,"**** Reading bactig lengths from file ****\n");
-		  if( (bacfile = fopen(optarg, "r")) == NULL ) { 
+		  if( (bacfile = fopen(optarg, "r")) == NULL ) {
 			fprintf(stderr, "Bac lengths file %s could not be opened\n", optarg);
             usage(ProgName);
-		  } 
+		  }
 		  numBactigs = getBacLengths(bacfile);
 		  fclose(bacfile);
 		  break;
@@ -677,10 +677,10 @@ int main(int argc, char *argv[]){
 		  elocale = STR_TO_UID(argv[optind++], &end1, 10);
 		  eseq_id = STR_TO_UID(argv[optind++], &end1, 10);
 		  fprintf(stderr,"**** Reading bac length from file ****\n");
-		  if( (bacfile = fopen(optarg, "r")) == NULL ) { 
+		  if( (bacfile = fopen(optarg, "r")) == NULL ) {
 			fprintf(stderr, "Bac lengths file %s could not be opened\n", optarg);
             usage(ProgName);
-		  } 
+		  }
 		  numBactigs = getBacLengths(bacfile);
 		  fclose(bacfile);
 		  break;
@@ -691,10 +691,10 @@ int main(int argc, char *argv[]){
 		  elocale = STR_TO_UID(argv[optind++], &end1, 10);
 		  eseq_id = STR_TO_UID(argv[optind++], &end1, 10);
 		  fprintf(stderr,"**** Reading bactig lengths from file ****\n");
-		  if( (bacfile = fopen(optarg, "r")) == NULL ) { 
+		  if( (bacfile = fopen(optarg, "r")) == NULL ) {
 			fprintf(stderr, "Bac lengths file %s could not be opened\n", optarg);
             usage(ProgName);
-		  } 
+		  }
 		  numBactigs = getBacLengths(bacfile);
 		  fclose(bacfile);
 		  break;
@@ -705,20 +705,20 @@ int main(int argc, char *argv[]){
 		  elocale = STR_TO_UID(argv[optind++], &end1, 10);
 		  eseq_id = STR_TO_UID(argv[optind++], &end1, 10);
 		  fprintf(stderr,"**** Reading bactig lengths from file ****\n");
-		  if( (bacfile = fopen(optarg, "r")) == NULL ) { 
+		  if( (bacfile = fopen(optarg, "r")) == NULL ) {
 			fprintf(stderr, "Bac lengths file %s could not be opened\n", optarg);
             usage(ProgName);
-		  } 
+		  }
 		  numBactigs = getBacLengths(bacfile);
 		  fclose(bacfile);
 		  break;
 
 		case 'q':
 		  fprintf(stderr,"**** Reading quality values from file ****\n");
-		  if( (qltfile = fopen(optarg,"r")) == NULL ) { 
+		  if( (qltfile = fopen(optarg,"r")) == NULL ) {
 			fprintf(stderr,"Input quality file %s could not be opened\n",optarg);
             usage(ProgName);
-		  } 
+		  }
 		  break;
 		case 'P':
 		  fprintf(stderr, "-P is depricated; the default now.\n");
@@ -761,7 +761,7 @@ int main(int argc, char *argv[]){
   assert(MinPrefixUnclear >= 0 && MinPrefixUnclear <= MaxPrefixUnclear);
   assert(MinSuffixUnclear >= 0 && MinSuffixUnclear <= MaxSuffixUnclear);
 
-  fprintf(stderr,"* Massage with DistID = " F_UID 
+  fprintf(stderr,"* Massage with DistID = " F_UID
 	  " and FragID = " F_UID " clear ranges (%d,%d) (%d,%d)\n",
 		  DistId, FragId,
 		  MinPrefixUnclear,
@@ -818,34 +818,34 @@ int main(int argc, char *argv[]){
 	OutFrgMesg.type = AS_UBAC;
 	OutFrgMesg.elocale = elocale;
 	OutFrgMesg.eseq_id = eseq_id;
-	OutFrgMesg.ebactig_id = ebactig_id;	 
+	OutFrgMesg.ebactig_id = ebactig_id;
   }
   else if (shreddedFBacs)
   {
 	OutFrgMesg.type = AS_FBAC;
 	OutFrgMesg.elocale = elocale;
 	OutFrgMesg.eseq_id = eseq_id;
-	OutFrgMesg.ebactig_id = ebactig_id;	 
+	OutFrgMesg.ebactig_id = ebactig_id;
   }
   else if (Bactigs)
   {
 	OutFrgMesg.type = AS_BACTIG;
 	OutFrgMesg.elocale = elocale;
 	OutFrgMesg.eseq_id = eseq_id;
-	OutFrgMesg.ebactig_id = ebactig_id;	 
+	OutFrgMesg.ebactig_id = ebactig_id;
   }
   else if (fullBacs)
   {
 	OutFrgMesg.type = AS_FULLBAC;
 	OutFrgMesg.elocale = elocale;
 	OutFrgMesg.eseq_id = eseq_id;
-	OutFrgMesg.ebactig_id = ebactig_id;	 
+	OutFrgMesg.ebactig_id = ebactig_id;
   }
   else
 	LnkMesg.type = AS_MATE;
   LnkMesg.action = AS_ADD;
 
-    
+
 /* Pipe stdin, transform, and write to stdout */
 
   process();
@@ -854,7 +854,7 @@ int main(int argc, char *argv[]){
 }
 
 
-/* 
+/*
    if(BacEnds)
    OutFrgMesg.type = AS_EBAC;
    else if (LBacs)

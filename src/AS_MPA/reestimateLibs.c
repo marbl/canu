@@ -3,17 +3,17 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: reestimateLibs.c,v 1.4 2005-09-23 01:17:07 brianwalenz Exp $ */
+/* $Id: reestimateLibs.c,v 1.5 2008-06-27 06:29:17 brianwalenz Exp $ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -123,11 +123,11 @@ int main(int argc, char ** argv)
     {
       double minLength;
       double maxLength;
-      
+
       minLength = mean - numSigmas * sigma;
       maxLength = mean + numSigmas * sigma;
       sumX = sumX2 = n = 0;
-      
+
       if(dfn == NULL || (dfp = fopen(dfn, "r")) == NULL)
         usage(argv[0]);
       while(fgets(line, 2047, lfp) != NULL)
@@ -135,7 +135,7 @@ int main(int argc, char ** argv)
         sscanf(line, "%lf", &val);
 
         if(val < minLength || val > maxLength) continue;
-      
+
         n++;
         sumX += val;
         sumX2 += val * val;
@@ -153,12 +153,12 @@ int main(int argc, char ** argv)
 
       if(verbose)
         fprintf(stderr, "%d %llu %lf %lf\n", i + 1, libNum, mean, sigma);
-      
+
     } // iterations
   } // scope
 
   fprintf(stdout, "%llu %lf %lf\n", libNum, mean, sigma);
-      
+
   return 0;
 }
 

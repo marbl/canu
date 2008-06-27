@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: Trapezoid.h,v 1.6 2005-10-14 20:34:09 catmandew Exp $ */
+/* $Id: Trapezoid.h,v 1.7 2008-06-27 06:29:16 brianwalenz Exp $ */
 #ifndef TILTEDTRAPEZOID_H
 #define TILTEDTRAPEZOID_H
 
@@ -49,7 +49,7 @@ public:
     {
       CheckAndSetTTDetails();
     }
-  
+
   TiltedTrapezoid(const UnitType x0, const UnitType y0,
                   const UnitType x1, const UnitType y1,
                   const UnitType x2, const UnitType y2,
@@ -59,7 +59,7 @@ public:
     {
       CheckAndSetTTDetails();
     }
-  
+
   TiltedTrapezoid(const Point<UnitType> & p0, const Point<UnitType> & p1,
                   const Point<UnitType> & p2, const Point<UnitType> & p3,
                   IDType id = 0) :
@@ -67,7 +67,7 @@ public:
     {
       CheckAndSetTTDetails();
     }
-  
+
   void setPoint(const UnitType & x, const UnitType & y, int pointNumber)
     {
       Quadrilateral::setPoint(x, y, pointNumber);
@@ -83,7 +83,7 @@ public:
     {
       return xIntercepts;
     }
-  
+
   bool xInterceptsIntersect(const TiltedTrapezoid<IDType, UnitType> && tt)
     {
       xIntercepts.intersects(tt.getXIntercepts());
@@ -119,15 +119,15 @@ public:
         {
           rettt.points[0].setX(rettt.xProjection.getMin());
           rettt.points[0].setY(rettt.yProjection.getMin());
-          
+
           rettt.points[1].setX(rettt.xProjection.getMin());
           rettt.points[1].setY(rettt.xProjection.getMin() +
                                rettt.xIntercepts.getMin());
-          
+
           rettt.points[2].setX(rettt.xIntercepts.getMin() -
                                rettt.yProjection.getMax());
           rettt.points[2].setY(rettt.yProjection.getMax());
-          
+
           rettt.points[3].setX(rettt.xProjection.getMax());
           rettt.points[3].setY(rettt.yProjection.getMax());
         }
@@ -139,7 +139,7 @@ public:
           rettt.points[1].setX(rettt.yProjection.getMax() +
                                rettt.xIntercepts.getMax());
           rettt.points[1].setY(rettt.yProjection.getMax());
-          
+
           rettt.points[2].setX(rettt.xProjection.getMax());
           rettt.points[2].setY(rettt.xProjection.getMax() -
                                rettt.xIntercepts.getMax());
@@ -157,7 +157,7 @@ public:
 
           rettt.points[1].setX(rettt.xProjection.getMax());
           rettt.points[1].setY(rettt.yProjection.getMax());
-          
+
           rettt.points[2].setX(rettt.xProjection.getMax());
           rettt.points[2].setY(rettt.xProjection.getMax() +
                                rettt.xIntercepts.getMax());
@@ -174,7 +174,7 @@ public:
 
           rettt.points[1].setX(rettt.xProjection.getMin());
           rettt.points[1].setY(rettt.yProjection.getMax());
-          
+
           rettt.points[2].setX(rettt.xProjection.getMax());
           rettt.points[2].setY(rettt.yProjection.getMin());
 
@@ -202,7 +202,7 @@ private:
                       2
 
 
-                      3      
+                      3
         */
         assert(points[0].getX() < points[1].getX());
         pUpper = true;
@@ -222,9 +222,9 @@ private:
 
                      2
 
-          
+
           0     3
-          
+
         */
         pUpper = false;
         pPosSlope = true;
@@ -243,9 +243,9 @@ private:
 
           0
 
-          
+
                  3     2
-          
+
         */
         assert(points[3].getX() >= points[0].getX());
         pUpper = false;
@@ -262,7 +262,7 @@ private:
 
                  2     3
 
-                 
+
           1
 
 
@@ -274,7 +274,7 @@ private:
         xIntercepts.setMax(points[0].getY() - points[0].getX());
       }
     }
-  
+
   bool pUpper;
   bool pPosSlope;
   Interval<IDType, UnitType> xIntercepts;

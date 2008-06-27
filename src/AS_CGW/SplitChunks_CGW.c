@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.29 2008-04-04 05:35:19 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.30 2008-06-27 06:29:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,7 +38,7 @@ static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.29 2008-04-04 05:35:19 brianwa
 //  For all, shortDiscriminatorUnique(+), or just DiscriminatorUnique
 //  unitigs?  Only for unitigs >= min distance mean + CGW_CUTOFF *
 //  stddev in length
-//  
+//
 //  1. create sequence coverage map of reads (AS_READ | AS_EXTR |
 //  AS_TRNR?) - trim 30bp from each end of each read in creating map
 //  if, beyond initial 1x coverage & until last 1x coverage, there is
@@ -108,7 +108,7 @@ static
 IUMStruct *
 CreateIUMStruct(void) {
   IUMStruct *is = (IUMStruct *) safe_calloc(1, sizeof(IUMStruct));
-  
+
 #ifdef AS_ENABLE_SOURCE
   is->ium.source = safe_malloc(SOURCE_LENGTH);
   memset(is->ium.source, (int) ' ', SOURCE_LENGTH);
@@ -186,7 +186,7 @@ AddIMPToIUMStruct(IUMStruct *is, IntMultiPos *imp) {
   is->ium.num_frags++;
 
   is->minPos = MIN(is->minPos,MIN(frag->offset5p.mean,frag->offset3p.mean));
-  is->numRandomFragments += (AS_FA_RANDOM(imp->type)) ? 1 : 0; 
+  is->numRandomFragments += (AS_FA_RANDOM(imp->type)) ? 1 : 0;
 }
 
 
@@ -244,7 +244,7 @@ AddLinkToMaps(ScaffoldGraphT *graph,
   CDS_COORD_t maxPos = ((isUnitig) ?
                         (MAX(frag->offset5p.mean, mfrag->offset5p.mean)) :
                         (MAX(frag->contigOffset5p.mean, mfrag->contigOffset5p.mean)));
-  
+
   // if they're in the same unitig
   if((isUnitig && frag->cid == mfrag->cid) ||
      (!isUnitig && frag->contigID == mfrag->contigID)) {
@@ -341,7 +341,7 @@ AddLinkToMaps(ScaffoldGraphT *graph,
       } else {
         // fragments are oriented differently - may be okay
         CDS_COORD_t distance = maxPos - minPos;
-        
+
         // if the distance is wrong, the pair is bad
         if(distance < dist->mu - CGW_CUTOFF * dist->sigma ||
            distance > dist->mu + CGW_CUTOFF * dist->sigma) {
@@ -437,7 +437,7 @@ AddLinkToMaps(ScaffoldGraphT *graph,
                               frag->offset5p.mean :
                               frag->contigOffset5p.mean) +
                              dist->mu + CGW_CUTOFF * dist->sigma);
-                             
+
       } else if((isUnitig && getCIFragOrient(frag) == A_B &&
                  frag->offset5p.mean >
                  dist->mu + CGW_CUTOFF * dist->sigma) ||
@@ -469,12 +469,12 @@ CreateReadCoverageMap(ScaffoldGraphT *graph,
                       MultiAlignT *ma,
                       int isUnitig) {
   uint32 i;
-  
+
   for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {
     IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
 
     // only add 'reads' to sequence coverage map
-    
+
     if (AS_FA_READ(imp->type)) {
       InfoByIID *info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
       CIFragT   *frag = GetCIFragT(graph->CIFrags, info->fragIndex);
@@ -561,7 +561,7 @@ AdjustContainedOrder(IntMultiPos *impList, int numIMPs) {
   int totalMoved;
   int numContainedLeft;
   int index;
-  
+
   // Keep contained fragments just after containing fragment
   //
   // 1. Remove contained imps from impList
@@ -587,12 +587,12 @@ AdjustContainedOrder(IntMultiPos *impList, int numIMPs) {
   //
   // 4. Move orphaned contained imps up to a position where they should
   // overlap the preceding imp
-  //   
+  //
 
   containing = CreateScalarHashTable_AS(numIMPs);
   contained = (IntMultiPos *) safe_malloc(numIMPs * sizeof(IntMultiPos));
   assert(containing != NULL && contained != NULL);
-  
+
   for(index = 0, numContained = 0, numContaining = 0; index < numIMPs; index++) {
     if(impList[index].contained != 0) {
       // copy to contained array
@@ -645,12 +645,12 @@ AdjustContainedOrder(IntMultiPos *impList, int numIMPs) {
   safe_free(contained);
 
   assert(numContainedLeft == 0);
-  
+
   // Now move containeds & orphaned containeds up to behind their containing
   for(index = numContaining; index < numIMPs; index++) {
     int index2;
     IntMultiPos imp = impList[index];
-      
+
     // move up to behind its containing
     if(impList[index].contained != 0) {
       for(index2 = index - 1;
@@ -934,7 +934,7 @@ StoreIUMStruct(ScaffoldGraphT *graph,
 
   //  Whoops!  Failed!  Like consensus does in MultiAlignUnitig() we
   //  now (2007-12-07) will try again, allowing negative hangs.
-  //  
+  //
   if (unitigFail) {
     int  ov = VERBOSE_MULTIALIGN_OUTPUT, oh=allow_neg_hang;
 
@@ -985,7 +985,7 @@ StoreIUMStruct(ScaffoldGraphT *graph,
     MultiAlignT *ma = CreateMultiAlignTFromIUM(&(is->ium), GetNumCIFragTs(graph->CIFrags), FALSE);
     CDS_COORD_t length = GetMultiAlignUngappedLength(ma);
     ChunkInstanceT *ci;
-    
+
     // need to point fragments to their new unitig/contig
 
     for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {
@@ -995,7 +995,7 @@ StoreIUMStruct(ScaffoldGraphT *graph,
       imp->sourceInt = info->fragIndex;
     }
 
-    
+
     //  Insert both a unitig and a contig
 
     insertMultiAlignTInSequenceDB(graph->sequenceDB, is->ium.iaccession, TRUE,
@@ -1006,7 +1006,7 @@ StoreIUMStruct(ScaffoldGraphT *graph,
                                   FALSE);
 
     ProcessIUM_ScaffoldGraph(&(is->ium), length, TRUE);
-    
+
     ci = GetGraphNode((isUnitig ? graph->CIGraph : graph->ContigGraph), is->ium.iaccession);
     ci->flags.bits.cgbType = cgbType;
     ci->aEndCoord = ci->bEndCoord = 0;
@@ -1143,7 +1143,7 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
             StoreIUMStruct(graph, good, isUnitig, AS_UNASSIGNED, AS_FORCED_NONE, egfar, ci->flags.bits.cgbType);
             ci = GetGraphNode(graph->CIGraph, ciID);
           }
-            
+
           if(bad->ium.num_frags > 0) {
             StoreIUMStruct(graph, bad, isUnitig, AS_UNASSIGNED, AS_FORCED_NONE, egfar, ci->flags.bits.cgbType);
             ci = GetGraphNode(graph->CIGraph, ciID);
@@ -1152,7 +1152,7 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
           // reset the old
           ResetIUMStruct(good);
           ResetIUMStruct(bad);
-          
+
           // advance to the next relevant interval
           while(currI < GetNumVA_SeqInterval(csis) && minPos > currInterval->end) {
             lastInterval = currInterval;
@@ -1251,7 +1251,7 @@ SplitInputUnitigs(ScaffoldGraphT *graph) {
   for (i=0; i<numCIs; i++) {
     ChunkInstanceT *ci = GetGraphNode(graph->CIGraph, i);
     MultiAlignT *ma = loadMultiAlignTFromSequenceDB(graph->sequenceDB, ci->id, TRUE);
-    
+
     // NOTE: add discriminator statistic checks?
 
     if(GetMultiAlignLength(ma) >= minLength) {
@@ -1263,7 +1263,7 @@ SplitInputUnitigs(ScaffoldGraphT *graph) {
       ResetVA_uint16(rc);
       EnableRangeVA_uint16(rc, GetMultiAlignLength(ma));
       CreateReadCoverageMap(graph, rc, ma, TRUE);
-      
+
       // locate region within which to look for possible chimeric
       // points i.e., ignore initial & trailing 0/1 values
 
@@ -1300,9 +1300,9 @@ SplitInputUnitigs(ScaffoldGraphT *graph) {
         // reset the number of splitting intervals to 0
         ResetVA_SeqInterval(csis);
         EnableRangeVA_SeqInterval(csis, 0);
-        
+
         CreateCloneCoverageMaps(graph, gcc, bcc, ma, TRUE);
-        
+
         // identify & count chimeric sequence intervals
         for(checkBase = curBase; checkBase < maxBase; checkBase++) {
           if(*(GetVA_uint16(rc,checkBase)) <= MAX_SEQUENCE_COVERAGE &&

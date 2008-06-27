@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -32,13 +32,13 @@
 
 #pragma inline copy_one_fragment
 static void copy_one_fragment
-(Tfragment destination[],IntFragment_ID idest,Tfragment source[],IntFragment_ID isrc) 
+(Tfragment destination[],IntFragment_ID idest,Tfragment source[],IntFragment_ID isrc)
 /* This is a structure assignment. */
 { *GetAfragment(destination,idest) = *GetAfragment(source,isrc);}
 
 #pragma inline copy_one_edge
 static void copy_one_edge
-(Tedge destination[],IntEdge_ID idest,Tedge source[],IntEdge_ID isrc) 
+(Tedge destination[],IntEdge_ID idest,Tedge source[],IntEdge_ID isrc)
 /* This is a structure assignment. */
 { *GetAedge(destination,idest) = *GetAedge(source,isrc);}
 
@@ -186,15 +186,15 @@ static int is_a_frc_edge(const Tedge * const edges,IntEdge_ID i)
 #else // DEGENERATE CONTAINMENT RESOLUTION
 static int get_frc_edge(const Tedge * const edges,IntEdge_ID i)
 { return (int)
-    (! is_a_dvt_edge(edges,i)) && 
+    (! is_a_dvt_edge(edges,i)) &&
 
-    ((VAgetaccess(Aedge,edges,i,ahg) < 0) && 
+    ((VAgetaccess(Aedge,edges,i,ahg) < 0) &&
      (VAgetaccess(Aedge,edges,i,bhg) >= 0) )
     ||
-    ((VAgetaccess(Aedge,edges,i,ahg) == 0) && 
+    ((VAgetaccess(Aedge,edges,i,ahg) == 0) &&
      (VAgetaccess(Aedge,edges,i,bhg) > 0) )
     ||
-    ((VAgetaccess(Aedge,edges,i,ahg) == 0) && 
+    ((VAgetaccess(Aedge,edges,i,ahg) == 0) &&
      (VAgetaccess(Aedge,edges,i,bhg) == 0) &&
      (VAgetaccess(Aedge,edges,i,avx) < VAgetaccess(Aedge,edges,i,bvx))
      // Note that this tie breaker that is sensitive to IID->VID remapping.
@@ -337,7 +337,7 @@ static int get_spur_fragment(const Tfragment * const frags,IntFragment_ID i)
 #pragma inline set_segstart_vertex
 static void set_segstart_vertex
 (Tfragment frags[],IntFragment_ID i,int flag,IntEdge_ID value)
-{ 
+{
   if(flag) {
     VAgetaccess(Afragment,frags,i,segbgn_suffix) = (IntEdge_ID)value;
   }else{
@@ -347,7 +347,7 @@ static void set_segstart_vertex
 #pragma inline set_segend_vertex
 static void set_segend_vertex
 (Tfragment frags[],IntFragment_ID i,int flag,IntEdge_ID value)
-{ 
+{
   if(flag) {
     VAgetaccess(Afragment,frags,i,segend_suffix) = (IntEdge_ID)value;
   }else{
@@ -357,7 +357,7 @@ static void set_segend_vertex
 #pragma inline set_seglen_vertex
 static void set_seglen_vertex
 (Tfragment frags[],IntFragment_ID i,int flag,int32 value)
-{ 
+{
   if(flag) {
     VAgetaccess(Afragment,frags,i,nsuffix_all) = (int32)value;
   }else{
@@ -367,7 +367,7 @@ static void set_seglen_vertex
 #pragma inline set_seglen_frc_vertex
 static void set_seglen_frc_vertex
 (Tfragment frags[],IntFragment_ID i,int flag,int32 value)
-{ 
+{
   if(flag) {
     VAgetaccess(Afragment,frags,i,nsuffix_frc) = (int32)value;
   }else{
@@ -377,7 +377,7 @@ static void set_seglen_frc_vertex
 #pragma inline set_seglen_dvt_vertex
 static void set_seglen_dvt_vertex
 (Tfragment frags[],IntFragment_ID i,int flag,int32 value)
-{ 
+{
   if(flag) {
     VAgetaccess(Afragment,frags,i,nsuffix_dvt) = (int32)value;
   }else{
@@ -400,17 +400,17 @@ static IntEdge_ID get_segend_vertex
 #pragma inline get_seglen_vertex
 static int32 get_seglen_vertex
 (const Tfragment * const frags,IntFragment_ID i,int flag)
-{ return (int32) (flag ? 
+{ return (int32) (flag ?
 		      VAgetaccess(Afragment,frags,i,nsuffix_all) :
 		      VAgetaccess(Afragment,frags,i,nprefix_all));}
 static int32 get_seglen_frc_vertex
 (const Tfragment * const frags,IntFragment_ID i,int flag)
-{ return (int32) (flag ? 
+{ return (int32) (flag ?
 		      VAgetaccess(Afragment,frags,i,nsuffix_frc) :
 		      VAgetaccess(Afragment,frags,i,nprefix_frc));}
 static int32 get_seglen_dvt_vertex
 (const Tfragment * const frags,IntFragment_ID i,int flag)
-{ return (int32) (flag ? 
+{ return (int32) (flag ?
 		      VAgetaccess(Afragment,frags,i,nsuffix_dvt) :
 		      VAgetaccess(Afragment,frags,i,nprefix_dvt) );}
 
@@ -452,7 +452,7 @@ static IntChunk_ID get_chunk_index
  const Tedge      edges[],
  const IntEdge_ID ie
  )
-{ 
+{
   /* This function returns whether the chunk index of the B-chunk in
      the overlap "ie". */
 
@@ -470,13 +470,13 @@ static int get_chunk_suffix
  const Tedge      edges[],
  const IntEdge_ID ie
  )
-{ 
+{
   /* This function returns whether the suffix of the B-chunk is in the
      overlap "ie". */
 
   const IntFragment_ID  ibvx = get_bvx_edge(edges,ie); // Get the distal fragment
   const int         ibsx = get_bsx_edge(edges,ie); // and suffix flag
-  const int cbsx = (ibsx ^ 
+  const int cbsx = (ibsx ^
 		    (get_o3p_fragment(frags,ibvx) <
 		     get_o5p_fragment(frags,ibvx) ));
   return cbsx;
@@ -486,7 +486,7 @@ static int get_chunk_suffix
 static void set_raw_dvt_count_vertex
 (const Tfragment * const frags,IntFragment_ID i,int flag,int value)
 {
-  if(flag) { 
+  if(flag) {
     VAgetaccess(Afragment,frags,i,raw_suffix_dvt_count) = value;
   } else {
     VAgetaccess(Afragment,frags,i,raw_prefix_dvt_count) = value;
@@ -512,7 +512,7 @@ static int get_raw_dvt_count_vertex
 (const Tfragment * const frags,IntFragment_ID i,int flag)
 {
   int value;
-  if(flag) { 
+  if(flag) {
     value = VAgetaccess(Afragment,frags,i,raw_suffix_dvt_count);
   } else {
     value = VAgetaccess(Afragment,frags,i,raw_prefix_dvt_count);
@@ -538,7 +538,7 @@ static int get_raw_toc_count_fragment
 static void inc_raw_dvt_count_vertex
 (const Tfragment * const frags,IntFragment_ID i,int flag)
 {
-  if(flag) { 
+  if(flag) {
     VAgetaccess(Afragment,frags,i,raw_suffix_dvt_count) ++;
   } else {
     VAgetaccess(Afragment,frags,i,raw_prefix_dvt_count) ++;

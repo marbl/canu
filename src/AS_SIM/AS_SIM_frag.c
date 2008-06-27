@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -22,7 +22,7 @@
 //#define DEBUGS
 /*
    Fragment simulator: generates simulated shotgun data.
- 
+
    Author:            Gene Myers
 
    Date last Revised: October 12, 1998
@@ -50,7 +50,7 @@
 #include "AS_global.h"
 #include "AS_UTL_rand.h"
 
-char FragVersion[] = "$Revision: 1.4 $";
+char FragVersion[] = "$Revision: 1.5 $";
 
 double drand48();
 void   srand48();
@@ -83,7 +83,7 @@ int   protoIO;          /* Nuke non-actgACTG characters.  If false, replace non-
    construction to maintain a stack of current instances for the given
    element.  "instances" points to a list (linked by the "ilist" field
    of the INSTANCE records) of instances of the given element used in
-   building the subject strand. 
+   building the subject strand.
    Elements loaded from files have the FROMFILE flag set and are GLOBAL
 */
 
@@ -142,9 +142,9 @@ typedef struct inst { struct comp *elist;
    "begpos" and "endpos" specify the beginning and ending indices within
    the containing instance at which this component was incorporated.  */
 
-typedef enum {invalidFracture = -1, 
-	      noFracture , 
-	      prefixFracture, 
+typedef enum {invalidFracture = -1,
+	      noFracture ,
+	      prefixFracture,
 	      suffixFracture,
               randomFracture
 } fractureType;
@@ -159,10 +159,10 @@ typedef struct comp { struct comp *elist;
                       double       erate;
                       int          errors;
                       int          begpos, endpos;
-                      fractureType fType; 
+                      fractureType fType;
                       int          fbeg,fend;
                     } COMPONENT;
-        
+
 DEFINITION Relement[26];
 
 int   Sequence;  /* Element defining string to be fragmented */
@@ -219,7 +219,7 @@ char genchar(double pa,double pac,double pacg)
   else
     if (rnd < pacg)
       return ('g');
-    else 
+    else
       return ('t');
 }
 
@@ -231,7 +231,7 @@ char substitute(int orig)
   return (SubChar[Decode[orig]][i]);
 }
 
- 
+
 /* >>>> SUBJECT SEQUENCE CONSTRUCTION <<<< */
 
 /*  Place a string at s which is a mutated copy of the string t of
@@ -335,7 +335,7 @@ COMPONENT *instantiateReference(REFERENCE *r,INSTANCE *v,INSTANCE *i){
   int actualLength;
   double diceThrow = drand48();
   double indenom;
-  
+
   x = (COMPONENT *) ckalloc(sizeof(COMPONENT));
   x->elist  = NULL;
   x->level  = v->level;
@@ -344,26 +344,26 @@ COMPONENT *instantiateReference(REFERENCE *r,INSTANCE *v,INSTANCE *i){
   x->fType = noFracture; /* No Fracture */
   /*  x->oprand = v->value; now a function of fracturing */
   x->erate  = r->minerr + drand48()*(r->maxerr - r->minerr);
-  /* We need to compute the actual length of this component, including the 
+  /* We need to compute the actual length of this component, including the
      effect of fractures.
   */
-  
+
   indenom = 1. - INS_FREQ;
-  
-  if(r->fracturePrefixp + 
-     r->fractureSuffixp + 
+
+  if(r->fracturePrefixp +
+     r->fractureSuffixp +
      r->fractureRandomp > diceThrow)
-  { 
+  {
     /* we'll decide what type later */
-    
+
     int offset;
-    
+
     /* Uniform length distribution */
-    
+
     actualLength = (int)
-      (v->length  + FUDGE)* 
+      (v->length  + FUDGE)*
       (r->fractureMinp + (r->fractureMaxp - r->fractureMinp) * drand48() );
-    
+
 #ifdef DEBUGS
     fprintf(stderr,"actualLength = %d v->length = %d fractureMinp = %g fractureMaxp = %g\n",
             actualLength, v->length, r->fractureMinp, r->fractureMaxp);
@@ -406,18 +406,18 @@ COMPONENT *instantiateReference(REFERENCE *r,INSTANCE *v,INSTANCE *i){
       }
     }
     x->oprand = v->value + offset; /* get point to offset string */
-    
+
   }
   else
   {
     actualLength = v->length;
     x->oprand = v->value; /* get point to whole string */
   }
-  
+
   /* Sanity */
   assert(actualLength <= v->length &&
          actualLength >= 0);
-  
+
   // This is some kind of trick with float/int roundoff/truncation
   x->errors = rv = actualLength * x->erate;
   if (rv - x->errors > drand48())
@@ -498,7 +498,7 @@ void build_trav(DEFINITION *e, int lev)
     }
 
 #ifdef DEBUG
-  fprintf(stderr," Build_trav: %c lev = %d\n",'A' + (e-Relement),lev); 
+  fprintf(stderr," Build_trav: %c lev = %d\n",'A' + (e-Relement),lev);
   fprintf(stderr," Build_trav: e->valstack = 0x%p \n", e->valstack);
 #endif
   i = (INSTANCE *) ckalloc(sizeof(INSTANCE));
@@ -516,7 +516,7 @@ void build_trav(DEFINITION *e, int lev)
   ins = 0;
   u = uhead.nextval;
   y = (COMPONENT *) i;
-  for (r = e->rlist; r != NULL; r = r->rlist){ 
+  for (r = e->rlist; r != NULL; r = r->rlist){
     f = Relement + r->name;
       if (r->maxins > 0)
         n = insters[ins++];
@@ -535,7 +535,7 @@ void build_trav(DEFINITION *e, int lev)
             reps = r->minrep + drand48()*(r->maxrep - r->minrep + FUDGE);
 	    refLen = 0;
 	    while (reps-- > 0)
-            { 
+            {
 	      x = instantiateReference(r,v,i);
               y = y->elist  = x;
 	      refLen += x->length; /* Copies of this reference */
@@ -544,7 +544,7 @@ void build_trav(DEFINITION *e, int lev)
 #ifdef DEBUG
               fprintf(stderr,"\t%c.%d: o=%d e=%g(%d,%d,%d) length = %d value = 0x%x\n\t%s\n",
                       x->refer->name+'A',x->level,x->forw,x->erate,x->errors,
-                      x->begpos,x->endpos,x->length,x->oprand, x->oprand); 
+                      x->begpos,x->endpos,x->length,x->oprand, x->oprand);
 #endif
             }
 	} else{ /* Probabilistic number of repeats */
@@ -553,9 +553,9 @@ void build_trav(DEFINITION *e, int lev)
                                         r->fractureSuffixp +
 					r->fractureRandomp);
 	      xrp = r->xminrp + drand48()*(r->xmaxrp - r->xminrp);
-	      /* Take the fracture probabilities into account in computing the 
+	      /* Take the fracture probabilities into account in computing the
 		 average length of the instances of this elment */
-	      avl =  totalFracturep * (r->fractureMaxp - r->fractureMinp)/2.0 + 
+	      avl =  totalFracturep * (r->fractureMaxp - r->fractureMinp)/2.0 +
 		(1-totalFracturep) * v->length;
 	      /* avl now reflects the average length of unmutated instances of
 		 the current element */
@@ -622,7 +622,7 @@ void build_trav(DEFINITION *e, int lev)
 	      fprintf(stderr,"Added %d reps of total Length %d for target length %d\n",
 		     reps, refLen, desiredTotalLength);
 #endif
-	      
+
 	}
 	}
   }
@@ -671,7 +671,7 @@ void build_trav(DEFINITION *e, int lev)
       len = i->length - len;
       x   = i->elist;
       while (len > 0 || num > 0){
-        if (drand48() < num/(len+1.)){ 
+        if (drand48() < num/(len+1.)){
 	    assert(x != NULL);
 	    n = s - i->value;
             x->forw = (drand48() <= x->refer->orient);
@@ -719,7 +719,7 @@ void report_trav(INSTANCE *i, int lev, int type, int pos,
       for (x = i->elist; x != NULL; x = t)
         { t = x->elist;
           x->elist = y;
-          y = x; 
+          y = x;
         }
       i->elist = y;
     }
@@ -797,12 +797,12 @@ void report_trav(INSTANCE *i, int lev, int type, int pos,
       for (x = i->elist; x != NULL; x = t)
         { t = x->elist;
           x->elist = y;
-          y = x; 
+          y = x;
         }
       i->elist = y;
     }
 }
-      
+
 
 /* Build the subject dna strand. */
 
@@ -815,7 +815,7 @@ void build_seq(void)
     { Relement[n].valstack  = NULL;
       Relement[n].instances = NULL;
       /* DO NOT clear out the rlist, since this is what defines the
-	 sequence grammar 
+	 sequence grammar
          *** NO *** Relement[n].rlist = NULL; *** NO ***
        */
     }
@@ -850,7 +850,7 @@ void build_seq(void)
 
 /*  Fragment generation parameters. */
 
-int     NumFrag;          /* the # of fragments to be sampled         */ 
+int     NumFrag;          /* the # of fragments to be sampled         */
 int     MinLen, MaxLen;   /* the length range for fragments           */
 double  Orient;           /* the probability that the given fragment is
 		             in the forward direction                 */
@@ -895,7 +895,7 @@ FILE *QualityFile;
 /* Sample a fragment from the dna strand. */
 
 void newfrag(int dnalen)
-{ 
+{
 #if 0
   FragLen  = MinLen + (MaxLen - MinLen + FUDGE)*drand48();
   StartPos = (dnalen - FragLen + FUDGE)*drand48();
@@ -948,7 +948,7 @@ void firstfrag(int dnalen)
 }
 
 void secondfrag(int dnalen)
-{ 
+{
 #if 0
   FragLen  = MinLen + (MaxLen - MinLen + FUDGE)*drand48();
 #endif
@@ -1156,7 +1156,7 @@ int nextsymbol(void)
 
 int getnatural(char *label)
 { int datum = 0;
- 
+
   if (fscanf(sfile," %d",&datum) != 1 || datum <= 0)
     {
       fprintf(stderr,"\nFrag Error:\n\t*** %s must be a positive int (%d)\n",label, datum);
@@ -1167,7 +1167,7 @@ int getnatural(char *label)
 
 char *getstring(char *label, char *buffer, int length)
 { char tbuffer[2048];
- 
+
   if (fscanf(sfile," %s", tbuffer) != 1 || strlen(tbuffer) >= length)
     { fprintf(stdout,"\nFrag Error:\n\t*** %s must be a string of length less than %d\n",label,length);
       exit(1);
@@ -1214,7 +1214,7 @@ int getfactor(char *label, double *real)
             fscanf(sfile,"%n%u%n",&cnt1,&frac,&cnt2);
           else
             cnt1 = cnt2 = frac = 0;
-          if (cnt1 == cnt2 || frac == 0) 
+          if (cnt1 == cnt2 || frac == 0)
             xvalue = 0.;
           else
             { while (frac % 10 == 0)
@@ -1264,7 +1264,7 @@ int getfactor(char *label, double *real)
 /* Read the string for an element definition from a file */
 
 void getElementFromFile(DEFINITION *e)
-{ 
+{
   char tfilename[1024];
   char *tstring;
   int len;
@@ -1291,7 +1291,7 @@ void getElementFromFile(DEFINITION *e)
 /* Read the string for an element definition from a inline, quoted string */
 
 void getElementFromInlineString(DEFINITION *e)
-{ 
+{
   char *buffer;
   char *tstring;
   int len;
@@ -1301,7 +1301,7 @@ void getElementFromInlineString(DEFINITION *e)
   int size = 2048;
   buffer = (char*) malloc(size);
   tstring = buffer;
-  for(c = nextsymbol(); 
+  for(c = nextsymbol();
       c != '"' && c != ';' && c != EOF;
       c = nextsymbol()){
     // fprintf(stderr,"* Read char %c\n", c);
@@ -1515,7 +1515,7 @@ REFERENCE *getreference(DEFINITION *e)
     }
   else
     minr = maxr = 1;
-  
+
   if (c == '!')
     { c = nextsymbol();
       if (c == '(' || isdigit(c))
@@ -1558,22 +1558,22 @@ REFERENCE *getreference(DEFINITION *e)
     fracturePrefixp = getprobability("Fracture Prefix  %");
     c = nextsymbol();
     if (isdigit(c) || c == ','){
-      if (c != ',') 
+      if (c != ',')
 	ungetc(c,sfile);
       fractureSuffixp = getprobability("Fracture Suffix  %");
       c = nextsymbol();
       if (isdigit(c) || c == ','){
-	if (c != ',') 
+	if (c != ',')
 	  ungetc(c,sfile);
 	fractureRandomp = getprobability("Fracture Random  %");
 	c = nextsymbol();
 	if (isdigit(c) || c == ','){
-	  if (c != ',') 
+	  if (c != ',')
 	    ungetc(c,sfile);
 	  fractureMinp = getprobability("Fracture Min  %");
 	  c = nextsymbol();
 	  if (isdigit(c) || c == ','){
-	    if (c != ',') 
+	    if (c != ',')
 	      ungetc(c,sfile);
 	    fractureMaxp = getprobability("Fracture Max  %");
 	    c = nextsymbol();
@@ -1597,7 +1597,7 @@ REFERENCE *getreference(DEFINITION *e)
 
 
   ungetc(c,sfile);
-  
+
 /* Build reference record */
 
   r = (REFERENCE *) ckalloc(sizeof(REFERENCE));
@@ -1631,7 +1631,7 @@ REFERENCE *getreference(DEFINITION *e)
       else
         printf(" %g-%g %% of Basis,",100*r->xminrp,100*r->xmaxrp);
       printf(" %d-%d Gen's,",r->minins,r->maxins);
-      
+
       if(  r->fracturePrefixp + r->fractureSuffixp + r->fractureRandomp >= 1.e-09){
 	printf(" Fract's = (%.2f %%p, %.2f %%s, %.2f %%r, length = %g-%g",
 	       r->fracturePrefixp, r->fractureSuffixp, r->fractureRandomp,
@@ -1758,7 +1758,7 @@ void getgrammar(void)
             printf(" (static)");
           printf("\n");
           if ((e->type & CNCAT) == BASIS)
-            { 
+            {
 	      printf("#    Length = [%d,%d]",
                      e->minlen,e->maxlen);
 	      if(!(e->type & CONSTANT)){
@@ -1768,7 +1768,7 @@ void getgrammar(void)
 	      }else{
 		printf(", (constant)\n");
 	      }
-	      
+
             }
           else
             printf("#    Concatenation of:\n");
@@ -1786,7 +1786,7 @@ void getgrammar(void)
               break;
             }
           else
-            { 
+            {
 	      int maxlen,minlen;
 	      ungetc(c,sfile);
               r = getreference(e);
@@ -1906,7 +1906,7 @@ int getinput(void)
   for (n = 0; n < 26; n++)
     Relement[n].type = -1;
   Sequence = -1;
-  
+
   if (comments)
     printf("#\n");
 
@@ -2026,7 +2026,7 @@ int getinput(void)
 
 /* Read_seq gets the first FASTA formated sequence from the given input file.
    It is designed to handle lines and strings of arbitrary length.  It
-   allocates memory for the sequence and returns a pointer to it.  
+   allocates memory for the sequence and returns a pointer to it.
 
    If we encounter characters other than actgACTG we nuke 'em!!! SAK */
 
@@ -2096,7 +2096,7 @@ char *read_seq(FILE *input, int *len)
 	  assert(NULL != seqbuf);
 #endif
         }
-      
+
       // Strip out bogus characters that will confuse frag  SAK
       {
 	int s,t, d,sub;
@@ -2212,7 +2212,7 @@ int main(int argc, char *argv[])
               uniform = 0;
             else
               illegal = 1;
-          if (i == 1) illegal = 1; 
+          if (i == 1) illegal = 1;
         }
       argv += 1;
       argc -= 1;
@@ -2241,7 +2241,7 @@ int main(int argc, char *argv[])
     *psuffix = '\0';
     sprintf(Quality_File_Name,"%s.qlt%s",argv[1],suffix);
     fprintf(stderr,"Quality file is %s \n",Quality_File_Name);
-    if ((QualityFile = fopen(Quality_File_Name, "w")) == NULL ) { 
+    if ((QualityFile = fopen(Quality_File_Name, "w")) == NULL ) {
       { fprintf(stderr,"Error: Cannot open quality file %s\n",Quality_File_Name);
         exit (1);
       }
@@ -2269,7 +2269,7 @@ int main(int argc, char *argv[])
   TranChar['T'] = 'T';   FlipChar['T'] = 'A';   Decode['T'] = 7;
   TranChar['N'] = 'N';   FlipChar['N'] = 'N';   Decode['N'] = 8;
   TranChar['n'] = 'n';   FlipChar['n'] = 'n';   Decode['n'] = 9;
- 
+
 /* Read in the specification from sfile. */
 
   dna_only = getinput();

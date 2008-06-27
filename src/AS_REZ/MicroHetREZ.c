@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.19 2007-11-08 12:38:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.20 2008-06-27 06:29:19 brianwalenz Exp $";
 
 #include <assert.h>
 #include <errno.h>
@@ -50,7 +50,7 @@ static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.19 2007-11-08 12:38:15 brianwalenz
 
 
 //minimum p-value that Poisson probabilities can get right?
-#define MINP 1e-16 
+#define MINP 1e-16
 
 
 
@@ -96,7 +96,7 @@ AS_REZ_allocate_alignment(int c, int r) {
 
   if( c > 0 && r > 0){
     a->cols = c;
-    a->rows = r; 
+    a->rows = r;
     a->ali        = (char**) safe_calloc(sizeof(char*),c);
     a->countA     = (int*) safe_calloc(sizeof(int),c);
     a->countC     = (int*) safe_calloc(sizeof(int),c);
@@ -134,7 +134,7 @@ AS_REZ_free_alignment(Alignment_t* a) {
 
   if(a->ali != NULL){
     for(i=0; i<a->cols; i++){
-      assert(a->ali[i] != NULL);  
+      assert(a->ali[i] != NULL);
       safe_free(a->ali[i]);
     }
     safe_free(a->ali);
@@ -163,7 +163,7 @@ AS_REZ_print_alignment(Alignment_t *a,  int w) {
   int iter = 0;
   char consensus[a->cols];
   int count[6]; // A C G T Dash N
-    
+
   for(i=0; i<a->cols; i++)
     {
       int max,k;
@@ -175,7 +175,7 @@ AS_REZ_print_alignment(Alignment_t *a,  int w) {
 	    {
               case 'A' :
                 count[0]++;
-                break;	
+                break;
               case 'C' :
                 count[1]++;
                 break;
@@ -191,18 +191,18 @@ AS_REZ_print_alignment(Alignment_t *a,  int w) {
               case 'N' :
                 count[5]++;
                 break;
-	    }	
-	}	
+	    }
+	}
       max = 0;
       for(k=0; k<6; k++){
 	if( count[max] < count[k] )
 	  max = k;
-      
+
 	switch( max )
 	  {
             case 0 :
               consensus[i] = 'A';
-              break;	
+              break;
             case 1 :
               consensus[i] = 'C';
               break;
@@ -218,17 +218,17 @@ AS_REZ_print_alignment(Alignment_t *a,  int w) {
             case 5 :
               consensus[i] = 'N';
               break;
-	  }	
+	  }
       }
     }
   do{
     int p = w*iter+w;
     l = ( p < c ? p : c );
-    
+
     for(i=iter*w; i<l; i++)
       printf("%c",consensus[i]);
     printf(" %d\n",l);
-    
+
     for(i=0; i<r; i++){
       for(j=iter*w; j<l; j++)
         if( a->ali[j][i] != consensus[j] )
@@ -241,7 +241,7 @@ AS_REZ_print_alignment(Alignment_t *a,  int w) {
     iter++;
     printf("\n");
   }while(iter*w < c);
-  
+
 }
 
 
@@ -265,7 +265,7 @@ AS_REZ_count_columns(Alignment_t* a, Marker_t* m)
               case 'A' :
               case 'a' :
                 a->countA[i]++;
-                break;	
+                break;
               case 'C' :
               case 'c' :
                 a->countC[i]++;
@@ -286,7 +286,7 @@ AS_REZ_count_columns(Alignment_t* a, Marker_t* m)
               case 'n' : // NOTE we count Ns as blanks
                 a->countBlank[i]++;
                 break;
-	    }	
+	    }
     }
 }
 
@@ -326,10 +326,10 @@ AS_REZ_get_info(AS_IID    iid,
     if ((mytype) && (*mytype == 0))
       mytype = NULL;
 
-    if(!mytype ){ // we have not seen that iid before 
+    if(!mytype ){ // we have not seen that iid before
       getFrag(frag_store,iid,&input,FRAG_S_INF);
 
-      //getReadType_ReadStruct(&input,type); 
+      //getReadType_ReadStruct(&input,type);
       *type == AS_READ;
 
       //  Locale info was removed, so we now just return empty info.
@@ -350,8 +350,8 @@ AS_REZ_get_info(AS_IID    iid,
     }
     else{
       *locale = *Getuint32(locales,iid);
-      *beg    = *Getuint32(locbeg,iid);	
-      *end    = *Getuint32(locend,iid);	
+      *beg    = *Getuint32(locbeg,iid);
+      *end    = *Getuint32(locend,iid);
       *type   = *Getuint32(fragtype,iid);
     }
   }
@@ -365,14 +365,14 @@ AS_REZ_get_info(AS_IID    iid,
 
 
 
-/* This function compresses shredded fragments from the same location 
+/* This function compresses shredded fragments from the same location
  * into basically a 1x coverage, such that there are no aritfical microhets;
  * it also nulls out all but one position of a multibase gap, to reduce the
  * effect of multibase indel polymorphisms on microhet detection.
  */
 void AS_REZ_compress_shreds_and_null_indels(int c,
                                             int r,
-                                            GateKeeperStore *frag_store, 
+                                            GateKeeperStore *frag_store,
                                             char **array,
                                             int **id_array,
                                             int verbose){
@@ -424,8 +424,8 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 	  if( verbose > 0 )
 	    printf("(id,loc,beg,end,type) = (" F_IID "," F_U32 ",%d,%d,%c)\n",
                    iid1,l1,b1,e1,t1);
-	  
-	  if(AS_FA_SHREDDED(t1)){ 
+
+	  if(AS_FA_SHREDDED(t1)){
 	    for(k=j+1; k<r; k++){ // now eliminate the duplicates
 	      if( verbose > 0 )
 		printf("pos (%d,%d)\n",i,k);
@@ -434,14 +434,14 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 	      if( verbose > 0)
 		printf("(id2,loc2,beg2,end2,type2) = (" F_IID "," F_U32 ",%d,%d,%c)\n",
                        iid2,l2,b2,e2,t2);
-	      
+
 	      if( t1 == t2  && l2 == l1 ){
 		uint32 min2,max1;
 		if( verbose > 0 )
 		  printf("changed position (%d,%d) from %c to blank, types (%c,%c), locales (" F_U32 "," F_U32 ")\n",i,k,array[i][k],t1,t2,l1,l2);
 		min2 = ( b2 < e2 ? b2 : e2);
 		max1 = ( b1 > e1 ? b1 : e1);
-		
+
 		if(max1 < min2)
 		  ;//		 fprintf(stdout,"WARNING begin of frag2 is less than end of second !!\n");
 		else{
@@ -459,7 +459,7 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 	if(array[i][j]=='-'&&array[i+1][j]=='-'){
 	  //	  fprintf(stdout,"Multibase gap!\n");
 	  array[i][j]=' ';
-	}	
+	}
 
 	if(j<r-1){
 
@@ -471,8 +471,8 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 	    if( verbose > 0 )
 	      printf("(id,loc,beg,end,type) = (" F_IID "," F_U32 ",%d,%d,%c)\n",
                      iid1,l1,b1,e1,t1);
-	    
-	    if(AS_FA_SHREDDED(t1)){ 
+
+	    if(AS_FA_SHREDDED(t1)){
 	      for(k=j+1; k<r; k++){ // now eliminate the duplicates
 		if( verbose > 0 )
 		  printf("pos (%d,%d)\n",i,k);
@@ -481,7 +481,7 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 		if( verbose > 0)
 		  printf("(id2,loc2,beg2,end2,type2) = (" F_IID "," F_U32 ",%d,%d,%c)\n",
                          iid2,l2,b2,e2,t2);
-		
+
 		if( t1 == t2  && l2 == l1 ){
 		  uint32 min2,max1;
 		  if( verbose > 0 )
@@ -489,7 +489,7 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
                            i,k,array[i][k],t1,t2,l1,l2);
 		  min2 = ( b2 < e2 ? b2 : e2);
 		  max1 = ( b1 > e1 ? b1 : e1);
-		  
+
 		  if(max1 < min2)
 		    ;//		 fprintf(stdout,"WARNING begin of frag2 is less than end of second !!\n");
 		  else{
@@ -517,7 +517,7 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 
 
 /* this function converts an array computed by consensus into
- * an Alignment_t. The function that converts an IMP message 
+ * an Alignment_t. The function that converts an IMP message
  * into the array is called IMP2Array. The array contains in the odd
  * rows the sequence and in the even rows the quality values.
  */
@@ -532,14 +532,14 @@ Alignment_t *AS_REZ_convert_array_to_alignment(char **ar, int c, int r){
 #if 0
         //  This function, used in colCorr_CNS.c, probably sees
         //  lowercase letters too.
-	assert(ar[2*j][i] == 'A' || ar[2*j][i] == 'C' || 
+	assert(ar[2*j][i] == 'A' || ar[2*j][i] == 'C' ||
                ar[2*j][i] == 'G' || ar[2*j][i] == 'T' ||
                ar[2*j][i] == '-' || ar[2*j][i] == ' ' ||
                ar[2*j][i] == 'N');
 #endif
 
-	a->ali[i][j] = ar[2*j][i]; 
-	
+	a->ali[i][j] = ar[2*j][i];
+
 #define USE_QUALITY
 #ifdef USE_QUALITY
 	a->hasQuality = TRUE;
@@ -553,7 +553,7 @@ Alignment_t *AS_REZ_convert_array_to_alignment(char **ar, int c, int r){
 	a->seqErrArray[i][j] = 0.0;
 #endif
 
-      } 
+      }
 
   return a;
 }
@@ -578,12 +578,12 @@ AS_REZ_fac(int n) {
     facREZ[n] = n*AS_REZ_fac(n-1);
   return facREZ[n];
 }
-  
 
 
 
 
-/* this computes the probability of a fournomial event 
+
+/* this computes the probability of a fournomial event
    the assumption is, that c1,c2,c3 and c4 have the same probability
    of occuring */
 
@@ -594,7 +594,7 @@ AS_REZ_fournomial(double seqErr, int c1, int c2, int c3, int c4, int n)
   register int i;
   double q = seqErr/4.0;
   double p = 1-seqErr;
-  
+
   double prod = 1.0;
   int    sum  = 0;
 
@@ -610,12 +610,12 @@ AS_REZ_fournomial(double seqErr, int c1, int c2, int c3, int c4, int n)
     prod *= i;
 
   for(i=0; i<sum; i++)
-    prod *= q; 
+    prod *= q;
 
   if( c1 >= FACLIMIT )
     {
       for(i=c1; i>=FACLIMIT; i--)
-	prod /= i; 
+	prod /= i;
       prod /= AS_REZ_fac(FACLIMIT-1);
     }
   else
@@ -624,7 +624,7 @@ AS_REZ_fournomial(double seqErr, int c1, int c2, int c3, int c4, int n)
   if( c2 >= FACLIMIT )
     {
       for(i=c2; i>=FACLIMIT; i--)
-	prod /= i; 
+	prod /= i;
       prod /= AS_REZ_fac(FACLIMIT-1);
     }
   else
@@ -633,7 +633,7 @@ AS_REZ_fournomial(double seqErr, int c1, int c2, int c3, int c4, int n)
   if( c3 >= FACLIMIT )
     {
       for(i=c3; i>=FACLIMIT; i--)
-	prod /= i; 
+	prod /= i;
       prod /= AS_REZ_fac(FACLIMIT-1);
     }
   else
@@ -642,12 +642,12 @@ AS_REZ_fournomial(double seqErr, int c1, int c2, int c3, int c4, int n)
   if( c4 >= FACLIMIT )
     {
       for(i=c4; i>=FACLIMIT; i--)
-	prod /= i; 
+	prod /= i;
       prod /= AS_REZ_fac(FACLIMIT-1);
     }
   else
     prod /= AS_REZ_fac(c4);
-  
+
 
   // The products get too big
 
@@ -660,7 +660,7 @@ AS_REZ_fournomial(double seqErr, int c1, int c2, int c3, int c4, int n)
 
   return prod;
 }
- 
+
 
 
 
@@ -698,7 +698,7 @@ AS_REZ_expected_savedSteps(int r, double seqErr)
 	    saved=a+c+g+t+d-maxfive(a,c,g,t,d);
 
 	    /* saved is the number of steps saved for the condition */
-	    /* the probability of observing c1..c5 can be obtained by 
+	    /* the probability of observing c1..c5 can be obtained by
 	       assuming that c5 is the true state without loss of generality */
 	    /* So, expected is: */
 
@@ -725,7 +725,7 @@ AS_REZ_Poisson_prob(int Obs,double Exp){
 
   logExp=log(Exp);
 
-  // break the following for-loops into two stages so that we can sum 
+  // break the following for-loops into two stages so that we can sum
   // increasing values--might minimize rounding errors?
 
   for(i=Obs-1;i>=Exp;i--){
@@ -821,10 +821,10 @@ typedef struct mpstat {
                 Allows each column to choose its optimal partition and so
                 is not guaranteed to be obtainable by a single tree for the
                 whole alignment */
-  double Exp;   /* Expected number of columns with a pair of non-consensus 
+  double Exp;   /* Expected number of columns with a pair of non-consensus
 		   matching characters; approximates the expected number that
 		   corresponds to Obs */
-  double pr;    /* Making a Poisson approximation, the probability of seeing 
+  double pr;    /* Making a Poisson approximation, the probability of seeing
 		   Obs when expecting Exp */
 } MPSTAT;
 
@@ -871,8 +871,8 @@ AS_REZ_MP_score_alignment(Alignment_t *alignment,double erate, int s, int e){
 
 
 
-/* this function inspects a subalignment and -- assuming all changes are 
-   due to sequencing error -- returns the mean of the most likely explanation 
+/* this function inspects a subalignment and -- assuming all changes are
+   due to sequencing error -- returns the mean of the most likely explanation
    If we happen do have quality values, these are used to compute an exspected
    mean sequencing error
 */
@@ -900,7 +900,7 @@ AS_REZ_guess_seqErr(Alignment_t *a, Marker_t* m, int s, int e)
             {
 	      case 'A' :
 		count[0]++;
-		break;	
+		break;
 	      case 'C' :
 		count[1]++;
 		break;
@@ -919,9 +919,9 @@ AS_REZ_guess_seqErr(Alignment_t *a, Marker_t* m, int s, int e)
 	      case 'N' :
 		count[5]++;
 		break;
-            }	
-      }	
-      
+            }
+      }
+
     /* we counted the letters in the marked rows */
     /* now we determine the majority character   */
     max = 0;
@@ -929,8 +929,8 @@ AS_REZ_guess_seqErr(Alignment_t *a, Marker_t* m, int s, int e)
       if( count[max] < count[k] )
 	max = k;
     }
-      
-    /* we add up the ratios between the counts of the 
+
+    /* we add up the ratios between the counts of the
        changed characters and the majority character */
     if( rows-count[5] > 0 )
       seqErr += ((double)(rows-count[5]-count[max]))/((double) (rows-count[5]));
@@ -942,7 +942,7 @@ AS_REZ_guess_seqErr(Alignment_t *a, Marker_t* m, int s, int e)
 
 
 UnitigStatus_t
-AS_REZ_test_MPsimple(Alignment_t *ali, double thresh, Marker_t* m, 
+AS_REZ_test_MPsimple(Alignment_t *ali, double thresh, Marker_t* m,
                      int start, int end,double *pval)
 {
   int i;
@@ -961,7 +961,7 @@ AS_REZ_test_MPsimple(Alignment_t *ali, double thresh, Marker_t* m,
   if( rows <= 3)
     return UNITIG_IS_SHALLOW;
 
-  /* If the number of rows is way to big, we assume that 
+  /* If the number of rows is way to big, we assume that
      the alignment is repetitive. The test is here too costly */
 
   if( rows > TEST_UPPER_BOUND ){
@@ -984,7 +984,7 @@ AS_REZ_test_MPsimple(Alignment_t *ali, double thresh, Marker_t* m,
     *pval = mpresult.pr;
   }
 
-  return ret;  
+  return ret;
 }
 
 
@@ -992,7 +992,7 @@ AS_REZ_test_MPsimple(Alignment_t *ali, double thresh, Marker_t* m,
 
 
 // The function returns a (double) pvalue (probability) of an
-// input unitig being SIMPLE -- meaning, having mismatches due to randomly 
+// input unitig being SIMPLE -- meaning, having mismatches due to randomly
 // distributed sequencing errors.
 //
 // If the returned value is sufficiently small, the unitig should be treated
@@ -1001,8 +1001,8 @@ AS_REZ_test_MPsimple(Alignment_t *ali, double thresh, Marker_t* m,
 // A return value of 1.0 may indicate that the unitig was not deep enough for
 // a meaningful test.
 //
-// Some false positives may be induced by polymorphisms; however, the 
-// calculation should not be drastically misled by multibase indel 
+// Some false positives may be induced by polymorphisms; however, the
+// calculation should not be drastically misled by multibase indel
 // polymorphisms.
 //
 // INPUT:
@@ -1024,7 +1024,7 @@ double AS_REZ_MP_MicroHet_prob(char **bqarray,int **idarray,GateKeeperStore *han
   UnitigStatus_t result;
   Marker_t *m;
   double thresh=1e-3; /* reasonable value; doesn't actually do anything
-                         here except make AS_REZ_test_MPsimple() happy, 
+                         here except make AS_REZ_test_MPsimple() happy,
                          but cf. AS_REZ_is_IUM_MPsimple() */
 
   Alignment_t *ali = AS_REZ_convert_array_to_alignment(bqarray,len,depth);

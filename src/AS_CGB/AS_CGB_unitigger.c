@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.29 2008-06-16 16:58:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.30 2008-06-27 06:29:13 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_Bubble.h"
@@ -45,15 +45,15 @@ output_the_chunks(Tfragment     *frags,
   IntChunk_ID       chunk_index;
   IntChunk_ID       nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
   IntFragment_ID    nfrag   = GetNumFragments(frags);
-  
+
   char filename[FILENAME_MAX];
-  
+
   FILE *fcgb = NULL;
   int fragment_count = 0;
   int file_count = 0;
 
   VA_TYPE(IntMultiPos) * the_imps = CreateVA_IntMultiPos(0);
-  
+
   for(chunk_index=0;chunk_index < nchunks; chunk_index++) /* a */ {
     AChunkMesg     *ch   = GetVA_AChunkMesg(thechunks,chunk_index);
     IntFragment_ID  num_frags = ch->num_frags;
@@ -78,7 +78,7 @@ output_the_chunks(Tfragment     *frags,
 
     achunk.consensus = "";
     achunk.quality   = "";
-      
+
     achunk.iaccession     = ch->iaccession;
     achunk.source         = "gen> @@ [0,0]";
     achunk.coverage_stat  = compute_coverage_statistic(ch->rho,
@@ -118,7 +118,7 @@ output_the_chunks(Tfragment     *frags,
         assert(NULL != fcgb);
       }
     }
-    
+
     pmesg.t = MESG_IUM;
     pmesg.m = &achunk;
     WriteProtoMesg_AS(fcgb,&pmesg);
@@ -141,14 +141,14 @@ ParseCommandLine(UnitiggerGlobals * rg,
 
   int illegal=FALSE;
   int blessed_overlaps_output_flag = FALSE;
-  
+
   int ch,errflg=0;
   optarg = NULL;
 
   argc = AS_configure(argc, argv);
 
-  while (!errflg && 
-         ((ch = getopt(argc, argv, 
+  while (!errflg &&
+         ((ch = getopt(argc, argv,
                        "B:F:H:I:L:S:U:W:Y:"
                        "d:e:h:j:kl:m:n:o:p:su:w:x:y:z:"
                        "56:7"
@@ -187,7 +187,7 @@ ParseCommandLine(UnitiggerGlobals * rg,
         fprintf( stderr, " * spurs file is %s\n", rg->spurs_file );
         break;
       case 'U':
-        // -U 
+        // -U
         rg->bubble_smoothing_flag = atoi(optarg);
         fprintf(stderr, "* Bubble smoothing is now %s.\n", (rg->bubble_smoothing_flag) ? "ON" : "OFF");
         break;
@@ -199,7 +199,7 @@ ParseCommandLine(UnitiggerGlobals * rg,
                 rg->walk_depth);
         break;
       case 'Y':
-        // -Y 
+        // -Y
         rg->dont_count_chimeras = atoi(optarg);
         break;
 
@@ -259,7 +259,7 @@ ParseCommandLine(UnitiggerGlobals * rg,
         break;
 
       case 's':
-        // -s 
+        // -s
         rg->aggressive_spur_fragment_marking = FALSE;
         // Aggressive removal of the early spurs.
         break;
@@ -421,7 +421,7 @@ main(int argc, char **argv) {
   gkpStore = openGateKeeperStore(rg->frag_store, FALSE);
  again:
   heapva->frags             = CreateVA_Afragment (rg->maxfrags);
-  heapva->edges             = CreateVA_Aedge     (rg->maxedges); 
+  heapva->edges             = CreateVA_Aedge     (rg->maxedges);
   heapva->chunkfrags        = CreateVA_AChunkFrag(0);
   heapva->thechunks         = CreateVA_AChunkMesg(0);
   heapva->nbase_in_genome              = 0;
@@ -443,8 +443,8 @@ main(int argc, char **argv) {
     rg->bubble_smoothing_flag = FALSE;
 
     /* BUBBLE SMOOTHING CONFIGURATION PARAMETERS - See also
-       AS_CGB_Bubble.h           - Flag to enable debugging output, 
-       AS_CGB_Bubble_Popper.h    - Alignment parameters. 
+       AS_CGB_Bubble.h           - Flag to enable debugging output,
+       AS_CGB_Bubble_Popper.h    - Alignment parameters.
        AS_CGB_Bubble_VertexSet.h - Default parameters for bubble finding. */
 
     AS_CGB_Bubble_List_t bubbles = NULL;
@@ -455,7 +455,7 @@ main(int argc, char **argv) {
 
     AS_CGB_Bubble_find_and_remove_bubbles(gkpStore,
                                           heapva->frags, heapva->edges,
-                                          heapva->thechunks, heapva->chunkfrags, 
+                                          heapva->thechunks, heapva->chunkfrags,
                                           heapva->global_fragment_arrival_rate,
                                           bfp,
                                           stderr,
@@ -463,8 +463,8 @@ main(int argc, char **argv) {
     fclose(bfp);
 
     /* NOTE: 0's in following call indicate use of defaults. */
-  
-    bubbles = AS_CGB_Bubble_find_bubbles(heapva->frags, heapva->edges, 0, 0, 0);    
+
+    bubbles = AS_CGB_Bubble_find_bubbles(heapva->frags, heapva->edges, 0, 0, 0);
 
     {
       char bfn[500] = {0};
@@ -473,7 +473,7 @@ main(int argc, char **argv) {
       AS_CGB_Bubble_List_t bubbles_tmp = bubbles;
 
       while (bubbles_tmp != NULL) {
-        fprintf(bfp, F_IID" %d "F_IID" %d\n", 
+        fprintf(bfp, F_IID" %d "F_IID" %d\n",
                 get_iid_fragment(heapva->frags, bubbles_tmp->start),
                 bubbles_tmp->start_sx,
                 get_iid_fragment(heapva->frags, bubbles_tmp->end),
@@ -507,7 +507,7 @@ main(int argc, char **argv) {
 
 
   // Determine the blessed overlaps.  They are the overlaps
-  // that are interior to u-unitigs.  In particular, intrachunk overlaps 
+  // that are interior to u-unitigs.  In particular, intrachunk overlaps
   //
   IntFragment_ID nfrag = GetNumFragments(heapva->frags);
   IntEdge_ID     nedge = GetNumEdges(heapva->edges);
@@ -548,26 +548,26 @@ main(int argc, char **argv) {
       IntFragment_ID avx = get_avx_edge(heapva->edges,ie);
       int asx = get_asx_edge(heapva->edges,ie);
       int ahg = get_ahg_edge(heapva->edges,ie);
-        
+
       IntFragment_ID bvx = get_bvx_edge(heapva->edges,ie);
       int bsx = get_bsx_edge(heapva->edges,ie);
       int bhg = get_bhg_edge(heapva->edges,ie);
-        
+
       uint32 qua = get_qua_edge(heapva->edges,ie);
 
       IntFragment_ID aid = get_iid_fragment(heapva->frags,avx);
       IntFragment_ID bid = get_iid_fragment(heapva->frags,bvx);
-        
+
       signed char delta[1] = {AS_ENDOF_DELTA_CODE};
 
       omesg.aifrag = aid;
       omesg.bifrag = bid;
-          
+
       omesg.ahg        = ahg;
       omesg.bhg        = bhg;
       omesg.min_offset = ahg;
       omesg.max_offset = ahg;
-          
+
       omesg.orientation = asx ? (bsx ? AS_INNIE : AS_NORMAL) :
         (bsx ? AS_ANTI  : AS_OUTTIE);
 
@@ -594,7 +594,7 @@ main(int argc, char **argv) {
       omesg.quality = AS_OVS_decodeQuality(qua);
       omesg.polymorph_ct = 0;
       omesg.delta = delta;
-          
+
       WriteProtoMesg_AS(fcgb,&pmesg);
     }
   }
@@ -607,7 +607,7 @@ main(int argc, char **argv) {
                   heapva->frags,
                   heapva->edges);
 
-  
+
   Delete_VA(heapva->frags);
   Delete_VA(heapva->edges);
   Delete_VA(heapva->chunkfrags);

@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -40,7 +40,7 @@ typedef struct{
   clock_t startTime; // Beginning of current start/stop sequence
   clock_t stopTime;  // Time of last stop. stop-start was then added to cumTime;
   time_t startTimeInSeconds;
-  time_t stopTimeInSeconds;	  
+  time_t stopTimeInSeconds;
   int running;
   int64 cycles;
 }TimerT;
@@ -102,15 +102,15 @@ static double StopTimerT(TimerT *timer){
   stopTimeInSeconds = (timer->stopTimeInSeconds);
   deltaInSeconds = (stopTimeInSeconds - startTimeInSeconds);
 
-  if (deltaInSeconds < GRANULARITY_CUTOFF) 
+  if (deltaInSeconds < GRANULARITY_CUTOFF)
   {
-	timer->cumTime += (uint64)delta;
-	return (double)delta/ (double)CLOCKS_PER_SEC;
+timer->cumTime += (uint64)delta;
+return (double)delta/ (double)CLOCKS_PER_SEC;
   }
   // else
   {
-	timer->cumTime += (uint64)deltaInSeconds * CLOCKS_PER_SEC;
-	return deltaInSeconds;
+timer->cumTime += (uint64)deltaInSeconds * CLOCKS_PER_SEC;
+return deltaInSeconds;
   }
 }
 
@@ -135,16 +135,9 @@ static double LapTimerT(TimerT *timer){
   if (deltaInSeconds < GRANULARITY_CUTOFF) {
     return (double)delta/ (double)CLOCKS_PER_SEC ;
   }
-  // else 
+  // else
   return (double) deltaInSeconds;
 }
 
-
-
 #endif
-
-
-
-
-
 

@@ -1,19 +1,19 @@
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -30,7 +30,7 @@
 // initialized value is 12 -- no more than this many segments in the chain
 extern int MaxGaps;
 
-// init value is 200; this could be set to the amount you extend the clear 
+// init value is 200; this could be set to the amount you extend the clear
 // range of seq b, plus 10 for good measure
 extern int MaxBegGap;
 
@@ -78,7 +78,7 @@ restoreDefaultLocalAlignerVariables(void) {
 
 int
 examineGap(ContigT *lcontig, int lFragIid,
-           ContigT *rcontig, int rFragIid, 
+           ContigT *rcontig, int rFragIid,
            int gapNumber,
            int *ahang,
            int *olapLengthOut,
@@ -142,7 +142,7 @@ examineGap(ContigT *lcontig, int lFragIid,
 
   if (lcontig->offsetAEnd.mean < lcontig->offsetBEnd.mean)
     lContigOrientation = A_B;
-  
+
   if (rcontig->offsetAEnd.mean < rcontig->offsetBEnd.mean)
     rContigOrientation = A_B;
 
@@ -150,10 +150,10 @@ examineGap(ContigT *lcontig, int lFragIid,
 
   GetConsensus(ScaffoldGraph->ContigGraph, lcontig->id, lContigConsensus, lContigQuality);
   GetConsensus(ScaffoldGraph->ContigGraph, rcontig->id, rContigConsensus, rContigQuality);
-  
+
   lSequence = Getchar(lContigConsensus, 0);
   rSequence = Getchar(rContigConsensus, 0);
-  
+
   // ----------------------> lContigOrientation == A_B
   //                  -----> frag is 5p->3p into gap, aligned with contig
   //
@@ -181,13 +181,13 @@ examineGap(ContigT *lcontig, int lFragIid,
     assert(info->set);
     lFrag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
   }
-  
+
   if (rFragIid != -1) {
     InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, rFragIid);
     assert(info->set);
     rFrag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
   }
-  
+
   switch (iterNumber) {
     case 1:
       if (lFragIid != -1) {
@@ -250,7 +250,7 @@ examineGap(ContigT *lcontig, int lFragIid,
   //               ----->    frag is 5p->3p into gap, aligned with contig
   // <---------------------- lContigOrientation == B_A
   //               ----->    frag is 5p->3p into gap, aligned opposite to contig
-  
+
   lFragContigOverlapLength = 0;
 
   if (lFragIid != -1) {
@@ -261,9 +261,9 @@ examineGap(ContigT *lcontig, int lFragIid,
   }
 
   // grab the last CONTIG_BASES bases of the lcontig consensus sequence
-  lcontigBasesUsed = MIN(CONTIG_BASES - lFragContigOverlapLength, 
+  lcontigBasesUsed = MIN(CONTIG_BASES - lFragContigOverlapLength,
                          (int) lcontig->bpLength.mean - lFragContigOverlapLength);
-  
+
   // lcontigBaseStart is the base where we start using the consensus
   // sequence in lcompBuffer and thus also the number of bases from
   // the contig that are intact
@@ -280,7 +280,7 @@ examineGap(ContigT *lcontig, int lFragIid,
   if (debug.examineGapLV > 0) {
     fprintf(debug.examineGapFP, "lcompBuffer:  len:%d   lFragContigOverlapLength:%d lcontigBaseStart:%d lcontigBasesUsed:%d\n",
             strlen(lcompBuffer), lFragContigOverlapLength, lcontigBaseStart, lcontigBasesUsed);
-  }  
+  }
 
   // now tack on the 3p clr range extension to the bases of the contig
   // consensus sequence
@@ -319,15 +319,15 @@ examineGap(ContigT *lcontig, int lFragIid,
     else
       rFragContigOverlapLength = (int) (rcontig->bpLength.mean - rFrag->contigOffset3p.mean);
   }
- 
+
   MaxBegGap = 100;
 
   if (rFragIid != -1) {
 
     // basesToNextFrag is the number of bases back to the first frag that gets us to 2x
     //
-    MaxBegGap = rclr_bgn + rBasesToNextFrag + 20;  // 20 is slop	
-  
+    MaxBegGap = rclr_bgn + rBasesToNextFrag + 20;  // 20 is slop
+
     // now if we have a right frag, grab the "5p" clr range extension
     // - remember the frag has been flipped
 
@@ -335,11 +335,11 @@ examineGap(ContigT *lcontig, int lFragIid,
       rcompBuffer[ i ] = rFragSeqBuffer[ i ];
     rcompBuffer[i] = 0;
   }
-  
+
   // grab the first CONTIG_BASES bases of the rcontig consensus
   // sequence the rcontig consensus has been flipped if necessary
 
-  rcontigBasesUsed = MIN(CONTIG_BASES - rFragContigOverlapLength, 
+  rcontigBasesUsed = MIN(CONTIG_BASES - rFragContigOverlapLength,
                          (int) rcontig->bpLength.mean - rFragContigOverlapLength);
 
   for (i = 0; i < rcontigBasesUsed; i++)
@@ -362,7 +362,7 @@ examineGap(ContigT *lcontig, int lFragIid,
   Overlap *overlap;
   LengthT gapSize;
   char *rcompBufferTrimmed = NULL;
-	
+
   beg    = -strlen (rcompBuffer);
   end    = strlen (lcompBuffer);
   assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
@@ -396,7 +396,7 @@ examineGap(ContigT *lcontig, int lFragIid,
 
   if (debug.examineGapLV > 0) {
     fprintf(debug.examineGapFP, "initial ahang: %d, bhang:%d, length: %d, diffs: %d, diffs / length %%: %f\n",
-            overlap->begpos, overlap->endpos, overlap->length, overlap->diffs, 
+            overlap->begpos, overlap->endpos, overlap->length, overlap->diffs,
             100.0 * overlap->diffs / overlap->length);
     Print_Overlap(debug.examineGapFP, lcompBuffer, rcompBuffer, overlap);
   }
@@ -405,30 +405,30 @@ examineGap(ContigT *lcontig, int lFragIid,
     \
     \
     \  left flap, right frag
-    \  
+    \
     -------------------
     -------------------
     \   right flap, left frag
     \
     \
   */
-          
+
   // do flap trimming
   // left flap, right frag
   *rightFragFlapLength = 0;
   if (overlap->begpos == abs(overlap->trace[0]) - 1 && overlap->trace[0] < 0) {
-    while (overlap->begpos == abs(overlap->trace[ *rightFragFlapLength ]) - 1 && 
+    while (overlap->begpos == abs(overlap->trace[ *rightFragFlapLength ]) - 1 &&
            overlap->trace[ *rightFragFlapLength ] < 0)
       (*rightFragFlapLength)++;
   }
-	  
+
   // right flap, left frag
   {
     // first find the number of elements in trace
     int numTraceElements = 0, icnt = 0, rcompLength = 0;
     while (overlap->trace[ icnt++ ] != 0)
       numTraceElements++;
-      
+
     *leftFragFlapLength = 0;
     if ((numTraceElements > 0) &&
         (overlap->endpos > 0) &&
@@ -442,7 +442,7 @@ examineGap(ContigT *lcontig, int lFragIid,
       }
     }
   }
-	
+
   lcompBuffer[ strlen(lcompBuffer) - *leftFragFlapLength ] = 0;
   rcompBufferTrimmed = &rcompBuffer[ *rightFragFlapLength ];
 
@@ -472,13 +472,13 @@ examineGap(ContigT *lcontig, int lFragIid,
 
   if (debug.examineGapLV > 0) {
     fprintf(debug.examineGapFP, "post-flap trimming ahang: %d, bhang:%d, length: %d, diffs: %d, diffs / length %%: %f\n",
-            overlap->begpos, overlap->endpos, overlap->length, overlap->diffs, 
+            overlap->begpos, overlap->endpos, overlap->length, overlap->diffs,
             100.0 * overlap->diffs / overlap->length);
     Print_Overlap(debug.examineGapFP, lcompBuffer, rcompBufferTrimmed, overlap);
   }
 
   if (debug.examineGapLV > 0) {
-    fprintf(debug.examineGapFP, "found overlap between frags %d and %d, length = %d\n", 
+    fprintf(debug.examineGapFP, "found overlap between frags %d and %d, length = %d\n",
             lFragIid, rFragIid, overlap->length);
     fprintf(debug.examineGapFP, "ahang + overlap->length: %d, strlen(lcompBuffer): %d, diff: %d\n",
             overlap->begpos + overlap->length,
@@ -486,10 +486,10 @@ examineGap(ContigT *lcontig, int lFragIid,
             overlap->begpos + overlap->length - strlen(lcompBuffer));
     fprintf(debug.examineGapFP, "overlap->length + bhang: %d, strlen(rcompBufferTrimmed): %d, diff: %d\n",
             overlap->length + overlap->endpos,
-            strlen(rcompBufferTrimmed), 
+            strlen(rcompBufferTrimmed),
             overlap->length + overlap->endpos - strlen(rcompBufferTrimmed));
   }
-	  
+
   *lcontigBasesIntact = lcontigBaseStart;
   *ahang              = MAX (0, overlap->begpos);
   *olapLengthOut      = overlap->length;

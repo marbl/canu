@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -23,19 +23,19 @@
 * Module:  SharedOVL.h
 * Description:
 *   Shared declarations for overlap programs
-* 
+*
 *    Programmer:  A. Delcher
 *       Started:   15 February 2007
-* 
+*
 * Assumptions:
-* 
+*
 * Notes:
 *
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.h,v 1.11 2008-04-29 22:33:31 adelcher Exp $
- * $Revision: 1.11 $
+ * $Id: SharedOVL.h,v 1.12 2008-06-27 06:29:18 brianwalenz Exp $
+ * $Revision: 1.12 $
 */
 
 

@@ -1,7 +1,7 @@
 
 use File::Copy;
 use Mail::Mailer;
-my ($username) = getpwuid($>) . '@jcvi.org'; 
+my ($username) = getpwuid($>) . '@jcvi.org';
 
 sub localDefaults () {
 

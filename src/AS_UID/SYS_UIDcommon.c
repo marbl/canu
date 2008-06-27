@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -86,7 +86,7 @@ int32  SYS_UIDreadn(int32 fd, char* ptr, int32 nbytes)
    int32 nread;
 
    nleft = nbytes;
-   while (nleft > 0) 
+   while (nleft > 0)
    {
       nread = recv(fd, ptr, nleft, 0);
       if (nread < 0)
@@ -96,7 +96,7 @@ int32  SYS_UIDreadn(int32 fd, char* ptr, int32 nbytes)
       nleft -= nread;
       ptr += nread;
    }
-   return UID_OK;    
+   return UID_OK;
 }
 
 /*******************************************************************************
@@ -110,7 +110,7 @@ int32  SYS_UIDwriten(int32 fd, char* ptr, int32 nbytes)
    int32 nwritten;
 
    nleft = nbytes;
-   while (nleft > 0) 
+   while (nleft > 0)
    {
       nwritten = send(fd, ptr, nleft, 0);
       if (nwritten <= 0)
@@ -118,7 +118,7 @@ int32  SYS_UIDwriten(int32 fd, char* ptr, int32 nbytes)
       nleft -= nwritten;
       ptr += nwritten;
    }
-   return UID_OK;    
+   return UID_OK;
 }
 
 
@@ -130,7 +130,7 @@ Description: unpacks the 8-byte uint64 blocksize request
 *******************************************************************************/
 int32 SYS_UIDunpackUIDRequestXdr(char* readbuffer, int32* status, uint64* request_size)
 {
-   XDR xdr_stream;  
+   XDR xdr_stream;
    char request_temp_array[12];
    int32 i;
 
@@ -220,7 +220,7 @@ int32 SYS_UIDunpackUIDMessageXdr(uint64* uid_interval, int32* status)
    xdr_destroy(&xdr_stream);
    return UID_OK;
 }
-   
+
 /*******************************************************************************
 
 Description:   packs the uid_interval array of 8-byte uint64s and also
@@ -264,7 +264,7 @@ int32 SYS_UIDpackUIDMessageXdr(uint64* uid_interval, int32 status)
 
    return UID_OK;
 }
-   
+
 
 /*******************************************************************************
 
@@ -283,7 +283,7 @@ void   SYS_UIDlogMessage(const char* message)
   if ((lfp = fopen("/tmp/uidlog", "a")) == NULL) {
     /* do nothing */
     return;
-  } 
+  }
   fprintf(lfp, " : %s\n", message);
   fclose(lfp);
   return;

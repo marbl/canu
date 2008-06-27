@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -60,7 +60,7 @@ static char CM_ID[] = "$Id:";
 
 */
 
-#define O2CI(a)    ((a) >> 1) 
+#define O2CI(a)    ((a) >> 1)
 // From the chunk-end, return the chunk index.
 #define O2S(a)     ((a) & 1)
 // From the chunk-end, return the chunk suffix.
@@ -70,7 +70,7 @@ static char CM_ID[] = "$Id:";
 // From the chunk-end, return the mate chunk-end.
 
 static IntChunk_ID get_second_mate_index
-( 
+(
   TChunkMesg chunks[],
   const Tfragment frags[],
   const Tedge edges[],
@@ -102,7 +102,7 @@ static IntChunk_ID get_second_mate_index
 					  edges, edge_id + i );
       int temp_suffix = get_chunk_suffix( chunks, frags,
 					  edges, edge_id + i );
-      temp_index = CIS2O( temp_chunk, temp_suffix); 
+      temp_index = CIS2O( temp_chunk, temp_suffix);
 
       if( (temp_index != other_index )
 #ifdef UUNIQUE
@@ -144,14 +144,14 @@ static IntChunk_ID get_lone_mate_index
   const int b_side = O2S( b_index );
   const int32 raw_degree =
     (b_side == 1) ? chunk->b_degree_raw : chunk->a_degree_raw;
-  const IntEdge_ID edge_id = (b_side == 1) 
+  const IntEdge_ID edge_id = (b_side == 1)
     ? chunk->b_list_raw : chunk->a_list_raw;
 
   // loop over the edges
   for( i = 0; i < raw_degree; i++ )
   {
     const Tnes edge = get_nes_edge( edges, edge_id + i );
-    
+
     // if it's the right kind of edge
     if( AS_CGB_INTERCHUNK_EDGE == edge )
     {
@@ -185,7 +185,7 @@ static int is_hanging_chunk_end
  TChunkMesg chunks[],
  const Tfragment frags[],
  const Tedge edges[],
- const IntChunk_ID b_index 
+ const IntChunk_ID b_index
 )
 {
   int i;
@@ -193,14 +193,14 @@ static int is_hanging_chunk_end
   const int b_side = O2S( b_index );
   const int32 raw_degree =
     (b_side == 1) ? chunk->b_degree_raw : chunk->a_degree_raw;
-  const IntEdge_ID edge_id = (b_side == 1) 
+  const IntEdge_ID edge_id = (b_side == 1)
     ? chunk->b_list_raw : chunk->a_list_raw;
 
   // loop over the edges
   for( i = 0; i < raw_degree; i++ )
   {
     const Tnes edge = get_nes_edge( edges, edge_id + i );
-    
+
     switch(edge) {
     // if it's any dovetail edge
     case AS_CGB_INTERCHUNK_EDGE:
@@ -227,7 +227,7 @@ uint32 count_chimeras
  const Tfragment  frags[],
  const Tedge      edges[],
  TChunkFrag       chunk_frags[],
- TChunkMesg       chunks[] 
+ TChunkMesg       chunks[]
 )
 {
   uint32         num_chimeras = 0;
@@ -243,7 +243,7 @@ uint32 count_chimeras
              chimeras_report_filename );
     return 0;
   }
-  
+
   // loop over chunks
   for( schunk = 0; schunk < num_chunks; schunk++ )
   {
@@ -252,7 +252,7 @@ uint32 count_chimeras
     IntChunk_ID  b_index = sentinel;
     IntChunk_ID  c_index = sentinel;
     IntChunk_ID  d_index = sentinel;
-    
+
     assert( schunk == O2CI(s_index) );
     // s must consist of exactly one fragment
     if( (GetVA_AChunkMesg( chunks, O2CI(s_index)))->num_frags != 1 )
@@ -263,7 +263,7 @@ uint32 count_chimeras
       get_lone_mate_index( chunks, frags, edges, sentinel, O2O(s_index), cgb_unique_cutoff );
     if( b_index == sentinel )
       continue;
-    
+
     // s must have exactly one a-mate (c)
     c_index =
       get_lone_mate_index( chunks, frags, edges, sentinel, s_index, cgb_unique_cutoff );
@@ -273,14 +273,14 @@ uint32 count_chimeras
     // b != c (chunk within a chunk?)
     if( O2CI( c_index ) == O2CI( b_index ) )
       continue;
-    
+
     // b must have exactly two a-mates (s,a)
     a_index =
-      get_second_mate_index( chunks, frags, edges, 
+      get_second_mate_index( chunks, frags, edges,
 			     sentinel, b_index, O2O(s_index), cgb_unique_cutoff );
     if( a_index == sentinel )
       continue;
-    
+
     // c must have exactly two b-mates (s,d)
     d_index =
       get_second_mate_index( chunks, frags, edges,
@@ -291,7 +291,7 @@ uint32 count_chimeras
     // a !=d (quadrilateral, not a Z)
     if( O2CI( a_index ) == O2CI( d_index ) )
       continue;
-    
+
     // a != c (quadrilateral, not a Z)
     if( O2CI( a_index ) == O2CI( c_index ) )
       continue;
@@ -299,12 +299,12 @@ uint32 count_chimeras
     // b != d (quadrilateral, not a Z)
     if( O2CI( b_index ) == O2CI( d_index ) )
       continue;
-    
+
     // a must have exactly one b-mate (b)
     if( get_lone_mate_index( chunks, frags, edges,
                              sentinel, a_index, cgb_unique_cutoff ) != b_index )
       continue;
-    
+
     // d must have exactly one a-mate (c)
     if( get_lone_mate_index( chunks, frags, edges,
                              sentinel, d_index, cgb_unique_cutoff ) != c_index )
@@ -351,7 +351,7 @@ uint32 count_chimeras
              O2S( b_index ),
              O2CI(c_index ),  //c_chunk->iaccession,
              O2S( c_index ),
-             O2CI(d_index ),  //d_chunk->iaccession 
+             O2CI(d_index ),  //d_chunk->iaccession
              O2S( d_index )
 	     );
   }
@@ -398,7 +398,7 @@ uint32 count_crappies
  const Tfragment  frags[],
  const Tedge      edges[],
  TChunkFrag       chunk_frags[],
- TChunkMesg       chunks[] 
+ TChunkMesg       chunks[]
 )
 {
   uint32         num_crappies = 0;
@@ -415,7 +415,7 @@ uint32 count_crappies
              crappies_report_filename );
     return 0;
   }
-  
+
   // loop over chunks
   for( schunk = 0; schunk < num_chunks; schunk++ )
     for( ssuffix = 0; ssuffix < 2; ssuffix++ )
@@ -423,7 +423,7 @@ uint32 count_crappies
     const IntChunk_ID  s_index = CIS2O(schunk,ssuffix);
     IntChunk_ID  c_index = sentinel;
     IntChunk_ID  d_index = sentinel;
-    
+
     assert( schunk == O2CI(s_index) );
     // s must consist of exactly one fragment
     if( (GetVA_AChunkMesg( chunks, O2CI(s_index)))->num_frags != 1 )
@@ -481,7 +481,7 @@ uint32 count_crappies
 	     O2S( s_index ),
              O2CI(c_index ),  //c_chunk->iaccession,
              O2S( c_index ),
-             O2CI(d_index ),  //d_chunk->iaccession 
+             O2CI(d_index ),  //d_chunk->iaccession
              O2S( d_index )
 	     );
   }

@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -50,21 +50,21 @@
 
   /* we need to have:
      an ma for the  top chunk
-     if (type == contig) 
+     if (type == contig)
      an iterator over chunks in top ma
      an ma for sub chunks
      an iterator over fragments in the (sub) ma
 
      the fragment iterator should be set to go after init
 
-     each call to iterator should 
+     each call to iterator should
      compute next in fragment iterator
      if non null, return
      else
      iterate to next sub chunk
      if null, return failure
-     else 
-     restart fragment iterator     
+     else
+     restart fragment iterator
      compute next
 
 
@@ -136,7 +136,7 @@ void GetRelationBetweenFragsOnChunks(CIFragT *frag,ChunkInstanceT*fragChunk,
 
   separation->mean = abs(f5pOnScf - m5pOnScf);
 
-  separation->variance = 
+  separation->variance =
     abs(fragCtg->offsetAEnd.variance - mateCtg->offsetAEnd.variance) + ComputeFudgeVariance(f5pOnCtg) + ComputeFudgeVariance(m5pOnCtg);
 
   if( ((fOri == A_B)+(fCIOri == A_B)+(fCtgOri == A_B)) % 2 == 0 ){
@@ -180,7 +180,7 @@ void GetRelationBetweenFragsOnChunks(CIFragT *frag,ChunkInstanceT*fragChunk,
 // from AS_REZ/PlaceFragments.c
 
 static
-int FragAndMateAreCompatible(CIFragT *frag, ChunkInstanceT *fragChunk, 
+int FragAndMateAreCompatible(CIFragT *frag, ChunkInstanceT *fragChunk,
 			     CIFragT *mate, ChunkInstanceT *mateChunk,
 			     OrientType expectedOri){
 
@@ -188,7 +188,7 @@ int FragAndMateAreCompatible(CIFragT *frag, ChunkInstanceT *fragChunk,
   LengthT separation;
   double jointstddev;
   OrientType edgeOri;
-	  
+
   GetRelationBetweenFragsOnChunks(frag,fragChunk,mate,mateChunk,&separation,&edgeOri);
 
   if(edgeOri != expectedOri) return FALSE;
@@ -196,7 +196,7 @@ int FragAndMateAreCompatible(CIFragT *frag, ChunkInstanceT *fragChunk,
   fragDist = GetDistT(ScaffoldGraph->Dists, frag->dist);
 
   jointstddev = sqrt ( separation.variance + fragDist->sigma * fragDist->sigma);
-  
+
   if (abs (separation.mean - fragDist->mu) < MAX_SIGMA_SLOP * jointstddev) {
     return TRUE;
   } else {
@@ -278,7 +278,7 @@ int NextCIFragTInChunkIterator(CGWFragIterator* frags, CIFragT**nextfrg){
       return TRUE;
     }
 
-  } else { 
+  } else {
     int rv;
     CIFragT *retfrg;
     NodeCGW_T *ci;
@@ -318,7 +318,7 @@ static
 void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_only,ChunkInstanceT *node){
 
   CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,
-			     GetInfoByIID( ScaffoldGraph->iidToFragIndex, 
+			     GetInfoByIID( ScaffoldGraph->iidToFragIndex,
 					   fragIID)->fragIndex);
 
   mates->thisFragIID = fragIID;
@@ -326,7 +326,7 @@ void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_
   /* set the iterator up to fail next time around ... this will be revised
      if we find evidence of relevant links below */
   mates->nextLink = NULLINDEX;
-  
+
   /* If this fragment has no constraints... continue */
   if(frag->flags.bits.hasMate == 0){
     assert(frag->mateOf == NULLINDEX);
@@ -353,8 +353,8 @@ void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_
 
     assert(node!=NULL);
     mates->node = node;
-    
-    // If this fragment only has links to fragments within the node of interesst ...continue 
+
+    // If this fragment only has links to fragments within the node of interesst ...continue
     if(node->flags.bits.isContig){
       if(frag->contigID != node->id){
 	assert(0);
@@ -366,11 +366,11 @@ void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_
       }
 
     }else if(node->flags.bits.isCI){
-      // If this fragment only has links to fragments within this CI...continue 
+      // If this fragment only has links to fragments within this CI...continue
       if(frag->cid != node->id){
 	assert(0);
       }
-      
+
       if( frag->flags.bits.hasInternalOnlyCILinks){
 	// return in state where iterator will fail ...
 	return;
@@ -394,14 +394,14 @@ void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_
   mates->nextLink = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf)->iid;
 
   return;
-     
+
 }
 
 // determine whether a fragment is internal to a node
 static
 int check_internal(NodeCGW_T *node,CDS_CID_t frgIID){
 
-  CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, 
+  CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,
 			     GetInfoByIID(ScaffoldGraph->iidToFragIndex,
 					  frgIID)->fragIndex);
   AssertPtr(frag);
@@ -432,20 +432,20 @@ int NextCGWMateIterator(CGWMateIterator* mates,CDS_CID_t * linkIID){
 
   *linkIID = mates->nextLink;
 
-  // there aren't any more mates, so set up to fail next time around ... 
+  // there aren't any more mates, so set up to fail next time around ...
   mates->nextLink = NULLINDEX;
 
 
   if(mates->external_only)
     isInternal = check_internal(mates->node,*linkIID);
-  else 
+  else
     isInternal = FALSE;
 
   // if internal and we only want external, skip this one by recursing ...
   if(isInternal)
     return NextCGWMateIterator(mates,linkIID);
 
-  else 
+  else
     return TRUE;
 }
 
@@ -459,7 +459,7 @@ int scaffoldOf(CDS_CID_t fiid){
     ci = GetGraphNode(ScaffoldGraph->ContigGraph,frg->contigID);
     assert(ci!=NULL);
     return ci->scaffoldID;
-  } 
+  }
   assert(frg->CIid!=NULLINDEX);
   ci = GetGraphNode(ScaffoldGraph->CIGraph,frg->CIid);
   assert(ci!=NULL);
@@ -518,7 +518,7 @@ int matePlacedOnlyIn(CIFragT *frg, CDS_CID_t sid, CIFragT **mate, ChunkInstanceT
 static
 void PlaceFragmentsInMultiAlignT(CDS_CID_t toID, int isUnitig,
 				 VA_TYPE(IntMultiPos) *f_list){
-  
+
   MultiAlignT *ma;
 
   //     1. get the old multialign from the seqDB
@@ -535,7 +535,7 @@ void PlaceFragmentsInMultiAlignT(CDS_CID_t toID, int isUnitig,
     //     2'. construct an ICM or IUM containing the new fragments
     //     2''. run consensus on it
     //     2'''. convert the returned ICM or IUM back to a multialignment
-  }  
+  }
 
   //     3. update the multialign
   updateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB,toID,isUnitig,ma,TRUE);
@@ -543,7 +543,7 @@ void PlaceFragmentsInMultiAlignT(CDS_CID_t toID, int isUnitig,
 
 
 
-/* 
+/*
    Assign a subset of the fragments in an unresolved CI to one of its surrogates.
    The fragments listed are marked for membership (via their CIid field) int he new element
 */
@@ -569,7 +569,7 @@ void ReallyAssignFragsToResolvedCI(GraphCGW_T *graph,
   assert(fromCI->type == UNRESOLVEDCHUNK_CGW);
   assert(toCI->type == RESOLVEDREPEATCHUNK_CGW);
   assert(toCI->scaffoldID != NULLINDEX);
-  
+
   if(f_list_CI){
     ResetVA_IntMultiPos(f_list_CI);
     ResetVA_IntMultiPos(f_list_Contig);
@@ -577,11 +577,11 @@ void ReallyAssignFragsToResolvedCI(GraphCGW_T *graph,
     f_list_CI = CreateVA_IntMultiPos(GetNumCDS_CID_ts(fragments));
     f_list_Contig = CreateVA_IntMultiPos(GetNumCDS_CID_ts(fragments));
   }
-  
+
   fragPos.delta = NULL;
   fragPos.delta_length = 0;
-  
-  
+
+
   /* Check that the fragments CIid == node->id ! */
   /* Then, assign it to the new node and create a degenerate MultiAlignT */
   for(i = 0; i < numFrags; i++){
@@ -634,28 +634,28 @@ void ReallyAssignFragsToResolvedCI(GraphCGW_T *graph,
     frag->contigOffset5p.mean = fragPos.position.bgn;
     frag->contigOffset3p.variance = ComputeFudgeVariance(fragPos.position.end);
     frag->contigOffset3p.mean = fragPos.position.end;
-    
+
     AppendIntMultiPos(f_list_Contig, &fragPos);
   }
-  
+
 
   /* Copy IntMultiPos records from the source to destination CI, adjusting consensus sequence */
   PlaceFragmentsInMultiAlignT(toID, TRUE, f_list_CI);
   UpdateNodeFragments(ScaffoldGraph->CIGraph, toID, FALSE,FALSE);
-  
+
   /* Copy IntMultiPos records to destination Contig, adjusting consensus sequence */
   PlaceFragmentsInMultiAlignT(toContig->id, FALSE, f_list_Contig);
   UpdateNodeFragments(ScaffoldGraph->ContigGraph, toContig->id,FALSE,FALSE);
 
   UpdateNodeUnitigs(loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, toContig->id, FALSE),
                     toContig);
-  
+
   /* Do not Rebuild the Mate Edges of the target CI to reflect the changes in fragment membership */
-  
+
   /* Do NOT Rebuild the Mate Edges of the target CI's Contig to reflect the changes in fragment membership.
      We will rebuild all mate edges when all fragments have been placed */
-  
-  
+
+
 }
 
 
@@ -788,14 +788,14 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
           // we're hot to trot ... now do something!
           IntMultiPos imp;
           imp.type = nextfrg->type;
-          imp.ident = nextfrg->iid;  
+          imp.ident = nextfrg->iid;
           imp.position.bgn = nextfrg->offset5p.mean;
           imp.position.end = nextfrg->offset3p.mean;
           imp.contained = 0; /* this might be wrong! */
           imp.delta_length=0;
           imp.delta=NULL;
           AppendVA_IntMultiPos(impLists[i],&imp);
-	      
+
           numFrgsToPlace++;
         }
       }
@@ -853,14 +853,14 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
         ResetVA_CDS_CID_t(toplace);
 
         while(NextCIFragTInChunkIterator(&frags, &nextfrg))
-          AppendVA_CDS_CID_t(toplace,&(nextfrg->iid));  
+          AppendVA_CDS_CID_t(toplace,&(nextfrg->iid));
 
         CleanupCIFragTInChunkIterator(&frags);
       }
 
       // now really do the placement
       ReallyAssignFragsToResolvedCI(ScaffoldGraph->CIGraph,
-                                    parentChunk->id, 
+                                    parentChunk->id,
                                     getChunkInstanceID(parentChunk,i),
                                     toplace);
 

@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_CGB_all.h,v 1.24 2008-02-27 17:06:59 skoren Exp $
+//  $Id: AS_CGB_all.h,v 1.25 2008-06-27 06:29:13 brianwalenz Exp $
 
 #ifndef AS_CGB_ALL_INCLUDE
 #define AS_CGB_ALL_INCLUDE
@@ -50,7 +50,7 @@ typedef uint32 IntEdge_ID;
 
 
 
-// The transitive overlap inference slop is 
+// The transitive overlap inference slop is
 //
 // abs((length of the middle fragment) +
 //     (length of the opposite overlap) -
@@ -64,7 +64,7 @@ typedef uint32 IntEdge_ID;
 //  containment overlap.
 //
 #define AS_CGB_TRANSITIVE_SLOP_ALPHA   20     // bp
-#define AS_CGB_TRANSITIVE_SLOP_EPSILON 0.07  // fraction 
+#define AS_CGB_TRANSITIVE_SLOP_EPSILON 0.07  // fraction
 
 
 // Initial non-contained fragment types
@@ -119,7 +119,7 @@ typedef uint32 IntEdge_ID;
 // AS_CGB_MARKED_BREAKER_FRAG -- soft, marked
 //
 // AS_CGB_REMOVED_BREAKER_FRAG -- hard, removed
-//  
+//
 // AS_CGB_UNPLACEDCONT_FRAG -- A contained fragment that has not yet
 // been placed into a chunk.
 //
@@ -136,16 +136,16 @@ typedef uint32 IntEdge_ID;
 //
 typedef enum {
   AS_CGB_UNLABELED_FRAG=0,
-  AS_CGB_SOLO_FRAG=1, 
-  AS_CGB_HANGING_FRAG=2, 
-  AS_CGB_THRU_FRAG=3, 
-  AS_CGB_HANGING_CRAPPY_FRAG=4,    
-  AS_CGB_HANGING_CHUNK_FRAG=5, 
-  AS_CGB_INTERCHUNK_FRAG=6, 
-  AS_CGB_INTRACHUNK_FRAG=7, 
+  AS_CGB_SOLO_FRAG=1,
+  AS_CGB_HANGING_FRAG=2,
+  AS_CGB_THRU_FRAG=3,
+  AS_CGB_HANGING_CRAPPY_FRAG=4,
+  AS_CGB_HANGING_CHUNK_FRAG=5,
+  AS_CGB_INTERCHUNK_FRAG=6,
+  AS_CGB_INTRACHUNK_FRAG=7,
   AS_CGB_ORPHANEDCONT_FRAG=8,
-  AS_CGB_MULTICONT_FRAG=9, 
-  AS_CGB_SINGLECONT_FRAG=10, 
+  AS_CGB_MULTICONT_FRAG=9,
+  AS_CGB_SINGLECONT_FRAG=10,
   AS_CGB_MARKED_BREAKER_FRAG=11,
   AS_CGB_REMOVED_BREAKER_FRAG=12,
   AS_CGB_UNPLACEDCONT_FRAG=13,
@@ -173,7 +173,7 @@ typedef enum {
 //
 // Containment Overlap types (asymmetric edges)
 //
-// AS_CGB_CONTAINED_EDGE -- 
+// AS_CGB_CONTAINED_EDGE --
 //
 // Dovetail Overlap types (symmetric edges)
 //
@@ -184,16 +184,16 @@ typedef enum {
 // AS_CGB_TOUCHES_CRAPPY_DVT -- A dovetail overlap touching a crappy
 // fragment and a non-crappy fragment.
 //
-// AS_CGB_BETWEEN_CRAPPY_DVT -- 
-// AS_CGB_TOUCHES_CRAPPY_CON -- 
+// AS_CGB_BETWEEN_CRAPPY_DVT --
+// AS_CGB_TOUCHES_CRAPPY_CON --
 // AS_CGB_BETWEEN_CRAPPY_CON -- A dovetail overlap between crappy
 // fragments.
 //
 // AS_CGB_MARKED_BY_BRANCH_DVT -- An dovetail overlap removed by being
 // on the repeat side of a branch point.
 //
-// AS_CGB_MARKED_BY_BREAKER -- 
-// AS_CGB_MARKED_BY_DELETED_DVT -- 
+// AS_CGB_MARKED_BY_BREAKER --
+// AS_CGB_MARKED_BY_DELETED_DVT --
 // AS_CGB_MARKED_BY_DELETED_CON -- An edge to spur, chimera & other
 // bad fragment
 //
@@ -212,11 +212,11 @@ typedef enum {
 // AS_CGB_REMOVED_BY_BREAKER -- An edge to spur, chimera & other bad
 // fragment
 //
-// AS_CGB_REMOVED_BY_DUPLICATE_DVT -- 
+// AS_CGB_REMOVED_BY_DUPLICATE_DVT --
 // AS_CGB_REMOVED_BY_DUPLICATE_CON -- An edge removed because it was a duplicate.
 //
 //
-//           dovetail 
+//           dovetail
 // \superset nonchordal
 // \superset nontransitive
 // \superset thickest (a directed edge concept)
@@ -274,12 +274,12 @@ void contained_fragment_marking_frc(Tfragment frags[], Tedge edges[]);
 //  AS_CGB_traversal.c
 void as_graph_traversal(FILE *fout,
 			Tfragment frags[],
-			Tedge edges[], 
+			Tedge edges[],
 			size_t fragment_visited[]);
 
 //  AS_CGB_fgb.c
 void view_fgb_chkpnt(char *Store_Path_Prefix,
-                     Tfragment frags[], 
+                     Tfragment frags[],
                      Tedge edges[]);
 
 
@@ -325,7 +325,7 @@ float compute_the_global_fragment_arrival_rate(int           recalibrate,
 void reflect_Aedge( Aedge *new_edge, Aedge *old_edge);
 void granger_Aedge( Aedge *new_edge, Aedge *old_edge);
 
-void fix_overlap_edge_mate (Tfragment frags[], 
+void fix_overlap_edge_mate (Tfragment frags[],
                             Tedge edges[],
                             IntEdge_ID ie0);
 
@@ -448,7 +448,7 @@ int is_there_an_overlap_path(const Tfragment * const frags,
 static float compute_coverage_statistic(int64  rho,
                                         int    number_of_randomly_sampled_fragments_in_chunk,
                                         float  global_fragment_arrival_rate) {
-  
+
  float ln2 = 0.693147f; // Logarithm base 2 of "e".
  float sqrt2 = 1.414213f;
 

@@ -251,7 +251,7 @@ sub checkoutAndLogCA ($$) {
         my @keys = sort keys %logdate;
         foreach my $l (@keys) {
             my ($d, $l) = split '\0', $l;
-            
+
             if ((defined($logs{$l})) && (length($logs{$l} > 0))) {
                 print F "----------------------------------------\n";
                 print F "$logs{$l}\n";

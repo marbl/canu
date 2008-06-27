@@ -2,27 +2,27 @@
 #
 ###########################################################################
 #
-# This file is part of Celera Assembler, a software program that 
+# This file is part of Celera Assembler, a software program that
 # assembles whole-genome shotgun reads into contigs and scaffolds.
 # Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received (LICENSE.txt) a copy of the GNU General Public 
+#
+# You should have received (LICENSE.txt) a copy of the GNU General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
 #
-# $Id: findBacDeletions.sh,v 1.5 2005-12-16 22:13:07 catmandew Exp $
+# $Id: findBacDeletions.sh,v 1.6 2008-06-27 06:29:17 brianwalenz Exp $
 #
 
 function ProcessAssemblyFiles
@@ -38,7 +38,7 @@ function ProcessAssemblyFiles
     gawk -v c=${chr} '{if($1==c)print $2, $3, NR}' ${1}.all.txt > ${chr}.${1}.txt
     getIntervalIntersections ${chr}.${1}.txt ${2}/${1}.${chr}.${4}.${5}.txt -s > ${chr}.${1}.spanned.txt
   done
-  
+
   # extract from the 'all' file to separate chromosome files for unmapped
   # and get spanning clone type
   for file in `ls ${2}/unmapped/[0-9][0-9][0-9].txt`; do
@@ -90,7 +90,7 @@ ProcessAssemblyFiles ${B_AS} ${B_DIR}  6 compressed intervals
 
 # rm Ms.atac
 
-paste -d ' ' ${V_AS}.marked.txt ${B_AS}.marked.txt | sed 's/://g' > joined.marked.txt   
+paste -d ' ' ${V_AS}.marked.txt ${B_AS}.marked.txt | sed 's/://g' > joined.marked.txt
 paste -d ' ' joined.marked.txt numberedMs.atac | \
   gawk -v g=${MinVanSatClones} \
     '{ \

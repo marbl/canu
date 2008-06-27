@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -37,7 +37,7 @@ void Usage(char * prog, char * message)
           prog);
   fprintf(stderr,
           "\t-s     assembly store\n"
-          
+
           "\t-u     unsatisfied mate pair type\n"
           "\t\t     multiple types are allowed, and default is all\n"
           "\t\t     S = stretched mate pairs   (----->                   <-----)\n"
@@ -46,10 +46,10 @@ void Usage(char * prog, char * message)
           "\t\t     A = antinormal mate pairs  (<-----     <-----)\n"
           "\t\t     O = outtie mate pair left & right (<-----     ----->)\n"
           "\t\t     o = outtie mate pair middle       (      -----      )\n"
-          
+
           "\t-n     number of stddevs from mean to use for slop\n"
           "\t\t     (default is 3.0)\n"
-          
+
           "\t-f     type of fragments to dump:\n"
           "\t\t     multiple types are allowed, and default is all\n"
           "\t\t     R = Celera Read\n"
@@ -63,12 +63,12 @@ void Usage(char * prog, char * message)
           "\t\t     u = Unitig\n"
           "\t\t     c = Contig\n"
           "\t\t     B = BacTig\n"
-          
+
           "\t-S     scaffold UID for which to dump stretched mates\n"
           "\t\t     multiple UIDs are allowed, and default is all\n"
 
           "\t-g     write output for gnu-plot\n"
-          
+
           "\t-d     process degenerate scaffolds\n"
           "\t\t     default is to process only real scaffolds\n");
   exit(1);
@@ -89,15 +89,15 @@ int main(int argc, char ** argv)
   VA_TYPE(CDS_UID_t) * scaffolds = CreateVA_CDS_UID_t(10);
   char message[256];
   ASM_OutputType ot = ASM_CliqueFinderOutput;
-  
+
   memset(fragTypes, 0, 256);
   memset(bpTypes, 0, NumBreakpointTypes * sizeof(char));
-  
+
   {
     int ch;
     while (!errflg && ((ch = getopt(argc, argv, "s:n:u:f:S:gd")) != EOF))
     {
-      switch(ch) 
+      switch(ch)
       {
 	case 's':
           inputStoreName = optarg;
@@ -168,7 +168,7 @@ int main(int argc, char ** argv)
     if(bpTypes[bpt] != 0) break;
   if(bpt == NumBreakpointTypes)
     memset(bpTypes, 1, NumBreakpointTypes * sizeof(char));
-  
+
   for(i = 0; i < 256; i++)
     if(fragTypes[i] != 0) break;
   if(i == 256)
@@ -188,9 +188,9 @@ int main(int argc, char ** argv)
     CloneData * cd;
     FILE * fout;
     char fname[1024];
-    
+
     asmStore = OpenReadOnlyAssemblyStore(inputStoreName);
-    
+
     if(GetNumVA_CDS_UID_t(scaffolds) == 0)
     {
       // do all scaffolds

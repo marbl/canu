@@ -46,12 +46,12 @@ class Contig implements Serializable {
 	byte [] cns;
 	ArrayList<MPS> mpsList;
 	int [] ra_offsets;
-	
+
 	public String toString() {
 	   	StringBuilder result = new StringBuilder();
 		try {
-			Comparator<MPS> comp = new Comparator<MPS>() { 
-				public int compare(MPS o1, MPS o2) { 
+			Comparator<MPS> comp = new Comparator<MPS>() {
+				public int compare(MPS o1, MPS o2) {
 					int retVal = o1.lpos - o2.lpos;
 					if ( retVal == 0 ) {
 						FRG frg1 = Ca2ta.frgHash.get(o1.mid);
@@ -68,7 +68,7 @@ class Contig implements Serializable {
 			String cnsDecompressed = StringCompression.decompress(cns);
 			result.append("##" + acc + " " + npc + " " + cnsDecompressed.length() + " bases, 00000000 checksum." + "\n");
 			result.append(Ca2ta.formatSeq(cnsDecompressed));
-			buildOffsets();			
+			buildOffsets();
 			for ( MPS mps : mpsList )
 				result.append(printMPS(mps));
 		} catch (java.io.IOException e) {
@@ -76,10 +76,10 @@ class Contig implements Serializable {
 		}
 		return result.toString();
 	}
-	
+
 	public void buildOffsets() throws IOException {
 		String cnsStr = StringCompression.decompress(cns);
-		ra_offsets = new int[cnsStr.length()];		
+		ra_offsets = new int[cnsStr.length()];
 		int coord = 0;
 		for (int i = 0; i < cnsStr.length(); i++){
 			if ( cnsStr.charAt(i) != '-'){
@@ -88,12 +88,12 @@ class Contig implements Serializable {
 			ra_offsets[i] = coord;
 		}
 	}
-	
+
 	public String printMPS ( MPS mps ) throws IOException {
 		StringBuilder result = new StringBuilder();
 
 		FRG frg = Ca2ta.frgHash.get(mps.mid);
-		if ( frg.seq == null ) { 
+		if ( frg.seq == null ) {
 			return "";
 		}
 		String seqDecompressedFull = StringCompression.decompress(frg.seq);
@@ -127,15 +127,15 @@ class Contig implements Serializable {
 			asml = ra_offsets[ra_offsets.length-1];
 		else
 			asml = ra_offsets[asml];
-		result.append("#" + frg.nm + "(" + offset + ")" 
-			+ " [" + (mps.rc?"RC":"") + "] " 
-			+ (mps.dln+frg.rclr-frg.lclr+1) 
-			+ " bases, 00000000 checksum." 
-			+ " {" + seqleft + " " + seqright + "}" 
+		result.append("#" + frg.nm + "(" + offset + ")"
+			+ " [" + (mps.rc?"RC":"") + "] "
+			+ (mps.dln+frg.rclr-frg.lclr+1)
+			+ " bases, 00000000 checksum."
+			+ " {" + seqleft + " " + seqright + "}"
 			+ " <" + asml + " " + asmr +">" + "\n");
 		result.append(Ca2ta.formatSeq(seqDecompressed));
-		
-		return result.toString();	
+
+		return result.toString();
 	}
 
 }
@@ -146,7 +146,7 @@ class FRG implements Serializable {
 	byte [] seq;
 	int lclr;
 	int rclr;
-	
+
 }
 
 class MPS implements Serializable {
@@ -157,7 +157,7 @@ class MPS implements Serializable {
 	int rpos;
 	int dln; //gapno
 	int del[]; //gaps
-	
+
 	String insertDeletes(String seq) {
 		StringBuffer retSB = new StringBuffer(seq);
 		int localOffset = 0;
@@ -166,7 +166,7 @@ class MPS implements Serializable {
 		}
 		return retSB.toString();
 	}
-	
+
 	static String rc(String seqStr) {
 		StringBuffer retSB = new StringBuffer();
 
@@ -179,8 +179,8 @@ class MPS implements Serializable {
                 		default: retSB.append('N');break;
         		}
 		}
-		return retSB.reverse().toString();        
-	}	
+		return retSB.reverse().toString();
+	}
 }
 
 public class Ca2ta {
@@ -225,13 +225,13 @@ public class Ca2ta {
 	} else {
 		readFrgHash();
 	}
-	
+
 	if ( !ccoHashExists() ) {
 		//Step 2: Read the noAFG file
 		System.out.println("\nreadASM");
-		readASM();	
-		
-		writeCCO();	
+		readASM();
+
+		writeCCO();
 	} else {
 		readCCOHash();
 	}
@@ -242,16 +242,16 @@ public class Ca2ta {
 	printContig();
 
    }
-   
+
    static void createCLR() {
    	//First check if it already exists
 	String clrFile = wrkDir.concat(prefix).concat(".clr");
-	
+
 	if ( new File(clrFile).exists() )
 		return;
-   	
+
 	try
-        {   
+        {
 		String cmd = "/usr/local/devel/ATG/moweis/CA_Latest/src/AS_RUN/arun/tools/asmToCLR.sh  " + wrkDir.concat(prefix).concat(".asm");
 		System.out.println("Executing: " + cmd); //System.exit(1);
 		Runtime rt = Runtime.getRuntime();
@@ -269,17 +269,17 @@ public class Ca2ta {
 		bufWrite.close();
         } catch (Throwable t) {
             t.printStackTrace();
-        }     
-	
+        }
+
    }
-   
+
    static void readClr() {
 	String line = null;    // String that holds current file line
 	try {
 		FileReader input = new FileReader(wrkDir.concat(prefix).concat(".clr"));
 
 		BufferedReader bufRead = new BufferedReader(input);
-		int count = 0;  // Line number of count 
+		int count = 0;  // Line number of count
 
 		line = bufRead.readLine();
 
@@ -291,7 +291,7 @@ public class Ca2ta {
 		  frg.mid = values[0];
 		  frg.lclr = Integer.parseInt(values[1]);
 		  frg.rclr = Integer.parseInt(values[2]);
-		  
+
 		  frgHash.put(frg.mid,frg);
 		  line = bufRead.readLine();
 		  count++;
@@ -300,30 +300,30 @@ public class Ca2ta {
 		}
 		System.out.println("CLR Final Read: " + count);
 		System.out.println("CLR Hash size: " + frgHash.size());
-		bufRead.close();              
+		bufRead.close();
 	}catch (ArrayIndexOutOfBoundsException e){
 		System.out.println("Error reading line: " + line + "	\n");
 		e.printStackTrace();
 	}catch (IOException e){
 		e.printStackTrace();
 	}
-   }   
+   }
 
    static void readFrg() {
 	try {
 		FileReader input = new FileReader(wrkDir.concat(prefix).concat(".frg"));
 
 		BufferedReader bufRead = new BufferedReader(input);
-   		String line = bufRead.readLine();      
+   		String line = bufRead.readLine();
 
         	int count = 0;
-		
+
 		while ( line != null ) {
 			Matcher m = bracket.matcher(line);
-			
+
 			if ( m.lookingAt() ) {
 				String recName = m.group(1);
-				if (recName.equals("FRG") ) { 
+				if (recName.equals("FRG") ) {
 					FRG frg = processFRG(bufRead);
 					if ( frg != null )  {
 						FRG getFRG = frgHash.get(frg.mid);
@@ -345,7 +345,7 @@ public class Ca2ta {
 
 		System.out.println("FRG Final Read: " + count);
 		System.out.println("FRG Hash size: " + frgHash.size());
-		bufRead.close();              	
+		bufRead.close();
 	}catch (ArrayIndexOutOfBoundsException e){
 		System.out.println("Usage: java ReadFile filename\n");
 		e.printStackTrace();
@@ -359,12 +359,12 @@ public class Ca2ta {
    static boolean frgHashExists() {
    	return new File(wrkDir.concat("frgHash.ser")).exists();
    }
-   
+
    static boolean ccoHashExists() {
    	return new File(wrkDir.concat("ccoHash.ser")).exists();
    }
 
-   @SuppressWarnings({"unchecked"})   
+   @SuppressWarnings({"unchecked"})
    static void readFrgHash () {
 	//declared here only to ensure visibilty in finally clause
 	ObjectInput input = null;
@@ -389,10 +389,10 @@ public class Ca2ta {
 		} catch (IOException e){
 			e.printStackTrace();
 		}
-	}   
+	}
    }
-   
-   @SuppressWarnings({"unchecked"})   
+
+   @SuppressWarnings({"unchecked"})
    static void readCCOHash () {
 	//declared here only to ensure visibilty in finally clause
 	ObjectInput input = null;
@@ -417,9 +417,9 @@ public class Ca2ta {
 		} catch (IOException e){
 			e.printStackTrace();
 		}
-	}   
+	}
    }
-   
+
    static void writeFrg() {
 	//declared here only to ensure visibilty in finally clause
 	ObjectOutput output = null;
@@ -440,7 +440,7 @@ public class Ca2ta {
 		} catch (IOException e ){
 			e.printStackTrace();
 		}
-	}   
+	}
    }
 
    static void writeCCO() {
@@ -463,17 +463,17 @@ public class Ca2ta {
 		} catch (IOException e ){
 			e.printStackTrace();
 		}
-	}   
+	}
    }
-   
-   
+
+
    static void readASM() {
 	try {
 		FileReader input = new FileReader(wrkDir.concat(prefix).concat(".asm"));
 		BufferedReader bufRead = new BufferedReader(input);
 		ccoHash = new HashMap<String,Contig>();
-		getCARecord(bufRead);	
-		bufRead.close();              
+		getCARecord(bufRead);
+		bufRead.close();
 		System.out.println("Final CCO hash size: " + ccoHash.size());
 	}catch (ArrayIndexOutOfBoundsException e){
 		System.out.println("Usage: java ReadFile filename\n");
@@ -482,15 +482,15 @@ public class Ca2ta {
 		e.printStackTrace();
 	}catch (Exception e){
 		e.printStackTrace();
-	}   
+	}
    }
-   
+
    static void printContig() {
 		try {
 			FileWriter output = new FileWriter(wrkDir.concat(prefix).concat(".contig"));
 			BufferedWriter bufWrite = new BufferedWriter(output);
-			writeContigs(bufWrite);	
-			bufWrite.close();              
+			writeContigs(bufWrite);
+			bufWrite.close();
 		}catch (ArrayIndexOutOfBoundsException e){
 			System.out.println("Usage: java ReadFile filename\n");
 			e.printStackTrace();
@@ -499,8 +499,8 @@ public class Ca2ta {
 		}catch (Exception e){
 			e.printStackTrace();
 		}
-   }   
-   
+   }
+
    static void getCARecord ( BufferedReader bufRead ) throws Exception {
    	String line = bufRead.readLine();
 	int count = 0;
@@ -511,7 +511,7 @@ public class Ca2ta {
 			recName = m.group(1);
 		}
 
-		if (recName.equals("CCO") ) { 
+		if (recName.equals("CCO") ) {
 			processContig(bufRead);
 			count++;
 			if ( count % 10000 == 0 ) System.out.println("CCO: " + count);
@@ -519,11 +519,11 @@ public class Ca2ta {
 			skipMsg(bufRead);
 		}
 		line = bufRead.readLine();
-	}        
+	}
    }
-   
+
    static FRG processFRG ( BufferedReader bufRead ) throws Exception {
-   
+
    	String line = bufRead.readLine();
 	FRG frg = new FRG();
 	boolean accSet = false;
@@ -535,13 +535,13 @@ public class Ca2ta {
 		try {
 		if ( fieldMatch.lookingAt() )  {
 			fieldName = fieldMatch.group(1);
-			fieldValue = fieldMatch.group(2);			
+			fieldValue = fieldMatch.group(2);
 			if ( !accSet && fieldName.equals("acc") ) {
 				frg.mid = fieldValue;
 				accSet = true;
 			} else if ( fieldName.equals("src") ) {
 				frg.nm = bufRead.readLine();
-			} else if ( fieldName.equals("seq") ) {			
+			} else if ( fieldName.equals("seq") ) {
 				frg.seq = StringCompression.compress(readSequence(bufRead));
 				if ( frg.seq == null ) System.out.println("Null seq for frg: " + frg);
 			}
@@ -552,10 +552,10 @@ public class Ca2ta {
 		}
 		line = bufRead.readLine();
 	}
-	
+
 	if ( frg.nm != null && frg.nm.equals(".") )
 		frg.nm = frg.mid;
-	return frg;   
+	return frg;
    }
 
    static void processContig( BufferedReader bufRead ) throws Exception {
@@ -564,7 +564,7 @@ public class Ca2ta {
 	Matcher accMatch = acc.matcher(line);
 	accMatch.lookingAt();
 	Contig cco = new Contig();
-	cco.acc = accMatch.group(1);	
+	cco.acc = accMatch.group(1);
 	cco.mpsList = new ArrayList<MPS>();
 	while ( line != null && !line.equals("}")) {
 		Matcher bracketMatch = bracket.matcher(line);
@@ -585,23 +585,23 @@ public class Ca2ta {
 			}
 		else if ( fieldMatch.lookingAt() )  {
 			fieldName = fieldMatch.group(1);
-			fieldValue = fieldMatch.group(2);			
+			fieldValue = fieldMatch.group(2);
 			if ( fieldName.equals("len") ) {
 				cco.len = Integer.parseInt(fieldValue);
 			} else if ( fieldName.equals("cns") ) {
 				cco.cns = StringCompression.compress(readSequence(bufRead));
-			} else if ( fieldName.equals("npc") ) {			
+			} else if ( fieldName.equals("npc") ) {
 				cco.npc = Integer.parseInt(fieldValue);
 			}
-		} 
+		}
 		line = bufRead.readLine();
 	}
 	ccoHash.put(cco.acc,cco);
    }
-   
+
    static MPS readMPS ( BufferedReader bufRead) throws Exception {
    	String line = bufRead.readLine();
-	
+
    	MPS mps = new MPS();
 	while ( line != null && !line.equals("}")) {
 		Matcher fieldMatch = field.matcher(line);
@@ -609,15 +609,15 @@ public class Ca2ta {
 		String fieldValue;
 		if ( fieldMatch.lookingAt() )  {
 			fieldName = fieldMatch.group(1);
-			fieldValue = fieldMatch.group(2);			
+			fieldValue = fieldMatch.group(2);
 			if ( fieldName.equals("typ") ) {
 				if ( !fieldValue.equals("R") ) {
 					return null;
 				}
 				mps.typ = fieldValue.charAt(0);
 			} else if ( fieldName.equals("mid") ) {
-				mps.mid = fieldValue;				
-			} else if ( fieldName.equals("pos") ) {			
+				mps.mid = fieldValue;
+			} else if ( fieldName.equals("pos") ) {
 				String [] posArray = fieldValue.split(",");
 				mps.lpos = Integer.parseInt(posArray[0]);
 				mps.rpos = Integer.parseInt(posArray[1]);
@@ -625,9 +625,9 @@ public class Ca2ta {
 					int temp = mps.rpos;
 					mps.rpos = mps.lpos;
 					mps.lpos = temp;
-					mps.rc = true;	
+					mps.rc = true;
 				}
-				
+
 			} else if ( fieldName.equals("dln") ) {
 				mps.dln = Integer.parseInt(fieldValue);
 			} else if ( fieldName.equals("del") ) {
@@ -647,12 +647,12 @@ public class Ca2ta {
 				if ( line.equals("}") )
 					break;
 			}
-		} 
+		}
 		line = bufRead.readLine();
 	}
 	return mps;
    }
-   
+
    static void skipMsg ( BufferedReader bufRead ) throws Exception {
    	String line = bufRead.readLine();
 	int bracketCount = 1;
@@ -663,36 +663,36 @@ public class Ca2ta {
 		else {
 			Matcher bracketMatch = bracket.matcher(line);
 			if ( bracketMatch.lookingAt() )
-				bracketCount++;		
+				bracketCount++;
 		}
-		
+
 		if ( bracketCount == 0)
 			return;
 		line = bufRead.readLine();
-	}   
+	}
    }
-   
-   
+
+
    static String readSequence ( BufferedReader bufRead ) throws Exception {
    	String line = bufRead.readLine();
 	String sequence = "";
-	
+
 	while ( line != null && !line.equals(".")) {
 		sequence = sequence.concat(line);
 		line = bufRead.readLine();
-	}	
-	
+	}
+
    	return sequence;
-   }  
-   
+   }
+
    static void writeContigs ( BufferedWriter bufWrite ) throws Exception {
 	for (String contigId :  new TreeSet<String>(ccoHash.keySet()))
 		bufWrite.write(ccoHash.get(contigId).toString());
    }
-   
+
    static String formatSeq (String seq) {
 	StringBuilder result = new StringBuilder();
-		
+
    	if ( seq != null )
    		for (int i = 0 ; i < seq.length() ; i+= SEQ_OUTPUT_SIZE ) {
 			int diff = seq.length() - i;

@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.39 2008-06-16 18:07:43 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.40 2008-06-27 06:29:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -217,7 +217,7 @@ setLibrary(GateKeeperFragmentRecord *gkf, FragMesg *frg_mesg) {
 
   if (libOrientation[gkf->libraryIID] == 0) {
     GateKeeperLibraryRecord  gkpl;
-    getIndexStore(gkpStore->lib, gkf->libraryIID, &gkpl); 
+    getIndexStore(gkpStore->lib, gkf->libraryIID, &gkpl);
     libOrientation[gkf->libraryIID] = gkpl.orientation;
   }
 
@@ -261,7 +261,7 @@ setClearRanges(GateKeeperFragmentRecord *gkf, FragMesg *frg_mesg) {
 
 
 int
-Check_FragMesg(FragMesg            *frg_mesg,  
+Check_FragMesg(FragMesg            *frg_mesg,
                int                   assembler) {
 
   int               failed = 0;
@@ -380,7 +380,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
       AS_GKP_reportError(AS_GKP_FRG_HAS_MATE,
                          AS_UID_toString(frg_mesg->eaccession));
       return(1);
-    }      
+    }
 
     GateKeeperFragmentRecord dr;
     getIndexStore(gkpStore->frg, iid, &dr);

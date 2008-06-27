@@ -121,7 +121,7 @@ sub overlapCorrection {
         close(F);
 
         caFailure("$failedJobs failed.  Good luck.\n") if ($failedJobs);
-            
+
         my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/cat-corrects ";
@@ -265,7 +265,7 @@ sub overlapCorrection {
         $cmd .= "> $wrk/3-overlapcorrection/cat-erates.err 2>&1";
         if (runCommand("$wrk/3-overlapcorrection", $cmd)) {
             rename "$wrk/3-overlapcorrection/$asm.erates", "$wrk/3-overlapcorrection/$asm.erates.FAILED";
-            caFailure("Failed to concatenate the overlap erate corrections.");		
+            caFailure("Failed to concatenate the overlap erate corrections.");
         }
 
         $cmd  = "$bin/overlapStore ";

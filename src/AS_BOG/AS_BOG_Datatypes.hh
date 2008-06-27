@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, The Venter Institute. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -81,7 +81,7 @@ public:
   float             olap_score;
   short             olap_length;
 
-  fragment_end_type bend;                
+  fragment_end_type bend;
 
   short             ahang;
   short             bhang;
@@ -93,7 +93,7 @@ public:
 // will tell us what fragment has this best overlap
 class BestFragmentOverlap{
 public:
-  BestEdgeOverlap five_prime; 
+  BestEdgeOverlap five_prime;
   BestEdgeOverlap three_prime;
 };
 
@@ -196,7 +196,7 @@ public:
 
     fprintf(stderr, "Loaded %d alive fragments, skipped %d dead fragments.\n", numLoaded, numDeleted);
 
-    closeFragStream(fs); 
+    closeFragStream(fs);
   };
   ~FragmentInfo() {
     delete [] _fragLength;

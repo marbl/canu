@@ -3,17 +3,17 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: identifyMistrackedClones.c,v 1.4 2005-09-23 01:17:07 brianwalenz Exp $ */
+/* $Id: identifyMistrackedClones.c,v 1.5 2008-06-27 06:29:17 brianwalenz Exp $ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -106,7 +106,7 @@ int main(int argc, char ** argv)
 
   if(minZCount <= 1 || numSigmas <= 0 || minOCount <= 0)
     usage(argv[0]);
-  
+
   // read lib info
   if(lfn == NULL || (lfp = fopen(lfn, "r")) == NULL)
     usage(argv[0]);
@@ -143,7 +143,7 @@ int main(int argc, char ** argv)
 
     if(do100Pct)
       fprintf(stderr, "Or if 100%% of clones agree\n");
-      
+
     if(dfn == NULL || (dfp = fopen(dfn, "r")) == NULL)
       usage(argv[0]);
     while(fgets(line, 2047, lfp) != NULL)
@@ -169,7 +169,7 @@ int main(int argc, char ** argv)
         numThisUID = 1;
         numThisUIDOkay = 0;
       }
-      
+
       if(val < minLength || val > maxLength)
       {
         printLength = val;

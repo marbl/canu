@@ -2,27 +2,27 @@
 #
 ###########################################################################
 #
-# This file is part of Celera Assembler, a software program that 
+# This file is part of Celera Assembler, a software program that
 # assembles whole-genome shotgun reads into contigs and scaffolds.
 # Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received (LICENSE.txt) a copy of the GNU General Public 
+#
+# You should have received (LICENSE.txt) a copy of the GNU General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
 #
-# $Id: processInterMatches.sh,v 1.5 2005-12-16 22:13:07 catmandew Exp $
+# $Id: processInterMatches.sh,v 1.6 2008-06-27 06:29:17 brianwalenz Exp $
 #
 
 delta=${1}
@@ -42,9 +42,9 @@ UnsatIntervals2=(inversion stretched transposition)
 function ProcessAssemblyFiles
 {
   currdir=`pwd`
-  
+
   cd ${2}
-  
+
   # extract the relevant assembly's intervals from Ms.atac
   # extract from the 'all' file to separate chromosome files for mapped
   # and get spanning clone type
@@ -82,7 +82,7 @@ function ProcessAssemblyFiles
 
   echo "paste'ing"
   paste -d ' ' ${1}.satisfied.notSpanned.sorted.txt ${1}.*.bpIntersections.sorted.txt | gawk '{printf("%d: %s\n", NR, $0)}' > ${1}.marked.txt
-  
+
   # clean up
   #rm ${1}.all.txt
   #rm *.${1}.*.notSpanned.txt

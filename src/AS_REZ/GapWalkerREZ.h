@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -31,7 +31,7 @@
  **********************************************************************/
 
 /*********************************************************************
-   CVS_ID: $Id: GapWalkerREZ.h,v 1.6 2007-02-26 15:15:23 brianwalenz Exp $
+   CVS_ID: $Id: GapWalkerREZ.h,v 1.7 2008-06-27 06:29:19 brianwalenz Exp $
  ********************************************************************/
 
 #ifndef GAPWALKER_REZ_H
@@ -68,8 +68,8 @@
 //#define ADMISSIBLE_STDDEV    3.0 // how many stdDev we allow in Find_Greedy_Path
 
 #define MIN_SCAFF_EDGE    1000.0 // minimum length of Scaffold edges (for InterScaffold walking)
-#define MIN_GAP_SIZE       -CGW_DP_MINLEN      
-//#define MAX_GAP_SIZE       1000  
+#define MIN_GAP_SIZE       -CGW_DP_MINLEN
+//#define MAX_GAP_SIZE       1000
 // minimum gap size for considering gap walking
 #define SLOP               1000  // slop we allow in checking upper and lower bound.
 
@@ -79,9 +79,9 @@
 #define ITERATOR_VERBOSE   FALSE
 #endif
 
-#define STR_LEN              256 
+#define STR_LEN              256
 // for statically allocated strings
-#define NO_QUALITY_THRESH    10000.0 
+#define NO_QUALITY_THRESH    10000.0
 // A dummy value. Should be higher than any used quality value
 
 
@@ -133,7 +133,7 @@ float No_Quality(CIEdgeT *,
 		 CDS_CID_t);
 
 
-// 
+//
 // The bayesian quality approach.
 // if theres is only a matelink it returns a better (= lower) value than for any overlap
 //
@@ -154,7 +154,7 @@ float Bac_Walking_Quality(CIEdgeT *edge, CDS_CID_t cid);
 // Visit_Subgraph() finds and prints all the paths from <begin_cid> to
 // <end_cid> into a "rezwalker.cam" file.
 // it uses Find_Greedy_Path() as a subroutine
-// 
+//
 // NOTE: this version is directional, that is if it enters a chunk
 // from the A end it goes out from the B end and viceversa
 //

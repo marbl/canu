@@ -1,11 +1,11 @@
 #!/usr/local/bin/perl -w
-# $Id: subfrag.pl,v 1.1 2007-07-03 19:53:59 moweis Exp $
-# subfrag - Extract a filter of reads (and possibly their mates) from a 
-#           set of .frg files.  
+# $Id: subfrag.pl,v 1.2 2008-06-27 06:29:19 brianwalenz Exp $
+# subfrag - Extract a filter of reads (and possibly their mates) from a
+#           set of .frg files.
 #
 # Written by Martin Shumway based on an earlier script by Daniela Puiu.
 #
- 
+
 use strict;
 use warnings;
 use File::Basename;
@@ -18,17 +18,17 @@ my $tf = new TIGR::Foundation;
 my $PRG = $tf->getProgramInfo('name');
 my $VERSION="1.54";
 my @DEPENDS=("TIGR::Foundation","TIGR::AsmLib");
-my $SORT = "/usr/bin/sort";  
+my $SORT = "/usr/bin/sort";
 push @DEPENDS, $SORT;
 
 my $HELPTEXT = qq~
 Extract fragments from a CA .frg file.
 
 subfrag  <frg1 frg2 ...>  [options]
-    
+
   frgs   One or more .frg files as constructed by pullfrag and related tools.
          File list can be resolved by the shell, for example my*.frg
-    
+
   options:
     -N <file>    Optional file with the read names to be extracted (one/line).
     -s read[,read]...  Comma separated list (no spaces) of read ids.
@@ -45,26 +45,26 @@ subfrag  <frg1 frg2 ...>  [options]
                  <prefix>.frg : Single output .frg file
                  <prefix>.seq : sequence of entire read (TIGR form)
                  <prefix>.seqs : List of reads by name (or accession if no name)
-                 <prefix>.qual: qualities of entire read (phred style) 
+                 <prefix>.qual: qualities of entire read (phred style)
                  <prefix>.clr : Clear range (rid clrl clrr) CA form.
                  <prefix>.clr.fasta : sequence of clear range of read
                  <prefix>.acc : Lookup between acc,src fields, as available
                  <prefix>.mates : Mate pairs encountered
                  <prefix>.bambus.mates : Mate pairs encountered (bambus format)
                  <prefix>.ftab : rid/clr.fasta in single tab delimited line
- 
+
 Given one or more input .frg files and an optional filter file, subfrag extracts
-a subset of fragments and builds a new .frg file with associated DST, LKG and 
+a subset of fragments and builds a new .frg file with associated DST, LKG and
 FRG records.
 
-If no filter option is specified then all records are emitted on output.  
+If no filter option is specified then all records are emitted on output.
 Specifying multiple files on the command line has the effect of merging the
 FRG records prior to filtering.  Duplicate records are omitted.
 
 The read set can be decimated using the -N or -s options.  If no qualifier
-is supplied, then entire input read set is used (default).  Input reads can be 
-specified by accession or read name (if assigned).  When filtering you can 
-specify that mates be included in the output set (--mates).  
+is supplied, then entire input read set is used (default).  Input reads can be
+specified by accession or read name (if assigned).  When filtering you can
+specify that mates be included in the output set (--mates).
 
 Some trimming operations can be performed on the output set.  3' end 5' end trim
 can be performed on all reads using the -3 option, respectively.  Also, a mask
@@ -88,16 +88,16 @@ Return Codes:   0 - on success, 1 - on failure.
 my $NAME = "src";
 my $EUID = "acc";
 my %SOURCE_MODES = ("name" => $NAME, "euid" => $EUID);
-my @OUTPUT_SUFFIXES = 
+my @OUTPUT_SUFFIXES =
 (
-  "frg", 
-  "seq", 
-  "clr.fasta", 
-  "clr", 
-  "qual", 
-  "seqs", 
-  "acc", 
-  "bambus.mates", 
+  "frg",
+  "seq",
+  "clr.fasta",
+  "clr",
+  "qual",
+  "seqs",
+  "acc",
+  "bambus.mates",
   "mates",
   "ftab",
 );
@@ -121,7 +121,7 @@ my $MAXLENGTH = 2048;     # max length of CA read
 my $FRG_TOO_SHORT = 1;
 my $FRG_TOO_LONG = 2;
 my $FRG_OUT_RANGE = 3;
-my %FRG_VALID_MESSAGE = 
+my %FRG_VALID_MESSAGE =
    (
        $FRG_TOO_SHORT => "less than $MINLENGTH bases.",
        $FRG_TOO_LONG  => "more than $MAXLENGTH bases.",
@@ -131,7 +131,7 @@ my %FRG_VALID_MESSAGE =
 
 # ========================= Procedures ========================================
 
-# Toss messages to stderr and also to the logfile.  Cannot use 
+# Toss messages to stderr and also to the logfile.  Cannot use
 # regular logfile because of pipeout of this utility.
 #
 sub progress($)
@@ -155,7 +155,7 @@ sub getSid($)
   {
     $sid  = $fields{src};
     chop $sid;
-  } 
+  }
   else
   {
     $sid = $acc;
@@ -206,8 +206,8 @@ sub setClr($$$$$$$)
     my $sid = getSid(\%fields);
     if (exists ${$rh_NewClr}{$sid})
     {
-      $clrl = ${$rh_NewClr}{$sid}->[0]; 
-      $clrr = ${$rh_NewClr}{$sid}->[1]; 
+      $clrl = ${$rh_NewClr}{$sid}->[0];
+      $clrr = ${$rh_NewClr}{$sid}->[1];
     }
   }
 
@@ -220,7 +220,7 @@ sub setClr($$$$$$$)
   if ($invalid)
   {
     ${$rh_Clr}{$sid} = \[$clrl_orig, $clrr_orig];
-    logwarning("Fragment $sid has $FRG_VALID_MESSAGE{$invalid}.  " . 
+    logwarning("Fragment $sid has $FRG_VALID_MESSAGE{$invalid}.  " .
                "Ignoring attempt to adjust clear range to [$clrl, $clrr).", 1);
   }
   else
@@ -232,7 +232,7 @@ sub setClr($$$$$$$)
 # ============================================== MAIN =============================================
 #
 MAIN:
-{    
+{
   my %options = ();
   $options{trim3Prime} = undef;
   $options{trim5Prime} = undef;
@@ -244,23 +244,23 @@ MAIN:
   $options{links}      = 1;
 
   # These tables need to be populated regardless of input filtering modes.
-  # 
-  my %Mates = ();     # List of all mate pairs discovered in input 
-  my %Emit  = ();     # Track which FRG records to be emitted by acc 
-  my %Src = ();       # List of input FRG records indexed by acc, with optional src 
+  #
+  my %Mates = ();     # List of all mate pairs discovered in input
+  my %Emit  = ();     # Track which FRG records to be emitted by acc
+  my %Src = ();       # List of input FRG records indexed by acc, with optional src
   my %FilterSet = (); # List of reads (by acc or by src) to emit as a subset
   my %Dst = ();       # List of input DST records indexed by acc
   my %Lkg = ();       # List of input LKG records indexed by acc member
   my %Lkg2Dst = ();   # Lookup table of Dst acc given Lkg record
   my %Clr = ();       # Lookup of existin clr range for reads from existing .frg records
   my %NewClr = ();    # Lookup of new clr range for reads as specified by retrim file
-  
+
   # Configure TIGR Foundation
   $tf->setHelpInfo($HELPTEXT.$MOREHELP);
   $tf->setUsageInfo($HELPTEXT);
   $tf->setVersionInfo($VERSION);
   $tf->addDependInfo(@DEPENDS);
-  
+
   # validate input parameters
   my $output_options = undef;
   my $result = $tf->TIGR_GetOptions
@@ -290,11 +290,11 @@ MAIN:
   }
   setFoundation($tf);   # this is a AsmLib method that should really
                         # be part of its constructor
-        
+
   my @infiles = ();
   for (my $i=0; $i <= $#ARGV; $i++)
   {
-    push @infiles, $ARGV[$i]; 
+    push @infiles, $ARGV[$i];
     $tf->bail("Cannot access input file \'$ARGV[$i]\' ($!)") if (! -r $ARGV[$i]);
     my ($newoutprefix, $path, $suffix) = fileparse($ARGV[$i], @OUTPUT_SUFFIXES);
     if (defined $newoutprefix && $newoutprefix ne "")
@@ -315,14 +315,14 @@ MAIN:
   #
   if (defined $options{filterfile})
   {
-    $options{filter} = 1; 
-  
+    $options{filter} = 1;
+
     #get read names from input file
-    my $ff = new IO::File("< $options{filterfile}") 
+    my $ff = new IO::File("< $options{filterfile}")
       or $tf->bail("Failed to open input filter file \'$options{filterfile}\' ($!)");
     while (my $line = $ff->getline())
     {
-      chop $line; 
+      chop $line;
       $line =~ s/\s+//g;
       next if ($line =~/^#/);
       $FilterSet{$line} = 1;
@@ -331,8 +331,8 @@ MAIN:
   }
   elsif (defined $options{filterlist})
   {
-    $options{filter} = 1; 
-    my @f = split ",",$options{filterlist}; 
+    $options{filter} = 1;
+    my @f = split ",",$options{filterlist};
     foreach my $read (@f)
     {
       $FilterSet{$read} = 1;
@@ -355,7 +355,7 @@ MAIN:
       my $sid = $f[0];
       my $clrl = $f[1];
       my $clrr = $f[2];
-      $NewClr{$sid} = [$clrl,$clrr]; 
+      $NewClr{$sid} = [$clrl,$clrr];
     }
     $trimf->close();
   }
@@ -370,7 +370,7 @@ MAIN:
       my $sid = $f[0];
       my $clrl = $f[1] - 1;  # normalize to CA format
       my $clrr = $f[2];
-      $NewClr{$sid} = [$clrl,$clrr]; 
+      $NewClr{$sid} = [$clrl,$clrr];
     }
     $trimf->close();
   }
@@ -381,7 +381,7 @@ MAIN:
   if (defined $output_options)
   {
     my @outputs = split /,/,$output_options;
-    map 
+    map
     {
       my ($name, $path, $suffix) = fileparse($_, @OUTPUT_SUFFIXES);
       $tf->bail("Unsupported output option in -o specification: \'$_\'") if (! exists $SUPPORTED_OUTPUTS{$suffix});
@@ -407,11 +407,11 @@ MAIN:
   # Scan the .frg files and build various lookup tables.
   # This has to be done using the accession (acc) values.
   # This data needed regardless of filtering options.
-  # 
+  #
   progress("Phase 1 : Scan input .frg files ...");
- 
-  my $trim3Prime = (exists $options{trim3Prime})? $options{trim3Prime} : undef; 
-  my $trim5Prime = (exists $options{trim5Prime})? $options{trim5Prime} : undef; 
+
+  my $trim3Prime = (exists $options{trim3Prime})? $options{trim3Prime} : undef;
+  my $trim5Prime = (exists $options{trim5Prime})? $options{trim5Prime} : undef;
   my $trimca     = (exists $options{trimca})?     $options{trimca}     : undef;
   my $trimta     = (exists $options{trimta})?     $options{trimta}     : undef;
 
@@ -419,35 +419,35 @@ MAIN:
   {
     my $if = new IO::File("< $infile") or $tf->bail("Cannot open input .frg file \'$infile\' ($!)");
     progress("Phase 1 : Scanning input file \'$infile\'...");
-   
-    my $nrecords = 0; 
+
+    my $nrecords = 0;
     while (my $rec = getCARecord($if))
     {
         my ($type, $rh_fields, $recs) = parseCARecord($rec);
-        my %fields = %{$rh_fields}; 
+        my %fields = %{$rh_fields};
         if ($type eq "FRG")
         {
           my $acc = $fields{acc};
           my $sid = getSid(\%fields);
           $Src{$acc} = $sid;
-          setClr(\%fields, $trim3Prime, $trim5Prime, $trimca, $trimta, \%Clr, \%NewClr); 
+          setClr(\%fields, $trim3Prime, $trim5Prime, $trimca, $trimta, \%Clr, \%NewClr);
         }
         elsif ($type eq "LKG")
         {
           my $fg1 = $fields{fg1};
           my $fg2 = $fields{fg2};
           my $dst = $fields{dst};
-        
-          $Mates{$fg1} = $fg2; 
-          $Mates{$fg2} = $fg1; 
+
+          $Mates{$fg1} = $fg2;
+          $Mates{$fg2} = $fg1;
           $Lkg{$fg1} = 1;       # track link record based on at least one constituent accession
           $Lkg2Dst{$fg1} = $dst;  # track canonical mate pair as the one listed first
         }
 
       ++$nrecords;
-      progress("Phase 1: $nrecords records scanned.") if ($nrecords > 1 && $nrecords % $PROGRESS_FACTOR == 1); 
+      progress("Phase 1: $nrecords records scanned.") if ($nrecords > 1 && $nrecords % $PROGRESS_FACTOR == 1);
     }
-   
+
     $if->close();
   }
 
@@ -514,10 +514,10 @@ MAIN:
     $of = new IO::Handle;
     $of->fdopen(fileno(STDOUT), "w");
   }
- 
- 
+
+
   # PASS 2: Emit FRG records
-  # 
+  #
   # Stream out the input file such that each FRG record is read and emitted
   # with possible modifications depending on execution mode.
   #
@@ -531,14 +531,14 @@ MAIN:
     # Stream through the input .frg files a second time and emit
     # the dataset depending on filtering options, and optionally
     # perform terminal processing on the records.
-    #  
+    #
     my $nrecords = 0;
     while (my $rec = getCARecord($if))
     {
-      my $isPrint = 0;  
+      my $isPrint = 0;
       my($id, $rh_fields, $recs) = parseCARecord($rec);
       my %fields=%{$rh_fields};
-                  
+
       if ($id eq "FRG")
       {
         if ( $options{filter} )
@@ -548,12 +548,12 @@ MAIN:
           # Check to see first whether the record is in the filter set,
           # then whether it is a mate of a record in the filter set and
           # we are to draw the mates.
-          if (exists $FilterSet{$sid}) 
+          if (exists $FilterSet{$sid})
           {
             if (! exists $Emit{$acc})
             {
               $isPrint = 1;
-              $Emit{$acc} = $acc;        # track the set of reads to emit by acc 
+              $Emit{$acc} = $acc;        # track the set of reads to emit by acc
             }
             else
             {
@@ -571,7 +571,7 @@ MAIN:
                 if (! exists $Emit{$acc})
                 {
                   $isPrint = 1;
-                  $Emit{$acc} = $acc;        # track the set of reads to emit by acc 
+                  $Emit{$acc} = $acc;        # track the set of reads to emit by acc
                 }
                 else
                 {
@@ -580,14 +580,14 @@ MAIN:
               }
             }
           }
-        }   
+        }
         else
         {
           my $acc  = $fields{acc};
           if (! exists $Emit{$acc})
           {
             $isPrint = 1;
-            $Emit{$acc} = $acc;        # track the set of reads to emit by acc 
+            $Emit{$acc} = $acc;        # track the set of reads to emit by acc
           }
           else
           {
@@ -598,7 +598,7 @@ MAIN:
       elsif($id eq "LKG")
       {
         if ($options{filter})
-        {      
+        {
           # Determine which LKG records to keep based on whether the Emit set
           # contains both elements of the LKG object.  Note that the LKG record
           # must come after the constituent FRGs, as is required in the
@@ -613,7 +613,7 @@ MAIN:
               $isPrint = 1;
               $Lkg{$fg1} = 0;   # Mark as emitted
             }
-          } 
+          }
         }
         else
         {
@@ -629,11 +629,11 @@ MAIN:
       elsif ($id eq "DST")
       {
       	my $dst = $fields{acc};
-        $Dst{$dst} = (exists $Dst{$dst})? $Dst{$dst} + 1 : 1;  
+        $Dst{$dst} = (exists $Dst{$dst})? $Dst{$dst} + 1 : 1;
         # Emit only first encounter with a DST record of a given accession
         if ($Dst{$dst} == 1)
         {
-          $isPrint = 1;  
+          $isPrint = 1;
         }
         else
         {
@@ -667,27 +667,27 @@ MAIN:
       if ($isPrint)
       {
         if ($id eq "FRG")
-        { 
+        {
           my $sid = getSid(\%fields);
 
           my $r = $Clr{$sid};
-          my $clrl = $$r->[0]; 
-          my $clrr = $$r->[1]; 
+          my $clrl = $$r->[0];
+          my $clrr = $$r->[1];
           # This hack exists because AsmLib has no CA record constructor
-          $fields{clr} = "$clrl,$clrr";  
+          $fields{clr} = "$clrl,$clrr";
           my $replacement = "clr:$fields{clr}";
           $rec =~ s/clr:(\d+),(\d+)/$replacement/o;
-   
+
           if (defined $sf)
           {
             my $sequence = $fields{seq};
             my $clrl_modified = $clrl + 1;  # modify to 1-based inclusive
-            $sf->print(">$sid    0 0 0   $clrl_modified $clrr\n" . uc $sequence) or $tf->bail("Failed to write to output seq stream ($!)"); 
+            $sf->print(">$sid    0 0 0   $clrl_modified $clrr\n" . uc $sequence) or $tf->bail("Failed to write to output seq stream ($!)");
           }
 
           if (defined $nf)
           {
-            $nf->print("$sid\n") or $tf->bail("Failed to write to output .seqs stream ($!)"); 
+            $nf->print("$sid\n") or $tf->bail("Failed to write to output .seqs stream ($!)");
           }
 
           if (defined $qf)
@@ -696,14 +696,14 @@ MAIN:
             $qualityS =~ s/\s+//g;
             my $qualities = "";
             map
-            { 
+            {
               $qualities .= sprintf("%02d ", ord($_) - 48);
-            } (split //,$qualityS); 
+            } (split //,$qualityS);
             $qualities =~ s/((\d\d\s+){$QUAL_LEN})/$1\n/g;
             $qualities =~ s/\s+$//g;
-            $qf->print(">$sid\n$qualities\n") or $tf->bail("Failed to write to output qual stream ($!)"); 
+            $qf->print(">$sid\n$qualities\n") or $tf->bail("Failed to write to output qual stream ($!)");
           }
-  
+
           if (defined $ff || defined $af)
           {
             # convert clrr to 0-based inclusive so substr can use it
@@ -714,19 +714,19 @@ MAIN:
             my $length = length($clr_sequence);
             if (defined $af)
             {
-              $af->print("$sid\t$clr_sequence\n") or $tf->bail("Failed to write to output ftab stream ($!)"); 
+              $af->print("$sid\t$clr_sequence\n") or $tf->bail("Failed to write to output ftab stream ($!)");
             }
             $clr_sequence =~ s/((.){60})/$1\n/g;
             chomp $clr_sequence if ($length % 60 == 0);   # don't add \n to end of full line
             if (defined $ff)
             {
-              $ff->print(">$sid\n$clr_sequence\n") or $tf->bail("Failed to write to output clr.fasta stream ($!)"); 
+              $ff->print(">$sid\n$clr_sequence\n") or $tf->bail("Failed to write to output clr.fasta stream ($!)");
             }
-          } 
+          }
 
           if (defined $cf)
           {
-            $cf->print("$sid\t$clrl\t$clrr\n") or $tf->bail("Failed to write to output clr stream ($!)"); 
+            $cf->print("$sid\t$clrl\t$clrr\n") or $tf->bail("Failed to write to output clr stream ($!)");
           }
         }
         elsif ($id eq "DST")
@@ -771,9 +771,9 @@ MAIN:
         }
 
         $nrecords++;
-        progress("Phase 2: $nrecords records scanned.") if ($nrecords > 1 && $nrecords % $PROGRESS_FACTOR == 1); 
+        progress("Phase 2: $nrecords records scanned.") if ($nrecords > 1 && $nrecords % $PROGRESS_FACTOR == 1);
       }
-    }  
+    }
 
     $if->close();
     $firstfile = 0;
@@ -804,13 +804,13 @@ MAIN:
 
     # Resort the output from this step.
     my $sortinfile = $options{seqsout};
-    my $sortoutfile = "$sortinfile.tmp"; 
+    my $sortoutfile = "$sortinfile.tmp";
     my $cmd = "$SORT -u $sortinfile > $sortoutfile";
     $tf->logLocal("Running command: \'$cmd\'", $LOW);
     my $bad = $tf->runCommand($cmd);
     $tf->bail("Failed to run command \'$cmd\' ($!)") if ($bad);
-    unlink ($sortinfile); 
-    rename($sortoutfile, $sortinfile) or $tf->bail("Could not rename file \'$sortoutfile\' ($!)"); 
+    unlink ($sortinfile);
+    rename($sortoutfile, $sortinfile) or $tf->bail("Could not rename file \'$sortoutfile\' ($!)");
   }
   if (defined $qf)
   {

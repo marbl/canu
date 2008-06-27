@@ -6,19 +6,19 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received (LICENSE.txt) a copy of the GNU General Public 
+#
+# You should have received (LICENSE.txt) a copy of the GNU General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
 #
-# $Id: mummerCompare.pl,v 1.4 2005-12-16 22:12:38 catmandew Exp $
+# $Id: mummerCompare.pl,v 1.5 2008-06-27 06:29:20 brianwalenz Exp $
 #
 
 #  Script to analyze a show-coords output file using the
@@ -44,7 +44,7 @@ use strict;
 use FileHandle;
 use Getopt::Long;
 
-my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.4 $/ )[1]. ")";
+my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.5 $/ )[1]. ")";
 my $MY_APPLICATION = "showCoordsCompare";
 
 my $HELPTEXT = qq~
@@ -60,7 +60,7 @@ Compare two caqc-generated qc files
 
     options:
       -h               Print help.
-  
+
       -v <level>       Set verbosity to level.
 
 $MY_VERSION
@@ -139,7 +139,7 @@ while(<$ifh>)
   # 10. % coverage of contig in query
   # 11. scaffold UID in ref
   # 12. scaffold UID in query
-    
+
 }
 close($ifh);
 
@@ -161,7 +161,7 @@ sub ReadScaffFile($)
   my $offset = 0;
   my $bps = 0;
   my $fauxKey;
-  
+
   my $fh = new FileHandle $fname, "r"
     or die "Failed to open $fname for reading";
   while(<$fh>)
@@ -169,7 +169,7 @@ sub ReadScaffFile($)
     s/[\n\r\cZ]//g;
 
     @fields = split " ";
-    
+
     # scaffold line starts with ">"
     if(substr($_,0,1) eq ">")
     {
@@ -207,7 +207,7 @@ sub ReadScaffFile($)
   $data{$fauxKey} = $offset - 100;
   $fauxKey = "b" . "$scaffUID";
   $data{$fauxKey} = $bps;
-  
+
   return %data;
 }
 
@@ -215,12 +215,12 @@ sub ReadScaffFile($)
 sub DumpScaffData(%)
 {
   my %data = @_;
-  
+
   foreach my $scaffUID (sort {$a <=> $b} (keys(%data)))
   {
     next if(substr($scaffUID, 0, 1) eq "l" ||
             substr($scaffUID, 0, 1) eq "b");
-    
+
     printf(">%s %d %d %d\n",
            $scaffUID,
            1 + $#{@{$data{$scaffUID}}},

@@ -3,17 +3,17 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: calcStats.c,v 1.5 2005-09-23 01:17:07 brianwalenz Exp $ */
+/* $Id: calcStats.c,v 1.6 2008-06-27 06:29:16 brianwalenz Exp $ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -104,7 +104,7 @@ int main(int argc, char ** argv)
       sscanf(line, "%lf", &val);
 
       if(val <= greaterThan || val >= lessThan) continue;
-      
+
       n++;
       sumX += val;
       sumX2 += val * val;
@@ -117,9 +117,9 @@ int main(int argc, char ** argv)
     while(fgets(line, 2047, fp) != NULL)
     {
       sscanf(line, "%lf\t%lu", &val, &instances);
-      
+
       if(val <= greaterThan || val >= lessThan) continue;
-      
+
       n += instances;
       sumX += val * instances;
       sumX2 += val * val * instances;
@@ -127,7 +127,7 @@ int main(int argc, char ** argv)
 
   }
   fclose(fp);
-  
+
   mean = sumX / n;
   sigma = sqrt((sumX2 - n * mean * mean) / n);
   fprintf(stdout, "%f = mean\n%f = sigma\n%lu = n\n", mean, sigma, n);

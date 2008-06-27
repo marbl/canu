@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -22,21 +22,21 @@
 * Module:  DataTypesREZ.c
 * Description:
 *   Declaration of common data types used in repeat resolution
-* 
+*
 *    Programmer:  A. Delcher
 *                 S. Lonardi (stelo@cs.purdue.edu)
 *       Written:  17 May 99
-* 
-* 
+*
+*
 * Assumptions:
-* 
+*
 * Notes:
 *
 *************************************************/
 
 /* RCS info
- * $Id: DataTypesREZ.h,v 1.6 2007-07-23 09:44:59 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: DataTypesREZ.h,v 1.7 2008-06-27 06:29:19 brianwalenz Exp $
+ * $Revision: 1.7 $
 */
 
 #ifndef DATA_TYPES_REZ_H
@@ -108,7 +108,7 @@ typedef  struct
                             //   if this is an "overlap" gap
    int  num_chunks;
    int  left_cid;           // ids of chunks that border this gap
-   int  right_cid;          //   left_cid = -1 for gap 0 
+   int  right_cid;          //   left_cid = -1 for gap 0
                             //   right_cid = -1 for last gap in scaffold
    unsigned int  has_path : 1;  // True indicates chunks in this gap were
                             //   confirmed by an overlap path
@@ -241,13 +241,13 @@ typedef struct {
   CIEdgeT
     * * edge[NUM_ORIENTATIONS],  // a pointer (for all the possibile orientations)
                                  // to an array of pointers to the outgoing edges
-    * best_edge;                 // the edge chosen by shortest path 
+    * best_edge;                 // the edge chosen by shortest path
 } chunk_subgraph_node;
 
 /*
    the data structure for the subgraph is an array
    of <chunk_subgraph_nodes> and a table of entries
-  
+
      2             123
    +---+---+------+---+---+
    ! * ! N ! .... ! * ! * !  chunk_table (some pointers could be NIL)
@@ -255,16 +255,16 @@ typedef struct {
       \__            \_
          v             v
    +---+---+------+---+---+
-   ! 5 ! 2 ! .... !234!123! cid        } 
+   ! 5 ! 2 ! .... !234!123! cid        }
    +---+---+------+---+---+             >  chunk_subgraph_node(s)
    !   !   ! .... !   !   ! other info }
    +---+---+------+---+---+
-  
+
    the following relation MUST be maintained for all 0 <= i < s->size
    (s is of type * chunk_subgraph)
-  
+
              s->table[s->node[i].cid] == &(s->node[i])
-  
+
    The edges are stored in four arrays, one for each
    orientation (AB_AB, AB_BA, BA_AB, BA_BA). The correspondence
    between orientation and the index in [0..3] is established by the
@@ -276,7 +276,7 @@ typedef struct {
     max,               // entries in the chunk_table
     size;              // entries in the subgraph
   chunk_subgraph_node
-    * * table; 
+    * * table;
   chunk_subgraph_node
     * node;
 } chunk_subgraph;

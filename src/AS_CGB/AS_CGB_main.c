@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_main.c,v 1.17 2008-06-16 16:58:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_main.c,v 1.18 2008-06-27 06:29:13 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_unitigger_globals.h"
@@ -58,7 +58,7 @@ static IntEdge_ID get_the_thickest_dvt_overlap_from_vertex
   // Does the graph have to be in adjacency format?
   const IntEdge_ID nedge = GetNumEdges(edges);
   IntEdge_ID ie_thickest = AS_CGB_EDGE_NOT_FOUND;
-  
+
   // Assume adjacency mode
   const IntEdge_ID segstart = get_segstart_vertex(frags,avx,asx);
   const int        seglen   = get_seglen_vertex(frags,avx,asx);
@@ -66,8 +66,8 @@ static IntEdge_ID get_the_thickest_dvt_overlap_from_vertex
   for( ie=segstart; ie < segstart+seglen; ie++) {
     const Tnes nes = get_nes_edge(edges,ie);
     assert(
-           (AS_CGB_DOVETAIL_EDGE == nes) || 
-           (AS_CGB_THICKEST_EDGE == nes) || 
+           (AS_CGB_DOVETAIL_EDGE == nes) ||
+           (AS_CGB_THICKEST_EDGE == nes) ||
            (AS_CGB_INTERCHUNK_EDGE == nes) ||
            (AS_CGB_TOUCHES_CRAPPY_DVT == nes) ||
            (AS_CGB_BETWEEN_CRAPPY_DVT == nes) ||
@@ -75,9 +75,9 @@ static IntEdge_ID get_the_thickest_dvt_overlap_from_vertex
            (AS_CGB_TOUCHES_CRAPPY_CON == nes) ||
            (AS_CGB_BETWEEN_CRAPPY_CON == nes) );
     if(
-       (AS_CGB_DOVETAIL_EDGE == nes) || 
-       (AS_CGB_THICKEST_EDGE == nes) || 
-       (AS_CGB_INTERCHUNK_EDGE == nes) 
+       (AS_CGB_DOVETAIL_EDGE == nes) ||
+       (AS_CGB_THICKEST_EDGE == nes) ||
+       (AS_CGB_INTERCHUNK_EDGE == nes)
        // get_dvt_edge(edges,ie)
        ) {
       ie_thickest = ie;
@@ -93,11 +93,11 @@ static IntEdge_ID get_the_thickest_dvt_overlap_from_vertex
 static void identify_thickest_overlaps
 ( Tfragment * frags,
   Tedge     * edges
-  ) 
+  )
 {
   const IntEdge_ID nedge = GetNumEdges(edges);
   const IntFragment_ID nfrag = GetNumFragments(frags);
-  
+
   // Assume an adjaceny representation.
   IntFragment_ID avx;
   int asx;
@@ -130,11 +130,11 @@ static void identify_bmpc_paths
   // The side effects are: (1) the starting edge is marked essential.
   // (2) that every thickest edge visited will be marked essential.
   // (3) every contained fragment visited will be marked essential.
-  
+
   IntEdge_ID ie_now;
   IntEdge_ID ie_next;
   IntEdge_ID nedge = GetNumEdges(edges);
-  
+
   for( ie_now = ie_start;
        (ie_now < nedge) && (AS_CGB_THICKEST_EDGE == get_nes_edge(edges,ie_now));
        // Note that nedge < AS_CGB_EDGE_NOT_FOUND.
@@ -162,7 +162,7 @@ static void identify_bmpc_paths
         assert(bvx == get_avx_edge(edges,ie_next));
         assert(!bsx == get_asx_edge(edges,ie_next));
       }
-      
+
     } else {
       // ie_next = nedge; // terminate
       break;
@@ -219,26 +219,26 @@ static void reflect_containment_direction_in_place
 (
  Tedge * edges,
  int     become_to_contained
-) 
+)
 {
-  /* 
+  /*
      The overlapper connects two fragment-ends in an overlap
      relationship:
-     
+
      A    ---------------->
      B          -------------->
-     
+
      The direction mate edge preserves the which fragment-ends are
      in the overlap:
-     
+
          B^c  <----------------
-         A^c       <---------------- 
-         
+         A^c       <----------------
+
   */
   const IntEdge_ID nedge = GetNumEdges(edges);
   IntEdge_ID iedge;
   time_t tp1, tp2;
-  
+
   for(iedge=0; iedge<nedge; iedge++) {
     const Tnes nes = get_nes_edge(edges, iedge);
     const int ahg = get_ahg_edge(edges, iedge);
@@ -284,7 +284,7 @@ static void maskout_overlaps_touching_crappy_fragments
   const IntEdge_ID nedge = GetNumEdges(edges);
   { IntEdge_ID ie; for(ie=0; ie<nedge; ie++) {
     const IntFragment_ID iavx = get_avx_edge(edges,ie);
-    const IntFragment_ID ibvx = get_bvx_edge(edges,ie); 
+    const IntFragment_ID ibvx = get_bvx_edge(edges,ie);
     const Tnes ines = get_nes_edge(edges,ie);
     Tnes jnes = ines;
     const int ikeep
@@ -293,22 +293,22 @@ static void maskout_overlaps_touching_crappy_fragments
     const int iremove
       =  (AS_CGB_HANGING_CRAPPY_FRAG == get_lab_fragment(frags,iavx))
       && (AS_CGB_HANGING_CRAPPY_FRAG == get_lab_fragment(frags,ibvx));
-    
+
     switch(ines) {
     case AS_CGB_DOVETAIL_EDGE:
     case AS_CGB_TOUCHES_CRAPPY_DVT:
     case AS_CGB_BETWEEN_CRAPPY_DVT:
       {
 	jnes = ines;
-	
+
 	if(!ikeep && !iremove) { jnes = AS_CGB_TOUCHES_CRAPPY_DVT;}
 	// This is a dovetail overlap between a globally crappy fragment
 	// and a non-crappy fragment.
-	
+
 	if(iremove) { jnes = AS_CGB_BETWEEN_CRAPPY_DVT;}
 	// This is a dovetail overlap between two globally crappy
 	// fragments.
-	
+
 	if( ines != jnes ) {
 	  set_nes_edge(edges,ie,jnes);
 	  fix_overlap_edge_mate(frags, edges, ie);
@@ -320,15 +320,15 @@ static void maskout_overlaps_touching_crappy_fragments
     case AS_CGB_BETWEEN_CRAPPY_CON:
       {
 	jnes = ines;
-	
+
 	if(!ikeep && !iremove) { jnes = AS_CGB_TOUCHES_CRAPPY_CON;}
 	// This is a containment overlap between a globally crappy fragment
 	// and a non-crappy fragment.
-	
+
 	if(iremove) { jnes = AS_CGB_BETWEEN_CRAPPY_CON;}
 	// This is a containment overlap between two globally crappy
 	// fragments.
-	
+
 	if( ines != jnes ) {
 	  set_nes_edge(edges,ie,jnes);
 	  fix_overlap_edge_mate(frags, edges, ie);
@@ -361,7 +361,7 @@ int main_cgb(THeapGlobals  * heapva,
     //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges);
   }
 
-  
+
   identify_thickest_overlaps( heapva->frags, heapva->edges);
   //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "After identify_thickest_edges");
   //view_fgb_chkpnt( "identify_thickest_overlaps", heapva->frags, heapva->edges);
@@ -373,10 +373,10 @@ int main_cgb(THeapGlobals  * heapva,
   //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges);
 
   chunk_classification_dvt(heapva->frags, heapva->edges, rg->walk_depth);
-  
+
   //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "In main after chunk_classification_dvt");
   //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges);
-   
+
 #ifdef SWITCH_CONTAINMENT_DIRECTION_CGB
   convert_all_containment_overlaps_direction_TOC ( heapva->frags, heapva->edges, TRUE);
   //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "After switching the containment direction");
@@ -384,14 +384,14 @@ int main_cgb(THeapGlobals  * heapva,
 
 
   { // beginning of the non-incremental phase
-    
+
     IntFragment_ID nfrag = GetNumFragments(heapva->frags);
     IntFragment_ID ifrag;
     IntFragment_ID num_of_guides_total = 0;
 
     /* Count the total amount of guide fragments. */
 
-    for(ifrag=0;ifrag<nfrag;ifrag++) { 
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
       const FragType type = get_typ_fragment(heapva->frags,ifrag);
 
       // Only AS_READ & AS_EXTR fragments are to be used in Gene Myers
@@ -400,7 +400,7 @@ int main_cgb(THeapGlobals  * heapva,
       IntFragment_ID iid = get_iid_fragment(heapva->frags, ifrag);
       fragRecord frg;
       getFrag(gkpStore, iid, &frg, 0);
-      
+
       if((type != AS_READ) && (type != AS_EXTR) || getFragRecordIsNonRandom(&frg))
         num_of_guides_total++;
 
@@ -410,7 +410,7 @@ int main_cgb(THeapGlobals  * heapva,
     fprintf(stderr, "Total number of guides counted: " F_IID " of " F_IID " fragments\n",
             num_of_guides_total, nfrag);
 
-    if(rg->genome_length > 0) { 
+    if(rg->genome_length > 0) {
       heapva->nbase_in_genome = rg->genome_length;
       heapva->global_fragment_arrival_rate = ((float)(nfrag - num_of_guides_total) /
                                               (float)heapva->nbase_in_genome);

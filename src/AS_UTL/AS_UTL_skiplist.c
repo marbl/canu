@@ -1,27 +1,27 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /**********************************************************************
  Module:      AS_UTL_skiplist.c
  Description: Implementation of a sorted sequence data structure that
-              supports lookup, insert and delete a (key,value) pair. 
+              supports lookup, insert and delete a (key,value) pair.
 	      Using access macros, one can define sorted sequences
 	      with different value types. The key is always a double.
 	      THe data structure is implemented a skiplist (Pugh 91)
@@ -30,13 +30,13 @@
 	      The creation of the skiplist takes a boolean parameter which determines
 	      whether the skiplist frees the information its value field points to,
 	      or whether the user does this.
- Assumptions: - All inserted keys are bigger than minf and smaller than pinf   
+ Assumptions: - All inserted keys are bigger than minf and smaller than pinf
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_UTL_skiplist.c,v 1.5 2007-02-14 07:20:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_skiplist.c,v 1.6 2008-06-27 06:29:21 brianwalenz Exp $";
 
 
-/* 
+/*
    Implementation of dynamic skiplists supporting the operations
    INSERT, DELETE und LOOKUP.
 */
@@ -50,12 +50,12 @@ static char CM_ID[] = "$Id: AS_UTL_skiplist.c,v 1.5 2007-02-14 07:20:15 brianwal
 static int coin(void)
 {
   return(random()&01);
-} 
+}
 
 
 /* initializes the random number generator */
 static void init_random(int seed)
-{ 
+{
   time_t l = seed;
   if (l==0) time(&l);
   srandom(l);
@@ -75,17 +75,17 @@ static void clear_item(sl_item it)
 static sl_item add_item(sl_item x, SkipList *sl, int i)
 {
   sl_item a,b,y,it1,it2;
-  
+
   if(i == sl->no_of_levels)
     {
       a=new_item;
       assert(a != NULL);
-      b=new_item;  
+      b=new_item;
       assert(b != NULL);
-	
+
       clear_item(a);
       clear_item(b);
-      
+
       a->down = sl->head;
       b->down = sl->tail;
       sl->head->up = a;
@@ -94,21 +94,21 @@ static sl_item add_item(sl_item x, SkipList *sl, int i)
       b->pred = a;
       a->key = minf;
       b->key = pinf;
-      
+
       sl->head = a;
       sl->tail = b;
 
-      sl->no_of_levels++;		
+      sl->no_of_levels++;
     }
-  
-  y = new_item;      
+
+  y = new_item;
   assert(y != NULL);
 
   clear_item(y);
   y->key  = x->key;
   y->down = x;
   x->up = y;
-  
+
   it1 = x->pred;
   while(it1->up == NULL)
     it1 = it1->pred;
@@ -117,13 +117,13 @@ static sl_item add_item(sl_item x, SkipList *sl, int i)
   while(it2->up == NULL)
     it2=it2->succ;
   it2=it2->up;
-  
+
   it1->succ=y;
   y->pred=it1;
   it2->pred=y;
   y->succ=it2;
   return(y);
-}		
+}
 
 
 /* main functions */
@@ -133,11 +133,11 @@ static sl_item add_item(sl_item x, SkipList *sl, int i)
 void Free_SL(SkipList *sl)
 {
   sl_item it1,it2;
-  
+
   it1=sl->head;
   sl->head=sl->head->down;
   while(it1 != NULL)
-    {	
+    {
       it2=it1->succ;
       while(it2 != NULL)
 	{
@@ -161,14 +161,14 @@ void Free_SL(SkipList *sl)
 void Print_SL(SkipList *sl)
 {
   sl_item it1,it2;
-  
+
   printf("\n");
   it1 = sl->head;
   while(it1 != NULL)
-    {	
+    {
       it2=it1;
       while(it2 != NULL )
-	{	
+	{
 	  if( it2->key != pinf && it2->key != minf)
 	    printf("%3.2lf\t",it2->key);
 	  it2=it2->succ;
@@ -176,10 +176,10 @@ void Print_SL(SkipList *sl)
       printf("\n");
       it1 = it1->down;
     }
-  printf("\nskiplist with %d elements and %d levels\n",sl->no_of_elements,sl->no_of_levels); 
+  printf("\nskiplist with %d elements and %d levels\n",sl->no_of_elements,sl->no_of_levels);
 }
- 
- 
+
+
 
 
 SkipList *Create_SL(int fd, SLF free_value)
@@ -214,7 +214,7 @@ SkipList *Create_SL(int fd, SLF free_value)
   assert(b != NULL);
   clear_item(a);
   clear_item(b);
-  
+
   a->down = sl->head;
   b->down = sl->tail;
   a->key = minf;
@@ -233,21 +233,21 @@ SkipList *Create_SL(int fd, SLF free_value)
 
 
 
-/* returns the element with the biggest key less than or 
+/* returns the element with the biggest key less than or
    equal to key  */
 
 sl_item Lookup_SL(keyType key, SkipList *sl)
-{	
+{
   sl_item it1;
   int found,fertig;
-  
+
   it1=sl->head;
   fertig = FALSE;
   while(fertig == FALSE)
     {
       found = FALSE;
       while(found == FALSE)
-	{	
+	{
 	if(it1->succ->key > key)
 	  found = TRUE;
 	else
@@ -259,22 +259,22 @@ sl_item Lookup_SL(keyType key, SkipList *sl)
 	it1=it1->down;
     }
   return(it1);
-}	
- 
- 
+}
+
+
 
 /* inserts an element in the skiplist if it is not already present
    returns the freshly inserted or present element */
 
- 
+
 sl_item Insert_SL(keyType key, valueType value, SkipList * sl)
-{	
+{
   sl_item it1,a,newi;
   int m;
-  int i;	
-  
+  int i;
+
   a = Lookup_SL(key,sl);
-  if(a->key == key)	
+  if(a->key == key)
     return(a);
   //else
     {
@@ -283,15 +283,15 @@ sl_item Insert_SL(keyType key, valueType value, SkipList * sl)
 
       clear_item(newi);
       sl->no_of_elements++;
-      
+
       newi->key=key;
       newi->value=value;
-      
+
       newi->succ=a->succ;
       a->succ->pred=newi;
       newi->pred=a;
       a->succ=newi;
-      
+
       it1 = newi;
       i = 2;
       m = coin();
@@ -303,28 +303,28 @@ sl_item Insert_SL(keyType key, valueType value, SkipList * sl)
       return(newi);
     }
 }
- 
+
 
 
 
 /* deletes the element with key key from the skiplist  */
 
 void Delete_SL(keyType key, SkipList *sl)
-{	
+{
   sl_item a,it;
-  
+
   a = Lookup_SL(key,sl);
   if(a->key == key)
     {
       while(a->up != NULL)
 	a=a->up;
       while(a != NULL)
-	{	 
+	{
 	  a->pred->succ = a->succ;
 	  a->succ->pred = a->pred;
 
 	  if(a->pred->key == minf  && a->succ->key == pinf)
-	    {	
+	    {
 	      sl->head = sl->head->down;
 	      sl->tail = sl->tail->down;
 	      //    sl->head->succ = sl->tail;
@@ -336,7 +336,7 @@ void Delete_SL(keyType key, SkipList *sl)
 	      sl->no_of_levels--;
 	    }
 
-	  it = a->down; 
+	  it = a->down;
  	  if( sl->freeData && a->down == NULL )
 	    sl->free_value( (void*) a->value);
 	  safe_free(a);
@@ -344,7 +344,7 @@ void Delete_SL(keyType key, SkipList *sl)
 	}
       sl->no_of_elements--;
     }
-}	
+}
 
 
 sl_item Min_SL(SkipList *sl)
@@ -369,5 +369,5 @@ int GetNum_SL(SkipList* sl){
   return sl->no_of_elements;
 }
 
- 
- 
+
+

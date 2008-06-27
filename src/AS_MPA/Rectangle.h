@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: Rectangle.h,v 1.5 2005-10-14 20:34:09 catmandew Exp $ */
+/* $Id: Rectangle.h,v 1.6 2008-06-27 06:29:16 brianwalenz Exp $ */
 #ifndef RECTANGLE_H
 #define RECTANGLE_H
 
@@ -37,7 +37,7 @@ public:
       pintervals[0].setID(pid);
       pintervals[1].setID(pid);
     }
-  
+
   Rectangle(const UnitType & x1, const UnitType & x2,
             const UnitType & y1, const UnitType & y2,
             IDType id) :
@@ -48,7 +48,7 @@ public:
       pintervals[0].setID(pid);
       pintervals[1].setID(pid);
     }
-  
+
   Rectangle(const Interval<IDType, UnitType> & xInterval,
             const Interval<IDType, UnitType> & yInterval)
     {
@@ -119,7 +119,7 @@ public:
     {
       pintervals[0].setMax(xmax);
     }
-  
+
   UnitType getYMin() const
     {
       return pintervals[1].getMin();
@@ -158,7 +158,7 @@ public:
     {
       return pintervals[0].intersects(x);
     }
-  
+
   bool intersects(const Rectangle<IDType, UnitType> & r) const
     {
       return (pintervals[0].intersects(r.getInterval[0]) &&
@@ -179,7 +179,7 @@ public:
          << r.pid;
       return os;
     }
-  
+
 private:
   IDType pid;
   Interval<IDType, UnitType> pintervals[2];

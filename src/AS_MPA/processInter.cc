@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: processInter.cc,v 1.6 2008-03-18 07:02:45 brianwalenz Exp $ */
+/* $Id: processInter.cc,v 1.7 2008-06-27 06:29:17 brianwalenz Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -89,13 +89,13 @@ public:
         _shiftBP = (UNIT_TYPE) (f1.getFiveP() - lib.getMean() - f2.getFiveP());
       }
     }
-  
+
   void translate(const FragmentPosition & f, FragmentPosition & fback) const
     {
       fback.setUID(f.getUID());
       fback.setFiveP(f.getFiveP() + getShift());
       fback.setSequenceID(f.getSequenceID());
-      
+
       switch(f.getOrientation())
       {
         case SINGLE_A_B:
@@ -124,7 +124,7 @@ public:
              getShift() + slop >= other.getShift() &&
              getShift() - slop <= other.getShift());
     }
-  
+
 private:
   // _flip indicates whether one or the other fragment has to be flipped
   // in moving from its axis to the other
@@ -143,11 +143,11 @@ private:
 
   PLAN:
     Read in clone library length estimates
-    
+
     Read in all intra-sequence mate pairs for a given sequence/assembly
       store each mate pair twice (by left and by right frag coord)
       sort by 'left' coorinate
-      
+
     Read in all inter-sequence mate pairs for a given sequence/assembly
       Maintain separate list of mates for each other sequence
         optionally omit lower numbered sequences to avoid duplication
@@ -347,7 +347,7 @@ int main(int argc, char ** argv)
     cerr << "Reading satisfied matepairs from " << mpFilename << endl;
     ReadMatePairs(mps, fmp);
     fmp.close();
-    
+
     // hold onto just satisfied mate pairs
     list<MatePair> smpsl;
     int numKept = 0;
@@ -392,25 +392,25 @@ int main(int argc, char ** argv)
     cerr << "Failed to open " << fname << " for writing\n";
     exit(1);
   }
-  
+
   // write ata header lines
   fo << "! format ata 1.0\n";
   fo << "# numStddevs=" << numStddevs << endl;
   int atacCount = sequenceID * 10000;;
 #endif
-  
+
   // for each other sequence
   for(unsigned int i = 0; i < icmps.size(); i++)
   {
     list<MatePair>::iterator lmp1;
     int numDupes = 0;
-    
+
     // for each half mate pair in the other sequence
     for(lmp1 = icmps[i].begin(); lmp1 != icmps[i].end(); lmp1++)
     {
       list<MatePair> matches;
       matches.push_back(*lmp1);
-      
+
       UNIT_TYPE maxDelta =
         (UNIT_TYPE) (numStddevs * libs[lmp1->getLibUID()].getStddev());
       /*
@@ -426,7 +426,7 @@ int main(int argc, char ** argv)
           otherProjectThisRight = rightmost coordinate on this sequence
           thisProjectOtherLeft = leftmost coordinate on other sequence
           thisProjectOtherRight = rightmost coordinate on other sequence
-          
+
        */
       Translation trans1(lmp1->getLeftFrag(),
                          lmp1->getRightFrag(),
@@ -439,7 +439,7 @@ int main(int argc, char ** argv)
       UNIT_TYPE otherLeft, otherRight;
       UNIT_TYPE otherProjectThisLeft, otherProjectThisRight;
       FragmentPosition fpt;
-      
+
       thisLeft = thisRight = lmp1->getLeftCoord();
       otherLeft = otherRight = lmp1->getRightCoord();
       bool mixedOrients = false;
@@ -449,7 +449,7 @@ int main(int argc, char ** argv)
 
       trans1.translate(lmp1->getRightFrag(), fpt);
       otherProjectThisLeft = otherProjectThisRight = fpt.getFiveP();
-      
+
       int numInterfering = 0;
       list<MatePair>::iterator lmp2 = lmp1;
       for(lmp2++; lmp2 != icmps[i].end(); )
@@ -477,7 +477,7 @@ int main(int argc, char ** argv)
              lmp2->getRightFrag().getOrientation() !=
              lmp1->getRightFrag().getOrientation())
             mixedOrients = true;
-          
+
           matches.push_back(*lmp2);
 
           // update extreme left/right on this sequence
@@ -499,7 +499,7 @@ int main(int argc, char ** argv)
             thisProjectOtherLeft : fpt.getFiveP();
           thisProjectOtherRight = (thisProjectOtherRight > fpt.getFiveP()) ?
             thisProjectOtherRight : fpt.getFiveP();
-          
+
           // update extreme left/right of projection of other
           // sequence onto this
           trans2.translate(lmp2->getRightFrag(), fpt);
@@ -507,7 +507,7 @@ int main(int argc, char ** argv)
             otherProjectThisLeft : fpt.getFiveP();
           otherProjectThisRight = (otherProjectThisRight > fpt.getFiveP()) ?
             otherProjectThisRight : fpt.getFiveP();
-          
+
           lmp2 = icmps[i].erase(lmp2);
         }
         else
@@ -539,10 +539,10 @@ int main(int argc, char ** argv)
             M md 5 ma1 VAN:1 8000 8050 ? VAN:2 5 55 ? > /leftUID=x /rightUID=y /libUID=z
             M md 6 ma1 VAN:1 9050 10000 ? VAN:2 1955 2005 ? > /leftUID=a /rightUID=b /libUID=c
         */
-        
+
         int refCount = atacCount++;
         UNIT_TYPE delta;
-        
+
         // parent match between large to/from intervals
         fo << "M xa xa" << refCount << " . "
            << assembly << ":" << lmp1->getLeftSequenceID() << " ";
@@ -589,7 +589,7 @@ int main(int argc, char ** argv)
            << thisLeft << " " << thisRight - thisLeft << " 1 "
            << assembly << ":" << lmp1->getRightSequenceID() << " "
            << otherLeft << " " << otherRight - otherLeft << " 1 " << endl;
-        
+
         atacCount++;
 #else
         cout << endl;

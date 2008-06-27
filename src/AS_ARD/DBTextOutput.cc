@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -22,7 +22,7 @@
 #include <assert.h>
 
 #include "DBTextOutput.hh"
- 
+
 using AS_ARD::DBTextOutput;
 
 DBTextOutput::DBTextOutput() :
@@ -61,7 +61,7 @@ uint64 DBTextOutput::storeAssembly(
    assert(genProg != NULL);
    assert(ver != NULL);
    assert(notes != NULL);
-   
+
    std::cerr << "ASM: "
              << AS_UID_toInteger(assemblyEUID) << "\t"
              << date << "\t"
@@ -74,33 +74,33 @@ uint64 DBTextOutput::storeAssembly(
 
    return 1;
 }
-         
+
 bool DBTextOutput::storeMDI2DB (
-         AS_UID erefines,  
+         AS_UID erefines,
          IntDist_ID irefines,
          float mean,
          float stddev,
          int32 min,
          int32 max) {
-   std::cerr << "MDI: " 
+   std::cerr << "MDI: "
           << AS_UID_toInteger(erefines) << "\t"
           << irefines << "\t"
           << mean << "\t"
           << stddev << "\t"
           << min << "\t"
           << max  << "\n";
-       
+
    return true;
 }
 
 bool DBTextOutput::storeAFG2DB (
-         AS_UID eaccession,  
+         AS_UID eaccession,
          IntFragment_ID iaccession,
          MateStatType mate_status,
          int32 chaff,
          CDS_COORD_t bgn,
          CDS_COORD_t end) {
-   std::cerr << "AFG: " 
+   std::cerr << "AFG: "
           << AS_UID_toInteger(eaccession) << "\t"
           << iaccession << "\t"
           << static_cast<char>(mate_status) << "\t"
@@ -112,7 +112,7 @@ bool DBTextOutput::storeAFG2DB (
 }
 
 bool DBTextOutput::storeUTG2DB (
-         AS_UID eaccession,  
+         AS_UID eaccession,
          IntFragment_ID iaccession,
          const char * source,
          float mhp,
@@ -143,16 +143,16 @@ bool DBTextOutput::storeUTG2DB (
 bool DBTextOutput::storeMPS2DB (
          AS_UID unitigID,
          AS_UID afgID,
-         FragType type,         
+         FragType type,
          const char * source,
          CDS_COORD_t bgn,
          CDS_COORD_t end,
          int32 delta_length,
          std::string delta) {
-   std::cerr << "MPS: " 
+   std::cerr << "MPS: "
          << AS_UID_toInteger(unitigID) << "\t"
          << AS_UID_toInteger(afgID) << "\t"
-         << static_cast<char>(type) << "\t"         
+         << static_cast<char>(type) << "\t"
          << source << "\t"
          << bgn << "\t"
          << end << "\t"
@@ -194,7 +194,7 @@ bool DBTextOutput::storeLKList2DB(int type, AS_UID ulkID, AS_UID utgID) {
    else if (type == CLK_TYPE) {
       std::cerr << "CLK-LIST" << "\t";
    }
-   
+
    std::cerr
          << AS_UID_toInteger(ulkID)  << "\t"
          << AS_UID_toInteger(utgID)  << "\n";
@@ -209,7 +209,7 @@ bool DBTextOutput::storeJMP2DB(int jmpType, AS_UID jmpID, AS_UID ulkID, LinkType
    else if (jmpType == CLK_TYPE) {
       std::cerr << "CLK-JMP: " << "\t";
    }
-   
+
    std::cerr << AS_UID_toInteger(ulkID) << "\t"
          //what is status?
          << static_cast<char>(type) << "\n";
@@ -224,7 +224,7 @@ bool DBTextOutput::storeJMPList2DB(int jmpType, AS_UID jmpListID, AS_UID jmpID, 
    else if (jmpType == CLK_TYPE) {
       std::cerr << "CLK-JMP-LIST: " << "\t";
    }
-   
+
    std::cerr << AS_UID_toInteger(jmpID) << "\t"
          << AS_UID_toInteger(fragID) << "\n";
 
@@ -232,7 +232,7 @@ bool DBTextOutput::storeJMPList2DB(int jmpType, AS_UID jmpListID, AS_UID jmpID, 
 }
 
 bool DBTextOutput::storeCCO2DB (
-                  AS_UID eaccession,  
+                  AS_UID eaccession,
                   IntFragment_ID iaccession,
                   ContigPlacementStatusType placed,
                   CDS_COORD_t length,
@@ -243,7 +243,7 @@ bool DBTextOutput::storeCCO2DB (
                   int32 num_unitigs,
                   int32 num_vars) {
 
-   std::cerr << assemblyID << "\t" 
+   std::cerr << assemblyID << "\t"
                << AS_UID_toInteger(eaccession) << "\t"
                << iaccession << "\t"
                << static_cast<char>(placed) << "\t"
@@ -260,7 +260,7 @@ bool DBTextOutput::storeCCO2DB (
 
 bool DBTextOutput::storeCCOMPS2DB(
                   AS_UID ccoMpsID,
-                  AS_UID ccoID,            
+                  AS_UID ccoID,
                   AS_UID fragID,
                   FragType type,
                   const char * source,
@@ -286,7 +286,7 @@ bool DBTextOutput::storeCCOMPS2DB(
 
 bool DBTextOutput::storeUPS2DB(
                   AS_UID upsID,
-                  AS_UID ccoID,            
+                  AS_UID ccoID,
                   AS_UID unitigID,
                   UnitigType type,
                   CDS_COORD_t bgn,
@@ -295,9 +295,9 @@ bool DBTextOutput::storeUPS2DB(
                   std::string delta) {
    //TODO: warning truncating delta in UPS to 1000
    //	   using 0 as ciid for UPS
-   std::cerr << assemblyID << "\t" 
+   std::cerr << assemblyID << "\t"
                   << AS_UID_toInteger(upsID) << "\t"
-                  << 0 << "\t" 
+                  << 0 << "\t"
                   << AS_UID_toInteger(ccoID) << "\t"
                   << AS_UID_toInteger(unitigID) << "\t"
                   << static_cast<char>(type) << "\t"
@@ -310,7 +310,7 @@ bool DBTextOutput::storeUPS2DB(
 
 bool DBTextOutput::storeVAR2DB(
                   AS_UID varID,
-                  AS_UID ccoID,            
+                  AS_UID ccoID,
                   CDS_COORD_t bgn,
                   CDS_COORD_t end,
                   uint32 num_reads,
@@ -322,7 +322,7 @@ bool DBTextOutput::storeVAR2DB(
    //TODO: warning using 0 as ciid for VAR
    std::cerr << assemblyID << "\t"
                   << AS_UID_toInteger(varID) << "\t"
-                  << 0 << "\t" 
+                  << 0 << "\t"
                   << AS_UID_toInteger(ccoID) << "\t"
                   << bgn << "\t"
                   << end << "\t"
@@ -332,7 +332,7 @@ bool DBTextOutput::storeVAR2DB(
                   << var_length << "\t"
                   << curr_var_id << "\t"
                   << phased_var_id << "\n";
-   
+
    return true;
 }
 
@@ -340,7 +340,7 @@ bool DBTextOutput::storeVARAllele2DB(AS_UID varAlleleID, AS_UID varID, uint32 nr
    //TODO: warning using 0 as ciid for VAR_ALLELE
    std::cerr << assemblyID << "\t"
                      << AS_UID_toInteger(varAlleleID) << "\t"
-                     << 0 << "\t" 
+                     << 0 << "\t"
                      << AS_UID_toInteger(varID) << "\t"
                      << nra << "\t"
                      << wgt << "\t"
@@ -391,7 +391,7 @@ bool DBTextOutput::storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 n
                   << AS_UID_toInteger(eaccession) << "\t"
                   << iaccession << "\t"
                   << num_contig_pairs << "\n";
-   
+
    return true;
 }
 
@@ -404,10 +404,10 @@ bool DBTextOutput::storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float std
                   << mean << "\t"
                   << stddev << "\t"
                   << static_cast<char>(orient) << "\n";
-   
+
    return true;
 }
-         
+
 bool DBTextOutput::storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID) {
    std::cerr << assemblyID << "\t"
                   << AS_UID_toInteger(ctpListID) << "\t"

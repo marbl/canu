@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.11 2007-09-05 11:22:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.12 2008-06-27 06:29:14 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -128,13 +128,13 @@ int IsScaffold2EdgeConnected(ScaffoldGraphT *graph, CIScaffoldT *scaffold){
 
       // Iterate over raw edges
       InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, contig->id, ALL_END, ALL_TRUSTED_EDGES, GRAPH_EDGE_DEFAULT, &Edges);
-      
+
       dfsnum[i] = ++count1;
 #ifdef DEBUG
       fprintf(stderr,"* i = " F_CID "\n", i);
       fprintf(stderr,"* Contig " F_CID " dfsnum %d\n", contig->id, dfsnum[i]);
 #endif
-      
+
       // Does this node have any edges that are scaffold internal
       while (NULL != (edge = NextGraphEdgeIterator(&Edges))){
         NodeCGW_T *nodeA = GetGraphNode(ScaffoldGraph->ContigGraph, edge->idA);
@@ -144,7 +144,7 @@ int IsScaffold2EdgeConnected(ScaffoldGraphT *graph, CIScaffoldT *scaffold){
         if(nodeA->scaffoldID != nodeB->scaffoldID ||
            isSingletonOverlapEdge(edge))
           continue;
-	
+
         assert(nodeA->scaffoldID == scaffold->id);
         assert(nodeB->scaffoldID == scaffold->id);
 
@@ -184,7 +184,7 @@ int IsScaffold2EdgeConnected(ScaffoldGraphT *graph, CIScaffoldT *scaffold){
 static void bcc_dfs(ScaffoldGraphT *sgraph,
                     ContigT **contigs, ContigT *contig,
                     int32 *dfsnum, int32 *lowpt, int32 *father,
-                    Stack_PtrT *stack, 
+                    Stack_PtrT *stack,
 		    int32 *count1, int32 *count2, int32 *numBridges){
   CDS_CID_t contigNum = (CDS_CID_t)contig->microhetScore;
   GraphEdgeIterator Edges;
@@ -195,7 +195,7 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
   fprintf(stderr, "contig " F_CID " contigNum %d lowpt[contigNum] = %d\n",
           contig->id,contigNum,lowpt[contigNum]);
 #endif
-  
+
   // Iterate over raw edges
   InitGraphEdgeIterator(sgraph->ContigGraph, contig->id, ALL_END, ALL_TRUSTED_EDGES, GRAPH_EDGE_DEFAULT, &Edges);
 
@@ -207,12 +207,12 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
     if(otherContig->scaffoldID != contig->scaffoldID ||
        isSingletonOverlapEdge(edge))
       continue;
-    
+
 #ifdef DEBUG
     fprintf(stderr," (" F_CID "," F_CID ",%c) wght %d\n",
 	    edge->idA, edge->idB, edge->orient, edge->edgesContributing);
 #endif
-    
+
     if(dfsnum[otherNum] == NULLINDEX){ // haven't seen it yet
       dfsnum[otherNum] = ++(*count1);
       PushStack_PtrT(stack, otherContig);
@@ -222,7 +222,7 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
       fprintf(stderr,"Pushing ctg " F_CID " contigNum %d dfsnum %d father %d and calling dfs\n",
               otherContig->id,otherNum,dfsnum[otherNum],father[otherNum]);
 #endif
-      
+
       bcc_dfs(sgraph, contigs, otherContig,  dfsnum, lowpt, father,stack, count1, count2, numBridges);
       lowpt[contigNum] = MIN(lowpt[contigNum], lowpt[otherNum]);
     }else{
@@ -231,7 +231,7 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
 #ifdef DEBUG
     fprintf(stderr,"lowpt[contigNum] = %d\n",lowpt[contigNum]);
 #endif
-  } 
+  }
 
   if(father[contigNum] != NULLINDEX &&
      (lowpt[contigNum] == dfsnum[father[contigNum]])){
@@ -254,7 +254,7 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
         if(otherContig->scaffoldID != w->scaffoldID ||
            isSingletonOverlapEdge(edge2))
           continue;
-	  
+
 #ifdef DEBUG
         fprintf(stderr,
                 " w:" F_CID " cnt:%d (" F_CID "," F_CID ",%c) wght %d\n",
@@ -268,7 +268,7 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
           w->setID = otherContig->setID = (*count2);
         }
       }
-	
+
     }while(wNum != contigNum);
 
     if(cnt == 1){
@@ -284,7 +284,7 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
 
       }
     }
-      
+
     (*count2)++;
   }
 }

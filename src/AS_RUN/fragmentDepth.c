@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 2007, J. Craig Venter Institute.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -81,7 +81,7 @@ computeStuff(uint32 *V, uint32 N,
 
     if (V[i] < histogramMax)
       histogram[V[i]]++;
-    else 
+    else
       histogramBig++;
   }
 
@@ -332,7 +332,7 @@ main(int argc, char **argv) {
           case MODE_SCAFFOLD:
             //  Report mode, mean and median for this scaffold
             //
-            {          
+            {
               uint32  N      = id[idlen-1].hi;
               uint32 *V      = (uint32 *)safe_calloc(N, sizeof(uint32));
               uint32  mode   = 0;
@@ -346,18 +346,18 @@ main(int argc, char **argv) {
                   V[j] = id[i].de;
                 }
               }
-         
-              if (stepSize == 0) { 
-                currStep = N; 
-              } 
+
+              if (stepSize == 0) {
+                currStep = N;
+              }
               else {
                 currStep = stepSize;
               }
-          
-              for (i = 0; i < N; i+=currStep) {                    
-                int E  = i+currStep;            
+
+              for (i = 0; i < N; i+=currStep) {
+                int E  = i+currStep;
                 if (E > N) { E = N; }
-            
+
                 computeStuff(V, N, i, E, &mode, &mean, &median);
                 fprintf(stdout, "%s\t"F_U32"\t"F_U32"\t"F_U32"\t%f\t"F_U32"\n", AS_UID_toString(lastuid), i, E, mode, mean, median);
               }

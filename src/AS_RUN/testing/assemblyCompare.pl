@@ -6,19 +6,19 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received (LICENSE.txt) a copy of the GNU General Public 
+#
+# You should have received (LICENSE.txt) a copy of the GNU General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
 #
-# $Id: assemblyCompare.pl,v 1.6 2005-12-16 22:12:38 catmandew Exp $
+# $Id: assemblyCompare.pl,v 1.7 2008-06-27 06:29:20 brianwalenz Exp $
 #
 
 # Program to compare two assemblies
@@ -37,7 +37,7 @@ use FileHandle;
 use Getopt::Long;
 use Env qw(PWD);
 
-my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.6 $/ )[1]. ")";
+my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.7 $/ )[1]. ")";
 my $MY_APPLICATION = "assemblyCompare";
 
 my $HELPTEXT = qq~
@@ -58,10 +58,10 @@ Compare two assemblies
     Reference directory and assembly name must both be listed before
     the query reference directories and assembly names. Any number of
     query directories/assemblies may be specified.
-  
+
     options:
       -h               Print help.
-  
+
       -v <level>       Set verbosity to level.
 
       -c               Do not compare qc files
@@ -203,7 +203,7 @@ if(!$dontMummer)
   for(my $i = 1; $i <= $#dirs; $i++)
   {
     $fnps[$i] = $dirs[$i] . "/" . $assemblies[$i];
-    
+
     my $prefix = $assemblies[0] . "_" . $assemblies[$i] . "_" . $i . "_nucmer";
 
     my $clusterFN = $prefix . ".cluster";
@@ -219,7 +219,7 @@ if(!$dontMummer)
         exit 1;
       }
     }
-    
+
     my $showCoordsFN = $prefix . ".show-coords";
     if( ! -f $showCoordsFN )
     {
@@ -233,7 +233,7 @@ if(!$dontMummer)
         exit 1;
       }
     }
-    
+
     # now compare
     printf("==========> Mummer Comparison: Reference vs. Assembly $i\n\n");
     $command = "analyzeMummerMapping -r $fnps[0].scaff -q $fnps[$i].scaff -s $showCoordsFN";

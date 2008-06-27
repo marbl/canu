@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Stats_CGW.c,v 1.16 2007-11-08 12:38:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Stats_CGW.c,v 1.17 2008-06-27 06:29:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -214,7 +214,7 @@ void GeneratePlacedContigGraphStats(char *label,int iteration){
 
   fprintf(GlobalData->stderrc,"**** GeneratePlacedContigStats %s %d****\n", label, iteration);
 
-  
+
   sprintf(buffer,"stat/%s%d.PlacedContig.nodelength.cgm", label, iteration);
   fLengthOut = fopen(buffer,"w");
   AssertPtr(fLengthOut);
@@ -352,7 +352,7 @@ void GenerateScaffoldGraphStats(char *label, int iteration){
 
   fprintf(GlobalData->stderrc,"**** GeneratePlacedContigStats %s %d ****\n", label,iteration);
 
-  
+
   sprintf(buffer,"stat/%s%d.Scaffolds.nodelength.cgm", label,iteration);
   fLengthOut = fopen(buffer,"w");
   AssertPtr(fLengthOut);
@@ -600,7 +600,7 @@ void GenerateLinkStats(GraphCGW_T *graph, char *label, int iteration){
 
     if(isOverlapEdge(edge)){
       mates--;
-      
+
       if(mates){  // we only want edges that are NOT overlap only
         fprintf(linkstd_w_overlap,"%d\n", std);
         if(graph->type == CONTIG_GRAPH){
@@ -656,11 +656,11 @@ void GenerateSurrogateStats(char *phase){
   char buffer[1024];
   GraphNodeIterator Nodes;
   NodeCGW_T *node;
-  int stoneSurrogs=0, 
+  int stoneSurrogs=0,
     walkSurrogs=0;
 
   AS_UTL_mkdir("stat");
-  
+
   sprintf(buffer,"stat/%s.surrogates_per_repeatCI.cgm",phase);
   surrogPer = fopen(buffer,"w");
   AssertPtr(surrogPer);
@@ -715,7 +715,7 @@ void GenerateSurrogateStats(char *phase){
         break;
     }
 #ifdef DEBUG_DETAILED
-    fprintf(GlobalData->stderrc,"* Node " F_CID " %c contig:" F_CID "  numInstances %d\n", 
+    fprintf(GlobalData->stderrc,"* Node " F_CID " %c contig:" F_CID "  numInstances %d\n",
 	    node->id, type, node->info.CI.contigID, node->info.CI.numInstances);
 #endif
     if((node->type != UNRESOLVEDCHUNK_CGW) ||    // is not a surrogate parent

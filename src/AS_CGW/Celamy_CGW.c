@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* All of the CGW celamy stuff is here */
-static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.19 2007-12-10 23:29:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.20 2008-06-27 06:29:14 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -187,7 +187,7 @@ static int ComputeCIRow(ChunkInstanceT *ci, CIScaffoldT *scaffold){
 }
 
 static int ComputeContigColor(ContigT *CI, CIScaffoldT *scaffold){
-  
+
   switch(CI->flags.bits.cgbType){
     case UU_CGBTYPE:
       return(CI->flags.bits.isMisplaced?MISPLACEDCONTIG_COLOUR:CONTIG_COLOUR);
@@ -343,7 +343,7 @@ void OrderScaffoldsForOutput(CIScaffoldT **scaffoldOrder,
   int64 aEndCoord = 0, bEndCoord = 0;
   int64 dregsAEndCoord = 0, dregsBEndCoord = 0;
   GraphNodeIterator scaffolds;
-  
+
   InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph,
 			GRAPH_NODE_DEFAULT);
   while(NULL != (scaffold = NextGraphNodeIterator(&scaffolds))){
@@ -405,7 +405,7 @@ void CelamyOrderedScaffolds(FILE *fout,  FILE *fdregs,
 void safelyAppendOvlInfo(char **ovlsString,OVSoverlap olap, int *lenString, int *lenUsed){
   char teststring[100];
   int testsize;
-   
+
   testsize = snprintf(teststring,99," %d",
 		      olap . b_iid);
   assert(testsize <= 100); /* test against truncation */
@@ -507,7 +507,7 @@ void draw_surroFrags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int 
 	} else {
 	  frgAEnd = utgAEnd - frgAEnd;
 	  frgBEnd = utgAEnd - frgBEnd;
-	}	  
+	}
 
 	if(globallyReversed){
 	  frgAEnd = AEndCoord - frgAEnd;
@@ -537,7 +537,7 @@ void draw_surroFrags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int 
 	  leftEndOvls = rightEndOvls;
 	  rightEndOvls = tmpstr;
 	}
-	
+
 
 
 	if(do_compute_missing_overlaps){
@@ -548,7 +548,7 @@ void draw_surroFrags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int 
           fprintf(fout,"%dCtgSurro%drand%d: %d A%dFragColor %d R10 # Contig %d Surrogate Frag %d Overlaps L/R %d/%d details: %s / %s\n",
                   ctg->id, f_list[j].ident, lrand48() % 9999,
                   frgAEnd,
-                  surroColor,     
+                  surroColor,
                   frgBEnd,
                   ctg->id,
                   f_list[j].ident,
@@ -562,7 +562,7 @@ void draw_surroFrags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int 
           fprintf(fout,"%dCtgSurro%drand%d: %d A%dFragColor %d R10 # Contig %d Surrogate Frag %d\n",
                   ctg->id, f_list[j].ident, lrand48() % 9999,
                   frgAEnd,
-                  surroColor,     
+                  surroColor,
                   frgBEnd,
                   ctg->id,
                   f_list[j].ident
@@ -631,8 +631,8 @@ void draw_frags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int globa
       fuid = 0;
     }
 #endif
-    frgcolor = 
-      globallyReversed ? 
+    frgcolor =
+      globallyReversed ?
       ( frag->position.bgn < frag->position.end ? REV_FRG_COLOR : FWD_FRG_COLOR ) :
       ( frag->position.bgn < frag->position.end ? FWD_FRG_COLOR : REV_FRG_COLOR );
 
@@ -651,14 +651,14 @@ void draw_frags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int globa
       leftEndOvls = rightEndOvls;
       rightEndOvls = tmpstr;
     }
-       
+
     if(do_compute_missing_overlaps){
       //CIFragT *f = getFragByIID(ScaffoldGraph,frag->ident);
       //       if(f->dist>=0&&GetDistT(ScaffoldGraph->Dists,f->dist)->mean>15000)
       fprintf(fout,"%dCtgFrag%d: %d A%dFragColor %d R10 # Contig %d Frag %d Overlaps L/R %d/%d details: %s / %s\n",
               ctg->id, frag->ident,
               ci_leftcoord,
-              frgcolor,     
+              frgcolor,
               ci_rightcoord,
               ctg->id,
               frag->ident,
@@ -671,14 +671,14 @@ void draw_frags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int globa
       fprintf(fout,"%dCtgFrag%d: %d A%dFragColor %d R10 # Contig %d Frag %d\n",
               ctg->id, frag->ident,
               ci_leftcoord,
-              frgcolor,     
+              frgcolor,
               ci_rightcoord,
               ctg->id,
               frag->ident
               );
     }
   }
-  
+
   return;
 }
 
@@ -768,7 +768,7 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
       CIFragT *ci_frag;
       int num_frags;
       int fi;
-      
+
 
       num_frags = 0;
       if(scaffoldReversed ^ contigReversed){
@@ -790,7 +790,7 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
                 ci->id, ciBCoord);
         ciBCoord = 0;
       }
-         
+
       if(!ci->flags.bits.isSurrogate){
         fprintf(fout,F_CID "CtgCI" F_CID ": " F_S64 " A%dCGBColor " F_S64 " R%d # Contig " F_CID " CI " F_CID " %s cov:%d ",
                 contigID, cid,
@@ -807,7 +807,7 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
                 color,
                 ciBCoord,
                 ComputeCIRow(ci, scaffold),
-                contigID, cid, 
+                contigID, cid,
                 baseCI->id, baseCI->info.CI.numInstances, ComputeCIUUCode(ci), baseCI->info.CI.coverageStat);
 
       }
@@ -825,10 +825,10 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
                                                    scaffoldReversed ^ contigReversed,
                                                    scaffoldReversed ^ contigReversed ? contigMax : contigMin);
 
-	  
+
     }
   }
-  
+
   if(scaffold->type == REAL_SCAFFOLD){
     if(scaffold->info.Scaffold.numElements > 1){
       fprintf(fout,"LNK: ");
@@ -871,14 +871,14 @@ void CelamyCIScaffolds(char *name, ScaffoldGraphT *graph){
     assert(0);
   }
 
-  DumpCelamyColors(fp);  
+  DumpCelamyColors(fp);
 
   InitGraphNodeIterator(&scaffolds, graph->ScaffoldGraph,
 			GRAPH_NODE_DEFAULT);
   while(NULL != (scaffold = NextGraphNodeIterator(&scaffolds))){
 
     i = scaffold->id;
-    
+
     Ctga = GetGraphNode(graph->RezGraph, scaffold->info.Scaffold.AEndCI);
     Ctgb = GetGraphNode(graph->RezGraph, scaffold->info.Scaffold.BEndCI);
 
@@ -976,7 +976,7 @@ void CelamyCIScaffolds(char *name, ScaffoldGraphT *graph){
                     color,
                     ciBCoord,
                     ComputeCIRow(ci, scaffold),
-                    contigID, cid, 
+                    contigID, cid,
                     baseCI->id, baseCI->info.CI.numInstances, ComputeCIUUCode(ci));
 
 	  }
@@ -1062,7 +1062,7 @@ void MarkMisplacedContigs(void){
   CDS_CID_t i;
   GraphNodeIterator scaffolds;
   CIScaffoldT *scaffold;
-  
+
   InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph,
 			GRAPH_NODE_DEFAULT);
   while(NULL != (scaffold = NextGraphNodeIterator(&scaffolds))){
@@ -1107,7 +1107,7 @@ void MarkMisplacedContigs(void){
 	if(CIaCoord <= 0 &&
 	   CIbCoord <= 0)
 	  continue;
-	   
+
 
 	if(scaffoldReversed){
 	  calcAEndOffsetCurr = (CDS_COORD_t)scaffold->bpLength.mean - (CDS_COORD_t)MAX(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
@@ -1123,7 +1123,7 @@ void MarkMisplacedContigs(void){
 
 	if(simAEndOffsetCurr == simBEndOffsetCurr)
 	  continue;
-	
+
 	if(simAEndOffsetCurr <= simAEndOffsetPrev){
 	  CI->flags.bits.isMisplaced = TRUE;
 	  fprintf(stderr,"*@@@@@* Contig " F_CID " is misplaced should be [" F_COORD "," F_COORD "] is [" F_COORD "," F_COORD "]\n",

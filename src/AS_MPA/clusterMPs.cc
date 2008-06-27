@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: clusterMPs.cc,v 1.6 2006-10-08 08:47:39 brianwalenz Exp $ */
+/* $Id: clusterMPs.cc,v 1.7 2008-06-27 06:29:17 brianwalenz Exp $ */
 #include <iostream>
 #include <vector>
 #include <list>
@@ -55,7 +55,7 @@ void ReadMatePairs(vector<MatePair> & mps, ifstream & fin)
 {
   char line[4096];
   MatePair mp;
-  
+
   while(fin.getline(line, 4095))
   {
     if(line[0] == 'I' || line[0] == 'A' || line[0] == 'N' || line[0] == 'O')
@@ -77,7 +77,7 @@ void MakeUnionsOfIntersectingRectangles(list<TwoDIntervalClique<int, UNIT_TYPE> 
     // seed a new twoDI & delete the rectangle
     TwoDIntervalClique<int, UNIT_TYPE> tdic(*mbrIter1);
     mbrIter1 = rects.erase(mbrIter1);
-    
+
     // compare with all other remaining rectangles
     list<Rectangle<int, UNIT_TYPE> >::iterator mbrIter2;
     mbrIter2 = mbrIter1;
@@ -92,7 +92,7 @@ void MakeUnionsOfIntersectingRectangles(list<TwoDIntervalClique<int, UNIT_TYPE> 
       else
         mbrIter2++;
     }
-        
+
     // compare with all other tdics
     list<TwoDIntervalClique<int, UNIT_TYPE> >::iterator titer1;
     for(titer1 = tdics.begin(); titer1 != tdics.end();)
@@ -106,7 +106,7 @@ void MakeUnionsOfIntersectingRectangles(list<TwoDIntervalClique<int, UNIT_TYPE> 
       else
         titer1++;
     }
-    
+
     // add the new tdic to the set of tdics
     tdics.push_back(tdic);
   }
@@ -141,11 +141,11 @@ void ClusterMPPs(const vector<CompositeMPPolygon<UNIT_TYPE> > & mpps,
   // find unions of intersecting MBRs
   list<TwoDIntervalClique<int, UNIT_TYPE> > tdics;
   MakeUnionsOfIntersectingRectangles(tdics, mpMBRsSorted);
-  
+
 #ifdef DEBUG_CLUSTERMPS
   cerr << "Looking for twoD interval cliques\n";
 #endif
-  
+
   // now, within each twoDI, find maximal cliques
   vector<TwoDIntervalClique<int, UNIT_TYPE> > mtdics;
   list<TwoDIntervalClique<int, UNIT_TYPE> >::iterator tdicsIter;
@@ -154,7 +154,7 @@ void ClusterMPPs(const vector<CompositeMPPolygon<UNIT_TYPE> > & mpps,
   {
     list<int> ids = tdicsIter->getIDs();
     list<int>::iterator idIter;
-    
+
     if(tdicsIter->getNumIDs() < filterThresh)
     {
       // append associated polygon to vector of solitary polygons
@@ -167,19 +167,19 @@ void ClusterMPPs(const vector<CompositeMPPolygon<UNIT_TYPE> > & mpps,
     vector<Rectangle<int, UNIT_TYPE> > uoirects;
     for(idIter = ids.begin(); idIter != ids.end(); idIter++)
       uoirects.push_back(mpMBRsFixed[*idIter]);
-    
+
 #ifdef DEBUG_CLUSTERMPS_BIGTIME
     cerr << "Rectangle group " << ti << endl;
     vector<Rectangle<int, UNIT_TYPE> >::iterator uoirIter;
     for(uoirIter = uoirects.begin(); uoirIter != uoirects.end(); uoirIter++)
       cerr << *uoirIter << endl;
 #endif
-    
+
     // run the interval set cover solver on this union of intersecting rects
     IntervalSetCoverSolver<int, UNIT_TYPE> iscs(uoirects);
     mtdics.clear();
     iscs.solve(mtdics);
-    
+
     // make sure the polygons intersect the set they're assigned to
     vector<TwoDIntervalClique<int, UNIT_TYPE> >::iterator mtdicsIter;
     PolygonIntersector<UNIT_TYPE> pi;
@@ -254,7 +254,7 @@ void ClusterMPPs(const vector<CompositeMPPolygon<UNIT_TYPE> > & mpps,
     }
   }
 }
-  
+
 
 void DetectTranspositions(const vector<CompositeMPPolygon<UNIT_TYPE> > & compressed,
                           const vector<CompositeMPPolygon<UNIT_TYPE> > & stretched,
@@ -285,7 +285,7 @@ void DetectTranspositions(const vector<CompositeMPPolygon<UNIT_TYPE> > & compres
          Similar requirements as stretched - one read must be outside the
          transposition and one must be inside, and the latter must still
          be inside when 'made' satisfied
-      
+
     Or Rule: any single outtie must be corroborated by at least
       one compressed or stretched to the left & at least one
       to the right, given the above descriptions
@@ -294,13 +294,13 @@ void DetectTranspositions(const vector<CompositeMPPolygon<UNIT_TYPE> > & compres
   for(unsigned int i = 0; i < outties.size(); i++)
   {
     CompositeMPPolygon<UNIT_TYPE> mpp(outties[i]);
-    
+
     {
       int numLeftStretched = 0;
       int numRightStretched = 0;
       int numLeftCompressed = 0;
       int numRightCompressed = 0;
-      
+
 
       /*
 
@@ -325,7 +325,7 @@ void DetectTranspositions(const vector<CompositeMPPolygon<UNIT_TYPE> > & compres
 
       */
 
-      // look at all the stretched mate pairs 
+      // look at all the stretched mate pairs
       for(unsigned int j = 0; j < stretched.size(); j++)
       {
         double lbound = libs[stretched[j].getMP(0).getLibUID()].getMean() -
@@ -429,14 +429,14 @@ unsigned int FindFirstMatePair(UNIT_TYPE x,
     return (maxIndex - 1);
   if(smpsv[index].getLeftCoord() < x && smpsv[index+1].getLeftCoord() >= x)
     return index+1;
-  
+
   if(smpsv[index].getLeftCoord() == x)
   {
     for(; index >= 0; index--)
       if(smpsv[index].getLeftCoord() < x) return index+1;
     return 0;
   }
-  
+
   level = (level * 2 > maxIndex) ? maxIndex : (level * 2);
   if(smpsv[index].getLeftCoord() > x)
   {
@@ -460,7 +460,7 @@ bool RefineIntervalWithSatisfied(CompositeMPPolygon<UNIT_TYPE> & mpp,
   unsigned int si;
 
   nl = minLeft; xl = maxLeft; nr = minRight; xr = maxRight;
-  
+
   // loop through satisfied mate pairs with a fragment in the interval
   /*
     there are 11 relevant combinations of left/right positions that
@@ -475,7 +475,7 @@ bool RefineIntervalWithSatisfied(CompositeMPPolygon<UNIT_TYPE> & mpp,
         3=between maxLeft and minRight
         4=between minRight and maxRight
         5=to the right of maxRight
-        
+
     Define interval pairs:
       interval of leftFrag, interval of rightFrag
       1,1: irrelevant
@@ -635,7 +635,7 @@ bool RefineIntervalWithSatisfied(CompositeMPPolygon<UNIT_TYPE> & mpp,
       break;
     }
   }
-  
+
   if(minLeft > maxLeft || minRight > maxRight)
   {
     cerr << "Interval refinement invalidated interval:\n";
@@ -671,7 +671,7 @@ bool RefineIntervalWithSatisfied(CompositeMPPolygon<UNIT_TYPE> & mpp,
       cerr << "        refinement: " << refiner << endl;
       return false;
     }
-    
+
     CompositeMPPolygon<UNIT_TYPE> tempMPP;
     pi.intersectPolygons(mpp, refiner, tempMPP);
     mpp.append(tempMPP);
@@ -683,7 +683,7 @@ bool RefineIntervalWithSatisfied(CompositeMPPolygon<UNIT_TYPE> & mpp,
   satisfied mate pair defines 5 regions
   if satisfied left,right intersects CP's left, right,
   at least one intersection of 5 regions with CP must be non-empty
-  
+
     |      |       |
     |  1   |  bad  |  2
   | |------+-------+-------------
@@ -712,12 +712,12 @@ bool RefineCPWithSatisfied(CompositeMPPolygon<UNIT_TYPE> & cmpp,
   unsigned int si;
 
   if(smpsv.size() == 0) return true;
-  
+
   si = FindFirstMatePair(minLeft, smpsv, 2, smpsv.size() / 2, smpsv.size());
   assert(si == 0 || si == smpsv.size() - 1 ||
          (smpsv[si-1].getLeftCoord() < minLeft &&
           smpsv[si].getLeftCoord() >= minLeft));
-  
+
   PolygonIntersector<UNIT_TYPE> pi;
   for(;si < smpsv.size();si++)
   {
@@ -743,12 +743,12 @@ bool RefineCPWithSatisfied(CompositeMPPolygon<UNIT_TYPE> & cmpp,
       // satisfied in outtie form
       right = smpsv[si].getLeftCoord();
       left = smpsv[si].getRightCoord();
-      
+
       // check that we haven't already processed this one in innie form
       if(left >= minLeft)
         continue;
     }
-    
+
     // define 5 polygons to intersect
     CompositePolygon<UNIT_TYPE> refiner;
     Polygon<UNIT_TYPE> sp;
@@ -762,7 +762,7 @@ bool RefineCPWithSatisfied(CompositeMPPolygon<UNIT_TYPE> & cmpp,
     refiner.append(sp);
 
 #define NUDGE_BP  1
-    
+
     // upper left
     if(maxRight > right && minLeft < left)
     {
@@ -836,7 +836,7 @@ void RefineInversions(vector<CompositeMPPolygon<UNIT_TYPE> > & cmpps,
 {
   /*
     filter out inversions that don't have the right properties:
-    
+
     |--------------|------------------------|------------------|
              -->     <--            -->       <--
              rln     lla            rrn       lra

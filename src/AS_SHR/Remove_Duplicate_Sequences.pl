@@ -22,19 +22,19 @@
 #
 ##########################################################################
 
-# $Id: Remove_Duplicate_Sequences.pl,v 1.1 2006-01-10 22:44:42 kli1000 Exp $
+# $Id: Remove_Duplicate_Sequences.pl,v 1.2 2008-06-27 06:29:21 brianwalenz Exp $
 
 ###############################################################################
 
 use strict;
 use Getopt::Std;
 
-my $usage = "usage: 
+my $usage = "usage:
 $0 <fasta files...>
 	This program will:
 
-		Read in a multi-FASTA file, and generate a non redundant multi-FASTA file 
-		where the defline of the unique sequence is the defline of the first 
+		Read in a multi-FASTA file, and generate a non redundant multi-FASTA file
+		where the defline of the unique sequence is the defline of the first
 		occurrence of the sequence.
 ";
 
@@ -59,7 +59,7 @@ while($fname=shift){
 	my ($defline, $prev_defline, $sequence);
 	while(<FASTA_FH>){
 		chomp;
-		
+
 		if(/^>/){
 			$defline=$_;
 			if($sequence ne ""){

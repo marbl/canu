@@ -1,4 +1,4 @@
-# $Id: UID.pm,v 1.2 2008-01-08 18:40:54 eliv Exp $
+# $Id: UID.pm,v 1.3 2008-06-27 06:29:21 brianwalenz Exp $
 
 # Copyright (c) 2003, The Center for the Advancement of Genomics. All rights reserved.
 
@@ -92,7 +92,7 @@ sub incrUID($) {
       $log->logconfess("Error retrieving UIDs (\"$result\")");
     }
   }
-  
+
   return $this->{current};
 }
 
@@ -104,7 +104,7 @@ Gets the current (most recent) UID.
 
 sub getUID($) {
   my ($this) = @_;
-  
+
   return $this->{current};
 }
 
@@ -117,7 +117,7 @@ Gets the batch size for this UID server object.
 
 sub getBatchSize($) {
   my ($this) = @_;
-  
+
   return $this->{batchSize};
 }
 

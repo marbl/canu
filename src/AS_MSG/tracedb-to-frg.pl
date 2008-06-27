@@ -3,21 +3,21 @@
 #
 ###########################################################################
 #
-# This file is part of Celera Assembler, a software program that 
+# This file is part of Celera Assembler, a software program that
 # assembles whole-genome shotgun reads into contigs and scaffolds.
 # Copyright (C) 2007, J. Craig Venter Instititue.
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received (LICENSE.txt) a copy of the GNU General Public 
+#
+# You should have received (LICENSE.txt) a copy of the GNU General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
@@ -61,7 +61,7 @@
 #    *.lib -- a map from TA frag id to TA library id, along with some
 #             info about the library
 #    *.frglib -- a map from TA frag id to CA library UID
-#    
+#
 
 use strict;
 
@@ -192,7 +192,7 @@ sub readXML () {
         #if (m!^\s*<LIBRARY_ID>(.*)</!i) {
         #    $lib = $1;
         #}
-        
+
         #if (m!^\s*<RUN_GROUP_ID>(.*)</!i) {
         #    $rgi = $1;
         #}
@@ -879,7 +879,7 @@ sub runFRG ($) {
             die;
         }
     }
-   
+
     close(L);
     close(Q);
     close(F);
@@ -1014,7 +1014,7 @@ sub runNBL ($) {
         $haveMore &= !eof(Q);
         $haveMore &= !eof(L);
     }
-   
+
     close(L);
     close(Q);
     close(F);

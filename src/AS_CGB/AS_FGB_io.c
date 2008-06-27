@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_FGB_io.c,v 1.28 2008-06-16 16:58:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_FGB_io.c,v 1.29 2008-06-27 06:29:13 brianwalenz Exp $";
 
 //  Fragment Overlap Graph Builder file input and output.  This
 //  functional unit reads a *.ovl prototype i/o file an massages it
@@ -68,7 +68,7 @@ static void keep_a_list_of_extreme_elements(Aedge       *newedge,
                                             Aedge       *base) {
 
   // The index of the first element saved in the list.
-  size_t ip = start_idx; 
+  size_t ip = start_idx;
   size_t ipp;
 
   // The last element in each list must have (ip == next(ip)).
@@ -81,7 +81,7 @@ static void keep_a_list_of_extreme_elements(Aedge       *newedge,
 
   while( ip != next_edge[ip] ) {
     // While not the last element in the list.
-    ipp = next_edge[ip]; 
+    ipp = next_edge[ip];
     // ipp = ip +/- 1 in an array
     if(-compare_edge_function(newedge,base+ipp) > 0) {
       memcpy(base+ip, base+ipp, sizeof(Aedge));
@@ -111,7 +111,7 @@ static void Insert_Aedge_into_the_edge_array_wrapper
   const int asx = the_edge->asx;
   const int ahg = the_edge->ahg;
   const int bhg = the_edge->bhg;
-  
+
   if(is_a_dvt_simple(ahg,bhg)) {  // A dovetail overlap. See get_dvt_edge().
 
     const int degree=get_seglen_dvt_vertex(frags,avx,asx);
@@ -243,7 +243,7 @@ static void add_overlap_to_graph(Aedge  an_edge,
   const int iinv = an_edge.invalid;
   //const int grangered = an_edge.grangered;
   //const int reflected = an_edge.reflected;
-  
+
   const int is_dovetail = is_a_dvt_simple(iahg,ibhg) ;
 
   const IntFragment_ID iavx = afr_to_avx[iafr];
@@ -265,7 +265,7 @@ static void add_overlap_to_graph(Aedge  an_edge,
 
   const int ialn = get_length_fragment(frags,iavx);
   const int ibln = get_length_fragment(frags,ibvx);
-  
+
   switch(ines) {
   case AS_CGB_DOVETAIL_EDGE: (*novl_dovetail)++; break;
   case AS_CGB_CONTAINED_EDGE: (*novl_containment)++; break;
@@ -274,7 +274,7 @@ static void add_overlap_to_graph(Aedge  an_edge,
             an_edge.nes);
     assert(FALSE);
   }
-  
+
 #ifdef REPORT_THIS_BUG
   if(ibmn <= 0 && (AS_CGB_DOVETAIL_EDGE == ines)) {
     fprintf(stderr,"BUG: bmn <= 0 AS_CGB_DOVETAIL_EDGE \n");
@@ -294,19 +294,19 @@ static void add_overlap_to_graph(Aedge  an_edge,
   assert(iafr != ibfr); // No self-overlaps.
   assert(iafr > 0);     // Pointing to an undefined vertex?
   assert(ibfr > 0);
-  
+
   // Are the over-hang distances compatible with the graph topology?
   // If this is true, then the transitive edge marking routine can
-  // make time saving assumptions about overlaps that do not need to 
+  // make time saving assumptions about overlaps that do not need to
   // be considered.
-  
+
   assert(!((iahg<0)&&(ibhg<0)));  // Art claims this.
 
   assert( is_a_dvt_simple(iahg,ibhg) ||
           is_a_frc_simple(iahg,ibhg) ||
           is_a_toc_simple(iahg,ibhg) ||
           is_a_dgn_simple(iahg,ibhg) );
-  
+
   assert((!(AS_CGB_DOVETAIL_EDGE == ines)) || is_a_dvt_simple(iahg,ibhg));
   // This is the definition of a dovetail overlap.  That is a dovetail
   // overlap has a positive a-hang and a positive b-hang.
@@ -339,13 +339,13 @@ static void add_overlap_to_graph(Aedge  an_edge,
   assert(ibln > ibhg);
   assert(ialn > -ibhg);
   assert(ibln > -iahg);
-  
+
   // If either of the fragments referenced in the overlap have
   // been deleted, then ignore this overlap during input.
   if((get_del_fragment(frags,iavx) == TRUE) ||
      (get_del_fragment(frags,ibvx) == TRUE) )
     return;
-  
+
   // If either of the fragments referenced in the overlap has been
   // marked as removed by breaker, set the edge label (well, no, just
   // delete the overlap)
@@ -354,7 +354,7 @@ static void add_overlap_to_graph(Aedge  an_edge,
     // ines=AS_CGB_REMOVED_BY_BREAKER;
     return;  // Remove the overlap from the graph.
   }
-  
+
   // Note that we can not count overlaps to deleted and removed
   // fragments.  Contained and spur fragments still have potential
   // mate link information if they are singly placeable.
@@ -370,24 +370,24 @@ static void add_overlap_to_graph(Aedge  an_edge,
             );
   }
 #endif
-  
+
   {
     Aedge  the_raw_new_edge = {0};
 
     the_raw_new_edge.avx = iavx;
     the_raw_new_edge.asx = iasx;
     the_raw_new_edge.ahg = iahg;
-      
+
     the_raw_new_edge.bvx = ibvx;
     the_raw_new_edge.bsx = ibsx;
     the_raw_new_edge.bhg = ibhg;
-      
+
     the_raw_new_edge.nes = ines;
     the_raw_new_edge.quality = qua;
     the_raw_new_edge.invalid = iinv;
     the_raw_new_edge.grangered = FALSE;
     the_raw_new_edge.reflected = FALSE;
-    
+
     if( is_dovetail ) {
         Aedge the_edge = the_raw_new_edge;
 
@@ -405,19 +405,19 @@ static void add_overlap_to_graph(Aedge  an_edge,
 #endif // PRIOR_INC_COUNT_BLESSED
 
         if( ! REAPER_VALIDATION) {
-          /* 
+          /*
              The overlapper connects two fragment-ends in an overlap
              relationship:
-             
+
              A    ---------------->
              B          -------------->
-             
+
              The direction mate edge preserves the which fragment-ends are
              in the overlap:
-             
+
              B^c  <----------------
-             A^c       <---------------- 
-             
+             A^c       <----------------
+
           */
           reflect_Aedge( &the_edge, &the_raw_new_edge);
           the_edge.reflected = FALSE;
@@ -438,17 +438,17 @@ static void add_overlap_to_graph(Aedge  an_edge,
           inc_raw_dvt_count_vertex(frags,the_edge.bvx,the_edge.bsx);
 #endif // PRIOR_INC_COUNT_BLESSED
         }
-    } else { // A containment overlap 
+    } else { // A containment overlap
       {
         Aedge the_edge_1, the_edge_2;
 
         assert(AS_CGB_CONTAINED_EDGE == the_raw_new_edge.nes);
-        
+
         if(is_a_frc_simple(the_raw_new_edge.ahg,the_raw_new_edge.bhg)
            || (is_a_dgn_simple(the_raw_new_edge.ahg,the_raw_new_edge.bhg)&&
                (the_raw_new_edge.avx > the_raw_new_edge.bvx))
            ) {
-          the_edge_1 = the_raw_new_edge; 
+          the_edge_1 = the_raw_new_edge;
           // Accept as a from-contained overlap.
         } else if(
                   is_a_toc_simple(the_raw_new_edge.ahg,the_raw_new_edge.bhg)
@@ -490,16 +490,16 @@ static void add_overlap_to_graph(Aedge  an_edge,
                                                    dvt_double_sided_threshold_fragment_end_degree,
                                                    con_double_sided_threshold_fragment_end_degree);
         }
-        
+
         /* The overlapper guarantees that ahg>0 in the reported
            overlaps.
-           
+
            A    ---------------->
            B          ------->...
-           
+
            So create the granger mate edge:
            A^c  <----------------
-           B^c     <-------......  
+           B^c     <-------......
         */
         granger_Aedge( &the_edge_2, &the_edge_1);
         if(
@@ -551,7 +551,7 @@ process_gkp_store_for_fragments(char *gkpStoreName,
   while (nextFragStream(fs, &fr)) {
     if (getFragRecordIsDeleted(&fr) == FALSE) {
       iid = getFragRecordIID(&fr);
-  
+
       //  Argh!  This needs to be here, other code depends on the
       //  range of the VA being the number of fragments.
       //
@@ -574,7 +574,7 @@ process_gkp_store_for_fragments(char *gkpStoreName,
 
       // Zero if this flag is not contained, but equal to the
       // fragment containing this one in a unitig layout graph.
-      set_container_fragment(frags, vid,0); 
+      set_container_fragment(frags, vid,0);
 
       // Set the counts of raw overlaps seen to zero.
       set_raw_dvt_count_vertex(frags, vid, FALSE, 0);
@@ -669,11 +669,11 @@ void process_ovl_store(char * OVL_Store_Path,
       e.avx = olap.a_iid;
       e.asx = !improper;
       e.ahg = (improper ? -olap.dat.ovl.b_hang : olap.dat.ovl.a_hang);
-  
+
       e.bvx = olap.b_iid;
       e.bsx = (!improper) ^ (!olap.dat.ovl.flipped);
       e.bhg = (improper ? -olap.dat.ovl.a_hang : olap.dat.ovl.b_hang);
-  
+
       e.nes       = (is_a_dvt_simple(e.ahg, e.bhg) ? AS_CGB_DOVETAIL_EDGE : AS_CGB_CONTAINED_EDGE);
       e.quality   = olap.dat.ovl.corr_erate;
       e.invalid   = FALSE;
@@ -723,15 +723,15 @@ void input_messages_from_a_file(FILE       *fovl,
   /* Keep a copy of the number of fragments and edges before
      the new data is read in. */
   const IntEdge_ID nedge_old = GetNumEdges(edges);
-  
+
   IntEdge_ID nedge_new = nedge_old;
-  
+
   IntEdge_ID novl_dovetail=0;  /* The number of overlap records read. */
   IntEdge_ID novl_containment=0;
   IntEdge_ID novl_degenerate=0;
 
-  IntEdge_ID nedge_delta=0;   
-  
+  IntEdge_ID nedge_delta=0;
+
   /* It is assumed that in the overlap records that new fragments
      point to old fragments.  */
 
@@ -779,11 +779,11 @@ void input_messages_from_a_file(FILE       *fovl,
       e.avx = o->aifrag;
       e.asx = improper ^ ((o->orientation == AS_NORMAL) || (o->orientation == AS_INNIE));
       e.ahg = (improper) ? -o->bhg : o->ahg;
-  
+
       e.bvx = o->bifrag;
       e.bsx = e.asx ^ !((o->orientation == AS_INNIE)  || (o->orientation == AS_OUTTIE));
       e.bhg = (improper) ? -o->ahg : o->bhg;
-  
+
       e.nes       = (is_a_dvt_simple(e.ahg, e.bhg)) ? AS_CGB_DOVETAIL_EDGE : AS_CGB_CONTAINED_EDGE;
       e.quality   = o->quality;
       e.invalid   = FALSE;

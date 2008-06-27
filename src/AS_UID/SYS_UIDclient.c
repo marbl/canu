@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -40,7 +40,7 @@ static void                 ReceiveFailsafeServerMessage(int32 code, uint64* int
 static void                 CloseFailsafeConnection(void);
 static int32                GetFailsafeServerHostInfo(void);
 
-static void                 SetUIDInterval(uint64 a, uint64 a_size, 
+static void                 SetUIDInterval(uint64 a, uint64 a_size,
                                            uint64 b, uint64 b_size);
 static void                 Initialize(void);
 
@@ -109,7 +109,7 @@ int32  SYS_UIDgetMaxUIDSize(uint64* size)
 #ifndef NOT_IMPLEMENTED_JTC
    return QueryServer(UID_CODE_NEED_SIZE_INFO, size);
 #else
-   *size = UID_MAX_REQUEST_SIZE; 
+   *size = UID_MAX_REQUEST_SIZE;
    return UID_CODE_OK;
 #endif
 }
@@ -117,7 +117,7 @@ int32  SYS_UIDgetMaxUIDSize(uint64* size)
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    External function for getting the current increment UID. It returns the
    current value of the incrementer, and increments the value for next time.
@@ -133,8 +133,8 @@ int32   SYS_UIDgetNextUID(uint64* uid)
      *uid = 0L;
      return UID_CODE_INCREMENT_OVERFLOW;
    }
-   
-   // check which interval 
+
+   // check which interval
    if (increment_offset_UID < interval_UID[1])
      *uid = increment_offset_UID + interval_UID[0];
    else
@@ -160,8 +160,8 @@ int32   SYS_UIDgetLastUID(uint64* uid)
      *uid = 0L;
      return UID_CODE_INCREMENT_OVERFLOW;
    }
-   
-   // check which interval 
+
+   // check which interval
    if (increment_offset_UID < interval_UID[1])
      *uid = increment_offset_UID + interval_UID[0];
    else
@@ -208,7 +208,7 @@ void Initialize(void)
    char* failsafe_host_string;
 
    SYS_UIDtype = UID_CLIENT_TYPE;
-   
+
    // REGULAR SERVER **********************************************************
    if ( (port_string = getenv("SYS_UID_SERVER_PORT")) == NULL)
       server_tcp_port = UID_DEFAULT_SERVER_TCP_PORT;
@@ -229,7 +229,7 @@ void Initialize(void)
       {
          SYS_UIDerrorMsg("UID Client: host name too long, using default server host name\n");
          strcpy(server_host_name, UID_DEFAULT_SERVER_HOST_NAME);
-      }   
+      }
    }
 
    // FAILSAFE SERVER **********************************************************
@@ -249,7 +249,7 @@ void Initialize(void)
       {
          SYS_UIDerrorMsg("UID Client: failsafe host name too long, using default failsafe server host name\n");
          strcpy(failsafe_server_host_name, UID_DEFAULT_FAILSAFE_SERVER_HOST_NAME);
-      }   
+      }
    }
 #endif
 }
@@ -309,7 +309,7 @@ static int32 QueryServer(int32 code, uint64* interval)
       CloseConnection();
       failsafe_flag = 1;
    }
-   else 
+   else
    {
       status = UID_CODE_OK;
       ReceiveServerMessage(code, interval);
@@ -324,18 +324,18 @@ static int32 QueryServer(int32 code, uint64* interval)
 
       if (CreateFailsafeConnection() == UID_FAILS)
          return UID_CODE_CREATE_CONN_FAILED;
-   
+
       if (ConfigureFailsafeConnection() == UID_FAILS)
       {
          CloseFailsafeConnection();
          return UID_CODE_CONFIGURE_CONN_FAILED;
       }
       ReceiveFailsafeServerMessage(code, interval);
-      CloseFailsafeConnection(); 
+      CloseFailsafeConnection();
    }
 
 #else
-  
+
    newBlockStart = getGUIDBlock(size_UID);
    if (newBlockStart > 0) {
      code = UID_CODE_OK;
@@ -352,7 +352,7 @@ static int32 QueryServer(int32 code, uint64* interval)
 #endif
 }
 
- 
+
 
 /*******************************************************************************
 
@@ -469,7 +469,7 @@ static int32  ConfigureConnection(void)
       return UID_FAILS;
    bzero( (char*) &server_connection_data, sizeof(server_connection_data) );
    server_connection_data.sin_family = AF_INET;
-   server_connection_data.sin_addr.s_addr = 
+   server_connection_data.sin_addr.s_addr =
       inet_addr( inet_ntoa( *((struct in_addr*)(server_host_info->h_addr_list[0])) ) );
    server_connection_data.sin_port = htons(server_tcp_port);
    server_connection_data_size = sizeof(server_connection_data);
@@ -490,10 +490,10 @@ static int32  ConfigureFailsafeConnection(void)
       }
    if (GetFailsafeServerHostInfo() == UID_FAILS)
       return UID_FAILS;
-   bzero( (char*) &failsafe_server_connection_data, 
+   bzero( (char*) &failsafe_server_connection_data,
 	  sizeof(failsafe_server_connection_data) );
    failsafe_server_connection_data.sin_family = AF_INET;
-   failsafe_server_connection_data.sin_addr.s_addr = 
+   failsafe_server_connection_data.sin_addr.s_addr =
       inet_addr( inet_ntoa( *((struct in_addr*)
 			      (failsafe_server_host_info->h_addr_list[0])) ) );
    failsafe_server_connection_data.sin_port = htons(failsafe_server_tcp_port);
@@ -512,7 +512,7 @@ static void  ReceiveServerMessage(int32 code, uint64* interval)
    char writebuffer[12];
    char logmessage[200];
 
-   if(connect(server_connection_id, (struct sockaddr*) &server_connection_data, 
+   if(connect(server_connection_id, (struct sockaddr*) &server_connection_data,
       server_connection_data_size) < 0)
       {
       sprintf(logmessage,"client: error %d on socket connect", errno);
@@ -527,7 +527,7 @@ static void  ReceiveServerMessage(int32 code, uint64* interval)
       }
 
    SYS_UIDpackUIDRequestXdr(writebuffer, code, size_UID);
-   
+
    if (SYS_UIDwriten(server_connection_id, (char*)writebuffer, 12) == UID_FAILS)
    {
       sprintf(logmessage,"client: error %d on socket writen", errno);
@@ -541,7 +541,7 @@ static void  ReceiveServerMessage(int32 code, uint64* interval)
       return;
    }
 
-   if (SYS_UIDreadn(server_connection_id, (char*)SYS_UIDmessage_array, 
+   if (SYS_UIDreadn(server_connection_id, (char*)SYS_UIDmessage_array,
 		    UID_MESSAGE_SIZE) == UID_FAILS)
    {
       sprintf(logmessage,"client: error %d on socket readn", errno);
@@ -578,8 +578,8 @@ static void  ReceiveFailsafeServerMessage(int32 code, uint64* interval)
    char writebuffer[12];
    char logmessage[200];
 
-   if(connect(failsafe_server_connection_id, 
-	      (struct sockaddr*) &failsafe_server_connection_data, 
+   if(connect(failsafe_server_connection_id,
+	      (struct sockaddr*) &failsafe_server_connection_data,
       failsafe_server_connection_data_size) < 0)
       {
       sprintf(logmessage,"client: error %d on failsafe socket connect", errno);
@@ -594,8 +594,8 @@ static void  ReceiveFailsafeServerMessage(int32 code, uint64* interval)
       }
 
    SYS_UIDpackUIDRequestXdr(writebuffer, code, size_UID);
-   
-   if (SYS_UIDwriten(failsafe_server_connection_id, 
+
+   if (SYS_UIDwriten(failsafe_server_connection_id,
 		     (char*)writebuffer, 12) == UID_FAILS)
    {
       sprintf(logmessage,"client: error %d on failsafe socket writen", errno);
@@ -609,7 +609,7 @@ static void  ReceiveFailsafeServerMessage(int32 code, uint64* interval)
       return;
    }
 
-   if (SYS_UIDreadn(failsafe_server_connection_id, (char*)SYS_UIDmessage_array, 
+   if (SYS_UIDreadn(failsafe_server_connection_id, (char*)SYS_UIDmessage_array,
 		    UID_MESSAGE_SIZE) == UID_FAILS)
    {
       sprintf(logmessage,"client: error %d on failsafe socket readn", errno);

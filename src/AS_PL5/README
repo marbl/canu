@@ -11,7 +11,7 @@ gkpStore directory) of the assembler.
 Where is the doc?
 =================
 
-After installation, the doc is available via perldoc: 
+After installation, the doc is available via perldoc:
 
   perldoc AS::MSG::Parser
   perldoc AS::PER

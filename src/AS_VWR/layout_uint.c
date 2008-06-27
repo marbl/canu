@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: layout_uint.c,v 1.9 2007-11-08 12:38:17 brianwalenz Exp $ */
+/* $Id: layout_uint.c,v 1.10 2008-06-27 06:29:22 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -126,7 +126,7 @@ typedef struct LKTag
     int64    max;          /* Max attachment coord  */
     int64   emin;          /* Min fragment position  */
     int64   emax;          /* Max fragment position  */
-    int    row;          /* Current row in which group bus bar is placed */ 
+    int    row;          /* Current row in which group bus bar is placed */
     int64    extent;       /* Max_G ( G->max ) over all G s.t. (G.min) < min */
   } Link;
 
@@ -231,7 +231,7 @@ static char *CaptureString(char **scan, int attname)
     end += 1;
   *scan = end;
   while (end > beg && isspace(end[-1]))
-    end -= 1; 
+    end -= 1;
   if (beg >= end)
     return (NoInfoString);
   else if (attname)
@@ -339,7 +339,7 @@ void ReadAssembly(FILE *file)
       LineTable = NewHashTable(0x2000-1);
       StyleTable = NewHashTable(0x100-1);
       ClusterTable = NewHashTable(0x400-1);
-    
+
       color = mt_white();         /* Setup default style attributes */
       thick = 1;
       style = SOLID;
@@ -434,7 +434,7 @@ void ReadAssembly(FILE *file)
         while (*s != '\0' && *s != '#')
           { if (*s == 'C')
               { int i, red, green, blue;
-    
+
                 for (i = 1; i <= 6; i++)
                   if (hex[(int) s[i]] < 0)
                     Error("Illegal color",0);
@@ -450,7 +450,7 @@ void ReadAssembly(FILE *file)
               { style = SOLID; s = SpaceAdvance(s+1); }
             else if (*s == 'T')
               { char *end;
-                thick = strtol(s+1,&end,10);  
+                thick = strtol(s+1,&end,10);
                 if (end == s+1 || thick <= 0)
                   Error("Illegal thickness",0);
                 s = SpaceAdvance(end);
@@ -487,7 +487,7 @@ void ReadAssembly(FILE *file)
         int   att, cnt;
 
         /* Syntax scan and count */
-    
+
         t = s;
         for (cnt = 0; *t != '\0' && *t != 'A' && *t != '#'; cnt += 1)
           { ScanIdentifier(t,&end);
@@ -525,7 +525,7 @@ void ReadAssembly(FILE *file)
               }
             glocnt = cnt;
             for (cnt = 0; cnt < glocnt; cnt++)
-              { glosty[cnt] = GetIdentifier(StyleTable,s,&end,0);  
+              { glosty[cnt] = GetIdentifier(StyleTable,s,&end,0);
                 s = SpaceAdvance(end);
               }
             break;
@@ -538,7 +538,7 @@ void ReadAssembly(FILE *file)
                   Error("Link set has too many lines (has %d)",cnt);
               }
 
-            { Link *newa; 
+            { Link *newa;
 
               newa = (Link *) malloc(sizeof(Link));
               newa->beg = linebuffer + lptr;
@@ -566,7 +566,7 @@ void ReadAssembly(FILE *file)
             if (cnt != 2)
               Error("Overlap between more than two pieces?",0);
 
-            { Overlap *newa; 
+            { Overlap *newa;
               newa = (Overlap *) malloc(sizeof(Overlap));
               newa->id1 = (Line *) GetIdentifier(LineTable,s,&end,0);
               s = SpaceAdvance(end);
@@ -589,12 +589,12 @@ void ReadAssembly(FILE *file)
 
     linelist:
       { char *end, *t, *com;
-        int   row, chk, cnt; 
+        int   row, chk, cnt;
         int64 num;
         int   wasA, wasM;
 
         /* Syntax scan and count */
-    
+
         t = s;
         cnt = wasA = wasM = 0;
         while (*t != '\0' && *t != 'R' && *t != 'C' && *t != '#')
@@ -615,9 +615,9 @@ void ReadAssembly(FILE *file)
             else
               wasM = wasA = 0;
             if (wasA)
-              num = GetIdentifier(StyleTable,t,&end,0);  
+              num = GetIdentifier(StyleTable,t,&end,0);
             else
-              { num = strtoll(t,&end,10);  
+              { num = strtoll(t,&end,10);
               if (num < 0) {
 #ifndef TRUNCATE_NEGATIVE_COORDINATES
                 Error("Coordinates must be non-negative ints",0);
@@ -626,7 +626,7 @@ void ReadAssembly(FILE *file)
                         "Warning: Coordinates must be non-negative ints\n"
                         "Truncating " F_S64 " to zero\n", num);
                 num = 0;
-#endif                
+#endif
                 }
                 cnt += 1;
               }
@@ -672,10 +672,10 @@ void ReadAssembly(FILE *file)
           }
 
         /* Build and record */
-        
+
         { Line *newa;
           int64   ap, num, lst;
-      
+
           newa = (Line *) malloc(sizeof(Line));
           newa->idnum   = idnum;
           newa->idnam   = idnam;
@@ -690,11 +690,11 @@ void ReadAssembly(FILE *file)
               if (*s == 'M')
                 num = strtoll(s+1,&end,10);
               else
-                num = strtoll(s,&end,10);  
+                num = strtoll(s,&end,10);
               if (num < 0 ) {
 #ifndef TRUNCATE_NEGATIVE_COORDINATES
                 Error("Coordinates must be non-negative",0);
-#else                
+#else
                 fprintf(stderr,
                         "Warning: Coordinates must be non-negative ints\n"
                         "Truncating " F_S64 " to zero\n", num);
@@ -788,7 +788,7 @@ void BuildAssembly(void)
   *IOBuffer = '\0';  /* Don't echo line in subsequent error messages */
 
   { char *name;
-  
+
     name = HashRefButNoDef(StyleTable);
     if (name != NULL)
       { sprintf(IOBuffer+1,"Style '%s' referenced but not defined",name);
@@ -934,12 +934,12 @@ void BuildAssembly(void)
 
       for (ln = LineList; ln != NULL; ln = ln->next)
         { if (ln->cluster >= 0)
-            { c = ClusterIndex[ln->cluster]-1; 
+            { c = ClusterIndex[ln->cluster]-1;
               *c = ln;
               ClusterIndex[ln->cluster] = c;
             }
           if (ln->rowcon >= 0)
-            { c = RowConIndex[ln->rowcon]-1; 
+            { c = RowConIndex[ln->rowcon]-1;
               *c = ln;
               RowConIndex[ln->rowcon] = c;
             }
@@ -983,7 +983,7 @@ void BuildAssembly(void)
           { AttachIndex[j++] = ln;
             x1 = ln->beg[0];
             x2 = ln->end[-1];
-	    /* the following monstrosity is needed [sic] 
+	    /* the following monstrosity is needed [sic]
 	       in place of the simpler (x1+x2)/2
 	       so that we do not have overflow problems on
 	       the sum -ALH */
@@ -999,8 +999,8 @@ void BuildAssembly(void)
     { Overlap *ov;
 
       for (ov = OvlpList; ov != NULL; ov = ov->next)
-        { ov->id1 = LineIndex[(long) (ov->id1)]; 
-          ov->id2 = LineIndex[(long) (ov->id2)]; 
+        { ov->id1 = LineIndex[(long) (ov->id1)];
+          ov->id2 = LineIndex[(long) (ov->id2)];
           StyleIndex[ov->att]->usage |= OVLPSTYLE;
         }
     }
@@ -1010,7 +1010,7 @@ void BuildAssembly(void)
      on this pass.                                                      */
 
 #ifdef DEBUG_READ
-  { int      i, j; 
+  { int      i, j;
     int64 *p;
     Line    *ln, **lp;
     Link    *lk, **kp;
@@ -1089,7 +1089,7 @@ int StartStyleList(int type)
   count = 0;
   for (i = -1; i < NumStyles; i++)
     { if (StyleIndex[i]->usage & WhichList)
-        count += 1; 
+        count += 1;
     }
   ListWalker = -1;
   return (count);
@@ -1148,7 +1148,7 @@ static int ATTACH_COMPARE(const void *l, const void *r)
   return -1;
 }
 
-static int64 AttachMin, AttachSep; 
+static int64 AttachMin, AttachSep;
 
 static void MoveLeft(int i, int64 del)
 { int64   play, space;
@@ -1203,13 +1203,13 @@ static void AttachmentSetup(void)
   }
 #endif
 
-  { int i; 
+  { int i;
     int64 del;
 
     for (i = 1; i < NumAttach; i++)
       { del = AttachIndex[i]->attach - AttachIndex[i-1]->attach;
         if (del < AttachSep)
-          MoveLeft(i-1,AttachSep-del); 
+          MoveLeft(i-1,AttachSep-del);
         del = AttachIndex[i]->attach - AttachIndex[i-1]->attach;
         if (del < AttachSep)
           MoveRight(i,AttachSep-del);
@@ -1217,7 +1217,7 @@ static void AttachmentSetup(void)
   }
 
 #ifdef DEBUG_ATTACH
-  { int   i; 
+  { int   i;
     int64 xl, xh;
     Line *ln;
 
@@ -1283,7 +1283,7 @@ void LayoutAssembly(void)
 
   if (NumLines <= 0) return;
 
-  { int   i; 
+  { int   i;
     int64 bg, ed;
     Line *ln;
 
@@ -1312,7 +1312,7 @@ void LayoutAssembly(void)
   }
 
   if (NumLinks > 0)
-    { int i; 
+    { int i;
       int64 x;
       Link  *lk;
       Line **lp;
@@ -1362,7 +1362,7 @@ void LayoutAssembly(void)
 
   ExtentIndex = (Link **) malloc(sizeof(Overlap *)*NumLinks);
   if (NumLinks > 0)
-    { int i; 
+    { int i;
       int64 x;
       Link  *lk;
       Line **lp;
@@ -1414,11 +1414,11 @@ void LayoutAssembly(void)
   { Line **base, **finger;
     Line *last, *ln, *fn;
     Line  fakeln;
-    int64   fakend; 
+    int64   fakend;
     int rowtop;
     int i, crow, mrow, try;
 
-    fakeln.end = (&fakend) + 1; 
+    fakeln.end = (&fakend) + 1;
     fakeln.beg =  &fakend;
     fakend = MaxPnt + 100;
 
@@ -1532,7 +1532,7 @@ void LayoutAssembly(void)
   }
 #endif
 
-  { int i; 
+  { int i;
     int64 max;
 
     max      = LineIndex[0]->end[-1];
@@ -1547,7 +1547,7 @@ void LayoutAssembly(void)
   }
 
   if (NumLinks > 0)
-    { int i, j, last, linkrows, *rowstuff; 
+    { int i, j, last, linkrows, *rowstuff;
       int64 bp;
       int64 max;
 
@@ -1613,7 +1613,7 @@ void LayoutAssembly(void)
       { ln = LineIndex[i];
         printf("  %d: [%d,%d] row = %d",ln->idnum,
                *(ln->beg),ln->end[-1],ln->row);
-        if (ln->high != NULL) 
+        if (ln->high != NULL)
           printf(" high = %d(%d)",ln->high->idnum,ln->high->row);
         printf("\n");
       }
@@ -1703,7 +1703,7 @@ void PickRelease(MT_OBJECT *frame)
   s = pick_obj;
   if (s < 0) return;
   pick_obj = -1;
-  
+
   if (!pick_line)
     { Link *lk;
       Line *ln, **kp;
@@ -1713,7 +1713,7 @@ void PickRelease(MT_OBJECT *frame)
       for (kp = lk->beg; kp < lk->end; kp++)
         { Style *at;
           int64   x1, x2, y;
-          int   marks; 
+          int   marks;
           int64 *xp;
 
           ln = *kp;
@@ -1727,7 +1727,7 @@ void PickRelease(MT_OBJECT *frame)
                   { marks = 1;
                     continue;
                   }
-                at = StyleIndex[xp[-1]]; 
+                at = StyleIndex[xp[-1]];
                 if ((at->chord & LINESTYLE) == 0) continue;
                 mt_set_color(at->color);
                 x2 = XMAP(*xp);
@@ -1740,7 +1740,7 @@ void PickRelease(MT_OBJECT *frame)
             { xp = ln->beg;
               for (xp += 2; xp < ln->end; xp += 2)
                 { if (*xp >= 0) continue;
-                  at = StyleIndex[xp[-1]]; 
+                  at = StyleIndex[xp[-1]];
                   if ((at->chord & MARKSTYLE) == 0) continue;
                   mt_set_color(at->color);
                   x2 = XMAP(-(*xp+1));
@@ -1840,7 +1840,7 @@ char *PickAssembly(MT_OBJECT *frame, int64 x, int64 y, int v, int mode)
                       { marks = 1;
                         continue;
                       }
-                    at = StyleIndex[xp[-1]]; 
+                    at = StyleIndex[xp[-1]];
                     if ((at->chord & LINESTYLE) == 0) continue;
                     mt_set_color(SeldColor);
                     x2 = XMAP(*xp);
@@ -1854,7 +1854,7 @@ char *PickAssembly(MT_OBJECT *frame, int64 x, int64 y, int v, int mode)
                   { xp = ln->beg;
                     for (xp += 2; xp < ln->end; xp += 2)
                       { if (*xp >= 0) continue;
-                        at = StyleIndex[xp[-1]]; 
+                        at = StyleIndex[xp[-1]];
                         if ((at->chord & MARKSTYLE) == 0) continue;
                         mt_set_color(at->color);
                         x2 = XMAP(-(*xp+1));
@@ -1908,7 +1908,7 @@ char *PickAssembly(MT_OBJECT *frame, int64 x, int64 y, int v, int mode)
         pick_line   = 1;
         pick_button = v;
 
-        ln = LineIndex[s]; 
+        ln = LineIndex[s];
         min = ln->beg[0];
         if (mode != PICK_PIECES && v <= 1)
           { int64 *xp;
@@ -1924,7 +1924,7 @@ char *PickAssembly(MT_OBJECT *frame, int64 x, int64 y, int v, int mode)
                 }
               else
                 { max = *xp;
-                  if (x <= max) 
+                  if (x <= max)
                     break;
                   else
                     min = max;
@@ -2097,13 +2097,13 @@ void DrawAssembly(MT_OBJECT *frame)
        drop lines, and then restore connections where necessary           */
 
     if (drops)
-      for (i = ltop-1; i >= 0; i--) 
-        { Line  *ln; 
+      for (i = ltop-1; i >= 0; i--)
+        { Line  *ln;
           Style *at;
           int64   x1, x2, y;
-          int   blot; 
+          int   blot;
           int64 *xp;
-  
+
           ln = LineIndex[i];
           if (ln->extent < Can_xmin) break;
           if (ln->row >= Can_ymin && ln->row <= Can_ymax)
@@ -2113,7 +2113,7 @@ void DrawAssembly(MT_OBJECT *frame)
               blot = 0;
               mt_set_color(BackColor);
               for (xp += 2; xp < ln->end; xp += 2)
-  	        { at = StyleIndex[xp[-1]]; 
+  	        { at = StyleIndex[xp[-1]];
                   if (*xp < 0)
                     { if ((at->chord & MARKSTYLE) == 0) continue;
                       x2 = XMAP(-(*xp+1));
@@ -2147,11 +2147,11 @@ void DrawAssembly(MT_OBJECT *frame)
 
     /* Draw line segments and marks */
 
-    for (i = ltop-1; i >= 0; i--) 
-      { Line  *ln; 
+    for (i = ltop-1; i >= 0; i--)
+      { Line  *ln;
         Style *at;
         int64   x1, x2, y;
-        int   marks; 
+        int   marks;
         int64 *xp;
 
         ln = LineIndex[i];
@@ -2166,7 +2166,7 @@ void DrawAssembly(MT_OBJECT *frame)
                   { marks = 1;
                     continue;
                   }
-                at = StyleIndex[xp[-1]]; 
+                at = StyleIndex[xp[-1]];
                 x2 = XMAP(*xp);
                 if ((at->chord & LINESTYLE) != 0)
                   { mt_set_color(at->color);
@@ -2181,7 +2181,7 @@ void DrawAssembly(MT_OBJECT *frame)
               { xp = ln->beg;
                 for (xp += 2; xp < ln->end; xp += 2)
                   { if (*xp >= 0) continue;
-                    at = StyleIndex[xp[-1]]; 
+                    at = StyleIndex[xp[-1]];
                     if ((at->chord & MARKSTYLE) == 0) continue;
                     mt_set_color(at->color);
                     x2 = XMAP(-(*xp+1));
@@ -2196,7 +2196,7 @@ void DrawAssembly(MT_OBJECT *frame)
 
     mt_set_color(BackColor);
     for (i = ktop-1; i >= 0; i--)
-      { Link  *lk; 
+      { Link  *lk;
         Style *at;
         int   x1, x2, y;
 
@@ -2218,7 +2218,7 @@ void DrawAssembly(MT_OBJECT *frame)
     /* Draw linker horizontal bars and reconnect to drops */
 
     for (i = ktop-1; i >= 0; i--)
-      { Link  *lk; 
+      { Link  *lk;
         Line  **kp;
         Style *at;
         int64   x1, x2, y, t;
@@ -2244,10 +2244,10 @@ void DrawAssembly(MT_OBJECT *frame)
                 x = XMAP((*kp)->attach);
                 if (x < 0 || x > Can_wide) continue;
                 if ((*kp)->high != lk)
-                  yl = y - (t + 2);  
+                  yl = y - (t + 2);
                 else
                   yl = y - (t);
-                yh = y + (t + 2); 
+                yh = y + (t + 2);
                 mt_draw_line(frame,x,yl,x,yh+1,at->thick,at->style);
               }
           }
@@ -2328,7 +2328,7 @@ static PTree *GetRegExp(int iflag)
   Scan += 1;
   for (balp = Scan; *balp != '"'; balp += 1)
     { if (*balp == '\\')
-        balp += 1; 
+        balp += 1;
       if (*balp == '\0')
         { ErrorString = "Unterminated regular expression";
           ParseError = 1;
@@ -2342,7 +2342,7 @@ static PTree *GetRegExp(int iflag)
   if (mach == NULL)
     { ErrorString = error;
       ParseError = 1;
-      Scan += posn; 
+      Scan += posn;
       return (NULL);
     }
   Scan = balp+1;
@@ -2505,7 +2505,7 @@ static PTree *GetSufClause(int obqry)
       else
         { SkipBlanks();  // think this controls the length in < > expressions
 	  {
-	    PTree *n=GetInt(); 
+	    PTree *n=GetInt();
 	    n->lab = n->lab/COORDSCALE;
 	    p = Node(c,p,n);
 	  }
@@ -2709,7 +2709,7 @@ static CoverPacket *Expander(CoverPacket *oprnd, int amount)
   size  = oprnd->numpts;
   data  = oprnd->datapts;
   stack = (int *) malloc(sizeof(int)*oprnd->maxdep);
-  
+
   amount = 2*amount;
   val = oprnd->initpt;
   npt = 0;
@@ -2777,7 +2777,7 @@ static CoverPacket *Contractor(CoverPacket *oprnd, int amount)
   size  = oprnd->numpts;
   data  = oprnd->datapts;
   stack = (int *) malloc(sizeof(int)*oprnd->maxdep);
-  
+
   val = cnf = oprnd->initpt;
   npt = 0;
   mxd = val;
@@ -2875,7 +2875,7 @@ static CoverPacket *CovContains(CoverPacket *oprnd, CoverPacket *thresh)
       else
         { stack[val++] = pos;
           if (val > ndp) ndp = val;
-        } 
+        }
     }
   while (tpt < tize-1)
     { tpos = tata[++tpt];
@@ -2959,7 +2959,7 @@ static CoverPacket *CovInter(CoverPacket *oprnd, CoverPacket *thresh)
       else
         { stack[val++] = pos;
           if (val > ndp) ndp = val;
-        } 
+        }
     }
   tpt = tize-1;
   tlpos = tlast = tata[tpt];
@@ -3039,7 +3039,7 @@ static CoverPacket *CovIncludes(CoverPacket *oprnd, CoverPacket *thresh)
         { if (val == 0)
             { sync = i; last = pos; }
           val += 1;
-        } 
+        }
     }
   data[npt] = 0;
   oprnd->numpts  = npt;
@@ -3079,7 +3079,7 @@ static CoverPacket *GreaterThan(CoverPacket *oprnd, int thresh)
       else
         { stack[val++] = pos;
           if (val > ndp) ndp = val;
-        } 
+        }
     }
   for (i = cnf; i < val; i++)
     data[npt++] = stack[i];
@@ -3129,7 +3129,7 @@ static CoverPacket *LessThan(CoverPacket *oprnd, int thresh)
         { if (val == 0)
             { sync = i; last = pos; }
           val += 1;
-        } 
+        }
     }
   data[npt] = 0;
   oprnd->numpts  = npt;
@@ -3148,7 +3148,7 @@ static CoverPacket *Negate(CoverPacket *oprnd)
   int val;
   int i;
   int icase=0;
-  
+
 
   data = oprnd->datapts;
   size = oprnd->numpts;
@@ -3246,7 +3246,7 @@ static CoverPacket *Negate(CoverPacket *oprnd)
 
   if ( (icase == 1 || icase == 4 || icase == 6) && data!=NULL ) free(data);
   oprnd->maxdep = 1;
- 
+
 #ifdef DEBUG_QUERY
   printf("Negate\n");
   DumpCoverage(oprnd);
@@ -3336,22 +3336,22 @@ static CoverPacket *Intersection(CoverPacket *left, CoverPacket *right)
   if (lpos < 0) lpos = -(lpos+1);
   if (rpos < 0) rpos = -(rpos+1);
   while (r < rsize)
-    { 
+    {
       if (rpos > lpos)
-        { 
+        {
           if (ldata[l] < 0)
-            lval -= 1; 
+            lval -= 1;
           else
-            lval += 1; 
+            lval += 1;
           npos = lpos;
           lpos = ldata[++l];
           if (lpos < 0) lpos = -(lpos+1);
         }
       else
         { if (rdata[r] < 0)
-            rval -= 1; 
+            rval -= 1;
           else
-            rval += 1; 
+            rval += 1;
           npos = rpos;
           rpos = rdata[++r];
           if (rpos < 0) rpos = -(rpos+1);
@@ -3375,13 +3375,13 @@ static CoverPacket *Intersection(CoverPacket *left, CoverPacket *right)
           // back out the interval
 //Following test not fully guaranteed -- Aaron and Karin had different
 // proposals -- take your pick
-// Karin:           
+// Karin:
 //	  if ( r < rsize -1 )  mval = omval;
 // Aaron:
 	  if(s==smax+1) mval = omval;
           s = s-2;
         }
-      } 
+      }
       cval = nval;
       if (cval > mval) {
         //fprintf(stderr,"changing max depth from %d to %d\n",mval,cval);
@@ -3417,20 +3417,20 @@ static CoverPacket *Intersection(CoverPacket *left, CoverPacket *right)
           // back out the interval
 //Following test not fully guaranteed -- Aaron and Karin had different
 // proposals -- take your pick
-// Karin:           
+// Karin:
 //        if ( l < lsize - 1 ) mval = omval;
 // Aaron:
 	  if(s==smax+1) mval = omval;
           s = s-2;
         }
-      } 
+      }
       cval = nval;
       if (cval > mval) {
          omval = mval;
          mval = cval;
       }
     }
- 
+
   data[s] = 0;
   left->numpts = s;
   left->maxdep = mval;
@@ -3491,18 +3491,18 @@ static CoverPacket *Union(CoverPacket *left, CoverPacket *right)
   while (r < rsize)
     { if (rpos > lpos)
         { if (ldata[l] < 0)
-            lval -= 1; 
+            lval -= 1;
           else
-            lval += 1; 
+            lval += 1;
           npos = lpos;
           lpos = ldata[++l];
           if (lpos < 0) lpos = -(lpos+1);
         }
       else
         { if (rdata[r] < 0)
-            rval -= 1; 
+            rval -= 1;
           else
-            rval += 1; 
+            rval += 1;
           npos = rpos;
           rpos = rdata[++r];
           if (rpos < 0) rpos = -(rpos+1);
@@ -3970,7 +3970,7 @@ void SetQueryColor(ObjectPacket *oprnd, long color)
   Link *lk;
 
   BuildColorMemory();
-  
+
   size = oprnd->numobj;
   ject = oprnd->objects;
   segm = oprnd->segment;
@@ -4010,7 +4010,7 @@ void ClearQueryColor(ObjectPacket *oprnd)
   Link *lk;
 
   BuildColorMemory();
-  
+
   size = oprnd->numobj;
   ject = oprnd->objects;
   segm = oprnd->segment;
@@ -4222,7 +4222,7 @@ static HistoPacket *MakeHistogram(int64 len)
   if (len == 0)
     hist = NULL;
   else
-    { int i; 
+    { int i;
       int64 sum, *dps;
       double mean, dev;
 
@@ -4275,7 +4275,7 @@ HistoPacket *Object2Hist(ObjectPacket *oprnd)
 }
 
 HistoPacket *Cover2Hist(CoverPacket *cover)
-{ int size, *data; 
+{ int size, *data;
   int i, val, pos, start, len;
 
   size = cover->numpts;
@@ -4299,7 +4299,7 @@ HistoPacket *Cover2Hist(CoverPacket *cover)
     }
 
   return (MakeHistogram(len));
-} 
+}
 
 static CoverPacket *InterpTree(PTree *p)
 { CoverPacket *cov;
@@ -4395,7 +4395,7 @@ char *ProcessQuery(char *query, ObjectPacket **objR, CoverPacket **covrR)
         }
     }
   else if (NumLines > 0)
-    { 
+    {
 #ifdef DEBUG_PARSE
       ShowTree(p);
       fflush(stdout);
@@ -4481,7 +4481,7 @@ readjust:
   llead = lead;
   bmin  = RoundDown(xmin,lead);
   bmax  = RoundDown(xmax,lead) + lead;
-    
+
   { int i, k, b;
 
     hmax = 0;
@@ -4527,7 +4527,7 @@ void DrawHistogram(MT_OBJECT *canvas, HistoPacket *hist,
   mt_get_extent(canvas,&xl,&xh,&yl,&yh);
   xh -= (xl-1);
   yh -= (yl-1);
-  
+
   { int xzeros, xlead, xorder;
     int yzeros, ylead, yorder;
     int64 bmin, bmax, hmax;
@@ -4541,7 +4541,7 @@ void DrawHistogram(MT_OBJECT *canvas, HistoPacket *hist,
 
     while (1)
       { int adjust;
-      
+
         bmin  = RoundDown(COORDSCALE*xmin,xlead);
         bmax  = RoundDown(COORDSCALE*xmax,xlead) + xlead;
         hwide = (xh - (2*HBORDER+lborder)) / ((bmax-bmin) / xlead);
@@ -4562,7 +4562,7 @@ void DrawHistogram(MT_OBJECT *canvas, HistoPacket *hist,
         else
           break;
       }
-    
+
     { int i, k, b;
 
       hmax = 0;
@@ -4598,7 +4598,7 @@ void DrawHistogram(MT_OBJECT *canvas, HistoPacket *hist,
 
       mt_set_color(mt_get_color(255,255,0));
       i = 0;
-      yfact = (1.*yh - (HBORDER+HTEXTB))/hmax; 
+      yfact = (1.*yh - (HBORDER+HTEXTB))/hmax;
       while (i < hist->numpts && hist->datapts[i] < bmin)
         i += 1;
       lft = lst;
@@ -4655,7 +4655,7 @@ void DrawHistogram(MT_OBJECT *canvas, HistoPacket *hist,
       ticks = bmin;
       while (ticks <= bmax)
         { int w, h, b;
-  
+
           if (ticks % xlead == 0)
             { if (xzeros % 3 == 2)
                 sprintf(label,"%d.%d%s",ticks/(xorder*10),(ticks/xorder)%10,
@@ -4677,7 +4677,7 @@ void DrawHistogram(MT_OBJECT *canvas, HistoPacket *hist,
         }
 
       mt_draw_line(canvas,lst-1,bot,lst-1,HBORDER,1,0);
-      yfact = (1.*yh - (HBORDER+HTEXTB))/hmax; 
+      yfact = (1.*yh - (HBORDER+HTEXTB))/hmax;
       ticks = 0;
       while (ticks <= hmax)
         { int y, w, h, b;
@@ -4706,7 +4706,7 @@ static int printwidth(int value)
 }
 
 int DrawHistoInfoLabel(MT_OBJECT *bar, HistoPacket *hist, char *outlabel)
-{ char label[100]; 
+{ char label[100];
   int border, max, width, alt;
   int w, h, b;
   char *outlabelptr=outlabel;
@@ -4787,7 +4787,7 @@ void DrawCoverage(MT_OBJECT *canvas, CoverPacket *cover, int xmin, int xmax)
 
 #define CHIGH   20
 #define CBORDER 10
-  
+
   { int yzeros, ylead, yorder;
     int hmax;
 

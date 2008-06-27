@@ -1,28 +1,28 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.24 2007-09-19 21:54:24 skoren Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.25 2008-06-27 06:29:14 brianwalenz Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
- *  
+ *
  *  Saul A. Kravitz 8/99
  *
  *  This issgc the proposed data structures and operations for the
@@ -83,7 +83,7 @@ typedef struct {
                                            removed by another edge between the sam pair of unique CIs. */
       unsigned int isDeleted:1; // Is edge deleted.
       unsigned int isPossibleChimera:1;         /* An edgemate consisting of a single raw edgemate
-                                                   and an overlap, where the same read participates 
+                                                   and an overlap, where the same read participates
                                                    both the mate and overlap relationship */
 
       /* Flags relating to the type of relationship that induced this edge */
@@ -120,12 +120,12 @@ typedef struct {
       unsigned int isBogus:1;  // determined from simulator annotations, overloaded by scaffold merging code (see CIScaffold_Merge_CGW.c)
       unsigned int isProbablyBogus:1; // determined from distance and distIndex empirically, overloaded for one-sided edges in CIScaffold_Merge
       unsigned int hasConfirmingPath:1; // Has this edge another path that confirms its length & var (used in GapWalkerREZ.c)
-	    
 
-      unsigned int edgeStatus:7; 
+
+      unsigned int edgeStatus:7;
 
       // 42 bits used
-	    
+
       unsigned int isMarkedForDeletion:1;   // We plan to delete this guy
       unsigned int MeanChangedByWalking:1;
       unsigned int highQualityA:1;           // One of the top-ranked edges incident on node idA
@@ -136,7 +136,7 @@ typedef struct {
       // 48 bits used total
     }bits;
   }flags;
-  //	
+  //
   LengthT distance; // gap/overlap length
 
   /* vvvvv Iterator does not fill in fields below this line vvvvvv */
@@ -146,7 +146,7 @@ typedef struct {
   CDS_CID_t prevALink; // prev edge involving cidA, -1 if none
   CDS_CID_t prevBLink; // prev edge involving cidB, -1 if none
 
-  float   minDistance;  /* negative implies potential overlap 
+  float   minDistance;  /* negative implies potential overlap
                          * This Field is overloaded to store the distance.mean when
                          * the flag MeanChangedByWalk is true.  The function RestoreEdgeMeans
                          * restores the value and unsets the flag.
@@ -160,7 +160,7 @@ typedef struct {
   CDS_CID_t topLevelEdge; /* If this is a raw edge, references the 'owner' or top-level edge in which the raw
 			     edge is linked */
   CDS_CID_t referenceEdge;  /*** Reference to inducing edge */
-      
+
 }EdgeCGW_T;
 
 typedef struct
@@ -183,7 +183,7 @@ typedef enum {
   //
   REAL_SCAFFOLD,     // the genuine article
   OUTPUT_SCAFFOLD,    // an artefact generated for output
-  SCRATCH_SCAFFOLD    // a temporary scaffold 
+  SCRATCH_SCAFFOLD    // a temporary scaffold
 } ChunkInstanceType;
 
 typedef UnitigFUR ChunkFUR;
@@ -227,17 +227,17 @@ typedef enum {
    isScaffold = TRUE (isCI = FALSE, isContig = FALSE)
    REAL_SCAFFOLD,     // the genuine article
    OUTPUT_SCAFFOLD,    // an artefact generated for output
-   SCRATCH_SCAFFOLD    // a temporary scaffold 
-*/	
+   SCRATCH_SCAFFOLD    // a temporary scaffold
+*/
 
 
 VA_DEF(CDS_CID_t);
 
-        
+
 typedef struct{
   ChunkInstanceType type; //
   ChunkFUR unique_rept; //
-  
+
   CDS_CID_t id;        // Instance ID
   CDS_CID_t outputID;  // InstanceID (dense encoding over LIVE instances)
   CDS_CID_t scaffoldID; // scaffold ID
@@ -276,9 +276,9 @@ typedef struct{
       int32 numFragments;
       /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
       CDS_COORD_t  XXXunusedXXX_branchPointA;
-      CDS_COORD_t  XXXunusedXXX_branchPointB;    
+      CDS_COORD_t  XXXunusedXXX_branchPointB;
       int32        coverageStat;
-      CDS_CID_t    baseID;    /* If this is a  RESOLVEDREPEAT, the id of the original 
+      CDS_CID_t    baseID;    /* If this is a  RESOLVEDREPEAT, the id of the original
                                  CI from which it was spawned */
       int32 numInstances; /* Number of actual or surrogate instances in scaffolds
 			     If this is not a RESOLVEDREPEAT, numInstances should be = 0 */
@@ -297,7 +297,7 @@ typedef struct{
       CDS_CID_t BEndCI;   //Index of Chunk Instance at B end of Contig
       int32 numCI;    //Number of CI in contig
       CDS_COORD_t XXXunusedXXX_branchPointA;
-      CDS_COORD_t XXXunusedXXX_branchPointB;    
+      CDS_COORD_t XXXunusedXXX_branchPointB;
     }Contig;
     struct CISCAFFOLD_TAG{
       CDS_CID_t AEndCI; // Index of Chunk Instance at A end of Scaffold
@@ -324,9 +324,9 @@ typedef struct{
 	 RR_CGBTYPE   -- CGB reported "rr"
 	 UU_CGBTYPE   -- CGB reported "uu"
       */
-      unsigned int cgbType:3; 
-      unsigned int isDead:1;      
-      unsigned int isFree:1;      
+      unsigned int cgbType:3;
+      unsigned int isDead:1;
+      unsigned int isFree:1;
       unsigned int containsCIs:1;        // Scaffold contains either CIs or Contigs
 
       /* This field has one of the following values:
@@ -342,7 +342,7 @@ typedef struct{
       /* The following is TRUE for CIs that are surrogate CIs and
 	 for Contigs that contain a single surrogate CI.  Set at creation
 	 time in the Split functions */
-      unsigned int isSurrogate:1; 
+      unsigned int isSurrogate:1;
       unsigned int beingContigged:1;
       unsigned int XXXunusedXXXincludesFinishedBacFragments:1;
       /* The following is used by gap walking to see which scaffolds have been walked.
@@ -535,12 +535,12 @@ static EdgeStatus GetEdgeStatus(EdgeCGW_T *edge){
 /*
   Create a new node by extracting fragments from  an existing node.
   The node must be either a contig or a CI.
- 
+
   The fragsToExtract argument is a list of fragments, all of which must belong
   to the node, that are to be extracted and become the basis for the new node.
   The multi-alignment of the new node will include these fragments,as well as
   all unitigs that are present in the base node's multi-alignment.
- 
+
   Following the split, the new node will have copies of all raw overlap edges
   incident on the base node, and the raw link edges will be distributed between
   the two as a function of the split of the fragments.  Re-merging of edges
@@ -677,8 +677,8 @@ static SeedSideType GetChunkSeedSide( ChunkOrientationType edgeOrient){
     case AB_AB:
     case AB_BA:
       ret = RIGHT_SIDE; break;
-    case BA_BA: 
-    case BA_AB: 
+    case BA_BA:
+    case BA_AB:
       ret = LEFT_SIDE; break;
     default:
       assert(0);
@@ -768,7 +768,7 @@ static void ResetNodeType(NodeCGW_T *ci){
     switch(ci->type){
       case REAL_SCAFFOLD:     // the genuine article
       case OUTPUT_SCAFFOLD:    // an artefact generated for output
-      case SCRATCH_SCAFFOLD:    // a temporary scaffold 
+      case SCRATCH_SCAFFOLD:    // a temporary scaffold
       default:
         assert(0); // shouldn't be here
         break;
@@ -800,7 +800,7 @@ static void SetNodeType(NodeCGW_T *ci, ChunkInstanceType type){
     switch(type){
       case REAL_SCAFFOLD:     // the genuine article
       case OUTPUT_SCAFFOLD:    // an artefact generated for output
-      case SCRATCH_SCAFFOLD:    // a temporary scaffold 
+      case SCRATCH_SCAFFOLD:    // a temporary scaffold
         break;
       default:
         assert(0);
@@ -827,7 +827,7 @@ static int isInferredEdge(EdgeCGW_T *edge){
 }
 
 static int isOverlapEdge(EdgeCGW_T *edge){
-  return (edge->flags.bits.hasContributingOverlap || 
+  return (edge->flags.bits.hasContributingOverlap ||
           edge->flags.bits.aContainsB ||
           edge->flags.bits.bContainsA);
 }
@@ -862,7 +862,7 @@ static int isSloppyEdge(EdgeCGW_T *edge){
   if(edge->flags.bits.isSloppy)
     return 1;
   // for older files
-  return (edge->distance.variance > SLOPPY_EDGE_VARIANCE_THRESHHOLD);  
+  return (edge->distance.variance > SLOPPY_EDGE_VARIANCE_THRESHHOLD);
 }
 
 static int isSingletonOverlapEdge(EdgeCGW_T *edge){
@@ -926,10 +926,10 @@ static void InitGraphNodeIterator(GraphNodeIterator *iterator,
   iterator->uniqueOnly = flags &  GRAPH_NODE_UNIQUE_ONLY;
   iterator->verbose = flags & GRAPH_NODE_VERBOSE;
 }
-				  
+
 static NodeCGW_T *NextGraphNodeIterator(GraphNodeIterator *e){
   NodeCGW_T *retNode = NULL;
-  
+
   if(e->verbose)
     fprintf(stderr,
             "* NextGraphNodeIterator prev:" F_CID " curr:" F_CID " next:" F_CID "\n",
@@ -985,7 +985,7 @@ static NodeCGW_T *NextGraphNodeIterator(GraphNodeIterator *e){
     }
     if(isInitialized &&
        (!node->flags.bits.isDead) &&
-       (!node->flags.bits.isFree) && 
+       (!node->flags.bits.isFree) &&
        isUniqueEnough ){
       retNode = node;
       if(e->verbose)
@@ -1031,7 +1031,7 @@ typedef struct {
 
 static void InitGraphEdgeIterator(GraphCGW_T *graph,
 				  CDS_CID_t cid,
-				  int end, 
+				  int end,
 				  int edgeStatusSet,
 				  int flags,
 				  GraphEdgeIterator *e){
@@ -1089,7 +1089,7 @@ static  EdgeCGW_T *NextGraphEdgeIterator(GraphEdgeIterator *e){
   while(retEdge == (EdgeCGW_T *)NULL &&
 	(e->nextRaw != NULLINDEX || e->next != NULLINDEX)){
     ChunkOrientationType orient;
-  
+
     if(e->verbose)
       fprintf(stderr,"* In loop (" F_CID "," F_CID "," F_CID ")\n",
 	      e->prev, e->curr, e->next);
@@ -1155,7 +1155,7 @@ static  EdgeCGW_T *NextGraphEdgeIterator(GraphEdgeIterator *e){
 	default:
 	  assert(0);
       }
-      
+
       e->prev = e->curr;
       e->curr = e->next;
       isA = (r->idA == e->cid);
@@ -1243,7 +1243,7 @@ int MergeGraphEdges(GraphCGW_T *graph, VA_TYPE(CDS_CID_t) *inputEdges);
    of length > 1 that connect the same pair of CIs.  The indices of these
    edges are collected in the chain VA, and the entire chain is UNLINKED
    from the graph.
-   
+
    The return value is the length of the identified chain.  If 1 is returned,
    the graph has not been perturbed, unless extractSingletons is TRUE.
 */
@@ -1286,7 +1286,7 @@ void PrintContigEdgeInScfContext(FILE *fp, GraphCGW_T *graph, char *label, EdgeC
 
 
 CDS_CID_t AddGraphEdge( GraphCGW_T *graph,
-                        CDS_CID_t cidA, CDS_CID_t cidB, 
+                        CDS_CID_t cidA, CDS_CID_t cidB,
                         CDS_CID_t fidA, CDS_CID_t fidB,
                         CDS_CID_t dist,
                         LengthT distance,
@@ -1335,7 +1335,7 @@ void FreeGraphEdgeByEID(GraphCGW_T *graph,  CDS_CID_t eid);
 
 static void FreeGraphEdge(GraphCGW_T *graph,  EdgeCGW_T *edge){
   CDS_CID_t eid = GetVAIndex_EdgeCGW_T(graph->edges, edge);
-  
+
   FreeGraphEdgeByEID(graph, eid);
 }
 
@@ -1368,19 +1368,19 @@ void DumpOverlaps(GraphCGW_T *graph);
 
 ChunkOverlapCheckT OverlapChunks(GraphCGW_T *graph,
                                  CDS_CID_t cidA, CDS_CID_t cidB,
-                                 ChunkOrientationType orientation, 
+                                 ChunkOrientationType orientation,
                                  CDS_COORD_t minOverlap,
                                  CDS_COORD_t maxOverlap,
                                  float errRate,
                                  int insertGraphEdges);
 
 Overlap*  OverlapSequences(char * seq1, char * seq2,
-                           ChunkOrientationType orientation, 
+                           ChunkOrientationType orientation,
                            CDS_COORD_t min_ahang, CDS_COORD_t max_ahang,
                            double erate, double thresh, CDS_COORD_t minlen,
                            CompareOptions what);
 
-Overlap* OverlapContigs(NodeCGW_T *contig1, NodeCGW_T *contig2, 
+Overlap* OverlapContigs(NodeCGW_T *contig1, NodeCGW_T *contig2,
                         ChunkOrientationType *overlapOrientation,
                         CDS_COORD_t minAhang, CDS_COORD_t maxAhang,
                         int computeAhang);
@@ -1397,7 +1397,7 @@ int32  LargeOverlapExists(GraphCGW_T *graph,
 
 void CollectChunkOverlap(GraphCGW_T *graph,
                          CDS_CID_t cidA, CDS_CID_t cidB,
-                         ChunkOrientationType orientation, 
+                         ChunkOrientationType orientation,
                          float   meanOverlap, float   deltaOverlap,
                          float   quality, int bayesian,
                          int fromCGB, int verbose);
@@ -1423,7 +1423,7 @@ int LookupOverlap(GraphCGW_T *graph,
 
 /*
   The function LookupQualityOverlap takes the same arguments as LookupOverlap
-  with an additional argument for the quality function and the quality value. 
+  with an additional argument for the quality function and the quality value.
   It first looks up the overlap
   in the hash table. If it has the appropriate quality bit set the quality
   is returned. If not, the quality is computed using the appropriate quality
@@ -1437,14 +1437,14 @@ int LookupQualityOverlap(GraphCGW_T *graph,
 			 float* quality, FILE* log);
 
 
-int ComputeQualityOverlap(GraphCGW_T *graph, 
+int ComputeQualityOverlap(GraphCGW_T *graph,
 			  EdgeCGW_T *edge,
 			  ChunkOrientationType orientation,
 			  ChunkOverlapCheckT *olap, QualityFuncT qfunc,
 			  float* quality, FILE* log);
 
 
-int ComputeUOMQualityOverlap(GraphCGW_T *graph, 
+int ComputeUOMQualityOverlap(GraphCGW_T *graph,
 			     UnitigOverlapMesg *uom_mesg,
 			     ChunkOverlapCheckT *olap,
 			     float* quality);
@@ -1467,7 +1467,7 @@ void UpdateNodeUnitigs(MultiAlignT *ma, NodeCGW_T *contig);
 */
 /* orientIsOpposite:
    TRUE if offset should be calculated from 5' towards end of
-   chunk closest to 3' end of fragment.  
+   chunk closest to 3' end of fragment.
    FALSE if offset should be calculated from 5' towards end of
    chunk closest to 5' end.
 */

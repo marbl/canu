@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -37,7 +37,7 @@ typedef struct {
   VA_TYPE(IntMultiPos)   *f_list;     // positions of fragments
   VA_TYPE(int32)         *udelta;     // deltas for all unitigs in u_list
   VA_TYPE(IntUnitigPos)  *u_list;     // positions of unitigs
-  VA_TYPE(IntMultiVar)   *v_list;     // variations                  
+  VA_TYPE(IntMultiVar)   *v_list;     // variations
 } MultiAlignT;
 VA_DEF(MultiAlignT)
 
@@ -94,14 +94,14 @@ GetMultiAlignTMemorySize(MultiAlignT *ma) {
 
 
 static
-int32 
+int32
 GetMultiAlignLength(MultiAlignT *ma) {
   // don't include the space for the null character
   return((int32)GetNumchars(ma->consensus) - 1);
 }
 
 static
-int32 
+int32
 GetMultiAlignUngappedLength(MultiAlignT *ma) {
   int32   u = 0;
   char   *c = Getchar(ma->consensus,0);
@@ -125,7 +125,7 @@ GetAendUnitigPos(MultiAlignT *ma) {
 static
 IntUnitigPos *
 GetBendUnitigPos(MultiAlignT *ma) {
-  long length = GetMultiAlignLength(ma); 
+  long length = GetMultiAlignLength(ma);
   int  i;
 
   for(i = GetNumIntUnitigPoss(ma->u_list) - 1; i>=0; i--) {

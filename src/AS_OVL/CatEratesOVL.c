@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -24,24 +24,24 @@
 * Description:
 *   Concatenate erate correction files on command line to produce
 *   a single file.
-* 
-*    Programmer:  A. Halpern 
+*
+*    Programmer:  A. Halpern
 *       Started:   23 Dec 2003
-* 
+*
 * Assumptions:
 *   Files on the command line *MUST* be in order
 *   by fragment id of first frag in overlap.
-* 
+*
 * Notes:
 *
 *************************************************/
 
 /* RCS info
- * $Id: CatEratesOVL.c,v 1.12 2007-05-29 10:54:29 brianwalenz Exp $
- * $Revision: 1.12 $
+ * $Id: CatEratesOVL.c,v 1.13 2008-06-27 06:29:18 brianwalenz Exp $
+ * $Revision: 1.13 $
 */
 
-static char CM_ID[] = "$Id: CatEratesOVL.c,v 1.12 2007-05-29 10:54:29 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CatEratesOVL.c,v 1.13 2008-06-27 06:29:18 brianwalenz Exp $";
 
 
 //  System include files
@@ -131,7 +131,7 @@ int  main
    int32  prev_id = -1;
    int  i, num_files;
    int16 *erate;
-   int32  header[2];   
+   int32  header[2];
    int32  low=999999999;
    int32  high=-1;
    uint64 ttlNum=0;
@@ -141,7 +141,7 @@ int  main
    outfile = File_Open (Outfile_Path, "wb");
 
    num_files = GetNumVA_char_Ptr_t (File_List);
-   
+
    for  (i = 0;  i < num_files;  i ++)
      {
       char  * filename;
@@ -153,7 +153,7 @@ int  main
       Safe_fread (header, sizeof (int32), 2, fp);
       Safe_fread (&num, sizeof (uint64), 1, fp);
       lo = header[0];
-      hi = header[1];      
+      hi = header[1];
       if(lo<low)low=lo;
       if(hi>high)high=hi;
       ttlNum+=num;
@@ -163,7 +163,7 @@ int  main
      }
 
    header[0]=low;
-   header[1]=high;   
+   header[1]=high;
 
    fprintf(stderr,"total lo %d hi %d num %d\n",
 	   low,high,ttlNum);
@@ -181,17 +181,17 @@ int  main
       filename = * GetVA_char_Ptr_t (File_List, i);
       fp = File_Open (filename, "rb");
       Safe_fread (header, sizeof (int32),  2, fp);
-      Safe_fread (&num,   sizeof (uint64), 1, fp);      
+      Safe_fread (&num,   sizeof (uint64), 1, fp);
 
-      erate = (int16 *) safe_malloc (MAX_ERATES_TO_READ * sizeof (int16));      
- 
+      erate = (int16 *) safe_malloc (MAX_ERATES_TO_READ * sizeof (int16));
+
       // stream the file through reading a subset at a time
       while (num > 0) {
          // when we have less to read than maximum, read whatever is left
-         if (num < totalToRead) { 
-            totalToRead = num; 
+         if (num < totalToRead) {
+            totalToRead = num;
          }
-         
+
          num -= Safe_fread (erate, sizeof (int16), totalToRead, fp);
          Safe_fwrite(erate, sizeof (int16), totalToRead, outfile);
       }

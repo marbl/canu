@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -30,11 +30,11 @@
 #include "MultiAlignStore_CNS.h"
 #include "Array_CNS.h"
 
-void 
+void
 PrintMultiAlignT(FILE *out,
 	         MultiAlignT *ma,
-	         GateKeeperStore *frag_store, 
-	         int show_qv, 
+	         GateKeeperStore *frag_store,
+	         int show_qv,
 	         int dots,
                  uint32 clrrng_flag)  {
 
@@ -44,7 +44,7 @@ PrintMultiAlignT(FILE *out,
   int rc,i;
   int window;
   int length;
-  char **multia=NULL; 
+  char **multia=NULL;
   int **idarray;
   int **oriarray;
   char *consensus = Getchar(ma->consensus,0);
@@ -53,7 +53,7 @@ PrintMultiAlignT(FILE *out,
   fragRecord rsp;
 
   length = strlen(consensus);
-   
+
   rc = IMP2Array(GetIntMultiPos(ma->f_list,0),
                  GetNumIntMultiPoss(ma->f_list),
                  GetNumchars(ma->consensus),
@@ -99,8 +99,8 @@ PrintMultiAlignT(FILE *out,
         }
         if (*rowchar!='-') {
           tick++;
-        } 
-      }     
+        }
+      }
 
       fprintf(out,"\n");
       fprintf(out,"%-100.100s  cns  (uid,iid) type\n", consensus+window);
@@ -128,7 +128,7 @@ PrintMultiAlignT(FILE *out,
             *(multia[2*i]+window+j) = tolower(*(multia[2*i]+window+j));
           }
         }
-        
+
         {
           int last = (window+99< length-1)?window+99:length-1;
           if ( *(idarray[i]+last) == 0 ) {

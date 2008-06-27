@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -68,7 +68,7 @@ void Complement_Seq(char *aseq)
       WCinvert['N'] = 'N';
       WCinvert['-'] = '-'; // added this to enable alignment of gapped consensi
     }
-      
+
   { int len;                    /* Complement and reverse sequence */
     len = strlen(aseq);
 
@@ -99,7 +99,7 @@ void Complement_Fragment_AS(InternalFragMesg *a)
   static int Firstime = 1;
 
   if (Firstime)          /* Setup complementation array */
-    { 
+    {
       int i;
       Firstime = 0;
       for(i = 0; i < 256;i++){
@@ -117,7 +117,7 @@ void Complement_Fragment_AS(InternalFragMesg *a)
       WCinvert['N'] = 'N';
       WCinvert['-'] = '-'; // added this to enable alignment of gapped consensi
     }
-      
+
   { int len;                    /* Complement and reverse sequence */
     len = strlen(a->sequence);
 
@@ -142,7 +142,7 @@ void Complement_Fragment_AS(InternalFragMesg *a)
     if (a->quality != NULL)
       { register char *s, *t;   /* Reverse quality value array */
         int c;
-    
+
         s = a->quality;
         t = a->quality + (len-1);
         while (s < t)
@@ -168,7 +168,7 @@ void Complement_Fragment_AS(InternalFragMesg *a)
 
 int *Unpack_Alignment_AS(OverlapMesg *align)
 { static int    *UnpackBuffer=NULL;
-  static int buffalloc=0; 
+  static int buffalloc=0;
   int buffused=0;
   signed char  *calign;
   int           apos, bpos;
@@ -297,7 +297,7 @@ signed char *Pack_Alignment_AS(int *trace, int prefix)
     { if (c < 0)
         { c = -c;
           while (c-apos > AS_LONGEST_DELTA)
-            { *spt++ = AS_LONG_DELTA_CODE; 
+            { *spt++ = AS_LONG_DELTA_CODE;
               apos += AS_LONGEST_DELTA;
               bpos += AS_LONGEST_DELTA;
             }
@@ -307,7 +307,7 @@ signed char *Pack_Alignment_AS(int *trace, int prefix)
         }
       else
         { while (c-bpos > AS_LONGEST_DELTA)
-            { *spt++ = AS_LONG_DELTA_CODE; 
+            { *spt++ = AS_LONG_DELTA_CODE;
               apos += AS_LONGEST_DELTA;
               bpos += AS_LONGEST_DELTA;
             }
@@ -347,7 +347,7 @@ void PrintAlign(FILE *file, int prefix, int suffix,
   Bbuf[o] = (y);			\
   o += 1;				\
 }
-  
+
   a -= 1;
   b -= 1;
   o  = 0;
@@ -390,7 +390,7 @@ void PrintAlign(FILE *file, int prefix, int suffix,
       { if ((y = b[j++]) != 0)
           COLUMN(x,y)
         else
-          { do 
+          { do
               { COLUMN(x,' ')
                 s += 1;
               }
@@ -422,7 +422,7 @@ void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
       a = b;
       b = c;
     }
-  
+
   fprintf(file,"\nOVERLAP BETWEEN");
   fprintf(file," A = (%s," F_IID ")",AS_UID_toString(a->eaccession),a->iaccession);
   fprintf(file," and");
@@ -495,7 +495,7 @@ void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
       else if (align->orientation == AS_OUTTIE)
         Complement_Fragment_AS(a);
     }
-} 
+}
 
 
 
@@ -518,7 +518,7 @@ void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
 //   optional biggestBlock - the length of the largest mismatch
 //
 void
-AnalyzeAffineAlign(int prefix, int suffix, 
+AnalyzeAffineAlign(int prefix, int suffix,
                    char *a, char *b, int *trace, int amode,
                    int *alen, int *blen, int *del, int *sub, int *ins,
                    int *affdel, int *affins,
@@ -640,7 +640,7 @@ AnalyzeAffineAlign(int prefix, int suffix,
 void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
                                OverlapMesg *align, int amode,
                                int *alen, int *blen, int *del, int *sub, int *ins,
-                               int *affdel, int *affins, 
+                               int *affdel, int *affins,
                                int *blockdel, int *blockins, int blocksize,
                                int *biggestBlock) {
   int swap = 0;
@@ -687,7 +687,7 @@ void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
     *affdel = *affins;
     *affins = swap;
   }
-} 
+}
 
 
 
@@ -696,12 +696,12 @@ void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 
 /***** Wrapper for bubble smoothing overlap detector on top of affine dp_compare *****/
 
-/* 
-   Usage/arguments as for DP_Compare_AS, except that some of the parameters 
+/*
+   Usage/arguments as for DP_Compare_AS, except that some of the parameters
    are hijacked:
    - "erate" is used as a filter after the fact, but not passed to DP_C*_AS
    - "what" is overridden
-   - "minlen" is passed to DP_Compare_AS, but it is also used as a filter 
+   - "minlen" is passed to DP_Compare_AS, but it is also used as a filter
      to require that minlen matches were found
 
    Procedure:
@@ -713,18 +713,18 @@ void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
      optionally, also test number of large indels.
 
    Assumptions/caveats:
-   - as with DP_Compare_AS, the returned message must be copied if it is to 
+   - as with DP_Compare_AS, the returned message must be copied if it is to
    be retained.
    - this version does not test for sanity with respect to placement of gaps;
      in principle, a gap of several hundred bases at the end (most likely
      indicating a true branchpoint) would be accepted if proposed; this
      seems to be safe enough since DP_Compare_AS doesn't seem to find overlaps
-     above about 12% simple (non-affine) error rate.  However, more minor 
+     above about 12% simple (non-affine) error rate.  However, more minor
      versions of this could cause (false) overlaps of shallow branchpoints
      (true branchpoints occurring near the ends of fragments)
 
        Branchpoint:
-    
+
                .........+++++++          ("." matches; +:# mismatch)
 	       .........#######
 
@@ -733,7 +733,7 @@ void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
                .........+++++++
 	       .........-------######    ("-" a gap)
 
-     Equally, a (short) bad fragment end has a better change of being 
+     Equally, a (short) bad fragment end has a better change of being
      overlapped if affine gaps allow it to find the best match within a
      modest window of uncertainty:
 
@@ -749,7 +749,7 @@ void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 	            ||||||||||||||||||||||         ||| ||
                .....ACAGTAGACGAGATAGGATAGA---------CAGTTA
 
-	 
+
 
 */
 
@@ -758,15 +758,15 @@ void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
    modify the values without changing the function's argument list
    [in order to maintain the parallelism with the DP_Compare_AS
    argument list].  Thus, for instance, if an initial attempt fails to
-   find an overlap required by consensus, the criteria could be relaxed 
+   find an overlap required by consensus, the criteria could be relaxed
    in a second call.
 
    Users who take advantage of this should probably be sure to restore
-   the default values each time they modify them; see, e.g., 
+   the default values each time they modify them; see, e.g.,
    Local_Overlap_AS_forCNS() */
 
 // larger erate than normal to encourage finding overlaps with large indels
-double MAXDPERATE=.20;   
+double MAXDPERATE=.20;
 // boolean test
 int AS_ALN_TEST_NUM_INDELS=1;
 // size of indel to count as "large" when testing number of large indels
@@ -777,9 +777,9 @@ int AFFINE_MAX_BLOCKS=3;
 OverlapMesg *AS_ALN_affine_overlap(InternalFragMesg *a, InternalFragMesg *b,
                            int beg, int end, int opposite,
                            double erate, double thresh, int minlen,
-                           CompareOptions what, int *where) 
+                           CompareOptions what, int *where)
 {
-  
+
   OverlapMesg *O;
 
   { double my_ld_ratio=.25;
@@ -837,7 +837,7 @@ OverlapMesg *AS_ALN_affine_overlap(InternalFragMesg *a, InternalFragMesg *b,
 
 
 void Compute_Olap_Version(InternalFragMesg* a,InternalFragMesg *b,OverlapMesg *O,int *ahang,int *bhang, char *ori){
-  
+
   if (a->iaccession == O->bifrag)
     {
       InternalFragMesg *c;
@@ -852,7 +852,7 @@ void Compute_Olap_Version(InternalFragMesg* a,InternalFragMesg *b,OverlapMesg *O
     }
 
   *ori = (( O->orientation == AS_INNIE || O->orientation == AS_OUTTIE) ?  'I' : 'N');
-  
+
   return;
 }
 

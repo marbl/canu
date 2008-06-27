@@ -76,7 +76,7 @@ FILE *
 openFile(char *label, char *prefix, int write) {
   char  N[FILENAME_MAX];
   FILE *F = NULL;
-  
+
   sprintf(N, "%s.posmap.%s", prefix, label);
 
   errno = 0;

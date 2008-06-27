@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ConvexHull.h,v 1.4 2005-03-22 19:48:56 jason_miller Exp $ */
+/* $Id: ConvexHull.h,v 1.5 2008-06-27 06:29:16 brianwalenz Exp $ */
 #ifndef CONVEXHULL_H
 #define CONVEXHULL_H
 
@@ -59,19 +59,19 @@ public:
       this->ppoly = id;
       this->pindex = index;
     }
-  
+
   void setPolygon(int id) {ppoly = id;}
   void setIndex(int index) {pindex = index;}
   unsigned int getPolygon() const {return ppoly;}
   unsigned int getIndex() const {return pindex;}
-  
+
   friend ostream & operator<<(ostream & os, const CVHPoint<UnitType> & point)
     {
       os << point.getX() << "," << point.getY()
          << "," << point.ppoly << "," << point.pindex;
       return os;
     }
-  
+
 private:
   unsigned int ppoly;
   unsigned int pindex;
@@ -101,7 +101,7 @@ public:
   void create(const list<CVHPoint<UnitType> > & points)
     {
       bool debugCreate = false;
-      
+
       if(points.size() < 4)
       {
         typename list<CVHPoint<UnitType> >::const_iterator clfiter;
@@ -109,7 +109,7 @@ public:
           ppts.push_back(*clfiter);
         return;
       }
-        
+
       list<CVHPoint<UnitType> > mp = points;
       mp.sort();
 
@@ -129,7 +129,7 @@ public:
         }
         lastPoint = *lfiter;
       }
-      
+
       lfiter = mp.begin();
       for(int i = 0; i < 2; i++, lfiter++)
         ppts.push_back(*lfiter);
@@ -157,7 +157,7 @@ public:
           cerr << *debugiter << endl;
       }
 //#endif
-      
+
       vector<CVHPoint<UnitType> > lower;
       typename list<CVHPoint<UnitType> >::reverse_iterator lriter;
       lriter = mp.rbegin();
@@ -187,11 +187,11 @@ public:
           cerr << *debugiter << endl;
       }
 //#endif
-      
+
       // now add lower points excluding first & last
       for(unsigned int i = 1; i < lower.size() - 1; i++)
         ppts.push_back(lower[i]);
-      
+
 //#ifdef DEBUG_CONVEXHULL
       if(debugCreate)
       {
@@ -235,7 +235,7 @@ public:
         os << " " << cvh.ppts[i];
       return os;
     }
-    
+
 private:
   vector<CVHPoint<UnitType> > ppts;
 };

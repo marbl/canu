@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -63,7 +63,7 @@ void identify_early_spur_fragments
 
   const IntFragment_ID nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
-  
+
   int * thru_fragment_prefix_dovetail_overlap_count = NULL;
   int * thru_fragment_suffix_dovetail_overlap_count = NULL;
 
@@ -82,7 +82,7 @@ void identify_early_spur_fragments
              (lab == AS_CGB_HANGING_FRAG) ||
              (lab == AS_CGB_THRU_FRAG)
              );
-#endif      
+#endif
       thru_fragment_prefix_dovetail_overlap_count[vid] = 0;
       thru_fragment_suffix_dovetail_overlap_count[vid] = 0;
       set_spur_fragment(frags,vid,FALSE);
@@ -106,7 +106,7 @@ void identify_early_spur_fragments
           //const IntFragment_ID bid = get_iid_fragment(frags,bvx);
           const Tlab alab = get_lab_fragment(frags,avx);
           //const Tlab blab = get_lab_fragment(frags,bvx);
-          
+
           if( alab == AS_CGB_THRU_FRAG ) {
             if( bsx ) {
               thru_fragment_suffix_dovetail_overlap_count[bvx] ++;
@@ -183,7 +183,7 @@ void identify_early_spur_fragments
              (get_spur_fragment(frags,avx) == TRUE) ||
              (alab == AS_CGB_HANGING_CRAPPY_FRAG)
              ) {
-            const int distal_incoming_thru_fragment_dovetail_degree = 
+            const int distal_incoming_thru_fragment_dovetail_degree =
               ( bsx
                 ? thru_fragment_suffix_dovetail_overlap_count[bvx]
                 : thru_fragment_prefix_dovetail_overlap_count[bvx]);
@@ -263,11 +263,11 @@ void separate_fragments_as_solo_hanging_thru
           //const IntFragment_ID bid = get_iid_fragment(frags,bvx);
           const Tlab alab = get_lab_fragment(frags,avx);
           const Tlab blab = get_lab_fragment(frags,bvx);
-          
+
           if( (alab != AS_CGB_DELETED_FRAG) &&
               (blab != AS_CGB_DELETED_FRAG) &&
               (alab != AS_CGB_REMOVED_BREAKER_FRAG) &&
-              (blab != AS_CGB_REMOVED_BREAKER_FRAG) 
+              (blab != AS_CGB_REMOVED_BREAKER_FRAG)
               ) {
             if( asx ) {
               all_fragment_suffix_dovetail_overlap_count[avx] ++;
@@ -294,7 +294,7 @@ void separate_fragments_as_solo_hanging_thru
     IntFragment_ID prefix_hanging_fragment_count = 0;
     IntFragment_ID suffix_hanging_fragment_count = 0;
     IntFragment_ID thru_fragment_count = 0;
-    
+
     IntFragment_ID vid;
     // #pragma omp parallel for
 
@@ -306,7 +306,7 @@ void separate_fragments_as_solo_hanging_thru
         = get_raw_dvt_count_vertex( frags, vid, FALSE);
       const int raw_fragment_suffix_dovetail_overlap_count
         = get_raw_dvt_count_vertex( frags, vid, TRUE);
-      
+
       const int cur_fragment_prefix_dovetail_overlap_count
 #ifndef USE_REAPERS_DVT_DEGREE
         = all_fragment_prefix_dovetail_overlap_count[vid];
@@ -328,14 +328,14 @@ void separate_fragments_as_solo_hanging_thru
 #else
         = raw_fragment_prefix_dovetail_overlap_count;
 #endif
-      
+
       const int fragment_suffix_dovetail_overlap_count
-#if 1        
+#if 1
       = cur_fragment_suffix_dovetail_overlap_count;
 #else
       = raw_fragment_suffix_dovetail_overlap_count;
 #endif
-      
+
       Tlab ilab = lab;
 
       assert( cur_fragment_prefix_dovetail_overlap_count <=

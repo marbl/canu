@@ -15,12 +15,12 @@ use strict;
 #
 #  [files]
 #                          MB1/MB1.qc      MU1/MU1.qc      OB1/OB1.qc      OU1/OU1.qc
-#  
+#
 #  [Scaffolds]
-#  TotalScaffolds          1954            2046            3459           
-#  TotalContigsInScaffo    1954            2046            3459           
-#  MeanContigsPerScaffo    1.00            1.00            1.00           
-#  MinContigsPerScaffol    1               1               1              
+#  TotalScaffolds          1954            2046            3459
+#  TotalContigsInScaffo    1954            2046            3459
+#  MeanContigsPerScaffo    1.00            1.00            1.00
+#  MinContigsPerScaffol    1               1               1
 
 my @labels;
 my %values;

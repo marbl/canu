@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.14 2008-02-22 15:47:24 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.15 2008-06-27 06:29:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -169,7 +169,7 @@ InsertNodeInHashBucket(HashTable_AS *table,
                        HashNode_AS *newnode) {
 
   int32        hashkey = (*table->hash)(newnode->key, newnode->keyLength);
-  int          bucket  = hashkey & table->hashmask; 
+  int          bucket  = hashkey & table->hashmask;
   HashNode_AS *node    = table->buckets[bucket];
   HashNode_AS *prevnode;
   int          comparison;
@@ -351,7 +351,7 @@ DeleteHashTable_AS(HashTable_AS *table) {
 //  Insert a new key into the hash table.  Returns SUCCESS if the key
 //  doesn't already exist.
 int
-InsertInHashTable_AS(HashTable_AS  *table, 
+InsertInHashTable_AS(HashTable_AS  *table,
                      uint64         key,
                      uint32         keylen,
                      uint64         value,
@@ -384,7 +384,7 @@ InsertInHashTable_AS(HashTable_AS  *table,
 
 int
 DeleteFromHashTable_AS(HashTable_AS *table,
-                       uint64        key, 
+                       uint64        key,
                        uint32        keylen) {
 
   int32        hashkey   = (*table->hash)(key, keylen);
@@ -436,7 +436,7 @@ DeleteFromHashTable_AS(HashTable_AS *table,
 //  Replace the value of a key, or add a new key.  Returns SUCCESS if
 //  the key was updated or added.
 uint64
-ReplaceInHashTable_AS(HashTable_AS  *table, 
+ReplaceInHashTable_AS(HashTable_AS  *table,
                       uint64         key,
                       uint32         keylen,
                       uint64         value,
@@ -478,7 +478,7 @@ ReplaceInHashTable_AS(HashTable_AS  *table,
 //  found, TRUE if it is found.
 //
 int
-LookupInHashTable_AS(HashTable_AS *table, 
+LookupInHashTable_AS(HashTable_AS *table,
                      uint64        key,
                      uint32        keylen,
                      uint64       *value,
@@ -519,14 +519,14 @@ LookupInHashTable_AS(HashTable_AS *table,
 
 
 int
-ExistsInHashTable_AS(HashTable_AS *table, 
+ExistsInHashTable_AS(HashTable_AS *table,
                      uint64        key,
                      uint32        keylen) {
   return(LookupInHashTable_AS(table, key, keylen, NULL, NULL));
 }
 
 uint64
-LookupValueInHashTable_AS(HashTable_AS *table, 
+LookupValueInHashTable_AS(HashTable_AS *table,
                           uint64        key,
                           uint32        keylen) {
   uint64  val = 0;
@@ -535,7 +535,7 @@ LookupValueInHashTable_AS(HashTable_AS *table,
 }
 
 uint32
-LookupTypeInHashTable_AS(HashTable_AS *table, 
+LookupTypeInHashTable_AS(HashTable_AS *table,
                          uint64        key,
                          uint32        keylen) {
   uint32  typ = 0;
@@ -548,7 +548,7 @@ LookupTypeInHashTable_AS(HashTable_AS *table,
 
 //  Offset all the key values (assumed to be pointers to some array).
 //  This can be used when the array holding the data gets reallocated.
-//  
+//
 //  The alternative was to start using the Heap type, but that then
 //  transfers complexity (LOTS) to the end algorithm that is expecting
 //  an array or items.
@@ -723,8 +723,8 @@ InitializeHashTable_Iterator_AS(HashTable_AS *table,
 }
 
 int
-NextHashTable_Iterator_AS(HashTable_Iterator_AS *iterator, 
-                          uint64                *key, 
+NextHashTable_Iterator_AS(HashTable_Iterator_AS *iterator,
+                          uint64                *key,
                           uint64                *value,
                           uint32                *valuetype) {
 

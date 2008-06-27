@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: testChunkOverlap.c,v 1.7 2007-08-03 20:45:03 brianwalenz Exp $	 */
+/* 	$Id: testChunkOverlap.c,v 1.8 2008-06-27 06:29:14 brianwalenz Exp $	 */
 
 #include <assert.h>
 #include <stdio.h>
@@ -58,7 +58,7 @@ void ComputeOverlap(CDS_CID_t cidA, char *consensusA,
           (!strcmp(AFR.sequence, BFR.sequence)?"EQUAL":"DIFFERENT"),
           beg, end, *AFR.sequence, *BFR.sequence);
 
-  O = DP_Compare_AS(&AFR,&BFR, 
+  O = DP_Compare_AS(&AFR,&BFR,
                     beg, end, FALSE,
                     0.10, 1e-6, 20,
 #if 0
@@ -79,14 +79,14 @@ void ComputeOverlap(CDS_CID_t cidA, char *consensusA,
 
 }
 
-int Debug = FALSE; 
+int Debug = FALSE;
 
 int main(int argc, char *argv[]){
   int verbose = 0;
   char *tempPath;
   char chunkStorePath[FILENAME_MAX];
 
-  { /* Parse the argument list using "man 3 getopt". */ 
+  { /* Parse the argument list using "man 3 getopt". */
     int ch,errflg=0;
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv, "vd")) != EOF))

@@ -1,8 +1,8 @@
-# $Id: Foundation.pm,v 1.1 2006-09-04 07:15:37 brianwalenz Exp $
+# $Id: Foundation.pm,v 1.2 2008-06-27 06:29:20 brianwalenz Exp $
 
 # Copyright @ 2002 - 2010 The Institute for Genomic Research (TIGR).
 # All rights reserved.
-# 
+#
 # This software is provided "AS IS".  TIGR makes no warranties, express or
 # implied, including no representation or warranty with respect to the
 # performance of the software and derivatives or their safety,
@@ -10,7 +10,7 @@
 # merchantability or fitness of the software and derivatives for any
 # particular purpose, or that they may be exploited without infringing the
 # copyrights, patent rights or property rights of others.
-# 
+#
 # This software program may not be sold, leased, transferred, exported or
 # otherwise disclaimed to anyone, in whole or in part, without the prior
 # written consent of TIGR.
@@ -35,7 +35,7 @@ logging, version reporting, and dependency checking in a simple way.
 =cut
 
    BEGIN {
-      require 5.006_00;                       # error if using Perl < v5.6.0  
+      require 5.006_00;                       # error if using Perl < v5.6.0
    }
 
    use strict;
@@ -71,8 +71,8 @@ logging, version reporting, and dependency checking in a simple way.
                );
 
    ## internal variables and identifiers
-   our $REVISION = (qw$Revision: 1.1 $)[-1];
-   our $VERSION = '1.41'; 
+   our $REVISION = (qw$Revision: 1.2 $)[-1];
+   our $VERSION = '1.41';
    our $VERSION_STRING = "$VERSION (Build $REVISION)";
    our @DEPEND = ();                          # there are no dependencies
 
@@ -147,7 +147,7 @@ logging, version reporting, and dependency checking in a simple way.
    sub TIGR_GetOptions(@);
 
    ## Implementation
-   
+
 
 # Functional Class : general
 
@@ -192,10 +192,10 @@ this method returns undefined.
       # The following variables are to contain information specified by
       # the 'host' program; there are methods of setting and retrieving each.
       @{$self->{depend_info}} = ();
-      $self->{version_handler} = undef; 
-      $self->{version_info} = undef; 
-      $self->{help_info} = undef; 
-      $self->{usage_info} = undef; 
+      $self->{version_handler} = undef;
+      $self->{version_info} = undef;
+      $self->{help_info} = undef;
+      $self->{usage_info} = undef;
 
       # These are used for logging.
       $self->{debug_level} = -1;                # debug is negative, no logging
@@ -219,7 +219,7 @@ this method returns undefined.
       # These monitor program execution time.
       $self->{start_time} = time;               # program start time
       $self->{finish_time} = undef;             # program stop time
-      
+
       # Set a user name and a host name.
       $self->{'host_name'} = hostname();
       if ( ! defined ( $self->{'host_name'} ) ) {
@@ -248,7 +248,7 @@ this method returns undefined.
       else {
          $self->{'home_dir'} =~ s/^(\.*)$/$1/g; # Taint check.
       }
-     
+
       $self->logLocal("START: " . $self->{'program_name'} . " " .
          $self->{'invocation'}, 0);
       $self->logLocal("Username: " . $self->{'user_name'}, 0);
@@ -269,8 +269,8 @@ C<invocation> field specifies the command line arguments passed to the
 executable.   The C<env_path> value returns the environment path to the
 working directory.  The C<abs_path> value specifies the absolute path to the
 working directory.  If C<env_path> is found to be inconsistent, then that
-value will return the C<abs_path> value.  If an invalid C<$field_type> is 
-passed, the function returns undefined.  
+value will return the C<abs_path> value.  If an invalid C<$field_type> is
+passed, the function returns undefined.
 
 =cut
 
@@ -291,7 +291,7 @@ passed, the function returns undefined.
             if (
                 (defined $ENV{'PWD'}) &&
                 (abs_path($ENV{'PWD'}) eq abs_path(".") ) &&
-                ($ENV{'PWD'} =~ /^(.*)$/)     
+                ($ENV{'PWD'} =~ /^(.*)$/)
                ) {
                $ENV{'PWD'} = $1;
                $return_value = $ENV{'PWD'};
@@ -322,10 +322,10 @@ passed, the function returns undefined.
 =item $exit_code = $obj_instance->runCommand($command_str);
 
 This function passes the argument C<$command_str> to /bin/sh
-for processing.  The return value is the exit code of the 
+for processing.  The return value is the exit code of the
 C<$command_str>.  If the exit code is not defined, then either the signal or
 core dump value of the execution is returned, whichever is applicable.  Perl
-variables C<$?> and C<$!> are set accordingly.  If C<$command_str> is not 
+variables C<$?> and C<$!> are set accordingly.  If C<$command_str> is not
 defined, this function returns undefined.  Log messages are recorded at log
 level 4 to indicate the type of exit status and the corresponding code.
 A failure to start the program (invalid program) results in return code -1.
@@ -336,12 +336,12 @@ A failure to start the program (invalid program) results in return code -1.
    sub runCommand($) {
       my $self = shift;
       my $command_str = shift;
-      my $exit_code = undef; 
+      my $exit_code = undef;
       my $signal_num = undef;
       my $dumped_core = undef;
       my $return_value = undef;
-      my $current_dir = $self->getProgramInfo("abs_path"); 
-      
+      my $current_dir = $self->getProgramInfo("abs_path");
+
       # Return if the command string is not set.
       if ( ! defined ( $command_str ) ) {
          return undef;
@@ -349,10 +349,10 @@ A failure to start the program (invalid program) results in return code -1.
 
       # Substitute out the tilde and dot in the directory paths.
       if ( defined ($ENV{PATH}) ) {
-         ( $ENV{PATH} ) = $ENV{PATH} =~ /^(.*)$/; 
-         my @paths = split /:/, $ENV{PATH}; 
+         ( $ENV{PATH} ) = $ENV{PATH} =~ /^(.*)$/;
+         my @paths = split /:/, $ENV{PATH};
          for (my $i = 0; $i <= $#paths; $i++) {
-            $paths[$i] =~ s/^~\/?$/$self->{'home_dir'}/g; 
+            $paths[$i] =~ s/^~\/?$/$self->{'home_dir'}/g;
             $paths[$i] =~ s/^\.\/?$/$current_dir/g;
          }
          $ENV{PATH} = join(":", @paths);
@@ -362,7 +362,7 @@ A failure to start the program (invalid program) results in return code -1.
       # Run the command and parse the results.
       system($command_str);
       my $return_str = $?;
-      $exit_code = $? >> 8; 
+      $exit_code = $? >> 8;
       $signal_num = $? & 127;
       $dumped_core = $? & 128;
       if ( $return_str == -1 ) {                # Check for invalid program.
@@ -383,7 +383,7 @@ A failure to start the program (invalid program) results in return code -1.
       }
       return $return_value;
    }
-   
+
 
 # Functional Class : depend
 
@@ -407,7 +407,7 @@ C<addDependInfo()>.  One item is printed per line.
 
 The C<printDependInfoAndExit()> function prints the dependency list created by
 C<addDependInfo()>.  One item is printed per line.  The function exits with
-exit code 0. 
+exit code 0.
 
 =cut
 
@@ -463,8 +463,8 @@ C<setVersionInfo()> function.
 =item $obj_instance->printVersionInfo();
 
 The C<printVersionInfo()> function calls the version handler, if set.  If not,
-it prints the version information set by the C<setVersionInfo()> function. 
-If there is no defined version information, a message is returned notifying 
+it prints the version information set by the C<setVersionInfo()> function.
+If there is no defined version information, a message is returned notifying
 the user.
 
 =cut
@@ -476,7 +476,7 @@ the user.
          $self->{'version_handler'}->();
       }
       elsif (defined $self->getVersionInfo() ) {
-         print STDERR $self->getProgramInfo('name'), " ", 
+         print STDERR $self->getProgramInfo('name'), " ",
             $self->getVersionInfo(), "\n";
       }
       else {
@@ -489,9 +489,9 @@ the user.
 =item $obj_instance->printVersionInfoAndExit();
 
 The C<printVersionInfoAndExit()> function calls the version handler, if set.
-Otherwise, it prints prints version info set by the C<setVersionInfo()> 
+Otherwise, it prints prints version info set by the C<setVersionInfo()>
 function.  If there is no defined version information, a message is printed
-notifying the user.  This function calls exit with exit code 0. 
+notifying the user.  This function calls exit with exit code 0.
 
 =cut
 
@@ -592,7 +592,7 @@ C<setHelpInfo()> function.  This function exits with exit code 0.
 =item $obj_instance->setHelpInfo($help_string);
 
 The C<setHelpInfo()> function sets the help information via C<$help_string>.
-If C<$help_string> is undefined, invalid, or empty, the help information 
+If C<$help_string> is undefined, invalid, or empty, the help information
 is undefined.
 
 =cut
@@ -623,7 +623,7 @@ information is defined, help information will be printed.
 
 
    sub printUsageInfo() {
-     
+
       my $self = shift;
       if ( defined $self->{usage_info} ) {
          print STDERR $self->{usage_info};
@@ -655,7 +655,7 @@ reported by the C<setUsageInfo()> function and exits with status 1.
 =item $obj_instance->setUsageInfo($usage_string);
 
 The C<setUsageInfo()> function sets the usage information via C<$usage_string>.
-If C<$usage_string> is undefined, invalid, or empty, the usage information 
+If C<$usage_string> is undefined, invalid, or empty, the usage information
 is undefined.
 
 =cut
@@ -692,7 +692,7 @@ name passed is undefined, this function returns 0 as well.
       if ( ! defined ( $file ) ) {       # class, not instance, invocation
          $file = $self;
       }
- 
+
       if (defined ($file) &&             # was a file name passed?
           ( (-f $file) || (-l $file) ) &&  # is the file a file or sym. link?
           (-r $file)                     # is the file readable?
@@ -721,7 +721,7 @@ If the file name passed is undefined, this function returns 0 as well.
       if ( ! defined ( $file ) ) {       # class invocation, not instance
          $file = $self;
       }
- 
+
       if (defined ($file) &&             # was a file name passed?
           ( (-f $file) || (-l $file) ) &&  # is the file a file or sym. link?
           (-x $file)                     # is the file executable?
@@ -750,7 +750,7 @@ If the file name passed is undefined, this function returns 0 as well.
       if ( ! defined ( $file ) ) {       # class, not instance, invocation
          $file = $self;
       }
- 
+
       if (defined ($file) &&             # was a file name passed?
           ( (-f $file) || (-l $file) ) &&  # is the file a file or sym. link?
           (-w $file)                     # is the file writable?
@@ -786,7 +786,7 @@ supported under UNIX platforms, and will return 0.
       if (
           (defined ($file) ) &&
           (! -e $file) &&
-          ($file !~ /\/$/) 
+          ($file !~ /\/$/)
          ) {
          my $dirname = dirname($file);
          # check the writability of the directory
@@ -803,7 +803,7 @@ supported under UNIX platforms, and will return 0.
 =item $valid = isReadableDir($directory_name);
 
 This function accepts a single scalar parameter containing a directory name.
-If the name corresponding to the directory is a readable, searchable directory 
+If the name corresponding to the directory is a readable, searchable directory
 entry, this function returns 1.  Otherwise, the function returns 0.  If the
 name passed is undefined, this function returns 0 as well.
 
@@ -816,7 +816,7 @@ name passed is undefined, this function returns 0 as well.
       if ( ! defined ( $file ) ) {       # class invocation
          $file = $self;
       }
- 
+
       if (defined ($file) &&             # was a name passed?
           (-d $file) &&                  # is the name a directory?
           (-r $file) &&                  # is the directory readable?
@@ -833,7 +833,7 @@ name passed is undefined, this function returns 0 as well.
 =item $valid = isWritableDir($directory_name);
 
 This function accepts a single scalar parameter containing a directory name.
-If the name corresponding to the directory is a writable, searchable directory 
+If the name corresponding to the directory is a writable, searchable directory
 entry, this function returns 1.  Otherwise, the function returns 0.  If the
 name passed is undefined, this function returns 0 as well.
 
@@ -846,7 +846,7 @@ name passed is undefined, this function returns 0 as well.
       if ( ! defined ( $file ) ) {       # class invocation
          $file = $self;
       }
- 
+
       if (defined ($file) &&             # was a name passed?
           (-d $file) &&                  # is the name a directory?
           (-w $file) &&                  # is the directory writable?
@@ -862,10 +862,10 @@ name passed is undefined, this function returns 0 as well.
 
 =item $valid = isCreatableDir($directory_name);
 
-This function accepts a single scalar parameter containing a directory name.  
-If the name corresponding to the directory is creatable this function returns 
+This function accepts a single scalar parameter containing a directory name.
+If the name corresponding to the directory is creatable this function returns
 1. The function checks if the immediate parent of the directory is writable by
-the effective user id (EUID).  If the parent directory does not exist or the 
+the effective user id (EUID).  If the parent directory does not exist or the
 tree is not writable, the function returns 0.  If the directory name passed is
 undefined, this function returns 0 as well.
 
@@ -891,7 +891,7 @@ undefined, this function returns 0 as well.
 =item $valid = isCreatablePath($path_name);
 
 This function accepts a single scalar parameter containing a path name.  If
-the C<$path_name> is creatable this function returns 1. The function checks 
+the C<$path_name> is creatable this function returns 1. The function checks
 if the directory hierarchy of the path is creatable or writable by the
 effective user id (EUID).  This function calls itself recursively until
 an existing directory node is found.  If that node is writable, ie. the path
@@ -902,7 +902,7 @@ If the path already exists, this function returns 0.  The C<$path_name> may
 imply either a path to a file or a directory.  Path names may be relative or
 absolute paths.  Any unresolvable relative paths will return 0 as well.  This
 includes paths with F<..> back references to nonexistent directories.
-This function is recursive whereas C<isCreatableFile()> and 
+This function is recursive whereas C<isCreatableFile()> and
 C<isCreatableDir()> are not.
 
 =cut
@@ -939,7 +939,7 @@ C<isCreatableDir()> are not.
       }
       return $return_code;
    }
-         
+
 
 # Functional Class : date
 
@@ -957,7 +957,7 @@ arguments are supplied, this function returns undefined.
       #checking if the function is invoked as an instance method.
       if ( (defined(ref $_[0]) ) && ( (ref $_[0]) eq "TIGR::Foundation") ){
          shift;
-      } 
+      }
       my @time_val = @_;
       my $time_str = undef;
       if (scalar(@time_val) == 0) {
@@ -985,7 +985,7 @@ returned is quoted according to Sybase requirements.
       #checking if the function is invoked as an instance method.
       if ( (defined(ref $_[0]) ) && ( (ref $_[0]) eq "TIGR::Foundation") ){
          shift;
-      } 
+      }
       my @time_val = @_;
       my $time_str = undef;
       if (scalar(@time_val) == 0) {
@@ -996,7 +996,7 @@ returned is quoted according to Sybase requirements.
       };
       return $time_str;
    }
-      
+
 
 =item $date_string = getMySQLDate(@tm);
 
@@ -1025,13 +1025,13 @@ returned is prequoted according to MySQL requirements.
       }
       return $time_str;
    }
-      
+
 
 =item $date_string = getFilelabelDate(@tm);
 
 This function returns the date (not time) as a compressed string
 suitable for use as part of a file name.  The format is YYMMDD.
-The optional parameter should be a time structure as returned by 
+The optional parameter should be a time structure as returned by
 the C<time> function.  If no arguments are supplied, the current time
 is used.  If incorrect arguments are supplied, this function returns
 undefined.
@@ -1054,7 +1054,7 @@ undefined.
       };
       return $time_str;
    }
-      
+
 
 =item $date_string = $obj_instance->getLogfileDate(@tm);
 
@@ -1072,7 +1072,7 @@ of the log entry string to C< INVALID|XXXXXX|>.
       #checking if the function is invoked as an instance method.
       if ( (defined(ref $_[0]) ) && ( (ref $_[0]) eq "TIGR::Foundation") ){
          shift;
-      } 
+      }
       my @time_val = @_;
       my $time_str = undef;
       my $log_form = undef;
@@ -1088,14 +1088,14 @@ of the log entry string to C< INVALID|XXXXXX|>.
       $log_form = $time_str . sprintf("%6d| ", $$);
       return $log_form;
    }
-      
+
 
 # Functional Class : logging
 
 =item $obj_instance->setDebugLevel($new_level);
 
 This function sets the level of debug reporting according to C<$new_level>.
-If C<$new_level> is less than 0, all debug reporting is turned off and 
+If C<$new_level> is less than 0, all debug reporting is turned off and
 C<getDebugLevel()> will report undefined.  If C<$new_level> is not specified,
 the debug level is set to 0.  For compatibility, this function will also accept
 the debug level as the second parameter.  In such cases, the first parameter
@@ -1160,8 +1160,8 @@ not been set, this method returns <undef>.
 This function sets the log file name for use by the C<logLocal()> function.
 B<The programmer should call this function before invoking C<setDebugLevel()>>
 if the default log file is not to be used.  The new log file name is the
-only parameter.  Future calls to C<logLocal()> or C<bail()> log to C<$log_file> 
-if it is successfully opened.  If the new log file is not successfully opened, 
+only parameter.  Future calls to C<logLocal()> or C<bail()> log to C<$log_file>
+if it is successfully opened.  If the new log file is not successfully opened,
 the function will try to open the default log file, F<program_name.log>.
 If that file cannot be opened, F</tmp/program_name.$process_id.log> will
 be used.  If no parameter is passed, this method does nothing.   For
@@ -1175,7 +1175,7 @@ whenever a change of directory is made.
 
    sub setLogFile($;$) {
       my $self = shift;
-      my $old_log_file = defined $self->{static_log_file} ? 
+      my $old_log_file = defined $self->{static_log_file} ?
          $self->{static_log_file} : undef;
       $self->{static_log_file} = shift;
       if (scalar(@_) == 1) {
@@ -1248,7 +1248,7 @@ undefined if there are no more log files to bind.
       my $self = shift;
       push @{$self->{debug_store}}, $self->{debug_level};
       $self->{debug_level} = -1;
-   } 
+   }
 
 
    # pop items from the debug level stack
@@ -1260,7 +1260,7 @@ undefined if there are no more log files to bind.
 
    # remove log files
    sub removeLogERROR() {
-     
+
       my $self = shift;
       $self->debugPush();
       if (
@@ -1278,12 +1278,12 @@ undefined if there are no more log files to bind.
    sub removeLogMSG() {
       my $self = shift;
       $self->debugPush();
-     
+
       if (
           (defined $self->getLogFile() ) &&
           (isWritableFile($self->getLogFile() ))
          ) {
-            unlink $self->getLogFile() or 
+            unlink $self->getLogFile() or
             $self->logLocal("Unable to remove error file " .
                              $self->getLogFile(), 3);
       }
@@ -1296,7 +1296,7 @@ undefined if there are no more log files to bind.
       my $self = shift;
       $self->debugPush();
       if (defined $self->getLogFile() ) {
-         $self->logLocal("Invalidating " . $self->getLogFile(), 2); 
+         $self->logLocal("Invalidating " . $self->getLogFile(), 2);
          shift @{$self->{log_files}};
          $self->{msg_append_flag} = $self->{error_append_flag} =
             $self->{log_append_setting};
@@ -1337,7 +1337,7 @@ undefined if there are no more log files to bind.
       $self->{error_file_open_flag} = 0;
       $self->debugPop();
       return $return_code;
-   }   
+   }
 
 
    sub closeLogMSG() {
@@ -1355,7 +1355,7 @@ undefined if there are no more log files to bind.
       $self->{msg_file_open_flag} = 0;
       $self->debugPop();
       return $return_code;
-   }   
+   }
 
 
    # open log files
@@ -1397,7 +1397,7 @@ undefined if there are no more log files to bind.
       my $return_code = 1; # need to return true for success, false for fail
 
       $self->debugPush();
-      if ( (defined $self->getLogFile() ) && 
+      if ( (defined $self->getLogFile() ) &&
            ($self->{msg_file_open_flag} == 0) ) {
          my $fileop;
          $self->{msg_file_open_flag} = 1;
@@ -1413,7 +1413,7 @@ undefined if there are no more log files to bind.
             autoflush MSGLOG 1;
          }
          else {
-            $self->logLocal("Cannot open " . $self->getLogFile() . 
+            $self->logLocal("Cannot open " . $self->getLogFile() .
                             " for logging", 4);
             $self->{msg_file_open_flag} = 0;
          }
@@ -1448,10 +1448,10 @@ prefers a second parameter argument for the log-append flag.
           ( ($log_append_flag eq "0") ||
            ($log_append_flag eq "1") )
          ) {
-         $self->{log_append_setting} = $self->{msg_append_flag} = 
+         $self->{log_append_setting} = $self->{msg_append_flag} =
             $self->{error_append_flag} = $log_append_flag;
       }
-   } 
+   }
 
 
 =item $obj_instance->logLocal($log_message, $log_level);
@@ -1494,7 +1494,7 @@ trailing new line, if it exists, is stripped from the log message.
                    ) ||
                    (
                     ($log_level > $self->{'debug_level'} )     # bad dbg level
-                   ) 
+                   )
                   ) {
                   # log message is successfully processed, so shift it off
                   shift @{$self->{debug_queue}};
@@ -1503,7 +1503,7 @@ trailing new line, if it exists, is stripped from the log message.
                   $self->debugPush();
                   $self->logLocal("Cannot log message \'$log_message\' to " .
                      $self->getLogFile() . " = " .  $!, 9);
-                  $self->invalidateLogFILES(); 
+                  $self->invalidateLogFILES();
                   $self->debugPop();
                }
             }
@@ -1520,26 +1520,26 @@ trailing new line, if it exists, is stripped from the log message.
          shift @{$self->{debug_queue}};
       }
    }
-   
+
 
 =item $obj_instance->logError($log_message,$flag);
 
-The C<logError()> function takes two arguments, the second one being optional. 
-The C<$log_message> argument specifies the message to be written to the error 
+The C<logError()> function takes two arguments, the second one being optional.
+The C<$log_message> argument specifies the message to be written to the error
 file. If the C<$flag> argument is defined and is non-zero, the C<$log_message>
 is also written to STDERR. The C<$log_message> is also passed to C<logLocal>.
-A message passed via logError() will always get logged to the log file 
-regardles of the debug level.  Note, a trailing new line, if it exists, is 
+A message passed via logError() will always get logged to the log file
+regardles of the debug level.  Note, a trailing new line, if it exists, is
 stripped from the log message.
 
 =cut
 
 
    sub logError($;$) {
-      
+
       my $self = shift;
       my $log_message = shift;
-      my $flag = shift; 
+      my $flag = shift;
       if (defined $log_message) {
          chomp $log_message;
          $self->logLocal($log_message, 0);
@@ -1547,17 +1547,17 @@ stripped from the log message.
          #printing error message to STDERR if flag is non zero.
          if ( (defined($flag) ) && ($flag ne '0') ) {
             print STDERR "$log_message\n";
-         }        
+         }
 
          $log_message = getLogfileDate() . $log_message;
          push(@{$self->{error_queue}}, $log_message);
-        
+
          while (
                 ( defined ( my $log_message = $self->{error_queue}[0]) ) &&
                 ( defined ( $self->getErrorFile() ) )
                ) {
             if (
-                ($self->openLogERROR() ) &&     
+                ($self->openLogERROR() ) &&
                 (print ERRLOG "$log_message\n") &&
                 ($self->closeLogERROR() ) &&
                 ($self->{error_file_used} = 1) # that is an '='
@@ -1568,7 +1568,7 @@ stripped from the log message.
                $self->debugPush();
                $self->logLocal("Cannot log message \'$log_message\' to " .
                   $self->getErrorFile() . " = $!", 6);
-               $self->invalidateLogFILES(); 
+               $self->invalidateLogFILES();
                $self->debugPop();
             }
          }
@@ -1584,16 +1584,16 @@ stripped from the log message.
          shift @{$self->{error_queue}};
       }
    }
- 
+
 
 =item $obj_instance->bail($log_message);
 
 The C<bail()> function takes a single required argument.  The C<$log_message>
 argument specifies the message to be passed to C<logLocal()> and written
-to standard error.  All messages passed to C<bail()> are written to the 
+to standard error.  All messages passed to C<bail()> are written to the
 log and error files.  The C<bail()> function calls C<exit(1)> to terminate the
 program.  Optionally, a second positive integer argument can be passed as the
-exit code to use. Trailing new lines are stripped from the log message. 
+exit code to use. Trailing new lines are stripped from the log message.
 
 =cut
 
@@ -1621,7 +1621,7 @@ exit code to use. Trailing new lines are stripped from the log message.
 
 This function extends C<Getopt::Long::GetOptions()>.  It may be used
 as C<GetOptions()> is used.  TIGR standard options are handled automatically.
-Using this method promotes proper module behavior. 
+Using this method promotes proper module behavior.
 
 The following options are defined by this function:
 
@@ -1753,7 +1753,7 @@ To use this module, load the C<TIGR::Foundation> package
 via the C<use> function.  Then, create a new instance of the
 object via the C<new()> method, as shown below.  If applicable,
 C<START> and C<FINISH> log messages are printed when the object
-is created and destroyed, respectively.  It is advisable to 
+is created and destroyed, respectively.  It is advisable to
 keep the instance of the object in scope for the whole program
 to achieve maximum functionality.
 
@@ -1764,7 +1764,7 @@ An example script using this module follows:
 
    my $tfobject = new TIGR::Foundation;
 
-   MAIN: 
+   MAIN:
    {
       # The following dependencies are not used in
       # this script, but are provided as an example.
@@ -1776,7 +1776,7 @@ An example script using this module follows:
       # The user defined $VERSION_STRING reports both.
 
       my $VERSION = '1.0';
-      my $REVISION = (qw$Revision: 1.1 $)[-1];
+      my $REVISION = (qw$Revision: 1.2 $)[-1];
       my $VERSION_STRING = "$VERSION (Build $REVISION)";
 
       my $HELP_INFO = "This is my help\n";

@@ -6,19 +6,19 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received (LICENSE.txt) a copy of the GNU General Public 
+#
+# You should have received (LICENSE.txt) a copy of the GNU General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
 #
-# $Id: apply_assembler.pl,v 1.5 2006-08-03 22:22:50 catmandew Exp $
+# $Id: apply_assembler.pl,v 1.6 2008-06-27 06:29:20 brianwalenz Exp $
 #
 
 use strict;
@@ -39,17 +39,17 @@ my $user = getlogin;
 
 # Edit this file!
 # Make it contains the path to the correct bin for this platform.
-my $CONFIG  = "$RUN_CA_DIR/run_CA.config.$PLATFORM.$VERSION";  
+my $CONFIG  = "$RUN_CA_DIR/run_CA.config.$PLATFORM.$VERSION";
 
 my $WORKDIR = "$VERSION-$PLATFORM";
 my $ASM_CMD = "$RUN_CA_DIR/run_CA.pl tmp.frg -dir $WORKDIR -C $CONFIG -local -noedit -nojoin -noupload -clean 1";
 
 # Read names of all subdirectories.
 my @subdirs;
-if (scalar(@PROJECTS)>0) 
+if (scalar(@PROJECTS)>0)
 {
     @subdirs = @PROJECTS;
-} else 
+} else
 {
     opendir (THISDIR, ".");
     @subdirs = grep (-d, readdir (THISDIR));

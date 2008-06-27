@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: compareAssemblyMPs.cc,v 1.6 2008-03-18 07:02:45 brianwalenz Exp $ */
+/* $Id: compareAssemblyMPs.cc,v 1.7 2008-06-27 06:29:17 brianwalenz Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -149,7 +149,7 @@ void ReadIntraMPs(vector<AssessedMatePair> & amps,
         break;
     }
     if(skip) continue;
-      
+
     map<ID_TYPE, CloneLibrary>::iterator iter;
     iter = libs.find(libUID);
     amp.set(pairOrient, leftUID, rightUID, libUID, left5, right5, seqID,
@@ -174,7 +174,7 @@ void ReadInterMPs(vector<AssessedMatePair> & amps,
     ID_TYPE leftUID, rightUID, libUID;
     ID_TYPE leftSeqID, rightSeqID;
     UNIT_TYPE left5, right5;
-    
+
     sscanf(line, F_U64 " %d %d %s " F_U64 " %d %d %s " F_U64,
            &leftUID, &leftSeqID, &left5, leftOrient,
            &rightUID, &rightSeqID, &right5, leftOrient,
@@ -203,13 +203,13 @@ void ReadInterMPs(vector<AssessedMatePair> & amps,
         pairOrient = PAIR_ANTINORMAL;
       }
     }
-      
+
     amp.set(pairOrient,
             leftUID, rightUID, libUID,
             left5, right5,
             leftSeqID, rightSeqID,
             0, 0);
-    
+
     amps.push_back(amp);
   }
 }
@@ -231,7 +231,7 @@ void ReadAssemblyMatePairs(vector<AssessedMatePair> & amps,
     sprintf(filename, "%s/%s/%s/%s/%03d.txt",
             baseDir, species, assembly.c_str(), IntraDir, seqID);
     ifstream fmp(filename, ios::in);
-    
+
     // cerr << "Opening " << filename << ".\n";
     if(!fmp.good())
       continue;
@@ -248,7 +248,7 @@ void ReadAssemblyMatePairs(vector<AssessedMatePair> & amps,
     sprintf(filename, "%s/%s/%s/%s/unmapped/%03d.txt",
             baseDir, species, assembly.c_str(), IntraDir, seqID);
     ifstream fmp(filename, ios::in);
-    
+
     // cerr << "Opening " << filename << ".\n";
     if(!fmp.good())
       break;
@@ -266,7 +266,7 @@ void ReadAssemblyMatePairs(vector<AssessedMatePair> & amps,
     sprintf(filename, "%s/%s/%s/%s/%03d.txt",
             baseDir, species, assembly.c_str(), InterDir, seqID);
     ifstream fmp(filename, ios::in);
-    
+
     // cerr << "Opening " << filename << ".\n";
     if(!fmp.good())
       continue;
@@ -282,7 +282,7 @@ void ReadAssemblyMatePairs(vector<AssessedMatePair> & amps,
     sprintf(filename, "%s/%s/%s/%s/unmapped/%03d.txt",
             baseDir, species, assembly.c_str(), InterDir, seqID);
     ifstream fmp(filename, ios::in);
-    
+
     // cerr << "Opening " << filename << ".\n";
     if(!fmp.good())
       break;
@@ -328,7 +328,7 @@ void CompareRawUnsatisfiedMPs(vector<AssessedMatePair> & rawMPs,
                 assemblies[aIndex].c_str(), seqID,
                 MatePairLabel[mpi]);
         ifstream fin(filename, ios::in);
-    
+
         if(!fin.good())
           continue;
 
@@ -352,7 +352,7 @@ void CompareRawUnsatisfiedMPs(vector<AssessedMatePair> & rawMPs,
           iter = rawMap.find(rmp.getLeftFragUID());
           if(iter == rawMap.end())
             iter = rawMap.find(rmp.getRightFragUID());
-          
+
           if(iter == rawMap.end())
           {
             cout << "not in " << assemblies[0] << endl;
@@ -361,7 +361,7 @@ void CompareRawUnsatisfiedMPs(vector<AssessedMatePair> & rawMPs,
           else
           {
             AssessedMatePair & mp = rawMPs[(*iter).second];
-            
+
             if(mp.getType() == MPI_INTERSEQUENCE)
             {
               numInterSeqID++;
@@ -374,7 +374,7 @@ void CompareRawUnsatisfiedMPs(vector<AssessedMatePair> & rawMPs,
               else
                 numUnmapped++;
             }
-            
+
             if(mp.getSequenceID() == -1)
             {
               cout << "( " << assemblies[0] << " "
@@ -439,7 +439,7 @@ void CompareUnsatisfiedMPGs(vector<AssessedMatePair> & rawMPs,
                 assemblies[aIndex].c_str(), seqID,
                 MatePairLabel[mpIndices[mpiIndex]]);
         ifstream fin(filename, ios::in);
-    
+
         // cerr << "Opening " << filename << ".\n";
         if(!fin.good())
           continue;
@@ -489,7 +489,7 @@ void CompareUnsatisfiedMPGs(vector<AssessedMatePair> & rawMPs,
               iter = rawMap.find(leftUID);
               if(iter == rawMap.end())
                 iter = rawMap.find(rightUID);
-              
+
               if(iter == rawMap.end())
               {
                 cout << "not in " << assemblies[0] << endl;
@@ -535,7 +535,7 @@ void CompareUnsatisfiedMPGs(vector<AssessedMatePair> & rawMPs,
             }
           }
           cout << MatePairLabel[mpIndices[mpiIndex]] << " MGP: "
-               << start << " , " << length 
+               << start << " , " << length
                << " weight: " << weight
                << " unsatisfied: " << numUnsatisfied
                << " diffSeqID: " << numDiffSeqID
@@ -589,7 +589,7 @@ int main(int argc, char ** argv)
     Usage(argv[0], "Please specify a library filename.");
   if(numStddevs <= 0)
     Usage(argv[0], "Please specify a positive number of std deviations");
-  
+
   if(baseDir == NULL)
   {
     cerr << "Using default directory: " << DefaultBaseDir << endl;
@@ -628,10 +628,10 @@ int main(int argc, char ** argv)
   }
 
   CompareRawUnsatisfiedMPs(rawMPs, rawMap, baseDir, species, assemblies);
-  
+
   // read in intra-sequence unsatisfied mate pair groups of all assemblies
   // evaluate while reading in
   CompareUnsatisfiedMPGs(rawMPs, rawMap, baseDir, species, assemblies);
-  
+
   return 0;
 }

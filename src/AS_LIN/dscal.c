@@ -6,7 +6,7 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int dscal_(integer *n, doublereal *da, doublereal *dx, 
+/* Subroutine */ int dscal_(integer *n, doublereal *da, doublereal *dx,
 	integer *incx)
 {
 
@@ -18,15 +18,15 @@
     static integer i, m, nincx, mp1;
 
 
-/*     scales a vector by a constant.   
-       uses unrolled loops for increment equal to one.   
-       jack dongarra, linpack, 3/11/78.   
-       modified 3/93 to return if incx .le. 0.   
-       modified 12/3/93, array(1) declarations changed to array(*)   
+/*     scales a vector by a constant.
+       uses unrolled loops for increment equal to one.
+       jack dongarra, linpack, 3/11/78.
+       modified 3/93 to return if incx .le. 0.
+       modified 12/3/93, array(1) declarations changed to array(*)
 
 
-    
-   Parameter adjustments   
+
+   Parameter adjustments
        Function Body */
 #define DX(I) dx[(I)-1]
 
@@ -49,7 +49,7 @@
     }
     return 0;
 
-/*        code for increment equal to 1   
+/*        code for increment equal to 1
 
 
           clean-up loop */

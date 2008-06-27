@@ -1,19 +1,19 @@
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -130,7 +130,7 @@ char *get_sequence(FILE *input)
       newbuf[i]=toupper(newbuf[i]);
     }
   }
-  
+
   return (newbuf);
 }
 
@@ -198,7 +198,7 @@ int main(int argc, char *argv[])
 
   aimforlongest=1;
 
-#ifdef OLDWAY	  
+#ifdef OLDWAY
   if(argc>2&&strcmp(argv[1],"-P")==0){
     fprintf(stderr,"Printing OVLs to %s\n",argv[2]);
     OVLFile=fopen(argv[2],"w");
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 	  }
   }
 #else
-	  { /* Parse the argument list using "man 3 getopt". */ 
+	  { /* Parse the argument list using "man 3 getopt". */
 		  int ch,errflg=0;
 		  optarg = NULL;
 		  while (!errflg && ((ch = getopt(argc, argv, "a:b:e:hm:P:fnI")) != EOF))
@@ -298,7 +298,7 @@ int main(int argc, char *argv[])
 
     for (j = 0; j < K; j++)
       for (i = j+1; i <= K; i++)
-        { 
+        {
 	  //	  printf("\n\nComparing sequences %d and %d\n\n",j,i);
 	  tlaps += 1;
           A.sequence = Seqs[j];
@@ -321,14 +321,14 @@ int main(int argc, char *argv[])
 		  fprintf(stderr,"Calling BoxFill_AS with band %d to %d,erate %f, minlen %d\n",
 				  bbnd,abnd,err,minlen);
 	  }
-	  
+
 
 	  for(ori=0;ori<1+doRevToo;ori++){
 
 #ifdef DEBUG_BUBBLE_SMOOTHING
             fprintf(stderr,"BoxFill_AS: err=%f ori=%d minlen=%d\n",
                     err, ori, minlen);
-#endif            
+#endif
 	    O = BoxFill_AS(&A,&B,bbnd,abnd,
 			       ori,
 			       err,
@@ -345,22 +345,22 @@ int main(int argc, char *argv[])
               fprintf(stderr,"O->quality=%f\n", O->quality);
             }
 #endif
-            
+
 	    if (O != NULL){
 	      olaps += 1;
               if(!noAlign)Print_Overlap_AS(stdout,&A,&B,O);
-	      { 
+	      {
 		int alen,blen,del,sub,ins,affdel,affins,blockdel,blockins;
 		double errRate,errRateAffine;
 		int AFFINEBLOCKSIZE=4;
 		Analyze_Affine_Overlap_AS(&A,&B,O,AS_ANALYZE_ALL,&alen,&blen,&del,&sub,&ins,
 					  &affdel,&affins,&blockdel,&blockins,AFFINEBLOCKSIZE, NULL);
-		
+
 		errRate = (sub+ins+del)/(double)(alen+ins);
-		
+
 		errRateAffine = (sub+affins+affdel)/
 		  (double)(alen-del+affins+affdel);
-		
+
 		printf("\n\nAlen %d, Blen %d, del %d, sub %d, ins %d\n"
 		       " affdel %d, affins %d, blockdel %d, blockins %d\n",
 		       alen,blen,del,sub,ins,

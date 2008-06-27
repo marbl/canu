@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.13 2008-02-27 15:10:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.14 2008-06-27 06:29:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -47,7 +47,7 @@ Global_CGW *CreateGlobal_CGW(void){
   Global_CGW *g = (Global_CGW *)safe_calloc(1, sizeof(Global_CGW));
 
 #ifdef NEVER
-  g->scaffold_repeat = create_extended_histogram(10000,500,0, TRUE, sizeof(ChunkAggregate), 
+  g->scaffold_repeat = create_extended_histogram(10000,500,0, TRUE, sizeof(ChunkAggregate),
 						 aggregateChunks,
 						 printChunks,
 						 printChunkAggregate);
@@ -59,7 +59,7 @@ Global_CGW *CreateGlobal_CGW(void){
 
   g->stderrc = stderr;
   g->timefp  = stderr;
-  
+
   InitTimerT(&g->RecomputeOffsetsTimer);
   InitTimerT(&g->MergeScaffoldsTimer);
   InitTimerT(&g->BuildSEdgesTimer);
@@ -124,7 +124,7 @@ void ResetHistograms_CGW(Global_CGW *g){
   free_histogram(g->scaffold_repeat);
   free_histogram(g->scaffold_unique);
 
-  g->scaffold_repeat = create_extended_histogram(10000,500,0, TRUE, sizeof(ChunkAggregate), 
+  g->scaffold_repeat = create_extended_histogram(10000,500,0, TRUE, sizeof(ChunkAggregate),
 						 aggregateChunks,
 						 printChunks,
 						 printChunkAggregate);
@@ -152,7 +152,7 @@ void DeleteGlobal_CGW(Global_CGW *g){
 
 
 
-void ComputeIntervalLength(LengthT *result, 
+void ComputeIntervalLength(LengthT *result,
 			   LengthT *aEndA, LengthT *bEndA,
 			   LengthT *aEndB, LengthT *bEndB){
 
@@ -164,7 +164,7 @@ void ComputeIntervalLength(LengthT *result,
 
   if( bEndA->mean < leftMost->mean)
     leftMost = bEndA;
-  
+
   if( bEndB->mean < leftMost->mean)
     leftMost = bEndB;
 
@@ -175,7 +175,7 @@ void ComputeIntervalLength(LengthT *result,
 
   if( bEndA->mean > rightMost->mean)
     rightMost = bEndA;
-  
+
   if( bEndB->mean > rightMost->mean)
     rightMost = bEndB;
 
@@ -189,7 +189,7 @@ void ComputeIntervalLength(LengthT *result,
 
 // Do the arithmetic and stats on a pair of LengthTs
 // If resulting variance is negative assert
-void ComputeLength(LengthT *result, 
+void ComputeLength(LengthT *result,
 		   LengthT *length1, LengthT *length2){
 
 

@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.50 2008-06-16 16:58:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.51 2008-06-27 06:29:14 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -314,7 +314,7 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
     char *type;
     int result;
     //	  fprintf(stderr,"* source = %s\n", ium_mesg->source);
-	  
+
     CI.flags.bits.cgbType = XX_CGBTYPE;
     CI.aEndCoord = CI.bEndCoord = -1;
     simLength = CI.bpLength.mean;
@@ -356,8 +356,8 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
     }
   }
 
-  
-  {   
+
+  {
     int isUnique = FALSE;
     if(ium_mesg->coverage_stat >= GlobalData->cgbUniqueCutoff &&
        length >= CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH &&
@@ -384,11 +384,11 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
     }else{
       isUnique = FALSE;
     }
-    
+
     // allow flag to overwrite what the default behavior for a chunk and force it to be unique or repeat
     CI.unique_rept = ium_mesg->unique_rept;
     if (ium_mesg->unique_rept == AS_FORCED_UNIQUE) {
-       isUnique = TRUE;       
+       isUnique = TRUE;
     }
     else if (ium_mesg->unique_rept == AS_FORCED_REPEAT) {
        isUnique = FALSE;
@@ -418,14 +418,14 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
       CDS_CID_t extremalB = NULLINDEX;
       CDS_COORD_t minOffset = CDS_COORD_MAX;
       CDS_COORD_t maxOffset = CDS_COORD_MIN;
-	  
+
       /* Determine extremal fragments so we can label the fragments */
 
       for(cfr = 0; cfr < ium_mesg->num_frags; cfr++){
 	IntMultiPos *cfr_mesg = ium_mesg->f_list + cfr;
 	CDS_COORD_t end = MAX( cfr_mesg->position.end, cfr_mesg->position.bgn);
 	CDS_COORD_t beg = MIN( cfr_mesg->position.end, cfr_mesg->position.bgn);
-	    
+
 	if(minOffset > beg){
 	  minOffset = beg;
 	  extremalA = cfr;
@@ -435,8 +435,8 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
 	  extremalB = cfr;
 	}
       }
-	  
-	  
+
+
       for(cfr = 0; cfr < ium_mesg->num_frags; cfr++){
 	CIFragT        cifrag;
 	InfoByIID  info, *old_info;
@@ -499,9 +499,9 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
 	}
 
 	SetInfoByIID(ScaffoldGraph->iidToFragIndex, cifrag.iid, &info);
-	    
+
 	// Collect read stats
-        if (AS_FA_READ(cfr_mesg->type)) { 
+        if (AS_FA_READ(cfr_mesg->type)) {
 	  totalReadFrags++;
 
 	  if(CI.flags.bits.isUnique)
@@ -519,10 +519,10 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
 	    onEndReadFrags++;
 	}
 
-        //else if(AS_FA_SHREDDED(cfr_mesg->type)){ 
-	//  CI.flags.bits.includesFinishedBacFragments = TRUE; 
+        //else if(AS_FA_SHREDDED(cfr_mesg->type)){
+	//  CI.flags.bits.includesFinishedBacFragments = TRUE;
         //}
-	   
+
         AppendCIFragT(ScaffoldGraph->CIFrags, &cifrag);
       }
     }
@@ -543,7 +543,7 @@ void
 LoadDistData(void) {
   int32 numDists = getNumGateKeeperLibraries(ScaffoldGraph->gkpStore);
   CDS_CID_t i;
-  
+
   for(i = 1; i <= numDists; i++){
     DistT dist;
     GateKeeperLibraryRecord  *gkpl = getGateKeeperLibrary(ScaffoldGraph->gkpStore, i);

@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -38,9 +38,9 @@ namespace AS_ARD {
       private:
          // disable copy constructor
          SQLOutput(SQLOutput &);
-      
+
          IDBConnection * dbConnection;
-protected:         
+protected:
          HashTable_AS *AFG_UID_to_MSGID;
          HashTable_AS *AFG_IID_to_MSGID;
          HashTable_AS *UTG_UID_to_MSGID;
@@ -53,14 +53,14 @@ protected:
          HashTable_AS *SCF_UID_to_MSGID;
          HashTable_AS *CTP_UID_to_MSGID;
 
-      public:      
+      public:
          SQLOutput(IDBConnection * connection);
          ~SQLOutput();
 
          IDBConnection * getConnection() {
             return dbConnection;
          }
-         
+
          uint64 storeGenome(
                   const char * study,
                   const char * project,
@@ -74,23 +74,23 @@ protected:
                   const char * ver,
                   const char status,
                   const char * notes);
-         
+
          virtual bool storeMDI2DB (
-                  AS_UID erefines,  
+                  AS_UID erefines,
                   IntDist_ID irefines,
                   float mean,
                   float stddev,
                   int32 min,
                   int32 max);
          virtual bool storeAFG2DB (
-                  AS_UID erefines,  
+                  AS_UID erefines,
                   IntFragment_ID irefines,
                   MateStatType mate_status,
                   int32 chaff,
                   CDS_COORD_t begin,
                   CDS_COORD_t end);
          virtual bool storeUTG2DB (
-                  AS_UID eaccession,  
+                  AS_UID eaccession,
                   IntFragment_ID iaccession,
                   const char * source,
                   float mhp,
@@ -102,7 +102,7 @@ protected:
                   int32 forced,
                   int32 num_frags);
          virtual bool storeMPS2DB (
-                  AS_UID unitigID,                  
+                  AS_UID unitigID,
                   AS_UID afgID,
                   FragType type,
                   const char * source,
@@ -124,7 +124,7 @@ protected:
          virtual bool storeJMP2DB(int jmpType, AS_UID jmpID, AS_UID ulkID, LinkType type);
          virtual bool storeJMPList2DB(int jmpType, AS_UID jmpListID, AS_UID jmpID, AS_UID fragID);
          virtual bool storeCCO2DB (
-                  AS_UID eaccession,  
+                  AS_UID eaccession,
                   IntFragment_ID iaccession,
                   ContigPlacementStatusType placed,
                   CDS_COORD_t length,
@@ -136,7 +136,7 @@ protected:
                   int32 num_vars);
          virtual bool storeCCOMPS2DB(
                   AS_UID ccoMpsID,
-                  AS_UID ccoID,            
+                  AS_UID ccoID,
                   AS_UID fragID,
                   FragType type,
                   const char * source,
@@ -146,7 +146,7 @@ protected:
                   std::string delta);
          virtual bool storeUPS2DB(
                   AS_UID upsID,
-                  AS_UID ccoID,            
+                  AS_UID ccoID,
                   AS_UID unitigID,
                   UnitigType type,
                   CDS_COORD_t bgn,
@@ -155,7 +155,7 @@ protected:
                   std::string delta);
          virtual bool storeVAR2DB(
                   AS_UID varID,
-                  AS_UID ccoID,            
+                  AS_UID ccoID,
                   CDS_COORD_t bgn,
                   CDS_COORD_t end,
                   uint32 num_reads,
@@ -178,21 +178,21 @@ protected:
                   uint32 num_contributing,
                   PlacementStatusType status);
          virtual bool storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs);
-         virtual bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient);         
+         virtual bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient);
          virtual bool storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID);
          virtual bool storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, CDS_COORD_t ctgStart, CDS_COORD_t ctgEnd);
-         
+
          virtual bool commitMDI2DB();
          virtual bool commitAFG2DB();
          virtual bool commitUTG2DB();
          virtual bool commitMPS2DB();
          virtual bool commitULK2DB();
-         virtual bool commitULKList2DB();         
-         virtual bool commitJMP2DB();        
+         virtual bool commitULKList2DB();
+         virtual bool commitJMP2DB();
          virtual bool commitJMPList2DB();
 
          virtual bool commitCCO2DB();
-         
+
          virtual bool commitCCOMPS2DB();
          virtual bool commitUPS2DB();
          virtual bool commitVAR2DB();
@@ -208,7 +208,7 @@ protected:
          virtual bool commitCTPList2DB();
          virtual bool commitCPS2DB();
    };
-}; 
+};
 
 #endif // BCPOutput_H
 #endif //SYBASE

@@ -67,7 +67,7 @@ if ( $user_config ) {
 }
 foreach my $cf ( @cf_files ) {
    my $conf_obj = new Config::IniFiles ( -file => $cf );
-   if ( ! $conf_obj ) { 
+   if ( ! $conf_obj ) {
       die "Failed to load configuration file \'$cf\'.\n";
    }
    my @sections = $conf_obj->Sections();

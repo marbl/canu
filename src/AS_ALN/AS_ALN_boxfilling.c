@@ -1,19 +1,19 @@
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -55,7 +55,7 @@ static void safe_suffix(char **Dest,int *DestLen,char *src,int start){
 
 /* Given fragments a and b, find the best overlap between them using
    local alignment code.  The purpose is to permit "bubbles" in the fragment
-   graph due to multi-base polymorphisms to be smoothed out, such that a 
+   graph due to multi-base polymorphisms to be smoothed out, such that a
    unitig can be constructed.
 
    The method relies on Myers' local overlap code.  MORE DETAILS????
@@ -64,7 +64,7 @@ static void safe_suffix(char **Dest,int *DestLen,char *src,int start){
    matching segments.
 
    The current function is concerned with three things:
-   
+
    1) Providing a wrapper around the local alignment code so that users
    can carry out operations on the level of the "message" (IFM, OVL, etc).
 
@@ -122,7 +122,7 @@ OverlapMesg *BoxFill_AS(InternalFragMesg *a, InternalFragMesg *b,
 
   Local_Segment *local_results=NULL;
   Local_Overlap *O=NULL;
-  
+
   assert(what == AS_FIND_LOCAL_ALIGN || what == AS_FIND_LOCAL_ALIGN_NO_TRACE
 	 || what == AS_FIND_LOCAL_OVERLAP );
 
@@ -142,7 +142,7 @@ OverlapMesg *BoxFill_AS(InternalFragMesg *a, InternalFragMesg *b,
   /* now generate the substrings of the input sequences which contain the
      portion usable according to the user's begin/end parameters */
 #define EXPAND_BAND 10 /* amount to pad ends of  user's begin..end range */
-#define STRETCH 1.5  /* amount of "stretching" allowed in bounding 
+#define STRETCH 1.5  /* amount of "stretching" allowed in bounding
 			overlap end */
 #define BIGPAD 500 /* amount of extra slop allowed in bounding overlap end */
 
@@ -173,7 +173,7 @@ OverlapMesg *BoxFill_AS(InternalFragMesg *a, InternalFragMesg *b,
 
 
   /* Notes on handling of reverse complement overlap searching:
-     1) The implementation here uses Find_Local_Segments and 
+     1) The implementation here uses Find_Local_Segments and
         Find_Local_Overlaps only in the forward direction; the interaction
 	of these two routines on reverse orientation searches is non-obvious
 	[even Gene agrees], so we avoid it.
@@ -188,7 +188,7 @@ OverlapMesg *BoxFill_AS(InternalFragMesg *a, InternalFragMesg *b,
 				    LOCAL_FORW, 16, erate, &NumSegs);
 
   if(NumSegs==0){
-    goto nooverlap;    
+    goto nooverlap;
   }
 
   O=Find_Local_Overlap(alen,blen,
@@ -207,7 +207,7 @@ OverlapMesg *BoxFill_AS(InternalFragMesg *a, InternalFragMesg *b,
 
   // thoughts for clark: test for O!=NULL?  minimum segment size?  kmer size?
 
-#if MINUS_ONE == 0 
+#if MINUS_ONE == 0
   // coordinates from Find_Local routines will be one off from
   // those expected by the trace routines, so adjust them!
   //	O->begpos+= (O->begpos>=0 ? 1 : -1);
@@ -243,7 +243,7 @@ OverlapMesg *BoxFill_AS(InternalFragMesg *a, InternalFragMesg *b,
 
     bhang=O->endpos;
 
-    { 
+    {
 
       int i=0;
       int j=0;
@@ -324,5 +324,5 @@ nooverlap:
     Complement_Fragment_AS(b);
   safe_free(O);
   return ((OverlapMesg*)NULL);
-  
+
 }

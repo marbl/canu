@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.14 2007-08-26 10:11:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.15 2008-06-27 06:29:14 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -63,7 +63,7 @@ void PrintCIEdgeT(FILE *fp, ScaffoldGraphT *graph,
       strcpy(actualOverlap," *Bogus*");
   }else if(ChunkInstanceA->aEndCoord > 0 && ChunkInstanceB->aEndCoord > 0){
     actual = -IntervalsOverlap(ChunkInstanceA->aEndCoord,
-                               ChunkInstanceA->bEndCoord, 
+                               ChunkInstanceA->bEndCoord,
                                ChunkInstanceB->aEndCoord,
                                ChunkInstanceB->bEndCoord,-500000);
     delta = edge->distance.mean - actual;
@@ -75,7 +75,7 @@ void PrintCIEdgeT(FILE *fp, ScaffoldGraphT *graph,
   if(edge->flags.bits.hasContributingOverlap){
     if(edge->flags.bits.isPossibleChimera)
       flag = "$C";
-    else 
+    else
       flag = "$O";
   }
   if(edge->flags.bits.isEssential){
@@ -115,7 +115,7 @@ void PrintCIEdgeT(FILE *fp, ScaffoldGraphT *graph,
 void PrintChunkInstanceHeader(FILE *stream, ScaffoldGraphT *graph,
                               ChunkInstanceT *chunk){
   fprintf(stream,"\n* CI " F_CID " cov:%d len:%d frags:%d interval: [" F_COORD "," F_COORD "]\n",
-          chunk->id, 
+          chunk->id,
           chunk->info.CI.coverageStat,
           (int)chunk->bpLength.mean,
           chunk->info.CI.numFragments,
@@ -126,13 +126,13 @@ void PrintChunkInstanceHeader(FILE *stream, ScaffoldGraphT *graph,
 
 
 void DumpChunkInstance(FILE *stream, ScaffoldGraphT *graph,
-                       ChunkInstanceT *chunk, 
+                       ChunkInstanceT *chunk,
 		       int confirmedOnly, int scaffoldedOnly,
 		       int uniqueToUniqueOnly, int verbose){
   int aEndPrinted, bEndPrinted;
   CIEdgeT *edge;
   CIEdgeTIterator edgeMates;
-  
+
   if(chunk->edgeHead == NULLINDEX){
     PrintChunkInstanceHeader(stream, graph, chunk);
     return;
@@ -196,24 +196,24 @@ void DumpChunkInstances(FILE *stream, ScaffoldGraphT *graph, int confirmedOnly,
 
 
 /****************************************************************************/
-/* 
+/*
    Look for overlaps that are implicit in the extended chunk graph.
    If a unique 'seed' chunk has confirmed links with two chunks on the
    same side of the seed, then these links imply a relationship between
    the two chunks.  If this relationship implies a potential overlap,
-   we want to check it directly 
+   we want to check it directly
 */
 int CheckImplicitOverlaps_(GraphCGW_T *graph, CDS_CID_t cid, int end){
   GraphEdgeIterator sources;
   EdgeCGW_T *source, *target;
 
-  InitGraphEdgeIterator(graph, 
-                        cid, 
-                        end, 
+  InitGraphEdgeIterator(graph,
+                        cid,
+                        end,
                         ALL_EDGES,
                         GRAPH_EDGE_CONFIRMED_ONLY,
                         &sources);
-  
+
   while(NULL != (source = NextGraphEdgeIterator(&sources))){
     ChunkInstanceT *sourceChunk = GetGraphNode(graph, source->idB);
     CDS_COORD_t actual;
@@ -225,28 +225,28 @@ int CheckImplicitOverlaps_(GraphCGW_T *graph, CDS_CID_t cid, int end){
       double sourceTargetDelta;
       int sourceCloserThanTarget;
       CDS_CID_t targetCid, sourceCid;
-      
+
       /* Eliminate self references */
       if(source->idB == target->idB)
         continue;
-      
+
       // Only look unique to unique
       if(!targetChunk->flags.bits.isUnique)
         continue;
-      
+
       {
         actual = IntervalsOverlap(sourceChunk->aEndCoord,
-                                  sourceChunk->bEndCoord, 
+                                  sourceChunk->bEndCoord,
                                   targetChunk->aEndCoord,
                                   targetChunk->bEndCoord,-100000);
       }
-      
+
       seedSource = source->distance;
       seedTarget = target->distance;
-      
+
       // Always work with the chunk that is closest as the source
       sourceCloserThanTarget = seedSource.mean <= seedTarget.mean;
-      
+
       if(sourceCloserThanTarget){
         targetCid = target->idB;
         sourceCid = source->idA;
@@ -257,7 +257,7 @@ int CheckImplicitOverlaps_(GraphCGW_T *graph, CDS_CID_t cid, int end){
         seedTarget = source->distance;
       }
       sourceChunk = GetGraphNode(graph, sourceCid);
-      
+
 #ifdef DEBUG_CGW
       fprintf(stderr,"* %c side source=" F_CID " target=" F_CID " seedSource = %d seedTarget = %d sourceLength=%d\n",
               (sources.end == 1?'A':'B'),
@@ -265,18 +265,18 @@ int CheckImplicitOverlaps_(GraphCGW_T *graph, CDS_CID_t cid, int end){
               (int) seedSource.mean, (int) seedTarget.mean,
               (int) sourceChunk->bpLength.mean);
 #endif
-      
+
       sourceCloserThanTarget = seedSource.mean <= seedTarget.mean;
-      
+
       // This is the way the edgeMates are sorted
       assert(sourceCloserThanTarget);
-      
+
       sourceTarget.mean = seedTarget.mean -
         (seedSource.mean + sourceChunk->bpLength.mean);
-      sourceTarget.variance = seedTarget.variance + 
+      sourceTarget.variance = seedTarget.variance +
         seedSource.variance + sourceChunk->bpLength.variance;
       sourceTargetDelta = 3.0 * sqrt(sourceTarget.variance);
-      
+
 #ifdef DEBUG_CGW
       fprintf(stderr,"* sourceTarget.mean= %d variance=%g\n",
               (int) sourceTarget.mean, sourceTarget.variance);
@@ -290,11 +290,11 @@ int CheckImplicitOverlaps_(GraphCGW_T *graph, CDS_CID_t cid, int end){
         ChunkOrient targetOrient =
           GetRelativeChunkOrientation(GetEdgeOrientationWRT(target,
                                                             cid));
-        ChunkOrientationType sourceTargetOrient = 
+        ChunkOrientationType sourceTargetOrient =
           GetChunkPairOrientation(sourceOrient, targetOrient);
-        
-        
-        
+
+
+
         assert(GetChunkSeedSide(GetEdgeOrientationWRT(target, cid)) == GetChunkSeedSide(GetEdgeOrientationWRT(source, cid)));
         {
           CDS_COORD_t delta = 3 * sqrt(sourceTarget.variance);
@@ -302,29 +302,29 @@ int CheckImplicitOverlaps_(GraphCGW_T *graph, CDS_CID_t cid, int end){
             MAX(-sourceTarget.mean - delta, 0);
           CDS_COORD_t maxOverlap = -sourceTarget.mean + delta;
           ChunkOverlapCheckT olap = {0};
-          
-          int overlapCheckFound = LookupOverlap(graph, 
+
+          int overlapCheckFound = LookupOverlap(graph,
                                                 sourceCid, targetCid,
                                                 sourceTargetOrient,
                                                 &olap);
           if(overlapCheckFound)
             continue;
-          
+
           fprintf(stderr,"** Found an implied potential overlap (" F_CID "," F_CID ") min:" F_COORD " max:" F_COORD " actual:" F_COORD "\n",
                   sourceCid, targetCid,
                   minOverlap, maxOverlap, actual);
-          
+
           assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
 
           //handle suspicious
           olap = OverlapChunks(graph,
                                sourceCid, targetCid,
-                               sourceTargetOrient, 
+                               sourceTargetOrient,
                                minOverlap,
                                maxOverlap,
                                AS_CGW_ERROR_RATE,
                                TRUE);
-          
+
           if(olap.overlap > 0){
             fprintf(stderr,"* Found Implied Overlap (" F_CID "," F_CID ",%c) with overlap " F_COORD "\n",
                     sourceCid, targetCid, sourceTargetOrient,

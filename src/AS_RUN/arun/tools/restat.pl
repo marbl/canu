@@ -1,11 +1,11 @@
 #!/usr/local/bin/perl -w
-# $Id: restat.pl,v 1.1 2007-07-03 19:53:59 moweis Exp $
-# restat - Extract a filter of reads (and possibly their mates) from a 
-#           set of .frg files.  
+# $Id: restat.pl,v 1.2 2008-06-27 06:29:19 brianwalenz Exp $
+# restat - Extract a filter of reads (and possibly their mates) from a
+#           set of .frg files.
 #
 # Written by Daniella Puiu and Martin Shumway
 #
- 
+
 use strict;
 use warnings;
 use File::Basename;
@@ -30,16 +30,16 @@ my $HELPTEXT = qq~
 Extract library insert statistics from a CA assembly .asm file.
 
 restat  <prefix>.asm  <insertfile>  [options]
-    
-  <prefix>.asm   Input .asm file from CA assembly output. 
+
+  <prefix>.asm   Input .asm file from CA assembly output.
   <insertfile>   Path to .insert file produced by pullfrag or other program
-    
+
   options:
-    -o <files,[file]...>  Specify one or more output file types: 
-                   .clone  - old style format: cat\# mean stddev  
+    -o <files,[file]...>  Specify one or more output file types:
+                   .clone  - old style format: cat\# mean stddev
                    .insert - rewrite the .insert file with new stats.
-                             Any existing file by that name is moved aside. 
-                   .metrics - emit an INI file with aggregate stats for ametrics 
+                             Any existing file by that name is moved aside.
+                   .metrics - emit an INI file with aggregate stats for ametrics
                    .library - XML file format for genomic libraries and stats
 
 The restat program reads MDI records from the Celera Assembler .asm file and
@@ -47,7 +47,7 @@ extracts genomic library insert size statistics so that the database can be
 updated.  A .clone file, or other output files are generated to support upload.
 
 SEE ALSO
-  aloader 
+  aloader
 ~;
 
 # Maintenance notes:
@@ -60,7 +60,7 @@ SEE ALSO
 # stats changes, and a static .extents xml file to hold insert info and library
 # membership.  Then the latter file will not be needed by this program, which
 # would instead read and write .library files.
-# shumwaym 12/05/06  
+# shumwaym 12/05/06
 
 # =============================== Constants ================================
 
@@ -85,7 +85,7 @@ my $warningsfile = "tmp.warnings";
 my $PROGRESS_FACTOR = 10000000;
 
 # Formatting Constants
-my %SECTION_ITEMS = 
+my %SECTION_ITEMS =
 (
   'lid' => 0,
   'name' => 1,
@@ -93,13 +93,13 @@ my %SECTION_ITEMS =
   'stats' => 3,
   'histogram' => 4,
 );
-my %STAT_ITEMS = 
+my %STAT_ITEMS =
 (
   'input_mean' => 0,
   'mean' => 1,
   'input_stddev' => 2,
   'stddev' => 3,
-  'max' => 4, 
+  'max' => 4,
   'min' => 5,
   'N' => 6,
 );
@@ -126,7 +126,7 @@ sub rankOrder($$)
   my %rank2value = ();
   my $k=10000;
   map
-  { 
+  {
     my $tag = $_;
     my $rank = 0;
     if (exists ${$rh_reference}{$_})
@@ -135,7 +135,7 @@ sub rankOrder($$)
     }
     else
     {
-      $rank = $k++; 
+      $rank = $k++;
     }
     $rank2value{$rank} = $tag;
   } @keys;
@@ -146,7 +146,7 @@ sub rankOrder($$)
 # ============================================== MAIN =============================================
 #
 MAIN:
-{    
+{
   my %options = ();
   $options{insertfile} = undef;
   $options{cloneoutfile} = undef;
@@ -157,26 +157,26 @@ MAIN:
   $options{removeEmpty} = 1;    # Remove from output libs with no experimental data
 
   # These tables need to be populated regardless of input filtering modes.
-  # 
-  my %ResultLibrary = ();   # Tracked libraries      
-  my %InputLibrary = ();   # List of all mate pairs discovered in input 
-  
+  #
+  my %ResultLibrary = ();   # Tracked libraries
+  my %InputLibrary = ();   # List of all mate pairs discovered in input
+
   # Configure TIGR Foundation
   $tf->setHelpInfo($HELPTEXT);
   $tf->setUsageInfo($HELPTEXT);
   $tf->setVersionInfo($VERSION);
   $tf->addDependInfo(@DEPENDS);
-  
+
   # validate input parameters
   my $output_options = undef;
   my $result = $tf->TIGR_GetOptions
                (
                 'o=s'     =>  \$output_options,
                );
-  $tf->printUsageInfoAndExit() if (!$result || $#ARGV < 1); 
+  $tf->printUsageInfoAndExit() if (!$result || $#ARGV < 1);
 
   my ($prefix, $path, $suffix) = fileparse($ARGV[0], '.asm');
-  $tf->bail("Need a .asm file") if (! defined $prefix); 
+  $tf->bail("Need a .asm file") if (! defined $prefix);
   $options{asmfile} = "$path$prefix$suffix";
   $options{outprefix} = $prefix;
   $tf->bail("Cannot access input .asm file \'$options{asmfile}\' ($!)") if (! -r $options{asmfile});
@@ -185,11 +185,11 @@ MAIN:
   {
     my ($prefix, $path, $suffix) = fileparse($ARGV[1], '.insert');
     if (defined $prefix)
-    { 
+    {
       $options{insertfile} = ($path eq "./")? "$prefix$suffix" : "$path$prefix$suffix";
       $tf->bail("Cannot access input .insert file \'$options{insertfile}\' ($!)") if (! -r $options{insertfile});
     }
-  } 
+  }
 
   # Update debug level if it's specified by the user
   my $debug_supplied = $tf->getDebugLevel();
@@ -202,14 +202,14 @@ MAIN:
   {
     $tf->setDebugLevel($debug);
   }
-        
+
   if (defined $options{outprefix} && $options{outprefix} ne "")
   {
     $warningsfile = "$options{outprefix}.warnings";
   }
   else
   {
-    $warningsfile = "$options{prefix}.warnings"; 
+    $warningsfile = "$options{prefix}.warnings";
   }
   unlink $warningsfile;
   setWarnFile($warningsfile);
@@ -219,7 +219,7 @@ MAIN:
   if (defined $output_options)
   {
     my @outputs = split /,/,$output_options;
-    map 
+    map
     {
       my ($name, $path, $suffix) = fileparse($_, @OUTPUT_SUFFIXES);
       $tf->bail("Unsupported output option in -o specification: \'$_\'") if (! exists $SUPPORTED_OUTPUTS{$suffix});
@@ -232,8 +232,8 @@ MAIN:
       if ($options{insertoutfile} eq $options{insertfile})
       {
         my ($name, $path, $suffix) = fileparse($options{insertoutfile}, @OUTPUT_SUFFIXES);
-        $options{insertfile} = ($path eq "./")? "$name" . "0.$suffix" : "$path/$name" . "0.$suffix"; 
-      
+        $options{insertfile} = ($path eq "./")? "$name" . "0.$suffix" : "$path/$name" . "0.$suffix";
+
         progress("Saving off input .insert file \'$options{insertoutfile}\' as it will be rewritten.");
         if (-l $options{insertfile})
         {
@@ -245,7 +245,7 @@ MAIN:
         else
         {
           progress("Input .insert file exists, moving to \'$options{insertfile}\'...");
-          my $result = rename($options{insertoutfile}, $options{insertfile});    
+          my $result = rename($options{insertoutfile}, $options{insertfile});
           $tf->bail("Cannot rename file \'$options{insertoutfile}\' to \'$options{insertfile}\' ($!)") if ($result != 1);
         }
       }
@@ -254,17 +254,17 @@ MAIN:
     $options{libraryoutfile} = (exists $Output_options{library})? $Output_options{library} : undef;
   }
 
-  # PASS 1: Obtain updated MDI records from .asm file 
-  # 
+  # PASS 1: Obtain updated MDI records from .asm file
+  #
   progress("Scanning input .asm file \'$options{asmfile}\'...");
   {
     my $if = new IO::File("< $options{asmfile}") or $tf->bail("Cannot open input .asm file \'$options{asmfile}\' ($!)");
-   
-    my $nrecords = 0; 
+
+    my $nrecords = 0;
     while (my $rec = getCARecord($if))
     {
         my ($type, $rh_fields, $recs) = parseCARecord($rec);
-        my %fields = %{$rh_fields}; 
+        my %fields = %{$rh_fields};
         if ($type eq "MDI")
         {
           my $ref = $fields{ref};
@@ -280,7 +280,7 @@ MAIN:
           my $buckets = $fields{buc};
           $ResultLibrary{$acc}{hist}{buc}  = $buckets;
           my @histogram = split /\n/,$fields{his};
-          $ResultLibrary{$acc}{hist}{values}  = \@histogram; 
+          $ResultLibrary{$acc}{hist}{values}  = \@histogram;
           my $N = 0;
           map { $N += ($_ =~ m/\d+/)? $_ : 0; } @histogram;
           $ResultLibrary{$acc}{stats}{items}    = $N;
@@ -288,20 +288,20 @@ MAIN:
         }
 
       ++$nrecords;
-      progress("$nrecords .asm records scanned.") if ($nrecords > 1 && $nrecords % $PROGRESS_FACTOR == 1); 
+      progress("$nrecords .asm records scanned.") if ($nrecords > 1 && $nrecords % $PROGRESS_FACTOR == 1);
     }
-   
+
     $if->close();
   }
 
   # PASS 2: Obtain existing Genomic library records from .insert file
-  # 
+  #
   progress("Scanning input .insert file \'$options{insertfile}\'...");
-  my $if = new IO::File("< $options{insertfile}") 
+  my $if = new IO::File("< $options{insertfile}")
       or $tf->bail("Cannot open input .insert file \'$options{insertfile}\' ($!)");
-   
-  my $nrecords = 0; 
-  while (my $line = $if->getline()) 
+
+  my $nrecords = 0;
+  while (my $line = $if->getline())
   {
       chomp $line;
       # I wish we had a proper module to interact with this file type
@@ -309,17 +309,17 @@ MAIN:
       {
         my $name = $1;
         my $acc = $2;
-        my $oldmean = sprintf("%s.%s", $3, $4) + 0.0; 
-        my $oldstddev = sprintf("%s.%s", $5, $6) + 0.0; 
+        my $oldmean = sprintf("%s.%s", $3, $4) + 0.0;
+        my $oldstddev = sprintf("%s.%s", $5, $6) + 0.0;
         if (exists $ResultLibrary{$acc})
         {
-          $ResultLibrary{$acc}{lid}  = $acc;         # cross reference 
-          $ResultLibrary{$acc}{name}  = $name;         # cross reference 
-          $InputLibrary{$acc}{name}  = $name;         
-          $InputLibrary{$acc}{mean} = $oldmean; 
-          $InputLibrary{$acc}{stddev}= $oldstddev;    
-          $ResultLibrary{$acc}{stats}{input_mean} = $oldmean; 
-          $ResultLibrary{$acc}{stats}{input_stddev}= $oldstddev;    
+          $ResultLibrary{$acc}{lid}  = $acc;         # cross reference
+          $ResultLibrary{$acc}{name}  = $name;         # cross reference
+          $InputLibrary{$acc}{name}  = $name;
+          $InputLibrary{$acc}{mean} = $oldmean;
+          $InputLibrary{$acc}{stddev}= $oldstddev;
+          $ResultLibrary{$acc}{stats}{input_mean} = $oldmean;
+          $ResultLibrary{$acc}{stats}{input_stddev}= $oldstddev;
         }
         else
         {
@@ -329,9 +329,9 @@ MAIN:
 
       # Emit rewritten .insert record if specified
       ++$nrecords;
-      progress("Phase 1: $nrecords records scanned.") if ($nrecords > 1 && $nrecords % $PROGRESS_FACTOR == 1); 
+      progress("Phase 1: $nrecords records scanned.") if ($nrecords > 1 && $nrecords % $PROGRESS_FACTOR == 1);
   }
-   
+
   $if->close();
 
   # Apply filters
@@ -342,12 +342,12 @@ MAIN:
     my @empties = ();
     foreach my $acc (keys %ResultLibrary)
     {
-      my $N = (exists $ResultLibrary{$acc}{stats}{items})? $ResultLibrary{$acc}{stats}{items} : 0; 
-      my $name = (exists $ResultLibrary{$acc}{name})? $ResultLibrary{$acc}{name} : "name?"; 
+      my $N = (exists $ResultLibrary{$acc}{stats}{items})? $ResultLibrary{$acc}{stats}{items} : 0;
+      my $name = (exists $ResultLibrary{$acc}{name})? $ResultLibrary{$acc}{name} : "name?";
       if ($N == 0)
       {
         push(@empties, $acc) if ($N == 0);
-        logwarning("Library $acc (\'$name\') has no results, omitting from output."); 
+        logwarning("Library $acc (\'$name\') has no results, omitting from output.");
       }
     }
     foreach my $acc (@empties)
@@ -360,11 +360,11 @@ MAIN:
   if (defined $options{cloneoutfile})
   {
     progress("Writing .clone file \'$options{cloneoutfile}...");
-    my $of = new IO::File("> $options{cloneoutfile}") 
+    my $of = new IO::File("> $options{cloneoutfile}")
       or $tf->bail("Cannot open output .clone file \'$options{cloneoutfile}\' ($!)");
     foreach my $acc (keys %ResultLibrary)
     {
-      my $name = (exists $InputLibrary{$acc}{name})? $InputLibrary{$acc}{name} : "name?"; 
+      my $name = (exists $InputLibrary{$acc}{name})? $InputLibrary{$acc}{name} : "name?";
       my $mean = $ResultLibrary{$acc}{stats}{mean};
       my $stddev = $ResultLibrary{$acc}{stats}{stddev};
       if (exists $InputLibrary{$acc}{name})
@@ -379,17 +379,17 @@ MAIN:
     $of->close() or $tf->bail("Failed to close output .clone file ($!)");
     progress("Done.");
   }
- 
+
   if (defined $options{insertoutfile})
   {
     progress("Writing new .insert file \'$options{insertoutfile}\'...");
-    my $if = new IO::File("< $options{insertfile}") 
+    my $if = new IO::File("< $options{insertfile}")
       or $tf->bail("Cannot open input .insert file \'$options{insertfile}\' ($!)");
-    my $sf = new IO::File("> $options{insertoutfile}") 
+    my $sf = new IO::File("> $options{insertoutfile}")
       or $tf->bail("Cannot open output .insert file \'$options{insertoutfile}\' ($!)");
 
-    my $nrecords = 0; 
-    while (my $line = $if->getline()) 
+    my $nrecords = 0;
+    while (my $line = $if->getline())
     {
       chomp $line;
       # I wish we had a proper module to interact with this file type
@@ -420,10 +420,10 @@ MAIN:
 
       # Emit rewritten .insert record if specified
       ++$nrecords;
-      progress("Phase 1: $nrecords records scanned.") if ($nrecords > 1 && $nrecords % $PROGRESS_FACTOR == 1); 
+      progress("Phase 1: $nrecords records scanned.") if ($nrecords > 1 && $nrecords % $PROGRESS_FACTOR == 1);
     }
     $if->close();
-    $sf->print("\n");   # make sure last record is set off 
+    $sf->print("\n");   # make sure last record is set off
     $sf->close() or $tf->bail("Failed to close output .insert file ($!)");
     progress("Done.");
   }
@@ -431,7 +431,7 @@ MAIN:
   if ($options{metricsfile})
   {
     progress("Writing .metrics file \'$options{metricsfile}\'...");
-    my $mf = new IO::File("> $options{metricsfile}") 
+    my $mf = new IO::File("> $options{metricsfile}")
       or $tf->bail("Cannot open output .metrics file \'$options{metricsfile}\' ($!)");
 
     foreach my $acc (keys %ResultLibrary)
@@ -449,7 +449,7 @@ MAIN:
       {
         logwarning("Did not find existing mean for library $name (lid=$acc).");
       }
-      $line .= "mean=$ResultLibrary{$acc}{stats}{mean}\n"; 
+      $line .= "mean=$ResultLibrary{$acc}{stats}{mean}\n";
       if (exists $ResultLibrary{$acc}{stats}{input_stddev})
       {
         $line .= "input_sd=$ResultLibrary{$acc}{stats}{stddev}\n";
@@ -458,13 +458,13 @@ MAIN:
       {
         logwarning("Did not find existing stddev for library $name (lid=$acc).");
       }
-      $line .= "sd=$ResultLibrary{$acc}{stats}{stddev}\n"; 
-      $line .= "min=$ResultLibrary{$acc}{stats}{min}\n"; 
-      $line .= "max=$ResultLibrary{$acc}{stats}{max}\n"; 
-      $line .= "N=$ResultLibrary{$acc}{stats}{items}\n"; 
-      $line .= "binsize=$ResultLibrary{$acc}{hist}{bin}\n"; 
-      $line .= "buc=$ResultLibrary{$acc}{hist}{buc}\n"; 
-      $line .= "hist=" . join(",",@{$ResultLibrary{$acc}{hist}{values}}) . "\n"; 
+      $line .= "sd=$ResultLibrary{$acc}{stats}{stddev}\n";
+      $line .= "min=$ResultLibrary{$acc}{stats}{min}\n";
+      $line .= "max=$ResultLibrary{$acc}{stats}{max}\n";
+      $line .= "N=$ResultLibrary{$acc}{stats}{items}\n";
+      $line .= "binsize=$ResultLibrary{$acc}{hist}{bin}\n";
+      $line .= "buc=$ResultLibrary{$acc}{hist}{buc}\n";
+      $line .= "hist=" . join(",",@{$ResultLibrary{$acc}{hist}{values}}) . "\n";
       $mf->print("$line\n") or $tf->bail("Failed to write output .metrics file \'$options{metricsfile}\' ($!)");
     }
     $mf->close() or $tf->bail("Failed to close output .metrics file ($!)");
@@ -473,7 +473,7 @@ MAIN:
   if ($options{libraryoutfile})
   {
     progress("Writing .library file \'$options{libraryoutfile}\'...");
-    my $xf = new IO::File("> $options{libraryoutfile}") 
+    my $xf = new IO::File("> $options{libraryoutfile}")
       or $tf->bail("Cannot open output .library file \'$options{libraryoutfile}\' ($!)");
 
     my $header        = qq~<?xml version='1.0'?>~ . "\n";
@@ -491,14 +491,14 @@ MAIN:
     my $sectionF      = "\t\t<%s>%s</%s>\n";
     my $histogramF    = "\t\t<histogram>\n\t\t\t<listdata buckets=\"%s\" bucketsize=\"%s\">\n\t\t\t\t%s\n\t\t\t</listdata>\n\t\t</histogram>\n";
     my $statslineF    = "\t\t\t<%s>%s</%s>\n";
-    
-    $xf->print ($header) or $tf->bail("Failed to write output .library file \'$options{libraryoutfile}\' ($!)"); 
-    $xf->print ($group) or $tf->bail("Failed to write output .library file \'$options{libraryoutfile}\' ($!)"); 
+
+    $xf->print ($header) or $tf->bail("Failed to write output .library file \'$options{libraryoutfile}\' ($!)");
+    $xf->print ($group) or $tf->bail("Failed to write output .library file \'$options{libraryoutfile}\' ($!)");
     foreach my $acc (keys %ResultLibrary)
     {
-      $xf->print ($library) or $tf->bail("Failed to write output .library file \'$options{libraryoutfile}\' ($!)"); 
+      $xf->print ($library) or $tf->bail("Failed to write output .library file \'$options{libraryoutfile}\' ($!)");
 
-      my $rh_value2section = rankOrder(\%{$ResultLibrary{$acc}}, \%SECTION_ITEMS); 
+      my $rh_value2section = rankOrder(\%{$ResultLibrary{$acc}}, \%SECTION_ITEMS);
       foreach my $rank (sort { $a<=>$b } keys %{$rh_value2section})
       {
         my $section = ${$rh_value2section}{$rank};
@@ -506,11 +506,11 @@ MAIN:
         {
           $xf->print ($stats) or $tf->bail("Failed to write output .library file \'$options{libraryoutfile}\' ($!)");
           {
-            my $rh_value2stat = rankOrder(\%{$ResultLibrary{$acc}{stats}}, \%STAT_ITEMS); 
+            my $rh_value2stat = rankOrder(\%{$ResultLibrary{$acc}{stats}}, \%STAT_ITEMS);
             foreach my $rank (sort { $a<=>$b } keys %{$rh_value2stat})
             {
               my $tag = ${$rh_value2stat}{$rank};
-              my $line = sprintf($statslineF, $tag, $ResultLibrary{$acc}{stats}{$tag}, $tag); 
+              my $line = sprintf($statslineF, $tag, $ResultLibrary{$acc}{stats}{$tag}, $tag);
               $xf->print ($line) or $tf->bail("Failed to write output .library file \'$options{libraryoutfile}\' ($!)");
             }
           }
@@ -518,20 +518,20 @@ MAIN:
         }
         elsif ($section eq "hist")
         {
-          my $line = sprintf($histogramF, $ResultLibrary{$acc}{hist}{buc}, $ResultLibrary{$acc}{hist}{bin}, 
+          my $line = sprintf($histogramF, $ResultLibrary{$acc}{hist}{buc}, $ResultLibrary{$acc}{hist}{bin},
                                           join(",", @{$ResultLibrary{$acc}{hist}{values}}) );
           $xf->print ($line) or $tf->bail("Failed to write output .library file \'$options{libraryoutfile}\' ($!)");
         }
-        else 
+        else
         {
-          my $line = sprintf($sectionF, $section, $ResultLibrary{$acc}{$section}, $section); 
+          my $line = sprintf($sectionF, $section, $ResultLibrary{$acc}{$section}, $section);
           $xf->print ($line) or $tf->bail("Failed to write output .library file \'$options{libraryoutfile}\' ($!)");
         }
       }
-      $xf->print ($libraryend) or $tf->bail("Failed to write output .library file \'$options{libraryoutfile}\' ($!)"); 
+      $xf->print ($libraryend) or $tf->bail("Failed to write output .library file \'$options{libraryoutfile}\' ($!)");
     }
-    $xf->print ($groupend) or $tf->bail("Failed to write output .library file \'$options{libraryoutfile}\' ($!)"); 
-    $xf->print ("\n") or $tf->bail("Failed to write output .library file \'$options{libraryoutfile}\' ($!)"); 
+    $xf->print ($groupend) or $tf->bail("Failed to write output .library file \'$options{libraryoutfile}\' ($!)");
+    $xf->print ("\n") or $tf->bail("Failed to write output .library file \'$options{libraryoutfile}\' ($!)");
 
     $xf->close() or $tf->bail("Failed to close output .library file ($!)");
   }

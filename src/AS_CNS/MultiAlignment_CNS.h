@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -33,7 +33,7 @@
 // 1/28/2008 - include the N character in the allowed alphabet
 #define CNS_NALPHABET 7
 #define CNS_NALPHABET_NULL_ARRAY {0, 0, 0, 0, 0, 0, 0}
-#define CNS_NP 32 
+#define CNS_NP 32
 
 #define COMPARE_ARGS char *aseq, char *bseq, int beg, int end, int opposite, double erate, double thresh, int minlen, CompareOptions what
 
@@ -63,7 +63,7 @@ typedef struct {
   int32    iid;
   char    *bases;      // gapped sequence
   int     *qvs;        // quality values
-  double   ave_qv; 
+  double   ave_qv;
   int      allele_id;
   int      uglen;      // ungapped length
 } Read;
@@ -111,7 +111,7 @@ typedef struct {
   IntFragment_ID       frgIdent;
   IntFragment_ID       frgContained;
   IntUnitig_ID         frgInUnitig;
-  int32		         frgSource;    
+  int32		         frgSource;
 } CNS_FragmentContigElement;
 
 typedef struct {
@@ -121,8 +121,8 @@ typedef struct {
   int32                utgLast; // index of this unitig's last fragment in fragment_positions
 } CNS_UnitigContigElement;
 
-#define CNS_ELEMENT_IS_FRAGMENT 'F' 
-#define CNS_ELEMENT_IS_UNITIG 'U' 
+#define CNS_ELEMENT_IS_FRAGMENT 'F'
+#define CNS_ELEMENT_IS_UNITIG 'U'
 typedef struct {
   union {
     CNS_FragmentContigElement fragment;
@@ -142,7 +142,7 @@ typedef struct {
   int32 boffset; // Location in BeadStore
   int32 soffset; // Location in sequence/qualityStores
   int32 foffset; // Location in Fragment sequence
-  int32 prev;    
+  int32 prev;
   int32 next;
   int32 up;
   int32 down;  // navigation in multialignment (global offsets)
@@ -172,7 +172,7 @@ typedef struct {
   int32 quality;        // global index of first quality character
   int32 beads;          // global index of first "bead"
   int32 n_components;   // number of component frags (in case of "unitig" Fragments)
-  int32 components;     // global index of first component frag 
+  int32 components;     // global index of first component frag
   char *source;         // consensus just carried this through - no mods
 } Fragment;
 
@@ -188,7 +188,7 @@ typedef struct {
 typedef struct {
   int32 lid;  // index in columnStore
   int32 call; // global offset in beadStore;
-  int32 next; 
+  int32 next;
   int32 prev; // navigation in columnStore;
   int32 ma_id;     // MANode membership;
   int32 ma_index;  // index in MANode; // refreshed only periodically
@@ -200,7 +200,7 @@ VA_DEF(Column)
 // -----------------------------------
 
 typedef struct {
-  //  This is the basic multialignment atom: 
+  //  This is the basic multialignment atom:
   //  A collection (possibly empty) of columns
   //  Given by their offsets in the global columnStore
   int32 lid;      // MANode id in the manodeStore
@@ -208,7 +208,7 @@ typedef struct {
   int32 first;
   int32 last;
   VA_TYPE(int32) *columns;
-} MANode; 
+} MANode;
 
 VA_DEF(MANode)
 
@@ -242,13 +242,13 @@ static char RALPHABETC[CNS_NP] = {'-','T','G','C','A','N',
                                   'b','d','h','v',   //-ACG,-ACT,-AGT,-CGT
                                   'X','x'};// ACGT,-ACGT, ??
 
-static double TAU_MISMATCH = (double)1./(5. - 1.); 
-static uint32 AMASK[] = {   
+static double TAU_MISMATCH = (double)1./(5. - 1.);
+static uint32 AMASK[] = {
   013607700741, // -
   015670707042, // a
   016733131104, // c
   017355252210, // g
-  017566464420}; 
+  017566464420};
 
 int InitializeAlphTable(void);
 char BaseComplement(char c);
@@ -295,11 +295,11 @@ typedef struct {
 } ConsensusBeadIterator;
 
 int GetMANodeConsensus(int32 mid, VA_TYPE(char) *, VA_TYPE(char) *);
-int GetMANodePositions(int32 , int, IntMultiPos *, int, IntUnitigPos *, 
+int GetMANodePositions(int32 , int, IntMultiPos *, int, IntUnitigPos *,
                        VA_TYPE(int32) *);
 void PrintAlignment(FILE *, int32, int32, int32, CNS_PrintKey );
 
-int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars, 
+int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars,
                   int32 utg_alleles, CNS_Options *opp, int get_scores);
 
 typedef enum {
@@ -339,11 +339,11 @@ VA_DEF(ScaffoldData)
 // MergeMultiAlignsFast_new is the original CGW/CNS interface for contigging
 // and is now a wrapper around the more modern MergeMultiAligns which allows
 // "contained" relationships among the input contigs
-MultiAlignT *MergeMultiAlignsFast_new( tSequenceDB *, GateKeeperStore *, 
+MultiAlignT *MergeMultiAlignsFast_new( tSequenceDB *, GateKeeperStore *,
                                        VA_TYPE(IntElementPos) *, int, int, Overlap *(*)(COMPARE_ARGS),
                                        CNS_Options *opp);
 
-MultiAlignT *MergeMultiAligns( tSequenceDB *, GateKeeperStore *, 
+MultiAlignT *MergeMultiAligns( tSequenceDB *, GateKeeperStore *,
                                VA_TYPE(IntMultiPos) *, int, int, Overlap *(*)(COMPARE_ARGS), CNS_Options *opp);
 
 
@@ -363,7 +363,7 @@ int IncBaseCount(BaseCount *b,char c);
 char GetConfMM(BaseCount *b,int mask);
 int BaseToInt(char c);
 
-int GetAlignmentTrace(int32 , int32 , int32 , int32 *, int32 , 
+int GetAlignmentTrace(int32 , int32 , int32 , int32 *, int32 ,
                       VA_TYPE(int32) *, OverlapType *,
                       Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
                       int , int );
@@ -372,10 +372,10 @@ int GetAlignmentTrace(int32 , int32 , int32 , int32 *, int32 ,
 // 'Public' functions that other subsystems are invited to link to.
 //
 int MultiAlignUnitig(IntUnitigMesg *, GateKeeperStore *, VA_TYPE(char) *,
-    VA_TYPE(char) *, VA_TYPE(int32) *, CNS_PrintKey , int, 
+    VA_TYPE(char) *, VA_TYPE(int32) *, CNS_PrintKey , int,
     Overlap *(*)(COMPARE_ARGS), CNS_Options *opp);
 
-int MultiAlignContig(IntConConMesg *, VA_TYPE(char) *, VA_TYPE(char) *, 
+int MultiAlignContig(IntConConMesg *, VA_TYPE(char) *, VA_TYPE(char) *,
     VA_TYPE(int32) *, CNS_PrintKey , Overlap *(*)(COMPARE_ARGS), CNS_Options *opp);
 
 int MultiAlignContig_ReBasecall(MultiAlignT *, VA_TYPE(char) *, VA_TYPE(char) *, CNS_Options *);
@@ -402,7 +402,7 @@ typedef enum  {
   AS_NOALIGNTYPE = (int) 'U'
 } ALIGN_TYPE;
 
-extern ALIGN_TYPE ALIGNMENT_CONTEXT; 
+extern ALIGN_TYPE ALIGNMENT_CONTEXT;
 
 extern int USE_SDB;
 

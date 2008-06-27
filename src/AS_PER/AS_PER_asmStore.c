@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_asmStore.c,v 1.11 2008-06-16 06:54:51 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_asmStore.c,v 1.12 2008-06-27 06:29:18 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_asmStore
@@ -52,24 +52,24 @@ char * ASM_Filenames[NUM_ASM_FILES] =
 {
   "asm.mdi",
   "asm.bkt",
-  
+
   "asm.afg",
   "asm.aci",
   "asm.asi"
-  
+
   "asm.utg",
   "asm.utf",
   "asm.uci",
   "asm.usi",
-  
+
   "asm.cco",
   "asm.ccf",
   "asm.ccu",
-  
+
   "asm.scf",
   "asm.scg",
   "asm.scc",
-  
+
   "asm.phash"
 };
 
@@ -87,7 +87,7 @@ int testOpenFile(char * path, char * name, char * mode)
   FILE * fp;
 
   sprintf(fullName, "%s/%s", path, name);
-  
+
   fp = fopen(fullName, mode);
   if(fp != NULL)
   {
@@ -102,13 +102,13 @@ int TestOpenAssemblyStore(AssemblyStore *asmStore)
   int exists = 0;
   int i;
   int fileCount = 0;
-  
+
   fprintf(stderr,"*** TestOpen %s\n", asmStore->storePath);
 
 
   for(i = 0; i < NUM_ASM_FILES; i++)
     fileCount += testOpenFile(asmStore->storePath, ASM_Filenames[i], mode);
-    
+
   if(fileCount == NUM_ASM_FILES)
     {
       fprintf(stderr,"*  All files exist\n");
@@ -128,7 +128,7 @@ void removeFile(char * path, char * name)
 {
   char command[FILENAME_MAX];
   int sysret;
-  
+
   sprintf(command,"rm -f %s/%s", path, name);
   sysret = system(command);
   assert(sysret == 0);
@@ -136,21 +136,21 @@ void removeFile(char * path, char * name)
 int RemoveAssemblyStoreFiles(AssemblyStore *asmStore)
 {
   int i;
-  
+
   fprintf(stderr,"*** Remove %s\n", asmStore->storePath);
   for(i = 0; i < NUM_ASM_FILES; i++)
     removeFile(asmStore->storePath, ASM_Filenames[i]);
-  
+
   return 0;
 }
 int RemoveMapStoreFiles(MapStore * mapStore)
 {
   int i;
-  
+
   fprintf(stderr,"*** Remove %s\n", mapStore->storePath);
   for(i = 0; i < NUM_MAP_FILES; i++)
     removeFile(mapStore->storePath, MAP_Filenames[i]);
-  
+
   return 0;
 }
 
@@ -159,7 +159,7 @@ void copyFile(char * filename, char * fromDir, char * toDir)
 {
   char buffer[FILENAME_MAX];
   int sysret;
-  
+
   sprintf(buffer,"cp %s/%s %s", fromDir, filename, toDir);
   sysret = system(buffer);
   assert(sysret == 0);
@@ -172,10 +172,10 @@ int CopyAssemblyStoreFiles(AssemblyStore *asmStore, char *path)
           getcwd(NULL,256), asmStore->storePath, path);
 
   AS_UTL_mkdir(path);
-  
+
   for(i = 0; i < NUM_ASM_FILES; i++)
     copyFile(ASM_Filenames[i], asmStore->storePath, path);
-  
+
   return(0);
 }
 int CopyMapStoreFiles(MapStore *mapStore, char *path)
@@ -186,10 +186,10 @@ int CopyMapStoreFiles(MapStore *mapStore, char *path)
           getcwd(NULL,256), mapStore->storePath, path);
 
   AS_UTL_mkdir(path);
-  
+
   for(i = 0; i < NUM_MAP_FILES; i++)
     copyFile(MAP_Filenames[i], mapStore->storePath, path);
-  
+
   return(0);
 }
 
@@ -206,19 +206,19 @@ AssemblyStore * OpenAssemblyStoreCommon(char * path, char *mode)
 
   if(!strcmp(mode, "r"))
     AS_UTL_mkdir(path);
-     
+
   sprintf(name, "%s/asm.mdi", asmStore->storePath);
   asmStore->mdiStore = openASM_MDIStore(name, mode);
   sprintf(name, "%s/asm.bkt", asmStore->storePath);
   asmStore->bktStore = openASM_BucketStore(name, mode);
-  
+
   sprintf(name, "%s/asm.afg", asmStore->storePath);
   asmStore->afgStore = openASM_AFGStore(name, mode);
   sprintf(name, "%s/asm.aci", asmStore->storePath);
   asmStore->aciStore = openASM_InstanceStore(name, mode);
   sprintf(name, "%s/asm.asi", asmStore->storePath);
   asmStore->asiStore = openASM_InstanceStore(name, mode);
-  
+
   sprintf(name, "%s/asm.utg", asmStore->storePath);
   asmStore->utgStore = openASM_UTGStore(name, mode);
   sprintf(name, "%s/asm.utf", asmStore->storePath);
@@ -227,21 +227,21 @@ AssemblyStore * OpenAssemblyStoreCommon(char * path, char *mode)
   asmStore->uciStore = openASM_InstanceStore(name, mode);
   sprintf(name, "%s/asm.usi", asmStore->storePath);
   asmStore->usiStore = openASM_InstanceStore(name, mode);
-  
+
   sprintf(name, "%s/asm.cco", asmStore->storePath);
   asmStore->ccoStore = openASM_CCOStore(name, mode);
   sprintf(name, "%s/asm.ccf", asmStore->storePath);
   asmStore->ccfStore = openASM_IIDStore(name, mode);
   sprintf(name, "%s/asm.ccu", asmStore->storePath);
   asmStore->ccuStore = openASM_IIDStore(name, mode);
-  
+
   sprintf(name, "%s/asm.scf", asmStore->storePath);
   asmStore->scfStore = openASM_SCFStore(name, mode);
   sprintf(name, "%s/asm.scg", asmStore->storePath);
   asmStore->scgStore = openASM_GapStore(name, mode);
   sprintf(name, "%s/asm.scc", asmStore->storePath);
   asmStore->sccStore = openASM_IIDStore(name, mode);
-  
+
   if(NULL == asmStore->mdiStore ||
      NULL == asmStore->bktStore ||
      NULL == asmStore->afgStore ||
@@ -284,15 +284,15 @@ MapStore * OpenMapStoreCommon(char * path, char *mode)
 
   sprintf(name, "%s/map.chr", mapStore->storePath);
   mapStore->chrStore = openASM_CHRStore(name, mode);
-  
+
 #ifdef NEVER
   sprintf(name, "%s/map.cfm", mapStore->storePath);
   mapStore->cfmStore = openASM_MemberStore(name, mode);
 #endif
-  
+
   sprintf(name, "%s/map.fin", mapStore->storePath);
   mapStore->finStore = openASM_InstanceStore(name, mode);
-  
+
   if(NULL == mapStore->chrStore ||
 #ifdef NEVER
      NULL == mapStore->cfmStore ||
@@ -305,7 +305,7 @@ MapStore * OpenMapStoreCommon(char * path, char *mode)
 
   sprintf(name,"%s/map.phash", mapStore->storePath);
   mapStore->hashTable = LoadUIDtoIIDHashTable_AS(name);
-  
+
   return mapStore;
 }
 
@@ -351,12 +351,12 @@ AssemblyStore * CreateAssemblyStore(char * path,
           asmStore->storePath, getcwd(NULL, 256));
 
   AS_UTL_mkdir(path);
-  
+
   sprintf(name,"%s/asm.mdi", asmStore->storePath);
   asmStore->mdiStore = createASM_MDIStore(name, "mdi",1);
   sprintf(name,"%s/asm.bkt", asmStore->storePath);
   asmStore->bktStore = createASM_BucketStore(name, "bkt",1);
-  
+
   sprintf(name,"%s/asm.afg", asmStore->storePath);
   asmStore->afgStore = createASM_AFGStore(name, "afg",1);
   sprintf(name,"%s/asm.aci", asmStore->storePath);
@@ -372,7 +372,7 @@ AssemblyStore * CreateAssemblyStore(char * path,
   asmStore->uciStore = createASM_InstanceStore(name, "uci",1);
   sprintf(name,"%s/asm.usi", asmStore->storePath);
   asmStore->usiStore = createASM_InstanceStore(name, "usi",1);
-  
+
   sprintf(name,"%s/asm.cco", asmStore->storePath);
   asmStore->ccoStore = createASM_CCOStore(name, "cco",1);
   sprintf(name,"%s/asm.ccf", asmStore->storePath);
@@ -386,7 +386,7 @@ AssemblyStore * CreateAssemblyStore(char * path,
   asmStore->scgStore = createASM_GapStore(name, "scg",1);
   sprintf(name,"%s/asm.scc", asmStore->storePath);
   asmStore->sccStore = createASM_IIDStore(name, "scc",1);
-  
+
   sprintf(name,"%s/asm.phash", asmStore->storePath);
   asmStore->hashTable = CreateScalarHashTable_AS(1024);
   SaveHashTable_AS(name, asmStore->hashTable);
@@ -395,7 +395,7 @@ AssemblyStore * CreateAssemblyStore(char * path,
     OpenGateKeeperStoreAssemblyStore(asmStore, gkpStorePath);
   else
     asmStore->gkpStore = NULL;
-  
+
   return asmStore;
 }
 MapStore * CreateMapStore(char * path)
@@ -410,7 +410,7 @@ MapStore * CreateMapStore(char * path)
           mapStore->storePath, getcwd(NULL, 256));
 
   AS_UTL_mkdir(path);
-  
+
   sprintf(name,"%s/map.chr", mapStore->storePath);
   mapStore->chrStore = createASM_CHRStore(name, "chr",1);
 
@@ -418,10 +418,10 @@ MapStore * CreateMapStore(char * path)
   sprintf(name,"%s/map.cfm", mapStore->storePath);
   mapStore->cfmStore = createASM_MemberStore(name, "cfm",1);
 #endif
-  
+
   sprintf(name,"%s/map.fin", mapStore->storePath);
   mapStore->finStore = createASM_InstanceStore(name, "fin",1);
-  
+
   sprintf(name,"%s/map.phash", mapStore->storePath);
   mapStore->hashTable = CreateScalarHashTable_AS(1024);
   SaveHashTable_AS(name, mapStore->hashTable);
@@ -441,14 +441,14 @@ void CloseAssemblyStore(AssemblyStore *asmStore)
     closeStore(asmStore->mdiStore);
   if(asmStore->bktStore != NULL)
     closeStore(asmStore->bktStore);
-  
+
   if(asmStore->afgStore != NULL)
     closeStore(asmStore->afgStore);
   if(asmStore->aciStore != NULL)
     closeStore(asmStore->aciStore);
   if(asmStore->asiStore != NULL)
     closeStore(asmStore->asiStore);
-  
+
   if(asmStore->utgStore != NULL)
     closeStore(asmStore->utgStore);
   if(asmStore->utfStore != NULL)
@@ -457,21 +457,21 @@ void CloseAssemblyStore(AssemblyStore *asmStore)
     closeStore(asmStore->uciStore);
   if(asmStore->usiStore != NULL)
     closeStore(asmStore->usiStore);
-  
+
   if(asmStore->ccoStore != NULL)
     closeStore(asmStore->ccoStore);
   if(asmStore->ccfStore != NULL)
     closeStore(asmStore->ccfStore);
   if(asmStore->ccuStore != NULL)
     closeStore(asmStore->ccuStore);
-  
+
   if(asmStore->scfStore != NULL)
-    closeStore(asmStore->scfStore); 
+    closeStore(asmStore->scfStore);
   if(asmStore->scgStore != NULL)
-    closeStore(asmStore->scgStore); 
+    closeStore(asmStore->scgStore);
   if(asmStore->sccStore != NULL)
     closeStore(asmStore->sccStore);
-  
+
   if(asmStore->hashTable != NULL)
     DeleteHashTable_AS(asmStore->hashTable);
 }

@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.26 2008-06-16 22:53:26 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.27 2008-06-27 06:29:17 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,14 +67,14 @@ GetUIDUIDMatePairType(AS_UID *UID1, AS_UID *UID2, FILE *fin) {
   (*UID1)  = AS_UID_undefined();
   (*UID2)  = AS_UID_undefined();
 
-  char *str = AS_MSG_globals->curLine; 
+  char *str = AS_MSG_globals->curLine;
   char *currLoc = str;
 
    // get first UID
    while (*currLoc != ',') { currLoc++; }
    *currLoc = '\0';
    (*UID1) = AS_UID_lookup(str, NULL);
-   
+
    // get second UID
    str = ++currLoc;
    while (*currLoc != ',') { currLoc++; }
@@ -159,7 +159,7 @@ Read_Frag_Mesg(FILE *fin, int frag_class) {
   fmesg.clear_vec.end  = 0;
   fmesg.clear_qlt.bgn  = 1;
   fmesg.clear_qlt.end  = 0;
-  
+
   fmesg.action = (ActionType)GetType("act:%c","action", fin);
 
   fmesg.eaccession = GetUID("acc:",fin);
@@ -169,7 +169,7 @@ Read_Frag_Mesg(FILE *fin, int frag_class) {
   fmesg.quality  = NULL;
   fmesg.hps      = NULL;
 
-  if ((fmesg.action == AS_ADD) || (fmesg.action == AS_IGNORE)) { 
+  if ((fmesg.action == AS_ADD) || (fmesg.action == AS_IGNORE)) {
 
     // We want to succeed on all reads, and let the gatekeeper do its stuff
     fmesg.type = (FragType)GetType("typ:%c","type", fin);
@@ -189,14 +189,14 @@ Read_Frag_Mesg(FILE *fin, int frag_class) {
 }
 
 static void *Read_FRG_Mesg(FILE *fin)
-{ return Read_Frag_Mesg(fin,MESG_FRG); } 
+{ return Read_Frag_Mesg(fin,MESG_FRG); }
 
 
 
 static void *Read_OVL_Mesg(FILE *fin)
 { static OverlapMesg omesg;
   int    idx;
-  
+
   GET_FIELD(omesg.aifrag,"afr:"F_IID,"a-fragment field");
   GET_FIELD(omesg.bifrag,"bfr:"F_IID,"b-fragment field");
 
@@ -260,7 +260,7 @@ static void *Read_UOM_Mesg(FILE *fin)
 { static UnitigOverlapMesg	mesg;
   GET_FIELD(mesg.chunk1,"ck1:"F_IID,"chunk 1 id field");
   GET_FIELD(mesg.chunk2,"ck2:"F_IID,"chunk 2 id field");
-  
+
   mesg.orient = (ChunkOrientationType)GetType("ori:%1[NAIO]","orientation", fin);
   mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXdcYZ]","overlap type", fin);
 
@@ -281,7 +281,7 @@ Read_IMP_Mesg(FILE *fin, IntMultiPos *imp) {
   int		 i;
   int32		 n, *delta;
   char		*line, *u;
-  
+
   imp->type = (FragType)GetType("typ:%1[RXTELUFSUcBCG]","multipos$", fin);
   GET_FIELD(imp->ident,"mid:"F_IID,"multipos id");
   GET_FIELD(imp->contained,"con:"F_IID,"contained id");
@@ -312,7 +312,7 @@ Read_IMP_Mesg(FILE *fin, IntMultiPos *imp) {
         n = (int32) strtol(line,&u,10);
       }
     }
-  } 
+  }
   GetEOM(fin);
 }
 
@@ -321,7 +321,7 @@ void
 Read_IMV_Mesg(FILE *fin, IntMultiVar *imv) {
 
   GET_PAIR(imv->position.bgn,imv->position.end,"pos:"F_COORD","F_COORD,"position field");
-  GET_FIELD(imv->num_reads,"nrd:"F_S32,"number of reads"); 
+  GET_FIELD(imv->num_reads,"nrd:"F_S32,"number of reads");
   GET_FIELD(imv->num_conf_alleles,"nca:"F_S32,"number of confirmed alleles");
   GET_FIELD(imv->min_anchor_size,"anc:"F_S32,"minimal anchor size");
   GET_FIELD(imv->var_length,"len:"F_S32,"length field");
@@ -358,7 +358,7 @@ Read_IUP_Mesg(FILE *fin, IntUnitigPos *iup) {
   int			i;
   int32			n, *delta;
   char			*line, *u;
-  
+
   iup->type = (UnitigType)GetType("typ:%1[URSPsX]","unitigpos type", fin);
   GET_FIELD(iup->ident,"lid:"F_IID,"unitigpos id");
   GET_PAIR(iup->position.bgn,iup->position.end,"pos:"F_COORD","F_COORD,"position field");
@@ -378,7 +378,7 @@ Read_IUP_Mesg(FILE *fin, IntUnitigPos *iup) {
         n = (int32) strtol(line,&u,10);
       }
     }
-  } 
+  }
   GetEOM(fin);
 }
 
@@ -392,7 +392,7 @@ Read_IUM_Mesg(FILE *fin) {
 # ifdef AS_ENABLE_SOURCE
   mesg.source = GetText("src:",fin,FALSE);
 # endif
-  GET_FIELD(mesg.coverage_stat,"cov:%f","coverage stat");  
+  GET_FIELD(mesg.coverage_stat,"cov:%f","coverage stat");
   mesg.status = (UnitigStatus)GetType("sta:%1[UCNSX]","status", fin);
 
   // flag for handling unitig
@@ -431,7 +431,7 @@ void *
 Read_IUL_Mesg(FILE *fin) {
   static IntUnitigLinkMesg	mesg;
   int				i,size;
-  
+
   GET_FIELD(mesg.unitig1,"ut1:"F_IID,"unitig 1 field");
   GET_FIELD(mesg.unitig2,"ut2:"F_IID,"unitig 2 field");
   mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
@@ -465,7 +465,7 @@ void *
 Read_ICL_Mesg(FILE *fin) {
   static IntContigLinkMesg	mesg;
   int				i,size;
-  
+
   GET_FIELD(mesg.contig1,"co1:"F_IID,"contig 1 field");
   GET_FIELD(mesg.contig2,"co2:"F_IID,"contig 2 field");
   mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
@@ -499,7 +499,7 @@ void *
 Read_ISL_Mesg(FILE *fin) {
   static InternalScaffoldLinkMesg	mesg;
   int				i,size;
-  
+
   GET_FIELD(mesg.iscaffold1,"sc1:"F_IID,"scaffold 1 field");
   GET_FIELD(mesg.iscaffold2,"sc2:"F_IID,"scaffold 2 field");
   mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
@@ -524,7 +524,7 @@ Read_ISL_Mesg(FILE *fin) {
 static void *Read_AFG_Mesg(FILE *fin)
 { static AugFragMesg		mesg;
   char *line;
-  
+
   mesg.eaccession = GetUIDIID("acc:",&mesg.iaccession,fin);
 
   mesg.mate_status = (MateStatType)GetType("mst:%1[ZGCLSONHADEURF]","mate status", fin);
@@ -538,7 +538,7 @@ static void *Read_AFG_Mesg(FILE *fin)
 
 static void *Read_AMP_Mesg(FILE *fin)
 { static AugMatePairMesg	mesg;
-  
+
   mesg.fragment1 = GetUID("frg:",fin);
   mesg.fragment2 = GetUID("frg:",fin);
   mesg.mate_status = (MateStatType)GetType("mst:%1[ZGCLSONHADEURF]","mate status", fin);
@@ -611,7 +611,7 @@ void *
 Read_ICM_Mesg(FILE *fin) {
   static IntConConMesg		mesg;
   int				i;
-  
+
   GET_FIELD(mesg.iaccession,"acc:"F_IID,"accession number");
   mesg.placed = (ContigPlacementStatusType)GetType("pla:%1[PU]","placed flag", fin);
   GET_FIELD(mesg.length,"len:"F_COORD,"contig length");
@@ -642,7 +642,7 @@ Read_ICM_Mesg(FILE *fin) {
         MgenError("Expecting IMP record");
       Read_IMP_Mesg(fin, mesg.pieces + i);
     }
-  }  
+  }
 
   if (mesg.num_unitigs > 0) {
     mesg.unitigs = (IntUnitigPos *)GetMemory(mesg.num_unitigs*sizeof(IntUnitigPos));
@@ -661,7 +661,7 @@ Read_ICM_Mesg(FILE *fin) {
 
 static void *Read_IAF_Mesg(FILE *fin)
 { static IntAugFragMesg		mesg;
-  
+
   GET_FIELD(mesg.iaccession,"acc:"F_IID,"accession field");
   mesg.type = (FragType)GetType("typ:%1[RXELTFSUCBWG]","type", fin);
   GET_FIELD(mesg.chimeric_NOTUSED,"chi:"F_S32,"chimeric flag");
@@ -675,7 +675,7 @@ static void *Read_IAF_Mesg(FILE *fin)
 
 static void *Read_IAM_Mesg(FILE *fin)
 { static IntAugMatePairMesg	mesg;
-  
+
   GET_FIELD(mesg.fragment1,"frg:"F_IID,"accession field");
   GET_FIELD(mesg.fragment2,"frg:"F_IID,"accession field");
   mesg.mate_status = (MateStatType)GetType("mst:%1[ZGCLSONHADEURF]","mate status", fin);
@@ -734,7 +734,7 @@ Read_MPS_Mesg(FILE *fin, SnapMultiPos *imp) {
         n = (int32) strtol(line,&u,10);
       }
     }
-  } 
+  }
   GetEOM(fin);
 }
 
@@ -744,7 +744,7 @@ Read_UPS_Mesg(FILE *fin, UnitigPos *iup) {
   int			i;
   int32			n;
   char			*line, *u;
-  
+
   iup->type = (UnitigType)GetType("typ:%1[URSPs]","unitigpos type", fin);
 
   iup->eident = GetUID("lid:",fin);
@@ -766,7 +766,7 @@ Read_UPS_Mesg(FILE *fin, UnitigPos *iup) {
         n = (int32) strtol(line,&u,10);
       }
     }
-  } 
+  }
   GetEOM(fin);
 }
 
@@ -862,7 +862,7 @@ static void *Read_ULK_Mesg(FILE *fin) {
 static void *Read_CCO_Mesg(FILE *fin)
 { static SnapConConMesg		mesg;
   int  	 i;
-  
+
   mesg.eaccession = GetUIDIID("acc:",&mesg.iaccession,fin);
   mesg.placed = (ContigPlacementStatusType)GetType("pla:%1[PU]","placed flag", fin);
   GET_FIELD(mesg.length,"len:"F_COORD,"contig length");
@@ -914,7 +914,7 @@ static void *Read_CCO_Mesg(FILE *fin)
 static void *Read_CLK_Mesg(FILE *fin)
 { static SnapContigLinkMesg	mesg;
   int				i,size;
-  
+
   mesg.econtig1 = GetUID("co1:",fin);
   mesg.econtig2 = GetUID("co2:",fin);
 
@@ -950,7 +950,7 @@ static void *Read_CLK_Mesg(FILE *fin)
 static void *Read_SLK_Mesg(FILE *fin)
 { static SnapScaffoldLinkMesg	mesg;
   int				i,size;
-  
+
   mesg.escaffold1 = GetUID("sc1:",fin);
   mesg.escaffold2 = GetUID("sc2:",fin);
 
@@ -1058,7 +1058,7 @@ static void Write_VER_Mesg(FILE *fout, void *vmesg) {
   fprintf(fout,"ver:"F_U32"\n", mesg->version);
   fprintf(fout,"}\n");
 }
-         
+
 static void Write_LKG_Mesg(FILE *fout, void *vmesg)
 { LinkMesg *mesg = (LinkMesg *) vmesg;
 
@@ -1159,7 +1159,7 @@ static void Write_IMP_Mesg(FILE *fout, IntMultiPos *mlp)
           mlp->position.bgn,mlp->position.end);
 #ifdef NEW_UNITIGGER_INTERFACE
   fprintf(fout,"ahg:"F_S32"\n",mlp->ahang);
-  fprintf(fout,"bhg:"F_S32"\n",mlp->bhang); 
+  fprintf(fout,"bhg:"F_S32"\n",mlp->bhang);
 #endif
   fprintf(fout,"dln:"F_S32"\n",mlp->delta_length);
   fprintf(fout,"del:\n");
@@ -1232,7 +1232,7 @@ static void Write_IUM_Mesg(FILE *fout, void *vmesg)
   int			i;
 
   assert(strlen(mesg->consensus) == strlen(mesg->quality));
-  assert((strlen(mesg->consensus) == mesg->length) || 
+  assert((strlen(mesg->consensus) == mesg->length) ||
 	 (strlen(mesg->consensus) == 0) );
   fprintf(fout,"{IUM\n");
   fprintf(fout,"acc:"F_IID"\n",mesg->iaccession);
@@ -1338,7 +1338,7 @@ static void Write_ISL_Mesg(FILE *fout, void *vmesg)
 
 static void Write_AFG_Mesg(FILE *fout, void *vmesg)
 { AugFragMesg *mesg = (AugFragMesg *) vmesg;
-  
+
   fprintf(fout,"{AFG\n");
   fprintf(fout,"acc:(%s,"F_IID")\n",AS_UID_toString(mesg->eaccession),mesg->iaccession);
   fprintf(fout,"mst:%c\n",mesg->mate_status);
@@ -1351,7 +1351,7 @@ static void Write_AFG_Mesg(FILE *fout, void *vmesg)
 
 static void Write_AMP_Mesg(FILE *fout, void *vmesg)
 { AugMatePairMesg *mesg = (AugMatePairMesg *) vmesg;
-  
+
   fprintf(fout,"{AMP\n");
   fprintf(fout,"frg:%s\n",AS_UID_toString(mesg->fragment1));
   fprintf(fout,"frg:%s\n",AS_UID_toString(mesg->fragment2));
@@ -1430,7 +1430,7 @@ static void Write_ICM_Mesg(FILE *fout, void *vmesg)
 
 static void Write_IAF_Mesg(FILE *fout, void *vmesg)
 { IntAugFragMesg *mesg = (IntAugFragMesg *) vmesg;
-  
+
   fprintf(fout,"{IAF\n");
   fprintf(fout,"acc:"F_IID"\n",mesg->iaccession);
   fprintf(fout,"typ:%c\n",(char) mesg->type);
@@ -1444,7 +1444,7 @@ static void Write_IAF_Mesg(FILE *fout, void *vmesg)
 
 static void Write_IAM_Mesg(FILE *fout, void *vmesg)
 { IntAugMatePairMesg *mesg = (IntAugMatePairMesg *) vmesg;
-  
+
   fprintf(fout,"{IAM\n");
   fprintf(fout,"frg:"F_IID"\n",mesg->fragment1);
   fprintf(fout,"frg:"F_IID"\n",mesg->fragment2);

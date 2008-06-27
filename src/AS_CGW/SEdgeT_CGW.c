@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.12 2007-08-30 02:59:05 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.13 2008-06-27 06:29:14 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -58,14 +58,14 @@ void PrintSEdgeT(FILE *fp, ScaffoldGraphT *graph, char *label, SEdgeT *edge, CDS
   assert(scaffoldA && scaffoldB);
 
   if(edge->flags.bits.isDeleted) return;
-      
+
   if(edge->flags.bits.isBogus){
     if(edge->flags.bits.isProbablyBogus)
       strcpy(actualOverlap," *Bogus and Prob Bogus*");
     else
       strcpy(actualOverlap," *Bogus*");
   }else if(scaffoldA->aEndCoord > 0 && scaffoldB->aEndCoord > 0){
-    actual = -IntervalsOverlap(scaffoldA->aEndCoord, scaffoldA->bEndCoord, 
+    actual = -IntervalsOverlap(scaffoldA->aEndCoord, scaffoldA->bEndCoord,
                                scaffoldB->aEndCoord, scaffoldB->bEndCoord,-500000);
     delta = edge->distance.mean - actual;
     sprintf(actualOverlap,"actual = %d(%d) %s", actual,delta, "");
@@ -76,12 +76,12 @@ void PrintSEdgeT(FILE *fp, ScaffoldGraphT *graph, char *label, SEdgeT *edge, CDS
   if(edge->flags.bits.hasContributingOverlap){
     if(edge->flags.bits.isPossibleChimera)
       flag = "$C";
-    else 
+    else
       flag = "$O";
   }
 
   fprintf(fp,"\t  cidA:" F_CID " cidB:" F_CID " weight:%d %s ori:%c con:%d distance:%d stddev:%g %s (" F_CID "," F_CID ")\n",
-          edge->idA, edge->idB, 
+          edge->idA, edge->idB,
           edge->edgesContributing,
           flag,
           GetEdgeOrientationWRT(edge, sid),
@@ -186,12 +186,12 @@ double CorrectEdgeVariance(ScaffoldGraphT *graph, CIEdgeT *edge){
 
 */
 
-int CIOffsetAndOrientation(ScaffoldGraphT *graph, 
+int CIOffsetAndOrientation(ScaffoldGraphT *graph,
 			   CDS_CID_t         cid, // input
 			   CIOrient   chunkOrient,    // input orientation of fragment in CI
 			   //			   int        *sid,// output:  scaffold in which this fragment resides
-			   LengthT    *ciOffset,    // CI's offset within Scaffold 
-			   LengthT    *ciFlipOffset,    // CI's offset within Scaffold if we flip the edge 
+			   LengthT    *ciOffset,    // CI's offset within Scaffold
+			   LengthT    *ciFlipOffset,    // CI's offset within Scaffold if we flip the edge
 			   CIOrient   *ciOrient){    // CI's orientation within Scaffold
 
   ChunkInstanceT *CI = GetGraphNode(graph->RezGraph, cid);
@@ -203,7 +203,7 @@ int CIOffsetAndOrientation(ScaffoldGraphT *graph,
 
   //  *sid = CI->scaffoldID;
   CIS = GetCIScaffoldT(graph->CIScaffolds, CI->scaffoldID);
-  
+
   CIInScaffoldOrient = GetNodeOrient(CI);
 
 #ifdef DEBUG_SEDGE
@@ -218,17 +218,17 @@ int CIOffsetAndOrientation(ScaffoldGraphT *graph,
       switch(CIInScaffoldOrient){
         case A_B:// Chunk is A_B in COS
           /*    COS    ------------------------------------------------------->
-                CI      A_B     ---------------------->  
+                CI      A_B     ---------------------->
                 Frag       A_B            ------>
                 Offset                                |==========================|
-          */ 
-	 
+          */
+
           *ciOrient = A_B;
-          ciOffset->mean = 
+          ciOffset->mean =
             (CIS->bpLength.mean -  CI->offsetBEnd.mean);
           ciFlipOffset->mean = CI->offsetBEnd.mean;
-		 
-          ciOffset->variance = 
+
+          ciOffset->variance =
             (CIS->bpLength.variance - CI->offsetBEnd.variance);
           ciFlipOffset->variance = CI->offsetAEnd.variance;
 
@@ -240,16 +240,16 @@ int CIOffsetAndOrientation(ScaffoldGraphT *graph,
           break;
         case B_A: // Chunk is B_A in COS
           /*    COS    ------------------------------------------------------->
-                Chunk     B_A  <----------------------   
-                Frag      A_B         <------    
+                Chunk     B_A  <----------------------
+                Frag      A_B         <------
                 Offset |=======|
-          */ 
+          */
           *ciOrient = B_A;
           ciOffset->mean = CI->offsetBEnd.mean;
-          ciFlipOffset->mean = 
+          ciFlipOffset->mean =
             (CIS->bpLength.mean - CI->offsetBEnd.mean);
           ciOffset->variance = CI->offsetBEnd.variance;
-          ciFlipOffset->variance = 
+          ciFlipOffset->variance =
             (CIS->bpLength.variance - CI->offsetAEnd.variance);
 
           if(ciFlipOffset->variance < 0.0){
@@ -267,17 +267,17 @@ int CIOffsetAndOrientation(ScaffoldGraphT *graph,
       switch(CIInScaffoldOrient){
         case A_B:// Chunk is A_B in COS
           /*    COS    ------------------------------------------------------->
-                Chunk      A_B     ---------------------->  
+                Chunk      A_B     ---------------------->
                 Frag       B_A            <------
                 Offset |===========|
-          */ 
-	 
+          */
+
           *ciOrient = B_A; // in scaffold
           ciOffset->mean = CI->offsetAEnd.mean;
-          ciFlipOffset->mean = 
+          ciFlipOffset->mean =
             (CIS->bpLength.mean - CI->offsetAEnd.mean);
           ciOffset->variance = CI->offsetAEnd.variance;
-          ciFlipOffset->variance = 
+          ciFlipOffset->variance =
             (CIS->bpLength.variance - CI->offsetBEnd.variance);
 
           if(ciFlipOffset->variance < 0.0){
@@ -291,13 +291,13 @@ int CIOffsetAndOrientation(ScaffoldGraphT *graph,
                 Chunk           <----------------------   B_A
                 Frag                   ------>    B_A
                 Offset                                |========================|
-          */ 
+          */
           *ciOrient = A_B; // in scaffold
-          ciOffset->mean =  
+          ciOffset->mean =
             (CIS->bpLength.mean - CI->offsetAEnd.mean);
           ciFlipOffset->mean = CI->offsetAEnd.mean;
 
-          ciOffset->variance =   
+          ciOffset->variance =
             (CIS->bpLength.variance - CI->offsetAEnd.variance);
           ciFlipOffset->variance = CI->offsetBEnd.variance;
 
@@ -323,7 +323,7 @@ int CIOffsetAndOrientation(ScaffoldGraphT *graph,
 void PopulateReverseEdge(EdgeCGW_T * reverseEdge, EdgeCGW_T * forwardEdge)
 {
   *reverseEdge = *forwardEdge;
-  
+
   reverseEdge->idA = forwardEdge->idB;
   reverseEdge->idB = forwardEdge->idA;
 
@@ -342,7 +342,7 @@ void PopulateReverseEdge(EdgeCGW_T * reverseEdge, EdgeCGW_T * forwardEdge)
         assert(0);
         break;
     }
-  
+
   reverseEdge->flags.bits.aContainsB = forwardEdge->flags.bits.bContainsA;
   reverseEdge->flags.bits.bContainsA = forwardEdge->flags.bits.aContainsB;
 
@@ -380,7 +380,7 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
     return TRUE;
 
   InitGraphEdge(&sedge);
-  
+
 #ifndef TRY_IANS_SEDGES
   edgeOrient = GetEdgeOrientationWRT(edge, otherCI->id);
   orient = ((edgeOrient == AB_BA || edgeOrient == AB_AB)?A_B:B_A);
@@ -388,41 +388,41 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
 #ifdef DEBUG_SEDGE
   fprintf(stderr,"* Edge %s (" F_CID "," F_CID ") %c dist: %d in scaffolds (" F_CID "," F_CID ") orient = %c\n",
           (edge->flags.bits.isBogus?"*Bogus*":"     "),
-          thisCI->id, otherCI->id, edgeOrient, (int)edge->distance.mean, 
+          thisCI->id, otherCI->id, edgeOrient, (int)edge->distance.mean,
           thisCI->scaffoldID, otherCI->scaffoldID, orient);
 #endif
 
   mCIok = CIOffsetAndOrientation(graph,
                                  otherCI->id, // input
                                  orient,    // input orientation of fragment in CI
-                                 &mciOffset,    // CI's offset within Scaffold 
+                                 &mciOffset,    // CI's offset within Scaffold
                                  &mciFlipOffset,    // CI's offset within Scaffold if we flip the edge
                                  &mciOrient);
   if(!mCIok)
     return FALSE;
-  
+
   edgeOrient = GetEdgeOrientationWRT(edge, thisCI->id);
   orient = ((edgeOrient == AB_BA || edgeOrient == AB_AB)?A_B:B_A);
   CIok = CIOffsetAndOrientation(graph,
                                 thisCI->id, // input
                                 orient,    // input orientation of fragment in CI
-                                &ciOffset,    // CI's offset within Scaffold 
+                                &ciOffset,    // CI's offset within Scaffold
                                 &ciFlipOffset,    // CI's offset within Scaffold if we flip the edge
                                 &ciOrient);
   assert(CIok);
-  
+
 #ifdef DEBUG_SEDGE
   fprintf(stderr,"* mciOffset = %d mciOrient = %c  ciOffset = %d ciOrient = %c\n",
           (int)mciOffset.mean, mciOrient, (int)ciOffset.mean, ciOrient);
 #endif
-  
+
   /* Mate pairs must be oriented in opposite directions.
      So, if they are oriented the same wrt
      their own chunk, the chunks must be oriented opposite one another */
   switch(ciOrient){
     //
     case A_B:
-      
+
       switch(mciOrient){
         case A_B:
           //           length - 5'             gap            length - 5'
@@ -432,7 +432,7 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
           //      |-------------------------------------------------------|
           //                             mate distance
           //
-          sedgeOrient = AB_BA;  
+          sedgeOrient = AB_BA;
           break;
         case B_A:
           //           length - 5'             gap                5'
@@ -442,7 +442,7 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
           //      |-------------------------------------------------------|
           //                             mate distance
           //
-          sedgeOrient = AB_AB; 
+          sedgeOrient = AB_AB;
           break;
         default:
           assert(0);
@@ -450,7 +450,7 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
       }
       break;
     case B_A:
-      
+
       switch(mciOrient){
         case A_B:
           //                     5'             gap            length - 5'
@@ -470,7 +470,7 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
           //      |-------------------------------------------------------|
           //                             mate/guide distance
           //
-          sedgeOrient = BA_AB; 
+          sedgeOrient = BA_AB;
           break;
         default:
           assert(0);
@@ -499,7 +499,7 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
   }
   sedge.orient = sedgeOrient;
   sedge.distance = distance;
-  
+
 #else
   /* Ian's attempt to simplify, goes straight to fragments
      get edge between fragments, innie or outtie, distance
@@ -517,7 +517,7 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
                           &sedge);
   distance = sedge.distance;
 #endif
-  
+
   sedge.idA = thisCI->scaffoldID;
   sedge.idB = otherCI->scaffoldID;
   sedge.fragA = edge->fragA;
@@ -557,11 +557,11 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
   }
 #endif
   sedge.nextALink = sedge.nextBLink = sedge.prevALink = sedge.prevBLink = NULLINDEX;
-  
+
   if(sedge.idA > sedge.idB)
     {
       SEdgeT reverseEdge = {0};
-    
+
       assert(canonicalOnly == FALSE);
       PopulateReverseEdge(&reverseEdge, &sedge);
       sedge = reverseEdge;
@@ -578,7 +578,7 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
   return TRUE;
 }
 
-  
+
 void BuildSEdgesForScaffold(ScaffoldGraphT * graph,
                             CIScaffoldT * scaffold,
                             int canonicalOnly,
@@ -588,8 +588,8 @@ void BuildSEdgesForScaffold(ScaffoldGraphT * graph,
   GraphEdgeIterator edges;
   CIEdgeT *edge;
   ChunkInstanceT *thisCI;
-    
-  if(isDeadCIScaffoldT(scaffold) || 
+
+  if(isDeadCIScaffoldT(scaffold) ||
      scaffold->type != REAL_SCAFFOLD)
     return;
 
@@ -612,7 +612,7 @@ void BuildSEdgesForScaffold(ScaffoldGraphT * graph,
          isProbablyBogusEdge(edge) ||                // filter junk
          otherCI->scaffoldID == NULLINDEX)             // not scaffolded
         continue;
-      
+
       if(canonicalOnly)
         {
           if(otherCI->scaffoldID < thisCI->scaffoldID)       // not canonical
@@ -630,7 +630,7 @@ void BuildSEdgesForScaffold(ScaffoldGraphT * graph,
       BuildSEdgeFromChunkEdge(graph, thisCI, otherCI, edge, canonicalOnly);
     }
   }
-}      
+}
 
 
 void PrintSEdges(ScaffoldGraphT * graph){
@@ -661,13 +661,13 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
           scaffold->id);
   fprintf(fp, "\nPrinting inter-scaffold contig edges for scaffold " F_CID "\n",
           scaffold->id);
-  
+
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
   while((thisCI = NextCIScaffoldTIterator(&CIs)) != NULL)
     {
       GraphEdgeIterator edges;
       CIEdgeT *edge;
-    
+
       InitGraphEdgeIterator(graph->RezGraph,
                             thisCI->id,
                             ALL_END,
@@ -696,7 +696,7 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
   {
     SEdgeTIterator SEdges = {0};
     SEdgeT * sEdge;
-    
+
     fprintf(fp,
             "\nPrinting raw inter-scaffold scaffold edges for scaffold " F_CID "\n",
             scaffold->id);
@@ -710,7 +710,7 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
                 sEdge->idA, sEdge->idB, sEdge->edgesContributing);
         numEdges++;
       }
-    
+
     fprintf(fp,
             "\nPrinting merged inter-scaffold scaffold edges for scaffold " F_CID "\n",
             scaffold->id);
@@ -724,7 +724,7 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
                 sEdge->idA, sEdge->idB, sEdge->edgesContributing);
         numEdges++;
       }
-    
+
     fprintf(fp, "Done printing %d inter-scaffold scaffold edges for " F_CID "\n",
             numEdges, scaffold->id);
   }
@@ -736,14 +736,14 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
 void BuildSEdges(ScaffoldGraphT *graph, int includeNegativeEdges)
 {
   CDS_CID_t sid;
-  
+
   StartTimerT(&GlobalData->BuildSEdgesTimer);
 
   /* Recycle the SEdge VA */
   ResetEdgeCGW_T(graph->ScaffoldGraph->edges);
   graph->ScaffoldGraph->tobeFreeEdgeHead = NULLINDEX;
   graph->ScaffoldGraph->freeEdgeHead = NULLINDEX;
-  
+
   /* Reset scaffold edge heads */
   for(sid = 0; sid < GetNumGraphNodes(graph->ScaffoldGraph); sid++){
     CIScaffoldT *scaffold = GetGraphNode(graph->ScaffoldGraph,sid);

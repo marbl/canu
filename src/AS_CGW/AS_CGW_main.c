@@ -1,29 +1,29 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.56 2008-06-16 06:12:31 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.57 2008-06-27 06:29:14 brianwalenz Exp $";
 
 
 
 
-static const char *usage = 
+static const char *usage =
 "usage: %s [options] -g <GatekeeperStoreName> -o <OutputPath> <InputCGB.ext>\n"
 "\n"
 "   [-a]           align overlaps  (default)\n"
@@ -145,7 +145,7 @@ int main(int argc, char *argv[]){
   int numEdges = 1024;
   int minSamplesForOverride = 100;
   int ignoreChaffUnitigs = 0;
-  int failOn_NoOverlapFound = 0; 
+  int failOn_NoOverlapFound = 0;
   int geneOutput = 1;  // output simulated coordinates
   int dumpGraphs = 0;
   int outputOverlapOnlyContigEdges = 0;
@@ -163,8 +163,8 @@ int main(int argc, char *argv[]){
   float transQualityCutoff = 0.1; // quality cutoff for TransChunkEdges
   float cgbMicrohetProb = 1.e-05;      // scores less than this are considered repeats
   float cgbApplyMicrohetCutoff = -1; // This basically turns it off, unless enabled
-  float cgbUniqueCutoff = CGB_UNIQUE_CUTOFF; 
-  float cgbDefinitelyUniqueCutoff = CGB_UNIQUE_CUTOFF; 
+  float cgbUniqueCutoff = CGB_UNIQUE_CUTOFF;
+  float cgbDefinitelyUniqueCutoff = CGB_UNIQUE_CUTOFF;
   int maxDegree = 3; // maximum edges to keep for 'nonUnique' nodes
   int maxDegreeUnique = 30; // maximum edges to keep for 'Unique' nodes
   int setGatekeeperStore = 0;
@@ -174,7 +174,7 @@ int main(int argc, char *argv[]){
   int    doResolveSurrogates               = 1;      //  resolveSurrogates
   int    placeAllFragsInSinglePlacedSurros = 0;      //  resolveSurrogates
   double cutoffToInferSingleCopyStatus     = 0.666;  //  resolveSurrogates
- 
+
 #ifdef X86_GCC_LINUX
   /*
   ** Set the x86 FPU control word to force double
@@ -191,21 +191,21 @@ int main(int argc, char *argv[]){
 
   _FPU_SETCW( fpu_cw );
 #endif
- 
+
   fprintf( stderr, "Version: %s\n",CM_ID);
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
   ContigOrientChecker * coc;
   coc = CreateContigOrientChecker();
   assert(coc != NULL);
 #endif
-  
+
   GlobalData  = data = CreateGlobal_CGW();
   GlobalData->stderrc = stderr;
   GlobalData->aligner=DP_Compare;
 
   argc = AS_configure(argc, argv);
 
-  { /* Parse the argument list using "man 3 getopt". */ 
+  { /* Parse the argument list using "man 3 getopt". */
     int ch,errflg=0;
     char  * p;
 
@@ -288,7 +288,7 @@ int main(int argc, char *argv[]){
             default:
               GlobalData->aligner=DP_Compare;
               fprintf(stderr,"Unrecognized value for option -%c (%s)",optopt,optarg);
-          } 
+          }
           break;
         case 'q':
           transQualityCutoff = (float)atof(optarg);
@@ -460,7 +460,7 @@ int main(int argc, char *argv[]){
     data->cgbMicrohetProb = cgbMicrohetProb;
     data -> starting_stone_scaffold = starting_stone_scaffold;
 
-    if(optind < argc) 
+    if(optind < argc)
       {
         char  filepath[2048];
 
@@ -480,7 +480,7 @@ int main(int argc, char *argv[]){
           sprintf(filepath, "%s.cgw_scaffolds", outputPath);
           data->scffp = File_Open(filepath, "w", TRUE);
         }
-        
+
         sprintf(filepath, "%s.timing", outputPath);
         data->timefp = File_Open(filepath, "a", TRUE); // timing file
 
@@ -533,7 +533,7 @@ int main(int argc, char *argv[]){
   if(restartFromLogicalCheckpoint < CHECKPOINT_AFTER_READING_INPUT){
     // create the checkpoint from scratch
     ScaffoldGraph = CreateScaffoldGraph(doRezOnContigs, data->File_Name_Prefix, numNodes, numEdges);
-    
+
     ScaffoldGraph->alignOverlaps = alignOverlaps;
     ScaffoldGraph->doRezOnContigs = doRezOnContigs;
     ScaffoldGraph->checkPointIteration = 0;
@@ -586,7 +586,7 @@ int main(int argc, char *argv[]){
     }  //  checkpoint < CHECKPOINT_AFTER_BUILDING_EDGES
 
     // Compute all overlaps implied by mate links between pairs of unique unitigs
-    ComputeOverlaps( ScaffoldGraph->CIGraph, TRUE, alignOverlaps);  
+    ComputeOverlaps( ScaffoldGraph->CIGraph, TRUE, alignOverlaps);
 
     clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 
@@ -615,8 +615,8 @@ int main(int argc, char *argv[]){
     }
 
     /* Insert the guide edges into the graph AFTER merging */
-    //    InsertGuideEdges(ScaffoldGraph->CIGraph); 
-    {      
+    //    InsertGuideEdges(ScaffoldGraph->CIGraph);
+    {
       /* Looks like we never keep BOTH the CIGraph overlaps and the ContigGraph overlaps */
       ChunkOverlapperT *tmp = ScaffoldGraph->ContigGraph->overlapper;
       ScaffoldGraph->ContigGraph->overlapper = ScaffoldGraph->CIGraph->overlapper;
@@ -644,7 +644,7 @@ int main(int argc, char *argv[]){
 
   // Build scaffolds and do rocks
 
-  if(immediateOutput == 0 && 
+  if(immediateOutput == 0 &&
      ((restartFromLogicalCheckpoint < CHECKPOINT_AFTER_BUILDING_AND_CLEANING_SCAFFOLDS) &&
       data->repeatRezLevel > 0)){
     int skipInitialScaffolds = 0;
@@ -667,7 +667,7 @@ int main(int argc, char *argv[]){
     ResetContigOrientChecker(coc);
     AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
-    
+
     if(GlobalData->debugLevel > 0)
       DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
 
@@ -688,7 +688,7 @@ int main(int argc, char *argv[]){
       DumpCIScaffolds(GlobalData->stderrc, ScaffoldGraph, FALSE);
     }
     CleanupScaffolds(ScaffoldGraph,FALSE, NULLINDEX, FALSE);
-  
+
     if(GlobalData->debugLevel > 0){
       fprintf(GlobalData->stderrc,"**** AFTER cleanupScaffolds ***\n");
       DumpCIScaffolds(GlobalData->stderrc, ScaffoldGraph, FALSE);
@@ -728,7 +728,7 @@ int main(int argc, char *argv[]){
     was in use if set on the command line
   */
   data->repeatRezLevel = repeatRezLevel;
-  
+
   // Convert single-contig scaffolds that are marginally unique back
   // to unplaced contigs so they might be placed as stones
   //
@@ -784,7 +784,7 @@ int main(int argc, char *argv[]){
 
 
 
-  if(immediateOutput == 0 && 
+  if(immediateOutput == 0 &&
      (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_2ND_SCAFF_MERGE)){
     fprintf(GlobalData->stderrc,"* Before Final MergeScaffoldsAggressive\n");
     CheckCIScaffoldTs(ScaffoldGraph);
@@ -901,7 +901,7 @@ int main(int argc, char *argv[]){
       fprintf (GlobalData -> stderrc,
                "**** Finished Final Contained Stones level %d ****\n",
                GlobalData -> stoneLevel);
-      
+
       CleanupScaffolds (ScaffoldGraph, FALSE, NULLINDEX, FALSE);
       clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 
@@ -932,7 +932,7 @@ int main(int argc, char *argv[]){
     }
 
 
-  if(immediateOutput == 0 && 
+  if(immediateOutput == 0 &&
      (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_FINAL_CLEANUP)){
     fprintf(GlobalData->stderrc,"* Before CleanupFailedMerges\n");
 
@@ -945,14 +945,14 @@ int main(int argc, char *argv[]){
       CheckpointScaffoldGraph(ScaffoldGraph, -1);
 
       ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
-      
+
       // This call deletes surrogate-only contigs that failed to merge
       if( CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, TRUE)){
 
         fprintf(data->stderrc, "Checkpoint %d written after DeleteAllSurrogateContigsFromFailedMerges\n",ScaffoldGraph->checkPointIteration);
         fprintf(data->timefp,  "Checkpoint %d written after DeleteAllSurrogateContigsFromFailedMerges\n",ScaffoldGraph->checkPointIteration);
         CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_FINAL_CLEANUP+1);
-	
+
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
         fprintf(stderr, "---Checking contig orders after final cleanup\n\n");
         CheckAllContigOrientationsInAllScaffolds(ScaffoldGraph, coc, POPULATE_COC_HASHTABLE);
@@ -963,7 +963,7 @@ int main(int argc, char *argv[]){
   }
 
 
-  if(immediateOutput == 0 && 
+  if(immediateOutput == 0 &&
      (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_RESOLVE_SURROGATES) &&
      (doResolveSurrogates > 0)) {
     fprintf(GlobalData->stderrc,"* Before resolveSurrogates (-S=%f -1=%d)\n",

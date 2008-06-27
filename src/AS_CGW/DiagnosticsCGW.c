@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: DiagnosticsCGW.c,v 1.12 2007-09-05 11:22:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: DiagnosticsCGW.c,v 1.13 2008-06-27 06:29:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -154,8 +154,8 @@ void CheckSmallScaffoldGaps(ScaffoldGraphT *graph){
       {
         EdgeCGW_T *edge = FindGraphEdge(graph->RezGraph, curr->id, next->id, pairwiseOrient);
         CDS_COORD_t overlap;
-				      
-	  
+
+
         while(edge){
           PrintGraphEdge(stderr, graph->RezGraph, " Found associated edge ", edge, curr->id);
           if(edge->nextALink == edge->nextBLink &&
@@ -166,7 +166,7 @@ void CheckSmallScaffoldGaps(ScaffoldGraphT *graph){
         }
 
         overlap = SmallOverlapExists(graph->RezGraph, curr->id, next->id, pairwiseOrient, CGW_DP_DESPERATION_MINLEN);
-	
+
         if(overlap){
           fprintf(stderr,">>>>> YES SMALL Overlap of " F_COORD " found  gap mean: %g std: %g <<<<<<\n",
                   overlap, gap.mean, sqrt(gap.variance));

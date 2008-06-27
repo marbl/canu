@@ -14,8 +14,8 @@ use LWP::UserAgent;
 use MIME::Lite;
 
 my $HELPTEXT = qq~
- 
- This is the observer script that logs the progress of an Assembly job 
+
+ This is the observer script that logs the progress of an Assembly job
  in the database. It is called directly by the Workflow system
 
 ~;
@@ -47,13 +47,13 @@ my $text = undef;
 my $prefix = undef;
 
 our @DEPEND = ("TIGR::Foundation");
-our $REVISION = (qw$Revision: 1.2 $)[-1];
+our $REVISION = (qw$Revision: 1.3 $)[-1];
 our $VERSION = '2.2';
 our $VERSION_STRING = "$VERSION (Build $REVISION)";
 
 #This function initializes the connection to the database
 sub init_db_connection() {
- 
+
    my $sybase = $ENV{SYBASE};
    $ENV{SYBASE} = '/usr/local/packages/sybase'
        if ( !defined $sybase or !-d $sybase );
@@ -65,44 +65,44 @@ sub init_db_connection() {
                          $user, $password,
                          { PrintError => 0,
                            RaiseError => 0,
-                           AutoCommit => 1  
+                           AutoCommit => 1
                          }
                       );
-   $dbh->do("use $database") or 
+   $dbh->do("use $database") or
       die("Failed to open database \'$database\'");
 }
 
 #Name:   updateErrorStatus($keyword)
 #Input:  the keyword indicating the message to be put in the Messages table
 #Usage:  This function updates the Request table and puts the appropriate
-#        message in the Messages table to indicate that there was an error 
+#        message in the Messages table to indicate that there was an error
 #        while processing the request.
 sub UpdateErrorStatus($;$) {
    my $keyword = shift;
    my $params = shift;
-   
+
    if(!defined $dbh) {
       init_db_connection();
    }
    if(defined $dbh) {
       my $query = "select message_code from Message_Template where template like ".
-                  "\'%$keyword%\'"; 
-   
+                  "\'%$keyword%\'";
+
       print("Running query $query ...");
-      my $qh = $dbh->prepare($query) or die("Cannot prepare $query: " . 
+      my $qh = $dbh->prepare($query) or die("Cannot prepare $query: " .
                                           $dbh->errstr);
       if(! defined $qh->execute())
       {
          die("Database query \'$query\' failed: " . $dbh->errstr);
       }
-  
+
       my $code = $qh->fetchrow();
       my $status = "E";
-   
+
       $qh = undef;
       $query = "update Request set job_terminated = convert(smalldatetime,getdate()), ".
-            "status = \'$status\' where request_id = $request_id";   
-   
+            "status = \'$status\' where request_id = $request_id";
+
       $qh = $dbh->prepare($query) or die("Cannot prepare $query: " .$dbh->errstr);
       if(! defined $qh->execute())
       {
@@ -122,15 +122,15 @@ sub UpdateErrorStatus($;$) {
       if(! defined $qh->execute())
       {
          die("Database query \'$query\' failed: " . $dbh->errstr);
-      } 
+      }
       $qh = undef;
    }
    $dbh->disconnect();
    $dbh = undef;
- } 
+ }
 
 
-#This method updates the Progress table in the asdb database 
+#This method updates the Progress table in the asdb database
 #with the percentage of assembly completion
 sub putProgress($) {
    my $pf = shift;
@@ -141,12 +141,12 @@ sub putProgress($) {
    my $pid = getppid;
    my $process_query = "update Process set progress=$new_progress ".
                        "where request_id = $request_id";
-     
+
    print("Executing the process query $process_query");
-   
-   my $qh = $dbh->prepare($process_query) or 
+
+   my $qh = $dbh->prepare($process_query) or
    die("Cannot prepare $process_query: " . $dbh->errstr);
-   
+
    if (! defined $qh->execute()) {
       die("Database query \'$process_query\' failed: " . $dbh->errstr);
    }
@@ -156,64 +156,64 @@ sub putProgress($) {
       my $status = undef;
       #Updating the Request table for the finished job
       $status = "F";
-      my $status_query = 
+      my $status_query =
         "update Request set job_terminated = convert(smalldatetime,getdate()), ".
         "job_retrieved = convert(smalldatetime,getdate()), ".
         "status = \'$status\' where request_id = $request_id";
-   
+
       print("Executing the status query $status_query");
-   
-      my $qh = $dbh->prepare($status_query) or 
+
+      my $qh = $dbh->prepare($status_query) or
       die("Cannot prepare $status_query: " . $dbh->errstr);
-   
+
       if (! defined $qh->execute()) {
-         die("Database query \'$status_query\' failed: " . 
+         die("Database query \'$status_query\' failed: " .
                            $dbh->errstr);
 
       }
       $dbh->disconnect();
       $dbh = undef;
-      
-   } 
+
+   }
 }
 
 sub sendMail() {
    if(!defined $dbh) {
       init_db_connection();
    }
-   my $stats_query = 
+   my $stats_query =
       "select status, submitter from  Request where ".
       "request_id = $request_id";
-   
+
    print("Executing the query $stats_query");
-   
-   my $qh = $dbh->prepare($stats_query) or 
+
+   my $qh = $dbh->prepare($stats_query) or
       die("Cannot prepare $stats_query: " . $dbh->errstr);
-   
+
    if (! defined $qh->execute()) {
       die("Database query \'$stats_query\' failed: " . $dbh->errstr);
    }
    my @row = $qh->fetchrow();
    my $status = $row[0];
    my $submitter = $row[1];
-   
+
    $qh->finish;
    $qh = undef;
-   
+
    $dbh->disconnect();
    $dbh = undef;
 
    my $subject = undef;
-   
+
    if($status eq "F") {
        $subject = "Assembly request $request_id completed";
    }
    if($status eq "E") {
        $subject = "Assembly request $request_id had errors";
    }
-   
+
    my $body = undef;
-   
+
    if(!$text) {
       my $request_url = $REQUEST_URL;
       $request_url =~ s/HOST/$host/;
@@ -227,9 +227,9 @@ sub sendMail() {
       }
       else {
          my $message = $resp->message;
-         print("Could not send mail from $REQUEST_URL : $message"); 
+         print("Could not send mail from $REQUEST_URL : $message");
          $text = 1;
-      }   
+      }
    }
 
    if($text) {
@@ -238,7 +238,7 @@ sub sendMail() {
               "Please see the error files at $marshalling_base/$request_id \n".
               "for error tracking. Also check for error messages from the \n".
               "job by visiting the AserverConsole at /http://aserver.tigr.org:18080/aserver.\n";
-      }  
+      }
       if($status eq "F") {
          $body = "Your request with id $request_id was successful.\n";
          if(-e $resdir) {
@@ -256,9 +256,9 @@ sub sendMail() {
          my %headers = (
             'To' => "$submitter\@jcvi.org",
             'From' => 'aserver@jcvi.org',
-            'Subject' => $subject 
+            'Subject' => $subject
          );
-   
+
          $mailprog->open(\%headers);
          print $mailprog $body;
          $mailprog->close;
@@ -270,7 +270,7 @@ sub sendMail() {
                         Subject =>"$subject",
                         Type    =>"multipart/related"
                        );
-         
+
 
          $msg->attach(Type => "text/html",
                       Data => $body);
@@ -281,12 +281,12 @@ sub sendMail() {
    if(($status eq "E") && (defined $support_email)) {
       my $subject = "Assembly request $request_id had errors";;
       my $body = undef;
-      
+
       $body = "The request with id $request_id failed.\n".
          "Please see the error files at $marshalling_base/$request_id \n".
          "for error tracking. Also check for error messages from the \n".
          "job by visiting the Aserver Console at /http://aserver.tigr.org:18080/aserver.\n";
-   
+
       use Mail::Mailer;
       my $type = 'sendmail';
       my $mailprog = Mail::Mailer->new($type);
@@ -294,14 +294,14 @@ sub sendMail() {
       my %headers = (
          'To' => "$support_email\@jcvi.org",
          'From' => "$submitter\@jcvi.org",
-         'Subject' => $subject 
+         'Subject' => $subject
       );
-   
+
       $mailprog->open(\%headers);
       print $mailprog $body;
       $mailprog->close;
-   } 
-}      
+   }
+}
 
 sub bailOut($) {
    my $message = shift;
@@ -314,14 +314,14 @@ sub bailOut($) {
    die("$message");
 }
 
-MAIN: 
+MAIN:
 {
    my $name = undef;
    my $id = undef;
    my $time = undef;
    my $event = undef;
    my $inst_filename = undef;
-   my $prop_filename = undef; 
+   my $prop_filename = undef;
    my $fail_message = undef;
    my $hostname = undef;
    my $message = undef;
@@ -344,12 +344,12 @@ MAIN:
        				    'event=s',  \$event,
        				    'file=s',   \$inst_filename,
                                     'props=s',  \$prop_filename,
-                                    'message=s', \$message, 
+                                    'message=s', \$message,
                                     'retval=i',  \$retval,
                                     'fail=s',    \$fail_message,
                                     'host=s',   \$hostname
 				  );
-   
+
    if ( ! defined ( $result ) ) {
       die("The options could not be read");
    }
@@ -359,10 +359,10 @@ MAIN:
    my $prog_name = $tf_object->getProgramInfo("name");
    my $invocation = $tf_object->getProgramInfo("invocation");
    print("START: $prog_name $invocation");
-   
+
    #read the properties file to get important information about the job
    if((defined $prop_filename) && (-e $prop_filename)) {
-      $pf = new IO::File("$prop_filename") or 
+      $pf = new IO::File("$prop_filename") or
               die("Failed to open  $prop_filename($!)");
       my $line = undef;
       my @props_arr = ();
@@ -370,32 +370,32 @@ MAIN:
       while(defined ($line = <$pf>)) {
          chomp($line);
          @props_arr = split("=", $line);
-           
+
          if($props_arr[0] =~ /request_id/) {
 	    $request_id = $props_arr[1];
             print("The request id is $request_id");
 	 }
-         
+
          if($props_arr[0] =~ /server/) {
 	    $server = $props_arr[1];
             print("The server is $server");
 	 }
-  
+
          if($props_arr[0] =~ /user/) {
 	    $user = $props_arr[1];
             print("The user is $user");
 	 }
-    
+
          if($props_arr[0] =~ /password/) {
 	    $password = $props_arr[1];
             print("The password is $password");
 	 }
-        
+
          if($props_arr[0] =~ /database/) {
 	    $database = $props_arr[1];
             print("The database is $database");
 	 }
- 
+
          if($props_arr[0] =~ /host/) {
 	    $host = $props_arr[1];
             print("The host is $host");
@@ -405,12 +405,12 @@ MAIN:
 	    $resdir = $props_arr[1];
             print("The resdir is $resdir ");
 	 }
-  
+
          if($props_arr[0] =~ /marshalling_base/) {
 	    $marshalling_base = $props_arr[1];
             print("The marshalling_base is $marshalling_base");
 	 }
-         
+
          if((defined $marshalling_base) && (defined $request_id)) {
             $outdir = "$marshalling_base/$request_id";
             print("the outdir is $outdir");
@@ -430,7 +430,7 @@ MAIN:
 	    $text = $props_arr[1];
             print("The text is $text");
 	 }
- 
+
          if($props_arr[0] =~ /prefix/) {
 	    $prefix = $props_arr[1];
             print("The prefix is $prefix");
@@ -440,7 +440,7 @@ MAIN:
 	    $tot_count = $props_arr[1];
             print("The total number of commands is $tot_count");
 	 }
-  
+
          if($props_arr[0] =~ /command_count/) {
 	    $cmd_count = $props_arr[1];
          }
@@ -450,15 +450,15 @@ MAIN:
    }
    if(defined $cmd_count) {
       print("The command count is $cmd_count");
-   }        
+   }
    close $pf;
-   
+
    #Initialize a connection to the database
    init_db_connection();
- 
-   if(($event eq "start") && (defined $hostname)) { 
-                                                   #if a program started log the 
-                                                   #step in the 
+
+   if(($event eq "start") && (defined $hostname)) {
+                                                   #if a program started log the
+                                                   #step in the
                                                    #AdminLog table in asdb
       chomp $name;
       my $status = "$name started";
@@ -466,45 +466,45 @@ MAIN:
       if (defined($hostname)) {
 	  $status .= " on $hostname";
       }
-             
+
       if(!defined $user) {
          die("The user is not defined");
       }
       my $status_query = "exec $database..putAdminLog '$status','$user',$request_id";
       print("Running query $status_query ...");
-      my $qh = $dbh->prepare($status_query) or 
+      my $qh = $dbh->prepare($status_query) or
          die("Cannot prepare $status_query: " .$dbh->errstr);
-      
+
       if(! defined $qh->execute())
       {
          die("Database query \'$status_query\' failed: " . $dbh->errstr);
       }
 
       $qh = undef;
-      
+
       my $request_query = "update Request set job_host = \"$hostname\" ".
                "where request_id = $request_id";
       print("Running query $request_query ...");
-      $qh = $dbh->prepare($request_query) or 
+      $qh = $dbh->prepare($request_query) or
          die("Cannot prepare $request_query: " .$dbh->errstr);
-      
+
       if(! defined $qh->execute())
       {
-         die("Database query \'$request_query\' failed: " . 
+         die("Database query \'$request_query\' failed: " .
                               $dbh->errstr);
       }
       $qh = undef;
    }
-  
-   if(($event eq "failure") || ((defined $retval) && ($retval != 0))){ #if the command failed update the Request 
-                                                #and Messages table in asdb 
+
+   if(($event eq "failure") || ((defined $retval) && ($retval != 0))){ #if the command failed update the Request
+                                                #and Messages table in asdb
       UpdateErrorStatus("CA pipeline", $name);
       bailOut("ERROR: The $name program from the CA pipeline was not successful");
    }
-   
-   if($event eq "finish") { #if the command finished Update the Process table 
+
+   if($event eq "finish") { #if the command finished Update the Process table
                             #and the RequestTable
-      $pf = new IO::File(">> $prop_filename") or 
+      $pf = new IO::File(">> $prop_filename") or
               die("Failed to open  $prop_filename($!)");
       putProgress($pf);
       close($pf);
@@ -514,5 +514,5 @@ MAIN:
       $dbh->disconnect();
    }
 
-   exit 0;   
+   exit 0;
 }

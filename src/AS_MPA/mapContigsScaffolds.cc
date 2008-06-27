@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: mapContigsScaffolds.cc,v 1.5 2008-03-18 07:02:45 brianwalenz Exp $ */
+/* $Id: mapContigsScaffolds.cc,v 1.6 2008-06-27 06:29:17 brianwalenz Exp $ */
 #include <cstdio>
 #include <iostream>
 #include <fstream>
@@ -32,7 +32,7 @@ int main(int argc, char ** argv)
     cerr << "Usage: " << argv[0] << "  allGaps.txt   all.out\n";
     cerr << "contigs written to stderr, scaffolds to stdout\n";
     exit(1);
-    
+
   }
 
   ifstream fi1(argv[1], ios::in);
@@ -69,7 +69,7 @@ int main(int argc, char ** argv)
   unsigned long cl = 0;
   unsigned long cr = lgl;
   unsigned long clength = cr - cl;
-  
+
   cout << sc << " " << scaffoldID << " " << sl << " " << slength << endl;
   if(cl > 0)
   {
@@ -103,7 +103,7 @@ int main(int argc, char ** argv)
 
     if(clength < 150)
       printIt = false;
-    
+
     if(gc > sc || (cc == sc && cl > sr))
     {
       fi2.getline(line2, 2047);
@@ -135,7 +135,7 @@ int main(int argc, char ** argv)
       cerr << cc << " " << scaffoldID << " " << contigID << " "
            << cl << " " << clength << endl;
     }
-    
+
     lgc = gc;
     lgl = gl;
     lgr = gr;
@@ -143,6 +143,6 @@ int main(int argc, char ** argv)
   }
   fi1.close();
   fi2.close();
-  
+
   return 0;
 }

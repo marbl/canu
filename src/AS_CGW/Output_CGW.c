@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.33 2008-06-16 22:53:26 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.34 2008-06-27 06:29:14 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -37,11 +37,11 @@ static VA_TYPE(IntMate_Pairs) *JumpList = NULL;
 
 /*********/
 
-/* This Routine outputs the MateDist messages and also set the 
+/* This Routine outputs the MateDist messages and also set the
    outMateStat field for the IntAugFrag messages */
 
 void OutputMateDists(ScaffoldGraphT *graph){
-  int                   i; 
+  int                   i;
   GenericMesg		pmesg;
   IntMateDistMesg	imd;
   DistT			*dptr;
@@ -62,7 +62,7 @@ void OutputMateDists(ScaffoldGraphT *graph){
     imd.mean        = dptr->mu;
     imd.stddev      = dptr->sigma;
     imd.min         = CDS_COORD_MIN;
-    imd.max         = CDS_COORD_MAX;      
+    imd.max         = CDS_COORD_MAX;
     imd.num_buckets = 0;
     imd.histogram   = NULL;
 
@@ -105,7 +105,7 @@ void OutputFrags(ScaffoldGraphT *graph){
   int cunknown   =0;
   int cinvalid   =0;
   int cwrongScf  =0;
-  
+
   // Output fragments in iid order
   //
   for(i = 0; i < GetNumInfoByIIDs(graph->iidToFragIndex); i++) {
@@ -158,7 +158,7 @@ void OutputFrags(ScaffoldGraphT *graph){
     IntAugMatePairMesg  iam;
 
     inf1 = GetInfoByIID(graph->iidToFragIndex, i);
-    
+
     if(!inf1->set)
       continue;
 
@@ -205,11 +205,11 @@ void MarkContigEdges(void){
   GraphNodeIterator scaffolds;
 
   assert(ScaffoldGraph->doRezOnContigs);
-  
+
   fprintf(GlobalData->stderrc,"* MarkContigEdges\n");
-  
+
   // Mark the trustedness of the intra-scaffold, inter-contig edges
-    
+
   InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
   while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL){
     if(scaffold->type != REAL_SCAFFOLD)
@@ -217,7 +217,7 @@ void MarkContigEdges(void){
     MarkInternalEdgeStatus(ScaffoldGraph, scaffold, PAIRWISECHI2THRESHOLD_CGW,
                            100000000000.0, TRUE, TRUE, 0, FALSE);
   }
-    
+
   InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
   while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL){
     ContigT *contig;
@@ -263,22 +263,22 @@ void OutputContigsFromMultiAligns(void){
   GraphNodeIterator     nodes;
   ContigT		*ctg;
   int32 ubufSize = 100;
-  
+
   pmesg.m = &icm_mesg;
   pmesg.t = MESG_ICM;
-  
+
   icm_mesg.unitigs = (IntUnitigPos *) safe_malloc(ubufSize*sizeof(IntUnitigPos));
-  
+
   InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
   /* 1st get min and max values */
   while((ctg = NextGraphNodeIterator(&nodes)) != NULL){
     AS_IID    i;
-    
+
     if(ctg->flags.bits.isChaff){
       //      fprintf(GlobalData->stderrc,"* # Contig " F_CID " is CHAFF\n", ctg->id);
       continue;
     }
-    
+
     {
       CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, ctg->scaffoldID);
       AS_IID    numFrag;
@@ -292,7 +292,7 @@ void OutputContigsFromMultiAligns(void){
       mp = GetIntMultiPos(ma->f_list,0);
       numUnitig = GetNumIntUnitigPoss(ma->u_list);
       up = GetIntUnitigPos(ma->u_list,0);
-      
+
       if(numUnitig >= ubufSize){
         ubufSize = numUnitig * 2;
         icm_mesg.unitigs = (IntUnitigPos *) safe_realloc(icm_mesg.unitigs, ubufSize*sizeof(IntUnitigPos));
@@ -341,7 +341,7 @@ void OutputContigsFromMultiAligns(void){
         icm_mesg.consensus = Getchar(ma->consensus,0);
         icm_mesg.quality = Getchar(ma->quality,0);
       }
-      
+
       if(icm_mesg.num_unitigs > 1){
         assert(ctg->scaffoldID != NULLINDEX);
         if (GlobalData->ctgfp)
@@ -349,7 +349,7 @@ void OutputContigsFromMultiAligns(void){
       }else{
         if(ctg->scaffoldID == NULLINDEX) {// contig is not placed
           NodeCGW_T *unitig = GetGraphNode(ScaffoldGraph->CIGraph, ctg->info.Contig.AEndCI);
-          
+
           assert(unitig != NULL);
           if(unitig->info.CI.numInstances == 0){ // If this unitig has been placed as a surrogate, don't output contig
             if (GlobalData->ctgfp)
@@ -382,7 +382,7 @@ static int SurrogatedSingleUnitigContig( NodeCGW_T* contig)
 	  NodeCGW_T *unitig = GetGraphNode(ScaffoldGraph->CIGraph, contig->info.Contig.AEndCI);
 
 	  assert(unitig != NULL);
-	  
+
 	  if(unitig->info.CI.numInstances == 0) // this unitig has not been placed as a surrogate
             {
               return 0;
@@ -395,7 +395,7 @@ static int SurrogatedSingleUnitigContig( NodeCGW_T* contig)
       else
 	{ // Contig is placed
 	  return 0;
-	}     
+	}
     }
 }
 
@@ -534,7 +534,7 @@ void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges)
 	}
 	assert(GetNumIntMate_Pairss(JumpList) == edgeTotal);
 	assert(edgeCount == edgeTotal);
-      }		// if (edge . . . 
+      }		// if (edge . . .
       clm.jump_list = GetIntMate_Pairs(JumpList,0);
 
       if (GlobalData->scffp)
@@ -556,29 +556,29 @@ static void OutputScaffoldLink(ScaffoldGraphT * graph,
   IntMate_Pairs	imp;
   int edgeTotal = 0;
   int edgeCount = 0; // This var used for sanity checks
-  
+
   pmesg.m = &slm;
   pmesg.t = MESG_ISL;
   slm.iscaffold1 = scaffold->id;
-  
+
   if(JumpList == NULL)
     JumpList = CreateVA_IntMate_Pairs(256);
   else
     ResetVA_IntMate_Pairs(JumpList);
-    
+
   mate = GetGraphNode(ScaffoldGraph->ScaffoldGraph, edge->idB);
-  
+
   slm.iscaffold2 = mate->id;
-  
+
   /* Don't need to map orientation, always using canonical orientation*/
   slm.orientation = edge->orient;
   assert(!isOverlapEdge(edge));
-  
+
   slm.includes_guide = FALSE;
   slm.mean_distance = edge->distance.mean;
   slm.std_deviation = sqrt(edge->distance.variance);
   edgeTotal = slm.num_contributing = edge->edgesContributing;
-  
+
   redge = edge;
 #if 1
   if(edgeTotal < 2)
@@ -600,13 +600,13 @@ static void OutputScaffoldLink(ScaffoldGraphT * graph,
     AppendIntMate_Pairs(JumpList, &imp);
     edgeCount = 1;
   }else{
-    
+
     assert(!edge->flags.bits.isRaw);
-    
+
     assert(redge->nextRawEdge != NULLINDEX); // must have >= 1 raw edge
-    
+
     edgeCount = 0;
-    
+
     while (redge->nextRawEdge != NULLINDEX) {
       redge = GetGraphEdge(ScaffoldGraph->ScaffoldGraph,redge->nextRawEdge);
       assert(!isOverlapEdge(redge));
@@ -634,7 +634,7 @@ static void OutputScaffoldLinksForScaffold(ScaffoldGraphT * graph,
 {
   GraphEdgeIterator	edges;
   CIEdgeT		*edge;
-  
+
   InitGraphEdgeIterator(graph->ScaffoldGraph, scaffold->id,
                         ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
   while((edge = NextGraphEdgeIterator(&edges)) != NULL)
@@ -686,7 +686,7 @@ void OutputUnitigsFromMultiAligns(void){
       //      fprintf(GlobalData->stderrc,"* # Unitig " F_CID " is CHAFF\n", ci->id);
       continue;
     }
-         
+
     switch(ci->type){
       case DISCRIMINATORUNIQUECHUNK_CGW:
         status = AS_UNIQUE;
@@ -726,7 +726,7 @@ void OutputUnitigsFromMultiAligns(void){
 
       ci->outputID = cid++;
       //assert(ci->outputID == ci->id); // TRUE FOR UNITIGS UNTIL WE SPLIT
-    
+
       ium_mesg.iaccession = ci->id;
 #ifdef AS_ENABLE_SOURCE
       ium_mesg.source = Getchar(ScaffoldGraph->SourceFields, ci->info.CI.source);
@@ -779,7 +779,7 @@ void OutputUnitigLinksFromMultiAligns(void){
 
     AssertPtr(ci);
     assert (ci->type != CONTIG_CGW);
-    
+
     // We skip these...
     if(ci->type == RESOLVEDREPEATCHUNK_CGW)
       continue;
@@ -848,7 +848,7 @@ void OutputUnitigLinksFromMultiAligns(void){
 
           assert(fragA && fragB);
           assert(fragA->flags.bits.edgeStatus== fragB->flags.bits.edgeStatus);
-		
+
           if(fragA->flags.bits.edgeStatus == UNTRUSTED_EDGE_STATUS ||
              fragA->flags.bits.edgeStatus == TENTATIVE_UNTRUSTED_EDGE_STATUS){
             numBad++;
@@ -859,7 +859,7 @@ void OutputUnitigLinksFromMultiAligns(void){
             numUnknown++;
           }
         }
-	  
+
         if(numBad > 0){
           ulm.status = AS_BAD;
         }else if(numGood > 0){
@@ -867,7 +867,7 @@ void OutputUnitigLinksFromMultiAligns(void){
         }else ulm.status = AS_UNKNOWN_IN_ASSEMBLY;
 
       }
-	      
+
       ResetVA_IntMate_Pairs(JumpList);
 
       if (edge->flags.bits.isRaw) {

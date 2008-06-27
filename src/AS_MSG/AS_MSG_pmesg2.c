@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 2007, J. Craig Venter Instititue.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.11 2008-06-16 16:58:54 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.12 2008-06-27 06:29:17 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -99,7 +99,7 @@ Read_LIB_Mesg(FILE *fin) {
         fb++;
 
       lmesg.values[i] = fb;
-      
+
       //  Look for the end (a new line)
       while ((*fb != '\n') && (*fb != '\r'))
         fb++;
@@ -192,7 +192,7 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
   fmesg.quality  = NULL;
   fmesg.hps      = NULL;
 
-  if ((fmesg.action == AS_ADD) || (fmesg.action == AS_IGNORE)) { 
+  if ((fmesg.action == AS_ADD) || (fmesg.action == AS_IGNORE)) {
     char  *line;
     int    b, e;
 
@@ -227,7 +227,7 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
       fmesg.clear_rng.bgn = b;
       fmesg.clear_rng.end = e;
     } else {
-      MfieldError("final clear range field");	
+      MfieldError("final clear range field");
     }
   }  //  action is AS_ADD
 

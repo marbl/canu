@@ -1,24 +1,24 @@
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.36 2008-04-28 04:41:47 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.37 2008-06-27 06:29:14 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -74,7 +74,7 @@ void restoreFragAndUnitigData(int lFragIid, int rFragIid);
 void saveDefaultLocalAlignerVariables(void);
 void restoreDefaultLocalAlignerVariables(void);
 int  examineGap(ContigT *lcontig, int lFragIid,
-                ContigT *rcontig, int rFragIid, 
+                ContigT *rcontig, int rFragIid,
                 int  gapNumber,
                 int *ahang,
                 int *olapLengthOut,
@@ -357,7 +357,7 @@ main(int argc, char **argv) {
 
       if (scfOnlyLen > 0) {
         int  doScaffold = 0;
-        
+
         for (s=0; s<scfOnlyLen; s++)
           if (scfOnly[s] == sid)
             doScaffold = 1;
@@ -398,7 +398,7 @@ main(int argc, char **argv) {
 
       while (contigID != -1) {
         ContigT     *contig = GetGraphNode(ScaffoldGraph->ContigGraph, contigID);
-        MultiAlignT *ma     = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE); 
+        MultiAlignT *ma     = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
         int          i;
 
         for (i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
@@ -505,8 +505,8 @@ main(int argc, char **argv) {
 
 
       fprintf(stderr, "---------------------------------------------------------------\n");
-      fprintf(stderr, "examining gap %d from lcontig %d (orient: %c, pos: %f, %f) to rcontig %d (orient: %c, pos: %f, %f), size: %lf \n", 
-              gapNumber, 
+      fprintf(stderr, "examining gap %d from lcontig %d (orient: %c, pos: %f, %f) to rcontig %d (orient: %c, pos: %f, %f), size: %lf \n",
+              gapNumber,
               lcontig->id, lcontigOrientation, lcontig->offsetAEnd.mean, lcontig->offsetBEnd.mean,
               rcontig->id, rcontigOrientation, rcontig->offsetAEnd.mean, rcontig->offsetBEnd.mean,
               gapSize.mean);
@@ -573,10 +573,10 @@ main(int argc, char **argv) {
 
 
       if (debug.eCRmainLV > 0)
-        fprintf(debug.eCRmainFP, "gap (%d, %d) has extendable frag pair on left: %d, on right: %d\n", 
+        fprintf(debug.eCRmainFP, "gap (%d, %d) has extendable frag pair on left: %d, on right: %d\n",
                 lcontig->id, rcontig->id, numLeftFrags, numRightFrags);
 
-		
+
       //  Add an extra "fragment" to tell us to also try the contig sequence itself.
       //
       leftExtFragsArray[numLeftFrags].fragIid           = -1;
@@ -587,7 +587,7 @@ main(int argc, char **argv) {
 
       numLeftFrags++;
 
-      rightExtFragsArray[numRightFrags].fragIid         = -1;		  
+      rightExtFragsArray[numRightFrags].fragIid         = -1;
       rightExtFragsArray[numRightFrags].ctgMaxExt       = 0;
       rightExtFragsArray[numRightFrags].frgMaxExt       = 0;
       rightExtFragsArray[numRightFrags].basesToNextFrag = 0;
@@ -604,7 +604,7 @@ main(int argc, char **argv) {
 
         if (gapOnlyLen > 0) {
           int  doGap = 0;
-        
+
           for (s=0; s<gapOnlyLen; s++)
             if (gapOnly[s] == gapNumber)
               doGap = 1;
@@ -644,7 +644,7 @@ main(int argc, char **argv) {
       memcpy(&lcontigBackup, lcontig, sizeof(ContigT));
       memcpy(&rcontigBackup, rcontig, sizeof(ContigT));
 
-			
+
       for (leftFragIndex = 0; leftFragIndex < numLeftFrags && closedGap == FALSE; leftFragIndex++) {
         for (rightFragIndex = 0; rightFragIndex < numRightFrags && closedGap == FALSE; rightFragIndex++) {
 
@@ -657,7 +657,7 @@ main(int argc, char **argv) {
 
           if (debug.eCRmainLV > 0)
             fprintf(debug.eCRmainFP, "examining frags %d and %d\n",
-                    leftExtFragsArray[leftFragIndex].fragIid, 
+                    leftExtFragsArray[leftFragIndex].fragIid,
                     rightExtFragsArray[rightFragIndex].fragIid);
 
           if ((gapSize.mean - leftExtFragsArray[leftFragIndex].ctgMaxExt - rightExtFragsArray[rightFragIndex].ctgMaxExt) > (NUM_STDDEV_CUTOFF * sqrt(gapSize.variance)) &&
@@ -665,10 +665,10 @@ main(int argc, char **argv) {
 
             if (debug.eCRmainLV > 0) {
               fprintf(debug.eCRmainFP, "leftExtFragsArray[%d].ctgMaxExt: %10d, rightExtFragsArray[%d].ctgMaxExt: %10d\n",
-                      leftFragIndex,  leftExtFragsArray[leftFragIndex].ctgMaxExt, 
+                      leftFragIndex,  leftExtFragsArray[leftFragIndex].ctgMaxExt,
                       rightFragIndex, rightExtFragsArray[rightFragIndex].ctgMaxExt);
               fprintf(debug.eCRmainFP, "gap variance too large (gapSize - extensions = %.2f > %.1f * sqrt(gapSize.variance) = %.2f\n",
-                      gapSize.mean - leftExtFragsArray[leftFragIndex].ctgMaxExt - rightExtFragsArray[rightFragIndex].ctgMaxExt, 
+                      gapSize.mean - leftExtFragsArray[leftFragIndex].ctgMaxExt - rightExtFragsArray[rightFragIndex].ctgMaxExt,
                       NUM_STDDEV_CUTOFF, NUM_STDDEV_CUTOFF * sqrt(gapSize.variance));
             }
 
@@ -683,7 +683,7 @@ main(int argc, char **argv) {
             if (GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex)->cid != lunitigID)
               continue;
           }
-			
+
           if (rFragIid != -1) {
             InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, rFragIid);
             assert(info->set);
@@ -692,12 +692,12 @@ main(int argc, char **argv) {
           }
 
           numClosingsTried++;
-			  
+
           //dumpContigInfo(lcontig);
           //dumpContigInfo(rcontig);
 
           if (examineGap(lcontig, lFragIid,
-                         rcontig, rFragIid, 
+                         rcontig, rFragIid,
                          gapNumber,
                          &ahang,
                          &currLength,
@@ -706,7 +706,7 @@ main(int argc, char **argv) {
                          &lcontigBasesIntact,
                          &rcontigBasesIntact,
                          &closedGapDelta,
-                         leftExtFragsArray[leftFragIndex].basesToNextFrag, 
+                         leftExtFragsArray[leftFragIndex].basesToNextFrag,
                          rightExtFragsArray[rightFragIndex].basesToNextFrag,
                          &leftFragFlapLength,
                          &rightFragFlapLength) == FALSE) {
@@ -781,7 +781,7 @@ main(int argc, char **argv) {
 
           CIFragT        *frag                = NULL;
           NodeCGW_T      *unitig              = NULL;
-				  
+
           if (debug.diagnosticLV > 0) {
             DumpContigMultiAlignInfo ("before anything (left)", NULL, lcontig->id);
             DumpContigUngappedOffsets("before anything (left)", lcontig->id);
@@ -795,7 +795,7 @@ main(int argc, char **argv) {
 
           double maxRContigOffset = MAX(rcontig->offsetAEnd.mean, rcontig->offsetBEnd.mean);
           int    nextContigIndex  = rcontig->BEndNext;
-				  
+
           // alter the unitigs in cgw memory struct land
 
           // left unitig
@@ -860,7 +860,7 @@ main(int argc, char **argv) {
               }
             }
           }
-				  
+
           // right unitig
           if (rFragIid != -1) {
             InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, rFragIid);
@@ -927,7 +927,7 @@ main(int argc, char **argv) {
 
           // now shift the right contig into place
           rcontig->offsetAEnd.mean += closedGapDelta;
-          rcontig->offsetBEnd.mean += closedGapDelta;				  
+          rcontig->offsetBEnd.mean += closedGapDelta;
 
           if (debug.eCRmainLV > 0) {
             fprintf(debug.eCRmainFP, "after altering, lctg: %12.0f, %12.0f\n",
@@ -942,7 +942,7 @@ main(int argc, char **argv) {
           if (ContigPositions == NULL)
             ContigPositions = CreateVA_IntElementPos(2);
           ResetVA_IntElementPos(ContigPositions);
-				  
+
           if (lcontig->offsetAEnd.mean < lcontig->offsetBEnd.mean)
             delta = lcontig->offsetAEnd.mean;
           else
@@ -956,15 +956,15 @@ main(int argc, char **argv) {
             contigPos.position.bgn = lcontig->offsetAEnd.mean - delta;
             contigPos.position.end = lcontig->offsetBEnd.mean - delta;
             AppendIntElementPos(ContigPositions, &contigPos);
-				  
+
             if (debug.eCRmainLV > 0)
-              fprintf(debug.eCRmainFP, "lcontig %8d positioned at %8d, %8d\n", 
+              fprintf(debug.eCRmainFP, "lcontig %8d positioned at %8d, %8d\n",
                       lcontig->id,contigPos.position.bgn, contigPos.position.end);
           }
 
           {
             IntElementPos   contigPos;
-    
+
             contigPos.ident = rcontig->id;
             contigPos.type = AS_CONTIG;
             contigPos.position.bgn = rcontig->offsetAEnd.mean - delta;
@@ -972,7 +972,7 @@ main(int argc, char **argv) {
             AppendIntElementPos(ContigPositions, &contigPos);
 
             if (debug.eCRmainLV > 0)
-              fprintf(debug.eCRmainFP, "rcontig %8d positioned at %8d, %8d\n", 
+              fprintf(debug.eCRmainFP, "rcontig %8d positioned at %8d, %8d\n",
                       rcontig->id,contigPos.position.bgn, contigPos.position.end);
           }
 
@@ -983,7 +983,7 @@ main(int argc, char **argv) {
             newOffsetAEnd.mean = lcontig->offsetAEnd.mean;
           else
             newOffsetAEnd.mean = lcontig->offsetBEnd.mean;
-				  
+
           if (rcontigOrientation == A_B)
             newOffsetBEnd.mean = rcontig->offsetBEnd.mean;
           else
@@ -1107,7 +1107,7 @@ main(int argc, char **argv) {
         assert(IsScaffoldInternallyConnected(ScaffoldGraph,
                                              GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid),
                                              ALL_EDGES));
-	      
+
         status = RecomputeOffsetsInScaffold(ScaffoldGraph,
                                             GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid),
                                             TRUE, TRUE, FALSE);
@@ -1142,21 +1142,21 @@ main(int argc, char **argv) {
   // Variance = mean(x^2) - (mean(x))^2
   totalOlapVariance = -0.0;
   if (numGapsClosed > 0)
-    totalOlapVariance = ((totalOlapVariance / numGapsClosed) - 
+    totalOlapVariance = ((totalOlapVariance / numGapsClosed) -
                          ((double)totalOlapLength / numGapsClosed) *
                          ((double)totalOlapLength / numGapsClosed));
 
   fprintf(stderr, "\n");
   fprintf(stderr, "                  numGaps: %d\n", numGaps);
-  fprintf(stderr, "        numExtendableGaps: %d (left: %d, right: %d, both: %d)\n", 
+  fprintf(stderr, "        numExtendableGaps: %d (left: %d, right: %d, both: %d)\n",
           numExtendableGaps, leftContigExtendable, rightContigExtendable, bothContigExtendable);
   fprintf(stderr, "            numGapsClosed: %d\n", numGapsClosed);
-  fprintf(stderr, "             numSmallGaps: %d (closed %d, %.2f%%)\n", 
+  fprintf(stderr, "             numSmallGaps: %d (closed %d, %.2f%%)\n",
           numSmallGaps, numSmallGapsClosed, 100.0 * numSmallGapsClosed / numSmallGaps);
-  fprintf(stderr, "             numLargeGaps: %d (closed %d, %.2f%%)\n", 
+  fprintf(stderr, "             numLargeGaps: %d (closed %d, %.2f%%)\n",
           numLargeGaps, numLargeGapsClosed, 100.0 * numLargeGapsClosed / numLargeGaps);
-  fprintf(stderr, "                  allGaps: %d (closed %d, %.2f%%)\n", 
-          numSmallGaps + numLargeGaps, numSmallGapsClosed + numLargeGapsClosed, 
+  fprintf(stderr, "                  allGaps: %d (closed %d, %.2f%%)\n",
+          numSmallGaps + numLargeGaps, numSmallGapsClosed + numLargeGapsClosed,
           100.0 * (numSmallGapsClosed + numLargeGapsClosed) / (numSmallGaps + numLargeGaps));
   fprintf(stderr, "         maxGapSizeClosed: %.2f (gap number %d) \n", maxGapSizeClosed, maxGapSizeClosedNumber);
   fprintf(stderr, "       numGapsVarTooSmall: %d\n", numGapsVarTooSmall);
@@ -1235,7 +1235,7 @@ getExtendableClearRange(AS_IID        iid,
 int
 findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
 
-  MultiAlignT *ma                  = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE); 
+  MultiAlignT *ma                  = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
   int          numFrags            = GetNumIntMultiPoss(ma->f_list);
   int          firstUnitigID       = GetIntUnitigPos(ma->u_list, 0)->ident;
 
@@ -1247,7 +1247,7 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
   if (debug.eCRmainLV > 0)
     fprintf(debug.eCRmainFP, "in findFirstExtendableFrags, contig->bpLength.mean: %f, firstUnitigID: %d\n",
             contig->bpLength.mean, firstUnitigID);
-  
+
   //                 <--------------------------------------------------------------------------- contig
   // 3p <---frgMaxExt------|---------------------------------------------|----- 5p frag
   //                    clr_end                                       clr_bgn
@@ -1286,7 +1286,7 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
           extFragsArray[extendableFragCount].fragOnEnd = TRUE;
 
         if (debug.eCRmainLV > 0)
-          fprintf(debug.eCRmainFP, "frstExt: in contig %d, frag %d is at %f -> %f (5p->3p) -- ctgMaxExt %d, frgMaxExt %d\n", 
+          fprintf(debug.eCRmainFP, "frstExt: in contig %d, frag %d is at %f -> %f (5p->3p) -- ctgMaxExt %d, frgMaxExt %d\n",
                   contig->id,
                   frag->iid,
                   frag->contigOffset5p.mean,
@@ -1306,7 +1306,7 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
     // secondFragStart is where the next to end frag starts, and thus
     // where we start 2x coverage
 
-    if (((int)frag->contigOffset3p.mean > 0) && 
+    if (((int)frag->contigOffset3p.mean > 0) &&
         ((int)frag->contigOffset3p.mean < secondFragStart))
       secondFragStart = (int)frag->contigOffset3p.mean;
 
@@ -1340,9 +1340,9 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
 int
 findLastExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
 
-  MultiAlignT  *ma           = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE); 
+  MultiAlignT  *ma           = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
   int           numFrags     = GetNumIntMultiPoss(ma->f_list);
-  int           lastUnitigID = GetIntUnitigPos(ma->u_list, GetNumIntUnitigPoss(ma->u_list) - 1)->ident;  
+  int           lastUnitigID = GetIntUnitigPos(ma->u_list, GetNumIntUnitigPoss(ma->u_list) - 1)->ident;
   double        maxContigPos = contig->bpLength.mean - 1.0;
 
   int           extendableFragCount = 0;
@@ -1353,9 +1353,9 @@ findLastExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
   if (debug.eCRmainLV > 0)
     fprintf(debug.eCRmainFP, "in findLastExtendableFrags, contig->bpLength.mean: %f, firstUnitigID: %d\n",
             contig->bpLength.mean, lastUnitigID);
-  
+
   //    contig ----------------------------------------------------------------------------------->
-  //                                  5p -------|---------------------------------------------|------------> 3p 
+  //                                  5p -------|---------------------------------------------|------------> 3p
   //                                         clr_bgn                                       clr_end
   //                                                                                               |-------|
   //                                                                                                ctgMaxExt
@@ -1387,7 +1387,7 @@ findLastExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
           extFragsArray[extendableFragCount].fragOnEnd = TRUE;
 
         if (debug.eCRmainLV > 0)
-          fprintf(debug.eCRmainFP, "lastExt: in contig %d, frag %d is at %f -> %f (5p->3p) -- ctgExt %d, frgExt %d\n", 
+          fprintf(debug.eCRmainFP, "lastExt: in contig %d, frag %d is at %f -> %f (5p->3p) -- ctgExt %d, frgExt %d\n",
                   contig->id,
                   frag->iid,
                   frag->contigOffset5p.mean,
@@ -1423,7 +1423,7 @@ findLastExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
   for (i=0; i<extendableFragCount; i++) {
     if (extFragsArray[i].fragOnEnd == TRUE)
       extFragsArray[i].basesToNextFrag = maxContigPos - secondFragEnd;
-	
+
     if (debug.eCRmainLV > 0)
       fprintf(debug.eCRmainFP, "contig %8d, frag %8d can extend %8d bases into the gap\n",
               contig->id, extFragsArray[i].fragIid, extFragsArray[i].ctgMaxExt);
@@ -1440,15 +1440,15 @@ findLastUnitig(ContigT *contig, int *unitigID) {
   int    i;
   int    isSurrogate = FALSE;
   double maxContigPos = 0.0;
-  
-  MultiAlignT *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE); 
-  
+
+  MultiAlignT *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
+
   // can't just jump to last unitig since unitigs are arranged by starting position, not ending
 
   for (i=0; i<GetNumIntUnitigPoss(ma->u_list); i++) {
     IntUnitigPos *upos   = GetIntUnitigPos(ma->u_list, i);
     NodeCGW_T    *unitig = GetGraphNode(ScaffoldGraph->CIGraph, upos->ident);
-	
+
     if ((unitig->offsetAEnd.mean >= maxContigPos) ||
         (unitig->offsetBEnd.mean >= maxContigPos)) {
       maxContigPos = MAX(unitig->offsetAEnd.mean, unitig->offsetBEnd.mean);
@@ -1456,7 +1456,7 @@ findLastUnitig(ContigT *contig, int *unitigID) {
       isSurrogate  = unitig->flags.bits.isSurrogate;
 
       if (debug.eCRmainLV > 0)
-        fprintf(debug.eCRmainFP, "findLastUnitig()-- in contig %d, unitig %d is at %f -> %f maxContigPos: %f, isSurrogate: %d, baseID: %d\n", 
+        fprintf(debug.eCRmainFP, "findLastUnitig()-- in contig %d, unitig %d is at %f -> %f maxContigPos: %f, isSurrogate: %d, baseID: %d\n",
                 contig->id,
                 unitig->id,
                 unitig->offsetAEnd.mean,
@@ -1476,7 +1476,7 @@ findLastUnitig(ContigT *contig, int *unitigID) {
 int
 findFirstUnitig(ContigT *contig, int *unitigID) {
 
-  MultiAlignT  *ma          = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE); 
+  MultiAlignT  *ma          = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
   IntUnitigPos *upos        = GetIntUnitigPos(ma->u_list, 0);
   NodeCGW_T    *unitig      = GetGraphNode(ScaffoldGraph->CIGraph, upos->ident);
   int           isSurrogate = unitig->flags.bits.isSurrogate;
@@ -1484,7 +1484,7 @@ findFirstUnitig(ContigT *contig, int *unitigID) {
   *unitigID = unitig->id;
 
   if (debug.eCRmainLV > 0)
-    fprintf(debug.eCRmainFP, "findFirstUnitig()-- in contig %d, unitig %d is at %f -> %f, isSurrogate: %d\n", 
+    fprintf(debug.eCRmainFP, "findFirstUnitig()-- in contig %d, unitig %d is at %f -> %f, isSurrogate: %d\n",
             contig->id,
             unitig->id,
             unitig->offsetAEnd.mean,
@@ -1513,9 +1513,9 @@ extendContig(ContigT *contig, int extendAEnd) {
             (contigOrientation == A_B) ? contig->offsetAEnd.mean : contig->offsetBEnd.mean,
             (contigOrientation == A_B) ? contig->offsetBEnd.mean : contig->offsetAEnd.mean,
             (contigOrientation == A_B) ? "A_B" : "B_A");
-  
+
   contig->bpLength.mean += lengthDelta;
-  
+
   if (contigOrientation == A_B) {
     if (extendAEnd == TRUE)
       contig->offsetAEnd.mean -= lengthDelta;
@@ -1557,7 +1557,7 @@ getAlteredFragPositions(NodeCGW_T *unitig, int alteredFragIid, int ctgExt) {
   // get the current positions
   for (i=0; i<GetNumIntMultiPoss(uma->f_list); i++) {
     IntMultiPos *pos = GetIntMultiPos(uma->f_list, i);
-  
+
     fp[i].bgn = pos->position.bgn;
     fp[i].end = pos->position.end;
 
@@ -1653,7 +1653,7 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
   //  the store, and insert a new one.  The new one is based on the
   //  copy....the construction of the new one uses an IUM message, and
   //  the IUM message uses pieces of macopy.
-  //  
+  //
   macopy = CreateEmptyMultiAlignT();
   copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, macopy, unitig->id, TRUE);
 
@@ -1733,7 +1733,7 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
                           CNS_OPTIONS_MAX_NUM_ALLELES };
   ALIGNMENT_CONTEXT=AS_CONSENSUS;
 
-  if (EXIT_FAILURE == MultiAlignUnitig(&ium_mesg, 
+  if (EXIT_FAILURE == MultiAlignUnitig(&ium_mesg,
                                        ScaffoldGraph->gkpStore,
                                        reformed_consensus,
                                        reformed_quality,
@@ -1770,7 +1770,7 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
             GetMultiAlignLength(nma),
             GetMultiAlignLength(macopy),
             1.1 * extLength);
-        
+
     //  Set the keepInCache flag, since CreateMultiAlignTFromIUM() is
     //  returning an allocated multialign, and if we don't cache it,
     //  we have a giant memory leak.
@@ -1882,12 +1882,12 @@ void
 leftShiftIUM(IntMultiPos *f_list, int numFrags, int extFragIID) {
   int i, currPos = 0, numShiftedInUnitig = 0;
   IntMultiPos tempIMP;
-  
+
   // find out the extended frag's current position
   for (i = 0; i < numFrags; i++)
     if (f_list[i].ident == extFragIID)
       currPos = i;
-  
+
   // save the extended frag off to the side
   memcpy(&tempIMP, &f_list[currPos], sizeof(IntMultiPos));
 
@@ -1896,7 +1896,7 @@ leftShiftIUM(IntMultiPos *f_list, int numFrags, int extFragIID) {
     memcpy(&f_list[i+1], &f_list[i], sizeof(IntMultiPos));
     numShiftedInUnitig++;
   }
-  
+
   // and place tempPos in position 0 of the unitig
   memcpy(&f_list[0], &tempIMP, sizeof(IntMultiPos));
 }
@@ -1912,22 +1912,22 @@ rightShiftIUM(IntMultiPos *f_list, int numFrags, int extFragIID) {
   // find out the extended frag's current position
   for (i = 0; i < numFrags; i++)
     if (f_list[i].ident == extFragIID)
-      currPos = i;  
+      currPos = i;
 
-  // we need to move all frags that 
-  // i) start to the left of the extended frag and 
-  // ii) are not contained by another frag 
+  // we need to move all frags that
+  // i) start to the left of the extended frag and
+  // ii) are not contained by another frag
   // before the extended frag in the array.  We could move the contained ones, but don't have to
 
   numShifted = 0;
   shiftedFrag = TRUE;
   while (shiftedFrag) {
     shiftedFrag = FALSE;
-	
+
     // look for a candidate frag
     i = currPos + numShifted + 1;
     while (i < numFrags) {
-      if ((MIN(f_list[i].position.bgn, f_list[i].position.end) < 
+      if ((MIN(f_list[i].position.bgn, f_list[i].position.end) <
            MIN(f_list[currPos + numShifted].position.bgn, f_list[currPos + numShifted].position.end)) &&
           f_list[i].contained == FALSE) {
         fragToMovePos = i;
@@ -1940,7 +1940,7 @@ rightShiftIUM(IntMultiPos *f_list, int numFrags, int extFragIID) {
     if (shiftedFrag) {
       // save the extended frag to be shifted off to the side
       memcpy(&tempIMP, &f_list[fragToMovePos], sizeof(IntMultiPos));
-	  
+
       // now shift all the frags between currPos + numShifted up a position in the array
       numToShift = fragToMovePos - (currPos + numShifted);
       i = 0;
@@ -1960,7 +1960,7 @@ rightShiftIUM(IntMultiPos *f_list, int numFrags, int extFragIID) {
 
 void
 saveFragAndUnitigData(int lFragIid, int rFragIid) {
-  
+
   if (savedLeftUnitigMA == NULL) {
     savedLeftUnitigMA  = CreateEmptyMultiAlignT();
     savedRightUnitigMA = CreateEmptyMultiAlignT();
@@ -1977,7 +1977,7 @@ saveFragAndUnitigData(int lFragIid, int rFragIid) {
     copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, savedLeftUnitigMA, leftFrag->cid, TRUE);
     copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, savedLeftContigMA, leftFrag->contigID, FALSE);
   }
-  
+
   if (rFragIid != -1) {
     InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, rFragIid);
     assert(info->set);
@@ -1993,7 +1993,7 @@ void
 restoreFragAndUnitigData(int lFragIid, int rFragIid) {
 
   revertClearRange(lFragIid);
-  revertClearRange(rFragIid);				  
+  revertClearRange(rFragIid);
 
   if (lFragIid != -1) {
     InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, lFragIid);
@@ -2007,7 +2007,7 @@ restoreFragAndUnitigData(int lFragIid, int rFragIid) {
 
     SynchUnitigTWithMultiAlignT(unitig);
   }
-  
+
   if (rFragIid != -1) {
     InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, rFragIid);
     assert(info->set);

@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: agrep.c,v 1.4 2005-03-22 19:49:30 jason_miller Exp $ */
+/* $Id: agrep.c,v 1.5 2008-06-27 06:29:21 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -201,7 +201,7 @@ static int cclcomp(int comp)
       for (c = 2; c <= 7; c++)
         if (res[7] & (1<<c%8)) only_digits = 0;
     }
- 
+
   return (ctop-16);
 }
 
@@ -223,7 +223,7 @@ static struct node *digit(void)
       for (x = '0'; x <= '9'; x++)
         cclin(x);
       p = nalloc(STAR,salloc(ATOM_C,cclcomp(0)),NULL);
- 
+
       cclstart();
       for (x = '1'; x <= '9'; x++)
         cclin(x);
@@ -248,7 +248,7 @@ static struct node *identifier(void)
         cclin(x);
       cclin('_');
       p = nalloc(STAR,salloc(ATOM_C,cclcomp(0)),NULL);
- 
+
       cclstart();
       for (x = 'a'; x <= 'z'; x++)
         cclin(x);
@@ -367,7 +367,7 @@ static struct node *genbel(int lev)
       return (p);
     }
 }
-  
+
 static struct node *genrng(int lev)
 { register int c1, c2, o, x;
   register struct node *p, *q;
@@ -379,7 +379,7 @@ static struct node *genrng(int lev)
     c1 = g_num1[o];
 
   c2 = g_num2[lev];
-  
+
   if (c1 == c2)
     { size += 1;
       if (lev+1 >= g_max)
@@ -417,7 +417,7 @@ static struct node *genrng(int lev)
       return (p);
     }
 }
-          
+
 static struct node *gen_number_pat(char *num1, char *num2)
 { g_num1 = num1;
   g_num2 = num2;
@@ -441,7 +441,7 @@ static struct node *fact(void)
       scan += 1;
       p = or();
       if (p == NULL) return (NULL);
-      if (*scan != ')') 
+      if (*scan != ')')
         { synerr(RP_ERROR);
           return (NULL);
         }
@@ -515,7 +515,7 @@ static struct node *fact(void)
       num2[-1] = c;
       *scan++  = '}';
       return (p);
-      
+
 #endif
 
 #ifdef POUND_AT_FEATURES
@@ -764,7 +764,7 @@ regexp re_parse(int i_opt, char *pat, char **mesg, int *pos)
         FREE(interior);
       parse_top = patplus*1.2 + 30;
       s = (char *) MALLOC(parse_top*(sizeof(struct leaf) +
-                                     sizeof(struct node) + 
+                                     sizeof(struct node) +
                                      16*sizeof(char)));
       if (s == NULL)
         { synerr(OM_ERROR);
@@ -924,7 +924,7 @@ static int approx_match(regexp rexpr, char *string, int thresh)
                 x = B[j]+1;
               else if (*string != '\0')
                 x = thresh+1;
-            } 
+            }
           C[j] = x;
         }
       for (b = 1; b <= back; b++)

@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.66 2008-06-16 22:53:26 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.67 2008-06-27 06:29:17 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
@@ -60,7 +60,7 @@ typedef enum {
   MESG_OVL,
   MESG_UOM,
   MESG_IMD, MESG_IAF, MESG_IAM, MESG_IUM, MESG_IUL, MESG_ICM, MESG_ICL, MESG_ISF, MESG_ISL,
-  MESG_MDI, MESG_AFG, MESG_AMP, MESG_UTG, MESG_ULK, MESG_CCO, MESG_CLK, MESG_SCF, MESG_SLK, 
+  MESG_MDI, MESG_AFG, MESG_AMP, MESG_UTG, MESG_ULK, MESG_CCO, MESG_CLK, MESG_SCF, MESG_SLK,
   MESG_EOF
 } MessageType;
 
@@ -72,13 +72,13 @@ static const char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "OVL",
   "UOM",
   "IMD", "IAF", "IAM", "IUM", "IUL", "ICM", "ICL", "ISF", "ISL",
-  "MDI", "AFG", "AMP", "UTG", "ULK", "CCO", "CLK", "SCF", "SLK", 
+  "MDI", "AFG", "AMP", "UTG", "ULK", "CCO", "CLK", "SCF", "SLK",
   "EOF"
 };
 
 /*Generic message object handle */
 
-typedef struct { 
+typedef struct {
   void         *m;         // A pointer to the message object
   MessageType  t;          // The message type
 } GenericMesg;
@@ -107,7 +107,7 @@ typedef enum {
 
 typedef enum {
   AS_NORMAL     = (int)'N',
-  AS_INNIE      = (int)'I', 
+  AS_INNIE      = (int)'I',
   AS_OUTTIE     = (int)'O',
   AS_ANTI	= (int)'A',
   AS_UNKNOWN	= (int)'U'
@@ -219,9 +219,9 @@ typedef FragMesg InternalFragMesg;
 
 typedef enum {
   AS_DOVETAIL    = (int)'D',
-  AS_CONTAINMENT = (int)'C', 
+  AS_CONTAINMENT = (int)'C',
   AS_SUPERREPEAT = (int)'S',
-  
+
   AS_DOVETAIL_TRANS = (int) 'X',
   // A dovetail overlap that is transitively inferrable by a path in
   // the fragment overlap graph, for example using a path of dovetail
@@ -269,7 +269,7 @@ typedef enum {
 
 /* UOM message */
 
-// ChunkOrientationType discontinued by Jason 7/01 
+// ChunkOrientationType discontinued by Jason 7/01
 // because code intermingled it with OrientType.
 // Both enums used the same integer values.
 //typedef enum {
@@ -282,11 +282,11 @@ typedef enum {
 
 #define ChunkOrientationType OrientType
 
-#define AB_AB AS_NORMAL  
-#define BA_BA AS_ANTI  
-#define BA_AB AS_OUTTIE  
-#define AB_BA AS_INNIE 
-#define XX_XX AS_UNKNOWN 
+#define AB_AB AS_NORMAL
+#define BA_BA AS_ANTI
+#define BA_AB AS_OUTTIE
+#define AB_BA AS_INNIE
+#define XX_XX AS_UNKNOWN
 
 typedef enum {
   /* The following are CGW overlap output classifications: */
@@ -295,7 +295,7 @@ typedef enum {
   AS_TANDEM_OVERLAP = (int) 'T', // Not used by the unitigger.
 
   /* The following are unitigger overlap output classifications: */
-  AS_1_CONTAINS_2_OVERLAP = (int) 'C', 
+  AS_1_CONTAINS_2_OVERLAP = (int) 'C',
   AS_2_CONTAINS_1_OVERLAP = (int) 'I',
   // Two types of containment overlap types.
 
@@ -310,7 +310,7 @@ typedef enum {
   // A dovetail overlap between unitigs that was marked for removal by
   // because it was transitively inferrable in the fragment overlap
   // graph but was not a chord in the dovetail overlap sub-graph.
-  
+
   AS_DOVETAIL_CHORD_OVERLAP  = (int)'d',
   // This dovetail overlap is known to be a chord in the dovetail
   // overlap sub-graph.  This clasification is created during
@@ -400,7 +400,7 @@ typedef struct IntMultiPos {
 #ifdef NEW_UNITIGGER_INTERFACE
   IntFragment_ID  ident2; // iid of the fragment that will align with current one
 #endif
-  
+
   //  This should probably be called frgSource
   IntFragment_ID  sourceInt;
 
@@ -537,7 +537,7 @@ typedef struct {
 /* IUL Mesage */
 
 typedef struct {
-  IntFragment_ID  in1, in2; 
+  IntFragment_ID  in1, in2;
   LinkType        type;
 } IntMate_Pairs;
 
@@ -628,7 +628,7 @@ typedef struct {
 
 typedef struct {
   AS_UID          eaccession;
-  IntFragment_ID  iaccession;              
+  IntFragment_ID  iaccession;
   MateStatType    mate_status;
   int32           chimeric_NOTUSED;
   int32           chaff;
@@ -715,7 +715,7 @@ typedef struct {
 } SnapUnitigMesg;
 
 typedef struct {
-  AS_UID       in1, in2; 
+  AS_UID       in1, in2;
   LinkType     type;
 } SnapMate_Pairs;
 
@@ -747,7 +747,7 @@ typedef struct {
   int32                       num_unitigs;
   int32                       num_vars;
   SnapMultiPos               *pieces; // changed in comparison to internal message
-  IntMultiVar                *vars;   
+  IntMultiVar                *vars;
   UnitigPos                  *unitigs;// changed in comparison to internal message
 } SnapConConMesg;
 

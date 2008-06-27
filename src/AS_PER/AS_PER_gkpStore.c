@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.54 2008-05-14 22:19:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.55 2008-06-27 06:29:18 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -813,22 +813,22 @@ AS_PER_decodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
       gkpl->isNotRandom = AS_PER_decodeLibraryFeaturesBoolean("isNotRandom", val);
     }
 
-    //  doNotOverlapTrim -- 
+    //  doNotOverlapTrim --
     else if (strcasecmp(fea, "doNotOverlapTrim") == 0) {
       gkpl->doNotOverlapTrim = AS_PER_decodeLibraryFeaturesBoolean("doNotOverlapTrim", val);
     }
 
-    //  doNotTrustHomopolymerRuns -- 
+    //  doNotTrustHomopolymerRuns --
     else if (strcasecmp(fea, "doNotTrustHomopolymerRuns") == 0) {
       gkpl->doNotTrustHomopolymerRuns = AS_PER_decodeLibraryFeaturesBoolean("doNotTrustHomopolymerRuns", val);
     }
 
-    //  hpsIsPeakSpacing -- 
+    //  hpsIsPeakSpacing --
     else if (strcasecmp(fea, "hpsIsPeakSpacing") == 0) {
       gkpl->hpsIsPeakSpacing = AS_PER_decodeLibraryFeaturesBoolean("hpsIsPeakSpacing", val);
     }
 
-    //  hpsIsFlowGram -- 
+    //  hpsIsFlowGram --
     else if (strcasecmp(fea, "hpsIsFlowGram") == 0) {
       gkpl->hpsIsFlowGram = AS_PER_decodeLibraryFeaturesBoolean("hpsIsFlowGram", val);
     }
@@ -940,10 +940,10 @@ getNumGateKeeperRandomFragments(GateKeeperStore *gkp) {
    while (nextFragStream(fs, &fr)) {
       if (!getFragRecordIsNonRandom(&fr)) {
          counter++;
-      } 
+      }
    }
    closeFragStream(fs);
-    
+
    return counter;
 }
 

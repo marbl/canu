@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: Quadrilateral.h,v 1.5 2005-07-13 14:47:55 brianwalenz Exp $ */
+/* $Id: Quadrilateral.h,v 1.6 2008-06-27 06:29:16 brianwalenz Exp $ */
 #ifndef QUADRILATERAL_H
 #define QUADRILATERAL_H
 
@@ -125,7 +125,7 @@ public:
       updateXProjection(p);
       updateYProjection(p);
     }
-  
+
   void setID(IDType newID)
     {
       pid = newID;
@@ -133,7 +133,7 @@ public:
       yProjection.setID(pid);
     }
   IDType getID() const {return pid;}
-  
+
   const Interval<IDType, UnitType> & getXProjection() const
     {
       return xProjection;
@@ -170,12 +170,12 @@ public:
         updateYProjection(points[i]);
       }
     }
-  
+
   void rotateByDegrees(double degrees)
     {
       rotateByRadians(degrees * M_PI / 180.);
     }
-  
+
 private:
   void initializeXProjection(const Point<UnitType> & p)
     {
@@ -187,7 +187,7 @@ private:
       yProjection.setMin(p.getY());
       yProjection.setMax(p.getY());
     }
-  
+
   void updateXProjection(const Point<UnitType> & p)
     {
       xProjection.setMin(xProjection.getMin(), p.getX());

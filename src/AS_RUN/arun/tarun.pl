@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl -w
-# $Id: tarun.pl,v 1.2 2007-11-26 16:20:34 eliv Exp $
+# $Id: tarun.pl,v 1.3 2008-06-27 06:29:19 brianwalenz Exp $
 #
-# TIGR Assembler front-end script calls/runs assembly pipline 
+# TIGR Assembler front-end script calls/runs assembly pipline
 # recipes on the grid or on the local host.
 #
 # Written by Prabhu May 2007.
@@ -29,28 +29,28 @@ my $HELPTEXT =
 
  usage: tarun [options] <prefix>
 	    tarun -cancel <id>
- 
- inputs: 
+
+ inputs:
   <prefix>       Prefix for sequence and qual files
 
  general options:
   -alias <a>        Identify the request as <a> on Assembly Server Console
   -cancel <id> 	    Cancel assembly request <id>
   -maxCopy <dir>    Copy max output to <dir> (default: dir=maxCopy)
-  -medCopy <dir>    Copy med output to <dir> (default: dir=medCopy) 
+  -medCopy <dir>    Copy med output to <dir> (default: dir=medCopy)
   -minCopy <dir>    Copy min output to <dir> (default: dir=minCopy)
   -noCopy           Do not make local copy. (default: medCopy)
   -local            Combination of 'localHost' and 'localDisk'
   -localHost        Assemble on this host (default: on grid)
   -localDisk        Use current directory to assemble. (default: aserver)
   -D <name>         Specify project name (displayed on AserverConsole).
-                    Use -D test for debugging. (default: frg prefix) 
-  -[no]notify    	Send email upon completion/error and create BITS case 
+                    Use -D test for debugging. (default: frg prefix)
+  -[no]notify    	Send email upon completion/error and create BITS case
                     for errors. (default: notify)
   -wait             Wait for job completion before exiting
 
  recipe options:
-  -R <standard_recipe to execute TIGR Assembler> OR TA2 (default) OR TA2.5 
+  -R <standard_recipe to execute TIGR Assembler> OR TA2 (default) OR TA2.5
 
  tarun [-local] [options] file
     -local  Force the TIGR Assembler to run on the local system with output
@@ -59,10 +59,10 @@ my $HELPTEXT =
             sge pool, and receive email notification that the job is done.
             Use the -local option for small jobs only.
 
-  	-recipe <recipe>       Specify recipe to execute TIGR Assembler 
-            
+  	-recipe <recipe>       Specify recipe to execute TIGR Assembler
+
     -dir    Specify another directory pathname for the output files
- TA   options 
+ TA   options
         -q <qual file>  quality file or pathname
         -C <contig file>  Contig jump start or pathname
         -[no]constraints  Apply constraints to assembly process.
@@ -73,41 +73,41 @@ my $HELPTEXT =
         -p <f(float)>  Set the min percent identity that two DNA fragments must
                 achieve in their overlap region to be considered for assembly.
         -s      Include singletons (single sequence contigs) in output.
-        -bigjob   For jobs exceeding grid's fast queue limit. 
+        -bigjob   For jobs exceeding grid's fast queue limit.
         -o		option for output
     file     Name of the multifasta formatted .seq input file of DNA sequences.
 
-  
- Tracking assembly requests:  
- http://assemblyconsole.tigr.org/  
+
+ Tracking assembly requests:
+ http://assemblyconsole.tigr.org/
 ~;
 my $HELPTEXT_BETA = qq~
 Request a whole-genome shotgun assembly using TIGR Assembler.
 
  usage: tarunb [options] <prefix>
 	    tarunb -cancel <id>
- 
- inputs: 
+
+ inputs:
   <prefix>       Prefix for sequence and qual files
 
  general options:
   -alias <a>        Identify the request as <a> on Assembly Server Console
   -cancel <id> 	    Cancel assembly request <id>
   -maxCopy <dir>    Copy max output to <dir> (default: dir=maxCopy)
-  -medCopy <dir>    Copy med output to <dir> (default: dir=medCopy) 
+  -medCopy <dir>    Copy med output to <dir> (default: dir=medCopy)
   -minCopy <dir>    Copy min output to <dir> (default: dir=minCopy)
   -noCopy           Do not make local copy. (default: medCopy)
   -local            Combination of 'localHost' and 'localDisk'
   -localHost        Assemble on this host (default: on grid)
   -localDisk        Use current directory to assemble. (default: aserver)
   -D <name>         Specify project name (displayed on AserverConsole).
-                    Use -D test for debugging. (default: frg prefix) 
-  -[no]notify    	Send email upon completion/error and create BITS case 
+                    Use -D test for debugging. (default: frg prefix)
+  -[no]notify    	Send email upon completion/error and create BITS case
                     for errors. (default: notify)
   -wait             Wait for job completion before exiting
 
  recipe options:
-  -R <standard_recipe to execute TIGR Assembler> OR TA2 (default) OR TA2.5 
+  -R <standard_recipe to execute TIGR Assembler> OR TA2 (default) OR TA2.5
 
  tarun [-local] [options] file
     -local  Force the TIGR Assembler to run on the local system with output
@@ -116,10 +116,10 @@ Request a whole-genome shotgun assembly using TIGR Assembler.
             sge pool, and receive email notification that the job is done.
             Use the -local option for small jobs only.
 
-  	-recipe <recipe>       Specify recipe to execute TIGR Assembler 
-            
+  	-recipe <recipe>       Specify recipe to execute TIGR Assembler
+
     -dir    Specify another directory pathname for the output files
- TA2.5   options 
+ TA2.5   options
         -q <qual file>  quality file or pathname
         -C <contig file>  Contig jump start or pathname
         -[no]constraints  Apply constraints to assembly process.
@@ -133,13 +133,13 @@ Request a whole-genome shotgun assembly using TIGR Assembler.
         -U <f>  Set the start percent for stepwise assembly (-U -B -i combo).
         -B <f>  Set the end percent for stepwise assembly (-U -B -i combo).
         -i <f>  Set the increment percent for stepwise assembly (-U -B -i combo).
-        
+
         -o		option for output
     file     Name of the multifasta formatted .seq input file of DNA sequences.
 
-  
- Tracking assembly requests:  
- http://assemblyconsole.tigr.org/  
+
+ Tracking assembly requests:
+ http://assemblyconsole.tigr.org/
  ~;
 
 
@@ -228,10 +228,10 @@ my @filesToClean = ();
 #Name:   setRecipeFile
 #Input:  recipe_file per user
 #Output: recipe_file path used
-#Usage:  Setup recipe to use 
+#Usage:  Setup recipe to use
 sub setRecipeFile($) {
     my $recipe_file = shift;
-    
+
 
     # if user provided recipe file
     if ( defined($recipe_file) ) {
@@ -242,7 +242,7 @@ sub setRecipeFile($) {
 #            $recipe_file = $tmp_recipe;
 #        }
 #        #Else, instead of config lookup, a file is specified
-#        
+#
     }
     else {
         $tf_object->bail("Recipe file not specified nor found in config file: $CARUN_CONFIG_FILE");
@@ -253,28 +253,28 @@ sub setRecipeFile($) {
         $tf_object->bail("Recipe file does not exist: $recipe_file"
         );
     }
-    
+
     $tf_object->logLocal( "Using recipe file as base: $recipe_file", 2 );
-    
+
     return $recipe_file;
 }
 
-sub filterByStartEnd($$$) { 
+sub filterByStartEnd($$$) {
     my $recipe_file = shift;
     my $start = shift;
     my $end = shift;
-    
+
     my $recipe_fh = new IO::File "<$recipe_file"
         or $tf_object->bail("Could not open recipe file: '$recipe_file'. Error code: $!");
     my @recipeLines = <$recipe_fh>;
-    close $recipe_fh;    
-    
+    close $recipe_fh;
+
     ### ##########################################
     ### Set Start/End
     ### ##########################################
     #Number of original recipe lines
     my $size = @recipeLines;
-    
+
     if ( defined $start ) {
         if ( $start =~ /^\d+$/){ #if digits provided
             $start--;    #Start is given by the user as 1-based.
@@ -282,7 +282,7 @@ sub filterByStartEnd($$$) {
         else {    #if section name provided
             my $lineNumber = 0;
             foreach my $recipeLine (@recipeLines) {
-              if ( $recipeLine =~ /^\s*#>\s*$start/) {                
+              if ( $recipeLine =~ /^\s*#>\s*$start/) {
                 $start = $lineNumber;
                 last;
               }
@@ -294,11 +294,11 @@ sub filterByStartEnd($$$) {
         $start = 0;
     }
     $tf_object->logLocal( "Using start: $start", 2 );
-    
+
     if ( defined $end ) {
         if ( $end =~ /^\d+$/){ #if digits provided
             $end--;      #End is given by the user as 1-based
-        } 
+        }
         else {    #if section name provided
             my $lineNumber = 0;
             my $lineFound = 0;
@@ -310,7 +310,7 @@ sub filterByStartEnd($$$) {
                 }
               }
               elsif ( $recipeLine =~ /#>\s*$end/) {
-                  $lineFound = 1;                
+                  $lineFound = 1;
               }
               $lineNumber++;
             }
@@ -320,10 +320,10 @@ sub filterByStartEnd($$$) {
         $end = $size - 1;
     }
     $tf_object->logLocal( "Using end: $end", 2 );
-    
+
     #The new set of lines to execute
     my @lines = @recipeLines[ $start .. $end ];
-    
+
     #Open Temporary file for recipe
     my $timestamp = time();
     my $tmprecipe_file = "/tmp/.tarun.$timestamp";
@@ -334,44 +334,44 @@ sub filterByStartEnd($$$) {
     }
     close $tmprecipe_fh;
     $tf_object->logLocal( "Using temp recipe file as base: $tmprecipe_file", 2 );
-            
-    push @filesToClean, $tmprecipe_file;    
-    return $tmprecipe_file;        
+
+    push @filesToClean, $tmprecipe_file;
+    return $tmprecipe_file;
 }
 
 #Name:   passThroughSetup
 #Input:  passThroughStr_ref
 #        passThroughFile_ref
 #Output: array of pass through commands
-#Usage:  Setup Passthrough options 
+#Usage:  Setup Passthrough options
 sub passThroughSetup ($) {
     my $passThroughStr_ref = shift;
 
-    my @passThroughArr = ();    
+    my @passThroughArr = ();
     #If passThroughStr is defined,
     #Arguments are space separated,
     #Each argument will put on a separate line
     #in the output script
     if ( defined ${$passThroughStr_ref} ) {
         @passThroughArr = split( / /, ${$passThroughStr_ref} );
-    }    
+    }
     return @passThroughArr;
 }
 
-sub generateSessionFile($) {    
+sub generateSessionFile($) {
     my $caOptionsArray_ref = shift;
-    
+
     my @taOptionsArray = @$caOptionsArray_ref;
-    my $caOptionsStr = join('',@taOptionsArray);     
+    my $caOptionsStr = join('',@taOptionsArray);
     my $sessionFileName = "/tmp/options.sh";
-    my $session_fh = new IO::File ">$sessionFileName"    
-      or $tf_object->bail("Could not open recipe file: '$sessionFileName'. Error Code: $!");    
+    my $session_fh = new IO::File ">$sessionFileName"
+      or $tf_object->bail("Could not open recipe file: '$sessionFileName'. Error Code: $!");
     print $session_fh "#TA Options:\n$caOptionsStr\n\n";
-    close $session_fh;    
- 
-    push @filesToClean, $sessionFileName;    
- 
-    return $sessionFileName;         
+    close $session_fh;
+
+    push @filesToClean, $sessionFileName;
+
+    return $sessionFileName;
 }
 
 #Name:   taOptionsSetup
@@ -381,14 +381,14 @@ sub generateSessionFile($) {
 #        statMax
 #        genomeSize
 #Output: taOptionsArray - array of commands to run in the scripts
-#Usage:  Checks for user provided TA options, and generates command lines for recipe 
+#Usage:  Checks for user provided TA options, and generates command lines for recipe
 sub taOptionsSetup($) {
     my $Options           = shift;
-    
+
     my @taOptionsArray = ();
-           
+
     push @taOptionsArray, "OPTIONS=$Options\n";
-    
+
     return @taOptionsArray;
 }
 
@@ -396,7 +396,7 @@ sub validateErate($) {
     my $erate = shift;
     my $ERATE_LOW = $carun_cf->getOption('erate_low');
     my $ERATE_HIGH = $carun_cf->getOption('erate_high');
-    
+
     $tf_object->bail("Invalid erate value '$erate'.  Valid values between $ERATE_LOW and $ERATE_HIGH")
         if ( $erate < $ERATE_LOW or $erate > $ERATE_HIGH);
 }
@@ -411,9 +411,9 @@ sub callArun($$$) {
 
     my $cmd = "cat  $sessionFileName $recipeFileName";
     $cmd .= "| $arun $arun_options" ;
-    
+
     $tf_object->logLocal("Running '$cmd'",1);
-    $tf_object->runCommand($cmd);      
+    $tf_object->runCommand($cmd);
 }
 
 sub tigrFoundationOptions($$$$$$) {
@@ -423,8 +423,8 @@ sub tigrFoundationOptions($$$$$$) {
     my $debug       = shift;
     my $help        = shift;
     my $depend      = shift;
-    
-    $tf_object->printHelpInfoAndExit() 
+
+    $tf_object->printHelpInfoAndExit()
         if ( (defined $help) && ($help =~ /^(.*)$/) );
 
     $tf_object->printVersionInfoAndExit()
@@ -446,7 +446,7 @@ sub tigrFoundationOptions($$$$$$) {
     if ( (defined $debug) && ($debug =~ /^(.*)$/) ) {
        $debug = $1;
        $tf_object->setDebugLevel($debug);
-    } 
+    }
 }
 
 sub clean() {
@@ -473,10 +473,10 @@ sub SIGHANDLER {
 #
 MAIN:
 {
- 
+
  #################################### BEGIN: borrowed from carun ################################
     my $recipe_file     = undef;    # Recipe to run
-    my $passThroughStr  = undef;    # passthrough commands (via command line)    
+    my $passThroughStr  = undef;    # passthrough commands (via command line)
 
     #TIGR Foundation variables
     my $version         = undef;    # Version option
@@ -486,7 +486,7 @@ MAIN:
     my $logfile         = undef;
     my $debug           = undef;
     my $alias           = undef;
-    
+
     # ========================== Program Setup ==============================
     # Prepare logs
     $tf_object->addDependInfo(@MY_DEPENDS);
@@ -506,7 +506,7 @@ MAIN:
 
 
     tigrFoundationOptions($version, $appendlog, $logfile, $debug, $help, $depend);
- 
+
  #################################### END: borrowed from carun ##################################
   $debug            = 0;
   my $destination = undef;
@@ -748,7 +748,7 @@ MAIN:
   }
 
 
-  # Prepare the filenames 
+  # Prepare the filenames
   my $scratch_file = "$outdir/$outfile.scratch";
   my $asm_file     = "$outdir/$outfile.tasm";
   my $align_file   = "$outdir/$outfile.align";
@@ -786,22 +786,22 @@ MAIN:
     my @f = stat $SeqFile;
 
     my $fastoption = "-l fast";
-    my $passthru = ($bigjob) ? "" : "--passthrough \"$fastoption\" " ; 
+    my $passthru = ($bigjob) ? "" : "--passthrough \"$fastoption\" " ;
 #    my $run_command = "qsub   -M $user -m e \"$assembler_cmd\" "."  $passthru ";
     # Set recipe file
     $recipe_file = setRecipeFile($recipe_file);
-                      
+
     # Set option values
     my @taOptionsArray = taOptionsSetup("\"".$Options."\"");
 #   my @passThroughCommands = passThroughSetup (\$passthru);
     my $sessionFileName = generateSessionFile(\@taOptionsArray);
     my $invocation = "$0 ".$tf_object->getProgramInfo("invocation");
-    
+
     my $arunOptions = join(' ', @ARGV);
     $arunOptions .= " -invocation \"$invocation\"";
     $arunOptions .= " -alias \"$alias\"" if (defined $alias);
 
-    # Call Arun    
+    # Call Arun
     callArun($arunOptions,$sessionFileName,$recipe_file);
 #    callArun($arunOptions,$recipe_file);
     # Clean up

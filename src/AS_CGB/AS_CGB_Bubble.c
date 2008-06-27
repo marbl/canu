@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_Bubble.c,v 1.12 2007-11-08 12:38:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_Bubble.c,v 1.13 2008-06-27 06:29:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -63,7 +63,7 @@ _hash_vset_cmp(uint64 vset1, uint64 vset2)
   BVSPair *v1 = (BVSPair *)(INTPTR)vset1;
   BVSPair *v2 = (BVSPair *)(INTPTR)vset2;
   int comp_f = BVS_compare(v1->f, v2->f);
-  
+
   if (comp_f != 0)
     return comp_f;
   else
@@ -83,7 +83,7 @@ _hash_vset_hash(uint64 vset, uint32 length)
 int
 _is_initiation_node(int in_deg, int out_deg)
 {
-  return ((in_deg <= 1) && (out_deg > 1) && 
+  return ((in_deg <= 1) && (out_deg > 1) &&
 	  (out_deg < AS_CGB_BUBBLE_max_outdegree_G));
 }
 
@@ -96,7 +96,7 @@ _is_termination_node(int in_deg, int out_deg)
 
 
 AS_CGB_Bubble_List_t
-_collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs, 
+_collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
 		 IntFragment_ID *top, int num_valid)
 {
   IntFragment_ID f, bub_start;
@@ -107,13 +107,13 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
   BVSPair *bp_ins_keys = NULL, bp_find_key;
 
   memset(&result,0,sizeof(AS_CGB_Bubble_List));
-  init_nodes  = CreateGenericHashTable_AS(num_valid / 2, 
+  init_nodes  = CreateGenericHashTable_AS(num_valid / 2,
                                           _hash_vset_hash,
                                           _hash_vset_cmp);
   bp_ins_keys = (BVSPair *)safe_malloc(sizeof(BVSPair) * num_valid );
   result.next = NULL;
 
-  for (f = 0; f < num_valid; ++f) 
+  for (f = 0; f < num_valid; ++f)
     if (_is_initiation_node(BG_inDegree(bg, top[f], AS_CGB_BUBBLE_E_VALID),
 			    BG_outDegree(bg, top[f], AS_CGB_BUBBLE_E_VALID)) &&
 	!BVS_empty(&(fwd[top[f]])) &&
@@ -127,13 +127,13 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
       InsertInHashTable_AS(init_nodes, (uint64)(INTPTR)&bp_ins_keys[f], sizeof(BVSPair), (uint64)(INTPTR)&top[f], 0);
     }
 
-  for (f = 0; f < num_valid; ++f) 
+  for (f = 0; f < num_valid; ++f)
     if (_is_termination_node(BG_inDegree(bg, top[f], AS_CGB_BUBBLE_E_VALID),
 			     BG_outDegree(bg, top[f], AS_CGB_BUBBLE_E_VALID))&&
 	!BVS_empty(&(fwd[top[f]])) &&
-	!BVS_empty(&(rvs[top[f]]))) { 
+	!BVS_empty(&(rvs[top[f]]))) {
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-      fprintf(BUB_LOG_G, "Looking for matches for " F_IID " (" F_IID ") in the table.  ", 
+      fprintf(BUB_LOG_G, "Looking for matches for " F_IID " (" F_IID ") in the table.  ",
 	      top[f], get_iid_fragment(BG_vertices(bg), top[f]));
 #endif
       bp_find_key.f = &(fwd[top[f]]);
@@ -163,8 +163,8 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
   safe_free(bp_ins_keys);
   return result.next;
 }
- 
- 
+
+
 
 void
 _process_vertex(BubGraph_t bg, IntFragment_ID f, BubVertexSet *bvs,
@@ -172,7 +172,7 @@ _process_vertex(BubGraph_t bg, IntFragment_ID f, BubVertexSet *bvs,
 {
   IntFragment_ID opp_f;
   IntEdge_ID e;
-    
+
   if (in_deg > 0) {
     e = BGEI_cur(in);
     opp_f = BG_getOppositeVertex(bg, e, f);
@@ -238,10 +238,10 @@ _reverse_collect_sets(BubGraph_t bg, BubVertexSet *fwd, IntFragment_ID *top,
 
 
 
-/* Performs a topological sort of the fragment graph.  The output is an array 
+/* Performs a topological sort of the fragment graph.  The output is an array
    of fragment IDs in topological order, pointed to by the out parameter (which
-   is assumed to point to sufficient pre-allocated space).  Only those 
-   fragments and edges which are marked as VALID are used. 
+   is assumed to point to sufficient pre-allocated space).  Only those
+   fragments and edges which are marked as VALID are used.
 
    The return value is the number of elements placed in topological order.
    If the graph is found to be cyclic, 0 is returned instead.
@@ -263,13 +263,13 @@ AS_CGB_Bubble_topo_sort(BubGraph_t bg, IntFragment_ID *out)
   //fprintf(BUB_LOG_G, "  * Found " F_IID " valid edges.\n", num_valid);
 
   num_valid = 0;
-  for (f = 0; f < GetNumFragments(BG_vertices(bg)); ++f) 
+  for (f = 0; f < GetNumFragments(BG_vertices(bg)); ++f)
     if (BG_V_isSetFlag(bg, f, AS_CGB_BUBBLE_V_VALID)) {
       num_valid++;
       if (BG_inDegree(bg, f, valid_and_unused) == 0)
 	out[q_end++] = f;
     }
-  
+
   //fprintf(BUB_LOG_G, "  * Found " F_IID " valid vertices.\n", num_valid);
 
   while (q_start < q_end) {
@@ -283,7 +283,7 @@ AS_CGB_Bubble_topo_sort(BubGraph_t bg, IntFragment_ID *out)
     }
     q_start++;
   }
-  
+
   if (q_end < num_valid) {
     //fprintf(BUB_LOG_G, "  * WARNING: Only processed " F_IID " of " F_IID " vertices!  Cyclic graph!\n", q_end, num_valid);
     return 0;
@@ -305,7 +305,7 @@ AS_CGB_Bubble_find_bubbles_with_graph(BubGraph_t bg, int sz, int age,
   BubVertexSet *fwd = NULL;
   BubVertexSet *rvs = NULL;
   AS_CGB_Bubble_List_t result = NULL;
-  
+
   if (sz > 0)
     AS_CGB_BUBBLE_set_size_G = sz;
   if (age > 0)
@@ -326,8 +326,8 @@ AS_CGB_Bubble_find_bubbles_with_graph(BubGraph_t bg, int sz, int age,
   num_valid = AS_CGB_Bubble_topo_sort(bg, top_order);
 
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-  for (f = 0; f < num_valid; ++f) 
-    fprintf(BUB_LOG_G, "" F_IID " (" F_IID ")\n", top_order[f], 
+  for (f = 0; f < num_valid; ++f)
+    fprintf(BUB_LOG_G, "" F_IID " (" F_IID ")\n", top_order[f],
 	    get_iid_fragment(BG_vertices(bg), top_order[f]));
 #endif
 
@@ -356,14 +356,14 @@ AS_CGB_Bubble_find_bubbles_with_graph(BubGraph_t bg, int sz, int age,
     fprintf(BUB_LOG_G, "\n");
   }
 #endif
-  
+
   fprintf(BUB_LOG_G, "  * Step 4: Finding matching labels\n");
   fprintf(BUB_LOG_G, "  * Step 4: num_valid = " F_IID "\n", num_valid);
-  
-  if( num_valid != 0 ) { 
+
+  if( num_valid != 0 ) {
     result = _collect_bubbles(bg, fwd, rvs, top_order, num_valid);
   }
-  
+
   {
     AS_CGB_Bubble_List_t ptr = NULL;
     for (ptr = result; NULL != ptr; ptr = ptr->next) {
@@ -406,7 +406,7 @@ AS_CGB_Bubble_find_bubbles(Tfragment *frags, Tedge *edges, int sz, int age,
 void
 AS_CGB_Bubble_find_and_remove_bubbles
 (GateKeeperStore *gkpStore,
- Tfragment *frags, Tedge *edges, 
+ Tfragment *frags, Tedge *edges,
  TChunkMesg *chunks, TChunkFrag *cfrgs,
  float gar,
  FILE *olap_file, FILE *log_file,
@@ -437,7 +437,7 @@ AS_CGB_Bubble_find_and_remove_bubbles
   while (NULL != bubs) {
     AS_CGB_Bubble_List_t bptr = NULL;
     int num_ovl = 0;
-    
+
     OverlapMesg *ovl = AS_CGB_Bubble_pop_bubble
       (&bp, bubs->start, bubs->start_sx,
        bubs->end, bubs->end_sx, &num_ovl);
@@ -462,26 +462,26 @@ AS_CGB_Bubble_find_and_remove_bubbles
 
   fprintf(BUB_LOG_G, "  * ====================================================\n");
   fprintf(BUB_LOG_G, "  *                 BUBBLE POPPER STATS\n\n");
-  fprintf(BUB_LOG_G, "  * Num Bubbles Processed:   \t\t%d\n", 
+  fprintf(BUB_LOG_G, "  * Num Bubbles Processed:   \t\t%d\n",
 	  bp.numBubblesProcessed);
   if (bp.numBubblesProcessed > 0) {
-    fprintf(BUB_LOG_G, "  * Num Bubbles Collapsed:   \t\t%d\n", 
+    fprintf(BUB_LOG_G, "  * Num Bubbles Collapsed:   \t\t%d\n",
 	    bp.numBubblesCollapsed);
-    fprintf(BUB_LOG_G, "  * Num Rejected by A-stat:  \t\t%d\n", 
+    fprintf(BUB_LOG_G, "  * Num Rejected by A-stat:  \t\t%d\n",
 	    bp.numRejectedByDiscriminator);
-    fprintf(BUB_LOG_G, "  * Num Overlaps Attempted:  \t\t%d\n", 
+    fprintf(BUB_LOG_G, "  * Num Overlaps Attempted:  \t\t%d\n",
 	    bp.numOlapsComputed);
-    fprintf(BUB_LOG_G, "  * Num Overlaps Found:      \t\t%d\n", 
+    fprintf(BUB_LOG_G, "  * Num Overlaps Found:      \t\t%d\n",
 	    bp.numOlapsSuccessful);
-    fprintf(BUB_LOG_G, "  * Num Overlaps Output:     \t\t%d\n", 
+    fprintf(BUB_LOG_G, "  * Num Overlaps Output:     \t\t%d\n",
 	    bp.numOlapsRetained);
-    fprintf(BUB_LOG_G, "  * Num Frags In Bubbles:    \t\t%d\n", 
+    fprintf(BUB_LOG_G, "  * Num Frags In Bubbles:    \t\t%d\n",
 	    bp.numFragsInBubbles);
-    fprintf(BUB_LOG_G, "  * Num Frags In Collapsed:  \t\t%d\n", 
+    fprintf(BUB_LOG_G, "  * Num Frags In Collapsed:  \t\t%d\n",
 	    bp.numFragsInCollapsedBubbles);
-    fprintf(BUB_LOG_G, "  * Average Bubble Length:   \t\t%d\n", 
+    fprintf(BUB_LOG_G, "  * Average Bubble Length:   \t\t%d\n",
 	    bp.totalDistSpannedByBubbles / bp.numBubblesProcessed);
-    fprintf(BUB_LOG_G, "  * Average Collapsed Length:\t\t%d\n", 
+    fprintf(BUB_LOG_G, "  * Average Collapsed Length:\t\t%d\n",
 	    bp.totalDistSpannedByBubbles / bp.numBubblesProcessed);
   }
   fprintf(BUB_LOG_G, "  * ====================================================\n");

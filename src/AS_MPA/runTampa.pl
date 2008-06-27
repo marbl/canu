@@ -6,19 +6,19 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received (LICENSE.txt) a copy of the GNU General Public 
+#
+# You should have received (LICENSE.txt) a copy of the GNU General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
 #
-# $Id: runTampa.pl,v 1.7 2005-12-16 22:13:07 catmandew Exp $
+# $Id: runTampa.pl,v 1.8 2008-06-27 06:29:17 brianwalenz Exp $
 #
 
 # Wrapper to run and post-process results from TAMPA
@@ -95,13 +95,13 @@ my %PARAMETERS = ("assemblyPrefix" => "",
                   "ataOutput" => 0,
                   "rawOutput" => 0,);
 
-my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.7 $/ )[1]. ")";
+my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.8 $/ )[1]. ")";
 my $MY_APPLICATION = "TAMPA";
 
 my $REFERENCE = qq~
   Ian M. Dew, Brian Walenz, Granger Sutton, A Tool for Analyzing Mate
     Pairs in Assemblies (TAMPA), J Comp Bio. 2005 June; 12 (5):497-513.
-  
+
 ~;
 
 my $HELPTEXT = qq~
@@ -119,10 +119,10 @@ Run TAMPA (Tool for Analyzing Mate Pairs in Assemblies) on a genomic assembly.
     <-l library>  The file listing clone libraries, means, and standard
                   deviations.
                   Please refer to the user's manual for file formats.
-  
+
     options:
       -h               Print help.
-  
+
       -c               Print TAMPA citation.
 
       -v <level>       Set verbosity to level.
@@ -279,7 +279,7 @@ if($PARAMETERS{"verboseLevel"})
     print "current path.\n";
   }
   print "\n";
-  
+
   print "Started ";
   system("date");
 }
@@ -304,7 +304,7 @@ foreach my $entry (@entries)
   my $seqNum = $2;
   $seqs{$seqNum} = 1;
   print "Found $entry\n" if($PARAMETERS{"verboseLevel"} > 1);
-  
+
   $intras{$seqNum} = 1 if($entry =~ /intra/);
   $inters{$seqNum} = 1 if($entry =~ /inter/);
 }
@@ -330,12 +330,12 @@ if(!$PARAMETERS{"dontReestimate"})
 
     print "Reestimating library $libFields[0]\n"
       if($PARAMETERS{"verboseLevel"});
-    
+
     # create a lengths file, populated with innie clone lengths
     my $ofn = $libFields[0] . "Lengths.txt";
     my $ofh = new FileHandle $ofn, "w" or
       die "Failed to open $ofn for writing";
-    
+
     # iterate through all intra-sequence files to get innie clone lengths
     foreach my $intra (sort {$a <=> $b} (keys(%intras)))
     {
@@ -363,7 +363,7 @@ if(!$PARAMETERS{"dontReestimate"})
       " -s " . $PARAMETERS{"reestSigmas"} .
       " -i " . $PARAMETERS{"reestIters"} .
       $appender . $rlfn;
-    
+
     print "Running $command\n" if($PARAMETERS{"verboseLevel"} > 1);
     system($command) == 0
       or die "Failed to run command\n$command\n\n";
@@ -388,7 +388,7 @@ if(!$PARAMETERS{"dontDoIntra"})
   my $bfh = new FileHandle $bfn, "w" or
       die "Failed to open $bfn for writing";
   my $wroteToBFH = 0;
-  
+
   # create csv file for sequence-by-sequence summary
   my $sfn = $PARAMETERS{"assemblyPrefix"} . ".intra.summary.tampa";
   my $sfh = new FileHandle $sfn, "w" or
@@ -397,7 +397,7 @@ if(!$PARAMETERS{"dontDoIntra"})
   # write title
   print $sfh "TAMPA Intra-sequence results for " .
     $PARAMETERS{"assemblyPrefix"} . " assembly\n\n";
-  
+
   # write field labels
   print $sfh "\t" .
     "Excluded Clones\t\t" .
@@ -432,7 +432,7 @@ if(!$PARAMETERS{"dontDoIntra"})
   {
     $totals[$i] = 0;
   }
-  
+
   foreach my $intra (sort {$a <=> $b} (keys(%intras)))
   {
     # run TAMPA on intra-sequence
@@ -468,7 +468,7 @@ if(!$PARAMETERS{"dontDoIntra"})
       }
       $wroteToBFH = 1;
     }
-    
+
     # parse summary file & add to summary spreadsheet file
     printf $sfh "$intra";
     my @vals;
@@ -476,7 +476,7 @@ if(!$PARAMETERS{"dontDoIntra"})
     {
       $vals[$i] = 0;
     }
-    
+
     my $iofh = new FileHandle $ofn, "r" or
       die "Failed to open $ofn for reading";
     while(<$iofh>)
@@ -530,10 +530,10 @@ if(!$PARAMETERS{"dontDoIntra"})
   }
 
   # calculate probability of detections & print
-  
+
   printf $sfh "\n\nPlease cite the following in any publications" .
     "$REFERENCE\n";
-  
+
   close($sfh);
 }
 
@@ -547,7 +547,7 @@ if(!$PARAMETERS{"dontDoInter"})
   my $bfh = new FileHandle $bfn, "w" or
       die "Failed to open $bfn for writing";
   my $wroteToBFH = 0;
-  
+
   # create csv file for sequence-by-sequence summary
   my $sfn = $PARAMETERS{"assemblyPrefix"} . ".inter.summary.tampa";
   my $sfh = new FileHandle $sfn, "w" or
@@ -556,7 +556,7 @@ if(!$PARAMETERS{"dontDoInter"})
   # write title
   print $sfh "TAMPA Inter-sequence results for " .
     $PARAMETERS{"assemblyPrefix"} . " assembly\n\n";
-  
+
   # write field labels
   print $sfh "\t\t" .
     "Confirmed intervals\n";
@@ -609,7 +609,7 @@ if(!$PARAMETERS{"dontDoInter"})
       }
       $wroteToBFH = 1;
     }
-    
+
     # parse summary file & add to summary spreadsheet file
     printf $sfh "$inter";
     my @vals;
@@ -617,7 +617,7 @@ if(!$PARAMETERS{"dontDoInter"})
     {
       $vals[$i] = 0;
     }
-    
+
     my $iofh = new FileHandle $ofn, "r" or
       die "Failed to open $ofn for reading";
     while(<$iofh>)
@@ -645,10 +645,10 @@ if(!$PARAMETERS{"dontDoInter"})
   }
 
   # calculate probability of detections & print
-  
+
   printf $sfh "\n\nPlease cite the following in any publications" .
     "$REFERENCE\n";
-  
+
   close($sfh);
 }
 

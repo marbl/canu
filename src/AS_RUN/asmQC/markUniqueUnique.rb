@@ -75,7 +75,7 @@ iumFile.each_line do |line|
                 print line
                 line = iumFile.readline
             end
-        
+
             uniqueStat = line[4,1]
             if uniqueStat != 'U'
                 line = "fur:U\n"

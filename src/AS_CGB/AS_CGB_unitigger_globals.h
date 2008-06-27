@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_CGB_unitigger_globals.h,v 1.15 2008-02-27 17:06:59 skoren Exp $
+//  $Id: AS_CGB_unitigger_globals.h,v 1.16 2008-06-27 06:29:13 brianwalenz Exp $
 
 #ifndef AS_CGB_UNITIGGER_GLOBALS_INCLUDE
 #define AS_CGB_UNITIGGER_GLOBALS_INCLUDE
@@ -28,7 +28,7 @@
 
 typedef struct {
   IntFragment_ID  avx,bvx;
-  int16       ahg,bhg; 
+  int16       ahg,bhg;
 
   uint32    quality : 16;  // zero is a perfect overlap
   uint32    nes : 8;      // The edge labeling.
@@ -43,28 +43,28 @@ typedef struct {
 } Aedge;
 
 
-typedef struct { 
+typedef struct {
   //uint64  src;
   /* An index into the character array
      "the_source_text" holding the simulator source
      info. */
 
-  IntFragment_ID  iid; /* The Celera Genomics Assembler Gatekeeper IID 
+  IntFragment_ID  iid; /* The Celera Genomics Assembler Gatekeeper IID
 		      for this fragment read. */
   IntChunk_ID cid; /* The linkage to chunks. Needed due to the way
                       that interchunk edges are made. */
-  IntEdge_ID  segbgn_prefix;/* The starting location of a segment of 
+  IntEdge_ID  segbgn_prefix;/* The starting location of a segment of
 			   raw fragment overlaps to the prefix. */
-  IntEdge_ID  segbgn_suffix;/* The starting location of a segment of 
+  IntEdge_ID  segbgn_suffix;/* The starting location of a segment of
 			   fragment overlaps to the suffix. */
-  IntEdge_ID  segend_prefix;/* The ending location of a segment of 
+  IntEdge_ID  segend_prefix;/* The ending location of a segment of
 			   raw fragment overlaps to the prefix. */
-  IntEdge_ID  segend_suffix;/* The ending location of a segment of 
+  IntEdge_ID  segend_suffix;/* The ending location of a segment of
 			   fragment overlaps to the suffix. */
 
-  int32   nprefix_all;  /* The segment length of the prefix-only 
+  int32   nprefix_all;  /* The segment length of the prefix-only
 			   fragment overlaps. */
-  int32   nsuffix_all;  /* The segment length of the suffix-only 
+  int32   nsuffix_all;  /* The segment length of the suffix-only
 			   fragment overlaps. */
 
   int32   nprefix_dvt; /* Recomputable */
@@ -83,7 +83,7 @@ typedef struct {
 
   int32   raw_frc_count;
   int32   raw_toc_count;
-  
+
   IntFragment_ID  container;  /* Recomputable */
   // A zero value means that the fragment is not contained by any
   // other fragment.  A positive value is the fragment IID of the
@@ -104,7 +104,7 @@ typedef struct {
 
   int16   bp_length;
   // The length of the fragment read in bp.
-  
+
   /* FGB bit flags: */
   unsigned int deleted : 1;
   // A flag indicating if this fragment is deleted in the fragment
@@ -121,9 +121,9 @@ typedef struct {
 typedef   IntFragment_ID   AChunkFrag;
 
 typedef struct {
-  int64         bp_length;  
+  int64         bp_length;
   // the length in base pairs of the chunk.
-  int64         rho;        
+  int64         rho;
   IntChunk_ID   iaccession;
   // An arbitrary, but dense and non-negative enumeration of the
   // unitigs.
@@ -139,7 +139,7 @@ typedef struct {
 
   // The following is not necessary. The info available from
   // fragment-end info, chunk_avx, chunk_asx, chunk_bvx, and chunk_bsx.
-  int32         a_degree_raw; 
+  int32         a_degree_raw;
   int32         b_degree_raw;
 
   IntEdge_ID        a_list_raw;
@@ -152,7 +152,7 @@ typedef struct {
 			 stores a quality sequence of the chunk. */
   size_t        qua_len; // The length of the quality sequence of the chunk.
 
-  int8 asl,bsl; 
+  int8 asl,bsl;
   // Flags indicating whether the A and B chunk-ends are probably
   // touching a tandem repeat region.
 } AChunkMesg;
@@ -170,7 +170,7 @@ typedef VA_TYPE(AChunkFrag) TChunkFrag;
 typedef VA_TYPE(AChunkMesg) TChunkMesg;
 
 
-typedef struct { 
+typedef struct {
   Tfragment      *frags;
   Tedge          *edges;
   TChunkFrag     *chunkfrags;
@@ -187,11 +187,11 @@ typedef struct {
   char   bubble_overlaps_filename[FILENAME_MAX];
   char * blessed_overlaps_input_filename;
   char * blessed_overlaps_output_filename;
-  
+
   /* Reaper/FGB input */
   int     num_ovl_files;
   char ** the_ovl_files;
-  
+
   char * OVL_Store_Path;
   // The directory containing the overlap store.
 

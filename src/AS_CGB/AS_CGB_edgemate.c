@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_edgemate.c,v 1.10 2007-09-05 11:22:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_edgemate.c,v 1.11 2008-06-27 06:29:13 brianwalenz Exp $";
 
 //  Description: These routines find and access the mate directed edge
 //  for a given edge of an overlap.
@@ -31,17 +31,17 @@ void reflect_Aedge( Aedge *new_edge, Aedge *old_edge) {
 /*  fragment overlaps:
        The overlapper connects two fragment-ends in an overlap
        relationship:
-       
+
        A    ---------------->
        B          -------------->
-       
+
        The direction mate edge preserves the which fragment-ends are
        in the overlap:
-       
+
        B^c  <----------------
-       A^c       <---------------- 
+       A^c       <----------------
     */
-  
+
   const IntFragment_ID old_avx = old_edge->avx;
   const int old_asx = old_edge->asx;
   const int old_ahg = old_edge->ahg;
@@ -67,21 +67,21 @@ void reflect_Aedge( Aedge *new_edge, Aedge *old_edge) {
   new_edge->quality = old_edge->quality;
   new_edge->grangered = old_edge->grangered;
   new_edge->reflected = ! old_edge->reflected;
-}   
+}
 
 void granger_Aedge( Aedge *new_edge, Aedge *old_edge) {
     /* To-contained edges have ahg>0
        A    ---------------->
        B          ------->...
-       
+
        So create the granger mate edge:
        A^c  <----------------
        B^c     <-------......
     */
     /* From-contained edges bhg <0
-       A    ..------->      
+       A    ..------->
        B    ---------------->
-       
+
        So create the granger mate edge:
        A^c  .......<-------
        B^c  <----------------
@@ -97,7 +97,7 @@ void granger_Aedge( Aedge *new_edge, Aedge *old_edge) {
 
   //set_crs_edge(edges,new_edge, old_edge);
   //set_crs_edge(edges,old_edge, new_edge);
-  
+
   new_edge->avx =   old_avx;
   new_edge->asx = ! old_asx;
   new_edge->ahg = - old_bhg;
@@ -112,12 +112,12 @@ void granger_Aedge( Aedge *new_edge, Aedge *old_edge) {
   new_edge->quality = old_edge->quality;
   new_edge->grangered = ! old_edge->grangered;
   new_edge->reflected =   old_edge->reflected;
-}   
+}
 
 
 IntEdge_ID find_overlap_edge_mate
 (/* Input Only */
- Tfragment frags[], 
+ Tfragment frags[],
  Tedge edges[],
  IntEdge_ID ie0
  )
@@ -141,28 +141,28 @@ IntEdge_ID find_overlap_edge_mate
   assert(ie0 < nedge);
 
   reflect_Aedge( &test_edge, &test_edge);
-  
+
   {
-    IntEdge_ID ie1 
+    IntEdge_ID ie1
       = get_segstart_vertex(frags,test_edge.avx,test_edge.asx);
-    IntEdge_ID ie3 = ie1 
+    IntEdge_ID ie3 = ie1
       + get_seglen_vertex(frags,test_edge.avx,test_edge.asx);
     IntEdge_ID ie2 = ie1;
 
     if(ie3 == ie1 ) { return AS_CGB_EDGE_NOT_FOUND;}
     // Empty edge segment.
-    
+
     assert( ie1 < ie3);
 
     for(; (ie1 < ie3); ) {
       int icompare;
-      
+
       ie2 = (ie1 + ie3)/2;
 
       Aedge *curr_edge = GetVA_Aedge(edges,ie2);
 
       icompare = compare_edge_function(curr_edge, &test_edge);
-      
+
       if( icompare == 0 ) {
 	// Found the other half of the undirected edge?
 	// const Tnes nes2 = get_nes_edge(edges,ie2);
@@ -178,7 +178,7 @@ IntEdge_ID find_overlap_edge_mate
       if(icompare < 0) {
 	ie1 = ie2+1;
       }
-      
+
     }
   }
   mate_edge = AS_CGB_EDGE_NOT_FOUND;
@@ -190,7 +190,7 @@ IntEdge_ID find_overlap_edge_mate
 
 void fix_overlap_edge_mate
 (/* Input Only */
- Tfragment frags[], 
+ Tfragment frags[],
  Tedge edges[],
  IntEdge_ID ie0)
 {
@@ -216,7 +216,7 @@ void fix_overlap_edge_mate
   }
   assert( AS_CGB_EDGE_NOT_FOUND != ie1 );
   // The return code for mate edge not found.
-  
+
   set_nes_edge(edges,ie1,ines1);
 }
 
@@ -239,7 +239,7 @@ static void fill_new_edge_with_reflected_old_edge(Tedge * edges,
 void
 verify_that_the_edges_are_in_order(Tedge edges[]) {
   IntEdge_ID ie0 = 0, nedge = GetNumEdges(edges);
-  
+
   for (ie0=0; ie0 < nedge-1; ie0++) {
     int icompare = compare_edge_function(GetVA_Aedge(edges,ie0),GetVA_Aedge(edges,ie0+1));
     assert(icompare <= 0);
@@ -253,7 +253,7 @@ void append_the_edge_mates(Tfragment frags[],
   // Scan the current edges to find un-mated edges.  For each un-mated
   // edge, append the mate edge to the edge array.
 
-  IntEdge_ID 
+  IntEdge_ID
     ie0,
     nedge = GetNumEdges(edges),
     nedge_delta = 0;
@@ -283,7 +283,7 @@ IntEdge_ID check_symmetry_of_the_edge_mates(Tfragment frags[],
   fprintf(stderr, "check_symmetry_of_the_edge_mates()--  Disabled.  (Was a NOP anyway)\n");
   return(0);
 
-  IntEdge_ID 
+  IntEdge_ID
     ie0,
     nedge = GetNumEdges(edges),
     counter = 0;
@@ -319,7 +319,7 @@ void count_fragment_and_edge_labels(Tfragment frags[],
   IntFragment_ID nfrag = GetNumFragments(frags);
   IntFragment_ID vid;
   Histogram_t *frag_lab_histogram = create_histogram(nsample,nbucket,TRUE,FALSE);
-    
+
   fprintf(fout,"*** Histogram Fragment Labels <%s> ***\n",comment);
 
   for(vid=0; vid<nfrag; vid++) {
@@ -330,12 +330,12 @@ void count_fragment_and_edge_labels(Tfragment frags[],
   fprintf(fout,"Histogram of the fragment label \n");
   print_histogram(fout,frag_lab_histogram, 0, 1);
   free_histogram(frag_lab_histogram);
-  
+
   IntEdge_ID ie;
   IntEdge_ID nedge = GetNumEdges(edges);
   Histogram_t *inter_chunk_edge_nes_histogram = create_histogram(nsample,nbucket,TRUE,FALSE);
   Histogram_t *intra_chunk_edge_nes_histogram = create_histogram(nsample,nbucket,TRUE,FALSE);
-    
+
   fprintf(fout,
           "*** Histogram Edge Labels (2 edges/overlap) <%s> ***\n",
           comment);

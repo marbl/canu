@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -31,7 +31,7 @@ namespace AS_ARD {
       private:
          // disable copy constructor
          BCPOutput(BCPOutput &);
-      
+
          static const int MAX_PATH_LEN = 128;
          static const int MAX_FILE_LEN = 20;
          static const int MAX_STR_LEN  = 1024;
@@ -59,29 +59,29 @@ namespace AS_ARD {
          static const char CTP_LIST_FILENAME[MAX_FILE_LEN];
          static const char CPS_FILENAME[MAX_FILE_LEN];
 
-         
+
          static const char DEFAULT_BCP[MAX_STR_LEN];
 
          char * getFileName(const char * fileName);
          std::fstream * openFile(const char * fileName, std::_Ios_Openmode mode = (std::ios::in | std::ios::out | std::ios::trunc));
          bool closeFile(std::fstream **file);
          bool updateFile(
-                  const char * fileName, 
-                  HashTable_AS * hash, 
+                  const char * fileName,
+                  HashTable_AS * hash,
                   int32 position);
          bool runBCP(const char * fileName);
          bool runBCP(const char * fileName, bool eraseFile);
 
          // file output name prefix
          char *prefix;
-         
+
          // connection parameters
          char *server;
          char *database;
          char *user;
-         char *pass;       
+         char *pass;
          char *bcp;
-         
+
          std::fstream * mdiBCP;
          std::fstream * afgBCP;
          std::fstream * utgBCP;
@@ -92,7 +92,7 @@ namespace AS_ARD {
          std::fstream * jmpListBCP;
          std::fstream * clkBCP;
          std::fstream * clkListBCP;
-         std::fstream * clkJmpBCP;     
+         std::fstream * clkJmpBCP;
          std::fstream * clkJmpListBCP;
          std::fstream * ccoBCP;
          std::fstream * ccoMpsBCP;
@@ -101,17 +101,17 @@ namespace AS_ARD {
          std::fstream * varAlleleBCP;
          std::fstream * varAFGBCP;
          std::fstream * scfBCP;
-         std::fstream * ctpBCP;         
+         std::fstream * ctpBCP;
          std::fstream * ctpListBCP;
          std::fstream * cpsBCP;
 
       public:
          BCPOutput(
-            const char * _prefix, 
-            const char * _server, 
+            const char * _prefix,
+            const char * _server,
             const char * _database,
             const char * _user,
-            const char * _password,           
+            const char * _password,
             const char * _bcp = NULL);
          ~BCPOutput();
 
@@ -128,23 +128,23 @@ namespace AS_ARD {
                   const char * ver,
                   const char status,
                   const char * notes);
-                        
+
          bool storeMDI2DB (
-                  AS_UID erefines,  
+                  AS_UID erefines,
                   IntDist_ID irefines,
                   float mean,
                   float stddev,
                   int32 min,
                   int32 max);
          bool storeAFG2DB (
-                  AS_UID erefines,  
+                  AS_UID erefines,
                   IntFragment_ID irefines,
                   MateStatType mate_status,
                   int32 chaff,
                   CDS_COORD_t begin,
                   CDS_COORD_t end);
          bool storeUTG2DB (
-                  AS_UID eaccession,  
+                  AS_UID eaccession,
                   IntFragment_ID iaccession,
                   const char * source,
                   float mhp,
@@ -156,7 +156,7 @@ namespace AS_ARD {
                   int32 forced,
                   int32 num_frags);
          bool storeMPS2DB (
-                  AS_UID unitigID,                  
+                  AS_UID unitigID,
                   AS_UID eident,
                   FragType type,
                   const char * source,
@@ -178,7 +178,7 @@ namespace AS_ARD {
          bool storeJMP2DB(int jmpType, AS_UID jmpID, AS_UID ulkID, LinkType type);
          bool storeJMPList2DB(int jmpType, AS_UID jmpListID, AS_UID jmpID, AS_UID fragID);
          bool storeCCO2DB (
-                  AS_UID eaccession,  
+                  AS_UID eaccession,
                   IntFragment_ID iaccession,
                   ContigPlacementStatusType placed,
                   CDS_COORD_t length,
@@ -190,7 +190,7 @@ namespace AS_ARD {
                   int32 num_vars);
          bool storeCCOMPS2DB(
                   AS_UID ccoMpsID,
-                  AS_UID ccoID,            
+                  AS_UID ccoID,
                   AS_UID fragID,
                   FragType type,
                   const char * source,
@@ -200,7 +200,7 @@ namespace AS_ARD {
                   std::string delta);
          bool storeUPS2DB(
                   AS_UID upsID,
-                  AS_UID ccoID,            
+                  AS_UID ccoID,
                   AS_UID unitigID,
                   UnitigType type,
                   CDS_COORD_t bgn,
@@ -209,7 +209,7 @@ namespace AS_ARD {
                   std::string delta);
          bool storeVAR2DB(
                   AS_UID varID,
-                  AS_UID ccoID,            
+                  AS_UID ccoID,
                   CDS_COORD_t bgn,
                   CDS_COORD_t end,
                   uint32 num_reads,
@@ -232,7 +232,7 @@ namespace AS_ARD {
                   uint32 num_contributing,
                   PlacementStatusType status);
          bool storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs);
-         bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient);         
+         bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient);
          bool storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID);
          bool storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, CDS_COORD_t ctgStart, CDS_COORD_t ctgEnd);
 
@@ -242,8 +242,8 @@ namespace AS_ARD {
          bool commitUTG2DB();
          bool commitMPS2DB();
          bool commitULK2DB();
-         bool commitULKList2DB();         
-         bool commitJMP2DB();        
+         bool commitULKList2DB();
+         bool commitJMP2DB();
          bool commitJMPList2DB();
          bool commitCCO2DB();
          bool commitCCOMPS2DB();
@@ -260,7 +260,7 @@ namespace AS_ARD {
          bool commitCTPList2DB();
          bool commitCPS2DB();
    };
-}; 
+};
 
 #endif // BCPOutput_H
 #endif //SYBASE

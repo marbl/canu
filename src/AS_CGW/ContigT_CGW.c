@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.16 2007-09-19 21:54:24 skoren Exp $";
+static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.17 2008-06-27 06:29:14 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_EDGES
@@ -49,7 +49,7 @@ void CheckContigs()
 {
   GraphNodeIterator CIs;
   NodeCGW_T * contig;
-  
+
   InitGraphNodeIterator(&CIs, ScaffoldGraph->ContigGraph, GRAPH_NODE_DEFAULT);
   while((contig = NextGraphNodeIterator(&CIs)) != NULL)
     {
@@ -67,7 +67,7 @@ void CheckContigs()
                   meanDelta, varianceDelta);
         }
     }
-  
+
 }
 
 void
@@ -94,7 +94,7 @@ dumpContigInfo(ChunkInstanceT *contig) {
           (int)contig->offsetAEnd.mean,
           (int)contig->offsetBEnd.mean);
 
-  ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, ScaffoldGraph->RezGraph->type == CI_GRAPH); 
+  ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, ScaffoldGraph->RezGraph->type == CI_GRAPH);
 
   // Get the consensus sequences for the contig from the Store
   GetConsensus(ScaffoldGraph->ContigGraph, contig->id, consensus, quality);
@@ -104,7 +104,7 @@ dumpContigInfo(ChunkInstanceT *contig) {
 
   if (contigOrientation == 1)
     SequenceComplement(seq1, NULL);
-  
+
   if (len1 < 5000) {
     fprintf( stderr, ">contig%d consensus seq (flipped to reflect scaff orientation)\n", contig->id);
     fprintf( stderr, "%s\n", seq1);
@@ -142,8 +142,8 @@ dumpContigInfo(ChunkInstanceT *contig) {
 
       unitig = GetGraphNode( ScaffoldGraph->CIGraph, unitig->info.CI.baseID);
       fprintf ( stderr, "  using original unitig: %d\n", unitig->id);
-      uma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, 
-                                          ScaffoldGraph->CIGraph->type == CI_GRAPH); 
+      uma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id,
+                                          ScaffoldGraph->CIGraph->type == CI_GRAPH);
     }
 
     // now print out info on the frags in the unitig
@@ -178,8 +178,8 @@ dumpContigInfo(ChunkInstanceT *contig) {
 
 
 void
-GetContigPositionInScaffold(ChunkInstanceT *contig, int *left_end, int *right_end, 
-                            int *contigScaffoldOrientation) {  
+GetContigPositionInScaffold(ChunkInstanceT *contig, int *left_end, int *right_end,
+                            int *contigScaffoldOrientation) {
   if (contig->offsetAEnd.mean <= contig->offsetBEnd.mean) {
     *left_end = contig->offsetAEnd.mean;
     *right_end = contig->offsetBEnd.mean;
@@ -194,8 +194,8 @@ GetContigPositionInScaffold(ChunkInstanceT *contig, int *left_end, int *right_en
 
 static
 void
-GetFragmentPositionInScaffoldFromContig(CIFragT *frag, int *left_end, int *right_end, 
-                                        int *fragmentScaffoldOrientation, 
+GetFragmentPositionInScaffoldFromContig(CIFragT *frag, int *left_end, int *right_end,
+                                        int *fragmentScaffoldOrientation,
                                         int contigLeftEnd, int contigRightEnd, int contigScaffoldOrientation) {
   if (contigScaffoldOrientation == 0) {
     // contig is direct in scaffold
@@ -228,11 +228,11 @@ GetFragmentPositionInScaffoldFromContig(CIFragT *frag, int *left_end, int *right
 
 
 void
-GetFragmentPositionInScaffold(CIFragT *frag, int *left_end, int *right_end, 
+GetFragmentPositionInScaffold(CIFragT *frag, int *left_end, int *right_end,
                                    int *fragmentScaffoldOrientation) {
   ContigT *containingContig = GetGraphNode(ScaffoldGraph->ContigGraph, frag->contigID);
   int contigLeftEnd, contigRightEnd, contigScaffoldOrientation;
-  
+
   GetContigPositionInScaffold( containingContig, &contigLeftEnd, &contigRightEnd, &contigScaffoldOrientation);
 
   GetFragmentPositionInScaffoldFromContig( frag, left_end, right_end, fragmentScaffoldOrientation,
@@ -254,13 +254,13 @@ void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw){
     flags |= GRAPH_EDGE_RAW_ONLY;
 
   fprintf(stream, "* Contig " F_CID " sc:" F_CID " [" F_COORD "," F_COORD "] aoff:%d boff:%d ANext:" F_CID " BNext:" F_CID " len:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
-          contig->id, 
+          contig->id,
           contig->scaffoldID,
           contig->aEndCoord,
           contig->bEndCoord,
           (int)contig->offsetAEnd.mean,
           (int)contig->offsetBEnd.mean,
-          contig->AEndNext, contig->BEndNext, 
+          contig->AEndNext, contig->BEndNext,
           (int)contig->bpLength.mean,
           contig->info.Contig.AEndCI,
           contig->info.Contig.BEndCI,
@@ -268,7 +268,7 @@ void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw){
 
 #ifdef DEBUG_CONTIG
   fprintf(stderr, "* Contig " F_CID " [" F_COORD "," F_COORD "] ANext:" F_CID " BNext:" F_CID " length:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
-          contig->id, 
+          contig->id,
           contig->aEndCoord,
           contig->bEndCoord,
           contig->AEndNext, contig->BEndNext, (int)contig->bpLength.mean,
@@ -339,7 +339,7 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
     flags |= GRAPH_EDGE_RAW_ONLY;
 
   fprintf(stream, "* Contig " F_CID " sc:" F_CID " [" F_COORD "," F_COORD "] aoff:(%d,%e) boff:(%d,%e) ANext:" F_CID " BNext:" F_CID " len:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
-          contig->id, 
+          contig->id,
           contig->scaffoldID,
           contig->aEndCoord,
           contig->bEndCoord,
@@ -347,7 +347,7 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
           contig->offsetAEnd.variance,
           (int32)contig->offsetBEnd.mean,
           contig->offsetBEnd.variance,
-          contig->AEndNext, contig->BEndNext, 
+          contig->AEndNext, contig->BEndNext,
           (int)contig->bpLength.mean,
           contig->info.Contig.AEndCI,
           contig->info.Contig.BEndCI,
@@ -355,7 +355,7 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
 
 #ifdef DEBUG_CONTIG
   fprintf(stderr, "* Contig " F_CID " [" F_COORD "," F_COORD "] ANext:" F_CID " BNext:" F_CID " length:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
-          contig->id, 
+          contig->id,
           contig->aEndCoord,
           contig->bEndCoord,
           contig->AEndNext, contig->BEndNext, (int)contig->bpLength.mean,
@@ -427,7 +427,7 @@ void DumpContigs(FILE *stream, ScaffoldGraphT *graph, int raw){
 
 
 // When we can generate multi-alignments fro consensus sequences, this should die
-#if 1 
+#if 1
 
 /* Compute the offset and orientation of a fragment in its chunk and contig
    Offset is from 5p end of fragment to the end of the chunk/scaffold end in the
@@ -435,11 +435,11 @@ void DumpContigs(FILE *stream, ScaffoldGraphT *graph, int raw){
 
 */
 
-int CIinContigOffsetAndOrientation(ScaffoldGraphT *graph, 
+int CIinContigOffsetAndOrientation(ScaffoldGraphT *graph,
                                    CIFragT *frag,
                                    CDS_CID_t  cid, // input
                                    CIOrient   chunkOrient,    // input orientation of fragment in CI
-                                   LengthT    *ciOffset,    // CI's offset within Contig 
+                                   LengthT    *ciOffset,    // CI's offset within Contig
                                    CIOrient   *ciOrient){    // CI's orientation within Contig
 
   ChunkInstanceT *CI = GetChunkInstanceT(graph->ChunkInstances, cid);
@@ -450,7 +450,7 @@ int CIinContigOffsetAndOrientation(ScaffoldGraphT *graph,
     return FALSE;
 
   contig = GetGraphNode(graph->ContigGraph, CI->info.CI.contigID);
-  
+
   CIInContigOrient = GetNodeOrient(CI);
 
 
@@ -462,17 +462,17 @@ int CIinContigOffsetAndOrientation(ScaffoldGraphT *graph,
       switch(CIInContigOrient){
         case A_B:// Chunk is A_B in Contig
           /*    Contig   ------------------------------------------------------->
-                CI      A_B     ---------------------->  
+                CI      A_B     ---------------------->
                 Frag       A_B            ------>
                 Offset                    |=====================================|
-          */ 
-	 
+          */
+
           *ciOrient = A_B;
-          ciOffset->mean = 
+          ciOffset->mean =
             (contig->bpLength.mean -  CI->offsetBEnd.mean);
-		 
+
           /*
-            ciOffset->variance = 
+            ciOffset->variance =
             (contig->bpLength.variance - CI->offsetBEnd.variance);
           */
 
@@ -496,10 +496,10 @@ int CIinContigOffsetAndOrientation(ScaffoldGraphT *graph,
           break;
         case B_A: // Chunk is B_A in Contig
           /*    Contig ------------------------------------------------------->
-                Chunk     B_A  <----------------------   
-                Frag      A_B         <------    
+                Chunk     B_A  <----------------------
+                Frag      A_B         <------
                 Offset |====================|
-          */ 
+          */
           *ciOrient = B_A;
           ciOffset->mean = CI->offsetBEnd.mean;
           ciOffset->variance = CI->offsetBEnd.variance;
@@ -515,11 +515,11 @@ int CIinContigOffsetAndOrientation(ScaffoldGraphT *graph,
       switch(CIInContigOrient){
         case A_B:// Chunk is A_B in Contig
           /*    Contig    ------------------------------------------------------->
-                Chunk      A_B     ---------------------->  
+                Chunk      A_B     ---------------------->
                 Frag       B_A            <------
                 Offset |===========|
-          */ 
-	 
+          */
+
           *ciOrient = B_A;
           ciOffset->mean = CI->offsetAEnd.mean;
           ciOffset->variance = CI->offsetAEnd.variance;
@@ -531,12 +531,12 @@ int CIinContigOffsetAndOrientation(ScaffoldGraphT *graph,
                 Chunk           <----------------------   B_A
                 Frag                   ------>    B_A
                 Offset                                 |=========================|
-          */ 
+          */
           *ciOrient = A_B;
-          ciOffset->mean =  
+          ciOffset->mean =
             (contig->bpLength.mean - CI->offsetAEnd.mean);
 
-          ciOffset->variance =   
+          ciOffset->variance =
             (contig->bpLength.variance - CI->offsetAEnd.variance);
 
           if(ciOffset->variance < 0.0){
@@ -584,7 +584,7 @@ int BuildContigEdges(ScaffoldGraphT *graph){
   /* Recycle the SEdge VA */
   ResetCIEdgeT(graph->ContigGraph->edges);
   EnableRangeVA_CIEdgeT(graph->ContigGraph->edges, oldSize);
-  
+
   /* Iterating over scaffolds rather than the Contigs should give us some
      locality of reference
   */
@@ -609,7 +609,7 @@ int BuildContigEdges(ScaffoldGraphT *graph){
     //    fprintf(stderr,"* Building ContigEdges incident on Contigs of scaffold " F_CID "\n", sid);
     InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &Contigs);
 
-    
+
     while((thisContig = NextCIScaffoldTIterator(&Contigs)) != NULL){ /* Iterate over all CONTIGs in a Scaffold */
 
       assert(thisContig->scaffoldID == sid);
@@ -626,7 +626,7 @@ int BuildContigEdges(ScaffoldGraphT *graph){
           CDS_CID_t thisCID = thisCI->id;
           fprintf(stderr,
                   "* Contig " F_CID " cid:" F_CID " nextcid:" F_CID "\n",
-                  thisContig->id, thisCID, nextcid); 
+                  thisContig->id, thisCID, nextcid);
 #endif
 
 	  InitCIEdgeTIterator(graph,  thisCI->id,   TRUE /* raw */, FALSE,  ALL_END,   ALL_EDGES, FALSE, &edges);// ONLY RAW
@@ -659,9 +659,9 @@ int BuildContigEdges(ScaffoldGraphT *graph){
 
 #if 0
             fprintf(stderr,"* Edge (" F_CID "," F_CID ") %c dist: %g in scaffolds (" F_CID "," F_CID ") orient = %c\n",
-		    thisCID, otherCID, edgeOrient, edge->distance.mean, 
+		    thisCID, otherCID, edgeOrient, edge->distance.mean,
 		    thisCI->scaffoldID, otherCI->scaffoldID, orient);
-#endif	    
+#endif
 
 	    /* Contigs are ALWAYS oriented A->B in scaffold, so we can reuse this code */
 
@@ -669,7 +669,7 @@ int BuildContigEdges(ScaffoldGraphT *graph){
                                                    otherFrag, // input
                                                    otherCI->id, // input
                                                    orient,    // input orientation of fragment in CI
-                                                   &mciOffset,    // CI's offset within Scaffold 
+                                                   &mciOffset,    // CI's offset within Scaffold
                                                    &mciOrient);
 	    if(!mCIok)
 	      continue;
@@ -680,11 +680,11 @@ int BuildContigEdges(ScaffoldGraphT *graph){
                                                   frag,
                                                   thisCI->id, // input
                                                   orient,    // input orientation of fragment in CI
-                                                  &ciOffset,    // CI's offset within Scaffold 
+                                                  &ciOffset,    // CI's offset within Scaffold
                                                   &ciOrient);
 	    assert(CIok);
 
-	    
+
 
 	    /* Mate pairs must be oriented in opposite directions.  So, if they are oriented the same wrt
 	       their own chunk, the chunks must be oriented opposite one another */
@@ -701,7 +701,7 @@ int BuildContigEdges(ScaffoldGraphT *graph){
                     //      |-------------------------------------------------------|
                     //                             mate distance
                     //
-                    contigEdgeOrient = AB_BA;  
+                    contigEdgeOrient = AB_BA;
                     break;
                   case B_A:
                     //           length - 5'             gap                5'
@@ -711,7 +711,7 @@ int BuildContigEdges(ScaffoldGraphT *graph){
                     //      |-------------------------------------------------------|
                     //                             mate distance
                     //
-                    contigEdgeOrient = AB_AB; 
+                    contigEdgeOrient = AB_AB;
                     break;
                   default:
                     assert(0);
@@ -729,7 +729,7 @@ int BuildContigEdges(ScaffoldGraphT *graph){
                     //      |-------------------------------------------------------|
                     //                             mate distance
                     //
-                    contigEdgeOrient = BA_BA; 
+                    contigEdgeOrient = BA_BA;
                     break;
                   case B_A:
                     //                     5'             gap                5'
@@ -739,7 +739,7 @@ int BuildContigEdges(ScaffoldGraphT *graph){
                     //      |-------------------------------------------------------|
                     //                             mate/guide distance
                     //
-                    contigEdgeOrient = BA_AB; 
+                    contigEdgeOrient = BA_AB;
                     break;
                   default:
                     assert(0);
@@ -778,7 +778,7 @@ int BuildContigEdges(ScaffoldGraphT *graph){
                                     &contigEdge);
 #endif
 	    edgesSucceeded++;
-	
+
 	    contigEdge.referenceEdge = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->CIEdges, edge);
 	    contigEdge.idA = thisCI->info.CI.contigID;
 	    contigEdge.idB = otherCI->info.CI.contigID;
@@ -842,7 +842,7 @@ void CreateInitialContig(ScaffoldGraphT *graph, CDS_CID_t cid){
   }
   contig.microhetScore = NULLINDEX;
   contig.edgeHead = NULLINDEX;
-  
+
   SetNodeCGW_T(graph->ContigGraph->nodes, cid, &contig);
 }
 
@@ -929,14 +929,14 @@ void CreateInitialContigEdges(ScaffoldGraphT *graph){
       newEdge.topLevelEdge = newCIEdge; // selfreference
       AppendGraphEdge(graph->ContigGraph, &newEdge);
       assert(newCIEdge == GetNumGraphEdges(graph->ContigGraph) -1);
-	
+
 
       InsertGraphEdgeInList(graph->ContigGraph, newCIEdge, newEdge.idA, FALSE);
       InsertGraphEdgeInList(graph->ContigGraph, newCIEdge, newEdge.idB, FALSE);
     }
   }
   fprintf(stderr,"* Skipped %d raw edges. %d deleted..should have been %d (%d <==> %d)\n",
-	  actuallySkipped, deletedSkipped, shouldHaveSkipped, 
+	  actuallySkipped, deletedSkipped, shouldHaveSkipped,
 	  (int) GetNumGraphEdges(graph->ContigGraph),
           (int) GetNumGraphEdges(graph->CIGraph)  );
 
@@ -946,7 +946,7 @@ int BuildInitialContigs(ScaffoldGraphT *graph){
   CDS_CID_t cid;
   GraphNodeIterator CIs;
   NodeCGW_T *CI;
-  
+
   /* Resize the ContigGraph to the same size as the CI Graph */
 
   fprintf(stderr,"* Allocating Contig Graph with %d nodes and %d edges\n",
@@ -1095,7 +1095,7 @@ void UpdateContigSimCoordinates(ContigT *contig){
       invalid = TRUE;
     }
   }
-  
+
   contig->flags.bits.cgbType = (invalid? RR_CGBTYPE: UU_CGBTYPE);
 
   if(minID != NULLINDEX){
@@ -1142,7 +1142,7 @@ void UpdateContigSimCoordinates(NodeCGW_T *contig){
     }
     seenValid = TRUE;
     /*      fprintf(stderr,"* CI " F_CID " offset[%f,%f] sim[" F_COORD "," F_COORD "]\n",
-            CI->id, 
+            CI->id,
             CI->offsetAEnd.mean, CI->offsetBEnd.mean,
             CI->aEndCoord, CI->bEndCoord); */
     assert(CI->offsetAEnd.mean != CI->offsetBEnd.mean);
@@ -1171,7 +1171,7 @@ void UpdateContigSimCoordinates(NodeCGW_T *contig){
       }
     }
   }
-  
+
   if(seenValid == FALSE){ // This contig has NO unique unitigs...pick the first unitig and use its coordinates
     invalid = TRUE;
     InitContigTIterator(ScaffoldGraph, contig->id, TRUE, FALSE, &CIs);
@@ -1232,7 +1232,7 @@ void UpdateContigSimCoordinates(NodeCGW_T *contig){
   /*  fprintf(stderr,"* MinID = " F_CID " MinEnd = %c   MaxID = " F_CID " MaxEnd = %c [" F_COORD "," F_COORD "]\n",
       minID, (minEnd == A_END? 'A':'B'),
       maxID, (maxEnd == A_END? 'A':'B'),
-      contig->aEndCoord, contig->bEndCoord); 
+      contig->aEndCoord, contig->bEndCoord);
       fprintf(stderr,"* Contig " F_CID " computed sim coordinates [" F_COORD "," F_COORD "]\n",
       contig->id,
       contig->aEndCoord, contig->bEndCoord);
@@ -1287,7 +1287,7 @@ void UpdateScaffoldSimCoordinates(NodeCGW_T *scaffold){
       invalid = TRUE;
     }
   }
-  
+
   scaffold->flags.bits.cgbType = (invalid? RR_CGBTYPE: UU_CGBTYPE);
 
   if(minID != NULLINDEX){
@@ -1380,7 +1380,7 @@ int IsDefinitelyUniqueContig(ContigT *contig){
   if (ci->unique_rept == AS_FORCED_REPEAT) {
     return FALSE;
   }
-  
+
   // If this is not a surrogate, we're done
   return( ci->info.CI.coverageStat > GlobalData->cgbDefinitelyUniqueCutoff);
 
@@ -1388,7 +1388,7 @@ int IsDefinitelyUniqueContig(ContigT *contig){
 
 
 int IsShakyContigAtScaffoldEnd(ContigT *contig){
-  
+
   if(contig->numEssentialB <= 1 &&
      contig->numEssentialA <= 1){
     return FALSE;
@@ -1396,7 +1396,7 @@ int IsShakyContigAtScaffoldEnd(ContigT *contig){
 
 #if 0
   fprintf(stderr,"* IsShakyContigAtScaffoldEnd " F_CID " numA:%d numB:%d %s\n",
-          contig->id, 
+          contig->id,
 	  contig->numEssentialA,
 	  contig->numEssentialB,
 	  (IsDefinitelyUniqueContig(contig)?"unique":"shaky"));

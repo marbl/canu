@@ -2,21 +2,21 @@
 #
 ###########################################################################
 #
-# This file is part of Celera Assembler, a software program that 
+# This file is part of Celera Assembler, a software program that
 # assembles whole-genome shotgun reads into contigs and scaffolds.
 # Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received (LICENSE.txt) a copy of the GNU General Public 
+#
+# You should have received (LICENSE.txt) a copy of the GNU General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
@@ -30,10 +30,10 @@
 #        extractMSG <3-code> <search-target> <input_file>  > output_file
 #
 #  e.g.  extractMSG IUM acc:4575 < a004.cns > 4575.ium
-#  
+#
 #  Author: Karin A. Remington
 #=======================================================================
-BEGIN { 
+BEGIN {
         if (length(type) != 3 || search == "" ) {
           print "Usage: "
           print "extractMSG <3-code> <search-target> <input_file> > output_file\n"
@@ -43,7 +43,7 @@ BEGIN {
         mesgtype = "\{" type "$";  # search string for start of appropriate mesg
         searchline = search "$";   # search string to match candidate messages against
       }
-      { 
+      {
         if (match($0,mesgtype)) {  # start of candidate message
           mesg = $0;
           inmesg = 1;
@@ -73,7 +73,7 @@ BEGIN {
               inmesg = 0;          # reset
               ismatch = 0;
               mesg = "";
-            } 
+            }
             next;
           }
           mesg = mesg "\n" $0;

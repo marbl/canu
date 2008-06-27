@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: TwoDIntervalClique.h,v 1.5 2005-10-14 20:34:09 catmandew Exp $ */
+/* $Id: TwoDIntervalClique.h,v 1.6 2008-06-27 06:29:16 brianwalenz Exp $ */
 #ifndef TWODINTERVALCLIQUE_H
 #define TWODINTERVALCLIQUE_H
 
@@ -41,7 +41,7 @@ public:
       pxinterval = quad.getXProjection();
       pyinterval = quad.getYProjection();
     }
-  
+
   TwoDIntervalClique(const IntervalClique<IDType, UnitType> clique,
                      bool isXClique,
                      const vector<Quadrilateral<IDType, UnitType> > & quads,
@@ -53,7 +53,7 @@ public:
       if(isXClique)
       {
         pxinterval = clique.getInterval();
-        
+
         pyinterval = quads[id2Quad[(*iter)]].getYProjection();
         iter++;
         for(; iter != pids.end(); iter++)
@@ -62,7 +62,7 @@ public:
       else
       {
         pyinterval = clique.getInterval();
-      
+
         pxinterval = quads[id2Quad[(*iter)]].getXProjection();
         iter++;
         for(; iter != pids.end(); iter++)
@@ -76,7 +76,7 @@ public:
       pxinterval = r.getXInterval();
       pyinterval = r.getYInterval();
     }
-  
+
   TwoDIntervalClique(const CliquePairIntersection<IDType, UnitType> & cpi,
                      const vector<Quadrilateral<IDType, UnitType> > & quads,
                      map<IDType, int> & id2Quad)
@@ -96,7 +96,7 @@ public:
 
   unsigned int getNumIDs() const {return pids.size();}
   const list<IDType> & getIDs() const {return pids;}
-  
+
   void getCommonIDs(const list<IDType> & ids, list<IDType> & commonIDs) const
     {
       typename list<IDType>::const_iterator piter;
@@ -176,7 +176,7 @@ public:
       return(pxinterval.intersects(t.getXInterval()) &&
              pyinterval.intersects(t.getYInterval()));
     }
-  
+
   void rotateByRadians(double radians)
     {
       Quadrilateral<IDType, UnitType> q;
@@ -196,7 +196,7 @@ public:
     {
       return(getXIntervalMax() < other.getXIntervalMax());
     }
-  
+
 
   friend ostream & operator<<(ostream &os,
                               const TwoDIntervalClique<IDType, UnitType> & t)

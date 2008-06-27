@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: PolygonIntersector.h,v 1.4 2005-03-22 19:48:56 jason_miller Exp $ */
+/* $Id: PolygonIntersector.h,v 1.5 2008-06-27 06:29:16 brianwalenz Exp $ */
 #ifndef POLYGONINTERSECTOR_H
 #define POLYGONINTERSECTOR_H
 
@@ -46,7 +46,7 @@ class PolygonIntersector
 {
 public:
   PolygonIntersector(){ppit = PI_NOINTERSECTION; pNumBridges = 0;}
-  
+
   bool polygonsIntersect(const Polygon<UnitType> & poly0,
                          const Polygon<UnitType> & poly1)
     {
@@ -56,7 +56,7 @@ public:
       {
         return PI_NOINTERSECTION;
       }
-      
+
       // compute the convex hull of the two polygons
       cvh.create(poly0, poly1);
 
@@ -67,7 +67,7 @@ public:
       cerr << "Convex hull polyPoints:\n";
       cerr << cvh << endl;
 #endif
-      
+
       // identify vertices upstream of intersection points
       processBridges(poly0, poly1, cvh);
       return(ppit != PI_NOINTERSECTION);
@@ -111,7 +111,7 @@ public:
         return PI_NOINTERSECTION;
       return PI_INTERSECTION;
     }
-  
+
   PolygonIntersectionType intersectPolygons(const Polygon<UnitType> & poly0,
                                             const Polygon<UnitType> & poly1,
                                             Polygon<UnitType> & pInt)
@@ -137,7 +137,7 @@ public:
       }
       return ppit;
     }
-  
+
 private:
   void reset()
     {
@@ -147,7 +147,7 @@ private:
       cvh.reset();
       pNumBridges = 0;
     }
-  
+
   void getIntersectionPoint(const Polygon<UnitType> & cwPoly,
                             const Polygon<UnitType> & ccwPoly,
                             int cwIndex, int ccwIndex,
@@ -155,7 +155,7 @@ private:
     {
       int cwIndex2 = cwPoly.cwIndex(cwIndex);
       int ccwIndex2 = ccwPoly.ccwIndex(ccwIndex);
-      
+
       // if segments are colinear, return preceding ccw point
       if(cwPoly[cwIndex].getLineSide(cwPoly[cwIndex2], ccwPoly[ccwIndex]) ==
          TP_COLINEAR)
@@ -246,14 +246,14 @@ private:
         }
       }
     }
-  
+
   void buildIntersection(const Polygon<UnitType> & poly0,
                          const Polygon<UnitType> & poly1,
                          const ConvexHull<UnitType> & cvh,
                          Polygon<UnitType> & pInt)
     {
       Point<UnitType> p;
-      
+
       /*
       // sanity check that the first clockwise polygon should be poly0
       if(pKeyVs[0][0].getPolygon() != 0)
@@ -265,23 +265,23 @@ private:
       assert(0);
       }
       */
-      
+
 #ifdef DEBUG_POLYGONINTERSECTOR
       cerr << "Key points:";
       for(unsigned int i = 0; i < pKeyVs[0].size(); i++)
         cerr << " " << pKeyVs[0][i] << ", " << pKeyVs[1][i];
       cerr << endl;
 #endif
-      
+
       const Polygon<UnitType> * polys[2];
       polys[0] = &poly0;
       polys[1] = &poly1;
-      
+
       // pKeyVs[0] are clockwise polygon/indices
       // pKeyVs[1] are counter-clockwise polygon/indices
-      
+
       pInt.reset();
-      
+
       // add the first point
       // next polygon point is next key point
       getIntersectionPoint(*(polys[pKeyVs[0][0].getPolygon()]),
@@ -300,11 +300,11 @@ private:
         cerr << cvh << endl;
         return;
       }
-      
+
       unsigned int cpn = pKeyVs[0][0].getPolygon();
       unsigned int cpi = polys[cpn]->cwIndex(pKeyVs[0][0].getIndex());
       unsigned int cki = 1;
-      
+
       // loop until we've 'looped'
       while(true)
       {
@@ -318,7 +318,7 @@ private:
         if(cpn == pKeyVs[1][0].getPolygon() &&
            cpi == pKeyVs[1][0].getIndex())
           break;
-        
+
         if(cki >= pKeyVs[0].size() || cpi != pKeyVs[1][cki].getIndex())
         {
           // no more key points or next polygon point is not next key point
@@ -364,7 +364,7 @@ private:
               return;
             }
           }
-          
+
 #ifdef DEBUG_POLYGONINTERSECTOR
           cerr << "cpn was " << cpn << endl;
           cerr << "cpi was " << cpi << endl;
@@ -385,7 +385,7 @@ private:
 #endif
       }
     }
-  
+
   void getKeyVertices(const Polygon<UnitType> & cwPoly,
                       int cwIndex, int & cwKey,
                       const Polygon<UnitType> & ccwPoly,
@@ -405,7 +405,7 @@ private:
           if(ccwKey == ccwIndex) return;
           done = false;
         }
-        
+
         while(cwPoly[cwPoly.cwIndex(cwKey)].
               getLineSide(ccwPoly[ccwKey],
                           ccwPoly[ccwPoly.ccwIndex(ccwKey)]) ==
@@ -418,10 +418,10 @@ private:
       }
       ppit = PI_INTERSECTION;
     }
-  
+
   /* handle special case if hull contains a gap bridge
      detects & adjust for this case:
-     
+
            ccwPoly /   \     cwPoly
            --------     --------------
            |      |     |            |
@@ -439,7 +439,7 @@ private:
           cwPoly[cwi].getLineSide(cwPoly[cwPoly.cwIndex(cwi)], ccwPoly[ccwi]);
         ThreePointOrientation tpoCCW2CW =
           ccwPoly[ccwi].getLineSide(ccwPoly[ccwPoly.ccwIndex(ccwi)], cwPoly[cwi]);
-        
+
         double distCW2CW = cwPoly[cwi].distanceFrom(cwPoly[cwPoly.cwIndex(cwi)]);
         double distCW2CCW = cwPoly[cwi].distanceFrom(ccwPoly[ccwPoly.ccwIndex(ccwi)]);
         if(tpoCW2CCW != TP_COLINEAR ||
@@ -481,10 +481,10 @@ private:
       }
       */
     }
-  
+
   /* handle special case if hull contains an overlap bridge
      detects & adjust for this case:
-     
+
             ccwPoly \     /   cwPoly
            ----------=====-------------
            |        |    |            |
@@ -513,8 +513,8 @@ private:
       }
       return found;
     }
-  
-  
+
+
   void processBridge(const Polygon<UnitType> & poly0,
                      const Polygon<UnitType> & poly1,
                      const ConvexHull<UnitType> & cvh,
@@ -523,9 +523,9 @@ private:
     {
       CVHPoint<UnitType> chp;
       int cwi, ccwi;
-      
+
       pNumBridges++;
-      
+
       if(poly0IsClockwise)
       {
         adjustIfContainedGapBridge(poly0, cwIndex, poly1, ccwIndex);
@@ -560,7 +560,7 @@ private:
           getKeyVertices(poly1, cwIndex, cwi, poly0, ccwIndex, ccwi);
         }
       }
-      
+
       if(ppit != PI_NOINTERSECTION)
       {
         chp.set(0, 0, ((poly0IsClockwise) ? 0 : 1), cwi);
@@ -569,13 +569,13 @@ private:
         pKeyVs[1].push_back(chp);
       }
     }
-  
+
   void processBridges(const Polygon<UnitType> & poly0,
                       const Polygon<UnitType> & poly1,
                       const ConvexHull<UnitType> & cvh)
     {
       unsigned int i, j;
-      
+
       // identify vertices upstream of intersection points based on bridges
       for(i = 0, j = 1; i < cvh.size(); i++, j = (j + 1) % cvh.size())
       {
@@ -584,7 +584,7 @@ private:
                         (cvh[i].getPolygon() == 0) ? true : false,
                         cvh[i].getIndex(), cvh[j].getIndex());
       }
-      
+
       if(pNumBridges == 0)
         ppit = (cvh[0].getPolygon() == 0) ? PI_1CONTAINS2 : PI_2CONTAINS1;
       else if(pKeyVs[0].size() == 0)
@@ -592,7 +592,7 @@ private:
       else
         ppit = PI_INTERSECTION;
     }
-  
+
   friend ostream & operator<<(ostream & os,
                               const PolygonIntersector<UnitType> & pi)
     {
@@ -620,7 +620,7 @@ private:
       os << endl;
       return os;
     }
-  
+
   vector<CVHPoint<UnitType> > pKeyVs[2]; // 0=clockwise, 1=counter-clockwise
   ConvexHull<UnitType> cvh;
   PolygonIntersectionType ppit;

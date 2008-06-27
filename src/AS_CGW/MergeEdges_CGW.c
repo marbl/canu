@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.15 2007-09-05 11:22:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.16 2008-06-27 06:29:14 brianwalenz Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -44,9 +44,9 @@ static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.15 2007-09-05 11:22:11 brianwal
 
 /* Check that another fragment besides the terminal fragment extends
    by at least the minimal detectable amount into the overlap region. */
-static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph, 
+static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
 					 CDS_CID_t chunkID,
-					 int endB, 
+					 int endB,
 					 CDS_COORD_t overlap){
   ChunkInstanceT *CI;
   CDS_COORD_t minOffset, maxOffset;
@@ -68,7 +68,7 @@ static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
   fprintf(stderr,"* chunk = " F_CID " endB = %d minOffset = " F_COORD " maxoffset = " F_COORD " overlap = " F_COORD "\n",
           chunkID, endB, minOffset, maxOffset,overlap);
 #endif
-  
+
   /* Now we have to find if there are intraChunk or terminal fragments, other
      than the fragment at endB, that overlap the (minOffset,maxOffset)
      interval */
@@ -88,13 +88,13 @@ static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
       if((!endB && (frag->label == AS_INTERCHUNK_A)) ||
 	 (endB && (frag->label == AS_INTERCHUNK_B)) ||
 	 frag->label == AS_SINGLETON){
-#ifdef DEBUG_CONFIRM	
+#ifdef DEBUG_CONFIRM
         fprintf(stderr,"* Skipping Extremal Frag " F_CID " with label %c\n",
                 frag->iid, frag->label);
 #endif
 	continue;
       }
-      if((overlap = IntervalsOverlap(frag->offset3p.mean, 
+      if((overlap = IntervalsOverlap(frag->offset3p.mean,
                                      frag->offset5p.mean, minOffset,
                                      maxOffset,  CGW_DP_MINLEN)) != 0)
 	return TRUE;
@@ -116,7 +116,7 @@ static int ConfirmOverlap(GraphCGW_T *graph,
   if((!mateEdge->flags.bits.hasExtremalAFrag &&
       !mateEdge->flags.bits.hasExtremalBFrag)){
     //fprintf(stderr,"*1*  Confirming edge between chunks (" F_CID "," F_CID ") -- no extremal fragment\n",
-    //    mateEdge->idA, mateEdge->idB);	    
+    //    mateEdge->idA, mateEdge->idB);
     return TRUE;
   }
 
@@ -138,7 +138,7 @@ static int ConfirmOverlap(GraphCGW_T *graph,
       fprintf(stderr,
               "* Refuting edge between chunks (" F_CID "," F_CID ")\n",
               mateEdge->idA, mateEdge->idB);
-    } 
+    }
 #endif
   }
   if(mateEdge->flags.bits.hasExtremalBFrag){
@@ -157,7 +157,7 @@ static int ConfirmOverlap(GraphCGW_T *graph,
       fprintf(stderr,
               "* Refuting edge between chunks (" F_CID "," F_CID ")\n",
               mateEdge->idA, mateEdge->idB);
-    } 
+    }
 #endif
   }
   return(goodOverlapA && goodOverlapB);
@@ -172,14 +172,14 @@ Produces p-values for Chi-square distributions
 #define EPS 3.0e-7
 #define FPMIN 1.0e-30
 
-float gser(float a, float x) 
+float gser(float a, float x)
 {
   float sum,del,ap,gln;
   int n;
 
   gln = lgammaf(a);
   if (x <= 0.0) {
-    if (x < 0.0) 
+    if (x < 0.0)
       assert(0);
     return 0.0;
   }else{
@@ -196,7 +196,7 @@ float gser(float a, float x)
     assert(0);
   }
 }
-      
+
 float gcf(float a, float x)
 {
   int i;
@@ -248,7 +248,7 @@ float gammq(float a, float x)
 
 /* Returns 1 if test SUCCEEDS */
 static int ComputeChiSquared(Chi2ComputeT *edges, int numEdges,
-                             CDS_CID_t skip, 
+                             CDS_CID_t skip,
 			     LengthT *distance, float *score){
   CDS_CID_t edgeIndex;
   double cumScore;
@@ -297,7 +297,7 @@ static void InitializeMergedEdge(CIEdgeT *newEdge, CIEdgeT *overlapEdgeAll,
   CIEdgeT *edge, *prevEdge;
   VA_TYPE(CIEdgeT) *edges = graph->edges;
   CDS_CID_t thisEdgeIndex;
-  CIEdgeT *overlapEdge = NULL, 
+  CIEdgeT *overlapEdge = NULL,
     *nonOverlapEdge = NULL;
   int numEdges = (int) GetNumCDS_CID_ts(inputEdges);
   CDS_CID_t edgeIndex;
@@ -322,7 +322,7 @@ static void InitializeMergedEdge(CIEdgeT *newEdge, CIEdgeT *overlapEdgeAll,
     // ASSUMPTION: We are operating on an edge that has ALREADY been allocated from
     // the edges array, and not a stack temporary
     edge->topLevelEdge = GetVAIndex_EdgeCGW_T(graph->edges, newEdge);
-  }    
+  }
   prevEdge->nextRawEdge = NULLINDEX;
   newEdge->flags.bits.isRaw = FALSE;
   newEdge->topLevelEdge = GetVAIndex_EdgeCGW_T(graph->edges, newEdge); // NEW
@@ -356,7 +356,7 @@ static void InitializeMergedEdge(CIEdgeT *newEdge, CIEdgeT *overlapEdgeAll,
     }
   }
 
-  // We can have at most one overlap edge 
+  // We can have at most one overlap edge
   assert(!overlapEdge ||
 	 (overlapEdge && nonOverlapEdge));
 
@@ -369,7 +369,7 @@ static void InitializeMergedEdge(CIEdgeT *newEdge, CIEdgeT *overlapEdgeAll,
   }
 
   newEdge->flags.bits.mustOverlap = TRUE;
-      
+
   newEdge->edgesContributing = numEdges;
   {
     CDS_COORD_t fudge = 3.0 * sqrt(distance.variance);
@@ -542,7 +542,7 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 
     //    edgeIndex = GetNumCIEdgeTs(edges);  // The index of the last edge is one less than the number of edges
     //    AppendGraphEdge(graph, &newEdge);
-   
+
     edgeIndex = GetVAIndex_EdgeCGW_T(graph->edges, newEdge);
     AppendCDS_CID_t(inputEdges, &edgeIndex);
     numMergedEdges = 1;
@@ -653,7 +653,7 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
                                                                 sizeof(*edgeClusterChi2));
     Chi2ComputeT *clusterChi2Compute = (Chi2ComputeT *)safe_malloc(numEdges *
                                                                    sizeof(*clusterChi2Compute));
-#else    
+#else
     ClusterScoreChi2T pairClusterScoreChi2[numPairs + FUDGE];
     ClusterScoreChi2T *sortClusterScoreChi2[numPairs + FUDGE];
     ClusterChi2T edgeClusterChi2[numEdges + FUDGE];
@@ -901,7 +901,7 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
           PrintGraphEdge(GlobalData->stderrc, graph," *  ", edge, edge->idA);
         }
       }
-	
+
 #ifdef USE_MALLOC_FOR_ALLOC
     free(pairClusterScoreChi2);
     free(sortClusterScoreChi2);

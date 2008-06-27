@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: testConvexHull.cc,v 1.4 2005-03-22 19:48:58 jason_miller Exp $ */
+/* $Id: testConvexHull.cc,v 1.5 2008-06-27 06:29:17 brianwalenz Exp $ */
 #include <iostream>
 
 using namespace std;
@@ -51,7 +51,7 @@ bool RunTest(Polygon<UNIT_TYPE> & p1, Polygon<UNIT_TYPE> & p2,
   }
   ConvexHull<UNIT_TYPE> cvh(input);
   ConvexHull<UNIT_TYPE> pcvh(p1, p2);
-  
+
   cout << "  Polygon 0: " << p1 << endl;
   cout << "  Polygon 1: " << p2 << endl;
   cout << "  CVHullList: " << cvh << endl;
@@ -73,7 +73,7 @@ bool RunTest(Polygon<UNIT_TYPE> & p1, Polygon<UNIT_TYPE> & p2,
   }
   else
     cout << "Polygons do not intersect\n";
-  
+
   return true;
 }
 
@@ -98,7 +98,7 @@ int main(int argc, char ** argv)
   p2.append(15,30);
   p2.append(30,30);
   p2.append(30,15);
-  
+
   answer.clear();
   cvhp.set(5,5,0,0);
   answer.push_back(cvhp);
@@ -115,7 +115,7 @@ int main(int argc, char ** argv)
   if(RunTest(p1, p2, answer, ++testNum, true,
              "similar, non-overlapping rectangles") == false)
     return 1;
-  
+
   answer.clear();
   cvhp.set(5,5,0,0);
   answer.push_back(cvhp);
@@ -263,7 +263,7 @@ int main(int argc, char ** argv)
   if(RunTest(p1, p2, answer, ++testNum, true,
              "Mate pair simulation") == false)
     return 1;
-  
+
   p1.reset();
   p1.append(2,2);
   p1.append(5,4);
@@ -286,7 +286,7 @@ int main(int argc, char ** argv)
   if(RunTest(p1, p2, answer, ++testNum, true,
              "Partial segment overlap") == false)
     return 1;
-  
+
   p1.reset();
   p1.append(2,2);
   p1.append(2,7);
@@ -312,6 +312,6 @@ int main(int argc, char ** argv)
   if(RunTest(p1, p2, answer, ++testNum, true,
              "Almost super-imposed") == false)
     return 1;
-  
+
   return 0;
 }

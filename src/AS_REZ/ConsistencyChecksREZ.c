@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -22,7 +22,7 @@
  Module:       ConsistencyChecksRez.c
  Description:  File contains functions that take a Scaffold_Fill_t
                and checks the contig->gap assignment given by it.
-  
+
     Programmer:  K. Reinert
        Written:  17 May 99
    Assumptions:  The chunk and scaffold ids are consistent with the global
@@ -30,7 +30,7 @@
 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.11 2007-08-18 13:13:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.12 2008-06-27 06:29:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,14 +58,14 @@ extern int  Global_Debug_Flag;
 
 static void combine_two_distrib(LengthT dist1, LengthT dist2, LengthT *cDist);
 
-static OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB, 
+static OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB,
                                       int addtoCG, ChunkOverlapCheckT *olap);
 
 static void  Canonicalize
     (CIEdgeT * edge, const Gap_Chunk_t * c1, const Gap_Chunk_t * c2);
 
-static bool check_distribs(LengthT *, 
-			   LengthT *, 
+static bool check_distribs(LengthT *,
+			   LengthT *,
 			   LengthT *);
 
 static bool left_of(const Gap_Chunk_t *,
@@ -103,7 +103,7 @@ int Is_Edge_Orientation_Consistent(CIEdgeT * edge,
   //
   CIOrient leftCIorient = X_X, rightCIorient = X_X;
   CIEdgeT  tmp_edge = * edge;
-  
+
   // Contained edges can have two different orientations
   // Make  tmp_edge  be the one that matches how
   // this test is done.
@@ -143,17 +143,17 @@ int Is_Edge_Orientation_Consistent(CIEdgeT * edge,
     assert(0);
     break;
   }
-  
+
   //
   // now we take care of which is to left of which
   //
-  if(left_of(left,right)) 
+  if(left_of(left,right))
     return ((Get_Gap_Chunk_Orient(left) == leftCIorient) &&
 	    (Get_Gap_Chunk_Orient(right) == rightCIorient));
-  else 
+  else
     return ((Get_Gap_Chunk_Orient(left) != leftCIorient) &&
 	    (Get_Gap_Chunk_Orient(right) != rightCIorient));
-  
+
   //return ((left->flipped == right->flipped) && ((orient == AB_AB) || (orient = BA_BA)) ||
   //  (left->flipped != right->flipped) && ((orient == AB_BA) || (orient = BA_AB)));
 }
@@ -180,7 +180,7 @@ int Is_Edge_Consistent(CIEdgeT *edge,
   tmp_edge = * edge;
   if  (tmp_edge . distance . mean < 0.0)
       Canonicalize (& tmp_edge, left, right);
-      
+
   estimate_gap_distrib(left, right, &estimated_distribution);
   combine_two_distrib(estimated_distribution, tmp_edge . distance, &combined_distribution);
   retVal = check_distribs(&estimated_distribution, &(tmp_edge . distance),
@@ -201,11 +201,11 @@ int Is_Edge_Consistent(CIEdgeT *edge,
 
 
 /* declaration of two function in ChunkOverlap_CGW.c */
-void ComputeCanonicalOverlap(Global_CGW *data, 
-			     ChunkOverlapperT *chunkOverlapper, 
+void ComputeCanonicalOverlap(Global_CGW *data,
+			     ChunkOverlapperT *chunkOverlapper,
 			     ChunkOverlapCheckT *canOlap);
 
-int InitCanonicalOverlapSpec(int cidA, int cidB, 
+int InitCanonicalOverlapSpec(int cidA, int cidB,
 			     ChunkOrientationType orientation, ChunkOverlapSpecT *spec);
 
 
@@ -214,7 +214,7 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
   /******************************************************************/
   // Precondition: The chunk and scaffold ids are consistent with the
   // global variable Global_CGW in file ../AS_CGW/Globals_CGW.h
-  //               
+  //
   /*****************************************************************/
   GraphEdgeIterator iterator;
   CIEdgeT         *edge;
@@ -240,37 +240,37 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 #if DEBUG > 1
       sprintf(filename,"%s.rezcc.i%d.log",Filename_Prefix,iteration);
       logFile = file_open(filename,"w");
-#endif  
+#endif
 
 #if DEBUG > 1
   fprintf(logFile,"check_consistency was called for %d Scaffolds.\n",noScaff);
 #endif
 
-  for(i=0; i<noScaff; i++){ 
+  for(i=0; i<noScaff; i++){
     /* This is the main loop that iterates over all ChunkOfScaffolds */
     numGaps = gapAssignment[i].num_gaps;
-    
+
 #if DEBUG > 1
     fprintf(logFile,"********* Scaffold %d *********\n",i);
     fprintf(logFile,"Number of gaps: %d.\n\n",numGaps);
 #endif
 
-    for(j=0; j<numGaps; j++){ 
-      /* This loop iterates over all gaps in a particular Scaffold 
+    for(j=0; j<numGaps; j++){
+      /* This loop iterates over all gaps in a particular Scaffold
 	 Gap 0 is before the first chunk and the last gap is after
 	 last chunk */
       numChunks = gapAssignment[i].gap[j].num_chunks;
-     
+
 #if DEBUG > 1
       fprintf(logFile,"\nGAP %d\n",j);
       fprintf(logFile,"Number of unitigs assigned to the gap: %d\n",numChunks);
 #endif
 
-      for(k=0; k<numChunks; k++){  
-	/* for each gap we iterate over the chunks assigned and 
+      for(k=0; k<numChunks; k++){
+	/* for each gap we iterate over the chunks assigned and
 	   determine whether we keep them or not */
 	int cid1 = gapAssignment[i].gap[j].chunk[k].chunk_id;
-	bool allSucceeded = TRUE; 
+	bool allSucceeded = TRUE;
 	// if the distribution test fails for one edge mate
 	// this variable is set to FALSE
 	bool tested1 = FALSE;
@@ -279,7 +279,7 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 	ChunkInstanceT  *chunk1;
 	chunk1 = GetGraphNode(ScaffoldGraph->RezGraph, cid1);
 	round1All++;
-	
+
 #if DEBUG > 1
 	fprintf (logFile, "\nArt's ID %6ld\n",cid1);
 	fprintf (logFile, "\n unitig %ld\n",
@@ -304,7 +304,7 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 	       of the assigend chunks */
 	    ChunkInstanceT *chunk2;
 	    int citer;
-	    
+
 	    /* which is the other unitig ? */
 	    if( edge->idA == cid1 )
 	      citer = edge->idB;
@@ -315,33 +315,33 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 	       to a unique chunk. We only test CI edges
 	       between assigned chunks */
 
-	    chunk2 = GetGraphNode(ScaffoldGraph->RezGraph, citer);  
+	    chunk2 = GetGraphNode(ScaffoldGraph->RezGraph, citer);
 	    assert( citer == chunk2->id );
 
 #if DEBUG > 1
 	    fprintf(logFile,"CI edge goes from %d to %d\n",
 		    edge->idA,edge->idB);
 	    fprintf(logFile,"Length of gap (%7lf, %5.3lf)\n",
-		    edge->distance.mean,sqrt(edge->distance.variance));		      
+		    edge->distance.mean,sqrt(edge->distance.variance));
 #endif
-	  
-	    
-	    if( ! chunk2->flags.bits.isUnique ){ 
+
+
+	    if( ! chunk2->flags.bits.isUnique ){
 	      /* Now we check whether the link goes to another
 		 assigned chunk. This is done by scanning over all
 		 other chunks and hence takes overall quadratic time
 		 in the number of assigned chunks. This should be
 		 changed to set or hash operations */
-	      
+
 	      for(l=0; l<numChunks; l++){// l loop
 		int cid2 = gapAssignment[i].gap[j].chunk[l].chunk_id;
 		/* do not check against the same chunk */
 		if( l == k )
 		  continue;
-		
-		if( citer == cid2 ){ 
+
+		if( citer == cid2 ){
 		  LengthT estDist,combDist;
-		
+
 #if DEBUG > 5
 		  // overlapper test
 		  {//start
@@ -374,15 +374,15 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 		      else
 			orientB = A_B;
 		    }
-		  
+
 		    orientation = GetChunkPairOrientation(orientA,orientB);
 		    fprintf(logFile,"chunkA %d chunkB %d computed orient %c\n",
 			    edge->idA,edge->idB,orientation);
-		
+
 		    fprintf(logFile,"chunkA %d chunkB %d orient %c\n",edge->idA,edge->idB, edge->orient);
 
 		    if( isOverlapCIEdgeT(edge)){
-		    
+
 		      ChunkOverlapCheckT olap;
 		      LengthT dist;
 		      estimate_gap_distrib(&cidA,&cidB,&dist);
@@ -390,7 +390,7 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 							     cidB.chunk_id,
 							     orientation,
 							     &olap.spec);
-		  
+
 		      lookup = LookupCanonicalOverlap(ScaffoldGraph->overlapper,&olap.spec);
 		      if( lookup != NULL){
 			int oldlook;
@@ -399,17 +399,17 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 
 			olap = OverlapChunks(ScaffoldGraph->overlapper,      // doesn't handle suspicious -- debug code
 					       cidA.chunk_id,cidB.chunk_id,
-					       orientation, 
+					       orientation,
 					       lookup->minOverlap,
 					       lookup->maxOverlap,
 					       0.1);
-			/*	lookup = OverlapChunks(ScaffoldGraph->overlapper, 
+			/*	lookup = OverlapChunks(ScaffoldGraph->overlapper,
 					       cidA.chunk_id,cidB.chunk_id,
-					       orientation, 
+					       orientation,
 					       lookup->minOverlap,
 					       lookup->maxOverlap,
 					       0.1);*/
-			
+
 			fprintf(logFile,"computed overlap %d\n",olap.overlap);
 			//	CheckCIEdgesAgainstChunkOverlapper(ScaffoldGraph);
 		      }
@@ -419,7 +419,7 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 
 
 		  /* we found an assigned unitig */
-		
+
 #if DEBUG > 2
 		  fprintf(logFile,"*** %d is an assigned unitig ***\n",cid2);
 #endif
@@ -436,7 +436,7 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 		  fprintf(logFile,"edge      mean %5.3lf and var %5.3lf\n",
 			  edge->distance.mean,edge->distance.variance);
 #endif
-		
+
 		  /* Now we combine the estimated distance with the distance
 		     in the edge */
 		  combine_two_distrib(estDist,edge->distance,
@@ -456,9 +456,9 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 		  //		    test2Failed++;
 		  //		    fprintf(logFile,"+++ check_distrib2 DID NOT succeeded +++\n");
 		  //		  }
-		  
+
 #endif
-		  
+
 		    //		    gapAssignment[i].gap[j].chunk[k].keep = TRUE;
 
 		    // we force the overlap test !!!!
@@ -472,7 +472,7 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 #endif
 		    /* The first test failed. Before rejecting anything we
 		       check the quality of the three CI edges C,m,O
-		       where m is the current CI edge between the two unitigs and 
+		       where m is the current CI edge between the two unitigs and
 		       C and O are the sets of CI edges joining the current
 		       (k loop) resp. other (l loop) unitig to the scaffold.
 		       If the average quality of C is higher than that of m, we
@@ -480,37 +480,37 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 		       for the moment. Otherwise we mark it and proceed to the
 		       next current chunk.
 
-		       THIS IS NOT DONE. SHOULD WE DO IT ? 
+		       THIS IS NOT DONE. SHOULD WE DO IT ?
 		    */
-		  
+
 		    gapAssignment[i].gap[j].chunk[k].keep = FALSE;
 		    break;
-		  }	      
+		  }
 		}
 	      }
-	    }	  
+	    }
 	    if( ! allSucceeded )
 	      break;
 	  }
-	
+
 	if( allSucceeded && tested1 ){
 	  round1Accepted++;
 	}
 	else{
 	  round1Rejected++;
 	}
-	
+
 	if( gapAssignment[i].gap[j].chunk[k].keep == FALSE ){
 	  int overlaps   = 0;
 	  int noOverlaps = 0;
 	  int wrongOverlapChunk = 0;
-	  int goodChunks[numChunks]; 
+	  int goodChunks[numChunks];
 	  int goodChunksTop=0;
 	  // in this stack we keep track
 	  // of the chunks that were tested for overlap with chunk k and passed
 
 	  /*   If the above tests fail or if a unitig has not been tested
-	       because he has no CI edges to other assigned unitigs, 
+	       because he has no CI edges to other assigned unitigs,
 	       we finally check whether
 	       the assigned positions indicate an overlap. If so,
 	       we check specifically for this overlap. If it is present
@@ -518,19 +518,19 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 	       We accept the positioning of a chunk if two conditions
 	       are fullfilled
 	       1) all or all but one
-	       of the indicated overlaps is true. 
+	       of the indicated overlaps is true.
 	       This takes care of
 	       the following situation: ------     1
 	                                  -------   2
  	                                     ------  3
 	       If chunk 1 is positioned wrongly it will miss two overlaps
 	       whereas chunk 2 and 3 have a confirmed overlap with each other.
-	       In the case that one overlap is false we check, 
+	       In the case that one overlap is false we check,
 	       whether it is consistently
 	       false with all chunks that form good overlaps
-	  */ 
+	  */
 	  round2All++;
-	  
+
 #if DEBUG > 1
 	  fprintf(logFile,"ooo Testing overlaps of rejected chunks ooo\n");
 #endif
@@ -539,10 +539,10 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 	    int first,second;
 	    OverlapStatusREZ oStatus;
 	    ChunkOverlapCheckT olap;
-	    
+
 	    if( l == k )
 	      continue;
-	    
+
 	    if( left_of(&gapAssignment[i].gap[j].chunk[k],
 			&gapAssignment[i].gap[j].chunk[l]) ){
 	      first  = k;
@@ -552,11 +552,11 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 	      first  = l;
 	      second = k;
 	    }
-	    
+
 	    oStatus = check_overlap(gapAssignment[i].gap[j].chunk[first],
 				    gapAssignment[i].gap[j].chunk[second],
 				    TRUE,&olap);
-	    
+
 	    if( oStatus == ASS_OVLP_TRUE ){
 	      overlaps++;
 	      goodChunks[goodChunksTop++] = l;
@@ -564,10 +564,10 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 	    if( oStatus == ASS_OVLP_FALSE ){
 	      noOverlaps++;
 	      wrongOverlapChunk = l;
-	    }	    
+	    }
 	  }
-	  
-	  
+
+
 	  if( noOverlaps == 0 ){
 	    gapAssignment[i].gap[j].chunk[k].keep = TRUE;
 #if DEBUG > 1
@@ -583,7 +583,7 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 	      /* If there is no good chunk, we do not keep the chunk */
 	      if( goodChunksTop == 0 )
 		keep = FALSE;
-	      
+
 	      while( --goodChunksTop > 0 ){
 		int cidA = goodChunks[goodChunksTop];
 		int cidB = wrongOverlapChunk;
@@ -591,7 +591,7 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 		OverlapStatusREZ oStatus;
 		ChunkOverlapCheckT olap;
 		assert( cidA != cidB );
-		
+
 		if( left_of(&gapAssignment[i].gap[j].chunk[cidA],
 			    &gapAssignment[i].gap[j].chunk[cidB]) ){
 		  first  = cidA;
@@ -601,11 +601,11 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 		  first  = cidB;
 		  second = cidA;
 		}
-		
+
 		oStatus = check_overlap(gapAssignment[i].gap[j].chunk[first],
 					gapAssignment[i].gap[j].chunk[second],
 					TRUE,&olap);
-		
+
 #if DEBUG > 1
 		fprintf(logFile,"+++ check_overlap for unitigs %d and %d +++\n",
 			gapAssignment[i].gap[j].chunk[first].chunk_id,
@@ -621,7 +621,7 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 		// All assumed overlaps with the good overlap should be false
 	      }
 
-	      
+
 	      if( keep == TRUE ){
 #if DEBUG > 2
 		fprintf(logFile,"+++ check_overlap (with one failed) succeeded  for unitig %d +++\n",cid1);
@@ -642,7 +642,7 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 	      fprintf(logFile,"--- check_overlap failed for unitig %d ---\n",cid1);
 #endif
 	      round2Rejected++;
-	    } 
+	    }
 	}
       }
     }
@@ -706,20 +706,20 @@ static void combine_two_distrib(LengthT dist1, LengthT dist2, LengthT *cDist){
 
 /* ----------------------------------------------*/
 
-static OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB, 
+static OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB,
 			       int addtoCG, ChunkOverlapCheckT *olap){
   /* We pass as arguments the two Gap_Chunk_t structs that contain
-     the assumed positions. 
+     the assumed positions.
 
      If addToCG is TRUE, we add the overlap !!! NOT DONE !!
-     information to the chunk graph. 
+     information to the chunk graph.
 
      The functions returns NO_ASS_OVLP
      if the assumed positions do not indicate an possible overlap.
      It returns ASS_OVLP_TRUE if the positions indicate an overlap
      and their is one and ASS_OVLP_FALSE otherwise.
-     In addition a more detailed description of the overlap is returned 
-     in olap. 
+     In addition a more detailed description of the overlap is returned
+     in olap.
 
      Precondition : The function assumes that the minimal coordinate
                     of cidA is less than the minimal coordinate
@@ -740,7 +740,7 @@ static OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB,
 
   ChunkOrientType orientA, orientB;
   // The orientation of the two chunks
-  
+
   float relError=0.0;
   // the relative error of the assumed overlap and the computed
 
@@ -765,11 +765,11 @@ static OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB,
       orientB = A_B;
     else
       orientB = B_A;
-    
+
     orientation = GetChunkPairOrientation(orientA,orientB);
     // Compute the orientation of the two chunks
     //    printf("Orient = %c cidA %d, cidB %d \n",orientation,cidA.chunk_id,cidB.chunk_id);
-   
+
     // Old test
     //   minOlap = -dist.mean-3*sqrt(dist.variance);
     //   maxOlap = -dist.mean+3*sqrt(dist.variance);
@@ -783,10 +783,10 @@ static OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB,
 
    *olap = OverlapChunks(ScaffoldGraph->RezGraph,    // handles suspicious
 			 cidA.chunk_id, cidB.chunk_id,
-			 orientation, 
+			 orientation,
 			 minOlap,maxOlap,
 			 AS_REZ_ERROR_RATE, TRUE);
- 
+
    if(olap->suspicious){
 	      fprintf(stderr,"* SUSPICIOUS Overlap found! Looked for (%d,%d,%c) found (%d,%d,%c)\n",
 		      cidA.chunk_id, cidB.chunk_id, orientation,
@@ -810,7 +810,7 @@ static OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB,
       fprintf(logFile,"overlap between %d and %d failed with relative error of %f\n",cidA.chunk_id,cidB.chunk_id,relError);
       fprintf(logFile,"overlap of length %d\n",olap->overlap);
 #endif
-      return ASS_OVLP_FALSE; 
+      return ASS_OVLP_FALSE;
     }
   }
 }
@@ -831,7 +831,7 @@ static void estimate_gap_distrib(const Gap_Chunk_t *cT1,
      and computes an estimate of the mean and variance of the gap between
      the two chunks. In order to do this one has to make a case distinction
      depending of the orientation of both chunks.
-     
+
      The function returns the mean and variance in the struct gDist
 
      Precondition : Each of the CIEdges must have an orientation
@@ -848,7 +848,7 @@ static void estimate_gap_distrib(const Gap_Chunk_t *cT1,
   else{
     chunkT1 = cT2;
     chunkT2 = cT1;
-  }  	    
+  }
 
 
   if( chunkT1->start.mean < chunkT1->end.mean )
@@ -861,7 +861,7 @@ static void estimate_gap_distrib(const Gap_Chunk_t *cT1,
     orient2 = B_A;
 
 
-  
+
 #if 0
   fprintf(stderr,"Unitig1 %d Unitig2 %d (%lf,%lf,%lf,%lf) (%lf,%lf,%lf,%lf)\n",
 	  cT1->chunk_id,
@@ -874,7 +874,7 @@ static void estimate_gap_distrib(const Gap_Chunk_t *cT1,
 	  cT2->start.variance,
 	  cT2->end.mean,
 	  cT2->end.variance
-	  );  
+	  );
 #endif
 
   switch(orient1){
@@ -907,14 +907,14 @@ static void estimate_gap_distrib(const Gap_Chunk_t *cT1,
     fprintf(logFile,"orient1=B_A\n");
 #endif
     switch(orient2){
-    case A_B :  
+    case A_B :
 #if 0
       fprintf(logFile,"orient2=A_B\n");
 #endif
       gDist->mean     = chunkT2->start.mean - chunkT1->start.mean;
       gDist->variance = chunkT2->start.variance + chunkT1->start.variance;
       break;
-    case B_A :	    
+    case B_A :
 #if 0
       fprintf(logFile,"orient2=B_A\n");
 #endif
@@ -1018,7 +1018,7 @@ assert (edge -> idA == c1 -> chunk_id && edge -> idB == c2 -> chunk_id);
              assert (FALSE);
           }
        }
-       
+
    if  (need_change)
        {
         double  c1_len, c2_len;
@@ -1055,10 +1055,10 @@ assert (edge -> idA == c1 -> chunk_id && edge -> idB == c2 -> chunk_id);
 
 
 
-static bool check_distribs(LengthT *est, 
-			   LengthT *given, 
+static bool check_distribs(LengthT *est,
+			   LengthT *given,
 			   LengthT *comb){
-  
+
   /* this function returns TRUE if the 3*sdtDev intervals around the
      means of est and given intersect both with comb. This function
      could be refined to yield TRUE only if a certain percentage of
@@ -1086,4 +1086,4 @@ static bool left_of(const Gap_Chunk_t *cT1,
   else
     return FALSE;
 
-}  	    
+}

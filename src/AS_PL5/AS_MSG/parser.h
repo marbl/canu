@@ -31,7 +31,7 @@
   ary = (AV *)SvRV($input);
   len = (int)av_len(ary) + 1;
   len = (len < FILTER_SIZE) ? len : FILTER_SIZE;
-  
+
   cname[3] = 0;
   $1 = j1;
   for(i = 0, j = 0; i < len; i++) {

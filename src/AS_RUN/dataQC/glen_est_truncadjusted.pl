@@ -98,11 +98,11 @@ for($f=2;$f<$K;$f++){
 $gkpStore = $base . ".gkpStore";
 $ovlStore = $base . ".ovlStore";
 
-if ($caBin eq "") {   
+if ($caBin eq "") {
    if($caRoot eq ""){
        $caRoot="/bioinfo/work/software/released/asm/current";
    }
-   
+
    if( $ENV{OSTYPE} eq "osf1" ){
    	$caBin="$caRoot/OSF1";
    }
@@ -147,7 +147,7 @@ print "Running ${caBin}/bin/gatekeeper -b $first -e $last -clear LATEST -dumpfra
 while(<LENS>){
     @w=split;
 
-    if ($w[0] eq "UID") { next; }    
+    if ($w[0] eq "UID") { next; }
     $avgfrglen+=$w[1];
     $nfr++;
     if($w[1]==0){
@@ -179,10 +179,10 @@ my $N=0;
 #    $ovlCount[$i]=$n;
 #    $ovlCountInWin[$i]=$N;
 #}
- 
+
 while(<OLAPS>){
     my @w=split;
-    if($w[3]<=$Into){next;}    
+    if($w[3]<=$Into){next;}
     $NR++;
     if($w[0]!=$prev){
       $readswithovls++;
@@ -260,7 +260,7 @@ sub compute_truncated_mean(){
 
     # minimum ovl thickness
     my $minovl=shift;
-    
+
     #window width
     my $width=shift;
 

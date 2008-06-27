@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: IntervalClique.h,v 1.4 2005-03-22 19:48:56 jason_miller Exp $ */
+/* $Id: IntervalClique.h,v 1.5 2008-06-27 06:29:16 brianwalenz Exp $ */
 #ifndef CLIQUE_H
 #define CLIQUE_H
 
@@ -41,15 +41,15 @@ public:
                  UnitType min, UnitType max)
     {
       typename list<Interval<IDType, UnitType> >::const_iterator iter;
-      
+
       for(iter = intervals.begin(); iter != intervals.end(); iter++)
         pids.push_back(iter->getID());
-      
+
       pids.sort();
       pinterval.setMin(min);
       pinterval.setMax(max);
     }
-  
+
   IntervalClique(const list<IDType> ids,
                  const list<Interval<IDType, UnitType> > & interval)
     {
@@ -99,7 +99,7 @@ public:
           piter++;
       }
     }
-      
+
   void getCommonIDs(const IntervalClique<IDType, UnitType> & clique,
                     list<IDType> & commonIDs) const
     {
@@ -140,14 +140,14 @@ public:
       os << endl;
       return os;
     }
-  
+
 private:
   /*
   void populateIDListSorted(list<int> & to,
                             const list<Interval<IDType, UnitType> > & from) const
     {
       to.clear();
-      
+
       typename list<Interval<IDType, UnitType> >::iterator iter = from.begin();
       for(last = iter->getID(); iter != from.end(); iter++)
         to.push_back(iter->getID());
@@ -161,7 +161,7 @@ private:
       bool inOrder = true;
 
       to.clear();
-      
+
       // iterate through from & add to to
       // find out if they're sorted low to high
       typename list<Interval<IDType, UnitType> >::iterator iter = from.begin();
@@ -171,7 +171,7 @@ private:
         inOrder = (iter->getID() < last) ? false : inOrder;
         last = iter->getID();
       }
-      
+
       // sort to, if necessary
       if(!inOrder)
         to.sort();
@@ -187,7 +187,7 @@ private:
       IDType last;
       bool inOrder = true;
       typename list<IDType>::const_iterator iter;
-      
+
       // iterate through from & add to to
       // find out if they're sorted low to high
       for(iter = from.begin(), last = *iter;
@@ -198,12 +198,12 @@ private:
         inOrder = (*iter < last) ? false : inOrder;
         last = *iter;
       }
-      
+
       // sort to, if necessary
       if(!inOrder)
         to.sort();
     }
-  
+
   list<IDType> pids;
   Interval<IDType, UnitType> pinterval;
 };

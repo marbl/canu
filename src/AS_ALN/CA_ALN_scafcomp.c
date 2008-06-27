@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -120,7 +120,7 @@ static Scaffold *Read_Next_Scaffold(FILE *ifile, int first)
         locate = eptr;
       }
   }
-       
+
   { char *p;
     int   len;
 
@@ -150,7 +150,7 @@ static Scaffold *Read_Next_Scaffold(FILE *ifile, int first)
 
   { int gaps, plen;
     int i, j, p;
-  
+
     gaps = 0;
     plen = 0;
     for (i = 0; seqbuf[i] != '\0'; i++)
@@ -350,7 +350,7 @@ static int Locate_Local(AggregateString *cmp, int pos)
         r = m;
       else
         l = m+1;
-    } 
+    }
   return (r);
 }
 
@@ -365,7 +365,7 @@ int MSORT(const void *l, const void *r)
 { Local_Address *x, *y;
 
 #ifdef USE_ONLY_FORWARD_SEGS
-  Local_Segment *X, *Y; 
+  Local_Segment *X, *Y;
  int xrev,yrev;
 #endif
 
@@ -401,7 +401,7 @@ static Local_Pool *Find_All_Locals(Scaffold_List *AS, Scaffold_List *BS)
   Local_Segment   *segs;
   Local_Address   *addr;
   static Local_Pool pool;
- 
+
   acmp = Build_Indexable_String(AS);
   bcmp = Build_Indexable_String(BS);
   segs = Find_Local_Segments(acmp->bigstr,acmp->slen,
@@ -443,7 +443,7 @@ static Local_Pool *Find_All_Locals(Scaffold_List *AS, Scaffold_List *BS)
   MSORT_segs = segs;
 #endif
   qsort(perm,nseg,sizeof(int),MSORT);
-  
+
 #ifdef DEBUG_LOCAL
   { int i;
 
@@ -874,12 +874,12 @@ interval_list *add_to_ilist(interval_list *tail, interval to_add){
 
   assert(to_add.beg<=to_add.end);
 
-  // if this interval is being added to an existing (nonempty) list, 
+  // if this interval is being added to an existing (nonempty) list,
   if (tail!=NULL){
 
-    // mostly, segments will be added in an order, and constrained in a fashion, 
+    // mostly, segments will be added in an order, and constrained in a fashion,
     // that allow us to consider only the last segment and the new one to check for overlaps.
-    // 
+    //
     // Ideally, this would never happen and we could:
     //      assert( tail->ival.beg <= to_add.beg);
     //
@@ -898,7 +898,7 @@ interval_list *add_to_ilist(interval_list *tail, interval to_add){
 
       // if tail is at least as good,
       if( to_add.traceback==NULL || (tail->ival.traceback != NULL && tail->ival.traceback->best >= to_add.traceback->best ) ){
-	
+
 	//do nothing
 	assert(tail->ival.beg<=tail->ival.end);
 	assert(tail->prev!=tail);
@@ -914,7 +914,7 @@ interval_list *add_to_ilist(interval_list *tail, interval to_add){
 
       }
 
-    } 
+    }
 
     // special case when new segment is contained within old
     if(tail->ival.end>to_add.end){
@@ -991,13 +991,13 @@ interval_list *add_to_ilist(interval_list *tail, interval to_add){
   if(tail!=NULL){
     tail->next=il;
   }
-	
+
   assert(il->prev!=il);
   return il;
-}  
+}
 
 
-// Project_across_Agap_one_interval(): 
+// Project_across_Agap_one_interval():
 // Project a single interval accessible on left side of A-gap across the A-gap
 //   need input accessibility interval
 //        A gap variance
@@ -1017,7 +1017,7 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, doub
 
   {
     // find highest location across the gap
-    // This happens when 
+    // This happens when
     //   - Agap is smallest
     //   - Bgaps are biggest
     double remainingToUseUp;
@@ -1080,7 +1080,7 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, doub
       remainingToUseUp = 0;
     }
 #endif
-    
+
     // once past contigs and gaps clearly above the interval,
     // contigs or fractions thereof use up their own length
     // B gaps use up their mean PLUS maximum stretch
@@ -1163,16 +1163,16 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, doub
 	  }
 	  terminal=1;
 	}
-	
+
       }
-      
+
     }
     top = Bmin;
   }
 
   {
     // find lowest location across the gap
-    // This happens when 
+    // This happens when
     //   - Agap is largest
     //   - Bgaps are smallest
     double remainingToUseUp;
@@ -1210,7 +1210,7 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, doub
       if(Bmax<ctgend){
 	remainingToUseUp -= ctgend-Bmax;
 	Bmax=ctgend;
-	
+
 	// if we end within the contig, we are done
 	if(remainingToUseUp<=0){
 	  Bmax+=remainingToUseUp;
@@ -1218,7 +1218,7 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, doub
 	  break;
 	}
       }
-    
+
       // now use the gap
 
       // if not full gap, figure out what fraction
@@ -1229,7 +1229,7 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, doub
 	fraction_of_gap = 1.;
       }
 
-      remainingToUseUp -=  fraction_of_gap * (B->gaps[i].gap_length - B->gaps[i].gap_var*varwin); 
+      remainingToUseUp -=  fraction_of_gap * (B->gaps[i].gap_length - B->gaps[i].gap_var*varwin);
 
       Bmax = B->ctgs[i+1].lft_end;
       if(remainingToUseUp < 0 ) {
@@ -1249,7 +1249,7 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, doub
       i++;
     }
     assert( remainingToUseUp == 0 || i == B->num_gaps );
-  
+
     if(remainingToUseUp>0){
 
       //handle the final contig
@@ -1258,7 +1258,7 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, doub
 
       // is this conditional gratuitous?
       if(Bmax<B->ctgs[i].lft_end+B->ctgs[i].length){
-	
+
 	remainingToUseUp -= (B->ctgs[i].lft_end + B->ctgs[i].length - Bmax);
 	Bmax=B->ctgs[i].lft_end+B->ctgs[i].length;
 
@@ -1270,7 +1270,7 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, doub
 	  terminal=1;
 	}
       }
-      
+
     }
 
     bot = Bmax;
@@ -1282,7 +1282,7 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, doub
   return terminal;
 }
 
-// Project_across_Agap(): 
+// Project_across_Agap():
 // Project a set of intervals accessible on left side of A-gap across the A-gap
 //   need input list of accessibility intervals
 //        A gap variance
@@ -1298,9 +1298,9 @@ int Project_across_Agap(interval_list *inList,interval_list **outList, COvlps **
 // For each vertical interval,
 //   If terminal "gap"
 //     If best so far, update best
-//   Else 
+//   Else
 //     project across A-gap
-//     If go off bottom, 
+//     If go off bottom,
 //       If best so far, update best
 
   interval_list *curr=inList;
@@ -1370,8 +1370,8 @@ int Process_seg(COvlps *af,COvlps **bestTerm,
 }
 
 int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
-					 interval_list ** nextAgapList, 
-					 interval_list ** BgapLists, 
+					 interval_list ** nextAgapList,
+					 interval_list ** BgapLists,
 					 int whichA,Scaffold *A, Scaffold *B,int varwin){
   int i=0;
   double top=curr.beg;
@@ -1404,12 +1404,12 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
       to-=B->ctgs[i].lft_end;
 
       // {from, to} are positions along the contig, in local (contig) coordinates
-      { 
+      {
 	COvlps *afing,*af;
 	afing=ABuckets[whichA];
 	// while there are segments on far side of horizontal gap, advance until we are in or past the relevant b-contig
 	while (afing != NULL && afing->seg->b_contig < i)
-	  afing = afing->Alink; 
+	  afing = afing->Alink;
 	// over all segments in contigs [whichA,i]
 	for (af = afing; af != NULL && af->seg->b_contig == i; af = af->Alink){
 	  // if the segment begins in the accessible interval
@@ -1446,8 +1446,8 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
 	// determine portion of A contig that can be reached
 	double left, right, amountOff_A_contig=0;
 
-	// leftmost point along A contig is: 
-	//     [ fraction of B gap that is below 'to' value ] * [ maximum height of B gap ] 
+	// leftmost point along A contig is:
+	//     [ fraction of B gap that is below 'to' value ] * [ maximum height of B gap ]
 	//N.B. Things are screwy here if the gap can be negative
 	{
 	  double frac;
@@ -1457,7 +1457,7 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
 	}
 
 	// rightmost point is:
-	//      [ fraction of B gap that is below 'from' value ] * [ minimum height of B gap ] 
+	//      [ fraction of B gap that is below 'from' value ] * [ minimum height of B gap ]
 	right = (((double)(B->ctgs[i+1].lft_end-from))/(double) B->gaps[i].gap_length * (B->gaps[i].gap_length + B->gaps[i].gap_var*varwin) );
 	assert(right>=left);
 	// ... though if this is off the end of the contig, we must correct
@@ -1473,7 +1473,7 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
 	  afing=ABuckets[whichA];
 	  // while there are segments on far side of horizontal gap, advance until we are in or past the relevant b-contig
 	  while (afing != NULL && afing->seg->b_contig <= i)
-            afing = afing->Alink; 
+            afing = afing->Alink;
 	  // over all segments in contigs [whichA,i]
 	  for (af = afing; af != NULL && af->seg->b_contig == i+1; af = af->Alink){
 	    // if the segment comes begins in the accessible interval
@@ -1504,20 +1504,20 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
 
 	  fracTop = ((double)amountOff_A_contig) /(double) (B->gaps[i].gap_length + B->gaps[i].gap_var*varwin);
 
-	  // things get weird when the gap can be negative, 
+	  // things get weird when the gap can be negative,
 	  // so let us sanity check:
-	  // it seems that if left is past end of contig, 
+	  // it seems that if left is past end of contig,
 	  // (recalling that left is set based on smallest possible
 	  // gap length), this should only happen when smallest
 	  // possible gap length is positive
 	  assert( ( left - A->ctgs[whichA].length <= 0 ) || B->gaps[i].gap_length - B->gaps[i].gap_var*varwin > 0 );
 
 
-	  fracBot = ((double) MAX(0,left - A->ctgs[whichA].length )) / (B->gaps[i].gap_length - B->gaps[i].gap_var*varwin); 
-	
+	  fracBot = ((double) MAX(0,left - A->ctgs[whichA].length )) / (B->gaps[i].gap_length - B->gaps[i].gap_var*varwin);
+
 	  assert(fracBot>=0&&fracBot<=fracTop&&fracTop<=1);
 
-	  ival.beg=B->ctgs[i+1].lft_end-(fracTop*B->gaps[i].gap_length); 
+	  ival.beg=B->ctgs[i+1].lft_end-(fracTop*B->gaps[i].gap_length);
 	  ival.end=B->ctgs[i+1].lft_end-(fracBot*B->gaps[i].gap_length);
 	  ival.traceback=curr.traceback;
 
@@ -1545,12 +1545,12 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
       to-=B->ctgs[i].lft_end;
       from-=B->ctgs[i].lft_end;
       // {from, to} are positions along the contig, in local (contig) coordinates
-      { 
+      {
 	COvlps *afing,*af;
 	afing=ABuckets[whichA];
 	// while there are segments on far side of horizontal gap, advance until we are in or past the relevant b-contig
 	while (afing != NULL && afing->seg->b_contig < i)
-	  afing = afing->Alink; 
+	  afing = afing->Alink;
 	// over all segments in contigs [whichA,i]
 	for (af = afing; af != NULL && af->seg->b_contig == i; af = af->Alink){
 	  // if the segment begins in the accessible interval
@@ -1586,7 +1586,7 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
 }
 
 int Process_Agap_accessible_intervals(interval_list **accessList,
-				      interval *contigTopEdgeAccess, 
+				      interval *contigTopEdgeAccess,
 				      interval_list **nextAgapList,
 				      interval_list **BgapLists,
 				      COvlps **bestTerm,
@@ -1603,7 +1603,7 @@ int Process_Agap_accessible_intervals(interval_list **accessList,
 //         Add exit point to B contig's bottom edge's accessible intervals
 //   For each B gap it overlaps,
 //     Add interval at left edge of following A-gap that can be reached to that A-gap's accessible intervals
-//     Add interval on A contig that is accessible top edge of following B contig to that 
+//     Add interval on A contig that is accessible top edge of following B contig to that
 //   If interval falls off the bottom, declare success
 
   interval_list *curr=NULL;
@@ -1636,8 +1636,8 @@ int Process_Agap_accessible_intervals(interval_list **accessList,
     }
 
   }
-  
-  
+
+
   curr=*accessList;
   while(curr!=NULL){
     if(Process_Agap_one_accessible_interval(curr->ival,bestTerm,nextAgapList,BgapLists,whichA,A,B,varwin)){
@@ -1667,17 +1667,17 @@ int Project_segments_across_Bgaps(COvlps **bestTerm, interval_list **BgapLists, 
       assert(curr->ival.traceback != NULL);
       if( curr->ival.traceback->seg->overlap->endpos < 0 ) {  // i.e. we come out the bottom
 	// here, we consider either ended up at A gap or hitting another segment...
-	
-	double from = (A->ctgs[whichA].length+curr->ival.traceback->seg->overlap->endpos) + (B->gaps[i].gap_length-B->gaps[i].gap_var*varwin); 
-	double to = (A->ctgs[whichA].length+curr->ival.traceback->seg->overlap->endpos) + (B->gaps[i].gap_length+B->gaps[i].gap_var*varwin); 
+
+	double from = (A->ctgs[whichA].length+curr->ival.traceback->seg->overlap->endpos) + (B->gaps[i].gap_length-B->gaps[i].gap_var*varwin);
+	double to = (A->ctgs[whichA].length+curr->ival.traceback->seg->overlap->endpos) + (B->gaps[i].gap_length+B->gaps[i].gap_var*varwin);
 
 	// {from, to} are positions along the contig, in local (contig) coordinates
-	{ 
+	{
 	  COvlps *afing,*af;
 	  afing=ABuckets[whichA];
 	  // while there are segments on far side of horizontal gap, advance until we are in or past the relevant b-contig
 	  while (afing != NULL && afing->seg->b_contig < i+1)
-	    afing = afing->Alink; 
+	    afing = afing->Alink;
 	  // over all segments in contigs [whichA,i]
 	  for (af = afing; af != NULL && af->seg->b_contig == i+1; af = af->Alink){
 	    // if the segment begins in the accessible interval
@@ -1728,7 +1728,7 @@ int Project_segments_across_Bgaps(COvlps **bestTerm, interval_list **BgapLists, 
 	  interval to_add;
 	  double gapFrac;
 
-	  gapFrac = 
+	  gapFrac =
 	    ((double) (to-A->ctgs[whichA].length))/
 	    (double) (B->gaps[i].gap_length + varwin*B->gaps[i].gap_var);
 	  to_add.beg = B->ctgs[i+1].lft_end-gapFrac*B->gaps[i].gap_length;
@@ -1737,10 +1737,10 @@ int Project_segments_across_Bgaps(COvlps **bestTerm, interval_list **BgapLists, 
 	  if(from > A->ctgs[whichA].length){
 	    assert(B->gaps[i].gap_length - varwin*B->gaps[i].gap_var > 0);
 
-	    gapFrac = 
+	    gapFrac =
 	      ((double) (from - A->ctgs[whichA].length)) /
-	      (double) (B->gaps[i].gap_length - varwin*B->gaps[i].gap_var); 
-	  
+	      (double) (B->gaps[i].gap_length - varwin*B->gaps[i].gap_var);
+
 	    to_add.end -= gapFrac*B->gaps[i].gap_length;
 	  }
 
@@ -1781,7 +1781,7 @@ int Project_segments_across_Bgaps(COvlps **bestTerm, interval_list **BgapLists, 
 	to_add.traceback = curr->ival.traceback;
 	*nextAgapList = add_to_ilist(*nextAgapList,to_add);
       }
-      
+
       curr=curr->prev;
     }
     BgapLists[i]=cleanup_ilist(BgapLists[i]);
@@ -1816,8 +1816,8 @@ int ProjectFromTopEdge(interval_list **thisAlist, COvlps **bestTerm,int whichA,S
   maxX = (gapFrac * A->gaps[whichA].gap_length + A->gaps[whichA].gap_var * varwin);
   gapFrac = ((double)(A->ctgs[whichA+1].lft_end-high))/(double) A->gaps[whichA].gap_length;
   assert(gapFrac>=0&&gapFrac<=1);
-  minX = MAX(0,(gapFrac * A->gaps[whichA].gap_length - A->gaps[whichA].gap_var * varwin)); 
-  
+  minX = MAX(0,(gapFrac * A->gaps[whichA].gap_length - A->gaps[whichA].gap_var * varwin));
+
   // for the minimum, turn this into a position within the B scaffold, taking
   // gap stretchiness into account ...
   top=0;
@@ -1879,14 +1879,14 @@ int ProjectFromTopEdge(interval_list **thisAlist, COvlps **bestTerm,int whichA,S
 	break;
       }
 
-      intoB+=(B->gaps[i].gap_length - B->gaps[i].gap_var*varwin); 
+      intoB+=(B->gaps[i].gap_length - B->gaps[i].gap_var*varwin);
 
       if(intoB>=maxX){
 
 	// no trouble with negative gap lengths here?
-	assert(B->gaps[i].gap_length - B->gaps[i].gap_var*varwin > 0); 
+	assert(B->gaps[i].gap_length - B->gaps[i].gap_var*varwin > 0);
 
-	gapFrac=((double)(intoB-maxX))/(double) (B->gaps[i].gap_length - B->gaps[i].gap_var*varwin); 
+	gapFrac=((double)(intoB-maxX))/(double) (B->gaps[i].gap_length - B->gaps[i].gap_var*varwin);
 
 	assert(gapFrac>=0);
 	bot=B->ctgs[i+1].lft_end - (B->gaps[i].gap_length*gapFrac);
@@ -1974,7 +1974,7 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
 		c,CtgOvls[c].seg->a_contig,
 		CtgOvls[c].seg->b_contig);
 #endif
-	// push segment onto Alink list; this needs to result in all 
+	// push segment onto Alink list; this needs to result in all
 	// segments involving s->a_contig being linked together,
 	// and the order of the elements should be such that
 	// s->b_contig <= s->Alink->b_contig (if s->Alink != NULL)
@@ -1988,11 +1988,11 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
       }
 
 
-    // push segment onto Blink list; this needs to result in all 
+    // push segment onto Blink list; this needs to result in all
     // segments involving s->b_contig being linked together,
     // and the order of the elements should be such that
     // s->a_contig <= s->Blink->a_contig (if s->Blink != NULL)
-    
+
     for(i=AF->num_gaps;i>=0;i--){
       COvlps *co;
       co = ABuckets[i];
@@ -2056,7 +2056,7 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
   //     Process accessibility list (modifying following B contigs' lists and also following A-gap's left-edge accessibility list)
   //     If final contig,
   //       Check for terminal solutions
-  //   If not final gap, 
+  //   If not final gap,
   //     Process left edge of following A-gap (creating accessibility list for right edge of that gap)
   //   Else
   //     Check for terminal solutions
@@ -2145,7 +2145,7 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
       }
       intoB+=BF->gaps[i].gap_length;
       if(intoB>top){
-	double gapFrac = ((double) (top - (BF->ctgs[i].lft_end+BF->ctgs[i].length))) / 
+	double gapFrac = ((double) (top - (BF->ctgs[i].lft_end+BF->ctgs[i].length))) /
 	                (double) (BF->gaps[i].gap_length+varwin*BF->gaps[i].gap_var);
 	assert(gapFrac>=0);
 	beg = BF->ctgs[i].lft_end+BF->ctgs[i].length + gapFrac * BF->gaps[i].gap_length;
@@ -2191,7 +2191,7 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
     }
 
     //     For first B-contig, initialize accessible portion of A-contig based on banding
-    { 
+    {
       int left,right;
       left = MAX(bandbeg,AF->ctgs[i].lft_end);
       right = MIN(bandend,AF->ctgs[i].lft_end+AF->ctgs[i].length);
@@ -2213,7 +2213,7 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
     }
     //   Process right edge of A-gap (modifying B-contigs' accessibility lists and following A-gap's left-edge accessibility list)
     if(Process_Agap_accessible_intervals(&thisAlist,
-					 contigTopEdgeAccessPtr, 
+					 contigTopEdgeAccessPtr,
 					 &nextAlist,
 					 Blists,
 					 &bestTerm,
@@ -2297,7 +2297,7 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
       else
 	s->alow = - (s->alow+1);
       }
-    
+
     // invert the list to set up seglist
     r = NULL;
     for (c = bestTerm; c != NULL; c = c->trace){
@@ -2305,7 +2305,7 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
       s->next = r;
       r = s;
     }
-    
+
     seglist = r;
 
   } else {
@@ -2332,9 +2332,9 @@ int Link_Horizontal(Scaffold *A, Scaffold *B, int varwin,
 
   if (low != hgh)
     { xl = A->ctgs[i].lft_end + A->ctgs[i].length + B->ctgs[j].lft_end;
-      zl = MAP(xl - hgh > A->ctgs[i].lft_end + A->ctgs[i].length ? 
+      zl = MAP(xl - hgh > A->ctgs[i].lft_end + A->ctgs[i].length ?
 	       xl - hgh : A->ctgs[i].lft_end + A->ctgs[i].length);
-      zh = MAP(xl - low > A->ctgs[i].lft_end + A->ctgs[i].length ? 
+      zh = MAP(xl - low > A->ctgs[i].lft_end + A->ctgs[i].length ?
 	       xl - low : A->ctgs[i].lft_end + A->ctgs[i].length);
       xl = MAP(B->ctgs[j].lft_end);
       gapped = 1;
@@ -2353,7 +2353,7 @@ int Link_Horizontal(Scaffold *A, Scaffold *B, int varwin,
   if (i == A->num_gaps)
     {
 #ifdef DEBUG_ALIGN
-      fprintf(stderr,"    Ray reaches A-boundary\n"); 
+      fprintf(stderr,"    Ray reaches A-boundary\n");
 #endif
       return (1);
     }
@@ -2371,7 +2371,7 @@ int Link_Horizontal(Scaffold *A, Scaffold *B, int varwin,
       if (low-var > x)
         beg = low-var;
       else
-        beg = x; 
+        beg = x;
       x += B->ctgs[k].length;
       if (hgh+var < x)
         end = hgh+var;
@@ -2411,7 +2411,7 @@ int Link_Horizontal(Scaffold *A, Scaffold *B, int varwin,
           fprintf(stderr,"    Ray overlaps B%d[%d,%d]\n",k,beg,end);
 #endif
           while (afing != NULL && afing->seg->b_contig < k)
-            afing = afing->Alink; 
+            afing = afing->Alink;
           for (af = afing; af != NULL && af->seg->b_contig == k; af = af->Alink)
             if (af->seg->overlap->begpos <= 0)
               { pnt = B->ctgs[k].lft_end - af->seg->overlap->begpos;
@@ -2432,10 +2432,10 @@ int Link_Horizontal(Scaffold *A, Scaffold *B, int varwin,
                            af->seg->a_contig,af->seg->b_contig,af->seg->overlap->begpos,af->seg->overlap->endpos,af->best);
 #endif
 
-// If you are reading this, it is possible you are confused as to whether we should 
+// If you are reading this, it is possible you are confused as to whether we should
 // recurse on segments reached from Link_Horizontal or Link_Vertical; it appears that
 // we should NOT.  Instead, Align_Scaffold proceeds as follows, in three stages:
-// (a) determine all the segments that can be reached directly from starting 
+// (a) determine all the segments that can be reached directly from starting
 // in a gap on the entry border; each such segment has its "best" set to its length
 // (b) determine all segments that can be reached by starting from a segment that
 // begins on the entry border; again, reachable segments have "best" set to length
@@ -2462,7 +2462,7 @@ int Link_Horizontal(Scaffold *A, Scaffold *B, int varwin,
           if (low-var > x)
             beg = low-var;
           else
-            beg = x; 
+            beg = x;
           y = B->ctgs[k+1].lft_end;
           if (hgh+var < y)
 	    if(hgh+var<x){
@@ -2506,7 +2506,7 @@ int Link_Horizontal(Scaffold *A, Scaffold *B, int varwin,
 #endif
 
               if (Link_Vertical(A,B,varwin,
-                                i+1,k,l - (end-x),l - (beg-x),source)) 
+                                i+1,k,l - (end-x),l - (beg-x),source))
                 terminal = 1;
             }
           else if (beg > y && beg-del < y)
@@ -2518,7 +2518,7 @@ int Link_Horizontal(Scaffold *A, Scaffold *B, int varwin,
               fprintf(stderr,"    Ray indirects gap B%d to B%d @ %d\n",k,k+1,beg-del);
 #endif
               if (Link_Vertical(A,B,varwin,
-                  i+1,k,l - (beg-x),l - (beg-x),source)) 
+                  i+1,k,l - (beg-x),l - (beg-x),source))
                 terminal = 1;
             }
           var += del;
@@ -2557,7 +2557,7 @@ int Link_Horizontal(Scaffold *A, Scaffold *B, int varwin,
           }
 #endif
 #ifdef DEBUG_ALIGN
-          fprintf(stderr,"    Ray reaches B-boundary\n"); 
+          fprintf(stderr,"    Ray reaches B-boundary\n");
 #endif
         }
     }
@@ -2575,9 +2575,9 @@ int Link_Vertical(Scaffold *A, Scaffold *B, int varwin,
 
   if (low != hgh)
     { yl = B->ctgs[j].lft_end + B->ctgs[j].length + A->ctgs[i].lft_end;
-      zl = MAP(yl - hgh > B->ctgs[j].lft_end + B->ctgs[j].length ? 
+      zl = MAP(yl - hgh > B->ctgs[j].lft_end + B->ctgs[j].length ?
 	       yl - hgh : B->ctgs[j].lft_end + B->ctgs[j].length);
-      zh = MAP(yl - low > B->ctgs[j].lft_end + B->ctgs[j].length ? 
+      zh = MAP(yl - low > B->ctgs[j].lft_end + B->ctgs[j].length ?
 	       yl - low : B->ctgs[j].lft_end + B->ctgs[j].length);
       yl = MAP(A->ctgs[i].lft_end);
       gapped = 1;
@@ -2596,7 +2596,7 @@ int Link_Vertical(Scaffold *A, Scaffold *B, int varwin,
   if (j == B->num_gaps)
     {
 #ifdef DEBUG_ALIGN
-      fprintf(stderr,"    Ray reaches B-boundary\n"); 
+      fprintf(stderr,"    Ray reaches B-boundary\n");
 #endif
       return (1);
     }
@@ -2614,7 +2614,7 @@ int Link_Vertical(Scaffold *A, Scaffold *B, int varwin,
       if (low-var > x)
         beg = low-var;
       else
-        beg = x; 
+        beg = x;
       x += A->ctgs[k].length;
       if (hgh+var < x)
         end = hgh+var;
@@ -2659,7 +2659,7 @@ int Link_Vertical(Scaffold *A, Scaffold *B, int varwin,
 		    bfing->seg->a_contig,
 		    bfing->seg->overlap->begpos);
 #endif
-            bfing = bfing->Blink; 
+            bfing = bfing->Blink;
 	  }
           for (bf = bfing; bf != NULL && bf->seg->a_contig == k; bf = bf->Blink){
 #ifdef DEBUG_RAYSHOOT
@@ -2696,7 +2696,7 @@ int Link_Vertical(Scaffold *A, Scaffold *B, int varwin,
           if (low-var > x)
             beg = low-var;
           else
-            beg = x; 
+            beg = x;
           y = A->ctgs[k+1].lft_end;
           if (hgh+var < y)
 	    if(hgh+var < x){
@@ -2740,7 +2740,7 @@ int Link_Vertical(Scaffold *A, Scaffold *B, int varwin,
 #endif
               if (Link_Horizontal(A,B,varwin,
                                   k,j+1,l - (end-x),l - (beg-x),source))
-                terminal = 1; 
+                terminal = 1;
             }
           else if (beg > y && beg-del < y)
             { l = B->ctgs[j+1].lft_end;
@@ -2798,7 +2798,7 @@ int Link_Vertical(Scaffold *A, Scaffold *B, int varwin,
   return (terminal);
 }
 
-  
+
 
 void Free_Scaffold_List(Scaffold_List *SL)
 { Scaffold_List *s, *t;
@@ -2811,7 +2811,7 @@ void Free_Scaffold_List(Scaffold_List *SL)
 }
 
 static int UnAccountedBits(int alow, int ahgh, int blow, int bhgh,
-                           int i, int p, int j, int q, 
+                           int i, int p, int j, int q,
                            Scaffold *AF, Scaffold *BF)
 { int abg, abe;
   int u, v;
@@ -2917,7 +2917,7 @@ Scaffold_Overlap *Analyze_Overlap(Scaffold *AF, Scaffold *BF,
             { alow = ahgh + (BF->length-bhgh);
               blow = BF->length;
             }
-        } 
+        }
       else
         { i = seg->a_contig;
           j = seg->b_contig;

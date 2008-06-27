@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -76,7 +76,7 @@ int freeLaneNode(LaneNode *node) {
 
 static
 int PushLaneNode(LaneNode *new_lane_node, Lane *lane) {
-  int leftpos = (new_lane_node->read->position.bgn<new_lane_node->read->position.end) ? 
+  int leftpos = (new_lane_node->read->position.bgn<new_lane_node->read->position.end) ?
     new_lane_node->read->position.bgn : new_lane_node->read->position.end;
   if (leftpos < lane->lastcol+3) return 0;
   if ( lane->last == NULL ) {
@@ -112,7 +112,7 @@ void FreeLane(Lane *lane) {
       freeLaneNode(node);
       node = next;
     }
-  }     
+  }
 }
 
 static
@@ -126,12 +126,12 @@ int IntMultiPositionCmp( const IntMultiPos *l, const IntMultiPos *m) {
 
 
 
-int IMP2Array(IntMultiPos *all_frags, 
-	      int num_pieces, 
-	      int length, 
-	      GateKeeperStore *frag_store, 
-	      int *depth, 
-	      char ***array, 
+int IMP2Array(IntMultiPos *all_frags,
+	      int num_pieces,
+	      int length,
+	      GateKeeperStore *frag_store,
+	      int *depth,
+	      char ***array,
 	      int ***id_array,
               int ***ori_array,
               int show_cel_status,
@@ -150,7 +150,7 @@ int IMP2Array(IntMultiPos *all_frags,
   fragRecord fsread;
 
   VA_TYPE(Lane) *Packed;
-  lane_depth = 32; 
+  lane_depth = 32;
   Packed = (VA_TYPE(Lane) *) CreateVA_Lane(lane_depth);
   frag.action = AS_ADD;
   frag.source = NULL;
@@ -165,7 +165,7 @@ int IMP2Array(IntMultiPos *all_frags,
         (int (*)(const void *,const void *))IntMultiPositionCmp);
   next_lane=0;
   for (i=0;i<num_pieces;i++) {
-    new_mlp = createLaneNode(&all_frags[i]); 
+    new_mlp = createLaneNode(&all_frags[i]);
 
     getFrag(frag_store,all_frags[i].ident,&fsread,FRAG_S_QLT);
     clr_bgn = getFragRecordClearRegionBegin(&fsread, clrrng_flag);
@@ -177,7 +177,7 @@ int IMP2Array(IntMultiPos *all_frags,
 
     frag.eaccession = getFragRecordUID(&fsread);
 
-    // All this frag stuff is defined in case it becomes important to print the frag 
+    // All this frag stuff is defined in case it becomes important to print the frag
     frag.iaccession = all_frags[i].ident;
     frag.sequence = seq;
     frag.quality = qv;
@@ -206,9 +206,9 @@ int IMP2Array(IntMultiPos *all_frags,
       PushLaneNode(new_mlp,&space);
       SetLane(Packed, next_lane, &space);
       lane_depth++;
-    } 
+    }
   }
-  { 
+  {
     IntMultiPos *read;
     int col,cols;
     char *srow,*qrow;
@@ -296,7 +296,7 @@ int IMP2Array(IntMultiPos *all_frags,
           }
           for (col=firstcol;col<lastcol;col++) {
             if ( show_cel_status ) {
-              ia[i][col] = AS_FA_READ(read->type) ? 1:0; 
+              ia[i][col] = AS_FA_READ(read->type) ? 1:0;
             } else {
               ia[i][col]=read->ident;
             }

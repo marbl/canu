@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: Polygon.h,v 1.5 2006-10-08 08:47:39 brianwalenz Exp $ */
+/* $Id: Polygon.h,v 1.6 2008-06-27 06:29:16 brianwalenz Exp $ */
 #ifndef POLYGON_H
 #define POLYGON_H
 
@@ -53,7 +53,7 @@ public:
       pSortX = true;
       pRangesSet = false;
     }
-  
+
   unsigned int size() const
     {
       return ppts.size();
@@ -78,7 +78,7 @@ public:
   unsigned int getLeftMostIndex() const
     {
       if(pRangesSet) return pLeftMostIndex;
-      
+
       int leftMostIndex = 0;
       for(unsigned int i = 1; i < ppts.size(); i++)
       {
@@ -147,7 +147,7 @@ public:
         maxY = (maxY > ppts[i].getY()) ? maxY : ppts[i].getY();
       }
     }
-  
+
   int getLeftMostIndex()
     {
       setRanges();
@@ -186,17 +186,17 @@ public:
       minY = pMinY;
       maxY = pMaxY;
     }
-  
+
   double getSegmentAngle(int i) const
     {
       Point<double> p1(ppts[i].getX(), ppts[i].getY());
       Point<double> p2(ppts[cwIndex(i)].getX(), ppts[cwIndex(i)].getY());
       p2.subtract(p1);
       p2.normalize();
-      
+
       return M_PI + ((p2.getX() >= 0) ? -acos(-p2.getY()) : acos(-p2.getY()));
     }
-  
+
   void getSegmentAngles(vector<double> & angles) const
     {
       for(unsigned int i = 0; i < ppts.size(); i++)
@@ -205,7 +205,7 @@ public:
         angles.push_back(angle);
       }
     }
-  
+
   bool append(const Point<UnitType> & point)
     {
       // if it's the same point as the last one, just skip it
@@ -215,14 +215,14 @@ public:
         cerr << "Attempted to append duplicate vertex to polygon (0)!\n";
         return false;
       }
-      
+
       if(ppts.size() > 1 &&
          (point == ppts[1] || point == ppts[ppts.size()-2]))
       {
         cerr << "Attempted to append duplicate vertex to polygon (1)!\n";
         return false;
       }
-      
+
       if(!isConvexWithPoint(point))
       {
         cerr << "Polygon not convex with new point!\n";
@@ -236,13 +236,13 @@ public:
       setRanges();
       return true;
     }
-  
+
   bool append(UnitType x, UnitType y)
     {
       Point<UnitType> p(x,y);
       return append(p);
     }
-  
+
   bool isConvexWithPoint(UnitType x, UnitType y) const
     {
       Point<UnitType> p(x,y);
@@ -251,19 +251,19 @@ public:
   bool isConvexWithPoint(const Point<UnitType> & point) const
     {
       if(ppts.size() < 2) return true;
-      
+
       // point must be to the right (clockwise) from line
       // between previous two points
       if(point.getLineSide(ppts[ppts.size()-2], ppts[ppts.size()-1]) ==
          TP_COUNTERCW)
         return false;
-      
+
       // and 2nd point must be to the right from line
       // between point and ppts[0]
       if(ppts.size() > 2 && ppts[1].getLineSide(point, ppts[0]) ==
          TP_COUNTERCW)
         return false;
-      
+
       return true;
     }
 
@@ -287,36 +287,36 @@ public:
       pRangesSet = false;
       ppts.clear();
     }
-  
+
   void printForGnuplot(ostream & os) const
     {
       if(ppts.size() == 0) return;
-      
+
       for(unsigned int i = 0; i < ppts.size(); i++)
       {
         os << ppts[i].getX() << " " << ppts[i].getY() << endl;
       }
       os << ppts[0].getX() << " " << ppts[0].getY() << endl << endl;
     }
-  
+
   void print(ostream & os) const
     {
       if(ppts.size() == 0) return;
-      
+
       for(unsigned int i = 0; i < ppts.size(); i++)
       {
         os << ppts[i].getX() << "," << ppts[i].getY() << " ";
       }
       os << endl;
     }
-  
+
   void rotateByRadians(double radians)
     {
       for(unsigned int i = 0; i < ppts.size(); i++)
         ppts[i].rotateByRadians(radians);
       pRangesSet = false;
     }
-  
+
   void rotateByDegrees(double degrees)
     {
       rotateByRadians(degrees * M_PI / 180.);
@@ -339,7 +339,7 @@ public:
       return intersects(other);
     }
 #endif
-  
+
   friend ostream & operator<<(ostream & os, const Polygon<UnitType> & poly)
     {
       os << poly.ppts.size();
@@ -347,7 +347,7 @@ public:
         os << " " << poly.ppts[i];
       return os;
     }
-  
+
   void setXSort() {pSortX = true;}
   void setYSort() {pSortX = false;}
 
@@ -368,8 +368,8 @@ public:
         else return 0;
       }
     }
-  
-  
+
+
 protected:
   void setRanges()
     {
@@ -392,7 +392,7 @@ protected:
         pRangesSet = true;
       }
     }
-  
+
   // points must be in clockwise order
   vector<Point<UnitType> > ppts;
   bool pSortX;

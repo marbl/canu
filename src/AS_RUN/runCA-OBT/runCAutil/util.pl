@@ -1,11 +1,11 @@
 use strict;
 
 
-# Submit batch jobs in groups. This function allows one to limit 
-# the maximum number of jobs submitted at once to the grid. The jobs are 
+# Submit batch jobs in groups. This function allows one to limit
+# the maximum number of jobs submitted at once to the grid. The jobs are
 # split into multiple submissions, dependent on each other.
 #
-# NOTE: inefficient because all jobs in a previous 
+# NOTE: inefficient because all jobs in a previous
 # submission must finish for the next submission to be scheduled.
 #
 sub submitBatchJobs($$$$) {
@@ -513,7 +513,7 @@ sub printHelp () {
 
     if (getGlobal("version")) {
         my @full_pName = split('/',$0);
-        my $pName = $full_pName[$#full_pName]; 
+        my $pName = $full_pName[$#full_pName];
         print "$pName $MY_VERSION\n";
         exit(0);
     }
@@ -819,7 +819,7 @@ sub runCommand ($$) {
         if ($rc & 0x80) {
             $error .= "coredump from ";
         }
-    
+
         if ($rc > 0x80) {
             $rc >>= 8;
         }

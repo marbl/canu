@@ -9,10 +9,10 @@
 #include <math.h>
 #include "AS_global.h"
 
-#ifndef minim 
+#ifndef minim
 #define minim(a,b) ( (a) < (b) ? (a) : (b) )
 #endif
-#ifndef maxim 
+#ifndef maxim
 #define maxim(a,b) ( (a) > (b) ? (a) : (b) )
 #endif
 
@@ -129,7 +129,7 @@ static void calc_kmer_profile(char *seq, int *kmerCounts, int merSize){
       continue;
     }
     goodchars++;
-    if(goodchars > merSize)goodchars=merSize; 
+    if(goodchars > merSize)goodchars=merSize;
     idx = oneBaseUpdateIdx(idx,seq[i],merMask);
     if(goodchars!=merSize){
       //      fprintf(stderr,"Partial mer not fully processed, %d cur len = %d\n",

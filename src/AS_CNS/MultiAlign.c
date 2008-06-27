@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -71,7 +71,7 @@ ClearMultiAlignT(MultiAlignT *ma) {
   ResetVA_IntMultiVar(ma->v_list);
 }
 
-void 
+void
 DeleteMultiAlignTWorker(MultiAlignT *ma) {
 
   if (ma == NULL)
@@ -290,7 +290,7 @@ SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream) {
   }
 }
 
-void 
+void
 ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma) {
   int32  maID   = 0;
   int    status = 0;
@@ -335,7 +335,7 @@ LoadMultiAlignTFromStream(FILE *stream) {
 
 
 
-void 
+void
 CheckMAValidity(MultiAlignT *ma) {
   char *c      = Getchar(ma->consensus,0);
   char *q      = Getchar(ma->quality,0);
@@ -356,9 +356,9 @@ CheckMAValidity(MultiAlignT *ma) {
 
 
 
-void 
+void
 GetMultiAlignUngappedConsensus(MultiAlignT *ma,
-                               VA_TYPE(char) *ungappedConsensus, 
+                               VA_TYPE(char) *ungappedConsensus,
                                VA_TYPE(char) *ungappedQuality) {
 
   ResetVA_char(ungappedConsensus);
@@ -386,7 +386,7 @@ GetMultiAlignUngappedConsensus(MultiAlignT *ma,
 }
 
 
-void 
+void
 GetMultiAlignUngappedOffsets(MultiAlignT *ma,
                              VA_TYPE(int32) *ungappedOffsets) {
 
@@ -408,7 +408,7 @@ GetMultiAlignUngappedOffsets(MultiAlignT *ma,
 
 
 
-static int 
+static int
 CompareUnitigPos (const void *c1, const void *c2) {
   IntUnitigPos *u1 = (IntUnitigPos *)c1;
   IntUnitigPos *u2 = (IntUnitigPos *)c2;
@@ -418,12 +418,12 @@ CompareUnitigPos (const void *c1, const void *c2) {
   if (diff)
     return diff;
 
-  diff = (MAX(u2->position.bgn, u2->position.end) - 
+  diff = (MAX(u2->position.bgn, u2->position.end) -
           MAX(u1->position.bgn, u1->position.end));
   return(diff);
 }
 
-void 
+void
 MakeCanonicalMultiAlignT(MultiAlignT *ma) {
   qsort(GetIntUnitigPos(ma->u_list,0),
         GetNumIntUnitigPoss(ma->u_list),

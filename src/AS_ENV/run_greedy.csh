@@ -40,7 +40,7 @@ set minasmlen=5000
 
 ### UID-to-IID mapping
 
-if ( $noFrgStore == 1 ) then 
+if ( $noFrgStore == 1 ) then
  ${asmBin}/gatekeeper -tabular -uid ${inputlist} -dumpfragments ${prefix}.gkpStore |\
    grep -v "UID" | awk '{print $2,$1}' \
  > ${inputfile}.iid2uid
@@ -63,7 +63,7 @@ endif
 
 
 ### THE CORE EXECUTABLE ; output is the layout of fragments in "contigs"
-if ( $noFrgStore == 1 ) then 
+if ( $noFrgStore == 1 ) then
 $asmBin/greedyFragmentTiling -e $cutoff -Q -N 40 -m 50 -R -P \
   -g ${prefix}.gkpStore \
   -o ${prefix}.ovlStore \

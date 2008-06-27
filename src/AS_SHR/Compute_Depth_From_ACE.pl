@@ -22,7 +22,7 @@
 #
 ##########################################################################
 
-# $Id: Compute_Depth_From_ACE.pl,v 1.1 2006-01-10 22:44:42 kli1000 Exp $
+# $Id: Compute_Depth_From_ACE.pl,v 1.2 2008-06-27 06:29:21 brianwalenz Exp $
 
 
 use strict;
@@ -36,7 +36,7 @@ $0
         -a <ace file, input>
 
 	The output will be a file:
-	<contig_id>\\t<depth>\\n 
+	<contig_id>\\t<depth>\\n
 
 ";
 
@@ -84,13 +84,13 @@ for($contig_idx=0; $contig_idx<$num_contigs; $contig_idx++){
 		my ($null)=read_DS($fh);
 	}
 
-	#######################################################################	
+	#######################################################################
 
 	my $sum_of_read_lengths=0;
 	foreach my $read_id(keys %read_length_hash){
 		$sum_of_read_lengths+=$read_length_hash{$read_id};
 	}
-	
+
 	my $depth=$sum_of_read_lengths/$num_consensus_bases;
 
 	print "$contig_id\t$depth\n";
@@ -120,7 +120,7 @@ sub read_CO{
 	my $fh=shift;
 
 	my ($id, $contig_id, $num_bases, $num_reads, $num_segments, $complementation, $sequence);
-	
+
 	while(<$fh>){
 		chomp;
 		($id, $contig_id, $num_bases, $num_reads, $num_segments, $complementation, $sequence)=
@@ -147,7 +147,7 @@ sub read_BQ{
 	my $fh=shift;
 
 	my ($id, $sequence);
-	
+
 	while(<$fh>){
 		chomp;
 		($id)=split /\s+/;

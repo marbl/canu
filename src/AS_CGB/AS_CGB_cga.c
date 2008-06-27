@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.20 2008-02-27 17:06:59 skoren Exp $";
+static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.21 2008-06-27 06:29:13 brianwalenz Exp $";
 
 //  A chunk graph analyzer. This functional unit computes graph
 //  statistics, and writes the chunk graph in the term representation
@@ -55,7 +55,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   fprintf(fout,"FRAGMENT OVERLAP GRAPH INFORMATION\n\n");
 
   {
-    IntFragment_ID 
+    IntFragment_ID
       ifrag,
       n_as_cgb_solo_frag=0,
       n_as_cgb_hanging_frag=0,
@@ -70,16 +70,16 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
       n_as_cgb_hanging_crappy_frag=0,
       n_as_cgb_orphanedcont_frag=0,
       n_as_cgb_deleted_frag=0;
-    
+
     fprintf(fout,"Fragment types\n");
     for(ifrag=0; ifrag<nfrag; ifrag++){
       const Tlab ilab = get_lab_fragment(frags,ifrag);
       switch(ilab) {
-        case AS_CGB_SOLO_FRAG: 
+        case AS_CGB_SOLO_FRAG:
           n_as_cgb_solo_frag++; break;
-        case AS_CGB_HANGING_FRAG: 
+        case AS_CGB_HANGING_FRAG:
           n_as_cgb_hanging_frag++; break;
-        case AS_CGB_THRU_FRAG: 
+        case AS_CGB_THRU_FRAG:
           n_as_cgb_thru_frag++; break;
         case AS_CGB_INTERCHUNK_FRAG:
           n_as_cgb_interchunk_frag++; break;
@@ -123,12 +123,12 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
             "%15" F_IIDP " :   deleted\n",
             nfrag,
             n_as_cgb_solo_frag,
-            n_as_cgb_hanging_frag, 
+            n_as_cgb_hanging_frag,
             n_as_cgb_hanging_chunk_frag,
             n_as_cgb_hanging_crappy_frag,
-            n_as_cgb_thru_frag, 
+            n_as_cgb_thru_frag,
             n_as_cgb_interchunk_frag,
-            n_as_cgb_intrachunk_frag, 
+            n_as_cgb_intrachunk_frag,
             n_as_cgb_unplacedcont_frag,
             n_as_cgb_singlecont_frag,
             n_as_cgb_multicont_frag,
@@ -163,7 +163,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
 
       /* The marked overlap family: */
       n_as_cgb_marked_by_branch_dvt=0,
-        
+
       /* The removed overlap family: */
       n_as_cgb_removed_by_transitivity_dvt=0,
       n_as_cgb_removed_by_threshold_dvt=0,
@@ -177,11 +177,11 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
     for(iedge=0; iedge<nedge; iedge++){
       Tnes ines = get_nes_edge(edges,iedge);
       switch(ines) {
-	case AS_CGB_DOVETAIL_EDGE: 
+	case AS_CGB_DOVETAIL_EDGE:
 	  n_as_cgb_dovetail++; break;
-	case AS_CGB_THICKEST_EDGE: 
+	case AS_CGB_THICKEST_EDGE:
 	  n_as_cgb_thickest++; break;
-	case AS_CGB_INTERCHUNK_EDGE: 
+	case AS_CGB_INTERCHUNK_EDGE:
 	  n_as_cgb_interchunk++; break;
 	case AS_CGB_INTRACHUNK_EDGE:
 	  n_as_cgb_intrachunk++; break;
@@ -232,7 +232,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
 	       (AS_CGB_SINGLECONT_FRAG == get_lab_fragment(frags,ibvx)) ) {
 	      n_as_cgb_containment_intrachunk++;
 	    } else {
-	      n_as_cgb_containment_interchunk++; 
+	      n_as_cgb_containment_interchunk++;
 	    }
 	  }
 	  break;
@@ -297,9 +297,9 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
             n_as_cgb_containment_interchunk/2,
             n_as_cgb_touches_crappy_con/2,
             n_as_cgb_between_crappy_con/2,
-              
+
             /* The intra-chunk skeleton overlaps: */
-            n_as_cgb_intrachunk/2, 
+            n_as_cgb_intrachunk/2,
             n_as_cgb_touches_singly_contained/2,
             n_as_cgb_containment_intrachunk/2,
 
@@ -314,36 +314,36 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
             n_as_cgb_removed_by_duplicate_con/2
             );
   }
-    
-    
+
+
   {
     IntFragment_ID ifrag;
     const int nsample=500;
     const int nbucket=500;
-    Histogram_t 
-      *solo_histogram 
+    Histogram_t
+      *solo_histogram
       = create_histogram(nsample,nbucket,TRUE,FALSE),
-      *hanging_alone_histogram 
+      *hanging_alone_histogram
       = create_histogram(nsample,nbucket,TRUE,FALSE),
-      *hanging_chunk_histogram 
+      *hanging_chunk_histogram
       = create_histogram(nsample,nbucket,TRUE,FALSE),
-      *hanging_crappy_histogram 
+      *hanging_crappy_histogram
       = create_histogram(nsample,nbucket,TRUE,FALSE),
-      *thru_histogram 
+      *thru_histogram
       = create_histogram(nsample,nbucket,TRUE,FALSE),
-      *interchunk_histogram 
+      *interchunk_histogram
       = create_histogram(nsample,nbucket,TRUE,FALSE),
-      *intrachunk_histogram 
+      *intrachunk_histogram
       = create_histogram(nsample,nbucket,TRUE,FALSE),
-      *orphanedcont_histogram 
+      *orphanedcont_histogram
       = create_histogram(nsample,nbucket,TRUE,FALSE),
-      *multicont_histogram 
+      *multicont_histogram
       = create_histogram(nsample,nbucket,TRUE,FALSE),
-      *branchmulticont_histogram 
+      *branchmulticont_histogram
       = create_histogram(nsample,nbucket,TRUE,FALSE),
-      *singlecont_histogram 
+      *singlecont_histogram
       = create_histogram(nsample,nbucket,TRUE,FALSE),
-      *unplacedcont_histogram 
+      *unplacedcont_histogram
       = create_histogram(nsample,nbucket,TRUE,FALSE);
 
     for(ifrag=0;ifrag<nfrag;ifrag++) {
@@ -439,13 +439,13 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
     print_histogram(fout,branchmulticont_histogram, 0, 1);
     free_histogram(branchmulticont_histogram);
   }
-    
+
   {
     IntFragment_ID ifrag;
     int isuff;
     const int nsample=500;
     const int nbucket=500;
-    Histogram_t 
+    Histogram_t
       *raw_edges_per_vertex_histogram
       = create_histogram(nsample,nbucket,0,TRUE),
       *work_edges_per_vertex_histogram
@@ -467,7 +467,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
       *between_edges_per_vertex_histogram
       = create_histogram(nsample,nbucket,0,TRUE);
 
-    for(ifrag=0;ifrag<nfrag;ifrag++) { 
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
       for(isuff=0;isuff<2;isuff++) {
         int count_dovetail_edges=0;
         int count_thickest_edges=0;
@@ -489,7 +489,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
         int count_removed_by_duplicate_dvt_edges=0;
         int count_removed_by_duplicate_con_edges=0;
         int count = 0;
-        { 
+        {
           IntEdge_ID snode = get_segstart_vertex(frags,ifrag,isuff);
           int nnode = get_seglen_vertex(frags,ifrag,isuff);
           { IntEdge_ID ie; for(ie=snode;ie<snode+nnode;ie++) {
@@ -529,9 +529,9 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
                 case AS_CGB_CONTAINED_EDGE:
                   if((AS_CGB_SINGLECONT_FRAG == alab) ||
                      (AS_CGB_SINGLECONT_FRAG == blab) ) {
-                    count_singly_containment_edges++; 
+                    count_singly_containment_edges++;
                   } else {
-                    count_multiply_containment_edges++; 
+                    count_multiply_containment_edges++;
                   }
                   break;
 
@@ -682,8 +682,8 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
     IntFragment_ID ifrag;
     const int nsample=500;
     const int nbucket=500;
-    Histogram_t 
-      *edges_per_vertex_histogram 
+    Histogram_t
+      *edges_per_vertex_histogram
       = create_histogram(nsample,nbucket,0,TRUE);
     for(ifrag=0;ifrag<nfrag;ifrag++) {
       if( AS_CGB_SOLO_FRAG == get_lab_fragment(frags,ifrag)) {
@@ -705,8 +705,8 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
     IntFragment_ID ifrag;
     const int nsample=500;
     const int nbucket=500;
-    Histogram_t 
-      *edges_per_vertex_histogram 
+    Histogram_t
+      *edges_per_vertex_histogram
       = create_histogram(nsample,nbucket,0,TRUE);
     for(ifrag=0;ifrag<nfrag;ifrag++) {
       if( AS_CGB_HANGING_FRAG == get_lab_fragment(frags,ifrag)) {
@@ -728,8 +728,8 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
     IntFragment_ID ifrag;
     const int nsample=500;
     const int nbucket=500;
-    Histogram_t 
-      *edges_per_vertex_histogram 
+    Histogram_t
+      *edges_per_vertex_histogram
       = create_histogram(nsample,nbucket,0,TRUE);
     for(ifrag=0;ifrag<nfrag;ifrag++) {
       if( AS_CGB_THRU_FRAG == get_lab_fragment(frags,ifrag)) {
@@ -751,7 +751,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
     IntFragment_ID ifrag;
     const int nsample=500;
     const int nbucket=500;
-    Histogram_t 
+    Histogram_t
       *edges_per_vertex_histogram
       = create_histogram(nsample,nbucket,0,TRUE);
     for(ifrag=0;ifrag<nfrag;ifrag++) {
@@ -774,7 +774,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
     IntFragment_ID ifrag;
     const int nsample=500;
     const int nbucket=500;
-    Histogram_t 
+    Histogram_t
       *edges_per_vertex_histogram
       = create_histogram(nsample,nbucket,0,TRUE);
     for(ifrag=0;ifrag<nfrag;ifrag++) {
@@ -797,7 +797,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
     IntFragment_ID ifrag;
     const int nsample=500;
     const int nbucket=500;
-    Histogram_t 
+    Histogram_t
       *edges_per_vertex_histogram
       = create_histogram(nsample,nbucket,0,TRUE);
     for(ifrag=0;ifrag<nfrag;ifrag++) {
@@ -820,7 +820,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
     IntFragment_ID ifrag;
     const int nsample=500;
     const int nbucket=500;
-    Histogram_t 
+    Histogram_t
       *edges_per_vertex_histogram
       = create_histogram(nsample,nbucket,0,TRUE);
     for(ifrag=0;ifrag<nfrag;ifrag++) {
@@ -843,7 +843,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
     IntFragment_ID ifrag;
     const int nsample=500;
     const int nbucket=500;
-    Histogram_t 
+    Histogram_t
       *edges_per_vertex_histogram
       = create_histogram(nsample,nbucket,0,TRUE);
     for(ifrag=0;ifrag<nfrag;ifrag++) {
@@ -866,7 +866,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
     IntFragment_ID ifrag;
     const int nsample=500;
     const int nbucket=500;
-    Histogram_t 
+    Histogram_t
       *edges_per_vertex_histogram
       = create_histogram(nsample,nbucket,0,TRUE);
     for(ifrag=0;ifrag<nfrag;ifrag++) {
@@ -889,7 +889,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
     IntFragment_ID ifrag;
     const int nsample=500;
     const int nbucket=500;
-    Histogram_t 
+    Histogram_t
       *edges_per_vertex_histogram
       = create_histogram(nsample,nbucket,0,TRUE);
     for(ifrag=0;ifrag<nfrag;ifrag++) {
@@ -912,7 +912,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
     IntFragment_ID ifrag;
     const int nsample=500;
     const int nbucket=500;
-    Histogram_t 
+    Histogram_t
       *edges_per_vertex_histogram
       = create_histogram(nsample,nbucket,0,TRUE);
     for(ifrag=0;ifrag<nfrag;ifrag++) {
@@ -994,7 +994,7 @@ static void analyze_the_chunks(FILE *fout,
   /* Initialize a flag for chunk following. */
   {
     IntFragment_ID ifrag;
-    for(ifrag=0;ifrag<nfrag;ifrag++) { 
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
       fragment_visited[ifrag]          = FRAGMENT_NOT_VISITED;
       fragment_timesinchunks[ifrag]    = 0;
     }
@@ -1021,7 +1021,7 @@ static void analyze_the_chunks(FILE *fout,
   }
 
 
-  
+
   assert((!0) == 1); /* Needed for the following bitwise XOR operator. */
   for(ichunk=0;ichunk<nchunks;ichunk++) {
 
@@ -1035,13 +1035,13 @@ static void analyze_the_chunks(FILE *fout,
     const float coverage_statistic = compute_coverage_statistic ( rho,
                                                                   number_of_randomly_sampled_fragments_in_chunk,
                                                                   global_fragment_arrival_rate );
-    const int number_of_non_randomly_sampled_fragments_in_chunk = 
+    const int number_of_non_randomly_sampled_fragments_in_chunk =
       nfrag_in_chunk - number_of_randomly_sampled_fragments_in_chunk;
 
     /* The coverage statistic should be positive for single coverage,
        negative for multiple coverage, and near zero for indecisive. */
     const float coverage_resolution = 1.f;
-    const int coverage_index 
+    const int coverage_index
       = (int)(coverage_statistic/coverage_resolution);
     const int arrival_distance =
       (nfrag_in_chunk > 1 ? rho/(nfrag_in_chunk-1) : 0);
@@ -1099,7 +1099,7 @@ static void analyze_the_chunks(FILE *fout,
     {
       IntFragment_ID ifrag;
       for(ifrag=0;ifrag<nfrag_in_chunk;ifrag++){
-	
+
         const IntFragment_ID ivc = irec_start_of_chunk + ifrag;
         const IntFragment_ID vid = *GetVA_AChunkFrag(chunkfrags,ivc);
 
@@ -1110,7 +1110,7 @@ static void analyze_the_chunks(FILE *fout,
 
         fragment_visited[ibvx] = ichunk;
         fragment_timesinchunks[ibvx] ++;
-      
+
         switch(ilabel){
           case AS_CGB_SOLO_FRAG:
           case AS_CGB_HANGING_FRAG:
@@ -1132,18 +1132,18 @@ static void analyze_the_chunks(FILE *fout,
               assert(TRUE == get_con_fragment(frags,vid));
               nfrag_contained_in_chunk++;
               nbase_contained_sampled_in_chunk += ilen;
-            } 
+            }
             break;
           default:
             assert(FALSE);
         }
       }
     }
-    
+
     assert(nfrag_in_chunk == nfrag_essential_in_chunk + nfrag_contained_in_chunk);
 
     nbase_sampled_in_chunk = nbase_essential_sampled_in_chunk + nbase_contained_sampled_in_chunk;
-      
+
     nfrag_in_all_chunks += nfrag_in_chunk;
     n_rs_frag_in_all_chunks += number_of_randomly_sampled_fragments_in_chunk;
     n_nr_frag_in_all_chunks += number_of_non_randomly_sampled_fragments_in_chunk;
@@ -1182,13 +1182,13 @@ static void analyze_the_chunks(FILE *fout,
     add_to_histogram(labeled_unitig_histogram[chunk_label], coverage_index, &zork);
 
     { // For Gene Myer^s Jan 2000 paper:
-      int 
+      int
 	num_as_overlap[2]={0},                   // O
 	num_as_touches_contained_overlap[2]={0}, // M
           num_as_between_contained_overlap[2]={0}, // Y
             num_as_1_contains_2_overlap[2]={0},      // C
               num_as_2_contains_1_overlap[2]={0};      // I
-      
+
               // Process the chunk-end fragments first to label the chunks.
               const IntFragment_ID chunk_avx
                 = GetVA_AChunkMesg(thechunks,ichunk)->chunk_avx;
@@ -1215,7 +1215,7 @@ static void analyze_the_chunks(FILE *fout,
               }
               assert( (!chunk_contained)||(chunk_spanned) );
 
-              { 
+              {
                 int isuffix;
                 for(isuffix=0;isuffix<2;isuffix++) {
                   {
@@ -1277,11 +1277,11 @@ static void analyze_the_chunks(FILE *fout,
                 //  '@' -- essentia_type unknown -- no simulator
                 //  '@' -- contained_type unknown -- no simulator
 
-                fprintf(fp_unitig_statistics, F_IID" %d %d "F_IID" "F_S64" %d %d %d @ @ %d %d %d %d %d %d %d %d %d %d\n", 
+                fprintf(fp_unitig_statistics, F_IID" %d %d "F_IID" "F_S64" %d %d %d @ @ %d %d %d %d %d %d %d %d %d %d\n",
                         ichunk,            // An identity field
                         (chunk_contained), // A selection field
                         (chunk_spanned),
-                        nfrag_in_chunk, // A data field 
+                        nfrag_in_chunk, // A data field
                         nbase_essential_in_chunk,
                         (int)rho,
                         arrival_distance,
@@ -1308,7 +1308,7 @@ static void analyze_the_chunks(FILE *fout,
               add_to_histogram(rho_histogram,(int)rho, NULL);
               add_to_histogram(coverage_histogram,
                                (int)(nbase_essential_in_chunk/nfrag_in_chunk), NULL);
-    
+
     }
   }
 
@@ -1378,16 +1378,16 @@ static void analyze_the_chunks(FILE *fout,
                                              chunkfrags,
                                              thechunks,
                                              gkp);
-    
+
     {
       IntFragment_ID ifrag;
       for(ifrag=0; ifrag<nfrag; ifrag++) {
 	const Tlab ilab = get_lab_fragment(frags,ifrag);
-	assert(!(ilab==AS_CGB_SOLO_FRAG) 
+	assert(!(ilab==AS_CGB_SOLO_FRAG)
 	       ||(fragment_timesinchunks[ifrag]==1));
-	assert(!(ilab==AS_CGB_HANGING_FRAG) 
+	assert(!(ilab==AS_CGB_HANGING_FRAG)
 	       ||(fragment_timesinchunks[ifrag]==1));
-	assert(!(ilab==AS_CGB_THRU_FRAG) 
+	assert(!(ilab==AS_CGB_THRU_FRAG)
 	       ||(fragment_timesinchunks[ifrag]==1));
 	if(!(!(ilab==AS_CGB_INTERCHUNK_FRAG)
 	     ||(fragment_timesinchunks[ifrag]==1))) {
@@ -1428,10 +1428,10 @@ static void analyze_the_chunks(FILE *fout,
 
     fprintf(fout,"\n\nHistogram of the sum of overhangs for chunks\n");
     print_histogram(fout,rho_histogram, 0, 1);
-    
+
     fprintf(fout,"\n\nHistogram of the average bps per fragment for chunks\n");
     print_histogram(fout,coverage_histogram, 0, 1);
-    
+
     fprintf(fout,"\n\nHistogram of the number of copies of a particular contained fragment.\n");
     print_histogram(fout,fragment_timesinchunks_histogram,0,1);
 
@@ -1490,7 +1490,7 @@ static void analyze_the_chunks(FILE *fout,
   safe_free(fragment_visited);
   safe_free(fragment_timesinchunks);
   safe_free(afr_to_avx);
-} 
+}
 
 
 

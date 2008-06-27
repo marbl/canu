@@ -11,14 +11,14 @@ use TIGR::EUIDService;                          # This is for creating links.
 
 our @DEPEND = ( "TIGR::SequenceTiling", "TIGR::Foundation", "TIGR::AsmLib" );
 our $VERSION = '1.01';
-our $REVISION = '$Revision: 1.1 $';
+our $REVISION = '$Revision: 1.2 $';
 our $VERSION_STRING = "$VERSION (Build $REVISION)";
 
-our $__HELP_INFO = 
+our $__HELP_INFO =
 q~NAME
-casper - (Celera Assembler Scaffold ParsER) gets the scaffold set 
+casper - (Celera Assembler Scaffold ParsER) gets the scaffold set
   from the CA .asm output file.  Contig sizes come from a .FASTA file.
-    
+
 SYNOPSIS
 casper -l <prefix> [ -r redundancy ] [ -debug level ] [ -h ]
 
@@ -46,7 +46,7 @@ FILES
       A .fasta file containing the contigs.  This is also required.
 
 EXAMPLE
-To convert my.asm into the appropriate sequencing tiling based scaffold 
+To convert my.asm into the appropriate sequencing tiling based scaffold
 rendering, do the following.  my.asm and my.fasta are in the current directory.
 
    casper -l my
@@ -108,10 +108,10 @@ sub parseOri($) {
    }
    if ($ori eq "N" || $ori eq "O") {
       $rstrand = 0;
-   } 
+   }
    else {
       $rstrand = 1;
-   }    
+   }
    return ($lstrand, $rstrand);
 }
 
@@ -124,7 +124,7 @@ MAIN: {
    my $redun = 1;                              # redundancy score
    my $use_degen=0;
    my $options_ok = $tf_obj->TIGR_GetOptions(
-                                             "l=s" => \$prefix, 
+                                             "l=s" => \$prefix,
                                              "r=i" => \$redun,
 					     "d"   => \$use_degen
                                             );
@@ -184,7 +184,7 @@ MAIN: {
             $scount++;
          }
       }
-      # Get the degenerate scaffold records. 
+      # Get the degenerate scaffold records.
 
       # Daniela Puiu: Fen 26th 2007 added $use_degen
       if ( $use_degen and $type eq 'DSC' ) {
@@ -224,7 +224,7 @@ MAIN: {
    $tf_obj->logLocal("Going to create sequence tiling records.", 1);
    my $draft = new TIGR::SequenceTiling;       # Draft sequence tiling.
    my $final = new TIGR::SequenceTiling;       # Final sequence tiling.
-   my %sc_len = ();                            # Keep track of length! 
+   my %sc_len = ();                            # Keep track of length!
    foreach my $sc_id ( sort { $a <=> $b } keys %scaffold ) {
       $tf_obj->logLocal("Examining scaffold \'$sc_id\'.", 2);
       $sc_len{$sc_id} = 0;
@@ -235,11 +235,11 @@ MAIN: {
       }
       my $offset = 0;  # Track offset for all contigs in the scaffold.
       # Data is keyed by a counter for each ctg pair in the scaffold order.
-      my $data = $scaffold{$sc_id};  
+      my $data = $scaffold{$sc_id};
       my @key_arr = keys %{$data};
       foreach my $key_idx ( sort { $a <=> $b } keys %{$data} ) {
          # Pairs keyed by pair attributes like "ori", "ct1", "ct2", etc...
-         my $pairs = $data->{$key_idx};  
+         my $pairs = $data->{$key_idx};
          my $lctg = $pairs->{'ct1'};
          my $rctg = $pairs->{'ct2'};
          my $ori  = $pairs->{'ori'};
@@ -258,7 +258,7 @@ MAIN: {
             next;
          }
 
-         # Increment the offset. 
+         # Increment the offset.
          $offset += $lctg_len + $mea;
          # Increment scaffold length.
          if ( $sc_len{$sc_id} <= $offset ) {
@@ -272,7 +272,7 @@ MAIN: {
 
          # Print the record for the right-most contig.
          if ( ( $key_idx == $#key_arr ) && ( $lctg != $rctg) ) {
-            if ( ! $draft->addTile($sc_id, $rctg, $rctg_len, $offset, 
+            if ( ! $draft->addTile($sc_id, $rctg, $rctg_len, $offset,
                                    $rstrand, "CONTIG", "") ) {
                $tf_obj->logLocal("Failed to add contig \'$lctg\' to scaffold ".
                   "\'$sc_id\'.", 5);
@@ -299,7 +299,7 @@ MAIN: {
          my $strand = $draft->getTileStrand($sc_id, $ctg_id);
          my $reference = $draft->getTileReference($sc_id, $ctg_id);
          my $tile_type = $draft->getTileType($sc_id, $ctg_id);
-         if ( ! $final->addTile($sc_id, $ctg_id, $len, $offset, $strand, 
+         if ( ! $final->addTile($sc_id, $ctg_id, $len, $offset, $strand,
                                 $tile_type, $reference) ) {
             $tf_obj->logError("Failed to add contig \'$ctg_id\' to scaffold " .
                "\'$sc_id\'.", 4);
@@ -323,7 +323,7 @@ MAIN: {
             " \'$scaff_id\'.");
       }
    }
-    
+
    # Print the scaffolds to the output stream.
    if ( ! $final->toStream(\*OUT) ) {
       $tf_obj->bail("Failed to print scaffolds to output stream.");

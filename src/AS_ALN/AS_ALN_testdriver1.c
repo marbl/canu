@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -42,7 +42,7 @@
    sequence and returns a pointer to it.  */
 
 #define LBUFLEN 512
- 
+
 void usage(void)
 {
 	fprintf( stderr, "usage: AS_ALN_testdriver1 <-a abnd> <-b bbnd> <-e error_rate> <-m minlen> <-o|-O> <-P proto_output_file> [-1 <Aseq.fasta> -2 <Bseq.fasta>]\n");
@@ -77,7 +77,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
 	    if(sscanf(linebuf,"> %s",newname)!=1){
 	      fprintf(stderr,"Abort: Couldn't resolve defline %s\n",linebuf);
 	    }
-	  } 
+	  }
 	  if(strlen(newname)>2047){
 	    fprintf(stderr,"identifier %s too long -- abort!\n",
 		    newname);
@@ -85,12 +85,12 @@ char *get_sequence(FILE *input, char **seq, char **name )
 	  newname = (char *)safe_realloc(newname,strlen(newname)+1);
 	  assert(newname!=NULL);
 	  *name = newname;
-	}   
+	}
 
     }
   else
-    { 
-      if (!nei) return (NULL); 
+    {
+      if (!nei) return (NULL);
       if(*nextname == '>'){
 	char *newname;
 	newname = (char*) safe_malloc(2048*sizeof(char));
@@ -98,7 +98,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
 	  if(sscanf(nextname,"> %s",newname)!=1){
 	    fprintf(stderr,"Abort: Couldn't resolve defline %s\n",linebuf);
 	  }
-	} 
+	}
 	if(strlen(newname)>2047){
 	  fprintf(stderr,"identifier %s too long -- abort!\n",
 		  newname);
@@ -106,7 +106,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
 	newname = (char *)safe_realloc(newname,strlen(newname)+1);
 	assert(newname!=NULL);
 	*name = newname;
-      }   
+      }
     }
 
   do
@@ -123,7 +123,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
       if (bol && *linebuf == '>')
       {
         if (beg)
-          { 
+          {
 	    do
               { l = strlen(linebuf);
                 if (linebuf[l-1] == '\n') break;
@@ -170,7 +170,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
       }
     }
   }
-  
+
   *seq = newbuf;
   return newbuf;
 }
@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
   FILE *file1=stdin,*file2=NULL;
 
 
-  { /* Parse the argument list using "man 3 getopt". */ 
+  { /* Parse the argument list using "man 3 getopt". */
     int ch,errflg=0;
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv, "a:b:e:hm:oOP:1:2:")) != EOF))
@@ -343,7 +343,7 @@ int main(int argc, char *argv[])
 #endif
 
 
-  { 
+  {
     int i, j, where=1;
     int olaps, tlaps;
 
@@ -377,16 +377,16 @@ int main(int argc, char *argv[])
 
 	    { int del, sub, ins, affdel, affins, alen, blen, blockdel, blockins;
 	      float errRate, errRateAffine;
-	      
+
 #define AFFINEBLOCKSIZE 4
 	      Analyze_Affine_Overlap_AS(&A,&B,O,AS_ANALYZE_ALL,&alen,&blen,&del,&sub,&ins,
 					&affdel,&affins,&blockdel,&blockins,AFFINEBLOCKSIZE, NULL);
-	      
+
 	      errRate = (sub+ins+del)/(double)(alen+ins);
-	      
+
 	      errRateAffine = (sub+affins+affdel)/
 		(double)(alen+ins-(del-affdel+ins-affins));
-	      
+
 	      if(!printOlapsOnly)printf("Alen %d, Blen %d, del %d, sub %d, ins %d\n"
 		     " affdel %d, affins %d, blockdel %d, blockins %d\n",
 		     alen,blen,del,sub,ins,
@@ -395,12 +395,12 @@ int main(int argc, char *argv[])
 	      if(!printOlapsOnly)printf("Affine mismatch rate %f\n",errRateAffine);
 	      if(!printOlapsOnly)printf("dp_olap: %s %s %e\n",
 		       Names[j],(file2==NULL ? Names[i] : NamesB[i]),errRate);
-	      
+
 
 	      if(printOlaps){
 		char ori;
 		int ahang,bhang;
-		
+
 		Compute_Olap_Version(&A,&B,O,&ahang,&bhang,&ori);
 		printf("OLAP: %s %s %c %d %d %f %f Len= %d\n",
 		       Names[j],(file2==NULL ? Names[i] : NamesB[i]),ori,ahang,bhang,errRate,errRateAffine, (alen < blen ) ? alen : blen);

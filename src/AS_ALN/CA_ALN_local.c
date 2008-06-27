@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -44,7 +44,7 @@
 #undef  REPORT_SIZES
 #undef  WARN_MISSED_SEGMENT
 
-#undef REUSE_TABLE_UNSAFE   /* if the user gaurantees that this is acceptable, 
+#undef REUSE_TABLE_UNSAFE   /* if the user gaurantees that this is acceptable,
 			       reuse the "table" built on last call of Find_Local_Segments()
 			       iff the address of the A sequence is the same between
 			       last call and this call; in general, this is risky
@@ -143,13 +143,13 @@ static int samecost=SAMECOST;
 				 the down-side to this is that we won't
 				 chain together perfect matches across
 				 a few bases of lower-fidelity sequence.
-			            Leaving it undefined uses the 
+			            Leaving it undefined uses the
 			         #define values of DIFFCOST and SAMECOST
 */
 #ifdef VARIABLE_SCORE_SCHEME
   #define ALTERNATE_PCNT
 #else
-  #define ALTERNATE_PCNT 
+  #define ALTERNATE_PCNT
 #endif
 
 
@@ -445,7 +445,7 @@ static Local_Segment *TraceForwardPath(char *A, int Alen, char *B, int Blen,
 #ifdef STAT_DPREACH
   dparea = (hi-lo+1);
 #endif
- 
+
   /* Advance to next row */
 
   for (i = mid; lo <= hi && i < Alen; i++)
@@ -479,7 +479,7 @@ static Local_Segment *TraceForwardPath(char *A, int Alen, char *B, int Blen,
           t = c;
           c = v;
           v = W[j];
-          if (Map[(int)A[i]] == Map[(int)B[j-1]] && Map[(int) (A[i])] >= 0) 
+          if (Map[(int)A[i]] == Map[(int)B[j-1]] && Map[(int) (A[i])] >= 0)
 	    c += MATCHCOST;
 
           r = c;
@@ -501,7 +501,7 @@ static Local_Segment *TraceForwardPath(char *A, int Alen, char *B, int Blen,
       if (j <= Blen)
         { int r;
 
-          if (Map[(int)A[i]] == Map[(int)B[j-1]] && Map[(int) (A[i])] >= 0) 
+          if (Map[(int)A[i]] == Map[(int)B[j-1]] && Map[(int) (A[i])] >= 0)
 	    v += MATCHCOST;
 
           r = v;
@@ -517,7 +517,7 @@ static Local_Segment *TraceForwardPath(char *A, int Alen, char *B, int Blen,
 #ifdef TEST_DPREACH
           printf(" %4d",v);
 #endif
-     
+
           for (j++; j <= Blen; j++)
             { v -= diffcost;
               if (v < mxv - BLOCKCOST) break;
@@ -597,7 +597,7 @@ static Local_Segment *TraceReversePath(char *A, int Alen, char *B, int Blen,
 #ifdef STAT_DPREACH
   dparea = (hi-lo+1);
 #endif
- 
+
   /* Advance to next row */
 
   if (top-1 <= bot) xfactor = BLOCKCOST;
@@ -633,7 +633,7 @@ static Local_Segment *TraceReversePath(char *A, int Alen, char *B, int Blen,
           t = c;
           c = v;
           v = W[j];
-          if (Map[(int)A[i]] == Map[(int)B[j]] && Map[(int) (A[i])] >= 0) 
+          if (Map[(int)A[i]] == Map[(int)B[j]] && Map[(int) (A[i])] >= 0)
 	    c += MATCHCOST;
 
           r = c;
@@ -655,7 +655,7 @@ static Local_Segment *TraceReversePath(char *A, int Alen, char *B, int Blen,
       if (j >= 0)
         { int r;
 
-          if (Map[(int)A[i]] == Map[(int)B[j]] && Map[(int) (A[i])] >= 0) 
+          if (Map[(int)A[i]] == Map[(int)B[j]] && Map[(int) (A[i])] >= 0)
 	    v += MATCHCOST;
 
           r = v;
@@ -671,7 +671,7 @@ static Local_Segment *TraceReversePath(char *A, int Alen, char *B, int Blen,
 #ifdef TEST_DPREACH
           printf(" %4d",v);
 #endif
-     
+
           for (j--; j >= 0; j--)
             { v -= diffcost;
               if (v < mxv - xfactor) break;
@@ -931,7 +931,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
 #endif
                         { int x, m;
                           x = lclip + b->lft;
-                          if (b->bot < x) 
+                          if (b->bot < x)
                             b->bot = x;
                           x = lag + b->rgt;
                           if (b->top > x)
@@ -966,7 +966,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
 #endif
         { int x, m;
           x = lclip + b->lft;
-          if (b->bot < x) 
+          if (b->bot < x)
             b->bot = x;
           x = lag + b->rgt;
           if (b->top > x)
@@ -1100,32 +1100,32 @@ static void Align_Recursion(char *A, int Alen, char *B, int Blen,
 		  greater than the positive value of the segment that
 	          will be missed
 	after the run of bad luck is a larger good run which *does*
-	   exceed the bad run, so that the best value for the 
+	   exceed the bad run, so that the best value for the
 	  forward extension goes past the bad run
 
 	  What happens is that when we trace backwards,
 	  the best value occurs after the bad segment.
 
-	  Thus, even if we start the search before the bad run, 
+	  Thus, even if we start the search before the bad run,
 	  the returned segment starts after the bad run.
 
-	  I guess basically this means that we can miss a segment 
+	  I guess basically this means that we can miss a segment
 	  if it has a positive value smaller than BLOCKCOST.
 
-	  So, if we want small minimum segments, 
+	  So, if we want small minimum segments,
 	  could we lower BLOCKCOST?
-	  This seems not to work; for instance, 
-	  with a scoring scheme of 1:10, 
-	  but a desire to find a segment consisting of, e.g., 
-	  10 matches with one mismatch in the middle (i.e. score = 1), 
+	  This seems not to work; for instance,
+	  with a scoring scheme of 1:10,
+	  but a desire to find a segment consisting of, e.g.,
+	  10 matches with one mismatch in the middle (i.e. score = 1),
 	  we'd have to have BLOCKCOST = 0---not a good idea!
 
 	  So, how about testing for the possible case and running the
-	  search backwards when it occurs? 
+	  search backwards when it occurs?
 
-	  
+
 	  New case on which this same logic is attempted: if we are trying
-	  a recursive alignment (based on ltrp or htrp) but the 
+	  a recursive alignment (based on ltrp or htrp) but the
 	  TraceForwardPath step got nowhere, then try in reverse orientation.
 
     */
@@ -1137,7 +1137,7 @@ static void Align_Recursion(char *A, int Alen, char *B, int Blen,
 #endif
 
 #define CHECK_FOR_MISSING_SEGMENT
-#ifdef  CHECK_FOR_MISSING_SEGMENT 
+#ifdef  CHECK_FOR_MISSING_SEGMENT
 
 #ifdef WARN_MISSED_SEGMENT
 	printf("WARNING: will try to reverse direction of search!\n");
@@ -1165,7 +1165,7 @@ static void Align_Recursion(char *A, int Alen, char *B, int Blen,
 	lend = TraceForwardPath(BrevC,Blen,ArevC,Alen,mid,mid-b->rgt,mid-b->lft);
 
 	{ int x;
-	
+
 	  x = 0;
   	  do
 	    { x += 1;
@@ -1174,7 +1174,7 @@ static void Align_Recursion(char *A, int Alen, char *B, int Blen,
 				      mid+MAXIGAP,BLOCKCOST+2*x*diffcost);
 	    }
 	  while (hend->bbpos > mid + x*MAXIGAP && hend->score < lend->score);
-	
+
 	  hend->aepos = lend->aepos;
 	  hend->bepos = lend->bepos;
 
@@ -1195,7 +1195,7 @@ static void Align_Recursion(char *A, int Alen, char *B, int Blen,
 	  hend->hdiag=Blen-Alen-tmp;
 
 	  // indices: start, end = positions in between bases,
-	  //   so reversing is newpos=len-oldpos 
+	  //   so reversing is newpos=len-oldpos
 	  tmp=hend->abpos;
 	  hend->abpos=Alen-hend->aepos;
 	  hend->aepos=Alen-tmp;
@@ -1212,7 +1212,7 @@ static void Align_Recursion(char *A, int Alen, char *B, int Blen,
 
 
   }
-  
+
 
 
 
@@ -1240,16 +1240,16 @@ static void Align_Recursion(char *A, int Alen, char *B, int Blen,
 	(1.*(MATCHCOST)*(hend->bepos-hend->bbpos));
 #endif
 
-      if (pcnt <= MaxDiff) { 
+      if (pcnt <= MaxDiff) {
 	hend->error = pcnt;
-    
+
           for (j = current+1; j < Traplen; j++)
             { Trapezoid *t;
-              int   ta, tb, ua, ub; 
-        
+              int   ta, tb, ua, ub;
+
               t = Tarray[j];
               if (t->bot >= hend->bepos) break;
-        
+
               tb = t->top - t->bot + 1;
               ta = t->rgt - t->lft + 1;
               if (t->lft < hend->ldiag)
@@ -1260,26 +1260,26 @@ static void Align_Recursion(char *A, int Alen, char *B, int Blen,
                 ub = hend->hdiag;
               else
                 ub = t->rgt;
-        
+
               if (ua > ub) continue;
-        
+
               ua = ub - ua + 1;
               if (t->top > hend->bepos)
                 ub = hend->bepos - t->bot + 1;
               else
                 ub = tb;
-        
+
               if (((1.*ua)/ta)*((1.*ub)/tb) > .99)
                 Covered[j] = 1;
             }
-        
+
           if (NumSegs >= SegMax)
             { SegMax = (int)(1.2*NumSegs) + 500;
               SegSols = (Local_Segment *) safe_realloc(SegSols, sizeof(Local_Segment)*SegMax);
             }
-        
+
           { int d;
-        
+
             d = hend->hdiag;  /*  Oops, diags to this point are b-a, not a-b. */
             hend->hdiag = - (hend->ldiag);
             hend->ldiag = - d;
@@ -1290,9 +1290,9 @@ static void Align_Recursion(char *A, int Alen, char *B, int Blen,
                 hend->hdiag = Blen + hend->hdiag;
               }
           }
-        
+
           SegSols[NumSegs++] = *hend;
-        
+
 #ifdef REPORT_DPREACH
           printf("  Hit from (%d,%d) to (%d,%d) within [%d,%d] score %d\n",
                  hend->abpos,hend->bbpos,hend->aepos,hend->bepos,
@@ -1377,7 +1377,7 @@ static Local_Segment *Align_Trapezoids(char *A, int Alen, char *B, int Blen,
               if (SegSols[j].bbpos != SegSols[i].bbpos) break;
 	      if (/* segments in opposite orientations */
 		  ((SegSols[j].bepos-SegSols[j].bbpos) > 0 &&
-		  (SegSols[i].bepos-SegSols[i].bbpos) < 0 ) 
+		  (SegSols[i].bepos-SegSols[i].bbpos) < 0 )
 		  ||
 		  ((SegSols[j].bepos-SegSols[j].bbpos) < 0 &&
 		  (SegSols[i].bepos-SegSols[i].bbpos) > 0 ) )break;
@@ -1386,7 +1386,7 @@ static Local_Segment *Align_Trapezoids(char *A, int Alen, char *B, int Blen,
               if (SegSols[j].error <= MaxDiff &&
 		  SegSols[i].error <= MaxDiff){
 		if(
-		   
+
 		   abs(SegSols[i].bepos-SegSols[i].bbpos)+abs(SegSols[i].aepos-SegSols[i].abpos)
 		   <
 		   abs(SegSols[j].bepos-SegSols[j].bbpos)+abs(SegSols[j].aepos-SegSols[j].abpos)
@@ -1478,7 +1478,7 @@ Local_Segment *Find_Local_Segments
   strcpy(BrevC,B);
   reverseComplementSequence(BrevC, Blen);
 
-    
+
 
   if (Alen >= DagMax || Blen >= DagMax)
     { if (Kmask < 0)
@@ -1541,4 +1541,4 @@ Local_Segment *Find_Local_Segments
   Alast = A;
   *Seglen = numseg;
   return (segs);
-} 
+}

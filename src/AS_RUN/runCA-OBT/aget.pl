@@ -262,7 +262,7 @@ MAIN:
 		%copy_files = %KEEP_FILES2;
 	}
 	my $error_check = undef;
-	
+
 	if ( !chdir $outdir ) {
 		$tf_object->bail("Failed to cd to $outdir");
 	}
@@ -285,7 +285,7 @@ MAIN:
 		{    #copy the files
 
 			if ($disk_space) {
-			    $outdir_mbs += dirSize ($outdir, $file);				
+			    $outdir_mbs += dirSize ($outdir, $file);
 				find(\&fileSize,"$file");
 			}
 			else {
@@ -298,13 +298,13 @@ MAIN:
 		}
 	}
 	print("File $outdir takes $outdir_mbs MB\n");
-	
+
 	if ($disk_space) {
 		my $mbs=Math::BigFloat->bceil(($file_size/(1024*1024)));
 		print("Total Mega bytes taken = $mbs MB\n");
 	}
-	
-	
+
+
 	sub fileSize {
 		my $filename = $File::Find::name;
 		my $sizeOfFile=0;
@@ -326,7 +326,7 @@ MAIN:
 					$sizeOfFile = (-s "$outdir/$filename/$file_");
 					$dir_size += $sizeOfFile;
 				}
-				
+
 			}
 			closedir(BIN);
 			my $f = ($dir_size/(1024*1024));
@@ -338,7 +338,7 @@ MAIN:
 			$sizeOfFile = (-s $_);
 			$file_size += $sizeOfFile;
 		}
-			
+
 	}
 
 	sub filecopy {
@@ -458,7 +458,7 @@ sub testSymLinkSuccess {
 sub dirSize {
 	my $outdir      = shift;
 	my $file_ = shift;
-	my $dir_size_ ;	
+	my $dir_size_ ;
 	my $sizeOfFile_;
 
 	if ( -l "$outdir/$file_" ) {

@@ -2,21 +2,21 @@
 #
 ###########################################################################
 #
-# This file is part of Celera Assembler, a software program that 
+# This file is part of Celera Assembler, a software program that
 # assembles whole-genome shotgun reads into contigs and scaffolds.
 # Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received (LICENSE.txt) a copy of the GNU General Public 
+#
+# You should have received (LICENSE.txt) a copy of the GNU General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
@@ -88,9 +88,9 @@ $base_index{t} = 3;
 # $dummy is justa device to get around CVS mechanisms.  If there is just a $ then
 # Perl complains.  If you put \$ and check-in CVS removes the \.  So $dummy fools
 # them both.
-@revFields = split(' ', "\$Revision: 1.5 $dummy", 9999);
+@revFields = split(' ', "\$Revision: 1.6 $dummy", 9999);
 $revision = $revFields[2];
-@dateFields = split(' ', "\$Date: 2006-10-16 03:59:30 $dummy", 9999);
+@dateFields = split(' ', "\$Date: 2008-06-27 06:29:21 $dummy", 9999);
 $date = $dateFields[2];
 print $STDERR . 'date = ' . $date . ' revision = ' . $revision;
 while ($base < ($#ARGV+1) - 1) {
@@ -462,7 +462,7 @@ line: while (<>) {
 	goto line;
     }
 
-    if (/^\.length$/) 
+    if (/^\.length$/)
     {
 	$dna_length = <>;
 	print "read \$dna_length from file: $dna_length";
@@ -516,15 +516,15 @@ if ($notdone) {
 	    print "*** Poly > 1 -- No fragment labelling applied\n";
 	}
     }
-    
+
     # if (!$fastaOutput && $sawcmdlinebatchflag) {
 	# print "\n %%%%%%%%%%%%%%%%%%%%% command 4: " . 'tobatches -b ' . $cmdlinebatchsize . ' ' . $frgfile;
 	# system('tobatches -b ' . $cmdlinebatchsize . ' ' . $frgfile);
     # }
 
     &cleanup(1);
-}   
-exit $ExitValue;    
+}
+exit $ExitValue;
 
 
 sub readbody
@@ -611,7 +611,7 @@ sub read_sample_section {
 
     $#fragspec = 0;
     $#massageSpec = 0;
-    
+
     $icnt = 0;
     while ($icnt < 5)
     {
@@ -641,7 +641,7 @@ sub read_lbac_section {
 
     $#fragspec = 0;
     $#massageSpec = 0;
-    
+
     $icnt = 0;
     while ($icnt < 6)
     {
@@ -742,7 +742,7 @@ sub read_ubac_section {
     {
 	print "\$dna_length not defined (did you forget to say Z = dna_length?)";
 	exit;
-    }	
+    }
     if ($min_ubac_length > $dna_length) {
 	print "$min_ubac_length must be greater than $dna_length";
 	exit;
@@ -815,7 +815,7 @@ sub make_dna {
 	&Pick('>>', $outfile) &&
 	    (print $fh '# Celsim V' . $revision . ' ' . $fileComment . ' ');
 # solves a buffering problems
-	select $fh; $| = 1; select(STDOUT);   
+	select $fh; $| = 1; select(STDOUT);
 	&Pick('>>', $outfile) &&
 	    (print $fh '# DNA SEQUENCE GENERATION');
 	print "\n %%%%%%%%%%%%%%%%%%%%% command 10: " . "awk '/^#/ && (\$0 !~ /^# DNA Sequence:/)' " . $dnafile . ' >>' . $outfile;
@@ -826,7 +826,7 @@ sub make_dna {
 sub write_param_file
 {
     my $param_file = $prefix . '.param';
-    
+
     open PF, ">$param_file" or die "Can't open file to write: $param_file\n";
     print PF 'gatekeeper.project_name = ' . $prefix;
     print PF 'cgb.estimated_genome_length = ' . $dna_length;
@@ -873,12 +873,12 @@ sub make_sample {
     }
 
     # we always output an ADT record on the first go round
-    if ($nlibs == 1 && !$fastaOutput) 
+    if ($nlibs == 1 && !$fastaOutput)
     {
 	$command = "$bin/AS_SIM_outputADT -b " . $acnum++ . " < " . $adlfile . '  > ' . $frgfile;
 	print "\n %%%%%%%%%%%%%%%%%%%%% command 13: " . $command;
 	$v = system($command);
-	if ($v != 0) 
+	if ($v != 0)
 	{
 	    print $STDERR . ' Error Invoking ' . $command . ' ...exiting';
 	    &cleanup(1);
@@ -1002,7 +1002,7 @@ sub make_sample {
 	    (printf $fh "# ---------   ----   -----------\n");
 	for ($i = 1; $i <= $npoly; $i++) {
 	    &Pick('>>', $outfile) &&
-		(printf $fh "#  %8d  %5d   %s.poly.%d.%d\n", 
+		(printf $fh "#  %8d  %5d   %s.poly.%d.%d\n",
 	    $nfrag{$i}, $seed + $nlibs * $npoly + $i, $prefix, $i, $seed);
 	}
 	&Pick('>>', $outfile) &&
@@ -1012,7 +1012,7 @@ sub make_sample {
 	&Pick('>>', $outfile) &&
 	    (printf $fh "#    Length Range = [%d,%d], F/R odds = %.2f/%.2f\n",
 
-	      
+
 	$splitFragSpec[1], $splitFragSpec[2], $splitFragSpec[3],
 
 	  1 - $splitFragSpec[3]);
@@ -1035,7 +1035,7 @@ sub make_sample {
 
 	      $splitFragSpec[5]);
 	&Pick('>>', $outfile) &&
-	    (printf $fh "Ins/Del/Sub Odds = %.2f/%.2f/%.2f\n", 
+	    (printf $fh "Ins/Del/Sub Odds = %.2f/%.2f/%.2f\n",
 	$splitFragSpec[6], $splitFragSpec[7],
 
 	  1 - ($splitFragSpec[6] + $splitFragSpec[7]));
@@ -1085,13 +1085,13 @@ sub make_uflbacs {
     }
 
     # we always output an ADT record on the first go round
-    if ($nlibs == 1 && !$fastaOutput) 
+    if ($nlibs == 1 && !$fastaOutput)
     {
 	$command = "$bin/AS_SIM_outputADT -b " . $acnum++ . " < " . $adlfile . '  > ' . $frgfile;
 	print $STDERR . 'adlfile = ' . $adlfile . ' frgfile= ' . $frgfile . ' command = ' . $command;
 	print "\n %%%%%%%%%%%%%%%%%%%%% command 132: " . $command;
 	$v = system($command);
-	if ($v != 0) 
+	if ($v != 0)
 	{
 	    print $STDERR . ' Error Invoking ' . $command . ' ...exiting';
 	    &cleanup(1);
@@ -1121,7 +1121,7 @@ sub make_uflbacs {
 
     # determine length of bacs
     $total_bac_bases = 0;
-    for ($bac_cnt = 1; $bac_cnt <= $num_bacs; $bac_cnt++) 
+    for ($bac_cnt = 1; $bac_cnt <= $num_bacs; $bac_cnt++)
     {
 	$total_bac_length{$bac_cnt} = $min_bac_length + int rand ($max_bac_length - $min_bac_length);
 	$total_bac_bases += $total_bac_length{$bac_cnt};
@@ -1148,7 +1148,7 @@ sub make_uflbacs {
     }
 
     # gap 0 is to left of first bac
-    for ($gap_cnt = 1; $gap_cnt < $num_bacs; $gap_cnt++) 
+    for ($gap_cnt = 1; $gap_cnt < $num_bacs; $gap_cnt++)
     {
 	$gap_percent{$gap_cnt} = rand();
 	# $gap_percent{$gap_cnt} = 1.0;  #for tiling, any non-zero number will do
@@ -1157,7 +1157,7 @@ sub make_uflbacs {
 
     # determine gap sizes
     $check_gap_bases = 0;
-    for ($gap_cnt = 0; $gap_cnt <= $num_bacs; $gap_cnt++) 
+    for ($gap_cnt = 0; $gap_cnt <= $num_bacs; $gap_cnt++)
     {
 	$gap_size{$gap_cnt} = int (($gap_percent{$gap_cnt} / $gap_sum) * $total_gap_bases);
 	$check_gap_bases += $gap_size{$gap_cnt};
@@ -1167,18 +1167,18 @@ sub make_uflbacs {
     #print "********* \$gap_size{0}: $gap_size{0}";
 
     $bac_start{1} = $gap_size{0};
-    for ($bac_cnt = 2; $bac_cnt <= $num_bacs; $bac_cnt++) 
+    for ($bac_cnt = 2; $bac_cnt <= $num_bacs; $bac_cnt++)
     {
 	$bac_start{$bac_cnt} = $bac_start{$bac_cnt - 1} + $total_bac_length{$bac_cnt - 1} + $gap_size{$bac_cnt - 1};
-	print "\$bac_start{" . ($bac_cnt - 1) . "}: " . $bac_start{$bac_cnt - 1}, 
+	print "\$bac_start{" . ($bac_cnt - 1) . "}: " . $bac_start{$bac_cnt - 1},
 	      "\t bac_end: " . ($bac_start{$bac_cnt - 1} + $total_bac_length{$bac_cnt - 1}),
 	      "\t\$gap_size{" . ($bac_cnt - 1) . "}: " . $gap_size{$bac_cnt - 1};
     }
-    print "\$bac_start{" . $num_bacs . "}: " . $bac_start{$num_bacs}, 
+    print "\$bac_start{" . $num_bacs . "}: " . $bac_start{$num_bacs},
           "\t bac_end: " . ($bac_start{$bac_cnt - 1} + $total_bac_length{$bac_cnt - 1}),
 	  "\t\$gap_size{" . $num_bacs . "}: " . $gap_size{$num_bacs};
 
-    for ($bac_cnt = 1; $bac_cnt <= $num_bacs; $bac_cnt++) 
+    for ($bac_cnt = 1; $bac_cnt <= $num_bacs; $bac_cnt++)
     {
 	$bac_length = 0;
 
@@ -1203,11 +1203,11 @@ sub make_uflbacs {
 
 	# get all the acnums needed for the DST and BAC records
 	$bac_dist_id = $acnum++;
-	$locale = $acnum++;  
+	$locale = $acnum++;
 	$seq_id = $acnum++;
 
 	# determine size of bac not including gaps
-	for ($bactig_cnt = 1; $bactig_cnt <= $num_bactigs; $bactig_cnt++) 
+	for ($bactig_cnt = 1; $bactig_cnt <= $num_bactigs; $bactig_cnt++)
 	{
 	    $bactig_acnum{$bactig_cnt} = $acnum++;
 
@@ -1234,12 +1234,12 @@ sub make_uflbacs {
 	# $bactig_start_current = $bac_start;
 
 	# create and output the bactigs
-	for ($bactig_cnt = 1; $bactig_cnt <= $num_bactigs; $bactig_cnt++) 
+	for ($bactig_cnt = 1; $bactig_cnt <= $num_bactigs; $bactig_cnt++)
 	{
-	    #print "\$bactig $bactig_cnt starts at $bactig_start{$bactig_cnt} and ends at " . 
+	    #print "\$bactig $bactig_cnt starts at $bactig_start{$bactig_cnt} and ends at " .
 		#($bactig_start{$bactig_cnt} + $bactig_length{$bactig_cnt});
 
-	    if ($shred == 1) 
+	    if ($shred == 1)
 	    {
 		$fragsize = 500;
 		$coverage = 2;
@@ -1256,7 +1256,7 @@ sub make_uflbacs {
 	    print "in make_uflbacs, before adding bactig, \$bac_start{$bac_cnt}: $bac_start{$bac_cnt}";
 	    print "in make_uflbacs, before adding bactig, \$bactig_start{$bactig_cnt}: $bactig_start{$bactig_cnt}";
 
-	    &add_bactig($locale, $bactig_acnum{$bactig_cnt}, $bac_start{$bac_cnt} + $bactig_start{$bactig_cnt}, 
+	    &add_bactig($locale, $bactig_acnum{$bactig_cnt}, $bac_start{$bac_cnt} + $bactig_start{$bactig_cnt},
 			$bactig_length{$bactig_cnt},
 			$fragsize, $coverage, $sequencing_error, $insert_error_rate, $delete_error_rate, $temp_bac_file);
 	    $bactig_length{$bactig_cnt} = $bactig_length_after_idas;
@@ -1269,7 +1269,7 @@ sub make_uflbacs {
 	open BF, ">$bactig_file" or die "Can't open file to write: $bactig_file\n";
 	print BF $num_bactigs;
 
-	for ($bactig_cnt = 1; $bactig_cnt <= $num_bactigs; $bactig_cnt++) 
+	for ($bactig_cnt = 1; $bactig_cnt <= $num_bactigs; $bactig_cnt++)
 	{
 	    # output an accession number and a length
 	    print BF $bactig_acnum{$bactig_cnt}, $bactig_length{$bactig_cnt};
@@ -1282,7 +1282,7 @@ sub make_uflbacs {
 	else {
 	    $uni = ' -N ';
 	}
-	
+
 	if ($bac_type == $ubac_type || $bac_type == $fbac_type)
 	{
 	    if ($bac_type == $ubac_type)
@@ -1305,10 +1305,10 @@ sub make_uflbacs {
 	    }
 	    print 'fastaOutput: ' . $fastaOutput;
 	    print ' +++ Generating library ' . $nlibs . ' from poly ' . $i;
-	    
+
 	    # massage and output the fragments
-	    $command = "$bin/AS_SIM_massage " . 
-		$uni . $bac . " $bactig_file" . ' ' . $bac_dist_id . ' ' . $locale . ' ' . $seq_id . ' ' . 
+	    $command = "$bin/AS_SIM_massage " .
+		$uni . $bac . " $bactig_file" . ' ' . $bac_dist_id . ' ' . $locale . ' ' . $seq_id . ' ' .
 		    ' ' . $first_frag_acnum . ' ' .
 			"@massageSpec" . ' >> ' . $frgfile . ' < ' . $temp_bac_file;
 	    print $STDERR . 'command: ' . $command;
@@ -1470,8 +1470,8 @@ sub max {
 }
 
 # _______________________________________________________________________________
-# Below is an altered version of what used to be "addfbac" written by Daniel 
-# Huson.  
+# Below is an altered version of what used to be "addfbac" written by Daniel
+# Huson.
 
 sub add_bactig
 {
@@ -1510,21 +1510,21 @@ sub add_bactig
     {
 	print "accession = $acnum";
     }
-    
+
     # We need to compute the increment that will yield the given coverage for
     # the given fragsize
-    
+
     $increment = int $fragsize / $coverage;
     if($verbose == 1)
     {
 	print "increment = $increment";
     }
-    
+
     if (!$read{$dnafile})
     {
 	# Read the dna:
 	$seq = "";
-	$seqlen = 0;    
+	$seqlen = 0;
 
 	$read{$dnafile} = 1;
 
@@ -1538,34 +1538,34 @@ sub add_bactig
 		last;
 	    }
 	}
-	
+
 	$old_input_record_separator = $/; # current input record separator
 	$/ = "";
-	
+
 	while (<FP>)
 	{
 	    $seq = $_;    # suck everything remaining into $seq
 	}
 	close FP;
-	
+
 	$/ = $old_input_record_separator;
-	
+
 	$seq =~ s/\s//g;  # get rid of newlines
 
 	$seq =~ tr /A-Z/a-z/; # canonicalize to lower case
 
 	$seqlen = length $seq;
-    
+
 	if($verbose)
 	{
 	    print "Sequence  = [0, ", $seqlen-1, " ], length = $seqlen";
 	}
     }
     # we cut out the fbac from the dna:
-    
+
     $fbac = substr($seq, $startpos, $bactig_length_in);
     $fbaclen = length $fbac;
-    
+
     if ((rand) < 0.5)
     {
 	$reversed = 0;
@@ -1583,7 +1583,7 @@ sub add_bactig
 	$fbac =~ tr /gG/c/;
 	$fbac =~ tr /%/g/;
     }
-    
+
     if($verbose)
     {
 	print "bactig    = [$startpos,", $startpos + $fbaclen - 1, "], length = $fbaclen";
@@ -1615,7 +1615,7 @@ sub add_bactig
 	    }
 	}
     }
-    
+
     # open the outfile:
     open FP, ">>$outfile" or die "Can't open file to write: $outfile";
 
@@ -1643,7 +1643,7 @@ sub add_bactig
 	$frag = substr($fbac, $pos, $fragsize);
 	$fraglen = length $frag;
 	$fasta = 1;
-	
+
 	if (!$fasta)
 	{
 	    print FP "{FRG";

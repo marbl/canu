@@ -30,7 +30,7 @@ then
 fi
 
 newDir=toggledAsm
-mkdir $newDir 
+mkdir $newDir
 cd $newDir    || exit
 
 # if the specFile is local link it
@@ -46,7 +46,7 @@ ln ../$prefix.frg .
 ln -s ../*.ovlStore .
 gkp="$prefix.gkpStore"
 mkdir $gkp
-(cd $gkp && ln -s ../../$gkp/??? .) 
+(cd $gkp && ln -s ../../$gkp/??? .)
 
 # but the frg store is rewritten by cgw, so replace
 rm -f $gkp/frg

@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: IntervalCliqueFinder.h,v 1.4 2005-03-22 19:48:56 jason_miller Exp $ */
+/* $Id: IntervalCliqueFinder.h,v 1.5 2008-06-27 06:29:16 brianwalenz Exp $ */
 #ifndef INTERVALCLIQUEFINDER_H
 #define INTERVALCLIQUEFINDER_H
 
@@ -37,7 +37,7 @@ public:
   Find cliques in one dimension given a set of intervals, I
 
   IntervalClique is: start, end, list of interval IDs
-  
+
   0. Create empty set of cliques
   1. Sort I low to high on start value
   2. Create dynamic list, L, to insertion sort items into & pop out of
@@ -76,31 +76,31 @@ public:
       typename list<Interval<IDType, UnitType> >::iterator eiter;
       UnitType lastStart;
       bool lastAction; // true = add, false = delete
-      
+
       cliques.clear();
       if(intervals.size() == 0) return;
-      
+
       myIntervals.sort();
-      
+
       miter = myIntervals.begin();
       lastStart = miter->getMin();
       lastAction = true;
       ends.push_back(*miter);
-      
+
       for(miter++; miter != myIntervals.end();)
       {
-        
+
 #ifdef DEBUG_ICF
         cerr << "\nAt top of loop\n";
         printCurrentState(*miter, ends);
 #endif
-        
+
         if(ends.size() == 0 || miter->getMin() < ends.front().getMax())
         {
           // next starting interval starts before next ending interval ends
           lastStart = miter->getMin();
           lastAction = true;
-          
+
           eiter = ends.begin();
           while(miter->getMax() > eiter->getMax() &&
                 eiter != ends.end()) eiter++;
@@ -113,7 +113,7 @@ public:
             cerr << "Error insertion sorting intervals!\n";
           }
 #endif
-          
+
           ends.insert(eiter, *miter);
           miter++;
 
@@ -150,7 +150,7 @@ public:
 
         }
       }
-      
+
       if(lastAction == true)
       {
         // new clique: add followed by delete
@@ -158,12 +158,12 @@ public:
                                            lastStart,
                                            ends.front().getMax());
         cliques.push_back(c);
-        
+
 #ifdef DEBUG_ICF
         cerr << "\nNEW CLIQUE:\n";
         cerr << c << endl;
 #endif
-        
+
       }
     }
 
@@ -197,5 +197,5 @@ private:
       }
     }
 };
-  
+
 #endif

@@ -10,7 +10,7 @@ use TIGR::AsmLib;
 This program produces an agp file needed for WGS submission to genbank.
 It does not yet add a gap at the end for a circular genome.
 
-=cut 
+=cut
 
 my $usage = "$0 [-d] < Assembly.asm > assembly.agp
 The -d option causes degenerates to be output instead of normal scaffolds.";
@@ -68,7 +68,7 @@ while (my $record = getCARecord(\*STDIN)){
     my ($rec, $fields, $recs) = parseCARecord($record);
     if ($rec eq 'CCO'){
         my $id = getCAId($$fields{acc});
-        
+
         my $len = $$fields{len};
         my $seq = $$fields{cns};
         $seq =~ s/[-\s]//g;
@@ -89,5 +89,5 @@ while (my $record = getCARecord(\*STDIN)){
         $cnt = 0;
         outputContigs($scfID,$fields->{ctg},$fields->{ctg},0,'N');
     }
-        
+
 }

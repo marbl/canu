@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, The Venter Institute. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -110,7 +110,7 @@ void Unitig::computeFragmentPositions(FragmentInfo *fi, BestOverlapGraph* bog_pt
   fprintf(stderr,"ahang %d bhang %d\n", bestEdge->ahang, bestEdge->bhang);
   if ( bestEdge->ahang > 0 )
     frag_begin = bestEdge->ahang;
-  else 
+  else
     frag_begin = -bestEdge->bhang;
 
   fragment_end_type whichEnd = FIVE_PRIME; // the end to walk off for next frag
@@ -253,17 +253,17 @@ void Unitig::addContainedFrag(DoveTailNode node, BestContainment *bestcont, bool
 
 float Unitig::getAvgRho(FragmentInfo *fi){
 
-  if(dovetail_path_ptr->size() == 1) 
+  if(dovetail_path_ptr->size() == 1)
     _avgRho = 1;
   if(_avgRho!=-1)
     return(_avgRho);
-		
-		
+
+
   // We will compute the average rho.
   //
   // Since rho is the length(unitig) - length(last fragment),
   //   and the length(last fragment) is ambiguous depending on which
-  //   direction we are walking the unitig from.  We will take the average 
+  //   direction we are walking the unitig from.  We will take the average
   //   of the rhos through both directions.
 
   DoveTailPath::const_iterator dtp_iter;
@@ -287,11 +287,11 @@ float Unitig::getAvgRho(FragmentInfo *fi){
 
   // Get average of first and last fragment lengths
   double avg_frag_len = (last_frag_len + first_frag_len)/2.0;
-		
+
   // Compute average rho
   long unitig_length=getLength();
   _avgRho = unitig_length - avg_frag_len;
-		
+
   if (_avgRho <= 0 ) {
     fprintf(stderr, "Negative Rho ident1 "F_IID" ident2 "F_IID" unitig_length %d first_frag_len %d last_frag_len %d avg_frag_len %f\n",
             ident1, ident2, unitig_length, first_frag_len, last_frag_len, avg_frag_len);
@@ -307,7 +307,7 @@ void Unitig::setGlobalArrivalRate(float global_arrival_rate){
   _globalArrivalRate=global_arrival_rate;
 }
 void Unitig::setLocalArrivalRate(float local_arrival_rate){
-        
+
   if ( local_arrival_rate < std::numeric_limits<float>::epsilon())
     _localArrivalRate = 0;
   else
@@ -400,7 +400,7 @@ void Unitig::reverseComplement() {
 void Unitig::reverseComplement(int offset, BestOverlapGraph *bog_ptr) {
   iuid notUsed;
   DoveTailNode last  = getLastBackboneNode(notUsed);
-  int lastEnd = last.position.end > last.position.bgn ? 
+  int lastEnd = last.position.end > last.position.bgn ?
     last.position.end : last.position.bgn;
   int prevBeg = 0;
   DoveTailPath contains;
@@ -421,9 +421,9 @@ void Unitig::reverseComplement(int offset, BestOverlapGraph *bog_ptr) {
       contains.push_back( *addIter );
     } else {
 #ifdef NEW_UNITIGGER_INTERFACE
-      int left = addIter->position.end < addIter->position.bgn ? 
+      int left = addIter->position.end < addIter->position.bgn ?
         addIter->position.end : addIter->position.bgn;
-      assert( prevBeg <= left ); 
+      assert( prevBeg <= left );
       DoveTailPath::reverse_iterator prev = addIter+1;
       while (prev != rend &&
              prev->contained != 0) {
@@ -643,7 +643,7 @@ int IntMultiPosCmp(const void *a, const void *b){
       return(1);
     if (impa->contained!=0 || impb->contained!=0)
       return(bright - aright);
-    else 
+    else
       return(aright - bright);
   }
   else {

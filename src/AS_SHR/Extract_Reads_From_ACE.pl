@@ -22,7 +22,7 @@
 #
 ##########################################################################
 
-# $Id: Extract_Reads_From_ACE.pl,v 1.1 2006-01-10 22:44:42 kli1000 Exp $
+# $Id: Extract_Reads_From_ACE.pl,v 1.2 2008-06-27 06:29:21 brianwalenz Exp $
 
 use strict;
 use Getopt::Std;
@@ -121,7 +121,7 @@ sub read_CO{
 	my $fh=shift;
 
 	my ($id, $contig_id, $num_bases, $num_reads, $num_segments, $complementation, $sequence);
-	
+
 	while(<$fh>){
 		chomp;
 		($id, $contig_id, $num_bases, $num_reads, $num_segments, $complementation, $sequence)=
@@ -148,7 +148,7 @@ sub read_BQ{
 	my $fh=shift;
 
 	my ($id, $sequence);
-	
+
 	while(<$fh>){
 		chomp;
 		($id)=split /\s+/;

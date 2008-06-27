@@ -1,19 +1,19 @@
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -41,7 +41,7 @@ DumpContigMultiAlignInfo (char *label, MultiAlignT *cma, int contigID) {
 
   for (i = 0; i < GetNumIntMultiPoss(cma->f_list); i++) {
     IntMultiPos *pos = GetIntMultiPos(cma->f_list,i);
-    fprintf(debug.diagnosticFP, "  fragment %8d, bgn: %10d, end: %10d, length: %10d\n", 
+    fprintf(debug.diagnosticFP, "  fragment %8d, bgn: %10d, end: %10d, length: %10d\n",
             pos->ident, pos->position.bgn, pos->position.end, abs(pos->position.bgn - pos->position.end));
   }
 
@@ -51,14 +51,14 @@ DumpContigMultiAlignInfo (char *label, MultiAlignT *cma, int contigID) {
 
     MultiAlignT  *uma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE);
 
-    fprintf(debug.diagnosticFP, "  unitig %8d, bgn: %10d, end: %10d, length: %10d (consensus: %10d)\n", 
+    fprintf(debug.diagnosticFP, "  unitig %8d, bgn: %10d, end: %10d, length: %10d (consensus: %10d)\n",
             unitig->id, pos->position.bgn, pos->position.end,
             abs(pos->position.bgn - pos->position.end),
             strlen(Getchar(uma->consensus, 0)));
 
     for (j = 0; j < GetNumIntMultiPoss(uma->f_list); j++) {
       IntMultiPos *pos = GetIntMultiPos(uma->f_list, j);
-      fprintf(debug.diagnosticFP, "  fragment %8d, bgn: %10d, end: %10d, length: %10d, source: %10d\n", 
+      fprintf(debug.diagnosticFP, "  fragment %8d, bgn: %10d, end: %10d, length: %10d, source: %10d\n",
               pos->ident, pos->position.bgn, pos->position.end, abs(pos->position.bgn - pos->position.end),
               pos->sourceInt);
     }
@@ -82,14 +82,14 @@ DumpUnitigInfo(char *label, NodeCGW_T *unitig) {
   uma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE);
   pos = GetIntUnitigPos(uma->u_list, i);
 
-  fprintf(debug.diagnosticFP, "  unitig %8d, bgn: %10d, end: %10d, length: %10d (consensus: %10d)\n", 
+  fprintf(debug.diagnosticFP, "  unitig %8d, bgn: %10d, end: %10d, length: %10d (consensus: %10d)\n",
           unitig->id, pos->position.bgn, pos->position.end,
           abs(pos->position.bgn - pos->position.end),
           strlen(Getchar(uma->consensus, 0)));
 
   for (j = 0; j < GetNumIntMultiPoss(uma->f_list); j++) {
     IntMultiPos *mpos = GetIntMultiPos(uma->f_list, j);
-    fprintf(debug.diagnosticFP, "  fragment %8d, bgn: %10d, end: %10d, length: %10d, source: %10d\n", 
+    fprintf(debug.diagnosticFP, "  fragment %8d, bgn: %10d, end: %10d, length: %10d, source: %10d\n",
             mpos->ident, mpos->position.bgn, mpos->position.end, abs(mpos->position.bgn - mpos->position.end),
             mpos->sourceInt);
   }
@@ -115,7 +115,7 @@ DumpContigUngappedOffsets(char *label, int contigID) {
   if(!UngappedOffsets) {
     UngappedOffsets = CreateVA_int32(1000);
   }
-  
+
   cma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contigID, FALSE);
   GetMultiAlignUngappedOffsets(cma, UngappedOffsets);
   offsets = Getint32(UngappedOffsets, 0);
@@ -150,7 +150,7 @@ DumpContigUngappedOffsets(char *label, int contigID) {
     // int fragID = GetInfoByIID(ScaffoldGraph->iidToFragIndex, mp->ident)->fragIndex;
     CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, fragID);
     int bgn, end;
-	
+
     // mp->position is an interval.  We need to subtract one from
     // the upper end of the interval
     if (mp->position.end < mp->position.bgn) {

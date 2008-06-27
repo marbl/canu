@@ -38,4 +38,4 @@ puts "Total bases in scaffolds is #{totalBases}"
 puts "Total bases in scaffold gaps is #{totalGaps}"
 puts "The longest scaffold has #{biggest} bases"
 numScafs = scafs.length
-puts "There are #{numScafs} scaffolds, for an avg size of #{totalBases/numScafs}" 
+puts "There are #{numScafs} scaffolds, for an avg size of #{totalBases/numScafs}"

@@ -33,7 +33,7 @@ while(<>){
  } else {
    $beg=$w[1+$f];
    $end=$w[2+$f];
- }    
+ }
  $mid=$w[0+$f];
  $curr = new implayout($mid,$beg,$end);
  push(@imps,$curr);
@@ -68,7 +68,7 @@ mst:U
 }\n";
 }
 
-print 
+print
 "{IUM
 acc:$iid
 src:

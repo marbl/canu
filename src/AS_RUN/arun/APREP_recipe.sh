@@ -1,6 +1,6 @@
 ## Preloader Script ver. 1.2
 ## By Marwan Oweis, Feb 2007
-## 
+##
 ## Files Required
 ##REQUIRED PREFIX.asm PREFIX.seq.features PREFIX.frg PREFIX.insert
 

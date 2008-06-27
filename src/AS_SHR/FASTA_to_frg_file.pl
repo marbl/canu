@@ -22,7 +22,7 @@
 #
 ##########################################################################
 
-# $Id: FASTA_to_frg_file.pl,v 1.10 2008-01-11 21:16:09 eliv Exp $
+# $Id: FASTA_to_frg_file.pl,v 1.11 2008-06-27 06:29:21 brianwalenz Exp $
 
 use strict;
 use Getopt::Std;
@@ -95,7 +95,7 @@ print STDERR "Processing FASTA file...\n";
 my ($defline, $prev_defline, $sequence);
 while(<$fasta_fh>){
 	chomp;
-	
+
 	if(/^>/){
 		$defline=$_;
 		if($sequence ne ""){
@@ -133,7 +133,7 @@ sub process_record{
 	for($i=0; $i<=$#nucs; $i++){
 		if($nucs[$i] eq lc($nucs[$i])){
 			$quals[$i]=chr($DEFAULT_QUAL/$LOW_QUAL_DIVISOR + ord("0"));
-		}	
+		}
 	}
 
 	$qual_vals=join "", @quals;

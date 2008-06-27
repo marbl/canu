@@ -1,102 +1,102 @@
 #include "f2c.h"
 
-/* Subroutine */ int dptrfs_(integer *n, integer *nrhs, doublereal *d, 
-	doublereal *e, doublereal *df, doublereal *ef, doublereal *b, integer 
+/* Subroutine */ int dptrfs_(integer *n, integer *nrhs, doublereal *d,
+	doublereal *e, doublereal *df, doublereal *ef, doublereal *b, integer
 	*ldb, doublereal *x, integer *ldx, doublereal *ferr, doublereal *berr,
 	 doublereal *work, integer *info)
 {
-/*  -- LAPACK routine (version 2.0) --   
-       Univ. of Tennessee, Univ. of California Berkeley, NAG Ltd.,   
-       Courant Institute, Argonne National Lab, and Rice University   
-       September 30, 1994   
+/*  -- LAPACK routine (version 2.0) --
+       Univ. of Tennessee, Univ. of California Berkeley, NAG Ltd.,
+       Courant Institute, Argonne National Lab, and Rice University
+       September 30, 1994
 
 
-    Purpose   
-    =======   
+    Purpose
+    =======
 
-    DPTRFS improves the computed solution to a system of linear   
-    equations when the coefficient matrix is symmetric positive definite 
-  
-    and tridiagonal, and provides error bounds and backward error   
-    estimates for the solution.   
+    DPTRFS improves the computed solution to a system of linear
+    equations when the coefficient matrix is symmetric positive definite
 
-    Arguments   
-    =========   
+    and tridiagonal, and provides error bounds and backward error
+    estimates for the solution.
 
-    N       (input) INTEGER   
-            The order of the matrix A.  N >= 0.   
+    Arguments
+    =========
 
-    NRHS    (input) INTEGER   
-            The number of right hand sides, i.e., the number of columns   
-            of the matrix B.  NRHS >= 0.   
+    N       (input) INTEGER
+            The order of the matrix A.  N >= 0.
 
-    D       (input) DOUBLE PRECISION array, dimension (N)   
-            The n diagonal elements of the tridiagonal matrix A.   
+    NRHS    (input) INTEGER
+            The number of right hand sides, i.e., the number of columns
+            of the matrix B.  NRHS >= 0.
 
-    E       (input) DOUBLE PRECISION array, dimension (N-1)   
-            The (n-1) subdiagonal elements of the tridiagonal matrix A.   
+    D       (input) DOUBLE PRECISION array, dimension (N)
+            The n diagonal elements of the tridiagonal matrix A.
 
-    DF      (input) DOUBLE PRECISION array, dimension (N)   
-            The n diagonal elements of the diagonal matrix D from the   
-            factorization computed by DPTTRF.   
+    E       (input) DOUBLE PRECISION array, dimension (N-1)
+            The (n-1) subdiagonal elements of the tridiagonal matrix A.
 
-    EF      (input) DOUBLE PRECISION array, dimension (N-1)   
-            The (n-1) subdiagonal elements of the unit bidiagonal factor 
-  
-            L from the factorization computed by DPTTRF.   
+    DF      (input) DOUBLE PRECISION array, dimension (N)
+            The n diagonal elements of the diagonal matrix D from the
+            factorization computed by DPTTRF.
 
-    B       (input) DOUBLE PRECISION array, dimension (LDB,NRHS)   
-            The right hand side matrix B.   
+    EF      (input) DOUBLE PRECISION array, dimension (N-1)
+            The (n-1) subdiagonal elements of the unit bidiagonal factor
 
-    LDB     (input) INTEGER   
-            The leading dimension of the array B.  LDB >= MAX(1,N).   
+            L from the factorization computed by DPTTRF.
 
-    X       (input/output) DOUBLE PRECISION array, dimension (LDX,NRHS)   
-            On entry, the solution matrix X, as computed by DPTTRS.   
-            On exit, the improved solution matrix X.   
+    B       (input) DOUBLE PRECISION array, dimension (LDB,NRHS)
+            The right hand side matrix B.
 
-    LDX     (input) INTEGER   
-            The leading dimension of the array X.  LDX >= MAX(1,N).   
+    LDB     (input) INTEGER
+            The leading dimension of the array B.  LDB >= MAX(1,N).
 
-    FERR    (output) DOUBLE PRECISION array, dimension (NRHS)   
-            The forward error bound for each solution vector   
-            X(j) (the j-th column of the solution matrix X).   
-            If XTRUE is the true solution corresponding to X(j), FERR(j) 
-  
-            is an estimated upper bound for the magnitude of the largest 
-  
-            element in (X(j) - XTRUE) divided by the magnitude of the   
-            largest element in X(j).   
+    X       (input/output) DOUBLE PRECISION array, dimension (LDX,NRHS)
+            On entry, the solution matrix X, as computed by DPTTRS.
+            On exit, the improved solution matrix X.
 
-    BERR    (output) DOUBLE PRECISION array, dimension (NRHS)   
-            The componentwise relative backward error of each solution   
-            vector X(j) (i.e., the smallest relative change in   
-            any element of A or B that makes X(j) an exact solution).   
+    LDX     (input) INTEGER
+            The leading dimension of the array X.  LDX >= MAX(1,N).
 
-    WORK    (workspace) DOUBLE PRECISION array, dimension (2*N)   
+    FERR    (output) DOUBLE PRECISION array, dimension (NRHS)
+            The forward error bound for each solution vector
+            X(j) (the j-th column of the solution matrix X).
+            If XTRUE is the true solution corresponding to X(j), FERR(j)
 
-    INFO    (output) INTEGER   
-            = 0:  successful exit   
-            < 0:  if INFO = -i, the i-th argument had an illegal value   
+            is an estimated upper bound for the magnitude of the largest
 
-    Internal Parameters   
-    ===================   
+            element in (X(j) - XTRUE) divided by the magnitude of the
+            largest element in X(j).
 
-    ITMAX is the maximum number of steps of iterative refinement.   
+    BERR    (output) DOUBLE PRECISION array, dimension (NRHS)
+            The componentwise relative backward error of each solution
+            vector X(j) (i.e., the smallest relative change in
+            any element of A or B that makes X(j) an exact solution).
 
-    ===================================================================== 
-  
+    WORK    (workspace) DOUBLE PRECISION array, dimension (2*N)
+
+    INFO    (output) INTEGER
+            = 0:  successful exit
+            < 0:  if INFO = -i, the i-th argument had an illegal value
+
+    Internal Parameters
+    ===================
+
+    ITMAX is the maximum number of steps of iterative refinement.
+
+    =====================================================================
 
 
-       Test the input parameters.   
 
-    
-   Parameter adjustments   
+       Test the input parameters.
+
+
+   Parameter adjustments
        Function Body */
     /* Table of constant values */
     static integer c__1 = 1;
     static doublereal c_b11 = 1.;
-    
+
     /* System generated locals */
     integer b_dim1, b_offset, x_dim1, x_offset, i__1, i__2;
     doublereal d__1, d__2, d__3;
@@ -104,7 +104,7 @@
     static doublereal safe1, safe2;
     static integer i, j;
     static doublereal s;
-    extern /* Subroutine */ int daxpy_(integer *, doublereal *, doublereal *, 
+    extern /* Subroutine */ int daxpy_(integer *, doublereal *, doublereal *,
 	    integer *, doublereal *, integer *);
     static integer count;
     static doublereal bi;
@@ -116,7 +116,7 @@
     static doublereal safmin;
     extern /* Subroutine */ int xerbla_(char *, integer *);
     static doublereal lstres;
-    extern /* Subroutine */ int dpttrs_(integer *, integer *, doublereal *, 
+    extern /* Subroutine */ int dpttrs_(integer *, integer *, doublereal *,
 	    doublereal *, doublereal *, integer *, integer *);
     static doublereal eps;
 
@@ -178,10 +178,10 @@
 	lstres = 3.;
 L20:
 
-/*        Loop until stopping criterion is satisfied.   
+/*        Loop until stopping criterion is satisfied.
 
-          Compute residual R = B - A * X.  Also compute   
-          abs(A)*abs(x) + abs(b) for use in the backward error bound. 
+          Compute residual R = B - A * X.  Also compute
+          abs(A)*abs(x) + abs(b) for use in the backward error bound.
 */
 
 	if (*n == 1) {
@@ -212,17 +212,17 @@ L20:
 	    WORK(*n) = abs(bi) + abs(cx) + abs(dx);
 	}
 
-/*        Compute componentwise relative backward error from formula 
-  
+/*        Compute componentwise relative backward error from formula
 
-          MAX(i) ( abs(R(i)) / ( abs(A)*abs(X) + abs(B) )(i) )   
+
+          MAX(i) ( abs(R(i)) / ( abs(A)*abs(X) + abs(B) )(i) )
 
           where abs(Z) is the componentwise absolute value of the matr
-ix   
+ix
           or vector Z.  If the i-th component of the denominator is le
-ss   
+ss
           than SAFE2, then SAFE1 is added to the i-th components of th
-e   
+e
           numerator and denominator before dividing. */
 
 	s = 0.;
@@ -234,7 +234,7 @@ e
 		s = MAX(d__2,d__3);
 	    } else {
 /* Computing MAX */
-		d__2 = s, d__3 = ((d__1 = WORK(*n + i), abs(d__1)) + safe1) / 
+		d__2 = s, d__3 = ((d__1 = WORK(*n + i), abs(d__1)) + safe1) /
 			(WORK(i) + safe1);
 		s = MAX(d__2,d__3);
 	    }
@@ -242,12 +242,12 @@ e
 	}
 	BERR(j) = s;
 
-/*        Test stopping criterion. Continue iterating if   
+/*        Test stopping criterion. Continue iterating if
              1) The residual BERR(J) is larger than machine epsilon, a
-nd   
+nd
              2) BERR(J) decreased by at least a factor of 2 during the
-   
-                last iteration, and   
+
+                last iteration, and
              3) At most ITMAX iterations tried. */
 
 	if (BERR(j) > eps && BERR(j) * 2. <= lstres && count <= 5) {
@@ -262,25 +262,25 @@ nd
 	    goto L20;
 	}
 
-/*        Bound error from formula   
+/*        Bound error from formula
 
-          norm(X - XTRUE) / norm(X) .le. FERR =   
-          norm( abs(inv(A))*   
-             ( abs(R) + NZ*EPS*( abs(A)*abs(X)+abs(B) ))) / norm(X)   
+          norm(X - XTRUE) / norm(X) .le. FERR =
+          norm( abs(inv(A))*
+             ( abs(R) + NZ*EPS*( abs(A)*abs(X)+abs(B) ))) / norm(X)
 
-          where   
-            norm(Z) is the magnitude of the largest component of Z   
-            inv(A) is the inverse of A   
+          where
+            norm(Z) is the magnitude of the largest component of Z
+            inv(A) is the inverse of A
             abs(Z) is the componentwise absolute value of the matrix o
-r   
-               vector Z   
+r
+               vector Z
             NZ is the maximum number of nonzeros in any row of A, plus
- 1   
-            EPS is machine epsilon   
+ 1
+            EPS is machine epsilon
 
-          The i-th component of abs(R)+NZ*EPS*(abs(A)*abs(X)+abs(B)) 
-  
-          is incremented by SAFE1 if the i-th component of   
+          The i-th component of abs(R)+NZ*EPS*(abs(A)*abs(X)+abs(B))
+
+          is incremented by SAFE1 if the i-th component of
           abs(A)*abs(X) + abs(B) is less than SAFE2. */
 
 	i__2 = *n;
@@ -297,14 +297,14 @@ r
 	ix = idamax_(n, &WORK(1), &c__1);
 	FERR(j) = WORK(ix);
 
-/*        Estimate the norm of inv(A).   
+/*        Estimate the norm of inv(A).
 
-          Solve M(A) * x = e, where M(A) = (m(i,j)) is given by   
+          Solve M(A) * x = e, where M(A) = (m(i,j)) is given by
 
-             m(i,j) =  abs(A(i,j)), i = j,   
-             m(i,j) = -abs(A(i,j)), i .ne. j,   
+             m(i,j) =  abs(A(i,j)), i = j,
+             m(i,j) = -abs(A(i,j)), i .ne. j,
 
-          and e = [ 1, 1, ..., 1 ]'.  Note M(A) = M(L)*D*M(L)'.   
+          and e = [ 1, 1, ..., 1 ]'.  Note M(A) = M(L)*D*M(L)'.
 
           Solve M(L) * x = e. */
 

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# $Id: caqc.pl,v 1.1 2008-03-11 19:41:47 brianwalenz Exp $
+# $Id: caqc.pl,v 1.2 2008-06-27 06:29:18 brianwalenz Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -21,7 +21,7 @@ use Math::BigFloat;
 use FindBin qw($Bin);
 use AS::MSG;
 
-my $MY_VERSION = "caqc Version 2.13 (Build " . (qw/$Revision: 1.1 $/)[1] . ")";
+my $MY_VERSION = "caqc Version 2.13 (Build " . (qw/$Revision: 1.2 $/)[1] . ")";
 
 # Constants
 my $MINQUAL    = 20;
@@ -30,18 +30,18 @@ my @help_lines = undef;
 my $help_file  = $Bin . '/caqc_help.ini';
 
 my $MY_HELPTEXT = qq~
-Generate quality statistics from the specified Celera assembly .asm file.  
+Generate quality statistics from the specified Celera assembly .asm file.
 
   caqc  <prefix>  [options]
 
-    <prefix>   caqc reads the <prefix>.asm, which is the output file of the Celera Assembler. 
+    <prefix>   caqc reads the <prefix>.asm, which is the output file of the Celera Assembler.
                caqc requires that the file be in the current directory.
-    
+
     options:
-      -minqual   <n>   Minimum quality value threshhold to report as bad 
+      -minqual   <n>   Minimum quality value threshhold to report as bad
                        quality (default $MINQUAL)
       -mincontig <n>   Minimum contig size to report as a big contig
-                       (default $MINCONTIG) 
+                       (default $MINCONTIG)
       -d <c>           Specify the record delimiter tag<c>value
       -s <c>           Specify the list delimiter el[<c>el ...]
       -h               Display help information and exit
@@ -55,27 +55,27 @@ Generate quality statistics from the specified Celera assembly .asm file.
       -l <logfile>     Specify the logfile.  Only created if debug level set.
       -t <count>       Specify the number of top scaffolds and contigs to use.
                        (default: 5)
-      -frg             Computes frag related statistics: BasesCount and ClearRangeLengthFRG. 
+      -frg             Computes frag related statistics: BasesCount and ClearRangeLengthFRG.
                        This option requires that a <prefix>.frg file exist in the current directory.
-      -metrics         Option to output a <prefix>.qc.metrics file which is inputted to ametrics.  This 
-                       option requires that a <prefix>.frg file exist in the current directory. 
+      -metrics         Option to output a <prefix>.qc.metrics file which is inputted to ametrics.  This
+                       option requires that a <prefix>.frg file exist in the current directory.
                        [Note: -frg is a subset of -metrics]
 
-		       
+
     output files:
 	<prefix>.qc		Described below.
 	<prefix>.qc.metrics 	(optional) Input file for ametrics
 
 
-caqc produces output on stdout as well as a <prefix>.qc file in the 
+caqc produces output on stdout as well as a <prefix>.qc file in the
 current directory.  The file output is in a tag-value format organized in a
 hierarchical manner compatible with the INI style for config files.  This
-file can be read using TIGR::ConfigFile (run perldoc TIGR::ConfigFile). 
+file can be read using TIGR::ConfigFile (run perldoc TIGR::ConfigFile).
 Delimiters can be controlled by using the tag-value separator specified in
-the -d option, and the minor delimiter separating list values by using the 
+the -d option, and the minor delimiter separating list values by using the
 -s option.  By default both are set to whitespace for human readability
-in the stdout output, and to = and comma respectively in the .qc file.  The 
-optional <prefix>.qc.metrics file is a copy of the <prefix>.qc file with additional 
+in the stdout output, and to = and comma respectively in the .qc file.  The
+optional <prefix>.qc.metrics file is a copy of the <prefix>.qc file with additional
 metrics information for ametrics, which uploads it into the ASDB database.
 
 NOTE: caqc has backwards compatibility to support usage of:
@@ -83,7 +83,7 @@ NOTE: caqc has backwards compatibility to support usage of:
 
 See also:
   http://intranet.tigr.org/software_docs/CeleraAssembler.shtml
-  TIGR::ConfigFile 
+  TIGR::ConfigFile
 ~;
 
 # Global delimiters
@@ -360,7 +360,7 @@ sub outputHtml() {
     A description of the outputs of qc output of the <a href="../../projects/CeleraAssembler/">Celera Assembler</a>.
     </center>
     <hr>
-    <ul>  
+    <ul>
     ~;
 
     my $HTML_TAIL = qq~
@@ -647,12 +647,12 @@ MAIN:
                     if ( exists $bad_mates{$mid} ) {
                         my ($uuid, $uiid) = ($record->{'acc1'}, $record->{'acc2'});
                         trackBadMates('UTG', $uuid, $utgLen, $mid,
-                                      $rec->{'pos'}{'bgn'}, 
+                                      $rec->{'pos'}{'bgn'},
                                       $rec->{'pos'}{'bgn'});
                     }
                 }
             }
-        }        
+        }
 
         elsif ( $type eq 'SCF' ) {
             my ($scf_euid, $scfid) = ($record->{'acc1'}, $record->{'acc2'});

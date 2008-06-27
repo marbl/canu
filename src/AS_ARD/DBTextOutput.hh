@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -28,7 +28,7 @@ namespace AS_ARD {
       private:
          // disable copy constructor
          DBTextOutput(DBTextOutput &);
-         
+
       public:
          DBTextOutput();
          ~DBTextOutput();
@@ -47,21 +47,21 @@ namespace AS_ARD {
                   const char status,
                   const char * notes);
          bool storeMDI2DB (
-                  AS_UID erefines,  
+                  AS_UID erefines,
                   IntDist_ID irefines,
                   float mean,
                   float stddev,
                   int32 min,
                   int32 max);
          bool storeAFG2DB (
-                  AS_UID erefines,  
+                  AS_UID erefines,
                   IntFragment_ID irefines,
                   MateStatType mate_status,
                   int32 chaff,
                   CDS_COORD_t begin,
                   CDS_COORD_t end);
          bool storeUTG2DB (
-                  AS_UID eaccession,  
+                  AS_UID eaccession,
                   IntFragment_ID iaccession,
                   const char * source,
                   float mhp,
@@ -73,7 +73,7 @@ namespace AS_ARD {
                   int32 forced,
                   int32 num_frags);
          bool storeMPS2DB (
-                  AS_UID unitigID,                  
+                  AS_UID unitigID,
                   AS_UID afgID,
                   FragType type,
                   const char * source,
@@ -94,9 +94,9 @@ namespace AS_ARD {
          bool storeLKList2DB(int type, AS_UID ulkID, AS_UID utgID);
          bool storeJMP2DB(int jmpType, AS_UID jmpID, AS_UID ulkID, LinkType type);
          bool storeJMPList2DB(int jmpType, AS_UID jmpListID, AS_UID jmpID, AS_UID fragID);
-         
+
          bool storeCCO2DB (
-                  AS_UID eaccession,  
+                  AS_UID eaccession,
                   IntFragment_ID iaccession,
                   ContigPlacementStatusType placed,
                   CDS_COORD_t length,
@@ -108,7 +108,7 @@ namespace AS_ARD {
                   int32 num_vars);
          bool storeCCOMPS2DB(
                   AS_UID ccoMpsID,
-                  AS_UID ccoID,            
+                  AS_UID ccoID,
                   AS_UID fragID,
                   FragType type,
                   const char * source,
@@ -118,7 +118,7 @@ namespace AS_ARD {
                   std::string delta);
          bool storeUPS2DB(
                   AS_UID upsID,
-                  AS_UID ccoID,            
+                  AS_UID ccoID,
                   AS_UID unitigID,
                   UnitigType type,
                   CDS_COORD_t bgn,
@@ -127,7 +127,7 @@ namespace AS_ARD {
                   std::string delta);
          bool storeVAR2DB(
                   AS_UID varID,
-                  AS_UID ccoID,            
+                  AS_UID ccoID,
                   CDS_COORD_t bgn,
                   CDS_COORD_t end,
                   uint32 num_reads,
@@ -150,7 +150,7 @@ namespace AS_ARD {
                   uint32 num_contributing,
                   PlacementStatusType status);
          bool storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs);
-         bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient);         
+         bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient);
          bool storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID);
          bool storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, CDS_COORD_t ctgStart, CDS_COORD_t ctgEnd);
 
@@ -177,6 +177,6 @@ namespace AS_ARD {
          bool commitCTPList2DB() { return true; };
          bool commitCPS2DB() { return true; };
    };
-}; 
+};
 
 #endif // DBTextOutput_HH

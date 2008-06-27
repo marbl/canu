@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -415,7 +415,7 @@ static void convert_segs(Local_Segment *Segs,int NumSegs,int comp, int Alen,int 
      }
 }
 
-static void restore_segs(Local_Segment *Segs,int NumSegs,int comp,int Alen,int Blen)  
+static void restore_segs(Local_Segment *Segs,int NumSegs,int comp,int Alen,int Blen)
 { int i;   /* Unmark and reverse all complemented local segs */
 
  for (i = 0; i < NumSegs; i++)
@@ -466,10 +466,10 @@ Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
     EventList = (Event *) (Trace + MaxTrace);
     { // We have to make sure that EventList is aligned on an appropriate boundary.
       // It is derived from Trace which has looser alignment constraints.
-      long address = (long)EventList; 
+      long address = (long)EventList;
       // By convention "long" int is big as the size of a pointer
-      long offset = (address % sizeof(void *));  
-      int pad = sizeof(void *) - offset; 
+      long offset = (address % sizeof(void *));
+      int pad = sizeof(void *) - offset;
       // This is how much we need to add to get things aligned.
       if(offset){
 	//	fprintf(stderr,"* Eventlist is %p adding %d up to ", EventList, pad);
@@ -559,7 +559,7 @@ Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
               if (p > 0)
                 { Candidate *cand;
                   int        altr;
-  
+
                   cand = AVLselect(AVLinc(elist),p);
                   altr = cand->base + (ab + bb);
                   if (altr < best)
@@ -571,7 +571,7 @@ Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
               while (++p <= clen)         /* Bests @ midpoints of seg */
                 { Candidate *cand;
                   int        altr;
-            
+
                   cand = AVLselect(AVLinc(elist),p);
                   if (cand->start > be - MIN_USABLE) break;
                   altr = cand->base + 2*cand->start + (ab - bb);
@@ -634,7 +634,7 @@ Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
               Cvals.start = d;
               Cvals.base  = best - d;
               p = AVLrank(AVLinc(ilist),d);
-              ilist = AVLinsert(ilist,p,&Cvals);  
+              ilist = AVLinsert(ilist,p,&Cvals);
 
               d = -d;
               Cvals.start = d;
@@ -676,7 +676,7 @@ Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
                   Cvals.start   = be;
                   Cvals.base    = best - off;
                   Cvals.segment = i;
-                  elist = AVLinsert(elist,p,&Cvals);  
+                  elist = AVLinsert(elist,p,&Cvals);
                 }
             }
 
@@ -695,7 +695,7 @@ Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
                 p -= 1;
               olist = AVLdelete(olist,p);
             }
-          } 
+          }
 
       }
 
@@ -727,7 +727,7 @@ Gen_Overlap:
             { best = thisscore;
               end  = i;
             }
-        }  
+        }
     }
 
     if (end < 0) {
@@ -760,7 +760,7 @@ Gen_Overlap:
       for (i = end; i >= 0; i = Trace[i].source)
         Chain[--n].piece = Segs[i];
     }
-    
+
 
 #define ALLOW_DUP_SEGS_IN_NEXT  /* allow all but the first segment to be
 				   used in later attempts */
@@ -780,7 +780,7 @@ Gen_Overlap:
   #ifndef REUSE_CURRENT_LAST_AS_NONTERMINAL_SEG
     for (i = 0; i < NumSegs; i++)
       if (Trace[i].source == beg)
-        Trace[i].source = -1; 
+        Trace[i].source = -1;
   #endif
 
 #endif
@@ -797,7 +797,7 @@ Gen_Overlap:
 
     { int gl;
     /* there's basically a bug here: abpos = 1 means starts at first char of A;
-       so, agap should be 0, but gets set to 1; i.e., every first gap size 
+       so, agap should be 0, but gets set to 1; i.e., every first gap size
        gets set to one too many; but there's existing code that relies on
        this fact, so leave it alone for now */
       gl = Chain[0].piece.abpos;
@@ -839,7 +839,7 @@ Gen_Overlap:
           { if (Chain[i].bgap < MinorThresh)
               Chain[i].type = LOCAL_REPEAT;
             else
-              Chain[i].type = LOCAL_REPnDEL; 
+              Chain[i].type = LOCAL_REPnDEL;
           }
         else
           { if (abs(Chain[i].bgap) < MinorThresh)
@@ -860,7 +860,7 @@ Gen_Overlap:
     Descriptor->score      = best;
     Descriptor->chain      = Chain;
     Descriptor->comp       = comp;
-    
+
     { Local_Segment *sg;
       int            ln;
 
@@ -879,7 +879,7 @@ Gen_Overlap:
                     ln += Chain[i].bgap;
                 }
             }
-          if (i < npiece-1 && Chain[i+1].piece.error <= sg->error) 
+          if (i < npiece-1 && Chain[i+1].piece.error <= sg->error)
             { if (Chain[i+1].agap < Chain[i+1].bgap)
                 { if (Chain[i+1].agap < 0)
                     ln += Chain[i+1].agap;
@@ -897,7 +897,7 @@ Gen_Overlap:
     Descriptor->diffs = Descriptor->indif;
 
     for (i = 0; i <= npiece; i++)
-      { int d; 
+      { int d;
         if (Chain[i].agap < 0 || Chain[i].bgap < 0)
           d = abs( (Chain[i].piece.bbpos - Chain[i].piece.abpos) -
                    (Chain[i-1].piece.bepos - Chain[i-1].piece.aepos));
@@ -1001,7 +1001,7 @@ static char *Gap_Types[] = { "Boundary", "Minor", "Mismatch", "Indel",
                              "Tandem Repeat", "Tandem w. Spacer"};
 
 void Print_Local_Overlap(FILE *file, Local_Overlap *desc, int indent)
-{ 
+{
   Print_Local_Overlap_Picture(file,desc,indent);
 
   { int i, type;
@@ -1115,13 +1115,13 @@ static void Print_Local_Overlap_Piece(FILE *file, char *A, char *B, Local_Segmen
     bseg[blen]='\0';
     revB=1;
   }
-  
+
 
   if((revA||revB)&&!(revA&&revB)){
     Complement(bseg,blen);
   }
-  
-  
+
+
   //    OverlapMesg ovlmsg;
   //    ovlmsg.overlap_type = AS_CONTAINMENT;
   //    ovlmsg.ahg=0;

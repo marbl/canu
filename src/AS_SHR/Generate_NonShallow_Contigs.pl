@@ -22,7 +22,7 @@
 #
 ##########################################################################
 
-# $Id: Generate_NonShallow_Contigs.pl,v 1.6 2008-01-11 21:16:09 eliv Exp $
+# $Id: Generate_NonShallow_Contigs.pl,v 1.7 2008-06-27 06:29:21 brianwalenz Exp $
 
 use strict;
 use Getopt::Std;
@@ -129,12 +129,12 @@ for($contig_idx=0; $contig_idx<$num_contigs; $contig_idx++){
 		my ($null)=read_DS($fh);
 	}
 
-	#######################################################################	
+	#######################################################################
 
 	my $in_deep_enough=0;
 	my @sub_contig_begin_arr;
 	my @sub_contig_end_arr;
-	
+
 	# Keep track of where we go into deep coverage region from low coverage regions
 	for($i=0; $i<$num_consensus_bases; $i++){
 		#print STDOUT "$coverage_array[$i] ";
@@ -186,7 +186,7 @@ for($contig_idx=0; $contig_idx<$num_contigs; $contig_idx++){
 
 			# Output to fasta file
             my $ctgUid = $uidServ->incrUID;
-			print $fasta_fh 
+			print $fasta_fh
 				">$ctgUid ",
                 "/ace_contig=$contig_id " ,
 				"/average_coverage=$avg_cov " ,
@@ -229,7 +229,7 @@ sub read_CO{
 	my $fh=shift;
 
 	my ($id, $contig_id, $num_bases, $num_reads, $num_segments, $complementation, $sequence);
-	
+
 	while(<$fh>){
 		chomp;
 		($id, $contig_id, $num_bases, $num_reads, $num_segments, $complementation, $sequence)=
@@ -256,7 +256,7 @@ sub read_BQ{
 	my $fh=shift;
 
 	my ($id, $sequence);
-	
+
 	while(<$fh>){
 		chomp;
 		($id)=split /\s+/;

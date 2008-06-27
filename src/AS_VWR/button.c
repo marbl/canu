@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: button.c,v 1.7 2007-02-08 02:04:56 brianwalenz Exp $ */
+/* $Id: button.c,v 1.8 2008-06-27 06:29:21 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -257,7 +257,7 @@ static void set_minimums(MT_OBJECT *o)  /* Button specific? */
       o->miny += 2*o->border;
     }
 }
-  
+
 void mt_set_callback(MT_OBJECT *o,
                      int (*call)(MT_OBJECT *p, long d), long data)
 { o->event_routine = call;
@@ -327,7 +327,7 @@ static MT_OBJECT *label_test(char *label)
 void mt_set_label(MT_OBJECT *o, char *label)
 { MT_OBJECT *bitlabel;
 
-  bitlabel = label_test(label); 
+  bitlabel = label_test(label);
   if (bitlabel != NULL)
 
     { if (!o->pixlab && o->label != NULL)
@@ -528,10 +528,10 @@ static void draw_frame(MT_OBJECT *o, int high)
         { lite = fr->col_lsel; dark = fr->col_dsel; }
       else
         { lite = fr->col_lite; dark = fr->col_dark; }
-    
+
       uni = (lite == dark);
       all = (fr->col_lite == fr->col_up);
-    
+
       if (uni && all && (high == 0))
         { mt_set_color(fr->col_lite);
           wp_win_fill(win,xl+out,yl+out,xh+cut,yh+cut,MODE_SRC);
@@ -555,13 +555,13 @@ static void draw_frame(MT_OBJECT *o, int high)
                   win_draw_line(win,xl+i,yl+out,xl+i,yh-1-i,MODE_SRC);
                 }
             }
-    
+
           if (high == 0)
             { mt_set_color(fr->col_up);
               wp_win_fill(win,xl+out+w,yl+out+w,xh+cut-w,yh+cut-w,MODE_SRC);
             }
         }
-      
+
       if (out && (high == 0))
         { mt_set_color(mt_black());
           win_draw_line(win,xl,yl,xl,yh,MODE_SRC);
@@ -594,7 +594,7 @@ static void draw_frame(MT_OBJECT *o, int high)
 }
 
 static void erase_frame(MT_OBJECT *o)
-{ frame *fr; 
+{ frame *fr;
 
   fr = (frame *) o;
   if (fr->class == WINDOW)
@@ -628,7 +628,7 @@ MT_OBJECT *mt_new_window(int x, int y, int w, int h, int vis, char *title)
 
   win->type  = FRAME;
   win->vis   = vis;
-  win->wpwin = win_new(x,y,w,h,bp_handler,win,title); 
+  win->wpwin = win_new(x,y,w,h,bp_handler,win,title);
   win->frame = no_object;
   win->level = 0;
 
@@ -902,7 +902,7 @@ static void draw_radio(MT_OBJECT *o, int high)
         { win_draw_line(win,xm+1,yh-i-1,xh-i,ym,MODE_SRC);
           win_draw_line(win,xh-i,ym,xm+1,yl+i+1,MODE_SRC);
         }
-  
+
       mt_set_color(b->col_lite);
       for (i = w-cut; i >= out; i--)
         { win_draw_line(win,xm,yl+i,xl+i,ym,MODE_SRC);
@@ -943,12 +943,12 @@ static void draw_radio(MT_OBJECT *o, int high)
           win_draw_line(win,xl+i,ym,xm,yh-i,MODE_SRC);
         }
     }
-    
+
   if (o->label != NULL)
     if (o->pixlab)
       { bitmap_desc bm;
         MT_OBJECT *map;
-        
+
         map = (MT_OBJECT *) (o->label);
         if (high > 0)
           bm = b->map_sel;
@@ -992,13 +992,13 @@ static void draw_button(MT_OBJECT *o, int high)
   status = b->status;
 
   if (high == 0)
-  
+
     { uni = (b->col_lite == b->col_dark);
       if (status)
         all = (b->col_lite == b->col_down);
       else
         all = (b->col_lite == b->col_up);
-    
+
       if (uni && all)
         { mt_set_color(b->col_lite);
           wp_win_fill(win,xl+out,yl+out,xh+cut,yh+cut,MODE_SRC);
@@ -1028,14 +1028,14 @@ static void draw_button(MT_OBJECT *o, int high)
                   win_draw_line(win,xl+i,yl+out,xl+i,yh-1-i,MODE_SRC);
                 }
             }
-    
+
           if (status)
             mt_set_color(b->col_down);
           else
             mt_set_color(b->col_up);
           wp_win_fill(win,xl+out+w,yl+out+w,xh+cut-w,yh+cut-w,MODE_SRC);
         }
-    
+
       if (out)
         { mt_set_color(mt_black());
           win_draw_line(win,xl,yl,xl,yh,MODE_SRC);
@@ -1059,7 +1059,7 @@ static void draw_button(MT_OBJECT *o, int high)
     if (o->pixlab)
       { bitmap_desc bm;
         MT_OBJECT *map;
-        
+
         map = (MT_OBJECT *) (o->label);
         if (high > 0)
           bm = b->map_sel;
@@ -1287,7 +1287,7 @@ static int pick_text(textinput *t, int x, int *p)
   MT_OBJECT *o;
 
   o = (MT_OBJECT *) t;
-  x -= (o->xl + o->border + o->outline + 2); 
+  x -= (o->xl + o->border + o->outline + 2);
   lft = strlen(t->text);
   rgt = 0;
   while (rgt < lft)
@@ -1394,7 +1394,7 @@ MT_OBJECT *mt_new_textbox(int x, int y, int w, int h, int vis, char *screen)
   frame     *f;
   MT_OBJECT *o;
 
-  t = (textinput *) malloc(sizeof(textinput)); 
+  t = (textinput *) malloc(sizeof(textinput));
   f = (frame *) t;
   o = (MT_OBJECT *) t;
 
@@ -1545,7 +1545,7 @@ static void scroll_p2v(scrollbar *s)
 { int pw, dn;
   int lw, hg;
   MT_OBJECT *o;
- 
+
   o = (MT_OBJECT *) s;
   if (s->vertical)
     { lw = o->yl; hg = o->yh; }
@@ -1564,7 +1564,7 @@ static void scroll_v2p(scrollbar *s)
 { int pw, dn;
   int lw, hg;
   MT_OBJECT *o;
- 
+
   o = (MT_OBJECT *) s;
   if (s->vertical)
     { lw = o->yl; hg = o->yh; }
@@ -1623,7 +1623,7 @@ static void draw_scrollbar(MT_OBJECT *o, int high)
     }
 
   if (high == 0)
-  
+
     { uni = (s->col_lite == s->col_dark);
 
       if (uni)
@@ -1644,7 +1644,7 @@ static void draw_scrollbar(MT_OBJECT *o, int high)
               win_draw_line(win,xl+i,yl+out,xl+i,yh-1-i,MODE_SRC);
             }
         }
-   
+
       mt_set_color(s->col_well);
       wp_win_fill(win,xl+out+w,yl+out+w,xh+cut-w,yh+cut-w,MODE_SRC);
 
@@ -1753,7 +1753,7 @@ static void move_scrollbar(MT_OBJECT *o, int delta)
           win_draw_line(win,xp+i,yp,xp+i,ys-1-i,MODE_SRC);
         }
     }
- 
+
   mt_set_color(s->col_tab);
   wp_win_fill(win,xp+w,yp+w,xs+1-w,ys+1-w,MODE_SRC);
 }
@@ -2017,7 +2017,7 @@ static MT_OBJECT *find(MT_OBJECT *bw, int x, int y)
     if (o->vis && o->xl <= x && x <= o->xh && o->yl <= y && y <= o->yh)
       if (o->type == BUTTON)
         if (((button *) o)->class == RADIO)
-          { r = (radio *) o; 
+          { r = (radio *) o;
             if (y <= r->ym)
               off = r->ym - y;
             else
@@ -2185,7 +2185,7 @@ static void bp_handler(input_event *ev, window_desc win, void *data)
                 }
             }
           wp_user_event(root->recentime,win);
-        } 
+        }
       else if (code == loc_but_dn)
         { root->but_dwn  = value;
           root->dwn_time = when;
@@ -2329,7 +2329,7 @@ static void bp_handler(input_event *ev, window_desc win, void *data)
 
               if (rez)
                 { font_string_size(current_font,t->text,&wid2,&hgt,&base);
-              
+
                   del = 0;
                   if (t->bsel != t->esel || (value == 0x08 && t->bsel > 0))
                     { if (value == 0x08 && t->bsel == t->esel)
@@ -2385,7 +2385,7 @@ static void bp_handler(input_event *ev, window_desc win, void *data)
             { if (t->drawn) toggle_cursor(o); }
           else if (t->bsel == t->esel)
             { if ( (1000.*(clock() - t->lastev))/CLOCKS_PER_SEC > 500)
-                { toggle_cursor(o); 
+                { toggle_cursor(o);
                   t->lastev = clock();
                 }
               millisleep(25);
@@ -2568,7 +2568,7 @@ static void bp_handler(input_event *ev, window_desc win, void *data)
           if (find(focus,x,y) == root->menub && when - root->dwn_time < 1000)
             if (root->state == MENUPRESS)
               { root->state   = MENUDOWN;
-                root->but_dwn = -1; 
+                root->but_dwn = -1;
                 wp_user_event(root->recentime,win);
                 break;
               }

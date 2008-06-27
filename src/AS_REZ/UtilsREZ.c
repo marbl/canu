@@ -1,26 +1,26 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /**********************************************************************
 
- Module: UtilsREZ.c 
+ Module: UtilsREZ.c
 
  Description: Contains small utility functions
 
@@ -31,7 +31,7 @@
 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: UtilsREZ.c,v 1.8 2008-03-18 07:02:47 brianwalenz Exp $";
+static char CM_ID[] = "$Id: UtilsREZ.c,v 1.9 2008-06-27 06:29:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,7 +58,7 @@ void Clear_Path_Bit(chunk_subgraph * s, int32 cid) {
   assert(s != NULL);
   assert(cid < s->max);
   assert(s->table[cid] != NULL);
-  s->table[cid]->path_bit = FALSE;  
+  s->table[cid]->path_bit = FALSE;
 }
 
 
@@ -67,7 +67,7 @@ void Set_Path_Bit(chunk_subgraph * s, int32 cid) {
   assert(s != NULL);
   assert(cid < s->max);
   assert(s->table[cid] != NULL);
-  s->table[cid]->path_bit = TRUE;  
+  s->table[cid]->path_bit = TRUE;
 }
 
 
@@ -85,7 +85,7 @@ void Clear_Visited_Bit(chunk_subgraph * s, int32 cid) {
   assert(s != NULL);
   assert(cid < s->max);
   assert(s->table[cid] != NULL);
-  s->table[cid]->visited = FALSE;  
+  s->table[cid]->visited = FALSE;
 }
 
 
@@ -171,7 +171,7 @@ void Free_Stack(nodes_stack * s) {
 
 char * Orientation_As_String (ChunkOrientationType orient) {
   //
-  //  Return string equivalent of orient 
+  //  Return string equivalent of orient
   //
   switch  (orient) {
   case  AB_AB :
@@ -218,14 +218,14 @@ int Intersection (LengthT * a, LengthT * b) {
   //  Return the number of bases by which the closed interval  [mean - 3stdDev, mean + 3stdDev]
   //  intersects the closed interval  [mean - 3stdDev, mean + 3stdDev]
   return Interval_Intersection (a->mean - 3.0 * sqrt(a->variance), a->mean + 3.0 * sqrt(a->variance),
-				b->mean - 3.0 * sqrt(b->variance), b->mean + 3.0 * sqrt(b->variance)); 
+				b->mean - 3.0 * sqrt(b->variance), b->mean + 3.0 * sqrt(b->variance));
 }
 
 
 
 int Interval_Intersection (int a, int b, int c, int d) {
   //  Return the number of bases by which the closed interval [a, b]
-  //  intersects the closed interval [c, d] 
+  //  intersects the closed interval [c, d]
   if  (d < a || b < c)
     return  0;
   else

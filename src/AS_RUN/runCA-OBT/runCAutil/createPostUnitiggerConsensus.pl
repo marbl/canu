@@ -2,7 +2,7 @@ use strict;
 
 sub createPostUnitiggerConsensusJobs (@) {
     my @cgbFiles  = @_;
-    my $consensusType = getGlobal("consensus"); 
+    my $consensusType = getGlobal("consensus");
 
     if (! -e "$wrk/5-consensus/$asm.partitioned") {
 
@@ -14,7 +14,7 @@ sub createPostUnitiggerConsensusJobs (@) {
                 my $part = $1;
                 open(F, "grep ^mid: $f |") or caFailure("Failed to grep '^mid: $f'\n");
                 while (<F>) {
-                    print G "$part $1\n" if (m/^mid:(\d+)$/);                        
+                    print G "$part $1\n" if (m/^mid:(\d+)$/);
                 }
                 close(F);
             } else {
@@ -85,10 +85,10 @@ sub createPostUnitiggerConsensusJobs (@) {
     print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
     print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
     print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
-    
+
     print F getBinDirectoryShellCode();
-    
-    if ($consensusType eq "cns") {             
+
+    if ($consensusType eq "cns") {
        print F "\$bin/consensus \\\n";
        print F "  -G -U \\\n";
        print F "  -m -S \$jobp \\\n";
@@ -98,7 +98,7 @@ sub createPostUnitiggerConsensusJobs (@) {
        print F " >> $wrk/5-consensus/${asm}_\$jobp.err 2>&1 \\\n";
        print F "&& \\\n";
        print F "touch $wrk/5-consensus/${asm}_\$jobp.success\n";
-    } elsif ($consensusType eq "seqan") {       
+    } elsif ($consensusType eq "seqan") {
        print F "\$bin/SeqAn_CNS \\\n";
        print F "  -G $wrk/$asm.gkpStore \\\n";
        print F "  -c \$cgbfile \\\n";

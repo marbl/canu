@@ -25,13 +25,13 @@ my $VERSION="1.12";
 my @DEPENDS=("TIGR::Foundation");
 
 my $HELPTEXT = qq~
-Extract, filter, and merge .tasm files from an CA or TA assembly run. 
+Extract, filter, and merge .tasm files from an CA or TA assembly run.
 
 subtasm  <tasm1 tasm2 ...>  [options]
-    
+
   tasms  One or more .tasm files as constructed by TA/CA pipeline and analysis
          tools.  File list can be resolved by the shell, for example my*.tasm
-    
+
   options:
     -A <file>      File with cids (ca_contig_id EUIDs) to extract for output
     -X <file>      File with cids (ca_contig_id EUIDs) to omit from output
@@ -39,18 +39,18 @@ subtasm  <tasm1 tasm2 ...>  [options]
     -r <file>      Find and replace according to perl regexp rule.  Regexp spec
                    file is tab delimited with the first field as the tag name
                    and second field as the search/replace rule.
-    -f <file>      Substitute existing seq_name (eg sequence read EUID) 
-                   according to the input lookup file.  Format is <rid><alias> 
+    -f <file>      Substitute existing seq_name (eg sequence read EUID)
+                   according to the input lookup file.  Format is <rid><alias>
                    as is encoded in the .seq.features file produced by pullfrag.
     -o <files>     Write output to file instead of the console.
     -[no]circular  Set circular field for contigs
     -comment <s>   Set comment field for contigs
     -com_name <s>  Set com_name field for contigs
- 
-Given one or more input .tasm files (or .asm files produced by run_TA) 
+
+Given one or more input .tasm files (or .asm files produced by run_TA)
 subtasm builds a single new .tasm file with suitable treatments.
 
-If no filter option is specified then all records are emitted on output.  
+If no filter option is specified then all records are emitted on output.
 Specifying multiple files on the command line has the effect of merging the
 tasm records prior to filtering.  The output contig set can be selected (-A) or
 decimated (-X).  On output field values can be modified according to a lookup
@@ -63,7 +63,7 @@ uploading to the database.  Additional output conversions can be specified
 using the -o option.  Otherwise, a new .tasm file is generated on stdout.
 
 SEE ALSO
-  aloader carun run_TA slice2tasm 
+  aloader carun run_TA slice2tasm
 ~;
 
 # =============================== Constants ================================
@@ -77,7 +77,7 @@ my $PROGRESS_FACTOR = 100000;
 my $warningsfile = "tmp.warnings";
 my $USERNAME = getpwuid($<);
 
-my @TASM_CONTIG_TAGS = 
+my @TASM_CONTIG_TAGS =
 (
   "sequence",
   "lsequence",
@@ -103,7 +103,7 @@ my @TASM_CONTIG_TAGS =
   "is_circular",
 );
 
-my @TASM_READ_TAGS = 
+my @TASM_READ_TAGS =
 (
   "seq_name",
   "asm_lend",
@@ -119,13 +119,13 @@ my @TASM_READ_TAGS =
 
 # Supports use of .asm files from TIGR Assembler (run_TA) as well as standard
 # timmy files (.tasm)
-my @OUTPUT_SUFFIXES = ("asm", "tasm");  
+my @OUTPUT_SUFFIXES = ("asm", "tasm");
 my %SUPPORTED_OUTPUTS = ();
 map { $SUPPORTED_OUTPUTS{$_} = 1; } @OUTPUT_SUFFIXES;
 
 # ========================= Procedures ========================================
 
-# Toss messages to stderr and also to the logfile.  Cannot use 
+# Toss messages to stderr and also to the logfile.  Cannot use
 # regular logfile because of pipeout of this utility.
 #
 sub progress($)
@@ -180,76 +180,76 @@ sub emitContigRecord($$$$$$$$$$$)
   $hour = 12 if ( $hour == 0 );
 
   my $dateString = sprintf("%02d/%02d/%02d %02d:%02d:%02d %s",$mon+1,$mday,$year%100,$hour,$min,$sec,$amPm);
-   
+
   foreach my $t (@TASM_CONTIG_TAGS)
   {
     my $printStr;
     if ($t eq "comment" && defined $comment ) {
       ${$rh_CurrentContig}{$t} = $comment;
-      $printStr="$t\t${$rh_CurrentContig}{$t}\n";      
+      $printStr="$t\t${$rh_CurrentContig}{$t}\n";
     } elsif ( $t eq "com_name" && defined $com_name ) {
       ${$rh_CurrentContig}{$t} = $com_name;
-      $printStr="$t\t${$rh_CurrentContig}{$t}\n";      
+      $printStr="$t\t${$rh_CurrentContig}{$t}\n";
     } elsif ( $t eq "is_circular" && defined $circular ) {
       ${$rh_CurrentContig}{$t} = $circular;
-      $printStr="$t\t${$rh_CurrentContig}{$t}\n";      
+      $printStr="$t\t${$rh_CurrentContig}{$t}\n";
     } elsif (exists ${$rh_CurrentContig}{$t} ) {
-      if ($t eq "ca_contig_id") 
+      if ($t eq "ca_contig_id")
       {
-        if (! defined ${$rh_CurrentContig}{$t}  ||  
+        if (! defined ${$rh_CurrentContig}{$t}  ||
             (defined ${$rh_CurrentContig}{$t} && ${$rh_CurrentContig}{$t} eq "")
            )
         {
-          # ca_contig_id (cid) exists, but is empty    
+          # ca_contig_id (cid) exists, but is empty
           my $euid = $te->getEUID();
           ${$rh_CurrentContig}{$t} = $euid;
         }
       }
-      elsif ($t eq "ed_pn"  &&  
-           ( 
-             (! defined ${$rh_CurrentContig}{$t})  ||  
-             (defined ${$rh_CurrentContig}{$t} && ${$rh_CurrentContig}{$t} eq "GRA") 
+      elsif ($t eq "ed_pn"  &&
+           (
+             (! defined ${$rh_CurrentContig}{$t})  ||
+             (defined ${$rh_CurrentContig}{$t} && ${$rh_CurrentContig}{$t} eq "GRA")
            )
          )
       {
-        ${$rh_CurrentContig}{$t} = $USERNAME; 
+        ${$rh_CurrentContig}{$t} = $USERNAME;
       }
-      elsif ($t eq "is_circular" && ${$rh_CurrentContig}{$t} =~ /^\s*$/ ) 
+      elsif ($t eq "is_circular" && ${$rh_CurrentContig}{$t} =~ /^\s*$/ )
       {
           ${$rh_CurrentContig}{$t} = 0;
       }
-      elsif ($t eq "comment" && ${$rh_CurrentContig}{$t} =~ /^CA_FREE/ ) 
+      elsif ($t eq "comment" && ${$rh_CurrentContig}{$t} =~ /^CA_FREE/ )
       {
           ${$rh_CurrentContig}{$t} =~ s/CA_FREE/Non redundified surrogate contig\. CA_FREE/;
       }
-      elsif ($t eq "method" && ${$rh_CurrentContig}{$t} =~ /Celera Assembler/ ) 
+      elsif ($t eq "method" && ${$rh_CurrentContig}{$t} =~ /Celera Assembler/ )
       {
           ${$rh_CurrentContig}{$t} = "CA ";
       }
       elsif ($t eq "mod_date" ) {
           ${$rh_CurrentContig}{$t} = $dateString;
-          $printStr="$t\t${$rh_CurrentContig}{$t}\n";      
+          $printStr="$t\t${$rh_CurrentContig}{$t}\n";
       }
-      $printStr="$t\t${$rh_CurrentContig}{$t}\n";      
+      $printStr="$t\t${$rh_CurrentContig}{$t}\n";
     }
-    elsif ($t eq "ca_contig_id") 
+    elsif ($t eq "ca_contig_id")
     {
       # ca_contig_id (cid) does not exist so we have to assign one
       my $euid = $te->getEUID();
       ${$rh_CurrentContig}{$t} = $euid;
-      $printStr="$t\t${$rh_CurrentContig}{$t}\n";      
+      $printStr="$t\t${$rh_CurrentContig}{$t}\n";
     }
     elsif ($t eq "is_circular" ) {
       ${$rh_CurrentContig}{$t} = 0;
-      $printStr="$t\t${$rh_CurrentContig}{$t}\n";      
+      $printStr="$t\t${$rh_CurrentContig}{$t}\n";
     }
     elsif ($t eq "mod_pn" ) {
       ${$rh_CurrentContig}{$t} = $USERNAME;
-      $printStr="$t\t${$rh_CurrentContig}{$t}\n";      
+      $printStr="$t\t${$rh_CurrentContig}{$t}\n";
     }
     else
     {
-      $printStr="$t\t\n";      
+      $printStr="$t\t\n";
     }
     $of->print($printStr) or $tf->bail("Failed to write output tasm stream ($!)");
   }
@@ -302,7 +302,7 @@ sub emitReadRecord($$$$$$$)
 # ============================================== MAIN =============================================
 #
 MAIN:
-{    
+{
   my %options = ();
   $options{FilterByIncludeList}   = undef;
   $options{FilterByExcludeList}   = undef;
@@ -321,30 +321,30 @@ MAIN:
   $options{replacefile} = undef;
 
   # These tables need to be populated regardless of input filtering modes.
-  # 
+  #
   my %Catalog         = (); # Contig to read lookup
   my %FilterSet       = (); # List of contigs to extract
-  my %StripSet        = (); # List of reads to strip    
-  my %RegexpRules     = (); # List of tags and perl regexp rules 
+  my %StripSet        = (); # List of reads to strip
+  my %RegexpRules     = (); # List of tags and perl regexp rules
   my %SubstitutionSet = (); # List of objects to substitute
   my %Contigs         = (); # List of contigs and their seq# settings
   my %ContigsStripped = (); # List of contigs with no reads
-  
+
   # Configure TIGR Foundation
   $tf->setHelpInfo($HELPTEXT);
   $tf->setUsageInfo($HELPTEXT);
   $tf->setVersionInfo($VERSION);
   $tf->addDependInfo(@DEPENDS);
-  
+
   # validate input parameters
   my $output_options = undef;
   my $result = $tf->TIGR_GetOptions
                (
-                'A:s'       => \$options{FilterByIncludeList}, 
+                'A:s'       => \$options{FilterByIncludeList},
                 'X:s'       => \$options{FilterByExcludeList},
                 'x:s'       => \$options{FilterByStripList},
-                'r:s'       => \$options{FilterByFindReplace},                         
-                'f:s'       => \$options{FilterBySubstitution},                         
+                'r:s'       => \$options{FilterByFindReplace},
+                'f:s'       => \$options{FilterBySubstitution},
                 'o:s'       => \$options{outprefix},
                 'comment=s' => \$options{comment},
                 'circular!' => \$options{circular},
@@ -367,9 +367,9 @@ MAIN:
 
   my $warningsfile = (defined $options{outprefix})?  "$options{outprefix}.warnings" : "$PRG.warnings";
   unlink $warningsfile;
-  setWarnFile($warningsfile); 
+  setWarnFile($warningsfile);
 
-  unless ($te->ping()) 
+  unless ($te->ping())
   {
     $tf->bail("EUID service failed ping test and is therefore unavailable, exiting...");
   }
@@ -380,9 +380,9 @@ MAIN:
   for (my $i=0; $i <= $#ARGV; $i++)
   {
     my $infilename =  $ARGV[$i];
-    push @infiles, $infilename; 
+    push @infiles, $infilename;
     $tf->bail("Cannot access input file \'$infilename\' ($!)") if (! -r $infilename);
-    my $n_asmbl_id= `grep -c asmbl_id $infilename`; 
+    my $n_asmbl_id= `grep -c asmbl_id $infilename`;
     $ncontigs += $n_asmbl_id;
   }
   progress("Encountered $ncontigs contigs in $nfiles files.");
@@ -420,11 +420,11 @@ MAIN:
   {
     #get read names from input file
     progress("Obtaining filter rules from \'$options{filterfile}\'");
-    my $ff = new IO::File("< $options{filterfile}") 
+    my $ff = new IO::File("< $options{filterfile}")
       or $tf->bail("Failed to open input filter file \'$options{filterfile}\' ($!)");
     while (my $line = $ff->getline())
     {
-      chop $line; 
+      chop $line;
       $line =~ s/\s+//g;
       next if ($line =~/^#/);
       $FilterSet{$line} = 1;
@@ -447,7 +447,7 @@ MAIN:
       chop $line;
       next if ($line =~/^#/);
       my @f = split /\t/,$line;
-      $StripSet{$f[0]} = $f[1]; 
+      $StripSet{$f[0]} = $f[1];
     }
     $ff->close();
   }
@@ -489,7 +489,7 @@ MAIN:
       chop $line;
       next if ($line =~/^#/);
       my @f = split /\t/,$line;
-      $SubstitutionSet{$f[0]} = $f[1]; 
+      $SubstitutionSet{$f[0]} = $f[1];
     }
     $ff->close();
   }
@@ -520,9 +520,9 @@ MAIN:
       {
         $Catalog{$f[1]} = $current_contig_id;
         $Contigs{$current_contig_id}++;
-      } 
-    } 
-    $if->close(); 
+      }
+    }
+    $if->close();
   }
 
   foreach my $xread (keys %StripSet)
@@ -537,7 +537,7 @@ MAIN:
     {
       logwarning("Strip read \'$xread\' not found in contig set, ignoring.");
     }
-  } 
+  }
 
   foreach my $contig (keys %Contigs)
   {
@@ -562,16 +562,16 @@ MAIN:
   {
     $of = new IO::Handle;
     $of->fdopen(fileno(STDOUT), "w");
-    progress("Output being sent to stdout"); 
+    progress("Output being sent to stdout");
   }
 
   # Stream out the input file such that each FRG record is read and emitted
   # with possible modifications depending on execution mode.
   #
   progress("Process and write output...");
-  my %CurrentContig = ();    
+  my %CurrentContig = ();
   my $current_contig = undef;
-  my %CurrentRead = ();      
+  my %CurrentRead = ();
   my $current_read = undef;
   my $inContig = 1;
   my $nseqs = 0;
@@ -587,7 +587,7 @@ MAIN:
       %CurrentContig = ();  # flush
       $current_contig = undef;
       $inContig = 1;        # next line is in a contig record
-      $nseqs = 0; 
+      $nseqs = 0;
     }
     $if = new IO::File("< $infile") or $tf->bail("Cannot open input .tasm file \'$infile\' ($!)");
     progress("Processing input file \'$infile\'...");
@@ -601,9 +601,9 @@ MAIN:
       my $value = (defined $f[1])? $f[1] : "";
 
       if (defined $tag)
-      {     
+      {
         # Start of new contig, flush existing read record
-        if ($tag eq "|") 
+        if ($tag eq "|")
         {
           # What if a leading or trailing contig delimiter found
           if (! defined $current_contig)
@@ -614,7 +614,7 @@ MAIN:
           %CurrentRead = ();
           $current_read = undef;
           $inContig = 1;        # next line is in a contig record
-          $nseqs++; 
+          $nseqs++;
           next;
         }
 
@@ -625,16 +625,16 @@ MAIN:
           # Bind current record(s)
           my $current_contig1 = ($tag eq "asmbl_id"     && defined $value && $value ne "")? $value : undef;
           my $current_contig2 = ($tag eq "ca_contig_id" && defined $value && $value ne "")? $value : undef;
-          $current_contig = (defined $current_contig1)? $current_contig1 : 
-                            (defined $current_contig2)? $current_contig2 : 
+          $current_contig = (defined $current_contig1)? $current_contig1 :
+                            (defined $current_contig2)? $current_contig2 :
                             $current_contig;
           $current_read = ($tag eq "seq_name" && defined $value && $value ne "")? $value : $current_read;
-    
+
           # Apply find/replace rule to each record
           if (exists $RegexpRules{$tag}  &&  $options{FilterByFindReplace})
           {
             my $expr = "\$value =~ " . $RegexpRules{$tag} . ";";
-            my $result = eval($expr); 
+            my $result = eval($expr);
             if (! $result)
             {
               $tf->logLocal("Failed to apply expression \'$expr\' to field \'$tag\': ($@): current value = $value", 3, 1);
@@ -644,7 +644,7 @@ MAIN:
           # Apply substitution rule to every seq_name record
           if ($tag eq "seq_name"  &&  $options{FilterBySubstitution})
           {
-            $value = $SubstitutionSet{$value}; 
+            $value = $SubstitutionSet{$value};
           }
 
           if ($inContig)
@@ -663,13 +663,13 @@ MAIN:
             emitReadRecord($of , \%CurrentRead, \%options, \%FilterSet, $current_contig, $current_read, \%StripSet);
             %CurrentRead = ();
             $inContig = 0;        # next line is in a read record
-            $nseqs++; 
+            $nseqs++;
           }
         }
       }
-      
-      # Tag is not defined.  Start readset or inter-read delimiter 
-      else      
+
+      # Tag is not defined.  Start readset or inter-read delimiter
+      else
       {
         # Another read record, flush current read record
         if (defined $current_read)
@@ -680,10 +680,10 @@ MAIN:
           }
           %CurrentRead = ();
           $inContig = 0;        # next line is in a read record
-          $nseqs++; 
+          $nseqs++;
           next;
         }
-   
+
         # Read set about to begin, flush current contig record
         else
         {

@@ -1,60 +1,60 @@
 #include "f2c.h"
 
-/* Subroutine */ int dpttrs_(integer *n, integer *nrhs, doublereal *d, 
+/* Subroutine */ int dpttrs_(integer *n, integer *nrhs, doublereal *d,
 	doublereal *e, doublereal *b, integer *ldb, integer *info)
 {
-/*  -- LAPACK routine (version 2.0) --   
-       Univ. of Tennessee, Univ. of California Berkeley, NAG Ltd.,   
-       Courant Institute, Argonne National Lab, and Rice University   
-       March 31, 1993   
+/*  -- LAPACK routine (version 2.0) --
+       Univ. of Tennessee, Univ. of California Berkeley, NAG Ltd.,
+       Courant Institute, Argonne National Lab, and Rice University
+       March 31, 1993
 
 
-    Purpose   
-    =======   
+    Purpose
+    =======
 
-    DPTTRS solves a system of linear equations A * X = B with a   
-    symmetric positive definite tridiagonal matrix A using the   
-    factorization A = L*D*L**T or A = U**T*D*U computed by DPTTRF.   
-    (The two forms are equivalent if A is real.)   
+    DPTTRS solves a system of linear equations A * X = B with a
+    symmetric positive definite tridiagonal matrix A using the
+    factorization A = L*D*L**T or A = U**T*D*U computed by DPTTRF.
+    (The two forms are equivalent if A is real.)
 
-    Arguments   
-    =========   
+    Arguments
+    =========
 
-    N       (input) INTEGER   
-            The order of the tridiagonal matrix A.  N >= 0.   
+    N       (input) INTEGER
+            The order of the tridiagonal matrix A.  N >= 0.
 
-    NRHS    (input) INTEGER   
-            The number of right hand sides, i.e., the number of columns   
-            of the matrix B.  NRHS >= 0.   
+    NRHS    (input) INTEGER
+            The number of right hand sides, i.e., the number of columns
+            of the matrix B.  NRHS >= 0.
 
-    D       (input) DOUBLE PRECISION array, dimension (N)   
-            The n diagonal elements of the diagonal matrix D from the   
-            factorization computed by DPTTRF.   
+    D       (input) DOUBLE PRECISION array, dimension (N)
+            The n diagonal elements of the diagonal matrix D from the
+            factorization computed by DPTTRF.
 
-    E       (input) DOUBLE PRECISION array, dimension (N-1)   
-            The (n-1) off-diagonal elements of the unit bidiagonal factor 
-  
-            U or L from the factorization computed by DPTTRF.   
+    E       (input) DOUBLE PRECISION array, dimension (N-1)
+            The (n-1) off-diagonal elements of the unit bidiagonal factor
 
-    B       (input/output) DOUBLE PRECISION array, dimension (LDB,NRHS)   
-            On entry, the right hand side matrix B.   
-            On exit, the solution matrix X.   
+            U or L from the factorization computed by DPTTRF.
 
-    LDB     (input) INTEGER   
-            The leading dimension of the array B.  LDB >= MAX(1,N).   
+    B       (input/output) DOUBLE PRECISION array, dimension (LDB,NRHS)
+            On entry, the right hand side matrix B.
+            On exit, the solution matrix X.
 
-    INFO    (output) INTEGER   
-            = 0:  successful exit   
-            < 0:  if INFO = -i, the i-th argument had an illegal value   
+    LDB     (input) INTEGER
+            The leading dimension of the array B.  LDB >= MAX(1,N).
 
-    ===================================================================== 
-  
+    INFO    (output) INTEGER
+            = 0:  successful exit
+            < 0:  if INFO = -i, the i-th argument had an illegal value
+
+    =====================================================================
 
 
-       Test the input arguments.   
 
-    
-   Parameter adjustments   
+       Test the input arguments.
+
+
+   Parameter adjustments
        Function Body */
     /* System generated locals */
     integer b_dim1, b_offset, i__1, i__2;
@@ -88,7 +88,7 @@
 	return 0;
     }
 
-/*     Solve A * X = B using the factorization A = L*D*L',   
+/*     Solve A * X = B using the factorization A = L*D*L',
        overwriting each right hand side vector with its solution. */
 
     i__1 = *nrhs;

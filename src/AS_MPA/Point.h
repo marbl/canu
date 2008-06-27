@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: Point.h,v 1.5 2006-10-08 08:47:39 brianwalenz Exp $ */
+/* $Id: Point.h,v 1.6 2008-06-27 06:29:16 brianwalenz Exp $ */
 #ifndef POINT_H
 #define POINT_H
 
@@ -46,7 +46,7 @@ public:
     {
       px = py = 0;
     }
-  
+
   Point(const UnitType & x, const UnitType & y)
     {
       px = x;
@@ -74,18 +74,18 @@ public:
       return sqrt(((double) px - point.px) * ((double) px - point.px) +
                   ((double) py - point.py) * ((double) py - point.py));
     }
-  
+
   double getDistanceFromOrigin() const
     {
       return sqrt(((double) px * px) + ((double) py * py));
     }
-  
+
   void rotateByRadians(double radians, int64_t x, int64_t y)
     {
       double r = sqrt(((double) x) * x + ((double) y) * y);
       double oldTheta = (x != 0) ? atan(((double) y) / x) :
         ((y > 0) ? M_PI_2 : -M_PI_2);
-      
+
       oldTheta += (x < 0) ? M_PI : 0;
       px = (UnitType) (.5 + r * cos(oldTheta - radians));
       py = (UnitType) (.5 + r * sin(oldTheta - radians));
@@ -95,7 +95,7 @@ public:
       double r = sqrt(((double) x) * x + ((double) y) * y);
       double oldTheta = (x != 0) ? atan(((double) y) / x) :
         ((y > 0) ? M_PI_2 : -M_PI_2);
-      
+
       oldTheta += (x < 0) ? M_PI : 0;
       px = (UnitType) (.5 + r * cos(oldTheta - radians));
       py = (UnitType) (.5 + r * sin(oldTheta - radians));
@@ -105,7 +105,7 @@ public:
       double r = sqrt(x * x + y * y);
       double oldTheta = (x != 0) ? atan(y / x) :
         ((y > 0) ? M_PI_2 : -M_PI_2);
-      
+
       oldTheta += (x < 0) ? M_PI : 0;
       px = (UnitType) (r * cos(oldTheta - radians));
       py = (UnitType) (r * sin(oldTheta - radians));
@@ -167,7 +167,7 @@ public:
           return false;
         }
       }
-      
+
       // line is not vertical
       if(px - p2.px == 0)
       {
@@ -226,7 +226,7 @@ public:
       os << point.px << "," << point.py;
       return os;
     }
-  
+
 protected:
   UnitType px;
   UnitType py;

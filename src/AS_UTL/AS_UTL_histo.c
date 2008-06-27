@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_histo.c,v 1.6 2006-11-14 19:58:23 eliv Exp $";
+static char CM_ID[] = "$Id: AS_UTL_histo.c,v 1.7 2008-06-27 06:29:21 brianwalenz Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -78,7 +78,7 @@ HISTOGRAM *create_histogram(
 			    int logarithmic)
 /* Create an initially empty histogram where buckets will be
    selected so that "sync" will be the low end of some bucket.  */
-{ 
+{
   HISTOGRAM *h;
   int *bucket_cnt,*bucket_min,*bucket_max;
   int *thescore;
@@ -91,7 +91,7 @@ HISTOGRAM *create_histogram(
   h->nsample     = nsample;
   h->nbucket     = nbucket;
   h->thescore    = thescore;
-  h->bucket_cnt  = bucket_cnt; 
+  h->bucket_cnt  = bucket_cnt;
   h->logarithmic = logarithmic;
 #ifdef DEBUG
   fprintf(stderr,"* nsamplle %d nbucket %d bucket_cnt %d log %d\n",
@@ -120,7 +120,7 @@ HISTOGRAM *create_histogram(
   return h;
 }
 
-void extend_histogram(  
+void extend_histogram(
 		      HISTOGRAM *h,
 		      int datasize,
 
@@ -177,7 +177,7 @@ void extend_histogram(
 
 void free_histogram(HISTOGRAM *h)
 /* Free the data structure for histogram "h" */
-{ 
+{
   assert(h != NULL);
   free(h->thescore);
   free(h->bucket_cnt);
@@ -188,7 +188,7 @@ void free_histogram(HISTOGRAM *h)
   free(h->aggr_data);
   free(h->bucket_min);
   free(h->bucket_max);
-  free((char *) h); 
+  free((char *) h);
 }
 
 static int bucket_from_score(HISTOGRAM *h, int thescore) {
@@ -221,14 +221,14 @@ static int bucket_from_score(HISTOGRAM *h, int thescore) {
 }
 
 static void fill(HISTOGRAM *h)
-{ 
+{
   /* Converts from sample-mode to bucket-mode */
   int is, ib;
   int low, hgh;
 
   assert(h != NULL);
   /* At this point h->sample[.] is a data value. */
-  if( h->cnt > 0 ) { 
+  if( h->cnt > 0 ) {
     low = hgh = h->thescore[0];
   } else {
     low = hgh = 0;
@@ -298,7 +298,7 @@ static void fill(HISTOGRAM *h)
 
 
 void add_to_histogram(HISTOGRAM *h,int thescore,DataType *data)
-{ 
+{
   assert(h != NULL);
   assert( !(h->datasize) || (data != NULL) );
 
@@ -315,7 +315,7 @@ void add_to_histogram(HISTOGRAM *h,int thescore,DataType *data)
   }
 
   if(( h->cnt == h->nsample) && (!(h->filled)))
-    { 
+    {
       fprintf(stderr,"CONVERTING HISTOGRAM TO BUCKET MODE\n");
       fill(h);
     }
@@ -356,19 +356,19 @@ void add_to_histogram(HISTOGRAM *h,int thescore,DataType *data)
 }
 
 static int compute_cm(HISTOGRAM *h, int rez, int numb) {
-  /* 
+  /*
      Compute the number of buckets per printed bucket.
    */
-  int cm; 
+  int cm;
   if (rez == 0)
     { cm = 1;}
   else
-    { 
+    {
       int nbuck_printed,bck;
       nbuck_printed = (numb-1)/rez+1;
       bck = nbuck_printed*(h->bucket_width);
 #ifdef NEVER
-      { 
+      {
 	double nrm;
 	nrm = pow(10.,floor(log10(1.*bck)));
 	if (bck/nrm < 1.001)
@@ -390,7 +390,7 @@ static int compute_cm(HISTOGRAM *h, int rez, int numb) {
   return cm;
 }
 
-static int compute_precision(HISTOGRAM *h,int min,int max) 
+static int compute_precision(HISTOGRAM *h,int min,int max)
 {
   int i, prec;
   /* "prec" is the number of digits necessary to print the integer. */
@@ -424,12 +424,12 @@ static int compute_proc(HISTOGRAM *h,int cs,int cm)
     if (s > max) max = s;
   }
   /* max is now the maximum value in a consolidated bucket */
-  
+
   if (max == 0)
     proc = 1;
   else
     proc = (int) log10(1.*max) + 1;
-  
+
   return proc;
 }
 
@@ -442,7 +442,7 @@ static int compute_proc(HISTOGRAM *h,int cs,int cm)
    case one would like to add some aligned columns after the output). */
 
 void print_histogram(FILE *fout, HISTOGRAM *h, int rez, int indent)
-{ 
+{
   int numb; /* The number of bins that have data. */
   int minb=0; /* The lowest index of a bin with data. */
   int maxb=0; /* The highest index of a bin with data. */
@@ -457,7 +457,7 @@ void print_histogram(FILE *fout, HISTOGRAM *h, int rez, int indent)
   printf("h->filled = %d\n",h->filled);
 #endif
 
-  if (h->cnt == 0) 
+  if (h->cnt == 0)
     { return ;}
 
 #ifdef DEBUG3
@@ -467,7 +467,7 @@ void print_histogram(FILE *fout, HISTOGRAM *h, int rez, int indent)
       DataType *data;
       fprintf(fout," %d : %d ",is,h->thescore[is]);
       if(h->datasize) {
-#ifdef USE_CUSTOM_INDEXING 
+#ifdef USE_CUSTOM_INDEXING
 	data = (h->indexdata)(h->sample_data,is);
 #else
 	assert(is >= 0 && is < h->nbucket);
@@ -482,7 +482,7 @@ void print_histogram(FILE *fout, HISTOGRAM *h, int rez, int indent)
 
   if (! h->filled)
     { fill(h);}
-  
+
   numb = 0;
   for (ib = 0; ib < h->nbucket; ib++) {
     int icnt;
@@ -562,7 +562,7 @@ void print_histogram(FILE *fout, HISTOGRAM *h, int rez, int indent)
     max_score = MIN(max_score,h->max);
     for (j = 0; j < cm; j++) {
       if( (ib+j >= 0) && (ib+j < h->nbucket) )
-	{ 
+	{
 	  sum_of_cnt += h->bucket_cnt[ib+j];
 	  min_score = MIN(min_score,h->bucket_min[ib+j]);
 	  max_score = MAX(max_score,h->bucket_max[ib+j]);
@@ -574,7 +574,7 @@ void print_histogram(FILE *fout, HISTOGRAM *h, int rez, int indent)
 	    assert((ib+j) >= 0 && (ib+j) < h->nbucket);
 	    data = getData(h->bucket_data,h->datasize,ib+j);
 #endif
-	    //	    fprintf(stderr,"* j = %d ib + j = %d data = 0x%x min %d max %d\n", j,ib + j, 
+	    //	    fprintf(stderr,"* j = %d ib + j = %d data = 0x%x min %d max %d\n", j,ib + j,
 	    //    data, min_score, max_score);
 	    if( j == 0 ) {
 #ifdef USE_CUSTOM_INDEXING
@@ -595,12 +595,12 @@ void print_histogram(FILE *fout, HISTOGRAM *h, int rez, int indent)
 #else
 	  memcpy(h->scan_data, h->temp_data, h->datasize);
 	  // setData(h->scan_data, h->datasize, 0, h->temp_data);
-#endif	
+#endif
 	} else {
 	  (h->aggregate)(h->scan_data,0,h->temp_data);
 	}
       }
-    
+
     if (sum_of_cnt > 0)
       {
 	//	fprintf(stderr,"* single %d min %d max %d sum_of_cnt = %d\n",
@@ -679,7 +679,7 @@ double histogram_stdev(HISTOGRAM *h)
       bck = 10.*nrm;
     h->bucket_width = bck;
     low = low - 10*bck;
-    
+
     idiff = h->sync - low;
     if (idiff < 0) {
       h->low = low - (-idiff)%(h->bucket_width);

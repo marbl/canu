@@ -47,7 +47,7 @@ while (scalar(@ARGV)) {
 
     my $found = 0;
     ($found, @ARGV) = localOption($arg, @ARGV);
-    
+
     if ($found == 1 ) {
     	next;
     }

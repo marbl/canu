@@ -6,7 +6,7 @@ use strict;
 
 sub createPostScaffolderConsensusJobs ($) {
     my $cgwDir   = shift @_;
-    my $consensusType = getGlobal("consensus"); 
+    my $consensusType = getGlobal("consensus");
 
     return if (-e "$wrk/8-consensus/jobsCreated.success");
 

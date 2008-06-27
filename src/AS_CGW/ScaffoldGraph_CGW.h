@@ -1,27 +1,27 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.24 2008-05-31 06:49:46 brianwalenz Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.25 2008-06-27 06:29:14 brianwalenz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
- *  
+ *
  *  Saul A. Kravitz 5/99
  *
  *  This is the proposed data structures and operations for the scaffold
@@ -159,7 +159,7 @@ void DumpChunkInstances(FILE *stream, ScaffoldGraphT *graph, int confirmedOnly,
 			int scaffoldedOnly, int uniqueToUniqueOnly,
 			int verbose);
 void DumpChunkInstance(FILE *stream, ScaffoldGraphT *graph,
-                       ChunkInstanceT *chunk, 
+                       ChunkInstanceT *chunk,
 		       int confirmedOnly, int scaffoldedOnly,
 		       int uniqueToUniqueOnly, int verbose);
 
@@ -225,7 +225,7 @@ int CleanupScaffolds(ScaffoldGraphT *graph, int lookForSmallOverlaps,
    performing the merges iteratively on subsets of the original failed merge.*/
 int CleanupFailedMergesInScaffolds(ScaffoldGraphT *sgraph);
 
-/*   Discard short (2kb or less) contigs that contain ONLY surrogates and 
+/*   Discard short (2kb or less) contigs that contain ONLY surrogates and
      should have been contigged, except for the fact the Merge Multi aligns
      failed. We delete these from their scaffold, delete the associated
      surrogate contigs and CIs, and adjust surrogate instance counts, as
@@ -250,12 +250,12 @@ void
 dumpContigInfo(ChunkInstanceT *contig);
 
 void
-GetContigPositionInScaffold(ChunkInstanceT *contig, int *left_end, int *right_end, 
+GetContigPositionInScaffold(ChunkInstanceT *contig, int *left_end, int *right_end,
                             int *contigScaffoldOrientation);
 
 void
 GetFragmentPositionInScaffold(CIFragT *frag,
-                              int *left_end, int *right_end, 
+                              int *left_end, int *right_end,
                               int *fragmentScaffoldOrientation);
 
 void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw);
@@ -323,7 +323,7 @@ void DumpACIScaffold(FILE *stream, ScaffoldGraphT *graph,
 void DumpACIScaffoldNew(FILE *stream, ScaffoldGraphT *graph,
                         CIScaffoldT *scaffold, int raw);
 void PrintContigEdgeInScfContext(FILE *fp, GraphCGW_T *graph,
-                                 char *label, EdgeCGW_T *edge, 
+                                 char *label, EdgeCGW_T *edge,
                                  CDS_CID_t cid);
 
 typedef enum {
@@ -430,7 +430,7 @@ void CelamyCIScaffolds(char * name, ScaffoldGraphT *graph);
 */
 void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold, int64 scaffoldAEndCoord, int64 scaffoldBEndCoord);
 void CelamyAssembly(char *name);
- 
+
 
 void FindScaffoldComponents(ScaffoldGraphT *graph, int findPaths);
 int MergeScaffoldPaths(ScaffoldGraphT *sgraph);
@@ -517,11 +517,11 @@ void SetContigScaffoldIds(ContigT *contig, CDS_CID_t scaffoldID);
   If operateOnMerged == TRUE, checks merged edges
   else                        checks raw edges
 */
-void MarkInternalEdgeStatus(ScaffoldGraphT *graph, 
-                            CIScaffoldT *scaffold, 
+void MarkInternalEdgeStatus(ScaffoldGraphT *graph,
+                            CIScaffoldT *scaffold,
                             float pairwiseChiSquaredThreshhold,
                             float maxVariance,
-                            int markTrusted, 
+                            int markTrusted,
                             int markUntrusted,
                             int doNotChange,
                             int operateOnMerged);
@@ -568,7 +568,7 @@ EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
                                     float chiSquareThreshold, int *alternate,
                                     int verbose);
 
-void CheckInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold, 
+void CheckInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
                              float pairwiseChiSquaredThreshhold,
                              float maxVariance,
                              int doNotChange, int verbose);

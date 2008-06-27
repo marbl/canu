@@ -2,27 +2,27 @@
 #
 ###########################################################################
 #
-# This file is part of Celera Assembler, a software program that 
+# This file is part of Celera Assembler, a software program that
 # assembles whole-genome shotgun reads into contigs and scaffolds.
 # Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received (LICENSE.txt) a copy of the GNU General Public 
+#
+# You should have received (LICENSE.txt) a copy of the GNU General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
 #
-# $Id: getIntraResults.sh,v 1.6 2005-12-16 22:13:07 catmandew Exp $
+# $Id: getIntraResults.sh,v 1.7 2008-06-27 06:29:17 brianwalenz Exp $
 #
 
 AS=${1}
@@ -44,12 +44,12 @@ function ProcessDirFiles
 {
   # count the number of chromosome input files - if it's only 1, treat differently
   declare -i numFiles=`ls | egrep "${AS}_(.+)_intra.txt" | gawk 'END{print NR}'`
-  
+
   # process each type of unsatisfied mate pair/bad interval
   for t in "${Type[@]}"; do
     string=""
     echo "Scanning ${t}"
-    
+
     # do each category of mate pairs within this type
     for s in "${Status[@]}"; do
       echo "  scanning ${s}"
@@ -57,7 +57,7 @@ function ProcessDirFiles
       # a couple filenames
       fn="${AS}.${t}.${s}.txt"
       fnA="${fn}A"
-      
+
       # delete temporary files to be written to
       if [ -f ${fnA} ]; then
         rm ${fnA}
@@ -95,7 +95,7 @@ function ProcessDirFiles
             gawk -v c=${chr} 'BEGIN{print c, 0}' >> ${fn}
           done
         fi
-        
+
       else
 
         # for non-raw types, scan .err files
@@ -116,7 +116,7 @@ function ProcessDirFiles
     # and strip out extra columns identifying the chromosome number
     paste -d ' ' ${string} |gawk '{if(NR==1){print "chromosome ,", $1, "," $2, "," $3}else{print $1, ",", $2, ",", $4, ",", $6}}' > ${AS}_${t}.csv
     # rm ${string}
-  
+
     echo "  getting lengths & weights"
     if [ ${numFiles} -gt 1 ]; then
       egrep weight ${AS}.*.${t}.ata |sed 's/[=.]/ /g' |gawk '{print $2, $9, $14}' > ${AS}.${t}.lengthsWeights.txt

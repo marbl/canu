@@ -4,7 +4,7 @@ asmFileS = ARGV[0]
 ARGV.shift
 asmFile = File.open( asmFileS )
 mates = {}
-ARGV.each do |frgFileS| 
+ARGV.each do |frgFileS|
     frgFile = File.open( frgFileS )
     frgFile.each_line do |line|
         if line[0,4] == '{LKG'
@@ -57,7 +57,7 @@ asmFile.each_line do |line|
                 surrUTGs[ acc ].push( mid )
                 if surrogates.has_key?( mid )
                     numAlreadySurr += 1
-                else 
+                else
                     surrogates[ mid ] = acc
 #                        surrogates[ mates[ mid ] ] = 1
                 end

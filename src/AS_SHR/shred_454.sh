@@ -9,8 +9,8 @@ echo "Input ACE file was..."
 echo $ACE
 ls -l $ACE
 
-if test $2 
-then 
+if test $2
+then
 QUAL=$2
 else
 QUAL=3

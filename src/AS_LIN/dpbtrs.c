@@ -1,84 +1,84 @@
 #include "f2c.h"
 
 /* Subroutine */ int dpbtrs_(char *uplo, integer *n, integer *kd, integer *
-	nrhs, doublereal *ab, integer *ldab, doublereal *b, integer *ldb, 
+	nrhs, doublereal *ab, integer *ldab, doublereal *b, integer *ldb,
 	integer *info)
 {
-/*  -- LAPACK routine (version 2.0) --   
-       Univ. of Tennessee, Univ. of California Berkeley, NAG Ltd.,   
-       Courant Institute, Argonne National Lab, and Rice University   
-       September 30, 1994   
+/*  -- LAPACK routine (version 2.0) --
+       Univ. of Tennessee, Univ. of California Berkeley, NAG Ltd.,
+       Courant Institute, Argonne National Lab, and Rice University
+       September 30, 1994
 
 
-    Purpose   
-    =======   
+    Purpose
+    =======
 
-    DPBTRS solves a system of linear equations A*X = B with a symmetric   
-    positive definite band matrix A using the Cholesky factorization   
-    A = U**T*U or A = L*L**T computed by DPBTRF.   
+    DPBTRS solves a system of linear equations A*X = B with a symmetric
+    positive definite band matrix A using the Cholesky factorization
+    A = U**T*U or A = L*L**T computed by DPBTRF.
 
-    Arguments   
-    =========   
+    Arguments
+    =========
 
-    UPLO    (input) CHARACTER*1   
-            = 'U':  Upper triangular factor stored in AB;   
-            = 'L':  Lower triangular factor stored in AB.   
+    UPLO    (input) CHARACTER*1
+            = 'U':  Upper triangular factor stored in AB;
+            = 'L':  Lower triangular factor stored in AB.
 
-    N       (input) INTEGER   
-            The order of the matrix A.  N >= 0.   
+    N       (input) INTEGER
+            The order of the matrix A.  N >= 0.
 
-    KD      (input) INTEGER   
-            The number of superdiagonals of the matrix A if UPLO = 'U',   
-            or the number of subdiagonals if UPLO = 'L'.  KD >= 0.   
+    KD      (input) INTEGER
+            The number of superdiagonals of the matrix A if UPLO = 'U',
+            or the number of subdiagonals if UPLO = 'L'.  KD >= 0.
 
-    NRHS    (input) INTEGER   
-            The number of right hand sides, i.e., the number of columns   
-            of the matrix B.  NRHS >= 0.   
+    NRHS    (input) INTEGER
+            The number of right hand sides, i.e., the number of columns
+            of the matrix B.  NRHS >= 0.
 
-    AB      (input) DOUBLE PRECISION array, dimension (LDAB,N)   
-            The triangular factor U or L from the Cholesky factorization 
-  
-            A = U**T*U or A = L*L**T of the band matrix A, stored in the 
-  
-            first KD+1 rows of the array.  The j-th column of U or L is   
-            stored in the j-th column of the array AB as follows:   
-            if UPLO ='U', AB(kd+1+i-j,j) = U(i,j) for MAX(1,j-kd)<=i<=j; 
-  
-            if UPLO ='L', AB(1+i-j,j)    = L(i,j) for j<=i<=MIN(n,j+kd). 
-  
+    AB      (input) DOUBLE PRECISION array, dimension (LDAB,N)
+            The triangular factor U or L from the Cholesky factorization
 
-    LDAB    (input) INTEGER   
-            The leading dimension of the array AB.  LDAB >= KD+1.   
+            A = U**T*U or A = L*L**T of the band matrix A, stored in the
 
-    B       (input/output) DOUBLE PRECISION array, dimension (LDB,NRHS)   
-            On entry, the right hand side matrix B.   
-            On exit, the solution matrix X.   
+            first KD+1 rows of the array.  The j-th column of U or L is
+            stored in the j-th column of the array AB as follows:
+            if UPLO ='U', AB(kd+1+i-j,j) = U(i,j) for MAX(1,j-kd)<=i<=j;
 
-    LDB     (input) INTEGER   
-            The leading dimension of the array B.  LDB >= MAX(1,N).   
-
-    INFO    (output) INTEGER   
-            = 0:  successful exit   
-            < 0:  if INFO = -i, the i-th argument had an illegal value   
-
-    ===================================================================== 
-  
+            if UPLO ='L', AB(1+i-j,j)    = L(i,j) for j<=i<=MIN(n,j+kd).
 
 
-       Test the input parameters.   
+    LDAB    (input) INTEGER
+            The leading dimension of the array AB.  LDAB >= KD+1.
 
-    
-   Parameter adjustments   
+    B       (input/output) DOUBLE PRECISION array, dimension (LDB,NRHS)
+            On entry, the right hand side matrix B.
+            On exit, the solution matrix X.
+
+    LDB     (input) INTEGER
+            The leading dimension of the array B.  LDB >= MAX(1,N).
+
+    INFO    (output) INTEGER
+            = 0:  successful exit
+            < 0:  if INFO = -i, the i-th argument had an illegal value
+
+    =====================================================================
+
+
+
+       Test the input parameters.
+
+
+   Parameter adjustments
        Function Body */
     /* Table of constant values */
     static integer c__1 = 1;
-    
+
     /* System generated locals */
     integer ab_dim1, ab_offset, b_dim1, b_offset, i__1;
     /* Local variables */
     static integer j;
     extern logical lsame_(char *, char *);
-    extern /* Subroutine */ int dtbsv_(char *, char *, char *, integer *, 
+    extern /* Subroutine */ int dtbsv_(char *, char *, char *, integer *,
 	    integer *, doublereal *, integer *, doublereal *, integer *);
     static logical upper;
     extern /* Subroutine */ int xerbla_(char *, integer *);
@@ -125,7 +125,7 @@
 
 /*           Solve U'*X = B, overwriting B with X. */
 
-	    dtbsv_("Upper", "Transpose", "Non-unit", n, kd, &AB(1,1), 
+	    dtbsv_("Upper", "Transpose", "Non-unit", n, kd, &AB(1,1),
 		    ldab, &B(1,j), &c__1);
 
 /*           Solve U*X = B, overwriting B with X. */
@@ -148,7 +148,7 @@
 
 /*           Solve L'*X = B, overwriting B with X. */
 
-	    dtbsv_("Lower", "Transpose", "Non-unit", n, kd, &AB(1,1), 
+	    dtbsv_("Lower", "Transpose", "Non-unit", n, kd, &AB(1,1),
 		    ldab, &B(1,j), &c__1);
 /* L20: */
 	}

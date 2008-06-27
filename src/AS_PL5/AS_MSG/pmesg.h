@@ -13,7 +13,7 @@
   SV **svs;
   int i;
 
-  if (argvi >= items) {            
+  if (argvi >= items) {
     EXTEND(sp,1);              /* Extend the stack by 1 object */
   }
   svs = (SV **) malloc(*$3 * sizeof(SV *));
@@ -36,8 +36,8 @@
 
 /* Typemap for the setters for struct types.
  */
-%typemap(in,numinputs=1) (void *objout, void **ary_in, int *elt_size, 
-                          int len, swig_type_info **ty) (void *j1, int j2, 
+%typemap(in,numinputs=1) (void *objout, void **ary_in, int *elt_size,
+                          int len, swig_type_info **ty) (void *j1, int j2,
                                                          swig_type_info *j3) {
   AV *ary;
 
@@ -48,7 +48,7 @@
   $1 = ary = (AV *)SvRV($input);
   $4 = av_len((AV *)ary) + 1;
 }
-%typemap(argout) (void *objout, void **ary_in, int *elt_size, 
+%typemap(argout) (void *objout, void **ary_in, int *elt_size,
                   int len, swig_type_info **ty) {
   AV *ary;
   SV *res, **item;
@@ -56,7 +56,7 @@
   char *raw;
   void *item_ptr;
 
-  if (argvi >= items) {            
+  if (argvi >= items) {
     EXTEND(sp,1);              /* Extend the stack by 1 object */
   }
 
@@ -81,14 +81,14 @@
 %define ARRAYOUT(parent,field,length,type)
      %ignore field;
      %extend parent {
-  void swig_ ## field ## _get(void **ary_out, int *elt_size, int *len, 
+  void swig_ ## field ## _get(void **ary_out, int *elt_size, int *len,
                               swig_type_info **ty) {
     *ary_out = $self-> ## field;
     *elt_size = sizeof(type);
     *len = $self-> ## length;
     *ty = SWIGTYPE_p_ ## type;
   }
-  void swig_ ## field ## _set(void *objout, void **ary_in, int *elt_size, 
+  void swig_ ## field ## _set(void *objout, void **ary_in, int *elt_size,
                               int len, swig_type_info **ty) {
     *ary_in = (void *)&($self-> ## field);
     *elt_size = sizeof(type);
@@ -104,14 +104,14 @@
 %define ARRAYOUT1(parent,field,length,type)
      %ignore field;
      %extend parent {
-  void swig_ ## field ## _get(void **ary_out, int *elt_size, int *len, 
+  void swig_ ## field ## _get(void **ary_out, int *elt_size, int *len,
                               swig_type_info **ty) {
     *ary_out = $self-> ## field;
     *elt_size = sizeof(type);
     *len = ($self-> ## length == 0) ? 1 : $self-> ## length;
     *ty = SWIGTYPE_p_ ## type;
   }
-  void swig_ ## field ## _set(void *objout, void **ary_in, int *elt_size, 
+  void swig_ ## field ## _set(void *objout, void **ary_in, int *elt_size,
                               int len, swig_type_info **ty) {
     *ary_in = (void *)&($self-> ## field);
     *elt_size = sizeof(type);

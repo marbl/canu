@@ -27,7 +27,7 @@
 #include "MultiAlignStore_CNS.h"
 #include "MultiAlignment_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.23 2008-06-16 16:58:54 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.24 2008-06-27 06:29:14 brianwalenz Exp $";
 
 static HashTable_AS *utgUID2IID;
 
@@ -47,7 +47,7 @@ static IntUnitigMesg* convert_UTG_to_IUM(SnapUnitigMesg* utgMesg)
   AS_IID    iid;
   int32  iidStatus;
   AS_IID    *di;
-  IntUnitigMesg *iumMesg = 
+  IntUnitigMesg *iumMesg =
     (IntUnitigMesg*) safe_malloc(sizeof(IntUnitigMesg));
 
 #if DEBUG > 1
@@ -64,7 +64,7 @@ static IntUnitigMesg* convert_UTG_to_IUM(SnapUnitigMesg* utgMesg)
   }
 
   /* Set all toplevel fields */
-  
+
   iumMesg->iaccession      = utgMesg->iaccession;
 
 #ifdef AS_ENABLE_SOURCE
@@ -87,22 +87,22 @@ static IntUnitigMesg* convert_UTG_to_IUM(SnapUnitigMesg* utgMesg)
       iumMesg->f_list[i].sourceInt = atoi(utgMesg->f_list[i].source);
 #endif
       iid = getGatekeeperUIDtoIID(gkpStore, utgMesg->f_list[i].eident, NULL);
-      
+
       if( iid == 0 ){
 	fprintf(stderr,"Error: Unknown uid fragment ID %s at %s:%d\n",
 		AS_UID_toString(utgMesg->f_list[i].eident),__FILE__,__LINE__);
 	exit(1);
       }
-      
+
       iumMesg->f_list[i].ident       = iid;
       iumMesg->f_list[i].delta_length = utgMesg->f_list[i].delta_length;
       iumMesg->f_list[i].position     = utgMesg->f_list[i].position;
-      
+
       if( iumMesg->f_list[i].delta_length > 0 ){
 	iumMesg->f_list[i].delta = utgMesg->f_list[i].delta;
       }
       else
-	iumMesg->f_list[i].delta = NULL; 
+	iumMesg->f_list[i].delta = NULL;
     }
   }
 
@@ -113,7 +113,7 @@ static IntUnitigMesg* convert_UTG_to_IUM(SnapUnitigMesg* utgMesg)
 
 static IntConConMesg* convert_CCO_to_ICM(SnapConConMesg* ccoMesg)
      /* converts a SnapConConMesg to an IntConConMessage.
-	What happens ? 
+	What happens ?
 	- mostly UID to IID mapping
      */
 {
@@ -121,7 +121,7 @@ static IntConConMesg* convert_CCO_to_ICM(SnapConConMesg* ccoMesg)
   AS_IID    iid;
 
   IntConConMesg *icmMesg = (IntConConMesg*) safe_malloc(sizeof(IntConConMesg));
-  
+
   /* we assume that the numbers are in ascending order */
 
   icmMesg->iaccession = ccoMesg->iaccession;
@@ -133,26 +133,26 @@ static IntConConMesg* convert_CCO_to_ICM(SnapConConMesg* ccoMesg)
   icmMesg->num_pieces = ccoMesg->num_pieces;
   icmMesg->num_unitigs= ccoMesg->num_unitigs;
   icmMesg->num_vars   = ccoMesg->num_vars;  // affects .asm/CCO
- 
+
   if (icmMesg->num_vars > 0) {
      icmMesg->v_list = (IntMultiVar*) safe_malloc(ccoMesg->num_vars*sizeof(IntMultiVar));
      for(i=0; i<icmMesg->num_vars; i++) // i loop
      {
         icmMesg->v_list[i].position       = ccoMesg->vars[i].position;
-        icmMesg->v_list[i].num_reads      = ccoMesg->vars[i].num_reads; 
+        icmMesg->v_list[i].num_reads      = ccoMesg->vars[i].num_reads;
         icmMesg->v_list[i].min_anchor_size    = ccoMesg->vars[i].min_anchor_size;
         icmMesg->v_list[i].var_length     = ccoMesg->vars[i].var_length ;
         icmMesg->v_list[i].nr_conf_alleles=strdup(ccoMesg->vars[i].nr_conf_alleles);
         icmMesg->v_list[i].weights        = strdup(ccoMesg->vars[i].weights);
-        icmMesg->v_list[i].var_seq        = strdup(ccoMesg->vars[i].var_seq);  
+        icmMesg->v_list[i].var_seq        = strdup(ccoMesg->vars[i].var_seq);
         icmMesg->v_list[i].conf_read_iids = strdup(ccoMesg->vars[i].conf_read_iids);
      }
-      
+
   } else {
     icmMesg->v_list=NULL;
   }
 
-  if( icmMesg->num_pieces > 0 ){ 
+  if( icmMesg->num_pieces > 0 ){
     icmMesg->pieces = (IntMultiPos*) safe_malloc(icmMesg->num_pieces*sizeof(IntMultiPos));
     for(i=0; i<icmMesg->num_pieces; i++){// i loop
       icmMesg->pieces[i].type = ccoMesg->pieces[i].type;
@@ -169,16 +169,16 @@ static IntConConMesg* convert_CCO_to_ICM(SnapConConMesg* ccoMesg)
       icmMesg->pieces[i].ident       = iid;
       icmMesg->pieces[i].delta_length = ccoMesg->pieces[i].delta_length;
       icmMesg->pieces[i].position     = ccoMesg->pieces[i].position;
-      
+
       if( icmMesg->pieces[i].delta_length > 0 ){
 	icmMesg->pieces[i].delta = ccoMesg->pieces[i].delta; /*** COPY BY REFERENCE ***/
       }
       else
 	icmMesg->pieces[i].delta = NULL;
-      
-    }  
+
+    }
   }
-  
+
   if( icmMesg->num_unitigs > 0 ){
     icmMesg->unitigs = (IntUnitigPos*) safe_malloc(icmMesg->num_unitigs*sizeof(IntUnitigPos));
     for(i=0; i<icmMesg->num_unitigs; i++){
@@ -265,9 +265,9 @@ int main (int argc, char *argv[]) {
 
     optarg = NULL;
     ALIGNMENT_CONTEXT=AS_CONSENSUS;
-    
-    while ( !errflg && 
-           ( (ch = getopt(argc, argv, 
+
+    while ( !errflg &&
+           ( (ch = getopt(argc, argv,
                  "f:g:hKM:mq:w:X")) != EOF))
     {
         switch(ch) {
@@ -286,7 +286,7 @@ int main (int argc, char *argv[]) {
           help_flag = 1;
           break;
         case 'K':
-          options.split_alleles = 0;                   
+          options.split_alleles = 0;
           iflags++;
           break;
         case 'M':
@@ -316,9 +316,9 @@ int main (int argc, char *argv[]) {
     }
     if ( (argc - iflags) != 1)  help_flag = 1;
 
-    if (help_flag) 
+    if (help_flag)
         help_message(argc, argv);
-   
+
     if ( illegal_use ) {
         fprintf(stderr,"\n %s -h provides usage information.\n",argv[0]);
         exit(1);
@@ -350,12 +350,12 @@ int main (int argc, char *argv[]) {
       int contig_count=0,unitig_count=0;
       VA_TYPE(char) *recalled_sequence=CreateVA_char(200000);
       VA_TYPE(char) *recalled_quality=CreateVA_char(200000);
-      GenericMesg *pmesg;  
-      GenericMesg tmesg;  
+      GenericMesg *pmesg;
+      GenericMesg tmesg;
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.23 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.24 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 
@@ -389,7 +389,7 @@ int main (int argc, char *argv[]) {
 	    icontig = convert_CCO_to_ICM(econtig);
 	    ma = CreateMultiAlignTFromICM(icontig, icontig->iaccession, 0);
 	    MultiAlignContig_ReBasecall(ma,recalled_sequence,recalled_quality,&options);
-	    { 
+	    {
 	      char *ptr;
 
 	      //ptr = Getchar(ma->consensus,0);
@@ -403,7 +403,7 @@ int main (int argc, char *argv[]) {
 	      strcpy(econtig->quality,ptr);
 
 	    }
-	    { 
+	    {
 	      int i;
 	      if(icontig->v_list!=NULL){
 		for(i=0;i<icontig->num_vars;i++){

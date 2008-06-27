@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.25 2008-06-16 06:12:32 brianwalenz Exp $
- * $Revision: 1.25 $
+ * $Id: AS_OVL_overlap.h,v 1.26 2008-06-27 06:29:18 brianwalenz Exp $
+ * $Revision: 1.26 $
 */
 
 
@@ -45,28 +45,28 @@
 //   Last revised:  7 Jan 99
 //
 //   Reference:  "Overlap Module.rtf"
-// 
+//
 //  Description:
-// 
+//
 //   This component reads a stream of fragments, computes which of
 //   them overlap, i.e., match (within error tolerance) to the
 //   end of a fragment in both directins.  The output is a stream
 //   of overlap messages.  The input fragments are also saved in
 //   a fragment store.
-//      
-// 
+//
+//
 // Memory Usage:
-// 
+//
 //   This component allocates its own memory.
-// 
+//
 // Interface:
-// 
+//
 //   Uses the persistent fragment store created and maintained by
 //   AS_OVL_driver.c .  Outputs overlap messages
 //   to proto-I/O stream.
-// 
+//
 // Design:
-// 
+//
 //   Uses 2 streams of fragments.  From the New stream, a
 //   hash-table index is built for each k-mer occuring in those
 //   fragments.  The hash-table entries point to the start position
@@ -78,7 +78,7 @@
 //   fragment number and offset within that fragment of the
 //   referenced position.  The start position of each fragment is
 //   contained in the global array  String_Start .
-// 
+//
 //   Hash entries are in buckets.  Each entry also has a  Check  byte.
 //   The  Check  byte is a small secondary hash key to minimize
 //   unnecessary accesses to the main fragment array.  When a
@@ -88,12 +88,12 @@
 //   entry does not match.  When the  Check  byte does match, the
 //   k-mer must still be verified by following the reference to
 //   the actual fragment data.
-// 
+//
 //   Collisions are handled by secondary hashing.  A second hash
 //   value is computed from the k-mer, and this value is used as
 //   the distance to go to the next bucket (modulo the hash table
 //   size).
-// 
+//
 //   The second stream of fragments is the Old stream.  For each
 //   fragment in it, all the k-mers are looked up in the hash
 //   table.  Each match is stored for later processing.  Matches
@@ -101,7 +101,7 @@
 //   table), and then coallesced into contiguous exact-match
 //   regions of length longer than  k .  These exact-match regions
 //   are kept as a linked list associated with each fragment.
-// 
+//
 //   For each fragment the longest exact-match region is found.
 //   Then an edit-distance calculation (aka Smith-Waterman)
 //   is done in the forward direction to see how far that match
@@ -130,18 +130,18 @@
 //   Each fragment in the Old stream is processed twice.  Once in
 //   the input orientation, and then again after being
 //   reverse-complemented.
-// 
+//
 // Limitations:
-// 
+//
 //   The number of fragments in the New stream stored in the hash
 //   table is assumed to be at most  Max_Hash_Strings .
-// 
+//
 //   MAX_ERRORS  must be at least  ERROR_RATE * AS_READ_MAX_LEN .
 //
 //   Max_Hash_Strings  must be  < 2^21 .
-// 
+//
 // Status:
-// 
+//
 //   Full overlaps are working.
 //   Branch points are removed.
 //   No quality values are being used.
@@ -150,9 +150,9 @@
 //   SuperRepeats are not filtered.
 //   Nothing special is done to detect microsat/polymorphic overlaps.
 //   No special handling is given to periodic k-mers/overlap regions.
-// 
+//
 // Architecture and Dependencies:
-// 
+//
 //   AS_OVL_delcher.h   Generic  #includes  and simple function prototypes
 //   AS_OVL_delcher.c   Corresponding function definitions
 //   AS_OVL_driver.c    Routines to create and update fragment store
@@ -162,7 +162,6 @@
 //
 
 
-
 /***************************************************************/
 /* Constant definitions; Macro definitions; type definitions */
 /***************************************************************/
@@ -194,12 +193,12 @@
     //  ALH: Scoring seems to be unusual: given an alignment
     //  of length l with k mismatches, the score seems to be
     //  computed as l + k * error value and NOT (l-k)*match+k*error
-    // 
+    //
     //  I.e. letting x := DEFAULT_BRANCH_MATCH_VAL,
     //  the max mismatch fraction p to give a non-negative score
     //  would be p = x/(1-x); conversely, to compute x for a
-    //  goal p, we have x = p/(1+p).  E.g. 
-    //  for p=0.06, x = .06/(1.06) = .0566038; 
+    //  goal p, we have x = p/(1+p).  E.g.
+    //  for p=0.06, x = .06/(1.06) = .0566038;
     //  for p=0.35, x = .35/(1.35) = .259259
     //  for p=0.2, x = .2/(1.2) = .166667
     //  for p=0.15, x = .15/(1.15) = .130435
@@ -438,7 +437,7 @@ typedef  struct String_Olap_Node
                                       //   matches to this frag
    int32  diag_ct;                    // Count of all k-mer matches to this
                                       //   frag
-#if  SHOW_STATS                          
+#if  SHOW_STATS
    int32  Kmer_Hits;
 #endif
    signed int  Next : 29;             // Next match if this is a collision

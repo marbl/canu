@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: processIntra.cc,v 1.11 2008-03-18 07:02:46 brianwalenz Exp $ */
+/* $Id: processIntra.cc,v 1.12 2008-06-27 06:29:17 brianwalenz Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -137,7 +137,7 @@ void PrintSingleBPFieldLabels(ofstream & listOS)
 void PrintDoubleBPFieldLabels(ofstream & listOS)
 {
   listOS << "Breakpoint Intervals\n";
-  
+
   listOS << "Left Interval\t\t"
          << "Right Interval\t\t"
          << "Problem Length\t"
@@ -194,7 +194,7 @@ void PrintOutput(vector<CompositeMPPolygon<UNIT_TYPE> > & printmpps,
       sprintf(type, "unk");
       break;
   }
-  
+
   if(printATA)
   {
     sprintf(outFilename, "%s.%s.%s.%s.ata",
@@ -203,7 +203,7 @@ void PrintOutput(vector<CompositeMPPolygon<UNIT_TYPE> > & printmpps,
     ataOS << "! format ata 1.0\n";
     ataOS << "# numStddevs=" << numStddevs << endl;
   }
-    
+
   if(printGnuplot)
   {
     sprintf(outFilename, "%s.%s.%s.%s.gp",
@@ -221,9 +221,9 @@ void PrintOutput(vector<CompositeMPPolygon<UNIT_TYPE> > & printmpps,
     {
       CompressedRepresentation_e cr = (mpii == MPI_COMPRESSED ?
                                        CR_NATIVE : CR_COMPATIBLE);
-      
+
       mppIter->printForGnuplot(gnuOS, cr);
-      
+
       for(unsigned int i = 0; i < mppIter->getNumMPs(); i++)
       {
         mpps[mppsMap[(mppIter->getMP(i)).getLeftFragUID()]].printForGnuplot(gnuOS, cr);
@@ -232,10 +232,10 @@ void PrintOutput(vector<CompositeMPPolygon<UNIT_TYPE> > & printmpps,
 
     mppIter->printSummary(listOS, seqID, type, polymorphic);
   }
-  
+
   if(printGnuplot)
     gnuOS.close();
-  
+
   if(printATA)
     ataOS.close();
 }
@@ -262,7 +262,7 @@ void Usage(char * progname, char * message)
   cerr << "\n\n";
   exit(1);
 }
-  
+
 
 int main(int argc, char ** argv)
 {
@@ -277,7 +277,7 @@ int main(int argc, char ** argv)
   bool printRaw = false;
   unsigned int i;
   int relativeID = 1;
-  
+
   {
     int ch, errflg = 0;
     // while(!errflg && ((ch = getopt(argc, argv, "l:m:n:a:c:gf:e")) != EOF))
@@ -409,7 +409,7 @@ int main(int argc, char ** argv)
       rightMostCoord = (rightMostCoord > mps[i].getRightCoord() ?
                         rightMostCoord : mps[i].getRightCoord());
     }
-    
+
     cout << rightMostCoord
          << " is right-most coordinate of any mated fragment\n";
     for(liter = libs.begin(); liter != libs.end(); liter++)
@@ -421,7 +421,7 @@ int main(int argc, char ** argv)
     }
     cout << badLibMatePairs
          << " mate pairs omitted from bad clone libraries\n";
-    
+
     // cerr << "Sorting mate pairs left to right\n";
     // sort by left coordinate, remove coincident pairs, & populate vectors
     int numCoincident = 0;
@@ -444,7 +444,7 @@ int main(int argc, char ** argv)
           mpli = mpl[mpii].erase(mpli);
           continue;
         }
-           
+
         // add a composite mate pair polygon to the vector
         MatePairPolygon<UNIT_TYPE> mpp(*mpli,
                                        libs[mpli->getLibUID()],
@@ -466,7 +466,7 @@ int main(int argc, char ** argv)
             mpps[MPI_INVERSION].size();
           mpps[MPI_INVERSION].push_back(cmpp);
         }
-          
+
         // for detecting transpositions
         if(cmpp.isOuttie() || cmpp.isStretched() || cmpp.isCompressed())
         {
@@ -477,7 +477,7 @@ int main(int argc, char ** argv)
             mpps[MPI_TRANSPOSITION].size();
           mpps[MPI_TRANSPOSITION].push_back(cmpp);
         }
-        
+
         numCoincident--;
         numKept++;
         // remove this & all coincident mate pairs
@@ -503,7 +503,7 @@ int main(int argc, char ** argv)
                           assembly, seqID);
       }
     }
-    
+
     // filter out coincident satisfied mate pairs
     // NOTE: this won't necessarily remove all coincident mate pairs...
     mpl[MPI_SATISFIED].sort();
@@ -554,7 +554,7 @@ int main(int argc, char ** argv)
     }
     if(printRaw)
       PrintRawSatisfiedMatePairs(smpsv, assembly, seqID);
-      
+
     cout << smpsv.size() / 2 << " raw "
          << MatePairLabel[MPI_SATISFIED] << " mate pairs\n";
 
@@ -570,7 +570,7 @@ int main(int argc, char ** argv)
 #ifdef DEBUG_PROCESSMPS
   cerr << "Looking for unions of intersecting MBRs\n";
 #endif
-  
+
   // cerr << "Processing mate pair polygons\n";
 
   ofstream listOS;
@@ -592,7 +592,7 @@ int main(int argc, char ** argv)
          << "Type\t"
          << "PolyMorphic\t"
          << "NumMPs\n";
-  
+
   vector<CompositeMPPolygon<UNIT_TYPE> > cmpps[MPI_NUM_INDICES]; // clustered
   list<Rectangle<int, UNIT_TYPE> > rects1;
   for(int mpii = 0; mpii <= MPI_INVERSION; mpii++)
@@ -644,7 +644,7 @@ int main(int argc, char ** argv)
           */
         }
       }
-      
+
       if(mpii == MPI_STRETCHED ||
          mpii == MPI_COMPRESSED ||
          mpii == MPI_INVERSION)
@@ -687,7 +687,7 @@ int main(int argc, char ** argv)
           }
           */
         }
-        
+
         if(cmpps[mpii].size() > 0)
         {
           PrintOutput(cmpps[mpii], (MatePairIndex_e) mpii,

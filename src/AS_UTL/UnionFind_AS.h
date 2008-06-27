@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: UnionFind_AS.h,v 1.4 2005-03-22 19:49:30 jason_miller Exp $	 */
+/* 	$Id: UnionFind_AS.h,v 1.5 2008-06-27 06:29:21 brianwalenz Exp $	 */
 #ifndef UNION_FIND_H
 #define UNION_FIND_H
 
@@ -29,7 +29,7 @@
   First, create a UFData object for the problem you are solving, where
   problemSize is the number of nodes in your graph:
 
-      UFDataT *UFData = UFCreateSets(<problemSize>); 
+      UFDataT *UFData = UFCreateSets(<problemSize>);
 
   Second, associate each set with one of your nodes:
 
@@ -72,7 +72,7 @@
    Data structure for a set in the Union Find Algorithm.
 */
 typedef struct {
-  void *data;        // Client uses this 
+  void *data;        // Client uses this
   int count;         // Number of elements in a set. Zero if not a definition
   int parent;        // Used for set tree structure
   int component;     // Final numbering of this set
@@ -116,7 +116,7 @@ void UFFreeSets(UFDataT *data);
 int UFFind(UFDataT *data, int setID);
 
 /* UFUnion
-   Performs the Union operator between the two sets 
+   Performs the Union operator between the two sets
 */
 void UFUnion(UFDataT *data, int setA, int setB);
 

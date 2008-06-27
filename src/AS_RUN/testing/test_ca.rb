@@ -2,8 +2,8 @@
 
 ######################################################################
 # test_ca.rb
-# 
-# $Id: test_ca.rb,v 1.5 2007-06-18 19:31:59 skoren Exp $
+#
+# $Id: test_ca.rb,v 1.6 2008-06-27 06:29:21 brianwalenz Exp $
 #
 # Terms:
 #   test spec - combination of version, run script, config file, recipe script,
@@ -31,7 +31,7 @@
 #          qc comparison relative to baseline
 #          tampa comparison relative to baseline
 #          judgment as to whether superior or inferior relative to baseline(?)
-#          
+#
 #
 ######################################################################
 
@@ -159,7 +159,7 @@ class File
     true_path = name
     true_path = File.readlink(true_path) while(File.ftype(true_path) == "link")
     File.exists?(true_path) ? File.expand_path(true_path) : nil
-  end  
+  end
 
   def File.get_name_and_original(full_path)
     return [File.split(full_path)[-1], File.original(full_path)]
@@ -174,7 +174,7 @@ end # end of File class modification
 class Dir
   def Dir.create_sub_dir(name)
     Dir.mkdir(name) if(!File.original(name))
-      
+
     if(!File.original(name) || File.ftype(File.original(name)) != "directory")
       return nil
     else
@@ -290,7 +290,7 @@ class AssemblerTestSpec
                                     @script_type == "carun")
     errors << "Recipe script does not exist" if(@script_type == "carun" &&
                                                 !File.exists?(@recipe_script))
-                                                
+
     errors << "Whitespace in version" if(@version =~ /\s/)
     errors << "Whitespace in label" if(@label =~ /\s/)
     return errors.join("\n") if(errors.size > 0)
@@ -303,7 +303,7 @@ end # end of assembler test spec class
 ######################################################################
 # Assembler Test Class
 class AssemblerTest
-  
+
   attr_reader :test_spec, :genome, :test_dir
   attr_reader :command, :config_file
   attr_reader :request_file
@@ -445,7 +445,7 @@ class Genome
         logger.log("Failed to create directory #{@dir}")
         return false
       end
-      
+
       Dir.chdir(@dir)
       # check-for required genome files
       run_pullfrag = false
@@ -456,7 +456,7 @@ class Genome
           break;
         end
       end
-      
+
       # run pullfrag
       if(run_pullfrag)
         command = "#{Dependencies[:pullfrag]} -i -D #{@name} -o #{@name}"
@@ -609,7 +609,7 @@ test_spec_files.sort{|a,b| a[1] <=> b[1]}.each do |fn, count|
 
     # create a test spec object from the line
     test_spec = AssemblerTestSpec.new(spec_line)
-    
+
     # check for spec errors
     errors = test_spec.errors
     if(errors)
@@ -676,7 +676,7 @@ Log.log("\n\n")
 # move to next phase - setting up runs
 genomes.values.each do |genome|
   Dir.chdir(run_dir)
-  
+
   if(!genome.set_up(run_dir, Log))
     Log.log("Failed to create genome #{genome.name} input files.")
     Log.log("Skipping #{genome.name}.")
@@ -685,7 +685,7 @@ genomes.values.each do |genome|
 
   Dir.chdir(TestDir)
   assembler_tests = []
-  
+
   # loop over test specs and execute them
   spec_order.keys.sort.each do |i|
 
@@ -777,6 +777,6 @@ genomes.values.each do |genome|
     Log.log("Fewer than 2 tests ran to completion for #{genome.name}.")
     Log.log("No QC or TAMPA comparisons to run.")
   end # check if there are two or more assemblies to compare
-  
+
   Log.log("Done.", true)
 end

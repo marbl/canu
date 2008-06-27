@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -37,7 +37,7 @@ static void addParamEntry( paramEntryT * const newParam);
 static paramEntryT* allocParamEntry(void)
 {
   paramEntryT *newParam;
-  
+
   newParam = (paramEntryT *) malloc( sizeof(paramEntryT));
   if (newParam != NULL)
 	return newParam;
@@ -72,25 +72,25 @@ char* getParam(char const * const paramNameIn)
 	paramNameInPtr++;
 	moduleNameLength++;
   }
-  
+
   for ( i = 0; i < moduleNameLength; i++)
 	moduleName[i] = paramNameIn[i];
   moduleName[i] = '\0';
-  
+
   // move past '.'
   paramNameInPtr++;
-  
+
   paramNameLength = 0;
   while (*paramNameInPtr != '\0')
   {
 	paramNameInPtr++;
 	paramNameLength++;
   }
-  
+
   for ( i = 0; i < paramNameLength; i++)
 	paramName[i] = paramNameIn[moduleNameLength + 1 + i];
   paramName[i] = '\0';
-  
+
   while (currentParamEntry != NULL)
   {
 	if (!strcmp( moduleName, currentParamEntry->paramModule))
@@ -103,7 +103,7 @@ char* getParam(char const * const paramNameIn)
 	}
 	currentParamEntry = currentParamEntry->next;
   }
-  
+
   if (foundParamEntry) {
 	return (currentParamEntry->paramValue);
   }
@@ -115,23 +115,23 @@ int getAllParams(const char * const moduleNameIn, char **returnBuffer)
   paramEntryT *currentParamEntry = firstParamEntry;
   char *tempBufferPos;
   char tempBuffer[MAXRETURNBUFFERLENGTH];
-  
+
   tempBufferPos = tempBuffer;
-  
+
   while (currentParamEntry != NULL)
   {
 	if (!strcmp(moduleNameIn, currentParamEntry->paramModule))
-	{  
+	{
 	  strncpy( tempBufferPos, currentParamEntry->paramModule, strlen(currentParamEntry->paramModule));
 	  tempBufferPos += strlen(currentParamEntry->paramModule);
 	  strncpy( tempBufferPos, ".", 1);
 	  tempBufferPos++;
-	  
+
 	  strncpy( tempBufferPos, currentParamEntry->paramName, strlen(currentParamEntry->paramName));
 	  tempBufferPos += strlen(currentParamEntry->paramName);
 	  strncpy( tempBufferPos, " ", 1);
 	  tempBufferPos++;
-	  
+
 	  strncpy( tempBufferPos, currentParamEntry->paramValue, strlen(currentParamEntry->paramValue));
 	  tempBufferPos += strlen(currentParamEntry->paramValue);
 	  strncpy( tempBufferPos, " ", 1);
@@ -148,21 +148,21 @@ int getAllParams(const char * const moduleNameIn, char **returnBuffer)
 int loadParams(const char * const filename)
 {
   FILE * paramFile;
-  char buffer[ INPUTMAX ]; 
+  char buffer[ INPUTMAX ];
   char *currentChar;
   int i;
   int paramModuleLength, paramNameLength, paramValueLength;
   char *paramModuleStart, *paramNameStart, *paramValueStart;
   int verbose = 0;
   paramEntryT *newParamEntry;
-  
+
   paramFile = fopen( filename, "r");
   if (paramFile == NULL)
   {
 	fprintf(stderr, "Could not open %s\n", filename);
 	return(PARAM_PROC_FAILURE);
   }
-  
+
   while (fgets( buffer, INPUTMAX, paramFile) != NULL)
   {
 	int done = 0;
@@ -173,7 +173,7 @@ int loadParams(const char * const filename)
 	// ignore leading spaces
 	while (isspace(*currentChar))
 	  currentChar++;
-	
+
 
 	// check to see if line is a comment or empty (fgets sets null char past last char)
 	if (*currentChar == '#' || *currentChar == 0)
@@ -187,14 +187,14 @@ int loadParams(const char * const filename)
 
 	  paramModuleLength = 0;
 	  paramModuleStart = currentChar;
-	  
+
 	  // get module name
 	  while ( isalnum(*currentChar))
 	  {
 		paramModuleLength++;
 		currentChar++;
 	  }
-	  
+
 	  if ( *currentChar != '.')
 	  {
 		fprintf( stderr, "Missing \'.\', line: %s\n", buffer);
@@ -209,10 +209,10 @@ int loadParams(const char * const filename)
 		  fprintf (stderr, "%c", paramModuleStart[i]);
 		fprintf( stderr, "\n");
 	  }
-	  
+
 	  // move past .
 	  currentChar++;
-	  
+
 	  // check to make sure next character is not a space or any other baddie
 	  if (!isalnum( *currentChar))
 	  {
@@ -220,19 +220,19 @@ int loadParams(const char * const filename)
 		fprintf( stderr, "*currentChar: %c\n", *currentChar);
 		assert(0);
 	  }
-		
+
 
 	  ////// name //////
 	  paramNameLength = 0;
 	  paramNameStart = currentChar;
-	
+
 	  // get parameter name
 	  while (isalnum(*currentChar) || ('_' == (*currentChar)))
 	  {
 		paramNameLength++;
 		currentChar++;
 	  }
-	  
+
 	  // ignore spaces
 	  while (*currentChar == ' ')
 		currentChar++;
@@ -244,7 +244,7 @@ int loadParams(const char * const filename)
 		fprintf( stderr, "*currentChar: %c\n", *currentChar);
 		assert(0);
 	  }
-	  
+
 	  if (verbose)
 	  {
 		fprintf( stderr, "paramName: ");
@@ -252,7 +252,7 @@ int loadParams(const char * const filename)
 		  fprintf (stderr, "%c", paramNameStart[i]);
 		fprintf( stderr, "\n");
 	  }
-	  
+
 	  // move past =
 	  currentChar++;
 
@@ -265,7 +265,7 @@ int loadParams(const char * const filename)
 
 	  paramValueLength = 0;
 	  paramValueStart = currentChar;
-	  
+
 	  while (isalnum(*currentChar) || ('_' == (*currentChar)))
 	  {
 		paramValueLength++;
@@ -279,7 +279,7 @@ int loadParams(const char * const filename)
 		  fprintf (stderr, "%c", paramValueStart[i]);
 		fprintf( stderr, "\n");
 	  }
-	  
+
 	  newParamEntry = allocParamEntry();
 	  strncpy( newParamEntry->paramModule, paramModuleStart, paramModuleLength);
 	  newParamEntry->paramModule[paramModuleLength] = '\0';
@@ -289,10 +289,10 @@ int loadParams(const char * const filename)
 
 	  strncpy( newParamEntry->paramValue, paramValueStart, paramValueLength);
 	  newParamEntry->paramValue[paramValueLength] = '\0';
-	  
+
 	  addParamEntry( newParamEntry );
-	  
-	  done = 1;	  
+
+	  done = 1;
 	}
   }
   fclose (paramFile);
@@ -303,19 +303,19 @@ void main_test(void)
 {
   char *allParams;
   int length;
-  
+
   loadParams("/work/assembly/flanigmj/test_12_9/cds/AS/src/AS_UTL/mymod");
   loadParams("/work/assembly/flanigmj/test_12_9/cds/AS/src/AS_UTL/yourmod");
 
   fprintf( stderr, "\n Searching...\n");
   fprintf( stderr, "mymod.param1: %s\n", getParam("mymod.param1"));
-  
+
   length = getAllParams( "mymod", &allParams );
   fprintf( stderr, "allParams: %s\n", allParams);
   fprintf( stderr, "length: %d\n", length);
-  
+
   length = getAllParams( "yourmod", &allParams );
   fprintf( stderr, "allParams: %s\n", allParams);
   fprintf( stderr, "length: %d\n", length);
-  
+
 }

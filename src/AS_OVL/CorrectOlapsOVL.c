@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -23,22 +23,22 @@
 * Description:
 *   Based on overlaps between DNA fragment sequences, make corrections
 *   to single bases in the sequences.
-* 
+*
 *    Programmer:  A. Delcher
 *       Started:  11 Dec 2000
-* 
+*
 * Assumptions:
-* 
+*
 * Notes:
 *
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.31 2008-06-16 16:58:55 brianwalenz Exp $
- * $Revision: 1.31 $
+ * $Id: CorrectOlapsOVL.c,v 1.32 2008-06-27 06:29:18 brianwalenz Exp $
+ * $Revision: 1.32 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.31 2008-06-16 16:58:55 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.32 2008-06-27 06:29:18 brianwalenz Exp $";
 
 
 //  System include files
@@ -135,7 +135,7 @@ typedef  struct
    int16  adjust_ct;
   }  Frag_Info_t;
 
-typedef  struct                 
+typedef  struct
   {
    int32   a_iid, b_iid;
    int16   a_hang, b_hang;
@@ -811,7 +811,7 @@ static void  Display_Alignment
       j ++;
      }
    top [top_len] = '\0';
-     
+
 
    i = j = 0;
    for  (k = 0;  k < delta_ct;  k ++)
@@ -910,16 +910,16 @@ static void  Dump_Erate_File
 
   {
    FILE  * fp;
-   int32   header [2];   
+   int32   header [2];
    uint16  * erate = NULL;
    int  i;
 
    fp = File_Open (path, "wb");
 
    header [0] = lo_id;
-   header [1] = hi_id;   
+   header [1] = hi_id;
    Safe_fwrite (header, sizeof (int32), 2, fp);
-	Safe_fwrite (&num,   sizeof (uint64), 1, fp);   
+	Safe_fwrite (&num,   sizeof (uint64), 1, fp);
 
    erate = (uint16 *) safe_malloc (num * sizeof(uint16));
    for  (i = 0;  i < num;  i ++)
@@ -1472,7 +1472,7 @@ static int  Output_OVL
 
    if  (OVL_fp != NULL)
        {
-        outputMesg . m = & ovMesg; 
+        outputMesg . m = & ovMesg;
         outputMesg . t = MESG_OVL;
         ovMesg . delta = deltas;
         ovMesg . aifrag = (Int_Frag_ID_t) olap -> a_iid;
@@ -2024,7 +2024,7 @@ static void  Read_Frags
 
    gkpStore = openGateKeeperStore(gkpStore_Path, FALSE);
    loadGateKeeperStorePartial(gkpStore, Lo_Frag_IID, Hi_Frag_IID, FRAG_S_SEQ | FRAG_S_SRC);
-   
+
    Frag_Stream = openFragStream (gkpStore, FRAG_S_SEQ | FRAG_S_SRC);
    resetFragStream (Frag_Stream, Lo_Frag_IID, Hi_Frag_IID);
 
@@ -2095,7 +2095,7 @@ static void  Read_Olaps
         fp = File_Open (Olap_Path, "r");
 
         olap_size = 1000;
-        Olap = (Olap_Info_t *) safe_malloc 
+        Olap = (Olap_Info_t *) safe_malloc
                    (olap_size * sizeof (Olap_Info_t));
 
         while  (fscanf (fp, "%d %d %d %d %s %lf",
@@ -2108,7 +2108,7 @@ static void  Read_Olaps
                 if  (ct >= olap_size)
                     {
                      olap_size *= EXPANSION_FACTOR;
-                     Olap = (Olap_Info_t*) safe_realloc 
+                     Olap = (Olap_Info_t*) safe_realloc
 		       (Olap, olap_size * sizeof (Olap_Info_t));
                     }
                 Olap [ct] . a_iid = a_iid;
@@ -2134,7 +2134,7 @@ static void  Read_Olaps
           }
 
         Num_Olaps = ct;
-        Olap = (Olap_Info_t*) safe_realloc 
+        Olap = (Olap_Info_t*) safe_realloc
 	  (Olap, Num_Olaps * sizeof (Olap_Info_t));
 
         fclose (fp);
@@ -2173,7 +2173,7 @@ static void  Redo_Olaps
    hi_frag = Olap [Num_Olaps - 1] . b_iid;
 
    resetFragStream (Frag_Stream, lo_frag, hi_frag);
-   
+
    fp = File_Open (Correct_File_Path, "rb");
 
    next_olap = 0;

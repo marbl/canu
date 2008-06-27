@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_FGB_main.c,v 1.22 2008-06-16 16:58:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_FGB_main.c,v 1.23 2008-06-27 06:29:13 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 
@@ -72,7 +72,7 @@ process_ovl_store(char * OVL_Store_Path,
                   const int con_double_sided_threshold_fragment_end_degree,
                   const int intrude_with_non_blessed_overlaps_flag,
                   const uint32 overlap_error_threshold);
-  
+
 
 
 
@@ -103,7 +103,7 @@ static void output_mesgs(Tfragment frags[],
     // Assembler internal Fragment ids.
 
     signed char delta[1] = {AS_ENDOF_DELTA_CODE};
-      
+
     ovl_mesg.aifrag = aid;
     ovl_mesg.bifrag = bid;
 
@@ -167,34 +167,34 @@ static void process_one_ovl_file(const char Batch_File_Name[],
                                  const int con_double_sided_threshold_fragment_end_degree,
                                  const int intrude_with_non_blessed_overlaps_flag,
                                  const uint32 overlap_error_threshold) {
-  
+
   FILE *fovl = fopen(Batch_File_Name,"r");
   if(NULL == fovl){
     fprintf(stderr,"* Can not open input file %s\n",Batch_File_Name);
     exit(1);
   }
-    
+
   input_messages_from_a_file(fovl,
                              heapva->frags,
                              heapva->edges,
-                             afr_to_avx, 
+                             afr_to_avx,
                              next_edge,
                              dvt_double_sided_threshold_fragment_end_degree,
                              con_double_sided_threshold_fragment_end_degree,
                              intrude_with_non_blessed_overlaps_flag,
                              overlap_error_threshold);
-    
+
   fclose(fovl);
 }
 
 
 
 
-int compare_edge_weak(const void * const aa, const void * const bb) 
+int compare_edge_weak(const void * const aa, const void * const bb)
 {
   // This comparison function is used with ANSI qsort() for sorting
   // the edges to form contiguous segments.
-  
+
   // The lesser edge is the one we keep in the Reaper.
   int icom;
   Aedge *a = (Aedge *)aa;
@@ -211,7 +211,7 @@ int compare_edge_weak(const void * const aa, const void * const bb)
         if( icom == 0 ) {
           icom = ((b->bhg) - (a->bhg));
           // Favor the maximum bhg.
-          
+
           if( icom == 0 ) {
             // The following is unnecessary, but useful for the binary
             // search in the adjaceny lists and regression output.
@@ -222,16 +222,16 @@ int compare_edge_weak(const void * const aa, const void * const bb)
         } // End of regression stuff.
       }
       //}
-  } 
+  }
   return icom ;
 }
 
 
-int compare_edge_strong(const void * const aa, const void * const bb) 
+int compare_edge_strong(const void * const aa, const void * const bb)
 {
   // This comparison function is used with ANSI qsort() for sorting
   // the edges to form contiguous segments.
-  
+
   // The lesser edge is the one we keep in the Reaper.
   int icom;
   Aedge *a = (Aedge *)aa;
@@ -248,7 +248,7 @@ int compare_edge_strong(const void * const aa, const void * const bb)
         if( icom == 0 ) {
           icom = ((b->bhg) - (a->bhg));
           // Favor the maximum bhg.
-          
+
           if( icom == 0 ) {
             // The following is unnecessary, but useful for the binary
             // search in the adjaceny lists and regression output.
@@ -278,7 +278,7 @@ int main_fgb(THeapGlobals  * heapva,
   int did_processing_phase_2 = FALSE;
 
   compare_edge_function = compare_edge_strong;
-  
+
   if((rg->frag_store) && (rg->frag_store[0] != '\0'))
     process_gkp_store_for_fragments(rg->frag_store,
                                     heapva->frags,
@@ -305,7 +305,7 @@ int main_fgb(THeapGlobals  * heapva,
       afr_to_avx[get_iid_fragment(heapva->frags,iv)] = iv;
   }
 
-  VA_TYPE(IntEdge_ID)  *next_edge = CreateVA_IntEdge_ID(rg->maxedges); 
+  VA_TYPE(IntEdge_ID)  *next_edge = CreateVA_IntEdge_ID(rg->maxedges);
 
   if (rg->ovl_files_list_fname != NULL)
     process_one_ovl_file(rg->ovl_files_list_fname,
@@ -316,7 +316,7 @@ int main_fgb(THeapGlobals  * heapva,
                          rg->con_double_sided_threshold_fragment_end_degree,
                          rg->intrude_with_non_blessed_overlaps_flag,
                          rg->overlap_error_threshold);
-  
+
 
 
   // Process the blessed ovl file.
@@ -346,7 +346,7 @@ int main_fgb(THeapGlobals  * heapva,
       }
     }
   }
-  
+
 
   // Process the bubble smoothing ovl file.
   if(rg->bubble_overlaps_filename[0])
@@ -388,7 +388,7 @@ int main_fgb(THeapGlobals  * heapva,
   reorder_edges( heapva->frags, heapva->edges);
   //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "RISM_reorder_edges");
   //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges);
-    
+
   append_the_edge_mates( heapva->frags, heapva->edges);
 
   // Currently the spur finding and micro-bubble smoothing code
@@ -416,7 +416,7 @@ int main_fgb(THeapGlobals  * heapva,
 
       icompare = (*compare_edge_function)(&edge1,&edge0);
       assert(icompare >= 0);
-      
+
       if (icompare == 0) {
         count++;
 
@@ -440,7 +440,7 @@ int main_fgb(THeapGlobals  * heapva,
   if( (GetNumFragments(heapva->frags) > 0) &&
       (GetNumEdges(heapva->edges) > 0) &&
       (rg->dechord_the_graph) &&
-      (!did_processing_phase_2) 
+      (!did_processing_phase_2)
       ) /* The FGB computations need a populated graph store. */ {
 
     transitive_edge_marking(heapva->frags,
@@ -449,13 +449,13 @@ int main_fgb(THeapGlobals  * heapva,
                             rg->cutoff_fragment_end_degree,
                             rg->work_limit_per_candidate_edge);
   }
-  
+
   identify_early_spur_fragments( heapva->frags, heapva->edges);
-  
+
   //count_fragment_and_edge_labels ( heapva->frags, heapva->edges, "Before contained_fragment_marking_frc");
   contained_fragment_marking_frc( heapva->frags, heapva->edges);
   //count_fragment_and_edge_labels ( heapva->frags, heapva->edges, "After contained_fragment_marking_frc");
-  
+
 
   char  thePath[FILENAME_MAX];
   sprintf(thePath,"%s.fga.ckp",rg->Output_Graph_Store_Prefix);
@@ -465,12 +465,12 @@ int main_fgb(THeapGlobals  * heapva,
                           heapva->edges,
                           ffga);
   fclose(ffga);
-    
+
 
   if( rg->create_dump_file ) {
     FILE *folp = NULL;
     char strtmp[FILENAME_MAX];
-    
+
     fprintf(stderr,"Opening dump file to write a batch of "
 	    "ADT+IDT+OFG+OVL messages.\n");
 
@@ -484,6 +484,6 @@ int main_fgb(THeapGlobals  * heapva,
                   folp);
     fclose(folp);
   }
-  
+
   return( status);
 }

@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -26,17 +26,17 @@
 *   (matches that do not go to the end of either string).
 *   Use hashing to select candidates and simple edit distance
 *   to confirm matches.
-* 
+*
 *    Programmer:  A. Delcher
 *       Written:  29 May 98
 *  Last Revised:  30 Nov 99
-* 
-* 
+*
+*
 * Assumptions:
 *  argv[1] is <filename>[.<ext>]
-*  Input is from file  argv [1] 
+*  Input is from file  argv [1]
 *  Output is to file  <filename> . OUTPUT_FILENAME_EXTENSION
-* 
+*
 * Notes:
 *   - Removed  ceil  function everywhere.  Overlaps are all <= ERROR_RATE
 *     except where indels change length of olap region.
@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.47 2008-06-16 16:58:54 brianwalenz Exp $
- * $Revision: 1.47 $
+ * $Id: AS_OVL_overlap_common.h,v 1.48 2008-06-27 06:29:18 brianwalenz Exp $
+ * $Revision: 1.48 $
 */
 
 
@@ -726,7 +726,7 @@ main(int argc, char **argv) {
 
 #if  SHOW_STATS
  assert(NULL == Stat_File);
- Stat_File = File_Open (STAT_FILE_NAME, "w"); 
+ Stat_File = File_Open (STAT_FILE_NAME, "w");
 {
    int  i;
    fprintf (Stat_File, ">");
@@ -797,7 +797,7 @@ main(int argc, char **argv) {
    fprintf (stderr, "* Using fragstore %s\n", Frag_Store_Path);
 
    OldFragStore = openGateKeeperStore(Frag_Store_Path, FALSE);
-   
+
    /****************************************/
    OverlapDriver(argc, argv);
    /****************************************/
@@ -1065,7 +1065,7 @@ static void  Add_Overlap
    // Don't combine overlaps when doing partials
    else
      {
- 
+
        new_diag = t_lo - s_lo;
        for  (i = 0;  i < (* ct);  i ++)
          {
@@ -1144,7 +1144,7 @@ static void  Add_Ref
 
    Sub = (Ref . String_Num ^ (Ref . String_Num >> STRING_OLAP_SHIFT))
                   & STRING_OLAP_MASK;
-   
+
    while  (WA -> String_Olap_Space [Sub] . Full
               && WA -> String_Olap_Space [Sub] . String_Num != Ref . String_Num)
      {
@@ -2271,7 +2271,7 @@ Collision_Ct ++;
 
    fprintf (stderr, "ERROR:  Hash table full\n");
    assert (FALSE);
-   
+
    return;
   }
 
@@ -2329,14 +2329,14 @@ static void  Hash_Mark_Empty
                 shift = HASH_CHECK_FUNCTION (key);
                 Hash_Check_Array [sub] |= (((Check_Vector_t) 1) << shift);
                }
-           return;    
+           return;
           }
       sub = (sub + probe) % HASH_TABLE_SIZE;
      }  while  (++ ct < HASH_TABLE_SIZE);
 
    fprintf (stderr, "ERROR:  Hash table full\n");
    assert (FALSE);
-   
+
    return;
   }
 
@@ -2407,7 +2407,7 @@ static void  Initialize_Globals
                     (HASH_TABLE_SIZE * sizeof (Hash_Bucket_t));
    fprintf (stderr, "### Bytes in hash table = " F_SIZE_T "\n",
             HASH_TABLE_SIZE * sizeof (Hash_Bucket_t));
-   
+
    Hash_Check_Array = (Check_Vector_t *) safe_malloc
                           (HASH_TABLE_SIZE * sizeof (Check_Vector_t));
    Loc_ID = (uint64 *) safe_calloc (Max_Hash_Strings, sizeof (uint64));
@@ -2666,7 +2666,7 @@ static void  Mark_Skip_Kmers
       int  i, len;
 
       ct ++;
-      len = strlen (line) - 1;      
+      len = strlen (line) - 1;
       if  (line [0] != '>' || line [len] != '\n')
           {
            fprintf (stderr, "ERROR:  Bad line %d in kmer skip file\n", ct);
@@ -2832,7 +2832,7 @@ static void  Output_Overlap
    GenericMesg outputMesg;
    signed char deltas[2 * AS_READ_MAX_LEN];
    signed char *deltaCursor = deltas;
-   outputMesg.m = &ovMesg; 
+   outputMesg.m = &ovMesg;
    outputMesg.t = MESG_OVL;
 
 #if  SHOW_STATS
@@ -3333,7 +3333,7 @@ static void  Process_Matches
     int  Space [2 * AS_READ_MAX_LEN + 3] = {0};
     int  * Ct = Space + AS_READ_MAX_LEN + 1;
     int  i, Diag_Ct, Gap_Ct, In_Order, Prev;
- 
+
     In_Order = TRUE;
     Prev = INT_MAX;
     Gap_Ct = 0;
@@ -3472,7 +3472,7 @@ static void  Process_Matches
         }
 
 #if  1
-      if  (consistent)      
+      if  (consistent)
         (* Start) = 0;
 #endif
 
@@ -3494,7 +3494,7 @@ static void  Process_Matches
             Ref = & (Ptr -> Next);
         }
     }
-   
+
   if  (distinct_olap_ct > 0)
     {
       int  deleted [MAX_DISTINCT_OLAPS] = {0};
@@ -3695,7 +3695,7 @@ static void  Process_Matches
 void  Process_Overlaps
     (FragStream *stream, Work_Area_t * WA)
 
-//  Find and output all overlaps between strings in  stream 
+//  Find and output all overlaps between strings in  stream
 //  and those in the global hash table.   (* WA)  has the
 //  data structures that used to be global.
 
@@ -3794,7 +3794,7 @@ Incr_Distrib (& Kmer_Hits_Dist, Kmer_Hits_Ct);
 
 
 static int  Process_String_Olaps
-    (char * S, int Len, char * S_quality, Int_Frag_ID_t ID, 
+    (char * S, int Len, char * S_quality, Int_Frag_ID_t ID,
      Direction_t Dir, Work_Area_t * WA)
 
 //  Find and report all overlaps and branch points between string  S
@@ -4056,8 +4056,8 @@ static void  Put_String_In_Hash
 
 
 static int  Read_Next_Frag
-    (char frag [AS_READ_MAX_LEN + 1], 
-     char quality [AS_READ_MAX_LEN + 1], 
+    (char frag [AS_READ_MAX_LEN + 1],
+     char quality [AS_READ_MAX_LEN + 1],
      FragStream *stream,
      fragRecord *myRead,
      Screen_Info_t * screen,
@@ -4105,7 +4105,7 @@ static int  Read_Next_Frag
      {
        uint clear_start = getFragRecordClearRegionBegin(myRead, AS_READ_CLEAR_OBT);
        uint clear_end   = getFragRecordClearRegionEnd  (myRead, AS_READ_CLEAR_OBT);
-       
+
        frag_len = clear_end - clear_start;
        if  (clear_start > 0)
          {

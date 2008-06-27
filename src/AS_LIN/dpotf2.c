@@ -4,88 +4,88 @@
 /* Subroutine */ int dpotf2_(char *uplo, integer *n, doublereal *a, integer *
 	lda, integer *info)
 {
-/*  -- LAPACK routine (version 2.0) --   
-       Univ. of Tennessee, Univ. of California Berkeley, NAG Ltd.,   
-       Courant Institute, Argonne National Lab, and Rice University   
-       February 29, 1992   
+/*  -- LAPACK routine (version 2.0) --
+       Univ. of Tennessee, Univ. of California Berkeley, NAG Ltd.,
+       Courant Institute, Argonne National Lab, and Rice University
+       February 29, 1992
 
 
-    Purpose   
-    =======   
+    Purpose
+    =======
 
-    DPOTF2 computes the Cholesky factorization of a real symmetric   
-    positive definite matrix A.   
+    DPOTF2 computes the Cholesky factorization of a real symmetric
+    positive definite matrix A.
 
-    The factorization has the form   
-       A = U' * U ,  if UPLO = 'U', or   
-       A = L  * L',  if UPLO = 'L',   
-    where U is an upper triangular matrix and L is lower triangular.   
+    The factorization has the form
+       A = U' * U ,  if UPLO = 'U', or
+       A = L  * L',  if UPLO = 'L',
+    where U is an upper triangular matrix and L is lower triangular.
 
-    This is the unblocked version of the algorithm, calling Level 2 BLAS. 
-  
-
-    Arguments   
-    =========   
-
-    UPLO    (input) CHARACTER*1   
-            Specifies whether the upper or lower triangular part of the   
-            symmetric matrix A is stored.   
-            = 'U':  Upper triangular   
-            = 'L':  Lower triangular   
-
-    N       (input) INTEGER   
-            The order of the matrix A.  N >= 0.   
-
-    A       (input/output) DOUBLE PRECISION array, dimension (LDA,N)   
-            On entry, the symmetric matrix A.  If UPLO = 'U', the leading 
-  
-            n by n upper triangular part of A contains the upper   
-            triangular part of the matrix A, and the strictly lower   
-            triangular part of A is not referenced.  If UPLO = 'L', the   
-            leading n by n lower triangular part of A contains the lower 
-  
-            triangular part of the matrix A, and the strictly upper   
-            triangular part of A is not referenced.   
-
-            On exit, if INFO = 0, the factor U or L from the Cholesky   
-            factorization A = U'*U  or A = L*L'.   
-
-    LDA     (input) INTEGER   
-            The leading dimension of the array A.  LDA >= MAX(1,N).   
-
-    INFO    (output) INTEGER   
-            = 0: successful exit   
-            < 0: if INFO = -k, the k-th argument had an illegal value   
-            > 0: if INFO = k, the leading minor of order k is not   
-                 positive definite, and the factorization could not be   
-                 completed.   
-
-    ===================================================================== 
-  
+    This is the unblocked version of the algorithm, calling Level 2 BLAS.
 
 
-       Test the input parameters.   
+    Arguments
+    =========
 
-    
-   Parameter adjustments   
+    UPLO    (input) CHARACTER*1
+            Specifies whether the upper or lower triangular part of the
+            symmetric matrix A is stored.
+            = 'U':  Upper triangular
+            = 'L':  Lower triangular
+
+    N       (input) INTEGER
+            The order of the matrix A.  N >= 0.
+
+    A       (input/output) DOUBLE PRECISION array, dimension (LDA,N)
+            On entry, the symmetric matrix A.  If UPLO = 'U', the leading
+
+            n by n upper triangular part of A contains the upper
+            triangular part of the matrix A, and the strictly lower
+            triangular part of A is not referenced.  If UPLO = 'L', the
+            leading n by n lower triangular part of A contains the lower
+
+            triangular part of the matrix A, and the strictly upper
+            triangular part of A is not referenced.
+
+            On exit, if INFO = 0, the factor U or L from the Cholesky
+            factorization A = U'*U  or A = L*L'.
+
+    LDA     (input) INTEGER
+            The leading dimension of the array A.  LDA >= MAX(1,N).
+
+    INFO    (output) INTEGER
+            = 0: successful exit
+            < 0: if INFO = -k, the k-th argument had an illegal value
+            > 0: if INFO = k, the leading minor of order k is not
+                 positive definite, and the factorization could not be
+                 completed.
+
+    =====================================================================
+
+
+
+       Test the input parameters.
+
+
+   Parameter adjustments
        Function Body */
     /* Table of constant values */
     static integer c__1 = 1;
     static doublereal c_b10 = -1.;
     static doublereal c_b12 = 1.;
-    
+
     /* System generated locals */
     integer a_dim1, a_offset, i__1, i__2, i__3;
     doublereal d__1;
     /* Local variables */
-    extern doublereal ddot_(integer *, doublereal *, integer *, doublereal *, 
+    extern doublereal ddot_(integer *, doublereal *, integer *, doublereal *,
 	    integer *);
     static integer j;
-    extern /* Subroutine */ int dscal_(integer *, doublereal *, doublereal *, 
+    extern /* Subroutine */ int dscal_(integer *, doublereal *, doublereal *,
 	    integer *);
     extern logical lsame_(char *, char *);
-    extern /* Subroutine */ int dgemv_(char *, integer *, integer *, 
-	    doublereal *, doublereal *, integer *, doublereal *, integer *, 
+    extern /* Subroutine */ int dgemv_(char *, integer *, integer *,
+	    doublereal *, doublereal *, integer *, doublereal *, integer *,
 	    doublereal *, doublereal *, integer *);
     static logical upper;
     extern /* Subroutine */ int xerbla_(char *, integer *);
@@ -128,7 +128,7 @@
 . */
 
 	    i__2 = j - 1;
-	    ajj = A(j,j) - ddot_(&i__2, &A(1,j), &c__1, 
+	    ajj = A(j,j) - ddot_(&i__2, &A(1,j), &c__1,
 		    &A(1,j), &c__1);
 	    if (ajj <= 0.) {
 		A(j,j) = ajj;

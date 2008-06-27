@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, The Venter Institute. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -45,7 +45,7 @@ MateChecker::MateChecker(FragmentInfo *fi) {
 MateChecker::~MateChecker() {
 }
 
-    
+
 IntervalList* findPeakBad( std::vector<short>* badGraph, int tigLen);
 
 
@@ -168,9 +168,9 @@ LibraryStats* MateChecker::computeLibraryStats(Unitig* tig) {
             if (_dists.find( distId ) == _dists.end()) {
               DistanceList newDL;
               _dists[ distId ] = newDL;
-            } 
+            }
             _dists[ distId ].push_back( mateDist );
-                            
+
             // Record the distance for unitig local stddev
             if (libs->find( distId ) == libs->end()) {
               DistanceCompute d;
@@ -241,13 +241,13 @@ LibraryStats* MateChecker::computeLibraryStats(Unitig* tig) {
   return libs;
 }
 
-    
+
 void MateChecker::computeGlobalLibStats( UnitigGraph& tigGraph ) {
   LibraryStats::iterator dcIter;
   _dists.clear(); // reset to seperate multiple Graphs
   UnitigsConstIter tigIter = tigGraph.unitigs->begin();
   for(; tigIter != tigGraph.unitigs->end(); tigIter++) {
-    if (*tigIter == NULL ) 
+    if (*tigIter == NULL )
       continue;
     LibraryStats* libs = computeLibraryStats(*tigIter);
     // Accumulate per unitig stats to compute global stddev's
@@ -320,7 +320,7 @@ void MateChecker::computeGlobalLibStats( UnitigGraph& tigGraph ) {
         gdc->sumDists += *dIter;
       } else {
         numBad++;
-      } 
+      }
     }
     gdc->mean = gdc->sumDists / gdc->numPairs;
     // Compute sum of squares for stddev
@@ -499,13 +499,13 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
             //  the layout.
             //
             for (DoveTailIter ft=fragIter;
-                 ((hasOverlap == false) && 
+                 ((hasOverlap == false) &&
                   (ft != thisUnitig->dovetail_path_ptr->end()) &&
                   (MAX(fragIter->position.bgn, fragIter->position.end) < MIN(ft->position.bgn, ft->position.end)));
                  ft++)
               if (tigGraph.bog_ptr->isContained(ft->ident) == false)
                 hasOverlap = tigGraph.bog_ptr->containHaveEdgeTo(fragIter->ident, ft->ident);
-           
+
           } else {
             //  Not the first fragment.  Make sure this guy overlaps
             //  something alreay placed.
@@ -595,7 +595,7 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
 
     delete [] frags;
     frags = NULL;
-    
+
   }  //  Over all unitigs
 }
 
@@ -768,7 +768,7 @@ void combineOverlapping( IntervalList* list ) {
     if (!(aIb == NULL_SEQ_LOC) && aIb.end - aIb.bgn > 1000) {
       a->bgn = aIb.bgn;
       a->end = aIb.end;
-      list->erase( iter ); 
+      list->erase( iter );
     }
   }
 }
@@ -854,7 +854,7 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
       }
       if (fwdIter != fwdBads->end()) {
         if ( fwdIter->bgn < bad.end && bad.end - fwdIter->bgn > 500 ) {
-          // if fwd and reverse bad overlap 
+          // if fwd and reverse bad overlap
           // and end of reverse is far away, do fwd 1st
           isFwdBad = true;
           bad = *fwdIter;
@@ -872,7 +872,7 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
               bad.bgn = bad.end;
               bad.end = fwdIter->bgn;
             }
-            fwdIter++; 
+            fwdIter++;
             combine = true;
           }
           revIter++;
@@ -907,7 +907,7 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
                     (combine && loc.end == bad.end) ) {
           breakNow = true;
         } else if (bad.bgn > backBgn) {
-          // fun special case, keep contained frags at end of tig in container 
+          // fun special case, keep contained frags at end of tig in container
           // instead of in their own new tig where they might not overlap
           breakNow = true;
         }
@@ -950,8 +950,8 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
             //  in the next frag; Break after this
             //  frag.
             //
-            if ((NULL_SEQ_LOC == overlap) || 
-                (diff < DEFAULT_MIN_OLAP_LEN) || 
+            if ((NULL_SEQ_LOC == overlap) ||
+                (diff < DEFAULT_MIN_OLAP_LEN) ||
                 (bog_ptr->isContained( frag.ident ) && !bog_ptr->containHaveEdgeTo( frag.ident, nextPos->ident))) {
 
               fragment_end_type fragEndInTig = THREE_PRIME;
@@ -1065,13 +1065,13 @@ MateCounts* MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& global
       if (isReverse( loc.pos1 )) {
         if (!isReverse( loc.pos2 )) {
           // reverse and forward, check for circular unitig
-          int dist = frgBgn + tigLen - mateBgn; 
+          int dist = frgBgn + tigLen - mateBgn;
           if ( dist <= badMax && dist >= badMin) {
             cnts->goodCircular++;
             continue; // Good circular mates
-          } 
+          }
         }
-        // 1st reversed, so bad 
+        // 1st reversed, so bad
         iuid beg = MAX( 0, frgBgn - badMax );
         incrRange( badRevGraph, -1, beg, frgEnd);
         posIter->isBad = true;
@@ -1101,7 +1101,7 @@ MateCounts* MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& global
         if (isReverse( loc.pos2 )) {
           // 2nd reverse so good orient, check distance
           uint16 mateLen = mateBgn - mateEnd;
-          int mateDist = mateBgn - frgBgn;  
+          int mateDist = mateBgn - frgBgn;
 
           if (mateDist >= badMin && mateDist <= badMax) {
             // For good graph only we mark from 5' to 5'
@@ -1111,7 +1111,7 @@ MateCounts* MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& global
           }
           else {
             // both are bad, mate points towards tig begin
-            iuid beg = MAX(0, mateBgn - badMax); 
+            iuid beg = MAX(0, mateBgn - badMax);
             iuid end = mateEnd;
 
             incrRange(badRevGraph, -1, beg, end);
@@ -1132,7 +1132,7 @@ MateCounts* MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& global
             cnts->badInnie++;
           }
         } else {
-          // 1st and 2nd forward so both bad 
+          // 1st and 2nd forward so both bad
           iuid end = MIN( tigLen, frgBgn + badMax );
           iuid beg = frgEnd;
 
@@ -1170,10 +1170,10 @@ bool MateLocation::startEntry(iuid unitigID, iuid fragID, SeqInterval fragPos) {
   MateLocationEntry entry;
   entry.id1     = fragID;
   entry.pos1    = fragPos;
-  entry.unitig1 = unitigID; 
+  entry.unitig1 = unitigID;
   entry.id2     = NULL_FRAG_ID;
   entry.pos2    = NULL_SEQ_LOC;
-  entry.unitig2 = NULL_FRAG_ID;; 
+  entry.unitig2 = NULL_FRAG_ID;;
   entry.isBad   = false;
 
   _table.push_back( entry );

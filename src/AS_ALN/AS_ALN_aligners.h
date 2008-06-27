@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -104,7 +104,7 @@ void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
                                OverlapMesg *align, int amode,
                                int *alen, int *blen,
                                int *del, int *sub, int *ins,
-                               int *affdel, int *affins, 
+                               int *affdel, int *affins,
                                int *blockdel, int *blockins, int blocksize,
                                int *biggestBlock);
 /* Just like Analyze_Overlap_AS with addition of evaluation of affine model
@@ -218,14 +218,14 @@ OverlapMesg *AS_ALN_affine_overlap(InternalFragMesg *a, InternalFragMesg *b,
                            double erate, double thresh, int minlen,
                            CompareOptions what, int *where) ;
 
-/* Bubble smoothing overlap detector based on 
+/* Bubble smoothing overlap detector based on
    affine dp_compare with subsequent filtering.
 
-   Usage/arguments as for DP_Compare_AS, except that some of the parameters 
+   Usage/arguments as for DP_Compare_AS, except that some of the parameters
    are hijacked:
    - "erate" is used as a filter after the fact, but not passed to DP_C*_AS
    - "what" is overridden
-   - "minlen" is passed to DP_Compare_AS, but it is also used as a filter 
+   - "minlen" is passed to DP_Compare_AS, but it is also used as a filter
      to require that minlen matches were found
 
    Procedure:
@@ -237,18 +237,18 @@ OverlapMesg *AS_ALN_affine_overlap(InternalFragMesg *a, InternalFragMesg *b,
      optionally, also test number of large indels.
 
    Assumptions/caveats:
-   - as with DP_Compare_AS, the returned message must be copied if it is to 
+   - as with DP_Compare_AS, the returned message must be copied if it is to
    be retained.
    - this version does not test for sanity with respect to placement of gaps;
      in principle, a gap of several hundred bases at the end (most likely
      indicating a true branchpoint) would be accepted if proposed; this
      seems to be safe enough since DP_Compare_AS doesn't seem to find overlaps
-     above about 12% simple (non-affine) error rate.  However, more minor 
+     above about 12% simple (non-affine) error rate.  However, more minor
      versions of this could cause (false) overlaps of shallow branchpoints
      (true branchpoints occurring near the ends of fragments)
 
        Branchpoint:
-    
+
                .........+++++++          ("." matches; +:# mismatch)
 	       .........#######
 
@@ -257,7 +257,7 @@ OverlapMesg *AS_ALN_affine_overlap(InternalFragMesg *a, InternalFragMesg *b,
                .........+++++++
 	       .........-------######    ("-" a gap)
 
-     Equally, a (short) bad fragment end has a better change of being 
+     Equally, a (short) bad fragment end has a better change of being
      overlapped if affine gaps allow it to find the best match within a
      modest window of uncertainty:
 
@@ -272,7 +272,7 @@ OverlapMesg *AS_ALN_affine_overlap(InternalFragMesg *a, InternalFragMesg *b,
                .....ACAGTAGACGAGATAGGATAGATAGAGTAGACAGATAGTTGACTAAC
 	            ||||||||||||||||||||||         ||| ||
                .....ACAGTAGACGAGATAGGATAGA---------CAGTTA
- 
+
 */
 /*end comments for AS_ALN_affine_overlap */
 
@@ -310,7 +310,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 
 /* Given fragments a and b, find the best overlap between them using
    local alignment code.  The purpose is to permit "bubbles" in the fragment
-   graph due to multi-base polymorphisms to be smoothed out, such that a 
+   graph due to multi-base polymorphisms to be smoothed out, such that a
    unitig can be constructed.
 
    The method relies on Myers' local overlap code.  MORE DETAILS????
@@ -319,7 +319,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
    matching segments.
 
    The current function is concerned with three things:
-   
+
    1) Providing a wrapper around the local alignment code so that users
    can carry out operations on the level of the "message" (IFM, OVL, etc).
 
@@ -328,12 +328,12 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
    are given below.
 
    3) Combine bits of existing code to provide a full alignment specification
-   for the local overlapper; one can debate whether large gaps should be 
+   for the local overlapper; one can debate whether large gaps should be
    encoded in an edit trace, but for the purposes of integration with the
    existing code base, the current function will aim to specify an
    alignment in terms of an ahang, a bhang and a trace, which will get
    converted into the core elements of an overlap message just as in
-   DP_Compare_AS.  
+   DP_Compare_AS.
 
    PRELIMINARY DECISION CRITERIA:
 
@@ -346,7 +346,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
        error rate, the error rate should be no more than erate.
      - no more than MaxGaps [=2?] gaps in the overlap chain;
        this also entails no more than MaxGaps+1 matching segments
-       
+
      Additional criteria that we might want to use:
 
      - no more than MaxEndGap [=20?] unaligned bases at either end; this
@@ -382,7 +382,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 
 /* Given fragments a and b, find the best chain of local alignments, trimmed
    to non-overlapping.  Related to Local_Overlap_AS, but returns really bad
-   alignments if that's the best there is to be had. 
+   alignments if that's the best there is to be had.
 */
 OverlapMesg *BoxFill_AS(InternalFragMesg *a, InternalFragMesg *b,
 			int beg, int end, int opposite,
@@ -419,7 +419,7 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
 
 /* fix_overlapping_pieces():
    Handle Local_Overlap pieces (local segments) which overlap,
-   by trimming them back until they abut, 
+   by trimming them back until they abut,
    such that the number of mismatches is minimized */
 
 void fix_overlapping_pieces(char *aseq, char *bseq,

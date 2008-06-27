@@ -1,19 +1,19 @@
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -37,7 +37,7 @@ void AS_REZ_print_informatives_alignment(Alignment_t *a,int nfrag)
   char *consensus,*printArray;
   int count[7]; // A C G T Dash N and total
   int *row2frag,lastfrag,infcols,currcol;
-    
+
   consensus = (char*)safe_malloc (sizeof(char)*(a->cols));
   row2frag = (int*)safe_malloc(sizeof(int)*r);
 
@@ -54,7 +54,7 @@ void AS_REZ_print_informatives_alignment(Alignment_t *a,int nfrag)
               case 'A' :
                 count[0]++;
                 count[6]++;
-                break;	
+                break;
               case 'C' :
                 count[1]++;
                 count[6]++;
@@ -71,8 +71,8 @@ void AS_REZ_print_informatives_alignment(Alignment_t *a,int nfrag)
                 count[4]++;
                 count[6]++;
                 break;
-	    }	
-	}	
+	    }
+	}
 
       max = 0;
       for(k=0; k<6; k++){
@@ -80,7 +80,7 @@ void AS_REZ_print_informatives_alignment(Alignment_t *a,int nfrag)
 	  max = k;
 	}
       }
-	
+
       submax = (max==0 ? 1 : 0);
       for(k=0;k<5;k++){
 	if(k!=max)
@@ -93,7 +93,7 @@ void AS_REZ_print_informatives_alignment(Alignment_t *a,int nfrag)
             case 0 :
               consensus[i] = 'A';
               infcols++;
-              break;	
+              break;
             case 1 :
               consensus[i] = 'C';
               infcols++;
@@ -167,7 +167,7 @@ void AS_REZ_print_informative_splits(Alignment_t *a,int nfrag)
   int count[7]; // A C G T Dash N and total
   int *row2frag,lastfrag,infcols,currcol;
   int submax,max,k,subct,currct,clades;
-    
+
   consensus = (char*)safe_malloc (sizeof(char)*(a->cols));
   row2frag = (int*)safe_malloc(sizeof(int)*r);
 
@@ -183,7 +183,7 @@ void AS_REZ_print_informative_splits(Alignment_t *a,int nfrag)
               case 'A' :
                 count[0]++;
                 count[6]++;
-                break;	
+                break;
               case 'C' :
                 count[1]++;
                 count[6]++;
@@ -200,8 +200,8 @@ void AS_REZ_print_informative_splits(Alignment_t *a,int nfrag)
                 count[4]++;
                 count[6]++;
                 break;
-	    }	
-	}	
+	    }
+	}
 
       max = 0;
       for(k=0; k<6; k++){
@@ -209,7 +209,7 @@ void AS_REZ_print_informative_splits(Alignment_t *a,int nfrag)
 	  max = k;
 	}
       }
-	
+
       submax = (max==0 ? 1 : 0);
       for(k=0;k<5;k++){
 	if(k!=max)
@@ -222,7 +222,7 @@ void AS_REZ_print_informative_splits(Alignment_t *a,int nfrag)
             case 0 :
               consensus[i] = 'A';
               infcols++;
-              break;	
+              break;
             case 1 :
               consensus[i] = 'C';
               infcols++;
@@ -278,7 +278,7 @@ void AS_REZ_print_informative_splits(Alignment_t *a,int nfrag)
       currct=0;
       for(i=0;i<r;i++){
 	if(a->ali[j][i]=='A')currct++;
-      } 
+      }
 
       // if non-zero count, we will print for this state
       if(currct>0){
@@ -316,7 +316,7 @@ void AS_REZ_print_informative_splits(Alignment_t *a,int nfrag)
       currct=0;
       for(i=0;i<r;i++){
 	if(a->ali[j][i]=='C')currct++;
-      } 
+      }
 
       // if non-zero count, we will print for this state
       if(currct>0){
@@ -354,7 +354,7 @@ void AS_REZ_print_informative_splits(Alignment_t *a,int nfrag)
       currct=0;
       for(i=0;i<r;i++){
 	if(a->ali[j][i]=='G')currct++;
-      } 
+      }
 
       // if non-zero count, we will print for this state
       if(currct>0){
@@ -392,7 +392,7 @@ void AS_REZ_print_informative_splits(Alignment_t *a,int nfrag)
       currct=0;
       for(i=0;i<r;i++){
 	if(a->ali[j][i]=='T')currct++;
-      } 
+      }
 
       // if non-zero count, we will print for this state
       if(currct>0){
@@ -430,7 +430,7 @@ void AS_REZ_print_informative_splits(Alignment_t *a,int nfrag)
       currct=0;
       for(i=0;i<r;i++){
 	if(a->ali[j][i]=='-')currct++;
-      } 
+      }
 
       // if non-zero count, we will print for this state
       if(currct>0){
@@ -488,7 +488,7 @@ static int doPrintMPobs=0;
 /* GETDECISION toggles whether to use old interface and return a
  *  decision, or to use new interface and return only a pvalue
  */
-#undef GETDECISION 
+#undef GETDECISION
 
 
 CGB_Type get_simulator_type(IntUnitigMesg* ium_mesg){
@@ -516,7 +516,7 @@ CGB_Type get_simulator_type(IntUnitigMesg* ium_mesg){
 
 
 
-/* this is the main test function for a unitig. 
+/* this is the main test function for a unitig.
    It returns a pvalue (roughly, a probability) that the unitig is simple
    (mismatches are random errors).
    A return value of 1.0 may indicate that the unitig was not deep enough for meaningful test.
@@ -625,8 +625,8 @@ Alignment_t* AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium,
 
 
 
-/* this is the main test function for a unitig. 
-   It returns 
+/* this is the main test function for a unitig.
+   It returns
    UNITIG_IS_SIMPLE     if the unitig is simple
    UNITIG_IS_UNKNOWN    if we cannot determine the status
    since there is no big enough segment
@@ -639,12 +639,12 @@ Alignment_t* AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium,
    can be inspected in order to find repetitive segments
 */
 UnitigStatus_t AS_REZ_is_IUM_MPsimple(IntUnitigMesg* ium, GateKeeperStore *handle,
-                                      Alignment_t **ali, double thresh, int variant, 
+                                      Alignment_t **ali, double thresh, int variant,
                                       double *pval)
 {
   Marker_t *m;
   UnitigStatus_t ret = UNITIG_IS_SIMPLE;
-  
+
   *pval=1.0; //Sets up default return for cases when no test can be made.
 
   *ali = AS_REZ_convert_IUM_to_alignment(ium,handle,TRUE);
@@ -731,16 +731,16 @@ main(int argc, char **argv) {
 
     while( ReadProtoMesg_AS(input,&pmesg) != EOF ) {
       if (pmesg->t == MESG_IUM) {
-        Alignment_t   *ali;  
+        Alignment_t   *ali;
         IntUnitigMesg *iunitig = (IntUnitigMesg*) pmesg->m;
 
         if ((iunitig->num_frags > 3) &&
             (iunitig->coverage_stat < cthresh)) {
           printf("\nInspecting Unitig %d\n",iunitig->iaccession);
-          printf("Number of frags = %d\n",iunitig->num_frags);	
-          printf("Length          = %d\n",iunitig->length);	
+          printf("Number of frags = %d\n",iunitig->num_frags);
+          printf("Length          = %d\n",iunitig->length);
 #ifdef AS_ENABLE_SOURCE
-          printf("Source          = %s\n",iunitig->source);	
+          printf("Source          = %s\n",iunitig->source);
 #endif
 
           ali = AS_REZ_convert_IUM_to_alignment(iunitig,storeHandle,FALSE);
@@ -810,9 +810,9 @@ main(int argc, char **argv) {
 
 #if DEBUG > -1
           printf("\nInspecting Unitig " F_IID "\n",iunitig->iaccession);
-          printf("Number of frags = %d\n",iunitig->num_frags);	
-          printf("Length          = " F_COORD "\n",iunitig->length);	
-          printf("Source          = %s\n",iunitig->source);	
+          printf("Number of frags = %d\n",iunitig->num_frags);
+          printf("Length          = " F_COORD "\n",iunitig->length);
+          printf("Source          = %s\n",iunitig->source);
 #endif
 
 #if DEBUG > 0
@@ -840,7 +840,7 @@ main(int argc, char **argv) {
 #if DEBUG > 0
           else
             printf("Unitig is not repetitive , A-stat=%f \n",
-                   iunitig->coverage_stat);  
+                   iunitig->coverage_stat);
 #endif
 
 #if DEBUG > 0
@@ -865,7 +865,7 @@ main(int argc, char **argv) {
 #if DEBUG > 0
                 printf("Aaron's whole test : FALSE NEGATIV\n");
 #endif
-                fn3++; 
+                fn3++;
               }else
                 tn3++;
 
@@ -895,10 +895,10 @@ main(int argc, char **argv) {
                 cor3++;
               break;
           }
-	    
-	    
 
-#if DEBUG > -1	    
+
+
+#if DEBUG > -1
           if( fpf3 )
             AS_REZ_print_alignment(ali3,100);
 #endif

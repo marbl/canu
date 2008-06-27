@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 2005-2007, J. Craig Venter Institute.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -69,7 +69,7 @@ public:
   uint64   doNotOBT:1;
 
   uint64   pad2:9;
-  uint64   linkBeg:8;  
+  uint64   linkBeg:8;
   uint64   linkEnd:8;
   uint64   fragBeg:11;
   uint64   fragEnd:11;
@@ -175,13 +175,13 @@ public:
         //  A is chimeric anchored on the left.
       case 13:
         break;
-      
+
       case 10:
       case 11:
         //  A is chimeric anchored on the right.
       case 14:
         break;
-      
+
       case 6:
       case 9:
         //  Dovetail overlap
@@ -196,16 +196,16 @@ public:
                              ((Abeg <  Bbeg) && (Bbeg - Abeg < 30)))) {
           style = 0;
         }
-        break;          
-      
+        break;
+
       case 0:
         //  Duplicate read
         break;
-      
+
       case 15:
         //  Repeat overlap
         break;
-      
+
       default:
         fprintf(stderr, "UNCLASSIFIED OVERLAP TYPE "F_U64"\n", style);
         break;
@@ -494,7 +494,7 @@ process(const AS_IID           iid,
           IL.add(ovl->Abeg + slopSm, ovl->Aend - ovl->Abeg - 2*slopSm);
         }
         break;
-          
+
       case 10:
       case 11:
         hasPotentialChimera++;
@@ -519,7 +519,7 @@ process(const AS_IID           iid,
       case 2:
       case 3:
         IL.add(ovl->Abeg, ovl->Aend - ovl->Abeg);
-        break;          
+        break;
 
       case 4:
         IL.add(ovl->Abeg, ovl->Aend - ovl->Abeg - slopSm);
@@ -530,7 +530,7 @@ process(const AS_IID           iid,
 
       case 12:
         IL.add(ovl->Abeg + slopSm, ovl->Aend - ovl->Abeg - 2*slopSm);
-        break;          
+        break;
 
       case 0:
         break;
@@ -596,7 +596,7 @@ process(const AS_IID           iid,
               rightIntervalHang[interval-1] = true;
             }
             break;
-          
+
           case 13:
             if ((ovl->Aend - ovl->Abeg) > 75) {
               //  These should be to the left of the endGap to count.
@@ -607,7 +607,7 @@ process(const AS_IID           iid,
               }
             }
             break;
-          
+
           case 10:
           case 11:
             //  These should be to the right of the begGap to count.
@@ -617,7 +617,7 @@ process(const AS_IID           iid,
               leftIntervalHang[interval] = true;
             }
             break;
-	  
+
           case 14:
             if ((ovl->Aend - ovl->Abeg) > 75) {
               //  These should be to the right of the begGap to count.
@@ -628,7 +628,7 @@ process(const AS_IID           iid,
               }
             }
             break;
-	  
+
           case 15:
             //  Repeats.
             if ((ovl->Aend - ovl->Abeg) > 75) {
@@ -679,7 +679,7 @@ process(const AS_IID           iid,
             isLeftSpur = false;
           }
           break;
-          
+
         case 10:
         case 11:
         case 14:
@@ -693,7 +693,7 @@ process(const AS_IID           iid,
             isRightSpur = false;
           }
           break;
-          
+
         case 6:
         case 9:
           //  Dovetail overlap
@@ -712,12 +712,12 @@ process(const AS_IID           iid,
             maxOvl = ovl->Aend;
             isRightSpur = false;
           }
-          break;          
-      
+          break;
+
         case 0:
           //  Duplicate read
           break;
-      
+
         case 15:
           //  Repeat overlap
           if (ovl->Abeg < minOvl) {
@@ -816,7 +816,7 @@ process(const AS_IID           iid,
 	currentBeg = IL.hi(interval) + slopSm;
       }
     }
- 
+
     //  Check the last interval.  Why?  'currentBeg' could start
     //  before the last interval.  But it only does this if the last
     //  interval has a rightIntervalHang[].  We explicitly disallow

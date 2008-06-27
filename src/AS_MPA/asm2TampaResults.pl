@@ -6,19 +6,19 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received (LICENSE.txt) a copy of the GNU General Public 
+#
+# You should have received (LICENSE.txt) a copy of the GNU General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
 #
-# $Id: asm2TampaResults.pl,v 1.7 2007-02-28 08:04:51 brianwalenz Exp $
+# $Id: asm2TampaResults.pl,v 1.8 2008-06-27 06:29:16 brianwalenz Exp $
 #
 
 # Wrapper to run and post-process results from TAMPA
@@ -35,7 +35,7 @@ use Carp;
 use FileHandle;
 use Getopt::Long;
 
-my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.7 $/ )[1]. ")";
+my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.8 $/ )[1]. ")";
 
 my $HELPTEXT = qq~
 Produce TAMPA results from an assembly
@@ -45,7 +45,7 @@ Produce TAMPA results from an assembly
     <-a assembly>  The prefix of the input filenames such that
                    assembly.gkpStore = gatekeeper store
                    assembly.asm = assembly file
-  
+
     options:
       -h               Print help.
 

@@ -16,7 +16,7 @@ $MEMBERS{ #new } = #old
   package AS::MSG;
   use Scalar::Util qw(blessed);
 
-  sub members { 
+  sub members {
     my $self = shift;
     my $pack = blessed($self);
 
@@ -36,7 +36,7 @@ $MEMBERS{ #new } = #old
   GETTERALIAS(LibraryMesg, nft, num_features);
   GETTERALIAS(LibraryMesg, fea, features);
   GETTERALIAS(LibraryMesg, val, values);
-  
+
   PACKAGE(FragMesg);
   GETTERALIAS(FragMesg, act, action);
   GETTERALIAS(FragMesg, acc, eaccession);
@@ -78,7 +78,7 @@ $MEMBERS{ #new } = #old
 
   PACKAGE(VersionMesg);
   GETTERALIAS(VersionMesg, ver, version);
-  
+
   PACKAGE(OverlapMesg);
   GETTERALIAS(OverlapMesg, afr, aifrag);
   GETTERALIAS(OverlapMesg, bfr, bifrag);
@@ -145,7 +145,7 @@ $MEMBERS{ #new } = #old
   GETTERALIAS(IntUnitigMesg, for, forced);
   GETTERALIAS(IntUnitigMesg, nfr, num_frags);
   GETTERALIAS(IntUnitigMesg, IMPs, f_list);
-  
+
 
   PACKAGE(IntUnitigLinkMesg);
   GETTERALIAS(IntUnitigLinkMesg, ut1, unitig1);
@@ -196,7 +196,7 @@ $MEMBERS{ #new } = #old
   GETTERALIAS(IntContigPairs, mea, mean);
   GETTERALIAS(IntContigPairs, std, stddev);
   GETTERALIAS(IntContigPairs, ori, orient);
-  
+
   PACKAGE(IntScaffoldMesg);
   GETTERALIAS(IntScaffoldMesg, acc, iaccession);
   GETTERALIAS(IntScaffoldMesg, noc, num_contig_pairs);
@@ -224,7 +224,7 @@ $MEMBERS{ #new } = #old
   GETTERALIAS(IntConConMesg, IMVs, v_list);
   GETTERALIAS(IntConConMesg, IMPs, pieces);
   GETTERALIAS(IntConConMesg, IUPs, unitigs);
-  
+
 
   PACKAGE(IntAugFragMesg);
   GETTERALIAS(IntAugFragMesg, acc, iaccession);
@@ -325,7 +325,7 @@ $MEMBERS{ #new } = #old
   GETTERALIAS(SnapScaffoldMesg, acc2, iaccession);
   GETTERALIAS(SnapScaffoldMesg, noc, num_contig_pairs);
   GETTERALIAS(SnapScaffoldMesg, CTPs, contig_pairs);
-  
+
   PACKAGE(SnapDegenerateScaffoldMesg);
   GETTERALIAS(SnapDegenerateScaffoldMesg, acc, eaccession);
   GETTERALIAS(SnapDegenerateScaffoldMesg, ctg, econtig);

@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -308,7 +308,7 @@ typedef struct
   ChunkOrientationType orient;
 } CP_Index;
 VA_DEF(CP_Index);
-  
+
 /*
   Structure to keep track of many fragments in surrogates
 */
@@ -338,7 +338,7 @@ typedef struct
   // since iterating through the above hash table gets slow,
   // also keep the index in an array
   VA_TYPE(CDS_CID_t) * fragArray;
-  
+
   // for those frags whose mates aren't in this entity
   // to be populated after populating & looping over fragHT
   VA_TYPE(MateDetail) * wExtMates;
@@ -354,10 +354,10 @@ typedef struct
 
   // is it a surrogate?
   int isSurrogate;
-  
+
   // bit vector of instrumenting option switches
   uint32 options;
-  
+
   // unitig & above level of aggregation
   CDS_COORD_t leftEnd;
   CDS_COORD_t rightEnd;
@@ -373,7 +373,7 @@ typedef struct
 
   // bookkeeping of fragments, fragment locations, mates, & locales
   InstrumenterBookkeeping bookkeeping;
-  
+
   // intra-contig breakpoints
   // NOTE: just a hook for now
   VA_TYPE(InstrumenterBreakpoint) * breakpoints;
@@ -391,7 +391,7 @@ typedef struct
 
   // bit vector of instrumenting option switches
   uint32 options;
-  
+
   // contig & above level of aggregation
   CDS_COORD_t leftEnd;
   CDS_COORD_t rightEnd;
@@ -415,13 +415,13 @@ typedef struct
 
   // for aggregating unitig-level data
   UnitigInstrumenter unitig;
-  
+
   // mate status & positions for each library & no-mates list
   MateInstrumenter mates;
 
   // bookkeeping of fragments, fragment locations, mates, & locales
   InstrumenterBookkeeping bookkeeping;
-  
+
   // intra-contig breakpoints
   // NOTE: just a hook for now
   VA_TYPE(InstrumenterBreakpoint) * breakpoints;
@@ -436,13 +436,13 @@ typedef struct
 {
   // IID of scaffold
   CDS_CID_t id;
-  
+
   // bit vector of instrumenting option switches
   uint32 options;
-  
+
   // scaffold & above level of aggregation
   float size;
-  
+
   // gap counting & sizes
   VA_TYPE(float) * scaffoldGapSizes;
   InstrumenterStatistics scaffoldGapSizeStats;
@@ -457,7 +457,7 @@ typedef struct
 
   // for instrumenting each contig
   ContigInstrumenter reusableCI;
-  
+
   // for aggregating contig-level data
   ContigInstrumenter contig;
 
@@ -466,7 +466,7 @@ typedef struct
 
   // bookkeeping of fragments, fragment locations, mates, & locales
   InstrumenterBookkeeping bookkeeping;
-  
+
   // inter-contig breakpoints
   VA_TYPE(InstrumenterBreakpoint) * breakpoints;
 
@@ -489,7 +489,7 @@ typedef struct
 {
   // bit vector of instrumenting option switches
   uint32 options;
-  
+
   // scaffold graph level of aggregation
   int32 numFragments;
   int32 numNotInUnitigs;
@@ -497,7 +497,7 @@ typedef struct
   int32 numNotPlaced;
   int32 numChaff;
   int32 numInUnresolvedChunks;
-  
+
   // singleton scaffold counting & sizes (single contig, multiple unitig)
   VA_TYPE(float) * singletonScaffoldSizes;
   InstrumenterStatistics singletonScaffoldSizeStats;
@@ -515,7 +515,7 @@ typedef struct
 
   // for aggregating scaffold-level data
   ScaffoldInstrumenter scaffold;
-  
+
   // bookkeeping of fragments, fragment locations, mates, & locales
   InstrumenterBookkeeping bookkeeping;
 

@@ -1,28 +1,28 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: StatisticsREZ.h,v 1.6 2007-04-16 17:34:16 brianwalenz Exp $	 */
+/* 	$Id: StatisticsREZ.h,v 1.7 2008-06-27 06:29:19 brianwalenz Exp $	 */
 
 /**********************************************************************************
  *  StatisticsRez.h
- *  
+ *
  *  Knut Reinert 12/99
  *
  *  This is the interface from CGW to REZ
@@ -56,7 +56,7 @@ typedef struct
   union{
     int64 all;
     struct{
-      unsigned int walked:1; 
+      unsigned int walked:1;
       // a boolean flag that indicates whether the gap was succesfully walked or not
       unsigned int trivial:1;
       // a boolean flag that indicates whether the gap was trivial
@@ -73,13 +73,13 @@ typedef struct
     }bits;
   }
   flags;
-    
+
   LengthT gapEstimate;
   LengthT gapLength;
   // two LengthTs the first contains the estimation of the gap length
   // the second the actual length of a walked gap. For unwalked gaps
-  // this is set to {0.0,0.0} 
-    
+  // this is set to {0.0,0.0}
+
   float bestTooShort;
   float bestTooLong;
 
@@ -88,14 +88,14 @@ typedef struct
   int walkedChunks;
   // the number of chunks on the best walk
 
-  int 
+  int
     uuChunks,
     urChunks,
     ruChunks,
     rrChunks;
   // counts of the walked chunks. These numbers
   // reflect the result of the functions Is_UU, Is_UR, Is_RU, and Is_RR
-  
+
 }
 GapStatisticsT;
 
@@ -129,7 +129,7 @@ typedef  struct
   VA_TYPE(GapStatisticsT) *GapStats;
   // a variable array containing statistics structs for all gaps in the scaffold
 
-  int 
+  int
     uuChunks,
     urChunks,
     ruChunks,
@@ -149,43 +149,43 @@ typedef  struct
   // the total number of explored edges in successful big walks in the scaffold
   int bigWalkedChunks;
   // the total number of chunks on the best path in a successful big walk
-  
+
   int insertedChunks;
   // number of the chunk actually inserted in the scaffold for all gaps
 
-  int 
+  int
     bpsMaxGap,
     /* the size in bps of the biggest gap walked */
     bpsTried,
     /* the sum of the scaffold lengths of walked scaffolds */
     bpsWalked,
-    /* the total number of contiguous base pairs added 
+    /* the total number of contiguous base pairs added
        through the walks of this scaffold, i.e. not adding up chunklengths,
        but adding up the corrected gap estimate means */
     bpsNotWalked,
-    /* the total number of the estimated gap lengths that we 
+    /* the total number of the estimated gap lengths that we
        were not able to walk */
     bigGapsWalked,
-    /* a gap is considered big if the estimated length is bigger than 
-       SWITCH_THRESHOLD (defined in GWdrivers.h) this counter counts 
+    /* a gap is considered big if the estimated length is bigger than
+       SWITCH_THRESHOLD (defined in GWdrivers.h) this counter counts
        the number of walked big gaps */
     bigGapsNotWalked,
     /* number of unwalked big gaps */
     smallGapsWalked,
-    /* a gap is considered small if the estimated length is less than 
-       SWITCH_THRESHOLD and greater than 0. 
+    /* a gap is considered small if the estimated length is less than
+       SWITCH_THRESHOLD and greater than 0.
        This counter counts the number of walked small gaps */
     smallGapsNotWalked,
     /* number of unwalked small gaps */
     negativGapsWalked,
-    /* a gap is considered negativ if the estimated length is less than 0 
+    /* a gap is considered negativ if the estimated length is less than 0
        (big surprise). This counter counts the number of walked negative gaps */
     negativGapsNotWalked,
     /* number of unwalked negativ gaps */
     gapsTooShort,
     /* number of gaps that we did not even try to walk, because it was too short */
     walkedMaxedOut,
-    /* the number of gaps in which we explored more than MAXWALKCALLS 
+    /* the number of gaps in which we explored more than MAXWALKCALLS
        (defined in GapWalkerREZ.h) and hence stopped exploring the graph */
     walkedTooShort,
     /* the number of gaps in which we actually reached the other side of the gap
@@ -196,9 +196,9 @@ typedef  struct
        but had a too long walk compared to the upper bound computed for the gap
        (3*STDDEV) */
     walkedTrivial;
-    /* the number of tvival gaps, that means which have an edge between the 
+    /* the number of tvival gaps, that means which have an edge between the
        left and the right chunk */
-     
+
     /* BEWARE that a single gap can contribute to several of the counts above,
        e.g. in a tandem gap we could
        - have a trivial walk count,
@@ -206,7 +206,7 @@ typedef  struct
        - walk too long,
        and finally walk the gap within the bounds.
     */
-  
+
 } ScaffoldWalkStatisticsT;
 
 

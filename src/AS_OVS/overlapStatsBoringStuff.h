@@ -123,7 +123,7 @@ loadClearLengths(GateKeeperStore *gkp) {
 //  unused types   -- 0x01, 0x02, 0x03, 0x04, 0x08, 0x0c
 //
 //
-//  
+//
 uint32
 computeTypeOfOverlap(OVSoverlap ovl) {
   int32   ah = ovl.dat.ovl.a_hang;

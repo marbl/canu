@@ -6,19 +6,19 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received (LICENSE.txt) a copy of the GNU General Public 
+#
+# You should have received (LICENSE.txt) a copy of the GNU General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
 #
-# $Id: sim4db2tampa.pl,v 1.3 2005-12-16 22:13:07 catmandew Exp $
+# $Id: sim4db2tampa.pl,v 1.4 2008-06-27 06:29:17 brianwalenz Exp $
 #
 
 use FileHandle;
@@ -66,7 +66,7 @@ my $help = 0;
 
 # "", "c", "i"
 my $multiMatch = "";
-  
+
 GetOptions("f=s", => \$fragFilename,
            "s=s", => \$sim4Filename,
            "o=s", => \$outputPrefix,
@@ -167,16 +167,16 @@ while(<$sim4FH>)
 
     # chromosome/scaffold
     $hashArray[0] = $fields[5];
-    
+
     # orientation
     $hashArray[2] = ($fields[13] eq "forward" ? 0 : 1);
-    
+
     # identity (percent)
     $hashArray[3] = $fields[12];
-    
+
     # coverage (bases)
     $hashArray[4] = $fields[10];
-    
+
     # number of matches
     $hashArray[5] = 1;
 
@@ -189,19 +189,19 @@ while(<$sim4FH>)
   {
     s/[\[\] <>=]/-/g;
     @fields = split "-";
-    
+
     $fragID = $fields[2];
     next;
   }
-  
+
   # line indicating where
   if($recordLine == 5)
   {
     s/[\(\) <>]/-/g;
     @fields = split "-";
-    
+
     # printf STDOUT "$_\n";
-    
+
     $hashArray[1] = ($hashArray[2] == 0 ? $fields[3] : $fields[4]);
     next;
   }
@@ -210,7 +210,7 @@ while(<$sim4FH>)
   if($_ eq "sim4end")
   {
     printf(STDERR "\r%10d", $lineCount) if(++$lineCount % 10000 == 0);
-  
+
     # check to omit mappings with multiple spliced alignments
     if($recordLine == $linesPerMapping)
     {
@@ -232,7 +232,7 @@ while(<$sim4FH>)
           if($multiMatch eq "i" && ($mappings{$fragID}[3] < $hashArray[3] ||
                                     ($mappings{$fragID}[3] == $hashArray[3] &&
                                      $mappings{$fragID}[4] < $hashArray[4])));
-        
+
         # if user specified coverage preference,
         # replace this match if it has higher coverage or
         # equal coverage and higher identity
@@ -297,7 +297,7 @@ while(<$fragsFH>)
   s/[\n\r\cZ]//g;
 
   printf(STDERR "\r%10d", $i) if(++$i % 10000 == 0);
-  
+
   # {DST line starts a library
   if(index($_, "{DST") == 0)
   {
@@ -336,7 +336,7 @@ while(<$fragsFH>)
     $inDST = 0;
     next;
   }
-  
+
   if($inLKG == 1)
   {
     # action field - must be add
@@ -398,7 +398,7 @@ while(<$fragsFH>)
 
         # intra:
         #   orientation (I,O,N,A), leftID, rightID, libID, left 5', right 5'
-        my $mode = 
+        my $mode =
             (defined($intraFHs{$mappings{$lkg[$lkgFields{"fg1"}]}[0]}) ?
              "a" : "w");
         $intraFHs{$mappings{$lkg[$lkgFields{"fg1"}]}[0]} = 1;
@@ -419,20 +419,20 @@ while(<$fragsFH>)
       else
       {
         # write to two inter-chrom files
-        
+
         # inter - first set of info is for frag on 'this' chrom:
         #   fragID, chromID, frag 5', orientation (A_B, B_A),
         #   otherFragID, chromID, frag 5', orientation, libID
         my $fi;
         for($fi = 0; $fi < 2; $fi++)
         {
-          my $mode = 
+          my $mode =
             (defined($interFHs{$mappings{$lkg[$fi]}[0]}) ? "a" : "w");
           $interFHs{$mappings{$lkg[$fi]}[0]} = 1;
           $fn = $outputPrefix . "_" .
             $mappings{$lkg[$fi]}[0] .
             "_inter.txt";
-          my $thisFH = 
+          my $thisFH =
             new FileHandle $fn, $mode or die "Failed to open $fn for writing";
           printf($thisFH "%s %s %u %s %s %s %u %s %s\n",
                  $lkg[$fi],

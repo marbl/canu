@@ -22,7 +22,7 @@
 #
 ##########################################################################
 
-# $Id: Almost_Randomly_Substitute_Ns.pl,v 1.1 2006-01-10 22:44:42 kli1000 Exp $
+# $Id: Almost_Randomly_Substitute_Ns.pl,v 1.2 2008-06-27 06:29:21 brianwalenz Exp $
 
 ###############################################################################
 
@@ -31,8 +31,8 @@ use Getopt::Std;
 use vars qw($opt_f);
 
 getopts("f:");
-my $usage = "usage: 
-$0 
+my $usage = "usage:
+$0
 	-f <fasta file>
 
 	This program will:
@@ -60,7 +60,7 @@ print STDERR "Processing FASTA file...\n";
 my ($defline, $prev_defline, $sequence);
 while(<FASTA_FH>){
 	chomp;
-	
+
 	if(/^>/){
 		$defline=$_;
 		if($sequence ne ""){

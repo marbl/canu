@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 2007, J. Craig Venter Institute. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: overlapStats.c,v 1.3 2008-01-07 21:44:50 skoren Exp $
+//  $Id: overlapStats.c,v 1.4 2008-06-27 06:29:18 brianwalenz Exp $
 
 
 //  install.packages(c("akima"))
@@ -69,7 +69,7 @@
 typedef struct {
   AS_UTL_histogram    hist5;
   AS_UTL_histogram    hist3;
-  uint64              repeatThreshold;  
+  uint64              repeatThreshold;
 } RepeatModel;
 
 
@@ -246,18 +246,18 @@ finalize_GenomeLength(GateKeeperStore *gkp, RepeatModel *rm) {
 
 
 LibraryOverlapData *
-process_LibraryRandomness(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp, 
+process_LibraryRandomness(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp,
                           RepeatModel *rm,
                           LibraryOverlapData *ovl) {
    int i = 0, j = 0;
    int repeatend = isRepeatEnd(ovls, ovlsLen, rm);
    fragRecord fr;
-   
+
    // initialize data if necessary
    // library 0 represents reads with no library association
    if (ovl == NULL) {
       ovl = (LibraryOverlapData *)safe_calloc(1, sizeof(LibraryOverlapData));
-      
+
       int32 numLibraries = getNumGateKeeperLibraries(gkp)+1;
       ovl->readsPerLibrary = safe_malloc(numLibraries * sizeof(uint64));
       for (i = 0; i < numLibraries; i++) {
@@ -271,7 +271,7 @@ process_LibraryRandomness(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp
             ovl->libraryVsLibraryOverlaps[i][j] = 0;
          }
       }
-      
+
       ovl->readsSeen = CreateScalarHashTable_AS(32 * 1024);
       ovl->contained = 0;
       ovl->totalOverlaps = 0;
@@ -279,20 +279,20 @@ process_LibraryRandomness(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp
 
    if (ovlsLen > 0) {
       // all the records have the same a_iid so we only need to get it once
-      getFrag(gkp, ovls[0].a_iid, &fr, 0);         
+      getFrag(gkp, ovls[0].a_iid, &fr, 0);
       AS_IID libOne = getFragRecordLibraryIID(&fr);
-      
+
       ovl->totalOverlaps += ovlsLen;
-      
+
       // get the libraries of the reads from the gkp store and increment appropriate counters
       for (i=0; i<ovlsLen; i++) {
          uint32 contained = computeTypeOfOverlap(ovls[i]);
-        
+
          // get the contained overlap and don't count ones that are contained
-         if (contained != 0x0a && contained != 0x0f) { 
-            ovl->contained++;            
+         if (contained != 0x0a && contained != 0x0f) {
+            ovl->contained++;
          }
-         else {         
+         else {
             getFrag(gkp, ovls[i].b_iid, &fr, 0);
             AS_IID libTwo = getFragRecordLibraryIID(&fr);
 
@@ -300,17 +300,17 @@ process_LibraryRandomness(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp
                ovl->readsPerLibrary[libOne]++;
                InsertInHashTable_AS(ovl->readsSeen, ovls[i].a_iid, 0, 1, 0);
             }
-            
+
             if (!ExistsInHashTable_AS(ovl->readsSeen, ovls[i].b_iid, 0)) {
                ovl->readsPerLibrary[libTwo]++;
                InsertInHashTable_AS(ovl->readsSeen, ovls[i].b_iid, 0, 1, 0);
             }
-            
-            ovl->libraryVsLibraryOverlaps[libOne][libTwo]++;           
+
+            ovl->libraryVsLibraryOverlaps[libOne][libTwo]++;
          }
       }
    }
-   
+
    return (ovl);
 }
 
@@ -331,33 +331,33 @@ finalize_LibraryRandomness(GateKeeperStore *gkp, RepeatModel *rm, LibraryOverlap
       fprintf(stderr, "Failed to open '%s' for write: %s.\n", name, strerror(errno));
       return;
    }
-   
+
    int32 numLibraries = getNumGateKeeperLibraries(gkp)+1;
    uint64 uncontained = ovl->totalOverlaps - ovl->contained;
    uint64 numReads = ovl->readsSeen->numNodes;
-   
+
    fprintf(F, "Total overlaps: %d\tcontained: %d\tcontained percent: %.2f\n", ovl->totalOverlaps, ovl->contained, 100*(ovl->contained/(double)ovl->totalOverlaps));
    fprintf(F, "Overlaps per lib in [libID] [% reads] format\n");
    for (i = 0; i < numLibraries; i++) {
       fprintf(F, "%d\t%.2f\n", i, 100*(ovl->readsPerLibrary[i]/(double)numReads));
    }
-   
-   for (i = 1; i < numLibraries; i++) {      
+
+   for (i = 1; i < numLibraries; i++) {
       for (j = 1; j < numLibraries; j++) {
          if (ovl->readsPerLibrary[i] < MIN_LIBRARY_SIZE || ovl->readsPerLibrary[j] < MIN_LIBRARY_SIZE) {
             fprintf(F, "%d\t%d\t%s\n", i, j, "NA");
          }
          else {
-            uint64 overlaps = ovl->libraryVsLibraryOverlaps[i][j]; 
-               
+            uint64 overlaps = ovl->libraryVsLibraryOverlaps[i][j];
+
             double expected = (ovl->readsPerLibrary[i]/(double)numReads)*(ovl->readsPerLibrary[j]/(double)(numReads));
             double expectedCount = uncontained*expected;
-                           
+
             double actual = (overlaps/(double)uncontained);
             double diffRatio = (overlaps - expectedCount) / expectedCount;
 
             fprintf(F, "%d\t%d\t%.2f\t%d\t%.2f\n", i, j, expectedCount, overlaps, diffRatio*100);
-         }         
+         }
       }
    }
 }
@@ -426,7 +426,7 @@ main(int argc, char **argv) {
 
   FragmentEndData *repeat   = NULL;
   FragmentEndData *unique   = NULL;
-  
+
   LibraryOverlapData *overlaps = NULL;
 
   AS_OVS_resetRangeOverlapStore(ovs);

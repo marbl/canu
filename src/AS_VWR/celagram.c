@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: celagram.c,v 1.6 2007-03-09 03:05:58 brianwalenz Exp $ */
+/* $Id: celagram.c,v 1.7 2008-06-27 06:29:21 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <math.h>
@@ -137,13 +137,13 @@ int GetColumnValue(FILE * file, int * histo_cell, int column)
       column--;
     }
   }
-    
+
   if(column == 1 && *lineptr != '\0')
   {
     *histo_cell = atoi(lineptr);
     return 1;
   }
-  
+
   return 0;
 }
 
@@ -306,7 +306,7 @@ readjust:
   llead = lead;
   bmin  = RoundDown(xmin,lead);
   bmax  = RoundDown(xmax,lead) + lead;
-    
+
   { int i, k, b;
 
     hmax = 0;
@@ -349,11 +349,11 @@ void DrawHistogram(MT_OBJECT *canvas, HistoPacket *hist,
   static char  label[100];
   static char *letter[] = { "", "K", "M", "G", "T" };
   FILE *fout = stdout;
-  
+
   mt_get_extent(canvas,&xl,&xh,&yl,&yh);
   xh -= (xl-1);
   yh -= (yl-1);
-  
+
   { int xzeros, xlead, xorder;
     int yzeros, ylead, yorder;
     int bmin, bmax, hmax;
@@ -367,7 +367,7 @@ void DrawHistogram(MT_OBJECT *canvas, HistoPacket *hist,
 
     while (1)
       { int adjust;
-      
+
         bmin  = RoundDown(xmin,xlead);
         bmax  = RoundDown(xmax,xlead) + xlead;
         hwide = (xh - (2*HBORDER+lborder)) / ((bmax-bmin) / xlead);
@@ -388,7 +388,7 @@ void DrawHistogram(MT_OBJECT *canvas, HistoPacket *hist,
         else
           break;
       }
-    
+
     { int i, k, b;
 
       hmax = 0;
@@ -431,12 +431,12 @@ void DrawHistogram(MT_OBJECT *canvas, HistoPacket *hist,
       fclose(fdump);
     }
 #endif
-    
+
     { int i, k, b, y, lft;
       double yfact;
       mt_set_color(mt_get_color(BARCOLOR));
       i = 0;
-      yfact = (1.*yh - (HTITLEB+HTEXTB))/hmax; 
+      yfact = (1.*yh - (HTITLEB+HTEXTB))/hmax;
       while (i < hist->numpts && hist->datapts[i] < bmin)
         i += 1;
       lft = lst;
@@ -458,7 +458,7 @@ void DrawHistogram(MT_OBJECT *canvas, HistoPacket *hist,
         }
     }
     fflush(fout);
-    
+
     { int ticks, lft, plead, qlead;
       int adjust, qmax;
       double yfact;
@@ -501,7 +501,7 @@ void DrawHistogram(MT_OBJECT *canvas, HistoPacket *hist,
       ticks = bmin;
       while (ticks <= bmax)
         { int w, h, b;
-  
+
           if (ticks % xlead == 0)
             { if (xzeros % 3 == 2)
                 sprintf(label,"%d.%d%s",ticks/(xorder*10),(ticks/xorder)%10,
@@ -527,7 +527,7 @@ void DrawHistogram(MT_OBJECT *canvas, HistoPacket *hist,
 
       mt_set_color(TextColor);
       mt_draw_line(canvas,lst-1,bot,lst-1,HTITLEB,1,0);
-      yfact = (1.*yh - (HTITLEB+HTEXTB))/hmax; 
+      yfact = (1.*yh - (HTITLEB+HTEXTB))/hmax;
       ticks = 0;
       while (ticks <= hmax)
         { int y, w, h, b;
@@ -594,7 +594,7 @@ void PrintHistogram(HistoPacket *hist, char *title)
 }
 
 int DrawHistoInfo(MT_OBJECT *bar, HistoPacket *hist)
-{ char label[100]; 
+{ char label[100];
   int border, max, width, alt;
   int w, h, b;
 
@@ -730,7 +730,7 @@ void scrollupdate1(long d, MY_SCROLL *s)  /* Slave update: linear */
   val0 = mt_get_scrollbar(s[-1].bar,&wid0,&min0,&max0);
   max0 += wid0;
   val1 = mt_get_scrollbar(s->bar,&wid1,&min1,&max1);
-  wid0 = val1; 
+  wid0 = val1;
   if (wid0 > max0-min0) wid0 = max0-min0;
   if (val0+wid0 > max0) val0 = max0-wid0;
   if (val0 < min0) val0 = min0;
@@ -979,11 +979,11 @@ int main(int argc, char *argv[])
     Usage();
   }
 
-  { /* Parse the argument list using "man 3 getopt". */ 
+  { /* Parse the argument list using "man 3 getopt". */
     int ch,errflg=0;
     optarg = NULL;
-    while (!errflg && 
-	   ((ch = getopt(argc, argv, 
+    while (!errflg &&
+	   ((ch = getopt(argc, argv,
 			 "c:pst:S:"
                          )) != EOF)) {
       switch(ch) {
@@ -1009,7 +1009,7 @@ int main(int argc, char *argv[])
       }
     }
   }
-  
+
 
   first_file = optind;
   for (i = first_file; i < argc; i++)
@@ -1132,7 +1132,7 @@ int main(int argc, char *argv[])
     mt_button_colors(obj,-1,SelectColor,-1,-1,SelectColor,-1);
     mt_set_callback(obj,cbutton,(long) packet);
   }
- 
+
   mt_pop_frame();
 
   mt_pop_frame();

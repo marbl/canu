@@ -105,7 +105,7 @@ void depth_of_coverage( int *begs, int *ends, int n, int *depthhistogram , char 
     fprintf(stderr,"depth frg %d cutoff %d class %c",prev,cutoffs[k],type);
   }
 
-  if(n==0){ 
+  if(n==0){
     depthhistogram[0]+=flen;
     if(debug>0){
       fprintf(stderr,"\t0-%d:0\n",flen);
@@ -124,7 +124,7 @@ void depth_of_coverage( int *begs, int *ends, int n, int *depthhistogram , char 
     //    # next is one or more starts
     //    # next is one or more stops
     //    # next is a combination of starts and stops
-    //    # no more 
+    //    # no more
 
     if(i<n&&(j==n||begs[i]<ends[j])){
 
@@ -144,7 +144,7 @@ void depth_of_coverage( int *begs, int *ends, int n, int *depthhistogram , char 
 	d++;
       }
 
-    } else if (j<n &&(i==n||begs[i]>ends[j])){  
+    } else if (j<n &&(i==n||begs[i]>ends[j])){
 
       //      print "\t$p-$ends[$j]:$d";
       if(debug>0){
@@ -253,7 +253,7 @@ void process_frg(){
     depth_of_coverage(otherbeg[k],otherend[k],othern[k],otherdepthhistogram[psmp][k],'O',k);
     depth_of_coverage(selfbeg[k],selfend[k],selfn[k],selfdepthhistogram[psmp][k],'S',k);
   }
-  
+
   /*************************/
   // sample similarity fractions
   /*************************/
@@ -720,7 +720,7 @@ int main (int argc, char *argv[]){
 
   alloc_ends(5000);
 
-  
+
   prev=0;
 
   AS_OVS_setRangeOverlapStore(ovlStore, begidx, endidx);
@@ -784,7 +784,7 @@ int main (int argc, char *argv[]){
 	cln[sb][k]++;
       }
 
-      { 
+      {
 	int b,e;
 	b = ( olap.dat.ovl.a_hang>0 ? olap.dat.ovl.a_hang : 0 );
 	e = flen + ( olap.dat.ovl.b_hang < 0 ? olap.dat.ovl.b_hang : 0 );

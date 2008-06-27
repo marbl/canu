@@ -225,7 +225,7 @@ sub terminate ($) {
     	if ( -e "$wrk/$asm.frg" ) {
             link "$wrk/$asm.frg", "$termDir/$asm.frg";
             $qcOptions = "-metrics";
-	}    
+	}
     	if ( -e "$wrk/$asm.catmap" && !-e "$termDir/$asm.catmap" )  {
             link "$wrk/$asm.catmap", "$termDir/$asm.catmap";
 	}
@@ -408,10 +408,10 @@ sub terminate ($) {
 
     link "$termDir/$asm.asm", "$wrk/$asm.asm";
     link "$termDir/$asm.qc",  "$wrk/$asm.qc";
- 
+
     localPostTerminator($termDir);
 
-    return(0); 
+    return(0);
 }
 
 1;

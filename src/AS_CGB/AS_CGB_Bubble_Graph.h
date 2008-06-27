@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -46,7 +46,7 @@
 
 /*
  *
- * BUBGRAPH 
+ * BUBGRAPH
  *
  */
 
@@ -77,8 +77,8 @@ Tedge *BG_edges(BubGraph_t bg);
 
 /* Given an edge and an incident vertex, returns the ID of the other incident
    vertex. */
-IntFragment_ID 
-BG_getOppositeVertex(BubGraph_t bg, IntEdge_ID e, IntFragment_ID v); 
+IntFragment_ID
+BG_getOppositeVertex(BubGraph_t bg, IntEdge_ID e, IntFragment_ID v);
 
 /* Returns TRUE if the vertex has forward orientation, or FALSE otherwise. */
 int BG_vertexForward(BubGraph_t bg, IntFragment_ID v);
@@ -87,11 +87,11 @@ int BG_vertexForward(BubGraph_t bg, IntFragment_ID v);
    which have matching flags. */
 int BG_degree(BubGraph_t bg, IntFragment_ID v, uint16 flags);
 
-/* Returns the indegree of the given vertex, counting only those edges 
+/* Returns the indegree of the given vertex, counting only those edges
    which have the given flags set. */
 int BG_inDegree(BubGraph_t bg, IntFragment_ID v, uint16 flags);
 
-/* Returns the outdegree of the given vertex, counting only those edges 
+/* Returns the outdegree of the given vertex, counting only those edges
    which have the given flags set. */
 int BG_outDegree(BubGraph_t bg, IntFragment_ID v, uint16 flags);
 
@@ -145,7 +145,7 @@ typedef BG_E_Iter * BG_E_Iter_t;
    the given vertex matching both the type (either forward, back, or
    either) and the given flags.  If no such edge exists, a random value is
    returned and BGEI_end() returns TRUE. */
-IntEdge_ID BGEI_bgn(BubGraph_t bg, BG_E_Iter_t it, IntFragment_ID v, 
+IntEdge_ID BGEI_bgn(BubGraph_t bg, BG_E_Iter_t it, IntFragment_ID v,
 		    BG_E_IterType t, uint16 flags);
 
 /* Returns the ID of the next edge matching the flags and type.  Return

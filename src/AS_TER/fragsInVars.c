@@ -83,7 +83,7 @@ readFrags(FILE *frgscf, frag **frags, uint32 *fragsLen, uint32 *fragsMax) {
   fgets(L, 1024, frgscf);
 
   while (!feof(frgscf)) {
- 
+
     if (*fragsLen >= *fragsMax) {
       *fragsMax *= 2;
       *frags     = (frag *)safe_realloc(*frags, sizeof(frag) * *fragsMax);

@@ -1,38 +1,38 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.37 2008-05-31 06:49:46 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.38 2008-06-27 06:29:19 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
  * Description:
  *   Assig  non-unique chunks to positions between unique-chunks
  *   in (or between) scaffolds.
- * 
+ *
  *    Programmer:  A. Delcher
  *       Written:  11 May 99
- * 
+ *
  * Assumptions:
  *  Called from CGW main program.  Uses its global data structures.
- * 
+ *
  * Notes:
  *
  *************************************************/
@@ -60,7 +60,7 @@ static char fileID[] = "$Id: GapFillREZ.c,v 1.37 2008-05-31 06:49:46 brianwalenz
 #include "RepeatRez.h"
 #include "UpdateREZ.h"
 
-                            
+
 #define  REF(i)   (Ref_Data [Ref_Index [i]])   // Macro to reference chunk_ref data
 
 #define  GAPS_TO_ADJUST  0;  j < fill_chunks [scaff_id] . num_gaps;  j ++
@@ -202,7 +202,7 @@ char  * Colour_String [NUM_COLOURS]
   "C000000 T2 S  # Unused",
   "CFFFF00 T2 S  # Unique",
   "CFF8080 T2 S  # Inserted",
-  "C7F7F7F T2 S  # Unconnected", 
+  "C7F7F7F T2 S  # Unconnected",
   "C0000FF T2 S  # Unresolved",
   "C49F8F8 T2 S  # Consistent",
   "CFF0000 T2 S  # Placed",
@@ -754,7 +754,7 @@ static void  Add_Join_Entry
   join . scaff2 = scaff2;
   join . variance = MAX (a_end1 . variance, b_end1 . variance)
     + MAX (a_end2 . variance, b_end2 . variance);
-   
+
   assert (b_end1 . mean != a_end1 . mean);
   assert (b_end2 . mean != a_end2 . mean);
 
@@ -964,7 +964,7 @@ void  Analyze_Rock_Fill
                             this_chunk -> end .mean);
                   hi = MAX (this_chunk -> start .mean,
                             this_chunk -> end .mean);
-                                  
+
                   inserted_chunks ++;
                   if  (j == 0 || j == fill_chunks [scaff_id] . num_gaps - 1)
                     end_rock_ct ++;
@@ -982,7 +982,7 @@ void  Analyze_Rock_Fill
                     hi = target_right;
                   if  (hi < lo)
                     hi = lo;
-                 
+
                   if  (j == 0 || j == fill_chunks [scaff_id] . num_gaps - 1)
                     {
                       end_bases_filled += hi - lo;
@@ -1328,7 +1328,7 @@ void  Analyze_Stone_Fill
                             this_chunk -> end .mean);
                   hi = MAX (this_chunk -> start .mean,
                             this_chunk -> end .mean);
-                                  
+
                   inserted_chunks ++;
                   if  (j == 0 || j == fill_chunks [scaff_id] . num_gaps - 1)
                     end_stone_ct ++;
@@ -1344,7 +1344,7 @@ void  Analyze_Stone_Fill
                     hi = target_right;
                   if  (hi < lo)
                     hi = lo;
-                 
+
                   if  (j == 0 || j == fill_chunks [scaff_id] . num_gaps - 1)
                     {
                       end_bases_filled += hi - lo;
@@ -1559,7 +1559,7 @@ static int  Assign_To_Gap
 
 //  Assign this chunk with id =  cid  to gap number  gap
 //  in scaffold  scaff_id .  The end coordinates of this chunk
-//  are  left_end  and  right_end .  
+//  are  left_end  and  right_end .
 //  Add it to  fill_chunks  structure and set the  copy_letter
 //  field there to  id .
 //  flipped  indicates if this chunk is reversed
@@ -2382,7 +2382,7 @@ static void  Check_Olaps
              && Might_Overlap
              (place [j] . A_end . mean, place [j] . B_end . mean,
               place [i] . A_end . mean, place [i] . B_end . mean,
-              - allowed_error,     
+              - allowed_error,
               & orient, & min_ahang, & max_ahang))
           // - allowed_error really makes this "must overlap"
 #else
@@ -2407,7 +2407,7 @@ static void  Check_Olaps
         (j_seq, i_seq, orient, min_ahang - (int) (3.0 * allowed_error),
          max_ahang + (int) (3.0 * allowed_error),
          AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN,
-         AS_FIND_ALIGN);			 
+         AS_FIND_ALIGN);
 #else
       olap = OverlapChunks                 // debug code does NOT handle suspicious
         (ScaffoldGraph -> RezGraph,
@@ -2426,13 +2426,13 @@ static void  Check_Olaps
                how_much - allowed_error, how_much + allowed_error,
                gap -> has_path ? "Has Path" : "No Path");
 #endif
-         
+
 #if  VERBOSE
       fprintf (stderr,
                "olapping j = %d  [%.0f,%.0f]   i = %d  [%.0f,%.0f]\n"
                "  min_ahang = %d  max_ahang = %d  allowed_error = %d\n"
                "  orient = %s  olap = %p\n",
-               place [j] . id, 
+               place [j] . id,
                place [j] . A_end . mean, place [j] . B_end . mean,
                place [i] . id,
                place [i] . A_end . mean, place [i] . B_end . mean,
@@ -2545,7 +2545,7 @@ static void  Check_Other_Links
   denom = have_bad_ct + no_bad_ct;
   if  (denom == 0.0)
     denom = 1.0;
-     
+
   fprintf (stderr, "        Removed by check links: %7d\n", reject_ct);
   fprintf (stderr, "     Sent to consistency check: %7d\n", keep_ct);
   fprintf (stderr,
@@ -2966,7 +2966,7 @@ static int  Check_Scaffold_and_Orientation
           }
     }
 #endif
-   
+
   // Check for orientation discrepancy
   flipped_ct = non_flipped_ct = 0;
   for  (i = 0;  i < stacktop;  i ++)
@@ -3004,7 +3004,7 @@ static int  Check_Scaffold_and_Orientation
     }
   else if  (flipped_ct != 0 && non_flipped_ct != 0)
     return  FALSE;
-   
+
   return  TRUE;
 }
 
@@ -3223,7 +3223,7 @@ static int  Choose_Best_Stones
         fprintf (stderr, "%5d  %s\n", cid,
                  cid != start_id && cid != target_id
                  && REF (cid) . is_singleton ? "*UNIQUE*" : "");
-    
+
       }
   }
 #endif
@@ -3276,21 +3276,21 @@ static void  Choose_Safe_Chunks
 //
 //
 // The strategy is the following:
-// 
+//
 //  1.  Identify chunks with edge mates that incorporate at least
 //      two mate links to unique chunks in the same scaffold, and no
 //      edge mates with links to any other scaffold.  (Later we
 //      handle chunks that appear to be between two scaffolds.)  Edge
 //      mates that are flagged as anomalous or that are based
 //      solely on repeat overlaps are ignored.
-// 
+//
 //  2.  For each selected chunk, combine the information from the
 //      selected edge mates to estimate the start and end positions
 //      of the chunk in the scaffold.  Calculations are done with
 //      variances adjusted so that the nearest left
 //      position) unique chunk in the scaffold (we'll call it the
 //      "cornerstone") has left position with variance zero.
-// 
+//
 //  3.  Check the calculated start and end positions for
 //      consistency with each edge mate involved in their
 //      calculation.  We'll say they're consistent if the
@@ -3346,7 +3346,7 @@ static void  Choose_Safe_Chunks
         {
 #if  MAKE_CAM_FILE
           int  rel_pos, left, right;
-           
+
           cam_colour = UNIQUE_COLOUR;
           scaff_id = REF (cid) . scaff_id;
           rel_pos = REF (cid) . rel_pos;
@@ -3357,7 +3357,7 @@ static void  Choose_Safe_Chunks
                    contig -> offsetAEnd . mean, sqrt (contig -> offsetAEnd . variance),
                    contig -> offsetBEnd . mean, sqrt (contig -> offsetBEnd . variance),
                    cover_stat,
-                   CGB_Type_As_String (contig -> flags . bits . cgbType) 
+                   CGB_Type_As_String (contig -> flags . bits . cgbType)
                    );
 #if  SHOW_CALC_COORDS
           assert(contig->scaffoldID > NULLINDEX);
@@ -3371,7 +3371,7 @@ static void  Choose_Safe_Chunks
               left = contig -> offsetBEnd . mean;
               right = contig -> offsetAEnd . mean;
             }
-                
+
           Chunk_Info [cid] . scaff_id = scaff_id;
           if  (Scaffold_Start [scaff_id] <= Scaffold_End [scaff_id])
             {
@@ -3443,7 +3443,7 @@ static void  Choose_Safe_Chunks
               else
                 other_chunk = GetGraphNode(ScaffoldGraph->RezGraph,
                                            edge -> idA);
-              
+
               if  (Is_Unique (other_chunk) && !IsSurrogate(other_chunk))
                 {
                   assert (other_chunk -> scaffoldID > NULLINDEX);
@@ -3623,7 +3623,7 @@ static void  Choose_Safe_Chunks
                 }
             }
 
-          DeleteVA_Stack_Entry_t(stackva); 
+          DeleteVA_Stack_Entry_t(stackva);
         }
 
 #if  MAKE_CAM_FILE
@@ -3709,19 +3709,19 @@ static void  Choose_Stones
 //
 //
 // The strategy is the following:
-// 
+//
 //  1.  Find chunks that have at least  min_good_links  to the
 //      same scaffold.  Edge
 //      mates that are flagged as anomalous or that are based
 //      solely on repeat overlaps are ignored.
-// 
+//
 //  2.  For each selected chunk, combine the information from the
 //      selected edge mates to estimate the start and end positions
 //      of the chunk in the scaffold.  Calculations are done with
 //      variances adjusted so that the nearest left
 //      position) unique chunk in the scaffold (we'll call it the
 //      "cornerstone") has left position with variance zero.
-// 
+//
 //  3.  Check the calculated start and end positions for
 //      consistency with each edge mate involved in their
 //      calculation.  We'll say they're consistent if the
@@ -3765,7 +3765,7 @@ static void  Choose_Stones
         {
 #if  MAKE_CAM_FILE
           int  rel_pos, left, right;
-           
+
           cam_colour = UNIQUE_COLOUR;
           scaff_id = REF (cid) . scaff_id;
           rel_pos = REF (cid) . rel_pos;
@@ -3776,7 +3776,7 @@ static void  Choose_Stones
                    chunk -> offsetAEnd . mean, sqrt (chunk -> offsetAEnd . variance),
                    chunk -> offsetBEnd . mean, sqrt (chunk -> offsetBEnd . variance),
                    cover_stat,
-                   CGB_Type_As_String (chunk -> flags . bits . cgbType) 
+                   CGB_Type_As_String (chunk -> flags . bits . cgbType)
                    );
 #if  SHOW_CALC_COORDS
           assert(chunk->scaffoldID > NULLINDEX);
@@ -3790,7 +3790,7 @@ static void  Choose_Stones
               left = chunk -> offsetBEnd . mean;
               right = chunk -> offsetAEnd . mean;
             }
-                
+
           Chunk_Info [cid] . scaff_id = scaff_id;
           if  (Scaffold_Start [scaff_id] <= Scaffold_End [scaff_id])
             {
@@ -3918,7 +3918,7 @@ static void  Choose_Stones
               cam_colour = CONNECT_COLOUR;
               sprintf (annotation_string,
                        "  %d mate edges to uniques  cov = %d  typ = %s",
-                       GetNumVA_Stack_Entry_t(stackva), 
+                       GetNumVA_Stack_Entry_t(stackva),
                        cover_stat,
                        CGB_Type_As_String (chunk -> flags . bits . cgbType));
 #endif
@@ -4055,7 +4055,7 @@ static void  Choose_Stones
 #endif
               Chunk_Info [cid] . colour = cam_colour;
             }
-        }    
+        }
 #endif
     }
 
@@ -4149,7 +4149,7 @@ static int  Chunk_Contained_In_Chunk
                               orient, & olap);
   if  (olap_found && olap . BContainsA)
     return  TRUE;
-   
+
   return  FALSE;
 }
 
@@ -4212,7 +4212,7 @@ static int  Chunk_Contained_In_Scaff
                               orient, & olap);
   if  (olap_found && olap . BContainsA)
     return  TRUE;
-   
+
   return  FALSE;
 }
 
@@ -4619,7 +4619,7 @@ static void  Confirm_Stones
                   Adjust_Positions (this_gap, num_targets, target, fill_sub,
                                     max_hits, max_first, start_position . mean,
                                     direction, & high_target_variance, fp);
-		   
+
                   if  (j == 0)
                     Reverse_Positions (this_gap);
 
@@ -4666,7 +4666,7 @@ static void  Confirm_Stones
                                this_gap -> adjustment . variance, min_var_adjustment);
 #endif
 
-                    }                     
+                    }
                 }
 #if  SHOW_STONE_CONFIRM
               fprintf (fp, "found = %c  first = %3d  max_hits = %3d  max_first = %3d\n",
@@ -4856,7 +4856,7 @@ static int  Depth_First_Visit
 
       return  TRUE;
     }
-         
+
   //  This node automatically goes in the tree.  If it is past the
   //  distance bound, then don't pursue any of its edges.
   //  bound  measures the distance to the *low* end of the  to  chunk
@@ -5262,7 +5262,7 @@ static int  Determine_Components
             }
         }
       path_info [list [i]] . done = TRUE;
-    }   
+    }
 
   // list all components
   {
@@ -5777,7 +5777,7 @@ static void  Doublecheck_Positions_One_Scaffold
 
 
   // First make sure any overlaps implied by computed positions
-  // are really there. 
+  // are really there.
 
   for  (j = GAPS_TO_ADJUST)
     {
@@ -6336,7 +6336,7 @@ static void  Fasta_Print
 
   if  (i != 0)
     fputc ('\n', fp);
-   
+
   return;
 }
 
@@ -6369,7 +6369,7 @@ int  Fill_Gaps
   Num_Scaffolds = GetNumGraphNodes (ScaffoldGraph -> ScaffoldGraph);
   if  (Num_Scaffolds == 0)
     return 0;
-     
+
 #if  TEST_HOPELESS_SCAFFS
   Hopeless_False_Mask = '\376';
   Hopeless_True_Mask = '\001';
@@ -6391,7 +6391,7 @@ int  Fill_Gaps
 #endif
 
   fprintf (stderr, "### Fill_Gaps iteration #%d\n", iteration);
-   
+
   iteration++;
 
   now = time (NULL);
@@ -6466,7 +6466,7 @@ int  Fill_Gaps
 
   if (level <= 2)
     Check_Other_Links (fill_chunks);
-   
+
   StopTimerT(&GlobalData->ChooseChunksTimer);
 
   if  (level == 5)
@@ -6597,7 +6597,7 @@ int  Fill_Gaps
       Adjust_By_Ref_Variance (fill_chunks);
       Check_Rocks (log_file, fill_chunks);
     }
-       
+
 
 #if  MAKE_CAM_FILE
   Update_Colours (fill_chunks);
@@ -6737,12 +6737,12 @@ void  Free_Fill_Array_Scaffold
 
 {
   int  j;
-  
+
   for  (j = 0;  j < fill_chunks -> num_gaps;  j ++)
     safe_free (fill_chunks -> gap [j] . chunk);
-  
+
   safe_free (fill_chunks -> gap);
-  
+
   return;
 }
 
@@ -6979,7 +6979,7 @@ void  Force_Increasing_Variances_One_Scaffold
     {
       prev_chunk -> offsetAEnd . variance += incr;
       prev_chunk -> offsetBEnd . variance += incr;
-      scaff->bpLength.variance = MAX( prev_chunk->offsetAEnd.variance, 
+      scaff->bpLength.variance = MAX( prev_chunk->offsetAEnd.variance,
                                       prev_chunk->offsetBEnd.variance);
     }
 
@@ -7171,13 +7171,13 @@ int  Hurl_Contained_Rocks
   time_t  now;
   int  i;
   int  inserted = 0;
-     
+
   StartTimerT(&GlobalData->GapFillTimer);
 
   Num_Scaffolds = GetNumGraphNodes (ScaffoldGraph -> ScaffoldGraph);
   if (Num_Scaffolds == 0)
     return 0;
-     
+
 #if  TEST_HOPELESS_SCAFFS
   Hopeless_False_Mask = '\375';
   Hopeless_True_Mask = '\002';
@@ -7200,7 +7200,7 @@ int  Hurl_Contained_Rocks
 
   fprintf (stderr, "### Hurl_Contained_Rocks iteration #%d\n", iteration);
   Contained_Only_Switch = TRUE;
-   
+
   iteration++;
 
   now = time (NULL);
@@ -7266,7 +7266,7 @@ int  Hurl_Contained_Rocks
 
   if (level <= 2)
     Check_Other_Links (fill_chunks);
-   
+
   StopTimerT(&GlobalData->ChooseChunksTimer);
 
   Add_Gap_Ends (fill_chunks);
@@ -7778,7 +7778,7 @@ int IsSurrogate(ChunkInstanceT * chunk)
                          chunk->info.Contig.AEndCI))->info.CI.numInstances != 0);
   else
     return(chunk->info.CI.numInstances != 0);
-  
+
 }
 
 int  Is_Unique
@@ -7883,7 +7883,7 @@ static int  Insert_Chunks_In_Graph_One_Scaffold
                                  (int) kind);
                     }
                 }
-                  
+
 
               if  (this_chunk -> split)
                 insert_id = SplitUnresolvedContig
@@ -7979,10 +7979,10 @@ static void UnJigglePositions(void)
                       "\tlengths: scaffold (%.3f,%.3f), contig (%.3f, %.3f)\n",
                       scaffold->bpLength.mean, scaffold->bpLength.variance,
                       ci->bpLength.mean, ci->bpLength.variance);
-        
+
               fprintf(stderr, "*** BEFORE UNJIGGLING POSITIONS:\n");
               DumpCIScaffold(stderr, ScaffoldGraph, scaffold, 0);
-        
+
               if(ci->offsetAEnd.mean < ci->offsetBEnd.mean)
                 {
                   delta.mean = - ci->offsetAEnd.mean;
@@ -8746,7 +8746,7 @@ static void  Output_Cam_Files
               = this_chunk -> keep;
           }
       }
-   
+
 
 #if  SHOW_CALC_COORDS
   for  (scaff_id = 0;  scaff_id < Num_Scaffolds;  scaff_id ++)
@@ -9013,7 +9013,7 @@ static void  Print_Scaffolds
           fprintf (fp, "Scaffold %3d:\n", scaff_id);
 
           fprintf (fp, "A Edges\n");
-          InitGraphEdgeIterator(ScaffoldGraph->ScaffoldGraph, scaff_id, A_END, ALL_EDGES, 
+          InitGraphEdgeIterator(ScaffoldGraph->ScaffoldGraph, scaff_id, A_END, ALL_EDGES,
                                 GRAPH_EDGE_DEFAULT,   &SEdges);
 
           //      InitSEdgeTIterator (ScaffoldGraph, scaff_id, FALSE, FALSE,
@@ -9031,7 +9031,7 @@ static void  Print_Scaffolds
             }
 
           fprintf (fp, "B Edges\n");
-          InitGraphEdgeIterator(ScaffoldGraph->ScaffoldGraph, scaff_id, B_END, ALL_EDGES, 
+          InitGraphEdgeIterator(ScaffoldGraph->ScaffoldGraph, scaff_id, B_END, ALL_EDGES,
                                 GRAPH_EDGE_DEFAULT,   &SEdges);
 
           //InitSEdgeTIterator (ScaffoldGraph, scaff_id, FALSE, FALSE,
@@ -9208,7 +9208,7 @@ void  Print_Fill_Info_One_Scaffold
       ChunkInstanceT  * scaff_chunk;
       int  k;
       double ref_var;
-      
+
       if  (j > 0)
         {
           scaff_chunk
@@ -9283,7 +9283,7 @@ void  Print_Fill_Info_One_Scaffold
                        this_chunk -> chunk_id, this_chunk -> copy_letter);
               break;
             }
-             
+
 
           contig = GetGraphNode
             (ScaffoldGraph -> RezGraph, this_chunk -> chunk_id);
@@ -9375,7 +9375,7 @@ static void  Print_Frag_Info
                                       ScaffoldGraph -> RezGraph -> type == CI_GRAPH);
   assert (ma != NULL);
 
-  // cycle through fragments 
+  // cycle through fragments
   num_frags = GetNumIntMultiPoss (ma -> f_list);
 
   if  (contig -> info . Contig . numCI > 1)
@@ -9516,7 +9516,7 @@ static void  Print_Potential_Fill_Chunks
                   if  (isOverlapEdge (edge))
                     other_links --;
                 }
-                  
+
             }
 
           if  (fp != NULL && GetNumVA_Stack_Entry_t(stackva) > 0)
@@ -9595,7 +9595,7 @@ static void  Print_Unique_Chunks
   GraphNodeIterator  chunk_iterator;
   ChunkInstanceT  * chunk;
   int  ref_entry_ct;
-   
+
   Num_Chunks = GetNumGraphNodes (ScaffoldGraph -> RezGraph);
 
   if  (fp != NULL)
@@ -10094,7 +10094,7 @@ static void  Restore_Best_Rocks
                                          - REF (this_gap -> left_cid) . b_end . mean),
                                    fabs (best_chunk -> start . mean
                                          - best_chunk -> end . mean)));
-                                           
+
                   olap = OverlapChunks      // debug code does NOT handle suspicious
                     (ScaffoldGraph -> RezGraph,
                      this_gap -> left_cid, best_chunk -> chunk_id,
@@ -10642,7 +10642,7 @@ Scaffold_Fill_t *  Scan_Gaps_In_Scaffold (int target_scaffold)
 
       if (scaff->id != target_scaffold)
         break;
-	  
+
       scaff_id = scaff -> id;
       fill -> scaff_id = scaff_id;
 
@@ -10747,7 +10747,7 @@ static int  Select_Good_Edges
 //  chunk pointed to by  chunk .  Also calculate and store on the stack
 //  the orientation and scaffold position information of the chunk
 //  pointed to.
-//  
+//
 //  "Good" means including at least one mate pair of fragments
 //  Other bad flags like "probablyBogus" or "hasGuide" should not
 //  have been put on the stack in the first place.
@@ -11227,7 +11227,7 @@ static void  Set_Position_From_Left_Olap
            REF (left_cid) . a_end . mean, REF (left_cid) . a_end . variance,
            REF (left_cid) . b_end . mean, REF (left_cid) . b_end . variance,
            left_cid);
-  
+
   fprintf (stderr,
            "       this_chunk:  start = <%8.0f,%8.0f>  end = <%8.0f,%8.0f>  id = %d\n",
            this_chunk -> start . mean, this_chunk -> start . variance,
@@ -11237,7 +11237,7 @@ static void  Set_Position_From_Left_Olap
            "             olap:  begpos = %7d  endpos = %7d  length = %7d\n",
            olap -> begpos, olap -> endpos, olap -> length);
 #endif
-   
+
   if  (REF (left_cid) . a_end . mean <= REF (left_cid) . b_end . mean)
     {
       scaff_lo = & (REF (left_cid) . a_end);
@@ -11272,7 +11272,7 @@ static void  Set_Position_From_Left_Olap
            this_chunk -> start . mean, this_chunk -> start . variance,
            this_chunk -> end . mean, this_chunk -> end . variance);
 #endif
-   
+
   return;
 }
 
@@ -11294,7 +11294,7 @@ static void  Set_Position_From_Right_Olap
            REF (right_cid) . a_end . mean, REF (right_cid) . a_end . variance,
            REF (right_cid) . b_end . mean, REF (right_cid) . b_end . variance,
            right_cid);
-  
+
   fprintf (stderr,
            "       this_chunk:  start = <%8.0f,%8.0f>  end = <%8.0f,%8.0f>  id = %d\n",
            this_chunk -> start . mean, this_chunk -> start . variance,
@@ -11304,7 +11304,7 @@ static void  Set_Position_From_Right_Olap
            "             olap:  begpos = %7d  endpos = %7d  length = %7d\n",
            olap -> begpos, olap -> endpos, olap -> length);
 #endif
-   
+
   if  (REF (right_cid) . a_end . mean <= REF (right_cid) . b_end . mean)
     {
       scaff_lo = & (REF (right_cid) . a_end);
@@ -11339,7 +11339,7 @@ static void  Set_Position_From_Right_Olap
            this_chunk -> start . mean, this_chunk -> start . variance,
            this_chunk -> end . mean, this_chunk -> end . variance);
 #endif
-   
+
   return;
 }
 
@@ -11484,7 +11484,7 @@ void  Show_Gap_Reads_One_Scaff
       ChunkInstanceT  * scaff_chunk;
       int  k;
       double ref_var;
-      
+
       if  (j > 0)
         {
           scaff_chunk
@@ -11523,7 +11523,7 @@ void  Show_Gap_Reads_One_Scaff
                        this_chunk -> chunk_id, this_chunk -> copy_letter);
               break;
             }
-             
+
 
           contig = GetGraphNode
             (ScaffoldGraph -> RezGraph, this_chunk -> chunk_id);
@@ -11572,7 +11572,7 @@ static void  Show_Read_Info
                                       ScaffoldGraph -> RezGraph -> type == CI_GRAPH);
   assert (ma != NULL);
 
-  // cycle through fragments 
+  // cycle through fragments
   num_frags = GetNumIntMultiPoss (ma -> f_list);
 
   fprintf (fp, " %7s %13s %13s %6s %4s %6s %6s\n",
@@ -11632,7 +11632,7 @@ int  Show_Reads_In_Gaps
   clock_t  start_time, stop_time;
   time_t  now;
   int  i, scaff_id;
-     
+
   Num_Scaffolds = GetNumGraphNodes (ScaffoldGraph -> ScaffoldGraph);
   if (Num_Scaffolds == 0)
     return 0;
@@ -11796,7 +11796,7 @@ int Throw_Stones
     return 0;
 
   Use_Partial_Stone_Paths = use_partial;
-     
+
 #if  TEST_HOPELESS_SCAFFS
   Hopeless_False_Mask = '\367';
   Hopeless_True_Mask = '\010';
@@ -12183,7 +12183,7 @@ int  Toss_Contained_Stones
   time_t  now;
   int  i;
   int  inserted = 0;
-     
+
   StartTimerT(&GlobalData->GapFillTimer);
 
   Num_Scaffolds = GetNumGraphNodes (ScaffoldGraph -> ScaffoldGraph);
@@ -12191,7 +12191,7 @@ int  Toss_Contained_Stones
     return 0;
 
   Single_Fragment_Only = FALSE /*was TRUE*/;
-     
+
 #if  TEST_HOPELESS_SCAFFS
   Hopeless_False_Mask = '\373';
   Hopeless_True_Mask = '\004';
@@ -12214,7 +12214,7 @@ int  Toss_Contained_Stones
 
   fprintf (stderr, "### Toss_Contained_Stones iteration #%d\n", iteration);
   Contained_Only_Switch = TRUE;
-   
+
   iteration++;
 
   now = time (NULL);
@@ -12481,9 +12481,9 @@ static int  Violates_Scaff_Edges
 
   scaffold1 = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p -> scaff1);
   scaffold2 = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p -> scaff2);
-  InitGraphEdgeIterator(ScaffoldGraph->ScaffoldGraph, p->scaff1, ALL_END, ALL_EDGES, 
+  InitGraphEdgeIterator(ScaffoldGraph->ScaffoldGraph, p->scaff1, ALL_END, ALL_EDGES,
                         GRAPH_EDGE_DEFAULT,   &SEdges);
-      
+
 
   //   InitSEdgeTIterator (ScaffoldGraph, p -> scaff1, FALSE, FALSE,
   //                       ALL_END, FALSE,  & SEdges);

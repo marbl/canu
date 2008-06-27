@@ -55,7 +55,7 @@ sub CGW ($$$$$$) {
         while (-e "$wrk/$thisDir/cgw.out.$ver.ckp.$ckp") {
             $ver++;
         }
-        rename "$wrk/$thisDir/cgw.out", "$wrk/$thisDir/cgw.out.$ver.ckp.$ckp" 
+        rename "$wrk/$thisDir/cgw.out", "$wrk/$thisDir/cgw.out.$ver.ckp.$ckp"
     }
 
     my $sampleSize = getGlobal("cgwDistanceSampleSize");

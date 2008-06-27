@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 2007-2008, J. Craig Venter Institute
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.19 2008-06-19 05:02:43 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.20 2008-06-27 06:29:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -478,7 +478,7 @@ processRead(sffHeader *h,
   //  We have a policy decision here.  If only one of the ranges is
   //  set, we can either ignore both, or set the unset one to the
   //  maximum.  We set it to the maximum.
-  
+
   int  clq = r->clip_quality_left;
   int  crq = r->clip_quality_right;
 
@@ -579,7 +579,7 @@ processRead(sffHeader *h,
   if (r->number_of_bases - h->key_length > AS_READ_MAX_LEN) {
     AS_GKP_reportError(AS_GKP_SFF_TOO_LONG, r->name, r->number_of_bases, AS_READ_MAX_LEN);
     gkpStore->gkp.sffWarnings++;
-      
+
     r->number_of_bases = AS_READ_MAX_LEN;
 
     r->bases  [AS_READ_MAX_LEN + h->key_length] = 0;

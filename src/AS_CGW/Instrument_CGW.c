@@ -1,23 +1,23 @@
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.33 2007-12-10 23:15:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.34 2008-06-27 06:29:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,11 +70,11 @@ typedef struct
 } IID_Size;
 VA_DEF(IID_Size);
 
-#undef DUMP_MATE_PAIRS 
+#undef DUMP_MATE_PAIRS
 //#define DUMP_MATE_PAIRS
-  
+
 #define TOLERANCE  (0.1f)
-  
+
 int DoSimpleScaffoldChecks(FILE * fp,
                            ScaffoldGraphT * graph,
                            CIScaffoldT * scaff)
@@ -84,7 +84,7 @@ int DoSimpleScaffoldChecks(FILE * fp,
   float   lastEnd = 0;
   int32 ciCount = 0;
   CDS_CID_t lastCIID = NULLINDEX;
-  
+
   InitCIScaffoldTIterator(graph, scaff, TRUE, FALSE, &ciIterator);
   for(ciCount = 0, ci = NextCIScaffoldTIterator(&ciIterator);
       ci != NULL;
@@ -98,7 +98,7 @@ int DoSimpleScaffoldChecks(FILE * fp,
       float   maxVariance =
         MAX(ci->offsetAEnd.variance,
             ci->offsetBEnd.variance);
-    
+
       if(ciCount == 0)
         {
           if(minCoord > TOLERANCE || minCoord < -TOLERANCE)
@@ -152,7 +152,7 @@ int DoSimpleScaffoldChecks(FILE * fp,
                   "scf " F_CID ": large negative gap %f between CIs " F_CID " and " F_CID "\n",
                   scaff->id, (minCoord - lastEnd), lastCIID, ci->id);
         }
-    
+
       if(maxCoord > scaff->bpLength.mean + TOLERANCE)
         {
           fprintf(fp,
@@ -166,7 +166,7 @@ int DoSimpleScaffoldChecks(FILE * fp,
                   "scf " F_CID ": CI (" F_CID ") position variance (%f) exceeds scaffold length variance (%f)\n",
                   scaff->id, ci->id, maxVariance, scaff->bpLength.variance);
         }
-    
+
       lastCIID = ci->id;
       lastEnd = maxCoord;
     }
@@ -205,7 +205,7 @@ int DoSimpleScaffoldGraphChecks(ScaffoldGraphT * graph,
   fclose(fp);
   return 0;
 }
-  
+
 /********************************************************************
           Functions for hashing, qsorting, et cetera
 ********************************************************************/
@@ -292,7 +292,7 @@ void FreeMateStatusPositions(MateStatusPositions * msp)
       for(ori1 = 0; ori1 < NUM_ORIENTATIONS_INSTR; ori1++)
         {
           int ori2;
-      
+
           if(msp->happy[ori1])
             DeleteVA_MateDetail(msp->happy[ori1]);
           for(ori2 = 0; ori2 < NUM_ORIENTATIONS_INSTR; ori2++)
@@ -305,7 +305,7 @@ void FreeMateStatusPositions(MateStatusPositions * msp)
           if(msp->misseparatedFar[ori1])
             DeleteVA_MateDetail(msp->misseparatedFar[ori1]);
         }
-    
+
       if(msp->inter)
         DeleteVA_FragDetail(msp->inter);
 
@@ -522,7 +522,7 @@ void InitializeFragDetailArray(VA_TYPE(FragDetail) ** fda)
     *fda = CreateVA_FragDetail(1000);
   else
     ResetVA_FragDetail(*fda);
-}  
+}
 
 
 void InitializeMateDetailArray(VA_TYPE(MateDetail) ** mda)
@@ -531,24 +531,24 @@ void InitializeMateDetailArray(VA_TYPE(MateDetail) ** mda)
     *mda = CreateVA_MateDetail(1000);
   else
     ResetVA_MateDetail(*mda);
-}  
+}
 
 
 void InitializeMateStatusPositions(MateStatusPositions * msp)
 {
   int ori1;
-  
+
   for(ori1 = 0; ori1 < NUM_ORIENTATIONS_INSTR; ori1++)
     {
       int ori2;
-    
+
       InitializeMateDetailArray(&(msp->happy[ori1]));
       for(ori2 = 0; ori2 < NUM_ORIENTATIONS_INSTR; ori2++)
         InitializeMateDetailArray(&(msp->misoriented[ori1][ori2]));
       InitializeMateDetailArray(&(msp->misseparatedClose[ori1]));
       InitializeMateDetailArray(&(msp->misseparatedFar[ori1]));
     }
-  
+
   InitializeFragDetailArray(&(msp->inter));
 }
 
@@ -589,7 +589,7 @@ void ResetMateInstrumenterCounts(MateInstrumenter * mi)
 MateStatusPositions * CreateMateStatusPositions(void)
 {
   MateStatusPositions * msp;
-  
+
   msp = safe_calloc(1, sizeof(MateStatusPositions));
 
   InitializeMateStatusPositions(msp);
@@ -656,9 +656,9 @@ MateInstrumenter * CreateMateInstrumenter(ScaffoldGraphT * graph,
                                           uint32 options)
 {
   MateInstrumenter * mi = safe_calloc(1, sizeof(MateInstrumenter));
-  
+
   mi->options = options;
-  
+
   if(InitializeMateInstrumenter(graph, mi))
     {
       fprintf(stderr, "Failed to initialize MateInstrumenter!\n");
@@ -687,7 +687,7 @@ int InitializeSurrogateTracker(ScaffoldGraphT * graph,
     {
       ResetHashTable_AS(st->surrogateFragHT);
     }
-  
+
   if(st->surrogateFragLocs == NULL)
     {
       st->numAllocatedLocs = MAX(5000, GetNumCIFragTs(graph->CIFrags) / 100);
@@ -719,7 +719,7 @@ int InitializeInstrumenterBookkeeping(ScaffoldGraphT * graph,
     {
 
 #define LARGEST_TO_MEAN_RATIO   5.f
-    
+
       // guestimates for max frags per contig & scaffold
       // largest contg/scaffold is x times larger than mean?
       switch(level)
@@ -792,7 +792,7 @@ int InitializeInstrumenterBookkeeping(ScaffoldGraphT * graph,
     {
       ResetVA_CDS_CID_t(bk->fragArray);
     }
-  
+
   if(bk->wExtMates == NULL)
     {
       bk->wExtMates = CreateVA_MateDetail(numWithExternalMates);
@@ -874,7 +874,7 @@ int InitializeContigInstrumenter(ScaffoldGraphT * graph,
     {
       ResetVA_float(ci->surrogateSizes);
     }
-  
+
   ci->numReads = ci->numExtReads = ci->numExtFrags = 0;
 
   // initialize unitig instrumenters
@@ -890,7 +890,7 @@ int InitializeContigInstrumenter(ScaffoldGraphT * graph,
       fprintf(stderr, "Failed to initialize unitig instrumenter\n");
       return 1;
     }
-  
+
   ci->mates.options = ci->options;
   if(InitializeMateInstrumenter(graph, &(ci->mates)))
     {
@@ -931,7 +931,7 @@ int InitializeScaffoldInstrumenter(ScaffoldGraphT * graph,
   si->id = NULLINDEX;
 
   si->size = 0.0f;
-  
+
   if(si->scaffoldGapSizes == NULL)
     {
       si->scaffoldGapSizes = CreateVA_float(100);
@@ -1059,7 +1059,7 @@ int InitializeScaffoldInstrumenter(ScaffoldGraphT * graph,
     {
       ResetHashTable_AS(si->anchoredHT);
     }
-  
+
   return 0;
 }
 
@@ -1076,7 +1076,7 @@ UnitigInstrumenter * CreateUnitigInstrumenter(ScaffoldGraphT * graph,
   ui->options = options;
   if(ui->options & INST_OPT_INTER_MATES)
     ui->options ^= INST_OPT_INTER_MATES;
-  
+
   if(InitializeUnitigInstrumenter(graph, ui))
     {
       fprintf(stderr, "Failed to initialize UnitigInstrumenter!\n");
@@ -1096,7 +1096,7 @@ ContigInstrumenter * CreateContigInstrumenter(ScaffoldGraphT * graph,
   ci->options = options;
   if(ci->options & INST_OPT_INTER_MATES)
     ci->options ^= INST_OPT_INTER_MATES;
-  
+
   if(InitializeContigInstrumenter(graph, ci))
     {
       fprintf(stderr, "Failed to initialize ContigInstrumenter!\n");
@@ -1189,7 +1189,7 @@ CreateScaffoldGraphInstrumenter(ScaffoldGraphT * graph, uint32 options)
   ScaffoldGraphInstrumenter * sgi;
   sgi =
     (ScaffoldGraphInstrumenter *)safe_calloc(1, sizeof(ScaffoldGraphInstrumenter));
-  
+
   sgi->options = options;
   if(InitializeScaffoldGraphInstrumenter(graph, sgi))
     {
@@ -1227,7 +1227,7 @@ int AppendBreakpointSet(VA_TYPE(InstrumenterBreakpoint) * bps,
   static CDS_CID_t persistentIID = 0;
 
   bp1->iid = persistentIID++;
-  
+
   // bp1 is left, bp2 is right, bp3 is in between or NULL
   // see if two breakpoint intervals overlap
   if(bp1->end2 >= bp2->end1)
@@ -1372,7 +1372,7 @@ int BreakpointsOverlap(InstBreakpointType problem,
         /*
           --->     <---
           (   bp    )
-                   
+
           Not in same breakpoint if
           newBP1->end1 is to the right of bp1->end2
         */
@@ -1563,7 +1563,7 @@ int DetectBreakpointType(ScaffoldGraphT * graph,
 
           CreateBreakpointIntervalsFromMateDetail(md, dptr, problem,
                                                   &newBP1, &newBP2, &newBP3);
-      
+
           // if a new possible breakpoint should be initiated
           if(i == 0 || ! BreakpointsOverlap(problem, &bp1, &bp2, &newBP1, &newBP2))
             {
@@ -1876,13 +1876,13 @@ void ComputeMateStats(MateStatsSet * mss, MateStatusPositions * msp)
   for(ori1 = 0; ori1 < NUM_ORIENTATIONS_INSTR; ori1++)
     {
       int ori2;
-    
+
       AddMateDetailsToMateStatsSet(&(mss->happy), msp->happy[ori1]);
       AddMateDetailsToMateStatsSet(&(mss->misseparatedClose),
                                    msp->misseparatedClose[ori1]);
       AddMateDetailsToMateStatsSet(&(mss->misseparatedFar),
                                    msp->misseparatedFar[ori1]);
-    
+
       for(ori2 = 0; ori2 < NUM_ORIENTATIONS_INSTR; ori2++)
         AddMateDetailsToMateStatsSet(&(mss->misoriented),
                                      msp->misoriented[ori1][ori2]);
@@ -1899,7 +1899,7 @@ void ComputeMateInstrumenterStats(MateInstrumenter * mi)
 
   if(mi->options & INST_OPT_INTER_MATES)
     ComputeMateStats(&(mi->inter), mi->mateStatus->inter);
-  
+
   AddFragDetailsToMateStats(&(mi->mateless), mi->noMate);
 }
 
@@ -1950,25 +1950,25 @@ void ComputeScaffoldGraphInstrumenterStats(ScaffoldGraphT * graph,
     {
       CDS_CID_t i;
       CDS_CID_t j;
-    
+
       sgi->numNotInUnitigs = 0;
       sgi->numNotInContigs = 0;
       sgi->numNotPlaced = 0;
       sgi->numChaff = 0;
       sgi->numInUnresolvedChunks = 0;
-    
+
       sgi->numFragments = GetNumCIFragTs(graph->CIFrags);
       for( j = 0, i = 0; i < sgi->numFragments; i++)
         {
           CIFragT * frag = GetCIFragT(graph->CIFrags, i);
-      
+
           sgi->numNotInUnitigs += (frag->cid == NULLINDEX) ? 1 : 0;
           sgi->numNotInContigs += (frag->CIid == NULLINDEX) ? 1 : 0;
           sgi->numNotPlaced += (frag->flags.bits.isPlaced) ? 0 : 1;
           sgi->numChaff += (frag->flags.bits.isChaff) ? 1 : 0;
-      
+
         }
-    
+
       // fragments in unresolved unitigs
       for(i = 0; i < GetNumGraphNodes(graph->CIGraph); i++)
         {
@@ -1977,7 +1977,7 @@ void ComputeScaffoldGraphInstrumenterStats(ScaffoldGraphT * graph,
             sgi->numInUnresolvedChunks += chunk->info.CI.numFragments;
         }
     }
-  
+
   InstrumentFloatStatistics(sgi->singletonScaffoldSizes,
                             &(sgi->singletonScaffoldSizeStats),
                             0);
@@ -2086,10 +2086,10 @@ void PrintInstrumenterStats(InstrumenterStatistics * is,
           prefix, is->numNegatives);
   fprintf(printTo, "%sNumber of positives: %d\n",
           prefix, is->numPositives);
-  
+
   fprintf(printTo, "%sMin: %.2f, Mean: %.2f, Max: %.2f, Stddev: %.2f",
           prefix, is->min, is->mean, is->max, is->stddev);
-  
+
   if(is->numNegatives != 0 && is->num == is->numPositives)
     {
       fprintf(printTo, ", Min negative: %.2f\n", is->minNegative);
@@ -2127,7 +2127,7 @@ void safelyAppendInstInfo(char **locs,int32 utgIID, int *lenloc, int *lenUsed){
   int32 mateScf;
   char teststring[100];
   int testsize;
-   
+
   mateUtg = GetGraphNode(ScaffoldGraph->CIGraph,utgIID);
   mateCtg = mateUtg->info.CI.contigID;
   mateScf = mateUtg->scaffoldID;
@@ -2239,7 +2239,7 @@ void PrintMateDetailsAndDists(ScaffoldGraphT * graph,
                               FILE * printTo)
 {
   int32 i;
-  
+
   for(i = 0; i < GetNumVA_MateDetail(mda); i++)
     {
       MateDetail * md = GetVA_MateDetail(mda, i);
@@ -2260,7 +2260,7 @@ void PrintExternalMateDetailsAndDists(ScaffoldGraphT * graph,
                                       int printtype)
 {
   int i;
-  
+
   for(i = 0; i < GetNumVA_MateDetail(mda); i++)
     {
       MateDetail * md = GetVA_MateDetail(mda, i);
@@ -2284,7 +2284,7 @@ void PrintMateComparison(int32 numBefore,
     ((float) numBefore) / totalBefore : 0.0f;
   float ratioAfter = (totalAfter > 0) ?
     ((float) numAfter) / totalAfter : 0.0f;
-  
+
   fprintf(printTo, string);
   if(totalBefore < 1.f || totalAfter < 1.f)
     fprintf(printTo, "%s", "-      ");
@@ -2422,7 +2422,7 @@ void PrintMateInstrumenter(MateInstrumenter * mi,
 {
   if(mi->options & INST_OPT_INTRA_MATES)
     PrintMateStatsSet(&(mi->intra), level, 0, prefix, printTo);
-  
+
   if(mi->options & INST_OPT_INTER_MATES)
     PrintMateStatsSet(&(mi->inter), level, 1, prefix, printTo);
 
@@ -2518,7 +2518,7 @@ void PrintUnitigInstrumenter(ScaffoldGraphT * graph,
       fprintf(printTo, "%sStatistics for unitig " F_CID "\n", prefix, ui->id);
       fprintf(printTo, "%sSize: " F_COORD "\n", prefix, ui->rightEnd - ui->leftEnd);
     }
-  
+
   fprintf(printTo,
           "\n%s%d reads, %d external reads, %d external frags\n",
           prefix, ui->numReads, ui->numExtReads, ui->numExtFrags);
@@ -2540,7 +2540,7 @@ void PrintUnitigInstrumenter(ScaffoldGraphT * graph,
     {
       int32 i;
       ChunkInstanceT * unitig;
-    
+
       if((unitig = GetGraphNode(graph->RezGraph, ui->id)) == NULL)
         {
           fprintf(stderr, "Unitig " F_CID " does not exist in the graph!\n", ui->id);
@@ -2572,7 +2572,7 @@ void PrintUnitigInstrumenter(ScaffoldGraphT * graph,
           PrintFragment(frag, info->fragIndex, printTo);
         }
     }
-  
+
   fprintf(printTo, "\n");
   fflush(printTo);
 }
@@ -2592,7 +2592,7 @@ void PrintContigInstrumenter(ScaffoldGraphT * graph,
               prefix, ci->leftEnd, ci->rightEnd,
               (ci->orientation == A_B) ? "A_B" : "B_A");
     }
-  
+
   fprintf(printTo, "\n%sUnitig sizes:\n", prefix);
   PrintInstrumenterStats(&(ci->unitigSizeStats), prefix, printTo);
   fprintf(printTo, "\n%sSurrogate sizes:\n", prefix);
@@ -2619,7 +2619,7 @@ void PrintContigInstrumenter(ScaffoldGraphT * graph,
     {
       int32 i;
       ContigT * contig;
-    
+
       if((contig = GetGraphNode(graph->RezGraph, ci->id)) == NULL)
         {
           fprintf(stderr, "Contig " F_CID " does not exist in the graph!\n", ci->id);
@@ -2651,7 +2651,7 @@ void PrintContigInstrumenter(ScaffoldGraphT * graph,
           PrintFragment(frag, info->fragIndex, printTo);
         }
     }
-  
+
   fprintf(printTo, "\n");
   fflush(printTo);
 }
@@ -2668,7 +2668,7 @@ void PrintInferredStddevs(VA_TYPE(float) * stddevs,
   int increasing = 0;
   float * prevStddev = NULL;
   float * currStddev = NULL;
-  
+
   if(GetNumVA_float(stddevs) > 0)
     {
       int32 i;
@@ -2764,13 +2764,13 @@ void PrintScaffoldInstrumenter(ScaffoldGraphT * graph,
 
   fprintf(printTo, "\n%sScaffold gap sizes:\n", prefix);
   PrintInstrumenterStats(&(si->scaffoldGapSizeStats), prefix, printTo);
-  
+
   fprintf(printTo, "\n%sContig sizes:\n", prefix);
   PrintInstrumenterStats(&(si->contigSizeStats), prefix, printTo);
 
   fprintf(printTo, "\n%sUnanchored contigs:\n", prefix);
   PrintUnanchoredContigIDs(si, prefix, printTo);
-  
+
   if(verbose > InstrumenterVerbose3)
     {
       fprintf(printTo, "\n%sUnitig summary:\n", prefix);
@@ -2778,7 +2778,7 @@ void PrintScaffoldInstrumenter(ScaffoldGraphT * graph,
                               MIN(verbose, InstrumenterVerbose4),
                               nextPrefix, printTo);
     }
-  
+
   if(verbose >= InstrumenterVerbose2)
     {
       fprintf(printTo, "\n%sContig summary:\n", prefix);
@@ -2786,7 +2786,7 @@ void PrintScaffoldInstrumenter(ScaffoldGraphT * graph,
                               MIN(verbose, InstrumenterVerbose4),
                               nextPrefix, printTo);
     }
-  
+
   fprintf(printTo, "\n%sMate summary:\n", prefix);
   PrintMateInstrumenter(&(si->mates), InstrumenterScaffoldLevel,
                         prefix, printTo);
@@ -2834,7 +2834,7 @@ void PrintScaffoldGraphInstrumenter(ScaffoldGraphT * graph,
 
   fprintf(printTo, "\nUnitigs per singleton scaffold:\n");
   PrintInstrumenterStats(&(sgi->unitigsPerSingletonStats), "", printTo);
-  
+
   fprintf(printTo, "\nDegenerate scaffold sizes:\n");
   PrintInstrumenterStats(&(sgi->degenerateScaffoldSizeStats), "", printTo);
 
@@ -2846,7 +2846,7 @@ void PrintScaffoldGraphInstrumenter(ScaffoldGraphT * graph,
 
   fprintf(printTo, "\nExternal mates:\n");
   PrintInstrumenterBookkeeping(&(sgi->bookkeeping), TRUE, "", printTo);
-  
+
   fflush(printTo);
 }
 
@@ -2916,7 +2916,7 @@ void AddInstrumenterBreakpoints(VA_TYPE(InstrumenterBreakpoint) * dest,
                                 VA_TYPE(InstrumenterBreakpoint) * src)
 {
   int32 i;
-  
+
   for(i = 0; i < GetNumVA_InstrumenterBreakpoint(src); i++)
     AppendVA_InstrumenterBreakpoint(dest,
                                     GetVA_InstrumenterBreakpoint(src, i));
@@ -2927,7 +2927,7 @@ void AddFragDetails(VA_TYPE(FragDetail) * dest,
                     VA_TYPE(FragDetail) * src)
 {
   int32 i;
-  
+
   for(i = 0; i < GetNumVA_FragDetail(src); i++)
     AppendVA_FragDetail(dest, GetVA_FragDetail(src, i));
 }
@@ -2937,7 +2937,7 @@ void AddMateDetails(VA_TYPE(MateDetail) * dest,
                     VA_TYPE(MateDetail) * src)
 {
   int32 i;
-  
+
   for(i = 0; i < GetNumVA_MateDetail(src); i++)
     AppendVA_MateDetail(dest, GetVA_MateDetail(src, i));
 }
@@ -2952,13 +2952,13 @@ int AddMateStatusPositions(MateStatusPositions * dest,
 #ifdef DEBUG
   fprintf(stderr, "Adding mate status positions\n");
 #endif
-  
+
   AddFragDetails(dest->inter, src->inter);
-  
+
   for(ori1 = 0; ori1 < NUM_ORIENTATIONS_INSTR; ori1++)
     {
       AddMateDetails(dest->happy[ori1], src->happy[ori1]);
-    
+
       for(ori2 = 0; ori2 < NUM_ORIENTATIONS_INSTR; ori2++)
         {
           AddMateDetails(dest->misoriented[ori1][ori2],
@@ -2966,7 +2966,7 @@ int AddMateStatusPositions(MateStatusPositions * dest,
         }
       AddMateDetails(dest->misseparatedClose[ori1],
                      src->misseparatedClose[ori1]);
-    
+
       AddMateDetails(dest->misseparatedFar[ori1],
                      src->misseparatedFar[ori1]);
     }
@@ -3018,7 +3018,7 @@ int AddInstrumenterBookkeeping(ScaffoldGraphT * graph,
       for(i = 0; i < GetNumVA_CDS_CID_t(src->fragArray); i++)
         {
           CDS_CID_t * fragIID = GetVA_CDS_CID_t(src->fragArray, i);
-      
+
           if(!ExistsInHashTable_AS(dest->fragHT, (uint64)(INTPTR)fragIID, 0))
             {
               CIFragT * frag = getFragByIID(graph, *fragIID);
@@ -3039,12 +3039,12 @@ int AddInstrumenterBookkeeping(ScaffoldGraphT * graph,
       for(i = 0; i < GetNumVA_MateDetail(src->wExtMates); i++)
         {
           MateDetail * md = GetVA_MateDetail(src->wExtMates, i);
-      
+
           if(!ExistsInHashTable_AS(dest->fragHT, (uint64)md->fragIID, 0))
             {
               // need to find the CIFragT - stable pointer
               CIFragT * frag = getFragByIID(graph, md->fragIID);
-        
+
               InsertInHashTable_AS(dest->fragHT, (uint64)frag->iid, 0, (uint64)(INTPTR)frag, 0);
               AppendVA_CDS_CID_t(dest->fragArray, &(md->fragIID));
             }
@@ -3061,7 +3061,7 @@ int AddUnitigInstrumenters(ScaffoldGraphT * graph,
 #ifdef DEBUG
   fprintf(stderr, "Adding unitig instrumenters\n");
 #endif
-  
+
   dest->numReads += src->numReads;
   dest->numExtReads += src->numExtReads;
   dest->numExtFrags += src->numExtFrags;
@@ -3099,7 +3099,7 @@ int AddUnitigToContigInstrumenter(ScaffoldGraphT * graph,
   ci->numReads += ui->numReads;
   ci->numExtReads += ui->numExtReads;
   ci->numExtFrags += ui->numExtFrags;
-  
+
   // add unitig data
   AddUnitigInstrumenters(graph, &(ci->unitig), ui);
 
@@ -3243,7 +3243,7 @@ InstrumenterResult CompareMateInstrumenters(MateInstrumenter * miBefore,
   int32 totalHappyBefore;
   int32 totalUnhappyBefore;
   int32 totalBefore;
-  
+
   int32 totalHappyAfterIntra;
   int32 totalUnhappyAfterIntra;
   int32 totalAfterIntra;
@@ -3269,9 +3269,9 @@ InstrumenterResult CompareMateInstrumenters(MateInstrumenter * miBefore,
     totalHappyBeforeInter;
   totalUnhappyBefore = totalUnhappyBeforeIntra +
     totalUnhappyBeforeInter;
-  
+
   totalBefore = totalBeforeIntra + totalBeforeInter;
-  
+
   // after counts
   totalHappyAfterIntra = GetMateStatsHappy(&(miAfter->intra));
   totalUnhappyAfterIntra = GetMateStatsBad(&(miAfter->intra));
@@ -3285,9 +3285,9 @@ InstrumenterResult CompareMateInstrumenters(MateInstrumenter * miBefore,
     totalHappyAfterInter;
   totalUnhappyAfter = totalUnhappyAfterIntra +
     totalUnhappyAfterInter;
-  
+
   totalAfter = totalAfterIntra + totalAfterInter;
-  
+
   // overall happy & unhappy
   if(verbose >= InstrumenterVerbose1)
     {
@@ -3300,7 +3300,7 @@ InstrumenterResult CompareMateInstrumenters(MateInstrumenter * miBefore,
                               totalHappyAfter, totalAfter,
                               "Happy (all)       :                  ",
                               1, 1, printTo);
-    
+
           // overall unhappy
           PrintMateComparison(totalUnhappyBefore, totalBefore,
                               totalUnhappyAfter, totalAfter,
@@ -3322,7 +3322,7 @@ InstrumenterResult CompareMateInstrumenters(MateInstrumenter * miBefore,
                               totalAfterIntra,
                               "Happy intra-contig:                  ",
                               1, 1, printTo);
-      
+
           // unhappy intracontig
           PrintMateComparison(totalUnhappyBeforeIntra,
                               totalBeforeIntra,
@@ -3342,7 +3342,7 @@ InstrumenterResult CompareMateInstrumenters(MateInstrumenter * miBefore,
                               totalAfterInter,
                               "Happy inter-contig:                  ",
                               1, 1, printTo);
-      
+
           // unhappy intercontig
           PrintMateComparison(totalUnhappyBeforeInter,
                               totalBeforeInter,
@@ -3408,7 +3408,7 @@ InstrumenterResult CompareMateInstrumenters(MateInstrumenter * miBefore,
           PrintMateComparison(
                               GetMateStatsSum(&(miBefore->inter.misoriented)),
                               totalBeforeInter,
-                              GetMateStatsSum(&(miAfter->inter.misoriented)),        
+                              GetMateStatsSum(&(miAfter->inter.misoriented)),
                               totalAfterInter,
                               "Misoriented inter-contig:            ",
                               0, 1, printTo);
@@ -3481,7 +3481,7 @@ InstrumenterResult CompareMateInstrumenters(MateInstrumenter * miBefore,
       if(totalBefore < .9f || totalAfter < .9f)
         retVal = InstrumenterIndeterminate;
     }
-  
+
   // set return value
   if(retVal != InstrumenterIndeterminate)
     {
@@ -3489,8 +3489,8 @@ InstrumenterResult CompareMateInstrumenters(MateInstrumenter * miBefore,
         retVal = InstrumenterWorse;
       else if(delta < -0.00001)
         retVal = InstrumenterBetter;
-    }            
-  
+    }
+
   return retVal;
 }
 
@@ -3564,7 +3564,7 @@ int AddScaffoldToScaffoldGraphInstrumenter(ScaffoldGraphT * graph,
   AddInstrumenterBookkeeping(graph,
                              &(sgi->bookkeeping), &(si->bookkeeping),
                              TRUE);
-  
+
   // doing nothing with surrogateTracker yet
   return 0;
 }
@@ -3596,7 +3596,7 @@ int AppendOrientedCP(ScaffoldGraphT * graph,
   for(i = 0; i < NUM_ORIENTATIONS_INSTR; i++)
     {
       VA_TYPE(MateDetail) * mda = mdaa[i];
-    
+
       cp.numPairs = 0;
       while((md = GetVA_MateDetail(mda, indices[i])) != NULL &&
             md->fragChunkIID == cpip->contig1 &&
@@ -3605,19 +3605,19 @@ int AppendOrientedCP(ScaffoldGraphT * graph,
           if(cp.numPairs == 0)
             {
               // start a new set
-        
+
               cp.numPairs++;
               indices[i]++;
             }
           else
             {
-        
+
             }
         }
     }
   return 0;
 }
-  
+
 int AppendMisorientedCP(ScaffoldGraphT * graph,
                         VA_TYPE(MateDetail) * mdaa[NUM_ORIENTATIONS_INSTR],
                         int * indices,
@@ -3742,7 +3742,7 @@ int AddFragmentToSurrogateTracker(ScaffoldGraphT * graph,
 
   // the goal is to compute the fragment's coordinates relative to the
   // contig, and store them appropriately in the SurrogateTracker;
-  // so, we want aEnd,bEnd to be the ends of the unitig relative to 
+  // so, we want aEnd,bEnd to be the ends of the unitig relative to
   // the contig ...
   {
     SurrogateFragLocation * sflp;
@@ -4006,8 +4006,8 @@ int GetSurrogatePositionInFauxScaffoldFromSFL(HashTable_AS * cpHT,
   // 0 means A_B, non-0 means B_A
   if(cp->orient == A_B)
     {
-      *frag5p = (CDS_COORD_t) cp->offset + AEndOnCtg; 
-      *frag3p = (CDS_COORD_t) cp->offset + BEndOnCtg; 
+      *frag5p = (CDS_COORD_t) cp->offset + AEndOnCtg;
+      *frag3p = (CDS_COORD_t) cp->offset + BEndOnCtg;
     }
   else
     {
@@ -4067,7 +4067,7 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
 		      GetInfoByIID(ScaffoldGraph->iidToFragIndex,
 				   md->fragIID)->fragIndex);
 
-  
+
   {
     DistT *dst=GetDistT(ScaffoldGraph->Dists,tmpfrg->dist);
     assert(dst!=NULL);
@@ -4080,7 +4080,7 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
 
     /* intra-ctg mate pair; coordinates are relative to the contig */
     /* inter-ctg mate pair; coordinates are relative to the scaffold */
-    
+
     //    GetFragment5pPositionGivenCtgPsn(cpHT,
     GetFragment5pPositionGivenCtgPsn( (md->fragChunkIID==md->mateChunkIID) ? cpHT : NULL,
 				      md->fragChunkIID,
@@ -4140,8 +4140,8 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
 #if 0
   fprintf(stderr,"pair (" F_CID "," F_CID ") assigned 5p positions " F_COORD " " F_COORD " based on offsets %g %g on ctgs " F_CID " " F_CID "\n",
 	  fragIID,mateIID,frag5p,mate5p,
-	  ( md->fragChunkIID == fragChunkIID) ? md->fragOffset5p : md->mateOffset5p,	  
-	  ( md->fragChunkIID == fragChunkIID) ? md->mateOffset5p : md->fragOffset5p,	  
+	  ( md->fragChunkIID == fragChunkIID) ? md->fragOffset5p : md->mateOffset5p,
+	  ( md->fragChunkIID == fragChunkIID) ? md->mateOffset5p : md->fragOffset5p,
 	  fragChunkIID,mateChunkIID);
 #endif
 
@@ -4183,7 +4183,7 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
     CIFragT * frag;
     int32 scfId;
 #endif
-    
+
     // new version here
     if(strcmp(category,"SATISFIED")==0){
       strcpy(catString,"A1CMColor");
@@ -4199,7 +4199,7 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
 	strcpy(catString,"A6CMColor");
 	row=90;
       }
-    } else if(strcmp(category,"TOO_CLOSE")==0){ 
+    } else if(strcmp(category,"TOO_CLOSE")==0){
       strcpy(catString,"A3CMColor");
       row=100;
     } else if(strcmp(category,"TOO_FAR")==0){
@@ -4273,17 +4273,17 @@ void PrintScaffoldInstrumenterMateDetails(ScaffoldInstrumenter * si,
                 oShouldBe = XX_XX;
                 break;
             }
-      
+
           oIs = oShouldBe;
           /*
             PrintScaffoldMateDetailArray(si->cpHT, wExtMates, oShouldBe, oIs,
             (doingScaffold) ? "INTER-SCAFFOLD" : "INTER-CONTIG",
             si->id, printTo,printType);
           */
-      
+
           PrintScaffoldMateDetailArray(si->cpHT, msp->happy[ori1], oShouldBe, oIs,
                                        "SATISFIED", si->id, printTo,printType);
-      
+
           for(ori2 = 0; ori2 < NUM_ORIENTATIONS_INSTR; ori2++)
             {
               switch(ori2)
@@ -4341,7 +4341,7 @@ void PrintUnmatedDetails(ScaffoldInstrumenter * si,
       int32 fragIID;
       CDS_COORD_t fragLeftEnd, fragRightEnd,frag5p, frag3p;
       FragOrient fragOrient;
-      
+
       fd=GetVA_FragDetail(si->mates.noMate,i);
       fragIID = fd->iid;
       //      fprintf(stderr,"Got frag detail %x iid %d\n",fd,fragIID);
@@ -4351,7 +4351,7 @@ void PrintUnmatedDetails(ScaffoldInstrumenter * si,
 
       GetFragmentPosition(si->cpHT,frag,&frag5p,&frag3p,&fragOrient);
       //      fprintf(stderr,"Got frag positions\n",frag);
-      
+
       if(frag5p<frag3p){
 	fragLeftEnd=frag5p;
 	fragRightEnd=frag3p;
@@ -4405,7 +4405,7 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
       // get current fragment & its mate
       frag = getBookkeepingFrag(graph, bookkeeping->fragArray, i);
       GetFragmentPosition(cpHT, frag, &frag5p, &frag3p, &fragOrient);
-    
+
       /*    fprintf(stderr,"checking mates of %d CIid %d doingContig %d\n",
             frag->iid,frag->CIid,doingContig);*/
 
@@ -4419,7 +4419,7 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
           SurrogateFragLocation * sflp;
           if((sflp = (SurrogateFragLocation *)(INTPTR)LookupValueInHashTable_AS(st->surrogateFragHT,
                                                                                 (uint64)graphMate->iid, 0)) != NULL
-             && (!doingContig /* i.e. working on scf */ || 
+             && (!doingContig /* i.e. working on scf */ ||
                  sflp->contig == chunkIID /* surrogate is in same contig */)
              )
             {
@@ -4428,7 +4428,7 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
                  (!doingContig && (options & INST_OPT_INTER_MATES))){
                 lookupMate = &mockMate;
                 //	  fprintf(stderr,"found mate in a surrogate, make a mock fragment with usable coords\n");
-        
+
                 mockMate.iid = graphMate->iid;
                 do
                   {
@@ -4511,7 +4511,7 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
             continue;
 
           GetFragmentPosition(cpHT, graphMate, &mate5p, &mate3p, &mateOrient);
-      
+
           // check orientation, separation...
           CheckMateLinkStatus(frag->flags.bits.innieMate,
                               GetDistT(graph->Dists,frag->dist),
@@ -4563,7 +4563,7 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
             }
           matePair.libIID = frag->dist;
           matePair.type = frag->type;
-      
+
           if(anchoredHT && frag->contigID != lookupMate->contigID)
             {
               if(!ExistsInHashTable_AS(anchoredHT, (uint64)frag->contigID, 0))
@@ -4575,7 +4575,7 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
                                      (uint64)lookupMate->contigID, 0,
                                      (uint64)lookupMate->contigID, 0);
             }
-         
+
           if(orientShouldBe == orientIs)
             {
               switch(distStatus)
@@ -4622,7 +4622,7 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
   uint32 ctgID;
 
 #ifdef DEBUG
-  fprintf(stderr, 
+  fprintf(stderr,
 	  "\t\tInstrumenting unitig " F_CID
 	  " [" F_COORD "," F_COORD "] relative to contig [" F_COORD "," F_COORD "]\n",
 	  unitig->id,
@@ -4632,14 +4632,14 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
 #endif
 
   InitializeUnitigInstrumenter(graph, ui);
-  
+
   // get the position, whether or not it's a surrogate
   ui->leftEnd = MIN(unitig->offsetAEnd.mean, unitig->offsetBEnd.mean) + 0.5f;
   ui->rightEnd = MAX(unitig->offsetAEnd.mean, unitig->offsetBEnd.mean) + 0.5f;
   ui->orientation =
     (unitig->offsetAEnd.mean < unitig->offsetBEnd.mean) ? A_B : B_A;
   ctgID = unitig->info.CI.contigID;
-  
+
   // surrogate? make sure we have a real unitig
   if(unitig->flags.bits.isStoneSurrogate || unitig->flags.bits.isWalkSurrogate)
     {
@@ -4660,7 +4660,7 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
       fprintf(stderr, "Failed to load MultiAlignT of unitig " F_CID "\n", unitig->id);
       return 1;
     }
-  
+
   if(ui->isSurrogate)
     {
       if(do_surrogate_tracking){
@@ -4705,7 +4705,7 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
               lastFragType = imp->type;
             }
           lastBP = MAX(lastBP, MAX(imp->position.bgn, imp->position.end));
-      
+
           if(ContigLastBP == 0)
             {
               ContigFirstFragIID = imp->ident;
@@ -4753,9 +4753,9 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
    count type
    if read or bac end & has mate, add to fragHT.
    if in surrogate, add to surrogateFragHT & surrogateFragLocs
-       
+
    after all unitigs have been processed,
-   
+
    loop over elements 'a' in fragHT
    look for 'a' in surrogateFragHT
    get cifrag 'a' & look for mate 'b' in fragHT
@@ -4804,7 +4804,7 @@ int InstrumentContig(ScaffoldGraphT * graph,
 #ifdef LIST_TERMINAL_TYPES
   ContigLastBP = 0;
 #endif
-  
+
   // Iterate over unitigs in contig & add data to contig instrumenter
   InitContigTIterator(graph, contig->id, TRUE, FALSE, &unitigIterator);
   while((unitig = NextContigTIterator(&unitigIterator)) != NULL)
@@ -4821,7 +4821,7 @@ int InstrumentContig(ScaffoldGraphT * graph,
           ContigFirstFragIID, ContigFirstFragType,
           ContigLastFragIID, ContigLastFragType);
 #endif
-  
+
   CheckFragmentMatePairs(graph,
                          &(ci->bookkeeping),
                          st,
@@ -4954,7 +4954,7 @@ int BuildFauxIntScaffoldMesgFromScaffold(ScaffoldGraphT * graph,
   CIScaffoldTIterator CIsTemp;
   VA_TYPE(IntContigPairs) * icps = CreateVA_IntContigPairs(1000);
   assert(icps != NULL);
-  
+
   isf->iaccession = scaffold->id;
 
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIsTemp);
@@ -5032,11 +5032,11 @@ int BuildFauxIntScaffoldMesgFromScaffold(ScaffoldGraphT * graph,
         CIsTemp.curr, lContig->bpLength.mean, gapSize, CIsTemp.next, rContig->bpLength.mean);
         }
       */
-    
+
       // set some temporary variables that get changed in AddICP
       thisID = CIsTemp.curr;
       thisEnd = (pairwiseOrient == AB_AB || pairwiseOrient == AB_BA) ? 2 : 1;
-    
+
       {
         myEdge.idA = CIsTemp.curr;
         myEdge.idB = CIsTemp.next;
@@ -5054,7 +5054,7 @@ int BuildFauxIntScaffoldMesgFromScaffold(ScaffoldGraphT * graph,
     {
       EdgeCGW_T myEdge = {0};
       IntContigPairs icp;
-    
+
       myEdge.idA = myEdge.idB = CIsTemp.curr;
       myEdge.distance.mean = myEdge.distance.variance = 0.0f;
       myEdge.orient = AB_AB;
@@ -5127,17 +5127,17 @@ int InstrumentScaffoldNextContig(ScaffoldGraphT * graph,
   CDS_CID_t contigIndex = GetNumVA_ContigPlacement(si->cpArray);
   CDS_CID_t contigID;
 
-  contigID = (contigIndex == 0) ? 
+  contigID = (contigIndex == 0) ?
     isf->contig_pairs[0].contig1 :
     isf->contig_pairs[contigIndex - 1].contig2;
-  
+
   // get the contig
   if((contig = GetGraphNode(graph->RezGraph, contigID)) == NULL)
     {
       fprintf(stderr, "Contig " F_CID " does not exist in the graph!\n", contigID);
       return 1;
     }
-      
+
   // set the contig's position in the contigplacement array
   cp.id = contigID;
   cp.length = contig->bpLength.mean;
@@ -5161,7 +5161,7 @@ int InstrumentScaffoldNextContig(ScaffoldGraphT * graph,
   // append the contig placement to the array & hashtable
   // array may be realloc'd, so potentially repopulate hashtable
   AddContigPlacementToScaffoldInstrumenter(si, &cp);
-  
+
   // instrument the contig
   if(InstrumentContig(graph, si->cpHT, &(si->surrogateTracker),
                       contig, &(si->reusableCI),
@@ -5173,7 +5173,7 @@ int InstrumentScaffoldNextContig(ScaffoldGraphT * graph,
     }
 
   ComputeContigInstrumenterStats(graph, &(si->reusableCI));
-  
+
   if(printTo != NULL && verbose >= InstrumenterVerbose4)
     {
       PrintContigInstrumenter(graph,
@@ -5253,7 +5253,7 @@ int InstrumentIntScaffoldMesg(ScaffoldGraphT * graph,
   int32 numMiso;
   int32 numFar;
   int32 numClose;
-  
+
   InitializeScaffoldInstrumenter(graph, si);
 
   si->id = isf->iaccession;
@@ -5317,7 +5317,7 @@ int InstrumentIntScaffoldMesg(ScaffoldGraphT * graph,
     fp = fopen("sMates.txt", "a");
     assert(fp != NULL);
     PrintScaffoldInstrumenterMateDetails(si, fp, PRINTTABLE);
-    
+
     fclose(fp);
   }
 #endif
@@ -5399,11 +5399,11 @@ int InstrumentScaffold(ScaffoldGraphT * graph,
 
   // build a faux scaffold message - facilitates code reuse
   BuildFauxIntScaffoldMesgFromScaffold(graph, scaffold, si, &isf);
-  
+
   InstrumentIntScaffoldMesg(graph, si, &isf, verbose, printTo);
   FreeIntScaffoldMesg(&isf);
   ComputeScaffoldInstrumenterStats(graph, si);
-  
+
   if(printTo)
     {
       if(verbose >= InstrumenterVerbose3)
@@ -5464,7 +5464,7 @@ int FinishMissingMateList(ScaffoldGraphInstrumenter * sgi)
           mate->mateChunkIID = wExtMates[i].fragChunkIID;
         }
     }
-  
+
   if(numMatePairs > 1)
     qsort(wExtMates, numMatePairs, sizeof(MateDetail),
           (int (*) (const void *, const void *)) md2Compare);
@@ -5544,7 +5544,7 @@ int InstrumentScaffoldGraph(ScaffoldGraphT * graph,
   // allocate an array to hold iids & sizes
   iidSizes =
     CreateVA_IID_Size(GetNumVA_NodeCGW_T(graph->ScaffoldGraph->nodes));
-  
+
   // loop over all scaffolds in the graph
   InitGraphNodeIterator(&scaffolds,
                         graph->ScaffoldGraph,
@@ -5580,10 +5580,10 @@ int InstrumentScaffoldGraph(ScaffoldGraphT * graph,
     smallest = MIN(smallest, iidSize->length);
     fprintf(stderr, "Smallest: " F_COORD "bp, Largest: " F_COORD "bp\n", smallest, largest);
   }
-  
+
   if(printTo && verbose == InstrumenterSilent)
     fprintf(printTo, "Scaffold Gap Sizes\n");
-  
+
   for(i = 0; i < GetNumVA_IID_Size(iidSizes); i++)
     {
       iidSize = GetVA_IID_Size(iidSizes, i);
@@ -5601,7 +5601,7 @@ int InstrumentScaffoldGraph(ScaffoldGraphT * graph,
                       "Failed to instrument scaffold " F_CID "\n",scaff->scaffoldID);
               return 1;
             }
-      
+
           // consolidate scaffold data with scaffoldgraph data
           AddScaffoldToScaffoldGraphInstrumenter(graph, sgi, &si);
         }
@@ -5609,15 +5609,15 @@ int InstrumentScaffoldGraph(ScaffoldGraphT * graph,
   fprintf(stderr, "\n");
 
   DeleteVA_IID_Size(iidSizes);
-  
+
   // free scaffold instrumenter
   FreeScaffoldInstrumenter(&si);
-  
+
   ComputeScaffoldGraphInstrumenterStats(graph, sgi);
 
   // bookkeeping wExtMates should list each missing mate fragment twice
   FinishMissingMateList(sgi);
-    
+
   if(printTo && verbose >= InstrumenterVerbose1)
     {
       PrintScaffoldGraphInstrumenter(graph, sgi, verbose, printTo);
@@ -5632,7 +5632,7 @@ int InstrumentScaffoldGraph(ScaffoldGraphT * graph,
    start at CI id's end & follow the edge until a branch is encountered
 
    BuildFauxIntScaffoldMesg()
-*/   
+*/
 int BuildFauxIntScaffoldMesg(ScaffoldGraphT * graph,
                              CDS_CID_t id, int end,
                              int terminalID, CIEdgeT * edge,
@@ -5648,12 +5648,12 @@ int BuildFauxIntScaffoldMesg(ScaffoldGraphT * graph,
   // need a basis for constructing a faux or real scaffold
   if(terminalID == NULLINDEX && edge == NULL)
     return 1;
-  
+
   // add the first pair of CIs to the list
   if(!edge)
     {
       GraphEdgeIterator edges;
-    
+
       nextCI = GetGraphNode(graph->RezGraph, id);
       InitGraphEdgeIterator(graph->RezGraph,
                             nextCI->id,
@@ -5678,7 +5678,7 @@ int BuildFauxIntScaffoldMesg(ScaffoldGraphT * graph,
     {
       CIEdgeT * nextEdge;
       GraphEdgeIterator edges;
-    
+
       InitGraphEdgeIterator(graph->RezGraph,
                             nextCI->id,
                             nextEnd,
@@ -5687,13 +5687,13 @@ int BuildFauxIntScaffoldMesg(ScaffoldGraphT * graph,
                             &edges);
       while((nextEdge = NextGraphEdgeIterator(&edges))!= NULL &&
             !getEssentialEdgeStatus(nextEdge));
-    
+
       PopulateICP(&icp, nextCI->id, nextEdge);
       AppendVA_IntContigPairs(icps, &icp);
 
       if(nextCI->id == terminalID)
         break;
-    
+
       // get the next CI & the end of it that extends the path
       nextCI = GetGraphNode(graph->RezGraph, icp.contig2);
       nextEnd = (icp.orient == AB_AB || icp.orient == BA_AB) ? B_END : A_END;
@@ -5735,25 +5735,25 @@ int InstrumentContigEnd(ScaffoldGraphT * graph,
       if(!getEssentialEdgeStatus(edge))
         continue;
 
-  
+
       // instrument down this essential edge off this end of thisCI
       BuildFauxIntScaffoldMesg(graph, thisCI->id, end,
                                NULLINDEX, edge,
                                &isf);
       numContigs += isf.num_contig_pairs;
-    
+
       InstrumentIntScaffoldMesg(graph, si, &isf, 0, NULL);
       FreeIntScaffoldMesg(&isf);
-    
+
       // accumulate mate statuses
       AddMateInstrumenters(mi, &(si->mates));
     }
   // wipe the si's mate status data
   InitializeMateInstrumenter(graph, &(si->mates));
   AddMateInstrumenters(&(si->mates), mi);
-  
+
   ComputeScaffoldInstrumenterStats(graph, si);
-  
+
   DestroyMateInstrumenter(mi);
   return numContigs;
 }
@@ -5791,7 +5791,7 @@ int InstrumentContigEndPartial(ScaffoldGraphT * graph,
       IntScaffoldMesg isf;
       if(!getEssentialEdgeStatus(edge))
         continue;
-  
+
       // instrument down this essential edge off this end of thisCI
       BuildFauxIntScaffoldMesg(graph, thisCI->id, end,
                                NULLINDEX, edge,
@@ -5804,16 +5804,16 @@ int InstrumentContigEndPartial(ScaffoldGraphT * graph,
       isf.num_contig_pairs = numContigs - 1;
       InstrumentIntScaffoldMesg(graph, si, &isf, 0, NULL);
       FreeIntScaffoldMesg(&isf);
-    
+
       // accumulate mate statuses
       AddMateInstrumenters(mi, &(si->mates));
     }
   // wipe the si's mate status data
   InitializeMateInstrumenter(graph, &(si->mates));
   AddMateInstrumenters(&(si->mates), mi);
-  
+
   ComputeScaffoldInstrumenterStats(graph, si);
-  
+
   DestroyMateInstrumenter(mi);
   return 0;
 }
@@ -5837,7 +5837,7 @@ int InstrumentContigPath(ScaffoldGraphT * graph,
   assert(icps != NULL);
 
   isf.iaccession = persistentScaffoldID++;
-  
+
   // fprintf(stderr,  F_CID "(%c): ", firstID, (firstEnd == A_END) ? 'A' : 'B');
   while(!done)
     {
@@ -5853,7 +5853,7 @@ int InstrumentContigPath(ScaffoldGraphT * graph,
         return 1;
         }
       */
-    
+
       // loop over one end's essential edges & instrument each 'scaffold'
       InitGraphEdgeIterator(graph->RezGraph,
                             thisCI->id,
@@ -5908,7 +5908,7 @@ int InstrumentContigPath(ScaffoldGraphT * graph,
     }
   FinishIntScaffoldMesg(&isf, icps);
   DeleteVA_IntContigPairs(icps);
-  
+
   // instrument the scaffoldmesg
   // fprintf(stderr, "\n");
   InstrumentIntScaffoldMesg(graph, si, &isf, 0, NULL);
@@ -5925,7 +5925,7 @@ void PrintEssentialEdges(ScaffoldGraphT * graph,
   CIEdgeT * edge;
   GraphEdgeIterator edges;
   int thisEnd = end;
-  
+
   fprintf(stderr, F_CID "(%c): ", chunkID, (end == A_END) ? 'A' : 'B');
 
   // loop over one end's essential edges & instrument each 'scaffold'
@@ -5975,7 +5975,7 @@ int AdjustCIScaffoldLabels(ScaffoldGraphT * graph,
 
   si = CreateScaffoldInstrumenter(graph, INST_OPT_INTER_MATES);
   assert(si != NULL);
-  
+
   scaffoldSeen = (char *) safe_calloc( myNumScaffoldIDs, sizeof(char));
 
   // loop over all CIs
@@ -5985,7 +5985,7 @@ int AdjustCIScaffoldLabels(ScaffoldGraphT * graph,
   while(NULL != (firstCI = NextGraphNodeIterator(&ciIterator)))
     {
       int32 numCIs = 1;
-    
+
       // only examine old CIs not yet seen
       if(firstCI->scaffoldID < *numScaffoldIDs &&
          !scaffoldSeen[firstCI->scaffoldID])
@@ -6100,7 +6100,7 @@ int AdjustCIScaffoldLabels(ScaffoldGraphT * graph,
 
               // create the internal scaffold message
               FinishIntScaffoldMesg(&isf, icps);
-  
+
               // instrument the scaffoldmesg
               InstrumentIntScaffoldMesg(graph, si, &isf, 0, NULL);
               FreeIntScaffoldMesg(&isf);
@@ -6135,7 +6135,7 @@ int AdjustCIScaffoldLabels(ScaffoldGraphT * graph,
             }
         }
     }
-  
+
   safe_free(scaffoldSeen);
   DestroyScaffoldInstrumenter(si);
   *numScaffoldIDs = myNumScaffoldIDs;
@@ -6159,13 +6159,13 @@ void PopulateICPContigs(ScaffoldGraphT * graph,
   CDS_CID_t cIndex;
   CIScaffoldTIterator ciIterator;
   ChunkInstanceT * ci;
-                                    
+
   InitCIScaffoldTIterator(graph, scaffold, sIsA2B, FALSE, &ciIterator);
   cIndex = 0;
   while((ci = NextCIScaffoldTIterator(&ciIterator)) != NULL)
     {
       ism->contig_pairs[cIndex + index].contig1 = ci->id;
-    
+
       if((sIsA2B && ci->offsetAEnd.mean < ci->offsetBEnd.mean) ||
          (!sIsA2B && ci->offsetAEnd.mean > ci->offsetBEnd.mean))
         {
@@ -6263,16 +6263,16 @@ int InstrumentScaffoldPair(ScaffoldGraphT * graph,
       else
         ism.contig_pairs[i].orient =
           (ism.contig_pairs[i+1].orient == AB_AB ? BA_AB : BA_BA);
-    
+
       ism.contig_pairs[i].mean = ism.contig_pairs[i+1].mean -
         ism.contig_pairs[i].mean - ci->bpLength.mean;
       ism.contig_pairs[i].stddev =
-        sqrt(MAX(400., 
+        sqrt(MAX(400.,
                  ism.contig_pairs[i+1].stddev * ism.contig_pairs[i+1].stddev -
                  ism.contig_pairs[i].stddev * ism.contig_pairs[i].stddev -
                  ci->bpLength.variance));
     }
-  
+
 #if 0
   fprintf(stderr,"Instrumenting a scaffold pair ... %d to %d, orient %s to %s, mean %g\n",
 	  scaffoldA->id,scaffoldB->id,

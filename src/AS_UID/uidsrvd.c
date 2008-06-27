@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -61,24 +61,24 @@ static int32   IssueKillSignal(void);
 static void    ShutdownServer(void);
 static int     AttemptPortInitialization(void);
 
-static void    FillAddressList(const char*    option, 
-                               char**         list, 
-                               int32          argc, 
+static void    FillAddressList(const char*    option,
+                               char**         list,
+                               int32          argc,
                                char**         argv,
                                int32*         interval);
 
 
-static char*   positionfile_name          = NULL;         
-static uint64  index_size                 = 1;                
-static uint64  index_update_increment     = 1;    
-static uint64  max_block_size             = 10000;            
-static int32   status_code                = UID_CODE_START;           
-static int32   client_connection_id;      
-static int32   connection_id;             
-static uint64  current_position_UID       = 0L;     
-static uint64  index_start_UID            = 0L;           
-static uint64  current_UID                = 0L;               
-static uint64  interval_UID[4];           
+static char*   positionfile_name          = NULL;
+static uint64  index_size                 = 1;
+static uint64  index_update_increment     = 1;
+static uint64  max_block_size             = 10000;
+static int32   status_code                = UID_CODE_START;
+static int32   client_connection_id;
+static int32   connection_id;
+static uint64  current_position_UID       = 0L;
+static uint64  index_start_UID            = 0L;
+static uint64  current_UID                = 0L;
+static uint64  interval_UID[4];
 static char    unrecoverable_error_flag   = UID_OK;
 static int32   tcp_port;
 static int64   ma_alert_time;
@@ -140,7 +140,7 @@ void SYS_UIDparseOptions(int32 argc, char** argv)
    int32 address_length;
 
    /* initial argc check */
-   if (argc < 3) 
+   if (argc < 3)
      Usage(argc, argv);
 
    // check for kill option
@@ -153,8 +153,8 @@ void SYS_UIDparseOptions(int32 argc, char** argv)
             Usage(argc, argv);
 
 	 // use the 'tcp_port' field for the server to kill
-         tcp_port = atoi(argv[i+1]);         
-         
+         tcp_port = atoi(argv[i+1]);
+
          // set flag and return regardless of other options
          kill_option_invoked_flag = 1;
          return;
@@ -171,31 +171,31 @@ void SYS_UIDparseOptions(int32 argc, char** argv)
 
 #ifndef NOT_IMPLEMENTED_JTC
    // ma alert option
-   FillAddressList("-ma", &ma_address_list, argc, argv, &ma_alert_interval); 
+   FillAddressList("-ma", &ma_address_list, argc, argv, &ma_alert_interval);
    if (SYS_UIDdebug_flag == 1)
    {
        if (ma_address_list != NULL)
        {
-          sprintf(SYS_UIDerr_str, "sending -ma alerts every %d hours to:%s\n", 
+          sprintf(SYS_UIDerr_str, "sending -ma alerts every %d hours to:%s\n",
 		  ma_alert_interval, ma_address_list);
           SYS_UIDerrorMsg(SYS_UIDerr_str);
        }
    }
 
    // me alert option
-   FillAddressList("-me", &me_address_list, argc, argv, &me_alert_interval); 
+   FillAddressList("-me", &me_address_list, argc, argv, &me_alert_interval);
    if (SYS_UIDdebug_flag == 1)
    {
        if (me_address_list != NULL)
        {
-          sprintf(SYS_UIDerr_str, "sending -me alerts every %d hours to:%s\n", 
+          sprintf(SYS_UIDerr_str, "sending -me alerts every %d hours to:%s\n",
 		  me_alert_interval, me_address_list);
           SYS_UIDerrorMsg(SYS_UIDerr_str);
        }
    }
 
    // mf alert option
-   FillAddressList("-mf", &mf_address_list, argc, argv, NULL); 
+   FillAddressList("-mf", &mf_address_list, argc, argv, NULL);
    if (SYS_UIDdebug_flag == 1)
    {
        if (mf_address_list != NULL)
@@ -213,9 +213,9 @@ void SYS_UIDparseOptions(int32 argc, char** argv)
 Description: Initializes alerts
 
 *******************************************************************************/
-void FillAddressList(const char*    option, 
-                     char**         list, 
-                     int32          argc, 
+void FillAddressList(const char*    option,
+                     char**         list,
+                     int32          argc,
                      char**         argv,
                      int32*         interval)
 {
@@ -245,7 +245,7 @@ void FillAddressList(const char*    option,
 	 // find the last argument to belong to the address list
          // ends with either - or runs out of arguments
          for(j=i+interval_offset;j<argc;j++)
-            if (argv[j][0] == '-') 
+            if (argv[j][0] == '-')
                break;
 
          // get alert timer
@@ -258,7 +258,7 @@ void FillAddressList(const char*    option,
             address_length += strlen(argv[k]);
          if (address_length == 0)
             Usage(argc, argv);
-         *list = (char*)safe_calloc((address_length + 
+         *list = (char*)safe_calloc((address_length +
 			(j - (i+(interval_offset-1))) + 2), sizeof(char));
 
          // insert addresses
@@ -303,7 +303,7 @@ void TriggerMaAlert(void)
 
    if (hours_elapsed >= ma_alert_interval)
      {
-     sprintf(emessage, "received UID request", tcp_port); 
+     sprintf(emessage, "received UID request", tcp_port);
 
      SendMailList("received UID request",
                   emessage,
@@ -334,7 +334,7 @@ void TriggerMeAlert(void)
    if (hours_elapsed >= me_alert_interval)
      {
      sprintf(emessage,"nonfatal UID server error", tcp_port);
-     SendMailList("nonfatal UID server error", 
+     SendMailList("nonfatal UID server error",
                   emessage,
 		  ma_address_list);
      me_alert_time = current_time;
@@ -373,7 +373,7 @@ void SendMailList(const char* subject, const char* emessage, const char* address
       return;
       }
 
-   sprintf(sendbuffer, "echo \"%s\" | mailx -s \"%s\" %s ", 
+   sprintf(sendbuffer, "echo \"%s\" | mailx -s \"%s\" %s ",
 	   emessage, subject, address_list);
    system(sendbuffer);
 }
@@ -400,15 +400,15 @@ int32 SYS_UIDserverInitialize(int32 argc, char** argv)
 {
    // initialization of statics
    positionfile_name           = NULL;
-   index_size                  = 0L;  
-   index_update_increment      = 0L;  
-   max_block_size              = 0L;  
-   status_code                 = 0;   
-   client_connection_id        = 0;   
-   connection_id               = 0;   
-   current_position_UID        = 0L;  
-   index_start_UID             = 0L;  
-   current_UID                 = 0L;  
+   index_size                  = 0L;
+   index_update_increment      = 0L;
+   max_block_size              = 0L;
+   status_code                 = 0;
+   client_connection_id        = 0;
+   connection_id               = 0;
+   current_position_UID        = 0L;
+   index_start_UID             = 0L;
+   current_UID                 = 0L;
    unrecoverable_error_flag    = UID_OK;
 
    // clear interval
@@ -422,7 +422,7 @@ int32 SYS_UIDserverInitialize(int32 argc, char** argv)
       }
       else
       {
-	 sprintf(SYS_UIDerr_str, 
+	 sprintf(SYS_UIDerr_str,
 		 "Could not connect to server at port %d to kill\n", tcp_port);
 	 SYS_UIDerrorMsg(SYS_UIDerr_str);
          exit(1);
@@ -440,7 +440,7 @@ int32 SYS_UIDserverInitialize(int32 argc, char** argv)
    // RUN SERVER ///////////////////////////////////////////////////
    if (argc >= 8 && argv[1][1] == 'r')
    {
-      positionfile_name      =         argv[2];      
+      positionfile_name      =         argv[2];
       index_start_UID        = strtoul(argv[3], (char**)NULL, 10);
       index_size             = strtoul(argv[4], (char**)NULL, 10);
       max_block_size         = strtoul(argv[5], (char**)NULL, 10);
@@ -448,7 +448,7 @@ int32 SYS_UIDserverInitialize(int32 argc, char** argv)
       tcp_port               =    atoi(argv[7]);
 
       // very first thing, check the port for availability to avoid any other
-      // server running on this port - don't want to overwrite this 
+      // server running on this port - don't want to overwrite this
       // position file while it's running.
       sprintf(SYS_UIDerr_str,"Starting UID server on port %d...\n", tcp_port);
       SYS_UIDerrorMsg(SYS_UIDerr_str);
@@ -481,19 +481,19 @@ int32 SYS_UIDserverInitialize(int32 argc, char** argv)
      SYS_UIDerrorMsg("UID server: unable to parse arguments...quiting\n");
      exit(0);
    }
-   
+
    return UID_OK;
 }
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    Writes current_position_UID to position file.
- 
+
 Notes:
 
-   Does not change the value: this value must be incremented before this 
+   Does not change the value: this value must be incremented before this
    function is called if this is the desired effect.
 
 *******************************************************************************/
@@ -514,7 +514,7 @@ int32  PositionWrite(uint64 position)
       sprintf(SYS_UIDerr_str,"UID server: updating position file to %ld\n",
 	      current_position_UID);
       SYS_UIDerrorMsg(SYS_UIDerr_str);
-   }    
+   }
    fwrite(&position, sizeof(uint64), 1, write_fp);
    fclose(write_fp);
    return UID_OK;
@@ -522,7 +522,7 @@ int32  PositionWrite(uint64 position)
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    Reads the UID_current_pos_value from the position file.
    Should only be called once per program invocation.
@@ -561,7 +561,7 @@ int32  PositionRead(void)
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    This function should only be called once, during the initialization
    of the server.
@@ -603,15 +603,15 @@ int32  UpdateFromPositionFile(void)
 
 /*******************************************************************************
 
-Description: 
+Description:
 
-   Updates the position file. 
+   Updates the position file.
 
 Notes:
 
    This keys off of the current_UID value to ensure that even if a
    request is well over the room left in the previous block, the
-   new position always starts index_update_increment above the 
+   new position always starts index_update_increment above the
    first block that surpasses the previous block end. In other words,
    blocks are not contiguous, but have gaps proportional to the
    requests that trigger their release.
@@ -627,7 +627,7 @@ int32 IncrementUpdatePositionFile()
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    This is the  service body and indefinite loop.
 
@@ -639,7 +639,7 @@ int32 SYS_UIDserverStart(void)
 
    while(1)
    {
-      if (AcceptClientConnection() == UID_OK) 
+      if (AcceptClientConnection() == UID_OK)
       {
 #ifndef NOT_IMPLEMENTED_JTC
          if (ma_address_list != NULL)
@@ -648,7 +648,7 @@ int32 SYS_UIDserverStart(void)
 	    {
             if (mf_address_list != NULL)
                TriggerMfAlert();
-            SYS_UIDerrorMsg("UID Server: ERROR - must be killed and re-booted!\n"); 
+            SYS_UIDerrorMsg("UID Server: ERROR - must be killed and re-booted!\n");
             CloseConnection();
             return UID_FAILS;
             }
@@ -665,7 +665,7 @@ int32 SYS_UIDserverStart(void)
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    Reads the request message from UID clients
 
@@ -707,7 +707,7 @@ void  ReadClientRequest(int32* client_status, uint64* request_size)
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    Writes the request message to UID clients
 
@@ -725,7 +725,7 @@ void  WriteClientRequest(void)
    }
 
    // send to client - attempt even if the pack failed to prevent client hang
-   if (SYS_UIDwriten(client_connection_id, (char*)SYS_UIDmessage_array, 
+   if (SYS_UIDwriten(client_connection_id, (char*)SYS_UIDmessage_array,
 		     UID_MESSAGE_SIZE) == UID_FAILS)
    {
       sprintf(SYS_UIDerr_str,"UID Server: error %d on socket writen\n", errno);
@@ -739,7 +739,7 @@ void  WriteClientRequest(void)
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    Prints message debug information in hex rows and columns.
 
@@ -752,12 +752,12 @@ void  DebugClientMessage(void)
    int32     length = 0;
 
    // for each of the 5 lines it takes to print an outgoing message...
-   for (i=0; i<5 ; i++)   
+   for (i=0; i<5 ; i++)
    {
       // reset the byte offset of the message line
       j = 0;
       // start the line by printing the first number
-      sprintf(SYS_UIDerr_str, "UID server, debug client: wrote %2x ", 
+      sprintf(SYS_UIDerr_str, "UID server, debug client: wrote %2x ",
          (unsigned char)SYS_UIDmessage_array[i*8 + j]);
       // the amount of space in SYS_UIDerr_str used so far for this line
       length = strlen(SYS_UIDerr_str);
@@ -767,7 +767,7 @@ void  DebugClientMessage(void)
   	 // if array position still within the message size
          if ((i*8 + j) < UID_MESSAGE_SIZE)
          {
-            sprintf(num_buffer, "%2x ", 
+            sprintf(num_buffer, "%2x ",
 		    (unsigned char)SYS_UIDmessage_array[i*8 + j]);
             length += strlen(num_buffer);
             if (length >= (UID_ERR_STR_SIZE - 10))
@@ -782,7 +782,7 @@ void  DebugClientMessage(void)
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    Processes a UID block request from the client.
 
@@ -821,7 +821,7 @@ int32  SendClientMessage(void)
          GetNextUID(request_size);
       // if status_code is not OK, then do not
       // deliver another chunk of id space, but
-      // send whatever the server status is as a 
+      // send whatever the server status is as a
       // default - do not keep the client
       // hanging
       break;
@@ -841,7 +841,7 @@ int32  SendClientMessage(void)
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    closes connection with current client
 
@@ -853,10 +853,10 @@ void CloseConnection(void)
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    This function checks whether the desired blocksize would be out of
-   bounds. If not, it leaves state vars alone such that future 
+   bounds. If not, it leaves state vars alone such that future
    requests that are within bounds will work.
 
 *******************************************************************************/
@@ -872,13 +872,13 @@ int32  UIDIsValid(uint64 block_size)
       sprintf(SYS_UIDerr_str,"UID Server: UID 64-bit overflow\n");
       SYS_UIDerrorMsg(SYS_UIDerr_str);
       SetStatus(UID_CODE_POS_BOUNDS_ERROR, UID_OK);
-      return UID_FAILS;     
+      return UID_FAILS;
    }
 
    end_of_block = current_UID + block_size;
 
    // check to see that current UID request is within allowable limits
-   if (end_of_block > (index_start_UID + index_size) || 
+   if (end_of_block > (index_start_UID + index_size) ||
        end_of_block < index_start_UID)
    {
       sprintf(SYS_UIDerr_str,"UID Server: %ld is not between %ld and %ld\n",
@@ -888,12 +888,12 @@ int32  UIDIsValid(uint64 block_size)
       return UID_FAILS;
    }
    return UID_OK;
-}   
+}
 
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    opens server socket for business
 
@@ -938,7 +938,7 @@ int32  CreateConnection(void)
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    configures server socket
 
@@ -946,8 +946,8 @@ Description:
 int32  RegisterConnection(void)
 {
 
-   struct sockaddr_in   connection_data;       
-   int32                  connection_data_size;  
+   struct sockaddr_in   connection_data;
+   int32                  connection_data_size;
 
    if (5000 > tcp_port || tcp_port > 65535)
       return UID_FAILS;
@@ -960,7 +960,7 @@ int32  RegisterConnection(void)
    connection_data_size                    = sizeof(connection_data);
 
    // bind the socket to the OS
-   if ( bind(connection_id, (struct sockaddr *) &connection_data, 
+   if ( bind(connection_id, (struct sockaddr *) &connection_data,
       connection_data_size) < 0)
    {
       SYS_UIDhandleRegisterError(errno);
@@ -971,7 +971,7 @@ int32  RegisterConnection(void)
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    Activates the server socket as listening.
 
@@ -979,7 +979,7 @@ Description:
 int32  ActivateConnection(void)
 {
    // listen - activate the socket - use 1/2 the maximum buffer size.
-   // The max size for the Dec Alpha is 1024 as of revision 4.2.34.5 
+   // The max size for the Dec Alpha is 1024 as of revision 4.2.34.5
    //  of socket.h from 10/97
    if (listen(connection_id, SOMAXCONN/2) < 0)
    {
@@ -991,7 +991,7 @@ int32  ActivateConnection(void)
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    Blocks for a client to connect.
 
@@ -1013,8 +1013,8 @@ int32  AcceptClientConnection(void)
       client_connection_data_size = sizeof(client_connection_data);
    }
    // wait for client connection
-   client_connection_id = accept(connection_id, 
-                                 (struct sockaddr *) &client_connection_data, 
+   client_connection_id = accept(connection_id,
+                                 (struct sockaddr *) &client_connection_data,
                                  &client_connection_data_size);
 
    // reset status - the one and only place!
@@ -1033,12 +1033,12 @@ int32  AcceptClientConnection(void)
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    Utility func for setting interval message array
 
 *******************************************************************************/
-void SetUIDInterval(uint64 a, uint64 a_size, 
+void SetUIDInterval(uint64 a, uint64 a_size,
                          uint64 b, uint64 b_size)
 {
    interval_UID[0] = a;
@@ -1049,7 +1049,7 @@ void SetUIDInterval(uint64 a, uint64 a_size,
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    This is where the work is done to communicate with the client.
 
@@ -1069,7 +1069,7 @@ Description:
 
 Notes:
 
-   This function does not overwrite the status unless it itself 
+   This function does not overwrite the status unless it itself
    generates an error, leaving any current status error still valid.
 
 *******************************************************************************/
@@ -1095,7 +1095,7 @@ void GetNextUID(uint64 size)
    SetUIDInterval(current_UID, size, 0L, 0L);
    current_UID += size;
 
-   // Verified UID block within bounds. Will now check to see if position_file 
+   // Verified UID block within bounds. Will now check to see if position_file
    // update is needed. If there is an error, must bail even though UID is
    // valid to ensure post-crash validity.
    if (current_UID >= current_position_UID) // need update?
@@ -1111,7 +1111,7 @@ void GetNextUID(uint64 size)
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    This is a cleanup called between client connects - empty now
    but may be necessary in the future.
@@ -1125,7 +1125,7 @@ int32 CleanConnectionPath(void)
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    This function issues a UID_CODE_SERVER_KILL message to the server listening
    at the port specified of the local machine. If there is no server at that
@@ -1156,7 +1156,7 @@ int32 IssueKillSignal(void)
    // Fill in communications data
    bzero( (char*) &server_connection_data, sizeof(server_connection_data));
    server_connection_data.sin_family = AF_INET;
-   server_connection_data.sin_addr.s_addr = 
+   server_connection_data.sin_addr.s_addr =
       inet_addr( inet_ntoa( *((struct in_addr*) (server_host_info->h_addr_list[0]))));
    server_connection_data.sin_port = htons(tcp_port);
    server_connection_data_size = sizeof( server_connection_data );
@@ -1165,7 +1165,7 @@ int32 IssueKillSignal(void)
    if (connect(server_connection_id, (struct sockaddr*) &server_connection_data,
 	       server_connection_data_size) < 0)
       return UID_FAILS;
-   
+
    // Package message
    SYS_UIDpackUIDRequestXdr(writebuffer, UID_CODE_SERVER_KILL, 0L);
 
@@ -1181,7 +1181,7 @@ int32 IssueKillSignal(void)
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    Shuts down the server gracefully.
 
@@ -1213,7 +1213,7 @@ void ShutdownServer(void)
 
 /*******************************************************************************
 
-Description: 
+Description:
 
    Attempts to initialize the port
 
@@ -1270,7 +1270,7 @@ int32 main(int32 argc, char** argv)
    }
 
    /* this section taken straight from Steven's "UNIX Network Programming" */
- 
+
    signal(SIGHUP, SIG_IGN); /* prepare to ignore terminal disconnects */
 
    if (fork() > 0) /* fork again for complete resetting of context */

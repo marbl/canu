@@ -6,7 +6,7 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int dtbsv_(char *uplo, char *trans, char *diag, integer *n, 
+/* Subroutine */ int dtbsv_(char *uplo, char *trans, char *diag, integer *n,
 	integer *k, doublereal *a, integer *lda, doublereal *x, integer *incx)
 {
 
@@ -24,155 +24,155 @@
     static logical nounit;
 
 
-/*  Purpose   
-    =======   
+/*  Purpose
+    =======
 
-    DTBSV  solves one of the systems of equations   
+    DTBSV  solves one of the systems of equations
 
-       A*x = b,   or   A'*x = b,   
+       A*x = b,   or   A'*x = b,
 
-    where b and x are n element vectors and A is an n by n unit, or   
-    non-unit, upper or lower triangular band matrix, with ( k + 1 )   
-    diagonals.   
+    where b and x are n element vectors and A is an n by n unit, or
+    non-unit, upper or lower triangular band matrix, with ( k + 1 )
+    diagonals.
 
-    No test for singularity or near-singularity is included in this   
-    routine. Such tests must be performed before calling this routine.   
+    No test for singularity or near-singularity is included in this
+    routine. Such tests must be performed before calling this routine.
 
-    Parameters   
-    ==========   
+    Parameters
+    ==========
 
-    UPLO   - CHARACTER*1.   
-             On entry, UPLO specifies whether the matrix is an upper or   
-             lower triangular matrix as follows:   
+    UPLO   - CHARACTER*1.
+             On entry, UPLO specifies whether the matrix is an upper or
+             lower triangular matrix as follows:
 
-                UPLO = 'U' or 'u'   A is an upper triangular matrix.   
+                UPLO = 'U' or 'u'   A is an upper triangular matrix.
 
-                UPLO = 'L' or 'l'   A is a lower triangular matrix.   
+                UPLO = 'L' or 'l'   A is a lower triangular matrix.
 
-             Unchanged on exit.   
+             Unchanged on exit.
 
-    TRANS  - CHARACTER*1.   
-             On entry, TRANS specifies the equations to be solved as   
-             follows:   
+    TRANS  - CHARACTER*1.
+             On entry, TRANS specifies the equations to be solved as
+             follows:
 
-                TRANS = 'N' or 'n'   A*x = b.   
+                TRANS = 'N' or 'n'   A*x = b.
 
-                TRANS = 'T' or 't'   A'*x = b.   
+                TRANS = 'T' or 't'   A'*x = b.
 
-                TRANS = 'C' or 'c'   A'*x = b.   
+                TRANS = 'C' or 'c'   A'*x = b.
 
-             Unchanged on exit.   
+             Unchanged on exit.
 
-    DIAG   - CHARACTER*1.   
-             On entry, DIAG specifies whether or not A is unit   
-             triangular as follows:   
+    DIAG   - CHARACTER*1.
+             On entry, DIAG specifies whether or not A is unit
+             triangular as follows:
 
-                DIAG = 'U' or 'u'   A is assumed to be unit triangular.   
+                DIAG = 'U' or 'u'   A is assumed to be unit triangular.
 
-                DIAG = 'N' or 'n'   A is not assumed to be unit   
-                                    triangular.   
+                DIAG = 'N' or 'n'   A is not assumed to be unit
+                                    triangular.
 
-             Unchanged on exit.   
+             Unchanged on exit.
 
-    N      - INTEGER.   
-             On entry, N specifies the order of the matrix A.   
-             N must be at least zero.   
-             Unchanged on exit.   
+    N      - INTEGER.
+             On entry, N specifies the order of the matrix A.
+             N must be at least zero.
+             Unchanged on exit.
 
-    K      - INTEGER.   
-             On entry with UPLO = 'U' or 'u', K specifies the number of   
-             super-diagonals of the matrix A.   
-             On entry with UPLO = 'L' or 'l', K specifies the number of   
-             sub-diagonals of the matrix A.   
-             K must satisfy  0 .le. K.   
-             Unchanged on exit.   
+    K      - INTEGER.
+             On entry with UPLO = 'U' or 'u', K specifies the number of
+             super-diagonals of the matrix A.
+             On entry with UPLO = 'L' or 'l', K specifies the number of
+             sub-diagonals of the matrix A.
+             K must satisfy  0 .le. K.
+             Unchanged on exit.
 
-    A      - DOUBLE PRECISION array of DIMENSION ( LDA, n ).   
-             Before entry with UPLO = 'U' or 'u', the leading ( k + 1 )   
-             by n part of the array A must contain the upper triangular   
-             band part of the matrix of coefficients, supplied column by 
-  
-             column, with the leading diagonal of the matrix in row   
-             ( k + 1 ) of the array, the first super-diagonal starting at 
-  
-             position 2 in row k, and so on. The top left k by k triangle 
-  
-             of the array A is not referenced.   
-             The following program segment will transfer an upper   
-             triangular band matrix from conventional full matrix storage 
-  
-             to band storage:   
+    A      - DOUBLE PRECISION array of DIMENSION ( LDA, n ).
+             Before entry with UPLO = 'U' or 'u', the leading ( k + 1 )
+             by n part of the array A must contain the upper triangular
+             band part of the matrix of coefficients, supplied column by
 
-                   DO 20, J = 1, N   
-                      M = K + 1 - J   
-                      DO 10, I = MAX( 1, J - K ), J   
-                         A( M + I, J ) = matrix( I, J )   
-                10    CONTINUE   
-                20 CONTINUE   
+             column, with the leading diagonal of the matrix in row
+             ( k + 1 ) of the array, the first super-diagonal starting at
 
-             Before entry with UPLO = 'L' or 'l', the leading ( k + 1 )   
-             by n part of the array A must contain the lower triangular   
-             band part of the matrix of coefficients, supplied column by 
-  
-             column, with the leading diagonal of the matrix in row 1 of 
-  
-             the array, the first sub-diagonal starting at position 1 in 
-  
-             row 2, and so on. The bottom right k by k triangle of the   
-             array A is not referenced.   
-             The following program segment will transfer a lower   
-             triangular band matrix from conventional full matrix storage 
-  
-             to band storage:   
+             position 2 in row k, and so on. The top left k by k triangle
 
-                   DO 20, J = 1, N   
-                      M = 1 - J   
-                      DO 10, I = J, MIN( N, J + K )   
-                         A( M + I, J ) = matrix( I, J )   
-                10    CONTINUE   
-                20 CONTINUE   
+             of the array A is not referenced.
+             The following program segment will transfer an upper
+             triangular band matrix from conventional full matrix storage
 
-             Note that when DIAG = 'U' or 'u' the elements of the array A 
-  
-             corresponding to the diagonal elements of the matrix are not 
-  
-             referenced, but are assumed to be unity.   
-             Unchanged on exit.   
+             to band storage:
 
-    LDA    - INTEGER.   
-             On entry, LDA specifies the first dimension of A as declared 
-  
-             in the calling (sub) program. LDA must be at least   
-             ( k + 1 ).   
-             Unchanged on exit.   
+                   DO 20, J = 1, N
+                      M = K + 1 - J
+                      DO 10, I = MAX( 1, J - K ), J
+                         A( M + I, J ) = matrix( I, J )
+                10    CONTINUE
+                20 CONTINUE
 
-    X      - DOUBLE PRECISION array of dimension at least   
-             ( 1 + ( n - 1 )*abs( INCX ) ).   
-             Before entry, the incremented array X must contain the n   
-             element right-hand side vector b. On exit, X is overwritten 
-  
-             with the solution vector x.   
+             Before entry with UPLO = 'L' or 'l', the leading ( k + 1 )
+             by n part of the array A must contain the lower triangular
+             band part of the matrix of coefficients, supplied column by
 
-    INCX   - INTEGER.   
-             On entry, INCX specifies the increment for the elements of   
-             X. INCX must not be zero.   
-             Unchanged on exit.   
+             column, with the leading diagonal of the matrix in row 1 of
 
+             the array, the first sub-diagonal starting at position 1 in
 
-    Level 2 Blas routine.   
+             row 2, and so on. The bottom right k by k triangle of the
+             array A is not referenced.
+             The following program segment will transfer a lower
+             triangular band matrix from conventional full matrix storage
 
-    -- Written on 22-October-1986.   
-       Jack Dongarra, Argonne National Lab.   
-       Jeremy Du Croz, Nag Central Office.   
-       Sven Hammarling, Nag Central Office.   
-       Richard Hanson, Sandia National Labs.   
+             to band storage:
+
+                   DO 20, J = 1, N
+                      M = 1 - J
+                      DO 10, I = J, MIN( N, J + K )
+                         A( M + I, J ) = matrix( I, J )
+                10    CONTINUE
+                20 CONTINUE
+
+             Note that when DIAG = 'U' or 'u' the elements of the array A
+
+             corresponding to the diagonal elements of the matrix are not
+
+             referenced, but are assumed to be unity.
+             Unchanged on exit.
+
+    LDA    - INTEGER.
+             On entry, LDA specifies the first dimension of A as declared
+
+             in the calling (sub) program. LDA must be at least
+             ( k + 1 ).
+             Unchanged on exit.
+
+    X      - DOUBLE PRECISION array of dimension at least
+             ( 1 + ( n - 1 )*abs( INCX ) ).
+             Before entry, the incremented array X must contain the n
+             element right-hand side vector b. On exit, X is overwritten
+
+             with the solution vector x.
+
+    INCX   - INTEGER.
+             On entry, INCX specifies the increment for the elements of
+             X. INCX must not be zero.
+             Unchanged on exit.
 
 
+    Level 2 Blas routine.
 
-       Test the input parameters.   
+    -- Written on 22-October-1986.
+       Jack Dongarra, Argonne National Lab.
+       Jeremy Du Croz, Nag Central Office.
+       Sven Hammarling, Nag Central Office.
+       Richard Hanson, Sandia National Labs.
 
-    
-   Parameter adjustments   
+
+
+       Test the input parameters.
+
+
+   Parameter adjustments
        Function Body */
 #define X(I) x[(I)-1]
 
@@ -208,7 +208,7 @@
 
     nounit = lsame_(diag, "N");
 
-/*     Set up the start point in X if the increment is not unity. This   
+/*     Set up the start point in X if the increment is not unity. This
        will be  ( N - 1 )*INCX  too small for descending loops. */
 
     if (*incx <= 0) {
@@ -217,7 +217,7 @@
 	kx = 1;
     }
 
-/*     Start the operations. In this version the elements of A are   
+/*     Start the operations. In this version the elements of A are
        accessed by sequentially with one pass through A. */
 
     if (lsame_(trans, "N")) {

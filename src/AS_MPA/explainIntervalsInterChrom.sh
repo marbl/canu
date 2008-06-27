@@ -2,39 +2,39 @@
 #
 ###########################################################################
 #
-# This file is part of Celera Assembler, a software program that 
+# This file is part of Celera Assembler, a software program that
 # assembles whole-genome shotgun reads into contigs and scaffolds.
 # Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received (LICENSE.txt) a copy of the GNU General Public 
+#
+# You should have received (LICENSE.txt) a copy of the GNU General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
 #
-# $Id: explainIntervalsInterChrom.sh,v 1.5 2005-12-16 22:13:07 catmandew Exp $
+# $Id: explainIntervalsInterChrom.sh,v 1.6 2008-06-27 06:29:17 brianwalenz Exp $
 #
 
 # params: 1=assembly, 2=input file, 3=tempdir
 function ProcessFiles
 {
   echo "In ProcessFiles"
-  
+
   # separate into one file per chromosome
   for file in `ls [0-9][0-9][0-9].txt`; do
     chr=${file%%.*}
     IvFile=${3}/${chr}.intervals.txt
-    
+
     echo "Working on ${chr}"
 
     # separate this chromosome's intervals from the rest
@@ -45,7 +45,7 @@ function ProcessFiles
     fn=${chr}.interChromosomeIntervals.txt
     echo "Intersecting with ${fn}"
     DoIntersections ${IvFile} ${fn} ${3}
-    
+
     # put together a total file
     outFile=${3}/${chr}_all.csv
     echo "BP = breakpoint intervals at ends of mis-assembled intervals" > ${outFile}

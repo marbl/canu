@@ -8,12 +8,12 @@ my $ARUN_CONFIG_FILE = "ARUN.conf";
 my $DEFAULT_INSTALL_DIR = "/usr/local/common/ARUN";
 
 my $install_dir = $ENV{'ARUN_INSTALL_DIR'};
-$install_dir = $DEFAULT_INSTALL_DIR if ( !defined $install_dir );    
+$install_dir = $DEFAULT_INSTALL_DIR if ( !defined $install_dir );
 
 my $configFile = $install_dir . '/' . $ARUN_CONFIG_FILE;
-    
+
 print "Config file: '$configFile'\n";
-my $arun_cf = new TIGR::ConfigFile($configFile) 
+my $arun_cf = new TIGR::ConfigFile($configFile)
     or die("Could not initialize the arun config file object: '$configFile'");
 
 # Default parameters
@@ -40,24 +40,24 @@ sub init_db_connection() {
 
 	$dbh->{InactiveDestroy} = 1;
 }
-MAIN: 
-{    
-   my $request_id  = $ARGV[0];               	           
+MAIN:
+{
+   my $request_id  = $ARGV[0];
 
-   my $start_query = 
+   my $start_query =
       'update Request set '.
       "status = \'R\' where request_id = $request_id";
    print("Executing the status query $start_query",3);
    if ( !defined $dbh ) {
 	   init_db_connection();
    }
-   my $qh = $dbh->prepare($start_query) or 
+   my $qh = $dbh->prepare($start_query) or
    die("Cannot prepare $start_query: " . $dbh->errstr);
    if (! defined $qh->execute()) {
-      die("Database query \'$start_query\' failed: " . 
+      die("Database query \'$start_query\' failed: " .
     			  $dbh->errstr);
    }
    $dbh->disconnect();
    $dbh = undef;
 }
- 
+

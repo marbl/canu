@@ -36,7 +36,7 @@ asmFile.each_line do |line|
             b,e = b.to_i,e.to_i
             b,e = e,b if b > e
             last = range.size - 1
-            if last == -1 || b > range[last][1] # new range 
+            if last == -1 || b > range[last][1] # new range
                 range.push([b,e])
             elsif e > range[last][1]
                 range[last][1] = e

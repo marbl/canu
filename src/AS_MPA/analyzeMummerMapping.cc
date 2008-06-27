@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: analyzeMummerMapping.cc,v 1.5 2008-03-18 07:02:45 brianwalenz Exp $ */
+/* $Id: analyzeMummerMapping.cc,v 1.6 2008-06-27 06:29:16 brianwalenz Exp $ */
 #include <cstdio>  // for sscanf
 #include <cmath>
 #include <cassert>
@@ -64,7 +64,7 @@ using namespace std;
                how are ends of matches associated with gaps?
            is there unmatched (unique) sequence?
 
-       
+
 ****************************************************************************/
 
 
@@ -105,7 +105,7 @@ public:
       _min = (_begin < _end ? _begin : _end);
       _max = (_begin > _end ? _begin : _end);
     }
-  
+
   void setBegin(CDS_COORD_t begin) {set(begin, getEnd());}
   void setEnd(CDS_COORD_t end) {set(getBegin(), end);}
 
@@ -170,7 +170,7 @@ public:
     {
       return startsAfter(interval.getMax());
     }
-  
+
 private:
   CDS_COORD_t _begin;
   CDS_COORD_t _end;
@@ -187,7 +187,7 @@ public:
     {
       set(uid, begin, end);
     }
-  
+
   void set(CDS_UID_t uid, CDS_COORD_t begin, CDS_COORD_t end)
     {
       setUID(uid);
@@ -201,7 +201,7 @@ public:
     {
       return (getUID() == 0 && Interval::isVoid());
     }
-  
+
 private:
   CDS_UID_t _uid;
 };
@@ -252,9 +252,9 @@ public:
     {
       return (_onSeq[0].isVoid() && _onSeq[1].isVoid() && getPctID() == 0);
     }
-  
+
   CDS_UID_t getUID(SequenceType which) const {return _onSeq[which].getUID();}
-  
+
   const AssemblyInterval getInterval(SequenceType which) const
     {
       return _onSeq[which];
@@ -296,7 +296,7 @@ public:
       _onSeq[0] = _onSeq[1];
       _onSeq[1] = dummy;
     }
-  
+
   void setUID(SequenceType which, CDS_UID_t uid) {_onSeq[which].setUID(uid);}
   void setBegin(SequenceType which, CDS_COORD_t begin)
     {
@@ -316,7 +316,7 @@ public:
       os << m.getPctID();
       return os;
     }
-  
+
 private:
   AssemblyInterval _onSeq[2];
   float _pctID;
@@ -345,7 +345,7 @@ public:
              &_uid, &numContigs, &_seqLength, &_gappedLength);
       return numContigs;
     }
-  
+
   void set(CDS_UID_t uid, CDS_COORD_t seqLength, CDS_COORD_t gappedLength)
     {
       reset();
@@ -360,7 +360,7 @@ public:
       _contigs.clear();
       _gaps.clear();
     }
-  
+
   void addContig(char * line)
     {
       // Line is space delimited. 2nd field is orientation (ignored)
@@ -387,7 +387,7 @@ public:
   CDS_UID_t getUID() const {return _uid;}
   CDS_COORD_t getSeqLength() const {return _seqLength;}
   CDS_COORD_t getGappedLength() const {return _gappedLength;}
-  
+
   int getNumContigs() const {return _contigs.size();}
   int getNumGaps() const {return _gaps.size();}
 
@@ -449,7 +449,7 @@ public:
         if(_contigs[i].strictlyComesAfter(interval)) return false;
       }
     }
-  
+
   void printStructure(ostream & os) const
     {
       os << ">" << getUID() << " "
@@ -480,7 +480,7 @@ public:
       os << endl;
       return os;
     }
-  
+
 protected:
   CDS_UID_t _uid;
   CDS_COORD_t _seqLength;
@@ -494,7 +494,7 @@ class MappedScaffold : public Scaffold
 {
 public:
   MappedScaffold() {set(0,0,0);}
-  
+
   int set(char * line)
     {
       reset();
@@ -505,7 +505,7 @@ public:
       reset();
       Scaffold::set(uid, seqLength, gappedLength);
     }
-  
+
   void reset()
     {
       Scaffold::reset();
@@ -524,7 +524,7 @@ public:
       Scaffold::addContig(line);
       finalizeMapping();
     }
-  
+
   void considerMatch(const Match & match, float minIdentity)
     {
       /*
@@ -535,7 +535,7 @@ public:
           replace 1 or more current matches with this one
        */
       if(match.getPctID() < minIdentity) return;
-      
+
       if(_matches.size() == 0)
       {
         _matches.push_back(match);
@@ -628,14 +628,14 @@ public:
 
       // Insert new match upstream of minIter
       _matches.insert(minIter, match);
-      
+
       /*
         erase any intersecting matches including minIter up to
         but excluding maxIter
       */
       if(numIntersecting > 0)
         _matches.erase(minIter, maxIter);
-      
+
       finalizeMapping();
     }
 
@@ -728,7 +728,7 @@ public:
               if(print)
               {
                 os << "Relative inversion breakpoint in scaffold "
-                   << lastMatch.getUID(AMM_Reference_e) 
+                   << lastMatch.getUID(AMM_Reference_e)
                    << " between "
                    << lastMatch.getMax(AMM_Reference_e) << " and "
                    << iter->getMin(AMM_Reference_e) << ":\n";
@@ -748,7 +748,7 @@ public:
                  iter->getMin(AMM_Query_e) - lastMatch.getMax(AMM_Query_e));
               CDS_COORD_t diff = refDelta - queryDelta;
               float diffRatio = (queryDelta == 0 ? 1. : diff / queryDelta);
-              
+
               if(diffRatio > ratio || diff > bps)
               {
                 if(print)
@@ -798,7 +798,7 @@ public:
       float pct = 0;
       if(getSeqLength() > 0)
         pct = 100. * getMappedScaffoldBPs() / (float) getSeqLength();
-      
+
       os << getUID() << "\t"
          << getMappedBPs() << "\t"
          << getSeqLength() << "\t"
@@ -835,10 +835,10 @@ public:
           iter++;
         }
       }
-      
+
       os << getUID() << " has mapping issues\n";
     }
-  
+
 private:
   vector<Match> _matches;
   CDS_UID_t _mappedScaffoldUID;
@@ -849,12 +849,12 @@ private:
   bool _hasInsertion;
   bool _hasInversion;
   bool _mapsToMultipleScaffolds;
-  
+
   void finalizeMapping()
     {
       if(getNumMatches() == 0)
         return;
-      
+
       // iterate over matches, count basepairs matched to each scaffold
       // scaffold with most matching basepairs is the mapped scaffold
       map<CDS_UID_t, CDS_COORD_t> matchBPs[2];
@@ -865,12 +865,12 @@ private:
       {
         CDS_UID_t otherUID = iter->getUID(AMM_Query_e);
         int orient = (int) iter->getOrientation();
-        
+
         _mappedBPs += iter->getLength(AMM_Reference_e);
 
         matchBPs[orient][otherUID] += iter->getLength(AMM_Reference_e);
         matchBPs[1 - orient][otherUID] += 0;
-        
+
         if(matchBPs[AMM_Forward_e][otherUID] +
            matchBPs[AMM_Reverse_e][otherUID] > _mappedScaffoldBPs)
         {
@@ -911,7 +911,7 @@ void printBestScaffoldMappings(ostream & os,
      << "BasesMappedToScaffold\t"
      << "PctBasesMappedToScaffold\t"
      << "OrientationOfMapping\n";
-  
+
   map<CDS_UID_t, MappedScaffold>::const_iterator iter;
   for(iter = assembly.begin(); iter != assembly.end(); iter++)
   {
@@ -933,7 +933,7 @@ void printMappings(ostream & os,
   {
     MappedScaffold thisScaff =
       refAssembly[((MappedScaffold) iter->second).getUID()];
-    
+
     cout << thisScaff.getUID()
          << "\t" << thisScaff.getSeqLength()
          << "bps seq\t" << thisScaff.getGappedLength()
@@ -965,7 +965,7 @@ void printMappings(ostream & os,
     float pctMappedToScaffold =
       100.0 * thisScaff.getMappedScaffoldBPs() / thisScaff.getMappedBPs();
     if(pctMappedToScaffold > 90.0)
-       
+
     {
       cout << "\tImperfect mapping (" << pctMappedToScaffold
            << "% of bps) to scaffold "
@@ -987,7 +987,7 @@ void printMappings(ostream & os,
       // other coordinate
       CDS_COORD_t oCoord =
         (orient == AMM_Forward_e ? 0 : otherScaff.getGappedLength());
-      
+
       AssemblyInterval tContig = thisScaff.getContig(tci);
       AssemblyInterval tlContig;
       AssemblyInterval oContig = otherScaff.getContig(oci);
@@ -996,8 +996,8 @@ void printMappings(ostream & os,
       Match tlMatch;
       Match oMatch = otherScaff.getMatch(omi);
       Match olMatch;
-      
-      
+
+
       // walk through everything relevant, jumping in coords as needed
       for(tci = tmi = tCoord = 0; tCoord < thisScaff.getGappedLength();)
       {
@@ -1021,7 +1021,7 @@ void printMappings(ostream & os,
         {
           cout << "Sequence unmatched at start of contig\n";
         }
-        
+
         if(tContig.getMax() > tMatch.getMax(AMM_Reference_e))
         {
           // contig extends beyond end of match - increment match
@@ -1057,7 +1057,7 @@ void printMappings(ostream & os,
       }
       continue;
     }
-    
+
     // if here, then too small a fraction of matching basepairs were to
     // a single scaffold in the other assembly
     cout << endl;
@@ -1213,7 +1213,7 @@ int main(int argc, char ** argv)
 
   // read in the show-coords file
   readShowCoordsFile(showCoordsFilename, assemblies, minIdentity);
-  
+
   for(int i = 0; i < AMM_NumSequenceTypes_e; i++)
   {
     if(verboseLevel > 0)
@@ -1224,13 +1224,13 @@ int main(int argc, char ** argv)
       printMatches(cout, assemblies[i]);
       cout << endl;
     }
-    
+
     cout << "Mapping inconsistencies in the "
          << ((SequenceType) i == AMM_Reference_e ? "reference " : "query ")
          << "sequence:\n";
     printMappings(cout, assemblies[0], assemblies[1]);
     cout << endl;
-                     
+
     /*
     cout << "Best scaffold mapping for each scaffold in the "
          << ((SequenceType) i == AMM_Reference_e ? "reference " : "query ")

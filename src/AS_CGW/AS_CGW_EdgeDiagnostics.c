@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.16 2007-10-24 21:04:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.17 2008-06-27 06:29:13 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -94,7 +94,7 @@ void GetFragment5pAndOrientationInChunk(ScaffoldGraphT * graph,
     mean = contigAEnd - frag5p
     var = contigAEndVar - frag5pVar
     orientation = B_A
-    
+
   */
   switch(chunk->type)
     {
@@ -243,7 +243,7 @@ void PopulateChunkEdgeBasics(ScaffoldGraphT * graph,
   LengthT distFromBChunkEnd;
   LengthT distBetweenChunks;
   float distVariance = dist->sigma * dist->sigma;
-  
+
   // determine distance from 5p of fragment to relevant end of CI
   ComputeFragToChunkEndForEdge(graph, fragA,
                                &chunkEndFromFragA,
@@ -253,7 +253,7 @@ void PopulateChunkEdgeBasics(ScaffoldGraphT * graph,
                                &chunkEndFromFragB,
                                &distFromBChunkEnd,
                                chunkB);
-  
+
   distBetweenChunks.mean = dist->mu - (distFromAChunkEnd.mean + distFromBChunkEnd.mean);
 
   // need to be careful with containment edges
@@ -275,12 +275,12 @@ void PopulateChunkEdgeBasics(ScaffoldGraphT * graph,
         Since edges are stored with lowIID = idA, highIID = idB,
         This orientation had better be AS_NORMAL so that entities will be
         treated as
-      
+
         lowIID            highIID
         -------->  ------------------------>
 
         instead of
-                  
+
         highIID               lowIID
         ------------------------>  -------->
 
@@ -289,7 +289,7 @@ void PopulateChunkEdgeBasics(ScaffoldGraphT * graph,
         They all simplify to requiring edge to have the
         smaller (in magnitude) of the two possible
         edge distance
-         
+
         AS_OUTTIE - h must be off A end of l:
         l              l
         --->          <---
@@ -333,7 +333,7 @@ void PopulateChunkEdgeBasics(ScaffoldGraphT * graph,
         <---                              --->
         h                       h
         <---------------        --------------->
-       
+
       */
 
       /*
@@ -349,14 +349,14 @@ void PopulateChunkEdgeBasics(ScaffoldGraphT * graph,
                                   chunkEndFromFragA,
                                   &distFromAChunkEnd,
                                   chunkA);
-      
+
           chunkEndFromFragB =
             (chunkEndFromFragB == A_END) ? B_END : A_END;
           ComputeFrag5pToChunkEnd(graph, fragB,
                                   chunkEndFromFragB,
                                   &distFromBChunkEnd,
                                   chunkB);
-      
+
           distBetweenChunks.mean = -(dist->mu +
                                      distFromAChunkEnd.mean +
                                      distFromBChunkEnd.mean);
@@ -366,7 +366,7 @@ void PopulateChunkEdgeBasics(ScaffoldGraphT * graph,
   // variances ALWAYS add
   distBetweenChunks.variance =
     distVariance + distFromAChunkEnd.variance + distFromBChunkEnd.variance;
-  
+
   if(chunkEndFromFragA == A_END)
     edge->orient = (chunkEndFromFragB == A_END) ? BA_AB : BA_BA;
   else
@@ -505,7 +505,7 @@ int AddScaffoldToContigOrientChecker(ScaffoldGraphT * graph,
 int PopulateOrientHTFromArray(HashTable_AS * ht, VA_TYPE(OrientHolder) * array)
 {
   int i;
-  
+
   ResetHashTable_AS(ht);
   for(i = 0; i < GetNumVA_OrientHolder(array); i++)
     {
@@ -525,7 +525,7 @@ int CompareNewOrientationsForScaffold(ScaffoldGraphT * graph,
   CDS_COORD_t lastBegin = -1;
   CDS_COORD_t lastEnd = lastBegin;
   CDS_CID_t lastContigID = NULLINDEX;
-  
+
   // loop over contigs in new scaffold
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &ciTemp);
   while(NextCIScaffoldTIterator(&ciTemp))
@@ -565,7 +565,7 @@ int CompareNewOrientationsForScaffold(ScaffoldGraphT * graph,
       lastBegin = (CDS_COORD_t) (contig->offsetAEnd.mean + 0.5);
       lastEnd = (CDS_COORD_t) (contig->offsetBEnd.mean + 0.5);
       lastContigID = contig->id;
-    
+
       // see which scaffold this contig was in
       if((contigOH = (OrientHolder *)(INTPTR)LookupValueInHashTable_AS(coc->contigs->ht,
                                                                        (uint64)contig->id, 0)) == NULL)
@@ -685,7 +685,7 @@ int CheckAllContigOrientationsInAllScaffolds(ScaffoldGraphT * graph,
   for(sID = 0; sID < GetNumGraphNodes(graph->ScaffoldGraph); sID++)
     {
       int thisStatus;
-    
+
       // compare to ContigOrientChecker
       thisStatus =
         CompareNewOrientationsForScaffold(graph,
@@ -697,7 +697,7 @@ int CheckAllContigOrientationsInAllScaffolds(ScaffoldGraphT * graph,
 
       status |= thisStatus;
     }
-  
+
   return status;
 }
 
@@ -767,7 +767,7 @@ int CompareEdgeOrientations(EdgeCGW_T * edge1,
       fprintf(stderr, " (frags\n");
       /* switch(edge1->orient)
          {
-      
+
          } */
       return 1;
     }
@@ -799,7 +799,7 @@ int CheckAllEdgesForChunk(ScaffoldGraphT * graph,
   CIEdgeT * edge;
   EdgeCGW_T myEdge = {0};
   int retVal = 0;
-  
+
   switch(chunk->type)
     {
       case DISCRIMINATORUNIQUECHUNK_CGW:
@@ -824,17 +824,17 @@ int CheckAllEdgesForChunk(ScaffoldGraphT * graph,
               CDS_CID_t thiscid = (isA? edge->idA: edge->idB);
               CDS_CID_t othercid = (isA? edge->idB: edge->idA);
               ChunkInstanceT * otherChunk = GetGraphNode(graph->RezGraph, othercid);
-        
+
               // RAW EDGES ONLY
               assert(edge->flags.bits.isRaw);
-        
+
               // canonical edges only
               if(thiscid == othercid || (doCanonical && thiscid > othercid))
                 continue;
 
               if(edge->edgesContributing != 1)
                 continue;
-        
+
               if(edge->fragA == NULLINDEX || edge->fragB == NULLINDEX)
                 continue;
 
@@ -973,7 +973,7 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
 
   if(scaffold->id == NULLINDEX)
     return;
-  
+
   linkHT = CreateScalarHashTable_AS(GetNumGraphNodes(graph->ScaffoldGraph));
   if(linkHT == NULL)
     {
@@ -995,7 +995,7 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
               "FragID  ContigID Scf5p ScfOrient\t"
               "ScfEdgeLength ScfEdgeOrient\n");
     }
-  
+
   // iterate over contigs in scaffold
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &ciTemp);
   while(NextCIScaffoldTIterator(&ciTemp))
@@ -1143,10 +1143,10 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
         }
     }
   fprintf(stdout, "\n");
-  
+
   DeleteVA_ScfLink(links);
   DeleteHashTable_AS(linkHT);
-  
+
 }
 
 
@@ -1223,7 +1223,7 @@ void DetectRepetitiveContigs(ScaffoldGraphT * graph)
 
   aEndIDs = CreateVA_CDS_CID_t(10000);
   bEndIDs = CreateVA_CDS_CID_t(10000);
-  
+
   InitGraphNodeIterator(&contigIterator,
                         graph->ContigGraph,
                         GRAPH_NODE_UNIQUE_ONLY);
@@ -1300,7 +1300,7 @@ void DetectRepetitiveContigs(ScaffoldGraphT * graph)
   fprintf(stdout,
           "Graph contains %d contigs, %d of which may be repetitive.\n",
           numContigs, numRepetitiveContigs);
-  
+
   DeleteVA_CDS_CID_t(aEndIDs);
   DeleteVA_CDS_CID_t(bEndIDs);
 }
@@ -1321,7 +1321,7 @@ void DoSomethingWithUnitigsInScaffolds(ScaffoldGraphT * graph)
          scaffold->type == REAL_SCAFFOLD)
         {
           CIScaffoldTIterator cisTemp;
-      
+
           // loop over all contigs in the scaffold
           InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &cisTemp);
           while( NextCIScaffoldTIterator(&cisTemp) && cisTemp.next != NULLINDEX)
@@ -1337,7 +1337,7 @@ void DoSomethingWithUnitigsInScaffolds(ScaffoldGraphT * graph)
                           cisTemp.curr);
                   return;
                 }
-        
+
               contigOrient =
                 (contig->offsetAEnd.mean < contig->offsetBEnd.mean) ? A_B : B_A;
               // Iterate over unitigs in contig & add data to contig instrumenter
@@ -1351,12 +1351,12 @@ void DoSomethingWithUnitigsInScaffolds(ScaffoldGraphT * graph)
                       FragOrient unitigOrient;
                       unitigOrient =
                         (unitig->offsetAEnd.mean < unitig->offsetBEnd.mean) ? A_B : B_A;
-            
+
                       // do something
                     }
                 }
             }
         }
     }
- 
+
 }

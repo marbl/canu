@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, The Venter Institute. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -130,7 +130,7 @@ UnitigGraph::reportOverlapsUsed(char *filename) {
           int              bestident  = 0;
           if (bestcont)
             bestident = bestcont->container;
-          
+
           bool isBest = ((frg->ident == bestident) ||
                          (ooo->ident == bestident5) ||
                          (ooo->ident == bestident3));
@@ -170,12 +170,12 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking) {
 
   // Invert the containment map to key by container, instead of containee
   ContainerMap      cMap;
-  
+
   for (iuid c=0; c<=_fi->numFragments(); c++)
     if (bog_ptr->isContained(c))
       cMap[bog_ptr->getBestContainer(c)->container].push_back(c);
 
-  // Step through all the fragments 
+  // Step through all the fragments
 
   fprintf(stderr, "==> BUILDING UNITIGS from %d fragments.\n", _fi->numFragments());
 
@@ -187,9 +187,9 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking) {
 
     // Check the map to so we don't visit a unitig twice (once from
     //   both ends)
-    if ((Unitig::fragIn(frag_idx) == 0) && 
-        (bog_ptr->isContained(frag_idx) == false)) { 
-                
+    if ((Unitig::fragIn(frag_idx) == 0) &&
+        (bog_ptr->isContained(frag_idx) == false)) {
+
       Unitig *utg=new Unitig(verbose);
 
       // create it going off the 5' end
@@ -459,7 +459,7 @@ void UnitigGraph::populateUnitig( Unitig* unitig,
 
     assert((whichEnd == FIVE_PRIME) || (whichEnd == THREE_PRIME));
 
-    int chunkNextId = ((whichEnd == FIVE_PRIME) ? 
+    int chunkNextId = ((whichEnd == FIVE_PRIME) ?
                        bog_ptr->getBestEdgeOverlap(current_frag_id, FIVE_PRIME) ->frag_b_id :
                        bog_ptr->getBestEdgeOverlap(current_frag_id, THREE_PRIME)->frag_b_id);
 
@@ -679,7 +679,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap) {
 
 
 float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long genome_size){
-		
+
   float _globalArrivalRate;
 
   //  If the genome size has not been specified, estimate the GAR.
@@ -695,7 +695,7 @@ float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long 
         iter=unitigs->begin();
         iter!=unitigs->end();
         iter++){
-				
+
       if (*iter == NULL)
         continue;
 
@@ -703,7 +703,7 @@ float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long 
       total_rho += avg_rho;
       if (avg_rho > 10000.0)
         rho_gt_10000 += (size_t)avg_rho / 10000;
-            
+
       float unitig_random_frags = (*iter)->getNumRandomFrags();
       if (--unitig_random_frags < 0)
         unitig_random_frags = 0;
@@ -725,7 +725,7 @@ float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long 
       size_t num_arrival_rates=0;
       int median_index;
       std::vector<float> arrival_rate_array(rho_gt_10000);
-                
+
       for( iter=unitigs->begin(); iter!=unitigs->end(); iter++) {
         if (*iter == NULL)
           continue;
@@ -808,7 +808,7 @@ float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long 
     _globalArrivalRate = (float)total_random_frags_in_genome / (float)genome_size;
   }
 
-  return(_globalArrivalRate);		
+  return(_globalArrivalRate);
 
 }
 
@@ -826,7 +826,7 @@ UnitigBreakPoint UnitigGraph::selectSmall(ContainerMap &cMap,
   UnitigBreakPoint selection;
 
   double difference = 0.0;
-  int  rFrgs   = big.fragsBefore; 
+  int  rFrgs   = big.fragsBefore;
   bool bRev    = isReverse(big.fragPos);
   int bContain = 0;
 
@@ -843,7 +843,7 @@ UnitigBreakPoint UnitigGraph::selectSmall(ContainerMap &cMap,
     UnitigBreakPoint small = *sIter;
 
     if (small.fragEnd.fragId() == big.fragEnd.fragId())
-      continue; 
+      continue;
 
     bool rev     = isReverse(small.fragPos);
     int sContain = 0;
@@ -852,7 +852,7 @@ UnitigBreakPoint UnitigGraph::selectSmall(ContainerMap &cMap,
 
     if (cMap.find(sid) != cMap.end())
       sContain = cMap[sid].size();
-            
+
     // left side of the frag in the unitig, don't count it
     if (((rev == true)  && (small.fragEnd == THREE_PRIME)) ||
         ((rev == false) && (small.fragEnd == FIVE_PRIME)))
@@ -864,14 +864,14 @@ UnitigBreakPoint UnitigGraph::selectSmall(ContainerMap &cMap,
     // use middle of frag instead of end, to get some overlap
     double bp    = (small.fragPos.end + small.fragPos.bgn) / 2.0;
 
-    double lRate = (lFrgs - lastBPFragNum) / (bp - lastBPCoord); 
+    double lRate = (lFrgs - lastBPFragNum) / (bp - lastBPCoord);
     double rRate = (rFrgs - lFrgs) / (right - bp);
     double ratio = (lRate > rRate) ? lRate / rRate : rRate / lRate;
     double diff  = fabs( lRate - rRate);
 
     if ((ratio > 1.8) && (diff > difference)) {
       //fprintf(stderr, "Break frg %7d b %4d l %4d pos b %5d e %5.0f lRate %.4f\n", sid, lastBPFragNum, lFrgs, lastBPCoord, bp, lRate );
-      //fprintf(stderr, "     diff %4d r %4d pos %5d rRate %.4f ratio %.2f to frag %7d\n", rFrgs - lFrgs, rFrgs, right, rRate, ratio, big.fragEnd.fragId()); 
+      //fprintf(stderr, "     diff %4d r %4d pos %5d rRate %.4f ratio %.2f to frag %7d\n", rFrgs - lFrgs, rFrgs, right, rRate, ratio, big.fragEnd.fragId());
       //fprintf(stderr,"     select frg %d for break on arrival rate diff %.4f\n", sid, diff);
       difference = diff;
       selection = small;
@@ -970,7 +970,7 @@ UnitigVector* UnitigGraph::breakUnitigAt(ContainerMap &cMap,
   filterBreakPoints(cMap, tig, breaks);
 
   // if we filtered all the breaks out return an empty list
-  if (breaks.empty()) 
+  if (breaks.empty())
     return NULL;
 
   //  This is to catch a bug in....something before us.
@@ -1056,7 +1056,7 @@ UnitigVector* UnitigGraph::breakUnitigAt(ContainerMap &cMap,
     }
 
   }  //  end of explicit split test
-        
+
 
 
 

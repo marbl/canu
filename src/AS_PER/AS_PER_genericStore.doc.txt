@@ -48,7 +48,7 @@
  *     StorePath   path to the indexStore.  If NULL this is a memory Store.
  *     storeType   Currently for user use only
  *     elementSize Size of the fixed length records
- *     version     Currently for user use, 
+ *     version     Currently for user use,
  *                 we may need this to do version conversions in the future.
  *     firstID     Index of the first element in the store.
  *
@@ -76,7 +76,7 @@
  *     StorePath   path to the indexStore.  If NULL this is a memory Store.
  *     storeType   Currently for user use only
  *     expectedStringSize   May be used in the future for optimization
- *     version     Currently for user use, 
+ *     version     Currently for user use,
  *                 we may need this to do version conversions in the future.
  *
  * Return Value:
@@ -102,7 +102,7 @@
  *     StorePath   path to the indexStore.  If NULL this is a memory Store.
  *     storeType   Currently for user use only
  *     expectedRecordSize   May be used in the future for optimization
- *     version     Currently for user use, 
+ *     version     Currently for user use,
  *                 we may need this to do version conversions in the future.
  *
  * Return Value:
@@ -151,7 +151,7 @@
  *     fs         Handle of index store
  *     index      index of record
  * Outputs:
- *     buffer     Buffer for element 
+ *     buffer     Buffer for element
  *
  * Return Value:
  *     Zero if success.
@@ -165,7 +165,7 @@
  *     fs         Handle of string store
  *     offset     offset of string
  * Outputs:
- *     buffer     Buffer for element 
+ *     buffer     Buffer for element
  *     maxLength  size of buffer
  *
  * Return Value:
@@ -181,7 +181,7 @@
  *     fs         Handle of VLRecord store
  *     offset     offset of VLRecord
  * Outputs:
- *     buffer     Buffer for element 
+ *     buffer     Buffer for element
  *     maxLength  size of buffer (if maxLength is less than record size --> error )
  *
  * Return Value:
@@ -233,7 +233,7 @@
  * Inputs:
  *     store      Handle of index store
  * Outputs:
- *     stats      Pointer to StoreStat structure 
+ *     stats      Pointer to StoreStat structure
  *
  * Return Value:
  *     Zero if success.
@@ -268,7 +268,7 @@
  * Inputs:
  *     stream           Stream Handle
  * ReturnValue
- *     StartIndex           
+ *     StartIndex
  *
  *****************************************************************************/
 /******************************************************************************
@@ -280,7 +280,7 @@
  *     fs         Handle of index store
  *     index      index of record
  * Outputs:
- *     buffer     Buffer for element 
+ *     buffer     Buffer for element
  *
  * Return Value:
  *     Zero if success.
@@ -294,7 +294,7 @@
  *     fs         Handle of string store
  *     offset     offset of string
  * Outputs:
- *     buffer     Buffer for element 
+ *     buffer     Buffer for element
  *     maxLength  size of buffer
  *
  * Return Value:
@@ -320,7 +320,7 @@
  *
  * Inputs:
  *     sh         Handle of store we want to stream
- *     buffer     Memory buffer for prefetching or optimization (currently unused) 
+ *     buffer     Memory buffer for prefetching or optimization (currently unused)
  *     bufferSize Size of Memory buffer (currently unused)
  *
  * Return Value:
@@ -334,7 +334,7 @@
  * Inputs:
  *     fs         Handle of store we want to stream
  *     startOffset Offest of first string
- *     buffer     Memory buffer for prefetching or optimization (currently unused) 
+ *     buffer     Memory buffer for prefetching or optimization (currently unused)
  *     bufferSize Size of Memory buffer (currently unused)
  *
  * Return Value:
@@ -361,7 +361,7 @@
  * Inputs:
  *     stream           FragStream Handle
  * ReturnValue
- *     StartIndex           
+ *     StartIndex
  *
  *****************************************************************************/
 /******************************************************************************

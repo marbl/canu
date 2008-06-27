@@ -50,14 +50,14 @@ sub EXISTS {
     return exists $self->{MESG}->{$key};
 }
 
-sub FIRSTKEY { 
+sub FIRSTKEY {
     my ($self) = @_;
     my $a = keys %{$self->{MESG}};
 
     each %{$self->{MESG}};
 }
 
-sub NEXTKEY { 
+sub NEXTKEY {
     my ($self, $key) = @_;
 
     each %{$self->{MESG}};
@@ -98,7 +98,7 @@ sub STORE {
     } else {
         $res = $self->{MESG}->$cmd($value);
     }
-    
+
     if(defined($res)) {
         push(@{$self->{REFS}}, $res);
     }
@@ -222,11 +222,11 @@ empty. The size of the list is limited to 16.
 
 Act as a filter (think UNIX filter). I.e., every messages which does
 not match the INCLUDE list or the EXCLUDE list is written to the
-output stream automatically. 
+output stream automatically.
 
 E.g.: modify the accession number of all AFG messages, and exclude all MDI messages, copying from stdin to stdout.
 
-  my $parser = AS::MSG::Parser->open({INCLUDE => ["AFG"], 
+  my $parser = AS::MSG::Parser->open({INCLUDE => ["AFG"],
                                       EXCLUDE => ["MDI"],
                                       FILTER_MODE => 1});
   while(my $m = $parser->next_message()) {

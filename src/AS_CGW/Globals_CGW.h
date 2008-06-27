@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: Globals_CGW.h,v 1.16 2008-05-31 06:49:46 brianwalenz Exp $	 */
+/* 	$Id: Globals_CGW.h,v 1.17 2008-06-27 06:29:14 brianwalenz Exp $	 */
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
@@ -59,10 +59,10 @@ typedef struct Global_CGW_tag {
   FILE *timefp;   // .timing
   FILE *stderrc;  // current - initially set to stderr
 #ifdef NEVER
-  HISTOGRAM *scaffold_unique;   
+  HISTOGRAM *scaffold_unique;
   HISTOGRAM *scaffold_repeat;
 #endif
-  Overlap *(*aligner)(char *, char *, int, int, int, double, double, int, CompareOptions); 
+  Overlap *(*aligner)(char *, char *, int, int, int, double, double, int, CompareOptions);
   TimerT RecomputeOffsetsTimer;
   TimerT MergeScaffoldsTimer;
   TimerT BuildSEdgesTimer;
@@ -82,7 +82,7 @@ typedef struct Global_CGW_tag {
   char Input_File_Name[1024];
   char File_Name_Prefix[1024];
   char Output_File_Name[1024];
-  char Gatekeeper_Store_Name[1024];	  
+  char Gatekeeper_Store_Name[1024];
   char OVL_Store_Name[1024];
 }Global_CGW;
 

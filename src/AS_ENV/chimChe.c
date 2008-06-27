@@ -22,10 +22,10 @@ int GRANULARITY=10;
    sequence and returns a pointer to it.  */
 
 #define LBUFLEN 512
- 
+
 void usage(char *pgm)
 {
-	fprintf( stderr, 
+	fprintf( stderr,
 		 "usage: %s -q <query.fasta> [-d <db.fasta>] -k <kmer size> [-f] [-g <skip>] [-m minlen] [-t]\n"
 		 "\t-q specifies multi-fasta sequences to be analyzed\n"
 		 "\t-d specifies multi-fasta sequences to be indexed (if missing, -q file used)\n"
@@ -84,7 +84,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
 		fprintf(stderr,"Abort: Couldn't resolve defline %s\n",linebuf);
 		exit(1);
 	      }
-	    } 
+	    }
 	  }
 	  if(strlen(newname)>2047){
 	    fprintf(stderr,"identifier %s too long -- abort!\n",
@@ -93,17 +93,17 @@ char *get_sequence(FILE *input, char **seq, char **name )
 	  }
 	  newname = (char *)safe_realloc(newname,strlen(newname)+1);
 	  *name = newname;
-	}   
+	}
 
     }
   else
-    { 
-      if (!nei) return (NULL); 
+    {
+      if (!nei) return (NULL);
       if(*nextname == '>'){
 	char *newname;
 	newname = (char*) safe_malloc(2048*sizeof(char));
 	if(fullnames){
-	  int l; 
+	  int l;
 	  if(linebuf[0] != '>'){
 	    fprintf(stderr,"Abort: Couldn't resolve defline %s\n",linebuf);
 	    exit(1);
@@ -122,7 +122,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
 	      fprintf(stderr,"Abort: Couldn't resolve defline %s\n",linebuf);
 	      exit(1);
 	    }
-	  } 
+	  }
 	}
 	if(strlen(newname)>2047){
 	  fprintf(stderr,"identifier %s too long -- abort!\n",
@@ -130,7 +130,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
 	}
 	newname = (char *)safe_realloc(newname,strlen(newname)+1);
 	*name = newname;
-      }   
+      }
     }
 
   do
@@ -147,7 +147,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
       if (bol && *linebuf == '>')
       {
         if (beg)
-          { 
+          {
 	    do
               { l = strlen(linebuf);
                 if (linebuf[l-1] == '\n') break;
@@ -185,7 +185,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
       newbuf[i]=toupper(newbuf[i]);
     }
   }
-  
+
   *seq = newbuf;
   return newbuf;
 }
@@ -270,9 +270,9 @@ void calc_kmer_members(const char **Seqs,const int ksize,int **kmerCounts,int **
       if (x >= 0){
         kword = (kword << 2) | x;
       }else{
-	kword <<= 2; 
+	kword <<= 2;
 	h = j-(ksize-1);
-      } 
+      }
     }
     while(Seqs[i][j]!='\0'){
       int x = Map[(int) (Seqs[i][j])];
@@ -281,7 +281,7 @@ void calc_kmer_members(const char **Seqs,const int ksize,int **kmerCounts,int **
       }else{
 	kword <<= 2;
 	h = j-(ksize-1);
-      } 
+      }
       if (j >= h+ksize){
         Counts[kword+1] ++;
       }
@@ -315,18 +315,18 @@ void calc_kmer_members(const char **Seqs,const int ksize,int **kmerCounts,int **
 	if (x >= 0){
 	  kword = (kword << 2) | x;
 	}else{
-	  kword <<= 2; 
+	  kword <<= 2;
 	  h = j-(ksize-1);
-	} 
+	}
       }
       while(Seqs[i][j]!='\0'){
 	int x = Map[(int) (Seqs[i][j])];
 	if (x >= 0){
 	  kword = ((kword << 2) | x) & kmax;
 	}else{
-	  kword <<= 2; 
+	  kword <<= 2;
 	  h = j-(ksize-1);
-	} 
+	}
 	if (j >= h+ksize){
 	  Index[Counts[kword]++] = i;
 	}
@@ -386,7 +386,7 @@ int main(int argc, char *argv[])
 
   argc = AS_configure(argc, argv);
 
-  { /* Parse the argument list using "man 3 getopt". */ 
+  { /* Parse the argument list using "man 3 getopt". */
     int ch,errflg=0;
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv, "fFg:hk:q:d:m:t")) != EOF))
@@ -428,7 +428,7 @@ int main(int argc, char *argv[])
 	  ksize=atoi(optarg);
 	  assert(ksize>0&&ksize<14);
 	  break;
-	case 'm': 
+	case 'm':
 	  minlen=atoi(optarg);
 	  assert(minlen>=40&&minlen<1400);
 	  break;
@@ -492,11 +492,11 @@ int main(int argc, char *argv[])
   fprintf(stderr,"Built index\n");
 
 
-  { 
+  {
     int **hitCounts=NULL;
 
     hitCounts = (int **) safe_malloc(maxlen*sizeof(int*));
-    
+
     for(j= 0; j<maxlen; j++){
       hitCounts[j] = (int *) safe_malloc((KB+1)*sizeof(int));
     }
@@ -526,9 +526,9 @@ int main(int argc, char *argv[])
 	if (x >= 0){
 	  kword = (kword << 2) | x;
 	}else{
-	  kword <<= 2; 
+	  kword <<= 2;
 	  h = j-(ksize-1);
-	} 
+	}
       }
 
 
@@ -539,7 +539,7 @@ int main(int argc, char *argv[])
 	}else{
 	  kword <<= 2;
 	  h = j-(ksize-1);
-	} 
+	}
 	for(k=0;k<=KB;k++){
 	  hitCounts[j][k]=hitCounts[j-1][k];
 	}
@@ -559,8 +559,8 @@ int main(int argc, char *argv[])
 	  simplescore = hitCounts[ilenlessone][k];
 	  bestsimple=k;
 	}
-      }  
-      
+      }
+
       {
 	Overlap *ovl=NULL;
 	double erate=0.02;
@@ -593,7 +593,7 @@ int main(int argc, char *argv[])
       for(j=startbestmatch+ksize-1;j<=endbestmatch;j+=GRANULARITY){
 	int maxfront=-1;
 	int maxback=-1;
-	int whichfront=-1,whichback=-1; 
+	int whichfront=-1,whichback=-1;
 	for(k=0;k<=KB;k++){
 	  if(hitCounts[j][k]-frontDiscount[k]>maxfront){
 	    maxfront=hitCounts[j][k]-frontDiscount[k];
@@ -644,7 +644,7 @@ int main(int argc, char *argv[])
 		      ovl->begpos, ovl->endpos, frontend, frontstart,Seqs[i],SeqsB[bestfront]);
 	      // and do nothing!
 	    } else {
-	      // update 
+	      // update
 	      frontstart = maxim(frontstart,ovl->begpos);
 	      frontend = minim(frontend,len[i]+ovl->endpos);
 	    }
@@ -652,7 +652,7 @@ int main(int argc, char *argv[])
 	}
 	erate=0.02;
 	// below, .9 fudge factor may be necessary to handle cases where some matching kmers are random out of order matches
-	minovl=(hitCounts[ilenlessone][bestback]-hitCounts[bestloc][bestback])*.9; 
+	minovl=(hitCounts[ilenlessone][bestback]-hitCounts[bestloc][bestback])*.9;
 	//	fprintf(stderr,"DEBUG: minovl = %d\n",hitCounts[ilenlessone][bestback]);
 	ovl=NULL;
 	if(bestback!=bestsimple){
@@ -674,14 +674,14 @@ int main(int argc, char *argv[])
 		      ovl->begpos, ovl->endpos, backend, backstart,Seqs[i],SeqsB[bestback]);
 	      // and do nothing
 	    } else {
-	      // update 
+	      // update
 	      backstart=maxim(backstart,ovl->begpos);
 	      backend=minim(backend,len[i]+ovl->endpos);
 	      //	      fprintf(stderr,"Updating backstart, backend to %d %d\n",backstart,backend);
 	    }
 	  }
 	}
-	
+
 	// things are problematic if the overlap is to a region that doesn't come close to the implied breakpoint (bestloc);
 	// however, partial sequence issues can make an absolute test fail, hence the constant 100 below:
 	if(frontstart<bestloc+100&&frontend>bestloc-100){
@@ -694,7 +694,7 @@ int main(int argc, char *argv[])
 	}
 
 	//	fprintf(stderr,"Final bestmatch start %d end %d\n",startbestmatch,endbestmatch);
-	
+
 	simplescore=hitCounts[endbestmatch][bestsimple]-hitCounts[startbestmatch+ksize-2][bestsimple];
 	bestscore=
 	  hitCounts[endbestmatch][bestback]-hitCounts[bestloc][bestback]+

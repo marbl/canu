@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_global.h,v 1.26 2008-05-15 00:34:56 brianwalenz Exp $
+//  $Id: AS_global.h,v 1.27 2008-06-27 06:29:11 brianwalenz Exp $
 
 //  This is the global include file that all C files in the AS
 //  subsystem should include.
@@ -146,7 +146,7 @@ typedef void *PtrT;
   #define LOCALE_OFFSET            10000000000ULL  // 10^10 > 2^32
 
   //========== SIMULATOR-specific
-  // Fix initial creation time & uid in celsim to support regression testing 
+  // Fix initial creation time & uid in celsim to support regression testing
   // time stamp of batch message in first dros file...
   #define CREATION_TIME      915170460L
   // UID of first frag in first dros input file...
@@ -177,13 +177,13 @@ typedef void *PtrT;
     #define INT64_MAX  LONG_MAX
     #define UINT64_MAX ULONG_MAX
   #endif
- 
+
   // included here for downstream .c files
   // I don't know if this is needed anywhere else but on the alphas (MP)
   #ifdef _OSF_SOURCE
    #include <sys/mode.h>
   #endif
-    
+
   #define F_S16    "%d"
   #define F_U16    "%u"
   #define F_S32    "%d"
@@ -196,7 +196,7 @@ typedef void *PtrT;
   #define F_U64P   "lu"
   #define F_X64   "%lx"
   #define F_X64P   "lx"
-    
+
   #define F_SIZE_T  "%lu"
   #define F_SIZE_TP  "lu"
 
@@ -234,9 +234,9 @@ typedef void *PtrT;
   #define FILEID_MASK       0xffff000000000000UL
   #define FILEOFFSET_MASK   0x0000ffffffffffffUL
   #define LOCALE_OFFSET            10000000000UL  // 10^10 > 2^32
-    
+
   //========== SIMULATOR-specific
-  // Fix initial creation time & uid in celsim to support regression testing 
+  // Fix initial creation time & uid in celsim to support regression testing
   // time stamp of batch message in first dros file...
   #define CREATION_TIME      915170460
   // UID of first frag in first dros input file...
@@ -306,7 +306,7 @@ off_t ftello(FILE *stream );
 // have never been known to associated with unitigs with fragments that are
 // not contiguous in the genome.
 
-#define CGB_TANDEM_REPEAT_THRESHOLD  50  
+#define CGB_TANDEM_REPEAT_THRESHOLD  50
 // A threshold distance in base pairs
 // for the allowed slop between the minimum overlap and maximum overlap before
 // calling an overlap definately a tandem repeat.
@@ -332,15 +332,15 @@ int AS_configure(int argc, char **argv);
 
 
 
-// These macros are use to eliminate inter-platform differnces between 
+// These macros are use to eliminate inter-platform differnces between
 // calculated results
 #define DBL_TO_INT(X)   ((int)((1.0+16.0*DBL_EPSILON)*(X)))
 #define ROUNDPOS(X)     (DBL_TO_INT((X)+0.5) )
 #define ROUND(X)        (((X)>0.0) ? ROUNDPOS(X) : -ROUNDPOS(-(X)) )
 #define ZERO_PLUS       ( 16.0*DBL_EPSILON)
 #define ZERO_MINUS      (-16.0*DBL_EPSILON)
-#define ONE_PLUS        (1.0+ZERO_PLUS)            
-#define ONE_MINUS       (1.0+ZERO_MINUS)            
+#define ONE_PLUS        (1.0+ZERO_PLUS)
+#define ONE_MINUS       (1.0+ZERO_MINUS)
 #define INT_EQ_DBL(I,D) (fabs((double)(I)-(D)) < 16.0*DBL_EPSILON  )
 #define DBL_EQ_DBL(A,B) (fabs((A)-(B))<16.0*DBL_EPSILON)
 

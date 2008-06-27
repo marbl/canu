@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_fgb.c,v 1.14 2007-07-20 17:17:08 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_fgb.c,v 1.15 2008-06-27 06:29:13 brianwalenz Exp $";
 
 //  The fragment overlap graph builder.
 //
@@ -51,20 +51,20 @@ static void in_place_permute
   size_t ii, jj=0;
 
   done = safe_malloc(sizeof(char) * ndata);
-  
+
   fprintf(stderr,"Permutation in-place " F_SIZE_T " items of " F_SIZE_T " bytes\n",
           ndata, size);
 
   memset(done,FALSE,ndata);
 
   for( ii = 0; ii < ndata; ii++ ) {
-    if( ! done[ii] ) { 
+    if( ! done[ii] ) {
       size_t it;
       // fprintf(stderr,"Start a permutation cycle at ii=" F_SIZE_T "\n",ii);
       it = ii;
       memcpy(saved_source,((char *)data)+ii*size,size);
       do {
-        
+
 	it = rank[it];
 	// assert(it >= 0);
 	assert(it < ndata);
@@ -72,7 +72,7 @@ static void in_place_permute
 	assert( FALSE == done[it] );
 	memcpy(saved_target,((char *)data)+it*size,size);
 	// save the data at the target.
-	memcpy(((char *)data)+it*size,saved_source,size); 
+	memcpy(((char *)data)+it*size,saved_source,size);
 	// push the data.
 	done[it] = TRUE;
 	jj++;
@@ -144,7 +144,7 @@ static void setup_segments
     for(ifrag=0;ifrag<nfrag;ifrag++) { /* Note the minus one. */
       int isuffix;
       if((get_seglen_vertex(frags,ifrag,FALSE) > 0 ) ||
-	 (get_seglen_vertex(frags,ifrag,TRUE) > 0 )) { 
+	 (get_seglen_vertex(frags,ifrag,TRUE) > 0 )) {
 	num_frag_used ++;
       }
       for(isuffix=0;isuffix<2;isuffix++) {
@@ -155,7 +155,7 @@ static void setup_segments
 	isegstart += get_seglen_vertex(frags,ifrag,isuffix);
       }
     }
-    assert(isegstart == nedge); 
+    assert(isegstart == nedge);
   }
 
 #else /* USE_A_SCAN */
@@ -198,7 +198,7 @@ static void setup_segments
   { /* Check the validity of the segments. */
     IntFragment_ID ifrag;
     nrec_used = 0;
-    for(ifrag=0;ifrag<nfrag;ifrag++) 
+    for(ifrag=0;ifrag<nfrag;ifrag++)
       {
 	nrec_used += get_seglen_vertex(frags,ifrag,FALSE);
 	nrec_used += get_seglen_vertex(frags,ifrag,TRUE);
@@ -241,18 +241,18 @@ static void pack_the_edges
   IntFragment_ID old_asx = 3; // Out of range
   IntFragment_ID new_avx = 0;
   IntFragment_ID new_asx = 0;
-  
+
   verify_that_the_edges_are_in_order(edges);
 
   for(iold=0;iold<nedge;iold++) {
     const Tnes ines = get_nes_edge(edges,iold);
-    
+
 #if 1
     new_avx = get_avx_edge(edges,iold);
     new_asx = get_asx_edge(edges,iold);
     if( (old_avx != new_avx) || (old_asx != new_asx) ) {
       // When the avx,asx change the segment changes.
-      
+
       if( new_dovetail_degree > old_dovetail_degree ) {
         assert(FALSE);
       }
@@ -265,7 +265,7 @@ static void pack_the_edges
       }
       // We are inspecting to see if a fragment-end's dovetail degree
       // changes from positive to zero.
-      
+
       if( (new_containment_degree == 0) && (old_containment_degree > 0) ) {
         fprintf(stderr,
                 "WARNING: fragment-end became containment disconnected iid=" F_IID " vid=" F_IID " suf=%d\n",
@@ -279,12 +279,12 @@ static void pack_the_edges
     }
     old_avx = new_avx; old_asx = new_asx;
 #endif
-      
+
     // Pack the edge to the list.
     switch(ines) {
     case AS_CGB_UNUSED_EDGE:
       n_AS_CGB_UNUSED_EDGE++; break;
-      
+
     case AS_CGB_REMOVED_BY_TRANSITIVITY_DVT:
       n_AS_CGB_REMOVED_BY_TRANSITIVITY_DVT++;
       old_dovetail_degree++; break;
@@ -304,7 +304,7 @@ static void pack_the_edges
     case AS_CGB_REMOVED_BY_DUPLICATE_CON:
       n_AS_CGB_REMOVED_BY_DUPLICATE_CON++;
       old_containment_degree++; break;
-      
+
     case AS_CGB_DOVETAIL_EDGE:
     case AS_CGB_THICKEST_EDGE:
     case AS_CGB_INTERCHUNK_EDGE:
@@ -376,7 +376,7 @@ void reorder_edges(Tfragment *frags,
   if( nedge > 0) { // Sort the edges ......
     const int max_frag_len = 2048;
     const IntEdge_ID max_nbins = MAX(max_frag_len,2*nfrag);
- 
+
     IntEdge_ID * seglen = NULL;
     IntEdge_ID * segstart = NULL;
     size_t     * edge_rank = NULL;
@@ -401,7 +401,7 @@ void reorder_edges(Tfragment *frags,
 	  set_seglen_vertex(frags,iv0,is0,0);
 	  set_segstart_vertex(frags,iv0,is0,0);
 	}}
-	
+
 	// #pragma omp parallel for
 	// Count the number of edges at each fragment-end.
 	{ IntEdge_ID ie;
@@ -413,10 +413,10 @@ void reorder_edges(Tfragment *frags,
 	  seglen[ivert] = nnode;
 	  set_seglen_vertex(frags,iavx,iasx,nnode);
 	}}
-	
+
 	// Scan the number of edges at each fragment-end to find the
 	// segment start for each fragment end.
-	{ 
+	{
 	  IntFragment_ID iv0; int is0; IntEdge_ID isum=0;
 	  for(iv0=0;iv0<nfrag;iv0++) for(is0=0;is0<2;is0++) {
 	    const IntFragment_ID ivert = 2*iv0 + is0;
@@ -428,7 +428,7 @@ void reorder_edges(Tfragment *frags,
 	  }
 	  assert( isum == (ie_finish - ie_start) );
 	}
-	
+
 	// #pragma omp parallel for
 	// Assign a rank to each edge.
 	{ IntEdge_ID ie;
@@ -473,9 +473,9 @@ void reorder_edges(Tfragment *frags,
     safe_free(seglen);
     safe_free(segstart);
   }
-  
+
    { // Sort the edges (in fragment-end segments)
-    
+
      { IntFragment_ID iv0; int is0;
      for(iv0=0;iv0<nfrag;iv0++) for(is0=0;is0<2;is0++) {
        const IntEdge_ID ie_start = get_segstart_vertex(frags,iv0,is0);
@@ -497,7 +497,7 @@ void reorder_edges(Tfragment *frags,
 
 #define NBINS 100
 void graph_locality_diagnostic
-( Tfragment *frags, 
+( Tfragment *frags,
   Tedge     *edges,
   char      *named,
   char      *namec
@@ -511,8 +511,8 @@ void graph_locality_diagnostic
     const int nbucket=500;
     int twod[NBINS][NBINS] = {{0}};
     int twoc[NBINS][NBINS] = {{0}};
-    
-    Histogram_t 
+
+    Histogram_t
       *edges_locality_histogram
       = create_histogram(nsample,nbucket,0,TRUE);
     for(ie1=0; ie1 < nedge; ie1++) {
@@ -530,7 +530,7 @@ void graph_locality_diagnostic
           int i1 = (NBINS * iv1) / nfrag;
           i0 = MIN(i0,NBINS);
           i1 = MIN(i1,NBINS);
-          if( is_a_dvt_simple(ahg,bhg) ) { 
+          if( is_a_dvt_simple(ahg,bhg) ) {
             twod[i0][i1] ++;
           } else {
             twoc[i0][i1] ++;
@@ -546,7 +546,7 @@ void graph_locality_diagnostic
     free_histogram(edges_locality_histogram);
 
     {
-      int i0,i1; 
+      int i0,i1;
       FILE * fdiagd = fopen(named,"w");
       assert(fdiagd != NULL);
       for(i1=0;i1<NBINS;i1++) {
@@ -561,7 +561,7 @@ void graph_locality_diagnostic
     }
 
     {
-      int i0,i1; 
+      int i0,i1;
       FILE * fdiagc = fopen(namec,"w");
       assert(fdiagc != NULL);
       for(i1=0;i1<NBINS;i1++) {
@@ -626,7 +626,7 @@ void transitive_edge_marking
 
   IntFragment_ID * visited_a = NULL;
   IntFragment_ID * visited_b = NULL;
-  
+
 #ifdef WALK_DEPTH_DIAGNOSTICS
   int64 search_depth_histogram[walk_depth];
   // What was the search depths visited?
@@ -650,24 +650,24 @@ void transitive_edge_marking
   int64 work_tally_per_candidate_edge_histogram
     [work_limit_per_candidate_edge+1];
   // The last entry represents a failure.
-  
+
   /* Transitive Edge Removal */
   int64 num_of_triangles_visited = 0;
   int64 num_of_quads_visited = 0;
   int64 ntrans_test_fail = 0;
-  
+
   visited_a = safe_malloc(sizeof(IntFragment_ID) * 2 * nfrag);
   visited_b = safe_malloc(sizeof(IntFragment_ID) * 2 * nfrag);
 
   // Was this fragment seen from the target overlap edge before?
-  
+
   //check_symmetry_of_the_edge_mates( frags, edges);
 
   /* Reduce the amount of memory used for the graph. */
   pack_the_edges( frags, edges);
 
   //check_symmetry_of_the_edge_mates( frags, edges);
-  
+
   { IntFragment_ID iv0; for(iv0=0;iv0<nfrag;iv0++) {
     int is0; for(is0=0;is0<2;is0++) {
       visited_a[2*iv0+is0] = 2*nfrag;
@@ -687,10 +687,10 @@ void transitive_edge_marking
   { int i; for(i=0;i<work_limit_per_candidate_edge+1;i++) {
     work_tally_per_candidate_edge_histogram[i]=0;
   }}
-  
+
   // Should these histograms be stored in the check-point or remain a
   // batch quanitity?
-  
+
   fprintf(stderr,"transitively inferable edge marking\n");
   fprintf(stderr,"Cutoff fragment-end degree=%d\n",
 	  cutoff_fragment_end_degree);
@@ -705,7 +705,7 @@ void transitive_edge_marking
         const int nnode  = get_seglen_vertex(frags,iv0,is0);
         int in2;
 
-      for(in2=0;in2<nnode;in2++) { 
+      for(in2=0;in2<nnode;in2++) {
 	const IntEdge_ID ir2 = ir0+in2;
 	const Tnes ir2nes = get_nes_edge(edges,ir2);
 	const IntFragment_ID ir2bvx = get_bvx_edge(edges,ir2);
@@ -714,7 +714,7 @@ void transitive_edge_marking
         const int ir2_is_from_contained = is_a_frc_edge(edges,ir2);
         const int ir2_is_to_contained = is_a_toc_edge(edges,ir2);
         const int ir2_is_dgn_contained = is_a_dgn_edge(edges,ir2);
-	
+
 	if(!(
              ir2_is_dovetail ||
              ir2_is_from_contained ||
@@ -728,7 +728,7 @@ void transitive_edge_marking
              (AS_CGB_REMOVED_BY_DUPLICATE_DVT == ir2nes) ||
              (AS_CGB_REMOVED_BY_TRANSITIVITY_CON == ir2nes) ||
              (AS_CGB_REMOVED_BY_THRESHOLD_CON == ir2nes) ||
-             (AS_CGB_REMOVED_BY_DUPLICATE_CON == ir2nes) 
+             (AS_CGB_REMOVED_BY_DUPLICATE_CON == ir2nes)
            )) {
           const IntFragment_ID ir2avx = get_avx_edge(edges,ir2);
           const int ir2asx = get_asx_edge(edges,ir2);
@@ -763,15 +763,15 @@ void transitive_edge_marking
             /* The marked overlaps .... */
             (AS_CGB_MARKED_BY_BRANCH_DVT != ir2nes) &&
             (AS_CGB_MARKED_BY_DELETED_DVT != ir2nes) &&
-            (AS_CGB_MARKED_BY_DELETED_CON != ir2nes) 
+            (AS_CGB_MARKED_BY_DELETED_CON != ir2nes)
             )
             &&
            /* Do not waste time on removed overlaps .... */
 	   (ir2nes != AS_CGB_REMOVED_BY_TRANSITIVITY_DVT) &&
-	   (ir2nes != AS_CGB_REMOVED_BY_THRESHOLD_DVT) && 
+	   (ir2nes != AS_CGB_REMOVED_BY_THRESHOLD_DVT) &&
 	   (ir2nes != AS_CGB_REMOVED_BY_DUPLICATE_DVT) &&
 	   (ir2nes != AS_CGB_REMOVED_BY_TRANSITIVITY_CON) &&
-	   (ir2nes != AS_CGB_REMOVED_BY_THRESHOLD_CON) && 
+	   (ir2nes != AS_CGB_REMOVED_BY_THRESHOLD_CON) &&
 	   (ir2nes != AS_CGB_REMOVED_BY_DUPLICATE_CON)
 	   ) // Filter the candidate edge for removal.
 	  {
@@ -783,7 +783,7 @@ void transitive_edge_marking
 	    const int        ir2bsx = get_bsx_edge(edges,ir2);
 	    const int        ir2ahg = get_ahg_edge(edges,ir2);
 	    const int        ir2bhg = get_bhg_edge(edges,ir2);
-	    
+
 	    /* Implement Gene^s original acceptable error criterion. */
 	    const int alpha      = AS_CGB_TRANSITIVE_SLOP_ALPHA;
 	    const int epsilon256 = (int)(256*AS_CGB_TRANSITIVE_SLOP_EPSILON);
@@ -794,7 +794,7 @@ void transitive_edge_marking
 	      = alpha + ((epsilon256*(ir2aln-ir2ahg+ir2bln-ir2bhg)) >> 9);
 	    // = alpha + epsilon*0.5*(ir2aln-ir2ahg+ir2bln-ir2bhg);
             // For reproducibilty using integer arithematic.
-            
+
 	    assert(tolerance >= 0);
 	    assert(ir2aln > ir2ahg);
 	    assert(ir2bln > ir2bhg);
@@ -806,7 +806,7 @@ void transitive_edge_marking
 	    } else {
                int work_tally_per_candidate_edge = 0;
                // Current number of edges explored per candidate edge.
-              
+
 #ifdef WALK_DEPTH_DIAGNOSTICS
               { int64 i; for(i=0;i<walk_depth;i++) {
                 search_depth_histogram[i] = 0;
@@ -814,12 +814,12 @@ void transitive_edge_marking
               }}
 #endif // WALK_DEPTH_DIAGNOSTICS
               {
-                
+
                 const int target_is_dovetail = is_a_dvt_edge(edges,ir2);
                 const int target_is_from_contained = is_a_frc_edge(edges,ir2);
                 const int target_is_to_contained = is_a_toc_edge(edges,ir2);
                 const int target_is_dgn_contained = is_a_dgn_edge(edges,ir2);
-                
+
                 // Allow containment and dovetail overlaps to infer a dovetail
                 const int last_edge_was_containment = FALSE;
 
@@ -864,7 +864,7 @@ void transitive_edge_marking
                     // frpt
                     );
               }
-              
+
               work_tally_per_candidate_edge_histogram[work_tally_per_candidate_edge]++;
 
 	    }
@@ -887,7 +887,7 @@ void transitive_edge_marking
               successful_searches ++;
 #ifdef WALK_DEPTH_DIAGNOSTICS
               { int64 i; for(i=0;i<walk_depth;i++) {
-                successful_search_depth_histogram[i] += 
+                successful_search_depth_histogram[i] +=
                   search_depth_histogram[i];
                 successful_search_path_histogram[i] +=
                   search_path_histogram[i];
@@ -897,7 +897,7 @@ void transitive_edge_marking
               failed_searches ++;
 #ifdef WALK_DEPTH_DIAGNOSTICS
               { int64 i; for(i=0;i<walk_depth;i++) {
-                failed_search_depth_histogram[i] += 
+                failed_search_depth_histogram[i] +=
                   search_depth_histogram[i];
                 //failed_search_path_histogram[i] += search_path_histogram[i];
               }}

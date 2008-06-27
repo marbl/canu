@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -26,7 +26,7 @@
 
 #include "BCPOutput.hh"
 #include "IDBConnection.hh"
- 
+
 using AS_ARD::BCPOutput;
 using AS_ARD::SQLOutput;
 
@@ -56,13 +56,13 @@ const char BCPOutput::CPS_FILENAME[MAX_FILE_LEN] = "CPS";
 const char BCPOutput::DEFAULT_BCP[MAX_STR_LEN] = "bcp";
 
 BCPOutput::BCPOutput(
-            const char * _prefix, 
+            const char * _prefix,
             const char * _server,
             const char * _database,
             const char * _user,
             const char * _password,
             const char * _bcp) :
-      SQLOutput(new Sybase(_server, _user, _password, _database)), 
+      SQLOutput(new Sybase(_server, _user, _password, _database)),
       mdiBCP(NULL), afgBCP(NULL), utgBCP(NULL), mpsBCP(NULL),
       ulkBCP(NULL), ulkListBCP(NULL), jmpBCP(NULL), jmpListBCP(NULL),
       clkBCP(NULL),clkListBCP(NULL),clkJmpBCP(NULL),clkJmpListBCP(NULL),
@@ -75,7 +75,7 @@ BCPOutput::BCPOutput(
    assert (_server != NULL);
    assert (_user != NULL);
    assert (_password != NULL);
-   
+
    len = strlen(_prefix);
    prefix = new char[len + 1];
    strncpy(prefix, _prefix, len+1);
@@ -95,8 +95,8 @@ BCPOutput::BCPOutput(
    len = strlen(_password);
    pass = new char[len + 1];
    strncpy(pass, _password, len+1);
-   
-   if (_bcp != NULL) { 
+
+   if (_bcp != NULL) {
       len = strlen(_bcp);
       bcp = new char[len + 1];
       strncpy(bcp, _bcp, len+1);
@@ -119,7 +119,7 @@ BCPOutput::~BCPOutput() {
 
 char * BCPOutput::getFileName(const char * fileName) {
    assert(fileName != NULL);
-   
+
    char * path = new char[MAX_PATH_LEN];
    sprintf(path, "%s_%s.bcp", prefix, fileName);
 
@@ -128,46 +128,46 @@ char * BCPOutput::getFileName(const char * fileName) {
 
 std::fstream * BCPOutput::openFile(const char * fileName, std::_Ios_Openmode mode) {
    char * path = getFileName(fileName);
-   std::fstream * myfile = new std::fstream();   
-      
+   std::fstream * myfile = new std::fstream();
+
    myfile->open(path, mode);
    assert(myfile->is_open());
-    
+
    delete[] path;
-   return myfile;   
+   return myfile;
 }
 
 bool BCPOutput::closeFile(std::fstream **file) {
-   (*file)->close();   
-   
+   (*file)->close();
+
    delete (*file);
    (*file) = NULL;
-   
+
    return true;
 }
 
 bool BCPOutput::updateFile(
-         const char * fileName, 
-         HashTable_AS * hash, 
+         const char * fileName,
+         HashTable_AS * hash,
          int32 position) {
-   std::string line;   
-   
+   std::string line;
+
    std::ofstream fout;
    std::ifstream fin;
    char * fname = getFileName("tempUpdate");
    char * currName = getFileName(fileName);
    char replace[MAX_STR_LEN];
-      
+
    fin.open(currName, std::ios::in);
    assert(fin.is_open());
-   
+
    fout.open(fname, std::ios::out | std::ios::trunc);
    assert(fout.is_open());
-   
+
    fin.seekg(0);
    while (fin) {
       std::getline(fin, line);
-      
+
       if (!fin.eof()) {
          std::string::size_type pos = 0;
          int counter = 0;
@@ -185,15 +185,15 @@ bool BCPOutput::updateFile(
       }
    }
    fin.close();
-   
+
    fout.flush();
    fout.close();
-   
+
    rename(fname, currName);
-   
+
    delete[] fname;
    delete[] currName;
-   
+
    return true;
 }
 
@@ -205,11 +205,11 @@ bool BCPOutput::runBCP(const char * fileName, bool eraseFile) {
    char * path = getFileName(fileName);
    char command[MAX_STR_LEN];
    char bzip[MAX_STR_LEN];
-   bool result = false; 
-  
+   bool result = false;
+
    sprintf(command, "%s %s..%s in %s -c -N -S %s -U %s -P %s -b 10000", bcp, database, fileName, path, server, user, pass);
    result = (system(command) == 0);
-   
+
    if (eraseFile) {
       sprintf(bzip, "rm %s", path);
    }
@@ -217,9 +217,9 @@ bool BCPOutput::runBCP(const char * fileName, bool eraseFile) {
       // do harmless command like ls just for filler
       sprintf(bzip, "ls -lh %s", path);
    }
-   
+
    delete[] path;
-   
+
    return result && (system(bzip) == 0);
    //return result;
 }
@@ -231,10 +231,10 @@ uint64 BCPOutput::storeGenome(
    assert(study != NULL);
    assert(project != NULL);
    assert(taxon != NULL);
-   
+
    return SQLOutput::storeGenome(study, project, taxon);
 }
-         
+
 uint64 BCPOutput::storeAssembly(
          AS_UID assemblyEUID,
          const char * date,
@@ -249,41 +249,41 @@ uint64 BCPOutput::storeAssembly(
    assert(genProg != NULL);
    assert(ver != NULL);
    assert(notes != NULL);
-   
+
    return SQLOutput::storeAssembly(assemblyEUID, date, genomeIID, op, genProg, ver, status, notes);
 }
 
 bool BCPOutput::storeMDI2DB (
-         AS_UID erefines,  
+         AS_UID erefines,
          IntDist_ID irefines,
          float mean,
          float stddev,
          int32 min,
-         int32 max) {   
-   if (mdiBCP == NULL) {      
+         int32 max) {
+   if (mdiBCP == NULL) {
       mdiBCP = openFile(MDI_FILENAME);
    }
-   
-   (*mdiBCP) << assemblyID << "\t" 
+
+   (*mdiBCP) << assemblyID << "\t"
          << AS_UID_toInteger(erefines) << "\t"
          << irefines << "\t"
          << mean << "\t"
          << stddev << "\t"
          << min << "\t"
          << max  << "\n";
-   
+
    return true;
 }
 
 bool BCPOutput::storeAFG2DB (
-         AS_UID eaccession,  
+         AS_UID eaccession,
          IntFragment_ID iaccession,
          MateStatType mate_status,
          int32 chaff,
          CDS_COORD_t bgn,
          CDS_COORD_t end) {
    if (afgBCP == NULL) {
-      afgBCP = openFile(AFG_FILENAME);      
+      afgBCP = openFile(AFG_FILENAME);
    }
    (*afgBCP) << assemblyID << "\t"
          << AS_UID_toInteger(eaccession) << "\t"
@@ -302,7 +302,7 @@ bool BCPOutput::storeAFG2DB (
 }
 
 bool BCPOutput::storeUTG2DB (
-         AS_UID eaccession,  
+         AS_UID eaccession,
          IntFragment_ID iaccession,
          const char * source,
          float mhp,
@@ -316,16 +316,16 @@ bool BCPOutput::storeUTG2DB (
    if (utgBCP == NULL) {
       utgBCP = openFile(UTG_FILENAME);
    }
-   
-   (*utgBCP) << assemblyID << "\t" 
+
+   (*utgBCP) << assemblyID << "\t"
          << AS_UID_toInteger(eaccession) << "\t"
          << iaccession << "\t"
          << source << "\t"
          << mhp << "\t"
          << coverage_stat << "\t"
-         << static_cast<char>(status) << "\t"         
+         << static_cast<char>(status) << "\t"
          << "0 \t 0 \t" // what are abp and bbp in CARD spec?
-         << length << "\t"                  
+         << length << "\t"
          //<< consensus << "\t"
          //<< quality << "\t"
          << " NULL \t NULL \t" // no consensus or quality for now
@@ -336,7 +336,7 @@ bool BCPOutput::storeUTG2DB (
 }
 
 bool BCPOutput::storeMPS2DB (
-         AS_UID unitigID,         
+         AS_UID unitigID,
          AS_UID afgID,
          FragType type,
          const char * source,
@@ -347,9 +347,9 @@ bool BCPOutput::storeMPS2DB (
    if (mpsBCP == NULL) {
       mpsBCP = openFile(MPS_FILENAME);
    }
-     
-   (*mpsBCP) << assemblyID << "\t" 
-         << AS_UID_toInteger(unitigID) << "\t"         
+
+   (*mpsBCP) << assemblyID << "\t"
+         << AS_UID_toInteger(unitigID) << "\t"
          << AS_UID_toInteger(afgID) << "\t"
          << static_cast<char>(type) << "\t"
          << source << "\t"
@@ -373,9 +373,9 @@ bool BCPOutput::storeULK2DB (
    if (ulkBCP == NULL) {
       ulkBCP = openFile(ULK_FILENAME);
    }
-   
-   (*ulkBCP) 
-         << assemblyID << "\t"   
+
+   (*ulkBCP)
+         << assemblyID << "\t"
          << AS_UID_toInteger(euid) << "\t"
          << ciid << "\t"
          << static_cast<char>(orientation) << "\t"
@@ -392,7 +392,7 @@ bool BCPOutput::storeULK2DB (
 
 bool BCPOutput::storeLKList2DB(int jmpType, AS_UID utgID, AS_UID ulkID) {
    std::fstream * stream = NULL;
-      
+
    if (jmpType == ULK_TYPE) {
       if (ulkListBCP == NULL) {
          ulkListBCP = openFile(ULK_LIST_FILENAME);
@@ -411,7 +411,7 @@ bool BCPOutput::storeLKList2DB(int jmpType, AS_UID utgID, AS_UID ulkID) {
       assert(0);
    }
 
-   (*stream) << assemblyID << "\t" 
+   (*stream) << assemblyID << "\t"
          << AS_UID_toInteger(utgID) << "\t"
          << AS_UID_toInteger(ulkID) << "\n";
 
@@ -420,7 +420,7 @@ bool BCPOutput::storeLKList2DB(int jmpType, AS_UID utgID, AS_UID ulkID) {
 
 bool BCPOutput::storeJMP2DB(int jmpType, AS_UID jmpID, AS_UID ulkID, LinkType type) {
    std::fstream * stream = NULL;
-   
+
    if (jmpType == ULK_TYPE) {
       if (jmpBCP == NULL) {
          jmpBCP = openFile(JMP_FILENAME);
@@ -438,9 +438,9 @@ bool BCPOutput::storeJMP2DB(int jmpType, AS_UID jmpID, AS_UID ulkID, LinkType ty
    else {
       assert(0);
    }
-   
+
    //TODO: warning using 0 as ciid for JMP
-   (*stream) 
+   (*stream)
          << assemblyID  << "\t"
          << AS_UID_toInteger(jmpID) << "\t"
          << 0 << "\t"
@@ -450,13 +450,13 @@ bool BCPOutput::storeJMP2DB(int jmpType, AS_UID jmpID, AS_UID ulkID, LinkType ty
       (*stream) << "X" << "\t"; //what is status?
    }
    (*stream) << static_cast<char>(type) << "\n";
-   
+
    return true;
 }
 
 bool BCPOutput::storeJMPList2DB(int jmpType, AS_UID jmpListID, AS_UID jmpID, AS_UID fragID) {
    std::fstream * stream = NULL;
-   
+
    if (jmpType == ULK_TYPE) {
       if (jmpListBCP == NULL) {
          jmpListBCP = openFile(JMP_LIST_FILENAME);
@@ -476,7 +476,7 @@ bool BCPOutput::storeJMPList2DB(int jmpType, AS_UID jmpListID, AS_UID jmpID, AS_
    }
 
    //TODO: warning using 0 as ciid for JMP_LIST
-   (*stream) << assemblyID << "\t" 
+   (*stream) << assemblyID << "\t"
          << AS_UID_toInteger(jmpListID) << "\t"
          << 0 << "\t"
          << AS_UID_toInteger(jmpID) << "\t"
@@ -486,7 +486,7 @@ bool BCPOutput::storeJMPList2DB(int jmpType, AS_UID jmpListID, AS_UID jmpID, AS_
 }
 
 bool BCPOutput::storeCCO2DB (
-                  AS_UID eaccession,  
+                  AS_UID eaccession,
                   IntFragment_ID iaccession,
                   ContigPlacementStatusType placed,
                   CDS_COORD_t length,
@@ -500,8 +500,8 @@ bool BCPOutput::storeCCO2DB (
    if (ccoBCP == NULL) {
       ccoBCP = openFile(CCO_FILENAME);
    }
-   
-   (*ccoBCP) << assemblyID << "\t" 
+
+   (*ccoBCP) << assemblyID << "\t"
                << AS_UID_toInteger(eaccession) << "\t"
                << iaccession << "\t"
                << static_cast<char>(placed) << "\t"
@@ -518,7 +518,7 @@ bool BCPOutput::storeCCO2DB (
 
 bool BCPOutput::storeCCOMPS2DB(
                   AS_UID ccoMpsID,
-                  AS_UID ccoID,            
+                  AS_UID ccoID,
                   AS_UID fragID,
                   FragType type,
                   const char * source,
@@ -547,7 +547,7 @@ bool BCPOutput::storeCCOMPS2DB(
 
 bool BCPOutput::storeUPS2DB(
                   AS_UID upsID,
-                  AS_UID ccoID,            
+                  AS_UID ccoID,
                   AS_UID unitigID,
                   UnitigType type,
                   CDS_COORD_t bgn,
@@ -557,12 +557,12 @@ bool BCPOutput::storeUPS2DB(
    if (upsBCP == NULL) {
       upsBCP = openFile(UPS_FILENAME);
    }
-      
+
    //TODO: warning truncating delta in UPS to 1000
    //using 0 as ciid for UPS
-   (*upsBCP) << assemblyID << "\t" 
+   (*upsBCP) << assemblyID << "\t"
                   << AS_UID_toInteger(upsID) << "\t"
-                  << 0 << "\t" 
+                  << 0 << "\t"
                   << AS_UID_toInteger(ccoID) << "\t"
                   << AS_UID_toInteger(unitigID) << "\t"
                   << static_cast<char>(type) << "\t"
@@ -575,7 +575,7 @@ bool BCPOutput::storeUPS2DB(
 
 bool BCPOutput::storeVAR2DB(
                   AS_UID varID,
-                  AS_UID ccoID,            
+                  AS_UID ccoID,
                   CDS_COORD_t bgn,
                   CDS_COORD_t end,
                   uint32 num_reads,
@@ -591,7 +591,7 @@ bool BCPOutput::storeVAR2DB(
    //TODO: warning using 0 as ciid for VAR
    (*varBCP) << assemblyID << "\t"
                   << AS_UID_toInteger(varID) << "\t"
-                  << 0 << "\t" 
+                  << 0 << "\t"
                   << AS_UID_toInteger(ccoID) << "\t"
                   << bgn << "\t"
                   << end << "\t"
@@ -601,7 +601,7 @@ bool BCPOutput::storeVAR2DB(
                   << var_length << "\t"
                   << curr_var_id << "\t"
                   << phased_var_id << "\n";
-   
+
    return true;
 }
 
@@ -609,11 +609,11 @@ bool BCPOutput::storeVARAllele2DB(AS_UID varAlleleID, AS_UID varID, uint32 nra, 
    if (varAlleleBCP == NULL) {
       varAlleleBCP = openFile(VAR_ALLELE_FILENAME);
    }
-   
+
    //TODO: warning using 0 as ciid for VAR_ALLELE
    (*varAlleleBCP) << assemblyID << "\t"
                      << AS_UID_toInteger(varAlleleID) << "\t"
-                     << 0 << "\t" 
+                     << 0 << "\t"
                      << AS_UID_toInteger(varID) << "\t"
                      << nra << "\t"
                      << wgt << "\t"
@@ -626,7 +626,7 @@ bool BCPOutput::storeVARAFG2DB(AS_UID varAfgID, AS_UID varID, CDS_CID_t readID) 
    if (varAFGBCP == NULL) {
       varAFGBCP = openFile(VAR_AFG_FILENAME);
    }
-   
+
    //TODO: warning using 0 as ciid for VAR_AFG
    (*varAFGBCP) << assemblyID << "\t"
                   << AS_UID_toInteger(varAfgID) << "\t"
@@ -671,12 +671,12 @@ bool BCPOutput::storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_
    if (scfBCP == NULL) {
       scfBCP = openFile(SCF_FILENAME);
    }
-   
+
    (*scfBCP) << assemblyID << "\t"
                   << AS_UID_toInteger(eaccession) << "\t"
                   << iaccession << "\t"
                   << num_contig_pairs << "\n";
-   
+
    return true;
 }
 
@@ -693,15 +693,15 @@ bool BCPOutput::storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev
                   << mean << "\t"
                   << stddev << "\t"
                   << static_cast<char>(orient) << "\n";
-   
+
    return true;
 }
-         
+
 bool BCPOutput::storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID) {
    if (ctpListBCP == NULL) {
       ctpListBCP = openFile(CTP_LIST_FILENAME);
    }
-   
+
    (*ctpListBCP) << assemblyID << "\t"
                   << AS_UID_toInteger(ctpListID) << "\t"
                   << (uint32)0 << "\t"
@@ -715,7 +715,7 @@ bool BCPOutput::storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, CDS_COORD_
    if (cpsBCP == NULL) {
       cpsBCP = openFile(CPS_FILENAME);
    }
-   
+
    (*cpsBCP) << assemblyID << "\t"
                << AS_UID_toInteger(cpsID) << "\t"
                << (uint32)0 << "\t"
@@ -729,23 +729,23 @@ bool BCPOutput::storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, CDS_COORD_
 
 bool BCPOutput::commitMDI2DB() {
    if (mdiBCP == NULL) { return true; }
-      
+
    SQLOutput::commitMDI2DB();
    bool result = closeFile(&mdiBCP) && runBCP(MDI_FILENAME);
-   
+
    return result;
 }
 
 bool BCPOutput::commitAFG2DB() {
    if (afgBCP == NULL) { return true; }
-   
+
    SQLOutput::commitAFG2DB();
    if (AFG_UID_to_MSGID == NULL) {
       AFG_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
    }
    bool result = closeFile(&afgBCP) && runBCP(AFG_FILENAME);
    result = result && getConnection()->populateHash(AFG_UID_to_MSGID, "afg_EUID", "afg_MSG_ID", "AFG", assemblyID);
-      
+
    return result;
 }
 
@@ -753,25 +753,25 @@ bool BCPOutput::commitUTG2DB() {
    if (utgBCP == NULL) { return true; }
 
    SQLOutput::commitUTG2DB();
-   
+
    if (UTG_UID_to_MSGID == NULL) {
       UTG_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
-   }   
+   }
    bool result = closeFile(&utgBCP) && runBCP(UTG_FILENAME);
    result = result && getConnection()->populateHash(UTG_UID_to_MSGID, "utg_EUID", "utg_MSG_ID", "UTG", assemblyID);
-      
+
    return result;
 }
 
 bool BCPOutput::commitMPS2DB() {
    if (mpsBCP == NULL) { return true; }
-   
+
    SQLOutput::commitMPS2DB();
-   
+
    bool result = closeFile(&mpsBCP);
    updateFile(MPS_FILENAME, UTG_UID_to_MSGID, 1);
    updateFile(MPS_FILENAME, AFG_UID_to_MSGID, 2);
-      
+
    return result && runBCP(MPS_FILENAME);
 }
 
@@ -779,15 +779,15 @@ bool BCPOutput::commitULK2DB() {
    if (ulkBCP == NULL) { return true; }
 
    SQLOutput::commitULK2DB();
-   
+
    if (ULK_UID_to_MSGID == NULL) {
       ULK_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
-   }   
-   
-   bool result = closeFile(&ulkBCP) && runBCP(ULK_FILENAME);   
-   result = result && getConnection()->populateHash(ULK_UID_to_MSGID, "ulk_EUID", "ulk_MSG_ID", "ULK", assemblyID);   
-   
-   return result;   
+   }
+
+   bool result = closeFile(&ulkBCP) && runBCP(ULK_FILENAME);
+   result = result && getConnection()->populateHash(ULK_UID_to_MSGID, "ulk_EUID", "ulk_MSG_ID", "ULK", assemblyID);
+
+   return result;
 }
 
 bool BCPOutput::commitULKList2DB() {
@@ -798,26 +798,26 @@ bool BCPOutput::commitULKList2DB() {
    bool result = closeFile(&ulkListBCP);
    updateFile(ULK_LIST_FILENAME, UTG_UID_to_MSGID, 1);
    updateFile(ULK_LIST_FILENAME, ULK_UID_to_MSGID, 2);
-      
+
    return result && runBCP(ULK_LIST_FILENAME);
 }
 
 bool BCPOutput::commitJMP2DB() {
    if (jmpBCP == NULL) { return true; }
-   
+
    if (JMP_UID_to_MSGID == NULL) {
       JMP_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
-   }   
-   
+   }
+
    bool result = closeFile(&jmpBCP);
    updateFile(JMP_FILENAME, ULK_UID_to_MSGID, 3);
 
    SQLOutput::commitJMP2DB();
-      
+
    result = result && runBCP(JMP_FILENAME);
    return result && getConnection()->populateHash(JMP_UID_to_MSGID, "jmp_EUID", "jmp_MSG_ID", "JMP", assemblyID);
 }
-        
+
 bool BCPOutput::commitJMPList2DB() {
    if (jmpListBCP == NULL) { return true; }
 
@@ -836,74 +836,74 @@ bool BCPOutput::commitCCO2DB() {
 
    if (CCO_UID_to_MSGID == NULL) {
       CCO_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
-   }   
+   }
    bool result = closeFile(&ccoBCP) && runBCP(CCO_FILENAME);
    result = result && getConnection()->populateHash(CCO_UID_to_MSGID, "cco_EUID", "cco_MSG_ID", "CCO", assemblyID);
-      
+
    return result;
-   
+
 }
-         
+
 bool BCPOutput::commitCCOMPS2DB() {
    if (ccoMpsBCP == NULL) { return true; }
 
    SQLOutput::commitCCOMPS2DB();
-   
+
    bool result = closeFile(&ccoMpsBCP);
    updateFile(CCO_MPS_FILENAME, CCO_UID_to_MSGID, 3);
    updateFile(CCO_MPS_FILENAME, AFG_UID_to_MSGID, 4);
-      
+
    result = result && runBCP(CCO_MPS_FILENAME);
 }
 
-bool BCPOutput::commitUPS2DB() { 
+bool BCPOutput::commitUPS2DB() {
    if (upsBCP == NULL) { return true; }
 
    bool result = closeFile(&upsBCP);
    updateFile(UPS_FILENAME, CCO_UID_to_MSGID, 3);
    updateFile(UPS_FILENAME, UTG_UID_to_MSGID, 4);
-      
+
    SQLOutput::commitUPS2DB();
-   
+
    return result && runBCP(UPS_FILENAME);
 }
 
-bool BCPOutput::commitVAR2DB() { 
+bool BCPOutput::commitVAR2DB() {
    if (varBCP == NULL) { return true; }
-   
+
    SQLOutput::commitVAR2DB();
 
    if (VAR_UID_to_MSGID == NULL) {
       VAR_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
-   }   
-   
+   }
+
    bool result = closeFile(&varBCP);
    updateFile(VAR_FILENAME, CCO_UID_to_MSGID, 3);
    result = result && runBCP(VAR_FILENAME);
    result = result && getConnection()->populateHash(VAR_UID_to_MSGID, "var_EUID", "var_MSG_ID", "VAR", assemblyID);
-      
-   return result; 
+
+   return result;
 }
 
-bool BCPOutput::commitVARAllele2DB() { 
+bool BCPOutput::commitVARAllele2DB() {
    if (varAlleleBCP == NULL) { return true; }
-      
+
    bool result = closeFile(&varAlleleBCP);
    updateFile(VAR_ALLELE_FILENAME, VAR_UID_to_MSGID, 3);
    SQLOutput::commitVARAllele2DB();
-   
+
    return result && runBCP(VAR_ALLELE_FILENAME);
 }
 
 bool BCPOutput::commitVARAFG2DB() {
    if (varAFGBCP == NULL) { return true; }
-      
+
    bool result = closeFile(&varAFGBCP);
    updateFile(VAR_AFG_FILENAME, VAR_UID_to_MSGID, 3);
    updateFile(VAR_AFG_FILENAME, AFG_IID_to_MSGID, 4);
    updateFile(VAR_AFG_FILENAME, AFG_UID_to_MSGID, 4);
    SQLOutput::commitVARAFG2DB();
-   
+
    return result && runBCP(VAR_AFG_FILENAME);
 }
 
@@ -912,12 +912,12 @@ bool BCPOutput::commitCLK2DB() {
 
    if (CLK_UID_to_MSGID == NULL) {
       CLK_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
-   }   
-   
+   }
+
    SQLOutput::commitCLK2DB();
    bool result = closeFile(&clkBCP) && runBCP(CLK_FILENAME);
    result = result && getConnection()->populateHash(CLK_UID_to_MSGID, "clk_EUID", "clk_MSG_ID", "CLK", assemblyID);
-   
+
    return result;
 }
 
@@ -927,7 +927,7 @@ bool BCPOutput::commitCLKList2DB() {
    bool result = closeFile(&clkListBCP);
    updateFile(CLK_LIST_FILENAME, CCO_UID_to_MSGID, 1);
    updateFile(CLK_LIST_FILENAME, CLK_UID_to_MSGID, 2);
-   
+
    SQLOutput::commitCLKList2DB();
    return result && runBCP(CLK_LIST_FILENAME);
 }
@@ -937,16 +937,16 @@ bool BCPOutput::commitCLKJMP2DB() {
 
    if (CLK_JMP_UID_to_MSGID == NULL) {
       CLK_JMP_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
-   }   
-   
+   }
+
    bool result = closeFile(&clkJmpBCP);
    updateFile(CLK_JMP_FILENAME, CLK_UID_to_MSGID, 3);
-   
+
    SQLOutput::commitCLKJMP2DB();
    result = result && runBCP(CLK_JMP_FILENAME);
    return result && getConnection()->populateHash(CLK_JMP_UID_to_MSGID, "clk_jmp_EUID", "clk_jmp_MSG_ID", "CLK_JMP", assemblyID);
 }
-        
+
 bool BCPOutput::commitCLKJMPList2DB() {
    if (clkJmpListBCP == NULL) { return true; }
 
@@ -958,17 +958,17 @@ bool BCPOutput::commitCLKJMPList2DB() {
    return result && runBCP(CLK_JMP_LIST_FILENAME);
 }
 
-bool BCPOutput::commitSCF2DB()  { 
+bool BCPOutput::commitSCF2DB()  {
    if (scfBCP == NULL) { return true; }
 
    SQLOutput::commitSCF2DB();
    if (SCF_UID_to_MSGID == NULL) {
       SCF_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
-   }   
-   
+   }
+
    bool result = closeFile(&scfBCP) && runBCP(SCF_FILENAME, false);
    result = result && getConnection()->populateHash(SCF_UID_to_MSGID, "scf_EUID", "scf_MSG_ID", "SCF", assemblyID);
-   
+
    return result;
 }
 
@@ -981,7 +981,7 @@ bool BCPOutput::commitCTP2DB()  {
 
    bool result = closeFile(&ctpBCP);
    updateFile(CTP_FILENAME, SCF_UID_to_MSGID, 3);
-   
+
    SQLOutput::commitCTP2DB();
    result = result && runBCP(CTP_FILENAME, false);
    return result && getConnection()->populateHash(CTP_UID_to_MSGID, "ctp_EUID", "ctp_MSG_ID", "CTP", assemblyID);

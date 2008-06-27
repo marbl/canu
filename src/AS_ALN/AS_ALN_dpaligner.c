@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -161,7 +161,7 @@ static int Space_n_Tables(int max, double erate, double thresh)
                    and compute new DistThresh entries (if not about
                    to be computed below.                             */
     if (max > WorkLimit)
-      { 
+      {
 	max  = (int)(1.2*max);
         max  = ((max + 2048)/WordSize + 1)*WordSize;
 	BinomialProb(2*max,1,.1);
@@ -180,7 +180,7 @@ static int Space_n_Tables(int max, double erate, double thresh)
  	       error in one seq rather than mismatch; the problem is
  	       that two errors cancel each other only if the changes
  	       happen to be the same ... */
- 	    p = 2.*erate - erate*erate; 
+ 	    p = 2.*erate - erate*erate;
  #else
              p = erate;
  #endif
@@ -189,7 +189,7 @@ static int Space_n_Tables(int max, double erate, double thresh)
  #ifdef NplusDchooseD
                { while (d <= n && BinomialProb(n+d,d,p) >= thresh) /* why n+d,d, rather than just n,d? */
  #else
-               { while (d <= n && BinomialProb(n,d,p) >= thresh) 
+               { while (d <= n && BinomialProb(n,d,p) >= thresh)
  #endif
                  {
 		   d += 1;
@@ -256,7 +256,7 @@ static int Space_n_Tables(int max, double erate, double thresh)
 }
 
 /* O(kn) identity-based alignment algorithm.  Find alignment between
-   a and b (of lengths alen and blen), that begins at finishing 
+   a and b (of lengths alen and blen), that begins at finishing
    boundary position *spnt.  Return at *spnt the diagonal at which the
    alignment starts.                                                   */
 
@@ -396,21 +396,21 @@ madeit:
         if (m < n)
           { TraceBuffer[t++] = - ((diag+k) + (j+1));
 #ifdef WAVE_DEBUG
-            printf("Delete b[%d] = %c\n",j+1,b[j+1]); 
+            printf("Delete b[%d] = %c\n",j+1,b[j+1]);
 #endif
             k -= 1;
           }
         else if (m > n)
           { TraceBuffer[t++] = j+1;
 #ifdef WAVE_DEBUG
-            printf("Insert a[%d] = %c\n",(diag+k) + (j+1),a[(diag+k) + (j+1)]); 
+            printf("Insert a[%d] = %c\n",(diag+k) + (j+1),a[(diag+k) + (j+1)]);
 #endif
             k += 1;
           }
 #ifdef WAVE_DEBUG
         else
           { printf("Substitute b[%d] = %c to %c = a[%d]\n",
-                   j+1,b[j+1],a[(diag+k) + j+1],(diag+k) + j+1); 
+                   j+1,b[j+1],a[(diag+k) + j+1],(diag+k) + j+1);
           }
 #endif
         n = m - (2*d+4);
@@ -440,7 +440,7 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
 { int diag, jcrd;
   int infinity;
   int bwide, atop;
-  int *C, *I, *TraceBuffer, *TraceTwo; 
+  int *C, *I, *TraceBuffer, *TraceTwo;
   int best, bdag = 0;
 
   static int    Amax  = -1;
@@ -543,28 +543,28 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
                 x = deljk;
               C[k] = x;
             }
- 
+
           if (m == 0 && C[k] < best)
             { best = C[k]; bdag = m - jcrd; }
         }
 
 #ifdef AFFINE_DEBUG
       { printf("%3d:  ",jcrd+1);
-        for (k = diff; k >= -diff; k--) 
+        for (k = diff; k >= -diff; k--)
           { if (C[k+bwide] >= infinity)
               printf("     *");
             else
               printf(" %5d",C[k+bwide]);
           }
         printf("\n      ");
-        for (k = diff; k >= -diff; k--) 
+        for (k = diff; k >= -diff; k--)
           { if (I[k+bwide] >= infinity)
               printf("     *");
             else
               printf(" %5d",I[k+bwide]);
           }
         printf("\n  %c     ",b[jcrd+1]);
-        for (k = diff+1; k >= -diff; k--) 
+        for (k = diff+1; k >= -diff; k--)
           { m = i+k;
             if (m > alen || m <= 0)
               printf(" %3d:*",m,a[m]);
@@ -572,14 +572,14 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
               printf(" %3d:%c",m,a[m]);
           }
         printf("\n%3d:        ",jcrd);
-        for (k = diff; k >= -diff; k--) 
+        for (k = diff; k >= -diff; k--)
           { if (C[k] >= infinity)
               printf("     *");
             else
               printf(" %5d",C[k]);
           }
         printf("\n            ");
-        for (k = diff; k >= -diff; k--) 
+        for (k = diff; k >= -diff; k--)
           { if (I[k] >= infinity)
               printf("     *");
             else
@@ -661,7 +661,7 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
       assert(i<alen);
       assert(jcrd==blen);
       *epnt=i-alen;
-    } 
+    }
     if(jcrd!=blen){
       assert(jcrd<blen);
       assert(i==alen);
@@ -688,7 +688,7 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
     mxlev = mnlev = score = 0;
     mxi = i-1;
     mxj = j-1;
-  
+
     p = 0;
 reloop:
     while ((c = TraceBuffer[p++]) != 0)
@@ -790,7 +790,7 @@ reloop:
       resync:
         ;
       }
-  
+
     while (a[i] != 0)
       { if (b[j] != 0)
           if (a[i++] == b[j++])
@@ -902,8 +902,8 @@ static int Boundary(char *a, int alen, char *b, int blen,
     lastlft=0;
   }
 
-  { int j, bmax;	/* For every WordSize'th row do */ 
-			
+  { int j, bmax;	/* For every WordSize'th row do */
+
     bmax = WordSize*((blen-1)/WordSize+1);
     for (j = 0; j < blen; j += WordSize)
       { WORD P, M, ebit = 0;
@@ -961,7 +961,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
           WORD U, Y, X, mc, pc; /*   next level using bit-vector approach.  */
                                 /*   of Myers (JACM, 1999)                  */
           M = 0;
-#if 0 
+#if 0
           P = (WORD)(-1); // converted to unsigned via twos-complement.
 #else
           P = 0; P = ~ P;  // for g++ to be happy.
@@ -1040,7 +1040,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
 #ifdef BOUND_DEBUG
             printf("\n  Boundary Segment: P-thresh = %d row %d\n",prob_thresh,row);
 #endif
-            for (i = j+1; i <= row; i++) 
+            for (i = j+1; i <= row; i++)
               { if (P & 0x1)
                   p += 1;
                 else if (M & 0x1)
@@ -1072,23 +1072,23 @@ static int Boundary(char *a, int alen, char *b, int blen,
 		      // store best overlap that is too short
 		      preminpos = i;
 		      preminval = p;
-		    } 
+		    }
 		    //if consistent with adding gaps to pad prev. local best
 		    if (i-lastlocalminpos==p-lastlocalminscore){
-#ifdef BOUND_DEBUG		      
+#ifdef BOUND_DEBUG
 		      printf(",");
 #endif
-		    }else { 
+		    }else {
 		      // if new local best -- i.e. prev local best plus gaps is worse than here
 		      if (i-lastlocalminpos>p-lastlocalminscore){
 			lastlocalminpos=i;
 			lastlocalminscore=p;
 			lastlft=lft;
-#ifdef BOUND_DEBUG		      
+#ifdef BOUND_DEBUG
 			printf("~");
 #endif
 
-		      } else { 
+		      } else {
 
 			//this should not happen???
 
@@ -1115,7 +1115,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
 			lastlocalminpos=i;
 			lastlocalminscore=p;
 			lastlft=lft;
-#ifdef BOUND_DEBUG		      
+#ifdef BOUND_DEBUG
 			printf("^");
 #endif
 
@@ -1150,7 +1150,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
 			boundpos=preminpos;
 			boundval=preminval;
 
-		      } else { 
+		      } else {
 
 			// if consistent with extension of previous local best
 			if (i-lastlocalminpos == p-lastlocalminscore){
@@ -1210,7 +1210,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
           }
 
         if (rgt < lft) break;
-    
+
         while (lval >= prob_thresh){
 	  //	  printf("lval %d still greater than prob_thresh %d for lft %d\n",lval,prob_thresh,lft);
           lval += HorzDelta[++lft];
@@ -1435,7 +1435,7 @@ Overlap *DP_Compare(char *aseq, char *bseq,
 
   static Overlap OVL;
   assert(erate>=0&&erate<1);
-  ld_ratio=erate/(1.-erate); 
+  ld_ratio=erate/(1.-erate);
                              /* we want to balance ld_ratio with erate such that any alignment
 				with mismatch rate <= erate will have mismatches <= ld_ratio * aligned length of one aligned substring;
 
@@ -1541,7 +1541,7 @@ Overlap *DP_Compare(char *aseq, char *bseq,
   OVL.comp   = opposite;
 
   if (what == AS_FIND_ALIGN || what == AS_FIND_ALIGN_NO_TRACE)
-    { OVL.trace  = AS_ALN_OKNAlign(aseq,alen,bseq,blen,&pos1,dif1);  
+    { OVL.trace  = AS_ALN_OKNAlign(aseq,alen,bseq,blen,&pos1,dif1);
 #define ELIM_TRAILING_SPACES
 #ifdef ELIM_TRAILING_SPACES
       AS_ALN_clean_up_trace(OVL.trace,alen,blen,&pos1,&(OVL.endpos));
@@ -1550,8 +1550,8 @@ Overlap *DP_Compare(char *aseq, char *bseq,
     }
   else if (what == AS_FIND_AFFINE_ALIGN)
     { OVL.trace  = AS_ALN_OKNAffine(aseq,alen,bseq,blen,&(OVL.begpos),&(OVL.endpos),dif1);
-    } 
-  else 
+    }
+  else
     { OVL.trace  = NULL;
       OVL.begpos = alen - (blen-OVL.endpos);
     }
@@ -1728,7 +1728,7 @@ static double BPSuffixScore(char *a, int alen, char *b, int blen,
 
         /* Adjust boundaries of active region by removing the <= 0
            prefix and suffix of the part of the row that was computed. */
-  
+
         while (lft <= rgt && dc[lft] <= 0.)
           lft += 1;
         if (lft > rgt) break;   /* Active region is empty */
@@ -1841,7 +1841,7 @@ static void CNS_PrintAlign(FILE *file, int prefix, int suffix,
       { if ((y = b[j++]) != 0)
           COLUMN(x,y)
         else
-          { do 
+          { do
               { COLUMN(x,' ')
                 s += 1;
               }
@@ -1926,7 +1926,7 @@ void Print_Overlap(FILE *file, char *aseq, char *bseq, Overlap *align)
       if (align->comp)
         Complement_Seq(bseq);
     }
-} 
+}
 
 Overlap *Copy_Overlap(Overlap *ovl)
 { int      i, len;

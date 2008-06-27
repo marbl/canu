@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.44 2008-06-16 16:58:54 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.45 2008-06-27 06:29:17 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg_internal.h"
 
@@ -149,7 +149,7 @@ GetText(const char * const tag, FILE *fin, const int delnewlines) {
   if (strncmp(AS_MSG_globals->curLine,tag,4) != 0)
     MtagError(tag);
 
-  while (1) { 
+  while (1) {
     ReadLine(fin, FALSE);
 
     if ((AS_MSG_globals->curLine[0] == '.') &&
@@ -255,7 +255,7 @@ GetUIDIID(char *tag, AS_IID *iid, FILE *fin) {
 // Note that the data of "text" is modified!!!
 void
 PutText(FILE *fout,
-        const char * const tag, 
+        const char * const tag,
         char * text,
         const int format) {
 
@@ -266,13 +266,13 @@ PutText(FILE *fout,
   if ((text != NULL) && (text[0] != 0)) {
     len = strlen(text);
 
-    if (format) { 
-      for (i = 0; i < len; i += 70) { 
+    if (format) {
+      for (i = 0; i < len; i += 70) {
         fprintf(fout,"%.*s\n",70,text);
         text += 70;
       }
 
-    } else{ 
+    } else{
       // Strip trailing new line if prez.
       if (text[len-1] == '\n')
         text[len-1] = 0;
@@ -296,7 +296,7 @@ AS_MSG_globalsInitialize(void) {
     AS_MSG_globals->msgMax    = MAX_MESG_LEN;
     AS_MSG_globals->msgLen    = 0;
     AS_MSG_globals->msgBuffer = (char *)safe_malloc(sizeof(char) * AS_MSG_globals->msgMax);
-  
+
     AS_MSG_globals->curLine   = (char *)safe_malloc(sizeof(char) * MAX_LINE_LEN);
 
     AS_MSG_setFormatVersion(1);

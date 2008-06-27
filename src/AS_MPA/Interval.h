@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: Interval.h,v 1.4 2005-03-22 19:48:56 jason_miller Exp $ */
+/* $Id: Interval.h,v 1.5 2008-06-27 06:29:16 brianwalenz Exp $ */
 #ifndef INTERVAL_H
 #define INTERVAL_H
 
@@ -58,7 +58,7 @@ public:
 
   void setID(IDType newID) {pid = newID;}
   const IDType getID() const {return pid;}
-  
+
   void setMin(const UnitType & min)
     {
       pmin = min;
@@ -89,7 +89,7 @@ public:
       setMin(min);
       setMax(max);
     }
-  
+
   void setIntervalToUnion(const Interval & other)
     {
       setMin((getMin() < other.getMin()) ? getMin() : other.getMin());
@@ -115,7 +115,7 @@ public:
       newI.setMin((getMin() > other.getMin()) ? getMin() : other.getMin());
       newI.setMax((getMax() < other.getMax()) ? getMax() : other.getMax());
     }
-  
+
   bool startsBefore(const UnitType & min) const
     {
       return (getMin() < min);
@@ -124,7 +124,7 @@ public:
     {
       return startsBefore(interval.getMin());
     }
-  
+
   bool operator<(const Interval<IDType, UnitType> & other) const
     {
       return startsBefore(other);
@@ -134,7 +134,7 @@ public:
     {
       return(min == getMin() && max == getMax());
     }
-  
+
   bool intersects(const UnitType & min, const UnitType & max) const
     {
       return (min < getMax() && getMin() < max);
@@ -152,7 +152,7 @@ public:
          << interval.getMax();
       return os;
     }
-  
+
 private:
   IDType pid;
   UnitType pmin;

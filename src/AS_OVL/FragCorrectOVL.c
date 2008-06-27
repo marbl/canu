@@ -1,20 +1,20 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
@@ -25,7 +25,7 @@
 //   Programmer:  A. Delcher
 //      Started:   4 Dec 2000
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.27 2008-05-16 00:03:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.28 2008-06-27 06:29:18 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -150,7 +150,7 @@ typedef  struct
 const int  INNIE = 0;
 const int  NORMAL = 1;
 
-typedef  struct                 
+typedef  struct
   {
    int32  a_iid, b_iid;
    signed int  a_hang : 15;
@@ -468,7 +468,7 @@ static void  Analyze_Alignment
                             b_part [j], (int) b_part [j]);
                    exit (1);
                 }
-              ct ++;           
+              ct ++;
              }
          i ++;
          j ++;
@@ -539,7 +539,7 @@ static void  Analyze_Alignment
                          i, a_len, j, b_len);
                 exit (1);
              }
-           ct ++;           
+           ct ++;
           }
       i ++;
       j ++;
@@ -867,7 +867,7 @@ static void  Display_Alignment
       j ++;
      }
    top [top_len] = '\0';
-     
+
 
    i = j = 0;
    for  (k = 0;  k < delta_ct;  k ++)
@@ -1019,7 +1019,7 @@ static void  Extract_Needed_Frags
 
       //getReadType_ReadStruct (&frag_read, & read_type);
       read_type = AS_READ;
-      shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE; 
+      shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE;
 
       clear_start = getFragRecordClearRegionBegin(&frag_read, AS_READ_CLEAR_OBT);
       clear_end   = getFragRecordClearRegionEnd  (&frag_read, AS_READ_CLEAR_OBT);
@@ -1135,7 +1135,7 @@ static void  Get_Olaps_From_Store
 
       if  (ovl.dat.ovl.flipped)
         (*olap)[numread].orient = INNIE;
-      
+
       numread++;
     }
 
@@ -1354,7 +1354,7 @@ static void  Output_Corrections
                   }
               if  (tmp >= MIN_HAPLO_OCCURS)
                   haplo_ct ++;
-              
+
               tmp = Frag [i] . vote [j] . c_subst;
               total += tmp;
               if  (tmp > max)
@@ -1365,7 +1365,7 @@ static void  Output_Corrections
                   }
               if  (tmp >= MIN_HAPLO_OCCURS)
                   haplo_ct ++;
-              
+
               tmp = Frag [i] . vote [j] . g_subst;
               total += tmp;
               if  (tmp > max)
@@ -1376,7 +1376,7 @@ static void  Output_Corrections
                   }
               if  (tmp >= MIN_HAPLO_OCCURS)
                   haplo_ct ++;
-              
+
               tmp = Frag [i] . vote [j] . t_subst;
               total += tmp;
               if  (tmp > max)
@@ -1419,7 +1419,7 @@ static void  Output_Corrections
                   }
               if  (tmp >= MIN_HAPLO_OCCURS)
                   ins_haplo_ct ++;
-              
+
               tmp = Frag [i] . vote [j] . g_insert;
               ins_total += tmp;
               if  (tmp > ins_max)
@@ -1429,7 +1429,7 @@ static void  Output_Corrections
                   }
               if  (tmp >= MIN_HAPLO_OCCURS)
                   ins_haplo_ct ++;
-              
+
               tmp = Frag [i] . vote [j] . t_insert;
               ins_total += tmp;
               if  (tmp > ins_max)
@@ -1871,7 +1871,7 @@ if  (a_end < 0 || a_end > a_part_len || b_end < 0 || b_end > b_part_len)
         olap_len = OVL_Min_int (a_end, b_end);
         match_to_end = TRUE;
        }
-       
+
    if  (errors <= Error_Bound [olap_len] && match_to_end)
        {
         Analyze_Alignment (delta, delta_len, a_part, b_part,
@@ -1879,7 +1879,7 @@ if  (a_end < 0 || a_end > a_part_len || b_end < 0 || b_end > b_part_len)
        }
      else
        Failed_Olaps ++;
-                      
+
    return;
   }
 
@@ -1921,7 +1921,7 @@ static void  Read_Frags
   loadGateKeeperStorePartial(Internal_gkpStore,
                              Lo_Frag_IID, Hi_Frag_IID, FRAG_S_SEQ);
 #endif
-   
+
    Frag_Stream = openFragStream (Internal_gkpStore, FRAG_S_SEQ);
    resetFragStream (Frag_Stream, Lo_Frag_IID, Hi_Frag_IID);
 
@@ -1942,7 +1942,7 @@ static void  Read_Frags
 
       //getReadType_ReadStruct (&frag_read, & read_type);
       read_type = AS_READ;
-      Frag [i] . shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE; 
+      Frag [i] . shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE;
 
       strcpy(seq_buff, getFragRecordSequence(&frag_read));
 
@@ -2100,7 +2100,7 @@ static void  Stream_Old_Frags
    hi_frag = Olap [Num_Olaps - 1] . b_iid;
 
    resetFragStream (Frag_Stream, lo_frag, hi_frag);
-   
+
    next_olap = 0;
    for  (i = 0;  nextFragStream (Frag_Stream, &frag_read)
                    && next_olap < Num_Olaps;
@@ -2122,7 +2122,7 @@ static void  Stream_Old_Frags
 
       //getReadType_ReadStruct (&frag_read, & read_type);
       read_type = AS_READ;
-      shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE; 
+      shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE;
 
       clear_start = getFragRecordClearRegionBegin(&frag_read, AS_READ_CLEAR_OBT);
       clear_end   = getFragRecordClearRegionEnd  (&frag_read, AS_READ_CLEAR_OBT);
@@ -2346,7 +2346,7 @@ static void  Threaded_Stream_Old_Frags
       curr_frag_list = next_frag_list;
       next_frag_list = save_frag_list;
      }
-   
+
 #ifdef USE_STORE_DIRECTLY_STREAM
    closeGateKeeperStore (Internal_gkpStore);
 #endif

@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: query_celamy.c,v 1.6 2007-04-16 17:36:36 brianwalenz Exp $ */
+/* $Id: query_celamy.c,v 1.7 2008-06-27 06:29:22 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,7 +63,7 @@
 #define MSELCOLOR  150,150,0     /* Selection color for menu buttons */
 #define KNOBCOLOR  50,50,225     /* Scrollbar button & slider color */
 #define PICKCOLOR  80,200,80     /* Menu button on color */
-#define ERSELCOLOR 255,150,150   /* Error text selection color */ 
+#define ERSELCOLOR 255,150,150   /* Error text selection color */
 #define TXSELCOLOR 0,255,255     /* Normal text selection color */
 #define ERRORCOLOR 255,0,0       /* Error message text color */
 
@@ -264,7 +264,7 @@ void scrollupdate1(long d, MY_SCROLL *s)  /* Slave update: linear */
   val0 = mt_get_scrollbar(s[-1].bar,&wid0,&min0,&max0);
   max0 += wid0;
   val1 = mt_get_scrollbar(s->bar,&wid1,&min1,&max1);
-  wid0 = val1; 
+  wid0 = val1;
   if (wid0 > max0-min0) wid0 = max0-min0;
   if (val0+wid0 > max0) val0 = max0-wid0;
   if (val0 < min0) val0 = min0;
@@ -558,7 +558,7 @@ void makemenu(int d, int x, int y)
       mt_set_callback(Menu[d],menunone,d);
     }
   else
-    { menu_width += 72; 
+    { menu_width += 72;
       Menu[d] = mt_new_frame(x,y,menu_width,2*(BORDER+1)+20*count,0,
                              REGULAR,REDRAW_EVENT);
       mt_set_callback(Menu[d],menuframe,d);
@@ -633,7 +633,7 @@ void maketool(int x, int y)
       if (wide > menu_width) menu_width = wide;
     }
 
-  menu_width += 2*(BORDER+3); 
+  menu_width += 2*(BORDER+3);
   ToolMenu = mt_new_frame(x,y,menu_width,2*(BORDER+1)+20*count,0,
                          REGULAR,REDRAW_EVENT);
   mt_set_hilite(ToolMenu,0);
@@ -674,7 +674,7 @@ int main(int argc, char *argv[])
           fprintf(stderr," %s [-b] file.cam\n",argv[0]);
           fprintf(stderr,"\t\t-b\t(opt)\tbatch process queries from stdin\n");
           exit(1);
-        default: 
+        default:
           fprintf(stderr,"  Incorrect usage. Please try %s -h\n",argv[0]);
           exit(1);
       }
@@ -800,7 +800,7 @@ int main(int argc, char *argv[])
     mt_button_colors(obj,-1,SelectColor,-1,-1,SelectColor,-1);
     mt_set_callback(obj,qbutton,0);
   }
- 
+
   mt_pop_frame();
 
   mt_current_hilite(1);
@@ -920,7 +920,7 @@ if (batch) {
     error = ProcessQuery(query,&objp,&cover);
 
     QueryTableFree();
- 
+
     if (error != NULL)
     { mt_set_text(errorpane,error,0,0);
       mt_draw(errorpane);
@@ -940,7 +940,7 @@ if (batch) {
     }
   }
   exit(0);
-} 
+}
   mt_event_loop();
 
   exit(0);
@@ -964,7 +964,7 @@ int closepair(MT_OBJECT *o, long d)
   box = (pairbox *) d;
   mt_get_extent(box->widgets[0],&xl,&xh,&yl,&yh);
   box->last_width = (xh-xl)+1;
-  mt_free(box->widgets[0]); 
+  mt_free(box->widgets[0]);
   ToolIsOn[box->toolno] = 0;
   return (0);
 }
@@ -1050,7 +1050,7 @@ void CreatePairWin(pairbox *box)
   static char label[50];
 
   lwide = box->last_width;
-  box->widgets[0] = obj = 
+  box->widgets[0] = obj =
        mt_new_window(10,10,lwide,60+BUTTONHIGH,0,box->labels[0]);
   mt_set_window_bounds(obj,180,60+BUTTONHIGH,-1,60+BUTTONHIGH);
 
@@ -1103,7 +1103,7 @@ void CreatePairWin(pairbox *box)
     mt_button_colors(obj,-1,SelectColor,-1,-1,SelectColor,-1);
     mt_set_callback(obj,closepair,(long) box);
   }
- 
+
   mt_pop_frame();
 
   mt_pop_frame();
@@ -1185,7 +1185,7 @@ int viewset(MT_OBJECT *o, long d)
       mt_text_colors(o,-1,-1,-1,-1,TxSelColor);
       return (0);
     }
-  
+
   viewsetrange(beg,end);
   return (0);
 }
@@ -1209,7 +1209,7 @@ void CreateViewWin(long d)
       ViewBox.last_width = 180;
       ViewBox.toolno    = d;
       ViewBox.fetchroutine  = viewfetch;
-      ViewBox.actionroutine = viewset; 
+      ViewBox.actionroutine = viewset;
     }
   CreatePairWin(&ViewBox);
 }
@@ -1272,7 +1272,7 @@ void CreateCanvasWin(long d)
       CanvasBox.last_width = 180;
       CanvasBox.toolno    = d;
       CanvasBox.fetchroutine  = canvasfetch;
-      CanvasBox.actionroutine = canvasset; 
+      CanvasBox.actionroutine = canvasset;
     }
   CreatePairWin(&CanvasBox);
 }
@@ -1323,7 +1323,7 @@ void HSV_2_RGB(int hue, int val, int sat,
         case 5:
           *red = val; *green = p; *blue = q; break;
       }
-    }   
+    }
 }
 
 void SetWheelColors(void)
@@ -1461,7 +1461,7 @@ void CreateColorWin(int hue, int sat, int val, colorcall response)
   mt_set_border(obj,0);
   mt_set_outline(obj,1);
     for (i = 0; i <= COLOR_LEVELS; i++)
-      { colval[i] = obj = 
+      { colval[i] = obj =
            mt_new_button(1+i*COLOR_WIDTH,1,COLOR_WIDTH,18,1,CLICK,NULL);
         mt_set_border(obj,0);
         mt_set_hilite(obj,0);
@@ -1517,7 +1517,7 @@ void SaveDialog(void)
   obj = mt_new_frame(0,0,240,20,1,VIRTUAL,REDRAW_EVENT);
   mt_set_callback(obj,DrawSaveText,0);
   mt_pop_frame();
-  
+
   obj = mt_new_button(40,30,60,24,1,CLICK,"Write");
   mt_set_callback(obj,CloseSaveWin,1);
   obj = mt_new_button(140,30,60,24,1,CLICK,"Cancel");
@@ -1738,7 +1738,7 @@ void TrimStringDraw(MT_OBJECT *obj, int x, int y, char *s, int pix)
       s[len] = c;
     }
   while (w <= pix);
-  
+
   while (w > pix)
     { len -= 1;
       c = s[len];
@@ -1748,7 +1748,7 @@ void TrimStringDraw(MT_OBJECT *obj, int x, int y, char *s, int pix)
         { mt_set_color(mt_black());
           mt_draw_text(obj,x,y,s);
           mt_draw_text(obj,x+w,y," ...");
-        } 
+        }
       s[len] = c;
     }
 }
@@ -1836,7 +1836,7 @@ int TitleFrame(MT_OBJECT *obj, long d)
   DrawUnderlinedString(obj,232,16,"Query");
   return (0);
 }
-  
+
 void MakeQueryFrame(int pos, query_record *q)
 { MT_OBJECT *obj;
   int xl, xh, yl, yh;
@@ -1939,7 +1939,7 @@ int QuAdder(MT_OBJECT *obj, long d)
       free(error);
       return (0);
     }
-  
+
   q = (query_record *) malloc(sizeof(query_record));
   q->selected = 1;
   q->object   = objp;
@@ -2108,7 +2108,7 @@ int closequery(MT_OBJECT *o, long d)
   query_width  = (xh-xl)+1;
   query_height = (yh-yl)+1;
   ToolIsOn[d] = 0;
-  mt_free(querywin); 
+  mt_free(querywin);
   querywin = NULL;
   return (0);
 }
@@ -2166,7 +2166,7 @@ void CreateQueryWin(long toolno)
     mt_button_colors(obj,-1,SelectColor,-1,-1,SelectColor,-1);
     mt_set_callback(obj,closequery,(long) toolno);
   }
- 
+
   mt_pop_frame();
 
   obj = mt_new_frame(0,BUTTONHIGH,query_width,20,1,REGULAR,REDRAW_EVENT);
@@ -2299,7 +2299,7 @@ void CreateBinButton(HistoLoad *p, int binwide, int binhigh)
 
   p->bindelta = 0;
 }
-  
+
 void CreateHistoWin(HistoPacket *hist, char *qmesg, int owner)
 { MT_OBJECT *obj;
   HistoLoad *packet;
@@ -2396,7 +2396,7 @@ void CreateHistoWin(HistoPacket *hist, char *qmesg, int owner)
     mt_button_colors(obj,-1,SelectColor,-1,-1,SelectColor,-1);
     mt_set_callback(obj,cbutton,(long) packet);
   }
- 
+
   mt_pop_frame();
 
   mt_pop_frame();
@@ -2407,7 +2407,7 @@ void CreateHistoWin(HistoPacket *hist, char *qmesg, int owner)
 /* Coverage Window Routines */
 
 typedef struct CoverTag {
-    struct CoverTag *next, *prev; 
+    struct CoverTag *next, *prev;
     CoverPacket *cover;
     MT_OBJECT   *darea;
     MT_OBJECT   *window;
@@ -2486,7 +2486,7 @@ void CreateCoverWin(CoverPacket *cover, char *qmesg, int owner)
     mt_button_colors(obj,-1,SelectColor,-1,-1,SelectColor,-1);
     mt_set_callback(obj,cobutton,(long) packet);
   }
- 
+
   mt_pop_frame();
 
   mt_pop_frame();

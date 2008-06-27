@@ -1,24 +1,24 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: IntervalSetCoverSolver.h,v 1.4 2005-03-22 19:48:56 jason_miller Exp $ */
+/* $Id: IntervalSetCoverSolver.h,v 1.5 2008-06-27 06:29:16 brianwalenz Exp $ */
 #ifndef INTERVALSETCOVERSOLVER_H
 #define INTERVALSETCOVERSOLVER_H
 
@@ -44,7 +44,7 @@ public:
   IntervalSetCoverSolver(vector<Rectangle<IDType, UnitType> > & rects)
     {
       PopulateQuads(rects);
-      
+
       typename vector<Rectangle<IDType, UnitType> >::iterator iter;
       list<Interval<IDType, UnitType > > xIntervals;
       list<Interval<IDType, UnitType > > yIntervals;
@@ -68,19 +68,19 @@ public:
       icf.findCliques(xIntervals, xCliques);
       list<IntervalClique<IDType, UnitType> > yCliques;
       icf.findCliques(yIntervals, yCliques);
-      
+
 #ifdef DEBUG_ISCS
       icf.printCliques("Cliques in the X dimension", xCliques, cerr);
       icf.printCliques("Cliques in the Y dimension", yCliques, cerr);
 #endif
-      
+
       SetUpCliques(xCliques, yCliques);
     }
-  
+
   IntervalSetCoverSolver(vector<Quadrilateral<IDType, UnitType> > & quads)
     {
       PopulateQuads(quads);
-      
+
       typename vector<Quadrilateral<IDType, UnitType> >::iterator qiter;
       list<Interval<IDType, UnitType > > xIntervals;
       list<Interval<IDType, UnitType > > yIntervals;
@@ -89,7 +89,7 @@ public:
         Interval<IDType, UnitType> xinterval(qiter->getXProjection(),
                                              qiter->getID());
         xIntervals.push_back(xinterval);
-        
+
         Interval<IDType, UnitType> yinterval(qiter->getYProjection(),
                                              qiter->getID());
         yIntervals.push_back(yinterval);
@@ -100,14 +100,14 @@ public:
       icf.findCliques(xIntervals, xCliques);
       list<IntervalClique<IDType, UnitType> > yCliques;
       icf.findCliques(yIntervals, yCliques);
-      
+
 #ifdef DEBUG_ISCS
       icf.printCliques("Cliques in the X dimension", xCliques, cerr);
       icf.printCliques("Cliques in the Y dimension", yCliques, cerr);
 #endif
       SetUpCliques(xCliques, yCliques);
     }
-  
+
   IntervalSetCoverSolver(vector<Quadrilateral<IDType, UnitType> > & quads,
                          list<IntervalClique<IDType, UnitType> > & xCliques,
                          list<IntervalClique<IDType, UnitType> > & yCliques)
@@ -145,21 +145,21 @@ public:
           xiter != pxes.end();
           xiter++, ix++)
         cerr << ix << ": " << *xiter << endl;
-      
+
       cerr << "\nY cliques sorted left to right (X dimension end)\n";
       for(iy = 0, yiter = pyTwoDIs.begin();
           yiter != pyTwoDIs.end();
           yiter++, iy++)
         cerr << iy << ": " << *yiter << endl;
 #endif
-      
+
 #if defined(FEEDBACK_ISCS) || defined(DEBUG_ISCS)
       cerr << "Finding common IDs in x, y clique pairs\n";
 #endif
-      
+
       // find extent of each y clique in x dimension
       // and sort left to right to make x/y comparison faster
-      
+
       // find common ids between x cliques and y cliques
       // keep track of the pair with the most IDs in common
       list<CliquePairIntersection<IDType, UnitType> > cpis;
@@ -229,7 +229,7 @@ public:
       cerr << "\nDeleted " << numDeleted << " duplicates\n";
 #endif
 #endif
-      
+
 #if defined(FEEDBACK_ISCS) || defined(DEBUG_ISCS)
       cerr << "\nPerforming greedy selection\n";
 #endif
@@ -246,7 +246,7 @@ public:
           lpNumIDs = cpiIter2->getNumCommonIDs();
         }
       }
-      
+
       // now greedily select xy pairs
       typename list<IDType>::const_iterator tdiiter;
       do
@@ -254,12 +254,12 @@ public:
         /*
           already have the index of the next xy pair
           create new 2d interval clique from it
-          
+
           decrement numIDsRemaining by the number of commonIDs
           if(numIDsRemaining > 0)
             go through all xy pairs & delete commonIDs, and
             select next xy pair with the most commonIDs
-            
+
           find the xy pair with the most commonIDs
           make it the next xy clique
         */
@@ -271,14 +271,14 @@ public:
         cerr << largestCPI << endl;
         cerr << numIDsRemaining << " remaining\n";
 #endif
-        
+
         twoDIs.push_back(twoDI);
 
         // update the list of cliqued IDs
         const list<IDType> tdiids = twoDI.getIDs();
         for(tdiiter = tdiids.begin(); tdiiter != tdiids.end(); tdiiter++)
           idCliqued[*tdiiter] = true;
-        
+
         // update the xy pairs & find the next largest one
         lpNumIDs = 0;
         for(cpiIter = cpis.begin(); cpiIter != cpis.end();)
@@ -320,7 +320,7 @@ public:
         }
       }
     }
-  
+
 private:
   void PopulateQuads(const vector<Rectangle<IDType, UnitType> > & rects)
     {
@@ -357,7 +357,7 @@ private:
 
       pxes = xCliques;
       pxes.sort();
-                           
+
       /*
       // convert x Cliques to twoDIs
       for(iter = xCliques.begin(); iter != xCliques.end(); iter++)
@@ -372,7 +372,7 @@ private:
       // sort on x interval max
       pxTwoDIs.sort();
       */
-      
+
       // convert y Cliques to twoDIs
       for(iter = yCliques.begin(); iter != yCliques.end(); iter++)
       {
@@ -386,7 +386,7 @@ private:
       // sort on x interval max
       pyTwoDIs.sort();
     }
-      
+
   vector<Quadrilateral<IDType, UnitType> > pquads;
   map<IDType, int> id2Quad;
   map<IDType, bool> idCliqued;

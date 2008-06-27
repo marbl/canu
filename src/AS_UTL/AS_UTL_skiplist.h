@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: AS_UTL_skiplist.h,v 1.5 2007-02-14 07:20:15 brianwalenz Exp $
+   CVS_ID:  $Id: AS_UTL_skiplist.h,v 1.6 2008-06-27 06:29:21 brianwalenz Exp $
  *********************************************************************/
 
 /********************************************************************/
@@ -45,7 +45,7 @@
  *
  * Lookup a key in the skiplist returning the skiplist item
  * element with the biggest key less than or equal to key
- * sl_item LookupSL_Type(double key,SL_TYPE(Type)* sl); 
+ * sl_item LookupSL_Type(double key,SL_TYPE(Type)* sl);
  *
  * Insert a key,value pair in the skiplist returning the inserted
  * skiplist item or the item that was already inserted with that key
@@ -60,7 +60,7 @@
  * sl_item MaxSL_Type(SL_TYPE(Type) *sl);
  *
  * Get the number of elements in the array
- * size_t GetNumSL_Type(SL_TYPE(Type) *sl); 
+ * size_t GetNumSL_Type(SL_TYPE(Type) *sl);
  *
  * Look in the file AS_UTL_skiplist_test for examples of how to use
  * Skiplist
@@ -76,7 +76,7 @@
 #include<float.h>
 
 #include "AS_global.h"
-#include <assert.h> 
+#include <assert.h>
 #include "AS_UTL_rand.h"
 
 
@@ -84,7 +84,7 @@
 #define minf -FLT_MAX
 #define pinf  FLT_MAX
 
-typedef double keyType;		
+typedef double keyType;
 typedef void*  valueType;
 typedef void (*SLF)(void* v);
 
@@ -96,7 +96,7 @@ struct element{
 	sl_item succ;
 	sl_item down;
 	sl_item up;
-};	 
+};
 
 
 typedef struct sl{

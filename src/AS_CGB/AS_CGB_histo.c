@@ -1,25 +1,25 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
+ * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
  * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_histo.c,v 1.11 2007-07-19 09:50:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_histo.c,v 1.12 2008-06-27 06:29:13 brianwalenz Exp $";
 
 //  A histogramming routine and auxillary functions.
 
@@ -32,18 +32,18 @@ static char CM_ID[] = "$Id: AS_CGB_histo.c,v 1.11 2007-07-19 09:50:30 brianwalen
 
 /* Histogram library */
 
-typedef struct { 
+typedef struct {
   int        cnt;     /* # of data points */
   int        nsample; /* size of sample array */
   /* Number of samples collected before bucketing,
      and number of buckets thereafter */
   int   *thescore;       /* score array */
-  int    filled;  /* Have NSAMPLE samples been collected? 
+  int    filled;  /* Have NSAMPLE samples been collected?
 		     Are we in bucket mode? */
   int   low;     /* Lowest bucket score, an integer */
   int   hgh;     /* Highest bucket score */
   int   min;
-  int   max; 
+  int   max;
   int   bucket_width;    /* number of integral score values per bucket */
   int        nbucket;  /* size of bucket array */
   int        *bucket_cnt;  /* bucket array */
@@ -70,7 +70,7 @@ Histogram_t *create_histogram(
 			    int logarithmic)
 /* Create an initially empty histogram where buckets will be
    selected so that "sync" will be the low end of some bucket. */
-{ 
+{
   HISTOGRAM *h;
   int *bucket_cnt,*bucket_min,*bucket_max;
   int *thescore;
@@ -90,7 +90,7 @@ Histogram_t *create_histogram(
 
   h->bucket_cnt  = bucket_cnt;
   h->logarithmic = logarithmic;
-    
+
   /* */
   h->extended    = 0;
   h->temp_data   = NULL;
@@ -107,14 +107,14 @@ Histogram_t *create_histogram(
   bucket_max = (int *)safe_calloc(nbucket,sizeof(int));
   h->bucket_min  = bucket_min;
   h->bucket_max  = bucket_max;
-  
+
   if(logarithmic) {
     h->filled = 1;
   }
   return (Histogram_t *)h;
 }
 
-void extend_histogram(  
+void extend_histogram(
 		      Histogram_t * histogram,
 		      size_t nbytes,
 		      HistoDataType * (*indexdata)(HistoDataType *b,int ib),
@@ -153,7 +153,7 @@ void extend_histogram(
 
 void free_histogram(Histogram_t *histogram)
 /* Free the data structure for histogram "h" */
-{ 
+{
   HISTOGRAM *h = (HISTOGRAM *)histogram;
   assert(h != NULL);
   safe_free(h->thescore);
@@ -165,7 +165,7 @@ void free_histogram(Histogram_t *histogram)
   safe_free(h->bucket_max);
   safe_free(h->sample_data);
   safe_free(h->bucket_data);
-  safe_free(h); 
+  safe_free(h);
 }
 
 static int bucket_from_score(HISTOGRAM *h, int thescore) {
@@ -196,13 +196,13 @@ static int bucket_from_score(HISTOGRAM *h, int thescore) {
 }
 
 static void fill(HISTOGRAM *h)
-{ 
+{
   /* Converts from sample-mode to bucket-mode */
   int low, hgh;
 
   assert(h != NULL);
   /* At this point h->sample[.] is a data value. */
-  if( h->cnt > 0 ) { 
+  if( h->cnt > 0 ) {
     low = hgh = h->thescore[0];
   } else {
     low = hgh = 0;
@@ -259,7 +259,7 @@ static void fill(HISTOGRAM *h)
 
 
 void add_to_histogram(Histogram_t *histogram, int thescore, HistoDataType *data)
-{ 
+{
   HISTOGRAM *h = (HISTOGRAM *)histogram;
   assert(h != NULL);
   assert( !(h->extended) || (data != NULL) );
@@ -274,7 +274,7 @@ void add_to_histogram(Histogram_t *histogram, int thescore, HistoDataType *data)
   }
 
   if(( h->cnt == h->nsample) && (!(h->filled)))
-    { 
+    {
       fprintf(stderr,"CONVERTING HISTOGRAM TO BUCKET MODE\n");
       fill(h);
     }
@@ -315,7 +315,7 @@ void add_to_histogram(Histogram_t *histogram, int thescore, HistoDataType *data)
    case one would like to add some aligned columns after the output). */
 
 void print_histogram(FILE *fout, Histogram_t *histogram, int rez, int indent)
-{ 
+{
   HISTOGRAM *h = (HISTOGRAM *)histogram;
   int numb; /* The number of bins that have data. */
   int minb=0; /* The lowest index of a bin with data. */
@@ -328,7 +328,7 @@ void print_histogram(FILE *fout, Histogram_t *histogram, int rez, int indent)
   int single;
   int first_flag;
 
-  if (h->cnt == 0) 
+  if (h->cnt == 0)
     { return ;}
 
   if (! h->filled)
@@ -376,10 +376,10 @@ void print_histogram(FILE *fout, Histogram_t *histogram, int rez, int indent)
 
       min_score = MAX(min_score,h->min);
       max_score = MIN(max_score,h->max);
-    
+
       for (j = 0; j < cm; j++) {
         if( (ib+j >= 0) && (ib+j < h->nbucket) )
-          { 
+          {
             sum_of_cnt += h->bucket_cnt[ib+j];
             min_score = MIN(min_score,h->bucket_min[ib+j]);
             max_score = MAX(max_score,h->bucket_max[ib+j]);

@@ -5,11 +5,11 @@ use TIGR::Foundation;
 use TIGR::AsmLib;
 use strict;
 
-my $MY_VERSION = " Version 1.1 (Build " . (qw/$Revision: 1.1 $/ )[1] . ")";
-my @DEPENDS = 
+my $MY_VERSION = " Version 1.1 (Build " . (qw/$Revision: 1.2 $/ )[1] . ")";
+my @DEPENDS =
 (
   "TIGR::Foundation"
-); 
+);
 
 
 
@@ -20,7 +20,7 @@ my $MY_HELPTEXT = qq~
     within the asm file.
 
     .scaff format:
-    
+
       >scaffid numcontigs scaffbases scaffspan
       contigid orientation contiglen gapsize gapstdeviation
       ...
@@ -38,7 +38,7 @@ my $MY_HELPTEXT = qq~
       ...
 
     .sum format
-    
+
       scaffid numcontigs scaffbases scaffspan
       ...
 
@@ -174,10 +174,10 @@ while ($record = getCARecord(\*IN))
         my $ori = $$sfs{"ori"};
 
         my ($o1, $o2);
-        if ($ori eq "N" || $ori eq "I"){ $o1 = "BE"; } 
+        if ($ori eq "N" || $ori eq "I"){ $o1 = "BE"; }
         else                           { $o1 = "EB"; }
 
-        if ($ori eq "N" || $ori eq "O"){ $o2 = "BE"; } 
+        if ($ori eq "N" || $ori eq "O"){ $o2 = "BE"; }
         else                           { $o2 = "EB"; }
 
         if ($i == 0)
@@ -200,8 +200,8 @@ while ($record = getCARecord(\*IN))
 
           print SCAFF "$c1 $o1 $ctglen{$c1} $scaffgap $scaffstd\n";
 
-          if ($i == $#$recs) 
-          { 
+          if ($i == $#$recs)
+          {
             print SCAFF "$c2 $o2 $ctglen{$c2} 0 0.0\n";
           }
 
@@ -222,7 +222,7 @@ while ($record = getCARecord(\*IN))
       print SUM "$id $nctg $scflen ", int($scfspan), "\n";
     }
   } # if $type = SCF
-} 
+}
 
 close(SCAFF);
 close(IN);

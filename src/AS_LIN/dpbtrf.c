@@ -4,96 +4,96 @@
 /* Subroutine */ int dpbtrf_(char *uplo, integer *n, integer *kd, doublereal *
 	ab, integer *ldab, integer *info)
 {
-/*  -- LAPACK routine (version 2.0) --   
-       Univ. of Tennessee, Univ. of California Berkeley, NAG Ltd.,   
-       Courant Institute, Argonne National Lab, and Rice University   
-       March 31, 1993   
+/*  -- LAPACK routine (version 2.0) --
+       Univ. of Tennessee, Univ. of California Berkeley, NAG Ltd.,
+       Courant Institute, Argonne National Lab, and Rice University
+       March 31, 1993
 
 
-    Purpose   
-    =======   
+    Purpose
+    =======
 
-    DPBTRF computes the Cholesky factorization of a real symmetric   
-    positive definite band matrix A.   
+    DPBTRF computes the Cholesky factorization of a real symmetric
+    positive definite band matrix A.
 
-    The factorization has the form   
-       A = U**T * U,  if UPLO = 'U', or   
-       A = L  * L**T,  if UPLO = 'L',   
-    where U is an upper triangular matrix and L is lower triangular.   
+    The factorization has the form
+       A = U**T * U,  if UPLO = 'U', or
+       A = L  * L**T,  if UPLO = 'L',
+    where U is an upper triangular matrix and L is lower triangular.
 
-    Arguments   
-    =========   
+    Arguments
+    =========
 
-    UPLO    (input) CHARACTER*1   
-            = 'U':  Upper triangle of A is stored;   
-            = 'L':  Lower triangle of A is stored.   
+    UPLO    (input) CHARACTER*1
+            = 'U':  Upper triangle of A is stored;
+            = 'L':  Lower triangle of A is stored.
 
-    N       (input) INTEGER   
-            The order of the matrix A.  N >= 0.   
+    N       (input) INTEGER
+            The order of the matrix A.  N >= 0.
 
-    KD      (input) INTEGER   
-            The number of superdiagonals of the matrix A if UPLO = 'U',   
-            or the number of subdiagonals if UPLO = 'L'.  KD >= 0.   
+    KD      (input) INTEGER
+            The number of superdiagonals of the matrix A if UPLO = 'U',
+            or the number of subdiagonals if UPLO = 'L'.  KD >= 0.
 
-    AB      (input/output) DOUBLE PRECISION array, dimension (LDAB,N)   
-            On entry, the upper or lower triangle of the symmetric band   
-            matrix A, stored in the first KD+1 rows of the array.  The   
-            j-th column of A is stored in the j-th column of the array AB 
-  
-            as follows:   
-            if UPLO = 'U', AB(kd+1+i-j,j) = A(i,j) for MAX(1,j-kd)<=i<=j; 
-  
-            if UPLO = 'L', AB(1+i-j,j)    = A(i,j) for j<=i<=MIN(n,j+kd). 
-  
+    AB      (input/output) DOUBLE PRECISION array, dimension (LDAB,N)
+            On entry, the upper or lower triangle of the symmetric band
+            matrix A, stored in the first KD+1 rows of the array.  The
+            j-th column of A is stored in the j-th column of the array AB
 
-            On exit, if INFO = 0, the triangular factor U or L from the   
-            Cholesky factorization A = U**T*U or A = L*L**T of the band   
-            matrix A, in the same storage format as A.   
+            as follows:
+            if UPLO = 'U', AB(kd+1+i-j,j) = A(i,j) for MAX(1,j-kd)<=i<=j;
 
-    LDAB    (input) INTEGER   
-            The leading dimension of the array AB.  LDAB >= KD+1.   
-
-    INFO    (output) INTEGER   
-            = 0:  successful exit   
-            < 0:  if INFO = -i, the i-th argument had an illegal value   
-            > 0:  if INFO = i, the leading minor of order i is not   
-                  positive definite, and the factorization could not be   
-                  completed.   
-
-    Further Details   
-    ===============   
-
-    The band storage scheme is illustrated by the following example, when 
-  
-    N = 6, KD = 2, and UPLO = 'U':   
-
-    On entry:                       On exit:   
-
-        *    *   a13  a24  a35  a46      *    *   u13  u24  u35  u46   
-        *   a12  a23  a34  a45  a56      *   u12  u23  u34  u45  u56   
-       a11  a22  a33  a44  a55  a66     u11  u22  u33  u44  u55  u66   
-
-    Similarly, if UPLO = 'L' the format of A is as follows:   
-
-    On entry:                       On exit:   
-
-       a11  a22  a33  a44  a55  a66     l11  l22  l33  l44  l55  l66   
-       a21  a32  a43  a54  a65   *      l21  l32  l43  l54  l65   *   
-       a31  a42  a53  a64   *    *      l31  l42  l53  l64   *    *   
-
-    Array elements marked * are not used by the routine.   
-
-    Contributed by   
-    Peter Mayes and Giuseppe Radicati, IBM ECSEC, Rome, March 23, 1989   
-
-    ===================================================================== 
-  
+            if UPLO = 'L', AB(1+i-j,j)    = A(i,j) for j<=i<=MIN(n,j+kd).
 
 
-       Test the input parameters.   
+            On exit, if INFO = 0, the triangular factor U or L from the
+            Cholesky factorization A = U**T*U or A = L*L**T of the band
+            matrix A, in the same storage format as A.
 
-    
-   Parameter adjustments   
+    LDAB    (input) INTEGER
+            The leading dimension of the array AB.  LDAB >= KD+1.
+
+    INFO    (output) INTEGER
+            = 0:  successful exit
+            < 0:  if INFO = -i, the i-th argument had an illegal value
+            > 0:  if INFO = i, the leading minor of order i is not
+                  positive definite, and the factorization could not be
+                  completed.
+
+    Further Details
+    ===============
+
+    The band storage scheme is illustrated by the following example, when
+
+    N = 6, KD = 2, and UPLO = 'U':
+
+    On entry:                       On exit:
+
+        *    *   a13  a24  a35  a46      *    *   u13  u24  u35  u46
+        *   a12  a23  a34  a45  a56      *   u12  u23  u34  u45  u56
+       a11  a22  a33  a44  a55  a66     u11  u22  u33  u44  u55  u66
+
+    Similarly, if UPLO = 'L' the format of A is as follows:
+
+    On entry:                       On exit:
+
+       a11  a22  a33  a44  a55  a66     l11  l22  l33  l44  l55  l66
+       a21  a32  a43  a54  a65   *      l21  l32  l43  l54  l65   *
+       a31  a42  a53  a64   *    *      l31  l42  l53  l64   *    *
+
+    Array elements marked * are not used by the routine.
+
+    Contributed by
+    Peter Mayes and Giuseppe Radicati, IBM ECSEC, Rome, March 23, 1989
+
+    =====================================================================
+
+
+
+       Test the input parameters.
+
+
+   Parameter adjustments
        Function Body */
     /* Table of constant values */
     static integer c__1 = 1;
@@ -101,28 +101,28 @@
     static doublereal c_b18 = 1.;
     static doublereal c_b21 = -1.;
     static integer c__33 = 33;
-    
+
     /* System generated locals */
     integer ab_dim1, ab_offset, i__1, i__2, i__3, i__4;
     /* Local variables */
     static doublereal work[1056]	/* was [33][32] */;
     static integer i, j;
-    extern /* Subroutine */ int dgemm_(char *, char *, integer *, integer *, 
-	    integer *, doublereal *, doublereal *, integer *, doublereal *, 
+    extern /* Subroutine */ int dgemm_(char *, char *, integer *, integer *,
+	    integer *, doublereal *, doublereal *, integer *, doublereal *,
 	    integer *, doublereal *, doublereal *, integer *);
     extern logical lsame_(char *, char *);
-    extern /* Subroutine */ int dtrsm_(char *, char *, char *, char *, 
-	    integer *, integer *, doublereal *, doublereal *, integer *, 
+    extern /* Subroutine */ int dtrsm_(char *, char *, char *, char *,
+	    integer *, integer *, doublereal *, doublereal *, integer *,
 	    doublereal *, integer *);
     static integer i2, i3;
-    extern /* Subroutine */ int dsyrk_(char *, char *, integer *, integer *, 
+    extern /* Subroutine */ int dsyrk_(char *, char *, integer *, integer *,
 	    doublereal *, doublereal *, integer *, doublereal *, doublereal *,
 	     integer *), dpbtf2_(char *, integer *, integer *,
-	     doublereal *, integer *, integer *), dpotf2_(char *, 
+	     doublereal *, integer *, integer *), dpotf2_(char *,
 	    integer *, doublereal *, integer *, integer *);
     static integer ib, nb, ii, jj;
     extern /* Subroutine */ int xerbla_(char *, integer *);
-    extern integer ilaenv_(integer *, char *, char *, integer *, integer *, 
+    extern integer ilaenv_(integer *, char *, char *, integer *, integer *,
 	    integer *, integer *, ftnlen, ftnlen);
 
 
@@ -159,8 +159,8 @@
 
     nb = ilaenv_(&c__1, "DPBTRF", uplo, n, kd, &c_n1, &c_n1, 6L, 1L);
 
-/*     The block size must not exceed the semi-bandwidth KD, and must not 
-  
+/*     The block size must not exceed the semi-bandwidth KD, and must not
+
        exceed the limit set by the size of the local array WORK. */
 
     nb = MIN(nb,32);
@@ -177,10 +177,10 @@
 	if (lsame_(uplo, "U")) {
 
 /*           Compute the Cholesky factorization of a symmetric ban
-d   
+d
              matrix, given the upper triangle of the matrix in ban
-d   
-             storage.   
+d
+             storage.
 
              Zero the upper triangle of the work array. */
 
@@ -216,24 +216,24 @@ d
 		if (i + ib <= *n) {
 
 /*                 Update the relevant part of the trailin
-g submatrix.   
+g submatrix.
                    If A11 denotes the diagonal block which
- has just been   
-                   factorized, then we need to update the 
-remaining   
-                   blocks in the diagram:   
+ has just been
+                   factorized, then we need to update the
+remaining
+                   blocks in the diagram:
 
-                      A11   A12   A13   
-                            A22   A23   
-                                  A33   
+                      A11   A12   A13
+                            A22   A23
+                                  A33
 
-                   The numbers of rows and columns in the 
-partitioning   
+                   The numbers of rows and columns in the
+partitioning
                    are IB, I2, I3 respectively. The blocks
- A12, A22 and   
+ A12, A22 and
                    A23 are empty if IB = KD. The upper tri
-angle of A13   
-                   lies outside the band.   
+angle of A13
+                   lies outside the band.
 
    Computing MIN */
 		    i__3 = *kd - ib, i__4 = *n - i - ib + 1;
@@ -248,9 +248,9 @@ angle of A13
 
 			i__3 = *ldab - 1;
 			i__4 = *ldab - 1;
-			dtrsm_("Left", "Upper", "Transpose", "Non-unit", &ib, 
+			dtrsm_("Left", "Upper", "Transpose", "Non-unit", &ib,
 				&i2, &c_b18, &AB(*kd+1,i), &
-				i__3, &AB(*kd+1-ib,i+ib), 
+				i__3, &AB(*kd+1-ib,i+ib),
 				&i__4);
 
 /*                    Update A22 */
@@ -277,11 +277,11 @@ nto the work array. */
 /* L40: */
 			}
 
-/*                    Update A13 (in the work array). 
+/*                    Update A13 (in the work array).
 */
 
 			i__3 = *ldab - 1;
-			dtrsm_("Left", "Upper", "Transpose", "Non-unit", &ib, 
+			dtrsm_("Left", "Upper", "Transpose", "Non-unit", &ib,
 				&i3, &c_b18, &AB(*kd+1,i), &
 				i__3, work, &c__33);
 
@@ -321,10 +321,10 @@ ack into place. */
 	} else {
 
 /*           Compute the Cholesky factorization of a symmetric ban
-d   
+d
              matrix, given the lower triangle of the matrix in ban
-d   
-             storage.   
+d
+             storage.
 
              Zero the lower triangle of the work array. */
 
@@ -359,24 +359,24 @@ d
 		if (i + ib <= *n) {
 
 /*                 Update the relevant part of the trailin
-g submatrix.   
+g submatrix.
                    If A11 denotes the diagonal block which
- has just been   
-                   factorized, then we need to update the 
-remaining   
-                   blocks in the diagram:   
+ has just been
+                   factorized, then we need to update the
+remaining
+                   blocks in the diagram:
 
-                      A11   
-                      A21   A22   
-                      A31   A32   A33   
+                      A11
+                      A21   A22
+                      A31   A32   A33
 
-                   The numbers of rows and columns in the 
-partitioning   
+                   The numbers of rows and columns in the
+partitioning
                    are IB, I2, I3 respectively. The blocks
- A21, A22 and   
+ A21, A22 and
                    A32 are empty if IB = KD. The lower tri
-angle of A31   
-                   lies outside the band.   
+angle of A31
+                   lies outside the band.
 
    Computing MIN */
 		    i__3 = *kd - ib, i__4 = *n - i - ib + 1;
@@ -417,12 +417,12 @@ nto the work array. */
 /* L110: */
 			}
 
-/*                    Update A31 (in the work array). 
+/*                    Update A31 (in the work array).
 */
 
 			i__3 = *ldab - 1;
 			dtrsm_("Right", "Lower", "Transpose", "Non-unit", &i3,
-				 &ib, &c_b18, &AB(1,i), &i__3, 
+				 &ib, &c_b18, &AB(1,i), &i__3,
 				work, &c__33);
 
 /*                    Update A32 */
@@ -437,7 +437,7 @@ nto the work array. */
 /*                    Update A33 */
 
 			i__3 = *ldab - 1;
-			dsyrk_("Lower", "No Transpose", &i3, &ib, &c_b21, 
+			dsyrk_("Lower", "No Transpose", &i3, &ib, &c_b21,
 				work, &c__33, &c_b18, &AB(1,i+*kd), &i__3);
 
 /*                    Copy the upper triangle of A31 b

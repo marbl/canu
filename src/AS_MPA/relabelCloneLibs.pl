@@ -6,19 +6,19 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received (LICENSE.txt) a copy of the GNU General Public 
+#
+# You should have received (LICENSE.txt) a copy of the GNU General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
 #
-# $Id: relabelCloneLibs.pl,v 1.3 2005-12-16 22:13:07 catmandew Exp $
+# $Id: relabelCloneLibs.pl,v 1.4 2008-06-27 06:29:17 brianwalenz Exp $
 #
 
 use FileHandle;
@@ -79,15 +79,15 @@ for($i = 0; $i <= $#ARGV; $i++)
 {
   my $ifn = $ARGV[$i];
   my $ifh = new FileHandle $ifn, "r" or die "Failed to open $ifn for reading";
-  
+
   my $ofn = "/tmp/$ARGV[$i]";
   my $ofh = new FileHandle $ofn, "w" or die "Failed to open $ofn for writing";
 
   my $numChanged = 0;
-  
+
   # different format for intra vs inter files
   my $type = (($ARGV[$i] =~ m/_intra.txt$/) ? 0 : 1);
-  
+
   while(<$ifh>)
   {
     s/[\n\r\cZ]//g;
@@ -111,7 +111,7 @@ for($i = 0; $i <= $#ARGV; $i++)
           $numChanged++;
       }
     }
-    
+
     printf($ofh "%s", $fields[0]);
     my $j;
     for($j = 1; $j <= $#fields; $j++)
@@ -119,12 +119,12 @@ for($i = 0; $i <= $#ARGV; $i++)
       printf($ofh " %s", $fields[$j]);
     }
     printf($ofh "\n");
-  }  
+  }
   close($ifh);
   close($ofh);
 
   printf(STDERR "Changed $numChanged in $ifn\n");
-  
+
   my $command = "mv -f $ofn $ifn";
   if(system($command))
   {
