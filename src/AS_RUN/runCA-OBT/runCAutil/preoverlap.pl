@@ -141,8 +141,9 @@ sub preoverlap {
 
     if ((! -d "$wrk/$asm.gkpStore") ||
         (! -e "$wrk/$asm.gkpStore/frg")) {
+        my $bin = getBinDirectory();
 
-        #  Make sure all the inputs are here
+        #  Make sure all the inputs are here.  We also shred any supplied ace files.
         #
         my $failedFiles = 0;
         my $gkpInput = "";
@@ -151,11 +152,29 @@ sub preoverlap {
                 print STDERR "MISSING: $frg\n";
                 $failedFiles++;
             }
+
+            if ($frg =~ m/^(.*)\.ace$/) {
+                my @fff = split '/', $1;
+                my $ace = $frg;
+
+                my $w = "$wrk/0-preoverlap";
+
+                $frg = pop @fff;
+                $frg = "$w/$frg.frg";
+
+                unlink "$w/NB.contigs";
+                unlink "$w/NB.shred";
+                runCommand($w, "perl $bin/Generate_NonShallow_Contigs.pl -a $ace -f $w/NB.contigs");
+                runCommand($w, "perl $bin/Shred_Contigs.pl -f $w/NB.contigs > $w/NB.shred");
+                runCommand($w, "perl $bin/FASTA_to_frg_file.pl -f $w/NB.shred -q 3 > $frg");
+                unlink "$w/NB.contigs";
+                unlink "$w/NB.shred";
+            }
+
             $gkpInput .= " $frg";
         }
         caFailure("Files supplied on command line not found.\n") if ($failedFiles);
 
-        my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/gatekeeper ";
         $cmd .= " -o $wrk/$asm.gkpStore ";
