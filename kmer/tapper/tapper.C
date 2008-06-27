@@ -81,7 +81,7 @@ tapperReaderSingle(void *G) {
 
 void
 tapperWriter(void *G, void *S) {
-  tapperGlobalData  *g = (tapperGlobalData  *)G;
+  //tapperGlobalData  *g = (tapperGlobalData  *)G;
   tapperComputation *s = (tapperComputation *)S;
 
   s->writeHits(stdout);
@@ -135,6 +135,8 @@ u64bitcompare(void const *a, void const *b) {
 
 
 //  Compose the colors from beg to end.
+//
+inline
 char
 composeColors(char *colors, u32bit beg, u32bit end) {
   char c = colors[beg];
@@ -146,190 +148,282 @@ composeColors(char *colors, u32bit beg, u32bit end) {
 }
 
 
+//  Returns true if the the i and j errors result in a consistent
+//  encoding, and they're not too far away.  Consistent in that the
+//  sequence before agrees and the sequence after agrees.
+//
+inline
+bool
+isConsistent(char     *ref, char     *tag,
+             u32bit    i,   u32bit    j) {
+  return(composeColors(ref, i, j) == composeColors(tag, i, j));
+}
 
-//  Reencode the genomic sequence, using the same reference start as the tag.
-//
-//  tag          T3 1 0 2 1 1   encoded seeding with T
-//  tag          A C C T G T    decoded
-//
-//  genomic A 3 2 2 1 0 2 3 1   encoded seeding with A, and at the wrong spot, notice the tag matches
-//  genomic  T C T G G A T G C  real bases, we just have this around
-//  genomic      T1 0 2 3 1 3   reencode, seeding with a T at the same start as the tag
-//
-//  After reencoding, there is no agreement with the colorspace tag.
-//
-//  genomic  T C A C C T G T C  the correct sequence
-//  genomic   2 1 1 0 2 1 1 2   in color, note the first 3 in the tag doesn't match
-//  genomic     TA C C T G T C  reencoding with the first tag letter
-//  genomic     T31 0 2 1 1 2   now a match
-//
-//  Thus, if we locally reencode the genomic, we should end up
-//  with a color space sequence with the allowed number of
-//  errors.  At this point we can correct any color encoding
-//  issues (isolated changes) or detect any real base changes.
-//
-//  Count the number of differences between the tag and the reencoded genomic
-//
-u32bit
-alignToReference(tapperGlobalData *g,
-                 u64bit  so,
-                 u64bit  po,
-                 char   *tag, char *tagACGT, u32bit len,
-                 char   *ref, char *refACGT) {
 
-  char       *seq       = g->GS->getSequenceInCore(so)->sequence();
-  u32bit      ti = 0;
-  u32bit      si = po;
+
+//  Analyze tag[] and ref[], correct differences, call base changes.
+//  Return an ACGT sequence for the tag.
+//
+//  Compose the colors together.  At points where the compositions
+//  disagree, the base at that point is different.  The composition
+//  tells us how to transform the reference letter to the base at
+//  this position, in one step.
+//
+//  If our final composed value is different, then either we end on
+//  a SNP, or we have an error somewhere.  The choice here is
+//  arbitrary, and made depending on where that error is.
+//
+void
+tapperHit::alignToReference(tapperGlobalData *g,
+                            u32bit  so_in,
+                            u32bit  po_in,
+                            char   *tag_in, u32bit len_in) {
+
   u32bit      errs = 0;  //  number of errors
   u32bit      errp[64];  //  location of the errors
 
-  //  Analyze color[] and t[], correct differences, call base changes.
-  //  Return an ACGT sequence for the tag.
+  _seqIdx = so_in;
+  _seqPos = po_in;
 
-  //  Compose the colors together.  At points where the compositions
-  //  disagree, the base at that point is different.  The composition
-  //  tells us how to transform the reference letter to the base at
-  //  this position, in one step.
+  //  Yeah, we assume ASCII and UNIX newlines all over the place.  A
+  //  forward read starts with a reference base; reverse reads have a
+  //  number here.
+  _rev    = (tag_in[0] < 'A') ? true : false;
+
+  _len         = len_in;
+  _colorErrors = _len;
+  _basesErrors = _len;
+
+  _tagCOLOR[0] = 0;
+  _tagCOREC[0] = 0;
+  _refCOLOR[0] = 0;
+
+  _tagACGT[0] = 0;
+  _refACGT[0] = 0;
+
+
+  //  Copy the tag.
   //
-  //  If our final composed value is different, then either we end on
-  //  a SNP, or we have an error somewhere.  The choice here is
-  //  arbitrary, and made depending on where that error is.
+  //  A bit of devilish trickery to make a reverse read look like a
+  //  forward read - we locally reverse the reference and read,
+  //  process as if the reverse read is a forward read, then clean up
+  //  at the end.
+  //
+  {
+    strncpy(_tagCOLOR, tag_in, _len);
 
-  ref[0] = tag[0];
-  ref[1] = baseToColor[ref[0]][seq[po]];
+    if (_rev) {
+      reverseString(_tagCOLOR, _len);
+      _tagCOLOR[0] = complementSymbol[_tagCOLOR[0]];
+    }
 
-  if (ref[1] != tag[1]) {
-    errp[errs] = 1;
-    errs++;
+    strncpy(_tagCOREC, _tagCOLOR, _len);
+
+    _tagCOLOR[_len] = 0;
+    _tagCOREC[_len] = 0;
   }
 
-  for (ti=2, si=po+1; ti<len; ti++, si++) {
-    ref[ti] = baseToColor[seq[si-1]][seq[si]];
 
-    if (ref[ti] != tag[ti]) {
+  //  Copy the reference and convert the genomic sequence to
+  //  color space using the reference base of the read.
+  //
+  {
+    char     *seq = g->GS->getSequenceInCore(so_in)->sequence();
+
+    strncpy(_refACGT, seq + po_in, _len-1);
+    _refACGT[_len-1] = 0;
+
+    if (_rev)
+      reverseComplementSequence(_refACGT, _len - 1);
+
+    _refCOLOR[0] = _tagCOLOR[0];  //  ALWAYS the reference encoding base, as long as we copy the tag first.
+    _refCOLOR[1] = baseToColor[_refCOLOR[0]][_refACGT[0]];
+
+    for (u32bit ti=2; ti<_len; ti++)
+      _refCOLOR[ti] = baseToColor[_refACGT[ti-2]][_refACGT[ti-1]];
+
+    _refCOLOR[_len] = 0;
+  }
+
+  //fprintf(stderr, "tag: %s ref: %s %s\n", _tagCOLOR, _refCOLOR, _refACGT);
+
+  //  Count the number of color space errors
+  //
+  //  Note that errp[] is actaully 1-based; the first position is
+  //  never an error; it's the reference base.
+
+  for (u32bit ti=1; ti<_len; ti++) {
+    if (_tagCOLOR[ti] != _refCOLOR[ti]) {
       errp[errs] = ti;
       errs++;
     }
   }
 
-  tag[len] = 0;
-  ref[len] = 0;
-
-  //  Note that errp[] is actaully 1-based; the first position is never
-  //  an error; it's the reference base.
-
-  if ((errs == 0) || (errs > g->maxError)) {
-    fprintf(stdout, "error "u32bitFMT" %s -- %s at ref pos "u32bitFMT"\n", errs, tag, ref, po);
-    return(errs);
+  if (errs > g->maxColorError) {
+    _colorErrors = errs;
+    _basesErrors = _len;
+    return;
   }
 
-  //  Compose the colors.  If these are the same, we call the two
-  //  colors 'consistent' - the ACGT reads begin and end with the same
-  //  base.
   //
-  u32bit  tagc = composeColors(tag, 1, len);
-  u32bit  refc = composeColors(ref, 1, len);
-
-  //  Copy the tag colors so we can correct single color flaws to
-  //  generate the final ACGT.
+  //  The following if blocks correct single color errors using very
+  //  complicated rules.
   //
-  char        cor[64];
 
-  strcpy(cor, tag);
+  if        (errs == 0) {
+    //
+    //  No errors, nothing to correct.
+    //
 
-
-
-  if (errs == 1) {
-
+  } else if (errs == 1) {
+    //
+    //  If the error is exactly at the end, believe it's the start of
+    //  a SNP.  For a SNP to be at the start, we'll need two color
+    //  changes.  One color change at the start is a color error.  The
+    //  end is different, because we just don't know what the next
+    //  color would have been.  The beginning has the reference base
+    //  to anchor it.
+    //
     //  len-1 because we lose one letter when converting from color to acgt.
     //  errp[] is 1-based, so == len-1 is the last base in the tag.
     //
-    if ((errp[0]) == (len - 1)) {
-      //  Exactly at the end, believe it's the start of a SNP.  For a
-      //  SNP to be at the start, we'll need two color changes.  One
-      //  color change at the start is a color error.  The end is
-      //  different, because we just don't know what the next color
-      //  would have been.  The beginning has the reference base to
-      //  anchor it.
-      //
+    if ((errp[0]) == (_len - 1)) {
     } else {
       //  Correct it.
-      cor[errp[0]] = ref[errp[0]];
+      _tagCOREC[errp[0]] = _refCOLOR[errp[0]];
     }
-  }
 
+  } else if (errs == 2) {
+    bool  ok21  = isConsistent(_refCOLOR, _tagCOLOR, 1, _len) && (errp[1] - errp[0] < 4);
 
-  //  If there are two errors, and the whole string is consistent,
-  //  we'll call it a single mismatch block, if it is small.
-  //  Otherwise, we'll fix the two errors.
-  //
-  if (errs == 2) {
-    if ((tagc == refc) && (errp[1] - errp[0] < 4)) {
+    if (ok21) {
       //  MNP of size 4.
-    } else if (tagc == refc) {
-      //  Big MNP?  What to do?  Correct, I guess.
-      cor[errp[0]] = ref[errp[0]];
-      cor[errp[1]] = ref[errp[1]];
     } else {
       //  Correct 'em.
-      cor[errp[0]] = ref[errp[0]];
-      cor[errp[1]] = ref[errp[1]];
+      //_tagCOREC[errp[0]] = _refCOLOR[errp[0]];
+      //_tagCOREC[errp[1]] = _refCOLOR[errp[1]];
     }
-  }
 
+  } else if (errs == 3) {
+    bool   ok21 = isConsistent(_refCOLOR, _tagCOLOR,         1, errp[2]) && (errp[1] - errp[0] < 4);
+    bool   ok22 = isConsistent(_refCOLOR, _tagCOLOR, errp[0]+1, _len)    && (errp[2] - errp[1] < 4);
 
-  //  If there are three errors...
-  //
-  //  String consistent, and MNP block is small, let it through.
-  //
-  //  String not consistent, we need to see if the first two or last
-  //  two errors are consistent.  If so, declare the third error is a
-  //  color error and correct it.
-  //
-  if (errs == 3) {
-    if        ((tagc == refc) && (errp[2] - errp[0] < 5)) {
+    bool   ok31 = isConsistent(_refCOLOR, _tagCOLOR,         1, _len)    && (errp[2] - errp[0] < 5);
+
+    if        (ok31) {
       //  MNP of size 5
-    } else if (tagc == refc) {
-      //  Big MNP?  What to do?  Correct, I Guess.
-      cor[errp[0]] = ref[errp[0]];
-      cor[errp[1]] = ref[errp[1]];
-      cor[errp[2]] = ref[errp[2]];
-    } else if (composeColors(tag, 0, errp[2]) == composeColors(ref, 0, errp[2])) {
+    } else if (ok21) {
       //  First two ok, fix the third.
-      cor[errp[2]] = ref[errp[2]];
-    } else if (composeColors(tag, errp[0]+1, len) == composeColors(ref, errp[0]+1, len)) {
+      _tagCOREC[errp[2]] = _refCOLOR[errp[2]];
+    } else if (ok22) {
       //  Last two ok, fix the first.
-      cor[errp[0]] = ref[errp[0]];
+      _tagCOREC[errp[0]] = _refCOLOR[errp[0]];
     } else {
       //  Nothing consistent, fix all of 'em.
-      cor[errp[0]] = ref[errp[0]];
-      cor[errp[1]] = ref[errp[1]];
-      cor[errp[2]] = ref[errp[2]];
+      //_tagCOREC[errp[0]] = _refCOLOR[errp[0]];
+      //_tagCOREC[errp[1]] = _refCOLOR[errp[1]];
+      //_tagCOREC[errp[2]] = _refCOLOR[errp[2]];
+    }
+
+  } else if (errs == 4) {
+    bool   ok21 = isConsistent(_refCOLOR, _tagCOLOR,         1, errp[2]) && (errp[1] - errp[0] < 4);
+    bool   ok22 = isConsistent(_refCOLOR, _tagCOLOR, errp[0]+1, errp[2]) && (errp[2] - errp[1] < 4);
+    bool   ok23 = isConsistent(_refCOLOR, _tagCOLOR, errp[1]+1, _len)    && (errp[3] - errp[2] < 4);
+
+    bool   ok31 = isConsistent(_refCOLOR, _tagCOLOR,         1, errp[3]) && (errp[2] - errp[0] < 5);
+    bool   ok32 = isConsistent(_refCOLOR, _tagCOLOR, errp[0]+1, _len)    && (errp[3] - errp[1] < 5);
+
+    bool   ok41 = isConsistent(_refCOLOR, _tagCOLOR,         1, _len)    && (errp[3] - errp[0] < 6);
+
+    //  With two exceptions, exactly one of the ok's will be true.
+    //  The exceptions are:
+    //
+    //  a) ok21 and ok23 will imply ok41.  However there is nothing to
+    //  correct here.  We just need to make sure that we stop
+    //  processing rules on ok41.
+    //
+    //  b) ok41 and ok22.  Not sure if this can ever happen, but like
+    //  case a, we're ok if we stop after ok41.
+    //
+
+    if        (ok41) {
+      //  MNP of size 6
+    } else if (ok31) {
+      //  First three ok, fix the last one.
+      _tagCOREC[errp[3]] = _refCOLOR[errp[3]];
+    } else if (ok32) {
+      //  Last three ok, fix the first one.
+      _tagCOREC[errp[0]] = _refCOLOR[errp[0]];
+    } else if (ok21) {
+      //  First two ok, fix the last two.
+      _tagCOREC[errp[2]] = _refCOLOR[errp[2]];
+      _tagCOREC[errp[3]] = _refCOLOR[errp[3]];
+    } else if (ok22) {
+      //  Middle two ok, fix the outties.
+      _tagCOREC[errp[0]] = _refCOLOR[errp[0]];
+      _tagCOREC[errp[3]] = _refCOLOR[errp[3]];
+    } else if (ok23) {
+      //  Last two ok, fix the first two.
+      _tagCOREC[errp[0]] = _refCOLOR[errp[0]];
+      _tagCOREC[errp[3]] = _refCOLOR[errp[3]];
+    } else {
+      //  Nothing consistent, fix all of 'em.
+      //_tagCOREC[errp[0]] = _refCOLOR[errp[0]];
+      //_tagCOREC[errp[1]] = _refCOLOR[errp[1]];
+      //_tagCOREC[errp[2]] = _refCOLOR[errp[2]];
+      //_tagCOREC[errp[3]] = _refCOLOR[errp[3]];
+    }
+  } else if (errs == 5) {
+    //fprintf(stderr, "Five errors detected.  Code doesn't know what to do.\n");
+  } else if (errs == 6) {
+    //fprintf(stderr, "Six errors detected.  Code doesn't know what to do.\n");
+  } else {
+    //fprintf(stderr, "Wow, you got a lot of errors.  Code doesn't know what to do.\n");
+  }
+
+  //  Compute alignments of corrected color strings.
+
+  _colorErrors = errs;
+  _basesErrors = 0;
+
+  _tagACGT[0] = baseToColor[_tagCOREC[0]][_tagCOREC[1]];
+  _refACGT[0] = baseToColor[_refCOLOR[0]][_refCOLOR[1]];
+  for (u32bit ti=1; ti<_len; ti++) {
+    _tagACGT[ti] = baseToColor[_tagACGT[ti-1]][_tagCOREC[ti+1]];
+    _refACGT[ti] = baseToColor[_refACGT[ti-1]][_refCOLOR[ti+1]];
+  }
+  _tagACGT[_len-1] = 0;
+  _refACGT[_len-1] = 0;
+
+  for (u32bit ti=0; ti<_len-1; ti++) {
+    if (_tagACGT[ti] != _refACGT[ti]) {
+      _basesErrors++;
+
+      _tagACGT[ti] = toUpper[_tagACGT[ti]];
+      _refACGT[ti] = toUpper[_refACGT[ti]];
     }
   }
 
+  if (_rev) {
+    //  Undo the tag and ref reversals.
+    _tagCOLOR[0] = complementSymbol[_tagCOLOR[0]];
+    reverseString(_tagCOLOR, _len);
 
-  if (errs == 4) {
-    fprintf(stderr, "Four errors detected.  Code doesn't know what to do.\n");
-    exit(1);
+    _tagCOREC[0] = complementSymbol[_tagCOREC[0]];
+    reverseString(_tagCOREC, _len);
+
+    _refCOLOR[0] = complementSymbol[_refCOLOR[0]];
+    reverseString(_refCOLOR, _len);
+
+    //  Reverse complement the alignments
+
+    reverseComplementSequence(_tagACGT, _len-1);
+    reverseComplementSequence(_refACGT, _len-1);
+
+    //  Adjust the error positions...once we start caring about positions.
   }
 
-  tagACGT[0] = baseToColor[cor[0]][cor[1]];
-  refACGT[0] = baseToColor[ref[0]][ref[1]];
-  for (ti=1, si=2; si<len; ti++, si++) {
-    tagACGT[ti] = baseToColor[tagACGT[ti-1]][cor[si]];
-    refACGT[ti] = baseToColor[refACGT[ti-1]][ref[si]];
-    if (tagACGT[ti] != refACGT[ti]) {
-      tagACGT[ti] = toUpper[tagACGT[ti]];
-      refACGT[ti] = toUpper[refACGT[ti]];
-    }
-  }
-  tagACGT[len-1] = 0;
-  refACGT[len-1] = 0;
-
-  //fprintf(stderr, "tag:%s/%s\nref:%s/%s\n", tag, tagACGT, ref, refACGT);
-  
-  return(errs);
+  return;
 }
 
 
@@ -391,68 +485,53 @@ tapperWorkerSingle(void *G, void *T, void *S) {
   tapperThreadData  *t = (tapperThreadData  *)T;
   tapperComputation *s = (tapperComputation *)S;
 
+  u64bit   so;
+  u64bit   po;
+  u64bit   rev;
+
+  tapperHit  h;
+
   t->posn1fLen = 0;
   t->posn1rLen = 0;
 
-  g->PS->getUpToNMismatches(s->tag1f, g->maxError, t->posn1f, t->posn1fMax, t->posn1fLen);
-  g->PS->getUpToNMismatches(s->tag1r, g->maxError, t->posn1r, t->posn1rMax, t->posn1rLen);
+  g->PS->getUpToNMismatches(s->tag1f, g->maxColorError, t->posn1f, t->posn1fMax, t->posn1fLen);
+  g->PS->getUpToNMismatches(s->tag1r, g->maxColorError, t->posn1r, t->posn1rMax, t->posn1rLen);
 
-  if (t->posn1fLen + t->posn1rLen == 0) {
-    fprintf(stdout, "no hits for %s\n", s->tag1name);
+  if (t->posn1fLen + t->posn1rLen == 0)
     return;
-  }
+
+  //  True, only the mated worker really needs to put hits into the
+  //  hits array, but we need to acll tapperWorker_addHits to decode
+  //  the positions.
 
   if (t->hits1Max < t->posn1fLen + t->posn1rLen) {
     t->hits1Max = t->posn1fLen + t->posn1rLen;
     delete [] t->hits1;
     t->hits1 = new u64bit [t->posn1fLen + t->posn1rLen];
   }
+
   t->hits1Len = 0;
   t->hits1Len = tapperWorker_addHits(t->hits1, t->hits1Len, t->posn1f, t->posn1fLen, g, false, false);
   t->hits1Len = tapperWorker_addHits(t->hits1, t->hits1Len, t->posn1r, t->posn1rLen, g, false, true);
 
+  //
+  //  Do something useful with the hits, like verify them against the ACGT reference.
+  //
+
   for (u32bit i=0; i<t->hits1Len; i++) {
-    tapperHit  h   = {0};
-    u64bit     so  = (t->hits1[i] >> 33) & u64bitMASK(31);  //  Sequence it hits
-    u64bit     po  = (t->hits1[i] >> 2)  & u64bitMASK(31);  //  Position in sequence
-    u64bit     ta2 = (t->hits1[i] >> 1)  & 0x01;            //  isTag2
-    u64bit     rev = (t->hits1[i] >> 0)  & 0x01;            //  isReversed
+    so  = (t->hits1[i] >> 33) & u64bitMASK(31);  //  Sequence it hits
+    po  = (t->hits1[i] >> 2)  & u64bitMASK(31);  //  Position in sequence
+    rev = (t->hits1[i] >> 0)  & 0x01;            //  isReversed
 
-    //  We're ignoring the first base, so adjust the position to
-    //  include it.
-    po--;
+    po--;  //  Search ignores first letter, align needs it.
 
-    //
-    //  Do something useful with the hits, like verify them against the ACGT reference.
-    //
+    h.alignToReference(g, so, po,
+                       (rev) ? s->tag1rseq : s->tag1fseq,
+                       s->tag1size+2);
 
-    u32bit mm = 0;
-    char   tagACGT[64];
-    char   refACGT[64];
-
-    if (ta2) {
-      mm = alignToReference(g, so, po, (rev) ? s->tag2rseq : s->tag2fseq, tagACGT, s->tag2size+2, s->refseq, refACGT);
-    } else {
-      mm = alignToReference(g, so, po, (rev) ? s->tag1rseq : s->tag1fseq, tagACGT, s->tag1size+2, s->refseq, refACGT);
-    }
-
-    //fprintf(stderr, "hit: "u64bitFMT" @ "u64bitFMT" tag2:"u64bitFMT" rev:"u64bitFMT"\n", so, po, ta2, rev);
-
-    if (mm <= g->maxError) {
-      h.seqIdx     = so;
-
-      if (ta2) {
-        h.setOrientation(0, 0, 1, rev);
-        h.tag2pos = po;
-      } else {
-        h.setOrientation(1, rev, 0, 0);
-        h.tag1pos = po;
-      }
-
+    if ((h.numberOfColorErrors() <= g->maxColorError) &&
+        (h.numberOfBaseErrors()  <= g->maxBaseError))
       s->addHit(h);
-    } else {
-      fprintf(stdout, "too many errors ("u32bitFMT") for %s\n", mm, s->tag1name);
-    }
   }
 }
 
@@ -472,8 +551,11 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-queries") == 0) {
       g->qryName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-maxerror") == 0) {
-      g->maxError = strtou32bit(argv[++arg], 0L);
+    } else if (strcmp(argv[arg], "-maxcolorerror") == 0) {
+      g->maxColorError = strtou32bit(argv[++arg], 0L);
+
+    } else if (strcmp(argv[arg], "-maxbaseerror") == 0) {
+      g->maxBaseError = strtou32bit(argv[++arg], 0L);
 
     } else if (strcmp(argv[arg], "-numthreads") == 0) {
       g->numThreads = atoi(argv[++arg]);

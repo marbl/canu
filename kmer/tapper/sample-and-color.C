@@ -66,7 +66,7 @@ main(int argc, char **argv) {
 
     char     errors[256] = {0};
     char     errort[256] = {0};
-    u32bit   nerr = 0;
+    u32bit   nerr = 4;
 
     for (u32bit xx=0; xx<nerr; xx++) {
       u32bit e = mtRandom32(mtctx) % MS + 1;
@@ -80,7 +80,7 @@ main(int argc, char **argv) {
 
     //seq[ 1]++;   if (seq[ 1] > '3')   seq[ 1] = '0';
     //seq[33]++;   if (seq[33] > '3')   seq[33] = '0';
-    seq[10]++;   if (seq[10] > '3')   seq[10] = '0';
+    //seq[10]++;   if (seq[10] > '3')   seq[10] = '0';
 
     fprintf(stdout, ">i"u32bitFMT"_p"u32bitFMT"_%s%s\n%s\n", i, pos, cor+1, errors, seq);
   }

@@ -35,51 +35,25 @@ public:
       tag2rseq[i] = tag2fseq[i];
     }
 
-    //  Rebuild the tag, for reverse-complement.  Add a new base to
-    //  the end of the forward tag - this will become the new
-    //  reference letter.  We'll add a 'T'.
-    //
-    //  Reverse the color encoding.  Drop the last color (the first
-    //  color in forward).  Complement the T, append that to the
-    //  start.
-    //
-    //  The forward tag:
-    //    T 3 1 0 2 1 1
-    //     A C C T G T
-    //
-    //  Add the T to the end
-    //    T 3 1 0 2 1 1 0
-    //     A C C T G T T
-    //
-    //  Reverse the colors, drop the last, add the complement of the
-    //  new reference.
-    //    A 0 1 1 2 0 1
-    //     A C A G G T
-    //
+    //  It's not a trivial operation (probably not even possible) to
+    //  reverse-complement a SOLiD read.  To reverse complement a
+    //  read, we would need to construct a new reference base, but to
+    //  construct that base, we need to decode the read from color to
+    //  acgt.  Any errors in the read prevent precise decoding, and we
+    //  end up building the new reverse-complemented read with all the
+    //  errors at the start.  By adding the anchor base to the end,
+    //  we're fixing all the bases in error.
+    //  
+    //  So, we need to handle reverse reads specially.  Reverse the
+    //  read (color-space is self-complementing), and RC the anchor
+    //  base.  Any downstream processes need to know that a read has
+    //  the anchor at the start OR at the end.
 
-    char  l1 = tag1rseq[0];
-    char  l2 = tag2rseq[0];
+    tag1rseq[0] = complementSymbol[tag1rseq[0]];
+    tag2rseq[0] = complementSymbol[tag2rseq[0]];
 
-    fprintf(stderr, "l1=%c\n", l1);
-
-    for (u32bit i=1; i<seqlen; i++) {
-      l1 = baseToColor[l1][tag1rseq[i]];
-      l2 = baseToColor[l2][tag2rseq[i]];
-      fprintf(stderr, "l1=%c\n", l1);
-    }
-
-
-    tag1rseq[seqlen] = baseToColor[l1]['A'];
-    tag2rseq[seqlen] = baseToColor[l2]['A'];
-
-    tag1rseq[seqlen+1] = 'T';
-    tag2rseq[seqlen+1] = 'T';
-
-    tag1rseq[seqlen+2] = 0;
-    tag2rseq[seqlen+2] = 0;
-
-    reverseString(tag1rseq, seqlen+2);
-    reverseString(tag2rseq, seqlen+2);
+    reverseString(tag1rseq, seqlen);
+    reverseString(tag2rseq, seqlen);
 
     //  Make sure things are terminated.
 
@@ -97,8 +71,10 @@ public:
     //
     for (u32bit i=2; i<seqlen; i++) {
       tag1f += compressSymbol[tag1fseq[i]];
-      tag1r += compressSymbol[tag1rseq[i]];
       tag2f += compressSymbol[tag2fseq[i]];
+    }
+    for (u32bit i=0; i<seqlen-2; i++) {
+      tag1r += compressSymbol[tag1rseq[i]];
       tag2r += compressSymbol[tag2rseq[i]];
     }
 
@@ -125,7 +101,7 @@ public:
 
   void writeHits(FILE *OF) {
     for (u32bit i=0; i<hitsLen; i++)
-      hits[i].writeHit(OF, tag1name, tag1f, tag1r, tag2name, tag2f, tag2r);
+      hits[i].writeHit(OF, tag1name, tag1f, tag1r);
   };
 
 public:

@@ -10,7 +10,9 @@ public:
   bool    isMated;
 
   u32bit  tagSize;
-  u32bit  maxError;
+
+  u32bit  maxColorError;
+  u32bit  maxBaseError;
 
   seqFile    *QF;
 
@@ -31,7 +33,9 @@ public:
     isMated    = false;
 
     tagSize   = 0;
-    maxError  = 3;
+
+    maxColorError  = 3;
+    maxBaseError   = 5;
 
     QF = 0L;
 
@@ -84,12 +88,7 @@ public:
     fprintf(stderr, "Building positionDB\n");
     PS = new positionDB(MS, tagSize, 0, 0L, 0L, 0L, 0, 0, beVerbose, true);
 
-    if (maxError == 0) {
-      fprintf(stderr, "tapper: initialize()- maxError is 0 -- use snapper!\n");
-      //exit(1);
-    }
-
-    PS->setUpMismatchMatcher(maxError);
+    PS->setUpMismatchMatcher(maxColorError);
 
     GS = new FastACache(genName, 0, true, false);
   };
