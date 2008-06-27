@@ -430,52 +430,6 @@ tapperHit::alignToReference(tapperGlobalData *g,
 
 void
 tapperWorkerMated(void *G, void *T, void *S) {
-#if 0
-  tapperGlobalData  *g = (tapperGlobalData  *)G;
-  tapperThreadData  *t = (tapperThreadData  *)T;
-  tapperComputation *s = (tapperComputation *)S;
-
-  t->posn1fLen = 0;
-  t->posn1rLen = 0;
-  t->posn2fLen = 0;
-  t->posn2rLen = 0;
-
-  g->PS->getUpToNMismatches(s->tag1f, 3, t->posn1f, t->posn1fMax, t->posn1fLen);
-  g->PS->getUpToNMismatches(s->tag1r, 3, t->posn1r, t->posn1rMax, t->posn1rLen);
-
-  g->PS->getUpToNMismatches(s->tag2f, 3, t->posn2f, t->posn2fMax, t->posn2fLen);
-  g->PS->getUpToNMismatches(s->tag2r, 3, t->posn2r, t->posn2rMax, t->posn2rLen);
-
-  if (t->posn1fLen + t->posn1rLen + t->posn2fLen + t->posn2rLen == 0)
-    return;
-
-  if (t->hits1Max < t->posn1fLen + t->posn1rLen) {
-    t->hits1Max = t->posn1fLen + t->posn1rLen;
-    delete [] t->hits1;
-    t->hits1 = new u64bit [t->posn1fLen + t->posn1rLen];
-  }
-  t->hits1Len = 0;
-  t->hits1Len = tapperWorker_addHits(t->hits1, t->hits1Len, t->posn1f, t->posn1fLen, g, false, false);
-  t->hits1Len = tapperWorker_addHits(t->hits1, t->hits1Len, t->posn1r, t->posn1rLen, g, false, true);
-
-  if (t->hits2Max < t->posn2fLen + t->posn2rLen) {
-    t->hits2Max = t->posn2fLen + t->posn2rLen;
-    delete [] t->hits2;
-    t->hits2 = new u64bit [t->posn2fLen + t->posn2rLen];
-  }
-  t->hits2Len = 0;
-  t->hits2Len = tapperWorker_addHits(t->hits2, t->hits2Len, t->posn2f, t->posn2fLen, g, true,  false);
-  t->hits2Len = tapperWorker_addHits(t->hits2, t->hits2Len, t->posn2r, t->posn2rLen, g, true,  true);
-
-#warning score hits
-  //  Then score hits individually, throwing out any that are junk.
-  //  Probably should do that before we addHits?
-
-  //  Sort so we can do mate rescue.
-#warning use a real sort
-  qsort(t->hits1, t->hits1Len, sizeof(u64bit), u64bitcompare);
-  qsort(t->hits2, t->hits2Len, sizeof(u64bit), u64bitcompare);
-#endif
 }
 
 
@@ -523,7 +477,14 @@ tapperWorkerSingle(void *G, void *T, void *S) {
     po  = (t->hits1[i] >> 2)  & u64bitMASK(31);  //  Position in sequence
     rev = (t->hits1[i] >> 0)  & 0x01;            //  isReversed
 
-    po--;  //  Search ignores first letter, align needs it.
+    //  Search ignores first letter, align needs it.  This makes for a
+    //  very special case, 0.
+    if (po == 0)
+      continue;
+
+    //  Adjust the position to add in the first base that search is
+    //  ignoring.
+    po--;
 
     h.alignToReference(g, so, po,
                        (rev) ? s->tag1rseq : s->tag1fseq,
