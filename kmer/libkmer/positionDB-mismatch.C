@@ -273,14 +273,10 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
 
 
 
-
-
-
-
 //  Returns hits with _AT_MOST_ numMismatches mistakes.
 bool
 positionDB::getUpToNMismatches(u64bit   mer,
-                               u64bit   numMismatches,
+                               u32bit   numMismatches,
                                u64bit*& posn,
                                u64bit&  posnMax,
                                u64bit&  posnLen) {
@@ -297,7 +293,7 @@ positionDB::getUpToNMismatches(u64bit   mer,
     try {
       posn    = new u64bit [posnMax];
     } catch (...) {
-      fprintf(stderr, "positionDB::get()-- Can't allocate space for initial positions, requested "u64bitFMT" u64bit's.\n", posnMax);
+      fprintf(stderr, "positionDB::getUpToNMismatches()-- Can't allocate space for initial positions, requested "u64bitFMT" u64bit's.\n", posnMax);
       abort();
     }
   }
@@ -340,7 +336,7 @@ positionDB::getUpToNMismatches(u64bit   mer,
         diffs = chk ^ mer;
         d1    = diffs & u64bitNUMBER(0x5555555555555555);
         d2    = diffs & u64bitNUMBER(0xaaaaaaaaaaaaaaaa);
-        err = countNumberOfSetBits64(d1 | (d2 >> 1));
+        err   = countNumberOfSetBits64(d1 | (d2 >> 1));
 
         //fprintf(stderr, "mer "u64bitHEX" -- chk "u64bitHEX" (full)\n", mer, chk);
 

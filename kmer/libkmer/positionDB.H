@@ -76,18 +76,11 @@ public:
   u64bit      countExact(u64bit    mer);
 
   void        setUpMismatchMatcher(u32bit nErrorsAllowed);
-
   bool        getUpToNMismatches(u64bit      mer,
-                                 u64bit      maxMismatches,
+                                 u32bit      maxMismatches,
                                  u64bit*&    posn,
                                  u64bit&     posnMax,
                                  u64bit&     posnLen);
-  bool        getExactlyNMismatches(u64bit      mer,
-                                    u64bit      numMismatches,
-                                    u64bit*&    posn,
-                                    u64bit&     posnMax,
-                                    u64bit&     posnLen);
-
 private:
   u64bit      setCount(u64bit mer, u64bit count);
 
