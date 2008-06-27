@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.11 2008-06-27 06:29:16 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.12 2008-06-27 06:33:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,15 +59,21 @@ updateVectorClear(char *vectorClearFile, char *gkpStoreName) {
   fgets(line, 256, v);
   while (!feof(v)) {
     char          *pine = line;
+    char          *lstr;
+    char          *rstr;
+
+    chomp(line);
 
     AS_UID    uid = AS_UID_lookup(pine, &pine);
-    int       l   = strtol(pine, &pine, 10);
-    int       r   = strtol(pine, &pine, 10);
+    munch(pine);
+    int       l   = strtol(lstr = pine, &pine, 10);
+    munch(pine);
+    int       r   = strtol(rstr = pine, &pine, 10);
     int       ll;
     int       rr;
 
-    if (AS_UID_isDefined(uid) == FALSE) {
-      fprintf(stderr, "unexpected line: %s", line);
+    if (!isdigit(*lstr) || !isdigit(*rstr) || (AS_UID_isDefined(uid) == FALSE)) {
+      fprintf(stderr, "unexpected line: %s\n", line);
     } else {
       AS_IID     iid = getGatekeeperUIDtoIID(gkpStore, uid, NULL);
 
@@ -94,7 +100,7 @@ updateVectorClear(char *vectorClearFile, char *gkpStoreName) {
           if (rr >= AS_READ_MAX_LEN)    ll = AS_READ_MAX_LEN-1;
           if (ll <  0)                  rr = 0;
           if (rr >= AS_READ_MAX_LEN)    rr = AS_READ_MAX_LEN-1;
-          fprintf(stderr, "WARNING:  Fixing vector clear range for %s from (%d,%d) to (%d,%d).\n", l, r, ll, rr);
+          fprintf(stderr, "WARNING:  Fixing vector clear range for '%s' to (%d,%d).\n", line, ll, rr);
         }
 
         fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = ll;
