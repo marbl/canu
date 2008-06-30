@@ -74,21 +74,28 @@ Optional, download, configure, compile and install kmer.
 % cd ..
 \end{verbatim}
 
-Optional, download, configure, compile and install the UMD Overlapper.  UMD Overlapper is developed at the University of Maryland. For detailed usage and run instructions, visit http://www.genome.umd.edu/overlapper.htm.
+Optional, download, configure, compile and install the UMD Overlapper.
+UMD Overlapper is developed at the University of Maryland. For
+detailed usage and run instructions, visit
+http://www.genome.umd.edu/overlapper.htm.
 
 \begin{verbatim}
 % mkdir -p UMDOverlapper/Linux-amd64
 % cd UMDOverlapper/Linux-amd64
-% curl -o completeUMDDist.tar.gz ftp://genomepc2.umd.edu/pub/completeUMDDist.tar.gz
+% curl -o completeUMDDist.tar.gz \
+  ftp://genomepc2.umd.edu/pub/completeUMDDist.tar.gz
 % gzip -dc completeUMDDist.tar.gz | tar -xf -
 % perl Install.perl
 % cd ../..
 \end{verbatim}
 
-Optional, download, configure, compile and install Figaro.  Figaro is developed at the University of Maryland. For detailed usage and run instructions, visit http://amos.sourceforge.net/Figaro/Figaro.html.
+Optional, download, configure, compile and install Figaro.  Figaro is
+developed at the University of Maryland. For detailed usage and run
+instructions, visit http://amos.sourceforge.net/Figaro/Figaro.html.
 
 \begin{verbatim}
-% curl -o Figaro.tar.gz http://internap.dl.sourceforge.net/sourceforge/amos/Figaro-1.05.tar.gz
+% curl -o Figaro.tar.gz \
+  http://internap.dl.sourceforge.net/sourceforge/amos/Figaro-1.05.tar.gz
 % gzip -dc Figaro.tar.gz | tar -xf -
 % mkdir -p figaro
 % mv Figaro-1.05 figaro/Linux-amd64
@@ -167,6 +174,11 @@ perl $ASMBIN/runCA-OBT.pl \
 would assemble the {\tt bigfoot} genome using four fragment files, two
 of which are compressed.  Instead of a {\it specfile} we specify our
 few options on the command line.
+
+Fragment files must be in Celera Assembler format (.frg, either
+version 1 or version 2), in 454 Life Sciences Standard Flowgram File
+(.sff), or an ACE (.ace) assembly file.  Sequence in ACE files is
+first shredded to pseudo-reads.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -311,32 +323,37 @@ of if the fragment was deleted and why.
 
 \subsection{Assembled Sequences}
 
-Five sequence types are output: singleton reads, unitigs, contigs,
-scaffolds and degenerates.  A degenerate is a unitig that was never
-placed in a scaffold; however, it has both a contig UID and a
-(degenerate) scaffold UID.
+Five sequence types are output: singleton reads, unitigs, degenerates,
+contigs, and scaffolds.  A degenerate is a unitig that was never
+placed in a scaffold.
 
 All but singleton reads also have quality values in a separate file.
-These quality files are not quite fasta files because the character > is a valid
-quality value and can occasionally occur at the begining of a line as such.
+Two formats are generated, CA-encoded qualites (\$prefix.XXX.qv) and
+NCBI-encoded qualities (\$prefix.XXX.qual).  Note that the CA-encoded
+qualites are not quite fasta files because the character > is a valid
+quality value and can occasionally occur at the begining of a line.
 
 \begin{center}
-\begin{tabular}{|c|c|}
+\begin{tabular}{|l|l|}
 \hline
 \hline
 singleton reads      & {\tt \$prefix.singleton.fasta} \\
 \hline
-unitigs              & {\tt \$prefix.utgcns.fasta} \\
-                     & {\tt \$prefix.utgqlt.notFasta} \\
+unitigs              & {\tt \$prefix.utg.fasta} \\
+                     & {\tt \$prefix.utg.qv} \\
+                     & {\tt \$prefix.utg.qual} \\
 \hline
-degenerates          & {\tt \$prefix.degcns.fasta} \\
-                     & {\tt \$prefix.degqlt.notFasta} \\
+degenerates          & {\tt \$prefix.deg.fasta} \\
+                     & {\tt \$prefix.deg.qv} \\
+                     & {\tt \$prefix.deg.qual} \\
 \hline
-contigs              & {\tt \$prefix.ctgcns.fasta} \\
-                     & {\tt \$prefix.ctgqlt.notFasta} \\
+contigs              & {\tt \$prefix.ctg.fasta} \\
+                     & {\tt \$prefix.ctg.qv} \\
+                     & {\tt \$prefix.ctg.qual} \\
 \hline
-scaffolds            & {\tt \$prefix.scfcns.fasta} \\
-                     & {\tt \$prefix.scfqlt.notFasta} \\
+scaffolds            & {\tt \$prefix.scf.fasta} \\
+                     & {\tt \$prefix.scf.qv} \\
+                     & {\tt \$prefix.scf.qual} \\
 \hline
 \end{tabular}
 \end{center}
@@ -356,25 +373,31 @@ saying the ``smallUID'' thing is in the ``bigUID'' thing from position
 same sequence as is in the assembled sequences outputs.
 
 \begin{center}
-\begin{tabular}{|c|c|}
+\begin{tabular}{|l|l|}
 \hline
 \hline
-contig length   & \$prefix.posmap.ctglen \\
-scaffold length & \$prefix.posmap.scflen \\
+fragments        & \$prefix.posmap.frags \\
+mate pairs       & \$prefix.posmap.mates \\
 \hline
-fragments in contigs   & \$prefix.posmap.frgctg \\
-fragments in scaffolds & \$prefix.posmap.frgscf \\
+unitig length    & \$prefix.posmap.utglen \\
+degnerate length & \$prefix.posmap.deglen \\
+contig length    & \$prefix.posmap.ctglen \\
+scaffold length  & \$prefix.posmap.scflen \\
 \hline
+fragments in unitigs     & \$prefix.posmap.frgutg \\
+fragments in degenerates & \$prefix.posmap.frgdeg \\
+fragments in contigs     & \$prefix.posmap.frgctg \\
+fragments in scaffolds   & \$prefix.posmap.frgscf \\
+\hline
+unitigs in degenerates & \$prefix.posmap.utgdeg \\
 unitigs in contigs     & \$prefix.posmap.utgctg \\
 unitigs in scaffolds   & \$prefix.posmap.utgscf \\
 \hline
 contigs in scaffolds   & \$prefix.posmap.ctgscf \\
 \hline
-variation records in contigs   & \$prefix.posmap.varctg \\
-variation records in scaffolds & \$prefix.posmap.varscf \\
-\hline
-fragments in surrogates  & \$prefix.posmap.frgsurr \\
-surrogates in scaffolds  & \$prefix.posmap.surrscf \\
+variation records in degenerates & \$prefix.posmap.vardeg \\
+variation records in contigs     & \$prefix.posmap.varctg \\
+variation records in scaffolds   & \$prefix.posmap.varscf \\
 \hline
 \end{tabular}
 \end{center}
