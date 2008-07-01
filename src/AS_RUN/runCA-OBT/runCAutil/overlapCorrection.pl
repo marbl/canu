@@ -120,7 +120,14 @@ sub overlapCorrection {
         }
         close(F);
 
-        caFailure("$failedJobs failed.  Good luck.\n") if ($failedJobs);
+        if ($failedJobs) {
+            if (getGlobal("ovlOverlapper") eq "ovl") {
+                print STDERR "Remove $wrk/3-overlapcorrection/frgcorr.sh to try again.\n";
+            } else {
+                print STDERR "The failure is due to mer overlap seed extension.\n";
+            }
+            caFailure("$failedJobs failed.  Good luck.\n");
+        }
 
         my $bin = getBinDirectory();
         my $cmd;
@@ -255,7 +262,10 @@ sub overlapCorrection {
         }
         close(F);
 
-        caFailure("$failedJobs failed.  Good luck.") if ($failedJobs);
+        if ($failedJobs) {
+            print STDERR "Remove $wrk/3-overlapcorrection/ovlcorr.sh (or run by hand) to try again.\n";
+            caFailure("$failedJobs failed.  Good luck.");
+        }
 
         unlink "$wrk/3-overlapcorrection/$asm.frgcorr" if ($cleanup);
 
