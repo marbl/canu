@@ -130,9 +130,9 @@ sub preoverlap {
     #  Return if there are fragments in the store, and die if there
     #  are no fragments and no source files.
     #
-    #if ($numFrags > 0) {
-    #    goto stopafter;
-    #}
+    if ($numFrags > 0) {
+        goto stopafter;
+    }
 
     caFailure("ERROR: No fragment files specified, and stores not already created.\n")
     	if (scalar(@fragFiles) == 0);
