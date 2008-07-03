@@ -103,6 +103,8 @@ static
 void
 clearCacheSequenceDB(tSequenceDB *db) {
   fflush(db->dataFile[db->currentRevision]);
+  fprintf(stderr, "clearCacheSequenceDB() disabled.\n");
+  return;
   ClearMultiAlignStoreT(db->UnitigStore);
   ClearMultiAlignStoreT(db->ContigStore);
 }
