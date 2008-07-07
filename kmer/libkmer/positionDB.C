@@ -88,17 +88,6 @@ positionDB::positionDB(merStream          *MS,
   if (2 * merSize + posnWidth + 1 < 64)
     sm = 2;
 
-  //  The mismatch search bogs down if the tblBits is too small --
-  //  this makes buckets larger, and we spend more time searching.
-  //
-  //  30 was fast, but 16GB, and slow to build
-  //
-#if 0
-#define MINSIZE 20
-  if ((isForMismatches) && (sm < MINSIZE) && (MINSIZE < lg))
-    sm = MINSIZE;
-#endif
-
   if (sm > lg) {
     fprintf(stderr, "ERROR:  too many mers for this mersize!\n");
     fprintf(stderr, "        sm         = "u64bitFMT"\n", sm);
@@ -109,16 +98,6 @@ positionDB::positionDB(merStream          *MS,
     exit(1);
   }
 
-#if 0
-  //  Useful for debugging, but generates LOTS of verbage in
-  //  production snapper.
-  fprintf(stderr, "        sm         = "u64bitFMT"\n", sm);
-  fprintf(stderr, "        lg         = "u64bitFMT"\n", lg);
-  fprintf(stderr, "        merSize    = "u32bitFMT" bits\n", 2 * merSize);
-  fprintf(stderr, "        approxMers = "u64bitFMT" mers\n", approxMers);
-  fprintf(stderr, "        posnWidth  = "u64bitFMT" bits\n", posnWidth);
-#endif
-
   //  Iterate through all the choices, picking the one with the
   //  smallest expected footprint.
   //
@@ -126,24 +105,13 @@ positionDB::positionDB(merStream          *MS,
   u64bit  mins = ~mini;  //  memory size of the smallest found (~mini == biggest int)
   u64bit  one  = 1;
   for (u64bit i=sm; i<=lg; i++) {
-
     u64bit  mm = (one << i) * posnWidth + approxMers * (2*merSize - i + 1 + posnWidth);
 
-    //  If the ts is even, and shift1 is even, and shift2 is even,
-    //  this is a valid tablesize to consider.
-#if 0
-    if (isForMismatches) {
-      u32bit  s1 = 2 * merSize - i;
-      u32bit  s2 = s1 / 2;
-
-      if (((i % 2) == 1) || ((s1 % 2) == 1) || ((s2 % 2) == 1)) {
-        if (beVerbose)
-          fprintf(stderr, "tblBits="u64bitFMT" s1="u32bitFMT" s2="u32bitFMT" -- merSize="u32bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT" SKIP.\n",
-                  i, s1, s2, merSize, posnWidth, approxMers, mm);
-        continue;
-      }
-    }
-#endif
+    //  Anecdotal evidence (handful of experiments on 24G Quad Intel)
+    //  showed that multiples of 4 are MUCH faster.
+    //
+    if ((isForMismatches) && ((i % 4) != 0))
+      continue;
 
     if (mm < mins) {
       if (beVerbose) {
@@ -387,7 +355,7 @@ positionDB::build(merStream          *MS,
   for (u64bit i=0; i<bucketsSpace; i++)
     _countingBuckets[i] = ~u64bitZERO;
 
-  for (u32bit i=0; i<_tableSizeInEntries; i++) {
+  for (u64bit i=0; i<_tableSizeInEntries; i++) {
     endPosition     += _bucketSizes[i];
     _bucketSizes[i]  = endPosition;
   }
@@ -483,7 +451,7 @@ positionDB::build(merStream          *MS,
   C = 0L;
 
 #ifdef ERROR_CHECK_COUNTING
-  for (u32bit i=0; i<_tableSizeInEntries; i++)
+  for (u64bit i=0; i<_tableSizeInEntries; i++)
     if (_errbucketSizes[i] != 0)
       fprintf(stdout, "ERROR_CHECK_COUNTING: Bucket "u32bitFMT" wasn't filled fully?  "u32bitFMT" left over.\n", i, _errbucketSizes[i]);
 
@@ -503,8 +471,8 @@ positionDB::build(merStream          *MS,
   if (beVerbose)
     fprintf(MSG_OUTPUT, "    Sorting and repacking buckets ("u64bitFMT" buckets).\n", _tableSizeInEntries);
 
-  C = new speedCounter("    %7.2f Mbuckets -- %5.2f Mbuckets/second\r", 1000000.0, 0x1fffff, beVerbose);
-  for (u32bit i=0; i<_tableSizeInEntries; i++) {
+  C = new speedCounter("    %7.2f Mbuckets -- %5.2f Mbuckets/second\r", 1000000.0, 0x1ffffff, beVerbose);
+  for (u64bit i=0; i<_tableSizeInEntries; i++) {
     sortAndRepackBucket(i);
     C->tick();
   }
@@ -656,7 +624,7 @@ positionDB::build(merStream          *MS,
   _numberOfEntries   = 0;
   _maximumEntries    = 0;
 
-  C = new speedCounter("    %7.2f Mbuckets -- %5.2f Mbuckets/second\r", 1000000.0, 0x1fffff, beVerbose);
+  C = new speedCounter("    %7.2f Mbuckets -- %5.2f Mbuckets/second\r", 1000000.0, 0x1ffffff, beVerbose);
 
   //  We need b outside the loop!
   //
@@ -1047,4 +1015,5 @@ positionDB::~positionDB() {
   delete [] _hashTable;
   delete [] _buckets;
   delete [] _positions;
+  delete [] _hashedErrors;
 }

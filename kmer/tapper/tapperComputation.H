@@ -1,5 +1,5 @@
 
-#define TAGNAMEMAX  1024
+#define TAGNAMEMAX  256
 
 class tapperComputation {
 public:
@@ -81,7 +81,7 @@ public:
     //fprintf(stderr, "T1: %s/%s T2:%s/%s\n", tag1fseq, tag1rseq, tag2fseq, tag2rseq);
 
     hitsLen = 0;
-    hitsMax = 1024;
+    hitsMax = 16;
     hits    = new tapperHit [hitsMax];
   };
   ~tapperComputation() {
@@ -111,13 +111,11 @@ public:
   u32bit      tag1size;
   u32bit      tag2size;
 
-  char        tag1name[1024];
-  char        tag2name[1024];
+  char        tag1name[TAGNAMEMAX];
+  char        tag2name[TAGNAMEMAX];
 
   char        tag1fseq[64], tag1rseq[64];
   char        tag2fseq[64], tag2rseq[64];
-
-  char        refseq[64];
 
   u32bit      hitsLen;
   u32bit      hitsMax;

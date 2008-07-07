@@ -269,6 +269,11 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
   memcpy(_hashedErrors, strings, sizeof(u64bit) * _hashedErrorsLen);
 
   delete [] strings;
+
+  fprintf(stderr, "Built "u32bitFMT" hashed errors.\n", _hashedErrorsLen);
+
+  //for (u32bit i=0; i<_hashedErrorsLen; i++)
+  //  fprintf(stderr, "he["u32bitFMTW(5)"] = "u64bitHEX"\n", i, _hashedErrors[i]);
 }
 
 
@@ -280,6 +285,8 @@ positionDB::getUpToNMismatches(u64bit   mer,
                                u64bit*& posn,
                                u64bit&  posnMax,
                                u64bit&  posnLen) {
+
+  PREFETCH(_hashedErrors);  //  Slightly better.
 
   posnLen = 0;
 
@@ -298,53 +305,48 @@ positionDB::getUpToNMismatches(u64bit   mer,
     }
   }
 
-  u64bit  hash = u64bitZERO;
   u64bit  orig = HASH(mer);
-  u64bit  st;
-  u64bit  ed;
+
+  //  Optimization that didn't work.  The idea was to compute all the
+  //  hashes with errors, then sort to gain better cache locality in
+  //  the lookups.  The sort dominated.
+  //
+  //  Another: Surprisingly, theq two getDecodedValue calls are faster
+  //  than a single getDecodedValues.
 
   for (u32bit e=0; e<_hashedErrorsLen; e++) {
-    hash = orig ^ _hashedErrors[e];
-    st   = getDecodedValue(_hashTable, hash * _hashWidth,              _hashWidth);
-    ed   = getDecodedValue(_hashTable, hash * _hashWidth + _hashWidth, _hashWidth);
+    u64bit hash = orig ^ _hashedErrors[e];
+    u64bit st   = getDecodedValue(_hashTable, hash * _hashWidth,              _hashWidth);
+    u64bit ed   = getDecodedValue(_hashTable, hash * _hashWidth + _hashWidth, _hashWidth);
 
-    for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin) {
+    //  Rebuild the mer from the hash and its check code.
+    //
+    //  Compare the rebuilt mer and the original mer -- if there are
+    //  exactly N errors, it's a hit!  (if there are fewer than N,
+    //  we'll find it when we look for N-1 errors).
+    //
+    //  Before rebuilding, compute diffs on the chckBits only -- if
+    //  things are wildly different (the usual case) we'll get
+    //  enough difference here to abort.  Remember, the chck bits
+    //  are not encoded, they're an exact copy from the unhashed
+    //  mer.
 
-      //  Rebuild the mer from the hash and its check code.
-      //
-      //  Compare the rebuilt mer and the original mer -- if there are
-      //  exactly N errors, it's a hit!  (if there are fewer than N,
-      //  we'll find it when we look for N-1 errors).
-      //
-      //  Before rebuilding, compute diffs on the chckBits only -- if
-      //  things are wildly different (the usual case) we'll get
-      //  enough difference here to abort.  Remember, the chck bits
-      //  are not encoded, they're an exact copy from the unhashed
-      //  mer.
-      
-      u64bit  chck  = getDecodedValue(_buckets, J, _chckWidth);
-      u64bit  chk   = chck;
-      u64bit  diffs = chk ^ (mer & _mask2);
-      u64bit  d1    = diffs & u64bitNUMBER(0x5555555555555555);
-      u64bit  d2    = diffs & u64bitNUMBER(0xaaaaaaaaaaaaaaaa);
-      u32bit  err   = countNumberOfSetBits64(d1 | (d2 >> 1));
-
-      //fprintf(stderr, "mer "u64bitHEX" -- chk "u64bitHEX" (partial)\n", mer & _mask2, chk);
+    for (u64bit i=ed-st, J=st * _wFin; i--; J += _wFin) {
+      u64bit chck  = getDecodedValue(_buckets, J, _chckWidth);
+      u64bit diffs = chck ^ (mer & _mask2);
+      u64bit d1    = diffs & u64bitNUMBER(0x5555555555555555);
+      u64bit d2    = diffs & u64bitNUMBER(0xaaaaaaaaaaaaaaaa);
+      u64bit err   = countNumberOfSetBits64(d1 | (d2 >> 1));
 
       if (err <= numMismatches) {
-        chk   = REBUILD(hash, chck);
-        diffs = chk ^ mer;
+        diffs = REBUILD(hash, chck) ^ mer;
         d1    = diffs & u64bitNUMBER(0x5555555555555555);
         d2    = diffs & u64bitNUMBER(0xaaaaaaaaaaaaaaaa);
         err   = countNumberOfSetBits64(d1 | (d2 >> 1));
 
-        //fprintf(stderr, "mer "u64bitHEX" -- chk "u64bitHEX" (full)\n", mer, chk);
-
-        if (err <= numMismatches) {
-          //fprintf(stderr, "mer:"u64bitHEX" -- "u64bitFMT" MISMATCHES\n", mer, err);
-          u64bit c = 0;
-          loadPositions(J, posn, posnMax, posnLen, c);
-        }
+        if (err <= numMismatches)
+          //  err is junk, just need a parameter here
+          loadPositions(J, posn, posnMax, posnLen, err);
       }
     }
   }

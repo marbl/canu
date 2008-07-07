@@ -115,7 +115,12 @@ tapperWorker_addHits(u64bit *hits, u32bit hitsLen, u64bit *posn, u64bit posnLen,
     pos -= g->SS->startOf(seq);
     seq  = g->SS->IIDOf(seq);
 
-    hits[hitsLen++] = (seq << 33) | (pos << 2) | ta2rev;
+    //  Search ignores first letter, align needs it.  This makes for a
+    //  very special case, 0, which isn't a full match.
+    if (pos > 0) {
+      pos--;
+      hits[hitsLen++] = (seq << 33) | (pos << 2) | ta2rev;
+    }
   }
 
   return(hitsLen);
@@ -178,6 +183,8 @@ tapperHit::alignToReference(tapperGlobalData *g,
                             u32bit  so_in,
                             u32bit  po_in,
                             char   *tag_in, u32bit len_in) {
+
+  //  This function is NOT a bottleneck.  Don't bother optimizing.
 
   u32bit      errs = 0;  //  number of errors
   u32bit      errp[64];  //  location of the errors
@@ -438,12 +445,7 @@ tapperWorkerSingle(void *G, void *T, void *S) {
   tapperGlobalData  *g = (tapperGlobalData  *)G;
   tapperThreadData  *t = (tapperThreadData  *)T;
   tapperComputation *s = (tapperComputation *)S;
-
-  u64bit   so;
-  u64bit   po;
-  u64bit   rev;
-
-  tapperHit  h;
+  tapperHit          h;
 
   t->posn1fLen = 0;
   t->posn1rLen = 0;
@@ -473,18 +475,9 @@ tapperWorkerSingle(void *G, void *T, void *S) {
   //
 
   for (u32bit i=0; i<t->hits1Len; i++) {
-    so  = (t->hits1[i] >> 33) & u64bitMASK(31);  //  Sequence it hits
-    po  = (t->hits1[i] >> 2)  & u64bitMASK(31);  //  Position in sequence
-    rev = (t->hits1[i] >> 0)  & 0x01;            //  isReversed
-
-    //  Search ignores first letter, align needs it.  This makes for a
-    //  very special case, 0.
-    if (po == 0)
-      continue;
-
-    //  Adjust the position to add in the first base that search is
-    //  ignoring.
-    po--;
+    u64bit so  = (t->hits1[i] >> 33) & u64bitMASK(31);  //  Sequence it hits
+    u64bit po  = (t->hits1[i] >> 2)  & u64bitMASK(31);  //  Position in sequence
+    u64bit rev = (t->hits1[i] >> 0)  & 0x01;            //  isReversed
 
     h.alignToReference(g, so, po,
                        (rev) ? s->tag1rseq : s->tag1fseq,
@@ -543,8 +536,8 @@ main(int argc, char **argv) {
                                 (g->isMated) ? tapperWorkerMated : tapperWorkerSingle,
                                 tapperWriter);
 
-  ss->loaderQueueSize(10240);
-  ss->writerQueueSize(10240);
+  ss->loaderQueueSize(65536);
+  ss->writerQueueSize(16384);
 
   ss->numberOfWorkers(g->numThreads);
 

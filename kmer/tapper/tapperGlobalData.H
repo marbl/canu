@@ -83,7 +83,7 @@ public:
     SS = new seqStream(colName, true);
 
     fprintf(stderr, "Building merStream\n");
-    MS = new merStream(new kMerBuilder(tagSize), SS);
+    MS = new merStream(new kMerBuilder(tagSize), SS);  //  MEMORY LEAK kMerBuilder
 
     fprintf(stderr, "Building positionDB\n");
     PS = new positionDB(MS, tagSize, 0, 0L, 0L, 0L, 0, 0, beVerbose, true);

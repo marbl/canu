@@ -67,12 +67,25 @@ reverseBits64(u64bit x) {
 }
 
 
+#if (__GNUC__ > 3) || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4)
+#define PREFETCH(x) __builtin_prefetch((x), 0, 0)
+#else
+#define PREFETCH(x)
+#endif
 
 
-#if 0
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4)
 
-//  Untested, unused.  Now, if we had a reverseBits builtin...
+
+//  Amazingingly, this is slower.  From what I can google, the builtin
+//  is using the 2^16 lookup table method - so a 64-bit popcount does
+//  4 lookups in the table and sums.  Bad cache performance in codes
+//  that already have bad cache performance, I'd guess.
+//
+//#if (__GNUC__ > 3) || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4)
+//#define BUILTIN_POPCOUNT
+//#endif
+
+#ifdef BUILTIN_POPCOUNT
 
 inline
 u32bit
@@ -83,12 +96,10 @@ countNumberOfSetBits32(u32bit x) {
 inline
 u64bit
 countNumberOfSetBits64(u64bit x) {
-  return(__builtin_popcountl(x));
+  return(__builtin_popcountll(x));
 }
 
-#endif
-#endif
-
+#else
 
 inline
 u32bit
@@ -113,6 +124,7 @@ countNumberOfSetBits64(u64bit x) {
   return(x);
 }
 
+#endif
 
 
 

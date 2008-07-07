@@ -29,8 +29,6 @@ public:
                           char  *tag, u32bit len);
 
 private:
-  static const u32bit  oLookup[16];
-
   u32bit  _seqIdx;
   u32bit  _seqPos;
 

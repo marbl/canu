@@ -104,6 +104,7 @@ getDecodedValue(u64bit *ptr,
                 u64bit  pos,
                 u64bit  siz) {
   u64bit wrd = (pos >> 6) & 0x0000cfffffffffffllu;
+  //PREFETCH(ptr + wrd);  makes it worse
   u64bit bit = (pos     ) & 0x000000000000003fllu;
   u64bit b1  = 64 - bit;
   u64bit ret = 0;
@@ -185,6 +186,7 @@ getDecodedValues(u64bit *ptr,
   //  just walk through to get the remaining words.
 
   u64bit wrd = (pos >> 6) & 0x0000cfffffffffffllu;
+  //PREFETCH(ptr + wrd);  makes it worse
   u64bit bit = (pos     ) & 0x000000000000003fllu;
   u64bit b1  = 0;
 
