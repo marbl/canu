@@ -1,0 +1,213 @@
+#include "util++.H"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <fcntl.h>
+
+//  N.B. any read() / write() pair (either order) must have a seek (or
+//  a fflush) in between.
+
+u64bit   recordFileMagic1 = 0x7265636f72644669llu;
+u64bit   recordFileMagic2 = 0x6c65000000000000llu;
+
+recordFile::recordFile(char const *name,
+                       u32bit      headerSize,
+                       u32bit      recordSize,
+                       bool        append) {
+
+  _file = 0;
+  _name = new char [strlen(name) + 1];
+  strcpy(_name, name);
+
+  _numRecords = 0;
+  _recordSize   = recordSize;
+
+  _headerSize   = headerSize;
+  _header       = new char [_headerSize];
+
+  memset(_header, 0, sizeof(char) * _headerSize);
+
+  _bfrmax       = 1048576 / _recordSize;
+  _bfr          = new char [_bfrmax * _recordSize];
+  _pos          = u64bitZERO;
+  _rec          = 0;
+
+  memset(_bfr, 0, sizeof(char) * _bfrmax * _recordSize);
+
+  _bfrDirty     = false;
+  _isReadOnly   = true;
+
+  //  If the file doesn't exist, we're basically done.  Do that first.
+  //    Write the magic.
+  //    Write the metadata.
+  //    Write the header.
+
+  if (fileExists(_name) == false) {
+    errno = 0;
+    _file = open(_name,
+                 O_RDWR | O_CREAT | O_LARGEFILE,
+                 S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    if (errno)
+      fprintf(stderr, "recordFile::recordFile()-- failed to open '%s': %s\n",
+              _name, strerror(errno)), exit(1);
+    _isReadOnly = false;
+
+    write(_file, &recordFileMagic1,  sizeof(u64bit));
+    write(_file, &recordFileMagic2,  sizeof(u64bit));
+    write(_file, &_numRecords,       sizeof(u64bit));
+    write(_file, &_recordSize,       sizeof(u32bit));
+    write(_file, &_headerSize,       sizeof(u32bit));
+    write(_file,  _header,           sizeof(char) * _headerSize);
+
+    if (errno)
+      fprintf(stderr, "recordFile::recordFile()-- failed to write header to '%s': %s\n",
+              _name, strerror(errno)), exit(1);
+
+    return;
+  }
+
+  //  File does exist.  If we're not appending, open it read-only.
+  //  Otherwise, open read-write.
+
+  if (append) {
+    errno = 0;
+    _file = open(_name,
+                 O_RDWR | O_LARGEFILE,
+                 S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    if (errno)
+      fprintf(stderr, "recordFile::recordFile()-- failed to open for append '%s': %s\n",
+              _name, strerror(errno)), exit(1);
+    _isReadOnly = false;
+  } else {
+    errno = 0;
+    _file = open(_name,
+                 O_RDONLY | O_LARGEFILE,
+                 S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    if (errno)
+      fprintf(stderr, "recordFile::recordFile()-- failed to open '%s': %s\n",
+              _name, strerror(errno)), exit(1);
+    _isReadOnly = true;
+  }
+
+  //  Read the magic, metadata and header.
+
+  {
+    u64bit m1, m2;
+
+    errno = 0;
+
+    read(_file, &m1,                sizeof(u64bit));
+    read(_file, &m2,                sizeof(u64bit));
+    read(_file, &_numRecords,       sizeof(u64bit));
+    read(_file, &_recordSize,       sizeof(u32bit));
+    read(_file, &_headerSize,       sizeof(u32bit));
+    read(_file,  _header,           sizeof(char) * _headerSize);
+
+    if (errno)
+      fprintf(stderr, "recordFile::recordFile()-- failed to read header from '%s': %s\n",
+              _name, strerror(errno)), exit(1);
+
+    if ((m1 != recordFileMagic1) || (m2 != recordFileMagic2))
+      fprintf(stderr, "recordFile::recordFile()-- magic number disagreement; '%s' not a recordFile?\n",
+              _name), exit(1);
+  }
+
+  seek(0);
+}
+
+
+recordFile::~recordFile() {
+  flushDirty();
+
+  errno = 0;
+  lseek(_file, 0, SEEK_SET);
+  if (errno)
+    fprintf(stderr, "recordFile::~recordFile()-- seek to start of '%s' failed: %s\n", _name, strerror(errno)), exit(1);
+
+  write(_file, &recordFileMagic1,  sizeof(u64bit));
+  write(_file, &recordFileMagic2,  sizeof(u64bit));
+  write(_file, &_numRecords,       sizeof(u64bit));
+  write(_file, &_recordSize,       sizeof(u32bit));
+  write(_file, &_headerSize,       sizeof(u32bit));
+  write(_file,  _header,           sizeof(char) * _headerSize);
+
+  if (errno)
+    fprintf(stderr, "recordFile::~recordFile()-- failed to write header to '%s': %s\n",
+            _name, strerror(errno)), exit(1);
+
+  close(_file);
+
+  if (errno)
+    fprintf(stderr, "recordFile::~recordFile()-- failed to close '%s': %s\n",
+            _name, strerror(errno)), exit(1);
+
+  delete [] _bfr;
+  delete [] _name;
+  delete [] _header;
+}
+
+
+
+//  If the page is dirty, flush it to disk
+//
+void
+recordFile::flushDirty(void) {
+
+  if (_bfrDirty == false)
+    return;
+
+  if (_isReadOnly)
+    fprintf(stderr, "recordFile::recordFile()-- '%s' is readonly, but is dirty!\n", _name), exit(1);
+
+  errno = 0;
+  lseek(_file, 32 + _headerSize + _pos * _recordSize, SEEK_SET);
+  if (errno)
+    fprintf(stderr, "recordFile::seek()-- '%s' failed: %s\n", _name, strerror(errno)), exit(1);
+
+  //  Write records up to, not including, _rec.  Unlike the
+  //  bitPackedFile, there is no issue with partially filled words
+  //  here.
+  //
+  errno = 0;
+  write(_file, _bfr, _recordSize * _bfrmax);
+  if (errno)
+    fprintf(stderr, "recordFile::write()-- '%s' failed: %s\n", _name, strerror(errno)), exit(1);
+
+  _bfrDirty = false;
+}
+
+
+
+//  Seeks to rec in the file, reads in a new block.
+//
+void
+recordFile::seek(u64bit rec) {
+
+  //  If we are seeking to somewhere in the current block, don't do a
+  //  real seek, just move our position within the block.
+  //
+  if ((_pos <= rec) && (rec < _pos + _bfrmax)) {
+    _rec = rec - _pos;
+    return;
+  }
+
+  flushDirty();
+
+  _pos = rec;  //  Root of buffer is now here
+  _rec = 0;    //  See?
+
+  errno = 0;
+  lseek(_file, 32 + _headerSize + _pos * _recordSize, SEEK_SET);
+  if (errno)
+    fprintf(stderr, "recordFile::seekNormal() '%s' seek to record="u64bitFMT" at fileposition="u64bitFMT" failed: %s\n",
+            _name, _pos, _headerSize + _pos * _recordSize), exit(1);
+
+  errno = 0;
+  read(_file, _bfr, _recordSize * _bfrmax);
+  if (errno)
+    fprintf(stderr, "recordFile::seekNormal() '%s' read of "u64bitFMT" bytes failed at record "u64bitFMT", fileposition "u64bitFMT"': %s\n",
+            _name, _recordSize * _bfrmax, _pos, _headerSize + _pos * _recordSize, strerror(errno)), exit(1);
+}

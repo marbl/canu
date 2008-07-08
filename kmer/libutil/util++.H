@@ -36,6 +36,7 @@
 #include "splitToWords.H"
 #include "bitPackedArray.H"
 #include "bitPackedFile.H"
+#include "recordFile.H"
 #include "intervalList.H"
 #include "bigQueue.H"
 #include "sweatShop.H"

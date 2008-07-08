@@ -28,6 +28,8 @@ src    := $/bigQueue.C \
           $/qsort_mt.c \
           $/readBuffer.C \
           $/readBuffer.H \
+          $/recordFile.C \
+          $/recordFile.H \
           $/speedCounter.C \
           $/speedCounter.H \
           $/splitToWords.H \
