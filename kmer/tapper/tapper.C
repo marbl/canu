@@ -2,10 +2,12 @@
 #include "existDB.H"
 #include "positionDB.H"
 
+#define TAG_LEN_MAX   32
 
+#include "tapperTag.H"
 #include "tapperGlobalData.H"
-#include "tapperThreadData.H"
 #include "tapperHit.H"
+#include "tapperThreadData.H"
 #include "tapperComputation.H"
 
 //  To make this work for single reads, add a flag to global that says
@@ -21,31 +23,7 @@
 
 void*
 tapperReaderMated(void *G) {
-  tapperGlobalData  *g = (tapperGlobalData  *)G;
-  tapperComputation *s = 0L;
-
- again:
-  seqInCore *a = g->QF->getSequenceInCore();
-  seqInCore *b = g->QF->getSequenceInCore();
-
-  if ((a == 0L) || (b == 0L))
-    return(0L);
-
-  s = new tapperComputation(a, b);
-
-  delete a;
-  delete b;
-
-  if ((s->tag1size != s->tag2size) ||
-      (s->tag1size != g->tagSize) ||
-      (s->tag2size != g->tagSize)) {
-    fprintf(stderr, "tag size mismatch for '%s' ("u32bitFMT") and '%s' ("u32bitFMT"); expected "u32bitFMT".\n",
-            a->header(), s->tag1size, b->header(), s->tag2size, g->tagSize);
-    delete s;
-    goto again;
-  }
-
-  return(s);
+  return(0L);
 }
 
 
@@ -53,24 +31,10 @@ void*
 tapperReaderSingle(void *G) {
   tapperGlobalData  *g = (tapperGlobalData  *)G;
   tapperComputation *s = 0L;
+  tapperTag          a;
 
- again:
-  seqInCore *a = g->QF->getSequenceInCore();
-
-  if (a == 0L)
-    return(0L);
-
-#warning need to get rid of duplicate a
-  s = new tapperComputation(a, a);
-
-  delete a;
-
-  if (s->tag1size != g->tagSize) {
-    fprintf(stderr, "tag size mismatch for '%s' ("u32bitFMT"); expected "u32bitFMT".\n",
-            a->header(), s->tag1size, g->tagSize);
-    delete s;
-    goto again;
-  }
+  if (g->TF->get(&a))
+    s = new tapperComputation(&a, 0L);
 
   return(s);
 }
@@ -186,20 +150,27 @@ tapperHit::alignToReference(tapperGlobalData *g,
 
   //  This function is NOT a bottleneck.  Don't bother optimizing.
 
-  u32bit      errs = 0;  //  number of errors
-  u32bit      errp[64];  //  location of the errors
+  u32bit      errs = 0;               //  number of errors
+  u32bit      errp[TAG_LEN_MAX];      //  location of the errors
+  char       _tagCOREC[TAG_LEN_MAX];  //  For holding corrected color calls, only to generate ACGT align
 
   _seqIdx = so_in;
   _seqPos = po_in;
+  _tagIdx = 0;
 
-  //  Yeah, we assume ASCII and UNIX newlines all over the place.  A
-  //  forward read starts with a reference base; reverse reads have a
-  //  number here.
-  _rev    = (tag_in[0] < 'A') ? true : false;
+  //  _rev: Yeah, we assume ASCII and UNIX newlines all over the
+  //  place.  A forward read starts with a reference base; reverse
+  //  reads have a number here.
 
-  _len         = len_in;
-  _colorErrors = _len;
-  _basesErrors = _len;
+  _pad                = 0;
+  _len                = len_in;
+  _rev                = (tag_in[0] < 'A') ? true : false;
+  _rank               = 0x000000000000ffffllu;
+
+  _basesMismatch      = len_in;  //  Set at end
+
+  _colorMismatch      = 0;       //  Set when parsing errors
+  _colorInconsistent  = 0;       //  Set when parsing errors
 
   _tagCOLOR[0] = 0;
   _tagCOREC[0] = 0;
@@ -266,49 +237,38 @@ tapperHit::alignToReference(tapperGlobalData *g,
     }
   }
 
-  if (errs > g->maxColorError) {
-    _colorErrors = errs;
-    _basesErrors = _len;
-    return;
-  }
-
   //
   //  The following if blocks correct single color errors using very
   //  complicated rules.
   //
 
+
   if        (errs == 0) {
-    //
-    //  No errors, nothing to correct.
-    //
+    _colorMismatch     = 0;
+    _colorInconsistent = 0;
 
   } else if (errs == 1) {
-    //
-    //  If the error is exactly at the end, believe it's the start of
-    //  a SNP.  For a SNP to be at the start, we'll need two color
-    //  changes.  One color change at the start is a color error.  The
-    //  end is different, because we just don't know what the next
-    //  color would have been.  The beginning has the reference base
-    //  to anchor it.
-    //
-    //  len-1 because we lose one letter when converting from color to acgt.
-    //  errp[] is 1-based, so == len-1 is the last base in the tag.
-    //
-    if ((errp[0]) == (_len - 1)) {
-    } else {
-      //  Correct it.
-      _tagCOREC[errp[0]] = _refCOLOR[errp[0]];
-    }
+    //  Always corrected, just to get an ACGT alignment.  We can't
+    //  tell if the color mismatch is an error, or if the error is
+    //  adjacent to the mismatch, which would have resulted in a valid
+    //  SNP.
+    _colorMismatch     = 0;
+    _colorInconsistent = 1;
+    _tagCOREC[errp[0]] = _refCOLOR[errp[0]];
 
   } else if (errs == 2) {
     bool  ok21  = isConsistent(_refCOLOR, _tagCOLOR, 1, _len) && (errp[1] - errp[0] < 4);
 
     if (ok21) {
       //  MNP of size 4.
+      _colorMismatch     = 2;
+      _colorInconsistent = 0;
     } else {
       //  Correct 'em.
-      //_tagCOREC[errp[0]] = _refCOLOR[errp[0]];
-      //_tagCOREC[errp[1]] = _refCOLOR[errp[1]];
+      _colorMismatch     = 0;
+      _colorInconsistent = 2;
+      _tagCOREC[errp[0]] = _refCOLOR[errp[0]];
+      _tagCOREC[errp[1]] = _refCOLOR[errp[1]];
     }
 
   } else if (errs == 3) {
@@ -319,17 +279,25 @@ tapperHit::alignToReference(tapperGlobalData *g,
 
     if        (ok31) {
       //  MNP of size 5
+      _colorMismatch     = 3;
+      _colorInconsistent = 0;
     } else if (ok21) {
       //  First two ok, fix the third.
+      _colorMismatch     = 2;
+      _colorInconsistent = 1;
       _tagCOREC[errp[2]] = _refCOLOR[errp[2]];
     } else if (ok22) {
       //  Last two ok, fix the first.
+      _colorMismatch     = 2;
+      _colorInconsistent = 1;
       _tagCOREC[errp[0]] = _refCOLOR[errp[0]];
     } else {
       //  Nothing consistent, fix all of 'em.
-      //_tagCOREC[errp[0]] = _refCOLOR[errp[0]];
-      //_tagCOREC[errp[1]] = _refCOLOR[errp[1]];
-      //_tagCOREC[errp[2]] = _refCOLOR[errp[2]];
+      _colorMismatch     = 0;
+      _colorInconsistent = 3;
+      _tagCOREC[errp[0]] = _refCOLOR[errp[0]];
+      _tagCOREC[errp[1]] = _refCOLOR[errp[1]];
+      _tagCOREC[errp[2]] = _refCOLOR[errp[2]];
     }
 
   } else if (errs == 4) {
@@ -355,43 +323,62 @@ tapperHit::alignToReference(tapperGlobalData *g,
 
     if        (ok41) {
       //  MNP of size 6
+      _colorMismatch     = 4;
+      _colorInconsistent = 0;
     } else if (ok31) {
       //  First three ok, fix the last one.
+      _colorMismatch     = 3;
+      _colorInconsistent = 1;
       _tagCOREC[errp[3]] = _refCOLOR[errp[3]];
     } else if (ok32) {
       //  Last three ok, fix the first one.
+      _colorMismatch     = 3;
+      _colorInconsistent = 1;
       _tagCOREC[errp[0]] = _refCOLOR[errp[0]];
     } else if (ok21) {
       //  First two ok, fix the last two.
+      _colorMismatch     = 2;
+      _colorInconsistent = 2;
       _tagCOREC[errp[2]] = _refCOLOR[errp[2]];
       _tagCOREC[errp[3]] = _refCOLOR[errp[3]];
     } else if (ok22) {
       //  Middle two ok, fix the outties.
+      _colorMismatch     = 2;
+      _colorInconsistent = 2;
       _tagCOREC[errp[0]] = _refCOLOR[errp[0]];
       _tagCOREC[errp[3]] = _refCOLOR[errp[3]];
     } else if (ok23) {
       //  Last two ok, fix the first two.
+      _colorMismatch     = 2;
+      _colorInconsistent = 2;
       _tagCOREC[errp[0]] = _refCOLOR[errp[0]];
       _tagCOREC[errp[3]] = _refCOLOR[errp[3]];
     } else {
       //  Nothing consistent, fix all of 'em.
-      //_tagCOREC[errp[0]] = _refCOLOR[errp[0]];
-      //_tagCOREC[errp[1]] = _refCOLOR[errp[1]];
-      //_tagCOREC[errp[2]] = _refCOLOR[errp[2]];
-      //_tagCOREC[errp[3]] = _refCOLOR[errp[3]];
+      _colorMismatch     = 0;
+      _colorInconsistent = 4;
+      _tagCOREC[errp[0]] = _refCOLOR[errp[0]];
+      _tagCOREC[errp[1]] = _refCOLOR[errp[1]];
+      _tagCOREC[errp[2]] = _refCOLOR[errp[2]];
+      _tagCOREC[errp[3]] = _refCOLOR[errp[3]];
     }
   } else if (errs == 5) {
     //fprintf(stderr, "Five errors detected.  Code doesn't know what to do.\n");
+    _colorMismatch     = 0;
+    _colorInconsistent = 5;
   } else if (errs == 6) {
     //fprintf(stderr, "Six errors detected.  Code doesn't know what to do.\n");
+    _colorMismatch     = 0;
+    _colorInconsistent = 6;
   } else {
     //fprintf(stderr, "Wow, you got a lot of errors.  Code doesn't know what to do.\n");
+    _colorMismatch     = 0;
+    _colorInconsistent = errs;
   }
 
   //  Compute alignments of corrected color strings.
 
-  _colorErrors = errs;
-  _basesErrors = 0;
+  _basesMismatch = 0;
 
   _tagACGT[0] = baseToColor[_tagCOREC[0]][_tagCOREC[1]];
   _refACGT[0] = baseToColor[_refCOLOR[0]][_refCOLOR[1]];
@@ -404,7 +391,7 @@ tapperHit::alignToReference(tapperGlobalData *g,
 
   for (u32bit ti=0; ti<_len-1; ti++) {
     if (_tagACGT[ti] != _refACGT[ti]) {
-      _basesErrors++;
+      _basesMismatch++;
 
       _tagACGT[ti] = toUpper[_tagACGT[ti]];
       _refACGT[ti] = toUpper[_refACGT[ti]];
@@ -447,6 +434,10 @@ tapperWorkerSingle(void *G, void *T, void *S) {
   tapperComputation *s = (tapperComputation *)S;
   tapperHit          h;
 
+  //
+  //  Get the hits.
+  //
+
   t->posn1fLen = 0;
   t->posn1rLen = 0;
 
@@ -457,7 +448,7 @@ tapperWorkerSingle(void *G, void *T, void *S) {
     return;
 
   //  True, only the mated worker really needs to put hits into the
-  //  hits array, but we need to acll tapperWorker_addHits to decode
+  //  hits array, but we need to call tapperWorker_addHits to decode
   //  the positions.
 
   if (t->hits1Max < t->posn1fLen + t->posn1rLen) {
@@ -483,10 +474,18 @@ tapperWorkerSingle(void *G, void *T, void *S) {
                        (rev) ? s->tag1rseq : s->tag1fseq,
                        s->tag1size+2);
 
-    if ((h.numberOfColorErrors() <= g->maxColorError) &&
-        (h.numberOfBaseErrors()  <= g->maxBaseError))
+    if ((h.numberOfBaseMismatches()       <= g->maxBaseError)  &&
+        (h.numberOfColorMismatches()      <= g->maxColorError) &&
+        (h.numberOfColorInconsistencies() <= g->maxColorError))
       s->addHit(h);
   }
+
+  //
+  //  Sort the hits by score, apply some heuristics to output only
+  //  those we care about.
+  //
+
+  s->sortHits();
 }
 
 
@@ -494,6 +493,8 @@ tapperWorkerSingle(void *G, void *T, void *S) {
 int
 main(int argc, char **argv) {
   tapperGlobalData  *g = new tapperGlobalData();
+
+  fprintf(stderr, "tapperHit: %d bytes\n", sizeof(tapperHit));
 
   int arg=1;
   int err=0;

@@ -1,4 +1,16 @@
+
+
 class tapperGlobalData {
+public:
+  tapperGlobalData();
+  ~tapperGlobalData();
+
+  void   initialize(void);
+
+private:
+  void  convertACGTtoColor(char *color, char *acgt, u32bit len);
+  void  rewriteFileAsColorACGT(char *acgtname, char  *colorname);
+
 public:
   char   *genName;
   char   *colName;
@@ -14,124 +26,120 @@ public:
   u32bit  maxColorError;
   u32bit  maxBaseError;
 
-  seqFile    *QF;
+  tapperTagFile    *TF;
 
-  seqStream  *SS;
-  merStream  *MS;
-  positionDB *PS;
+  seqStream        *SS;
+  merStream        *MS;
+  positionDB       *PS;
 
-  FastACache *GS;
+  FastACache       *GS;
+};
 
-  tapperGlobalData() {
-    genName   = 0L;
-    colName   = 0L;
-    qryName   = 0L;
 
-    numThreads = 2;
-    beVerbose  = false;
 
-    isMated    = false;
 
-    tagSize   = 0;
 
-    maxColorError  = 3;
-    maxBaseError   = 5;
+tapperGlobalData::tapperGlobalData() {
+  genName   = 0L;
+  colName   = 0L;
+  qryName   = 0L;
 
-    QF = 0L;
+  numThreads = 2;
+  beVerbose  = false;
 
-    SS = 0L;
-    MS = 0L;
-    PS = 0L;
+  isMated    = false;
 
-    GS = 0L;
-  };
+  maxColorError  = 3;
+  maxBaseError   = 5;
 
-  ~tapperGlobalData() {
-    delete QF;
-    delete PS;
-    delete MS;
-    delete SS;
-    delete GS;
+  TF = 0L;
+
+  SS = 0L;
+  MS = 0L;
+  PS = 0L;
+
+  GS = 0L;
+}
+
+tapperGlobalData::~tapperGlobalData() {
+  delete TF;
+  delete PS;
+  delete MS;
+  delete SS;
+  delete GS;
+}
+
+
+
+void
+tapperGlobalData::initialize(void) {
+  rewriteFileAsColorACGT(genName, colName);
+
+  TF = new tapperTagFile(qryName);
+
+  //  See the comments in the loader about the -1.
+  tagSize = TF->metaData()->tagSize() - 1;
+
+  if (tagSize > 32) {
+    fprintf(stderr, "tag size too big for this implementation.\n");
+    exit(1);
   }
 
-  void   initialize(void) {
-    rewriteFileAsColorACGT(genName, colName);
+  fprintf(stderr, "Building seqStream\n");
+  SS = new seqStream(colName, true);
 
-    QF = openSeqFile(qryName);
+  fprintf(stderr, "Building merStream\n");
+  MS = new merStream(new kMerBuilder(tagSize), SS);  //  MEMORY LEAK kMerBuilder
 
-    //  Read the first sequence to get the tagSize we should use.  We
-    //  don't support changing tagSizes during a run, and will filter
-    //  out any sequences that aren't this length.  See the comments
-    //  in the loader as to why there is a -2 here.
-    //
-    {
-      seqInCore *s = QF->getSequenceInCore();
-      tagSize = s->sequenceLength() - 2;
-      delete s;
+  fprintf(stderr, "Building positionDB\n");
+  PS = new positionDB(MS, tagSize, 0, 0L, 0L, 0L, 0, 0, beVerbose, true);
 
-      fprintf(stderr, "Discovered tag size of "u32bitFMT".\n", tagSize);
+  PS->setUpMismatchMatcher(maxColorError);
 
-      QF->rewind();
-    }
+  GS = new FastACache(genName, 0, true, false);
+}
 
-    if (tagSize > 32) {
-      fprintf(stderr, "tag size too big for this implementation.\n");
-      exit(1);
-    }
 
-    fprintf(stderr, "Building seqStream\n");
-    SS = new seqStream(colName, true);
 
-    fprintf(stderr, "Building merStream\n");
-    MS = new merStream(new kMerBuilder(tagSize), SS);  //  MEMORY LEAK kMerBuilder
+//  Inplace converts an acgt sequence to a color-space sequence.
+void
+tapperGlobalData::convertACGTtoColor(char *color, char *acgt, u32bit len) {
+  char       l = 'n';  //  We always start the color encoding assuming the -1 letter is a gap
+  char       n = 0;
 
-    fprintf(stderr, "Building positionDB\n");
-    PS = new positionDB(MS, tagSize, 0, 0L, 0L, 0L, 0, 0, beVerbose, true);
+  for (u32bit i=0; i<len; i++) {
+    n        = acgt[i];
+    color[i] = baseToColor[l][n];
+    l        = n;
+  }
+}
 
-    PS->setUpMismatchMatcher(maxColorError);
 
-    GS = new FastACache(genName, 0, true, false);
-  };
 
-private:
+void
+tapperGlobalData::rewriteFileAsColorACGT(char *acgtname, char  *colorname) {
+  seqFile    *F  = openSeqFile(acgtname);
 
-  //  Inplace converts an acgt sequence to a color-space sequence.
-  void  convertACGTtoColor(char *color, char *acgt, u32bit len) {
-    char       l = 'n';  //  We always start the color encoding assuming the -1 letter is a gap
-    char       n = 0;
+  if (fileExists(colorname)) {
+    fprintf(stderr, "ColorFastA '%s' exists.  NOT recreating.\n", colorname);
+    return;
+  }
 
-    for (u32bit i=0; i<len; i++) {
-      n        = acgt[i];
-      color[i] = baseToColor[l][n];
-      l        = n;
-    }
-  };
+  fprintf(stderr, "Rewriting '%s' as ColorFastA '%s'.\n", acgtname, colorname);
 
-  void  rewriteFileAsColorACGT(char *acgtname, char  *colorname) {
-    seqFile    *F  = openSeqFile(acgtname);
+  errno = 0;
+  FILE       *CF = fopen(colorname, "w");
+  if (errno)
+    fprintf(stderr, "Failed to create '%s': %s\n", colorname, strerror(errno)), exit(1);
 
-    if (fileExists(colorname)) {
-      fprintf(stderr, "ColorFastA '%s' exists.  NOT recreating.\n", colorname);
-      return;
-    }
+  while (F->eof() == false) {
+    seqInCore *f = F->getSequenceInCore();
+    convertACGTtoColor(f->sequence(), f->sequence(), f->sequenceLength());
+    fprintf(CF, "%s\n%s\n", f->header(), f->sequence());
+    delete f;
+  }
 
-    fprintf(stderr, "Rewriting '%s' as ColorFastA '%s'.\n", acgtname, colorname);
+  fclose(CF);
 
-    errno = 0;
-    FILE       *CF = fopen(colorname, "w");
-    if (errno)
-      fprintf(stderr, "Failed to create '%s': %s\n", colorname, strerror(errno)), exit(1);
-
-    while (F->eof() == false) {
-      seqInCore *f = F->getSequenceInCore();
-      convertACGTtoColor(f->sequence(), f->sequence(), f->sequenceLength());
-      fprintf(CF, "%s\n%s\n", f->header(), f->sequence());
-      delete f;
-    }
-
-    fclose(CF);
-
-    delete F;
-  };
-
-};
+  delete F;
+}

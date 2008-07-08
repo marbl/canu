@@ -1,9 +1,8 @@
 
-#define TAGNAMEMAX  256
 
 class tapperComputation {
 public:
-  tapperComputation(seqInCore *a, seqInCore *b) {
+  tapperComputation(tapperTag *a, tapperTag *b) {
 
     tag1f.clear();
     tag1r.clear();
@@ -11,29 +10,14 @@ public:
     tag2f.clear();
     tag2r.clear();
 
-    tag1size = a->sequenceLength() - 2;
-    tag2size = b->sequenceLength() - 2;
+    //  Process the first tag.  It's the same for the second tag.
+    //  When this gets stable, replicate.
 
-    tag1f.setMerSize(tag1size); tag1f.setMerSpan(tag1size);
-    tag1r.setMerSize(tag1size); tag1r.setMerSpan(tag1size);
+    tag1id   = a->decode(tag1fseq, tag1fqlt);
+    tag1size = strlen(tag1fseq);
 
-    tag2f.setMerSize(tag1size); tag2f.setMerSpan(tag1size);
-    tag2r.setMerSize(tag1size); tag2r.setMerSpan(tag2size);
-
-    strncpy(tag1name, a->header() + 1, TAGNAMEMAX);
-    tag1name[TAGNAMEMAX-1] = 0;
-
-    strncpy(tag2name, b->header() + 1, TAGNAMEMAX);
-    tag2name[TAGNAMEMAX-1] = 0;
-
-    u32bit seqlen = a->sequenceLength();
-
-    for (u32bit i=0; i<seqlen; i++) {
-      tag1fseq[i] = a->sequence()[i];
-      tag2fseq[i] = b->sequence()[i];
-      tag1rseq[i] = tag1fseq[i];
-      tag2rseq[i] = tag2fseq[i];
-    }
+    tag1f.setMerSize(tag1size-1); tag1f.setMerSpan(tag1size-1);
+    tag1r.setMerSize(tag1size-1); tag1r.setMerSpan(tag1size-1);
 
     //  It's not a trivial operation (probably not even possible) to
     //  reverse-complement a SOLiD read.  To reverse complement a
@@ -50,17 +34,13 @@ public:
     //  the anchor at the start OR at the end.
 
     tag1rseq[0] = complementSymbol[tag1rseq[0]];
-    tag2rseq[0] = complementSymbol[tag2rseq[0]];
 
-    reverseString(tag1rseq, seqlen);
-    reverseString(tag2rseq, seqlen);
+    reverseString(tag1rseq, tag1size + 1);
 
     //  Make sure things are terminated.
 
-    tag1fseq[seqlen] = 0;
-    tag1rseq[seqlen] = 0;
-    tag2fseq[seqlen] = 0;
-    tag2rseq[seqlen] = 0;
+    tag1fseq[tag1size] = 0;
+    tag1rseq[tag1size] = 0;
 
     //  Now just push the seqs into mers.
 
@@ -69,14 +49,15 @@ public:
     //  second letter (the first color) is biased by the adapter, and
     //  it will be an error 75% of the time.  Skip it too.
     //
-    for (u32bit i=2; i<seqlen; i++) {
+    for (u32bit i=2; i<tag1size; i++) {
       tag1f += compressSymbol[tag1fseq[i]];
-      tag2f += compressSymbol[tag2fseq[i]];
     }
-    for (u32bit i=0; i<seqlen-2; i++) {
+    for (u32bit i=0; i<tag1size-2; i++) {
       tag1r += compressSymbol[tag1rseq[i]];
-      tag2r += compressSymbol[tag2rseq[i]];
     }
+
+    //  Now, strip out the first color.
+    tag1size--;
 
     //fprintf(stderr, "T1: %s/%s T2:%s/%s\n", tag1fseq, tag1rseq, tag2fseq, tag2rseq);
 
@@ -99,9 +80,13 @@ public:
     hits[hitsLen++] = h;
   };
 
+  void sortHits(void) {
+    
+  };
+
   void writeHits(FILE *OF) {
     for (u32bit i=0; i<hitsLen; i++)
-      hits[i].writeHit(OF, tag1name, tag1f, tag1r);
+      hits[i].writeHit(OF, tag1id);
   };
 
 public:
@@ -111,11 +96,14 @@ public:
   u32bit      tag1size;
   u32bit      tag2size;
 
-  char        tag1name[TAGNAMEMAX];
-  char        tag2name[TAGNAMEMAX];
+  u64bit      tag1id;
+  u64bit      tag2id;
 
-  char        tag1fseq[64], tag1rseq[64];
-  char        tag2fseq[64], tag2rseq[64];
+  char        tag1fseq[TAG_LEN_MAX], tag1rseq[TAG_LEN_MAX];
+  char        tag2fseq[TAG_LEN_MAX], tag2rseq[TAG_LEN_MAX];
+
+  u64bit      tag1fqlt[TAG_LEN_MAX], tag1rqlt[TAG_LEN_MAX];
+  u64bit      tag2fqlt[TAG_LEN_MAX], tag2rqlt[TAG_LEN_MAX];
 
   u32bit      hitsLen;
   u32bit      hitsMax;
