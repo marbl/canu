@@ -119,6 +119,15 @@ private:
 
 
 
+//  Notes:
+//
+//  1 Stores EITHER mated tags or fragment tags, NEVER both in the same file.
+//  2 Variable tag size for every tag (even mated tags)
+//  3 QVs too.
+//  4 Random access
+//  5 Reads are assigned a 64-bit UID
+
+
 
 class tapperTagFile {
 public:
