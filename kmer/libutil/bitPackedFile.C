@@ -346,7 +346,7 @@ bitPackedFile::seekNormal(u64bit bitpos) {
   //  the third).  Not so easy to think of a logical reason someone
   //  would want to do that.
   //
-  if (((bitpos >> 6) < _pos) && ((bitpos >> 6) + 32 >= _pos)) {
+  if (((bitpos >> 6) < _pos) && (_pos <= (bitpos >> 6) + 32)) {
     _pos = bitpos >> 6;
     if (_pos > _bfrmax)
       _pos = _pos - _bfrmax + 32;
