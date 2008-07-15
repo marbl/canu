@@ -108,6 +108,10 @@ sub createPostScaffolderConsensusJobs ($) {
     } elsif ($consensusType eq "seqan") {
        print F "\$bin/SeqAn_CNS \\\n";
        print F "  -G $wrk/$asm.gkpStore \\\n";
+       print F "  -u $cgwDir/$asm.SeqStore \\\n";
+       print F "  -V $lastckpt \\\n";
+       print F "  -p \$jobp \\\n";
+       print F "  -S \$jobp \\\n";
        print F "  -c $cgwDir/$asm.cgw_contigs.\$jobp \\\n";
        print F "  -s \$bin/graph_consensus \\\n";
        print F "  -w $wrk/8-consensus/ \\\n";
