@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_global.c,v 1.6 2008-07-16 18:42:22 brianwalenz Exp $
+//  $Id: AS_global.c,v 1.7 2008-07-16 18:45:03 brianwalenz Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -85,7 +85,7 @@ AS_configure(int argc, char **argv) {
       char  tag[256];
       strcpy(tag, "$Name: not supported by cvs2svn $");
 
-      if (strcmp(tag, "$Name: not supported by cvs2svn $") == 0)
+      if (strcmp(tag+1, "Name:  $") == 0)
         strcpy(tag, "CVS TIP");
 
       fprintf(stderr, "CA version %s.\n", tag);
