@@ -19,10 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_global.c,v 1.4 2008-06-27 06:29:11 brianwalenz Exp $
+//  $Id: AS_global.c,v 1.5 2008-07-16 18:39:02 brianwalenz Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 
 //  Nonsense values, mostly for making sure everybody that uses an
@@ -40,6 +41,7 @@ double AS_MAX_ERROR_RATE =   0.25;
 int
 AS_configure(int argc, char **argv) {
   char *p = NULL;
+  int   i;
 
   AS_OVL_ERROR_RATE = 0.06;
   AS_CGW_ERROR_RATE = 0.10;
@@ -77,6 +79,15 @@ AS_configure(int argc, char **argv) {
 
   //  Consensus will sometimes try to find alignments up to 4 times the error rate given.
   AS_MAX_ERROR_RATE *= 4;
+
+  for (i=0; i<argc; i++) {
+    if (strcmp(argv[i], "--version") == 0) {
+      char  tag[256];
+      strcpy(tag, "$Name: not supported by cvs2svn $");
+      fprintf(stderr, "CA version %s.\n", tag);
+      exit(0);
+    }
+  }
 
   return(argc);
 }
