@@ -77,8 +77,8 @@ UIDserver   *UIDserverInitialize(uint32 blockSize, uint64 firstuid) {
     // First check whether the UID server can accomodate for our buffer
     s = SYS_UIDgetMaxUIDSize(&maxBlockSize);
     if (s != UID_CODE_OK) {
-      fprintf(stderr, "UIDserverInitialize()-- UID blocksize query failed.\n");
-      assert(s == UID_CODE_OK);
+      fprintf(stderr, "UIDserverInitialize()-- UID blocksize query failed (%d).\n", s);
+      exit(1);
     }
     if (maxBlockSize < blockSize)
       blockSize = maxBlockSize;
@@ -89,8 +89,9 @@ UIDserver   *UIDserverInitialize(uint32 blockSize, uint64 firstuid) {
     // Finally, get the actual interval
     s = SYS_UIDgetNewUIDInterval(u->interval);
     if (s != UID_CODE_OK) {
-      fprintf(stderr, "SYS_UIDgetNewUIDInterval failed.\n");
-      assert(s == UID_CODE_OK);
+      fprintf(stderr, "UIDserverInitialize()-- SYS_UIDgetNewUIDInterval failed (%d) blockSize=%d startUID="F_U64", interval="F_U64","F_U64","F_U64","F_U64".\n",
+              s, blockSize, u->startUID, u->interval[0], u->interval[1], u->interval[2], u->interval[3]);
+      exit(1);
     }
   }
 
@@ -110,14 +111,15 @@ getUID(UIDserver *u) {
   if (s != UID_CODE_OK) {
     s = SYS_UIDgetNewUIDInterval(u->interval);
     if (s != UID_CODE_OK) {
-      fprintf(stderr, "getUID()-- SYS_UIDgetNewUIDInterval failed.\n");
-      assert(0);
+      fprintf(stderr, "getUID()-- SYS_UIDgetNewUIDInterval failed (%d) startUID="F_U64", interval="F_U64","F_U64","F_U64","F_U64".\n",
+              s, u->startUID, u->interval[0], u->interval[1], u->interval[2], u->interval[3]);
+      exit(1);
     }
     s = SYS_UIDgetNextUID(&uid);
   }
   if (s != UID_CODE_OK) {
-    fprintf(stderr, "getUID()-- SYS_UIDgetNextUID failed.\n");
-    assert(0);
+    fprintf(stderr, "getUID()-- SYS_UIDgetNextUID failed (%d).\n", s);
+    exit(1);
   }
 
   return(uid);
