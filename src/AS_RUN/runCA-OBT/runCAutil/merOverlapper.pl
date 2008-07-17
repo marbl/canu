@@ -66,10 +66,10 @@ sub merOverlapper($) {
     system("mkdir $wrk/3-overlapcorrection") if ((! -d "$wrk/3-overlapcorrection") && ($isTrim ne "trim"));
 
     my $ovmBatchSize = getGlobal("merOverlapperSeedBatchSize");
-    my $ovmJobs      = int($numFrags / ($ovmBatchSize-1)) + 1;
+    my $ovmJobs      = int(($numFrags - 1) / $ovmBatchSize) + 1;
 
     my $olpBatchSize = getGlobal("merOverlapperExtendBatchSize");
-    my $olpJobs      = int($numFrags / ($olpBatchSize-1)) + 1;
+    my $olpJobs      = int(($numFrags - 1) / $olpBatchSize) + 1;
 
 
     #  Create overmerry and olap-from-seeds jobs
