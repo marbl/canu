@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.40 2008-06-27 06:29:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.41 2008-07-17 01:51:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,8 +53,6 @@ static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.40 2008-06-27 06:29:14
 #undef DEBUG_CONTIG
 #undef DEBUG_CREATEACONTIG
 #undef DEBUG_NEG_VARIANCE
-
-#undef ALLOW_SHORT_PERFECT  //  leave undef'd
 
 
 typedef struct{
@@ -1487,11 +1485,12 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 
   /* First, figure out where the contigs are.  We can't contig them right away, since that
      would be mucking with the data structure we're iterating over */
+
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
-  /* Initialize CI . . . ELA */
+
   contig.firstCI = currCI = CI = NextCIScaffoldTIterator(&CIs);
-  contig.firstCID = contig.firstCI->id; //GetVAIndex_ChunkInstanceT(graph->ChunkInstances, contig.firstCI);
-  AssertPtr(CI);		// There should be at least one CI . . ELA
+  contig.firstCID = contig.firstCI->id;
+
   if(currCI->offsetAEnd.mean < currCI->offsetBEnd.mean){
     contig.minOffset = currCI->offsetAEnd;
     contig.maxOffset = currCI->offsetBEnd;
@@ -1501,92 +1500,89 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   }
   contig.count = 0;
   while((CI = NextCIScaffoldTIterator(&CIs)) != NULL){
+    CDS_COORD_t actual;
+
     prevCI = currCI;
     currCI = CI;
 
     contig.count++;
     contig.lastCI = prevCI;
-    contig.lastCID = contig.lastCI->id; //GetVAIndex_ChunkInstanceT(graph->ChunkInstances, contig.lastCI);
+    contig.lastCID = contig.lastCI->id;
+
     // The first CI in the contig must have the minimum offset, by definition
     // subsequent CIs are sorted by LEFTmost coordinate, so we need to track
     // the MAX span (rightmost coordinate)
 
-    {
-      CDS_COORD_t actual;
-      // ChunkOrientationType pairwiseOrient;
+#ifdef DEBUG_CONTIG
+    fprintf(GlobalData->stderrc,"* contig.min = %g contig.max = %g\n",
+            contig.minOffset.mean, contig.maxOffset.mean);
+#endif
+    actual = IntervalsOverlap(contig.minOffset.mean, contig.maxOffset.mean,
+                              currCI->offsetAEnd.mean, currCI->offsetBEnd.mean, -15000);
+
+    assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
+
+    //  artificially break longs merges if != NULLINDEX
+    //
+    // if we are not careful elsewhere, DP_Compare can return overlaps shorter than minlen;
+    // this makes the following tempting ... but since failed overlap gaps are set to -CGW_DP_MINLEN
+    // it seems to be a bad idea in the end ... [ALH, 09/04]
+    //       actual > (CGW_DP_MINLEN-(int)ceil( AS_CGW_ERROR_RATE *(double)CGW_DP_MINLEN
+    //
+    if (((maxContigsInMerge == NULLINDEX) || (contig.count < maxContigsInMerge)) && (actual> CGW_DP_MINLEN)) {
 
 #ifdef DEBUG_CONTIG
-      fprintf(GlobalData->stderrc,"* contig.min = %g contig.max = %g\n",
-	      contig.minOffset.mean, contig.maxOffset.mean);
-#endif
-      actual = IntervalsOverlap(contig.minOffset.mean, contig.maxOffset.mean,
-				currCI->offsetAEnd.mean, currCI->offsetBEnd.mean, -15000);
-
-      assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
-
-      if(((maxContigsInMerge == NULLINDEX) || (contig.count < maxContigsInMerge)) &&  // artificially break longs merges if != NULLINDEX
-
-	 // if we are not careful elsewhere, DP_Compare can return overlaps shorter than minlen;
-	 // this makes the following tempting ... but since failed overlap gaps are set to -CGW_DP_MINLEN
-	 // it seems to be a bad idea in the end ... [ALH, 09/04]
-#ifdef ALLOW_SHORT_PERFECT
-	 actual> (CGW_DP_MINLEN-(int)ceil( AS_CGW_ERROR_RATE *(double)CGW_DP_MINLEN )) ){ /*  || (lookForSmallOverlaps && SmallOverlapExists(ScaffoldGraph->RezGraph, prevCI, currCI, pairwiseOrient))){ */
-#else
-        actual> CGW_DP_MINLEN ){ /*  || (lookForSmallOverlaps && SmallOverlapExists(ScaffoldGraph->RezGraph, prevCI, currCI, pairwiseOrient))){ */
+      fprintf(GlobalData->stderrc,
+              "* CI " F_CID " and " F_CID " mean positions overlap by " F_COORD " (%g,%g) (%g,%g)\n",
+              prevCI->id,currCI->id, actual, contig.minOffset.mean,
+              contig.maxOffset.mean, currCI->offsetAEnd.mean,
+              currCI->offsetBEnd.mean);
 #endif
 
-#ifdef DEBUG_CONTIG
-	fprintf(GlobalData->stderrc,
-		"* CI " F_CID " and " F_CID " mean positions overlap by " F_COORD " (%g,%g) (%g,%g)\n",
-		prevCI->id,currCI->id, actual, contig.minOffset.mean,
-		contig.maxOffset.mean, currCI->offsetAEnd.mean,
-		currCI->offsetBEnd.mean);
-#endif
-
-	if(currCI->offsetAEnd.mean > contig.maxOffset.mean){
-	  contig.maxOffset = currCI->offsetAEnd;
-	}
-	if(currCI->offsetBEnd.mean > contig.maxOffset.mean){
-	  contig.maxOffset = currCI->offsetBEnd;
-	}
-
-      }else{
-#ifdef DEBUG_CONTIG
-	fprintf(GlobalData->stderrc,"* CI " F_CID " and " F_CID " mean positions GAP by " F_COORD " (%g,%g) (%g,%g) first " F_CID " last " F_CID " \n",
-		prevCI->id,currCI->id, actual,
-		contig.minOffset.mean,  contig.maxOffset.mean,
-		currCI->offsetAEnd.mean, currCI->offsetBEnd.mean,
-		contig.firstCI->id, contig.lastCI->id);
-#endif
-	if((maxContigsInMerge != NULLINDEX) &&
-	   (contig.count == maxContigsInMerge)){
-#ifdef DEBUG_DETAILED
-	  fprintf(GlobalData->stderrc,"*^^^^^ Merge terminated at %d elements\n", maxContigsInMerge);
-#endif
-	}
-	AppendContigEndsT(ContigEnds, &contig);
-	contig.count = 0;
-	contig.firstCI = currCI;
-	contig.firstCID = contig.firstCI->id; //GetVAIndex_ChunkInstanceT(graph->ChunkInstances, contig.firstCI);
-
-	if(currCI->offsetAEnd.mean < currCI->offsetBEnd.mean){
-	  contig.minOffset = currCI->offsetAEnd;
-	  contig.maxOffset = currCI->offsetBEnd;
-	}else{
-	  contig.maxOffset = currCI->offsetAEnd;
-	  contig.minOffset = currCI->offsetBEnd;
-	}
-#ifdef DEBUG_CONTIG
-	fprintf(GlobalData->stderrc,"* Reseting contig  firstCI: " F_CID " min:%g max:%g\n",
-		contig.firstCI->id, contig.minOffset.mean, contig.maxOffset.mean);
-#endif
+      if(currCI->offsetAEnd.mean > contig.maxOffset.mean){
+        contig.maxOffset = currCI->offsetAEnd;
       }
+      if(currCI->offsetBEnd.mean > contig.maxOffset.mean){
+        contig.maxOffset = currCI->offsetBEnd;
+      }
+
+    }else{
+#ifdef DEBUG_CONTIG
+      fprintf(GlobalData->stderrc,"* CI " F_CID " and " F_CID " mean positions GAP by " F_COORD " (%g,%g) (%g,%g) first " F_CID " last " F_CID " \n",
+              prevCI->id,currCI->id, actual,
+              contig.minOffset.mean,  contig.maxOffset.mean,
+              currCI->offsetAEnd.mean, currCI->offsetBEnd.mean,
+              contig.firstCI->id, contig.lastCI->id);
+#endif
+#ifdef DEBUG_DETAILED
+      if((maxContigsInMerge != NULLINDEX) &&
+         (contig.count == maxContigsInMerge)){
+        fprintf(GlobalData->stderrc,"*^^^^^ Merge terminated at %d elements\n", maxContigsInMerge);
+      }
+#endif
+      AppendContigEndsT(ContigEnds, &contig);
+      contig.count = 0;
+      contig.firstCI = currCI;
+      contig.firstCID = contig.firstCI->id;
+
+      if(currCI->offsetAEnd.mean < currCI->offsetBEnd.mean){
+        contig.minOffset = currCI->offsetAEnd;
+        contig.maxOffset = currCI->offsetBEnd;
+      }else{
+        contig.maxOffset = currCI->offsetAEnd;
+        contig.minOffset = currCI->offsetBEnd;
+      }
+#ifdef DEBUG_CONTIG
+      fprintf(GlobalData->stderrc,"* Reseting contig  firstCI: " F_CID " min:%g max:%g\n",
+              contig.firstCI->id, contig.minOffset.mean, contig.maxOffset.mean);
+#endif
     }
   }
+
   /* Add last contig to the list */
   ++contig.count;
   contig.lastCI = currCI;
-  contig.lastCID = contig.lastCI->id; //GetVAIndex_ChunkInstanceT(graph->ChunkInstances, contig.lastCI);
+  contig.lastCID = contig.lastCI->id;
   AppendContigEndsT(ContigEnds, &contig);
 
 
@@ -1609,30 +1605,30 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
       ctg = GetContigEndsT(ContigEnds,i);
 
       for(contig = GetGraphNode(graph->RezGraph, ctg->firstCID);
-	  contig != NULL;
-	  contig = GetGraphNode(graph->RezGraph, contig->BEndNext))
-	{
-	  contigPos.ident = contig->id;
-	  contigPos.type = AS_CONTIG;
-	  contigPos.position.bgn = contig->offsetAEnd.mean;
-	  contigPos.position.end = contig->offsetBEnd.mean;
-	  AppendIntElementPos(ContigPositions, &contigPos);
+          contig != NULL;
+          contig = GetGraphNode(graph->RezGraph, contig->BEndNext))
+        {
+          contigPos.ident = contig->id;
+          contigPos.type = AS_CONTIG;
+          contigPos.position.bgn = contig->offsetAEnd.mean;
+          contigPos.position.end = contig->offsetBEnd.mean;
+          AppendIntElementPos(ContigPositions, &contigPos);
 
-	  if(contig->id == ctg->lastCID)
-	    break;
-	}
+          if(contig->id == ctg->lastCID)
+            break;
+        }
 
       // If there is no merging to be done, continue
       if(GetNumIntElementPoss(ContigPositions) <= 1)
-	continue;
+        continue;
 
       mergesAttempted++;
 
       if(deleteUnmergedSurrogates){  // Just find the all-surrogate, unmerged contigs, and nuke them
-	int32 i;
-	for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
-	  IntElementPos *pos = GetIntElementPos(ContigPositions, i);
-	  contig = GetGraphNode(ScaffoldGraph->ContigGraph, pos->ident);
+        int32 i;
+        for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
+          IntElementPos *pos = GetIntElementPos(ContigPositions, i);
+          contig = GetGraphNode(ScaffoldGraph->ContigGraph, pos->ident);
 
           //  XXX: DeleteAllSurrogate..() returns true if it deletes a
           //  contig, so if it does just one, we set
@@ -1640,10 +1636,10 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
           //
           //  Not sure if this ever gets used, though.
           //
-	  allMergesSucceeded |= DeleteAllSurrogateContigsFromFailedMerges(scaffold, contig);
-	}
+          allMergesSucceeded |= DeleteAllSurrogateContigsFromFailedMerges(scaffold, contig);
+        }
       }else{
-	allMergesSucceeded &= CreateAContigInScaffold(scaffold, ContigPositions, ctg->minOffset, ctg->maxOffset);
+        allMergesSucceeded &= CreateAContigInScaffold(scaffold, ContigPositions, ctg->minOffset, ctg->maxOffset);
       }
     }
   }
@@ -1654,7 +1650,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
     float maxVariance = 1000000.0;//useGuides ? 100000000000.0 : 1000000.0;
     int numComponents;
     MarkInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW,
-			   maxVariance, TRUE, TRUE, 0,TRUE);
+                           maxVariance, TRUE, TRUE, 0,TRUE);
 
     numComponents = IsScaffoldInternallyConnected(graph,scaffold,ALL_TRUSTED_EDGES);
     if(numComponents>1){
@@ -2072,8 +2068,6 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   }
 #endif
 
-  StartTimerT(&GlobalData->ConsensusTimer);
-
   newMultiAlign = MergeMultiAlignsFast_new(ScaffoldGraph->sequenceDB,
                                            ScaffoldGraph->gkpStore,
                                            ContigPositions,
@@ -2081,8 +2075,6 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
                                            TRUE,
                                            GlobalData->aligner,
                                            NULL);
-
-  StopTimerT(&GlobalData->ConsensusTimer);
 
   if (newMultiAlign == NULL) {
     int32 i;
@@ -2247,9 +2239,6 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   return TRUE;
 }
 
-
-//#include "obsolete/contig_containment_old"
-//#include "obsolete/not_contig_containment"
 
 #define AHANGSLOP 30
 
@@ -2627,92 +2616,87 @@ void RemoveSurrogateDuplicates(void){
 
   InitGraphNodeIterator(&chunks, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
   while((curChunk = NextGraphNodeIterator(&chunks)) != NULL)
-  {
+    {
       if((curChunk->type == UNRESOLVEDCHUNK_CGW) && (curChunk->info.CI.numInstances > 1))
-      {
+        {
           if(curChunk->info.CI.numInstances == 2)
-          {
+            {
               ChunkInstanceT *surr1 = GetGraphNode(ScaffoldGraph->CIGraph,
-                      curChunk->info.CI.instances.in_line.instance1);
+                                                   curChunk->info.CI.instances.in_line.instance1);
               ChunkInstanceT *surr2 = GetGraphNode(ScaffoldGraph->CIGraph,
-                      curChunk->info.CI.instances.in_line.instance2);
+                                                   curChunk->info.CI.instances.in_line.instance2);
               assert((surr1 != NULL));
               assert((surr2 != NULL));
               if( (surr1->info.CI.contigID >= 0) &&
                   (surr1->info.CI.contigID == surr2->info.CI.contigID) &&
                   (fabs(surr1->offsetAEnd.mean - surr2->offsetAEnd.mean) < 10.0) &&
                   (fabs(surr1->offsetBEnd.mean - surr2->offsetBEnd.mean) < 10.0))
-              {
+                {
                   curChunk->info.CI.numInstances = 1;
                   curChunk->info.CI.instances.in_line.instance2 = -1;
                   RepairContigNeighbors(surr2);
                   DeleteGraphNode(ScaffoldGraph->CIGraph, surr2);
-              }
-          }else{
-              int numVaInstances = GetNumCDS_CID_ts(curChunk->info.CI.instances.va);
-              assert(curChunk->info.CI.instances.va != NULL);
-              if (   curChunk->info.CI.numInstances !=
+                }
+            }else{
+            int numVaInstances = GetNumCDS_CID_ts(curChunk->info.CI.instances.va);
+            assert(curChunk->info.CI.instances.va != NULL);
+            if (   curChunk->info.CI.numInstances !=
                    GetNumCDS_CID_ts(curChunk->info.CI.instances.va))
               {
                 fprintf( stderr,
-                  "curChunk CI.numInstances %d, GetNumCDS_CID_ts curChunk instances.va %d\n",
-                   curChunk->info.CI.numInstances,
-                   GetNumCDS_CID_ts(curChunk->info.CI.instances.va)
-                );
-//                assert(0);
+                         "curChunk CI.numInstances %d, GetNumCDS_CID_ts curChunk instances.va %d\n",
+                         curChunk->info.CI.numInstances,
+                         GetNumCDS_CID_ts(curChunk->info.CI.instances.va)
+                         );
+                //assert(0);
               }
-              qsort( (void *)GetCDS_CID_t(curChunk->info.CI.instances.va, 0),
-//                      curChunk->info.CI.numInstances,
-                      numVaInstances,
-                      sizeof(CDS_CID_t), CompareSurrogatePlacements
+            qsort( (void *)GetCDS_CID_t(curChunk->info.CI.instances.va, 0),
+                   numVaInstances,
+                   sizeof(CDS_CID_t), CompareSurrogatePlacements
                    );
-              ChunkInstanceT *prevSurr = GetGraphNode(ScaffoldGraph->CIGraph,
-                             *GetCDS_CID_t(curChunk->info.CI.instances.va, 0));
-              ChunkInstanceT *curSurr;
-              int i, copyto;
+            ChunkInstanceT *prevSurr = GetGraphNode(ScaffoldGraph->CIGraph,
+                                                    *GetCDS_CID_t(curChunk->info.CI.instances.va, 0));
+            ChunkInstanceT *curSurr;
+            int i, copyto;
 
-              assert(prevSurr != NULL);
-              for(i = 1, copyto = 1; i < numVaInstances; i++){
-                  curSurr = GetGraphNode( ScaffoldGraph->CIGraph,
-                          *GetCDS_CID_t( curChunk->info.CI.instances.va, i)
-                          );
-                  assert( curSurr != NULL );
-                  if( (prevSurr->info.CI.contigID >= 0) &&
-                      (prevSurr->info.CI.contigID == curSurr->info.CI.contigID) &&
-                      (fabs(prevSurr->offsetAEnd.mean - curSurr->offsetAEnd.mean) < 10.0) &&
-                      (fabs(prevSurr->offsetBEnd.mean - curSurr->offsetBEnd.mean) < 10.0))
-                  {
-                      RepairContigNeighbors(curSurr);
-                      DeleteGraphNode(ScaffoldGraph->CIGraph, curSurr);
-                  }else{
-                      SetCDS_CID_t(curChunk->info.CI.instances.va, copyto,
-                              GetCDS_CID_t(curChunk->info.CI.instances.va, i));
-                      prevSurr = curSurr;
-                      copyto++;
-                  }
+            assert(prevSurr != NULL);
+            for(i = 1, copyto = 1; i < numVaInstances; i++){
+              curSurr = GetGraphNode( ScaffoldGraph->CIGraph,
+                                      *GetCDS_CID_t( curChunk->info.CI.instances.va, i)
+                                      );
+              assert( curSurr != NULL );
+              if( (prevSurr->info.CI.contigID >= 0) &&
+                  (prevSurr->info.CI.contigID == curSurr->info.CI.contigID) &&
+                  (fabs(prevSurr->offsetAEnd.mean - curSurr->offsetAEnd.mean) < 10.0) &&
+                  (fabs(prevSurr->offsetBEnd.mean - curSurr->offsetBEnd.mean) < 10.0))
+                {
+                  RepairContigNeighbors(curSurr);
+                  DeleteGraphNode(ScaffoldGraph->CIGraph, curSurr);
+                }else{
+                SetCDS_CID_t(curChunk->info.CI.instances.va, copyto,
+                             GetCDS_CID_t(curChunk->info.CI.instances.va, i));
+                prevSurr = curSurr;
+                copyto++;
               }
-              curChunk->info.CI.numInstances = copyto;
-              if(curChunk->info.CI.numInstances < 3){
-                  CDS_CID_t  a = *GetCDS_CID_t(curChunk->info.CI.instances.va, 0);
-                  CDS_CID_t  b = *GetCDS_CID_t(curChunk->info.CI.instances.va, 1);
+            }
+            curChunk->info.CI.numInstances = copyto;
+            if(curChunk->info.CI.numInstances < 3){
+              CDS_CID_t  a = *GetCDS_CID_t(curChunk->info.CI.instances.va, 0);
+              CDS_CID_t  b = *GetCDS_CID_t(curChunk->info.CI.instances.va, 1);
 
-                  assert( curChunk->info.CI.numInstances > 0 );
-                  DeleteVA_CDS_CID_t( curChunk->info.CI.instances.va );
-                  curChunk->info.CI.instances.in_line.instance1 = a;
-                  if( curChunk->info.CI.numInstances == 2 ){
-                      curChunk->info.CI.instances.in_line.instance2 = b;
-                  }else{
-                      curChunk->info.CI.instances.in_line.instance2 = -1;
-                  }
+              assert( curChunk->info.CI.numInstances > 0 );
+              DeleteVA_CDS_CID_t( curChunk->info.CI.instances.va );
+              curChunk->info.CI.instances.in_line.instance1 = a;
+              if( curChunk->info.CI.numInstances == 2 ){
+                curChunk->info.CI.instances.in_line.instance2 = b;
               }else{
-                  ResetToRange_CDS_CID_t(curChunk->info.CI.instances.va, copyto);
+                curChunk->info.CI.instances.in_line.instance2 = -1;
               }
+            }else{
+              ResetToRange_CDS_CID_t(curChunk->info.CI.instances.va, copyto);
+            }
           }
-      }
-  }
+        }
+    }
   return;
 }
-
-
-//#include "obsolete/contig_containment_new"
-//#include "obsolete/scaffold_cleanup_dead"

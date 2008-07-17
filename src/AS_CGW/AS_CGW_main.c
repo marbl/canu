@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.57 2008-06-27 06:29:14 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.58 2008-07-17 01:51:48 brianwalenz Exp $";
 
 
 
@@ -105,7 +105,6 @@ static const char *usage =
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "UtilsREZ.h"
-#include "AS_UTL_timer.h"
 #include "AS_CGW_dataTypes.h"
 #include "ScaffoldGraph_CGW.h"
 #include "ScaffoldGraphIterator_CGW.h"
@@ -745,9 +744,7 @@ int main(int argc, char *argv[]){
 
     CheckCIScaffoldTs(ScaffoldGraph);
 
-    StartTimerT(&data->StoneThrowingTimer);
     Throw_Stones(GlobalData->File_Name_Prefix, GlobalData->stoneLevel, FALSE);
-    StopTimerT(&data->StoneThrowingTimer);
 
     CheckCIScaffoldTs(ScaffoldGraph);
 
@@ -847,11 +844,9 @@ int main(int argc, char *argv[]){
 
       CheckCIScaffoldTs (ScaffoldGraph);
 
-      StartTimerT (& data -> StoneThrowingTimer);
       partial_stones = Throw_Stones (GlobalData -> File_Name_Prefix,
                                      GlobalData -> stoneLevel,
                                      TRUE);
-      StopTimerT (& data -> StoneThrowingTimer);
 
       CheckCIScaffoldTs (ScaffoldGraph);
       ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
@@ -891,11 +886,9 @@ int main(int argc, char *argv[]){
       fprintf (GlobalData -> stderrc, "* Starting Final Contained Stones\n");
 
       CheckCIScaffoldTs (ScaffoldGraph);
-      StartTimerT (& data -> StoneThrowingTimer);
       contained_stones
         = Toss_Contained_Stones (GlobalData -> File_Name_Prefix,
                                  GlobalData -> stoneLevel, 0);
-      StopTimerT (& data -> StoneThrowingTimer);
       ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
       CheckCIScaffoldTs (ScaffoldGraph);
       fprintf (GlobalData -> stderrc,
@@ -1021,8 +1014,6 @@ int main(int argc, char *argv[]){
   //CheckSmallScaffoldGaps(ScaffoldGraph);
 
   if(generateOutput){
-    StartTimerT(&data->OutputTimer);
-
     MarkContigEdges();
     OutputMateDists(ScaffoldGraph);
 
@@ -1046,35 +1037,6 @@ int main(int argc, char *argv[]){
 
     OutputScaffolds(ScaffoldGraph);
     OutputScaffoldLinks(ScaffoldGraph);
-
-    StopTimerT(&data->OutputTimer);
-    fprintf(GlobalData->stderrc,"* CGW Output took %g seconds\n",
-	    TotalTimerT(&data->OutputTimer, NULL));
-  }
-
-
-  {
-    long cycles;
-    fprintf(GlobalData->stderrc,"* Time in Chunk Selection %g seconds (%ld calls)\n",
-	    TotalTimerT(&data->ChooseChunksTimer, &cycles), cycles);
-    fprintf(GlobalData->stderrc,"* Time in Consistency Check %g seconds (%ld calls)\n",
-	    TotalTimerT(&data->ConsistencyCheckTimer, &cycles), cycles);
-    fprintf(GlobalData->stderrc,"* Time in Update %g seconds (%ld calls)\n",
-	    TotalTimerT(&data->UpdateTimer, &cycles), cycles);
-    fprintf(GlobalData->stderrc,"* Time in RecomputeOffsets %g seconds (%ld calls)\n",
-	    TotalTimerT(&data->RecomputeOffsetsTimer, &cycles), cycles);
-    fprintf(GlobalData->stderrc,"* Time in MergeScaffolds %g seconds (%ld calls)\n",
-	    TotalTimerT(&data->MergeScaffoldsTimer, &cycles), cycles);
-    fprintf(GlobalData->stderrc,"* Time in Gap Fill %g seconds (%ld calls)\n",
-	    TotalTimerT(&data->GapFillTimer, &cycles), cycles);
-    fprintf(GlobalData->stderrc,"* Time in Gap Walking %g seconds (%ld calls)\n",
-	    TotalTimerT(&data->GapWalkerTimer, &cycles), cycles);
-    fprintf(GlobalData->stderrc,"* Time in Update after Gap Walking %g seconds (%ld calls)\n",
-	    TotalTimerT(&data->WalkUpdateTimer, &cycles), cycles);
-    fprintf(GlobalData->stderrc,"* Time in Stone Throwing %g seconds (%ld calls)\n",
-	    TotalTimerT(&data->StoneThrowingTimer, &cycles), cycles);
-    fprintf(GlobalData->stderrc,"* Time in Consensus %g seconds (%ld calls)\n",
-	    TotalTimerT(&data->ConsensusTimer, &cycles), cycles);
   }
 
   DestroyScaffoldGraph(ScaffoldGraph);

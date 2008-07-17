@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.29 2008-06-27 06:29:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.30 2008-07-17 01:51:48 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -1207,8 +1207,6 @@ void DumpOverlaps(GraphCGW_T *graph){
   uint64 key, value;
   uint32 valuetype;
 
-  StartTimerT(&GlobalData->OverlapTimer);
-
   fprintf(GlobalData->stderrc,"* DumpOverlaps ************\n");
 
   // Iterate over all hashtable elements, computing overlaps
@@ -1243,8 +1241,6 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
   int sectionOuter, sectionOuterMin, sectionOuterMax;
   int sectionInner, sectionInnerMin, sectionInnerMax;
   int numOverlaps = 0;
-
-  StartTimerT(&GlobalData->OverlapTimer);
 
   fprintf(GlobalData->stderrc,"* ComputeOverlaps ************\n");
 
@@ -1359,10 +1355,6 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
             }
 	}
     }
-
-  StopTimerT(&GlobalData->OverlapTimer);
-  fprintf(GlobalData->stderrc,"* CGW Overlapper took %g seconds to compute %d overlaps\n",
-	  TotalTimerT(&GlobalData->OverlapTimer, NULL), numOverlaps);
 }
 
 

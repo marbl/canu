@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.38 2008-06-27 06:29:19 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.39 2008-07-17 01:51:48 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -44,7 +44,6 @@ static char fileID[] = "$Id: GapFillREZ.c,v 1.38 2008-06-27 06:29:19 brianwalenz
 #include <float.h>
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
-#include "AS_UTL_timer.h"
 #include "AS_UTL_fileIO.h"
 
 #include "AS_CGW_dataTypes.h"
@@ -63,9 +62,6 @@ static char fileID[] = "$Id: GapFillREZ.c,v 1.38 2008-06-27 06:29:19 brianwalenz
 
 #define  REF(i)   (Ref_Data [Ref_Index [i]])   // Macro to reference chunk_ref data
 
-#define  GAPS_TO_ADJUST  0;  j < fill_chunks [scaff_id] . num_gaps;  j ++
-
-#define  DEBUG1                 0
 
 #define  ALLOW_LOOSE_END_ROCKS     0
 // If  1  do usual rocks off ends of scaffolds; otherwise,
@@ -445,9 +441,10 @@ static void  Adjust_Positions(Gap_Fill_t * this_gap, int num_targets, Target_Inf
 static void  Adjust_Stone_Positions(int list [], int num_list, Gap_Chunk_t * node [], double ref_position,
                                     double factor, Path_Info_t path_info [], int target_sub,
                                     LengthT * target_position);
-static void  Analyze_Placement(FILE * fp, Scaffold_Fill_t * fill);
-void  Analyze_Rock_Fill(FILE * fp, Scaffold_Fill_t * fill_chunks);
-void  Analyze_Stone_Fill(FILE * fp, Scaffold_Fill_t * fill_chunks);
+#ifdef ANALYZE
+static void  Analyze_Rock_Fill(FILE * fp, Scaffold_Fill_t * fill_chunks);
+static void  Analyze_Stone_Fill(FILE * fp, Scaffold_Fill_t * fill_chunks);
+#endif
 static int  Ascending_Positions(const void * a, const void * b);
 static int  Assign_To_Gap(int cid, LengthT left_end, LengthT right_end, int gap, int scaff_id,
                           int flipped, Scaffold_Fill_t * fill_chunks, float edge_quality,
@@ -484,7 +481,6 @@ static int  Chunk_Contained_In_Chunk(Gap_Chunk_t * A, Gap_Chunk_t * B);
 static int  Chunk_Contained_In_Scaff(Gap_Chunk_t * A, int cid);
 static void  Clear_Keep_Flags(Scaffold_Fill_t * fill_chunks, int except_num);
 static void  Confirm_Contained(FILE * fp, Scaffold_Fill_t * fill_chunks, int use_all);
-static void  Confirm_Stones(FILE * fp, Scaffold_Fill_t * fill_chunks, int use_all);
 static int  Contained_In(Placement_t * p, Placement_t * q);
 static int  Depth_First_Visit(ChunkInstanceT * from, int from_end, ChunkInstanceT * to,
                               int num_targets, Target_Info_t target [], int bound, double so_far,
@@ -872,8 +868,8 @@ static void  Adjust_Stone_Positions
 }
 
 
-
-void  Analyze_Rock_Fill
+#ifdef ANALYZE
+static void  Analyze_Rock_Fill
 (FILE * fp, Scaffold_Fill_t * fill_chunks)
 
 //  List information about rocks in  fill_chunks .
@@ -1035,97 +1031,6 @@ void  Analyze_Rock_Fill
   fprintf (fp, "     end bases filled = %8.0f\n", end_bases_filled);
   fprintf (fp, "   bases in scaffolds = %8.0f\n", scaffold_bases);
 
-#if  0
-  fprintf (fp, "\n\n");
-  fprintf (fp, "%7s  %7s  %7s  %7s  %8s\n",
-           "Scaff", "Gap", "Len", "Inserts", "CoverLen");
-  for  (scaff_id = 0;  scaff_id < Num_Scaffolds;  scaff_id ++)
-    {
-      int  j;
-
-      for  (j = 1;  j < fill_chunks [scaff_id] . num_gaps - 1;  j ++)
-        {
-          Gap_Fill_t  * this_gap = fill_chunks [scaff_id] . gap + j;
-          ChunkInstanceT  * left_scaff_chunk, * right_scaff_chunk;
-          double  start_position, gap_len;
-          static Interval_t  * place = NULL;
-          static int  place_size = 0;
-          int  k, num_inserts = 0;
-
-          left_scaff_chunk
-            = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> left_cid);
-          right_scaff_chunk
-            = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> right_cid);
-
-          start_position = MAX (left_scaff_chunk -> offsetAEnd . mean,
-                                left_scaff_chunk -> offsetBEnd . mean);
-          gap_len = MIN (right_scaff_chunk -> offsetAEnd . mean,
-                         right_scaff_chunk -> offsetBEnd . mean)
-            - start_position;
-
-          if  (this_gap -> num_chunks > place_size)
-            {
-              place_size = 2 * this_gap -> num_chunks;
-              place = (Interval_t *) safe_realloc
-                (place, place_size * sizeof (Interval_t));
-            }
-
-          for  (k = 0;  k < this_gap -> num_chunks;  k ++)
-            {
-              Gap_Chunk_t  * this_chunk = this_gap -> chunk + k;
-
-              if  (this_chunk -> keep)
-                {
-                  place [num_inserts] . lo
-                    = MIN (this_chunk -> start . mean,
-                           this_chunk -> end . mean)
-                    - start_position;
-                  if  (place [num_inserts] . lo < 0)
-                    place [num_inserts] . lo = 0;
-                  place [num_inserts] . hi
-                    = MAX (this_chunk -> start . mean,
-                           this_chunk -> end . mean)
-                    - start_position;
-                  if  (place [num_inserts] . hi > gap_len)
-                    place [num_inserts] . hi = gap_len;
-                  if  (place [num_inserts] . hi < place [num_inserts] . lo)
-                    place [num_inserts] . hi = place [num_inserts] . lo;
-                  num_inserts ++;
-                }
-            }
-
-          if  (num_inserts > 0)
-            {
-              double  left, right;
-              double  combined_len = 0.0;
-              int  i;
-
-              qsort (place, num_inserts, sizeof (Interval_t), By_Interval_Lo);
-
-              left = place [0] . lo;
-              right = place [0] . hi;
-
-              for  (i = 1;  i < num_inserts;  i ++)
-                if  (place [i] . lo > right)
-                  {
-                    combined_len += right - left;
-                    left = place [i] . lo;
-                    right = place [i] . hi;
-                  }
-                else if  (place [i] . hi > right)
-                  {
-                    right = place [i] . hi;
-                  }
-              combined_len += right - left;
-
-              fprintf (fp, "%7d  %7d  %7.0f  %7d  %8.0f\n",
-                       scaff_id, j,
-                       gap_len,
-                       num_inserts, combined_len);
-            }
-        }
-    }
-#else
   fprintf (fp, "\n\n");
   fprintf (fp, "%7s  %7s  %7s  %7s  %8s  %7s\n",
            "Scaff", "Gap", "Thrown", "Placed", "CoverLen", "GapLen");
@@ -1234,14 +1139,13 @@ void  Analyze_Rock_Fill
           fprintf (fp, "\n");
         }
     }
-#endif
 
   return;
 }
 
 
 
-void  Analyze_Stone_Fill
+static void  Analyze_Stone_Fill
 (FILE * fp, Scaffold_Fill_t * fill_chunks)
 
 //  List information about stones in  fill_chunks .
@@ -1490,7 +1394,7 @@ void  Analyze_Stone_Fill
 
   return;
 }
-
+#endif
 
 
 static int  Ascending_Positions
@@ -2103,7 +2007,7 @@ static void  Adjust_By_Ref_Variance_One_Scaffold
 {
   int  j;
 
-  for  (j = GAPS_TO_ADJUST)
+  for  (j = 0;  j < fill_chunks [scaff_id] . num_gaps;  j ++)
     {
       int  k;
       Gap_Fill_t  * this_gap = fill_chunks [scaff_id] . gap + j;
@@ -2389,11 +2293,6 @@ static void  Check_Olaps
           && Should_Overlap (place + j, place + i, & orient, & how_much))
 #endif
     {
-#if 0
-      ChunkOrientationType  new_orient;
-      int  olap_found;
-#endif
-      //             ChunkOverlapCheckT  olap;
       Overlap  * olap;
       char  * i_seq, * j_seq;
 
@@ -2444,60 +2343,6 @@ static void  Check_Olaps
       else
         fprintf (stderr, "  begpos = %d  endpos = %d  length = %d\n",
                  olap -> begpos, olap -> endpos, olap -> length);
-#endif
-
-#if  0
-      if  (olap_found)
-        {
-#ifdef DEBUG_DETAILED
-          fprintf (stderr, "  Found  overlap = %d\n", olap . overlap);
-#endif
-        }
-      else
-        {
-          ChunkOverlapCheckT  rev_olap;
-          int  rev_olap_found;
-          int  i_len, j_len;
-
-          switch  (orient)
-            {
-              case  AB_AB :
-              case  BA_BA :
-                new_orient = orient;
-                break;
-              case  AB_BA :
-                new_orient = BA_AB;
-                break;
-              case  BA_AB :
-                new_orient = AB_BA;
-                break;
-              default :
-                fprintf (stderr, "YIKES:  Bad orientation = %d\n", (int) orient);
-                assert (FALSE);
-            }
-
-          i_len = (int) fabs (place [i] . A_end . mean - place [i] . B_end . mean);
-          j_len = (int) fabs (place [j] . A_end . mean - place [j] . B_end . mean);
-          assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
-          rev_olap = OverlapChunks      // debug code does NOT handle suspicious
-            (ScaffoldGraph -> RezGraph,
-             place [i] . id, place [j] . id,
-             new_orient,
-             0, MAX (i_len, j_len),
-             AS_CGW_ERROR_RATE, FALSE);
-
-          rev_olap_found = (rev_olap . overlap > 0);
-          fprintf (stderr, "  Didn't find expected overlap between %d and %d",
-                   place [j] . id, place [i] . id);
-          if  (rev_olap_found)
-            fprintf (stderr, "  Reverse found  overlap = %d\n", rev_olap . overlap);
-          else
-            fprintf (stderr, "  Reverse not found\n");
-        }
-#ifdef DEBUG_DETAILED
-      fprintf (stderr, "     AContainsB = %c  BContainsA = %c\n",
-               olap . AContainsB ? 'T' : 'F', olap . BContainsA ? 'T' : 'F');
-#endif
 #endif
 
       if  (olap == NULL)
@@ -2801,7 +2646,7 @@ static void  Check_Rocks
     {
       int  j;
 
-      for  (j = GAPS_TO_ADJUST)
+      for  (j = 0;  j < fill_chunks [scaff_id] . num_gaps;  j ++)
         {
           Gap_Fill_t  * this_gap = fill_chunks [scaff_id] . gap + j;
 
@@ -4276,7 +4121,7 @@ static void  Confirm_Contained
     {
       int  j;
 
-      for  (j = GAPS_TO_ADJUST)
+      for  (j = 0;  j < fill_chunks [scaff_id] . num_gaps;  j ++)
         {
           int  k, ct;
           Gap_Fill_t  * this_gap = fill_chunks [scaff_id] . gap + j;
@@ -4438,273 +4283,6 @@ static void  Confirm_Contained
 }
 
 
-
-
-static void  Confirm_Stones
-(FILE * fp, Scaffold_Fill_t * fill_chunks, int use_all)
-
-//  Try to confirm stones in  fill_chunks  by finding overlap paths
-//  through them.  Send output log to  fp .
-//  If  use_all  is true, use all the chunks in  fill_chunks ;
-//  otherwise, use only the ones whose  keep  flag is already
-//  true.
-
-{
-  Target_Info_t  * target = NULL;
-  int  * fill_sub = NULL;
-  int  target_size = 0;
-  int  scaff_id;
-
-#if  SHOW_STONE_CONFIRM
-  fprintf (fp, "\n*** Confirm Stones ***\n");
-#endif
-
-  for  (scaff_id = 0;  scaff_id < Num_Scaffolds;  scaff_id ++)
-    {
-      int  j;
-
-#if  SHOW_STONE_CONFIRM
-      fprintf (fp, "\n Scaffold #%d  num_gaps = %d:\n",
-               scaff_id, fill_chunks [scaff_id] . num_gaps);
-#endif
-      for  (j = GAPS_TO_ADJUST)
-        {
-          Gap_Fill_t  * this_gap = fill_chunks [scaff_id] . gap + j;
-          ChunkInstanceT  * from, * to;
-          double  bound;
-          LengthT  start_position;
-          int  first, max_hits, max_first;
-          int  found, from_end, is_forward;
-          int  num_targets;
-          int  k;
-
-#if  SHOW_STONE_CONFIRM
-          fprintf (fp, " Gap %3d:  (%8.0f,%7.0f)  (%8.0f,%7.0f)  <%6d,%6d> %3d\n",
-                   j,
-                   this_gap -> start . mean,
-                   this_gap -> start . variance,
-                   this_gap -> end . mean,
-                   this_gap -> end . variance,
-                   this_gap -> left_cid,
-                   this_gap -> right_cid,
-                   this_gap -> num_chunks);
-          fprintf (fp, "   ref_variance = %.0f\n",
-                   this_gap -> ref_variance);
-#endif
-
-          if  (this_gap -> num_chunks > target_size)
-            {
-              target_size = this_gap -> num_chunks;
-              target = (Target_Info_t *) safe_realloc
-                (target, target_size * sizeof (Target_Info_t));
-              fill_sub = (int *) safe_realloc
-                (fill_sub, target_size * sizeof (int));
-            }
-
-          if  (j == 0)
-            from = GetGraphNode (ScaffoldGraph -> RezGraph,
-                                 this_gap -> right_cid);
-          else
-            from = GetGraphNode (ScaffoldGraph -> RezGraph,
-                                 this_gap -> left_cid);
-          if  (j == 0 || j == fill_chunks [scaff_id] . num_gaps - 1)
-            to = NULL;
-          else
-            to = GetGraphNode (ScaffoldGraph -> RezGraph,
-                               this_gap -> right_cid);
-
-          is_forward = (from -> offsetAEnd . mean <= from -> offsetBEnd . mean);
-          if  (j == 0)
-            is_forward = ! is_forward;
-          if  (is_forward)
-            {
-              from_end = B_END;
-              start_position = from -> offsetBEnd;
-            }
-          else
-            {
-              from_end = A_END;
-              start_position = from -> offsetAEnd;
-            }
-
-          if  (to == NULL)
-            bound = MAX_MATE_DISTANCE;
-          else
-            bound = this_gap -> end . mean
-              - this_gap -> start . mean
-              + 3.0 * sqrt (this_gap -> end . variance
-                            - this_gap -> start . variance);
-
-          this_gap -> adjustment . mean = this_gap -> adjustment . variance
-            = 0.0;
-
-          num_targets = 0;
-          for  (k = 0;  k < this_gap -> num_chunks;  k ++)
-            {
-              double  delta, place;
-              Gap_Chunk_t  * this_chunk = this_gap -> chunk + k;
-
-              if  (use_all || this_chunk -> keep)
-                {
-                  delta = 3.0 * sqrt (this_chunk -> end . variance);
-                  if  (delta < MIN_TARGET_SLOP)
-                    delta = MIN_TARGET_SLOP;
-                  target [num_targets] . id = this_chunk ->  chunk_id;
-
-                  is_forward = (this_chunk -> start . mean <= this_chunk -> end . mean);
-                  if  (j == 0)
-                    is_forward = ! is_forward;
-                  if  (is_forward)
-                    {
-                      place = this_chunk -> end . mean;
-                      target [num_targets] . orient = AB_AB;
-                      // only the 2nd part matters
-                    }
-                  else
-                    {
-                      place = this_chunk -> start . mean;
-                      target [num_targets] . orient = AB_BA;
-                      // only the 2nd part matters
-                    }
-
-                  if  (j == 0)
-                    {
-                      target [num_targets] . lo
-                        = start_position . mean - place - delta;
-                      target [num_targets] . hi
-                        = start_position . mean - place + delta;
-                    }
-                  else
-                    {
-                      target [num_targets] . lo
-                        = place - delta - start_position . mean;
-                      target [num_targets] . hi
-                        = place + delta - start_position . mean;
-                    }
-                  fill_sub [num_targets] = k;
-                  num_targets ++;
-
-                  this_chunk -> keep = FALSE;
-                }
-            }
-
-          if  (num_targets > 0)
-            {
-              LengthT  to_position;
-
-              found = Find_Olap_Path
-                (from, from_end, to, num_targets, target, bound,
-                 & first, & max_hits, & max_first, & to_position,
-                 SKIP_TANDEM_OLAPS | SKIP_CONTAINMENT_OLAPS);
-              if  (found && max_hits > 0)
-                {
-                  LengthT  far_position, near_position;
-                  double  min_var_adjustment, high_target_variance;
-                  DirectionType  direction;
-                  int  sub = max_first;
-
-                  this_gap -> has_path = TRUE;
-
-                  for  (k = 0;  k < max_hits;  k ++)
-                    {
-                      this_gap -> chunk [fill_sub [sub]] . keep = TRUE;
-                      this_gap -> chunk [fill_sub [sub]] . path_confirmed = TRUE;
-                      sub = target [sub] . next;
-                    }
-
-                  if  (j == 0)
-                    direction = AS_REVERSE;
-                  else
-                    direction = AS_FORWARD;
-                  Adjust_Positions (this_gap, num_targets, target, fill_sub,
-                                    max_hits, max_first, start_position . mean,
-                                    direction, & high_target_variance, fp);
-
-                  if  (j == 0)
-                    Reverse_Positions (this_gap);
-
-                  if  (to != NULL)
-                    {
-                      if  (to -> offsetAEnd . mean <= to -> offsetBEnd . mean)
-                        {
-                          far_position = to -> offsetBEnd;
-                          near_position = to -> offsetAEnd;
-                        }
-                      else
-                        {
-                          far_position = to -> offsetAEnd;
-                          near_position = to -> offsetBEnd;
-                        }
-                      this_gap -> adjustment . mean
-                        = to_position . mean
-                        - (far_position . mean - start_position . mean);
-                      this_gap -> adjustment . variance
-                        = to_position . variance
-                        - (far_position . variance - start_position . variance);
-#ifdef DEBUG_DETAILED
-                      fprintf (stderr, "### Scaff %d  gap %d  to_pv = %.1f  far_pv = %.1f  st_pv = %.1f\n",
-                               scaff_id, j,
-                               to_position . variance, far_position . variance, start_position . variance);
-#endif
-
-                      //  Ensure that, after the insertion, the variances
-                      //  of chunks in the scaffolds will be strictly
-                      //  ascending.  EPSILON should be big enough to
-                      //  cover any floating-point roundoff errors.
-
-                      min_var_adjustment = start_position . variance
-                        - near_position . variance
-                        + EPSILON;
-                      if  (high_target_variance > 0.0)
-                        min_var_adjustment += high_target_variance;
-                      if  (this_gap -> adjustment . variance
-                           < min_var_adjustment)
-                        this_gap -> adjustment . variance = min_var_adjustment;
-
-#ifdef DEBUG_DETAILED
-                      fprintf (stderr, "     adjv = %.1f  minvadj = %.1f\n",
-                               this_gap -> adjustment . variance, min_var_adjustment);
-#endif
-
-                    }
-                }
-#if  SHOW_STONE_CONFIRM
-              fprintf (fp, "found = %c  first = %3d  max_hits = %3d  max_first = %3d\n",
-                       found ? 'T' : 'F', first, max_hits, max_first);
-              if  (found && max_hits > 0)
-                {
-                  int  sub = max_first;
-
-                  for  (k = 0;  k < max_hits;  k ++)
-                    {
-                      if  (k > 0)
-                        fprintf (fp, " --> ");
-                      fprintf (fp, "%d", target [sub] . id);
-                      sub = target [sub] . next;
-                    }
-                  fprintf (fp, "\n");
-                }
-
-              fprintf (fp, "Targets:\n");
-              for  (k = 0;  k < num_targets;  k ++)
-                fprintf (fp, "%3d: %6d %8.0f %8.0f %8.0f %8.0f %3d\n",
-                         k, target [k] . id, target [k] . lo, target [k] . hi,
-                         target [k] . where,
-                         target [k] . total,
-                         target [k] . next);
-              if  (found && max_hits > 0)
-                fprintf (fp, "  New to_position = [%.0f, %.0f]\n",
-                         to_position . mean, to_position . variance);
-#endif
-            }
-        }
-    }
-
-  safe_free (target);
-  safe_free (fill_sub);
-
-  return;
-}
 
 
 
@@ -5779,7 +5357,7 @@ static void  Doublecheck_Positions_One_Scaffold
   // First make sure any overlaps implied by computed positions
   // are really there.
 
-  for  (j = GAPS_TO_ADJUST)
+  for  (j = 0;  j < fill_chunks [scaff_id] . num_gaps;  j ++)
     {
       Gap_Fill_t  * this_gap = fill_chunks [scaff_id] . gap + j;
 
@@ -5791,7 +5369,7 @@ static void  Doublecheck_Positions_One_Scaffold
 
   prev_adjust = var_adjust = 0.0;
 
-  for  (j = GAPS_TO_ADJUST)
+  for  (j = 0;  j < fill_chunks [scaff_id] . num_gaps;  j ++)
     {
       ChunkInstanceT  * left_chunk, * right_chunk;
       Gap_Fill_t  * this_gap = fill_chunks [scaff_id] . gap + j;
@@ -6364,8 +5942,6 @@ int  Fill_Gaps
   int  i;
   int  inserted = 0;
 
-  StartTimerT(&GlobalData->GapFillTimer);
-
   Num_Scaffolds = GetNumGraphNodes (ScaffoldGraph -> ScaffoldGraph);
   if  (Num_Scaffolds == 0)
     return 0;
@@ -6439,8 +6015,6 @@ int  Fill_Gaps
   fprintf (stderr, ">>> Before  Print_Potential_Fill_Chunks\n");
   Print_Potential_Fill_Chunks (log_file, Maybe_Rock, FALSE);
 
-  StartTimerT(&GlobalData->ChooseChunksTimer);
-
   fprintf (stderr, ">>> Before  Scan_Gaps\n");
   fill_chunks = Scan_Gaps ();
 
@@ -6467,8 +6041,6 @@ int  Fill_Gaps
   if (level <= 2)
     Check_Other_Links (fill_chunks);
 
-  StopTimerT(&GlobalData->ChooseChunksTimer);
-
   if  (level == 5)
     {
       fprintf (stderr, "Before  Identify_Best_Rocks\n");
@@ -6482,7 +6054,6 @@ int  Fill_Gaps
   }
 #endif
 
-  StartTimerT(&GlobalData->ConsistencyCheckTimer);
   {
     int  passed_consistency_check;
 
@@ -6497,7 +6068,6 @@ int  Fill_Gaps
     fprintf (stderr, "      Passed consistency check: %7d\n",
              passed_consistency_check);
   }
-  StopTimerT(&GlobalData->ConsistencyCheckTimer);
 
 #if  0
   {
@@ -6520,13 +6090,9 @@ int  Fill_Gaps
       // stones.  Reject those not confirmed by walk.
 
       fprintf (stderr, "Before Confirm_Stones\n");
-#if  0
-      Confirm_Stones (log_file, fill_chunks, FALSE);
-#else
       Requalify_Scaff_Chunks (fill_chunks);
       New_Confirm_Stones (log_file, fill_chunks, FALSE);
       Disqualify_Scaff_Chunks (fill_chunks);
-#endif
       fprintf (stderr, "Before Jiggle_Positions\n");
       Jiggle_Positions (fill_chunks);
       fprintf (stderr, "Before Adjust_By_Ref_Variance\n");
@@ -6543,9 +6109,6 @@ int  Fill_Gaps
       // stones.  Reject those not confirmed by walk.
 
       fprintf (stderr, "Before Confirm_Stones\n");
-#if  0
-      Confirm_Stones (log_file, fill_chunks, FALSE);
-#else
       Requalify_Scaff_Chunks (fill_chunks);
 #if  VERBOSE
       fprintf (log_file, "\n\n>>>> Fill BEFORE New_Confirm_Stones <<<<\n");
@@ -6563,7 +6126,6 @@ int  Fill_Gaps
       fflush (log_file);
 #endif
       Disqualify_Scaff_Chunks (fill_chunks);
-#endif
 
       fprintf (stderr, "Before Restore_Best_Rocks\n");
       Restore_Best_Rocks (fill_chunks);
@@ -6617,13 +6179,13 @@ int  Fill_Gaps
 
   fclose (log_file);
 
+#ifdef ANALYZE
   sprintf(filename, "rezlog/rez.i%02d.analysis", iteration);
   log_file = file_open (filename, "w");
   Analyze_Rock_Fill (log_file, fill_chunks);
   fclose (log_file);
+#endif
 
-
-  StartTimerT(&GlobalData->UpdateTimer);
   if  (level > 1)
     {
 #if  0
@@ -6644,8 +6206,6 @@ int  Fill_Gaps
   Re_Check_Inserted_Rocks (fill_chunks, MIN_GOOD_LINKS);
 #endif
 
-  StopTimerT(&GlobalData->UpdateTimer);
-
 
 #if  TEST_HOPELESS_SCAFFS
   Set_Is_Hopeless (fill_chunks);
@@ -6662,8 +6222,6 @@ int  Fill_Gaps
   stop_time = clock ();
   fprintf (stderr, "### cpu time = %.1f sec\n",
            (double) (stop_time - start_time) / CLOCKS_PER_SEC);
-
-  StopTimerT(&GlobalData->GapFillTimer);
 
   return inserted;     // <*** Change this back ***>
 }
@@ -7172,8 +6730,6 @@ int  Hurl_Contained_Rocks
   int  i;
   int  inserted = 0;
 
-  StartTimerT(&GlobalData->GapFillTimer);
-
   Num_Scaffolds = GetNumGraphNodes (ScaffoldGraph -> ScaffoldGraph);
   if (Num_Scaffolds == 0)
     return 0;
@@ -7249,8 +6805,6 @@ int  Hurl_Contained_Rocks
   fprintf (stderr, ">>> Before  Print_Potential_Fill_Chunks\n");
   Print_Potential_Fill_Chunks (log_file, Maybe_Rock, TRUE);
 
-  StartTimerT(&GlobalData->ChooseChunksTimer);
-
   fprintf (stderr, ">>> Before  Scan_Gaps\n");
   fill_chunks = Scan_Gaps ();
 
@@ -7266,8 +6820,6 @@ int  Hurl_Contained_Rocks
 
   if (level <= 2)
     Check_Other_Links (fill_chunks);
-
-  StopTimerT(&GlobalData->ChooseChunksTimer);
 
   Add_Gap_Ends (fill_chunks);
 
@@ -7301,13 +6853,13 @@ int  Hurl_Contained_Rocks
 
   fclose (log_file);
 
+#ifdef ANALYZE
   sprintf(filename, "rezlog/crocks.i%02d.analysis", iteration);
   log_file = file_open (filename, "w");
   Analyze_Rock_Fill (log_file, fill_chunks);
   fclose (log_file);
+#endif
 
-
-  StartTimerT(&GlobalData->UpdateTimer);
   if (level > 1) {
 #if  0
     Clear_Keep_Flags (fill_chunks, 1);
@@ -7321,7 +6873,6 @@ int  Hurl_Contained_Rocks
 #endif
     fprintf (stderr, "             Actually inserted: %7d\n", inserted);
   }
-  StopTimerT(&GlobalData->UpdateTimer);
 
   Contained_Only_Switch = FALSE;
 
@@ -7338,8 +6889,6 @@ int  Hurl_Contained_Rocks
   stop_time = clock ();
   fprintf (stderr, "### cpu time = %.1f sec\n",
            (double) (stop_time - start_time) / CLOCKS_PER_SEC);
-
-  StopTimerT(&GlobalData->GapFillTimer);
 
   return inserted;
 }
@@ -7361,7 +6910,7 @@ static void  Identify_Best_Rocks
     {
       int  j;
 
-      for  (j = GAPS_TO_ADJUST)
+      for  (j = 0;  j < fill_chunks [scaff_id] . num_gaps;  j ++)
         {
           int  k;
           double  min_variance, prev_gap_end, next_gap_begin;
@@ -8044,7 +7593,7 @@ static void  Jiggle_Positions_One_Scaffold
   fprintf (stderr, "### Scaffold %d:\n", scaff_id);
 #endif
 
-  for  (j = GAPS_TO_ADJUST)
+  for  (j = 0;  j < fill_chunks [scaff_id] . num_gaps;  j ++)
     {
       Gap_Fill_t  * this_gap = fill_chunks [scaff_id] . gap + j;
 
@@ -8322,7 +7871,7 @@ static void  New_Confirm_Stones_One_Scaffold
         safe_malloc (check_size * sizeof (char *));
     }
 
-  for  (j = GAPS_TO_ADJUST)
+  for  (j = 0;  j < fill_chunks [scaff_id] . num_gaps;  j ++)
     {
       //  Find all overlaps
       //  Find all edges
@@ -10007,7 +9556,7 @@ static void  Restore_Best_Rocks
     {
       int  j;
 
-      for  (j = GAPS_TO_ADJUST)
+      for  (j = 0;  j < fill_chunks [scaff_id] . num_gaps;  j ++)
         {
           int  k, keep_any;
           Gap_Fill_t  * this_gap = fill_chunks [scaff_id] . gap + j;
@@ -10035,11 +9584,7 @@ static void  Restore_Best_Rocks
             {
               ChunkOrientationType  orient;
               int  min_ahang, max_ahang;
-#if 0
-              int  how_much;
-#endif
               int  had_left_overlap = FALSE;
-              //              ChunkOverlapCheckT  olap;
               char  * scaff_seq, * rock_seq;
               double  delta, implied_olap;
               double  left_hi_mean = 0., right_lo_mean = 0.;
@@ -12050,12 +11595,12 @@ int Throw_Stones
 #endif
 #endif
 
+#ifdef ANALYZE
   sprintf(filename, "rezlog/stone.i%02d.analysis", iteration);
   log_file = file_open (filename, "w");
   Analyze_Stone_Fill (log_file, fill_stones);
   fclose (log_file);
-
-
+#endif
 
   Free_Fill_Array (fill_stones);
   Free_Global_Arrays ();
@@ -12184,8 +11729,6 @@ int  Toss_Contained_Stones
   int  i;
   int  inserted = 0;
 
-  StartTimerT(&GlobalData->GapFillTimer);
-
   Num_Scaffolds = GetNumGraphNodes (ScaffoldGraph -> ScaffoldGraph);
   if (Num_Scaffolds == 0)
     return 0;
@@ -12265,8 +11808,6 @@ int  Toss_Contained_Stones
   //   Print_Potential_Fill_Chunks (log_file, Maybe_Stone);
   Print_Potential_Fill_Chunks (log_file, Just_True, TRUE);
 
-  StartTimerT(&GlobalData->ChooseChunksTimer);
-
   fprintf (stderr, ">>> Before  Scan_Gaps\n");
   fill_stones = Scan_Gaps ();
 
@@ -12277,8 +11818,6 @@ int  Toss_Contained_Stones
   fprintf (log_file, "\n>>> Fill after Choose_Stones <<<\n");
   Print_Fill_Info (log_file, fill_stones);
 #endif
-
-  StopTimerT(&GlobalData->ChooseChunksTimer);
 
   Add_Gap_Ends (fill_stones);
 
@@ -12319,15 +11858,16 @@ int  Toss_Contained_Stones
 
   fclose (log_file);
 
+#ifdef ANALYZE
   sprintf(filename, "rezlog/cstones.i%02d.analysis", iteration);
   log_file = file_open (filename, "w");
   Analyze_Rock_Fill (log_file, fill_stones);
+#endif
 
   fclose (log_file);
 #endif
 
 
-  StartTimerT(&GlobalData->UpdateTimer);
   if  (level > 1)
     {
 #if  USE_MY_INSERT
@@ -12341,7 +11881,6 @@ int  Toss_Contained_Stones
 #endif
       fprintf (stderr, "             Actually inserted: %7d\n", inserted);
     }
-  StopTimerT(&GlobalData->UpdateTimer);
 
   Contained_Only_Switch = FALSE;
 
@@ -12358,8 +11897,6 @@ int  Toss_Contained_Stones
   stop_time = clock ();
   fprintf (stderr, "### cpu time = %.1f sec\n",
            (double) (stop_time - start_time) / CLOCKS_PER_SEC);
-
-  StopTimerT(&GlobalData->GapFillTimer);
 
   Single_Fragment_Only = FALSE;
 

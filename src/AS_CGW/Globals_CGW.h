@@ -18,18 +18,15 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: Globals_CGW.h,v 1.17 2008-06-27 06:29:14 brianwalenz Exp $	 */
+/* 	$Id: Globals_CGW.h,v 1.18 2008-07-17 01:51:48 brianwalenz Exp $	 */
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
 #include "AS_CGW_dataTypes.h"
 #include "AS_MSG_pmesg.h"
-#include "AS_UTL_timer.h"
 #include "AS_ALN_forcns.h"
 
-/* These are the global data structures for the CGW Module */
-
-
+//  These are the global data structures for the CGW Module
 
 typedef struct Global_CGW_tag {
   int verbose;
@@ -63,21 +60,6 @@ typedef struct Global_CGW_tag {
   HISTOGRAM *scaffold_repeat;
 #endif
   Overlap *(*aligner)(char *, char *, int, int, int, double, double, int, CompareOptions);
-  TimerT RecomputeOffsetsTimer;
-  TimerT MergeScaffoldsTimer;
-  TimerT BuildSEdgesTimer;
-  TimerT InputTimer;
-  TimerT OutputTimer;
-  TimerT OverlapTimer;
-  TimerT ChooseChunksTimer;
-  TimerT ConsistencyCheckTimer;
-  TimerT WalkUpdateTimer;
-  TimerT UpdateTimer;
-  TimerT GapFillTimer;
-  TimerT GapWalkerTimer;
-  TimerT StoneThrowingTimer;
-  TimerT BccTimer;
-  TimerT ConsensusTimer;
 
   char Input_File_Name[1024];
   char File_Name_Prefix[1024];

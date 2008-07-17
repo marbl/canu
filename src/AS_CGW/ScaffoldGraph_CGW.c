@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.32 2008-06-27 06:29:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.33 2008-07-17 01:51:48 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -83,60 +83,29 @@ void CheckpointScaffoldGraph(ScaffoldGraphT *graph, int logicalCheckpoint){
   char buffer[1024];
   FILE *outStream;
   char *name = GlobalData->File_Name_Prefix;
+  time_t t;
 
   sprintf(buffer,"%s.ckp.%d",name,graph->checkPointIteration++);
 
-  {
-    time_t t;
-    t = time(0);
-    fprintf(GlobalData->timefp,"\n");
-    fprintf(GlobalData->timefp, "====> Saving %s at %s", buffer, ctime(&t));
-  }
-  {
-    long cycles;
-    fprintf(GlobalData->timefp,"******* Dumping Checkpoint %d (logical %d)\n", graph->checkPointIteration - 1, logicalCheckpoint);
-    fprintf(GlobalData->timefp,"* Time in Chunk Selection %g seconds (%ld calls)\n",
-	    TotalTimerT(&GlobalData->ChooseChunksTimer, &cycles), cycles);
-    fprintf(GlobalData->timefp,"* Time in Consistency Check %g seconds (%ld calls)\n",
-	    TotalTimerT(&GlobalData->ConsistencyCheckTimer, &cycles), cycles);
-    fprintf(GlobalData->timefp,"* Time in Update %g seconds (%ld calls)\n",
-	    TotalTimerT(&GlobalData->UpdateTimer, &cycles), cycles);
-    fprintf(GlobalData->timefp,"* Time in WalkUpdate %g seconds (%ld calls)\n",
-	    TotalTimerT(&GlobalData->WalkUpdateTimer, &cycles), cycles);
-    fprintf(GlobalData->timefp,"* Time in RecomputeOffsets %g seconds (%ld calls)\n",
-	    TotalTimerT(&GlobalData->RecomputeOffsetsTimer, &cycles), cycles);
-    fprintf(GlobalData->timefp,"* Time in MergeScaffolds %g seconds (%ld calls)\n",
-	    TotalTimerT(&GlobalData->MergeScaffoldsTimer, &cycles), cycles);
-    fprintf(GlobalData->timefp,"* Time in Gap Fill %g seconds (%ld calls)\n",
-	    TotalTimerT(&GlobalData->GapFillTimer, &cycles), cycles);
-    fprintf(GlobalData->timefp,"* Time in Gap Walking %g seconds (%ld calls)\n",
-	    TotalTimerT(&GlobalData->GapWalkerTimer, &cycles), cycles);
-    fprintf(GlobalData->timefp,"* Time in Stone Throwing %g seconds (%ld calls)\n",
-	    TotalTimerT(&GlobalData->StoneThrowingTimer, &cycles), cycles);
-    fprintf(GlobalData->timefp,"* Time in Consensus %g seconds (%ld calls)\n",
-	    TotalTimerT(&GlobalData->ConsensusTimer, &cycles), cycles);
-  }
-  //  fflush(NULL);
+  t = time(0);
+  fprintf(GlobalData->timefp,"\n");
+  fprintf(GlobalData->timefp, "====> Saving %s at %s", buffer, ctime(&t));
 
   outStream = File_Open(buffer,"w",TRUE);
 
   SaveScaffoldGraphToStream(graph, outStream);
 
-  {
-    time_t t;
-    t = time(0);
-    fprintf(GlobalData->timefp, "====> Done with checkpoint %d (logical %d) at %s", graph->checkPointIteration - 1, logicalCheckpoint, ctime(&t));
-    fprintf(GlobalData->timefp, "\n");
-    fflush(NULL);
-  }
   fclose(outStream);
+
+  t = time(0);
+  fprintf(GlobalData->timefp, "====> Done with checkpoint %d (logical %d) at %s", graph->checkPointIteration - 1, logicalCheckpoint, ctime(&t));
+  fprintf(GlobalData->timefp, "\n");
 }
 
 
 void SaveScaffoldGraphToStream(ScaffoldGraphT *sgraph, FILE *stream){
   int status;
 
-  //  fprintf(GlobalData->stderrc,"* Saving graph %s\n", sgraph->name);
   AS_UTL_safeWrite(stream, sgraph->name, "SaveScaffoldGraphToStream", sizeof(char), 256);
 
 
@@ -147,9 +116,7 @@ void SaveScaffoldGraphToStream(ScaffoldGraphT *sgraph, FILE *stream){
 #endif
   CopyToFileVA_DistT(sgraph->Dists, stream);
 
-  //  fprintf(GlobalData->stderrc,"* Saving CIGraph\n");
   SaveGraphCGWToStream(sgraph->CIGraph,stream);
-  //  fprintf(GlobalData->stderrc,"* Saving ContigGraph\n");
   SaveGraphCGWToStream(sgraph->ContigGraph,stream);
   SaveGraphCGWToStream(sgraph->ScaffoldGraph,stream);
 
@@ -168,10 +135,6 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
   ScaffoldGraphT *sgraph =
     (ScaffoldGraphT *)safe_calloc(1, sizeof(ScaffoldGraphT));
   int    i, status;
-  TimerT timer;
-
-  InitTimerT(&timer);
-  StartTimerT(&timer);
 
   ScaffoldGraph = sgraph;
   sgraph->sequenceDB = SequenceDB;
@@ -232,20 +195,10 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
     sgraph->RezGraph = sgraph->CIGraph;
   }
 
-  StopTimerT(&timer);
-  fprintf(GlobalData->stderrc,
-          "*** Loading Scaffold Graph %s took %g seconds\n",
-	  sgraph->name, TotalTimerT(&timer, NULL));
-
   ReportMemorySize(sgraph,GlobalData->stderrc);
 
-  fprintf(stderr,"* Calling SetCIScaffoldTLengths\n");
   SetCIScaffoldTLengths(sgraph, TRUE);
-
-  fprintf(stderr,"* Calling CheckCIScaffoldTs\n");
   CheckCIScaffoldTs(sgraph);
-
-  fprintf(stderr,"* Done with CheckCIScaffoldTs\n");
 
   return sgraph;
 }

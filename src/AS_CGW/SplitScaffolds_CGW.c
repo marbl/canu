@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitScaffolds_CGW.c,v 1.10 2008-06-27 06:29:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SplitScaffolds_CGW.c,v 1.11 2008-07-17 01:51:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,7 +32,6 @@ static char CM_ID[] = "$Id: SplitScaffolds_CGW.c,v 1.10 2008-06-27 06:29:14 bria
 #include "AS_UTL_Var.h"
 #include "UtilsREZ.h"
 #include "AS_UTL_interval.h"
-#include "AS_UTL_timer.h"
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"

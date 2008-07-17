@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.26 2008-06-27 06:29:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.27 2008-07-17 01:51:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +33,6 @@ static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.26 2008-06-27 06:29:14 br
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_interval.h"
-#include "AS_UTL_timer.h"
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"
@@ -747,8 +746,6 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
   data.gapSizeVariance = NULL;
   data.gapsToComputeGaps = NULL;
   data.computeGapsToGaps = NULL;
-
-  StartTimerT(&GlobalData->RecomputeOffsetsTimer);   /*  START */
 
   CheckInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW, 100000000000.0, 0, FALSE);
 
@@ -1590,8 +1587,6 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
     SetCIScaffoldTLength(ScaffoldGraph, scaffold, TRUE); // recompute scaffold length, just to be sure
 
   }
-
-  StopTimerT(&GlobalData->RecomputeOffsetsTimer);   /*  STOP */
 
   freeRecomputeData(&data);
   return (RECOMPUTE_OK);

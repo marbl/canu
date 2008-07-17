@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.13 2008-06-27 06:29:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.14 2008-07-17 01:51:48 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -737,8 +737,6 @@ void BuildSEdges(ScaffoldGraphT *graph, int includeNegativeEdges)
 {
   CDS_CID_t sid;
 
-  StartTimerT(&GlobalData->BuildSEdgesTimer);
-
   /* Recycle the SEdge VA */
   ResetEdgeCGW_T(graph->ScaffoldGraph->edges);
   graph->ScaffoldGraph->tobeFreeEdgeHead = NULLINDEX;
@@ -762,6 +760,4 @@ void BuildSEdges(ScaffoldGraphT *graph, int includeNegativeEdges)
 
   fprintf(GlobalData->stderrc,"* BuildSEdges: %d edges on completion\n",
           (int) GetNumGraphEdges(graph->ScaffoldGraph));
-
-  StopTimerT(&GlobalData->BuildSEdgesTimer);
 }

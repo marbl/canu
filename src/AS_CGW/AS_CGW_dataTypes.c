@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.14 2008-06-27 06:29:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.15 2008-07-17 01:51:48 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -59,21 +59,6 @@ Global_CGW *CreateGlobal_CGW(void){
 
   g->stderrc = stderr;
   g->timefp  = stderr;
-
-  InitTimerT(&g->RecomputeOffsetsTimer);
-  InitTimerT(&g->MergeScaffoldsTimer);
-  InitTimerT(&g->BuildSEdgesTimer);
-  InitTimerT(&g->InputTimer);
-  InitTimerT(&g->OutputTimer);
-  InitTimerT(&g->OverlapTimer);
-  InitTimerT(&g->ConsistencyCheckTimer);
-  InitTimerT(&g->WalkUpdateTimer);
-  InitTimerT(&g->UpdateTimer);
-  InitTimerT(&g->GapWalkerTimer);
-  InitTimerT(&g->GapFillTimer);
-  InitTimerT(&g->StoneThrowingTimer);
-  InitTimerT(&g->BccTimer);
-  InitTimerT(&g->ConsensusTimer);
 
   return(g);
 }

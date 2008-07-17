@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.51 2008-06-27 06:29:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.52 2008-07-17 01:51:48 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -192,8 +192,6 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
   int i,j = 0;
   int32 numIUM = 0;
 
-  StartTimerT(&GlobalData->InputTimer);
-
   for(i = optind; i < argc; i++){
     infp = fopen(argv[i],"r");
 
@@ -240,8 +238,6 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
   fprintf(stderr,"* Total Reads:%d in discriminator unique:%d in other:%d ; in teeny: %d in singles:%d on ends:%d\n",
 	  totalReadFrags, inUniqueReadFrags, inRepeatReadFrags, inTeenyUnitigReadFrags, inSingletonUnitigReadFrags,
 	  onEndReadFrags);
-
-  StopTimerT(&GlobalData->InputTimer);
 
   return(0);
 }
