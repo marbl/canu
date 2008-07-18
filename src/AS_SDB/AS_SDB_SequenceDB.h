@@ -103,10 +103,14 @@ static
 void
 clearCacheSequenceDB(tSequenceDB *db) {
   fflush(db->dataFile[db->currentRevision]);
-  fprintf(stderr, "clearCacheSequenceDB() disabled.\n");
-  return;
-  ClearMultiAlignStoreT(db->UnitigStore);
-  ClearMultiAlignStoreT(db->ContigStore);
+  //  Be aware that enabling the flush will more than double your
+  //  runtime.
+  //
+  //  Do so ONLY IF you are running out of VIRTUAL memory.  CGW is
+  //  quite happy letting the OS deal with this cache via swap.
+  //
+  //ClearMultiAlignStoreT(db->UnitigStore);
+  //ClearMultiAlignStoreT(db->ContigStore);
 }
 
 static
