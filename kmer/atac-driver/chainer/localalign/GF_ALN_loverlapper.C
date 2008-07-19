@@ -518,8 +518,8 @@ int *AS_Local_Trace(Local_Overlap *O, const char *aseq, const char *bseq){
 
       if (((int)strlen(bseg) != blen) ||
           ((int)strlen(aseg) != alen)) {
-        fprintf(stderr,"EXCEPTION strlen(aseg)=%d alen=%d abeg=%d\n", strlen(aseg), alen, abeg);
-        fprintf(stderr,"EXCEPTION strlen(bseg)=%d blen=%d bbeg=%d\n", strlen(bseg), blen, bbeg);
+        fprintf(stderr,"EXCEPTION strlen(aseg)=%d alen=%d abeg=%d\n", (int)strlen(aseg), alen, abeg);
+        fprintf(stderr,"EXCEPTION strlen(bseg)=%d blen=%d bbeg=%d\n", (int)strlen(bseg), blen, bbeg);
 
         fprintf(stderr,"EXCEPTION aseg=<%s>\n", aseg);
         fprintf(stderr,"EXCEPTION bseg=<%s>\n", bseg);

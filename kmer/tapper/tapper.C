@@ -494,7 +494,7 @@ int
 main(int argc, char **argv) {
   tapperGlobalData  *g = new tapperGlobalData();
 
-  fprintf(stderr, "tapperHit: %d bytes\n", sizeof(tapperHit));
+  fprintf(stderr, "tapperHit: %d bytes\n", (int)sizeof(tapperHit));
 
   int arg=1;
   int err=0;

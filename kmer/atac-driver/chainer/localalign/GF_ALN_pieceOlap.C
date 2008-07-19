@@ -81,14 +81,14 @@ static int *get_trace(const char *aseq, const char *bseq,Local_Overlap *O,int pi
                      O->chain[piece].piece.aepos);
   if(iret == 0){
     fprintf(stderr,"EXCEPTION get_trace: For aseg: len(aseg)=%d, len(bseg)=%d, alen=%d, blen=%d\n",
-            strlen(aseg),strlen(bseg), alen,blen);
+            (int)strlen(aseg),(int)strlen(bseg), alen,blen);
     return NULL;
   }
   iret = safe_substr(&bseg,&bsegspace,bseq,O->chain[piece].piece.bbpos,
                      O->chain[piece].piece.bepos);
   if(iret == 0){
     fprintf(stderr,"EXCEPTION get_trace: For bseg: len(aseg)=%d, len(bseg)=%d, alen=%d, blen=%d\n",
-            strlen(aseg),strlen(bseg), alen,blen);
+            (int)strlen(aseg),(int)strlen(bseg), alen,blen);
     return NULL;
   }
 

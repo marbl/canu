@@ -146,7 +146,7 @@ public:
     }
 
     if (_metaData->_tagWords != TAPPER_TAG_WORDS) {
-      fprintf(stderr, "tapperTagFile()--  ERROR!  Tag file was built with TAPPER_TAG_WORDS="u64bitFMT", but code has %d.\n",
+      fprintf(stderr, "tapperTagFile()--  ERROR!  Tag file was built with TAPPER_TAG_WORDS="u32bitFMT", but code has %d.\n",
               _metaData->_tagWords, TAPPER_TAG_WORDS);
       exit(1);
     }

@@ -30,6 +30,8 @@ makeUnique(u64bit *strings, u32bit stringsLen) {
 }
 
 
+#if 0
+//  debug
 static
 void
 dumpPatterns(u64bit *strings, u32bit stringsLen, u32bit ts) {
@@ -49,6 +51,7 @@ dumpPatterns(u64bit *strings, u32bit stringsLen, u32bit ts) {
     fprintf(stdout, "%s\t"u32bitFMT"\n", str, cnt);
   }
 }
+#endif
 
 
 void
@@ -118,7 +121,7 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
     stringsLen = makeUnique(strings, stringsLen);
     stringsLen = makeUnique(strings, stringsLen);
     //dumpPatterns(strings, stringsLen, _tableSizeInBits);
-    fprintf(stderr, "DONE1 totpat="u32bitFMT" toterr="u32bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
+    fprintf(stderr, "DONE1 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
   }
 
 
@@ -138,7 +141,7 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
     stringsLen = makeUnique(strings, stringsLen);
     stringsLen = makeUnique(strings, stringsLen);
     //dumpPatterns(strings, stringsLen, _tableSizeInBits);
-    fprintf(stderr, "DONE2 totpat="u32bitFMT" toterr="u32bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
+    fprintf(stderr, "DONE2 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
   }
 
 
@@ -160,7 +163,7 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
     stringsLen = makeUnique(strings, stringsLen);
     stringsLen = makeUnique(strings, stringsLen);
     //dumpPatterns(strings, stringsLen, _tableSizeInBits);
-    fprintf(stderr, "DONE3 totpat="u32bitFMT" toterr="u32bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
+    fprintf(stderr, "DONE3 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
   }
 
 
@@ -184,7 +187,7 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
     stringsLen = makeUnique(strings, stringsLen);
     stringsLen = makeUnique(strings, stringsLen);
     //dumpPatterns(strings, stringsLen, _tableSizeInBits);
-    fprintf(stderr, "DONE4 totpat="u32bitFMT" toterr="u32bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
+    fprintf(stderr, "DONE4 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
   }
 
 
@@ -205,7 +208,7 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
 
               if (stringsLen + 32000 >= stringsMax) {
                 stringsLen = makeUnique(strings, stringsLen);
-                fprintf(stderr, "INTR5 totpat="u32bitFMT" toterr="u32bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
+                fprintf(stderr, "INTR5 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
               }
 
               for (u32bit x=0; x<243; x++)
@@ -215,7 +218,7 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
     stringsLen = makeUnique(strings, stringsLen);
     stringsLen = makeUnique(strings, stringsLen);
     //dumpPatterns(strings, stringsLen, _tableSizeInBits);
-    fprintf(stderr, "DONE5 totpat="u32bitFMT" toterr="u32bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
+    fprintf(stderr, "DONE5 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
   }
 
 
@@ -246,7 +249,7 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
     stringsLen = makeUnique(strings, stringsLen);
     stringsLen = makeUnique(strings, stringsLen);
     //dumpPatterns(strings, stringsLen, _tableSizeInBits);
-    fprintf(stderr, "DONE6 totpat="u32bitFMT" toterr="u32bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
+    fprintf(stderr, "DONE6 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
   }
 
 
