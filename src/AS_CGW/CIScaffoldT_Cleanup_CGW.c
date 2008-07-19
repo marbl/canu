@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.41 2008-07-17 01:51:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.42 2008-07-19 02:52:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -773,6 +773,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 	CDS_COORD_t delta = MIN((3 * sqrt(e->distance.variance)), 50);
 	CDS_CID_t idA, idB;
 	ChunkOrientationType orient;
+
 	if(verbose) {
 	  PrintGraphEdge(GlobalData->stderrc,ScaffoldGraph->RezGraph,"dp_align check ",
                          e, e->idA);
@@ -835,6 +836,8 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 	newEdge = GetFreeGraphEdge(ScaffoldGraph->RezGraph);
 	neid = GetVAIndex_EdgeCGW_T(ScaffoldGraph->RezGraph->edges, newEdge);
 
+        //  Refresh the e pointer; GetFreeGraphEdge can reallocate.
+	e = GetGraphEdge(ScaffoldGraph->RezGraph, eid);
 
 	newEdge->flags.bits.aContainsB = olap.BContainsA || olap.AContainsB;
 	newEdge->flags.bits.bContainsA = FALSE;

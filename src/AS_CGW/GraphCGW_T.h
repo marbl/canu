@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.25 2008-06-27 06:29:14 brianwalenz Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.26 2008-07-19 02:52:37 brianwalenz Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -509,16 +509,9 @@ static NodeCGW_T *CreateNewGraphNode(GraphCGW_T *graph){
   AppendNodeCGW_T(graph->nodes, &node);
   return(GetGraphNode(graph, node.id));
 }
-static EdgeCGW_T *CreateNewGraphEdge(GraphCGW_T *graph ){
-  EdgeCGW_T edge;
-  memset(&edge, 0, sizeof(EdgeCGW_T));
-  AppendEdgeCGW_T(graph->edges, &edge);
-  return(GetGraphEdge(graph, GetNumGraphEdges(graph) - 1));
-}
 
 /* Constructor and Destructor */
-GraphCGW_T *CreateGraphCGW(GraphType type, int32 numNodes,
-                           int32 numEdges);
+GraphCGW_T *CreateGraphCGW(GraphType type, int32 numNodes, int32 numEdges);
 void DeleteGraphCGW(GraphCGW_T *graph);
 
 /* Persistence */
@@ -530,26 +523,6 @@ static EdgeStatus GetEdgeStatus(EdgeCGW_T *edge){
   return (EdgeStatus) edge->flags.bits.edgeStatus;
 }
 
-
-#if 0
-/*
-  Create a new node by extracting fragments from  an existing node.
-  The node must be either a contig or a CI.
-
-  The fragsToExtract argument is a list of fragments, all of which must belong
-  to the node, that are to be extracted and become the basis for the new node.
-  The multi-alignment of the new node will include these fragments,as well as
-  all unitigs that are present in the base node's multi-alignment.
-
-  Following the split, the new node will have copies of all raw overlap edges
-  incident on the base node, and the raw link edges will be distributed between
-  the two as a function of the split of the fragments.  Re-merging of edges
-  incident on both nodes completes the operation.
-*/
-CDS_CID_t CreateNewNodeByExtractingEdges(GraphCGW_T *graph,
-                                         CDS_CID_t id,
-                                         VA_TYPE(CDS_CID_t) *fragsToExtract);
-#endif
 
 static void SetEdgeStatus(GraphCGW_T *graph,
                           EdgeCGW_T *edge,

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.59 2008-06-27 06:29:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.60 2008-07-19 02:52:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -684,29 +684,27 @@ void InitGraphEdge(EdgeCGW_T *edge){
 
 // Get the edge from the free list
 EdgeCGW_T *GetFreeGraphEdge(GraphCGW_T *graph){
-  CDS_CID_t eid = graph->freeEdgeHead;
-  EdgeCGW_T *freeEdge = GetGraphEdge(graph, eid);
-  CDS_CID_t newEid;
+  EdgeCGW_T *freeEdge = GetGraphEdge(graph, graph->freeEdgeHead);
 
-  if(!freeEdge){
-    freeEdge = CreateNewGraphEdge(graph);
-  }else{
+  if (freeEdge == NULL) {
+    EdgeCGW_T edge = {0};
+    AppendEdgeCGW_T(graph->edges, &edge);
+    freeEdge = GetGraphEdge(graph, GetNumGraphEdges(graph) - 1);
+  } else {
     graph->freeEdgeHead = freeEdge->referenceEdge;
   }
+
   InitGraphEdge(freeEdge);
-  freeEdge->flags.all = 0;
-  freeEdge->flags.bits.isRaw = TRUE;
-  freeEdge->nextRawEdge = NULLINDEX;
+
+  freeEdge->flags.all         = 0;
+  freeEdge->flags.bits.isRaw  = TRUE;
+  freeEdge->nextRawEdge       = NULLINDEX;
   freeEdge->edgesContributing = 1;
-  freeEdge->referenceEdge = NULLINDEX;
-  newEid = GetVAIndex_EdgeCGW_T(graph->edges, freeEdge);
-  freeEdge->topLevelEdge = newEid;
+  freeEdge->referenceEdge     = NULLINDEX;
+  freeEdge->topLevelEdge      = GetVAIndex_EdgeCGW_T(graph->edges, freeEdge);
+
   SetGraphEdgeStatus(graph, freeEdge, UNKNOWN_EDGE_STATUS);
-#ifdef DEBUG
-  if (graph->freeEdgeHead != NULLINDEX)
-    assert (graph->freeEdgeHead != graph->tobeFreeEdgeHead);
-  fprintf(GlobalData->stderrc,"* GetFreeGraphEdge returned edge " F_CID "\n", newEid);
-#endif
+
   return freeEdge;
 }
 
