@@ -361,92 +361,6 @@ sub assemble ($$@) {
         }
     }
 
-
-    #  Script that will run (in the assembly directory) when an assembly is finished.
-    #
-    open(F, "> $wrkdir/$thisdate/assembly-done.sh");
-    print F "#!/bin/sh\n";
-    print F "\n";
-    print F "prefix=`cat prefix`\n";
-    print F "\n";
-    print F "if [ ! -e \$prefix.asm ] ; then\n";
-    print F "  echo \"Assembly result for `pwd`: FAILURE\"\n";
-    print F "  echo \"\"\n";
-    print F "  cat runCA.sge.out.[0-9][0-9] | tail\n";
-    print F "  exit\n";
-    print F "fi\n";
-    print F "\n";
-    print F "echo \"Assembly result for `pwd`: SUCCESS\"\n";
-    print F "echo \"\"\n";
-    print F "\n";
-    print F "perl $wrkdir/mergeqc.pl ../../ref/\$prefix/\$prefix.qc ../../$lastdate/\$prefix/\$prefix.qc \$prefix.qc\n";
-    close(F);
-
-    #  Script that will run (in the main directory) when all assemblies are finished.
-    #
-    open(F, "> $wrkdir/$thisdate/summarize2.sh");
-    print F "#!/bin/sh\n";
-    print F "\n";
-    print F "echo \"Results for `pwd` (Finished at `date`).\"\n";
-    print F "echo \"\"\n";
-    print F "grep -h \"Assembly result\" */assembly-done.out\n";
-    print F "echo \"\"\n";
-    print F "echo \"\"\n";
-    print F "echo \"\"\n";
-    print F "echo \"================================================================================\"\n";
-    print F "echo \"KMER build errors\"\n";
-    print F "echo \"-----------------\"\n";
-    print F "echo \"\"\n";
-    print F "cat wgs/kmer/make.err\n";
-    print F "echo \"\"\n";
-    print F "echo \"\"\n";
-    print F "echo KMER changes\n";
-    print F "echo \"-----------\"\n";
-    print F "echo \"\"\n";
-    print F "cat wgs/kmer.updates\n";
-    print F "echo \"\"\n";
-    print F "echo \"\"\n";
-    print F "echo \"\"\n";
-    print F "echo \"================================================================================\"\n";
-    print F "echo \"CA build errors\"\n";
-    print F "echo \"---------------\"\n";
-    print F "echo \"\"\n";
-    print F "cat wgs/src/make.err\n";
-    print F "echo \"\"\n";
-    print F "echo \"\"\n";
-    print F "echo \"CA changes\"\n";
-    print F "echo \"----------\"\n";
-    print F "echo \"\"\n";
-    print F "cat wgs/src.updates\n";
-    print F "\n";
-    print F "for result in `ls */assembly-done.out` ; do\n";
-    print F "  echo \"\"\n";
-    print F "  echo \"\"\n";
-    print F "  echo \"\"\n";
-    print F "  echo \"================================================================================\"\n";
-    print F "  cat \$result\n";
-    print F "done\n";
-    close(F);
-
-    open(F, "> $wrkdir/$thisdate/summarize.sh");
-    print F "#!/bin/sh\n";
-    print F "\n";
-    print F "hostname\n";
-    print F "date\n";
-    print F "\n";
-    print F "env\n";
-    print F "\n";
-    print F "rm summarize2.out\n";
-    print F "\n";
-    print F "echo To: ", join ' ', @email, " >> summarize2.out\n";
-    print F "echo Subject: CAtest $thisdate >> summarize2.out\n";
-    print F "echo \"\" >> summarize2.out\n";
-    print F "\n";
-    print F "sh $wrkdir/$thisdate/summarize2.sh >> $wrkdir/$thisdate/summarize2.out\n";
-    print F "\n";
-    print F "/usr/sbin/sendmail -t -F CAtest < $wrkdir/$thisdate/summarize2.out && echo ok\n";
-    close(F);
-
     foreach my $s (@spec) {
         my ($n, $p) = split '\.', $s;
 
@@ -455,7 +369,7 @@ sub assemble ($$@) {
 
         system("mkdir $wrkdir/$thisdate/$n");
         system("cd $wrkdir/$thisdate    && perl $wrkdir/$thisdate/wgs/$syst-$arch/bin/runCA -p $n -d $n -s $cwd/$n.$p sgePropagateHold=ca$n");
-        system("cd $wrkdir/$thisdate/$n && qsub -b n -cwd -j y -o assembly-done.out -hold_jid runCA_$n -N ca$n ../assembly-done.sh");
+        system("cd $wrkdir/$thisdate/$n && qsub -b n -cwd -j y -o assembly-done.out -hold_jid runCA_$n -N ca$n $wrkdir/sanity-assembly-done.sh");
 
         open(F, "> $wrkdir/$thisdate/$n/prefix");
         print F "$n\n";
@@ -468,7 +382,13 @@ sub assemble ($$@) {
         }
     }
 
-    system("cd $wrkdir/$thisdate && qsub -b n -cwd -j y -o summarize.out -hold_jid $holds -N ca$thisdate summarize.sh");
+    open(F, "> $wrkdir/$thisdate/all-done.sh");
+    print F "#!/bin/sh\n";
+    print F "\n";
+    print F "perl $wrkdir/sanity-all-done.pl | /usr/sbin/sendmail -t -F CAtest\n";
+    close(F);
+
+    system("cd $wrkdir/$thisdate && qsub -b n -cwd -j y -o $wrkdir/$thisdate/all-done.err -hold_jid $holds -N ca$thisdate $wrkdir/$thisdate/all-done.sh");
 }
 
 exit(0);
