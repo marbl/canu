@@ -5,9 +5,9 @@ use Config;  #  for @signame
 
 #  The only two globals:
 #
-my $wrkdir  = "/home/work/nightly";
-my $wgscvs  = "/home/work/nightly/wgs-assembler-cvs";
-my $kmersvn = "/home/work/nightly/kmer-svn";
+my $wrkdir  = "/usr/local/projects/assembly_test/NIGHTLY";
+my $wgscvs  = "/usr/local/projects/assembly_test/NIGHTLY/wgs-assembler-cvs";
+my $kmersvn = "/usr/local/projects/assembly_test/NIGHTLY/kmer-svn";
 
 #  Command line options are
 #
@@ -44,6 +44,9 @@ my $kmersvn = "/home/work/nightly/kmer-svn";
     my ($thisdate, $lastdate) = parseDate($ddir);
 
     if ($oper eq "rsync") {
+        system("mkdir $wgscvs")  if (! -d "$wgscvs");
+        system("mkdir $kmersvn") if (! -d "$kmersvn");
+
         system("cd $wgscvs  && rsync -av rsync://wgs-assembler.cvs.sourceforge.net/cvsroot/wgs-assembler/\* . > rsync.out 2>&1");
         system("cd $kmersvn && rsync -av kmer.svn.sourceforge.net::svn/kmer/\* . > rsync.out 2>&1");
     }
@@ -60,7 +63,7 @@ my $kmersvn = "/home/work/nightly/kmer-svn";
     }
 
     if ($oper eq "assemble") {
-        assemble($thisdate, @ARGV);
+        assemble($thisdate, $lastdate, @ARGV);
     }
 
     if (!defined($oper)) {
@@ -179,21 +182,24 @@ sub checkoutAndLogCA ($$) {
     my $tz = "EDT";
 
     if ($thisdate =~ m/(\d\d\d\d)-(\d\d)-(\d\d)-(\d\d)(\d\d)/) {
-        $thisdatecvs = "$1-$2-$3 $4$5 $tz";
+        $thisdatecvs = "$1-$2-$3 $4:$5 $tz";
     } else {
     }
 
     if (defined($lastdate)) {
         if ($lastdate =~ m/(\d\d\d\d)-(\d\d)-(\d\d)-(\d\d)(\d\d)/) {
-            $lastdatecvs = "$1-$2-$3 $4$5 $tz";
+            $lastdatecvs = "$1-$2-$3 $4:$5 $tz";
         } else {
         }
     }
 
-    system("cd $wrkdir/$thisdate/wgs && cvs -r -R -d $wgscvs -z3 co  -N    -D '$thisdatecvs' src > src.checkout.err 2>&1");
+    #  Add -R to cvs options, for read-only repository; breaks on jcvi
+    #  cvs; this seems to be a BSD extension?
+
+    system("cd $wrkdir/$thisdate/wgs && cvs -r -d $wgscvs -z3 co  -N    -D '$thisdatecvs' src > src.checkout.err 2>&1");
 
     if ($lastdate ne "") {
-        system("cd $wrkdir/$thisdate/wgs && cvs -r -R -d $wgscvs -z3 log -N -S -d '$lastdatecvs<$thisdatecvs' src > src.updates.raw");
+        system("cd $wrkdir/$thisdate/wgs && cvs -r -d $wgscvs -z3 log -N -S -d '$lastdatecvs<$thisdatecvs' src > src.updates.raw");
 
         my $log;
         my $revs;
@@ -251,7 +257,7 @@ sub checkoutAndLogCA ($$) {
         my @keys = sort keys %logdate;
         foreach my $l (@keys) {
             my ($d, $l) = split '\0', $l;
-
+            
             if ((defined($logs{$l})) && (length($logs{$l} > 0))) {
                 print F "----------------------------------------\n";
                 print F "$logs{$l}\n";
@@ -324,8 +330,9 @@ sub buildCA ($) {
 
 
 
-sub assemble ($@) {
+sub assemble ($$@) {
     my $thisdate  = shift @_;
+    my $lastdate  = shift @_;
     my $cwd       = $ENV{'PWD'};
     my $holds;
 
@@ -372,18 +379,7 @@ sub assemble ($@) {
     print F "echo \"Assembly result for `pwd`: SUCCESS\"\n";
     print F "echo \"\"\n";
     print F "\n";
-    print F "if [ ! -e ../../ref/\$prefix/\$prefix.qc ] ; then\n";
-    print F "  echo \"No reference; no QC diff.\"\n";
-    print F "  echo \"\"\n";
-    print F "  cat \$prefix.qc\n";
-    print F "else\n";
-    print F "  ls -l ../../ref/\$prefix/\$prefix.qc\n";
-    print F "  ls -l \$prefix.qc\n";
-    print F "\n";
-    print F "  echo \"\"\n";
-    print F "\n";
-    print F "  diff --side-by-side ../../ref/\$prefix/\$prefix.qc \$prefix.qc\n";
-    print F "fi\n";
+    print F "perl $wrkdir/mergeqc.pl ../../ref/\$prefix/\$prefix.qc ../../$lastdate/\$prefix/\$prefix.qc \$prefix.qc\n";
     close(F);
 
     #  Script that will run (in the main directory) when all assemblies are finished.
@@ -433,18 +429,32 @@ sub assemble ($@) {
     close(F);
 
     open(F, "> $wrkdir/$thisdate/summarize.sh");
-    print F "sh $wrkdir/$thisdate/summarize2.sh > $wrkdir/$thisdate/summarize2.out\n";
-    print F "mail -s \"CAsanity $thisdate\" ", join ' ', @email, " < $wrkdir/$thisdate/summarize2.out\n";
+    print F "#!/bin/sh\n";
+    print F "\n";
+    print F "hostname\n";
+    print F "date\n";
+    print F "\n";
+    print F "env\n";
+    print F "\n";
+    print F "rm summarize2.out\n";
+    print F "\n";
+    print F "echo To: ", join ' ', @email, " >> summarize2.out\n";
+    print F "echo Subject: CAtest $thisdate >> summarize2.out\n";
+    print F "echo \"\" >> summarize2.out\n";
+    print F "\n";
+    print F "sh $wrkdir/$thisdate/summarize2.sh >> $wrkdir/$thisdate/summarize2.out\n";
+    print F "\n";
+    print F "/usr/sbin/sendmail -t -F CAtest < $wrkdir/$thisdate/summarize2.out && echo ok\n";
     close(F);
 
     foreach my $s (@spec) {
-        my ($n, undef) = split '\.', $s;
+        my ($n, $p) = split '\.', $s;
 
         print STDERR "----------------------------------------\n";
         print STDERR "Submitting assembly '$n'.\n";
 
         system("mkdir $wrkdir/$thisdate/$n");
-        system("cd $wrkdir/$thisdate    && perl $wrkdir/$thisdate/wgs/$syst-$arch/bin/runCA -p $n -d $n -s $cwd/$n.specFile sgePropagateHold=ca$n");
+        system("cd $wrkdir/$thisdate    && perl $wrkdir/$thisdate/wgs/$syst-$arch/bin/runCA -p $n -d $n -s $cwd/$n.$p sgePropagateHold=ca$n");
         system("cd $wrkdir/$thisdate/$n && qsub -b n -cwd -j y -o assembly-done.out -hold_jid runCA_$n -N ca$n ../assembly-done.sh");
 
         open(F, "> $wrkdir/$thisdate/$n/prefix");
@@ -460,6 +470,5 @@ sub assemble ($@) {
 
     system("cd $wrkdir/$thisdate && qsub -b n -cwd -j y -o summarize.out -hold_jid $holds -N ca$thisdate summarize.sh");
 }
-
 
 exit(0);
