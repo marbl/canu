@@ -34,39 +34,50 @@ my $firstFile = 1;
 push @labels, "files";
 
 while (scalar(@ARGV) > 0) {
-    open(F, "< $ARGV[0]") or die "Failed to open '$ARGV[0]'\n";
+    if (open(F, "< $ARGV[0]")) {
+        $values{"files"} .= "\t$ARGV[0]";
+        $values{"files"} .= "BRIWASHERE";
 
-    $values{"files"} .= "\t$ARGV[0]";
+        while (<F>) {
+            $_ =~ s/^\s+//;
+            $_ =~ s/\s+$//;
 
-    while (<F>) {
-        $_ =~ s/^\s+//;
-        $_ =~ s/\s+$//;
+            if ($_ =~ m/^\s+$/) {
+                next;
+            }
 
-        if ($_ =~ m/^\s+$/) {
-            next;
+            if ($_ =~ m/^\[(.*)\]$/) {
+                $s = $1;
+                next;
+            }
+
+            if ($_ =~ m/^(.*)=(.*)$/) {
+                $l = "$s\0$1";
+                $v = $2;
+            } else {
+                next;
+            }
+
+            if ($firstFile) {
+                push @labels, $l;
+            }
+
+            $values{$l} .= substr("\t$v                ", 0, 16);
+            $values{$l} .= "BRIWASHERE";
+        }
+        close(F);
+
+        my @k = keys %values;
+        foreach my $l (@k) {
+            if ($values{$l} =~ m/^(.*)BRIWASHERE$/) {
+                $values{$l}  = $1;
+            } else {
+                $values{$l} .= substr("\tN/A                ", 0, 16);
+            }
         }
 
-        if ($_ =~ m/^\[(.*)\]$/) {
-            $s = $1;
-            next;
-        }
-
-        if ($_ =~ m/^(.*)=(.*)$/) {
-            $l = "$s\0$1";
-            $v = $2;
-        } else {
-            next;
-        }
-
-        if ($firstFile) {
-            push @labels, $l;
-        }
-
-        $values{$l} .= substr("\t$v                ", 0, 16);
+        $firstFile = 0;
     }
-    close(F);
-
-    $firstFile = 0;
 
     shift @ARGV;
 }
