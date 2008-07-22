@@ -733,21 +733,16 @@ sub submitScript ($) {
     my $sge         = getGlobal("sge");
     my $sgeScript   = getGlobal("sgeScript");
     my $sgePropHold = getGlobal("sgePropagateHold");
-    my $qcmd;
-    my $acmd;
 
-    if (defined($waitTag)) {
-        $qcmd = "qsub $sge $sgeScript -cwd -N \"runCA_${asm}\" -j y -o $output -hold_jid \"$waitTag\" $script";
-        $acmd = "qalter -hold_jid \"runCA_${asm}\" \"$sgePropHold\"" if (defined($sgePropHold));
-    } else {
-        $qcmd = "qsub $sge $sgeScript -cwd -N \"runCA_${asm}\" -j y -o $output $script";
-    }
+    $waitTag = "-hold_jid \"$waitTag\"" if (defined($waitTag));
 
+    my $qcmd = "qsub $sge $sgeScript -cwd -N \"runCA_${asm}\" -j y -o $output $waitTag $script";
     print STDERR "$qcmd\n";
-
     system($qcmd) and caFailure("Failed to submit script.\n");
 
-    if (defined($acmd)) {
+    if (defined($sgePropHold)) {
+        my $acmd = "qalter -hold_jid \"runCA_${asm}\" \"$sgePropHold\"";
+        print STDERR "$acmd\n";
         system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$sgePropHold'.\n";
     }
 
