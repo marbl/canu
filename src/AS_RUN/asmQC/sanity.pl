@@ -333,7 +333,7 @@ sub buildCA ($) {
 sub assemble ($$@) {
     my $thisdate  = shift @_;
     my $lastdate  = shift @_;
-    my $cwd       = $ENV{'PWD'};
+    my $assemblies;
     my $holds;
 
     my $arch;
@@ -351,15 +351,30 @@ sub assemble ($$@) {
     #  Figure out which are specfiles and which are email addresses.
     #
     my @spec;
-    my @email;
+    my @addresses;
+    my $addresses;
 
     foreach my $arg (@_) {
         if ($arg =~ m/\@/) {
-            push @email, $arg;
+            push @addresses, $arg;
         } else {
             push @spec, $arg;
         }
     }
+
+    $addresses = join ',', @addresses;
+
+    open(F, "> $wrkdir/$thisdate/asm-done.sh");
+    print F "#!/bin/sh\n";
+    print F "\n";
+    print F "perl $wrkdir/sanity-asm-done.pl JUNK $wrkdir \$1 $thisdate $lastdate ref\n";
+    close(F);
+
+    open(F, "> $wrkdir/$thisdate/all-done.sh");
+    print F "#!/bin/sh\n";
+    print F "\n";
+    print F "perl $wrkdir/sanity-all-done.pl JUNK $wrkdir $thisdate $lastdate $addresses | /usr/sbin/sendmail -t -F CAtest\n";
+    close(F);
 
     foreach my $s (@spec) {
         my ($n, $p) = split '\.', $s;
@@ -367,28 +382,62 @@ sub assemble ($$@) {
         print STDERR "----------------------------------------\n";
         print STDERR "Submitting assembly '$n'.\n";
 
-        system("mkdir $wrkdir/$thisdate/$n");
-        system("cd $wrkdir/$thisdate    && perl $wrkdir/$thisdate/wgs/$syst-$arch/bin/runCA -p $n -d $n -s $cwd/$n.$p sgePropagateHold=ca$n");
-        system("cd $wrkdir/$thisdate/$n && qsub -b n -cwd -j y -o assembly-done.out -hold_jid runCA_$n -N ca$n $wrkdir/sanity-assembly-done.sh");
+        system("mkdir $wrkdir/$thisdate/$n") if (! -d "$wrkdir/$thisdate/$n");
 
-        open(F, "> $wrkdir/$thisdate/$n/prefix");
-        print F "$n\n";
+        my $jl = "CAini_${n}_$$";  #  Name of the launcher
+        my $jn = "CAtst_${n}_$$";  #  Name of the asm-done
+
+        open(F, "> $wrkdir/$thisdate/$n/launch-assembly.sh");
+        print F "#!/bin/sh\n";
+        print F "\n";
+        print F "#  runCA checks if this is set to decide if it is on the grid or not.  We want\n";
+        print F "#  to pretend we are NOT on the grid, so runCA will resubmit itself immediately.\n";
+        print F "#\n";
+        print F "unset SGE_TASK_ID\n";
+        print F "\n";
+        print F "perl $wrkdir/$thisdate/wgs/$syst-$arch/bin/runCA \\\n";
+        print F "  sgePropagateHold=$jn useGrid=1 scriptOnGrid=1\\\n";
+        print F "  -p $n -d $wrkdir/$thisdate/$n -s $wrkdir/$n.$p\n";
+        print F "\n";
+        print F "#  Once that runCA finishes, we've updated the hold on $jn, and so can release\n";
+        print F "#  our user hold on it.\n";
+        print F "#\n";
+        print F "qrls -h u $jn\n";
+        print F "\n";
+        print F "\n";
         close(F);
 
+        #  A separate script is used to launch runCA, so that we can get a user hold on it.  This is messy.
+        #  1)  Submit the launcher, holding it.
+        #  2)  Submit the asm-done, holding it too.  Make it also hold_jid on the launcher.
+        #  3)  Release the launcher.
+        #  4)  The launcher submits runCA, with sgePropagateHold.  When that runCA finishes, the assembly
+        #      is now running, AND it has updated the hold_jid on asm-done.
+        #  5)  We can now release the asm-done.
+        #
+        #  Steps 1 and 2 are done here, step 3 is at the very end, steps 4 and 5 are done in the launch-assembly.sh above.
+
+        system("cd $wrkdir/$thisdate/$n && qsub -b n -cwd -j y -o $wrkdir/$thisdate/$n/launch-assembly.err -l fast -h               -N $jl $wrkdir/$thisdate/$n/launch-assembly.sh");
+        system("cd $wrkdir/$thisdate/$n && qsub -b n -cwd -j y -o $wrkdir/$thisdate/$n/asm-done.err        -l fast -h -hold_jid $jl -N $jn $wrkdir/$thisdate/asm-done.sh $n");
+
         if (defined($holds)) {
-            $holds .= ",ca$n";
+            $holds .= ",$jn";
         } else {
-            $holds  = "ca$n";
+            $holds  = "$jn";
+        }
+
+        if (defined($assemblies)) {
+            $assemblies .= ",$jl";
+        } else {
+            $assemblies  = "$jl";
         }
     }
 
-    open(F, "> $wrkdir/$thisdate/all-done.sh");
-    print F "#!/bin/sh\n";
-    print F "\n";
-    print F "perl $wrkdir/sanity-all-done.pl | /usr/sbin/sendmail -t -F CAtest\n";
-    close(F);
+    system("cd $wrkdir/$thisdate && qsub -b n -cwd -j y -o $wrkdir/$thisdate/all-done.err -l fast -hold_jid $holds -N CAfin_$thisdate $wrkdir/$thisdate/all-done.sh");
 
-    system("cd $wrkdir/$thisdate && qsub -b n -cwd -j y -o $wrkdir/$thisdate/all-done.err -hold_jid $holds -N ca$thisdate $wrkdir/$thisdate/all-done.sh");
+    #  Now, release everything to run.
+
+    system("qrls -h u $assemblies");
 }
 
 exit(0);
