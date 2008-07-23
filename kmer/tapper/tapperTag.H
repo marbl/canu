@@ -51,6 +51,8 @@ public:
       setDecodedValue(_w, pos, 7, (compressSymbol[seq[i]] << 5) | (qlt[i]));
       pos += 7;
     }
+
+    assert(_w[0] == tagID);
   };
 
   //  Decodes a tag into seq and qlt (as for encode()), returns the
@@ -81,13 +83,8 @@ public:
     return(_w[0]);
   };
 
-  u64bit   tagID(void)          { return(_w[0]); };
-
-  //  If these ever get used, we need to add a rebuild() method so
-  //  that the tapperTagFile can rebuild any private data.
-  //
-  //char     referenceBase(void)  { return(decompressSymbol[(_w[1] >> 62) & u64bitMASK(2)]); };
-  //u64bit   length(void)         { return((_w[1] >> 55) & u64bitMASK(7)); };
+  u64bit   tagID(void) const     { return(_w[0]); };
+  u64bit   length(void)          { return(getDecodedValue(_w, 66, 7)); };
 
 private:
   friend class tapperTagFile;
@@ -112,6 +109,7 @@ private:
   u32bit   _maxTagLen;
   u32bit   _tagWords;
   u32bit   _isPaired;
+  u32bit   _isFragment;
   u32bit   _mean;
   u32bit   _stddev;
 };
@@ -136,13 +134,13 @@ public:
     _metaData = (tapperTagFileMetaData *)_tagFile->header();
 
     if (_metaData->_tagWords == 0) {
-#warning bogus tag length
-      _metaData->_minTagLen = 99;
-      _metaData->_maxTagLen = 99;
-      _metaData->_tagWords  = TAPPER_TAG_WORDS;
-      _metaData->_isPaired  = false;
-      _metaData->_mean      = 0;
-      _metaData->_stddev    = 0;
+      _metaData->_minTagLen  = ~u32bitZERO;
+      _metaData->_maxTagLen  = 0;
+      _metaData->_tagWords   = TAPPER_TAG_WORDS;
+      _metaData->_isPaired   = 0;
+      _metaData->_isFragment = 0;
+      _metaData->_mean       = 0;
+      _metaData->_stddev     = 0;
     }
 
     if (_metaData->_tagWords != TAPPER_TAG_WORDS) {
@@ -153,6 +151,7 @@ public:
   };
 
   ~tapperTagFile() {
+    //  Metadata is updated automagically when tagFile is deleted.
     delete _tagFile;
   };
 
@@ -161,17 +160,45 @@ public:
   };
 
   void   put(tapperTag *tag) {
+    u64bit len = tag->length();
+
+    _metaData->_isFragment = 1;
+    if (_metaData->_isPaired)
+      fprintf(stderr, "ERROR: file contains mated tags, tried to pet a fragment tag.\n"), exit(1);
+
+    if (len < _metaData->_minTagLen) _metaData->_minTagLen = len;
+    if (_metaData->_minTagLen < len) _metaData->_maxTagLen = len;
+
     _tagFile->putRecord(tag->_w);
   };
+
   void   put(tapperTag *ta1, tapperTag *ta2) {
+    u64bit len1 = ta1->length();
+    u64bit len2 = ta2->length();
+
+    _metaData->_isPaired  = 1;
+    if (_metaData->_isFragment)
+      fprintf(stderr, "ERROR: file contains fragment tags, tried to pet a mated tag.\n"), exit(1);
+
+    if (len1 < _metaData->_minTagLen)  _metaData->_minTagLen = len1;
+    if (_metaData->_minTagLen < len1)  _metaData->_maxTagLen = len1;
+
+    if (len2 < _metaData->_minTagLen)  _metaData->_minTagLen = len2;
+    if (_metaData->_minTagLen < len2)  _metaData->_maxTagLen = len2;
+
     _tagFile->putRecord(ta1->_w);
     _tagFile->putRecord(ta2->_w);
   };
 
   bool   get(tapperTag *tag) {
+    if (_metaData->_isPaired == 1)
+      fprintf(stderr, "ERROR: file contains mated tags, tried to get a fragment tag.\n"), exit(1);
     return(_tagFile->getRecord(tag->_w));
   };
+
   bool   get(tapperTag *ta1, tapperTag *ta2) {
+    if (_metaData->_isFragment == 1)
+      fprintf(stderr, "ERROR: file contains fragment tags, tried to get a mated tag.\n"), exit(1);
     return(_tagFile->getRecord(ta1->_w) &&
            _tagFile->getRecord(ta2->_w));
   };

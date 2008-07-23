@@ -19,8 +19,6 @@ public:
   u32bit  numThreads;
   bool    beVerbose;
 
-  bool    isMated;
-
   u32bit  tagSize;
 
   u32bit  maxColorError;
@@ -46,8 +44,6 @@ tapperGlobalData::tapperGlobalData() {
 
   numThreads = 2;
   beVerbose  = false;
-
-  isMated    = false;
 
   maxColorError  = 3;
   maxBaseError   = 5;

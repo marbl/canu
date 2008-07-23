@@ -10,36 +10,24 @@
 #include "tapperThreadData.H"
 #include "tapperComputation.H"
 
-//  To make this work for single reads, add a flag to global that says
-//  we're doing single reads.  Modify tapperReader to read a single
-//  read.
-//
-//  Use a whole new tapperWorker.  It's simple compared to the mated
-//  one (basically done now).
-//
-//  Tapper output hopefully will work for both single and paired
-//  reads.
 
 
 void*
-tapperReaderMated(void *G) {
-  return(0L);
-}
-
-
-void*
-tapperReaderSingle(void *G) {
+tapperReader(void *G) {
   tapperGlobalData  *g = (tapperGlobalData  *)G;
   tapperComputation *s = 0L;
-  tapperTag          a;
+  tapperTag          a, b;
 
-  if (g->TF->get(&a))
-    s = new tapperComputation(&a, 0L);
+  if (g->TF->metaData()->isPairedTagFile()) {
+    if (g->TF->get(&a, &b))
+      s = new tapperComputation(&a, &b);
+  } else {
+    if (g->TF->get(&a))
+      s = new tapperComputation(&a, 0L);
+  }
 
   return(s);
 }
-
-
 
 
 
@@ -55,53 +43,6 @@ tapperWriter(void *G, void *S) {
 
 
 
-//  The big value of this function is to convert from a chained
-//  position to a (seqID,pos), and save the hit onto a bitpacked list.
-//  This list can then be numerically sorted to order all hits.  Of
-//  course, we could have just sorted the original chained positions.
-//
-//  It saves (seqID,pos,isTag2,isReverse)
-//
-inline
-u32bit
-tapperWorker_addHits(u64bit *hits, u32bit hitsLen, u64bit *posn, u64bit posnLen, tapperGlobalData *g, bool ta2, bool rev) {
-  u64bit  ta2rev = u64bitZERO;
-
-  if (ta2)
-    ta2rev |= 0x02;
-  if (rev)
-    ta2rev |= 0x01;
-
-  for (u32bit i=0; i<posnLen; i++) {
-    u64bit  pos = posn[i];
-    u64bit  seq = g->SS->sequenceNumberOfPosition(pos);
-
-    pos -= g->SS->startOf(seq);
-    seq  = g->SS->IIDOf(seq);
-
-    //  Search ignores first letter, align needs it.  This makes for a
-    //  very special case, 0, which isn't a full match.
-    if (pos > 0) {
-      pos--;
-      hits[hitsLen++] = (seq << 33) | (pos << 2) | ta2rev;
-    }
-  }
-
-  return(hitsLen);
-}
-
-
-
-int
-u64bitcompare(void const *a, void const *b) {
-  u64bit A = *((u64bit const *)a);
-  u64bit B = *((u64bit const *)b);
-  if (A < B)  return(-1);
-  if (A > B)  return(1);
-  return(0);
-}
-
-
 
 //  Compose the colors from beg to end.
 //
@@ -115,6 +56,7 @@ composeColors(char *colors, u32bit beg, u32bit end) {
 
   return(c);
 }
+
 
 
 //  Returns true if the the i and j errors result in a consistent
@@ -422,63 +364,96 @@ tapperHit::alignToReference(tapperGlobalData *g,
 
 
 
+
+//  The big value of this function is to convert from a chained
+//  position to a (seqID,pos), and save the hit onto a bitpacked list.
+//  This list can then be numerically sorted to order all hits.  Of
+//  course, we could have just sorted the original chained positions.
+//
+//  It saves (seqID,pos,isTag2,isReverse)
+//
+inline
 void
-tapperWorkerMated(void *G, void *T, void *S) {
+tapperWorker_addHits(u64bit    *posn, u64bit posnLen,
+                     tapperGlobalData   *g,
+                     tapperComputation  *s,
+                     bool                rev,
+                     bool                tag1) {
+  tapperHit  h;
+  char      *tagseq;
+  u32bit     taglen;
+
+  if (tag1) {
+    tagseq = (rev) ? s->tag1rseq : s->tag1fseq;
+    taglen = s->tag1size + 2;
+  } else {
+    tagseq = (rev) ? s->tag2rseq : s->tag2fseq;
+    taglen = s->tag2size + 2;
+  }
+
+  for (u32bit i=0; i<posnLen; i++) {
+    u64bit  pos = posn[i];
+    u64bit  seq = g->SS->sequenceNumberOfPosition(pos);
+
+    pos -= g->SS->startOf(seq);
+    seq  = g->SS->IIDOf(seq);
+
+    //  Search ignores first letter, align needs it.  This makes for a
+    //  very special case, 0, which isn't a full match.
+
+    if (pos > 0) {
+      pos--;
+
+      h.alignToReference(g, seq, pos, tagseq, taglen);
+
+      if ((h.numberOfBaseMismatches()       <= g->maxBaseError)  &&
+          (h.numberOfColorMismatches()      <= g->maxColorError) &&
+          (h.numberOfColorInconsistencies() <= g->maxColorError))
+        if (tag1)
+          s->addHit1(h);
+        else
+          s->addHit2(h);
+    }
+  }
 }
 
 
 void
-tapperWorkerSingle(void *G, void *T, void *S) {
+tapperWorker(void *G, void *T, void *S) {
   tapperGlobalData  *g = (tapperGlobalData  *)G;
   tapperThreadData  *t = (tapperThreadData  *)T;
   tapperComputation *s = (tapperComputation *)S;
-  tapperHit          h;
 
   //
   //  Get the hits.
   //
 
-  t->posn1fLen = 0;
-  t->posn1rLen = 0;
+  t->posn1fLen = t->posn1rLen = t->posn2fLen = t->posn2rLen = 0;
 
-  g->PS->getUpToNMismatches(s->tag1f, g->maxColorError, t->posn1f, t->posn1fMax, t->posn1fLen);
-  g->PS->getUpToNMismatches(s->tag1r, g->maxColorError, t->posn1r, t->posn1rMax, t->posn1rLen);
+  if (s->tag1size > 0) {
+    g->PS->getUpToNMismatches(s->tag1f, g->maxColorError, t->posn1f, t->posn1fMax, t->posn1fLen);
+    g->PS->getUpToNMismatches(s->tag1r, g->maxColorError, t->posn1r, t->posn1rMax, t->posn1rLen);
+  }
 
-  if (t->posn1fLen + t->posn1rLen == 0)
+  if (s->tag2size > 0) {
+    g->PS->getUpToNMismatches(s->tag2f, g->maxColorError, t->posn2f, t->posn2fMax, t->posn2fLen);
+    g->PS->getUpToNMismatches(s->tag2r, g->maxColorError, t->posn2r, t->posn2rMax, t->posn2rLen);
+  }
+
+  //  Quit if nothing there.
+
+  if (t->posn1fLen + t->posn1rLen + t->posn2fLen + t->posn2rLen == 0)
     return;
 
-  //  True, only the mated worker really needs to put hits into the
-  //  hits array, but we need to call tapperWorker_addHits to decode
-  //  the positions.
-
-  if (t->hits1Max < t->posn1fLen + t->posn1rLen) {
-    t->hits1Max = t->posn1fLen + t->posn1rLen;
-    delete [] t->hits1;
-    t->hits1 = new u64bit [t->posn1fLen + t->posn1rLen];
-  }
-
-  t->hits1Len = 0;
-  t->hits1Len = tapperWorker_addHits(t->hits1, t->hits1Len, t->posn1f, t->posn1fLen, g, false, false);
-  t->hits1Len = tapperWorker_addHits(t->hits1, t->hits1Len, t->posn1r, t->posn1rLen, g, false, true);
-
   //
-  //  Do something useful with the hits, like verify them against the ACGT reference.
+  //  Align to reference to get rid of the 3/4 false hits.
   //
 
-  for (u32bit i=0; i<t->hits1Len; i++) {
-    u64bit so  = (t->hits1[i] >> 33) & u64bitMASK(31);  //  Sequence it hits
-    u64bit po  = (t->hits1[i] >> 2)  & u64bitMASK(31);  //  Position in sequence
-    u64bit rev = (t->hits1[i] >> 0)  & 0x01;            //  isReversed
+  tapperWorker_addHits(t->posn1f, t->posn1fLen, g, s, false, true);
+  tapperWorker_addHits(t->posn1r, t->posn1rLen, g, s, true,  true);
 
-    h.alignToReference(g, so, po,
-                       (rev) ? s->tag1rseq : s->tag1fseq,
-                       s->tag1size+2);
-
-    if ((h.numberOfBaseMismatches()       <= g->maxBaseError)  &&
-        (h.numberOfColorMismatches()      <= g->maxColorError) &&
-        (h.numberOfColorInconsistencies() <= g->maxColorError))
-      s->addHit(h);
-  }
+  tapperWorker_addHits(t->posn2f, t->posn2fLen, g, s, false, false);
+  tapperWorker_addHits(t->posn2r, t->posn2rLen, g, s, true,  false);
 
   //
   //  Sort the hits by score, apply some heuristics to output only
@@ -486,6 +461,13 @@ tapperWorkerSingle(void *G, void *T, void *S) {
   //
 
   s->sortHits();
+
+  //
+  //  If mated, tease out any valid mate relationships.
+  //
+
+  if ((s->tag1size > 0) && (s->tag2size > 0)) {
+  }
 }
 
 
@@ -515,9 +497,6 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-numthreads") == 0) {
       g->numThreads = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-mated") == 0) {
-      g->isMated = true;
-
     } else if (strcmp(argv[arg], "-verbose") == 0) {
       g->beVerbose = true;
     } else {
@@ -533,9 +512,7 @@ main(int argc, char **argv) {
 
   g->initialize();
 
-  sweatShop *ss = new sweatShop((g->isMated) ? tapperReaderMated : tapperReaderSingle,
-                                (g->isMated) ? tapperWorkerMated : tapperWorkerSingle,
-                                tapperWriter);
+  sweatShop *ss = new sweatShop(tapperReader, tapperWorker, tapperWriter);
 
   ss->loaderQueueSize(65536);
   ss->writerQueueSize(16384);
