@@ -7,11 +7,9 @@ if [ ! -e Makefile ] ; then
   if [ -e ../build/Makefile ] ; then
     ln -s ../build/Make.rules .
     ln -s ../build/Makefile .
-    ln -s ../build/makepath.c .
   elif [ -e build/Makefile ] ; then
     ln -s build/Make.rules .
     ln -s build/Makefile .
-    ln -s build/makepath.c .
   else
     echo "Hey, couldn't find the Makefile"
     exit
@@ -596,5 +594,13 @@ CLIBS             += -lm -lbz2
 CXXLIBS           += -lm -lbz2
 CFLAGS_PYTHON     := $CFLAGS_PYTHON
 EOF
+
+if [ ! -e ./makepath ] ; then
+  echo "include Make.compilers"       >> makepath-makefile
+  echo "makepath: build/makepath.c"   >> makepath-makefile
+  echo "	\${CC} \${CFLAGS} \${CLDFLAGS} -o ./makepath build/makepath.c \${CLIBS}" >> makepath-makefile
+  gmake -f makepath-makefile
+  rm -f makepath-makefile
+fi
 
 cat Make.compilers

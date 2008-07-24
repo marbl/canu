@@ -61,11 +61,10 @@ $(shell ${MAKEFILE/}makepath $1 ${MAKECWD})
   endef
 
 else
-  $(warning Attempting to create the makepath executable in ${MAKEFILE/} \
-   $(shell ${CC} \
-           ${CFLAGS} ${CLDFLAGS} \
-           -o ${MAKEFILE/}makepath ${MAKEFILE/}makepath.c \
-           ${CLIBS}))
+
+  $(warning building makepath ${CC} ${CFLAGS} ${CLDFLAGS} -o ${MAKEFILE/}makepath ${MAKEFILE/}makepath.c ${CLIBS})
+
+  $(shell ${CC} ${CFLAGS} ${CLDFLAGS} -o ${MAKEFILE/}makepath ${MAKEFILE/}makepath.c ${CLIBS})
 
   ifneq ($(shell ${MAKEFILE/}makepath .),)
 
@@ -75,21 +74,7 @@ $(shell ${MAKEFILE/}makepath $1 ${MAKECWD})
 
   else
 
-    $(warning COMPILE FAILED for ${MAKEFILE/}makepath)
-    $(warning Attempting to use PERL version)
-
-    ifneq ($(shell ${PERL} ${MAKEFILE/}makepath.pl .),)
-
-      define MakePath
-$(shell ${PERL} ${MAKEFILE/}makepath.pl $1 ${MAKECWD})
-      endef
-
-    else
-
-      $(warning PERL version ${MAKEFILE/}makepath.pl FAILED)
-      $(error Aborting this build due to lack of makepath support.)
-
-    endif
+    $(error Aborting this build due to lack of makepath support.)
 
   endif
 
