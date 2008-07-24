@@ -137,14 +137,12 @@ struct common {
 };
 
 static void *qsort_thread(void *p);
-static struct qsort *qsort_launch(struct qsort *qs);
 
 /* The multithreaded qsort public interface */
 
 void
 qsort_mt(void *a, size_t n, size_t es, cmp_t *cmp, int maxthreads, int forkelem)
 {
-  int ncpu;
   struct qsort *qs;
   struct common c;
   int i, islot;
@@ -260,7 +258,7 @@ qsort_algo(struct qsort *qs)
   void *a;			/* Array of elements. */
   size_t n, es;			/* Number of elements; size. */
   cmp_t *cmp;
-  long nl, nr, i;
+  long nl, nr;
   struct common *c;
   struct qsort *qs2;
   pthread_t id;
