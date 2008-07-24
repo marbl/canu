@@ -10,8 +10,8 @@
 //  N.B. any read() / write() pair (either order) must have a seek (or
 //  a fflush) in between.
 
-u64bit   recordFileMagic1 = 0x7265636f72644669llu;
-u64bit   recordFileMagic2 = 0x6c65000000000000llu;
+u64bit   recordFileMagic1 = 0x694664726f636572llu;
+u64bit   recordFileMagic2 = 0x000000000000656cllu;
 
 recordFile::recordFile(char const *name,
                        u32bit      headerSize,
@@ -114,6 +114,8 @@ recordFile::recordFile(char const *name,
       fprintf(stderr, "recordFile::recordFile()-- magic number disagreement; '%s' not a recordFile?\n",
               _name), exit(1);
   }
+
+  _pos = ~u64bitZERO;  //  Force the first seek to load.
 
   seek(0);
 }

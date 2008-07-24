@@ -9,6 +9,7 @@ PROG    = test-bigQueue \
           test-mmap \
           test-palloc \
           test-readBuffer \
+          test-recordFile \
           test-types \
           tcat
 
@@ -80,6 +81,11 @@ test-readBuffer: test-readBuffer.C ../libutil.a ../util.h ../util++.H
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-readBuffer.o test-readBuffer.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-readBuffer test-readBuffer.o $(LIBS)
 	./test-readBuffer
+
+test-recordFile: test-recordFile.C ../libutil.a ../util.h ../util++.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-recordFile.o test-recordFile.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-recordFile test-recordFile.o $(LIBS)
+	./test-recordFile
 
 test-bzipBuffer: test-bzipBuffer.C ../libutil.a ../util.h ../util++.H
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-bzipBuffer.o test-bzipBuffer.C $(INCLUDE)
