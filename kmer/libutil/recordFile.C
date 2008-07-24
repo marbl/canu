@@ -203,7 +203,7 @@ recordFile::seek(u64bit rec) {
   lseek(_file, 32 + _headerSize + _pos * _recordSize, SEEK_SET);
   if (errno)
     fprintf(stderr, "recordFile::seekNormal() '%s' seek to record="u64bitFMT" at fileposition="u64bitFMT" failed: %s\n",
-            _name, _pos, _headerSize + _pos * _recordSize), exit(1);
+            _name, _pos, _headerSize + _pos * _recordSize, strerror(errno)), exit(1);
 
   errno = 0;
   read(_file, _bfr, _recordSize * _bfrmax);
