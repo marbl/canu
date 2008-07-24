@@ -1,6 +1,5 @@
 # -*- makefile -*-
 
-$(eval $(call Include,$/md5lib/))
 $(eval $(call Include,$/mt19937ar/))
 $(eval $(call Include,$/kazlib/))
 
@@ -55,7 +54,6 @@ $/.CXX_LIBS  :=$/libutil.a
 $/.CLEAN := $/*.o
 
 $/libutil.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} \
-        $/md5lib/md5c.o \
 	$/mt19937ar/mt19937ar.o \
         $/kazlib/dict.o \
         $/kazlib/except.o \
