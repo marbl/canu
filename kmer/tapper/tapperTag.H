@@ -47,6 +47,9 @@ public:
     setDecodedValue(_w, pos,  7, len-1);
     pos += 7;
 
+    //fprintf(stderr, "seq: %s id "u64bitHEX" %c/%d len "u32bitFMT" %d "u64bitFMT"\n",
+    //        seq, _w[0], seq[0], seq[0], len, pos-7, getDecodedValue(_w, pos-7, 7));
+
     for (i=1; i<len; i++) {
       setDecodedValue(_w, pos, 7, (compressSymbol[seq[i]] << 5) | (qlt[i]));
       pos += 7;
@@ -69,6 +72,9 @@ public:
 
     len = getDecodedValue(_w, pos, 7) + 1;
     pos += 7;
+
+    //fprintf(stderr, "ID "u64bitFMT" base %c/%d len "u32bitFMT"\n",
+    //        _w[0], seq[0], seq[0], len);
 
     for (i=1; i<len; i++) {
       u64bit x = getDecodedValue(_w, pos, 7);
@@ -164,7 +170,7 @@ public:
 
     _metaData->_isFragment = 1;
     if (_metaData->_isPaired)
-      fprintf(stderr, "ERROR: file contains mated tags, tried to pet a fragment tag.\n"), exit(1);
+      fprintf(stderr, "tapperTagFile()--  ERROR: file contains mated tags, tried to pet a fragment tag.\n"), exit(1);
 
     if (len < _metaData->_minTagLen) _metaData->_minTagLen = len;
     if (_metaData->_minTagLen < len) _metaData->_maxTagLen = len;
@@ -178,7 +184,7 @@ public:
 
     _metaData->_isPaired  = 1;
     if (_metaData->_isFragment)
-      fprintf(stderr, "ERROR: file contains fragment tags, tried to pet a mated tag.\n"), exit(1);
+      fprintf(stderr, "tapperTagFile()--  ERROR: file contains fragment tags, tried to pet a mated tag.\n"), exit(1);
 
     if (len1 < _metaData->_minTagLen)  _metaData->_minTagLen = len1;
     if (_metaData->_minTagLen < len1)  _metaData->_maxTagLen = len1;
@@ -192,13 +198,13 @@ public:
 
   bool   get(tapperTag *tag) {
     if (_metaData->_isPaired == 1)
-      fprintf(stderr, "ERROR: file contains mated tags, tried to get a fragment tag.\n"), exit(1);
+      fprintf(stderr, "tapperTagFile()--  ERROR: file contains mated tags, tried to get a fragment tag.\n"), exit(1);
     return(_tagFile->getRecord(tag->_w));
   };
 
   bool   get(tapperTag *ta1, tapperTag *ta2) {
     if (_metaData->_isFragment == 1)
-      fprintf(stderr, "ERROR: file contains fragment tags, tried to get a mated tag.\n"), exit(1);
+      fprintf(stderr, "tapperTagFile()--  ERROR: file contains fragment tags, tried to get a mated tag.\n"), exit(1);
     return(_tagFile->getRecord(ta1->_w) &&
            _tagFile->getRecord(ta2->_w));
   };

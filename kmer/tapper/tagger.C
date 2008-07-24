@@ -137,8 +137,8 @@ main(int argc, char **argv) {
   if ((tagfseq != 0L) && (tagfqlt == 0L))  err++;
   if ((tagfseq == 0L) && (tagfqlt != 0L))  err++;
   if ((err) || (prefix == 0L)) {
-    fprintf(stderr, "usage: %s -tagout prefix -tagf fileUID xx.csfasta xx.qual\n", argv[0]);
-    fprintf(stderr, "usage: %s -tagout prefix -tagf fileUID ff.csfasta ff.qual -tagr fileUID rr.csfasta rr.qual\n", argv[0]);
+    fprintf(stderr, "usage: %s -tagout prefix  -tags fileUID xx.csfasta xx.qual\n", argv[0]);
+    fprintf(stderr, "usage: %s -tagout prefix -ftags fileUID ff.csfasta ff.qual -rtags fileUID rr.csfasta rr.qual\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "unmated tags will be placed in 'prefix.frag.tapperTags'\n");
     fprintf(stderr, "  mated tags will be placed in 'prefix.mate.tapperTags'\n");

@@ -45,21 +45,8 @@ private:
   u64bit  _colorInconsistent:6;  //  Number of inconsistent color mismatches
 
   char    _tagCOLOR[TAG_LEN_MAX];
-  //char    _tagCOREC[TAG_LEN_MAX];  //  corrected
   char    _refCOLOR[TAG_LEN_MAX];
 
   char    _tagACGT[TAG_LEN_MAX];
   char    _refACGT[TAG_LEN_MAX];
-
-  //  With _tagCOREC
-  //  256 bytes if TAG_LEN_MAX is 48
-  //  216 bytes if TAG_LEN_MAX is 40
-  //  176 bytes if TAG_LEN_MAX is 32
-  //
-  //  Without TAG_COREC
-  //  208 bytes if TAG_LEN_MAX is 48
-  //  176 bytes if TAG_LEN_MAX is 40
-  //  144 bytes if TAG_LEN_MAX is 32
-  //
-
 };

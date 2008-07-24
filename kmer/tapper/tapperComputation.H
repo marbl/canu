@@ -42,12 +42,13 @@ public:
       tag1f.setMerSize(tag1size-1); tag1f.setMerSpan(tag1size-1);
       tag1r.setMerSize(tag1size-1); tag1r.setMerSpan(tag1size-1);
 
+      for (u32bit i=0, j=tag1size-1; i<tag1size; i++, j--) {
+        tag1rseq[i] = tag1fseq[j];
+        tag1rqlt[i] = tag1fqlt[j];
+      }
       tag1rseq[0] = complementSymbol[tag1rseq[0]];
-
-      reverseString(tag1rseq, tag1size + 1);
-
-      tag1fseq[tag1size] = 0;
-      tag1rseq[tag1size] = 0;
+      tag1rseq[tag2size] = 0;
+      tag1rqlt[tag2size] = 0;
 
       for (u32bit i=2; i<tag1size; i++)
         tag1f += compressSymbol[tag1fseq[i]];
@@ -65,12 +66,13 @@ public:
       tag2f.setMerSize(tag2size-1); tag2f.setMerSpan(tag2size-1);
       tag2r.setMerSize(tag2size-1); tag2r.setMerSpan(tag2size-1);
 
+      for (u32bit i=0, j=tag2size-1; i<tag2size; i++, j--) {
+        tag2rseq[i] = tag2fseq[j];
+        tag2rqlt[i] = tag2fqlt[j];
+      }
       tag2rseq[0] = complementSymbol[tag2rseq[0]];
-
-      reverseString(tag2rseq, tag2size + 1);
-
-      tag2fseq[tag2size] = 0;
       tag2rseq[tag2size] = 0;
+      tag2rqlt[tag2size] = 0;
 
       for (u32bit i=2; i<tag2size; i++)
         tag2f += compressSymbol[tag2fseq[i]];
