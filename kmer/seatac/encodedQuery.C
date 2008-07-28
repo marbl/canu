@@ -34,8 +34,8 @@ encodedQuery::getMer(u64bit &mer, u32bit &pos) {
       _substring <<= 2;
       _substring  &= _mermask;
 
-      if (validSymbol[_seq[_seqLen - 1 - _seqPos]]) {
-        _substring |= compressSymbol[ complementSymbol[ _seq[_seqLen - 1 - _seqPos] ]];
+      if (letterToBits[_seq[_seqLen - 1 - _seqPos]] != 0xff) {
+        _substring |= letterToBits[ complementSymbol[ _seq[_seqLen - 1 - _seqPos] ]];
         _timeUntilValid--;
       } else {
         _timeUntilValid = _merSize;
@@ -56,8 +56,8 @@ encodedQuery::getMer(u64bit &mer, u32bit &pos) {
       _substring <<= 2;
       _substring  &= _mermask;
 
-      if (validSymbol[_seq[_seqPos]]) {
-        _substring |= compressSymbol[_seq[_seqPos]];
+      if (letterToBits[_seq[_seqPos]] != 0xff) {
+        _substring |= letterToBits[_seq[_seqPos]];
         _timeUntilValid--;
       } else {
         _timeUntilValid = _merSize;

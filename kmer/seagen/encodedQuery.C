@@ -36,8 +36,8 @@ encodedQuery::encodedQuery(seqInCore  *S,
     substring <<= 2;
     substring  &= mermask;
 
-    if (validSymbol[seq[i]]) {
-      substring |= compressSymbol[ seq[i] ];
+    if (letterToBits[seq[i]] != 0xff) {
+      substring |= letterToBits[ seq[i] ];
       timeUntilValid--;
     } else {
       timeUntilValid = k;
@@ -91,8 +91,8 @@ encodedQuery::test(seqInCore *S) {
     substring <<= 2;
     substring  &= mermask;
 
-    if (validSymbol[seq[seqLen - 1 - i]]) {
-      substring |= compressSymbol[ complementSymbol[ seq[seqLen - 1 - i] ]];
+    if (letterToBits[seq[seqLen - 1 - i]] != 0xff) {
+      substring |= letterToBits[ complementSymbol[ seq[seqLen - 1 - i] ]];
       timeUntilValid--;
     } else {
       timeUntilValid = k;

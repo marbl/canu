@@ -176,7 +176,7 @@ seqStore::buildStore(const char *filename, seqStream *ss) {
 
   ss->rewind();
 
-  u64bit          thisBase = validCompressedSymbol[ss->get()];
+  u64bit          thisBase = letterToBits[ss->get()];
   seqStoreBlock   b = {0};
 
   b._isACGT      = 0;
@@ -190,7 +190,7 @@ seqStore::buildStore(const char *filename, seqStream *ss) {
   //
   while (thisBase == 0xff) {
     b._len++;
-    thisBase = validCompressedSymbol[ss->get()];
+    thisBase = letterToBits[ss->get()];
   }
 
   if (b._len > 0) {
@@ -214,7 +214,7 @@ seqStore::buildStore(const char *filename, seqStream *ss) {
   b._len++;
   numACGT++;
 
-  thisBase = validCompressedSymbol[ss->get()];
+  thisBase = letterToBits[ss->get()];
 
   while (ss->eof() == false) {
 
@@ -248,7 +248,7 @@ seqStore::buildStore(const char *filename, seqStream *ss) {
 
     b._len++;
 
-    thisBase = validCompressedSymbol[ss->get()];
+    thisBase = letterToBits[ss->get()];
   };
 
   //  Be sure to write out the last block!
@@ -350,7 +350,7 @@ seqStore::get(void) {
   return(ret);
 #else
   _thisBlockPosition++;
-  return(decompressSymbol[_streamFile->getBits(2)]);
+  return(bitsToLetter[_streamFile->getBits(2)]);
 #endif
 }
 

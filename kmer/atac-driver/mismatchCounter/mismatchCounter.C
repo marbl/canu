@@ -108,8 +108,8 @@ main(int argc, char *argv[]) {
     --A2;
     while (A1.isValid() &&
            A2.isValid() &&
-           validSymbol[(int)*A1] &&
-           validSymbol[(int)*A2] &&
+           (letterToBits[(int)*A1] != 0xff)&&
+           (letterToBits[(int)*A2] != 0xff) &&
            IUPACidentity[(int)*A1][(int)*A2]) {
       extraMatchesL++;
       --A1;
@@ -122,8 +122,8 @@ main(int argc, char *argv[]) {
     ++A2;
     while (A1.isValid() &&
            A2.isValid() &&
-           validSymbol[(int)*A1] &&
-           validSymbol[(int)*A2] &&
+           (letterToBits[(int)*A1] != 0xff)&&
+           (letterToBits[(int)*A2] != 0xff) &&
            IUPACidentity[(int)*A1][(int)*A2]) {
       extraMatchesR++;
       ++A1;
@@ -163,8 +163,8 @@ main(int argc, char *argv[]) {
       //  Count global matches / mismatches
       //
       globalSequence++;
-      if (!(validSymbol[(int)*A1] &&
-            validSymbol[(int)*A2] &&
+      if (!((letterToBits[(int)*A1] != 0xff) &&
+            (letterToBits[(int)*A2] != 0xff) &&
             IUPACidentity[(int)*A1][(int)*A2])) {
         globalMismatches++;
         localMismatches++;
@@ -172,8 +172,8 @@ main(int argc, char *argv[]) {
 
       //  Histogram of exact match block lengths
       //
-      if (validSymbol[(int)*A1] &&
-          validSymbol[(int)*A2] &&
+      if ((letterToBits[(int)*A1] != 0xff) &&
+          (letterToBits[(int)*A2] != 0xff) &&
           IUPACidentity[(int)*A1][(int)*A2]) {
         blockMatches++;
       } else {

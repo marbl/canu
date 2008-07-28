@@ -51,8 +51,8 @@ extern u32bit  maxNbrPathMM;
 //
 bool
 isIdentity(char c1, char c2) {
-  return(validSymbol[(int)c1] &&
-         validSymbol[(int)c2] &&
+  return((letterToBits[(int)c1] != 0xff) &&
+         (letterToBits[(int)c2] != 0xff) &&
          IUPACidentity[(int)c1][(int)c2]);
 }
 

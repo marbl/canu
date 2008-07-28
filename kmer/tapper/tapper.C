@@ -127,7 +127,8 @@ tapperHit::alignToReference(tapperGlobalData *g,
   //  A bit of devilish trickery to make a reverse read look like a
   //  forward read - we locally reverse the reference and read,
   //  process as if the reverse read is a forward read, then clean up
-  //  at the end.
+  //  at the end.  See tapperComputation.H for what is in the reverse
+  //  tag.
   //
   {
     strncpy(_tagCOLOR, tag_in, _len);

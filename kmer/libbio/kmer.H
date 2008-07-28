@@ -230,8 +230,8 @@ public:
   //  only occurs for compressed mers, if we are in a homopolymer run.
   //
   bool    addBase(char ch) {
-    u64bit  cf = validCompressedSymbol[ch];
-    u64bit  cr = validCompressedSymbol[complementSymbol[ch]] & 0x03;
+    u64bit  cf = letterToBits[ch];
+    u64bit  cr = bitsToLetter[complementSymbol[ch]] & 0x03;
 
 #ifdef DEBUG
     fprintf(stderr, "addBase() %c\n", ch);

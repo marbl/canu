@@ -91,10 +91,45 @@ readTag(u64bit fileUID, FILE *seq, FILE *qlt, tapperTag *T) {
 
   S.split(qltseq);
 
-  for (u32bit i=0; i<S.numWords(); i++)
-    qltnum[i] = strtou64bit(S[i], 0L);
+#warning quality values are getting fudged here
+  for (u32bit i=0; i<S.numWords(); i++) {
+    qltnum[i] = (S[i][0] == '-') ? 0 : strtou64bit(S[i], 0L);
+    if (qltnum[i] > 31)
+      qltnum[i] = 31;
+  }
 
   T->encode(UID, seqseq, qltnum);
+
+#define TEST_ENCODING
+#ifdef TEST_ENCODING
+  {
+    char    seqtst[1024];
+    u64bit  qlttst[1024];
+    u64bit  tst = T->decode(seqtst, qlttst);
+    u32bit  len = strlen(seqtst);
+    u32bit  fail = 0;
+    u64bit  qltsum=0, tstsum=0;
+
+#if 0
+    //  We don't encode QV precisely
+    for (u32bit l=0; l<len; l++) {
+      qltsum += qltnum[l];
+      tstsum += qlttst[l];
+      if ((seqseq[l] != seqtst[l]) || (qltnum[l] != qlttst[l]))
+        fail++;
+    }
+#endif
+
+    if ((tst != UID) || (fail)) {
+      fprintf(stderr, "FAIL:  ("u64bitHEX",%s,"u64bitFMT") != ("u64bitHEX",%s,"u64bitFMT")\n",
+              UID, seqseq, qltsum,
+              tst, seqtst, tstsum);
+      for (u32bit l=0; l<len; l++)
+        fprintf(stderr, "  %2d -- "u64bitFMT" "u64bitFMT"\n", l, qltnum[l], qlttst[l]);
+    }
+  }
+
+#endif
 
   return(true);
 }
@@ -127,6 +162,31 @@ main(int argc, char **argv) {
       tagruid  = strtou64bit(argv[++arg], 0L);
       tagrseq  = argv[++arg];
       tagrqlt  = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-dump") == 0) {
+      tapperTagFile  *TF = new tapperTagFile(argv[++arg]);
+      tapperTag       a, b;
+      u64bit          ida, idb;
+      char            seqa[265], seqb[256];
+      u64bit          qvsa[256], qvsb[256];
+
+      if (TF->metaData()->isPairedTagFile()) {
+        while (TF->get(&a, &b)) {
+          ida = a.decode(seqa, qvsa);
+          idb = b.decode(seqb, qvsb);
+          fprintf(stderr, u64bitFMT"\t%s\t"u64bitFMT"\t%s\n",
+                  ida, seqa, idb, seqb);
+        }
+      } else {
+        while (TF->get(&a)) {
+          ida = a.decode(seqa, qvsa);
+          fprintf(stderr, u64bitFMT"\t%s\n",
+                  ida, seqa);
+        }
+      }
+
+      delete TF;
+      exit(1);
 
     } else {
       err++;

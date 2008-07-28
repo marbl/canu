@@ -36,7 +36,7 @@ inline
 char *
 u64bitToMerString(u32bit ms, u64bit mer, char *str) {
   for (u32bit i=0; i<ms; i++)
-    str[ms-i-1] = decompressSymbol[(mer >> (2*i)) & 0x03];
+    str[ms-i-1] = bitsToLetter[(mer >> (2*i)) & 0x03];
   str[ms] = 0;
   return(str);
 }

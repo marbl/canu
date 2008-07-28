@@ -41,17 +41,24 @@ public:
 
     _w[0] = tagID;
 
-    setDecodedValue(_w, pos,  2, compressSymbol[seq[0]]);
+    setDecodedValue(_w, pos,  2, letterToBits[seq[0]]);
     pos += 2;
 
     setDecodedValue(_w, pos,  7, len-1);
     pos += 7;
 
-    //fprintf(stderr, "seq: %s id "u64bitHEX" %c/%d len "u32bitFMT" %d "u64bitFMT"\n",
-    //        seq, _w[0], seq[0], seq[0], len, pos-7, getDecodedValue(_w, pos-7, 7));
+#undef DEBUG_TAG_ENCODING
+#ifdef DEBUG_TAG_ENCODING
+    fprintf(stderr, "tapperTag::encode()-- seq: %s id "u64bitHEX" %c/%d len "u32bitFMT" "u64bitFMT" "u64bitFMT"\n",
+            seq, _w[0], seq[0], seq[0], len, pos-7, getDecodedValue(_w, pos-7, 7));
+#endif
 
     for (i=1; i<len; i++) {
-      setDecodedValue(_w, pos, 7, (compressSymbol[seq[i]] << 5) | (qlt[i]));
+      if (qlt[i] > 32) {
+        fprintf(stderr, "tapperTag::encode()-- WARNING!  QV too big; "u64bitFMT" truncated to 31.\n", qlt[i]);
+        qlt[i] = 31;
+      }
+      setDecodedValue(_w, pos, 7, (letterToBits[seq[i]] << 5) | (qlt[i-1]));
       pos += 7;
     }
 
@@ -66,25 +73,27 @@ public:
     u32bit   len = 0;
     u32bit   i   = 0;
 
-    seq[0] = decompressSymbol[getDecodedValue(_w, pos, 2)];
+    seq[0] = bitsToLetter[getDecodedValue(_w, pos, 2)];
     qlt[0] = 0;
     pos += 2;
 
     len = getDecodedValue(_w, pos, 7) + 1;
     pos += 7;
 
-    //fprintf(stderr, "ID "u64bitFMT" base %c/%d len "u32bitFMT"\n",
-    //        _w[0], seq[0], seq[0], len);
-
     for (i=1; i<len; i++) {
       u64bit x = getDecodedValue(_w, pos, 7);
-      seq[i] = decompressSymbol[x >> 5];
-      qlt[i] = x & u64bitMASK(5);
+      seq[i]   = bitsToColor[(x >> 5) & 0x03];
+      qlt[i-1] = x & u64bitMASK(5);
       pos += 7;
     }
 
-    seq[len] = 0;
-    qlt[len] = 0;
+    seq[len]   = 0;
+    qlt[len-1] = 0;
+
+#ifdef DEBUG_TAG_ENCODING
+    fprintf(stderr, "tapperTag::decode()-- seq: %s id "u64bitHEX" %c/%d len "u32bitFMT"\n",
+            seq, _w[0], seq[0], seq[0], len);
+#endif
 
     return(_w[0]);
   };

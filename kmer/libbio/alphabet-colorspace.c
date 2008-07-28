@@ -118,37 +118,4 @@ initCompressionTablesForColorSpace(void) {
   baseToColor['n']['2'] = baseToColor['N']['2'] = 'g';
   baseToColor['n']['3'] = baseToColor['N']['3'] = 't';
   baseToColor['n']['4'] = baseToColor['N']['4'] = 'n';
-
-
-
-  compressSymbol['0'] = (unsigned char)0x00;
-  compressSymbol['1'] = (unsigned char)0x01;
-  compressSymbol['2'] = (unsigned char)0x02;
-  compressSymbol['3'] = (unsigned char)0x03;
-
-  validSymbol['0'] = 1;
-  validSymbol['1'] = 1;
-  validSymbol['2'] = 1;
-  validSymbol['3'] = 1;
-
-  validCompressedSymbol['0'] = (unsigned char)0x00;
-  validCompressedSymbol['1'] = (unsigned char)0x01;
-  validCompressedSymbol['2'] = (unsigned char)0x02;
-  validCompressedSymbol['3'] = (unsigned char)0x03;
-
-#warning decompressSymbol is not valid for color-space
-#if 0
-  decompressSymbol[0x00] = 'A';
-  decompressSymbol[0x01] = 'C';
-  decompressSymbol[0x02] = 'G';
-  decompressSymbol[0x03] = 'T';
-#endif
-
-  complementSymbol['0'] = '0';
-  complementSymbol['1'] = '1';
-  complementSymbol['2'] = '2';
-  complementSymbol['3'] = '3';
-
-
-
 }

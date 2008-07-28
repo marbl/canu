@@ -414,8 +414,8 @@ shiftGap(atacFile &AF,
            mbs2.isValid() &&
            (ma->len1 > 0) &&
            (ma->len2 > 0) &&
-           validSymbol[(int)*mbs1] &&
-           validSymbol[(int)*mbs2] &&
+           (letterToBits[(int)*mbs1] != 0xff) &&
+           (letterToBits[(int)*mbs2] != 0xff) &&
            IUPACidentity[(int)*mbs1][(int)*mbs2]) {
 
 #ifdef REPORT_SHIFTING
@@ -458,8 +458,8 @@ shiftGap(atacFile &AF,
            mbs2.isValid() &&
            (mb->len1 > 0) &&
            (mb->len2 > 0) &&
-           validSymbol[(int)*mas1] &&
-           validSymbol[(int)*mas2] &&
+           (letterToBits[(int)*mas1]) &&
+           (letterToBits[(int)*mas2]) &&
            IUPACidentity[(int)*mas1][(int)*mas2]) {
 
 #ifdef REPORT_SHIFTING

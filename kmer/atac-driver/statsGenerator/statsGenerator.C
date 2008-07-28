@@ -177,14 +177,14 @@ totalLength(atacFile &AF, FastACache *A, FastACache *B) {
     seqInCore   *S = A->getSequenceInCore(i);
     char        *s = S->sequence();
     for (u32bit j=0; j<S->sequenceLength(); j++)
-      if (validSymbol[s[j]])
+      if (letterToBits[s[j]] != 0xff)
         length1++;
   }
   for (u32bit i=0; i<B->fasta()->getNumberOfSequences(); i++) {
     seqInCore   *S = B->getSequenceInCore(i);
     char        *s = S->sequence();
     for (u32bit j=0; j<S->sequenceLength(); j++)
-      if (validSymbol[s[j]])
+      if (letterToBits[s[j]] != 0xff)
         length2++;
   }
 
@@ -218,7 +218,7 @@ tandemRepeatACGTLength(intervalList &il,
     u64bit hi = il.hi(i) - offset[s];
 
     for (u64bit j=lo; j < hi; j++)
-      if (validSymbol[S[j]])
+      if (letterToBits[S[j]] != 0xff)
         length++;
       else
         unknown[S[j]]++;
@@ -458,7 +458,7 @@ MappedByChromosome(atacFile      &AF,
     char        *s = S->sequence();
     nonNlength[i] = 0;
     for (u32bit j=0; j<S->sequenceLength(); j++)
-      if (validSymbol[s[j]])
+      if (letterToBits[s[j]] != 0xff)
         nonNlength[i]++;
   }
 
@@ -484,7 +484,7 @@ MappedByChromosome(atacFile      &AF,
       u32bit               length = 0;
 
       for (u32bit j=0; j<matches[m]->len1; j++) {
-        bool invalid = (validSymbol[sa[j]] == 0);
+        bool invalid = (letterToBits[sa[j]] == 0xff);
 
         if (!invalid)
           length++;
@@ -547,7 +547,7 @@ statsInACGT(seqInCore       *S,
   u32bit    length = 0;
 
   for (u32bit j=0; j<len; j++) {
-    bool invalid = (validSymbol[s[j]] == 0);
+    bool invalid = (letterToBits[s[j]] == 0xff);
 
     if (!invalid)
       length++;

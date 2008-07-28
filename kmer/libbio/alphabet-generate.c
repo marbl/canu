@@ -4,8 +4,23 @@
 //  Instead of forcing client applications to explicitly call
 //  initCompressionTables(), static tables are now generated.
 
-#include "alphabet.h"  //  auto ganerated
-#include "alphabet.c"  //  auto generated
+unsigned char   whitespaceSymbol[256];
+unsigned char   toLower[256];
+unsigned char   toUpper[256];
+
+unsigned char   letterToBits[256];
+unsigned char   bitsToLetter[256];
+unsigned char   bitsToColor[256];
+
+unsigned char   complementSymbol[256];
+unsigned char   validCompressedSymbol[256];
+
+unsigned char   IUPACidentity[128][128];
+unsigned char   baseToColor[128][128];
+
+void initCompressionTablesForACGTSpace(void);
+void initCompressionTablesForColorSpace(void);
+
 #include "alphabet-acgtspace.c"
 #include "alphabet-colorspace.c"
 
@@ -52,34 +67,28 @@ main(int argc, char **argv) {
     fprintf(C, ",%d", toUpper[i]);
   fprintf(C, " };\n");
 
-  fprintf(H, "extern unsigned char   compressSymbol[256];\n");
-  fprintf(C, "unsigned char   compressSymbol[256] = { %d", compressSymbol[0]);
+  fprintf(H, "extern unsigned char   letterToBits[256];\n");
+  fprintf(C, "unsigned char   letterToBits[256] = { %d", letterToBits[0]);
   for (i=1; i<256; i++)
-    fprintf(C, ",%d", compressSymbol[i]);
+    fprintf(C, ",%d", letterToBits[i]);
   fprintf(C, " };\n");
 
-  fprintf(H, "extern unsigned char   validSymbol[256];\n");
-  fprintf(C, "unsigned char   validSymbol[256] = { %d", validSymbol[0]);
+  fprintf(H, "extern unsigned char   bitsToLetter[256];\n");
+  fprintf(C, "unsigned char   bitsToLetter[256] = { %d", bitsToLetter[0]);
   for (i=1; i<256; i++)
-    fprintf(C, ",%d", validSymbol[i]);
+    fprintf(C, ",%d", bitsToLetter[i]);
   fprintf(C, " };\n");
 
-  fprintf(H, "extern unsigned char   decompressSymbol[256];\n");
-  fprintf(C, "unsigned char   decompressSymbol[256] = { %d", decompressSymbol[0]);
+  fprintf(H, "extern unsigned char   bitsToColor[256];\n");
+  fprintf(C, "unsigned char   bitsToColor[256] = { %d", bitsToColor[0]);
   for (i=1; i<256; i++)
-    fprintf(C, ",%d", decompressSymbol[i]);
+    fprintf(C, ",%d", bitsToColor[i]);
   fprintf(C, " };\n");
 
   fprintf(H, "extern unsigned char   complementSymbol[256];\n");
   fprintf(C, "unsigned char   complementSymbol[256] = { %d", complementSymbol[0]);
   for (i=1; i<256; i++)
     fprintf(C, ",%d", complementSymbol[i]);
-  fprintf(C, " };\n");
-
-  fprintf(H, "extern unsigned char   validCompressedSymbol[256];\n");
-  fprintf(C, "unsigned char   validCompressedSymbol[256] = { %d", validCompressedSymbol[0]);
-  for (i=1; i<256; i++)
-    fprintf(C, ",%d", validCompressedSymbol[i]);
   fprintf(C, " };\n");
 
   fprintf(H, "extern unsigned char   IUPACidentity[128][128];\n");

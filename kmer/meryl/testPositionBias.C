@@ -21,11 +21,11 @@ collectCounts(char *name, u32bit base) {
     A->theFMer().merToString(S);
 
     code   = 0;
-    code  |= compressSymbol[S[base]];
+    code  |= letterToBits[S[base]];
     code <<= 2;
-    code  |= compressSymbol[S[base+1]];
+    code  |= letterToBits[S[base+1]];
     code <<= 2;
-    code  |= compressSymbol[S[base+2]];
+    code  |= letterToBits[S[base+2]];
 
     C[code] += A->theCount();
 
@@ -34,11 +34,11 @@ collectCounts(char *name, u32bit base) {
     R.merToString(S);
 
     code   = 0;
-    code  |= compressSymbol[S[base]];
+    code  |= letterToBits[S[base]];
     code <<= 2;
-    code  |= compressSymbol[S[base+1]];
+    code  |= letterToBits[S[base+1]];
     code <<= 2;
-    code  |= compressSymbol[S[base+2]];
+    code  |= letterToBits[S[base+2]];
 
     C[code] += A->theCount();
   }
@@ -65,9 +65,9 @@ showBias(u32bit base=5) {
     }
 
     fprintf(stdout, "%c%c%c "u32bitFMTW(3)" A "u32bitFMTW(6)" B "u32bitFMTW(6)" %.5f C "u32bitFMTW(6)" %.5f\n",
-            decompressSymbol[(i >> 4) & 0x00000003],
-            decompressSymbol[(i >> 2) & 0x00000003],
-            decompressSymbol[(i >> 0) & 0x00000003],
+            bitsToLetter[(i >> 4) & 0x00000003],
+            bitsToLetter[(i >> 2) & 0x00000003],
+            bitsToLetter[(i >> 0) & 0x00000003],
             i,
             A[i],
             B[i],

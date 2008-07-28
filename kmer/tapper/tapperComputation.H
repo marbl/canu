@@ -46,15 +46,15 @@ public:
         tag1rseq[i] = tag1fseq[j];
         tag1rqlt[i] = tag1fqlt[j];
       }
-      tag1rseq[0] = complementSymbol[tag1rseq[0]];
-      tag1rseq[tag2size] = 0;
-      tag1rqlt[tag2size] = 0;
+      tag1rseq[tag1size-1] = complementSymbol[tag1rseq[tag1size-1]];
+      tag1rseq[tag1size] = 0;
+      tag1rqlt[tag1size] = 0;
 
       for (u32bit i=2; i<tag1size; i++)
-        tag1f += compressSymbol[tag1fseq[i]];
+        tag1f += letterToBits[tag1fseq[i]];
 
       for (u32bit i=0; i<tag1size-2; i++)
-        tag1r += compressSymbol[tag1rseq[i]];
+        tag1r += letterToBits[tag1rseq[i]];
 
       tag1size--;
     }
@@ -70,20 +70,20 @@ public:
         tag2rseq[i] = tag2fseq[j];
         tag2rqlt[i] = tag2fqlt[j];
       }
-      tag2rseq[0] = complementSymbol[tag2rseq[0]];
+      tag2rseq[tag2size-1] = complementSymbol[tag2rseq[tag2size-1]];
       tag2rseq[tag2size] = 0;
       tag2rqlt[tag2size] = 0;
 
       for (u32bit i=2; i<tag2size; i++)
-        tag2f += compressSymbol[tag2fseq[i]];
+        tag2f += letterToBits[tag2fseq[i]];
 
       for (u32bit i=0; i<tag2size-2; i++)
-        tag2r += compressSymbol[tag2rseq[i]];
+        tag2r += letterToBits[tag2rseq[i]];
 
       tag2size--;
     }
 
-    //fprintf(stderr, "T1: %s/%s T2:%s/%s\n", tag1fseq, tag1rseq, tag2fseq, tag2rseq);
+    fprintf(stderr, "T1: %s/%s T2:%s/%s\n", tag1fseq, tag1rseq, tag2fseq, tag2rseq);
 
     tag1hitsLen = 0;
     tag1hitsMax = 16;

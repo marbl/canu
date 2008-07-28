@@ -139,7 +139,7 @@ inline
 char *
 kMerTiny::merToString(char *str) const {
   for (u32bit i=0; i<_merSize; i++)
-    str[_merSize-i-1] = decompressSymbol[(_md >> (2*i)) & 0x03];
+    str[_merSize-i-1] = bitsToLetter[(_md >> (2*i)) & 0x03];
   str[_merSize] = 0;
   return(str);
 };

@@ -7,45 +7,38 @@ initCompressionTablesForACGTSpace(void) {
   int i, j;
 
   for (i=0; i<256; i++) {
-    whitespaceSymbol[i]      = (unsigned char)0x00;
-    toLower[i]               = (unsigned char)0x00;
-    toUpper[i]               = (unsigned char)0x00;
-    compressSymbol[i]        = (unsigned char)0x00;
-    validSymbol[i]           = (unsigned char)0x00;
-    decompressSymbol[i]      = (unsigned char)0x00;
-    complementSymbol[i]      = (unsigned char)i;
-    validCompressedSymbol[i] = (unsigned char)0xff;
-  }
-
-  for (i=0; i<256; i++) {
-    whitespaceSymbol[i] = isspace(i) ? 1 : 0;
-    toLower[i]          = tolower(i);
-    toUpper[i]          = toupper(i);
+    whitespaceSymbol[i]      = isspace(i) ? 1 : 0;
+    toLower[i]               = tolower(i);
+    toUpper[i]               = toupper(i);
+    letterToBits[i]          = (unsigned char)0xff;
+    bitsToLetter[i]          = (unsigned char)'?';
+    bitsToColor[i]           = (unsigned char)'?';
+    complementSymbol[i]      = (unsigned char)'?';
   }
 
   for (i=0; i<128; i++)
     for (j=0; j<128; j++)
       IUPACidentity[i][j] = 0;
 
-  compressSymbol['a'] = compressSymbol['A'] = (unsigned char)0x00;
-  compressSymbol['c'] = compressSymbol['C'] = (unsigned char)0x01;
-  compressSymbol['g'] = compressSymbol['G'] = (unsigned char)0x02;
-  compressSymbol['t'] = compressSymbol['T'] = (unsigned char)0x03;
+  letterToBits['a'] = letterToBits['A'] = (unsigned char)0x00;
+  letterToBits['c'] = letterToBits['C'] = (unsigned char)0x01;
+  letterToBits['g'] = letterToBits['G'] = (unsigned char)0x02;
+  letterToBits['t'] = letterToBits['T'] = (unsigned char)0x03;
 
-  validSymbol['a'] = validSymbol['A'] = 1;
-  validSymbol['c'] = validSymbol['C'] = 1;
-  validSymbol['g'] = validSymbol['G'] = 1;
-  validSymbol['t'] = validSymbol['T'] = 1;
+  letterToBits['0'] = (unsigned char)0x00;
+  letterToBits['1'] = (unsigned char)0x01;
+  letterToBits['2'] = (unsigned char)0x02;
+  letterToBits['3'] = (unsigned char)0x03;
 
-  validCompressedSymbol['a'] = validCompressedSymbol['A'] = (unsigned char)0x00;
-  validCompressedSymbol['c'] = validCompressedSymbol['C'] = (unsigned char)0x01;
-  validCompressedSymbol['g'] = validCompressedSymbol['G'] = (unsigned char)0x02;
-  validCompressedSymbol['t'] = validCompressedSymbol['T'] = (unsigned char)0x03;
+  bitsToLetter[0x00] = 'A';
+  bitsToLetter[0x01] = 'C';
+  bitsToLetter[0x02] = 'G';
+  bitsToLetter[0x03] = 'T';
 
-  decompressSymbol[0x00] = 'A';
-  decompressSymbol[0x01] = 'C';
-  decompressSymbol[0x02] = 'G';
-  decompressSymbol[0x03] = 'T';
+  bitsToColor[0x00] = '0';
+  bitsToColor[0x01] = '1';
+  bitsToColor[0x02] = '2';
+  bitsToColor[0x03] = '3';
 
   complementSymbol['a'] = 't';  //  a
   complementSymbol['t'] = 'a';  //  t
@@ -80,6 +73,11 @@ initCompressionTablesForACGTSpace(void) {
   complementSymbol['H'] = 'D';  //  a c t
   complementSymbol['V'] = 'B';  //  a c g
   complementSymbol['N'] = 'N';  //  a c g t
+
+  complementSymbol['0'] = '0';  //  ColorSpace is self-complementing
+  complementSymbol['1'] = '1';
+  complementSymbol['2'] = '2';
+  complementSymbol['3'] = '3';
 
   IUPACidentity['A']['A'] = 1;
   IUPACidentity['C']['C'] = 1;

@@ -75,10 +75,10 @@ main(int argc, char **argv) {
         I[iid].name[x] = 0;
 
     I[iid].realLength = seq->sequenceLength();
-    I[iid].acgtLength = validSymbol[seq->get()];
+    I[iid].acgtLength = (letterToBits[seq->get()] != 0xff);
 
     while (seq->next())
-      I[iid].acgtLength += validSymbol[seq->get()];
+      I[iid].acgtLength += (letterToBits[seq->get()] != 0xff);
 
     realLengthTotal += I[iid].realLength;
     acgtLengthTotal += I[iid].acgtLength;

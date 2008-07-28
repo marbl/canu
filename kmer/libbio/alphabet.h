@@ -10,11 +10,10 @@ extern "C" {
 extern unsigned char   whitespaceSymbol[256];
 extern unsigned char   toLower[256];
 extern unsigned char   toUpper[256];
-extern unsigned char   compressSymbol[256];
-extern unsigned char   validSymbol[256];
-extern unsigned char   decompressSymbol[256];
+extern unsigned char   letterToBits[256];
+extern unsigned char   bitsToLetter[256];
+extern unsigned char   bitsToColor[256];
 extern unsigned char   complementSymbol[256];
-extern unsigned char   validCompressedSymbol[256];
 extern unsigned char   IUPACidentity[128][128];
 extern unsigned char   baseToColor[128][128];
 
