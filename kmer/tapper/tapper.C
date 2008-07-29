@@ -92,6 +92,14 @@ tapperHit::alignToReference(tapperGlobalData *g,
 
   //  This function is NOT a bottleneck.  Don't bother optimizing.
 
+  //  so_in and po_in are the sequence iid and position in that
+  //  sequence where the tag maps.
+  //
+  //  tag_in is the full tag with reference base at start or end,
+  //  either T010203010331 or 01031031033G.  len_in is the length of
+  //  the COLOR CALLS in tag_in, NOT the strlen of it.
+  //
+
   u32bit      errs = 0;               //  number of errors
   u32bit      errp[TAG_LEN_MAX];      //  location of the errors
   char       _tagCOREC[TAG_LEN_MAX];  //  For holding corrected color calls, only to generate ACGT align
@@ -103,9 +111,12 @@ tapperHit::alignToReference(tapperGlobalData *g,
   //  _rev: Yeah, we assume ASCII and UNIX newlines all over the
   //  place.  A forward read starts with a reference base; reverse
   //  reads have a number here.
-
+  //
+  //  _len -- the length of the tag + reference base.
+  //       -- number of color calls / ACGT + 1.
+  //
   _pad                = 0;
-  _len                = len_in;
+  _len                = len_in + 1;
   _rev                = (tag_in[0] < 'A') ? true : false;
   _rank               = 0x000000000000ffffllu;
 
@@ -131,15 +142,14 @@ tapperHit::alignToReference(tapperGlobalData *g,
   //  tag.
   //
   {
-    strncpy(_tagCOLOR, tag_in, _len);
-
     if (_rev) {
-      reverseString(_tagCOLOR, _len);
-      _tagCOLOR[0] = complementSymbol[_tagCOLOR[0]];
+      for (u32bit i=0, j=_len-1; i<_len; i++, j--)
+        _tagCOLOR[i] = _tagCOREC[i] = tag_in[j];
+      _tagCOLOR[0] = _tagCOREC[0] = complementSymbol[_tagCOLOR[0]];
+    } else {
+      for (u32bit i=0; i<_len; i++)
+        _tagCOLOR[i] = _tagCOREC[i] = tag_in[i];
     }
-
-    strncpy(_tagCOREC, _tagCOLOR, _len);
-
     _tagCOLOR[_len] = 0;
     _tagCOREC[_len] = 0;
   }
@@ -155,7 +165,7 @@ tapperHit::alignToReference(tapperGlobalData *g,
     _refACGT[_len-1] = 0;
 
     if (_rev)
-      reverseComplementSequence(_refACGT, _len - 1);
+      reverseComplementSequence(_refACGT, _len-1);
 
     _refCOLOR[0] = _tagCOLOR[0];  //  ALWAYS the reference encoding base, as long as we copy the tag first.
     _refCOLOR[1] = baseToColor[_refCOLOR[0]][_refACGT[0]];
@@ -166,7 +176,7 @@ tapperHit::alignToReference(tapperGlobalData *g,
     _refCOLOR[_len] = 0;
   }
 
-  //fprintf(stderr, "tag: %s ref: %s %s\n", _tagCOLOR, _refCOLOR, _refACGT);
+  //fprintf(stderr, "tag: %s %s ref: %s %s\n", tag_in, _tagCOLOR, _refCOLOR, _refACGT);
 
   //  Count the number of color space errors
   //
@@ -386,10 +396,10 @@ tapperWorker_addHits(u64bit    *posn, u64bit posnLen,
 
   if (tag1) {
     tagseq = (rev) ? s->tag1rseq : s->tag1fseq;
-    taglen = s->tag1size + 2;
+    taglen = s->tag1size;
   } else {
     tagseq = (rev) ? s->tag2rseq : s->tag2fseq;
-    taglen = s->tag2size + 2;
+    taglen = s->tag2size;
   }
 
   for (u32bit i=0; i<posnLen; i++) {
@@ -468,6 +478,52 @@ tapperWorker(void *G, void *T, void *S) {
   //
 
   if ((s->tag1size > 0) && (s->tag2size > 0)) {
+
+#if 0
+    fprintf(stderr, "HITS   "u32bitFMT" & "u32bitFMT"\n", s->tag1hitsLen, s->tag2hitsLen);
+    if ((s->tag1hitsLen == 1) && (s->tag2hitsLen == 1)) {
+      s->tag1hits[0].writeHit(stderr, s->tag1id);
+      s->tag2hits[0].writeHit(stderr, s->tag2id);
+    }
+#endif
+
+    //  Classify into one of three categories:
+    //  1)  Pairs that are correct distance/orientation
+    //  2)  Reads that are near the end of a sequence
+    //  3)  Everything else
+
+    //  1a)  sort by position
+    //  1b)  merge to find happily mated
+
+    u32bit  mean   = g->TF->metaData()->mean();
+    u32bit  stddev = g->TF->metaData()->stddev();
+
+    mean   = 3000;
+    stddev = 750;
+
+    for (u32bit a=0; a<s->tag1hitsLen; a++) {
+      u32bit   numHappy   = 0;
+      u32bit   f          = 0;
+
+      for (u32bit b=0; b<s->tag2hitsLen; b++) {
+        if (s->tag1hits[a].happy(s->tag2hits[b], mean, stddev)) {
+          numHappy++;
+          f = b;
+        }
+      }
+
+#if 0
+      if (numHappy >= 1) {
+        fprintf(stderr, "HAPPY! "u32bitFMT"\n", numHappy);
+        s->tag1hits[a].writeHit(stderr, s->tag1id);
+        s->tag2hits[f].writeHit(stderr, s->tag2id);
+      }
+#endif
+
+    }
+
+
+    //
   }
 }
 
@@ -482,23 +538,23 @@ main(int argc, char **argv) {
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-genomic") == 0) {
+    if        (strncmp(argv[arg], "-genomic", 2) == 0) {
       g->genName = argv[++arg];
-    } else if (strcmp(argv[arg], "-color") == 0) {
+    } else if (strncmp(argv[arg], "-color", 2) == 0) {
       g->colName = argv[++arg];
-    } else if (strcmp(argv[arg], "-queries") == 0) {
+    } else if (strncmp(argv[arg], "-queries", 2) == 0) {
       g->qryName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-maxcolorerror") == 0) {
+    } else if (strncmp(argv[arg], "-maxcolorerror", 5) == 0) {
       g->maxColorError = strtou32bit(argv[++arg], 0L);
 
-    } else if (strcmp(argv[arg], "-maxbaseerror") == 0) {
+    } else if (strncmp(argv[arg], "-maxbaseerror", 5) == 0) {
       g->maxBaseError = strtou32bit(argv[++arg], 0L);
 
-    } else if (strcmp(argv[arg], "-numthreads") == 0) {
+    } else if (strncmp(argv[arg], "-numthreads", 2) == 0) {
       g->numThreads = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-verbose") == 0) {
+    } else if (strncmp(argv[arg], "-verbose", 2) == 0) {
       g->beVerbose = true;
     } else {
       fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);

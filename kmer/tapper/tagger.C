@@ -135,6 +135,43 @@ readTag(u64bit fileUID, FILE *seq, FILE *qlt, tapperTag *T) {
 }
 
 
+
+void
+dumpTagFile(char *tagfile) {
+  tapperTagFile  *TF = new tapperTagFile(tagfile);
+  tapperTag       a, b;
+  u64bit          ida, idb;
+  char            seqa[265], seqb[256];
+  char            quaa[256], quab[256];
+  u64bit          qvsa[256], qvsb[256];
+  u32bit          i;
+
+  if (TF->metaData()->isPairedTagFile()) {
+    while (TF->get(&a, &b)) {
+      ida = a.decode(seqa, qvsa);
+      idb = b.decode(seqb, qvsb);
+      for (i=0; i<seqa[i+1]; i++)
+        quaa[i] = qvsa[i] + '0';
+      for (i=0; i<seqb[i+1]; i++)
+        quab[i] = qvsb[i] + '0';
+      fprintf(stdout, u64bitHEX"\t%s/%s\t"u64bitHEX"\t%s/%s\n",
+              ida, seqa, quaa, idb, seqb, quab);
+    }
+  } else {
+    while (TF->get(&a)) {
+      ida = a.decode(seqa, qvsa);
+      for (i=0; i<seqa[i+1]; i++)
+        quaa[i] = qvsa[i] + '0';
+      fprintf(stdout, u64bitHEX"\t%s/%s\n",
+              ida, seqa, quaa);
+    }
+  }
+
+  delete TF;
+}
+
+
+
 int
 main(int argc, char **argv) {
   char  *prefix  = 0L;
@@ -164,29 +201,8 @@ main(int argc, char **argv) {
       tagrqlt  = argv[++arg];
 
     } else if (strcmp(argv[arg], "-dump") == 0) {
-      tapperTagFile  *TF = new tapperTagFile(argv[++arg]);
-      tapperTag       a, b;
-      u64bit          ida, idb;
-      char            seqa[265], seqb[256];
-      u64bit          qvsa[256], qvsb[256];
-
-      if (TF->metaData()->isPairedTagFile()) {
-        while (TF->get(&a, &b)) {
-          ida = a.decode(seqa, qvsa);
-          idb = b.decode(seqb, qvsb);
-          fprintf(stderr, u64bitFMT"\t%s\t"u64bitFMT"\t%s\n",
-                  ida, seqa, idb, seqb);
-        }
-      } else {
-        while (TF->get(&a)) {
-          ida = a.decode(seqa, qvsa);
-          fprintf(stderr, u64bitFMT"\t%s\n",
-                  ida, seqa);
-        }
-      }
-
-      delete TF;
-      exit(1);
+      dumpTagFile(argv[++arg]);
+      exit(0);
 
     } else {
       err++;

@@ -28,6 +28,47 @@ public:
                           u32bit po,
                           char  *tag, u32bit len);
 
+  //  Assumes we're called on the F read, and b == the R read.
+  //
+  bool   happy(tapperHit& b, u32bit mean, u32bit stddev) {
+    bool    isHappy = false;
+    u64bit  dist    = ~u64bitZERO;
+
+    if (_seqIdx != b._seqIdx)
+      return(false);
+
+    if (_rev    != b._rev)
+      return(false);
+
+    //  REVERSE
+    //   ----<R3----<F3---
+    //         |------|
+    //
+    //  FORWARD
+    //   ----F3>----R3>---
+    //       |------|
+    //
+#if 0
+    if ((_rev == true)  && (b._seqPos < _seqPos))
+      dist = _seqPos - b._seqPos;
+    if ((_rev == false) && (_seqPos < b._seqPos))
+      dist = b._seqPos - _seqPos;
+#endif
+
+    //  But we don't know orientation of the fragment.
+    if ((_rev == false) && (b._seqPos < _seqPos))
+      dist = _seqPos - b._seqPos;
+    if ((_rev == true)  && (_seqPos < b._seqPos))
+      dist = b._seqPos - _seqPos;
+
+    if ((mean - 3*stddev < dist) && (dist < mean + 3*stddev)) {
+      //fprintf(stderr, "HAPPY DIST "u32bitFMT"\n", dist);
+      isHappy = true;
+    }
+
+    return(isHappy);
+  };
+
 private:
   u32bit  _seqIdx;
   u32bit  _seqPos;

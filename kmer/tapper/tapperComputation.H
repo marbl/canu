@@ -83,7 +83,9 @@ public:
       tag2size--;
     }
 
-    fprintf(stderr, "T1: %s/%s T2:%s/%s\n", tag1fseq, tag1rseq, tag2fseq, tag2rseq);
+    //fprintf(stderr, "T1: %s/%s T2:%s/%s\n", tag1fseq, tag1rseq, tag2fseq, tag2rseq);
+
+    matedLen    = 0;
 
     tag1hitsLen = 0;
     tag1hitsMax = 16;
@@ -126,10 +128,17 @@ public:
   };
 
   void writeHits(FILE *OF) {
-    for (u32bit i=0; i<tag1hitsLen; i++)
-      tag1hits[i].writeHit(OF, tag1id);
-    for (u32bit i=0; i<tag2hitsLen; i++)
-      tag2hits[i].writeHit(OF, tag1id);
+    if (tag2size == 0) {
+      for (u32bit i=0; i<tag1hitsLen; i++)
+        tag1hits[i].writeHit(OF, tag1id);
+    } else {
+      for (u32bit i=0; i<matedLen; i++) {
+      }
+      for (u32bit i=matedLen; i<tag1hitsLen; i++)
+        tag1hits[i].writeHit(OF, tag1id);
+      for (u32bit i=matedLen; i<tag2hitsLen; i++)
+        tag2hits[i].writeHit(OF, tag1id);
+    }
   };
 
 public:
@@ -147,6 +156,8 @@ public:
 
   u64bit      tag1fqlt[TAG_LEN_MAX], tag1rqlt[TAG_LEN_MAX];
   u64bit      tag2fqlt[TAG_LEN_MAX], tag2rqlt[TAG_LEN_MAX];
+
+  u32bit      matedLen;
 
   u32bit      tag1hitsLen;
   u32bit      tag1hitsMax;

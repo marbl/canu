@@ -145,6 +145,7 @@ private:
 class tapperTagFile {
 public:
   tapperTagFile(char *name) {
+#warning need a read only mode
     _tagFile  = new recordFile(name, sizeof(tapperTagFileMetaData), TAPPER_TAG_WORDS * sizeof(u64bit), true);
     _metaData = (tapperTagFileMetaData *)_tagFile->header();
 
