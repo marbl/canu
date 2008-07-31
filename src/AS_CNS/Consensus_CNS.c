@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char rcsid[] = "$Id: Consensus_CNS.c,v 1.62 2008-06-27 06:29:14 brianwalenz Exp $";
+static const char rcsid[] = "$Id: Consensus_CNS.c,v 1.63 2008-07-31 06:44:14 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -332,7 +332,7 @@ main (int argc, char **argv) {
         break;
 
       if (VERBOSE_MULTIALIGN_OUTPUT)
-        fprintf(stderr, "MultiAlignContig %d %f pieces/length\n",
+        fprintf(stderr, "MultiAlignUnitig %d %f pieces/length\n",
                 iunitig->iaccession,
                 (double)iunitig->num_frags / iunitig->length);
 
@@ -341,6 +341,7 @@ main (int argc, char **argv) {
       if ((unitigfail == EXIT_FAILURE) &&
           (allow_neg_hang_retry) &&
           (allow_neg_hang == 0)) {
+        fprintf(stderr, "MultiAlignUnitig failed for unitig %d -- try again with negative hangs allowed\n", iunitig->iaccession);
         allow_neg_hang = 1;
         unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, 0, COMPARE_FUNC, &options);
         allow_neg_hang = 0;
