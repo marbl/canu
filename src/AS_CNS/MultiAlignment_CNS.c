@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.188 2008-06-27 06:29:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.189 2008-07-31 06:48:22 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -4043,7 +4043,8 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
   if ( allow_big_endgaps > 0 ) {
     LOCAL_DEFAULT_PARAMS.maxBegGap = allow_big_endgaps;
     LOCAL_DEFAULT_PARAMS.maxEndGap = allow_big_endgaps;
-    PrintAlarm(stderr,"GetAlignmentTrace()-- NOTE: Looking for local alignment with large endgaps.\n");
+    if (show_olap)
+      PrintAlarm(stderr,"GetAlignmentTrace()-- NOTE: Looking for local alignment with large endgaps.\n");
   }
   LOCAL_DEFAULT_PARAMS.bandBgn=ahang_input-CNS_TIGHTSEMIBANDWIDTH;
   LOCAL_DEFAULT_PARAMS.bandEnd=ahang_input+CNS_TIGHTSEMIBANDWIDTH;
@@ -4211,8 +4212,9 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
 
   if ( O == NULL ) {
     // Here, we're convinced there is NO acceptable overlap with this COMPARE_FUNC
-    fprintf(stderr,"GetAlignmentTrace()-- Could not find overlap between %d (%c) and %d (%c) estimated ahang: %d\n",
-            aiid,atype,biid,btype,ahang_input);
+    if (show_olap)
+      fprintf(stderr,"GetAlignmentTrace()-- Could not find overlap between %d (%c) and %d (%c) estimated ahang: %d\n",
+              aiid,atype,biid,btype,ahang_input);
     return 0;
   }
 
@@ -7600,13 +7602,12 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
         }
         afrag = GetFragment(fragmentStore, align_to);
 
+
         // If bfrag is contained, then afrag should be its container.
         // If bfrag is not contained, then afrag should be just uncontained
         //
         if ( bfrag->container_iid ) {
           while ( align_to > -1 ) {
-            //fprintf(stderr, "afrag->iid=%d bfrag->container_iid=%d afrag->container_iid=%d afrag->iid=%d  align_to=%d\n",
-            //        afrag->iid, bfrag->container_iid, afrag->container_iid, afrag->iid, align_to);
             if ( afrag->iid == bfrag->container_iid && afrag->container_iid != afrag->iid)
               break;
             align_to--;
@@ -7615,7 +7616,6 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
           }
         } else {
           while ( align_to > 0 && afrag->container_iid > 0 ) {
-            //fprintf(stderr, "afrag: %d align_to %d\n", afrag->iid, align_to);
             align_to--;
             if (align_to > -1)
               afrag = GetFragment(fragmentStore, align_to);
@@ -7647,18 +7647,17 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 
         ovl = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
 
-#if 0
-        fprintf(stderr, "MultiAlignUnitig()-- Aligning frag #%d (iid %d, range %d,%d) to afrag iid %d range %d,%d -- ovl=%d ahang=%d\n",
-                positions[i].ident,
-                bfrag->iid,
-                offsets[bfrag->lid].bgn,
-                offsets[bfrag->lid].end,
-                afrag->iid,
-                offsets[afrag->lid].bgn,
-                offsets[afrag->lid].end,
-                ovl,
-                ahang);
-#endif
+        if (VERBOSE_MULTIALIGN_OUTPUT)
+          fprintf(stderr, "MultiAlignUnitig()-- Aligning frag #%d (iid %d, range %d,%d) to afrag iid %d range %d,%d -- ovl=%d ahang=%d\n",
+                  positions[i].ident,
+                  bfrag->iid,
+                  offsets[bfrag->lid].bgn,
+                  offsets[bfrag->lid].end,
+                  afrag->iid,
+                  offsets[afrag->lid].bgn,
+                  offsets[afrag->lid].end,
+                  ovl,
+                  ahang);
 
         if (ovl < 0) {
           if (VERBOSE_MULTIALIGN_OUTPUT)
@@ -7674,23 +7673,40 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
           ahanginit = ahang;
         }
 
+        //  try with the default aligner
         olap_success = GetAlignmentTrace(afrag->lid, 0, bfrag->lid, &ahang, ovl, trace, &otype,DP_Compare,DONT_SHOW_OLAP,0);
 
-        if (!olap_success) {
-          fprintf(stderr, "MultiAlignUnitig()-- MultiAlignUnitig: positions of %d (%c) and %d (%c) overlap, but GetAlignmentTrace (DEF) returns no overlap success estimated ahang: %d%s\n",
-                  afrag->iid,afrag->type,bfrag->iid,bfrag->type,
-                  ahang, (bfrag->container_iid)?" (reported contained)":"");
-        }
 
         // try again, perhaps with alternate overlapper
         if (! olap_success && COMPARE_FUNC != DP_Compare)
           olap_success = GetAlignmentTrace(afrag->lid, 0, bfrag->lid, &ahang, ovl, trace, &otype,COMPARE_FUNC,DONT_SHOW_OLAP,0);
 
+
+        // try again, perhaps increasing the erate.  Increase slowly to try to avoid overcollapsing the overlap.
+        if (! olap_success) {
+          double AS_CNS_ERROR_RATE_SAVE = AS_CNS_ERROR_RATE;
+
+          while ((AS_CNS_ERROR_RATE < AS_CNS_ERROR_RATE_SAVE + 0.02) && (!olap_success)) {
+            AS_CNS_ERROR_RATE += 0.0025;
+
+            if (VERBOSE_MULTIALIGN_OUTPUT)
+              fprintf(stderr, "MultiAlignUnitig()-- increase AS_CNS_ERROR_RATE to %1.5f\n", AS_CNS_ERROR_RATE);
+
+            olap_success = GetAlignmentTrace(afrag->lid, 0, bfrag->lid, &ahang, ovl, trace, &otype,DP_Compare,DONT_SHOW_OLAP,0);
+
+            if (!olap_success)
+              olap_success = GetAlignmentTrace(afrag->lid, 0, bfrag->lid, &ahang, ovl, trace, &otype,COMPARE_FUNC,DONT_SHOW_OLAP,0);
+          }
+
+          AS_CNS_ERROR_RATE = AS_CNS_ERROR_RATE_SAVE;
+        }
+
+
         if ( !olap_success ) {
 #ifndef NEW_UNITIGGER_INTERFACE
           align_to--;
 #endif
-          fprintf(stderr, "MultiAlignUnitig()-- MultiAlignUnitig: positions of %d (%c) and %d (%c) overlap, but GetAlignmentTrace (DPC) returns no overlap success estimated ahang: %d%s\n",
+          fprintf(stderr, "MultiAlignUnitig()-- positions of %d (%c) and %d (%c) overlap, but GetAlignmentTrace (DEF, ERR & DPC) all return no overlap success; estimated ahang: %d%s\n",
                   afrag->iid,afrag->type,bfrag->iid,bfrag->type,
                   ahang, (bfrag->container_iid)?" (reported contained)":"");
         }
