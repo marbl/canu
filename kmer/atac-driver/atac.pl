@@ -114,44 +114,41 @@ if (! -e "$ATACdir/$matches.atac") {
 
 
 sub usage {
-    print STDERR "usage: $0 [opts]\n";
+    print STDERR "usage: $0 -dir AvsB -id1 A -seq1 A.fasta -id2 B -seq2 B.fasta -meryldir M [opts\n";
     print STDERR "\n";
-    print STDERR "    -dir run-directory\n"; # MANDATORY
+    print STDERR "ATAC will compute and place results in the run-directory.\n";
+    print STDERR "The meryl directory is used to store assembly-specific\n";
+    print STDERR "intermediate files.  Internally, atac uses an ID to refer to\n";
+    print STDERR "a assembly; if the same ID/seq pair is used across multiple\n";
+    print STDERR "runs, the assembly-specific intermediate files can be reused.\n";
     print STDERR "\n";
-    print STDERR "Sequence specification:  If -seq is supplied, then that\n";
-    print STDERR "sequence file is used with the id given by -id.  If there is\n";
-    print STDERR "a conflict with an established id, the program exits.\n";
+    print STDERR "A * indicates a required argument.\n";
     print STDERR "\n";
-    print STDERR "    -id1  id1\n";
-    print STDERR "    -seq1 seq1.fasta\n";
-    print STDERR "    -id2  id2\n";
-    print STDERR "    -seq2 seq2.fasta\n";
+    print STDERR "*   -dir run-directory     -- path to the RESULTS directory\n";
+    print STDERR "*   -meryldir  path        -- path to the MERYL directory\n";
+    print STDERR "    -genomedir path        -- path to the GENOMES directory\n";
     print STDERR "\n";
-    print STDERR "NOTE:  id1 is the table, id2 is the stream.\n";
+    print STDERR "*   -id1  id1              -- ID of the A assembly\n";
+    print STDERR "*   -seq1 seq1.fasta       -- sequence of the A assembly\n";
+    print STDERR "*   -id2  id2              -- ID of the B assembly\n";
+    print STDERR "*   -seq2 seq2.fasta       -- sequence of the B assembly\n";
     print STDERR "\n";
-    print STDERR "Paths should be FULL PATHS, not relative paths.\n";
-    print STDERR "\n";
-    print STDERR "    -genomedir path        -- path to the GENOMES directory\n"; # MANDATORY
-    print STDERR "    -meryldir  path        -- path to the MERYL directory\n";   # MANDATORY
-    print STDERR "    -bindir  path          -- path to the binaries (hack!)\n";  # MANDATORY
-    print STDERR "    -srcdir  path          -- path to the source   (hack!)\n";  # MANDATORY
+    print STDERR "NOTE:  A hash table will be built for id1.  For space and\n";
+    print STDERR "       performance, this should usually be the smaller assembly.\n";
     print STDERR "\n";
     print STDERR "    -numsegments s         -- number of segments to do the search in\n";
+    print STDERR "                              (doubling segments halves memory usage)\n";
     print STDERR "    -numthreads t          -- number of threads to use per search\n";
+    print STDERR "                              (slight increase in memory usage)\n";
     print STDERR "\n";
     print STDERR "    -merylonly             -- only run the meryl components\n";
     print STDERR "    -merylthreads t        -- number of threads to use for meryl\n";
     print STDERR "\n";
-    print STDERR "\n";
     print STDERR "    -samespecies           -- use magic values for same species\n";
     print STDERR "    -crossspecies          -- use guesses for different species\n";
     print STDERR "\n";
-    print STDERR "\n";
-    print STDERR "ADVANCED OPTIONS:\n";
-    print STDERR "\n";
     print STDERR "    -segmentid x           -- only run segment with id x\n";
-    print STDERR "                              (don't use unless you really know what it does)\n";
-    print STDERR "\n";
+    print STDERR "                              (don't use)\n";
     exit(1);
 }
 
