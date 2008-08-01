@@ -643,29 +643,34 @@ sub merylVersion () {
 
 
 
+sub removeFragStoreBackup ($) {
+    my $backupName = shift @_;
+
+    unlink "$wrk/$asm.gkpStore/frg.$backupName";
+}
+
+sub restoreFragStoreBackup ($) {
+    my $backupName = shift @_;
+
+    if (-e "$wrk/$asm.gkpStore/frg.$backupName") {
+        print STDERR "Restoring the gkpStore backup from $backupName.\n";
+        unlink "$wrk/$asm.gkpStore/frg.FAILED";
+        rename "$wrk/$asm.gkpStore/frg", "$wrk/$asm.gkpStore/frg.$backupName.FAILED";
+        rename "$wrk/$asm.gkpStore/frg.$backupName", "$wrk/$asm.gkpStore/frg";
+    }
+}
+
 sub backupFragStore ($) {
     my $backupName = shift @_;
 
     return if (getGlobal("doBackupFragStore") == 0);
+    return if (-e "$wrk/$asm.gkpStore/frg.$backupName");
 
-    if (-e "$wrk/$asm.gkpStore/frg.$backupName") {
+    print STDERR "Backing up the gkpStore to $backupName.\n";
 
-        print STDERR "Found a backup for $backupName!  Restoring!\n";
-
-        unlink "$wrk/$asm.gkpStore/frg";
-        if (system("cp -p $wrk/$asm.gkpStore/frg.$backupName $wrk/$asm.gkpStore/frg")) {
-            unlink "$wrk/$asm.gkpStore/frg";
-            caFailure("Failed to restore gkpStore from backup.\n");
-        }
-    }
-    if (! -e "$wrk/$asm.gkpStore/frg.$backupName") {
-
-        print STDERR "Backing up the gkpStore to $backupName.\n";
-
-        if (system("cp -p $wrk/$asm.gkpStore/frg $wrk/$asm.gkpStore/frg.$backupName")) {
-            unlink "$wrk/$asm.gkpStore/frg.$backupName";
-            caFailure("Failed to backup gkpStore.\n");
-        }
+    if (system("cp -p $wrk/$asm.gkpStore/frg $wrk/$asm.gkpStore/frg.$backupName")) {
+        unlink "$wrk/$asm.gkpStore/frg.$backupName";
+        caFailure("Failed to backup gkpStore.\n");
     }
 }
 
@@ -756,6 +761,17 @@ sub caFailure ($) {
     die $msg;
 }
 
+
+
+#  Bit of a wierd one here; assume path are supplied relative to $wrk.
+#  Potentially gives us a bit of safety.
+#
+sub rmrf (@) {
+    foreach my $f (@_) {
+        unlink("$wrk/$f")         if (-f "$wrk/$f");
+        system("rm -rf $wrk/$f")  if (-d "$wrk/$f");
+    }
+}
 
 
 #  Create an empty file.  Much faster than system("touch ...").

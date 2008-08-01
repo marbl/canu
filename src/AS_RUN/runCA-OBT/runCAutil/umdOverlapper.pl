@@ -82,8 +82,9 @@ sub UMDoverlapper () {
       caFailure("Failed to run UMD overlapper.\n");
     }
 
-    # update the gkpStore with newly computed clear ranges
+    #  See comments in overlapTrim.pl
     backupFragStore("beforeUMDOverlapper");
+
     my $trimFile = getUMDOverlapperClearRange($outDir);
     $cmd = "";
     $cmd .= "$bin/gatekeeper --edit ";
@@ -104,7 +105,7 @@ sub UMDoverlapper () {
     }
 
     #cleanup
-    rmrf("$wrk/$asm.vec.frg");
+    rmrf("$asm.vec.frg");
 
     touch("$wrk/$outDir/$jobID/$jobID.success");
     stopAfter("overlapper");

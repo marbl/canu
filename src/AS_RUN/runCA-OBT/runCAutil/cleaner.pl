@@ -2,17 +2,6 @@ use strict;
 
 #  Assembly all done, remove some of the crud.
 
-sub rmrf (@) {
-    foreach my $f (@_) {
-        if (-f $f) {
-            unlink("$wrk/$f");
-        } else {
-            #print STDERR "cd $wrk && rm -rf $f\n";
-            system("cd $wrk && rm -rf $f");
-        }
-    }
-}
-
 sub cleaner () {
     my $cleanType = getGlobal("cleanup");
     my $cleanValu = 0;
@@ -53,7 +42,6 @@ sub cleaner () {
         rmrf("0-mercounts");
         rmrf("0-overlaptrim");
         rmrf("0-overlaptrim-overlap");
-        rmrf("0-preoverlap");
         rmrf("1-overlapper");
         rmrf("2-frgcorr");
         rmrf("3-ovlcorr");

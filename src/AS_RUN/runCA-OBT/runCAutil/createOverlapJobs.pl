@@ -89,7 +89,7 @@ sub createOverlapJobs($) {
     print F "  mkdir $wrk/$outDir/\$bat\n";
     print F "fi\n";
     print F "\n";
-    print F "if [ -e $wrk/$outDir/\$bat/\$job.success ]; then\n";
+    print F "if [ -e $wrk/$outDir/\$bat/\$job.ovb.gz ]; then\n";
     print F "  echo Job previously completed successfully.\n";
     print F "  exit\n";
     print F "fi\n";
@@ -106,21 +106,16 @@ sub createOverlapJobs($) {
     print F "  -k $merSize \\\n";
     print F "  -k $wrk/0-mercounts/$asm.nmers.obt.fasta \\\n" if ($isTrim eq "trim");
     print F "  -k $wrk/0-mercounts/$asm.nmers.ovl.fasta \\\n" if ($isTrim ne "trim");
-    print F "  -o $wrk/$outDir/\$bat/\$job.ovr \\\n"          if ($isTrim eq "trim");
-    print F "  -o $wrk/$outDir/\$bat/\$job.ovb \\\n"          if ($isTrim ne "trim");
+    print F "  -o - \\\n";
     print F "  $wrk/$asm.gkpStore \\\n";
-
     if ($isTrim eq "trim") {
-        print F "&& \\\n";
+        print F "|\\\n";
         print F "\$bin/acceptableOBToverlap \\\n";
-        print F "  < $wrk/$outDir/\$bat/\$job.ovr \\\n";
-        print F "  > $wrk/$outDir/\$bat/\$job.ovb \\\n";
     }
-
+    print F "|\\\n";
+    print F "gzip -9vc > $wrk/$outDir/\$bat/\$job.ovb.gz.WORKING \\\n";
     print F "&& \\\n";
-    print F "touch $wrk/$outDir/\$bat/\$job.success\n";
-    print F "\n";
-    print F "rm -f $wrk/$outDir/\$bat/\$job.ovr \\\n";
+    print F "mv $wrk/$outDir/\$bat/\$job.ovb.gz.WORKING $wrk/$outDir/\$bat/\$job.ovb.gz\n";
     print F "\n";
     print F "exit 0\n";
     close(F);

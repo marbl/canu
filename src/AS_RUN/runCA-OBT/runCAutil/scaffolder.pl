@@ -42,9 +42,20 @@ sub CGW ($$$$$$) {
     system("mkdir $wrk/$thisDir")               if (! -d "$wrk/$thisDir");
     system("mkdir $wrk/$asm.SeqStore")          if (! -d "$wrk/$asm.SeqStore");
 
-    $cgiFile = "../5-consensus/$asm.cgi" if (!defined($cgiFile));
+    if (!defined($cgiFile)) {
+        open(F, "ls $wrk/5-consensus |");
+        while (<F>) {
+            chomp;
+            if (m/cgi$/) {
+                $cgiFile .= " $wrk/5-consensus/$_";
+            }
+        }
+        close(F);
+    } else {
+        system("ln -s $cgiFile $wrk/$thisDir/$asm.cgi") if (! -e "$wrk/$thisDir/$asm.cgi");
+        $cgiFile = "$wrk/$thisDir/$asm.cgi";
+    }
 
-    system("ln -s $cgiFile          $wrk/$thisDir/$asm.cgi")          if (! -e "$wrk/$thisDir/$asm.cgi");
     system("ln -s ../$asm.SeqStore  $wrk/$thisDir/$asm.SeqStore")     if (! -e "$wrk/$thisDir/$asm.SeqStore");
 
     system("ln -s ../$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp") if (defined($lastDir));
@@ -71,7 +82,7 @@ sub CGW ($$$$$$) {
     $cmd .= " -m $sampleSize";
     $cmd .= " -g $wrk/$asm.gkpStore ";
     $cmd .= " -o $wrk/$thisDir/$asm ";
-    $cmd .= " $wrk/$thisDir/$asm.cgi ";
+    $cmd .= " $cgiFile ";
     $cmd .= " > $wrk/$thisDir/cgw.out 2>&1";
     if (runCommand("$wrk/$thisDir", $cmd)) {
         print STDERR "SCAFFOLDER FAILED.  Here's what it didn't like (the last 30 lines of cgw.out):\n";
@@ -156,7 +167,6 @@ sub eCR ($$$) {
         $curScaffold = substr("000000000$curScaffold", -$substrlen);
 
         if (! -e "$wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.success") {
-            backupFragStore("before-$thisDir-scaffold.$curScaffold");
 
             $lastckp = findLastCheckpoint($thisDir);
 

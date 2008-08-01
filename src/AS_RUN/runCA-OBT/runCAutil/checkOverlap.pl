@@ -29,7 +29,7 @@ sub checkOverlapper ($) {
         my $batchName = shift @bat;
         my $jobName   = shift @job;
 
-        if (! -e "$wrk/$outDir/$batchName/$jobName.success") {
+        if (! -e "$wrk/$outDir/$batchName/$jobName.ovb.gz") {
             print STDERR "$wrk/$outDir/$batchName/$jobName failed, job index $jobIndex.\n";
             $failedJobs++;
         }
@@ -37,9 +37,7 @@ sub checkOverlapper ($) {
         $jobIndex++;
     }
 
-    close(F);
-
-    caFailure("$failedJobs failed.\n") if ($failedJobs);
+    caFailure("$failedJobs overlapper jobs failed.\n") if ($failedJobs);
 }
 
 
@@ -64,9 +62,8 @@ sub checkMerOverlapper ($) {
             $failedJobs++;
         }
     }
-    if ($failedJobs) {
-        caFailure("$failedJobs failed.  See $wrk/$outDir/overlap-restart.sh for resubmission commands.\n");
-    }
+    
+    caFailure("$failedJobs overlapper jobs failed.\n") if ($failedJobs);
 }
 
 

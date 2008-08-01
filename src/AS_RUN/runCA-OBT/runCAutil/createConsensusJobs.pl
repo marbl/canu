@@ -195,6 +195,19 @@ sub postScaffolderConsensus ($) {
 
     caFailure("$failedJobs consensusAfterScaffolder jobs failed.  Good luck.\n") if ($failedJobs);
 
+    #  All jobs finished.  Remove the partitioning from the gatekeeper
+    #  store.  The gatekeeper store is currently (5 Mar 2007) tolerant
+    #  of someone asking for a partition that isn't there -- it'll
+    #  fallback to the complete store.  So, if you happen to want to
+    #  run consensus again, it'll still work, just a little slower.
+    #
+    #  (This block appears in both createPostUnitiggerConsensus.pl and createConsensusJobs.pl)
+    #
+    system("rm -f $wrk/$asm.gkpStore/frg.[0-9][0-9][0-9]");
+    system("rm -f $wrk/$asm.gkpStore/hps.[0-9][0-9][0-9]");
+    system("rm -f $wrk/$asm.gkpStore/qlt.[0-9][0-9][0-9]");
+    system("rm -f $wrk/$asm.gkpStore/src.[0-9][0-9][0-9]");
+
     touch("$wrk/8-consensus/consensus.success");
 
   alldone:

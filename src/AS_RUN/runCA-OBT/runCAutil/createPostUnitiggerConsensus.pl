@@ -167,21 +167,16 @@ sub postUnitiggerConsensus (@) {
     #
 
     my $failedJobs = 0;
-    my @cgbIndices;
 
     foreach my $f (@cgbFiles) {
         if ($f =~ m/^.*(\d\d\d).cgb$/) {
-            push @cgbIndices, $1;
+            if ((! -e "$wrk/5-consensus/${asm}_$1.success") ||
+                (! -e "$wrk/5-consensus/${asm}_$1.cgi")) {
+                print STDERR "$wrk/5-consensus/${asm}_$1 failed -- no .success or no .cgi!\n";
+                $failedJobs++;
+            }
         } else {
             caFailure("Didn't match '$f' for CGB filename!\n");
-        }
-    }
-
-    foreach my $f (@cgbIndices) {
-        if ((! -e "$wrk/5-consensus/${asm}_$f.success") ||
-            (! -e "$wrk/5-consensus/${asm}_$f.cgi")) {
-            print STDERR "$wrk/5-consensus/$f failed -- no .success or no .cgi!\n";
-            $failedJobs++;
         }
     }
 
@@ -193,31 +188,14 @@ sub postUnitiggerConsensus (@) {
     #  fallback to the complete store.  So, if you happen to want to
     #  run consensus again, it'll still work, just a little slower.
     #
-    open(F, "ls $wrk/$asm.gkpStore |");
-    while (<F>) {
-        chomp;
-        if (m/^\S\S\S\.\d\d\d$/) {
-            unlink $_;
-        }
-    }
-    close(F);
-
-
+    #  (This block appears in both createPostUnitiggerConsensus.pl and createConsensusJobs.pl)
     #
-    #  Consolidate all the output
-    #
+    system("rm -f $wrk/$asm.gkpStore/frg.[0-9][0-9][0-9]");
+    system("rm -f $wrk/$asm.gkpStore/hps.[0-9][0-9][0-9]");
+    system("rm -f $wrk/$asm.gkpStore/qlt.[0-9][0-9][0-9]");
+    system("rm -f $wrk/$asm.gkpStore/src.[0-9][0-9][0-9]");
 
-    open(G, "> $wrk/5-consensus/$asm.cgi") or caFailure("Failed to write '$wrk/5-consensus/$asm.cgi'\n");
-    foreach my $fid (@cgbIndices) {
-        open(F, "< $wrk/5-consensus/${asm}_$fid.cgi") or caFailure("Failed to open '$wrk/5-consensus/${asm}_$fid.cgi'\n");
-        while (<F>) {
-            print G $_;
-        }
-        close(F);
-    }
-    close(G);
-
-    touch ("$wrk/5-consensus/consensus.success");
+    touch("$wrk/5-consensus/consensus.success");
 
   alldone:
     stopAfter("consensusAfterUnitigger");

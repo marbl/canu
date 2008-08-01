@@ -13,8 +13,8 @@ sub getFigaroClearRange ($) {
     runCommand("$wrk/$outDir", "join $wrk/$outDir/$asm.clrBgn.sorted $wrk/$asm.untrimmed -o 1.1,1.2,2.3 > $wrk/$outDir/$fileName");
 
     # clean up
-    rmrf("$wrk/$outDir/$asm.clrBgn");
-    rmrf("$wrk/$outDir/$asm.clrBgn.sorted");
+    rmrf("$outDir/$asm.clrBgn");
+    rmrf("$outDir/$asm.clrBgn.sorted");
 
     return $fileName;
 }
@@ -57,11 +57,11 @@ sub getUMDTrimClearRange($) {
    runCommand("$wrk/$outDir", "join $wrk/$outDir/$asm.clrBgn.sorted $wrk/$asm.untrimmed -o 1.1,1.2,2.3 > $wrk/$outDir/$fileName");
 
    # clean up
-   rmrf("$wrk/$outDir/$asm.numberedUids");
-   rmrf("$wrk/$outDir/$asm.numberedCuts");
-   rmrf("$wrk/$outDir/$asm.clrBgn");
-   rmrf("$wrk/$outDir/$asm.clrBgn.sorted");
-   rmrf("$wrk/$outDir/vectorTrimIntermediateFile001.*");
+   rmrf("$outDir/$asm.numberedUids");
+   rmrf("$outDir/$asm.numberedCuts");
+   rmrf("$outDir/$asm.clrBgn");
+   rmrf("$outDir/$asm.clrBgn.sorted");
+   rmrf("$outDir/vectorTrimIntermediateFile001.*");
 
    return $fileName;
 }
@@ -118,14 +118,15 @@ sub generateVectorTrim ($) {
        caFailure("Unknown vector trimmer $trimmer\n");
     }
 
-    # backup the gkpStore
+    #  See comments in overlapTrim.pl; this backup gets removed there too.
     backupFragStore("beforeVectorTrim");
+
     # set the global vector trim file so that the subsequent code will update the gkp for us
     setGlobal("vectorIntersect", "$wrk/$outDir/$trimFile");
 
     #cleanup
-    rmrf("$wrk/$asm.fasta");
-    rmrf("$wrk/$asm.untrimmed");
+    rmrf("$asm.fasta");
+    rmrf("$asm.untrimmed");
 
     touch("$wrk/$outDir/trim.success");
 

@@ -137,8 +137,6 @@ sub preoverlap {
     caFailure("ERROR: No fragment files specified, and stores not already created.\n")
     	if (scalar(@fragFiles) == 0);
 
-    system("mkdir $wrk/0-preoverlap") if (! -d "$wrk/0-preoverlap");
-
     if ((! -d "$wrk/$asm.gkpStore") ||
         (! -e "$wrk/$asm.gkpStore/frg")) {
         my $bin = getBinDirectory();
@@ -157,18 +155,18 @@ sub preoverlap {
                 my @fff = split '/', $1;
                 my $ace = $frg;
 
-                my $w = "$wrk/0-preoverlap";
-
                 $frg = pop @fff;
-                $frg = "$w/$frg.frg";
+                $frg = "$wrk/$frg.shred.frg";
 
-                unlink "$w/NB.contigs";
-                unlink "$w/NB.shred";
-                runCommand($w, "perl $bin/Generate_NonShallow_Contigs.pl -a $ace -f $w/NB.contigs");
-                runCommand($w, "perl $bin/Shred_Contigs.pl -f $w/NB.contigs > $w/NB.shred");
-                runCommand($w, "perl $bin/FASTA_to_frg_file.pl -f $w/NB.shred -q 3 > $frg");
-                unlink "$w/NB.contigs";
-                unlink "$w/NB.shred";
+                unlink "$wrk/NB.contigs";
+                unlink "$wrk/NB.shred";
+
+                runCommand($wrk, "perl $bin/Generate_NonShallow_Contigs.pl -a $ace -f $wrk/NB.contigs");
+                runCommand($wrk, "perl $bin/Shred_Contigs.pl -f $wrk/NB.contigs > $wrk/NB.shred");
+                runCommand($wrk, "perl $bin/FASTA_to_frg_file.pl -f $wrk/NB.shred -q 3 > $frg");
+
+                unlink "$wrk/NB.contigs";
+                unlink "$wrk/NB.shred";
             }
 
             $gkpInput .= " $frg";
@@ -177,41 +175,43 @@ sub preoverlap {
 
         my $cmd;
         $cmd  = "$bin/gatekeeper ";
-        $cmd .= " -o $wrk/$asm.gkpStore ";
+        $cmd .= " -o $wrk/$asm.gkpStore.BUILDING ";
         $cmd .= " -T " if (getGlobal("doOverlapTrimming"));
         $cmd .= " -F " if (getGlobal("gkpFixInsertSizes"));
         $cmd .= " -L " if (getGlobal("sffIsPairedEnd") == 1);
-        $cmd .= " -E $wrk/0-preoverlap/gatekeeper.errors ";
+        $cmd .= " -E $wrk/$asm.gkpStore.errorLog ";
         $cmd .= "$gkpInput ";
-        $cmd .= "> $wrk/0-preoverlap/gatekeeper.err 2>&1";
-        if (runCommand("$wrk/0-preoverlap", $cmd)) {
-            print STDERR "Failed.\n";
-            rename "$wrk/0-preoverlap/$asm.inp", "$wrk/0-preoverlap/$asm.inp.FAILED";
-            rename "$wrk/$asm.gkpStore", "$wrk/$asm.gkpStore.FAILED";
+        $cmd .= "> $wrk/$asm.gkpStore.err 2>&1";
+        if (runCommand($wrk, $cmd)) {
             caFailure("gatekeeper failed.  Check your input files!\n");
         }
+
+        rename "$wrk/$asm.gkpStore.BUILDING", "$wrk/$asm.gkpStore";
+        rmrf("$asm.gkpStore.err");
     }
 
     perfectTrimming();
 
     generateVectorTrim();
+
     my $vi = getGlobal("vectorIntersect");
-    if ((defined($vi)) && (! -e "$wrk/0-preoverlap/$asm.vectorClearLoaded")) {
+
+    if ((defined($vi)) && (! -e "$wrk/$asm.gkpStore/$asm.vectorClearLoaded.log")) {
         my $bin = getBinDirectory();
-        if (runCommand("$wrk/0-preoverlap", "$bin/gatekeeper -a -v $vi -o $wrk/$asm.gkpStore > $wrk/0-preoverlap/$asm.vectorClearLoaded.err 2>&1")) {
+        my $cmd;
+        $cmd  = "$bin/gatekeeper -a -v $vi -o $wrk/$asm.gkpStore ";
+        $cmd .= "  > $wrk/$asm.gkpStore/$asm.vectorClearLoaded.log";
+        $cmd .= " 2> $wrk/$asm.gkpStore/$asm.vectorClearLoaded.err";
+
+        if (runCommand($wrk, $cmd)) {
+            rename "$wrk/$asm.gkpStore/$asm.vectorClearLoaded.log", "$wrk/$asm.gkpStore/$asm.vectorClearLoaded.log.FAILED";
             caFailure("Failed.\n");
         }
-        touch("$wrk/0-preoverlap/$asm.vectorClearLoaded");
+
+        rmrf("$wrk/$asm.gkpStore/$asm.vectorClearLoaded.err");
     }
 
     $numFrags = getNumberOfFragsInStore($wrk, $asm);
-
-    #if ( ! -s "$wrk/$asm.frg" ) { # don't overwrite if it's already there
-    #    my $bin = getBinDirectory();
-    #    if (runCommand($wrk, "$bin/gatekeeper -dumpfrg $wrk/$asm.gkpStore 2> $wrk/gatekeeper.err | grep -v 'No source' > $wrk/$asm.frg")) {
-    #        unlink "$wrk/$asm.frg";
-    #    }
-    #}
 
   stopafter:
     stopAfter("initialStoreBuilding");
