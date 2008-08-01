@@ -150,9 +150,9 @@ dumpTagFile(char *tagfile) {
     while (TF->get(&a, &b)) {
       ida = a.decode(seqa, qvsa);
       idb = b.decode(seqb, qvsb);
-      for (i=0; i<seqa[i+1]; i++)
+      for (i=0; seqa[i+1]; i++)
         quaa[i] = qvsa[i] + '0';
-      for (i=0; i<seqb[i+1]; i++)
+      for (i=0; seqb[i+1]; i++)
         quab[i] = qvsb[i] + '0';
       fprintf(stdout, u64bitHEX"\t%s/%s\t"u64bitHEX"\t%s/%s\n",
               ida, seqa, quaa, idb, seqb, quab);
@@ -160,7 +160,7 @@ dumpTagFile(char *tagfile) {
   } else {
     while (TF->get(&a)) {
       ida = a.decode(seqa, qvsa);
-      for (i=0; i<seqa[i+1]; i++)
+      for (i=0; seqa[i+1]; i++)
         quaa[i] = qvsa[i] + '0';
       fprintf(stdout, u64bitHEX"\t%s/%s\n",
               ida, seqa, quaa);

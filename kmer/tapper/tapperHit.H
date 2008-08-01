@@ -1,32 +1,116 @@
 #include "alphabet.h"
 
 
+
+
+//  Tapper generates four kinds of alignments.
+//
+//  1)  An unmated fragment alignment
+//  2)  A satisfied mate pair alignment
+//  3)  An unsatisfied mate pair alignment
+//  4)  A tangle of mated fragments
+//
+//  There are FIVE output files, one an index, and four data files.
+
+
+//  Info about alignments for one mate pair.  One per pair or unmated
+//  fragment.  This is the index.  256 bits.
+//
+struct tapperResult {
+  u64bit   _tag1id;
+  u64bit   _tag2id;
+
+  u32bit   _mean;                //  Expected mean and stddev for this pair
+  u32bit   _stddev;
+
+  u32bit   _numFragment;          //  Number of fragment alignments
+  u32bit   _numMated;             //  Number of mated alignments
+  u32bit   _numSingleton;         //  Number of unsatisfied alignments
+  u32bit   _numTangled;           //  Number of tangled alignments
+};
+
+
+struct tapperResultQV {
+  u32bit   _rank:16;              //  Overall ranking of this hit, 0 is best.
+  u32bit   _basesMismatch:4;      //  Number of mismatches in ACGT alignment
+  u32bit   _colorMismatch:4;      //  Number of consistent color mismatches
+  u32bit   _colorInconsistent:4;  //  Number of inconsistent color mismatches
+  u32bit   _tag1:1;               //  Result is for tag1, not tag2
+  u32bit   _rev:1;                //  Is reverse complement
+  u32bit   _pad:2;                //  Nothing.
+};
+
+
+//  Unmated fragment alignment.
+//  96 bits.
+//
+struct tapperResultFragment {
+  u32bit          _seq;
+  u32bit          _pos;
+  tapperResultQV  _tag;
+};
+
+
+//  Satisfied mate pair alignment.
+//  160 bits.
+//
+struct tapperResultMated {
+  u32bit           _seq;
+  u32bit           _pos1;
+  u32bit           _pos2;
+  tapperResultQV   _tag1;
+  tapperResultQV   _tag2;
+};
+
+
+//  Unsatisfied mate pair alignment; only one tag.
+//  96 bits.
+//
+struct tapperResultSingleton {
+  u32bit           _seq;
+  u32bit           _pos;
+  tapperResultQV   _tag;
+};
+
+
+//  Tangled mate pair alignment.
+//  128 bits.
+//
+struct tapperResultTangled {
+  u16bit           _tag1count;  //  Number of times tag1 is in here
+  u16bit           _tag2count;  //  Number of times tag2 is in here
+  u32bit           _seq;        //  Sequence we hit
+  u32bit           _bgn;        //  Beginning location
+  u32bit           _end;        //  Ending location
+};
+
+
+
+
+//  An internal hit.  Tapper uses these for computing scores and what
+//  not.  It outputs tapperResults, above.
+//
 class tapperHit {
 public:
-  //tapperHit() {};
-  //~tapperHit();
-
   u32bit    numberOfBaseMismatches(void)        { return(_basesMismatch); };
   u32bit    numberOfColorMismatches(void)       { return(_colorMismatch); };
   u32bit    numberOfColorInconsistencies(void)  { return(_colorMismatch); };
 
-  void writeHit(FILE *OF, u64bit  tagid) {
 
-    fprintf(OF, "ID:"u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u64bitFMT"/"u64bitFMT"/"u64bitFMT"\t%c\t%s/%s\t%s/%s\n",
+  char *printHit(char *OS, u64bit tagid) {
+    sprintf(OS, "0x"u64bitFMT"\t"u32bitFMT":"u32bitFMT":%c\t"u64bitFMT","u64bitFMT","u64bitFMT,
             tagid,
-            _seqIdx, _seqPos,
-            _basesMismatch,
-            _colorMismatch,
-            _colorInconsistent,
-            _rev ? '-' : '+',
-            _tagCOLOR, _refCOLOR,
-            _tagACGT, _refACGT);
-  };
+            _seqIdx, _seqPos, _rev ? '-' : '+',
+            _basesMismatch, _colorMismatch, _colorInconsistent);
+    return(OS);
+  }
+
 
   void   alignToReference(tapperGlobalData *g,
                           u32bit so,
                           u32bit po,
                           char  *tag, u32bit len);
+
 
   //  Assumes we're called on the F read, and b == the R read.
   //
@@ -68,16 +152,22 @@ public:
 
     return(isHappy);
   };
+  
+  bool    operator< (tapperHit const &r) const { return(((_basesMismatch     <  r._basesMismatch)) ||
+                                                        ((_basesMismatch     <= r._basesMismatch) && (_colorMismatch     <  r._colorMismatch)) ||
+                                                        ((_basesMismatch     <= r._basesMismatch) && (_colorMismatch     <= r._colorMismatch) && (_colorInconsistent <  r._colorInconsistent))); };
 
-private:
+  //  Argh, should be private, but tapperWorker copies most of the hit to a result.
+  //private:
   u32bit  _seqIdx;
   u32bit  _seqPos;
 
   u64bit  _tagIdx;               //  4e9 tags is only 34x of human
 
-  u64bit  _pad:17;               //  Nothing
   u64bit  _len:6;                //  Length of tag
   u64bit  _rev:1;                //  Match is reversecomplement
+
+  u64bit  _pad:17;               //  Nothing
   u64bit  _rank:16;              //  Rank in the sorted list of hits
 
   u64bit  _basesMismatch:6;      //  Number of mismatches in ACGT alignment

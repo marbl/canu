@@ -1,4 +1,5 @@
 
+#include <algorithm>
 
 class tapperComputation {
 public:
@@ -85,8 +86,6 @@ public:
 
     //fprintf(stderr, "T1: %s/%s T2:%s/%s\n", tag1fseq, tag1rseq, tag2fseq, tag2rseq);
 
-    matedLen    = 0;
-
     tag1hitsLen = 0;
     tag1hitsMax = 16;
     tag1hits    = new tapperHit [tag1hitsMax];
@@ -94,11 +93,32 @@ public:
     tag2hitsLen = 0;
     tag2hitsMax = 16;
     tag2hits    = new tapperHit [tag2hitsMax];
+
+    result._tag1id       = tag1id;
+    result._tag2id       = tag2id;
+
+    result._mean         = 0;
+    result._stddev       = 0;
+
+    result._numFragment  = 0;
+    result._numMated     = 0;
+    result._numSingleton = 0;
+    result._numTangled   = 0;
+
+    resultFragment       = 0L;
+    resultMated          = 0L;
+    resultSingleton      = 0L;
+    resultTangled        = 0L;
   };
 
   ~tapperComputation() {
     delete [] tag1hits;
     delete [] tag2hits;
+
+    delete [] resultFragment;
+    delete [] resultMated;
+    delete [] resultSingleton;
+    delete [] resultTangled;
   };
 
   void addHit1(tapperHit& h) {
@@ -123,22 +143,17 @@ public:
     tag2hits[tag2hitsLen++] = h;
   };
 
-  void sortHits(void) {
-    
+  void sortAndScoreHits(void) {    
+    std::sort(tag1hits, tag1hits+tag1hitsLen);
+    for (u32bit i=0; i<tag1hitsLen; i++)
+      tag1hits[i]._rank = (i < 65536) ? i : 65535;
+
+    std::sort(tag2hits, tag2hits+tag2hitsLen);
+    for (u32bit i=0; i<tag2hitsLen; i++)
+      tag2hits[i]._rank = (i < 65536) ? i : 65535;
   };
 
-  void writeHits(FILE *OF) {
-    if (tag2size == 0) {
-      for (u32bit i=0; i<tag1hitsLen; i++)
-        tag1hits[i].writeHit(OF, tag1id);
-    } else {
-      for (u32bit i=0; i<matedLen; i++) {
-      }
-      for (u32bit i=matedLen; i<tag1hitsLen; i++)
-        tag1hits[i].writeHit(OF, tag1id);
-      for (u32bit i=matedLen; i<tag2hitsLen; i++)
-        tag2hits[i].writeHit(OF, tag1id);
-    }
+  void writeResult(FILE *OF) {
   };
 
 public:
@@ -157,8 +172,6 @@ public:
   u64bit      tag1fqlt[TAG_LEN_MAX], tag1rqlt[TAG_LEN_MAX];
   u64bit      tag2fqlt[TAG_LEN_MAX], tag2rqlt[TAG_LEN_MAX];
 
-  u32bit      matedLen;
-
   u32bit      tag1hitsLen;
   u32bit      tag1hitsMax;
   tapperHit  *tag1hits;
@@ -166,5 +179,11 @@ public:
   u32bit      tag2hitsLen;
   u32bit      tag2hitsMax;
   tapperHit  *tag2hits;
+
+  tapperResult            result;
+  tapperResultFragment   *resultFragment;
+  tapperResultMated      *resultMated;
+  tapperResultSingleton  *resultSingleton;
+  tapperResultTangled    *resultTangled;
 };
 
