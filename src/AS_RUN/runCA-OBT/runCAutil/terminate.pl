@@ -91,7 +91,7 @@ sub terminate ($) {
 
 
     my $asmOutputFasta = "$bin/asmOutputFasta";
-    if (! -e "$termDir/$asm.scfcns.fasta") {
+    if (! -e "$termDir/$asm.scf.fasta") {
         my $cmd;
         $cmd  = "$asmOutputFasta -p $termDir/$asm $termDir/$asm.asm ";
         if (runCommand("$termDir", $cmd)) {
