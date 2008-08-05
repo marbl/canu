@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.41 2008-06-27 06:29:16 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.42 2008-08-05 14:31:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -455,6 +455,7 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
                     AS_IID      endIID,
                     char       *iidToDump,
                     int         doNotFixMates,
+                    int         dumpAllReads,
                     int         dumpFRGClear) {
   fragRecord        fr;
   FragStream       *fs = NULL;
@@ -509,9 +510,11 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
   resetFragStream(fs, begIID, endIID);
 
   while (nextFragStream(fs, &fr)) {
-    frgUID[getFragRecordIID(&fr)] = getFragRecordUID(&fr);
+    if ((iidToDump[getFragRecordIID(&fr)]) &&
+        (dumpAllReads || !getFragRecordIsDeleted(&fr))) {
 
-    if (iidToDump[getFragRecordIID(&fr)]) {
+      frgUID[getFragRecordIID(&fr)] = getFragRecordUID(&fr);
+
       libToDump[getFragRecordLibraryIID(&fr)]++;
 
       if ((getFragRecordMateIID(&fr) > 0) && (iidToDump[getFragRecordMateIID(&fr)] == 0)) {
@@ -601,7 +604,8 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
     FragMesg  fmesg;
     LinkMesg  lmesg;
 
-    if (iidToDump[getFragRecordIID(&fr)]) {
+    if ((iidToDump[getFragRecordIID(&fr)]) &&
+        (dumpAllReads || !getFragRecordIsDeleted(&fr))) {
       pmesg.m = &fmesg;
       pmesg.t = MESG_FRG;
 

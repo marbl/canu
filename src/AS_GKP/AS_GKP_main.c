@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_main.c,v 1.71 2008-06-27 06:29:16 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_main.c,v 1.72 2008-08-05 14:31:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -117,6 +117,7 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "    -decoded               ...quality as integers ('20 21 19')\n");
   fprintf(stdout, "    -clear <clr>           ...in clear range <clr>, default=LATEST\n");
   fprintf(stdout, "  -dumpfrg               extract LIB, FRG and LKG messages\n");
+  fprintf(stdout, "    -allreads              ...all reads, regardless of deletion status\n");
   fprintf(stdout, "    -donotfixmates         ...only extract the fragments given, do not add in\n");
   fprintf(stdout, "                              missing mated reads\n");
   fprintf(stdout, "    -clear <clr>           ...use clear range <clr>, default=ORIG\n");
@@ -428,7 +429,7 @@ main(int argc, char **argv) {
   int              dump              = DUMP_NOTHING;
   int              dumpTabular       = 0;
   int              dumpWithSequence  = 0;
-  int              dumpFastaAllReads = 0;
+  int              dumpAllReads      = 0;
   int              dumpClear         = AS_READ_CLEAR_UNTRIM;
   int              dumpFRGClear      = AS_READ_CLEAR_ORIG;
   int              dumpFastaClear    = AS_READ_CLEAR_LATEST;
@@ -533,7 +534,7 @@ main(int argc, char **argv) {
       dump = DUMP_FASTA;
       dumpFastaQuality = 1;
     } else if (strcmp(argv[arg], "-allreads") == 0) {
-      dumpFastaAllReads = 1;
+      dumpAllReads = 1;
     } else if (strcmp(argv[arg], "-decoded") == 0) {
       dumpFastaQuality = 2;
     } else if (strcmp(argv[arg], "-dumpfrg") == 0) {
@@ -621,13 +622,14 @@ main(int argc, char **argv) {
         break;
       case DUMP_FASTA:
         dumpGateKeeperAsFasta(gkpStoreName, begIID, endIID, iidToDump,
-                              dumpFastaAllReads,
+                              dumpAllReads,
                               dumpFastaClear,
                               dumpFastaQuality);
         break;
       case DUMP_FRG:
         dumpGateKeeperAsFRG(gkpStoreName, dumpFormat, begIID, endIID, iidToDump,
                             doNotFixMates,
+                            dumpAllReads,
                             dumpFRGClear);
         break;
       case DUMP_NEWBLER:
