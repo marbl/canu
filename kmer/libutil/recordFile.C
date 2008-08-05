@@ -115,9 +115,9 @@ recordFile::recordFile(char const *name,
               _name), exit(1);
   }
 
-  _pos = ~u64bitZERO;  //  Force the first seek to load.
+  _pos = ~u64bitZERO;  //  Force the first seek to load (so does the true below)
 
-  seek(0);
+  seek(0, true);
 }
 
 
@@ -186,12 +186,12 @@ recordFile::flushDirty(void) {
 //  Seeks to rec in the file, reads in a new block.
 //
 void
-recordFile::seek(u64bit rec) {
+recordFile::seek(u64bit rec, bool forced) {
 
   //  If we are seeking to somewhere in the current block, don't do a
   //  real seek, just move our position within the block.
   //
-  if ((_pos <= rec) && (rec < _pos + _bfrmax)) {
+  if ((forced == false) && (_pos <= rec) && (rec < _pos + _bfrmax)) {
     _rec = rec - _pos;
     return;
   }

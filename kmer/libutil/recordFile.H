@@ -24,10 +24,10 @@ public:
 
   u64bit     numRecords(void) { return(_numRecords); };
 
-  bool       getRecord(void *record);
-  void       putRecord(void *record);
+  bool       getRecord(void *record, u32bit numRecords=1);
+  void       putRecord(void *record, u32bit numRecords=1);
 
-  void       seek(u64bit rec);
+  void       seek(u64bit rec, bool forced=false);
 
 private:
   void       flushDirty(void);
@@ -53,25 +53,25 @@ private:
 
 inline
 bool
-recordFile::getRecord(void *record) {
-  if (_numRecords <= _pos + _rec)
+recordFile::getRecord(void *record, u32bit numRecords) {
+  if ((_numRecords <= _pos + _rec) || (_numRecords < _pos + _rec + numRecords))
     return(false);
-  if (_bfrmax < _rec + 2)
-    seek(_pos + _rec);
-  memcpy(record, _bfr + _rec * _recordSize, _recordSize);
-  _rec++;
+  if (_bfrmax < _rec + numRecords + 1)
+    seek(_pos + _rec, true);
+  memcpy(record, _bfr + _rec * _recordSize, _recordSize * numRecords);
+  _rec += numRecords;
   return(true);
 }
 
 
 inline
 void
-recordFile::putRecord(void *record) {
-  if (_bfrmax < _rec + 2)
-    seek(_pos + _rec);
-  memcpy(_bfr + _rec * _recordSize, record, _recordSize);
-  _rec++;
-  _numRecords++;
+recordFile::putRecord(void *record, u32bit numRecords) {
+  if (_bfrmax < _rec + numRecords + 1)
+    seek(_pos + _rec, true);
+  memcpy(_bfr + _rec * _recordSize, record, _recordSize * numRecords);
+  _rec        += numRecords;
+  _numRecords += numRecords;
   _bfrDirty = true;
 }
 
