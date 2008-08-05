@@ -153,9 +153,6 @@ public:
       tag2hits[i]._rank = (i < 65536) ? i : 65535;
   };
 
-  void writeResult(FILE *OF) {
-  };
-
 public:
   kMer        tag1f, tag1r;
   kMer        tag2f, tag2r;

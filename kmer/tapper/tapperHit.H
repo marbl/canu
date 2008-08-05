@@ -14,7 +14,7 @@
 
 
 //  Info about alignments for one mate pair.  One per pair or unmated
-//  fragment.  This is the index.  256 bits.
+//  fragment.  This is the index.  320 bits.
 //
 struct tapperResult {
   u64bit   _tag1id;
@@ -86,6 +86,8 @@ struct tapperResultTangled {
 
 
 
+class tapperGlobalData;
+
 
 //  An internal hit.  Tapper uses these for computing scores and what
 //  not.  It outputs tapperResults, above.
@@ -124,26 +126,22 @@ public:
     if (_rev    != b._rev)
       return(false);
 
-    //  REVERSE
-    //   ----<R3----<F3---
-    //         |------|
-    //
-    //  FORWARD
-    //   ----F3>----R3>---
-    //       |------|
-    //
-#if 0
-    if ((_rev == true)  && (b._seqPos < _seqPos))
+    if ((_rev == false) && (b._seqPos < _seqPos)) {
+      //fprintf(stderr, "FWD "u32bitFMT" - "u32bitFMT"\n", b._seqPos, _seqPos);
       dist = _seqPos - b._seqPos;
-    if ((_rev == false) && (_seqPos < b._seqPos))
+    }
+    if ((_rev == true)  && (_seqPos < b._seqPos)) {
+      //fprintf(stderr, "REV "u32bitFMT" - "u32bitFMT"\n", _seqPos, b._seqPos);
       dist = b._seqPos - _seqPos;
-#endif
+    }
 
-    //  But we don't know orientation of the fragment.
-    if ((_rev == false) && (b._seqPos < _seqPos))
-      dist = _seqPos - b._seqPos;
-    if ((_rev == true)  && (_seqPos < b._seqPos))
-      dist = b._seqPos - _seqPos;
+#if 0
+    if ((dist != ~u64bitZERO) && (dist > 300000000)) {
+      fprintf(stderr, "WARNING!  dist="u64bitFMT" from "u32bitFMT" "u32bitFMT"\n",
+              dist, _seqPos, b._seqPos);
+      exit(1);
+    }
+#endif
 
     if ((mean - 3*stddev < dist) && (dist < mean + 3*stddev)) {
       //fprintf(stderr, "HAPPY DIST "u32bitFMT"\n", dist);

@@ -5,8 +5,8 @@
 #define TAG_LEN_MAX   32
 
 #include "tapperTag.H"
-#include "tapperGlobalData.H"
 #include "tapperHit.H"
+#include "tapperGlobalData.H"
 #include "tapperThreadData.H"
 #include "tapperComputation.H"
 
@@ -34,8 +34,14 @@ tapperReader(void *G) {
 
 void
 tapperWriter(void *G, void *S) {
-  //tapperGlobalData  *g = (tapperGlobalData  *)G;
+  tapperGlobalData  *g = (tapperGlobalData  *)G;
   tapperComputation *s = (tapperComputation *)S;
+
+  g->outIndex->    putRecord(&s->result);
+  g->outFragment-> putRecord( s->resultFragment,  s->result._numFragment);
+  g->outMated->    putRecord( s->resultMated,     s->result._numMated);
+  g->outSingleton->putRecord( s->resultSingleton, s->result._numSingleton);
+  g->outTangled->  putRecord( s->resultTangled,   s->result._numTangled);
 
 #if 0
   fprintf(stderr, "----------------------------------------\n");
@@ -85,8 +91,6 @@ tapperWriter(void *G, void *S) {
             s->tag2hits[i]._colorInconsistent);
   }
 #endif
-
-  s->writeResult(stdout);
 
   delete s;
 }
@@ -769,6 +773,9 @@ main(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-queries", 2) == 0) {
       g->qryName = argv[++arg];
 
+    } else if (strncmp(argv[arg], "-prefix", 2) == 0) {
+      g->outName = argv[++arg];
+
     } else if (strncmp(argv[arg], "-maxcolorerror", 5) == 0) {
       g->maxColorError = strtou32bit(argv[++arg], 0L);
 
@@ -786,8 +793,8 @@ main(int argc, char **argv) {
     }
     arg++;
   }
-  if ((err > 0) || (g->genName == 0L) || (g->colName == 0L) || (g->qryName == 0L)) {
-    fprintf(stderr, "usage: %s -genomic g.fasta -color tmp.colors -queries q.fasta\n", argv[0]);
+  if ((err > 0) || (g->genName == 0L) || (g->colName == 0L) || (g->qryName == 0L) || (g->outName == 0L)) {
+    fprintf(stderr, "usage: %s -genomic g.fasta -color tmp.colors -queries q.fasta -prefix output-prefix\n", argv[0]);
     exit(1);
   }
 

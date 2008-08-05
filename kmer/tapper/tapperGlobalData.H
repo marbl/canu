@@ -12,17 +12,24 @@ private:
   void  rewriteFileAsColorACGT(char *acgtname, char  *colorname);
 
 public:
-  char   *genName;
-  char   *colName;
-  char   *qryName;
+  char             *genName;
+  char             *colName;
+  char             *qryName;
+  char             *outName;
 
-  u32bit  numThreads;
-  bool    beVerbose;
+  recordFile       *outIndex;
+  recordFile       *outFragment;
+  recordFile       *outMated;
+  recordFile       *outSingleton;
+  recordFile       *outTangled;
 
-  u32bit  tagSize;
+  u32bit            numThreads;
+  bool              beVerbose;
 
-  u32bit  maxColorError;
-  u32bit  maxBaseError;
+  u32bit            tagSize;
+
+  u32bit            maxColorError;
+  u32bit            maxBaseError;
 
   tapperTagFile    *TF;
 
@@ -41,6 +48,13 @@ tapperGlobalData::tapperGlobalData() {
   genName   = 0L;
   colName   = 0L;
   qryName   = 0L;
+  outName   = 0L;
+
+  outIndex     = 0L;
+  outFragment  = 0L;
+  outMated     = 0L;
+  outSingleton = 0L;
+  outTangled   = 0L;
 
   numThreads = 2;
   beVerbose  = false;
@@ -58,6 +72,12 @@ tapperGlobalData::tapperGlobalData() {
 }
 
 tapperGlobalData::~tapperGlobalData() {
+  delete outIndex;
+  delete outFragment;
+  delete outMated;
+  delete outSingleton;
+  delete outTangled;
+
   delete TF;
   delete PS;
   delete MS;
@@ -93,6 +113,25 @@ tapperGlobalData::initialize(void) {
   PS->setUpMismatchMatcher(maxColorError);
 
   GS = new FastACache(genName, 0, true, false);
+
+  {
+    char filename[FILENAME_MAX];
+
+    sprintf(filename, "%s.tapperMappedIndex", outName);
+    outIndex = new recordFile(filename, 0, sizeof(tapperResult), true);
+
+    sprintf(filename, "%s.tapperMappedFragment", outName);
+    outFragment = new recordFile(filename, 0, sizeof(tapperResultFragment), true);
+
+    sprintf(filename, "%s.tapperMappedMated", outName);
+    outMated = new recordFile(filename, 0, sizeof(tapperResultMated), true);
+
+    sprintf(filename, "%s.tapperMappedSingleton", outName);
+    outSingleton = new recordFile(filename, 0, sizeof(tapperResultSingleton), true);
+
+    sprintf(filename, "%s.tapperMappedTangled", outName);
+    outTangled = new recordFile(filename, 0, sizeof(tapperResultTangled), true);
+  }
 }
 
 
