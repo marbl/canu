@@ -110,10 +110,12 @@ private:
 public:
   void   operator+=(u64bit x) {
     *this <<= 2;
+    assert((x & 0xfc) == 0);
     MERWORD(0) |= x & u64bitNUMBER(0x3);
   };
   void   operator-=(u64bit x) {
     *this >>= 2;
+    assert((x & 0xfc) == 0);
     MERWORD(_lastWord) |= (x & u64bitNUMBER(0x3)) << _lastShift;
   };
 

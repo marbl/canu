@@ -41,10 +41,12 @@ private:
 public:
   void   operator+=(u64bit x) {
     *this <<= 2;
+    assert((x & 0xfc) == 0);
     _md |= x & u64bitNUMBER(0x3);
   };
   void   operator-=(u64bit x) {
     *this >>= 2;
+    assert((x & 0xfc) == 0);
     _md |= (x & u64bitNUMBER(0x3)) << _lastShift;
   };
 

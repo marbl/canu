@@ -231,7 +231,7 @@ public:
   //
   bool    addBase(char ch) {
     u64bit  cf = letterToBits[ch];
-    u64bit  cr = bitsToLetter[complementSymbol[ch]] & 0x03;
+    u64bit  cr = letterToBits[complementSymbol[ch]];
 
 #ifdef DEBUG
     fprintf(stderr, "addBase() %c\n", ch);
