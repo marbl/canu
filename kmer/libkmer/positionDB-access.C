@@ -3,6 +3,36 @@
 
 
 void
+positionDB::reallocateSpace(u64bit*&    posn,
+                            u64bit&     posnMax,
+                            u64bit&     posnLen,
+                            u64bit      len) {
+ 
+  if (posnMax < posnLen + len) {
+    u64bit  *pp;
+
+    posnMax = posnLen + len + (len >> 2);
+
+    if (posnMax == 0)
+      posnMax = 16384;
+
+    try {
+      pp = new u64bit [posnMax];
+    } catch (...) {
+      fprintf(stderr, "positionDB::get()-- Can't allocate space for more positions, requested "u64bitFMT" u64bit's.\n", posnMax);
+      abort();
+    }
+
+    memcpy(pp, posn, sizeof(u64bit) * posnLen);
+
+    delete [] posn;
+    posn = pp;
+  }
+}
+
+
+
+void
 positionDB::loadPositions(u64bit   J,
                           u64bit*& posn,
                           u64bit&  posnMax,
@@ -22,6 +52,7 @@ positionDB::loadPositions(u64bit   J,
   count = vals[2];
 
   if (vals[1]) {
+    reallocateSpace(posn, posnMax, posnLen, 64);
     posn[posnLen++] = vals[0];
   } else {
     u64bit ptr  = vals[0] * _posnWidth;
@@ -30,17 +61,7 @@ positionDB::loadPositions(u64bit   J,
     if (_sizeWidth == 0)
       count = len;
 
-    if (posnMax < posnLen + len) {
-      delete [] posn;
-
-      posnMax = posnLen + len + (len >> 2);
-      try {
-        posn    = new u64bit [posnMax];
-      } catch (...) {
-        fprintf(stderr, "positionDB::get()-- Can't allocate space for more positions, requested "u64bitFMT" u64bit's.\n", posnMax);
-        abort();
-      }
-    }
+    reallocateSpace(posn, posnMax, posnLen, len + 64);
 
     for (ptr += _posnWidth; len > 0; ptr += _posnWidth, len--)
       posn[posnLen++] = getDecodedValue(_positions, ptr, _posnWidth);
@@ -64,16 +85,6 @@ positionDB::getExact(u64bit   mer,
 
   if (st == ed)
     return(false);
-
-  if (posnMax == 0) {
-    posnMax = 16384;
-    try {
-      posn    = new u64bit [posnMax];
-    } catch (...) {
-      fprintf(stderr, "positionDB::get()-- Can't allocate space for initial positions, requested "u64bitFMT" u64bit's.\n", posnMax);
-      abort();
-    }
-  }
 
   for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin) {
     if (c == getDecodedValue(_buckets, J, _chckWidth)) {

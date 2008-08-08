@@ -60,6 +60,11 @@ private:
               bool               beVerbose);
 
 private:
+  void        reallocateSpace(u64bit*&    posn,
+                              u64bit&     posnMax,
+                              u64bit&     posnLen,
+                              u64bit      len);
+
   void        loadPositions(u64bit      v,
                             u64bit*&    posn,
                             u64bit&     posnMax,
