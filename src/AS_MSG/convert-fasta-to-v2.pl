@@ -47,34 +47,61 @@ my $clqNotFound = 0;
 
 my $noOBT = 0;
 
-#  The first UID generated.
-my $acc = 1000000;
-
 my $seqfile;
 my $qltfile;
 my $matefile;
 
-my %nameToIID;
+my $is454  = 0;
+
+my $lib    = undef;
+my $mean   = 0.0;
+my $stddev = 0.0;
+
+my $idregex = "^(\S+)";
+
+my $srcstr;
+
+{
+    local $, = " ";
+    $srcstr = "$0 @ARGV";
+}
 
 my $err = 0;
 while (scalar(@ARGV) > 0) {
     my $arg = shift @ARGV;
     if      ($arg eq "-v") {
         $vec = shift @ARGV;
+
     } elsif ($arg eq "-noobt") {
         $noOBT = 1;
+
     } elsif ($arg eq "-s") {
         $seqfile = shift @ARGV;
     } elsif ($arg eq "-q") {
         $qltfile = shift @ARGV;
+
     } elsif ($arg eq "-m") {
         $matefile = shift @ARGV;
+
+    } elsif ($arg eq "-454") {
+        $is454 = 1;
+
+    } elsif ($arg eq "-l") {
+        $lib = shift @ARGV;
+    } elsif ($arg eq "-mean") {
+        $mean = shift @ARGV;
+    } elsif ($arg eq "-stddev") {
+        $stddev = shift @ARGV;
+
+    } elsif ($arg eq "-idregex") {
+        $idregex = shift @ARGV;
+
     } else {
         $err++;
     }
 }
-if (($err) || (!defined($seqfile)) || (!defined($qltfile))) {
-    die "usage: $0 [-v vector-clear-file] [-noobt] -s seq.fasta -q qlt.fasta > new.frg\n";
+if (($err) || (!defined($seqfile)) || (!defined($qltfile)) || (!defined($lib))) {
+    die "usage: $0 [-v vector-clear-file] [-noobt] [-454] [-idregex pattern] -l libraryname -s seq.fasta -q qlt.fasta > new.frg\n";
 }
 
 if (defined($vec)) {
@@ -93,22 +120,35 @@ print "{VER\n";
 print "ver:2\n";
 print "}\n";
 
-my $lib = $acc++;
-my $mea = 1000;
-my $std = 100;
-
 print "{LIB\n";
 print "act:A\n";
 print "acc:$lib\n";
-print "ori:I\n";
-print "mea:$mea\n";
-print "std:$std\n";
+if ($mean > 0) {
+    print "ori:I\n";
+    print "mea:$mean\n";
+    print "std:$stddev\n";
+} else {
+    print "ori:U\n";
+    print "mea:0.0\n";
+    print "std:0.0\n";
+}
 print "src:\n";
-print "convert-fasta-to-v2\n";
+print "$srcstr\n";
 print ".\n";
-print "nft:5\n";
+print "nft:9\n";
 print "fea:\n";
-print "doNotTrustHomopolymerRuns=0\n";
+if ($is454) {
+    print "doNotTrustHomopolymerRuns=1\n";
+    print "discardReadsWithNs=1\n";
+    print "doNotQVTrim=1\n";
+    print "deletePerfectPrefixes=1\n";
+} else {
+    print "doNotTrustHomopolymerRuns=0\n";
+    print "discardReadsWithNs=0\n";
+    print "doNotQVTrim=0\n";
+    print "deletePerfectPrefixes=0\n";
+}
+print "doNotOverlapTrim=$noOBT\n";
 print "hpsIsFlowGram=0\n";
 print "hpsIsPeakSpacing=0\n";
 print "doNotOverlapTrim=$noOBT\n";
@@ -119,21 +159,24 @@ print "}\n";
 open(SEQ, "< $seqfile") or die "Failed to open '$seqfile'\n";
 open(QLT, "< $qltfile") or die "Failed to open '$qltfile'\n";
 
-my ($seqhdr, $seq) = readFasta();
-my ($qlthdr, $qlt) = readQual();
+my ($seqid, $seq) = readFasta();
+my ($qltid, $qlt) = readQual();
 
 while (defined($seq) && defined($qlt)) {
 
+    if ($seqid ne $qltid) {
+        die "Misordered seq/qual; got seq='$seqid' and qual='$qltid'\n";
+    }
+
     print "{FRG\n";
     print "act:A\n";
-    print "acc:$acc\n";
+    print "acc:$seqid\n";
     print "rnd:1\n";
     print "sta:G\n";
     print "lib:$lib\n";
     print "pla:0\n";
     print "loc:0\n";
     print "src:\n";
-    print "MAP: $seqhdr $qlthdr -> $acc\n";
     print ".\n";
     print "seq:\n";
     print "$seq\n";
@@ -143,27 +186,23 @@ while (defined($seq) && defined($qlt)) {
     print ".\n";
     print "hps:\n";
     print ".\n";
-    if (defined($clv{$acc})) {
+    if (defined($clv{$seqid})) {
         $clvFound++;
-        print "clv:$clv{$acc}\n";
+        print "clv:$clv{$seqid}\n";
     } else {
         $clvNotFound++;
     }
-    if (defined($clq{$acc})) {
+    if (defined($clq{$seqid})) {
         $clqFound++;
-        print "clq:$clq{$acc}\n";
+        print "clq:$clq{$seqid}\n";
     } else {
         $clqNotFound++;
     }
     print "clr:0,", length($seq), "\n";
     print "}\n";
 
-    $nameToIID{$seqhdr} = $acc;
-
-    $acc++;
-
-    ($seqhdr, $seq) = readFasta();
-    ($qlthdr, $qlt) = readQual();
+    ($seqid, $seq) = readFasta();
+    ($qltid, $qlt) = readQual();
 }
 
 close(SEQ);
@@ -173,18 +212,12 @@ if (defined($matefile)) {
     open(F, "< $matefile") or die "Failed to open '$matefile'\n";
     while (<F>) {
         my ($a, $b) = split '\s+', $_;
-        my $aiid = $nameToIID{$a};
-        my $biid = $nameToIID{$b};
-        if (defined($aiid) && defined($biid)) {
-            print "{LKG\n";
-            print "act:A\n";
-            print "frg:$aiid\n";
-            print "frg:$biid\n";
-            print "}\n";
-        } else {
-            print STDERR "WARNING: ID '$a' not found in reads.\n" if (!defined($aiid));
-            print STDERR "WARNING: ID '$a' not found in reads.\n" if (!defined($biid));
-        }
+
+        print "{LKG\n";
+        print "act:A\n";
+        print "frg:$a\n";
+        print "frg:$b\n";
+        print "}\n";
     }
     close(F);
 }
@@ -218,7 +251,7 @@ sub readFasta {
         if (m/^>/) {
             my $ret = $fhdr;
 
-            if      (m/^>(\S+)\s*/) {
+            if      (m/$idregex/) {
                 $fhdr = $1;
             } else {
                 die "Failed to parse an ID out of the sequence defline '$_'\n";
@@ -252,7 +285,7 @@ sub readQual {
         if (m/^>/) {
             my $ret = $qhdr;
 
-            if      (m/^>(\S+)\s*/) {
+            if      (m/$idregex/) {
                 $qhdr = $1;
             } else {
                 die "Failed to parse an ID out of the quality defline '$_'\n";
@@ -263,18 +296,12 @@ sub readQual {
             }
         } else {
             my $q = $_;
-            $q =~ s/^ /0/;
-            $q =~ s/  / 0/g;
+            $q =~ s/^\s+//;
             $q =~ s/\s+$//;
 
-            if (0) {
-                $q =~ s/ //g;
-                $qstr .= $q;
-            } else {
-                foreach my $qv (split '\s+', $q) {
-                    if ($qv > 60) {$qv = 60;}
-                    $qstr .= chr(ord('0') + $qv);
-                }
+            foreach my $qv (split '\s+', $q) {
+                if ($qv > 60) {$qv = 60;}
+                $qstr .= chr(ord('0') + $qv);
             }
         }
     }
