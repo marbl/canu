@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.55 2008-06-27 06:29:18 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.56 2008-08-08 09:34:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -818,6 +818,21 @@ AS_PER_decodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
       gkpl->doNotOverlapTrim = AS_PER_decodeLibraryFeaturesBoolean("doNotOverlapTrim", val);
     }
 
+    //  discardReadsWithNs --
+    else if (strcasecmp(fea, "discardReadsWithNs") == 0) {
+      gkpl->discardReadsWithNs = AS_PER_decodeLibraryFeaturesBoolean("discardReadsWithNs", val);
+    }
+
+    //  doNotQVTrim --
+    else if (strcasecmp(fea, "doNotQVTrim") == 0) {
+      gkpl->doNotQVTrim = AS_PER_decodeLibraryFeaturesBoolean("doNotQVTrim", val);
+    }
+
+    //  deletePerfectPrefixes --
+    else if (strcasecmp(fea, "deletePerfectPrefixes") == 0) {
+      gkpl->deletePerfectPrefixes = AS_PER_decodeLibraryFeaturesBoolean("deletePerfectPrefixes", val);
+    }
+
     //  doNotTrustHomopolymerRuns --
     else if (strcasecmp(fea, "doNotTrustHomopolymerRuns") == 0) {
       gkpl->doNotTrustHomopolymerRuns = AS_PER_decodeLibraryFeaturesBoolean("doNotTrustHomopolymerRuns", val);
@@ -865,11 +880,12 @@ AS_PER_encodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
 
   //  We can hardcode the maximum number of features we expect to be
   //  writing.  Otherwise, we should count the number of features we
-  //  want to encode, allocate....but what a pain.
+  //  want to encode, allocate....but what a pain.  We'll just assert
+  //  if there are too many.
   //
   lmesg->num_features = 0;
-  lmesg->features     = (char **)safe_malloc(5 * sizeof(char*));
-  lmesg->values       = (char **)safe_malloc(5 * sizeof(char*));
+  lmesg->features     = (char **)safe_malloc(64 * sizeof(char*));
+  lmesg->values       = (char **)safe_malloc(64 * sizeof(char*));
 
   int    nf  = 0;
   char **fea = lmesg->features;
@@ -892,6 +908,30 @@ AS_PER_encodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
     val[nf] = (char *)safe_malloc(32 * sizeof(char));
     sprintf(fea[nf], "doNotOverlapTrim");
     sprintf(val[nf], "%d", gkpl->doNotOverlapTrim);
+    nf++;
+  }
+
+  if (gkpl->discardReadsWithNs || alwaysEncode) {
+    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
+    val[nf] = (char *)safe_malloc(32 * sizeof(char));
+    sprintf(fea[nf], "discardReadsWithNs");
+    sprintf(val[nf], "%d", gkpl->discardReadsWithNs);
+    nf++;
+  }
+
+  if (gkpl->doNotQVTrim || alwaysEncode) {
+    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
+    val[nf] = (char *)safe_malloc(32 * sizeof(char));
+    sprintf(fea[nf], "doNotQVTrim");
+    sprintf(val[nf], "%d", gkpl->doNotQVTrim);
+    nf++;
+  }
+
+  if (gkpl->deletePerfectPrefixes || alwaysEncode) {
+    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
+    val[nf] = (char *)safe_malloc(32 * sizeof(char));
+    sprintf(fea[nf], "deletePerfectPrefixes");
+    sprintf(val[nf], "%d", gkpl->deletePerfectPrefixes);
     nf++;
   }
 
@@ -920,6 +960,8 @@ AS_PER_encodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
   }
 
   lmesg->num_features = nf;
+
+  assert(nf < 64);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
