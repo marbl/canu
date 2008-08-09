@@ -50,14 +50,14 @@ sub checkMerOverlapper ($) {
         $outDir = "0-overlaptrim-overlap";
     }
 
-    my $batchSize  = getGlobal("ovlCorrBatchSize");
+    my $batchSize  = getGlobal("merOverlapperExtendBatchSize");
     my $jobs       = int($numFrags / ($batchSize-1)) + 1;
     my $failedJobs = 0;
 
     for (my $i=1; $i<=$jobs; $i++) {
         my $job = substr("0000" . $i, -4);
 
-        if (! -e "$wrk/$outDir/olaps/$job.success") {
+        if (! -e "$wrk/$outDir/olaps/$job.ovb.gz") {
             print STDERR "$wrk/$outDir/olaps/$job failed.\n";
             $failedJobs++;
         }

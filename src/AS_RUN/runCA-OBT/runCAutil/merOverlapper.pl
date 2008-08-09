@@ -7,7 +7,7 @@ sub findOvermerryFailures ($$) {
 
     for (my $i=1; $i<=$ovmJobs; $i++) {
         my $out = substr("0000" . $i, -4);
-        if (! -e "$wrk/$outDir/seeds/$out.success") {
+        if (! -e "$wrk/$outDir/seeds/$out.ovm.gz") {
             $failures++;
         }
     }
@@ -23,7 +23,7 @@ sub findOlapFromSeedsFailures ($$) {
 
     for (my $i=1; $i<=$olpJobs; $i++) {
         my $out = substr("0000" . $i, -4);
-        if (! -e "$wrk/$outDir/olaps/$out.success") {
+        if (! -e "$wrk/$outDir/olaps/$out.ovb.gz") {
             $failures++;
         }
     }
@@ -109,7 +109,7 @@ sub merOverlapper($) {
         print F "  mkdir $wrk/$outDir/seeds\n";
         print F "fi\n";
         print F "\n";
-        print F "if [ -e $wrk/$outDir/seeds/\$jobid.success ]; then\n";
+        print F "if [ -e $wrk/$outDir/seeds/\$jobid.ovm.gz ]; then\n";
         print F "  echo Job previously completed successfully.\n";
         print F "  exit\n";
         print F "fi\n";
@@ -125,10 +125,14 @@ sub merOverlapper($) {
         print F " -m $merSize \\\n";
         print F " -c $merComp \\\n";
         print F " -t " . getGlobal("merOverlapperThreads") . "\\\n";
-        print F " -o $wrk/$outDir/seeds/\$jobid.ovm \\\n";
-        print F " > $wrk/$outDir/seeds/\$jobid.ovm.err 2>&1 \\\n";
+        #print F " -o $wrk/$outDir/seeds/\$jobid.ovm.WORKING \\\n";
+        #print F " > $wrk/$outDir/seeds/\$jobid.ovm.err 2>&1 \\\n";
+        #print F "&& \\\n";
+        #print F "gzip -1vc < $wrk/$outDir/seeds/\$jobid.ovm.WORKING > $wrk/$outDir/seeds/\$jobid.ovm.WORKING.gz \\\n";
+        print F "| \\\n";
+        print F "gzip -1c > $wrk/$outDir/seeds/\$jobid.ovm.WORKING.gz \\\n";
         print F "&& \\\n";
-        print F "touch $wrk/$outDir/seeds/\$jobid.success\n";
+        print F "mv $wrk/$outDir/seeds/\$jobid.ovm.WORKING.gz $wrk/$outDir/seeds/\$jobid.ovm.gz\n";
         close(F);
 
         system("chmod +x $wrk/$outDir/overmerry.sh");
@@ -169,7 +173,7 @@ sub merOverlapper($) {
         print F "  mkdir $wrk/$outDir/olaps\n";
         print F "fi\n";
         print F "\n";
-        print F "if [ -e $wrk/$outDir/olaps/\$jobid.success ]; then\n";
+        print F "if [ -e $wrk/$outDir/olaps/\$jobid.ovb.gz ]; then\n";
         print F "  echo Job previously completed successfully.\n";
         print F "  exit\n";
         print F "fi\n";
@@ -183,27 +187,35 @@ sub merOverlapper($) {
 
         if ($isTrim eq "trim") {
             print F " -G \\\n";  #  Trim only
-            print F " -o $wrk/$outDir/olaps/\$jobid.ovr \\\n";
-            print F " $wrk/$asm.gkpStore \\\n";
-            print F " \$minid \$maxid \\\n";
-            print F " > $wrk/$outDir/olaps/$asm.\$jobid.ovb.err 2>&1 \\\n";
-            print F " &&  \\\n";
-            print F "\$bin/acceptableOBToverlap \\\n";
-            print F " < $wrk/$outDir/olaps/\$jobid.ovr \\\n";
-            print F " > $wrk/$outDir/olaps/\$jobid.ovb \\\n";
-        } else {
-            print F "-w \\\n" if (getGlobal("merOverlapperCorrelatedDiffs"));
-            print F " -c $wrk/3-overlapcorrection/\$jobid.frgcorr.WORKING \\\n";
-            print F " -o $wrk/$outDir/olaps/\$jobid.ovb \\\n";
+            print F " -o $wrk/$outDir/olaps/\$jobid.ovr.WORKING \\\n";
             print F " $wrk/$asm.gkpStore \\\n";
             print F " \$minid \$maxid \\\n";
             print F " > $wrk/$outDir/olaps/$asm.\$jobid.ovb.err 2>&1 \\\n";
             print F "&& \\\n";
+            print F "\$bin/acceptableOBToverlap \\\n";
+            print F " < $wrk/$outDir/olaps/\$jobid.ovr.WORKING \\\n";
+            print F "| \\\n";
+            print F "gzip -1vc > $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz \\\n";
+            print F "&& \\\n";
+            print F "mv $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz $wrk/$outDir/olaps/\$jobid.ovb.gz\n";
+            print F "\n";
+            print F "rm -f $wrk/$outDir/olaps/\$jobid.ovr.WORKING\n";
+            print F "rm -f $wrk/$outDir/olaps/\$jobid.ovb.WORKING\n";
+            print F "rm -f $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz\n";
+        } else {
+            print F "-w \\\n" if (getGlobal("merOverlapperCorrelatedDiffs"));
+            print F " -c $wrk/3-overlapcorrection/\$jobid.frgcorr.WORKING \\\n";
+            print F " -o $wrk/$outDir/olaps/\$jobid.ovb.WORKING \\\n";
+            print F " $wrk/$asm.gkpStore \\\n";
+            print F " \$minid \$maxid \\\n";
+            print F " > $wrk/$outDir/olaps/$asm.\$jobid.ovb.err 2>&1 \\\n";
+            print F "&& \\\n";
+            print F "gzip -1vc < $wrk/$outDir/olaps/\$jobid.ovb.WORKING > $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz \\\n";
+            print F "&& \\\n";
+            print F "mv $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz $wrk/$outDir/olaps/\$jobid.ovb.gz \\\n";
+            print F "&& \\\n";
             print F "mv $wrk/3-overlapcorrection/\$jobid.frgcorr.WORKING $wrk/3-overlapcorrection/\$jobid.frgcorr \\\n";
         }
-
-        print F "&& \\\n";
-        print F "touch $wrk/$outDir/olaps/\$jobid.success\n";
 
         close(F);
 
@@ -253,8 +265,7 @@ sub merOverlapper($) {
         } else {
             for (my $i=1; $i<=$ovmJobs; $i++) {
                 my $out = substr("0000" . $i, -4);
-                #runCommand("$wrk/$outDir", "$wrk/$outDir/overmerry.sh $i > $wrk/$outDir/seeds/$out.out 2>&1");
-                &scheduler::schedulerSubmit("sh $wrk/$outDir/overmerry.sh $i > $wrk/$outDir/seeds/$out.out 2>&1");
+                &scheduler::schedulerSubmit("sh $wrk/$outDir/overmerry.sh $i > $wrk/$outDir/seeds/$out.out 2>&1 && rm -f $wrk/$outDir/seeds/$out.out");
             }
 
             &scheduler::schedulerSetNumberOfProcesses(getGlobal("merOverlapperSeedConcurrency"));
@@ -269,19 +280,28 @@ sub merOverlapper($) {
         caFailure("There were $f overmerry failures.\n") if ($f > 0);
     }
 
+    if (runCommand($wrk, "find $wrk/$outDir/seeds -name \\*ovm.gz -print > $wrk/$outDir/$asm.merStore.list")) {
+        caFailure("Failed to generate a list of all the overlap files.\n");
+    }
+
     if (! -e "$wrk/$outDir/$asm.merStore") {
         my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/overlapStore";
-        $cmd .= " -c $wrk/$outDir/$asm.merStore";
+        $cmd .= " -c $wrk/$outDir/$asm.merStore.WORKING";
         $cmd .= " -g $wrk/$asm.gkpStore";
         $cmd .= " -M " . getGlobal("ovlStoreMemory");
-        $cmd .= " $wrk/$outDir/seeds/*.ovm";
+        $cmd .= " -L $wrk/$outDir/$asm.merStore.list";
         $cmd .= " > $wrk/$outDir/$asm.merStore.err 2>&1";
-        if (runCommand("$wrk/$outDir", $cmd)) {
-            rename "$wrk/$outDir/$asm.merStore", "$wrk/$outDir/$asm.merStore.FAILED";
+
+        if (runCommand($wrk, $cmd)) {
             caFailure("Failed.\n");
         }
+
+        rename "$wrk/$outDir/$asm.merStore.WORKING", "$wrk/$outDir/$asm.merStore";
+
+        rmrf("$outDir/$asm.merStore.list");
+        rmrf("$outDir/$asm.merStore.err");
     }
 
 
@@ -314,7 +334,6 @@ sub merOverlapper($) {
         } else {
             for (my $i=1; $i<=$olpJobs; $i++) {
                 my $out = substr("0000" . $i, -4);
-                #runCommand("$wrk/$outDir", "$wrk/$outDir/olap-from-seeds.sh $i > $wrk/$outDir/olaps/$out.out 2>&1");
                 &scheduler::schedulerSubmit("sh $wrk/$outDir/olap-from-seeds.sh $i > $wrk/$outDir/olaps/$out.out 2>&1");
             }
 
