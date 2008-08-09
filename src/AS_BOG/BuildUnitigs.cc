@@ -109,7 +109,7 @@ main (int argc, char * argv []) {
   const char* OVL_Store_Path;
   const char* GKP_Store_Path;
 
-  double        erate = 1.5;
+  double        erate = .015;
 
   long genome_size=0;
   int ch;
