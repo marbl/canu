@@ -166,7 +166,7 @@ ifeq ($(OSTYPE), SunOS)
   ifeq ($(MACHINETYPE), i86pc)
     CC             = gcc
     CXX            = g++
-    ARCH_CFLAGS    = -DBYTE_ORDER=LITTLE_ENDIAN
+    ARCH_CFLAGS    = -DBYTE_ORDER=LITTLE_ENDIAN -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -pthreads
     ARCH_LDFLAGS  += -lm
   else
     CC             = gcc
