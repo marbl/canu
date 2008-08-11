@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.189 2008-07-31 06:48:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.190 2008-08-11 21:25:47 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -8150,11 +8150,13 @@ MultiAlignContig(IntConConMesg *contig,
         afrag_first = afrag;
       }
 
+      //  try with the default aligner
       if (VERBOSE_MULTIALIGN_OUTPUT)
         fprintf(stderr,"MultiAlignContig: Attemping alignment of afrag %d (%c) and bfrag %d (%c) (DP_Compare) estimated ahang: %d\n",
                 afrag->iid,afrag->type,bfrag->iid,bfrag->type,ahang);
       olap_success = GetAlignmentTrace(afrag->lid, 0,bfrag->lid, &ahang, ovl, trace, &otype, DP_Compare,DONT_SHOW_OLAP,0);
 
+      //  try again, perhaps with alternate overlapper
       if ((!olap_success) && (COMPARE_FUNC != DP_Compare)) {
         if (VERBOSE_MULTIALIGN_OUTPUT)
           fprintf(stderr,"MultiAlignContig: Attemping alignment of afrag %d (%c) and bfrag %d (%c) (COMPARE_FUNC)\n",
@@ -8162,6 +8164,7 @@ MultiAlignContig(IntConConMesg *contig,
         olap_success = GetAlignmentTrace(afrag->lid, 0,bfrag->lid, &ahang, ovl, trace, &otype, COMPARE_FUNC,SHOW_OLAP,0);
       }
 
+      //  try again, perhaps allowing large gaps on the ends
       if ((!olap_success) && (COMPARE_FUNC != DP_Compare)) {
         int max_gap   = 800;
 
@@ -8174,6 +8177,26 @@ MultiAlignContig(IntConConMesg *contig,
         olap_success = GetAlignmentTrace(afrag->lid, 0,bfrag->lid, &ahang, ovl, trace, &otype, COMPARE_FUNC,SHOW_OLAP,max_gap);
       }
 
+      //  try again, perhaps increasing the erate.  Increase slowly to try to avoid overcollapsing the overlap.
+      if (!olap_success) {
+        double AS_CNS_ERROR_RATE_SAVE = AS_CNS_ERROR_RATE;
+
+        while ((AS_CNS_ERROR_RATE < AS_CNS_ERROR_RATE_SAVE + 0.02) && (!olap_success)) {
+          AS_CNS_ERROR_RATE += 0.0025;
+
+          if (VERBOSE_MULTIALIGN_OUTPUT)
+            fprintf(stderr, "MultiAlignContig: increase AS_CNS_ERROR_RATE to %1.5f\n", AS_CNS_ERROR_RATE);
+
+          olap_success = GetAlignmentTrace(afrag->lid, 0, bfrag->lid, &ahang, ovl, trace, &otype, DP_Compare,DONT_SHOW_OLAP, 0);
+
+          if (!olap_success)
+            olap_success = GetAlignmentTrace(afrag->lid, 0, bfrag->lid, &ahang, ovl, trace, &otype,COMPARE_FUNC,DONT_SHOW_OLAP,0);
+        }
+
+        AS_CNS_ERROR_RATE = AS_CNS_ERROR_RATE_SAVE;
+      }
+
+      //  Nope, fail.
       if (!olap_success) {
         if (VERBOSE_MULTIALIGN_OUTPUT)
           fprintf(stderr, "MultiAlignContig: Positions of afrag %d (%c) and bfrag %d (%c) overlap, but GetAlignmentTrace returns no overlap success.\n",
