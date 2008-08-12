@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.190 2008-08-11 21:25:47 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.191 2008-08-12 03:18:44 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -4328,6 +4328,79 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
   return 1;
 }
 
+int
+GetAlignmentTraceDriver(Fragment *afrag,
+                        int32 aoffset,
+                        Fragment *bfrag,
+                        int32 *ahang,
+                        int32 ovl,
+                        VA_TYPE(int32) *trace,
+                        OverlapType *otype,
+                        Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
+                        char is_contig,
+                        int max_gap) {
+  double AS_CNS_ERROR_RATE_SAVE = AS_CNS_ERROR_RATE;
+
+  for (; (AS_CNS_ERROR_RATE < AS_CNS_ERROR_RATE_SAVE + 0.02); AS_CNS_ERROR_RATE += 0.0025) {
+
+    //  try with the default aligner
+
+    if (VERBOSE_MULTIALIGN_OUTPUT)
+      fprintf(stderr, "%s Attemping alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d and erate %1.4f (DP_Compare)\n",
+              (is_contig == 'c') ? "MultiAlignContig()--" : "MultiAlignUnitig()--",
+              afrag->iid,
+              afrag->type,
+              bfrag->iid,
+              bfrag->type,
+              ahang,
+              AS_CNS_ERROR_RATE);
+    if (GetAlignmentTrace(afrag->lid, 0, bfrag->lid, ahang, ovl, trace, otype, DP_Compare, DONT_SHOW_OLAP, 0)) {
+      AS_CNS_ERROR_RATE = AS_CNS_ERROR_RATE_SAVE;
+      return(TRUE);
+    }
+
+    // try again, perhaps with alternate overlapper
+
+    if (COMPARE_FUNC != DP_Compare) {
+      if (VERBOSE_MULTIALIGN_OUTPUT)
+        fprintf(stderr, "%s Attemping alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f (COMPARE_FUNC)\n",
+                (is_contig == 'c') ? "MultiAlignContig()--" : "MultiAlignUnitig()--",
+                afrag->iid,
+                afrag->type,
+                bfrag->iid,
+                bfrag->type,
+                ahang,
+                AS_CNS_ERROR_RATE);
+      if (GetAlignmentTrace(afrag->lid, 0, bfrag->lid, ahang, ovl, trace, otype, COMPARE_FUNC, DONT_SHOW_OLAP, 0)) {
+        AS_CNS_ERROR_RATE = AS_CNS_ERROR_RATE_SAVE;
+        return(TRUE);
+      }
+    }
+
+    //  try again, perhaps allowing larger end gaps (contigs only)
+
+    if ((COMPARE_FUNC != DP_Compare) && (is_contig == 'c') && (max_gap > 0)) {
+      fprintf(stderr, "%s Attemping alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f max_gap %d (COMPARE_FUNC)\n",
+              (is_contig == 'c') ? "MultiAlignContig()--" : "MultiAlignUnitig()--",
+              afrag->iid,
+              afrag->type,
+              bfrag->iid,
+              bfrag->type,
+              ahang,
+              AS_CNS_ERROR_RATE,
+              max_gap);
+      if (GetAlignmentTrace(afrag->lid, 0,bfrag->lid, ahang, ovl, trace, otype, COMPARE_FUNC, DONT_SHOW_OLAP, max_gap)) {
+        AS_CNS_ERROR_RATE = AS_CNS_ERROR_RATE_SAVE;
+        return(TRUE);
+      }
+    }
+  }
+
+  AS_CNS_ERROR_RATE = AS_CNS_ERROR_RATE_SAVE;
+  return(FALSE);
+}
+
+
 void MarkAsContained(int32 fid) {
   Fragment *frag = GetFragment(fragmentStore,fid);
   assert(frag != NULL);
@@ -7673,40 +7746,19 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
           ahanginit = ahang;
         }
 
-        //  try with the default aligner
-        olap_success = GetAlignmentTrace(afrag->lid, 0, bfrag->lid, &ahang, ovl, trace, &otype,DP_Compare,DONT_SHOW_OLAP,0);
-
-
-        // try again, perhaps with alternate overlapper
-        if (! olap_success && COMPARE_FUNC != DP_Compare)
-          olap_success = GetAlignmentTrace(afrag->lid, 0, bfrag->lid, &ahang, ovl, trace, &otype,COMPARE_FUNC,DONT_SHOW_OLAP,0);
-
-
-        // try again, perhaps increasing the erate.  Increase slowly to try to avoid overcollapsing the overlap.
-        if (! olap_success) {
-          double AS_CNS_ERROR_RATE_SAVE = AS_CNS_ERROR_RATE;
-
-          while ((AS_CNS_ERROR_RATE < AS_CNS_ERROR_RATE_SAVE + 0.02) && (!olap_success)) {
-            AS_CNS_ERROR_RATE += 0.0025;
-
-            if (VERBOSE_MULTIALIGN_OUTPUT)
-              fprintf(stderr, "MultiAlignUnitig()-- increase AS_CNS_ERROR_RATE to %1.5f\n", AS_CNS_ERROR_RATE);
-
-            olap_success = GetAlignmentTrace(afrag->lid, 0, bfrag->lid, &ahang, ovl, trace, &otype,DP_Compare,DONT_SHOW_OLAP,0);
-
-            if (!olap_success)
-              olap_success = GetAlignmentTrace(afrag->lid, 0, bfrag->lid, &ahang, ovl, trace, &otype,COMPARE_FUNC,DONT_SHOW_OLAP,0);
-          }
-
-          AS_CNS_ERROR_RATE = AS_CNS_ERROR_RATE_SAVE;
-        }
-
+        olap_success = GetAlignmentTraceDriver(afrag, 0,
+                                               bfrag, &ahang,
+                                               ovl, trace,
+                                               &otype,
+                                               COMPARE_FUNC,
+                                               'u',
+                                               0);
 
         if ( !olap_success ) {
 #ifndef NEW_UNITIGGER_INTERFACE
           align_to--;
 #endif
-          fprintf(stderr, "MultiAlignUnitig()-- positions of %d (%c) and %d (%c) overlap, but GetAlignmentTrace (DEF, ERR & DPC) all return no overlap success; estimated ahang: %d%s\n",
+          fprintf(stderr, "MultiAlignUnitig()-- positions of %d (%c) and %d (%c) overlap, but GetAlignmentTrace returns no overlap; estimated ahang: %d%s\n",
                   afrag->iid,afrag->type,bfrag->iid,bfrag->type,
                   ahang, (bfrag->container_iid)?" (reported contained)":"");
         }
@@ -8150,51 +8202,13 @@ MultiAlignContig(IntConConMesg *contig,
         afrag_first = afrag;
       }
 
-      //  try with the default aligner
-      if (VERBOSE_MULTIALIGN_OUTPUT)
-        fprintf(stderr,"MultiAlignContig: Attemping alignment of afrag %d (%c) and bfrag %d (%c) (DP_Compare) estimated ahang: %d\n",
-                afrag->iid,afrag->type,bfrag->iid,bfrag->type,ahang);
-      olap_success = GetAlignmentTrace(afrag->lid, 0,bfrag->lid, &ahang, ovl, trace, &otype, DP_Compare,DONT_SHOW_OLAP,0);
-
-      //  try again, perhaps with alternate overlapper
-      if ((!olap_success) && (COMPARE_FUNC != DP_Compare)) {
-        if (VERBOSE_MULTIALIGN_OUTPUT)
-          fprintf(stderr,"MultiAlignContig: Attemping alignment of afrag %d (%c) and bfrag %d (%c) (COMPARE_FUNC)\n",
-                  afrag->iid,afrag->type,bfrag->iid,bfrag->type,ahang);
-        olap_success = GetAlignmentTrace(afrag->lid, 0,bfrag->lid, &ahang, ovl, trace, &otype, COMPARE_FUNC,SHOW_OLAP,0);
-      }
-
-      //  try again, perhaps allowing large gaps on the ends
-      if ((!olap_success) && (COMPARE_FUNC != DP_Compare)) {
-        int max_gap   = 800;
-
-        if (blid + 1 < num_unitigs)
-          max_gap = offsets[blid + 1].bgn - offsets[blid].bgn;
-
-        if (VERBOSE_MULTIALIGN_OUTPUT)
-          fprintf(stderr,"MultiAlignContig: Attemping alignment of afrag %d (%c) and bfrag %d (%c) (COMPARE_FUNC) (allow end gaps up to %d)\n",
-                  afrag->iid,afrag->type,bfrag->iid,bfrag->type,max_gap);
-        olap_success = GetAlignmentTrace(afrag->lid, 0,bfrag->lid, &ahang, ovl, trace, &otype, COMPARE_FUNC,SHOW_OLAP,max_gap);
-      }
-
-      //  try again, perhaps increasing the erate.  Increase slowly to try to avoid overcollapsing the overlap.
-      if (!olap_success) {
-        double AS_CNS_ERROR_RATE_SAVE = AS_CNS_ERROR_RATE;
-
-        while ((AS_CNS_ERROR_RATE < AS_CNS_ERROR_RATE_SAVE + 0.02) && (!olap_success)) {
-          AS_CNS_ERROR_RATE += 0.0025;
-
-          if (VERBOSE_MULTIALIGN_OUTPUT)
-            fprintf(stderr, "MultiAlignContig: increase AS_CNS_ERROR_RATE to %1.5f\n", AS_CNS_ERROR_RATE);
-
-          olap_success = GetAlignmentTrace(afrag->lid, 0, bfrag->lid, &ahang, ovl, trace, &otype, DP_Compare,DONT_SHOW_OLAP, 0);
-
-          if (!olap_success)
-            olap_success = GetAlignmentTrace(afrag->lid, 0, bfrag->lid, &ahang, ovl, trace, &otype,COMPARE_FUNC,DONT_SHOW_OLAP,0);
-        }
-
-        AS_CNS_ERROR_RATE = AS_CNS_ERROR_RATE_SAVE;
-      }
+      olap_success = GetAlignmentTraceDriver(afrag, 0,
+                                             bfrag, &ahang,
+                                             ovl, trace,
+                                             &otype,
+                                             COMPARE_FUNC,
+                                             'c',
+                                             (blid + 1 < num_unitigs) ? (offsets[blid + 1].bgn - offsets[blid].bgn) : 800);
 
       //  Nope, fail.
       if (!olap_success) {
