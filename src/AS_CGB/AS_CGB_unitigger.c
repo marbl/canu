@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.30 2008-06-27 06:29:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.31 2008-08-12 01:57:27 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_Bubble.h"
@@ -332,8 +332,8 @@ ParseCommandLine(UnitiggerGlobals * rg,
   }
 
   if(! rg->dont_count_chimeras) {
-    static char chimeras_report_filename[128]={0};
-    static char crappies_report_filename[128]={0};
+    static char chimeras_report_filename[FILENAME_MAX]={0};
+    static char crappies_report_filename[FILENAME_MAX]={0};
 
     sprintf(crappies_report_filename,"%s.cgb_crappies", rg->Output_Graph_Store_Prefix);
     rg->spurs_file = crappies_report_filename;
@@ -343,7 +343,7 @@ ParseCommandLine(UnitiggerGlobals * rg,
   }
 
   if(blessed_overlaps_output_flag) {
-    static char blessed_overlaps_output_filename[128]={0};
+    static char blessed_overlaps_output_filename[FILENAME_MAX]={0};
     sprintf(blessed_overlaps_output_filename,"%s.blovl", rg->Output_Graph_Store_Prefix);
     rg->blessed_overlaps_output_filename = blessed_overlaps_output_filename;
   }
