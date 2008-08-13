@@ -321,13 +321,13 @@ sub terminate ($) {
         #  time.
 
         if (! -e "$termDir/mercy/$asm.ctgNorm.fasta") {
-            link "$termDir/$asm.ctgcns.fasta", "$termDir/mercy/$asm.ctgNorm.fasta";
+            link "$termDir/$asm.ctg.fasta", "$termDir/mercy/$asm.ctgNorm.fasta";
         }
         if (! -e "$termDir/mercy/$asm.ctgDreg.fasta") {
-            link "$termDir/$asm.degcns.fasta", "$termDir/mercy/$asm.ctgDreg.fasta";
+            link "$termDir/$asm.deg.fasta", "$termDir/mercy/$asm.ctgDreg.fasta";
         }
         if (! -e "$termDir/mercy/$asm.ctgAll.fasta") {
-            system "cat $termDir/$asm.{ctg,deg}cns.fasta > $termDir/mercy/$asm.ctgAll.fasta";
+            system "cat $termDir/$asm.{ctg,deg}.fasta > $termDir/mercy/$asm.ctgAll.fasta";
         }
 
         if ((! -e "$termDir/mercy/$asm-ms$ms-ctgNorm.mcidx") &&
