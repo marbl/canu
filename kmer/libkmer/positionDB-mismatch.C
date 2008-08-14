@@ -54,8 +54,8 @@ dumpPatterns(u64bit *strings, u32bit stringsLen, u32bit ts) {
 #endif
 
 
-void
-positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
+double
+positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed, u64bit approxMers) {
 
   //  Build an xor mask that will generate all errors for a given
   //  mersize.
@@ -81,7 +81,7 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
     for (u32bit x=1; x<_nErrorsAllowed; x++)
       ne *= 3;
 
-    fprintf(stderr, "Storing ne="u32bitFMT" errors.\n", ne);
+    //fprintf(stderr, "Storing ne="u32bitFMT" errors.\n", ne);
 
     e1 = new u64bit [ne];
     e2 = new u64bit [ne];
@@ -121,7 +121,7 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
     stringsLen = makeUnique(strings, stringsLen);
     stringsLen = makeUnique(strings, stringsLen);
     //dumpPatterns(strings, stringsLen, _tableSizeInBits);
-    fprintf(stderr, "DONE1 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
+    //fprintf(stderr, "DONE1 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
   }
 
 
@@ -141,7 +141,7 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
     stringsLen = makeUnique(strings, stringsLen);
     stringsLen = makeUnique(strings, stringsLen);
     //dumpPatterns(strings, stringsLen, _tableSizeInBits);
-    fprintf(stderr, "DONE2 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
+    //fprintf(stderr, "DONE2 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
   }
 
 
@@ -163,7 +163,7 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
     stringsLen = makeUnique(strings, stringsLen);
     stringsLen = makeUnique(strings, stringsLen);
     //dumpPatterns(strings, stringsLen, _tableSizeInBits);
-    fprintf(stderr, "DONE3 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
+    //fprintf(stderr, "DONE3 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
   }
 
 
@@ -187,7 +187,7 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
     stringsLen = makeUnique(strings, stringsLen);
     stringsLen = makeUnique(strings, stringsLen);
     //dumpPatterns(strings, stringsLen, _tableSizeInBits);
-    fprintf(stderr, "DONE4 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
+    //fprintf(stderr, "DONE4 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
   }
 
 
@@ -206,10 +206,8 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
               m4 = 0x03llu << (di * 2);
               m5 = 0x03llu << (ei * 2);
 
-              if (stringsLen + 32000 >= stringsMax) {
+              if (stringsLen + 32000 >= stringsMax)
                 stringsLen = makeUnique(strings, stringsLen);
-                fprintf(stderr, "INTR5 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
-              }
 
               for (u32bit x=0; x<243; x++)
                 strings[stringsLen++] = HASH((m1 & e1[x]) ^ (m2 & e2[x]) ^ (m3 & e3[x]) ^ (m4 & e4[x]) ^ (m5 & e5[x]));
@@ -218,7 +216,7 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
     stringsLen = makeUnique(strings, stringsLen);
     stringsLen = makeUnique(strings, stringsLen);
     //dumpPatterns(strings, stringsLen, _tableSizeInBits);
-    fprintf(stderr, "DONE5 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
+    //fprintf(stderr, "DONE5 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
   }
 
 
@@ -249,14 +247,17 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
     stringsLen = makeUnique(strings, stringsLen);
     stringsLen = makeUnique(strings, stringsLen);
     //dumpPatterns(strings, stringsLen, _tableSizeInBits);
-    fprintf(stderr, "DONE6 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
+    //fprintf(stderr, "DONE6 totpat="u64bitFMT" toterr="u64bitFMT" stringsLen="u32bitFMT"\n", totpat, toterr, stringsLen);
   }
 
 
+  if (7 <= _nErrorsAllowed) {
+    fprintf(stderr, "Only 6 errors allowed.\n");
+    exit(1);
+  }
 
-  for (u32bit i=0; i<stringsLen; i++)
-    if (strings[i] == 0)
-      fprintf(stderr, "ZERO at i="u32bitFMT"\n", i);
+  for (u32bit i=1; i<stringsLen; i++)
+    assert(strings[i] != 0);
 
   delete [] e1;
   delete [] e2;
@@ -264,6 +265,8 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
   delete [] e4;
   delete [] e5;
   delete [] e6;
+
+  delete [] _hashedErrors;
 
   _hashedErrorsLen = stringsLen;
   _hashedErrorsMax = stringsMax;
@@ -273,10 +276,17 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed) {
 
   delete [] strings;
 
-  fprintf(stderr, "Built "u32bitFMT" hashed errors.\n", _hashedErrorsLen);
+  double work = 2.0 * _hashedErrorsLen + (double)_hashedErrorsLen * approxMers / _tableSizeInEntries;
+
+  fprintf(stderr, "Built "u32bitFMT" hashed errors at tableSize "u32bitFMT" (work=%f.0).\n",
+          _hashedErrorsLen,
+          _tableSizeInBits,
+          work);
 
   //for (u32bit i=0; i<_hashedErrorsLen; i++)
   //  fprintf(stderr, "he["u32bitFMTW(5)"] = "u64bitHEX"\n", i, _hashedErrors[i]);
+
+  return(work);
 }
 
 
@@ -334,22 +344,24 @@ positionDB::getUpToNMismatches(u64bit   mer,
     //  are not encoded, they're an exact copy from the unhashed
     //  mer.
 
-    for (u64bit i=ed-st, J=st * _wFin; i--; J += _wFin) {
-      u64bit chck  = getDecodedValue(_buckets, J, _chckWidth);
-      u64bit diffs = chck ^ (mer & _mask2);
-      u64bit d1    = diffs & u64bitNUMBER(0x5555555555555555);
-      u64bit d2    = diffs & u64bitNUMBER(0xaaaaaaaaaaaaaaaa);
-      u64bit err   = countNumberOfSetBits64(d1 | (d2 >> 1));
+    if (st != ed) {
+      for (u64bit i=ed-st, J=st * _wFin; i--; J += _wFin) {
+        u64bit chck  = getDecodedValue(_buckets, J, _chckWidth);
+        u64bit diffs = chck ^ (mer & _mask2);
+        u64bit d1    = diffs & u64bitNUMBER(0x5555555555555555);
+        u64bit d2    = diffs & u64bitNUMBER(0xaaaaaaaaaaaaaaaa);
+        u64bit err   = countNumberOfSetBits64(d1 | (d2 >> 1));
 
-      if (err <= numMismatches) {
-        diffs = REBUILD(hash, chck) ^ mer;
-        d1    = diffs & u64bitNUMBER(0x5555555555555555);
-        d2    = diffs & u64bitNUMBER(0xaaaaaaaaaaaaaaaa);
-        err   = countNumberOfSetBits64(d1 | (d2 >> 1));
+        if (err <= numMismatches) {
+          diffs = REBUILD(hash, chck) ^ mer;
+          d1    = diffs & u64bitNUMBER(0x5555555555555555);
+          d2    = diffs & u64bitNUMBER(0xaaaaaaaaaaaaaaaa);
+          err   = countNumberOfSetBits64(d1 | (d2 >> 1));
 
-        if (err <= numMismatches)
-          //  err is junk, just need a parameter here
-          loadPositions(J, posn, posnMax, posnLen, err);
+          if (err <= numMismatches)
+            //  err is junk, just need a parameter here
+            loadPositions(J, posn, posnMax, posnLen, err);
+        }
       }
     }
   }

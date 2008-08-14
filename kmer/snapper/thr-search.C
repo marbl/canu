@@ -220,7 +220,7 @@ doSearch(searcherState       *state,
       u32bit                GENhi  = theHits[h]._dsHi;
 
       merStream            *MS     = new merStream(state->KB, GENseq, GENlo, GENhi - GENlo);
-      positionDB           *PS     = new positionDB(MS, config._KBmerSize, 0, 0L, 0L, 0L, 0, 0, false);
+      positionDB           *PS     = new positionDB(MS, config._KBmerSize, 0, 0L, 0L, 0L, 0, 0, 0, false);
       hitMatrix            *HM     = new hitMatrix(seq->sequenceLength(), query->numberOfMersInQuery(), idx, theLog);
 
       //  We find the number of hits we would get if we use a

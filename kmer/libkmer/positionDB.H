@@ -45,8 +45,8 @@ public:
              merylStreamReader *counts,
              u32bit             minCount,
              u32bit             maxCount,
-             bool               beVerbose,
-             bool               isForMismatches = false);
+             u32bit             maxMismatch,
+             bool               beVerbose);
 
   ~positionDB();
 
@@ -80,7 +80,9 @@ public:
   bool        existsExact(u64bit   mer);
   u64bit      countExact(u64bit    mer);
 
-  void        setUpMismatchMatcher(u32bit nErrorsAllowed);
+private:
+  double      setUpMismatchMatcher(u32bit nErrorsAllowed, u64bit approxMers);
+public:
   bool        getUpToNMismatches(u64bit      mer,
                                  u32bit      maxMismatches,
                                  u64bit*&    posn,
