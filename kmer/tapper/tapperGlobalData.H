@@ -13,7 +13,6 @@ private:
 
 public:
   char             *genName;
-  char             *colName;
   char             *qryName;
   char             *outName;
 
@@ -46,7 +45,6 @@ public:
 
 tapperGlobalData::tapperGlobalData() {
   genName   = 0L;
-  colName   = 0L;
   qryName   = 0L;
   outName   = 0L;
 
@@ -89,9 +87,12 @@ tapperGlobalData::~tapperGlobalData() {
 
 void
 tapperGlobalData::initialize(void) {
+  char  colName[FILENAME_MAX];
+
+  sprintf(colName, "%s.colorspace", genName);
   rewriteFileAsColorACGT(genName, colName);
 
-  TF = new tapperTagFile(qryName);
+  TF = new tapperTagFile(qryName, 'r');
 
   //  See the comments in the loader about the -1.
   tagSize = TF->metaData()->tagSize() - 1;
@@ -107,10 +108,17 @@ tapperGlobalData::initialize(void) {
   fprintf(stderr, "Building merStream\n");
   MS = new merStream(new kMerBuilder(tagSize), SS);  //  MEMORY LEAK kMerBuilder
 
-  fprintf(stderr, "Building positionDB\n");
-  PS = new positionDB(MS, tagSize, 0, 0L, 0L, 0L, 0, 0, beVerbose, true);
+  sprintf(colName, "%s.posDB", genName);
 
-  PS->setUpMismatchMatcher(maxColorError);
+  if (fileExists(colName)) {
+    fprintf(stderr, "Loading positionDB\n");
+    PS = new positionDB(colName);
+  } else {
+    fprintf(stderr, "Building positionDB\n");
+    PS = new positionDB(MS, tagSize, 0, 0L, 0L, 0L, 0, 0, maxColorError, beVerbose);
+
+    PS->saveState(colName);
+  }
 
   GS = new FastACache(genName, 0, true, false);
 
@@ -118,19 +126,19 @@ tapperGlobalData::initialize(void) {
     char filename[FILENAME_MAX];
 
     sprintf(filename, "%s.tapperMappedIndex", outName);
-    outIndex = new recordFile(filename, 0, sizeof(tapperResult), true);
+    outIndex = new recordFile(filename, 0, sizeof(tapperResult), 'w');
 
     sprintf(filename, "%s.tapperMappedFragment", outName);
-    outFragment = new recordFile(filename, 0, sizeof(tapperResultFragment), true);
+    outFragment = new recordFile(filename, 0, sizeof(tapperResultFragment), 'w');
 
     sprintf(filename, "%s.tapperMappedMated", outName);
-    outMated = new recordFile(filename, 0, sizeof(tapperResultMated), true);
+    outMated = new recordFile(filename, 0, sizeof(tapperResultMated), 'w');
 
     sprintf(filename, "%s.tapperMappedSingleton", outName);
-    outSingleton = new recordFile(filename, 0, sizeof(tapperResultSingleton), true);
+    outSingleton = new recordFile(filename, 0, sizeof(tapperResultSingleton), 'w');
 
     sprintf(filename, "%s.tapperMappedTangled", outName);
-    outTangled = new recordFile(filename, 0, sizeof(tapperResultTangled), true);
+    outTangled = new recordFile(filename, 0, sizeof(tapperResultTangled), 'w');
   }
 }
 

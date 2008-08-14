@@ -1,8 +1,6 @@
 #include "alphabet.h"
 
 
-
-
 //  Tapper generates four kinds of alignments.
 //
 //  1)  An unmated fragment alignment
@@ -108,47 +106,82 @@ public:
   }
 
 
+  //  Returns true if the tag is near the correct end of the sequence,
+  //  so that it could potentially be happily mated to a tag mapping
+  //  in a different sequence (or in a gap).
+  //
   void   alignToReference(tapperGlobalData *g,
                           u32bit so,
                           u32bit po,
                           char  *tag, u32bit len);
 
 
-  //  Assumes we're called on the F read, and b == the R read.
-  //
-  bool   happy(tapperHit& b, u32bit mean, u32bit stddev) {
-    bool    isHappy = false;
-    u64bit  dist    = ~u64bitZERO;
+  bool   happyNearEnd(bool isFTag, u32bit mean, u32bit stddev, u32bit seqlen) {
+    bool  isHappy = false;
 
-    if (_seqIdx != b._seqIdx)
-      return(false);
+    if (seqlen < mean + 3 * stddev)
+      return(true);
 
-    if (_rev    != b._rev)
-      return(false);
-
-    if ((_rev == false) && (b._seqPos < _seqPos)) {
-      //fprintf(stderr, "FWD "u32bitFMT" - "u32bitFMT"\n", b._seqPos, _seqPos);
-      dist = _seqPos - b._seqPos;
-    }
-    if ((_rev == true)  && (_seqPos < b._seqPos)) {
-      //fprintf(stderr, "REV "u32bitFMT" - "u32bitFMT"\n", _seqPos, b._seqPos);
-      dist = b._seqPos - _seqPos;
-    }
-
-#if 0
-    if ((dist != ~u64bitZERO) && (dist > 300000000)) {
-      fprintf(stderr, "WARNING!  dist="u64bitFMT" from "u32bitFMT" "u32bitFMT"\n",
-              dist, _seqPos, b._seqPos);
-      exit(1);
-    }
-#endif
-
-    if ((mean - 3*stddev < dist) && (dist < mean + 3*stddev)) {
-      //fprintf(stderr, "HAPPY DIST "u32bitFMT"\n", dist);
-      isHappy = true;
+    if (isFTag) {
+      if (_rev) {
+        //  Near end of sequence
+        isHappy = (seqlen - mean - 3 * stddev < _seqPos);
+      } else {
+        //  Near bgn of sequence
+        isHappy = (_seqPos < mean + 3 * stddev);
+      }
+    } else {
+      if (_rev) {
+        //  Near bgn of sequence
+        isHappy = (_seqPos < mean + 3 * stddev);
+      } else {
+        //  Near end of sequence
+        isHappy = (seqlen - mean - 3 * stddev < _seqPos);
+      }
     }
 
     return(isHappy);
+  };
+
+
+  //  Assumes we're called on the F read, and b == the R read.
+  //
+  bool   happy(tapperHit& b, u32bit mean, u32bit stddev) {
+    u64bit  dist    = ~u64bitZERO;
+    bool    happy   = false;
+    bool    orient  = false;
+
+    if (_seqIdx != b._seqIdx) {
+      //fprintf(stderr, "DIFF SEQ\n");
+      return(false);
+    }
+
+    //  Check distance apart
+    if (b._seqPos < _seqPos)
+      dist = _seqPos - b._seqPos;
+    else
+      dist = b._seqPos - _seqPos;
+    if ((mean - 3 * stddev < dist) && (dist < mean + 3 * stddev))
+      happy = true;
+
+    //  Check orientations
+    if ((_rev == false) && (b._seqPos < _seqPos))
+      orient = true;
+    if ((_rev == true)  && (_seqPos < b._seqPos))
+      orient = true;
+
+    if (!happy) {
+      //fprintf(stderr, "GRUMPY DIST  "u32bitFMT"\n", dist);
+      return(false);
+    }
+
+    if (!orient) {
+      //fprintf(stderr, "GRUMPY ORIENT "u32bitFMT"\n", dist);
+      return(false);
+    }
+
+    //fprintf(stderr, "HAPPY!  "u32bitFMT"\n", dist);
+    return(true);
   };
   
   bool    operator< (tapperHit const &r) const { return(((_basesMismatch     <  r._basesMismatch)) ||

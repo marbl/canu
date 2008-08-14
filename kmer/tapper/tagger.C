@@ -2,8 +2,6 @@
 #include "existDB.H"
 #include "positionDB.H"
 
-#define TAG_LEN_MAX   32
-
 #include "tapperTag.H"
 
 //  Convert reads from ASCI to tapper binary.
@@ -19,6 +17,10 @@
 //
 
 
+//  Define this to test the encode/decode functionality.
+//#define TEST_ENCODING
+
+
 int
 tapperTagCompare(const void *a, const void *b) {
   tapperTag const *A = (tapperTag const *)a;
@@ -29,7 +31,8 @@ tapperTagCompare(const void *a, const void *b) {
 
 
 bool
-readTag(u64bit fileUID, FILE *seq, FILE *qlt, tapperTag *T) {
+readTag(u32bit fileUID, FILE *seq, FILE *qlt, tapperTag *T) {
+  static u16bit  id[4];
   static char    seqhdr[1024];
   static char    seqseq[1024];
   static char    qlthdr[1024];
@@ -79,56 +82,58 @@ readTag(u64bit fileUID, FILE *seq, FILE *qlt, tapperTag *T) {
 
   S.split(seqhdr);
 
-  u64bit UID;
-
-  UID   = fileUID;
-  UID <<= 16;
-  UID  |= strtou64bit(S[0], 0L) & u64bitMASK(16);
-  UID <<= 16;
-  UID  |= strtou64bit(S[1], 0L) & u64bitMASK(16);
-  UID <<= 16;
-  UID  |= strtou64bit(S[2], 0L) & u64bitMASK(16);
+  id[0] = fileUID;
+  id[1] = strtou32bit(S[0], 0L);
+  id[2] = strtou32bit(S[1], 0L);
+  id[3] = strtou32bit(S[2], 0L);
 
   S.split(qltseq);
 
-#warning quality values are getting fudged here
+  //  Not sure why there are negative numbers here, but there are.
+  //
   for (u32bit i=0; i<S.numWords(); i++) {
     qltnum[i] = (S[i][0] == '-') ? 0 : strtou64bit(S[i], 0L);
+
+#ifdef TEST_ENCODING
+    //  We need to fudge the QV's here, so our tests pass.
     if (qltnum[i] > 31)
       qltnum[i] = 31;
+#endif
   }
 
-  T->encode(UID, seqseq, qltnum);
+  T->encode(id, seqseq, qltnum);
 
-#define TEST_ENCODING
 #ifdef TEST_ENCODING
   {
+    u16bit  it[4];
     char    seqtst[1024];
     u64bit  qlttst[1024];
-    u64bit  tst = T->decode(seqtst, qlttst);
+
+    T->decode(it, seqtst, qlttst);
+
     u32bit  len = strlen(seqtst);
     u32bit  fail = 0;
     u64bit  qltsum=0, tstsum=0;
 
-#if 0
-    //  We don't encode QV precisely
     for (u32bit l=0; l<len; l++) {
       qltsum += qltnum[l];
       tstsum += qlttst[l];
       if ((seqseq[l] != seqtst[l]) || (qltnum[l] != qlttst[l]))
         fail++;
     }
-#endif
 
-    if ((tst != UID) || (fail)) {
-      fprintf(stderr, "FAIL:  ("u64bitHEX",%s,"u64bitFMT") != ("u64bitHEX",%s,"u64bitFMT")\n",
-              UID, seqseq, qltsum,
-              tst, seqtst, tstsum);
+    if ((id[0] != it[0]) ||
+        (id[1] != it[1]) ||
+        (id[2] != it[2]) ||
+        (id[3] != it[3]) ||
+        (fail)) {
+      fprintf(stderr, "FAIL:  ("u32bitFMT"_"u32bitFMT"_"u32bitFMT"_"u32bitFMT",%s,"u64bitFMT") != ("u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT",%s,"u64bitFMT")\n",
+              id[0], id[1], id[2], id[3], seqseq, qltsum,
+              it[0], it[1], it[2], it[3], seqtst, tstsum);
       for (u32bit l=0; l<len; l++)
         fprintf(stderr, "  %2d -- "u64bitFMT" "u64bitFMT"\n", l, qltnum[l], qlttst[l]);
     }
   }
-
 #endif
 
   return(true);
@@ -138,9 +143,9 @@ readTag(u64bit fileUID, FILE *seq, FILE *qlt, tapperTag *T) {
 
 void
 dumpTagFile(char *tagfile) {
-  tapperTagFile  *TF = new tapperTagFile(tagfile);
+  tapperTagFile  *TF = new tapperTagFile(tagfile, 'r');
   tapperTag       a, b;
-  u64bit          ida, idb;
+  u16bit          ida[4],    idb[4];
   char            seqa[265], seqb[256];
   char            quaa[256], quab[256];
   u64bit          qvsa[256], qvsb[256];
@@ -148,22 +153,23 @@ dumpTagFile(char *tagfile) {
 
   if (TF->metaData()->isPairedTagFile()) {
     while (TF->get(&a, &b)) {
-      ida = a.decode(seqa, qvsa);
-      idb = b.decode(seqb, qvsb);
+      a.decode(ida, seqa, qvsa);
+      b.decode(idb, seqb, qvsb);
       for (i=0; seqa[i+1]; i++)
         quaa[i] = qvsa[i] + '0';
       for (i=0; seqb[i+1]; i++)
         quab[i] = qvsb[i] + '0';
-      fprintf(stdout, u64bitHEX"\t%s/%s\t"u64bitHEX"\t%s/%s\n",
-              ida, seqa, quaa, idb, seqb, quab);
+      fprintf(stdout, ">"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t%s/%s\t>"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t%s/%s\n",
+              ida[0], ida[1], ida[2], ida[3], seqa, quaa,
+              idb[0], idb[1], idb[2], idb[3], seqb, quab);
     }
   } else {
     while (TF->get(&a)) {
-      ida = a.decode(seqa, qvsa);
+      a.decode(ida, seqa, qvsa);
       for (i=0; seqa[i+1]; i++)
         quaa[i] = qvsa[i] + '0';
-      fprintf(stdout, u64bitHEX"\t%s/%s\n",
-              ida, seqa, quaa);
+      fprintf(stdout, ">"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t%s/%s\n",
+              ida[0], ida[1], ida[2], ida[3], seqa, quaa);
     }
   }
 
@@ -176,9 +182,11 @@ int
 main(int argc, char **argv) {
   char  *prefix  = 0L;
 
-  u64bit  tagfuid = 0,   tagruid = 0;
+  u32bit  tagfuid = 0,   tagruid = 0;
   char   *tagfseq = 0L, *tagrseq  = 0L;
   char   *tagfqlt = 0L, *tagrqlt  = 0L;
+
+  u32bit  mean=0, stddev=0;
 
   int arg=1;
   int err=0;
@@ -187,18 +195,22 @@ main(int argc, char **argv) {
       prefix   = argv[++arg];
 
     } else if (strcmp(argv[arg], "-tags") == 0) {
-      tagfuid  = strtou64bit(argv[++arg], 0L);
+      tagfuid  = strtou32bit(argv[++arg], 0L);
       tagfseq  = argv[++arg];
       tagfqlt  = argv[++arg];
 
     } else if (strcmp(argv[arg], "-ftags") == 0) {
-      tagfuid  = strtou64bit(argv[++arg], 0L);
+      tagfuid  = strtou32bit(argv[++arg], 0L);
       tagfseq  = argv[++arg];
       tagfqlt  = argv[++arg];
     } else if (strcmp(argv[arg], "-rtags") == 0) {
-      tagruid  = strtou64bit(argv[++arg], 0L);
+      tagruid  = strtou32bit(argv[++arg], 0L);
       tagrseq  = argv[++arg];
       tagrqlt  = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-insertsize") == 0) {
+      mean   = strtou32bit(argv[++arg], 0L);
+      stddev = strtou32bit(argv[++arg], 0L);
 
     } else if (strcmp(argv[arg], "-dump") == 0) {
       dumpTagFile(argv[++arg]);
@@ -215,6 +227,7 @@ main(int argc, char **argv) {
   if ((err) || (prefix == 0L)) {
     fprintf(stderr, "usage: %s -tagout prefix  -tags fileUID xx.csfasta xx.qual\n", argv[0]);
     fprintf(stderr, "usage: %s -tagout prefix -ftags fileUID ff.csfasta ff.qual -rtags fileUID rr.csfasta rr.qual\n", argv[0]);
+    fprintf(stderr, "usage: %s -dump file.tapperTags\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "unmated tags will be placed in 'prefix.frag.tapperTags'\n");
     fprintf(stderr, "  mated tags will be placed in 'prefix.mate.tapperTags'\n");
@@ -223,6 +236,7 @@ main(int argc, char **argv) {
 
   u64bit  numTagsF = 0, maxTagsF = 0;
   u64bit  numTagsR = 0, maxTagsR = 0;
+  u64bit  numTagsM = 0;
 
   tapperTag      *TF = 0L;
   tapperTag      *TR = 0L;
@@ -308,42 +322,52 @@ main(int argc, char **argv) {
 
     if (fID == rID) {
       if (TOmate == 0L)
-        TOmate = new tapperTagFile(mateout);
+        TOmate = new tapperTagFile(mateout, 'w');
       TOmate->put(TF + numTagsF, TR + numTagsR);
       numTagsF++;
       numTagsR++;
+      numTagsM++;
       CM->tick();
     } else if (fID < rID) {
       if (TOfrag == 0L)
-        TOfrag = new tapperTagFile(fragout);
+        TOfrag = new tapperTagFile(fragout, 'w');
       TOfrag->put(TF + numTagsF);
       numTagsF++;
       CF->tick();
     } else {
       if (TOfrag == 0L)
-        TOfrag = new tapperTagFile(fragout);
+        TOfrag = new tapperTagFile(fragout, 'w');
       TOfrag->put(TR + numTagsR);
       numTagsR++;
       CF->tick();
     }
+
+    //if (numTagsM >= 100000) {
+    //  fprintf(stderr, "\nQUIT EARLY.\n");
+    //  goto quitEarly;
+    //}
   }
   while (numTagsF < maxTagsF) {
     if (TOfrag == 0L)
-      TOfrag = new tapperTagFile(fragout);
+      TOfrag = new tapperTagFile(fragout, 'w');
     TOfrag->put(TF + numTagsF);
     numTagsF++;
     CF->tick();
   }
   while (numTagsR < maxTagsR) {
     if (TOfrag == 0L)
-      TOfrag = new tapperTagFile(fragout);
+      TOfrag = new tapperTagFile(fragout, 'w');
     TOfrag->put(TR + numTagsR);
     numTagsR++;
     CF->tick();
   }
 
+ quitEarly:
   delete CF;
   delete CM;
+
+  if (TOmate)
+    TOmate->metaData()->setMeanStdDev(mean, stddev);
 
   delete TOmate;
   delete TOfrag;

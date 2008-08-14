@@ -2,8 +2,6 @@
 #include "existDB.H"
 #include "positionDB.H"
 
-#define TAG_LEN_MAX   32
-
 #include "tapperTag.H"
 #include "tapperHit.H"
 #include "tapperGlobalData.H"
@@ -13,11 +11,21 @@
 #define  MIN(x,y)        ((x>y) ? (y):(x))
 #define  MAX(x,y)        ((x<y) ? (y):(x))
 
+#define STOPEARLY
+#ifdef STOPEARLY
+int  onlyDoUpTo = 500000;
+#endif
+
 void*
 tapperReader(void *G) {
   tapperGlobalData  *g = (tapperGlobalData  *)G;
   tapperComputation *s = 0L;
   tapperTag          a, b;
+
+#ifdef STOPEARLY
+  if (onlyDoUpTo-- == 0)
+    return(s);
+#endif
 
   if (g->TF->metaData()->isPairedTagFile()) {
     if (g->TF->get(&a, &b))
@@ -42,55 +50,6 @@ tapperWriter(void *G, void *S) {
   g->outMated->    putRecord( s->resultMated,     s->result._numMated);
   g->outSingleton->putRecord( s->resultSingleton, s->result._numSingleton);
   g->outTangled->  putRecord( s->resultTangled,   s->result._numTangled);
-
-#if 0
-  fprintf(stderr, "----------------------------------------\n");
-  fprintf(stderr, "frag:"u32bitFMT" mate:"u32bitFMT" sing:"u32bitFMT" tang:"u32bitFMT"\n",
-          s->result._numFragment,
-          s->result._numMated,
-          s->result._numSingleton,
-          s->result._numTangled);
-
-  u32bit i = 0;
-  for (; (i<s->tag1hitsLen) && (i<s->tag2hitsLen); i++) {
-    fprintf(stderr, "  0x"u64bitFMT"\t"u32bitFMT":"u32bitFMT":%c\t"u64bitFMT","u64bitFMT","u64bitFMT"\t",
-            s->result._tag1id,
-            s->tag1hits[i]._seqIdx,
-            s->tag1hits[i]._seqPos,
-            s->tag1hits[i]._rev ? '-' : '+',
-            s->tag1hits[i]._basesMismatch,
-            s->tag1hits[i]._colorMismatch,
-            s->tag1hits[i]._colorInconsistent);
-    fprintf(stderr, "0x"u64bitFMT"\t"u32bitFMT":"u32bitFMT":%c\t"u64bitFMT","u64bitFMT","u64bitFMT"\n",
-            s->result._tag2id,
-            s->tag2hits[i]._seqIdx,
-            s->tag2hits[i]._seqPos,
-            s->tag2hits[i]._rev ? '-' : '+',
-            s->tag2hits[i]._basesMismatch,
-            s->tag2hits[i]._colorMismatch,
-            s->tag2hits[i]._colorInconsistent);
-  }
-  for (; i<s->tag1hitsLen; i++) {
-    fprintf(stderr, "  0x"u64bitFMT"\t"u32bitFMT":"u32bitFMT":%c\t"u64bitFMT","u64bitFMT","u64bitFMT"\n",
-            s->result._tag1id,
-            s->tag1hits[i]._seqIdx,
-            s->tag1hits[i]._seqPos,
-            s->tag1hits[i]._rev ? '-' : '+',
-            s->tag1hits[i]._basesMismatch,
-            s->tag1hits[i]._colorMismatch,
-            s->tag1hits[i]._colorInconsistent);
-  }
-  for (; i<s->tag2hitsLen; i++) {
-    fprintf(stderr, "                    \t         \t\t0x"u64bitFMT"\t"u32bitFMT":"u32bitFMT":%c\t"u64bitFMT","u64bitFMT","u64bitFMT"\n",
-            s->result._tag2id,
-            s->tag2hits[i]._seqIdx,
-            s->tag2hits[i]._seqPos,
-            s->tag2hits[i]._rev ? '-' : '+',
-            s->tag2hits[i]._basesMismatch,
-            s->tag2hits[i]._colorMismatch,
-            s->tag2hits[i]._colorInconsistent);
-  }
-#endif
 
   delete s;
 }
@@ -507,8 +466,10 @@ tapperWorker(void *G, void *T, void *S) {
 
   //  Quit if nothing there.
 
-  if (t->posn1fLen + t->posn1rLen + t->posn2fLen + t->posn2rLen == 0)
+  if (t->posn1fLen + t->posn1rLen + t->posn2fLen + t->posn2rLen == 0) {
+    //fprintf(stderr, "NOHITS "u64bitFMT" "u64bitFMT"\n", s->tag1id, s->tag2id);
     return;
+  }
 
   //
   //  Align to reference to get rid of the 3/4 false hits.
@@ -559,8 +520,8 @@ tapperWorker(void *G, void *T, void *S) {
 
     s->result._numFragment  = s->tag1hitsLen;
 
-  //  OUTPUT CASE 3 - unmated fragments (but wrong set)
-  } else if ((s->tag1size > 0) && (s->tag2size == 0)) {
+  //  OUTPUT CASE 3 - unmated fragments (but wrong set, should always be in tag1)
+  } else if ((s->tag1size == 0) && (s->tag2size > 0)) {
     assert(0);
 
   //  OUTPUT CASE 4 - mated fragments
@@ -585,9 +546,6 @@ tapperWorker(void *G, void *T, void *S) {
     u32bit  mean   = g->TF->metaData()->mean();
     u32bit  stddev = g->TF->metaData()->stddev();
 
-    mean   = 3000;
-    stddev = 750;
-
     tapperHit *t1h = s->tag1hits;
     tapperHit *t2h = s->tag2hits;
 
@@ -597,6 +555,9 @@ tapperWorker(void *G, void *T, void *S) {
       t->tag1happies[a] = 0;
     for (u32bit b=0; b<s->tag2hitsLen; b++)
       t->tag2happies[b] = 0;
+
+    //if ((s->tag1hitsLen > 0) && (s->tag2hitsLen > 0))
+    //  fprintf(stderr, "HAPPY CHECK "u64bitFMT" "u64bitFMT"\n", s->tag1id, s->tag2id);
 
     //  Pass one.  Count the number of times each fragment is in a
     //  happy relationship.
@@ -660,39 +621,73 @@ tapperWorker(void *G, void *T, void *S) {
     //
     for (u32bit a=0; a<s->tag1hitsLen; a++) {
       if (t->tag1happies[a] == 0) {
-        tapperResultFragment *f = s->resultFragment + s->result._numFragment;
+        if (s->tag1hits[a].happyNearEnd(true, mean, stddev, g->GS->fasta()->sequenceLength(s->tag1hits[a]._seqIdx))) {
+          tapperResultSingleton *f = s->resultSingleton + s->result._numSingleton;
 
-        f->_seq = s->tag1hits[a]._seqIdx;
-        f->_pos = s->tag1hits[a]._seqPos;
+          f->_seq = s->tag1hits[a]._seqIdx;
+          f->_pos = s->tag1hits[a]._seqPos;
 
-        f->_tag._rank              = s->tag1hits[a]._rank;
-        f->_tag._basesMismatch     = s->tag1hits[a]._basesMismatch;
-        f->_tag._colorMismatch     = s->tag1hits[a]._colorMismatch;
-        f->_tag._colorInconsistent = s->tag1hits[a]._colorInconsistent;
-        f->_tag._tag1              = 1;
-        f->_tag._rev               = s->tag1hits[a]._rev;
-        f->_tag._pad               = 0;
+          f->_tag._rank              = s->tag1hits[a]._rank;
+          f->_tag._basesMismatch     = s->tag1hits[a]._basesMismatch;
+          f->_tag._colorMismatch     = s->tag1hits[a]._colorMismatch;
+          f->_tag._colorInconsistent = s->tag1hits[a]._colorInconsistent;
+          f->_tag._tag1              = 1;
+          f->_tag._rev               = s->tag1hits[a]._rev;
+          f->_tag._pad               = 0;
 
-        s->result._numFragment++;
+          s->result._numSingleton++;
+        } else {
+          tapperResultFragment *f = s->resultFragment + s->result._numFragment;
+
+          f->_seq = s->tag1hits[a]._seqIdx;
+          f->_pos = s->tag1hits[a]._seqPos;
+
+          f->_tag._rank              = s->tag1hits[a]._rank;
+          f->_tag._basesMismatch     = s->tag1hits[a]._basesMismatch;
+          f->_tag._colorMismatch     = s->tag1hits[a]._colorMismatch;
+          f->_tag._colorInconsistent = s->tag1hits[a]._colorInconsistent;
+          f->_tag._tag1              = 1;
+          f->_tag._rev               = s->tag1hits[a]._rev;
+          f->_tag._pad               = 0;
+
+          s->result._numFragment++;
+        }
       }
     }
 
     for (u32bit b=0; b<s->tag2hitsLen; b++) {
       if (t->tag2happies[b] == 0) {
-        tapperResultFragment *f = s->resultFragment + s->result._numFragment;
+        if (s->tag2hits[b].happyNearEnd(false, mean, stddev, g->GS->fasta()->sequenceLength(s->tag2hits[b]._seqIdx))) {
+          tapperResultSingleton *f = s->resultSingleton + s->result._numSingleton;
 
-        f->_seq = s->tag2hits[b]._seqIdx;
-        f->_pos = s->tag2hits[b]._seqPos;
+          f->_seq = s->tag2hits[b]._seqIdx;
+          f->_pos = s->tag2hits[b]._seqPos;
 
-        f->_tag._rank              = s->tag2hits[b]._rank;
-        f->_tag._basesMismatch     = s->tag2hits[b]._basesMismatch;
-        f->_tag._colorMismatch     = s->tag2hits[b]._colorMismatch;
-        f->_tag._colorInconsistent = s->tag2hits[b]._colorInconsistent;
-        f->_tag._tag1              = 0;
-        f->_tag._rev               = s->tag2hits[b]._rev;
-        f->_tag._pad               = 0;
+          f->_tag._rank              = s->tag2hits[b]._rank;
+          f->_tag._basesMismatch     = s->tag2hits[b]._basesMismatch;
+          f->_tag._colorMismatch     = s->tag2hits[b]._colorMismatch;
+          f->_tag._colorInconsistent = s->tag2hits[b]._colorInconsistent;
+          f->_tag._tag1              = 0;
+          f->_tag._rev               = s->tag2hits[b]._rev;
+          f->_tag._pad               = 0;
 
-        s->result._numFragment++;
+          s->result._numSingleton++;
+        } else {
+          tapperResultFragment *f = s->resultFragment + s->result._numFragment;
+
+          f->_seq = s->tag2hits[b]._seqIdx;
+          f->_pos = s->tag2hits[b]._seqPos;
+
+          f->_tag._rank              = s->tag2hits[b]._rank;
+          f->_tag._basesMismatch     = s->tag2hits[b]._basesMismatch;
+          f->_tag._colorMismatch     = s->tag2hits[b]._colorMismatch;
+          f->_tag._colorInconsistent = s->tag2hits[b]._colorInconsistent;
+          f->_tag._tag1              = 0;
+          f->_tag._rev               = s->tag2hits[b]._rev;
+          f->_tag._pad               = 0;
+
+          s->result._numFragment++;
+        }
       }
     }
 
@@ -768,11 +763,8 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strncmp(argv[arg], "-genomic", 2) == 0) {
       g->genName = argv[++arg];
-    } else if (strncmp(argv[arg], "-color", 2) == 0) {
-      g->colName = argv[++arg];
     } else if (strncmp(argv[arg], "-queries", 2) == 0) {
       g->qryName = argv[++arg];
-
     } else if (strncmp(argv[arg], "-prefix", 2) == 0) {
       g->outName = argv[++arg];
 
@@ -793,8 +785,8 @@ main(int argc, char **argv) {
     }
     arg++;
   }
-  if ((err > 0) || (g->genName == 0L) || (g->colName == 0L) || (g->qryName == 0L) || (g->outName == 0L)) {
-    fprintf(stderr, "usage: %s -genomic g.fasta -color tmp.colors -queries q.fasta -prefix output-prefix\n", argv[0]);
+  if ((err > 0) || (g->genName == 0L) || (g->qryName == 0L) || (g->outName == 0L)) {
+    fprintf(stderr, "usage: %s -genomic g.fasta -queries q.fasta -prefix output-prefix\n", argv[0]);
     exit(1);
   }
 

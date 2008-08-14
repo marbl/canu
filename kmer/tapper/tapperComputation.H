@@ -4,6 +4,7 @@
 class tapperComputation {
 public:
   tapperComputation(tapperTag *a, tapperTag *b) {
+    u16bit  id[4];
 
     tag1f.clear();
     tag1r.clear();
@@ -37,7 +38,7 @@ public:
     //  of the time.  Skip it too.
     
     if (a) {
-      tag1id   = a->decode(tag1fseq, tag1fqlt);
+      tag1id   = a->decode(id, tag1fseq, tag1fqlt);
       tag1size = strlen(tag1fseq);
 
       tag1f.setMerSize(tag1size-1); tag1f.setMerSpan(tag1size-1);
@@ -61,7 +62,7 @@ public:
     }
 
     if (b) {
-      tag2id   = b->decode(tag2fseq, tag2fqlt);
+      tag2id   = b->decode(id, tag2fseq, tag2fqlt);
       tag2size = strlen(tag2fseq);
 
       tag2f.setMerSize(tag2size-1); tag2f.setMerSpan(tag2size-1);
