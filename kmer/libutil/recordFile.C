@@ -16,7 +16,7 @@ u64bit   recordFileMagic2 = 0x000000000000656cllu;
 recordFile::recordFile(char const *name,
                        u32bit      headerSize,
                        u32bit      recordSize,
-                       bool        append) {
+                       char        mode) {
 
   _file = 0;
   _name = new char [strlen(name) + 1];
@@ -40,15 +40,22 @@ recordFile::recordFile(char const *name,
   _bfrDirty     = false;
   _isReadOnly   = true;
 
-  //  If the file doesn't exist, we're basically done.  Do that first.
+  if ((mode != 'r') && (mode != 'w') && (mode |= 'a')) {
+    fprintf(stderr, "recordFile::recordFile()--  Invalid mode '%c'.\n", mode);
+    exit(1);
+  }
+
+  //  If the file doesn't exist, or we're opening for write, we're
+  //  basically done.  Do that first.
   //    Write the magic.
   //    Write the metadata.
   //    Write the header.
 
-  if (fileExists(_name) == false) {
+  if (((mode == 'w')) ||
+      ((mode == 'a') && (fileExists(_name) == false))) {
     errno = 0;
     _file = open(_name,
-                 O_RDWR | O_CREAT | O_LARGEFILE,
+                 O_RDWR | O_CREAT | O_TRUNC | O_LARGEFILE,
                  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
     if (errno)
       fprintf(stderr, "recordFile::recordFile()-- failed to open '%s': %s\n",
@@ -72,16 +79,7 @@ recordFile::recordFile(char const *name,
   //  File does exist.  If we're not appending, open it read-only.
   //  Otherwise, open read-write.
 
-  if (append) {
-    errno = 0;
-    _file = open(_name,
-                 O_RDWR | O_LARGEFILE,
-                 S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-    if (errno)
-      fprintf(stderr, "recordFile::recordFile()-- failed to open for append '%s': %s\n",
-              _name, strerror(errno)), exit(1);
-    _isReadOnly = false;
-  } else {
+  if (mode == 'r') {
     errno = 0;
     _file = open(_name,
                  O_RDONLY | O_LARGEFILE,
@@ -90,6 +88,15 @@ recordFile::recordFile(char const *name,
       fprintf(stderr, "recordFile::recordFile()-- failed to open '%s': %s\n",
               _name, strerror(errno)), exit(1);
     _isReadOnly = true;
+  } else {
+    errno = 0;
+    _file = open(_name,
+                 O_RDWR | O_LARGEFILE,
+                 S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    if (errno)
+      fprintf(stderr, "recordFile::recordFile()-- failed to open for write '%s': %s\n",
+              _name, strerror(errno)), exit(1);
+    _isReadOnly = false;
   }
 
   //  Read the magic, metadata and header.
@@ -115,30 +122,40 @@ recordFile::recordFile(char const *name,
               _name), exit(1);
   }
 
-  _pos = ~u64bitZERO;  //  Force the first seek to load (so does the true below)
+  if (mode == 'a') {
+    _pos = _numRecords;
+    _rec = 0;
 
-  seek(0, true);
+    errno = 0;
+    lseek(_file, 0, SEEK_END);
+    if (errno)
+      fprintf(stderr, "recordFile::recordFile()-- seek to end of '%s' failed: %s\n", _name, strerror(errno)), exit(1);
+  } else {
+    seek(0, true);
+  }
 }
 
 
 recordFile::~recordFile() {
   flushDirty();
 
-  errno = 0;
-  lseek(_file, 0, SEEK_SET);
-  if (errno)
-    fprintf(stderr, "recordFile::~recordFile()-- seek to start of '%s' failed: %s\n", _name, strerror(errno)), exit(1);
+  if (_isReadOnly == false) {
+    errno = 0;
+    lseek(_file, 0, SEEK_SET);
+    if (errno)
+      fprintf(stderr, "recordFile::~recordFile()-- seek to start of '%s' failed: %s\n", _name, strerror(errno)), exit(1);
 
-  write(_file, &recordFileMagic1,  sizeof(u64bit));
-  write(_file, &recordFileMagic2,  sizeof(u64bit));
-  write(_file, &_numRecords,       sizeof(u64bit));
-  write(_file, &_recordSize,       sizeof(u32bit));
-  write(_file, &_headerSize,       sizeof(u32bit));
-  write(_file,  _header,           sizeof(char) * _headerSize);
+    write(_file, &recordFileMagic1,  sizeof(u64bit));
+    write(_file, &recordFileMagic2,  sizeof(u64bit));
+    write(_file, &_numRecords,       sizeof(u64bit));
+    write(_file, &_recordSize,       sizeof(u32bit));
+    write(_file, &_headerSize,       sizeof(u32bit));
+    write(_file,  _header,           sizeof(char) * _headerSize);
 
-  if (errno)
-    fprintf(stderr, "recordFile::~recordFile()-- failed to write header to '%s': %s\n",
-            _name, strerror(errno)), exit(1);
+    if (errno)
+      fprintf(stderr, "recordFile::~recordFile()-- failed to write header to '%s': %s\n",
+              _name, strerror(errno)), exit(1);
+  }
 
   close(_file);
 
@@ -204,12 +221,12 @@ recordFile::seek(u64bit rec, bool forced) {
   errno = 0;
   lseek(_file, 32 + _headerSize + _pos * _recordSize, SEEK_SET);
   if (errno)
-    fprintf(stderr, "recordFile::seekNormal() '%s' seek to record="u64bitFMT" at fileposition="u64bitFMT" failed: %s\n",
+    fprintf(stderr, "recordFile::seek() '%s' seek to record="u64bitFMT" at fileposition="u64bitFMT" failed: %s\n",
             _name, _pos, _headerSize + _pos * _recordSize, strerror(errno)), exit(1);
 
   errno = 0;
   read(_file, _bfr, _recordSize * _bfrmax);
   if (errno)
-    fprintf(stderr, "recordFile::seekNormal() '%s' read of "u64bitFMT" bytes failed at record "u64bitFMT", fileposition "u64bitFMT"': %s\n",
+    fprintf(stderr, "recordFile::seek() '%s' read of "u64bitFMT" bytes failed at record "u64bitFMT", fileposition "u64bitFMT"': %s\n",
             _name, _recordSize * _bfrmax, _pos, _headerSize + _pos * _recordSize, strerror(errno)), exit(1);
 }
