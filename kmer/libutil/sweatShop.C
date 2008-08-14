@@ -236,7 +236,7 @@ sweatShop::loader(void) {
 void*
 sweatShop::worker(sweatShopWorker *workerData) {
 
-  fprintf(stderr, "Worker %d! (userData=%p)\n", workerData->threadID, workerData->threadUserData);
+  //fprintf(stderr, "Worker %d! (userData=%p)\n", workerData->threadID, workerData->threadUserData);
 
   struct timespec   naptime;
   naptime.tv_sec      = 0;
