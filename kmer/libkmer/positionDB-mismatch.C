@@ -269,7 +269,7 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed, u64bit approxMers) {
   delete [] _hashedErrors;
 
   _hashedErrorsLen = stringsLen;
-  _hashedErrorsMax = stringsMax;
+  _hashedErrorsMax = stringsLen;
   _hashedErrors    = new u64bit [_hashedErrorsLen];
 
   memcpy(_hashedErrors, strings, sizeof(u64bit) * _hashedErrorsLen);
@@ -278,10 +278,10 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed, u64bit approxMers) {
 
   double work = 2.0 * _hashedErrorsLen + (double)_hashedErrorsLen * approxMers / _tableSizeInEntries;
 
-  fprintf(stderr, "Built "u32bitFMT" hashed errors at tableSize "u32bitFMT" (work=%f.0).\n",
-          _hashedErrorsLen,
-          _tableSizeInBits,
-          work);
+  //fprintf(stderr, "Built "u32bitFMT" hashed errors at tableSize "u32bitFMT" (work=%f.0).\n",
+  //        _hashedErrorsLen,
+  //        _tableSizeInBits,
+  //        work);
 
   //for (u32bit i=0; i<_hashedErrorsLen; i++)
   //  fprintf(stderr, "he["u32bitFMTW(5)"] = "u64bitHEX"\n", i, _hashedErrors[i]);

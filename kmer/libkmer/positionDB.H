@@ -46,6 +46,7 @@ public:
              u32bit             minCount,
              u32bit             maxCount,
              u32bit             maxMismatch,
+             u32bit             maxMemory,
              bool               beVerbose);
 
   ~positionDB();

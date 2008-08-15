@@ -774,6 +774,9 @@ main(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-maxbaseerror", 5) == 0) {
       g->maxBaseError = strtou32bit(argv[++arg], 0L);
 
+    } else if (strncmp(argv[arg], "-maxmemory", 5) == 0) {
+      g->maxMemory = atoi(argv[++arg]);
+
     } else if (strncmp(argv[arg], "-numthreads", 2) == 0) {
       g->numThreads = atoi(argv[++arg]);
 
@@ -786,7 +789,20 @@ main(int argc, char **argv) {
     arg++;
   }
   if ((err > 0) || (g->genName == 0L) || (g->qryName == 0L) || (g->outName == 0L)) {
-    fprintf(stderr, "usage: %s -genomic g.fasta -queries q.fasta -prefix output-prefix\n", argv[0]);
+    fprintf(stderr, "usage: %s [opts]\n", argv[0]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  MANDATORY\n");
+    fprintf(stderr, "          -genomic genomic.fasta\n");
+    fprintf(stderr, "          -queries tags.tapperTags\n");
+    fprintf(stderr, "          -prefix  output-prefix\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  OPTIONAL\n");
+    fprintf(stderr, "          -maxcolorerror  n\n");
+    fprintf(stderr, "          -maxbaseerror   n\n");
+    fprintf(stderr, "          -maxmemory      m (MB)\n");
+    fprintf(stderr, "          -numthreads     n\n");
+    fprintf(stderr, "          -verbose\n");
+            
     exit(1);
   }
 

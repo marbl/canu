@@ -22,6 +22,7 @@ public:
   recordFile       *outSingleton;
   recordFile       *outTangled;
 
+  u32bit            maxMemory;
   u32bit            numThreads;
   bool              beVerbose;
 
@@ -54,6 +55,7 @@ tapperGlobalData::tapperGlobalData() {
   outSingleton = 0L;
   outTangled   = 0L;
 
+  maxMemory  = 0;
   numThreads = 2;
   beVerbose  = false;
 
@@ -115,7 +117,7 @@ tapperGlobalData::initialize(void) {
     PS = new positionDB(colName);
   } else {
     fprintf(stderr, "Building positionDB\n");
-    PS = new positionDB(MS, tagSize, 0, 0L, 0L, 0L, 0, 0, maxColorError, beVerbose);
+    PS = new positionDB(MS, tagSize, 0, 0L, 0L, 0L, 0, 0, maxColorError, maxMemory, beVerbose);
 
     PS->saveState(colName);
   }

@@ -45,6 +45,7 @@ positionDB::positionDB(merStream          *MS,
                        u32bit              minCount,
                        u32bit              maxCount,
                        u32bit              maxMismatch,
+                       u32bit              maxMemory,
                        bool                beVerbose) {
 
   memset(this, 0, sizeof(positionDB));
@@ -102,69 +103,72 @@ positionDB::positionDB(merStream          *MS,
   //  smallest expected footprint.
   //
   {
-    u64bit  mini = 0;      //  tblSize of the smallest found
-    u64bit  mins = ~mini;  //  memory size of the smallest found (~mini == biggest int)
-    u64bit  one  = 1;
 
-    double  workMin   = 0;
-    double  work      = 0;
-    u32bit  tsBitsMin = 0;
+    if (beVerbose) {
+      fprintf(stderr, "potential configurations for approximately "u64bitFMT" "u32bitFMT"-mers (posnW="u64bitFMT").\n",
+              approxMers, merSize, posnWidth);
+    }
+
+    u64bit  mini = 0;      //  tblSize of the smallest found
+    u64bit  minm = ~mini;  //  memory size of the smallest found
+    double  minw = 0.0;    //  work of the smallest found
+
+    u64bit  memory    = 0;
+    double  effort    = 0;
+
+    if (maxMemory == 0)
+      maxMemory = ~u32bitZERO;
 
     for (u64bit i=sm; i<=lg; i++) {
-      u64bit  mm = (one << i) * posnWidth + approxMers * (2*merSize - i + 1 + posnWidth);
 
-      if (mm < mins) {
-        mini = i;
-        mins = mm;
-      }
+      //  These are only needed if maxMismatch is set, but it's
+      //  simpler to always set.
+      //
+      _merSizeInBases        = merSize;
+      _merSizeInBits         = 2 * _merSizeInBases;
+      _merSkipInBases        = merSkip;
+      _tableSizeInBits       = i;
+      _tableSizeInEntries    = u64bitONE << _tableSizeInBits;
+      _hashWidth             = u32bitZERO;
+      _hashMask              = u64bitMASK(_tableSizeInBits);
+      _chckWidth             = _merSizeInBits - _tableSizeInBits;
+      _posnWidth             = u64bitZERO;
+      _sizeWidth             = 0;
+
+      _shift1                = _merSizeInBits - _tableSizeInBits;
+      _shift2                = _shift1 / 2;
+      _mask1                 = u64bitMASK(_tableSizeInBits);
+      _mask2                 = u64bitMASK(_shift1);
+
+      //  Everyone wants to know the memory size (in MB).
+      //
+      memory = ((u64bitONE << i) * posnWidth + approxMers * (2*merSize - i + 1 + posnWidth)) >> 23;
 
       //  If we know we're looking for mismatches, we compute the amount
       //  of work needed per lookup, and use that, instead of strict
       //  memory sizing, to deicde the table size.
       //
-      if (maxMismatch > 0) {
-        _merSizeInBases        = merSize;
-        _merSizeInBits         = 2 * _merSizeInBases;
-        _merSkipInBases        = merSkip;
-        _tableSizeInBits       = i;
-        _tableSizeInEntries    = u64bitONE << _tableSizeInBits;
-        _hashWidth             = u32bitZERO;
-        _hashMask              = u64bitMASK(_tableSizeInBits);
-        _chckWidth             = _merSizeInBits - _tableSizeInBits;
-        _posnWidth             = u64bitZERO;
-        _sizeWidth             = 0;
+      if (maxMismatch > 0)
+        effort = setUpMismatchMatcher(maxMismatch, approxMers);
 
-        _shift1                = _merSizeInBits - _tableSizeInBits;
-        _shift2                = _shift1 / 2;
-        _mask1                 = u64bitMASK(_tableSizeInBits);
-        _mask2                 = u64bitMASK(_shift1);
+      //  If our memory size is smaller than allowed, AND it's the
+      //  smallest, or the work is smaller, save the table size.
+      //
+      if ((memory < maxMemory) &&
+          ((memory < minm) ||
+           (effort < minw))) {
+        mini = i;
+        minm = memory;
+        minw = effort;
+      }
 
-        if (beVerbose) {
-          u32bit s1 = 2*merSize-i;
-          fprintf(stderr, "tblBits="u64bitFMT" s1="u32bitFMT" s2="u32bitFMT" -- ms="u32bitFMT" posnW="u64bitFMT" (est "u64bitFMT" mers) -- size "u64bitFMT" ",
-                  i, s1, s1/2, merSize, posnWidth, approxMers, mm);
-        }
-
-        work = setUpMismatchMatcher(maxMismatch, approxMers);
-
-        if ((work < workMin) || (tsBitsMin == 0)) {
-          workMin    = work;
-          tsBitsMin  = _tableSizeInBits;
-        }
-      } else {
-        if (beVerbose) {
-          u32bit s1 = 2*merSize-i;
-          fprintf(stderr, "tblBits="u64bitFMT" s1="u32bitFMT" s2="u32bitFMT" -- merSize="u32bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT"\n",
-                  i, s1, s1/2, merSize, posnWidth, approxMers, mm);
-        }
+      if (beVerbose) {
+        fprintf(stderr, "tblBits="u64bitFMTW(2)" shifts="u32bitFMTW(02)","u32bitFMTW(02)" -- size %8.3fGB -- work %8.3f%s\n",
+                i, _shift1, _shift2, memory / 1024.0, effort, (mini == i) ? " ***" : "");
       }
     }
 
-    if (maxMismatch > 0) {
-      _tableSizeInBits = tsBitsMin;
-    } else {
-      _tableSizeInBits = mini;
-    }
+    _tableSizeInBits = mini;
   }
 
 

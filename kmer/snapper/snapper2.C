@@ -330,6 +330,7 @@ main(int argc, char **argv) {
                                0,
                                config._ignoreThreshold,
                                0,
+                               0,
                                config._beVerbose);
 
     delete    MS;
