@@ -8,9 +8,6 @@
 #include "tapperThreadData.H"
 #include "tapperComputation.H"
 
-#define  MIN(x,y)        ((x>y) ? (y):(x))
-#define  MAX(x,y)        ((x<y) ? (y):(x))
-
 #define STOPEARLY
 #ifdef STOPEARLY
 int  onlyDoUpTo = 500000;
@@ -529,13 +526,13 @@ tapperWorker(void *G, void *T, void *S) {
     if (t->tangle == 0L)
       t->tangle = new intervalList [g->GS->fasta()->getNumberOfSequences()];
 
-    if ((t->numHappiesMax < s->tag1size) || (t->numHappiesMax < s->tag2size)) {
+    if ((t->numHappiesMax < s->tag1hitsLen) || (t->numHappiesMax < s->tag2hitsLen)) {
       delete [] t->tag1happies;
       delete [] t->tag1mate;
       delete [] t->tag2happies;
       delete [] t->tag2mate;
 
-      t->numHappiesMax = MAX(s->tag1size, s->tag2size) + 16 * 1024;
+      t->numHappiesMax = MAX(s->tag1hitsLen, s->tag2hitsLen) + 16 * 1024;
 
       t->tag1happies = new u32bit [t->numHappiesMax];
       t->tag1mate    = new u32bit [t->numHappiesMax];

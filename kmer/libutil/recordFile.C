@@ -30,7 +30,7 @@ recordFile::recordFile(char const *name,
 
   memset(_header, 0, sizeof(char) * _headerSize);
 
-  _bfrmax       = 1048576 / _recordSize;
+  _bfrmax       = MAX(1048576 / _recordSize, 16);
   _bfr          = new char [_bfrmax * _recordSize];
   _pos          = u64bitZERO;
   _rec          = 0;

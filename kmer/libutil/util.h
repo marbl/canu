@@ -414,6 +414,15 @@ qsort_mt(void *a,
 #endif
 
 
+#ifndef MIN
+#define  MIN(x,y)        (((x) > (y)) ? (y) : (x))
+#endif
+
+#ifndef MAX
+#define  MAX(x,y)        (((x) < (y)) ? (y) : (x))
+#endif
+
+
 #ifdef __cplusplus
 }
 #endif

@@ -70,12 +70,6 @@ positionDB::saveState(char const *filename) {
   _positions       = ps;
   _hashedErrors    = he;
 
-#if 0
-  fprintf(stderr, "hash: %d\n", sizeof(u64bit) * (_tableSizeInEntries * _hashWidth / 64 + 1));
-  fprintf(stderr, "buck: %d\n", sizeof(u64bit) * (_numberOfDistinct   * _wFin      / 64 + 1));
-  fprintf(stderr, "posn: %d\n", sizeof(u64bit) * (_numberOfEntries    * _posnWidth / 64 + 1));
-#endif
-
   safeWrite(F, _hashTable,    "_hashTable",    sizeof(u64bit) * (_tableSizeInEntries * _hashWidth / 64 + 1));
   safeWrite(F, _buckets,      "_buckets",      sizeof(u64bit) * (_numberOfDistinct   * _wFin      / 64 + 1));
   safeWrite(F, _positions,    "_positions",    sizeof(u64bit) * (_numberOfEntries    * _posnWidth / 64 + 1));
@@ -149,10 +143,12 @@ positionDB::loadState(char const *filename, bool beNoisy, bool loadData) {
 
   safeRead(F, this, "positionDB", sizeof(positionDB) * 1);
 
+  _bucketSizes     = 0L;
+  _countingBuckets = 0L;
   _hashTable       = 0L;
   _buckets         = 0L;
   _positions       = 0L;
-  _hashedErrorsLen = 0L;
+  _hashedErrors    = 0L;
 
   if (loadData) {
     u64bit  hs = _tableSizeInEntries * _hashWidth / 64 + 1;
