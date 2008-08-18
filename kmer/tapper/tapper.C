@@ -380,6 +380,9 @@ tapperHit::alignToReference(tapperGlobalData *g,
     //  Adjust the error positions...once we start caring about positions.
   }
 
+  //fprintf(stderr, "tag: %s %s ref: %s %s "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+  //        tag_in, _tagCOLOR, _refCOLOR, _refACGT, _basesMismatch, _colorMismatch, _colorInconsistent);
+
   return;
 }
 
@@ -446,8 +449,21 @@ tapperWorker(void *G, void *T, void *S) {
   tapperComputation *s = (tapperComputation *)S;
 
   //
+  //  Erase ourself.
+  //
+
+  s->result._numFragment  = 0;
+  s->result._numMated     = 0;
+  s->result._numSingleton = 0;
+  s->result._numTangled   = 0;
+
+  //
   //  Get the hits.
   //
+
+#ifdef VERBOSEWORKER
+  fprintf(stderr, "GET HITS %s %s.\n", s->tag1fseq, s->tag2fseq);
+#endif
 
   t->posn1fLen = t->posn1rLen = t->posn2fLen = t->posn2rLen = 0;
 
@@ -463,14 +479,21 @@ tapperWorker(void *G, void *T, void *S) {
 
   //  Quit if nothing there.
 
-  if (t->posn1fLen + t->posn1rLen + t->posn2fLen + t->posn2rLen == 0) {
-    //fprintf(stderr, "NOHITS "u64bitFMT" "u64bitFMT"\n", s->tag1id, s->tag2id);
+  if (t->posn1fLen + t->posn1rLen + t->posn2fLen + t->posn2rLen == 0)
     return;
-  }
+
+#ifdef VERBOSEWORKER
+  fprintf(stderr, " raw hits: "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+          t->posn1fLen, t->posn1rLen, t->posn2fLen, t->posn2rLen);
+#endif
 
   //
   //  Align to reference to get rid of the 3/4 false hits.
   //
+
+#ifdef VERBOSEWORKER
+  fprintf(stderr, "ALIGN TO REFERENCE.\n");
+#endif
 
   tapperWorker_addHits(t->posn1f, t->posn1fLen, g, s, false, true);
   tapperWorker_addHits(t->posn1r, t->posn1rLen, g, s, true,  true);
@@ -478,27 +501,38 @@ tapperWorker(void *G, void *T, void *S) {
   tapperWorker_addHits(t->posn2f, t->posn2fLen, g, s, false, false);
   tapperWorker_addHits(t->posn2r, t->posn2rLen, g, s, true,  false);
 
+  //  Quit if nothing there.
+
+  if (s->tag1hitsLen + s->tag2hitsLen == 0)
+    return;
+
   //
   //  Sort the hits by score.  Give everything a ranking.
   //
 
-  s->sortAndScoreHits();
+  //fprintf(stderr, "SORT AND SCORE.\n");
+  //s->sortAndScoreHits();
+
+#ifdef VERBOSEWORKER
+  fprintf(stderr, "SORT BY POSITION "u32bitFMT" "u32bitFMT"\n", s->tag1hitsLen, s->tag2hitsLen);
+#endif
+
+  s->sortHitsByPosition();
 
   //
   //  If mated, tease out any valid mate relationships and build the
   //  results.  If fragment, just build.
   //
 
-  s->result._numFragment  = 0;
-  s->result._numMated     = 0;
-  s->result._numSingleton = 0;
-  s->result._numTangled   = 0;
+#ifdef VERBOSEWORKER
+  fprintf(stderr, "REPORT.\n");
+#endif
 
   //  OUTPUT CASE 1 - nothing.
   if ((s->tag1size == 0) && (s->tag2size == 0)) {
     assert(0);
 
-  //  OUTPUT CASE 2 - unmated fragments
+    //  OUTPUT CASE 2 - unmated fragments
   } else if ((s->tag1size > 0) && (s->tag2size == 0)) {
     s->resultFragment = new tapperResultFragment [s->tag1hitsLen];
 
@@ -517,11 +551,11 @@ tapperWorker(void *G, void *T, void *S) {
 
     s->result._numFragment  = s->tag1hitsLen;
 
-  //  OUTPUT CASE 3 - unmated fragments (but wrong set, should always be in tag1)
+    //  OUTPUT CASE 3 - unmated fragments (but wrong set, should always be in tag1)
   } else if ((s->tag1size == 0) && (s->tag2size > 0)) {
     assert(0);
 
-  //  OUTPUT CASE 4 - mated fragments
+    //  OUTPUT CASE 4 - mated fragments
   } else if ((s->tag1size > 0) && (s->tag2size > 0)) {
     if (t->tangle == 0L)
       t->tangle = new intervalList [g->GS->fasta()->getNumberOfSequences()];
@@ -540,6 +574,13 @@ tapperWorker(void *G, void *T, void *S) {
       t->tag2mate    = new u32bit [t->numHappiesMax];
     }
 
+#ifdef VERBOSEWORKER
+    fprintf(stderr, "  Found "u32bitFMT" and "u32bitFMT" hits.\n", s->tag1hitsLen, s->tag2hitsLen);
+#endif
+
+    //  Sort by position.
+    //s->sortHitsByPosition();
+
     u32bit  mean   = g->TF->metaData()->mean();
     u32bit  stddev = g->TF->metaData()->stddev();
 
@@ -553,55 +594,81 @@ tapperWorker(void *G, void *T, void *S) {
     for (u32bit b=0; b<s->tag2hitsLen; b++)
       t->tag2happies[b] = 0;
 
-    //if ((s->tag1hitsLen > 0) && (s->tag2hitsLen > 0))
-    //  fprintf(stderr, "HAPPY CHECK "u64bitFMT" "u64bitFMT"\n", s->tag1id, s->tag2id);
-
     //  Pass one.  Count the number of times each fragment is in a
     //  happy relationship.
     //
-    for (u32bit a=0; a<s->tag1hitsLen; a++) {
-      for (u32bit b=0; b<s->tag2hitsLen; b++) {
-        if (t1h[a].happy(t2h[b], mean, stddev)) {
+    {
+      u32bit  bbaserev = 0;
+      u32bit  bbasefor = 0;
 
-          //  Count.
-          t->tag1happies[a]++;
-          t->tag2happies[b]++;
+      for (u32bit a=0; a<s->tag1hitsLen; a++) {
 
-          //  Add the previous mate pair if we just became tangled.
-          //  It is possible for both to be == 2, but in that case,
-          //  we've already added the previous mate pair.
-          if ((t->tag1happies[a] == 2) && (t->tag2happies[b] == 1)) {
-            u32bit c  = t->tag1mate[a];
-            u32bit mn = MIN(t1h[a]._seqPos,               t2h[c]._seqPos);
-            u32bit mx = MAX(t1h[a]._seqPos + s->tag1size, t2h[c]._seqPos + s->tag2size);
+        //  Both lists of hits are sorted by position.  For each tag1 (a)
+        //  hit, we first advance the bbase to the first hit that is
+        //  within the proper distance before the a tag.  Then scan forward
+        //  until the b tag is too far away to be mated.
 
-            t->tangle[t1h[a]._seqIdx].add(mn, mx-mn);
+        u32bit b = 0;
+
+        if (t1h[a]._rev == true) {
+          while ((bbaserev < s->tag2hitsLen) && (t2h[bbaserev].isBefore(t1h[a], mean, stddev)))
+            bbaserev++;
+          b = bbaserev;
+        } else {
+          while ((bbasefor < s->tag2hitsLen) && (t2h[bbasefor].isBefore(t1h[a], mean, stddev)))
+            bbasefor++;
+          b = bbasefor;
+        }
+
+        //  Now, until the b read is too far away to be mated, check
+        //  for happiness and do stuff.
+
+        for (; (b<s->tag2hitsLen) && (t2h[b].isAfter(t1h[a], mean, stddev) == false); b++) {
+          if (t1h[a].happy(t2h[b], mean, stddev)) {
+
+            //  Count.
+            t->tag1happies[a]++;
+            t->tag2happies[b]++;
+
+            //  Add the previous mate pair if we just became tangled.
+            //  It is possible for both to be == 2, but in that case,
+            //  we've already added the previous mate pair.
+            if ((t->tag1happies[a] == 2) && (t->tag2happies[b] == 1)) {
+              u32bit c  = t->tag1mate[a];
+              u32bit mn = MIN(t1h[a]._seqPos,               t2h[c]._seqPos);
+              u32bit mx = MAX(t1h[a]._seqPos + s->tag1size, t2h[c]._seqPos + s->tag2size);
+
+              t->tangle[t1h[a]._seqIdx].add(mn, mx-mn);
+            }
+
+            if ((t->tag1happies[a] == 1) && (t->tag2happies[b] == 2)) {
+              u32bit c  = t->tag2mate[b];
+              u32bit mn = MIN(t1h[c]._seqPos,               t2h[b]._seqPos);
+              u32bit mx = MAX(t1h[c]._seqPos + s->tag1size, t2h[b]._seqPos + s->tag2size);
+
+              t->tangle[t1h[c]._seqIdx].add(mn, mx-mn);
+            }
+
+            //  Finally, add the current mate pair to the tangle.
+            if ((t->tag1happies[a] >= 2) || (t->tag2happies[b] >= 2)) {
+              u32bit mn = MIN(t1h[a]._seqPos,               t2h[b]._seqPos);
+              u32bit mx = MAX(t1h[a]._seqPos + s->tag1size, t2h[b]._seqPos + s->tag2size);
+
+              t->tangle[t1h[a]._seqIdx].add(mn, mx-mn);
+            }
+
+            //  Remember the mate; only valid if tag1happies[a] and
+            //  tag2happies[b] both == 1.
+            t->tag1mate[a] = b;
+            t->tag2mate[b] = a;
           }
-
-          if ((t->tag1happies[a] == 1) && (t->tag2happies[b] == 2)) {
-            u32bit c  = t->tag2mate[b];
-            u32bit mn = MIN(t1h[c]._seqPos,               t2h[b]._seqPos);
-            u32bit mx = MAX(t1h[c]._seqPos + s->tag1size, t2h[b]._seqPos + s->tag2size);
-
-            t->tangle[t1h[c]._seqIdx].add(mn, mx-mn);
-          }
-
-          //  Finally, add the current mate pair to the tangle.
-          if ((t->tag1happies[a] >= 2) || (t->tag2happies[b] >= 2)) {
-            u32bit mn = MIN(t1h[a]._seqPos,               t2h[b]._seqPos);
-            u32bit mx = MAX(t1h[a]._seqPos + s->tag1size, t2h[b]._seqPos + s->tag2size);
-
-            t->tangle[t1h[a]._seqIdx].add(mn, mx-mn);
-          }
-
-          //  Remember the mate; only valid if tag1happies[a] and
-          //  tag2happies[b] both == 1.
-          t->tag1mate[a] = b;
-          t->tag2mate[b] = a;
         }
       }
     }
 
+#ifdef VERBOSEWORKER
+    fprintf(stderr, "  Paired.\n");
+#endif
 
     //  Allocate space for the outputs.  We can kind of guess how much
     //  to grab.  Not perfect.  Can do a lot better.
@@ -717,31 +784,41 @@ tapperWorker(void *G, void *T, void *S) {
         m->_tag2._rev               = s->tag2hits[b]._rev;
         m->_tag2._pad               = 0;
 
+#ifdef VERBOSEWORKER
+        fprintf(stderr, " mate "u32bitFMT"-"u32bitFMT"\n", m->_pos1, m->_pos2);
+#endif
+
         s->result._numMated++;
       }
     }
 
-    //  Pass three.  Emit the tangles.
+    //  Pass three.  Emit and then clear the tangles.
     //
-    for (u32bit a=0; a<s->tag1hitsLen; a++) {
-      u32bit si = t1h[a]._seqIdx;
+    {
+      u32bit simax = g->GS->fasta()->getNumberOfSequences();
 
-      for (u32bit ti=0; ti<t->tangle[si].numberOfIntervals(); ti++) {
-        tapperResultTangled   *x = s->resultTangled + s->result._numTangled;
+      for (u32bit si=0; si<simax; si++) {
 
-        t->tangle[si].merge();
+        if (t->tangle[si].numberOfIntervals() > 0) {
+          t->tangle[si].merge();
 
-        x->_tag1count = 0;
-        x->_tag2count = 0;
+          for (u32bit ti=0; ti<t->tangle[si].numberOfIntervals(); ti++) {
+            tapperResultTangled   *x = s->resultTangled + s->result._numTangled;
 
-        x->_seq = s->tag1hits[a]._seqIdx;
+            x->_tag1count = 0;
+            x->_tag2count = 0;
 
-        x->_bgn = t->tangle[si].lo(ti);
-        x->_end = t->tangle[si].hi(ti);
+            x->_seq = si;
 
-        t->tangle[si].clear();
+            x->_bgn = t->tangle[si].lo(ti);
+            x->_end = t->tangle[si].hi(ti);
 
-        s->result._numTangled++;
+            s->result._numTangled++;
+          }
+
+          //  This is persistent; clear it for the next mate pair.
+          t->tangle[si].clear();
+        }
       }
     }
   }
@@ -752,8 +829,6 @@ tapperWorker(void *G, void *T, void *S) {
 int
 main(int argc, char **argv) {
   tapperGlobalData  *g = new tapperGlobalData();
-
-  fprintf(stderr, "tapperHit: %d bytes\n", (int)sizeof(tapperHit));
 
   int arg=1;
   int err=0;
@@ -807,8 +882,8 @@ main(int argc, char **argv) {
 
   sweatShop *ss = new sweatShop(tapperReader, tapperWorker, tapperWriter);
 
-  ss->loaderQueueSize(65536);
-  ss->writerQueueSize(16384);
+  ss->loaderQueueSize(20000);
+  ss->writerQueueSize(10000);
 
   ss->numberOfWorkers(g->numThreads);
 

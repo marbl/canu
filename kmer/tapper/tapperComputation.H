@@ -154,6 +154,12 @@ public:
       tag2hits[i]._rank = (i < 65536) ? i : 65535;
   };
 
+  void sortHitsByPosition(void) {
+    tapperHitPositionCompare pc;
+    std::sort(tag1hits, tag1hits+tag1hitsLen, pc);
+    std::sort(tag2hits, tag2hits+tag2hitsLen, pc);
+  };
+  
 public:
   kMer        tag1f, tag1r;
   kMer        tag2f, tag2r;

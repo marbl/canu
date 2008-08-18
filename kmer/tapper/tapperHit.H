@@ -1,5 +1,6 @@
 #include "alphabet.h"
 
+#include <functional>
 
 //  Tapper generates four kinds of alignments.
 //
@@ -92,9 +93,9 @@ class tapperGlobalData;
 //
 class tapperHit {
 public:
-  u32bit    numberOfBaseMismatches(void)        { return(_basesMismatch); };
-  u32bit    numberOfColorMismatches(void)       { return(_colorMismatch); };
-  u32bit    numberOfColorInconsistencies(void)  { return(_colorMismatch); };
+  u32bit    numberOfBaseMismatches(void)        { return(_basesMismatch);     };
+  u32bit    numberOfColorMismatches(void)       { return(_colorMismatch);     };
+  u32bit    numberOfColorInconsistencies(void)  { return(_colorInconsistent); };
 
 
   char *printHit(char *OS, u64bit tagid) {
@@ -144,17 +145,91 @@ public:
   };
 
 
+  //  Returns true if the B read is before where our mate relationship
+  //  says it should be.  Returns true for reads of the incorrect
+  //  orientation.
+  //
+  bool   isBefore(tapperHit& b, u32bit mean, u32bit stddev) {
+
+    //  B is on the sequence after us.
+    if (_seqIdx < b._seqIdx)
+      return(false);
+
+    //  B is on the sequence before us.
+    if (b._seqIdx < _seqIdx)
+      return(true);
+
+    //  Misoriented, true
+    if (_rev != b._rev)
+      return(true);
+
+    //        -A->      (  -B->  )
+    //  -----------------------------------
+    //  TTTTTTTTTTTTTTTTfffffffffffffffffff
+    //  
+    if ((_rev == false) && (b._seqPos < _seqPos + mean - 3 * stddev))
+      return(true);
+
+    //     (  <-B-  )      <-A-
+    //  -----------------------------------
+    //  TTTffffffffffffffffffffffffffffffff
+    //  
+    if ((_rev == true)  && (b._seqPos + mean + 3 * stddev < _seqPos))
+      return(true);
+
+    return(false);
+  }
+
+
+  //  Returns true if the B read is after where our mate relationship
+  //  says it should be.  Returns true for reads of the incorrect
+  //  orientation.
+  //
+  bool   isAfter(tapperHit& b, u32bit mean, u32bit stddev) {
+
+    //  B is on the sequence after us, true.
+    if (_seqIdx < b._seqIdx)
+      return(true);
+
+    //  B is on the sequence before us, false.
+    if (b._seqIdx < _seqIdx)
+      return(false);
+
+    //  Misoriented, true
+    if (_rev != b._rev)
+      return(true);
+
+    //        -A->      (  -B->  )
+    //  -----------------------------------
+    //  ffffffffffffffffffffffffffTTTTTTTTT
+    //  
+    if ((_rev == false) && (b._seqPos < _seqPos + mean + 3 * stddev))
+      return(false);
+
+    //     (  <-B-  )      <-A-
+    //  -----------------------------------
+    //  fffffffffffffTTTTTTTTTTTTTTTTTTTTTT
+    //  
+    if ((_rev == true)  && (b._seqPos + mean - 3 * stddev < _seqPos))
+      return(false);
+
+    return(true);
+  }
+
+
+
   //  Assumes we're called on the F read, and b == the R read.
   //
   bool   happy(tapperHit& b, u32bit mean, u32bit stddev) {
-    u64bit  dist    = ~u64bitZERO;
-    bool    happy   = false;
-    bool    orient  = false;
+    u64bit  dist        = ~u64bitZERO;
+    bool    isHappy     = false;
+    bool    isOriented  = false;
 
-    if (_seqIdx != b._seqIdx) {
-      //fprintf(stderr, "DIFF SEQ\n");
+    if (_seqIdx != b._seqIdx)
       return(false);
-    }
+
+    if (_rev != b._rev)
+      return(false);
 
     //  Check distance apart
     if (b._seqPos < _seqPos)
@@ -162,20 +237,20 @@ public:
     else
       dist = b._seqPos - _seqPos;
     if ((mean - 3 * stddev < dist) && (dist < mean + 3 * stddev))
-      happy = true;
+      isHappy = true;
 
     //  Check orientations
     if ((_rev == false) && (b._seqPos < _seqPos))
-      orient = true;
+      isOriented = true;
     if ((_rev == true)  && (_seqPos < b._seqPos))
-      orient = true;
+      isOriented = true;
 
-    if (!happy) {
+    if (!isHappy) {
       //fprintf(stderr, "GRUMPY DIST  "u32bitFMT"\n", dist);
       return(false);
     }
 
-    if (!orient) {
+    if (!isOriented) {
       //fprintf(stderr, "GRUMPY ORIENT "u32bitFMT"\n", dist);
       return(false);
     }
@@ -211,4 +286,14 @@ public:
 
   char    _tagACGT[TAG_LEN_MAX];
   char    _refACGT[TAG_LEN_MAX];
+};
+
+
+class
+tapperHitPositionCompare {
+public:
+  bool operator()(const tapperHit a, const tapperHit b) const {
+    return((a._seqIdx < b._seqIdx) ||
+           ((a._seqIdx == b._seqIdx) && (a._seqPos < b._seqPos)));
+  };
 };
