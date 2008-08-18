@@ -67,7 +67,7 @@ readTag(u32bit fileUID, FILE *seq, FILE *qlt, tapperTag *T) {
   chomp(qltseq);
 
   if (strcmp(seqhdr, qlthdr) != 0)
-    fprintf(stderr, "WARNING:  Got seq '%s' and qlt '%s'\n", seqhdr, qlthdr);
+    fprintf(stderr, "WARNING:  Got unpaired seq '%s' and qlt '%s'\n", seqhdr, qlthdr);
 
   //  Assumes the header is >461_28_1918_F3
   //  -- copies it to the left by one to remove the >
@@ -191,28 +191,28 @@ main(int argc, char **argv) {
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-tagout") == 0) {
+    if        (strncmp(argv[arg], "-tagout", 5) == 0) {
       prefix   = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-tags") == 0) {
+    } else if (strncmp(argv[arg], "-tags", 5) == 0) {
       tagfuid  = strtou32bit(argv[++arg], 0L);
       tagfseq  = argv[++arg];
       tagfqlt  = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-ftags") == 0) {
+    } else if (strncmp(argv[arg], "-ftags", 2) == 0) {
       tagfuid  = strtou32bit(argv[++arg], 0L);
       tagfseq  = argv[++arg];
       tagfqlt  = argv[++arg];
-    } else if (strcmp(argv[arg], "-rtags") == 0) {
+    } else if (strncmp(argv[arg], "-rtags", 2) == 0) {
       tagruid  = strtou32bit(argv[++arg], 0L);
       tagrseq  = argv[++arg];
       tagrqlt  = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-insertsize") == 0) {
+    } else if (strncmp(argv[arg], "-insertsize", 2) == 0) {
       mean   = strtou32bit(argv[++arg], 0L);
       stddev = strtou32bit(argv[++arg], 0L);
 
-    } else if (strcmp(argv[arg], "-dump") == 0) {
+    } else if (strncmp(argv[arg], "-dump", 2) == 0) {
       dumpTagFile(argv[++arg]);
       exit(0);
 
