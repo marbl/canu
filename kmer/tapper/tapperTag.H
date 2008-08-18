@@ -149,9 +149,9 @@ public:
   u32bit   mean(void)             { return(_mean);      };
   u32bit   stddev(void)           { return(_stddev);    };
 
-  void     setMeanStdDev(u32bit mean, u32bit stddev) {
-    _mean   = mean;
-    _stddev = stddev;
+  void     setMeanStdDev(u32bit mean_, u32bit stddev_) {
+    _mean   = mean_;
+    _stddev = stddev_;
   };
 
 private:
