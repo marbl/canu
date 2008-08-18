@@ -68,7 +68,10 @@ main(int argc, char **argv) {
       for (u32bit i=0; i<res._numFragment; i++) {
         DAT->getRecord(&frag);
 
-        decodeTagID(res._tag1id, id);
+        if (frag._tag._tag1)
+          decodeTagID(res._tag1id, id);
+        else
+          decodeTagID(res._tag2id, id);
 
         fprintf(stdout, "F "u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT" "u32bitFMT" "u32bitFMT" %c "u32bitFMT" "u32bitFMT"/"u32bitFMT"/"u32bitFMT"\n",
                 id[0], id[1], id[2], id[3],
@@ -142,7 +145,10 @@ main(int argc, char **argv) {
       for (u32bit i=0; i<res._numSingleton; i++) {
         DAT->getRecord(&sing);
 
-        decodeTagID(res._tag1id, id);
+        if (sing._tag._tag1)
+          decodeTagID(res._tag1id, id);
+        else
+          decodeTagID(res._tag2id, id);
 
         fprintf(stdout, "F "u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT" "u32bitFMT" "u32bitFMT" %c "u32bitFMT" "u32bitFMT"/"u32bitFMT"/"u32bitFMT"\n",
                 id[0], id[1], id[2], id[3],
