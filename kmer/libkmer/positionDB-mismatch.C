@@ -256,8 +256,10 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed, u64bit approxMers) {
     exit(1);
   }
 
-  for (u32bit i=1; i<stringsLen; i++)
+  for (u32bit i=1; i<stringsLen; i++) {
+    assert((strings[i] & ~_hashMask) == 0);
     assert(strings[i] != 0);
+  }
 
   delete [] e1;
   delete [] e2;
@@ -331,6 +333,9 @@ positionDB::getUpToNMismatches(u64bit   mer,
     u64bit hash = orig ^ _hashedErrors[e];
     u64bit st   = getDecodedValue(_hashTable, hash * _hashWidth,              _hashWidth);
     u64bit ed   = getDecodedValue(_hashTable, hash * _hashWidth + _hashWidth, _hashWidth);
+
+    assert((_hashedErrors[e] & ~_hashMask) == 0);
+    assert((hash             & ~_hashMask) == 0);
 
     //  Rebuild the mer from the hash and its check code.
     //
