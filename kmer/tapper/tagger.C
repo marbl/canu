@@ -341,11 +341,6 @@ main(int argc, char **argv) {
       numTagsR++;
       CF->tick();
     }
-
-    //if (numTagsM >= 100000) {
-    //  fprintf(stderr, "\nQUIT EARLY.\n");
-    //  goto quitEarly;
-    //}
   }
   while (numTagsF < maxTagsF) {
     if (TOfrag == 0L)
@@ -362,7 +357,6 @@ main(int argc, char **argv) {
     CF->tick();
   }
 
- quitEarly:
   delete CF;
   delete CM;
 

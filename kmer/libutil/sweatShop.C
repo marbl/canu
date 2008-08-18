@@ -365,9 +365,9 @@ sweatShop::status(void) {
     nanosleep(&naptime, 0L);
 
     if (perSec < _loaderQueueSize)
-      _loaderQueueSize = 1.5 * perSec;
+      _loaderQueueSize = (u32bit)(1.5 * perSec);
     if (_loaderQueueSize < 2.0 * perSec)
-      _loaderQueueSize = 1.5 * perSec;
+      _loaderQueueSize = (u32bit)(1.5 * perSec);
   }
 
   if (_numberComputed > _numberOutput)
