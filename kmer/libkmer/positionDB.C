@@ -172,6 +172,12 @@ positionDB::positionDB(merStream          *MS,
   }
 
 
+  if (_tableSizeInBits == 0) {
+    fprintf(stderr, "ERROR:  No positionDB parameters within allowed memory limit.\n");
+    exit(1);
+  }
+
+
   if (beVerbose) {
     u32bit s1 = 2*merSize-_tableSizeInBits;
     fprintf(stderr, "tblBits="u32bitFMT" s1="u32bitFMT" s2="u32bitFMT" -- merSize="u32bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) FINAL\n",
@@ -210,7 +216,6 @@ positionDB::positionDB(merStream          *MS,
 
   if (maxMismatch > 0)
     setUpMismatchMatcher(maxMismatch, approxMers);
-
 
   build(MS, mask, only, counts, minCount, maxCount, beVerbose);
 }
