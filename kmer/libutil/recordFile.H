@@ -61,7 +61,8 @@ recordFile::getRecord(void *record, u32bit num) {
     u32bit  len = 0;
     while (num > 0) {
       len = MIN(maxnum, num);
-      getRecord((char *)record + pos * _recordSize, len);
+      if (getRecord((char *)record + pos * _recordSize, len) == false)
+        return(false);
       num -= len;
       pos += len;
     }
@@ -72,8 +73,9 @@ recordFile::getRecord(void *record, u32bit num) {
       seek(_pos + _rec, true);
     memcpy(record, _bfr + _rec * _recordSize, _recordSize * num);
     _rec += num;
-    return(true);
   }
+
+  return(true);
 }
 
 inline
