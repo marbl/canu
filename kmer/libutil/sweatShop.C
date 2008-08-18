@@ -179,7 +179,7 @@ sweatShop::loader(void) {
 
   struct timespec   naptime;
   naptime.tv_sec      = 0;
-  naptime.tv_nsec     = 10000000ULL;
+  naptime.tv_nsec     = 333333333ULL;  //  1/3 second 10000000ULL;
 
   //  We can batch several loads together before we push them onto the
   //  queue, this should reduce the number of times the loader needs to
@@ -240,7 +240,7 @@ sweatShop::worker(sweatShopWorker *workerData) {
 
   struct timespec   naptime;
   naptime.tv_sec      = 0;
-  naptime.tv_nsec     = 500000000ULL;
+  naptime.tv_nsec     = 500000000ULL;  //  1/2 second
 
   bool    moreToCompute = true;
 
@@ -295,7 +295,7 @@ sweatShop::writer(void) {
 
   struct timespec   naptime;
   naptime.tv_sec      = 0;
-  naptime.tv_nsec     = 100000000ULL;
+  naptime.tv_nsec     = 333333333ULL;  //  1/3 second 10000000ULL;
 
   //  Wait for output to appear.
   //
@@ -342,6 +342,7 @@ sweatShop::status(void) {
 
   u64bit  deltaOut = 0;
   u64bit  deltaCPU = 0;
+  double  perSec   = 0;
 
   while (_writerP && _writerP->_user) {
     deltaOut = deltaCPU = 0;
@@ -351,9 +352,10 @@ sweatShop::status(void) {
     if (_numberLoaded > _numberComputed)
       deltaCPU = _numberLoaded - _numberComputed;
 
+    perSec = _numberOutput / (getTime() - startTime);
 
     fprintf(stderr, "%6.1f/s (out="u64bitFMTW(8)") + "u64bitFMTW(8)" = (cpu = "u64bitFMTW(8)") + "u64bitFMTW(8)" = (in = "u64bitFMTW(8)")\r",
-            _numberOutput / (getTime() - startTime),
+            perSec,
             _numberOutput,
             deltaOut,
             _numberComputed,
@@ -361,6 +363,11 @@ sweatShop::status(void) {
             _numberLoaded);
     fflush(stderr);
     nanosleep(&naptime, 0L);
+
+    if (perSec < _loaderQueueSize)
+      _loaderQueueSize = 1.5 * perSec;
+    if (_loaderQueueSize < 2.0 * perSec)
+      _loaderQueueSize = 1.5 * perSec;
   }
 
   if (_numberComputed > _numberOutput)
