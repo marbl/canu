@@ -13,6 +13,8 @@ char     faild[16] = { 'p', 'o', 's', 'i', 't', 'i', 'o', 'n', 'D', 'B', 'f', 'a
 void
 positionDB::saveState(char const *filename) {
 
+  fprintf(stderr, "Saving positionDB to '%s'\n", filename);
+
   errno = 0;
   int F = open(filename, O_RDWR | O_CREAT | O_LARGEFILE,
                S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
@@ -96,6 +98,8 @@ positionDB::saveState(char const *filename) {
 bool
 positionDB::loadState(char const *filename, bool beNoisy, bool loadData) {
   char   cigam[16] = { 0 };
+
+  fprintf(stderr, "Loading positionDB from '%s'\n", filename);
 
   errno = 0;
   int F = open(filename, O_RDONLY | O_LARGEFILE, 0);
