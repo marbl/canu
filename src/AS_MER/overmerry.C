@@ -313,7 +313,7 @@ public:
 #warning not pruning positionDB
 
       tMS = new merStream(tKB, tSS);
-      tPS = new positionDB(tMS, merSize, 0, 0L, 0L, MF, 0, 0, true);  //  This interface is in kmer r1598
+      tPS = new positionDB(tMS, merSize, 0, 0L, 0L, MF, 0, 0, 0, 0, true);
 
       delete MF;
     }
