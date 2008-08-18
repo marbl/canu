@@ -145,72 +145,95 @@ public:
   };
 
 
-  //  Returns true if the B read is before where our mate relationship
-  //  says it should be.  Returns true for reads of the incorrect
-  //  orientation.
+  //  Returns true if that read is before where this read says it
+  //  should be.  Returns true for reads of the incorrect orientation.
   //
-  bool   isBefore(tapperHit& b, u32bit mean, u32bit stddev) {
+  //  ASSUMES it is called on this read being the forward/F3/a read.
+  //
+  bool   mateTooFarBefore(tapperHit& that, u32bit mean, u32bit stddev) {
 
-    //  B is on the sequence after us.
-    if (_seqIdx < b._seqIdx)
+    //  that read is on the sequence after us.
+    if (_seqIdx < that._seqIdx) {
+      //fprintf(stderr, "isBefore()- seq after false.\n");
       return(false);
+    }
 
-    //  B is on the sequence before us.
-    if (b._seqIdx < _seqIdx)
+    //  that read is on the sequence before us.
+    if (that._seqIdx < _seqIdx) {
+      //fprintf(stderr, "isBefore()- seq before true.\n");
       return(true);
+    }
 
     //  Misoriented, true
-    if (_rev != b._rev)
+    if (_rev != that._rev) {
+      //fprintf(stderr, "isBefore()- misoriented true.\n");
       return(true);
+    }
 
-    //        -A->      (  -B->  )
-    //  -----------------------------------
-    //  TTTTTTTTTTTTTTTTfffffffffffffffffff
-    //  
-    if ((_rev == false) && (b._seqPos < _seqPos + mean - 3 * stddev))
-      return(true);
-
-    //     (  <-B-  )      <-A-
+    //  FORWARD
+    //
+    //     (  -that->  )      -this->
     //  -----------------------------------
     //  TTTffffffffffffffffffffffffffffffff
     //  
-    if ((_rev == true)  && (b._seqPos + mean + 3 * stddev < _seqPos))
+    if ((_rev == false) && (that._seqPos + mean + 3 * stddev < _seqPos)) {
+      //fprintf(stderr, "isBefore()- forward true "u32bitFMT" + "u32bitFMT" + 3 * "u32bitFMT" < "u32bitFMT"\n",
+      //        that._seqPos, mean, stddev, _seqPos);
       return(true);
+    }
 
+    //  REVERSE
+    //
+    //       <-this-       (  <-that-  )
+    //  -----------------------------------
+    //  TTTTTTTTTTTTTTTTTTTffffffffffffffff
+    //
+    if ((_rev == true)  && (that._seqPos < _seqPos + mean - 3 * stddev)) {
+      //fprintf(stderr, "isBefore()- forward true "u32bitFMT" < "u32bitFMT" + "u32bitFMT" - 3 * "u32bitFMT"\n",
+      //        that._seqPos, _seqPos, mean, stddev);
+      return(true);
+    }
+
+    //fprintf(stderr, "isBefore()- false.\n");
     return(false);
   }
 
 
-  //  Returns true if the B read is after where our mate relationship
-  //  says it should be.  Returns true for reads of the incorrect
-  //  orientation.
+  //  Returns true if that read is after where this read says it
+  //  should be.  Returns true for reads of the incorrect orientation.
   //
-  bool   isAfter(tapperHit& b, u32bit mean, u32bit stddev) {
+  //  ASSUMES it is called on this read being the forward/F3/a read.
+  //
+  bool   mateTooFarAfter(tapperHit& that, u32bit mean, u32bit stddev) {
 
-    //  B is on the sequence after us, true.
-    if (_seqIdx < b._seqIdx)
+    //  that read is on the sequence after us, true.
+    if (_seqIdx < that._seqIdx)
       return(true);
 
-    //  B is on the sequence before us, false.
-    if (b._seqIdx < _seqIdx)
+    //  that read is on the sequence before us, false.
+    if (that._seqIdx < _seqIdx)
       return(false);
 
     //  Misoriented, true
-    if (_rev != b._rev)
+    if (_rev != that._rev)
       return(true);
 
-    //        -A->      (  -B->  )
+    //  FORWARD
+    //
+    //     (  -that->  )      -this->
     //  -----------------------------------
-    //  ffffffffffffffffffffffffffTTTTTTTTT
+    //  ffffffffffffffffTTTTTTTTTTTTTTTTTTT
     //  
-    if ((_rev == false) && (b._seqPos < _seqPos + mean + 3 * stddev))
+    if ((_rev == false) && (that._seqPos + mean - 3 * stddev < _seqPos))
       return(false);
 
-    //     (  <-B-  )      <-A-
+    //  REVERSE
+    //
+    //       <-this-       (  <-that-  )
     //  -----------------------------------
-    //  fffffffffffffTTTTTTTTTTTTTTTTTTTTTT
-    //  
-    if ((_rev == true)  && (b._seqPos + mean - 3 * stddev < _seqPos))
+    //  ffffffffffffffffffffffffffffffffTTT
+    //
+    if ((_rev == true)  && (that._seqPos < _seqPos + mean + 3 * stddev))
       return(false);
 
     return(true);
@@ -218,7 +241,7 @@ public:
 
 
 
-  //  Assumes we're called on the F read, and b == the R read.
+  //  ASSUMES it is called on this read being the forward/F3/a read.
   //
   bool   happy(tapperHit& b, u32bit mean, u32bit stddev) {
     u64bit  dist        = ~u64bitZERO;

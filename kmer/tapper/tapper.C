@@ -8,6 +8,9 @@
 #include "tapperThreadData.H"
 #include "tapperComputation.H"
 
+#undef VERBOSEWORKER
+#undef DEBUG_MATES
+
 #define STOPEARLY
 #ifdef STOPEARLY
 int  onlyDoUpTo = 500000;
@@ -483,7 +486,7 @@ tapperWorker(void *G, void *T, void *S) {
     return;
 
 #ifdef VERBOSEWORKER
-  fprintf(stderr, " raw hits: "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+  fprintf(stderr, " raw hits: "u64bitFMT" "u64bitFMT" "u64bitFMT" "u64bitFMT"\n",
           t->posn1fLen, t->posn1rLen, t->posn2fLen, t->posn2rLen);
 #endif
 
@@ -597,6 +600,24 @@ tapperWorker(void *G, void *T, void *S) {
     //  Pass one.  Count the number of times each fragment is in a
     //  happy relationship.
     //
+#ifdef DEBUG_MATES
+    {
+      for (u32bit a=0; a<s->tag1hitsLen; a++)
+        fprintf(stderr, "a="u32bitFMT" ori=%c pos="u32bitFMT","u32bitFMT"\n",
+                a, t1h[a]._rev ? 'r' : 'f', t1h[a]._seqIdx, t1h[a]._seqPos);
+      for (u32bit b=0; b<s->tag2hitsLen; b++)
+        fprintf(stderr, "b="u32bitFMT" ori=%c pos="u32bitFMT","u32bitFMT"\n",
+                b, t2h[b]._rev ? 'r' : 'f', t2h[b]._seqIdx, t2h[b]._seqPos);
+      for (u32bit a=0; a<s->tag1hitsLen; a++) {
+        for (u32bit b=0; b<s->tag2hitsLen; b++) {
+          if (t1h[a].happy(t2h[b], mean, stddev)) {
+            fprintf(stderr, "HAPPY EXHAUSTIVE a="u32bitFMT" b="u32bitFMT"\n", a, b);
+          }
+        }
+      }
+    }
+#endif
+
     {
       u32bit  bbaserev = 0;
       u32bit  bbasefor = 0;
@@ -611,20 +632,38 @@ tapperWorker(void *G, void *T, void *S) {
         u32bit b = 0;
 
         if (t1h[a]._rev == true) {
-          while ((bbaserev < s->tag2hitsLen) && (t2h[bbaserev].isBefore(t1h[a], mean, stddev)))
+          while ((bbaserev < s->tag2hitsLen) && (t1h[a].mateTooFarBefore(t2h[bbaserev], mean, stddev))) {
+#ifdef DEBUG_MATES
+            fprintf(stderr, "rev bump\n");
+#endif
             bbaserev++;
+          }
           b = bbaserev;
+#ifdef DEBUG_MATES
+          fprintf(stderr, "a="u32bitFMT" rev b="u32bitFMT"\n", a, b);
+#endif
         } else {
-          while ((bbasefor < s->tag2hitsLen) && (t2h[bbasefor].isBefore(t1h[a], mean, stddev)))
+          while ((bbasefor < s->tag2hitsLen) && (t1h[a].mateTooFarBefore(t2h[bbasefor], mean, stddev))) {
+#ifdef DEBUG_MATES
+            fprintf(stderr, "for bump\n");
+#endif
             bbasefor++;
+          }
           b = bbasefor;
+#ifdef DEBUG_MATES
+          fprintf(stderr, "a="u32bitFMT" for b="u32bitFMT"\n", a, b);
+#endif
         }
 
         //  Now, until the b read is too far away to be mated, check
         //  for happiness and do stuff.
 
-        for (; (b<s->tag2hitsLen) && (t2h[b].isAfter(t1h[a], mean, stddev) == false); b++) {
+        for (; (b<s->tag2hitsLen) && (t1h[a].mateTooFarAfter(t2h[b], mean, stddev) == false); b++) {
           if (t1h[a].happy(t2h[b], mean, stddev)) {
+
+#ifdef DEBUG_MATES
+            fprintf(stderr, "HAPPY CLEVER     a="u32bitFMT" b="u32bitFMT"\n", a, b);
+#endif
 
             //  Count.
             t->tag1happies[a]++;
@@ -882,8 +921,8 @@ main(int argc, char **argv) {
 
   sweatShop *ss = new sweatShop(tapperReader, tapperWorker, tapperWriter);
 
-  ss->loaderQueueSize(20000);
-  ss->writerQueueSize(10000);
+  ss->loaderQueueSize(2000);
+  ss->writerQueueSize(1000);
 
   ss->numberOfWorkers(g->numThreads);
 
