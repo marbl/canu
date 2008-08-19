@@ -179,7 +179,7 @@ sweatShop::loader(void) {
 
   struct timespec   naptime;
   naptime.tv_sec      = 0;
-  naptime.tv_nsec     = 333333333ULL;  //  1/3 second 10000000ULL;
+  naptime.tv_nsec     = 166666666ULL;  //  1/6 second
 
   //  We can batch several loads together before we push them onto the
   //  queue, this should reduce the number of times the loader needs to
@@ -364,10 +364,13 @@ sweatShop::status(void) {
     fflush(stderr);
     nanosleep(&naptime, 0L);
 
-    if (perSec < _loaderQueueSize)
-      _loaderQueueSize = (u32bit)(1.5 * perSec);
-    if (_loaderQueueSize < 2.0 * perSec)
-      _loaderQueueSize = (u32bit)(1.5 * perSec);
+    //  Too big?  Shrink.
+    if (10 * perSec < _loaderQueueSize)
+      _loaderQueueSize = (u32bit)(5.0 * perSec);
+
+    //  Too small?  Grow.
+    if (_loaderQueueSize < 4.0 * perSec)
+      _loaderQueueSize = (u32bit)(5.0 * perSec);
   }
 
   if (_numberComputed > _numberOutput)
