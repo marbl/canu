@@ -9,6 +9,10 @@
 #include "tapperComputation.H"
 
 #undef VERBOSEWORKER
+
+//  Very expensive.  Compare the obvious O(n^2) happy mate finding
+//  algorithm against the O(n) algorithm.
+//
 #undef DEBUG_MATES
 
 #define STOPEARLY
@@ -600,25 +604,21 @@ tapperWorker(void *G, void *T, void *S) {
     //  Pass one.  Count the number of times each fragment is in a
     //  happy relationship.
     //
-#ifdef DEBUG_MATES
     {
-      for (u32bit a=0; a<s->tag1hitsLen; a++)
-        fprintf(stderr, "a="u32bitFMT" ori=%c pos="u32bitFMT","u32bitFMT"\n",
-                a, t1h[a]._rev ? 'r' : 'f', t1h[a]._seqIdx, t1h[a]._seqPos);
-      for (u32bit b=0; b<s->tag2hitsLen; b++)
-        fprintf(stderr, "b="u32bitFMT" ori=%c pos="u32bitFMT","u32bitFMT"\n",
-                b, t2h[b]._rev ? 'r' : 'f', t2h[b]._seqIdx, t2h[b]._seqPos);
+#ifdef DEBUG_MATES
+      u32bit  debug_numHappies = 0;
+      u64bit  debug_happyCheck = 0;
+
       for (u32bit a=0; a<s->tag1hitsLen; a++) {
         for (u32bit b=0; b<s->tag2hitsLen; b++) {
           if (t1h[a].happy(t2h[b], mean, stddev)) {
-            fprintf(stderr, "HAPPY EXHAUSTIVE a="u32bitFMT" b="u32bitFMT"\n", a, b);
+            debug_numHappies += 1;
+            debug_happyCheck += t1h[a]._seqPos ^ t2h[b]._seqPos;
           }
         }
       }
-    }
 #endif
 
-    {
       u32bit  bbaserev = 0;
       u32bit  bbasefor = 0;
 
@@ -632,27 +632,13 @@ tapperWorker(void *G, void *T, void *S) {
         u32bit b = 0;
 
         if (t1h[a]._rev == true) {
-          while ((bbaserev < s->tag2hitsLen) && (t1h[a].mateTooFarBefore(t2h[bbaserev], mean, stddev))) {
-#ifdef DEBUG_MATES
-            fprintf(stderr, "rev bump\n");
-#endif
+          while ((bbaserev < s->tag2hitsLen) && (t1h[a].mateTooFarBefore(t2h[bbaserev], mean, stddev)))
             bbaserev++;
-          }
           b = bbaserev;
-#ifdef DEBUG_MATES
-          fprintf(stderr, "a="u32bitFMT" rev b="u32bitFMT"\n", a, b);
-#endif
         } else {
-          while ((bbasefor < s->tag2hitsLen) && (t1h[a].mateTooFarBefore(t2h[bbasefor], mean, stddev))) {
-#ifdef DEBUG_MATES
-            fprintf(stderr, "for bump\n");
-#endif
+          while ((bbasefor < s->tag2hitsLen) && (t1h[a].mateTooFarBefore(t2h[bbasefor], mean, stddev)))
             bbasefor++;
-          }
           b = bbasefor;
-#ifdef DEBUG_MATES
-          fprintf(stderr, "a="u32bitFMT" for b="u32bitFMT"\n", a, b);
-#endif
         }
 
         //  Now, until the b read is too far away to be mated, check
@@ -662,7 +648,8 @@ tapperWorker(void *G, void *T, void *S) {
           if (t1h[a].happy(t2h[b], mean, stddev)) {
 
 #ifdef DEBUG_MATES
-            fprintf(stderr, "HAPPY CLEVER     a="u32bitFMT" b="u32bitFMT"\n", a, b);
+            debug_numHappies -= 1;
+            debug_happyCheck -= t1h[a]._seqPos ^ t2h[b]._seqPos;
 #endif
 
             //  Count.
@@ -703,11 +690,70 @@ tapperWorker(void *G, void *T, void *S) {
           }
         }
       }
-    }
+
+#ifdef DEBUG_MATES
+      if ((debug_numHappies != 0) || (debug_happyCheck != 0)) {
+        FILE *df = fopen("tapper.DEBUG_MATES.err", "w");
+
+        fprintf(df, "numHappies: "u64bitFMT"\n", debug_numHappies);
+        fprintf(df, "happyCheck: "u64bitFMT"\n", debug_happyCheck);
+
+        for (u32bit a=0; a<s->tag1hitsLen; a++)
+          fprintf(df, "a="u32bitFMT" ori=%c pos="u32bitFMT","u32bitFMT"\n",
+                  a, t1h[a]._rev ? 'r' : 'f', t1h[a]._seqIdx, t1h[a]._seqPos);
+
+        for (u32bit b=0; b<s->tag2hitsLen; b++)
+          fprintf(df, "b="u32bitFMT" ori=%c pos="u32bitFMT","u32bitFMT"\n",
+                  b, t2h[b]._rev ? 'r' : 'f', t2h[b]._seqIdx, t2h[b]._seqPos);
+
+        u32bit  bbaserev = 0;
+        u32bit  bbasefor = 0;
+
+        for (u32bit a=0; a<s->tag1hitsLen; a++) {
+          u32bit b = 0;
+
+          if (t1h[a]._rev == true) {
+            while ((bbaserev < s->tag2hitsLen) && (t1h[a].mateTooFarBefore(t2h[bbaserev], mean, stddev))) {
+              fprintf(df, "rev bbaserev <- "u32bitFMT" + 1\n", bbaserev);
+              bbaserev++;
+            }
+            b = bbaserev;
+          } else {
+            while ((bbasefor < s->tag2hitsLen) && (t1h[a].mateTooFarBefore(t2h[bbasefor], mean, stddev))) {
+              fprintf(df, "rev bbasefor <- "u32bitFMT" + 1\n", bbasefor);
+              bbasefor++;
+            }
+            b = bbasefor;
+          }
+
+          for (; (b<s->tag2hitsLen) && (t1h[a].mateTooFarAfter(t2h[b], mean, stddev) == false); b++) {
+            fprintf(df, "test a="u32bitFMT" b="u32bitFMT"\n", a, b);
+            if (t1h[a].happy(t2h[b], mean, stddev)) {
+              fprintf(df, "HAPPY CLEVER     a="u32bitFMT" b="u32bitFMT"\n", a, b);
+            }
+          }
+        }
+
+        for (u32bit a=0; a<s->tag1hitsLen; a++) {
+          for (u32bit b=0; b<s->tag2hitsLen; b++) {
+            if (t1h[a].happy(t2h[b], mean, stddev)) {
+              fprintf(df, "HAPPY EXHAUSTIVE a="u32bitFMT" b="u32bitFMT"\n", a, b);
+            }
+          }
+        }
+
+        fclose(df);
+      }
+      assert(debug_numHappies == 0);
+      assert(debug_happyCheck == 0);
+#endif
+
 
 #ifdef VERBOSEWORKER
-    fprintf(stderr, "  Paired.\n");
+      fprintf(stderr, "  Paired.\n");
 #endif
+    }
+
 
     //  Allocate space for the outputs.  We can kind of guess how much
     //  to grab.  Not perfect.  Can do a lot better.
@@ -922,7 +968,7 @@ main(int argc, char **argv) {
   sweatShop *ss = new sweatShop(tapperReader, tapperWorker, tapperWriter);
 
   ss->loaderQueueSize(2000);
-  ss->writerQueueSize(1000);
+  ss->writerQueueSize(30000);  //  TESTING!  Should be 1000-ish!
 
   ss->numberOfWorkers(g->numThreads);
 

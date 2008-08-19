@@ -146,7 +146,7 @@ public:
 
 
   //  Returns true if that read is before where this read says it
-  //  should be.  Returns true for reads of the incorrect orientation.
+  //  should be.  Returns TRUE for reads of the incorrect orientation.
   //
   //  ASSUMES it is called on this read being the forward/F3/a read.
   //
@@ -200,7 +200,7 @@ public:
 
 
   //  Returns true if that read is after where this read says it
-  //  should be.  Returns true for reads of the incorrect orientation.
+  //  should be.  Returns FALSE for reads of the incorrect orientation.
   //
   //  ASSUMES it is called on this read being the forward/F3/a read.
   //
@@ -216,7 +216,7 @@ public:
 
     //  Misoriented, true
     if (_rev != that._rev)
-      return(true);
+      return(false);
 
     //  FORWARD
     //
