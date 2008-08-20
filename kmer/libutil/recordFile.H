@@ -24,10 +24,16 @@ public:
 
   u64bit     numRecords(void) { return(_numRecords); };
 
-  bool       getRecord(void *record, u32bit num=1);
+  //  Read/write records.
+  u32bit     getRecord(void *record, u32bit num=1);
   void       putRecord(void *record, u32bit num=1);
 
+  //  Seek to record rec, optionally repositioning the buffer to that
+  //  record.
   void       seek(u64bit rec, bool forced=false);
+
+  //  Set an artificial EOF at record rec.
+  void       limit(u64bit rec) { _limit = rec; };
 
 private:
   void       flushDirty(void);
@@ -43,64 +49,15 @@ private:
 
   u64bit    _bfrmax;  //  Number of records in the buffer
   char     *_bfr;     //  A chunk of the bitPackedFile in core
+
+  u64bit    _limit;   //  An artificial EOF
+
   u64bit    _pos;     //  The location this chunk is from (in records)
   u64bit    _rec;     //  The record we're modifying relative to _pos
 
   bool      _bfrDirty;
   bool      _isReadOnly;
 };
-
-
-inline
-bool
-recordFile::getRecord(void *record, u32bit num) {
-  u32bit  maxnum = _bfrmax / 2;
-
-  if (num > maxnum) {
-    u32bit  pos = 0;
-    u32bit  len = 0;
-    while (num > 0) {
-      len = MIN(maxnum, num);
-      if (getRecord((char *)record + pos * _recordSize, len) == false)
-        return(false);
-      num -= len;
-      pos += len;
-    }
-  } else {
-    if ((_numRecords <= _pos + _rec) || (_numRecords < _pos + _rec + num))
-      return(false);
-    if (_bfrmax < _rec + num + 1)
-      seek(_pos + _rec, true);
-    memcpy(record, _bfr + _rec * _recordSize, _recordSize * num);
-    _rec += num;
-  }
-
-  return(true);
-}
-
-inline
-void
-recordFile::putRecord(void *record, u32bit num) {
-  u32bit  maxnum = _bfrmax / 2;
-
-  if (num > maxnum) {
-    u32bit  pos = 0;
-    u32bit  len = 0;
-    while (num > 0) {
-      len = MIN(maxnum, num);
-      putRecord((char *)record + pos * _recordSize, len);
-      num -= len;
-      pos += len;
-    }
-  } else {
-    if (_bfrmax < _rec + num + 1)
-      seek(_pos + _rec, true);
-    memcpy(_bfr + _rec * _recordSize, record, _recordSize * num);
-    _rec        += num;
-    _numRecords += num;
-    _bfrDirty = true;
-  }
-}
 
 #endif  //  RECORDFILE_H
 

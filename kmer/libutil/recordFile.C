@@ -230,3 +230,88 @@ recordFile::seek(u64bit rec, bool forced) {
     fprintf(stderr, "recordFile::seek() '%s' read of "u64bitFMT" bytes failed at record "u64bitFMT", fileposition "u64bitFMT"': %s\n",
             _name, _recordSize * _bfrmax, _pos, _headerSize + _pos * _recordSize, strerror(errno)), exit(1);
 }
+
+
+
+u32bit
+recordFile::getRecord(void *record, u32bit num) {
+  u32bit  maxnum  = _bfrmax / 2;
+
+  //  Reading large blocks -- bigger than the in-core size?  Loop and
+  //  recurse.
+  //
+  if (num > maxnum) {
+    u32bit  numread = 0;
+    u32bit  pos = 0;
+    u32bit  len = 0;
+
+    while (num > 0) {
+      len = MIN(maxnum, num);
+      len = getRecord((char *)record + pos * _recordSize, len);
+
+      if (len == 0)
+        return(numread);
+
+      num     -= len;
+      pos     += len;
+      numread += len;
+    }
+
+    return(numread);
+  }
+
+  //  If asked to read too many records, read whatever is left.
+  //
+  if (_numRecords < _pos + _rec + num)
+    num = _numRecords - _pos - _rec;
+  if (_limit      < _pos + _rec + num)
+    num = _limit      - _pos - _rec;
+
+  //  If the current position is already past eof, return without
+  //  reading.  The previous 'if' ensures we will never read a block
+  //  past eof.
+  //
+  if ((_numRecords < _pos + _rec) || (_limit < _pos + _rec))
+    return(0);
+
+  if (_bfrmax < _rec + num + 1)
+    seek(_pos + _rec, true);
+
+  memcpy(record, _bfr + _rec * _recordSize, _recordSize * num);
+
+  _rec += num;
+
+  return(num);
+}
+
+
+
+void
+recordFile::putRecord(void *record, u32bit num) {
+  u32bit  maxnum = _bfrmax / 2;
+
+  if (num > maxnum) {
+    u32bit  pos = 0;
+    u32bit  len = 0;
+
+    while (num > 0) {
+      len = MIN(maxnum, num);
+
+      putRecord((char *)record + pos * _recordSize, len);
+
+      num -= len;
+      pos += len;
+    }
+
+  } else {
+    if (_bfrmax < _rec + num + 1)
+      seek(_pos + _rec, true);
+
+    memcpy(_bfr + _rec * _recordSize, record, _recordSize * num);
+
+    _rec        += num;
+    _numRecords += num;
+
+    _bfrDirty = true;
+  }
+}
