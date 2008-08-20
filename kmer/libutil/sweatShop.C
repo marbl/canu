@@ -7,6 +7,7 @@
 #include <sys/time.h>
 #include <time.h>
 
+#include <sched.h>  //  pthread scheduling stuff
 
 //  Simply forwards control to the class
 void*
@@ -21,14 +22,11 @@ _sweatshop_workerThread(void *x) {
   return(SW->shop->worker(SW));
 }
 
-#if 0
-//  unused, we do this in 'main()'
 void*
 _sweatshop_writerThread(void *x) {
   sweatShop *SS = (sweatShop *)x;
   return(SS->writer());
 }
-#endif
 
 void*
 _sweatshop_statusThread(void *x) {
@@ -52,6 +50,7 @@ sweatShop::sweatShop(void*(*loader)(void *G),
   _loaderP = 0L;  //  Where input is put, the head
 
   _loadBatches = false;
+  _showStatus  = false;
 
   _loaderQueueSize  =  128 * 1024;
   _writerQueueSize  =   64 * 1024;
@@ -236,8 +235,6 @@ sweatShop::loader(void) {
 void*
 sweatShop::worker(sweatShopWorker *workerData) {
 
-  //fprintf(stderr, "Worker %d! (userData=%p)\n", workerData->threadID, workerData->threadUserData);
-
   struct timespec   naptime;
   naptime.tv_sec      = 0;
   naptime.tv_nsec     = 500000000ULL;  //  1/2 second
@@ -344,6 +341,11 @@ sweatShop::status(void) {
   u64bit  deltaCPU = 0;
   double  perSec   = 0;
 
+  if (_showStatus == false) {
+    sleep(1);
+    return(0L);
+  }
+
   while (_writerP && _writerP->_user) {
     deltaOut = deltaCPU = 0;
 
@@ -378,7 +380,7 @@ sweatShop::status(void) {
   if (_numberLoaded > _numberComputed)
     deltaCPU = _numberLoaded - _numberComputed;
 
-  fprintf(stderr, "%6.1f/s (out="u64bitFMTW(8)") + "u64bitFMTW(8)" = (cpu = "u64bitFMTW(8)") + "u64bitFMTW(8)" = (in = "u64bitFMTW(8)")\r",
+  fprintf(stderr, "%6.1f/s (out="u64bitFMTW(8)") + "u64bitFMTW(8)" = (cpu = "u64bitFMTW(8)") + "u64bitFMTW(8)" = (in = "u64bitFMTW(8)") (DONE)\n",
           _numberOutput / (getTime() - startTime),
           _numberOutput,
           _numberComputed - _numberOutput,
@@ -396,25 +398,42 @@ sweatShop::status(void) {
 
 void
 sweatShop::run(void *user, bool beVerbose) {
-  pthread_attr_t   threadAttr;
-  pthread_t        threadID;
+  pthread_attr_t      threadAttr;
+  pthread_t           threadIDloader;
+  pthread_t           threadIDwriter;
+  pthread_t           threadIDstats;
+  struct sched_param  threadSchedParamDef;
+  struct sched_param  threadSchedParamMax;
 
   _globalUserData = user;
+  _showStatus     = beVerbose;
 
   pthread_mutex_init(&_stateMutex, NULL);
 
   pthread_attr_init(&threadAttr);
   pthread_attr_setscope(&threadAttr, PTHREAD_SCOPE_SYSTEM);
-  pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_DETACHED);
-  pthread_attr_setschedpolicy(&threadAttr, SCHED_OTHER);
+  pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
+  pthread_attr_setschedpolicy(&threadAttr, SCHED_RR);
 
-  //  Fire off the loader, or the all-vs-all loader
-  //
-  pthread_create(&threadID, &threadAttr, _sweatshop_loaderThread, this);
+  pthread_attr_getschedparam(&threadAttr, &threadSchedParamDef);
+  pthread_attr_getschedparam(&threadAttr, &threadSchedParamMax);
+
+  //fprintf(stderr, "PRIORITY:  min=%d def=%d max=%d\n",
+  //        sched_get_priority_min(SCHED_RR),
+  //        threadSchedParam.sched_priority,
+  //        sched_get_priority_max(SCHED_RR));
+
+  threadSchedParamMax.sched_priority = sched_get_priority_max(SCHED_RR);
+
+  //  Fire off the loader
+
+  pthread_attr_setschedparam(&threadAttr, &threadSchedParamMax);
+
+  pthread_create(&threadIDloader, &threadAttr, _sweatshop_loaderThread, this);
 
   //  Wait for it to actually load something (otherwise all the
   //  workers immediately go home)
-  //
+
   while (!_writerP && !_workerP && !_loaderP) {
     struct timespec   naptime;
     naptime.tv_sec      = 0;
@@ -422,30 +441,34 @@ sweatShop::run(void *user, bool beVerbose) {
     nanosleep(&naptime, 0L);
   }
 
-
   //  Fire off some workers
-  //
+
+  pthread_attr_setschedparam(&threadAttr, &threadSchedParamDef);
+
   for (u32bit i=0; i<_numberOfWorkers; i++) {
     _workerData[i].shop           = this;
-    _workerData[i].threadID       = i;
 
-    pthread_create(&threadID, &threadAttr, _sweatshop_workerThread, _workerData + i);
+    pthread_create(&_workerData[i].threadID, &threadAttr, _sweatshop_workerThread, _workerData + i);
   }
 
-  //  And the stats
-  //
-  if (beVerbose)
-    pthread_create(&threadID, &threadAttr, _sweatshop_statusThread, this);
+  //  And the stats and writer
 
-  //  We run the writer in the main, right here.  We could probably
-  //  run stats here, but we certainly aren't done until the worker
-  //  finishes, so just do that one.
-  //
-  writer();
+  pthread_attr_setschedparam(&threadAttr, &threadSchedParamMax);
 
-  //  If the writer exits, then someone signalled that we're done.
-  //  Clean up -- make sure all the queues are free'd.
-  //
+  pthread_create(&threadIDstats,  &threadAttr, _sweatshop_statusThread, this);
+  pthread_create(&threadIDwriter, &threadAttr, _sweatshop_writerThread, this);
+
+  //  Now sit back and relax.
+
+  pthread_join(threadIDloader, 0L);
+  pthread_join(threadIDwriter, 0L);
+  pthread_join(threadIDstats,  0L);
+
+  for (u32bit i=0; i<_numberOfWorkers; i++)
+    pthread_join(_workerData[i].threadID, 0L);
+
+  //  Cleanup.
+
   delete _loaderP;
   _loaderP = _workerP = _writerP = 0L;
 }

@@ -12,7 +12,6 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-//  For u32bit, getTime() -- really only used by the status thread
 #include "util++.H"
 
 class sweatShop;
@@ -22,13 +21,12 @@ public:
   sweatShopWorker() {
     shop           = 0L;
     threadUserData = 0L;
-    threadID       = 0;
     numComputed    = 0;
   };
 
   sweatShop   *shop;
   void        *threadUserData;
-  u32bit       threadID;
+  pthread_t    threadID;
   u32bit       numComputed;
 };
 
@@ -73,10 +71,7 @@ private:
   //  Stubs that forward control from the c-based pthread to this class
   friend void  *_sweatshop_loaderThread(void *ss);
   friend void  *_sweatshop_workerThread(void *ss);
-#if 0
-  //  unused
   friend void  *_sweatshop_writerThread(void *ss);
-#endif
   friend void  *_sweatshop_statusThread(void *ss);
 
   //  The threaded routines
@@ -103,6 +98,7 @@ private:
   state_s               *_loaderP;  //  Where input is put, the head
 
   bool                   _loadBatches;
+  bool                   _showStatus;
 
   u32bit                 _loaderQueueSize;
   u32bit                 _writerQueueSize;
