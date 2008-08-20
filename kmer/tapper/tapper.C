@@ -15,21 +15,12 @@
 //
 #undef DEBUG_MATES
 
-#define STOPEARLY
-#ifdef STOPEARLY
-int  onlyDoUpTo = 500000;
-#endif
 
 void*
 tapperReader(void *G) {
   tapperGlobalData  *g = (tapperGlobalData  *)G;
   tapperComputation *s = 0L;
   tapperTag          a, b;
-
-#ifdef STOPEARLY
-  if (onlyDoUpTo-- == 0)
-    return(s);
-#endif
 
   if (g->TF->metaData()->isPairedTagFile()) {
     if (g->TF->get(&a, &b))
@@ -925,6 +916,11 @@ main(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-prefix", 2) == 0) {
       g->outName = argv[++arg];
 
+    } else if (strncmp(argv[arg], "-begin", 2) == 0) {
+      g->bgnRead = strtou32bit(argv[++arg], 0L);
+    } else if (strncmp(argv[arg], "-end", 2) == 0) {
+      g->endRead = strtou32bit(argv[++arg], 0L);
+
     } else if (strncmp(argv[arg], "-maxcolorerror", 5) == 0) {
       g->maxColorError = strtou32bit(argv[++arg], 0L);
 
@@ -954,6 +950,10 @@ main(int argc, char **argv) {
     fprintf(stderr, "          -prefix  output-prefix\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  OPTIONAL\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "          -begin b\n");
+    fprintf(stderr, "          -end   e\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "          -maxcolorerror  n\n");
     fprintf(stderr, "          -maxbaseerror   n\n");
     fprintf(stderr, "          -maxmemory      m (MB)\n");

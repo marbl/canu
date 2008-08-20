@@ -22,6 +22,9 @@ public:
   recordFile       *outSingleton;
   recordFile       *outTangled;
 
+  u32bit            bgnRead;
+  u32bit            endRead;
+
   u32bit            maxMemory;
   u32bit            numThreads;
   bool              beVerbose;
@@ -54,6 +57,9 @@ tapperGlobalData::tapperGlobalData() {
   outMated     = 0L;
   outSingleton = 0L;
   outTangled   = 0L;
+
+  bgnRead =  u32bitZERO;
+  endRead = ~u32bitZERO;
 
   maxMemory  = 0;
   numThreads = 2;
@@ -95,6 +101,10 @@ tapperGlobalData::initialize(void) {
   rewriteFileAsColorACGT(genName, colName);
 
   TF = new tapperTagFile(qryName, 'r');
+
+  //  Set ranges that we want to compute.
+  TF->setBegin(bgnRead);
+  TF->setEnd(endRead);
 
   //  See the comments in the loader about the -1.
   tagSize = TF->metaData()->tagSize() - 1;

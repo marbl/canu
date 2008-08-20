@@ -64,9 +64,10 @@ main(int argc, char **argv) {
     sprintf(fileName, "%s.tapperMappedFragment", resultName);
     DAT = new recordFile(fileName, 0, sizeof(tapperResultFragment), 'r');
 
-    while (IDX->getRecord(&res)) {
+    while (IDX->getRecord(&res) == 1) {
       for (u32bit i=0; i<res._numFragment; i++) {
-        DAT->getRecord(&frag);
+        if (DAT->getRecord(&frag) != 1)
+          fprintf(stderr, "Failed to read DAT record.\n"), exit(1);
 
         if (frag._tag._tag1)
           decodeTagID(res._tag1id, id);
@@ -102,7 +103,8 @@ main(int argc, char **argv) {
 
     while (IDX->getRecord(&res)) {
       for (u32bit i=0; i<res._numMated; i++) {
-        DAT->getRecord(&mate);
+        if (DAT->getRecord(&mate) != 1)
+          fprintf(stderr, "Failed to read DAT record.\n"), exit(1);
 
         decodeTagID(res._tag1id, id1);
         decodeTagID(res._tag2id, id2);
@@ -143,7 +145,8 @@ main(int argc, char **argv) {
 
     while (IDX->getRecord(&res)) {
       for (u32bit i=0; i<res._numSingleton; i++) {
-        DAT->getRecord(&sing);
+        if (DAT->getRecord(&sing) != 1)
+          fprintf(stderr, "Failed to read DAT record.\n"), exit(1);
 
         if (sing._tag._tag1)
           decodeTagID(res._tag1id, id);
@@ -179,7 +182,8 @@ main(int argc, char **argv) {
 
     while (IDX->getRecord(&res)) {
       for (u32bit i=0; i<res._numTangled; i++) {
-        DAT->getRecord(&tang);
+        if (DAT->getRecord(&tang) != 1)
+          fprintf(stderr, "Failed to read DAT record.\n"), exit(1);
 
         decodeTagID(res._tag1id, id1);
         decodeTagID(res._tag2id, id2);

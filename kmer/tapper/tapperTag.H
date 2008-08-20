@@ -180,6 +180,7 @@ private:
 
 class tapperTagFile {
 public:
+
   tapperTagFile(char *name, char mode) {
     if ((mode == 'r') && (fileExists(name) == false)) {
       fprintf(stderr, "tapperTagFile()--  ERROR!  Tag file '%s' doesn't exist.\n", name);
@@ -206,14 +207,27 @@ public:
     }
   };
 
+
   ~tapperTagFile() {
     //  Metadata is updated automagically when tagFile is deleted.
     delete _tagFile;
   };
 
+
   tapperTagFileMetaData   *metaData(void) {
     return(_metaData);
   };
+
+
+  void   setBegin(u32bit bgn) {
+    _tagFile->seek(bgn);
+  };
+
+
+  void   setEnd(u32bit end) {
+    _tagFile->limit(end);
+  };
+
 
   void   put(tapperTag *tag) {
     u64bit len = tag->length();
@@ -227,6 +241,7 @@ public:
 
     _tagFile->putRecord(tag->_w);
   };
+
 
   void   put(tapperTag *ta1, tapperTag *ta2) {
     u64bit len1 = ta1->length();
@@ -246,17 +261,19 @@ public:
     _tagFile->putRecord(ta2->_w);
   };
 
+
   bool   get(tapperTag *tag) {
     if (_metaData->_isPaired == 1)
       fprintf(stderr, "tapperTagFile()--  ERROR: file contains mated tags, tried to get a fragment tag.\n"), exit(1);
-    return(_tagFile->getRecord(tag->_w));
+    return(_tagFile->getRecord(tag->_w) == 1);
   };
+
 
   bool   get(tapperTag *ta1, tapperTag *ta2) {
     if (_metaData->_isFragment == 1)
       fprintf(stderr, "tapperTagFile()--  ERROR: file contains fragment tags, tried to get a mated tag.\n"), exit(1);
-    return(_tagFile->getRecord(ta1->_w) &&
-           _tagFile->getRecord(ta2->_w));
+    return((_tagFile->getRecord(ta1->_w) == 1) &&
+           (_tagFile->getRecord(ta2->_w) == 1));
   };
 
 private:
