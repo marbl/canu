@@ -1,8 +1,5 @@
-#include "bio++.H"
-#include "existDB.H"
-#include "positionDB.H"
-
 #include "tapperTag.H"
+#include "tapperHit.H"
 
 //  Convert reads from ASCI to tapper binary.
 //
@@ -211,6 +208,11 @@ main(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-insertsize", 2) == 0) {
       mean   = strtou32bit(argv[++arg], 0L);
       stddev = strtou32bit(argv[++arg], 0L);
+
+      if (mean > MAX_INSERT_SIZE)
+        fprintf(stderr, "%s: insert size limited to at most %dbp.\n", argv[0], MAX_INSERT_SIZE), exit(1);
+      if (stddev > MAX_INSERT_DEVIATION)
+        fprintf(stderr, "%s: insert size limited to at most +- %dbp.\n", argv[0], MAX_INSERT_DEVIATION), exit(1);
 
     } else if (strncmp(argv[arg], "-dump", 2) == 0) {
       dumpTagFile(argv[++arg]);

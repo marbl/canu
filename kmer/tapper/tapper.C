@@ -1,7 +1,3 @@
-#include "bio++.H"
-#include "existDB.H"
-#include "positionDB.H"
-
 #include "tapperTag.H"
 #include "tapperHit.H"
 #include "tapperGlobalData.H"
@@ -39,12 +35,44 @@ void
 tapperWriter(void *G, void *S) {
   tapperGlobalData  *g = (tapperGlobalData  *)G;
   tapperComputation *s = (tapperComputation *)S;
+  tapperResult       result;
 
-  g->outIndex->    putRecord(&s->result);
-  g->outFragment-> putRecord( s->resultFragment,  s->result._numFragment);
-  g->outMated->    putRecord( s->resultMated,     s->result._numMated);
-  g->outSingleton->putRecord( s->resultSingleton, s->result._numSingleton);
-  g->outTangled->  putRecord( s->resultTangled,   s->result._numTangled);
+  //  Build the result index.
+
+  result._tag1id = s->tag1id;
+  result._tag2id = s->tag2id;
+
+  result._maxColrMismatchMapped = g->maxColorError;
+  result._maxBaseMismatchMapped = g->maxBaseError;
+
+  result._mean   = g->TF->metaData()->mean();
+  result._stddev = g->TF->metaData()->stddev();
+
+  if (s->resultFragmentLen > g->repeatThreshold) {
+    result._numFragmentDiscarded = s->resultFragmentLen;
+    result._numFragment          = 0;
+  } else {
+    result._numFragmentDiscarded = 0;
+    result._numFragment          = s->resultFragmentLen;
+  }
+
+  result._numSingleton = s->resultSingletonLen;
+  result._numMated     = s->resultMatedLen;
+  result._numTangled   = s->resultTangledLen;
+
+  result._pad1 = 0;
+  result._pad2 = 0;
+
+  //  Now write.
+
+  g->outIndex->    putRecord(&result);
+
+  g->outFragment-> putRecord(s->resultFragment,     result._numFragment);
+  g->outMated->    putRecord(s->resultMated,        result._numMated);
+  g->outSingleton->putRecord(s->resultSingleton,    result._numSingleton);
+  g->outTangled->  putRecord(s->resultTangled,      result._numTangled);
+
+  g->outAlignQual->putRecord(s->alignQualHistogram, s->alignQualHistogramLen);
 
   delete s;
 }
@@ -126,7 +154,6 @@ tapperHit::alignToReference(tapperGlobalData *g,
   _pad                = 0;
   _len                = len_in + 1;
   _rev                = (tag_in[0] < 'A') ? true : false;
-  _rank               = 0x000000000000ffffllu;
 
   _basesMismatch      = len_in;  //  Set at end
 
@@ -428,13 +455,10 @@ tapperWorker_addHits(u64bit    *posn, u64bit posnLen,
 
       h.alignToReference(g, seq, pos, tagseq, taglen);
 
-      if ((h.numberOfBaseMismatches()       <= g->maxBaseError)  &&
-          (h.numberOfColorMismatches()      <= g->maxColorError) &&
-          (h.numberOfColorInconsistencies() <= g->maxColorError))
-        if (tag1)
-          s->addHit1(h);
-        else
-          s->addHit2(h);
+      if ((h.numberOfBaseMismatches()                                     <= g->maxBaseError)  &&
+          (h.numberOfColorMismatches() + h.numberOfColorInconsistencies() <= g->maxColorError)) {
+        s->addHit(g, h, tag1);
+      }
     }
   }
 }
@@ -445,15 +469,6 @@ tapperWorker(void *G, void *T, void *S) {
   tapperGlobalData  *g = (tapperGlobalData  *)G;
   tapperThreadData  *t = (tapperThreadData  *)T;
   tapperComputation *s = (tapperComputation *)S;
-
-  //
-  //  Erase ourself.
-  //
-
-  s->result._numFragment  = 0;
-  s->result._numMated     = 0;
-  s->result._numSingleton = 0;
-  s->result._numTangled   = 0;
 
   //
   //  Get the hits.
@@ -505,19 +520,6 @@ tapperWorker(void *G, void *T, void *S) {
     return;
 
   //
-  //  Sort the hits by score.  Give everything a ranking.
-  //
-
-  //fprintf(stderr, "SORT AND SCORE.\n");
-  //s->sortAndScoreHits();
-
-#ifdef VERBOSEWORKER
-  fprintf(stderr, "SORT BY POSITION "u32bitFMT" "u32bitFMT"\n", s->tag1hitsLen, s->tag2hitsLen);
-#endif
-
-  s->sortHitsByPosition();
-
-  //
   //  If mated, tease out any valid mate relationships and build the
   //  results.  If fragment, just build.
   //
@@ -532,22 +534,21 @@ tapperWorker(void *G, void *T, void *S) {
 
     //  OUTPUT CASE 2 - unmated fragments
   } else if ((s->tag1size > 0) && (s->tag2size == 0)) {
-    s->resultFragment = new tapperResultFragment [s->tag1hitsLen];
+    s->resultFragment    = new tapperResultFragment [s->tag1hitsLen];
+    s->resultFragmentLen = s->tag1hitsLen;
 
     for (u32bit i=0; i<s->tag1hitsLen; i++) {
       s->resultFragment[i]._seq = s->tag1hits[i]._seqIdx;
       s->resultFragment[i]._pos = s->tag1hits[i]._seqPos;
 
-      s->resultFragment[i]._tag._rank              = s->tag1hits[i]._rank;
-      s->resultFragment[i]._tag._basesMismatch     = s->tag1hits[i]._basesMismatch;
-      s->resultFragment[i]._tag._colorMismatch     = s->tag1hits[i]._colorMismatch;
-      s->resultFragment[i]._tag._colorInconsistent = s->tag1hits[i]._colorInconsistent;
-      s->resultFragment[i]._tag._tag1              = 1;
-      s->resultFragment[i]._tag._rev               = s->tag1hits[i]._rev;
-      s->resultFragment[i]._tag._pad               = 0;
-    }
+      s->resultFragment[i]._bits = 0;
 
-    s->result._numFragment  = s->tag1hitsLen;
+      s->resultFragment[i]._qual._tag1valid             = 1;
+      s->resultFragment[i]._qual._tag1basesMismatch     = s->tag1hits[i]._basesMismatch;
+      s->resultFragment[i]._qual._tag1colorMismatch     = s->tag1hits[i]._colorMismatch;
+      s->resultFragment[i]._qual._tag1colorInconsistent = s->tag1hits[i]._colorInconsistent;
+      s->resultFragment[i]._qual._tag1rev               = s->tag1hits[i]._rev;
+    }
 
     //  OUTPUT CASE 3 - unmated fragments (but wrong set, should always be in tag1)
   } else if ((s->tag1size == 0) && (s->tag2size > 0)) {
@@ -577,7 +578,7 @@ tapperWorker(void *G, void *T, void *S) {
 #endif
 
     //  Sort by position.
-    //s->sortHitsByPosition();
+    s->sortHitsByPosition();
 
     u32bit  mean   = g->TF->metaData()->mean();
     u32bit  stddev = g->TF->metaData()->stddev();
@@ -762,35 +763,31 @@ tapperWorker(void *G, void *T, void *S) {
     for (u32bit a=0; a<s->tag1hitsLen; a++) {
       if (t->tag1happies[a] == 0) {
         if (s->tag1hits[a].happyNearEnd(true, mean, stddev, g->GS->fasta()->sequenceLength(s->tag1hits[a]._seqIdx))) {
-          tapperResultSingleton *f = s->resultSingleton + s->result._numSingleton;
+          tapperResultSingleton *f = s->resultSingleton + s->resultSingletonLen++;
 
           f->_seq = s->tag1hits[a]._seqIdx;
           f->_pos = s->tag1hits[a]._seqPos;
 
-          f->_tag._rank              = s->tag1hits[a]._rank;
-          f->_tag._basesMismatch     = s->tag1hits[a]._basesMismatch;
-          f->_tag._colorMismatch     = s->tag1hits[a]._colorMismatch;
-          f->_tag._colorInconsistent = s->tag1hits[a]._colorInconsistent;
-          f->_tag._tag1              = 1;
-          f->_tag._rev               = s->tag1hits[a]._rev;
-          f->_tag._pad               = 0;
+          f->_bits = 0;
 
-          s->result._numSingleton++;
+          f->_qual._tag1valid             = 1;
+          f->_qual._tag1basesMismatch     = s->tag1hits[a]._basesMismatch;
+          f->_qual._tag1colorMismatch     = s->tag1hits[a]._colorMismatch;
+          f->_qual._tag1colorInconsistent = s->tag1hits[a]._colorInconsistent;
+          f->_qual._tag1rev               = s->tag1hits[a]._rev;
         } else {
-          tapperResultFragment *f = s->resultFragment + s->result._numFragment;
+          tapperResultFragment *f = s->resultFragment + s->resultFragmentLen++;
 
           f->_seq = s->tag1hits[a]._seqIdx;
           f->_pos = s->tag1hits[a]._seqPos;
 
-          f->_tag._rank              = s->tag1hits[a]._rank;
-          f->_tag._basesMismatch     = s->tag1hits[a]._basesMismatch;
-          f->_tag._colorMismatch     = s->tag1hits[a]._colorMismatch;
-          f->_tag._colorInconsistent = s->tag1hits[a]._colorInconsistent;
-          f->_tag._tag1              = 1;
-          f->_tag._rev               = s->tag1hits[a]._rev;
-          f->_tag._pad               = 0;
+          f->_bits = 0;
 
-          s->result._numFragment++;
+          f->_qual._tag1valid             = 1;
+          f->_qual._tag1basesMismatch     = s->tag1hits[a]._basesMismatch;
+          f->_qual._tag1colorMismatch     = s->tag1hits[a]._colorMismatch;
+          f->_qual._tag1colorInconsistent = s->tag1hits[a]._colorInconsistent;
+          f->_qual._tag1rev               = s->tag1hits[a]._rev;
         }
       }
     }
@@ -798,35 +795,31 @@ tapperWorker(void *G, void *T, void *S) {
     for (u32bit b=0; b<s->tag2hitsLen; b++) {
       if (t->tag2happies[b] == 0) {
         if (s->tag2hits[b].happyNearEnd(false, mean, stddev, g->GS->fasta()->sequenceLength(s->tag2hits[b]._seqIdx))) {
-          tapperResultSingleton *f = s->resultSingleton + s->result._numSingleton;
+          tapperResultSingleton *f = s->resultSingleton + s->resultSingletonLen++;
 
           f->_seq = s->tag2hits[b]._seqIdx;
           f->_pos = s->tag2hits[b]._seqPos;
 
-          f->_tag._rank              = s->tag2hits[b]._rank;
-          f->_tag._basesMismatch     = s->tag2hits[b]._basesMismatch;
-          f->_tag._colorMismatch     = s->tag2hits[b]._colorMismatch;
-          f->_tag._colorInconsistent = s->tag2hits[b]._colorInconsistent;
-          f->_tag._tag1              = 0;
-          f->_tag._rev               = s->tag2hits[b]._rev;
-          f->_tag._pad               = 0;
+          f->_bits = 0;
 
-          s->result._numSingleton++;
+          f->_qual._tag2valid             = 1;
+          f->_qual._tag2basesMismatch     = s->tag2hits[b]._basesMismatch;
+          f->_qual._tag2colorMismatch     = s->tag2hits[b]._colorMismatch;
+          f->_qual._tag2colorInconsistent = s->tag2hits[b]._colorInconsistent;
+          f->_qual._tag2rev               = s->tag2hits[b]._rev;
         } else {
-          tapperResultFragment *f = s->resultFragment + s->result._numFragment;
+          tapperResultFragment *f = s->resultFragment + s->resultFragmentLen++;
 
           f->_seq = s->tag2hits[b]._seqIdx;
           f->_pos = s->tag2hits[b]._seqPos;
 
-          f->_tag._rank              = s->tag2hits[b]._rank;
-          f->_tag._basesMismatch     = s->tag2hits[b]._basesMismatch;
-          f->_tag._colorMismatch     = s->tag2hits[b]._colorMismatch;
-          f->_tag._colorInconsistent = s->tag2hits[b]._colorInconsistent;
-          f->_tag._tag1              = 0;
-          f->_tag._rev               = s->tag2hits[b]._rev;
-          f->_tag._pad               = 0;
+          f->_bits = 0;
 
-          s->result._numFragment++;
+          f->_qual._tag2valid             = 1;
+          f->_qual._tag2basesMismatch     = s->tag2hits[b]._basesMismatch;
+          f->_qual._tag2colorMismatch     = s->tag2hits[b]._colorMismatch;
+          f->_qual._tag2colorInconsistent = s->tag2hits[b]._colorInconsistent;
+          f->_qual._tag2rev               = s->tag2hits[b]._rev;
         }
       }
     }
@@ -835,7 +828,7 @@ tapperWorker(void *G, void *T, void *S) {
       u32bit b = t->tag1mate[a];
 
       if ((t->tag1happies[a] == 1) && (t->tag2happies[b] == 1)) {
-        tapperResultMated     *m = s->resultMated + s->result._numMated;
+        tapperResultMated     *m = s->resultMated + s->resultMatedLen++;
 
         assert(t->tag1mate[a] == b);
         assert(t->tag2mate[b] == a);
@@ -844,27 +837,19 @@ tapperWorker(void *G, void *T, void *S) {
         m->_pos1 = s->tag1hits[a]._seqPos;
         m->_pos2 = s->tag2hits[b]._seqPos;
 
-        m->_tag1._rank              = s->tag1hits[a]._rank;
-        m->_tag1._basesMismatch     = s->tag1hits[a]._basesMismatch;
-        m->_tag1._colorMismatch     = s->tag1hits[a]._colorMismatch;
-        m->_tag1._colorInconsistent = s->tag1hits[a]._colorInconsistent;
-        m->_tag1._tag1              = 1;
-        m->_tag1._rev               = s->tag1hits[a]._rev;
-        m->_tag1._pad               = 0;
+        m->_bits = 0;
 
-        m->_tag2._rank              = s->tag2hits[b]._rank;
-        m->_tag2._basesMismatch     = s->tag2hits[b]._basesMismatch;
-        m->_tag2._colorMismatch     = s->tag2hits[b]._colorMismatch;
-        m->_tag2._colorInconsistent = s->tag2hits[b]._colorInconsistent;
-        m->_tag2._tag1              = 0;
-        m->_tag2._rev               = s->tag2hits[b]._rev;
-        m->_tag2._pad               = 0;
+        m->_qual._tag1valid             = 1;
+        m->_qual._tag1basesMismatch     = s->tag1hits[a]._basesMismatch;
+        m->_qual._tag1colorMismatch     = s->tag1hits[a]._colorMismatch;
+        m->_qual._tag1colorInconsistent = s->tag1hits[a]._colorInconsistent;
+        m->_qual._tag1rev               = s->tag1hits[a]._rev;
 
-#ifdef VERBOSEWORKER
-        fprintf(stderr, " mate "u32bitFMT"-"u32bitFMT"\n", m->_pos1, m->_pos2);
-#endif
-
-        s->result._numMated++;
+        m->_qual._tag2valid             = 1;
+        m->_qual._tag2basesMismatch     = s->tag2hits[b]._basesMismatch;
+        m->_qual._tag2colorMismatch     = s->tag2hits[b]._colorMismatch;
+        m->_qual._tag2colorInconsistent = s->tag2hits[b]._colorInconsistent;
+        m->_qual._tag2rev               = s->tag2hits[b]._rev;
       }
     }
 
@@ -879,7 +864,7 @@ tapperWorker(void *G, void *T, void *S) {
           t->tangle[si].merge();
 
           for (u32bit ti=0; ti<t->tangle[si].numberOfIntervals(); ti++) {
-            tapperResultTangled   *x = s->resultTangled + s->result._numTangled;
+            tapperResultTangled   *x = s->resultTangled + s->resultTangledLen++;
 
             x->_tag1count = 0;
             x->_tag2count = 0;
@@ -888,8 +873,6 @@ tapperWorker(void *G, void *T, void *S) {
 
             x->_bgn = t->tangle[si].lo(ti);
             x->_end = t->tangle[si].hi(ti);
-
-            s->result._numTangled++;
           }
 
           //  This is persistent; clear it for the next mate pair.
@@ -906,6 +889,16 @@ int
 main(int argc, char **argv) {
   tapperGlobalData  *g = new tapperGlobalData();
 
+  fprintf(stderr, "sizeof(tapperResult) --            %d\n", sizeof(tapperResult));
+  fprintf(stderr, "sizeof(tapperResultQV) --          %d\n", sizeof(tapperResultQV));
+  fprintf(stderr, "sizeof(tapperResultHistogram) --   %d\n", sizeof(tapperResultHistogram));
+  fprintf(stderr, "sizeof(tapperResultFragment) --    %d\n", sizeof(tapperResultFragment));
+  fprintf(stderr, "sizeof(tapperResultMated) --       %d\n", sizeof(tapperResultMated));
+  fprintf(stderr, "sizeof(tapperResultSingleton) --   %d\n", sizeof(tapperResultSingleton));
+  fprintf(stderr, "sizeof(tapperResultTangled) --     %d\n", sizeof(tapperResultTangled));
+  fprintf(stderr, "sizeof(tapperHit) --               %d\n", sizeof(tapperHit));
+  fprintf(stderr, "sizeof(tapperTag) --               %d\n", sizeof(tapperTag));
+
   int arg=1;
   int err=0;
   while (arg < argc) {
@@ -920,6 +913,9 @@ main(int argc, char **argv) {
       g->bgnRead = strtou32bit(argv[++arg], 0L);
     } else if (strncmp(argv[arg], "-end", 2) == 0) {
       g->endRead = strtou32bit(argv[++arg], 0L);
+
+    } else if (strncmp(argv[arg], "-repeatthreshold", 2) == 0) {
+      g->repeatThreshold = strtou32bit(argv[++arg], 0L);
 
     } else if (strncmp(argv[arg], "-maxcolorerror", 5) == 0) {
       g->maxColorError = strtou32bit(argv[++arg], 0L);
@@ -951,11 +947,19 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  OPTIONAL\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "          -begin b\n");
-    fprintf(stderr, "          -end   e\n");
+    fprintf(stderr, "          -begin b               Start aligning at read b\n");
+    fprintf(stderr, "          -end   e               Stop aligning at read e\n");
+    fprintf(stderr, "                                 NOTE!  When mapping mated reads, this will\n");
+    fprintf(stderr, "                                 start/stop at matepair b/2 and e/2.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "          -repeatthreshold x     Do not report fragment alignments for tags\n");
+    fprintf(stderr, "                                 with more than x alignments.  Singletons, mated\n");
+    fprintf(stderr, "                                 tags and are still reported and computed using\n");
+    fprintf(stderr, "                                 all alignments.  The default is "u32bitFMT".\n", g->repeatThreshold);
     fprintf(stderr, "\n");
     fprintf(stderr, "          -maxcolorerror  n\n");
     fprintf(stderr, "          -maxbaseerror   n\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "          -maxmemory      m (MB)\n");
     fprintf(stderr, "          -numthreads     n\n");
     fprintf(stderr, "          -verbose\n");

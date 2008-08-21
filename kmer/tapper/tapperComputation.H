@@ -95,21 +95,23 @@ public:
     tag2hitsMax = 16;
     tag2hits    = new tapperHit [tag2hitsMax];
 
-    result._tag1id       = tag1id;
-    result._tag2id       = tag2id;
+    mean   = 0;
+    stddev = 0;
 
-    result._mean         = 0;
-    result._stddev       = 0;
+    alignQualHistogram    = 0L;
+    alignQualHistogramLen = 0;
 
-    result._numFragment  = 0;
-    result._numMated     = 0;
-    result._numSingleton = 0;
-    result._numTangled   = 0;
+    resultFragment        = 0L;
+    resultFragmentLen     = 0L;
 
-    resultFragment       = 0L;
-    resultMated          = 0L;
-    resultSingleton      = 0L;
-    resultTangled        = 0L;
+    resultMated           = 0L;
+    resultMatedLen        = 0L;
+
+    resultSingleton       = 0L;
+    resultSingletonLen    = 0L;
+
+    resultTangled         = 0L;
+    resultTangledLen      = 0L;
   };
 
   ~tapperComputation() {
@@ -122,36 +124,42 @@ public:
     delete [] resultTangled;
   };
 
-  void addHit1(tapperHit& h) {
-    if (tag1hitsLen >= tag1hitsMax) {
-      tag1hitsMax *= 2;
-      tapperHit *nits = new tapperHit [tag1hitsMax];
-      memcpy(nits, tag1hits, sizeof(tapperHit) * tag1hitsLen);
-      delete [] tag1hits;
-      tag1hits = nits;
+  void addHit(tapperGlobalData *g, tapperHit& h, bool tag1) {
+
+    u32bit  ii = g->getQualityHistogramIndex(h.numberOfBaseMismatches(),
+                                             h.numberOfColorMismatches(),
+                                             h.numberOfColorInconsistencies());
+
+    assert(ii < g->histogramIndicesLen);
+ 
+    if (alignQualHistogram == 0L) {
+      alignQualHistogramLen = g->histogramIndicesLen;
+      alignQualHistogram    = new u32bit [alignQualHistogramLen];
+
+      memset(alignQualHistogram, 0, sizeof(u32bit) * alignQualHistogramLen);
     }
-    tag1hits[tag1hitsLen++] = h;
-  };
 
-  void addHit2(tapperHit& h) {
-    if (tag2hitsLen >= tag2hitsMax) {
-      tag2hitsMax *= 2;
-      tapperHit *nits = new tapperHit [tag2hitsMax];
-      memcpy(nits, tag2hits, sizeof(tapperHit) * tag2hitsLen);
-      delete [] tag2hits;
-      tag2hits = nits;
+    alignQualHistogram[ii]++;
+
+    if (tag1) {
+      if (tag1hitsLen >= tag1hitsMax) {
+        tag1hitsMax *= 2;
+        tapperHit *nits = new tapperHit [tag1hitsMax];
+        memcpy(nits, tag1hits, sizeof(tapperHit) * tag1hitsLen);
+        delete [] tag1hits;
+        tag1hits = nits;
+      }
+      tag1hits[tag1hitsLen++] = h;
+    } else {
+      if (tag2hitsLen >= tag2hitsMax) {
+        tag2hitsMax *= 2;
+        tapperHit *nits = new tapperHit [tag2hitsMax];
+        memcpy(nits, tag2hits, sizeof(tapperHit) * tag2hitsLen);
+        delete [] tag2hits;
+        tag2hits = nits;
+      }
+      tag2hits[tag2hitsLen++] = h;
     }
-    tag2hits[tag2hitsLen++] = h;
-  };
-
-  void sortAndScoreHits(void) {    
-    std::sort(tag1hits, tag1hits+tag1hitsLen);
-    for (u32bit i=0; i<tag1hitsLen; i++)
-      tag1hits[i]._rank = (i < 65536) ? i : 65535;
-
-    std::sort(tag2hits, tag2hits+tag2hitsLen);
-    for (u32bit i=0; i<tag2hitsLen; i++)
-      tag2hits[i]._rank = (i < 65536) ? i : 65535;
   };
 
   void sortHitsByPosition(void) {
@@ -184,10 +192,22 @@ public:
   u32bit      tag2hitsMax;
   tapperHit  *tag2hits;
 
-  tapperResult            result;
+  u32bit                  mean;
+  u32bit                  stddev;
+
+  u32bit                 *alignQualHistogram;
+  u32bit                  alignQualHistogramLen;
+
   tapperResultFragment   *resultFragment;
+  u32bit                  resultFragmentLen;
+
   tapperResultMated      *resultMated;
+  u32bit                  resultMatedLen;
+
   tapperResultSingleton  *resultSingleton;
+  u32bit                  resultSingletonLen;
+
   tapperResultTangled    *resultTangled;
+  u32bit                  resultTangledLen;
 };
 
