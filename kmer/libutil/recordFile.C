@@ -194,7 +194,7 @@ recordFile::flushDirty(void) {
   //  here.
   //
   errno = 0;
-  write(_file, _bfr, _recordSize * _bfrmax);
+  write(_file, _bfr, _recordSize * _rec);
   if (errno)
     fprintf(stderr, "recordFile::write()-- '%s' failed: %s\n", _name, strerror(errno)), exit(1);
 
