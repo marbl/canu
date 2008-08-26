@@ -1,5 +1,13 @@
 #include "alphabet.h"
 
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+//  tapperResult
+//
+
+
 #include <functional>
 
 //  Tapper generates four kinds of alignments.
@@ -28,7 +36,7 @@
 //  fragment.  This is the index.
 //  256 bits.
 //
-class tapperResult {
+class tapperResultIndex {
 public:
   void    print(FILE *out) {
     u16bit                 id1[4];
@@ -118,11 +126,11 @@ public:
 //
 class tapperResultFragment {
 public:
-  void    print(FILE *out, tapperResult *res) {
+  void    print(FILE *out, tapperResultIndex *idx) {
     u16bit                 id[4];
 
     if (_qual._tag1valid) {
-      decodeTagID(res->_tag1id, id);
+      decodeTagID(idx->_tag1id, id);
       fprintf(stdout, "F\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t"u32bitFMT"/"u32bitFMT"/"u32bitFMT"\n",
               id[0], id[1], id[2], id[3],
               _seq,
@@ -134,7 +142,7 @@ public:
     }
 
     if (_qual._tag2valid) {
-      decodeTagID(res->_tag2id, id);
+      decodeTagID(idx->_tag2id, id);
       fprintf(stdout, "F\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t"u32bitFMT"/"u32bitFMT"/"u32bitFMT"\n",
               id[0], id[1], id[2], id[3],
               _seq,
@@ -162,12 +170,12 @@ public:
 //
 class tapperResultMated {
 public:
-  void    print(FILE *out, tapperResult *res) {
+  void    print(FILE *out, tapperResultIndex *idx) {
     u16bit                 id1[4];
     u16bit                 id2[4];
 
-    decodeTagID(res->_tag1id, id1);
-    decodeTagID(res->_tag2id, id2);
+    decodeTagID(idx->_tag1id, id1);
+    decodeTagID(idx->_tag2id, id2);
 
     fprintf(stdout, "M\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t"u32bitFMT"/"u32bitFMT"/"u32bitFMT"\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t"u32bitFMT"/"u32bitFMT"/"u32bitFMT"\n",
             id1[0], id1[1], id1[2], id1[3],
@@ -202,11 +210,11 @@ public:
 //
 class tapperResultSingleton {
 public:
-  void    print(FILE *out, tapperResult *res) {
+  void    print(FILE *out, tapperResultIndex *idx) {
     u16bit                 id[4];
 
     if (_qual._tag1valid) {
-      decodeTagID(res->_tag1id, id);
+      decodeTagID(idx->_tag1id, id);
       fprintf(stdout, "S\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t"u32bitFMT"/"u32bitFMT"/"u32bitFMT"\n",
               id[0], id[1], id[2], id[3],
               _seq,
@@ -218,7 +226,7 @@ public:
     }
 
     if (_qual._tag2valid) {
-      decodeTagID(res->_tag2id, id);
+      decodeTagID(idx->_tag2id, id);
       fprintf(stdout, "S\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t"u32bitFMT"/"u32bitFMT"/"u32bitFMT"\n",
               id[0], id[1], id[2], id[3],
               _seq,
@@ -244,12 +252,12 @@ public:
 //
 class tapperResultTangled {
 public:
-  void    print(FILE *out, tapperResult *res) {
+  void    print(FILE *out, tapperResultIndex *idx) {
     u16bit                 id1[4];
     u16bit                 id2[4];
 
-    decodeTagID(res->_tag1id, id1);
-    decodeTagID(res->_tag2id, id2);
+    decodeTagID(idx->_tag1id, id1);
+    decodeTagID(idx->_tag2id, id2);
 
     fprintf(stdout, "T\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
             id1[0], id1[1], id1[2], id1[3],
@@ -268,6 +276,39 @@ public:
   u32bit           _bgn;        //  Beginning location
   u32bit           _end;        //  Ending location
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+//  tapperHit
+//
 
 
 

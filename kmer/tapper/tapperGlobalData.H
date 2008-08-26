@@ -153,7 +153,7 @@ tapperGlobalData::initialize(void) {
     char filename[FILENAME_MAX];
 
     sprintf(filename, "%s.tapperMappedIndex", outName);
-    outIndex = new recordFile(filename, 0, sizeof(tapperResult), 'w');
+    outIndex = new recordFile(filename, 0, sizeof(tapperResultIndex), 'w');
 
     sprintf(filename, "%s.tapperMappedFragment", outName);
     outFragment = new recordFile(filename, 0, sizeof(tapperResultFragment), 'w');

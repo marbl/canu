@@ -35,7 +35,7 @@ void
 tapperWriter(void *G, void *S) {
   tapperGlobalData  *g = (tapperGlobalData  *)G;
   tapperComputation *s = (tapperComputation *)S;
-  tapperResult       result;
+  tapperResultIndex  result;
 
   //  Build the result index.
 
@@ -889,7 +889,7 @@ int
 main(int argc, char **argv) {
   tapperGlobalData  *g = new tapperGlobalData();
 
-  fprintf(stderr, "sizeof(tapperResult) --            %d\n", sizeof(tapperResult));
+  fprintf(stderr, "sizeof(tapperResultIndex) --       %d\n", sizeof(tapperResultIndex));
   fprintf(stderr, "sizeof(tapperResultQV) --          %d\n", sizeof(tapperResultQV));
   fprintf(stderr, "sizeof(tapperResultHistogram) --   %d\n", sizeof(tapperResultHistogram));
   fprintf(stderr, "sizeof(tapperResultFragment) --    %d\n", sizeof(tapperResultFragment));
