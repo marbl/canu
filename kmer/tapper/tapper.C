@@ -65,14 +65,12 @@ tapperWriter(void *G, void *S) {
 
   //  Now write.
 
-  g->outIndex->    putRecord(&result);
-
-  g->outFragment-> putRecord(s->resultFragment,     result._numFragment);
-  g->outMated->    putRecord(s->resultMated,        result._numMated);
-  g->outSingleton->putRecord(s->resultSingleton,    result._numSingleton);
-  g->outTangled->  putRecord(s->resultTangled,      result._numTangled);
-
-  g->outAlignQual->putRecord(s->alignQualHistogram, s->alignQualHistogramLen);
+  g->TA->write(&result,
+               s->resultFragment,
+               s->resultSingleton,
+               s->resultMated,
+               s->resultTangled,
+               s->alignQualHistogram);
 
   delete s;
 }
@@ -138,6 +136,8 @@ tapperHit::alignToReference(tapperGlobalData *g,
 
   u32bit      errs = 0;               //  number of errors
   u32bit      errp[TAG_LEN_MAX];      //  location of the errors
+  u32bit      errc[TAG_LEN_MAX];      //  status of confirmed or error
+
   char       _tagCOREC[TAG_LEN_MAX];  //  For holding corrected color calls, only to generate ACGT align
 
   _seqIdx = so_in;
@@ -221,6 +221,7 @@ tapperHit::alignToReference(tapperGlobalData *g,
   for (u32bit ti=1; ti<_len; ti++) {
     if (_tagCOLOR[ti] != _refCOLOR[ti]) {
       errp[errs] = ti;
+      errc[errs] = 0;
       errs++;
     }
   }
@@ -251,6 +252,8 @@ tapperHit::alignToReference(tapperGlobalData *g,
       //  MNP of size 4.
       _colorMismatch     = 2;
       _colorInconsistent = 0;
+      errc[0] = 1;
+      errc[1] = 1;
     } else {
       //  Correct 'em.
       _colorMismatch     = 0;
@@ -269,16 +272,23 @@ tapperHit::alignToReference(tapperGlobalData *g,
       //  MNP of size 5
       _colorMismatch     = 3;
       _colorInconsistent = 0;
+      errc[0] = 1;
+      errc[1] = 1;
+      errc[2] = 1;
     } else if (ok21) {
       //  First two ok, fix the third.
       _colorMismatch     = 2;
       _colorInconsistent = 1;
       _tagCOREC[errp[2]] = _refCOLOR[errp[2]];
+      errc[0] = 1;
+      errc[1] = 1;
     } else if (ok22) {
       //  Last two ok, fix the first.
       _colorMismatch     = 2;
       _colorInconsistent = 1;
       _tagCOREC[errp[0]] = _refCOLOR[errp[0]];
+      errc[1] = 1;
+      errc[2] = 1;
     } else {
       //  Nothing consistent, fix all of 'em.
       _colorMismatch     = 0;
@@ -313,34 +323,50 @@ tapperHit::alignToReference(tapperGlobalData *g,
       //  MNP of size 6
       _colorMismatch     = 4;
       _colorInconsistent = 0;
+      errc[0] = 1;
+      errc[1] = 1;
+      errc[2] = 1;
+      errc[3] = 1;
     } else if (ok31) {
       //  First three ok, fix the last one.
       _colorMismatch     = 3;
       _colorInconsistent = 1;
       _tagCOREC[errp[3]] = _refCOLOR[errp[3]];
+      errc[0] = 1;
+      errc[1] = 1;
+      errc[2] = 1;
     } else if (ok32) {
       //  Last three ok, fix the first one.
       _colorMismatch     = 3;
       _colorInconsistent = 1;
       _tagCOREC[errp[0]] = _refCOLOR[errp[0]];
+      errc[1] = 1;
+      errc[2] = 1;
+      errc[3] = 1;
     } else if (ok21) {
       //  First two ok, fix the last two.
       _colorMismatch     = 2;
       _colorInconsistent = 2;
       _tagCOREC[errp[2]] = _refCOLOR[errp[2]];
       _tagCOREC[errp[3]] = _refCOLOR[errp[3]];
+      errc[0] = 1;
+      errc[1] = 1;
     } else if (ok22) {
       //  Middle two ok, fix the outties.
       _colorMismatch     = 2;
       _colorInconsistent = 2;
       _tagCOREC[errp[0]] = _refCOLOR[errp[0]];
       _tagCOREC[errp[3]] = _refCOLOR[errp[3]];
+      errc[1] = 1;
+      errc[2] = 1;
     } else if (ok23) {
       //  Last two ok, fix the first two.
       _colorMismatch     = 2;
       _colorInconsistent = 2;
       _tagCOREC[errp[0]] = _refCOLOR[errp[0]];
-      _tagCOREC[errp[3]] = _refCOLOR[errp[3]];
+      _tagCOREC[errp[1]] = _refCOLOR[errp[1]];
+      errc[2] = 1;
+      errc[3] = 1;
     } else {
       //  Nothing consistent, fix all of 'em.
       _colorMismatch     = 0;
@@ -403,7 +429,31 @@ tapperHit::alignToReference(tapperGlobalData *g,
     reverseComplementSequence(_refACGT, _len-1);
 
     //  Adjust the error positions...once we start caring about positions.
+
+    for (u32bit x=0; x<errs; x++)
+      errp[x] = _len - errp[x];
   }
+
+  //  Stuff the errors into the hit.
+
+  {
+    u32bit nn = 0;
+
+    assert(errs <= MAX_COLOR_MISMATCH_MAPPED);
+
+    for (u32bit x=0; x<errs; x++)
+      if (errc[x] == 1)
+        _changes[nn++] = (letterToBits[ _refCOLOR[ errp[x] ] ] << 6) | errp[x];
+
+    assert(nn == _colorMismatch);
+
+    for (u32bit x=0; x<errs; x++)
+      if (errc[x] == 0)
+        _changes[nn++] = (letterToBits[ _refCOLOR[ errp[x] ] ] << 6) | errp[x];
+
+    assert(nn == _colorMismatch + _colorInconsistent);
+  }
+
 
   //fprintf(stderr, "tag: %s %s ref: %s %s "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
   //        tag_in, _tagCOLOR, _refCOLOR, _refACGT, _basesMismatch, _colorMismatch, _colorInconsistent);
@@ -537,17 +587,23 @@ tapperWorker(void *G, void *T, void *S) {
     s->resultFragment    = new tapperResultFragment [s->tag1hitsLen];
     s->resultFragmentLen = s->tag1hitsLen;
 
+    memset(s->resultFragment, 0, sizeof(tapperResultFragment) * s->tag1hitsLen);
+
     for (u32bit i=0; i<s->tag1hitsLen; i++) {
       s->resultFragment[i]._seq = s->tag1hits[i]._seqIdx;
       s->resultFragment[i]._pos = s->tag1hits[i]._seqPos;
-
-      s->resultFragment[i]._bits = 0;
 
       s->resultFragment[i]._qual._tag1valid             = 1;
       s->resultFragment[i]._qual._tag1basesMismatch     = s->tag1hits[i]._basesMismatch;
       s->resultFragment[i]._qual._tag1colorMismatch     = s->tag1hits[i]._colorMismatch;
       s->resultFragment[i]._qual._tag1colorInconsistent = s->tag1hits[i]._colorInconsistent;
       s->resultFragment[i]._qual._tag1rev               = s->tag1hits[i]._rev;
+
+      s->resultFragment[i]._qual._diffSize = MAX_COLOR_MISMATCH_MAPPED;
+
+      memcpy(s->resultFragment[i]._qual._tag1colorDiffs,
+             s->tag1hits[i]._changes,
+             sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
     }
 
     //  OUTPUT CASE 3 - unmated fragments (but wrong set, should always be in tag1)
@@ -751,10 +807,15 @@ tapperWorker(void *G, void *T, void *S) {
     //  to grab.  Not perfect.  Can do a lot better.
     //
     s->resultFragment   = new tapperResultFragment   [s->tag1hitsLen + s->tag2hitsLen];
-    s->resultMated      = new tapperResultMated      [MIN(s->tag1hitsLen, s->tag2hitsLen)];
     s->resultSingleton  = new tapperResultSingleton  [s->tag1hitsLen + s->tag2hitsLen];
+    s->resultMated      = new tapperResultMated      [MIN(s->tag1hitsLen, s->tag2hitsLen)];
     s->resultTangled    = new tapperResultTangled    [MIN(s->tag1hitsLen, s->tag2hitsLen)];
 
+#warning bottleneck?
+    memset(s->resultFragment,  0, sizeof(tapperResultFragment)  * (s->tag1hitsLen + s->tag2hitsLen));
+    memset(s->resultSingleton, 0, sizeof(tapperResultSingleton) * (s->tag1hitsLen + s->tag2hitsLen));
+    memset(s->resultMated,     0, sizeof(tapperResultMated)     * (MIN(s->tag1hitsLen, s->tag2hitsLen)));
+    memset(s->resultTangled,   0, sizeof(tapperResultTangled)   * (MIN(s->tag1hitsLen, s->tag2hitsLen)));
 
     //  Pass two.  For anything with zero happies, emit to the
     //  singleton file.  For anything with a pair of single happies,
@@ -768,26 +829,35 @@ tapperWorker(void *G, void *T, void *S) {
           f->_seq = s->tag1hits[a]._seqIdx;
           f->_pos = s->tag1hits[a]._seqPos;
 
-          f->_bits = 0;
-
           f->_qual._tag1valid             = 1;
           f->_qual._tag1basesMismatch     = s->tag1hits[a]._basesMismatch;
           f->_qual._tag1colorMismatch     = s->tag1hits[a]._colorMismatch;
           f->_qual._tag1colorInconsistent = s->tag1hits[a]._colorInconsistent;
           f->_qual._tag1rev               = s->tag1hits[a]._rev;
+
+          f->_qual._diffSize = MAX_COLOR_MISMATCH_MAPPED;
+
+          memcpy(f->_qual._tag1colorDiffs,
+                 s->tag1hits[a]._changes,
+                 sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
+
         } else {
           tapperResultFragment *f = s->resultFragment + s->resultFragmentLen++;
 
           f->_seq = s->tag1hits[a]._seqIdx;
           f->_pos = s->tag1hits[a]._seqPos;
 
-          f->_bits = 0;
-
           f->_qual._tag1valid             = 1;
           f->_qual._tag1basesMismatch     = s->tag1hits[a]._basesMismatch;
           f->_qual._tag1colorMismatch     = s->tag1hits[a]._colorMismatch;
           f->_qual._tag1colorInconsistent = s->tag1hits[a]._colorInconsistent;
           f->_qual._tag1rev               = s->tag1hits[a]._rev;
+
+          f->_qual._diffSize = MAX_COLOR_MISMATCH_MAPPED;
+
+          memcpy(f->_qual._tag1colorDiffs,
+                 s->tag1hits[a]._changes,
+                 sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
         }
       }
     }
@@ -800,26 +870,35 @@ tapperWorker(void *G, void *T, void *S) {
           f->_seq = s->tag2hits[b]._seqIdx;
           f->_pos = s->tag2hits[b]._seqPos;
 
-          f->_bits = 0;
-
           f->_qual._tag2valid             = 1;
           f->_qual._tag2basesMismatch     = s->tag2hits[b]._basesMismatch;
           f->_qual._tag2colorMismatch     = s->tag2hits[b]._colorMismatch;
           f->_qual._tag2colorInconsistent = s->tag2hits[b]._colorInconsistent;
           f->_qual._tag2rev               = s->tag2hits[b]._rev;
+
+          f->_qual._diffSize = MAX_COLOR_MISMATCH_MAPPED;
+
+          memcpy(f->_qual._tag2colorDiffs,
+                 s->tag2hits[b]._changes,
+                 sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
+
         } else {
           tapperResultFragment *f = s->resultFragment + s->resultFragmentLen++;
 
           f->_seq = s->tag2hits[b]._seqIdx;
           f->_pos = s->tag2hits[b]._seqPos;
 
-          f->_bits = 0;
-
           f->_qual._tag2valid             = 1;
           f->_qual._tag2basesMismatch     = s->tag2hits[b]._basesMismatch;
           f->_qual._tag2colorMismatch     = s->tag2hits[b]._colorMismatch;
           f->_qual._tag2colorInconsistent = s->tag2hits[b]._colorInconsistent;
           f->_qual._tag2rev               = s->tag2hits[b]._rev;
+
+          f->_qual._diffSize = MAX_COLOR_MISMATCH_MAPPED;
+
+          memcpy(f->_qual._tag2colorDiffs,
+                 s->tag2hits[b]._changes,
+                 sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
         }
       }
     }
@@ -837,8 +916,6 @@ tapperWorker(void *G, void *T, void *S) {
         m->_pos1 = s->tag1hits[a]._seqPos;
         m->_pos2 = s->tag2hits[b]._seqPos;
 
-        m->_bits = 0;
-
         m->_qual._tag1valid             = 1;
         m->_qual._tag1basesMismatch     = s->tag1hits[a]._basesMismatch;
         m->_qual._tag1colorMismatch     = s->tag1hits[a]._colorMismatch;
@@ -850,6 +927,15 @@ tapperWorker(void *G, void *T, void *S) {
         m->_qual._tag2colorMismatch     = s->tag2hits[b]._colorMismatch;
         m->_qual._tag2colorInconsistent = s->tag2hits[b]._colorInconsistent;
         m->_qual._tag2rev               = s->tag2hits[b]._rev;
+
+        m->_qual._diffSize = MAX_COLOR_MISMATCH_MAPPED;
+
+        memcpy(m->_qual._tag1colorDiffs,
+               s->tag1hits[a]._changes,
+               sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
+        memcpy(m->_qual._tag2colorDiffs,
+               s->tag2hits[b]._changes,
+               sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
       }
     }
 
@@ -926,7 +1012,7 @@ main(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-maxmemory", 5) == 0) {
       g->maxMemory = atoi(argv[++arg]);
 
-    } else if (strncmp(argv[arg], "-numthreads", 2) == 0) {
+    } else if (strncmp(argv[arg], "-threads", 2) == 0) {
       g->numThreads = atoi(argv[++arg]);
 
     } else if (strncmp(argv[arg], "-verbose", 2) == 0) {
@@ -961,9 +1047,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "          -maxbaseerror   n\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "          -maxmemory      m (MB)\n");
-    fprintf(stderr, "          -numthreads     n\n");
+    fprintf(stderr, "          -threads        n\n");
     fprintf(stderr, "          -verbose\n");
-            
+
     exit(1);
   }
 

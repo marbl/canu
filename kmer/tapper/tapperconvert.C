@@ -52,77 +52,37 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  char                   fileName[FILENAME_MAX];
-  tapperResultIndex      idx;
-  tapperResultFragment   frag;
-  tapperResultSingleton  sing;
-  tapperResultMated      mate;
-  tapperResultTangled    tang;
+  tapperAlignmentFile   *AF = new tapperAlignmentFile(resultName, 'r');
+  tapperAlignment        AL;
 
-  sprintf(fileName, "%s.tapperMappedIndex", resultName);
-  recordFile *IDX = new recordFile(fileName, 0, sizeof(tapperResultIndex), 'r');
-
-  sprintf(fileName, "%s.tapperMappedFragment", resultName);
-  recordFile *FRAG = new recordFile(fileName, 0, sizeof(tapperResultFragment), 'r');
-
-  sprintf(fileName, "%s.tapperMappedSingleton", resultName);
-  recordFile *SING = new recordFile(fileName, 0, sizeof(tapperResultSingleton), 'r');
-
-  sprintf(fileName, "%s.tapperMappedMated", resultName);
-  recordFile *MATE = new recordFile(fileName, 0, sizeof(tapperResultMated), 'r');
-
-  sprintf(fileName, "%s.tapperMappedTangled", resultName);
-  recordFile *TANG = new recordFile(fileName, 0, sizeof(tapperResultTangled), 'r');
-
-
-  while (IDX->getRecord(&idx) == 1) {
+  while (AF->read(&AL)) {
     if ((dumpIndex) &&
         ((allIndex) ||
-         ((dumpFrag) && (idx._numFragment           > 0)) ||
-         ((dumpFrag) && (idx._numFragmentDiscarded  > 0)) ||
-         ((dumpSing) && (idx._numSingleton          > 0)) ||
-         ((dumpMate) && (idx._numMated              > 0)) ||
-         ((dumpTang) && (idx._numTangled            > 0))))
-      idx.print(stdout);
+         ((dumpFrag) && (AL.idx._numFragment           > 0)) ||
+         ((dumpFrag) && (AL.idx._numFragmentDiscarded  > 0)) ||
+         ((dumpSing) && (AL.idx._numSingleton          > 0)) ||
+         ((dumpMate) && (AL.idx._numMated              > 0)) ||
+         ((dumpTang) && (AL.idx._numTangled            > 0))))
+      AL.idx.print(stdout);
 
-    if (dumpFrag) {
-      for (u32bit i=0; i<idx._numFragment; i++) {
-        if (FRAG->getRecord(&frag) != 1)
-          fprintf(stderr, "Failed to read FRAG record.\n"), exit(1);
-        frag.print(stdout, &idx);
-      }
-    }
+    if (dumpFrag)
+      for (u32bit i=0; i<AL.idx._numFragment; i++)
+        AL.frag[i].print(stdout, &AL.idx);
 
-    if (dumpSing) {
-      for (u32bit i=0; i<idx._numSingleton; i++) {
-        if (SING->getRecord(&sing) != 1)
-          fprintf(stderr, "Failed to read SING record.\n"), exit(1);
-        sing.print(stdout, &idx);
-      }
-    }
+    if (dumpSing)
+      for (u32bit i=0; i<AL.idx._numSingleton; i++)
+        AL.sing[i].print(stdout, &AL.idx);
 
-    if (dumpMate) {
-      for (u32bit i=0; i<idx._numMated; i++) {
-        if (MATE->getRecord(&mate) != 1)
-          fprintf(stderr, "Failed to read MATE record.\n"), exit(1);
-        mate.print(stdout, &idx);
-      }
-    }
+    if (dumpMate)
+      for (u32bit i=0; i<AL.idx._numMated; i++)
+        AL.mate[i].print(stdout, &AL.idx);
 
-    if (dumpTang) {
-      for (u32bit i=0; i<idx._numTangled; i++) {
-        if (TANG->getRecord(&tang) != 1)
-          fprintf(stderr, "Failed to read TANG record.\n"), exit(1);
-        tang.print(stdout, &idx);
-      }
-    }
+    if (dumpTang)
+      for (u32bit i=0; i<AL.idx._numTangled; i++)
+        AL.tang[i].print(stdout, &AL.idx);
   }
 
-  delete IDX;
-  delete FRAG;
-  delete SING;
-  delete MATE;
-  delete TANG;
+  delete AF;
 
   exit(0);
 }

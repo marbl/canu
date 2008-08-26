@@ -126,14 +126,13 @@ public:
 
   void addHit(tapperGlobalData *g, tapperHit& h, bool tag1) {
 
-    u32bit  ii = g->getQualityHistogramIndex(h.numberOfBaseMismatches(),
-                                             h.numberOfColorMismatches(),
-                                             h.numberOfColorInconsistencies());
-
-    assert(ii < g->histogramIndicesLen);
+    u32bit  ii = g->TA->AQIindex(g->maxBaseError, g->maxColorError,
+                                 h.numberOfBaseMismatches(),
+                                 h.numberOfColorMismatches(),
+                                 h.numberOfColorInconsistencies());
  
     if (alignQualHistogram == 0L) {
-      alignQualHistogramLen = g->histogramIndicesLen;
+      alignQualHistogramLen = g->TA->AQIlength(g->maxBaseError, g->maxColorError);
       alignQualHistogram    = new u32bit [alignQualHistogramLen];
 
       memset(alignQualHistogram, 0, sizeof(u32bit) * alignQualHistogramLen);
