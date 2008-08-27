@@ -36,7 +36,7 @@ main(int argc, char **argv) {
 
   //  Open the output file
 
-  tapperAlignmentFile     *out = new tapperAlignmentFile(outName, 'w');
+  tapperResultFile     *out = new tapperResultFile(outName, 'w');
 
   //  Loop over the inputs, copying to the output.  We could be much
   //  looser here, just blindly copying all records in each file, but
@@ -48,14 +48,14 @@ main(int argc, char **argv) {
       //  Skip the output.
       arg++;
     } else {
-      tapperAlignmentFile *inp   = new tapperAlignmentFile(argv[arg], 'r');
-      tapperAlignment     *align = new tapperAlignment;
+      tapperResultFile *inp = new tapperResultFile(argv[arg], 'r');
+      tapperResult     *res = new tapperResult;
 
-      while (inp->read(align))
-        out->write(align);
+      while (inp->read(res))
+        out->write(res);
 
       delete inp;
-      delete align;
+      delete res;
     }
 
     arg++;

@@ -32,7 +32,7 @@ public:
   u32bit            maxBaseError;
 
   tapperTagFile        *TF;
-  tapperAlignmentFile  *TA;
+  tapperResultFile     *TA;
 
   seqStream        *SS;
   merStream        *MS;
@@ -124,7 +124,7 @@ tapperGlobalData::initialize(void) {
 
   GS = new FastACache(genName, 0, true, false);
 
-  TA = new tapperAlignmentFile(outName, 'w');
+  TA = new tapperResultFile(outName, 'w');
 
   //  We get races unless we prebuild the AQI stuff.  I don't want to
   //  make this a requirement of the constructor, since only

@@ -54,37 +54,38 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  tapperAlignmentFile   *AF = new tapperAlignmentFile(resultName, 'r');
-  tapperAlignment        AL;
+  tapperResultFile   *inp = new tapperResultFile(resultName, 'r');
+  tapperResult       *res = new tapperResult;
 
-  while (AF->read(&AL)) {
+  while (inp->read(res)) {
     if ((dumpIndex) &&
         ((allIndex) ||
-         ((dumpFrag) && (AL.idx._numFragment           > 0)) ||
-         ((dumpFrag) && (AL.idx._numFragmentDiscarded  > 0)) ||
-         ((dumpSing) && (AL.idx._numSingleton          > 0)) ||
-         ((dumpMate) && (AL.idx._numMated              > 0)) ||
-         ((dumpTang) && (AL.idx._numTangled            > 0))))
-      AL.idx.print(stdout);
+         ((dumpFrag) && (res->idx._numFragment           > 0)) ||
+         ((dumpFrag) && (res->idx._numFragmentDiscarded  > 0)) ||
+         ((dumpSing) && (res->idx._numSingleton          > 0)) ||
+         ((dumpMate) && (res->idx._numMated              > 0)) ||
+         ((dumpTang) && (res->idx._numTangled            > 0))))
+      res->idx.print(stdout);
 
     if (dumpFrag)
-      for (u32bit i=0; i<AL.idx._numFragment; i++)
-        AL.frag[i].print(stdout, &AL.idx);
+      for (u32bit i=0; i<res->idx._numFragment; i++)
+        res->frag[i].print(stdout, &res->idx);
 
     if (dumpSing)
-      for (u32bit i=0; i<AL.idx._numSingleton; i++)
-        AL.sing[i].print(stdout, &AL.idx);
+      for (u32bit i=0; i<res->idx._numSingleton; i++)
+        res->sing[i].print(stdout, &res->idx);
 
     if (dumpMate)
-      for (u32bit i=0; i<AL.idx._numMated; i++)
-        AL.mate[i].print(stdout, &AL.idx);
+      for (u32bit i=0; i<res->idx._numMated; i++)
+        res->mate[i].print(stdout, &res->idx);
 
     if (dumpTang)
-      for (u32bit i=0; i<AL.idx._numTangled; i++)
-        AL.tang[i].print(stdout, &AL.idx);
+      for (u32bit i=0; i<res->idx._numTangled; i++)
+        res->tang[i].print(stdout, &res->idx);
   }
 
-  delete AF;
+  delete inp;
+  delete res;
 
   exit(0);
 }
