@@ -218,6 +218,19 @@ public:
     return(_metaData);
   };
 
+  u64bit numberOfFragmentTags(void) {
+    if (metaData()->isPairedTagFile())
+      return(0);
+    else
+      return(_tagFile->numRecords());
+  };
+
+  u64bit numberOfMatedTags(void) {
+    if (metaData()->isPairedTagFile())
+      return(_tagFile->numRecords() * 2);
+    else
+      return(0);
+  };
 
   void   setBegin(u32bit bgn) {
     _tagFile->seek(bgn);

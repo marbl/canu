@@ -139,6 +139,25 @@ readTag(u32bit fileUID, FILE *seq, FILE *qlt, tapperTag *T) {
 
 
 void
+dumpTagFileStats(char *tagfile) {
+  tapperTagFile  *TF = new tapperTagFile(tagfile, 'r');
+
+  if (TF->metaData()->isPairedTagFile()) {
+    fprintf(stdout, "%s\ttype\tmated tags\n", tagfile);
+    fprintf(stdout, "%s\tlength\t"u32bitFMT"\n", tagfile, TF->metaData()->tagSize());
+    fprintf(stdout, "%s\tnumTags\t"u64bitFMT"\n", tagfile, TF->numberOfMatedTags());
+    fprintf(stdout, "%s\tmean\t"u32bitFMT"\n", tagfile, TF->metaData()->mean());
+    fprintf(stdout, "%s\tstddev\t"u32bitFMT"\n", tagfile, TF->metaData()->stddev());
+  } else {
+    fprintf(stdout, "%s\ttype\tfragment tags\n", tagfile);
+    fprintf(stdout, "%s\tlength\t"u32bitFMT"\n", tagfile, TF->metaData()->tagSize());
+    fprintf(stdout, "%s\tnumTags\t"u64bitFMT"\n", tagfile, TF->numberOfFragmentTags());
+ 
+  }
+}
+
+
+void
 dumpTagFile(char *tagfile) {
   tapperTagFile  *TF = new tapperTagFile(tagfile, 'r');
   tapperTag       a, b;
@@ -213,6 +232,10 @@ main(int argc, char **argv) {
         fprintf(stderr, "%s: insert size limited to at most %dbp.\n", argv[0], MAX_INSERT_SIZE), exit(1);
       if (stddev > MAX_INSERT_DEVIATION)
         fprintf(stderr, "%s: insert size limited to at most +- %dbp.\n", argv[0], MAX_INSERT_DEVIATION), exit(1);
+
+    } else if (strncmp(argv[arg], "-stats", 2) == 0) {
+      dumpTagFileStats(argv[++arg]);
+      exit(0);
 
     } else if (strncmp(argv[arg], "-dump", 2) == 0) {
       dumpTagFile(argv[++arg]);
