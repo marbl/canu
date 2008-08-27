@@ -1,4 +1,6 @@
 #include "tapperTag.H"
+#include "tapperResult.H"
+#include "tapperAlignment.H"
 #include "tapperHit.H"
 
 //  Convert reads from ASCI to tapper binary.

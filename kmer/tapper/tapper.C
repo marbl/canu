@@ -1,4 +1,6 @@
 #include "tapperTag.H"
+#include "tapperResult.H"
+#include "tapperAlignment.H"
 #include "tapperHit.H"
 #include "tapperGlobalData.H"
 #include "tapperThreadData.H"
