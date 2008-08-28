@@ -243,8 +243,10 @@ sweatShop::worker(sweatShopWorker *workerData) {
 
   while (moreToCompute) {
 
-    while (_numberComputed - _numberOutput > _writerQueueSize)
+    while (_numberComputed - _numberOutput > _writerQueueSize) {
+      fprintf(stderr, "WARNING!  Worker is sleeping because the writer is slow!\n");
       nanosleep(&naptime, 0L);
+    }
 
     //  Grab the next state.  We don't grab it if it's the last in the
     //  queue (else we would fall off the end) UNLESS it really is the
@@ -276,8 +278,10 @@ sweatShop::worker(sweatShopWorker *workerData) {
       //  something to do and moreToCompute=false).  If it's actually
       //  the end, skip the sleep and just get outta here.
       //
-      if (moreToCompute == true)
+      if (moreToCompute == true) {
+        fprintf(stderr, "WARNING!  Worker is sleeping because the reader is slow!\n");
         nanosleep(&naptime, 0L);
+      }
     }
   }
 
@@ -292,7 +296,7 @@ sweatShop::writer(void) {
 
   struct timespec   naptime;
   naptime.tv_sec      = 0;
-  naptime.tv_nsec     = 333333333ULL;  //  1/3 second 10000000ULL;
+  naptime.tv_nsec     = 166666666ULL;  //  1/6 second
 
   //  Wait for output to appear.
   //
