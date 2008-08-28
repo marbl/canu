@@ -200,8 +200,10 @@ int
 main(int argc, char **argv) {
   char  *prefix  = 0L;
 
-  u32bit sampleSize = 0;
-  char  *sampleFile = 0L;
+  u32bit  sampleSize    = 0;
+  char   *sampleFile    = 0L;
+  u32bit  sampleErrors  = 3;
+  u32bit  sampleTagSize = 25;
 
   u32bit  tagfuid = 0,   tagruid = 0;
   char   *tagfseq = 0L, *tagrseq  = 0L;
@@ -238,9 +240,13 @@ main(int argc, char **argv) {
       if (stddev > MAX_INSERT_DEVIATION)
         fprintf(stderr, "%s: insert size limited to at most +- %dbp.\n", argv[0], MAX_INSERT_DEVIATION), exit(1);
 
-    } else if (strncmp(argv[arg], "-sample", 3) == 0) {
+    } else if (strcmp(argv[arg], "-sample") == 0) {
       sampleSize = strtou32bit(argv[++arg], 0L);
       sampleFile = argv[++arg];
+    } else if (strcmp(argv[arg], "-sampleerrors") == 0) {
+      sampleErrors = strtou32bit(argv[++arg], 0L);
+    } else if (strcmp(argv[arg], "-sampletagsize") == 0) {
+      sampleTagSize = strtou32bit(argv[++arg], 0L);
 
     } else if (strncmp(argv[arg], "-stats", 3) == 0) {
       dumpTagFileStats(argv[++arg]);
@@ -279,9 +285,6 @@ main(int argc, char **argv) {
 
   //  If given a sampleFile, generate some tags from there.
   if (sampleFile) {
-
-#define MS 23
-
     seqFile    *F = openSeqFile(sampleFile);
     seqInCore  *s = F->getSequenceInCore();
 
@@ -304,7 +307,7 @@ main(int argc, char **argv) {
     TR       = new tapperTag [maxTagsR];
 
     for (u32bit i=0; i<sampleSize; i++) {
-      pos = mtRandom32(mtctx) % (len - MS);
+      pos = mtRandom32(mtctx) % (len - sampleTagSize);
 
       char  n = acgt[mtRandom32(mtctx) % 4];
       char  l = n;
@@ -313,22 +316,19 @@ main(int argc, char **argv) {
       seq[0] = n;
 
       bool   doForward = (mtRandom32(mtctx) & 0x1000) == 0x1000;
-
-      doForward = false;
+      //doForward = false;
 
       if (doForward) {
-        //  Forward
         u32bit sp = pos;
-        for (u32bit x=1; x<=MS; x++) {
+        for (u32bit x=1; x<=sampleTagSize; x++) {
           n = s->sequence()[sp++];
           cor[x] = n;
           seq[x] = baseToColor[l][n];
           l = n;
         }
       } else {
-        //  Reverse
-        u32bit sp = pos + MS - 1;
-        for (u32bit x=1; x<=MS; x++) {
+        u32bit sp = pos + sampleTagSize - 1;
+        for (u32bit x=1; x<=sampleTagSize; x++) {
           n = complementSymbol[s->sequence()[sp--]];
           cor[x] = n;
           seq[x] = baseToColor[l][n];
@@ -336,14 +336,14 @@ main(int argc, char **argv) {
         }
       }
 
-      //  Insert 0 to 3 errors.
+      //  Insert errors.
 
       char     errors[256] = {0};
       char     errort[256] = {0};
-      u32bit   nerr = 1;
+      u32bit   nerrs = mtRandom32(mtctx) % (sampleErrors + 1);
 
-      for (u32bit xx=0; xx<nerr; xx++) {
-        u32bit e = mtRandom32(mtctx) % MS + 1;
+      for (u32bit xx=0; xx<nerrs; xx++) {
+        u32bit e = mtRandom32(mtctx) % (sampleTagSize-1) + 1;
         char   o = seq[e];
         seq[e] = seq[e] + 1;
         if (seq[e] > '3')
@@ -352,18 +352,24 @@ main(int argc, char **argv) {
         strcat(errors, errort);
       }
 
-      fprintf(stdout, u32bitFMT"\t"u32bitFMT"\t%c\t%s%s\t%s\n", i, pos, (doForward) ? 'f' : 'r', cor+1, errors, seq);
-
       id[0] = i;
       id[1] = 0;
       id[2] = 0;
       id[3] = 0;
 
-      if (doForward) {
-        TF[numTagsF++].encode(id, seq, qlt);
-      } else {
-        TR[numTagsR++].encode(id, seq, qlt);
-      }
+      fprintf(stdout, "F\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t0\t"u32bitFMT"\t%c\t%s%s\t%s\n",
+              id[0], id[1], id[2], id[3],
+              pos,
+              (doForward) ? 'f' : 'r',
+              cor+1,
+              errors,
+              seq);
+
+      //  TF is NOT just storing the 'forward' reads, it's all the
+      //  reads from the first half of the mate.  Since we're not
+      //  mated, this is just all reads.
+
+      TF[numTagsF++].encode(id, seq, qlt);
     }
   }
 
