@@ -27,3 +27,12 @@ public:
   u8bit    _colorDiffs[MAX_COLOR_MISMATCH_MAPPED];
 };
 
+
+class
+tapperAlignmentPositionCompare {
+public:
+  bool operator()(const tapperAlignment &a, const tapperAlignment &b) const {
+    return((a._seq < b._seq) ||
+           ((a._seq == b._seq) && (a._pos < b._pos)));
+  };
+};
