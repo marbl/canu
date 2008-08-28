@@ -26,7 +26,7 @@ public:
   //  so that it could potentially be happily mated to a tag mapping
   //  in a different sequence (or in a gap).
   //
-  void   alignToReference(tapperGlobalData *g,
+  bool   alignToReference(tapperGlobalData *g,
                           u32bit so,
                           u32bit po,
                           char  *tag, u32bit len);

@@ -120,7 +120,7 @@ isConsistent(char     *ref, char     *tag,
 //  a SNP, or we have an error somewhere.  The choice here is
 //  arbitrary, and made depending on where that error is.
 //
-void
+bool
 tapperHit::alignToReference(tapperGlobalData *g,
                             u32bit  so_in,
                             u32bit  po_in,
@@ -392,6 +392,11 @@ tapperHit::alignToReference(tapperGlobalData *g,
     _colorInconsistent = errs;
   }
 
+  //  Too many errors already?  Fail.
+  //
+  if (_colorMismatch + _colorInconsistent > g->maxColorError)
+    return(false);
+
   //  Compute alignments of corrected color strings.
 
   _basesMismatch = 0;
@@ -436,33 +441,32 @@ tapperHit::alignToReference(tapperGlobalData *g,
       errp[x] = _len - errp[x];
   }
 
-  //  Stuff the errors into the hit.
-
-  {
-    u32bit nn = 0;
-
-    assert(errs <= MAX_COLOR_MISMATCH_MAPPED);
-
-    for (u32bit x=0; x<errs; x++)
-      if (errc[x] == 1)
-        _tagColorDiffs[nn++] = (letterToBits[ _tagCOLOR[ errp[x] ] ] << 6) | errp[x];
-
-    assert(nn == _colorMismatch);
-
-    for (u32bit x=0; x<errs; x++)
-      if (errc[x] == 0)
-        _tagColorDiffs[nn++] = (letterToBits[ _tagCOLOR[ errp[x] ] ] << 6) | errp[x];
-
-    assert(nn == _colorMismatch + _colorInconsistent);
-  }
-
+  //  Too much ACGT difference?  Fail.
+  //
+  if (_basesMismatch > g->maxBaseError)
+    return(false);
 
   //fprintf(stderr, "tag: %s %s ref: %s %s "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
   //        tag_in, _tagCOLOR, _refCOLOR, _refACGT, _basesMismatch, _colorMismatch, _colorInconsistent);
 
-  return;
-}
+  //  Stuff the errors into the hit.
 
+  u32bit nn = 0;
+
+  for (u32bit x=0; x<errs; x++)
+    if (errc[x] == 1)
+      _tagColorDiffs[nn++] = (letterToBits[ _tagCOLOR[ errp[x] ] ] << 6) | errp[x];
+
+  assert(nn == _colorMismatch);
+
+  for (u32bit x=0; x<errs; x++)
+    if (errc[x] == 0)
+      _tagColorDiffs[nn++] = (letterToBits[ _tagCOLOR[ errp[x] ] ] << 6) | errp[x];
+
+  assert(nn == _colorMismatch + _colorInconsistent);
+
+  return(true);
+}
 
 
 
@@ -505,12 +509,8 @@ tapperWorker_addHits(u64bit    *posn, u64bit posnLen,
     if (pos > 0) {
       pos--;
 
-      h.alignToReference(g, seq, pos, tagseq, taglen);
-
-      if ((h.numberOfBaseMismatches()                                     <= g->maxBaseError)  &&
-          (h.numberOfColorMismatches() + h.numberOfColorInconsistencies() <= g->maxColorError)) {
+      if (h.alignToReference(g, seq, pos, tagseq, taglen) == true)
         s->addHit(g, h, tag1);
-      }
     }
   }
 }
