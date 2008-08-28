@@ -10,11 +10,17 @@ void
 positionDB::dump(u64bit mer) {
   u64bit  h = HASH(mer);
   u64bit  c = CHECK(mer);
-  u64bit st = getDecodedValue(_hashTable, h * _hashWidth,              _hashWidth);
-  u64bit ed = getDecodedValue(_hashTable, h * _hashWidth + _hashWidth, _hashWidth);
-  u64bit le = ed - st;
+  u64bit st, ed;
 
-  if (le == 0)
+  if (_hashTable_BP) {
+    st = getDecodedValue(_hashTable_BP, h * _hashWidth,              _hashWidth);
+    ed = getDecodedValue(_hashTable_BP, h * _hashWidth + _hashWidth, _hashWidth);
+  } else {
+    st = _hashTable_FW[h];
+    ed = _hashTable_FW[h+1];
+  }
+
+  if (ed - st == 0)
     return;
 
   u64bit  lens[4] = {_chckWidth, _posnWidth, 1, 0};
@@ -51,11 +57,15 @@ positionDB::dumpTable(void) {
   fprintf(stdout, "Dumping "u32bitFMT" buckets.\n", _tableSizeInEntries);
 
   for (u32bit b=0; b<_tableSizeInEntries; b++) {
-    st = getDecodedValue(_hashTable, b * _hashWidth,              _hashWidth);
-    ed = getDecodedValue(_hashTable, b * _hashWidth + _hashWidth, _hashWidth);
-    le = ed - st;
+    if (_hashTable_BP) {
+      st = getDecodedValue(_hashTable_BP, h * _hashWidth,              _hashWidth);
+      ed = getDecodedValue(_hashTable_BP, h * _hashWidth + _hashWidth, _hashWidth);
+    } else {
+      st = _hashTable_FW[h];
+      ed = _hashTable_FW[h+1];
+    }
 
-    if (le > 0) {
+    if (ed - st > 0) {
       fprintf(stdout, "Dumping bucket 0x%08x.\n", b);
 
       for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin) {

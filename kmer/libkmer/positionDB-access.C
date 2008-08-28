@@ -78,8 +78,15 @@ positionDB::getExact(u64bit   mer,
                      u64bit&  count) {
   u64bit  h = HASH(mer);
   u64bit  c = CHECK(mer);
-  u64bit st = getDecodedValue(_hashTable, h * _hashWidth,              _hashWidth);
-  u64bit ed = getDecodedValue(_hashTable, h * _hashWidth + _hashWidth, _hashWidth);
+  u64bit st, ed;
+
+  if (_hashTable_BP) {
+    st = getDecodedValue(_hashTable_BP, h * _hashWidth,              _hashWidth);
+    ed = getDecodedValue(_hashTable_BP, h * _hashWidth + _hashWidth, _hashWidth);
+  } else {
+    st = _hashTable_FW[h];
+    ed = _hashTable_FW[h+1];
+  }
 
   posnLen = 0;
 
@@ -101,8 +108,15 @@ bool
 positionDB::existsExact(u64bit mer) {
   u64bit  h = HASH(mer);
   u64bit  c = CHECK(mer);
-  u64bit st = getDecodedValue(_hashTable, h * _hashWidth,              _hashWidth);
-  u64bit ed = getDecodedValue(_hashTable, h * _hashWidth + _hashWidth, _hashWidth);
+  u64bit st, ed;
+
+  if (_hashTable_BP) {
+    st = getDecodedValue(_hashTable_BP, h * _hashWidth,              _hashWidth);
+    ed = getDecodedValue(_hashTable_BP, h * _hashWidth + _hashWidth, _hashWidth);
+  } else {
+    st = _hashTable_FW[h];
+    ed = _hashTable_FW[h+1];
+  }
 
   if (st == ed)
     return(false);
@@ -119,8 +133,15 @@ u64bit
 positionDB::countExact(u64bit mer) {
   u64bit  h = HASH(mer);
   u64bit  c = CHECK(mer);
-  u64bit st = getDecodedValue(_hashTable, h * _hashWidth,              _hashWidth);
-  u64bit ed = getDecodedValue(_hashTable, h * _hashWidth + _hashWidth, _hashWidth);
+  u64bit st, ed;
+
+  if (_hashTable_BP) {
+    st = getDecodedValue(_hashTable_BP, h * _hashWidth,              _hashWidth);
+    ed = getDecodedValue(_hashTable_BP, h * _hashWidth + _hashWidth, _hashWidth);
+  } else {
+    st = _hashTable_FW[h];
+    ed = _hashTable_FW[h+1];
+  }
 
   if (st == ed)
     return(0);
@@ -150,8 +171,15 @@ u64bit
 positionDB::setCount(u64bit mer, u64bit count) {
   u64bit  h = HASH(mer);
   u64bit  c = CHECK(mer);
-  u64bit st = getDecodedValue(_hashTable, h * _hashWidth,              _hashWidth);
-  u64bit ed = getDecodedValue(_hashTable, h * _hashWidth + _hashWidth, _hashWidth);
+  u64bit st, ed;
+
+  if (_hashTable_BP) {
+    st = getDecodedValue(_hashTable_BP, h * _hashWidth,              _hashWidth);
+    ed = getDecodedValue(_hashTable_BP, h * _hashWidth + _hashWidth, _hashWidth);
+  } else {
+    st = _hashTable_FW[h];
+    ed = _hashTable_FW[h+1];
+  }
 
   if (st == ed)
     return(0);

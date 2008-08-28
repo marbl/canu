@@ -233,7 +233,8 @@ positionDB::build(merStream          *MS,
 
   _bucketSizes           = 0L;
   _countingBuckets       = 0L;
-  _hashTable             = 0L;
+  _hashTable_BP          = 0L;
+  _hashTable_FW          = 0L;
   _buckets               = 0L;
   _positions             = 0L;
 
@@ -276,23 +277,23 @@ positionDB::build(merStream          *MS,
   //
 
   //  We'll later want to reuse the _bucketSizes space for storing the
-  //  _hashTable.  To make it somewhat safe, we allocate the space as
+  //  hash table.  To make it somewhat safe, we allocate the space as
   //  u64bit, then cast it to be u32bit.
   //
   //  bktAllocIsJunk tells us if we should release this memory (if we
-  //  need to allocate separate space for the _hashTable).  We'd need
+  //  need to allocate separate space for the hash table).  We'd need
   //  to do this if the hashWidth is more than 32 bits, but we won't
   //  know that for a little bit.
   //
   //  The _bucketSizes is offset by one from bktAlloc so that we don't
-  //  overwrite _bucketSizes when we are constructing _hashTable.
+  //  overwrite _bucketSizes when we are constructing hash table.
   //
   u64bit *bktAlloc;
   try {
     bktAlloc = new u64bit [_tableSizeInEntries / 2 + 4];
   } catch (std::bad_alloc) {
     fprintf(stderr, "positionDB()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-    fprintf(stderr, "positionDB()-- bktAlloc = new u64bit ["u64bitFMT"]\n", _tableSizeInEntries / 2 + 2);
+    fprintf(stderr, "positionDB()-- bktAlloc = new u64bit ["u64bitFMT"]\n", _tableSizeInEntries / 2 + 4);
     exit(1);
   }
   bool     bktAllocIsJunk = false;
@@ -592,16 +593,30 @@ positionDB::build(merStream          *MS,
     if (beVerbose)
       fprintf(stderr, "    Reusing bucket counting space for hash table.\n");
 
-    _hashTable     = bktAlloc;
+#ifdef UNCOMPRESS_HASH_TABLE
+    _hashTable_BP  = 0L;
+    _hashTable_FW  = (u32bit *)bktAlloc;
+#else
+    _hashTable_BP  = bktAlloc;
+    _hashTable_FW  = 0L;
+#endif
+
     bktAllocIsJunk = false;
   } else {
+
+    //  Can't use the full-width hash table, since the data size is >
+    //  32 bits -- we'd need to allocate 64-bit ints for it, and
+    //  that'll likely be too big...and we'd need to have
+    //  _hashTable_FW64 or something.
+
     if (beVerbose)
       fprintf(stderr, "    Allocated "u64bitFMTW(10)"KB for hash table ("u64bitFMT" 64-bit words)\n", hs >> 7, hs);
     try {
-      _hashTable     = new u64bit [hs];
+      _hashTable_BP = new u64bit [hs];
+      _hashTable_FW = 0L;
     } catch (std::bad_alloc) {
       fprintf(stderr, "positionDB()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-      fprintf(stderr, "positionDB()-- _hashTable = new u64bit ["u64bitFMT"]\n", hs);
+      fprintf(stderr, "positionDB()-- _hashTable_BP = new u64bit ["u64bitFMT"]\n", hs);
       exit(1);
     }
     bktAllocIsJunk = true;
@@ -690,9 +705,12 @@ positionDB::build(merStream          *MS,
 
     //  Set the start of the bucket -- we took pains to ensure that
     //  we don't overwrite _bucketSizes[b], if we are reusing that
-    //  space for _hashTable.
+    //  space for the hash table.
     //
-    setDecodedValue(_hashTable, (u64bit)b * (u64bit)_hashWidth, _hashWidth, bucketStartPosition);
+    if (_hashTable_BP)
+      setDecodedValue(_hashTable_BP, (u64bit)b * (u64bit)_hashWidth, _hashWidth, bucketStartPosition);
+    else
+      _hashTable_FW[b] = bucketStartPosition;
 
     //  Get the number of mers in the counting bucket.  The error
     //  checking and sizing of _sortedChck and _sortedPosn was already
@@ -852,15 +870,20 @@ positionDB::build(merStream          *MS,
 
   //  Set the end of the last bucket
   //
-  setDecodedValue(_hashTable, b * _hashWidth, _hashWidth, bucketStartPosition);
+  if (_hashTable_BP)
+    setDecodedValue(_hashTable_BP, b * _hashWidth, _hashWidth, bucketStartPosition);
+  else
+    _hashTable_FW[b] = bucketStartPosition;
 
   delete C;
 
   //  Clear out the end of the arrays -- this is only so that we can
   //  checksum the result.
   //
-  b = b * _hashWidth + _hashWidth;
-  setDecodedValue(_hashTable, b,           64 - (b % 64),           u64bitZERO);
+  if (_hashTable_BP) {
+    b = b * _hashWidth + _hashWidth;
+    setDecodedValue(_hashTable_BP, b,           64 - (b % 64),           u64bitZERO);
+  }
   setDecodedValue(_buckets,   currentBbit, 64 - (currentBbit % 64), u64bitZERO);
   setDecodedValue(_positions, currentPbit, 64 - (currentPbit % 64), u64bitZERO);
 
@@ -895,29 +918,31 @@ positionDB::build(merStream          *MS,
   //  Also, hooray, we finally know the number of distinct mers, so we
   //  can make this nice and tight
   //
-  u32bit newHashWidth = 1;
-  while ((_numberOfDistinct+1) > (u64bitONE << newHashWidth))
-    newHashWidth++;
-  
-  if (newHashWidth != _hashWidth) {
-    u64bit npos = 0;
-    u64bit opos = 0;
+  if (_hashTable_BP) {
+    u32bit newHashWidth = 1;
+    while ((_numberOfDistinct+1) > (u64bitONE << newHashWidth))
+      newHashWidth++;
 
-    if (beVerbose)
-      fprintf(stderr, "    Rebuilding the hash table, from "u32bitFMT" bits wide to "u32bitFMT" bits wide.\n",
-              _hashWidth, newHashWidth);
+    if (newHashWidth != _hashWidth) {
+      u64bit npos = 0;
+      u64bit opos = 0;
 
-    for (u64bit z=0; z<_tableSizeInEntries+1; z++) {
-      setDecodedValue(_hashTable,
-                      npos,
-                      newHashWidth, 
-                      getDecodedValue(_hashTable, opos, _hashWidth));
-      npos += newHashWidth;
-      opos += _hashWidth;
+      if (beVerbose)
+        fprintf(stderr, "    Rebuilding the hash table, from "u32bitFMT" bits wide to "u32bitFMT" bits wide.\n",
+                _hashWidth, newHashWidth);
+      
+      for (u64bit z=0; z<_tableSizeInEntries+1; z++) {
+        setDecodedValue(_hashTable_BP,
+                        npos,
+                        newHashWidth, 
+                        getDecodedValue(_hashTable_BP, opos, _hashWidth));
+        npos += newHashWidth;
+        opos += _hashWidth;
+      }
+
+      //  Clear the end again.
+      setDecodedValue(_hashTable_BP, npos, 64 - (npos % 64), u64bitZERO);
     }
-
-    //  Clear the end again.
-    setDecodedValue(_hashTable, npos, 64 - (npos % 64), u64bitZERO);
 
     _hashWidth = newHashWidth;
   }
@@ -1068,7 +1093,8 @@ positionDB::build(merStream          *MS,
 }
 
 positionDB::~positionDB() {
-  delete [] _hashTable;
+  delete [] _hashTable_BP;
+  delete [] _hashTable_FW;
   delete [] _buckets;
   delete [] _positions;
   delete [] _hashedErrors;

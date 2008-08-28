@@ -278,7 +278,13 @@ positionDB::setUpMismatchMatcher(u32bit nErrorsAllowed, u64bit approxMers) {
 
   delete [] strings;
 
-  double work = 2.0 * _hashedErrorsLen + (double)_hashedErrorsLen * approxMers / _tableSizeInEntries;
+#ifdef UNCOMPRESS_HASH_TABLE
+  //  Cost is just bucket searching.
+  double work = (double)_hashedErrorsLen * approxMers / _tableSizeInEntries;
+#else
+  //  Cost is bucket searching + hash table lookups.
+  double work = (double)_hashedErrorsLen * approxMers / _tableSizeInEntries + 2.0 * _hashedErrorsLen;
+#endif
 
   //fprintf(stderr, "Built "u32bitFMT" hashed errors at tableSize "u32bitFMT" (work=%f.0).\n",
   //        _hashedErrorsLen,
@@ -331,8 +337,15 @@ positionDB::getUpToNMismatches(u64bit   mer,
 
   for (u32bit e=0; e<_hashedErrorsLen; e++) {
     u64bit hash = orig ^ _hashedErrors[e];
-    u64bit st   = getDecodedValue(_hashTable, hash * _hashWidth,              _hashWidth);
-    u64bit ed   = getDecodedValue(_hashTable, hash * _hashWidth + _hashWidth, _hashWidth);
+    u64bit st, ed;
+
+    if (_hashTable_BP) {
+      st = getDecodedValue(_hashTable_BP, hash * _hashWidth,              _hashWidth);
+      ed = getDecodedValue(_hashTable_BP, hash * _hashWidth + _hashWidth, _hashWidth);
+    } else {
+      st = _hashTable_FW[hash];
+      ed = _hashTable_FW[hash+1];
+    }
 
     assert((_hashedErrors[e] & ~_hashMask) == 0);
     assert((hash             & ~_hashMask) == 0);

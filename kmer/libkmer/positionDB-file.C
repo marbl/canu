@@ -51,14 +51,16 @@ positionDB::saveState(char const *filename) {
   //
   u32bit     *bs = _bucketSizes;
   u64bit     *cb = _countingBuckets;
-  u64bit     *ht = _hashTable;
+  u64bit     *hp = _hashTable_BP;
+  u32bit     *hw = _hashTable_FW;
   u64bit     *bu = _buckets;
   u64bit     *ps = _positions;
   u64bit     *he = _hashedErrors;
 
   _bucketSizes     = 0L;
   _countingBuckets = 0L;
-  _hashTable       = 0L;
+  _hashTable_BP    = (u64bit *)((_hashTable_BP) ? u64bitONE : u64bitZERO);
+  _hashTable_FW    = (u32bit *)((_hashTable_FW) ? u32bitONE : u32bitZERO);
   _buckets         = 0L;
   _positions       = 0L;
   _hashedErrors    = 0L;
@@ -67,12 +69,18 @@ positionDB::saveState(char const *filename) {
 
   _bucketSizes     = bs;
   _countingBuckets = cb;
-  _hashTable       = ht;
+  _hashTable_BP    = hp;
+  _hashTable_FW    = hw;
   _buckets         = bu;
   _positions       = ps;
   _hashedErrors    = he;
 
-  safeWrite(F, _hashTable,    "_hashTable",    sizeof(u64bit) * (_tableSizeInEntries * _hashWidth / 64 + 1));
+  if (_hashTable_BP) {
+    safeWrite(F, _hashTable_BP, "_hashTable_BP", sizeof(u64bit) * (_tableSizeInEntries * _hashWidth / 64 + 1));
+  } else {
+    safeWrite(F, _hashTable_FW, "_hashTable_FW", sizeof(u32bit) * (_tableSizeInEntries + 1));
+  }
+
   safeWrite(F, _buckets,      "_buckets",      sizeof(u64bit) * (_numberOfDistinct   * _wFin      / 64 + 1));
   safeWrite(F, _positions,    "_positions",    sizeof(u64bit) * (_numberOfEntries    * _posnWidth / 64 + 1));
   safeWrite(F, _hashedErrors, "_hashedErrors", sizeof(u64bit) * (_hashedErrorsLen));
@@ -149,7 +157,6 @@ positionDB::loadState(char const *filename, bool beNoisy, bool loadData) {
 
   _bucketSizes     = 0L;
   _countingBuckets = 0L;
-  _hashTable       = 0L;
   _buckets         = 0L;
   _positions       = 0L;
   _hashedErrors    = 0L;
@@ -159,12 +166,20 @@ positionDB::loadState(char const *filename, bool beNoisy, bool loadData) {
     u64bit  bs = _numberOfDistinct   * _wFin      / 64 + 1;
     u64bit  ps = _numberOfEntries    * _posnWidth / 64 + 1;
 
-    _hashTable    = new u64bit [hs];
+    if (_hashTable_BP) {
+      _hashTable_BP = new u64bit [hs];
+      _hashTable_FW = 0L;
+      safeRead(F, _hashTable_BP, "_hashTable_BP", sizeof(u64bit) * hs);
+    } else {
+      _hashTable_BP = 0L;
+      _hashTable_FW = new u32bit [_tableSizeInEntries + 1];
+      safeRead(F, _hashTable_FW, "_hashTable_FW", sizeof(u32bit) * (_tableSizeInEntries + 1));
+    }
+
     _buckets      = new u64bit [bs];
     _positions    = new u64bit [ps];
     _hashedErrors = new u64bit [_hashedErrorsMax];
 
-    safeRead(F, _hashTable,    "_hashTable",    sizeof(u64bit) * hs);
     safeRead(F, _buckets,      "_buckets",      sizeof(u64bit) * bs);
     safeRead(F, _positions,    "_positions",    sizeof(u64bit) * ps);
     safeRead(F, _hashedErrors, "_hashedErrors", sizeof(u64bit) * _hashedErrorsLen);

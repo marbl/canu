@@ -21,6 +21,11 @@
 //  exists() returns T/F if mer exists or not
 //  count() returns the number of times that mer is present
 
+//  Define this to use an uncompressed hash table when the width is 32
+//  bits or less.  Doing so is A LOT faster in mismatch lookups, but
+//  does use more memory.
+#undef UNCOMPRESS_HASH_TABLE
+
 //  Define this to leave out references to getTime(), speedCounter()
 //  and make the positionDB build very quietly.
 #undef SILENTPOSITIONDB
@@ -179,7 +184,8 @@ private:
 
   u32bit     *_bucketSizes;
   u64bit     *_countingBuckets;
-  u64bit     *_hashTable;
+  u64bit     *_hashTable_BP;  //  Bit packed
+  u32bit     *_hashTable_FW;  //  Full width
   u64bit     *_buckets;
 
   u64bit     *_positions;
