@@ -119,7 +119,7 @@ tapperGlobalData::initialize(void) {
     fprintf(stderr, "Building positionDB\n");
     PS = new positionDB(MS, tagSize, 0, 0L, 0L, 0L, 0, 0, maxColorError, maxMemory, beVerbose);
 
-    PS->saveState(colName);
+    //PS->saveState(colName);
   }
 
   GS = new FastACache(genName, 0, true, false);

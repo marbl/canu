@@ -226,7 +226,7 @@ public:
   char    _tagACGT[TAG_LEN_MAX];
   char    _refACGT[TAG_LEN_MAX];
 
-  u8bit   _changes[MAX_COLOR_MISMATCH_MAPPED];
+  u8bit   _tagColorDiffs[MAX_COLOR_MISMATCH_MAPPED];
 };
 
 

@@ -23,7 +23,6 @@ public:
 
   u32bit   _diffSize:4;           //  Value of MAX_COLOR_MISMATCH_MAPPED.
 
-
   u8bit    _colorDiffs[MAX_COLOR_MISMATCH_MAPPED];
 };
 

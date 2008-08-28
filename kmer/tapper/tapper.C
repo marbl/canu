@@ -445,13 +445,13 @@ tapperHit::alignToReference(tapperGlobalData *g,
 
     for (u32bit x=0; x<errs; x++)
       if (errc[x] == 1)
-        _changes[nn++] = (letterToBits[ _refCOLOR[ errp[x] ] ] << 6) | errp[x];
+        _tagColorDiffs[nn++] = (letterToBits[ _tagCOLOR[ errp[x] ] ] << 6) | errp[x];
 
     assert(nn == _colorMismatch);
 
     for (u32bit x=0; x<errs; x++)
       if (errc[x] == 0)
-        _changes[nn++] = (letterToBits[ _refCOLOR[ errp[x] ] ] << 6) | errp[x];
+        _tagColorDiffs[nn++] = (letterToBits[ _tagCOLOR[ errp[x] ] ] << 6) | errp[x];
 
     assert(nn == _colorMismatch + _colorInconsistent);
   }
@@ -604,7 +604,7 @@ tapperWorker(void *G, void *T, void *S) {
       s->resultFragment[i]._qual._diffSize = MAX_COLOR_MISMATCH_MAPPED;
 
       memcpy(s->resultFragment[i]._qual._tag1colorDiffs,
-             s->tag1hits[i]._changes,
+             s->tag1hits[i]._tagColorDiffs,
              sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
     }
 
@@ -840,7 +840,7 @@ tapperWorker(void *G, void *T, void *S) {
           f->_qual._diffSize = MAX_COLOR_MISMATCH_MAPPED;
 
           memcpy(f->_qual._tag1colorDiffs,
-                 s->tag1hits[a]._changes,
+                 s->tag1hits[a]._tagColorDiffs,
                  sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
 
         } else {
@@ -858,7 +858,7 @@ tapperWorker(void *G, void *T, void *S) {
           f->_qual._diffSize = MAX_COLOR_MISMATCH_MAPPED;
 
           memcpy(f->_qual._tag1colorDiffs,
-                 s->tag1hits[a]._changes,
+                 s->tag1hits[a]._tagColorDiffs,
                  sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
         }
       }
@@ -881,7 +881,7 @@ tapperWorker(void *G, void *T, void *S) {
           f->_qual._diffSize = MAX_COLOR_MISMATCH_MAPPED;
 
           memcpy(f->_qual._tag2colorDiffs,
-                 s->tag2hits[b]._changes,
+                 s->tag2hits[b]._tagColorDiffs,
                  sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
 
         } else {
@@ -899,7 +899,7 @@ tapperWorker(void *G, void *T, void *S) {
           f->_qual._diffSize = MAX_COLOR_MISMATCH_MAPPED;
 
           memcpy(f->_qual._tag2colorDiffs,
-                 s->tag2hits[b]._changes,
+                 s->tag2hits[b]._tagColorDiffs,
                  sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
         }
       }
@@ -933,10 +933,10 @@ tapperWorker(void *G, void *T, void *S) {
         m->_qual._diffSize = MAX_COLOR_MISMATCH_MAPPED;
 
         memcpy(m->_qual._tag1colorDiffs,
-               s->tag1hits[a]._changes,
+               s->tag1hits[a]._tagColorDiffs,
                sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
         memcpy(m->_qual._tag2colorDiffs,
-               s->tag2hits[b]._changes,
+               s->tag2hits[b]._tagColorDiffs,
                sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
       }
     }
@@ -979,7 +979,6 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "sizeof(tapperResultIndex) --       %d\n", sizeof(tapperResultIndex));
   fprintf(stderr, "sizeof(tapperResultQV) --          %d\n", sizeof(tapperResultQV));
-  fprintf(stderr, "sizeof(tapperResultHistogram) --   %d\n", sizeof(tapperResultHistogram));
   fprintf(stderr, "sizeof(tapperResultFragment) --    %d\n", sizeof(tapperResultFragment));
   fprintf(stderr, "sizeof(tapperResultMated) --       %d\n", sizeof(tapperResultMated));
   fprintf(stderr, "sizeof(tapperResultSingleton) --   %d\n", sizeof(tapperResultSingleton));
@@ -1060,7 +1059,7 @@ main(int argc, char **argv) {
   sweatShop *ss = new sweatShop(tapperReader, tapperWorker, tapperWriter);
 
   ss->loaderQueueSize(2000);
-  ss->writerQueueSize(30000);  //  TESTING!  Should be 1000-ish!
+  ss->writerQueueSize(300000);  //  TESTING!  Should be 1000-ish!
 
   ss->numberOfWorkers(g->numThreads);
 

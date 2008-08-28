@@ -81,7 +81,7 @@ public:
 //  64 bits for alignment (= 2 * MAX_COLOR_MISMATCH_MAPPED * 8 bits)
 //
 //  The alignments take up a lot of space.  We store both the position
-//  of the difference, and the base in the reference.
+//  of the difference, and the color in the read.
 //
 class tapperResultQV {
 public:
@@ -103,14 +103,6 @@ public:
   u8bit    _tag2colorDiffs[MAX_COLOR_MISMATCH_MAPPED];
 };
 
-
-//  Variable sized array.  Size determined by the two "max mismatch
-//  mapped" values in a tapperResult.
-//
-class tapperResultHistogram {
-public:
-  u32bit            _histogram[0];
-};
 
 
 //  Unmated fragment alignment.

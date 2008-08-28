@@ -39,9 +39,16 @@ public:
   void  trimBeforeSeqPos(u32bit seq, u32bit pos) {
 
   trimBeforeSeqPosAgain:
-    if ((aligns[0][alignsLen[0]]._seq <= seq) &&
-        (aligns[0][alignsLen[0]]._pos <  pos)) {
+    if (alignsLen[0] == 0)
+      return;
+
+    if ((aligns[0][alignsLen[0]-1]._seq <= seq) &&
+        (aligns[0][alignsLen[0]-1]._pos <  pos)) {
       tapperAlignment *save = aligns[0];
+
+      fprintf(stderr, "block[0] - seq "u32bitFMT" pos "u32bitFMT"\n",
+              aligns[0][alignsLen[0]-1]._seq,
+              aligns[0][alignsLen[0]-1]._pos);
 
       for (u32bit i=1; i<alignsMax; i++) {
         aligns[i-1]    = aligns[i];
@@ -122,38 +129,59 @@ main(int argc, char **argv) {
   recordFile       *inp = new recordFile(inputName, 0, sizeof(tapperAlignment), 'r');
   alignmentList     all(inp);
 
-  u32bit            winSz = 100;
+  u32bit            winSz = 200;
   u32bit            winLo = 0;
   u32bit            winHi = winLo + winSz;
 
-  char              lines[100][256];
-  u32bit            lineLen[100];
+  u32bit            linesMax = 1024;
+
+  char              lines[1024][256];
+  u32bit            lineLen[1024];
+
+  u16bit            id[4];
 
   while (all.empty() == false) {
-    memset(lines, ' ', sizeof(char) * 100 * 256);
+    memset(lines, ' ', sizeof(char) * linesMax * 256);
 
-    for (u32bit i=0; i<100; i++)
+    for (u32bit i=0; i<linesMax; i++)
       lineLen[i] = 0;
 
     for (u32bit a=0; (all[a] != 0L) && (all[a]->_pos < winHi); a++) {
       tapperAlignment *rec = all[a];
 
-      for (u32bit l=0; l<100; l++) {
-        if ((winLo < rec->_pos) &&
-            (lineLen[l] < rec->_pos - winLo)) {
+      //  XXX  we lose reads that wrap into our region
 
-          //fprintf(stdout, "at l="u32bitFMT" x="u32bitFMT"\n", l, rec->_pos - winLo);
+      if (winLo < rec->_pos) {
+        for (u32bit l=0; l<linesMax; l++) {
+        if (lineLen[l] < rec->_pos - winLo) {
+
+          //fprintf(stdout, "at l="u32bitFMT" x="u32bitFMT" len="u32bitFMT"\n", l, rec->_pos - winLo, lineLen[l]);
+
+#warning need the real read size here
 
           for (u32bit x=rec->_pos - winLo; x<rec->_pos - winLo + 25; x++)
             lines[l][x] = '.';
 
-          lineLen[l] = rec->_pos - winLo + 25 + 1;
+          //  Needed so we can disable ID printing.
+          lines[l][rec->_pos - winLo + 25] = 0;
+
+#undef WITH_IDS
+#ifdef WITH_IDS
+          decodeTagID(rec->_tagid, id);
+
+          sprintf(lines[l] + rec->_pos - winLo + 25, " %c "u16bitFMTW(05)"-"u16bitFMTW(05)"-"u16bitFMTW(05)"-"u16bitFMTW(05)" ",
+                  (rec->_rev) ? '<' : '>',
+                  id[0], id[1], id[2], id[3]);
+#endif
+
+          lineLen[l] = strlen(lines[l]);  //  Convert that trailing nul into a whitespace.
+          lines[l][lineLen[l]] = ' ';
 
           u32bit err = 0;
 
           for (u32bit x=0; x<rec->_colorMismatch; x++) {
             u32bit pos = rec->_colorDiffs[err] & 0x3f;
-            char   let = bitsToColor[rec->_colorDiffs[err] >> 6];
+            char   let = '*'; //bitsToColor[rec->_colorDiffs[err] >> 6];
 
             lines[l][rec->_pos - winLo + pos] = let;
 
@@ -169,18 +197,28 @@ main(int argc, char **argv) {
             err++;
           }
 
-          l = 100;
+          l = linesMax;
+        }
         }
       }
     }
 
-    fprintf(stdout, "\nALIGN "u32bitFMT"-"u32bitFMT"\n", winLo, winHi);
+    bool stuff = false;
 
-    for (u32bit i=0; i<100; i++) {
-      if (lineLen[i] > 0) {
-        lines[i][lineLen[i]  ] = 0;
+    for (u32bit i=0; i<linesMax; i++)
+      if (lineLen[i] > 0)
+        stuff = true;
 
-        fprintf(stdout, u32bitFMTW(03)"] %s\n", i, lines[i]);
+    if (stuff) {
+      fprintf(stdout, "\nALIGN "u32bitFMT"-"u32bitFMT"\n", winLo, winHi);
+      fprintf(stdout, "     0         1         2         3         4         5         6         7         8         9         0         1         2         3         4         5         6         7         8         9         0\n");
+      fprintf(stdout, "     012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890\n");
+
+      for (u32bit i=0; i<linesMax; i++) {
+        if (lineLen[i] > 0) {
+          lines[i][lineLen[i]] = 0;
+          fprintf(stdout, u32bitFMTW(03)"] %s\n", i, lines[i]);
+        }
       }
     }
 
