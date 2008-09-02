@@ -189,7 +189,6 @@ sweatShop::loader(void) {
   state_s               *tail = 0L;  //  The first thing loaded
   state_s               *head = 0L;  //  The last thing loaded
   u32bit                 batchSize  = 0;
-  u32bit                 batchLimit = 128;
 
   bool  moreToLoad = true;
 
@@ -207,7 +206,7 @@ sweatShop::loader(void) {
       if (_loadBatches) {
         loaderSave(tail, head, thisState);
         batchSize++;
-        if (batchSize >= batchLimit)
+        if (batchSize >= _batchSize)
           loaderAppend(tail, head);
       } else {
         loaderAdd(thisState);
@@ -370,6 +369,7 @@ sweatShop::status(void) {
     fflush(stderr);
     nanosleep(&naptime, 0L);
 
+#if 0
     //  Too big?  Shrink.
     if (10 * perSec < _loaderQueueSize)
       _loaderQueueSize = (u32bit)(5.0 * perSec);
@@ -377,6 +377,7 @@ sweatShop::status(void) {
     //  Too small?  Grow.
     if (_loaderQueueSize < 4.0 * perSec)
       _loaderQueueSize = (u32bit)(5.0 * perSec);
+#endif
   }
 
   if (_numberComputed > _numberOutput)

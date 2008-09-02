@@ -45,6 +45,11 @@ public:
 
   void        setThreadData(u32bit t, void *x);
 
+  void        loaderBatchSize(u32bit batchSize) {
+    _loadBatches = true;
+    _batchSize   = batchSize;
+  };
+
   u32bit      loaderQueueSize(u32bit x=0);
   u32bit      writerQueueSize(u32bit x=0);
 
@@ -98,6 +103,7 @@ private:
   state_s               *_loaderP;  //  Where input is put, the head
 
   bool                   _loadBatches;
+  u32bit                 _batchSize;
   bool                   _showStatus;
 
   u32bit                 _loaderQueueSize;
