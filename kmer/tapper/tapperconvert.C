@@ -60,19 +60,19 @@ main(int argc, char **argv) {
   while (inp->read(res)) {
     if ((dumpIndex) &&
         ((allIndex) ||
-         ((dumpFrag) && (res->idx._numFragment           > 0)) ||
-         ((dumpFrag) && (res->idx._numFragmentDiscarded  > 0)) ||
-         ((dumpSing) && (res->idx._numSingleton          > 0)) ||
-         ((dumpMate) && (res->idx._numMated              > 0)) ||
-         ((dumpTang) && (res->idx._numTangled            > 0))))
+         ((dumpFrag) && (res->idx._numFrag           > 0)) ||
+         ((dumpFrag) && (res->idx._numFragDiscarded  > 0)) ||
+         ((dumpSing) && (res->idx._numFragSingleton  > 0)) ||
+         ((dumpMate) && (res->idx._numMated          > 0)) ||
+         ((dumpTang) && (res->idx._numTangled        > 0))))
       res->idx.print(stdout);
 
     if (dumpFrag)
-      for (u32bit i=0; i<res->idx._numFragment; i++)
+      for (u32bit i=0; i<res->idx._numFrag; i++)
         res->frag[i].print(stdout, &res->idx);
 
     if (dumpSing)
-      for (u32bit i=0; i<res->idx._numSingleton; i++)
+      for (u32bit i=0; i<res->idx._numFragSingleton; i++)
         res->sing[i].print(stdout, &res->idx);
 
     if (dumpMate)

@@ -26,13 +26,16 @@
 
 
 u32bit
-saveFrag(tapperAlignment *ali, u32bit aliLen, tapperResult *res) {
+saveFrag(tapperAlignment *ali, u32bit aliLen, tapperResult *res, u32bit fragLen, tapperResultFragment *frag) {
 
-  for (u32bit i=0; i<res->idx._numFragment; i++) {
-    tapperResultFragment *f = res->frag + i;
+  for (u32bit i=0; i<fragLen; i++) {
+    tapperResultFragment *f = frag + i;
 
     //  At least one is true, and at least one is false ==> exactly
     //  one is true.
+
+    if ((f->_qual._tag1valid == false) && (f->_qual._tag2valid == false))
+      fprintf(stderr, "error\n");
 
     assert((f->_qual._tag1valid == true)  || (f->_qual._tag2valid == true));
     assert((f->_qual._tag1valid == false) || (f->_qual._tag2valid == false));
@@ -70,62 +73,6 @@ saveFrag(tapperAlignment *ali, u32bit aliLen, tapperResult *res) {
 
       memcpy(ali[aliLen]._colorDiffs,
              f->_qual._tag2colorDiffs,
-             sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
-
-      aliLen++;
-    }
-  }
-
-  return(aliLen);
-}
-
-
-
-u32bit
-saveSing(tapperAlignment *ali, u32bit aliLen, tapperResult *res) {
-
-  for (u32bit i=0; i<res->idx._numSingleton; i++) {
-    tapperResultSingleton *s = res->sing + i;
-
-    //  At least one is true, and at least one is false ==> exactly
-    //  one is true.
-
-    assert((s->_qual._tag1valid == true)  || (s->_qual._tag2valid == true));
-    assert((s->_qual._tag1valid == false) || (s->_qual._tag2valid == false));
-
-    if (s->_qual._tag1valid) {
-      ali[aliLen]._tagid              = res->idx._tag1id;
-      ali[aliLen]._seq                = s->_seq;
-      ali[aliLen]._pos                = s->_pos;
-      ali[aliLen]._pad                = 0;
-      ali[aliLen]._basesMismatch      = s->_qual._tag1basesMismatch;
-      ali[aliLen]._colorMismatch      = s->_qual._tag1colorMismatch;
-      ali[aliLen]._colorInconsistent  = s->_qual._tag1colorInconsistent;
-      ali[aliLen]._rev                = s->_qual._tag1rev;
-
-      ali[aliLen]._diffSize           = s->_qual._diffSize;
-
-      memcpy(ali[aliLen]._colorDiffs,
-             s->_qual._tag1colorDiffs,
-             sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
-
-      aliLen++;
-    }
-
-    if (s->_qual._tag2valid) {
-      ali[aliLen]._tagid              = res->idx._tag2id;
-      ali[aliLen]._seq                = s->_seq;
-      ali[aliLen]._pos                = s->_pos;
-      ali[aliLen]._pad                = 0;
-      ali[aliLen]._basesMismatch      = s->_qual._tag2basesMismatch;
-      ali[aliLen]._colorMismatch      = s->_qual._tag2colorMismatch;
-      ali[aliLen]._colorInconsistent  = s->_qual._tag2colorInconsistent;
-      ali[aliLen]._rev                = s->_qual._tag2rev;
-
-      ali[aliLen]._diffSize           = s->_qual._diffSize;
-
-      memcpy(ali[aliLen]._colorDiffs,
-             s->_qual._tag2colorDiffs,
              sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
 
       aliLen++;
@@ -182,17 +129,6 @@ saveMate(tapperAlignment *ali, u32bit aliLen, tapperResult *res) {
   return(aliLen);
 }
 
-
-
-u32bit
-saveTang(tapperAlignment *ali, u32bit aliLen, tapperResult *res) {
-
-  //for (u32bit i=0; i<res->idx._numTangled; i++) {
-  //  res->tang[i].print(stdout, &res->idx);
-  //}
-
-  return(aliLen);
-}
 
 
 
@@ -276,16 +212,17 @@ main(int argc, char **argv) {
 
         //  Sort and dump if the next result has too many alignments.
         //
-        if (aliMax < aliLen + (res->idx._numFragment +
-                               res->idx._numSingleton +
+        if (aliMax < aliLen + (res->idx._numFrag +
+                               res->idx._numFragSingleton +
+                               res->idx._numFragTangled +
                                res->idx._numMated * 2)) {
           aliLen = sortAndDump(ali, aliLen, outputName, outputIndex);
         }
 
-        aliLen = saveFrag(ali, aliLen, res);
-        aliLen = saveSing(ali, aliLen, res);
+        aliLen = saveFrag(ali, aliLen, res, res->idx._numFrag,          res->frag);
+        aliLen = saveFrag(ali, aliLen, res, res->idx._numFragSingleton, res->sing);
+        aliLen = saveFrag(ali, aliLen, res, res->idx._numFragTangled,   res->tali);
         aliLen = saveMate(ali, aliLen, res);
-        aliLen = saveTang(ali, aliLen, res);
 
         S.tick();
       }

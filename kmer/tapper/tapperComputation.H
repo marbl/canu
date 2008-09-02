@@ -98,20 +98,23 @@ public:
     mean   = 0;
     stddev = 0;
 
-    alignQualHistogram    = 0L;
-    alignQualHistogramLen = 0;
+    alignQualHistogram           = 0L;
+    alignQualHistogramLen        = 0;
 
-    resultFragment        = 0L;
-    resultFragmentLen     = 0L;
+    resultFragment               = 0L;
+    resultFragmentLen            = 0L;
 
-    resultMated           = 0L;
-    resultMatedLen        = 0L;
+    resultSingleton              = 0L;
+    resultSingletonLen           = 0L;
 
-    resultSingleton       = 0L;
-    resultSingletonLen    = 0L;
+    resultTangledAlignment       = 0L;
+    resultTangledAlignmentLen    = 0L;
 
-    resultTangled         = 0L;
-    resultTangledLen      = 0L;
+    resultMated                  = 0L;
+    resultMatedLen               = 0L;
+
+    resultTangled                = 0L;
+    resultTangledLen             = 0L;
   };
 
   ~tapperComputation() {
@@ -119,8 +122,9 @@ public:
     delete [] tag2hits;
 
     delete [] resultFragment;
-    delete [] resultMated;
     delete [] resultSingleton;
+    delete [] resultTangledAlignment;
+    delete [] resultMated;
     delete [] resultTangled;
   };
 
@@ -200,11 +204,14 @@ public:
   tapperResultFragment   *resultFragment;
   u32bit                  resultFragmentLen;
 
+  tapperResultFragment   *resultSingleton;
+  u32bit                  resultSingletonLen;
+
+  tapperResultFragment   *resultTangledAlignment;
+  u32bit                  resultTangledAlignmentLen;
+
   tapperResultMated      *resultMated;
   u32bit                  resultMatedLen;
-
-  tapperResultSingleton  *resultSingleton;
-  u32bit                  resultSingletonLen;
 
   tapperResultTangled    *resultTangled;
   u32bit                  resultTangledLen;

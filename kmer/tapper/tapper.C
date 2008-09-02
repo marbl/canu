@@ -51,16 +51,17 @@ tapperWriter(void *G, void *S) {
   result._stddev = g->TF->metaData()->stddev();
 
   if (s->resultFragmentLen > g->repeatThreshold) {
-    result._numFragmentDiscarded = s->resultFragmentLen;
-    result._numFragment          = 0;
+    result._numFrag          = 0;
+    result._numFragDiscarded = s->resultFragmentLen;
   } else {
-    result._numFragmentDiscarded = 0;
-    result._numFragment          = s->resultFragmentLen;
+    result._numFrag          = s->resultFragmentLen;
+    result._numFragDiscarded = 0;
   }
 
-  result._numSingleton = s->resultSingletonLen;
-  result._numMated     = s->resultMatedLen;
-  result._numTangled   = s->resultTangledLen;
+  result._numFragSingleton  = s->resultSingletonLen;
+  result._numFragTangled    = s->resultTangledAlignmentLen;
+  result._numMated          = s->resultMatedLen;
+  result._numTangled        = s->resultTangledLen;
 
   result._pad1 = 0;
   result._pad2 = 0;
@@ -70,6 +71,7 @@ tapperWriter(void *G, void *S) {
   g->TA->write(&result,
                s->resultFragment,
                s->resultSingleton,
+               s->resultTangledAlignment,
                s->resultMated,
                s->resultTangled,
                s->alignQualHistogram);
@@ -804,106 +806,97 @@ tapperWorker(void *G, void *T, void *S) {
 #endif
     }
 
-
     //  Allocate space for the outputs.  We can kind of guess how much
     //  to grab.  Not perfect.  Can do a lot better.
-    //
-    s->resultFragment   = new tapperResultFragment   [s->tag1hitsLen + s->tag2hitsLen];
-    s->resultSingleton  = new tapperResultSingleton  [s->tag1hitsLen + s->tag2hitsLen];
-    s->resultMated      = new tapperResultMated      [MIN(s->tag1hitsLen, s->tag2hitsLen)];
-    s->resultTangled    = new tapperResultTangled    [MIN(s->tag1hitsLen, s->tag2hitsLen)];
+
+    s->resultFragment          = new tapperResultFragment   [s->tag1hitsLen + s->tag2hitsLen];
+    s->resultSingleton         = new tapperResultFragment   [s->tag1hitsLen + s->tag2hitsLen];
+    s->resultTangledAlignment  = new tapperResultFragment   [s->tag1hitsLen + s->tag2hitsLen];
+    s->resultMated             = new tapperResultMated      [MIN(s->tag1hitsLen, s->tag2hitsLen)];
+    s->resultTangled           = new tapperResultTangled    [MIN(s->tag1hitsLen, s->tag2hitsLen)];
 
 #warning bottleneck?
-    memset(s->resultFragment,  0, sizeof(tapperResultFragment)  * (s->tag1hitsLen + s->tag2hitsLen));
-    memset(s->resultSingleton, 0, sizeof(tapperResultSingleton) * (s->tag1hitsLen + s->tag2hitsLen));
-    memset(s->resultMated,     0, sizeof(tapperResultMated)     * (MIN(s->tag1hitsLen, s->tag2hitsLen)));
-    memset(s->resultTangled,   0, sizeof(tapperResultTangled)   * (MIN(s->tag1hitsLen, s->tag2hitsLen)));
+    memset(s->resultFragment,         0, sizeof(tapperResultFragment)  * (s->tag1hitsLen + s->tag2hitsLen));
+    memset(s->resultSingleton,        0, sizeof(tapperResultFragment)  * (s->tag1hitsLen + s->tag2hitsLen));
+    memset(s->resultTangledAlignment, 0, sizeof(tapperResultFragment)  * (s->tag1hitsLen + s->tag2hitsLen));
+    memset(s->resultMated,            0, sizeof(tapperResultMated)     * (MIN(s->tag1hitsLen, s->tag2hitsLen)));
+    memset(s->resultTangled,          0, sizeof(tapperResultTangled)   * (MIN(s->tag1hitsLen, s->tag2hitsLen)));
 
-    //  Pass two.  For anything with zero happies, emit to the
-    //  singleton file.  For anything with a pair of single happies,
-    //  emit to the happy mate file.
-    //
+    //  For anything with zero happies, emit to the
+    //  singleton file.
+
     for (u32bit a=0; a<s->tag1hitsLen; a++) {
-      if (t->tag1happies[a] == 0) {
-        if (s->tag1hits[a].happyNearEnd(true, mean, stddev, g->GS->fasta()->sequenceLength(s->tag1hits[a]._seqIdx))) {
-          tapperResultSingleton *f = s->resultSingleton + s->resultSingletonLen++;
+      tapperResultFragment *f;
 
-          f->_seq = s->tag1hits[a]._seqIdx;
-          f->_pos = s->tag1hits[a]._seqPos;
+      if        (t->tag1happies[a] == 1) {
+        //  Happy; do nothing.  We'll do it later.
+        f = 0L;
 
-          f->_qual._tag1valid             = 1;
-          f->_qual._tag1basesMismatch     = s->tag1hits[a]._basesMismatch;
-          f->_qual._tag1colorMismatch     = s->tag1hits[a]._colorMismatch;
-          f->_qual._tag1colorInconsistent = s->tag1hits[a]._colorInconsistent;
-          f->_qual._tag1rev               = s->tag1hits[a]._rev;
+      } else if (t->tag1happies[a] > 1) {
+        f = s->resultTangledAlignment + s->resultTangledAlignmentLen++;
 
-          f->_qual._diffSize = MAX_COLOR_MISMATCH_MAPPED;
+      } else if (s->tag1hits[a].happyNearEnd(true, mean, stddev, g->GS->fasta()->sequenceLength(s->tag1hits[a]._seqIdx))) {
+        f = s->resultSingleton + s->resultSingletonLen++;
 
-          memcpy(f->_qual._tag1colorDiffs,
-                 s->tag1hits[a]._tagColorDiffs,
-                 sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
+      } else {
+        f = s->resultFragment  + s->resultFragmentLen++;
+      }
 
-        } else {
-          tapperResultFragment *f = s->resultFragment + s->resultFragmentLen++;
+      if (f) {
+        f->_seq = s->tag1hits[a]._seqIdx;
+        f->_pos = s->tag1hits[a]._seqPos;
 
-          f->_seq = s->tag1hits[a]._seqIdx;
-          f->_pos = s->tag1hits[a]._seqPos;
+        f->_qual._tag1valid             = 1;
+        f->_qual._tag1basesMismatch     = s->tag1hits[a]._basesMismatch;
+        f->_qual._tag1colorMismatch     = s->tag1hits[a]._colorMismatch;
+        f->_qual._tag1colorInconsistent = s->tag1hits[a]._colorInconsistent;
+        f->_qual._tag1rev               = s->tag1hits[a]._rev;
 
-          f->_qual._tag1valid             = 1;
-          f->_qual._tag1basesMismatch     = s->tag1hits[a]._basesMismatch;
-          f->_qual._tag1colorMismatch     = s->tag1hits[a]._colorMismatch;
-          f->_qual._tag1colorInconsistent = s->tag1hits[a]._colorInconsistent;
-          f->_qual._tag1rev               = s->tag1hits[a]._rev;
+        f->_qual._diffSize = MAX_COLOR_MISMATCH_MAPPED;
 
-          f->_qual._diffSize = MAX_COLOR_MISMATCH_MAPPED;
-
-          memcpy(f->_qual._tag1colorDiffs,
-                 s->tag1hits[a]._tagColorDiffs,
-                 sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
-        }
+        memcpy(f->_qual._tag1colorDiffs,
+               s->tag1hits[a]._tagColorDiffs,
+               sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
       }
     }
 
     for (u32bit b=0; b<s->tag2hitsLen; b++) {
-      if (t->tag2happies[b] == 0) {
-        if (s->tag2hits[b].happyNearEnd(false, mean, stddev, g->GS->fasta()->sequenceLength(s->tag2hits[b]._seqIdx))) {
-          tapperResultSingleton *f = s->resultSingleton + s->resultSingletonLen++;
+      tapperResultFragment *f;
 
-          f->_seq = s->tag2hits[b]._seqIdx;
-          f->_pos = s->tag2hits[b]._seqPos;
+      if        (t->tag1happies[b] == 1) {
+        //  Happy; do nothing.  We'll do it later.
+        f = 0L;
 
-          f->_qual._tag2valid             = 1;
-          f->_qual._tag2basesMismatch     = s->tag2hits[b]._basesMismatch;
-          f->_qual._tag2colorMismatch     = s->tag2hits[b]._colorMismatch;
-          f->_qual._tag2colorInconsistent = s->tag2hits[b]._colorInconsistent;
-          f->_qual._tag2rev               = s->tag2hits[b]._rev;
+      } else if (t->tag2happies[b] > 1) {
+        f = s->resultTangledAlignment + s->resultTangledAlignmentLen++;
 
-          f->_qual._diffSize = MAX_COLOR_MISMATCH_MAPPED;
+      } else if (s->tag2hits[b].happyNearEnd(false, mean, stddev, g->GS->fasta()->sequenceLength(s->tag2hits[b]._seqIdx))) {
+        f = s->resultSingleton + s->resultSingletonLen++;
 
-          memcpy(f->_qual._tag2colorDiffs,
-                 s->tag2hits[b]._tagColorDiffs,
-                 sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
+      } else {
+        f = s->resultFragment + s->resultFragmentLen++;
+      }
 
-        } else {
-          tapperResultFragment *f = s->resultFragment + s->resultFragmentLen++;
+      if (f) {
+        f->_seq = s->tag2hits[b]._seqIdx;
+        f->_pos = s->tag2hits[b]._seqPos;
 
-          f->_seq = s->tag2hits[b]._seqIdx;
-          f->_pos = s->tag2hits[b]._seqPos;
+        f->_qual._tag2valid             = 1;
+        f->_qual._tag2basesMismatch     = s->tag2hits[b]._basesMismatch;
+        f->_qual._tag2colorMismatch     = s->tag2hits[b]._colorMismatch;
+        f->_qual._tag2colorInconsistent = s->tag2hits[b]._colorInconsistent;
+        f->_qual._tag2rev               = s->tag2hits[b]._rev;
 
-          f->_qual._tag2valid             = 1;
-          f->_qual._tag2basesMismatch     = s->tag2hits[b]._basesMismatch;
-          f->_qual._tag2colorMismatch     = s->tag2hits[b]._colorMismatch;
-          f->_qual._tag2colorInconsistent = s->tag2hits[b]._colorInconsistent;
-          f->_qual._tag2rev               = s->tag2hits[b]._rev;
+        f->_qual._diffSize = MAX_COLOR_MISMATCH_MAPPED;
 
-          f->_qual._diffSize = MAX_COLOR_MISMATCH_MAPPED;
-
-          memcpy(f->_qual._tag2colorDiffs,
-                 s->tag2hits[b]._tagColorDiffs,
-                 sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
-        }
+        memcpy(f->_qual._tag2colorDiffs,
+               s->tag2hits[b]._tagColorDiffs,
+               sizeof(u8bit) * MAX_COLOR_MISMATCH_MAPPED);
       }
     }
+
+    //  For anything with a pair of single happies, emit to the happy
+    //  mate file.
 
     for (u32bit a=0; a<s->tag1hitsLen; a++) {
       u32bit b = t->tag1mate[a];
@@ -941,8 +934,8 @@ tapperWorker(void *G, void *T, void *S) {
       }
     }
 
-    //  Pass three.  Emit and then clear the tangles.
-    //
+    //  Emit and then clear the tangles.
+
     {
       u32bit simax = g->GS->fasta()->getNumberOfSequences();
 
@@ -954,6 +947,7 @@ tapperWorker(void *G, void *T, void *S) {
           for (u32bit ti=0; ti<t->tangle[si].numberOfIntervals(); ti++) {
             tapperResultTangled   *x = s->resultTangled + s->resultTangledLen++;
 
+#warning unable to set number of times a tag is in a tangle
             x->_tag1count = 0;
             x->_tag2count = 0;
 
@@ -981,7 +975,6 @@ main(int argc, char **argv) {
   fprintf(stderr, "sizeof(tapperResultQV) --          %d\n", sizeof(tapperResultQV));
   fprintf(stderr, "sizeof(tapperResultFragment) --    %d\n", sizeof(tapperResultFragment));
   fprintf(stderr, "sizeof(tapperResultMated) --       %d\n", sizeof(tapperResultMated));
-  fprintf(stderr, "sizeof(tapperResultSingleton) --   %d\n", sizeof(tapperResultSingleton));
   fprintf(stderr, "sizeof(tapperResultTangled) --     %d\n", sizeof(tapperResultTangled));
   fprintf(stderr, "sizeof(tapperHit) --               %d\n", sizeof(tapperHit));
   fprintf(stderr, "sizeof(tapperTag) --               %d\n", sizeof(tapperTag));

@@ -15,6 +15,7 @@
 
 #define MAX_FRAGMENT_ALIGNMENTS              65536  //  16 bits
 #define MAX_FRAGMENT_ALIGNMENTS_DISCARDED  1048576  //  20 bits
+#define MAX_FRAGMENT_ALIGNMENTS_TANGLED    1048576  //  20 bits
 #define MAX_SINGLETON_ALIGNMENTS             65536  //  16 bits
 #define MAX_MATED_ALIGNMENTS                  8192  //  13 bits
 #define MAX_TANGLED_ALIGNMENTS                8192  //  13 bits
@@ -42,7 +43,7 @@ public:
             id2[0], id2[1], id2[2], id2[3],
             _maxColrMismatchMapped, _maxBaseMismatchMapped,
             _mean, _stddev,
-            _numFragment, _numFragmentDiscarded, _numSingleton, _numMated, _numTangled);
+            _numFrag, _numFragDiscarded, _numFragSingleton, _numMated, _numTangled);
   };
 
 public:
@@ -57,22 +58,19 @@ public:
   u64bit   _maxColrMismatchMapped:4;   
   u64bit   _maxBaseMismatchMapped:4;
 
-  //  Expected mean and stddev for this pair.  Again, per result so we
-  //  can combine mappings.
-  //
-  u64bit   _mean:18;                   
-  u64bit   _stddev:16;
+  u64bit   _mean:18;               //  Expected mean and stddev for this pair.
+  u64bit   _stddev:16;             //  Again, per result so we can combine mappings.
+  u64bit   _pad1:22;
 
-  u64bit   _numFragmentDiscarded:20;   //  Number of fragment alignments found but not reported
+  u64bit   _numFrag:16;            //  Number of fragment alignments
+  u64bit   _numFragDiscarded:20;   //  Number of fragment alignments found but not reported
+  u64bit   _numFragTangled:20;     //  Number of fragment alignments in tangled mated
+  u64bit   _numFragSingleton:16;   //  Number of fragment alignments potentially linking
+  u64bit   _pad2:8;
 
-  u64bit   _pad1:2;
-  //  62 bits above, 58 bits below
-  u64bit   _pad2:6;
-
-  u64bit   _numFragment:16;            //  Number of fragment alignments
-  u64bit   _numSingleton:16;           //  Number of unsatisfied alignments
-  u64bit   _numMated:13;               //  Number of mated alignments
-  u64bit   _numTangled:13;             //  Number of tangled alignments
+  u64bit   _numMated:13;           //  Number of mated alignments
+  u64bit   _numTangled:13;         //  Number of tangled alignments
+  u64bit   _pad3:22;
 };
 
 
@@ -183,45 +181,6 @@ public:
 };
 
 
-//  Unsatisfied mate pair alignment; only one tag.
-//  96 bits.
-//
-class tapperResultSingleton {
-public:
-  void    print(FILE *out, tapperResultIndex *idx) {
-    u16bit                 id[4];
-
-    if (_qual._tag1valid) {
-      decodeTagID(idx->_tag1id, id);
-      fprintf(stdout, "S\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t"u32bitFMT"/"u32bitFMT"/"u32bitFMT"\n",
-              id[0], id[1], id[2], id[3],
-              _seq,
-              _pos,
-              _qual._tag1rev ? 'r' : 'f',
-              _qual._tag1basesMismatch,
-              _qual._tag1colorMismatch,
-              _qual._tag1colorInconsistent);
-    }
-
-    if (_qual._tag2valid) {
-      decodeTagID(idx->_tag2id, id);
-      fprintf(stdout, "S\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t"u32bitFMT"/"u32bitFMT"/"u32bitFMT"\n",
-              id[0], id[1], id[2], id[3],
-              _seq,
-              _pos,
-              _qual._tag2rev ? 'r' : 'f',
-              _qual._tag2basesMismatch,
-              _qual._tag2colorMismatch,
-              _qual._tag2colorInconsistent);
-    }
-  };
-public:
-  u32bit             _seq;
-  u32bit             _pos;
-  tapperResultQV     _qual;
-};
-
-
 //  Tangled mate pair alignment.
 //  128 bits.
 //
@@ -263,6 +222,8 @@ public:
     frag    = 0L;
     singMax = 0;
     sing    = 0L;
+    taliMax = 0;
+    tali    = 0L;
     mateMax = 0;
     mate    = 0L;
     tangMax = 0;
@@ -273,6 +234,7 @@ public:
   ~tapperResult() {
     delete [] frag;
     delete [] sing;
+    delete [] tali;
     delete [] mate;
     delete [] tang;
     delete [] aqlt;
@@ -280,15 +242,23 @@ public:
 
   tapperResultIndex       idx;
 
+  //  A single unmated alignment
   u32bit                  fragMax;
   tapperResultFragment   *frag;
 
+  //  Tag in a mate pair, mapped near the end of a sequence
   u32bit                  singMax;
-  tapperResultSingleton  *sing;
+  tapperResultFragment   *sing;
 
+  //  Tag in a mate pair, involved in a tangle
+  u32bit                  taliMax;
+  tapperResultFragment   *tali;
+
+  //  Happy mated tags
   u32bit                  mateMax;
   tapperResultMated      *mate;
 
+  //  Location of tangle
   u32bit                  tangMax;
   tapperResultTangled    *tang;
 
@@ -407,11 +377,14 @@ public:
       sprintf(filename, "%s.tapperMappedFragment", prefix);
       FRAG = new recordFile(filename, 0, sizeof(tapperResultFragment), mode);
 
+      sprintf(filename, "%s.tapperMappedSingleton", prefix);
+      SING = new recordFile(filename, 0, sizeof(tapperResultFragment), mode);
+
+      sprintf(filename, "%s.tapperMappedTangledAlignment", prefix);
+      TALI = new recordFile(filename, 0, sizeof(tapperResultFragment), mode);
+
       sprintf(filename, "%s.tapperMappedMated", prefix);
       MATE = new recordFile(filename, 0, sizeof(tapperResultMated), mode);
-
-      sprintf(filename, "%s.tapperMappedSingleton", prefix);
-      SING = new recordFile(filename, 0, sizeof(tapperResultSingleton), mode);
 
       sprintf(filename, "%s.tapperMappedTangled", prefix);
       TANG = new recordFile(filename, 0, sizeof(tapperResultTangled), mode);
@@ -424,6 +397,7 @@ public:
     delete IDX;
     delete FRAG;
     delete SING;
+    delete TALI;
     delete MATE;
     delete TANG;
     delete AQLT;
@@ -452,23 +426,29 @@ public:
 
     u32bit aqilen = AQIlength(align->idx._maxBaseMismatchMapped, align->idx._maxColrMismatchMapped);
 
-    if (align->idx._numFragment +
-        align->idx._numFragmentDiscarded +
-        align->idx._numSingleton +
+    if (align->idx._numFrag +
+        align->idx._numFragDiscarded +
+        align->idx._numFragSingleton +
         align->idx._numMated +
         align->idx._numTangled == 0)
       aqilen = 0;
 
-    if (align->idx._numFragment > align->fragMax) {
+    if (align->idx._numFrag > align->fragMax) {
       delete [] align->frag;
-      align->fragMax = align->idx._numFragment;
+      align->fragMax = align->idx._numFrag;
       align->frag    = new tapperResultFragment [align->fragMax];
     }
 
-    if (align->idx._numSingleton > align->singMax) {
+    if (align->idx._numFragSingleton > align->singMax) {
       delete [] align->sing;
-      align->singMax = align->idx._numSingleton;
-      align->sing    = new tapperResultSingleton [align->singMax];
+      align->singMax = align->idx._numFragSingleton;
+      align->sing    = new tapperResultFragment [align->singMax];
+    }
+
+    if (align->idx._numFragTangled > align->taliMax) {
+      delete [] align->tali;
+      align->taliMax = align->idx._numFragTangled;
+      align->tali    = new tapperResultFragment [align->taliMax];
     }
 
     if (align->idx._numMated > align->mateMax) {
@@ -489,13 +469,15 @@ public:
       align->aqlt    = new u32bit [align->aqltMax];
     }
 
-    if (FRAG->getRecord(align->frag, align->idx._numFragment)  != align->idx._numFragment)
+    if (FRAG->getRecord(align->frag, align->idx._numFrag)          != align->idx._numFrag)
       success = false;
-    if (SING->getRecord(align->sing, align->idx._numSingleton) != align->idx._numSingleton)
+    if (SING->getRecord(align->sing, align->idx._numFragSingleton) != align->idx._numFragSingleton)
       success = false;
-    if (MATE->getRecord(align->mate, align->idx._numMated)     != align->idx._numMated)
+    if (TALI->getRecord(align->tali, align->idx._numFragTangled)   != align->idx._numFragTangled)
       success = false;
-    if (TANG->getRecord(align->tang, align->idx._numTangled)   != align->idx._numTangled)
+    if (MATE->getRecord(align->mate, align->idx._numMated)         != align->idx._numMated)
+      success = false;
+    if (TANG->getRecord(align->tang, align->idx._numTangled)       != align->idx._numTangled)
       success = false;
 
     if (AQLT->getRecord(align->aqlt, aqilen) != aqilen)
@@ -505,25 +487,27 @@ public:
   };
 
   void    write(tapperResult        *align) {
-    write(&align->idx, align->frag, align->sing, align->mate, align->tang, align->aqlt);
+    write(&align->idx, align->frag, align->sing, align->tali, align->mate, align->tang, align->aqlt);
   };
 
   void    write(tapperResultIndex      *idx,
                 tapperResultFragment   *frag,
-                tapperResultSingleton  *sing,
+                tapperResultFragment   *sing,
+                tapperResultFragment   *tali,
                 tapperResultMated      *mate,
                 tapperResultTangled    *tang,
                 u32bit                 *aqlt) {
     IDX->putRecord(idx);
 
-    FRAG->putRecord(frag, idx->_numFragment);
-    SING->putRecord(sing, idx->_numSingleton);
+    FRAG->putRecord(frag, idx->_numFrag);
+    SING->putRecord(sing, idx->_numFragSingleton);
+    TALI->putRecord(sing, idx->_numFragTangled);
     MATE->putRecord(mate, idx->_numMated);
     TANG->putRecord(tang, idx->_numTangled);
 
-    if (idx->_numFragment +
-        idx->_numFragmentDiscarded +
-        idx->_numSingleton +
+    if (idx->_numFrag +
+        idx->_numFragDiscarded +
+        idx->_numFragSingleton +
         idx->_numMated +
         idx->_numTangled > 0)
       AQLT->putRecord(aqlt, AQIlength(idx->_maxBaseMismatchMapped, idx->_maxColrMismatchMapped));
@@ -535,6 +519,7 @@ private:
   recordFile  *IDX;
   recordFile  *FRAG;
   recordFile  *SING;
+  recordFile  *TALI;
   recordFile  *MATE;
   recordFile  *TANG;
   recordFile  *AQLT;
