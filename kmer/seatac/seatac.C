@@ -122,7 +122,7 @@ main(int argc, char **argv) {
       exit(0);
     } else {
       fprintf(stderr, "Loading positionDB state from '%s'\n", config._tableFileName);
-      positions = new positionDB(config._tableFileName, true);
+      positions = new positionDB(config._tableFileName, config._merSize, config._merSkip, 0);
     }
   } else {
 

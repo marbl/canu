@@ -59,7 +59,7 @@ main(int argc, char **argv) {
       exit(1);
     } else {
       fprintf(stderr, "Loading positionDB state from '%s'\n", config._tableFileName);
-      config._positions = new positionDB(config._tableFileName, true);
+      config._positions = new positionDB(config._tableFileName, config._merSize, config._merSkip, 0);
     }
   } else {
     kMerBuilder KB(config._merSize);

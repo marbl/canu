@@ -26,9 +26,39 @@
 #undef  MER_REMOVAL_TEST
 
 
-positionDB::positionDB(char const    *filename,
-                       bool           loadData) {
+positionDB::positionDB(char const        *filename,
+                       u32bit             merSize,
+                       u32bit             merSkip,
+                       u32bit             maxMismatch,
+                       bool               loadData) {
   memset(this, 0, sizeof(positionDB));
+
+  //  loadData == false only for driver-posDB.C, and only so it can
+  //  dump stats on a posDB file.
+
+  if (loadState(filename, true, false) == false) {
+    fprintf(stderr, "positionDB()-- Tried to read state from '%s', but failed.\n", filename);
+    exit(1);
+  }
+
+  if ((loadData) && (merSize != _merSizeInBases)) {
+    fprintf(stderr, "positionDB()-- Tried to read state from '%s', but mer size is wrong (found "u32bitFMT", wanted "u32bitFMT").\n",
+            filename, _merSizeInBases, merSize);
+    exit(1);
+  }
+
+  if ((loadData) && (merSkip != _merSkipInBases)) {
+    fprintf(stderr, "positionDB()-- Tried to read state from '%s', but mer skip is wrong (found "u32bitFMT", wanted "u32bitFMT").\n",
+            filename, _merSkipInBases, merSkip);
+    exit(1);
+  }
+
+if ((loadData) && (maxMismatch != _nErrorsAllowed)) {
+    fprintf(stderr, "positionDB()-- Tried to read state from '%s', but max number of mismatches is wrong (found "u32bitFMT", wanted "u32bitFMT").\n",
+            filename, _nErrorsAllowed, maxMismatch);
+    exit(1);
+  }
+
   if (loadState(filename, true, loadData) == false) {
     fprintf(stderr, "positionDB()-- Tried to read state from '%s', but failed.\n", filename);
     exit(1);

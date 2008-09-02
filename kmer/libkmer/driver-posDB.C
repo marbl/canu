@@ -218,7 +218,7 @@ main(int argc, char **argv) {
       outputFile = argv[++arg];
 
     } else if (strcmp(argv[arg], "-dump") == 0) {
-      positionDB *e = new positionDB(argv[argc-1], false);
+      positionDB *e = new positionDB(argv[argc-1], 0, 0, 0, false);
       e->printState(stdout);
       delete e;
       exit(0);

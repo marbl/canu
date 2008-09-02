@@ -1058,8 +1058,9 @@ main(int argc, char **argv) {
 
   sweatShop *ss = new sweatShop(tapperReader, tapperWorker, tapperWriter);
 
-  ss->loaderQueueSize(2000);
-  ss->writerQueueSize(300000);  //  TESTING!  Should be 1000-ish!
+  ss->writerQueueSize(130000);
+  ss->loaderQueueSize(120000);
+  ss->loaderBatchSize(1024);
 
   ss->numberOfWorkers(g->numThreads);
 

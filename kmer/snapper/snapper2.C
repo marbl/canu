@@ -274,7 +274,7 @@ main(int argc, char **argv) {
       exit(1);
     } else {
       fprintf(stderr, "Loading positionDB state from '%s'\n", config._psFileName);
-      positions = new positionDB(config._psFileName, true);
+      positions = new positionDB(config._psFileName, config._KBmerSize, config._merSkip, 0);
     }
   } else {
 
@@ -353,7 +353,7 @@ main(int argc, char **argv) {
       }
 
       delete positions;
-      positions = new positionDB(config._psFileName, true);
+      positions = new positionDB(config._psFileName, config._KBmerSize, config._merSkip, 0);
     }
   }
 

@@ -39,8 +39,11 @@ class merylStreamReader;
 
 class positionDB {
 public:
-  positionDB(char const    *filename,
-             bool           loadData=true);
+  positionDB(char const        *filename,
+             u32bit             merSize,
+             u32bit             merSkip,
+             u32bit             maxMismatch,
+             bool               loadData=true);
 
   positionDB(merStream         *MS,
              u32bit             merSize,

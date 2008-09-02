@@ -110,16 +110,16 @@ tapperGlobalData::initialize(void) {
   fprintf(stderr, "Building merStream\n");
   MS = new merStream(new kMerBuilder(tagSize), SS);  //  MEMORY LEAK kMerBuilder
 
-  sprintf(colName, "%s.posDB", genName);
+  sprintf(colName, "%s.ms"u32bitFMT".ce"u32bitFMT".posDB", genName, tagSize, maxColorError);
 
   if (fileExists(colName)) {
     fprintf(stderr, "Loading positionDB\n");
-    PS = new positionDB(colName);
+    PS = new positionDB(colName, tagSize, 0, maxColorError);
   } else {
     fprintf(stderr, "Building positionDB\n");
     PS = new positionDB(MS, tagSize, 0, 0L, 0L, 0L, 0, 0, maxColorError, maxMemory, beVerbose);
 
-    //PS->saveState(colName);
+    PS->saveState(colName);
   }
 
   GS = new FastACache(genName, 0, true, false);
