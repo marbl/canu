@@ -399,26 +399,37 @@ public:
     if ((mode != 'r') && (mode != 'w'))
       fprintf(stderr, "tapperResultFile()-- mode must be either 'r' or 'w'; you wanted '%c'\n", mode), exit(1);
 
-      sprintf(filename, "%s.tapperMappedIndex", prefix);
-      IDX  = new recordFile(filename, 0, sizeof(tapperResultIndex), mode);
+    if ((mode == 'r') && (!fileExists(prefix)))
+      fprintf(stderr, "tapperResultFile()-- result directory '%s' doesn't exist.\n", prefix), exit(1);
 
-      sprintf(filename, "%s.tapperMappedFragment", prefix);
-      FRAG = new recordFile(filename, 0, sizeof(tapperResultFragment), mode);
+    if ((mode == 'w') && (!fileExists(prefix))) {
+      errno = 0;
+      mkdir(prefix, S_IRWXU | S_IRWXG | S_IRWXO);
+      if (errno)
+        fprintf(stderr, "tapperResultFile()-- failed to make result directory '%s': %s\n",
+                prefix, strerror(errno)), exit(1);
+    }
 
-      sprintf(filename, "%s.tapperMappedSingleton", prefix);
-      SING = new recordFile(filename, 0, sizeof(tapperResultFragment), mode);
+    sprintf(filename, "%s/tapperMappedIndex", prefix);
+    IDX  = new recordFile(filename, 0, sizeof(tapperResultIndex), mode);
 
-      sprintf(filename, "%s.tapperMappedTangledAlignment", prefix);
-      TALI = new recordFile(filename, 0, sizeof(tapperResultFragment), mode);
+    sprintf(filename, "%s/tapperMappedFragment", prefix);
+    FRAG = new recordFile(filename, 0, sizeof(tapperResultFragment), mode);
 
-      sprintf(filename, "%s.tapperMappedMated", prefix);
-      MATE = new recordFile(filename, 0, sizeof(tapperResultMated), mode);
+    sprintf(filename, "%s/tapperMappedSingleton", prefix);
+    SING = new recordFile(filename, 0, sizeof(tapperResultFragment), mode);
 
-      sprintf(filename, "%s.tapperMappedTangled", prefix);
-      TANG = new recordFile(filename, 0, sizeof(tapperResultTangled), mode);
+    sprintf(filename, "%s/tapperMappedTangledAlignment", prefix);
+    TALI = new recordFile(filename, 0, sizeof(tapperResultFragment), mode);
 
-      sprintf(filename, "%s.tapperMappedAlignQual", prefix);
-      AQLT = new recordFile(filename, 0, sizeof(u32bit), mode);
+    sprintf(filename, "%s/tapperMappedMated", prefix);
+    MATE = new recordFile(filename, 0, sizeof(tapperResultMated), mode);
+
+    sprintf(filename, "%s/tapperMappedTangled", prefix);
+    TANG = new recordFile(filename, 0, sizeof(tapperResultTangled), mode);
+
+    sprintf(filename, "%s/tapperMappedAlignQual", prefix);
+    AQLT = new recordFile(filename, 0, sizeof(u32bit), mode);
   };
 
   ~tapperResultFile() {
@@ -429,6 +440,11 @@ public:
     delete MATE;
     delete TANG;
     delete AQLT;
+  };
+
+  static
+  bool    validResultFile(char *prefix) {
+    return(fileExists(prefix));
   };
 
   u32bit  AQIlength(u32bit maxBaseErrors, u32bit maxColorErrors) {

@@ -9,8 +9,8 @@
 int
 main(int argc, char **argv) {
   char     *outName = 0L;
-  u32bit    numInputs = 0;
-  char      fileName[FILENAME_MAX];
+  u32bit    inputsLen   = 0;
+  char     *inputs[8192];
 
   //  Parse and check the inputs.
 
@@ -21,15 +21,16 @@ main(int argc, char **argv) {
       outName = argv[++arg];
 
     } else {
-      sprintf(fileName, "%s.tapperMappedIndex", argv[arg]);
-      numInputs++;
-
-      if (fileExists(fileName) == false)
+      if (tapperResultFile::validResultFile(argv[arg]) == false) {
+        fprintf(stderr, "Didn't find tapperResultFile '%s'\n", argv[arg]);
         err++;
+      } else {
+        inputs[inputsLen++] = argv[arg];
+      }
     }
     arg++;
   }
-  if ((err) || (numInputs == 0)) {
+  if ((err) || (inputsLen == 0)) {
     fprintf(stderr, "usage: %s -prefix outputprefix inprefix [inprefix ...]\n", argv[0]);
     exit(1);
   }
@@ -42,23 +43,15 @@ main(int argc, char **argv) {
   //  looser here, just blindly copying all records in each file, but
   //  we'll be a little more careful, and copy frag by frag.
 
-  arg=1;
-  while (arg < argc) {
-    if        (strncmp(argv[arg], "-output", 2) == 0) {
-      //  Skip the output.
-      arg++;
-    } else {
-      tapperResultFile *inp = new tapperResultFile(argv[arg], 'r');
-      tapperResult     *res = new tapperResult;
+  for (u32bit inputsIdx=0; inputsIdx<inputsLen; inputsIdx++) {
+    tapperResultFile *inp = new tapperResultFile(inputs[inputsIdx], 'r');
+    tapperResult     *res = new tapperResult;
 
-      while (inp->read(res))
-        out->write(res);
+    while (inp->read(res))
+      out->write(res);
 
-      delete inp;
-      delete res;
-    }
-
-    arg++;
+    delete inp;
+    delete res;
   }
 
   delete out;

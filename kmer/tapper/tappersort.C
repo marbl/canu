@@ -178,11 +178,8 @@ main(int argc, char **argv) {
       outputName = argv[++arg];
 
     } else {
-      char  filename[FILENAME_MAX];
-      sprintf(filename, "%s.tapperMappedIndex", argv[arg]);
-
-      if (fileExists(filename) == false) {
-        fprintf(stderr, "Didn't find input '%s'\n", filename);
+      if (tapperResultFile::validResultFile(argv[arg]) == false) {
+        fprintf(stderr, "Didn't find tapperResultFile '%s'\n", argv[arg]);
         err++;
       } else {
         inputs[inputsLen++] = argv[arg];
