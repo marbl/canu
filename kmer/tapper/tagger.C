@@ -147,7 +147,7 @@ dumpTagFileStats(char *tagfile) {
   if (TF->metaData()->isPairedTagFile()) {
     fprintf(stdout, "%s\ttype\tmated tags\n", tagfile);
     fprintf(stdout, "%s\tlength\t"u32bitFMT"\n", tagfile, TF->metaData()->tagSize());
-    fprintf(stdout, "%s\tnumTags\t"u64bitFMT"\n", tagfile, TF->numberOfMatedTags());
+    fprintf(stdout, "%s\tnumMates\t"u64bitFMT"\n", tagfile, TF->numberOfMatePairs());
     fprintf(stdout, "%s\tmean\t"u32bitFMT"\n", tagfile, TF->metaData()->mean());
     fprintf(stdout, "%s\tstddev\t"u32bitFMT"\n", tagfile, TF->metaData()->stddev());
   } else {

@@ -1012,13 +1012,22 @@ main(int argc, char **argv) {
       g->genName = argv[++arg];
     } else if (strncmp(argv[arg], "-queries", 2) == 0) {
       g->qryName = argv[++arg];
-    } else if (strncmp(argv[arg], "-prefix", 2) == 0) {
+    } else if (strncmp(argv[arg], "-output", 2) == 0) {
       g->outName = argv[++arg];
 
     } else if (strncmp(argv[arg], "-begin", 2) == 0) {
       g->bgnRead = strtou32bit(argv[++arg], 0L);
+      g->thisPartition = 0;
+      g->numPartitions = 1;
+
     } else if (strncmp(argv[arg], "-end", 2) == 0) {
       g->endRead = strtou32bit(argv[++arg], 0L);
+      g->thisPartition = 0;
+      g->numPartitions = 1;
+
+    } else if (strncmp(argv[arg], "-partition", 2) == 0) {
+      g->thisPartition = strtou32bit(argv[++arg], 0L);
+      g->numPartitions = strtou32bit(argv[++arg], 0L);
 
     } else if (strncmp(argv[arg], "-repeatthreshold", 2) == 0) {
       g->repeatThreshold = strtou32bit(argv[++arg], 0L);
@@ -1049,14 +1058,17 @@ main(int argc, char **argv) {
     fprintf(stderr, "  MANDATORY\n");
     fprintf(stderr, "          -genomic genomic.fasta\n");
     fprintf(stderr, "          -queries tags.tapperTags\n");
-    fprintf(stderr, "          -prefix  output-prefix\n");
+    fprintf(stderr, "          -output  tapperResultFile directory path\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  OPTIONAL\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "          -begin b               Start aligning at read b\n");
-    fprintf(stderr, "          -end   e               Stop aligning at read e\n");
-    fprintf(stderr, "                                 NOTE!  When mapping mated reads, this will\n");
-    fprintf(stderr, "                                 start/stop at matepair b/2 and e/2.\n");
+    fprintf(stderr, "          -begin b               Start aligning at read b (or mate pair b)\n");
+    fprintf(stderr, "          -end   e               Stop aligning at read e (or mate pair e)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "          -partition n m         Run partition n out of m total partitions.\n");
+    fprintf(stderr, "                                 This sets -b and -e so that the reads/mate pairs\n");
+    fprintf(stderr, "                                 are in m partitions.  Partitions start at 0 and\n");
+    fprintf(stderr, "                                 end at m-1.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "          -repeatthreshold x     Do not report fragment alignments for tags\n");
     fprintf(stderr, "                                 with more than x alignments.  Singletons, mated\n");

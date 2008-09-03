@@ -31,7 +31,7 @@ main(int argc, char **argv) {
     arg++;
   }
   if ((err) || (inputsLen == 0)) {
-    fprintf(stderr, "usage: %s -prefix outputprefix inprefix [inprefix ...]\n", argv[0]);
+    fprintf(stderr, "usage: %s -output out-directory in-directory [in-directory ...]\n", argv[0]);
     exit(1);
   }
 

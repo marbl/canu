@@ -20,6 +20,9 @@ public:
   u32bit            bgnRead;
   u32bit            endRead;
 
+  u32bit            thisPartition;
+  u32bit            numPartitions;
+
   u32bit            repeatThreshold;
 
   u32bit            maxMemory;
@@ -52,6 +55,9 @@ tapperGlobalData::tapperGlobalData() {
 
   bgnRead =  u32bitZERO;
   endRead = ~u32bitZERO;
+
+  thisPartition = 0;
+  numPartitions = 1;
 
   repeatThreshold = 500;
 
@@ -91,6 +97,23 @@ tapperGlobalData::initialize(void) {
   rewriteFileAsColorACGT(genName, colName);
 
   TF = new tapperTagFile(qryName, 'r');
+
+  if (numPartitions > 1) {
+    if (thisPartition >= numPartitions) {
+      fprintf(stderr, "ERROR: invalid partition n="u32bitFMT" m="u32bitFMT".\n", thisPartition, numPartitions);
+      exit(1);
+    }
+
+    //  File has either fragment tags OR mate pairs, never both.
+
+    u32bit  numTags = (TF->numberOfFragmentTags() + TF->numberOfMatePairs()) / numPartitions + 1;
+
+    bgnRead = numTags * thisPartition;
+    endRead = numTags * thisPartition + numTags;
+
+    fprintf(stderr, "Set partition for "u64bitFMT" frags or "u64bitFMT" mates: -begin "u32bitFMT" -end "u32bitFMT"\n",
+            TF->numberOfFragmentTags(), TF->numberOfMatePairs(), bgnRead, endRead);
+  }
 
   //  Set ranges that we want to compute.
   TF->setBegin(bgnRead);

@@ -225,20 +225,26 @@ public:
       return(_tagFile->numRecords());
   };
 
-  u64bit numberOfMatedTags(void) {
+  u64bit numberOfMatePairs(void) {
     if (metaData()->isPairedTagFile())
-      return(_tagFile->numRecords() * 2);
+      return(_tagFile->numRecords() / 2);
     else
       return(0);
   };
 
   void   setBegin(u32bit bgn) {
-    _tagFile->seek(bgn);
+    if (metaData()->isPairedTagFile())
+      _tagFile->seek(bgn * 2);
+    else
+      _tagFile->seek(bgn);
   };
 
 
   void   setEnd(u32bit end) {
-    _tagFile->limit(end);
+    if (metaData()->isPairedTagFile())
+      _tagFile->limit(end * 2);
+    else
+      _tagFile->limit(end);
   };
 
 
