@@ -326,6 +326,9 @@ sweatShop::writer(void) {
     }
   }
 
+  //  Tell status to stop.
+  _writerP = 0L;
+
   //fprintf(stderr, "sweatShop::writer exits.\n");
   return(0L);
 }
@@ -349,7 +352,7 @@ sweatShop::status(void) {
     return(0L);
   }
 
-  while (_writerP && _writerP->_user) {
+  while (_writerP) {  //  && _writerP->_user
     deltaOut = deltaCPU = 0;
 
     if (_numberComputed > _numberOutput)
@@ -393,7 +396,7 @@ sweatShop::status(void) {
           _numberLoaded - _numberComputed,
           _numberLoaded);
 
-  //fprintf(stderr, "sweatShop::status exits.\n");
+  fprintf(stderr, "sweatShop::status exits.\n");
   return(0L);
 }
 
