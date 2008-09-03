@@ -110,29 +110,57 @@ class tapperResultFragment {
 public:
   void    print(FILE *out, tapperResultIndex *idx) {
     u16bit                 id[4];
+    char                   cor[128];
+    u32bit                 err = 0;
+
+#warning do not know real tag length
+    memset(cor, '.', 128);
+    cor[26] = 0;
 
     if (_qual._tag1valid) {
+      for (u32bit x=0; x<_qual._tag1colorMismatch; x++, err++) {
+        u32bit pos = _qual._tag1colorDiffs[err] & 0x3f;
+        cor[pos] = '*';
+      }
+
+      for (u32bit x=0; x<_qual._tag1colorInconsistent; x++, err++) {
+        u32bit pos = _qual._tag1colorDiffs[err] & 0x3f;
+        cor[pos] = bitsToColor[_qual._tag1colorDiffs[err] >> 6];
+      }
+
       decodeTagID(idx->_tag1id, id);
-      fprintf(stdout, "F\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t"u32bitFMT"/"u32bitFMT"/"u32bitFMT"\n",
+      fprintf(stdout, "F\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t"u32bitFMT"/"u32bitFMT"/"u32bitFMT"\t'%s'\n",
               id[0], id[1], id[2], id[3],
               _seq,
               _pos,
               _qual._tag1rev ? 'r' : 'f',
               _qual._tag1basesMismatch,
               _qual._tag1colorMismatch,
-              _qual._tag1colorInconsistent);
+              _qual._tag1colorInconsistent,
+              cor);
     }
 
     if (_qual._tag2valid) {
+      for (u32bit x=0; x<_qual._tag2colorMismatch; x++, err++) {
+        u32bit pos = _qual._tag2colorDiffs[err] & 0x3f;
+        cor[pos] = '*';
+      }
+
+      for (u32bit x=0; x<_qual._tag2colorInconsistent; x++, err++) {
+        u32bit pos = _qual._tag2colorDiffs[err] & 0x3f;
+        cor[pos] = bitsToColor[_qual._tag2colorDiffs[err] >> 6];
+      }
+
       decodeTagID(idx->_tag2id, id);
-      fprintf(stdout, "F\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t"u32bitFMT"/"u32bitFMT"/"u32bitFMT"\n",
+      fprintf(stdout, "F\t"u16bitFMT"_"u16bitFMT"_"u16bitFMT"_"u16bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t"u32bitFMT"/"u32bitFMT"/"u32bitFMT"\t'%s'\n",
               id[0], id[1], id[2], id[3],
               _seq,
               _pos,
               _qual._tag2rev ? 'r' : 'f',
               _qual._tag2basesMismatch,
               _qual._tag2colorMismatch,
-              _qual._tag2colorInconsistent);
+              _qual._tag2colorInconsistent,
+              cor);
     }
   };
 
@@ -469,6 +497,15 @@ public:
       align->aqlt    = new u32bit [align->aqltMax];
     }
 
+#if 0
+    fprintf(stderr, "reading: "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+            align->idx._numFrag,
+            align->idx._numFragSingleton,
+            align->idx._numFragTangled,
+            align->idx._numMated,
+            align->idx._numTangled);
+#endif
+
     if (FRAG->getRecord(align->frag, align->idx._numFrag)          != align->idx._numFrag)
       success = false;
     if (SING->getRecord(align->sing, align->idx._numFragSingleton) != align->idx._numFragSingleton)
@@ -501,7 +538,7 @@ public:
 
     FRAG->putRecord(frag, idx->_numFrag);
     SING->putRecord(sing, idx->_numFragSingleton);
-    TALI->putRecord(sing, idx->_numFragTangled);
+    TALI->putRecord(tali, idx->_numFragTangled);
     MATE->putRecord(mate, idx->_numMated);
     TANG->putRecord(tang, idx->_numTangled);
 

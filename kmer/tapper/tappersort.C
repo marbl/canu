@@ -34,17 +34,18 @@ saveFrag(tapperAlignment *ali, u32bit aliLen, tapperResult *res, u32bit fragLen,
     //  At least one is true, and at least one is false ==> exactly
     //  one is true.
 
-    if ((f->_qual._tag1valid == false) && (f->_qual._tag2valid == false))
+    if ((f->_qual._tag1valid == 0) && (f->_qual._tag2valid == 0))
       fprintf(stderr, "error\n");
 
-    assert((f->_qual._tag1valid == true)  || (f->_qual._tag2valid == true));
-    assert((f->_qual._tag1valid == false) || (f->_qual._tag2valid == false));
+    assert((f->_qual._tag1valid == 1) || (f->_qual._tag2valid == 1));
+    assert((f->_qual._tag1valid == 0) || (f->_qual._tag2valid == 0));
 
     if (f->_qual._tag1valid) {
+      memset(ali + aliLen, 0, sizeof(tapperAlignment));
+
       ali[aliLen]._tagid              = res->idx._tag1id;
       ali[aliLen]._seq                = f->_seq;
       ali[aliLen]._pos                = f->_pos;
-      ali[aliLen]._pad                = 0;
       ali[aliLen]._basesMismatch      = f->_qual._tag1basesMismatch;
       ali[aliLen]._colorMismatch      = f->_qual._tag1colorMismatch;
       ali[aliLen]._colorInconsistent  = f->_qual._tag1colorInconsistent;
@@ -60,10 +61,11 @@ saveFrag(tapperAlignment *ali, u32bit aliLen, tapperResult *res, u32bit fragLen,
     }
 
     if (f->_qual._tag2valid) {
+      memset(ali + aliLen, 0, sizeof(tapperAlignment));
+
       ali[aliLen]._tagid              = res->idx._tag2id;
       ali[aliLen]._seq                = f->_seq;
       ali[aliLen]._pos                = f->_pos;
-      ali[aliLen]._pad                = 0;
       ali[aliLen]._basesMismatch      = f->_qual._tag2basesMismatch;
       ali[aliLen]._colorMismatch      = f->_qual._tag2colorMismatch;
       ali[aliLen]._colorInconsistent  = f->_qual._tag2colorInconsistent;
@@ -90,10 +92,11 @@ saveMate(tapperAlignment *ali, u32bit aliLen, tapperResult *res) {
   for (u32bit i=0; i<res->idx._numMated; i++) {
     tapperResultMated *m = res->mate + i;
 
+    memset(ali + aliLen, 0, sizeof(tapperAlignment));
+
     ali[aliLen]._tagid              = res->idx._tag1id;
     ali[aliLen]._seq                = m->_seq;
     ali[aliLen]._pos                = m->_pos1;
-    ali[aliLen]._pad                = 0;
     ali[aliLen]._basesMismatch      = m->_qual._tag1basesMismatch;
     ali[aliLen]._colorMismatch      = m->_qual._tag1colorMismatch;
     ali[aliLen]._colorInconsistent  = m->_qual._tag1colorInconsistent;
@@ -107,11 +110,11 @@ saveMate(tapperAlignment *ali, u32bit aliLen, tapperResult *res) {
 
     aliLen++;
 
+    memset(ali + aliLen, 0, sizeof(tapperAlignment));
 
     ali[aliLen]._tagid              = res->idx._tag2id;
     ali[aliLen]._seq                = m->_seq;
     ali[aliLen]._pos                = m->_pos2;
-    ali[aliLen]._pad                = 0;
     ali[aliLen]._basesMismatch      = m->_qual._tag2basesMismatch;
     ali[aliLen]._colorMismatch      = m->_qual._tag2colorMismatch;
     ali[aliLen]._colorInconsistent  = m->_qual._tag2colorInconsistent;

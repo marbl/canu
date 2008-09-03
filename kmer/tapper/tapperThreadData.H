@@ -20,9 +20,10 @@ public:
     numHappiesMax = 256 * 1024;
     tag1happies   = new u32bit [numHappiesMax];
     tag1mate      = new u32bit [numHappiesMax];
+    tag1tangled   = new u32bit [numHappiesMax];
     tag2happies   = new u32bit [numHappiesMax];
     tag2mate      = new u32bit [numHappiesMax];
-
+    tag2tangled   = new u32bit [numHappiesMax];
     tangle        = 0L;
   };
 
@@ -33,8 +34,10 @@ public:
     delete [] posn2r;
     delete [] tag1happies;
     delete [] tag1mate;
+    delete [] tag1tangled;
     delete [] tag2happies;
     delete [] tag2mate;
+    delete [] tag2tangled;
     delete [] tangle;
   };
 
@@ -56,10 +59,14 @@ public:
   u64bit *posn2r;
 
   u32bit  numHappiesMax;
+
   u32bit *tag1happies;
   u32bit *tag1mate;
+  u32bit *tag1tangled;
+
   u32bit *tag2happies;
   u32bit *tag2mate;
+  u32bit *tag2tangled;
 
   intervalList *tangle;
 };

@@ -102,19 +102,19 @@ public:
     alignQualHistogramLen        = 0;
 
     resultFragment               = 0L;
-    resultFragmentLen            = 0L;
+    resultFragmentLen            = 0;
 
     resultSingleton              = 0L;
-    resultSingletonLen           = 0L;
+    resultSingletonLen           = 0;
 
     resultTangledAlignment       = 0L;
-    resultTangledAlignmentLen    = 0L;
+    resultTangledAlignmentLen    = 0;
 
     resultMated                  = 0L;
-    resultMatedLen               = 0L;
+    resultMatedLen               = 0;
 
     resultTangled                = 0L;
-    resultTangledLen             = 0L;
+    resultTangledLen             = 0;
   };
 
   ~tapperComputation() {

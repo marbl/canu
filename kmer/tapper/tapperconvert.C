@@ -80,8 +80,18 @@ main(int argc, char **argv) {
         res->mate[i].print(stdout, &res->idx);
 
     if (dumpTang)
-      for (u32bit i=0; i<res->idx._numTangled; i++)
+      for (u32bit i=0; i<res->idx._numTangled; i++) {
         res->tang[i].print(stdout, &res->idx);
+
+        for (u32bit j=0; j<res->idx._numFragTangled; j++) {
+          if ((res->tang[i]._seq == res->tali[j]._seq) &&
+              (res->tang[i]._bgn <= res->tali[j]._pos) && (res->tali[j]._pos <= res->tang[i]._end)) {
+            res->tali[j].print(stdout, &res->idx);
+          }
+        }
+
+
+      }
   }
 
   delete inp;

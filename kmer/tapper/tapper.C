@@ -622,15 +622,21 @@ tapperWorker(void *G, void *T, void *S) {
     if ((t->numHappiesMax < s->tag1hitsLen) || (t->numHappiesMax < s->tag2hitsLen)) {
       delete [] t->tag1happies;
       delete [] t->tag1mate;
+      delete [] t->tag1tangled;
+
       delete [] t->tag2happies;
       delete [] t->tag2mate;
+      delete [] t->tag2tangled;
 
       t->numHappiesMax = MAX(s->tag1hitsLen, s->tag2hitsLen) + 16 * 1024;
 
       t->tag1happies = new u32bit [t->numHappiesMax];
       t->tag1mate    = new u32bit [t->numHappiesMax];
+      t->tag1tangled = new u32bit [t->numHappiesMax];
+
       t->tag2happies = new u32bit [t->numHappiesMax];
       t->tag2mate    = new u32bit [t->numHappiesMax];
+      t->tag2tangled = new u32bit [t->numHappiesMax];
     }
 
 #ifdef VERBOSEWORKER
@@ -648,10 +654,10 @@ tapperWorker(void *G, void *T, void *S) {
 
     //  Pass zero, clear.  Tangles are cleared below.
     //
-    for (u32bit a=0; a<s->tag1hitsLen; a++)
-      t->tag1happies[a] = 0;
-    for (u32bit b=0; b<s->tag2hitsLen; b++)
-      t->tag2happies[b] = 0;
+    memset(t->tag1happies, 0, sizeof(u32bit) * s->tag1hitsLen);
+    memset(t->tag1tangled, 0, sizeof(u32bit) * s->tag1hitsLen);
+    memset(t->tag2happies, 0, sizeof(u32bit) * s->tag2hitsLen);
+    memset(t->tag2tangled, 0, sizeof(u32bit) * s->tag2hitsLen);
 
     //  Pass one.  Count the number of times each fragment is in a
     //  happy relationship.
@@ -717,6 +723,8 @@ tapperWorker(void *G, void *T, void *S) {
               u32bit mx = MAX(t1h[a]._seqPos + s->tag1size, t2h[c]._seqPos + s->tag2size);
 
               t->tangle[t1h[a]._seqIdx].add(mn, mx-mn);
+              t->tag1tangled[a]++;
+              t->tag2tangled[c]++;
             }
 
             if ((t->tag1happies[a] == 1) && (t->tag2happies[b] == 2)) {
@@ -725,6 +733,8 @@ tapperWorker(void *G, void *T, void *S) {
               u32bit mx = MAX(t1h[c]._seqPos + s->tag1size, t2h[b]._seqPos + s->tag2size);
 
               t->tangle[t1h[c]._seqIdx].add(mn, mx-mn);
+              t->tag1tangled[c]++;
+              t->tag2tangled[b]++;
             }
 
             //  Finally, add the current mate pair to the tangle.
@@ -733,6 +743,8 @@ tapperWorker(void *G, void *T, void *S) {
               u32bit mx = MAX(t1h[a]._seqPos + s->tag1size, t2h[b]._seqPos + s->tag2size);
 
               t->tangle[t1h[a]._seqIdx].add(mn, mx-mn);
+              t->tag1tangled[a]++;
+              t->tag2tangled[b]++;
             }
 
             //  Remember the mate; only valid if tag1happies[a] and
@@ -828,12 +840,12 @@ tapperWorker(void *G, void *T, void *S) {
     for (u32bit a=0; a<s->tag1hitsLen; a++) {
       tapperResultFragment *f;
 
-      if        (t->tag1happies[a] == 1) {
+      if (t->tag1tangled[a] != 0) {
+        f = s->resultTangledAlignment + s->resultTangledAlignmentLen++;
+
+      } else if (t->tag1happies[a] == 1) {
         //  Happy; do nothing.  We'll do it later.
         f = 0L;
-
-      } else if (t->tag1happies[a] > 1) {
-        f = s->resultTangledAlignment + s->resultTangledAlignmentLen++;
 
       } else if (s->tag1hits[a].happyNearEnd(true, mean, stddev, g->GS->fasta()->sequenceLength(s->tag1hits[a]._seqIdx))) {
         f = s->resultSingleton + s->resultSingletonLen++;
@@ -847,6 +859,7 @@ tapperWorker(void *G, void *T, void *S) {
         f->_pos = s->tag1hits[a]._seqPos;
 
         f->_qual._tag1valid             = 1;
+        f->_qual._tag2valid             = 0;
         f->_qual._tag1basesMismatch     = s->tag1hits[a]._basesMismatch;
         f->_qual._tag1colorMismatch     = s->tag1hits[a]._colorMismatch;
         f->_qual._tag1colorInconsistent = s->tag1hits[a]._colorInconsistent;
@@ -863,12 +876,12 @@ tapperWorker(void *G, void *T, void *S) {
     for (u32bit b=0; b<s->tag2hitsLen; b++) {
       tapperResultFragment *f;
 
-      if        (t->tag1happies[b] == 1) {
+      if (t->tag2tangled[b] != 0) {
+        f = s->resultTangledAlignment + s->resultTangledAlignmentLen++;
+
+      } else if (t->tag2happies[b] == 1) {
         //  Happy; do nothing.  We'll do it later.
         f = 0L;
-
-      } else if (t->tag2happies[b] > 1) {
-        f = s->resultTangledAlignment + s->resultTangledAlignmentLen++;
 
       } else if (s->tag2hits[b].happyNearEnd(false, mean, stddev, g->GS->fasta()->sequenceLength(s->tag2hits[b]._seqIdx))) {
         f = s->resultSingleton + s->resultSingletonLen++;
@@ -881,6 +894,7 @@ tapperWorker(void *G, void *T, void *S) {
         f->_seq = s->tag2hits[b]._seqIdx;
         f->_pos = s->tag2hits[b]._seqPos;
 
+        f->_qual._tag1valid             = 0;
         f->_qual._tag2valid             = 1;
         f->_qual._tag2basesMismatch     = s->tag2hits[b]._basesMismatch;
         f->_qual._tag2colorMismatch     = s->tag2hits[b]._colorMismatch;
@@ -947,7 +961,6 @@ tapperWorker(void *G, void *T, void *S) {
           for (u32bit ti=0; ti<t->tangle[si].numberOfIntervals(); ti++) {
             tapperResultTangled   *x = s->resultTangled + s->resultTangledLen++;
 
-#warning unable to set number of times a tag is in a tangle
             x->_tag1count = 0;
             x->_tag2count = 0;
 
@@ -955,6 +968,19 @@ tapperWorker(void *G, void *T, void *S) {
 
             x->_bgn = t->tangle[si].lo(ti);
             x->_end = t->tangle[si].hi(ti);
+
+            for (u32bit a=0; a<s->tag1hitsLen; a++) {
+              if ((t->tag1tangled[a] > 0) &&
+                  (x->_seq == s->tag1hits[a]._seqIdx) &&
+                  (x->_bgn <= s->tag1hits[a]._seqPos) && (s->tag1hits[a]._seqPos <= x->_end))
+                x->_tag1count++;
+            }
+            for (u32bit b=0; b<s->tag2hitsLen; b++) {
+              if ((t->tag2tangled[b] > 0) &&
+                  (x->_seq == s->tag2hits[b]._seqIdx) &&
+                  (x->_bgn <= s->tag2hits[b]._seqPos) && (s->tag2hits[b]._seqPos <= x->_end))
+                x->_tag2count++;
+            }
           }
 
           //  This is persistent; clear it for the next mate pair.
