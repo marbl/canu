@@ -309,7 +309,7 @@ main(int argc, char **argv) {
                        writer);
   }
 
-  ss->numberOfWorkers(config.numThreads);
+  ss->setNumberOfWorkers(config.numThreads);
   ss->run(0L, config.beVerbose);
 
   //  Only close the file if it isn't stdout

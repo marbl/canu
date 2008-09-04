@@ -14,64 +14,29 @@
 
 #include "util++.H"
 
-class sweatShop;
-
-class sweatShopWorker {
-public:
-  sweatShopWorker() {
-    shop           = 0L;
-    threadUserData = 0L;
-    numComputed    = 0;
-  };
-
-  sweatShop   *shop;
-  void        *threadUserData;
-  pthread_t    threadID;
-  u32bit       numComputed;
-};
+class sweatShopWorker;
+class sweatShopState;
 
 class sweatShop {
 public:
-  sweatShop(void*(*loader)(void *G),
-            void (*worker)(void *G, void *T, void *S),
-            void (*writer)(void *G, void *S));
+  sweatShop(void*(*loaderfcn)(void *G),
+            void (*workerfcn)(void *G, void *T, void *S),
+            void (*writerfcn)(void *G, void *S));
   ~sweatShop();
 
-  void        setLoader(void*(*f)(void *G))                   { _userLoader = f; };
-  void        setWorker(void (*f)(void *G, void *T, void *S)) { _userWorker = f; };
-  void        setWriter(void (*f)(void *G, void *S))          { _userWriter = f; };
-
-  u32bit      numberOfWorkers(u32bit x=0);
+  void        setNumberOfWorkers(u32bit x) { _numberOfWorkers = x; };
 
   void        setThreadData(u32bit t, void *x);
 
-  void        loaderBatchSize(u32bit batchSize) {
-    _loadBatches = true;
-    _batchSize   = batchSize;
-  };
+  void        setLoaderBatchSize(u32bit batchSize) { _loaderBatchSize = batchSize; };
+  void        setLoaderQueueSize(u32bit queueSize) { _loaderQueueSize = queueSize; };
 
-  u32bit      loaderQueueSize(u32bit x=0);
-  u32bit      writerQueueSize(u32bit x=0);
+  void        setWorkerBatchSize(u32bit batchSize) { _workerBatchSize = batchSize; };
+
+  void        setWriterQueueSize(u32bit queueSize) { _writerQueueSize = queueSize; };
 
   void        run(void *user=0L, bool beVerbose=false);
 private:
-
-  //  This gets created by the loader, passed to the worker, and printed
-  //  by the writer.  userData is controlled by the user.
-  class state_s {
-  public:
-    state_s(void *userData) {
-      _user     = userData;
-      _computed = false;
-      _next     = 0L;
-    };
-    ~state_s() {
-    };
-
-    void        *_user;
-    bool         _computed;
-    state_s     *_next;
-  };
 
   //  Stubs that forward control from the c-based pthread to this class
   friend void  *_sweatshop_loaderThread(void *ss);
@@ -86,9 +51,9 @@ private:
   void   *status(void);
 
   //  Utilities for the loader thread
-  void    loaderAdd(state_s *thisState);
-  void    loaderSave(state_s *&tail, state_s *&head, state_s *thisState);
-  void    loaderAppend(state_s *&tail, state_s *&head);
+  //void    loaderAdd(sweatShopState *thisState);
+  void    loaderSave(sweatShopState *&tail, sweatShopState *&head, sweatShopState *thisState);
+  void    loaderAppend(sweatShopState *&tail, sweatShopState *&head);
 
   pthread_mutex_t        _stateMutex;
 
@@ -98,21 +63,20 @@ private:
 
   void                  *_globalUserData;
 
-  state_s               *_writerP;  //  Where output takes stuff from, the tail
-  state_s               *_workerP;  //  Where computes happen, the middle
-  state_s               *_loaderP;  //  Where input is put, the head
+  sweatShopState        *_writerP;  //  Where output takes stuff from, the tail
+  sweatShopState        *_workerP;  //  Where computes happen, the middle
+  sweatShopState        *_loaderP;  //  Where input is put, the head
 
-  bool                   _loadBatches;
-  u32bit                 _batchSize;
   bool                   _showStatus;
 
   u32bit                 _loaderQueueSize;
+  u32bit                 _loaderBatchSize;
+  u32bit                 _workerBatchSize;
   u32bit                 _writerQueueSize;
 
   u32bit                 _numberOfWorkers;
 
   sweatShopWorker       *_workerData;
-  bool                   _workerDataSet;
 
   u64bit                 _numberLoaded;
   u64bit                 _numberComputed;

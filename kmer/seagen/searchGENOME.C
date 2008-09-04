@@ -114,13 +114,13 @@ main(int argc, char **argv) {
                                   searchThread,
                                   writerThread);
 
-  ss->numberOfWorkers(config._numSearchThreads);
+  ss->setNumberOfWorkers(config._numSearchThreads);
 
   for (u32bit i=0; i<config._numSearchThreads; i++)
     ss->setThreadData(i, new searcherState);
 
-  ss->loaderQueueSize(config._loaderQueue);
-  ss->writerQueueSize(config._writerQueue);
+  ss->setLoaderQueueSize(config._loaderQueue);
+  ss->setWriterQueueSize(config._writerQueue);
 
   ss->run(0L, config._beVerbose);
 
