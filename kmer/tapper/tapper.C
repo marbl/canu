@@ -630,6 +630,8 @@ tapperWorker(void *G, void *T, void *S) {
 
       t->numHappiesMax = MAX(s->tag1hitsLen, s->tag2hitsLen) + 16 * 1024;
 
+      fprintf(stderr, "Reallocate t->numHappiesMax to "u32bitFMT"\n", t->numHappiesMax);
+
       t->tag1happies = new u32bit [t->numHappiesMax];
       t->tag1mate    = new u32bit [t->numHappiesMax];
       t->tag1tangled = new u32bit [t->numHappiesMax];
@@ -818,21 +820,63 @@ tapperWorker(void *G, void *T, void *S) {
 #endif
     }
 
-    //  Allocate space for the outputs.  We can kind of guess how much
-    //  to grab.  Not perfect.  Can do a lot better.
+    //  Allocate space for the outputs.
 
-    s->resultFragment          = new tapperResultFragment   [s->tag1hitsLen + s->tag2hitsLen];
-    s->resultSingleton         = new tapperResultFragment   [s->tag1hitsLen + s->tag2hitsLen];
-    s->resultTangledAlignment  = new tapperResultFragment   [s->tag1hitsLen + s->tag2hitsLen];
-    s->resultMated             = new tapperResultMated      [MIN(s->tag1hitsLen, s->tag2hitsLen)];
-    s->resultTangled           = new tapperResultTangled    [MIN(s->tag1hitsLen, s->tag2hitsLen)];
+#if 0
+    //  We can kind of guess how much to grab.  Not perfect.  Can do a
+    //  lot better.
+    //
+    s->resultFragmentLen          = s->tag1hitsLen + s->tag2hitsLen;
+    s->resultSingletonLen         = s->tag1hitsLen + s->tag2hitsLen;
+    s->resultTangledAlignmentLen  = s->tag1hitsLen + s->tag2hitsLen;
+    s->resultMatedLen             = MIN(s->tag1hitsLen, s->tag2hitsLen);
+    s->resultTangledLen           = MIN(s->tag1hitsLen, s->tag2hitsLen);
+#else
+    //  Count exactly how much space is needed.  The test for
+    //  singleton vs fragment is somewhat expensive, so we skip it.
+    //
+    for (u32bit a=0; a<s->tag1hitsLen; a++) {
+      if (t->tag1tangled[a] != 0) {
+        s->resultTangledAlignmentLen++;
+      } else if (t->tag1happies[a] == 1) {
+        s->resultMatedLen++;
+      } else {
+        s->resultSingletonLen++;
+        s->resultFragmentLen++;
+      }
+    }
 
-#warning bottleneck?
-    memset(s->resultFragment,         0, sizeof(tapperResultFragment)  * (s->tag1hitsLen + s->tag2hitsLen));
-    memset(s->resultSingleton,        0, sizeof(tapperResultFragment)  * (s->tag1hitsLen + s->tag2hitsLen));
-    memset(s->resultTangledAlignment, 0, sizeof(tapperResultFragment)  * (s->tag1hitsLen + s->tag2hitsLen));
-    memset(s->resultMated,            0, sizeof(tapperResultMated)     * (MIN(s->tag1hitsLen, s->tag2hitsLen)));
-    memset(s->resultTangled,          0, sizeof(tapperResultTangled)   * (MIN(s->tag1hitsLen, s->tag2hitsLen)));
+    for (u32bit b=0; b<s->tag2hitsLen; b++) {
+      if (t->tag2tangled[b] != 0) {
+        s->resultTangledAlignmentLen++;
+      } else if (t->tag2happies[b] == 1) {
+        s->resultMatedLen++;
+      } else {
+        s->resultSingletonLen++;
+        s->resultFragmentLen++;
+      }
+    }
+
+    s->resultMatedLen /= 2;
+
+    //s->resultFragmentLen          += 8;
+    //s->resultSingletonLen         += 8;
+    //s->resultTangledAlignmentLen  += 8;
+    //s->resultMatedLen             += 8;
+    //s->resultTangledLen           += 8;
+#endif
+
+    s->resultFragment             = new tapperResultFragment   [s->resultFragmentLen];
+    s->resultSingleton            = new tapperResultFragment   [s->resultSingletonLen];
+    s->resultTangledAlignment     = new tapperResultFragment   [s->resultTangledAlignmentLen];
+    s->resultMated                = new tapperResultMated      [s->resultMatedLen];
+    s->resultTangled              = new tapperResultTangled    [s->resultTangledLen];
+
+    s->resultFragmentLen          = 0;
+    s->resultSingletonLen         = 0;
+    s->resultTangledAlignmentLen  = 0;
+    s->resultMatedLen             = 0;
+    s->resultTangledLen           = 0;
 
     //  For anything with zero happies, emit to the
     //  singleton file.
@@ -855,11 +899,12 @@ tapperWorker(void *G, void *T, void *S) {
       }
 
       if (f) {
+        memset(f, 0, sizeof(tapperResultFragment));
+
         f->_seq = s->tag1hits[a]._seqIdx;
         f->_pos = s->tag1hits[a]._seqPos;
 
         f->_qual._tag1valid             = 1;
-        f->_qual._tag2valid             = 0;
         f->_qual._tag1basesMismatch     = s->tag1hits[a]._basesMismatch;
         f->_qual._tag1colorMismatch     = s->tag1hits[a]._colorMismatch;
         f->_qual._tag1colorInconsistent = s->tag1hits[a]._colorInconsistent;
@@ -891,10 +936,11 @@ tapperWorker(void *G, void *T, void *S) {
       }
 
       if (f) {
+        memset(f, 0, sizeof(tapperResultFragment));
+
         f->_seq = s->tag2hits[b]._seqIdx;
         f->_pos = s->tag2hits[b]._seqPos;
 
-        f->_qual._tag1valid             = 0;
         f->_qual._tag2valid             = 1;
         f->_qual._tag2basesMismatch     = s->tag2hits[b]._basesMismatch;
         f->_qual._tag2colorMismatch     = s->tag2hits[b]._colorMismatch;
@@ -917,6 +963,8 @@ tapperWorker(void *G, void *T, void *S) {
 
       if ((t->tag1happies[a] == 1) && (t->tag2happies[b] == 1)) {
         tapperResultMated     *m = s->resultMated + s->resultMatedLen++;
+
+        memset(m, 0, sizeof(tapperResultMated));
 
         assert(t->tag1mate[a] == b);
         assert(t->tag2mate[b] == a);
@@ -1089,11 +1137,12 @@ main(int argc, char **argv) {
 
   sweatShop *ss = new sweatShop(tapperReader, tapperWorker, tapperWriter);
 
-  ss->writerQueueSize(130000);
-  ss->loaderQueueSize(120000);
-  ss->loaderBatchSize(1024);
+  ss->setLoaderQueueSize(16384);
+  ss->setLoaderBatchSize(512);
+  ss->setWorkerBatchSize(1024);
+  ss->setWriterQueueSize(65536);
 
-  ss->numberOfWorkers(g->numThreads);
+  ss->setNumberOfWorkers(g->numThreads);
 
   for (u32bit w=0; w<g->numThreads; w++)
     ss->setThreadData(w, new tapperThreadData(g));
