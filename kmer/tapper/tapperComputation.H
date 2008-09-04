@@ -121,6 +121,8 @@ public:
     delete [] tag1hits;
     delete [] tag2hits;
 
+    delete [] alignQualHistogram;
+
     delete [] resultFragment;
     delete [] resultSingleton;
     delete [] resultTangledAlignment;
