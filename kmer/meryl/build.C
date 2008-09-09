@@ -6,6 +6,8 @@
 #include "bio++.H"
 #include "meryl.H"
 #include "libmeryl.H"
+#include "seqStream.H"
+#include "merStream.H"
 
 void runThreaded(merylArgs *args);
 
@@ -228,19 +230,13 @@ prepareBatch(merylArgs *args) {
     }
   }
 
-  //  Everybody needs to dump the mers to a merStreamFile.
-  //
-  //  The only one that doesn't is "sequential, no memory limit", but
-  //  optimizing for just that case makes the code too complex.
-  //
   {
-    seqStream *seqstr = new seqStream(args->inputFile, true);
-    seqStore  *seqsto = new seqStore(args->outputFile, seqstr);
+    merStream *merstr = new merStream(0L,
+                                      new seqStream(args->inputFile));
 
-    args->numMersActual = seqsto->numberOfACGT() + 1;
+    args->numMersActual = merstr->approximateNumberOfMers() + 1;
 
-    delete seqsto;
-    delete seqstr;
+    delete merstr;
   }
 
 #warning not submitting prepareBatch to grid
@@ -330,8 +326,6 @@ prepareBatch(merylArgs *args) {
 
 void
 runSegment(merylArgs *args, u64bit segment) {
-  seqStore            *R  = 0L;
-  kMerBuilder          KB(args->merSize, args->merComp);
   merStream           *M  = 0L;
   merylStreamWriter   *W  = 0L;
   speedCounter        *C  = 0L;
@@ -411,9 +405,9 @@ runSegment(merylArgs *args, u64bit segment) {
   //  everybody else does args->mersPerBatch mers.
 
   C = new speedCounter(" Counting mers in buckets: %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
-
-  R = new seqStore(args->outputFile, 0L);
-  M = new merStream(&KB, R);
+  M = new merStream(new kMerBuilder(args->merSize, args->merComp),
+                    new seqStream(args->inputFile),
+                    true, true);
   M->setRange(args->mersPerBatch * segment, args->mersPerBatch * segment + args->mersPerBatch);
 
   if (args->doForward) {
@@ -441,7 +435,6 @@ runSegment(merylArgs *args, u64bit segment) {
   }
 
   delete C;
-  delete R;
   delete M;
 
   //  Create the hash index using the counts.  The hash points
@@ -480,9 +473,9 @@ runSegment(merylArgs *args, u64bit segment) {
 
 
   C = new speedCounter(" Filling mers into list:   %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
-
-  R = new seqStore(args->outputFile, 0L);
-  M = new merStream(&KB, R);
+  M = new merStream(new kMerBuilder(args->merSize, args->merComp),
+                    new seqStream(args->inputFile),
+                    true, true);
   M->setRange(args->mersPerBatch * segment, args->mersPerBatch * segment + args->mersPerBatch);
 
   while (M->nextMer()) {
@@ -527,7 +520,6 @@ runSegment(merylArgs *args, u64bit segment) {
   }
 
   delete C;
-  delete R;
   delete M;
 
   char *batchOutputFile = new char [strlen(args->outputFile) + 33];

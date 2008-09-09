@@ -19,6 +19,8 @@ typedef unsigned short ushort;
 
 #include "bio++.H"
 
+#include "seqCache.H"
+
 #include "existDB.H"
 #include "positionDB.H"
 
@@ -142,7 +144,7 @@ public:
   void  display(FILE *out=stdout);
   void  writeATACheader(FILE *out);
 
-  void  completeUseList(seqFile *db);
+  void  completeUseList(seqCache *db);
 
   void  setTime(struct timespec *ts, double t) {
     ts->tv_sec  = (time_t)floor(t);
@@ -163,7 +165,7 @@ private:
 //
 extern configuration          config;
 
-extern seqFile               *qsFASTA;  //  Used exclusively by thr-loader.C
+extern seqCache              *qsFASTA;  //  Used exclusively by thr-loader.C
 
 extern positionDB            *positions;
 

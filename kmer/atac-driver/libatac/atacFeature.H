@@ -25,6 +25,8 @@ using namespace std;
 
 #include "bio++.H"
 
+#include "seqCache.H"
+
 //  A barebones feature.
 //
 //  F type featureuid parentuid LABEL:IID POS
@@ -57,7 +59,7 @@ public:
 
   void   decode(char *line);
 
-  bool   sanity(seqFile *A, char *inLine);
+  bool   sanity(seqCache *A, char *inLine);
 
   char    featureuid[16];
   char    parentuid[16];

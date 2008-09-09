@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include "bio++.H"
+#include "merStream.H"
 
 //  The two existDB inputs can be either forward or canonical.  If
 //  canonical, we are smart enough to search exist/only with the

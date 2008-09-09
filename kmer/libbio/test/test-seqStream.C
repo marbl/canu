@@ -7,7 +7,7 @@ main(int argc, char **argv) {
   seqStream   *B = 0L;
   seqStream   *C = 0L;
 
-  seqFile     *F = openSeqFile(argv[1]);
+  seqCache    *F = new seqCache(argv[1]);
 
   B = new seqStream(argv[1], true);
   C = new seqStream(F, true);

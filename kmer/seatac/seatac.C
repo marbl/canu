@@ -8,7 +8,7 @@
 //  Shared data
 //
 configuration          config;
-seqFile               *qsFASTA          = 0L;
+seqCache              *qsFASTA          = 0L;
 positionDB            *positions        = 0L;
 volatile u32bit        numberOfQueries  = 0;
 filterObj            **output           = 0L;
@@ -19,39 +19,6 @@ volatile u32bit        inputTail        = 0;
 volatile u32bit        outputPos        = 0;
 char                  *threadStats[MAX_THREADS] = { 0L };
 
-
-
-void
-dumpStats(void) {
-
-  if (config._statsFileName) {
-    FILE *F = fopen(config._statsFileName, "wb");
-    if (F == 0L) {
-      fprintf(stderr, "Couldn't open the stats file '%s'?\n", config._statsFileName);
-      fprintf(stderr, "Stats going to stderr.\n");
-      config._statsFileName = 0L;
-      F = stderr;
-    }
-
-    config.display(F);
-
-    write_rusage(F);
-      
-    fprintf(F, "wallClockTimes--------------------------\n");
-    fprintf(F, "init:     %9.5f\n", config._initTime   - config._startTime);
-    fprintf(F, "build:    %9.5f\n", config._buildTime  - config._initTime);
-    fprintf(F, "search:   %9.5f\n", config._searchTime - config._buildTime);
-    fprintf(F, "total:    %9.5f\n", config._totalTime  - config._startTime);
-
-    fprintf(F, "searchThreadInfo------------------------\n");
-    for (u64bit i=0; i<config._numSearchThreads; i++)
-      if (threadStats[i])
-        fprintf(F, threadStats[i]);
-
-    if (config._statsFileName)
-      fclose(F);
-  }
-}
 
 
 
@@ -89,8 +56,7 @@ main(int argc, char **argv) {
 
   //  Open and init the query sequence
   //
-  qsFASTA = openSeqFile(config._qsFileName);
-  qsFASTA->openIndex();
+  qsFASTA = new seqCache(config._qsFileName);
 
   numberOfQueries  = qsFASTA->getNumberOfSequences();
   output           = new filterObj * [numberOfQueries];
@@ -140,8 +106,9 @@ main(int argc, char **argv) {
       onlyDB = new existDB(config._onlyFileName, config._merSize, existDBcanonical | existDBcompressHash | existDBcompressBuckets, 0, ~u32bitZERO);
     }
 
-    kMerBuilder KB(config._merSize);
-    merStream  *MS = new merStream(&KB, &config._useList);
+    merStream  *MS = new merStream(new kMerBuilder(config._merSize),
+                                   config._useList,
+                                   true, false);
 
     positions = new positionDB(MS, config._merSize, config._merSkip, maskDB, onlyDB, 0L, 0, 0, 0, 0, config._beVerbose);
 
@@ -156,10 +123,8 @@ main(int argc, char **argv) {
 
       positions->saveState(config._tableFileName);
 
-      if (config._tableBuildOnly) {
-        dumpStats();
+      if (config._tableBuildOnly)
         exit(0);
-      }
     }
   }
 
@@ -304,12 +269,6 @@ main(int argc, char **argv) {
 
   pthread_attr_destroy(&threadAttr);
   pthread_mutex_destroy(&inputTailMutex);
-
-  config._totalTime = getTime();
-
-  //  Write the stats
-  //
-dumpStats();
 
   delete [] input;
   delete [] output;

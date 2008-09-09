@@ -8,25 +8,16 @@
 //  Reads stdin, writes stdout.  Uses threads.
 
 int  blockSize  = 8192;
-int  readBuf    = 64;
-int  writBuf    = 64;
 
-typedef struct {
-  int     frameNumber;
+struct tcat_s {
   int     dataLen;
   char   *data;
-} tcat_s;
-
-typedef struct {
-  int     globalFrameNumber;
-} tcatGlobal_s;
+};
 
 void*
-tcatReader(void *G) {
-  tcatGlobal_s  *g = (tcatGlobal_s *)G;
+tcatReader(void *) {
   tcat_s        *s = new tcat_s;
 
-  s->frameNumber = g->globalFrameNumber++;
   s->data        = new char [blockSize];
   s->dataLen     = safeRead(STDIN_FILENO, s->data, "tcatReader", sizeof(char) * blockSize);
 
@@ -40,17 +31,13 @@ tcatReader(void *G) {
 }
 
 void
-tcatWorker(void *G, void *T, void *S) {
-  //tcatGlobal_s  *g = (tcatGlobal_s *)G;
-  //tcat_s        *s = (tcat_s       *)S;
-
+tcatWorker(void *, void *, void *) {
   //  Noop!
 }
 
 void
-tcatWriter(void *G, void *S) {
-  //tcatGlobal_s  *g = (tcatGlobal_s *)G;
-  tcat_s        *s = (tcat_s       *)S;
+tcatWriter(void *, void *S) {
+  tcat_s        *s = (tcat_s *)S;
 
   safeWrite(STDOUT_FILENO, s->data, "tcatWriter", sizeof(char) * s->dataLen);
 
@@ -61,36 +48,39 @@ tcatWriter(void *G, void *S) {
 
 int
 main(int argc, char **argv) {
-  sweatShop   *ss = new sweatShop(tcatReader, tcatWorker, tcatWriter);
+  int  readBuf    = 64;
+  int  writBuf    = 64;
 
   int arg = 1;
   int err = 0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-r") == 0) {
       readBuf = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-w") == 0) {
       writBuf = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-b") == 0) {
       blockSize = atoi(argv[++arg]);
+
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
       err++;
     }
+
     arg++;
   }
-
   if (err) {
     fprintf(stderr, "usage: %s [-b blockSizeBytes] [-r readBufferSizeMB] [-w writeBufferSizeMB]\n", argv[0]);
     exit(1);
   }
 
-  ss->loaderQueueSize(readBuf * 1024 * 1024 / blockSize);
-  ss->writerQueueSize(writBuf * 1024 * 1024 / blockSize);
+  sweatShop   *ss = new sweatShop(tcatReader, tcatWorker, tcatWriter);
 
-  tcatGlobal_s  *G = new tcatGlobal_s;
-  G->globalFrameNumber = 0;
+  ss->setLoaderQueueSize(readBuf * 1024 * 1024 / blockSize);
+  ss->setWriterQueueSize(writBuf * 1024 * 1024 / blockSize);
 
-  ss->run(G);
+  ss->run();
 
   exit(0);
 }

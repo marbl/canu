@@ -2,6 +2,7 @@
 
 LIBUTL/     :=$(call MakePath,$/../../libutil/)
 LIBBIO/     :=$(call MakePath,$/../../libbio/)
+LIBSEQ/     :=$(call MakePath,$/../../libseq/)
 LIBATAC/    :=$(call MakePath,$/../libatac/)
 
 $/.CXX_SRCS := $/gapShifter.C $/extractSequence.C $/extractUnmapped.C $/coalesceMatches.C $/correctGaps.C $/testAtac.C $/cleanAtac.C $/projectFeatures.C
@@ -10,20 +11,20 @@ $/.CXX_EXES := $/gapShifter   $/extractSequence   $/extractUnmapped   $/coalesce
 $/.CLEAN :=$/*.o $/*~ $/core
 
 $/gapShifter:          $/gapShifter.o \
-                       ${LIBATAC/}libatac.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+                       ${LIBATAC/}libatac.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/extractUnmapped:     $/extractUnmapped.o \
-                       ${LIBATAC/}libatac.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+                       ${LIBATAC/}libatac.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/extractSequence:     $/extractSequence.o \
-                       ${LIBATAC/}libatac.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+                       ${LIBATAC/}libatac.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/coalesceMatches:     $/coalesceMatches.o \
-                       ${LIBATAC/}libatac.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+                       ${LIBATAC/}libatac.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/correctGaps:         $/correctGaps.o \
-                       ${LIBATAC/}libatac.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+                       ${LIBATAC/}libatac.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/testAtac:            $/testAtac.o \
-                       ${LIBATAC/}libatac.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+                       ${LIBATAC/}libatac.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/cleanAtac:           $/cleanAtac.o \
-                       ${LIBATAC/}libatac.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+                       ${LIBATAC/}libatac.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/projectFeatures:     $/projectFeatures.o \
-                       ${LIBATAC/}libatac.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+                       ${LIBATAC/}libatac.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
-$(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBATAC/} -I${LIBBIO/} -I${LIBUTL/})
+$(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBATAC/} -I${LIBBIO/} -I${LIBSEQ/} -I${LIBUTL/})

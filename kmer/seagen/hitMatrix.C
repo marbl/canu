@@ -272,8 +272,8 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
 
     //  Move the currentSeq until the firstHit is below it.
     //
-    while ((currentSeq < config._useList.numberOfSequences()) &&
-           (config._useList.startOf(currentSeq) <= _hits[firstHit]._dsPos))
+    while ((currentSeq < config._dbSTREAM->numberOfSequences()) &&
+           (config._dbSTREAM->startOf(currentSeq) <= _hits[firstHit]._dsPos))
       currentSeq++;
 
     //
@@ -283,10 +283,10 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
     //  Find the first hit that is in currentSeq.  If this is the last sequence,
     //  then, of course, all remaining hits are in it.
     //
-    if (currentSeq < config._useList.numberOfSequences()) {
+    if (currentSeq < config._dbSTREAM->numberOfSequences()) {
       lastHit = firstHit + 1;
       while ((lastHit < _hitsLen) &&
-             (_hits[lastHit]._dsPos < config._useList.startOf(currentSeq)))
+             (_hits[lastHit]._dsPos < config._dbSTREAM->startOf(currentSeq)))
         lastHit++;
     } else {
       lastHit = _hitsLen;
@@ -297,7 +297,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
     currentSeq--;
 
 #if TRACE
-    fprintf(stdout, "Hits are in sequence %d\n", config._useList.IIDOf(currentSeq));
+    fprintf(stdout, "Hits are in sequence %d\n", config._dbSTREAM->IIDOf(currentSeq));
     fprintf(stdout, "filtering %u hits -- first = %u last = %u.\n", _hitsLen, firstHit, lastHit);
 
 #if 0
@@ -313,7 +313,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
     //  Adjust the hits to be relative to the start of this sequence
     //
     for (u32bit i=firstHit; i<lastHit; i++)
-      _hits[i]._dsPos -= config._useList.startOf(currentSeq);
+      _hits[i]._dsPos -= config._dbSTREAM->startOf(currentSeq);
 
     //  Sort them, if needed.
     //
@@ -629,7 +629,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
         a._forward   = !isReverse;
         a._merged    = false;
         a._qsIdx     = _qsIdx;
-        a._dsIdx     = config._useList.IIDOf(currentSeq);
+        a._dsIdx     = config._dbSTREAM->IIDOf(currentSeq);
         a._dsLo      = dsLow;
         a._dsHi      = dsHigh;
         a._covered   = IL->sumOfLengths();
@@ -642,7 +642,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
 
         sprintf(line, "-%c -e "u32bitFMT" -D "u64bitFMT" "u32bitFMT" "u32bitFMT" -M "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
                 isReverse ? 'r' : 'f', _qsIdx,
-                config._useList.IIDOf(currentSeq),
+                config._dbSTREAM->IIDOf(currentSeq),
                 dsLow, dsHigh, IL->sumOfLengths(), ML, _qsMers);
 
         query->addOutput(line, 0);

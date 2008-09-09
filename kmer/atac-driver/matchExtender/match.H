@@ -5,7 +5,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "atac.H"
 #include "bio++.H"
+#include "seqCache.H"
 
 class match_s {
 public:

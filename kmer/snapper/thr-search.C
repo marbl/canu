@@ -27,7 +27,8 @@ public:
     //  loop, but with the inclusion of spacing and compression, we
     //  cannot do that anymore.
 
-    merStream  *MS = new merStream(KB, seq);
+    seqStream  *SS = new seqStream(seq->sequence(), 0, seq->sequenceLength());
+    merStream  *MS = new merStream(KB, SS);
     u64bit      mer;
     u32bit      val;
 
@@ -93,6 +94,7 @@ public:
     }
 
     delete MS;
+    delete SS;
   };
 
 
@@ -215,11 +217,13 @@ doSearch(searcherState       *state,
       //  Build a positionDB of the region (both positions and counts).
       //  Fill out another hitMatrix using about 2*length mers.
       //
-      seqInCore            *GENseq = cache->getSequenceInCore(theHits[h]._dsIdx);
+      seqInCore            *GENseq = genome->getSequenceInCore(theHits[h]._dsIdx);
       u32bit                GENlo  = theHits[h]._dsLo;
       u32bit                GENhi  = theHits[h]._dsHi;
 
-      merStream            *MS     = new merStream(state->KB, GENseq, GENlo, GENhi - GENlo);
+      merStream            *MS     = new merStream(state->KB,
+                                                   new seqStream(GENseq->sequence(), GENlo, GENhi - GENlo),
+                                                   false, true);
       positionDB           *PS     = new positionDB(MS, config._KBmerSize, 0, 0L, 0L, 0L, 0, 0, 0, 0, false);
       hitMatrix            *HM     = new hitMatrix(seq->sequenceLength(), query->numberOfMersInQuery(), idx, theLog);
 
@@ -275,7 +279,7 @@ doSearch(searcherState       *state,
         if (PS->getExact(query->getMer(qidx), state->posn, state->posnMax, state->posnLen, count)) {
           if (state->posnLen <= countLimit) {
             for (u32bit x=0; x<state->posnLen; x++)
-              state->posn[x] += GENlo + config._useList.startOf(theHits[h]._dsIdx);
+              state->posn[x] += GENlo + genomeMap->startOf(theHits[h]._dsIdx);
 
             //  The kmer counts for these mers are relative to the
             //  sub-regions, not the global, so we want to disable any

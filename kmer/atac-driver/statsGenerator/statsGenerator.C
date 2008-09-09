@@ -23,9 +23,10 @@
 #include <time.h>
 #include <math.h>
 
-#include "bio++.H"
-#include "util++.H"
 #include "atac.H"
+#include "util++.H"
+#include "bio++.H"
+#include "seqCache.H"
 
 bool  noHistogramPlots = true;
 
@@ -158,14 +159,14 @@ private:
 //  sequences.
 //
 void
-totalLength(atacFile &AF, FastACache *A, FastACache *B) {
+totalLength(atacFile &AF, seqCache *A, seqCache *B) {
   u64bit   length1 = 0;
   u64bit   length2 = 0;
 
-  for (u32bit i=0; i<A->fasta()->getNumberOfSequences(); i++)
-    length1 += A->fasta()->sequenceLength(i);
-  for (u32bit i=0; i<B->fasta()->getNumberOfSequences(); i++)
-    length2 += B->fasta()->sequenceLength(i);
+  for (u32bit i=0; i<A->getNumberOfSequences(); i++)
+    length1 += A->getSequenceLength(i);
+  for (u32bit i=0; i<B->getNumberOfSequences(); i++)
+    length2 += B->getSequenceLength(i);
 
   fprintf(stdout, "totalLength    %s "u64bitFMT"  %s "u64bitFMT" # all letters, including N\n",
           AF.labelA(), length1,
@@ -173,14 +174,14 @@ totalLength(atacFile &AF, FastACache *A, FastACache *B) {
 
   length1 = 0;
   length2 = 0;
-  for (u32bit i=0; i<A->fasta()->getNumberOfSequences(); i++) {
+  for (u32bit i=0; i<A->getNumberOfSequences(); i++) {
     seqInCore   *S = A->getSequenceInCore(i);
     char        *s = S->sequence();
     for (u32bit j=0; j<S->sequenceLength(); j++)
       if (letterToBits[s[j]] != 0xff)
         length1++;
   }
-  for (u32bit i=0; i<B->fasta()->getNumberOfSequences(); i++) {
+  for (u32bit i=0; i<B->getNumberOfSequences(); i++) {
     seqInCore   *S = B->getSequenceInCore(i);
     char        *s = S->sequence();
     for (u32bit j=0; j<S->sequenceLength(); j++)
@@ -199,7 +200,7 @@ totalLength(atacFile &AF, FastACache *A, FastACache *B) {
 u64bit
 tandemRepeatACGTLength(intervalList &il,
                        u64bit       *offset,
-                       FastACache   *A) {
+                       seqCache     *A) {
 
   //  s -- the sequence
   //  i -- the interval list index
@@ -234,11 +235,11 @@ tandemRepeatACGTLength(intervalList &il,
 
 
 u64bit *
-buildOffset(seqFile *F) {
+buildOffset(seqCache *F) {
   u64bit  *offset = new u64bit [F->getNumberOfSequences() + 1];
   offset[0] = 1000000;
   for (u32bit i=0; i<F->getNumberOfSequences(); i++)
-    offset[i+1] = offset[i] + F->sequenceLength(i) + 1;
+    offset[i+1] = offset[i] + F->getSequenceLength(i) + 1;
   return(offset);
 }
 
@@ -247,16 +248,16 @@ void
 tandemRepeatStats(atacFileStream   &featuresA,
                   atacFileStream   &featuresB,
                   atacFile         &AF,
-                  FastACache       *A,
-                  FastACache       *B) {
+                  seqCache         *A,
+                  seqCache         *B) {
   intervalList  ifa, ifb;
   intervalList  ima, imb;
   intervalList  mma, mmb;
 
   atacMatchList    &matches = *AF.matches();
 
-  u64bit  *offset1 = buildOffset(A->fasta());
-  u64bit  *offset2 = buildOffset(B->fasta());
+  u64bit  *offset1 = buildOffset(A);
+  u64bit  *offset2 = buildOffset(B);
 
   //  ifa, ifb are intervalLists, storing the intervals labeled as
   //  tandem repeats.  They are using the offset[] to encode the
@@ -309,7 +310,7 @@ tandemRepeatStats(atacFileStream   &featuresA,
 
 
 void
-mappedLengths(atacFile &AF, atacMatchList &matches, FastACache *A, FastACache *B, char *prefix) {
+mappedLengths(atacFile &AF, atacMatchList &matches, seqCache *A, seqCache *B, char *prefix) {
   histogram  h1(100, 1000000);
   histogram  h2(100, 1000000);
 
@@ -376,11 +377,11 @@ NxOfMapped(atacFile       &AF,
   switch (genomeSize) {
     case 0:
       for (u32bit i=0; i<AF.fastaA()->getNumberOfSequences(); i++)
-        totalLength += AF.fastaA()->sequenceLength(i);
+        totalLength += AF.fastaA()->getSequenceLength(i);
       break;
     case 1:
       for (u32bit i=0; i<AF.fastaB()->getNumberOfSequences(); i++)
-        totalLength += AF.fastaB()->sequenceLength(i);
+        totalLength += AF.fastaB()->getSequenceLength(i);
       break;
     default:
       totalLength = genomeSize;
@@ -436,17 +437,17 @@ NxOfMapped(atacFile       &AF,
 void
 MappedByChromosome(atacFile      &AF,
                    atacMatchList &matches,
-                   FastACache    *A,
-                   FastACache    *B,
+                   seqCache      *A,
+                   seqCache      *B,
                    char          *prefix) {
 
-  u32bit         maxIID1 = A->fasta()->getNumberOfSequences();
+  u32bit         maxIID1 = A->getNumberOfSequences();
   intervalList  *il1full;
   intervalList  *il1acgt;
   histogram    **hist1full;
   histogram    **hist1acgt;
 
-  if (A->fasta()->getNumberOfSequences() > 24) {
+  if (A->getNumberOfSequences() > 24) {
     fprintf(stderr, "WARNING: too many sequences to be chromosomes, only using the first 24.\n");
     maxIID1 = 24;
   }
@@ -505,7 +506,7 @@ MappedByChromosome(atacFile      &AF,
   for (u32bit c=0; c<maxIID1; c++) {
     fprintf(stdout, "chrCoveredLength["u32bitFMTW(2)"]  %s "u64bitFMT" "u64bitFMT" %6.2f%%   "u64bitFMT" "u64bitFMT" %6.2f%% # seqCov, totalSeq for both ALL and ACGTonly\n",
             c, AF.labelA(),
-            il1full[c].sumOfLengths(), (u64bit)A->fasta()->sequenceLength(c), 100.0 * il1full[c].sumOfLengths() / A->fasta()->sequenceLength(c),
+            il1full[c].sumOfLengths(), (u64bit)A->getSequenceLength(c), 100.0 * il1full[c].sumOfLengths() / A->getSequenceLength(c),
             il1acgt[c].sumOfLengths(), nonNlength[c], 100.0 * il1acgt[c].sumOfLengths() / nonNlength[c]);
   }
 
@@ -570,7 +571,7 @@ statsInACGT(seqInCore       *S,
 //  Computes the amount of ACGT in runs that is unmapped
 //
 void
-unmappedInRuns(atacFile &AF, FastACache *A, FastACache *B, char *prefix) {
+unmappedInRuns(atacFile &AF, seqCache *A, seqCache *B, char *prefix) {
 
   atacMatchList &matches = *AF.matches();
 
@@ -700,8 +701,11 @@ main(int argc, char **argv) {
 
   //  We end up using sequences a lot here, so just bite it and load them in a cache.
   //
-  FastACache  *A = new FastACache(AF.assemblyFileA(), 0, true, true);
-  FastACache  *B = new FastACache(AF.assemblyFileB(), 0, true, true);
+  seqCache  *A = new seqCache(AF.assemblyFileA(), 0, true);
+  seqCache  *B = new seqCache(AF.assemblyFileB(), 0, true);
+
+  A->loadAllSequences();
+  B->loadAllSequences();
 
   fprintf(stdout, "\nSEQUENCE\n");
   totalLength(AF, A, B);

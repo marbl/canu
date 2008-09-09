@@ -3,6 +3,8 @@
 #include "tapperAlignment.H"
 #include "tapperHit.H"
 
+#include "seqCache.H"
+
 //  Convert reads from ASCI to tapper binary.
 //
 //  ASSUMPTIONS
@@ -285,7 +287,7 @@ main(int argc, char **argv) {
 
   //  If given a sampleFile, generate some tags from there.
   if (sampleFile) {
-    seqFile    *F = openSeqFile(sampleFile);
+    seqCache   *F = new seqCache(sampleFile);
     seqInCore  *s = F->getSequenceInCore();
 
     u32bit  pos = 0;

@@ -34,10 +34,9 @@ addToDict(dict_t *d, char *n) {
   if (n == 0L)
     return;
 
-  seqFile  *F = openSeqFile(n);
-  while (!F->eof()) {
-    seqInCore *S = F->getSequenceInCore();
-
+  seqCache  *F = new seqCache(n);
+  seqInCore *S = F->getSequenceInCore();
+  while (S) {
     node = (dnode_t *)palloc(sizeof(dnode_t));
     dcpy = (char    *)palloc(sizeof(char) * S->headerLength() + 1);
 
@@ -47,6 +46,7 @@ addToDict(dict_t *d, char *n) {
     dict_insert(d, node, dcpy);
 
     delete S;
+    S = F->getSequenceInCore();
   }
   delete F;
 }

@@ -41,7 +41,6 @@ configuration::configuration(void) {
   _onlyFileName            = 0L;
   _outputFileName          = 0L;
   _queryMatchFileName      = 0L;
-  _statsFileName           = 0L;
 
   _outputFile              = STDOUT_FILENO;
   _matchCountsFile         = -1;
@@ -96,8 +95,6 @@ configuration::~configuration() {
   delete _maskDB;
   delete _onlyDB;
   delete _positions;
-
-  dumpStats();
 }
 
 static char const *usageString =
@@ -216,9 +213,6 @@ configuration::read(int argc, char **argv) {
       arg++;
       _tableFileName  = argv[arg];
       _tableBuildOnly = false;
-    } else if (strcmp(argv[arg], "-use") == 0) {
-      arg++;
-      _useList.parse(argv[arg]);
     } else if (strcmp(argv[arg], "-forward") == 0) {
       _doForward = true;
       _doReverse = false;
@@ -235,9 +229,6 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-count") == 0) {
       arg++;
       _queryMatchFileName = argv[arg];
-    } else if (strcmp(argv[arg], "-stats") == 0) {
-      arg++;
-      _statsFileName = argv[arg];
     } else if (strcmp(argv[arg], "-maxdiagonal") == 0) {
       arg++;
       _maxDiagonal = atoi(argv[arg]);
@@ -353,123 +344,4 @@ configuration::read(int argc, char **argv) {
   //  Gotta go somewhere!
   //
   _startTime = getTime();
-}
-
-
-
-
-void
-configuration::display(FILE *out) {
-  if ((out == stdout) && (_beVerbose)) {
-    fprintf(out, "--Using these Options--\n");
-    fprintf(out, "numSearchThreads    = "u32bitFMT"\n",   _numSearchThreads);
-
-    fprintf(out, "\n");
-
-    fprintf(out, "loaderQueue         = "u32bitFMT"\n", _loaderQueue);
-    fprintf(out, "loaderSleep         = %f\n", (double)_loaderSleep.tv_sec + (double)_loaderSleep.tv_nsec * 1e-9);
-    fprintf(out, "loaderWarnings      = %s\n", _loaderWarnings ? "true" : "false");
-    fprintf(out, "searchSleep         = %f\n", (double)_searchSleep.tv_sec + (double)_searchSleep.tv_nsec * 1e-9);
-    fprintf(out, "writerQueue         = "u32bitFMT"\n", _writerQueue);
-    fprintf(out, "writerSleep         = %f\n", (double)_writerSleep.tv_sec + (double)_writerSleep.tv_nsec * 1e-9);
-    fprintf(out, "writerWarnings      = %s\n", _writerWarnings ? "true" : "false");
-
-    fprintf(out, "\n");
-
-
-    fprintf(out, "merSize             = "u32bitFMT"\n",   _merSize);
-    fprintf(out, "merSkip             = "u32bitFMT"\n",   _merSkip);
-    fprintf(out, "doReverse           = %s\n",   _doReverse ? "true" : "false");
-    fprintf(out, "doForward           = %s\n",   _doForward ? "true" : "false");
-    fprintf(out, "\n");
-
-
-    fprintf(out, "--Using these Parameters--\n");
-    fprintf(out, "maxDiagonal         = "u32bitFMT"\n",   _maxDiagonal);
-    fprintf(out, "maxGap              = "u32bitFMT"\n",   _maxGap);
-    fprintf(out, "qsOverlap           = "u32bitFMT"\n",   _qsOverlap);
-    fprintf(out, "dsOverlap           = "u32bitFMT"\n",   _dsOverlap);
-    fprintf(out, "maxIntron           = "u32bitFMT"\n",   _maxIntronLength);
-    fprintf(out, "smallSeqCutoff      = "u32bitFMT"\n",   _smallSequenceCutoff);
-    fprintf(out, "minLengthSingle     = "u32bitFMT"\n",   _minLengthSingle   + _merSize);
-    fprintf(out, "minCoverageSingle   = %f\n",   _minCoverageSingle);
-    fprintf(out, "minLengthMultiple   = "u32bitFMT"\n",   _minLengthMultiple + _merSize);
-    fprintf(out, "minCoverageMultiple = %f\n",   _minCoverageMultiple);
-    fprintf(out, "\n");
-    fprintf(out, "--Using these Files--\n");
-    if (_dbFileName)
-      fprintf(out, "dbFile              = '%s'\n", _dbFileName);
-    else
-      fprintf(out, "dbFile              = None Specified.\n");
-      
-    if (_outputFileName)
-      fprintf(out, "outputFile          = '%s'\n", _outputFileName);
-    else
-      fprintf(out, "outputFile          = None Specified.\n");
-
-    if (_queryMatchFileName)
-      fprintf(out, "countFile           = '%s'\n", _queryMatchFileName);
-    else
-      fprintf(out, "countFile           = None Specified.\n");
-
-    if (_statsFileName)
-      fprintf(out, "statsFile           = '%s'\n", _statsFileName);
-    else
-      fprintf(out, "statsFile           = None Specified.\n");
-
-    if (_qsFileName)
-      fprintf(out, "qsFile              = '%s'\n", _qsFileName);
-    else
-      fprintf(out, "qsFile              = None Specified.\n");
-
-    if (_maskFileName)
-      fprintf(out, "maskFile            = '%s'\n", _maskFileName);
-    else
-      fprintf(out, "maskFile            = None Specified.\n");
-
-    if (_onlyFileName)
-      fprintf(out, "onlyFile            = '%s'\n", _onlyFileName);
-    else
-      fprintf(out, "onlyFile            = None Specified.\n");
-
-    fprintf(out, "\n");
-  }
-}
-
-
-
-
-void
-configuration::dumpStats(void) {
-
-  if (_statsFileName) {
-    errno = 0;
-    FILE *F = fopen(_statsFileName, "wb");
-    if (errno) {
-      fprintf(stderr, "Couldn't open the stats file '%s': %s\nStats going to stderr.", _statsFileName, strerror(errno));
-      _statsFileName = 0L;
-      F = stderr;
-    }
-
-    display(F);
-    write_rusage(F);
-      
-    fprintf(F, "wallClockTimes--------------------------\n");
-    fprintf(F, "init:     %9.5f\n", _initTime   - _startTime);
-    fprintf(F, "build:    %9.5f\n", _buildTime  - _initTime);
-    fprintf(F, "search:   %9.5f\n", _searchTime - _buildTime);
-    fprintf(F, "total:    %9.5f\n", getTime()   - _startTime);
-
-#if 0
-    fprintf(F, "searchThreadInfo------------------------\n");
-    for (u64bit i=0; i<_numSearchThreads; i++)
-      if (threadStats[i])
-        fprintf(F, threadStats[i]);
-#endif
-
-    if (_statsFileName)
-      fclose(F);
-  }
-
-
 }

@@ -183,17 +183,17 @@ hitMatrix::filter(char      direction,
     //  this loop, currentSeq is the sequence AFTER the one that we
     //  want hits in.
     //
-    while ((currentSeq < config._useList.numberOfSequences()) &&
-           (config._useList.startOf(currentSeq) <= _hits[firstHit].val.dPos))
+    while ((currentSeq < genomeMap->numberOfSequences()) &&
+           (genomeMap->startOf(currentSeq) <= _hits[firstHit].val.dPos))
       currentSeq++;
 
     //  Find the first hit that is in currentSeq.  If this is the last sequence,
     //  then, of course, all remaining hits are in it.
     //
-    if (currentSeq < config._useList.numberOfSequences()) {
+    if (currentSeq < genomeMap->numberOfSequences()) {
       lastHit = firstHit + 1;
       while ((lastHit < _hitsLen) &&
-             (_hits[lastHit].val.dPos < config._useList.startOf(currentSeq)))
+             (_hits[lastHit].val.dPos < genomeMap->startOf(currentSeq)))
         lastHit++;
     } else {
       lastHit = _hitsLen;
@@ -206,7 +206,7 @@ hitMatrix::filter(char      direction,
     //  Adjust the hits to be relative to the start of this sequence
     //
     for (u32bit i=firstHit; i<lastHit; i++)
-      _hits[i].val.dPos -= config._useList.startOf(currentSeq);
+      _hits[i].val.dPos -= genomeMap->startOf(currentSeq);
 
     //  Sort them, if needed.
     //
@@ -397,7 +397,7 @@ hitMatrix::filter(char      direction,
       a->_status    = (direction == 'f');
       a->_status   |= (unique ? AHIT_HAS_UNIQUE : 0);
       a->_qsIdx     = _qsIdx;
-      a->_dsIdx     = config._useList.IIDOf(currentSeq);
+      a->_dsIdx     = genomeMap->IIDOf(currentSeq);
       a->_dsLo      = dsLow;
       a->_dsHi      = dsHigh;
       a->_covered   = IL->sumOfLengths();

@@ -332,7 +332,7 @@ doPolishDP(searcherState       *state,
     //
 
     seqInCore            *QRYseq = seq;
-    seqInCore            *GENseq = cache->getSequenceInCore(theHits[h]._dsIdx);
+    seqInCore            *GENseq = genome->getSequenceInCore(theHits[h]._dsIdx);
     u32bit                GENlo  = theHits[h]._dsLo;
     u32bit                GENhi  = theHits[h]._dsHi;
 

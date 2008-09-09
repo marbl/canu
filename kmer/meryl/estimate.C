@@ -2,6 +2,8 @@
 #include <stdlib.h>
 
 #include "bio++.H"
+#include "seqStream.H"
+#include "merStream.H"
 #include "libmeryl.H"
 #include "meryl.H"
 
@@ -153,9 +155,9 @@ void
 estimate(merylArgs *args) {
 
   if (args->inputFile) {
-    seqStream         *SS = new seqStream(args->inputFile, true);
-    kMerBuilder        KB(args->merSize, args->merComp);
-    merStream          M(&KB, SS);
+    merStream          M(new kMerBuilder(args->merSize, args->merComp),
+                         new seqStream(args->inputFile),
+                         true, true);
     speedCounter       C(" %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
 
     if (args->beVerbose)

@@ -25,7 +25,7 @@ main(int argc, char **argv) {
   strcpy(h.s1, "this is the header");
   h.t2 = 0xdeadbeefdeadbeefllu;
 
-  recordFile   *RF = new recordFile("test", sizeof(header_s), sizeof(record_s), true);
+  recordFile   *RF = new recordFile("test", sizeof(header_s), sizeof(record_s), 'w');
 
   memcpy(RF->header(), &h, sizeof(header_s));
 
@@ -46,7 +46,7 @@ main(int argc, char **argv) {
 
   delete RF;
 
-  RF = new recordFile("test", sizeof(header_s), sizeof(record_s), true);
+  RF = new recordFile("test", sizeof(header_s), sizeof(record_s), 'r');
 
   header_s *hh = (header_s *)RF->header();
 

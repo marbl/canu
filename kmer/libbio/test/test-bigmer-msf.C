@@ -69,7 +69,7 @@ buildFastA(void) {
 //
 void
 test1(u32bit style) {
-  seqFile    *fasta = openSeqFile(FASTA_FILENAME);
+  seqCache   *fasta = new seqCache(FASTA_FILENAME);
   seqInCore  *sseq  = fasta->getSequenceInCore();
   seqInCore  *lseq  = fasta->getSequenceInCore();
 

@@ -24,9 +24,10 @@
 #include <algorithm>
 using namespace std;
 
-#include "bio++.H"
 #include "atac.H"
 #include "match.H"
+#include "bio++.H"
+#include "seqCache.H"
 
 
 u32bit  minEndRunLen = 10;    // -E /matchExtenderMinEndRunLen
@@ -58,8 +59,8 @@ public:
 bool
 readMatches(atacFileStreamMerge   &AF,
             atacMatch            *&m,
-            FastACache            *C1,
-            FastACache            *C2,
+            seqCache              *C1,
+            seqCache              *C2,
             vector<match_s *>     &fwdMatches,
             vector<match_s *>     &revMatches) {
 
@@ -155,8 +156,10 @@ main(int argc, char *argv[]) {
 
   AF.writeHeader(stdout);
 
-  FastACache  *C1 = new FastACache(AF.assemblyFileA(), 1, true,  false);
-  FastACache  *C2 = new FastACache(AF.assemblyFileB(), 1, false, false);
+  seqCache  *C1 = new seqCache(AF.assemblyFileA(), 1,  false);
+  seqCache  *C2 = new seqCache(AF.assemblyFileB(), 1, false);
+
+  C1->loadAllSequences();
 
   vector<match_s *>  fwdMatches;
   vector<match_s *>  revMatches;

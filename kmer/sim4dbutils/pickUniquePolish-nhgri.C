@@ -81,8 +81,8 @@ u32bit  totLQ = 0;
 u32bit  totMQ = 0;
 u32bit  totRQ = 0;
 
-seqFile      *SEQ = 0L;
-seqFile      *QLT = 0L;
+seqCache     *SEQ = 0L;
+seqCache     *QLT = 0L;
 
 double       filter      = 0.0;
 FILE        *oFile       = 0L;
@@ -100,8 +100,7 @@ analyze(u32bit   iid,
         bool     isForward,
         char     type) {
 
-  QLT->find(iid);
-  seqInCore  *Q = QLT->getSequenceInCore();;
+  seqInCore  *Q = QLT->getSequenceInCore(iid);;
 
   char  *q = Q->sequence();
 
@@ -464,10 +463,10 @@ addToDict(dict_t *d, char *n) {
   if (n == 0L)
     return;
 
-  seqFile  *F = openSeqFile(n);
-  while (!F->eof()) {
-    seqInCore *S = F->getSequenceInCore();
+  seqCache  *F = new seqCache(n);
+  seqInCore *S = F->getSequenceInCore();
 
+  while (S) {
     node = (dnode_t *)palloc(sizeof(dnode_t));
     dcpy = (char    *)palloc(sizeof(char) * S->headerLength() + 1);
 
@@ -477,6 +476,7 @@ addToDict(dict_t *d, char *n) {
     dict_insert(d, node, dcpy);
 
     delete S;
+    S = F->getSequenceInCore();
   }
   delete F;
 }
@@ -544,12 +544,10 @@ main(int argc, char **argv) {
       addToDict(SEQdict, argv[arg]);
     } else if (strcmp(argv[arg], "-f") == 0) {
       ++arg;
-      SEQ = openSeqFile(argv[arg]);
-      SEQ->openIndex();
+      SEQ = new seqCache(argv[arg]);
     } else if (strcmp(argv[arg], "-q") == 0) {
       ++arg;
-      QLT = openSeqFile(argv[arg]);
-      QLT->openIndex();
+      QLT = new seqCache(argv[arg]);
 
     } else if (strcmp(argv[arg], "-filter") == 0) {
       filter = atof(argv[++arg]);
@@ -693,7 +691,7 @@ main(int argc, char **argv) {
 
   for (estID=0; estID < SEQ->getNumberOfSequences(); estID++)
     if (found[estID] == false)
-      analyze(estID, 0, SEQ->sequenceLength(estID), SEQ->sequenceLength(estID), true, 'M');
+      analyze(estID, 0, SEQ->getSequenceLength(estID), SEQ->getSequenceLength(estID), true, 'M');
 
   if (oFile)  pclose(oFile);
   if (uFile)  pclose(uFile);

@@ -122,18 +122,17 @@ easierTest(void) {
 void
 harderTest(void) {
   char sub[1000];
-  int  i;
   int  e;
 
   //  100A 200C 300G 400N
   //
-  for (i=0; i<1000; i++)
+  for (int i=0; i<1000; i++)
     sub[i] = 'N';
-  for (i=0; i<100; i++)
+  for (int i=0; i<100; i++)
     sub[i] = 'A';
-  for (i=100; i<300; i++)
+  for (int i=100; i<300; i++)
     sub[i] = 'C';
-  for (i=300; i<600; i++)
+  for (int i=300; i<600; i++)
     sub[i] = 'G';
 
   //  Try forward.

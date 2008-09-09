@@ -18,11 +18,12 @@ getNextScript(u32bit     &ESTiid,
               bool       &doReverse,
               readBuffer *scriptFile) {
 
+  char x = scriptFile->read();
+
   //  Skip any white space in the file
   //
-  while ((scriptFile->eof() == false) &&
-         (whitespaceSymbol[scriptFile->get()]))
-    scriptFile->next();
+  while ((scriptFile->eof() == false) && (whitespaceSymbol[x]))
+    x = scriptFile->read();
 
   //  Exit if we're all done.
   //
@@ -35,9 +36,10 @@ getNextScript(u32bit     &ESTiid,
 
   //  Copy the line from the readBuffer into our storage
   //
-  while ((scriptFile->eof() == false) &&
-         (scriptFile->get() != '\n'))
-    line[linePos++] = scriptFile->getnext();
+  while ((scriptFile->eof() == false) && (x != '\n')) {
+    line[linePos++] = x;
+    x = scriptFile->read();
+  }
   line[linePos] = 0;
 
   //  Decode the line

@@ -40,7 +40,7 @@ main(int argc, char **argv) {
   outName = new char [strlen(inName) + 1];
   strcpy(outName, inName);
 
-  seqStream  *seqstr = new seqStream(inName, true);
+  seqStream  *seqstr = new seqStream(inName);
   seqStore   *seqsto = new seqStore(outName, seqstr);
 
   u64bit      memUsed = seqsto->loadStoreInCore();

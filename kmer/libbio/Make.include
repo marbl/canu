@@ -1,6 +1,7 @@
 # -*- makefile -*-
 
-LIBUTL/        :=$(call MakePath,$/../libutil/)
+LIBUTL/     :=$(call MakePath,$/../libutil/)
+LIBSEQ/     :=$(call MakePath,$/../libseq/)
 
 src    := $/alphabet.c \
           $/alphabet.h \
@@ -8,15 +9,6 @@ src    := $/alphabet.c \
           $/alphabet-colorspace.c \
           $/bio++.H \
           $/bio.h \
-          $/fasta-accessor.H \
-          $/fasta-c.C \
-          $/fasta-c.h \
-          $/fasta-cache.C \
-          $/fasta-cache.H \
-          $/fasta-simple.c \
-          $/fasta-simple.h \
-          $/fasta.C \
-          $/fasta.H \
           $/halign.c \
           $/kmer.H \
           $/kmerhuge.H \
@@ -25,9 +17,19 @@ src    := $/alphabet.c \
           $/merCovering.H \
           $/merList.H \
           $/mers.h \
+          $/reversecomplement.c
+
+old :=    $/fasta-accessor.H \
+          $/fasta-c.C \
+          $/fasta-c.h \
+          $/fasta-cache.C \
+          $/fasta-cache.H \
+          $/fasta-simple.c \
+          $/fasta-simple.h \
+          $/fasta.C \
+          $/fasta.H \
           $/merstream.C \
           $/merstream.H \
-          $/reversecomplement.c \
           $/seq.C \
           $/seq.H \
           $/seqFactory.H \

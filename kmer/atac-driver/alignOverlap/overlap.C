@@ -57,9 +57,9 @@ main(int argc, char **argv) {
   //  sequence in the file.
   //
   for (u32bit i=0; i<AF1->fastaA()->getNumberOfSequences(); i++)
-    S1->addNewSpan(i, AF1->fastaA()->sequenceLength(i));
+    S1->addNewSpan(i, AF1->fastaA()->getSequenceLength(i));
   for (u32bit i=0; i<AF1->fastaB()->getNumberOfSequences(); i++)
-    S2->addNewSpan(i, AF1->fastaB()->sequenceLength(i));
+    S2->addNewSpan(i, AF1->fastaB()->getSequenceLength(i));
 
   //  Add every match to the spanTrees.
 

@@ -1,10 +1,10 @@
 #ifndef SFF_H
 #define SFF_H
 
-#include "seq.H"
+#include "util++.H"
+#include "bio++.H"
 
-class seqInCore;
-class seqOnDisk;
+#include "seqFile.H"
 
 #define SFF_KEY_SEQUENCE_MAX         64
 
@@ -63,55 +63,33 @@ class sffFile : public seqFile {
 protected:
   sffFile(const char *filename);
 
-private:
-  void         clear(void);
-
 public:
   sffFile();
   ~sffFile();
 
-  const char  *fileTypeName(void) { return("SFF"); };
+  seqFile      *openFile(const char *name);
 
-  seqFile     *openFile(const char *name);
-
-  void         openIndex(u32bit indextypetoload);
-
-  bool         rewind(void);
-  bool         eof(void);
-
-  bool         getSequence(u32bit &hLen, char *&h,
-                           u32bit &sLen, char *&s);
-
-  //seqInCore   *getSequenceInCore(void);
-  //seqOnDisk   *getSequenceOnDisk(void);
-
-  u64bit       timeStamp(void) { return(_fileTimeStamp); };
-
-  u32bit       currentIID(void) { return(_readIID); };
-
-  bool         find(seqIID  iid);
-  bool         find(char   *uid);
-
-  u32bit       sequenceLength(seqIID iid) { return((_index != 0L) ? _index[iid]._seqLen : 0); };
-  u32bit       nameLength(seqIID iid)     { return((_index != 0L) ? _index[iid]._namLen : 0); };
-
-  u32bit       getNumberOfSequences(void) {
-    return(_header.number_of_reads);
+  u32bit        find(const char *sequencename) {
+    assert(0);
+    return(0);
   };
 
-  char const  *getSourceName(void) {
-    return(_fileName);
-  };
+  u32bit        getSequenceLength(u32bit iid) { return(_index[iid]._seqLen); };
 
-  void         printDescription(FILE *out, char *name);
+  bool          getSequence(u32bit iid,
+                            char *&h, u32bit &hLen, u32bit &hMax,
+                            char *&s, u32bit &sLen, u32bit &sMax);
+  bool          getSequence(u32bit iid,
+                            u32bit bgn, u32bit end, char *s);
 
-  bool         isIndexed(void)  { return(_index != 0L); };
-  bool         isSqueezed(void) { return(true); };
+  //u32bit       getNumberOfSequences(void) {
+  //  return(_header.number_of_reads);
+  //};
 
 private:
-  char         _fileName[FILENAME_MAX];
-  u64bit       _fileTimeStamp;
-  readBuffer  *_file;
+  void          clear(void);
+
+  readBuffer  *_rb;
 
   sffHeader    _header;
   sffRead      _read;

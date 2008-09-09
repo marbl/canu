@@ -617,7 +617,7 @@ tapperWorker(void *G, void *T, void *S) {
     //  OUTPUT CASE 4 - mated fragments
   } else if ((s->tag1size > 0) && (s->tag2size > 0)) {
     if (t->tangle == 0L)
-      t->tangle = new intervalList [g->GS->fasta()->getNumberOfSequences()];
+      t->tangle = new intervalList [g->GS->getNumberOfSequences()];
 
     if ((t->numHappiesMax < s->tag1hitsLen) || (t->numHappiesMax < s->tag2hitsLen)) {
       delete [] t->tag1happies;
@@ -891,7 +891,7 @@ tapperWorker(void *G, void *T, void *S) {
         //  Happy; do nothing.  We'll do it later.
         f = 0L;
 
-      } else if (s->tag1hits[a].happyNearEnd(true, mean, stddev, g->GS->fasta()->sequenceLength(s->tag1hits[a]._seqIdx))) {
+      } else if (s->tag1hits[a].happyNearEnd(true, mean, stddev, g->GS->getSequenceLength(s->tag1hits[a]._seqIdx))) {
         f = s->resultSingleton + s->resultSingletonLen++;
 
       } else {
@@ -928,7 +928,7 @@ tapperWorker(void *G, void *T, void *S) {
         //  Happy; do nothing.  We'll do it later.
         f = 0L;
 
-      } else if (s->tag2hits[b].happyNearEnd(false, mean, stddev, g->GS->fasta()->sequenceLength(s->tag2hits[b]._seqIdx))) {
+      } else if (s->tag2hits[b].happyNearEnd(false, mean, stddev, g->GS->getSequenceLength(s->tag2hits[b]._seqIdx))) {
         f = s->resultSingleton + s->resultSingletonLen++;
 
       } else {
@@ -999,7 +999,7 @@ tapperWorker(void *G, void *T, void *S) {
     //  Emit and then clear the tangles.
 
     {
-      u32bit simax = g->GS->fasta()->getNumberOfSequences();
+      u32bit simax = g->GS->getNumberOfSequences();
 
       for (u32bit si=0; si<simax; si++) {
 

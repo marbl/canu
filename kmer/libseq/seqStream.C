@@ -1,0 +1,275 @@
+#include "seqFactory.H"
+#include "seqStream.H"
+
+
+seqStream::seqStream(const char *filename) {
+  _file              = openSeqFile(filename);
+
+  _currentIdx        = 0;
+  _currentPos        = 0;
+
+  _bufferMax         = 1048576;
+  _bufferLen         = 0;
+  _bufferPos         = 0;
+  _buffer            = new char [_bufferMax];
+
+  _idxLen            = _file->getNumberOfSequences();
+  _idx               = new seqStreamIndex [_idxLen + 1];
+
+  _lengthOfSequences = 0;
+
+  _eof               = false;
+
+  _separator         = '.';
+  _separatorDone     = false;
+  _separatorLength   = 20;
+  _separatorPosition = 0;
+
+  setSeparator('.', 1);
+
+  _bgn               = 0;
+  _end               = _lengthOfSequences;
+}
+
+
+
+seqStream::seqStream(const char *sequence, u32bit offset, u32bit length) {
+  _file              = 0L;
+
+#warning seqStream(const char*, u32bit, u32bit) -- offset might be broken
+
+  _currentIdx        = 0;
+  _currentPos        = offset;
+
+  _bufferMax         = length;
+  _bufferLen         = length;
+  _bufferPos         = 0;
+  _buffer            = new char [length];
+
+  memcpy(_buffer, sequence + offset, length);
+
+  _idxLen            = 1;
+  _idx               = new seqStreamIndex [_idxLen + 1];
+
+  _idx[0]._iid = 0;
+  _idx[0]._len = length;
+  _idx[0]._bgn = 0;
+
+  _idx[1]._iid = 0;
+  _idx[1]._len = length;
+  _idx[1]._bgn = 0;
+
+  _lengthOfSequences = length;
+
+  _eof               = false;
+
+  _separator         = '.';
+  _separatorDone     = false;
+  _separatorLength   = 20;
+  _separatorPosition = 0;
+
+  _bgn               = 0;
+  _end               = _lengthOfSequences;
+}
+
+
+
+seqStream::~seqStream() {
+  delete    _file;
+  delete [] _buffer;
+  delete [] _idx;
+}
+
+
+
+void
+seqStream::setSeparator(char sep, u32bit len) {
+
+  if (_file == 0L)
+    return;
+
+  _lengthOfSequences = 0;
+
+  _separator       = sep;
+  _separatorLength = len;;
+
+  for (u32bit s=0; s<_idxLen; s++) {
+    _idx[s]._iid = s;
+    _idx[s]._len = _file->getSequenceLength(s);
+    _idx[s]._bgn = _lengthOfSequences;
+
+    _lengthOfSequences += _file->getSequenceLength(s) + _separatorLength;
+  }
+
+  _idx[_idxLen]._iid = ~u32bitZERO;
+  _idx[_idxLen]._len = 0;
+  _idx[_idxLen]._bgn = _lengthOfSequences - _separatorLength;
+}
+
+
+
+unsigned char
+seqStream::get(void) {
+  if (_eof)
+    return(0);
+  if (_bufferPos >= _bufferLen)
+    fillBuffer();
+  return(_buffer[_bufferPos++]);
+}
+
+
+
+void
+seqStream::rewind(void){
+
+  //  Search for the correct spot.  Uncommon operation, be inefficient
+  //  but simple.  The range was checked to be good by setRange().
+
+  u32bit s = 0;
+  u64bit l = 0;
+
+  while ((s < _idxLen) && (l + _idx[s]._len < _bgn))
+    l += _idx[s++]._len;
+
+  _currentIdx = s;
+  _currentPos = _bgn - l;
+
+  _bufferLen = 0;
+
+  fillBuffer();
+}
+
+
+
+void
+seqStream::setRange(u64bit bgn, u64bit end) {
+
+  u32bit s = 0;
+  u64bit l = 0;
+
+  while (s < _idxLen)
+    l += _idx[s]._len;
+
+  if ((bgn > l) || (end > l))
+    fprintf(stderr, "seqStream::setRange()-- ERROR: range ("u64bitFMT","u64bitFMT") too big; only "u64bitFMT" positions.\n",
+            bgn, end, l), exit(1);
+
+  _bgn = bgn;
+  _end = end;
+
+  rewind();
+}
+
+
+
+u32bit
+seqStream::sequenceNumberOfPosition(u64bit p) {
+  u32bit   s = ~u32bitZERO;
+
+  //  binary search on our list of start positions, to find the
+  //  sequence that p is in.
+
+  if (_lengthOfSequences < p)
+    fprintf(stderr, "seqStream::sequenceNumberOfPosition()-- ERROR: position p="u64bitFMT" too big; only "u64bitFMT" positions.\n",
+            p, _lengthOfSequences), exit(1);
+
+  if (_idxLen < 16) {
+    for (s=0; s<_idxLen; s++)
+      if ((_idx[s]._bgn <= p) && (p < _idx[s+1]._bgn))
+        break;
+  } else {
+    u32bit  lo = 0;
+    u32bit  hi = _idxLen;
+    u32bit  md = 0;
+
+    while (lo <= hi) {
+      md = (lo + hi) / 2;
+
+      if        (p < _idx[md]._bgn) {
+        //  This block starts after the one we're looking for.  
+        hi = md;
+
+      } else if ((_idx[md]._bgn <= p) && (p < _idx[md+1]._bgn)) {
+        //  Got it!
+        lo = md + 1;
+        hi = md;
+        s  = md;
+
+      } else {
+        //  By default, then, the block is too low.
+        lo = md;
+      }
+    }
+  }
+
+  //  But if we're in a range of separators, return invalid.
+  if ((s < _idxLen) && (_idx[s+1]._bgn - _separatorLength - 1 <= p))
+    s = ~u32bitZERO;
+
+  return(s);
+}
+
+
+
+void
+seqStream::fillBuffer(void) {
+
+  if (_file == 0L) {
+    if (_currentPos < _idx[_currentIdx]._len)
+      _eof = true;
+    return;
+  }
+
+  //  Read bytes from the _file, stuff them into the buffer.  Assumes
+  //  there is noting in the buffer to save.
+
+  _bufferLen = 0;
+
+  //  Still more stuff in the sequence?  Get it.
+
+  if (_currentPos < _idx[_currentIdx]._len) {
+    _bufferLen = MIN(_idx[_currentIdx]._len - _currentPos, _bufferMax);
+
+    if (_file->getSequence(_idx[_currentIdx]._iid,
+                           _currentPos,
+                           _currentPos + _bufferLen,
+                           _buffer) == false)
+      fprintf(stderr, "seqStream::fillBuffer()-- Failed to get sequence?\n"), exit(1);
+
+    return;
+  }
+
+  //  We're at the end of the sequence.  If we're also at the end of
+  //  the chain, we're done.
+
+  if (_currentIdx >= _idxLen) {
+    _eof = true;
+    return;
+  }
+
+  //  Insert a separator.
+
+  for (_bufferLen = 0; _bufferLen < _separatorLength; _bufferLen++)
+    _buffer[_bufferLen] = _separator;
+
+  //  Load sequence.
+
+  _currentIdx++;
+  _currentPos = 0;
+
+  u32bit bl = MIN(_idx[_currentIdx]._len - _currentPos, _bufferMax);
+
+  if (_file->getSequence(_idx[_currentIdx]._iid,
+                         _currentPos,
+                         _currentPos + bl,
+                         _buffer) == false)
+    fprintf(stderr, "seqStream::fillBuffer()-- Failed to get sequence?\n"), exit(1);
+
+  _bufferLen += bl;
+
+  //  Load more, until buffer is full.  Not really needed, and won't
+  //  improve performance much.  AND it adds a lot of complexity to
+  //  track which sequence is current (_currentIdx).
+
+  return;
+}

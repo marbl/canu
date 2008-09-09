@@ -2,6 +2,10 @@
 #include "bio++.H"
 #include "existDB.H"
 
+#include "seqCache.H"
+#include "seqStream.H"
+#include "merStream.H"
+
 int
 main(int argc, char **argv) {
   char  *merFile   = 0L;
@@ -20,15 +24,16 @@ main(int argc, char **argv) {
   }
 
   existDB      *E = new existDB(merFile, 22, existDBnoFlags, 0, ~u32bitZERO);
-  seqFile      *Q = openSeqFile(queryFile);
+  seqCache     *Q = new seqCache(queryFile);
   seqInCore    *S = Q->getSequenceInCore();
 
   intervalList          IL;
   speedCounter          SC(" %8f frags (%8.5f frags/sec)\r", 1, 1000, true);
 
   while (S) {
-    kMerBuilder    KB(22);
-    merStream     *MS = new merStream(&KB, S);
+    merStream     *MS = new merStream(new kMerBuilder(22),
+                                      new seqStream(S->sequence(), 0, S->sequenceLength()),
+                                      true, true);
 
     IL.clear();
 

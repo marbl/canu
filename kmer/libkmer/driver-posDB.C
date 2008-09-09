@@ -7,6 +7,10 @@
 #include "existDB.H"
 #include "positionDB.H"
 
+#include "seqCache.H"
+#include "seqStream.H"
+#include "merStream.H"
+
 //  Driver for the positionDB creation.  Reads a sequence.fasta, builds
 //  a positionDB for the mers in the file, and then writes the internal
 //  structures to disk.
@@ -20,9 +24,7 @@
 
 int
 test1(char *filename) {
-  seqStream         *C       = new seqStream(filename, true);
-  kMerBuilder        KB(MERSIZE);
-  merStream         *T       = new merStream(&KB, C);
+  merStream         *T       = new merStream(new kMerBuilder(MERSIZE), new seqStream(filename), true, true);
   positionDB        *M       = new positionDB(T, MERSIZE, 0, 0L, 0L, 0L, 0, 0, 0, 0, true);
   u64bit            *posn    = new u64bit [1024];
   u64bit             posnMax = 1024;
@@ -32,10 +34,7 @@ test1(char *filename) {
   u32bit             failed  = u32bitZERO;
   char               str[33];
 
-  if (T->rewind() == false) {
-    fprintf(stderr, "test 1 failed to rewind the merStream.\n");
-    return(true);
-  }
+  T->rewind();
 
   while (T->nextMer()) {
     if (M->getExact(T->theFMer(),
@@ -73,7 +72,6 @@ test1(char *filename) {
 
   delete M;
   delete T;
-  delete C;
 
   return(failed != 0);
 }
@@ -82,9 +80,7 @@ test1(char *filename) {
 
 int
 test2(char *filename, char *query) {
-  seqStream         *C       = new seqStream(filename, true);
-  kMerBuilder        KB(MERSIZE);
-  merStream         *T       = new merStream(&KB, C);
+  merStream         *T       = new merStream(new kMerBuilder(MERSIZE), new seqStream(filename), true, true);
   positionDB        *M       = new positionDB(T, MERSIZE, 0, 0L, 0L, 0L, 0, 0, 0, 0, true);
   u64bit            *posn    = new u64bit [1024];
   u64bit             posnMax = 1024;
@@ -93,10 +89,8 @@ test2(char *filename, char *query) {
   char               str[33];
 
   delete T;
-  delete C;
 
-  C = new seqStream(query, true);
-  T = new merStream(&KB, C);
+  T = new merStream(new kMerBuilder(MERSIZE), new seqStream(query), true, true);
 
   while (T->nextMer()) {
     if (M->getExact(T->theFMer(),
@@ -118,7 +112,6 @@ test2(char *filename, char *query) {
     }
   }
 
-  delete C;
   delete M;
   delete T;
 
@@ -149,12 +142,11 @@ main(int argc, char **argv) {
   char            *maskF = 0L;
   char            *onlyF = 0L;
 
-  seqStream        SS;
+  seqStream       *SS = 0L;
+  merStream       *MS = 0L;
+
   u64bit           merBegin = ~u64bitZERO;
   u64bit           merEnd   = ~u64bitZERO;
-
-  merStream       *MS = 0L;
-  seqStore        *seqsto = 0L;
 
   char            *outputFile = 0L;
 
@@ -205,15 +197,14 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-only") == 0) {
       onlyF = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-use") == 0) {
-      SS.parse(argv[++arg]);
     } else if (strcmp(argv[arg], "-merbegin") == 0) {
       merBegin = strtou64bit(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-merend") == 0) {
       merEnd = strtou64bit(argv[++arg], 0L);
 
     } else if (strcmp(argv[arg], "-sequence") == 0) {
-      SS.setFile(argv[++arg]);
+      SS = new seqStream(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-output") == 0) {
       outputFile = argv[++arg];
 
@@ -240,11 +231,9 @@ main(int argc, char **argv) {
     exit(0);
   }
 
-  SS.finish();
-
   //  Approximate the number of mers in the sequences.
   //
-  u64bit     numMers = SS.lengthOfSequences();
+  u64bit     numMers = SS->lengthOfSequences();
 
   //  Reset the limits.
   //
@@ -254,7 +243,7 @@ main(int argc, char **argv) {
   //  though we shouldn't.
   //
   if (merBegin == ~u64bitZERO)   merBegin = 0;
-  if (merEnd   == ~u64bitZERO)   merEnd   = SS.lengthOfSequences();
+  if (merEnd   == ~u64bitZERO)   merEnd   = SS->lengthOfSequences();
 
   if (merBegin >= merEnd) {
     fprintf(stderr, "ERROR: merbegin="u64bitFMT" and merend="u64bitFMT" are incompatible.\n",
@@ -262,22 +251,10 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  kMerBuilder        KB(mersize);
+  MS = new merStream(new kMerBuilder(MERSIZE), SS, true, false);
 
-  //  We need a merStreamFile to implement -merbegin (using
-  //  seekToMer()) and -merend (using setIterationLimit()).
-  //
-  if ((merBegin > 0) || (merEnd < numMers)) {
-    seqsto = new seqStore(outputFile, &SS);
-    MS     = new merStream(&KB, seqsto);
-
-    if (MS->setRange(merBegin, merEnd) == false) {
-      fprintf(stderr, "ERROR:  Couldn't set the range to "u64bitFMT","u64bitFMT".\n", merBegin, merEnd);
-      exit(1);
-    }
-  } else {
-    MS = new merStream(&KB, &SS);
-  }
+  if ((merBegin > 0) || (merEnd < numMers))
+    MS->setRange(merBegin, merEnd);
 
   existDB *maskDB = 0L;
   if (maskF) {
@@ -300,7 +277,7 @@ main(int argc, char **argv) {
   positions->saveState(outputFile);
 
   delete MS;
-  delete seqsto;
+  delete SS;
   delete positions;
 
   exit(0);

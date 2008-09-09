@@ -20,23 +20,20 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "bio++.H"
 #include "atac.H"
+#include "bio++.H"
+#include "seqCache.H"
 
 //  Reads a set of matches and outputs sequence that was mapped.  Filters matches, etc.
 
-
 void
-extractA(FastACache *A, FastACache *B,
+extractA(seqCache *A, seqCache *B,
          FILE *Aoutput, FILE *Boutput,
          u32bit Aiid,
          u32bit Biid,
          atacMatchList &ML) {
 
 }
-
-
-
 
 
 void
@@ -95,9 +92,11 @@ main(int argc, char *argv[]) {
   atacFile       AF(matchesFile);
   atacMatchList &ML = *AF.matches();
 
-  FastACache  *A = new FastACache(AF.assemblyFileA(), 0, true, true);
-  FastACache  *B = new FastACache(AF.assemblyFileB(), 0, true, true);
+  seqCache  *A = new seqCache(AF.assemblyFileA(), 0, true);
+  seqCache  *B = new seqCache(AF.assemblyFileB(), 0, true);
 
+  A->loadAllSequences();
+  B->loadAllSequences();
 
   for (u32bit x=0; x<ML.numMatches(); x++) {
     atacMatch *m = ML[x];

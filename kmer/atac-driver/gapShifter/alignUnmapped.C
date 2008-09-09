@@ -101,8 +101,8 @@ main(int argc, char *argv[]) {
   ML1.sort1();  //  Sorted by first index
   ML2.sort2();  //  Sorted by second index
 
-  seqFile            *W1 = ML1._seq1;
-  seqFile            *W2 = ML1._seq2;
+  seqCache           *W1 = ML1._seq1;
+  seqCache           *W2 = ML1._seq2;
 
 
   //  For every match,

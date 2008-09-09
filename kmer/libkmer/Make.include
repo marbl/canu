@@ -2,6 +2,7 @@
 
 LIBUTL/     :=$(call MakePath,$/../libutil/)
 LIBBIO/     :=$(call MakePath,$/../libbio/)
+LIBSEQ/     :=$(call MakePath,$/../libseq/)
 LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
 
 src := $/existDB-create-from-fasta.C \
@@ -25,9 +26,9 @@ $/.CXX_LIBS   := $/libkmer.a
 $/.CLEAN      := $/*.o
 
 $/libkmer.a:      $(filter %.o,${src:.C=.o})
-$/existDB:        $/driver-existDB.o $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
-$/positionDB:     $/driver-posDB.o   $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
-$/percentCovered: $/percentCovered.o $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
-$/mask:           $/mask.o           $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
+$/existDB:        $/driver-existDB.o $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
+$/positionDB:     $/driver-posDB.o   $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
+$/percentCovered: $/percentCovered.o $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
+$/mask:           $/mask.o           $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
 
-$(eval $/%.d $/%.o:    CXXFLAGS+= -I${LIBMERYL/} -I${LIBBIO/} -I${LIBUTL/})
+$(eval $/%.d $/%.o:    CXXFLAGS+= -I${LIBMERYL/} -I${LIBBIO/} -I${LIBSEQ/} -I${LIBUTL/})

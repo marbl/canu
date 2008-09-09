@@ -2,6 +2,7 @@
 
 LIBUTL/     :=$(call MakePath,$/../libutil/)
 LIBBIO/     :=$(call MakePath,$/../libbio/)
+LIBSEQ/     :=$(call MakePath,$/../libseq/)
 LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
 LIBKMER/    :=$(call MakePath,$/../libkmer/)
 LIBSIM4/    :=$(call MakePath,$/../libsim4/)
@@ -66,8 +67,8 @@ $/.CXX_EXES := $/cleanPolishes \
 
 $/.CLEAN := $/*.o
 
-$(eval $/%.d $/%.o:  CFLAGS+=-I${LIBUTL/} -I${LIBBIO/} -I${LIBSIM4/})
-$(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBUTL/} -I${LIBBIO/} -I${LIBSIM4/})
+$(eval $/%.d $/%.o:  CFLAGS+=-I${LIBUTL/} -I${LIBBIO/} -I${LIBSEQ/} -I${LIBSIM4/})
+$(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBUTL/} -I${LIBBIO/} -I${LIBSEQ/} -I${LIBSIM4/})
 
 $/filterPolishes              : $/filterPolishes.o
 $/headPolishes                : $/headPolishes.o
@@ -98,7 +99,7 @@ $/reportAlignmentDifferences  : $/reportAlignmentDifferences.o
 
 #  Yeah, not everyone needs all these libraries.  Live with it.
 #
-${$/.C_EXES} ${$/.CXX_EXES}: ${LIBSIM4/}libsim4.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+${$/.C_EXES} ${$/.CXX_EXES}: ${LIBSIM4/}libsim4.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 #  Run the test cases for parseSNP
 $/.parseSNP-test: $/parseSNP ${SIM4DB/}sim4db

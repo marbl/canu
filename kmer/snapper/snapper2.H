@@ -387,8 +387,6 @@ public:
   char            *_logmsgFileName;
   char            *_statsFileName;
 
-  seqStream        _useList;
-
   //  Wall clock times
   //
   double           _startTime;
@@ -477,9 +475,11 @@ doPolishDP(searcherState       *state,
 //
 extern configuration          config;
 extern sim4parameters         sim4params;
-extern FastACache            *cache;
 
-extern seqFile               *qsFASTA;  //  Used exclusively by thr-loader.C
+extern seqCache              *genome;
+extern seqStream             *genomeMap;
+
+extern seqCache              *qsFASTA;  //  Used exclusively by thr-loader.C
 
 extern existDB               *maskDB;  //  thr-search.C
 extern existDB               *onlyDB;  //  thr-search.C

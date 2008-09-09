@@ -12,23 +12,17 @@
 #include <algorithm>
 
 #include "bio++.H"
+#include "seqCache.H"
+
 
 void          simseq(char *,char *,int,int,int,int,double);
 
 
 const char *usage =
-"usage: %s [-f|-F|-I <fasta-file>] [options]\n"
-"\n"
-"ENTERTAINMENT OPTIONS\n"
-"       -V:          whenever a sequence is read, print the defline to stderr\n"
+"usage: %s [-f <fasta-file>] [options]\n"
 "\n"
 "SOURCE FILE\n"
-"       -f file:     use 'file' as an UN-INDEXED source file\n"
-"       -Ft file:    use 'file' as an INDEXED source file (the index is built if\n"
-"                    it doesn't exist), where 't' is the type of index to build:\n"
-"                      i:  internal id's only (the default if t is not specified)\n"
-"                      n:  names only (the first word on defline)\n"
-"                      d:  full deflines\n"
+"       -f file:     use sequence in 'file' (-F is also allowed for historical reasons)\n"
 "\n"
 "OUTPUT OPTIONS\n"
 "       -6:          insert a newline every 60 letters\n"
@@ -65,10 +59,6 @@ const char *usage =
 "\n"
 "SEQUENCE SELECTION (index needed)\n"
 "       -s seqid:    print the single sequence 'seqid'\n"
-"       -Ii:         'seqid' is an internal id (an integer), this is the default\n"
-"                      for -Fi\n"
-"       -Ie:         'seqid' is an external id (a word), this is the default for\n"
-"                      -Fn or -Fd, and is an error for -Fi\n"
 "       -d:          print the number of sequences in the fasta\n"
 "       -i name:     print an ATA compliant index, labelling the source 'name'\n"
 "       -ii:         print the index in an almost-human readable format\n"
@@ -186,18 +176,10 @@ printSequence(seqInCore   *b,
     end = l;
   }
 
-#if 0
-  if ((beg > l) || (end > l) || (beg > end)) {
-    fprintf(stderr, "WARNING:  Printing "u32bitFMT" to "u32bitFMT" of sequence "u32bitFMT" (len="u32bitFMT") is out of bounds -- NO SEQUENCE PRINTED!\n",
-            beg, end, b->getIID(), l);
-    return;
-  }
-#else
   if (beg > l)
     beg = 0;
   if (end > l)
     end = l;
-#endif
 
   u32bit    limit = end - beg;
   char     *n = new char [end - beg + 1];
@@ -275,13 +257,6 @@ u32bit_compare(const void *a, const void *b) {
 }
 
 
-//  Global stuff for processArray
-//
-//  XXX:  ideally, this should be a structure, so
-//  that the user can select between "new state" and
-//  "old state"
-//
-bool                   printOnLoad       = false;
 bool                   reverse           = false;
 bool                   complement        = false;
 bool                   withDefLine       = true;
@@ -289,14 +264,12 @@ char                  *specialDefLine    = 0L;
 u32bit                 withLineBreaks    = 0;
 bool                   toUppercase       = false;
 char                  *sourceFile        = 0L;
-seqFile               *fasta             = 0L;
-FastACache            *cache             = 0L;
-char                   seqIDtype         = 'i';
+seqCache              *fasta             = 0L;
+seqCache              *cache             = 0L;
 u32bit                 begPos            = ~(u32bit)0;
 u32bit                 endPos            = ~(u32bit)0;
 u32bit                 endExtract        = ~(u32bit)0;
 bool                   printMD5          = false;
-seqInCore             *lastSeq           = 0L;
 mt_s                  *mtctx             = 0L;
 
 void
@@ -307,68 +280,6 @@ failIfNoSource(void) {
   }
 }
 
-void
-failIfNotRandomAccess(void) {
-  if (fasta->isIndexed() == false) {
-    fprintf(stderr, "No index exists for %s\n", sourceFile);
-    exit(1);
-  }
-}
-
-
-
-//  Just so we can support the printOnLoad flag, this
-//  routine will call loadSequence on a seqFile.
-//
-seqInCore *loadSequence(seqFile *F) {
-  seqInCore *s = F->getSequenceInCore();
-
-  if (printOnLoad)
-    fprintf(stderr, "%s\n", s->header());
-
-  return(s);
-}
-
-
-
-
-seqFile*
-openNewFile(char *name, char *arg) {
-
-  if (fasta)
-    delete fasta;
-
-  fasta = openSeqFile(name);
-
-  seqIDtype = 'i';
-
-  if (arg[1] == 'F') {
-    u32bit  indextype = FASTA_INDEX_ONLY;
-    u32bit  md5type   = 0;
-
-    for (int ap=2; arg[ap]; ap++) {
-      if        (arg[ap] == 'i') {
-        seqIDtype = 'i';
-        indextype = FASTA_INDEX_ONLY;
-      } else if (arg[ap] == 'n') {
-        seqIDtype = 'e';
-        indextype = FASTA_INDEX_PLUS_IDS;
-      } else if (arg[ap] == 'd') {
-        seqIDtype = 'e';
-        indextype = FASTA_INDEX_PLUS_DEFLINES;
-      } else {
-        fprintf(stderr, "Unknown option for '-F': '%c'\n", arg[ap]);
-      }
-    }
-
-    fasta->openIndex(indextype | md5type);
-  }
-
-  delete lastSeq;
-  lastSeq = 0L;
-
-  return(fasta);
-}
 
 
 void
@@ -377,8 +288,7 @@ printIID(u32bit iid, seqInCore *s=0L) {
 
   if (s == 0L) {
     mySeq = true;
-    fasta->find(iid);
-    s = loadSequence(fasta);
+    s = fasta->getSequenceInCore(iid);
   }
 
   if (printMD5) {
@@ -409,31 +319,34 @@ printIID(u32bit iid, seqInCore *s=0L) {
 }
 
 
+void
+printDescription(char *label) {
+  for (u32bit s=0; s<fasta->getNumberOfSequences(); s++) {
+    fprintf(stdout, "G\tseq\t%s:"u32bitFMT"\t"u32bitFMT"\t%s\n",
+            label, s, fasta->getSequenceLength(s), ">unimplemented");
+  }
+}
+
+
 
 void
 printSequenceBetweenSize(u32bit small, u32bit large) {
 
-  //  XXX: Would probably be faster if we used the index
-
-  while (!fasta->eof()) {
-    seqInCore *s = loadSequence(fasta);
-
-    if ((small <= s->sequenceLength()) && (s->sequenceLength() < large))
-      printIID(0, s);
-
-    delete s;
+  for (u32bit s=0; s<fasta->getNumberOfSequences(); s++) {
+    if ((small <= fasta->getSequenceLength(s)) && (fasta->getSequenceLength(s) < large))
+      printIID(s, 0L);
   }
 }
 
 void
 printSequenceBetweenNComposition(double small, double large) {
 
-  while (!fasta->eof()) {
-    seqInCore *s = loadSequence(fasta);
+  for (u32bit s=0; s<fasta->getNumberOfSequences(); s++) {
+    seqInCore *S = fasta->getSequenceInCore(s);
 
     u32bit   Ns  = 0;
-    u32bit   len = s->sequenceLength();
-    char    *seq = s->sequence();
+    u32bit   len = S->sequenceLength();
+    char    *seq = S->sequence();
     for (u32bit i=0; i<len; i++)
       if ((seq[i] == 'n') || (seq[i] == 'N'))
         Ns++;
@@ -441,9 +354,9 @@ printSequenceBetweenNComposition(double small, double large) {
     double Np = 100.0 * Ns / len;
 
     if ((small <= Np) && (Np < large))
-      printIID(0, s);
+      printIID(0, S);
 
-    delete s;
+    delete S;
   }
 }
 
@@ -483,70 +396,19 @@ printRandomlyGeneratedSequence(u32bit n, u32bit s, u32bit l) {
 
 void
 findSequenceAndPrint(char *id) {
+  seqInCore  *S = fasta->getSequenceInCore(id);
 
-  bool found = false;
-
-  if (seqIDtype == 'i')
-    found = fasta->find(strtou32bit(id, 0L));
+  if (S == 0L)
+    fprintf(stderr, "WARNING: Didn't find sequence with name/iid '%s'\n", id);
   else
-    found = fasta->find(id);
-
-  if (found) {
-    if ((lastSeq == 0L) ||
-        (lastSeq->getIID() != fasta->currentIID())) {
-      delete lastSeq;
-      lastSeq = loadSequence(fasta);
-    }
-
-    printIID(fasta->currentIID(), lastSeq);
-  } else {
-    fprintf(stderr, "WARNING: Didn't find %s id '%s'\n",
-            seqIDtype == 'i' ? "internal" : "external",
-            id);
-  }
+    printIID(0, S);
 }
 
 void
 printRangeOfSequences(char *argl, char *argh) {
-  u32bit lowID  = 0;
-  u32bit highID = 0;
-  bool   fail   = false;
+  u32bit lowID  = fasta->getSequenceIID(argl);
+  u32bit highID = fasta->getSequenceIID(argh);
 
-  if (seqIDtype == 'i') {
-    lowID  = strtou32bit(argl, 0L);
-    if (lowID >= fasta->getNumberOfSequences()) {
-      fprintf(stderr, "ERROR: Internal id of "u32bitFMT" for starting sequence is too large; only "u32bitFMT" sequences.\n",
-              lowID, fasta->getNumberOfSequences());
-      fail = true;
-    }
-
-    highID = strtou32bit(argh, 0L);
-    if (highID >= fasta->getNumberOfSequences()) {
-      fprintf(stderr, "ERROR: Internal id of "u32bitFMT" for ending sequence is too large; only "u32bitFMT" sequences.\n",
-              highID, fasta->getNumberOfSequences());
-      fail = true;
-    }
-  } else {
-    if (fasta->find(argl)) {
-      lowID = fasta->currentIID();
-    } else {
-      fprintf(stderr, "ERROR: Can't find external id '%s' of starting sequence.\n", argl);
-      fail = true;
-    }
-    
-    if (fasta->find(argh)) {
-      highID = fasta->currentIID();
-    } else {
-      fprintf(stderr, "ERROR: Can't find external id '%s' of ending sequence.\n", argh);
-      fail = true;
-    }
-  }
-
-  if (fail)
-    exit(1);
-
-  //  Silently swap the ranges if needed.
-  //
   if (lowID > highID) {
     u32bit t = lowID;
     lowID    = highID;
@@ -554,7 +416,7 @@ printRangeOfSequences(char *argl, char *argh) {
   }
 
   for (u32bit seqID=lowID; seqID <= highID; seqID++)
-    printIID(seqID);
+    printIID(seqID, 0L);
 }
 
 
@@ -596,20 +458,22 @@ printIDsFromFile(char *name) {
   char       *id    = new char [idMax+1];
 
   readBuffer  B(name);
+  char        x = B.read();
 
   //  For optimal performance, we should sort the list of ID's given
   //  by their IID, but the user might have a good reason for wanting
   //  them unsorted.
 
   while (B.eof() == false) {
-    while (isspace(B.get()) && (B.eof() == false))
-      B.next();
+    while (whitespaceSymbol[x] && (B.eof() == false))
+      x = B.read();
 
     if (B.eof() == false) {
       idLen = 0;
 
-      while (!isspace(B.get()) && (B.eof() == false)) {
-        id[idLen++] = B.get();
+      while (!whitespaceSymbol[x] && (B.eof() == false)) {
+        id[idLen++] = x;
+        x = B.read();
 
         if (idLen >= idMax) {
           idMax *= 2;
@@ -618,8 +482,6 @@ printIDsFromFile(char *name) {
           delete [] id;
           id = newid;
         }
-
-        B.next();
       }
 
       id[idLen] = 0;
@@ -633,14 +495,12 @@ printIDsFromFile(char *name) {
 
 
 md5_s *
-computeMD5ForEachSequence(seqFile *F) {
+computeMD5ForEachSequence(seqCache *F) {
   u32bit   numSeqs = F->getNumberOfSequences();
   md5_s   *result  = new md5_s [numSeqs];
 
-  F->find((u32bit)0);
-
   for (u32bit idx=0; idx < numSeqs; idx++) {
-    seqInCore *s1 = loadSequence(F);
+    seqInCore *s1 = F->getSequenceInCore(idx);
     md5_string(result+idx, s1->sequence(), s1->sequenceLength());
     result[idx].i = s1->getIID();
     delete s1;
@@ -653,9 +513,8 @@ void
 findDuplicates(char *filename) {
   seqInCore  *s1 = 0L;
   seqInCore  *s2 = 0L;
-  seqFile              *A = openSeqFile(filename);
+  seqCache   *A = new seqCache(filename);
 
-  A->openIndex(FASTA_INDEX_ONLY);
 
   u32bit numSeqs = A->getNumberOfSequences();
 
@@ -673,11 +532,8 @@ findDuplicates(char *filename) {
         exit(1);
       }
 
-      A->find(result[idx-1].i);
-      s1 = loadSequence(A);
-
-      A->find(result[idx].i);
-      s2 = loadSequence(A);
+      s1 = A->getSequenceInCore(result[idx-1].i);
+      s2 = A->getSequenceInCore(result[idx].i);
 
       if (strcmp(s1->sequence(), s2->sequence()) == 0) {
         fprintf(stdout, u32bitFMT":%s\n"u32bitFMT":%s\n\n",
@@ -714,15 +570,13 @@ mapDuplicates_Print(char *filea, seqInCore *sa,
 
 void
 mapDuplicates(char *filea, char *fileb) {
-  seqFile   *A = openSeqFile(filea);
-  A->openIndex(FASTA_INDEX_ONLY);
   fprintf(stderr, "Computing MD5's for each sequence in '%s'.\n", filea);
-  md5_s *resultA = computeMD5ForEachSequence(A);
+  seqCache  *A = new seqCache(filea);
+  md5_s     *resultA = computeMD5ForEachSequence(A);
 
-  seqFile   *B = openSeqFile(fileb);
-  B->openIndex(FASTA_INDEX_ONLY);
   fprintf(stderr, "Computing MD5's for each sequence in '%s'.\n", fileb);
-  md5_s *resultB = computeMD5ForEachSequence(B);
+  seqCache  *B = new seqCache(fileb);
+  md5_s     *resultB = computeMD5ForEachSequence(B);
 
   u32bit  numSeqsA = A->getNumberOfSequences();
   u32bit  numSeqsB = B->getNumberOfSequences();
@@ -738,11 +592,8 @@ mapDuplicates(char *filea, char *fileb) {
     int res = md5_compare(resultA+idxA, resultB+idxB);
 
     if (res == 0) {
-      A->find(resultA[idxA].i);
-      seqInCore *sa = loadSequence(A);
-
-      B->find(resultB[idxB].i);
-      seqInCore *sb = loadSequence(B);
+      seqInCore *sa = A->getSequenceInCore(resultA[idxA].i);
+      seqInCore *sb = B->getSequenceInCore(resultB[idxB].i);
 
       mapDuplicates_Print(filea, sa, fileb, sb);
 
@@ -751,8 +602,7 @@ mapDuplicates(char *filea, char *fileb) {
       u32bit idxBb = idxB+1;
       int resb = md5_compare(resultA+idxA, resultB+idxBb);
       while (resb == 0) {
-        B->find(resultB[idxBb].i);
-        seqInCore *sbb = loadSequence(B);
+        seqInCore *sbb = B->getSequenceInCore(resultB[idxBb].i);
 
         mapDuplicates_Print(filea, sa, fileb, sbb);
 
@@ -767,8 +617,7 @@ mapDuplicates(char *filea, char *fileb) {
       u32bit idxAa = idxA+1;
       int resa = md5_compare(resultA+idxAa, resultB+idxB);
       while (resa == 0) {
-        A->find(resultA[idxAa].i);
-        seqInCore *saa = loadSequence(A);
+        seqInCore *saa = A->getSequenceInCore(resultA[idxAa].i);
 
         mapDuplicates_Print(filea, saa, fileb, sb);
 
@@ -801,15 +650,12 @@ mapDuplicates(char *filea, char *fileb) {
 
 void
 computeGCcontent(char *name) {
-  seqFile   *A = openSeqFile(name);
-  A->openIndex();
-
-  A->find((u32bit)0);
+  seqCache   *A = new seqCache(name);
 
   for (u32bit idx=0; idx < A->getNumberOfSequences(); idx++) {
-    seqInCore *S = loadSequence(A);
-    char                *s = S->sequence();
-    u32bit               genomeLength = S->sequenceLength();
+    seqInCore *S = A->getSequenceInCore(idx);
+    char      *s = S->sequence();
+    u32bit     genomeLength = S->sequenceLength();
 
     fprintf(stdout, ">%s\n", S->header());
 
@@ -897,8 +743,8 @@ struct partition_s {
 
 int
 partition_s_compare(const void *A, const void *B) {
-  partition_s *a = (partition_s *)A;
-  partition_s *b = (partition_s *)B;
+  const partition_s *a = (const partition_s *)A;
+  const partition_s *b = (const partition_s *)B;
   if (a->length < b->length)
     return(1);
   if (a->length > b->length)
@@ -911,7 +757,7 @@ partition_s *loadPartition(void) {
   partition_s  *p = new partition_s [n];
 
   for (u32bit i=0; i<n; i++) {
-    p[i].length    = fasta->sequenceLength(i);
+    p[i].length    = fasta->getSequenceLength(i);
     p[i].index     = i;
     p[i].partition = 0;
   }
@@ -945,8 +791,7 @@ outputPartition(char *prefix, partition_s *p, u32bit openP, u32bit n) {
 
       for (u32bit i=0; i<n; i++)
         if (p[i].partition == o) {
-          fasta->find(p[i].index);
-          seqInCore *S = fasta->getSequenceInCore();
+          seqInCore *S = fasta->getSequenceInCore(p[i].index);
           fprintf(file, "%s\n", S->header());
           fwrite(S->sequence(), sizeof(char), S->sequenceLength(), file);
           fprintf(file, "\n");
@@ -1067,7 +912,7 @@ partitionBySegment(char *prefix, u64bit numSegments) {
   u32bit        numSeqPerPart = (u32bit)ceil(n / (double)numSegments);
 
   for (u32bit i=0; i<n; i++) {
-    p[i].length    = fasta->sequenceLength(i);
+    p[i].length    = fasta->getSequenceLength(i);
     p[i].index     = i;
     p[i].partition = i / numSeqPerPart + 1;
   }
@@ -1084,7 +929,6 @@ dumpBlocks(void) {
   u32bit       seqno = 0;
 
   failIfNoSource();
-  failIfNotRandomAccess();
 
   bool                  V[256];
   for (u32bit i=0; i<256; i++)
@@ -1092,9 +936,9 @@ dumpBlocks(void) {
   V['n'] = true;
   V['N'] = true;
 
-  S = fasta->getSequenceOnDisk();
+  S = fasta->getSequenceOnDisk(seqno);
   while (S) {
-    char    seq    = S->get();
+    char    seq    = S->read();
     u32bit  len    = S->sequenceLength();
     bool    nnn    = V[seq];
     char    begseq = seq;
@@ -1102,8 +946,7 @@ dumpBlocks(void) {
 
     u32bit pos = 1;
     for ( ; pos<len; pos++) {
-      S->next();
-      seq = S->get();
+      seq = S->read();
       if (nnn != V[seq]) {
         fprintf(stdout, "%c "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
                 begseq, seqno, begpos, pos, pos - begpos);
@@ -1118,9 +961,7 @@ dumpBlocks(void) {
     fprintf(stdout, ". "u32bitFMT" "u32bitFMT" "u32bitFMT"\n", seqno, pos, u32bitZERO);
 
     delete S;
-    S = fasta->getSequenceOnDisk();
-
-    seqno++;
+    S = fasta->getSequenceOnDisk(++seqno);
   }
 }
 
@@ -1131,7 +972,6 @@ stats(void) {
   seqOnDisk   *S     = 0L;
 
   failIfNoSource();
-  failIfNotRandomAccess();
 
   bool                  V[256];
   for (u32bit i=0; i<256; i++)
@@ -1156,16 +996,17 @@ stats(void) {
   for (u32bit i=0; i<numSeq; i++)
     Ls[i] = Lb[i] = 0;
 
-  S = fasta->getSequenceOnDisk();
+  u32bit seqno = 0;
+
+  S = fasta->getSequenceOnDisk(seqno);
   while (S) {
     u32bit  len    = S->sequenceLength();
     u32bit  span   = len;
     u32bit  base   = len;
 
     for (u32bit pos=1; pos<len; pos++) {
-      if (V[S->get()])
+      if (V[S->read()])
         base--;
-      S->next();
     }
 
     Ss += span;
@@ -1175,7 +1016,7 @@ stats(void) {
     Lb[S->getIID()] = base;
 
     delete S;
-    S = fasta->getSequenceOnDisk();
+    S = fasta->getSequenceOnDisk(++seqno);
   }
 
   qsort(Ls, numSeq, sizeof(u32bit), u32bit_compare);
@@ -1230,7 +1071,6 @@ processArray(int argc, char **argv) {
     } else if ((strncmp(argv[arg], "--partition", 3) == 0) ||
                (strncmp(argv[arg], "--partitionmap", 3) == 0)) {
       failIfNoSource();
-      failIfNotRandomAccess();
 
       char *prefix = 0L;
       if (strcmp(argv[arg], "--partition") == 0) {
@@ -1272,7 +1112,6 @@ processArray(int argc, char **argv) {
       }
     } else if (strncmp(argv[arg], "--segment", 4) == 0) {
       failIfNoSource();
-      failIfNotRandomAccess();
       partitionBySegment(argv[arg+1], strtou32bit(argv[arg+2], 0L));
       arg += 2;
     } else if (strncmp(argv[arg], "--gccontent", 4) == 0) {
@@ -1288,8 +1127,9 @@ processArray(int argc, char **argv) {
       int    N = strtou32bit(argv[++arg], 0L);  //  number of copies per sequence
       int    C = strtou32bit(argv[++arg], 0L);  //  number of mutations per copy
       double P = atof(argv[++arg]);             //  probability of mutation
-      
-      seqInCore *S = fasta->getSequenceInCore();
+      u32bit i = 0;
+
+      seqInCore *S = fasta->getSequenceInCore(i++);
       while (S) {
         char   *seq = S->sequence();
         char   *hdr = S->header();
@@ -1302,34 +1142,18 @@ processArray(int argc, char **argv) {
         simseq(seq, hdr, len, N, l, C, P);
 
         delete S;
-        S = fasta->getSequenceInCore();
+        S = fasta->getSequenceInCore(i++);
       }
     } else {
       switch(argv[arg][1]) {
-        case 'V':
-          printOnLoad = !printOnLoad;
-          break;
         case 'f':
         case 'F':
           sourceFile = argv[++arg];
-          fasta = openNewFile(sourceFile, argv[arg-1]);
-          break;
-        case 'I':
-          switch (argv[arg][2]) {
-            case 'i':
-              seqIDtype = 'i';
-              break;
-            case 'e':
-              seqIDtype = 'e';
-              break;
-            default:
-              fprintf(stderr, "WARNING: unknown id type '%c'\n", argv[arg][2]);
-              break;
-          }
+          delete fasta;
+          fasta = new seqCache(sourceFile);
           break;
         case 'i':
           failIfNoSource();
-          failIfNotRandomAccess();
 
           //  Check that the next arg is something reasonable -- not NULL and not another option.
           //
@@ -1338,11 +1162,10 @@ processArray(int argc, char **argv) {
             fprintf(stderr, "ERROR: next arg to -i should be ATA label, I got '%s'\n",
                     (argv[arg] == 0L) ? "(nullpointer)" : argv[arg]), exit(1);
 
-          fasta->printDescription(stdout, argv[arg]);
+          printDescription(argv[arg]);
           break;
         case 'd':
           failIfNoSource();
-          failIfNotRandomAccess();
           printf(u32bitFMT"\n", fasta->getNumberOfSequences());
           break;
         case 'L':
@@ -1369,25 +1192,19 @@ processArray(int argc, char **argv) {
           break;
         case 's':
           failIfNoSource();
-          failIfNotRandomAccess();
-          //fasta->optimizeRandomAccess();
           findSequenceAndPrint(argv[++arg]);
           break;
         case 'S':
           failIfNoSource();
-          failIfNotRandomAccess();
           printRangeOfSequences(argv[arg+1], argv[arg+2]);
           arg += 2;
           break;
         case 'r':
           failIfNoSource();
-          failIfNotRandomAccess();
-          //fasta->optimizeRandomAccess();
           findAndPrintRandomSequences(strtou32bit(argv[++arg], 0L));
           break;
         case 'q':
           failIfNoSource();
-          failIfNotRandomAccess();
           printIDsFromFile(argv[++arg]);
           break;
         case '6':

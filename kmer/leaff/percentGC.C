@@ -1,4 +1,5 @@
 #include "bio++.H"
+#include "seqCache.H"
 
 int
 main(int argc, char **argv) {
@@ -26,10 +27,12 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  seqFile    *F = openSeqFile(filename);
-  seqInCore  *S;
+  seqCache   *F = new seqCache(filename);
 
-  while ((S = F->getSequenceInCore()) != 0L) {
+  u32bit      I = 0;
+  seqInCore  *S = F->getSequenceInCore(I);
+
+  while (S != 0L) {
     char       *seq = S->sequence();
     u32bit      len = S->sequenceLength();
     u32bit      GCt = 0;
@@ -67,6 +70,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "overall GC %.4f\n", 100.0 * GCt / (double)len);
 
     delete S;
+    S = F->getSequenceInCore(++I);
   }
 
   delete F;

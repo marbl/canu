@@ -66,17 +66,17 @@ main(int argc, char **argv) {
 
   FILE         *O = fopen(otSeqName, "w");
   for (int i=0; i<numIn; i++) {
-    seqFile  *I = openSeqFile(inSeqName[i]);
+    seqCache  *I = new seqCache(inSeqName[i]);
+    seqInCore *B = I->getSequenceInCore();
 
     numSeqs[i] = 0;
 
-    while (!I->eof()) {
-      seqInCore *B = I->getSequenceInCore();
-
+    while (B) {
       fprintf(O, "%s\n%s\n", B->header(), B->sequence());
       numSeqs[i]++;
 
       delete B;
+      B = I->getSequenceInCore();
     }
 
     delete I;

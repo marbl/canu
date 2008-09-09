@@ -1,6 +1,0 @@
-#include "bio++.H"
-#include "seqInCore.C"
-#include "seqOnDisk.C"
-#include "seqStream.C"
-#include "seqStore.C"
-#include "seqFactory.C"

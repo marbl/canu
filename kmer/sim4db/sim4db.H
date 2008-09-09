@@ -38,7 +38,6 @@ public:
     databaseFileName = 0L;
     outputFileName   = 0L;
     yesnoFileName    = 0L;
-    statsFileName    = 0L;
     touchFileName    = 0L;
 
     pairwise         = false;
@@ -50,15 +49,6 @@ public:
     loaderCacheSize  = 1024;
   };
   ~configuration() {
-    if (statsFileName) {
-      FILE  *statsFile = fopen(statsFileName, "w");
-      if (statsFile) {
-        write_rusage(statsFile);
-        fprintf(statsFile, "clockTime:      %f\n", getTime() - startTime);
-        fclose(statsFile);
-      }
-    }
-
   };
 
   void parseCommandLine(int argc, char **argv);
@@ -71,7 +61,6 @@ public:
   char             *databaseFileName;
   char             *outputFileName;
   char             *yesnoFileName;
-  char             *statsFileName;
   char             *touchFileName;
 
   bool              pairwise;

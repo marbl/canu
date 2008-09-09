@@ -16,33 +16,20 @@ void  writerThread(void *U, void *Q);
 int
 main(int argc, char **argv) {
 
-#ifdef _AIX
-  //  By default, AIX Visual Age C++ new() returns 0L; this turns on
-  //  exceptions.
-  //
-  std::__set_new_throws_exception(true);
-#endif
-
   //  Read the configuration from the command line
   //
   config.read(argc, argv);
-  config.display();
-
 
   //  Open and init the query sequence
   //
   if (config._beVerbose)
     fprintf(stderr, "Opening the cDNA sequences.\n");
 
-  config._qsFASTA = openSeqFile(config._qsFileName);
-  config._qsFASTA->openIndex();
+  config._qsFASTA  = new seqCache(config._qsFileName);
+  config._dbSTREAM = new seqStream(config._dbFileName);
 
   //  Complete the configuration
   //
-  config._useList.setFile(config._dbFileName);
-  config._useList.setSeparator('.', 1);
-  config._useList.finish();
-
   config._initTime = getTime();
 
 
@@ -55,15 +42,15 @@ main(int argc, char **argv) {
   if ((config._tableFileName) && (fileExists(config._tableFileName))) {
     if (config._tableBuildOnly) {
       fprintf(stderr, "All done.  Table '%s' already built.\n", config._tableFileName);
-      config._statsFileName = 0L;  //  don't save stats!
       exit(1);
     } else {
       fprintf(stderr, "Loading positionDB state from '%s'\n", config._tableFileName);
       config._positions = new positionDB(config._tableFileName, config._merSize, config._merSkip, 0);
     }
   } else {
-    kMerBuilder KB(config._merSize);
-    merStream  *MS = new merStream(&KB, &config._useList);
+    merStream  *MS = new merStream(new kMerBuilder(config._merSize),
+                                   config._dbSTREAM,
+                                   true, false);
     config._positions = new positionDB(MS, config._merSize, config._merSkip, 0L, 0L, 0L, 0, 0, 0, 0, config._beVerbose);
     delete    MS;
 

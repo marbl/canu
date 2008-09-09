@@ -81,9 +81,6 @@ const char *usagestring =
 "        -M -- \"math\" operations\n"
 "        -D -- dump table\n"
 "\n"
-"global options\n"
-"        -stats file   (write run time statistics to file)\n"
-"\n"
 "-P:  Given a sequence file (-s) or an upper limit on the\n"
 "     number of mers in the file (-n), compute the table size\n"
 "     (-t in build) to minimize the memory usage.\n"
@@ -266,8 +263,6 @@ merylArgs::merylArgs(int argc, char **argv) {
 
   personality        = 0;
 
-  statsFile          = 0L;
-
   if (argc == 1) {
     usage();
     exit(1);
@@ -331,10 +326,6 @@ merylArgs::merylArgs(int argc, char **argv) {
       delete [] inputFile;
       inputFile                   = duplString(argv[arg]);
       mergeFiles[mergeFilesLen++] = duplString(argv[arg]);
-    } else if (strcmp(argv[arg], "-stats") == 0) {
-      arg++;
-      delete [] statsFile;
-      statsFile = duplString(argv[arg]);
     } else if (strcmp(argv[arg], "-n") == 0) {
       arg++;
       numMersEstimated = strtou64bit(argv[arg], 0L);
@@ -518,7 +509,6 @@ merylArgs::merylArgs(const char *prefix) {
   execName    = readString(F);
   inputFile   = readString(F);
   outputFile  = readString(F);
-  statsFile   = readString(F);
   sgeJobName  = readString(F);
   sgeBuildOpt = readString(F);
   sgeMergeOpt = readString(F);
@@ -543,7 +533,6 @@ merylArgs::~merylArgs() {
     delete [] mergeFiles[i];
 
   delete [] mergeFiles;
-  delete [] statsFile;
 }
 
 
@@ -568,7 +557,6 @@ merylArgs::writeConfig(void) {
   writeString(execName,    F);
   writeString(inputFile,   F);
   writeString(outputFile,  F);
-  writeString(statsFile,   F);
   writeString(sgeJobName,  F);
   writeString(sgeBuildOpt, F);
   writeString(sgeMergeOpt, F);

@@ -6,6 +6,10 @@
 #include "libmeryl.H"
 #include "existDB.H"
 
+#include "seqCache.H"
+#include "seqStream.H"
+#include "merStream.H"
+
 //  1) Use meryl to find the list of mers in common between HMISSING and NCBI.
 //  2) Read mers from that meryl database into an existDB.
 //  3) Stream each sequence from HMISSING.  Mask out any mer in HMISSING.
@@ -28,7 +32,7 @@ main(int argc, char **argv) {
     exist = new existDB("/project/huref4/assembly-mapping/missing/missing0/HMISSING-and-B35LC.existDB");
   }
 
-  seqFile      *F     = openSeqFile(seqName);
+  seqCache     *F     = new seqCache(seqName);
   seqInCore    *S     = 0L;
 
   u32bit   maskLen = 1048576;
@@ -58,8 +62,9 @@ main(int argc, char **argv) {
 
     //  Build the initial masking
     //
-    kMerBuilder   KB(merSize);
-    merStream    *MS = new merStream(&KB, S);
+    merStream    *MS = new merStream(new kMerBuilder(merSize),
+                                     new seqStream(S->sequence(), 0, S->sequenceLength()),
+                                     true, true);
     while (MS->nextMer())
       if (exist->exists(MS->theFMer()) || exist->exists(MS->theRMer()))
         mask[MS->thePositionInSequence()] = true;

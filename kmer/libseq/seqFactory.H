@@ -1,3 +1,8 @@
+#ifndef SEQFACTORY_H
+#define SEQFACTORY_H
+
+#include "util.h"
+#include "seqFile.H"
 
 class seqFactory {
 protected:
@@ -10,6 +15,7 @@ public:
       me = new seqFactory;
     return(me);
   };
+
   void           registerFile(seqFile   *f);
   seqFile       *openFile(const char *name);
 private:
@@ -20,4 +26,8 @@ private:
   seqFile      **_files;
 };
 
+
 #define openSeqFile(S)    seqFactory::instance()->openFile((S))
+
+
+#endif  //  SEQFACTORY_H

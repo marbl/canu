@@ -196,8 +196,6 @@ configuration::read(int argc, char **argv) {
       _psFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-buildonly") == 0) {
       _buildOnly = argv[arg];
-    } else if (strcmp(argv[arg], "-use") == 0) {
-      _useList.parse(argv[++arg]);
     } else if (strcmp(argv[arg], "-forward") == 0) {
       _doForward = true;
       _doReverse = false;

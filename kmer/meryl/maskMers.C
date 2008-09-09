@@ -4,6 +4,7 @@
 #include <math.h>
 
 #include "bio++.H"
+#include "seqStream.H"
 #include "libmeryl.H"
 
 #include <algorithm>
@@ -177,8 +178,7 @@ merMaskedSequence::saveMasking(void) {
 
 void
 merMaskedSequence::buildMasking(void) {
-  seqFile       *F   = openSeqFile(_fastaName);
-  seqStream     *STR = new seqStream(F, true);
+  seqStream     *STR = new seqStream(_fastaName);
 
   _numSeq   = STR->numberOfSequences();
 
@@ -259,7 +259,6 @@ merMaskedSequence::buildMasking(void) {
   delete MS;
 
   delete STR;
-  delete F;
 
   saveMasking();
 }

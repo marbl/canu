@@ -130,8 +130,7 @@ main(int argc, char **argv) {
       //  SNAPPER of query contaminant onto scaffolds
       readSIM4(coverage, 2, argv[++arg]);
     } else if (strcmp(argv[arg], "-f") == 0) {
-      W = new FastAWrapper(argv[++arg]);
-      W->openIndex();
+      W = new seqCache(argv[++arg]);
     } else if (strcmp(argv[arg], "-c") == 0) {
       minCov = strtou32bit(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-r") == 0) {

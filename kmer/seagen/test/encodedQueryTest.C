@@ -30,7 +30,7 @@ main(int argc, char **argv) {
     }
 
   } else {
-    seqFile *F = openSeqFile(argv[1]);
+    seqCache *F = new seqCache(argv[1]);
 
     while (F->eof() == false) {
       seqInCore            *S = F->getSequenceInCore();

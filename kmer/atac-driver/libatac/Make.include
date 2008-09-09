@@ -2,6 +2,7 @@
 
 LIBUTL/     :=$(call MakePath,$/../../libutil/)
 LIBBIO/     :=$(call MakePath,$/../../libbio/)
+LIBSEQ/     :=$(call MakePath,$/../../libseq/)
 
 $/.CXX_INCS := $/atac.H \
                $/atacFeature.H \
@@ -24,6 +25,6 @@ $/.CLEAN :=$/*.o $/*~
 
 $/libatac.a: ${$/.CXX_SRCS:.C=.o}
 
-$(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBBIO/} -I${LIBUTL/})
+$(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBBIO/} -I${LIBSEQ/} -I${LIBSEQ/} -I${LIBUTL/})
 
 

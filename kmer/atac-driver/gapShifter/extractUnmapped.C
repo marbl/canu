@@ -221,7 +221,7 @@ private:
 
 
 void
-extractUnmapped(FastACache *A, FastACache *B,
+extractUnmapped(seqCache *A, seqCache *B,
                 FILE *Aoutput, FILE *Boutput,
                 u32bit extend,
                 atacFile &AF,
@@ -258,7 +258,7 @@ extractUnmapped(FastACache *A, FastACache *B,
       writeGaplessSequence(Aoutput,
                            S,
                            0,
-                           AF.fastaA()->sequenceLength(seq),
+                           AF.fastaA()->getSequenceLength(seq),
                            extend,
                            0L, 0L);
     } else {
@@ -287,7 +287,7 @@ extractUnmapped(FastACache *A, FastACache *B,
         writeGaplessSequence(Aoutput,
                              S,
                              coveredA[seq][last]->pos1 + coveredA[seq][last]->len1,
-                             AF.fastaA()->sequenceLength(seq),
+                             AF.fastaA()->getSequenceLength(seq),
                            extend,
                              coveredA[seq][0], 0L);
       }
@@ -313,7 +313,7 @@ extractUnmapped(FastACache *A, FastACache *B,
       writeGaplessSequence(Boutput,
                            S,
                            0,
-                           AF.fastaB()->sequenceLength(seq),
+                           AF.fastaB()->getSequenceLength(seq),
                            extend,
                            0L, 0L);
     } else {
@@ -342,7 +342,7 @@ extractUnmapped(FastACache *A, FastACache *B,
         writeGaplessSequence(Boutput,
                              S,
                              coveredB[seq][last]->pos2 + coveredB[seq][last]->len2,
-                             AF.fastaB()->sequenceLength(seq),
+                             AF.fastaB()->getSequenceLength(seq),
                            extend,
                              coveredB[seq][0], 0L);
       }
@@ -361,7 +361,7 @@ extractUnmapped(FastACache *A, FastACache *B,
 
 
 void
-extractUnmappedRuns(FastACache *A, FastACache *B,
+extractUnmappedRuns(seqCache *A, seqCache *B,
                     FILE *ARoutput, FILE *BRoutput,
                     u32bit extend,
                     atacMatchList &ML) {
@@ -517,8 +517,11 @@ main(int argc, char *argv[]) {
   //  Build caches for both sequences, then modify that sequence to
   //  mask out tandem repeats.
   //
-  FastACache  *A = new FastACache(AF.assemblyFileA(), 0, true, true);
-  FastACache  *B = new FastACache(AF.assemblyFileB(), 0, true, true);
+  seqCache  *A = new seqCache(AF.assemblyFileA(), 0, true);
+  seqCache  *B = new seqCache(AF.assemblyFileB(), 0, true);
+
+  A->loadAllSequences();
+  B->loadAllSequences();
 
   if (trFile) {
     errno =0;

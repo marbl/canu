@@ -1,0 +1,53 @@
+#include "merStream.H"
+
+
+merStream::merStream(kMerBuilder *kb, seqStream *ss, bool kbown, bool ssown) {
+  _kb       = kb;
+  _kbdelete = kbown;
+  _ss       = ss;
+  _ssdelete = ssown;
+
+  _beg      =  u64bitZERO;
+  _end      = ~u64bitZERO;
+  _pos      =  u64bitZERO;
+
+  _kb->clear();
+}
+
+
+merStream::~merStream() {
+  if (_kbdelete)  delete _kb;
+  if (_ssdelete)  delete _ss;
+}
+
+
+void
+merStream::rewind(void) {
+  _ss->rewind();
+  _kb->clear();
+}
+
+
+void
+merStream::setRange(u64bit beg, u64bit end) {
+  _ss->setRange(beg, ~u64bitZERO);
+  _beg = beg;
+  _end = end;
+  _pos = beg;
+  _kb->clear();
+}
+
+
+u64bit
+merStream::approximateNumberOfMers(void) {
+  u64bit  approx = _end - _beg;
+
+  //  Don't know a range, sum all the sequence lengths, otherwise,
+  //  it's just the length from begin to end.
+  //
+  if (_end == ~u64bitZERO)
+    for (u32bit s=0; s<_ss->numberOfSequences(); s++)
+      approx += _ss->lengthOf(s);
+
+  return(approx);
+}

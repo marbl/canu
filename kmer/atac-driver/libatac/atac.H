@@ -25,6 +25,8 @@ using namespace std;
 
 #include "bio++.H"
 
+#include "seqCache.H"
+
 #include "atacMatch.H"
 #include "atacMatchList.H"
 #include "atacMatchOrder.H"
@@ -32,6 +34,7 @@ using namespace std;
 #include "atacFeature.H"
 #include "atacFeatureList.H"
 
+#include "fasta-accessor.H"
 
 class atacFileBase {
 public:
@@ -44,8 +47,8 @@ public:
   char           *assemblyFileA(void) { return(_fileA); };
   char           *assemblyFileB(void) { return(_fileB); };
 
-  seqFile      *fastaA(void) { return(_seqA); };
-  seqFile      *fastaB(void) { return(_seqB); };
+  seqCache     *fastaA(void) { return(_seqA); };
+  seqCache     *fastaB(void) { return(_seqB); };
 
 protected:
   void  readHeader(char *inLine, FILE *in);
@@ -61,8 +64,8 @@ protected:
 
   map<string,string> _params;
 
-  seqFile         *_seqA;
-  seqFile         *_seqB;
+  seqCache          *_seqA;
+  seqCache          *_seqB;
 };
 
 

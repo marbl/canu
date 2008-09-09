@@ -64,22 +64,7 @@ main(int argc, char **argv) {
       break;
   }
 
-  if (args->statsFile) {
-    errno = 0;
-    FILE *F = fopen(args->statsFile, "w");
-    if (errno) {
-      fprintf(stderr, "WARNING: Failed to open stats file '%s'\n%s\n", args->statsFile, strerror(errno));
-    } else {
-      write_rusage(F);
-      fclose(F);
-    }
-  }
-
   delete args;
-
-#ifdef MEMORY_DEBUG
-  _dump_allocated_delta(fileno(stdout));
-#endif
 
   return(0);
 }

@@ -1,5 +1,5 @@
 #include "positionDB.H"
-
+#include "seqCache.H"
 
 class tapperGlobalData {
 public:
@@ -41,7 +41,7 @@ public:
   merStream        *MS;
   positionDB       *PS;
 
-  FastACache       *GS;
+  seqCache         *GS;
 };
 
 
@@ -128,10 +128,12 @@ tapperGlobalData::initialize(void) {
   }
 
   fprintf(stderr, "Building seqStream\n");
-  SS = new seqStream(colName, true);
+  SS = new seqStream(colName);
 
   fprintf(stderr, "Building merStream\n");
-  MS = new merStream(new kMerBuilder(tagSize), SS);  //  MEMORY LEAK kMerBuilder
+  MS = new merStream(new kMerBuilder(tagSize),
+                     SS,
+                     true, false);
 
   sprintf(colName, "%s.ms"u32bitFMT".ce"u32bitFMT".posDB", genName, tagSize, maxColorError);
 
@@ -145,7 +147,11 @@ tapperGlobalData::initialize(void) {
     PS->saveState(colName);
   }
 
-  GS = new FastACache(genName, 0, true, false);
+  delete MS;
+  MS = 0L;
+
+  GS = new seqCache(genName, 0, false);
+  GS->loadAllSequences();
 
   TA = new tapperResultFile(outName, 'w');
 
@@ -177,7 +183,7 @@ tapperGlobalData::convertACGTtoColor(char *color, char *acgt, u32bit len) {
 
 void
 tapperGlobalData::rewriteFileAsColorACGT(char *acgtname, char  *colorname) {
-  seqFile    *F  = openSeqFile(acgtname);
+  seqCache   *F  = new seqCache(acgtname);
 
   if (fileExists(colorname)) {
     fprintf(stderr, "ColorFastA '%s' exists.  NOT recreating.\n", colorname);
@@ -191,11 +197,12 @@ tapperGlobalData::rewriteFileAsColorACGT(char *acgtname, char  *colorname) {
   if (errno)
     fprintf(stderr, "Failed to create '%s': %s\n", colorname, strerror(errno)), exit(1);
 
-  while (F->eof() == false) {
-    seqInCore *f = F->getSequenceInCore();
+  seqInCore *f = F->getSequenceInCore();
+  while (f) {
     convertACGTtoColor(f->sequence(), f->sequence(), f->sequenceLength());
     fprintf(CF, "%s\n%s\n", f->header(), f->sequence());
     delete f;
+    f = F->getSequenceInCore();
   }
 
   fclose(CF);

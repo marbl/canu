@@ -18,8 +18,9 @@ struct filterStats {
 //
 configuration          config;
 sim4parameters         sim4params;
-FastACache            *cache;
-seqFile               *qsFASTA;
+seqCache              *genome;
+seqStream             *genomeMap;
+seqCache              *qsFASTA;
 existDB               *maskDB;
 existDB               *onlyDB;
 positionDB            *positions;
@@ -84,47 +85,6 @@ writeValidationFile(char *name, filterStats *theFilters, u32bit numFilters) {
 
 
 
-
-
-void
-dumpStats(void) {
-
-  if (config._statsFileName) {
-    FILE *F = fopen(config._statsFileName, "wb");
-    if (F == 0L) {
-      fprintf(stderr, "Couldn't open the stats file '%s'?\n", config._statsFileName);
-      fprintf(stderr, "Stats going to stderr.\n");
-      config._statsFileName = 0L;
-      F = stderr;
-    }
-
-    config.display(F);
-
-    write_rusage(F);
-      
-    fprintf(F, "wallClockTimes--------------------------\n");
-    fprintf(F, "init:     %9.5f\n", config._initTime);
-    fprintf(F, "build:    %9.5f\n", config._buildTime);
-    fprintf(F, "search:   %9.5f\n", config._searchTime);
-    fprintf(F, "total:    %9.5f\n", getTime() - config._startTime);
-
-    fprintf(F, "searchThreadInfo------------------------\n");
-    for (u64bit i=0; i<config._numSearchThreads; i++) {
-      if (threadStats[i])
-        fprintf(F, threadStats[i]);
-      delete [] threadStats[i];
-    }
-
-    if (config._statsFileName)
-      fclose(F);
-  }
-}
-
-
-
-
-
-
 #ifdef _AIX
 
 //  If we're AIX, define a new handler.  Other OS's reliably throw exceptions.
@@ -152,15 +112,6 @@ main(int argc, char **argv) {
 #endif
 
 
-#if 0
-  fprintf(stderr, "Hello.  I'm snapper2, pid %d\n", getpid());
-  fprintf(stderr, "gdb snapper2 %d\n", getpid());
-  fprintf(stderr, "Attach a debugger in the next 5 seconds.\n");
-  sleep(5);
-  fprintf(stderr, "Here I go!\n");
-#endif
-
-
   //
   //  Read the configuration from the command line
   //
@@ -169,7 +120,6 @@ main(int argc, char **argv) {
     exit(1);
   }
   config.read(argc, argv);
-  //config.display();
 
 
   //  Open and init the query sequence.
@@ -177,8 +127,7 @@ main(int argc, char **argv) {
   if (config._beVerbose)
     fprintf(stderr, "Opening the cDNA sequences.\n");
 
-  qsFASTA = openSeqFile(config._qsFileName);
-  qsFASTA->openIndex();
+  qsFASTA = new seqCache(config._qsFileName);
 
   numberOfQueries  = qsFASTA->getNumberOfSequences();
 
@@ -191,9 +140,9 @@ main(int argc, char **argv) {
     u32bit  numTooLongQueries  = 0;
     u32bit  numOKQueries         = 0;
     for (u32bit i=0; i<numberOfQueries; i++) {
-      if      (qsFASTA->sequenceLength(i) <= config._discardExonLength)
+      if      (qsFASTA->getSequenceLength(i) <= config._discardExonLength)
         numTooShortQueries++;
-      else if (qsFASTA->sequenceLength(i) >= (u64bitONE << 22))
+      else if (qsFASTA->getSequenceLength(i) >= (u64bitONE << 22))
         numTooLongQueries++;
       else
         numOKQueries++;
@@ -251,13 +200,6 @@ main(int argc, char **argv) {
             numFilters, maxFilters);
   }
 
-
-
-  //  Complete the configuration
-  //
-  config._useList.setFile(config._dbFileName);
-  config._useList.setSeparator('.', 1);
-  config._useList.finish();
 
 
   //  Take a snapshot of the init time here.  We build next, then we finish some
@@ -318,8 +260,9 @@ main(int argc, char **argv) {
       exit(1);
     }
 
-    kMerBuilder KB(config._KBmerSize, config._KBcompression, config._KBspacingTemplate);
-    merStream  *MS = new merStream(&KB, &config._useList);
+    merStream  *MS = new merStream(new kMerBuilder(config._KBmerSize, config._KBcompression, config._KBspacingTemplate),
+                                   new seqStream(config._dbFileName),
+                                   true, true);
 
     positions = new positionDB(MS,
                                config._KBmerSize,
@@ -347,10 +290,8 @@ main(int argc, char **argv) {
 
       positions->saveState(config._psFileName);
 
-      if (config._buildOnly) {
-        dumpStats();
+      if (config._buildOnly)
         exit(0);
-      }
 
       delete positions;
       positions = new positionDB(config._psFileName, config._KBmerSize, config._merSkip, 0);
@@ -365,26 +306,10 @@ main(int argc, char **argv) {
   if (config._beVerbose)
     fprintf(stderr, "Opening the genomic database.\n");
 
-  cache = new FastACache(config._dbFileName, 0, true);
+  genome = new seqCache(config._dbFileName, false);
+  genome->loadAllSequences();
 
-
-#if 0
-  //  All we use the index for is to count the number of sequences for
-  //  the output display (and, OK, sizing the queues).  Close the
-  //  index to free up significant memory on large datasets.
-  //
-  //  And it turns out we end up wasting ENORMOUS amounts of our
-  //  address space by not knowing the size of the sequence when we
-  //  load it -- the defaults there are to grab 16MB for the sequence.
-  //  So, having a measly 64 sequences loaded chews up 1GB of address
-  //  space.
-  //
-  //  Using a sequenceOnDisk is no better; now we have a readBuffer
-  //  attached, and possibly an open file handle.
-  //
-  delete qsFASTA;
-  qsFASTA = openSeqFile(config._qsFileName);
-#endif
+  genomeMap = new seqStream(config._dbFileName);
 
   input            = new seqInCore * [numberOfQueries];
   inputHead        = 0;
@@ -409,16 +334,6 @@ main(int argc, char **argv) {
   //
   config._initTime = getTime() - config._startTime - config._buildTime;
 
-
-#ifdef MEMORY_DEBUG
-  fprintf(stdout, "----------------------------------------\n");
-  fprintf(stdout, "--\n");
-  fprintf(stdout, "--\n");
-  fprintf(stdout, "--  Dump at start\n");
-  fprintf(stdout, "--\n");
-  fprintf(stdout, "--\n");
-  _dump_allocated_delta(fileno(stdout));
-#endif
 
   //
   //  Configure sim4
@@ -456,17 +371,6 @@ main(int argc, char **argv) {
   fprintf(stderr, "Deadlock detection enabled!\n");
   pthread_create(threadTID + threadIDX++, &threadAttr, deadlockDetector, 0L);
   pthread_create(threadTID + threadIDX++, &threadAttr, deadlockChecker, 0L);
-#endif
-
-
-#ifdef MEMORY_DEBUG
-  fprintf(stdout, "----------------------------------------\n");
-  fprintf(stdout, "--\n");
-  fprintf(stdout, "--\n");
-  fprintf(stdout, "--  Dump at middle\n");
-  fprintf(stdout, "--\n");
-  fprintf(stdout, "--\n");
-  _dump_allocated_delta(fileno(stdout));
 #endif
 
 
@@ -660,24 +564,10 @@ main(int argc, char **argv) {
     writeValidationFile(config._doValidationFileName, theFilters, numFilters);
 
 
-  //  Summarize the execution
-  //
-  dumpStats();
-
-#ifdef MEMORY_DEBUG
-  fprintf(stdout, "----------------------------------------\n");
-  fprintf(stdout, "--\n");
-  fprintf(stdout, "--\n");
-  fprintf(stdout, "--  Dump at before clean\n");
-  fprintf(stdout, "--\n");
-  fprintf(stdout, "--\n");
-  _dump_allocated_delta(fileno(stdout));
-#endif
-
-
   //  Clean up
   //
-  delete cache;
+  delete genome;
+  delete genomeMap;
 
   if (config._doValidation)
     delete [] theFilters;
@@ -698,16 +588,6 @@ main(int argc, char **argv) {
 
   pthread_attr_destroy(&threadAttr);
   pthread_mutex_destroy(&inputTailMutex);
-
-#ifdef MEMORY_DEBUG
-  fprintf(stdout, "----------------------------------------\n");
-  fprintf(stdout, "--\n");
-  fprintf(stdout, "--\n");
-  fprintf(stdout, "--  Dump at end\n");
-  fprintf(stdout, "--\n");
-  fprintf(stdout, "--\n");
-  _dump_allocated_delta(fileno(stdout));
-#endif
 
   return(0);
 }

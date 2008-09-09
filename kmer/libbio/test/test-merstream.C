@@ -144,8 +144,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "test2()-- pass 2\n");
   e += test2(MS1, MS2);
 
-  seqFile  *SF = openSeqFile(argv[1]);
-  SF->openIndex();
+  seqCache *SF = new seqCache(argv[1]);
 
   if (SF->getNumberOfSequences() == 1) {
     seqInCore  *SC  = SF->getSequenceInCore();

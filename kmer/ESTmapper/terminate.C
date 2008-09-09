@@ -2,6 +2,8 @@
 #include "bio++.H"
 #include "sim4.H"
 
+#include "seqCache.H"
+
 //  Terminates an ESTmapper run.
 //
 //  Splits a fasta file into multiple fasta files based on the first
@@ -139,7 +141,7 @@ main(int argc, char **argv) {
 
   FILE                 *defaultOut = 0L;
 
-  seqFile              *F = 0L;
+  seqCache             *F = 0L;
   seqInCore            *S = 0L;
 
   int arg=1;
@@ -156,8 +158,7 @@ main(int argc, char **argv) {
       if (errno)
         fprintf(stderr, "Can't open '%s': %s\n", argv[arg], strerror(errno)), exit(1);
     } else if (strcmp(argv[arg], "-i") == 0) {
-      F = openSeqFile(argv[++arg]);
-      F->openIndex();
+      F = new seqCache(argv[++arg]);
     } else {
       fprintf(stderr, "ESTmapper utility function -- not for human use.\n");
       exit(1);
@@ -174,7 +175,7 @@ main(int argc, char **argv) {
     for (u32bit i=0; i<iidRWlen; i++)
       iidRW[i]->load(F->getNumberOfSequences());
 
-  while ((S = F->getSequenceInCore()) != 0L) {
+  for (u32bit sid=0; ((S = F->getSequenceInCore(sid)) != 0L); sid++) {
     bool     found = false;
     u32bit   iid   = S->getIID();
 

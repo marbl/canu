@@ -3,6 +3,8 @@
 #include <string.h>
 
 #include "bio++.H"
+#include "seqCache.H"
+#include "merStream.H"
 #include "libmeryl.H"
 #include "existDB.H"
 
@@ -48,13 +50,13 @@ main(int argc, char **argv) {
   }
 
   existDB       *E = new existDB(merylFile, merSize, existDBcounts | existDBcompressCounts | existDBcompressBuckets, loCount, hiCount);
-  seqFile       *F = openSeqFile(fastaFile);
-  seqInCore     *S = F->getSequenceInCore();
+  seqCache      *F = new seqCache(fastaFile);
 
-  kMerBuilder KB(merSize);
-
-  while (S) {
-    merStream             *MS = new merStream(&KB, S);
+  for (u32bit Sid=0; Sid < F->getNumberOfSequences(); Sid++) {
+    seqInCore  *S  = F->getSequenceInCore(Sid);
+    merStream  *MS = new merStream(new kMerBuilder(merSize),
+                                   new seqStream(S->sequence(), 0, S->sequenceLength()),
+                                   true, true);
 
     u32bit                 idlen = 0;
     intervalDepthRegions  *id    = new intervalDepthRegions [S->sequenceLength() * 2 + 2];
@@ -121,11 +123,9 @@ main(int argc, char **argv) {
 
     delete MS;
     delete S;
-
-    S = F->getSequenceInCore();
   }
 
-  delete S;
+
   delete F;
   delete E;
 }

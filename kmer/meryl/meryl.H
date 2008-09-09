@@ -44,7 +44,6 @@ public:
   char             *inputFile;
   char             *outputFile;
   char             *queryFile;
-  char             *statsFile;
 
   u32bit            merSize;
   u32bit            merComp;

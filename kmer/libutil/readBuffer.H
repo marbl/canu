@@ -1,27 +1,23 @@
 #ifndef READ_BUFFER_H
 #define READ_BUFFER_H
 
+
 class readBuffer {
 public:
-  //  If bufferMax is zero, then the file is accessed using memory
-  //  mapped I/O.  Otherwise, a small buffer is used.
-  //
   readBuffer(const char *filename, u32bit bufferMax = 32 * 1024);
-
-  //  This constructor always uses a small buffer; memory mapped I/O
-  //  is not allowed.  This lets us pass in fileno(stdin).
-  //
   readBuffer(int fileptr, const char *filename, u32bit bufferMax = 32 * 1024);
 
   ~readBuffer();
 
-  bool             eof(void);
-  bool             next(void);
-  char             get(void);
-  char             getnext(void);
-  bool             seek(off_t pos);
+  bool             eof(void) { return(_eof); };
+
+  char             peek(void);
+
+  char             read(void);
   size_t           read(void *buf, size_t len);
-  off_t            tell(void);
+
+  void             seek(off_t pos);
+  off_t            tell(void) { return(_filePos); };
 
 private:
   void             fillBuffer(void);
@@ -46,65 +42,46 @@ private:
 };
 
 
-inline
-bool
-readBuffer::eof(void) {
-  return(_eof);
-}
-
-
-inline
-bool
-readBuffer::next(void) {
-
-  if (_eof)
-    return(true);
-
-  switch (_fileType) {
-    case 0:
-    case 1:
-      _bufferPos++;
-      _filePos++;
-
-      if (_bufferPos >= _bufferLen)
-        fillBuffer();
-      break;
-    case 2:
-      _bufferPos++;
-      if (_bufferPos >= _bufferLen)
-        _eof = true;
-      break;
-  }
-
-  return(_eof);
-}
-
-
+//  Returns the next letter in the buffer, but DOES NOT advance past
+//  it.  Might have some wierd interaction with EOF -- if you peek()
+//  and the next thing is eof , the _eof flag might get set.
+//
 inline
 char
-readBuffer::get(void) {
+readBuffer::peek(void) {
+
+  if ((_eof == false) && (_fileType != 2) && (_bufferPos >= _bufferLen))
+    fillBuffer();
+
+  if (_eof)
+    return(0);
+
   return(_buffer[_bufferPos]);
 }
 
 
+//  Returns the next letter in the buffer.  Returns EOF (0) if there
+//  is no next letter.
+//
 inline
 char
-readBuffer::getnext(void) {
-  char  x = _buffer[_bufferPos];
-  next();
-  return(x);
+readBuffer::read(void) {
+
+  if ((_eof == false) && (_fileType != 2) && (_bufferPos >= _bufferLen))
+    fillBuffer();
+
+  if (_bufferPos >= _bufferLen)
+    _eof = true;
+
+  if (_eof)
+    return(0);
+
+  _bufferPos++;
+  _filePos++;
+
+  return(_buffer[_bufferPos-1]);
 }
 
-
-inline
-off_t
-readBuffer::tell(void) {
-
-  if (_fileType == 2)
-    return((size_t)_bufferPos);
-
-  return(_filePos);
-}
 
 
 #endif  //  READ_BUFFER_H

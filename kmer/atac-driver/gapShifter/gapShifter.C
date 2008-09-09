@@ -20,8 +20,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "bio++.H"
 #include "atac.H"
+#include "bio++.H"
+#include "seqCache.H"
 
 #define MAXPRINT 90
 
@@ -245,7 +246,7 @@ isPotentiallyShiftable(atacMatch *ma,
 void
 dumpAgap(atacMatch *ma, atacMatch *mb,
          atacMatchOrder &MOB,
-         FastACache *C1, FastACache *C2,
+         seqCache *C1, seqCache *C2,
          u32bit gapLimit,
          bool shiftRight) {
 }
@@ -254,7 +255,7 @@ dumpAgap(atacMatch *ma, atacMatch *mb,
 void
 dumpBgap(atacMatch *ma, atacMatch *mb,
          atacMatchOrder &MOB,
-         FastACache *C1, FastACache *C2,
+         seqCache *C1, seqCache *C2,
          u32bit gapLimit,
          bool shiftRight) {
 }
@@ -330,7 +331,7 @@ shiftGap(atacFile &AF,
          atacMatchList &ML,
          atacMatch *ma, atacMatch *mb,
          atacMatchOrder &MOB,
-         FastACache *C1, FastACache *C2,
+         seqCache *C1, seqCache *C2,
          u32bit gapLimit,
          bool shiftRight) {
 
@@ -690,8 +691,8 @@ main(int argc, char *argv[]) {
   //  second to last == loadAll
   //  last           == report loading
   //
-  FastACache  *C1 = new FastACache(AF.assemblyFileA(),    2, false, false);
-  FastACache  *C2 = new FastACache(AF.assemblyFileB(), 1024, false, false);
+  seqCache  *C1 = new seqCache(AF.assemblyFileA(),    2, false);
+  seqCache  *C2 = new seqCache(AF.assemblyFileB(), 1024, false);
 
   bool    shiftRight   = true;
   u32bit  gapLimit     = 5;

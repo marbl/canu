@@ -1,6 +1,7 @@
 # -*- makefile -*-
 
 LIBBIO/       :=$/libbio/
+LIBSEQ/       :=$/libseq/
 LIBKMER/      :=$/libkmer/
 LIBMERYL/     :=$/libmeryl/
 LIBSIM4/      :=$/libsim4/
@@ -20,7 +21,7 @@ $(eval $(call Include,$/atac-driver/))
 $(eval $(call Include,$/leaff/))
 $(eval $(call Include,$/meryl/))
 $(eval $(call Include,$/seagen/))
-$(eval $(call Include,$/seatac/))
+#$(eval $(call Include,$/seatac/))
 $(eval $(call Include,$/sim4dbutils/))
 $(eval $(call Include,$/sim4db/))
 $(eval $(call Include,$/snapper/))
@@ -30,6 +31,7 @@ $(eval $(call Include,${LIBSIM4/}))
 $(eval $(call Include,${LIBKMER/}))
 $(eval $(call Include,${LIBMERYL/}))
 $(eval $(call Include,${LIBBIO/}))
+$(eval $(call Include,${LIBSEQ/}))
 $(eval $(call Include,${LIBUTL/}))
 
 $/.REAL-CLEAN     := $/Make.compilers $/Make.rules $/Makefile $/makepath $/makepath.c

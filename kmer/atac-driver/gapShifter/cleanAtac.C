@@ -61,8 +61,8 @@ main(int argc, char *argv[]) {
 
   atacFile       AF(matchesFile);
   atacMatchList &ML = *AF.matches();
-  FastACache     Acache(AF.assemblyFileA(), 32, false, false);
-  FastACache     Bcache(AF.assemblyFileB(), 32, false, false);
+  seqCache     Acache(AF.assemblyFileA(), 32, false);
+  seqCache     Bcache(AF.assemblyFileB(), 32, false);
 
   for (u32bit i=0; i<ML.numMatches(); i++) {
     atacMatch            *m = ML.getMatch(i);

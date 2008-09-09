@@ -21,6 +21,7 @@
 #include <unistd.h>
 
 #include "bio++.H"
+#include "seqCache.H"
 #include "atac.H"
 
 #define ANNOTATE
@@ -79,8 +80,8 @@ main(int argc, char *argv[]) {
   atacFile       AF("-");
   atacMatchList &ML = *AF.matches();
 
-  FastACache  *C1 = new FastACache(AF.assemblyFileA(), 1, false, false);
-  FastACache  *C2 = new FastACache(AF.assemblyFileA(), 1, false, false);
+  seqCache  *C1 = new seqCache(AF.assemblyFileA(), 1, false);
+  seqCache  *C2 = new seqCache(AF.assemblyFileA(), 1, false);
 
   for (u32bit mi=0; mi<ML.numberOfMatches(); mi++) {
     atacMatch *m = ML.getMatch(mi);

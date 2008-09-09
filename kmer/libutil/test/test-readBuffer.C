@@ -7,12 +7,12 @@ md5_s           *correct  = 0L;
 
 
 int
-doTest(readBuffer *B, char *description) {
+doTest(readBuffer *B, const char *description) {
   int              error    = 0;
   md5_increment_s *testing  = 0L;
 
-  while (!B->eof())
-    testing = md5_increment_char(testing, B->getnext());
+  for (char x = B->read(); !B->eof(); x = B->read())
+    testing = md5_increment_char(testing, x);
 
   md5_increment_finalize(testing);
 
@@ -30,7 +30,7 @@ doTest(readBuffer *B, char *description) {
 
 
 int
-doTestRead(readBuffer *B, size_t bufferSize, char *description) {
+doTestRead(readBuffer *B, size_t bufferSize, const char *description) {
   int      error         = 0;
   char    *buffer        = new char [bufferSize];
   size_t   bufferLen     = 0;

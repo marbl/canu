@@ -25,6 +25,8 @@ using namespace std;
 
 #include "bio++.H"
 
+#include "seqCache.H"
+
 class atacMatch {
 public:
   atacMatch() {
@@ -48,7 +50,7 @@ public:
   //  Sanity check the match record -- make sure it's within the
   //  sequence itself.
   //
-  bool   sanity(seqFile *A, seqFile *B, char *inLine);
+  bool   sanity(seqCache *A, seqCache *B, char *inLine);
 
 
   char    matchuid[16];     //  external id

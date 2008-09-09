@@ -2,6 +2,7 @@
 
 LIBUTL/     :=$(call MakePath,$/../libutil/)
 LIBBIO/     :=$(call MakePath,$/../libbio/)
+LIBSEQ/     :=$(call MakePath,$/../libseq/)
 LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
 LIBKMER/    :=$(call MakePath,$/../libkmer/)
 LIBSIM4/    :=$(call MakePath,$/../libsim4/)
@@ -25,11 +26,11 @@ $/.CXX_EXES := $/snapper2
 
 $/.CLEAN     :=$/*.o
 
-$(eval $/%.d $/%.o:  CXXFLAGS+= -I${LIBUTL/} -I${LIBBIO/} -I${LIBMERYL/} -I${LIBKMER/} -I${LIBSIM4/})
+$(eval $/%.d $/%.o:  CXXFLAGS+= -I${LIBUTL/} -I${LIBBIO/} -I${LIBSEQ/} -I${LIBMERYL/} -I${LIBKMER/} -I${LIBSIM4/})
 
 $/snapper2:   ${$/.CXX_SRCS:.C=.o} \
               ${LIBSIM4/}libsim4.a \
               ${LIBKMER/}libkmer.a \
               ${LIBMERYL/}libmeryl.a \
-              ${LIBBIO/}libbio.a \
+              ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a \
               ${LIBUTL/}libutil.a

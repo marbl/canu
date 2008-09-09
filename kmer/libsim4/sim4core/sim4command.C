@@ -8,15 +8,15 @@
 
 //  Run a single EST against a genomic range
 //
-//  XXX: We should pull out the EST and GEN from the seqFile,
+//  XXX: We should pull out the EST and GEN from the seqCache,
 //  and store them as the "two char*" method.
 //
 sim4command::sim4command(u32bit      ESTid,
-                         seqFile    *ESTs,
+                         seqCache   *ESTs,
                          u32bit      GENid,
                          u32bit      GENlo,
                          u32bit      GENhi,
-                         seqFile    *GENs,
+                         seqCache   *GENs,
                          bool        doFor,
                          bool        doRev) {
 
@@ -164,11 +164,7 @@ sim4command::loadEST(void) {
   if ((_ESTloaded == 0L) ||
       (_ESTloaded->getIID() != _estIdx)) {
     delete _ESTloaded;
-    if (_ESTs->find(_estIdx) == false) {
-      fprintf(stderr, "ERROR: Can't find IID "u32bitFMT" in the set of ESTs\n", _estIdx);
-      exit(1);
-    }
-    _ESTloaded = _ESTs->getSequenceInCore();
+    _ESTloaded = _ESTs->getSequenceInCore(_estIdx);
   }
 }
 
@@ -182,8 +178,9 @@ sim4command::getESTidx(void) {
 
 char*
 sim4command::getESTheader(void) {
+  static char *xxx = "anonymous cDNA sequence";
   if (_ESTsequence)
-    return("anonymous cDNA sequence");
+    return(xxx);
   loadEST();
   return(_ESTloaded->header());
 }
@@ -213,18 +210,15 @@ sim4command::loadGEN(void) {
   if ((_GENloaded == 0L) ||
       (_GENloaded->getIID() != _genIdx)) {
     delete _GENloaded;
-    if (_GENs->find(_genIdx) == false) {
-      fprintf(stderr, "ERROR: Can't find IID "u32bitFMT" in the set of genomic sequences\n", _genIdx);
-      exit(1);
-    }
-    _GENloaded = _GENs->getSequenceInCore();
+    _GENloaded = _GENs->getSequenceInCore(_genIdx);
   }
 }
 
 char*
 sim4command::getGENheader(void) {
+  char *xxx = "anonymous genomic sequence";
   if (_GENsequence)
-    return("anonymous genomic sequence");
+    return(xxx);
   loadGEN();
   return(_GENloaded->header());
 }

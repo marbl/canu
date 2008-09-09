@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "bio++.H"
+#include "seqCache.H"
 
 //  Splits a sequence into itty-bitty pieces.
 //
@@ -29,10 +30,11 @@ main(int argc, char **argv) {
   u32bit                desiredLength = 0;
   u32bit                overlapLength = 0;
   bool                  beVerbose = false;
-  seqFile              *F = 0L;
-  seqInCore            *B = 0L;
-  FILE                 *O = 0L;
-  FILE                 *L = 0L;
+  seqCache             *F   = 0L;
+  seqInCore            *B   = 0L;
+  u32bit                Bid = 0;
+  FILE                 *O   = 0L;
+  FILE                 *L   = 0L;
 
   u32bit                fragmentIndex = 0;
 
@@ -43,7 +45,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-overlap") == 0) {
       overlapLength = strtou32bit(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-input") == 0) {
-      F = openSeqFile(argv[++arg]);
+      F = new seqCache(argv[++arg]);
     } else if (strcmp(argv[arg], "-output") == 0) {
       errno = 0;
       O = fopen(argv[++arg], "w");
@@ -66,7 +68,7 @@ main(int argc, char **argv) {
   if ((F == 0L) || (O == 0L) || (L == 0L))
     usage(argv[0]);
 
-  B = F->getSequenceInCore();
+  B = F->getSequenceInCore(Bid);
   while (B) {
     if (beVerbose)
       fprintf(stderr, "working on %s\n", B->header());
@@ -181,7 +183,7 @@ main(int argc, char **argv) {
     delete [] end;
 
     delete B;
-    B = F->getSequenceInCore();
+    B = F->getSequenceInCore(++Bid);
   }
 
   fclose(L);

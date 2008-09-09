@@ -67,11 +67,11 @@ main(int argc, char *argv[]) {
   //  We need to compute the identity of the gap; our metric (thanks to Nelson) is
   //  if ("long" and "not low identity") or ("short"), close the gap
 
-  //  We could use the FastACache, but with only a handful of gaps, we
+  //  We could use the seqCache, but with only a handful of gaps, we
   //  just let the OS cache stuff.
 
-  FastACache           *C1 = new FastACache(AF.assemblyFileA(),    2, false, false);
-  FastACache           *C2 = new FastACache(AF.assemblyFileB(), 1024, false, false);
+  seqCache           *C1 = new seqCache(AF.assemblyFileA(),    2, false);
+  seqCache           *C2 = new seqCache(AF.assemblyFileB(), 1024, false);
 
   seqInCore  *S1 = 0L;
   seqInCore  *S2 = 0L;

@@ -2,6 +2,7 @@
 
 LIBUTL/     :=$(call MakePath,$/../../libutil/)
 LIBBIO/     :=$(call MakePath,$/../../libbio/)
+LIBSEQ/     :=$(call MakePath,$/../../libseq/)
 LIBATAC/    :=$(call MakePath,$/../libatac/)
 THIS/       :=$(call MakePath,$/)
 
@@ -17,7 +18,7 @@ $/overlap:   $/overlap.o \
              $/overlap-sort.o \
              $/overlap-process1.o \
              $/overlap-process2.o \
-             ${LIBATAC/}libatac.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+             ${LIBATAC/}libatac.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 
 #  Symlinks below don't work, they either get the source or the destination wrong.
@@ -31,4 +32,4 @@ $/overlap-process2.o: CXXFLAGS+=-DINDEX=2 -DNAME=process2 -DPOS1=pos2 -DPOS2=pos
 $/overlap-process2.C: $/overlap-process.C
 	ln -f ${THIS/}overlap-process.C ${THIS/}overlap-process2.C
 
-$(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBATAC/} -I${LIBBIO/} -I${LIBUTL/})
+$(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBATAC/} -I${LIBBIO/} -I${LIBSEQ/} -I${LIBUTL/})

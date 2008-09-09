@@ -4,7 +4,7 @@
 #include <errno.h>
 #include "existDB.H"
 #include "bio++.H"
-
+#include "seq.H"
 
 bool
 existDB::createFromFastA(char const  *filename,
@@ -51,9 +51,9 @@ existDB::createFromFastA(char const  *filename,
   //
   //  1)  Count bucket sizes
   //
-  seqStream   *CS = new seqStream(filename, true);
-  kMerBuilder  MB(_merSizeInBases);
-  merStream    *M = new merStream(&MB, CS);
+  merStream    *M = new merStream(new kMerBuilder(_merSizeInBases),
+                                  new seqStream(filename),
+                                  true, true);
 
   while (M->nextMer()) {
     if (_isForward) {
@@ -68,7 +68,6 @@ existDB::createFromFastA(char const  *filename,
   }
 
   delete M;
-  delete CS;
 
 #ifdef STATS
   u64bit  dist[32] = {0};
@@ -168,8 +167,9 @@ existDB::createFromFastA(char const  *filename,
   //
   //  3)  Build list of mers, placed into buckets
   //
-  CS = new seqStream(filename, true);
-  M  = new merStream(&MB, CS);
+  M  = new merStream(new kMerBuilder(_merSizeInBases),
+                     new seqStream(filename),
+                     true, true);
 
   while (M->nextMer()) {
     if (_isForward)
@@ -180,7 +180,6 @@ existDB::createFromFastA(char const  *filename,
   }
 
   delete M;
-  delete CS;
 
   //  All done.  Delete temporary stuff
   //

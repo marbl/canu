@@ -2,6 +2,7 @@
 
 LIBUTL/     :=$(call MakePath,$/../libutil/)
 LIBBIO/     :=$(call MakePath,$/../libbio/)
+LIBSEQ/     :=$(call MakePath,$/../libseq/)
 LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
 LIBKMER/    :=$(call MakePath,$/../libkmer/)
 
@@ -32,9 +33,9 @@ $/filter-heavychains.so: $/filter-heavychains.o $/heavychains.o
 
 $/.CLEAN     :=$/*.o
 
-$/%.d $/%.o: CXXFLAGS+=-I${LIBKMER/} -I${LIBBIO/} -I${LIBUTL/}
+$/%.d $/%.o: CXXFLAGS+=-I${LIBKMER/} -I${LIBBIO/} -I${LIBSEQ/} -I${LIBUTL/}
 
 $/seatac:  ${$/.CXX_SRCS:.C=.o} \
-           ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+           ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $/heavychains: $/heavychains-driver.o $/heavychains.o

@@ -7,6 +7,10 @@
 #include "existDB.H"
 #include "libmeryl.H"
 
+#include "seqCache.H"
+#include "seqStream.H"
+#include "merStream.H"
+
 //  Driver for the existDB creation.  Reads a sequence.fasta, builds
 //  an existDB for the mers in the file, and then writes the internal
 //  structures to disk.
@@ -57,9 +61,7 @@ testFiles(char *filename, char *prefix, u32bit merSize) {
 int
 testExistence(char *filename, u32bit merSize) {
   existDB         *E      = new existDB(filename, merSize, existDBnoFlags, 0, ~u32bitZERO);
-  seqStream       *C      = new seqStream(filename, true);
-  kMerBuilder      KB(merSize);
-  merStream       *M      = new merStream(&KB, C);
+  merStream       *M      = new merStream(new kMerBuilder(merSize), new seqStream(filename), true, true);
   u64bit           tried  = 0;
   u64bit           lost   = 0;
 
@@ -70,7 +72,6 @@ testExistence(char *filename, u32bit merSize) {
   }
 
   delete M;
-  delete C;
   delete E;
 
   if (lost) {

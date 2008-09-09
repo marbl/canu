@@ -147,7 +147,7 @@ main(int argc, char **argv) {
   u32bit     nodesMax = 32 * 1024 * 1024;
   trieNode  *nodes    = new trieNode [nodesMax];
 
-  seqFile              *F = openSeqFile(queries);
+  seqCache             *F = new seqCache(queries);
   seqInCore            *S = 0L;
 
   u32bit      seqptrLen = 0;
@@ -209,7 +209,7 @@ main(int argc, char **argv) {
 
   //
 
-  F = openSeqFile(genome);
+  F = new seqCache(genome);
   S = 0L;
   while ((S = F->getSequenceInCore()) != 0L) {
     char    *s    = S->sequence();

@@ -1,7 +1,7 @@
 #include "bio++.H"
+#include "seqCache.H"
 
 bool  sortOnN  = false;
-
 
 struct info {
   u32bit  realLength;
@@ -54,36 +54,32 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  seqFile *F = openSeqFile(filename);
-  F->openIndex();
-
+  seqCache *F = new seqCache(filename);
   u32bit    N = F->getNumberOfSequences();
-
   info     *I = new info [N];
 
   u64bit    realLengthTotal = 0;
   u64bit    acgtLengthTotal = 0;
 
-  seqOnDisk  *seq;
+  u32bit      iid = 0;
+  seqOnDisk  *seq = F->getSequenceOnDisk(iid);
 
-  while ((seq = F->getSequenceOnDisk()) != 0L) {
-    seqIID      iid = seq->getIID();
-
+  while (seq != 0L) {
     strncpy(I[iid].name, seq->header() + (seq->header()[0] == '>'), 32);
     for (u32bit x=0; x<32; x++)
       if (isspace(I[iid].name[x]))
         I[iid].name[x] = 0;
 
     I[iid].realLength = seq->sequenceLength();
-    I[iid].acgtLength = (letterToBits[seq->get()] != 0xff);
 
-    while (seq->next())
-      I[iid].acgtLength += (letterToBits[seq->get()] != 0xff);
+    for (char x=seq->read(); x; x=seq->read())
+      I[iid].acgtLength += (letterToBits[x] != 0xff);
 
     realLengthTotal += I[iid].realLength;
     acgtLengthTotal += I[iid].acgtLength;
 
     delete seq;
+    seq = F->getSequenceOnDisk(++iid);
   }
 
   delete F;

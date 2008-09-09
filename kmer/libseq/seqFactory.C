@@ -1,3 +1,8 @@
+#include "seqFactory.H"
+
+#include "fastaFile.H"
+#include "seqStore.H"
+//#include "sffFile.H"
 
 seqFactory *seqFactory::me = 0L;
 
@@ -8,7 +13,8 @@ seqFactory::seqFactory() {
   _files = new seqFile * [_filesMax];
 
   registerFile(new fastaFile);
-  registerFile(new sffFile);
+  registerFile(new seqStore);
+  //registerFile(new sffFile);
 }
 
 
@@ -22,7 +28,7 @@ seqFactory::~seqFactory() {
 void           
 seqFactory::registerFile(seqFile *f) {
   if (_filesNum >= _filesMax) {
-    fprintf(stderr, "Hmmmm!  Wow!  You registered lots of files!  Now fix %s at line %d.\n", __FILE__, __LINE__);
+    fprintf(stderr, "seqFactory::registerFile()--  Wow!  You registered lots of files!  Now fix %s at line %d.\n", __FILE__, __LINE__);
     exit(1);
   }
   _files[_filesNum++] = f;
@@ -39,10 +45,10 @@ seqFactory::openFile(const char *name) {
       return(n);
   }
 
-  fprintf(stderr, "ERROR: Cannot determine type of file '%s'.  Tried:\n", name);
+  fprintf(stderr, "seqFactory::registerFile()--  Cannot determine type of file '%s'.  Tried:\n", name);
 
   for (u32bit i=0; i<_filesNum; i++)
-    fprintf(stderr, "       %s\n", _files[i]->fileTypeName());
+    fprintf(stderr, "seqFactory::registerFile()--         %s\n", _files[i]->getFileTypeName());
 
   exit(1);
   return(n);

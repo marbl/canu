@@ -2,6 +2,7 @@
 
 LIBUTL/ :=$(call MakePath,$/../libutil/)
 LIBBIO/ :=$(call MakePath,$/../libbio/)
+LIBSEQ/ :=$(call MakePath,$/../libseq/)
 LIBS4P/ :=$(call MakePath,$/sim4polish/)
 
 s4csrc := $/sim4core/sim4command.C \
@@ -61,7 +62,7 @@ $/.CXX_LIBS   :=$/libsim4.a
 
 $/libsim4.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o}
 
-$(eval $/%.d $/%.o: CFLAGS   += -I${LIBUTL/} -I${LIBBIO/} -I${LIBS4P/})
-$(eval $/%.d $/%.o: CXXFLAGS += -I${LIBUTL/} -I${LIBBIO/} -I${LIBS4P/})
+$(eval $/%.d $/%.o: CFLAGS   += -I${LIBUTL/} -I${LIBBIO/} -I${LIBSEQ/} -I${LIBS4P/})
+$(eval $/%.d $/%.o: CXXFLAGS += -I${LIBUTL/} -I${LIBBIO/} -I${LIBSEQ/} -I${LIBS4P/})
 
 

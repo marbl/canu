@@ -36,8 +36,8 @@ configuration config;
 //
 readBuffer           *scriptFile       = 0L;
 
-seqFile              *GENs             = 0L;
-FastACache           *ESTs             = 0L;
+seqCache             *GENs             = 0L;
+seqCache             *ESTs             = 0L;
 
 u32bit                lastGENiid       = ~u32bitZERO;
 u32bit                lastESTiid       = ~u32bitZERO;
@@ -97,8 +97,7 @@ loader(void *U) {
       //
       p->gendelete = lastGENseq;
 
-      GENs->find(GENiid);
-      GENseq = GENs->getSequenceInCore();
+      GENseq = GENs->getSequenceInCore(GENiid);
 
       lastGENiid = GENiid;
       lastGENseq = GENseq;
@@ -132,14 +131,13 @@ loaderPairwise(void *) {
 
   //  If we've run out of sequences, we're done!
   if ((lastGENiid >= GENs->getNumberOfSequences()) ||
-      (lastESTiid >= ESTs->fasta()->getNumberOfSequences()))
+      (lastESTiid >= ESTs->getNumberOfSequences()))
     return(0L);
 
   sim4thWork  *p = new sim4thWork();
 
   //  Grab the GEN sequence
-  GENs->find(lastGENiid++);
-  p->gendelete = GENs->getSequenceInCore();
+  p->gendelete = GENs->getSequenceInCore(lastGENiid++);
 
   //  Grab the EST sequence
   p->estdelete = ESTs->getSequenceInCore(lastESTiid++)->copy();
@@ -163,7 +161,7 @@ loaderAll(void *) {
   //  do that here, so we always go forward.
 
   //  Flip around the end, if needed.
-  if (lastESTiid >= ESTs->fasta()->getNumberOfSequences()) {
+  if (lastESTiid >= ESTs->getNumberOfSequences()) {
     lastESTiid   = 0;
     p->gendelete = lastGENseq;
     lastGENseq   = 0L;
@@ -182,8 +180,7 @@ loaderAll(void *) {
 
   //  Update the genomic sequence?
   if (lastGENseq == 0L) {
-    GENs->find(lastGENiid);
-    lastGENseq = GENs->getSequenceInCore();
+    lastGENseq = GENs->getSequenceInCore(lastGENiid);
   }
 
   //  Grab the EST sequence
@@ -280,10 +277,8 @@ main(int argc, char **argv) {
 
   //  Open input files
   //
-  GENs = openSeqFile(config.databaseFileName);
-  ESTs = new FastACache(config.cdnaFileName, config.loaderCacheSize, false);
-
-  GENs->openIndex();
+  GENs = new seqCache(config.databaseFileName);
+  ESTs = new seqCache(config.cdnaFileName, config.loaderCacheSize, false);
 
   //  Open the output file
   fOutput = openOutputFile(config.outputFileName);

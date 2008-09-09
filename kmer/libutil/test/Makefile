@@ -80,7 +80,7 @@ test-palloc: test-palloc.c ../libutil.a ../util.h ../util++.H
 test-readBuffer: test-readBuffer.C ../libutil.a ../util.h ../util++.H
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-readBuffer.o test-readBuffer.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-readBuffer test-readBuffer.o $(LIBS)
-	./test-readBuffer
+	./test-readBuffer test-readBuffer
 
 test-recordFile: test-recordFile.C ../libutil.a ../util.h ../util++.H
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-recordFile.o test-recordFile.C $(INCLUDE)

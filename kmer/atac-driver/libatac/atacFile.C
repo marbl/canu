@@ -250,20 +250,18 @@ atacFileBase::readHeader(char *inLine, FILE *in) {
   //fprintf(stderr, "assemblyId1   = '%s'\n", _labelA);
   //fprintf(stderr, "assemblyId2   = '%s'\n", _labelB);
 
-  //  Open some seqFile for each of the files
+  //  Open some seqCache for each of the files
   //
   if (_fileA && _fileA[0]) {
     if (fileExists(_fileA)) {
-      _seqA = openSeqFile(_fileA);
-      _seqA->openIndex();
+      _seqA = new seqCache(_fileA);
     } else {
       fprintf(stderr, "atacFile::readHeader()-- can't find '%s', no sequence read.\n", _fileA);
     }
   }
   if (_fileB && _fileB[0]) {
     if (fileExists(_fileA)) {
-      _seqB = openSeqFile(_fileB);
-      _seqB->openIndex();
+      _seqB = new seqCache(_fileB);
     } else {
       fprintf(stderr, "atacFile::readHeader()-- can't find '%s', no sequence read.\n", _fileB);
     }

@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "bio++.H"
+#include "seqCache.H"
 #include "sim4.H"
 
 //  This code takes basic sim4db format polishes and recomputes the
@@ -15,11 +16,11 @@ main(int argc, char **argv) {
 
   //  Load all the sequences.  We really do need all the ESTs in core,
   //  since they probably aren't in a useful sorted order.  You can
-  //  probably figure out a way to get rid of the FastACache for the
+  //  probably figure out a way to get rid of the seqCache for the
   //  GEN.  Doing so will reduce memory usage by about 50%.
 
-  FastACache *EST = 0L;
-  FastACache *GEN = 0L;
+  seqCache   *EST = 0L;
+  seqCache   *GEN = 0L;
   int         mergeTolerancePerc = 0;
   int         mergeToleranceBase = 0;
   int         statsOnly          = 0;
@@ -44,14 +45,15 @@ main(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-M", 2) == 0) {
       mergeLog = fopen(argv[++arg], "w");
     } else if (strncmp(argv[arg], "-e", 2) == 0) {
-      if (statsOnly)
-        EST = new FastACache(argv[++arg], 1000, false, false);  //  debugging only!
-      else 
-        EST = new FastACache(argv[++arg],    0, true);
-      //EST = new FastACache(argv[++arg], 1000, false, false);  //  debugging only!
+      if (statsOnly) {
+        EST = new seqCache(argv[++arg], 1000, false);  //  debugging only!
+      } else {
+        EST = new seqCache(argv[++arg],    0, false);
+        EST->loadAllSequences();
+      }
     } else if (strncmp(argv[arg], "-g", 2) == 0) {
-      //GEN = new FastACache(argv[++arg],    1, false, true);
-      GEN = new FastACache(argv[++arg],    0, true);
+      GEN = new seqCache(argv[++arg],    0, false);
+      GEN->loadAllSequences();
     } else if (strncmp(argv[arg], "-q", 2) == 0) {
       statsOnly = 1;
     } else if (strncmp(argv[arg], "-w", 2) == 0) {

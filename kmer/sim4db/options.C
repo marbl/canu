@@ -12,7 +12,6 @@ const char *usage =
 "       -script       use this script file\n"
 "       -pairwise     do pairs of sequences\n"
 "       -output       write output to this file\n"
-"       -stats        write execution statistics to this file\n"
 "       -touch        create this file when the program finishes execution\n"
 "\n"
 "       -threads      Use n threads.\n"
@@ -120,9 +119,6 @@ configuration::parseCommandLine(int argc, char **argv) {
       scriptFileName = argv[arg];
     } else if (strncmp(argv[arg], "-pa", 3) == 0) {
       pairwise = true;
-    } else if (strncmp(argv[arg], "-st", 3) == 0) {
-      arg++;
-      statsFileName = argv[arg];
     } else if (strncmp(argv[arg], "-to", 3) == 0) {
       arg++;
       touchFileName = argv[arg];

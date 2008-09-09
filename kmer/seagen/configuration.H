@@ -45,7 +45,6 @@ public:
   char            *_onlyFileName;
   char            *_outputFileName;
   char            *_queryMatchFileName;
-  char            *_statsFileName;
 
   int              _outputFile;
   int              _matchCountsFile;
@@ -57,11 +56,11 @@ public:
 
   bool             _binaryOutput;
 
-  seqStream        _useList;
+  seqStream       *_dbSTREAM;
 
   //  Running state
   //
-  seqFile          *_qsFASTA;
+  seqCache         *_qsFASTA;
   existDB          *_maskDB;
   existDB          *_onlyDB;
   positionDB       *_positions;
@@ -93,9 +92,6 @@ public:
 
   void  usage(char *name);
   void  read(int argc, char **argv);
-  void  display(FILE *out=stdout);
-
-  void  dumpStats(void);
 
   void  setTime(struct timespec *ts, double t) {
     ts->tv_sec  = (time_t)floor(t);

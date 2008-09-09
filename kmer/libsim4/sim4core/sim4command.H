@@ -3,9 +3,11 @@
 
 #include "bio++.H"
 
+#include "seqCache.H"
+
 //
 //  Contains the variable stuff for an execution of sim4
-//    access to sequences (via seqFile)
+//    access to sequences (via seqCache)
 //    genomic iid
 //    genomic range
 //    est iid (maybe more than one)
@@ -19,11 +21,11 @@ public:
   //  Run a single EST against a genomic range
   //
   sim4command(u32bit        ESTid,
-              seqFile    *ESTs,
+              seqCache     *ESTs,
               u32bit        GENid,
               u32bit        GENlo,
               u32bit        GENhi,
-              seqFile    *GENs,
+              seqCache     *GENs,
               bool          doForward,
               bool          doReverse);
 
@@ -107,7 +109,7 @@ private:
 
   u32bit                _estIdx;
 
-  seqFile              *_ESTs;
+  seqCache             *_ESTs;
   seqInCore            *_ESTloaded;
   char                 *_ESTsequence;
   u32bit                _ESTsequenceLength;  //  valid only for _ESTsequence
@@ -116,7 +118,7 @@ private:
   u32bit                _genLo;
   u32bit                _genHi;
 
-  seqFile              *_GENs;
+  seqCache             *_GENs;
   seqInCore            *_GENloaded;
   char                 *_GENsequence;
   u32bit                _GENsequenceLength;

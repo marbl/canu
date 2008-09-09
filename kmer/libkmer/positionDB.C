@@ -294,11 +294,7 @@ positionDB::build(merStream          *MS,
     exit(1);
   }
 
-  if (MS->rewind() == false) {
-    fprintf(stderr, "positionDB(): Failed initial rewind of merStream!\n");
-    fprintf(stderr, "positionDB(): Your merStream doesn't support rewind?!!\n");
-    exit(1);
-  }
+  MS->rewind();
 
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -369,10 +365,7 @@ positionDB::build(merStream          *MS,
   //      also using canonical mers here.
   //
 
-  if (MS->rewind() == false) {
-    fprintf(stderr, "positionDB(): Failed second rewind of merStream!\n");
-    exit(1);
-  }
+  MS->rewind();
 
   while (MS->nextMer(_merSkipInBases)) {
     _bucketSizes[ HASH(MS->theFMer()) ]++;
@@ -469,10 +462,7 @@ positionDB::build(merStream          *MS,
 #endif
 
 
-  if (MS->rewind() == false) {
-    fprintf(stderr, "positionDB(): Failed third rewind of merStream!\n");
-    exit(1);
-  }
+  MS->rewind();
 
   while (MS->nextMer(_merSkipInBases)) {
     u64bit h = HASH(MS->theFMer());

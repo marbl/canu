@@ -121,24 +121,24 @@ atacMatch::decode(char *line) {
 //  sequence itself.
 //
 bool
-atacMatch::sanity(seqFile *A, seqFile *B, char *inLine) {
+atacMatch::sanity(seqCache *A, seqCache *B, char *inLine) {
 
   bool matchOK = true;
 
   if (A && B) {
-    if ((pos1) > A->sequenceLength(iid1) || (pos1 + len1) > A->sequenceLength(iid1)) {
+    if ((pos1) > A->getSequenceLength(iid1) || (pos1 + len1) > A->getSequenceLength(iid1)) {
       chomp(inLine);
       fprintf(stderr, "Match longer than sequence (by "u32bitFMT"bp) in 1: seqLen="u32bitFMTW(8)" %s\n",
-              pos1 + len1 - A->sequenceLength(iid1),
-              A->sequenceLength(iid1), inLine);
+              pos1 + len1 - A->getSequenceLength(iid1),
+              A->getSequenceLength(iid1), inLine);
       matchOK = false;
     }
 
-    if ((pos2) > B->sequenceLength(iid2) || (pos2 + len2) > B->sequenceLength(iid2)) {
+    if ((pos2) > B->getSequenceLength(iid2) || (pos2 + len2) > B->getSequenceLength(iid2)) {
       chomp(inLine);
       fprintf(stderr, "Match longer than sequence (by "u32bitFMT"bp) in 2: seqLen="u32bitFMTW(8)" %s\n",
-              pos2 + len2 - B->sequenceLength(iid2),
-              B->sequenceLength(iid2), inLine);
+              pos2 + len2 - B->getSequenceLength(iid2),
+              B->getSequenceLength(iid2), inLine);
       matchOK = false;
     }
 

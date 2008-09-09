@@ -99,16 +99,16 @@ atacFeature::decode(char *line) {
 
 
 bool
-atacFeature::sanity(seqFile *A, char *inLine) {
+atacFeature::sanity(seqCache *A, char *inLine) {
 
   bool  featureOK = true;
 
   if (A) {
-    if ((pos) > A->sequenceLength(iid) || (pos + len) > A->sequenceLength(iid)) {
+    if ((pos) > A->getSequenceLength(iid) || (pos + len) > A->getSequenceLength(iid)) {
       chomp(inLine);
       fprintf(stderr, "Feature longer than sequence (by "u32bitFMT"bp): seqLen="u32bitFMTW(8)" %s\n",
-              pos + len - A->sequenceLength(iid),
-              A->sequenceLength(iid), inLine);
+              pos + len - A->getSequenceLength(iid),
+              A->getSequenceLength(iid), inLine);
       featureOK = false;
     }
 

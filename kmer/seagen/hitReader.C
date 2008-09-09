@@ -81,9 +81,7 @@ hitReader::addInputFile(char *filename) {
 
   //  Binary or ASCII input?
   //
-  char x = _files[_filesLen].buff->get();
-
-  _files[_filesLen].isBINARY = (x != '-');
+  _files[_filesLen].isBINARY = (_files[_filesLen].buff->peek() != '-');
 
   //  Load the first hit
   loadHit(_files+_filesLen);

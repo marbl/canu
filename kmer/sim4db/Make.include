@@ -2,6 +2,7 @@
 
 LIBUTL/     :=$(call MakePath,$/../libutil/)
 LIBBIO/     :=$(call MakePath,$/../libbio/)
+LIBSEQ/     :=$(call MakePath,$/../libseq/)
 LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
 LIBKMER/    :=$(call MakePath,$/../libkmer/)
 LIBSIM4/    :=$(call MakePath,$/../libsim4/)
@@ -13,6 +14,6 @@ $/.CLEAN  := $/*.o
 
 $/sim4th: $/sim4th.o $/options.o $/script.o
 
-${$/.CXX_EXES}:  ${LIBSIM4/}libsim4.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+${$/.CXX_EXES}:  ${LIBSIM4/}libsim4.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
-$(eval $/%.d $/%.o: CXXFLAGS+=  -I${LIBSIM4/} -I${LIBBIO/} -I${LIBUTL/})
+$(eval $/%.d $/%.o: CXXFLAGS+=  -I${LIBSIM4/} -I${LIBBIO/} -I${LIBSEQ/} -I${LIBUTL/})

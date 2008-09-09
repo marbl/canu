@@ -2,6 +2,7 @@
 
 LIBUTL/     :=$(call MakePath,$/../libutil/)
 LIBBIO/     :=$(call MakePath,$/../libbio/)
+LIBSEQ/     :=$(call MakePath,$/../libseq/)
 LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
 LIBKMER/    :=$(call MakePath,$/../libkmer/)
 LIBSIM4/    :=$(call MakePath,$/../libsim4/)
@@ -11,11 +12,11 @@ $/.CXX_EXES := $/tagger   $/tapper   $/tapperconvert   $/tappermerge   $/tappers
 
 $/.CLEAN     :=$/*.o
 
-$(eval $/%.d $/%.o:  CXXFLAGS+= -I${LIBUTL/} -I${LIBBIO/} -I${LIBMERYL/} -I${LIBKMER/} -I${LIBSIM4/})
+$(eval $/%.d $/%.o:  CXXFLAGS+= -I${LIBUTL/} -I${LIBBIO/} -I${LIBSEQ/} -I${LIBMERYL/} -I${LIBKMER/} -I${LIBSIM4/})
 
-$/tagger:             $/tagger.o             ${LIBSIM4/}libsim4.a ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-$/tapper:             $/tapper.o             ${LIBSIM4/}libsim4.a ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-$/tapperconvert:      $/tapperconvert.o      ${LIBSIM4/}libsim4.a ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-$/tappermerge:        $/tappermerge.o        ${LIBSIM4/}libsim4.a ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-$/tappersort:         $/tappersort.o         ${LIBSIM4/}libsim4.a ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-$/tappererrorcorrect: $/tappererrorcorrect.o ${LIBSIM4/}libsim4.a ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/tagger:             $/tagger.o             ${LIBSIM4/}libsim4.a ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/tapper:             $/tapper.o             ${LIBSIM4/}libsim4.a ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/tapperconvert:      $/tapperconvert.o      ${LIBSIM4/}libsim4.a ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/tappermerge:        $/tappermerge.o        ${LIBSIM4/}libsim4.a ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/tappersort:         $/tappersort.o         ${LIBSIM4/}libsim4.a ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/tappererrorcorrect: $/tappererrorcorrect.o ${LIBSIM4/}libsim4.a ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
