@@ -1,0 +1,33 @@
+
+
+Classes
+
+seqFile    -- base class for all sequence file accessor classes.
+
+sffFile    -- accessor for SFF files
+fastaFile  -- accessor for fasta files
+seqStore   -- accessor for kmer binary sequence files
+gkpStore   -- accessor for CA gatekeeper stores (in CA code base)
+
+seqFactory -- Opens files, returns a seqFile.  Used by
+              seqCache and seqStream.
+
+seqInCore  -- a sequence object, in memory
+seqOnDisk  -- a sequence object, on disk
+
+seqCache   -- loads sequences from accessors, returns seqInCore or
+              seqOnDisk, optionally caches seqInCore for later use
+
+seqStream  -- provides a character stream (ala getchar()) of the
+              backing file accessor.  Sequences separated by multiple
+              '.' characters.  ID of sequence and position in
+              sequence are known.
+
+merStream  -- provides a mer stream from a seqStream.
+
+----------------------------------------
+
+ACCESSOR CLASSES are not for general use!  Use:
+  seqCache
+  seqStream
+  merStream
