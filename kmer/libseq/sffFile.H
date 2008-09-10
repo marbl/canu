@@ -82,10 +82,6 @@ public:
   bool          getSequence(u32bit iid,
                             u32bit bgn, u32bit end, char *s);
 
-  //u32bit       getNumberOfSequences(void) {
-  //  return(_header.number_of_reads);
-  //};
-
 private:
   void          clear(void);
 

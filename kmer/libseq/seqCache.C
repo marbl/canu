@@ -2,7 +2,7 @@
 #include "seqFactory.H"
 #include "alphabet.h"
 
-
+#undef DEBUG
 
 seqOnDisk::seqOnDisk(char const *filename,
                      u32bit iid,
@@ -101,6 +101,11 @@ seqCache::seqCache(const char *filename, u32bit cachesize, bool verbose) {
   _allSequencesLoaded  = false;
   _reportLoading       = verbose;
 
+  _cacheMap            = 0L;
+  _cacheSize           = 0;
+  _cacheNext           = 0;
+  _cache               = 0L;
+
   setCacheSize(cachesize);
 }
 
@@ -117,8 +122,20 @@ seqCache::~seqCache() {
 
 u32bit
 seqCache::getSequenceIID(char *name) {
+  u32bit  iid = ~u32bitZERO;
+
+#ifdef DEBUG
+  fprintf(stderr, "seqCache::getSequenceIID()-- '%s'\n", name);
+#endif
+
 #warning mostly unimplemented
-  return(strtou32bit(name, 0L));
+  iid = strtou32bit(name, 0L);
+
+#ifdef DEBUG
+  fprintf(stderr, "seqCache::getSequenceIID()-- '%s' -> "u32bitFMT"\n", name, iid);
+#endif
+
+  return(iid);
 }
 
 
@@ -126,8 +143,16 @@ seqCache::getSequenceIID(char *name) {
 seqInCore *
 seqCache::getSequenceInCore(u32bit iid) {
 
-  if (iid >= _fb->getNumberOfSequences())
+#ifdef DEBUG
+  fprintf(stderr, "seqCache::getSequenceInCore(iid)-- "u32bitFMT"\n", iid);
+#endif
+
+  if (iid >= _fb->getNumberOfSequences()) {
+#ifdef DEBUG
+    fprintf(stderr, "seqCache::getSequenceInCore(iid)-- iid="u32bitFMT" >= numSeq="u32bitFMT"\n", iid, _fb->getNumberOfSequences());
+#endif
     return(0L);
+  }
 
   if (_allSequencesLoaded == true)
     return(_cache[iid]);
@@ -138,8 +163,12 @@ seqCache::getSequenceInCore(u32bit iid) {
   u32bit  hLen=0, hMax=0, sLen=0, sMax=0;
   char   *h=0L, *s=0L;
 
-  if (_fb->getSequence(iid, h, hLen, hMax, s, sLen, sMax) == false)
+  if (_fb->getSequence(iid, h, hLen, hMax, s, sLen, sMax) == false) {
+#ifdef DEBUG
+    fprintf(stderr, "seqCache::getSequenceInCore(iid)-- failed getSequence().");
+#endif
     return(0L);
+  }
 
   seqInCore *sc = new seqInCore(iid, h, hLen, s, sLen);
 
@@ -167,8 +196,15 @@ seqCache::getSequenceInCore(u32bit iid) {
 
 seqOnDisk *
 seqCache::getSequenceOnDisk(u32bit iid) {
+
+#ifdef DEBUG
+  fprintf(stderr, "seqCache::getSequenceOnDisk()-- "u32bitFMT"\n", iid);
+#endif
+
   if (iid >= _fb->getNumberOfSequences())
     return(0L);
+
+#warning unimplemented
   fprintf(stderr, "seqCache::getSequenceOnDisk()--  Not implemented.\n");
   exit(1);
 }

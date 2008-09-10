@@ -41,6 +41,8 @@ seqStore::seqStore(const char *filename) {
   fclose(F);
 
   _rb = new readBuffer(_filename);
+
+  _numberOfSequences = _header._numberOfSequences;
 }
 
 
@@ -90,6 +92,7 @@ seqStore::openFile(const char *filename) {
 
 u32bit
 seqStore::find(const char *sequencename) {
+#warning unimplemented
   fprintf(stderr, "seqStore::find()--  Not implemented.\n");
   exit(1);
 }
@@ -107,6 +110,7 @@ bool
 seqStore::getSequence(u32bit id,
                       char *&h, u32bit &hLen, u32bit &hMax,
                       char *&s, u32bit &sLen, u32bit &sMax) {
+#warning unimplemented
   fprintf(stderr, "seqStore::getSequence()-- Not implemented.\n");
   exit(1);
   return(false);
@@ -117,6 +121,7 @@ seqStore::getSequence(u32bit id,
 bool
 seqStore::getSequence(u32bit iid,
                       u32bit bgn, u32bit end, char *s) {
+#warning unimplemented
   fprintf(stderr, "seqStore::getSequence()-- Not implemented.\n");
   exit(1);
   return(false);

@@ -3,6 +3,14 @@
 
 #include "util.h"
 
+//  General flow of the constructors is:
+//    Clear all data
+//    Open the file
+//    Set _filename, _typename
+//    Read/build the index structure
+//    Position the file to the first read
+//    Set _numberOfSequences (IMPORTANT, and subtle)
+
 class seqFile {
 protected:
   seqFile(const char *filename) {};
@@ -18,6 +26,7 @@ public:
   virtual const char   *getSourceName(void)    { return(_filename); };
   virtual const char   *getFileTypeName(void)  { return(_typename); };
 
+  //  Needs to go.  It is unreliable for stdin fasta files.
   virtual u32bit        getNumberOfSequences(void) { return(_numberOfSequences); };
 
   virtual u32bit        getSequenceLength(u32bit id) = 0;

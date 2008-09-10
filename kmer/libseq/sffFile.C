@@ -82,6 +82,8 @@ sffFile::sffFile(const char *name) {
   //  Index
 
   _rb->seek(_firstReadLocation);
+
+  _numberOfSequences = _header.number_of_reads;
 }
 
 sffFile::~sffFile() {
