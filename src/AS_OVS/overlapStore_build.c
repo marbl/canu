@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: overlapStore_build.c,v 1.14 2008-06-27 06:29:18 brianwalenz Exp $
+//  $Id: overlapStore_build.c,v 1.15 2008-09-10 20:01:12 brianwalenz Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,6 +60,7 @@ off_t
 sizeOfFile(const char *path) {
   struct stat  s;
   int          r;
+  off_t        size = 0;
 
   errno = 0;
   r = stat(path, &s);
@@ -68,7 +69,31 @@ sizeOfFile(const char *path) {
     exit(1);
   }
 
-  return(s.st_size);
+  //  gzipped files contain a file contents list, which we can
+  //  use to get the uncompressed size.
+  //
+  //  gzip -l <file>
+  //  compressed        uncompressed  ratio uncompressed_name
+  //       14444               71680  79.9% up.tar
+  //
+  //  bzipped files have no contents and we just guess.
+
+  if        (strcmp(path+strlen(path)-3, ".gz") == 0) {
+    char   cmd[256];
+    FILE  *F;
+
+    sprintf(cmd, "gzip -l %s", path);
+    F = popen(cmd, "r");
+    fscanf(F, " %*s %*s %*s %*s ");
+    fscanf(F, " %*d %lld %*s %*s ", &size);
+    fclose(F);
+  } else if (strcmp(path+strlen(path)-4, ".bz2") == 0) {
+    size = s.st_size * 14 / 10;
+  } else {
+    size = s.st_size;
+  }
+
+  return(size);
 }
 
 
