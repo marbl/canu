@@ -38,13 +38,16 @@ src    := $/bigQueue.C \
           $/time.c \
           $/u32bitList.H \
           $/unaryEncoding.h \
-          $/unaryEncodingTester.C \
           $/util++.H \
           $/util.h
 
 # Broken
 #          $/bzipBuffer.C
 #          $/bzipBuffer.H
+
+# Executables
+#          $/unaryEncodingTester.C
+
 
 $/.C_SRCS    :=$(filter %.c,${src})
 $/.CXX_SRCS  :=$(filter %.C,${src})
