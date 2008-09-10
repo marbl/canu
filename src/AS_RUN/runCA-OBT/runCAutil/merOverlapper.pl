@@ -125,10 +125,6 @@ sub merOverlapper($) {
         print F " -m $merSize \\\n";
         print F " -c $merComp \\\n";
         print F " -t " . getGlobal("merOverlapperThreads") . "\\\n";
-        #print F " -o $wrk/$outDir/seeds/\$jobid.ovm.WORKING \\\n";
-        #print F " > $wrk/$outDir/seeds/\$jobid.ovm.err 2>&1 \\\n";
-        #print F "&& \\\n";
-        #print F "gzip -1vc < $wrk/$outDir/seeds/\$jobid.ovm.WORKING > $wrk/$outDir/seeds/\$jobid.ovm.WORKING.gz \\\n";
         print F "| \\\n";
         print F "gzip -1c > $wrk/$outDir/seeds/\$jobid.ovm.WORKING.gz \\\n";
         print F "&& \\\n";
@@ -198,10 +194,6 @@ sub merOverlapper($) {
             print F "gzip -1vc > $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz \\\n";
             print F "&& \\\n";
             print F "mv $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz $wrk/$outDir/olaps/\$jobid.ovb.gz\n";
-            print F "\n";
-            print F "rm -f $wrk/$outDir/olaps/\$jobid.ovr.WORKING\n";
-            print F "rm -f $wrk/$outDir/olaps/\$jobid.ovb.WORKING\n";
-            print F "rm -f $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz\n";
         } else {
             print F "-w \\\n" if (getGlobal("merOverlapperCorrelatedDiffs"));
             print F " -c $wrk/3-overlapcorrection/\$jobid.frgcorr.WORKING \\\n";
@@ -215,7 +207,14 @@ sub merOverlapper($) {
             print F "mv $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz $wrk/$outDir/olaps/\$jobid.ovb.gz \\\n";
             print F "&& \\\n";
             print F "mv $wrk/3-overlapcorrection/\$jobid.frgcorr.WORKING $wrk/3-overlapcorrection/\$jobid.frgcorr \\\n";
+            print F "\n";
+            print F "rm -f $wrk/3-overlapcorrection/\$jobid.frgcorr.WORKING\n";
         }
+
+        print F "\n";
+        print F "rm -f $wrk/$outDir/olaps/\$jobid.ovr.WORKING\n";
+        print F "rm -f $wrk/$outDir/olaps/\$jobid.ovb.WORKING\n";
+        print F "rm -f $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz\n";
 
         close(F);
 
