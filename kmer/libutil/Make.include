@@ -22,7 +22,6 @@ src    := $/bigQueue.C \
           $/intervalList.H \
           $/logMsg.H \
           $/md5.c \
-          $/memory.c \
           $/palloc.c \
           $/qsort_mt.c \
           $/readBuffer.C \
@@ -32,13 +31,12 @@ src    := $/bigQueue.C \
           $/speedCounter.C \
           $/speedCounter.H \
           $/splitToWords.H \
-          $/stat.c \
           $/sweatShop.C \
           $/sweatShop.H \
-          $/time.c \
           $/u32bitList.H \
           $/unaryEncoding.h \
           $/util++.H \
+          $/util.c \
           $/util.h
 
 # Broken
