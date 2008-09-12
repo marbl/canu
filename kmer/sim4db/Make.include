@@ -7,12 +7,12 @@ LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
 LIBKMER/    :=$(call MakePath,$/../libkmer/)
 LIBSIM4/    :=$(call MakePath,$/../libsim4/)
 
-$/.CXX_SRCS  := $/sim4th.C $/options.C $/script.C
+$/.CXX_SRCS  := $/sim4th.C
 $/.CXX_EXES  := $/sim4th
 
 $/.CLEAN  := $/*.o
 
-$/sim4th: $/sim4th.o $/options.o $/script.o
+$/sim4th: $/sim4th.o
 
 ${$/.CXX_EXES}:  ${LIBSIM4/}libsim4.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 

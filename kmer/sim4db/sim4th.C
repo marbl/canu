@@ -16,35 +16,140 @@
 // License along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-#include "sim4db.H"
+
+#if defined(__bsd) || defined(__alpha)
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 199506L
+#endif
+#endif
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/resource.h>
+#include <sys/utsname.h>
+#include <signal.h>
+#include <math.h>
+
+#include <pthread.h>
+#include <semaphore.h>
+
+#include "bio++.H"
+#include "sim4.H"
 #include "sweatShop.H"
-
-char   *getNextScript(u32bit     &ESTseq,
-                      u32bit     &GENseq, u32bit &GENlo, u32bit &GENhi,
-                      bool       &doForward,
-                      bool       &doReverse,
-                      readBuffer *scriptFile);
-
-configuration config;
 
 //  XXX  Both loader and loaderAll leave the last gen sequence undeleted!
 
+readBuffer       *scriptFile       = 0L;
 
-//  Things that the various threads need -- we should put these into a
-//  sim4thGlobal class, but we already have a bunch of globals
-//  anyway....
+seqCache         *GENs             = 0L;
+seqCache         *ESTs             = 0L;
+
+u32bit            lastGENiid       = ~u32bitZERO;
+u32bit            lastESTiid       = ~u32bitZERO;
+seqInCore        *lastGENseq       = 0L;
+
+int               fOutput          = 0;
+int               fYesNo           = 0;
+
+char             *cdnaFileName     = 0L;
+char             *scriptFileName   = 0L;
+char             *databaseFileName = 0L;
+char             *outputFileName   = 0L;
+char             *yesnoFileName    = 0L;
+char             *touchFileName    = 0L;
+
+bool              pairwise         = false;
+
+bool              beVerbose        = false;
+bool              beYesNo          = false;
+
+u32bit            numThreads       = 2;
+u32bit            loaderCacheSize  = 1024;
+
+sim4parameters    sim4params;
+
+
+
+//  Parse the command line to create a sim4command object
 //
-readBuffer           *scriptFile       = 0L;
+//  [-f|-r] -e ESTid -D GENid GENlo GENhi
+//
+//    -f  Forward only
+//    -r  Reverse only
+//    -D  genSeqIID genLo genHi
+//    -e  estSeqIID
+//
+//
+char*
+getNextScript(u32bit     &ESTiid,
+              u32bit     &GENiid, u32bit &GENlo, u32bit &GENhi,
+              bool       &doForward,
+              bool       &doReverse) {
 
-seqCache             *GENs             = 0L;
-seqCache             *ESTs             = 0L;
+  char x = scriptFile->read();
 
-u32bit                lastGENiid       = ~u32bitZERO;
-u32bit                lastESTiid       = ~u32bitZERO;
-seqInCore            *lastGENseq       = 0L;
+  //  Skip any white space in the file
+  //
+  while ((scriptFile->eof() == false) && (whitespaceSymbol[x]))
+    x = scriptFile->read();
 
-int                   fOutput          = 0;
-int                   fYesNo           = 0;
+  //  Exit if we're all done.
+  //
+  if (scriptFile->eof())
+    return(0L);
+
+  u32bit  linePos = 0;
+  u32bit  lineMax = 128;
+  char   *line    = new char [lineMax];
+
+  //  Copy the line from the readBuffer into our storage
+  //
+  while ((scriptFile->eof() == false) && (x != '\n')) {
+    line[linePos++] = x;
+    x = scriptFile->read();
+  }
+  line[linePos] = 0;
+
+  //  Decode the line
+  //
+  u32bit         argWords = 0;
+  splitToWords   words(line);
+
+  while (words.getWord(argWords)) {
+    switch (words.getWord(argWords)[1]) {
+      case 'f':
+        doForward = true;
+        doReverse = false;
+        break;
+      case 'r':
+        doForward = false;
+        doReverse = true;
+        break;
+      case 'D':
+        GENiid = strtou32bit(words.getWord(++argWords), 0L);
+        GENlo  = strtou32bit(words.getWord(++argWords), 0L);
+        GENhi  = strtou32bit(words.getWord(++argWords), 0L);
+        break;
+      case 'e':
+        ESTiid = strtou32bit(words.getWord(++argWords), 0L);
+        break;
+      default:
+        //fprintf(stderr, "Unknown option '%s'\n", words.getWord(argWords));
+        break;
+    }
+
+    argWords++;
+  }
+
+  return(line);
+}
+
+
 
 
 class sim4thWork {
@@ -76,7 +181,7 @@ loader(void *U) {
 
   sim4thWork *p = new sim4thWork();
   
-  p->script = getNextScript(ESTiid, GENiid, GENlo, GENhi, doForward, doReverse, scriptFile);
+  p->script = getNextScript(ESTiid, GENiid, GENlo, GENhi, doForward, doReverse);
 
   if (p->script) {
     seqInCore  *ESTseq = 0L;
@@ -201,7 +306,7 @@ void
 worker(void *U, void *T, void *S) {
   sim4thWork  *p = (sim4thWork *)S;
 
-  Sim4       *sim = new Sim4(&config.sim4params);
+  Sim4       *sim = new Sim4(&sim4params);
   p->output       = sim->run(p->input);
   delete sim;
 }
@@ -219,12 +324,12 @@ writer(void *U, void *S) {
     errno = 0;
     write(fOutput, o, strlen(o) * sizeof(char));
     if (errno)
-      fprintf(stderr, "Couldn't write the output file '%s': %s\n", config.outputFileName, strerror(errno)), exit(1);
+      fprintf(stderr, "Couldn't write the output file '%s': %s\n", outputFileName, strerror(errno)), exit(1);
 
     free(o);
   }
 
-  if (config.yesnoFileName) {
+  if (yesnoFileName) {
     char  str[128];
 
     if (L4[0])
@@ -273,28 +378,188 @@ openOutputFile(char *name) {
 int
 main(int argc, char **argv) {
 
-  config.parseCommandLine(argc, argv);
+  int arg = 1;
+  int err = 0;
+  while (arg < argc) {
+    if        (strncmp(argv[arg], "-alignments", 4) == 0) {
+      sim4params.setPrintAlignments(true);
+
+    } else if (strncmp(argv[arg], "-alwaysprint", 4) == 0) {
+      sim4params.setFindAllExons(true);
+      sim4params.setAlwaysReport(atoi(argv[++arg]));
+
+    } else if (strncmp(argv[arg], "-cdna", 3) == 0) {
+      cdnaFileName = argv[++arg];
+
+    } else if (strncmp(argv[arg], "-cut", 3) == 0) {
+      double x = atof(argv[++arg]);
+      if (x < 0.0) {
+        fprintf(stderr, "WARNING:  -cut adjusted to 0.0 (you gave %f)!\n", x);
+        x = 0.0;
+      }
+      if (x > 1.0) {
+        fprintf(stderr, "WARNING:  -cut adjusted to 1.0 (you gave %f)!\n", x);
+        x = 1.0;
+      }
+      sim4params.setPolyTailPercent(x);
+
+    } else if (strncmp(argv[arg], "-genomic", 2) == 0) {
+      databaseFileName = argv[++arg];
+
+    } else if (strncmp(argv[arg], "-minc", 5) == 0) {
+      sim4params.setFindAllExons(true);
+      sim4params.setMinCoverage(atoi(argv[++arg]) / 100.0);
+
+    } else if (strncmp(argv[arg], "-mini", 5) == 0) {
+      sim4params.setFindAllExons(true);
+      sim4params.setMinPercentExonIdentity(atoi(argv[++arg]));
+
+    } else if (strncmp(argv[arg], "-minl", 5) == 0) {
+      sim4params.setFindAllExons(true);
+      sim4params.setMinCoverageLength(atoi(argv[++arg]));
+
+    } else if (strncmp(argv[arg], "-nod", 4) == 0) {
+      sim4params.setIncludeDefLine(false);
+
+    } else if (strncmp(argv[arg], "-non", 4) == 0) {
+      sim4params.setDontForceCanonicalSplicing(true);
+
+    } else if (strncmp(argv[arg], "-f", 2) == 0) {
+      sim4params.setForceStrandPrediction(true);
+
+    } else if (strncmp(argv[arg], "-o", 2) == 0) {
+      outputFileName = argv[++arg];
+
+    } else if (strncmp(argv[arg], "-po", 3) == 0) {
+      sim4params.setIgnorePolyTails(false);
+
+    } else if (strncmp(argv[arg], "-sc", 3) == 0) {
+      scriptFileName = argv[++arg];
+
+    } else if (strncmp(argv[arg], "-pa", 3) == 0) {
+      pairwise = true;
+
+    } else if (strncmp(argv[arg], "-to", 3) == 0) {
+      touchFileName = argv[++arg];
+
+    } else if (strncmp(argv[arg], "-verbose", 2) == 0) {
+      beVerbose = true;
+
+    } else if (strncmp(argv[arg], "-YN", 3) == 0) {
+      yesnoFileName = argv[++arg];
+
+    } else if (strncmp(argv[arg], "-threads", 3) == 0) {
+      numThreads = strtou32bit(argv[++arg], 0L);
+
+    } else if (strncmp(argv[arg], "-H", 2) == 0) {
+      sim4params.setRelinkWeight(atoi(argv[++arg]));
+
+    } else if (strncmp(argv[arg], "-K", 2) == 0) {
+      sim4params.setMSPThreshold1(atoi(argv[++arg]));
+
+    } else if (strncmp(argv[arg], "-C", 2) == 0) {
+      sim4params.setMSPThreshold2(atoi(argv[++arg]));
+
+    } else if (strncmp(argv[arg], "-Ma", 3) == 0) {
+      sim4params.setMSPLimitAbsolute(atoi(argv[++arg]));
+
+    } else if (strncmp(argv[arg], "-Mp", 3) == 0) {
+      sim4params.setMSPLimitPercent(atof(argv[++arg]));
+
+    } else if (strncmp(argv[arg], "-interspecies", 2) == 0) {
+      sim4params.setInterspecies(true);
+
+    } else {
+      fprintf(stderr, "Unknown option '%s'.\n", argv[arg]);
+      err++;
+    }
+
+    arg++;
+  }
+
+  if ((err) ||
+      (cdnaFileName == 0L) ||
+      (databaseFileName == 0L) ||
+      (outputFileName == 0L)) {
+    fprintf(stderr, "usage: %s -genomic g.fasta -cdna c.fasta -output o.sim4db [options]\n", argv[0]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "       -v            print status to stderr while running\n");
+    fprintf(stderr, "       -V            print script lines (stderr) as they are processed\n");
+    fprintf(stderr, "       -YN           print script lines (to given file) as they are processed, annotated with yes/no\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "       -cdna         use these cDNA sequences\n");
+    fprintf(stderr, "       -genomic      use these genomic sequences\n");
+    fprintf(stderr, "       -script       use this script file\n");
+    fprintf(stderr, "       -pairwise     do pairs of sequences\n");
+    fprintf(stderr, "       -output       write output to this file\n");
+    fprintf(stderr, "       -touch        create this file when the program finishes execution\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "       -threads      Use n threads.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "       -mincoverage  iteratively find all exon models with the specified\n");
+    fprintf(stderr, "                     minimum PERCENT COVERAGE\n");
+    fprintf(stderr, "       -minidentity  iteratively find all exon models with the specified\n");
+    fprintf(stderr, "                     minimum PERCENT EXON IDENTITY\n");
+    fprintf(stderr, "       -minlength    iteratively find all exon models with the specified\n");
+    fprintf(stderr, "                     minimum ABSOLUTE COVERAGE (number of bp matched)\n");
+    fprintf(stderr, "       -alwaysreport always report <number> exon models, even if they\n");
+    fprintf(stderr, "                     are below the quality thresholds\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "         If no mincoverage or minidentity or minlength is given, only\n");
+    fprintf(stderr, "         the best exon model is returned.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "         You will probably want to specify ALL THREE of mincoverage,\n");
+    fprintf(stderr, "         minidentity and minlength!  Don't assume the default values\n");
+    fprintf(stderr, "         are what you want!\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "         You will DEFINITELY want to specify at least one of mincoverage,\n");
+    fprintf(stderr, "         minidentity and minlength with alwaysreport!  If you don't, mincoverage\n");
+    fprintf(stderr, "         will be set to 90 and minidentity to 95 -- to reduce the number of\n");
+    fprintf(stderr, "         spurious matches when a good match is found.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "       -nodeflines   don't include the defline in the output\n");
+    fprintf(stderr, "       -alignments   print alignments\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "       -polytails    DON'T mask poly-A and poly-T tails.\n");
+    fprintf(stderr, "       -cut          Trim marginal exons if A/T %% > x (poly-AT tails)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "       -noncanonical Don't force canonical splice sites\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "       -forcestrand  Force the strand prediction to always be\n");
+    fprintf(stderr, "                     'forward' or 'reverse'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "       -interspecies Configure sim4 for better inter-species alignments\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  The following are for use only by immortals.\n");
+    fprintf(stderr, "       -H            set the relink weight factor\n");
+    fprintf(stderr, "       -K            set the first MSP threshold\n");
+    fprintf(stderr, "       -C            set the second MSP threshold\n");
+    fprintf(stderr, "       -Ma           set the limit of the number of MSPs allowed\n");
+    fprintf(stderr, "       -Mp           same, as percentage of bases in cDNA\n");
+    fprintf(stderr, "                     NOTE:  If used, both -Ma and -Mp must be specified!\n");
+    exit(1);
+  }
 
   //  Open input files
   //
-  GENs = new seqCache(config.databaseFileName);
-  ESTs = new seqCache(config.cdnaFileName, config.loaderCacheSize, false);
+  GENs = new seqCache(databaseFileName);
+  ESTs = new seqCache(cdnaFileName, loaderCacheSize, false);
 
   //  Open the output file
-  fOutput = openOutputFile(config.outputFileName);
-  fYesNo  = openOutputFile(config.yesnoFileName);
+  fOutput = openOutputFile(outputFileName);
+  fYesNo  = openOutputFile(yesnoFileName);
 
   sweatShop  *ss = 0L;
 
   //  If we have a script, read work from there, otherwise,
   //  do an all-vs-all.
   //
-  if (config.scriptFileName) {
-    scriptFile = new readBuffer(config.scriptFileName);
+  if (scriptFileName) {
+    scriptFile = new readBuffer(scriptFileName);
     ss = new sweatShop(loader,
                        worker,
                        writer);
-  } else if (config.pairwise) {
+  } else if (pairwise) {
     ss = new sweatShop(loaderPairwise,
                        worker,
                        writer);
@@ -304,15 +569,15 @@ main(int argc, char **argv) {
                        writer);
   }
 
-  ss->setNumberOfWorkers(config.numThreads);
-  ss->run(0L, config.beVerbose);
+  ss->setNumberOfWorkers(numThreads);
+  ss->run(0L, beVerbose);
 
   //  Only close the file if it isn't stdout
   //
-  if (strcmp(config.outputFileName, "-") != 0)
+  if (strcmp(outputFileName, "-") != 0)
     close(fOutput);
 
-  if (config.yesnoFileName)
+  if (yesnoFileName)
     close(fYesNo);
 
   delete scriptFile;
