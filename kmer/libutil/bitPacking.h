@@ -13,6 +13,10 @@
 //
 //#define CHECK_WIDTH
 
+//  As CHECK_WIDTH is kind of expensive, we'll warn.
+#ifdef CHECK_WIDTH
+#warning libutil/bitPacking.h defined CHECK_WIDTH
+#endif
 
 //  Returns 'siz' bits from the stream based at 'ptr' and currently at
 //  location 'pos'.  The position of the stream is not changed.
@@ -110,7 +114,6 @@ getDecodedValue(u64bit *ptr,
   u64bit ret = 0;
 
 #ifdef CHECK_WIDTH
-#warning libbri/bitPacking.h::getDecodedValue() has defined CHECK_WIDTH!
   if (siz == 0) {
     fprintf(stderr, "ERROR: getDecodedValue() called with zero size!\n");
     abort();
@@ -147,7 +150,6 @@ setDecodedValue(u64bit *ptr,
   u64bit b1  = 64 - bit;
 
 #ifdef CHECK_WIDTH
-#warning libbri/bitPacking.h::setDecodedValue() has defined CHECK_WIDTH!
   if (siz == 0) {
     fprintf(stderr, "ERROR: setDecodedValue() called with zero size!\n");
     abort();
@@ -194,7 +196,6 @@ getDecodedValues(u64bit *ptr,
     b1 = 64 - bit;
 
 #ifdef CHECK_WIDTH
-#warning libbri/bitPacking.h::postDecrementDecodedValue() has defined CHECK_WIDTH!
     if (siz[i] == 0) {
       fprintf(stderr, "ERROR: postDecrementDecodedValue() called with zero size!\n");
       abort();
@@ -249,7 +250,6 @@ setDecodedValues(u64bit *ptr,
     b1 = 64 - bit;
 
 #ifdef CHECK_WIDTH
-#warning libbri/bitPacking.h::postDecrementDecodedValue() has defined CHECK_WIDTH!
     if (siz[i] == 0) {
       fprintf(stderr, "ERROR: postDecrementDecodedValue() called with zero size!\n");
       abort();
@@ -310,7 +310,6 @@ preIncrementDecodedValue(u64bit *ptr,
   u64bit ret = 0;
 
 #ifdef CHECK_WIDTH
-#warning libbri/bitPacking.h::preIncrementDecodedValue() has defined CHECK_WIDTH!
   if (siz == 0) {
     fprintf(stderr, "ERROR: preIncrementDecodedValue() called with zero size!\n");
     abort();
@@ -361,7 +360,6 @@ preDecrementDecodedValue(u64bit *ptr,
   u64bit ret = 0;
 
 #ifdef CHECK_WIDTH
-#warning libbri/bitPacking.h::preDecrementDecodedValue() has defined CHECK_WIDTH!
   if (siz == 0) {
     fprintf(stderr, "ERROR: preDecrementDecodedValue() called with zero size!\n");
     abort();
@@ -412,7 +410,6 @@ postIncrementDecodedValue(u64bit *ptr,
   u64bit ret = 0;
 
 #ifdef CHECK_WIDTH
-#warning libbri/bitPacking.h::postIncrementDecodedValue() has defined CHECK_WIDTH!
   if (siz == 0) {
     fprintf(stderr, "ERROR: postIncrementDecodedValue() called with zero size!\n");
     abort();
@@ -468,7 +465,6 @@ postDecrementDecodedValue(u64bit *ptr,
   u64bit ret = 0;
 
 #ifdef CHECK_WIDTH
-#warning libbri/bitPacking.h::postDecrementDecodedValue() has defined CHECK_WIDTH!
   if (siz == 0) {
     fprintf(stderr, "ERROR: postDecrementDecodedValue() called with zero size!\n");
     abort();
