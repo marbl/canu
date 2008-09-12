@@ -25,13 +25,15 @@ struct fastaFileEntry {
 class fastaFile : public seqFile {
 protected:
   fastaFile(const char *filename);
+  fastaFile();
 
 public:
-  fastaFile();
   ~fastaFile();
 
+protected:
   seqFile            *openFile(const char *filename);
 
+public:
   u32bit              find(const char *sequencename);
 
   u32bit              getSequenceLength(u32bit iid);
@@ -54,6 +56,8 @@ private:
   u32bit             _nextID;         //  Next sequence in the read buffer
 
   bool               _isStreamInput;  //  If true, cannot ever be random access
+
+  friend class seqFactory;
 };
 
 

@@ -27,7 +27,7 @@ public:
     //  loop, but with the inclusion of spacing and compression, we
     //  cannot do that anymore.
 
-    seqStream  *SS = new seqStream(seq->sequence(), 0, seq->sequenceLength());
+    seqStream  *SS = new seqStream(seq->sequence(), seq->sequenceLength());
     merStream  *MS = new merStream(KB, SS);
     u64bit      mer;
     u32bit      val;
@@ -222,8 +222,11 @@ doSearch(searcherState       *state,
       u32bit                GENhi  = theHits[h]._dsHi;
 
       merStream            *MS     = new merStream(state->KB,
-                                                   new seqStream(GENseq->sequence(), GENlo, GENhi - GENlo),
+                                                   new seqStream(GENseq->sequence(), GENseq->sequenceLength()),
                                                    false, true);
+
+      MS->setRange(GENlo, GENhi - GENlo);
+
       positionDB           *PS     = new positionDB(MS, config._KBmerSize, 0, 0L, 0L, 0L, 0, 0, 0, 0, false);
       hitMatrix            *HM     = new hitMatrix(seq->sequenceLength(), query->numberOfMersInQuery(), idx, theLog);
 

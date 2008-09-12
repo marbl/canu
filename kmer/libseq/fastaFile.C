@@ -2,8 +2,8 @@
 #include "alphabet.h"
 
 
-#undef DEBUG
-
+#define DEBUG
+#undef  DEBUGINDEX
 
 //  Says 'kmerFastaFileIdx'
 #define FASTA_MAGICNUMBER1  0x7473614672656d6bULL
@@ -19,9 +19,8 @@ fastaFile::fastaFile(const char *filename) {
 
   if ((filename == 0L) || (strcmp(filename, "-") == 0)) {
     strcpy(_filename, "stdin");
-    strcpy(_typename, "fasta");
 
-    _rb    = new readBuffer(fileno(stdin), _filename);
+    _rb    = new readBuffer("-");
     _isStreamInput = true;
 
     //  Unknown number of sequeuces.
@@ -30,13 +29,11 @@ fastaFile::fastaFile(const char *filename) {
   }
 
   strcpy(_filename, filename);
-  strcpy(_typename, "fasta");
-
-  _rb    = new readBuffer(_filename);
 
   fprintf(stderr, "fastaFile::fastaFile()-- building index for '%s'\n", (filename) ? filename : "NULLPOINTER");
   constructIndex();
-  //fprintf(stderr, "fastaFile::fastaFile()-- building index for '%s' -- done\n", (filename) ? filename : "NULLPOINTER");
+
+  _rb    = new readBuffer(_filename);
 
   _numberOfSequences = _index._numberOfSequences;
 }
@@ -71,7 +68,7 @@ fastaFile::openFile(const char *filename) {
   //
   if ((filename == 0L) || (strcmp(filename, "-") == 0)) {
     fprintf(stderr, "seqFile()-- stdin supplied; assuming FastA format.\n");
-    return(new fastaFile(filename));
+    return(new fastaFile("-"));
   }
 
   errno = 0;
@@ -85,24 +82,23 @@ fastaFile::openFile(const char *filename) {
   //  assume it's fasta if we find a '>' denoting a defline the first
   //  thing in the file.
   //
-  fastaFile *f = new fastaFile(filename);
-  char       x = f->_rb->read();
+  fastaFile   *f = 0L;
+  readBuffer  *r = new readBuffer(filename);
+  char         x = r->read();
 
-  while ((!f->_rb->eof()) && whitespaceSymbol[x])
-    x = f->_rb->read();
+  while ((!r->eof()) && whitespaceSymbol[x])
+    x = r->read();
 
   //  If we get a fasta record separator assume it's a fasta file.  If
   //  it's eof, the file is empty, and we might as well return this
   //  fasta file and let the client deal with the lack of sequence.
   //
-  if ((x == '>') || (f->_rb->eof() == true)) {
-    f->_rb->seek(0);
-    return(f);
-  }
+  if ((x == '>') || (r->eof() == true))
+    f = new fastaFile(filename);
 
-  delete f;
+  delete r;
 
-  return(0L);
+  return(f);
 }
 
 
@@ -298,6 +294,9 @@ void
 fastaFile::clear(void) {
   memset(_filename, 0, FILENAME_MAX);
   memset(_typename, 0, FILENAME_MAX);
+
+  strcpy(_typename, "FastA");
+
   _numberOfSequences = 0;
 
   _rb                = 0L;
@@ -335,7 +334,6 @@ fastaFile::constructIndex(void) {
   //  If the index exists, suck it in and return.
 
   if (fileExists(indexname)) {
-    fprintf(stderr, "WOULD HAVE LOADED INDEX!\n");
   }
 
   //  Allocate some space for the index structures.
@@ -356,24 +354,34 @@ fastaFile::constructIndex(void) {
   u32bit       seqLen;
 
   readBuffer   ib(_filename);
-  char         x = ib.peek();
+  char         x = ib.read();
+
+#ifdef DEBUGINDEX
+  fprintf(stderr, "readBuffer '%s' eof=%d x=%c %d\n", _filename, ib.eof(), x, x);
+#endif
 
   //  Build it.
 
   //  Skip whitespace at the start of the sequence.
-  while ((!ib.eof()) && whitespaceSymbol[x])
+  while ((!ib.eof()) && whitespaceSymbol[x]) {
+#ifdef DEBUGINDEX
+    fprintf(stderr, "skip '%c' %d\n", x, x);
+#endif
     x = ib.read();
+  }
 
   while (ib.eof() == false) {
-    //fprintf(stderr, "index\n");
+#ifdef DEBUGINDEX
+    fprintf(stderr, "index\n");
+#endif
 
     //  We should be at a '>' character now.  Fail if not.
     if (x != '>')
       fprintf(stderr, "fastaFile::constructIndex()-- ERROR3: In %s, expected '>' at beginning of defline, got '%c' instead.\n",
               _filename, x), exit(1);
 
-    //  Save info.
-    seqStart = ib.tell();
+    //  Save info -- ib has moved past the '>', hence the -1.
+    seqStart = ib.tell() - 1;
     seqLen   = 0;
 
     //  Copy the name to the names
@@ -387,7 +395,9 @@ fastaFile::constructIndex(void) {
       }
 
       _names[namesLen++] = x;
-      //fprintf(stderr, "name += %c\n", x);
+#ifdef DEBUGINDEX
+      fprintf(stderr, "name += %c\n", x);
+#endif
       x = ib.read();
     }
 
@@ -395,21 +405,29 @@ fastaFile::constructIndex(void) {
 
     //  Skip the rest of the defline
     while ((!ib.eof()) && (x != '\r') && (x != '\n')) {
-      //fprintf(stderr, "skip let %c\n", x);
+#ifdef DEBUGINDEX
+      fprintf(stderr, "skip let %c\n", x);
+#endif
       x = ib.read();
     }
 
     //  Skip whitespace between the defline and the sequence.
     while ((!ib.eof()) && whitespaceSymbol[x]) {
-      //fprintf(stderr, "skip num %d\n", x);
+#ifdef DEBUGINDEX
+      fprintf(stderr, "skip num %d\n", x);
+#endif
       x = ib.read();
     }
 
-    //fprintf(stderr, "x=%c peek=%c\n", x, ib.peek());
+#ifdef DEBUGINDEX
+    fprintf(stderr, "x=%c peek=%c\n", x, ib.peek());
+#endif
 
     //  Count sequence length
     while ((!ib.eof()) && (ib.peek() != '>')) {
-      //fprintf(stderr, "save %c\n", x);
+#ifdef DEBUGINDEX
+      fprintf(stderr, "seqlen %s %c\n", (!whitespaceSymbol[x]) ? "save" : "skip", x);
+#endif
       if (!whitespaceSymbol[x])
         seqLen++;
       x = ib.read();
@@ -428,16 +446,13 @@ fastaFile::constructIndex(void) {
     _entry[entryLen]._position = seqStart;
     _entry[entryLen]._seqLen   = seqLen;
 
-#ifdef DEBUG
     fprintf(stderr, "INDEX iid="u32bitFMT" len="u32bitFMT" pos="u64bitFMT"\n",
             entryLen, seqLen, seqStart);
-#endif
 
     entryLen++;
 
-    //  Load the '>' for the next iteration -- a peek() instead of a read() so that
-    //  we remember the start position.
-    x = ib.peek();
+    //  Load the '>' for the next iteration.
+    x = ib.read();
   }
 
   //  Fill out the index meta data

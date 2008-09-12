@@ -14,13 +14,15 @@
 class seqFile {
 protected:
   seqFile(const char *filename) {};
+  seqFile() {};
 
 public:
-  seqFile() {};
   virtual ~seqFile() {};
 
+protected:
   virtual seqFile      *openFile(const char *filename) = 0;
 
+public:
   virtual u32bit        find(const char *sequencename) = 0;
 
   virtual const char   *getSourceName(void)    { return(_filename); };
@@ -41,6 +43,8 @@ protected:
   char                 _typename[FILENAME_MAX];
 
   u32bit               _numberOfSequences;
+
+  friend class seqFactory;
 };
 
 #endif //  SEQFILE_H

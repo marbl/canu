@@ -6,18 +6,6 @@
 
 #include "seqFile.H"
 
-
-//  Interface that returns a stream of the ACGT (and location) in a
-//  file of sequence.
-//
-//  Previous versions would allow the sequences to be ordered
-//  arbitrarily, or to have a subset of the sequences used.  This is
-//  no longer useful.
-//
-//  Instead, we allow the stream to begin/end at arbitrary sequence
-//  positions.
-
-
 struct seqStreamIndex {
   u32bit   _iid;  //  seqFile IID
   u32bit   _len;  //  length of the sequence
@@ -28,7 +16,7 @@ struct seqStreamIndex {
 class seqStream {
 public:
   seqStream(const char *filename);
-  seqStream(const char *sequence, u32bit offset, u32bit length);
+  seqStream(char *sequence, u32bit length);
   ~seqStream();
 
   //  Separate sequences with this letter.  Non-ACGT is always
@@ -50,8 +38,17 @@ public:
   //  Set the range of ACGT sequence we will return.  Coordinates are
   //  space-based.  Example:
   //
-  //      012...3...456
-  //      AAAnnnCnnnGGG
+  //  >one
+  //  AAA
+  //  >two
+  //  C
+  //  >three
+  //  GGG
+  //
+  //  We separate these sequences with three '-' letters.
+  //
+  //  strPos    012...3...456
+  //            AAA---C---GGG
   //
   //  range(0,0) -> nothing
   //  range(0,1) -> A
@@ -64,6 +61,8 @@ public:
   //  seqPos() is the position we are at in the current sequence;
   //  seqIID() is the iid of that sequence;
   //  strPos() is the position we are at in the chained sequence
+  //
+  //  Values are not defined if the letter is a separator.
   //
   u64bit            seqPos(void)     { return(_currentPos);            };
   u64bit            seqIID(void)     { return(_idx[_currentIdx]._iid); };
@@ -86,7 +85,8 @@ public:
 private:
   void              fillBuffer(void);
 
-  seqFile         *_file;
+  seqFile         *_file;        //  Backed by a seqFile.
+  char            *_string;      //  Backed by a character string.
 
   u64bit           _bgn;
   u64bit           _end;
@@ -97,9 +97,10 @@ private:
 
   // Buffer for holding sequence from the seqFile.
 
-  u32bit           _bufferMax;     //  Max size of the buffer
-  u32bit           _bufferLen;     //  Actual size of the buffer
-  u32bit           _bufferPos;     //  Position we are at in the buffer
+  u32bit           _bufferMax;   //  Max size of the buffer
+  u32bit           _bufferLen;   //  Actual size of the buffer
+  u32bit           _bufferPos;   //  Position we are at in the buffer
+  u32bit           _bufferSep;   //  How much of the buffer is separator
   char            *_buffer;
 
   //  Info about the raw sequences
@@ -111,13 +112,8 @@ private:
 
   bool             _eof;
 
-  //  Simpler implementation is to fill the buffer with the separator.  This one
-  //  worked without a buffer.
-
   char             _separator;
-  bool             _separatorDone;
   u32bit           _separatorLength;
-  u32bit           _separatorPosition;
 };
 
 

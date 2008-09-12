@@ -32,7 +32,7 @@ main(int argc, char **argv) {
 
   while (S) {
     merStream     *MS = new merStream(new kMerBuilder(22),
-                                      new seqStream(S->sequence(), 0, S->sequenceLength()),
+                                      new seqStream(S->sequence(), S->sequenceLength()),
                                       true, true);
 
     IL.clear();

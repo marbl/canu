@@ -19,15 +19,23 @@
 //  The merStream does NOT assume ownership of either of these, unless
 //  the own flags are set.
 //
+//  The stream is not valid until nextMer is called; allowing loops of
+//     while (MS->nextMer()) {
+//         process(MS->theFMer());
+//     }
+//
+//  setRange() positions refer to ACGT letters in the input, NOT mers.
+//  rewind() repositions the file to the start of the range.
+//
 
 class merStream {
 public:
   merStream(kMerBuilder *kb, seqStream *ss, bool kbown=false, bool ssown=false);
   ~merStream();
 
-  kMer const &           theFMer(void)    { return(_kb->theFMer()); };
-  kMer const &           theRMer(void)    { return(_kb->theRMer()); };
-  kMer const &           theCMer(void)    { return(_kb->theCMer()); };
+  kMer const &           theFMer(void)    { assert(_invalid == false); return(_kb->theFMer()); };
+  kMer const &           theRMer(void)    { assert(_invalid == false); return(_kb->theRMer()); };
+  kMer const &           theCMer(void)    { assert(_invalid == false); return(_kb->theCMer()); };
 
   bool                   nextMer(u32bit skip=0) {
     char  ch;
@@ -39,29 +47,22 @@ public:
     } while ((_kb->addBase(ch) == true) || (skip-- > 0));
 
     _kb->mask();
+    _invalid = false;
 
-    //  _ss->acgtPosForMerStream(theFMer().getMerSpan())
-    if (_ss->seqPos() - theFMer().getMerSpan() >= _end)
-      return(false);
+#ifdef DEBUG
+    fprintf(stderr, "merStream::nextMer()-- seqPos="u32bitFMT" span="u32bitFMT" end="u32bitFMT"\n",
+            _ss->seqPos(), theFMer().getMerSpan(), _end);
+#endif
 
-    return(true);
+    return(_ss->seqPos() - theFMer().getMerSpan() < _end);
   };
 
-  //  Everyone can rewind back to the start, and it's boring.
-  //  Slightly more efficient than just opening a new stream.
-  //
-  //  If we're backed by a seqStore, we can reposition the merstream
-  //  anywhere we like to.  The positions refer to the N'th ACGT in
-  //  the file, not the N'th mer in the file!  Note that rewind()ing a
-  //  file with a range set rewinds to the beginning of the _range_
-  //  not the file.
-  //
   void                   rewind(void);
   void                   setRange(u64bit beg, u64bit end);
 
-  u64bit                 thePositionInSequence(void)   { return(_ss->seqPos() + 1 - theFMer().getMerSpan()); };
-  u64bit                 thePositionInStream(void)     { return(_ss->strPos() + 1 - theFMer().getMerSpan()); };
-  u64bit                 theSequenceNumber(void)       { return(_ss->seqIID()); };
+  u64bit                 thePositionInSequence(void)   { assert(_invalid == false); return(_ss->seqPos() - theFMer().getMerSpan()); };
+  u64bit                 thePositionInStream(void)     { assert(_invalid == false); return(_ss->strPos() - theFMer().getMerSpan()); };
+  u64bit                 theSequenceNumber(void)       { assert(_invalid == false); return(_ss->seqIID()); };
 
   u64bit                 approximateNumberOfMers(void);
 
@@ -72,14 +73,10 @@ private:
   bool                  _kbdelete;
   bool                  _ssdelete;
 
-  //  We can't tell the seqStore when to stop; while we could compute
-  //  the span of a spaced seed, we cannot compute it for a compressed
-  //  seed.  We need to stop iterating when the beginning of the mer
-  //  reaches the requested end.
-  //
+  bool                  _invalid;
+
   u64bit                _beg;
   u64bit                _end;
-  u64bit                _pos;
 };
 
 

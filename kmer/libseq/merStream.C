@@ -3,15 +3,17 @@
 
 merStream::merStream(kMerBuilder *kb, seqStream *ss, bool kbown, bool ssown) {
   _kb       = kb;
-  _kbdelete = kbown;
   _ss       = ss;
+
+  _kbdelete = kbown;
   _ssdelete = ssown;
 
   _beg      =  u64bitZERO;
   _end      = ~u64bitZERO;
-  _pos      =  u64bitZERO;
 
   _kb->clear();
+
+  _invalid = true;
 }
 
 
@@ -25,16 +27,26 @@ void
 merStream::rewind(void) {
   _ss->rewind();
   _kb->clear();
+  _invalid = true;
 }
 
 
 void
 merStream::setRange(u64bit beg, u64bit end) {
+
+  //  We can't tell the seqStore when to stop; while we could compute
+  //  the span of a spaced seed, we cannot compute it for a compressed
+  //  seed.  We need to stop iterating when the beginning of the mer
+  //  reaches the requested end.
+  //
   _ss->setRange(beg, ~u64bitZERO);
+
   _beg = beg;
   _end = end;
-  _pos = beg;
+
   _kb->clear();
+
+  _invalid = true;
 }
 
 
@@ -42,8 +54,8 @@ u64bit
 merStream::approximateNumberOfMers(void) {
   u64bit  approx = _end - _beg;
 
-  //  Don't know a range, sum all the sequence lengths, otherwise,
-  //  it's just the length from begin to end.
+  //  If we don't know the range, sum all the sequence lengths,
+  //  otherwise, it's just the length from begin to end.
   //
   if (_end == ~u64bitZERO)
     for (u32bit s=0; s<_ss->numberOfSequences(); s++)

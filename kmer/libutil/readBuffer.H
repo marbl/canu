@@ -5,8 +5,6 @@
 class readBuffer {
 public:
   readBuffer(const char *filename, u32bit bufferMax = 32 * 1024);
-  readBuffer(int fileptr, const char *filename, u32bit bufferMax = 32 * 1024);
-
   ~readBuffer();
 
   bool             eof(void) { return(_eof); };
@@ -26,11 +24,13 @@ private:
   char           *_filename;
 
   int             _file;
-  int             _fileType;  //  0=stdin, 1=normal, 2=mmap
-
   off_t           _filePos;
 
+  bool            _mmap;
+  bool            _stdin;
+
   bool            _eof;
+  bool            _valid;
 
   //  If bufferMax is zero, then we are using the mmapped interface, otherwise,
   //  we are using a open()/read() and a small buffer.
@@ -50,7 +50,9 @@ inline
 char
 readBuffer::peek(void) {
 
-  if ((_eof == false) && (_fileType != 2) && (_bufferPos >= _bufferLen))
+  assert(_valid);
+
+  if ((_eof == false) && (_bufferPos >= _bufferLen))
     fillBuffer();
 
   if (_eof)
@@ -67,11 +69,10 @@ inline
 char
 readBuffer::read(void) {
 
-  if ((_eof == false) && (_fileType != 2) && (_bufferPos >= _bufferLen))
-    fillBuffer();
+  assert(_valid);
 
-  if (_bufferPos >= _bufferLen)
-    _eof = true;
+  if ((_eof == false) && (_bufferPos >= _bufferLen))
+    fillBuffer();
 
   if (_eof)
     return(0);

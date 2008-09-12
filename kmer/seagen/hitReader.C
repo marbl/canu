@@ -72,12 +72,7 @@ hitReader::addInputFile(char *filename) {
   errno = 0;
 
   _files[_filesLen].stillMore = true;
-
-  if (strcmp(filename, "-") == 0) {
-    fprintf(stderr, "hitReader::addInputFile()-- stdin not supported!\n"), exit(1);
-  } else {
-    _files[_filesLen].buff = new readBuffer(filename, 1 * 1048576);
-  }
+  _files[_filesLen].buff      = new readBuffer(filename);
 
   //  Binary or ASCII input?
   //

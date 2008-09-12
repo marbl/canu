@@ -4,13 +4,16 @@
 
 seqStream::seqStream(const char *filename) {
   _file              = openSeqFile(filename);
+  _string            = 0L;
 
   _currentIdx        = 0;
   _currentPos        = 0;
+  _streamPos         = 0;
 
   _bufferMax         = 1048576;
   _bufferLen         = 0;
   _bufferPos         = 0;
+  _bufferSep         = 0;
   _buffer            = new char [_bufferMax];
 
   _idxLen            = _file->getNumberOfSequences();
@@ -21,11 +24,9 @@ seqStream::seqStream(const char *filename) {
   _eof               = false;
 
   _separator         = '.';
-  _separatorDone     = false;
-  _separatorLength   = 20;
-  _separatorPosition = 0;
+  _separatorLength   = 2;
 
-  setSeparator('.', 1);
+  setSeparator('.', 2);
 
   _bgn               = 0;
   _end               = _lengthOfSequences;
@@ -33,20 +34,19 @@ seqStream::seqStream(const char *filename) {
 
 
 
-seqStream::seqStream(const char *sequence, u32bit offset, u32bit length) {
+seqStream::seqStream(char *sequence, u32bit length) {
   _file              = 0L;
-
-#warning seqStream(const char*, u32bit, u32bit) -- offset might be broken
+  _string            = sequence;
 
   _currentIdx        = 0;
-  _currentPos        = offset;
+  _currentPos        = 0;
+  _streamPos         = 0;
 
   _bufferMax         = length;
   _bufferLen         = length;
   _bufferPos         = 0;
-  _buffer            = new char [length];
-
-  memcpy(_buffer, sequence + offset, length);
+  _bufferSep         = 0;
+  _buffer            = _string;
 
   _idxLen            = 1;
   _idx               = new seqStreamIndex [_idxLen + 1];
@@ -55,28 +55,28 @@ seqStream::seqStream(const char *sequence, u32bit offset, u32bit length) {
   _idx[0]._len = length;
   _idx[0]._bgn = 0;
 
-  _idx[1]._iid = 0;
-  _idx[1]._len = length;
-  _idx[1]._bgn = 0;
+  _idx[1]._iid = ~u32bitZERO;
+  _idx[1]._len = 0;
+  _idx[1]._bgn = length;
 
   _lengthOfSequences = length;
 
   _eof               = false;
 
   _separator         = '.';
-  _separatorDone     = false;
   _separatorLength   = 20;
-  _separatorPosition = 0;
 
   _bgn               = 0;
-  _end               = _lengthOfSequences;
+  _end               = length;
 }
 
 
 
 seqStream::~seqStream() {
-  delete    _file;
-  delete [] _buffer;
+  if (_file) {
+    delete    _file;
+    delete [] _buffer;
+  }
   delete [] _idx;
 }
 
@@ -85,7 +85,8 @@ seqStream::~seqStream() {
 void
 seqStream::setSeparator(char sep, u32bit len) {
 
-  if (_file == 0L)
+  //  Special case; no separator needed for string backed sequences.
+  if (_string)
     return;
 
   _lengthOfSequences = 0;
@@ -110,10 +111,18 @@ seqStream::setSeparator(char sep, u32bit len) {
 
 unsigned char
 seqStream::get(void) {
+  if (_streamPos >= _end)
+    _eof = true;
+  if ((_eof == false) && (_bufferPos >= _bufferLen))
+    fillBuffer();
   if (_eof)
     return(0);
-  if (_bufferPos >= _bufferLen)
-    fillBuffer();
+  if (_bufferSep == 0) {
+    _currentPos++;
+    _streamPos++;
+  } else {
+    _bufferSep--;
+  }
   return(_buffer[_bufferPos++]);
 }
 
@@ -131,12 +140,20 @@ seqStream::rewind(void){
   while ((s < _idxLen) && (l + _idx[s]._len < _bgn))
     l += _idx[s++]._len;
 
+  _eof = false;
+
   _currentIdx = s;
   _currentPos = _bgn - l;
+  _streamPos  = _bgn;
+  _bufferPos  = _bgn;
 
-  _bufferLen = 0;
+  fprintf(stderr, "seqStream::rewind()-- 1 currentIdx="u32bitFMT" currentPos="u32bitFMT" streamPos="u32bitFMT" bufferPos="u32bitFMT"\n",
+          _currentIdx, _currentPos, _streamPos, _bufferPos);
 
   fillBuffer();
+
+  fprintf(stderr, "seqStream::rewind()-- 2 currentIdx="u32bitFMT" currentPos="u32bitFMT" streamPos="u32bitFMT" bufferPos="u32bitFMT"\n",
+          _currentIdx, _currentPos, _streamPos, _bufferPos);
 }
 
 
@@ -214,8 +231,11 @@ seqStream::sequenceNumberOfPosition(u64bit p) {
 void
 seqStream::fillBuffer(void) {
 
+  //  Special case for when we're backed by a character string; there
+  //  is no need to fill the buffer.
+  //
   if (_file == 0L) {
-    if (_currentPos < _idx[_currentIdx]._len)
+    if (_currentPos >= _end)
       _eof = true;
     return;
   }
@@ -224,10 +244,13 @@ seqStream::fillBuffer(void) {
   //  there is noting in the buffer to save.
 
   _bufferLen = 0;
+  _bufferPos = 0;
 
   //  Still more stuff in the sequence?  Get it.
 
   if (_currentPos < _idx[_currentIdx]._len) {
+    fprintf(stderr, "seqStream::fillBuffer()--  More Seq currentPos="u32bitFMT" len="u32bitFMT"\n", _currentPos, _idx[_currentIdx]._len);
+
     _bufferLen = MIN(_idx[_currentIdx]._len - _currentPos, _bufferMax);
 
     if (_file->getSequence(_idx[_currentIdx]._iid,
@@ -239,8 +262,14 @@ seqStream::fillBuffer(void) {
     return;
   }
 
-  //  We're at the end of the sequence.  If we're also at the end of
-  //  the chain, we're done.
+  //  We've finished a sequence.  Load the next.
+
+  _currentIdx++;
+  _currentPos = 0;
+
+  fprintf(stderr, "seqStream::fillBuffer()--  New Seq currentPos="u32bitFMT" len="u32bitFMT"\n", _currentPos, _idx[_currentIdx]._len);
+
+  //  All done if there is no more sequence.
 
   if (_currentIdx >= _idxLen) {
     _eof = true;
@@ -252,17 +281,22 @@ seqStream::fillBuffer(void) {
   for (_bufferLen = 0; _bufferLen < _separatorLength; _bufferLen++)
     _buffer[_bufferLen] = _separator;
 
-  //  Load sequence.
+  //  Keep track of the separator - this is used to make sure we don't
+  //  advance the sequence/stream position while the separator is
+  //  being returned.
+  //
+  _bufferSep = _bufferLen;
 
-  _currentIdx++;
-  _currentPos = 0;
-
-  u32bit bl = MIN(_idx[_currentIdx]._len - _currentPos, _bufferMax);
+  //  How much to get; minimum of what is left in the sequence, and
+  //  the buffer size.  Don't forget about the separator we already
+  //  inserted!
+  //
+  u32bit bl = MIN(_idx[_currentIdx]._len - _currentPos, _bufferMax - _bufferLen);
 
   if (_file->getSequence(_idx[_currentIdx]._iid,
                          _currentPos,
                          _currentPos + bl,
-                         _buffer) == false)
+                         _buffer + _bufferLen) == false)
     fprintf(stderr, "seqStream::fillBuffer()-- Failed to get sequence?\n"), exit(1);
 
   _bufferLen += bl;

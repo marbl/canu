@@ -12,7 +12,6 @@ seqStore::seqStore(const char *filename) {
   clear();
 
   strcpy(_filename, filename);
-  strcpy(_typename, "seqStore");
 
   errno = 0;
   FILE *F = fopen(_filename, "r");
@@ -131,8 +130,17 @@ seqStore::getSequence(u32bit iid,
 
 void
 seqStore::clear(void) {
+  memset(_filename, 0, FILENAME_MAX);
+  memset(_typename, 0, FILENAME_MAX);
+
+  strcpy(_typename, "seqStore");
+
+  _numberOfSequences = 0;
+
   _rb = 0L;
+
   memset(&_header, 0, sizeof(seqStoreIndex));
+
   _index = 0L;
   _names = 0L;
 }

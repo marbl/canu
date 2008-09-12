@@ -62,12 +62,15 @@ struct seqStoreBlock {
 class seqStore : public seqFile {
 protected:
   seqStore(const char *filename);
-public:
   seqStore();
+
+public:
   ~seqStore();
 
+protected:
   seqFile            *openFile(const char *filename);
 
+public:
   u32bit              find(const char *sequencename);
 
   u32bit              getSequenceLength(u32bit iid);
@@ -87,8 +90,8 @@ private:
   seqStoreIndex     *_index;
   seqStoreBlock     *_block;
   char              *_names;
+
+  friend class seqFactory;
 };
-
-
 
 #endif  //  SEQSTORE_H

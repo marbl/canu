@@ -55,7 +55,7 @@ main(int argc, char **argv) {
   for (u32bit Sid=0; Sid < F->getNumberOfSequences(); Sid++) {
     seqInCore  *S  = F->getSequenceInCore(Sid);
     merStream  *MS = new merStream(new kMerBuilder(merSize),
-                                   new seqStream(S->sequence(), 0, S->sequenceLength()),
+                                   new seqStream(S->sequence(), S->sequenceLength()),
                                    true, true);
 
     u32bit                 idlen = 0;

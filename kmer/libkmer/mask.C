@@ -63,7 +63,7 @@ main(int argc, char **argv) {
     //  Build the initial masking
     //
     merStream    *MS = new merStream(new kMerBuilder(merSize),
-                                     new seqStream(S->sequence(), 0, S->sequenceLength()),
+                                     new seqStream(S->sequence(), S->sequenceLength()),
                                      true, true);
     while (MS->nextMer())
       if (exist->exists(MS->theFMer()) || exist->exists(MS->theRMer()))

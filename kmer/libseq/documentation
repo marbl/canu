@@ -2,6 +2,12 @@
 
 Classes
 
+Two groups of classes exist, file accessor classes and (unnamed).
+File accessor classes are not for general use; clients should not use
+them directly.
+
+File Accessors:
+
 seqFile    -- base class for all sequence file accessor classes.
 
 sffFile    -- accessor for SFF files
@@ -11,6 +17,8 @@ gkpStore   -- accessor for CA gatekeeper stores (in CA code base)
 
 seqFactory -- Opens files, returns a seqFile.  Used by
               seqCache and seqStream.
+
+<unnamed>:
 
 seqInCore  -- a sequence object, in memory
 seqOnDisk  -- a sequence object, on disk
@@ -27,7 +35,51 @@ merStream  -- provides a mer stream from a seqStream.
 
 ----------------------------------------
 
-ACCESSOR CLASSES are not for general use!  Use:
-  seqCache
-  seqStream
-  merStream
+seqFie & file accessors in general.
+
+There are no public constructors.  These objects are constructed
+exclusively by the seqFactory.
+
+The openFile() method is not client callable.  It creates a new
+accessor object on the supplied filename.  If the filename cannot be
+loaded -- doesn't exist, isn't the correct type, etc, etc, a NULL
+pointer should be returned.  Details: the seqFactory calls openFile()
+on EVERY known accessor type, and returns the seqFile for the first
+one that returns an object.  openFile() should to all checking to
+see if the supplied file can be read by this accessor, and if so,
+openFile() calls the constructor to create a new object.
+
+The find() method will return the IID for a supplied sequence name.
+The precise definition of 'sequence name' is left to the accessor
+classes.  For fasta files, the name is the first word on the defline.
+If no name can be found, ~u32bitZERO will be returned.
+
+getSequenceLength() returns the length of some sequence.  It is a fast
+operation, simply looking up in the index.
+
+Two flavors of getSequence() exist, one returns the full sequence, the
+other returns a subsequence.  The 'full' version will allocate or
+reallocate the header (h) and sequence (s) arrays as needed.  The
+'partial' version expects the sequence array (s) is large enough.
+
+----------------------------------------
+
+seqStream
+
+Interface that returns a stream of the ACGT (and location) in a file
+of sequence.
+
+Previous versions would allow the sequences to be ordered arbitrarily,
+or to have a subset of the sequences used.  This is no longer useful.
+Instead, we allow the stream to begin/end at arbitrary sequence
+positions.
+
+The seqStream returns 0 before eof() is true.  If we expand a typical
+reading loop:
+
+eof() -> false
+get() -> 'A'
+eof() -> false
+get() -> 0
+eof() -> true
+

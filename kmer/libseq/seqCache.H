@@ -77,7 +77,7 @@ public:
   char            read(void);
 
 private:
-  readBuffer    *_readBuffer;
+  readBuffer    *_rb;
 
   u32bit         _idx;
 

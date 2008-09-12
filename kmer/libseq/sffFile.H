@@ -62,13 +62,15 @@ struct sffIndex {
 class sffFile : public seqFile {
 protected:
   sffFile(const char *filename);
+  sffFile();
 
 public:
-  sffFile();
   ~sffFile();
 
+protected:
   seqFile      *openFile(const char *name);
 
+public:
   u32bit        find(const char *sequencename) {
     assert(0);
     return(0);
@@ -94,6 +96,8 @@ private:
 
   u64bit       _firstReadLocation;
   u64bit       _readIID;
+
+  friend class seqFactory;
 };
 
 

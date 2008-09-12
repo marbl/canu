@@ -17,22 +17,17 @@ seqOnDisk::seqOnDisk(char const *filename,
   _sequenceLength    = seqlen;
   _sequenceStart     = seqstart;
 
-  u32bit readBufferLength = 1024 * 1024;
+  _rb        = new readBuffer(filename, MIN(1024 * 1024, _headerLength + _sequenceLength + 16));
 
-  if (readBufferLength > _headerLength + _sequenceLength + 16)
-    readBufferLength = _headerLength + _sequenceLength + 16;
-
-  _readBuffer        = new readBuffer(filename, readBufferLength);
-
-  _readBuffer->seek(_headerStart);
+  _rb->seek(_headerStart);
 
   _header = new char [_headerLength + 1];
-  _readBuffer->read(_header, _headerLength);
+  _rb->read(_header, _headerLength);
   _header[_headerLength] = 0;
 
   _sequence = 0L;
 
-  _readBuffer->seek(_sequenceStart);
+  _rb->seek(_sequenceStart);
 
   _sequencePosition  = 0;
 }
@@ -42,7 +37,7 @@ seqOnDisk::seqOnDisk(char const *filename,
 seqOnDisk::seqOnDisk(u32bit iid,
             char *hdr, u32bit hdrlen,
                      char *seq, u32bit seqlen) {
-  _readBuffer       = 0L;;
+  _rb       = 0L;;
   _idx              = iid;
   _headerLength     = hdrlen;
   _sequenceLength   = seqlen;
@@ -56,7 +51,7 @@ seqOnDisk::seqOnDisk(u32bit iid,
 
 
 seqOnDisk::~seqOnDisk() {
-  delete    _readBuffer;
+  delete    _rb;
   delete [] _header;
   delete [] _sequence;
 }
@@ -75,15 +70,15 @@ seqOnDisk::read(void) {
   //  Assumptions; there is another non-space letter out there,
   //  otherwise, _sequencePosition would equal _sequenceLength.
 
-  char   x = _readBuffer->read();
+  char   x = _rb->read();
 
   while (whitespaceSymbol[x]) {
-    if (_readBuffer->eof()) {
+    if (_rb->eof()) {
       fprintf(stderr, "seqOnDisk::read()--  WARNING hit unexpected eof.\n");
       return(0);
     }
 
-    x = _readBuffer->read();
+    x = _rb->read();
   }
 
   _sequencePosition++;

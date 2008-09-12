@@ -8,100 +8,80 @@
 #include <fcntl.h>
 
 
-  //  If bufferMax is zero, then the file is accessed using memory
-  //  mapped I/O.  Otherwise, a small buffer is used.
-  //
+//  If bufferMax is zero, then the file is accessed using memory
+//  mapped I/O.  Otherwise, a small buffer is used.
+//
 readBuffer::readBuffer(const char *filename, u32bit bufferMax) {
-  init(-1, filename, bufferMax);
-}
 
+  _filename    = 0L;
+  _file        = 0;
+  _filePos     = 0;
+  _mmap        = false;
+  _stdin       = false;
+  _eof         = false;
+  _valid       = false;
+  _bufferPos   = 0;
+  _bufferLen   = 0;
+  _bufferMax   = 0;
+  _buffer      = 0L;
 
-  //  This constructor always uses a small buffer; memory mapped I/O
-  //  is not allowed.  This lets us pass in fileno(stdin).
-  //
-readBuffer::readBuffer(int fileptr, const char *filename, u32bit bufferMax) {
-  if (bufferMax == 0) {
-    fprintf(stderr, "readBuffer::readBuffer()-- file '%s' requested memory mapped I/O on previously\n", filename);
-    fprintf(stderr, "readBuffer::readBuffer()-- opened file, but that's not allowed.  bufferMax reset to 32KB.\n");
-    bufferMax = 32 * 1024;
+  if (filename == 0L)
+    filename = "-";
+
+  if (strcmp(filename, "-") == 0) {
+    _stdin = true;
+
+    if (bufferMax == 0)
+      bufferMax = 32 * 1024;
   }
-  init(fileptr, filename, bufferMax);
-}
-
-
-readBuffer::~readBuffer() {
-
-  switch (_fileType) {
-    case 0:
-      delete [] _filename;
-      delete [] _buffer;
-      break;
-    case 1:
-      delete [] _filename;
-      delete [] _buffer;
-      errno = 0;
-      close(_file);
-      if (errno) {
-        fprintf(stderr, "readBuffer()-- WARNING: couldn't close the file '%s': %s\n",
-                _filename, strerror(errno));
-      }
-      break;
-    case 2:
-      delete [] _filename;
-      unmapFile(_buffer, _bufferLen);
-      break;
-  }
-}
-
-
-void
-readBuffer::init(int fileptr, const char *filename, u32bit bufferMax) {
 
   _filename  = new char [strlen(filename) + 1];
   strcpy(_filename, filename);
 
   if (bufferMax == 0) {
-    _file        = 0;
-    _fileType    = 2;
-    _filePos     = 0;
-    _eof         = false;
-    _bufferPos   = 0;
-    _bufferLen   = 0;
-    _bufferMax   = 0;
-    _buffer      = (char *)mapFile(_filename, &_bufferLen, 'r');
+    _mmap   = true;
+    _buffer = (char *)mapFile(_filename, &_bufferLen, 'r');
   } else {
-    if (fileptr == -1) {
-      _fileType = 1;
-      errno = 0;
-      fileptr = open(filename, O_RDONLY | O_LARGEFILE);
-      if (errno)
-        fprintf(stderr, "readBuffer()-- couldn't open the file '%s': %s\n",
-                filename, strerror(errno)), exit(1);
-    } else {
-      _fileType    = 0;
-    }
-    _file        = fileptr;
-    _filePos     = 0;
-    _eof         = false;
-    _bufferPos   = 0;          //  Position we are at in the buffer
-    _bufferLen   = 0;          //  Valid length of the buffer
-    _bufferMax   = bufferMax;  //  Maximum size of the buffer
+    errno = 0;
+    _file = (_stdin) ? fileno(stdin) : open(_filename, O_RDONLY | O_LARGEFILE);
+    if (errno)
+      fprintf(stderr, "readBuffer()-- couldn't open the file '%s': %s\n",
+              _filename, strerror(errno)), exit(1);
+
+    _bufferMax   = bufferMax;
     _buffer      = new char [_bufferMax];
-
-    _buffer[0] = 0;
-
-    fillBuffer();
   }
+
+  fillBuffer();
+
+  _valid = (_bufferLen > 0);
+}
+
+
+readBuffer::~readBuffer() {
+
+  delete [] _filename;
+
+  if (_mmap)
+    unmapFile(_buffer, _bufferLen);
+  else
+    delete [] _buffer;
+
+  if (_stdin == false)
+    close(_file);
 }
 
 
 void
 readBuffer::fillBuffer(void) {
 
-  if ((_fileType == 2) || (_bufferPos < _bufferLen))
+  if (_bufferPos < _bufferLen)
     return;
 
+  assert(_mmap == false);
+
   _bufferPos = 0;
+  _bufferLen = 0;
 
  again:
   errno = 0;
@@ -120,10 +100,17 @@ readBuffer::fillBuffer(void) {
 void
 readBuffer::seek(off_t pos) {
 
-  if (_fileType == 0)
-    fprintf(stderr, "readBuffer()-- seek() not available for file '%s'.\n", _filename), exit(1);
+  assert(_valid);
 
-  if (_fileType == 1) {
+  if (_stdin == true) {
+    fprintf(stderr, "readBuffer()-- seek() not available for file 'stdin'.\n");
+    exit(1);
+  }
+
+  if (_mmap) {
+    _bufferPos = pos;
+    _filePos   = pos;
+  } else {
     errno = 0;
     lseek(_file, pos, SEEK_SET);
     if (errno)
@@ -133,16 +120,11 @@ readBuffer::seek(off_t pos) {
     _bufferLen = 0;
     _bufferPos = 0;
     _filePos = pos;
-    _eof     = false;
 
     fillBuffer();
   }
 
-  if (_fileType == 2) {
-    _bufferPos = pos;
-    _filePos   = pos;
-    _eof       = (_bufferPos >= _bufferLen);
-  }
+  _eof       = (_bufferPos >= _bufferLen);
 }
 
 
@@ -150,9 +132,11 @@ size_t
 readBuffer::read(void *buf, size_t len) {
   char  *bufchar = (char *)buf;
 
+  assert(_valid);
+
   //  Handle the mmap'd file first.
 
-  if (_fileType == 2) {
+  if (_mmap) {
     size_t c = 0;
 
     while ((_bufferPos < _bufferLen) && (c < len))

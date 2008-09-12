@@ -13,7 +13,6 @@ sffFile::sffFile(const char *name) {
   clear();
 
   strcpy(_filename, name);
-  strcpy(_typename, "SFF");
 
   _rb = new readBuffer(name);
 
@@ -192,6 +191,10 @@ sffFile::clear(void) {
 
   memset(_filename, 0, FILENAME_MAX);
   memset(_typename, 0, FILENAME_MAX);
+
+  strcpy(_typename, "SFF");
+
+  _numberOfSequences = 0;
 
   _rb = 0L;
 

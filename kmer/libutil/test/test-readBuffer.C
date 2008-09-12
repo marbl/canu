@@ -80,7 +80,7 @@ main(int argc, char **argv) {
 
   //  Test just reading, with a small buffer
   //
-  B = new readBuffer(filename, 999);
+  B = new readBuffer(filename, false, false, 999);
   error += doTest(B, "#1 (read)");
 
 
@@ -93,14 +93,14 @@ main(int argc, char **argv) {
 
   //  Test the mmap() interface
   //
-  B = new readBuffer(filename, 0);
+  B = new readBuffer(filename, false, true, 0);
   error += doTest(B, "#3 (mmap)");
   delete B;
 
 
   //  Test read() with a small buffer, reading large chunks
   //
-  B = new readBuffer(filename, 100);
+  B = new readBuffer(filename, false, false, 100);
   error += doTestRead(B, 10000, "#4 (read)");
   delete B;
 
@@ -108,14 +108,14 @@ main(int argc, char **argv) {
   //  Test read() with a small buffer, reading small chunks that are a
   //  factor of the buffersize.
   //
-  B = new readBuffer(filename, 2000);
+  B = new readBuffer(filename, false, false, 2000);
   error += doTestRead(B, 1000, "#4 (read)");
   delete B;
 
 
   //  Test read() with a large buffer, reading even larger pieces
   //
-  B = new readBuffer(filename, sizeOfFile(filename));
+  B = new readBuffer(filename, false, false, sizeOfFile(filename));
   error += doTestRead(B, sizeOfFile(filename) + 100000, "#5 (read)");
   delete B;
 
