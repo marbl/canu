@@ -50,7 +50,6 @@ main(int argc, char **argv) {
     exit(1);
   }
   config.read(argc, argv);
-  config.display();
 
   config._startTime = getTime();
 
@@ -71,13 +70,7 @@ main(int argc, char **argv) {
 
   config._initTime = getTime();
 
-
-  //  Complete the configuration
-  //
-  config._useList.setFile(config._dbFileName);
-  config._useList.setSeparator('.', 1);
-  config._useList.finish();
-
+  config._genome = new seqStream(config._dbFileName);
 
   //  Create the chunk, returning a positionDB.  Threads will use both
   //  chain and postions to build hitMatrices.
@@ -107,7 +100,7 @@ main(int argc, char **argv) {
     }
 
     merStream  *MS = new merStream(new kMerBuilder(config._merSize),
-                                   config._useList,
+                                   config._genome,
                                    true, false);
 
     positions = new positionDB(MS, config._merSize, config._merSkip, maskDB, onlyDB, 0L, 0, 0, 0, 0, config._beVerbose);

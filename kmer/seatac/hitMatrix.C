@@ -173,8 +173,8 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
 
     //  Move the currentSeq until the firstHit is below it.
     //
-    while ((currentSeq < config._useList.numberOfSequences()) &&
-           (config._useList.startOf(currentSeq) <= _hits[firstHit]._dsPos))
+    while ((currentSeq < config._genome->numberOfSequences()) &&
+           (config._genome->startOf(currentSeq) <= _hits[firstHit]._dsPos))
       currentSeq++;
 
     //
@@ -184,10 +184,10 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
     //  Find the first hit that is in currentSeq.  If this is the last sequence,
     //  then, of course, all remaining hits are in it.
     //
-    if (currentSeq < config._useList.numberOfSequences()) {
+    if (currentSeq < config._genome->numberOfSequences()) {
       lastHit = firstHit + 1;
       while ((lastHit < _hitsLen) &&
-             (_hits[lastHit]._dsPos < config._useList.startOf(currentSeq)))
+             (_hits[lastHit]._dsPos < config._genome->startOf(currentSeq)))
         lastHit++;
     } else {
       lastHit = _hitsLen;
@@ -201,7 +201,7 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
     //  Adjust the hits to be relative to the start of this sequence
     //
     for (u32bit i=firstHit; i<lastHit; i++)
-      _hits[i]._dsPos -= config._useList.startOf(currentSeq);
+      _hits[i]._dsPos -= config._genome->startOf(currentSeq);
 
     //  Sort them, if needed.
     //
@@ -300,7 +300,7 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
         if (ILlength >= config._minLength) {
           if (direction == 'r') {
             FO->addHit(direction,
-                       config._useList.IIDOf(currentSeq),
+                       config._genome->IIDOf(currentSeq),
                        dsLow,
                        dsHigh - dsLow + config._merSize,
                        _qsIdx,
@@ -309,7 +309,7 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
                        ILlength);
           } else {
             FO->addHit(direction,
-                       config._useList.IIDOf(currentSeq),
+                       config._genome->IIDOf(currentSeq),
                        dsLow,
                        dsHigh - dsLow + config._merSize,
                        _qsIdx,
@@ -340,7 +340,7 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
     if (ILlength >= config._minLength) {
       if (direction == 'r') {
         FO->addHit(direction,
-                   config._useList.IIDOf(currentSeq),
+                   config._genome->IIDOf(currentSeq),
                    dsLow,
                    dsHigh - dsLow + config._merSize,
                    _qsIdx,
@@ -349,7 +349,7 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
                    ILlength);
       } else {
         FO->addHit(direction,
-                   config._useList.IIDOf(currentSeq),
+                   config._genome->IIDOf(currentSeq),
                    dsLow,
                    dsHigh - dsLow + config._merSize,
                    _qsIdx,

@@ -60,13 +60,6 @@ public:
 //
 #define MAX_THREADS  64
 
-//  Stuff for -use
-//
-struct use_s {
-  u32bit   seq;
-  u32bit   size;
-  u32bit   start;
-};
 
 class configuration {
 public:
@@ -96,11 +89,7 @@ public:
   char            *_tableFileName;
   bool             _tableBuildOnly;
 
-  seqStream        _useList;
-
-#ifdef __APPLE__
-  void            *_pad1;
-#endif
+  seqStream       *_genome;
 
   //  Filter parameters
   //
@@ -132,27 +121,17 @@ public:
   struct timespec  _writerSleep;
   bool             _writerWarnings;
 
-#ifdef __APPLE__
-  char             _pad2[4];
-#endif
-
   configuration();
   ~configuration();
 
   void  usage(char *name);
   void  read(int argc, char **argv);
-  void  display(FILE *out=stdout);
   void  writeATACheader(FILE *out);
-
-  void  completeUseList(seqCache *db);
 
   void  setTime(struct timespec *ts, double t) {
     ts->tv_sec  = (time_t)floor(t);
     ts->tv_nsec = (long)((t - ts->tv_sec) * 1e9);
   };
-private:
-  void  addToUse(u32bit v);
-  void  parseUseLine(char *line);
 };
 
 

@@ -156,8 +156,8 @@ configuration::read(int argc, char **argv) {
       _dbFileName = argv[arg];
     } else if (strcmp(argv[arg], "-use") == 0) {
       arg++;
-      //parseUseLine(argv[arg]);
-      _useList.parse(argv[arg]);
+      fprintf(stderr, "%s: -use not supported anymore.\n", argv[0]);
+      exit(1);
     } else if (strcmp(argv[arg], "-forward") == 0) {
       _doForward = true;
       _doReverse = false;
@@ -254,57 +254,6 @@ configuration::read(int argc, char **argv) {
 
 
 void
-configuration::display(FILE *out) {
-  if ((out == stdout) && (_beVerbose)) {
-    fprintf(out, "--Using these Options--\n");
-    fprintf(out, "beVerbose           = %s\n", _beVerbose ? "enabled" : "disabled");
-    fprintf(out, "numSearchThreads    = "u32bitFMT"\n",   _numSearchThreads);
-    fprintf(out, "\n");
-    fprintf(out, "loaderHighWaterMark = "u32bitFMT"\n", _loaderHighWaterMark);
-    fprintf(out, "loaderSleep         = %f\n", (double)_loaderSleep.tv_sec + (double)_loaderSleep.tv_nsec * 1e-9);
-    fprintf(out, "loaderWarnings      = %s\n", _loaderWarnings ? "true" : "false");
-    fprintf(out, "searchSleep         = %f\n", (double)_searchSleep.tv_sec + (double)_searchSleep.tv_nsec * 1e-9);
-    fprintf(out, "writerHighWaterMark = "u32bitFMT"\n", _writerHighWaterMark);
-    fprintf(out, "writerSleep         = %f\n", (double)_writerSleep.tv_sec + (double)_writerSleep.tv_nsec * 1e-9);
-    fprintf(out, "writerWarnings      = %s\n", _writerWarnings ? "true" : "false");
-    fprintf(out, "\n");
-    fprintf(out, "--Using these Parameters--\n");
-    fprintf(out, "maxDiagonal         = "u32bitFMT"\n",   _maxDiagonal);
-    fprintf(out, "maxGap              = "u32bitFMT"\n",   _maxGap);
-    fprintf(out, "qsOverlap           = "u32bitFMT"\n",   _qsOverlap);
-    fprintf(out, "dsOverlap           = "u32bitFMT"\n",   _dsOverlap);
-    fprintf(out, "minLength           = "u32bitFMT"\n",   _minLength + _merSize);
-    fprintf(out, "\n");
-    fprintf(out, "merSize             = "u32bitFMT"\n",   _merSize);
-    fprintf(out, "merSkip             = "u32bitFMT"\n",   _merSkip);
-    fprintf(out, "doReverse           = %s\n",   (_doReverse) ? "true" : "false");
-    fprintf(out, "doForward           = %s\n",   (_doForward) ? "true" : "false");
-    fprintf(out, "\n");
-    fprintf(out, "filterName          = %s\n", (_filtername) ? _filtername : "None Specified.");
-    fprintf(out, "filterOpts          = %s\n", (_filteropts) ? _filteropts : "None Specified.");
-    fprintf(out, "\n");
-    fprintf(out, "--Using these Sequences--\n");
-#if 0
-    fprintf(out, "useList             = %s\n", (_useListString) ? _useListString : "Every sequence.");
-#else
-    fprintf(out, "useList             = XXX unimplemented XXX\n");
-#endif
-    fprintf(out, "\n");
-    fprintf(out, "--Using these Files--\n");
-    fprintf(out, "dbFile              = %s\n", (_dbFileName) ? _dbFileName : "None Specified.");
-    fprintf(out, "qsFile              = %s\n", (_qsFileName) ? _qsFileName : "None Specified.");
-    fprintf(out, "maskFile            = %s\n", (_maskFileName) ? _maskFileName : "None Specified.");
-    fprintf(out, "onlyFile            = %s\n", (_onlyFileName) ? _onlyFileName : "None Specified.");
-    fprintf(out, "outputFile          = %s\n", (_outputFileName) ? _outputFileName : "None Specified.");
-    fprintf(out, "statsFile           = %s\n", (_statsFileName) ? _statsFileName : "None Specified.");
-    fprintf(out, "tableFile           = %s\n", (_tableFileName) ? _tableFileName : "None Specified.");
-    fprintf(out, "\n");
-  }
-}
-
-
-
-void
 configuration::writeATACheader(FILE *out) {
   fprintf(out, "! format atac 1.0\n");
   fprintf(out, "/seatacBeVerbose=%s\n", _beVerbose ? "enabled" : "disabled");
@@ -327,11 +276,6 @@ configuration::writeATACheader(FILE *out) {
   fprintf(out, "/seatacDoForward=%s\n", (_doForward) ? "true" : "false");
   fprintf(out, "/seatacFilterName=%s\n", (_filtername) ? _filtername : "None Specified.");
   fprintf(out, "/seatacFilterOpts=%s\n", (_filteropts) ? _filteropts : "None Specified.");
-#if 0
-  fprintf(out, "/seatacUseList=%s\n", (_useListString) ? _useListString : "Every sequence.");
-#else
-  fprintf(out, "/seatacUseList=XXX unimplemented XXX\n");
-#endif
   fprintf(out, "/seatacDbFile=%s\n", (_dbFileName) ? _dbFileName : "None Specified.");
   fprintf(out, "/seatacQsFile=%s\n", (_qsFileName) ? _qsFileName : "None Specified.");
   fprintf(out, "/seatacMaskFile=%s\n", (_maskFileName) ? _maskFileName : "None Specified.");
