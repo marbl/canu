@@ -2,15 +2,11 @@
 #define SEQCACHE_H
 
 #include "util++.H"
-
 #include "seqFile.H"
-//#include "fastaFile.H"
-//#include "seqStore.H"
 
 
 class seqInCore {
 public:
-  //seqInCore(u32bit iid);
   seqInCore(u32bit iid, char *hdr, u32bit hdrlen, char *seq, u32bit seqlen) {
     _idx       = iid;
 
@@ -54,44 +50,6 @@ private:
 };
 
 
-class seqOnDisk {
-public:
-  seqOnDisk(char const *filename,
-            u32bit iid,
-            u64bit hdrstart, u32bit hdrlen,
-            u64bit seqstart, u32bit seqlen);
-  seqOnDisk(u32bit iid,
-            char *hdr, u32bit hdrlen,
-            char *seq, u32bit seqlen);
-  ~seqOnDisk();
-
-  char           *header(void) const         { return(_header);       };
-  u32bit          headerLength(void) const   { return(_headerLength); };
-
-  char           *sequence(void) const       { return(_sequence);       };
-  u32bit          sequenceLength(void) const { return(_sequenceLength); };
-
-  u32bit          getIID(void) const         { return(_idx); };
-
-  //  Used only by leaff (as far as I know)
-  char            read(void);
-
-private:
-  readBuffer    *_rb;
-
-  u32bit         _idx;
-
-  u32bit         _headerLength;
-  u32bit         _sequenceLength;
-  u64bit         _headerStart;
-  u64bit         _sequenceStart;
-
-  char          *_header;
-  char          *_sequence;
-  u32bit         _sequencePosition;
-};
-
-
 
 class seqCache {
 public:
@@ -105,10 +63,6 @@ public:
   seqInCore              *getSequenceInCore(u32bit  iid);
   seqInCore              *getSequenceInCore(char   *name) { return(getSequenceInCore(getSequenceIID(name))); };
   seqInCore              *getSequenceInCore(void)         { return(getSequenceInCore(_idToGetNext++)); };
-
-  seqOnDisk              *getSequenceOnDisk(u32bit  iid);
-  seqOnDisk              *getSequenceOnDisk(char   *name) { return(getSequenceOnDisk(getSequenceIID(name))); };
-  seqOnDisk              *getSequenceOnDisk(void)         { return(getSequenceOnDisk(_idToGetNext++)); };
 
   const char             *getSourceName(void)    { return(_fb->getSourceName()); };
   const char             *getFileTypeName(void)  { return(_fb->getFileTypeName()); };

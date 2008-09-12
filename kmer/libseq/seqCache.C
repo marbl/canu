@@ -4,90 +4,6 @@
 
 #undef DEBUG
 
-seqOnDisk::seqOnDisk(char const *filename,
-                     u32bit iid,
-                     u64bit hdrstart, u32bit hdrlen,
-                     u64bit seqstart, u32bit seqlen) {
-
-  _idx               = iid;
-
-  _headerLength      = hdrlen;
-  _headerStart       = hdrstart;
-
-  _sequenceLength    = seqlen;
-  _sequenceStart     = seqstart;
-
-  _rb        = new readBuffer(filename, MIN(1024 * 1024, _headerLength + _sequenceLength + 16));
-
-  _rb->seek(_headerStart);
-
-  _header = new char [_headerLength + 1];
-  _rb->read(_header, _headerLength);
-  _header[_headerLength] = 0;
-
-  _sequence = 0L;
-
-  _rb->seek(_sequenceStart);
-
-  _sequencePosition  = 0;
-}
-
-
-
-seqOnDisk::seqOnDisk(u32bit iid,
-            char *hdr, u32bit hdrlen,
-                     char *seq, u32bit seqlen) {
-  _rb       = 0L;;
-  _idx              = iid;
-  _headerLength     = hdrlen;
-  _sequenceLength   = seqlen;
-  _headerStart      = ~u64bitZERO;
-  _sequenceStart    = ~u64bitZERO;
-  _header           = hdr;
-  _sequence         = seq;
-  _sequencePosition = 0;
-}
-
-
-
-seqOnDisk::~seqOnDisk() {
-  delete    _rb;
-  delete [] _header;
-  delete [] _sequence;
-}
-
-
-
-char
-seqOnDisk::read(void) {
-
-  if (_sequencePosition >= _sequenceLength)
-    return(0);
-
-  if (_sequence)
-    return(_sequence[_sequencePosition++]);
-
-  //  Assumptions; there is another non-space letter out there,
-  //  otherwise, _sequencePosition would equal _sequenceLength.
-
-  char   x = _rb->read();
-
-  while (whitespaceSymbol[x]) {
-    if (_rb->eof()) {
-      fprintf(stderr, "seqOnDisk::read()--  WARNING hit unexpected eof.\n");
-      return(0);
-    }
-
-    x = _rb->read();
-  }
-
-  _sequencePosition++;
-
-  return(x);
-}
-
-
-
 
 seqCache::seqCache(const char *filename, u32bit cachesize, bool verbose) {
 
@@ -117,14 +33,22 @@ seqCache::~seqCache() {
 
 u32bit
 seqCache::getSequenceIID(char *name) {
-  u32bit  iid = ~u32bitZERO;
+  u32bit iid = _fb->find(name);
 
-#ifdef DEBUG
-  fprintf(stderr, "seqCache::getSequenceIID()-- '%s'\n", name);
-#endif
+  //  Nothing?  If the name is all integers, return that, otherwise,
+  //  fail.
+  //
+  if (iid == ~u32bitZERO) {
+    bool  isInt = true;
+    char *x = name;
 
-#warning mostly unimplemented
-  iid = strtou32bit(name, 0L);
+    while (*x)
+      if ((*x < '0') || ('9' < *x))
+        isInt = false;
+
+    if (isInt)
+      iid = strtou32bit(name, 0L);
+  }
 
 #ifdef DEBUG
   fprintf(stderr, "seqCache::getSequenceIID()-- '%s' -> "u32bitFMT"\n", name, iid);
@@ -185,23 +109,6 @@ seqCache::getSequenceInCore(u32bit iid) {
   }
 
   return(sc);
-}
-
-
-
-seqOnDisk *
-seqCache::getSequenceOnDisk(u32bit iid) {
-
-#ifdef DEBUG
-  fprintf(stderr, "seqCache::getSequenceOnDisk()-- "u32bitFMT"\n", iid);
-#endif
-
-  if (iid >= _fb->getNumberOfSequences())
-    return(0L);
-
-#warning unimplemented
-  fprintf(stderr, "seqCache::getSequenceOnDisk()--  Not implemented.\n");
-  exit(1);
 }
 
 

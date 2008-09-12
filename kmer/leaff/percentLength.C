@@ -62,7 +62,9 @@ main(int argc, char **argv) {
   u64bit    acgtLengthTotal = 0;
 
   u32bit      iid = 0;
-  seqOnDisk  *seq = F->getSequenceOnDisk(iid);
+  seqInCore  *seq = F->getSequenceInCore(iid);
+
+#warning old style seq iteration
 
   while (seq != 0L) {
     strncpy(I[iid].name, seq->header() + (seq->header()[0] == '>'), 32);
@@ -72,14 +74,14 @@ main(int argc, char **argv) {
 
     I[iid].realLength = seq->sequenceLength();
 
-    for (char x=seq->read(); x; x=seq->read())
-      I[iid].acgtLength += (letterToBits[x] != 0xff);
+    for (u32bit xx=0; xx<seq->sequenceLength(); xx++)
+      I[iid].acgtLength += (letterToBits[seq->sequence()[xx]] != 0xff);
 
     realLengthTotal += I[iid].realLength;
     acgtLengthTotal += I[iid].acgtLength;
 
     delete seq;
-    seq = F->getSequenceOnDisk(++iid);
+    seq = F->getSequenceInCore(++iid);
   }
 
   delete F;

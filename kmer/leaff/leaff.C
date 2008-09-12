@@ -925,7 +925,7 @@ partitionBySegment(char *prefix, u64bit numSegments) {
 
 void
 dumpBlocks(void) {
-  seqOnDisk   *S     = 0L;
+  seqInCore   *S     = 0L;
   u32bit       seqno = 0;
 
   failIfNoSource();
@@ -936,17 +936,18 @@ dumpBlocks(void) {
   V['n'] = true;
   V['N'] = true;
 
-  S = fasta->getSequenceOnDisk(seqno);
+#warning old style seq iteration
+  S = fasta->getSequenceInCore(seqno);
   while (S) {
-    char    seq    = S->read();
     u32bit  len    = S->sequenceLength();
-    bool    nnn    = V[seq];
-    char    begseq = seq;
+    char    begseq = S->sequence()[0];
+    bool    nnn    = V[begseq];
     u32bit  begpos = 0;
+    u32bit  pos    = 0;
 
-    u32bit pos = 1;
-    for ( ; pos<len; pos++) {
-      seq = S->read();
+    for (pos=0; pos<len; pos++) {
+      char seq = S->sequence()[pos];
+
       if (nnn != V[seq]) {
         fprintf(stdout, "%c "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
                 begseq, seqno, begpos, pos, pos - begpos);
@@ -961,7 +962,7 @@ dumpBlocks(void) {
     fprintf(stdout, ". "u32bitFMT" "u32bitFMT" "u32bitFMT"\n", seqno, pos, u32bitZERO);
 
     delete S;
-    S = fasta->getSequenceOnDisk(++seqno);
+    S = fasta->getSequenceInCore(++seqno);
   }
 }
 
@@ -969,7 +970,7 @@ dumpBlocks(void) {
 
 void
 stats(void) {
-  seqOnDisk   *S     = 0L;
+  seqInCore   *S     = 0L;
 
   failIfNoSource();
 
@@ -998,14 +999,15 @@ stats(void) {
 
   u32bit seqno = 0;
 
-  S = fasta->getSequenceOnDisk(seqno);
+#warning old style seq iteration
+  S = fasta->getSequenceInCore(seqno);
   while (S) {
     u32bit  len    = S->sequenceLength();
     u32bit  span   = len;
     u32bit  base   = len;
 
     for (u32bit pos=1; pos<len; pos++) {
-      if (V[S->read()])
+      if (V[S->sequence()[pos]])
         base--;
     }
 
@@ -1016,7 +1018,7 @@ stats(void) {
     Lb[S->getIID()] = base;
 
     delete S;
-    S = fasta->getSequenceOnDisk(++seqno);
+    S = fasta->getSequenceInCore(++seqno);
   }
 
   qsort(Ls, numSeq, sizeof(u32bit), u32bit_compare);
