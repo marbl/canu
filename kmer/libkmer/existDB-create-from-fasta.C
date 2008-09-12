@@ -4,7 +4,9 @@
 #include <errno.h>
 #include "existDB.H"
 #include "bio++.H"
-#include "seq.H"
+#include "seqCache.H"
+#include "seqStream.H"
+#include "merStream.H"
 
 bool
 existDB::createFromFastA(char const  *filename,

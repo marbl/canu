@@ -1,5 +1,5 @@
 #include "bio++.H"
-#include "seq.H"
+#include "seqStream.H"
 
 int
 main(int argc, char **argv) {
