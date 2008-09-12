@@ -75,10 +75,15 @@ readBuffer::~readBuffer() {
 void
 readBuffer::fillBuffer(void) {
 
+  //  If there is still stuff in the buffer, no need to fill.
   if (_bufferPos < _bufferLen)
     return;
 
-  assert(_mmap == false);
+  //  No more stuff in the buffer.  But if mmap'd, ths means we're EOF.
+  if (_mmap) {
+    _eof = true;
+    return;
+  }
 
   _bufferPos = 0;
   _bufferLen = 0;
@@ -100,12 +105,11 @@ readBuffer::fillBuffer(void) {
 void
 readBuffer::seek(off_t pos) {
 
-  assert(_valid);
-
-  if (_stdin == true) {
+  if (_stdin == true)
     fprintf(stderr, "readBuffer()-- seek() not available for file 'stdin'.\n");
-    exit(1);
-  }
+
+  assert(_valid == true);
+  assert(_stdin == false);
 
   if (_mmap) {
     _bufferPos = pos;
@@ -119,7 +123,7 @@ readBuffer::seek(off_t pos) {
 
     _bufferLen = 0;
     _bufferPos = 0;
-    _filePos = pos;
+    _filePos   = pos;
 
     fillBuffer();
   }
@@ -141,6 +145,9 @@ readBuffer::read(void *buf, size_t len) {
 
     while ((_bufferPos < _bufferLen) && (c < len))
       bufchar[c++] = _buffer[_bufferPos++];
+
+    if (c == 0)
+      _eof = true;
 
     return(c);
   }
