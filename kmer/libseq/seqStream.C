@@ -89,6 +89,21 @@ seqStream::setSeparator(char sep, u32bit len) {
   if (_string)
     return;
 
+  //  Bizarre signedness issue with sep=255
+  //    ST->get() == sep        FAILS
+  //    x=ST->get(); x == sep   SUCCEEDS
+  //
+  //  Not suggested to use non-printable ascii.
+
+  if ((isprint(sep) == 0) || (tolower(sep) == 'a') || (tolower(sep) == 'c') || (tolower(sep) == 'g') || (tolower(sep) == 't')) {
+    fprintf(stderr, "seqStream::setSeparator()-- ERROR!  Separator letter must be printable ASCII and not [ACGTacgt].\n");
+    exit(1);
+  }
+  if (len == 0) {
+    fprintf(stderr, "seqStream::setSeparator()-- ERROR!  Separator length cannot be zero.\n");
+    exit(1);
+  }
+
   _lengthOfSequences = 0;
 
   _separator       = sep;
@@ -99,12 +114,12 @@ seqStream::setSeparator(char sep, u32bit len) {
     _idx[s]._len = _file->getSequenceLength(s);
     _idx[s]._bgn = _lengthOfSequences;
 
-    _lengthOfSequences += _file->getSequenceLength(s) + _separatorLength;
+    _lengthOfSequences += _idx[s]._len;
   }
 
   _idx[_idxLen]._iid = ~u32bitZERO;
   _idx[_idxLen]._len = 0;
-  _idx[_idxLen]._bgn = _lengthOfSequences - _separatorLength;
+  _idx[_idxLen]._bgn = _lengthOfSequences;
 }
 
 
@@ -165,7 +180,10 @@ seqStream::setRange(u64bit bgn, u64bit end) {
   u64bit l = 0;
 
   while (s < _idxLen)
-    l += _idx[s]._len;
+    l += _idx[s++]._len;
+
+  if (end == ~u32bitZERO)
+    end = l;
 
   if ((bgn > l) || (end > l))
     fprintf(stderr, "seqStream::setRange()-- ERROR: range ("u64bitFMT","u64bitFMT") too big; only "u64bitFMT" positions.\n",
@@ -186,9 +204,11 @@ seqStream::sequenceNumberOfPosition(u64bit p) {
   //  binary search on our list of start positions, to find the
   //  sequence that p is in.
 
-  if (_lengthOfSequences < p)
-    fprintf(stderr, "seqStream::sequenceNumberOfPosition()-- ERROR: position p="u64bitFMT" too big; only "u64bitFMT" positions.\n",
-            p, _lengthOfSequences), exit(1);
+  if (_lengthOfSequences <= p) {
+    fprintf(stderr, "seqStream::sequenceNumberOfPosition()-- WARNING: position p="u64bitFMT" too big; only "u64bitFMT" positions.\n",
+            p, _lengthOfSequences);
+    return(s);
+  }
 
   if (_idxLen < 16) {
     for (s=0; s<_idxLen; s++)
@@ -218,10 +238,6 @@ seqStream::sequenceNumberOfPosition(u64bit p) {
       }
     }
   }
-
-  //  But if we're in a range of separators, return invalid.
-  if ((s < _idxLen) && (_idx[s+1]._bgn - _separatorLength - 1 <= p))
-    s = ~u32bitZERO;
 
   return(s);
 }

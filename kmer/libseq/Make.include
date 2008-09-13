@@ -13,17 +13,18 @@ src    := $/seqFileBase.H \
           $/seqStream.H   $/seqStream.C \
           $/merStream.H   $/merStream.C
 
-$/.CXX_SRCS  :=$(filter %.C,${src}) $/selftest.C $/test-seqCache.C
+$/.CXX_SRCS  :=$(filter %.C,${src}) $/selftest.C $/test-seqCache.C $/test-seqStream.C
 $/.CXX_INCS  :=$(filter %.H,${src})
-$/.CXX_EXES  :=$/selftest $/test-seqCache
+$/.CXX_EXES  :=$/selftest $/test-seqCache $/test-seqStream
 $/.CXX_LIBS  :=$/libseq.a
 
 $/.CLEAN := $/*.o
 
 $/libseq.a       : ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o}
 
-$/selftest       : $/selftest.o      ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-$/test-seqCache  : $/test-seqCache.o ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/selftest       : $/selftest.o       ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/test-seqCache  : $/test-seqCache.o  ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/test-seqStream : $/test-seqStream.o ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $(eval $/%.d $/%.o: CFLAGS   += -I${LIBUTL/} -I${LIBBIO/} -I${LIBSEQ/})
 $(eval $/%.d $/%.o: CXXFLAGS += -I${LIBUTL/} -I${LIBBIO/} -I${LIBSEQ/})
