@@ -6,9 +6,11 @@
 
 
 class seqInCore {
-public:
-  seqInCore(u32bit iid, char *hdr, u32bit hdrlen, char *seq, u32bit seqlen) {
+private:
+  seqInCore(u32bit iid, char *hdr, u32bit hdrlen, char *seq, u32bit seqlen, bool deletable) {
     _idx       = iid;
+
+    _deletable = deletable;
 
     _headerLen = hdrlen;
     _header    = hdr;
@@ -16,20 +18,15 @@ public:
     _seqLen = seqlen;
     _seq    = seq;
   };
+
+  friend class seqCache;
+
+public:
   ~seqInCore() {
-    delete [] _header;
-    delete [] _seq;
-  };
-
-  //  Used only by searchGENOME (as far as I know)
-  seqInCore      *copy(void) {
-    char *h = new char [_headerLen + 1];
-    char *s = new char [_seqLen    + 1];
-
-    memcpy(h, _header, _headerLen + 1);
-    memcpy(s, _seq,    _seqLen    + 1);
-
-    return(new seqInCore(_idx, h, _headerLen, s, _seqLen));
+    if (_deletable) {
+      delete [] _header;
+      delete [] _seq;
+    }
   };
 
   char           *header(void) const         { return(_header); };
@@ -39,8 +36,22 @@ public:
   u32bit          sequenceLength(void) const { return(_seqLen); };
 
   u32bit          getIID(void) const         { return(_idx); };
+
+  //  Used only by searchGENOME (as far as I know)
+  seqInCore      *copy(void) {
+    char *h = new char [_headerLen + 1];
+    char *s = new char [_seqLen    + 1];
+
+    memcpy(h, _header, _headerLen + 1);
+    memcpy(s, _seq,    _seqLen    + 1);
+
+    return(new seqInCore(_idx, h, _headerLen, s, _seqLen, true));
+  };
+
 private:
   u32bit         _idx;
+
+  bool           _deletable;
 
   u32bit         _headerLen;
   char          *_header;

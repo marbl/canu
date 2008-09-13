@@ -249,8 +249,9 @@ seqStream::fillBuffer(void) {
   //  Still more stuff in the sequence?  Get it.
 
   if (_currentPos < _idx[_currentIdx]._len) {
+#ifdef DEBUG
     fprintf(stderr, "seqStream::fillBuffer()--  More Seq currentPos="u32bitFMT" len="u32bitFMT"\n", _currentPos, _idx[_currentIdx]._len);
-
+#endif
     _bufferLen = MIN(_idx[_currentIdx]._len - _currentPos, _bufferMax);
 
     if (_file->getSequence(_idx[_currentIdx]._iid,
@@ -267,7 +268,9 @@ seqStream::fillBuffer(void) {
   _currentIdx++;
   _currentPos = 0;
 
+#ifdef DEBUG
   fprintf(stderr, "seqStream::fillBuffer()--  New Seq currentPos="u32bitFMT" len="u32bitFMT"\n", _currentPos, _idx[_currentIdx]._len);
+#endif
 
   //  All done if there is no more sequence.
 

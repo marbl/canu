@@ -9,6 +9,7 @@ seqCache::seqCache(const char *filename, u32bit cachesize, bool verbose) {
 
   _fb                  = openSeqFile(filename);
   _idToGetNext         = 0;
+
   _allSequencesLoaded  = false;
   _reportLoading       = verbose;
 
@@ -33,22 +34,25 @@ seqCache::~seqCache() {
 
 u32bit
 seqCache::getSequenceIID(char *name) {
-  u32bit iid = _fb->find(name);
+  u32bit iid = ~u32bitZERO;
 
-  //  Nothing?  If the name is all integers, return that, otherwise,
-  //  fail.
+  //  If the name is all integers, AND below the number of sequences
+  //  we have, return that, otherwise, look it up.
   //
-  if (iid == ~u32bitZERO) {
-    bool  isInt = true;
-    char *x = name;
+  bool  isInt = true;
+  char *x     = name;
 
-    while (*x)
-      if ((*x < '0') || ('9' < *x))
-        isInt = false;
-
-    if (isInt)
-      iid = strtou32bit(name, 0L);
+  while (*x) {
+    if ((*x < '0') || ('9' < *x))
+      isInt = false;
+    x++;
   }
+
+  if (isInt)
+    iid = strtou32bit(name, 0L);
+
+  if (iid >= _fb->getNumberOfSequences())
+    iid = _fb->find(name);
 
 #ifdef DEBUG
   fprintf(stderr, "seqCache::getSequenceIID()-- '%s' -> "u32bitFMT"\n", name, iid);
@@ -61,60 +65,62 @@ seqCache::getSequenceIID(char *name) {
 
 seqInCore *
 seqCache::getSequenceInCore(u32bit iid) {
+  u32bit       cacheID = ~u32bitZERO;
+  seqInCore   *retSeq  = 0L;
 
-#ifdef DEBUG
-  fprintf(stderr, "seqCache::getSequenceInCore(iid)-- "u32bitFMT"\n", iid);
-#endif
-
-  if (iid >= _fb->getNumberOfSequences()) {
-#ifdef DEBUG
-    fprintf(stderr, "seqCache::getSequenceInCore(iid)-- iid="u32bitFMT" >= numSeq="u32bitFMT"\n", iid, _fb->getNumberOfSequences());
-#endif
+  if (iid >= _fb->getNumberOfSequences())
     return(0L);
-  }
 
-  if (_allSequencesLoaded == true)
-    return(_cache[iid]);
 
-  if ((_cacheSize > 0) && (_cacheMap[iid] != ~u32bitZERO))
-    return(_cache[_cacheMap[iid]]);
+  if (_allSequencesLoaded == true) {
+    cacheID = iid;
 
-  u32bit  hLen=0, hMax=0, sLen=0, sMax=0;
-  char   *h=0L, *s=0L;
+  } else if ((_cacheSize > 0) && (_cacheMap[iid] != ~u32bitZERO)) {
+    cacheID = _cacheMap[iid];
 
-  if (_fb->getSequence(iid, h, hLen, hMax, s, sLen, sMax) == false) {
-#ifdef DEBUG
-    fprintf(stderr, "seqCache::getSequenceInCore(iid)-- failed getSequence().");
-#endif
-    return(0L);
-  }
+  } else {
+    u32bit  hLen=0, hMax=0, sLen=0, sMax=0;
+    char   *h=0L, *s=0L;
 
-  seqInCore *sc = new seqInCore(iid, h, hLen, s, sLen);
+    if (_fb->getSequence(iid, h, hLen, hMax, s, sLen, sMax) == false)
+      return(0L);
 
-  //  Remove and old cached sequence
+    retSeq = new seqInCore(iid, h, hLen, s, sLen, true);
 
-  if (_cache) {
-    if (_cache[_cacheNext]) {
-      _cacheMap[_cache[_cacheNext]->getIID()] = ~u32bitZERO;
-      delete _cache[_cacheNext];
-      _cache[_cacheNext] = 0L;
+    //  Remove any old cached sequence, then store the one we just made
+
+    if (_cache) {
+      if (_cache[_cacheNext]) {
+        _cacheMap[_cache[_cacheNext]->getIID()] = ~u32bitZERO;
+        delete _cache[_cacheNext];
+      }
+
+      _cache[_cacheNext] = retSeq;
+      _cacheMap[iid]     = _cacheNext;
+
+      cacheID = _cacheNext;
+      retSeq  = 0L;
+
+      _cacheNext = (_cacheNext + 1) % _cacheSize;
     }
-
-    //  Store the new one in the cache
-
-    _cache[_cacheNext] = sc;
-    _cacheMap[iid]     = _cacheNext;
-
-    _cacheNext = (_cacheNext + 1) % _cacheSize;
   }
 
-  return(sc);
+  //  If no retSeq set, make a copy of the one we have in the cache.
+
+  if ((retSeq == 0L) && (cacheID != ~u32bitZERO))
+    retSeq  = new seqInCore(iid,
+                            _cache[cacheID]->header(),   _cache[cacheID]->headerLength(),
+                            _cache[cacheID]->sequence(), _cache[cacheID]->sequenceLength(),
+                            false);
+
+  return(retSeq);
 }
 
 
 
 void
 seqCache::setCacheSize(u32bit cachesize) {
+  u32bit ns = _fb->getNumberOfSequences();
 
   flushCache();
 
@@ -126,15 +132,15 @@ seqCache::setCacheSize(u32bit cachesize) {
     return;
   }
 
-  _cacheMap   = new u32bit [_fb->getNumberOfSequences()];
+  _cacheMap   = new u32bit [ns];
   _cacheSize  = cachesize;
   _cacheNext  = 0;
   _cache      = new seqInCore * [_cacheSize];
 
-  for (u32bit i=_fb->getNumberOfSequences()-1; i--; )
+  for (u32bit i=0; i<ns; i++)
     _cacheMap[i] = ~u32bitZERO;
 
-  for (u32bit i=_cacheSize-1; i--; )
+  for (u32bit i=0; i<_cacheSize; i++)
     _cache[i] = 0L;
 }
 
@@ -165,7 +171,7 @@ seqCache::loadAllSequences(void) {
       fprintf(stderr, "seqCache::loadAllSequences()-- Failed to load iid "u32bitFMT".\n",
               iid), exit(1);
 
-    _cache[iid] = new seqInCore(iid, h, hLen, s, sLen);
+    _cache[iid] = new seqInCore(iid, h, hLen, s, sLen, true);
   }
 
   _allSequencesLoaded = true;

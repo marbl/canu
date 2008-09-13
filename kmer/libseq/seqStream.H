@@ -69,7 +69,6 @@ public:
   u64bit            strPos(void)     { return(_streamPos);             };
 
   u32bit            numberOfSequences(void) { return(_idxLen); };
-  u64bit            lengthOfSequences(void) { return(_lengthOfSequences); };
 
   //  Return the length of, position of (in the chain) and IID of the
   //  (s)th sequence in the chain.

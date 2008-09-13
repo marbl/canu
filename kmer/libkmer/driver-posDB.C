@@ -142,13 +142,11 @@ main(int argc, char **argv) {
   char            *maskF = 0L;
   char            *onlyF = 0L;
 
-  seqStream       *SS = 0L;
-  merStream       *MS = 0L;
-
   u64bit           merBegin = ~u64bitZERO;
   u64bit           merEnd   = ~u64bitZERO;
 
-  char            *outputFile = 0L;
+  char            *sequenceFile = 0L;
+  char            *outputFile   = 0L;
 
   if (argc < 3) {
     fprintf(stderr, "usage: %s [args]\n", argv[0]);
@@ -203,7 +201,7 @@ main(int argc, char **argv) {
       merEnd = strtou64bit(argv[++arg], 0L);
 
     } else if (strcmp(argv[arg], "-sequence") == 0) {
-      SS = new seqStream(argv[++arg]);
+      sequenceFile = argv[++arg];
 
     } else if (strcmp(argv[arg], "-output") == 0) {
       outputFile = argv[++arg];
@@ -231,9 +229,14 @@ main(int argc, char **argv) {
     exit(0);
   }
 
+
+  merStream *MS = new merStream(new kMerBuilder(MERSIZE),
+                                new seqStream(argv[++arg]),
+                                true, true);
+
   //  Approximate the number of mers in the sequences.
   //
-  u64bit     numMers = SS->lengthOfSequences();
+  u64bit     numMers = MS->approximateNumberOfMers();
 
   //  Reset the limits.
   //
@@ -243,15 +246,13 @@ main(int argc, char **argv) {
   //  though we shouldn't.
   //
   if (merBegin == ~u64bitZERO)   merBegin = 0;
-  if (merEnd   == ~u64bitZERO)   merEnd   = SS->lengthOfSequences();
+  if (merEnd   == ~u64bitZERO)   merEnd   = numMers;
 
   if (merBegin >= merEnd) {
     fprintf(stderr, "ERROR: merbegin="u64bitFMT" and merend="u64bitFMT" are incompatible.\n",
             merBegin, merEnd);
     exit(1);
   }
-
-  MS = new merStream(new kMerBuilder(MERSIZE), SS, true, false);
 
   if ((merBegin > 0) || (merEnd < numMers))
     MS->setRange(merBegin, merEnd);
@@ -277,7 +278,6 @@ main(int argc, char **argv) {
   positions->saveState(outputFile);
 
   delete MS;
-  delete SS;
   delete positions;
 
   exit(0);

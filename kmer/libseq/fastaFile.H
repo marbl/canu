@@ -45,6 +45,7 @@ public:
 
 private:
   void                clear(void);
+  void                loadIndex(char *indexname);
   void                constructIndex(void);
 
   readBuffer        *_rb;
