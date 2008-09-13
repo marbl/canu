@@ -1,0 +1,98 @@
+Helpful hints on how to run ATAC, aka, A2Amapper
+
+COMPILING and INSTALLING
+
+If you are lucky, you can do:
+
+% sh configure.sh
+% gmake
+% cd atac-driver
+% sh install.sh <location-to-install>
+
+However, when gmake complains or crashes, you'll need to build a patched gmake. Instructions for doing this are in build/patches/README.
+
+RUNNING
+
+ATAC was developed to allow easy comparison of one assembly to a set of reference assemblies, or to produce all pairwise comparisons of a set of assemblies. Because of this, some preparation is required before ATAC can be run.
+
+The GENOMES directory
+
+For many reasons, it is convenient to have one directory that contains all assembly sequences. In the GENOMES directory is an index file "assemblies.atai" which contains a mapping from a nickname to an assembly sequence file. For example, suppose we're interested in Bacillus anthracis. /home/work/microbe/genomes/assemblies.atai would then contain:
+
+!format atac 1.0
+S AMESA /home/work/microbe/genomes/NC_007530.fasta
+S AMESB /home/work/microbe/genomes/NC_003997.fasta
+S STERNE /home/work/microbe/genomes/NC_005945.fasta
+
+representing the "Ames Ancestor", "Ames" and "Sterne" strains with nicknames AMESA, AMESB and STERNE.
+
+IMPORTANT! Sequence files in the GENOMES directory should contain NO whitespace or line breaks in the sequence. You can copy sequences into the proper format using:
+
+% $ATACDIR/bin/leaff -f input.fasta -W > $GENOMEDIR/name.fasta
+
+Running ATAC
+
+To compute a mapping between the two Ames strains, we would then:
+
+perl $ATACDIR/bin/atac.pl \
+-genomedir /home/work/microbe/genomes \
+-meryldir /home/work/microbe/meryl \
+-dir /home/work/microbe/AMESAvsAMESB \
+-id1 AMESA \
+-id2 AMESB
+
+The "meryldir" acts as a data cache for computed data that depends only on a single assembly. In particular, if we were to next compare AMESA to STERNE, we would not need to recompute any data for AMESA.
+
+The "dir" is where the mapping will be computed, and where output files will exist.
+
+We can finish our all-against-all comparison with:
+
+perl $ATACDIR/bin/atac.pl \
+-genomedir /home/work/microbe/genomes \
+-meryldir /home/work/microbe/meryl \
+-dir /home/work/microbe/AMESAvsSTERNE \
+-id1 AMESA \
+-id2 STERNE
+
+perl $ATACDIR/bin/atac.pl \
+-genomedir /home/work/microbe/genomes \
+-meryldir /home/work/microbe/meryl \
+-dir /home/work/microbe/AMESBvsSTERNE \
+-id1 AMESB \
+-id2 STERNE
+
+OUTPUT
+
+atac.pl will report the two output files, something similar to:
+
+Finished! Output is:
+/home/work/microbe/AMESAvaAMESB/AMESAbsAMESB.k18.u9.f18.g0.atac
+/home/work/microbe/AMESAvaAMESB/AMESAbsAMESB.k18.u9.f18.g0.atac.clumps5000
+
+The first file is the mapping itself, while the second file is the mapping annotated with "clumps".
+
+There are three objects reported by ATAC.
+
+1) matches -- an gapless alignment
+2) runs -- a collection of ordered and oriented matches
+3) clumps -- a collection of runs/matches that are uninterrupted
+
+CREDITS
+
+ATAC/A2Amapper is currently maintained by Brian Walenz.
+
+Original design and implementation by:
+
+Liliana Florea (chainer/halign)
+Aaron Halpern (clumpMaker)
+Clark Mobarry (chainer)
+Ross Lippert (chainer, build system)
+Brian Walenz (seed generation, pipeline)
+Daniel Fasulo (intial version of matchExtender)
+Gene Myers (chainer/localalign)
+
+The following publication should be cited if this software is used:
+
+[1] Sorin Istrail, Granger G. Sutton, Liliana Florea, Aaron L. Halpern, Clark M. Mobarry, Ross Lippert, Brian Walenz, Hagit Shatkay, Ian Dew, Jason R. Miller, Michael J. Flanigan, Nathan J. Edwards, Randall Bolanos, Daniel Fasulo, Bjarni V. Halldorsson, Sridhar Hannenhalli, Russell Turner, Shibu Yooseph, Fu Lu, Deborah R. Nusskern, Bixiong Chris Shue, Xiangqun Holly Zheng, Fei Zhong, Arthur L. Delcher, Daniel H. Huson, Saul A. Kravitz, Laurent Mouchard, Knut Reinert, Karin A. Remington, Andrew G. Clark, Michael S. Waterman, Evan E. Eichler, Mark D. Adams, Michael W. Hunkapiller, Eugene W. Myers, and J. Craig Venter "Whole-genome shotgun assembly and comparison of human genome assemblies" PNAS, Feb 2004; 101: 1916 - 1921
+
+http://www.pnas.org/cgi/content/abstract/101/7/1916
