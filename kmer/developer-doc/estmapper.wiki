@@ -4,17 +4,11 @@ ESTmapper Documentation v1.0
 
 == What is ESTmapper? ==
 
-ESTmapper is a software package for the high-throughput alignment of
-large cDNA (EST, mRNA) sequence sets to a large eukaryotic genome of
-the same species. It can also be used to map relatively short DNA
-segments, such as sequencing reads or SNP flanking sequences, to the
-genome.
+ESTmapper is a software package for the high-throughput alignment of large cDNA (EST, mRNA) sequence sets to a large eukaryotic genome of the same species. It can also be used to map relatively short DNA segments, such as sequencing reads or SNP flanking sequences, to the genome.
 
 == How does ESTmapper work? ==
 
-For each cDNA in the input set, ESTmapper detects one or several
-occurrences of the cDNA in the target genome. ESTmapper uses a
-three-stage process to locate a cDNA sequence in the genome:
+For each cDNA in the input set, ESTmapper detects one or several occurrences of the cDNA in the target genome. ESTmapper uses a three-stage process to locate a cDNA sequence in the genome (we don't count configuration as a stage):
 
 ;Stage 0
 :<b>Configuration</b> examine the genomic sequences and pre-compute search indices.  This needs to be done once per genome.
@@ -55,28 +49,13 @@ And numerous optional parameters:
 ;-local
 :compute the configuration right now (the default)
 
-This will build an index into the genomic sequences <i>g.fasta</i>
-allowing fast access to each sequence.  It will segment the sequences
-into equal sized pieces, either sized so that the search processes are
-expected to run in <i>M</i>MB of memory, or into <i>S</i> pieces.  A
-rule of thumb is that each base will need 10 bytes of memory;
-mamallian genomes comfortably fit in <i>S</i>=32 pieces.
+This will build an index into the genomic sequences <i>g.fasta</i> allowing fast access to each sequence.  It will segment the sequences into equal sized pieces, either sized so that the search processes are expected to run in <i>M</i>MB of memory, or into <i>S</i> pieces.  A rule of thumb is that each base will need 10 bytes of memory; mamallian genomes comfortably fit in <i>S</i>=32 pieces.
 
-The mersize <i>m</i> and merskip <i>s</i> roughly control the
-space/time/sensitivity of the search process.  Smaller mersizes
-require more time to find signals, generate more false positives (more
-space to store results, much more time to polish).  Larger merskips
-quickly reduce memory requirements ( <i>s</i>=1 decreases the number
-of mers by 50%) which can reduce sensitivity, but doesn't impact
-search time much.
+The mersize <i>m</i> and merskip <i>s</i> roughly control the space/time/sensitivity of the search process.  Smaller mersizes require more time to find signals, generate more false positives (more space to store results, much more time to polish).  Larger merskips quickly reduce memory requirements ( <i>s</i>=1 decreases the number of mers by 50%) which can reduce sensitivity, but doesn't impact search time much.
 
 ==== Configuration Example ====
 
-Configure the <i>Apis mellifera</i> genome for ESTmapper, using the
-default <i>m</i>=20 mersize and <i>s</i>=0 merskip.  Request four
-segments, instead of limiting each segment to a specific memory size.
-Perform the configuration computations using SGE, passing some
-SGE-specific options to the submission command.
+Configure the <i>Apis mellifera</i> genome for ESTmapper, using the default <i>m</i>=20 mersize and <i>s</i>=0 merskip.  Request four segments, instead of limiting each segment to a specific memory size. Perform the configuration computations using SGE, passing some SGE-specific options to the submission command.
 
 <pre>
 configureESTmapper.pl \
@@ -88,11 +67,9 @@ configureESTmapper.pl \
   -sge "-pe thread 2 -A estmapper"
 </pre>
 
-
 === Basic usage (mapping) ===
 
-Once a genome is configured, any number of ESTmapper mappings can be
-performed, on any input cDNA, EST or short genomic region input set.
+Once a genome is configured, any number of ESTmapper mappings can be performed, on any input cDNA, EST or short genomic region input set.
 
 ==== Required Parameters ====
 
@@ -172,13 +149,11 @@ A note about SGE options:  It is very important to quote the options to these pa
 ;-yn
 :save the answer for each signal processed (for debugging).
 
-Usually, the [sim4] flavor of the -min* options are unnecessary.  By
-default, sim4 will look for alignments 5% below what is specified,
-e.g., "-mincoverage 50" implies "-minsim4coverage 45".
+Usually, the [sim4] flavor of the -min* options are unnecessary.  By default, sim4 will look for alignments 5% below what is specified, e.g., "-mincoverage 50" implies "-minsim4coverage 45".
 
 If any -min option is supplied, it is better to supply all three.  Supplying just "-minlength 100" will leave the default values of "-mincoverage 50" and "-minidentity 95"; especially -mincoverage is probably not desired in this case.
 
-==== Termination Stage Paramters ====
+==== Termination Stage Parameters ====
 
 ;-[no]cleanup
 :[do not] attempt to cleanup the results, removing small spurious exons, among other things
@@ -187,7 +162,7 @@ If any -min option is supplied, it is better to supply all three.  Supplying jus
 
 === Example ===
 
-Using the configured <i>Apis mellifera</i>  genome from the last section, loosely map human mRNA.
+Using the configured <i>Apis mellifera</i> genome from the last section, loosely map human mRNA.
 
 <pre>
 ESTmapper.pl \
@@ -329,15 +304,9 @@ where:
 *<tt>==</tt>         gap (unaligned portion) in the cDNA sequence<br>
 |}
 
-Exon coordinates are nucleotide based, starting from 1. Genomic
-coordinates are always in the original sequence, while the cDNA
-coordinates will refer to positions in the reverse complement of the
-sequence if the match orientation is indicated as 'complement'.
+Exon coordinates are nucleotide based, starting from 1. Genomic coordinates are always in the original sequence, while the cDNA coordinates will refer to positions in the reverse complement of the sequence if the match orientation is indicated as 'complement'.
 
-Lowercase letters in the alignment lines indicate positions with
-matching nucleotides, '-' indicate gaps in the corresponding
-sequence, and uppercase letters mark either substitutions, or gaps in
-the other sequence.
+Lowercase letters in the alignment lines indicate positions with matching nucleotides, '-' indicate gaps in the corresponding sequence, and uppercase letters mark either substitutions, or gaps in the other sequence.
 
 ==== Output Format Examples ====
 
@@ -353,21 +322,9 @@ sim4begin
 sim4end
 </pre>
 
-The record describes a cDNA-genomic alignment between the cDNA with
-index number 2 (the third sequence in the cDNA multi-fasta
-file) and the genomic segment between positions
-239821075-23987233. The header line contains 3 tokens that provide
-information about the cDNA (2472 bp long, no polyA or polyT tails
-identified), the genomic sequence (index 0, and range), and the match
-(number of nucleotide identity matches -- 2472, percent sequence
-identity -- 100%, match orientation -- complement, and likely gene
-location, on the reverse strand).
+The record describes a cDNA-genomic alignment between the cDNA with index number 2 (the third sequence in the cDNA multi-fasta file) and the genomic segment between positions 239821075-23987233. The header line contains 3 tokens that provide information about the cDNA (2472 bp long, no polyA or polyT tails identified), the genomic sequence (index 0, and range), and the match (number of nucleotide identity matches -- 2472, percent sequence identity -- 100%, match orientation -- complement, and likely gene location, on the reverse strand).
 
-The alignment contains 4 exons. Since the cDNA and the genomic
-sequences match in 'complement', the cDNA coordinates are given
-in the reverse complement of the cDNA sequence (e.g., exon 1, 1-1542,
-refers to the segment between positions 2472-1542+1 and 2472-1+1 in
-the original sequence).
+The alignment contains 4 exons. Since the cDNA and the genomic sequences match in 'complement', the cDNA coordinates are given in the reverse complement of the cDNA sequence (e.g., exon 1, 1-1542, refers to the segment between positions 2472-1542+1 and 2472-1+1 in the original sequence).
 
 A more detailed match description, including alignments and deflines.
 
@@ -391,16 +348,11 @@ cgaagaggctgccgctaaa...cgcgccgggccc
 sim4end
 </pre>
 
-This is the same match as in example 1. The edef line now
-characterizes the cDNA sequence (i.e., the RefSeq sequence
-corresponding to the opsin 3 gene mRNA), and the ddef line
-characterizes the genomic sequence (i.e., human chromosome 1).  The
-alignment contains one substitution (C-A) at position 3 in exon 2.
+This is the same match as in example 1. The edef line now characterizes the cDNA sequence (i.e., the RefSeq sequence corresponding to the opsin 3 gene mRNA), and the ddef line characterizes the genomic sequence (i.e., human chromosome 1).  The alignment contains one substitution (C-A) at position 3 in exon 2.
 
 === Intermeditate Data Files ===
 
-ESTmapper creates several <i>intermediate</i> data files located in
-the designated working directory as follows:
+ESTmapper creates several <i>intermediate</i> data files located in the designated working directory as follows:
 
 ;0-input
 :symbolic links to input files, indices and other temporary files
@@ -413,13 +365,6 @@ the designated working directory as follows:
 
 == Software and hardware requirements ==
 
-ESTmapper is written in a combination of Perl and C++, and should run
-on any Posix compliant unix-like platform.  For large tasks, such as
-mapping 6M EST sequences to the human genome, at least 1GB RAM and up
-to 80GB disk for intermediate results is required; the output will be
-approximately 12 GB (9 GB for 'polishes-good', 3 GB for
-'polishes-best'.
+ESTmapper is written in a combination of Perl and C++, and should run on any Posix compliant unix-like platform.  For large tasks, such as mapping 6M EST sequences to the human genome, at least 1GB RAM and up to 80GB disk for intermediate results is required; the output will be approximately 12 GB (9 GB for 'polishes-good', 3 GB for 'polishes-best'.
 
-ESTmapper was designed, developed and implemented by Brian Walenz
-(brianwalenz@sourceforge.net) and Liliana Florea
-(floreald@sourceforge.net).
+ESTmapper was designed, developed and implemented by Brian Walenz and Liliana Florea.
