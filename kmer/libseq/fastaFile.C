@@ -30,7 +30,9 @@ fastaFile::fastaFile(const char *filename) {
 
   strcpy(_filename, filename);
 
+#ifdef DEBUG
   fprintf(stderr, "fastaFile::fastaFile()-- building index for '%s'\n", (filename) ? filename : "NULLPOINTER");
+#endif
   constructIndex();
 
   _rb    = new readBuffer(_filename);
@@ -369,7 +371,9 @@ fastaFile::loadIndex(char *indexname) {
   fread(_entry, sizeof(fastaFileEntry), _index._numberOfSequences, I);
   fread(_names, sizeof(char),           _index._namesLength,       I);
 
+#ifdef DEBUG
   fprintf(stderr, "fastaFile::constructIndex()-- '%s' LOADED\n", _filename);
+#endif
 
   fclose(I);
   return;
@@ -401,7 +405,9 @@ fastaFile::constructIndex(void) {
   if (_entry)
     return;
 
+#ifdef DEBUG
   fprintf(stderr, "fastaFile::constructIndex()-- '%s' BUILDING\n", _filename);
+#endif
 
   //  Allocate some space for the index structures.
 

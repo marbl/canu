@@ -34,6 +34,13 @@ seqStream  -- provides a character stream (ala getchar()) of the
 merStream  -- provides a mer stream from a seqStream.
 
 ----------------------------------------
+TESTING
+
+seqCache  uses seqFile::getSequence(full).
+seqStream uses seqFile::getSequence(partial).
+merStream uses seqStream.
+
+----------------------------------------
 
 seqFie & file accessors in general.
 
@@ -76,10 +83,10 @@ positions.
 
 The seqStream returns 0 before eof() is true.  If we expand a typical
 reading loop:
-
-eof() -> false
-get() -> 'A'
-eof() -> false
-get() -> 0
-eof() -> true
-
+    eof() -> false
+    get() -> 'A'
+    eof() -> false
+    get() -> 0
+    eof() -> true
+HOWEVER, seqPos(), seqIID() and strPos() are valid (could be
+considered a bug).

@@ -162,13 +162,13 @@ seqStream::rewind(void){
   _streamPos  = _bgn;
   _bufferPos  = _bgn;
 
-  fprintf(stderr, "seqStream::rewind()-- 1 currentIdx="u32bitFMT" currentPos="u32bitFMT" streamPos="u32bitFMT" bufferPos="u32bitFMT"\n",
-          _currentIdx, _currentPos, _streamPos, _bufferPos);
+  //fprintf(stderr, "seqStream::rewind()-- 1 currentIdx="u32bitFMT" currentPos="u32bitFMT" streamPos="u32bitFMT" bufferPos="u32bitFMT"\n",
+  //        _currentIdx, _currentPos, _streamPos, _bufferPos);
 
   fillBuffer();
 
-  fprintf(stderr, "seqStream::rewind()-- 2 currentIdx="u32bitFMT" currentPos="u32bitFMT" streamPos="u32bitFMT" bufferPos="u32bitFMT"\n",
-          _currentIdx, _currentPos, _streamPos, _bufferPos);
+  //fprintf(stderr, "seqStream::rewind()-- 2 currentIdx="u32bitFMT" currentPos="u32bitFMT" streamPos="u32bitFMT" bufferPos="u32bitFMT"\n",
+  //        _currentIdx, _currentPos, _streamPos, _bufferPos);
 }
 
 
