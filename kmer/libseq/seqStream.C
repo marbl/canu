@@ -157,6 +157,12 @@ seqStream::rewind(void){
 
   _eof = false;
 
+  //  (_bgn - l) is a 32-bit quanitity because of the second half of
+  //  the while above.  Although _bgn is a 64-bit value, the value
+  //  used to set _bufferPos will be for that of a string constructor,
+  //  and so _bgn will be 32-bits.  fillBuffer() resets _bufferPos if
+  //  we're backed by a file.
+
   _currentIdx = s;
   _currentPos = _bgn - l;
   _streamPos  = _bgn;
@@ -182,7 +188,7 @@ seqStream::setRange(u64bit bgn, u64bit end) {
   while (s < _idxLen)
     l += _idx[s++]._len;
 
-  if (end == ~u32bitZERO)
+  if (end == ~u64bitZERO)
     end = l;
 
   if ((bgn > l) || (end > l))

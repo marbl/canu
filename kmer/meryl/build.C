@@ -231,7 +231,7 @@ prepareBatch(merylArgs *args) {
   }
 
   {
-    merStream *merstr = new merStream(0L,
+    merStream *merstr = new merStream(new kMerBuilder(args->merSize),
                                       new seqStream(args->inputFile));
 
     args->numMersActual = merstr->approximateNumberOfMers() + 1;

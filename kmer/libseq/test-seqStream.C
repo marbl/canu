@@ -6,11 +6,7 @@
 
 #include "test-correctSequence.H"
 
-
-char     *chainSeq;
-u32bit   *chainSeqPos;
-u32bit   *chainSeqIID;
-u32bit   *chainStrPos;
+#define FAIL() { err++; assert(0); }
 
 
 u32bit
@@ -19,6 +15,8 @@ testIndexing(u32bit numSeq, char sep, u32bit sepLen) {
   seqStream *ST  = 0L;
 
   fprintf(stderr, "testIndexing()-- numSeq="u32bitFMT" sep=%c sepLen="u32bitFMT"\n", numSeq, sep, sepLen);
+
+  generateChainedAnswer(numSeq, sep, sepLen);
 
   if (numSeq > 1) {
     ST = new seqStream("test-correctSequence.fasta");
@@ -36,12 +34,12 @@ testIndexing(u32bit numSeq, char sep, u32bit sepLen) {
 
   fprintf(stderr, "IGNORE THIS WARNING:  ");
   if (ST->sequenceNumberOfPosition(maxLen) != ~u32bitZERO) {
-    fprintf(stderr, "maxLen 1 wrong.\n");
-    err++;
+    fprintf(stderr, "maxLen too small.\n");
+    FAIL();
   }
   if (ST->sequenceNumberOfPosition(maxLen - 1) == ~u32bitZERO) {
-    fprintf(stderr, "maxLen 2 wrong.\n");
-    err++;
+    fprintf(stderr, "maxLen too big.\n");
+    FAIL();
   }
 
   //  Check all lookups - lengthOf() and IIDOf() are implicitly
@@ -49,39 +47,39 @@ testIndexing(u32bit numSeq, char sep, u32bit sepLen) {
   //  isn't, but inserting errors in setRange() led to
   //  infinite-looking loops.
 
-  u32bit pos = 0;
-  u32bit sta = 0;
+  u64bit pos = 0;
+  u64bit sta = 0;
 
   for (u32bit sid=0; sid<numSeq; sid++) {
     if (ST->lengthOf(sid) != correctSequence[sid].sequenceLength) {
       fprintf(stderr, "lengthOf "u32bitFMT" returned "u32bitFMT", not correct "u32bitFMT"\n",
               sid, ST->lengthOf(sid), correctSequence[sid].sequenceLength);
-      err++;
+      FAIL();
     }
     if (ST->startOf(sid)  != sta) {
-      fprintf(stderr, "lengthOf "u32bitFMT" returned "u32bitFMT", not correct "u32bitFMT"\n",
+      fprintf(stderr, "startOf "u32bitFMT" returned "u64bitFMT", not correct "u64bitFMT"\n",
               sid, ST->startOf(sid), sta);
-      err++;
+      FAIL();
     }
     if (ST->IIDOf(sid)    != sid) {
       fprintf(stderr, "IIDOf "u32bitFMT" returned "u32bitFMT", not correct "u32bitFMT"\n",
               sid, ST->IIDOf(sid), sid);
-      err++;
+      FAIL();
     }
 
     sta += correctSequence[sid].sequenceLength;
 
     for (u32bit ppp=0; ppp<correctSequence[sid].sequenceLength; ppp++, pos++) {
       if (ST->sequenceNumberOfPosition(pos) != sid) {
-        fprintf(stderr, "sequenceNumberOfPosition "u32bitFMT" returned "u32bitFMT", not correct "u32bitFMT".\n",
+        fprintf(stderr, "sequenceNumberOfPosition "u64bitFMT" returned "u32bitFMT", not correct "u32bitFMT".\n",
                 pos, ST->sequenceNumberOfPosition(pos), sid);
-        err++;
+        FAIL();
       }
     }
   }
   if (pos != maxLen) {
     fprintf(stderr, "maxLen wrong.\n");
-    err++;
+    FAIL();
   }
 
   //  Check the separator.  Seek to a spot right before one, and count
@@ -89,22 +87,64 @@ testIndexing(u32bit numSeq, char sep, u32bit sepLen) {
   //  testChaining().
 
   for (u32bit sid=0; sid<numSeq-1; sid++) {
-    ST->setRange(ST->startOf(sid) + ST->lengthOf(sid)-1, ~u32bitZERO);
+    ST->setRange(ST->startOf(sid) + ST->lengthOf(sid)-1, ~u64bitZERO);
     ST->get();
     for (u32bit x=0; x<sepLen; x++) {
       char s = ST->get();
       if (s != sep) {
         fprintf(stderr, "wrong separator at sep "u32bitFMT" got %d expected %d\n", x, s, sep);
-        err++;
+        FAIL();
       }
     }
     if (ST->get() == sep) {
       fprintf(stderr, "too many separators!\n");
-      err++;
+      FAIL();
     }
   }
 
   delete ST;
+
+  return(err);
+}
+
+
+
+u32bit
+testSeqStream(seqStream *ST, u32bit sib, u32bit sie, char sep) {
+  u32bit  err = 0;
+
+  while (ST->eof() == false) {
+    u32bit   sp = ST->seqPos();
+    u32bit   si = ST->seqIID();
+    u64bit   st = ST->strPos();
+    char     ch = ST->get();
+
+    if (ch != 0) {
+      if (ch != chainSeq[sib]) {
+        fprintf(stderr, "sp="u32bitFMT" si="u32bitFMT" st="u64bitFMT" ch=%c -- letter wrong got'%c'\n", sp, si, st, ch, chainSeq[sib]);
+        FAIL();
+      }
+      if ((ch != sep) && (sp != chainSeqPos[sib])) {
+        fprintf(stderr, "sp="u32bitFMT" si="u32bitFMT" st="u64bitFMT" ch=%c -- seqPos wrong got "u32bitFMT"\n", sp, si, st, ch, chainSeqPos[sib]);
+        FAIL();
+      }
+      if ((ch != sep) && (si != chainSeqIID[sib])) {
+        fprintf(stderr, "sp="u32bitFMT" si="u32bitFMT" st="u64bitFMT" ch=%c -- seqIID wrong got"u32bitFMT"\n", sp, si, st, ch, chainSeqIID[sib]);
+        FAIL();
+      }
+      if ((ch != sep) && (st != chainStrPos[sib])) {
+        fprintf(stderr, "sp="u32bitFMT" si="u32bitFMT" st="u64bitFMT" ch=%c -- strPos wrong got "u64bitFMT"\n", sp, si, st, ch, chainStrPos[sib]);
+        FAIL();
+      }
+
+      sib++;
+    }
+  }
+
+  if (sib != sie) {
+    fprintf(stderr, "iterated length wrong; sib="u32bitFMT" sie="u32bitFMT"\n", sib, sie);
+    FAIL();
+  }
 
   return(err);
 }
@@ -118,6 +158,8 @@ testChaining(u32bit numSeq, char sep, u32bit sepLen) {
 
   fprintf(stderr, "testChaining()-- numSeq="u32bitFMT" sep=%c sepLen="u32bitFMT"\n", numSeq, sep, sepLen);
 
+  generateChainedAnswer(numSeq, sep, sepLen);
+
   if (numSeq > 1) {
     ST = new seqStream("test-correctSequence.fasta");
     ST->setSeparator(sep, sepLen);
@@ -125,119 +167,18 @@ testChaining(u32bit numSeq, char sep, u32bit sepLen) {
     ST = new seqStream(correctSequence[0].sequence, correctSequence[0].sequenceLength);
   }
 
-  //  Build the answer
-
-  //  Purposely allocate more space than real, because we _ALWAYS_
-  //  tack on an extra separator at the end of the chain we build
-  //  below.
-
-  {
-    u32bit  maxLen = ST->startOf(numSeq-1) + ST->lengthOf(numSeq-1) + numSeq * sepLen + sepLen;
-
-    chainSeq    = new char   [maxLen];
-    chainSeqPos = new u32bit [maxLen];
-    chainSeqIID = new u32bit [maxLen];
-    chainStrPos = new u32bit [maxLen];
-  }
-
-  u32bit p      = 0;
-  u32bit strpos = 0;
-
-  for (u32bit sid=0; sid<numSeq; sid++) {
-    for (u32bit ppp=0; ppp<correctSequence[sid].sequenceLength; ppp++, p++, strpos++) {
-      chainSeq[p]    = correctSequence[sid].sequence[ppp];
-      chainSeqPos[p] = ppp;
-      chainSeqIID[p] = sid;
-      chainStrPos[p] = strpos;
-    }
-    if (sid+1 < numSeq)
-      for (u32bit ppp=0; ppp<sepLen; ppp++, p++) {
-        chainSeq[p]    = sep;
-        chainSeqPos[p] = ~u32bitZERO;
-        chainSeqIID[p] = ~u32bitZERO;
-        chainStrPos[p] = ~u32bitZERO;
-      }
-  }
-
   //  Do a test on the whole thing.
 
   {
     u32bit  sib = 0;
-    u32bit  sie = p;
+    u32bit  sie = strlen(chainSeq);
 
     fprintf(stderr, "initial test with full range\n");
-
-    while (ST->eof() == false) {
-      u64bit   sp = ST->seqPos();
-      u64bit   si = ST->seqIID();
-      u64bit   st = ST->strPos();
-      char     ch = ST->get();
-
-      if (ch != 0) {
-        if (ch != chainSeq[sib]) {
-          fprintf(stderr, "letter wrong '%c' vs '%c'\n", ch, chainSeq[sib]);
-          err++;
-        }
-        if ((ch != sep) && (sp != chainSeqPos[sib])) {
-          fprintf(stderr, "seqPos wrong "u32bitFMT" vs "u32bitFMT"\n", sp, chainSeqPos[sib]);
-          err++;
-        }
-        if ((ch != sep) && (si != chainSeqIID[sib])) {
-          fprintf(stderr, "seqIID wrong "u32bitFMT" vs "u32bitFMT"\n", si, chainSeqIID[sib]);
-          err++;
-        }
-        if ((ch != sep) && (st != chainStrPos[sib])) {
-          fprintf(stderr, "strPos wrong "u32bitFMT" vs "u32bitFMT"\n", st, chainStrPos[sib]);
-          err++;
-        }
-
-        sib++;
-      }
-    }
-
-    if (sib != sie) {
-      fprintf(stderr, "iterated length wrong; sib="u32bitFMT" sie="u32bitFMT"\n", sib, sie);
-      err++;
-    }
-
-    ST->rewind();
-
-    sib = 0;
+    testSeqStream(ST, sib, sie, sep);
 
     fprintf(stderr, "initial test with full range (rewind)\n");
-
-    while (ST->eof() == false) {
-      u64bit   sp = ST->seqPos();
-      u64bit   si = ST->seqIID();
-      u64bit   st = ST->strPos();
-      char     ch = ST->get();
-
-      if (ch != 0) {
-        if (ch != chainSeq[sib]) {
-          fprintf(stderr, "letter wrong '%c' vs '%c'\n", ch, chainSeq[sib]);
-          err++;
-        }
-        if ((ch != sep) && (sp != chainSeqPos[sib])) {
-          fprintf(stderr, "seqPos wrong "u32bitFMT" vs "u32bitFMT"\n", sp, chainSeqPos[sib]);
-          err++;
-        }
-        if ((ch != sep) && (si != chainSeqIID[sib])) {
-          fprintf(stderr, "seqIID wrong "u32bitFMT" vs "u32bitFMT"\n", si, chainSeqIID[sib]);
-          err++;
-        }
-        if ((ch != sep) && (st != chainStrPos[sib])) {
-          fprintf(stderr, "strPos wrong "u32bitFMT" vs "u32bitFMT"\n", st, chainStrPos[sib]);
-          err++;
-        }
-
-        sib++;
-      }
-    }
-
-    if (sib != sie) {
-      fprintf(stderr, "iterated length wrong; sib="u32bitFMT" sie="u32bitFMT"\n", sib, sie);
-      err++;
-    }
+    ST->rewind();
+    testSeqStream(ST, sib, sie, sep);
   }
 
 
@@ -249,7 +190,7 @@ testChaining(u32bit numSeq, char sep, u32bit sepLen) {
 
   fprintf(stderr, "test on subranges\n");
 
-  for (u32bit iter=0; iter<100; iter++) {
+  for (u32bit iter=0; iter<500; iter++) {
     u32bit beg = mtRandom32(mtctx) % maxLen;
     u32bit end = mtRandom32(mtctx) % maxLen;
     if (beg > end) {
@@ -270,7 +211,7 @@ testChaining(u32bit numSeq, char sep, u32bit sepLen) {
     for (u32bit ppp=0, sid=0; sid<numSeq; sid++) {
       u32bit len = correctSequence[sid].sequenceLength;
 
-      if ((ppp < beg) && (beg < ppp + len)) {
+      if ((ppp <= beg) && (beg < ppp + len)) {
         sib += beg - ppp;
         break;
       }
@@ -282,7 +223,7 @@ testChaining(u32bit numSeq, char sep, u32bit sepLen) {
     for (u32bit ppp=0, sid=0; sid<numSeq; sid++) {
       u32bit len = correctSequence[sid].sequenceLength;
 
-      if ((ppp < end) && (end < ppp + len)) {
+      if ((ppp <= end) && (end < ppp + len)) {
         sie += end - ppp;
         break;
       }
@@ -302,41 +243,8 @@ testChaining(u32bit numSeq, char sep, u32bit sepLen) {
       //fprintf(stderr, "Random iter "u32bitFMT"\n", iter);
     }
 
-    //  Run the seqStream until it stops, checking all the interesting
-    //  values, and counting the number of non-separator we see.
 
-    while (ST->eof() == false) {
-      u64bit   sp = ST->seqPos();
-      u64bit   si = ST->seqIID();
-      u64bit   st = ST->strPos();
-      char     ch = ST->get();
-
-      if (ch != 0) {
-        if (ch != chainSeq[sib]) {
-          fprintf(stderr, "letter wrong '%c' vs '%c'\n", ch, chainSeq[sib]);
-          err++;
-        }
-        if ((ch != sep) && (sp != chainSeqPos[sib])) {
-          fprintf(stderr, "seqPos wrong "u32bitFMT" vs "u32bitFMT"\n", sp, chainSeqPos[sib]);
-          err++;
-        }
-        if ((ch != sep) && (si != chainSeqIID[sib])) {
-          fprintf(stderr, "seqIID wrong "u32bitFMT" vs "u32bitFMT"\n", si, chainSeqIID[sib]);
-          err++;
-        }
-        if ((ch != sep) && (st != chainStrPos[sib])) {
-          fprintf(stderr, "strPos wrong "u32bitFMT" vs "u32bitFMT"\n", st, chainStrPos[sib]);
-          err++;
-        }
-
-        sib++;
-      }
-    }
-
-    if (sib != sie) {
-      fprintf(stderr, "iterated length wrong; sib="u32bitFMT" sie="u32bitFMT" beg="u32bitFMT" end="u32bitFMT"\n", sib, sie, beg, end);
-      err++;
-    }
+    testSeqStream(ST, sib, sie, sep);
   }
 
   return(err > 0);
@@ -371,6 +279,9 @@ main(int argc, char **argv) {
   err += testChaining(numSeq, '-', 1000);
 
   removeCorrectSequence(numSeq);
+
+  if (err == 0)
+    fprintf(stderr, "Success!\n");
 
   exit(err > 0);
 }

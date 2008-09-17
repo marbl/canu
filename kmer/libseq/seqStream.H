@@ -64,8 +64,8 @@ public:
   //
   //  Values are not defined if the letter is a separator.
   //
-  u64bit            seqPos(void)     { return(_currentPos);            };
-  u64bit            seqIID(void)     { return(_idx[_currentIdx]._iid); };
+  u32bit            seqPos(void)     { return(_currentPos);            };
+  u32bit            seqIID(void)     { return(_idx[_currentIdx]._iid); };
   u64bit            strPos(void)     { return(_streamPos);             };
 
   u32bit            numberOfSequences(void) { return(_idxLen); };
@@ -73,9 +73,9 @@ public:
   //  Return the length of, position of (in the chain) and IID of the
   //  (s)th sequence in the chain.
   //
-  u64bit            lengthOf(u32bit s) { return((s >= _idxLen) ? ~u64bitZERO : _idx[s]._len); };
+  u32bit            lengthOf(u32bit s) { return((s >= _idxLen) ? ~u32bitZERO : _idx[s]._len); };
+  u32bit            IIDOf(u32bit s)    { return((s >= _idxLen) ? ~u32bitZERO : _idx[s]._iid); };
   u64bit            startOf(u32bit s)  { return((s >= _idxLen) ? ~u64bitZERO : _idx[s]._bgn); };
-  u64bit            IIDOf(u32bit s)    { return((s >= _idxLen) ? ~u64bitZERO : _idx[s]._iid); };
 
   //  For a chain position p, returns the s (above) for that position.
   //
@@ -87,7 +87,7 @@ private:
   seqFile         *_file;        //  Backed by a seqFile.
   char            *_string;      //  Backed by a character string.
 
-  u64bit           _bgn;
+  u64bit           _bgn;         //  Begin/End position in chained sequence
   u64bit           _end;
 
   u32bit           _currentIdx;  //  index into _idx of the current sequence

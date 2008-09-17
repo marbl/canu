@@ -30,10 +30,35 @@ testSeqVsCorrect(seqInCore *S, u32bit testID) {
     fprintf(stderr, "testID:"u32bitFMT" - sequence differs\n", testID);
     err++;
   }
+  if (strlen(S->sequence()) != correctSequence[sid].sequenceLength) {
+    fprintf(stderr, "testID:"u32bitFMT" - sequence length differs strlen "u32bitFMT" vs "u32bitFMT"\n", testID, (u32bit)strlen(S->sequence()), correctSequence[sid].sequenceLength);
+    err++;
+  }
   if (S->sequenceLength() != correctSequence[sid].sequenceLength) {
     fprintf(stderr, "testID:"u32bitFMT" - sequence length differs "u32bitFMT" vs "u32bitFMT"\n", testID, S->sequenceLength(), correctSequence[sid].sequenceLength);
     err++;
   }
+
+  return(err);
+}
+
+
+u32bit
+testSeqCacheIDLookups(seqCache *SC) {
+  u32bit      err    = 0;
+  u32bit      numSeq = SC->getNumberOfSequences();
+  double      start  = getTime();
+
+  //  1 - getSequenceIID()
+  fprintf(stderr, "1 - getSequenceIID()\n");
+  for (u32bit sid=0; sid<numSeq; sid++) {
+    if (sid != SC->getSequenceIID(correctSequence[sid].header)) {
+      fprintf(stderr, "2 - failed to find name '%s'\n", correctSequence[sid].header);
+      err++;
+    }
+  }
+
+  fprintf(stderr, "Test took %f seconds.\n", getTime() - start);
 
   return(err);
 }
@@ -47,21 +72,15 @@ testSeqCache(seqCache *SC) {
   double      start  = getTime();
 
   //  0 - getSequenceLength()
+  fprintf(stderr, "0 - getSequenceLength()\n");
   for (u32bit sid=0; sid<numSeq; sid++)
     if (SC->getSequenceLength(sid) != correctSequence[sid].sequenceLength) {
       fprintf(stderr, "1 - length differs.\n");
       err++;
     }
 
-  //  1 - getSequenceIID()
-  for (u32bit sid=0; sid<numSeq; sid++) {
-    if (sid != SC->getSequenceIID(correctSequence[sid].header)) {
-      fprintf(stderr, "2 - failed to find name '%s'\n", correctSequence[sid].header);
-      err++;
-    }
-  }
-
   //  2 - stream with getSequenceInCore()
+  fprintf(stderr, "2 - stream with getSequenceInCore()\n");
   S = SC->getSequenceInCore();
   while (S != 0L) {
     err += testSeqVsCorrect(S, 2);
@@ -70,6 +89,7 @@ testSeqCache(seqCache *SC) {
   }
 
   //  3 - iterate with getSequenceInCore(sid++)
+  fprintf(stderr, "3 - iterate with getSequenceInCore(sid++)\n");
   for (u32bit sid=0; sid<numSeq; sid++) {
     S = SC->getSequenceInCore(sid);
     err += testSeqVsCorrect(S, 3);
@@ -77,6 +97,7 @@ testSeqCache(seqCache *SC) {
   }
 
   //  4 - random with getSequenceInCore(sid)
+  fprintf(stderr, "4 - random with getSequenceInCore(sid)\n");
   for (u32bit cnt=0; cnt<4*numSeq; cnt++) {
     u32bit sid = mtRandom32(mtctx) % numSeq;
     S = SC->getSequenceInCore(sid);
@@ -94,11 +115,16 @@ int
 main(int argc, char **argv) {
   u32bit     minLen = 100;
   u32bit     maxLen = 2000;
-  u32bit     numSeq = 1000000;
+  u32bit     numSeq = 100000;
   seqCache  *SC     = 0L;
   u32bit     err    = 0;
 
   generateCorrectSequence(minLen, maxLen, numSeq);
+
+  fprintf(stderr, "seqCache(file, 0, true) (ID lookups)\n");
+  SC = new seqCache("test-correctSequence.fasta", 0, true);
+  //err += testSeqCacheIDLookups(SC);
+  delete SC;
 
   fprintf(stderr, "seqCache(file, 0, true)\n");
   SC = new seqCache("test-correctSequence.fasta", 0, true);
@@ -147,6 +173,9 @@ main(int argc, char **argv) {
   delete SC;
 
   removeCorrectSequence(numSeq);
+
+  if (err == 0)
+    fprintf(stderr, "Success!\n");
 
   exit(err > 0);
 }

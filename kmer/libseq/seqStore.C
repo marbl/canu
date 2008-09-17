@@ -150,7 +150,8 @@ seqStore::clear(void) {
 void
 seqStore::construct(char *filename, seqCache *inputseq) {
 
-  seqStoreHeader    HEAD    = {0};
+  seqStoreHeader    HEAD;
+  memset(&HEAD, sizeof(seqStoreHeader), 0);
 
   bitPackedFile    *DATA    = new bitPackedFile(filename, sizeof(seqStoreHeader), true);
 
@@ -244,8 +245,8 @@ seqStore::construct(char *filename, seqCache *inputseq) {
   //  useful for the binary search.
 
   BLOK[BLOKlen]._isACGT = 0;
-  BLOK[BLOKlen]._iid    = ~u64bitZERO;
-  BLOK[BLOKlen]._pos    = ~u64bitZERO;
+  BLOK[BLOKlen]._iid    = ~u32bitZERO;
+  BLOK[BLOKlen]._pos    = ~u32bitZERO;
   BLOK[BLOKlen]._len    = 0;
   BLOK[BLOKlen]._bpf    = DATA->tell();
 

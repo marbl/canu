@@ -51,10 +51,10 @@ public:
 
 #ifdef DEBUG
     fprintf(stderr, "merStream::nextMer()-- seqPos="u32bitFMT" span="u32bitFMT" end="u32bitFMT"\n",
-            _ss->seqPos(), theFMer().getMerSpan(), _end);
+            _ss->strPos(), theFMer().getMerSpan(), _end);
 #endif
 
-    return(_ss->seqPos() - theFMer().getMerSpan() < _end);
+    return(_ss->strPos() - theFMer().getMerSpan() < _end);
   };
 
   void                   rewind(void);
