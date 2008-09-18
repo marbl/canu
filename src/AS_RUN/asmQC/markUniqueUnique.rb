@@ -11,8 +11,8 @@ end
 asmFileS = ARGV[0]
 iumFileS = ARGV[1]
 
+iumFileList = Dir[iumFileS]
 asmFile = File.open( asmFileS )
-iumFile = File.open( iumFileS )
 
 surrUTGs   = {}
 iidToUid   = {}
@@ -62,14 +62,17 @@ end
 #iidToUid.each_pair { |iid,uid| $stderr.puts "iid #{iid} uid #{uid}" }
 
 # read and output IUM file changing unique surrogate status to unique
-iumFile.each_line do |line|
+iumFileList.each do |iumFileS|
+   $stderr.print "OPening file #{iumFileS}\n";
+   iumFile = File.open( iumFileS )
 
-    if line[0,4] == '{IUM'
-        print line
-        line = iumFile.readline
-        accStr,acc = line.chop.split(':')
-        uid = iidToUid[ acc ]
-        if uniqueSurr[ uid ] == 1
+   iumFile.each_line do |line|
+      if line[0,4] == '{IUM'
+         print line
+         line = iumFile.readline
+         accStr,acc = line.chop.split(':')
+         uid = iidToUid[ acc ]
+         if uniqueSurr[ uid ] == 1
             # read up to fur: line
             while line[0,4] != 'fur:' do
                 print line
@@ -81,8 +84,9 @@ iumFile.each_line do |line|
                 line = "fur:U\n"
                 $stderr.print "Marking unitig #{uid},#{acc} unique was #{uniqueStat}\n"
             end
-        end
-    end
-    # echo back most lines
-    print line
+         end
+      end
+      # echo back most lines
+      print line
+   end
 end

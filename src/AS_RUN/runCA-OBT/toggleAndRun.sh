@@ -15,6 +15,9 @@ asmBin=$1
 specFile=$2
 
 toggler='markUniqueUnique.rb'
+gatekeeper='gatekeeper'
+ecrFileOne='frg.ECR1Edits.txt'
+ecrFileTwo='frg.ECR2Edits.txt'
 
 if [[ ! -d "9-terminator" ]]
 then
@@ -48,9 +51,13 @@ gkp="$prefix.gkpStore"
 mkdir $gkp
 (cd $gkp && ln -s ../../$gkp/??? .)
 
-# but the frg store is rewritten by cgw, so replace
+# but the frg store is rewritten by cgw, so reset the ECR clear-ranges
 rm -f $gkp/frg
-cp ../$gkp/frg.before-7-1-ECR-scaffold.+(0) $gkp/frg || exit
+cp ../$gkp/frg $gkp/frg || exit
+$asmBin/gatekeeper -dumpfragments -tabular -allreads -clear OBT $gkp | grep -v "UID" | awk '{print "frg uid "$1" ECR1 "$12" "$13}' > $gkp/$ecrFileOne || exit
+sed s/ECR1/ECR2/g $gkp/$ecrFileOne > $gkp/$ecrFileTwo || exit
+$asmBin/gatekeeper --edit $gkp/$ecrFileOne $gkp > /dev/null || exit
+$asmBin/gatekeeper --edit $gkp/$ecrFileTwo $gkp > /dev/null || exit
 
 # runCA looks for the 5-consensus *.err files at some point
 conDir=5-consensus
@@ -58,8 +65,9 @@ mkdir $conDir
 (cd $conDir && ln -s ../../$conDir/*.err .)
 
 # create the toggled cgi file
-cgi=$conDir/$prefix.cgi
-$asmBin/$toggler ../*.asm ../$cgi > $cgi 2> toggle.err
+cgiInput=$conDir/$prefix_*.cgi
+cgiOutput=$conDir/$prefix.cgi
+$asmBin/$toggler ../*.asm ../$cgiInput > $cgiOutput 2> toggle.err
 
 if cmp -s ../$cgi $cgi
 then
