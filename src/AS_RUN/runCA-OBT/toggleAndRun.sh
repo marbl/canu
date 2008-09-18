@@ -16,8 +16,7 @@ specFile=$2
 
 toggler='markUniqueUnique.rb'
 gatekeeper='gatekeeper'
-ecrFileOne='frg.ECR1Edits.txt'
-ecrFileTwo='frg.ECR2Edits.txt'
+ecrEdits='frg.ECREdits.txt'
 
 if [[ ! -d "9-terminator" ]]
 then
@@ -54,10 +53,8 @@ mkdir $gkp
 # but the frg store is rewritten by cgw, so reset the ECR clear-ranges
 rm -f $gkp/frg
 cp ../$gkp/frg $gkp/frg || exit
-$asmBin/gatekeeper -dumpfragments -tabular -allreads -clear OBT $gkp | grep -v "UID" | awk '{print "frg uid "$1" ECR1 "$12" "$13}' > $gkp/$ecrFileOne || exit
-sed s/ECR1/ECR2/g $gkp/$ecrFileOne > $gkp/$ecrFileTwo || exit
-$asmBin/gatekeeper --edit $gkp/$ecrFileOne $gkp > /dev/null || exit
-$asmBin/gatekeeper --edit $gkp/$ecrFileTwo $gkp > /dev/null || exit
+$asmBin/gatekeeper -dumpfragments -tabular -allreads -clear OBT $gkp | grep -v "UID" | awk '{print "frg uid "$1" ECR1 ALL "$12" "$13}' > $gkp/$ecrEdits || exit
+$asmBin/gatekeeper --edit $gkp/$ecrEdits $gkp > /dev/null || exit
 
 # runCA looks for the 5-consensus *.err files at some point
 conDir=5-consensus
@@ -66,10 +63,8 @@ mkdir $conDir
 
 # create the toggled cgi file
 cgiInput=$conDir/$prefix_*.cgi
-cgiOutput=$conDir/$prefix.cgi
-$asmBin/$toggler ../*.asm ../$cgiInput > $cgiOutput 2> toggle.err
-
-if cmp -s ../$cgi $cgi
+cgi=$conDir/$prefix.cgi
+if ($asmBin/$toggler ../*.asm ../$cgiInput > $cgi 2> toggle.err == 0)
 then
     echo No toggling occured. Finished.
     exit 0

@@ -62,8 +62,10 @@ end
 #iidToUid.each_pair { |iid,uid| $stderr.puts "iid #{iid} uid #{uid}" }
 
 # read and output IUM file changing unique surrogate status to unique
+toggledCount = 0
+
 iumFileList.each do |iumFileS|
-   $stderr.print "OPening file #{iumFileS}\n";
+   $stderr.print "Opening file #{iumFileS}\n";
    iumFile = File.open( iumFileS )
 
    iumFile.each_line do |line|
@@ -82,6 +84,7 @@ iumFileList.each do |iumFileS|
             uniqueStat = line[4,1]
             if uniqueStat != 'U'
                 line = "fur:U\n"
+		toggledCount = toggledCount + 1
                 $stderr.print "Marking unitig #{uid},#{acc} unique was #{uniqueStat}\n"
             end
          end
@@ -90,3 +93,6 @@ iumFileList.each do |iumFileS|
       print line
    end
 end
+
+$stderr.print "Toggled a total of #{toggledCount}\n"
+exit(toggledCount)
