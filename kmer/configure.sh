@@ -277,7 +277,7 @@ EOF
 # -*- makefile -*-
 #  FreeBSD, optimized
 THREADS           := -pthread
-THREADL           := -pthread
+THREADL           := -pthread -lpthread
 CC                := cc
 SHLIB_FLAGS       := -shared
 CFLAGS_COMPILE    := -O3 -fPIC \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
@@ -300,8 +300,8 @@ EOF
 #  removed -Wredundant-decls cause it is annoying.
 #  removed -Waggregate-return cause stl does it too much
 #
-THREADS           := -D_THREAD_SAFE -pthread
-THREADL           := -pthread
+THREADS           := -pthread
+THREADL           := -pthread -lpthread
 CC                := cc
 SHLIB_FLAGS       := -shared
 CFLAGS_COMPILE    := -g \$(THREADS) -fPIC -Wall -Wno-char-subscripts -Wshadow -Wpointer-arith -Wcast-qual \
