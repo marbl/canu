@@ -13,6 +13,7 @@
 
 #include "bio++.H"
 #include "seqCache.H"
+#include "seqStore.H"  //  constructSeqStore()
 
 
 void          simseq(char *,char *,int,int,int,int,double);
@@ -137,17 +138,29 @@ const char *usage =
 "EXPERT OPTIONS\n"
 "       -A:  Read actions from 'file'\n"
 "\n"
+"\n"
+"CONVERSION\n"
+"       --seqstore out.seqStore\n"
+"                    Converts the input file (-f) to a seqStore file.\n"
+"\n"
+"\n"
 "EXAMPLES\n"
 "       Options are ORDER DEPENDENT.  Sequences are printed whenever an\n"
 "       ACTION occurs on the command line.  SEQUENCE OPTIONS are not reset\n"
 "       when a sequence is printed.\n"
 "\n"
-"       -F file -e 0 10 -s 3       Print the first 10 bases of the fourth\n"
-"                                  sequence in file.\n"
-"       -F file -e 0 10 -s 3 -s 4  Print the first 10 bases of the fourth\n"
-"                                  and fifth sequences in file.\n"
-"       -F file -R -C -s 3 -s 4    Print the fourth and fifth sequences\n"
-"                                  reverse complemented.\n"
+"\n"
+"       Print the first 10 bases of the fourth sequence in file:\n"
+"           -f file -e 0 10 -s 3\n"
+"\n"
+"       Print the first 10 bases of the fourth and fifth sequences in file:\n"
+"           -f file -e 0 10 -s 3 -s 4\n"
+"\n"
+"       Print the fourth and fifth sequences reverse complemented:\n"
+"           -f file -R -C -s 3 -s 4\n"
+"\n"
+"       Convert 'file' to a seqStore 'out.seqStore':\n"
+"           -f file --seqstore out.seqStore\n"
 "\n";
 
 
@@ -299,17 +312,17 @@ printIID(u32bit iid, seqInCore *s=0L) {
 
     fprintf(stdout, "%s %s\n", sum, s->header());
   } else if (endExtract + endExtract < s->sequenceLength()) {
-    fprintf(stdout, ">%s_5\n", s->header()+1);
+    fprintf(stdout, ">%s_5\n", s->header());
     printSequence(s, 0, endExtract, withLineBreaks, reverse, complement);
 
-    fprintf(stdout, ">%s_3\n", s->header()+1);
+    fprintf(stdout, ">%s_3\n", s->header());
     printSequence(s, s->sequenceLength()-endExtract, s->sequenceLength(), withLineBreaks, reverse, complement);
   } else {
     if (withDefLine)
       if (specialDefLine)
         fprintf(stdout, ">%s\n", specialDefLine);
       else
-        fprintf(stdout, ">%s\n", s->header()+1);
+        fprintf(stdout, ">%s\n", s->header());
 
     printSequence(s, begPos, endPos, withLineBreaks, reverse, complement);
   }
@@ -1112,7 +1125,7 @@ processArray(int argc, char **argv) {
           fprintf(stderr, "Unknown or zero partition size '%s'\n", argv[arg]), exit(1);
         partitionByBucket(prefix, ps);
       }
-    } else if (strncmp(argv[arg], "--segment", 4) == 0) {
+    } else if (strncmp(argv[arg], "--segment", 5) == 0) {
       failIfNoSource();
       partitionBySegment(argv[arg+1], strtou32bit(argv[arg+2], 0L));
       arg += 2;
@@ -1146,6 +1159,9 @@ processArray(int argc, char **argv) {
         delete S;
         S = fasta->getSequenceInCore(i++);
       }
+    } else if (strncmp(argv[arg], "--seqstore", 5) == 0) {
+      constructSeqStore(argv[++arg], fasta);
+      exit(0);
     } else {
       switch(argv[arg][1]) {
         case 'f':

@@ -127,6 +127,8 @@ print_simseq(char *seq, char *hdr, Align_t *aln, double P, int CUT, int COPY) {
   char  let_3T[3] = {'A','C','G'};
   EditScript_t *t;
 
+  fprintf(stdout, ">");
+
   while ((*hdr) && !isspace(*hdr))
     fprintf(stdout, "%c", *hdr++);
 

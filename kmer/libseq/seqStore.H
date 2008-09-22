@@ -26,6 +26,7 @@ struct seqStoreHeader {
   u32bit  _numberOfSequences;
   u32bit  _numberOfBlocks;
   u32bit  _namesLength;
+  u32bit  _pad;
 
   u64bit  _indexStart;
   u64bit  _blockStart;
@@ -40,6 +41,7 @@ struct seqStoreIndex {
   u32bit  _hdrLength;    //  Length of the defline
   u64bit  _seqPosition;  //  Offset into _rb for the sequence data
   u32bit  _seqLength;    //  Length, in bases, of the sequence
+  u32bit  _block;        //  The seqStoreBlock that starts this sequence
 };
 
 
@@ -74,7 +76,7 @@ public:
   u32bit              find(const char *sequencename);
 
   u32bit              getSequenceLength(u32bit iid);
-  bool                getSequence(u32bit id,
+  bool                getSequence(u32bit iid,
                                   char *&h, u32bit &hLen, u32bit &hMax,
                                   char *&s, u32bit &sLen, u32bit &sMax);
   bool                getSequence(u32bit iid,
@@ -82,9 +84,8 @@ public:
 
 private:
   void                clear(void);
-  void                construct(char *filename, seqCache *inputseq);
 
-  readBuffer        *_rb;
+  bitPackedFile     *_bpf;
 
   seqStoreHeader     _header;
   seqStoreIndex     *_index;
@@ -93,5 +94,13 @@ private:
 
   friend class seqFactory;
 };
+
+
+//  Construct a new seqStore 'filename' from input file 'inputseq'.
+//
+void
+constructSeqStore(char *filename,
+                  seqCache *inputseq);
+
 
 #endif  //  SEQSTORE_H

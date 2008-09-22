@@ -362,7 +362,6 @@ main(int argc, char **argv) {
   pthread_attr_init(&threadAttr);
   pthread_attr_setscope(&threadAttr, PTHREAD_SCOPE_SYSTEM);
   pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_DETACHED);
-  pthread_attr_setschedpolicy(&threadAttr, SCHED_FIFO);
 
   //
   //  Start the deadlock detection threads

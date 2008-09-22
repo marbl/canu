@@ -6,7 +6,7 @@
 
 #include "seqFile.H"
 
-struct fastaFileIndex {
+struct fastaFileHeader {
   u64bit       _magic[2];
   u32bit       _numberOfSequences;      //  Number of sequences in the file
   u32bit       _namesLength;            //  Bytes in the names
@@ -16,9 +16,9 @@ struct fastaFileIndex {
 };
 
 
-struct fastaFileEntry {
-  u64bit       _position;       //  Position of the sequence in the file
-  u32bit       _seqLen;         //  Length of the sequence (no whitespace counted)
+struct fastaFileIndex {
+  u64bit       _seqPosition;       //  Position of the sequence in the file
+  u32bit       _seqLength;         //  Length of the sequence (no whitespace counted)
 };
 
 
@@ -50,8 +50,8 @@ private:
 
   readBuffer        *_rb;
 
-  fastaFileIndex     _index;
-  fastaFileEntry    *_entry;
+  fastaFileHeader    _header;
+  fastaFileIndex    *_index;
   char              *_names;
 
   u32bit             _nextID;         //  Next sequence in the read buffer
