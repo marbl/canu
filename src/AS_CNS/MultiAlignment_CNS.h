@@ -170,7 +170,7 @@ typedef struct {
   int manode;
   int32 sequence;       // global index of first sequence character
   int32 quality;        // global index of first quality character
-  int32 beads;          // global index of first "bead"
+  int32 firstbead;      // global index of first "bead"
   int32 n_components;   // number of component frags (in case of "unitig" Fragments)
   int32 components;     // global index of first component frag
   char *source;         // consensus just carried this through - no mods
