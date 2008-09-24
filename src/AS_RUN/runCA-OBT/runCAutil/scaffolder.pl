@@ -87,7 +87,7 @@ sub CGW ($$$$$$) {
     if (runCommand("$wrk/$thisDir", $cmd)) {
         print STDERR "SCAFFOLDER FAILED.  Here's what it didn't like (the last 30 lines of cgw.out):\n";
         print STDERR "----------------------------------------\n";
-        open(Z, "tail -30 $wrk/$thisDir/cgw.out |");
+        open(Z, "tail -n 30 $wrk/$thisDir/cgw.out |");
         while (<Z>) {
             print STDERR $_;
         }

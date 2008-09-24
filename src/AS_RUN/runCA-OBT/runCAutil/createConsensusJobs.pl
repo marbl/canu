@@ -102,7 +102,7 @@ sub createPostScaffolderConsensusJobs ($) {
        print F "  -o $wrk/8-consensus/$asm.cns_contigs.\$jobp \\\n";
        print F "  $wrk/$asm.gkpStore \\\n";
        print F "  $cgwDir/$asm.cgw_contigs.\$jobp \\\n";
-       print F " >> $wrk/8-consensus/$asm.cns_contigs.\$jobp.err 2>&1 \\\n";
+       print F " > $wrk/8-consensus/$asm.cns_contigs.\$jobp.err 2>&1 \\\n";
        print F "&& \\\n";
        print F "touch $wrk/8-consensus/$asm.cns_contigs.\$jobp.success\n";
     } elsif ($consensusType eq "seqan") {
@@ -116,7 +116,7 @@ sub createPostScaffolderConsensusJobs ($) {
        print F "  -s \$bin/graph_consensus \\\n";
        print F "  -w $wrk/8-consensus/ \\\n";
        print F "  -o $wrk/8-consensus/$asm.cns_contigs.\$jobp \\\n";
-       print F " >> $wrk/8-consensus/$asm.cns_contigs.\$jobp.err 2>&1 \\\n";
+       print F " > $wrk/8-consensus/$asm.cns_contigs.\$jobp.err 2>&1 \\\n";
        print F "&& \\\n";
        print F "touch $wrk/8-consensus/$asm.cns_contigs.\$jobp.success\n";
     } else {

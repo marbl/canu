@@ -75,7 +75,7 @@ sub createPostUnitiggerConsensusJobs (@) {
     print F "  exit 1\n";
     print F "fi\n";
     print F "jobp=`echo $jobP | cut -d' ' -f \$jobid`\n";
-    print F "cgbfile=`head -\$jobid < $wrk/5-consensus/consensus.cgi.input | tail -1`\n";
+    print F "cgbfile=`head -n \$jobid < $wrk/5-consensus/consensus.cgi.input | tail -n 1`\n";
     print F "\n";
     print F "if [ -e $wrk/5-consensus/${asm}_\$jobp.success ] ; then\n";
     print F "  exit 0\n";
@@ -95,7 +95,7 @@ sub createPostUnitiggerConsensusJobs (@) {
        print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";
        print F "  $wrk/$asm.gkpStore \\\n";
        print F "  \$cgbfile \\\n";
-       print F " >> $wrk/5-consensus/${asm}_\$jobp.err 2>&1 \\\n";
+       print F " > $wrk/5-consensus/${asm}_\$jobp.err 2>&1 \\\n";
        print F "&& \\\n";
        print F "touch $wrk/5-consensus/${asm}_\$jobp.success\n";
     } elsif ($consensusType eq "seqan") {
@@ -105,7 +105,7 @@ sub createPostUnitiggerConsensusJobs (@) {
        print F "  -s \$bin/graph_consensus \\\n";
        print F "  -w $wrk/5-consensus/ \\\n";
        print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";
-       print F " >> $wrk/5-consensus/${asm}_\$jobp.err 2>&1 \\\n";
+       print F " > $wrk/5-consensus/${asm}_\$jobp.err 2>&1 \\\n";
        print F "&& \\\n";
        print F "touch $wrk/5-consensus/${asm}_\$jobp.success\n";
     } else {
