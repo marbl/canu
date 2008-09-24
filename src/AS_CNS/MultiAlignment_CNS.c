@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.194 2008-09-24 07:56:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.195 2008-09-24 08:08:48 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -952,85 +952,56 @@ int32 AppendFragToLocalStore(FragType          type,
 // Basic manipulation of Bead data
 //*********************************************************************************
 
-int32 AlignBead(int32 cid, int32 bid) {
+int32 AlignBeadToColumn(int32 cid, int32 bid) {
   Column *column=GetColumn(columnStore,cid);
-  Bead *call, *first, *align;
   assert(column != NULL );
-  call = GetBead(beadStore,column->call);
+
+  Bead *call = GetBead(beadStore,column->call);
   assert(call != NULL);
-  first = GetBead(beadStore,call->down);
+
+  Bead *first = GetBead(beadStore,call->down);
   assert(first != NULL);
-  align = GetBead(beadStore,bid);
+
+  Bead *align = GetBead(beadStore,bid);
   assert(align != NULL);
-  align->down = first->boffset;
-  align->up = call->boffset;
-  call->down = align->boffset;
-  first->up = align->boffset;
+
+  //if (bid == 739)
+  //fprintf(stderr, "AlignBeadToColumn()--  bead %d moving from col %d to col %d\n", align->boffset, align->column_index, cid);
+
+  align->down         = first->boffset;
+  align->up           = call->boffset;
+  call->down          = align->boffset;
+  first->up           = align->boffset;
   align->column_index = cid;
+
   IncBaseCount(&column->base_count,*Getchar(sequenceStore,align->soffset));
-  return bid;
+
+  //CheckColumns();
 }
 
-int32 UnAlignBead(int32 bid) {
-  // remove bid from it's column, returning the next bead up in the column
+int32 UnAlignBeadFromColumn(int32 bid) {
   Bead *bead = GetBead(beadStore,bid);
-  Bead *upbead;
-  Column *column;
-  char bchar;
   assert(bead != NULL);
-  if (bead->column_index == -1 ) return -1;
-  column = GetColumn(columnStore,bead->column_index);
-  upbead = GetBead(beadStore,bead->up);
-  bchar = *Getchar(sequenceStore,bead->soffset);
+
+  if (bead->column_index == -1 )
+    return -1;
+
+  Column *column = GetColumn(columnStore,bead->column_index);
+  Bead   *upbead = GetBead(beadStore,bead->up);
+  char    bchar  = *Getchar(sequenceStore,bead->soffset);
+
   upbead->down = bead->down;
-  if (bead->down != -1 ) {
+
+  if (bead->down != -1 )
     GetBead(beadStore, bead->down)->up = upbead->boffset;
-  }
+
   DecBaseCount(&column->base_count,bchar);
+
   bead->up = -1;
   bead->down = -1;
   bead->column_index = -1;
+
   return upbead->boffset;
-}
-
-int32 RemoveBeadFromFragment(int32 bid) {
-  // remove bid from it's fragment, returning the next bead in the fragment
-  Bead *bead = GetBead(beadStore,bid);
-  Bead *nextbead;
-  Bead *prevbead;
-  assert(bead != NULL);
-  if ( bead->next > -1) {
-    nextbead = GetBead(beadStore,bead->next);
-    nextbead->prev = bead->prev;
-  }
-  if ( bead->prev > -1) {
-    prevbead = GetBead(beadStore,bead->prev);
-    prevbead->next = bead->next;
-  }
-  return bead->next;
-}
-
-int32 UnAlignFragment(int32 fid) {
-  Fragment *frag=GetFragment(fragmentStore,fid);
-  Bead *bead;
-  int32 next_bid;
-  assert(frag != NULL);
-  bead = GetBead(beadStore,frag->firstbead);
-  assert(bead != NULL);
-  next_bid = bead->next;
-  while (next_bid > 0 ) {
-    UnAlignBead(bead->boffset);
-    if ( *Getchar(sequenceStore,bead->soffset) == '-' ) {
-      // remove the gap bead from the fragment
-      RemoveBeadFromFragment(bead->boffset);
-    }
-    bead = GetBead(beadStore,next_bid);
-    next_bid = bead->next;
-  }
-  UnAlignBead(bead->boffset);
-  frag->deleted = 1;
-  frag->manode = -1;
-  return 1;
 }
 
 int32 UnAlignTrailingGapBeads(int32 bid) {
@@ -1293,7 +1264,7 @@ int32 ColumnAppend(int32 cid, int32 bid) {
   while ( (nid = NextColumnBead(&ci)) != -1 ) {
     bead = GetBead(beadStore,nid);
     if ( bead->next != -1 && bead->next != bid) {
-      AlignBead(column->lid,AppendGapBead(nid));
+      AlignBeadToColumn(column->lid,AppendGapBead(nid));
     }
   }
   column->ma_id =  prev->ma_id;
@@ -1339,7 +1310,7 @@ int32 ColumnPrepend(int32 cid, int32 bid) {
   while ( (nid = NextColumnBead(&ci)) != -1 ) {
     bead = GetBead(beadStore,nid);
     if ( bead->prev != -1 && bead->prev != bid) {
-      AlignBead(column->lid,PrependGapBead(nid));
+      AlignBeadToColumn(column->lid,PrependGapBead(nid));
     }
   }
   column->ma_id =  next->ma_id;
@@ -1409,8 +1380,8 @@ int MergeCompatible(int32 cid) {
       while ( mbead->down != -1 ) {
         mbead = GetBead(beadStore,mbead->down);
         if ( *Getchar(sequenceStore,mbead->soffset) != '-' ) {
-          UnAlignBead(mbead->boffset);
-          AlignBead(cbead->column_index,mbead->boffset);
+          UnAlignBeadFromColumn(mbead->boffset);
+          AlignBeadToColumn(cbead->column_index,mbead->boffset);
           cbead = mbead;
           break;
         }
@@ -4380,16 +4351,16 @@ int32 ApplyIMPAlignment(int32 afid, int32 bfid, int32 ahang, int32 *trace) {
     // align  (*trace-bpos) positions
     while ( *trace-bpos>0) {
       abead = GetBead(beadStore,apos++);
-      AlignBead(abead->column_index, bboffset+bpos++);
+      AlignBeadToColumn(abead->column_index, bboffset+bpos++);
     }
     abead = GetBead(beadStore,apos++);
-    binsert = AlignBead(abead->column_index, AppendGapBead(bboffset+bpos-1));
+    binsert = AlignBeadToColumn(abead->column_index, AppendGapBead(bboffset+bpos-1));
     trace++;
   }
   // now, finish up aligning the rest of b
   while ( bpos<blen ) {
     abead = GetBead(beadStore,apos++);
-    AlignBead(abead->column_index, bboffset+bpos++);
+    AlignBeadToColumn(abead->column_index, bboffset+bpos++);
   }
   bfrag->manode=afrag->manode;
   return bpos;
@@ -4480,7 +4451,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
       // align ( - *trace - apos ) positions
       while ( apos < (- *trace - 1)) {
         abead = GetBead(beadStore,aindex[apos]);
-        AlignBead(abead->column_index, bboffset+bpos);
+        AlignBeadToColumn(abead->column_index, bboffset+bpos);
         last_a_aligned = aindex[apos];
         last_b_aligned = bboffset+bpos;
         apos++; bpos++;
@@ -4491,7 +4462,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
           // insert a gap bead in b and align to
           binsert = AppendGapBead(binsert);
           abead = GetBead(beadStore, off);
-          AlignBead(abead->column_index, binsert);
+          AlignBeadToColumn(abead->column_index, binsert);
           last_a_aligned = abead->boffset;
           last_b_aligned = binsert;
         }
@@ -4525,7 +4496,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
       while ( abead->prev != last_a_aligned ) {
         binsert = AppendGapBead(binsert);
         next_to_align = (GetBead(beadStore,last_a_aligned))->next;
-        AlignBead( (GetBead(beadStore,next_to_align))->column_index, binsert);
+        AlignBeadToColumn( (GetBead(beadStore,next_to_align))->column_index, binsert);
         last_a_aligned = next_to_align;
         last_b_aligned = binsert;
       }
@@ -4538,7 +4509,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
       // align ( *trace - bpos ) positions
       while ( bpos < (*trace - 1) ) {
         abead = GetBead(beadStore,aindex[apos]);
-        AlignBead(abead->column_index, bboffset+bpos);
+        AlignBeadToColumn(abead->column_index, bboffset+bpos);
         last_a_aligned = aindex[apos];
         last_b_aligned = bboffset+bpos;
         apos++; bpos++;
@@ -4549,7 +4520,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
           // insert a gap bead in b and align to
           binsert = AppendGapBead(binsert);
           abead = GetBead(beadStore, off);
-          AlignBead(abead->column_index, binsert);
+          AlignBeadToColumn(abead->column_index, binsert);
           last_a_aligned = abead->boffset;
           last_b_aligned = binsert;
         }
@@ -4585,7 +4556,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
       assert (off == ipx);
       binsert = AppendGapBead(last_b_aligned);
       abead = GetBead(beadStore, off);
-      binsert = AlignBead(abead->column_index, binsert);
+      binsert = AlignBeadToColumn(abead->column_index, binsert);
       last_a_aligned = ipx;
       last_b_aligned = binsert;
       apos++;
@@ -4596,7 +4567,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
         // insert a gap bead in b and align to
         binsert = AppendGapBead(binsert);
         abead = GetBead(beadStore, off);
-        AlignBead(abead->column_index, binsert);
+        AlignBeadToColumn(abead->column_index, binsert);
         last_a_aligned = abead->boffset;
         last_b_aligned = binsert;
       }
@@ -4608,7 +4579,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
   while ( ovl_remaining-- > 0 ) {
 
     abead = GetBead(beadStore,aindex[apos]);
-    AlignBead(abead->column_index, bboffset+bpos);
+    AlignBeadToColumn(abead->column_index, bboffset+bpos);
     last_a_aligned = abead->boffset;
     last_b_aligned = bboffset+bpos;
     apos++;bpos++;
@@ -4622,7 +4593,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
       int32 abeadIndex = abead->column_index;
       int32 abeadOffset = abead->boffset;
       binsert = AppendGapBead(binsert);
-      AlignBead(abeadIndex, binsert);
+      AlignBeadToColumn(abeadIndex, binsert);
       abead = GetBead(beadStore, abeadOffset);
       last_a_aligned = abeadOffset;
       last_b_aligned = binsert;
@@ -4638,7 +4609,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
     while ( pcol->next != -1 )  {
       binsert = AppendGapBead(binsert);
       column_index = pcol->next;
-      AlignBead(column_index, binsert);
+      AlignBeadToColumn(column_index, binsert);
       pcol = GetColumn(columnStore,column_index);
     }
     // then, add on trailing (dovetail) beads from b
@@ -5051,7 +5022,7 @@ int RemoveNullColumn(int32 nid) {
     // heal wound left by lateral removal
     if (bead->prev != -1 ) GetBead(beadStore,bead->prev)->next = bead->next;
     if (bead->next != -1 ) GetBead(beadStore,bead->next)->prev = bead->prev;
-    UnAlignBead(bead->boffset);
+    UnAlignBeadFromColumn(bead->boffset);
   }
   // heal wound left by lateral removal of call
   if (call->prev != -1 ) GetBead(beadStore,call->prev)->next = call->next;
@@ -6071,7 +6042,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
                     //fprintf(stderr,"Uh-oh... out of beads in fragment. (LEFT_SHIFT)\n");
                     eid = AppendGapBead(bead->boffset);
                     //fprintf(stderr,"Adding gapbead %d\n",eid);
-                    AlignBead(GetColumn(columnStore,bead->column_index)->next,eid);
+                    AlignBeadToColumn(GetColumn(columnStore,bead->column_index)->next,eid);
                     exch_bead = GetBead(beadStore,eid);
                   }
                   while (  a_entry != *Getchar(sequenceStore,exch_bead->soffset))
@@ -6080,7 +6051,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
                         //fprintf(stderr,"Uh-oh... out of beads in fragment. (LEFT_SHIFT)\n");
                         eid = AppendGapBead(exch_bead->boffset);
                         //fprintf(stderr,"Adding gapbead %d\n",eid);
-                        AlignBead(GetColumn(columnStore,exch_bead->column_index)->next,eid);
+                        AlignBeadToColumn(GetColumn(columnStore,exch_bead->column_index)->next,eid);
                       } else if (exch_bead->column_index == a->end_column) {
                         //fprintf(stderr,"Uh-oh... out of beads in window. (LEFT_SHIFT)\n");
                         eid = AppendGapBead(exch_bead->boffset);
@@ -6145,7 +6116,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
               eid = PrependGapBead(bead->boffset);
               //fprintf(stderr,"Adding gapbead %d\n",eid);
 
-              AlignBead(GetColumn(columnStore,bead->column_index)->prev,eid);
+              AlignBeadToColumn(GetColumn(columnStore,bead->column_index)->prev,eid);
               exch_bead = GetBead(beadStore,eid);
             }
 
@@ -6156,7 +6127,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
                 //fprintf(stderr,"Uh-oh... out of beads in fragment. (RIGHT_SHIFT)\n");
                 exchbeadprev = eid = PrependGapBead(exch_bead->boffset);
                 //fprintf(stderr,"Adding gapbead %d\n",eid);
-                AlignBead(GetColumn(columnStore,exch_bead->column_index)->prev,eid);
+                AlignBeadToColumn(GetColumn(columnStore,exch_bead->column_index)->prev,eid);
               } else if (exch_bead->column_index == a->start_column) {
                 //fprintf(stderr,"Uh-oh... out of beads in window. (RIGHT_SHIFT)\n");
                 exchbeadprev = eid = AppendGapBead(exch_bead->prev);
