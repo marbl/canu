@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.191 2008-08-12 03:18:44 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.192 2008-09-24 07:33:16 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -3857,34 +3857,6 @@ void ReportOverlap(FILE *fp, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS), CNS_AlignPa
   return;
 }
 
-void PrintOverlap(FILE *fp, char *a, char *b, Overlap *O) {
-  FILE *se=stderr;
-  if ( O==NULL ) return;
-  if (fp==NULL) {
-    PrintOverlap(se,a,b,O);
-    return;
-  }
-  Print_Overlap(fp,a,b,O);
-  if ( fp != se) {
-    Print_Overlap(stderr,a,b,O);
-  }
-  return;
-}
-
-void PrintAlarm(FILE *fp, char *msg) {
-  FILE *se=stderr;
-  if ( msg==NULL ) return;
-  if (fp==NULL) {
-    PrintAlarm(se,msg);
-    return;
-  }
-  fprintf(fp,msg);
-  if ( fp != se) {
-    PrintAlarm(stderr,msg);
-  }
-  return;
-}
-
 void ReportTrick(FILE *fp, CNS_AlignTrick trick) {
   FILE *se=stderr;
 
@@ -4044,7 +4016,7 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
     LOCAL_DEFAULT_PARAMS.maxBegGap = allow_big_endgaps;
     LOCAL_DEFAULT_PARAMS.maxEndGap = allow_big_endgaps;
     if (show_olap)
-      PrintAlarm(stderr,"GetAlignmentTrace()-- NOTE: Looking for local alignment with large endgaps.\n");
+      fprintf(stderr,"GetAlignmentTrace()-- NOTE: Looking for local alignment with large endgaps.\n");
   }
   LOCAL_DEFAULT_PARAMS.bandBgn=ahang_input-CNS_TIGHTSEMIBANDWIDTH;
   LOCAL_DEFAULT_PARAMS.bandEnd=ahang_input+CNS_TIGHTSEMIBANDWIDTH;
@@ -4230,8 +4202,8 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
 
     if ( O->begpos < CNS_NEG_AHANG_CUTOFF && ! allow_neg_hang)  {
       if (show_olap) {
-        PrintOverlap(stderr, a, b, O);
-        PrintAlarm(stderr,"GetAlignmentTrace()-- NOTE: Negative ahang is unacceptably large. Will not use this overlap.\n");
+        Print_Overlap(stderr, a, b, O);
+        fprintf(stderr,"GetAlignmentTrace()-- NOTE: Negative ahang is unacceptably large. Will not use this overlap.\n");
       }
       return 0;
     }
@@ -4242,8 +4214,8 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
     if (show_olap) {
       ReportTrick(stderr,trick);
       ReportOverlap(stderr,COMPARE_FUNC,params,aiid,atype,biid,btype,O,ahang_input);
-      PrintOverlap(stderr, a, b, O);
-      PrintAlarm(stderr,"GetAlignmentTrace()-- NOTE: Slip is unacceptably large. Will not use this overlap.\n");
+      Print_Overlap(stderr, a, b, O);
+      fprintf(stderr,"GetAlignmentTrace()-- NOTE: Slip is unacceptably large. Will not use this overlap.\n");
     }
     return 0;
   }
@@ -4253,7 +4225,7 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
       // write something to the logs to show that heroic efforts were made
       ReportTrick(stderr,trick);
       ReportOverlap(stderr,COMPARE_FUNC,params,aiid,atype,biid,btype,O,ahang_input);
-      PrintOverlap(stderr, a, b, O);
+      Print_Overlap(stderr, a, b, O);
     }
   }
 
@@ -4352,7 +4324,7 @@ GetAlignmentTraceDriver(Fragment *afrag,
               afrag->type,
               bfrag->iid,
               bfrag->type,
-              ahang,
+              *ahang,
               AS_CNS_ERROR_RATE);
     if (GetAlignmentTrace(afrag->lid, 0, bfrag->lid, ahang, ovl, trace, otype, DP_Compare, DONT_SHOW_OLAP, 0)) {
       AS_CNS_ERROR_RATE = AS_CNS_ERROR_RATE_SAVE;
@@ -4369,7 +4341,7 @@ GetAlignmentTraceDriver(Fragment *afrag,
                 afrag->type,
                 bfrag->iid,
                 bfrag->type,
-                ahang,
+                *ahang,
                 AS_CNS_ERROR_RATE);
       if (GetAlignmentTrace(afrag->lid, 0, bfrag->lid, ahang, ovl, trace, otype, COMPARE_FUNC, DONT_SHOW_OLAP, 0)) {
         AS_CNS_ERROR_RATE = AS_CNS_ERROR_RATE_SAVE;
@@ -4386,7 +4358,7 @@ GetAlignmentTraceDriver(Fragment *afrag,
               afrag->type,
               bfrag->iid,
               bfrag->type,
-              ahang,
+              *ahang,
               AS_CNS_ERROR_RATE,
               max_gap);
       if (GetAlignmentTrace(afrag->lid, 0,bfrag->lid, ahang, ovl, trace, otype, COMPARE_FUNC, DONT_SHOW_OLAP, max_gap)) {
@@ -5196,62 +5168,6 @@ int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars,
     safe_free(vl);
   }
   return removed;
-}
-
-//*********************************************************************************
-// Simple sweep through the MultiAlignment columns, tabulating discrepencies by QV
-//*********************************************************************************
-
-int32 AlternateDiscriminator(int32 mid, int32 *allmismatches,int32 *hqmismatches,
-                             int32 *hqsum, int32 *basecount)
-{
-  MANode *ma = GetMANode(manodeStore,mid);
-  int32 cid;
-  int32 nid;
-  int32 beadcount=0;
-  int i;
-  char *call;
-  Bead *bead;
-  ColumnBeadIterator ci;
-  Column *column;
-  static int qvtab[60];
-  int hqtab=0;
-  int alltab=0;
-
-  assert(ma != NULL);
-  for (i=0;i<60;i++) qvtab[i] = 0;
-
-  for (cid=ma->first;cid!=-1;){
-    column = GetColumn(columnStore,cid);
-    call = Getchar(sequenceStore, GetBead(beadStore,column->call)->soffset);
-    if(! CreateColumnBeadIterator(cid,&ci)){
-      fprintf(stderr, "AlternateDiscriminator CreateColumnBeadIterator failed");
-      assert(0);
-    }
-    while ( (nid = NextColumnBead(&ci)) != -1 ) {
-      beadcount++;
-      bead = GetBead(beadStore,nid);
-      if ( *Getchar(sequenceStore,bead->soffset) != *call ) {
-        // discrepancy between fragment base and consensus call
-        qvtab[(int) *Getchar(qualityStore,bead->soffset)-'0']++;
-        // fprintf(stderr,"%d\n",(int) *Getchar(qualityStore,bead->soffset)-'0');
-      }
-    }
-    cid = column->next;
-  }
-
-  *hqsum=0;
-  for (i=0;i<60;i++) {
-    if ( i>= ALT_QV_THRESH ) {
-      hqtab+=qvtab[i];
-      *hqsum+=i*qvtab[i];
-    }
-    alltab+=qvtab[i];
-  }
-  *allmismatches = alltab;
-  *hqmismatches = hqtab;
-  *basecount = beadcount;
-  return hqtab;
 }
 
 //*********************************************************************************
@@ -8870,45 +8786,6 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
   return cma;
 }
 
-MultiAlignT *MergeMultiAligns( tSequenceDB *, GateKeeperStore *,
-                               VA_TYPE(IntMultiPos) *, int , int ,
-                               Overlap *(*COMPARE_FUNC)(COMPARE_ARGS), CNS_Options *);
-
-MultiAlignT *MergeMultiAlignsFast_new( tSequenceDB *sequenceDBp,
-                                       GateKeeperStore *frag_store, VA_TYPE(IntElementPos) *positions,
-                                       int quality, int verbose, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
-                                       CNS_Options *opp)
-{
-  // this is the functionality used in traditionl CGW contigging
-  //     I'm now extending it so that "contained" contigs are handled appropriately,
-  //     which is necessitated by "local unitigging" (a.k.a. "meta-unitigging")
-
-  static VA_TYPE(IntMultiPos) *mpositions=NULL;
-  static IntMultiPos mpos;
-  IntElementPos *epos = GetIntElementPos(positions,0);
-  int i;
-
-  if (mpositions == NULL )
-    mpositions = CreateVA_IntMultiPos(32);
-
-  ResetVA_IntMultiPos(mpositions);
-
-  mpos.contained    = 0;
-  mpos.delta_length = 0;
-  mpos.delta        = NULL;
-
-  for (i=0; i<GetNumIntElementPoss(positions); i++, epos++) {
-    mpos.type     = epos->type;
-    mpos.ident    = epos->ident;
-    mpos.position = epos->position;
-
-    AppendVA_IntMultiPos(mpositions,&mpos);
-  }
-
-  allow_neg_hang = 0;
-
-  return(MergeMultiAligns(sequenceDBp, frag_store, mpositions, quality, verbose, COMPARE_FUNC, opp));
-}
 
 MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
                                GateKeeperStore *frag_store,
@@ -9235,4 +9112,45 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
   safe_free(offsets);
   return cma;
 }
-/* end of MergeMultiAlign */
+
+
+// MergeMultiAlignsFast_new is the original CGW/CNS interface for
+// contigging and is now a wrapper around the more modern
+// MergeMultiAligns which allows "contained" relationships among the
+// input contigs
+
+MultiAlignT *MergeMultiAlignsFast_new( tSequenceDB *sequenceDBp,
+                                       GateKeeperStore *frag_store, VA_TYPE(IntElementPos) *positions,
+                                       int quality, int verbose, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
+                                       CNS_Options *opp)
+{
+  // this is the functionality used in traditionl CGW contigging
+  //     I'm now extending it so that "contained" contigs are handled appropriately,
+  //     which is necessitated by "local unitigging" (a.k.a. "meta-unitigging")
+
+  static VA_TYPE(IntMultiPos) *mpositions=NULL;
+  static IntMultiPos mpos;
+  IntElementPos *epos = GetIntElementPos(positions,0);
+  int i;
+
+  if (mpositions == NULL )
+    mpositions = CreateVA_IntMultiPos(32);
+
+  ResetVA_IntMultiPos(mpositions);
+
+  mpos.contained    = 0;
+  mpos.delta_length = 0;
+  mpos.delta        = NULL;
+
+  for (i=0; i<GetNumIntElementPoss(positions); i++, epos++) {
+    mpos.type     = epos->type;
+    mpos.ident    = epos->ident;
+    mpos.position = epos->position;
+
+    AppendVA_IntMultiPos(mpositions,&mpos);
+  }
+
+  allow_neg_hang = 0;
+
+  return(MergeMultiAligns(sequenceDBp, frag_store, mpositions, quality, verbose, COMPARE_FUNC, opp));
+}
