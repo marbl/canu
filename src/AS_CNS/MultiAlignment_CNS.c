@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.193 2008-09-24 07:36:25 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.194 2008-09-24 07:56:23 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -491,12 +491,11 @@ void ResetStores(int32 num_frags, int32 num_columns) {
 //*********************************************************************************
 // Iterator for Column bases (called "beads")
 //*********************************************************************************
-int CreateColumnBeadIterator(int32 cid,ColumnBeadIterator *bi) {
+void CreateColumnBeadIterator(int32 cid,ColumnBeadIterator *bi) {
   Column *column = GetColumn(columnStore,cid);
-  if ( column == NULL ) { return 0;}
+  assert(column != NULL);
   bi->column = *column;
   bi->bead = bi->column.call;
-  return 1;
 }
 
 int32 NextColumnBead(ColumnBeadIterator *bi) {
@@ -524,12 +523,11 @@ int IsNULLIterator(FragmentBeadIterator *bi) {
   return ( bi->bead == -2 );
 }
 
-int CreateFragmentBeadIterator(int32 fid,FragmentBeadIterator *bi) {
+void CreateFragmentBeadIterator(int32 fid,FragmentBeadIterator *bi) {
   Fragment *fragment = GetFragment(fragmentStore,fid);
-  if ( fragment == NULL ) { return 0;}
+  assert(fragment != NULL);
   bi->fragment = *fragment;
   bi->bead = bi->fragment.firstbead;
-  return 1;
 }
 
 int32 NextFragmentBead(FragmentBeadIterator *bi) {
@@ -547,11 +545,11 @@ int32 NextFragmentBead(FragmentBeadIterator *bi) {
 //*********************************************************************************
 // Iterator for Consensus bases (called "beads")
 //*********************************************************************************
-int CreateConsensusBeadIterator(int32 mid,ConsensusBeadIterator *bi) {
+void CreateConsensusBeadIterator(int32 mid,ConsensusBeadIterator *bi) {
   Column *first = GetColumn(columnStore,(GetMANode(manodeStore,mid))->first);
+  assert(first != NULL);
   bi->manode_id = mid;
   bi->bead = first->call;
-  return 1;
 }
 
 int32 NextConsensusBead(ConsensusBeadIterator *bi) {
@@ -566,26 +564,6 @@ int32 NextConsensusBead(ConsensusBeadIterator *bi) {
   return nid;
 }
 
-//*********************************************************************************
-// Iterator for columns
-//*********************************************************************************
-int CreateColumnIterator(int32 cid,ColumnIterator *ci) {
-  GetColumn(columnStore,cid);
-  ci->cid = cid;
-  return 1;
-}
-
-int32 NextColumn(ColumnIterator *ci) {
-  int32 nid;
-  Column *column;
-  if (ci->cid == -1 ) {
-    return -1;
-  }
-  column = GetColumn(columnStore, ci->cid);
-  nid = ci->cid;
-  ci->cid = column->next;
-  return nid;
-}
 
 //*********************************************************************************
 // Insert a "gap bead" in a bead sequence (return the new bead's id)
@@ -1309,10 +1287,9 @@ int32 ColumnAppend(int32 cid, int32 bid) {
     nextcall = GetBead(beadStore,call->next);
     nextcall->prev = call->boffset;
   }
-  if(! CreateColumnBeadIterator(cid,&ci)){
-    fprintf(stderr, "ColumnAppend CreateColumnBeadIterator failed");
-    assert(0);
-  }
+
+  CreateColumnBeadIterator(cid, &ci);
+
   while ( (nid = NextColumnBead(&ci)) != -1 ) {
     bead = GetBead(beadStore,nid);
     if ( bead->next != -1 && bead->next != bid) {
@@ -1356,10 +1333,9 @@ int32 ColumnPrepend(int32 cid, int32 bid) {
     prevcall = GetBead(beadStore,call->prev);
     prevcall->next = call->boffset;
   }
-  if(! CreateColumnBeadIterator(cid,&ci)){
-    fprintf(stderr, "ColumnPrepend CreateColumnBeadIterator failed");
-    assert(0);
-  }
+
+  CreateColumnBeadIterator(cid, &ci);
+
   while ( (nid = NextColumnBead(&ci)) != -1 ) {
     bead = GetBead(beadStore,nid);
     if ( bead->prev != -1 && bead->prev != bid) {
@@ -1451,16 +1427,13 @@ int MergeCompatible(int32 cid) {
 int AverageDepth(int32 bgn, int32 end) {
   int depth=0;
   int ncolumns = 0;
-  ColumnIterator ci;
-  int nid;
-  if ( !CreateColumnIterator(bgn,&ci)) {
-    fprintf(stderr, "AverageDepth CreateColumnIterator failed");
-    assert(0);
-  }
-  while ( (nid = NextColumn(&ci)) != -1 ) {
-    if (nid == end) break;
-    depth += GetDepth(GetColumn(columnStore,nid));
+  int nid = bgn;
+
+  while ((nid != end) && (nid != -1)) {
+    Column *c = GetColumn(columnStore,nid);
+    depth += GetDepth(c);
     ncolumns++;
+    nid = c->next;
   }
   if ( ncolumns == 0) return 0;
   return (int) depth/ncolumns;
@@ -1474,26 +1447,33 @@ void ShowColumn(int32 cid) {
   UnitigType utype;
   ColumnBeadIterator ci;
   int32 bid;
-  if(!CreateColumnBeadIterator(cid,&ci)){
-    fprintf(stderr, "ShowColumn CreateColumnBeadIterator failed");
-    assert(0);
-  }
+
+  CreateColumnBeadIterator(cid,&ci);
+
   call = GetBead(beadStore,column->call);
   fprintf(stderr,"\nstore_index: %-20d ( prev: %d next: %d)\n",column->lid,column->prev,column->next);
   fprintf(stderr,"ma_index:    %-20d\n",column->ma_index);
   fprintf(stderr,"------------------\n");
   fprintf(stderr,"composition:\n");
   while ( (bid = NextColumnBead(&ci)) != -1 ) {
-    // do something here
     bead = GetBead(beadStore,bid);
     type = GetFragment(fragmentStore,bead->frag_index)->type;
     utype = GetFragment(fragmentStore,bead->frag_index)->utype;
-    fprintf(stderr,"             %c /%c (%10d) <-- %d %c/%c\n",*Getchar(sequenceStore,bead->soffset),
+    fprintf(stderr,"             %c /%c (%10d) <-- %d iid:%d cid:%d UDLR:%d %d %d %d type:%c utype:%c\n",
+            *Getchar(sequenceStore,bead->soffset),
             *Getchar(qualityStore,bead->soffset),
             bid,
             bead->frag_index,
+            GetFragment(fragmentStore,bead->frag_index)->iid,
+            bead->column_index,
+            bead->up,
+            bead->down,
+            bead->prev,
+            bead->next,
             type,
-            (type == AS_UNITIG)?utype:' ');
+            (type == AS_UNITIG)?utype:'.');
+
+    assert(bead->column_index == cid);
   }
   fprintf(stderr,"------------------\n");
   fprintf(stderr,"call:        %c /%c\n",toupper(*Getchar(sequenceStore,call->soffset)),*Getchar(qualityStore,call->soffset));
@@ -1592,11 +1572,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
     opp = &opp_private;
   }
 
-
-  if(!CreateColumnBeadIterator(cid, &ci)){
-    fprintf(stderr, "BaseCall CreateColumnBeadIterator failed");
-    assert(0);
-  }
+  CreateColumnBeadIterator(cid, &ci);
 
   *var = 0.;
   if (quality > 0)
@@ -2004,10 +1980,8 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
       int max_count=0,max_index=-1,tie_count=0;
       int tie_breaker, max_tie, i;
 
-      if(!CreateColumnBeadIterator(cid,&ci)) {
-        fprintf(stderr, "BaseCount CreateColumnBeadIterator failed");
-        assert(0);
-      }
+      CreateColumnBeadIterator(cid, &ci);
+
       while ( (bid = NextColumnBead(&ci)) != -1 ) {
         bead = GetBead(beadStore,bid);
         cbase = *Getchar(sequenceStore,bead->soffset);
@@ -2162,10 +2136,8 @@ GetReadIidsAndNumReads(int cid, VarRegion  *vreg)
   int nr=0, max_nr=100;
   int32 *column_iid_list = (int32 *)safe_malloc(max_nr*sizeof(int32));
 
-  if(!CreateColumnBeadIterator(cid, &ci)){
-    fprintf(stderr, "GetReadIidsAndNumReads CreateColumnBeadIterator failed");
-    assert(0);
-  }
+  CreateColumnBeadIterator(cid, &ci);
+
   while ( (bid = NextColumnBead(&ci)) != -1 )
     {
       char base;
@@ -2524,10 +2496,7 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nvr,
       int    nr=0, max_nr=100;
       int32 *column_iid_list = (int32 *)safe_malloc(max_nr*sizeof(int32));
 
-      if(!CreateColumnBeadIterator(cids[k], &ci)){
-        fprintf(stderr, "GetReadsForVARRecord CreateColumnBeadIterator failed");
-        assert(0);
-      }
+      CreateColumnBeadIterator(cids[k], &ci);
 
       // Collect bases and usids in the coluimn
       while ( (bid = NextColumnBead(&ci)) != -1 )
@@ -3646,30 +3615,28 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
 int SeedMAWithFragment(int32 mid, int32 fid, int quality,
                        CNS_Options *opp)
 {
-  MANode *ma = NULL;
   Fragment *fragment = GetFragment(fragmentStore,fid);
-  FragmentBeadIterator fi;
-  int32 cid;
-  int32 bid;
-
-  ma = GetMANode(manodeStore, mid);
-  assert(ma != NULL);
   assert(fragment != NULL);
-  if(!CreateFragmentBeadIterator(fid,&fi)){
-    fprintf(stderr, "SeedMAWithFragment CreateFragmentBeadIterator failed");
-    assert(0);
-  }
-  bid = NextFragmentBead(&fi);
-  cid = FirstColumn(mid,bid);
-  while ( (bid = NextFragmentBead(&fi)) != -1 ) {
+
+  MANode *ma = GetMANode(manodeStore, mid);
+  assert(ma != NULL);
+
+  FragmentBeadIterator fi;
+
+  CreateFragmentBeadIterator(fid, &fi);
+
+  int32 bid = NextFragmentBead(&fi);
+  int32 cid = FirstColumn(mid,bid);
+
+  while ( (bid = NextFragmentBead(&fi)) != -1 )
     cid = ColumnAppend(cid, bid);
-  }
+
   fragment->manode=mid;
 
   if (quality > 0)
-      RefreshMANode(mid, quality, opp, NULL, NULL, 1, 0);
+    RefreshMANode(mid, quality, opp, NULL, NULL, 1, 0);
   else
-      RefreshMANode(mid, quality, opp, NULL, NULL, 0, 0);
+    RefreshMANode(mid, quality, opp, NULL, NULL, 0, 0);
 
   return 1;
 }
@@ -4705,10 +4672,9 @@ int GetMANodeConsensus(int32 mid, VA_TYPE(char) *sequence, VA_TYPE(char) *qualit
   }
   ResetVA_char(quality);
   EnableRangeVA_char(quality,length+1);
-  if(!CreateConsensusBeadIterator(mid,&bi)){
-    fprintf(stderr, "GetMANodeConsensus CreateConsensusBeadIterator failed");
-    assert(0);
-  }
+
+  CreateConsensusBeadIterator(mid, &bi);
+
   while ( (bid = NextConsensusBead(&bi)) != -1 ) {
     bead = GetBead(beadStore,bid);
     SetVA_char(sequence,i,Getchar(sequenceStore,bead->soffset));
@@ -4724,10 +4690,9 @@ int32 *GetFragmentDeltas(int32 fid, VA_TYPE(int32) *deltas, int length) {
   int32 deltas_added=0;
   FragmentBeadIterator fi;
   int32 index=0;
-  if(!CreateFragmentBeadIterator(fid,&fi)){
-    fprintf(stderr, "GetFragmentDeltas CreateFragmentBeadIterator failed");
-    assert(0);
-  }
+
+  CreateFragmentBeadIterator(fid, &fi);
+
   while ( (bid = NextFragmentBead(&fi)) != -1 && index < length) { // the index < length eliminates any endgaps from the delta list KAR, 09/19/02
     if ( *Getchar(sequenceStore,GetBead(beadStore,bid)->soffset) == '-' ) {
       Appendint32(deltas,&index);
@@ -5010,10 +4975,8 @@ void PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey w
       for (wi = window_start;wi<window_start+ALNPAGEWIDTH;wi++) {
         if ( IsNULLIterator(&read_it[i]) ) {
           if ( positions[i].bgn < wi && positions[i].end > wi ) {
-            if(!CreateFragmentBeadIterator(i,&read_it[i])){
-              fprintf(stderr, "PrintAlignment CreateFragmentBeadIterator failed");
-              assert(0);
-            }
+            CreateFragmentBeadIterator(i,&read_it[i]);
+
             bid = NextFragmentBead(&read_it[i]);
             while ( GetColumn(columnStore,(bead=GetBead(beadStore,bid))->column_index)->ma_index < wi ) {
               bid = NextFragmentBead(&read_it[i]);
@@ -5030,10 +4993,7 @@ void PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey w
               fprintf(print,"%c",tolower(pc));
             }
           } else if ( positions[i].bgn ==  wi ) {
-            if(!CreateFragmentBeadIterator(i,&read_it[i])){
-              fprintf(stderr, "PrintAlignment CreateFragmentBeadIterator failed");
-              assert(0);
-            }
+            CreateFragmentBeadIterator(i,&read_it[i]);
           } else if ( positions[i].bgn > window_start &&  positions[i].bgn < window_start+ALNPAGEWIDTH) {
             fprintf(print," ");
           } else if ( positions[i].end >= window_start &&  positions[i].end < window_start+ALNPAGEWIDTH) {
@@ -5292,20 +5252,16 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end)
   last = column;
   column = GetColumn(columnStore, from);
 
-  if(!CreateColumnBeadIterator(column->lid,&bi)){
-    fprintf(stderr, "CreateAbacus CreateColumnBeadIterator failed");
-    assert(0);
-  }
+  CreateColumnBeadIterator(column->lid, &bi);
+
   while ( (bid = NextColumnBead(&bi)) != -1 ) {
     bead = GetBead(beadStore,bid);
     rows++;
     SetVA_int32(abacus_indices,bead->frag_index,&rows);
   }
 
-  if(!CreateColumnBeadIterator(last->lid,&bi)){
-    fprintf(stderr, "CreateAbacus CreateColumnBeadIterator failed");
-    assert(0);
-  }
+  CreateColumnBeadIterator(last->lid, &bi);
+
   while ( (bid = NextColumnBead(&bi)) != -1 ) {
     bead = GetBead(beadStore,bid);
     if ( *Getint32(abacus_indices,bead->frag_index) == 0 ) {
@@ -5326,10 +5282,8 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end)
   //
   for (i=0; i<max_mid_columns; i++) {
     if (mid_column[i] != NULL) {
-      if(!CreateColumnBeadIterator(mid_column[i]->lid,&bi)) {
-        fprintf(stderr, "CreateAbacus CreateColumnBeadIterator failed");
-        assert(0);
-      }
+      CreateColumnBeadIterator(mid_column[i]->lid, &bi);
+
       while ((bid = NextColumnBead(&bi)) != -1) {
         bead = GetBead(beadStore,bid);
         if ( *Getint32(abacus_indices,bead->frag_index) == 0 ) {
@@ -5358,10 +5312,8 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end)
   }
   columns = 0;
   while( column->lid != end  && column->lid != -1) {
-    if(!CreateColumnBeadIterator(column->lid,&bi)){
-      fprintf(stderr, "CreateAbacus CreateColumnBeadIterator failed");
-      assert(0);
-    }
+    CreateColumnBeadIterator(column->lid, &bi);
+
     set_column = columns+orig_columns;
     while ( (bid = NextColumnBead(&bi)) != -1 ) {
       bead = GetBead(beadStore,bid);
@@ -7386,10 +7338,9 @@ int MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
         ir = row_assign[fid];
         fb = GetBead(beadStore,frag->firstbead);
         bcolumn =  GetColumn(columnStore,fb->column_index);
-        if(!CreateFragmentBeadIterator(fid,&fi)){
-          fprintf(stderr, "MANode2Array CreateFragmentBeadIterator failed");
-          assert(0);
-        }
+
+        CreateFragmentBeadIterator(fid,&fi);
+
         while ( (bid = NextFragmentBead(&fi)) != -1 ) {
           fb = GetBead(beadStore,bid);
           bc = *Getchar(sequenceStore,fb->soffset);
@@ -8468,10 +8419,9 @@ int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *ti
           ResetVA_Bead(shared_left);
           ResetVA_Bead(shared_right);
           ResetHashTable_AS(bhash);
-          if(!CreateColumnBeadIterator(column->lid,&bi)){
-            fprintf(stderr, "CreateAbacus CreateColumnBeadIterator failed");
-            assert(0);
-          }
+
+          CreateColumnBeadIterator(column->lid, &bi);
+
           while ( (bid = NextColumnBead(&bi)) != -1 ) {
             cbead = GetBead(beadStore,bid);
             frag = GetFragment(fragmentStore,fbead->frag_index);
@@ -8483,10 +8433,8 @@ int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *ti
             }
           }
           if ( GetNumBeads(shared_right) > 0 ) {
-            if(!CreateColumnBeadIterator(last_mm->lid,&bi)){
-              fprintf(stderr, "CreateAbacus CreateColumnBeadIterator failed");
-              assert(0);
-            }
+            CreateColumnBeadIterator(last_mm->lid, &bi);
+
             while ( (bid = NextColumnBead(&bi)) != -1 ) {
               cbead = GetBead(beadStore,bid);
               frag = GetFragment(fragmentStore,cbead->frag_index);
