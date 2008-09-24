@@ -1763,7 +1763,7 @@ static double BPSuffixScore(char *a, int alen, char *b, int blen,
 
 
 
-#define PRINT_WIDTH  50   /* Width of each line of a printed alignment */
+#define PRINT_WIDTH  100   /* Width of each line of a printed alignment */
 
 /*** OVERLAP PRINT ROUTINE ***/
 
