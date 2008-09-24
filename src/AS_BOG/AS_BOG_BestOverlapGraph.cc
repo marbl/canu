@@ -124,7 +124,7 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
         if (bestcont)
           fprintf(BC, "%d\t%d\t%c\t%d\n", id, _fi->libraryIID(id), (_fi->mateIID(id) > 0) ? 'm' : 'f', bestcont->container);
         else if ((bestedge5->frag_b_id > 0) || (bestedge3->frag_b_id > 0))
-          fprintf(BE, "%d\t%d\t%d\t%d\n", id, _fi->libraryIID(id), (_fi->mateIID(id) > 0) ? 'm' : 'f', bestedge5->frag_b_id, bestedge3->frag_b_id);
+          fprintf(BE, "%d\t%d\t%d\t%d\n", id, _fi->libraryIID(id), bestedge5->frag_b_id, bestedge3->frag_b_id);
       }
 
       fclose(BC);
