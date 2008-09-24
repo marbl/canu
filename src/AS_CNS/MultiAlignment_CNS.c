@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.192 2008-09-24 07:33:16 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.193 2008-09-24 07:36:25 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -528,7 +528,7 @@ int CreateFragmentBeadIterator(int32 fid,FragmentBeadIterator *bi) {
   Fragment *fragment = GetFragment(fragmentStore,fid);
   if ( fragment == NULL ) { return 0;}
   bi->fragment = *fragment;
-  bi->bead = bi->fragment.beads;
+  bi->bead = bi->fragment.firstbead;
   return 1;
 }
 
@@ -939,13 +939,13 @@ int32 AppendFragToLocalStore(FragType          type,
   fragment.manode = -1;
   fragment.sequence = GetNumchars(sequenceStore);
   fragment.quality = GetNumchars(qualityStore);
-  fragment.beads = GetNumBeads(beadStore);
+  fragment.firstbead = GetNumBeads(beadStore);
   AppendRangechar(sequenceStore, fragment.length + 1, sequence);
   AppendRangechar(qualityStore, fragment.length + 1, quality);
 
   {
     Bead bead;
-    int32 boffset = fragment.beads;
+    int32 boffset = fragment.firstbead;
     int32 soffset = fragment.sequence;
     int32 foffset;
 
@@ -1037,7 +1037,7 @@ int32 UnAlignFragment(int32 fid) {
   Bead *bead;
   int32 next_bid;
   assert(frag != NULL);
-  bead = GetBead(beadStore,frag->beads);
+  bead = GetBead(beadStore,frag->firstbead);
   assert(bead != NULL);
   next_bid = bead->next;
   while (next_bid > 0 ) {
@@ -4404,9 +4404,9 @@ int32 ApplyIMPAlignment(int32 afid, int32 bfid, int32 ahang, int32 *trace) {
   assert(afrag != NULL);
   bfrag= GetFragment(fragmentStore,bfid);
   assert(bfrag != NULL);
-  aboffset = afrag->beads;
+  aboffset = afrag->firstbead;
   blen = bfrag->length;
-  bboffset = bfrag->beads;
+  bboffset = bfrag->firstbead;
   apos = aboffset+ahang;
   bpos = 0;
   while ( (NULL != trace) && *trace != 0 ) {
@@ -4465,7 +4465,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
     afrag= GetFragment(fragmentStore,afid);
     assert(afrag != NULL);
     alen = afrag->length;
-    aboffset = afrag->beads;
+    aboffset = afrag->firstbead;
   }
   aindex = (int32 *)safe_malloc(alen*sizeof(int32));
   { Bead *ab=GetBead(beadStore,aboffset);
@@ -4484,7 +4484,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
   bfrag= GetFragment(fragmentStore,bfid);
   assert(bfrag != NULL);
   blen = bfrag->length;
-  bboffset = bfrag->beads;
+  bboffset = bfrag->firstbead;
   last_a_aligned = -1;
   last_b_aligned = -1;
   apos = MAX(ahang,0);
@@ -4761,9 +4761,9 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
       ndeletes++;
       continue;
     }
-    position.bgn = GetColumn(columnStore,(GetBead(beadStore,fragment->beads))->column_index)->ma_index;
+    position.bgn = GetColumn(columnStore,(GetBead(beadStore,fragment->firstbead))->column_index)->ma_index;
     position.end = GetColumn(columnStore,
-                             (GetBead(beadStore,fragment->beads+fragment->length-1))->column_index)->ma_index+1;
+                             (GetBead(beadStore,fragment->firstbead+fragment->length-1))->column_index)->ma_index+1;
     if ( odlen > 0 ) {
       assert (iups[0].delta_length == odlen);
     }
@@ -4981,8 +4981,8 @@ void PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey w
       fids[i] = 0;
       continue;
     }
-    bgn_column = (GetBead(beadStore,fragment->beads))->column_index;
-    end_column = (GetBead(beadStore,fragment->beads+fragment->length-1))->column_index;
+    bgn_column = (GetBead(beadStore,fragment->firstbead))->column_index;
+    end_column = (GetBead(beadStore,fragment->firstbead+fragment->length-1))->column_index;
 #ifdef PRINTUIDS
     if(fragment->type==AS_READ){
       fids[i] = fragment->uid;
@@ -7329,9 +7329,9 @@ int MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
   // setup the packing
   for ( fid=0;fid<num_frags;fid++ ) {
     if ( frag->type != AS_UNITIG ) {
-      fbgn = GetColumn(columnStore,(GetBead(beadStore,frag->beads))->column_index)->ma_index;
+      fbgn = GetColumn(columnStore,(GetBead(beadStore,frag->firstbead))->column_index)->ma_index;
       fend = GetColumn(columnStore,
-                       (GetBead(beadStore,frag->beads+frag->length-1))->column_index)->ma_index+1;
+                       (GetBead(beadStore,frag->firstbead+frag->length-1))->column_index)->ma_index+1;
       for (ir=0;ir<*depth;ir++) {
         if (fbgn <  rowptr[ir] ) continue;
         rowptr[ir] = fend;
@@ -7384,7 +7384,7 @@ int MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
     for ( fid=0;fid<num_frags;fid++ ) {
       if ( frag->type != AS_UNITIG ) {
         ir = row_assign[fid];
-        fb = GetBead(beadStore,frag->beads);
+        fb = GetBead(beadStore,frag->firstbead);
         bcolumn =  GetColumn(columnStore,fb->column_index);
         if(!CreateFragmentBeadIterator(fid,&fi)){
           fprintf(stderr, "MANode2Array CreateFragmentBeadIterator failed");
@@ -7954,7 +7954,7 @@ PlaceFragments(int32 fid,
     if (!GetAlignmentTrace(afrag->lid, 0, blid, &ahang, ovl, trace, &otype, DP_Compare,   DONT_SHOW_OLAP, 0) &&
         !GetAlignmentTrace(afrag->lid, 0, blid, &ahang, ovl, trace, &otype, COMPARE_FUNC, DONT_SHOW_OLAP, 0)) {
 
-      Bead   *afirst = GetBead(beadStore, afrag->beads + ahang);
+      Bead   *afirst = GetBead(beadStore, afrag->firstbead + ahang);
       Column *col    = GetColumn(columnStore, afirst->column_index);
       MANode *manode = GetMANode(manodeStore, col->ma_id);
 
@@ -8475,7 +8475,7 @@ int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *ti
           while ( (bid = NextColumnBead(&bi)) != -1 ) {
             cbead = GetBead(beadStore,bid);
             frag = GetFragment(fragmentStore,fbead->frag_index);
-            fbead = GetBead(beadStore,frag->beads);
+            fbead = GetBead(beadStore,frag->firstbead);
             frag_start_column = GetColumn(columnStore,fbead->column_index);
             if ( column ->ma_index <= last_mm->ma_index ) {
               // shared frag;
@@ -8749,9 +8749,9 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
       //    right = frag->length;
       //}
       left = GetColumn(columnStore,
-                       GetBead(beadStore,frag->beads + left)->column_index)->ma_index;
+                       GetBead(beadStore,frag->firstbead + left)->column_index)->ma_index;
       right= GetColumn(columnStore,
-                       GetBead(beadStore,frag->beads + right-1)->column_index)->ma_index + 1;
+                       GetBead(beadStore,frag->firstbead + right-1)->column_index)->ma_index + 1;
       tmp = bgn;
       bgn = (bgn<end)?left:right;
       end = (tmp<end)?right:left;
@@ -9038,10 +9038,10 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
               left = (bgn<end)?bgn:end;
               right = (bgn<end)?end:bgn;
               left = GetColumn(columnStore,
-                               GetBead(beadStore,cfrag->beads + left)
+                               GetBead(beadStore,cfrag->firstbead + left)
                                ->column_index)->ma_index;
               right   = GetColumn(columnStore,
-                                  GetBead(beadStore,cfrag->beads + right-1)
+                                  GetBead(beadStore,cfrag->firstbead + right-1)
                                   ->column_index)->ma_index + 1;
               tmp = bgn;
               bgn = (bgn<end)?left:right;
@@ -9082,8 +9082,8 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
 
           // make adjustments to positions due to application of traces??
 
-          bgn = GetBead(beadStore,cfrag->beads)->column_index;
-          end = GetBead(beadStore,cfrag->beads + cfrag->length -1 )->column_index + 1;
+          bgn = GetBead(beadStore,cfrag->firstbead)->column_index;
+          end = GetBead(beadStore,cfrag->firstbead + cfrag->length -1 )->column_index + 1;
           if(cfrag->complement){
             int32 tmp = bgn;
             bgn = end;
