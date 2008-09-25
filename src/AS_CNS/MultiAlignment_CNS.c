@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.195 2008-09-24 08:08:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.196 2008-09-25 05:40:15 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -33,6 +33,7 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.195 2008-09-24 08:08:48 bri
 #include <ctype.h>
 
 #include "MultiAlignment_CNS.h"
+#include "MultiAlignment_CNS_private.h"
 #include "MicroHetREZ.h"
 
 
@@ -399,6 +400,31 @@ char GetMaxBaseCount(BaseCount *b,int start_index) {  // start at 1 to disallow 
   return toupper(ALPHABET[max_index]);
 }
 
+void
+CheckColumnBaseCount(Column *c) {
+  int counts[256] = {0};
+
+  if (c->next == -1)
+    return;
+
+  Bead *cbead = GetBead(beadStore,c->call);
+
+  while (cbead->down != - 1) {
+    cbead = GetBead(beadStore,cbead->down);
+    counts[*Getchar(sequenceStore,cbead->soffset)]++;
+  }
+
+  if (counts['A'] != GetColumnBaseCount(c, 'A'))
+    fprintf(stderr, "CheckColumnBaseCount()-- cid=%d A %d != %d\n", c->lid, counts['A'], GetColumnBaseCount(c, 'A'));
+  if (counts['C'] != GetColumnBaseCount(c, 'C'))
+    fprintf(stderr, "CheckColumnBaseCount()-- cid=%d C %d != %d\n", c->lid, counts['C'], GetColumnBaseCount(c, 'C'));
+  if (counts['G'] != GetColumnBaseCount(c, 'G'))
+    fprintf(stderr, "CheckColumnBaseCount()-- cid=%d G %d != %d\n", c->lid, counts['G'], GetColumnBaseCount(c, 'G'));
+  if (counts['T'] != GetColumnBaseCount(c, 'T'))
+    fprintf(stderr, "CheckColumnBaseCount()-- cid=%d T %d != %d\n", c->lid, counts['T'], GetColumnBaseCount(c, 'T'));
+  if (counts['-'] != GetColumnBaseCount(c, '-'))
+    fprintf(stderr, "CheckColumnBaseCount()-- cid=%d - %d != %d\n", c->lid, counts['-'], GetColumnBaseCount(c, '-'));
+}
 
 //*********************************************************************************
 // MANode (MultiAlignmentNode) creation
@@ -567,8 +593,6 @@ int32 NextConsensusBead(ConsensusBeadIterator *bi) {
 
 //*********************************************************************************
 // Insert a "gap bead" in a bead sequence (return the new bead's id)
-//    int32 AppendGapBead(int32 bid);
-//    int32 PrependGapBead(int32 bid);
 //*********************************************************************************
 
 int32 AppendGapBead(int32 bid) {
@@ -904,9 +928,12 @@ int32 AppendFragToLocalStore(FragType          type,
         assert(0);
       }
   }
-  if (complement) {
+
+  //fprintf(stderr, "AppendFragToLocalStore()-- frag=%d bgn=%d end=%d complement=%d\n", iid, clr_bgn, clr_end, complement);
+
+  if (complement)
     SequenceComplement(sequence, quality);
-  }
+
   fragment.lid = GetNumFragments(fragmentStore);
   fragment.iid = iid;
   fragment.type = type;
@@ -915,36 +942,53 @@ int32 AppendFragToLocalStore(FragType          type,
   fragment.is_contained = (contained > 0) ? 1 : 0;
   fragment.deleted = 0;
   fragment.manode = -1;
-  fragment.sequence = GetNumchars(sequenceStore);
-  fragment.quality = GetNumchars(qualityStore);
+
+  fragment.sequence  = GetNumchars(sequenceStore);
+  fragment.quality   = GetNumchars(qualityStore);
   fragment.firstbead = GetNumBeads(beadStore);
+
   AppendRangechar(sequenceStore, fragment.length + 1, sequence);
   AppendRangechar(qualityStore, fragment.length + 1, quality);
 
   {
     Bead bead;
+
     int32 boffset = fragment.firstbead;
     int32 soffset = fragment.sequence;
     int32 foffset;
 
-    bead.up = -1;
-    bead.down = -1;
-    assert(fragment.lid >= 0);
-    bead.frag_index = fragment.lid;
+    bead.boffset      = -1;
+    bead.soffset      = -1;
+    bead.foffset      = -1;
+    bead.prev         = -1;
+    bead.next         = -1;
+    bead.up           = -1;
+    bead.down         = -1;
+    bead.frag_index   = fragment.lid;
     bead.column_index = -1;
 
     for (foffset = 0; foffset < fragment.length; foffset++ ) {
       bead.foffset = foffset;
-      bead.boffset = boffset+foffset;
-      bead.soffset = soffset+foffset;
-      bead.next = bead.boffset +1;
-      bead.prev = bead.boffset -1;
-      if ( foffset == fragment.length-1) bead.next = -1;
-      if ( foffset == 0 ) bead.prev = -1;
-      SetVA_Bead(beadStore,boffset+foffset,&bead);
+      bead.boffset = boffset + foffset;
+      bead.soffset = soffset + foffset;
+
+      bead.next = bead.boffset + 1;
+      bead.prev = bead.boffset - 1;
+
+      if (foffset == fragment.length - 1)
+        bead.next = -1;
+
+      if (foffset == 0)
+        bead.prev = -1;
+
+      SetVA_Bead(beadStore, bead.boffset, &bead);
     }
   }
+
+  //fprintf(stderr, "Added new fragment %d starting with beads %d\n", iid, fragment.firstbead);
+
   AppendVA_Fragment(fragmentStore,&fragment);
+
   return fragment.lid;
 }
 
@@ -952,7 +996,24 @@ int32 AppendFragToLocalStore(FragType          type,
 // Basic manipulation of Bead data
 //*********************************************************************************
 
-int32 AlignBeadToColumn(int32 cid, int32 bid) {
+void
+ClearBead(int32 bid) {
+  Bead *b = GetBead(beadStore,bid);
+  assert(b != NULL);
+
+  b->boffset      = -1;
+  b->soffset      = -1;
+  b->foffset      = -1;
+  b->prev         = -1;
+  b->next         = -1;
+  b->up           = -1;
+  b->down         = -1;
+  b->frag_index   = -1;
+  b->column_index = -1;
+}
+
+void
+AlignBeadToColumn(int32 cid, int32 bid) {
   Column *column=GetColumn(columnStore,cid);
   assert(column != NULL );
 
@@ -979,7 +1040,10 @@ int32 AlignBeadToColumn(int32 cid, int32 bid) {
   //CheckColumns();
 }
 
-int32 UnAlignBeadFromColumn(int32 bid) {
+// remove bid from it's column, returning the next bead up in the column
+//
+int32
+UnAlignBeadFromColumn(int32 bid) {
   Bead *bead = GetBead(beadStore,bid);
   assert(bead != NULL);
 
@@ -1054,36 +1118,49 @@ int32 UnAlignTrailingGapBeads(int32 bid) {
   return anchor;
 }
 
-int32 LateralExchangeBead(int32 lid, int32 rid) {
-  // returned value is new leftmost bead id
-  Bead *leftbead, *rightbead, *ibead;
-  Column *leftcolumn, *rightcolumn;
+void
+LateralExchangeBead(int32 lid, int32 rid) {
   Bead rtmp; // this is just some tmp space for the swap
-  char leftchar, rightchar;
-  leftbead = GetBead(beadStore,lid);
-  rightbead = GetBead(beadStore,rid);
+
+  //  This function swaps the contents of two beads, ensuring that
+  //  there are only gaps between them.
+  //
+  //  HORRIBLY complicated because ApplyAbacus() and MergeCompatible()
+  //  hold on to pointers to beads.  It would have been much simpler
+  //  to just swap the soffset and foffset, leaving EVERYTHING ELSE
+  //  exactly the same.
+
+  Bead *leftbead = GetBead(beadStore,lid);
+  Bead *rightbead = GetBead(beadStore,rid);
   assert(leftbead != NULL);
   assert(rightbead != NULL);
-  leftcolumn = GetColumn(columnStore,leftbead->column_index);
-  rightcolumn = GetColumn(columnStore,rightbead->column_index);
+
+  Column *leftcolumn = GetColumn(columnStore,leftbead->column_index);
+  Column *rightcolumn = GetColumn(columnStore,rightbead->column_index);
   assert(leftcolumn != NULL);
   assert(rightcolumn != NULL);
-  leftchar = *Getchar(sequenceStore,leftbead->soffset);
-  rightchar = *Getchar(sequenceStore,rightbead->soffset);
+
+  char leftchar = *Getchar(sequenceStore,leftbead->soffset);
+  char rightchar = *Getchar(sequenceStore,rightbead->soffset);
 
   // now, verify that left and right are either
   // a) neighbors, or b) have only '-'s intervening
-  ibead = leftbead;
-  while ( ibead->next > -1) {
-    ibead = GetBead(beadStore,ibead->next);
-    if (ibead->boffset == rid ) break;
 
-    if( *Getchar(sequenceStore,ibead->soffset) != '-') {
-      fprintf(stderr, "LateralExchangeBead exchangebead!='-'");
-      assert(0);
+  {
+    Bead *ibead = leftbead;
+    while ( ibead->next > -1) {
+      ibead = GetBead(beadStore,ibead->next);
+      if (ibead->boffset == rid ) break;
+
+      if( *Getchar(sequenceStore,ibead->soffset) != '-') {
+        fprintf(stderr, "LateralExchangeBead exchangebead!='-'");
+        assert(0);
+      }
     }
   }
+
   rtmp = *rightbead;
+
   rightbead->up = leftbead->up;
   rightbead->down = leftbead->down;
   rightbead->prev = leftbead->prev;
@@ -1091,6 +1168,7 @@ int32 LateralExchangeBead(int32 lid, int32 rid) {
   if ( rightbead->up != -1 ) (GetBead(beadStore,rightbead->up))->down = rid;
   if ( rightbead->down != -1)  (GetBead(beadStore,rightbead->down))->up = rid;
   if ( rightbead->prev != -1)  (GetBead(beadStore,rightbead->prev))->next = rid;
+
   leftbead->up = rtmp.up;
   leftbead->down = rtmp.down;
   leftbead->next = rtmp.next;
@@ -1098,6 +1176,7 @@ int32 LateralExchangeBead(int32 lid, int32 rid) {
   if ( leftbead->up != -1 ) (GetBead(beadStore,leftbead->up))->down = lid;
   if ( leftbead->down != -1)  (GetBead(beadStore,leftbead->down))->up = lid;
   if ( leftbead->next != -1)  (GetBead(beadStore,leftbead->next))->prev = lid;
+
   // now, handle separately cases of a) left and right are adjacent, and b) gaps intervene
   if ( rtmp.prev == lid) {
     rightbead->next = lid;
@@ -1109,15 +1188,16 @@ int32 LateralExchangeBead(int32 lid, int32 rid) {
 
   rightbead->column_index = leftbead->column_index;
   leftbead->column_index = rtmp.column_index;
+
   // change basecounts for affected columns
   DecBaseCount(&leftcolumn->base_count,leftchar);
   IncBaseCount(&leftcolumn->base_count,rightchar);
   DecBaseCount(&rightcolumn->base_count,rightchar);
   IncBaseCount(&rightcolumn->base_count,leftchar);
-  return rid;
 }
 
-int32 LeftEndShiftBead(int32 bid, int32 eid) {
+void
+LeftEndShiftBead(int32 bid, int32 eid) {
   //  Relationship must be one of:
   //
   //  a) end gap moving left:
@@ -1138,16 +1218,15 @@ int32 LeftEndShiftBead(int32 bid, int32 eid) {
   if ( *Getchar(sequenceStore,shift->soffset) != '-' ) {
     // assume first and internal characters are gaps
     LateralExchangeBead(bid, eid);
-    return eid;
-  }   else {
+  } else {
     while ( shift->prev != aid ) {
       LateralExchangeBead(shift->prev, shift->boffset);
     }
-    return shift->boffset;
   }
 }
 
-int32 RightEndShiftBead(int32 bid, int32 eid) {
+void
+RightEndShiftBead(int32 bid, int32 eid) {
   //  Relationship must be one of:
   //
   //  a) end gap moving left:
@@ -1169,13 +1248,11 @@ int32 RightEndShiftBead(int32 bid, int32 eid) {
   if ( *Getchar(sequenceStore,shift->soffset) != '-' ) {
     // assume last and internal characters are gaps
     LateralExchangeBead(bid, eid);
-    return eid;
-  }   else {
+  } else {
     rid = shift->next;
     while ( shift->next != aid ) {
       LateralExchangeBead(shift->boffset, shift->next);
     }
-    return rid;
   }
 }
 
@@ -1229,35 +1306,33 @@ int AddColumnToMANode(int32 ma, Column column){
 
 int32 ColumnAppend(int32 cid, int32 bid) {
   // bid is the offset of the Bead seeding the column
-  Column *column;
-  Column *prev;
-  Column *next;
+
   ColumnBeadIterator ci;
   int32 nid;
+
   Bead *bead = GetBead(beadStore,bid);
-  Bead *call,*prevcall,*nextcall;
-  // make sure this bead exists before continuing
   assert(bead != NULL);
-  column = CreateColumn(bid);
-  // make sure this column exists before continuing
+
+  //fprintf(stderr, "ColumnAppend()-- adding column for bid %d\n", bid);
+
+  Column *column = CreateColumn(bid);
   assert(column != NULL);
-  call = GetBead(beadStore,column->call);
-  prev = GetColumn(columnStore,cid);
-  prevcall = GetBead(beadStore,prev->call);
+
+  Bead   *call     = GetBead(beadStore,column->call);
+  Column *prev     = GetColumn(columnStore,cid);
+  Bead   *prevcall = GetBead(beadStore,prev->call);
+
   column->next = prev->next;
   column->prev = cid;
   call->next = prevcall->next;
   call->prev = prevcall->boffset;
   prev->next = column->lid;
   prevcall->next = call->boffset;
-  if ( column->next != -1 ) {
-    next = GetColumn(columnStore,column->next);
-    next->prev = column->lid;
-  }
-  if ( call->next != -1 ) {
-    nextcall = GetBead(beadStore,call->next);
-    nextcall->prev = call->boffset;
-  }
+  if ( column->next != -1 )
+    GetColumn(columnStore,column->next)->prev = column->lid;
+
+  if ( call->next != -1 )
+    GetBead(beadStore,call->next)->prev = call->boffset;
 
   CreateColumnBeadIterator(cid, &ci);
 
@@ -1275,37 +1350,36 @@ int32 ColumnAppend(int32 cid, int32 bid) {
 
 int32 ColumnPrepend(int32 cid, int32 bid) {
   // bid is the offset of the Bead seeding the column
-  Column *column;
-  Column *prev;
-  Column *next;
+
   ColumnBeadIterator ci;
   int32 nid;
+
   Bead *bead = GetBead(beadStore,bid);
-  Bead *call,*prevcall,*nextcall;
-  // make sure this bead exists before continuing
   assert(bead != NULL);
-  column = CreateColumn(bid);
-  // make sure this column exists before continuing
+
+  //fprintf(stderr, "ColumnPrepend()-- adding column for bid %d\n", bid);
+
+  Column *column = CreateColumn(bid);
   assert(column != NULL);
-  call = GetBead(beadStore,column->call);
-  next = GetColumn(columnStore,cid);
-  nextcall = GetBead(beadStore,next->call);
+
+  Bead   *call     = GetBead(beadStore,column->call);
+  Column *next     = GetColumn(columnStore,cid);
+  Bead   *nextcall = GetBead(beadStore,next->call);
+
   column->prev = next->prev;
   column->next = cid;
   call->prev = nextcall->prev;
   call->next = nextcall->boffset;
   next->prev = column->lid;
   nextcall->prev = call->boffset;
-  if ( column->prev != -1 ) {
-    prev = GetColumn(columnStore,column->prev);
-    prev->next = column->lid;
-  }
-  if ( call->prev != -1 ) {
-    prevcall = GetBead(beadStore,call->prev);
-    prevcall->next = call->boffset;
-  }
 
-  CreateColumnBeadIterator(cid, &ci);
+  if (column->prev != -1)
+    GetColumn(columnStore,column->prev)->next = column->lid;
+
+  if (call->prev != -1)
+    GetBead(beadStore,call->prev)->next = call->boffset;
+
+  CreateColumnBeadIterator(cid,&ci);
 
   while ( (nid = NextColumnBead(&ci)) != -1 ) {
     bead = GetBead(beadStore,nid);
@@ -1370,7 +1444,7 @@ int MergeCompatible(int32 cid) {
       cchar = *Getchar(sequenceStore,cbead->soffset);
       mchar = *Getchar(sequenceStore,mbead->soffset);
       if ( ((cchar == '-') && ( mchar != '-')) ) {
-        mid = LeftEndShiftBead(cbead->boffset,mid);
+        LeftEndShiftBead(cbead->boffset,mid);
         cbead = GetBead(beadStore,mid);
       }
     }
@@ -1448,6 +1522,40 @@ void ShowColumn(int32 cid) {
   }
   fprintf(stderr,"------------------\n");
   fprintf(stderr,"call:        %c /%c\n",toupper(*Getchar(sequenceStore,call->soffset)),*Getchar(qualityStore,call->soffset));
+}
+
+void
+CheckColumns(void) {
+  int cid;
+  int fails = 0;
+
+  for (cid=0; cid<GetNumColumns(columnStore); cid++) {
+    Column *column = GetColumn(columnStore,cid);
+
+    if (column == NULL)
+      continue;
+
+    ColumnBeadIterator ci;
+    CreateColumnBeadIterator(cid,&ci);
+
+    Bead *call = GetBead(beadStore,column->call);
+    int32 bid;
+
+    //if (cid == 548)
+    //  fprintf(stderr, "CheckColumns()-- column %d\n", cid);
+
+    while ( (bid = NextColumnBead(&ci)) != -1 ) {
+      Bead *bead = GetBead(beadStore,bid);
+
+      //if ((cid == 548) || (bid == 3919) || (bid == 739) || (bid == 508) || (bid == 305) || (bid == 187))
+      //  fprintf(stderr, "bead %d claims col %d (cid=%d)\n", bead->boffset, bead->column_index, cid);
+
+      if (bead->column_index != cid)
+        fails++;
+      //assert(bead->column_index == cid);
+    }
+  }
+  assert(fails == 0);
 }
 
 char QVInRange(int q) {
@@ -1564,8 +1672,8 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
       int16  max_ind=0;
       double max_cw=0.0;   // max of "consensus weights" of all bases
       double normalize=0.;
-      int    nr=0, max_nr=100;
-      int32 *column_iid_list = (int32 *)safe_malloc(max_nr*sizeof(int32));
+      int    nr=0, max_nr=128;
+      int32 *column_iid_list = (int32 *)safe_calloc(sizeof(int32), max_nr);
 
       if (!guides_alloc) {
         guides = CreateVA_Bead(16);
@@ -3583,9 +3691,11 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
   return 1;
 }
 
-int SeedMAWithFragment(int32 mid, int32 fid, int quality,
-                       CNS_Options *opp)
-{
+void
+SeedMAWithFragment(int32 mid,
+                   int32 fid,
+                   int quality,
+                   CNS_Options *opp) {
   Fragment *fragment = GetFragment(fragmentStore,fid);
   assert(fragment != NULL);
 
@@ -3608,8 +3718,6 @@ int SeedMAWithFragment(int32 mid, int32 fid, int quality,
     RefreshMANode(mid, quality, opp, NULL, NULL, 1, 0);
   else
     RefreshMANode(mid, quality, opp, NULL, NULL, 0, 0);
-
-  return 1;
 }
 
 int InvertTrace(int alen, int blen, Overlap *O) {
@@ -4354,7 +4462,8 @@ int32 ApplyIMPAlignment(int32 afid, int32 bfid, int32 ahang, int32 *trace) {
       AlignBeadToColumn(abead->column_index, bboffset+bpos++);
     }
     abead = GetBead(beadStore,apos++);
-    binsert = AlignBeadToColumn(abead->column_index, AppendGapBead(bboffset+bpos-1));
+    binsert = AppendGapBead(bboffset+bpos-1);
+    AlignBeadToColumn(abead->column_index, binsert);
     trace++;
   }
   // now, finish up aligning the rest of b
@@ -4371,29 +4480,42 @@ int32 ApplyIMPAlignment(int32 afid, int32 bfid, int32 ahang, int32 *trace) {
 // ahang and trace
 //*********************************************************************************
 
-int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *trace) {
-  // aoffset is going to be used to indicate position in consensus sequence from which to start alignment
-  // this will be triggered when afid == -1
+int32
+ApplyAlignment(int32 afid,
+               int32 aoffset,
+               int32 bfid,
+               int32 ahang,
+               int32 *trace) {
+
   Fragment *afrag = NULL;
   Fragment *bfrag = NULL;
   int32 aboffset, bboffset; // offsets of first beads in fragments
   int32 apos, bpos; // local offsets as alignment progresses
   int32 alen, blen;
+
   int32 ovl_remaining, column_appends, column_index;
   int32 first_touched_column;
   int32 last_a_aligned,last_b_aligned;
   int32 next_to_align;
   int32 binsert;
   int32 *aindex;
+
   Bead *abead;
-  Bead *gbead;
-  int32 ipx, off;
+
+  int32 off;
+
   int align_to_consensus=0;
-  if ( afid < 0 ) align_to_consensus = 1;
+
+  if ( afid < 0 ) {
+    assert(0);
+    align_to_consensus = 1;
+  }
+
   if ( align_to_consensus) {
     aboffset = aoffset;
     alen =0;
-    { Bead *ab=GetBead(beadStore,aboffset);
+    {
+      Bead *ab=GetBead(beadStore,aboffset);
       while ( ab!=NULL && alen < 2*AS_READ_MAX_LEN ){
         alen++;
         ab = GetBead(beadStore,ab->next);
@@ -4405,8 +4527,11 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
     alen = afrag->length;
     aboffset = afrag->firstbead;
   }
+
   aindex = (int32 *)safe_malloc(alen*sizeof(int32));
-  { Bead *ab=GetBead(beadStore,aboffset);
+
+  {
+    Bead *ab=GetBead(beadStore,aboffset);
     int ai;
     if ( align_to_consensus ) {
       for (ai=0;ai<alen;ai++) {
@@ -4419,12 +4544,43 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
       }
     }
   }
+
   bfrag= GetFragment(fragmentStore,bfid);
   assert(bfrag != NULL);
+
   blen = bfrag->length;
   bboffset = bfrag->firstbead;
+
+  //  All the a beads should be in a column.  All the b beads should not.
+  //
+  {
+    Bead  *b = GetBead(beadStore, aboffset);
+    int    e = 0;
+
+    while (b) {
+      if (b->column_index == -1) {
+        e++;
+        fprintf(stderr, "bead %d in A has undef column_index.\n", b->boffset);
+      }
+      b = (b->next == -1) ? NULL : GetBead(beadStore, b->next);
+    }
+
+    b = GetBead(beadStore, bboffset);
+
+    while (b) {
+      if (b->column_index != -1) {
+        e++;
+        fprintf(stderr, "bead %d in B has defined column_index %d.\n", b->boffset, b->column_index);
+      }
+      b = (b->next == -1) ? NULL : GetBead(beadStore, b->next);
+    }
+
+    assert(e == 0);
+  }
+
   last_a_aligned = -1;
   last_b_aligned = -1;
+
   apos = MAX(ahang,0);
   bpos = 0;
 
@@ -4435,8 +4591,9 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
   }
 
   first_touched_column = abead->column_index;
+
   if ( ahang < 0 ) {
-    gbead = GetBead(beadStore,bboffset);
+    Bead *gbead = GetBead(beadStore,bboffset);
     while ( bpos < -ahang ) {
       ColumnPrepend(first_touched_column,bboffset+bpos);
       bpos++;
@@ -4447,7 +4604,12 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
   last_a_aligned = GetBead(beadStore,aindex[apos])->prev;
 
   while ( (NULL != trace) && *trace != 0 ) {
-    if ( *trace < 0 ) {  // gap is in afrag
+    //fprintf(stderr, "trace=%d  apos=%d alen=%d bpos=%d blen=%d\n", *trace, apos, alen, bpos, blen);
+
+    if ( *trace < 0 ) {
+      //
+      // gap is in afrag
+      //
       // align ( - *trace - apos ) positions
       while ( apos < (- *trace - 1)) {
         abead = GetBead(beadStore,aindex[apos]);
@@ -4457,9 +4619,8 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
         apos++; bpos++;
         binsert = bboffset+bpos-1;
         while ( abead->next > -1 && (abead = GetBead(beadStore,abead->next))->boffset != aindex[apos] ) {
-          // remember bead offset in case AppendGapBead messes up the pointer (MP)
-          int32 off = abead->boffset;
           // insert a gap bead in b and align to
+          off = abead->boffset;
           binsert = AppendGapBead(binsert);
           abead = GetBead(beadStore, off);
           AlignBeadToColumn(abead->column_index, binsert);
@@ -4467,6 +4628,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
           last_b_aligned = binsert;
         }
       }
+
       // insert a gap column to accommodate bpos "insert"
       //   via:
       // insert a gap in afrag; insert new column seeded with that
@@ -4489,23 +4651,27 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
       //                           * b b b
       //                             bpos
       //              * is new column
+
       abead = GetBead(beadStore,aindex[apos]);
       // in case the last aligned bead in a is not apos->prev
       //   (Because gap beads were inserted, for example)
       binsert = bboffset+bpos-1;
       while ( abead->prev != last_a_aligned ) {
         binsert = AppendGapBead(binsert);
+        abead = GetBead(beadStore,aindex[apos]);
         next_to_align = (GetBead(beadStore,last_a_aligned))->next;
         AlignBeadToColumn( (GetBead(beadStore,next_to_align))->column_index, binsert);
         last_a_aligned = next_to_align;
         last_b_aligned = binsert;
       }
       ColumnAppend((GetColumn(columnStore,abead->column_index))->prev,bboffset+bpos);
-      abead = GetBead(beadStore,aindex[apos]);
       last_a_aligned = abead->prev;
       last_b_aligned = bboffset+bpos;
       bpos++;
-    } else { // gap is in bfrag
+    } else {
+      //
+      // gap is in bfrag
+      //
       // align ( *trace - bpos ) positions
       while ( bpos < (*trace - 1) ) {
         abead = GetBead(beadStore,aindex[apos]);
@@ -4515,9 +4681,8 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
         apos++; bpos++;
         binsert = bboffset+bpos-1;
         while ( abead->next > -1 && (abead = GetBead(beadStore,abead->next))->boffset != aindex[apos] ) {
-          // remember bead offset in case AppendGapBead messes up the pointer (MP)
-          int32 off = abead->boffset;
           // insert a gap bead in b and align to
+          off = abead->boffset;
           binsert = AppendGapBead(binsert);
           abead = GetBead(beadStore, off);
           AlignBeadToColumn(abead->column_index, binsert);
@@ -4525,6 +4690,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
           last_b_aligned = binsert;
         }
       }
+
       // insert a gap bead at bpos to represent bpos "delete"
       // and align the gap position with abead
       //                           apos
@@ -4546,25 +4712,17 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
       //                             bpos
       //              (no new column is required)
 
-      // Jason 24-Jan-2005. Modified this code block to be resistant to the
-      // stale-pointer effect when AppendGapBead realloc's the array.
-      // Similar to bug fix below by MP.
-      // Compare back to the original if the assert ever fails.
-      ipx = aindex[apos];
-      abead = GetBead(beadStore,ipx);
       off = abead->boffset;
-      assert (off == ipx);
       binsert = AppendGapBead(last_b_aligned);
-      abead = GetBead(beadStore, off);
-      binsert = AlignBeadToColumn(abead->column_index, binsert);
-      last_a_aligned = ipx;
+      abead = GetBead(beadStore,off);
+      AlignBeadToColumn(abead->column_index, binsert);
+      last_a_aligned = abead->boffset;
       last_b_aligned = binsert;
       apos++;
 
       while ( abead->next > -1 && (abead = GetBead(beadStore,abead->next))->boffset != aindex[apos] ) {
-        // remember bead offset in case AppendGapBead messes up the pointer (MP)
-        off = abead->boffset;
         // insert a gap bead in b and align to
+        off = abead->boffset;
         binsert = AppendGapBead(binsert);
         abead = GetBead(beadStore, off);
         AlignBeadToColumn(abead->column_index, binsert);
@@ -4572,12 +4730,14 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
         last_b_aligned = binsert;
       }
     }
+
     trace++;
   }
-  // remaining alignment contains no indels
-  ovl_remaining  = (blen-bpos < alen-apos)?blen-bpos:alen-apos;
-  while ( ovl_remaining-- > 0 ) {
 
+  // remaining alignment contains no indels
+
+  ovl_remaining  = (blen-bpos < alen-apos) ? blen-bpos : alen-apos;
+  while ( ovl_remaining-- > 0 ) {
     abead = GetBead(beadStore,aindex[apos]);
     AlignBeadToColumn(abead->column_index, bboffset+bpos);
     last_a_aligned = abead->boffset;
@@ -4587,18 +4747,15 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
     while ( abead->next > -1 && apos < alen &&
             (abead = GetBead(beadStore,abead->next))->boffset !=
             aindex[apos] ) {
-      // insert a gap bead in b and align to
-      // variables needed because realloc in AppendGapBead may invalidate
-      // the abead pointer (MP)
-      int32 abeadIndex = abead->column_index;
-      int32 abeadOffset = abead->boffset;
+      off = abead->boffset;
       binsert = AppendGapBead(binsert);
-      AlignBeadToColumn(abeadIndex, binsert);
-      abead = GetBead(beadStore, abeadOffset);
-      last_a_aligned = abeadOffset;
+      abead = GetBead(beadStore, off);
+      AlignBeadToColumn(abead->column_index, binsert);
+      last_a_aligned = abead->boffset;
       last_b_aligned = binsert;
     }
   }
+
   column_appends = blen-bpos;
   column_index = abead->column_index;
 
@@ -4618,6 +4775,9 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
       bpos++;
     }
   }
+
+  CheckColumns();
+
   safe_free(aindex);
   bfrag->manode=afrag->manode;
   return last_b_aligned;
@@ -5069,33 +5229,31 @@ int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars,
     }
     cid = column->next;
   }
+
   {
     IntMultiVar *vl=NULL;
     int32 nv=0;
     int i, make_v_list=0;
 
     if (utg_alleles)
-        make_v_list = 1;
+      make_v_list = 1;
     else if (v_list && num_vars)
-        make_v_list = 2;
+      make_v_list = 2;
+
     RefreshMANode(mid, 1, opp, &nv, &vl, make_v_list, get_scores);
-    if (make_v_list && num_vars)
-      {
-        if (nv > 0)
-          {
-            *v_list = (IntMultiVar *)safe_realloc(*v_list, nv * sizeof(IntMultiVar));
-            *num_vars = nv;
-            for (i=0; i<nv; i++)
-              {
-                (*v_list)[i] = vl[i];
-              }
-          }
-        else
-          {
-            safe_free(*v_list);
-            *num_vars = 0;
-          }
+
+    if (make_v_list && num_vars) {
+      if (nv > 0) {
+        *v_list = (IntMultiVar *)safe_realloc(*v_list, nv * sizeof(IntMultiVar));
+        *num_vars = nv;
+        for (i=0; i<nv; i++)
+          (*v_list)[i] = vl[i];
+      } else {
+        safe_free(*v_list);
+        *num_vars = 0;
       }
+    }
+
     safe_free(vl);
   }
   return removed;
@@ -7185,9 +7343,6 @@ int AbacusRefine(MANode *ma, int32 from, int32 to, CNS_RefineLevel level,
             Bead *firstbead;
             firstbead = GetBead(beadStore,GetBead(beadStore,start_column->call)->down);
             newbead   = AppendGapBead(firstbead->boffset);
-            //  beadStore could have changed position, so grab
-            //  firstbead again; we could instead have cached boffset
-            //  and column_index
             firstbead = GetBead(beadStore,GetBead(beadStore,start_column->call)->down);
             fprintf(stderr,"Adding gapbead %d after %d to add abacus room for abacus abutting left of multialignment\n",
                     newbead, firstbead->boffset);
@@ -7543,6 +7698,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
         }
 
         ahang = offsets[bfrag->lid].bgn - offsets[afrag->lid].bgn;
+        //fprintf(stderr, "ahang=%d <- b=%d - a=%d\n", ahang, offsets[bfrag->lid].bgn, offsets[afrag->lid].bgn);
 
         // Make sure ahang is above the cutoff value.
         // If it's not, may need to sort fragments begfore processing
@@ -7557,6 +7713,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 #endif
 
         ovl = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
+        //fprintf(stderr, "ovl=%d <- b=%d - a=%d\n", ovl, offsets[afrag->lid].end, offsets[bfrag->lid].bgn);
 
         if (VERBOSE_MULTIALIGN_OUTPUT)
           fprintf(stderr, "MultiAlignUnitig()-- Aligning frag #%d (iid %d, range %d,%d) to afrag iid %d range %d,%d -- ovl=%d ahang=%d\n",
@@ -9038,11 +9195,14 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
 // MergeMultiAligns which allows "contained" relationships among the
 // input contigs
 
-MultiAlignT *MergeMultiAlignsFast_new( tSequenceDB *sequenceDBp,
-                                       GateKeeperStore *frag_store, VA_TYPE(IntElementPos) *positions,
-                                       int quality, int verbose, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
-                                       CNS_Options *opp)
-{
+MultiAlignT *MergeMultiAlignsFast_new(tSequenceDB *sequenceDBp,
+                                      GateKeeperStore *frag_store,
+                                      VA_TYPE(IntElementPos) *positions,
+                                      int quality,
+                                      int verbose,
+                                      Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
+                                      CNS_Options *opp) {
+
   // this is the functionality used in traditionl CGW contigging
   //     I'm now extending it so that "contained" contigs are handled appropriately,
   //     which is necessitated by "local unitigging" (a.k.a. "meta-unitigging")

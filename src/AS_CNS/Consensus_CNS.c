@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char rcsid[] = "$Id: Consensus_CNS.c,v 1.63 2008-07-31 06:44:14 brianwalenz Exp $";
+static const char rcsid[] = "$Id: Consensus_CNS.c,v 1.64 2008-09-25 05:40:14 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -41,6 +41,7 @@ static const char rcsid[] = "$Id: Consensus_CNS.c,v 1.63 2008-07-31 06:44:14 bri
 #include "AS_SDB_SequenceDB.h"
 #include "MultiAlignStore_CNS.h"
 #include "MultiAlignment_CNS.h"
+#include "MultiAlignment_CNS_private.h"
 #include "AS_ALN_forcns.h"
 
 #define MAX_NUM_UNITIG_FAILURES 100

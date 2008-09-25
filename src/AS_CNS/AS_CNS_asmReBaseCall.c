@@ -26,8 +26,9 @@
 #include "AS_GKP_include.h"
 #include "MultiAlignStore_CNS.h"
 #include "MultiAlignment_CNS.h"
+#include "MultiAlignment_CNS_private.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.24 2008-06-27 06:29:14 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.25 2008-09-25 05:40:13 brianwalenz Exp $";
 
 static HashTable_AS *utgUID2IID;
 
@@ -355,7 +356,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.24 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.25 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 
