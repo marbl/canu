@@ -30,9 +30,7 @@ my %args;
 sub runCommand {
     my $cmd = shift @_;
 
-    print STDERR "RUNNING------------------\n";
     print STDERR "$cmd\n";
-    print STDERR "-------------------------\n";
 
     my $rc = 0xffff & system($cmd);
 
@@ -143,8 +141,6 @@ sub parseArgs (@) {
 
         } elsif ($arg =~ m/^-verbose/) {
             $args{'verbose'} = 1;
-        } elsif ($arg =~ m/^-stats/) {
-            $args{'stats'}   = 1;
         }
 
 
@@ -481,7 +477,7 @@ sub search {
     #  Create a bunch of scripts to process
     #
     #  Rewrite the command everytime.  This fixes the problem where
-    #  we would, say, change the stats or number of threads...
+    #  we would, say, change the number of threads...
     #
     open(F, "> $path/1-search/search.sh");
     print F "#!/bin/sh\n";
@@ -513,7 +509,6 @@ sub search {
     print F "  -mask      $args{'mermaskfile'} \\\n" if ($args{'mermaskfile'} ne "none");
     print F "  -output    $path/1-search/\$jid.hits \\\n";
     print F "  -count     $path/1-search/\$jid.count \\\n";
-    print F "  -stats     $path/1-search/\$jid.stats \\\n" if ($args{'stats'} == 1);
     print F "&& \\\n";
     print F "touch $path/1-search/\$jid.success\n";
     close(F);
@@ -777,7 +772,6 @@ sub polish {
     my $numproc      = ($args{'localpolishes'} or 4);
 
     my $aligns       = "-aligns" if ($args{'aligns'});
-    my $stats        = 1;
     my $abort        = "-Mp 0.25 -Ma 10000" if ($args{'abort'});
     my $interspecies = "-interspecies"      if ($args{'interspecies'});
 
@@ -884,7 +878,6 @@ sub polish {
     print F "  -minlength   $minsim4l \\\n";
     print F "  -script      $path/3-polish/\$jid.sim4script \\\n";
     print F "  -output      $path/3-polish/\$jid.sim4db \\\n";
-    print F "  -stats       $path/3-polish/\$jid.stats \\\n" if ($stats == 1);
     print F "  -YN          $path/3-polish/\$jid.yn \\\n" if ($args{'sim4-yn'} == 1);
     print F "&& \\\n";
     print F "touch $path/3-polish/\$jid.success\n";
@@ -1416,55 +1409,6 @@ sub sTOhms ($) {
 }
 
 
-sub summarizeTime {
-    my ($sysTimeS, $usrTimeS, $clkTimeS);
-    my ($sysTimeH, $usrTimeH, $clkTimeH);
-    my ($sysTimeM, $usrTimeM, $clkTimeM);
-
-    $sysTimeS = $usrTimeS = $clkTimeS = 0;
-    open(F, "find $args{'path'}/1-search -name *.stats -print |");
-    while (<F>) {
-        chomp;
-        open(G, "< $_");
-        while (<G>) {
-            $sysTimeS += $1 if (m/^systemTime:\s+(\d+\.\d+)$/);
-            $usrTimeS += $1 if (m/^userTime:\s+(\d+\.\d+)$/);
-            $clkTimeS += $1 if (m/^total:\s+(\d+.\d+)$/);
-        }
-        close(G);
-    }
-    close(F);
-
-    ($clkTimeH,$clkTimeM,$clkTimeS) = sTOhms($clkTimeS);
-    ($sysTimeH,$sysTimeM,$sysTimeS) = sTOhms($sysTimeS);
-    ($usrTimeH,$usrTimeM,$usrTimeS) = sTOhms($usrTimeS);
-    printf STDOUT "ESTmapper: search required %7d seconds wall   (%3d:%02d).\n", $clkTimeS, $clkTimeH, $clkTimeM;
-    printf STDOUT "ESTmapper: search required %7d seconds system (%3d:%02d).\n", $sysTimeS, $sysTimeH, $sysTimeM;
-    printf STDOUT "ESTmapper: search required %7d seconds user   (%3d:%02d).\n", $usrTimeS, $usrTimeH, $usrTimeM;
-
-    $sysTimeS = $usrTimeS = $clkTimeS = 0;
-    open(F, "find $args{'path'}/3-polish -name *.stats -print |");
-    while (<F>) {
-        chomp;
-        open(G, "< $_");
-        while (<G>) {
-            $clkTimeS += $1 if (m/^clockTime:\s+(\d+\.\d+)$/);
-            $sysTimeS += $1 if (m/^systemTime:\s+(\d+\.\d+)$/);
-            $usrTimeS += $1 if (m/^userTime:\s+(\d+\.\d+)$/);
-        }
-        close(G);
-    }
-    close(F);
-
-    ($clkTimeH,$clkTimeM,$clkTimeS) = sTOhms($clkTimeS);
-    ($sysTimeH,$sysTimeM,$sysTimeS) = sTOhms($sysTimeS);
-    ($usrTimeH,$usrTimeM,$usrTimeS) = sTOhms($usrTimeS);
-    printf STDOUT "ESTmapper: polish required %7d seconds wall   (%3d:%02d).\n", $clkTimeS, $clkTimeH, $clkTimeM;
-    printf STDOUT "ESTmapper: polish required %7d seconds system (%3d:%02d).\n", $sysTimeS, $sysTimeH, $sysTimeM;
-    printf STDOUT "ESTmapper: polish required %7d seconds user   (%3d:%02d).\n", $usrTimeS, $usrTimeH, $usrTimeM;
-}
-
-
 ################################################################################
 #
 #  Main
@@ -1500,9 +1444,6 @@ if      ($args{'runstyle'} eq "est") {
     polish();
     assembleOutput();
     parseSNP();
-} elsif ($args{'runstyle'} eq "-time") {
-    summarizeTime();
-    exit(0);
 } else {
     print STDERR "Basic help N/A.\n";
 }

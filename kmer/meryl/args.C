@@ -492,6 +492,7 @@ merylArgs::merylArgs(const char *prefix) {
   filename = new char [strlen(prefix) + 17];
   sprintf(filename, "%s.merylArgs", prefix);
 
+  errno = 0;
   FILE *F = fopen(filename, "rb");
   if (errno) {
     fprintf(stderr, "merylArgs::readConfig()-- Failed to open '%s': %s\n", filename, strerror(errno));
@@ -544,6 +545,7 @@ merylArgs::writeConfig(void) {
   filename = new char [strlen(outputFile) + 17];
   sprintf(filename, "%s.merylArgs", outputFile);
 
+  errno = 0;
   FILE *F = fopen(filename, "wb");
   if (errno) {
     fprintf(stderr, "merylArgs::writeConfig()-- Failed to open '%s': %s\n", filename, strerror(errno));

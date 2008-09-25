@@ -54,7 +54,10 @@ readBuffer::readBuffer(const char *filename, u32bit bufferMax) {
 
   fillBuffer();
 
-  _valid = (_bufferLen > 0);
+  _valid = true;
+
+  if (_bufferLen == 0)
+    _eof   = true;
 }
 
 

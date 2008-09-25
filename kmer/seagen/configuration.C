@@ -151,8 +151,7 @@ static char const *usageString =
 "    -verbose                Entertain the user\n"
 "    -binary                 Write the hits in a binary format\n"
 "    -output f               Write output to file f\n"
-"    -count f                Write counts of hits to file f\n"
-"    -stats f                Write resource statistics to f\n";
+"    -count f                Write counts of hits to file f\n";
 
 void
 configuration::usage(char *name) {

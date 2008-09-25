@@ -139,13 +139,13 @@ seqStore::getSequence(u32bit iid,
   if (hMax == 0)
     h = 0L;
 
-  if (sMax < _index[iid]._seqLength) {
+  if (sMax < _index[iid]._seqLength + 1) {
     sMax = _index[iid]._seqLength + 1024;
     delete [] s;
     s = new char [sMax];
   }
 
-  if (hMax < _index[iid]._hdrLength) {
+  if (hMax < _index[iid]._hdrLength + 1) {
     hMax = _index[iid]._hdrLength + 1024;
     delete [] h;
     h = new char [hMax];
@@ -213,31 +213,30 @@ seqStore::getSequence(u32bit iid,
   //  Decode and copy the sequence into s
 
   u32bit block  = _index[iid]._block;
-  u32bit sLen   = 0;  //  length of sequence we've handled so far
-  u32bit sPos   = 0;  //  length of sequence we've copied (== sLen - bgn)
+  u32bit sLen   = 0;  //  length of sequence we've copied
+  u32bit sPos   = 0;  //  position in the sequence
 
   //  Skip blocks before we care.
   //
-  while (sLen + _block[block]._len < bgn) {
-    sLen += _block[block]._len;
+  while (sPos + _block[block]._len < bgn) {
+    sPos += _block[block]._len;
     block++;
   }
 
-  assert(sLen == _block[block]._pos);
+  assert(sPos == _block[block]._pos);
 
-  //  Handle the partial block.  Make sure the stupid user didn't ask
-  //  for something less than a block size.
+  //  Move into the block (we could just set sPos = bgn...).
+  sPos += bgn - _block[block]._pos;
 
-  u32bit partLen = _block[block]._pos + _block[block]._len - bgn;
+  //  Handle the partial block.  Copy what is left in the block, or
+  //  the requested size, whichever is smaller.
 
-  if (partLen < end - bgn)
-    partLen = end - bgn;
+  u32bit partLen = MIN((_block[block]._pos + _block[block]._len - bgn),
+                       (end - bgn));
 
   if (_block[block]._isACGT == 0) {
     memset(s, 'N', partLen);
-    sPos  = partLen;
     sLen += partLen;
-
     _bpf->seek(_block[block+1]._bpf * 2);
   } else {
     _bpf->seek((_block[block]._bpf + bgn - _block[block]._pos) * 2);
@@ -246,19 +245,29 @@ seqStore::getSequence(u32bit iid,
       s[sLen++] = bitsToLetter[_bpf->getBits(2)];
   }
 
+  sPos += partLen;
+
   block++;
 
-  while (sLen < end) {
+  while (sPos < end) {
     assert(_bpf->tell() == _block[block]._bpf * 2);
-    assert(sLen == _block[block]._pos);
+    assert(sPos == _block[block]._pos);
+
+    //  Like the partial block above, pick how much to copy as the
+    //  smaller of the block size and what is left to fill.
+
+    u32bit partLen = MIN((_block[block]._len),
+                         (end - sPos));
 
     if (_block[block]._isACGT == 0) {
-      memset(s + sLen, 'N', _block[block]._len);
-      sLen += _block[block]._len;
+      memset(s + sLen, 'N', partLen);
+      sLen += partLen;
     } else {
-      for (u32bit xx=0; xx<_block[block]._len; xx++)
+      for (u32bit xx=0; xx<partLen; xx++)
         s[sLen++] = bitsToLetter[_bpf->getBits(2)];
     }
+
+    sPos += partLen;
 
     block++;
   }
@@ -319,6 +328,14 @@ constructSeqStore(char *filename, seqCache *inputseq) {
     char          *seq = sic->sequence();
 
     seqStoreBlock  b;
+
+    if (BLOKlen >= BLOKmax) {
+      BLOKmax *= 2;
+      seqStoreBlock *nb = new seqStoreBlock [BLOKmax];
+      memcpy(nb, BLOK, BLOKlen * sizeof(seqStoreBlock));
+      delete [] BLOK;
+      BLOK = nb;
+    }
 
     if (seq) {
       INDX[iid]._hdrPosition = NAMElen;

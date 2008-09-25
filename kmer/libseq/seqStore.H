@@ -42,7 +42,7 @@ struct seqStoreHeader {
 struct seqStoreIndex {
   u32bit  _hdrPosition;  //  Offset into _names for the defline
   u32bit  _hdrLength;    //  Length of the defline
-  u64bit  _seqPosition;  //  Offset into _rb for the sequence data
+  u64bit  _seqPosition;  //  Offset into _bpf for the sequence data
   u32bit  _seqLength;    //  Length, in bases, of the sequence
   u32bit  _block;        //  The seqStoreBlock that starts this sequence
 };

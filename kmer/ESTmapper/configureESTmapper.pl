@@ -32,9 +32,7 @@ my $sgename   = "EMconfig";
 sub runCommand {
     my $cmd = shift @_;
 
-    print STDERR "RUNNING------------------\n";
     print STDERR "$cmd\n";
-    print STDERR "-------------------------\n";
 
     my $rc = 0xffff & system($cmd);
 
@@ -165,7 +163,7 @@ symlink "${genome}",    "$genomedir/genome.fasta"    if ((! -f "$genomedir/genom
 print STDERR "configureESTmapper-- Initializing positionDB creation.\n";
 
 if (! -e "$genomedir/genome.seqStore") {
-    if (runCommand("$leaff -f $genomedir/genome.fasta --seqstore $genomedir/genome.seqStore $genomedir/genome.seqStore.out 2>&1")) {
+    if (runCommand("$leaff -f $genomedir/genome.fasta --seqstore $genomedir/genome.seqStore > $genomedir/genome.seqStore.out 2>&1")) {
         unlink "$genomedir/genome.seqStore";
         die "Failed.\n";
     }
@@ -224,7 +222,8 @@ close(F);
 close(S);
 
 print STDERR "configureESTmapper-- Created $segId groups with maximum memory requirement of ${memory}MB.\n";
-die "Created no groups?\n" if (int($segId) == 0);
+
+die "Created no groups?\n" if ($segId eq "000");
 
 
 #  Configure meryl
@@ -244,6 +243,10 @@ if (! -e "$genomedir/genome.merylArgs") {
 
 #  Create the script that builds the positionDB's and meryl partitions
 #
+#  If there is only one segment ($segId == "000") then meryl doesn't
+#  use the batch mechanism; the meryl in create.sh writes the final
+#  output.
+
 open(F, "> $genomedir/create.sh");
 print F "#!/bin/sh\n";
 print F "\n";
@@ -255,20 +258,11 @@ print F "if [ x\$jobid = x ]; then\n";
 print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command line.\n";
 print F "  exit 1\n";
 print F "fi\n";
-print F "jobp=`cat $genomedir/create.dat | head -\$jobid | tail -1`\n";
+print F "jobp=`cat $genomedir/create.dat | head -n \$jobid | tail -n 1`\n";
 print F "\n";
 print F "seg=`echo \$jobp | awk '{ print \$1 }'`\n";
 print F "beg=`echo \$jobp | awk '{ print \$2 }'`\n";
 print F "end=`echo \$jobp | awk '{ print \$3 }'`\n";
-print F "\n";
-print F "if [ ! -e \"$genomedir/genome.seqStore.sequence\" ] ; then\n";
-print F "  echo \"Didn't find the seqStore!\"\n";
-print F "  exit 1\n";
-print F "fi\n";
-print F "\n";
-print F "ln -s \"$genomedir/genome.seqStore.blocks\"   \"$genomedir/seg\$seg.building.posDB.seqStore.blocks\"\n";
-print F "ln -s \"$genomedir/genome.seqStore.sequence\" \"$genomedir/seg\$seg.building.posDB.seqStore.sequence\"\n";
-print F "\n";
 print F "\n";
 print F "if [ ! -e \"$genomedir/seg\$seg.posDB\" ] ; then\n";
 print F "  $posdb \\\n";
@@ -277,22 +271,26 @@ print F "    -merbegin \$beg \\\n";
 print F "    -merend \$end \\\n";
 print F "    -sequence \"$genomedir/genome.seqStore\" \\\n";
 print F "    -output   \"$genomedir/seg\$seg.building.posDB\" \\\n";
+print F "    > \"$genomedir/seg\$seg.building.posDB.err\" 2>&1 \\\n";
+print F "  && \\\n";
+print F "  rm -f \"$genomedir/seg\$seg.building.posDB.err\" \\\n";
 print F "  && \\\n";
 print F "  mv \"$genomedir/seg\$seg.building.posDB\" \\\n";
 print F "     \"$genomedir/seg\$seg.posDB\"\n";
 print F "fi\n";
 print F "\n";
+print F "bat=`expr \$jobid - 1`\n";
 print F "\n";
-print F "$meryl \\\n";
-print F "  -countbatch `expr \$jobid - 1` \\\n";
-print F "  -v \\\n";
-print F "  -o \"$genomedir/genome\" \\\n";
-print F "|| \\\n";
-print F "rm -f \"$genomedir/genome.mcidx\" \"$genomedir/genome.mcdat\"\n";
-print F "\n";
-print F "\n";
-print F "rm -f \"$genomedir/seg\$seg.building.posDB.seqStore.blocks\"\n";
-print F "rm -f \"$genomedir/seg\$seg.building.posDB.seqStore.sequence\"\n";
+print F "if [ ! -e \"$genomedir/genome.batch\$bat.mcdat\" -o ! -e \"$genomedir/genome.mcdat\" ] ; then\n";
+print F "  $meryl \\\n";
+print F "    -countbatch \$bat \\\n";
+print F "    -o \"$genomedir/genome\" \\\n";
+print F "  || \\\n";
+print F "  rm -f \"$genomedir/genome.batch\$bat.mcidx\" \\\n";
+print F "        \"$genomedir/genome.batch\$bat.mcdat\" \\\n";
+print F "        \"$genomedir/genome.mcdat\" \\\n";
+print F "        \"$genomedir/genome.mcdat\"\n";
+print F "fi\n";
 close(F);
 
 
@@ -302,11 +300,21 @@ open(F, "> $genomedir/meryl.sh");
 print F "#!/bin/sh\n";
 print F "\n";
 print F "if [ ! -e \"$genomedir/genome.mcidx\" ] ; then\n";
-print F "  $meryl -mergebatch -o \"$genomedir/genome\"\n";
+print F "  $meryl \\\n";
+print F "    -mergebatch \\\n";
+print F "    -o \"$genomedir/genome\" \\\n";
+print F "  || \\\n";
+print F "  rm -f \"$genomedir/genome.mcidx\" \\\n";
+print F "        \"$genomedir/genome.mcdat\"\n";
 print F "fi\n";
+print F "\n";
 print F "if [ ! -e \"$genomedir/frequentMers-ge1000.fasta\" ] ; then\n";
-print F "  $meryl -Dt -n 1000 -s \"$genomedir/genome\" \\\n";
-print F "    > \"$genomedir/frequentMers-ge1000.fasta\"\n";
+print F "  $meryl \\\n";
+print F "    -Dt -n 1000 \\\n";
+print F "    -s \"$genomedir/genome\" \\\n";
+print F "    > \"$genomedir/frequentMers-ge1000.fasta\" \\\n";
+print F "  || \\\n";
+print F "  rm -f \"$genomedir/frequentMers-ge1000.fasta\"\n";
 print F "fi\n";
 close(F);
 

@@ -187,6 +187,7 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-mersize") == 0) {
       mersize = strtou32bit(argv[++arg], 0L);
+
     } else if (strcmp(argv[arg], "-merskip") == 0) {
       merskip = strtou32bit(argv[++arg], 0L);
 
@@ -197,6 +198,7 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-merbegin") == 0) {
       merBegin = strtou64bit(argv[++arg], 0L);
+
     } else if (strcmp(argv[arg], "-merend") == 0) {
       merEnd = strtou64bit(argv[++arg], 0L);
 
@@ -207,7 +209,7 @@ main(int argc, char **argv) {
       outputFile = argv[++arg];
 
     } else if (strcmp(argv[arg], "-dump") == 0) {
-      positionDB *e = new positionDB(argv[argc-1], 0, 0, 0, false);
+      positionDB *e = new positionDB(argv[++arg], 0, 0, 0, false);
       e->printState(stdout);
       delete e;
       exit(0);
@@ -219,6 +221,7 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR: unknown arg '%s'\n", argv[arg]);
       exit(1);
     }
+
     arg++;
   }
 
@@ -231,7 +234,7 @@ main(int argc, char **argv) {
 
 
   merStream *MS = new merStream(new kMerBuilder(MERSIZE),
-                                new seqStream(argv[++arg]),
+                                new seqStream(sequenceFile),
                                 true, true);
 
   //  Approximate the number of mers in the sequences.

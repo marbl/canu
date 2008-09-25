@@ -128,26 +128,6 @@ sweatShop::setThreadData(u32bit t, void *x) {
 
 
 
-//  Add a new state to the head of the queue.  This is just gross.
-//
-#if 0
-void
-sweatShop::loaderAdd(sweatShopState *thisState) {
-  pthread_mutex_lock(&_stateMutex);
-  thisState->_next  = 0L;
-  if (_loaderP == 0L) {
-    _writerP      = thisState;
-    _workerP      = thisState;
-    _loaderP      = thisState;
-  } else {
-    _loaderP->_next = thisState;
-  }
-  _loaderP        = thisState;
-  pthread_mutex_unlock(&_stateMutex);
-  _numberLoaded++;
-}
-#endif
-
 //  Build a list of states to add in one swoop
 //
 void
@@ -169,11 +149,14 @@ sweatShop::loaderSave(sweatShopState *&tail, sweatShopState *&head, sweatShopSta
 //
 void
 sweatShop::loaderAppend(sweatShopState *&tail, sweatShopState *&head) {
+  int err;
 
   if ((tail == 0L) || (head == 0L))
     return;
 
-  pthread_mutex_lock(&_stateMutex);
+  err = pthread_mutex_lock(&_stateMutex);
+  if (err != 0)
+    fprintf(stderr, "sweatShop::loaderAppend()--  Failed to lock mutex (%d).  Fail.\n", err), exit(1);
 
   if (_loaderP == 0L) {
     _writerP      = tail;
@@ -184,7 +167,9 @@ sweatShop::loaderAppend(sweatShopState *&tail, sweatShopState *&head) {
   }
   _loaderP        = head;
 
-  pthread_mutex_unlock(&_stateMutex);
+  err = pthread_mutex_unlock(&_stateMutex);
+  if (err != 0)
+    fprintf(stderr, "sweatShop::loaderAppend()--  Failed to unlock mutex (%d).  Fail.\n", err), exit(1);
 
   tail = 0L;
   head = 0L;
@@ -214,7 +199,7 @@ sweatShop::loader(void) {
   while (moreToLoad) {
 
     //  Zzzzzzz....
-    while (_numberLoaded - _numberComputed > _loaderQueueSize)
+    while (_numberLoaded > _numberComputed + _loaderQueueSize)
       nanosleep(&naptime, 0L);
 
     sweatShopState  *thisState = new sweatShopState((*_userLoader)(_globalUserData));
@@ -247,17 +232,18 @@ void*
 sweatShop::worker(sweatShopWorker *workerData) {
 
   struct timespec   naptime;
-  naptime.tv_sec      = 2;
+  naptime.tv_sec      = 0;
   naptime.tv_nsec     = 50000000ULL;
 
   bool    moreToCompute = true;
+  int     err;
 
   while (moreToCompute) {
 
     //  Usually beacuse some worker is taking a long time, and the
     //  output queue isn't big enough.
     //
-    while (_numberComputed - _numberOutput > _writerQueueSize)
+    while (_numberOutput + _writerQueueSize < _numberComputed)
       nanosleep(&naptime, 0L);
 
     //fprintf(stderr, "Worker %0x16p starting.\n", workerData);
@@ -266,7 +252,9 @@ sweatShop::worker(sweatShopWorker *workerData) {
     //  queue (else we would fall off the end) UNLESS it really is the
     //  last one.
     //
-    pthread_mutex_lock(&_stateMutex);
+    err = pthread_mutex_lock(&_stateMutex);
+    if (err != 0)
+      fprintf(stderr, "sweatShop::worker()--  Failed to lock mutex (%d).  Fail.\n", err), exit(1);
 
     for (workerData->workerQueueLen = 0; ((workerData->workerQueueLen < _workerBatchSize) &&
                                           (_workerP) &&
@@ -278,7 +266,9 @@ sweatShop::worker(sweatShopWorker *workerData) {
     if (_workerP == 0L)
       moreToCompute = false;
 
-    pthread_mutex_unlock(&_stateMutex);
+    err = pthread_mutex_unlock(&_stateMutex);
+    if (err != 0)
+      fprintf(stderr, "sweatShop::worler()--  Failed to lock mutex (%d).  Fail.\n", err), exit(1);
 
     //  Execute
     //
@@ -327,8 +317,8 @@ sweatShop::writer(void) {
     } else if (_writerP->_next == 0L) {
       //  Wait for the input.
       struct timespec   naptime;
-      naptime.tv_sec      = 50000000;
-      naptime.tv_nsec     = 0ULL;
+      naptime.tv_sec      = 0;
+      naptime.tv_nsec     = 50000000ULL;
 
       //fprintf(stderr, "Writer waits for all threads at "u64bitFMT".\n", _numberOutput);
       nanosleep(&naptime, 0L);
@@ -414,7 +404,7 @@ sweatShop::status(void) {
             cpuPerSec, deltaCPU, _numberComputed, deltaOut);
   }
 
-  fprintf(stderr, "sweatShop::status exits.\n");
+  //fprintf(stderr, "sweatShop::status exits.\n");
   return(0L);
 }
 
@@ -430,27 +420,70 @@ sweatShop::run(void *user, bool beVerbose) {
   pthread_t           threadIDstats;
   struct sched_param  threadSchedParamDef;
   struct sched_param  threadSchedParamMax;
+  int                 err = 0;
 
   _globalUserData = user;
   _showStatus     = beVerbose;
 
-  pthread_mutex_init(&_stateMutex, NULL);
+  //  Configure everything ahead of time.
 
-  pthread_attr_init(&threadAttr);
-  pthread_attr_setscope(&threadAttr, PTHREAD_SCOPE_SYSTEM);
-  pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
-  pthread_attr_setschedpolicy(&threadAttr, SCHED_RR);
+  if (_workerBatchSize < 1)
+    _workerBatchSize = 1;
 
-  pthread_attr_getschedparam(&threadAttr, &threadSchedParamDef);
-  pthread_attr_getschedparam(&threadAttr, &threadSchedParamMax);
+  if (_workerData == 0L)
+    _workerData = new sweatShopWorker [_numberOfWorkers];
 
+  for (u32bit i=0; i<_numberOfWorkers; i++) {
+    _workerData[i].shop        = this;
+    _workerData[i].workerQueue = new sweatShopState * [_workerBatchSize];
+  }
+
+  //  Open the doors.
+
+  errno = 0;
+
+  err = pthread_mutex_init(&_stateMutex, NULL);
+  if (err)
+    fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (state mutex): %s.\n", strerror(err)), exit(1);
+
+  err = pthread_attr_init(&threadAttr);
+  if (err)
+    fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (attr init): %s.\n", strerror(err)), exit(1);
+
+  err = pthread_attr_setscope(&threadAttr, PTHREAD_SCOPE_SYSTEM);
+  if (err)
+    fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (set scope): %s.\n", strerror(err)), exit(1);
+
+  err = pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_JOINABLE);
+  if (err)
+    fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (joinable): %s.\n", strerror(err)), exit(1);
+
+  err = pthread_attr_setschedpolicy(&threadAttr, SCHED_RR);
+  if (err)
+    fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (sched policy): %s.\n", strerror(err)), exit(1);
+
+  err = pthread_attr_getschedparam(&threadAttr, &threadSchedParamDef);
+  if (err)
+    fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (get default param): %s.\n", strerror(err)), exit(1);
+
+  err = pthread_attr_getschedparam(&threadAttr, &threadSchedParamMax);
+  if (err)
+    fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (get max param): %s.\n", strerror(err)), exit(1);
+
+  errno = 0;
   threadSchedParamMax.sched_priority = sched_get_priority_max(SCHED_RR);
+  if (errno)
+    fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (set max param priority): %s.\n", strerror(errno)), exit(1);
 
   //  Fire off the loader
 
-  pthread_attr_setschedparam(&threadAttr, &threadSchedParamMax);
+  err = pthread_attr_setschedparam(&threadAttr, &threadSchedParamMax);
+  if (err)
+    fprintf(stderr, "sweatShop::run()--  Failed to set loader priority: %s.\n", strerror(err)), exit(1);
 
-  pthread_create(&threadIDloader, &threadAttr, _sweatshop_loaderThread, this);
+  err = pthread_create(&threadIDloader, &threadAttr, _sweatshop_loaderThread, this);
+  if (err)
+    fprintf(stderr, "sweatShop::run()--  Failed to launch loader thread: %s.\n", strerror(err)), exit(1);
 
   //  Wait for it to actually load something (otherwise all the
   //  workers immediately go home)
@@ -464,36 +497,49 @@ sweatShop::run(void *user, bool beVerbose) {
 
   //  Start the statistics and writer
 
-  pthread_attr_setschedparam(&threadAttr, &threadSchedParamMax);
+  err = pthread_attr_setschedparam(&threadAttr, &threadSchedParamMax);
+  if (err)
+    fprintf(stderr, "sweatShop::run()--  Failed to set status and writer priority: %s.\n", strerror(err)), exit(1);
 
-  pthread_create(&threadIDstats,  &threadAttr, _sweatshop_statusThread, this);
-  pthread_create(&threadIDwriter, &threadAttr, _sweatshop_writerThread, this);
+  err = pthread_create(&threadIDstats,  &threadAttr, _sweatshop_statusThread, this);
+  if (err)
+    fprintf(stderr, "sweatShop::run()--  Failed to launch status thread: %s.\n", strerror(err)), exit(1);
+
+  err = pthread_create(&threadIDwriter, &threadAttr, _sweatshop_writerThread, this);
+  if (err)
+    fprintf(stderr, "sweatShop::run()--  Failed to launch writer thread: %s.\n", strerror(err)), exit(1);
 
   //  And some labor
 
-  if (_workerBatchSize < 1)
-    _workerBatchSize = 1;
-
-  if (_workerData == 0L)
-    _workerData = new sweatShopWorker [_numberOfWorkers];
-
-  pthread_attr_setschedparam(&threadAttr, &threadSchedParamDef);
+  err = pthread_attr_setschedparam(&threadAttr, &threadSchedParamDef);
+  if (err)
+    fprintf(stderr, "sweatShop::run()--  Failed to set worker priority: %s.\n", strerror(err)), exit(1);
 
   for (u32bit i=0; i<_numberOfWorkers; i++) {
-    _workerData[i].shop        = this;
-    _workerData[i].workerQueue = new sweatShopState * [_workerBatchSize];
-
-    pthread_create(&_workerData[i].threadID, &threadAttr, _sweatshop_workerThread, _workerData + i);
+    err = pthread_create(&_workerData[i].threadID, &threadAttr, _sweatshop_workerThread, _workerData + i);
+    if (err)
+      fprintf(stderr, "sweatShop::run()--  Failed to launch worker thread "u32bitFMT": %s.\n", i, strerror(err)), exit(1);
   }
 
   //  Now sit back and relax.
 
-  pthread_join(threadIDloader, 0L);
-  pthread_join(threadIDwriter, 0L);
-  pthread_join(threadIDstats,  0L);
+  err = pthread_join(threadIDloader, 0L);
+  if (err)
+    fprintf(stderr, "sweatShop::run()--  Failed to join loader thread: %s.\n", strerror(err)), exit(1);
 
-  for (u32bit i=0; i<_numberOfWorkers; i++)
-    pthread_join(_workerData[i].threadID, 0L);
+  err = pthread_join(threadIDwriter, 0L);
+  if (err)
+    fprintf(stderr, "sweatShop::run()--  Failed to join writer thread: %s.\n", strerror(err)), exit(1);
+
+  err = pthread_join(threadIDstats,  0L);
+  if (err)
+    fprintf(stderr, "sweatShop::run()--  Failed to join status thread: %s.\n", strerror(err)), exit(1);
+
+  for (u32bit i=0; i<_numberOfWorkers; i++) {
+    err = pthread_join(_workerData[i].threadID, 0L);
+    if (err)
+      fprintf(stderr, "sweatShop::run()--  Failed to join worker thread "u32bitFMT": %s.\n", i, strerror(err)), exit(1);
+  }
 
   //  Cleanup.
 

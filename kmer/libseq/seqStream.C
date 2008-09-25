@@ -14,7 +14,7 @@ seqStream::seqStream(const char *filename) {
   _bufferLen         = 0;
   _bufferPos         = 0;
   _bufferSep         = 0;
-  _buffer            = new char [_bufferMax];
+  _buffer            = new char [_bufferMax + 1];
 
   _idxLen            = _file->getNumberOfSequences();
   _idx               = new seqStreamIndex [_idxLen + 1];
