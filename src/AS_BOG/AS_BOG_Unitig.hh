@@ -54,11 +54,8 @@ struct Unitig{
 
   // Compute unitig based on given dovetails and containments
   void recomputeFragmentPositions(ContainerMap &, BestOverlapGraph*);
-  void computeFragmentPositions(FragmentInfo*, BestOverlapGraph*);
 
-  void shiftCoordinates(int);
   void reverseComplement();
-  void reverseComplement(int offset, BestOverlapGraph *);
 
   // Accessor methods
   float getAvgRho(FragmentInfo *fi);

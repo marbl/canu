@@ -72,106 +72,6 @@ DoveTailNode Unitig::getLastBackboneNode(iuid &prevId) {
 }
 
 
-void Unitig::computeFragmentPositions(FragmentInfo *fi, BestOverlapGraph* bog_ptr) {
-  if (dovetail_path_ptr == NULL || dovetail_path_ptr->empty())
-    return;
-  // we need to determine which orientation the first frag is in
-  // so we peek ahead to the 2nd frag to find out
-  DoveTailIter iter = dovetail_path_ptr->begin();
-  int frag_begin,fragPrevEnd,fragNextEnd;
-  frag_begin = fragPrevEnd = fragNextEnd = 0;
-  iuid first = iter->ident;
-  int frag_end = fi->fragmentLength(first);
-  assert(frag_end > 0);
-  fragPrevEnd = frag_end;
-  if(  dovetail_path_ptr->size() == 1) {
-    // still set singleton's coords
-    dovetail_path_ptr->front().position.bgn = frag_begin;
-    dovetail_path_ptr->front().position.end = frag_end;
-    return;
-  }
-  BestEdgeOverlap* bestEdge = bog_ptr->getBestEdgeOverlap(first, FIVE_PRIME );
-  BestEdgeOverlap* threeP = bog_ptr->getBestEdgeOverlap(first, THREE_PRIME );
-  fprintf(stderr,"1stFrag %d beg %d end %d\n",
-          first, frag_begin, frag_end );
-  iter++;
-  if (iter->ident == bestEdge->frag_b_id) {
-    dovetail_path_ptr->front().position.bgn = frag_end;
-    dovetail_path_ptr->front().position.end = frag_begin;
-    fprintf(stderr,"Go off 5' edge and get frag %d\n",iter->ident);
-  } else {
-    // doesn't handle contianed, only backbone
-    fprintf(stderr,"Go off 3' edge and get frag %d %d\n",iter->ident,threeP->frag_b_id);
-    assert( iter->ident == threeP->frag_b_id );
-    bestEdge = threeP;
-    dovetail_path_ptr->front().position.bgn = frag_begin;
-    dovetail_path_ptr->front().position.end = frag_end;
-  }
-  fprintf(stderr,"ahang %d bhang %d\n", bestEdge->ahang, bestEdge->bhang);
-  if ( bestEdge->ahang > 0 )
-    frag_begin = bestEdge->ahang;
-  else
-    frag_begin = -bestEdge->bhang;
-
-  fragment_end_type whichEnd = FIVE_PRIME; // the end to walk off for next frag
-  if (bestEdge->bend == FIVE_PRIME)
-    whichEnd = THREE_PRIME;
-
-  for (; iter != dovetail_path_ptr->end(); iter++ ) {
-    DoveTailNode* node = &*iter;
-    //DoveTailNode* nextNode = &*(iter+1);
-    bestEdge = bog_ptr->getBestEdgeOverlap( node->ident, whichEnd);
-    int currLen = fi->fragmentLength(node->ident);
-    assert(currLen > 0);
-    // The end of the fragment can be calulated as start + length
-    // or as end of previous frag + b_hang. They should be the same
-    // if there are no gaps, but with gaps the 2nd method should be better
-    frag_end = frag_begin + currLen;
-
-    fprintf(stderr,"Frag %d len %d beg %d end %d ahang %d bhang %d end %s bfrg %d bend %s\n",
-            node->ident, currLen, frag_begin, frag_end,
-            bestEdge->ahang, bestEdge->bhang, whichEnd == FIVE_PRIME ? "5'":"3'",
-            bestEdge->frag_b_id, bestEdge->bend == FIVE_PRIME ? "5'":"3'");
-
-    int end;
-    // pick the smallest end that's greater then the previous end
-    // this is critical for preserving the correct frag order after
-    // a reverse complement in the unitig merging code
-    if (frag_end < fragPrevEnd) {
-      end = fragNextEnd;
-    } else if (fragNextEnd < fragPrevEnd) {
-      end = frag_end;
-    } else {
-      end = fragNextEnd > frag_end ? frag_end : fragNextEnd;
-    }
-
-    if(whichEnd == FIVE_PRIME){
-      node->position.bgn = end;
-      node->position.end = frag_begin;
-    }else {
-      node->position.bgn = frag_begin;
-      node->position.end = end;
-    }
-    fragNextEnd = frag_end;
-    fragPrevEnd = end;
-
-    // Prep the start position of the next fragment
-    if (bestEdge->ahang < 0 && bestEdge->bhang < 0 ) {
-      fragNextEnd -= bestEdge->ahang ;
-      frag_begin  -= bestEdge->bhang ;
-    } else {
-      fragNextEnd += bestEdge->bhang ;
-      frag_begin  += bestEdge->ahang ;
-    }
-    if ( bestEdge->bend == FIVE_PRIME ) {
-      whichEnd = THREE_PRIME;
-    } else {
-      whichEnd = FIVE_PRIME;
-    }
-  }
-}
-
-
 void Unitig::addFrag( DoveTailNode node, int offset, bool report) {
 
   node.position.bgn += offset;
@@ -365,22 +265,6 @@ long Unitig::getNumRandomFrags(void){
   return(getNumFrags());
 }
 
-void Unitig::shiftCoordinates(int offset) {
-  //simple version
-  if (dovetail_path_ptr->empty()) {
-  } else {
-    //        fprintf(stderr,"shift unitig by %d 1st frg %d\n",
-    //                offset,dovetail_path_ptr->front().ident);
-  }
-  DoveTailIter iter = dovetail_path_ptr->begin();
-  for(; iter != dovetail_path_ptr->end(); iter++) {
-    iter->position.bgn += offset;
-    assert( iter->position.bgn >= 0);
-    iter->position.end += offset;
-    assert( iter->position.end >= 0);
-  }
-}
-
 void Unitig::reverseComplement() {
   int length = this->getLength();
   DoveTailNode first = dovetail_path_ptr->front();
@@ -397,75 +281,6 @@ void Unitig::reverseComplement() {
   last = dovetail_path_ptr->back();
 }
 
-void Unitig::reverseComplement(int offset, BestOverlapGraph *bog_ptr) {
-  iuid notUsed;
-  DoveTailNode last  = getLastBackboneNode(notUsed);
-  int lastEnd = last.position.end > last.position.bgn ?
-    last.position.end : last.position.bgn;
-  int prevBeg = 0;
-  DoveTailPath contains;
-  DoveTailPath *revP = new DoveTailPath;
-  DoveTailPath::reverse_iterator rend = dovetail_path_ptr->rend();
-  DoveTailPath::reverse_iterator addIter = dovetail_path_ptr->rbegin();
-  for(; addIter != rend; addIter++) {
-    addIter->position.bgn = lastEnd - addIter->position.bgn + offset;
-    assert( addIter->position.bgn >= 0);
-    addIter->position.end = lastEnd - addIter->position.end + offset;
-    assert( addIter->position.end >= 0);
-    if (addIter->contained != 0) {
-#ifdef NEW_UNITIGGER_INTERFACE
-      int tmp = addIter->ahang;
-      addIter->ahang = -addIter->bhang;
-      addIter->bhang = -tmp;
-#endif
-      contains.push_back( *addIter );
-    } else {
-#ifdef NEW_UNITIGGER_INTERFACE
-      int left = addIter->position.end < addIter->position.bgn ?
-        addIter->position.end : addIter->position.bgn;
-      assert( prevBeg <= left );
-      DoveTailPath::reverse_iterator prev = addIter+1;
-      while (prev != rend &&
-             prev->contained != 0) {
-        prev = prev+1;
-      }
-      if (prev == rend) {
-
-        // After reverse, need to switch to other edge
-        BestEdgeOverlap* other;
-        iuid id = addIter->ident;
-        if (addIter->position.bgn > addIter->position.end) {
-          other = bog_ptr->getBestEdgeOverlap( id, FIVE_PRIME );
-        } else {
-          other = bog_ptr->getBestEdgeOverlap( id, THREE_PRIME );
-        }
-        addIter->ident2 = other->frag_b_id;
-        if (other->ahang < 0 && other->bhang < 0 ) {
-          addIter->ahang = -other->bhang;
-          addIter->bhang = -other->ahang;
-        } else {
-          addIter->ahang = other->ahang;
-          addIter->bhang = other->bhang;
-        }
-      } else {
-        assert( prev->contained == 0 );
-        addIter->ident2 = prev->ident;
-        addIter->bhang = prev->ahang;
-        addIter->ahang = prev->bhang;
-      }
-#endif
-      revP->push_back( *addIter );
-      if (contains.size() > 0) {
-        revP->insert(revP->end(), contains.begin(), contains.end());
-        contains.clear();
-      }
-    }
-  }
-  delete dovetail_path_ptr;
-  dovetail_path_ptr = revP;
-}
-
-//
 // Recursively place all contains under this one into the FragmentPositionMap
 //
 // Compute assuming that containee is the same orientation as container
