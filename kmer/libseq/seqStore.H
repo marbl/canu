@@ -23,10 +23,13 @@
 
 struct seqStoreHeader {
   u64bit  _magic[2];
+  u32bit  _pad;
   u32bit  _numberOfSequences;
+  u64bit  _numberOfACGT;
+  u32bit  _numberOfBlocksACGT;
+  u32bit  _numberOfBlocksGAP;
   u32bit  _numberOfBlocks;
   u32bit  _namesLength;
-  u32bit  _pad;
 
   u64bit  _indexStart;
   u64bit  _blockStart;

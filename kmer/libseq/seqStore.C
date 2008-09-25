@@ -21,9 +21,6 @@ seqStore::seqStore(const char *filename) {
 
   fread(&_header,   sizeof(seqStoreHeader), 1, F);
 
-  fprintf(stderr, "seqStore::seqStore()--  idxStart="u64bitFMT" blkStart="u64bitFMT" namStart="u64bitFMT"\n",
-          _header._indexStart, _header._blockStart, _header._namesStart);
-
   _index = new seqStoreIndex [_header._numberOfSequences];
   _block = new seqStoreBlock [_header._numberOfBlocks];
   _names = new char          [_header._namesLength];
@@ -132,7 +129,7 @@ seqStore::getSequence(u32bit iid,
 
   if (iid >= _header._numberOfSequences) {
     fprintf(stderr, "seqStore::getSequence(full)--  iid "u32bitFMT" more than number of sequences "u32bitFMT"\n",
-      iid, _header._numberOfSequences);
+            iid, _header._numberOfSequences);
     return(false);
   }
 
@@ -198,7 +195,7 @@ seqStore::getSequence(u32bit iid,
 
   if (iid >= _header._numberOfSequences) {
     fprintf(stderr, "seqStore::getSequence(part)--  iid "u32bitFMT" more than number of sequences "u32bitFMT"\n",
-      iid, _header._numberOfSequences);
+            iid, _header._numberOfSequences);
     return(false);
   }
 
@@ -313,11 +310,15 @@ constructSeqStore(char *filename, seqCache *inputseq) {
   u32bit            NAMElen = 0;
   char             *NAME    = new char [NAMEmax];
 
+  u64bit            nACGT      = 0;
+  u32bit            nBlockACGT = 0;
+  u32bit            nBlockGAP  = 0;
+
   for (u32bit iid=0; iid<inputseq->getNumberOfSequences(); iid++) {
     seqInCore     *sic = inputseq->getSequenceInCore(iid);
     char          *seq = sic->sequence();
 
-    seqStoreBlock *b   = BLOK + BLOKlen;
+    seqStoreBlock  b;
 
     if (seq) {
       INDX[iid]._hdrPosition = NAMElen;
@@ -338,11 +339,11 @@ constructSeqStore(char *filename, seqCache *inputseq) {
 
       //fprintf(stderr, "name: '%s'\n", sic->header());
 
-      b->_isACGT = 0;
-      b->_iid    = sic->getIID();
-      b->_pos    = 0;
-      b->_len    = 0;
-      b->_bpf    = DATA->tell() / 2;
+      b._isACGT = 0;
+      b._iid    = sic->getIID();
+      b._pos    = 0;
+      b._len    = 0;
+      b._bpf    = DATA->tell() / 2;
 
       for (u32bit p=0; p<sic->sequenceLength(); p++) {
         u64bit   bits = letterToBits[seq[p]];
@@ -351,42 +352,57 @@ constructSeqStore(char *filename, seqCache *inputseq) {
 
           //  Letter is NOT ACGI, write out the last block if it was
           //  ACGT, then increment our length.
-          if (b->_isACGT == 1) {
-            if (b->_len > 0)
-              BLOK[BLOKlen++] = *b;
 
-            b->_isACGT = 0;
-            b->_iid    = sic->getIID();
-            b->_pos    = p;
-            b->_len    = 0;
-            b->_bpf    = DATA->tell() / 2;
+          if (b._isACGT == 1) {
+            if (b._len > 0) {
+              nBlockACGT++;
+              nACGT += b._len;
+              BLOK[BLOKlen++] = b;
+            }
+
+            b._isACGT = 0;
+            b._iid    = sic->getIID();
+            b._pos    = p;
+            b._len    = 0;
+            b._bpf    = DATA->tell() / 2;
           }
 
-          b->_len++;
+          b._len++;
 
         } else {
 
           //  Letter is ACGT.  Write out last block if it was a gap,
           //  then emit this letter.
-          if (b->_isACGT == 0) {
-            if (b->_len > 0)
-              BLOK[BLOKlen++] = *b;
 
-            b->_isACGT = 1;
-            b->_iid    = sic->getIID();
-            b->_pos    = p;
-            b->_len    = 0;
-            b->_bpf    = DATA->tell() / 2;
+          if (b._isACGT == 0) {
+            if (b._len > 0) {
+              nBlockGAP++;
+              BLOK[BLOKlen++] = b;
+            }
+
+            b._isACGT = 1;
+            b._iid    = sic->getIID();
+            b._pos    = p;
+            b._len    = 0;
+            b._bpf    = DATA->tell() / 2;
           }
 
-          b->_len++;
+          b._len++;
 
           DATA->putBits(bits, 2);
         }
       }
 
       //  Emit the last block
-      BLOK[BLOKlen++] = *b;
+
+      if (b._isACGT == 1) {
+        nBlockACGT++;
+        nACGT += b._len;
+      } else {
+        nBlockGAP++;
+      }
+
+      BLOK[BLOKlen++] = b;
     }
 
     delete seq;
@@ -407,15 +423,18 @@ constructSeqStore(char *filename, seqCache *inputseq) {
 
   delete DATA;
 
-  HEAD._magic[0]          = SEQSTORE_MAGICNUMBER1;
-  HEAD._magic[1]          = SEQSTORE_MAGICNUMBER2;
-  HEAD._numberOfSequences = inputseq->getNumberOfSequences();
-  HEAD._numberOfBlocks    = BLOKlen;
-  HEAD._namesLength       = NAMElen;
-  HEAD._pad               = u32bitZERO;
-  HEAD._indexStart        = u64bitZERO;
-  HEAD._blockStart        = u64bitZERO;
-  HEAD._namesStart        = u64bitZERO;
+  HEAD._magic[0]           = SEQSTORE_MAGICNUMBER1;
+  HEAD._magic[1]           = SEQSTORE_MAGICNUMBER2;
+  HEAD._pad                = u32bitZERO;
+  HEAD._numberOfSequences  = inputseq->getNumberOfSequences();
+  HEAD._numberOfACGT       = nACGT;
+  HEAD._numberOfBlocksACGT = nBlockACGT;
+  HEAD._numberOfBlocksGAP  = nBlockGAP;
+  HEAD._numberOfBlocks     = BLOKlen;
+  HEAD._namesLength        = NAMElen;
+  HEAD._indexStart         = u64bitZERO;
+  HEAD._blockStart         = u64bitZERO;
+  HEAD._namesStart         = u64bitZERO;
 
   errno = 0;
   FILE *F = fopen(filename, "r+");
@@ -444,13 +463,12 @@ constructSeqStore(char *filename, seqCache *inputseq) {
     fprintf(stderr, "constructSeqStore()--  Failed to write data to '%s': %s\n",
             filename, strerror(errno)), exit(1);
 
-  fprintf(stderr, "constructSeqStore()--  idxStart="u64bitFMT" blkStart="u64bitFMT" namStart="u64bitFMT"\n",
-          HEAD._indexStart, HEAD._blockStart, HEAD._namesStart);
-
   delete [] INDX;
   delete [] BLOK;
   delete [] NAME;
 
-  fprintf(stderr, "constructSeqStore()-- seqStore '%s' constructed.\n",
-          filename);
+  //  ESTmapper depends on this output.
+
+  fprintf(stderr, "constructSeqStore()-- seqStore '%s' constructed ("u32bitFMT" sequences, "u64bitFMT" ACGT letters, "u32bitFMT" ACGT blocks, "u32bitFMT" GAP blocks).\n",
+          filename, HEAD._numberOfSequences, HEAD._numberOfACGT, HEAD._numberOfBlocksACGT, HEAD._numberOfBlocksGAP);
 }

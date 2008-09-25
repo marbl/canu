@@ -8,14 +8,13 @@ LIBSIM4/    :=$(call MakePath,$/../libsim4/)
 
 $(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBKMER/} -I${LIBBIO/} -I${LIBSEQ/} -I${LIBSIM4/} -I${LIBUTL/})
 
-$/.CXX_SRCS  := $/mergeCounts.C $/mersInMerStreamFile.C $/terminate.C
-$/.CXX_EXES  := $/mergeCounts   $/mersInMerStreamFile   $/terminate
+$/.CXX_SRCS  := $/mergeCounts.C $/terminate.C
+$/.CXX_EXES  := $/mergeCounts   $/terminate
 
 $/mergeCounts:         $/mergeCounts.o
-$/mersInMerStreamFile: $/mersInMerStreamFile.o ${LIBKMER/}libkmer.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/terminate:           $/terminate.o           ${LIBSIM4/}libsim4.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $/.CLEAN      := $/*.o
-$/.REAL-CLEAN := $/mergeCounts $/mersInMerStreamFile $/terminate
+$/.REAL-CLEAN := $/mergeCounts $/terminate
 
-all:  $/mergeCounts $/mersInMerStreamFile $/terminate
+all:  $/mergeCounts $/terminate

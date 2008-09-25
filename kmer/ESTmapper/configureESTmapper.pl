@@ -2,38 +2,13 @@
 
 use strict;
 use FindBin;
+use Config;  #  for @signame
 use lib "$FindBin::Bin/util";
-#use scheduler;
-#use fasta;
-
-require "run.pl";
-
-
-#  configureESTmapper.pl
-#
-#  Builds tables, prepares the genome for ESTmapper.
-#
-#  What are we doing?
-#    -genome    some.fasta
-#
-#  Where?
-#    -genomedir some-directory
-#
-#  How will we run?  Exactly one of -memory and -segments should be specified.
-#    -mersize   k
-#    -merskip   s
-#    -memory    max memory per segment
-#    -segments  number of segments
-#
-#  Where will we compute what we need to compute?
-#    -sge       sge-options, e.g., "-pe thread 2", accounting info, etc.
-#    -local
 
 my $exechome  = "$FindBin::Bin";
 my $leaff     = "$exechome/leaff";
 my $posdb     = "$exechome/positionDB";
 my $meryl     = "$exechome/meryl";
-my $mimsf     = "$exechome/mersInMerStreamFile";
 
 my $genome    = undef;
 my $genomedir = undef;
@@ -45,12 +20,77 @@ my $local     = 1;
 my $sge       = undef;
 my $sgename   = "EMconfig";
 
+
+################################################################################
+#
+#  Utility to run a command and check the exit status (sadly, duplicated
+#  in configureESTmapper.pl).
+#
+################################################################################
+
+
+sub runCommand {
+    my $cmd = shift @_;
+
+    print STDERR "RUNNING------------------\n";
+    print STDERR "$cmd\n";
+    print STDERR "-------------------------\n";
+
+    my $rc = 0xffff & system($cmd);
+
+    #  Pretty much copied from Programming Perl page 230
+
+    return(0) if ($rc == 0);
+
+    #  Bunch of busy work to get the names of signals.  Is it really worth it?!
+    #
+    my @signame;
+    if (defined($Config{sig_name})) {
+        my $i = 0;
+        foreach my $n (split('\s+', $Config{sig_name})) {
+            $signame[$i] = $n;
+            $i++;
+        }
+    }
+
+    my $error = "ERROR: $cmd\n        failed with ";
+
+    if ($rc == 0xff00) {
+        $error .= "$!\n";
+    } elsif ($rc > 0x80) {
+        $rc >>= 8;
+        $error .= "exit status $rc\n";
+    } else {
+        if ($rc & 0x80) {
+            $rc &= ~0x80;
+            $error .= "coredump from ";
+        }
+        if (defined($signame[$rc])) {
+            $error .= "signal $signame[$rc]\n";
+        } else {
+            $error .= "signal $rc\n";
+        }
+    }
+
+    print STDERR $error;
+
+    return(1);
+}
+
+
+################################################################################
+#
+#  Main
+#
+################################################################################
+
+
 while (scalar(@ARGV)) {
     my $arg = shift @ARGV;
 
     if      ($arg eq "-genome") {
         $genome = shift @ARGV;
-    } elsif (($arg eq "-genomedir") || ($arg eq "-path")) {
+    } elsif ($arg eq "-genomedir") {
         $genomedir = shift @ARGV;
     } elsif ($arg eq "-mersize") {
         $mersize  = int(shift @ARGV);
@@ -78,7 +118,7 @@ while (scalar(@ARGV)) {
     }
 }
 if (!defined($genome) || !defined($genomedir)) {
-    print STDERR "usage: $0 -genome g.fasta -path /some/path [args]\n";
+    print STDERR "usage: $0 -genome g.fasta -genomedir /some/path [args]\n";
     print STDERR "  -genome g.fasta   the genome to map to\n";
     print STDERR "  -genomedir d      the directory to save the configuration in\n";
     print STDERR "\n";
@@ -89,6 +129,10 @@ if (!defined($genome) || !defined($genomedir)) {
     print STDERR "  -sge              compute the configuration on the grid; args are passed to qsub\n";
     print STDERR "  -sgename          sge job name (default 'EMconfig')\n";
     print STDERR "  -local            compute the configuration right now (the default)\n";
+    print STDERR "\n";
+    print STDERR "  This precomputes search tables for ESTmapper.\n";
+    print STDERR "  Both -genome and -genomedir must be specified.\n";
+    print STDERR "  One of -memory and -segments should be specified.\n";
     print STDERR "\n";
     print STDERR "Example:\n";
     print STDERR "  configureESTmapper.pl -genome B35LC.fasta -genomedir B35LC -memory 900 -sge \"-pe thread 2\"\n";
@@ -107,7 +151,7 @@ if ($genome !~ m/^\//) {
     $genome = "$cwd/$genome";
 }
 
-die "Can't find genome '$genome'\n"         if (! -e $genome);
+die "Can't find genome '$genome'\n"              if (! -e $genome);
 die "Can't find output directory '$genomedir'\n" if (! -d $genomedir);
 
 print STDERR "Configuring ESTmapper:\n";
@@ -117,30 +161,12 @@ print STDERR "  ${memory}MB\n" if (defined($memory));
 print STDERR "  $segments segments\n" if (defined($segments));
 
 symlink "${genome}",    "$genomedir/genome.fasta"    if ((! -f "$genomedir/genome.fasta"));
-symlink "${genome}idx", "$genomedir/genome.fastaidx" if ((! -f "$genomedir/genome.fastaidx") && (-f "${genome}idx"));
-
-if (! -f "$genomedir/genome.fastaidx") {
-    print STDERR "configureESTmapper-- Generating the genome index.\n";
-    if (runCommand("$leaff -F $genomedir/genome.fasta")) {
-        unlink "$genomedir/genome.fastaidx";
-        die "Failed.\n";
-    }
-}
-
-
-#  Build a seqStore so that we can run the positionDB builders in
-#  parallel...from here, we can guesstimate an optimal partitioning,
-#  though that will be impossible without actually contstructing every
-#  mer (consider spaced and/or compressed mers) and so we live with
-#  it.
-#
 
 print STDERR "configureESTmapper-- Initializing positionDB creation.\n";
 
-if ((! -e "$genomedir/genome.seqStore.blocks") ||
-    (! -e "$genomedir/genome.seqStore.sequence") ||
-    (! -e "$genomedir/genome.seqStore.out")) {
-    if (runCommand("$mimsf $genomedir/genome.fasta $genomedir/genome > $genomedir/genome.seqStore.out 2>&1")) {
+if (! -e "$genomedir/genome.seqStore") {
+    if (runCommand("$leaff -f $genomedir/genome.fasta --seqstore $genomedir/genome.seqStore $genomedir/genome.seqStore.out 2>&1")) {
+        unlink "$genomedir/genome.seqStore";
         die "Failed.\n";
     }
 }
@@ -151,14 +177,14 @@ my $segmentOverlap = 10000000;
 
 open(F, "< $genomedir/genome.seqStore.out") or die;
 while (<F>) {
-    if (m/^Found\s+(\d+)\s+ACGT/) {
+    if (m/\s+(\d+)\s+ACGT\s+letters/) {
         $acgtInFile = $1;
     }
 }
 close(F);
 
 print STDERR "Found $acgtInFile ACGT in the input.\n";
-die "No mers found?\n" if ($acgtInFile <= 0);
+die "No ACGT found?\n" if ($acgtInFile <= 0);
 
 #  XXX:  Magic Number!  12 bytes per base!
 
@@ -207,7 +233,7 @@ if (! -e "$genomedir/genome.merylArgs") {
     my $cmd;
     $cmd  = "$meryl";
     $cmd .= " -B -L 5 -f -m $mersize -segments $segId -configbatch";
-    $cmd .= " -s $genomedir/genome.fasta";
+    $cmd .= " -s $genomedir/genome.seqStore";
     $cmd .= " -o $genomedir/genome";
     $cmd .= " > $genomedir/meryl.config.out 2>&1";
     if (runCommand($cmd)) {
@@ -249,7 +275,7 @@ print F "  $posdb \\\n";
 print F "    -mersize $mersize \\\n";
 print F "    -merbegin \$beg \\\n";
 print F "    -merend \$end \\\n";
-print F "    -sequence \"$genomedir/genome.fasta\" \\\n";
+print F "    -sequence \"$genomedir/genome.seqStore\" \\\n";
 print F "    -output   \"$genomedir/seg\$seg.building.posDB\" \\\n";
 print F "  && \\\n";
 print F "  mv \"$genomedir/seg\$seg.building.posDB\" \\\n";

@@ -1,163 +1,87 @@
 #!/usr/local/bin/perl
-
-#                    Confidential -- Do Not Distribute
-#   Copyright (c) 2002 PE Corporation (NY) through the Celera Genomics Group
-#                           All Rights Reserved.
+#
+#  Functions for running multiple processes at the same time.
+#
 
 package scheduler;
 
 use strict;
 use POSIX "sys_wait_h";
 
-$| = 1;
-
 #  Called by "use scheduler;"
 sub import () {
 }
 
-
-######################################################################
-#
-#  Functions for running multiple processes at the same time.
-#
-my $numberOfProcesses       = 0;
-my $numberOfProcessesToWait = 0;
-my @processQueue;
-my @processesRunning;
-my $printProcessCommand = 0;
-my $printProcessStatus  = 0;
+my $numberOfProcesses = 0;
+my @processQueue      = ();
 
 sub schedulerSetNumberOfProcesses {
-    ($numberOfProcesses) = @_;
+    $numberOfProcesses = shift @_;
 }
 
-sub schedulerSetNumberOfProcessesToWaitFor {
-    ($numberOfProcessesToWait) = @_;
-}
-
-sub schedulerSetShowCommands {
-    ($printProcessCommand) = @_;
-}
-
-sub schedulerSetShowStatus {
-    ($printProcessStatus) = @_;
-}
-
-
-#  Submit a task to the scheduler
-#
 sub schedulerSubmit {
     chomp @_;
     push @processQueue, @_;
 }
 
 sub forkProcess {
-    my($process) = @_;
-    my($pid);
+    my $process = shift @_;
+    my $pid;
 
     #  From Programming Perl, page 167
-  FORK: {
-      if ($pid = fork) {
-          # Parent
-          #
-          return($pid);
-     } elsif (defined $pid) {
-         # Child
-         #
-         exec($process);
-      } elsif ($! =~ /No more processes/) {
-          # EAGIN, supposedly a recoverable fork error
-          sleep 1;
-          redo FORK;
-      } else {
-          die "Can't fork: $!\n";
-      }
-  }
-}
-
-sub reapProcess {
-    my($pid) = @_;
-
-    if (waitpid($pid, &WNOHANG) > 0) {
-        return(1);
+  FORK:
+    if ($pid = fork) {
+        return($pid);    #  Parent, returns child id
+    } elsif (defined $pid) {
+        exec($process);  #  Child, runs the process
+    } elsif ($! =~ /No more processes/) {
+        sleep 1;         # EAGIN, supposedly a recoverable fork error
+        redo FORK;
     } else {
-        return(0);
+        die "Can't fork: $!\n";
     }
-}
 
-sub schedulerRun {
-    my(@newProcesses);
-
-    #  Reap any processes that have finished
-    #
-    undef @newProcesses;
-    foreach my $i (@processesRunning) {
-        if (reapProcess($i) == 0) {
-            push @newProcesses, $i;
-        }
-    }
-    undef @processesRunning;
-    @processesRunning = @newProcesses;
-
-    #  Run processes in any available slots
-    #
-    while (((scalar @processesRunning) < $numberOfProcesses) &&
-           ((scalar @processQueue) > 0)) {
-        my $process = shift @processQueue;
-
-        if ($printProcessCommand) {
-            print "sched()-- starting '$process'";
-        }
-
-        push @processesRunning, forkProcess($process);
-
-        if ($printProcessStatus) {
-            my $remain = scalar(@processQueue);
-            my $prefix;
-
-            if ($printProcessCommand) {
-                $prefix = " -- ";
-            } else {
-                $prefix = "sched()-- ";
-            }
-
-            if ($remain == 0) {
-                print "${prefix}No jobs remain in the queue.\n";
-            } elsif ($remain == 1) {
-                print "${prefix}1 job remains in the queue.\n";
-            } else {
-                print "${prefix}$remain jobs remain in the queue.\n";
-            }
-        } elsif ($printProcessCommand) {
-            print "\n";
-        }
-    }
-}
-
-
-#  Wait for all processes in the scheduler to finish.
-#
-sub schedulerFinishStatusReport {
-    my ($remain) = @_;
-
+    die "scheduler::forkProcess()--  Shouldn't be here.\n";
 }
 
 sub schedulerFinish {
-    my $child;
+    my @processesRunning;
     my @newProcesses;
-    my $remain;
+    my $remain = scalar(@processQueue);
 
-    $remain = scalar @processQueue;
+    my $t = localtime();
+    my $d = time();
 
-    #  Run all submitted jobs
-    #
+    print STDERR "----------------------------------------START CONCURRENT $t\n";
+
     while ($remain > 0) {
-        schedulerRun();
 
-        $remain = scalar @processQueue;
+        #  Reap any processes that have finished
+
+        undef @newProcesses;
+        foreach my $i (@processesRunning) {
+            if (waitpid($i, &WNOHANG) > 0) {
+                push @newProcesses, $i;
+            }
+        }
+        undef @processesRunning;
+        @processesRunning = @newProcesses;
+
+        #  Run processes in any available slots
+
+        while ((scalar(@processesRunning) < $numberOfProcesses) &&
+               (scalar(@processQueue) > 0)) {
+            my $process = shift @processQueue;
+            print STDERR "$process\n";
+            push @processesRunning, forkProcess($process);
+        }
+
+        $remain = scalar(@processQueue);
+
+        #  If still stuff out there, wait for something to finish.
 
         if ($remain > 0) {
-            $child = waitpid -1, 0;
+            my $child = waitpid -1, 0;
 
             undef @newProcesses;
             foreach my $i (@processesRunning) {
@@ -168,32 +92,12 @@ sub schedulerFinish {
         }
     }
 
-    if ($printProcessStatus) {
-        print "sched()-- All jubs submitted.  Waiting for completion.\n";
-    }
-
-    #  Wait for them to finish, if requested
-    #
-    while ((scalar @processesRunning) > $numberOfProcessesToWait) {
-        if ($printProcessStatus) {
-            my $remain = scalar(@processesRunning);
-
-            if ($remain == 0) {
-                print "sched()-- No jobs running.\n";
-            } elsif ($remain == 1) {
-                print "sched()-- 1 job running.\n";
-            } else {
-                print "sched()-- $remain jobs running.\n";
-            }
-        }
-
+    while (scalar(@processesRunning) > 0) {
         waitpid(shift @processesRunning, 0);
     }
 
-    if ($printProcessStatus) {
-        print "sched()-- All done!\n";
-    }
+    $t = localtime();
+    print STDERR "----------------------------------------END CONCURRENT $t (", time() - $d, " seconds)\n";
 }
-
 
 1;
