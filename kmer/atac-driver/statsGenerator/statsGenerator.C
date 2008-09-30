@@ -52,11 +52,12 @@ public:
     for (u32bit i=0; i<maxSize / blockSize + 1; i++)
       _h[i] = 0;
     _eLen = 0;
-    _eMax = 100000;
+    _eMax = 10240;
     _e = new u32bit [_eMax];
   };
   ~histogram() {
     delete [] _h;
+    delete [] _e;
   };
 
   void       add(u64bit x) {
