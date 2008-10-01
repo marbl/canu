@@ -263,7 +263,7 @@ seqStream::fillBuffer(void) {
   }
 
   //  Read bytes from the _file, stuff them into the buffer.  Assumes
-  //  there is noting in the buffer to save.
+  //  there is nothing in the buffer to save.
 
   _bufferLen = 0;
   _bufferPos = 0;
@@ -280,15 +280,19 @@ seqStream::fillBuffer(void) {
                            _currentPos,
                            _currentPos + _bufferLen,
                            _buffer) == false)
-      fprintf(stderr, "seqStream::fillBuffer()-- Failed to get sequence?\n"), exit(1);
+      fprintf(stderr, "seqStream::fillBuffer()-- Failed to getSequence(part) #1 iid="u32bitFMT" bgn="u32bitFMT" end="u32bitFMT"\n",
+              _idx[_currentIdx]._iid, _currentPos, _currentPos + _bufferLen), exit(1);
 
     return;
   }
 
   //  We've finished a sequence.  Load the next.
 
-  _currentIdx++;
   _currentPos = 0;
+  _currentIdx++;
+
+  while ((_currentIdx < _idxLen) && (_idx[_currentIdx]._len == 0))
+    _currentIdx++;
 
 #ifdef DEBUG
   fprintf(stderr, "seqStream::fillBuffer()--  New Seq currentPos="u32bitFMT" len="u32bitFMT"\n", _currentPos, _idx[_currentIdx]._len);
@@ -322,7 +326,8 @@ seqStream::fillBuffer(void) {
                          _currentPos,
                          _currentPos + bl,
                          _buffer + _bufferLen) == false)
-    fprintf(stderr, "seqStream::fillBuffer()-- Failed to get sequence?\n"), exit(1);
+    fprintf(stderr, "seqStream::fillBuffer()-- Failed to getSequence(part) #2 iid="u32bitFMT" bgn="u32bitFMT" end="u32bitFMT"\n",
+            _idx[_currentIdx]._iid, _currentPos, _currentPos + bl), exit(1);
 
   _bufferLen += bl;
 
