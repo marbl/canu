@@ -882,12 +882,24 @@ fprintf(stderr,"Warning: deleting contained piece of local_overlap: a projection
     segtrace=AS_ALN_OKNAffine(aseg-1,alen,bseg-1,blen,&spnt,&epnt,segdiff);
 
     if(epnt!=0){
+
+      //  Find the next non deleted segment
+      int ll = i+1;
+
+      while (O->chain[ll].agap==0 &&
+             O->chain[ll].bgap==0 &&
+             O->chain[ll].piece.abpos == O->chain[ll].piece.aepos &&
+             O->chain[ll].piece.bbpos == O->chain[ll].piece.bepos)
+        ll++;
+
+      assert(ll <= O->num_pieces);
+
       if(epnt>0){ /* throwing away some of B segment */
-	O->chain[i+1].bgap+=epnt;
-	O->chain[i].piece.bepos-=epnt;
-	assert(O->chain[i].piece.bbpos<=O->chain[i].piece.bepos);
+        O->chain[ll].bgap+=epnt;
+        O->chain[i].piece.bepos-=epnt;
+        assert(O->chain[i].piece.bbpos<=O->chain[i].piece.bepos);
       } else {
-	O->chain[i+1].agap-=epnt;
+	O->chain[ll].agap-=epnt;
 	O->chain[i].piece.aepos+=epnt;
 	assert(O->chain[i].piece.abpos<=O->chain[i].piece.aepos);
       }

@@ -301,6 +301,7 @@ signed char *Pack_Alignment_AS(int *trace, int prefix)
               apos += AS_LONGEST_DELTA;
               bpos += AS_LONGEST_DELTA;
             }
+          assert(c-apos > 0);
           *spt++ = -(c-apos);
           bpos += c-apos;
           apos  = c-1;
@@ -311,6 +312,7 @@ signed char *Pack_Alignment_AS(int *trace, int prefix)
               apos += AS_LONGEST_DELTA;
               bpos += AS_LONGEST_DELTA;
             }
+          assert(c-bpos > 0);
           *spt++ = (c-bpos);
           apos += c-bpos;
           bpos  = c-1;
