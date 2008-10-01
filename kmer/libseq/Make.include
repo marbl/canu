@@ -4,7 +4,7 @@ LIBUTL/     :=$(call MakePath,$/../libutil/)
 LIBBIO/     :=$(call MakePath,$/../libbio/)
 LIBSEQ/     :=$(call MakePath,$/../libseq/)
 
-src    := $/seqFileBase.H \
+src    := $/seqFile.H \
           $/fastaFile.H   $/fastaFile.C \
           $/seqStore.H    $/seqStore.C \
           $/sffFile.H     $/sffFile.C \
