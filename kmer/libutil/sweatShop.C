@@ -418,6 +418,7 @@ sweatShop::run(void *user, bool beVerbose) {
   pthread_t           threadIDloader;
   pthread_t           threadIDwriter;
   pthread_t           threadIDstats;
+  int                 threadSchedPolicy = 0;
   struct sched_param  threadSchedParamDef;
   struct sched_param  threadSchedParamMax;
   int                 err = 0;
@@ -458,10 +459,6 @@ sweatShop::run(void *user, bool beVerbose) {
   if (err)
     fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (joinable): %s.\n", strerror(err)), exit(1);
 
-  err = pthread_attr_setschedpolicy(&threadAttr, SCHED_RR);
-  if (err)
-    fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (sched policy): %s.\n", strerror(err)), exit(1);
-
   err = pthread_attr_getschedparam(&threadAttr, &threadSchedParamDef);
   if (err)
     fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (get default param): %s.\n", strerror(err)), exit(1);
@@ -470,8 +467,18 @@ sweatShop::run(void *user, bool beVerbose) {
   if (err)
     fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (get max param): %s.\n", strerror(err)), exit(1);
 
+  //  SCHED_RR needs root privs to run on FreeBSD.
+  //
+  //err = pthread_attr_setschedpolicy(&threadAttr, SCHED_RR);
+  //if (err)
+  //  fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (sched policy): %s.\n", strerror(err)), exit(1);
+
+  err = pthread_attr_getschedpolicy(&threadAttr, &threadSchedPolicy);
+  if (err)
+    fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (sched policy): %s.\n", strerror(err)), exit(1);
+
   errno = 0;
-  threadSchedParamMax.sched_priority = sched_get_priority_max(SCHED_RR);
+  threadSchedParamMax.sched_priority = sched_get_priority_max(threadSchedPolicy);
   if (errno)
     fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (set max param priority): %s.\n", strerror(errno)), exit(1);
 
