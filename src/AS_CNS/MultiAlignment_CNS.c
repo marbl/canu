@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.197 2008-10-01 07:12:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.198 2008-10-01 10:21:29 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -4614,6 +4614,7 @@ ApplyAlignment(int32 afid,
         last_b_aligned = binsert;
       }
       ColumnAppend((GetColumn(columnStore,abead->column_index))->prev,bboffset+bpos);
+      abead = GetBead(beadStore,aindex[apos]);
       last_a_aligned = abead->prev;
       last_b_aligned = bboffset+bpos;
       bpos++;
