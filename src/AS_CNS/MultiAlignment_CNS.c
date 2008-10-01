@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.196 2008-09-25 05:40:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.197 2008-10-01 07:12:31 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -3758,57 +3758,6 @@ int InvertTrace(int alen, int blen, Overlap *O) {
   O->begpos = - O->endpos;
   O->endpos = - tmp;
   return 1;
-}
-
-int * UnpackTrace(int ahang, signed char *rdelta) {
-  int32 apos, bpos, idel, i, count, rdel;
-  int32 delta_pos=0;
-  static int32 delta[AS_READ_MAX_LEN];
-
-  apos = ahang;
-  bpos=0;
-  while ( apos < 0 ) {
-    apos++;bpos++;
-  }
-  if ( rdelta == NULL || rdelta[0] == 0 ) {
-    delta[0] = 0;
-    return delta;
-  } else {
-    for (idel=0;rdelta[idel]!=0;idel++) {
-      rdel = rdelta[idel];
-      if ( rdel == AS_LONG_DELTA_CODE ) {
-        apos+=AS_LONGEST_DELTA;
-        bpos+=AS_LONGEST_DELTA;
-      } else if ( rdel == AS_POLY_DELTA_CODE) {
-        idel++;
-        rdel = rdelta[idel];
-        count = (rdel > 0)?rdel:-rdel;
-        if ( rdel < 0 ) { // add gaps to a (neg. trace)
-          for (i=0;i<count;i++) {
-            delta[delta_pos++] = -apos;
-          }
-        } else {
-          for (i=0;i<count;i++) { // add gaps to a (pos. trace)
-            delta[delta_pos++] = bpos;
-          }
-        }
-      } else if ( rdel < 0 ) { // align |rdel-1| positions then gap a
-        for (i=0;i< -rdel - 1;i++) {
-          apos++;bpos++;
-        }
-        delta[delta_pos++] = -apos;
-        bpos++;
-      } else { // align |rdel-1| positions then gap b
-        for (i=0;i< rdel - 1;i++) {
-          apos++;bpos++;
-        }
-        delta[delta_pos++] = bpos;
-        apos++;
-      }
-    }
-  }
-  delta[delta_pos]=0;
-  return delta;
 }
 
 
