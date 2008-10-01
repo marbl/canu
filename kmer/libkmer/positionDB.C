@@ -118,6 +118,9 @@ positionDB::positionDB(merStream          *MS,
   if (2 * merSize + posnWidth + 1 < 64)
     sm = 2;
 
+  if (sm < 16)
+    sm = 16;
+
   if (sm > lg) {
     fprintf(stderr, "ERROR:  too many mers for this mersize!\n");
     fprintf(stderr, "        sm         = "u64bitFMT"\n", sm);
