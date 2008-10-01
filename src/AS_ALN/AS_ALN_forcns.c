@@ -177,7 +177,7 @@ Overlap *Local_Overlap_AS_forCNS(char *a, char *b,
     int fullLenA = strlen(a);
     int fullLenB = strlen(b);
     char c;
-    //printf("Trace (lens %d %d):",fullLenA,fullLenB);
+    //fprintf(stderr, "Trace (lens %d %d):",fullLenA,fullLenB);
     while(o.trace[i]!=0){
       c='*';
       if(o.trace[i]<-fullLenA){
@@ -192,10 +192,10 @@ Overlap *Local_Overlap_AS_forCNS(char *a, char *b,
 	c=' ';
 	o.trace[j++]=o.trace[i];
       }
-      //printf(" %c%d",c,o.trace[i]);
+      //fprintf(stderr, " %c%d",c,o.trace[i]);
       i++;
     }
-    //printf("\n");
+    //fprintf(stderr, "\n");
     o.trace[j]=0;
     o.begpos+=changeahang;
     o.endpos+=changebhang;

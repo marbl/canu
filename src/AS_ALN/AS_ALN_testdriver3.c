@@ -72,7 +72,7 @@ main(int argc, char *argv[])
     { GenPair(&(A.sequence),&(B.sequence));
       A.iaccession = A.eaccession = j+1;
       B.iaccession = B.eaccession = j+2;
-      printf("%4d\n",j);
+      fprintf(stderr, "%4d\n",j);
       O = DP_Compare_AS(&A,&B,-strlen(B.sequence),strlen(A.sequence),
                         0,.13,1e-6,40,AS_FIND_ALIGN,&where);
     }

@@ -357,8 +357,8 @@ static void AVLall(AVLnode *v, void (*handler)(Candidate *))
 #ifdef DEBUG_CLIST
 
 void CHANDLER(Candidate *c)
-{ printf(" (%d,%d,%d,%d)\n",c->start,c->base,c->best,c->segment);
-  fflush(stdout);
+{ fprintf(stderr, " (%d,%d,%d,%d)\n",c->start,c->base,c->best,c->segment);
+  fflush(stderr);
 }
 
 #endif
@@ -494,21 +494,21 @@ Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
 
 #ifdef DEBUG_DP
   { int e;
-    printf("\nEvent List:\n");
+    fprintf(stderr, "\nEvent List:\n");
     for (e = 0; e < 2*NumSegs; e++)
       { Local_Segment *s;
 
         s = EventList[e].item;
         if (EventList[e].isadd)
-          printf("  Add (%d,%d) -> (%d,%d)\n",
+          fprintf(stderr, "  Add (%d,%d) -> (%d,%d)\n",
                  s->abpos,s->bbpos,s->aepos,s->bepos);
         else
-          printf("  Del (%d,%d) -> (%d,%d)\n",
+          fprintf(stderr, "  Del (%d,%d) -> (%d,%d)\n",
                  s->abpos,s->bbpos,s->aepos,s->bepos);
       }
   }
 
-  printf("\nSeg: ^Pred(Start) = Score Segment(BP..EP)\n");
+  fprintf(stderr, "\nSeg: ^Pred(Start) = Score Segment(BP..EP)\n");
 #endif
 
   { int e;
@@ -525,15 +525,15 @@ Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
         /* Determine least gapped path to i'th segment */
 
 #ifdef DEBUG_CLIST
-        printf("\nElist:\nStart Base Best Segment\n");
+        fprintf(stderr, "\nElist:\nStart Base Best Segment\n");
         AVLall(elist,CHANDLER);
-        printf("\n");
-        printf("\nIlist:\nStart Base Best Segment\n");
+        fprintf(stderr, "\n");
+        fprintf(stderr, "\nIlist:\nStart Base Best Segment\n");
         AVLall(ilist,CHANDLER);
-        printf("\n");
-        printf("\nOlist:\nStart Base Best Segment\n");
+        fprintf(stderr, "\n");
+        fprintf(stderr, "\nOlist:\nStart Base Best Segment\n");
         AVLall(olist,CHANDLER);
-        printf("\n");
+        fprintf(stderr, "\n");
 #endif
 
         i = EventList[e].item - Segs;
@@ -619,7 +619,7 @@ Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
               Trace[i].start = i;
 
 #ifdef DEBUG_DP
-            printf("  %3d: ^%d(%d) = %d [%d,%d] .. [%d,%d]\n",
+            fprintf(stderr, "  %3d: ^%d(%d) = %d [%d,%d] .. [%d,%d]\n",
                    i,Trace[i].source,Trace[i].start,Trace[i].value,
                    Segs[i].abpos,Segs[i].bbpos,Segs[i].aepos,Segs[i].bepos);
 #endif
@@ -1145,7 +1145,7 @@ static void Print_Local_Overlap_Piece(FILE *file, char *A, char *B, Local_Segmen
 		 &spnt,
 		 MAX(10,blen/50));
 
-  PrintAlign(stdout,0,0,aseg,bseg,trace);
+  PrintAlign(stderr,0,0,aseg,bseg,trace);
 
 }
 

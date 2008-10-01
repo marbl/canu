@@ -223,9 +223,9 @@ void show_sequence(char *seq)
   len = strlen(seq);
   for (i = 0; i < len; i += 50)
     if (i+50 < len)
-      printf("%.50s\n",seq+i);
+      fprintf(stderr, "%.50s\n",seq+i);
     else
-      printf("%s\n",seq+i);
+      fprintf(stderr, "%s\n",seq+i);
 }
 
 int main(int argc, char *argv[])
@@ -324,16 +324,16 @@ int main(int argc, char *argv[])
 #ifdef INPUT
   { int i;
 
-    printf("\nThe Sequences %d:\n\n",K+1);
+    fprintf(stderr, "\nThe Sequences %d:\n\n",K+1);
     for (i = 0; i <= K; i++)
-      { printf("> %d\n",i+1);
+      { fprintf(stderr, "> %d\n",i+1);
         show_sequence(Seqs[i]);
       }
 
     if(file2!=NULL){
-      printf("\nThe OTHER Sequences %d:\n\n",K+1);
+      fprintf(stderr, "\nThe OTHER Sequences %d:\n\n",K+1);
       for (i = 0; i <= KB; i++)
-	{ printf("> %d\n",i+1);
+	{ fprintf(stderr, "> %d\n",i+1);
         show_sequence(Seqs[i]);
 	}
     }
@@ -354,7 +354,7 @@ int main(int argc, char *argv[])
     for (j = 0; j <= K; j++)
       for (i = (file2==NULL ? j+1 : 0); i <= (file2==NULL ? K : KB); i++)
         {
-	  //	  printf("\n\nComparing sequences %d and %d\n\n",j,i);
+	  //	  fprintf(stderr, "\n\nComparing sequences %d and %d\n\n",j,i);
 	  tlaps += 1;
           A.sequence = Seqs[j];
           A.iaccession = j+1;
@@ -364,7 +364,7 @@ int main(int argc, char *argv[])
           B.iaccession = i+1 + (file2!=NULL ? (K+1) : 0);
           B.eaccession = AS_UID_fromInteger(B.iaccession);
 
-	  //	  printf("\n\nForward comparison results:\n\n");
+	  //	  fprintf(stderr, "\n\nForward comparison results:\n\n");
 
 		  if ( !abndFromUser )
 			  abnd = strlen(A.sequence);
@@ -403,7 +403,7 @@ int main(int argc, char *argv[])
 
 	    if (O != NULL){
 	      olaps += 1;
-              Print_Overlap_AS(stdout,&A,&B,O);
+              Print_Overlap_AS(stderr,&A,&B,O);
 	      {
 		int alen,blen,del,sub,ins,affdel,affins,blockdel,blockins;
 		double errRate,errRateAffine;
@@ -418,17 +418,17 @@ int main(int argc, char *argv[])
 
 
 
-		printf("\n\nAlen %d, Blen %d, del %d, sub %d, ins %d\n"
+		fprintf(stderr, "\n\nAlen %d, Blen %d, del %d, sub %d, ins %d\n"
 		       " affdel %d, affins %d, blockdel %d, blockins %d\n",
 		       alen,blen,del,sub,ins,
 		       affdel,affins,blockdel,blockins);
-		printf("Simple mismatch rate %f\n",errRate);
-		printf("Affine mismatch rate %f\n",errRateAffine);
-		printf("dp_olap: %s %s %e\n",
+		fprintf(stderr, "Simple mismatch rate %f\n",errRate);
+		fprintf(stderr, "Affine mismatch rate %f\n",errRateAffine);
+		fprintf(stderr, "dp_olap: %s %s %e\n",
 		       Names[j],(file2==NULL ? Names[i] : NamesB[i]),errRate);
 
-		printf("Largest block mismatch %d\n",max_indel_AS_ALN_LOCOLAP_GLOBAL);
-		printf("local_olap: %s %s %e\n",
+		fprintf(stderr, "Largest block mismatch %d\n",max_indel_AS_ALN_LOCOLAP_GLOBAL);
+		fprintf(stderr, "local_olap: %s %s %e\n",
 		       Names[j],(file2==NULL ? Names[i] : NamesB[i]),errRateAffine);
 
 		if(printOlaps){
@@ -436,7 +436,7 @@ int main(int argc, char *argv[])
 		  int ahang,bhang;
 
 		  Compute_Olap_Version(&A,&B,O,&ahang,&bhang,&ori);
-		  printf("OLAP: %s %s %c %d %d %f %f Len= %d\n",
+		  fprintf(stderr, "OLAP: %s %s %c %d %d %f %f Len= %d\n",
 			 Names[j],(file2==NULL ? Names[i] : NamesB[i]),ori,ahang,bhang,errRate,errRateAffine, (alen < blen ) ? alen : blen);
 		}
 

@@ -85,7 +85,7 @@ static int *get_trace(const char *aseq, const char *bseq,Local_Overlap *O,int pi
   alen=O->chain[piece].piece.aepos-O->chain[piece].piece.abpos;
   blen=O->chain[piece].piece.bepos-O->chain[piece].piece.bbpos;
 
-  //printf("get_trace: len(aseg)=%d, len(bseg)=%d, alen=%d, blen=%d\n",
+  //fprintf(stderr, "get_trace: len(aseg)=%d, len(bseg)=%d, alen=%d, blen=%d\n",
   //       strlen(aseg),strlen(bseg), alen,blen);
 
   /* get trace for the segment from AS_ALN_OKNAlign */
@@ -100,7 +100,7 @@ static int *get_trace(const char *aseq, const char *bseq,Local_Overlap *O,int pi
   epnt=0;
   tmptrace=AS_ALN_OKNAffine(aseg,alen,bseg,blen,&spnt,&epnt,segdiff);
 #ifdef DEBUG_FIX_OLAP
-  fprintf(stdout,"epnt %d\n",epnt);
+  fprintf(stderr,"epnt %d\n",epnt);
 #endif
 #else
   tmptrace=AS_ALN_OKNAlign(aseg,alen,bseg,blen,&spnt,segdiff);
@@ -109,10 +109,10 @@ static int *get_trace(const char *aseq, const char *bseq,Local_Overlap *O,int pi
 
 
 #ifdef DEBUG_FIX_OLAP
-  fprintf(stdout,"spnt %d\n",spnt);
+  fprintf(stderr,"spnt %d\n",spnt);
 
   {
-    fprintf(stdout,"Trace for segments of lengths %d %d\n",strlen(aseg+1),
+    fprintf(stderr,"Trace for segments of lengths %d %d\n",strlen(aseg+1),
 	    strlen(bseg+1));
 
     if(epnt!=0){
@@ -125,13 +125,13 @@ static int *get_trace(const char *aseq, const char *bseq,Local_Overlap *O,int pi
 
     if(spnt<0){
       int i;
-      fprintf(stdout,"(B sequence on top (2nd place in src); spnt=%d!!!\n",spnt);
+      fprintf(stderr,"(B sequence on top (2nd place in src); spnt=%d!!!\n",spnt);
       i=0;
       while(tmptrace[i]!=0){tmptrace[i++]*=-1;}
-      PrintAlign(stdout,-spnt,0,bseg+1,aseg+1,tmptrace);
+      PrintAlign(stderr,-spnt,0,bseg+1,aseg+1,tmptrace);
       i=0; while(tmptrace[i]!=0){tmptrace[i++]*=-1;}
     } else {
-      PrintAlign(stdout,spnt,0,aseg+1,bseg+1,tmptrace);
+      PrintAlign(stderr,spnt,0,aseg+1,bseg+1,tmptrace);
     }
   }
 #endif
@@ -239,10 +239,10 @@ static PAIRALIGN *construct_pair_align(const char *aseq,const char *bseq,Local_O
   bpos=0;
 
 #ifdef DEBUG_FIX_OLAP
-fprintf(stdout,"offsets:%d %d\n",offseta,offsetb);
-fprintf(stdout,"gaps:%d %d\n",O->chain[piece].agap,O->chain[piece].bgap);
-fprintf(stdout,"bpos:%d %d\n",O->chain[piece].piece.abpos,O->chain[piece].piece.bbpos);
-fprintf(stdout,"epos:%d %d\n",O->chain[piece].piece.aepos,O->chain[piece].piece.bepos);
+fprintf(stderr,"offsets:%d %d\n",offseta,offsetb);
+fprintf(stderr,"gaps:%d %d\n",O->chain[piece].agap,O->chain[piece].bgap);
+fprintf(stderr,"bpos:%d %d\n",O->chain[piece].piece.abpos,O->chain[piece].piece.bbpos);
+fprintf(stderr,"epos:%d %d\n",O->chain[piece].piece.aepos,O->chain[piece].piece.bepos);
 #endif
 
   while(trace[tpos]!=0){
@@ -260,7 +260,7 @@ fprintf(stdout,"epos:%d %d\n",O->chain[piece].piece.aepos,O->chain[piece].piece.
       bpos++;
     }
 #ifdef DEBUG_FIX_OLAP
-fprintf(stdout,"Handled trace position(%d):%d, offsets now %d, %d\n",
+fprintf(stderr,"Handled trace position(%d):%d, offsets now %d, %d\n",
 	tpos,trace[tpos],offseta,offsetb);
 #endif
     tpos++;
@@ -272,11 +272,11 @@ fprintf(stdout,"Handled trace position(%d):%d, offsets now %d, %d\n",
     safe_add_to_seg(&(bseg[which]),bpos,bseq[offsetb],&(blen[which]));
   }
 #ifdef DEBUG_FIX_OLAP
-fprintf(stdout,"Handled complete trace, offsets now %d, %d\n",offseta,offsetb);
+fprintf(stderr,"Handled complete trace, offsets now %d, %d\n",offseta,offsetb);
 
-fprintf(stdout,"offsets:%d %d\n",offseta,offsetb);
-fprintf(stdout,"bpos:%d %d\n",O->chain[piece].piece.abpos,O->chain[piece].piece.bbpos);
-fprintf(stdout,"epos:%d %d\n",O->chain[piece].piece.aepos,O->chain[piece].piece.bepos);
+fprintf(stderr,"offsets:%d %d\n",offseta,offsetb);
+fprintf(stderr,"bpos:%d %d\n",O->chain[piece].piece.abpos,O->chain[piece].piece.bbpos);
+fprintf(stderr,"epos:%d %d\n",O->chain[piece].piece.aepos,O->chain[piece].piece.bepos);
 #endif
   assert(offseta==O->chain[piece].piece.aepos);
   assert(offsetb==O->chain[piece].piece.bepos);
@@ -319,7 +319,7 @@ void fix_overlapping_pieces(char *aseq, char *bseq,
   assert(O->chain[piece0].piece.bepos<=O->chain[piece1].piece.bepos);
 
 #ifdef DEBUG_FIX_OLAP
-fprintf(stdout,"fixing gap(%d,%d) (%d,%d)---(%d,%d) vs. gap(%d,%d)  (%d,%d)---(%d,%d)\n",
+fprintf(stderr,"fixing gap(%d,%d) (%d,%d)---(%d,%d) vs. gap(%d,%d)  (%d,%d)---(%d,%d)\n",
 	O->chain[piece0].agap,	O->chain[piece0].bgap,
 	O->chain[piece0].piece.abpos,O->chain[piece0].piece.bbpos,
 	O->chain[piece0].piece.aepos,O->chain[piece0].piece.bepos,
@@ -334,7 +334,7 @@ fprintf(stdout,"fixing gap(%d,%d) (%d,%d)---(%d,%d) vs. gap(%d,%d)  (%d,%d)---(%
   pair_align2=get_align(aseq,bseq,O,piece1,1);
 
 #ifdef DEBUG_FIX_OLAP
-fprintf(stdout,"fixing gap(%d,%d) (%d,%d)---(%d,%d) vs. gap(%d,%d)  (%d,%d)---(%d,%d)\n",
+fprintf(stderr,"fixing gap(%d,%d) (%d,%d)---(%d,%d) vs. gap(%d,%d)  (%d,%d)---(%d,%d)\n",
 	O->chain[piece0].agap,	O->chain[piece0].bgap,
 	O->chain[piece0].piece.abpos,O->chain[piece0].piece.bbpos,
 	O->chain[piece0].piece.aepos,O->chain[piece0].piece.bepos,
@@ -353,7 +353,7 @@ fprintf(stdout,"fixing gap(%d,%d) (%d,%d)---(%d,%d) vs. gap(%d,%d)  (%d,%d)---(%
 	 O->chain[piece0].piece.bepos>O->chain[piece1].piece.bbpos)){
 
 #ifdef DEBUG_FIX_OLAP
-fprintf(stdout," ... overlap between segments disappeared in perfecting\n"
+fprintf(stderr," ... overlap between segments disappeared in perfecting\n"
 	"     segment alignments (pieces %d %d)\n",piece0,piece1);
 #endif
 
@@ -370,7 +370,7 @@ fprintf(stdout," ... overlap between segments disappeared in perfecting\n"
   if(!(O->chain[piece0].piece.aepos<=O->chain[piece1].piece.aepos)||
      !(O->chain[piece0].piece.bepos<=O->chain[piece1].piece.bepos)){
 #ifdef DEBUG_FIX_OLAP
-fprintf(stdout,"Fixing by deleting second segment since apparently contained (pieces %d %d)!\n",piece0,piece1);
+fprintf(stderr,"Fixing by deleting second segment since apparently contained (pieces %d %d)!\n",piece0,piece1);
 #endif
 
 
@@ -402,7 +402,7 @@ fprintf(stdout,"Fixing by deleting second segment since apparently contained (pi
      O->chain[piece0].piece.bbpos>O->chain[piece1].piece.bbpos){
 
 #ifdef DEBUG_FIX_OLAP
-fprintf(stdout,"Fixing by deleting first segment since apparently contained (pieces %d %d)!\n",piece0,piece1);
+fprintf(stderr,"Fixing by deleting first segment since apparently contained (pieces %d %d)!\n",piece0,piece1);
 #endif
 
 	  O->chain[piece0].agap=0;
@@ -452,14 +452,14 @@ fprintf(stdout,"Fixing by deleting first segment since apparently contained (pie
 	  pair_align1->bseg[into1],offseta1,offsetb1,into1);*/
   }
 #ifdef DEBUG_FIX_OLAP
-  fprintf(stdout,"Advanced to overlapping region; offseta1,offsetb1 = %d,%d\n",
+  fprintf(stderr,"Advanced to overlapping region; offseta1,offsetb1 = %d,%d\n",
 	  offseta1,offsetb1);
   if(into1>0){
-    fprintf(stdout,"Revised trace of piece 1:\n%c.%s\n%c.%s\n",
+    fprintf(stderr,"Revised trace of piece 1:\n%c.%s\n%c.%s\n",
 	    pair_align1->aseg[into1-1],pair_align1->aseg+into1,
 	    pair_align1->bseg[into1-1],pair_align1->bseg+into1);
   } else {
-    fprintf(stdout,"Piece 1 first column overlaps piece 2\n");
+    fprintf(stderr,"Piece 1 first column overlaps piece 2\n");
   }
 
 #endif
@@ -495,8 +495,8 @@ fprintf(stdout,"Fixing by deleting first segment since apparently contained (pie
 
 
 #ifdef DEBUG_FIX_OLAP
-fprintf(stdout,"init bestend1:%d %d\n",bestend1a,bestend1b);
-fprintf(stdout,"init bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
+fprintf(stderr,"init bestend1:%d %d\n",bestend1a,bestend1b);
+fprintf(stderr,"init bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
 #endif
 
   /* while there is potential overlap still to come ... */
@@ -504,19 +504,19 @@ fprintf(stdout,"init bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
   while(pair_align1->aseg[into1]!='\0'&&pair_align2->aseg[into2]!='\0'){
 
     #ifdef DEBUG_FIX_OLAP
-    fprintf(stdout,"Top of major fix loop into[%d,%d] (%d,%d)] [ (%d,%d)\n",
+    fprintf(stderr,"Top of major fix loop into[%d,%d] (%d,%d)] [ (%d,%d)\n",
 	    into1,into2,offseta1,offsetb1,offseta2,offsetb2);
     if(pair_align2->aseg[into2]=='\0'){
-      fprintf(stdout,">Aseq\n%s\nBseq\n%s\n",aseq+1,bseq+1);
-      fprintf(stdout,"pieces %d, %d:\n%s\n%s\n%s\n%s\n",
+      fprintf(stderr,">Aseq\n%s\nBseq\n%s\n",aseq+1,bseq+1);
+      fprintf(stderr,"pieces %d, %d:\n%s\n%s\n%s\n%s\n",
 	     piece0,piece1,
 	     pair_align1->aseg,
 	     pair_align1->bseg,
 	     pair_align2->aseg,
 	     pair_align2->bseg);
-      fprintf(stdout,"offsets1 (%d,%d) 2 (%d,%d); into (%d,%d)\n",
+      fprintf(stderr,"offsets1 (%d,%d) 2 (%d,%d); into (%d,%d)\n",
 	     offseta1,offsetb1,offseta2,offsetb2,into1,into2);
-      fprintf(stdout,"lineup:\n%s\n%s\n%s\n%s\n",
+      fprintf(stderr,"lineup:\n%s\n%s\n%s\n%s\n",
      	     pair_align1->aseg+into1,
 	     pair_align1->bseg+into1,
 	     pair_align2->aseg+into2,
@@ -554,7 +554,7 @@ fprintf(stdout,"init bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
 	break;
       }
 #ifdef DEBUG_FIX_OLAP
-      fprintf(stdout,"Once through minor fix loop1 into[%d,%d] (%d,%d)] [ (%d,%d)  -- skipped over (%c,%c)\n",
+      fprintf(stderr,"Once through minor fix loop1 into[%d,%d] (%d,%d)] [ (%d,%d)  -- skipped over (%c,%c)\n",
 	    into1,into2,offseta1,offsetb1,offseta2,offsetb2,
 	      pair_align2->aseg[into2-1],pair_align2->bseg[into2-1]);
 #endif
@@ -577,7 +577,7 @@ fprintf(stdout,"init bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
       bestinto1=into1;
 
 #ifdef DEBUG_FIX_OLAP
-      fprintf(stdout,"  accept new solution (%d,%d)] [ (%d,%d)  minerrs %d+%d\n",
+      fprintf(stderr,"  accept new solution (%d,%d)] [ (%d,%d)  minerrs %d+%d\n",
 	      bestend1a,bestend1b,bestbeg2a,bestbeg2b,errs1,errs2);
 #endif
 
@@ -601,7 +601,7 @@ fprintf(stdout,"init bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
       }
       errs1+= (pair_align1->aseg[into1]!=pair_align1->bseg[into1] ? 1 : 0);
 #ifdef DEBUG_FIX_OLAP
-      fprintf(stdout,"Once through minor fix loop2 into[%d,%d] (%d,%d)] [ (%d,%d)  -- now include (%c,%c)  errs %d/%d\n",
+      fprintf(stderr,"Once through minor fix loop2 into[%d,%d] (%d,%d)] [ (%d,%d)  -- now include (%c,%c)  errs %d/%d\n",
 	    into1,into2,offseta1,offsetb1,offseta2,offsetb2,
 	      pair_align1->aseg[into1],pair_align1->bseg[into1],
 	      errs1,errs2);
@@ -609,7 +609,7 @@ fprintf(stdout,"init bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
     }
 
 #ifdef DEBUG_FIX_OLAP
-      fprintf(stdout,"End of major fix loop into[%d,%d] (%d,%d)] [ (%d,%d)\n",
+      fprintf(stderr,"End of major fix loop into[%d,%d] (%d,%d)] [ (%d,%d)\n",
 	    into1,into2,bestend1a,bestend1b,bestbeg2a,bestbeg2b);
 #endif
   }
@@ -626,11 +626,11 @@ fprintf(stdout,"init bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
   O->chain[piece1].bgap=bestbeg2b-bestend1b;
 
 #ifdef DEBUG_FIX_OLAP
-  fprintf(stdout,"bestend1:%d %d\n",bestend1a,bestend1b);
-  fprintf(stdout,"bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
-  fprintf(stdout,"final gaps0:%d %d\n",O->chain[piece0].agap,O->chain[piece0].bgap);
-  fprintf(stdout,"final gaps1:%d %d\n",O->chain[piece1].agap,O->chain[piece1].bgap);
-  fflush(stdout);
+  fprintf(stderr,"bestend1:%d %d\n",bestend1a,bestend1b);
+  fprintf(stderr,"bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
+  fprintf(stderr,"final gaps0:%d %d\n",O->chain[piece0].agap,O->chain[piece0].bgap);
+  fprintf(stderr,"final gaps1:%d %d\n",O->chain[piece1].agap,O->chain[piece1].bgap);
+  fflush(stderr);
 #endif
 
   assert(O->chain[piece1].agap>=0);
@@ -642,7 +642,7 @@ fprintf(stdout,"init bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
     bestend1a -= ( pair_align1->aseg[bestinto1]!='-'  ? 1 : 0 );
     bestend1b -= ( pair_align1->bseg[bestinto1]!='-'  ? 1 : 0 );
 #ifdef DEBUG_FIX_OLAP
-    fprintf(stdout,"trimming off %c~%c to give bestends %d and %d\n",
+    fprintf(stderr,"trimming off %c~%c to give bestends %d and %d\n",
 	   pair_align1->aseg[bestinto1],
 	   pair_align1->bseg[bestinto1],
 	   bestend1a,bestend1b);
@@ -670,14 +670,14 @@ fprintf(stdout,"init bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
   assert(O->chain[piece1].piece.bbpos<=O->chain[piece1].piece.bepos);
 
 #ifdef DEBUG_FIX_OLAP
-  fprintf(stdout,"second segment:\n%s\n%s\n",
+  fprintf(stderr,"second segment:\n%s\n%s\n",
 	  pair_align2->aseg+bestinto2,
 	  pair_align2->bseg+bestinto2);
-  fprintf(stdout,"bestend1:%d %d\n",bestend1a,bestend1b);
-  fprintf(stdout,"bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
-  fprintf(stdout,"final gaps0:%d %d\n",O->chain[piece0].agap,O->chain[piece0].bgap);
-  fprintf(stdout,"final gaps1:%d %d\n",O->chain[piece1].agap,O->chain[piece1].bgap);
-  fflush(stdout);
+  fprintf(stderr,"bestend1:%d %d\n",bestend1a,bestend1b);
+  fprintf(stderr,"bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
+  fprintf(stderr,"final gaps0:%d %d\n",O->chain[piece0].agap,O->chain[piece0].bgap);
+  fprintf(stderr,"final gaps1:%d %d\n",O->chain[piece1].agap,O->chain[piece1].bgap);
+  fflush(stderr);
 #endif
 
 }

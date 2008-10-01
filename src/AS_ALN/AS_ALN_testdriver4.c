@@ -147,9 +147,9 @@ void show_sequence(char *seq)
   len = strlen(seq);
   for (i = 0; i < len; i += 50)
     if (i+50 < len)
-      printf("%.50s\n",seq+i);
+      fprintf(stderr, "%.50s\n",seq+i);
     else
-      printf("%s\n",seq+i);
+      fprintf(stderr, "%s\n",seq+i);
 }
 
 int main(int argc, char *argv[])
@@ -172,9 +172,9 @@ fprintf(stderr,"Read in %d sequences\n",K+1);
 #ifdef INPUT
   { int i;
 
-    printf("\nThe Sequences %d:\n\n",K+1);
+    fprintf(stderr, "\nThe Sequences %d:\n\n",K+1);
     for (i = 0; i <= K; i++)
-      { printf("> %d\n",i+1);
+      { fprintf(stderr, "> %d\n",i+1);
         show_sequence(Seqs[i]);
       }
   }
@@ -208,9 +208,9 @@ fprintf(stderr,"Read in %d sequences\n",K+1);
 				 AS_FIND_AFFINE_ALIGN,&where,my_ld_ratio);
 
 	    if (O != NULL){
-	      printf("Affine overlapper could find some overlap.\n");
-	      printf("Error rate about %f\n",O->quality);
-	      Print_Overlap_AS(stdout,&A,&B,O);
+	      fprintf(stderr, "Affine overlapper could find some overlap.\n");
+	      fprintf(stderr, "Error rate about %f\n",O->quality);
+	      Print_Overlap_AS(stderr,&A,&B,O);
 
 	      {
 		int del, sub, ins, affdel, affins, alen, blen, blockdel, blockins;
@@ -225,12 +225,12 @@ fprintf(stderr,"Read in %d sequences\n",K+1);
 		errRateAffine = (sub+affins+affdel)/
 		  (double)(alen+ins-(del-affdel+ins-affins));
 
-		printf("Alen %d, Blen %d, del %d, sub %d, ins %d\n"
+		fprintf(stderr, "Alen %d, Blen %d, del %d, sub %d, ins %d\n"
 		       " affdel %d, affins %d, blockdel %d, blockins %d\n",
 		       alen,blen,del,sub,ins,
 		       affdel,affins,blockdel,blockins);
-		printf("Simple mismatch rate %f\n",errRate);
-		printf("Affine mismatch rate %f\n",errRateAffine);
+		fprintf(stderr, "Simple mismatch rate %f\n",errRate);
+		fprintf(stderr, "Affine mismatch rate %f\n",errRateAffine);
 
 	      }
 
@@ -245,10 +245,10 @@ fprintf(stderr,"Read in %d sequences\n",K+1);
 		olaps++;
 #define PRINT_RESULTS
 #ifdef PRINT_RESULTS
-		printf("Overlap accepted.\n");
+		fprintf(stderr, "Overlap accepted.\n");
 
 	#ifndef CHECK_DP_COMPARE_CAN_FIND_OVERLAP
-		Print_Overlap_AS(stdout,&A,&B,O);
+		Print_Overlap_AS(stderr,&A,&B,O);
 	#endif
 
 		O->min_offset=O->max_offset=O->ahg;
@@ -264,14 +264,14 @@ fprintf(stderr,"Read in %d sequences\n",K+1);
 	      } else {
               #define PRINT_REJECTS
               #ifdef PRINT_REJECTS
-		printf("Overlap rejected by at least one affine overlap criterion.\n");
+		fprintf(stderr, "Overlap rejected by at least one affine overlap criterion.\n");
               #endif
 	      }
 
 #ifdef CHECK_DP_COMPARE_CAN_FIND_OVERLAP
 	    }
 	    //	    else {
-	    //	      printf("Basic affine overlapper COULDN'T find overlap:\n");
+	    //	      fprintf(stderr, "Basic affine overlapper COULDN'T find overlap:\n");
 	    //	    }
 
 #endif

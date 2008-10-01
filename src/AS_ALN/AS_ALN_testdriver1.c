@@ -223,9 +223,9 @@ void show_sequence(char *seq)
   len = strlen(seq);
   for (i = 0; i < len; i += 50)
     if (i+50 < len)
-      printf("%.50s\n",seq+i);
+      fprintf(stderr, "%.50s\n",seq+i);
     else
-      printf("%s\n",seq+i);
+      fprintf(stderr, "%s\n",seq+i);
 }
 
 int main(int argc, char *argv[])
@@ -324,17 +324,17 @@ int main(int argc, char *argv[])
 #ifdef INPUT
   { int i;
 
-    printf("\nThe Sequences %d:\n\n",K+1);
+    fprintf(stderr, "\nThe Sequences %d:\n\n",K+1);
     for (i = 0; i <= K; i++)
-      { printf("> %d\n",i+1);
+      { fprintf(stderr, "> %d\n",i+1);
         show_sequence(Seqs[i]);
       }
 
 
     if(file2!=NULL){
-      printf("\nThe OTHER Sequences %d:\n\n",K+1);
+      fprintf(stderr, "\nThe OTHER Sequences %d:\n\n",K+1);
       for (i = 0; i <= KB; i++)
-	{ printf("> %d\n",i+1);
+	{ fprintf(stderr, "> %d\n",i+1);
         show_sequence(Seqs[i]);
 	}
     }
@@ -372,8 +372,8 @@ int main(int argc, char *argv[])
 			    ori,err,1e-6,minlen,AS_FIND_ALIGN,&where);
           if (O != NULL){
             olaps += 1;
-	    if(!printOlapsOnly)Print_Overlap_AS(stdout,&A,&B,O);
-	    if(!printOlapsOnly)printf("Overlap quality: %f\n",O->quality);
+	    if(!printOlapsOnly)Print_Overlap_AS(stderr,&A,&B,O);
+	    if(!printOlapsOnly)fprintf(stderr, "Overlap quality: %f\n",O->quality);
 
 	    { int del, sub, ins, affdel, affins, alen, blen, blockdel, blockins;
 	      float errRate, errRateAffine;
@@ -387,13 +387,13 @@ int main(int argc, char *argv[])
 	      errRateAffine = (sub+affins+affdel)/
 		(double)(alen+ins-(del-affdel+ins-affins));
 
-	      if(!printOlapsOnly)printf("Alen %d, Blen %d, del %d, sub %d, ins %d\n"
+	      if(!printOlapsOnly)fprintf(stderr, "Alen %d, Blen %d, del %d, sub %d, ins %d\n"
 		     " affdel %d, affins %d, blockdel %d, blockins %d\n",
 		     alen,blen,del,sub,ins,
 		     affdel,affins,blockdel,blockins);
-	      if(!printOlapsOnly)printf("Simple mismatch rate %f\n",errRate);
-	      if(!printOlapsOnly)printf("Affine mismatch rate %f\n",errRateAffine);
-	      if(!printOlapsOnly)printf("dp_olap: %s %s %e\n",
+	      if(!printOlapsOnly)fprintf(stderr, "Simple mismatch rate %f\n",errRate);
+	      if(!printOlapsOnly)fprintf(stderr, "Affine mismatch rate %f\n",errRateAffine);
+	      if(!printOlapsOnly)fprintf(stderr, "dp_olap: %s %s %e\n",
 		       Names[j],(file2==NULL ? Names[i] : NamesB[i]),errRate);
 
 
@@ -402,7 +402,7 @@ int main(int argc, char *argv[])
 		int ahang,bhang;
 
 		Compute_Olap_Version(&A,&B,O,&ahang,&bhang,&ori);
-		printf("OLAP: %s %s %c %d %d %f %f Len= %d\n",
+		fprintf(stderr, "OLAP: %s %s %c %d %d %f %f Len= %d\n",
 		       Names[j],(file2==NULL ? Names[i] : NamesB[i]),ori,ahang,bhang,errRate,errRateAffine, (alen < blen ) ? alen : blen);
 	      }
 

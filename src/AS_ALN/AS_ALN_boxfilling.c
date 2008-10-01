@@ -236,10 +236,10 @@ OverlapMesg *BoxFill_AS(InternalFragMesg *a, InternalFragMesg *b,
 
   { int ahang, bhang;
 
-    //printf("Begpos for OverlapMesg == %d\n",O->begpos);
+    //fprintf(stderr, "Begpos for OverlapMesg == %d\n",O->begpos);
 
     ahang=O->begpos; /* N.B.: can be changed in AS_Local_Trace*/
-    //printf("ahang for OverlapMesg set to %d\n",ahang);
+    //fprintf(stderr, "ahang for OverlapMesg set to %d\n",ahang);
 
     bhang=O->endpos;
 

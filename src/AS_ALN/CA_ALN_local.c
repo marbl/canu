@@ -267,12 +267,12 @@ static void TableBuild(char *S, int Slen)
     static char Convert[] = { 'a', 'c', 'g', 't' };
 
     for (c = 0; c <= Kmask; c++)
-      { printf("Table[%d = ",c);
+      { fprintf(stderr, "Table[%d = ",c);
         for (i = kmerlen-1; i >= 0; i--)
-          printf("%c",Convert[c>>(i*2) & 0x3]);
-        printf("]\n");
+          fprintf(stderr, "%c",Convert[c>>(i*2) & 0x3]);
+        fprintf(stderr, "]\n");
         for (i = Table[c]; i < Table[c+1]; i++)
-          printf("  %d (%.*s)\n",Tuples[i],kmerlen,S+Tuples[i]);
+          fprintf(stderr, "  %d (%.*s)\n",Tuples[i],kmerlen,S+Tuples[i]);
       }
   }
 #endif
@@ -387,13 +387,13 @@ static HitRecord *Find_Hits(char *A, int Alen, char *B, int Blen, int *Hitlen)
   qsort(HitList,hits,sizeof(HitRecord),HSORT);
 
 #ifdef REPORT_SIZES
-  printf("\n  %9d %d-mers (%f%% of matrix)\n",sum,kmerlen,(100.*sum/Alen)/Blen);
-  printf("  %9d seed hits (%f%% of matrix)\n",hits,(100.*hits/Alen)/Blen);
+  fprintf(stderr, "\n  %9d %d-mers (%f%% of matrix)\n",sum,kmerlen,(100.*sum/Alen)/Blen);
+  fprintf(stderr, "  %9d seed hits (%f%% of matrix)\n",hits,(100.*hits/Alen)/Blen);
 #endif
 
 #ifdef TEST_DIAG
   for (i = 0; i < hits; i++)
-    printf("Diag %d [%d,%d]\n",
+    fprintf(stderr, "Diag %d [%d,%d]\n",
            HitList[i].diagonal,HitList[i].bstart,HitList[i].bfinish);
 #endif
 
@@ -459,19 +459,19 @@ static Local_Segment *TraceForwardPath(char *A, int Alen, char *B, int Blen,
         V = Base1;
 
 #ifdef TEST_DPREACH
-      printf("\n%d [%d,%d](%d,%d) x = %d\n        ",i,lo,hi,mxi,mxj,mxv);
+      fprintf(stderr, "\n%d [%d,%d](%d,%d) x = %d\n        ",i,lo,hi,mxi,mxj,mxv);
       for (j = lo; j <= hi; j++)
-        printf("  %c  ",B[j]);
-      printf("\n ");
+        fprintf(stderr, "  %c  ",B[j]);
+      fprintf(stderr, "\n ");
       for (j = lo; j <= hi; j++)
-        printf(" %4d",W[j]);
-      printf("\n%c",A[i]);
+        fprintf(stderr, " %4d",W[j]);
+      fprintf(stderr, "\n%c",A[i]);
 #endif
 
       v = W[lo];
       c = V[lo] = v - diffcost;
 #ifdef TEST_DPREACH
-      printf(" %4d",c);
+      fprintf(stderr, " %4d",c);
 #endif
       for (j = lo+1; j <= hi; j++)
         { int r, t;
@@ -491,10 +491,10 @@ static Local_Segment *TraceForwardPath(char *A, int Alen, char *B, int Blen,
             { mxv = c;
               mxi = i+1;
               mxj = j;
-	      //printf("reset mxv = %d at [%d,%d]\n",mxv,mxi,mxj);
+	      //fprintf(stderr, "reset mxv = %d at [%d,%d]\n",mxv,mxi,mxj);
             }
 #ifdef TEST_DPREACH
-          printf(" %4d",c);
+          fprintf(stderr, " %4d",c);
 #endif
         }
 
@@ -512,10 +512,10 @@ static Local_Segment *TraceForwardPath(char *A, int Alen, char *B, int Blen,
             { mxv = v;
               mxi = i+1;
               mxj = j;
-	      //printf("reset mxv = %d at [%d,%d]\n",mxv,mxi,mxj);
+	      //fprintf(stderr, "reset mxv = %d at [%d,%d]\n",mxv,mxi,mxj);
             }
 #ifdef TEST_DPREACH
-          printf(" %4d",v);
+          fprintf(stderr, " %4d",v);
 #endif
 
           for (j++; j <= Blen; j++)
@@ -523,12 +523,12 @@ static Local_Segment *TraceForwardPath(char *A, int Alen, char *B, int Blen,
               if (v < mxv - BLOCKCOST) break;
               V[j] = v;
 #ifdef TEST_DPREACH
-              printf(" %4d",v);
+              fprintf(stderr, " %4d",v);
 #endif
             }
         }
 #ifdef TEST_DPREACH
-      printf("\n");
+      fprintf(stderr, "\n");
 #endif
 
       hi = j-1;
@@ -549,7 +549,7 @@ static Local_Segment *TraceForwardPath(char *A, int Alen, char *B, int Blen,
     }
 
 #ifdef STAT_DPREACH
-   printf("  DP_Area = %ld  Peak is %d @ (%d,%d) in [%d,%d]\n",
+   fprintf(stderr, "  DP_Area = %ld  Peak is %d @ (%d,%d) in [%d,%d]\n",
           dparea,mxv,mxi,mxj,mxl,mxr);
 #endif
 
@@ -613,19 +613,19 @@ static Local_Segment *TraceReversePath(char *A, int Alen, char *B, int Blen,
         V = Base1;
 
 #ifdef TEST_DPREACH
-      printf("\n%d [%d,%d](%d,%d) x = %d\n        ",i,lo,hi,mxi,mxj,mxv);
+      fprintf(stderr, "\n%d [%d,%d](%d,%d) x = %d\n        ",i,lo,hi,mxi,mxj,mxv);
       for (j = hi; j >= lo; j--)
-        printf("  %c  ",B[j-1]);
-      printf("\n ");
+        fprintf(stderr, "  %c  ",B[j-1]);
+      fprintf(stderr, "\n ");
       for (j = hi; j >= lo; j--)
-        printf(" %4d",W[j]);
-      printf("\n%c",A[i]);
+        fprintf(stderr, " %4d",W[j]);
+      fprintf(stderr, "\n%c",A[i]);
 #endif
 
       v = W[hi];
       c = V[hi] = v - diffcost;
 #ifdef TEST_DPREACH
-      printf(" %4d",c);
+      fprintf(stderr, " %4d",c);
 #endif
       for (j = hi-1; j >= lo; j--)
         { int r, t;
@@ -645,10 +645,10 @@ static Local_Segment *TraceReversePath(char *A, int Alen, char *B, int Blen,
             { mxv = c;
               mxi = i;
               mxj = j;
-	      //printf("reset mxv = %d at [%d,%d]\n",mxv,mxi,mxj);
+	      //fprintf(stderr, "reset mxv = %d at [%d,%d]\n",mxv,mxi,mxj);
             }
 #ifdef TEST_DPREACH
-          printf(" %4d",c);
+          fprintf(stderr, " %4d",c);
 #endif
         }
 
@@ -666,10 +666,10 @@ static Local_Segment *TraceReversePath(char *A, int Alen, char *B, int Blen,
             { mxv = v;
               mxi = i;
               mxj = j;
-	      //printf("reset mxv = %d at [%d,%d]\n",mxv,mxi,mxj);
+	      //fprintf(stderr, "reset mxv = %d at [%d,%d]\n",mxv,mxi,mxj);
             }
 #ifdef TEST_DPREACH
-          printf(" %4d",v);
+          fprintf(stderr, " %4d",v);
 #endif
 
           for (j--; j >= 0; j--)
@@ -677,12 +677,12 @@ static Local_Segment *TraceReversePath(char *A, int Alen, char *B, int Blen,
               if (v < mxv - xfactor) break;
               V[j] = v;
 #ifdef TEST_DPREACH
-              printf(" %4d",v);
+              fprintf(stderr, " %4d",v);
 #endif
             }
         }
 #ifdef TEST_DPREACH
-      printf("\n");
+      fprintf(stderr, "\n");
 #endif
 
       lo = j+1;
@@ -705,7 +705,7 @@ static Local_Segment *TraceReversePath(char *A, int Alen, char *B, int Blen,
     }
 
 #ifdef STAT_DPREACH
-   printf("  DP_Area = %ld  Peak is %d @ (%d,%d) in [%d,%d]\n",
+   fprintf(stderr, "  DP_Area = %ld  Peak is %d @ (%d,%d) in [%d,%d]\n",
           dparea,mxv,mxi,mxj,mxl,mxr);
 #endif
 
@@ -736,7 +736,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
   for (i = 0; i < Hitlen; i++)
     { inserted = 0;
 #ifdef TEST_TRAP
-      printf("  Diag %d [%d,%d]\n",
+      fprintf(stderr, "  Diag %d [%d,%d]\n",
              list[i].diagonal,list[i].bstart,list[i].bfinish);
 #endif
       f = NULL;
@@ -752,7 +752,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
               b->next = traplist;
               traplist = b;
 #ifdef PRINT_TRAP
-	      printf("pre-trim trapezoid: [%d,%d]X[%d,%d]\n",
+	      fprintf(stderr, "pre-trim trapezoid: [%d,%d]X[%d,%d]\n",
 		     b->bot,b->top,b->lft,b->rgt);
 #endif
             }
@@ -824,11 +824,11 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
           f->lft = f->rgt = list[i].diagonal;
         }
 #ifdef TEST_TRAP
-      printf("  Blist:");
+      fprintf(stderr, "  Blist:");
       for (b = traporder; b != NULL; b = b->next)
-        printf(" [%d,%d]x[%d,%d]",
+        fprintf(stderr, " [%d,%d]x[%d,%d]",
                b->bot,b->top,b->lft,b->rgt);
-      printf("\n");
+      fprintf(stderr, "\n");
 #endif
     }
 
@@ -841,7 +841,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
     }
 
 #ifdef REPORT_SIZES
-  printf("\n  %9d trapezoids of area %d (%f%% of matrix)\n",
+  fprintf(stderr, "\n  %9d trapezoids of area %d (%f%% of matrix)\n",
          trapcount,traparea,(100.*trapcount/Alen)/Blen);
 #endif
 
@@ -849,7 +849,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
     int abot, atop;
 
 #ifdef TEST_TRAPTRIM
-    printf("B trimming:\n");
+    fprintf(stderr, "B trimming:\n");
 #endif
     for (b = traplist; b != NULL; b = b->next)
       { lag = (b->bot-MAXIGAP)+1;
@@ -858,7 +858,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
         if (lst > Blen) lst = Blen;
 
 #ifdef TEST_TRAPTRIM
-        printf("   [%d,%d]x[%d,%d] = %d\n",
+        fprintf(stderr, "   [%d,%d]x[%d,%d] = %d\n",
                b->bot,b->top,b->lft,b->rgt,b->top - b->bot + 1);
 #endif
 
@@ -882,7 +882,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
                     else
                       b->bot = i;
 #ifdef TEST_TRAPTRIM
-                    printf("  Cut trap B[%d,%d]\n",lag,i);
+                    fprintf(stderr, "  Cut trap B[%d,%d]\n",lag,i);
 #endif
                   }
                 lag = i+1;
@@ -893,7 +893,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
       }
 
 #ifdef TEST_TRAPTRIM
-    printf("A trimming:\n");
+    fprintf(stderr, "A trimming:\n");
 #endif
     tailend = NULL;
     for (b = traplist; b != NULL; b = b->next)
@@ -903,7 +903,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
         atop = b->top - b->lft;
 
 #ifdef TEST_TRAPTRIM
-        printf("   [%d,%d]x[%d,%d] = %d\n",
+        fprintf(stderr, "   [%d,%d]x[%d,%d] = %d\n",
                b->bot,b->top,b->lft,b->rgt,b->top - b->bot + 1);
 #endif
 
@@ -927,7 +927,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
                         free = t;
 
 #ifdef TEST_TRAPTRIM
-                        printf("     Clip to %d,%d\n",lclip,lag);
+                        fprintf(stderr, "     Clip to %d,%d\n",lclip,lag);
 #endif
                         { int x, m;
                           x = lclip + b->lft;
@@ -944,7 +944,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
                           if (b->rgt > x)
                             b->rgt = x;
 #ifdef TEST_TRAPTRIM
-                          printf("        [%d,%d]x[%d,%d] = %d\n",
+                          fprintf(stderr, "        [%d,%d]x[%d,%d] = %d\n",
                                  b->bot,b->top,b->lft,b->rgt,b->top-b->bot+1);
 #endif
                         }
@@ -962,7 +962,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
           lag = atop;
 
 #ifdef TEST_TRAPTRIM
-        printf("     Clip to %d,%d\n",lclip,lag);
+        fprintf(stderr, "     Clip to %d,%d\n",lclip,lag);
 #endif
         { int x, m;
           x = lclip + b->lft;
@@ -979,7 +979,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
           if (b->rgt > x)
             b->rgt = x;
 #ifdef TEST_TRAPTRIM
-          printf("        [%d,%d]x[%d,%d] = %d\n",
+          fprintf(stderr, "        [%d,%d]x[%d,%d] = %d\n",
                  b->bot,b->top,b->lft,b->rgt,b->top-b->bot+1);
 #endif
         }
@@ -994,14 +994,14 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
     }
 
 #ifdef REPORT_SIZES
-  printf("  %9d trimmed trap.s of area %d (%f%% of matrix)\n",
+  fprintf(stderr, "  %9d trimmed trap.s of area %d (%f%% of matrix)\n",
          trapcount,traparea,(100.*trapcount/Alen)/Blen);
 #endif
 
   *Traplen = trapcount;
 #ifdef PRINT_TRAP
   for(b=traplist;b!=NULL;b=b->next)
-    printf("Output trapezoid: [%d,%d]X[%d,%d]\n",b->bot,b->top,b->lft,b->rgt);
+    fprintf(stderr, "Output trapezoid: [%d,%d]X[%d,%d]\n",b->bot,b->top,b->lft,b->rgt);
 #endif
   return (traplist);
 }
@@ -1066,7 +1066,7 @@ static void Align_Recursion(char *A, int Alen, char *B, int Blen,
 #endif
 
 #ifdef REPORT_DPREACH
-  printf(" [%d,%d]x[%d,%d] = %d (Depth = %d)\n",
+  fprintf(stderr, " [%d,%d]x[%d,%d] = %d (Depth = %d)\n",
          b->bot,b->top,b->lft,b->rgt,b->top - b->bot + 1,Al_depth);
 #endif
 
@@ -1079,11 +1079,11 @@ static void Align_Recursion(char *A, int Alen, char *B, int Blen,
     do
       { x += 1;
 
-      //printf("Trying reverse pass\n");
+      //fprintf(stderr, "Trying reverse pass\n");
         hend = TraceReversePath(B,Blen,A,Alen,
                                 lend->bepos,lend->aepos,lend->aepos,
                                 mid+MAXIGAP,BLOCKCOST+2*x*diffcost);
-	//printf("End reverse pass\n");
+	//fprintf(stderr, "End reverse pass\n");
       }
     while (hend->bbpos > mid + x*MAXIGAP && hend->score < lend->score);
 
@@ -1133,14 +1133,14 @@ static void Align_Recursion(char *A, int Alen, char *B, int Blen,
     if(hend->bbpos > mid+x*MAXIGAP || hend->bepos==mid )
       {
 #ifdef WARN_MISSED_SEGMENT
-	printf("WARNING: might have missed a small local segment (possible segment with score < blockcost)!\n");
+	fprintf(stderr, "WARNING: might have missed a small local segment (possible segment with score < blockcost)!\n");
 #endif
 
 #define CHECK_FOR_MISSING_SEGMENT
 #ifdef  CHECK_FOR_MISSING_SEGMENT
 
 #ifdef WARN_MISSED_SEGMENT
-	printf("WARNING: will try to reverse direction of search!\n");
+	fprintf(stderr, "WARNING: will try to reverse direction of search!\n");
 #endif
 
 	/* Need to:
@@ -1294,13 +1294,13 @@ static void Align_Recursion(char *A, int Alen, char *B, int Blen,
           SegSols[NumSegs++] = *hend;
 
 #ifdef REPORT_DPREACH
-          printf("  Hit from (%d,%d) to (%d,%d) within [%d,%d] score %d\n",
+          fprintf(stderr, "  Hit from (%d,%d) to (%d,%d) within [%d,%d] score %d\n",
                  hend->abpos,hend->bbpos,hend->aepos,hend->bepos,
                  hend->ldiag,hend->hdiag,hend->score);
 #endif
       }else{ // SAK
 #ifdef REPORT_DPREACH
-          printf("  FAILED (%g > %g) Hit from (%d,%d) to (%d,%d) within [%d,%d] score %d\n",
+          fprintf(stderr, "  FAILED (%g > %g) Hit from (%d,%d) to (%d,%d) within [%d,%d] score %d\n",
 		 pcnt, MaxDiff,
                  hend->abpos,hend->bbpos,hend->aepos,hend->bepos,
                  hend->ldiag,hend->hdiag,hend->score);
@@ -1362,7 +1362,7 @@ static Local_Segment *Align_Trapezoids(char *A, int Alen, char *B, int Blen,
     if (! Covered[i])
       { b = Tarray[i];
         if (b->top - b->bot < kmerlen) continue;
-	//printf("Trying hit %d\n",i);
+	//fprintf(stderr, "Trying hit %d\n",i);
         Align_Recursion(A,Alen,B,Blen,b,i,comp,MinLen,MaxDiff,Traplen);
       }
 
@@ -1431,7 +1431,7 @@ static Local_Segment *Align_Trapezoids(char *A, int Alen, char *B, int Blen,
     }
 
 #ifdef REPORT_SIZES
-  printf("\n  %9d segments\n",NumSegs);
+  fprintf(stderr, "\n  %9d segments\n",NumSegs);
 #endif
 
   *Seglen = NumSegs;
@@ -1508,7 +1508,7 @@ Local_Segment *Find_Local_Segments
     TableBuild(A,Alen);
 
 #ifdef REPORT_SIZES
-  printf("\nFind_Local Stats for %d x %d comparison:\n",Alen,Blen);
+  fprintf(stderr, "\nFind_Local Stats for %d x %d comparison:\n",Alen,Blen);
 #endif
 
   { int start;
@@ -1517,7 +1517,7 @@ Local_Segment *Find_Local_Segments
     if (Action != LOCAL_REVR)
       {
 #ifdef REPORT_SIZES
-        printf("\n  Forward:\n");
+        fprintf(stderr, "\n  Forward:\n");
 #endif
         hits  = Find_Hits(A,Alen,B,Blen,&numhit);
         traps = Build_Trapezoids(A,Alen,B,Blen,hits,numhit,&numtrap);
@@ -1529,7 +1529,7 @@ Local_Segment *Find_Local_Segments
     if (Action != LOCAL_FORW)
       {
 #ifdef REPORT_SIZES
-        printf("\n  Reverse:\n");
+        fprintf(stderr, "\n  Reverse:\n");
 #endif
         hits  = Find_Hits(A,Alen,BrevC,Blen,&numhit);
         traps = Build_Trapezoids(A,Alen,BrevC,Blen,hits,numhit,&numtrap);

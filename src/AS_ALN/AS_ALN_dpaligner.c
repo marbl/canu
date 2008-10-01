@@ -101,11 +101,11 @@ static double BinomialProb(int n, int d, double e)
         for (k = LogMax+1; k <= max; k++)
           newp[k] = log((double) k) + newp[k-1];
 #ifdef THRESH_DEBUG
-        printf("\nLog Table Update\n");
+        fprintf(stderr, "\nLog Table Update\n");
         for (k = 0; k <= 9; k += 1)
-          printf("    %4d: %g (%g)\n",k,newp[k],exp(newp[k]));
+          fprintf(stderr, "    %4d: %g (%g)\n",k,newp[k],exp(newp[k]));
         for (k = 10; k <= max; k += 10)
-          printf("    %4d: %g\n",k,newp[k]);
+          fprintf(stderr, "    %4d: %g\n",k,newp[k]);
 #endif
       }
 
@@ -142,7 +142,7 @@ static double BinomialProb(int n, int d, double e)
   }
 
 #ifdef THRESH_DEBUG
-  printf("BP(%d,%d,%g) = %g\n",n,d,e,1.-Slast);
+  fprintf(stderr, "BP(%d,%d,%g) = %g\n",n,d,e,1.-Slast);
 #endif
   Nlast = n;
   Dlast = d;
@@ -199,9 +199,9 @@ static int Space_n_Tables(int max, double erate, double thresh)
                 newd[n] = d;
               }
 #ifdef THRESH_DEBUG
-            printf("\nThresh Table Extension\n");
+            fprintf(stderr, "\nThresh Table Extension\n");
             for (n = 1; n <= WorkLimit; n += 1)
-              printf("    %5d: %5d\n",n,newd[n]);
+              fprintf(stderr, "    %5d: %5d\n",n,newd[n]);
 #endif
           }
 
@@ -240,15 +240,15 @@ static int Space_n_Tables(int max, double erate, double thresh)
         { while (d <= n && BinomialProb(n,d,p) >= thresh)
 #endif
 	  {
-	    //	    fprintf(stdout,"BP of d=%d\n",d);
+	    //	    fprintf(stderr,"BP of d=%d\n",d);
             d += 1;
 	  }
           DistThresh[n] = d;
         }
 #ifdef THRESH_DEBUG
-      printf("\nNew Thresh Table\n");
+      fprintf(stderr, "\nNew Thresh Table\n");
       for (n = 1; n <= WorkLimit; n += 1)
-        printf("    %5d: %5d\n",n,DistThresh[n]);
+        fprintf(stderr, "    %5d: %5d\n",n,DistThresh[n]);
 #endif
     }
 
@@ -308,10 +308,10 @@ int *AS_ALN_OKNAlign(char *a, int alen, char *b, int blen, int *spnt, int diff)
 
 #ifdef WAVE_DEBUG
     { int k;
-      printf("\nLevel %2d:%*s",0,4*diff,"");
+      fprintf(stderr, "\nLevel %2d:%*s",0,4*diff,"");
       for (k = 0; k < 5; k++)
-        printf(" %3d",Wave[k]);
-      printf("\n");
+        fprintf(stderr, " %3d",Wave[k]);
+      fprintf(stderr, "\n");
     }
 #endif
   }
@@ -327,8 +327,8 @@ int *AS_ALN_OKNAlign(char *a, int alen, char *b, int blen, int *spnt, int diff)
       { Wave[m++] = infinity;
         Wave[m++] = infinity;
 #ifdef WAVE_DEBUG
-        printf("Level %2d:%*s",level,4*(diff-level),"");
-        printf(" %3d %3d",infinity,infinity);
+        fprintf(stderr, "Level %2d:%*s",level,4*(diff-level),"");
+        fprintf(stderr, " %3d %3d",infinity,infinity);
 #endif
         n += 1;
         for (k = -level; k <= level; k++)
@@ -353,7 +353,7 @@ int *AS_ALN_OKNAlign(char *a, int alen, char *b, int blen, int *spnt, int diff)
                 j -= 1;
               }
 #ifdef WAVE_DEBUG
-            printf(" %3d",j);
+            fprintf(stderr, " %3d",j);
 #endif
             Wave[m++] = j;
             n += 1;
@@ -362,15 +362,15 @@ int *AS_ALN_OKNAlign(char *a, int alen, char *b, int blen, int *spnt, int diff)
         Wave[m++] = infinity;
         n += 1;
 #ifdef WAVE_DEBUG
-        printf(" %3d %3d",infinity,infinity);
-        printf(" .. %d..%d\n",m-(2*(level+2)+1),m-1);
+        fprintf(stderr, " %3d %3d",infinity,infinity);
+        fprintf(stderr, " .. %d..%d\n",m-(2*(level+2)+1),m-1);
 #endif
       }
 
 madeit:
 
 #ifdef WAVE_DEBUG
-    printf(" %3d\n\n",0);
+    fprintf(stderr, " %3d\n\n",0);
 #endif
 
     fcell = n;
@@ -396,20 +396,20 @@ madeit:
         if (m < n)
           { TraceBuffer[t++] = - ((diag+k) + (j+1));
 #ifdef WAVE_DEBUG
-            printf("Delete b[%d] = %c\n",j+1,b[j+1]);
+            fprintf(stderr, "Delete b[%d] = %c\n",j+1,b[j+1]);
 #endif
             k -= 1;
           }
         else if (m > n)
           { TraceBuffer[t++] = j+1;
 #ifdef WAVE_DEBUG
-            printf("Insert a[%d] = %c\n",(diag+k) + (j+1),a[(diag+k) + (j+1)]);
+            fprintf(stderr, "Insert a[%d] = %c\n",(diag+k) + (j+1),a[(diag+k) + (j+1)]);
 #endif
             k += 1;
           }
 #ifdef WAVE_DEBUG
         else
-          { printf("Substitute b[%d] = %c to %c = a[%d]\n",
+          { fprintf(stderr, "Substitute b[%d] = %c to %c = a[%d]\n",
                    j+1,b[j+1],a[(diag+k) + j+1],(diag+k) + j+1);
           }
 #endif
@@ -549,43 +549,43 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
         }
 
 #ifdef AFFINE_DEBUG
-      { printf("%3d:  ",jcrd+1);
+      { fprintf(stderr, "%3d:  ",jcrd+1);
         for (k = diff; k >= -diff; k--)
           { if (C[k+bwide] >= infinity)
-              printf("     *");
+              fprintf(stderr, "     *");
             else
-              printf(" %5d",C[k+bwide]);
+              fprintf(stderr, " %5d",C[k+bwide]);
           }
-        printf("\n      ");
+        fprintf(stderr, "\n      ");
         for (k = diff; k >= -diff; k--)
           { if (I[k+bwide] >= infinity)
-              printf("     *");
+              fprintf(stderr, "     *");
             else
-              printf(" %5d",I[k+bwide]);
+              fprintf(stderr, " %5d",I[k+bwide]);
           }
-        printf("\n  %c     ",b[jcrd+1]);
+        fprintf(stderr, "\n  %c     ",b[jcrd+1]);
         for (k = diff+1; k >= -diff; k--)
           { m = i+k;
             if (m > alen || m <= 0)
-              printf(" %3d:*",m,a[m]);
+              fprintf(stderr, " %3d:*",m,a[m]);
             else
-              printf(" %3d:%c",m,a[m]);
+              fprintf(stderr, " %3d:%c",m,a[m]);
           }
-        printf("\n%3d:        ",jcrd);
+        fprintf(stderr, "\n%3d:        ",jcrd);
         for (k = diff; k >= -diff; k--)
           { if (C[k] >= infinity)
-              printf("     *");
+              fprintf(stderr, "     *");
             else
-              printf(" %5d",C[k]);
+              fprintf(stderr, " %5d",C[k]);
           }
-        printf("\n            ");
+        fprintf(stderr, "\n            ");
         for (k = diff; k >= -diff; k--)
           { if (I[k] >= infinity)
-              printf("     *");
+              fprintf(stderr, "     *");
             else
-              printf(" %5d",I[k]);
+              fprintf(stderr, " %5d",I[k]);
           }
-        printf("\n\n");
+        fprintf(stderr, "\n\n");
       }
 #endif
     }
@@ -602,7 +602,7 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
     }
 
 #ifdef AFFINE_DEBUG
-  printf("Best = %d  bdag = %d\n\n",best,bdag);
+  fprintf(stderr, "Best = %d  bdag = %d\n\n",best,bdag);
 #endif
 
 #define C_STATE 0
@@ -867,7 +867,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
   static int  slist[256], stop; /* slist[0..stop-1] == symbols in current
                                    segment of b being compared.           */
 #ifdef DP_DEBUG
-  printf("\nBoundary (%d,%d):\n",beg,end);
+  fprintf(stderr, "\nBoundary (%d,%d):\n",beg,end);
 #endif
 
   if (end > alen) end = alen;
@@ -930,17 +930,17 @@ static int Boundary(char *a, int alen, char *b, int blen,
 #ifdef DP_DEBUG
         { int i, k;
 
-          printf("\nSUBSEGMENT A(%d,%d) x B(%d,%d)\n",
+          fprintf(stderr, "\nSUBSEGMENT A(%d,%d) x B(%d,%d)\n",
                  lft,rgt,j+1,row);
-          printf("\n            ");
+          fprintf(stderr, "\n            ");
           for (i = j+1; i <= row; i++)
-            printf("  %c",b[i]);
-          printf("\n %3d:     ",lft);
+            fprintf(stderr, "  %c",b[i]);
+          fprintf(stderr, "\n %3d:     ",lft);
           k = lval;
           for (i = j+1; i <= row; i++)
-            printf(" %2d",k++);
-          printf(" %2d",k);
-          printf("\n");
+            fprintf(stderr, " %2d",k++);
+          fprintf(stderr, " %2d",k);
+          fprintf(stderr, "\n");
         }
 #endif
 
@@ -972,7 +972,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
           for (i = lft+1; i <= rgt; i++)
             { h  = HorzDelta[i];
 #ifdef DP_DEBUG
-              printf(" %3d: %2d %c",i,h,a[i]);
+              fprintf(stderr, " %3d: %2d %c",i,h,a[i]);
 #endif
               pc = (h > 0);
               mc = (h < 0);
@@ -1017,17 +1017,17 @@ static int Boundary(char *a, int alen, char *b, int blen,
                 p = P;
                 m = M;
                 d = rval - d;
-                printf(" %2d",d);
+                fprintf(stderr, " %2d",d);
                 for (k = j+1; k <= row; k++)
                   { if (p & 0x1)
                       d += 1;
                     else if (m & 0x1)
                       d -= 1;
-                    printf(" %2d",d);
+                    fprintf(stderr, " %2d",d);
                     m >>= 1;
                     p >>= 1;
                   }
-                printf("\n");
+                fprintf(stderr, "\n");
               }
 #endif
             }
@@ -1038,7 +1038,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
 
             p = bval;
 #ifdef BOUND_DEBUG
-            printf("\n  Boundary Segment: P-thresh = %d row %d\n",prob_thresh,row);
+            fprintf(stderr, "\n  Boundary Segment: P-thresh = %d row %d\n",prob_thresh,row);
 #endif
             for (i = j+1; i <= row; i++)
               { if (P & 0x1)
@@ -1048,7 +1048,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
                 M >>= 1;
                 P >>= 1;
 #ifdef BOUND_DEBUG
-                printf("  B%03d: %3d (%3d,%3d)",i,p,boundpos,boundval);
+                fprintf(stderr, "  B%03d: %3d (%3d,%3d)",i,p,boundpos,boundval);
 #endif
 
 
@@ -1066,7 +1066,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
 
 
 #ifdef BOUND_DEBUG
-		      printf(".");
+		      fprintf(stderr, ".");
 #endif
 
 		      // store best overlap that is too short
@@ -1076,7 +1076,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
 		    //if consistent with adding gaps to pad prev. local best
 		    if (i-lastlocalminpos==p-lastlocalminscore){
 #ifdef BOUND_DEBUG
-		      printf(",");
+		      fprintf(stderr, ",");
 #endif
 		    }else {
 		      // if new local best -- i.e. prev local best plus gaps is worse than here
@@ -1085,7 +1085,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
 			lastlocalminscore=p;
 			lastlft=lft;
 #ifdef BOUND_DEBUG
-			printf("~");
+			fprintf(stderr, "~");
 #endif
 
 		      } else {
@@ -1116,7 +1116,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
 			lastlocalminscore=p;
 			lastlft=lft;
 #ifdef BOUND_DEBUG
-			printf("^");
+			fprintf(stderr, "^");
 #endif
 
 		      }
@@ -1125,7 +1125,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
 		    // if better than best so far
 
 #ifdef BOUND_DEBUG
-		    printf(" [%d >?= %d (%f)] ",(int)((i-boundpos)*ld_ratio + boundval),p,p/(double)(i));
+		    fprintf(stderr, " [%d >?= %d (%f)] ",(int)((i-boundpos)*ld_ratio + boundval),p,p/(double)(i));
 #endif
 
 		    if ((i-boundpos)*ld_ratio + boundval >= p) {
@@ -1133,7 +1133,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
 		      // if equivalent to best_too_short plus external gaps
 		      if( i-preminpos == p-preminval){
 #ifdef BOUND_DEBUG
-			printf("=");
+			fprintf(stderr, "=");
 #endif
 
 #ifdef WARN_SHORT
@@ -1163,7 +1163,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
 #endif
 
 #ifdef BOUND_DEBUG
-			  printf("^");
+			  fprintf(stderr, "^");
 #endif
 
 			  boundpos=lastlocalminpos;
@@ -1173,16 +1173,16 @@ static int Boundary(char *a, int alen, char *b, int blen,
 			  boundpos = i;
 			  boundval = p;
 #ifdef BOUND_DEBUG
-			  printf("+\\");
+			  fprintf(stderr, "+\\");
 #endif
 			}
 		      }
 		    }
 #ifdef BOUND_DEBUG
 		  }
-		  printf("*");
+		  fprintf(stderr, "*");
 		}
-		printf("\n");
+		fprintf(stderr, "\n");
 #else
 	      }
 	  }
@@ -1200,24 +1200,24 @@ static int Boundary(char *a, int alen, char *b, int blen,
         /*   threshold limits on d-values             */
 
 #ifdef DP_DEBUG
-        printf("  Thresh = %d\n",prob_thresh);
+        fprintf(stderr, "  Thresh = %d\n",prob_thresh);
 #endif
         while (rgt >= lft)
           { if (rval < prob_thresh)
               break;
-	  //	  printf("rval %d still greater than prob_thresh %d for rgt %d\n",rval,prob_thresh,rgt);
+	  //	  fprintf(stderr, "rval %d still greater than prob_thresh %d for rgt %d\n",rval,prob_thresh,rgt);
             rval -= HorzDelta[rgt--];
           }
 
         if (rgt < lft) break;
 
         while (lval >= prob_thresh){
-	  //	  printf("lval %d still greater than prob_thresh %d for lft %d\n",lval,prob_thresh,lft);
+	  //	  fprintf(stderr, "lval %d still greater than prob_thresh %d for lft %d\n",lval,prob_thresh,lft);
           lval += HorzDelta[++lft];
 	}
 
 #ifdef DP_DEBUG
-        printf("  Range: (%d,%d)\n",lft,rgt);
+        fprintf(stderr, "  Range: (%d,%d)\n",lft,rgt);
 #endif
       }
 
@@ -1228,7 +1228,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
 
         v = boundval + (int)(((double)boundpos)*ld_ratio);
 #ifdef BOUND_DEBUG
-	printf("v = %d = %d + [ %d = %d * %f\n",
+	fprintf(stderr, "v = %d = %d + [ %d = %d * %f\n",
 	       v,boundval,(int)(((double)boundpos)*ld_ratio),
 	       boundpos,ld_ratio);
 #endif
@@ -1239,8 +1239,8 @@ static int Boundary(char *a, int alen, char *b, int blen,
 
 #ifdef BOUND_DEBUG
             if (i == rgt)
-              printf("\n  Boundary Segment: P-thresh = %d\n",prob_thresh);
-            printf("  A%03d: %3d (%3d,%3d)",i,p,boundpos,boundval);
+              fprintf(stderr, "\n  Boundary Segment: P-thresh = %d\n",prob_thresh);
+            fprintf(stderr, "  A%03d: %3d (%3d,%3d)",i,p,boundpos,boundval);
 #endif
 
             if (p < prob_thresh)
@@ -1248,11 +1248,11 @@ static int Boundary(char *a, int alen, char *b, int blen,
                   { boundpos = i-alen;
                     boundval = v = p;
 #ifdef BOUND_DEBUG
-                    printf("+/");
+                    fprintf(stderr, "+/");
                   }
-                printf("*");
+                fprintf(stderr, "*");
               }
-            printf("\n");
+            fprintf(stderr, "\n");
 #else
                   }
               }
@@ -1266,7 +1266,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
   *diff = boundval;
 
 #ifdef BOUND_DEBUG
-printf("Boundary returning (%d, %d)\n",boundval,boundpos);
+fprintf(stderr, "Boundary returning (%d, %d)\n",boundval,boundpos);
 #endif
 
   return (boundpos);
@@ -1478,7 +1478,7 @@ Overlap *DP_Compare(char *aseq, char *bseq,
       pos1 = blen;
 
 #ifdef BOUND_DEBUG
-    printf("\nA vs. B Critical Point (%d,%d)\n",pos1,dif1);
+    fprintf(stderr, "\nA vs. B Critical Point (%d,%d)\n",pos1,dif1);
 #endif
 
     /* Compute critical overlap finish pts. from b-boundary (if any) */
@@ -1492,7 +1492,7 @@ Overlap *DP_Compare(char *aseq, char *bseq,
       pos2 = -alen;
 
 #ifdef BOUND_DEBUG
-    printf("\nB vs. A Critical Point (%d,%d)\n",pos2,dif2);
+    fprintf(stderr, "\nB vs. A Critical Point (%d,%d)\n",pos2,dif2);
 #endif
   }
 
@@ -1625,26 +1625,26 @@ static double BPSuffixScore(char *a, int alen, char *b, int blen,
 #ifdef BP_TAILS
   { int i;
 
-    printf("\nTAIL SEGMENTS A(%d,%d) x B(%d,%d)\n",imax,alen,jmax,blen);
-    printf("           ");
+    fprintf(stderr, "\nTAIL SEGMENTS A(%d,%d) x B(%d,%d)\n",imax,alen,jmax,blen);
+    fprintf(stderr, "           ");
     for (i = imax+1; i <= alen; i++)
-      printf(" %5d",i);
-    printf("\n");
-    printf("           ");
+      fprintf(stderr, " %5d",i);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "           ");
     for (i = imax+1; i <= alen; i++)
-      printf("     %c",a[i]);
-    printf("\n");
+      fprintf(stderr, "     %c",a[i]);
+    fprintf(stderr, "\n");
 
-    printf("     :");
+    fprintf(stderr, "     :");
     for (i = imax; i <= rgt; i++)
       { if (i < lft)
-          printf("      ");
+          fprintf(stderr, "      ");
         if (dc[i] <= 0.)
-          printf(" -----");
+          fprintf(stderr, " -----");
         else
-          printf(" %5.2f",dc[i]);
+          fprintf(stderr, " %5.2f",dc[i]);
       }
-    printf("       >>> %d (%d,%d)\n",longest,lft,rgt);
+    fprintf(stderr, "       >>> %d (%d,%d)\n",longest,lft,rgt);
   }
 #endif
 
@@ -1714,16 +1714,16 @@ static double BPSuffixScore(char *a, int alen, char *b, int blen,
           }
 
 #ifdef BP_TAILS
-        printf("%3d %c:",j,b[j]);
+        fprintf(stderr, "%3d %c:",j,b[j]);
         for (i = imax; i <= rgt; i++)
           { if (i < lft)
-              printf("      ");
+              fprintf(stderr, "      ");
             else if (dc[i] <= 0.)
-              printf(" -----");
+              fprintf(stderr, " -----");
             else
-              printf(" %5.2f",dc[i]);
+              fprintf(stderr, " %5.2f",dc[i]);
           }
-        printf("       >>> %d",longest);
+        fprintf(stderr, "       >>> %d",longest);
 #endif
 
         /* Adjust boundaries of active region by removing the <= 0
@@ -1736,7 +1736,7 @@ static double BPSuffixScore(char *a, int alen, char *b, int blen,
           rgt -= 1;
 
 #ifdef BP_TAILS
-        printf(" (%d,%d)\n",lft,rgt);
+        fprintf(stderr, " (%d,%d)\n",lft,rgt);
 #endif
       }
 
@@ -1754,7 +1754,7 @@ static double BPSuffixScore(char *a, int alen, char *b, int blen,
             }
       }
 #ifdef BP_TAILS
-    printf("\nFinal pass = %d\n",longest);
+    fprintf(stderr, "\nFinal pass = %d\n",longest);
 #endif
   }
 

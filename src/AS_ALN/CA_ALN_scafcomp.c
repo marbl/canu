@@ -621,7 +621,7 @@ Segment *Find_All_Overlaps(Scaffold *AF, Scaffold *BF, Local_Pool *pool,
               *segs += 1;
 
 #ifdef DEBUG_LOCAL
-              Print_Local_Overlap(stdout,ovl,4);
+              Print_Local_Overlap(stderr,ovl,4);
 #endif
 
               ovl = Find_Local_Overlap(alen,blen,comp,1,

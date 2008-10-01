@@ -158,12 +158,12 @@ Scaffold_Overlap *Compare_Scaffolds(Scaffold_List *A, Scaffold_List *B);
 
 void Print_Scaffold_Overlaps(Scaffold_Overlap *SO);
 
-/* Produce a print out of the overlaps in SO on stdout. */
+/* Produce a print out of the overlaps in SO on stderr. */
 
 void Print_Anno_Info(Scaffold_Overlap *SO);
 
 /* Produce a print out of the anno info needed to
-   highlight overlaps in SO on stdout.               */
+   highlight overlaps in SO on stderr.               */
 
 void Free_Scaffold_Overlaps(Scaffold_Overlap *SO);
 

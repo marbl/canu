@@ -802,14 +802,14 @@ OverlapMesg *AS_ALN_affine_overlap(InternalFragMesg *a, InternalFragMesg *b,
     O->quality=errRateAffine;
 #define AFFINE_OVERLAP_DEBUG 0
     #if AFFINE_OVERLAP_DEBUG > 0
-      printf("Alen %d, Blen %d, del %d, sub %d, ins %d\n"
+      fprintf(stderr, "Alen %d, Blen %d, del %d, sub %d, ins %d\n"
 	     " affdel %d, affins %d, blockdel %d, blockins %d\n",
 	     alen,blen,del,sub,ins,
 	     affdel,affins,blockdel,blockins);
-      printf("Simple mismatch rate %f\n",errRate);
-      printf("Affine mismatch rate %f\n",errRateAffine);
+      fprintf(stderr, "Simple mismatch rate %f\n",errRate);
+      fprintf(stderr, "Affine mismatch rate %f\n",errRateAffine);
       #if AFFINE_OVERLAP_DEBUG > 1
-      Print_Overlap_AS(stdout,a,b,O);
+      Print_Overlap_AS(stderr,a,b,O);
       #endif
     #endif
 
@@ -821,13 +821,13 @@ OverlapMesg *AS_ALN_affine_overlap(InternalFragMesg *a, InternalFragMesg *b,
       }
 
     #if AFFINE_OVERLAP_DEBUG > 1
-    printf("Affine overlap found but failed quality tests\n");
+    fprintf(stderr, "Affine overlap found but failed quality tests\n");
     #endif
 
   }
 
 #if AFFINE_OVERLAP_DEBUG > 3
-  printf("No affine overlap found\n");
+  fprintf(stderr, "No affine overlap found\n");
 #endif
   return(NULL);
 
@@ -866,7 +866,7 @@ void AS_ALN_clean_up_trace(int *trace,int alen, int blen,int *spos,int *epos){
     int changeahang=0;
     int changebhang=0;
     char c;
-    //printf("Trace (lens %d %d):",alen,blen);
+    //fprintf(stderr, "Trace (lens %d %d):",alen,blen);
     while(trace[i]!=0){
       c='*';
       if(trace[i]<-alen){
@@ -881,10 +881,10 @@ void AS_ALN_clean_up_trace(int *trace,int alen, int blen,int *spos,int *epos){
 	c=' ';
 	trace[j++]=trace[i];
       }
-      //printf(" %c%d",c,trace[i]);
+      //fprintf(stderr, " %c%d",c,trace[i]);
       i++;
     }
-    //printf("\n");
+    //fprintf(stderr, "\n");
     trace[j]=0;
     *spos+=changeahang;
     *epos+=changebhang;
