@@ -99,17 +99,11 @@ ifeq ($(OSTYPE), FreeBSD)
   CXX              = g++
 
   ifeq ($(MACHINETYPE), i386)
-    #  We use the devel/linuxthreads port for much greater performance!
-    #ARCH_LDFLAGS    += -llthread -llgcc_r
-    #ARCH_CFLAGS      = -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads
-    #  Unless we're on BSD7.
-    ARCH_LDFLAGS    += -pthread
+    ARCH_LDFLAGS    += -pthread -lthr
     ARCH_CFLAGS      = -pthread
   endif
   ifeq ($(MACHINETYPE), amd64)
-    # Using the standard M:N model in -pthread can result in lots of
-    # blocking; if so, use -lthr instead.
-    ARCH_LDFLAGS    += -pthread
+    ARCH_LDFLAGS    += -pthread -lthr
     ARCH_CFLAGS      = -pthread
   endif
 
