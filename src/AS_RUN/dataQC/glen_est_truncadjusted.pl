@@ -119,7 +119,7 @@ if ($caBin eq "") {
    }
 }
 
-open(ALLFRG,"${caBin}/bin/gatekeeper -L $gkpStore|");
+open(ALLFRG,"${caBin}/bin/gatekeeper -lastfragiid $gkpStore|");
 $tmpstr=<ALLFRG>;
 close(ALLFRG);
 chomp $tmpstr;
