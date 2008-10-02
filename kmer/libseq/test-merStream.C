@@ -12,110 +12,43 @@
 
 
 u32bit
-testMerStreamSimple(merStream *MS) {
+testMerStreamSimple(merStream *MS, u32bit merSize, char *seq, u32bit *SP) {
   u32bit   err = 0;
+  u32bit   pos = 0;
   char     testmer[32];
-  bool     verbose = false;
+  bool     verbose = true;
   bool     nm      = false;
 
   if (verbose)
     fprintf(stdout, "testMSsimple() begins.\n");
 
-  nm = MS->nextMer();
-  assert(nm == true);
-  assert(MS->thePositionInSequence() == 0);
-  assert(MS->thePositionInStream()   == 0);
-  assert(MS->theSequenceNumber()     == 0);
-  assert(strcmp(MS->theFMer().merToString(testmer), "GGGTCAACTCCGCCCGCACT") == 0);
+  //  Until we have no more mers in the input
 
-  if (verbose) {
-    fprintf(stdout, "MS 1 posInSeq="u64bitFMT" posInStr="u64bitFMT" seqNum="u64bitFMT"\n",
-            MS->thePositionInSequence(),
-            MS->thePositionInStream(),
-            MS->theSequenceNumber());
-    if (strcmp(MS->theFMer().merToString(testmer), "GGGTCAACTCCGCCCGCACT"))
-      fprintf(stdout, "MS 1 failed '%s' != ''.\n", testmer);
+  while (seq[pos + merSize - 1] != 0) {
+    nm = MS->nextMer();
+
+    MS->theFMer().merToString(testmer);
+
+    if (verbose) {
+      fprintf(stdout, "MS pos="u32bitFMT" posInSeq="u64bitFMT" posInStr="u64bitFMT" seqNum="u64bitFMT"\n",
+              pos,
+              MS->thePositionInSequence(),
+              MS->thePositionInStream(),
+              MS->theSequenceNumber());
+      if (strncmp(testmer, seq + pos, merSize))
+        fprintf(stdout, "MS pos="u32bitFMT" failed '%s' != '%s'.\n", pos, testmer, seq + pos);
+    }
+
+    assert(nm == true);
+    assert(MS->thePositionInSequence() == SP[pos]);
+    assert(MS->thePositionInStream()   == SP[pos]);
+    assert(MS->theSequenceNumber()     == 0);
+    assert(strncmp(testmer, seq + pos, merSize) == 0);
+
+    pos++;
   }
 
-  nm = MS->nextMer();
-  assert(nm == true);
-  assert(MS->thePositionInSequence() == 1);
-  assert(MS->thePositionInStream()   == 1);
-  assert(MS->theSequenceNumber()     == 0);
-  assert(strcmp(MS->theFMer().merToString(testmer), "GGTCAACTCCGCCCGCACTC") == 0);
-
-  if (verbose) {
-    fprintf(stdout, "MS 2 posInSeq="u64bitFMT" posInStr="u64bitFMT" seqNum="u64bitFMT"\n",
-            MS->thePositionInSequence(),
-            MS->thePositionInStream(),
-            MS->theSequenceNumber());
-    if (strcmp(MS->theFMer().merToString(testmer), "GGTCAACTCCGCCCGCACTC"))
-      fprintf(stdout, "MS 2 failed '%s' != ''.\n", testmer);
-  }
-
-  nm = MS->nextMer();
-  assert(nm == true);
-  assert(MS->thePositionInSequence() == 2);
-  assert(MS->thePositionInStream()   == 2);
-  assert(MS->theSequenceNumber()     == 0);
-  assert(strcmp(MS->theFMer().merToString(testmer), "GTCAACTCCGCCCGCACTCT") == 0);
-
-  if (verbose) {
-    fprintf(stdout, "MS 3 posInSeq="u64bitFMT" posInStr="u64bitFMT" seqNum="u64bitFMT"\n",
-            MS->thePositionInSequence(),
-            MS->thePositionInStream(),
-            MS->theSequenceNumber());
-    if (strcmp(MS->theFMer().merToString(testmer), "GTCAACTCCGCCCGCACTCT"))
-      fprintf(stdout, "MS 3 failed '%s' != ''.\n", testmer);
-  }
-
-  nm = MS->nextMer();
-  assert(nm == true);
-  assert(MS->thePositionInSequence() == 3);
-  assert(MS->thePositionInStream()   == 3);
-  assert(MS->theSequenceNumber()     == 0);
-  assert(strcmp(MS->theFMer().merToString(testmer), "TCAACTCCGCCCGCACTCTA") == 0);
-
-  if (verbose) {
-    fprintf(stdout, "MS 4 posInSeq="u64bitFMT" posInStr="u64bitFMT" seqNum="u64bitFMT"\n",
-            MS->thePositionInSequence(),
-            MS->thePositionInStream(),
-            MS->theSequenceNumber());
-    if (strcmp(MS->theFMer().merToString(testmer), "TCAACTCCGCCCGCACTCTA"))
-      fprintf(stdout, "MS 4 failed '%s' != ''.\n", testmer);
-  }
-
-  nm = MS->nextMer();
-  assert(nm == true);
-  assert(MS->thePositionInSequence() == 4);
-  assert(MS->thePositionInStream()   == 4);
-  assert(MS->theSequenceNumber()     == 0);
-  assert(strcmp(MS->theFMer().merToString(testmer), "CAACTCCGCCCGCACTCTAG") == 0);
-
-  if (verbose) {
-    fprintf(stdout, "MS 5 posInSeq="u64bitFMT" posInStr="u64bitFMT" seqNum="u64bitFMT"\n",
-            MS->thePositionInSequence(),
-            MS->thePositionInStream(),
-            MS->theSequenceNumber());
-    if (strcmp(MS->theFMer().merToString(testmer), "CAACTCCGCCCGCACTCTAG"))
-      fprintf(stdout, "MS 5 failed '%s' != ''.\n", testmer);
-  }
-
-  nm = MS->nextMer();
-  assert(nm == true);
-  assert(MS->thePositionInSequence() == 5);
-  assert(MS->thePositionInStream()   == 5);
-  assert(MS->theSequenceNumber()     == 0);
-  assert(strcmp(MS->theFMer().merToString(testmer), "AACTCCGCCCGCACTCTAGC") == 0);
-
-  if (verbose) {
-    fprintf(stdout, "MS 6 posInSeq="u64bitFMT" posInStr="u64bitFMT" seqNum="u64bitFMT"\n",
-            MS->thePositionInSequence(),
-            MS->thePositionInStream(),
-            MS->theSequenceNumber());
-    if (strcmp(MS->theFMer().merToString(testmer), "AACTCCGCCCGCACTCTAGC"))
-      fprintf(stdout, "MS 6 failed '%s' != ''.\n", testmer);
-  }
+  //  Should have no more mers
 
   nm = MS->nextMer();
   assert(nm == false);
@@ -280,22 +213,43 @@ main(int argc, char **argv) {
   //  Very simple merStream test
 
   {
-    fprintf(stdout, "merStream(kMerBuilder(20), seqStream(\"GGGTCAACTCCGCCCGCACTCTAGC\", 25))\n");
+    fprintf(stdout, "merStream(kMerBuilder(20), ...)\n");
 
     merStream *MS = new merStream(new kMerBuilder(20),
                                   new seqStream("GGGTCAACTCCGCCCGCACTCTAGC", 25),
                                   true, true);
+    u32bit     SP[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
-    testMerStreamSimple(MS);
+    testMerStreamSimple(MS, 20, "GGGTCAACTCCGCCCGCACTCTAGC", SP);
     MS->rewind();
-    testMerStreamSimple(MS);
+    testMerStreamSimple(MS, 20, "GGGTCAACTCCGCCCGCACTCTAGC", SP);
     MS->rewind();
     MS->rewind();
-    testMerStreamSimple(MS);
+    testMerStreamSimple(MS, 20, "GGGTCAACTCCGCCCGCACTCTAGC", SP);
 
     delete MS;
 
-    fprintf(stdout, "merStream(kMerBuilder(20), seqStream(\"GGGTCAACTCCGCCCGCACTCTAGC\", 25)) - PASSED\n");
+    fprintf(stdout, "merStream(kMerBuilder(20), ...) - PASSED\n");
+  }
+
+  {
+    fprintf(stdout, "merStream(kMerBuilder(20, 1), ...)\n");
+
+    merStream *MS = new merStream(new kMerBuilder(20, 1),
+                                  new seqStream("GGGAATTTTCAACTCCGCCCGCACTCTAGCCCAAA", 35),
+                                  true, true);
+    u32bit     SP[10] = { 0, 3, 5, 9, 10, 12 };
+
+    testMerStreamSimple(MS, 20, "GATCACTCGCGCACTCTAGCA", SP);
+    MS->rewind();
+    testMerStreamSimple(MS, 20, "GATCACTCGCGCACTCTAGCA", SP);
+    MS->rewind();
+    MS->rewind();
+    testMerStreamSimple(MS, 20, "GATCACTCGCGCACTCTAGCA", SP);
+
+    delete MS;
+
+    fprintf(stdout, "merStream(kMerBuilder(20, 1), ...) - PASSED\n");
   }
 
   //  Move on to harder tests
