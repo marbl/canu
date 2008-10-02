@@ -35,6 +35,9 @@
 #define DEPTHSIZE   (128 * 1024 * 1024)
 #define FRAGMAX     (1024 * 1024)
 
+#define MODE_HISTOGRAM 0
+#define MODE_SCAFFOLD  1
+#define MODE_DEPTH     2
 
 typedef struct {
   uint32    lo;
@@ -124,13 +127,180 @@ computeStuff(uint32 *V, uint32 N,
   safe_free(histogram);
 }
 
+void outputResult(AS_UID lastuid,
+                  intDep *id, 
+                  uint32 idlen, 
+                  int mode, 
+                  int *histogram, 
+                  int *histmax, 
+                  int stepSize) {
+   int i = 0;
+   
+   switch (mode) {
+      case MODE_HISTOGRAM:
+      //  Update the histogram
+      //
+      for (i=0; i<idlen; i++) {
+         if (id[i].de < HISTMAX) {
+            histogram[id[i].de] += id[i].hi - id[i].lo;
+            if ((*histmax) < id[i].de)
+               (*histmax) = id[i].de;
+         }
+      }
+      break;
 
 
+      case MODE_SCAFFOLD:
+         //  Report mode, mean and median for this scaffold
+         //
+         {
+            uint32  N      = id[idlen-1].hi;
+            uint32 *V      = (uint32 *)safe_calloc(N, sizeof(uint32));
+            uint32  mode   = 0;
+            double  mean   = 0.0;
+            uint32  median = 0;
+            uint32  currStep = 0;
 
+            for (i=0; i<idlen; i++) {
+              int j;
+              for (j=id[i].lo; j<id[i].hi; j++) {
+                V[j] = id[i].de;
+              }
+            }
 
-#define MODE_HISTOGRAM 0
-#define MODE_SCAFFOLD  1
-#define MODE_DEPTH     2
+            if (stepSize == 0) {
+              currStep = N;
+            }
+            else {
+              currStep = stepSize;
+            }
+
+            for (i = 0; i < N; i+=currStep) {
+              int E  = i+currStep;
+              if (E > N) { E = N; }
+
+              computeStuff(V, N, i, E, &mode, &mean, &median);
+              fprintf(stdout, "%s\t"F_U32"\t"F_U32"\t"F_U32"\t%f\t"F_U32"\n", AS_UID_toString(lastuid), i, E, mode, mean, median);
+            }
+            safe_free(V);
+          }
+       break;
+
+       case MODE_DEPTH:
+          {
+            char   *seq = (char *)safe_malloc((id[idlen-1].hi + 1) * sizeof(char));
+            int     j;
+
+            memset(seq, '0', id[idlen-1].hi);
+
+            for (i=0; i<idlen; i++) {
+              for (j=id[i].lo; j<id[i].hi; j++) {
+                if (id[i].de < 10)
+                  seq[j] = '0' + id[i].de;
+                else if (id[i].de < 68)
+                  seq[j] = 'A' + id[i].de - 10;
+                else
+                  seq[j] = '~';
+               }
+            }
+
+            seq[id[idlen-1].hi] = 0;
+
+            AS_UTL_writeFastA(stdout, seq, id[idlen-1].hi, ">%s\n", AS_UID_toString(lastuid));
+            }
+         break;
+   }
+}
+
+void processScaffold(AS_UID lastuid,
+                     intDep *in, 
+                     uint32 inlen, 
+                     int mode, 
+                     int *histogram, 
+                     int *histmax, 
+                     int stepSize) {
+   int              i      = 0;
+   uint32           idlen  = 0;
+   intDep          *id     = NULL;
+
+   //  Convert the list of overlapping intervals into a list
+   //  of non-intersecting intervals annotated with depth
+   uint32   islen = inlen * 2;
+   intDep  *is    = (intDep *)safe_malloc(sizeof(intDep) * islen);
+
+   for (i=0; i<inlen; i++) {
+      is[2*i  ].lo = in[i].lo;
+      is[2*i  ].hi = 0;
+      is[2*i  ].de = 1;
+      is[2*i+1].lo = in[i].hi;
+      is[2*i+1].hi = 0;
+      is[2*i+1].de = 0;
+   }
+
+   qsort(is, islen, sizeof(intDep), intDep_sort);
+
+   //  Scan the list, counting how many times we change depth.
+   //
+   idlen = 1;
+   for (i=1; i<islen; i++) {
+      if (is[i-1].lo != is[i].lo)
+         idlen++;
+   }
+
+   //  Allocate the real depth of coverage intervals
+   //
+   id    = (intDep *)safe_malloc(sizeof(intDep) * idlen);
+   idlen = 0;
+
+   //  Build new intervals
+   //
+   //  Initialize the first interval
+   //
+   id[idlen].lo = is[0].lo;
+   id[idlen].hi = is[0].lo;
+   id[idlen].de = 1;
+
+   for (i=1; i<islen; i++) {
+
+      if (id[idlen].de == 0) {
+         //  Update the start position if the current interval is at zero
+         //  depth.
+         //
+         id[idlen].lo = is[i].lo;
+      } else {
+         //  If we are at a position different from the start, we need to
+         //  close out the current interval and make a new one.
+         //
+         if (is[i-1].lo != is[i].lo) {
+            id[idlen].hi = is[i].lo;
+
+            idlen++;
+
+            id[idlen].lo = is[i].lo;
+            id[idlen].hi = is[i].lo;
+            id[idlen].de = id[idlen-1].de;
+         }
+      }
+
+      //  Finally, update the depth of the current interval
+      //
+      if (is[i].de)
+         id[idlen].de++;
+      else
+         id[idlen].de--;
+   }
+
+   //  The way the loop is constructed above, the number of id
+   //  intervals is idlen+1.  The last interval is always zero
+   //  (thats id[idlen]) and so our later loops are supposed to
+   //  be i<idlen.
+   assert(id[idlen].lo == id[idlen].hi);
+
+   safe_free(is);
+   outputResult(lastuid, id, idlen, mode, histogram, histmax, stepSize);
+   safe_free(id);
+}
+
 
 int
 main(int argc, char **argv) {
@@ -231,168 +401,13 @@ main(int argc, char **argv) {
     //
     if ((AS_UID_compare(uid, lastuid) != 0) &&
         (inlen > 0)) {
-
+      
       //  This scaffold is the correct size
       //
       if ((minSize <= lastend) &&
           (lastend <= maxSize)) {
-        uint32   idlen = 0;
-        intDep  *id    = NULL;
-
-        //  Convert the list of overlapping intervals into a list
-        //  of non-intersecting intervals annotated with depth
-        uint32   islen = inlen * 2;
-        intDep  *is    = (intDep *)safe_malloc(sizeof(intDep) * islen);
-
-        for (i=0; i<inlen; i++) {
-          is[2*i  ].lo = in[i].lo;
-          is[2*i  ].hi = 0;
-          is[2*i  ].de = 1;
-          is[2*i+1].lo = in[i].hi;
-          is[2*i+1].hi = 0;
-          is[2*i+1].de = 0;
-        }
-
-        qsort(is, islen, sizeof(intDep), intDep_sort);
-
-        //  Scan the list, counting how many times we change depth.
-        //
-        idlen = 1;
-        for (i=1; i<islen; i++) {
-          if (is[i-1].lo != is[i].lo)
-            idlen++;
-        }
-
-        //  Allocate the real depth of coverage intervals
-        //
-        id    = (intDep *)safe_malloc(sizeof(intDep) * idlen);
-        idlen = 0;
-
-        //  Build new intervals
-        //
-        //  Initialize the first interval
-        //
-        id[idlen].lo = is[0].lo;
-        id[idlen].hi = is[0].lo;
-        id[idlen].de = 1;
-
-        for (i=1; i<islen; i++) {
-
-          if (id[idlen].de == 0) {
-            //  Update the start position if the current interval is at zero
-            //  depth.
-            //
-            id[idlen].lo = is[i].lo;
-          } else {
-
-            //  If we are at a position different from the start, we need to
-            //  close out the current interval and make a new one.
-            //
-            if (is[i-1].lo != is[i].lo) {
-              id[idlen].hi = is[i].lo;
-
-              idlen++;
-
-              id[idlen].lo = is[i].lo;
-              id[idlen].hi = is[i].lo;
-              id[idlen].de = id[idlen-1].de;
-            }
-          }
-
-          //  Finally, update the depth of the current interval
-          //
-          if (is[i].de)
-            id[idlen].de++;
-          else
-            id[idlen].de--;
-        }
-
-        //  The way the loop is constructed above, the number of id
-        //  intervals is idlen+1.  The last interval is always zero
-        //  (thats id[idlen]) and so our later loops are supposed to
-        //  be i<idlen.
-        assert(id[idlen].lo == id[idlen].hi);
-
-        safe_free(is);
-
-        switch (mode) {
-          case MODE_HISTOGRAM:
-            //  Update the histogram
-            //
-            for (i=0; i<idlen; i++) {
-              if (id[i].de < HISTMAX) {
-                histogram[id[i].de] += id[i].hi - id[i].lo;
-                if (histmax < id[i].de)
-                  histmax = id[i].de;
-              }
-            }
-            break;
-
-
-          case MODE_SCAFFOLD:
-            //  Report mode, mean and median for this scaffold
-            //
-            {
-              uint32  N      = id[idlen-1].hi;
-              uint32 *V      = (uint32 *)safe_calloc(N, sizeof(uint32));
-              uint32  mode   = 0;
-              double  mean   = 0.0;
-              uint32  median = 0;
-              uint32  currStep = 0;
-
-              for (i=0; i<idlen; i++) {
-                int j;
-                for (j=id[i].lo; j<id[i].hi; j++) {
-                  V[j] = id[i].de;
-                }
-              }
-
-              if (stepSize == 0) {
-                currStep = N;
-              }
-              else {
-                currStep = stepSize;
-              }
-
-              for (i = 0; i < N; i+=currStep) {
-                int E  = i+currStep;
-                if (E > N) { E = N; }
-
-                computeStuff(V, N, i, E, &mode, &mean, &median);
-                fprintf(stdout, "%s\t"F_U32"\t"F_U32"\t"F_U32"\t%f\t"F_U32"\n", AS_UID_toString(lastuid), i, E, mode, mean, median);
-              }
-              safe_free(V);
-            }
-            break;
-
-
-          case MODE_DEPTH:
-            {
-              char   *seq = (char *)safe_malloc((id[idlen-1].hi + 1) * sizeof(char));
-              int     j;
-
-              memset(seq, '0', id[idlen-1].hi);
-
-              for (i=0; i<idlen; i++) {
-                for (j=id[i].lo; j<id[i].hi; j++) {
-                  if (id[i].de < 10)
-                    seq[j] = '0' + id[i].de;
-                  else if (id[i].de < 68)
-                    seq[j] = 'A' + id[i].de - 10;
-                  else
-                    seq[j] = '~';
-                }
-              }
-
-              seq[id[idlen-1].hi] = 0;
-
-              AS_UTL_writeFastA(stdout, seq, id[idlen-1].hi, ">%s\n", AS_UID_toString(lastuid));
-            }
-            break;
-        }
-
-        safe_free(id);
-      }  //  scaffold is correct size
+         processScaffold(lastuid, in, inlen, mode, histogram, &histmax, stepSize);
+      }
 
       //  Setup for the next scaffold
       //
@@ -416,6 +431,19 @@ main(int argc, char **argv) {
     if (lastend < end)
       lastend = end;
   }
+  
+  // process last scaffold
+  if ((AS_UID_compare(lastuid, AS_UID_undefined()) != 0) &&
+   (inlen > 0)) {
+      
+     //  This scaffold is the correct size
+     //
+     if ((minSize <= lastend) &&
+       (lastend <= maxSize)) {
+       processScaffold(lastuid, in, inlen, mode, histogram, &histmax, stepSize);
+    }
+  }
+  
 
   if (mode == MODE_HISTOGRAM)
     for (i=0; i<=histmax; i++)
