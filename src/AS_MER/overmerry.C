@@ -152,7 +152,7 @@ public:
 
     //  Use that gkpStore to quickly build a list of the clear ranges
     //  and full sequence length for reads in the table.
-    //
+
     {
       fragRecord   fr;
       FragStream  *fs = openFragStream(qGK, FRAG_S_INF);
@@ -163,8 +163,12 @@ public:
       table_untrimLength = new uint32 [tEnd - tBeg + 1];
 
       while (nextFragStream(fs, &fr)) {
-        table_clrBeg      [getFragRecordIID(&fr) - tBeg] = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBT);
-        table_untrimLength[getFragRecordIID(&fr) - tBeg] = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_UNTRIM);
+        AS_IID iid = getFragRecordIID(&fr);
+
+        assert((tBeg <= iid) && (iid <= tEnd));
+
+        table_clrBeg      [iid - tBeg] = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBT);
+        table_untrimLength[iid - tBeg] = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_UNTRIM);
       }
 
       closeFragStream(fs);
@@ -181,14 +185,14 @@ public:
     //
 
     //  Open the gatekeeper store as a kmer seqFile.  We need to
-    //  dynamic_cast this back to our gkpStoreSequence, so we can access
+    //  dynamic_cast this back to our gkpStoreFile, so we can access
     //  methods defined only on that object.
     //
     {
       char     gkpName[FILENAME_MAX + 64] = {0};
       sprintf(gkpName, "%s:%u-%u:obt", gkpPath, tBeg, tEnd);
 
-      tGK = dynamic_cast<gkpStoreSequence*>(openSeqFile(gkpName));
+      tGK = dynamic_cast<gkpStoreFile*>(openSeqFile(gkpName));
       if (tGK == 0L) {
         fprintf(stderr, "%s: invalid input file '%s' (not a GateKeeperStore?).\n", gkpName);
         exit(1);
@@ -303,16 +307,14 @@ public:
 
       //  Continue with building the positionDB.
 
-      tKB = new kMerBuilder(merSize, compression, 0L);
-
-      tSS = new seqStream(tGK, true);
-      tSS->setSeparator('.', 1);
-
       //  XXX  Should use maxCount to prune the table a bit.  positionDB doesn't
       //  support pruning by a MF count though.
 #warning not pruning positionDB
 
-      tMS = new merStream(tKB, tSS);
+      tKB = new kMerBuilder(merSize, compression, 0L);
+      tSS = new seqStream(gkpName);
+
+      tMS = new merStream(tKB, tSS, true, false);
       tPS = new positionDB(tMS, merSize, 0, 0L, 0L, MF, 0, 0, 0, 0, true);
 
       delete MF;
@@ -354,11 +356,11 @@ public:
 
   //  for the WORKERS.
   //
-  gkpStoreSequence  *tGK;
+  gkpStoreFile      *tGK;
   kMerBuilder       *tKB;
   seqStream         *tSS;  //  needs to be public so we can offset coords
   merStream         *tMS;
-  positionDB        *tPS;  //  needs to be public!  (this is the main tabile)
+  positionDB        *tPS;  //  needs to be public!  (this is the main table)
   uint32             tBeg;
   uint32             tEnd;
 
@@ -537,7 +539,9 @@ ovmWorker(void *G, void *T, void *S) {
 
   t->hitsLen = 0;
 
-  merStream *sMSTR  = new merStream(t->qKB, s->seq, s->beg, s->end - s->beg);
+  merStream *sMSTR  = new merStream(t->qKB,
+                                    new seqStream(s->seq + s->beg, s->end - s->beg),
+                                    false, true);
   uint32    *sSPAN  = new uint32 [s->end - s->beg];
 
   //fprintf(stderr, "ovmWorker: iid="u32bitFMT"\n", s->iid);
@@ -619,13 +623,12 @@ ovmWorker(void *G, void *T, void *S) {
   //
   for (u32bit i=0; i<t->hitsLen; i++) {
     if (i != t->hitsLen) {
-      fprintf(stderr, u32bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u64bitFMT"\t%c\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\tTAG\n",
+      fprintf(stderr, u32bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u64bitFMT"\t%c\t"u32bitFMT"\t"u32bitFMT"\tTAG\n",
               t->hits[i].tseq, t->hits[i].tpos,
               s->iid,  t->hits[i].qpos,
               t->hits[i].pal ? 'p' : (t->hits[i].fwd ? 'f' : 'r'),
               0,
-              t->hits[i].cnt,
-              merSize);
+              t->hits[i].cnt);
     }
   }
 #endif
@@ -675,8 +678,6 @@ ovmWorker(void *G, void *T, void *S) {
 
     //  Save off the B vs A overlap
     //
-
-#if 1    //**ALD added back--needed for read error correction
     overlap.a_iid = s->iid;
     overlap.b_iid = t->hits[i].tseq;
 
@@ -692,7 +693,6 @@ ovmWorker(void *G, void *T, void *S) {
       overlap.dat.mer.b_pos = othlen - t->hits[i].tpos - 1;
     }
     s->addOverlap(&overlap);
-#endif
 
     //  Now, skip ahead until we find the next pair.
     //
@@ -804,21 +804,21 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  seqFactory::instance()->registerFile(new gkpStoreSequence());
+  gkpStoreFile::registerFile();
 
   g->build();
 
   sweatShop *ss = new sweatShop(ovmReader, ovmWorker, ovmWriter);
 
-  ss->loaderQueueSize(10240);
-  ss->writerQueueSize(10240);
+  ss->setLoaderQueueSize(10240);
+  ss->setWriterQueueSize(10240);
 
-  ss->numberOfWorkers(g->numThreads);
+  ss->setNumberOfWorkers(g->numThreads);
 
   for (u32bit w=0; w<g->numThreads; w++)
     ss->setThreadData(w, new ovmThreadData(g));  //  these leak
 
-  ss->run(g, true);  //  true == verbose
+  ss->run(g, false);  //  true == verbose
 
   delete g;
 

@@ -68,7 +68,7 @@ ifdef KMER
   PROGS            = meryl mercy overmerry
   INC_IMPORT_DIRS += $(KMER)/include
   LIB_IMPORT_DIRS += $(KMER)/lib
-  KMERLIBS         = libmerylguts.a libkmer.a libmeryl.a libbio.a libutil.a
+  KMERLIBS         = libmerylguts.a libkmer.a libmeryl.a libseq.a libbio.a libutil.a
 else
   MERYLSOURCE      = AS_MER_meryl.cc
   MERYLOBJECTS     = AS_MER_meryl.o

@@ -21,70 +21,47 @@
 
 #include "AS_MER_gkpStore_to_FastABase.H"
 
-gkpStoreSequence::gkpStoreSequence() {
-  _gkp = 0L;
-  _bgn = 0;
-  _end = 0;
-  _clr = AS_READ_CLEAR_LATEST;
-  _eof = false;
-  _tst = 0;
-}
+gkpStoreFile::gkpStoreFile(char const *gkpName,
+                           uint32 bgn,
+                           uint32 end,
+                           uint32 clr) {
+  clear();
 
-gkpStoreSequence::gkpStoreSequence(char const *gkpName,
-                                   uint32 bgn,
-                                   uint32 end,
-                                   uint32 clr) {
+  _gkp    = openGateKeeperStore(gkpName, FALSE);
+  _bgn    = bgn;
+  _end    = end;
 
-  _gkp = openGateKeeperStore(gkpName, FALSE);
-  _bgn = bgn;
-  _end = end;
-  _clr = clr;
-  _curIID = _bgn;
-  _eof = false;
-  _tst = 0;
+  strcpy(_filename, _gkp->storePath);
 
-  {
-    char    pt[FILENAME_MAX];
-    stat_s  st;
+  _numberOfSequences = getLastElemFragStore(_gkp) + 1;
 
-    sprintf(pt, "%s/frg", gkpName);
-
-    if (stat(pt, &st) != 0) {
-      fprintf(stderr, "Couldn't stat() '%s'\n%s\n", pt, strerror(errno));
-      exit(1);
-    }
-
-    _tst = st.st_mtime;
-  }
+  if (_end > _numberOfSequences)
+    _end = _numberOfSequences;
 
   if (_end < _bgn)
-    fprintf(stderr, "gkpStoreSequence()--  ERROR:  begin IID = %u > end IID = %u\n",
+    fprintf(stderr, "gkpStoreFile()--  ERROR:  begin IID = %u > end IID = %u\n",
             _bgn, _end);
+
   assert(_bgn <= _end);
 
-  uint32    max = getNumberOfSequences() + 1;
+  _clrBeg = new uint16 [_numberOfSequences];
+  _clrEnd = new uint16 [_numberOfSequences];
 
-  _seqLen = new uint16 [max];
-  _clrBeg = new uint16 [max];
-  _clrEnd = new uint16 [max];
-
-  for (uint32 i=0; i<max; i++) {
-    _seqLen[i] = 0;
+  for (uint32 i=0; i<_numberOfSequences; i++) {
     _clrBeg[i] = 0;
     _clrEnd[i] = 0;
   }
 
   FragStream *stm = openFragStream(_gkp, FRAG_S_INF);
 
-  if ((_bgn < max) && (end < max))
+  if ((_bgn < _numberOfSequences) && (end < _numberOfSequences))
     resetFragStream(stm, _bgn, _end);
 
   while (nextFragStream(stm, &_frg)) {
     if (!getFragRecordIsDeleted(&_frg)) {
       uint32  iid = getFragRecordIID(&_frg);
-      _clrBeg[iid] = getFragRecordClearRegionBegin(&_frg, _clr);
-      _clrEnd[iid] = getFragRecordClearRegionEnd  (&_frg, _clr);
-      _seqLen[iid] = getFragRecordSequenceLength  (&_frg);
+      _clrBeg[iid] = getFragRecordClearRegionBegin(&_frg, clr);
+      _clrEnd[iid] = getFragRecordClearRegionEnd  (&_frg, clr);
     }
   }
 
@@ -92,16 +69,23 @@ gkpStoreSequence::gkpStoreSequence(char const *gkpName,
 }
 
 
-gkpStoreSequence::~gkpStoreSequence() {
+
+gkpStoreFile::gkpStoreFile() {
+  clear();
+}
+
+
+
+gkpStoreFile::~gkpStoreFile() {
   closeGateKeeperStore(_gkp);
-  delete [] _seqLen;
   delete [] _clrBeg;
   delete [] _clrEnd;
 }
 
 
+
 seqFile*
-gkpStoreSequence::openFile(const char *name) {
+gkpStoreFile::openFile(const char *name) {
   char  *p;
   char  *q;
   char   n[FILENAME_MAX + 32];
@@ -134,34 +118,51 @@ gkpStoreSequence::openFile(const char *name) {
       clr = AS_PER_decodeClearRangeLabel(p+1);
   }
 
-
   if (testOpenGateKeeperStore(n, FALSE))
-    return(new gkpStoreSequence(n, bgn, end, clr));
+    return(new gkpStoreFile(n, bgn, end, clr));
   else
     return(0L);
 };
 
 
-bool
-gkpStoreSequence::getSequence(u32bit &hLen, char *&h,
-                              u32bit &sLen, char *&s) {
 
-  if (_curIID > _end)
+bool
+gkpStoreFile::getSequence(u32bit iid,
+                          char *&h, u32bit &hLen, u32bit &hMax,
+                          char *&s, u32bit &sLen, u32bit &sMax) {
+
+  if (sMax == 0) {
+    sMax = AS_FRAG_MAX_LEN;
+    s    = new char [sMax];
+  }
+
+  if (hMax == 0) {
+    hMax = 2048;
+    h    = new char [hMax];
+  }
+
+  if (iid == 0) {
+    h[0] = 0;
+    s[0] = 0;
+
+    hLen = 0;
+    sLen = 0;
+
+    return(true);
+  }
+
+  if ((iid < _bgn) || (_end < iid))
     return(false);
 
-  if ((_curIID > 0) && (_curIID != getFragRecordIID(&_frg)))
-    if (find(_curIID) == false)
-      return(false);
+  getFrag(_gkp, iid, &_frg, FRAG_S_SEQ);
 
-  h    = new char [65];
   sprintf(h, "%s,"F_IID, AS_UID_toString(getFragRecordUID(&_frg)), getFragRecordIID(&_frg));
-  hLen = strlen(h);
 
-  sLen = _clrEnd[_curIID] - _clrBeg[_curIID];
-  s    = new char [sLen + 1];
+  hLen = strlen(h);
+  sLen = _clrEnd[iid] - _clrBeg[iid];
 
   if (sLen > 0)
-    strncpy(s, getFragRecordSequence(&_frg) + _clrBeg[_curIID], sLen);
+    strncpy(s, getFragRecordSequence(&_frg) + _clrBeg[iid], sLen);
 
   s[sLen] = 0;
 
@@ -169,31 +170,36 @@ gkpStoreSequence::getSequence(u32bit &hLen, char *&h,
 }
 
 
-bool
-gkpStoreSequence::find(seqIID  iid) {
 
-  if (iid == 0) {
+bool
+gkpStoreFile::getSequence(u32bit iid,
+                          u32bit bgn, u32bit end, char *s) {
+
+  if (iid == 0)
+    fprintf(stderr, "gkpStoreFile::getSequence(part)-- someone requested iid==0?\n"), exit(1);
+
+  if ((iid < _bgn) || (_end < iid))
     return(false);
-  }
-  if (iid > getLastElemFragStore(_gkp) + 1) {
-    _eof = true;
-    _curIID = getLastElemFragStore(_gkp) + 2;
-    //fprintf(stderr, "gkpStoreSequence()-- find(%d) failed, too big\n", iid);
-    return(false);
-  }
-  if ((iid < _bgn) || (_end < iid)) {
-    _curIID = getLastElemFragStore(_gkp) + 2;
-    //fprintf(stderr, "gkpStoreSequence()-- find(%d) failed, out of range\n", iid);
-    return(false);
-  }
+
   getFrag(_gkp, iid, &_frg, FRAG_S_SEQ);
-  _curIID = iid;
+
+  strncpy(s, getFragRecordSequence(&_frg) + _clrBeg[iid] + bgn, end - bgn);
+
+  s[end - bgn] = 0;
+
   return(true);
 }
 
 
-bool
-gkpStoreSequence::find(char  *id) {
-  fprintf(stderr, "gkpStoreSequence::find()-- %s (NOT IMPLEMENTED!)\n", id);
-  return(false);
+
+void
+gkpStoreFile::clear(void) {
+  _gkp = 0L;
+  _bgn = 0;
+  _end = 0;
+
+  strcpy(_filename, "");
+  strcpy(_typename, "gkpStore");
+
+  _numberOfSequences = 0;
 }

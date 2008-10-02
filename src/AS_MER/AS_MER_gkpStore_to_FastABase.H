@@ -30,18 +30,19 @@ extern "C" {
 #include "AS_PER_gkpStore.h"
 }
 
-#include "bio++.H"
+#include "seqFile.H"
+#include "seqFactory.H"
 
-//  Transform a wgs-assembler gkpStore object into a kmer FastABase
+//  Transform a wgs-assembler gkpStore object into a kmer seqFile
 //  object.
-//
+
 //  About IIDs:
 //    gkpStore IIDs start at 1
 //    kmer IIDs start at 0
 //
 //  This interface adds in a zero-length sequence to be kmer IID 0,
 //  and does not change the IID mapping.
-//
+
 //  The "name" in openFile() should refer to a gatekeeper store
 //  directory.  It can optionally include ":bgn-end:clr" to return a
 //  subset of the reads, and to return only the clear range.  For
@@ -51,89 +52,52 @@ extern "C" {
 //
 //  would return fragments 500 through 1000 inclusive, and return the
 //  initial OBT clear range.
-//
-//  NOTE!  The IID range violates a lot of assumptions!  Use at risk!
-//  (assumptions like: sequences start at iid=0, go to iid=M-1, and
-//  there are exactly M sequences in the file)
 
-class gkpStoreSequence : public seqFile {
+class gkpStoreFile : public seqFile {
 protected:
-  gkpStoreSequence(char const *filename, uint32 bgn, uint32 end, uint32 clr);
+  gkpStoreFile(char const *filename, uint32 bgn, uint32 end, uint32 clr);
+  gkpStoreFile();
 
 public:
-  gkpStoreSequence();
-  ~gkpStoreSequence();
+  ~gkpStoreFile();
 
-  const char  *fileTypeName(void) { return("Celera Assebmler GateKeeperStore"); };
+  static void         registerFile(void) {
+    seqFactory::instance()->registerFile(new gkpStoreFile());
+  };
 
-  seqFile     *openFile(const char *name);
+protected:
+  seqFile            *openFile(const char *filename);
 
-  void         openIndex(u32bit indextypetoload=FASTA_INDEX_ANY) {};
+public:
+  u32bit              find(const char *sequencename) {
+    fprintf(stderr, "gkpStoreFile::find()--  Not implemented.\n");
+    exit(1);
+    return(~u32bitZERO);
+  };
 
-  bool         rewind(void)   { _curIID = _bgn; };
-  bool         eof(void)      { return(_eof); };
-
-  bool         getSequence(u32bit &hLen, char *&h,
-                           u32bit &sLen, char *&s);
-
-  //seqInCore   *getSequenceInCore(void);
-  //seqOnDisk   *getSequenceOnDisk(void);
-
-  u64bit       timeStamp(void) { return(_tst); };
-
-  u32bit       currentIID(void) { return(_curIID); };
-
-  bool         find(seqIID  iid);
-  bool         find(char   *uid);
-
-  //  This must return the length of the sequence returned by
-  //  getSequenceInCore().
-  u32bit       sequenceLength(seqIID iid) {
+  u32bit              getSequenceLength(u32bit iid) {
     return(_clrEnd[iid] - _clrBeg[iid]);
   };
 
-  //  But overmerry needs to know the untrimmed length so it can
-  //  reverse-complement positions.
-  u32bit       sequenceLengthUntrimmed(seqIID iid) {
-    return(_seqLen[iid]);
-  };
+  bool                getSequence(u32bit iid,
+                                  char *&h, u32bit &hLen, u32bit &hMax,
+                                  char *&s, u32bit &sLen, u32bit &sMax);
+  bool                getSequence(u32bit iid,
+                                  u32bit bgn, u32bit end, char *s);
 
-  u32bit       nameLength(seqIID iid) {
-    return(64);
-  };
+  uint16              clrBeg(u32bit iid) { return(_clrBeg[iid]); };
+  uint16              clrEnd(u32bit iid) { return(_clrEnd[iid]); };
 
-  u32bit       getNumberOfSequences(void) {
-    return(getLastElemFragStore(_gkp) + 1);
-  }
+private:
+  void                clear(void);
 
-  char const  *getSourceName(void) {
-    return(_gkp->storePath);
-  };
+  GateKeeperStore    *_gkp;
+  fragRecord          _frg;
+  uint32              _bgn;
+  uint32              _end;
 
-  void         printDescription(FILE *out, char *name) {
-    fprintf(stderr, "Not implemented.\n");
-    assert(0);
-  };
-
-  bool         isIndexed(void)  { return(true); };
-  bool         isSqueezed(void) { return(true); };
-
-public:
-  uint16       clrBeg(seqIID iid) { return(_clrBeg[iid]); };
-  uint16       clrEnd(seqIID iid) { return(_clrEnd[iid]); };
-
-  GateKeeperStore  *_gkp;
-  fragRecord        _frg;
-  uint32            _bgn;
-  uint32            _end;
-  uint32            _clr;
-  bool              _eof;
-
-  uint16           *_seqLen;
-  uint16           *_clrBeg;
-  uint16           *_clrEnd;
-
-  uint64            _tst;
+  uint16             *_clrBeg;
+  uint16             *_clrEnd;
 };
 
 

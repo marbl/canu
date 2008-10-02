@@ -39,7 +39,8 @@ int
 main(int argc, char **argv) {
   merylArgs   *args = new merylArgs(argc, argv);
 
-  seqFactory::instance()->registerFile(new gkpStoreSequence());
+  //seqFactory::instance()->registerFile(new gkpStoreFile());
+  gkpStoreFile::registerFile();
 
   switch (args->personality) {
     case 'P':
@@ -93,17 +94,6 @@ main(int argc, char **argv) {
       fprintf(stderr, "%s: unknown personality.  Specify -P, -B, -S or -M!\n", args->execName);
       exit(1);
       break;
-  }
-
-  if (args->statsFile) {
-    errno = 0;
-    FILE *F = fopen(args->statsFile, "w");
-    if (errno) {
-      fprintf(stderr, "WARNING: Failed to open stats file '%s'\n%s\n", args->statsFile, strerror(errno));
-    } else {
-      write_rusage(F);
-      fclose(F);
-    }
   }
 
   delete args;
