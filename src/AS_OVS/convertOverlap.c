@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: convertOverlap.c,v 1.17 2008-10-07 15:07:49 brianwalenz Exp $
+//  $Id: convertOverlap.c,v 1.18 2008-10-07 19:54:27 mcschatz Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -98,6 +98,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -a    convert to ASCII, from BINARY.\n");
     fprintf(stderr, "  -b    convert to BINARY, from ASCII.\n");
     fprintf(stderr, "  -ovl\n");
+    fprintf(stderr, "  -ovldump\n");
     fprintf(stderr, "  -obt\n");
     fprintf(stderr, "  -mer\n");
     exit(1);
