@@ -32,11 +32,6 @@
    Wrappers for finding fragment overlaps with moderate sized indels
    ("bubbles" in CGB that break up unitigging in the presence of
    moderate polymorphisms).
-
-   The wrappers are around the routines Local_Overlap_AS  ([originally]
-   defined in AS_ALN_loverlapper.c) and AS_ALN_affine_overlap ([originally]
-   defined in AS_ALN_qvaligner.c).  See those functions for more details.
-
 */
 
 
@@ -104,8 +99,8 @@ Overlap *Local_Overlap_AS_forCNS(char *a, char *b,
 
   assert((0.0 <= erate) && (erate <= AS_MAX_ERROR_RATE));
 
-  A.sequence = safe_copy_Astring_with_preceding_null(a);
-  A.quality = NULL;
+  A.sequence   = safe_copy_Astring_with_preceding_null(a);
+  A.quality    = NULL;
   A.iaccession = 1;
   A.eaccession = AS_UID_fromInteger(A.iaccession);
 
@@ -147,7 +142,9 @@ Overlap *Local_Overlap_AS_forCNS(char *a, char *b,
   o.diffs=sub+ins+del;
 #endif
   o.comp=opposite;
-  o.trace=Unpack_Alignment_AS(O);
+
+  o.trace = O->alignment_trace;
+
   if(O->aifrag==2){/*The OverlapMesg gives b first for nonnegative ahang*/
     int i=0;
     while(o.trace[i]!=0){
@@ -265,7 +262,9 @@ Overlap *Affine_Overlap_AS_forCNS(char *a, char *b,
   o.diffs=sub+ins+del;
 #endif
   o.comp=opposite;
-  o.trace=Unpack_Alignment_AS(O);
+
+  o.trace = O->alignment_trace;
+
   if(O->aifrag==2){/*The OverlapMesg gives b first for nonnegative ahang*/
     int i=0;
     while(o.trace[i]!=0){

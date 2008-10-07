@@ -1365,10 +1365,8 @@ OverlapMesg *DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
       QVBuffer.aifrag = a->iaccession;
       QVBuffer.bifrag = b->iaccession;
     }
-  if (what != AS_FIND_ALIGN_NO_TRACE && trace != NULL)
-    QVBuffer.delta = Pack_Alignment_AS(trace,QVBuffer.ahg);
-  else
-    QVBuffer.delta = NULL;
+
+  QVBuffer.alignment_trace = trace;
 
   *where = ahang;
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.67 2008-06-27 06:29:17 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.68 2008-10-07 15:07:49 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
@@ -249,7 +249,12 @@ typedef struct {
   float            quality;
   CDS_COORD_t      min_offset, max_offset;
   int32            polymorph_ct;
-  signed char      *delta;
+  int32            *alignment_trace;
+#ifdef AS_MSG_USE_OVL_DELTA
+  //  This is left in Just In Case someone really wants to output
+  //  an overlap delta from overlapper.
+  signed char      *alignment_delta;
+#endif
 } OverlapMesg;
 
 

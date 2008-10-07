@@ -38,29 +38,6 @@ void Complement_Fragment_AS(InternalFragMesg *a);
    complementation/reversal in place.  Calling it a second time on a
    given fragment restores it to its original state.                */
 
-int *Unpack_Alignment_AS(OverlapMesg *align);
-
-/* Convert overlap message align's delta into an array of ints that more
-   directly encode the alignment.  For an unpacked trace < i1, i2, ... in, 0>
-   a negative number j indicates that a dash should be placed before A[-j]
-   and a positive number k indicates that a dash should be placed before
-   B[k], where A and B are the two sequences of the overlap.  These indels
-   occur in order along the alignment.
-
-   A pointer to an array containing the unpacked trace is returned.  This
-   array is owned by the routine and is reused by it with each subsequent
-   call.  If the unpacked trace is needed beyond a subsequent call, the
-   caller must copy its contents to a memory area they have allocated.   */
-
-signed char *Pack_Alignment_AS(int *trace, int prefix);
-
-/*  Produce an overlap delta for an unpacked trace between two sequences,
-    say A and B, where the first prefix symbols of A are unaligned with B
-    (prefix must be > 0).
-
-    A pointer to the delta is returned.  This delta is owned by the routine
-    and reused by it with each subsequence call.                           */
-
 void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
                                   InternalFragMesg *b, OverlapMesg *align);
 

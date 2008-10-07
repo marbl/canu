@@ -154,174 +154,6 @@ void Complement_Fragment_AS(InternalFragMesg *a)
   }
 }
 
-/* Convert an overlap message delta into an array of int that more
-   directly encode the alignment.  For an unpacked trace < i1, i2, ... in, 0>
-   a negative number j indicates that a dash should be placed before A[-j]
-   and a positive number k indicates that a dash should be placed before
-   B[k], where A and B are the two sequences of the overlap.  These indels
-   occur in order along the alignment.
-
-   A pointer to an array containing the unpacked trace is returned.  This
-   array is owned by the routine and is reused by it with each subsequent
-   call.  If the unpacked trace is needed beyond a subsequent call, the
-   caller must copy its contents to a memory area they have allocated.   */
-
-int *Unpack_Alignment_AS(OverlapMesg *align)
-{ static int    *UnpackBuffer=NULL;
-  static int buffalloc=0;
-  int buffused=0;
-  signed char  *calign;
-  int           apos, bpos;
-
-  if(UnpackBuffer==NULL){
-    UnpackBuffer = (int*) safe_malloc (sizeof(int)*(2*AS_READ_MAX_LEN+1));
-    buffalloc=(2*AS_READ_MAX_LEN+1);
-  }
-
-  apos   = align->ahg + 1;  /* ahg >= 0 for all overlaps */
-  bpos   = 1;
-  calign = align->delta;
-
-  { int i, c;
-    int *spt;
-
-    spt = UnpackBuffer;
-    for (i = 0; (c = calign[i]) != 0; i++)
-      if (c == AS_LONG_DELTA_CODE)
-        { apos += AS_LONGEST_DELTA;      /* Uninterrupted match of 126 bases */
-          bpos += AS_LONGEST_DELTA;
-        }
-      else if (c == AS_POLY_DELTA_CODE)
-        { c = calign[++i];  /* Multi-base gap */
-          if (c < 0)
-            while (c < 0)
-              { c    += 1;
-                bpos += 1;
-		if(buffused>=buffalloc){
-		  buffalloc=buffalloc*2+10;
-		  UnpackBuffer = (int*)safe_realloc(UnpackBuffer,sizeof(int)*buffalloc);
-		  spt=UnpackBuffer+buffused;
-		}
-		buffused++;
-                *spt++ = -apos;
-              }
-          else
-            while (c > 0)
-              { c    -= 1;
-                apos += 1;
-		if(buffused>=buffalloc){
-		  buffalloc=buffalloc*2+10;
-		  UnpackBuffer = (int*)safe_realloc(UnpackBuffer,sizeof(int)*buffalloc);
-		  spt=UnpackBuffer+buffused;
-		}
-		buffused++;
-                *spt++ = bpos;
-              }
-        }
-      else
-        { if (c < 0)        /* Single gap */
-            { bpos -= c;
-              apos -= (c+1);
-	      if(buffused>=buffalloc){
-		buffalloc=buffalloc*2+10;
-		UnpackBuffer = (int*)safe_realloc(UnpackBuffer,sizeof(int)*buffalloc);
-		spt=UnpackBuffer+buffused;
-	      }
-	      buffused++;
-              *spt++ = -apos;
-            }
-          else
-            { bpos += (c-1);
-              apos += c;
-	      if(buffused>=buffalloc){
-		buffalloc=buffalloc*2+10;
-		UnpackBuffer = (int*)safe_realloc(UnpackBuffer,sizeof(int)*buffalloc);
-		spt=UnpackBuffer+buffused;
-	      }
-	      buffused++;
-              *spt++ = bpos;
-            }
-        }
-    *spt = 0;
-  }
-
-  return (UnpackBuffer);
-}
-
-/*  Produce an overlap delta for an unpacked trace between two sequences
-    A and B where the first prefix symbols of A are unaligned with B
-    (prefix must be > 0).                                             */
-
-signed char *Pack_Alignment_AS(int *trace, int prefix)
-{ static signed char *PackBuffer = NULL;
-  static int          PackSize   = -1;
-  signed char  *spt;
-  int           apos, bpos, i, c, size;
-
-  size = 1;
-  apos = prefix;
-  bpos = 0;
-  for (i = 0; (c = trace[i]) != 0; i++)
-    { if (c < 0)
-        { c = -c;
-          while (c-apos > AS_LONGEST_DELTA)
-            { size += 1;
-              apos += AS_LONGEST_DELTA;
-              bpos += AS_LONGEST_DELTA;
-            }
-          size += 1;
-          bpos += c-apos;
-          apos  = c-1;
-        }
-      else
-        { while (c-bpos > AS_LONGEST_DELTA)
-            { size += 1;
-              apos += AS_LONGEST_DELTA;
-              bpos += AS_LONGEST_DELTA;
-            }
-          size += 1;
-          apos += c-bpos;
-          bpos  = c-1;
-        }
-    }
-
-  if (size > PackSize)
-    { PackSize = (int)(1.4*size) + 1000;
-      PackBuffer = (signed char *) safe_realloc(PackBuffer,PackSize);
-    }
-
-  spt  = PackBuffer;
-  apos = prefix;
-  bpos = 0;
-  for (i = 0; (c = trace[i]) != 0; i++)
-    { if (c < 0)
-        { c = -c;
-          while (c-apos > AS_LONGEST_DELTA)
-            { *spt++ = AS_LONG_DELTA_CODE;
-              apos += AS_LONGEST_DELTA;
-              bpos += AS_LONGEST_DELTA;
-            }
-          assert(c-apos > 0);
-          *spt++ = -(c-apos);
-          bpos += c-apos;
-          apos  = c-1;
-        }
-      else
-        { while (c-bpos > AS_LONGEST_DELTA)
-            { *spt++ = AS_LONG_DELTA_CODE;
-              apos += AS_LONGEST_DELTA;
-              bpos += AS_LONGEST_DELTA;
-            }
-          assert(c-bpos > 0);
-          *spt++ = (c-bpos);
-          apos += c-bpos;
-          bpos  = c-1;
-        }
-    }
-  *spt = 0;
-
-  return (PackBuffer);
-}
 
 /*** OVERLAP PRINT ROUTINE ***/
 
@@ -470,33 +302,19 @@ void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
   }
   fprintf(file,"\n");
 
-  if (align->delta != NULL)
-    { int *trace;
+  if (align->alignment_trace != NULL) {
+    if (align->orientation == AS_INNIE)
+      Complement_Fragment_AS(b);
+    else if (align->orientation == AS_OUTTIE)
+      Complement_Fragment_AS(a);
 
-      trace = Unpack_Alignment_AS(align);
+    PrintAlign(file,align->ahg,align->bhg,a->sequence,b->sequence,align->alignment_trace);
 
-#ifdef DEBUG
-      { int i;
-
-        fprintf(stderr,"Print_Overlap_AS()-- uncompressed trace\n");
-        for (i = 0; trace[i] != 0; i++)
-          fprintf(file," %3d",trace[i]);
-        fprintf(stderr, "\n");
-      }
-#endif
-
-      if (align->orientation == AS_INNIE)
-        Complement_Fragment_AS(b);
-      else if (align->orientation == AS_OUTTIE)
-        Complement_Fragment_AS(a);
-
-      PrintAlign(file,align->ahg,align->bhg,a->sequence,b->sequence,trace);
-
-      if (align->orientation == AS_INNIE)
-        Complement_Fragment_AS(b);
-      else if (align->orientation == AS_OUTTIE)
-        Complement_Fragment_AS(a);
-    }
+    if (align->orientation == AS_INNIE)
+      Complement_Fragment_AS(b);
+    else if (align->orientation == AS_OUTTIE)
+      Complement_Fragment_AS(a);
+  }
 }
 
 
@@ -647,6 +465,8 @@ void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
                                int *biggestBlock) {
   int swap = 0;
 
+  assert(align->alignment_trace != NULL);
+
   if (a->iaccession == align->bifrag) {
     InternalFragMesg *c;
     c = a;
@@ -655,26 +475,23 @@ void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
     swap = 1;
   }
 
-  if (align->delta != NULL) {
-    int *trace = Unpack_Alignment_AS(align);
+  if (align->orientation == AS_INNIE)
+    Complement_Fragment_AS(b);
+  else if (align->orientation == AS_OUTTIE)
+    Complement_Fragment_AS(a);
 
-    if (align->orientation == AS_INNIE)
-      Complement_Fragment_AS(b);
-    else if (align->orientation == AS_OUTTIE)
-      Complement_Fragment_AS(a);
+  AnalyzeAffineAlign(align->ahg,align->bhg,
+                     a->sequence,b->sequence,
+                     align->alignment_trace,amode,
+                     alen,blen,del,sub,ins,
+                     affdel,affins,
+                     blockdel,blockins,blocksize,
+                     biggestBlock);
 
-    AnalyzeAffineAlign(align->ahg,align->bhg,
-                       a->sequence,b->sequence,trace,amode,
-                       alen,blen,del,sub,ins,
-                       affdel,affins,
-                       blockdel,blockins,blocksize,
-                       biggestBlock);
-
-    if (align->orientation == AS_INNIE)
-      Complement_Fragment_AS(b);
-    else if (align->orientation == AS_OUTTIE)
-      Complement_Fragment_AS(a);
-  }
+  if (align->orientation == AS_INNIE)
+    Complement_Fragment_AS(b);
+  else if (align->orientation == AS_OUTTIE)
+    Complement_Fragment_AS(a);
 
   if (swap) {
     swap = *alen;

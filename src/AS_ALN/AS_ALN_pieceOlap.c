@@ -26,7 +26,8 @@
 #include "AS_global.h"
 #include "CA_ALN_local.h"
 #include "AS_ALN_aligners.h"
-#include "AS_ALN_local.h"
+
+#define OKNAFFINE 1
 
 #undef DEBUG_FIX_OLAP
 

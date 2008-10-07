@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_Bubble_Popper.c,v 1.16 2008-06-27 06:29:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_Bubble_Popper.c,v 1.17 2008-10-07 15:07:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,7 +36,6 @@ static char CM_ID[] = "$Id: AS_CGB_Bubble_Popper.c,v 1.16 2008-06-27 06:29:13 br
 #include "AS_PER_gkpStore.h"
 
 #undef AS_CGB_BUBBLE_VERBOSE2
-#undef DONT_ALLOC_OLAP_DELTAS
 
 extern int max_indel_AS_ALN_LOCOLAP_GLOBAL;
 
@@ -79,13 +78,6 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
 
     bp->bubMesgs[i].quality = NULL;
   }
-
-#ifndef DONT_ALLOC_OLAP_DELTAS
-  for (i = 0; i < BP_SQR(POPPER_MAX_BUBBLE_SIZE); ++i) {
-    bp->bubOlaps[i].delta = safe_malloc(sizeof(signed char) * 1);
-    bp->bubOlaps[i].delta[0] = 0;
-  }
-#endif // DONT_ALLOC_OLAP_DELTAS
 
 #if AS_CGB_BUBBLE_DIST_OUTPUT
   {
@@ -553,12 +545,6 @@ AS_CGB_Bubble_Popper_destroy(BubblePopper_t bp)
     (bp->bubMesgs[i].sequence)--; /* Other end of the hack in _init() */
     safe_free(bp->bubMesgs[i].sequence);
   }
-
-#ifndef DONT_ALLOC_OLAP_DELTAS
-  for (i = 0; i < BP_SQR(POPPER_MAX_BUBBLE_SIZE); ++i) {
-    safe_free(bp->bubOlaps[i].delta);
-  }
-#endif // DONT_ALLOC_OLAP_DELTAS
 
   BG_destroy(bp->bg);
   safe_free(bp->vidToBid); // proportional to the number of fragments

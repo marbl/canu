@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: convertOverlap.c,v 1.16 2008-06-27 06:29:18 brianwalenz Exp $
+//  $Id: convertOverlap.c,v 1.17 2008-10-07 15:07:49 brianwalenz Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -209,9 +209,8 @@ void   convertOVLtoASCII(void) {
   OVSoverlap    olap;
   OverlapMesg   omesg;
   GenericMesg   pmesg;
-  signed char   deltas[16] = {0};
 
-  omesg.delta = deltas;
+  omesg.alignment_trace = NULL;
 
   pmesg.m = &omesg;
   pmesg.t = MESG_OVL;

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.27 2008-06-27 06:29:17 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.28 2008-10-07 15:07:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -210,10 +210,13 @@ static void *Read_OVL_Mesg(FILE *fin)
   GET_FIELD(omesg.max_offset,"mxo:"F_COORD,"max-offset field");
   GET_FIELD(omesg.polymorph_ct,"pct:"F_S32,"poly-count field");
 
+  omesg.alignment_trace = NULL;
+
+#ifdef AS_MSG_USE_OVL_DELTA
   if (strncmp(ReadLine(fin,TRUE),"del:",4) != 0)
     MgenError("delta tag label");
 
-  omesg.delta = (signed char *)GetMemory(2*AS_FRAG_MAX_LEN);
+  omesg.alignment_delta = (signed char *)GetMemory(2*AS_FRAG_MAX_LEN);
 
   {
     int i, n;     /* Read a delta item (only one of its kind) */
@@ -227,10 +230,11 @@ static void *Read_OVL_Mesg(FILE *fin)
         t = u;
         if (! isspace((int)*t))
           MgenError("Delta is not a sequence of digits");
-        omesg.delta[i++] = n;
+        omesg.alignment_delta[i++] = n;
       }
-    omesg.delta[i] = 0;
+    omesg.alignment_delta[i] = 0;
   }
+#endif
 
   GetEOM(fin);
   return(&omesg);
@@ -1118,11 +1122,15 @@ static void Write_OVL_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"mno:"F_COORD"\n",omesg->min_offset);
   fprintf(fout,"mxo:"F_COORD"\n",omesg->max_offset);
   fprintf(fout,"pct:"F_S32"\n",omesg->polymorph_ct);
+#ifdef AS_MSG_USE_OVL_DELTA
   fprintf(fout,"del:\n");
-  for (i = 0; omesg->delta[i] != AS_ENDOF_DELTA_CODE; i++)
-    fprintf(fout,"%4d%c",omesg->delta[i], (i%15 == 14) ? '\n' : ' ');
-  fprintf(fout,"\n");
+  if (omesg->alignment_delta != NULL) {
+    for (i = 0; omesg->alignment_delta[i] != AS_ENDOF_DELTA_CODE; i++)
+      fprintf(fout,"%4d%c",omesg->alignment_delta[i], (i%15 == 14) ? '\n' : ' ');
+    fprintf(fout,"\n");
+  }
   fprintf(fout,".\n");
+#endif
   fprintf(fout,"}\n");
 }
 

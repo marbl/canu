@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.31 2008-08-12 01:57:27 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.32 2008-10-07 15:07:49 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_Bubble.h"
@@ -558,8 +558,6 @@ main(int argc, char **argv) {
       IntFragment_ID aid = get_iid_fragment(heapva->frags,avx);
       IntFragment_ID bid = get_iid_fragment(heapva->frags,bvx);
 
-      signed char delta[1] = {AS_ENDOF_DELTA_CODE};
-
       omesg.aifrag = aid;
       omesg.bifrag = bid;
 
@@ -593,7 +591,7 @@ main(int argc, char **argv) {
 
       omesg.quality = AS_OVS_decodeQuality(qua);
       omesg.polymorph_ct = 0;
-      omesg.delta = delta;
+      omesg.alignment_trace = NULL;
 
       WriteProtoMesg_AS(fcgb,&pmesg);
     }

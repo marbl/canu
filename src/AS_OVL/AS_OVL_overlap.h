@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.26 2008-06-27 06:29:18 brianwalenz Exp $
- * $Revision: 1.26 $
+ * $Id: AS_OVL_overlap.h,v 1.27 2008-10-07 15:07:49 brianwalenz Exp $
+ * $Revision: 1.27 $
 */
 
 
@@ -352,6 +352,10 @@
 #define  OUTPUT_OVERLAP_DELTAS   0
     //  If true include delta-encoding of overlap alignment
     //  in overlap messages.  Otherwise, omit them.
+    //  As of 6 Oct 2008, support for overlap deltas has been removed.
+    //  However, there are enough remnants in AS_MSG to output them.
+    //  Just enabling OUTPUT_OVERLAP_DELTAS will not compile; see
+    //  AS_MSG_USE_OVL_DELTA in AS_MSG.
 #define  PROBE_MASK              0x3e
     //  Used to determine probe step to resolve collisions
 #define  QUALITY_BASE_CHAR       '0'

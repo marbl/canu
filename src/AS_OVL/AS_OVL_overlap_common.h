@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.48 2008-06-27 06:29:18 brianwalenz Exp $
- * $Revision: 1.48 $
+ * $Id: AS_OVL_overlap_common.h,v 1.49 2008-10-07 15:07:49 brianwalenz Exp $
+ * $Revision: 1.49 $
 */
 
 
@@ -2882,8 +2882,10 @@ if  (Contig_Mode)
      return;
     }
 
-   ovMesg.delta = deltas;
+#if  OUTPUT_OVERLAP_DELTAS
+   ovMesg.alignment_delta = deltas;
    *deltas = '\0';
+#endif
    assert (S_ID < T_ID);
 
    S_Right_Hang = S_Len - olap -> s_hi - 1;

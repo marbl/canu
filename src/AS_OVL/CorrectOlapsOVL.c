@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.32 2008-06-27 06:29:18 brianwalenz Exp $
- * $Revision: 1.32 $
+ * $Id: CorrectOlapsOVL.c,v 1.33 2008-10-07 15:07:49 brianwalenz Exp $
+ * $Revision: 1.33 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.32 2008-06-27 06:29:18 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.33 2008-10-07 15:07:49 brianwalenz Exp $";
 
 
 //  System include files
@@ -1426,7 +1426,6 @@ static int  Output_OVL
    OverlapMesg  ovMesg;
    GenericMesg  outputMesg;
    Frag_Pair_t  pair, * found;
-   signed char  deltas [] = "";
 
    switch  (olap -> orient)
      {
@@ -1474,7 +1473,7 @@ static int  Output_OVL
        {
         outputMesg . m = & ovMesg;
         outputMesg . t = MESG_OVL;
-        ovMesg . delta = deltas;
+        ovMesg . alignment_trace = NULL;
         ovMesg . aifrag = (Int_Frag_ID_t) olap -> a_iid;
         ovMesg . bifrag = (Int_Frag_ID_t) olap -> b_iid;
         if  (ovMesg . bhg <= 0)

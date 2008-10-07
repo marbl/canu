@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_FGB_main.c,v 1.23 2008-06-27 06:29:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_FGB_main.c,v 1.24 2008-10-07 15:07:49 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 
@@ -102,8 +102,6 @@ static void output_mesgs(Tfragment frags[],
     const IntFragment_ID bid = get_iid_fragment(frags,bvx);
     // Assembler internal Fragment ids.
 
-    signed char delta[1] = {AS_ENDOF_DELTA_CODE};
-
     ovl_mesg.aifrag = aid;
     ovl_mesg.bifrag = bid;
 
@@ -137,7 +135,7 @@ static void output_mesgs(Tfragment frags[],
 
     ovl_mesg.quality = AS_OVS_decodeQuality(qua);
     ovl_mesg.polymorph_ct = 0;
-    ovl_mesg.delta = delta;
+    ovl_mesg.alignment_trace = NULL;
 
     if(
        ((is_a_dvt_simple(ahg,bhg))&&(aid < bid))
