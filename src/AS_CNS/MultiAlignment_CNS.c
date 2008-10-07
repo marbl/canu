@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.198 2008-10-01 10:21:29 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.199 2008-10-07 14:35:30 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -948,7 +948,7 @@ int32 AppendFragToLocalStore(FragType          type,
   fragment.firstbead = GetNumBeads(beadStore);
 
   AppendRangechar(sequenceStore, fragment.length + 1, sequence);
-  AppendRangechar(qualityStore, fragment.length + 1, quality);
+  AppendRangechar(qualityStore,  fragment.length + 1, quality);
 
   {
     Bead bead;
@@ -1026,9 +1026,6 @@ AlignBeadToColumn(int32 cid, int32 bid) {
   Bead *align = GetBead(beadStore,bid);
   assert(align != NULL);
 
-  //if (bid == 739)
-  //fprintf(stderr, "AlignBeadToColumn()--  bead %d moving from col %d to col %d\n", align->boffset, align->column_index, cid);
-
   align->down         = first->boffset;
   align->up           = call->boffset;
   call->down          = align->boffset;
@@ -1036,8 +1033,6 @@ AlignBeadToColumn(int32 cid, int32 bid) {
   align->column_index = cid;
 
   IncBaseCount(&column->base_count,*Getchar(sequenceStore,align->soffset));
-
-  //CheckColumns();
 }
 
 // remove bid from it's column, returning the next bead up in the column
@@ -1411,62 +1406,132 @@ int32 FirstColumn(int32 mid, int32 bid) {
 }
 
 
-int MergeCompatible(int32 cid) {
-  // test for Level 1 (neighbor) merge compatibility of cid with right neighbor
-  // and merge if compatible
-  Column *column, *merge_column;
-  Bead *cbead, *mbead;
-  char cchar, mchar;
-  int32 mid; // id of bead to merge
-  int mergeok = 1;
-  column = GetColumn(columnStore,cid);
+// test for Level 1 (neighbor) merge compatibility of cid with right
+// neighbor and merge if compatible
+//
+int
+MergeCompatible(int32 cid) {
+
+  Column *column = GetColumn(columnStore,cid);
   assert(column != NULL);
-  if (column->next == -1) return 0;
-  merge_column = GetColumn(columnStore,column->next);
+  if (column->next == -1)
+    return(0);
+
+  Column *merge_column = GetColumn(columnStore,column->next);
   assert(merge_column != NULL);
-  cbead = GetBead(beadStore,column->call);
-  while (mergeok && cbead->down != - 1) {
+
+  //CheckColumnBaseCount(column);
+  //CheckColumnBaseCount(merge_column);
+
+  Bead *cbead = GetBead(beadStore,column->call);
+
+  //  If both columns have a non-gap, we cannot merge.
+
+  while (cbead->down != - 1) {
     cbead = GetBead(beadStore,cbead->down);
-    mid = cbead->next;
-    if ( mid == -1 ) continue;
-    mbead =  GetBead(beadStore,mid);
-    cchar = *Getchar(sequenceStore,cbead->soffset);
-    mchar = *Getchar(sequenceStore,mbead->soffset);
-    if ( ! ((cchar == '-') | ( mchar == '-')) ) mergeok = 0;
+    if (cbead->next != -1) {
+      Bead *mbead =  GetBead(beadStore, cbead->next);
+      if ((*Getchar(sequenceStore,cbead->soffset) != '-') &&
+          (*Getchar(sequenceStore,mbead->soffset) != '-'))
+        return(0);
+    }
   }
-  if ( mergeok ) { // go ahead and do merge (to left)
-    cbead = GetBead(beadStore,column->call);
-    while (cbead->down != - 1) {
-      cbead = GetBead(beadStore,cbead->down);
-      mid = cbead->next;
-      if ( mid == -1 ) continue;
-      mbead =  GetBead(beadStore,mid);
-      cchar = *Getchar(sequenceStore,cbead->soffset);
-      mchar = *Getchar(sequenceStore,mbead->soffset);
-      if ( ((cchar == '-') && ( mchar != '-')) ) {
-        LeftEndShiftBead(cbead->boffset,mid);
-        cbead = GetBead(beadStore,mid);
+
+#if 0
+  {
+    Column *l = column;
+    Column *r = merge_column;
+
+    char lc = *Getchar(sequenceStore, GetBead(beadStore, l->call)->soffset);
+    char rc = *Getchar(sequenceStore, GetBead(beadStore, r->call)->soffset);
+
+    fprintf(stderr, "MergeCompatible()-- l col=%d %c r col=%d %c\n", cid, lc, l->next, rc);
+  }
+#endif
+
+
+  //  do the merge - merge all the bases in merge_column (on the
+  //  right) to column (on the left).
+
+  cbead = GetBead(beadStore,column->call);
+  while (cbead->down != - 1) {
+    cbead = GetBead(beadStore,cbead->down);
+
+    if (cbead->next != -1) {
+      Bead *mbead =  GetBead(beadStore, cbead->next);
+
+      //fprintf(stderr, "merge? %c -- %c\n",
+      //        *Getchar(sequenceStore,cbead->soffset),
+      //        *Getchar(sequenceStore,mbead->soffset));
+
+      if ((*Getchar(sequenceStore,cbead->soffset) == '-') &&
+          (*Getchar(sequenceStore,mbead->soffset) != '-')) {
+        //fprintf(stderr, "merge  mbead from cid=%d to   cid=%d %c\n",
+        //        mbead->column_index, cbead->column_index, *Getchar(sequenceStore,mbead->soffset));
+
+        LateralExchangeBead(cbead->boffset, mbead->boffset);
+
+        //  LateralExchangeBead() moves contents.  Our pointers are
+        //  now backwards.  We only care about cbead though.
+
+        cbead = mbead;
       }
     }
-    //wrap up with any trailing guys from right that need to move left
-    while ( GetDepth(merge_column) != GetBaseCount(&merge_column->base_count,'-') ) {
-      mbead = GetBead(beadStore,merge_column->call);
-      while ( mbead->down != -1 ) {
-        mbead = GetBead(beadStore,mbead->down);
-        if ( *Getchar(sequenceStore,mbead->soffset) != '-' ) {
-          UnAlignBeadFromColumn(mbead->boffset);
-          AlignBeadToColumn(cbead->column_index,mbead->boffset);
-          cbead = mbead;
-          break;
-        }
-        if(GetDepth(merge_column) <= 0){
-          fprintf(stderr, "MergeCompatible empty column");
-          assert(0);
-        }
+  }
+
+  //  finish up by moving any remaining guys from the right column to
+  //  the left column.  We also delete '-' entries from the
+  //  merge_column.
+
+  assert(cid == cbead->column_index);
+
+  {
+    Bead *mcall = GetBead(beadStore,merge_column->call);  //  The consensus call of the column
+
+    //fprintf(stderr, "loop depth=%d gap=%d\n", GetDepth(merge_column), GetBaseCount(&merge_column->base_count,'-'));
+
+    while (mcall->down != -1) {
+      Bead *mbead = GetBead(beadStore, mcall->down);
+
+      //  If the mbead is not a gap, move it over to the left column,
+      //  otherwise just yank it out.
+      //
+      if (*Getchar(sequenceStore,mbead->soffset) != '-') {
+        //fprintf(stderr, "move bead from %d to cid=%d %c\n",
+        //        mbead->column_index, cid, *Getchar(sequenceStore,mbead->soffset));
+
+        UnAlignBeadFromColumn(mbead->boffset);
+        AlignBeadToColumn(cid, mbead->boffset);
+      } else {
+        //fprintf(stderr, "delete bead from %d (gap)\n",
+        //        mbead->column_index);
+
+        // heal wound left by lateral removal
+        if (mbead->prev != -1 ) GetBead(beadStore,mbead->prev)->next = mbead->next;
+        if (mbead->next != -1 ) GetBead(beadStore,mbead->next)->prev = mbead->prev;
+
+        UnAlignBeadFromColumn(mbead->boffset);
+        ClearBead(mbead->boffset);
       }
     }
-    return 1;
-  } else { return 0; }
+
+    // heal wound left by lateral removal of mcall
+    //
+    if (mcall->prev != -1 ) GetBead(beadStore,mcall->prev)->next = mcall->next;
+    if (mcall->next != -1 ) GetBead(beadStore,mcall->next)->prev = mcall->prev;
+
+    ClearBead(mcall->boffset);
+
+    // reset column pointers to bypass the removed column
+    //
+    if (merge_column->prev > -1 ) GetColumn(columnStore,merge_column->prev)->next = merge_column->next;
+    if (merge_column->next > -1 ) GetColumn(columnStore,merge_column->next)->prev = merge_column->prev;
+
+    //ClearColumn();
+  }
+
+  //  We have merged.
+  return(1);
 }
 
 int AverageDepth(int32 bgn, int32 end) {
@@ -4439,7 +4504,7 @@ ApplyAlignment(int32 afid,
   Fragment *afrag = NULL;
   Fragment *bfrag = NULL;
   int32 aboffset, bboffset; // offsets of first beads in fragments
-  int32 apos, bpos; // local offsets as alignment progresses
+  int32 apos, bpos;         // local offsets as alignment progresses
   int32 alen, blen;
 
   int32 ovl_remaining, column_appends, column_index;
@@ -4473,7 +4538,7 @@ ApplyAlignment(int32 afid,
   } else {
     afrag= GetFragment(fragmentStore,afid);
     assert(afrag != NULL);
-    alen = afrag->length;
+    alen     = afrag->length;
     aboffset = afrag->firstbead;
   }
 
@@ -4497,7 +4562,7 @@ ApplyAlignment(int32 afid,
   bfrag= GetFragment(fragmentStore,bfid);
   assert(bfrag != NULL);
 
-  blen = bfrag->length;
+  blen     = bfrag->length;
   bboffset = bfrag->firstbead;
 
   //  All the a beads should be in a column.  All the b beads should not.
@@ -4726,7 +4791,7 @@ ApplyAlignment(int32 afid,
     }
   }
 
-  CheckColumns();
+  //CheckColumns();
 
   safe_free(aindex);
   bfrag->manode=afrag->manode;
@@ -5116,68 +5181,28 @@ void PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey w
   safe_free(positions);
 }
 
-int RemoveNullColumn(int32 nid) {
-  Column *null_column = GetColumn(columnStore,nid);
-  Bead *call;
-  Bead *bead;
-
-  assert(null_column != NULL);
-  if(GetDepth(null_column) != GetBaseCount(&null_column->base_count,'-')){
-    fprintf(stderr, "RemoveNullColumn depth(null_column)!=gap basecount");
-    assert(0);
-  }
-  call = GetBead(beadStore,null_column->call);
-  while ( call->down != -1 ) {
-    bead = GetBead(beadStore,call->down);
-    // heal wound left by lateral removal
-    if (bead->prev != -1 ) GetBead(beadStore,bead->prev)->next = bead->next;
-    if (bead->next != -1 ) GetBead(beadStore,bead->next)->prev = bead->prev;
-    UnAlignBeadFromColumn(bead->boffset);
-  }
-  // heal wound left by lateral removal of call
-  if (call->prev != -1 ) GetBead(beadStore,call->prev)->next = call->next;
-  if (call->next != -1 ) GetBead(beadStore,call->next)->prev = call->prev;
-  // now, reset column pointers to bypass the removed column
-  if (null_column->prev > -1 ) GetColumn(columnStore,null_column->prev)->next = null_column->next;
-  if (null_column->next > -1 ) GetColumn(columnStore,null_column->next)->prev = null_column->prev;
-  return 1;
-}
 
 //*********************************************************************************
 // Simple sweep through the MultiAlignment columns, looking for columns
 // to merge and removing null columns
 //*********************************************************************************
 
-int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars,
-    int32 utg_alleles, CNS_Options *opp, int get_scores)
-{
-  MANode      *ma = NULL;
-  int32 cid;
-  int32 nid;
-  int32 removed=0;
-  int32 merged;
-  Column *column,*next_column;
+void
+MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars,
+            int32 utg_alleles, CNS_Options *opp, int get_scores) {
+  int32   cid = 0;
+  MANode *ma  = GetMANode(manodeStore,mid);
 
-  ma = GetMANode(manodeStore,mid);
   assert(ma != NULL);
-  for (cid=ma->first;cid!=-1;){
-    column = GetColumn(columnStore,cid);
-    merged = MergeCompatible(cid);
-    if (merged) {
-      nid = column->next;
-      while (nid > -1 ) {
-        next_column = GetColumn(columnStore,nid);
-        if ( GetDepth(next_column) == GetBaseCount(&next_column->base_count,'-') ) {
-          // remove this column and try MergeColumns again
-          RemoveNullColumn(nid);
-          MergeCompatible(cid);
-          nid = GetColumn(columnStore,cid)->next;
-        } else {
-          break;
-        }
-      }
-    }
-    cid = column->next;
+
+  //  Loop over all columns.  If do not merge, advance to the next
+  //  column, otherwise, stay here and merge to the now different next
+  //  column (MergeCompatible removes the column that gets merged into
+  //  the current column).
+  //
+  for (cid=ma->first; cid!=-1; ){
+    if (MergeCompatible(cid) == 0)
+      cid = GetColumn(columnStore,cid)->next;
   }
 
   {
@@ -5191,7 +5216,6 @@ int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars,
       make_v_list = 2;
 
     RefreshMANode(mid, 1, opp, &nv, &vl, make_v_list, get_scores);
-
     if (make_v_list && num_vars) {
       if (nv > 0) {
         *v_list = (IntMultiVar *)safe_realloc(*v_list, nv * sizeof(IntMultiVar));
@@ -5206,7 +5230,6 @@ int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars,
 
     safe_free(vl);
   }
-  return removed;
 }
 
 //*********************************************************************************
