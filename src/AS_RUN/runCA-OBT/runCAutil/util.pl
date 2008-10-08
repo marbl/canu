@@ -512,9 +512,7 @@ sub setParameters () {
 sub printHelp () {
 
     if (getGlobal("version")) {
-        my @full_pName = split('/',$0);
-        my $pName = $full_pName[$#full_pName];
-        print "$pName $MY_VERSION\n";
+        print "runCA version CVS TIP\n";
         exit(0);
     }
 
@@ -530,7 +528,21 @@ sub printHelp () {
     }
 
     if (getGlobal("help")) {
-        print $HELPTEXT;
+        print "usage: runCA -d <dir> -p <prefix> [options] <frg>\n";
+        print "  -d <dir>          Use <dir> as the working directory.  Required\n";
+        print "  -p <prefix>       Use <prefix> as the output prefix.  Required\n";
+        print "\n";
+        print "  -s <specFile>     Read options from the specifications file <specfile>.\n";
+        print "  		    <specfile> can also be one of the following key words:\n";
+        print "		      [no]OBT - run with[out] OBT\n";
+        print "		      noVec   - run with OBT but without Vector\n";
+        print "\n";
+        print "  -version          Version information\n";
+        print "  -fields           List of possible specFile options and default values\n";
+        print "\n";
+        print "  <frg>             CA formatted fragment file\n";
+        print "\n";
+        print "Complete documentation at http://wgs-assembler.sourceforge.net/\n";
         exit(0);
     }
 }

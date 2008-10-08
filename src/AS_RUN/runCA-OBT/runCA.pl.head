@@ -1,32 +1,5 @@
 #!/usr/bin/env perl
 
-my $MY_VERSION = " 4.3 (Build " . (qw/$Revision: 1.12 $/)[1] . ")";
-
-my $HELPTEXT = qq~Run a whole-genome shotgun assembly using Celera Assembler.
-
- usage: runCA -d <dir> -p <prefix> [options] <frg>
-
- inputs:
-  <frg>       Sequence file (.frg) generated e.g. by pullfrag.
-
- arguments:
-  -d <dir>          Use <dir> as the working directory. Required
-  -p <prefix>       Use <prefix> as the output prefix. Required
-  -s <specfile>     Read options from the specifications file <specfile>.
-  		    <specfile> can also be one of the following key words:
-		    [no]OBT - run with[out] OBT
-		    noVec - run with OBT but without Vector
-  -help	            This text
-  -version          Outputs the Celera Assembler Version
-  -fields           Outputs the specfile fields
-
-See the complete runCA documentation for more information at:
-http://wgs-assembler.wiki.sourceforge.net/
-
-or for JCVI internal users documentation can be found at:
-http://intranet.jcvi.org/cms/CeleraAssembler
-~;
-
 use strict;
 use Config;  #  for @signame
 use FindBin;
@@ -36,11 +9,8 @@ use vars qw($wrk $asm);
 use vars qw($numFrags);
 use vars qw(%global);
 use vars qw($commandLineOptions);
-use vars qw($JCVI $invocation $request_id);
 use POSIX qw(ceil floor);
 
 #  Set some not reasonable defaults.
 $wrk = undef;
 $asm = undef;
-$JCVI = 0;
-$invocation = $0;
