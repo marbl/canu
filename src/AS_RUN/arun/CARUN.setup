@@ -1,9 +1,0 @@
-alias assert_exists=ls
-CA_BIN=/usr/local/packages/CA/bin
-KMER=22
-NMER=50
-EUIDList="http://guid.jtc.jcvsf.org:8080/guid/GuidClientServer"
-EUIDNamespace="TIGR_DEFAULT"
-EUIDBlockSize=1024
-MEMORY=4GB
-
