@@ -36,7 +36,7 @@ typedef kMerHuge kMer;
 #endif
 
 
-#undef DEBUG
+#undef DEBUGADDBASE
 #undef DEBUGCOMP
 #undef DEBUGSPACE
 
@@ -233,7 +233,7 @@ public:
     u64bit  cf = letterToBits[ch];
     u64bit  cr = letterToBits[complementSymbol[ch]];
 
-#ifdef DEBUG
+#ifdef DEBUGADDBASE
     fprintf(stderr, "addBase() %c\n", ch);
 #endif
 
@@ -330,7 +330,7 @@ public:
         return(true);
       } else {
 #ifdef DEBUGCOMP
-        fprintf(stderr, "msvis="u64bitFMT" <= msv="u64bitFMT"\n",
+        fprintf(stderr, "msvis="u32bitFMT" <= msv="u32bitFMT"\n",
                 _merSizeValidIs, _merSizeValid[0]);
 #endif
       }
