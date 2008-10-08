@@ -18,23 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/**********************************************************************
-
-        Module:  UpdateREZ.h
-
-   Description:  Declaration of common data types used in UpdateREZ.c
-
-    Programmer:  S. Lonardi (stelo@cs.purdue.edu)
-
-       Written:  17 May 99
- **********************************************************************/
-
-/*********************************************************************
-   CVS_ID: $Id: UpdateREZ.h,v 1.5 2008-06-27 06:29:19 brianwalenz Exp $
- *********************************************************************/
 
 #ifndef UPDATE_REZ_H
 #define UPDATE_REZ_H
+
+static const char *rcsid_UPDATE_REZ_H = "$Id: UpdateREZ.h,v 1.6 2008-10-08 22:03:00 brianwalenz Exp $";
 
 #define DEBUG_UPDATE              0 // 0 no debug, 1 some, 2 more, 3 for dump scaffold contents
 

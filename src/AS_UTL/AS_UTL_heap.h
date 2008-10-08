@@ -18,10 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
 #ifndef AS_UTL_HEAP_H
 #define AS_UTL_HEAP_H
 
-//  $Id: AS_UTL_heap.h,v 1.7 2008-06-27 06:29:21 brianwalenz Exp $
+static const char *rcsid_AS_UTL_HEAP_H = "$Id: AS_UTL_heap.h,v 1.8 2008-10-08 22:03:00 brianwalenz Exp $";
 
 #include "AS_global.h"
 

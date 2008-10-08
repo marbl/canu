@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+const char *mainid = "$Id: prefixDelete.C,v 1.8 2008-10-08 22:02:57 brianwalenz Exp $";
+
 #include "util++.H"
 #include "trim.H"
 
@@ -53,6 +55,8 @@ main(int argc, char **argv) {
   char             *gkpName = 0L;
   FILE             *logFile = 0L;
   GateKeeperStore  *gkp     = 0L;
+
+  argc = AS_configure(argc, argv);
 
   int arg = 1;
   int err = 0;

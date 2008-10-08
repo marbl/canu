@@ -18,8 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
 #ifndef CONSISTENCY_CHECKS_H
 #define CONSISTENCY_CHECKS_H
+
+static const char *rcsid_CONSISTENCY_CHECKS_H = "$Id: ConsistencyChecksREZ.h,v 1.7 2008-10-08 22:03:00 brianwalenz Exp $";
 
 #include "DataTypesREZ.h"
 

@@ -18,10 +18,8 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* RCS info
- * $Id: AS_SIM_tobatches.c,v 1.7 2008-06-27 06:29:21 brianwalenz Exp $
- */
 
+static const char *rcsid = "$Id: AS_SIM_tobatches.c,v 1.8 2008-10-08 22:03:00 brianwalenz Exp $";
 
 /**********************************************************************
 
@@ -181,7 +179,7 @@ int main(int argc, char *argv[])
    }
 
   fprintf(stderr,__FILE__ " "  __DATE__ " " __TIME__ "\n");
-  fprintf(stderr,"$Id: AS_SIM_tobatches.c,v 1.7 2008-06-27 06:29:21 brianwalenz Exp $\n");
+  fprintf(stderr,"$Id: AS_SIM_tobatches.c,v 1.8 2008-10-08 22:03:00 brianwalenz Exp $\n");
   fprintf(stderr,"Batch size = %d\n",batch_size);
 
   fin = fopen(File_Name,"r");

@@ -18,7 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: hash.h,v 1.5 2008-06-27 06:29:22 brianwalenz Exp $ */
+
+#ifndef HASH_H
+#define HASH_H
+
+static const char *rcsid_HASH_H = "$Id: hash.h,v 1.6 2008-10-08 22:03:02 brianwalenz Exp $";
 
 typedef void HashTable;
 
@@ -28,3 +32,5 @@ int HashAdd(char *entry, HashTable *table, int isdef);
 char *HashRefButNoDef(HashTable *table);
 char *GetLastHash(HashTable *table);
 void PrintHashTable(HashTable *table);
+
+#endif

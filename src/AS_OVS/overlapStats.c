@@ -19,8 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: overlapStats.c,v 1.4 2008-06-27 06:29:18 brianwalenz Exp $
-
+const char *mainid = "$Id: overlapStats.c,v 1.5 2008-10-08 22:02:58 brianwalenz Exp $";
 
 //  install.packages(c("akima"))
 //
@@ -372,6 +371,8 @@ int
 main(int argc, char **argv) {
   char   *ovsName = NULL;
   char   *gkpName = NULL;
+
+  argc = AS_configure(argc, argv);
 
   int arg=1;
   int err=0;

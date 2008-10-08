@@ -18,8 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
 #ifndef AS_UTL_HISTO_H
 #define AS_UTL_HISTO_H
+
+static const char *rcsid_AS_UTL_HISTO_H = "$Id: AS_UTL_histo.h,v 1.3 2008-10-08 22:03:00 brianwalenz Exp $";
 
 typedef void DataType;
 typedef void (*AggregateFn)(DataType *a,int ib,DataType *b);

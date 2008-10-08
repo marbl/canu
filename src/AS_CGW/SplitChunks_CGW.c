@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.30 2008-06-27 06:29:14 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.31 2008-10-08 22:02:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

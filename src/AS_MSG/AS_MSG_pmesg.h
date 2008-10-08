@@ -18,10 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.68 2008-10-07 15:07:49 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.69 2008-10-08 22:02:57 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
+
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.69 2008-10-08 22:02:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <time.h>

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.56 2008-08-08 09:34:12 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkpStore.c,v 1.57 2008-10-08 22:02:59 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

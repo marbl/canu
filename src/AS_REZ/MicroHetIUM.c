@@ -18,6 +18,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+const char *mainid = "$Id: MicroHetIUM.c,v 1.12 2008-10-08 22:03:00 brianwalenz Exp $";
+
 #include <stdio.h>
 #include <assert.h>
 #include <errno.h>
@@ -695,6 +697,8 @@ main(int argc, char **argv) {
 
   GateKeeperStore *storeHandle;
   FILE            *input;
+
+  argc = AS_configure(argc, argv);
 
   int arg = 1;
   int err = 0;

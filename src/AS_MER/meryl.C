@@ -21,6 +21,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+const char *mainid = "$Id: meryl.C,v 1.5 2008-10-08 22:02:57 brianwalenz Exp $";
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -31,12 +33,16 @@
 
 #include "AS_MER_gkpStore_to_FastABase.H"
 
+#include "AS_global.h"
+
 //
 //  This is a SHADOW COPY!  The main really exists in kmer/meryl/meryl.C!
 //
 
 int
 main(int argc, char **argv) {
+  argc = AS_configure(argc, argv);
+
   merylArgs   *args = new merylArgs(argc, argv);
 
   //seqFactory::instance()->registerFile(new gkpStoreFile());

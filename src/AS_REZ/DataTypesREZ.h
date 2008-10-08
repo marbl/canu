@@ -18,29 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*************************************************
-* Module:  DataTypesREZ.c
-* Description:
-*   Declaration of common data types used in repeat resolution
-*
-*    Programmer:  A. Delcher
-*                 S. Lonardi (stelo@cs.purdue.edu)
-*       Written:  17 May 99
-*
-*
-* Assumptions:
-*
-* Notes:
-*
-*************************************************/
-
-/* RCS info
- * $Id: DataTypesREZ.h,v 1.7 2008-06-27 06:29:19 brianwalenz Exp $
- * $Revision: 1.7 $
-*/
 
 #ifndef DATA_TYPES_REZ_H
 #define DATA_TYPES_REZ_H
+
+static const char *rcsid_DATA_TYPES_REZ_H = "$Id: DataTypesREZ.h,v 1.8 2008-10-08 22:03:00 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_CGW_dataTypes.h"

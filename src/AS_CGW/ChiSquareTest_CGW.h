@@ -18,9 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ChiSquareTest_CGW.h,v 1.5 2008-06-27 06:29:14 brianwalenz Exp $	 */
+
 #ifndef ChiSquareTest_CGW_H
 #define ChiSquareTest_CGW_H
+
+static const char *rcsid_ChiSquareTest_CGW_H = "$Id: ChiSquareTest_CGW.h,v 1.6 2008-10-08 22:02:55 brianwalenz Exp $";
 
 /* Data structures for clustering edges based on Chi Squared tests on
    combinations of edges */

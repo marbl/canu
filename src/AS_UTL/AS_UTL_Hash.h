@@ -18,8 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
 #ifndef AS_UTL_HASH_H
 #define AS_UTL_HASH_H
+
+static const char *rcsid_AS_UTL_HASH_H = "$Id: AS_UTL_Hash.h,v 1.11 2008-10-08 22:03:00 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_heap.h"

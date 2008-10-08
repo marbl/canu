@@ -18,9 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: Stats_CGW.h,v 1.6 2008-06-27 06:29:14 brianwalenz Exp $	 */
+
 #ifndef STATS_CGW_H
 #define STATS_CGW_H
+
+static const char *rcsid_STATS_CGW_H = "$Id: Stats_CGW.h,v 1.7 2008-10-08 22:02:55 brianwalenz Exp $";
 
 /* Statistics -- see Stats_CGW.c */
 void GenerateCIGraphStats(void);

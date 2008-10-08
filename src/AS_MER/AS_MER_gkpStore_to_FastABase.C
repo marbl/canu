@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+static const char *rcsid = "$Id: AS_MER_gkpStore_to_FastABase.C,v 1.14 2008-10-08 22:02:57 brianwalenz Exp $";
+
 #include "AS_MER_gkpStore_to_FastABase.H"
 
 gkpStoreFile::gkpStoreFile(char const *gkpName,

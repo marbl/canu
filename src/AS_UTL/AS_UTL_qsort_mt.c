@@ -33,6 +33,8 @@
 
 //#include <sys/cdefs.h>
 
+static char *rcsid = "$Id: AS_UTL_qsort_mt.c,v 1.4 2008-10-08 22:03:00 brianwalenz Exp $";
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

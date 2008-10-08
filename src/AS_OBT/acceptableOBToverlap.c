@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+const char *mainid = "$Id: acceptableOBToverlap.c,v 1.5 2008-10-08 22:02:57 brianwalenz Exp $";
+
 #include "AS_global.h"
 #include "AS_OVS_overlapFile.h"
 
@@ -26,6 +28,9 @@
 
 int
 main(int argc, char **argv) {
+
+  argc = AS_configure(argc, argv);
+
   BinaryOverlapFile   *in = AS_OVS_openBinaryOverlapFile("-", FALSE);
   BinaryOverlapFile   *ot = AS_OVS_createBinaryOverlapFile("-", FALSE);
   OVSoverlap           ol;

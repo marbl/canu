@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+const char *mainid = "$Id: PartitionSDB.c,v 1.7 2008-10-08 22:03:00 brianwalenz Exp $";
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -122,6 +124,8 @@ main(int argc, char **argv) {
 
   VA_TYPE(tPartitionElement) *utgPartitionElems;
   VA_TYPE(tPartitionElement) *frgPartitionElems;
+
+  argc = AS_configure(argc, argv);
 
   int arg=1;
   while (arg < argc) {

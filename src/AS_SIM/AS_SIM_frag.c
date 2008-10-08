@@ -18,6 +18,9 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
+static const char *rcsid = "$Id: AS_SIM_frag.c,v 1.6 2008-10-08 22:03:00 brianwalenz Exp $";
+
 //#define DEBUG
 //#define DEBUGS
 /*
@@ -50,7 +53,7 @@
 #include "AS_global.h"
 #include "AS_UTL_rand.h"
 
-char FragVersion[] = "$Revision: 1.5 $";
+char FragVersion[] = "$Revision: 1.6 $";
 
 double drand48();
 void   srand48();

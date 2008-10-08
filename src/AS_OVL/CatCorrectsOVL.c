@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CatCorrectsOVL.c,v 1.11 2008-06-27 06:29:18 brianwalenz Exp $
- * $Revision: 1.11 $
+ * $Id: CatCorrectsOVL.c,v 1.12 2008-10-08 22:02:58 brianwalenz Exp $
+ * $Revision: 1.12 $
 */
 
-static char CM_ID[] = "$Id: CatCorrectsOVL.c,v 1.11 2008-06-27 06:29:18 brianwalenz Exp $";
+static char *rcsid = "$Id: CatCorrectsOVL.c,v 1.12 2008-10-08 22:02:58 brianwalenz Exp $";
 
 
 //  System include files

@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+static const char *rcsid = "$Id: SYS_UIDclient_JTC.c,v 1.9 2008-10-08 22:03:00 brianwalenz Exp $";
+
 #include <string.h> // for memcpy
 #include <assert.h> // for assert
 #include <curl/curl.h>

@@ -18,6 +18,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+#ifndef AS_UTL_FASTA_H
+#define AS_UTL_FASTA_H
+
+static const char *rcsid_AS_UTL_FASTA_H = "$Id: AS_UTL_fasta.h,v 1.4 2008-10-08 22:03:00 brianwalenz Exp $";
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -36,3 +41,5 @@ void
 AS_UTL_writeQVFastA(FILE *f,
                     char *q, int ql,
                     char *h, ...);
+
+#endif

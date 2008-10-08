@@ -18,7 +18,6 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ChunkOverlap_CGW.h,v 1.9 2008-06-27 06:29:14 brianwalenz Exp $	 */
 
 /* ChunkOverlap_CGW provides tools for invoking Gene's dpalign tool to compute
    overlaps between chunks.  Such overlaps are first 'collected' and then 'computed'.
@@ -77,6 +76,8 @@
 
 #ifndef CHUNKOVERLAP_H
 #define CHUNKOVERLAP_H
+
+static const char *rcsid_CHUNKOVERLAP_H = "$Id: ChunkOverlap_CGW.h,v 1.10 2008-10-08 22:02:55 brianwalenz Exp $";
 
 #include "AS_CGW_dataTypes.h"
 #include "AS_UTL_Var.h"

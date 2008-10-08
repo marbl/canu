@@ -1,3 +1,26 @@
+
+/**************************************************************************
+ * This file is part of Celera Assembler, a software program that
+ * assembles whole-genome shotgun reads into contigs and scaffolds.
+ * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
+ * License along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *************************************************************************/
+
+const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.26 2008-10-08 22:02:57 brianwalenz Exp $";
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -28,7 +51,7 @@
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.25 2008-09-25 05:40:13 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_CNS_asmReBaseCall.c,v 1.26 2008-10-08 22:02:57 brianwalenz Exp $";
 
 static HashTable_AS *utgUID2IID;
 
@@ -262,10 +285,10 @@ int main (int argc, char *argv[]) {
 
     int ch,errflg=0,illegal_use=0,help_flag=0,iflags=0;
 
-    fprintf(stderr,"Version: %s\n",CM_ID);
-
     optarg = NULL;
     ALIGNMENT_CONTEXT=AS_CONSENSUS;
+
+    argc = AS_configure(argc, argv);
 
     while ( !errflg &&
            ( (ch = getopt(argc, argv,
@@ -356,7 +379,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.25 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.26 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 

@@ -22,6 +22,8 @@
 #ifndef AS_REZ_MICROHETREZ_H
 #define AS_REZ_MICROHETREZ_H
 
+static const char *rcsid_AS_REZ_MICROHETREZ_H = "$Id: MicroHetREZ.h,v 1.12 2008-10-08 22:03:00 brianwalenz Exp $";
+
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 

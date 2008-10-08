@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: overlapStore.c,v 1.14 2008-06-27 06:29:18 brianwalenz Exp $
+const char *mainid = "$Id: overlapStore.c,v 1.15 2008-10-08 22:02:58 brianwalenz Exp $";
 
 #include "overlapStore.h"
 
@@ -39,6 +39,8 @@ main(int argc, char **argv) {
   uint32    fileListLen = 0;
   uint32    fileListMax = 10 * 1024;  //  If you run more than 10,000 overlapper jobs, you'll die.
   char    **fileList    = (char **)safe_malloc(sizeof(char *) * fileListMax);
+
+  argc = AS_configure(argc, argv);
 
   int arg=1;
   int err=0;

@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+const char *mainid = "$Id: dumpCloneMiddles.c,v 1.18 2008-10-08 22:02:55 brianwalenz Exp $";
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -114,6 +116,8 @@ main(int argc, char **argv) {
   int arg         = 1;
   int err         = 0;
   int firstScfArg = 0;
+
+  argc = AS_configure(argc, argv);
 
   GlobalData      = CreateGlobal_CGW();
 

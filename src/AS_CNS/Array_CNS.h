@@ -22,6 +22,8 @@
 #ifndef AS_CNS_ARRAY_INCLUDE
 #define AS_CNS_ARRAY_INCLUDE
 
+static const char *rcsid_AS_CNS_ARRAY_INCLUDE = "$Id: Array_CNS.h,v 1.11 2008-10-08 22:02:57 brianwalenz Exp $";
+
 #include "AS_global.h"
 #include "MultiAlignStore_CNS.h"
 

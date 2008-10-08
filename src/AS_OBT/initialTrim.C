@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+const char *mainid = "$Id: initialTrim.C,v 1.19 2008-10-08 22:02:57 brianwalenz Exp $";
+
 //  Read a fragStore, does quality trimming based on quality scores,
 //  intersects the quality trim with a vector trim, and updates the
 //  original clear range in the store.
@@ -39,6 +41,8 @@ int
 main(int argc, char **argv) {
   char   *gkpName             = 0L;
   FILE   *logFile             = 0L;
+
+  argc = AS_configure(argc, argv);
 
   int arg = 1;
   int err = 0;

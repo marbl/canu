@@ -18,19 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ScaffoldGraphIterator_CGW.h,v 1.6 2008-06-27 06:29:14 brianwalenz Exp $ */
-/*****************************************************************************
- *  ScaffoldGraphIterators
- *
- *  Saul A. Kravitz 5/99
- *
- *  This is the proposed data structures and operations for the
- *  scaffold graph that will be used for the final phases of the Chunk
- *  Graph walker.
- *
- ******************************************************************************/
+
 #ifndef SCAFFOLD_GRAPH_ITERATOR_H
 #define SCAFFOLD_GRAPH_ITERATOR_H
+
+static const char *rcsid_SCAFFOLD_GRAPH_ITERATOR_H = "$Id: ScaffoldGraphIterator_CGW.h,v 1.7 2008-10-08 22:02:55 brianwalenz Exp $";
 
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"

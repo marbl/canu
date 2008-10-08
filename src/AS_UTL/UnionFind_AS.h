@@ -18,9 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: UnionFind_AS.h,v 1.5 2008-06-27 06:29:21 brianwalenz Exp $	 */
+
 #ifndef UNION_FIND_H
 #define UNION_FIND_H
+
+static const char *rcsid_UNION_FIND_H = "$Id: UnionFind_AS.h,v 1.6 2008-10-08 22:03:00 brianwalenz Exp $";
 
 /* Union Find code based on Aho Hopcroft Ullman pg 131
 

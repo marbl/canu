@@ -18,9 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_CGW_dataTypes.h,v 1.13 2008-06-27 06:29:13 brianwalenz Exp $	 */
+
 #ifndef AS_CGW_DATATYPES_H
 #define AS_CGW_DATATYPES_H
+
+static const char *rcsid_AS_CGW_DATATYPES_H = "$Id: AS_CGW_dataTypes.h,v 1.14 2008-10-08 22:02:55 brianwalenz Exp $";
 
 #include <assert.h>
 #include "AS_global.h"

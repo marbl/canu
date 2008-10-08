@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char fileID[] = "$Id: GapWalkerREZ.c,v 1.14 2008-06-27 06:29:19 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapWalkerREZ.c,v 1.15 2008-10-08 22:03:00 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "InputDataTypes_CGW.h"

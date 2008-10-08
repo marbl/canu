@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char rcsid[] = "$Id: Consensus_CNS.c,v 1.64 2008-09-25 05:40:14 brianwalenz Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.65 2008-10-08 22:02:57 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>

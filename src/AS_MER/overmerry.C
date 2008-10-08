@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+const char *mainid = "$Id: overmerry.C,v 1.28 2008-10-08 22:02:57 brianwalenz Exp $";
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -743,6 +745,8 @@ main(int argc, char **argv) {
   ovmGlobalData  *g = new ovmGlobalData;
 
   assert(sizeof(kmerhit) == 8);
+
+  argc = AS_configure(argc, argv);
 
   int arg=1;
   int err=0;

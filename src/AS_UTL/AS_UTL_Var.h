@@ -22,6 +22,8 @@
 #ifndef AS_UTL_VAR_H
 #define AS_UTL_VAR_H
 
+static const char *rcsid_AS_UTL_VAR_H = "$Id: AS_UTL_Var.h,v 1.16 2008-10-08 22:03:00 brianwalenz Exp $";
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

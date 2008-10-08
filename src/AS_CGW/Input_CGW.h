@@ -18,12 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: Input_CGW.h,v 1.7 2008-06-27 06:29:14 brianwalenz Exp $  */
-/****************************************************************************
 
-***************************************************************************/
 #ifndef INPUT_CGW_H
 #define INPUT_CGW_H
+
+static const char *rcsid_INPUT_CGW_H = "$Id: Input_CGW.h,v 1.8 2008-10-08 22:02:55 brianwalenz Exp $";
 
 int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]);
 

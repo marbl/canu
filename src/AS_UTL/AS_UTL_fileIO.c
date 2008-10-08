@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.17 2008-06-27 06:29:21 brianwalenz Exp $";
+//static char *rcsid = "$Id: AS_UTL_fileIO.c,v 1.18 2008-10-08 22:03:00 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

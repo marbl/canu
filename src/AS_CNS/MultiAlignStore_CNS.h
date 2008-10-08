@@ -22,6 +22,8 @@
 #ifndef MULTIALIGNSTORE_H
 #define MULTIALIGNSTORE_H
 
+static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore_CNS.h,v 1.15 2008-10-08 22:02:57 brianwalenz Exp $";
+
 #include "AS_global.h"
 #include "MultiAlign.h"
 

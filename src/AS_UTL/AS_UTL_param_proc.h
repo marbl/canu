@@ -18,10 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_UTL_param_proc.h,v 1.5 2008-06-27 06:29:21 brianwalenz Exp $	 */
+
 #ifndef AS_UTL_PARAM_PROC
 #define AS_UTL_PARAM_PROC
-#endif
+
+static const char *rcsid_AS_UTL_PARAM_PROC = "$Id: AS_UTL_param_proc.h,v 1.6 2008-10-08 22:03:00 brianwalenz Exp $";
+
 /*************************************************************************
  Module:  AS_UTL_param_proc
  Description:
@@ -61,3 +63,4 @@ int getAllParams(const char * const moduleNameIn, char ** returnBuffer);
 // The user is responsible for releasing the memory in the returned
 // buffer using free().
 
+#endif

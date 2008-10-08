@@ -19,8 +19,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+#ifndef REVERSECOMPLEMENT_H
+#define REVERSECOMPLEMENT_H
+
+static const char *rcsid_REVERSECOMPLEMENT_H = "$Id: AS_UTL_reverseComplement.h,v 1.3 2008-10-08 22:03:00 brianwalenz Exp $";
+
 #include "AS_global.h"
 
 void reverseComplementSequence(char *seq, int len);
 void reverseComplement(char *seq, char *qlt, int len);
 void reverse(char *a, char *b, int len);
+
+#endif

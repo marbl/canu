@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.25 2008-06-27 06:29:14 brianwalenz Exp $";
+const char *mainid = "$Id: dumpSingletons.c,v 1.26 2008-10-08 22:02:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,6 +79,8 @@ main( int argc, char **argv) {
 
   GlobalData->File_Name_Prefix[0] = 0;
   GlobalData->Gatekeeper_Store_Name[0] = 0;
+
+  argc = AS_configure(argc, argv);
 
   int err=0;
   int arg=1;

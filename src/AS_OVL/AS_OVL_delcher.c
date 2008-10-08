@@ -18,6 +18,9 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
+static const char *rcsid = "$Id: AS_OVL_delcher.c,v 1.9 2008-10-08 22:02:58 brianwalenz Exp $";
+
 /*********************************************************************
    Module:  AS_OVL
    Description:  Assembly Overlap Module.  Computes overlaps between
@@ -25,15 +28,6 @@
       Definitions of functions declared in  delcher.h
    Assumptions:  Input meets specifications in the ProtoIO documents
  *********************************************************************/
-static char fileID[] = "$Id: AS_OVL_delcher.c,v 1.8 2008-06-27 06:29:17 brianwalenz Exp $";
-
-
-/* RCS info
- * $Id: AS_OVL_delcher.c,v 1.8 2008-06-27 06:29:17 brianwalenz Exp $
- * $Revision: 1.8 $
-*/
-
-
 
 #include  "AS_OVL_delcher.h"
 

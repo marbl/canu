@@ -22,6 +22,8 @@
 #ifndef AS_UTL_ALLOC_H
 #define AS_UTL_ALLOC_H
 
+static const char *rcsid_AS_UTL_ALLOC_H = "$Id: AS_UTL_alloc.h,v 1.7 2008-10-08 22:03:00 brianwalenz Exp $";
+
 //
 //  The safe_*alloc routines are the same as the normal routines,
 //  except they print a standard message and assert if memory cannot

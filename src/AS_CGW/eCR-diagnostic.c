@@ -18,6 +18,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+
+static const char *rcsid = "$Id: eCR-diagnostic.c,v 1.6 2008-10-08 22:02:55 brianwalenz Exp $";
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
 

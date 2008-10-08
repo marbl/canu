@@ -18,7 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: button.h,v 1.5 2008-06-27 06:29:21 brianwalenz Exp $ */
+
+#ifndef BUTTON_H
+#define BUTTON_H
+
+static const char *rcsid_BUTTON_H = "$Id: button.h,v 1.6 2008-10-08 22:03:02 brianwalenz Exp $";
 
 typedef void MT_OBJECT;
 
@@ -131,3 +135,5 @@ void mt_draw_title(MT_OBJECT *o, int x, int y, char *text);
 MT_OBJECT *mt_parent(MT_OBJECT *o);
 MT_OBJECT *mt_children(MT_OBJECT *o);
 MT_OBJECT *mt_sibling(MT_OBJECT *o);
+
+#endif

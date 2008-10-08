@@ -18,10 +18,8 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.58 2008-07-17 01:51:48 brianwalenz Exp $";
 
-
-
+const char *mainid = "$Id: AS_CGW_main.c,v 1.59 2008-10-08 22:02:55 brianwalenz Exp $";
 
 static const char *usage =
 "usage: %s [options] -g <GatekeeperStoreName> -o <OutputPath> <InputCGB.ext>\n"
@@ -191,7 +189,6 @@ int main(int argc, char *argv[]){
   _FPU_SETCW( fpu_cw );
 #endif
 
-  fprintf( stderr, "Version: %s\n",CM_ID);
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
   ContigOrientChecker * coc;
   coc = CreateContigOrientChecker();

@@ -18,19 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: StatisticsREZ.h,v 1.7 2008-06-27 06:29:19 brianwalenz Exp $	 */
-
-/**********************************************************************************
- *  StatisticsRez.h
- *
- *  Knut Reinert 12/99
- *
- *  This is the interface from CGW to REZ
- *
- **********************************************************************************/
 
 #ifndef STATISTICS_REZ_H
 #define STATISTICS_REZ_H
+
+static const char *rcsid_STATISTICS_REZ_H = "$Id: StatisticsREZ.h,v 1.8 2008-10-08 22:03:00 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <assert.h>

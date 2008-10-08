@@ -19,7 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_UTL_histogram.h,v 1.4 2008-06-27 06:29:18 brianwalenz Exp $
+#ifndef AS_UTL_HISTOGRAM_H
+#define AS_UTL_HISTOGRAM_H
+
+static const char *rcsid_AS_UTL_HISTOGRAM_H = "$Id: AS_UTL_histogram.h,v 1.5 2008-10-08 22:02:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -392,3 +395,5 @@ AS_UTL_histogram3dDump(AS_UTL_histogram3d *h, char *filename, char *label) {
 
   fclose(F);
 }
+
+#endif

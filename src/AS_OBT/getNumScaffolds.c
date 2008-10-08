@@ -19,6 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+const char *mainid = "$Id: getNumScaffolds.c,v 1.8 2008-10-08 22:02:57 brianwalenz Exp $";
 
 //  Not part of Overlap Based Trimming proper, but used by the script
 //  that runs OBT.  The build system cannot (apparently) handle
@@ -37,6 +38,7 @@ int
 main(int argc , char **argv) {
 
   argc = AS_configure(argc, argv);
+
   if (argc != 4) {
     fprintf(stderr, "usage: %s gkpStore cgw-checkpoint-prefix checkpoint-number\n", argv[0]);
     exit(1);

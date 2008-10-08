@@ -18,9 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*********************************************************************
-   CVS_ID:  $Id: AS_UTL_skiplist.h,v 1.6 2008-06-27 06:29:21 brianwalenz Exp $
- *********************************************************************/
+
+#ifndef AS_UTL_SKIPLIST_H
+#define AS_UTL_SKIPLIST_H
+
+static const char *rcsid_AS_UTL_SKIPLIST_H = "$Id: AS_UTL_skiplist.h,v 1.7 2008-10-08 22:03:00 brianwalenz Exp $";
 
 /********************************************************************/
 /* dynamic sorted sequences using skiplist (Pugh)
@@ -65,10 +67,6 @@
  * Look in the file AS_UTL_skiplist_test for examples of how to use
  * Skiplist
  */
-
-#ifndef AS_UTL_SKIPLIST_H
-#define AS_UTL_SKIPLIST_H
-
 
 #include<math.h>
 #include<stdio.h>

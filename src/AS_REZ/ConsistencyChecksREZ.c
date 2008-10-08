@@ -30,7 +30,7 @@
 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.12 2008-06-27 06:29:19 brianwalenz Exp $";
+static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.13 2008-10-08 22:03:00 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

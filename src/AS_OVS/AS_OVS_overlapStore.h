@@ -22,6 +22,8 @@
 #ifndef AS_OVS_OVERLAPSTORE_H
 #define AS_OVS_OVERLAPSTORE_H
 
+static const char *rcsid_AS_OVS_OVERLAPSTORE_H = "$Id: AS_OVS_overlapStore.h,v 1.12 2008-10-08 22:02:58 brianwalenz Exp $";
+
 #include <stdio.h>
 
 #include "AS_global.h"

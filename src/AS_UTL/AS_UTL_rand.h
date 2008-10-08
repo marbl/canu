@@ -18,8 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
 #ifndef AS_UTL_RAND_H
 #define AS_UTL_RAND_H
+
+static const char *rcsid_AS_UTL_RAND_H = "$Id: AS_UTL_rand.h,v 1.3 2008-10-08 22:03:00 brianwalenz Exp $";
+
 /* A normally distributed random number generator with zero mean and unit variance (stddev)
    From "Numerical Recipes in C", pg 217
 

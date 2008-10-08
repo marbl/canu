@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-// $Id: AS_UTL_UID.c,v 1.8 2008-06-27 06:29:21 brianwalenz Exp $
+static const char *rcsid = "$Id: AS_UTL_UID.c,v 1.9 2008-10-08 22:03:00 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

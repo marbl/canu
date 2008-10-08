@@ -19,13 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_global.h,v 1.27 2008-06-27 06:29:11 brianwalenz Exp $
-
 //  This is the global include file that all C files in the AS
 //  subsystem should include.
 
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
+
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.28 2008-10-08 22:06:33 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

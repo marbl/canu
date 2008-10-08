@@ -19,11 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-// $Id: AS_UTL_IID.h,v 1.2 2008-06-27 06:29:21 brianwalenz Exp $
-
 #ifndef AS_UTL_IID_H
 #define AS_UTL_IID_H
 
+static const char *rcsid_AS_UTL_IID_H = "$Id: AS_UTL_IID.h,v 1.3 2008-10-08 22:03:00 brianwalenz Exp $";
 
 typedef int32  CDS_CID_t;
 #define CDS_CID_MAX     INT32_MAX

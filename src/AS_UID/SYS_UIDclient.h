@@ -22,6 +22,8 @@
 #ifndef UID_CLIENT_H
 #define UID_CLIENT_H
 
+static const char *rcsid_UID_CLIENT_H = "$Id: SYS_UIDclient.h,v 1.13 2008-10-08 22:03:00 brianwalenz Exp $";
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>

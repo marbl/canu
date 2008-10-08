@@ -22,6 +22,8 @@
 #ifndef AS_PER_GENERICSTORE_H
 #define AS_PER_GENERICSTORE_H
 
+static const char *rcsid_AS_PER_GENERICSTORE_H = "$Id: AS_PER_genericStore.h,v 1.20 2008-10-08 22:02:59 brianwalenz Exp $";
+
 #define STREAM_FROMSTART -1
 #define STREAM_UNTILEND  -1
 

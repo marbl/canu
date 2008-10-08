@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.28 2008-06-16 22:53:26 brianwalenz Exp $";
+const char *mainid = "$Id: AS_TER_terminator.c,v 1.29 2008-10-08 22:03:00 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -677,6 +677,8 @@ int main (int argc, char *argv[]) {
   GateKeeperStore *gkpStore;
   FragStream      *fs;
   fragRecord       fr;
+
+  argc = AS_configure(argc, argv);
 
   int arg=1;
   int err=0;

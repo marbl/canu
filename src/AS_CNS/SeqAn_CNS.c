@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+const char *mainid = "$Id: SeqAn_CNS.c,v 1.6 2008-10-08 22:02:57 brianwalenz Exp $";
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -303,6 +305,8 @@ int main(int argc, char **argv) {
    char * seqStoreName  = NULL;
    int    seqStoreVer   = 0;
    int    seqStorePart  = 0;     
+
+   argc = AS_configure(argc, argv);
 
    while (arg < argc) {
       if (strcmp(argv[arg], "-c") == 0) {

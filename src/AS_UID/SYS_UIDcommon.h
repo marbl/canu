@@ -22,6 +22,8 @@
 #ifndef UID_COMMON_H
 #define UID_COMMON_H
 
+static const char *rcsid_UID_COMMON_H = "$Id: SYS_UIDcommon.h,v 1.10 2008-10-08 22:03:00 brianwalenz Exp $";
+
 #include "AS_global.h"
 
 /*  New UID server/client disabled/modified the original

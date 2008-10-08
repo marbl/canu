@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.60 2008-07-19 02:52:37 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.61 2008-10-08 22:02:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

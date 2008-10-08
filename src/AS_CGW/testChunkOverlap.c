@@ -18,7 +18,8 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: testChunkOverlap.c,v 1.8 2008-06-27 06:29:14 brianwalenz Exp $	 */
+
+const char *mainid = "$Id: testChunkOverlap.c,v 1.9 2008-10-08 22:02:55 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -85,6 +86,8 @@ int main(int argc, char *argv[]){
   int verbose = 0;
   char *tempPath;
   char chunkStorePath[FILENAME_MAX];
+
+  argc = AS_configure(argc, argv);
 
   { /* Parse the argument list using "man 3 getopt". */
     int ch,errflg=0;

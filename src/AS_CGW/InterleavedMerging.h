@@ -18,8 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
 #ifndef INTERLEAVED_MERGING_H
 #define INTERLEAVED_MERGING_H
+
+static const char *rcsid_INTERLEAVED_MERGING_H = "$Id: InterleavedMerging.h,v 1.8 2008-10-08 22:02:55 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"

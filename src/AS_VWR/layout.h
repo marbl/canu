@@ -18,7 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: layout.h,v 1.5 2008-06-27 06:29:22 brianwalenz Exp $ */
+
+#ifndef LAYOUT_H
+#define LAYOUT_H
+
+static const char *rcsid_LAYOUT_H = "$Id: layout.h,v 1.6 2008-10-08 22:03:02 brianwalenz Exp $";
 
 void SetCurrentFile(char *name);
 void ReadAssembly(FILE *);
@@ -74,3 +78,5 @@ void  DrawCoverage(MT_OBJECT *canvas, CoverPacket *cover, int xmin, int xmax);
 void  FreeCoverage(CoverPacket *cover);
 void  FreeHistogram(HistoPacket *hist);
 void  FreeObjects(ObjectPacket *obj);
+
+#endif

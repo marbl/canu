@@ -22,6 +22,8 @@
 #ifndef COMMONREZ_H
 #define COMMONREZ_H
 
+static const char *rcsid_COMMONREZ_H = "$Id: CommonREZ.h,v 1.9 2008-10-08 22:03:00 brianwalenz Exp $";
+
 #include "DataTypesREZ.h"
 
 #define  MAKE_CAM_FILE         0

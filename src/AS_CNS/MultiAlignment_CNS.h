@@ -21,6 +21,8 @@
 #ifndef MULTIALIGNMENT_CNS_INCLUDE
 #define MULTIALIGNMENT_CNS_INCLUDE
 
+static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.40 2008-10-08 22:02:57 brianwalenz Exp $";
+
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_MSG_pmesg.h"

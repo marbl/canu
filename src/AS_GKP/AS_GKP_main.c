@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_main.c,v 1.72 2008-08-05 14:31:02 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.73 2008-10-08 22:02:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -447,6 +447,8 @@ main(int argc, char **argv) {
   progName = argv[0];
   gkpStore = NULL;
   errorFP  = stdout;
+
+  argc = AS_configure(argc, argv);
 
   int arg = 1;
   int err = 0;

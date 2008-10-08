@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+static const char *rcsid = "$Id: AS_UTL_fasta.c,v 1.5 2008-10-08 22:03:00 brianwalenz Exp $";
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>

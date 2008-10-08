@@ -18,10 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: SplitChunks_CGW.h,v 1.8 2008-06-27 06:29:14 brianwalenz Exp $ */
+/* $Id: SplitChunks_CGW.h,v 1.9 2008-10-08 22:02:55 brianwalenz Exp $ */
 
 #ifndef SPLITCHUNKS_H
 #define SPLITCHUNKS_H
+
+static const char *rcsid_SPLITCHUNKS_H = "$Id: SplitChunks_CGW.h,v 1.9 2008-10-08 22:02:55 brianwalenz Exp $";
 
 #include "ScaffoldGraph_CGW.h"
 

@@ -18,6 +18,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+#ifndef ECR_H
+#define ECR_H
+
+static const char *rcsid_ECR_H = "$Id: eCR.h,v 1.10 2008-10-08 22:02:55 brianwalenz Exp $";
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -51,3 +56,5 @@ extern debugflags_t            debug;
 extern int                     totalContigsBaseChange;
 extern fragRecord              fsread;
 extern int                     iterNumber;
+
+#endif

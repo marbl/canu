@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.16 2008-06-27 06:29:14 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.17 2008-10-08 22:02:55 brianwalenz Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>

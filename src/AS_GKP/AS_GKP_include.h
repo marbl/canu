@@ -19,10 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.42 2008-08-05 14:31:02 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.43 2008-10-08 22:02:57 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
+
+static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.43 2008-10-08 22:02:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <errno.h>

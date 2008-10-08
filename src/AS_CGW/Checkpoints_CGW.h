@@ -21,6 +21,8 @@
 #ifndef CHECKPOINTS_CGW_H
 #define CHECKPOINTS_CGW_H
 
+static const char *rcsid_CHECKPOINTS_CGW_H = "$Id: Checkpoints_CGW.h,v 1.7 2008-10-08 22:02:55 brianwalenz Exp $";
+
 //  Defines the logical checkpoints
 
 #define CHECKPOINT_AFTER_READING_INPUT 0

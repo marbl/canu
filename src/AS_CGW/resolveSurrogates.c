@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.19 2008-06-27 06:29:14 brianwalenz Exp $";
+const char *mainid = "$Id: resolveSurrogates.c,v 1.20 2008-10-08 22:02:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,6 +51,8 @@ main(int argc, char **argv) {
   GlobalData          = CreateGlobal_CGW();
   GlobalData->stderrc = stderr;
   GlobalData->timefp  = stderr;
+
+  argc = AS_configure(argc, argv);
 
   int arg=1;
   int err=0;

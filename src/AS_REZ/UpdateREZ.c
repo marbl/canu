@@ -18,6 +18,9 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
+static const char *rcsid = "$Id: UpdateREZ.c,v 1.13 2008-10-08 22:03:00 brianwalenz Exp $";
+
 /**********************************************************************
 
         Module:  UpdateREZ.c
@@ -32,8 +35,6 @@
        Written:  17 May 99
 
  **********************************************************************/
-
-static char fileID[] = "$Id: UpdateREZ.c,v 1.12 2008-06-27 06:29:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>

@@ -107,8 +107,6 @@ endif
 all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 	@test -n nop
 
-meryl: $(MERYLOBJECTS) libAS_PER.a libAS_UTL.a $(KMERLIBS)
-
-mercy: mercy.o libAS_PER.a libAS_UTL.a $(KMERLIBS)
-
-overmerry: overmerry.o AS_MER_gkpStore_to_FastABase.o libAS_OVS.a libAS_PER.a libAS_UTL.a $(KMERLIBS)
+meryl:     $(MERYLOBJECTS)                            libCA.a $(KMERLIBS)
+mercy:     mercy.o                                    libCA.a $(KMERLIBS)
+overmerry: overmerry.o AS_MER_gkpStore_to_FastABase.o libCA.a $(KMERLIBS)

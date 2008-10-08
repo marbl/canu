@@ -19,10 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-// $Id: AS_PER_encodeSequenceQuality.h,v 1.6 2008-06-27 06:29:18 brianwalenz Exp $
-
 #ifndef AS_PER_ENCODESEQUENCEQUALITY_H
 #define AS_PER_ENCODESEQUENCEQUALITY_H
+
+static const char *rcsid_AS_PER_ENCODESEQUENCEQUALITY_H = "$Id: AS_PER_encodeSequenceQuality.h,v 1.7 2008-10-08 22:02:58 brianwalenz Exp $";
 
 // Functions for encoding sequence and quality values one char per
 // seq/quality pair.

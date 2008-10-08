@@ -18,18 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: RepeatRez.h,v 1.5 2008-06-27 06:29:19 brianwalenz Exp $	 */
 
-/************************************************************************
- *  RepeatRez.h
- *
- *  Saul A. Kravitz 10/99
- *
- *  This is the interface from CGW to REZ
- *
- ************************************************************************/
 #ifndef REPEAT_REZ_H
 #define REPEAT_REZ_H
+
+static const char *rcsid_REPEAT_REZ_H = "$Id: RepeatRez.h,v 1.6 2008-10-08 22:03:00 brianwalenz Exp $";
 
 #include "Globals_CGW.h"
 

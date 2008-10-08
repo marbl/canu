@@ -18,7 +18,8 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: gendata.c,v 1.5 2008-06-27 06:29:22 brianwalenz Exp $ */
+
+static const char *rcsid = "$Id: gendata.c,v 1.6 2008-10-08 22:03:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

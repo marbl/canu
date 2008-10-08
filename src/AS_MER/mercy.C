@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+const char *mainid = "$Id: mercy.C,v 1.3 2008-10-08 22:02:57 brianwalenz Exp $";
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -224,7 +226,7 @@ main(int argc, char **argv) {
 
   bool                beVerbose = false;
 
-  //fprintf(stderr, "using cached modes for testing!\n");
+  argc = AS_configure(argc, argv);
 
   int arg=1;
   while (arg < argc) {

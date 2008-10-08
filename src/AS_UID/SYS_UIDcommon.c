@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+static const char *rcsid = "$Id: SYS_UIDcommon.c,v 1.10 2008-10-08 22:03:00 brianwalenz Exp $";
+
 #include "SYS_UIDcommon.h"
 #include "SYS_UIDerror.h"
 

@@ -19,10 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: createFrgDeletes.c,v 1.14 2008-06-27 06:29:14 brianwalenz Exp $";
-
-
-/*********************************************************************/
+const char *mainid = "$Id: createFrgDeletes.c,v 1.15 2008-10-08 22:02:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,7 +71,9 @@ int main( int argc, char *argv[])
   VA_TYPE(char) *quality=CreateVA_char(200000);
 
   //  setbuf(stdout,NULL);
+
   argc = AS_configure(argc, argv);
+
   { /* Parse the argument list using "man 3 getopt". */
     int ch,errflg=0;
     optarg = NULL;

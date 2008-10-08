@@ -18,7 +18,8 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: remove_fragment.c,v 1.15 2008-06-27 06:29:17 brianwalenz Exp $ */
+
+const char *mainid = "$Id: remove_fragment.c,v 1.16 2008-10-08 22:02:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +42,8 @@ main(int argc, char ** argv) {
   GenericMesg    *gen = NULL;
   FragMesg       *frg = NULL;
   LinkMesg       *lkg = NULL;
+
+  argc = AS_configure(argc, argv);
 
   int arg = 1;
   int err = 0;

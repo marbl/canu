@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+const char *mainid = "$Id: merge-trimming.C,v 1.30 2008-10-08 22:02:57 brianwalenz Exp $";
+
 #include "trim.H"
 #include "constants.H"
 
@@ -110,6 +112,8 @@ main(int argc, char **argv) {
   bool     doModify          = true;  //  Make this false for testing
 
   line = new char [lineMax];
+
+  argc = AS_configure(argc, argv);
 
   if (argc < 5) {
     fprintf(stderr, "usage: %s [-log log] -frg frgStore -ovl overlap-consolidated\n", argv[0]);

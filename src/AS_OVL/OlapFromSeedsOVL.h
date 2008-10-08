@@ -33,13 +33,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.16 2008-06-27 06:29:18 brianwalenz Exp $
- * $Revision: 1.16 $
+ * $Id: OlapFromSeedsOVL.h,v 1.17 2008-10-08 22:02:58 brianwalenz Exp $
+ * $Revision: 1.17 $
 */
 
 
 #ifndef  __OLAPFROMSEEDS_H_INCLUDED
 #define  __OLAPFROMSEEDS_H_INCLUDED
+
+static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1.17 2008-10-08 22:02:58 brianwalenz Exp $";
 
 //**ALD determine if use new code to analyze true multialignments
 #define  USE_NEW_STUFF  1

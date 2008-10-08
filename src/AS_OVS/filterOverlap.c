@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: filterOverlap.c,v 1.4 2008-10-07 15:07:49 brianwalenz Exp $
+const char *mainid = "$Id: filterOverlap.c,v 1.5 2008-10-08 22:02:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,6 +59,8 @@ main(int argc, char **argv) {
   int    toBinary      = 0;
   int    toASCII       = 0;
   int    format        = FORMAT_NONE;
+
+  argc = AS_configure(argc, argv);
 
   maxError = AS_OVS_encodeQuality(1.0);
 

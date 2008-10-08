@@ -19,25 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/*************************************************
-* Module:  SharedOVL.c
-* Description:
-*   Functions shared by overlap programs
-*
-*    Programmer:  A. Delcher
-*       Started:   15 February 2007
-*
-* Assumptions:
-*
-* Notes:
-*
-*************************************************/
-
-/* RCS info
- * $Id: SharedOVL.c,v 1.9 2008-06-27 06:29:18 brianwalenz Exp $
- * $Revision: 1.9 $
-*/
-
+static const char *rcsid = "$Id: SharedOVL.c,v 1.10 2008-10-08 22:02:58 brianwalenz Exp $";
 
 #include  "SharedOVL.h"
 

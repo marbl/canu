@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+const char *mainid = "$Id: asmOutputFasta.c,v 1.12 2008-10-08 22:03:00 brianwalenz Exp $";
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -389,6 +391,8 @@ main(int argc, char **argv) {
   int               dumpDegenerates = 1;
   int               dumpContigs     = 1;
   int               dumpScaffolds   = 1;
+
+  argc = AS_configure(argc, argv);
 
   int arg=1;
   int err=0;

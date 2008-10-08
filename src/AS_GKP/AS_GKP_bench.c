@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_bench.c,v 1.5 2008-06-27 06:29:15 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_bench.c,v 1.6 2008-10-08 22:02:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -232,6 +232,8 @@ main(int argc, char **argv) {
   uint32    numReads   = 0;  //  Read random frags
 
   srand48(time(NULL));
+
+  argc = AS_configure(argc, argv);
 
   int arg=1;
   int err=0;

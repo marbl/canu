@@ -25,7 +25,7 @@
 //   Programmer:  A. Delcher
 //      Started:   4 Dec 2000
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.28 2008-06-27 06:29:18 brianwalenz Exp $";
+const char *mainid = "$Id: FragCorrectOVL.c,v 1.29 2008-10-08 22:02:58 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>

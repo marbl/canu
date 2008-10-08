@@ -19,10 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.50 2008-06-27 06:29:18 brianwalenz Exp $	 */
-
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
+
+static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id: AS_PER_gkpStore.h,v 1.51 2008-10-08 22:02:59 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

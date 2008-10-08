@@ -31,16 +31,10 @@ LIBRARIES = libCA.a
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-all: objs libs progs version
+all: objs libs progs
 	@ $(dosubdirs)
 
 objs libs progs install clean tester regression:
 	@ $(dosubdirs)
 
 libCA.a:     $(OBJECTS)
-
-.PHONY: version
-version:
-	cat version.c.tmpl | sed 's/CA_BUILDER_STR/${USER}/' | sed 's/CA_BUILD_DATE_STR/$(shell date)/' > version.c
-	$(CC) -o $(LOCAL_BIN)/version version.c
-	rm -f version.c

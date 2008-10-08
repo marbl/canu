@@ -21,6 +21,8 @@
 #ifndef FIXZLFCONTIGS_H
 #define FIXZLFCONTIGS_H
 
+static const char *rcsid_FIXZLFCONTIGS_H = "$Id: fixZLFContigs.h,v 1.5 2008-10-08 22:02:55 brianwalenz Exp $";
+
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "ScaffoldGraph_CGW.h"

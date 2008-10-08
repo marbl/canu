@@ -28,14 +28,15 @@
 
 
 /* RCS info
- * $Id: AS_OVL_delcher.h,v 1.9 2008-06-27 06:29:17 brianwalenz Exp $
- * $Revision: 1.9 $
+ * $Id: AS_OVL_delcher.h,v 1.10 2008-10-08 22:02:58 brianwalenz Exp $
+ * $Revision: 1.10 $
 */
 
 
 #ifndef  __DELCHER_H_INCLUDED
 #define  __DELCHER_H_INCLUDED
 
+static const char *rcsid_DELCHER_H_INCLUDED = "$Id: AS_OVL_delcher.h,v 1.10 2008-10-08 22:02:58 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>

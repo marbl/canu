@@ -26,13 +26,15 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.27 2008-10-07 15:07:49 brianwalenz Exp $
- * $Revision: 1.27 $
+ * $Id: AS_OVL_overlap.h,v 1.28 2008-10-08 22:02:58 brianwalenz Exp $
+ * $Revision: 1.28 $
 */
 
 
 #ifndef AS_OVL_OVERLAP_H
 #define AS_OVL_OVERLAP_H
+
+static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.28 2008-10-08 22:02:58 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"

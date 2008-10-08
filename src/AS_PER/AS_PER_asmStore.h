@@ -18,26 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_asmStore.h,v 1.18 2008-06-27 06:29:18 brianwalenz Exp $	 */
+
 #ifndef AS_PER_ASMSTORE_H
 #define AS_PER_ASMSTORE_H
-/*************************************************************************
- Module:  AS_PER_asmStore
- Description:
-    A thin layer on top of the IndexStore supporing the storage and
- retrieval of records from an assembly output file.
-    The idea is to provide easier to use shortcuts for the common
- operations, and let the other operations be accessed through the
- generic Index Store API.
 
- Assumptions:
-    Nothing special beyond genericStore.rtf
-
- Document:
-      GenericStore.rtf
-
- *************************************************************************/
-
+static const char *rcsid_AS_PER_ASMSTORE_H = "$Id: AS_PER_asmStore.h,v 1.19 2008-10-08 22:02:58 brianwalenz Exp $";
 
 #include <time.h>
 

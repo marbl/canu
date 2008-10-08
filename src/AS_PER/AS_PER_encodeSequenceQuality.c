@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_encodeSequenceQuality.c,v 1.7 2008-06-27 06:29:18 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_encodeSequenceQuality.c,v 1.8 2008-10-08 22:02:58 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>

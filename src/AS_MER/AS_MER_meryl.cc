@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+const char *mainid = "$Id: AS_MER_meryl.cc,v 1.13 2008-10-08 22:02:57 brianwalenz Exp $";
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -629,6 +631,8 @@ main(int argc, char **argv) {
   uint64            minimumCount     = 0;
   uint32            skipNum = 1;
 
+  argc = AS_configure(argc, argv);
+
   if (argc == 1) {
     fprintf(stderr, "usage: %s [options]\n", argv[0]);
     fprintf(stderr, "\n");
@@ -682,7 +686,7 @@ main(int argc, char **argv) {
           outputFile = argv[arg];
           break;
         case 'V':
-          fprintf(stdout, "version: CA $Id: AS_MER_meryl.cc,v 1.12 2008-06-27 06:29:16 brianwalenz Exp $\n");
+          fprintf(stdout, "version: CA $Id: AS_MER_meryl.cc,v 1.13 2008-10-08 22:02:57 brianwalenz Exp $\n");
           exit(0);
           break;
         default:

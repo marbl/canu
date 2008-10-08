@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.12 2008-06-27 06:29:17 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg2.c,v 1.13 2008-10-08 22:02:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

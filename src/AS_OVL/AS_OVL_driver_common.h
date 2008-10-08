@@ -25,11 +25,10 @@
  *   stores and build threads
  *************************************************/
 
-/* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.26 2008-06-27 06:29:18 brianwalenz Exp $
- * $Revision: 1.26 $
- */
+#ifndef AS_OVL_DRIVER_COMMON_H
+#define AS_OVL_DRIVER_COMMON_H
 
+static const char *rcsid_AS_OVL_DRIVER_COMMON_H = "$Id: AS_OVL_driver_common.h,v 1.27 2008-10-08 22:02:58 brianwalenz Exp $";
 
 #include  <unistd.h>
 
@@ -491,3 +490,6 @@ static int  ReadFrags
   }
   return  TRUE;
 }
+
+
+#endif

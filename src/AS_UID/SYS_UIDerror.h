@@ -22,6 +22,8 @@
 #ifndef UID_ERROR_H
 #define UID_ERROR_H
 
+static const char *rcsid_UID_ERROR_H = "$Id: SYS_UIDerror.h,v 1.8 2008-10-08 22:03:00 brianwalenz Exp $";
+
 void        SYS_UIDhandleAcceptError(int32 err_code);
 void        SYS_UIDhandleRegisterError(int32 err_code);
 void        SYS_UIDhandleCreateError(int32 err_code);

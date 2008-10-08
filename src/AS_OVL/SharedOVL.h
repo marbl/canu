@@ -34,13 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.h,v 1.12 2008-06-27 06:29:18 brianwalenz Exp $
- * $Revision: 1.12 $
+ * $Id: SharedOVL.h,v 1.13 2008-10-08 22:02:58 brianwalenz Exp $
+ * $Revision: 1.13 $
 */
 
 
 #ifndef  __SHAREDOVL_H_INCLUDED
 #define  __SHAREDOVL_H_INCLUDED
+
+static const char *rcsid_SHAREDOVL_H_INCLUDED = "$Id: SharedOVL.h,v 1.13 2008-10-08 22:02:58 brianwalenz Exp $";
 
 
 #include "AS_OVL_delcher.h"

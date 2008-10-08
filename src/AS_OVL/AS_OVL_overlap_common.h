@@ -18,6 +18,9 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.50 2008-10-08 22:02:58 brianwalenz Exp $";
+
 /*************************************************
 * Module:  AS_OVL_overlap.c
 * Description:
@@ -49,8 +52,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.49 2008-10-07 15:07:49 brianwalenz Exp $
- * $Revision: 1.49 $
+ * $Id: AS_OVL_overlap_common.h,v 1.50 2008-10-08 22:02:58 brianwalenz Exp $
+ * $Revision: 1.50 $
 */
 
 
@@ -477,7 +480,6 @@ main(int argc, char **argv) {
 
   {
     time_t  now = time (NULL);
-    fprintf(stderr, "Version: %s\n",CM_ID);
 #ifdef CONTIG_OVERLAPPER_VERSION
     fprintf (stderr, "Running Contig version, AS_READ_MAX_LEN = %d\n", AS_READ_MAX_LEN);
 #else

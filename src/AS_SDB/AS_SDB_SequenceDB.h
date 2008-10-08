@@ -22,6 +22,8 @@
 #ifndef AS_SEB_SEQUENCEDB_H
 #define AS_SEB_SEQUENCEDB_H
 
+static const char *rcsid_AS_SEB_SEQUENCEDB_H = "$Id: AS_SDB_SequenceDB.h,v 1.11 2008-10-08 22:03:00 brianwalenz Exp $";
+
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_fileIO.h"

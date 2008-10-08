@@ -19,10 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-// $Id: AS_UTL_UID.h,v 1.4 2008-06-27 06:29:21 brianwalenz Exp $
-
 #ifndef AS_UTL_UID_H
 #define AS_UTL_UID_H
+
+static const char *rcsid_AS_UTL_UID_H = "$Id: AS_UTL_UID.h,v 1.5 2008-10-08 22:03:00 brianwalenz Exp $";
 
 #include <string.h>
 

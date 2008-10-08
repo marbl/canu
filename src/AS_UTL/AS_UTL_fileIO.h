@@ -22,6 +22,8 @@
 #ifndef AS_UTL_FILEIO_H
 #define AS_UTL_FILEIO_H
 
+static const char *rcsid_AS_UTL_FILEIO_H = "$Id: AS_UTL_fileIO.h,v 1.7 2008-10-08 22:03:00 brianwalenz Exp $";
+
 //  Provides a safe and reliable mechanism for reading / writing
 //  binary data.
 //

@@ -18,12 +18,14 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
 #ifndef AS_UTL_INTERVAL_H
 #define AS_UTL_INTERVAL_H
+
+static const char *rcsid_AS_UTL_INTERVAL_H = "$Id: AS_UTL_interval.h,v 1.3 2008-10-08 22:03:00 brianwalenz Exp $";
 
 #include "AS_global.h"
 
 int32 IntervalsOverlap(int32 a_bgn, int32 a_end, int32 b_bgn, int32 b_end, int32 minimum_overlap);
-
 
 #endif

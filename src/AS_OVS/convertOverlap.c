@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: convertOverlap.c,v 1.18 2008-10-07 19:54:27 mcschatz Exp $
+const char *mainid = "$Id: convertOverlap.c,v 1.19 2008-10-08 22:02:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,6 +68,8 @@ main(int argc, char **argv) {
   int    toBinary     = 0;
   int    toASCII      = 0;
   int    format       = FORMAT_NONE;
+
+  argc = AS_configure(argc, argv);
 
   int arg=1;
   int err=0;

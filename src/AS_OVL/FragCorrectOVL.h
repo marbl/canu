@@ -18,24 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*************************************************
-* Module:  FragCorrectOVL.h
-* Description:
-*   Common declarations for fragment correction.
-*
-*    Programmer:  A. Delcher
-*       Started:   28 Dec 2001
-*
-* Assumptions:
-*
-* Notes:
-*
-*************************************************/
 
-/* RCS info
- * $Id: FragCorrectOVL.h,v 1.5 2008-06-27 06:29:18 brianwalenz Exp $
- * $Revision: 1.5 $
-*/
+#ifndef FRAGCORRECTOVL_H
+#define FRAGCORRECTOVL_H
+
+static const char *rcsid_FRAGCORRECTOVL_H = "$Id: FragCorrectOVL.h,v 1.6 2008-10-08 22:02:58 brianwalenz Exp $";
 
 
 typedef  enum
@@ -66,3 +53,5 @@ typedef  union
    Correction_t  corr;
   }  Correction_Output_t;
 
+
+#endif

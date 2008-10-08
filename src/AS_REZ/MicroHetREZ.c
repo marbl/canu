@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.20 2008-06-27 06:29:19 brianwalenz Exp $";
+static char *rcsid = "$Id: MicroHetREZ.c,v 1.21 2008-10-08 22:03:00 brianwalenz Exp $";
 
 #include <assert.h>
 #include <errno.h>

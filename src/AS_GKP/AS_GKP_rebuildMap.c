@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const rcsid[] = "$Id: AS_GKP_rebuildMap.c,v 1.6 2008-06-27 06:29:16 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_rebuildMap.c,v 1.7 2008-10-08 22:02:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+const char *mainid = "$Id: ExtractMessages.c,v 1.16 2008-10-08 22:02:57 brianwalenz Exp $";
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -69,6 +71,8 @@ main(int argc, char **argv) {
   int inc = 0;
   int err = 0;
   int msg = 0;
+
+  argc = AS_configure(argc, argv);
 
   while (arg < argc) {
     if        (strcmp(argv[arg], "-i") == 0) {

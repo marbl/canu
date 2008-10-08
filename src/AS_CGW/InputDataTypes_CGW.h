@@ -18,17 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: InputDataTypes_CGW.h,v 1.16 2008-06-27 06:29:14 brianwalenz Exp $	 */
-/****************************************************************************
- *  InputDataTypes_CGW
- *
- *  Saul A. Kravitz 9/99
- *
- *  Definitions for the data structures used to hold fragments and distance records
- *
- ***************************************************************************/
+
 #ifndef INPUTDATATYPES_CGW_H
 #define INPUTDATATYPES_CGW_H
+
+static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id: InputDataTypes_CGW.h,v 1.17 2008-10-08 22:02:55 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"

@@ -33,13 +33,7 @@
 *
 *************************************************/
 
-/* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.33 2008-10-07 15:07:49 brianwalenz Exp $
- * $Revision: 1.33 $
-*/
-
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.33 2008-10-07 15:07:49 brianwalenz Exp $";
-
+const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.34 2008-10-08 22:02:58 brianwalenz Exp $";
 
 //  System include files
 

@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.199 2008-10-07 14:35:30 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.200 2008-10-08 22:02:57 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>

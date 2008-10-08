@@ -18,17 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.25 2008-06-27 06:29:14 brianwalenz Exp $	 */
-/***************************************************************************
- *  ScaffoldGraph
- *
- *  Saul A. Kravitz 5/99
- *
- *  This is the proposed data structures and operations for the scaffold
- *  graph that will be used for the final phases of the Chunk Graph walker.
- ***************************************************************************/
+
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
+
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.26 2008-10-08 22:02:55 brianwalenz Exp $";
+
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_MSG_pmesg.h"

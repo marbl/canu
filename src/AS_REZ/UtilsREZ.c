@@ -31,7 +31,7 @@
 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: UtilsREZ.c,v 1.9 2008-06-27 06:29:19 brianwalenz Exp $";
+static char *rcsid = "$Id: UtilsREZ.c,v 1.10 2008-10-08 22:03:00 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
