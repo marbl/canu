@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.50 2008-10-08 22:02:58 brianwalenz Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.51 2008-10-08 22:58:20 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,8 +52,8 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.50 2008-10-08 22:02:58 br
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.50 2008-10-08 22:02:58 brianwalenz Exp $
- * $Revision: 1.50 $
+ * $Id: AS_OVL_overlap_common.h,v 1.51 2008-10-08 22:58:20 brianwalenz Exp $
+ * $Revision: 1.51 $
 */
 
 
@@ -478,6 +478,8 @@ main(int argc, char **argv) {
   int  illegal;
   char  * p;
 
+  argc = AS_configure(argc, argv);
+
   {
     time_t  now = time (NULL);
 #ifdef CONTIG_OVERLAPPER_VERSION
@@ -487,8 +489,6 @@ main(int argc, char **argv) {
 #endif
     fprintf (stderr, "### Starting at  %s\n", ctime (& now));
   }
-
-  argc = AS_configure(argc, argv);
 
   fprintf (stderr, "### Bucket size = " F_SIZE_T " bytes\n", sizeof (Hash_Bucket_t));
   fprintf (stderr, "### Read error rate = %.2f%%\n", 100.0 * AS_READ_ERROR_RATE);
