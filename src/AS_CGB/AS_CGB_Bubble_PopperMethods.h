@@ -21,6 +21,8 @@
 #ifndef _AS_CGB_BUBBLE_POPPER_METHODS_H_
 #define _AS_CGB_BUBBLE_POPPER_METHODS_H_
 
+static const char *rcsid__AS_CGB_BUBBLE_POPPER_METHODS_H_ = "$Id: AS_CGB_Bubble_PopperMethods.h,v 1.3 2008-10-08 22:02:54 brianwalenz Exp $";
+
 /* Finds all of the fragments associated with the bubble (NOTE:
    currently defined to be those fragments on a dovetail path between the
    start and end, inclusively).  Fills in the following fields of the

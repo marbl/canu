@@ -18,8 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
 #ifndef AS_ALN_FORCNS_H
 #define AS_ALN_FORCNS_H
+
+static const char *rcsid_AS_ALN_FORCNS_H = "$Id: AS_ALN_forcns.h,v 1.4 2008-10-08 22:02:54 brianwalenz Exp $";
 
 #include "AS_ALN_aligners.h"
 

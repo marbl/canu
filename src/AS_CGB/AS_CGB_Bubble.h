@@ -18,12 +18,15 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
 /* NOTE: Everything a user needs to find and squash bubbles can be
    found in this file!  The other AS_CGB_Bubble_*.h files are for
    internal use only! */
 
 #ifndef _AS_CGB_BUBBLE_H_
 #define _AS_CGB_BUBBLE_H_
+
+static const char *rcsid__AS_CGB_BUBBLE_H_ = "$Id: AS_CGB_Bubble.h,v 1.5 2008-10-08 22:02:54 brianwalenz Exp $";
 
 /* For debugging only.  Set this to 1 only for test-size problems ... :-) */
 #define AS_CGB_BUBBLE_VERBOSE 0

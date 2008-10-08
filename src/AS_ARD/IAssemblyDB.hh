@@ -21,6 +21,8 @@
 #ifndef IAssemblyDB_HH
 #define IAssemblyDB_HH
 
+static const char *rcsid_IAssemblyDB_HH = "$Id: IAssemblyDB.hh,v 1.4 2008-10-08 22:02:54 brianwalenz Exp $";
+
 #include <string>
 #include <IDBOutput.hh>
 

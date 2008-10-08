@@ -19,10 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_CGB_all.h,v 1.25 2008-06-27 06:29:13 brianwalenz Exp $
-
 #ifndef AS_CGB_ALL_INCLUDE
 #define AS_CGB_ALL_INCLUDE
+
+static const char *rcsid_AS_CGB_ALL_INCLUDE = "$Id: AS_CGB_all.h,v 1.26 2008-10-08 22:02:54 brianwalenz Exp $";
 
 #undef DONT_RUN_IN_SYMMETRIC_MODE      // Allow un-mated dovetail edges in CGB.  (??)
 

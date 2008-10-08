@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_edgemate.c,v 1.11 2008-06-27 06:29:13 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_edgemate.c,v 1.12 2008-10-08 22:02:54 brianwalenz Exp $";
 
 //  Description: These routines find and access the mate directed edge
 //  for a given edge of an overlap.

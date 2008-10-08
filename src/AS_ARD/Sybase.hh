@@ -23,6 +23,8 @@
 #ifndef Sybase_H
 #define Sybase_H
 
+static const char *rcsid_Sybase_H = "$Id: Sybase.hh,v 1.3 2008-10-08 22:02:54 brianwalenz Exp $";
+
 #include <iostream>
 #include "IDBOutput.hh"
 #include "IDBConnection.hh"

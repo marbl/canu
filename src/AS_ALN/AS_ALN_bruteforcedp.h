@@ -22,6 +22,8 @@
 #ifndef AS_ALN_BRUTEFORCEDP
 #define AS_ALN_BRUTEFORCEDP
 
+static const char *rcsid_AS_ALN_BRUTEFORCEDP = "$Id: AS_ALN_bruteforcedp.h,v 1.3 2008-10-08 22:02:54 brianwalenz Exp $";
+
 
 typedef struct {
   unsigned int  score  : 30;

@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+static const char *rcsid = "$Id: AS_FGB_hanging_fragment.c,v 1.6 2008-10-08 22:02:54 brianwalenz Exp $";
+
 #include "AS_CGB_all.h"
 
 #undef USE_REAPERS_DVT_DEGREE

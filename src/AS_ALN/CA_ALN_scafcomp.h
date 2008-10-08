@@ -18,8 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
 #ifndef CA_ALN_SCAFCOMP
 #define CA_ALN_SCAFCOMP
+
+static const char *rcsid_CA_ALN_SCAFCOMP = "$Id: CA_ALN_scafcomp.h,v 1.7 2008-10-08 22:02:54 brianwalenz Exp $";
 
 typedef struct {
   int gap_length;  /* Length of the inter-contig gap */

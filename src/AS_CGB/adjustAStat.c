@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: adjustAStat.c,v 1.3 2008-06-27 06:29:13 brianwalenz Exp $";
+const char *mainid = "$Id: adjustAStat.c,v 1.4 2008-10-08 22:02:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,6 +65,8 @@ main(int argc, char **argv) {
   int arg = 1;
   int err = 0;
   int hlp = 0;
+
+  argc = AS_configure(argc, argv);
 
   while (arg < argc) {
     if        (strcmp(argv[arg], "-u") == 0) {

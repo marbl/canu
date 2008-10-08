@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.14 2008-10-08 22:02:54 brianwalenz Exp $";
+
 /* Dynamic programming sequence comparison of two fragments.  General
    purpose utility that uses bit-vector d.p. for detection (see, "A Fast
    Bit-Vector Algorithm for Approximate String Matching on Dynamic

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_global.c,v 1.7 2008-07-16 18:45:03 brianwalenz Exp $
+//  $Id: AS_global.c,v 1.8 2008-10-08 22:02:54 brianwalenz Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,6 +34,13 @@ double AS_CGW_ERROR_RATE = -90.0;
 double AS_CNS_ERROR_RATE = -90.0;
 double AS_MAX_ERROR_RATE =   0.25;
 
+//  EVERY main program should define mainid.  The release manager
+//  should fill in releaseid with the release name.
+
+extern
+const char *mainid;
+const char *releaseid = "CVS TIP";
+
 //  We take argc and argv, so, maybe, eventually, we'll want to parse
 //  something out of there.  We return argc in case what we parse we
 //  want to remove.
@@ -41,57 +48,95 @@ double AS_MAX_ERROR_RATE =   0.25;
 int
 AS_configure(int argc, char **argv) {
   char *p = NULL;
-  int   i;
+  int   i, j;
 
-  AS_OVL_ERROR_RATE = 0.06;
-  AS_CGW_ERROR_RATE = 0.10;
-  AS_CNS_ERROR_RATE = 0.06;
+  //
+  //  Default values
+  //
+
+  AS_OVL_ERROR_RATE  = 0.06;
+  AS_CGW_ERROR_RATE  = 0.10;
+  AS_CNS_ERROR_RATE  = 0.06;
+
+  //
+  //  Environment
+  //
 
   p = getenv("AS_OVL_ERROR_RATE");
-  if (p) {
+  if (p)
     AS_OVL_ERROR_RATE = atof(p);
-    if ((AS_OVL_ERROR_RATE < 0.0) || (AS_MAX_ERROR_RATE < AS_OVL_ERROR_RATE)) {
-      fprintf(stderr, "%s: ERROR:  Invalid AS_OVL_ERROR_RATE ('%s'); should be between 0.0 and %0.2f\n", argv[0], p, AS_MAX_ERROR_RATE);
-      exit(1);
-    }
-    fprintf(stderr, "%s: AS_configure()-- AS_OVL_ERROR_RATE set to %0.2f\n", argv[0], AS_OVL_ERROR_RATE);
-  }
 
   p = getenv("AS_CGW_ERROR_RATE");
-  if (p) {
+  if (p)
     AS_CGW_ERROR_RATE = atof(p);
-    if ((AS_CGW_ERROR_RATE < 0.0) || (AS_MAX_ERROR_RATE < AS_CGW_ERROR_RATE)) {
-      fprintf(stderr, "%s: ERROR:  Invalid AS_CGW_ERROR_RATE ('%s'); should be between 0.0 and %0.2f\n", argv[0], p, AS_MAX_ERROR_RATE);
-      exit(1);
-    }
-    fprintf(stderr, "%s: AS_configure()-- AS_CGW_ERROR_RATE set to %0.2f\n", argv[0], AS_CGW_ERROR_RATE);
-  }
 
   p = getenv("AS_CNS_ERROR_RATE");
-  if (p) {
+  if (p)
     AS_CNS_ERROR_RATE = atof(p);
-    if ((AS_CNS_ERROR_RATE < 0.0) || (AS_MAX_ERROR_RATE < AS_CNS_ERROR_RATE)) {
-      fprintf(stderr, "%s: ERROR:  Invalid AS_CNS_ERROR_RATE ('%s'); should be between 0.0 and %0.2f\n", argv[0], p, AS_MAX_ERROR_RATE);
-      exit(1);
+
+  //
+  //  Command line
+  //
+
+  for (i=0; i<argc; i++) {
+    if        (strcasecmp(argv[i], "--ovlErrorRate") == 0) {
+      AS_OVL_ERROR_RATE = atof(argv[i+1]);
+      for (j=i+2; j<argc; j++)
+        argv[j-2] = argv[j];
+      argv[--argc] = NULL;
+      argv[--argc] = NULL;
+      i--;
+
+    } else if (strcasecmp(argv[i], "--cgwErrorRate") == 0) {
+      AS_CGW_ERROR_RATE = atof(argv[i+1]);
+      for (j=i+2; j<argc; j++)
+        argv[j-2] = argv[j];
+      argv[--argc] = NULL;
+      argv[--argc] = NULL;
+      i--;
+
+    } else if (strcasecmp(argv[i], "--cnsErrorRate") == 0) {
+      AS_CNS_ERROR_RATE = atof(argv[i+1]);
+      for (j=i+2; j<argc; j++)
+        argv[j-2] = argv[j];
+      argv[--argc] = NULL;
+      argv[--argc] = NULL;
+      i--;
     }
-    fprintf(stderr, "%s: AS_configure()-- AS_CNS_ERROR_RATE set to %0.2f\n", argv[0], AS_CNS_ERROR_RATE);
   }
 
-  //  Consensus will sometimes try to find alignments up to 4 times the error rate given.
-  AS_MAX_ERROR_RATE *= 4;
+  //
+  //  Et cetera.
+  //
 
   for (i=0; i<argc; i++) {
     if (strcmp(argv[i], "--version") == 0) {
-      char  tag[256];
-      strcpy(tag, "$Name: not supported by cvs2svn $");
-
-      if (strcmp(tag+1, "Name:  $") == 0)
-        strcpy(tag, "CVS TIP");
-
-      fprintf(stderr, "CA version %s.\n", tag);
+      fprintf(stderr, "CA version %s (%s).\n", releaseid, mainid);
       exit(0);
     }
   }
+
+  //
+  //  Checking.
+  //
+
+  if ((AS_OVL_ERROR_RATE < 0.0) || (AS_MAX_ERROR_RATE < AS_OVL_ERROR_RATE))
+    fprintf(stderr, "%s: ERROR:  Invalid AS_OVL_ERROR_RATE (%0.2f); should be between 0.0 and %0.2f\n",
+            argv[0], AS_OVL_ERROR_RATE, AS_MAX_ERROR_RATE), exit(1);
+
+  if ((AS_CGW_ERROR_RATE < 0.0) || (AS_MAX_ERROR_RATE < AS_CGW_ERROR_RATE))
+    fprintf(stderr, "%s: ERROR:  Invalid AS_CGW_ERROR_RATE (%0.2f); should be between 0.0 and %0.2f\n",
+            argv[0], AS_CGW_ERROR_RATE, AS_MAX_ERROR_RATE), exit(1);
+
+  if ((AS_CNS_ERROR_RATE < 0.0) || (AS_MAX_ERROR_RATE < AS_CNS_ERROR_RATE))
+    fprintf(stderr, "%s: ERROR:  Invalid AS_CNS_ERROR_RATE (%0.2f); should be between 0.0 and %0.2f\n",
+            argv[0], AS_CNS_ERROR_RATE, AS_MAX_ERROR_RATE), exit(1);
+
+  fprintf(stderr, "%s: AS_configure()-- AS_OVL_ERROR_RATE set to %0.2f\n", argv[0], AS_OVL_ERROR_RATE);
+  fprintf(stderr, "%s: AS_configure()-- AS_CGW_ERROR_RATE set to %0.2f\n", argv[0], AS_CGW_ERROR_RATE);
+  fprintf(stderr, "%s: AS_configure()-- AS_CNS_ERROR_RATE set to %0.2f\n", argv[0], AS_CNS_ERROR_RATE);
+
+  AS_MAX_ERROR_RATE *= 4;    //  Consensus will sometimes try to find alignments up to 4 times the error rate given.
 
   return(argc);
 }

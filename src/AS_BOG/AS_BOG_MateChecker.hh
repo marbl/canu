@@ -22,6 +22,8 @@
 #ifndef INCLUDE_AS_BOG_MATECHEKER
 #define INCLUDE_AS_BOG_MATECHEKER
 
+static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.29 2008-10-08 22:02:54 brianwalenz Exp $";
+
 #include "AS_BOG_UnitigGraph.hh"
 
 extern "C" {

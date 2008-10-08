@@ -17,6 +17,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.52 2008-10-08 22:02:54 brianwalenz Exp $";
+
 #include<vector>
 #include<cmath>
 #include<cstdlib>
@@ -103,8 +105,6 @@ void outputHistograms(UnitigGraph *utg, FragmentInfo *fi, FILE *stats) {
 int
 main (int argc, char * argv []) {
 
-  argc = AS_configure(argc, argv);
-
   // Get path/names of olap and frg stores from command line
   const char* OVL_Store_Path;
   const char* GKP_Store_Path;
@@ -121,6 +121,8 @@ main (int argc, char * argv []) {
   bool  unitigIntersectBreaking = false;
   bool  ejectUnhappyContained   = false;
   int   badMateBreakThreshold   = -7;
+
+  argc = AS_configure(argc, argv);
 
   optarg = NULL;
   while(!argsDone && (ch = getopt(argc, argv,"B:o:O:G:e:m:s:bk"))) {

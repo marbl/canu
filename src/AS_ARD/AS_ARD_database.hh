@@ -18,8 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
 #ifndef AS_ARD_database_HH
 #define AS_ARD_database_HH
+
+static const char *rcsid_AS_ARD_database_HH = "$Id: AS_ARD_database.hh,v 1.4 2008-10-08 22:02:54 brianwalenz Exp $";
 
 #include <string>
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.32 2008-10-07 15:07:49 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.33 2008-10-08 22:02:54 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_Bubble.h"
@@ -413,6 +413,8 @@ main(int argc, char **argv) {
   rg->maxfrags = 40000;
   rg->maxedges = 40000;
   rg->maxtext  = 40000;
+
+  argc = AS_configure(argc, argv);
 
   ParseCommandLine( rg, argc, argv);
 

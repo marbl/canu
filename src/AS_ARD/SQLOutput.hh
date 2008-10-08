@@ -23,6 +23,8 @@
 #ifndef SQLOutput_H
 #define SQLOutput_H
 
+static const char *rcsid_SQLOutput_H = "$Id: SQLOutput.hh,v 1.5 2008-10-08 22:02:54 brianwalenz Exp $";
+
 #include <iostream>
 #include "Sybase.hh"
 #include "IDBOutput.hh"

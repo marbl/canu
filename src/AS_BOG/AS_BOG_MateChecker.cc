@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.72 2008-10-08 22:02:54 brianwalenz Exp $";
+
 #include <math.h>
 #include "AS_BOG_MateChecker.hh"
 #include "AS_BOG_BestOverlapGraph.hh"

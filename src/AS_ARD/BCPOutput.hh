@@ -23,6 +23,8 @@
 #ifndef BCPOutput_H
 #define BCPOutput_H
 
+static const char *rcsid_BCPOutput_H = "$Id: BCPOutput.hh,v 1.5 2008-10-08 22:02:54 brianwalenz Exp $";
+
 #include <iostream>
 #include "SQLOutput.hh"
 

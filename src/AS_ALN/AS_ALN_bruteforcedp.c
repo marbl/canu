@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.3 2008-10-08 22:02:54 brianwalenz Exp $";
+
 #include "AS_global.h"
 #include "AS_ALN_bruteforcedp.h"
 #include "AS_UTL_reverseComplement.h"

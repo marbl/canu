@@ -18,8 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
 #ifndef CA_ALN_local_h
 #define CA_ALN_local_h
+
+static const char *rcsid_CA_ALN_local_h = "$Id: CA_ALN_local.h,v 1.3 2008-10-08 22:02:54 brianwalenz Exp $";
 
 /* Local alignment record:
      Coordinates are in terms of the d.p. matrix that go from (0,0)

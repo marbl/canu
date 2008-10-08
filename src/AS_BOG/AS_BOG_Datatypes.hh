@@ -22,6 +22,8 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.31 2008-10-08 22:02:54 brianwalenz Exp $";
+
 #include <map>
 #include <list>
 #include <vector>

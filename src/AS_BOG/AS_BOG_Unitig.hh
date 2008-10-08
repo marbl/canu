@@ -22,6 +22,8 @@
 #ifndef INCLUDE_AS_BOG_UNITIG
 #define INCLUDE_AS_BOG_UNITIG
 
+static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.6 2008-10-08 22:02:54 brianwalenz Exp $";
+
 #include "AS_BOG_Datatypes.hh"
 //#include "AS_BOG_ChunkGraph.hh"
 

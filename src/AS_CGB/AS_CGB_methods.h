@@ -24,6 +24,8 @@
 #ifndef AS_CGB_METHODS_INCLUDE
 #define AS_CGB_METHODS_INCLUDE
 
+static const char *rcsid_AS_CGB_METHODS_INCLUDE = "$Id: AS_CGB_methods.h,v 1.12 2008-10-08 22:02:54 brianwalenz Exp $";
+
 #include "AS_OVS_overlapStore.h"
 
 #define VAgetaccess(Type,va,index,member)  (((Type *)GetElement_VA(va,index))->member)

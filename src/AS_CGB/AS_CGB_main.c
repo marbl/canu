@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_main.c,v 1.18 2008-06-27 06:29:13 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_main.c,v 1.19 2008-10-08 22:02:54 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_unitigger_globals.h"
