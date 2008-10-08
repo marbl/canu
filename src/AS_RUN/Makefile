@@ -67,7 +67,7 @@ SCRIPTS = runCA \
 RUNCALOCAL = runCA-OBT/runCAutil/site-generic.pl
 
 ifeq ($(SITE_NAME),JCVI)
-  SCRIPTS += carun aget.pl ca_observer.plx ametrics.plx
+  SCRIPTS   += carun
   RUNCALOCAL = runCA-OBT/runCAutil/site-generic.pl
   CARUNLOCAL = runCA-OBT/runCAutil/site-jcvi.pl
 endif
@@ -106,18 +106,6 @@ runCA: runCA-OBT/runCA.pl.head $(RUNCALOCAL) runCA-OBT/runCAutil/util.pl runCA-O
 
 carun: runCA-OBT/runCA.pl.head $(CARUNLOCAL) runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm
 	@cat runCA-OBT/runCA.pl.head $(CARUNLOCAL) runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/$@
-	@chmod 775 $(LOCAL_BIN)/$@
-
-ca_observer.plx: runCA-OBT/ca_observer.plx
-	@cp -p $< $(LOCAL_BIN)/$@
-	@chmod 775 $(LOCAL_BIN)/$@
-
-aget.pl: runCA-OBT/aget.pl
-	@cp -p $< $(LOCAL_BIN)/$@
-	@chmod 775 $(LOCAL_BIN)/$@
-
-ametrics.plx: runCA-OBT/ametrics.plx
-	@cp -p $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 markUniqueUnique.rb: asmQC/markUniqueUnique.rb
