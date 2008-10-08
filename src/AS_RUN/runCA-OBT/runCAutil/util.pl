@@ -512,7 +512,16 @@ sub setParameters () {
 sub printHelp () {
 
     if (getGlobal("version")) {
-        print "runCA version CVS TIP\n";
+        my $bin = getBinDirectory();
+
+        system("$bin/gatekeeper   --version");
+        system("$bin/overlap      --version");
+        system("$bin/unitigger    --version");
+        system("$bin/buildUnitigs --version");
+        system("$bin/cgw          --version");
+        system("$bin/consensus    --version");
+        system("$bin/terminator   --version");
+
         exit(0);
     }
 
