@@ -145,15 +145,15 @@ sub overlapCorrection {
             open(F, "< $wrk/3-overlapcorrection/cat-corrects.frgcorrlist");
             while (<F>) {
                 if (m/^(.*)\/([0-9]*).frgcorr/) {
-                    unlink "$1/$2.frgcorr";
-                    unlink "$1/$2.err";
+                    #unlink "$1/$2.frgcorr";
+                    #unlink "$1/$2.err";
                     my $sge = int($2);
-                    unlink "$1/$sge.err";
+                    #unlink "$1/$sge.err";
                 }
             }
             close(F);
-            unlink "$wrk/3-overlapcorrection/cat-corrects.frgcorrlist";
-            unlink "$wrk/3-overlapcorrection/cat-corrects.err";
+            #unlink "$wrk/3-overlapcorrection/cat-corrects.frgcorrlist";
+            #unlink "$wrk/3-overlapcorrection/cat-corrects.err";
         }
     }
 
@@ -267,7 +267,7 @@ sub overlapCorrection {
             caFailure("$failedJobs failed.  Good luck.");
         }
 
-        unlink "$wrk/3-overlapcorrection/$asm.frgcorr" if ($cleanup);
+        #unlink "$wrk/3-overlapcorrection/$asm.frgcorr" if ($cleanup);
 
         $cmd  = "$bin/cat-erates ";
         $cmd .= "-L $wrk/3-overlapcorrection/cat-erates.eratelist ";
@@ -292,22 +292,22 @@ sub overlapCorrection {
             open(F, "< $wrk/3-overlapcorrection/cat-erates.eratelist");
             while (<F>) {
                 if (m/^(.*)\/([0-9]*).erate/) {
-                    unlink "$1/$2.erate";
-                    unlink "$1/$2.err";
+                    #unlink "$1/$2.erate";
+                    #unlink "$1/$2.err";
                     my $sge = int($2);
-                    unlink "$1/$sge.err";
+                    #unlink "$1/$sge.err";
                 }
             }
             close(F);
 
-            unlink "$wrk/3-overlapcorrection/overlapStore-update-erates.err";
-            unlink "$wrk/3-overlapcorrection/$asm.erates";
+            #unlink "$wrk/3-overlapcorrection/overlapStore-update-erates.err";
+            #unlink "$wrk/3-overlapcorrection/$asm.erates";
 
-            unlink "$wrk/3-overlapcorrection/cat-erates.err";
-            unlink "$wrk/3-overlapcorrection/cat-erates.eratelist";
+            #unlink "$wrk/3-overlapcorrection/cat-erates.err";
+            #unlink "$wrk/3-overlapcorrection/cat-erates.eratelist";
 
-            unlink "$wrk/3-overlapcorrection/frgcorr.sh";
-            unlink "$wrk/3-overlapcorrection/ovlcorr.sh";
+            #unlink "$wrk/3-overlapcorrection/frgcorr.sh";
+            #unlink "$wrk/3-overlapcorrection/ovlcorr.sh";
         }
     }
 }

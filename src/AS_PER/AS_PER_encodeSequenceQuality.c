@@ -19,10 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_encodeSequenceQuality.c,v 1.8 2008-10-08 22:02:58 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_encodeSequenceQuality.c,v 1.9 2008-10-09 00:48:12 brianwalenz Exp $";
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 #include "AS_PER_encodeSequenceQuality.h"
@@ -44,7 +45,12 @@ static char *rcsid = "$Id: AS_PER_encodeSequenceQuality.c,v 1.8 2008-10-08 22:02
 //    1 - 61 are valid quality values
 //    62 is unused
 //    63 encodes an n sequence value
-
+//
+//
+// If no quality values are supplied (the encodeSequence() and
+// decodeSequence() interfaces) sequence is 2-bit encoded if only ACGT
+// is present, otherwise, 4-bit encoded (ACGTN; four bits for
+// simplicity).
 
 #define SEQ_A 0x00
 #define SEQ_C 0x01
@@ -131,4 +137,211 @@ decodeSequenceQuality(char *enc,
   }
   *seq = 0;
   *qlt = 0;
+}
+
+
+
+
+
+int
+encodeSequence(char *enc,
+               char *seq) {
+  int   len    = strlen(seq);
+
+  int   encLen = 0;
+
+  char  eee    = 0;
+  int   eel    = 0;
+
+  int   twob   = 0;
+  int   four   = 0;
+
+  int   i;
+
+  for (i=0; i<len; i++) {
+    switch (seq[i]) {
+      case 'a':
+      case 'A':
+      case 'c':
+      case 'C':
+      case 'g':
+      case 'G':
+      case 't':
+      case 'T':
+        twob++;
+        break;
+      default:
+        four++;
+        break;
+    }
+  }
+
+  if (four == 0) {
+    enc[encLen++] = 't';
+
+    for (i=0; i<len; i++) {
+      if (eel == 4) {
+        enc[encLen++] = eee;
+        eel = 0;
+      }
+
+      switch (seq[i]) {
+        case 'a':
+        case 'A':
+          eee <<= 2;
+          eee  |= 0x00;  //  %00000000
+          eel++;
+          break;
+        case 'c':
+        case 'C':
+          eee <<= 2;
+          eee  |= 0x01;  //  %00000001
+          eel++;
+          break;
+        case 'g':
+        case 'G':
+          eee <<= 2;
+          eee  |= 0x02;  //  %00000010
+          eel++;
+          break;
+        case 't':
+        case 'T':
+          eee <<= 2;
+          eee  |= 0x03;  //  %00000011
+          eel++;
+          break;
+      }
+    }
+
+    eee <<= 2 * (4 - eel);
+
+  } else {
+    enc[encLen++] = 'f';
+
+    for (i=0; i<len; i++) {
+      if (eel == 2) {
+        enc[encLen++] = eee;
+        eel = 0;
+      }
+
+      switch (seq[i]) {
+        case 'a':
+        case 'A':
+          eee <<= 4;
+          eee  |= 0x00;  //  %00000001
+          eel++;
+          break;
+        case 'c':
+        case 'C':
+          eee <<= 4;
+          eee  |= 0x01;  //  %00000001
+          eel++;
+          break;
+        case 'g':
+        case 'G':
+          eee <<= 4;
+          eee  |= 0x02;  //  %00000001
+          eel++;
+          break;
+        case 't':
+        case 'T':
+          eee <<= 4;
+          eee  |= 0x03;  //  %00000001
+          eel++;
+          break;
+        default:
+          eee <<= 4;
+          eee  |= 0x0f;
+          eel++;
+          break;
+      }
+    }
+
+    eee <<= 4 * (2 - eel);
+  }
+
+  enc[encLen++] = eee;
+  enc[encLen]   = 0;
+
+  return(encLen);
+}
+
+
+void
+decodeSequence(char *enc,
+               char *seq,
+               int   seqLen) {
+
+  int   wrdpos = 0;
+  int   encpos = 1;
+  char  wrd    = enc[encpos++];
+
+  int   len;
+
+  if        (enc[0] == 't') {
+    //  Sequence is two-bit encoded
+
+    for (len=0; len < seqLen; len++) {
+      switch (wrd & 0xc0) {
+        case 0x00:  //  %00000000
+          seq[len] = 'A';
+          break;
+        case 0x40:  //  %01000000
+          seq[len] = 'C';
+          break;
+        case 0x80:  //  %10000000
+          seq[len] = 'G';
+          break;
+        case 0xc0:  //  %11000000
+          seq[len] = 'T';
+          break;
+      }
+
+      wrd <<= 2;
+      wrdpos++;
+
+      if (wrdpos == 4) {
+        wrdpos = 0;
+        wrd = enc[encpos++];
+      }
+    }
+
+  } else if (enc[0] == 'f') {
+    //  Sequence is four-bit encoded
+
+    for (len=0; len < seqLen; len++) {
+      switch (wrd & 0xf0) {
+        case 0x00:  //  %00000000
+          seq[len] = 'A';
+          break;
+        case 0x10:  //  %00010000
+          seq[len] = 'C';
+          break;
+        case 0x20:  //  %00100000
+          seq[len] = 'G';
+          break;
+        case 0x30:  //  %00110000
+          seq[len] = 'T';
+          break;
+        default:
+          seq[len] = 'N';
+          break;
+      }
+
+      wrd <<= 4;
+      wrdpos++;
+
+      if (wrdpos == 2) {
+        wrdpos = 0;
+        wrd = enc[encpos++];
+      }
+    }
+
+  } else {
+    //  Sequence is not encoded.
+
+    strncpy(seq, enc, seqLen);
+  }
+
+  seq[seqLen] = 0;
 }

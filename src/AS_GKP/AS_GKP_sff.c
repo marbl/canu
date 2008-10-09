@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.20 2008-06-27 06:29:16 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.21 2008-10-09 00:48:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -850,6 +850,7 @@ addReadToStore(GateKeeperStore *gkp,
                sffRead *r,
                GateKeeperFragmentRecord *gkf) {
   char       encodedsequence[AS_FRAG_MAX_LEN+1] = {0};
+  int        encodedlength;
 
   //  WARNING!  Search above for getLastElemStore() if you muck with this.
   gkf->readIID = getLastElemStore(gkpStore->frg) + 1;
@@ -866,11 +867,10 @@ addReadToStore(GateKeeperStore *gkp,
   setGatekeeperUIDtoIID(gkpStore, gkf->readUID, gkf->readIID, AS_IID_FRG);
   appendIndexStore(gkpStore->frg, gkf);
 
-  appendStringStore(gkpStore->seq, r->final_bases, gkf->seqLen);
+  encodedlength = encodeSequence(encodedsequence, r->final_bases);
+  appendStringStore(gkpStore->seq, encodedsequence, encodedlength);
 
-  encodeSequenceQuality(encodedsequence,
-                        r->final_bases,
-                        r->final_quality);
+  encodeSequenceQuality(encodedsequence, r->final_bases, r->final_quality);
   appendStringStore(gkpStore->qlt, encodedsequence, gkf->seqLen);
 
   appendStringStore(gkpStore->hps, NULL, 0);

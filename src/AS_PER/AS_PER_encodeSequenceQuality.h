@@ -22,7 +22,7 @@
 #ifndef AS_PER_ENCODESEQUENCEQUALITY_H
 #define AS_PER_ENCODESEQUENCEQUALITY_H
 
-static const char *rcsid_AS_PER_ENCODESEQUENCEQUALITY_H = "$Id: AS_PER_encodeSequenceQuality.h,v 1.7 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid_AS_PER_ENCODESEQUENCEQUALITY_H = "$Id: AS_PER_encodeSequenceQuality.h,v 1.8 2008-10-09 00:48:12 brianwalenz Exp $";
 
 // Functions for encoding sequence and quality values one char per
 // seq/quality pair.
@@ -37,5 +37,15 @@ void
 decodeSequenceQuality(char *encoded,
                       char *sequence,
                       char *quality);
+
+
+int
+encodeSequence(char *encoded,
+               char *sequence);
+
+void
+decodeSequence(char *encoded,
+               char *sequence,
+               int   seqLen);
 
 #endif

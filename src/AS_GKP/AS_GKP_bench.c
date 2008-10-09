@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_bench.c,v 1.6 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_bench.c,v 1.7 2008-10-09 00:48:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -105,6 +105,7 @@ addRandomFrags(char *gkpName, uint32 numFrags) {
   char                      seq[AS_FRAG_MAX_LEN];
   char                      qlt[AS_FRAG_MAX_LEN];
   char                      enc[AS_FRAG_MAX_LEN];
+  int                       enclen;
   char                      acgt[10] = {'a', 'c', 'g', 't', 'n', 'A', 'C', 'G', 'T', 'N'};
   int                       i, j;
 
@@ -135,7 +136,8 @@ addRandomFrags(char *gkpName, uint32 numFrags) {
     setGatekeeperUIDtoIID(gkp, gkf.readUID, gkf.readIID, AS_IID_FRG);
     appendIndexStore(gkp->frg, &gkf);
 
-    appendStringStore(gkp->seq, seq, gkf.seqLen);
+    enclen = encodeSequence(enc, seq);
+    appendStringStore(gkp->seq, enc, enclen);
 
     encodeSequenceQuality(enc, seq, qlt);
     appendStringStore(gkp->qlt, enc, gkf.seqLen);

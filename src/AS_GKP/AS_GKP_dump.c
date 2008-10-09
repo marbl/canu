@@ -19,14 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.42 2008-08-05 14:31:02 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.43 2008-10-09 00:48:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
 
 #include "AS_GKP_include.h"
-#include "AS_PER_encodeSequenceQuality.h"
 #include "AS_UTL_fasta.h"
 
 

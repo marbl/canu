@@ -33,7 +33,7 @@
 *
 *************************************************/
 
-const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.34 2008-10-08 22:02:58 brianwalenz Exp $";
+const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.35 2008-10-09 00:48:12 brianwalenz Exp $";
 
 //  System include files
 
@@ -91,8 +91,6 @@ const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.34 2008-10-08 22:02:58 brianwal
 #define  MAX_ERRORS                  (1 + (int) (AS_OVL_ERROR_RATE * MAX_FRAG_LEN))
     //  Most errors in any edit distance computation // 0.40
     //  KNOWN ONLY AT RUN TIME
-#define  MAX_SOURCE_LENGTH           4096
-    //  Most bytes allowed in fragment source comment string
 #define  EXPANSION_FACTOR            1.4
     // Factor by which to grow memory in olap array when reading it
 #define  MIN_BRANCH_END_DIST     20
@@ -2000,7 +1998,6 @@ static void  Read_Frags
 
   {
    fragRecord frag_read;
-   char  frag_source [MAX_SOURCE_LENGTH + 1];
    unsigned  clear_start, clear_end;
    int  i, j;
 
@@ -2016,9 +2013,9 @@ static void  Read_Frags
    Frag = (Frag_Info_t *) safe_calloc (Num_Frags, sizeof (Frag_Info_t));
 
    gkpStore = openGateKeeperStore(gkpStore_Path, FALSE);
-   loadGateKeeperStorePartial(gkpStore, Lo_Frag_IID, Hi_Frag_IID, FRAG_S_SEQ | FRAG_S_SRC);
+   loadGateKeeperStorePartial(gkpStore, Lo_Frag_IID, Hi_Frag_IID, FRAG_S_SEQ);
 
-   Frag_Stream = openFragStream (gkpStore, FRAG_S_SEQ | FRAG_S_SRC);
+   Frag_Stream = openFragStream (gkpStore, FRAG_S_SEQ);
    resetFragStream (Frag_Stream, Lo_Frag_IID, Hi_Frag_IID);
 
    for  (i = 0;  nextFragStream (Frag_Stream, &frag_read);

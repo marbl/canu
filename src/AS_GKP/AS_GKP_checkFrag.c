@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.40 2008-06-27 06:29:15 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.41 2008-10-09 00:48:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +35,7 @@ static int    checkfraginitialized = 0;
 static int    isspacearray[256] = {0};
 static int    isvalidACGTN[256] = {0};
 static char   encodedsequence[AS_FRAG_MAX_LEN+1] = {0};
-
+static int    encodedlength;
 
 
 
@@ -350,7 +350,8 @@ Check_FragMesg(FragMesg            *frg_mesg,
     setGatekeeperUIDtoIID(gkpStore, gkf.readUID, gkf.readIID, AS_IID_FRG);
     appendIndexStore(gkpStore->frg, &gkf);
 
-    appendStringStore(gkpStore->seq, frg_mesg->sequence, gkf.seqLen);
+    encodedlength = encodeSequence(encodedsequence, frg_mesg->sequence);
+    appendStringStore(gkpStore->seq, encodedsequence, encodedlength);
 
     encodeSequenceQuality(encodedsequence, frg_mesg->sequence, frg_mesg->quality);
     appendStringStore(gkpStore->qlt, encodedsequence,    gkf.seqLen);

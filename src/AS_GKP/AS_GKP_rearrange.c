@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_rearrange.c,v 1.9 2008-06-27 06:29:16 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_rearrange.c,v 1.10 2008-10-09 00:48:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +31,7 @@ static char const *rcsid = "$Id: AS_GKP_rearrange.c,v 1.9 2008-06-27 06:29:16 br
 #include "AS_PER_encodeSequenceQuality.h"
 
 static char   encodedsequence[AS_FRAG_MAX_LEN+1] = {0};
+static int    encodedlength;
 
 void
 addFragToStore(GateKeeperStore           *gkp,
@@ -51,7 +52,8 @@ addFragToStore(GateKeeperStore           *gkp,
   setGatekeeperUIDtoIID(gkp, gkf->readUID, gkf->readIID, AS_IID_FRG);
   appendIndexStore(gkp->frg, gkf);
 
-  appendStringStore(gkp->seq, seq, gkf->seqLen);
+  encodedlength = encodeSequence(encodedsequence, seq);
+  appendStringStore(gkpStore->seq, encodedsequence, encodedlength);
 
   encodeSequenceQuality(encodedsequence, seq, qlt);
   appendStringStore(gkp->qlt, encodedsequence, gkf->seqLen);

@@ -28,7 +28,7 @@
 #ifndef AS_OVL_DRIVER_COMMON_H
 #define AS_OVL_DRIVER_COMMON_H
 
-static const char *rcsid_AS_OVL_DRIVER_COMMON_H = "$Id: AS_OVL_driver_common.h,v 1.27 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid_AS_OVL_DRIVER_COMMON_H = "$Id: AS_OVL_driver_common.h,v 1.28 2008-10-09 00:48:12 brianwalenz Exp $";
 
 #include  <unistd.h>
 
@@ -127,7 +127,7 @@ int  OverlapDriver(int argc, char **argv)
 
   for  (i = 0;  i < Num_PThreads;  i ++)
     {
-      old_stream_segment [i] = openFragStream (OldFragStore, FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
+      old_stream_segment [i] = openFragStream (OldFragStore, FRAG_S_INF | FRAG_S_QLT);
     }
 
   if  (Num_PThreads > 1)
@@ -182,7 +182,7 @@ int  OverlapDriver(int argc, char **argv)
           loadGateKeeperStorePartial(hash_frag_store,
                                      First_Hash_Frag,
                                      Last_Hash_Frag,
-                                     FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
+                                     FRAG_S_INF | FRAG_S_QLT);
           assert (0 < First_Hash_Frag
                   && First_Hash_Frag <= Last_Hash_Frag
                   && Last_Hash_Frag  <= getLastElemFragStore (BACtigStore));
@@ -193,12 +193,12 @@ int  OverlapDriver(int argc, char **argv)
           loadGateKeeperStorePartial(hash_frag_store,
                                      First_Hash_Frag,
                                      Last_Hash_Frag,
-                                     FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
+                                     FRAG_S_INF | FRAG_S_QLT);
           assert (0 < First_Hash_Frag
                   && First_Hash_Frag <= Last_Hash_Frag
                   && Last_Hash_Frag  <= getLastElemFragStore (OldFragStore));
         }
-      HashFragStream = openFragStream (hash_frag_store, FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
+      HashFragStream = openFragStream (hash_frag_store, FRAG_S_INF | FRAG_S_QLT);
       resetFragStream (HashFragStream, First_Hash_Frag, Last_Hash_Frag);
       startIndex = First_Hash_Frag;
 
@@ -257,14 +257,14 @@ int  OverlapDriver(int argc, char **argv)
           loadGateKeeperStorePartial(curr_frag_store,
                                      Frag_Segment_Lo,
                                      Frag_Segment_Hi,
-                                     FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
+                                     FRAG_S_INF | FRAG_S_QLT);
           assert (0 < Frag_Segment_Lo
                   && Frag_Segment_Lo <= Frag_Segment_Hi
                   && Frag_Segment_Hi <= getLastElemFragStore (OldFragStore));
 
           for  (i = 0;  i < Num_PThreads;  i ++)
             {
-              old_stream_segment [i] = openFragStream (curr_frag_store, FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
+              old_stream_segment [i] = openFragStream (curr_frag_store, FRAG_S_INF | FRAG_S_QLT);
               resetFragStream (old_stream_segment [i], Frag_Segment_Lo, Frag_Segment_Hi);
             }
 
