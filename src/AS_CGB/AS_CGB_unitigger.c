@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.33 2008-10-08 22:02:54 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.34 2008-10-09 19:49:27 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_Bubble.h"
@@ -210,16 +210,19 @@ ParseCommandLine(UnitiggerGlobals * rg,
                 (rg->dechord_the_graph ? "on" : "off"));
         break;
       case 'e':
-        // -e <float or int> : Overlaps with error rates above this
-        // value will be ignored on input.
+        // -e <float> : Overlaps with error rates above this value
+        // will be ignored on input.  The rate is fraction error;
+        // 0.015 means 1.5% error.
         {
-          int float_erate_value = (NULL != strstr(optarg,"."));
-          if(float_erate_value) {
-            rg->overlap_error_threshold = AS_OVS_encodeQuality(atof(optarg) / 100.0);
-          } else {
-            rg->overlap_error_threshold = AS_OVS_encodeQuality(atof(optarg) / 1000.0);
-          }
-          fprintf(stderr,"The overlap_error_threshold = %f%%\n",
+          double  er = atof(optarg);
+          if ((er < 0.0) || (AS_MAX_ERROR_RATE < er))
+            fprintf(stderr, "Invalid overlap error threshold %s; must be between 0.00 and %.2f.\n",
+                    optarg, AS_MAX_ERROR_RATE), exit(1);
+
+          rg->overlap_error_threshold = AS_OVS_encodeQuality(er);
+
+          fprintf(stderr, "The overlap error threshold = %.3f = %.3f%%\n",
+                  rg->overlap_error_threshold,
                   AS_OVS_decodeQuality(rg->overlap_error_threshold) * 100.0);
         }
         break;

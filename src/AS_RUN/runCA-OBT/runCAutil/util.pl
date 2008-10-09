@@ -200,7 +200,7 @@ sub setDefaults () {
     #####  Error Rates
 
     $global{"ovlErrorRate"}                = 0.06;
-    $global{"utgErrorRate"}                = 15;
+    $global{"utgErrorRate"}                = 0.015;
     $global{"cnsErrorRate"}                = 0.06;
     $global{"cgwErrorRate"}                = 0.10;
 
@@ -499,17 +499,24 @@ sub setParameters () {
     #  We usually have:  ovl == cns <= cgw
     #
     my $ovlER = getGlobal("ovlErrorRate");
+    my $utgER = getGlobal("utgErrorRate");
     my $cgwER = getGlobal("cgwErrorRate");
     my $cnsER = getGlobal("cnsErrorRate");
 
     if (($ovlER < 0.0) || (0.25 < $ovlER)) {
-        caFailure("ovlErrorRate is $ovlER, this MUST be between 0.0 and 0.25.\n");
+        caFailure("ovlErrorRate is $ovlER, this MUST be between 0.00 and 0.25.\n");
+    }
+    if (($utgER < 0.0) || (0.25 < $utgER)) {
+        caFailure("utgErrorRate is $utgER, this MUST be between 0.00 and 0.25.\n");
     }
     if (($cgwER < 0.0) || (0.25 < $cgwER)) {
-        caFailure("cgwErrorRate is $cgwER, this MUST be between 0.0 and 0.25.\n");
+        caFailure("cgwErrorRate is $cgwER, this MUST be between 0.00 and 0.25.\n");
     }
     if (($cnsER < 0.0) || (0.25 < $cnsER)) {
-        caFailure("cnsErrorRate is $cnsER, this MUST be between 0.0 and 0.25.\n");
+        caFailure("cnsErrorRate is $cnsER, this MUST be between 0.00 and 0.25.\n");
+    }
+    if ($utgER > $ovlER) {
+        caFailure("utgErrorRate is $utgER, this MUST be <= ovlErrorRate ($ovlER)\n");
     }
     if ($ovlER > $cnsER) {
         caFailure("ovlErrorRate is $ovlER, this MUST be <= cnsErrorRate ($cnsER)\n");

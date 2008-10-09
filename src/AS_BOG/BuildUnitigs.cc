@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.52 2008-10-08 22:02:54 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.53 2008-10-09 19:49:27 brianwalenz Exp $";
 
 #include<vector>
 #include<cmath>
@@ -147,12 +147,15 @@ main (int argc, char * argv []) {
       case 'b':
         unitigIntersectBreaking = true; break;
       case 'e':
-        if (NULL != strstr(optarg,"."))
-          //  Is floating point -- parts per hundred (aka percent error)
-          erate = atof(optarg) / 100.0;
-        else
-          //  Is integer -- parts per thousand
-          erate = atof(optarg) / 1000.0;
+        {
+          erate = atof(optarg);
+          if ((erate < 0.0) || (AS_MAX_ERROR_RATE < erate))
+            fprintf(stderr, "Invalid overlap error threshold %s; must be between 0.00 and %.2f.\n",
+                    optarg, AS_MAX_ERROR_RATE), exit(1);
+
+          fprintf(stderr, "The overlap error threshold = %.3f = %.3f%%\n",
+                  erate, AS_OVS_decodeQuality(erate) * 100.0);
+        }
         break;
       case 'k':
         ejectUnhappyContained = true; break;
@@ -174,7 +177,7 @@ main (int argc, char * argv []) {
         fprintf(stderr, "  to try to estimate the genome size based on the constructed\n");
         fprintf(stderr, "  unitig lengths.\n");
         fprintf(stderr, "[-b] Break promisciuous unitigs at unitig intersection points\n");
-        fprintf(stderr, "[-e] Erate to generate unitigs for; default is 1.5\n");
+        fprintf(stderr, "[-e] Fraction error to generate unitigs for; default is 0.015\n");
         fprintf(stderr, "[-k] Kick out unhappy contained mated reads into singleton unitigs\n");
         fprintf(stderr, "[-m] Number of bad mates in a region required to break a unitig\n");
         fprintf(stderr, "     default is 7\n");
