@@ -57,9 +57,13 @@ merStream::approximateNumberOfMers(void) {
   //  If we don't know the range, sum all the sequence lengths,
   //  otherwise, it's just the length from begin to end.
   //
-  if (_end == ~u64bitZERO)
-    for (u32bit s=0; s<_ss->numberOfSequences(); s++)
+  if (_end == ~u64bitZERO) {
+    approx = u64bitZERO;
+    
+    for (u32bit s=0; s<_ss->numberOfSequences(); s++) {
       approx += _ss->lengthOf(s);
+    }
+  }
 
   return(approx);
 }
