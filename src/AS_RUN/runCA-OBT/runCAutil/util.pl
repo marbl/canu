@@ -369,6 +369,13 @@ sub makeAbsolute ($) {
     }
 }
 
+sub fixCase ($) {
+    my $var = shift @_;
+    my $val = getGlobal($var);
+    $val =~ tr/A-Z/a-z/;
+    setGlobal($var, $val);
+}
+
 sub setParametersFromFile ($@) {
     my $specFile  = shift @_;
     my @fragFiles = @_;
@@ -456,6 +463,16 @@ sub setParameters () {
     #
     makeAbsolute("vectorIntersect");
     makeAbsolute("pathMap");
+
+    #  Adjust case on some of them
+    #
+    fixCase("obtOverlapper");
+    fixCase("ovlOverlapper");
+    fixCase("unitigger");
+    fixCase("vectorTrimmer");
+    #fixCase("stopAfter");
+    fixCase("consensus");
+    fixCase("cleanup");
 
     #  PIck a nice looking set of binaries, and check them.
     #
