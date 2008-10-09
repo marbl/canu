@@ -87,7 +87,7 @@ AS_OVL_PROGS    = overlap overlap_ca
 SEED_OLAP_PROGS = olap-from-seeds
 CORRECT_PROGS   = correct-frags show-corrects correct-olaps cat-corrects cat-erates
 
-PROGS      = $(AS_OVL_PROGS) $(SEED_OLAP_PROGS) $(CORRECT_PROGS)
+C_PROGS    = $(AS_OVL_PROGS) $(SEED_OLAP_PROGS) $(CORRECT_PROGS)
 SCRIPTS    = $(AS_SCRIPTS)
 LIBRARIES  = libAS_OVL.a
 LIBRARIES += libCA.a
@@ -115,7 +115,7 @@ ifeq ($(OSTYPE), Darwin)
 endif
 
 
-all:    $(OBJECTS) $(LIBRARIES) $(PROGS) $(SCRIPTS)
+all:    $(OBJECTS) $(LIBRARIES) $(C_PROGS) $(SCRIPTS)
 	@test -n nop
 
 libAS_OVL.a: $(LIBOBJECTS) AS_OVL_delcher.o

@@ -31,13 +31,13 @@ SOURCES = AS_SIM_frag.c \
           AS_SIM_outputDST.c \
           AS_SIM_tobatches.c
 OBJECTS = $(SOURCES:.c=.o)
-PROGS = AS_SIM_massage \
-        AS_SIM_frag \
-        AS_SIM_poly \
-        AS_SIM_outputADT \
-        AS_SIM_outputDST \
-        AS_SIM_outputBAC \
-        AS_SIM_tobatches
+C_PROGS = AS_SIM_massage \
+          AS_SIM_frag \
+          AS_SIM_poly \
+          AS_SIM_outputADT \
+          AS_SIM_outputDST \
+          AS_SIM_outputBAC \
+          AS_SIM_tobatches
 
 # Include for AS project rules
 LOCAL_WORK = $(shell cd ../..; pwd)
@@ -45,7 +45,7 @@ include $(LOCAL_WORK)/src/c_make.as
 
 objects: $(OBJECTS)
 
-all: $(OBJECTS) $(LIBRARIES) $(PROGS)
+all: $(OBJECTS) $(LIBRARIES) $(C_PROGS)
 	@cp -f AS_SIM_celsim.pl $(LOCAL_BIN)/AS_SIM_celsim.pl
 	@chmod ugo+x $(LOCAL_BIN)/AS_SIM_celsim.pl
 	@cp -f AS_SIM_celsim.awk $(LOCAL_BIN)/AS_SIM_celsim.awk

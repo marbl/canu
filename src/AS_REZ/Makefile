@@ -39,11 +39,11 @@ LIBOBJECTS = $(LIBSOURCES:.c=.o)
 
 LIBRARIES  = libAS_REZ.a libCA.a
 
-PROGS = MicroHetIUM
+C_PROGS = MicroHetIUM
 
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(PROGS)
+all: $(OBJECTS) $(LIBRARIES) $(C_PROGS)
 	@test -n nop
 
 libAS_REZ.a: $(LIBOBJECTS)

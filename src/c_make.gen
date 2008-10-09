@@ -382,16 +382,15 @@ $(LIBRARIES):
 	cd $(LOCAL_OBJ); \
 	  $(AR) $(ARFLAGS) $(LOCAL_LIB)/libCA.a $+
 
-$(PROGS):
+$(C_PROGS):
 	@ echo "++++++++++++++++++++ " $@ "++++++++++++++++++++++";
-	@ cd $(LOCAL_OBJ); \
-          if [ -z "$(filter $(CXX_OBJECTS), $(notdir $+))" ] ; then \
-	    todo='$(CC) -o $(LOCAL_BIN)/$(notdir $@) $(filter-out lib%.a, $+) $(patsubst lib%.a, -l%, $(filter lib%.a, $+)) $(LD_DIRS) $(LDFLAGS) '; \
-	  else \
-	    todo='$(CXX) -o $(LOCAL_BIN)/$(notdir $@) $(filter-out lib%.a, $+) $(patsubst lib%.a, -l%, $(filter lib%.a, $+)) $(LD_DIRS) $(LDFLAGS)'; \
-	  fi ; \
-	  echo "$$todo"; \
-	  if eval "$$todo"; then true; else rm -f $(LOCAL_BIN)/$(notdir $@); fi
+	cd $(LOCAL_OBJ); \
+	  $(CC) -o $(LOCAL_BIN)/$(notdir $@) $(filter-out lib%.a, $+) $(patsubst lib%.a, -l%, $(filter lib%.a, $+)) $(LD_DIRS) $(LDFLAGS)
+
+$(CXX_PROGS):
+	@ echo "++++++++++++++++++++ " $@ "++++++++++++++++++++++";
+	cd $(LOCAL_OBJ); \
+          $(CXX) -o $(LOCAL_BIN)/$(notdir $@) $(filter-out lib%.a, $+) $(patsubst lib%.a, -l%, $(filter lib%.a, $+)) $(LD_DIRS) $(LDFLAGS)
 
 #### For making dependencies
 $(C_DEPS): $(LOCAL_DEP)/%.d: %.c
@@ -423,6 +422,10 @@ progs: $(PROGS)
 TGT = $@
 
 # The following recurses the subdirectories that exist
+#
+# Remove the "|| exit 1" below if you want to get the original
+# behavior of not stopping on errors.
+#
 define dosubdirs
 echo "* Make Target is " $(TGT);
 for i in $(SUBDIRS);\
@@ -430,9 +433,9 @@ for i in $(SUBDIRS);\
     if [ -d $$i ]; then \
       echo "############################## $$i ##############################"  ;\
       if [ $(TGT) = "libs" ] ; then \
-        $(MAKE) --no-print-directory        -C $$i $(TGT) ;\
+        $(MAKE) --no-print-directory        -C $$i $(TGT) || exit 1 ;\
       else \
-        $(MAKE) --no-print-directory -j 4   -C $$i $(TGT) ;\
+        $(MAKE) --no-print-directory -j 4   -C $$i $(TGT) || exit 1 ;\
       fi; \
     fi; \
   done;

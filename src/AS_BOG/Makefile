@@ -31,12 +31,12 @@ LIB_OBJECTS = $(LIB_SOURCES:.cc=.o)
 SOURCES     = BuildUnitigs.cc $(LIB_SOURCES)
 OBJECTS     = BuildUnitigs.o  $(LIB_OBJECTS)
 
-PROGS = buildUnitigs
+CXX_PROGS = buildUnitigs
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-all:    $(OBJECTS) $(LIBRARIES) $(PROGS)
+all:    $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
 buildUnitigs: BuildUnitigs.o $(LIB_OBJECTS) libCA.a

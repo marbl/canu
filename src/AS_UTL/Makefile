@@ -50,7 +50,7 @@ DEADSRC     = AS_UTL_skiplist_test.c \
 OBJECTS     = $(SOURCES:.c=.o)
 LIBRARIES   = libAS_UTL.a libCA.a
 SCRIPTS     =
-PROGS       =
+C_PROGS     =
 
 DEADSCRIPTS = AS_UTL_extractMSG.awk extractMSG
 DEADPROGS   = testVar testRand testSkiplist testHashTable
@@ -58,7 +58,7 @@ DEADPROGS   = testVar testRand testSkiplist testHashTable
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(PROGS)
+all: $(OBJECTS) $(LIBRARIES) $(C_PROGS)
 	@test -n nop
 
 #install: $(SCRIPTS)

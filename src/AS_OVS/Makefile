@@ -39,11 +39,11 @@ OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES = libAS_OVS.a libCA.a
 
-PROGS = overlapStore overlapStats convertOverlap filterOverlap
+C_PROGS = overlapStore overlapStats convertOverlap filterOverlap
 
 include $(LOCAL_WORK)/src/c_make.as
 
-all:    $(OBJECTS) $(LIBRARIES) $(PROGS)
+all:    $(OBJECTS) $(LIBRARIES) $(C_PROGS)
 	@test -n nop
 
 libAS_OVS.a: $(OVS_LIB_OBJ)

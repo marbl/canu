@@ -49,16 +49,16 @@ LIB_OBJECTS   = AS_CGB_histo.o
 
 LIBRARIES = libAS_CGB.a libCA.a
 
-PROGS = unitigger adjustAStat
+C_PROGS = unitigger adjustAStat
 
 include $(LOCAL_WORK)/src/c_make.as
 
 DEPEND_FILES = *.c *.h
 CLEANABLE_FILES = *.o *~
 
-INST_SET= $(PROGS)
+INST_SET= $(C_PROGS)
 
-all: $(OBJECTS) $(LIBRARIES) $(PROGS)
+all: $(OBJECTS) $(LIBRARIES) $(C_PROGS)
 	@cp -f stripCGBReads.pl $(LOCAL_BIN)
 	@chmod 775 $(LOCAL_BIN)/stripCGBReads.pl
 

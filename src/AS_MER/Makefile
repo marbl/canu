@@ -65,7 +65,7 @@ ifdef KMER
   MERYLOBJECTS     = meryl.o AS_MER_gkpStore_to_FastABase.o
   SOURCES          = $(MERYLSOURCE) mercy.C mercy-regions.C overmerry.C AS_MER_gkpStore_to_FastABase.C
   OBJECTS          = $(SOURCES:.C=.o)
-  PROGS            = meryl mercy overmerry
+  CXX_PROGS        = meryl mercy overmerry
   INC_IMPORT_DIRS += $(KMER)/include
   LIB_IMPORT_DIRS += $(KMER)/lib
   KMERLIBS         = libmerylguts.a libkmer.a libmeryl.a libseq.a libbio.a libutil.a
@@ -74,7 +74,7 @@ else
   MERYLOBJECTS     = AS_MER_meryl.o
   SOURCES          = $(MERYLSOURCE)
   OBJECTS          = $(SOURCES:.cc=.o)
-  PROGS            = meryl
+  CXX_PROGS        = meryl
 endif
 
 
@@ -104,7 +104,7 @@ ifdef KMER
   endif
 endif
 
-all: $(OBJECTS) $(LIBRARIES) $(PROGS)
+all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
 meryl:     $(MERYLOBJECTS)                            libCA.a $(KMERLIBS)

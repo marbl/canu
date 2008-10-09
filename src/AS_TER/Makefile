@@ -28,11 +28,11 @@ include $(LOCAL_WORK)/src/site_name.as
 
 SOURCES = AS_TER_terminator.c asmOutputFasta.c fragsInVars.c buildPosMap.c
 OBJECTS = (SOURCES:.c=.o)
-PROGS   = terminator asmOutputFasta fragsInVars buildPosMap
+C_PROGS = terminator asmOutputFasta fragsInVars buildPosMap
 
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(PROGS)
+all: $(OBJECTS) $(LIBRARIES) $(C_PROGS)
 	@cp -f buildFragContigPosMap.pl $(LOCAL_BIN)
 	@chmod 775 $(LOCAL_BIN)/buildFragContigPosMap.pl
 

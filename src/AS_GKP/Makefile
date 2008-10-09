@@ -39,11 +39,11 @@ GKPSRC    = AS_GKP_buildPartition.c \
 SOURCES   = AS_GKP_main.c AS_GKP_bench.c $(GKPSRC)
 OBJECTS   = $(SOURCES:.c=.o)
 LIBRARIES =
-PROGS     = gatekeeper gatekeeperbench
+C_PROGS   = gatekeeper gatekeeperbench
 
 include $(LOCAL_WORK)/src/c_make.as
 
-all:    $(OBJECTS) $(LIBRARIES) $(PROGS)
+all:    $(OBJECTS) $(LIBRARIES) $(C_PROGS)
 	@test -n nop
 
 gatekeeper:      AS_GKP_main.o $(GKPSRC:.c=.o) libCA.a

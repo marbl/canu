@@ -72,12 +72,12 @@ CGW_LIB_OBJECTS = $(CGW_LIB_SOURCES:.c=.o)
 LIBRARIES     = libAS_CGW.a libCA.a
 LIBS          = libCA.a
 
-PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpSingletons exploreGapStructure frgs2clones createFrgDeletes
+C_PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpSingletons exploreGapStructure frgs2clones createFrgDeletes
 
 
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(PROGS)
+all: $(OBJECTS) $(LIBRARIES) $(C_PROGS)
 	@test -n nop
 
 

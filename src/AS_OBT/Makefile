@@ -70,14 +70,14 @@ SOURCES = acceptableOBToverlap.c \
           readOverlap.C \
           util++.C
 
-OBJECTS = $(SOURCES:.C=.o) $(SOURCES:.c=.o)
-PROGS   = acceptableOBToverlap \
-          initialTrim \
-          merge-trimming \
-          consolidate \
-          chimera \
-          prefixDelete \
-          getNumScaffolds
+OBJECTS   = $(SOURCES:.C=.o) $(SOURCES:.c=.o)
+CXX_PROGS = acceptableOBToverlap \
+            initialTrim \
+            merge-trimming \
+            consolidate \
+            chimera \
+            prefixDelete \
+            getNumScaffolds
 SCRIPTS =
 ifdef FIGARO
   SCRIPTS += figaro
@@ -86,7 +86,7 @@ endif
 
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(PROGS) $(SCRIPTS)
+all: $(CXX_PROGS) $(SCRIPTS)
 	@test -n nop
 
 acceptableOBToverlap: acceptableOBToverlap.o                  libCA.a

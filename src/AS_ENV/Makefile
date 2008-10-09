@@ -34,11 +34,11 @@ SCRIPTS		= greedy_layout_to_IUM.pl \
 
 OBJECTS         = $(SOURCES:.c=.o)
 LIBRARIES       =
-PROGS           = greedyFragmentTiling metagenomics_ovl_analyses chimChe
+C_PROGS         = greedyFragmentTiling metagenomics_ovl_analyses chimChe
 
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(PROGS) $(SCRIPTS)
+all: $(OBJECTS) $(LIBRARIES) $(C_PROGS) $(SCRIPTS)
 	@cp -f greedy_layout_to_IUM.pl $(LOCAL_BIN)/greedy_layout_to_IUM
 	@chmod 775 $(LOCAL_BIN)/greedy_layout_to_IUM
 	@cp -f utg2fasta.pl $(LOCAL_BIN)/utg2fasta

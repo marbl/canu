@@ -33,11 +33,11 @@ OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES = libAS_PER.a libCA.a
 
-PROGS =
+C_PROGS =
 
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(PROGS)
+all: $(OBJECTS) $(LIBRARIES) $(C_PROGS)
 	@test -n nop
 
 objects: $(OBJECTS)

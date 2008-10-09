@@ -33,13 +33,13 @@ AS_ARD_CXXFLAGS =
 #but we need to include it to get OSTYPE and MACHINETIME and all the settings
 COMMON_SOURCES = Sybase.cc
 DB_SOURCES = 	AS_ARD_database.cc \
-        	DBTextOutput.cc \
+                DBTextOutput.cc \
 		BCPOutput.cc \
 	 	SQLOutput.cc
 SOURCES = loadAssembly.cc getAssembly.cc $(COMMON_SOURCES) $(DB_SOURCES)
 OBJECTS = $(SOURCES:.cc=.o)
 LIBRARIES =
-PROGS = loadAssembly getAssembly
+CXX_PROGS = loadAssembly getAssembly
 
 #minimum version of sybase required to build code
 SYBASE_REQUIRED=15.0
@@ -91,7 +91,7 @@ LIB_IMPORT_DIRS += $(AS_ARD_LIB)
 LDFLAGS += $(AS_ARD_LDFLAGS)
 CXXFLAGS += $(AS_ARD_CXXFLAGS)
 
-all:    $(OBJECTS) $(LIBRARIES) $(PROGS)
+all:    $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
 loadAssembly: loadAssembly.o $(COMMON_SOURCES:.cc=.o) $(DB_SOURCES:.cc=.o) libCA.a

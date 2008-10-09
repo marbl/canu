@@ -82,9 +82,9 @@ SOURCES   = $(AS_CNS_SRCS)
 OBJECTS   = $(AS_CNS_OBJS)
 LIBRARIES = libAS_CNS.a libCA.a
 
-PROGS = consensus \
-        asmReBaseCall \
-	SeqAn_CNS
+C_PROGS = consensus \
+          asmReBaseCall \
+          SeqAn_CNS
 
 SCRIPTS =
 
@@ -95,7 +95,7 @@ endif
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(LIB_OBJECTS) $(LIBRARIES) $(OBJECTS) $(PROGS) $(SCRIPTS)
+all: $(LIB_OBJECTS) $(LIBRARIES) $(OBJECTS) $(C_PROGS) $(SCRIPTS)
 	@test -n nop
 
 libAS_CNS.a: $(LIB_OBJECTS)

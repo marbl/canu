@@ -36,7 +36,7 @@ CXX_OBJECTS = $(CXX_SOURCES:.cc=.o)
 SOURCES = $(C_SOURCES) $(CXX_SOURCES)
 OBJECTS = $(C_OBJECTS) $(CXX_OBJECTS)
 
-PROGS = fragmentDepth
+C_PROGS = fragmentDepth
 
 SCRIPTS = runCA \
           assemblyCompare \
@@ -79,7 +79,7 @@ endif
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(PROGS) $(SCRIPTS)
+all: $(OBJECTS) $(LIBRARIES) $(C_PROGS) $(SCRIPTS)
 	@test -n nop
 
 RUNCAOBTUTIL = runCA-OBT/runCAutil/checkOverlap.pl \

@@ -31,11 +31,11 @@ SOURCES = $(LIB_SOURCES) PartitionSDB.c
 OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES = libAS_SDB.a libCA.a
-PROGS     = PartitionSDB
+C_PROGS   = PartitionSDB
 
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(PROGS)
+all: $(OBJECTS) $(LIBRARIES) $(C_PROGS)
 	@test -n nop
 
 libAS_SDB.a: $(LIB_OBJECTS)
