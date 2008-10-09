@@ -474,6 +474,28 @@ sub setParameters () {
     fixCase("consensus");
     fixCase("cleanup");
 
+    if ((getGlobal("obtOverlapper") ne "mer") && (getGlobal("obtOverlapper") ne "ovl")) {
+        caFailure("Invalid obtOverlapper specified (" . getGlobal("obtOverlapper") . "); must be 'mer' or 'ovl'\n");
+    }
+    if ((getGlobal("ovlOverlapper") ne "mer") && (getGlobal("ovlOverlapper") ne "ovl")) {
+        caFailure("Invalid ovlOverlapper specified (" . getGlobal("ovlOverlapper") . "); must be 'mer' or 'ovl'\n");
+    }
+    if ((getGlobal("unitigger") ne "utg") && (getGlobal("unitigger") ne "bog")) {
+        caFailure("Invalid unitigger specified (" . getGlobal("unitigger") . "); must be 'utg' or 'bog'\n");
+    }
+    if ((getGlobal("vectorTrimmer") ne "ca") && (getGlobal("vectorTrimmer") ne "figaro")) {
+        caFailure("Invalid vectorTrimmer specified (" . getGlobal("vectorTrimmer") . "); must be 'ca' or 'figaro'\n");
+    }
+    if ((getGlobal("consensus") ne "cns") && (getGlobal("consensus") ne "seqan")) {
+        caFailure("Invalid consensus specified (" . getGlobal("consensus") . "); must be 'cns' or 'seqan'\n");
+    }
+    if ((getGlobal("cleanup") ne "none") &&
+        (getGlobal("cleanup") ne "light") &&
+        (getGlobal("cleanup") ne "heavy") &&
+        (getGlobal("cleanup") ne "aggressive")) {
+        caFailure("Invalid cleaup specified (" . getGlobal("cleanup") . "); must be 'none', 'light', 'heavy' or 'aggressive'\n");
+    }
+
     #  PIck a nice looking set of binaries, and check them.
     #
     {
