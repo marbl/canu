@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.73 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.74 2008-10-09 23:24:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -608,7 +608,7 @@ main(int argc, char **argv) {
 
     switch (dump) {
       case DUMP_INFO:
-        dumpGateKeeperInfo(gkpStoreName);
+        dumpGateKeeperInfo(gkpStoreName, dumpTabular);
         break;
       case DUMP_BATCHES:
         dumpGateKeeperBatches(gkpStoreName, begIID, endIID, iidToDump, dumpTabular);

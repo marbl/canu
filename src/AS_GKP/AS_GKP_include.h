@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.43 2008-10-08 22:02:57 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.44 2008-10-09 23:24:02 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
 
-static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.43 2008-10-08 22:02:57 brianwalenz Exp $";
+static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.44 2008-10-09 23:24:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <errno.h>
@@ -66,7 +66,8 @@ Load_SFF(FILE *sff, int searchForLinker);
 
 
 void
-dumpGateKeeperInfo(char       *gkpStoreName);
+dumpGateKeeperInfo(char       *gkpStoreName,
+                   int         asTable);
 
 void
 dumpGateKeeperBatches(char       *gkpStoreName,
