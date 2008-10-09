@@ -22,7 +22,7 @@
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 
-static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id: AS_PER_gkpStore.h,v 1.51 2008-10-08 22:02:59 brianwalenz Exp $";
+static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id: AS_PER_gkpStore.h,v 1.52 2008-10-09 20:48:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,11 +87,13 @@ typedef struct {
   //  value == 0 is interpreted as the 'default' value, and the on/off
   //  restores what value 0 commonly means.
   //
-  //  When adding new values, please update AS_GKP_checkLibrary.c and
-  //  AS_GKP_sff.c, thanks.
+  //  When adding new values, please update AS_PER_gkpStore.c,
+  //  AS_GKP_checkLibrary.c and AS_GKP_sff.c, thanks.
   //
   uint64         spare2:64;
-  uint64         spare1:46;
+  uint64         spare1:45;
+
+  uint64         forceBOGunitigger:1;          //  Default 0 -> allow any unitigger
 
   uint64         discardReadsWithNs:1;         //  Default 0 -> allow reads with N's (unused, hardcoded into sff)
   uint64         doNotQVTrim:1;                //  Default 0 -> do initial qv trimming in OBT

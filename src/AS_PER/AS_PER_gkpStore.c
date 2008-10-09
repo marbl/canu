@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkpStore.c,v 1.58 2008-10-09 00:48:12 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkpStore.c,v 1.59 2008-10-09 20:48:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -838,6 +838,11 @@ AS_PER_decodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
       gkpl->doNotTrustHomopolymerRuns = AS_PER_decodeLibraryFeaturesBoolean("doNotTrustHomopolymerRuns", val);
     }
 
+    //  forceBOGunitigger --
+    else if (strcasecmp(fea, "forceBOGunitigger") == 0) {
+      gkpl->forceBOGunitigger = AS_PER_decodeLibraryFeaturesBoolean("forceBOGunitigger", val);
+    }
+
     //  hpsIsPeakSpacing --
     else if (strcasecmp(fea, "hpsIsPeakSpacing") == 0) {
       gkpl->hpsIsPeakSpacing = AS_PER_decodeLibraryFeaturesBoolean("hpsIsPeakSpacing", val);
@@ -940,6 +945,14 @@ AS_PER_encodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
     val[nf] = (char *)safe_malloc(32 * sizeof(char));
     sprintf(fea[nf], "doNotTrustHomopolymerRuns");
     sprintf(val[nf], "%d", gkpl->doNotTrustHomopolymerRuns);
+    nf++;
+  }
+
+  if (gkpl->forceBOGunitigger || alwaysEncode) {
+    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
+    val[nf] = (char *)safe_malloc(32 * sizeof(char));
+    sprintf(fea[nf], "forceBOGunitigger");
+    sprintf(val[nf], "%d", gkpl->forceBOGunitigger);
     nf++;
   }
 

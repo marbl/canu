@@ -7,6 +7,29 @@ sub unitigger (@) {
 
     my $bin = getBinDirectory();
 
+    #  Check for the presence of 454 reads.  We know these cause trouble
+    #  with unitigger, and we FORCE the use og BOG here.
+    #
+    if (getGlobal("unitigger") ne "bog") {
+        my $resetToBOG = 0;
+
+        open(F, "$bin/gatekeeper -dumplibraries $wrk/$asm.gkpStore |");
+        while (<F>) {
+            if (m/forceBOGunitigger=1/) {
+                $resetToBOG++;
+            }
+        }
+        close(F);
+
+        if ($resetToBOG) {
+            print STDERR "WARNING:\n";
+            print STDERR "WARNING:  $resetToBOG libraries with forceBOGunitigger set.  Forcing the use of unitigger=bog.\n";
+            print STDERR "WARNING:\n";
+            setGlobal("unitigger", "bog");
+        }
+    }
+
+
     if (! -e "$wrk/4-unitigger/unitigger.success") {
         system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.21 2008-10-09 00:48:12 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.22 2008-10-09 20:48:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -408,6 +408,8 @@ readsff_constructLibraryIIDFromName(char *name) {
 
     gkl.spare2                      = 0;
     gkl.spare1                      = 0;
+
+    gkl.forceBOGunitigger           = 1;
 
     gkl.discardReadsWithNs          = 1;
     gkl.doNotQVTrim                 = 1;
