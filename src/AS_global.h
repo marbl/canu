@@ -25,7 +25,11 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.28 2008-10-08 22:06:33 brianwalenz Exp $";
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.29 2008-10-09 19:11:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -351,5 +355,9 @@ int AS_configure(int argc, char **argv);
 // without bothering lint
 #define AssertPtr(ptr) (assert((ptr) != NULL))
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

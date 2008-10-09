@@ -19,11 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: mercy.C,v 1.3 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id: mercy.C,v 1.4 2008-10-09 19:11:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "AS_global.h"
 
 #include "libmeryl.H"
 
