@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overmerry.C,v 1.28 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id: overmerry.C,v 1.29 2008-10-09 23:54:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -209,10 +209,16 @@ public:
         //  Examine the counts, pick a reasonable upper limit.
 
         if (maxCount == 0) {
-          uint64  distinct   = 0;
-          uint64  total      = 0;
-          uint32  Xcoverage  = 8;
-          uint32  i;
+          uint64  totalUsefulDistinct = MF->numberOfDistinctMers() - MF->numberOfUniqueMers();
+          uint64  totalUsefulAll      = MF->numberOfTotalMers()    - MF->numberOfUniqueMers();
+          uint64  distinct            = 0;
+          uint64  total               = 0;
+          uint32  Xcoverage           = 8;
+          uint32  i                   = 0;
+
+          fprintf(stderr, "distinct: "u64bitFMT"\n", MF->numberOfDistinctMers());
+          fprintf(stderr, "unique:   "u64bitFMT"\n", MF->numberOfUniqueMers());
+          fprintf(stderr, "total:    "u64bitFMT"\n", MF->numberOfTotalMers());
 
           //  Pass 0: try to deduce the X coverage we have.  The
           //  pattern we should see in mer counts is an initial spike
@@ -227,6 +233,8 @@ public:
           //  If this pattern is not found, we fallback to the default
           //  guess of 8x coverage.
           //
+          fprintf(stderr, "Xcoverage zero %d %d %d\n", 1, 0, MF->histogram(1));
+
           for (i=2; (i < MF->histogramLength()) && (MF->histogram(i-1) > MF->histogram(i)); i++) {
             fprintf(stderr, "Xcoverage drop %d %d %d\n", i, MF->histogram(i-1), MF->histogram(i));
           }
@@ -236,17 +244,19 @@ public:
             Xcoverage = i;
           }
 
+          fprintf(stderr, "Xcoverage done %d %d %d\n", i, MF->histogram(i-1), MF->histogram(i));
+
           fprintf(stderr, "Guessed X coverage is %d\n", Xcoverage);
 
           //  Pass 1: look for a reasonable limit, using %distinct and %total.
           //
-          for (i=0; (i < MF->histogramLength()) && (maxCount == 0); i++) {
+          for (i=2; (i < MF->histogramLength()) && (maxCount == 0); i++) {
             distinct += MF->histogram(i);
             total    += MF->histogram(i) * i;
 
             //  If we cover 99% of all the distinct mers, that's reasonable.
             //
-            if ((distinct / (double)MF->numberOfDistinctMers()) > 0.99)
+            if ((distinct / (double)totalUsefulDistinct) > 0.99)
               maxCount = i;
 
             //  If we're a somewhat high count, and we're covering 2/3
@@ -254,12 +264,12 @@ public:
             //  errors (or polymorphism) that are preventing us from
             //  covering many distinct mers.
             //
-            if ((i > 25 * Xcoverage) && ((total / (double)MF->numberOfTotalMers()) > 2.0 / 3.0))
+            if ((i > 25 * Xcoverage) && ((total / (double)totalUsefulAll) > (2.0 / 3.0)))
               maxCount = i;
           }
 
           fprintf(stderr, "Set maxCount to "u32bitFMT", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
-                  i, 100.0 * distinct / MF->numberOfDistinctMers(), 100.0 * total / MF->numberOfTotalMers());
+                  i, 100.0 * distinct / totalUsefulDistinct, 100.0 * total / totalUsefulAll);
 
 
           //  Pass 2: if the limit is relatively small compared to our
@@ -273,16 +283,16 @@ public:
           //  shape.  The genome doesn't appear to be very repetitive.
           //
           if (((maxCount <  5 * Xcoverage)) ||
-              ((maxCount < 50 * Xcoverage) && (total / (double)MF->numberOfTotalMers() > 0.90))) {
+              ((maxCount < 50 * Xcoverage) && (total / (double)totalUsefulAll > 0.90))) {
             double  closeAmount = 0.75;
 
-            if (total / (double)MF->numberOfTotalMers() <= 0.90)
+            if (total / (double)totalUsefulAll <= 0.90)
               closeAmount = 0.5;
 
             //  No, really.  This is just 0.75 * (1-TC) + TC
-            double  desiredTC = closeAmount + (1 - closeAmount) * total / (double)MF->numberOfTotalMers();
+            double  desiredTC = closeAmount + (1 - closeAmount) * total / (double)totalUsefulAll;
 
-            for (; (i < MF->histogramLength()) && (total / (double)MF->numberOfTotalMers() < desiredTC); i++) {
+            for (; (i < MF->histogramLength()) && (total / (double)totalUsefulAll < desiredTC); i++) {
               distinct += MF->histogram(i);
               total    += MF->histogram(i) * i;
             }
@@ -290,7 +300,7 @@ public:
             maxCount = i;
 
             fprintf(stderr, "Reset maxCount to "u32bitFMT", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
-                    maxCount, 100.0 * distinct / MF->numberOfDistinctMers(), 100.0 * total / MF->numberOfTotalMers());
+                    maxCount, 100.0 * distinct / totalUsefulDistinct, 100.0 * total / totalUsefulAll);
           }
 
         }
