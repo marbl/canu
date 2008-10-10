@@ -71,49 +71,51 @@ fi
 #  used by atac-driver/chainer only.
 #
 
+CFLAGS_PYTHON=none
+
 if [ x$PYTHONHOME != x ] ; then
   echo Found envorinment variable PYTHONHOME = $PYTHONHOME.
   python=`echo $PYTHONHOME | cut -d: -f 1`
 else
   python=`which python`
-  if [ x$python = x ] ; then
-    echo "You don't seem to have python installed; no 'python' in your path."
-    exit 1
+  if [ x$python != x ] ; then
+    python=`dirname $python`
+    python=`dirname $python`
   fi
-  python=`dirname $python`
-  python=`dirname $python`
 fi
 
-if [ -e $python/include/python2.5/Python.h ]
-then
-  CFLAGS_PYTHON="-I$python/include/python2.5"
-elif [ -e $python/include/python2.4/Python.h ]
-then
-  CFLAGS_PYTHON="-I$python/include/python2.4"
-elif [ -e $python/include/python2.3/Python.h ]
-then
-  CFLAGS_PYTHON="-I$python/include/python2.3"
-elif [ -e $python/include/python2.2/Python.h ]
-then
-  CFLAGS_PYTHON="-I$python/include/python2.2"
-elif [ -e /usr/local/include/python2.5/Python.h ]
-then
-  CFLAGS_PYTHON="-I/usr/local/include/python2.5"
-elif [ -e /usr/local/include/python2.4/Python.h ]
-then
-  CFLAGS_PYTHON="-I/usr/local/include/python2.4"
-elif [ -e /usr/local/include/python2.3/Python.h ]
-then
-  CFLAGS_PYTHON="-I/usr/local/include/python2.3"
-elif [ -e /usr/local/include/python2.2/Python.h ]
-then
-  CFLAGS_PYTHON="-I/usr/local/include/python2.2"
-elif [ -e /System/Library/Frameworks/Python.framework/Versions/2.3/include/python2.3/Python.h ]
-then
-  CFLAGS_PYTHON="-I/System/Library/Frameworks/Python.framework/Versions/2.3/include/python2.3"
-else
-  echo "Can't find python include file 'Python.h' -- is python installed?."
-  exit 1
+if [ x$python != x ] ; then
+  if [ -e $python/include/python2.5/Python.h ]
+  then
+    CFLAGS_PYTHON="-I$python/include/python2.5"
+  elif [ -e $python/include/python2.4/Python.h ]
+  then
+    CFLAGS_PYTHON="-I$python/include/python2.4"
+  elif [ -e $python/include/python2.3/Python.h ]
+  then
+    CFLAGS_PYTHON="-I$python/include/python2.3"
+  elif [ -e $python/include/python2.2/Python.h ]
+  then
+    CFLAGS_PYTHON="-I$python/include/python2.2"
+  elif [ -e /usr/local/include/python2.5/Python.h ]
+  then
+    CFLAGS_PYTHON="-I/usr/local/include/python2.5"
+  elif [ -e /usr/local/include/python2.4/Python.h ]
+  then
+    CFLAGS_PYTHON="-I/usr/local/include/python2.4"
+  elif [ -e /usr/local/include/python2.3/Python.h ]
+  then
+    CFLAGS_PYTHON="-I/usr/local/include/python2.3"
+  elif [ -e /usr/local/include/python2.2/Python.h ]
+  then
+    CFLAGS_PYTHON="-I/usr/local/include/python2.2"
+  elif [ -e /System/Library/Frameworks/Python.framework/Versions/2.3/include/python2.3/Python.h ]
+  then
+    CFLAGS_PYTHON="-I/System/Library/Frameworks/Python.framework/Versions/2.3/include/python2.3"
+  else
+    echo "Can't find python include file 'Python.h' -- is python installed correctly?"
+    exit 1
+  fi
 fi
 
 
@@ -579,6 +581,7 @@ EOF
     exit
     ;;
 esac
+
 
 cat <<EOF >> Make.compilers
 PERL              := /usr/bin/perl

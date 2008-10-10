@@ -16,12 +16,15 @@ LIBUTL/       :=$/libutl/
 # So, this list is backwards.
 
 $(eval $(call Include,$/ESTmapper/))
-$(eval $(call Include,$/atac-driver/))
+
+ifneq ($(CFLAGS_PYTHON), none)
+  $(eval $(call Include,$/atac-driver/))
+  $(eval $(call Include,$/seatac/))
+endif
 
 $(eval $(call Include,$/leaff/))
 $(eval $(call Include,$/meryl/))
 $(eval $(call Include,$/seagen/))
-$(eval $(call Include,$/seatac/))
 $(eval $(call Include,$/sim4dbutils/))
 $(eval $(call Include,$/sim4db/))
 $(eval $(call Include,$/snapper/))
