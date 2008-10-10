@@ -11,8 +11,8 @@ if [ ! -e Makefile ] ; then
     ln -s build/Make.rules .
     ln -s build/Makefile .
   else
-    echo "Hey, couldn't find the Makefile"
-    exit
+    echo "ERROR:  Couldn't find the Makefile!"
+    exit 1
   fi
 fi
 
@@ -113,20 +113,20 @@ if [ x$python != x ] ; then
   then
     CFLAGS_PYTHON="-I/System/Library/Frameworks/Python.framework/Versions/2.3/include/python2.3"
   else
-    echo "Can't find python include file 'Python.h' -- is python installed correctly?"
-    exit 1
+    echo "Can't find python include file 'Python.h' -- is python installed correctly? -- will not build ATAC."
+    CFLAGS_PYTHON=none
   fi
 fi
 
 
 case $target in
   Darwin-i386)
-    echo "Darwin Intel not supported because the developer doesn't have access to one."
-    exit
+    echo "ERROR: Darwin Intel not supported because the developer doesn't have access to one."
+    exit 1
     ;;
   Darwin-i386-debug)
-    echo "Darwin Intel not supported because the developer doesn't have access to one."
-    exit
+    echo "ERROR: Darwin Intel not supported because the developer doesn't have access to one."
+    exit 1
     ;;
   Darwin-ppc)
     rm -f Make.compilers
@@ -606,4 +606,6 @@ if [ ! -e ./makepath ] ; then
   rm -f makepath-makefile
 fi
 
-cat Make.compilers
+echo "Configured."
+
+#cat Make.compilers
