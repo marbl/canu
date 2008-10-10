@@ -71,10 +71,9 @@ fi
 #  used by atac-driver/chainer only.
 #
 
-CFLAGS_PYTHON=none
+CFLAGS_PYTHON=
 
 if [ x$PYTHONHOME != x ] ; then
-  echo Found envorinment variable PYTHONHOME = $PYTHONHOME.
   python=`echo $PYTHONHOME | cut -d: -f 1`
 else
   python=`which python`
@@ -113,9 +112,16 @@ if [ x$python != x ] ; then
   then
     CFLAGS_PYTHON="-I/System/Library/Frameworks/Python.framework/Versions/2.3/include/python2.3"
   else
-    echo "Can't find python include file 'Python.h' -- is python installed correctly? -- will not build ATAC."
-    CFLAGS_PYTHON=none
+    echo "WARNING:  'python' program found, but can't find include file 'Python.h' -- is python installed correctly?"
+    echo "WARNING:  Set PYTHONHOME to the directory containing include/Pyhton.h"
   fi
+else
+  echo "WARNING:  'python' program not found."
+fi
+
+if [ x$CFLAGS_PYTHON = x ] ; then
+  echo "WARNING:  Will not build ATAC."
+  WITHOUT_ATAC="atac-driver/ seatac/"
 fi
 
 
@@ -596,6 +602,7 @@ CXXDEP	          := g++ -MM -MG
 CLIBS             += -lm -lbz2
 CXXLIBS           += -lm -lbz2
 CFLAGS_PYTHON     := $CFLAGS_PYTHON
+WITHOUT           := $WITHOUT_ATAC
 EOF
 
 if [ ! -e ./makepath ] ; then

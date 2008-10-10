@@ -7,20 +7,10 @@ LIBMERYL/     :=$/libmeryl/
 LIBSIM4/      :=$/libsim4/
 LIBUTL/       :=$/libutl/
 
-
-# Bah!  Order is important here.  It would be nice to get things to
-# build in order of dependency (e.g., libbri, then fasta, then
-# existdb, then posdb, then searchgen), but the .d dependency
-# generation goes BACKWARDS.
-#
-# So, this list is backwards.
-
 $(eval $(call Include,$/ESTmapper/))
 
-ifneq ($(CFLAGS_PYTHON), none)
-  $(eval $(call Include,$/atac-driver/))
-  $(eval $(call Include,$/seatac/))
-endif
+$(eval $(call Include,$/atac-driver/))
+$(eval $(call Include,$/seatac/))
 
 $(eval $(call Include,$/leaff/))
 $(eval $(call Include,$/meryl/))
