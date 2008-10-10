@@ -4,7 +4,8 @@ How to build:
 ----------
 0)  Required software
 
-Project kmer requires two additional software packages be installed: python and gmake.
+Project kmer requires two additional software packages be installed:
+python and gmake.
 
 0.1)  Python.
 
@@ -15,21 +16,13 @@ Version 2.4 is recommended.
 Version 2.3 has seen limited testing and seems to work.
 Version 2.2 might work, but is unsupported.
 
-Python is only needed by ATAC/A2Amapper.  If you do not have python
-installed, have no desire to install it, are do not want to build
-ATAC/A2Amapper, edit Make.include and change the line:
-
-  $(eval $(call Include,$/atac-driver/))
-
-to:
-
-  #$(eval $(call Include,$/atac-driver/))
-
-Then, remove the block that attempts to find Python.H in configure.sh.
+Python is only needed by ATAC/A2Amapper.  If python is not installed,
+ATAC/A2Amapper will not be built.
 
 0.2)  gmake.
 
-The GNU make program is used to build the software.
+The GNU make program (gmake) is used to build the software.  The BSD
+make will not work.
 
 Version 3.81 is strongly recommended.
 Version 3.80 works, but needs to be patched.  See build/patches/README.
