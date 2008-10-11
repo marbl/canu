@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.200 2008-10-08 22:02:57 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.201 2008-10-11 13:53:44 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -4005,7 +4005,8 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
 
   CNS_AlignParams LOCAL_DEFAULT_PARAMS = {0,0,0,0,0,AS_CNS_ERROR_RATE,CNS_DP_THRESH,CNS_DP_MINLEN,AS_FIND_ALIGN};
 
-  int     CNS_TIGHTSEMIBANDWIDTH = 6;
+#warning CNS_TIGHTSEMIBANDWIDTH relaxed to get around BOG placement problems
+  int     CNS_TIGHTSEMIBANDWIDTH = 18;  //  Switch back to 6
   int     CNS_LOOSESEMIBANDWIDTH = 100;
   int     CNS_DP_THIN_MINLEN     = 10;
 
