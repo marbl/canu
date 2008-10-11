@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_pieceOlap.c,v 1.9 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_pieceOlap.c,v 1.10 2008-10-11 13:51:46 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -169,15 +169,29 @@ static int *get_trace(const char *aseq, const char *bseq,Local_Overlap *O,int pi
   }
 
 #ifdef OKNAFFINE
-  if(epnt!=0){
-    if(epnt>0){ /* throwing away some of B segment */
-      O->chain[piece+1].bgap+=epnt;
-      O->chain[piece].piece.bepos-=epnt;
-      assert(O->chain[piece].piece.bbpos<=O->chain[piece].piece.bepos);
-    } else {
-      O->chain[piece+1].agap-=epnt;
-      O->chain[piece].piece.aepos+=epnt;
-      assert(O->chain[piece].piece.abpos<=O->chain[piece].piece.aepos);
+  {
+    //  Find the next non deleted segment
+    int ll = piece+1;
+
+    while (ll <= O->num_pieces &&
+           O->chain[ll].agap==0 &&
+           O->chain[ll].bgap==0 &&
+           O->chain[ll].piece.abpos == O->chain[ll].piece.aepos &&
+           O->chain[ll].piece.bbpos == O->chain[ll].piece.bepos)
+      ll++;
+
+    assert(ll <= O->num_pieces);
+
+    if(epnt!=0){
+      if(epnt>0){ /* throwing away some of B segment */
+        O->chain[ll].bgap+=epnt;
+        O->chain[piece].piece.bepos-=epnt;
+        assert(O->chain[piece].piece.bbpos<=O->chain[piece].piece.bepos);
+      } else {
+        O->chain[ll].agap-=epnt;
+        O->chain[piece].piece.aepos+=epnt;
+        assert(O->chain[piece].piece.abpos<=O->chain[piece].piece.aepos);
+      }
     }
   }
 #endif
@@ -242,6 +256,7 @@ static PAIRALIGN *construct_pair_align(const char *aseq,const char *bseq,Local_O
   bpos=0;
 
 #ifdef DEBUG_FIX_OLAP
+fprintf(stderr,"piece:%d\n",piece);
 fprintf(stderr,"offsets:%d %d\n",offseta,offsetb);
 fprintf(stderr,"gaps:%d %d\n",O->chain[piece].agap,O->chain[piece].bgap);
 fprintf(stderr,"bpos:%d %d\n",O->chain[piece].piece.abpos,O->chain[piece].piece.bbpos);
@@ -384,11 +399,21 @@ fprintf(stderr,"Fixing by deleting second segment since apparently contained (pi
     O->chain[piece1].piece.bbpos=O->chain[piece0].piece.bepos;
     O->chain[piece1].piece.bepos=O->chain[piece0].piece.bepos;
 
-    if(piece1+1<=O->num_pieces){
-      O->chain[piece1+1].agap=O->chain[piece1+1].piece.abpos-
-        O->chain[piece0].piece.aepos;
-      O->chain[piece1+1].bgap=O->chain[piece1+1].piece.bbpos-
-        O->chain[piece0].piece.bepos;
+    {
+      //  Find the next non deleted segment
+      int ll = piece1+1;
+
+      while (ll <= O->num_pieces &&
+             O->chain[ll].agap==0 &&
+             O->chain[ll].bgap==0 &&
+             O->chain[ll].piece.abpos == O->chain[ll].piece.aepos &&
+             O->chain[ll].piece.bbpos == O->chain[ll].piece.bepos)
+        ll++;
+
+      if(ll<=O->num_pieces){
+        O->chain[ll].agap=O->chain[ll].piece.abpos-O->chain[piece0].piece.aepos;
+        O->chain[ll].bgap=O->chain[ll].piece.bbpos-O->chain[piece0].piece.bepos;
+      }
     }
     return;
   }
