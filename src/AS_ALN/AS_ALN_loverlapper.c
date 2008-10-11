@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.14 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.15 2008-10-11 04:19:32 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -229,6 +229,11 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
   int alen,blen;
   int ahang = 0;
 
+#ifdef DEBUG_LOCALOVL
+  fprintf(stderr, "================================================================================\n");
+  fprintf(stderr, "Start of Trace construction!\n\n\n");
+#endif
+
   {
     int n=O->num_pieces;
     assert(O->num_pieces>0);
@@ -275,9 +280,11 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
     if(i<O->num_pieces)
       print_piece(O,i,aseq,bseq);
 
-    fprintf(stderr, "chain[%d] agap=%d abpos=%d aepos=%d  bgap=%d bbpos=%d bepos=%d\n",
-            O->chain[i].agap, O->chain[i].piece.abpos, O->chain[i].piece.aepos,
-            O->chain[i].bgap, O->chain[i].piece.bbpos, O->chain[i].piece.bepos);
+    for(j=0;j<=O->num_pieces;j++)
+      fprintf(stderr, "chain[%d] agap=%d abpos=%d aepos=%d  bgap=%d bbpos=%d bepos=%d\n",
+              j,
+              O->chain[j].agap, O->chain[j].piece.abpos, O->chain[j].piece.aepos,
+              O->chain[j].bgap, O->chain[j].piece.bbpos, O->chain[j].piece.bepos);
 #endif
 
     /* if conditions indicate the segment was deleted in previous loop,
@@ -326,7 +333,14 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
       fprintf(stderr,"Checking for overlaps of %d to %d\n",i,k);
       fprintf(stderr, "Currently, segment %d alignment:\n",k);
       print_piece(O,k,aseq,bseq);
-
+      {
+        int j;
+        for(j=0;j<=O->num_pieces;j++)
+          fprintf(stderr, "chain[%d] agap=%d abpos=%d aepos=%d  bgap=%d bbpos=%d bepos=%d\n",
+                  j,
+                  O->chain[j].agap, O->chain[j].piece.abpos, O->chain[j].piece.aepos,
+                  O->chain[j].bgap, O->chain[j].piece.bbpos, O->chain[j].piece.bepos);
+      }
 #endif
 
       if(O->chain[k].piece.abpos<O->chain[i].piece.aepos||
@@ -456,15 +470,16 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
                 assert(l>=0);
               }
 
-#ifdef DEBUG_LOCALOVL
-              fprintf(stderr,"Resetting gaps for segment %d to point to end of segment %d\n",
-                      k+1,l);
-#endif
-
               O->chain[k+1].agap=O->chain[k+1].piece.abpos-
                 O->chain[l].piece.aepos;
               O->chain[k+1].bgap=O->chain[k+1].piece.bbpos-
                 O->chain[l].piece.bepos;
+
+#ifdef DEBUG_LOCALOVL
+              fprintf(stderr,"Resetting gaps for segment %d to point to end of segment %d\n",
+                      k+1,l);
+              fprintf(stderr, "GAPS for %d now %d,%d\n", k+1, O->chain[k+1].agap, O->chain[k+1].bgap);
+#endif
             }
 
 #endif
@@ -484,6 +499,14 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
                     O->chain[k].piece.abpos,O->chain[k].piece.bbpos,
                     O->chain[k].piece.aepos,O->chain[k].piece.bepos,
                     k);
+      {
+        int j;
+        for(j=0;j<=O->num_pieces;j++)
+          fprintf(stderr, "chain[%d] agap=%d abpos=%d aepos=%d  bgap=%d bbpos=%d bepos=%d\n",
+                  j,
+                  O->chain[j].agap, O->chain[j].piece.abpos, O->chain[j].piece.aepos,
+                  O->chain[j].bgap, O->chain[j].piece.bbpos, O->chain[j].piece.bepos);
+      }
 #endif
 
             fix_overlapping_pieces(aseq,
@@ -515,15 +538,16 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
                   assert(l>=0);
                 }
 
-#ifdef DEBUG_LOCALOVL
-                fprintf(stderr,"Resetting gaps for segment %d to point to end of segment %d\n",
-                        k+1,l);
-#endif
-
                 O->chain[k+1].agap=O->chain[k+1].piece.abpos-
                   O->chain[l].piece.aepos;
                 O->chain[k+1].bgap=O->chain[k+1].piece.bbpos-
                   O->chain[l].piece.bepos;
+
+#ifdef DEBUG_LOCALOVL
+                fprintf(stderr,"Resetting gaps for segment %d to point to end of segment %d\n",
+                        k+1,l);
+                fprintf(stderr, "GAPS for %d now %d,%d\n", k+1, O->chain[k+1].agap, O->chain[k+1].bgap);
+#endif
               }
             } else {
               // if the first piece disappeared
@@ -552,11 +576,20 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
 
                 { // need to adjust gaps for all segments between i and k (inclusive of k)
                   int l;
+
+#ifdef DEBUG_LOCALOVL
+                  fprintf(stderr, "Adjust gaps for all segments between i=%d and k=%d\n", i, k);
+#endif
+
                   for(l=i+1;l<=k;l++){
                     O->chain[l].agap=O->chain[l].piece.abpos-
                       O->chain[i].piece.aepos;
                     O->chain[l].bgap=O->chain[l].piece.bbpos-
                       O->chain[i].piece.bepos;
+
+#ifdef DEBUG_LOCALOVL
+                    fprintf(stderr, "GAPS for %d now %d,%d\n", l, O->chain[l].agap, O->chain[l].bgap);
+#endif
                     if(lastgood<0){
                       //fprintf(stderr, "Shrinking gaps for segment %d\n",l);
                       O->chain[l].agap--;
@@ -581,12 +614,35 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
                 O->chain[k].piece.abpos,O->chain[k].piece.bbpos,
                 O->chain[k].piece.aepos,O->chain[k].piece.bepos,
                 k);
+      {
+        int j;
+        for(j=0;j<=O->num_pieces;j++)
+          fprintf(stderr, "chain[%d] agap=%d abpos=%d aepos=%d  bgap=%d bbpos=%d bepos=%d\n",
+                  j,
+                  O->chain[j].agap, O->chain[j].piece.abpos, O->chain[j].piece.aepos,
+                  O->chain[j].bgap, O->chain[j].piece.bbpos, O->chain[j].piece.bepos);
+      }
 #endif
 
       }
 
       k++;
     }
+
+
+#ifdef DEBUG_LOCALOVL
+    fprintf(stderr, "After fixing, segment %d alignment:\n",i);
+
+    if(i<O->num_pieces)
+      print_piece(O,i,aseq,bseq);
+
+    for(j=0;j<=O->num_pieces;j++)
+      fprintf(stderr, "chain[%d] agap=%d abpos=%d aepos=%d  bgap=%d bbpos=%d bepos=%d\n",
+              j,
+              O->chain[j].agap, O->chain[j].piece.abpos, O->chain[j].piece.aepos,
+              O->chain[j].bgap, O->chain[j].piece.bbpos, O->chain[j].piece.bepos);
+#endif
+
 
     /* if conditions indicate the segment was deleted previously, skip! */
     if(O->chain[i].agap==0 &&
@@ -1010,6 +1066,7 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
     }
   }
   fprintf(stderr, "End of Trace construction!\n");
+  fprintf(stderr, "================================================================================\n\n\n");
 #endif
 
   return(TraceBuffer);
@@ -1230,6 +1287,10 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
   if(O!=NULL){
   next_overlap:
 
+#ifdef DEBUG_LOCALOVL
+    fprintf(stderr, "\n\nNEXT OVERLAP:\n");
+#endif
+
     if(forcenext){
       safe_free(O);
       forcenext=0;
@@ -1294,7 +1355,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       if(O->chain[0].bgap>MaxFreeFlap&&
 	 O->chain[0].bgap+MAX(0,-O->begpos)>MaxBegGap){
 #ifdef DEBUG_LOCALOVL
-	fprintf(stderr,"Overlap rejected because: begin flap too big %d\n",
+	fprintf(stderr,"OVERLAP REJECTED because: begin flap too big %d\n\n",
                 O->chain[0].bgap+MAX(0,-O->begpos)>MaxBegGap);
 #endif
 	forcenext=1;
@@ -1307,7 +1368,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 	 O->chain[O->num_pieces].agap+MAX(0,-O->endpos)>MaxEndGap){
 
 #ifdef DEBUG_LOCALOVL
-	fprintf(stderr,"Overlap rejected because: end flap too big %d\n",
+	fprintf(stderr,"OVERLAP REJECTED because: end flap too big %d\n\n",
 		O->chain[O->num_pieces].agap+MAX(0,-O->endpos)>MaxEndGap);
 #endif
 
@@ -1323,7 +1384,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       if(MIN(O->chain[0].agap,
 	     O->chain[0].bgap)>MaxBegGap){
 #ifdef DEBUG_LOCALOVL
-	fprintf(stderr,"Overlap rejected because: begin gap too big %d\n",
+	fprintf(stderr,"OVERLAP REJECTED because: begin gap too big %d\n\n",
 		MIN(O->chain[0].agap,
 		    O->chain[0].bgap));
 #endif
@@ -1334,7 +1395,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       if(MIN(O->chain[O->num_pieces].agap,
 	     O->chain[O->num_pieces].bgap)>MaxEndGap){
 #ifdef DEBUG_LOCALOVL
-	fprintf(stderr,"Overlap rejected because: end gap too big %d\n",
+	fprintf(stderr,"OVERLAP REJECTED because: end gap too big %d\n\n",
 		MIN(O->chain[O->num_pieces].agap,
 		    O->chain[O->num_pieces].bgap));
 #endif
@@ -1358,7 +1419,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
        MAX(O->chain[i].agap,
 	   O->chain[i].bgap)>MaxInteriorGap){
 #ifdef DEBUG_LOCALOVL
-      fprintf(stderr,"Overlap rejected because: interior gap %d too big %d\n",
+      fprintf(stderr,"OVERLAP REJECTED because: interior gap %d too big %d\n\n",
 	      i,
 	      MAX(O->chain[i].agap,
 		  O->chain[i].bgap));
@@ -1412,7 +1473,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
        quit! */
     if(MAX(begseglen,endseglen)<minlen){
 #ifdef DEBUG_LOCALOVL
-      fprintf(stderr,"Overlap rejected because no anchoring segment (min = %d)\n",
+      fprintf(stderr,"OVERLAP REJECTED because no anchoring segment (min = %d)\n\n",
 	      minlen);
 #endif
 
@@ -1467,7 +1528,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 
       if (bogus) {
 #ifdef DEBUG_LOCALOVL
-        fprintf(stderr,"Overlap rejected because: bogus trace\n");
+        fprintf(stderr,"OVERLAP REJECTED because: bogus trace\n\n");
 #endif
         forcenext=1;
         goto next_overlap;
@@ -1484,7 +1545,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       if(O->chain[O->num_pieces].agap>0){final_num_pieces++;}
       if(final_num_pieces> MaxGaps){
 #ifdef DEBUG_LOCALOVL
-        fprintf(stderr,"Overlap rejected because: too many pieces %d\n",
+        fprintf(stderr,"OVERLAP REJECTED because: too many pieces %d\n\n",
                 O->num_pieces-
                 (O->chain[0].type==LOCAL_BOUNDARY||
                  O->chain[0].agap+
@@ -1498,7 +1559,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
     }
 
 #ifdef DEBUG_LOCALOVL
-    fprintf(stderr,"Overlap after trimming:\n");
+    fprintf(stderr,"========================================Overlap after trimming BEGIN\n");
 
     for(i=0;i<O->num_pieces;i++){
       O->chain[i].piece.abpos--;
@@ -1523,7 +1584,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
     Print_Local_Overlap(stderr,O,5);
     //Print_Local_Overlap_withAlign(stderr,O,Ausable,Busable);
 
-    fprintf(stderr,"========================================End of Overlap after trimming\n");
+    fprintf(stderr,"========================================Overlap after trimming END\n");
 #endif
 
 
@@ -1576,13 +1637,15 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
     }
 
 
-
-#ifndef NONFINAL_BAND_TEST
     if( ahang > end|| ahang < beg ){
       forcenext=1;
+#ifdef DEBUG_LOCALOVL
+      fprintf(stderr,"OVERLAP REJECTED because: ahang problems ahang=%d, > end=%d, < beg=%d\n\n",
+              ahang, end, beg);
+#endif
       goto next_overlap;
     }
-#endif
+
 
     if (ahang < 0 || (ahang == 0 && bhang > 0))
       { if (bhang >= 0)
@@ -1667,7 +1730,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 	 // and the the unaligned amount of B is too long ...
 	 O->chain[0].bgap+MAX(0,-O->begpos)>MaxBegGap){
 #ifdef DEBUG_LOCALOVL
-	fprintf(stderr,"Overlap rejected because: begin flap too big %d\n",
+	fprintf(stderr,"OVERLAP REJECTED because: begin flap too big %d\n\n",
                 O->chain[0].bgap+MAX(0,-O->begpos)>MaxBegGap);
 #endif
 	forcenext=1;
@@ -1682,7 +1745,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 	 O->chain[O->num_pieces].agap+MAX(0,-O->endpos)>MaxEndGap){
 
 #ifdef DEBUG_LOCALOVL
-	fprintf(stderr,"Overlap rejected because: end flap too big %d\n",
+	fprintf(stderr,"OVERLAP REJECTED because: end flap too big %d\n\n",
 		O->chain[O->num_pieces].agap+MAX(0,-O->endpos)>MaxEndGap);
 #endif
 
@@ -1698,7 +1761,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       if(MIN(O->chain[0].agap+MAX(O->begpos,0),
 	     O->chain[0].bgap+MAX(-O->begpos,0))>MaxBegGap){
 #ifdef DEBUG_LOCALOVL
-	fprintf(stderr,"Overlap rejected because: begin gap too big %d\n",
+	fprintf(stderr,"OVERLAP REJECTED because: begin gap too big %d\n\n",
 		MIN(O->chain[0].agap, O->chain[0].bgap));
 #endif
 	forcenext=1;
@@ -1708,7 +1771,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       if(MIN(O->chain[O->num_pieces].agap+MAX(-O->endpos,0),
 	     O->chain[O->num_pieces].bgap+MAX(O->endpos,0))>MaxEndGap){
 #ifdef DEBUG_LOCALOVL
-	fprintf(stderr,"Overlap rejected because: end gap too big %d\n",
+	fprintf(stderr,"OVERLAP REJECTED because: end gap too big %d\n\n",
 		MIN(O->chain[O->num_pieces].agap, O->chain[O->num_pieces].bgap));
 #endif
 
@@ -1751,7 +1814,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 
     if(errRateAffine>erate){
 #ifdef DEBUG_LOCALOVL
-      fprintf(stderr,"Overlap rejected because: affine-adjusted error rate %f > erate %f\n",
+      fprintf(stderr,"OVERLAP REJECTED because: affine-adjusted error rate %f > erate %f\n\n",
               errRateAffine,erate);
 #endif
       forcenext=1;
