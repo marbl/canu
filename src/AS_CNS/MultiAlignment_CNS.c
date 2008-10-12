@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.201 2008-10-11 13:53:44 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.202 2008-10-12 02:17:56 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1648,18 +1648,6 @@ Iid2ReadId(int32 iid, int32 *iids, int nr)
   return (-1);
 }
 
-static int
-IsNewRead(int32 iid, int32 *iid_list, int nr)
-{
-  int i;
-  for (i=0; i<nr; i++)
-    {
-      if (iid_list[i] == iid)
-        return 0;
-    }
-  return 1;
-}
-
 
 //*********************************************************************************
 // Function: BaseCalling
@@ -1738,7 +1726,6 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
       double max_cw=0.0;   // max of "consensus weights" of all bases
       double normalize=0.;
       int    nr=0, max_nr=128;
-      int32 *column_iid_list = (int32 *)safe_calloc(sizeof(int32), max_nr);
 
       if (!guides_alloc) {
         guides = CreateVA_Bead(16);
@@ -1783,23 +1770,6 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
               (type == AS_EXTR)   ||
               (type == AS_TRNR))
             {
-              // Filter out "duplicated" reads with the same iid
-              if (!IsNewRead(iid, column_iid_list, nr))
-                {
-                  fprintf(stderr, "Read iid= %d occurs more than once ", iid);
-                  fprintf(stderr, "in MSA for contig #%d at pos= %d\n",
-                          contig_id, cid);
-                  continue;
-                }
-
-              column_iid_list[nr] = iid;
-              nr++;
-              if (nr == max_nr)
-                {
-                  max_nr += 100;
-                  column_iid_list = (int32 *)safe_realloc(column_iid_list,
-                                                          max_nr*sizeof(int32));
-                }
 
               // Will be used when detecting alleles
               if (target_allele < 0 && get_scores)
@@ -2116,7 +2086,6 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
               *var = - (*var);
             }
         }
-      safe_free(column_iid_list);
       return score;
     }
   else if (quality == 0 )
@@ -2265,6 +2234,19 @@ SmoothenVariation(double *var, int len, int window)
 }
 
 
+static int
+IsNewRead(int32 iid, int32 *iid_list, int nr)
+{
+  int i;
+  for (i=0; i<nr; i++)
+    {
+      if (iid_list[i] == iid)
+        return 0;
+    }
+  return 1;
+}
+
+
 static void
 GetReadIidsAndNumReads(int cid, VarRegion  *vreg)
 {
@@ -2278,7 +2260,6 @@ GetReadIidsAndNumReads(int cid, VarRegion  *vreg)
   FragType type;
   ColumnBeadIterator ci;
   int nr=0, max_nr=100;
-  int32 *column_iid_list = (int32 *)safe_malloc(max_nr*sizeof(int32));
 
   CreateColumnBeadIterator(cid, &ci);
 
@@ -2297,19 +2278,6 @@ GetReadIidsAndNumReads(int cid, VarRegion  *vreg)
           (type == AS_EXTR) ||
           (type == AS_TRNR))
         {
-          // Filter out "duplicated" reads with the same iid
-          if (!IsNewRead(iid, column_iid_list, nr))
-            continue;
-
-          column_iid_list[nr] = iid;
-          nr++;
-          if (nr == max_nr)
-            {
-              max_nr += 100;
-              column_iid_list = (int32 *)safe_realloc(column_iid_list,
-                                                      max_nr*sizeof(int32));
-            }
-
           if (IsNewRead(iid, vreg->iids, vreg->nr)) {
             if (vreg->nr == vreg->max_nr) {
               int l;
@@ -2325,7 +2293,6 @@ GetReadIidsAndNumReads(int cid, VarRegion  *vreg)
           }
         }
     }
-  safe_free(column_iid_list);
 }
 
 static void
@@ -2638,7 +2605,6 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nvr,
       char  base, qv;
       int i, j;
       int    nr=0, max_nr=100;
-      int32 *column_iid_list = (int32 *)safe_malloc(max_nr*sizeof(int32));
 
       CreateColumnBeadIterator(cids[k], &ci);
 
@@ -2654,19 +2620,6 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nvr,
               //              || (type == AS_TRNR)
               )
             {
-              // Filter out "duplicated" reads with the same iid
-              if (!IsNewRead(iid, column_iid_list, nr))
-                continue;
-
-              column_iid_list[nr] = iid;
-              nr++;
-              if (nr == max_nr)
-                {
-                  max_nr += 100;
-                  column_iid_list = (int32 *)safe_realloc(column_iid_list,
-                                                          max_nr*sizeof(int32));
-                }
-
               base = *Getchar(sequenceStore,bead->soffset);
               if (base != '-')
                 {
@@ -2706,7 +2659,6 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nvr,
               reads[i].iid = iid;
             }
         }
-      safe_free(column_iid_list);
     }
 
   // Reset qvs of internal gaps to MIN(qv_first_gap, qv_last_gap);
