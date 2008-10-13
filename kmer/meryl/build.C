@@ -797,7 +797,6 @@ build(merylArgs *args) {
     //
     char *filename = new char [strlen(args->outputFile) + 17];
 
-#if 0
     for (u32bit i=0; i<args->segmentLimit; i++) {
       sprintf(filename, "%s.batch"u32bitFMT".mcidx", args->outputFile, i);
       unlink(filename);
@@ -806,7 +805,6 @@ build(merylArgs *args) {
       sprintf(filename, "%s.batch"u32bitFMT".mcpos", args->outputFile, i);
       unlink(filename);
     }
-#endif
 
     delete [] filename;
   }
