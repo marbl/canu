@@ -542,15 +542,22 @@ runSegment(merylArgs *args, u64bit segment) {
     bucketPos += args->bucketPointerWidth;
     u64bit ed  = getDecodedValue(bucketPointers, bucketPos, args->bucketPointerWidth);
 
-    //fprintf(stderr, "bucket="u64bitFMT" st="u64bitFMT" ed="u64bitFMT"\n", bucket, st, ed);
-
-#ifdef SANITY_CHECKS
     if (ed < st) {
-      fprintf(stderr, "ERROR: Bucket "u64bitFMT" ends before it starts!\n", bucket);
+      fprintf(stderr, "ERROR: In segment "u64bitFMT"\n", segment);
+      fprintf(stderr, "ERROR: Bucket "u64bitFMT" (out of "u64bitFMT") ends before it starts!\n",
+              bucket, args->numBuckets);
       fprintf(stderr, "ERROR: start="u64bitFMT"\n", st);
       fprintf(stderr, "ERROR: end  ="u64bitFMT"\n", ed);
     }
-#endif
+    assert(ed >= st);
+
+    if ((ed - st) > (u64bitONE << 30)) {
+      fprintf(stderr, "ERROR: In segment "u64bitFMT"\n", segment);
+      fprintf(stderr, "ERROR: Bucket "u64bitFMT" (out of "u64bitFMT") is HUGE!\n",
+              bucket, args->numBuckets);
+      fprintf(stderr, "ERROR: start="u64bitFMT"\n", st);
+      fprintf(stderr, "ERROR: end  ="u64bitFMT"\n", ed);
+    }
 
     //  Nothing here?  Keep going.
     if (ed == st)
