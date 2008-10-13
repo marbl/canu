@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.12 2008-10-08 22:02:54 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.13 2008-10-13 03:50:52 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -99,7 +99,9 @@ Overlap *Local_Overlap_AS_forCNS(char *a, char *b,
   static Overlap o;
   int where=0;
 
-  assert((0.0 <= erate) && (erate <= AS_MAX_ERROR_RATE));
+  if (erate > AS_MAX_ERROR_RATE)
+    fprintf(stderr, "WARNING:  erate=%f >= AS_MAX_ERROR_RATE=%f\n", erate, (double)AS_MAX_ERROR_RATE);
+  assert((0.0 <= erate) && (erate <= 4 * AS_MAX_ERROR_RATE));
 
   A.sequence   = safe_copy_Astring_with_preceding_null(a);
   A.quality    = NULL;

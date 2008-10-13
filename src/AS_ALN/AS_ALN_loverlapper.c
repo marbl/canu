@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.15 2008-10-11 04:19:32 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.16 2008-10-13 03:50:53 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1154,7 +1154,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
   int i;
   int forcenext=0;
 
-  assert((0.0 <= erate) && (erate <= AS_MAX_ERROR_RATE));
+  assert((0.0 <= erate) && (erate <= 4 * AS_MAX_ERROR_RATE));
 
   static char *Ausable=NULL, *Busable=NULL;
   static int AuseLen=0, BuseLen=0;
