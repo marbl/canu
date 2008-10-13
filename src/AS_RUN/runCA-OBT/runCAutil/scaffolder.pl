@@ -192,12 +192,7 @@ sub eCR ($$$) {
             close(F);
 
             if (runCommand("$wrk/$thisDir", $cmd)) {
-                my $errStr = "Failed.\n";
-                $errStr .= "fragStore restored:    frg -> frg.during.$thisDir-scaffold.$curScaffold.FAILED\n";
-                $errStr .= "                       frg.before-$thisDir-scaffold.$curScaffold -> frg\n";
-                rename "$wrk/$asm.gkpStore/frg", "$wrk/$asm.gkpStore/frg.during.$thisDir-scaffold.$curScaffold.FAILED";
-                rename "$wrk/$asm.gkpStore/frg.before-$thisDir-scaffold.$curScaffold", "$wrk/$asm.gkpStore/frg";
-                caFailure($errStr);
+                caFailure("extendClearRanges failed.");
             }
             touch("$wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.success");
         }
