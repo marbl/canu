@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkpStore.c,v 1.59 2008-10-09 20:48:19 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkpStore.c,v 1.60 2008-10-13 00:42:53 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1061,7 +1061,6 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
   uint32            actualLength = 0;
   int64             nextOffset   = 0;
   StoreStruct      *store        = NULL;
-  static char       enc[AS_FRAG_MAX_LEN];
   int               enclen;
 
   fr->hasSEQ = 0;
@@ -1081,11 +1080,11 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
       assert(gkp->partmap == NULL);
       getStringStore(gkp->seq,
                      fr->gkfr.seqOffset,
-                     enc,
+                     fr->enc,
                      MAX_SEQ_LENGTH,
                      &actualLength,
                      &nextOffset);
-      decodeSequence(enc, fr->seq, fr->gkfr.seqLen);
+      decodeSequence(fr->enc, fr->seq, fr->gkfr.seqLen);
     }
   }
   if (streamFlags & FRAG_S_QLT) {
@@ -1098,12 +1097,12 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
         store = gkp->partqlt;
       getStringStore(store,
                      fr->gkfr.qltOffset,
-                     enc,
+                     fr->enc,
                      MAX_SEQ_LENGTH,
                      &actualLength,
                      &nextOffset);
-      enc[actualLength] = 0;
-      decodeSequenceQuality(enc, fr->seq, fr->qlt);
+      fr->enc[actualLength] = 0;
+      decodeSequenceQuality(fr->enc, fr->seq, fr->qlt);
     }
   }
   if (streamFlags & FRAG_S_HPS) {
@@ -1269,7 +1268,6 @@ void             closeFragStream(FragStream *fs) {
 
 int              nextFragStream(FragStream *fs, fragRecord *fr) {
   uint32       actualLength = 0;
-  static char  enc[AS_FRAG_MAX_LEN];
 
   if (nextStream(fs->frg, &fr->gkfr, 0, NULL) == 0)
     return(0);
@@ -1289,17 +1287,17 @@ int              nextFragStream(FragStream *fs, fragRecord *fr) {
 
   if ((fs->flags & FRAG_S_SEQ) && !(fs->flags & FRAG_S_QLT)) {
     fr->hasSEQ = 1;
-    nextStream(fs->seq, enc, MAX_SEQ_LENGTH, &actualLength);
-    decodeSequence(enc, fr->seq, fr->gkfr.seqLen);
+    nextStream(fs->seq, fr->enc, MAX_SEQ_LENGTH, &actualLength);
+    decodeSequence(fr->enc, fr->seq, fr->gkfr.seqLen);
   }
 
   if (fs->flags & FRAG_S_QLT) {
     assert(fr->hasSEQ == 0);
     fr->hasSEQ = 1;
     fr->hasQLT = 1;
-    nextStream(fs->qlt, fr->qlt, MAX_SEQ_LENGTH, &actualLength);
-    fr->qlt[actualLength] = 0;
-    decodeSequenceQuality(fr->qlt, fr->seq, fr->qlt);
+    nextStream(fs->qlt, fr->enc, MAX_SEQ_LENGTH, &actualLength);
+    fr->enc[actualLength] = 0;
+    decodeSequenceQuality(fr->enc, fr->seq, fr->qlt);
   }
 
   if (fs->flags & FRAG_S_HPS) {
