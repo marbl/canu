@@ -34,6 +34,8 @@ merStream::rewind(void) {
 void
 merStream::setRange(u64bit beg, u64bit end) {
 
+  assert(beg < end);
+
   //  We can't tell the seqStore when to stop; while we could compute
   //  the span of a spaced seed, we cannot compute it for a compressed
   //  seed.  We need to stop iterating when the beginning of the mer

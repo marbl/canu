@@ -182,6 +182,8 @@ seqStream::rewind(void){
 void
 seqStream::setRange(u64bit bgn, u64bit end) {
 
+  assert(bgn < end);
+
   u32bit s = 0;
   u64bit l = 0;
 
