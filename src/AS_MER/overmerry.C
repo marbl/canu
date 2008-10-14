@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overmerry.C,v 1.29 2008-10-09 23:54:38 brianwalenz Exp $";
+const char *mainid = "$Id: overmerry.C,v 1.30 2008-10-14 19:06:40 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,7 +86,6 @@ public:
     qEnd = 0;
 
     tGK  = 0L;
-    tKB  = 0L;
     tSS  = 0L;
     tMS  = 0L;
     tPS  = 0L;
@@ -116,7 +115,6 @@ public:
     delete tPS;
     delete tMS;
     delete tSS;
-    delete tKB;
     delete tGK;
   };
 
@@ -323,10 +321,9 @@ public:
       //  support pruning by a MF count though.
 #warning not pruning positionDB
 
-      tKB = new kMerBuilder(merSize, compression, 0L);
       tSS = new seqStream(gkpName);
 
-      tMS = new merStream(tKB, tSS, true, false);
+      tMS = new merStream(new kMerBuilder(merSize, compression, 0L), tSS, true, false);
       tPS = new positionDB(tMS, merSize, 0, 0L, 0L, MF, 0, 0, 0, 0, true);
 
       delete MF;
@@ -369,7 +366,6 @@ public:
   //  for the WORKERS.
   //
   gkpStoreFile      *tGK;
-  kMerBuilder       *tKB;
   seqStream         *tSS;  //  needs to be public so we can offset coords
   merStream         *tMS;
   positionDB        *tPS;  //  needs to be public!  (this is the main table)
