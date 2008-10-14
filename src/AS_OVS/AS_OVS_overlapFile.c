@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapFile.c,v 1.12 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapFile.c,v 1.13 2008-10-14 03:02:01 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,7 +29,6 @@ static const char *rcsid = "$Id: AS_OVS_overlapFile.c,v 1.12 2008-10-08 22:02:58
 
 #include "AS_OVS_overlapFile.h"
 #include "AS_UTL_fileIO.h"
-
 
 BinaryOverlapFile *
 AS_OVS_openBinaryOverlapFile(const char *name, int isInternal) {
@@ -73,7 +72,7 @@ AS_OVS_openBinaryOverlapFile(const char *name, int isInternal) {
     bof->isSeekable = TRUE;
   }
   if (errno) {
-    fprintf(stderr, "AS_OVS_createBinaryOverlapFile()-- Failed to open '%s' for reading: %s\n",
+    fprintf(stderr, "AS_OVS_openBinaryOverlapFile()-- Failed to open '%s' for reading: %s\n",
             name, strerror(errno));
     exit(1);
   }
@@ -90,15 +89,15 @@ AS_OVS_createBinaryOverlapFile(const char *name, int isInternal) {
 
   BinaryOverlapFile   *bof = (BinaryOverlapFile *)safe_malloc(sizeof(BinaryOverlapFile));
 
-  bof->bufferLen  = 0;
-  bof->bufferPos  = 16384 * 12;
-  bof->bufferMax  = 16384 * 12;
-  bof->buffer     = (uint32 *)safe_malloc(sizeof(uint32) * bof->bufferMax);
-  bof->isOutput   = TRUE;
-  bof->isSeekable = FALSE;
-  bof->isPopened  = FALSE;
-  bof->isInternal = isInternal;
-  bof->file       = NULL;
+  bof->bufferLen   = 0;
+  bof->bufferPos   = 16384 * 12;
+  bof->bufferMax   = 16384 * 12;
+  bof->buffer      = (uint32 *)safe_malloc(sizeof(uint32) * bof->bufferMax);
+  bof->isOutput    = TRUE;
+  bof->isSeekable  = FALSE;
+  bof->isPopened   = FALSE;
+  bof->isInternal  = isInternal;
+  bof->file        = NULL;
 
   //  The size of the buffer MUST be divisible by 3 and 4, otherwise
   //  our writer will lose data.  We carefully chose 16384*12 to be
@@ -114,11 +113,11 @@ AS_OVS_createBinaryOverlapFile(const char *name, int isInternal) {
   if (name == NULL) {
     bof->file = stdout;
   } else if (strcmp(name+strlen(name)-3, ".gz") == 0) {
-    sprintf(cmd, "gzip -9c %s", name);
+    sprintf(cmd, "gzip -9c > %s", name);
     bof->file = popen(cmd, "w");
     bof->isPopened = TRUE;
   } else if (strcmp(name+strlen(name)-4, ".bz2") == 0) {
-    sprintf(cmd, "bzip2 -9c %s", name);
+    sprintf(cmd, "bzip2 -9c > %s", name);
     bof->file = popen(cmd, "w");
     bof->isPopened = TRUE;
   } else {
