@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.16 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.17 2008-10-14 03:05:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,6 +35,7 @@ static const char *rcsid = "$Id: overlapStore_build.c,v 1.16 2008-10-08 22:02:58
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
 #include "AS_UTL_qsort_mt.h"
+#include "AS_OBT_acceptableOverlap.h"
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapFile.h"
 #include "AS_OVS_overlapStore.h"
@@ -130,7 +131,7 @@ writeToDumpFile(OVSoverlap          *overlap,
 
 
 void
-buildStore(char *storeName, char *gkpName, uint64 memoryLimit, uint32 nThreads, uint32 fileListLen, char **fileList) {
+buildStore(char *storeName, char *gkpName, uint64 memoryLimit, uint32 nThreads, uint32 doFilterOBT, uint32 fileListLen, char **fileList) {
 
   if (gkpName == NULL) {
     fprintf(stderr, "overlapStore: The '-g gkpName' parameter is required.\n");
@@ -206,6 +207,10 @@ buildStore(char *storeName, char *gkpName, uint64 memoryLimit, uint32 nThreads, 
     inputFile = AS_OVS_openBinaryOverlapFile(fileList[i], FALSE);
 
     while (AS_OVS_readOverlap(inputFile, &fovrlap)) {
+
+      //  If filtering for OBT, skip the crap.
+      if ((doFilterOBT) && (AS_OBT_acceptableOverlap(fovrlap) == 0))
+        continue;
 
       writeToDumpFile(&fovrlap, dumpFile, dumpFileMax, dumpLength, iidPerBucket, storeName);
 

@@ -106,16 +106,10 @@ sub createOverlapJobs($) {
     print F "  -k $merSize \\\n";
     print F "  -k $wrk/0-mercounts/$asm.nmers.obt.fasta \\\n" if ($isTrim eq "trim");
     print F "  -k $wrk/0-mercounts/$asm.nmers.ovl.fasta \\\n" if ($isTrim ne "trim");
-    print F "  -o - \\\n";
+    print F "  -o $wrk/$outDir/\$bat/\$job.ovb.WORKING.gz \\\n";
     print F "  $wrk/$asm.gkpStore \\\n";
-    if ($isTrim eq "trim") {
-        print F "|\\\n";
-        print F "\$bin/acceptableOBToverlap \\\n";
-    }
-    print F "|\\\n";
-    print F "gzip -9vc > $wrk/$outDir/\$bat/\$job.ovb.gz.WORKING \\\n";
     print F "&& \\\n";
-    print F "mv $wrk/$outDir/\$bat/\$job.ovb.gz.WORKING $wrk/$outDir/\$bat/\$job.ovb.gz\n";
+    print F "mv $wrk/$outDir/\$bat/\$job.ovb.WORKING.gz $wrk/$outDir/\$bat/\$job.ovb.gz\n";
     print F "\n";
     print F "exit 0\n";
     close(F);

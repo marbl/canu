@@ -59,37 +59,40 @@ endif
 
 endif
 
-SOURCES = acceptableOBToverlap.c \
-          chimera.C \
-          consolidate.C \
-          prefixDelete.C \
-          getNumScaffolds.c \
-          initialTrim.C \
-          merge-trimming.C \
-          trim.C \
-          readOverlap.C \
-          util++.C
+EXE_SOURCES = chimera.C \
+              consolidate.C \
+              prefixDelete.C \
+              getNumScaffolds.c \
+              initialTrim.C \
+              merge-trimming.C \
+              trim.C \
+              readOverlap.C \
+              util++.C
+LIB_SOURCES = AS_OBT_acceptableOverlap.c
 
-OBJECTS   = $(SOURCES:.C=.o) $(SOURCES:.c=.o)
-CXX_PROGS = acceptableOBToverlap \
-            initialTrim \
-            merge-trimming \
-            consolidate \
-            chimera \
-            prefixDelete \
-            getNumScaffolds
+SOURCES     = $(EXE_SOURCES) $(LIB_SOURCES)
+OBJECTS     = $(SOURCES:.C=.o) $(SOURCES:.c=.o) $(LIB_SOURCES:.c=.o)
+LIBRARIES   = libAS_OBT.a libCA.a
+
+CXX_PROGS   = initialTrim \
+              merge-trimming \
+              consolidate \
+              chimera \
+              prefixDelete \
+              getNumScaffolds
 SCRIPTS =
 ifdef FIGARO
   SCRIPTS += figaro
 endif
-
 
 include $(LOCAL_WORK)/src/c_make.as
 
 all: $(CXX_PROGS) $(SCRIPTS)
 	@test -n nop
 
-acceptableOBToverlap: acceptableOBToverlap.o                  libCA.a
+libAS_OBT.a: $(LIB_SOURCES:.c=.o)
+libCA.a:     $(LIB_SOURCES:.c=.o)
+
 initialTrim:          initialTrim.o trim.o                    libCA.a
 consolidate:          consolidate.o util++.o readOverlap.o    libCA.a
 merge-trimming:       merge-trimming.o trim.o                 libCA.a

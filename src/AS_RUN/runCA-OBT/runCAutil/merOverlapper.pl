@@ -125,8 +125,7 @@ sub merOverlapper($) {
         print F " -m $merSize \\\n";
         print F " -c $merComp \\\n";
         print F " -t " . getGlobal("merOverlapperThreads") . "\\\n";
-        print F "| \\\n";
-        print F "gzip -1c > $wrk/$outDir/seeds/\$jobid.ovm.WORKING.gz \\\n";
+        print F " -o $wrk/$outDir/seeds/\$jobid.ovm.WORKING.gz \\\n";
         print F "&& \\\n";
         print F "mv $wrk/$outDir/seeds/\$jobid.ovm.WORKING.gz $wrk/$outDir/seeds/\$jobid.ovm.gz\n";
         close(F);
@@ -183,26 +182,19 @@ sub merOverlapper($) {
 
         if ($isTrim eq "trim") {
             print F " -G \\\n";  #  Trim only
-            print F " -o $wrk/$outDir/olaps/\$jobid.ovr.WORKING \\\n";
+            print F " -o $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz \\\n";
             print F " $wrk/$asm.gkpStore \\\n";
             print F " \$minid \$maxid \\\n";
             print F " > $wrk/$outDir/olaps/$asm.\$jobid.ovb.err 2>&1 \\\n";
-            print F "&& \\\n";
-            print F "\$bin/acceptableOBToverlap \\\n";
-            print F " < $wrk/$outDir/olaps/\$jobid.ovr.WORKING \\\n";
-            print F "| \\\n";
-            print F "gzip -1vc > $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz \\\n";
             print F "&& \\\n";
             print F "mv $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz $wrk/$outDir/olaps/\$jobid.ovb.gz\n";
         } else {
-            print F "-w \\\n" if (getGlobal("merOverlapperCorrelatedDiffs"));
+            print F " -w \\\n" if (getGlobal("merOverlapperCorrelatedDiffs"));
             print F " -c $wrk/3-overlapcorrection/\$jobid.frgcorr.WORKING \\\n";
-            print F " -o $wrk/$outDir/olaps/\$jobid.ovb.WORKING \\\n";
+            print F " -o $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz \\\n";
             print F " $wrk/$asm.gkpStore \\\n";
             print F " \$minid \$maxid \\\n";
             print F " > $wrk/$outDir/olaps/$asm.\$jobid.ovb.err 2>&1 \\\n";
-            print F "&& \\\n";
-            print F "gzip -1vc < $wrk/$outDir/olaps/\$jobid.ovb.WORKING > $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz \\\n";
             print F "&& \\\n";
             print F "mv $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz $wrk/$outDir/olaps/\$jobid.ovb.gz \\\n";
             print F "&& \\\n";
@@ -212,7 +204,6 @@ sub merOverlapper($) {
         }
 
         print F "\n";
-        print F "rm -f $wrk/$outDir/olaps/\$jobid.ovr.WORKING\n";
         print F "rm -f $wrk/$outDir/olaps/\$jobid.ovb.WORKING\n";
         print F "rm -f $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz\n";
 

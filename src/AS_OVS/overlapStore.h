@@ -22,7 +22,7 @@
 #ifndef OVERLAPSTORE_H
 #define OVERLAPSTORE_H
 
-static const char *rcsid_OVERLAPSTORE_H = "$Id: overlapStore.h,v 1.10 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid_OVERLAPSTORE_H = "$Id: overlapStore.h,v 1.11 2008-10-14 03:05:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,7 +32,7 @@ static const char *rcsid_OVERLAPSTORE_H = "$Id: overlapStore.h,v 1.10 2008-10-08
 #include "AS_global.h"
 
 void
-buildStore(char *storeName, char *gkpName, uint64 memoryLimit, uint32 nThreads, uint32 fileListLen, char **fileList);
+buildStore(char *storeName, char *gkpName, uint64 memoryLimit, uint32 nThreads, uint32 doFilterOBT, uint32 fileListLen, char **fileList);
 
 void
 mergeStore(char *storeName, char *mergeName);

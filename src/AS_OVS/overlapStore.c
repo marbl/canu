@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.15 2008-10-08 22:02:58 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.16 2008-10-14 03:05:37 brianwalenz Exp $";
 
 #include "overlapStore.h"
 
@@ -36,6 +36,7 @@ main(int argc, char **argv) {
   uint32    endIID      = 1000000000;
   uint64    memoryLimit = 512 * 1024 * 1024;
   uint32    nThreads    = 4;
+  uint32    doFilterOBT = 0;
   uint32    fileListLen = 0;
   uint32    fileListMax = 10 * 1024;  //  If you run more than 10,000 overlapper jobs, you'll die.
   char    **fileList    = (char **)safe_malloc(sizeof(char *) * fileListMax);
@@ -97,6 +98,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-e") == 0) {
       endIID = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-O") == 0) {
+      doFilterOBT = 1;
+
     } else if (strcmp(argv[arg], "-M") == 0) {
       memoryLimit  = atoi(argv[++arg]);  //  convert first, then multiply so we don't
       memoryLimit *= 1024 * 1024;        //  overflow whatever type atoi() is.
@@ -155,6 +159,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "CREATION\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -O           Filter overlaps for OBT.\n");
     fprintf(stderr, "  -M x         Use 'x'MB memory for sorting overlaps.\n");
     fprintf(stderr, "  -t t         Use 't' threads for sorting overlaps.\n");
     fprintf(stderr, "  -L f         Read overlaps from files listed in 'f'.\n");
@@ -179,7 +184,7 @@ main(int argc, char **argv) {
 
   switch (operation) {
     case OP_BUILD:
-      buildStore(storeName, gkpName, memoryLimit, nThreads, fileListLen, fileList);
+      buildStore(storeName, gkpName, memoryLimit, nThreads, doFilterOBT, fileListLen, fileList);
       break;
     case OP_MERGE:
       mergeStore(storeName, fileList[0]);

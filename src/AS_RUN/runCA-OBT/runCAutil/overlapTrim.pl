@@ -84,6 +84,7 @@ sub overlapTrim {
         my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/overlapStore ";
+        $cmd .= " -O ";
         $cmd .= " -c $wrk/$asm.obtStore.BUILDING ";
         $cmd .= " -g $wrk/$asm.gkpStore ";
         $cmd .= " -M " . getGlobal('ovlStoreMemory');
