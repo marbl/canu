@@ -85,7 +85,8 @@
 #       Lists simple name (in "libx.a" form) of each library that is
 #       built by this makefile.
 #
-#     PROGS =
+#     C_PROGS =
+#     CXX_PROGS =
 #       Lists each executable created by this makefile.
 #
 #     INC_IMPORT_DIRS +=
@@ -336,7 +337,7 @@ clean_lib:
 
 .PHONY: clean_bin
 clean_bin:
-	-cd $(LOCAL_BIN); rm -f $(PROGS)
+	-cd $(LOCAL_BIN); rm -f $(C_PROGS) $(CXX_PROGS)
 
 
 #### Separate source types
@@ -412,7 +413,7 @@ objs: $(OBJECTS)
 libs: $(LIBRARIES)
 
 #### Specific target to make progs
-progs: $(PROGS)
+progs: $(C_PROGS) $(CXX_PROGS)
 
 -include $(DEPS)
 
