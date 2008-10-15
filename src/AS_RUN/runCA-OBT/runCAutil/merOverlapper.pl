@@ -121,6 +121,7 @@ sub merOverlapper($) {
         if ($ovmJobs > 1) {
             print F " -mc $wrk/0-mercounts/$asm-C-ms$merSize-cm$merComp \\\n";
             print F " -tb \$minid -te \$maxid \\\n";
+            print F " -qb \$minid \\\n";
         }
         print F " -m $merSize \\\n";
         print F " -c $merComp \\\n";
