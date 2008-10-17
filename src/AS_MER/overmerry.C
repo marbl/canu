@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overmerry.C,v 1.31 2008-10-15 14:48:38 brianwalenz Exp $";
+const char *mainid = "$Id: overmerry.C,v 1.32 2008-10-17 00:54:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -316,9 +316,6 @@ public:
 
     //  Continue with building the positionDB.
 
-    //  XXX  Should use maxCount to prune the table a bit.  positionDB doesn't
-    //  support pruning by a MF count though.
-#warning not pruning positionDB
 
     char     gkpName[FILENAME_MAX + 64] = {0};
     sprintf(gkpName, "%s:%u-%u:obt", gkpPath, tBeg, tEnd);
@@ -327,6 +324,14 @@ public:
 
     tMS = new merStream(new kMerBuilder(merSize, compression, 0L), tSS, true, false);
     tPS = new positionDB(tMS, merSize, 0, 0L, 0L, MF, 0, 0, 0, 0, true);
+
+    //  Filter out single copy mers, and mers too high...but ONLY if
+    //  there is a merCountsFile.  In particular, the single copy mers
+    //  in a table without counts can be multi-copy when combined with
+    //  their reverse-complement mer.
+    //
+    if (merCountsFile)
+      tPS->filter(2, maxCount);
 
     delete MF;
   };
@@ -626,16 +631,14 @@ ovmWorker(void *G, void *T, void *S) {
   //
   for (u32bit i=0; i<t->hitsLen; i++) {
     if (i != t->hitsLen) {
-      fprintf(stderr, u32bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u64bitFMT"\t%c\t"u32bitFMT"\t"u32bitFMT"\tTAG\n",
+      fprintf(stderr, u32bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u64bitFMT"\t%c\t"u32bitFMT"\n",
               t->hits[i].tseq, t->hits[i].tpos,
               s->iid,  t->hits[i].qpos,
               t->hits[i].pal ? 'p' : (t->hits[i].fwd ? 'f' : 'r'),
-              0,
               t->hits[i].cnt);
     }
   }
 #endif
-
 
 
   for (u32bit i=0; i<t->hitsLen; ) {
