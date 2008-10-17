@@ -4,59 +4,16 @@
 #include "positionDB.H"
 #include "bio++.H"
 
-#ifdef DEBUGPOSDB
 
 void
-positionDB::dump(u64bit mer) {
-  u64bit  h = HASH(mer);
-  u64bit  c = CHECK(mer);
-  u64bit st, ed;
+positionDB::dump(char *name) {
+  u64bit  sizs[4] = {_chckWidth, _pptrWidth, 1, _sizeWidth};
+  u64bit  vals[4] = {0, 0, 0, 0};
+  FILE   *F = fopen(name, "w");
 
-  if (_hashTable_BP) {
-    st = getDecodedValue(_hashTable_BP, h * _hashWidth,              _hashWidth);
-    ed = getDecodedValue(_hashTable_BP, h * _hashWidth + _hashWidth, _hashWidth);
-  } else {
-    st = _hashTable_FW[h];
-    ed = _hashTable_FW[h+1];
-  }
+  for (u64bit h=0; h<_tableSizeInEntries; h++) {
+    u64bit st, ed;
 
-  if (ed - st == 0)
-    return;
-
-  u64bit  lens[4] = {_chckWidth, _posnWidth, 1, 0};
-  u64bit  vals[4] = {0};
-  u64bit  nval    = 3;
-
-  for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin) {
-    getDecodedValues(_buckets, J, nval, lens, vals);
-
-    if (vals[0] == c) {
-      if (vals[2]) {
-        fprintf(stdout, "U mer="u64bitHEX" -- uniq pos="u64bitFMTW(12)" chck="u64bitHEX" posn="u64bitFMT"\n", mer, vals[0], vals[2]);
-      } else {
-        u64bit pos = posn * _posnWidth;
-        u64bit len = getDecodedValue(_positions, pos, _posnWidth);
-
-        fprintf(stdout, "N mer="u64bitHEX" -- dupl pos="u64bitFMTW(12)" chck="u64bitHEX" posn="u64bitFMT"\n", mer, vals[0], vals[2]);
-        fprintf(stdout, "                       -- len="u64bitFMT"\n", len);
-        for (pos += _posnWidth; len > 0; pos += posnWidth, len--)
-          fprintf(stdout, "                       -- pos="u64bitFMT"\n", getDecodedValue(_positions, p, _posnWidth));
-      }
-    }
-  }
-}
-
-
-void
-positionDB::dumpTable(void) {
-  u64bit  st, ed, le;
-  u64bit  lens[4] = {_chckWidth, _posnWidth, 1, 0};
-  u64bit  vals[4] = {0};
-  u64bit  nval    = 3;
-
-  fprintf(stdout, "Dumping "u32bitFMT" buckets.\n", _tableSizeInEntries);
-
-  for (u32bit b=0; b<_tableSizeInEntries; b++) {
     if (_hashTable_BP) {
       st = getDecodedValue(_hashTable_BP, h * _hashWidth,              _hashWidth);
       ed = getDecodedValue(_hashTable_BP, h * _hashWidth + _hashWidth, _hashWidth);
@@ -65,27 +22,29 @@ positionDB::dumpTable(void) {
       ed = _hashTable_FW[h+1];
     }
 
-    if (ed - st > 0) {
-      fprintf(stdout, "Dumping bucket 0x%08x.\n", b);
+    fprintf(F, "B "u64bitFMT" "u64bitFMT"-"u64bitFMT"\n", h, st, ed);
 
-      for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin) {
-        getDecodedValues(_buckets, J, nval, lens, vals);
+    while (st < ed) {
+      u64bit     cb = st * _wFin;
 
-        if (vals[1]) {
-          fprintf(stdout, "U mer="u64bitHEX" -- uniq pos="u64bitFMTW(12)" chck="u64bitHEX" posn="u64bitFMT")\n", 0x0, vals[0], vals[2]);
-        } else {
-          u64bit pos = posn * _posnWidth;
-          u64bit len = getDecodedValue(_positions, pos, _posnWidth);
+      getDecodedValues(_buckets, cb, (_sizeWidth == 0) ? 3 : 4, sizs, vals);
 
-          fprintf(stdout, "N mer="u64bitHEX" -- dupl pos="u64bitFMTW(12)" chck="u64bitHEX" posn="u64bitFMT"\n", 0x0, vals[0], vals[2]);
-          fprintf(stdout, "                       -- len="u64bitFMT"\n", len);
-          for (pos += _posnWidth; len > 0; pos += posnWidth, len--)
-            fprintf(stdout, "                       -- pos="u64bitFMT"\n", getDecodedValue(_positions, p, _posnWidth));
-        }
+      fprintf(F, "%c chk="u64bitHEX" pos="u64bitFMT" siz="u64bitFMT,
+              (vals[2] == 0) ? 'D' : 'U', vals[0], vals[1], vals[3]);
+
+      if (vals[2] == 0) {
+        u64bit pos = vals[1] * _posnWidth;
+        u64bit len = getDecodedValue(_positions, pos, _posnWidth);
+
+        for (pos += _posnWidth; len > 0; pos += _posnWidth, len--)
+          fprintf(F, " "u64bitFMT, getDecodedValue(_positions, pos, _posnWidth));
       }
+
+      fprintf(F, "\n");
+
+      st++;
     }
   }
+
+  fclose(F);
 }
-
-
-#endif

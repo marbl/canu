@@ -90,6 +90,9 @@ public:
   bool        existsExact(u64bit   mer);
   u64bit      countExact(u64bit    mer);
 
+public:
+  void        filter(u64bit lo, u64bit hi);
+
 private:
   double      setUpMismatchMatcher(u32bit nErrorsAllowed, u64bit approxMers);
 public:
@@ -111,10 +114,7 @@ public:
 
   //  Only really useful for debugging.  Don't use.
   //
-#ifdef DEBUGPOSDB
-  void        dump(u64bit mer);
-  void        dumpTable(void);
-#endif
+  void        dump(char *name);
 
 
   bool         checkREBUILD(u64bit m) {
