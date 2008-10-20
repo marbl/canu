@@ -99,6 +99,8 @@ doPolishS4(searcherState       *state,
     if (GENhi > GENseq->sequenceLength())
       GENhi = GENseq->sequenceLength();
 
+    assert(GENlo < GENhi);
+
     bool    doForward =  theHits[h]._status & AHIT_DIRECTION_MASK;
     bool    doReverse = !doForward;
 
@@ -146,6 +148,8 @@ doPolishS4(searcherState       *state,
           theLog->add("FORWARDHIT GEN: hi:"u32bitFMT"-lo:"u32bitFMT" pos:"u32bitFMT" EST: len:"u32bitFMT" pos:"u32bitFMT"\n",
                       GENhi, GENlo, y, (u32bit)ESTseq->sequenceLength(), x);
 #endif
+        assert(y + config._KBmerSize >= GENlo);
+
         P4->addSeed(y - GENlo + config._KBmerSize,
                     x         + config._KBmerSize,
                     config._KBmerSize);
@@ -164,6 +168,9 @@ doPolishS4(searcherState       *state,
         //  to add in the mersize, we're representing the end of
         //  the mer now!
         //
+        assert(GENhi                    >= y);
+        assert(ESTseq->sequenceLength() >= x);
+
         P4->addSeed(GENhi                    - y,
                     ESTseq->sequenceLength() - x,
                     config._KBmerSize);

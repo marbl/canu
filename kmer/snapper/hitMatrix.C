@@ -405,6 +405,8 @@ hitMatrix::filter(char      direction,
       a->_numMers   = _qsMers;
       a->_ML        = ML;
 
+      assert(a->_dsLo < a->_dsHi);
+
 #ifdef SHOW_HITMATRIX
       _theLog->add("merged:   G::"u32bitFMT"-"u32bitFMT"("u32bitFMT")  q:"u32bitFMT" g:"u32bitFMT" cov:"u32bitFMT" mat:"u32bitFMT" mer:"u32bitFMT"\n",
               a->_dsLo, a->_dsHi, a->_dsHi - a->_dsLo,

@@ -282,7 +282,7 @@ doSearch(searcherState       *state,
         if (PS->getExact(query->getMer(qidx), state->posn, state->posnMax, state->posnLen, count)) {
           if (state->posnLen <= countLimit) {
             for (u32bit x=0; x<state->posnLen; x++)
-              state->posn[x] += GENlo + genomeMap->startOf(theHits[h]._dsIdx);
+              state->posn[x] += genomeMap->startOf(theHits[h]._dsIdx);
 
             //  The kmer counts for these mers are relative to the
             //  sub-regions, not the global, so we want to disable any
