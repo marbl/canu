@@ -36,10 +36,10 @@ GKPSRC    = AS_GKP_buildPartition.c \
             AS_GKP_rearrange.c \
             AS_GKP_sff.c
 
-SOURCES   = AS_GKP_main.c AS_GKP_bench.c $(GKPSRC)
+SOURCES   = AS_GKP_main.c AS_GKP_bench.c $(GKPSRC) sffToCA.c
 OBJECTS   = $(SOURCES:.c=.o)
 LIBRARIES =
-C_PROGS   = gatekeeper gatekeeperbench
+C_PROGS   = gatekeeper gatekeeperbench sffToCA
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -48,3 +48,4 @@ all:    $(OBJECTS) $(LIBRARIES) $(C_PROGS)
 
 gatekeeper:      AS_GKP_main.o $(GKPSRC:.c=.o) libCA.a
 gatekeeperbench: AS_GKP_bench.o                libCA.a
+sffToCA:         sffToCA.o                     libCA.a

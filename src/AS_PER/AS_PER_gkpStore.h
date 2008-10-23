@@ -22,7 +22,7 @@
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 
-static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id: AS_PER_gkpStore.h,v 1.53 2008-10-13 00:42:53 brianwalenz Exp $";
+static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id: AS_PER_gkpStore.h,v 1.54 2008-10-23 05:08:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -565,6 +565,7 @@ GateKeeperStore *createGateKeeperStore(const char *path);
 int              testOpenGateKeeperStore(const char *path, int writable);
 GateKeeperStore *openGateKeeperStore(const char *path, int writable);
 void             closeGateKeeperStore(GateKeeperStore *gkpStore);
+void             deleteGateKeeperStore(const char *path);
 
 GateKeeperStore *createGateKeeperPartition(const char *path, uint32 partnum);
 

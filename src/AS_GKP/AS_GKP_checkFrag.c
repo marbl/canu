@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.41 2008-10-09 00:48:12 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.42 2008-10-23 05:08:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -314,6 +314,26 @@ Check_FragMesg(FragMesg            *frg_mesg,
       return(1);
     }
 
+    //  Deal with the unfortunate hack that communicates 454 mate
+    //  linker trim points to OBT.
+    //
+    if (strncmp(frg_mesg->source, "linktrim:0x", 11) == 0) {
+      uint64 val = strtoull(frg_mesg->source, NULL, 16);
+
+      gkf.clearEnd[AS_READ_CLEAR_VEC] = val & 0x0000ffff;
+      val >>= 16;
+      gkf.clearBeg[AS_READ_CLEAR_VEC] = val & 0x0000ffff;
+      val >>= 16;
+      gkf.clearEnd[AS_READ_CLEAR_QLT] = val & 0x0000ffff;
+      val >>= 16;
+      gkf.clearBeg[AS_READ_CLEAR_QLT] = val & 0x0000ffff;
+
+      gkf.sffLinkerDetectedButNotTrimmed = 1;
+      gkf.hasVectorClear  = 0;
+      gkf.hasQualityClear = 0;
+
+      frg_mesg->source[0] = 0;
+    }
 
     //  Check sequence and quality for invalid letters, lengths, etc.
     //
