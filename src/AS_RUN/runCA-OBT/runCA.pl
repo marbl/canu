@@ -53,45 +53,56 @@ while (scalar(@ARGV)) {
     if      ($arg =~ m/^-d/) {
         $wrk = shift @ARGV;
         $wrk = "$ENV{'PWD'}/$wrk" if ($wrk !~ m!^/!);
+
     } elsif ($arg =~ m/^-p/) {
         $asm = shift @ARGV;
+
     } elsif ($arg =~ m/^-s/) {
         $specFile = shift @ARGV;
-    } elsif ($arg =~ m/^-h/) {
-        setGlobal("help", 1);
-    } elsif ($arg =~ m/^-v/ or $arg =~ m/^-V/) {
+
+    } elsif (($arg =~ m/^-v/ or $arg =~ m/^--v/)) {
         setGlobal("version", 1);
-    } elsif ($arg =~ m/^-f/) {
+
+    } elsif (($arg =~ m/^-f/) || ($arg =~ m/^--f/)) {
         setGlobal("fields", 1);
+
     } elsif (($arg =~ /\.frg$|frg\.gz$|frg\.bz2$/) && (-e $arg)) {
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @fragFiles, $arg;
+
     } elsif (($arg =~ /\.sff$|sff\.gz$|sff\.bz2$/) && (-e $arg)) {
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @fragFiles, $arg;
+
     } elsif (($arg =~ /\.ace$/) && (-e $arg)) {
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @fragFiles, $arg;
+
     } elsif (($arg =~ /\.cgb$/) && (-e $arg)) {
         $isContinuation = 1;
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @cgbFiles, $arg;
+
     } elsif (($arg =~ /\.cgi$/) && (-e $arg)) {
         $isContinuation = 1;
         $cgiFile = $arg;
         $cgiFile = "$ENV{'PWD'}/$cgiFile" if ($cgiFile !~ m!^/!);
+
     } elsif (-d $arg) {
         $isContinuation = 1;
         $scaffoldDir  = $arg;
         $scaffoldDir  = "$ENV{'PWD'}/$scaffoldDir" if ($scaffoldDir !~ m!^/!);
+
     } elsif ($arg =~ m/=/) {
         push @specOpts, $arg;
+
     } else {
-        die "$0: Unknown argument '$arg'\n";
+        setGlobal("help", 1);
     }
 }
 
-setGlobal("help",1) unless $asm;
+setGlobal("help", 1) if (!defined($asm));
+setGlobal("help", 1) if (!defined($wrk));
 
 @fragFiles = setParametersFromFile($specFile, @fragFiles);
 
