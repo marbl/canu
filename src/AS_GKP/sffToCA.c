@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.1 2008-10-23 05:08:03 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.2 2008-10-23 05:18:52 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1462,7 +1462,7 @@ main(int argc, char **argv) {
     loadSFF(argv[firstFileArg]);
 
   removeLowQualityReads();
-  //removeDuplicateReads();
+  removeDuplicateReads();
 
   if (linker)
     detectMates(linker);
