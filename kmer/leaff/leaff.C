@@ -172,7 +172,8 @@ void  processFile(char  *filename);
 void  processArray(int argc, char **argv);
 
 void
-printSequence(seqInCore   *b,
+printSequence(char        *d,
+              seqInCore   *b,
               u32bit       beg,
               u32bit       end,
               u32bit       withLineBreaks=0,
@@ -184,15 +185,12 @@ printSequence(seqInCore   *b,
 
   u32bit l = b->sequenceLength();
 
-  if (beg == end) {
-    beg = 0;
-    end = l;
-  }
-
+  if (beg == end)
+    return;
   if (beg > l)
-    beg = 0;
+    return;
   if (end > l)
-    end = l;
+    return;
 
   u32bit    limit = end - beg;
   char     *n = new char [end - beg + 1];
@@ -235,6 +233,9 @@ printSequence(seqInCore   *b,
   }
 
   n[end-beg] = 0;
+
+  if (d)
+    fprintf(stdout, ">%s\n", d);
 
   if (withLineBreaks) {
     char      *t = n;
@@ -312,19 +313,20 @@ printIID(u32bit iid, seqInCore *s=0L) {
 
     fprintf(stdout, "%s %s\n", sum, s->header());
   } else if (endExtract + endExtract < s->sequenceLength()) {
-    fprintf(stdout, ">%s_5\n", s->header());
-    printSequence(s, 0, endExtract, withLineBreaks, reverse, complement);
+    char d[1024];
 
-    fprintf(stdout, ">%s_3\n", s->header());
-    printSequence(s, s->sequenceLength()-endExtract, s->sequenceLength(), withLineBreaks, reverse, complement);
+    sprintf(d, "%s_5", s->header());
+    printSequence(d, s, 0, endExtract, withLineBreaks, reverse, complement);
+
+    sprintf(d, "%s_3", s->header());
+    printSequence(d, s, s->sequenceLength()-endExtract, s->sequenceLength(), withLineBreaks, reverse, complement);
   } else {
-    if (withDefLine)
-      if (specialDefLine)
-        fprintf(stdout, ">%s\n", specialDefLine);
-      else
-        fprintf(stdout, ">%s\n", s->header());
+    char *d = 0L;
 
-    printSequence(s, begPos, endPos, withLineBreaks, reverse, complement);
+    if (withDefLine)
+      d = (specialDefLine) ? specialDefLine : s->header();
+
+    printSequence(d, s, begPos, endPos, withLineBreaks, reverse, complement);
   }
 
   if (mySeq)
