@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.74 2008-10-09 23:24:02 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.75 2008-10-23 15:44:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -718,58 +718,23 @@ main(int argc, char **argv) {
     if (inFile == NULL)
       fprintf(stderr, "%s: failed to open input '%s': (returned null pointer)\n", progName, argv[firstFileArg]), exit(1);
 
-    int   isSFF = 0;
-    {
-      uint32  magic = 0;
 
-      if (fileIsCompressed) {
-        //  Can't check the magic number, since we cannot rewind, so
-        //  guess based on filename.
-        //
-        int  len = strlen(argv[firstFileArg]);
-
-        if ((strcmp(argv[firstFileArg] + len - 4, ".sff") == 0) ||
-            (strcmp(argv[firstFileArg] + len - 7, ".sff.gz") == 0) ||
-            (strcmp(argv[firstFileArg] + len - 8, ".sff.bz2") == 0)) {
-          isSFF = 1;
-        }
+    while (EOF != ReadProtoMesg_AS(inFile, &pmesg)) {
+      if        (pmesg->t == MESG_BAT) {
+        Check_BatchMesg((BatchMesg *)pmesg->m);
+      } else if (pmesg->t == MESG_DST) {
+        Check_DistanceMesg((DistanceMesg *)pmesg->m, fixInsertSizes);
+      } else if (pmesg->t == MESG_LIB) {
+        Check_LibraryMesg((LibraryMesg *)pmesg->m, fixInsertSizes);
+      } else if (pmesg->t == MESG_FRG) {
+        Check_FragMesg((FragMesg *)pmesg->m, assembler);
+      } else if (pmesg->t == MESG_LKG) {
+        Check_LinkMesg((LinkMesg *)pmesg->m);
+      } else if (pmesg->t == MESG_VER) {
+        //  Ignore
       } else {
-        AS_UTL_safeRead(inFile, &magic, "sff_magic", sizeof(uint32), 1);
-        if ((magic == 0x2e736666) ||
-            (magic == 0x6666732e))
-          isSFF = 1;
-        rewind(inFile);
-      }
-    }
-
-    if (isSFF) {
-      Load_SFF(inFile, searchForLinker);
-    } else {
-      while (EOF != ReadProtoMesg_AS(inFile, &pmesg)) {
-        int success = 0;
-
-        if        (pmesg->t == MESG_BAT) {
-          success = Check_BatchMesg((BatchMesg *)pmesg->m);
-        } else if (pmesg->t == MESG_DST) {
-          success = Check_DistanceMesg((DistanceMesg *)pmesg->m, fixInsertSizes);
-        } else if (pmesg->t == MESG_LIB) {
-          success = Check_LibraryMesg((LibraryMesg *)pmesg->m, fixInsertSizes);
-        } else if (pmesg->t == MESG_FRG) {
-          success = Check_FragMesg((FragMesg *)pmesg->m, assembler);
-        } else if (pmesg->t == MESG_LKG) {
-          success = Check_LinkMesg((LinkMesg *)pmesg->m);
-        } else if (pmesg->t == MESG_VER) {
-          //  Ignore
-        } else {
-          //  Ignore messages we don't understand
-          AS_GKP_reportError(AS_GKP_UNKNOWN_MESSAGE, MessageTypeName[pmesg->t]);
-          success = 1;
-        }
-
-        if (success != 0) {
-          //fprintf(errorFP,"# GKP Error: at line %d:\n", GetProtoLineNum_AS());
-          //WriteProtoMesg_AS(errorFP,pmesg);
-        }
+        //  Ignore messages we don't understand
+        AS_GKP_reportError(AS_GKP_UNKNOWN_MESSAGE, MessageTypeName[pmesg->t]);
       }
     }
 

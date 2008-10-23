@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.2 2008-10-23 05:18:52 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.3 2008-10-23 15:44:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1179,7 +1179,7 @@ addLibrary(char *libraryName,
   gkl.doNotQVTrim                 = 1;
   gkl.goodBadQVThreshold          = 1;  //  Effectively, don't QV trim, redundant
 
-  gkl.deletePerfectPrefixes       = 1;
+  gkl.unused1                     = 0;
   gkl.doNotTrustHomopolymerRuns   = 1;
   gkl.doNotOverlapTrim            = 0;
   gkl.isNotRandom                 = 0;

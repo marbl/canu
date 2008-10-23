@@ -40,32 +40,6 @@ sub overlapTrim {
         rmrf("0-overlaptrim/$asm.initialTrim.err");
     }
 
-    #  Look for any exact prefix reads -- only does something if
-    #  you've got 454 reads.
-    #
-    if ((! -e "$wrk/0-overlaptrim/$asm.prefixDeleteLog") &&
-        (! -e "$wrk/0-overlaptrim/$asm.prefixDeleteLog.bz2")) {
-
-        #  See comment on first backupFragStore() call.
-        backupFragStore("beforePrefixDelete");
-
-        my $bin = getBinDirectory();
-        my $cmd;
-        $cmd  = "$bin/prefixDelete ";
-        $cmd .= " -log $wrk/0-overlaptrim/$asm.prefixDeleteLog ";
-        $cmd .= " -frg $wrk/$asm.gkpStore ";
-        $cmd .= " >  $wrk/0-overlaptrim/$asm.prefixDelete.report ";
-        $cmd .= " 2> $wrk/0-overlaptrim/$asm.prefixDelete.err ";
-
-        if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-            restoreFragStoreBackup("beforePrefixDelete");
-            rename "$wrk/0-overlaptrim/$asm.initialTrimLog", "$wrk/0-overlaptrim/$asm.initialTrimLog.FAILED";
-            caFailure("prefix delete failed.\n");
-        }
-
-        rmrf("0-overlaptrim/$asm.prefixDelete.err");
-    }
-
     #  Compute overlaps, if we don't have them already
 
     if (! -e "$wrk/$asm.obtStore") {

@@ -22,7 +22,7 @@
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 
-static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id: AS_PER_gkpStore.h,v 1.54 2008-10-23 05:08:03 brianwalenz Exp $";
+static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id: AS_PER_gkpStore.h,v 1.55 2008-10-23 15:44:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -99,7 +99,7 @@ typedef struct {
   uint64         doNotQVTrim:1;                //  Default 0 -> do initial qv trimming in OBT
   uint64         goodBadQVThreshold:6;         //  Default 0 -> threshold is 12 in initialTrim.C
 
-  uint64         deletePerfectPrefixes:1;      //  Default 0 == don't delete
+  uint64         unused1:1;                    //
   uint64         doNotTrustHomopolymerRuns:1;  //  Default 0 == trust 'em
   uint64         doNotOverlapTrim:1;           //  Default 0 == do trimming
   uint64         isNotRandom:1;                //  Default 0 == is random

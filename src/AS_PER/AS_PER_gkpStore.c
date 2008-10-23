@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkpStore.c,v 1.61 2008-10-23 05:08:03 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkpStore.c,v 1.62 2008-10-23 15:44:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -866,11 +866,6 @@ AS_PER_decodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
       gkpl->doNotQVTrim = AS_PER_decodeLibraryFeaturesBoolean("doNotQVTrim", val);
     }
 
-    //  deletePerfectPrefixes --
-    else if (strcasecmp(fea, "deletePerfectPrefixes") == 0) {
-      gkpl->deletePerfectPrefixes = AS_PER_decodeLibraryFeaturesBoolean("deletePerfectPrefixes", val);
-    }
-
     //  doNotTrustHomopolymerRuns --
     else if (strcasecmp(fea, "doNotTrustHomopolymerRuns") == 0) {
       gkpl->doNotTrustHomopolymerRuns = AS_PER_decodeLibraryFeaturesBoolean("doNotTrustHomopolymerRuns", val);
@@ -967,14 +962,6 @@ AS_PER_encodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
     val[nf] = (char *)safe_malloc(32 * sizeof(char));
     sprintf(fea[nf], "doNotQVTrim");
     sprintf(val[nf], "%d", gkpl->doNotQVTrim);
-    nf++;
-  }
-
-  if (gkpl->deletePerfectPrefixes || alwaysEncode) {
-    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
-    val[nf] = (char *)safe_malloc(32 * sizeof(char));
-    sprintf(fea[nf], "deletePerfectPrefixes");
-    sprintf(val[nf], "%d", gkpl->deletePerfectPrefixes);
     nf++;
   }
 

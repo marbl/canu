@@ -154,19 +154,46 @@ sub preoverlap {
             if ($frg =~ m/^(.*)\.ace$/) {
                 my @fff = split '/', $1;
                 my $ace = $frg;
+                my $nam = pop @fff;
 
-                $frg = pop @fff;
-                $frg = "$wrk/$frg.shred.frg";
+                $frg = "$wrk/$nam.shred.frg";
 
-                unlink "$wrk/NB.contigs";
-                unlink "$wrk/NB.shred";
+                if (! -e "$frg") {
+                    unlink "$wrk/NB.contigs";
+                    unlink "$wrk/NB.shred";
 
-                runCommand($wrk, "perl $bin/Generate_NonShallow_Contigs.pl -a $ace -f $wrk/NB.contigs");
-                runCommand($wrk, "perl $bin/Shred_Contigs.pl -f $wrk/NB.contigs > $wrk/NB.shred");
-                runCommand($wrk, "perl $bin/FASTA_to_frg_file.pl -f $wrk/NB.shred -q 3 > $frg");
+                    if (runCommand($wrk, "perl $bin/Generate_NonShallow_Contigs.pl -a $ace -f $wrk/NB.contigs") ||
+                        runCommand($wrk, "perl $bin/Shred_Contigs.pl -f $wrk/NB.contigs > $wrk/NB.shred") ||
+                        runCommand($wrk, "perl $bin/FASTA_to_frg_file.pl -f $wrk/NB.shred -q 3 > $frg")) {
+                        unlink "$wrk/NB.contigs";
+                        unlink "$wrk/NB.shred";
+                        unlink "$frg";
+                        caFailure("Shredding '$ace' failed.");
+                    }
 
-                unlink "$wrk/NB.contigs";
-                unlink "$wrk/NB.shred";
+                    unlink "$wrk/NB.contigs";
+                    unlink "$wrk/NB.shred";
+                }
+            }
+
+            if (($frg =~ m/^(.*)\.sff$/) ||
+                ($frg =~ m/^(.*)\.sff.gz$/) ||
+                ($frg =~ m/^(.*)\.sff.bz2$/)) {
+                my @fff = split '/', $1;
+                my $sff = $frg;
+                my $nam = pop @fff;
+                my $log = "$wrk/$nam.sff.log";
+
+                $frg = "$wrk/$nam.sff.frg";
+
+                if (! -e "$frg") {
+                    my $bin = getBinDirectory();
+
+                    if (runCommand($wrk, "$bin/sffToCA -libraryname $nam -linker flx -insertsize 3000 300 -log $log -output $frg $sff")) {
+                        unlink "$wrk/$frg.sff.frg";
+                        caFailure("sffToCA failed.");
+                    }
+                }
             }
 
             $gkpInput .= " $frg";

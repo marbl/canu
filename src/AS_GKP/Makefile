@@ -33,8 +33,7 @@ GKPSRC    = AS_GKP_buildPartition.c \
             AS_GKP_edit.c \
             AS_GKP_errors.c \
             AS_GKP_rebuildMap.c \
-            AS_GKP_rearrange.c \
-            AS_GKP_sff.c
+            AS_GKP_rearrange.c
 
 SOURCES   = AS_GKP_main.c AS_GKP_bench.c $(GKPSRC) sffToCA.c
 OBJECTS   = $(SOURCES:.c=.o)
