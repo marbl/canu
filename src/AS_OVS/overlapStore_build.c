@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.17 2008-10-14 03:05:37 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.18 2008-10-23 05:06:01 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -112,6 +112,9 @@ writeToDumpFile(OVSoverlap          *overlap,
     fprintf(stderr, "Too many bucket files.  Increase memory size, set the correct\n");
     fprintf(stderr, "number of fragment IIDs in the input, or split your overlaps\n");
     fprintf(stderr, "into multiple batches.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "The runCA option for increasing the memory size is ovlStoreMemory.\n");
+    fprintf(stderr, "\n");
     exit(1);
   }
 
