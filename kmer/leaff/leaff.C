@@ -190,7 +190,7 @@ printSequence(char        *d,
   if (beg > l)
     return;
   if (end > l)
-    return;
+    end = l;
 
   u32bit    limit = end - beg;
   char     *n = new char [end - beg + 1];
