@@ -33,7 +33,7 @@
 *
 *************************************************/
 
-const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.35 2008-10-09 00:48:12 brianwalenz Exp $";
+const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.36 2008-10-28 15:42:10 brianwalenz Exp $";
 
 //  System include files
 
@@ -51,6 +51,7 @@ const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.35 2008-10-09 00:48:12 brianwal
 #include  "AS_PER_gkpStore.h"
 #include  "AS_MSG_pmesg.h"
 #include  "AS_UTL_reverseComplement.h"
+#include  "AS_UTL_qsort_mt.h"
 #include  "FragCorrectOVL.h"
 #include  "AS_OVS_overlapStore.h"
 
