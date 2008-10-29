@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.35 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.36 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -728,12 +728,10 @@ void OutputUnitigsFromMultiAligns(void){
       //assert(ci->outputID == ci->id); // TRUE FOR UNITIGS UNTIL WE SPLIT
 
       ium_mesg.iaccession = ci->id;
-#ifdef AS_ENABLE_SOURCE
-      ium_mesg.source = Getchar(ScaffoldGraph->SourceFields, ci->info.CI.source);
-#endif
       ium_mesg.coverage_stat = ci->info.CI.coverageStat;
+      ium_mesg.microhet_prob = ci->info.CI.microhetProb;
       ium_mesg.status = status;
-      ium_mesg.unique_rept = ci->unique_rept;
+      ium_mesg.unique_rept = ci->info.CI.forceUniqueRepeat;
       ium_mesg.length = GetMultiAlignLength(ma);
       ium_mesg.consensus = Getchar(ma->consensus,0);
       ium_mesg.quality = Getchar(ma->quality,0);

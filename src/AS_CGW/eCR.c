@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.38 2008-10-08 22:02:55 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.39 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -1666,11 +1666,9 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
   assert (unitig->type != CONTIG_CGW);
 
   ium_mesg.iaccession     = unitig->id;
-#ifdef AS_ENABLE_SOURCE
-  ium_mesg.source         = NULL;
-#endif
   ium_mesg.coverage_stat  = unitig->info.CI.coverageStat;
-  ium_mesg.unique_rept    = unitig->unique_rept;
+  ium_mesg.microhet_prob  = unitig->info.CI.microhetProb;
+  ium_mesg.unique_rept    = unitig->info.CI.forceUniqueRepeat;
 
   switch(unitig->type) {
     case DISCRIMINATORUNIQUECHUNK_CGW:

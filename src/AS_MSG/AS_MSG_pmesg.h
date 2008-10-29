@@ -18,21 +18,18 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.69 2008-10-08 22:02:57 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.70 2008-10-29 06:34:30 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.69 2008-10-08 22:02:57 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.70 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <time.h>
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
-
-// Defining the following enables internal source fields for testing
-#define AS_ENABLE_SOURCE
 
 //   #define NEW_UNITIGGER_INTERFACE
 
@@ -131,9 +128,7 @@ typedef struct {
   AS_UID       eaccession;
   float        mean;
   float        stddev;
-#ifdef AS_ENABLE_SOURCE
   char        *source;
-#endif
   OrientType   link_orient;
   uint32       num_features;
   char       **features;
@@ -355,9 +350,6 @@ typedef struct {
   IntChunk_ID     	chunk2;
   ChunkOrientationType	orient;
   UnitigOverlapType	overlap_type;
-#ifdef AS_ENABLE_SOURCE
-  char			*source;
-#endif
   CDS_COORD_t           best_overlap_length;
   CDS_COORD_t           min_overlap_length;
   CDS_COORD_t           max_overlap_length;
@@ -373,7 +365,6 @@ typedef struct {
   int32           num_frags;
   int32           a_degree;
   int32           b_degree;
-  char           *source;
 } ChunkMesg;
 
 
@@ -488,10 +479,8 @@ VA_DEF(IntElementPos);
 
 typedef struct {
   IntChunk_ID     iaccession;
-#ifdef AS_ENABLE_SOURCE
-  char		  *source;
-#endif
   float           coverage_stat;
+  float           microhet_prob;
   UnitigStatus    status;
   UnitigFUR       unique_rept;
   CDS_COORD_t     length;
@@ -694,9 +683,6 @@ typedef struct {
 typedef struct {
   FragType      type;
   AS_UID        eident;
-#ifdef AS_ENABLE_SOURCE
-  char		*source;
-#endif
   SeqInterval   position;
   int32         delta_length;
   int32         *delta;
@@ -706,10 +692,8 @@ typedef struct {
 typedef struct {
   AS_UID          eaccession;  // changed in comparison to internal message
   IntChunk_ID     iaccession;
-#ifdef AS_ENABLE_SOURCE
-  char		  *source;
-#endif
   float           coverage_stat;
+  float           microhet_prob;
   UnitigStatus    status;
   CDS_COORD_t     length;
   char            *consensus;

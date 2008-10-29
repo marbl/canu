@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.26 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.27 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -94,9 +94,6 @@ VA_DEF(SEdgeT);
 typedef struct{
   VA_TYPE(InfoByIID)      *iidToFragIndex;  // map from iid to fragment
   VA_TYPE(CIFragT)        *CIFrags;
-#ifdef AS_ENABLE_SOURCE
-  VA_TYPE(char)           *SourceFields;  // source fields of fragments AND UNITIGS
-#endif
   VA_TYPE(DistT)          *Dists;
   VA_TYPE(ChunkInstanceT) *ChunkInstances;  // CIs and Contigs
   VA_TYPE(ContigT) *Contigs;

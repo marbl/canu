@@ -21,7 +21,7 @@
 #ifndef IDBOutput_HH
 #define IDBOutput_HH
 
-static const char *rcsid_IDBOutput_HH = "$Id: IDBOutput.hh,v 1.6 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_IDBOutput_HH = "$Id: IDBOutput.hh,v 1.7 2008-10-29 06:34:30 brianwalenz Exp $";
 
 extern "C" {
    #include "AS_global.h"
@@ -65,7 +65,7 @@ namespace AS_ARD {
                   AS_UID eaccession,
                   IntFragment_ID iaccession,
                   const char * source,
-                  float mhp,
+                  float microhet_prob,
                   float coverage_stat,
                   UnitigStatus status,
                   CDS_COORD_t length,

@@ -21,7 +21,7 @@
 #ifndef DBTextOutput_HH
 #define DBTextOutput_HH
 
-static const char *rcsid_DBTextOutput_HH = "$Id: DBTextOutput.hh,v 1.6 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_DBTextOutput_HH = "$Id: DBTextOutput.hh,v 1.7 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #include "IDBOutput.hh"
 
@@ -66,7 +66,7 @@ namespace AS_ARD {
                   AS_UID eaccession,
                   IntFragment_ID iaccession,
                   const char * source,
-                  float mhp,
+                  float microhet_prob,
                   float coverage_stat,
                   UnitigStatus status,
                   CDS_COORD_t length,

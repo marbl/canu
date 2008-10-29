@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.2 2008-10-08 22:02:57 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.3 2008-10-29 06:34:30 brianwalenz Exp $";
 
 //  These are used ONLY IN MultiAlignment_CNS.c.
 
@@ -244,7 +244,7 @@ typedef struct {
 typedef struct {
   int32 ident;
   int32 length;
-  float   coverage_stat;
+  float coverage_stat;
   int32 left;
   int32 right;
   UnitigType type;

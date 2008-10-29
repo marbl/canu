@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ARD_database.cc,v 1.7 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ARD_database.cc,v 1.8 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #include <iostream>
 #include <string>
@@ -77,23 +77,12 @@ bool AS_ARD_database::addAFG2DB(AugFragMesg * afg) {
 bool AS_ARD_database::addUTG2DB(SnapUnitigMesg * utg) {
    int i = 0;
    std::string source;
-   float mhp = 0;
-
-#ifdef AS_ENABLE_SOURCE
-   source = utg->source;
-   fixSource(source);
-
-   char *mhpStr = strstr(utg->source,"mhp:");
-   if(mhpStr) {
-      mhp = atof(mhpStr+4);
-   }
-#endif
 
    bool result = db->storeUTG2DB(
             utg->eaccession,
             utg->iaccession,
             source.c_str(),
-            mhp,
+            utg->microhet_prob,
             utg->coverage_stat,
             utg->status,
             //what are abp and bbp in CARD spec?
@@ -116,12 +105,8 @@ bool AS_ARD_database::addMPS2DB(AS_UID unitigID, SnapMultiPos * mps) {
   char currDelta[MAX_DELTA_CHARS];
   std::string source;
 
+#warning source is unused in MPS
   source[0] = '\0';
-
-#ifdef AS_ENABLE_SOURCE
-   source = mps->source;
-   fixSource(source);
-#endif
 
    for (i = 0; i < mps->delta_length; i++) {
       sprintf(currDelta, "%d ", mps->delta[i]);
@@ -236,12 +221,9 @@ bool AS_ARD_database::addCCOMPS2DB(AS_UID ccoID, SnapMultiPos * piece) {
   char currDelta[MAX_DELTA_CHARS];
   std::string source;
 
-  source[0] = '\0';
 
-#ifdef AS_ENABLE_SOURCE
-   source = piece->source;
-   fixSource(source);
-#endif
+#warning source is unused in mps
+  source[0] = '\0';
 
    for (i = 0; i < piece->delta_length; i++) {
       sprintf(currDelta, "%d ", piece->delta[i]);

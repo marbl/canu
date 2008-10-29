@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: SQLOutput.cc,v 1.7 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: SQLOutput.cc,v 1.8 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #ifdef SYBASE
 
@@ -176,7 +176,7 @@ bool SQLOutput::storeUTG2DB (
          AS_UID eaccession,
          IntFragment_ID iaccession,
          const char * source,
-         float mhp,
+         float microhet_prob,
          float coverage_stat,
          UnitigStatus status,
          CDS_COORD_t length,
@@ -197,7 +197,7 @@ bool SQLOutput::storeUTG2DB (
                      AS_UID_toInteger(eaccession),
                      iaccession,
                      source,
-                     mhp,
+                     microhet_prob,
                      coverage_stat,
                      static_cast<char>(status),
                      0,

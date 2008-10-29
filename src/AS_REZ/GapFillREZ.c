@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.40 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.41 2008-10-29 06:34:30 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -232,7 +232,6 @@ typedef  struct
   signed int  colour : 6;
   unsigned int  flipped : 1;
   unsigned int  keep : 1;
-  unsigned int  cgb_type : 4;
   signed int  use_ct : 16;
 }  Chunk_Info_t;
 
@@ -546,7 +545,6 @@ static int  Prior_Olaps_OK(int  from, int to, int to_low, Path_Info_t path_info 
 static void  Re_Check_Inserted_Rocks(Scaffold_Fill_t * fill, int min_good_links);
 static void  Reject_Non_Reachable(int id, Gap_Chunk_t * node [], int n, int edge [], Stone_Edge_t pool []);
 static void  Remove_From_Scaffold(Gap_Chunk_t * cp);
-static int  Repeat_Colour(unsigned int cgb_type);
 static void  Requalify_Scaff_Chunks(Scaffold_Fill_t * fill_chunks);
 static void  Restore_Best_Rocks(Scaffold_Fill_t * fill_chunks);
 static ChunkOrientationType  Reverse_Orientation(ChunkOrientationType orient);
@@ -1952,31 +1950,6 @@ static void  Calc_End_Coords
 
 
 
-char *  CGB_Type_As_String
-(unsigned int t)
-
-//  Return string equivalent of CGB_Type  t
-
-{
-  switch  (t)
-    {
-      case  UU_CGBTYPE :
-        return  "uu";
-      case  UR_CGBTYPE :
-        return  "ur";
-      case  RU_CGBTYPE :
-        return  "ru";
-      case  RR_CGBTYPE :
-        return  "rr";
-      case  XX_CGBTYPE :
-        return  "xx";
-    }
-
-  return  "*???*";
-}
-
-
-
 static void  Adjust_By_Ref_Variance
 (Scaffold_Fill_t * fill_chunks)
 
@@ -3197,12 +3170,11 @@ static void  Choose_Safe_Chunks
           rel_pos = REF (cid) . rel_pos;
 
           sprintf (annotation_string,
-                   "  Scaff #%d  rel pos #%d  start = <%.0f,%.0f>  end = <%.0f,%.0f>  cov = %d  typ = %s",
+                   "  Scaff #%d  rel pos #%d  start = <%.0f,%.0f>  end = <%.0f,%.0f>  cov = %d",
                    scaff_id, rel_pos,
                    contig -> offsetAEnd . mean, sqrt (contig -> offsetAEnd . variance),
                    contig -> offsetBEnd . mean, sqrt (contig -> offsetBEnd . variance),
-                   cover_stat,
-                   CGB_Type_As_String (contig -> flags . bits . cgbType)
+                   cover_stat)
                    );
 #if  SHOW_CALC_COORDS
           assert(contig->scaffoldID > NULLINDEX);
@@ -3231,19 +3203,6 @@ static void  Choose_Safe_Chunks
 #endif
 #endif
         }
-#if  0
-      else if  (! Maybe_Rock (contig))
-        {
-          non_unique_ct ++;
-#if  MAKE_CAM_FILE
-          cam_colour = NO_CONNECT_COLOUR;
-          sprintf (annotation_string,
-                   "  No connections to uniques  cov = %d  typ = %s",
-                   cover_stat,
-                   CGB_Type_As_String (contig -> flags . bits . cgbType));
-#endif
-        }
-#endif
       else if  (contig -> info . CI . numInstances > 0)
         {
           fprintf (stderr, "SURPRISE:  contig %d has surrogates...skipping it\n",
@@ -3264,9 +3223,8 @@ static void  Choose_Safe_Chunks
 #if  MAKE_CAM_FILE
           cam_colour = NO_CONNECT_COLOUR;
           sprintf (annotation_string,
-                   "  No connections to uniques  cov = %d  typ = %s",
-                   cover_stat,
-                   CGB_Type_As_String (contig -> flags . bits . cgbType));
+                   "  No connections to uniques  cov = %d  ",
+                   cover_stat);
 #endif
 
           // Put edges from chunk to a unique chunk onto a stack
@@ -3308,9 +3266,8 @@ static void  Choose_Safe_Chunks
 #if  MAKE_CAM_FILE
               cam_colour = CONNECT_COLOUR;
               sprintf (annotation_string,
-                       "  %d mate edges to uniques  cov = %d  typ = %s",
-                       GetNumVA_Stack_Entry_t(stackva), cover_stat,
-                       CGB_Type_As_String (contig -> flags . bits . cgbType));
+                       "  %d mate edges to uniques  cov = %d  ",
+                       GetNumVA_Stack_Entry_t(stackva), cover_stat);
 #endif
               Select_Good_Edges (stackva, contig);
             }
@@ -3402,12 +3359,11 @@ static void  Choose_Safe_Chunks
 #if  MAKE_CAM_FILE
                   cam_colour = CONSISTENT_COLOUR;
                   sprintf (annotation_string,
-                           "  %d mate links (in %d edges) to uniques  low = <%.0f, %.0f>  high = <%.0f, %.0f>  cov = %d  typ = %s",
+                           "  %d mate links (in %d edges) to uniques  low = <%.0f, %.0f>  high = <%.0f, %.0f>  cov = %d",
                            good_total, GetNumVA_Stack_Entry_t(stackva),
                            left_end . mean, sqrt (left_end . variance),
                            right_end . mean, sqrt (right_end . variance),
-                           cover_stat,
-                           CGB_Type_As_String (contig -> flags . bits . cgbType));
+                           cover_stat);
 #endif
                 }
 
@@ -3438,12 +3394,11 @@ static void  Choose_Safe_Chunks
                   if  (assign_succeeded)
                     cam_colour = PLACED_COLOUR;
                   sprintf (annotation_string,
-                           "  %d mate links (in %d edges) to uniques  low = <%.0f, %.0f>  high = <%.0f, %.0f>  cov = %d  typ = %s",
+                           "  %d mate links (in %d edges) to uniques  low = <%.0f, %.0f>  high = <%.0f, %.0f>  cov = %d",
                            good_total, GetNumVA_Stack_Entry_t(stackva),
                            left_end . mean, sqrt (left_end . variance),
                            right_end . mean, sqrt (right_end . variance),
-                           cover_stat,
-                           CGB_Type_As_String (contig -> flags . bits . cgbType));
+                           cover_stat);
 #endif
 #if  MAKE_CAM_FILE && SHOW_CALC_COORDS
                   scaff_id = REF (GetVA_Stack_Entry_t(stackva, 0) -> chunk_id) . scaff_id;
@@ -3616,13 +3571,11 @@ static void  Choose_Stones
           rel_pos = REF (cid) . rel_pos;
 
           sprintf (annotation_string,
-                   "  Scaff #%d  rel pos #%d  start = <%.0f,%.0f>  end = <%.0f,%.0f>  cov = %d  typ = %s",
+                   "  Scaff #%d  rel pos #%d  start = <%.0f,%.0f>  end = <%.0f,%.0f>  cov = %d",
                    scaff_id, rel_pos,
                    chunk -> offsetAEnd . mean, sqrt (chunk -> offsetAEnd . variance),
                    chunk -> offsetBEnd . mean, sqrt (chunk -> offsetBEnd . variance),
-                   cover_stat,
-                   CGB_Type_As_String (chunk -> flags . bits . cgbType)
-                   );
+                   cover_stat);
 #if  SHOW_CALC_COORDS
           assert(chunk->scaffoldID > NULLINDEX);
           if  (chunk -> offsetAEnd . mean < chunk -> offsetBEnd . mean)
@@ -3665,9 +3618,8 @@ static void  Choose_Stones
 #if  MAKE_CAM_FILE
           cam_colour = NO_CONNECT_COLOUR;
           sprintf (annotation_string,
-                   "  No connections to uniques  cov = %d  typ = %s",
-                   cover_stat,
-                   CGB_Type_As_String (chunk -> flags . bits . cgbType));
+                   "  No connections to uniques  cov = %d",
+                   cover_stat);
 #endif
 
           if  (Single_Fragment_Only)
@@ -3762,10 +3714,9 @@ static void  Choose_Stones
 #if  MAKE_CAM_FILE
               cam_colour = CONNECT_COLOUR;
               sprintf (annotation_string,
-                       "  %d mate edges to uniques  cov = %d  typ = %s",
+                       "  %d mate edges to uniques  cov = %d",
                        GetNumVA_Stack_Entry_t(stackva),
-                       cover_stat,
-                       CGB_Type_As_String (chunk -> flags . bits . cgbType));
+                       cover_stat);
 #endif
               Select_Good_Edges (stackva, chunk);
             }
@@ -3824,12 +3775,11 @@ static void  Choose_Stones
 #if  MAKE_CAM_FILE
                   cam_colour = STONE_COLOUR;
                   sprintf (annotation_string,
-                           "  stone copy %c  low = <%.0f, %.0f>  high = <%.0f, %.0f>  cov = %d  typ = %s",
+                           "  stone copy %c  low = <%.0f, %.0f>  high = <%.0f, %.0f>  cov = %d",
                            copy_letter,
                            left_end . mean, sqrt (left_end . variance),
                            right_end . mean, sqrt (right_end . variance),
-                           cover_stat,
-                           CGB_Type_As_String (chunk -> flags . bits . cgbType));
+                           cover_stat);
 #endif
 
                   assign_succeeded
@@ -7027,6 +6977,10 @@ static void  Include_Good_Joins
   Scaff_Join_t  * * p;
   int  i, j, n;
 
+#if  MAKE_CAM_FILE
+  char  annotation_string [MAX_STRING_LEN];
+#endif
+
   n = GetNumVA_Scaff_Join_t (Scaff_Join);
   if  (n == 0)
     return;
@@ -7274,11 +7228,10 @@ static void  Include_Good_Joins
         if  (assign_succeeded)
           Chunk_Info [p [i] -> chunk_id] . colour = PLACED_COLOUR;
         sprintf (annotation_string,
-                 "  joins scaffs  low = <%.0f, %.0f>  high = <%.0f, %.0f>  cov = %d  typ = %s",
+                 "  joins scaffs  low = <%.0f, %.0f>  high = <%.0f, %.0f>  cov = %d",
                  p [i] -> left_end . mean, sqrt (p [i] -> left_end . variance),
                  p [i] -> right_end . mean, sqrt (p [i] -> right_end . variance),
-                 p [i] -> cover_stat,
-                 CGB_Type_As_String (chunk -> flags . bits . cgbType));
+                 p [i] -> cover_stat);
         if  (Chunk_Info [p [i] -> chunk_id] . annotation != NULL)
           safe_free (Chunk_Info [p [i] -> chunk_id] . annotation);
         Chunk_Info [p [i] -> chunk_id] . annotation
@@ -8402,7 +8355,7 @@ static void  Print_Scaffolds
       ChunkInstanceT  * chunk;
       double  prev_variance;
       int  scaff_index;
-#if  MAKE_CAM_FILE && SHOW_CALC_COORDS
+#if  MAKE_CAM_FILE
       int  seg_num = 0;
 #endif
 
@@ -9194,7 +9147,6 @@ static void  Print_Unique_Chunks
   while  ((chunk = NextGraphNodeIterator (& chunk_iterator)) != NULL)
     {
       cid = chunk -> id;
-      Chunk_Info [cid] . cgb_type = chunk -> flags . bits . cgbType;
       if  (Is_Unique (chunk))
         {
           CIScaffoldT  * scaff;
@@ -9485,26 +9437,6 @@ static void  Remove_From_Scaffold
     }
 
   return;
-}
-
-
-
-static int  Repeat_Colour
-(unsigned int cgb_type)
-
-//  Return the celamy colour number for mark for  cgb_type .
-
-{
-  switch  (cgb_type)
-    {
-      case  RU_CGBTYPE :
-      case  RR_CGBTYPE :
-        return  RU_RR_COLOUR;
-      case  UR_CGBTYPE :
-        return  UR_COLOUR;
-    }
-
-  return  0;
 }
 
 

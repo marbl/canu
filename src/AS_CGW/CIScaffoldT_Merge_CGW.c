@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.38 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.39 2008-10-29 06:34:30 brianwalenz Exp $";
 
 
 #undef ORIG_MERGE_EDGE_INVERT
@@ -4629,7 +4629,6 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
       CIScaffold.aEndCoord = CIScaffold.bEndCoord = -1;
       CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
       CIScaffold.essentialEdgeB = CIScaffold.essentialEdgeA = NULLINDEX;
-      CIScaffold.microhetScore = 0.0;
       CIScaffold.setID = NULLINDEX;
       thisScaffold->flags.bits.isDead = TRUE;  // Mark the old scaffold dead
 

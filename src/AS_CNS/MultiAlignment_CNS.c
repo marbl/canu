@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.202 2008-10-12 02:17:56 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.203 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -50,7 +50,6 @@ static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.202 2008-10-12 02:17:56 bria
 #define CNS_NEG_AHANG_CUTOFF               -5
 #define CNS_MAX_ALIGN_SLIP                 20
 #define INITIAL_NR                        100
-#define MAX_ALLOWED_MA_DEPTH               40
 #define MAX_EXTEND_LENGTH                2048
 #define MAX_WINDOW_FOR_ABACUS_REFINE      100
 #define SHOW_ABACUS                         0
@@ -156,10 +155,6 @@ int contig_id = 0;
 double EPROB[CNS_MAX_QV-CNS_MIN_QV+1] = {0};  // prob of error for each quality value
 double PROB[CNS_MAX_QV-CNS_MIN_QV+1]  = {0};  // prob of correct call for each quality value (1-eprob)
 int    RINDEX[128] = {0};
-
-#ifdef AS_ENABLE_SOURCE
-char SRCBUFFER[2048] = {0};
-#endif
 
 // Utility variable to control width of "pages" of PrintAlignment output
 int ALNPAGEWIDTH=100;
@@ -886,14 +881,13 @@ int32 AppendFragToLocalStore(FragType          type,
     case AS_CONTIG:
       {
         MultiAlignT *uma = NULL;
-        if (USE_SDB) {
-          assert(sequenceDB != NULL);
+
+        if (sequenceDB)
           uma = loadMultiAlignTFromSequenceDB(sequenceDB, iid, type == AS_UNITIG);
-        } else {
+        if (multialignStore)
           uma = GetMultiAlignInStore(multialignStore,iid);
-        }
         if (uma == NULL)
-          fprintf(stderr,"Lookup failure in CNS: Unitig %d could not be found in multiAlignStore / unitigStore.\n",iid);
+          fprintf(stderr,"Lookup failure in CNS: MultiAlign for unitig %d could not be found.\n",iid);
         assert(uma != NULL);
 
         if (type == AS_CONTIG  && ALIGNMENT_CONTEXT != AS_MERGE) {
@@ -7296,7 +7290,7 @@ int AbacusRefine(MANode *ma, int32 from, int32 to, CNS_RefineLevel level,
 
 
 
-
+static
 int MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
                  int show_cel_status) {
   char **multia;
@@ -7321,7 +7315,6 @@ int MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
       col_depth = GetDepth(col);
       max_depth = (col_depth > max_depth)?col_depth:max_depth;
     }
-    if (max_depth > MAX_ALLOWED_MA_DEPTH )  return 0;
     column_index = col->next;
   }
   *depth = 2*max_depth; // rough estimate. first pack rows, then adjust to actual consumed rows
@@ -7823,45 +7816,27 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 
 
 
-  //  do_rez
+  //  While we have fragments in memory, compute the microhet
+  //  probability.  Ideally, this would be done in CGW when loading
+  //  unitigs (the only place the probability is used) but the code
+  //  wants to load sequence and quality for every fragment, and
+  //  that's too expensive.
   {
-    char   srcadd[32] = {0};
-    int    addlen = 0;
-    double prob_value = 0.0;
+    int    depth  = 0;
+    char **multia = NULL;
+    int  **id_array = NULL;
 
-    {
-      int    depth  = 0;
-      char **multia = NULL;
-      int  **id_array = NULL;
-      if (MANode2Array(ma, &depth, &multia, &id_array,0)) {
-        prob_value = AS_REZ_MP_MicroHet_prob(multia,
-                                             id_array,
-                                             gkpStore,
-                                             unitig->length,
-                                             depth);
+    MANode2Array(ma, &depth, &multia, &id_array,0);
 
-        for (i=0;i<depth;i++) {
-          safe_free(multia[2*i]);
-          safe_free(multia[2*i+1]);
-          safe_free(id_array[i]);
-        }
-        safe_free(multia);
-        safe_free(id_array);
-      }
+    unitig->microhet_prob = AS_REZ_MP_MicroHet_prob(multia, id_array, gkpStore, unitig->length, depth);
+
+    for (i=0;i<depth;i++) {
+      safe_free(multia[2*i]);
+      safe_free(multia[2*i+1]);
+      safe_free(id_array[i]);
     }
-
-    addlen = sprintf(srcadd,"\nmhp:%e",prob_value);
-
-#ifdef AS_ENABLE_SOURCE
-    if ( unitig->source != NULL ) {
-      memcpy(&SRCBUFFER[0],unitig->source,strlen(unitig->source)+1);
-      strcat(&SRCBUFFER[0],srcadd);
-      unitig->source = &SRCBUFFER[0];
-    } else {
-      memcpy(&SRCBUFFER[0],srcadd,addlen+1);
-      unitig->source = &SRCBUFFER[0];
-    }
-#endif
+    safe_free(multia);
+    safe_free(id_array);
   }
 
   DeleteHashTable_AS(fragmentMap);
@@ -8358,162 +8333,6 @@ int MultiAlignContig_ReBasecall(MultiAlignT *cma, VA_TYPE(char) *sequence, VA_TY
   DeleteMANode(ma->lid);
   if ( contigStore ) DeleteMultiAlignStoreT(contigStore);
   return 0;
-}
-
-
-
-int ExamineMANode(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int num_unitigs,
-                  CNS_Options *opp)
-{
-  int index=0,ugindex=0;
-  int32 cid;
-  Column *column;
-  Bead *cbead;
-  int unitig_index=0;
-  int tindex=0;
-  UnitigData *tig;
-  MANode *ma = GetMANode(manodeStore,mid);
-  VarRegion  vreg;
-  char base;
-
-  SetDefault(&vreg);
-  assert(ma != NULL);
-  if ( ma->first == -1 ) return 1;
-  cid = ma->first;
-  while ( cid  > -1 ) {
-    char base;
-    char qv;
-    int tig_depth=0;
-    double var;
-
-    column = GetColumn(columnStore,cid);
-    assert(column != NULL);
-    cbead = GetBead(beadStore,column->call);
-    base = *Getchar(sequenceStore,cbead->soffset);
-    qv = *Getchar(qualityStore,cbead->soffset);
-    fprintf(outFile,"%d\t%d\t%d\t%d\t%c\t%c\t" ,sid,ma->iid,index,ugindex,base,qv);
-    ShowBaseCountPlain(outFile,&column->base_count);
-    BaseCall(cid, 1, &var, &vreg, vreg.alleles[0].id, &base, 0, 0, opp);
-    // recall with quality on (and QV parameters set by user)
-    fprintf(outFile,"%c\t%c\t", *Getchar(sequenceStore,cbead->soffset),
-            *Getchar(qualityStore,cbead->soffset));
-    // restore original consensus basecall/quality
-    Setchar(sequenceStore,cbead->soffset,&base);
-    Setchar(qualityStore,cbead->soffset,&qv);
-    tig=&tigData[unitig_index];
-    while ( index >= tig->right && unitig_index < num_unitigs-1) {
-      unitig_index++;
-      tig++;
-    }
-    tindex=unitig_index;
-    while ( tindex < num_unitigs && index  >= tig->left && index < tig->right ) {
-      tig_depth++;
-      fprintf(outFile,"%d\t%c\t%f\t%d\t",tig->ident,tig->type,tig->coverage_stat, tig->length);
-      tindex++;
-      tig++;
-    }
-
-    fprintf(outFile,"\n");
-    if ( *Getchar(sequenceStore,cbead->soffset) != '-') ugindex++;
-    index++;
-    cid = column->next;
-  }
-  return 1;
-}
-
-// static int utl_counts[4]={0,0,0,0};
-
-
-int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int num_unitigs) {
-  int index=0,ugindex=0;
-  int32 cid;
-  Column *column;
-  Column *last_mm=NULL;
-  Column *frag_start_column;
-  static VA_TYPE(Bead) *shared_left=NULL;
-  static VA_TYPE(Bead) *shared_right=NULL;
-  HashTable_AS *bhash=NULL;
-  MANode *ma = GetMANode(manodeStore,mid);
-
-  assert(ma != NULL);
-  if ( ma->first == -1 ) return 1;
-  if ( bhash==NULL ) bhash = CreateScalarHashTable_AS(5000);
-  if ( shared_left== NULL ) {
-    shared_left = CreateVA_Bead(100);
-    shared_right = CreateVA_Bead(100);
-  } else {
-    ResetVA_Bead(shared_left);
-    ResetVA_Bead(shared_right);
-  }
-  cid = ma->first;
-  while ( cid  > -1 ) {
-    Fragment *frag;
-    Bead *cbead;
-    Bead *fbead = NULL;
-    char base;
-    char qv;
-    int bid;
-    int depth=0;
-    column = GetColumn(columnStore,cid);
-    assert(column != NULL);
-    cbead = GetBead(beadStore,column->call);
-    base = *Getchar(sequenceStore,cbead->soffset);
-    qv = *Getchar(qualityStore,cbead->soffset);
-    depth=GetDepth(column);
-    // check to see whether there is a confirmed mismatch
-    if ( depth > GetBaseCount(&column->base_count,base)+1) {
-      // potential for a confirmed mismatch
-      char mm=GetConfMM(&column->base_count,base);
-      if ( mm != base ) { // this condition indicates a "positive" return from the preceding GetConfMM call
-        if ( last_mm == NULL ) {
-          last_mm=column;
-        } else {
-          //check for compatibility with last confirmed mismatch
-          ColumnBeadIterator bi;
-          ResetVA_Bead(shared_left);
-          ResetVA_Bead(shared_right);
-          ResetHashTable_AS(bhash);
-
-          CreateColumnBeadIterator(column->lid, &bi);
-
-          while ( (bid = NextColumnBead(&bi)) != -1 ) {
-            cbead = GetBead(beadStore,bid);
-            frag = GetFragment(fragmentStore,fbead->frag_index);
-            fbead = GetBead(beadStore,frag->firstbead);
-            frag_start_column = GetColumn(columnStore,fbead->column_index);
-            if ( column ->ma_index <= last_mm->ma_index ) {
-              // shared frag;
-              InsertInHashTable_AS(bhash, frag->lid, 0, bid, 0);
-            }
-          }
-          if ( GetNumBeads(shared_right) > 0 ) {
-            CreateColumnBeadIterator(last_mm->lid, &bi);
-
-            while ( (bid = NextColumnBead(&bi)) != -1 ) {
-              cbead = GetBead(beadStore,bid);
-              frag = GetFragment(fragmentStore,cbead->frag_index);
-              if (ExistsInHashTable_AS(bhash, frag->lid, 0)) {
-                AppendVA_Bead(shared_left,cbead);
-                cbead = GetBead(beadStore, LookupValueInHashTable_AS(bhash, frag->lid, 0));
-                AppendVA_Bead(shared_right,cbead);
-              }
-            }
-          }
-          // now, look at the partitions of the shared_left and shared_right, and see whether they conflict
-          if ( GetNumBeads(shared_left) > 3 ) {
-            ShowColumn(last_mm->lid);
-            ShowColumn(column->lid);
-          }
-        }
-      }
-    }
-
-
-    if ( *Getchar(sequenceStore,cbead->soffset) != '-') ugindex++;
-    index++;
-    cid = column->next;
-  }
-  return 1;
 }
 
 

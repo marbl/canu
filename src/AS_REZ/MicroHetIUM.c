@@ -18,14 +18,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: MicroHetIUM.c,v 1.12 2008-10-08 22:03:00 brianwalenz Exp $";
+const char *mainid = "$Id: MicroHetIUM.c,v 1.13 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
 #include <errno.h>
 
 #include "AS_global.h"
-#include "GraphCGW_T.h"  //  for CGB_Type
 #include "Array_CNS.h"
 #include "MicroHetREZ.h"
 
@@ -487,35 +486,6 @@ static int doPrintMPobs=0;
 
 #define DEBUG -1
 
-/* GETDECISION toggles whether to use old interface and return a
- *  decision, or to use new interface and return only a pvalue
- */
-#undef GETDECISION
-
-
-CGB_Type get_simulator_type(IntUnitigMesg* ium_mesg){
-  char *type;
-  CGB_Type t = XX_CGBTYPE;
-
-  // See if this is a repeat, or we can pin it down to an interval
-#ifdef AS_ENABLE_SOURCE
-  type = strstr(ium_mesg->source,"gen> ");
-  if(type){
-    type += 5;
-    if(!strncmp(type,"uu",2)){
-      t = (unsigned int)UU_CGBTYPE;
-    }else if(!strncmp(type,"ru",2)){
-      t = (unsigned int)RU_CGBTYPE;
-    }else if(!strncmp(type,"rr",2)){
-      t = (unsigned int)RR_CGBTYPE;
-    }else if(!strncmp(type,"ur",2)){
-      t = (unsigned int)UR_CGBTYPE;
-    }
-  }
-#endif
-  return t;
-}
-
 
 
 /* this is the main test function for a unitig.
@@ -727,6 +697,7 @@ main(int argc, char **argv) {
   }
 
   storeHandle = openGateKeeperStore(storeName, FALSE);
+
   input       = fopen(fileName,"r");
 
 
@@ -743,9 +714,6 @@ main(int argc, char **argv) {
           printf("\nInspecting Unitig %d\n",iunitig->iaccession);
           printf("Number of frags = %d\n",iunitig->num_frags);
           printf("Length          = %d\n",iunitig->length);
-#ifdef AS_ENABLE_SOURCE
-          printf("Source          = %s\n",iunitig->source);
-#endif
 
           ali = AS_REZ_convert_IUM_to_alignment(iunitig,storeHandle,FALSE);
 
@@ -790,13 +758,7 @@ main(int argc, char **argv) {
 
 
     while( ReadProtoMesg_AS(input,&pmesg) != EOF ) {
-      CGB_Type type;
-
       if (pmesg->t == MESG_IUM) {
-#ifdef GETDECISION
-        Alignment_t *ali3;
-        int fpf3=FALSE;
-#endif
         double          pval3=1;
         IntUnitigMesg  *iunitig = (IntUnitigMesg*) pmesg->m;
 
@@ -807,11 +769,6 @@ main(int argc, char **argv) {
 #endif
             ) {
 
-#ifdef GETDECISION
-          int simple3;
-          int repetitiv = FALSE;
-#endif
-
 #if DEBUG > -1
           printf("\nInspecting Unitig " F_IID "\n",iunitig->iaccession);
           printf("Number of frags = %d\n",iunitig->num_frags);
@@ -819,114 +776,11 @@ main(int argc, char **argv) {
           printf("Source          = %s\n",iunitig->source);
 #endif
 
-#if DEBUG > 0
-          printf("\nTEST3 (Aaron whole ali) ======= \n\n");
-#endif
-
-          type = get_simulator_type(iunitig);
-
-#ifdef GETDECISION
-          simple3 = AS_REZ_is_IUM_MPsimple(iunitig,storeHandle,NULL,&ali3,thresh,2,&pval3);
-
-          if( type == RU_CGBTYPE || type == RR_CGBTYPE ){
-#if DEBUG > 0
-            printf("Unitig is repetitive , A-stat=%f \n",
-                   iunitig->coverage_stat);
-#endif
-#if DEBUG > -1
-            if(rep_aln_printed++<100){
-              AS_REZ_print_alignment(ali3,100);
-            }
-#endif
-            repetitiv = TRUE;
-          }
-
-#if DEBUG > 0
-          else
-            printf("Unitig is not repetitive , A-stat=%f \n",
-                   iunitig->coverage_stat);
-#endif
-
-#if DEBUG > 0
-          printf("\nRESULTS ======= \n\n");
-#else
-          printf(F_IID " %d %f %d %e\n",
-                 iunitig->iaccession,
-                 (int)type,
-                 iunitig->coverage_stat,
-                 simple3,pval3);
-#endif
-
-
-          fpf3 = 0;
-
-          switch(simple3){
-            case UNITIG_IS_SIMPLE:
-#if DEBUG > 0
-              printf("Aaron's whole test : Assume unitig is simple\n");
-#endif
-              if( repetitiv ){
-#if DEBUG > 0
-                printf("Aaron's whole test : FALSE NEGATIV\n");
-#endif
-                fn3++;
-              }else
-                tn3++;
-
-              break;
-            case UNITIG_IS_UNKNOWN:
-              nt3++;
-#if DEBUG > 0
-              printf("Aaron's whole test : Assume unitig is unknown\n");
-#endif
-              break;
-            case UNITIG_IS_SHALLOW:
-              nt3++;
-#if DEBUG > 0
-              printf("Aaron's whole test : Unitig is too shallow\n");
-#endif
-              break;
-            case UNITIG_IS_REPETITIVE:
-#if DEBUG > 0
-              printf("Aaron's whole test : Assume unitig is repetitive\n");
-#endif
-              if( ! repetitiv ){
-                fp3++;
-                if( fp3 < 100 )
-                  fpf3 = TRUE;
-              }
-              else
-                cor3++;
-              break;
-          }
-
-
-
-#if DEBUG > -1
-          if( fpf3 )
-            AS_REZ_print_alignment(ali3,100);
-#endif
-
-
-          AS_REZ_free_alignment(ali3);
-
-#if DEBUG > 0
-          printf("Threshold = %f\n",thresh);
-          printf("Unitig is %s\n",(repetitiv ? " repetitiv\n" : " not repetitive\n"));
-          printf("Test3: %0.4d correct, %0.4d fp, %0.4d fn decisions\n",cor3,fp3,fn3);
-#endif
-
-#else
           pval3 = AS_REZ_prob_IUM_MPsimple(iunitig,storeHandle);
-          printf(F_IID " %d %f %e\n",
-                 iunitig->iaccession,(int)type,iunitig->coverage_stat,pval3);
-#endif
+          printf(F_IID " %f %e\n",
+                 iunitig->iaccession,iunitig->coverage_stat,pval3);
 
           numunitig++;
-        } else {
-          type = get_simulator_type(iunitig);
-          printf(F_IID " %d %f NOTEST\n",
-                 iunitig->iaccession,type,iunitig->coverage_stat);
         }
 
         numunitig++;

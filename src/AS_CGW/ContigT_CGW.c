@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ContigT_CGW.c,v 1.18 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: ContigT_CGW.c,v 1.19 2008-10-29 06:34:30 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_EDGES
@@ -822,10 +822,15 @@ void CreateInitialContig(ScaffoldGraphT *graph, CDS_CID_t cid){
   ChunkInstanceT *CI = GetGraphNode (graph->CIGraph, cid);
   ContigT contig = {0};
 
+  //  This function apparently converts a CI node into a Contig node.
+
   CI->AEndNext = CI->BEndNext = NULLINDEX;
+  CI->info.CI.contigID = cid;
+
   contig = *CI;
+
   contig.type = CONTIG_CGW;
-  CI->info.CI.contigID = contig.id = cid; // GetNumGraphNodes(graph->ContigGraph);
+  contig.id = cid;
   contig.scaffoldID = NULLINDEX;
   contig.smoothExpectedCID = NULLINDEX;
   contig.numEssentialA = contig.numEssentialB = 0;
@@ -836,11 +841,6 @@ void CreateInitialContig(ScaffoldGraphT *graph, CDS_CID_t cid){
   contig.flags.bits.isCI = FALSE;
   contig.flags.bits.isContig = TRUE;
   contig.flags.bits.isChaff = CI->flags.bits.isChaff; // this property is inherited
-  if(GlobalData->debugLevel > 0 &&
-     contig.flags.bits.isChaff){
-    fprintf(stderr,"* Contig " F_CID " is CHAFF\n", contig.id);
-  }
-  contig.microhetScore = NULLINDEX;
   contig.edgeHead = NULLINDEX;
 
   SetNodeCGW_T(graph->ContigGraph->nodes, cid, &contig);
@@ -1051,70 +1051,6 @@ void SetContigScaffoldIds(ContigT *contig, CDS_CID_t scaffoldID){
 }
 
 
-#if 0
-/***************************************************************************/
-void UpdateContigSimCoordinates(ContigT *contig){
-  ContigTIterator CIs;
-  ChunkInstanceT *CI;
-  CDS_CID_t maxID = NULLINDEX, minID = NULLINDEX;
-  int minEnd, maxEnd;
-  CDS_COORD_t min = CDS_COORD_MAX, max = CDS_COORD_MIN;
-  int invalid = TRUE;
-
-  contig->aEndCoord = contig->bEndCoord = -1;
-  contig->flags.bits.cgbType = RR_CGBTYPE;
-
-
-  InitContigTIterator(ScaffoldGraph, contig->id, TRUE, FALSE, &CIs);
-  while((CI = NextContigTIterator(&CIs)) != NULL){
-    if(CI->flags.bits.cgbType == UU_CGBTYPE){
-      if(CI->offsetAEnd.mean < CI->offsetBEnd.mean){
-	if(min > CI->offsetAEnd.mean){
-	  minID = CI->id;
-	  minEnd = A_END;
-	  min = CI->offsetAEnd.mean;
-	}
-	if(max < CI->offsetBEnd.mean){
-	  maxID = CI->id;
-	  maxEnd = B_END;
-	  max = CI->offsetBEnd.mean;
-	}
-      }else{
-	if(max < CI->offsetAEnd.mean){
-	  maxID = CI->id;
-	  maxEnd = A_END;
-	  max = CI->offsetAEnd.mean;
-	}
-	if(min > CI->offsetBEnd.mean){
-	  minID = CI->id;
-	  min = CI->offsetBEnd.mean;
-	  minEnd = B_END;
-	}
-      }
-    }else{
-      invalid = TRUE;
-    }
-  }
-
-  contig->flags.bits.cgbType = (invalid? RR_CGBTYPE: UU_CGBTYPE);
-
-  if(minID != NULLINDEX){
-    NodeCGW_T *unitig = GetGraphNode(ScaffoldGraph->CIGraph, minID);
-    if(minEnd == A_END)
-      contig->aEndCoord = unitig->aEndCoord;
-    else
-      contig->aEndCoord = unitig->bEndCoord;
-  }
-
-  if(maxID != NULLINDEX){
-    NodeCGW_T *unitig = GetGraphNode(ScaffoldGraph->CIGraph, maxID);
-    if(maxEnd == A_END)
-      contig->bEndCoord = unitig->aEndCoord;
-    else
-      contig->bEndCoord = unitig->bEndCoord;
-  }
-}
-#endif
 /****************************************************************************/
 void UpdateContigSimCoordinates(NodeCGW_T *contig){
   ContigTIterator CIs;
@@ -1372,12 +1308,12 @@ int IsDefinitelyUniqueContig(ContigT *contig){
   */
 
   // when the flag says we are unique, we always return true
-  if (ci->unique_rept == AS_FORCED_UNIQUE) {
+  if (ci->info.CI.forceUniqueRepeat == AS_FORCED_UNIQUE) {
     return TRUE;
   }
 
   // when the flag says we are repeat, we always return false
-  if (ci->unique_rept == AS_FORCED_REPEAT) {
+  if (ci->info.CI.forceUniqueRepeat == AS_FORCED_REPEAT) {
     return FALSE;
   }
 

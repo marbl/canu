@@ -18,13 +18,9 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-#define FILTER_EDGES
-static char *rcsid = "$Id: Input_CGW.c,v 1.53 2008-10-08 22:02:55 brianwalenz Exp $";
 
-/*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
+static char *rcsid = "$Id: Input_CGW.c,v 1.54 2008-10-29 06:34:30 brianwalenz Exp $";
 
-
-//#define DEBUG 1
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -248,14 +244,12 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
 
 void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int sequenceOnly){
   CDS_CID_t cfr;
-  CDS_COORD_t simLength;
   ChunkInstanceT CI = {0};
 
   CI.id = ium_mesg->iaccession;
   CI.bpLength.mean = length;
   CI.bpLength.variance = MAX(1.0,ComputeFudgeVariance(CI.bpLength.mean));
   CI.edgeHead = NULLINDEX;
-  CI.microhetScore = NULLINDEX;
   CI.setID = NULLINDEX;
   CI.scaffoldID = NULLINDEX;
   CI.indexInScaffold = NULLINDEX;
@@ -269,6 +263,8 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
   CI.info.CI.headOfFragments = GetNumCIFragTs(ScaffoldGraph->CIFrags);
   CI.info.CI.numFragments = ium_mesg->num_frags;
   CI.info.CI.coverageStat = (ium_mesg->coverage_stat < -1000.0? -1000:ium_mesg->coverage_stat);
+  CI.info.CI.microhetProb = ium_mesg->microhet_prob;
+  CI.info.CI.forceUniqueRepeat = ium_mesg->unique_rept;
   CI.info.CI.contigID = NULLINDEX;
   CI.info.CI.numInstances = 0;
   CI.info.CI.instances.in_line.instance1 = 0;
@@ -280,68 +276,9 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
   CI.offsetAEnd.variance = 0.0;
   CI.offsetBEnd = CI.bpLength;
 
-#ifdef AS_ENABLE_SOURCE
-  if(ium_mesg->source){
-    char *c = ium_mesg->source;
-    CI.info.CI.source = GetNumchars(ScaffoldGraph->SourceFields);
-    while(*c != '\0'){
-      Appendchar(ScaffoldGraph->SourceFields,c++);
-    }
-    Appendchar(ScaffoldGraph->SourceFields,c);
-  }else{
-    CI.info.CI.source = NULLINDEX;
-  }
-#endif
-
-  // Collect the microhetScore if available
-  CI.microhetScore = 1.01;
-#ifdef AS_ENABLE_SOURCE
-  {
-    char *mhp = strstr(ium_mesg->source,"mhp:");
-    if(mhp)
-      CI.microhetScore = atof(mhp+4);
-      //fprintf(stderr,"* %s\n*  mhp:%g found *\n", ium_mesg->source, CI.microhetScore);
-  }
-#endif
-
-  // See if this is a repeat, or we can pin it down to an interval
-  {
-    char *interval;
-    char *type;
-    int result;
-    //	  fprintf(stderr,"* source = %s\n", ium_mesg->source);
-
-    CI.flags.bits.cgbType = XX_CGBTYPE;
-    CI.aEndCoord = CI.bEndCoord = -1;
-    simLength = CI.bpLength.mean;
-
-    // See if this is a repeat, or we can pin it down to an interval
-#ifdef AS_ENABLE_SOURCE
-    type = strstr(ium_mesg->source,"gen> ");
-    if(type){
-      type += 5;
-      if(!strncmp(type,"uu",2) || !strncmp(type,"@@",2)){
-	CI.flags.bits.cgbType = (unsigned int)UU_CGBTYPE;
-      }else if(!strncmp(type,"ru",2)){
-	CI.flags.bits.cgbType = (unsigned int)RU_CGBTYPE;
-      }else if(!strncmp(type,"rr",2)){
-	CI.flags.bits.cgbType = (unsigned int)RR_CGBTYPE;
-      }else if(!strncmp(type,"ur",2)){
-	CI.flags.bits.cgbType = (unsigned int)UR_CGBTYPE;
-      }
-
-      if((interval = strstr(ium_mesg->source,"["))){
-	//	    fprintf(stderr,"* interval = %s\n", interval);
-	result = sscanf(interval + 1," " F_COORD "," F_COORD,
-			&CI.aEndCoord, &CI.bEndCoord);
-	simLength = abs(CI.aEndCoord - CI.bEndCoord);
-      }else{
-	CI.aEndCoord = CI.bEndCoord = -1;
-	simLength = CI.bpLength.mean;
-      }
-    }
-#endif
-  }
+  CI.flags.bits.cgbType = UU_CGBTYPE;  //  Was "@@" == UU_CGBTYPE;
+  CI.aEndCoord          = 0;
+  CI.bEndCoord          = 0;
 
   if(ium_mesg->coverage_stat >= GlobalData->cgbUniqueCutoff){
     if(length < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH ||
@@ -358,13 +295,14 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
     if(ium_mesg->coverage_stat >= GlobalData->cgbUniqueCutoff &&
        length >= CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH &&
        ium_mesg->num_frags >= CGW_MIN_READS_IN_UNIQUE){
-      // microhetScore is actually the probability of the sequence
-      // being UNIQUE, based on microhet considerations.
+      // microhet probability is actually the probability of the
+      // sequence being UNIQUE, based on microhet considerations.
       // Falling below threshhold makes something a repeat.
-      if( CI.microhetScore < GlobalData->cgbMicrohetProb){
+
+      if( CI.info.CI.microhetProb < GlobalData->cgbMicrohetProb){
 	if(ium_mesg->coverage_stat < GlobalData->cgbApplyMicrohetCutoff){
 	  //fprintf(stderr,"* CI " F_CID " with astat: %g classified as repeat based on microhet unique prob of %g < %g\n",
-          //        CI.id, ium_mesg->coverage_stat, CI.microhetScore, GlobalData->cgbMicrohetProb);
+          //        CI.id, ium_mesg->coverage_stat, CI.info.CI.microhetProb, GlobalData->cgbMicrohetProb);
 	  isUnique = FALSE;
 	  if(CI.flags.bits.cgbType == XX_CGBTYPE)
 	    CI.flags.bits.cgbType = RR_CGBTYPE;
@@ -372,7 +310,7 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
 	}else{
 	  isUnique = TRUE;
 	  //fprintf(stderr,"* WARNING: CI " F_CID " with coverage %g WOULD HAVE BEEN classified as repeat based on microhet unique prob of %g < %g\n",
-          //        CI.id, ium_mesg->coverage_stat, CI.microhetScore, GlobalData->cgbMicrohetProb);
+          //        CI.id, ium_mesg->coverage_stat, CI.info.CI.microhetProb, GlobalData->cgbMicrohetProb);
 	}
       }else{
 	isUnique = TRUE;
@@ -382,11 +320,11 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
     }
 
     // allow flag to overwrite what the default behavior for a chunk and force it to be unique or repeat
-    CI.unique_rept = ium_mesg->unique_rept;
-    if (ium_mesg->unique_rept == AS_FORCED_UNIQUE) {
+
+    if (CI.info.CI.forceUniqueRepeat == AS_FORCED_UNIQUE) {
        isUnique = TRUE;
     }
-    else if (ium_mesg->unique_rept == AS_FORCED_REPEAT) {
+    else if (CI.info.CI.forceUniqueRepeat == AS_FORCED_REPEAT) {
        isUnique = FALSE;
     }
 

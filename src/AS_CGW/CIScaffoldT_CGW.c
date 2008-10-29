@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.27 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.28 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
@@ -151,8 +151,8 @@ void PrintNodeFields(FILE * stream, NodeCGW_T * node)
         break;
     }
   PrintNodeFlagBits(stream, node);
-  fprintf(stream, "\tedgeHead:" F_CID ", microhetScore:%.1f, setID:" F_CID "\n",
-          node->edgeHead, node->microhetScore, node->setID);
+  fprintf(stream, "\tedgeHead:" F_CID ", setID:" F_CID "\n",
+          node->edgeHead, node->setID);
 }
 
 
@@ -2013,11 +2013,11 @@ void DemoteSmallSingletonScaffolds(void) {
 
     numSingletonScaffolds++;
 
-    if (CI->unique_rept == AS_FORCED_UNIQUE) {
+    if (CI->info.CI.forceUniqueRepeat == AS_FORCED_UNIQUE) {
       continue;
     }
 
-    if ((CI->unique_rept != AS_FORCED_REPEAT && CI->info.CI.coverageStat > GlobalData->cgbDefinitelyUniqueCutoff) ||
+    if ((CI->info.CI.forceUniqueRepeat != AS_FORCED_REPEAT && CI->info.CI.coverageStat > GlobalData->cgbDefinitelyUniqueCutoff) ||
         (CI->bpLength.mean > 2000.0))
       continue;
 

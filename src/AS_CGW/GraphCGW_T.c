@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.61 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.62 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -4275,9 +4275,7 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
       lmesg.eaccession = gkpl->libraryUID;
       lmesg.mean       = dptr->mu;
       lmesg.stddev     = dptr->sigma;
-#ifdef AS_ENABLE_SOURCE
-      lmesg.source     = "";
-#endif
+      lmesg.source     = NULL;
       lmesg.link_orient  = 'X';    //  Not used for AS_UPDATE
       lmesg.num_features = 0;      //  Not used for AS_UPDATE
       lmesg.features     = NULL;   //  Not used for AS_UPDATE

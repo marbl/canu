@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.26 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.27 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,7 +51,7 @@ const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.26 2008-10-08 22:02:57 bri
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
 
-static const char *rcsid = "$Id: AS_CNS_asmReBaseCall.c,v 1.26 2008-10-08 22:02:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_CNS_asmReBaseCall.c,v 1.27 2008-10-29 06:34:30 brianwalenz Exp $";
 
 static HashTable_AS *utgUID2IID;
 
@@ -90,11 +90,8 @@ static IntUnitigMesg* convert_UTG_to_IUM(SnapUnitigMesg* utgMesg)
   /* Set all toplevel fields */
 
   iumMesg->iaccession      = utgMesg->iaccession;
-
-#ifdef AS_ENABLE_SOURCE
-  iumMesg->source         = strdup(utgMesg->source);
-#endif
   iumMesg->coverage_stat  = utgMesg->coverage_stat;
+  iumMesg->microhet_prob  = utgMesg->microhet_prob;
   iumMesg->status         = utgMesg->status;
   iumMesg->length         = utgMesg->length;
   iumMesg->consensus      = strdup(utgMesg->consensus);
@@ -107,9 +104,8 @@ static IntUnitigMesg* convert_UTG_to_IUM(SnapUnitigMesg* utgMesg)
 
     for(i=0; i<iumMesg->num_frags; i++){
       iumMesg->f_list[i].type = utgMesg->f_list[i].type;
-#ifdef AS_ENABLE_SOURCE
-      iumMesg->f_list[i].sourceInt = atoi(utgMesg->f_list[i].source);
-#endif
+      iumMesg->f_list[i].sourceInt = 0;
+
       iid = getGatekeeperUIDtoIID(gkpStore, utgMesg->f_list[i].eident, NULL);
 
       if( iid == 0 ){
@@ -180,9 +176,7 @@ static IntConConMesg* convert_CCO_to_ICM(SnapConConMesg* ccoMesg)
     icmMesg->pieces = (IntMultiPos*) safe_malloc(icmMesg->num_pieces*sizeof(IntMultiPos));
     for(i=0; i<icmMesg->num_pieces; i++){// i loop
       icmMesg->pieces[i].type = ccoMesg->pieces[i].type;
-#ifdef AS_ENABLE_SOURCE
-      icmMesg->pieces[i].sourceInt = atoi(ccoMesg->pieces[i].source);
-#endif
+      icmMesg->pieces[i].sourceInt = 0;
 
       iid = getGatekeeperUIDtoIID(gkpStore, ccoMesg->pieces[i].eident, NULL);
       if( iid == 0 ){
@@ -379,7 +373,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.26 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.27 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 
@@ -394,9 +388,6 @@ int main (int argc, char *argv[]) {
             eunitig = (SnapUnitigMesg *)(pmesg->m);
 	    iunitig = convert_UTG_to_IUM(eunitig);
 	    ma = CreateMultiAlignTFromIUM(iunitig, iunitig->iaccession, 0);
-#ifdef AS_ENABLE_SOURCE
-	    safe_free(iunitig->source);
-#endif
 	    safe_free(iunitig->f_list);
 	    safe_free(iunitig->consensus);
 	    safe_free(iunitig->quality);

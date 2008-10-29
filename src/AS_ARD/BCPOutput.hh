@@ -23,7 +23,7 @@
 #ifndef BCPOutput_H
 #define BCPOutput_H
 
-static const char *rcsid_BCPOutput_H = "$Id: BCPOutput.hh,v 1.5 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_BCPOutput_H = "$Id: BCPOutput.hh,v 1.6 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #include <iostream>
 #include "SQLOutput.hh"
@@ -149,7 +149,7 @@ namespace AS_ARD {
                   AS_UID eaccession,
                   IntFragment_ID iaccession,
                   const char * source,
-                  float mhp,
+                  float microhet_prob,
                   float coverage_stat,
                   UnitigStatus status,
                   CDS_COORD_t length,

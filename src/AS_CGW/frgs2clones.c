@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: frgs2clones.c,v 1.30 2008-10-08 22:02:55 brianwalenz Exp $";
+const char *mainid = "$Id: frgs2clones.c,v 1.31 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -257,11 +257,9 @@ main( int argc, char *argv[]) {
 	  ium.consensus = "";
 	  ium.quality = "";
 	  ium.iaccession = 0;
-# ifdef AS_ENABLE_SOURCE
-	  ium.source = "";
-#endif
 	  ium.forced = FALSE;
 	  ium.coverage_stat = 10;
+          ium.microhet_prob = 1.01;
 	  ium.status = 'U';
 	  ium.num_frags = 2;
 	  ium.f_list = &(the_imps[0]);

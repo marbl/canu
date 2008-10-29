@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* All of the CGW celamy stuff is here */
-static char *rcsid = "$Id: Celamy_CGW.c,v 1.21 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: Celamy_CGW.c,v 1.22 2008-10-29 06:34:30 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -159,12 +159,6 @@ static char * ComputeCIUUCode(ChunkInstanceT *ci){
     case UU_CGBTYPE:
       return "uu";
       break;
-    case UR_CGBTYPE:
-      return "ur";
-      break;
-    case RU_CGBTYPE:
-      return "ru";
-      break;
     case RR_CGBTYPE:
       return "rr";
       break;
@@ -204,15 +198,10 @@ static int ComputeCIColor(ChunkInstanceT *ci, CIScaffoldT *scaffold){
       case UU_CGBTYPE:
         color = DUNIQUE_COLOUR;
         break;
-      case UR_CGBTYPE:
-        color = CONT_BADUNIQUE_COLOUR;
-        break;
-      case RU_CGBTYPE:
       case RR_CGBTYPE:
         color = BADUNIQUE_COLOUR;
         break;
       case XX_CGBTYPE:
-        //assert(0);
         color = UNKNOWNUNIQUE_COLOUR;
         break;
     }
@@ -935,7 +924,6 @@ void CelamyCIScaffolds(char *name, ScaffoldGraphT *graph){
                 scaffold->id, contigID,
                 CIaCoord,
                 ComputeContigColor(CI, scaffold),
-                //		  (CI->flags.bits.cgbType == UU_CGBTYPE?"A0ContigColor":"A0InvalidContigColor"),
                 CIbCoord,
                 CONTIG_ROW,
                 scaffold->id, contigID,(CI->flags.bits.isMisplaced?"MISPLACED":""));
@@ -990,7 +978,6 @@ void CelamyCIScaffolds(char *name, ScaffoldGraphT *graph){
         InitCIScaffoldTIterator(ScaffoldGraph, scaffold, TRUE, FALSE, &CIs);
 
         while(NULL != (CI = NextCIScaffoldTIterator(&CIs))){
-          //	if(CI->flags.bits.cgbType == UU_CGBTYPE)
           fprintf(fp,F_CID "ScaCtg" F_CID " ",
                   scaffold->id, CI->id);
         }

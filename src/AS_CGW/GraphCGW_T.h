@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.27 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.28 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "InputDataTypes_CGW.h"
@@ -181,11 +181,15 @@ typedef enum {
 typedef UnitigFUR ChunkFUR;
 
 /* This enum is used to encode the classification of unitigs based on the
-   simulator coordinates of the fragments */
+   simulator coordinates of the fragments
+
+   This field has one of the following values (first refers to essentials, 2nd to contains):
+     XX_CGBTYPE   -- No annotation on unitig in cgb output
+     RR_CGBTYPE   -- CGB reported "rr"
+     UU_CGBTYPE   -- CGB reported "uu"
+*/
 typedef enum {
   UU_CGBTYPE = 0,
-  UR_CGBTYPE = 1,
-  RU_CGBTYPE = 2,
   RR_CGBTYPE = 3,
   XX_CGBTYPE = 4
 }CGB_Type;
@@ -228,7 +232,6 @@ VA_DEF(CDS_CID_t);
 
 typedef struct{
   ChunkInstanceType type; //
-  ChunkFUR unique_rept; //
 
   CDS_CID_t id;        // Instance ID
   CDS_CID_t outputID;  // InstanceID (dense encoding over LIVE instances)
@@ -267,9 +270,10 @@ typedef struct{
                                     These will be linked together.  */
       int32 numFragments;
       /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
-      CDS_COORD_t  XXXunusedXXX_branchPointA;
-      CDS_COORD_t  XXXunusedXXX_branchPointB;
+
       int32        coverageStat;
+      float        microhetProb;
+      ChunkFUR     forceUniqueRepeat;
       CDS_CID_t    baseID;    /* If this is a  RESOLVEDREPEAT, the id of the original
                                  CI from which it was spawned */
       int32 numInstances; /* Number of actual or surrogate instances in scaffolds
@@ -284,12 +288,10 @@ typedef struct{
       CDS_CID_t source;
     }CI;
     struct CONTIGINFO_TAG{
-      // All of this is redundant to what is incldued in the multiAlignment
-      CDS_CID_t AEndCI;   //Index of Chunk Instance at A end of Contig
-      CDS_CID_t BEndCI;   //Index of Chunk Instance at B end of Contig
-      int32 numCI;    //Number of CI in contig
-      CDS_COORD_t XXXunusedXXX_branchPointA;
-      CDS_COORD_t XXXunusedXXX_branchPointB;
+      CDS_CID_t AEndCI;     //  Index of Chunk Instance at A end of Contig
+      CDS_CID_t BEndCI;     //  Index of Chunk Instance at B end of Contig
+      int32     numCI;      //  Number of CI in contig
+      CDS_CID_t contigNum;  //  Used in CIScaffoldT_Biconnected_CGW.c
     }Contig;
     struct CISCAFFOLD_TAG{
       CDS_CID_t AEndCI; // Index of Chunk Instance at A end of Scaffold
@@ -309,13 +311,7 @@ typedef struct{
     struct {
       unsigned int isUnique:1;
       unsigned int smoothSeenAlready:1; // Used for cycle detection
-      /* This field has one of the following values (first refers to essentials, 2nd to contains):
-	 XX_CGBTYPE   -- No annotation on unitig in cgb output
-	 RU_CGBTYPE   -- CGB reported "ru"
-	 UR_CGBTYPE   -- CGB reported "ur"
-	 RR_CGBTYPE   -- CGB reported "rr"
-	 UU_CGBTYPE   -- CGB reported "uu"
-      */
+
       unsigned int cgbType:3;
       unsigned int isDead:1;
       unsigned int isFree:1;
@@ -359,11 +355,6 @@ typedef struct{
   }flags;
 
   CDS_CID_t edgeHead;  // Pointer to linked list of edges  in edges;
-
-  float   microhetScore; /* Score from Knut&Aaron's microhet detecter, valid for CIs only! Could be in union above, but CI
-                            variant is biggest one.  So I reused an unused field at the top level SAK */
-
-
   CDS_CID_t setID;
 
 }NodeCGW_T;
@@ -464,7 +455,6 @@ static NodeCGW_T *CreateNewGraphNode(GraphCGW_T *graph){
       node.info.CI.contigID = NULLINDEX;
       node.info.CI.headOfFragments = NULLINDEX;
       node.info.CI.numFragments = 0;
-      node.microhetScore = -1.0;
       node.info.CI.coverageStat = 0;
       node.info.CI.numInstances = 0;
       node.info.CI.instances.va = NULL;
@@ -489,7 +479,6 @@ static NodeCGW_T *CreateNewGraphNode(GraphCGW_T *graph){
   node.numEssentialA = node.numEssentialB = 0;
   node.essentialEdgeA = node.essentialEdgeB = NULLINDEX;
   node.indexInScaffold = NULLINDEX;
-  node.microhetScore = -1.0;
   node.edgeHead = NULLINDEX;
   node.smoothExpectedCID = 0;
   node.AEndNext = node.BEndNext = NULLINDEX;

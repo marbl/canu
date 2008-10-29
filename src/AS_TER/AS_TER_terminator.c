@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_TER_terminator.c,v 1.29 2008-10-08 22:03:00 brianwalenz Exp $";
+const char *mainid = "$Id: AS_TER_terminator.c,v 1.30 2008-10-29 06:34:30 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -178,10 +178,8 @@ convertIUM(GenericMesg *pmesg,
 
   utgMesg.eaccession     = AS_UID_fromInteger(getUID(uids));
   utgMesg.iaccession     = iumMesg->iaccession;
-#ifdef AS_ENABLE_SOURCE
-  utgMesg.source         = strdup(iumMesg->source);
-#endif
   utgMesg.coverage_stat  = iumMesg->coverage_stat;
+  utgMesg.microhet_prob  = iumMesg->microhet_prob;
   utgMesg.status         = iumMesg->status;
   utgMesg.length         = iumMesg->length;
   utgMesg.consensus      = strdup(iumMesg->consensus);
@@ -204,9 +202,6 @@ convertIUM(GenericMesg *pmesg,
       }
 
       utgMesg.f_list[i].type         = iumMesg->f_list[i].type;
-#ifdef AS_ENABLE_SOURCE
-      utgMesg.f_list[i].source       = NULL;
-#endif
       utgMesg.f_list[i].eident       = lookupUID(FRGmap, iumMesg->f_list[i].ident);
       utgMesg.f_list[i].delta_length = iumMesg->f_list[i].delta_length;
       utgMesg.f_list[i].position     = iumMesg->f_list[i].position;
@@ -347,9 +342,6 @@ convertICM(GenericMesg *pmesg,
 
     for(i=0; i<icmMesg->num_pieces; i++) {
       ccoMesg.pieces[i].type = icmMesg->pieces[i].type;
-#ifdef AS_ENABLE_SOURCE
-      ccoMesg.pieces[i].source = NULL;
-#endif
 
       if (existsUID(FRGmap, icmMesg->pieces[i].ident) == 0) {
 	fprintf(stderr,"ICM: Reference before definition for fragment ID "F_IID"\n", icmMesg->pieces[i].ident);

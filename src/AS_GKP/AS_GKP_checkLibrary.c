@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.26 2008-10-23 15:44:44 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.27 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,9 +40,7 @@ Check_DistanceMesg(DistanceMesg    *dst_mesg,
   lmesg.eaccession   = dst_mesg->eaccession;
   lmesg.mean         = dst_mesg->mean;
   lmesg.stddev       = dst_mesg->stddev;
-#ifdef AS_ENABLE_SOURCE
   lmesg.source       = NULL;
-#endif
   lmesg.link_orient  = AS_READ_ORIENT_INNIE;
   lmesg.num_features = 0;
   lmesg.features     = NULL;
@@ -179,10 +177,8 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
     gkpl.mean                       = lib_mesg->mean;
     gkpl.stddev                     = lib_mesg->stddev;
 
-#ifdef AS_ENABLE_SOURCE
     if (lib_mesg->source)
       strncpy(gkpl.comment, lib_mesg->source, AS_PER_COMMENT_LEN);
-#endif
 
     AS_PER_decodeLibraryFeatures(&gkpl, lib_mesg);
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.34 2008-10-09 19:49:27 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.35 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_Bubble.h"
@@ -80,7 +80,6 @@ output_the_chunks(Tfragment     *frags,
     achunk.quality   = "";
 
     achunk.iaccession     = ch->iaccession;
-    achunk.source         = "gen> @@ [0,0]";
     achunk.coverage_stat  = compute_coverage_statistic(ch->rho,
                                                        count_the_randomly_sampled_fragments_in_a_chunk(frags,
                                                                                                        chunkfrags,
@@ -88,6 +87,7 @@ output_the_chunks(Tfragment     *frags,
                                                                                                        chunk_index,
                                                                                                        gkp),
                                                        global_fragment_arrival_rate);
+    achunk.microhet_prob  = 1.01;
     achunk.status         = AS_UNASSIGNED;
     achunk.unique_rept    = AS_FORCED_NONE;
     achunk.consensus      = "";

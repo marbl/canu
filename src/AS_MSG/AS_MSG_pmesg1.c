@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.29 2008-10-08 22:02:57 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.30 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -268,9 +268,6 @@ static void *Read_UOM_Mesg(FILE *fin)
   mesg.orient = (ChunkOrientationType)GetType("ori:%1[NAIO]","orientation", fin);
   mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXdcYZ]","overlap type", fin);
 
-#ifdef AS_ENABLE_SOURCE
-  mesg.source = GetText("src:",fin,FALSE);
-#endif
   GET_FIELD(mesg.best_overlap_length,"len:"F_COORD,"best overlap");
   GET_FIELD(mesg.min_overlap_length,"min:"F_COORD,"min overlap");
   GET_FIELD(mesg.max_overlap_length,"max:"F_COORD,"max overlap");
@@ -292,9 +289,7 @@ Read_IMP_Mesg(FILE *fin, IntMultiPos *imp) {
 #ifdef NEW_UNITIGGER_INTERFACE
   GET_FIELD(imp->ident2,"bid:"F_IID,"multipos id");
 #endif
-#ifdef AS_ENABLE_SOURCE
   imp->sourceInt = -1;
-#endif
   GET_PAIR(imp->position.bgn,imp->position.end,"pos:"F_COORD","F_COORD,"position field");
 #ifdef NEW_UNITIGGER_INTERFACE
   GET_FIELD(imp->ahang,"ahg:"F_S32,"ahang");
@@ -393,17 +388,12 @@ Read_IUM_Mesg(FILE *fin) {
   int				i;
 
   GET_FIELD(mesg.iaccession,"acc:"F_IID,"accession field");
-# ifdef AS_ENABLE_SOURCE
-  mesg.source = GetText("src:",fin,FALSE);
-# endif
   GET_FIELD(mesg.coverage_stat,"cov:%f","coverage stat");
+  GET_FIELD(mesg.microhet_prob,"mhp:%f","microhet prob");
   mesg.status = (UnitigStatus)GetType("sta:%1[UCNSX]","status", fin);
 
   // flag for handling unitig
   mesg.unique_rept = (UnitigFUR)GetType("fur:%1[XUR]","unique_rept", fin);
-
-  ReadLine(fin, TRUE);  //  unused "a branch point" abp:
-  ReadLine(fin, TRUE);  //  unused "b branch point" bbp:
 
   GET_FIELD(mesg.length,"len:"F_COORD,"length field");
   mesg.consensus = GetText("cns:",fin,TRUE);
@@ -715,12 +705,8 @@ Read_MPS_Mesg(FILE *fin, SnapMultiPos *imp) {
   char			*line, *u;
 
   imp->type = (FragType)GetType("typ:%1[RXTEFUSLuBG]","multipos type", fin);
-
   imp->eident = GetUID("mid:",fin);
 
-#ifdef AS_ENABLE_SOURCE
-  imp->source = GetText("src:",fin,FALSE);
-#endif
   GET_PAIR(imp->position.bgn,imp->position.end,"pos:"F_COORD","F_COORD,"position field");
   GET_FIELD(imp->delta_length,"dln:"F_S32,"delta length");
   if (strncmp(ReadLine(fin,TRUE),"del:",4) != 0)
@@ -797,14 +783,9 @@ Read_UTG_Mesg(FILE *fin) {
 
   mesg.eaccession = GetUIDIID("acc:",&mesg.iaccession,fin);
 
-#ifdef AS_ENABLE_SOURCE
-  mesg.source = GetText("src:",fin,FALSE);
-#endif
   GET_FIELD(mesg.coverage_stat,"cov:%f","coverage stat");
+  GET_FIELD(mesg.microhet_prob,"mhp:%f","microhet prob");
   mesg.status = (UnitigStatus)GetType("sta:%1[UCNSX]","status", fin);
-
-  ReadLine(fin, TRUE);  //  unused "a branch point" abp:
-  ReadLine(fin, TRUE);  //  unused "b branch point" bbp:
 
   GET_FIELD(mesg.length,"len:"F_COORD,"length field");
   mesg.consensus = GetText("cns:",fin,TRUE);
@@ -1142,9 +1123,6 @@ static void Write_UOM_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"ck2:"F_IID"\n",mesg->chunk2);
   fprintf(fout,"ori:%c\n",mesg->orient);
   fprintf(fout,"ovt:%c\n",mesg->overlap_type);
-#ifdef AS_ENABLE_SOURCE
-  PutText(fout,"src:",mesg->source,FALSE);
-#endif
   fprintf(fout,"len:"F_COORD"\n",mesg->best_overlap_length);
   fprintf(fout,"min:"F_COORD"\n",mesg->min_overlap_length);
   fprintf(fout,"max:"F_COORD"\n",mesg->max_overlap_length);
@@ -1244,14 +1222,10 @@ static void Write_IUM_Mesg(FILE *fout, void *vmesg)
 	 (strlen(mesg->consensus) == 0) );
   fprintf(fout,"{IUM\n");
   fprintf(fout,"acc:"F_IID"\n",mesg->iaccession);
-# ifdef AS_ENABLE_SOURCE
-  PutText(fout,"src:",mesg->source,FALSE);
-# endif
   fprintf(fout,"cov:%.3f\n",mesg->coverage_stat);
+  fprintf(fout,"mhp:%.3f\n",mesg->microhet_prob);
   fprintf(fout,"sta:%c\n",mesg->status);
   fprintf(fout,"fur:%c\n",mesg->unique_rept);
-  fprintf(fout,"abp:0\n");  //  Unused!
-  fprintf(fout,"bbp:0\n");  //  Unused!
   fprintf(fout,"len:"F_COORD"\n",mesg->length);
   PutText(fout,"cns:",mesg->consensus,TRUE);
   PutText(fout,"qlt:",mesg->quality,TRUE);
@@ -1490,9 +1464,6 @@ static void Write_MPS_Mesg(FILE *fout, SnapMultiPos *mlp)
   fprintf(fout,"{MPS\n");
   fprintf(fout,"typ:%c\n",(char) mlp->type);
   fprintf(fout,"mid:%s\n",AS_UID_toString(mlp->eident));
-#ifdef AS_ENABLE_SOURCE
-  PutText(fout,"src:",mlp->source,FALSE);
-#endif
   fprintf(fout,"pos:"F_COORD","F_COORD"\n",
           mlp->position.bgn,mlp->position.end);
   fprintf(fout,"dln:"F_S32"\n",mlp->delta_length);
@@ -1513,13 +1484,9 @@ static void Write_UTG_Mesg(FILE *fout, void *vmesg)
 
   fprintf(fout,"{UTG\n");
   fprintf(fout,"acc:(%s,"F_IID")\n", AS_UID_toString(mesg->eaccession),mesg->iaccession);
-#ifdef AS_ENABLE_SOURCE
-  PutText(fout,"src:",mesg->source,FALSE);
-#endif
   fprintf(fout,"cov:%.3f\n",mesg->coverage_stat);
+  fprintf(fout,"mhp:%.3f\n",mesg->microhet_prob);
   fprintf(fout,"sta:%c\n",mesg->status);
-  fprintf(fout,"abp:0\n");  //  Unused!
-  fprintf(fout,"bbp:0\n");  //  Unused!
   fprintf(fout,"len:"F_COORD"\n",mesg->length);
   PutText(fout,"cns:",mesg->consensus,TRUE);
   PutText(fout,"qlt:",mesg->quality,TRUE);

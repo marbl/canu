@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.103 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.104 2008-10-29 06:34:30 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -1252,10 +1252,8 @@ void UnitigGraph::writeIUMtoFile(char *fileprefix, int fragment_count_target){
     assert(utg->getNumFrags() == utg->dovetail_path_ptr->size());
 
     ium_mesg_ptr->iaccession    = iumiid++;
-#ifdef AS_ENABLE_SOURCE
-    ium_mesg_ptr->source        = "gen> @@ [0,0]";
-#endif
     ium_mesg_ptr->coverage_stat = utg->getCovStat(_fi);
+    ium_mesg_ptr->microhet_prob = 1.01;
     ium_mesg_ptr->status        = AS_UNASSIGNED;
     ium_mesg_ptr->unique_rept   = AS_FORCED_NONE;
     ium_mesg_ptr->length        = utg->getLength();

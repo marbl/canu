@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.13 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.14 2008-10-29 06:34:30 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -102,11 +102,7 @@ int IsScaffold2EdgeConnected(ScaffoldGraphT *graph, CIScaffoldT *scaffold){
     dfsnum[i] = NULLINDEX;
     father[i] = NULLINDEX;
     lowpt[i] = NULLINDEX;
-    contig1->microhetScore = (float)(i) + 0.01; // this field is unused for contigs
-#ifdef DEBUG
-    fprintf(stderr,"* contig " F_CID " is " F_CID " (%g)\n",
-            i, contig1->id, contig1->microhetScore);
-#endif
+    contig1->info.Contig.contigNum = i;
     contigs[i++] = contig1;
   }
 
@@ -186,7 +182,7 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
                     int32 *dfsnum, int32 *lowpt, int32 *father,
                     Stack_PtrT *stack,
 		    int32 *count1, int32 *count2, int32 *numBridges){
-  CDS_CID_t contigNum = (CDS_CID_t)contig->microhetScore;
+  CDS_CID_t contigNum = contig->info.Contig.contigNum;
   GraphEdgeIterator Edges;
   EdgeCGW_T *edge;
 
@@ -201,7 +197,7 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
 
   while (NULL != (edge = NextGraphEdgeIterator(&Edges))){
     NodeCGW_T *otherContig = GetGraphNode(ScaffoldGraph->ContigGraph, (edge->idA == contig->id? edge->idB:edge->idA));
-    CDS_CID_t otherNum = (CDS_CID_t)otherContig->microhetScore;
+    CDS_CID_t otherNum = otherContig->info.Contig.contigNum;
 
     // filter out edges that are not internal to this scaffold
     if(otherContig->scaffoldID != contig->scaffoldID ||
@@ -244,12 +240,12 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
       NodeCGW_T *w = PopStack_PtrT(stack);
       EdgeCGW_T *edge2;
 
-      wNum = (CDS_CID_t)w->microhetScore;
+      wNum = w->info.Contig.contigNum;
       InitGraphEdgeIterator(sgraph->ContigGraph, w->id, ALL_END, ALL_TRUSTED_EDGES, GRAPH_EDGE_DEFAULT, &Edges2);
 
       while (NULL != (edge2 = NextGraphEdgeIterator(&Edges2))){
         NodeCGW_T *otherContig = GetGraphNode(ScaffoldGraph->ContigGraph, (edge2->idA == w->id? edge2->idB:edge2->idA));
-        CDS_CID_t otherNum = (CDS_CID_t)otherContig->microhetScore;
+        CDS_CID_t otherNum = otherContig->info.Contig.contigNum;
 
         if(otherContig->scaffoldID != w->scaffoldID ||
            isSingletonOverlapEdge(edge2))
