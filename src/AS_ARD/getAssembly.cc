@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: getAssembly.cc,v 1.8 2008-10-29 06:34:30 brianwalenz Exp $";
+const char *mainid = "$Id: getAssembly.cc,v 1.9 2008-10-29 17:19:24 skoren Exp $";
 
 /*************************************************************************/
 /* Local include files */
@@ -614,7 +614,6 @@ std::cerr<< "The converted form is I got is " << AS_UID_toString(utg.eaccession)
 
                utg.f_list[seen_frg].eident = AS_UID_lookup(afg_EUID, NULL);
                utg.f_list[seen_frg].type = (FragType)mps_typ;
-               utg.f_list[seen_frg].source = strdup(mps_src);
                utg.f_list[seen_frg].position.bgn = mps_pos1;
                utg.f_list[seen_frg].position.end = mps_pos2;
                utg.f_list[seen_frg].delta_length = 0;
@@ -952,7 +951,6 @@ std::cerr << "Running command " << command << std::endl;
                if (seen_frg < ctg.num_pieces || seen_frg == 0) {
                   ctg.pieces[seen_frg].eident = AS_UID_lookup(afg_EUID, NULL);
                   ctg.pieces[seen_frg].type = (FragType)mps_typ;
-                  ctg.pieces[seen_frg].source = strdup(mps_src);
                   ctg.pieces[seen_frg].position.bgn = mps_pos1;
                   ctg.pieces[seen_frg].position.end = mps_pos2;
                   ctg.pieces[seen_frg].delta_length = 0;
