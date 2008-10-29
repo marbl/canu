@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.203 2008-10-29 06:34:30 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.204 2008-10-29 10:50:28 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -866,7 +866,6 @@ int32 AppendFragToLocalStore(FragType          type,
 #ifdef PRINTUIDS
       fragment.uid = getFragRecordUID(&fsread);
 #endif
-      //getReadType_ReadStruct(&fsread, &fragment.type);
       fragment.type = AS_READ;
       fragment.source = NULL;
       seqbuffer[clr_end] = '\0';
@@ -907,11 +906,6 @@ int32 AppendFragToLocalStore(FragType          type,
           fragment.utype = AS_OTHER_UNITIG;
         }
 
-        //if (type == AS_UNITIG) {
-        //  fprintf(stderr,"Unitig fragments for unitig %d:\n",iid);
-        //  PrintIMPInfo(stderr,GetNumIntMultiPoss(uma->f_list), GetIntMultiPos(uma->f_list,0) );
-        //}
-
         fragment.n_components = GetNumIntMultiPoss(uma->f_list) + GetNumIntUnitigPoss(uma->u_list);
         fragment.components   = SetUngappedFragmentPositions(type, fragment.n_components, uma);
         break;
@@ -922,8 +916,6 @@ int32 AppendFragToLocalStore(FragType          type,
         assert(0);
       }
   }
-
-  //fprintf(stderr, "AppendFragToLocalStore()-- frag=%d bgn=%d end=%d complement=%d\n", iid, clr_bgn, clr_end, complement);
 
   if (complement)
     SequenceComplement(sequence, quality);
@@ -978,8 +970,6 @@ int32 AppendFragToLocalStore(FragType          type,
       SetVA_Bead(beadStore, bead.boffset, &bead);
     }
   }
-
-  //fprintf(stderr, "Added new fragment %d starting with beads %d\n", iid, fragment.firstbead);
 
   AppendVA_Fragment(fragmentStore,&fragment);
 
@@ -1694,7 +1684,6 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
   if (opp == NULL) {
     opp_private.split_alleles   = CNS_OPTIONS_SPLIT_ALLELES_DEFAULT;
     opp_private.smooth_win      = CNS_OPTIONS_MIN_ANCHOR_DEFAULT;
-    opp_private.max_num_alleles = CNS_OPTIONS_MAX_NUM_ALLELES;
     opp = &opp_private;
   }
 
@@ -3351,7 +3340,6 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
   if (opp == NULL) {
     opp_private.split_alleles   = CNS_OPTIONS_SPLIT_ALLELES_DEFAULT;
     opp_private.smooth_win      = CNS_OPTIONS_MIN_ANCHOR_DEFAULT;
-    opp_private.max_num_alleles = CNS_OPTIONS_MAX_NUM_ALLELES;
     opp = &opp_private;
   }
 
@@ -3950,6 +3938,9 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
   CNS_AlignParams params;
 
   CNS_AlignParams LOCAL_DEFAULT_PARAMS = {0,0,0,0,0,AS_CNS_ERROR_RATE,CNS_DP_THRESH,CNS_DP_MINLEN,AS_FIND_ALIGN};
+
+  if (VERBOSE_MULTIALIGN_OUTPUT)
+    show_olap = SHOW_OLAP;
 
 #warning CNS_TIGHTSEMIBANDWIDTH relaxed to get around BOG placement problems
   int     CNS_TIGHTSEMIBANDWIDTH = 18;  //  Switch back to 6
@@ -4910,53 +4901,6 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
   return n_frags;
 }
 
-#if 0
-//  Used only in MultiAlignUnitig
-int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags,
-               GateKeeperStore *frag_store) {
-  int i,lefti,righti;
-  int isread,isforward;
-  int num_matches;
-  GenericMesg pmesg;
-  FragMesg fmesg;
-  fragRecord fsread;
-
-  for (i=0;i<num_frags;i++) {
-    isread = (all_frags[i].type == AS_READ ||
-              all_frags[i].type == AS_EXTR ||
-              all_frags[i].type == AS_TRNR)?1:0;
-    if (all_frags[i].position.bgn<all_frags[i].position.end) {
-      lefti = all_frags[i].position.bgn;
-      righti = all_frags[i].position.end;
-      isforward = 1;
-    } else {
-      righti = all_frags[i].position.bgn;
-      lefti = all_frags[i].position.end;
-      isforward = 0;
-    }
-
-    getFrag(gkpStore,all_frags[i].ident,&fsread,FRAG_S_ALL);
-
-    fmesg.sequence = getFragRecordSequence(&fsread);
-    fmesg.quality  = getFragRecordQuality(&fsread);
-
-    fmesg.clear_rng.bgn = getFragRecordClearRegionBegin(&fsread, clear_range_to_use);
-    fmesg.clear_rng.end = getFragRecordClearRegionEnd  (&fsread, clear_range_to_use);
-
-    fmesg.iaccession = all_frags[i].ident;
-    fmesg.type = all_frags[i].type;
-    fmesg.eaccession = getFragRecordUID(&fsread);
-    fmesg.action = AS_ADD;
-    fmesg.source = getFragRecordSource(&fsread);
-
-    pmesg.t = MESG_IFG;
-    pmesg.m = &fmesg;
-    WriteProtoMesg_AS(out,&pmesg); // write out the Fragment message
-  }
-
-  return 1;
-}
-#endif
 
 
 void PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey what) {
@@ -7689,8 +7633,6 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
           fprintf(stderr, "MultiAlignUnitig()-- Could (really) not find overlap between afrag %d (%c) and bfrag %d (%c); estimated ahang: %d\n",
                   afrag->iid,afrag->type,bfrag->iid,bfrag->type,ahang);
         }
-
-        //PrintFrags(stderr,0,&positions[i],1,gkpStore);
       }
 
       if ( allow_forced_frags ) {

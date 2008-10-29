@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: Consensus_CNS.c,v 1.65 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.66 2008-10-29 10:50:28 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -89,13 +89,14 @@ main (int argc, char **argv) {
   int    gkpPart     = 0;
   int    gkpInMemory = 0;
 
-  int extract              = -1;
+  int    extract     = -1;
 
-  int allow_neg_hang_retry = 0;
+  int    allow_neg_hang_retry = 0;
+
+  int    saveUnitigMultiAlign = 0;
 
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
-                          CNS_OPTIONS_MIN_ANCHOR_DEFAULT,
-                          CNS_OPTIONS_MAX_NUM_ALLELES };
+                          CNS_OPTIONS_MIN_ANCHOR_DEFAULT };
 
   int num_unitig_failures = 0;
   int num_contig_failures = 0;
@@ -130,12 +131,16 @@ main (int argc, char **argv) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-f") == 0) {
       allow_forced_frags = 1;
+
     } else if (strcmp(argv[arg], "-g") == 0) {
       allow_neg_hang = 1;
+
     } else if (strcmp(argv[arg], "-G") == 0) {
       allow_neg_hang_retry = 1;
+
     } else if (strcmp(argv[arg], "-K") == 0) {
       options.split_alleles = 0;
+
     } else if (strcmp(argv[arg], "-v") == 0) {
       int what = atoi(argv[++arg]);
       switch (what) {
@@ -162,25 +167,34 @@ main (int argc, char **argv) {
           err++;
           break;
       }
+
     } else if (strcmp(argv[arg], "-o") == 0) {
       outName = argv[++arg];
+
     } else if (strcmp(argv[arg], "-S") == 0) {
       gkpPart = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-w") == 0) {
       options.smooth_win = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-M") == 0) {
-      options.max_num_alleles = atoi(argv[++arg]);
+      saveUnitigMultiAlign = 1;
+
     } else if (strcmp(argv[arg], "-m") == 0) {
       gkpInMemory = 1;
+
     } else if (strcmp(argv[arg], "-s") == 0) {
       USE_SDB = 1;
       sdbName = argv[++arg];
+
     } else if (strcmp(argv[arg], "-p") == 0) {
       USE_SDB = 1;
       sdbPart = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-V") == 0) {
       USE_SDB = 1;
       sdbVers = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-D") == 0) {
       ++arg;
       if        (strcmp(argv[arg], "dumpunitigs") == 0) {
@@ -193,6 +207,7 @@ main (int argc, char **argv) {
         fprintf(stderr, "Unrecognized option '%s' to -D.\n", argv[arg]);
         err++;
       }
+
     } else if (strcmp(argv[arg], "-e") == 0) {
       arg++;
       if (argv[arg][0] == '#') {
@@ -200,6 +215,7 @@ main (int argc, char **argv) {
       } else {
         fprintf(stderr, "error: form: '-s #498234'\n");
       }
+
     } else if (strcmp(argv[arg], "-a") == 0) {
       arg++;
       switch (argv[arg][0]) {
@@ -217,8 +233,10 @@ main (int argc, char **argv) {
           err++;
           break;
       }
+
     } else if (strcmp(argv[arg], "-U") == 0) {
-      //  NOP
+      clear_range_to_use = AS_READ_CLEAR_OBT;
+
     } else {
       if (argv[arg][0] == '-') {
         fprintf(stderr, "Unrecognized option %s", argv[arg]);
@@ -247,7 +265,6 @@ main (int argc, char **argv) {
     fprintf(stderr, "                           3 = like 2, but dots are replaced with whitespace\n");
     fprintf(stderr, "                           4 = like 1, but with unitigs in  multi-alignment print in .clg\n");
     fprintf(stderr, "    -K           don't split alleles when calling consensus\n");
-    fprintf(stderr, "    -N           don't output variation record to .cns file\n");
     fprintf(stderr, "    -w win_size  specify the size of the 'smoothing window' that will be used in consensus calling\n");
     fprintf(stderr, "                 If two SNPs are located win_size or less bases apart one from another,\n");
     fprintf(stderr, "                 then they will be treated as one block\n");
@@ -268,9 +285,6 @@ main (int argc, char **argv) {
     fprintf(stderr, "  input-messages previously created .cgw/.cgb file\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Output:\n");
-    fprintf(stderr, "   Creates a .cns file by default\n");
-    fprintf(stderr, "   -I sends output to a .cgi (post-unitigging consensus) file instead.\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "   -o <filename>     output filename\n");
     exit(1);
   }
@@ -322,12 +336,9 @@ main (int argc, char **argv) {
   GenericMesg   *pmesg = NULL;
   while ((ReadProtoMesg_AS(cnsinp,&pmesg) != EOF)) {
 
-
     if (pmesg->t == MESG_IUM) {
       IntUnitigMesg *iunitig = (IntUnitigMesg *)(pmesg->m);
       int            unitigfail = 0;
-
-      clear_range_to_use = AS_READ_CLEAR_OBT;
 
       if (extract > -1 && iunitig->iaccession != extract)
         break;
@@ -362,19 +373,19 @@ main (int argc, char **argv) {
       }
 
       if (unitigfail == EXIT_SUCCESS) {
+        if (saveUnitigMultiAlign)
+          SetMultiAlignInStore(unitigStore,
+                               iunitig->iaccession,
+                               CreateMultiAlignTFromIUM(iunitig, -1, FALSE));
+
         pmesg->t = MESG_IUM;
         pmesg->m = iunitig;
         WriteProtoMesg_AS(cnsout, pmesg);
       }
-    }
 
-
-
-    if (pmesg->t == MESG_ICM) {
+    } else if (pmesg->t == MESG_ICM) {
       IntConConMesg *pcontig = (IntConConMesg *)(pmesg->m);
       int            contigFail = 0;
-
-      clear_range_to_use = AS_READ_CLEAR_LATEST;
 
       if (extract > -1 && pcontig->iaccession != extract)
         break;
@@ -435,6 +446,9 @@ main (int argc, char **argv) {
         }
         pcontig->num_vars = 0;
       }
+    } else {
+      //  Pass through messages that aren't IUM or ICM.
+      WriteProtoMesg_AS(cnsout, pmesg);
     }
   }
 

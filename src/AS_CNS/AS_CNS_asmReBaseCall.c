@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.27 2008-10-29 06:34:30 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.28 2008-10-29 10:50:28 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,7 +51,7 @@ const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.27 2008-10-29 06:34:30 bri
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
 
-static const char *rcsid = "$Id: AS_CNS_asmReBaseCall.c,v 1.27 2008-10-29 06:34:30 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_CNS_asmReBaseCall.c,v 1.28 2008-10-29 10:50:28 brianwalenz Exp $";
 
 static HashTable_AS *utgUID2IID;
 
@@ -257,8 +257,7 @@ int main (int argc, char *argv[]) {
     int expert=0;
     int in_memory=0;
     CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
-                            CNS_OPTIONS_MIN_ANCHOR_DEFAULT,
-                            CNS_OPTIONS_MAX_NUM_ALLELES };
+                            CNS_OPTIONS_MIN_ANCHOR_DEFAULT };
 
 #ifdef X86_GCC_LINUX
    /*
@@ -305,11 +304,6 @@ int main (int argc, char *argv[]) {
           break;
         case 'K':
           options.split_alleles = 0;
-          iflags++;
-          break;
-        case 'M':
-          options.max_num_alleles = atoi(optarg);
-          iflags++;
           iflags++;
           break;
         case 'm':
@@ -373,7 +367,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.27 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.28 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 

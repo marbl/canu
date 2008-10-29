@@ -337,4 +337,5 @@ SUBDIRS = AS_RUN \
           AS_VWR \
           AS_SHR \
 	  AS_ENV \
-	  AS_ARD
+	  AS_ARD \
+          AS_REF

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.30 2008-10-29 06:34:30 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.31 2008-10-29 10:50:28 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1217,9 +1217,11 @@ static void Write_IUM_Mesg(FILE *fout, void *vmesg)
 { IntUnitigMesg *mesg = (IntUnitigMesg *) vmesg;
   int			i;
 
-  assert(strlen(mesg->consensus) == strlen(mesg->quality));
-  assert((strlen(mesg->consensus) == mesg->length) ||
-	 (strlen(mesg->consensus) == 0) );
+  assert(mesg->num_frags > 0);
+
+  assert((mesg->consensus) ? strlen(mesg->consensus) : mesg->length == mesg->length);
+  assert((mesg->quality)   ? strlen(mesg->quality)   : mesg->length == mesg->length);
+
   fprintf(fout,"{IUM\n");
   fprintf(fout,"acc:"F_IID"\n",mesg->iaccession);
   fprintf(fout,"cov:%.3f\n",mesg->coverage_stat);
@@ -1231,7 +1233,6 @@ static void Write_IUM_Mesg(FILE *fout, void *vmesg)
   PutText(fout,"qlt:",mesg->quality,TRUE);
   fprintf(fout,"for:"F_S32"\n",mesg->forced);
   fprintf(fout,"nfr:"F_S32"\n",mesg->num_frags);
-  assert(mesg->num_frags > 0);
   for (i=0; i < mesg->num_frags; ++i)
     Write_IMP_Mesg(fout,&(mesg->f_list[i]));
   fprintf(fout,"}\n");
@@ -1482,6 +1483,11 @@ static void Write_UTG_Mesg(FILE *fout, void *vmesg)
 { SnapUnitigMesg *mesg = (SnapUnitigMesg *) vmesg;
   int			i;
 
+  assert(mesg->num_frags > 0);
+
+  assert((mesg->consensus) ? strlen(mesg->consensus) : mesg->length == mesg->length);
+  assert((mesg->quality)   ? strlen(mesg->quality)   : mesg->length == mesg->length);
+
   fprintf(fout,"{UTG\n");
   fprintf(fout,"acc:(%s,"F_IID")\n", AS_UID_toString(mesg->eaccession),mesg->iaccession);
   fprintf(fout,"cov:%.3f\n",mesg->coverage_stat);
@@ -1531,6 +1537,12 @@ static void Write_ULK_Mesg(FILE *fout, void *vmesg)
 static void Write_CCO_Mesg(FILE *fout, void *vmesg)
 { SnapConConMesg *mesg = (SnapConConMesg *) vmesg;
   int		i;
+
+  assert(mesg->num_unitigs > 0);
+  assert(mesg->num_pieces  > 0);
+
+  assert((mesg->consensus) ? strlen(mesg->consensus) : mesg->length == mesg->length);
+  assert((mesg->quality)   ? strlen(mesg->quality)   : mesg->length == mesg->length);
 
   fprintf(fout,"{CCO\n");
   fprintf(fout,"acc:(%s,"F_IID")\n",AS_UID_toString(mesg->eaccession),mesg->iaccession);

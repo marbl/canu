@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.3 2008-10-29 06:34:30 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.4 2008-10-29 10:50:28 brianwalenz Exp $";
 
 //  These are used ONLY IN MultiAlignment_CNS.c.
 
@@ -295,6 +295,7 @@ extern int NumUnitigRetrySuccess;
 extern int DUMP_UNITIGS_IN_MULTIALIGNCONTIG;
 extern int VERBOSE_MULTIALIGN_OUTPUT;
 extern int FORCE_UNITIG_ABUT;
+
 extern int clear_range_to_use;
 
 #endif
