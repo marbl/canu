@@ -299,9 +299,6 @@ ifeq ($(SITE_NAME), JCVI)
   LDFLAGS += -lcurl
 endif
 
-#
-#  AS_SIM is no longer a supported component.
-#
 #  The order of compilation here is very carefully chosen to be the
 #  same as the order used in running an assembly.  It is extremely
 #  useful if you happen to be making changes to, say, the persistent
