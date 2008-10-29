@@ -22,7 +22,7 @@
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 
-static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id: AS_PER_gkpStore.h,v 1.55 2008-10-23 15:44:44 brianwalenz Exp $";
+static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id: AS_PER_gkpStore.h,v 1.56 2008-10-29 10:53:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,18 +88,18 @@ typedef struct {
   //  restores what value 0 commonly means.
   //
   //  When adding new values, please update AS_PER_gkpStore.c,
-  //  AS_GKP_checkLibrary.c and AS_GKP_sff.c, thanks.
+  //  AS_GKP_checkLibrary.c and sffToCA.c, thanks.
   //
   uint64         spare2:64;
   uint64         spare1:45;
 
   uint64         forceBOGunitigger:1;          //  Default 0 -> allow any unitigger
 
-  uint64         discardReadsWithNs:1;         //  Default 0 -> allow reads with N's (unused, hardcoded into sff)
+  uint64         unused2:1;                    //  [free for use]
   uint64         doNotQVTrim:1;                //  Default 0 -> do initial qv trimming in OBT
   uint64         goodBadQVThreshold:6;         //  Default 0 -> threshold is 12 in initialTrim.C
 
-  uint64         unused1:1;                    //
+  uint64         unused1:1;                    //  [free for use]
   uint64         doNotTrustHomopolymerRuns:1;  //  Default 0 == trust 'em
   uint64         doNotOverlapTrim:1;           //  Default 0 == do trimming
   uint64         isNotRandom:1;                //  Default 0 == is random

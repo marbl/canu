@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.3 2008-10-23 15:44:44 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.4 2008-10-29 10:53:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,11 +65,21 @@ const char *mainid = "$Id: sffToCA.c,v 1.3 2008-10-23 15:44:44 brianwalenz Exp $
 //  side.  Not enough to split.
 
 
+#define TRIM_NONE 0
+#define TRIM_SOFT 1
+#define TRIM_HARD 2
+#define TRIM_ERRR 9
 
-GateKeeperStore *gkpStore = NULL;
-FILE            *logFile  = NULL;
+#define NREAD_ALLOW    0
+#define NREAD_DISCARD  1
+#define NREAD_TRIM     2
+#define NREAD_ERRR     9
 
-
+GateKeeperStore *gkpStore  = NULL;
+FILE            *logFile   = NULL;
+uint32           clearTrim = TRIM_NONE;
+uint32           Nread     = NREAD_DISCARD;
+uint32           NreadTrim = 0;
 
 static
 void
@@ -110,7 +120,6 @@ addReadToStore(GateKeeperStore *gkp,
 //  Reads an SFF file, inserts all the reads (that are of the proper length)
 //  into a gkpStore.
 //
-#undef  USE_454_TRIMMING
 
 typedef struct {
   //  The next block is read in one swoop from the sff file.  DO NOT MODIFY!
@@ -370,6 +379,7 @@ static
 void
 processRead(sffHeader *h,
             sffRead   *r, fragRecord *fr) {
+  int  which;
 
   clearGateKeeperFragmentRecord(&fr->gkfr);
 
@@ -388,94 +398,114 @@ processRead(sffHeader *h,
   fr->gkfr.libraryIID  = 1;
   fr->gkfr.orientation = AS_READ_ORIENT_UNKNOWN;
 
+  //  Attempt to make sense of 454 supplied clear ranges.
+  //
+  //  These are base-based.  If either value is 0, that means the
+  //  value was not computed.  In that case, we set it to the extent
+  //  (max or min).
+
+  //  Left point should be zero or after the key
+  assert((r->clip_quality_left == 0) || (h->key_length <= r->clip_quality_left));
+  assert((r->clip_adapter_left == 0) || (h->key_length <= r->clip_adapter_left));
+
+  //  Right point should be zero or before the end
+  assert((r->clip_quality_right == 0) || (r->clip_quality_left <= r->number_of_bases));
+  assert((r->clip_adapter_right == 0) || (r->clip_adapter_left <= r->number_of_bases));
+
+  //  Decode and convert to space based.
+  int  clq = MAX(r->clip_quality_left,  h->key_length + 1) - 1;
+  int  cla = MAX(r->clip_adapter_left,  h->key_length + 1) - 1;
+
+  int  crq = (r->clip_quality_right > 0) ? r->clip_quality_right : r->number_of_bases;
+  int  cra = (r->clip_adapter_right > 0) ? r->clip_adapter_right : r->number_of_bases;
+
+  //  Finally, remove the key from the start
+  clq -= h->key_length;
+  crq -= h->key_length;
+
+  cla -= h->key_length;
+  cra -= h->key_length;
+
+  //  Set the normal clear ranges
+  for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+    fr->gkfr.clearBeg[which] = MAX(clq, cla);
+    fr->gkfr.clearEnd[which] = MIN(crq, cra);
+  }
+
+  //  Set vector/quality points, if both are defined
+  fr->gkfr.hasVectorClear  = 0;
+  fr->gkfr.hasQualityClear = 0;
+
+  if ((r->clip_quality_left > 0) && (r->clip_quality_right > 0)) {
+    fr->gkfr.hasQualityClear = 1;
+    fr->gkfr.clearBeg[AS_READ_CLEAR_QLT] = clq;
+    fr->gkfr.clearEnd[AS_READ_CLEAR_QLT] = crq;
+  }
+
+  if ((r->clip_adapter_left > 0) && (r->clip_adapter_right > 0)) {
+    fr->gkfr.hasVectorClear = 1;
+    fr->gkfr.clearBeg[AS_READ_CLEAR_VEC] = cla;
+    fr->gkfr.clearEnd[AS_READ_CLEAR_VEC] = cra;
+  }
+
   //
   //  Set clear ranges
   //
 
-#ifdef USE_454_TRIMMING
-  //  Attempt to make sense of 454 supplied clear ranges.
-  //
-  //  These are base-based.  If either value is 0, that means the
-  //  value was not computed.
-  //
-  //  We have a policy decision here.  If only one of the ranges is
-  //  set, we can either ignore both, or set the unset one to the
-  //  maximum.  We set it to the maximum.
+  switch (clearTrim) {
+    case TRIM_NONE:
+      //  Reset clear ranges to include the whole read, get rid of the
+      //  vector and quality clear ranges.
+      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+        fr->gkfr.clearBeg[which] = 0;
+        fr->gkfr.clearEnd[which] = r->number_of_bases - h->key_length;
+      }
 
-  int  clq = r->clip_quality_left;
-  int  crq = r->clip_quality_right;
+      fr->gkfr.hasVectorClear  = 0;
+      fr->gkfr.hasQualityClear = 0;
+      break;
 
-  assert((r->clip_quality_left == 0) || (h->key_length <= r->clip_quality_left));
-  assert((r->clip_adapter_left == 0) || (h->key_length <= r->clip_adapter_left));
+    case TRIM_SOFT:
+      //  Done.
+      break;
 
-  if (clq == 0)  clq = h->key_length + 1;
-  if (crq == 0)  crq = r->number_of_bases;
+    case TRIM_HARD:
+      //  Rewrite the read to remove the non-clear sequence.  We keep
+      //  in the usually four base long key at the start.
+      memmove(r->bases   + h->key_length, r->bases   + h->key_length + clq, sizeof(char) * (crq - clq));
+      memmove(r->quality + h->key_length, r->quality + h->key_length + clq, sizeof(char) * (crq - clq));
 
-  int  which;
-  for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-    fr->gkfr.clearBeg[which] = clq - h->key_length - 1;
-    fr->gkfr.clearEnd[which] = crq - h->key_length;
+      r->number_of_bases = h->key_length + crq - clq;
+
+      r->bases  [h->key_length + crq - clq] = 0;
+      r->quality[h->key_length + crq - clq] = 0;
+
+      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+        fr->gkfr.clearBeg[which] = 0;
+        fr->gkfr.clearEnd[which] = crq - clq;
+      }
+
+      fr->gkfr.hasVectorClear = 0;
+      fr->gkfr.hasQualityClear = 0;
+      break;
+
   }
-
-  if ((r->clip_quality_left > 0) && (r->clip_quality_right > 0)) {
-    fr->gkfr.hasQualityClear = 1;
-    fr->gkfr.clearBeg[AS_READ_CLEAR_QLT] = r->clip_quality_left  - h->key_length - 1;
-    fr->gkfr.clearEnd[AS_READ_CLEAR_QLT] = r->clip_quality_right - h->key_length;
-  } else if (r->clip_quality_left > 0) {
-    fr->gkfr.hasQualityClear = 1;
-    fr->gkfr.clearBeg[AS_READ_CLEAR_QLT] = r->clip_quality_left  - h->key_length - 1;
-    fr->gkfr.clearEnd[AS_READ_CLEAR_QLT] = r->number_of_bases - h->key_length;
-  } else if (r->clip_quality_right > 0) {
-    fr->gkfr.hasQualityClear = 1;
-    fr->gkfr.clearBeg[AS_READ_CLEAR_QLT] = 0;
-    fr->gkfr.clearEnd[AS_READ_CLEAR_QLT] = r->clip_quality_right - h->key_length;
-  } else {
-    fr->gkfr.hasQualityClear = 0;
-    fr->gkfr.clearBeg[AS_READ_CLEAR_QLT] = 0;
-    fr->gkfr.clearEnd[AS_READ_CLEAR_QLT] = 0;
-  }
-
-  if ((r->clip_adapter_left > 0) && (r->clip_adapter_right > 0)) {
-    fr->gkfr.hasVectorClear  = 1;
-    fr->gkfr.clearBeg[AS_READ_CLEAR_VEC] = r->clip_adapter_left  - h->key_length - 1;
-    fr->gkfr.clearEnd[AS_READ_CLEAR_VEC] = r->clip_adapter_right - h->key_length;
-  } else if (r->clip_adapter_left > 0) {
-    fr->gkfr.hasVectorClear  = 1;
-    fr->gkfr.clearBeg[AS_READ_CLEAR_VEC] = r->clip_adapter_left  - h->key_length - 1;
-    fr->gkfr.clearEnd[AS_READ_CLEAR_VEC] = r->number_of_bases - h->key_length;
-  } else if (r->clip_adapter_right > 0) {
-    fr->gkfr.hasVectorClear  = 1;
-    fr->gkfr.clearBeg[AS_READ_CLEAR_VEC] = 0;
-    fr->gkfr.clearEnd[AS_READ_CLEAR_VEC] = r->clip_adapter_right - h->key_length;
-  } else {
-    fr->gkfr.hasVectorClear = 0;
-    fr->gkfr.clearBeg[AS_READ_CLEAR_VEC] = 0;
-    fr->gkfr.clearEnd[AS_READ_CLEAR_VEC] = 0;
-  }
-
-#else
-  //  Don't trim at all.
-
-  int  which;
-  for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-    fr->gkfr.clearBeg[which] = 0;
-    fr->gkfr.clearEnd[which] = r->number_of_bases - h->key_length;
-  }
-#endif
 
   //  Reads too long cannot be loaded into the store.  We trim off
   //  anything over the maximum size.  Likewise, reads too short will
   //  never be of any use, and they're not loaded.
 
   if (r->number_of_bases - h->key_length < AS_READ_MIN_LEN) {
-    fprintf(logFile, "Read '%s' of length %d is too short.  Not loaded.\n",
-            r->name, r->number_of_bases - h->key_length);
+    if (logFile)
+      fprintf(logFile, "Read '%s' of length %d is too short.  Not loaded.\n",
+              r->name, r->number_of_bases - h->key_length);
     fr->gkfr.readUID = AS_UID_undefined();
   }
 
   if (r->number_of_bases - h->key_length > AS_READ_MAX_LEN) {
-    fprintf(logFile, "Read '%s' of length %d is too long.  Truncating to %d bases.\n",
-            r->name, r->number_of_bases - h->key_length, AS_READ_MAX_LEN);
+    if (logFile)
+      fprintf(logFile, "Read '%s' of length %d is too long.  Truncating to %d bases.\n",
+              r->name, r->number_of_bases - h->key_length, AS_READ_MAX_LEN);
 
     r->number_of_bases = AS_READ_MAX_LEN;
 
@@ -582,6 +612,8 @@ removeLowQualityReads(void) {
   uint32        lastElem  = getLastElemFragStore(gkpStore) + 1;
   uint32        thisElem  = 0;
   uint32        x         = 0;
+  uint32        b         = 0;
+  uint32        e         = 0;
 
   fragRecord    fr        = {0};
 
@@ -591,37 +623,57 @@ removeLowQualityReads(void) {
     getFrag(gkpStore, thisElem, &fr, FRAG_S_INF | FRAG_S_SEQ);
 
     //  Look for n's in the sequence.  This is a signature of an
-    //  instrument problem.  Were we general, this would be
-    //  discardReadsWithNs (for your grepping pleasure)
+    //  instrument problem.
+    //
+    //  If we are using the soft trim (aka, use 454 clear ranges),
+    //  only search the clear range.
 
-    for (x=0; x<fr.gkfr.seqLen; x++)
+    if (clearTrim = TRIM_SOFT) {
+      b = fr.gkfr.clearBeg[AS_READ_CLEAR_LATEST];
+      e = fr.gkfr.clearEnd[AS_READ_CLEAR_LATEST];
+    } else {
+      b = 0;
+      e = fr.gkfr.seqLen;
+    }
+
+    for (x=b; x<e; x++)
       if ((fr.seq[x] == 'n') || (fr.seq[x] == 'N'))
         break;
 
-    //  Trim out the N?
-#if 0
-    if (x < fr.gkfr.seqLen) {
-      fr.gkfr.hasVectorClear = 1;
-      fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = 0;
-      fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = x;
-      if (logFile)
-        fprintf(logFile, "Read '%s' contains an N at position %d.  Read trimmed.\n",
-                AS_UID_toString(fr.gkfr.readUID), x);
-      setFrag(gkpStore, thisElem, &fr);
-    }
-#endif
+    if (x < e) {
+      //  Found an N, do something.
 
-    //  Nah, just delete it.
-#if 1
-    if (x < fr.gkfr.seqLen) {
-      fr.gkfr.deleted = 1;
-      if (logFile)
-        fprintf(logFile, "Read '%s' contains an N at position %d.  Read deleted.\n",
-                AS_UID_toString(fr.gkfr.readUID), x);
-      setFrag(gkpStore, thisElem, &fr);
-    }
-#endif
+      switch (Nread) {
+        case NREAD_ALLOW:
+          //  Do nothing, allow the read with an N.
+          break;
 
+        case NREAD_DISCARD:
+          //  Just delete it.
+          fr.gkfr.deleted = 1;
+          if (logFile)
+            fprintf(logFile, "Read '%s' contains an N at position %d.  Read deleted.\n",
+                    AS_UID_toString(fr.gkfr.readUID), x);
+          setFrag(gkpStore, thisElem, &fr);
+          break;
+
+        case NREAD_TRIM:
+          //  Trim out the N, and maybe a little bit more.
+          if (NreadTrim < x)
+            x = 0;
+          else
+            x -= NreadTrim;
+
+          fr.gkfr.hasVectorClear = 1;
+          fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = 0;
+          fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = x;
+          if (logFile)
+            fprintf(logFile, "Read '%s' contains an N at position %d.  Read trimmed to position %d.\n",
+                    AS_UID_toString(fr.gkfr.readUID), x, x + NreadTrim);
+          setFrag(gkpStore, thisElem, &fr);
+          break;
+      }
+    }
   }
 }
 
@@ -1040,9 +1092,10 @@ processMate(fragRecord *fr,
         m2->gkfr.clearEnd[which] = rSize;
       }
 
-      fprintf(logFile, "Mates '%s' (%3d-%3d) and '%s' (%3d-%3d) created.\n",
-              AS_UID_toString(m1->gkfr.readUID), 0, al.begJ,
-              AS_UID_toString(m2->gkfr.readUID), al.endJ, al.lenB);
+      if (logFile)
+        fprintf(logFile, "Mates '%s' (%3d-%3d) and '%s' (%3d-%3d) created.\n",
+                AS_UID_toString(m1->gkfr.readUID), 0, al.begJ,
+                AS_UID_toString(m2->gkfr.readUID), al.endJ, al.lenB);
     }
 
     //  Recursively search for another copy of the linker.
@@ -1053,7 +1106,8 @@ processMate(fragRecord *fr,
     //  the split read.
     //
     if ((m1->gkfr.deleted) || (m2->gkfr.deleted)) {
-      fprintf(logFile, "Multiple linker detected in mates '%s' and '%s'.  Deleted.\n", AS_UID_toString(m1->gkfr.readUID), AS_UID_toString(m2->gkfr.readUID));
+      if (logFile)
+        fprintf(logFile, "Multiple linker detected in mates '%s' and '%s'.  Deleted.\n", AS_UID_toString(m1->gkfr.readUID), AS_UID_toString(m2->gkfr.readUID));
       m1->gkfr.readUID = AS_UID_undefined();
       m2->gkfr.readUID = AS_UID_undefined();
       m1->gkfr.deleted = 1;
@@ -1075,8 +1129,9 @@ processMate(fragRecord *fr,
   //  This could benefit from having 64-bits of generic unioned data
   //  in the fragment record.
 
-  fprintf(logFile, "Linker detected but not trimmed in '%s' linker: %3d-%3d read: %3d-%3d alignLen: %3d matches: %3d.  Passed to OBT.\n",
-          AS_UID_toString(fr->gkfr.readUID), al.begI, al.endI, al.begJ, al.endJ, al.alignLen, al.matches);
+  if (logFile)
+    fprintf(logFile, "Linker detected but not trimmed in '%s' linker: %3d-%3d read: %3d-%3d alignLen: %3d matches: %3d.  Passed to OBT.\n",
+            AS_UID_toString(fr->gkfr.readUID), al.begI, al.endI, al.begJ, al.endJ, al.alignLen, al.matches);
 
   fr->gkfr.sffLinkerDetectedButNotTrimmed = 1;
 
@@ -1175,7 +1230,6 @@ addLibrary(char *libraryName,
 
   gkl.forceBOGunitigger           = 1;
 
-  gkl.discardReadsWithNs          = 1;
   gkl.doNotQVTrim                 = 1;
   gkl.goodBadQVThreshold          = 1;  //  Effectively, don't QV trim, redundant
 
@@ -1378,6 +1432,33 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-libraryname") == 0) {
       libraryName = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-clear") == 0) {
+      arg++;
+
+      if      (strcasecmp(argv[arg], "none") == 0)
+        clearTrim = TRIM_NONE;
+      else if (strcasecmp(argv[arg], "soft") == 0)
+        clearTrim = TRIM_SOFT;
+      else if (strcasecmp(argv[arg], "hard") == 0)
+        clearTrim = TRIM_HARD;
+      else
+        clearTrim = TRIM_ERRR;
+
+    } else if (strcmp(argv[arg], "-nread") == 0) {
+      arg++;
+
+      if      (strcasecmp(argv[arg], "none") == 0)
+        Nread = NREAD_ALLOW;
+      else if (strcasecmp(argv[arg], "soft") == 0)
+        Nread = NREAD_DISCARD;
+      else if (strcasecmp(argv[arg], "hard") == 0) {
+        Nread     = NREAD_TRIM;
+        NreadTrim = atoi(argv[++arg]);
+      }
+      else
+        Nread = NREAD_ERRR;
+
+
     } else if (strcmp(argv[arg], "-linker") == 0) {
       arg++;
 
@@ -1415,6 +1496,14 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -libraryname n         The UID of the library these reads are added to.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -clear none            Do not use 454 clear ranges (default).\n");
+    fprintf(stderr, "  -clear soft            Use 454 clear ranges.  The full read is output.\n");
+    fprintf(stderr, "  -clear hard            Trim read to 454 clear ranges.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -nread allow           Allow reads that contain an N in the clear range.\n");
+    fprintf(stderr, "  -nread discard         Discard reads that contain an N in the clear range (default).\n");
+    fprintf(stderr, "  -nread trim <val>      Trim back <val> bases before the first N.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -linker [name | seq]   Search for linker, created mated reads.\n");
     fprintf(stderr, "                         Name is one of:\n");
     fprintf(stderr, "                           'flx' == %s\n", linkerFLX);
@@ -1434,9 +1523,15 @@ main(int argc, char **argv) {
     if ((linker) && ((insertSize == 0) ||
                      (insertStdDev == 0)))
       fprintf(stderr, "ERROR:  No insert size set with -insertsize.\n");
+    if (clearTrim == TRIM_ERRR)
+      fprintf(stderr, "ERROR:  Unknown -clear value.\n");
+    if (Nread == NREAD_ERRR)
+      fprintf(stderr, "ERROR:  Unknown -nread value.\n");
 
     exit(1);
   }
+
+  logFile = stderr;
 
   if (logFileName) {
     errno = 0;

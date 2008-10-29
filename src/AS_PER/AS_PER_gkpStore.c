@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkpStore.c,v 1.62 2008-10-23 15:44:44 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkpStore.c,v 1.63 2008-10-29 10:53:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -856,11 +856,6 @@ AS_PER_decodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
       gkpl->doNotOverlapTrim = AS_PER_decodeLibraryFeaturesBoolean("doNotOverlapTrim", val);
     }
 
-    //  discardReadsWithNs --
-    else if (strcasecmp(fea, "discardReadsWithNs") == 0) {
-      gkpl->discardReadsWithNs = AS_PER_decodeLibraryFeaturesBoolean("discardReadsWithNs", val);
-    }
-
     //  doNotQVTrim --
     else if (strcasecmp(fea, "doNotQVTrim") == 0) {
       gkpl->doNotQVTrim = AS_PER_decodeLibraryFeaturesBoolean("doNotQVTrim", val);
@@ -946,14 +941,6 @@ AS_PER_encodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
     val[nf] = (char *)safe_malloc(32 * sizeof(char));
     sprintf(fea[nf], "doNotOverlapTrim");
     sprintf(val[nf], "%d", gkpl->doNotOverlapTrim);
-    nf++;
-  }
-
-  if (gkpl->discardReadsWithNs || alwaysEncode) {
-    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
-    val[nf] = (char *)safe_malloc(32 * sizeof(char));
-    sprintf(fea[nf], "discardReadsWithNs");
-    sprintf(val[nf], "%d", gkpl->discardReadsWithNs);
     nf++;
   }
 

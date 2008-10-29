@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.27 2008-10-29 06:34:30 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.28 2008-10-29 10:53:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -150,7 +150,6 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
 
     gkpl.forceBOGunitigger          = 0;
 
-    gkpl.discardReadsWithNs         = 0;
     gkpl.doNotQVTrim                = 0;
     gkpl.goodBadQVThreshold         = 12;
 
