@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_UTL_fasta.c,v 1.5 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_UTL_fasta.c,v 1.6 2008-10-29 16:49:58 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,9 +31,9 @@ static const char *rcsid = "$Id: AS_UTL_fasta.c,v 1.5 2008-10-08 22:03:00 brianw
 #include "AS_UTL_fileIO.h"
 
 void
-AS_UTL_writeFastA(FILE *f,
+AS_UTL_writeFastAWithBreaks(FILE *f,
                   char *s, int sl,
-                  char *h, ...) {
+                  int lineBreaks, char *h, ...) {
   va_list ap;
   char   *o  = (char *)safe_malloc(sizeof(char) * (sl + sl / 70 + 2));
   int     si = 0;
@@ -42,7 +42,7 @@ AS_UTL_writeFastA(FILE *f,
   while (si < sl) {
     o[oi++] = s[si++];
 
-    if ((si % 70) == 0)
+    if (lineBreaks != 0 && (si % lineBreaks) == 0)
       o[oi++] = '\n';
   }
   if (o[oi-1] != '\n')
@@ -60,9 +60,9 @@ AS_UTL_writeFastA(FILE *f,
 
 
 void
-AS_UTL_writeQVFastA(FILE *f,
+AS_UTL_writeQVFastAWithBreaks(FILE *f,
                     char *q, int ql,
-                    char *h, ...) {
+                    int lineBreaks, char *h, ...) {
   va_list ap;
   char   *o  = (char *)safe_malloc(sizeof(char) * (3*ql + 3*ql / 70 + 2));
   int     qi = 0;
@@ -83,7 +83,7 @@ AS_UTL_writeQVFastA(FILE *f,
 
     qi++;
 
-    if ((qi % 20) == 0)
+    if (lineBreaks != 0 && (qi % lineBreaks) == 0)
       o[oi-1] = '\n';
   }
   if (o[oi-1] != '\n')
@@ -99,3 +99,40 @@ AS_UTL_writeQVFastA(FILE *f,
   safe_free(o);
 }
 
+
+void
+AS_UTL_writeQVFastQWithBreaks(FILE *f,
+                    char *q, int ql,
+                    int lineBreaks, char *h, ...) {
+  va_list ap;
+  char   *o  = (char *)safe_malloc(sizeof(char) * (3*ql + 3*ql / 70 + 2));
+  int     qi = 0;
+  int     oi = 0;
+
+  //
+  //  20 values per line -> 60 letters per line.
+  //  |xx xx xx xx xx ..... xx|
+  //
+
+  while (qi < ql) {
+    // endecode the quality value using fastq format
+    int qlt = (((int)q[qi])-'0');
+    qlt += '!';
+    o[oi++] = (char) qlt;
+    qi++;
+
+    if (lineBreaks != 0 && (qi % lineBreaks) == 0)
+      o[oi-1] = '\n';
+  }
+  if (o[oi-1] != '\n')
+    o[oi++] = '\n';
+  o[oi] = 0;
+
+  va_start(ap, h);
+  vfprintf(f, h, ap);
+  va_end(ap);
+
+  AS_UTL_safeWrite(f, o, "AS_UTL_writeQVFastA", sizeof(char), oi);
+
+  safe_free(o);
+}

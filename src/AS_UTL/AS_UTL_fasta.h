@@ -21,7 +21,7 @@
 #ifndef AS_UTL_FASTA_H
 #define AS_UTL_FASTA_H
 
-static const char *rcsid_AS_UTL_FASTA_H = "$Id: AS_UTL_fasta.h,v 1.4 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_FASTA_H = "$Id: AS_UTL_fasta.h,v 1.5 2008-10-29 16:49:58 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,17 +29,48 @@ static const char *rcsid_AS_UTL_FASTA_H = "$Id: AS_UTL_fasta.h,v 1.4 2008-10-08 
 
 #include "AS_global.h"
 
-void
-AS_UTL_writeFastA(FILE *f,
+void 
+AS_UTL_writeFastAWithBreaks(FILE *f,
                   char *s, int sl,
+                  int lineBreaks,                  
                   char *h, ...);
+
+static inline void
+AS_UTL_writeFastA(FILE *f,
+                  char *s, int sl,                  
+                  char *h, ...) {
+   va_list ap;
+   va_start(ap, h);
+   vfprintf(f, h, ap);
+   va_end(ap);
+   
+   AS_UTL_writeFastAWithBreaks(f, s, sl, 70, "", NULL);
+}
 
 //  Assumes a CA encoded QV string, and writes it to a fasta formated
 //  as 2-digit white space separated.
 //
 void
+AS_UTL_writeQVFastAWithBreaks(FILE *f,
+                    char *q, int ql,
+                    int lineBreaks,
+                    char *h, ...);
+
+static inline void
 AS_UTL_writeQVFastA(FILE *f,
                     char *q, int ql,
-                    char *h, ...);
+                    char *h, ...) {
+   va_list ap;
+   va_start(ap, h);
+   vfprintf(f, h, ap);
+   va_end(ap);
+
+   AS_UTL_writeQVFastAWithBreaks(f, q, ql, 20, "", NULL);
+                    }
+
+void
+AS_UTL_writeQVFastQWithBreaks(FILE *f,
+                    char *q, int ql,
+                    int lineBreaks, char *h, ...);
 
 #endif
