@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.31 2008-10-29 10:50:28 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.32 2008-10-29 16:19:23 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1219,8 +1219,8 @@ static void Write_IUM_Mesg(FILE *fout, void *vmesg)
 
   assert(mesg->num_frags > 0);
 
-  assert((mesg->consensus) ? strlen(mesg->consensus) : mesg->length == mesg->length);
-  assert((mesg->quality)   ? strlen(mesg->quality)   : mesg->length == mesg->length);
+  assert((mesg->consensus && mesg->consensus[0] != 0) ? strlen(mesg->consensus) : mesg->length == mesg->length);
+  assert((mesg->quality   && mesg->quality[0]   != 0)   ? strlen(mesg->quality)   : mesg->length == mesg->length);
 
   fprintf(fout,"{IUM\n");
   fprintf(fout,"acc:"F_IID"\n",mesg->iaccession);
