@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.75 2008-10-23 15:44:44 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.76 2008-10-29 16:51:32 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -126,6 +126,12 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "                         format appropriate for Newbler.  This will create\n");
   fprintf(stdout, "                         files 'prefix.fna' and 'prefix.fna.qual'.  Options\n");
   fprintf(stdout, "                         -donotfixmates and -clear also apply.\n");
+  fprintf(stdout, "  -dumpvelvet <prefix>  extract LIB, FRG and LKG messages, write in a\n");
+  fprintf(stdout, "                        format appropriate for Velvet (fastq).  Currently this works\n"); 
+  fprintf(stdout, "                        only on a store with one library as all the mated reads are\n");
+  fprintf(stdout, "                        dumped into a single file. Use at your own risk! This will create\n");
+  fprintf(stdout, "                        files 'prefix.fastq' and 'prefix.unmated.fastq' for unmated reads.\n");
+  fprintf(stdout, "                        Options -donotfixmates and -clear also apply.\n");
   fprintf(stdout, "\n");
   if (longhelp == 0) {
     fprintf(stdout, "Use '-h' to get a discussion of what gatekeeper is.\n");
@@ -397,6 +403,7 @@ constructIIDdump(char  *gkpStoreName,
 #define DUMP_FRG         6
 #define DUMP_NEWBLER     7
 #define DUMP_LASTFRG     8
+#define DUMP_VELVET      9
 
 int
 main(int argc, char **argv) {
@@ -437,6 +444,7 @@ main(int argc, char **argv) {
   int              doNotFixMates     = 0;
   int              dumpFormat        = 1;
   char            *newblerPrefix     = NULL;
+  char            *velvetPrefix     = NULL;  
   uint32           dumpRandLib       = 0;  //  0 means "from any library"
   uint32           dumpRandMateNum   = 0;
   uint32           dumpRandSingNum   = 0;  //  Not a command line option
@@ -544,6 +552,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-dumpnewbler") == 0) {
       dump = DUMP_NEWBLER;
       newblerPrefix = argv[++arg];
+    } else if (strcmp(argv[arg], "-dumpvelvet") == 0) {
+      dump = DUMP_VELVET;
+      velvetPrefix = argv[++arg];
     } else if (strcmp(argv[arg], "-donotfixmates") == 0) {
       doNotFixMates = 1;
 
@@ -645,6 +656,11 @@ main(int argc, char **argv) {
           fprintf(stdout, "Last frag in store is iid = "F_S64"\n", getLastElemFragStore(gkp));
           closeGateKeeperStore(gkp);
         }
+        break;
+      case DUMP_VELVET:
+        dumpGateKeeperAsVelvet(gkpStoreName, velvetPrefix, begIID, endIID, iidToDump,
+                                doNotFixMates,
+                                dumpFRGClear);
         break;
       default:
         break;
