@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.59 2008-10-08 22:02:55 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.60 2008-10-29 10:42:46 brianwalenz Exp $";
 
 static const char *usage =
 "usage: %s [options] -g <GatekeeperStoreName> -o <OutputPath> <InputCGB.ext>\n"
@@ -166,7 +166,6 @@ int main(int argc, char *argv[]){
   int maxDegreeUnique = 30; // maximum edges to keep for 'Unique' nodes
   int setGatekeeperStore = 0;
   char *outputPath = NULL;
-  int dumpScaffoldSnapshots = 0;
   int checkpointChecker = 1;
   int    doResolveSurrogates               = 1;      //  resolveSurrogates
   int    placeAllFragsInSinglePlacedSurros = 0;      //  resolveSurrogates
@@ -265,10 +264,6 @@ int main(int argc, char *argv[]){
           break;
         case 'M':
           doInterleavedScaffoldMerging = 0;
-          break;
-        case 'Q':
-          fprintf(stderr,"* -Q  dumpScaffoldSnapshots == 1\n");
-          dumpScaffoldSnapshots = 1;;
           break;
         case 'K':
           switch(optarg[0]) {
@@ -434,7 +429,6 @@ int main(int argc, char *argv[]){
     }
     data->annotateUnitigs = annotateUnitigs;
     data->doInterleavedScaffoldMerging = doInterleavedScaffoldMerging;
-    data->dumpScaffoldSnapshots = dumpScaffoldSnapshots;
     data->maxSequencedbSize = MAX_SEQUENCEDB_SIZE;
     data->maxDegreeUnique = maxDegreeUnique;
     data->maxDegree = maxDegree;
@@ -692,9 +686,6 @@ int main(int argc, char *argv[]){
 
     CheckCIScaffoldTs(ScaffoldGraph);
 
-    if(GlobalData->dumpScaffoldSnapshots){
-      DumpScaffoldSnapshot("PreScafMerge");
-    }
     /* First we try to merge Scaffolds agressively */
     MergeScaffoldsAggressive(ScaffoldGraph, CHECKPOINT_BEFORE_1ST_SCAFF_MERGE, DEBUG_MERGE_SCAF);
 
@@ -997,10 +988,8 @@ int main(int argc, char *argv[]){
   clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 
   FixupLengthsScaffoldTs(ScaffoldGraph);
-  MarkMisplacedContigs();
 
   if(camFileOnly || generateOutput){
-    CelamyCIScaffolds(data->File_Name_Prefix,ScaffoldGraph);
     CelamyAssembly(data->File_Name_Prefix);
   }
 

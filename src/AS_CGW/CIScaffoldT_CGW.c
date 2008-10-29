@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.28 2008-10-29 06:34:30 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.29 2008-10-29 10:42:46 brianwalenz Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
@@ -86,8 +86,8 @@ void PrintNodeFlagBits(FILE * stream, NodeCGW_T * node)
 {
   fprintf(stream, "\t\tisUnique:%d, smoothSeenAlready:%d\n",
           node->flags.bits.isUnique, node->flags.bits.smoothSeenAlready);
-  fprintf(stream, "\t\tcgbType:%d, isDead:%d, isFree:%d, containsCIs:%d\n",
-          node->flags.bits.cgbType, node->flags.bits.isDead,
+  fprintf(stream, "\t\tisDead:%d, isFree:%d, containsCIs:%d\n",
+          node->flags.bits.isDead,
           node->flags.bits.isFree, node->flags.bits.containsCIs);
   fprintf(stream,
           "\t\tisCI:%d, isContig:%d, isScaffold:%d\n",
@@ -102,9 +102,9 @@ void PrintNodeFlagBits(FILE * stream, NodeCGW_T * node)
           node->flags.bits.walkMaxedOut, node->flags.bits.walkedTrivial);
   fprintf(stream, "\t\tisStoneSurrogate:%d, isWalkSurrogate:%d\n",
           node->flags.bits.isStoneSurrogate, node->flags.bits.isWalkSurrogate);
-  fprintf(stream, "\t\tfailedToContig:%d, isChaff:%d, isMisplaced:%d, isStone:%d\n",
+  fprintf(stream, "\t\tfailedToContig:%d, isChaff:%d, isStone:%d\n",
           node->flags.bits.failedToContig, node->flags.bits.isChaff,
-          node->flags.bits.isMisplaced, node->flags.bits.isStone);
+          node->flags.bits.isStone);
   fprintf(stream, "\t\tisWalk:%d, isRock:%d, isPotentialRock:%d, isPotentialStone:%d\n",
           node->flags.bits.isWalk, node->flags.bits.isRock,
           node->flags.bits.isPotentialRock,
@@ -128,8 +128,6 @@ void PrintNodeFields(FILE * stream, NodeCGW_T * node)
           node->bpLength.mean, node->bpLength.variance,
           node->offsetAEnd.mean, node->offsetAEnd.variance,
           node->offsetBEnd.mean, node->offsetBEnd.variance);
-  fprintf(stream, "\taEndCoord:" F_COORD ", bEndCoord:" F_COORD "\n",
-          node->aEndCoord, node->bEndCoord);
   switch(node->type)
     {
       case DISCRIMINATORUNIQUECHUNK_CGW:
@@ -157,10 +155,9 @@ void PrintNodeFields(FILE * stream, NodeCGW_T * node)
 
 
 void PrintCIScaffoldHeader(FILE *stream, ScaffoldGraphT *graph, CIScaffoldT *scaffold){
-  fprintf(stream,"\n* CIScaffold " F_CID " numCI:%d (a:" F_CID " b:" F_CID ")  length: %d [" F_COORD "," F_COORD "]\n",
+  fprintf(stream,"\n* CIScaffold " F_CID " numCI:%d (a:" F_CID " b:" F_CID ")  length: %d\n",
 	  scaffold->id, scaffold->info.Scaffold.numElements, scaffold->info.Scaffold.AEndCI, scaffold->info.Scaffold.BEndCI,
-	  (int)scaffold->bpLength.mean,
-	  scaffold->aEndCoord, scaffold->bEndCoord);
+	  (int)scaffold->bpLength.mean);
   // PrintNodeFields(stream, scaffold);
 }
 
@@ -182,7 +179,7 @@ void DumpCIScaffold(FILE *stream, ScaffoldGraphT *graph, CIScaffoldT *scaffold, 
     //	ratio = ComputeFudgeVariance(CI->offsetAEnd.mean)/ CI->offsetAEnd.variance;
     //
     //      }
-    fprintf(stream," \t %5d: CI %6" F_CIDP " sid:" F_CID " len:%6d,%6.2g ends:%6d,%6d var:%6.2g,%6.2g orient:%c [%8" F_COORDP ",%8" F_COORDP "]\n",
+    fprintf(stream," \t %5d: CI %6" F_CIDP " sid:" F_CID " len:%6d,%6.2g ends:%6d,%6d var:%6.2g,%6.2g orient:%c\n",
             CI->indexInScaffold,
             CI->id,
             CI->scaffoldID,
@@ -190,8 +187,7 @@ void DumpCIScaffold(FILE *stream, ScaffoldGraphT *graph, CIScaffoldT *scaffold, 
             (int)CI->offsetAEnd.mean, (int)CI->offsetBEnd.mean,
             CI->offsetAEnd.variance, CI->offsetBEnd.variance,
             //      ratio,
-            (GetNodeOrient(CI) == A_B? 'A':'B'),
-            CI->aEndCoord, CI->bEndCoord);
+            (GetNodeOrient(CI) == A_B? 'A':'B'));
   }
   fprintf(stream, "> %s Edges A \n",  (raw?" R ":" M "));
   InitSEdgeTIterator(graph, scaffold->id, raw, FALSE, A_END, FALSE,  &SEdges);
@@ -426,32 +422,13 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
 
   ciScaffold->info.Scaffold.numElements++;
 
-  // Make sure that this chunk has simulation coordinates, even if the
-  // CI on the AEnd is a repeat
-
-  if(chunkInstance->flags.bits.cgbType == UU_CGBTYPE){
-    if(ciScaffold->aEndCoord == -1)
-      ciScaffold->aEndCoord = (reversed?chunkInstance->bEndCoord:chunkInstance->aEndCoord);
-
-    if(ciScaffold->bEndCoord == -1)
-      ciScaffold->bEndCoord = (reversed?chunkInstance->aEndCoord:chunkInstance->bEndCoord);
-  }
-
 #ifdef DEBUG_INSERT
   fprintf(GlobalData->stderrc,"* Inserting cid " F_CID " into scaffold " F_CID " at offset %d, %d\n",
           ci, sid, (int) aEndOffset.mean, (int) bEndOffset.mean);
 #endif
 
   if(ciScaffold->info.Scaffold.AEndCI == NULLINDEX){ /* Empty scaffold */
-
     ciScaffold->info.Scaffold.AEndCI = ciScaffold->info.Scaffold.BEndCI = ci;
-
-    if(chunkInstance->flags.bits.cgbType == UU_CGBTYPE){
-      ciScaffold->aEndCoord = (reversed?chunkInstance->bEndCoord:chunkInstance->aEndCoord);
-      ciScaffold->bEndCoord = (reversed?chunkInstance->aEndCoord:chunkInstance->bEndCoord);
-    }else{
-      ciScaffold->aEndCoord = ciScaffold->bEndCoord = -1;
-    }
     chunkInstance->AEndNext = chunkInstance->BEndNext = NULLINDEX;
     ciScaffold->bpLength = *maxOffset;
 
@@ -494,9 +471,7 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
 
 	if(CI->id == ciScaffold->info.Scaffold.AEndCI){
 	  ciScaffold->info.Scaffold.AEndCI = ci;
-	  if(chunkInstance->flags.bits.cgbType == UU_CGBTYPE){
-	    ciScaffold->aEndCoord = (reversed?chunkInstance->bEndCoord:chunkInstance->aEndCoord);
-	  }
+
 #ifdef DEBUG_INSERT
 	  fprintf(GlobalData->stderrc,"* Inserted at head\n");
 	}else{
@@ -512,8 +487,6 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
 	CI->BEndNext = ci;
 	chunkInstance->AEndNext = CI->id;
 	chunkInstance->BEndNext = NULLINDEX;
-        if(chunkInstance->flags.bits.cgbType == UU_CGBTYPE)
-          ciScaffold->bEndCoord = (reversed?chunkInstance->aEndCoord:chunkInstance->bEndCoord);
 
 	// Due to containments, the CI with the maximal mean does not
 	// have the maximal variance.
@@ -1344,7 +1317,9 @@ int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CDS_CID_t scaffol
       CIScaffold.bpLength = NullLength;
       newScaffoldID = CIScaffold.id = GetNumGraphNodes(graph->ScaffoldGraph);
       CIScaffold.flags.bits.isDead = FALSE;
+#if 0
       CIScaffold.aEndCoord = CIScaffold.bEndCoord = -1;
+#endif
       CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
       CIScaffold.essentialEdgeB = CIScaffold.essentialEdgeA = NULLINDEX;
       AppendGraphNode(graph->ScaffoldGraph, &CIScaffold);
@@ -1759,6 +1734,7 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
       }
 
       /* Check for Chimeric Scaffolds */
+#if 0
       if(prevChunk &&
          prevChunk->aEndCoord >= 0 &&
          chunk->aEndCoord >=0){
@@ -1776,6 +1752,7 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
                   calcDiff);
         }
       }
+#endif
       prevChunk = chunk;
 
       if(chunk->offsetAEnd.mean < 0 || chunk->offsetBEnd.mean < 0 ||
@@ -1906,9 +1883,6 @@ void FixupLengthScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
   ChunkInstanceT *CI;
   LengthT minOffset, maxOffset;
   LengthT computedLength;
-  CDS_COORD_t aEndCoord = -1 , bEndCoord = -1;
-  int aEndFound = FALSE;
-  int capture;
 
   minOffset.variance = minOffset.mean = maxOffset.variance = DBL_MAX;
   maxOffset.mean = -DBL_MAX;
@@ -1918,50 +1892,30 @@ void FixupLengthScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
 
     assert(CI->scaffoldID == scaffold->id);
 
-    /*	fprintf(stderr,"* Chunk " F_CID " [%g,%g] mean = %g\n",
-        chunk->id,
-        chunk->offsetAEnd.mean,
-        chunk->offsetBEnd.mean,
-        mean);
-    */
-    if(CI->flags.bits.cgbType == UU_CGBTYPE){
-      capture = TRUE;
-      assert(CI->aEndCoord >= 0 && CI->bEndCoord >= 0);
-    }else{
-      capture = FALSE;
-    }
-
     if(CI->offsetAEnd.mean > CI->offsetBEnd.mean){
-      if(!aEndFound && capture){
-        aEndCoord = CI->bEndCoord;
-        aEndFound = TRUE;
-      }
       if(CI->offsetAEnd.mean > maxOffset.mean){
         maxOffset = CI->offsetAEnd;
-        if(capture){
-          bEndCoord = CI->aEndCoord;
-        }
       }
       if(CI->offsetBEnd.mean < minOffset.mean){
         minOffset = CI->offsetBEnd;
       }
     }else{
-      if(!aEndFound && capture){
-        aEndFound = TRUE;
-        aEndCoord = CI->aEndCoord;
-      }
       if(CI->offsetBEnd.mean > maxOffset.mean){
         maxOffset = CI->offsetBEnd;
-        if(capture){
-          bEndCoord = CI->bEndCoord;
-        }
       }
       if(CI->offsetAEnd.mean < minOffset.mean){
         minOffset = CI->offsetAEnd;
       }
     }
   }
-  ComputeLength(&computedLength, &minOffset, &maxOffset);
+
+  // Do the arithmetic and stats on a pair of LengthTs
+  // If resulting variance is negative assert
+
+  computedLength.mean     = maxOffset.mean     - minOffset.mean;
+  computedLength.variance = maxOffset.variance - minOffset.variance;
+
+  assert(computedLength.variance >= 0 && computedLength.mean > 0);  // temp change???
 
   if(computedLength.mean > scaffold->bpLength.mean){
     fprintf(stderr,"* Adjusting scaffold " F_CID " bplength from %g to %g [%g,%g]\n",
@@ -1969,16 +1923,7 @@ void FixupLengthScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
             minOffset.mean, maxOffset.mean);
 
     scaffold->bpLength = computedLength;
-
   }
-
-  if(aEndCoord < 0 ||
-     bEndCoord < 0 ){
-    fprintf(stderr,">>>>* Scaffold " F_CID " has aEndCoord :" F_COORD " bEndCoord :" F_COORD "  minOffset = %g maxOffset = %g\n",
-            scaffold->id, aEndCoord, bEndCoord, minOffset.mean, maxOffset.mean);
-  }
-  scaffold->bEndCoord = bEndCoord;
-  scaffold->aEndCoord = aEndCoord;
 }
 
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.43 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.44 2008-10-29 10:42:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1258,7 +1258,7 @@ void ReScaffoldPseudoDegenerates(void)
               CIScaffold.bpLength = NullLength;
               CIScaffold.id = GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph);
               CIScaffold.flags.bits.isDead = FALSE;
-              CIScaffold.aEndCoord = CIScaffold.bEndCoord = -1;
+              //CIScaffold.aEndCoord = CIScaffold.bEndCoord = -1;
               CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
               CIScaffold.essentialEdgeB = CIScaffold.essentialEdgeA = NULLINDEX;
               AppendGraphNode(ScaffoldGraph->ScaffoldGraph, &CIScaffold);
@@ -2214,10 +2214,6 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
 
   // Mark all of the Unitigs of this CI and set their offsets
   UpdateNodeUnitigs(newMultiAlign,contig);
-
-  // Update simulator coordinates
-  UpdateContigSimCoordinates(contig);
-  UpdateScaffoldSimCoordinates(scaffold);
 
   // Create the raw link-based edges
   {

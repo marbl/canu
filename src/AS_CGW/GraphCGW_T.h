@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.28 2008-10-29 06:34:30 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.29 2008-10-29 10:42:46 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "InputDataTypes_CGW.h"
@@ -85,18 +85,12 @@ typedef struct {
 
       // 16 bits used
 
-      unsigned int XXXunusedXXX_hasRepeatOverlap:1;        /* Has overlaps beyond branch points ==> repeat only */
-      unsigned int XXXunusedXXX_hasTandemOverlap:1;  /* Overlapper reported a min-max range of overlaps */
       unsigned int aContainsB:1;        /* From CGB for multiply contained fragments */
       unsigned int bContainsA:1;        /* From CGB for multiply contained fragments */
       unsigned int mustOverlap:1;       /* Marked on merged edges when mate-link variance is signficantly less than overlap length */
-      unsigned int XXXunusedXXX_hasGuide:1;                /* Contains one or more guide edges */
-      unsigned int XXXunusedXXX_hasSTSGuide:1;  /* EXTRA, UNUSED, was Contains an STS Guide */
-      unsigned int XXXunusedXXX_hasMayJoin:1;             /* Contains a may join constraint */
 
       // 24 bits used
 
-      unsigned int XXXunusedXXX_hasMustJoin:1;             /* Contains a must join constraint */
       unsigned int hasTransChunk:1;           /* was a transitively removed edge in cgb */
       unsigned int hasContainmentOverlap:1;  /* Implies a containment */
       unsigned int isRaw:1;                   /* True for raw edges, false for merged edges */
@@ -180,20 +174,6 @@ typedef enum {
 
 typedef UnitigFUR ChunkFUR;
 
-/* This enum is used to encode the classification of unitigs based on the
-   simulator coordinates of the fragments
-
-   This field has one of the following values (first refers to essentials, 2nd to contains):
-     XX_CGBTYPE   -- No annotation on unitig in cgb output
-     RR_CGBTYPE   -- CGB reported "rr"
-     UU_CGBTYPE   -- CGB reported "uu"
-*/
-typedef enum {
-  UU_CGBTYPE = 0,
-  RR_CGBTYPE = 3,
-  XX_CGBTYPE = 4
-}CGB_Type;
-
 
 /* This enum is used to encode the presence/absence of tandem repeat overlaps
    on the end of the ChunkInstance (only meaningful if isCI = TRUE)
@@ -256,9 +236,6 @@ typedef struct{
   LengthT  offsetAEnd;     // Offset of A end of CI relative to A end of Contig/CIScaffold
   LengthT  offsetBEnd;     // Offset of B end of CI relative to A end of Contig/CIScaffold
 
-  /***** Simulator Coordinates ****/
-  CDS_COORD_t aEndCoord, bEndCoord;
-
   union{  // ChunkInstanceType discriminates
     struct CIINFO_TAG {
       CDS_CID_t contigID;   // contigID -- if -1, this chunkInstance not merged into a contig
@@ -287,12 +264,14 @@ typedef struct{
       }instances;
       CDS_CID_t source;
     }CI;
+
     struct CONTIGINFO_TAG{
       CDS_CID_t AEndCI;     //  Index of Chunk Instance at A end of Contig
       CDS_CID_t BEndCI;     //  Index of Chunk Instance at B end of Contig
       int32     numCI;      //  Number of CI in contig
       CDS_CID_t contigNum;  //  Used in CIScaffoldT_Biconnected_CGW.c
     }Contig;
+
     struct CISCAFFOLD_TAG{
       CDS_CID_t AEndCI; // Index of Chunk Instance at A end of Scaffold
       CDS_CID_t BEndCI; // Index of Chunk Instance at B End of Scaffold
@@ -304,6 +283,7 @@ typedef struct{
       int32 internalEdges;  // Number of merged edges (not including UNTRUSTED) that are internal to scaffold
       int32 confirmedInternalEdges; // Number of merged edges confirmed by current CI positions
     }Scaffold;
+
   }info;
 
   //
@@ -312,27 +292,20 @@ typedef struct{
       unsigned int isUnique:1;
       unsigned int smoothSeenAlready:1; // Used for cycle detection
 
-      unsigned int cgbType:3;
       unsigned int isDead:1;
       unsigned int isFree:1;
       unsigned int containsCIs:1;        // Scaffold contains either CIs or Contigs
 
-      /* This field has one of the following values:
-	 NO_TANDEM_OVERLAP
-	 AEND_TANDEM_OVERLAP
-	 BEND_TANDEM_OVERLAP
-	 BOTH_END_TANDEM_OVERLAP = AEND_TANDEM_OVERLAP | BEND_TANDEM_OVERLAP
-      */
-      unsigned int XXXunusedXXX_tandemOverlaps:2;
       unsigned int isCI:1;
       unsigned int isContig:1;
       unsigned int isScaffold:1;
+
       /* The following is TRUE for CIs that are surrogate CIs and
 	 for Contigs that contain a single surrogate CI.  Set at creation
 	 time in the Split functions */
       unsigned int isSurrogate:1;
       unsigned int beingContigged:1;
-      unsigned int XXXunusedXXXincludesFinishedBacFragments:1;
+
       /* The following is used by gap walking to see which scaffolds have been walked.
 	 Initialized to zero when a scaffold is created, managed by gw afterward */
       unsigned int walkedAlready:1;
@@ -344,7 +317,6 @@ typedef struct{
       unsigned int isWalkSurrogate:1;
       unsigned int failedToContig:1;
       unsigned int isChaff:1;  // a singleton unitig/contig that is not placed or used as a surrogate
-      unsigned int isMisplaced:1; // Contig placed out of order wrt simulator coordinates
       unsigned int isStone:1;
       unsigned int isWalk:1;
       unsigned int isRock:1;
@@ -444,7 +416,6 @@ static NodeCGW_T *CreateNewGraphNode(GraphCGW_T *graph){
 
   node.id = GetNumGraphNodes(graph);
   node.flags.all = 0;
-  node.flags.bits.cgbType = XX_CGBTYPE;
   node.edgeHead = NULLINDEX;
   node.setID = 0;
 
@@ -485,7 +456,7 @@ static NodeCGW_T *CreateNewGraphNode(GraphCGW_T *graph){
   node.bpLength.mean = node.bpLength.variance = 0.0;
   node.offsetAEnd.mean = node.offsetAEnd.variance = 0.0;
   node.offsetBEnd.mean = node.offsetBEnd.variance = 0.0;
-  node.aEndCoord = node.bEndCoord = NULLINDEX;
+  //node.aEndCoord = node.bEndCoord = NULLINDEX;
 
   AppendNodeCGW_T(graph->nodes, &node);
   return(GetGraphNode(graph, node.id));
@@ -1459,12 +1430,6 @@ void  BuildGraphEdgesDirectly(GraphCGW_T *graph);
 void  BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph, NodeCGW_T *node,
                                     MultiAlignT *ma, GraphEdgeStatT *stats,
                                     int buildAll);
-
-void    UpdateScaffoldSimCoordinates(NodeCGW_T *scaffold);
-
-void    UpdateContigSimCoordinates(NodeCGW_T *contig);
-
-
 
 
 /**********************

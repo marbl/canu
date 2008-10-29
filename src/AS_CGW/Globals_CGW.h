@@ -22,7 +22,7 @@
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
-static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.19 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.20 2008-10-29 10:42:46 brianwalenz Exp $";
 
 #include "AS_CGW_dataTypes.h"
 #include "AS_MSG_pmesg.h"
@@ -35,7 +35,6 @@ typedef struct Global_CGW_tag {
 
   float transQualityCutoff; // quality cutoff for TransChunkEdges
   uint64 maxSequencedbSize; // maximum size of a sequencedb between checkpoints
-  int32 dumpScaffoldSnapshots;
   int32 maxDegree; // maximum edges to keep for 'nonUnique' nodes
   int32 maxDegreeUnique; // maximum edges to keep for 'Unique' nodes
   int outputCalculatedOffsets;

@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.27 2008-10-29 06:34:30 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.28 2008-10-29 10:42:46 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -137,10 +137,6 @@ void BuildSEdges(ScaffoldGraphT *graph, int includeNegativeEdges);
 void DestroyScaffoldGraph(ScaffoldGraphT *sgraph);
 
 /* Maintentance */
-
-
-/* Dump a Celamy snapshot */
-void DumpScaffoldSnapshot(char *name);
 
 
 /*****************************************************************************
@@ -415,8 +411,7 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
 void DumpCelamyColors(FILE *file);
 void DumpCelamyMateColors(FILE *file);
 void DumpCelamyFragColors(FILE *file);
-void MarkMisplacedContigs(void);
-void CelamyCIScaffolds(char * name, ScaffoldGraphT *graph);
+
 /* Celamy Scaffold
    The workhorse routine for drawing a simulator-coordinate independent view of a scaffold.
 */

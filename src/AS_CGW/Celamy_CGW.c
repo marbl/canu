@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* All of the CGW celamy stuff is here */
-static char *rcsid = "$Id: Celamy_CGW.c,v 1.22 2008-10-29 06:34:30 brianwalenz Exp $";
+static char *rcsid = "$Id: Celamy_CGW.c,v 1.23 2008-10-29 10:42:46 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -118,18 +118,6 @@ static  char  * Colour_String [NUM_COLOURS]
   "C8080FF T2 S  # MispContig"
 };
 
-#if 0
-fprintf(file, "0ContigColor: %s T2 S # Contigs\n",
-        Colors[11]);
-fprintf(file, "0MisplacedContigColor: %s T2 S # MisplacedContigs\n",
-        Colors[10]);
-fprintf(file, "0InvalidContigColor: %s T2 S # InvalidContigs\n",
-        Colors[4]);
-fprintf(file, "0MisplacedInvalidContigColor: %s T2 S # MisplacedInvalidContigs\n",
-        Colors[5]);
-fprintf(file, "0ContigRealColor: %s T2 S # RealContigs\n",
-        Colors[10]);
-#endif
 
 /* Forward Declarations */
 static void CelamyOrderedScaffolds(FILE *fout,  FILE *fdregs,
@@ -154,20 +142,6 @@ static CIFragT * getFragByIID(ScaffoldGraphT * graph,
 }
 
 
-static char * ComputeCIUUCode(ChunkInstanceT *ci){
-  switch(ci->flags.bits.cgbType){
-    case UU_CGBTYPE:
-      return "uu";
-      break;
-    case RR_CGBTYPE:
-      return "rr";
-      break;
-    case XX_CGBTYPE:
-      return "xx";
-      break;
-  }
-  return "xx";
-}
 static int ComputeCIRow(ChunkInstanceT *ci, CIScaffoldT *scaffold){
   if(ci->flags.bits.isScaffold)
     return SCAFFOLD_ROW;
@@ -181,30 +155,14 @@ static int ComputeCIRow(ChunkInstanceT *ci, CIScaffoldT *scaffold){
 }
 
 static int ComputeContigColor(ContigT *CI, CIScaffoldT *scaffold){
-
-  switch(CI->flags.bits.cgbType){
-    case UU_CGBTYPE:
-      return(CI->flags.bits.isMisplaced?MISPLACEDCONTIG_COLOUR:CONTIG_COLOUR);
-    default:
-      return(CI->flags.bits.isMisplaced?INVALIDMISPLACEDCONTIG_COLOUR:INVALIDCONTIG_COLOUR);
-  }
+  return(CONTIG_COLOUR);
 }
 
 static int ComputeCIColor(ChunkInstanceT *ci, CIScaffoldT *scaffold){
 
   int color = REPEAT_COLOUR;
   if(ci->type == DISCRIMINATORUNIQUECHUNK_CGW){
-    switch(ci->flags.bits.cgbType){
-      case UU_CGBTYPE:
-        color = DUNIQUE_COLOUR;
-        break;
-      case RR_CGBTYPE:
-        color = BADUNIQUE_COLOUR;
-        break;
-      case XX_CGBTYPE:
-        color = UNKNOWNUNIQUE_COLOUR;
-        break;
-    }
+    color = DUNIQUE_COLOUR;
   }else{
     if(ci->scaffoldID != NULLINDEX){
       if(!ci->flags.bits.isSurrogate){
@@ -220,7 +178,7 @@ static int ComputeCIColor(ChunkInstanceT *ci, CIScaffoldT *scaffold){
     }else{
       if(ci->info.CI.numFragments == 1)
         color = ONEFRAG_COLOUR;
-      else if((ci->flags.bits.cgbType == UU_CGBTYPE) && (ci->info.CI.coverageStat > CGB_INVALID_CUTOFF))
+      else if(ci->info.CI.coverageStat > CGB_INVALID_CUTOFF)
         color = CONSISTENT_COLOUR;
       else
         color = REPEAT_COLOUR;
@@ -352,10 +310,6 @@ void OrderScaffoldsForOutput(CIScaffoldT **scaffoldOrder,
       assert(dregsAEndCoord >= 0);
       assert(dregsBEndCoord >= 0);
     }
-#if 0
-    fprintf(stderr,"* Drawing scaffold " F_CID " at [" F_COORD "," F_COORD "] bpLength = (%g,%g)\n",
-            numScaffolds, scaffold->aEndCoord, scaffold->bEndCoord, scaffold->bpLength.mean, scaffold->bpLength.variance);
-#endif
     scaffoldOrder[numScaffolds++] = scaffold;
   }
 }
@@ -377,10 +331,6 @@ void CelamyOrderedScaffolds(FILE *fout,  FILE *fdregs,
       break;
     if(isDeadCIScaffoldT(scaffold))
       continue;
-#if 0
-    fprintf(stderr,"* Drawing scaffold " F_CID " at [" F_COORD "," F_COORD "]\n",
-            i,scaffold->aEndCoord, scaffold->bEndCoord);
-#endif
     if(scaffold->type == REAL_SCAFFOLD)
       CelamyScaffold(fout, scaffold, scaffoldPositiona[scaffold->id], scaffoldPositionb[scaffold->id]);
     else
@@ -602,24 +552,6 @@ void draw_frags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int globa
       ci_leftcoord = AEndCoord + t_leftcoord;
       ci_rightcoord = AEndCoord + t_rightcoord;
     }
-#if 0
-    if ( frag->source ) {
-      coord_start = strchr(frag->source,'[');
-    } else {
-      coord_start = NULL;
-    }
-    if ( coord_start != NULL && (sscanf(coord_start,"[%d,%d]",&sim.bgn,&sim.end) == 2) ) {
-      sprintf(buffer," [%d,%d]",sim.bgn,sim.end);
-    } else {
-      sprintf(buffer,"");
-    }
-    if (show_uids) {
-      getFrag(frag_store,frag->ident,rsp,FRAG_S_FIXED);
-      getAccID_ReadStruct(rsp, &fuid);
-    } else {
-      fuid = 0;
-    }
-#endif
     frgcolor =
       globallyReversed ?
       ( frag->position.bgn < frag->position.end ? REV_FRG_COLOR : FWD_FRG_COLOR ) :
@@ -708,8 +640,6 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
               (int)scaffold->bpLength.mean);
     }
 
-    UpdateContigSimCoordinates(CI);
-
     if(scaffoldReversed){
       CIaCoord = scaffoldBEndCoord - scaffoldMin + (int64)scaffold->bpLength.mean - (int64)MAX(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
       CIbCoord = scaffoldBEndCoord - scaffoldMin + (int64)scaffold->bpLength.mean - (int64)MIN(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
@@ -729,20 +659,15 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
               scaffoldAEndCoord, scaffoldBEndCoord);
     }
 
-#if 0
-    fprintf(stderr,"* CI " F_CID " CIaCoord = " F_S64 " CIbCoord = " F_S64 " contigMin = " F_S64 "\n",
-            contigID,CIaCoord, CIbCoord, contigMin);
-#endif
     CIaCoord = MAX(0,CIaCoord);
     CIbCoord = MAX(0,CIbCoord);
     if(scaffold->type == REAL_SCAFFOLD /* && (CIaCoord >= 0 && CIbCoord >= 0)*/ ){
-      fprintf(fout,F_CID "ScaCtg" F_CID ": " F_S64 " A%dCGBColor " F_S64 " R%d # Scaffold " F_CID " Ctg " F_CID " %s\n",
+      fprintf(fout,F_CID "ScaCtg" F_CID ": " F_S64 " A%dCGBColor " F_S64 " R%d # Scaffold " F_CID " Ctg " F_CID "\n",
               scaffold->id, contigID,
               CIaCoord,
               ComputeContigColor(CI, scaffold),
               CIbCoord,
-              CONTIG_ROW,
-              scaffold->id, contigID,(CI->flags.bits.isMisplaced?"MISPLACED":""));
+              CONTIG_ROW);
     }
     if(contigMin == contigMax){
       fprintf(stderr,"* Warning: Zero Length Contig!!!! contigMin =  " F_S64 " contigMax = " F_S64 "\n", contigMin, contigMax);
@@ -781,23 +706,23 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
       }
 
       if(!ci->flags.bits.isSurrogate){
-        fprintf(fout,F_CID "CtgCI" F_CID ": " F_S64 " A%dCGBColor " F_S64 " R%d # Contig " F_CID " CI " F_CID " %s cov:%d ",
+        fprintf(fout,F_CID "CtgCI" F_CID ": " F_S64 " A%dCGBColor " F_S64 " R%d # Contig " F_CID " CI " F_CID " cov:%d ",
                 contigID, cid,
                 ciACoord,
                 color,
                 ciBCoord,
                 ComputeCIRow(ci, scaffold),
-                contigID, cid,ComputeCIUUCode(ci), ci->info.CI.coverageStat);
+                contigID, cid, ci->info.CI.coverageStat);
       }else{
         NodeCGW_T *baseCI = GetGraphNode(ScaffoldGraph->CIGraph, ci->info.CI.baseID);
-        fprintf(fout,F_CID "CtgCI" F_CID ": " F_S64 " A%dCGBColor " F_S64 " R%d # Contig " F_CID " CI " F_CID " (BaseCI " F_CID " copies %d) %s baseCov:%d ",
+        fprintf(fout,F_CID "CtgCI" F_CID ": " F_S64 " A%dCGBColor " F_S64 " R%d # Contig " F_CID " CI " F_CID " (BaseCI " F_CID " copies %d) baseCov:%d ",
                 contigID, cid,
                 ciACoord,
                 color,
                 ciBCoord,
                 ComputeCIRow(ci, scaffold),
                 contigID, cid,
-                baseCI->id, baseCI->info.CI.numInstances, ComputeCIUUCode(ci), baseCI->info.CI.coverageStat);
+                baseCI->id, baseCI->info.CI.numInstances, baseCI->info.CI.coverageStat);
 
       }
       fprintf(fout,"\n");
@@ -834,292 +759,3 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
     }
   }
 }
-
-
-
-
-/*******************************************************************************/
-/* CelamyCIScaffolds
- *   Draw a simulator dependent view of the assembly
- */
-void CelamyCIScaffolds(char *name, ScaffoldGraphT *graph){
-  ChunkInstanceT *Ctga, *Ctgb, *CI;
-  ChunkInstanceT *CIa;
-  CIScaffoldTIterator CIs;
-  CDS_CID_t i;
-  int outputCalculatedOffsets = GlobalData->outputCalculatedOffsets;
-  GraphNodeIterator scaffolds;
-  CIScaffoldT *scaffold;
-  FILE *fp;
-
-  if(name){
-    char temp[200];
-    sprintf(temp,"%s.cam",name);
-    fp = fopen(temp,"w");
-  }else{
-    assert(0);
-  }
-
-  DumpCelamyColors(fp);
-
-  InitGraphNodeIterator(&scaffolds, graph->ScaffoldGraph,
-			GRAPH_NODE_DEFAULT);
-  while(NULL != (scaffold = NextGraphNodeIterator(&scaffolds))){
-
-    i = scaffold->id;
-
-    Ctga = GetGraphNode(graph->RezGraph, scaffold->info.Scaffold.AEndCI);
-    Ctgb = GetGraphNode(graph->RezGraph, scaffold->info.Scaffold.BEndCI);
-
-    CIa = GetGraphNode(graph->RezGraph,Ctga->info.Contig.AEndCI);
-
-
-    if(scaffold->type == REAL_SCAFFOLD ){
-      int scaffoldReversed = (scaffold->aEndCoord > scaffold->bEndCoord);
-      InitCIScaffoldTIterator(ScaffoldGraph, scaffold, TRUE, FALSE, &CIs);
-
-#if 0
-      fprintf(stderr,"* Scaffold " F_CID " is %s [" F_COORD "," F_COORD "]\n",
-	      i,
-	      (scaffoldReversed?" REVERSED ":" NORMAL "),
-	      scaffold->aEndCoord, scaffold->bEndCoord);
-#endif
-      while(NULL != (CI = NextCIScaffoldTIterator(&CIs))){
-	ContigTIterator cis;
-	ChunkInstanceT *ci;
-	CDS_COORD_t CIaCoord, CIbCoord;
-	CDS_COORD_t contigMin, contigMax;
-	CDS_CID_t contigID = CI->id;
-	int contigReversed = (CI->offsetAEnd.mean > CI->offsetBEnd.mean);
-
-	UpdateContigSimCoordinates(CI);
-
-	if(outputCalculatedOffsets){
-	  if(scaffoldReversed){
-	    CIaCoord = scaffold->bEndCoord + (CDS_COORD_t)scaffold->bpLength.mean - (CDS_COORD_t)MAX(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-	    CIbCoord = scaffold->bEndCoord + (CDS_COORD_t)scaffold->bpLength.mean - (CDS_COORD_t)MIN(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-	  }else{
-	    CIaCoord = scaffold->aEndCoord + (CDS_COORD_t)MIN(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-	    CIbCoord = scaffold->aEndCoord + (CDS_COORD_t)MAX(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-	  }
-	}else{
-          CIaCoord = MIN(CI->aEndCoord,CI->bEndCoord);
-          CIbCoord = MAX(CI->aEndCoord,CI->bEndCoord);
-	}
-	contigMin = MIN(CIaCoord, CIbCoord);
-	contigMax = MAX(CIaCoord, CIbCoord);
-
-	if(contigMin == contigMax){
-	  fprintf(stderr,"* CelamyCIScaffolds... looks like there are no simulator coords...bye\n");
-	  return;
-	}
-
-#if 0
-
-	fprintf(stderr,"* Contig " F_CID " CIaCoord = " F_COORD " CIbCoord = " F_COORD " contigMin = " F_COORD "\n",
-		contigID,CIaCoord, CIbCoord, contigMin);
-#endif
-
-        fprintf(fp,F_CID "ScaCtg" F_CID ": " F_COORD " A%dCGBColor " F_COORD " R%d # Scaffold " F_CID " Ctg " F_CID " %s\n",
-                scaffold->id, contigID,
-                CIaCoord,
-                ComputeContigColor(CI, scaffold),
-                CIbCoord,
-                CONTIG_ROW,
-                scaffold->id, contigID,(CI->flags.bits.isMisplaced?"MISPLACED":""));
-
-	InitContigTIterator(ScaffoldGraph, contigID, TRUE, FALSE, &cis);
-	while(NULL != (ci = NextContigTIterator(&cis))){
-	  CDS_COORD_t ciACoord, ciBCoord;
-	  CDS_CID_t cid = ci->id;
-	  int color = ComputeCIColor(ci,scaffold);
-
-	  if(outputCalculatedOffsets){
-            if(scaffoldReversed^contigReversed){
-              ciACoord = contigMax - MAX((CDS_COORD_t)ci->offsetAEnd.mean, (CDS_COORD_t)ci->offsetBEnd.mean);
-              ciBCoord = contigMax - MIN((CDS_COORD_t)ci->offsetAEnd.mean, (CDS_COORD_t)ci->offsetBEnd.mean);
-            }else{
-              ciACoord = contigMin + MIN((CDS_COORD_t)ci->offsetAEnd.mean, (CDS_COORD_t)ci->offsetBEnd.mean);
-              ciBCoord = contigMin + MAX((CDS_COORD_t)ci->offsetAEnd.mean, (CDS_COORD_t)ci->offsetBEnd.mean);
-
-            }
-	  }else{
-	    ciACoord = MIN(ci->aEndCoord, ci->bEndCoord);
-	    ciBCoord = MAX(ci->aEndCoord, ci->bEndCoord);
-	  }
-
-	  if(!ci->flags.bits.isSurrogate){
-            fprintf(fp,F_CID "CtgCI" F_CID ": " F_COORD " A%dCGBColor " F_COORD " R%d # Contig " F_CID " CI " F_CID " %s cov:%d\n",
-                    contigID, cid,
-                    ciACoord,
-                    color,
-                    ciBCoord,
-                    ComputeCIRow(ci, scaffold),
-                    contigID, cid, ComputeCIUUCode(ci), ci->info.CI.coverageStat);
-	  }else{
-	    NodeCGW_T *baseCI = GetGraphNode(ScaffoldGraph->CIGraph, ci->info.CI.baseID);
-            fprintf(fp,F_CID "CtgCI" F_CID ": " F_COORD " A%dCGBColor " F_COORD " R%d # Contig " F_CID " CI " F_CID " (BaseCI " F_CID " copies %d) %s\n",
-                    contigID, cid,
-                    ciACoord,
-                    color,
-                    ciBCoord,
-                    ComputeCIRow(ci, scaffold),
-                    contigID, cid,
-                    baseCI->id, baseCI->info.CI.numInstances, ComputeCIUUCode(ci));
-
-	  }
-	}
-      }
-
-
-
-      if(scaffold->info.Scaffold.numElements > 1){
-        fprintf(fp,"LNK: ");
-        InitCIScaffoldTIterator(ScaffoldGraph, scaffold, TRUE, FALSE, &CIs);
-
-        while(NULL != (CI = NextCIScaffoldTIterator(&CIs))){
-          fprintf(fp,F_CID "ScaCtg" F_CID " ",
-                  scaffold->id, CI->id);
-        }
-        fprintf(fp," A0ScaffoldColor \n");
-      }else{
-        assert(scaffold->info.Scaffold.numElements == 1);
-	fprintf(fp,"LNK: " F_CID "ScaCtg" F_CID " A0SingleScaffoldColor\n",
-		scaffold->id, scaffold->info.Scaffold.AEndCI);
-
-      }
-      if(outputCalculatedOffsets){
-	InitCIScaffoldTIterator(ScaffoldGraph, scaffold, TRUE, FALSE, &CIs);
-
-	while(NULL != (CI = NextCIScaffoldTIterator(&CIs))){
-
-          if(CI->aEndCoord > 0 && CI->bEndCoord > 0)
-            fprintf(fp,F_CID "Ctg" F_CID ": " F_COORD " A0ContigRealColor " F_COORD " R%d # Scaffold " F_CID " Ctg " F_CID "\n",
-                    scaffold->id, CI->id,
-                    MIN(CI->aEndCoord, CI->bEndCoord),
-                    MAX(CI->aEndCoord, CI->bEndCoord),
-                    REALCONTIG_ROW,
-                    scaffold->id, CI->id);
-	}
-      }
-    }
-  }
-
-  {
-    GraphNodeIterator contigs;
-    ContigT *CI;
-    InitGraphNodeIterator(&contigs, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
-    while(NULL != (CI = NextGraphNodeIterator(&contigs))){
-      if(CI->scaffoldID != NULLINDEX)
-        continue;
-
-      if(CI->type == CONTIG_CGW)
-        continue;
-
-
-      // Skip CIs that have instantiated surrogates
-      if(CI->type == UNRESOLVEDCHUNK_CGW &&
-         CI->info.CI.numInstances > 0)
-        continue;
-
-      if(CI->aEndCoord == CI->bEndCoord)
-        continue;
-
-      fprintf(fp,F_CID "CI: " F_COORD " A%dCGBColor " F_COORD " R%d # Unscaffolded CI " F_CID "\n",
-              CI->id, MIN(CI->aEndCoord, CI->bEndCoord),
-              ComputeCIColor(CI, NULL),
-              MAX(CI->aEndCoord, CI->bEndCoord),
-              ComputeCIRow(CI,NULL),
-              CI->id);
-    }
-  }
-
-  fflush(fp);
-
-  if(name)
-    fclose(fp);
-}
-
-
-void MarkMisplacedContigs(void){
-
-  ChunkInstanceT *Ctga, *Ctgb, *CI;
-  ChunkInstanceT *CIa;
-  CIScaffoldTIterator CIs;
-  CDS_CID_t i;
-  GraphNodeIterator scaffolds;
-  CIScaffoldT *scaffold;
-
-  InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph,
-			GRAPH_NODE_DEFAULT);
-  while(NULL != (scaffold = NextGraphNodeIterator(&scaffolds))){
-    i = scaffold->id;
-
-    Ctga = GetGraphNode(ScaffoldGraph->RezGraph, scaffold->info.Scaffold.AEndCI);
-    Ctgb = GetGraphNode(ScaffoldGraph->RezGraph, scaffold->info.Scaffold.BEndCI);
-
-    CIa = GetGraphNode(ScaffoldGraph->RezGraph,Ctga->info.Contig.AEndCI);
-
-
-    if(scaffold->type == REAL_SCAFFOLD ){
-      int scaffoldReversed = (scaffold->aEndCoord > scaffold->bEndCoord);
-      CDS_COORD_t simAEndOffsetCurr = CDS_COORD_MIN;
-      CDS_COORD_t simBEndOffsetCurr = CDS_COORD_MIN;
-      CDS_COORD_t simAEndOffsetPrev = CDS_COORD_MIN;
-      CDS_COORD_t calcAEndOffsetCurr = CDS_COORD_MIN;
-      CDS_COORD_t calcAEndOffsetPrev = CDS_COORD_MIN;
-      CDS_COORD_t calcBEndOffsetCurr = CDS_COORD_MIN;
-      CDS_COORD_t calcBEndOffsetPrev = CDS_COORD_MIN;
-
-#if 0
-      fprintf(stderr,"* Scaffold " F_CID " is %s [" F_COORD "," F_COORD "]\n",
-	      i,
-	      (scaffoldReversed?" REVERSED ":" NORMAL "),
-	      scaffold->aEndCoord, scaffold->bEndCoord);
-#endif
-      InitCIScaffoldTIterator(ScaffoldGraph, scaffold, TRUE, FALSE, &CIs);
-      while(NULL != (CI = NextCIScaffoldTIterator(&CIs))){
-	CDS_COORD_t CIaCoord, CIbCoord;
-	int contigReversed = (CI->offsetAEnd.mean > CI->offsetBEnd.mean);
-
-	UpdateContigSimCoordinates(CI);
-	CI->flags.bits.isMisplaced = FALSE;
-
-	simAEndOffsetPrev = simAEndOffsetCurr;
-	calcAEndOffsetPrev = calcAEndOffsetCurr;
-	calcBEndOffsetPrev = calcBEndOffsetCurr;
-	CIaCoord = CI->aEndCoord;
-	CIbCoord = CI->bEndCoord;
-
-	if(CIaCoord <= 0 &&
-	   CIbCoord <= 0)
-	  continue;
-
-
-	if(scaffoldReversed){
-	  calcAEndOffsetCurr = (CDS_COORD_t)scaffold->bpLength.mean - (CDS_COORD_t)MAX(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-	  calcBEndOffsetCurr = (CDS_COORD_t)scaffold->bpLength.mean - (CDS_COORD_t)MIN(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-	  simAEndOffsetCurr = scaffold->aEndCoord - MAX(CIaCoord, CIbCoord) ;
-	  simBEndOffsetCurr = scaffold->aEndCoord - MIN(CIaCoord, CIbCoord) ;
-	}else{
-	  calcAEndOffsetCurr =  (CDS_COORD_t)MIN(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-	  calcBEndOffsetCurr = (CDS_COORD_t)MAX(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-	  simAEndOffsetCurr = MIN(CIaCoord, CIbCoord) - scaffold->aEndCoord;
-	  simBEndOffsetCurr = MAX(CIaCoord, CIbCoord) - scaffold->aEndCoord;
-	}
-
-	if(simAEndOffsetCurr == simBEndOffsetCurr)
-	  continue;
-
-	if(simAEndOffsetCurr <= simAEndOffsetPrev){
-	  CI->flags.bits.isMisplaced = TRUE;
-	  fprintf(stderr,"*@@@@@* Contig " F_CID " is misplaced should be [" F_COORD "," F_COORD "] is [" F_COORD "," F_COORD "]\n",
-		  CI->id, simAEndOffsetCurr, simBEndOffsetCurr, calcAEndOffsetCurr,calcBEndOffsetCurr);
-	  fprintf(stderr,"*#####* simAEndOffsetCurr = " F_COORD " simAEndOffsetPrev = " F_COORD "  contigReversed %d scaffold [" F_COORD "," F_COORD "]\n",
-		  simAEndOffsetCurr, simAEndOffsetPrev, contigReversed, scaffold->aEndCoord, scaffold->bEndCoord);
-	}
-      }
-    }
-  }
-}
-

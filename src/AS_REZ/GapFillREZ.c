@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.41 2008-10-29 06:34:30 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.42 2008-10-29 10:42:46 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -334,9 +334,6 @@ typedef  struct
   CIEdgeT  * edge;
   LengthT  left_end, right_end;
   // Of chunk in scaffold coordinates induced by this edge
-  int  celsim_offset;
-  // Difference between celsim coordinate and scaffold coordinate of
-  // end of scaffold chunk passed over by this edge
   int  partition;
   // Indicates which group of edges this one belongs to when
   // creating multiple copies of a stone.
@@ -3425,56 +3422,6 @@ static void  Choose_Safe_Chunks
 
           DeleteVA_Stack_Entry_t(stackva);
         }
-
-#if  MAKE_CAM_FILE
-      Chunk_Info [cid] . colour = cam_colour;
-      Chunk_Info [cid] . annotation = strdup (annotation_string);
-      if  (contig -> aEndCoord >= 0 && contig -> bEndCoord >= 0)
-        {
-          if  (contig -> aEndCoord <= contig -> bEndCoord)
-            {
-#if  0
-              fprintf (Cam_File,
-                       "%dCHUNKREZ: %d A%dREZ %d # chunk %d forward %s\n",
-                       cid, contig -> aEndCoord,
-                       cam_colour, contig -> bEndCoord,
-                       cid, annotation_string);
-#endif
-#if  SHOW_CALC_COORDS
-              if  (cam_colour != UNIQUE_COLOUR
-                   && cam_colour != PLACED_COLOUR
-                   && cam_colour != MISPLACED_COLOUR)
-                {
-                  Chunk_Info [cid] . scaff_id = scaff_id;
-                  Chunk_Info [cid] . calc_left = contig -> aEndCoord;
-                  Chunk_Info [cid] . calc_right = contig -> bEndCoord;
-                }
-#endif
-              Chunk_Info [cid] . colour = cam_colour;
-            }
-          else
-            {
-#if  0
-              fprintf (Cam_File,
-                       "%dCHUNKREZ: %d A%dREZ %d # chunk %d reverse %s\n",
-                       cid, contig -> bEndCoord, cam_colour,
-                       contig -> aEndCoord,
-                       cid, annotation_string);
-#endif
-#if  SHOW_CALC_COORDS
-              if  (cam_colour != UNIQUE_COLOUR
-                   && cam_colour != PLACED_COLOUR
-                   && cam_colour != MISPLACED_COLOUR)
-                {
-                  Chunk_Info [cid] . scaff_id = scaff_id;
-                  Chunk_Info [cid] . calc_left = contig -> bEndCoord;
-                  Chunk_Info [cid] . calc_right = contig -> aEndCoord;
-                }
-#endif
-              Chunk_Info [cid] . colour = cam_colour;
-            }
-        }
-#endif
     }
 
   fprintf (stderr, "             Non-unique chunks: %7d\n", non_unique_ct);
@@ -3816,42 +3763,6 @@ static void  Choose_Stones
             }
           DeleteVA_Stack_Entry_t(stackva);
         }
-
-#if  MAKE_CAM_FILE
-      Chunk_Info [cid] . colour = cam_colour;
-      Chunk_Info [cid] . annotation = strdup (annotation_string);
-      if  (chunk -> aEndCoord >= 0 && chunk -> bEndCoord >= 0)
-        {
-          if  (chunk -> aEndCoord <= chunk -> bEndCoord)
-            {
-#if  SHOW_CALC_COORDS
-              if  (cam_colour != UNIQUE_COLOUR
-                   && cam_colour != PLACED_COLOUR
-                   && cam_colour != MISPLACED_COLOUR)
-                {
-                  Chunk_Info [cid] . scaff_id = scaff_id;
-                  Chunk_Info [cid] . calc_left = chunk -> aEndCoord;
-                  Chunk_Info [cid] . calc_right = chunk -> bEndCoord;
-                }
-#endif
-              Chunk_Info [cid] . colour = cam_colour;
-            }
-          else
-            {
-#if  SHOW_CALC_COORDS
-              if  (cam_colour != UNIQUE_COLOUR
-                   && cam_colour != PLACED_COLOUR
-                   && cam_colour != MISPLACED_COLOUR)
-                {
-                  Chunk_Info [cid] . scaff_id = scaff_id;
-                  Chunk_Info [cid] . calc_left = chunk -> bEndCoord;
-                  Chunk_Info [cid] . calc_right = chunk -> aEndCoord;
-                }
-#endif
-              Chunk_Info [cid] . colour = cam_colour;
-            }
-        }
-#endif
     }
 
   fprintf (stderr, "             Non-unique chunks: %7d\n", non_unique_ct);
@@ -9175,13 +9086,6 @@ static void  Print_Unique_Chunks
                )
             REF (cid) . is_singleton = TRUE;
 
-          if  (chunk -> flags . bits . isContig)
-            UpdateContigSimCoordinates (chunk);
-
-          if  (fp != NULL)
-            fprintf (fp, "%6d %8" F_CIDP " %8" F_COORDP " %8" F_COORDP "\n",
-                     cid, chunk -> scaffoldID,
-                     chunk -> aEndCoord, chunk -> bEndCoord);
           unique_ct ++;
         }
     }
@@ -10278,12 +10182,6 @@ static int  Select_Good_Edges
             {
               case  AB_AB :
               case  BA_AB :
-                if  (Scaffold_Flipped [scaff_id])
-                  se -> celsim_offset
-                    = scaffold_chunk -> aEndCoord + a_side -> mean;
-                else
-                  se -> celsim_offset
-                    = scaffold_chunk -> aEndCoord - a_side -> mean;
                 if  (a_side -> mean
                      <= b_side -> mean)
                   {
@@ -10308,11 +10206,6 @@ static int  Select_Good_Edges
                 break;
               case  AB_BA :
               case  BA_BA :
-                if  (Scaffold_Flipped [scaff_id])
-                  se -> celsim_offset = scaffold_chunk -> bEndCoord + b_side -> mean;
-                else
-                  se -> celsim_offset
-                    = scaffold_chunk -> bEndCoord - b_side -> mean;
                 if  (a_side -> mean
                      <= b_side -> mean)
                   {

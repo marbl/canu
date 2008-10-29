@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_CGW_dataTypes.c,v 1.16 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGW_dataTypes.c,v 1.17 2008-10-29 10:42:46 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -168,19 +168,6 @@ void ComputeIntervalLength(LengthT *result,
   result->mean = rightMost->mean - leftMost->mean;
   result->variance = rightMost->variance - leftMost->variance;
   assert(result->variance > 0 && result->mean > 0);
-
-}
-
-
-// Do the arithmetic and stats on a pair of LengthTs
-// If resulting variance is negative assert
-void ComputeLength(LengthT *result,
-		   LengthT *length1, LengthT *length2){
-
-
-  result->mean = length2->mean - length1->mean;
-  result->variance = length2->variance - length1->variance;
-  assert(result->variance >= 0 && result->mean > 0);  // temp change???
 
 }
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.35 2008-10-29 06:34:30 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.36 2008-10-29 10:42:46 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -222,7 +222,6 @@ void InsertRepeatCIsInScaffolds(ScaffoldGraphT *sgraph){
   CIScaffold.flags.bits.isDead = FALSE;
   CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
   CIScaffold.essentialEdgeA = CIScaffold.essentialEdgeB = NULLINDEX;
-  CIScaffold.aEndCoord = CIScaffold.bEndCoord = -1;
 
   InitGraphNodeIterator(&nodes, sgraph->RezGraph, GRAPH_NODE_DEFAULT);
   while(NULL != (CI = NextGraphNodeIterator(&nodes))){
@@ -728,21 +727,6 @@ int RepeatRez(int repeatRezLevel, char *name){
 
 
 
-
-void DumpScaffoldSnapshot(char *name){
-  char temp[200];
-  FILE *dumpfp;
-  MarkMisplacedContigs();
-  CelamyAssembly(name);
-  CelamyCIScaffolds(name, ScaffoldGraph);
-  sprintf(temp,"%s.dump", name);
-  dumpfp = fopen(temp,"w");
-  DumpContigs(dumpfp,ScaffoldGraph, FALSE);
-  DumpCIScaffolds(dumpfp, ScaffoldGraph, FALSE);
-  fclose(dumpfp);
-}
-
-
 /***************************************************************************/
 void RebuildScaffolds(ScaffoldGraphT *ScaffoldGraph,
                       int markShakyBifurcations){
@@ -767,12 +751,6 @@ void RebuildScaffolds(ScaffoldGraphT *ScaffoldGraph,
 #else
   LeastSquaresGapEstimates(ScaffoldGraph, TRUE, FALSE, TRUE,
 			   CHECK_CONNECTIVITY, FALSE);
-#endif
-
-#ifdef DEBUG_BUCIS
-  if(markShakyBifurcations){
-    DumpScaffoldSnapshot("InitialScaffolds");
-  }
 #endif
 
   TidyUpScaffolds (ScaffoldGraph);
@@ -830,11 +808,6 @@ void BuildScaffoldsFromFirstPriniciples(ScaffoldGraphT *ScaffoldGraph,
     fprintf(GlobalData->timefp,"* Checkpoint %d, After Building Initial Unique CI Scaffolds and before Tidying up there are %d scaffolds\n",
             ScaffoldGraph->checkPointIteration,
             (int) GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph));
-    if(GlobalData->dumpScaffoldSnapshots){
-      char temp[2000];
-      sprintf(temp,"Rebuild%d",ScaffoldGraph->checkPointIteration);
-      DumpScaffoldSnapshot(temp);
-    }
     CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_AFTER_BUILDING_SCAFFOLDS);
   }
 
@@ -878,11 +851,6 @@ void BuildScaffoldsFromFirstPriniciples(ScaffoldGraphT *ScaffoldGraph,
           ctme = time(0);
           fprintf(GlobalData->timefp, "* After RebuildScaffolds Rocks %d there are %d scaffolds\n",
                   iter, (int)GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph));
-          if(GlobalData->dumpScaffoldSnapshots){
-            char temp[2000];
-            sprintf(temp,"Rebuild%d",ScaffoldGraph->checkPointIteration);
-            DumpScaffoldSnapshot(temp);
-          }
           CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_AFTER_BUILDING_SCAFFOLDS);
         }
 
@@ -901,11 +869,6 @@ void BuildScaffoldsFromFirstPriniciples(ScaffoldGraphT *ScaffoldGraph,
 
     fprintf(GlobalData->timefp,"* Checkpoint %d, After Gap Filling\n",
             ScaffoldGraph->checkPointIteration);
-    if(GlobalData->dumpScaffoldSnapshots){
-      char temp[2000];
-      sprintf(temp,"Rebuild%d",ScaffoldGraph->checkPointIteration);
-      DumpScaffoldSnapshot(temp);
-    }
     CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_AFTER_BUILDING_AND_CLEANING_SCAFFOLDS);
   }
 

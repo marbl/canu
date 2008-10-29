@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.15 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.16 2008-10-29 10:42:46 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -64,12 +64,6 @@ void PrintSEdgeT(FILE *fp, ScaffoldGraphT *graph, char *label, SEdgeT *edge, CDS
       strcpy(actualOverlap," *Bogus and Prob Bogus*");
     else
       strcpy(actualOverlap," *Bogus*");
-  }else if(scaffoldA->aEndCoord > 0 && scaffoldB->aEndCoord > 0){
-    actual = -IntervalsOverlap(scaffoldA->aEndCoord, scaffoldA->bEndCoord,
-                               scaffoldB->aEndCoord, scaffoldB->bEndCoord,-500000);
-    delta = edge->distance.mean - actual;
-    sprintf(actualOverlap,"actual = %d(%d) %s", actual,delta, "");
-    assert (strlen (actualOverlap) < LOG_LINE_LEN);
   }else
     *actualOverlap = '\0';
 

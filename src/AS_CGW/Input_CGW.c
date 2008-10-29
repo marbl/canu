@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.54 2008-10-29 06:34:30 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.55 2008-10-29 10:42:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -276,10 +276,6 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
   CI.offsetAEnd.variance = 0.0;
   CI.offsetBEnd = CI.bpLength;
 
-  CI.flags.bits.cgbType = UU_CGBTYPE;  //  Was "@@" == UU_CGBTYPE;
-  CI.aEndCoord          = 0;
-  CI.bEndCoord          = 0;
-
   if(ium_mesg->coverage_stat >= GlobalData->cgbUniqueCutoff){
     if(length < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH ||
        ium_mesg->num_frags < CGW_MIN_READS_IN_UNIQUE){
@@ -304,8 +300,6 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
 	  //fprintf(stderr,"* CI " F_CID " with astat: %g classified as repeat based on microhet unique prob of %g < %g\n",
           //        CI.id, ium_mesg->coverage_stat, CI.info.CI.microhetProb, GlobalData->cgbMicrohetProb);
 	  isUnique = FALSE;
-	  if(CI.flags.bits.cgbType == XX_CGBTYPE)
-	    CI.flags.bits.cgbType = RR_CGBTYPE;
 	  CI.type = UNRESOLVEDCHUNK_CGW;
 	}else{
 	  isUnique = TRUE;
@@ -332,13 +326,9 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
       ScaffoldGraph->numDiscriminatorUniqueCIs++;
       CI.flags.bits.isUnique = 1;
       CI.type = DISCRIMINATORUNIQUECHUNK_CGW;
-      if(CI.flags.bits.cgbType == XX_CGBTYPE)
-	CI.flags.bits.cgbType = UU_CGBTYPE;
     }else{
       CI.flags.bits.isUnique = 0;
       CI.type = UNRESOLVEDCHUNK_CGW;
-      if(CI.flags.bits.cgbType == XX_CGBTYPE)
-	CI.flags.bits.cgbType = RR_CGBTYPE;
     }
   }
 

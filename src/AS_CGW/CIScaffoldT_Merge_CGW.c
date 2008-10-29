@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.39 2008-10-29 06:34:30 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.40 2008-10-29 10:42:46 brianwalenz Exp $";
 
 
 #undef ORIG_MERGE_EDGE_INVERT
@@ -1008,7 +1008,6 @@ int FindScaffoldMerge(ScaffoldGraphT *graph, CIScaffoldT *scaffoldAnchor,
     int firstTargetB, numTargetsBestPathB, firstTargetBestPathB;
     int anchorNodeEnd = NO_END;
     ChunkOrient orientEndNodeAnchor, orientNewEndNodeMerge;
-    CDS_COORD_t *simCoordsWhere, *simCoordsPtr;
     CIScaffoldTIterator mergeNodes;
     NodeCGW_T *thisNode, *newEndNodeMerge;
     int numToMerge;
@@ -1030,17 +1029,11 @@ int FindScaffoldMerge(ScaffoldGraphT *graph, CIScaffoldT *scaffoldAnchor,
               sqrt(sortGapsPtr->gapSize.variance),
               sortGapsPtr->numToMerge);
     }
-    mergeTargetsA = (Target_Info_t *)safe_malloc(sortGapsPtr->numToMerge *
-                                                 sizeof(*mergeTargetsA));
-    AssertPtr(mergeTargetsA);
+    mergeTargetsA = (Target_Info_t *)safe_malloc(sortGapsPtr->numToMerge * sizeof(*mergeTargetsA));
     mergeTargetEndA = mergeTargetsA + sortGapsPtr->numToMerge;
-    mergeTargetsB = (Target_Info_t *)safe_malloc(sortGapsPtr->numToMerge *
-                                                 sizeof(*mergeTargetsB));
-    AssertPtr(mergeTargetsB);
+    mergeTargetsB = (Target_Info_t *)safe_malloc(sortGapsPtr->numToMerge * sizeof(*mergeTargetsB));
     mergeTargetEndB = mergeTargetsB + sortGapsPtr->numToMerge;
-    simCoordsWhere = (CDS_COORD_t *)safe_malloc(sortGapsPtr->numToMerge *
-                                                sizeof(*simCoordsWhere));
-    AssertPtr(simCoordsWhere);
+
     /* Try to find a path from the "A" side of the anchor scaffold
        gap to the merge scaffold end node. */
     orientEndNodeAnchor = GetNodeOrient(sortGapsPtr->nodeA);
@@ -1061,11 +1054,9 @@ int FindScaffoldMerge(ScaffoldGraphT *graph, CIScaffoldT *scaffoldAnchor,
                                   endNodeMerge->id,
                                   (orientMerge == A_B),
                                   FALSE, &mergeNodes);
-    for(numToMerge = sortGapsPtr->numToMerge,
-          mergeTargetPtrA = mergeTargetsA,
-          simCoordsPtr = simCoordsWhere;
-        numToMerge > 0; numToMerge--, mergeTargetPtrA++,
-          simCoordsPtr++){
+    for(numToMerge = sortGapsPtr->numToMerge, mergeTargetPtrA = mergeTargetsA;
+        numToMerge > 0;
+        numToMerge--, mergeTargetPtrA++){
       ChunkOrient orientThisNode;
       LengthT bpLength;
       if((thisNode = NextCIScaffoldTIterator(&mergeNodes)) == NULL)
@@ -1092,25 +1083,17 @@ int FindScaffoldMerge(ScaffoldGraphT *graph, CIScaffoldT *scaffoldAnchor,
         if(orientThisNode == A_B){
           mergeTargetPtrA->orient = AB_AB;
           anchorNodeEnd = B_END;
-          *simCoordsPtr = abs(thisNode->bEndCoord -
-                              (sortGapsPtr->nodeA)->bEndCoord);
         }else{
           mergeTargetPtrA->orient = AB_BA;
           anchorNodeEnd = B_END;
-          *simCoordsPtr = abs(thisNode->aEndCoord -
-                              (sortGapsPtr->nodeA)->bEndCoord);
         }
       }else{
         if(orientThisNode == A_B){
           mergeTargetPtrA->orient = BA_AB;
           anchorNodeEnd = A_END;
-          *simCoordsPtr = abs(thisNode->bEndCoord -
-                              (sortGapsPtr->nodeA)->aEndCoord);
         }else{
           mergeTargetPtrA->orient = BA_BA;
           anchorNodeEnd = A_END;
-          *simCoordsPtr = abs(thisNode->aEndCoord -
-                              (sortGapsPtr->nodeA)->aEndCoord);
         }
       }
       if(verbose){
@@ -1138,13 +1121,12 @@ int FindScaffoldMerge(ScaffoldGraphT *graph, CIScaffoldT *scaffoldAnchor,
           targetIndex != NULLINDEX;
           targetIndex = mergeTargetsA[targetIndex].next,
             expectedOrder++){
-        fprintf(GlobalData->stderrc, "ScafAnodeA:" F_CID "," F_CID ",%c ScafM:" F_CID "," F_CID ",%c %f(%d) %d\n",
+        fprintf(GlobalData->stderrc, "ScafAnodeA:" F_CID "," F_CID ",%c ScafM:" F_CID "," F_CID ",%c %f %d\n",
                 scaffoldAnchor->id, (sortGapsPtr->nodeA)->id,
                 orientEndNodeAnchor, scaffoldMerge->id,
                 mergeTargetsA[targetIndex].id,
                 mergeTargetsA[targetIndex].orient,
                 mergeTargetsA[targetIndex].where,
-                simCoordsWhere[targetIndex],
                 mergeTargetsA[targetIndex].found);
         mergeTargetsA[targetIndex].found = TRUE;
         if(expectedOrder != targetIndex){
@@ -1222,11 +1204,9 @@ int FindScaffoldMerge(ScaffoldGraphT *graph, CIScaffoldT *scaffoldAnchor,
                                     endNodeMerge->id,
                                     (orientMerge == A_B),
                                     FALSE, &mergeNodes);
-      for(numToMerge = sortGapsPtr->numToMerge,
-            mergeTargetPtrB = mergeTargetsB,
-            simCoordsPtr = simCoordsWhere;
-          numToMerge > 0; numToMerge--, mergeTargetPtrB++,
-            simCoordsPtr++){
+      for(numToMerge = sortGapsPtr->numToMerge, mergeTargetPtrB = mergeTargetsB;
+          numToMerge > 0;
+          numToMerge--, mergeTargetPtrB++){
         ChunkOrient orientThisNode;
         LengthT bpLength;
         if((thisNode = NextCIScaffoldTIterator(&mergeNodes)) == NULL)
@@ -1255,25 +1235,17 @@ int FindScaffoldMerge(ScaffoldGraphT *graph, CIScaffoldT *scaffoldAnchor,
           if(orientThisNode == A_B){
             mergeTargetPtrB->orient = AB_AB;
             anchorNodeEnd = B_END;
-            *simCoordsPtr = abs(thisNode->bEndCoord -
-                                (sortGapsPtr->nodeB)->bEndCoord);
           }else{
             mergeTargetPtrB->orient = AB_BA;
             anchorNodeEnd = B_END;
-            *simCoordsPtr = abs(thisNode->aEndCoord -
-                                (sortGapsPtr->nodeB)->bEndCoord);
           }
         }else{
           if(orientThisNode == A_B){
             mergeTargetPtrB->orient = BA_AB;
             anchorNodeEnd = A_END;
-            *simCoordsPtr = abs(thisNode->bEndCoord -
-                                (sortGapsPtr->nodeB)->aEndCoord);
           }else{
             mergeTargetPtrB->orient = BA_BA;
             anchorNodeEnd = A_END;
-            *simCoordsPtr = abs(thisNode->aEndCoord -
-                                (sortGapsPtr->nodeB)->aEndCoord);
           }
         }
         if(verbose){
@@ -1302,13 +1274,12 @@ int FindScaffoldMerge(ScaffoldGraphT *graph, CIScaffoldT *scaffoldAnchor,
             targetIndex != NULLINDEX;
             targetIndex = mergeTargetsB[targetIndex].next,
               expectedOrder--){
-          fprintf(GlobalData->stderrc, "ScafAnodeB:" F_CID "," F_CID ",%c ScafM:" F_CID "," F_CID ",%c %f(%d) %d\n",
+          fprintf(GlobalData->stderrc, "ScafAnodeB:" F_CID "," F_CID ",%c ScafM:" F_CID "," F_CID ",%c %f %d\n",
                   scaffoldAnchor->id, (sortGapsPtr->nodeB)->id,
                   orientEndNodeAnchor, scaffoldMerge->id,
                   mergeTargetsB[targetIndex].id,
                   mergeTargetsB[targetIndex].orient,
                   mergeTargetsB[targetIndex].where,
-                  simCoordsWhere[targetIndex],
                   mergeTargetsB[targetIndex].found);
           mergeTargetsB[targetIndex].found = TRUE;
           if(expectedOrder != targetIndex){
@@ -1365,7 +1336,6 @@ int FindScaffoldMerge(ScaffoldGraphT *graph, CIScaffoldT *scaffoldAnchor,
 
     safe_free(mergeTargetsA);
     safe_free(mergeTargetsB);
-    safe_free(simCoordsWhere);
     if(!FoundPathToEndNodeMerge){
       if(verbose){
         fprintf(GlobalData->stderrc, "Did not find a path to the end node.\n");
@@ -4626,7 +4596,6 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
       newScaffoldID = CIScaffold.id = GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph);
 
       CIScaffold.flags.bits.isDead = FALSE;
-      CIScaffold.aEndCoord = CIScaffold.bEndCoord = -1;
       CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
       CIScaffold.essentialEdgeB = CIScaffold.essentialEdgeA = NULLINDEX;
       CIScaffold.setID = NULLINDEX;
@@ -5134,13 +5103,6 @@ int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
     fflush(GlobalData->stderrc);
 
     iterations++;
-
-    if(verbose){
-      char buffer[2048];
-      sprintf(buffer,"MSA_%d", iterations);
-      CelamyAssembly(buffer);
-      CelamyCIScaffolds(buffer, ScaffoldGraph);
-    }
 
     //  Initially & periodically build scaffold edges from scratch --
     //  assumes that buildEdgeCounter is initialized to -1.  When

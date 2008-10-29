@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.62 2008-10-29 06:34:30 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.63 2008-10-29 10:42:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -976,106 +976,7 @@ void PrintGraphEdge(FILE *fp, GraphCGW_T *graph,
       strcpy(actualOverlap," *Bogus and Prob Bogus*");
     else
       strcpy(actualOverlap," *Bogus*");
-  }else if(ChunkInstanceA->aEndCoord > 0 && ChunkInstanceB->aEndCoord > 0){
-    ChunkInstanceT *containing, *contained;
-    int aContainsB = FALSE, bContainsA= FALSE;
-    if(edge->flags.bits.bContainsA || (-edge->distance.mean) > ChunkInstanceA->bpLength.mean){
-      bContainsA = TRUE;
-    }
-    if(edge->flags.bits.aContainsB || (-edge->distance.mean) > ChunkInstanceB->bpLength.mean){
-      aContainsB = TRUE;
-    }
-
-    if(aContainsB || bContainsA){
-      if(aContainsB){
-	containing = ChunkInstanceA;
-	contained = ChunkInstanceB;
-
-	switch(edge->orient){
-          case AB_AB:
-            //     ------------------------>
-            //            =======>----------
-            //            |----------------|
-            // distance between A end of contained and B end of containing
-            actual = -abs(containing->bEndCoord - contained->aEndCoord);
-            break;
-
-          case BA_BA:
-            //     ------------------------>
-            //     ------=======>
-            //     |------------|
-            // distance between A end of containing and B end of contained
-            actual = -abs(containing->aEndCoord - contained->bEndCoord);
-            break;
-          case AB_BA:
-            //     ------------------------>
-            //            <========--------
-            //            |----------------|
-            // distance between B end of containing and B end of contained
-            actual = -abs(containing->bEndCoord - contained->bEndCoord);
-            break;
-          case BA_AB:
-            //     <-----------------------
-            //             =======>--------
-            //            |----------------|
-            // distance between A end of containing and A end of contained
-            actual = -abs(containing->aEndCoord - contained->aEndCoord);
-            break;
-          default:
-            assert(0);
-            break;
-	}
-
-      }else{
-	contained = ChunkInstanceA;
-	containing = ChunkInstanceB;
-	switch(edge->orient){
-          case AB_AB:
-            //     ------------------------>
-            //     ------=======>
-            //     |------------|
-            // distance between A end of containing and B end of contained
-            actual = -abs(containing->aEndCoord - contained->bEndCoord);
-            break;
-
-          case BA_BA:
-            //     ------------------------>
-            //            =======>----------
-            //            |----------------|
-            // distance between A end of contained and B end of containing
-            actual = -abs(containing->bEndCoord - contained->aEndCoord);
-            break;
-          case AB_BA:
-            //     ------------------------>
-            //            <========--------
-            //            |----------------|
-            // distance between B end of containing and B end of contained
-            actual = -abs(containing->bEndCoord - contained->bEndCoord);
-            break;
-          case BA_AB:
-            //     <-----------------------
-            //             =======>--------
-            //            |----------------|
-            // distance between A end of containing and A end of contained
-            actual = -abs(containing->aEndCoord - contained->aEndCoord);
-            break;
-          default:
-            assert(0);
-            break;
-	}
-      }
-    }else{
-      actual = -IntervalsOverlap(ChunkInstanceA->aEndCoord,
-                                 ChunkInstanceA->bEndCoord,
-				 ChunkInstanceB->aEndCoord,
-                                 ChunkInstanceB->bEndCoord,-500000);
-    }
-    delta = edge->distance.mean - actual;
-    if(actual != 0)
-      sprintf(actualOverlap,"actual = " F_COORD "(" F_COORD ") %s",
-              actual,delta, (edge->flags.bits.isProbablyBogus?"*PB*":""));
   }
-
   strcpy(flagbuf,"");
   if(edge->flags.bits.hasContributingOverlap){
     if(edge->flags.bits.isPossibleChimera)
@@ -1160,108 +1061,7 @@ void PrintContigEdgeInScfContext(FILE *fp, GraphCGW_T *graph,
       strcpy(actualOverlap," *Bogus and Prob Bogus*");
     else
       strcpy(actualOverlap," *Bogus*");
-  }else if(ChunkInstanceA->aEndCoord > 0 && ChunkInstanceB->aEndCoord > 0){
-    ChunkInstanceT *containing, *contained;
-    int aContainsB = FALSE, bContainsA= FALSE;
-    if(edge->flags.bits.bContainsA ||
-       (-edge->distance.mean) > ChunkInstanceA->bpLength.mean){
-      bContainsA = TRUE;
-    }
-    if(edge->flags.bits.aContainsB ||
-       (-edge->distance.mean) > ChunkInstanceB->bpLength.mean){
-      aContainsB = TRUE;
-    }
-
-    if(aContainsB || bContainsA){
-      if(aContainsB){
-	containing = ChunkInstanceA;
-	contained = ChunkInstanceB;
-
-	switch(edge->orient){
-          case AB_AB:
-            //     ------------------------>
-            //            =======>----------
-            //            |----------------|
-            // distance between A end of contained and B end of containing
-            actual = -abs(containing->bEndCoord - contained->aEndCoord);
-            break;
-
-          case BA_BA:
-            //     ------------------------>
-            //     ------=======>
-            //     |------------|
-            // distance between A end of containing and B end of contained
-            actual = -abs(containing->aEndCoord - contained->bEndCoord);
-            break;
-          case AB_BA:
-            //     ------------------------>
-            //            <========--------
-            //            |----------------|
-            // distance between B end of containing and B end of contained
-            actual = -abs(containing->bEndCoord - contained->bEndCoord);
-            break;
-          case BA_AB:
-            //     <-----------------------
-            //             =======>--------
-            //            |----------------|
-            // distance between A end of containing and A end of contained
-            actual = -abs(containing->aEndCoord - contained->aEndCoord);
-            break;
-          default:
-            assert(0);
-            break;
-	}
-
-      }else{
-	contained = ChunkInstanceA;
-	containing = ChunkInstanceB;
-	switch(edge->orient){
-          case AB_AB:
-            //     ------------------------>
-            //     ------=======>
-            //     |------------|
-            // distance between A end of containing and B end of contained
-            actual = -abs(containing->aEndCoord - contained->bEndCoord);
-            break;
-
-          case BA_BA:
-            //     ------------------------>
-            //            =======>----------
-            //            |----------------|
-            // distance between A end of contained and B end of containing
-            actual = -abs(containing->bEndCoord - contained->aEndCoord);
-            break;
-          case AB_BA:
-            //     ------------------------>
-            //            <========--------
-            //            |----------------|
-            // distance between B end of containing and B end of contained
-            actual = -abs(containing->bEndCoord - contained->bEndCoord);
-            break;
-          case BA_AB:
-            //     <-----------------------
-            //             =======>--------
-            //            |----------------|
-            // distance between A end of containing and A end of contained
-            actual = -abs(containing->aEndCoord - contained->aEndCoord);
-            break;
-          default:
-            assert(0);
-            break;
-	}
-      }
-    }else{
-      actual = -IntervalsOverlap(ChunkInstanceA->aEndCoord,
-                                 ChunkInstanceA->bEndCoord,
-				 ChunkInstanceB->aEndCoord,
-                                 ChunkInstanceB->bEndCoord,-500000);
-    }
-    delta = edge->distance.mean - actual;
-    if(actual != 0)
-      sprintf(actualOverlap,"actual = " F_COORD "(" F_COORD ") %s",
-              actual,delta, (edge->flags.bits.isProbablyBogus?"*PB*":""));
   }
-
   strcpy(flagbuf,"");
   if(edge->flags.bits.hasContributingOverlap){
     if(edge->flags.bits.isPossibleChimera)
@@ -2869,10 +2669,6 @@ CDS_CID_t SplitUnresolvedCI(GraphCGW_T *graph,
   assert(graph->type == CI_GRAPH);
   assert(node->flags.bits.isCI);
 
-  /* FOR NOW...we should recalc this from the fragments */
-  newNode->aEndCoord = node->aEndCoord;
-  newNode->bEndCoord = node->bEndCoord;
-
   newNode->offsetAEnd = node->offsetAEnd;
   newNode->offsetBEnd = node->offsetBEnd;
   newNode->flags = node->flags;
@@ -3067,9 +2863,6 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T *graph,
     assert(newCI->bpLength.mean == newLength);
   }
 
-
-  newNode->aEndCoord = node->aEndCoord;
-  newNode->bEndCoord = node->bEndCoord;
 
   newNode->flags = node->flags;
   newNode->flags.bits.isSurrogate = TRUE;

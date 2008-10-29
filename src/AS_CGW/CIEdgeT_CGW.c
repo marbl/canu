@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIEdgeT_CGW.c,v 1.16 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: CIEdgeT_CGW.c,v 1.17 2008-10-29 10:42:46 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -44,7 +44,6 @@ static char *rcsid = "$Id: CIEdgeT_CGW.c,v 1.16 2008-10-08 22:02:55 brianwalenz 
 void PrintCIEdgeT(FILE *fp, ScaffoldGraphT *graph,
                   char *label, CIEdgeT *edge, CDS_CID_t cid){
   char actualOverlap[256];
-  CDS_COORD_t actual = 0;
   CDS_COORD_t delta = 0;
   char *flag = "  ", *flagTrans = "  ";
   ChunkInstanceT *ChunkInstanceA =
@@ -61,15 +60,6 @@ void PrintCIEdgeT(FILE *fp, ScaffoldGraphT *graph,
       strcpy(actualOverlap," *Bogus and Prob Bogus*");
     else
       strcpy(actualOverlap," *Bogus*");
-  }else if(ChunkInstanceA->aEndCoord > 0 && ChunkInstanceB->aEndCoord > 0){
-    actual = -IntervalsOverlap(ChunkInstanceA->aEndCoord,
-                               ChunkInstanceA->bEndCoord,
-                               ChunkInstanceB->aEndCoord,
-                               ChunkInstanceB->bEndCoord,-500000);
-    delta = edge->distance.mean - actual;
-    if(actual != 0)
-      sprintf(actualOverlap,"actual = " F_COORD "(" F_COORD ") %s",
-              actual,delta, (edge->flags.bits.isProbablyBogus?"*PB*":""));
   }
 
   if(edge->flags.bits.hasContributingOverlap){
@@ -114,12 +104,11 @@ void PrintCIEdgeT(FILE *fp, ScaffoldGraphT *graph,
 
 void PrintChunkInstanceHeader(FILE *stream, ScaffoldGraphT *graph,
                               ChunkInstanceT *chunk){
-  fprintf(stream,"\n* CI " F_CID " cov:%d len:%d frags:%d interval: [" F_COORD "," F_COORD "]\n",
+  fprintf(stream,"\n* CI " F_CID " cov:%d len:%d frags:%d\n",
           chunk->id,
           chunk->info.CI.coverageStat,
           (int)chunk->bpLength.mean,
-          chunk->info.CI.numFragments,
-          chunk->aEndCoord, chunk->bEndCoord);
+          chunk->info.CI.numFragments);
 }
 
 
@@ -216,7 +205,6 @@ int CheckImplicitOverlaps_(GraphCGW_T *graph, CDS_CID_t cid, int end){
 
   while(NULL != (source = NextGraphEdgeIterator(&sources))){
     ChunkInstanceT *sourceChunk = GetGraphNode(graph, source->idB);
-    CDS_COORD_t actual;
     GraphEdgeIterator targets = sources;
     while(NULL != (target = NextGraphEdgeIterator(&targets))){
       ChunkInstanceT *targetChunk = GetGraphNode(graph, target->idB);
@@ -233,13 +221,6 @@ int CheckImplicitOverlaps_(GraphCGW_T *graph, CDS_CID_t cid, int end){
       // Only look unique to unique
       if(!targetChunk->flags.bits.isUnique)
         continue;
-
-      {
-        actual = IntervalsOverlap(sourceChunk->aEndCoord,
-                                  sourceChunk->bEndCoord,
-                                  targetChunk->aEndCoord,
-                                  targetChunk->bEndCoord,-100000);
-      }
 
       seedSource = source->distance;
       seedTarget = target->distance;
@@ -310,9 +291,9 @@ int CheckImplicitOverlaps_(GraphCGW_T *graph, CDS_CID_t cid, int end){
           if(overlapCheckFound)
             continue;
 
-          fprintf(stderr,"** Found an implied potential overlap (" F_CID "," F_CID ") min:" F_COORD " max:" F_COORD " actual:" F_COORD "\n",
+          fprintf(stderr,"** Found an implied potential overlap (" F_CID "," F_CID ") min:" F_COORD " max:" F_COORD "\n",
                   sourceCid, targetCid,
-                  minOverlap, maxOverlap, actual);
+                  minOverlap, maxOverlap);
 
           assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
 

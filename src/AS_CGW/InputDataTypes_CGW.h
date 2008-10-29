@@ -22,7 +22,7 @@
 #ifndef INPUTDATATYPES_CGW_H
 #define INPUTDATATYPES_CGW_H
 
-static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id: InputDataTypes_CGW.h,v 1.17 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id: InputDataTypes_CGW.h,v 1.18 2008-10-29 10:42:46 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -38,11 +38,6 @@ void ComputeIntervalLength(LengthT *result,
 			   LengthT *aEndA, LengthT *bEndA,
 			   LengthT *aEndB, LengthT *bEndB);
 
-
-// Do the arithmetic and stats on a pair of LengthTs
-// If resulting variance is negative assert
-void ComputeLength(LengthT *result,
-		   LengthT *length1, LengthT *length2);
 
 
 typedef enum {X_X = 'X', A_B = 'F', B_A = 'R'} FragOrient;

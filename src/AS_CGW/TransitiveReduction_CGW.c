@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.20 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.21 2008-10-29 10:42:46 brianwalenz Exp $";
 
 // This file contains the code for computing the candidate
 // chunks of scaffolds.
@@ -2421,7 +2421,6 @@ void ActuallyInsertCIsIntoScaffolds(CDS_CID_t *currentScaffoldID,  int verbose)
     CIScaffold.bpLength = NullLength;
     thisCI->scaffoldID = CIScaffold.id = *currentScaffoldID;
     CIScaffold.flags.bits.isDead = FALSE;
-    CIScaffold.aEndCoord = CIScaffold.bEndCoord = -1;
     CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
     CIScaffold.essentialEdgeB = CIScaffold.essentialEdgeA = NULLINDEX;
     AppendCIScaffoldT(ScaffoldGraph->CIScaffolds, &CIScaffold);

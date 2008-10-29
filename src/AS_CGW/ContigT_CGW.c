@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ContigT_CGW.c,v 1.19 2008-10-29 06:34:30 brianwalenz Exp $";
+static char *rcsid = "$Id: ContigT_CGW.c,v 1.20 2008-10-29 10:42:46 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_EDGES
@@ -253,11 +253,9 @@ void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw){
   if(raw)
     flags |= GRAPH_EDGE_RAW_ONLY;
 
-  fprintf(stream, "* Contig " F_CID " sc:" F_CID " [" F_COORD "," F_COORD "] aoff:%d boff:%d ANext:" F_CID " BNext:" F_CID " len:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
+  fprintf(stream, "* Contig " F_CID " sc:" F_CID " aoff:%d boff:%d ANext:" F_CID " BNext:" F_CID " len:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
           contig->id,
           contig->scaffoldID,
-          contig->aEndCoord,
-          contig->bEndCoord,
           (int)contig->offsetAEnd.mean,
           (int)contig->offsetBEnd.mean,
           contig->AEndNext, contig->BEndNext,
@@ -267,10 +265,8 @@ void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw){
           contig->info.Contig.numCI);
 
 #ifdef DEBUG_CONTIG
-  fprintf(stderr, "* Contig " F_CID " [" F_COORD "," F_COORD "] ANext:" F_CID " BNext:" F_CID " length:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
+  fprintf(stderr, "* Contig " F_CID " ANext:" F_CID " BNext:" F_CID " length:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
           contig->id,
-          contig->aEndCoord,
-          contig->bEndCoord,
           contig->AEndNext, contig->BEndNext, (int)contig->bpLength.mean,
           contig->info.Contig.AEndCI,
           contig->info.Contig.BEndCI,
@@ -282,12 +278,10 @@ void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw){
   while((CI = NextContigTIterator(&CIs)) != NULL){
     int isSurrogate = IsSurrogateNode(CI);
     numCI++;
-    fprintf(stream,"\t%c:" F_CID " cov:%d [" F_COORD "," F_COORD "] aoff:%d boff:%d anxt:" F_CID " bnxt:" F_CID " ctg:" F_CID " scf:" F_CID "\n",
+    fprintf(stream,"\t%c:" F_CID " cov:%d aoff:%d boff:%d anxt:" F_CID " bnxt:" F_CID " ctg:" F_CID " scf:" F_CID "\n",
             (isSurrogate?'s':'u'),
             CI->id,
             CI->info.CI.coverageStat,
-            CI->aEndCoord,
-            CI->bEndCoord,
             (int)CI->offsetAEnd.mean,
             (int)CI->offsetBEnd.mean,
             CI->AEndNext,
@@ -295,12 +289,10 @@ void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw){
             CI->info.CI.contigID,
             CI->scaffoldID);
 #ifdef DEBUG_CONTIG
-    fprintf(stderr,"\t%c:" F_CID " cov:%d [" F_COORD "," F_COORD "] aoff:%d boff:%d anxt:" F_CID " bnxt:" F_CID " ctg:" F_CID " scf:" F_CID "\n",
+    fprintf(stderr,"\t%c:" F_CID " cov:%d aoff:%d boff:%d anxt:" F_CID " bnxt:" F_CID " ctg:" F_CID " scf:" F_CID "\n",
             (isSurrogate?'s':'u'),
             CI->id,
             CI->info.CI.coverageStat,
-            CI->aEndCoord,
-            CI->bEndCoord,
             (int)CI->offsetAEnd.mean,
             (int)CI->offsetBEnd.mean,
             CI->AEndNext,
@@ -338,11 +330,9 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
   if(raw)
     flags |= GRAPH_EDGE_RAW_ONLY;
 
-  fprintf(stream, "* Contig " F_CID " sc:" F_CID " [" F_COORD "," F_COORD "] aoff:(%d,%e) boff:(%d,%e) ANext:" F_CID " BNext:" F_CID " len:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
+  fprintf(stream, "* Contig " F_CID " sc:" F_CID " aoff:(%d,%e) boff:(%d,%e) ANext:" F_CID " BNext:" F_CID " len:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
           contig->id,
           contig->scaffoldID,
-          contig->aEndCoord,
-          contig->bEndCoord,
           (int32)contig->offsetAEnd.mean,
           contig->offsetAEnd.variance,
           (int32)contig->offsetBEnd.mean,
@@ -354,10 +344,8 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
           contig->info.Contig.numCI);
 
 #ifdef DEBUG_CONTIG
-  fprintf(stderr, "* Contig " F_CID " [" F_COORD "," F_COORD "] ANext:" F_CID " BNext:" F_CID " length:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
+  fprintf(stderr, "* Contig " F_CID " ANext:" F_CID " BNext:" F_CID " length:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
           contig->id,
-          contig->aEndCoord,
-          contig->bEndCoord,
           contig->AEndNext, contig->BEndNext, (int)contig->bpLength.mean,
           contig->info.Contig.AEndCI,
           contig->info.Contig.BEndCI,
@@ -369,12 +357,10 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
   while((CI = NextContigTIterator(&CIs))!=NULL){
     int isSurrogate = IsSurrogateNode(CI);
     numCI++;
-    fprintf(stream,"\t%c:" F_CID " cov:%d [" F_COORD "," F_COORD "] aoff:(%d,%e) boff:(%d,%e) anxt:" F_CID " bnxt:" F_CID " ctg:" F_CID " scf:" F_CID "\n",
+    fprintf(stream,"\t%c:" F_CID " cov:%d aoff:(%d,%e) boff:(%d,%e) anxt:" F_CID " bnxt:" F_CID " ctg:" F_CID " scf:" F_CID "\n",
             (isSurrogate?'s':'u'),
             CI->id,
             CI->info.CI.coverageStat,
-            CI->aEndCoord,
-            CI->bEndCoord,
             (int)CI->offsetAEnd.mean,
             CI->offsetAEnd.variance,
             (int)CI->offsetBEnd.mean,
@@ -384,12 +370,10 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
             CI->info.CI.contigID,
             CI->scaffoldID);
 #ifdef DEBUG_CONTIG
-    fprintf(stderr,"\t%c:" F_CID " cov:%d [" F_COORD "," F_COORD "] aoff:%d boff:%d anxt:" F_CID " bnxt:" F_CID " ctg:" F_CID " scf:" F_CID "\n",
+    fprintf(stderr,"\t%c:" F_CID " cov:%d aoff:%d boff:%d anxt:" F_CID " bnxt:" F_CID " ctg:" F_CID " scf:" F_CID "\n",
             (isSurrogate?'s':'u'),
             CI->id,
             CI->info.CI.coverageStat,
-            CI->aEndCoord,
-            CI->bEndCoord,
             (int)CI->offsetAEnd.mean,
             (int)CI->offsetBEnd.mean,
             CI->AEndNext,
@@ -1050,198 +1034,6 @@ void SetContigScaffoldIds(ContigT *contig, CDS_CID_t scaffoldID){
   }
 }
 
-
-/****************************************************************************/
-void UpdateContigSimCoordinates(NodeCGW_T *contig){
-  ContigTIterator CIs;
-  ChunkInstanceT *CI;
-  CDS_CID_t maxID = NULLINDEX, minID = NULLINDEX;
-  int minEnd = NO_END, maxEnd = NO_END;
-  CDS_COORD_t min = CDS_COORD_MAX, max = CDS_COORD_MIN;
-  int invalid = FALSE;
-  int seenValid = FALSE;
-
-  contig->aEndCoord = contig->bEndCoord = -1;
-  contig->flags.bits.cgbType = RR_CGBTYPE;
-
-  //  fprintf(stderr,"* Computing Sim coordinates for contig " F_CID "\n",
-  //	  contig->id);
-
-  InitContigTIterator(ScaffoldGraph, contig->id, TRUE, FALSE, &CIs);
-  while((CI = NextContigTIterator(&CIs)) != NULL){
-    if(CI->flags.bits.cgbType != UU_CGBTYPE){
-      //      fprintf(stderr,"* CI " F_CID " is invalid ==> contig is invalid\n",
-      //	      CI->id);
-      invalid = TRUE;
-      if(contig->info.Contig.numCI > 1)
-	continue;
-    }
-    seenValid = TRUE;
-    /*      fprintf(stderr,"* CI " F_CID " offset[%f,%f] sim[" F_COORD "," F_COORD "]\n",
-            CI->id,
-            CI->offsetAEnd.mean, CI->offsetBEnd.mean,
-            CI->aEndCoord, CI->bEndCoord); */
-    assert(CI->offsetAEnd.mean != CI->offsetBEnd.mean);
-
-    if(CI->offsetAEnd.mean < CI->offsetBEnd.mean){
-      if(min > CI->offsetAEnd.mean){
-        minID = CI->id;
-        minEnd = A_END;
-        min = CI->offsetAEnd.mean;
-      }
-      if(max < CI->offsetBEnd.mean){
-        maxID = CI->id;
-        maxEnd = B_END;
-        max = CI->offsetBEnd.mean;
-      }
-    }else{
-      if(max < CI->offsetAEnd.mean){
-        maxID = CI->id;
-        maxEnd = A_END;
-        max = CI->offsetAEnd.mean;
-      }
-      if(min > CI->offsetBEnd.mean){
-        minID = CI->id;
-        min = CI->offsetBEnd.mean;
-        minEnd = B_END;
-      }
-    }
-  }
-
-  if(seenValid == FALSE){ // This contig has NO unique unitigs...pick the first unitig and use its coordinates
-    invalid = TRUE;
-    InitContigTIterator(ScaffoldGraph, contig->id, TRUE, FALSE, &CIs);
-    while((CI = NextContigTIterator(&CIs)) != NULL){
-      assert(CI->offsetAEnd.mean != CI->offsetBEnd.mean);
-
-      if(CI->offsetAEnd.mean < CI->offsetBEnd.mean){
-	if(min > CI->offsetAEnd.mean){
-	  minID = CI->id;
-	  minEnd = A_END;
-	  min = CI->offsetAEnd.mean;
-	}
-	if(max < CI->offsetBEnd.mean){
-	  maxID = CI->id;
-	  maxEnd = B_END;
-	  max = CI->offsetBEnd.mean;
-	}
-      }else{
-	if(max < CI->offsetAEnd.mean){
-	  maxID = CI->id;
-	  maxEnd = A_END;
-	  max = CI->offsetAEnd.mean;
-	}
-	if(min > CI->offsetBEnd.mean){
-	  minID = CI->id;
-	  min = CI->offsetBEnd.mean;
-	  minEnd = B_END;
-	}
-      }
-      break;
-    }
-
-  }
-  /*  fprintf(stderr,"* MinID = " F_CID " MinEnd = %c   MaxID = " F_CID " MaxEnd = %c\n",
-      minID, (minEnd == A_END? 'A':'B'),
-      maxID, (maxEnd == A_END? 'A':'B')); */
-
-  contig->flags.bits.cgbType = (invalid? RR_CGBTYPE: UU_CGBTYPE);
-  assert(maxID != NULLINDEX && minID != NULLINDEX);
-
-  {
-    NodeCGW_T *unitig = GetGraphNode(ScaffoldGraph->CIGraph, minID);
-    if(minEnd == A_END)
-      contig->aEndCoord = unitig->aEndCoord;
-    else
-      contig->aEndCoord = unitig->bEndCoord;
-  }
-
-  {
-    NodeCGW_T *unitig = GetGraphNode(ScaffoldGraph->CIGraph, maxID);
-    if(maxEnd == A_END)
-      contig->bEndCoord = unitig->aEndCoord;
-    else
-      contig->bEndCoord = unitig->bEndCoord;
-  }
-
-
-  /*  fprintf(stderr,"* MinID = " F_CID " MinEnd = %c   MaxID = " F_CID " MaxEnd = %c [" F_COORD "," F_COORD "]\n",
-      minID, (minEnd == A_END? 'A':'B'),
-      maxID, (maxEnd == A_END? 'A':'B'),
-      contig->aEndCoord, contig->bEndCoord);
-      fprintf(stderr,"* Contig " F_CID " computed sim coordinates [" F_COORD "," F_COORD "]\n",
-      contig->id,
-      contig->aEndCoord, contig->bEndCoord);
-  */
-}
-
-
-/***************************************************************************/
-void UpdateScaffoldSimCoordinates(NodeCGW_T *scaffold){
-  CIScaffoldTIterator Contigs;
-  ContigT *CI;
-  CDS_CID_t maxID = NULLINDEX, minID = NULLINDEX;
-  int minEnd = NO_END, maxEnd = NO_END;
-  CDS_COORD_t min = CDS_COORD_MAX, max = CDS_COORD_MIN;
-  int invalid = TRUE;
-
-  scaffold->aEndCoord = scaffold->bEndCoord = -1;
-  scaffold->flags.bits.cgbType = RR_CGBTYPE;
-
-
-  InitCIScaffoldTIterator(ScaffoldGraph,
-                          scaffold,
-                          TRUE,
-                          FALSE,
-                          &Contigs);
-  while((CI = NextCIScaffoldTIterator(&Contigs)) != NULL){
-    if(CI->flags.bits.cgbType == UU_CGBTYPE){
-      if(CI->offsetAEnd.mean < CI->offsetBEnd.mean){
-	if(min > CI->offsetAEnd.mean){
-	  minID = CI->id;
-	  minEnd = A_END;
-	  min = CI->offsetAEnd.mean;
-	}
-	if(max < CI->offsetBEnd.mean){
-	  maxID = CI->id;
-	  maxEnd = B_END;
-	  max = CI->offsetBEnd.mean;
-	}
-      }else{
-	if(max < CI->offsetAEnd.mean){
-	  maxID = CI->id;
-	  maxEnd = A_END;
-	  max = CI->offsetAEnd.mean;
-	}
-	if(min > CI->offsetBEnd.mean){
-	  minID = CI->id;
-	  min = CI->offsetBEnd.mean;
-	  minEnd = B_END;
-	}
-      }
-    }else{
-      invalid = TRUE;
-    }
-  }
-
-  scaffold->flags.bits.cgbType = (invalid? RR_CGBTYPE: UU_CGBTYPE);
-
-  if(minID != NULLINDEX){
-    NodeCGW_T *contig = GetGraphNode(ScaffoldGraph->RezGraph, minID);
-    if(minEnd == A_END)
-      scaffold->aEndCoord = contig->aEndCoord;
-    else
-      scaffold->aEndCoord = contig->bEndCoord;
-  }
-
-  if(maxID != NULLINDEX){
-    NodeCGW_T *contig = GetGraphNode(ScaffoldGraph->RezGraph, maxID);
-    if(maxEnd == A_END)
-      contig->bEndCoord = contig->aEndCoord;
-    else
-      contig->bEndCoord = contig->bEndCoord;
-  }
-}
 
 
 void CheckAllContigFragments(void){

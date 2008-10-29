@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: SplitScaffolds_CGW.c,v 1.12 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitScaffolds_CGW.c,v 1.13 2008-10-29 10:42:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -101,7 +101,6 @@ void SplitScaffolds(ScaffoldGraphT *graph){
       CIScaffold.bpLength = NullLength;
       newScaffoldID = CIScaffold.id = GetNumGraphNodes(graph->ScaffoldGraph);
       CIScaffold.flags.bits.isDead = FALSE;
-      CIScaffold.aEndCoord = CIScaffold.bEndCoord = -1;
       CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
       CIScaffold.essentialEdgeB = CIScaffold.essentialEdgeA = NULLINDEX;
       AppendGraphNode(graph->ScaffoldGraph, &CIScaffold);

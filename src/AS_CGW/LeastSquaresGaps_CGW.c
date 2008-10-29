@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.28 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.29 2008-10-29 10:42:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1505,7 +1505,6 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
         prevCI = thisCI, prevLeftEnd = thisLeftEnd,
           prevRightEnd = thisRightEnd, gapPtr++, gapVarPtr++){
       LengthT gapDistance;
-      CDS_COORD_t realDistance;
 
       if(GetNodeOrient(thisCI) == A_B){
         thisLeftEnd = &(thisCI->offsetAEnd);
@@ -1545,22 +1544,9 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
       if (debug.recomputeOffsetsVerboseLV > 1)
         fprintf(stderr, "New %f,%f\n",
                 thisLeftEnd->mean, sqrt(thisLeftEnd->variance));
-      if(GetNodeOrient(thisCI) == A_B){
-        if(GetNodeOrient(prevCI) == A_B){
-          realDistance = thisCI->aEndCoord - prevCI->bEndCoord;
-        }else{//GetNodeOrient(prevCI) == B_A
-          realDistance = thisCI->aEndCoord - prevCI->aEndCoord;
-        }
-      }else{//GetNodeOrient(thisCI) == B_A
-        if(GetNodeOrient(prevCI) == A_B){
-          realDistance = thisCI->bEndCoord - prevCI->bEndCoord;
-        }else{//GetNodeOrient(prevCI) == B_A
-          realDistance = thisCI->bEndCoord - prevCI->aEndCoord;
-        }
-      }
       if (debug.recomputeOffsetsVerboseLV > 1)
-        fprintf(stderr, "Old %f New %f Real " F_COORD " StdDev %f,%f\n",
-                gapDistance.mean, *gapPtr, realDistance,
+        fprintf(stderr, "Old %f New %f StdDev %f,%f\n",
+                gapDistance.mean, *gapPtr,
                 sqrt(gapDistance.variance), sqrt(*gapVarPtr));
 
     }

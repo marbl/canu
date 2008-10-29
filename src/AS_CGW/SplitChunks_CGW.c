@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.32 2008-10-29 06:34:30 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.33 2008-10-29 10:42:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -854,8 +854,7 @@ StoreIUMStruct(ScaffoldGraphT *graph,
                IUMStruct *is,
                int isUnitig,
                UnitigStatus status,
-               float egfar,
-               int cgbType) {
+               float egfar) {
   int i;
   int32 rho = 0;
 
@@ -997,8 +996,6 @@ StoreIUMStruct(ScaffoldGraphT *graph,
     ProcessIUM_ScaffoldGraph(&(is->ium), length, TRUE);
 
     ci = GetGraphNode((isUnitig ? graph->CIGraph : graph->ContigGraph), is->ium.iaccession);
-    ci->flags.bits.cgbType = cgbType;
-    ci->aEndCoord = ci->bEndCoord = 0;
 
     UpdateNodeFragments((isUnitig ? graph->CIGraph : graph->ContigGraph),
                         is->ium.iaccession,
@@ -1130,13 +1127,13 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
           // old bad & old good are done
           if(good->ium.num_frags > 0) {
             good->ium.unique_rept = AS_FORCED_NONE;
-            StoreIUMStruct(graph, good, isUnitig, AS_UNASSIGNED, egfar, ci->flags.bits.cgbType);
+            StoreIUMStruct(graph, good, isUnitig, AS_UNASSIGNED, egfar);
             ci = GetGraphNode(graph->CIGraph, ciID);
           }
 
           if(bad->ium.num_frags > 0) {
             bad->ium.unique_rept = AS_FORCED_NONE;
-            StoreIUMStruct(graph, bad, isUnitig, AS_UNASSIGNED, egfar, ci->flags.bits.cgbType);
+            StoreIUMStruct(graph, bad, isUnitig, AS_UNASSIGNED, egfar);
             ci = GetGraphNode(graph->CIGraph, ciID);
           }
 
@@ -1193,14 +1190,14 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
   // now make the last good chunk a chunk
   if(good->ium.num_frags > 0) {
     good->ium.unique_rept = AS_FORCED_NONE;
-    StoreIUMStruct(graph, good, isUnitig, AS_UNASSIGNED, egfar, ci->flags.bits.cgbType);
+    StoreIUMStruct(graph, good, isUnitig, AS_UNASSIGNED, egfar);
     ci = GetGraphNode(graph->CIGraph, ciID);
   }
 
   // if the last bad section went to the end, it's still here
   if(bad->ium.num_frags > 0) {
     bad->ium.unique_rept = AS_FORCED_NONE;
-    StoreIUMStruct(graph, bad, isUnitig, AS_UNASSIGNED, egfar, ci->flags.bits.cgbType);
+    StoreIUMStruct(graph, bad, isUnitig, AS_UNASSIGNED, egfar);
     ci = GetGraphNode(graph->CIGraph, ciID);
   }
 
