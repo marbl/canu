@@ -27,11 +27,10 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 LIB_SOURCES = 
 LIB_OBJECTS = $(LIB_SOURCES:.X=.o)
 
-SOURCES     = buildRefContigs.C buildRefUnitigs.C $(LIB_SOURCES)
-OBJECTS     = buildRefContigs.o buildRefUnitigs.o $(LIB_OBJECTS)
+SOURCES     = buildRefContigs.C $(LIB_SOURCES)
+OBJECTS     = buildRefContigs.o $(LIB_OBJECTS)
 
-CXX_PROGS = buildRefContigs \
-            buildRefUnitigs
+CXX_PROGS = buildRefContigs
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -39,4 +38,3 @@ all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
 buildRefContigs:    buildRefContigs.o  libCA.a
-buildRefUnitigs:    buildRefUnitigs.o  libCA.a
