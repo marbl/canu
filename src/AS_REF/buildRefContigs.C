@@ -19,11 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//
-//  ./wgs/Linux-amd64/bin/buildRefContigs -g testsanger/test.gkpStore -m testsanger/9-terminator/test.posmap.frgscf > dd
-//  ./wgs/Linux-amd64/bin/consensus -m -o dd.cns ./testsanger/test.gkpStore dd
-
-const char *mainid = "$Id: buildRefContigs.C,v 1.1 2008-10-29 10:50:28 brianwalenz Exp $";
+const char *mainid = "$Id: buildRefContigs.C,v 1.2 2008-10-30 04:49:44 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -41,10 +37,9 @@ extern "C" {
 #include "AS_PER_gkpStore.h"
 }
 
-#include "splitToWords.H"
-
 GateKeeperStore   *gkpStore = 0L;
 
+#include "splitToWords.H"
 #include "refAlignment.H"
 
 fragmentData    *frg    = 0L;
@@ -113,32 +108,63 @@ static
 void
 loadFragments(void) {
   fragRecord  fr;
+  uint32      err=0, alive=0, dead=0, unmapped=0;
 
   frgLen = getNumGateKeeperFragments(gkpStore) + 1;
   frg    = (fragmentData *)safe_calloc(frgLen, sizeof(fragmentData));
 
   memset(frg, 0, sizeof(fragmentData) * frgLen);
 
+  //  Load the fragment data.  Set the mappingDataIndex to an invalid
+  //  value, we'll set the real value in the loop after this.
+
   for (uint32 i=1; i<frgLen; i++) {
     getFrag(gkpStore, i, &fr, FRAG_S_INF);
 
-    frg[i].fragUID    = getFragRecordUID(&fr);
-    frg[i].mateIID    = getFragRecordMateIID(&fr);
-    frg[i].libraryIID = getFragRecordLibraryIID(&fr);
+    if (getFragRecordIsDeleted(&fr)) {
+      dead++;
+      frg[i].fragUID    = AS_UID_undefined();
+      frg[i].mateIID    = 0;
+      frg[i].libraryIID = 0;
+    } else {
+      alive++;
+      frg[i].fragUID    = getFragRecordUID(&fr);
+      frg[i].mateIID    = getFragRecordMateIID(&fr);
+      frg[i].libraryIID = getFragRecordLibraryIID(&fr);
+    }
 
     frg[i].mappingDataIndex = aliLen;
   }
 
-  for (uint32 i=0; i<aliLen; i++) {
+  //  For each mapping, get the read IID, and update the
+  //  mappingDataIndex pointer from the fragment data to the mapping
+  //  data.
+  //
+  //  aliLen-1 since the last thing is a sentinel end of list marker,
+  //  not a real alignment.
+
+  unmapped = alive;
+
+  for (uint32 i=0; i<aliLen-1; i++) {
     uint32  iid = ali[i].frgIID;
 
-    if (frg[iid].mappingDataIndex != aliLen) {
+    if (AS_UID_compare(frg[iid].fragUID, AS_UID_undefined()) == 0)
+      fprintf(stderr, "ERROR:  Fragment %s,%d is deleted in gkpStore, but used in the mapping.\n",
+              AS_UID_toString(frg[iid].fragUID), iid), err++;
+
+    if (frg[iid].mappingDataIndex != aliLen)
       fprintf(stderr, "ERROR:  Fragment %s,%d appears more than once in the mapping.\n",
-              AS_UID_toString(frg[iid].fragUID), iid);
-    }
+              AS_UID_toString(frg[iid].fragUID), iid), err++;
+
+    unmapped--;
 
     frg[iid].mappingDataIndex = i;
   }
+
+  if (err)
+    fprintf(stderr, "There were errors in the mapping.  Fail.\n"), exit(1);
+
+  fprintf(stderr, "Found "F_U32" alive, "F_U32" dead, and "F_U32" unmapped fragments.\n", alive, dead, unmapped);
 }
 
 
@@ -257,23 +283,30 @@ void
 outputFragments(void) {
   IntAugFragMesg     iaf;
   GenericMesg        pmesg;
+  uint32             num = 0;
 
   int i, m;
 
   for (i=1; i<frgLen; i++) {
-    m = frg[i].mateIID;
+    if (AS_UID_compare(frg[i].fragUID, AS_UID_undefined()) != 0) {
+      m = frg[i].mateIID;
 
-    iaf.iaccession    = i;
-    iaf.type          = AS_READ;
-    iaf.chaff         = 0;
-    iaf.clear_rng.bgn = -1;
-    iaf.clear_rng.end = -1;
-    iaf.mate_status   = UNASSIGNED_MATE;
+      iaf.iaccession    = i;
+      iaf.type          = AS_READ;
+      iaf.chaff         = 0;
+      iaf.clear_rng.bgn = -1;
+      iaf.clear_rng.end = -1;
+      iaf.mate_status   = UNASSIGNED_MATE;
 
-    pmesg.m = &iaf;
-    pmesg.t = MESG_IAF;
-    WriteProtoMesg_AS(stdout, &pmesg);
+      pmesg.m = &iaf;
+      pmesg.t = MESG_IAF;
+      WriteProtoMesg_AS(stdout, &pmesg);
+
+      num++;
+    }
   }
+
+  fprintf(stderr, "Wrote "F_U32" fragment messages.\n", num);
 }
 
 
@@ -282,6 +315,7 @@ void
 outputMates(void) {
   IntAugMatePairMesg iam;
   GenericMesg        pmesg;
+  uint32             num = 0;
 
   int i, m;
 
@@ -293,11 +327,18 @@ outputMates(void) {
       iam.fragment2     = m;
       iam.mate_status   = UNASSIGNED_MATE;
 
+      assert(AS_UID_compare(frg[i].fragUID, AS_UID_undefined()) != 0);
+      assert(AS_UID_compare(frg[m].fragUID, AS_UID_undefined()) != 0);
+
       pmesg.m = &iam;
       pmesg.t = MESG_IAM;
       WriteProtoMesg_AS(stdout, &pmesg);
+
+      num++;
     }
   }
+
+  fprintf(stderr, "Wrote "F_U32" mate pair messages.\n", num);
 }
 
 
@@ -309,6 +350,7 @@ outputUnitigs(void) {
   int             impMax = 128 * 1024;
   int             impLen = 0;
   IntMultiPos    *imp    = (IntMultiPos *)safe_malloc(impMax * sizeof(IntMultiPos));
+  uint32          num    = 0;
 
   uint32 iumId = 1;
 
@@ -338,6 +380,8 @@ outputUnitigs(void) {
       pmesg.t = MESG_IUM;
       WriteProtoMesg_AS(stdout, &pmesg);
 
+      num++;
+
       b = ali[i].refBgn;
       e = ali[i].refEnd;
       r = ali[i].refUID;
@@ -364,6 +408,8 @@ outputUnitigs(void) {
 
     impLen++;
   }
+
+  fprintf(stderr, "Wrote "F_U32" unitig messages.\n", num);
 }
 
 
@@ -385,6 +431,7 @@ outputContigs(void) {
   int             iupMax = 128 * 1024;
   int             iupLen = 0;
   IntUnitigPos   *iup    = (IntUnitigPos *)safe_malloc(iupMax * sizeof(IntUnitigPos));
+  uint32          num    = 0;
 
   uint32 icmId = 1;
 
@@ -425,6 +472,8 @@ outputContigs(void) {
       pmesg.t = MESG_ICM;
       WriteProtoMesg_AS(stdout, &pmesg);
 
+      num++;
+
       b = ali[i].refBgn;
       e = ali[i].refEnd;
       r = ali[i].refUID;
@@ -452,6 +501,8 @@ outputContigs(void) {
 
     impLen++;
   }
+
+  fprintf(stderr, "Wrote "F_U32" contig messages.\n", num);
 }
 
 
@@ -470,6 +521,7 @@ outputScaffolds(void) {
   int             icpMax = 128 * 1024;
   int             icpLen = 0;
   IntContigPairs *icp    = (IntContigPairs *)safe_malloc(icpMax * sizeof(IntContigPairs));
+  uint32          num    = 0;
 
   uint32 icmId = 1;
   uint32 isfId = 1;
@@ -521,6 +573,8 @@ outputScaffolds(void) {
         pmesg.t = MESG_ISF;
         WriteProtoMesg_AS(stdout, &pmesg);
 
+        num++;
+
         icpLen = 0;
       }
 
@@ -536,6 +590,8 @@ outputScaffolds(void) {
     if (e < ali[i].refEnd)
       e = ali[i].refEnd;
   }
+
+  fprintf(stderr, "Wrote "F_U32" scaffold messages.\n", num);
 }
 
 
@@ -548,19 +604,26 @@ outputScaffoldLinks(void) {
 
 int
 main(int argc, char **argv) {
-  char  *mappingFileName = 0L;
-  char  *gkpStoreName    = 0L;
+  char    *mappingFileName   = 0L;
+  char    *gkpStoreName      = 0L;
+  uint32   buildOnlyUnitigs  = 0;
 
   argc = AS_configure(argc, argv);
 
   int arg = 1;
   int err = 0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-g") == 0){
+    if        (strcmp(argv[arg], "-g") == 0) {
       gkpStoreName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-m") == 0){
+    } else if (strcmp(argv[arg], "-m") == 0) {
       mappingFileName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-U") == 0) {
+      buildOnlyUnitigs = 1;
+
+    } else if (strcmp(argv[arg], "-S") == 0) {
+      buildOnlyUnitigs = 0;
 
     } else {
       fprintf(stderr, "Invalid option: '%s'\n", argv[arg]);
@@ -569,8 +632,14 @@ main(int argc, char **argv) {
 
     arg++;
   }
-
   if ((err) || (gkpStoreName == 0L) || (mappingFileName == 0L)) {
+    fprintf(stderr, "usage: %s [-U | -S] -g gkpStore -m mapping\n", argv[0]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -g gkpStore\n");
+    fprintf(stderr, "  -m mapping\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -U             build unitigs, for input to cgw\n");
+    fprintf(stderr, "  -S             build scaffolds, for input to terminator\n");
     exit(1);
   }
 
@@ -581,15 +650,19 @@ main(int argc, char **argv) {
   readMapping(mappingFileName);
   loadFragments();
 
-  outputDistances();
-  outputFragments();
-  outputMates();
-  outputUnitigs();
-  outputUnitigLinks();
-  outputContigs();
-  outputContigLinks();
-  outputScaffolds();
-  outputScaffoldLinks();
+  if (buildOnlyUnitigs) {
+    outputUnitigs();
+  } else {
+    outputDistances();
+    outputFragments();
+    outputMates();
+    outputUnitigs();
+    outputUnitigLinks();
+    outputContigs();
+    outputContigLinks();
+    outputScaffolds();
+    outputScaffoldLinks();
+  }
 
   exit(0);
 }
