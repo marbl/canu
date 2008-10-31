@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.4 2008-10-29 10:53:25 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.5 2008-10-31 03:46:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,6 +73,7 @@ const char *mainid = "$Id: sffToCA.c,v 1.4 2008-10-29 10:53:25 brianwalenz Exp $
 #define NREAD_ALLOW    0
 #define NREAD_DISCARD  1
 #define NREAD_TRIM     2
+#define NREAD_ONLYN    3  //  Debug, see comments later
 #define NREAD_ERRR     9
 
 GateKeeperStore *gkpStore  = NULL;
@@ -639,6 +640,16 @@ removeLowQualityReads(void) {
     for (x=b; x<e; x++)
       if ((fr.seq[x] == 'n') || (fr.seq[x] == 'N'))
         break;
+
+    //  For debugging and other curious uses, remove reads that DO NOT
+    //  contain Ns.
+    if ((x == e) && (Nread == NREAD_ONLYN)) {
+      fr.gkfr.deleted = 1;
+      if (logFile)
+        fprintf(logFile, "Read '%s' DOES NOT contain an N.  Read deleted.\n",
+                AS_UID_toString(fr.gkfr.readUID));
+      setFrag(gkpStore, thisElem, &fr);
+    }
 
     if (x < e) {
       //  Found an N, do something.
@@ -1441,23 +1452,28 @@ main(int argc, char **argv) {
         clearTrim = TRIM_SOFT;
       else if (strcasecmp(argv[arg], "hard") == 0)
         clearTrim = TRIM_HARD;
-      else
+      else {
         clearTrim = TRIM_ERRR;
+        err++;
+      }
 
     } else if (strcmp(argv[arg], "-nread") == 0) {
       arg++;
 
-      if      (strcasecmp(argv[arg], "none") == 0)
+      if      (strcasecmp(argv[arg], "allow") == 0)
         Nread = NREAD_ALLOW;
-      else if (strcasecmp(argv[arg], "soft") == 0)
+      else if (strcasecmp(argv[arg], "discard") == 0)
         Nread = NREAD_DISCARD;
-      else if (strcasecmp(argv[arg], "hard") == 0) {
+      else if (strcasecmp(argv[arg], "trim") == 0) {
         Nread     = NREAD_TRIM;
         NreadTrim = atoi(argv[++arg]);
       }
-      else
+      else if (strcasecmp(argv[arg], "onlyn") == 0)
+        Nread = NREAD_ONLYN;
+      else {
         Nread = NREAD_ERRR;
-
+        err++;
+      }
 
     } else if (strcmp(argv[arg], "-linker") == 0) {
       arg++;
@@ -1502,6 +1518,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -nread allow           Allow reads that contain an N in the clear range.\n");
     fprintf(stderr, "  -nread discard         Discard reads that contain an N in the clear range (default).\n");
+    fprintf(stderr, "  -nread onlyn           Discard reads that DO NOT contain an N in the clear range.\n");
     fprintf(stderr, "  -nread trim <val>      Trim back <val> bases before the first N.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -linker [name | seq]   Search for linker, created mated reads.\n");
