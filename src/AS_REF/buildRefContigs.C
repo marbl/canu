@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildRefContigs.C,v 1.2 2008-10-30 04:49:44 brianwalenz Exp $";
+const char *mainid = "$Id: buildRefContigs.C,v 1.3 2008-11-01 03:17:53 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -49,6 +49,7 @@ mappingData     *ali    = 0L;
 uint32           aliLen = 0;
 uint32           aliMax = 0;
 
+uint32           minOverlap = 20;
 
 static
 void
@@ -362,7 +363,7 @@ outputUnitigs(void) {
   for (i=0; i<aliLen; i++) {
     //fprintf(stdout, "%s "F_U32"-"F_U32"\n", AS_UID_toString(ali[i].refID), ali[i].refBgn, ali[i].refEnd);
 
-    if ((AS_UID_compare(r, ali[i].refUID) != 0) || (e < ali[i].refBgn)) {
+    if ((AS_UID_compare(r, ali[i].refUID) != 0) || (e < ali[i].refBgn + minOverlap)) {
       //fprintf(stderr, "Unitig: "F_U32" %s "F_U32"-"F_U32"\n", i, AS_UID_toString(r), b, e);
 
       ium.iaccession    = iumId++;
@@ -443,7 +444,7 @@ outputContigs(void) {
   for (i=0; i<aliLen; i++) {
     //fprintf(stdout, "%s "F_U32"-"F_U32"\n", AS_UID_toString(ali[i].refID), ali[i].refBgn, ali[i].refEnd);
 
-    if ((AS_UID_compare(r, ali[i].refUID) != 0) || (e < ali[i].refBgn)) {
+    if ((AS_UID_compare(r, ali[i].refUID) != 0) || (e < ali[i].refBgn + minOverlap)) {
       //fprintf(stderr, "Contig: "F_U32" %s "F_U32"-"F_U32"\n", i, AS_UID_toString(r), b, e);
 
       iup[iupLen].type           = AS_UNIQUE_UNITIG;
@@ -536,7 +537,7 @@ outputScaffolds(void) {
   for (i=0; i<aliLen; i++) {
     //fprintf(stdout, "%s "F_U32"-"F_U32"\n", AS_UID_toString(ali[i].refID), ali[i].refBgn, ali[i].refEnd);
 
-    if ((AS_UID_compare(r, ali[i].refUID) != 0) || (e < ali[i].refBgn)) {
+    if ((AS_UID_compare(r, ali[i].refUID) != 0) || (e < ali[i].refBgn + minOverlap)) {
       //fprintf(stderr, "Contig: "F_U32" %s "F_U32"-"F_U32"\n", i, AS_UID_toString(r), b, e);
 
       if (icpLen == 0) {
@@ -619,6 +620,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-m") == 0) {
       mappingFileName = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-m") == 0) {
+      minOverlap = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-U") == 0) {
       buildOnlyUnitigs = 1;
 
@@ -637,6 +641,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -g gkpStore\n");
     fprintf(stderr, "  -m mapping\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -minoverlap    fragments must overlap by at least this much\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -U             build unitigs, for input to cgw\n");
     fprintf(stderr, "  -S             build scaffolds, for input to terminator\n");
