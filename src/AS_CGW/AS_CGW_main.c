@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.60 2008-10-29 10:42:46 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.61 2008-11-02 06:27:12 brianwalenz Exp $";
 
 static const char *usage =
 "usage: %s [options] -g <GatekeeperStoreName> -o <OutputPath> <InputCGB.ext>\n"
@@ -994,10 +994,6 @@ int main(int argc, char *argv[]){
   }
 
   /************* Output ***************/
-
-  //  This was a debug.  Lets see what it does.
-  //  OK, it makes lots of output.
-  //CheckSmallScaffoldGaps(ScaffoldGraph);
 
   if(generateOutput){
     MarkContigEdges();

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.21 2008-10-29 10:42:46 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.22 2008-11-02 06:27:13 brianwalenz Exp $";
 
 // This file contains the code for computing the candidate
 // chunks of scaffolds.
@@ -42,7 +42,6 @@ static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.21 2008-10-29 10:42:46 
 #include "ScaffoldGraph_CGW.h"
 #include "ScaffoldGraphIterator_CGW.h"
 #include "ChiSquareTest_CGW.h"
-#include "ChunkOverlap_CGW.h"
 #include "DataTypesREZ.h"
 #include "CommonREZ.h"
 #include "Instrument_CGW.h"

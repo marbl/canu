@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.63 2008-10-29 10:42:46 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.64 2008-11-02 06:27:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,7 +36,6 @@ static char *rcsid = "$Id: GraphCGW_T.c,v 1.63 2008-10-29 10:42:46 brianwalenz E
 #include "ScaffoldGraphIterator_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "GraphCGW_T.h"
-#include "ChunkOverlap_CGW.h"
 #include "Instrument_CGW.h"
 #include "MultiAlignment_CNS.h"
 #include "UtilsREZ.h"

@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.28 2008-10-29 10:42:46 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.29 2008-11-02 06:27:13 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -540,8 +540,6 @@ void CheckAllContigFragments(void);
 
 /* Globals */
 extern ScaffoldGraphT *ScaffoldGraph;
-
-void CheckSmallScaffoldGaps(ScaffoldGraphT *graph);
 
 void FixupLengthsScaffoldTs(ScaffoldGraphT *sgraph);
 void FixupLengthScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold);

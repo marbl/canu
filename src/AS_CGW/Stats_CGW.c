@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Stats_CGW.c,v 1.18 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: Stats_CGW.c,v 1.19 2008-11-02 06:27:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +33,6 @@ static char *rcsid = "$Id: Stats_CGW.c,v 1.18 2008-10-08 22:02:55 brianwalenz Ex
 #include "GraphCGW_T.h"
 #include "AS_UTL_interval.h"
 #include "AS_UTL_fileIO.h"
-#include "ChunkOverlap_CGW.h"
 #include "MultiAlignment_CNS.h"
 
 VA_DEF(int);

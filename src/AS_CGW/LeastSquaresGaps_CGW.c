@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.29 2008-10-29 10:42:46 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.30 2008-11-02 06:27:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,7 +38,6 @@ static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.29 2008-10-29 10:42:46 bri
 #include "ScaffoldGraph_CGW.h"
 #include "ScaffoldGraphIterator_CGW.h"
 #include "ChiSquareTest_CGW.h"
-#include "ChunkOverlap_CGW.h"
 
 
 #define FIXED_RECOMPUTE_NOT_ENOUGH_CLONES /* long standing bug: is it fixed yet? it seems to be */

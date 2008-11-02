@@ -22,12 +22,11 @@
 #ifndef DATA_TYPES_REZ_H
 #define DATA_TYPES_REZ_H
 
-static const char *rcsid_DATA_TYPES_REZ_H = "$Id: DataTypesREZ.h,v 1.8 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_DATA_TYPES_REZ_H = "$Id: DataTypesREZ.h,v 1.9 2008-11-02 06:28:28 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_CGW_dataTypes.h"
 #include "ScaffoldGraphIterator_CGW.h"
-#include "ChunkOverlap_CGW.h"
 
 //  A  Gap_Chunk_t  contains the information for a chunk that can
 //  be inserted in a particular gap in a particular scaffold
