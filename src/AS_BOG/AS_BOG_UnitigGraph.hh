@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.58 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.59 2008-11-02 06:27:53 brianwalenz Exp $";
 
 #include <set>
 #include <iostream>
@@ -81,13 +81,13 @@ struct UnitigGraph{
   ~UnitigGraph();
 
   // Call this on a chunk graph pointer to build a unitig graph
-  void build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking);
+  void build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking, char *output_prefix);
 
   void writeIUMtoFile(char *filename, int fragment_count_target);
 
   float getGlobalArrivalRate(long total_random_frags_in_genome=0, long genome_size=0);
 
-  void breakUnitigs(ContainerMap &cMap);
+  void breakUnitigs(ContainerMap &cMap, char *output_prefix);
 
   void filterBreakPoints(ContainerMap &cMap,
                          Unitig *,

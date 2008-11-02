@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.104 2008-10-29 06:34:30 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.105 2008-11-02 06:27:53 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -164,7 +164,7 @@ UnitigGraph::~UnitigGraph() {
 }
 
 
-void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking) {
+void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking, char *output_prefix) {
   bool verbose = true;
 
   // Initialize where we've been to nowhere; "Do not retraverse list"
@@ -287,7 +287,7 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking) {
   fprintf(stderr, "==> BREAKING UNITIGS.\n");
 
   if (unitigIntersectBreaking)
-    breakUnitigs(cMap);
+    breakUnitigs(cMap, output_prefix);
 
   reportOverlapsUsed("overlaps.afterbreak");
 
@@ -490,7 +490,18 @@ void UnitigGraph::populateUnitig( Unitig* unitig,
   }
 }
 
-void UnitigGraph::breakUnitigs(ContainerMap &cMap) {
+void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
+  FILE *breakFile;
+
+  {
+    char name[FILENAME_MAX];
+    sprintf(name, "%s.breaks.ovl", output_prefix);
+
+    errno = 0;
+    breakFile = fopen(name, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s' to write unitig breaks.\n", name), exit(1);
+  }
 
   //  Debug output
   for (int  ti=0; ti<unitigs->size(); ti++) {
@@ -639,6 +650,39 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap) {
                   (bestEdge->bend == FIVE_PRIME) ? '5' : '3',
                   pos);
 #endif
+          {
+            GenericMesg  pmesg;
+            OverlapMesg  omesg;
+
+            omesg.aifrag          = inFrag;
+            omesg.bifrag          = f->ident;
+            omesg.ahg             = bestEdge->ahang;
+            omesg.bhg             = bestEdge->bhang;
+            omesg.orientation     = AS_UNKNOWN;
+            omesg.overlap_type    = AS_DOVETAIL;
+            omesg.quality         = 0.0;
+            omesg.min_offset      = 0;
+            omesg.max_offset      = 0;
+            omesg.polymorph_ct    = 0;
+            omesg.alignment_trace = NULL;
+#ifdef AS_MSG_USE_OVL_DELTA
+            omesg.alignment_delta = NULL;
+#endif
+
+            if ((bestEnd == FIVE_PRIME) && (bestEdge->bend == FIVE_PRIME))
+              omesg.orientation = AS_OUTTIE;
+            if ((bestEnd == FIVE_PRIME) && (bestEdge->bend == THREE_PRIME))
+              omesg.orientation = AS_ANTI;
+            if ((bestEnd == THREE_PRIME) && (bestEdge->bend == FIVE_PRIME))
+              omesg.orientation = AS_NORMAL;
+            if ((bestEnd == THREE_PRIME) && (bestEdge->bend == THREE_PRIME))
+              omesg.orientation = AS_INNIE;
+
+            pmesg.t = MESG_OVL;
+            pmesg.m = &omesg;
+
+            WriteProtoMesg_AS(breakFile, &pmesg);
+          }
         }
       }
     }
@@ -675,6 +719,8 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap) {
       delete newUs;
     }
   }
+
+  fclose(breakFile);
 }
 
 
