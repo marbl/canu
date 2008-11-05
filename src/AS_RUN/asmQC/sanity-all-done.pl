@@ -9,15 +9,15 @@ if (scalar(@ARGV) != 5) {
     die "wrong args.\n";
 }
 
-my $bindir    = shift @ARGV;
-my $wrkdir    = shift @ARGV;
-my $thisdate  = shift @ARGV;
-my $lastdate  = shift @ARGV;
-my $addresses = shift @ARGV;
-my $timenow   = localtime();
+my $wrkdir     = shift @ARGV;
+my $thisdate   = shift @ARGV;
+my $label      = shift @ARGV;
+my $addresses  = shift @ARGV;
+my $assemblies = shift @ARGV;
+my @assemblies = split ',', $assemblies;
+my $timenow    = localtime();
 
-
-print "Subject: CAtest $thisdate\n";
+print "Subject: CAtest $thisdate $label\n";
 print "To:      $addresses\n";
 print "Content-Type: multipart/mixed; boundary=Bri_Says_This_Is_The_Boundary\n";  # alternative if no atachments
 print "\n";
@@ -40,14 +40,22 @@ print "\n";
 
 print "<P>\n";
 
-open(R, "cat $wrkdir/$thisdate/*/sanity-result.out |");
-while (<R>) {
+foreach my $asm (@assemblies) {
+    open(R, "< $wrkdir/$thisdate/$asm/sanity-result.out");
+    $_ = <R>;
+    close(R);
+
     chomp;
-    s!SUCCESS!<FONT COLOR=\"0x00ff00\">SUCCESS</FONT>!;
-    s!FAILURE!<FONT COLOR=\"0xff0000\">FAILURE</FONT>!;
+    #  Green!
+    s!SUCCESS!<FONT COLOR=\"0x00ff00\">SUCCESS</FONT>!g;
+    s!same!<FONT COLOR=\"0x00ff00\">same</FONT>!g;
+
+    #  Red
+    s!FAILURE!<FONT COLOR=\"0xff0000\">FAILURE</FONT>!g;
+    s!differs!<FONT COLOR=\"0xff0000\">differs</FONT>!g;
+
     print "$_<BR>\n";
 }
-close(R);
 
 print "</P>\n";
 
@@ -55,7 +63,7 @@ print "<HR>\n";
 print "<P>\n";
 print "<FONT SIZE=+2>Changes for kmer.</FONT>\n";
 print "</P>\n";
-open(F, "< $wrkdir/$thisdate/wgs/kmer.updates") or die;
+open(F, "< $wrkdir/$thisdate/wgs/kmer.updates");
 while (<F>) {
     chomp;
     print encode_entities($_) . "<BR>\n";
@@ -66,7 +74,7 @@ print "<HR>\n";
 print "<P>\n";
 print "<FONT SIZE=+2>Changes for wgs-assembler.</FONT>\n";
 print "</P>\n";
-open(F, "< $wrkdir/$thisdate/wgs/src.updates") or die;
+open(F, "< $wrkdir/$thisdate/wgs/src.updates");
 while (<F>) {
     chomp;
     print encode_entities($_) . "<BR>\n";
@@ -77,7 +85,7 @@ print "<HR>\n";
 print "<P>\n";
 print "<FONT SIZE=+2>Build Results for kmer.</FONT>\n";
 print "</P>\n";
-open(F, "< $wrkdir/$thisdate/wgs/kmer/make.err") or die;
+open(F, "< $wrkdir/$thisdate/wgs/kmer/make.err");
 while (<F>) {
     chomp;
     print encode_entities($_) . "<BR>\n";
@@ -88,7 +96,7 @@ print "<HR>\n";
 print "<P>\n";
 print "<FONT SIZE=+2>Build Results for wgs-assembler.</FONT>\n";
 print "</P>\n";
-open(F, "< $wrkdir/$thisdate/wgs/src/make.err") or die;
+open(F, "< $wrkdir/$thisdate/wgs/src/make.err");
 while (<F>) {
     chomp;
     print encode_entities($_) . "<BR>\n";
@@ -115,19 +123,16 @@ print "\n";
 #
 #  Dump the QC attachments
 #
-open(R, "ls $wrkdir/$thisdate/*/sanity-error.out |");
-while (<R>) {
-    chomp;
+foreach my $asm (@assemblies) {
+    my $errfile = "$wrkdir/$thisdate/$asm/sanity-error.out";
+    my $qcfile  = "$wrkdir/$thisdate/$asm/sanity-qc.out";
 
-    my $errfile = $_;
-    my $qcfile  = $_;
+    print STDERR "$errfile\n$qcfile\n";
 
-    $qcfile =~ s/sanity-error.out/sanity-qc.out/;
-    
     #  Winblows wants \r\n, and since that's the primary consumer of these emails, we
     #  put it in.
 
-    if (! -z $qcfile) {
+    if ((-e $qcfile) && (! -z $qcfile)) {
         my @n       = split "/", $qcfile;
         my $l       = scalar(@n);
         my $name    = "$n[$l-3]-$n[$l-2]-qc.txt";
@@ -141,7 +146,7 @@ while (<R>) {
         my @message;
         my $message;
 
-        open(F, "< $qcfile") or die;
+        open(F, "< $qcfile");
         while (<F>) {
             chomp;
             push @message, "$_\r\n";
@@ -154,7 +159,7 @@ while (<R>) {
         print encode_base64($message);
     }
 
-    if (! -z $errfile) {
+    if ((-e $errfile) && (! -z $errfile)) {
         my @n       = split "/", $errfile;
         my $l       = scalar(@n);
         my $name    = "$n[$l-3]-$n[$l-2]-error.txt";
@@ -168,7 +173,7 @@ while (<R>) {
         my @message;
         my $message;
 
-        open(F, "< $errfile") or die;
+        open(F, "< $errfile");
         while (<F>) {
             chomp;
             push @message, "$_\r\n";

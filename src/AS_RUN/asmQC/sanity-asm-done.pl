@@ -1,15 +1,40 @@
 #!/usr/bin/perl
 
-if (scalar(@ARGV) != 6) {
+if (scalar(@ARGV) != 3) {
     die "wrong args.\n";
 }
 
-my $bindir   = shift @ARGV;
 my $wrkdir   = shift @ARGV;
 my $prefix   = shift @ARGV;
 my $thisdate = shift @ARGV;
-my $lastdate = shift @ARGV;
-my $gooddate = shift @ARGV;
+
+my $lastdate = undef;
+my $gooddate = undef;
+
+my $resultlast = "none";
+my $resultgood = "none";
+
+my $diffs = "$wrkdir/$thisdate/$prefix/9-terminator/$prefix.qc";
+
+#  Special case; don't set last/ref to the current date.  Useful in
+#  testing (and restarting in general).
+
+if (-e "$wrkdir/POINTERS/$prefix.last") {
+    open(F, "< $wrkdir/POINTERS/$prefix.last");
+    while (<F>) {
+        chomp;
+        $lastdate = $_ if ($_ lt $thisdate);
+    }
+    close(F);
+}
+if (-e "$wrkdir/POINTERS/$prefix.reference") {
+    open(F, "< $wrkdir/POINTERS/$prefix.reference");
+    while (<F>) {
+        chomp;
+        $gooddate = $_ if ($_ lt $thisdate);
+    }
+    close(F);
+}
 
 open(RESULT, "> $wrkdir/$thisdate/$prefix/sanity-result.out") or die;
 open(ERROR,  "> $wrkdir/$thisdate/$prefix/sanity-error.out")  or die;
@@ -42,32 +67,37 @@ if (! -e "$wrkdir/$thisdate/$prefix/9-terminator/$prefix.asm") {
     }
     close(F);
 
+    close(RESULT);
+    close(ERROR);
     exit(0);
-}
-
-my $resultlast = "none";
-my $resultgood = "none";
-
-
-if (-e "$wrkdir/$lastdate/$prefix/9-terminator/$prefix.asm") {
-    if (system("diff -q $wrkdir/$thisdate/$prefix/9-terminator/$prefix.asm $wrkdir/$lastdate/$prefix/9-terminator/$prefix.asm > /dev/null 2>&1") == 0) {
-        $resultlast = "same";
-    } else {
-        $resultlast = "differs";
+} else {
+    if (defined($lastdate) && (-e "$wrkdir/$lastdate/$prefix/9-terminator/$prefix.asm")) {
+        $diffs = "$wrkdir/$lastdate/$prefix/9-terminator/$prefix.qc $diffs";
+        if (system("diff -q $wrkdir/$thisdate/$prefix/9-terminator/$prefix.asm $wrkdir/$lastdate/$prefix/9-terminator/$prefix.asm > /dev/null 2>&1") == 0) {
+            $resultlast = "$lastdate same";
+        } else {
+            $resultlast = "$lastdate differs";
+        }
     }
-}
 
-if (-e "$wrkdir/$gooddate/$prefix/9-terminator/$prefix.asm") {
-    if (system("diff -q $wrkdir/$thisdate/$prefix/9-terminator/$prefix.asm $wrkdir/$gooddate/$prefix/9-terminator/$prefix.asm > /dev/null 2>&1") == 0) {
-        $resultgood = "same";
-    } else {
-        $resultgood = "differs";
+    if (defined($gooddate) && (-e "$wrkdir/$gooddate/$prefix/9-terminator/$prefix.asm")) {
+        $diffs = "$wrkdir/$gooddate/$prefix/9-terminator/$prefix.qc $diffs";
+        if (system("diff -q $wrkdir/$thisdate/$prefix/9-terminator/$prefix.asm $wrkdir/$gooddate/$prefix/9-terminator/$prefix.asm > /dev/null 2>&1") == 0) {
+            $resultgood = "$gooddate same";
+        } else {
+            $resultgood = "$gooddate differs";
+        }
     }
+
+    print RESULT "Assembly result for $thisdate/$prefix: SUCCESS (last: $resultlast) (reference: $resultgood)\n";
+
+    system("perl $wrkdir/sanity-merge-qc.pl $diffs > $wrkdir/$thisdate/$prefix/sanity-qc.out");
+
+    open(F, ">> $wrkdir/POINTERS/$prefix.last");
+    print F "$thisdate\n";
+    close(F);
 }
 
-print RESULT "Assembly result for $thisdate/$prefix: SUCCESS (last: $resultlast) (reference: $resultgood)\n";
-
-system("perl $wrkdir/mergeqc.pl $wrkdir/$gooddate/$prefix/$prefix.qc $wrkdir/$lastdate/$prefix/$prefix.qc $wrkdir/$thisdate/$prefix/$prefix.qc > $wrkdir/$thisdate/$prefix/sanity-qc.out");
 
 close(RESULT);
 close(ERROR);

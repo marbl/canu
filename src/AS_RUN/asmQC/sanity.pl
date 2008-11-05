@@ -3,11 +3,11 @@
 use strict;
 use Config;  #  for @signame
 
-#  The only two globals:
+#  The only three globals configurables:
 #
-my $wrkdir  = "/usr/local/projects/assembly_test/NIGHTLY";
-my $wgscvs  = "/usr/local/projects/assembly_test/NIGHTLY/wgs-assembler-cvs";
-my $kmersvn = "/usr/local/projects/assembly_test/NIGHTLY/kmer-svn";
+my $wrkdir  = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY";
+my $wgscvs  = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY/wgs-assembler-cvs";
+my $kmersvn = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY/kmer-svn";
 
 #  Command line options are
 #
@@ -18,23 +18,24 @@ my $kmersvn = "/usr/local/projects/assembly_test/NIGHTLY/kmer-svn";
 #    force a checkout from that date.
 #
 #  rsync
-#     update the local repository in 'wgs-assembler-cvs'.
+#     update the local repositories in 'wgs-assembler-cvs' and 'kmer-svn'.
 #
 #  checkout date
 #     Date must be of the form yyyy-mm-dd-hhmm.  This will checkout
 #     the assembler current at that time.  If not present, the current
-#     time is assumed.
+#     time is assumed.  A change log is generated from the last
+#     date present.
 #
 #  build date
 #     Builds the assembler checked out into 'date'.
 #
-#  assemble date specFile ....
+#  assemble date label specFile .... email ...
 #     Launches runCA on each specFile, running it in directory 'date'.
 #     Each specFile must have a unique name; the assembly is named
-#     after the specFile.
-#
-#  summarize date
-#     Build a summary message for the directory 'date'.
+#     after the specFile.  The label is used only for reporting via email.
+#     At the end, a diff is generated to POINTERS/$prefix.last and
+#     POINTERS/$prefix.reference.  If the assembly finished, POINTERS/$prefix.last
+#     is updated.
 #
 
 {
@@ -49,27 +50,23 @@ my $kmersvn = "/usr/local/projects/assembly_test/NIGHTLY/kmer-svn";
 
         system("cd $wgscvs  && rsync -av rsync://wgs-assembler.cvs.sourceforge.net/cvsroot/wgs-assembler/\* . > rsync.out 2>&1");
         system("cd $kmersvn && rsync -av kmer.svn.sourceforge.net::svn/kmer/\* . > rsync.out 2>&1");
-    }
 
-
-    if ($oper eq "checkout") {
+    } elsif ($oper eq "checkout") {
         checkoutAndLogKmer($thisdate, $lastdate);
         checkoutAndLogCA($thisdate, $lastdate);
-    }
 
-    if ($oper eq "build") {
+    } elsif ($oper eq "build") {
         buildKmer($thisdate);
         buildCA($thisdate);
+
+    } elsif ($oper eq "assemble") {
+        assemble($thisdate, @ARGV);
+
+    } else {
+        die "$0: unknown action '$oper'\n";
     }
 
-    if ($oper eq "assemble") {
-        assemble($thisdate, $lastdate, @ARGV);
-    }
-
-    if (!defined($oper)) {
-    }
-
-    exit;
+    exit(0);
 }
 
 
@@ -105,14 +102,14 @@ sub parseDate ($) {
     while (<F>) {
         chomp;
         if (m/^\d\d\d\d-\d\d-\d\d-\d\d\d\d$/) {
-            if ($_ ne $thisdate) {
+            if ($_ lt $thisdate) {
                 $lastdate = $_;
             }
         }
     }
     close(F);
 
-    print STDERR "Working on '$thisdate' -- last found is '$lastdate'.\n";
+    #print STDERR "Working on '$thisdate' -- last found is '$lastdate'.\n";
 
     return($thisdate, $lastdate);
 }
@@ -154,7 +151,7 @@ sub checkoutAndLogKmer ($$) {
     system("cd $wrkdir/$thisdate/wgs && svn co  -r \"{$thisdatesvn}\" file://$kmersvn/trunk kmer > kmer.checkout.err 2>&1");
 
     if ($lastdate ne "") {
-        system("cd $wrkdir/$thisdate/wgs && svn log -r \"{$lastdatesvn}:{$thisdatesvn}\" kmer > kmer.updates");
+        system("cd $wrkdir/$thisdate/wgs && svn log -v file://$kmersvn/trunk -r \"{$lastdatesvn}:{$thisdatesvn}\" > kmer.updates");
     }
 
     print STDERR "$thisdate checked out!\n";
@@ -332,9 +329,10 @@ sub buildCA ($) {
 
 sub assemble ($$@) {
     my $thisdate  = shift @_;
-    my $lastdate  = shift @_;
-    my $assemblies;
-    my $holds;
+    my $label     = shift @_;
+    my $holds_asms;
+    my $names_asms;
+    my $holds_done;
 
     my $arch;
 
@@ -358,6 +356,7 @@ sub assemble ($$@) {
         if ($arg =~ m/\@/) {
             push @addresses, $arg;
         } else {
+            $arg = "$ENV{PWD}/$arg" if ($arg !~ m/^\//);
             push @spec, $arg;
         }
     }
@@ -367,17 +366,29 @@ sub assemble ($$@) {
     open(F, "> $wrkdir/$thisdate/asm-done.sh");
     print F "#!/bin/sh\n";
     print F "\n";
-    print F "perl $wrkdir/sanity-asm-done.pl JUNK $wrkdir \$1 $thisdate $lastdate ref\n";
+    print F "perl $wrkdir/sanity-asm-done.pl $wrkdir \$1 $thisdate\n";
     close(F);
 
     open(F, "> $wrkdir/$thisdate/all-done.sh");
     print F "#!/bin/sh\n";
     print F "\n";
-    print F "perl $wrkdir/sanity-all-done.pl JUNK $wrkdir $thisdate $lastdate $addresses | /usr/sbin/sendmail -t -F CAtest\n";
+    print F "perl $wrkdir/sanity-all-done.pl $wrkdir $thisdate \$1 $addresses \$2 \\\n";
+    print F "| \\\n";
+    print F "tee \"$wrkdir/$thisdate/sanity-all-done.\$1\" \\\n";
+    print F "| \\\n";
+    print F "/usr/sbin/sendmail -i -t -F CAtest\n";
     close(F);
 
     foreach my $s (@spec) {
-        my ($n, $p) = split '\.', $s;
+        my $n;
+
+        {
+            my @c = split '/', $s;
+            $n = $c[scalar(@c) - 1];
+            $n =~ s/.spec$//;
+            $n =~ s/.specFile$//;
+        }
+
 
         print STDERR "----------------------------------------\n";
         print STDERR "Submitting assembly '$n'.\n";
@@ -397,7 +408,7 @@ sub assemble ($$@) {
         print F "\n";
         print F "perl $wrkdir/$thisdate/wgs/$syst-$arch/bin/runCA \\\n";
         print F "  sgePropagateHold=$jn useGrid=1 scriptOnGrid=1\\\n";
-        print F "  -p $n -d $wrkdir/$thisdate/$n -s $wrkdir/$n.$p\n";
+        print F "  -p $n -d $wrkdir/$thisdate/$n -s $s\n";
         print F "\n";
         print F "#  Once that runCA finishes, we've updated the hold on $jn, and so can release\n";
         print F "#  our user hold on it.\n";
@@ -420,24 +431,26 @@ sub assemble ($$@) {
         system("cd $wrkdir/$thisdate/$n && qsub -b n -cwd -j y -o $wrkdir/$thisdate/$n/launch-assembly.err -l fast -h               -N $jl $wrkdir/$thisdate/$n/launch-assembly.sh");
         system("cd $wrkdir/$thisdate/$n && qsub -b n -cwd -j y -o $wrkdir/$thisdate/$n/asm-done.err        -l fast -h -hold_jid $jl -N $jn $wrkdir/$thisdate/asm-done.sh $n");
 
-        if (defined($holds)) {
-            $holds .= ",$jn";
+        if (defined($holds_done)) {
+            $holds_done .= ",$jn";
         } else {
-            $holds  = "$jn";
+            $holds_done  = "$jn";
         }
 
-        if (defined($assemblies)) {
-            $assemblies .= ",$jl";
+        if (defined($holds_asms)) {
+            $holds_asms .= ",$jl";
+            $names_asms .= ",$n";
         } else {
-            $assemblies  = "$jl";
+            $holds_asms  = "$jl";
+            $names_asms .= "$n";
         }
     }
 
-    system("cd $wrkdir/$thisdate && qsub -b n -cwd -j y -o $wrkdir/$thisdate/all-done.err -l fast -hold_jid $holds -N CAfin_$thisdate $wrkdir/$thisdate/all-done.sh");
+    system("cd $wrkdir/$thisdate && qsub -b n -cwd -j y -o $wrkdir/$thisdate/all-done.err -l fast -hold_jid $holds_done -N CAfin_$thisdate $wrkdir/$thisdate/all-done.sh $label $names_asms");
 
     #  Now, release everything to run.
 
-    system("qrls -h u $assemblies");
+    system("qrls -h u $holds_asms");
 }
 
 exit(0);
