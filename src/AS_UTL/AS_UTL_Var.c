@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_UTL_Var.c,v 1.25 2008-10-08 22:03:00 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_Var.c,v 1.26 2008-11-05 23:32:27 brianwalenz Exp $";
 
 /********************************************************************/
 /* Variable Length C Array Package
@@ -261,6 +261,9 @@ ResetToRange_VA(VarArrayType *va, size_t indx){
 
   // Resetting to a smaller array, zeros out the unused elements and
   // resets numElements.
+
+  assert(va->numElements > 0);
+  assert(va->Elements != NULL);
 
   memset(va->Elements + (va->sizeofElement * indx), 0, va->sizeofElement * (va->numElements - indx));
 
