@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.204 2008-10-29 10:50:28 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.205 2008-11-05 23:37:00 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -839,18 +839,17 @@ int32 AppendFragToLocalStore(FragType          type,
   char seqbuffer[AS_READ_MAX_LEN+1];
   char qltbuffer[AS_READ_MAX_LEN+1];
   char *sequence = NULL,*quality = NULL;
-  static VA_TYPE(char) *ungappedSequence=NULL,*ungappedQuality=NULL;
+  static VA_TYPE(char) *ungappedSequence = NULL;
+  static VA_TYPE(char) *ungappedQuality  = NULL;
   Fragment fragment;
   uint clr_bgn, clr_end;
   static fragRecord fsread;  //  static for performance only
 
-  if (ungappedSequence== NULL ) {
+  if (ungappedSequence == NULL) {
     ungappedSequence = CreateVA_char(0);
-    ungappedQuality = CreateVA_char(0);
-  } else {
-    ResetVA_char(ungappedSequence);
-    ResetVA_char(ungappedQuality);
+    ungappedQuality  = CreateVA_char(0);
   }
+
   switch (type) {
     case AS_READ:
     case AS_EXTR:
@@ -894,6 +893,9 @@ int32 AppendFragToLocalStore(FragType          type,
           quality = Getchar(uma->quality,0);
           fragment.length = GetMultiAlignLength(uma);
         } else {
+          ResetVA_char(ungappedSequence);
+          ResetVA_char(ungappedQuality);
+
           GetMultiAlignUngappedConsensus(uma, ungappedSequence, ungappedQuality);
           sequence = Getchar(ungappedSequence,0);
           quality = Getchar(ungappedQuality,0);
