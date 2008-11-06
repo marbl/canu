@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.28 2008-10-29 10:50:28 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.29 2008-11-06 05:25:11 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -30,10 +30,6 @@ const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.28 2008-10-29 10:50:28 bri
 
 #include <math.h>
 #include <time.h>
-
-#ifdef X86_GCC_LINUX
-#include <fpu_control.h>
-#endif
 
 // Celera Assembler includes:
 #include "AS_global.h"
@@ -51,7 +47,7 @@ const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.28 2008-10-29 10:50:28 bri
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
 
-static const char *rcsid = "$Id: AS_CNS_asmReBaseCall.c,v 1.28 2008-10-29 10:50:28 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_CNS_asmReBaseCall.c,v 1.29 2008-11-06 05:25:11 brianwalenz Exp $";
 
 static HashTable_AS *utgUID2IID;
 
@@ -259,23 +255,6 @@ int main (int argc, char *argv[]) {
     CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
                             CNS_OPTIONS_MIN_ANCHOR_DEFAULT };
 
-#ifdef X86_GCC_LINUX
-   /*
-  ** Set the x86 FPU control word to force double
-  ** precision rounding rather than `extended'
-  ** precision rounding. This causes base
-  ** calls and quality values on x86 GCC-Linux
-  ** (tested on RedHat Linux) machines to be
-  ** identical to those on IEEE conforming UNIX
-  ** machines.
-  */
-  fpu_control_t fpu_cw;
-
-  fpu_cw = ( _FPU_DEFAULT & ~_FPU_EXTENDED ) | _FPU_DOUBLE;
-
-  _FPU_SETCW( fpu_cw );
-#endif
-
     int ch,errflg=0,illegal_use=0,help_flag=0,iflags=0;
 
     optarg = NULL;
@@ -367,7 +346,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.28 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.29 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 

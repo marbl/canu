@@ -19,12 +19,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_global.c,v 1.10 2008-10-09 19:49:27 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_global.c,v 1.11 2008-11-06 05:25:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+
+#ifdef X86_GCC_LINUX
+#include <fpu_control.h>
+#endif
 
 //  Nonsense values, mostly for making sure everybody that uses an
 //  error rate calls AS_configure() at startup.
@@ -49,6 +53,18 @@ int
 AS_configure(int argc, char **argv) {
   char *p = NULL;
   int   i, j;
+
+#ifdef X86_GCC_LINUX
+  //  Set the x86 FPU control word to force double precision rounding
+  //  rather than `extended' precision rounding. This causes base
+  //  calls and quality values on x86 GCC-Linux (tested on RedHat
+  //  Linux) machines to be identical to those on IEEE conforming UNIX
+  //  machines.
+  //
+  fpu_control_t fpu_cw = ( _FPU_DEFAULT & ~_FPU_EXTENDED ) | _FPU_DOUBLE;
+
+  _FPU_SETCW( fpu_cw );
+#endif
 
   //
   //  Default values

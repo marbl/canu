@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: Consensus_CNS.c,v 1.66 2008-10-29 10:50:28 brianwalenz Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.67 2008-11-06 05:25:11 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -28,10 +28,6 @@ const char *mainid = "$Id: Consensus_CNS.c,v 1.66 2008-10-29 10:50:28 brianwalen
 #include <string.h>
 #include <unistd.h>
 #include <math.h>
-
-#ifdef X86_GCC_LINUX
-#include <fpu_control.h>
-#endif
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -102,22 +98,6 @@ main (int argc, char **argv) {
   int num_contig_failures = 0;
   int num_contig_skips    = 0;
 
-#ifdef X86_GCC_LINUX
-  /*
-  ** Set the x86 FPU control word to force double
-  ** precision rounding rather than `extended'
-  ** precision rounding. This causes base
-  ** calls and quality values on x86 GCC-Linux
-  ** (tested on RedHat Linux) machines to be
-  ** identical to those on IEEE conforming UNIX
-  ** machines.
-  */
-  fpu_control_t fpu_cw;
-
-  fpu_cw = ( _FPU_DEFAULT & ~_FPU_EXTENDED ) | _FPU_DOUBLE;
-
-  _FPU_SETCW( fpu_cw );
-#endif
 
   Overlap *(*COMPARE_FUNC)(COMPARE_ARGS)=Local_Overlap_AS_forCNS;
   CNS_PrintKey printwhat=CNS_STATS_ONLY;
