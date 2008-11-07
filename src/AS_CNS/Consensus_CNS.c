@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: Consensus_CNS.c,v 1.67 2008-11-06 05:25:11 brianwalenz Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.68 2008-11-07 06:13:55 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -109,10 +109,7 @@ main (int argc, char **argv) {
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-f") == 0) {
-      allow_forced_frags = 1;
-
-    } else if (strcmp(argv[arg], "-g") == 0) {
+    if        (strcmp(argv[arg], "-g") == 0) {
       allow_neg_hang = 1;
 
     } else if (strcmp(argv[arg], "-G") == 0) {

@@ -18,20 +18,18 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.70 2008-10-29 06:34:30 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.71 2008-11-07 06:13:55 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.70 2008-10-29 06:34:30 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.71 2008-11-07 06:13:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <time.h>
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
-
-//   #define NEW_UNITIGGER_INTERFACE
 
 typedef AS_IID      IntLibrary_ID;
 typedef AS_IID      IntDist_ID;
@@ -395,28 +393,17 @@ typedef enum {
 typedef struct IntMultiPos {
   FragType        type;
   IntFragment_ID  ident;
-#ifdef NEW_UNITIGGER_INTERFACE
-  IntFragment_ID  ident2; // iid of the fragment that will align with current one
-#endif
+  IntFragment_ID  contained;
+  IntFragment_ID  parent;     //  IID of the fragment we align to
 
-  //  This should probably be called frgSource
-  IntFragment_ID  sourceInt;
+  IntFragment_ID  sourceInt;  //  This should probably be called frgSource
 
-#ifdef NEW_UNITIGGER_INTERFACE
-  int32           ahang;
-  int32           bhang;
-#endif
+  int32           ahang;      //  If parent defined, these are relative
+  int32           bhang;      //  that fragment
 
   SeqInterval     position;
-  IntFragment_ID  contained;
   int32           delta_length;
   int32          *delta;
-#ifdef i386
-  int32           ptrPad1; // 4 for pointer
-#ifndef NEW_UNITIGGER_INTERFACE
-  int32           ptrPad2; // 4 for 8-byte alignment
-#endif
-#endif
 } IntMultiPos;
 
 VA_DEF(IntMultiPos);
@@ -435,9 +422,6 @@ typedef struct IntMultiVar {
   char           *weights;
   char           *var_seq;
   char           *conf_read_iids; // iids of phased reads
-#ifdef i386
-  int32           ptrPad[4];
-#endif
 } IntMultiVar;
 
 VA_DEF(IntMultiVar);
@@ -448,11 +432,7 @@ typedef struct {
   IntUnitig_ID  ident;
   SeqInterval   position;
   int32         delta_length;
-  int32         wordPad;
   int32        *delta;
-#ifdef i386
-  int32         ptrPad;
-#endif
 } IntUnitigPos;
 
 VA_DEF(IntUnitigPos);

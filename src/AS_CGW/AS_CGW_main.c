@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.62 2008-11-06 05:25:11 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.63 2008-11-07 06:13:55 brianwalenz Exp $";
 
 static const char *usage =
 "usage: %s [options] -g <GatekeeperStoreName> -o <OutputPath> <InputCGB.ext>\n"
@@ -64,8 +64,7 @@ static const char *usage =
 "                    if <t> =  0, do not resolve surrogate fragments\n"
 "   [-X <Estimated number of nodes>]\n"
 "   [-Y <Estimated number of edges>]\n"
-"   [-Z]           Don't demote singleton scaffolds\n"
-"   [-4]           Allow forced fragments inside consensus ... useful for high-error runs\n";
+"   [-Z]           Don't demote singleton scaffolds\n";
 
 
 #include <stdio.h>
@@ -116,8 +115,6 @@ static const char *usage =
 #include "Checkpoints_CGW.h"
 #include "fragmentPlacement.h"  //  for resolveSurrogates()
 
-extern int allow_forced_frags;
-
 void DemoteUnitigsWithRBP(FILE *stream, GraphCGW_T *graph);
 void RemoveSurrogateDuplicates(void);
 
@@ -167,7 +164,6 @@ int main(int argc, char *argv[]){
   int    placeAllFragsInSinglePlacedSurros = 0;      //  resolveSurrogates
   double cutoffToInferSingleCopyStatus     = 0.666;  //  resolveSurrogates
 
-
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
   ContigOrientChecker * coc;
   coc = CreateContigOrientChecker();
@@ -186,9 +182,7 @@ int main(int argc, char *argv[]){
 
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
-                                    "ade:f:g:hi:j:k:l:m:n:o:p:q:r:s:vxyz"
-                                    "ACD:EFGHIJK:L:N:MO:PQR:S:V:X:Y:Z"
-				    "4" )) != EOF)){
+                                    "ade:f:g:hi:j:k:l:m:n:o:p:q:r:s:vxyzACD:EFGHIJK:L:N:MO:PQR:S:V:X:Y:Z")) != EOF)){
       switch(ch) {
         case 'O':
           fprintf(GlobalData->stderrc,"* Immediate output specified: arg %s\n", optarg);
@@ -382,10 +376,6 @@ int main(int argc, char *argv[]){
         case 'z':
           fprintf(GlobalData->stderrc,"* Check for Repeat Branch Pattern\n");
           checkRepeatBranchPattern = TRUE;
-          break;
-
-        case '4':
-          allow_forced_frags=1;
           break;
 
         case '?':

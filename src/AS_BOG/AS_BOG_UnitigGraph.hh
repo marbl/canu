@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.59 2008-11-02 06:27:53 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.60 2008-11-07 06:13:55 brianwalenz Exp $";
 
 #include <set>
 #include <iostream>
@@ -82,6 +82,7 @@ struct UnitigGraph{
 
   // Call this on a chunk graph pointer to build a unitig graph
   void build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking, char *output_prefix);
+  void setParentAndHang(ChunkGraph *cg_ptr);
 
   void writeIUMtoFile(char *filename, int fragment_count_target);
 
@@ -103,7 +104,7 @@ struct UnitigGraph{
   UnitigVector*  breakUnitigAt(ContainerMap &cMap, Unitig *, UnitigBreakPoints &);
 
   void           checkUnitigMembership(void);
-  void           reportOverlapsUsed(char *filename);
+  void           reportOverlapsUsed(const char *filename);
 
   // Unitigs are the dove tails and their contained fragments
   UnitigVector *unitigs;
@@ -111,17 +112,23 @@ struct UnitigGraph{
   BestOverlapGraph *bog_ptr;
 
 private:
-  // Given a fragment, it will follow it's overlaps until
-  //   the end, and add them to the unitig
-  void populateUnitig(Unitig* unitig,
-                      iuid src_frag_id,
-                      fragment_end_type whichEnd,
-                      ChunkGraph *cg_ptr,
-                      int offset,
-                      bool verbose);
+
+  //  Add firstFragID to the unitig, then follow any fragments off of
+  //  of fragEdgeEnd.  If the unitig has fragments, lastID and
+  //  lastEdge need to be defined.
+  //  
+  void populateUnitig(Unitig             *unitig,
+                      iuid                firstFragID,
+                      fragment_end_type   walkEnd,
+                      iuid                lastID,
+                      BestEdgeOverlap    *lastEdge,
+                      bool                verbose);
 
   FragmentInfo     *_fi;
 
+  //  This is a map from 'invaded fragment' to a list of 'invading fragments';
+  //    unitigIntersect[a] = b means that b is invading into a.
+  //
   FragmentEdgeList  unitigIntersect;
 };
 

@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.31 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.32 2008-11-07 06:13:54 brianwalenz Exp $";
 
 #include <map>
 #include <list>
@@ -35,9 +35,11 @@ extern "C" {
 #include "AS_PER_gkpStore.h"
 }
 
+//  Assign values to the enum to show this bug
+#warning there is a comparison assuming fragment_end_type FIVE_PRIME < THREE_PRIME
 enum fragment_end_type {
-  FIVE_PRIME, 	// 5' End of fragment
-  THREE_PRIME 	// 3' End of Fragment
+  FIVE_PRIME,
+  THREE_PRIME
 };
 
 typedef AS_IID    iuid;
@@ -87,6 +89,11 @@ public:
 
   short             ahang;
   short             bhang;
+
+  void              print(FILE *f) {
+    fprintf(f, "BestEdgeOverlap()-- id=%d score=%f length=%hd bend=%c ahang=%hd bhang=%hd\n",
+            frag_b_id, olap_score, olap_length, (bend == FIVE_PRIME) ? '5' : '3', ahang, bhang);
+  };
 };
 
 

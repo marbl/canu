@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.4 2008-10-29 10:50:28 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.5 2008-11-07 06:13:55 brianwalenz Exp $";
 
 //  These are used ONLY IN MultiAlignment_CNS.c.
 
@@ -277,9 +277,6 @@ extern VA_TYPE(Column)   *columnStore;
 extern VA_TYPE(MANode)   *manodeStore;
 
 extern int USE_SDB;
-
-//extern int allow_forced_frags;
-//extern int allow_neg_hang;
 
 extern int NumColumnsInUnitigs;
 extern int NumRunsOfGapsInUnitigReads;

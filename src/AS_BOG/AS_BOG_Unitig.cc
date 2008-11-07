@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.6 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.7 2008-11-07 06:13:55 brianwalenz Exp $";
 
 #include "AS_BOG_Unitig.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -27,6 +27,9 @@ static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.6 2008-10-08 22:02:54 bria
 #include <algorithm>
 
 #undef max
+
+
+extern FragmentInfo     *debugfi;
 
 
 // various class static methods and variables
@@ -79,9 +82,6 @@ void Unitig::addFrag( DoveTailNode node, int offset, bool report) {
   node.position.bgn += offset;
   node.position.end += offset;
 
-  assert(node.position.bgn >= 0);
-  assert(node.position.end >= 0);
-
   // keep track of the unitig a frag is in
   _inUnitig[ node.ident ] = id();
 
@@ -92,11 +92,24 @@ void Unitig::addFrag( DoveTailNode node, int offset, bool report) {
 
   dovetail_path_ptr->push_back(node);
 
-  if (report)
+  report = true;
+
+  int32 len = debugfi->fragmentLength(node.ident);
+  int32 pos = (node.position.end > node.position.bgn) ? (node.position.end - node.position.bgn) : (node.position.bgn - node.position.end);
+
+  if ((report) || (node.position.bgn < 0) || (node.position.end < 0))
     if (node.contained)
-      fprintf(stderr, "Added frag %d to unitig %d at %d,%d (contained in %d)\n", node.ident, id(), node.position.bgn, node.position.end, node.contained);
+      fprintf(stderr, "Added frag %d (len %d) to unitig %d at %d,%d (lendiff %d) (contained in %d)\n",
+              node.ident, len, id(), node.position.bgn, node.position.end,
+              pos - len,
+              node.contained);
     else
-      fprintf(stderr, "Added frag %d to unitig %d at %d,%d\n", node.ident, id(), node.position.bgn, node.position.end);
+      fprintf(stderr, "Added frag %d (len %d) to unitig %d at %d,%d (lendiff %d)\n",
+              node.ident, len, id(), node.position.bgn, node.position.end,
+              pos - len);
+
+  assert(node.position.bgn >= 0);
+  assert(node.position.end >= 0);
 }
 
 void Unitig::addContainedFrag(DoveTailNode node, BestContainment *bestcont, bool report) {
@@ -247,40 +260,22 @@ float Unitig::getCovStat(FragmentInfo *fi){
   }
 
   return(_covStat);
-
 }
 
-
-long Unitig::getLength(void){
-  return _length;
-}
-
-long Unitig::getNumFrags(void){
-  return(dovetail_path_ptr->size());
-}
-
-// This is a placeholder, random frags should not contain guides, or
-// other fragments that are not randomly sampled across the whole
-// genome.
-//
-long Unitig::getNumRandomFrags(void){
-  return(getNumFrags());
-}
 
 void Unitig::reverseComplement() {
-  int length = this->getLength();
-  DoveTailNode first = dovetail_path_ptr->front();
-  DoveTailNode last = dovetail_path_ptr->back();
-  DoveTailIter iter = dovetail_path_ptr->begin();
+  DoveTailIter iter  = dovetail_path_ptr->begin();
+
   for(; iter != dovetail_path_ptr->end(); iter++) {
-    iter->position.bgn = length - iter->position.bgn;
-    assert( iter->position.bgn >= 0);
-    iter->position.end = length - iter->position.end;
-    assert( iter->position.end >= 0);
+    iter->position.bgn = getLength() - iter->position.bgn;
+    iter->position.end = getLength() - iter->position.end;
+
+    assert(iter->position.bgn >= 0);
+    assert(iter->position.end >= 0);
   }
-  reverse(dovetail_path_ptr->begin(),dovetail_path_ptr->end());
-  first = dovetail_path_ptr->front();
-  last = dovetail_path_ptr->back();
+
+  reverse(dovetail_path_ptr->begin(),
+          dovetail_path_ptr->end());
 }
 
 // Recursively place all contains under this one into the FragmentPositionMap
@@ -345,7 +340,8 @@ void Unitig::placeContains(const ContainerMap &cMap,
     if (best->isPlaced)
       continue;
 
-    assert( best->container == containerId );
+    assert(best->container == containerId);
+    assert(containerPos.bgn != containerPos.end);
 
     (*containPartialOrder)[ fragId ] = level;
 
@@ -354,35 +350,19 @@ void Unitig::placeContains(const ContainerMap &cMap,
 
     DoveTailNode frag;
 
+    //  The second condition of the position field looks strange.
+
     frag.type         = AS_READ;
     frag.ident        = fragId;
     frag.contained    = containerId;
+    frag.parent       = containerId;
+    frag.sourceInt    = -1;
+    frag.ahang        = (containerPos.bgn < containerPos.end) ? best->a_hang : -best->b_hang;
+    frag.bhang        = (containerPos.bgn < containerPos.end) ? best->b_hang : -best->a_hang;
+    frag.position.bgn = containerPos.bgn + ((containerPos.bgn < containerPos.end) ? best->a_hang : -best->a_hang);
+    frag.position.end = containerPos.end + ((containerPos.bgn < containerPos.end) ? best->b_hang : -best->b_hang);
     frag.delta_length = 0;
     frag.delta        = NULL;
-
-    if(containerPos.bgn < containerPos.end) {
-      //  Container is forward
-      frag.position.bgn = containerPos.bgn + best->a_hang;  //  BPW says "looks ok"
-      frag.position.end = containerPos.end + best->b_hang;
-#ifdef NEW_UNITIGGER_INTERFACE
-      frag.ident2       = containerId;
-      frag.ahang        = best->a_hang;
-      frag.bhang        = best->b_hang;
-#endif
-
-    } else if (containerPos.bgn > containerPos.end) {
-      //  Container is reverse
-      frag.position.bgn = containerPos.bgn - best->a_hang;  //  BPW says "suspicious"
-      frag.position.end = containerPos.end - best->b_hang;
-#ifdef NEW_UNITIGGER_INTERFACE
-      frag.ident2       = containerId;
-      frag.ahang        = - best->b_hang;   //  consensus seems to want these reversed
-      frag.bhang        = - best->a_hang;
-#endif
-    }else{
-      fprintf(stderr, "Container size is zero?\n");
-      assert(containerPos.bgn != containerPos.end);
-    }
 
     // Swap ends if containee is not same strand as container
 
@@ -392,7 +372,7 @@ void Unitig::placeContains(const ContainerMap &cMap,
       frag.position.end = tmp;
     }
 
-    addFrag( frag, 0, false );
+    addFrag(frag, 0, false);
     best->isPlaced = true;
     placeContains(cMap, bog, frag.ident, frag.position, level+1);
   }
@@ -400,12 +380,6 @@ void Unitig::placeContains(const ContainerMap &cMap,
 
 void Unitig::recomputeFragmentPositions(ContainerMap &cMap,
                                         BestOverlapGraph *bog_ptr) {
-  iuid lastFrag = 0;
-#ifdef NEW_UNITIGGER_INTERFACE
-  iuid nextFrag = 0;
-#endif
-
-  // place dovetails in a row
 
   if (dovetail_path_ptr == NULL)
     return;
@@ -414,13 +388,6 @@ void Unitig::recomputeFragmentPositions(ContainerMap &cMap,
 
   for (int i=0; i < dovetail_path_ptr->size(); i++) {
     DoveTailNode *dt = &(*dovetail_path_ptr)[i];
-
-#ifdef NEW_UNITIGGER_INTERFACE
-    if ( nextFrag != 0 )
-      assert( nextFrag == dt->ident);
-    nextFrag = dt->ident2;
-#endif
-    lastFrag = dt->ident;
 
     placeContains(cMap, bog_ptr, dt->ident, dt->position, 1);
   }

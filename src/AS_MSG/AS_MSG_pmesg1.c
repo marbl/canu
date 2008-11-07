@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.32 2008-10-29 16:19:23 skoren Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.33 2008-11-07 06:13:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -284,17 +284,13 @@ Read_IMP_Mesg(FILE *fin, IntMultiPos *imp) {
   char		*line, *u;
 
   imp->type = (FragType)GetType("typ:%1[RXTELUFSUcBCG]","multipos$", fin);
-  GET_FIELD(imp->ident,"mid:"F_IID,"multipos id");
-  GET_FIELD(imp->contained,"con:"F_IID,"contained id");
-#ifdef NEW_UNITIGGER_INTERFACE
-  GET_FIELD(imp->ident2,"bid:"F_IID,"multipos id");
-#endif
+  GET_FIELD(imp->ident,     "mid:"F_IID,"multipos id");
+  GET_FIELD(imp->contained, "con:"F_IID,"contained id");
+  GET_FIELD(imp->parent,    "pid:"F_IID,"multipos id");
   imp->sourceInt = -1;
   GET_PAIR(imp->position.bgn,imp->position.end,"pos:"F_COORD","F_COORD,"position field");
-#ifdef NEW_UNITIGGER_INTERFACE
   GET_FIELD(imp->ahang,"ahg:"F_S32,"ahang");
   GET_FIELD(imp->bhang,"bhg:"F_S32,"bhang");
-#endif
   GET_FIELD(imp->delta_length,"dln:"F_S32,"delta length");
   if (strncmp(ReadLine(fin,TRUE),"del:",4) != 0)
     MgenError("Missing del: field");
@@ -1138,15 +1134,10 @@ static void Write_IMP_Mesg(FILE *fout, IntMultiPos *mlp)
   fprintf(fout,"typ:%c\n",(char) mlp->type);
   fprintf(fout,"mid:"F_IID"\n",mlp->ident);
   fprintf(fout,"con:"F_IID"\n",mlp->contained);
-#ifdef NEW_UNITIGGER_INTERFACE
-  fprintf(fout,"bid:"F_IID"\n",mlp->ident2);
-#endif
-  fprintf(fout,"pos:"F_COORD","F_COORD"\n",
-          mlp->position.bgn,mlp->position.end);
-#ifdef NEW_UNITIGGER_INTERFACE
+  fprintf(fout,"pid:"F_IID"\n",mlp->parent);
+  fprintf(fout,"pos:"F_COORD","F_COORD"\n", mlp->position.bgn,mlp->position.end);
   fprintf(fout,"ahg:"F_S32"\n",mlp->ahang);
   fprintf(fout,"bhg:"F_S32"\n",mlp->bhang);
-#endif
   fprintf(fout,"dln:"F_S32"\n",mlp->delta_length);
   fprintf(fout,"del:\n");
   if (mlp->delta_length > 0 ) {

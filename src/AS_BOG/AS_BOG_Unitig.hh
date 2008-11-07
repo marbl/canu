@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIG
 #define INCLUDE_AS_BOG_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.6 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.7 2008-11-07 06:13:55 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 //#include "AS_BOG_ChunkGraph.hh"
@@ -60,14 +60,21 @@ struct Unitig{
   void reverseComplement();
 
   // Accessor methods
+
   float getAvgRho(FragmentInfo *fi);
   static void setGlobalArrivalRate(float global_arrival_rate);
   void setLocalArrivalRate(float local_arrival_rate);
   float getLocalArrivalRate(FragmentInfo *fi);
   float getCovStat(FragmentInfo *fi);
-  long getLength(void);
-  long getNumFrags(void);
-  long getNumRandomFrags(void); // For now, same as numFrags, but should be randomly sampled frag count
+
+  // getNumRandomFrags() is a placeholder, random frags should not
+  // contain guides, or other fragments that are not randomly sampled
+  // across the whole genome.
+
+  long getLength(void)          { return(_length);                   };
+  long getNumFrags(void)        { return(dovetail_path_ptr->size()); };
+  long getNumRandomFrags(void)  { return(getNumFrags());             };
+
   DoveTailNode getLastBackboneNode(iuid&);
 
   iuid         id(void) { return(_id); };

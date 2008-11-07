@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.54 2008-11-02 06:27:53 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.55 2008-11-07 06:13:55 brianwalenz Exp $";
 
 #include<vector>
 #include<cmath>
@@ -35,6 +35,10 @@ extern "C" {
 #include "AS_OVS_overlapStore.h"
 #include "AS_CGB_histo.h"
 }
+
+
+
+FragmentInfo     *debugfi = 0L;
 
 
 void outputHistograms(UnitigGraph *utg, FragmentInfo *fi, FILE *stats) {
@@ -193,6 +197,8 @@ main (int argc, char * argv []) {
 
   FragmentInfo     *fragInfo = new FragmentInfo(gkpStore);
 
+  debugfi = fragInfo;
+
   BestOverlapGraph      *BOG = new BestOverlapGraph(fragInfo, ovlStore, erate);
 
   ChunkGraph *cg = new ChunkGraph(fragInfo, BOG);
@@ -204,6 +210,8 @@ main (int argc, char * argv []) {
 
   float globalARate = utg.getGlobalArrivalRate(getNumGateKeeperRandomFragments(gkpStore), genome_size);
   Unitig::setGlobalArrivalRate(globalARate);
+
+  utg.setParentAndHang(cg);
 
   utg.writeIUMtoFile(output_prefix, fragment_count_target);
 
