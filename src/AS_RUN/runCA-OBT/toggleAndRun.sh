@@ -64,7 +64,7 @@ mkdir $conDir
 # create the toggled cgi file
 cgiInput=$conDir/$prefix_*.cgi
 cgi=$conDir/$prefix.cgi
-if ($asmBin/$toggler ../*.asm ../$cgiInput > $cgi 2> toggle.err == 0)
+if ($asmBin/$toggler ../*.asm "../$cgiInput" > $cgi 2> toggle.err == 0)
 then
     echo No toggling occured. Finished.
     exit 0
