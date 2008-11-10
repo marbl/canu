@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.33 2008-11-07 06:13:55 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.34 2008-11-10 20:59:17 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1529,8 +1529,7 @@ static void Write_CCO_Mesg(FILE *fout, void *vmesg)
 { SnapConConMesg *mesg = (SnapConConMesg *) vmesg;
   int		i;
 
-  assert(mesg->num_unitigs > 0);
-  assert(mesg->num_pieces  > 0);
+  assert(mesg->num_unitigs > 0);  
 
   assert((mesg->consensus) ? strlen(mesg->consensus) : mesg->length == mesg->length);
   assert((mesg->quality)   ? strlen(mesg->quality)   : mesg->length == mesg->length);
