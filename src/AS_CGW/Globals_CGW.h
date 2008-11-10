@@ -22,7 +22,7 @@
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
-static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.20 2008-10-29 10:42:46 brianwalenz Exp $";
+static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.21 2008-11-10 15:21:12 skoren Exp $";
 
 #include "AS_CGW_dataTypes.h"
 #include "AS_MSG_pmesg.h"
@@ -51,6 +51,7 @@ typedef struct Global_CGW_tag {
   float cgbMicrohetProb;
   int  annotateUnitigs;
   int  doInterleavedScaffoldMerging;
+  int  allowDemoteMarkedUnitigs;
   FILE *cgwfp;    // .cgw            frags, unitigs
   FILE *ctgfp;    // .cgw_contigs    all contigs (input for post-cgw consensus)
   FILE *scffp;    // .cgw_scaffolds  all scaffolds

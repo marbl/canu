@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.29 2008-10-29 10:42:46 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.30 2008-11-10 15:21:12 skoren Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
@@ -1958,7 +1958,8 @@ void DemoteSmallSingletonScaffolds(void) {
 
     numSingletonScaffolds++;
 
-    if (CI->info.CI.forceUniqueRepeat == AS_FORCED_UNIQUE) {
+    // if we are forced marked unique and we are not allowed to be demoted, continue
+    if (CI->info.CI.forceUniqueRepeat == AS_FORCED_UNIQUE && GlobalData->allowDemoteMarkedUnitigs == FALSE) {
       continue;
     }
 

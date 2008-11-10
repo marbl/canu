@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.63 2008-11-07 06:13:55 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.64 2008-11-10 15:21:12 skoren Exp $";
 
 static const char *usage =
 "usage: %s [options] -g <GatekeeperStoreName> -o <OutputPath> <InputCGB.ext>\n"
@@ -48,6 +48,7 @@ static const char *usage =
 "   [-C]           Don't cleanup scaffolds\n"
 "   [-D <debugLevel>]\n"
 "   [-E]           output overlap only contig edges\n"
+"   [-F]           strongly enforce unique/repeat flag set in unitig, default if not set is to still allow those marked unique to be demoted due to Repeat Branch Pattern or being too small\n"
 "   [-G]           Don't generate output (cgw or cam)\n"
 "   [-H]           fail on merge alignment failure   (default)\n"
 "   [-I]           ignore chaff unitigs\n"
@@ -163,6 +164,7 @@ int main(int argc, char *argv[]){
   int    doResolveSurrogates               = 1;      //  resolveSurrogates
   int    placeAllFragsInSinglePlacedSurros = 0;      //  resolveSurrogates
   double cutoffToInferSingleCopyStatus     = 0.666;  //  resolveSurrogates
+  int    allowDemoteMarkedUnitigs          = TRUE;      // allow toggled unitigs to be demoted to be repeat if they were marked unique
 
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
   ContigOrientChecker * coc;
@@ -377,6 +379,10 @@ int main(int argc, char *argv[]){
           fprintf(GlobalData->stderrc,"* Check for Repeat Branch Pattern\n");
           checkRepeatBranchPattern = TRUE;
           break;
+        case 'F':
+          fprintf(GlobalData->stderrc, "* Allow Demote Unique Unitigs\n");
+          allowDemoteMarkedUnitigs = FALSE;
+          break;
 
         case '?':
           fprintf(GlobalData->stderrc,"Unrecognized option -%c",optopt);
@@ -419,6 +425,7 @@ int main(int argc, char *argv[]){
     data->cgbDefinitelyUniqueCutoff = cgbDefinitelyUniqueCutoff;
     data->cgbMicrohetProb = cgbMicrohetProb;
     data -> starting_stone_scaffold = starting_stone_scaffold;
+    data->allowDemoteMarkedUnitigs = allowDemoteMarkedUnitigs;
 
     if(optind < argc)
       {
