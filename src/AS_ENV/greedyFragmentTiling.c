@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: greedyFragmentTiling.c,v 1.15 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id: greedyFragmentTiling.c,v 1.16 2008-11-10 15:21:37 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,6 +70,7 @@ static int thickestOvlsCountAsSeen=0;
 static int seedSample=-1;
 
 #define DEFAULT_SAMPLE_ADVANTAGE .05
+#define MAX_LINE_LEN ( 16 * 1024 * 1024)
 
 void setup_stores(char *OVL_Store_Path, char *Gkp_Store_Path){
 
@@ -903,23 +904,23 @@ int main (int argc , char * argv[] ) {
     }
     assert(sampleFileName[0]!='\0');
   }
-#if 1
-  fprintf(stderr, "sampleFileName is broken.  Blame BPW.\n");
-  exit(1);
-#else
+
   if(sampleFileName[0]!='\0'){
     AS_UID uid;
     uint32 smp;
     AS_IID iid;
     int i;
+    char uidstr[MAX_LINE_LEN];
+    uidstr[MAX_LINE_LEN-1] = '\0';
+    
     iid2sample = (int *) safe_malloc(sizeof(int)*(last_stored_frag+1));
     for(i=0;i<=last_stored_frag;i++){
       iid2sample[i]=-1;
     }
     sampleFile = fopen(sampleFileName,"r");
     assert(sampleFile!=NULL);
-#error broken
-    while(fscanf(sampleFile, "%s "F_IID,&uid,&smp)==2){
+    while(fscanf(sampleFile, "%s "F_IID,&uidstr,&smp)==2){
+      uid = AS_UID_load(uidstr);
       AS_IID iid=uid2iid(uid);
       if(iid>0) iid2sample[iid]=smp;
     }
@@ -929,7 +930,6 @@ int main (int argc , char * argv[] ) {
       exit(1);
     }
   }
-#endif
 
   seen = (char*) safe_malloc((last_stored_frag+1)*sizeof(char));
   {
