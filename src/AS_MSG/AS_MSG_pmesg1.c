@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.34 2008-11-10 20:59:17 skoren Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.35 2008-11-11 16:16:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -148,17 +148,19 @@ Read_Frag_Mesg(FILE *fin, int frag_class) {
 
   assert(frag_class == MESG_FRG);
 
-  fmesg.version        = 1;
-  fmesg.library_uid    = AS_UID_undefined();
-  fmesg.library_iid    = 0;
-  fmesg.plate_uid      = AS_UID_undefined();
-  fmesg.plate_location = 0;
-  fmesg.is_random      = 1;
-  fmesg.status_code    = 'G';
-  fmesg.clear_vec.bgn  = 1;  //  Format 1 cannot have vec or qlt; these disable them
-  fmesg.clear_vec.end  = 0;
-  fmesg.clear_qlt.bgn  = 1;
-  fmesg.clear_qlt.end  = 0;
+  fmesg.version            = 1;
+  fmesg.library_uid        = AS_UID_undefined();
+  fmesg.library_iid        = 0;
+  fmesg.plate_uid          = AS_UID_undefined();
+  fmesg.plate_location     = 0;
+  fmesg.is_random          = 1;
+  fmesg.status_code        = 'G';
+  fmesg.clear_vec.bgn      = 1;  //  Format 1 cannot have vec or max; these disable them
+  fmesg.clear_vec.end      = 0;
+  fmesg.clear_max.bgn      = 1;
+  fmesg.clear_max.end      = 0;
+  fmesg.contamination.bgn  = 1;
+  fmesg.contamination.end  = 0;
 
   fmesg.action = (ActionType)GetType("act:%c","action", fin);
 

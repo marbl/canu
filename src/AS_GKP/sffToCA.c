@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.5 2008-10-31 03:46:25 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.6 2008-11-11 16:16:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,36 +33,6 @@ const char *mainid = "$Id: sffToCA.c,v 1.5 2008-10-31 03:46:25 brianwalenz Exp $
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_encodeSequenceQuality.h"
 #include "AS_ALN_bruteforcedp.h"
-
-//  Problems with this code:
-//
-//  1) It's possibly too aggressive when looking for linker.  It is
-//  happy with 35 bases of alignment out of a 44bp linker, with 3
-//  errors.
-//
-//  2) It needs to be done when OBT is done.  Ideally, after
-//  merge-trimming, but before chimera.  Or, heck, during chimera.
-//  But that creates a large headache -- we'd need to add new
-//  fragments
-//
-//  To do that, we could abuse the clv to denote linker detected here,
-//  but not acted on.
-//
-//
-//  As it is now, most of the linker is detected, either by this or by
-//  OBT.  On p.ging, half1, I only see
-//
-//  81530[218-0-0] 0[0-44] <25-0-100-forward-unknown>
-//  edef=>E8YURXS01C8F4B,91131 mate=0,0 lib=LIBSFFE8YURXS01,1 clr=OBT,0,218 deleted=0
-//  ddef=>linker
-//  193-217 (20-44) <25-0-100>
-//  gaattcaaaccctttcggttccaac
-//  gaattcaaaccctttcggttccaac
-//
-//  after trimming.  This one was not detected because trimming got
-//  rid of 30bp at the end of the read -- when gatekeeper was looking
-//  for linker, it saw 25bp match, and 30bp more stuff on the other
-//  side.  Not enough to split.
 
 
 #define TRIM_NONE 0
@@ -433,21 +403,17 @@ processRead(sffHeader *h,
     fr->gkfr.clearEnd[which] = MIN(crq, cra);
   }
 
-  //  Set vector/quality points, if both are defined
-  fr->gkfr.hasVectorClear  = 0;
-  fr->gkfr.hasQualityClear = 0;
+  //  No maxmum set yet.
+  fr->gkfr.clearBeg[AS_READ_CLEAR_MAX] = 0;
+  fr->gkfr.clearEnd[AS_READ_CLEAR_MAX] = r->number_of_bases - h->key_length;
 
-  if ((r->clip_quality_left > 0) && (r->clip_quality_right > 0)) {
-    fr->gkfr.hasQualityClear = 1;
-    fr->gkfr.clearBeg[AS_READ_CLEAR_QLT] = clq;
-    fr->gkfr.clearEnd[AS_READ_CLEAR_QLT] = crq;
-  }
+  //  'vector' might be set.  If not, this defaults to 0,end.
+  fr->gkfr.clearBeg[AS_READ_CLEAR_VEC] = cla;
+  fr->gkfr.clearEnd[AS_READ_CLEAR_VEC] = cra;
 
-  if ((r->clip_adapter_left > 0) && (r->clip_adapter_right > 0)) {
-    fr->gkfr.hasVectorClear = 1;
-    fr->gkfr.clearBeg[AS_READ_CLEAR_VEC] = cla;
-    fr->gkfr.clearEnd[AS_READ_CLEAR_VEC] = cra;
-  }
+  //  And no contamination!
+  fr->gkfr.contaminationBeg = 0;
+  fr->gkfr.contaminationEnd = 0;
 
   //
   //  Set clear ranges
@@ -455,15 +421,12 @@ processRead(sffHeader *h,
 
   switch (clearTrim) {
     case TRIM_NONE:
-      //  Reset clear ranges to include the whole read, get rid of the
-      //  vector and quality clear ranges.
-      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+      //  Reset clear ranges to include the whole read.
+
+      for (which=AS_READ_CLEAR_OBTINI; which <= AS_READ_CLEAR_LATEST; which++) {
         fr->gkfr.clearBeg[which] = 0;
         fr->gkfr.clearEnd[which] = r->number_of_bases - h->key_length;
       }
-
-      fr->gkfr.hasVectorClear  = 0;
-      fr->gkfr.hasQualityClear = 0;
       break;
 
     case TRIM_SOFT:
@@ -471,6 +434,13 @@ processRead(sffHeader *h,
       break;
 
     case TRIM_HARD:
+#if 1
+      //  Set the CLEAR_MAX to the current clear range....and that's
+      //  it.  The rewrite vesion was for testing.
+
+      fr->gkfr.clearBeg[AS_READ_CLEAR_MAX] = fr->gkfr.clearBeg[AS_READ_CLEAR_LATEST];
+      fr->gkfr.clearEnd[AS_READ_CLEAR_MAX] = fr->gkfr.clearEnd[AS_READ_CLEAR_LATEST];
+#else
       //  Rewrite the read to remove the non-clear sequence.  We keep
       //  in the usually four base long key at the start.
       memmove(r->bases   + h->key_length, r->bases   + h->key_length + clq, sizeof(char) * (crq - clq));
@@ -485,9 +455,7 @@ processRead(sffHeader *h,
         fr->gkfr.clearBeg[which] = 0;
         fr->gkfr.clearEnd[which] = crq - clq;
       }
-
-      fr->gkfr.hasVectorClear = 0;
-      fr->gkfr.hasQualityClear = 0;
+#endif
       break;
 
   }
@@ -623,19 +591,11 @@ removeLowQualityReads(void) {
   for (thisElem=firstElem; thisElem<lastElem; thisElem++) {
     getFrag(gkpStore, thisElem, &fr, FRAG_S_INF | FRAG_S_SEQ);
 
-    //  Look for n's in the sequence.  This is a signature of an
+    //  Look for n's in the clear range.  This is a signature of an
     //  instrument problem.
     //
-    //  If we are using the soft trim (aka, use 454 clear ranges),
-    //  only search the clear range.
-
-    if (clearTrim = TRIM_SOFT) {
-      b = fr.gkfr.clearBeg[AS_READ_CLEAR_LATEST];
-      e = fr.gkfr.clearEnd[AS_READ_CLEAR_LATEST];
-    } else {
-      b = 0;
-      e = fr.gkfr.seqLen;
-    }
+    b = fr.gkfr.clearBeg[AS_READ_CLEAR_LATEST];
+    e = fr.gkfr.clearEnd[AS_READ_CLEAR_LATEST];
 
     for (x=b; x<e; x++)
       if ((fr.seq[x] == 'n') || (fr.seq[x] == 'N'))
@@ -675,9 +635,9 @@ removeLowQualityReads(void) {
           else
             x -= NreadTrim;
 
-          fr.gkfr.hasVectorClear = 1;
-          fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = 0;
-          fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = x;
+          if (fr.gkfr.clearEnd[AS_READ_CLEAR_MAX] > x)
+            fr.gkfr.clearEnd[AS_READ_CLEAR_MAX] = x;
+
           if (logFile)
             fprintf(logFile, "Read '%s' contains an N at position %d.  Read trimmed to position %d.\n",
                     AS_UID_toString(fr.gkfr.readUID), x, x + NreadTrim);
@@ -891,7 +851,7 @@ removeDuplicateReads(void) {
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-//  For a gived fragRecord, scan the sequence for a linker.  If found,
+//  For a given fragRecord, scan the sequence for a linker.  If found,
 //  generate two new mated reads and delete the original read.
 //
 //
@@ -980,8 +940,17 @@ processMate(fragRecord *fr,
     fr->qlt[rSize] = 0;
 
     for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-      fr->gkfr.clearBeg[which] = 0;
-      fr->gkfr.clearEnd[which] = rSize;
+      if (fr->gkfr.clearBeg[which] < al.endJ)
+        fr->gkfr.clearBeg[which] = 0;
+      else
+        fr->gkfr.clearBeg[which] -= al.endJ;
+
+      if (fr->gkfr.clearEnd[which] < al.endJ)
+        fr->gkfr.clearEnd[which] = 0;
+      else
+        fr->gkfr.clearEnd[which] -= al.endJ;
+
+      assert(fr->gkfr.clearEnd[which] <= rSize);
     }
 
     //  Recursively search for another copy of the linker.
@@ -1000,8 +969,8 @@ processMate(fragRecord *fr,
     fr->qlt[lSize] = 0;
 
     for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-      fr->gkfr.clearBeg[which] = 0;
-      fr->gkfr.clearEnd[which] = lSize;
+      if (fr->gkfr.clearEnd[which] > lSize)
+        fr->gkfr.clearEnd[which] = lSize;
     }
 
     //  Recursively search for another copy of the linker.
@@ -1028,13 +997,16 @@ processMate(fragRecord *fr,
       return(0);
     }
 
-    memcpy(m1, fr, sizeof(fragRecord));
-    memcpy(m2, fr, sizeof(fragRecord));
+    //  0.  Copy the fragments to new mated fragments
+    {
+      memcpy(m1, fr, sizeof(fragRecord));
+      memcpy(m2, fr, sizeof(fragRecord));
+    }
 
     //  1.  Make new UIDs for the two mated reads.  Nuke the old
     //  read.  Make the mates.
     //
-    //  WARNING!  See that getLastElemStore() below?  It is forcing us to
+    //  WARNING!  See those getLastElemStore() below?  It forces us to
     //  load the gkm1 read before the gkm2 read.
     {
       char  uid[64];
@@ -1062,9 +1034,40 @@ processMate(fragRecord *fr,
       m2->gkfr.orientation = AS_READ_ORIENT_INNIE;
     }
 
-    //need to enable more strict checking on things loaded -- no embedded nulls for exampe (is that valid in encoded?)
+    //  2.  Propagate clear ranges.  Math.
+    //
+    //  m1 is reverse complemented, so the start of m1 is next to the
+    //  linker, and the end can extend into low quality sequence at
+    //  the start of the read.
+    //
+    //  lSize - size of the left half of the read, including X's
+    //  rSize - size of the right half of the read, including X's
+    //
+    //       v clearBeg                   clearEnd v
+    //  XXXXXX-------------------[linker]----------XXXXXXXXXXX
+    //                   al.begJ ^      ^ al.endJ
+    //
+    //  
+    {
+      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+        uint  lend = al.begJ - fr->gkfr.clearBeg[which];
+        uint  rend = fr->gkfr.clearEnd[which] - al.endJ;
 
-    //  2.  Construct new rm1, rm2.  Nuke the linker.  Reverse
+        if (lSize < fr->gkfr.clearBeg[which])
+          lend = 0;
+
+        if (fr->gkfr.clearEnd[which] < al.endJ)
+          rend = 0;
+
+        m1->gkfr.clearBeg[which] = 0;
+        m1->gkfr.clearEnd[which] = lend;
+
+        m2->gkfr.clearBeg[which] = 0;
+        m2->gkfr.clearEnd[which] = rend;
+      }
+    }
+
+    //  3.  Construct new rm1, rm2.  Nuke the linker.  Reverse
     //  complement -- inplace -- the left mate.
     {
       int j;
@@ -1076,20 +1079,6 @@ processMate(fragRecord *fr,
       m1->seq[lSize] = 0;
       m1->qlt[lSize] = 0;
 
-      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-        m1->gkfr.clearBeg[which] = 0;
-        m1->gkfr.clearEnd[which] = lSize;
-      }
-
-      //  Nuke the linker
-
-      //for (j=al.begJ; j<al.endJ; j++) {
-      //  m1->seq[j] = 0;
-      //  m1->qlt[j] = 0;
-      //}
-
-      //reverseComplement(r->final_bases + endJ, r->final_quality + endJ, rSize);
-
       m2->gkfr.seqLen    = rSize;
 
       memmove(m2->seq, m2->seq + al.endJ, rSize);
@@ -1097,11 +1086,6 @@ processMate(fragRecord *fr,
 
       m2->seq[rSize] = 0;
       m2->qlt[rSize] = 0;
-
-      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-        m2->gkfr.clearBeg[which] = 0;
-        m2->gkfr.clearEnd[which] = rSize;
-      }
 
       if (logFile)
         fprintf(logFile, "Mates '%s' (%3d-%3d) and '%s' (%3d-%3d) created.\n",
@@ -1128,6 +1112,7 @@ processMate(fragRecord *fr,
     return(1);
   }  //  if match is in middle
 
+
   //  Significant alignment, but we didn't do anything with it.  Why?
   //  Overload some of the later clear ranges to convey this
   //  information to downstream processes.
@@ -1144,16 +1129,8 @@ processMate(fragRecord *fr,
     fprintf(logFile, "Linker detected but not trimmed in '%s' linker: %3d-%3d read: %3d-%3d alignLen: %3d matches: %3d.  Passed to OBT.\n",
             AS_UID_toString(fr->gkfr.readUID), al.begI, al.endI, al.begJ, al.endJ, al.alignLen, al.matches);
 
-  fr->gkfr.sffLinkerDetectedButNotTrimmed = 1;
-
-  fr->gkfr.hasVectorClear  = 0;
-  fr->gkfr.hasQualityClear = 0;
-
-  fr->gkfr.clearBeg[AS_READ_CLEAR_QLT] = (al.begI     << 8) | al.endI;     //  linker coords
-  fr->gkfr.clearEnd[AS_READ_CLEAR_QLT] = (al.alignLen << 8) | al.matches;  //  quality
-
-  fr->gkfr.clearBeg[AS_READ_CLEAR_VEC] = al.begJ;  //  read coords
-  fr->gkfr.clearEnd[AS_READ_CLEAR_VEC] = al.endJ;
+  fr->gkfr.contaminationBeg = al.begJ;
+  fr->gkfr.contaminationEnd = al.endJ;
 
   return(0);
 }
@@ -1343,55 +1320,29 @@ dumpFragFile(char *outName, FILE *outFile) {
     pmesg.m = &frgMesg;
     pmesg.t = MESG_FRG;
 
-    //  This code used in AS_GKP_dump.c (dumpFRG), and in AS_FGB_io.c
-    frgMesg.action          = getFragRecordIsDeleted(&fr) ? AS_DELETE : AS_ADD;
-    frgMesg.eaccession      = getFragRecordUID(&fr);
-    frgMesg.library_uid     = frgUID[0];
-    frgMesg.library_iid     = getFragRecordLibraryIID(&fr);
-    frgMesg.plate_uid       = fr.gkfr.plateUID;
-    frgMesg.plate_location  = fr.gkfr.plateLocation;
-    frgMesg.type            = AS_READ;
-    frgMesg.is_random       = (getFragRecordIsNonRandom(&fr)) ? 0 : 1;
-    frgMesg.status_code     = AS_READ_STATUS_NAMES[fr.gkfr.status][0];
-    frgMesg.clear_rng.bgn   = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_LATEST);
-    frgMesg.clear_rng.end   = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_LATEST);
-    frgMesg.clear_vec.bgn   = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_VEC);
-    frgMesg.clear_vec.end   = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_VEC);
-    frgMesg.clear_qlt.bgn   = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_QLT);
-    frgMesg.clear_qlt.end   = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_QLT);
-    frgMesg.source          = 0L;
-    frgMesg.sequence        = getFragRecordSequence(&fr);
-    frgMesg.quality         = getFragRecordQuality(&fr);
-    frgMesg.hps             = getFragRecordHPS(&fr);
-    frgMesg.iaccession      = getFragRecordIID(&fr);
-
-    //  This is an unfortunate hack needed to communicate some 454
-    //  mate linker info from the linker detection to OBT.
-    //
-    if (fr.gkfr.sffLinkerDetectedButNotTrimmed) {
-      uint64  val = 0;
-
-      val  |= fr.gkfr.clearBeg[AS_READ_CLEAR_QLT];
-      val <<= 16;
-      val  |= fr.gkfr.clearEnd[AS_READ_CLEAR_QLT];
-      val <<= 16;
-      val  |= fr.gkfr.clearBeg[AS_READ_CLEAR_VEC];
-      val <<= 16;
-      val  |= fr.gkfr.clearEnd[AS_READ_CLEAR_VEC];
-
-      frgMesg.source = source;
-      sprintf(frgMesg.source, "linktrim:0x%0"F_X64P, val);
-    }
-
-    if (fr.gkfr.hasVectorClear == 0) {
-      frgMesg.clear_vec.bgn   = 1;
-      frgMesg.clear_vec.end   = 0;
-    }
-
-    if (fr.gkfr.hasQualityClear == 0) {
-      frgMesg.clear_qlt.bgn   = 1;
-      frgMesg.clear_qlt.end   = 0;
-    }
+    //  This code used in AS_GKP_dump.c (dumpFRG).
+    frgMesg.action            = getFragRecordIsDeleted(&fr) ? AS_DELETE : AS_ADD;
+    frgMesg.eaccession        = getFragRecordUID(&fr);
+    frgMesg.library_uid       = frgUID[0];
+    frgMesg.library_iid       = getFragRecordLibraryIID(&fr);
+    frgMesg.plate_uid         = fr.gkfr.plateUID;
+    frgMesg.plate_location    = fr.gkfr.plateLocation;
+    frgMesg.type              = AS_READ;
+    frgMesg.is_random         = (getFragRecordIsNonRandom(&fr)) ? 0 : 1;
+    frgMesg.status_code       = AS_READ_STATUS_NAMES[fr.gkfr.status][0];
+    frgMesg.clear_rng.bgn     = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_LATEST);
+    frgMesg.clear_rng.end     = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_LATEST);
+    frgMesg.clear_vec.bgn     = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_VEC);
+    frgMesg.clear_vec.end     = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_VEC);
+    frgMesg.clear_max.bgn     = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_MAX);
+    frgMesg.clear_max.end     = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_MAX);
+    frgMesg.contamination.bgn = fr.gkfr.contaminationBeg;
+    frgMesg.contamination.end = fr.gkfr.contaminationEnd;
+    frgMesg.source            = 0L;
+    frgMesg.sequence          = getFragRecordSequence(&fr);
+    frgMesg.quality           = getFragRecordQuality(&fr);
+    frgMesg.hps               = getFragRecordHPS(&fr);
+    frgMesg.iaccession        = getFragRecordIID(&fr);
 
     WriteProtoMesg_AS(outFile, &pmesg);
 
@@ -1512,13 +1463,19 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -libraryname n         The UID of the library these reads are added to.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -clear none            Do not use 454 clear ranges (default).\n");
-    fprintf(stderr, "  -clear soft            Use 454 clear ranges.  The full read is output.\n");
-    fprintf(stderr, "  -clear hard            Trim read to 454 clear ranges.\n");
+    fprintf(stderr, "  -clear none            Use the whole read, not the 454 clear ranges (default).\n");
+    fprintf(stderr, "  -clear soft            Use 454 clear ranges; OBT can increase the clear range.\n");
+    fprintf(stderr, "                           VEC <- adapter clear\n");
+    fprintf(stderr, "                           CLR <- quality clear\n");
+    fprintf(stderr, "                           MAX <- 0,len\n");
+    fprintf(stderr, "  -clear hard            Use 454 clear ranges; OBT can only shrink the clear range.\n");
+    fprintf(stderr, "                           VEC <- adapter clear\n");
+    fprintf(stderr, "                           CLR <- quality clear\n");
+    fprintf(stderr, "                           MAX <- quality clear\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -nread allow           Allow reads that contain an N in the clear range.\n");
     fprintf(stderr, "  -nread discard         Discard reads that contain an N in the clear range (default).\n");
-    fprintf(stderr, "  -nread onlyn           Discard reads that DO NOT contain an N in the clear range.\n");
+    fprintf(stderr, "  -nread onlyn           Discard reads that DO NOT contain an N in the clear range (debug).\n");
     fprintf(stderr, "  -nread trim <val>      Trim back <val> bases before the first N.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -linker [name | seq]   Search for linker, created mated reads.\n");
@@ -1529,6 +1486,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -output f.frg          Write the CA formatted fragments to this file.\n");
     fprintf(stderr, "  -log    l.txt          Human readable log of what happened.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "FOR FLX READS:      historical usage is '-clear none -nread discard'.\n");
+    fprintf(stderr, "FOR TITANIUM READS: best results obtained with '-clear hard'.\n");
     fprintf(stderr, "\n");
 
     if (libraryName == 0L)

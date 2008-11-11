@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.45 2008-10-29 16:51:32 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.46 2008-11-11 16:16:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -105,12 +105,6 @@ dumpGateKeeperInfo(char       *gkpStoreName,
 
       for (i=0; i<AS_READ_CLEAR_UNTRIM + 1; i++) {
         uint32 clrlen = getFragRecordClearRegionEnd(&fr, i) - getFragRecordClearRegionBegin(&fr, i);
-
-        //  What a ucky special case.
-        if ((i == AS_READ_CLEAR_QLT) && (fr.gkfr.hasQualityClear == 0))
-          continue;
-        if ((i == AS_READ_CLEAR_VEC) && (fr.gkfr.hasVectorClear == 0))
-          continue;
 
         clearLength[i]           += clrlen;
         clearLengthByLib[lib][i] += clrlen;
@@ -343,9 +337,6 @@ dumpGateKeeperFragments(char       *gkpStoreName,
         fprintf(stdout, "fragmentIsNonRandom     = %d\n", getFragRecordIsNonRandom(&fr));
         fprintf(stdout, "fragmentStatus          = %s\n", AS_READ_STATUS_NAMES[fr.gkfr.status]);
         fprintf(stdout, "fragmentOrientation     = %s\n", AS_READ_ORIENT_NAMES[fr.gkfr.orientation]);
-
-        fprintf(stdout, "fragmentHasVectorClear  = %d\n", fr.gkfr.hasVectorClear);
-        fprintf(stdout, "fragmentHasQualityClear = %d\n", fr.gkfr.hasQualityClear);
 
         fprintf(stdout, "fragmentPlate           = %s\n", AS_UID_toString(fr.gkfr.plateUID));
         fprintf(stdout, "fragmentPlateLocation   = %d\n", fr.gkfr.plateLocation);
@@ -632,36 +623,28 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
       pmesg.t = MESG_FRG;
 
       //  This code used in AS_GKP_dump.c (dumpFRG), and in AS_FGB_io.c
-      fmesg.action          = getFragRecordIsDeleted(&fr) ? AS_DELETE : AS_ADD;
-      fmesg.eaccession      = getFragRecordUID(&fr);
-      fmesg.library_uid     = libUID[getFragRecordLibraryIID(&fr)];
-      fmesg.library_iid     = getFragRecordLibraryIID(&fr);
-      fmesg.plate_uid       = fr.gkfr.plateUID;
-      fmesg.plate_location  = fr.gkfr.plateLocation;
-      fmesg.type            = AS_READ;
-      fmesg.is_random       = (getFragRecordIsNonRandom(&fr)) ? 0 : 1;
-      fmesg.status_code     = AS_READ_STATUS_NAMES[fr.gkfr.status][0];
-      fmesg.clear_rng.bgn   = getFragRecordClearRegionBegin(&fr, dumpFRGClear);
-      fmesg.clear_rng.end   = getFragRecordClearRegionEnd  (&fr, dumpFRGClear);
-      fmesg.clear_vec.bgn   = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_VEC);
-      fmesg.clear_vec.end   = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_VEC);
-      fmesg.clear_qlt.bgn   = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_QLT);
-      fmesg.clear_qlt.end   = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_QLT);
-      fmesg.source          = getFragRecordSource(&fr);
-      fmesg.sequence        = getFragRecordSequence(&fr);
-      fmesg.quality         = getFragRecordQuality(&fr);
-      fmesg.hps             = getFragRecordHPS(&fr);
-      fmesg.iaccession      = firstElem;
-
-      if (fr.gkfr.hasVectorClear == 0) {
-        fmesg.clear_vec.bgn   = 1;
-        fmesg.clear_vec.end   = 0;
-      }
-
-      if (fr.gkfr.hasQualityClear == 0) {
-        fmesg.clear_qlt.bgn   = 1;
-        fmesg.clear_qlt.end   = 0;
-      }
+      fmesg.action              = getFragRecordIsDeleted(&fr) ? AS_DELETE : AS_ADD;
+      fmesg.eaccession          = getFragRecordUID(&fr);
+      fmesg.library_uid         = libUID[getFragRecordLibraryIID(&fr)];
+      fmesg.library_iid         = getFragRecordLibraryIID(&fr);
+      fmesg.plate_uid           = fr.gkfr.plateUID;
+      fmesg.plate_location      = fr.gkfr.plateLocation;
+      fmesg.type                = AS_READ;
+      fmesg.is_random           = (getFragRecordIsNonRandom(&fr)) ? 0 : 1;
+      fmesg.status_code         = AS_READ_STATUS_NAMES[fr.gkfr.status][0];
+      fmesg.clear_rng.bgn       = getFragRecordClearRegionBegin(&fr, dumpFRGClear);
+      fmesg.clear_rng.end       = getFragRecordClearRegionEnd  (&fr, dumpFRGClear);
+      fmesg.clear_vec.bgn       = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_VEC);
+      fmesg.clear_vec.end       = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_VEC);
+      fmesg.clear_max.bgn       = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_MAX);
+      fmesg.clear_max.end       = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_MAX);
+      frgMesg.contamination.bgn = fr.gkfr.contaminationBeg;
+      frgMesg.contamination.end = fr.gkfr.contaminationEnd;
+      fmesg.source              = getFragRecordSource(&fr);
+      fmesg.sequence            = getFragRecordSequence(&fr);
+      fmesg.quality             = getFragRecordQuality(&fr);
+      fmesg.hps                 = getFragRecordHPS(&fr);
+      fmesg.iaccession          = firstElem;
 
       WriteProtoMesg_AS(stdout, &pmesg);
 

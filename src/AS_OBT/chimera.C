@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.30 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id: chimera.C,v 1.31 2008-11-11 16:16:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,14 +70,9 @@ public:
   uint64   deleted:1;
   uint64   doNotOBT:1;
 
-  uint64   pad2:9;
-  uint64   linkBeg:8;
-  uint64   linkEnd:8;
+  uint64   pad2:42;
   uint64   fragBeg:11;
   uint64   fragEnd:11;
-  uint64   alignLen:8;
-  uint64   alignMatches:8;
-  uint64   fragHasLinker:1;
 
   AS_UID   uid;
 };
@@ -103,13 +98,8 @@ readClearRanges(GateKeeperStore *gkp) {
     clear[iid].doNotOBT      = ((gklr) && (gklr->doNotOverlapTrim)) ? 1 : 0;
 
     clear[iid].pad2          = 0;
-    clear[iid].linkBeg       = (fr.gkfr.clearBeg[AS_READ_CLEAR_QLT] >> 8) & 0xff;
-    clear[iid].linkEnd       = (fr.gkfr.clearBeg[AS_READ_CLEAR_QLT]     ) & 0xff;
-    clear[iid].fragBeg       =  fr.gkfr.clearBeg[AS_READ_CLEAR_VEC];
-    clear[iid].fragEnd       =  fr.gkfr.clearEnd[AS_READ_CLEAR_VEC];
-    clear[iid].alignLen      = (fr.gkfr.clearEnd[AS_READ_CLEAR_QLT] >> 8) & 0xff;
-    clear[iid].alignMatches  = (fr.gkfr.clearEnd[AS_READ_CLEAR_QLT]     ) & 0xff;
-    clear[iid].fragHasLinker =  fr.gkfr.sffLinkerDetectedButNotTrimmed;
+    clear[iid].fragBeg       = fr.gkfr.contaminationBeg;
+    clear[iid].fragEnd       = fr.gkfr.contaminationEnd;
 
     clear[iid].uid           = getFragRecordUID(&fr);
   }
@@ -348,7 +338,7 @@ process(const AS_IID           iid,
   //  isn't we need to remove overlaps from here so that it is
   //  properly detected as chimeric.
   //
-  if (clear[iid].fragHasLinker) {
+  if (loLinker < hiLinker) {
     uint32  isectbefore = 0;
     uint32  isect       = 0;
     uint32  isectafter  = 0;

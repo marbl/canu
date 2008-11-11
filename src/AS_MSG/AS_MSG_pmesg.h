@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.71 2008-11-07 06:13:55 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.72 2008-11-11 16:16:25 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.71 2008-11-07 06:13:55 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.72 2008-11-11 16:16:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <time.h>
@@ -195,7 +195,8 @@ typedef struct {
   char                  status_code;     //  only version 2
   SeqInterval  		clear_rng;
   SeqInterval  		clear_vec;       //  only version 2
-  SeqInterval  		clear_qlt;       //  only version 2
+  SeqInterval  		clear_max;       //  only version 2
+  SeqInterval           contamination;   //  only version 2
   char        		*source;
   char        		*sequence;
   char        		*quality;

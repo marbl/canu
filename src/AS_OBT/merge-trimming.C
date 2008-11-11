@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merge-trimming.C,v 1.30 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id: merge-trimming.C,v 1.31 2008-11-11 16:16:25 brianwalenz Exp $";
 
 #include "trim.H"
 #include "constants.H"
@@ -403,11 +403,12 @@ main(int argc, char **argv) {
 #if 0
         if ((qltL  + OBT_CQ_SHORT > qltR) ||
             (mode5 + OBT_CQ_SHORT > qltR) ||
-            (qltL  + OBT_CQ_SHORT > mode3)) {
+            (qltL  + OBT_CQ_SHORT > mode3))
 #else
           // test granger email re ixodes
-        if ((qltL  + OBT_CQ_SHORT > qltR)) {
+        if ((qltL  + OBT_CQ_SHORT > qltR))
 #endif
+        {
           stats[2]++;
           left  = 0;
           right = 0;
@@ -522,6 +523,59 @@ main(int argc, char **argv) {
     readLine(O);
   }
 
+  //  Finally, make a pass through, resetting clear ranges if they
+  //  have exceeded the MAX.  We do this at the end, instead of
+  //  throughout the process because (a) it's easier and (b) we can
+  //  generate a summary of the amount of OBT clear range sequence we
+  //  discard.
+  //
+
+  uint32  sumdiffl = 0;
+  uint32  sumdiffr = 0;
+
+  for (uint32 iid=getFirstElemFragStore(gkp);
+       iid < getLastElemFragStore(gkp) + 1;
+       iid++) {
+
+    getFrag(gkp, iid, &fr, FRAG_S_INF);
+
+    GateKeeperLibraryRecord *gklr = getGateKeeperLibrary(gkp, getFragRecordLibraryIID(&fr));
+
+    if (getFragRecordIsDeleted(&fr))
+      continue;
+
+    if ((gklr) && (gklr->doNotOverlapTrim))
+      continue;
+
+    uint32 maxl = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_MAX);
+    uint32 maxr = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_MAX);
+
+    uint32 obtl = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBT);
+    uint32 obtr = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBT);
+
+    uint32 diffl = 0;
+    uint32 diffr = 0;
+
+    if (obtl < maxl) {
+      diffl     = maxl - obtl;
+      sumdiffl += diffl;
+      stats[21]++;
+      obtl      = maxl;
+    }
+
+    if (maxr < obtr) {
+      diffr     = obtr - maxr;
+      sumdiffr += diffr;
+      stats[22]++;
+      obtr      = maxr;
+    }
+
+    if (diffl + diffr > 0) {
+      setFragRecordClearRegion(&fr, obtl, obtr, AS_READ_CLEAR_OBT);
+      setFrag(gkp, lid, &fr);
+    }
+  }
+
   closeGateKeeperStore(gkp);
   fclose(O);
 
@@ -531,6 +585,8 @@ main(int argc, char **argv) {
   fprintf(staFile, F_U32":\treset qltL to mode-of-5'mode\n", stats[0]);
   fprintf(staFile, F_U32":\treset qltL to vector left\n", stats[15]);
   fprintf(staFile, F_U32":\treset qltR to vector right\n", stats[16]);
+  fprintf(staFile, F_U32":\treset qltL to max left\t("F_U32" bp)\n", stats[21], sumdiffl);
+  fprintf(staFile, F_U32":\treset qltR to max right\t("F_U32" bp)\n", stats[22], sumdiffr);
   fprintf(staFile, F_U32":\treset qltR to qltL due to inconsistency\n", stats[17]);
   fprintf(staFile, F_U32":\tshort quality:\n", stats[1]);
   fprintf(staFile, F_U32":\t  very short quality < %d or very short in common < %d, discard frag\n", stats[2], OBT_CQ_SHORT, OBT_CQ_SHORT);

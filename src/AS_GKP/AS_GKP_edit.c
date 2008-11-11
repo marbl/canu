@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.12 2008-06-27 06:33:15 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.13 2008-11-11 16:16:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,8 +79,6 @@ updateVectorClear(char *vectorClearFile, char *gkpStoreName) {
 
       if (iid) {
         getFrag(gkpStore, iid, &fr, FRAG_S_INF);
-
-        fr.gkfr.hasVectorClear = 1;
 
         //  Silently flip coordinates if needed.
         if (l < r) {
@@ -160,12 +158,6 @@ setClear(GateKeeperFragmentRecord *gkfr, char *E, uint32 which, int update) {
     munch(E);
     gkfr->clearEnd[which] = strtoul(E, &E, 10);
   }
-
-  if (which == AS_READ_CLEAR_VEC) {
-    gkfr->hasVectorClear = 1;
-  }
-  if (which == AS_READ_CLEAR_QLT)
-    gkfr->hasQualityClear = 1;
 
   if (updateAll) {
      for (; which <= AS_READ_CLEAR_LATEST; which++) {
@@ -353,16 +345,14 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
 
       if        (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_ORIG]) == 0) {
         setClear(&gkfr, E, AS_READ_CLEAR_ORIG, update);
-      } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_QLT]) == 0) {
-        setClear(&gkfr, E, AS_READ_CLEAR_QLT, update);
+      } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_MAX]) == 0) {
+        setClear(&gkfr, E, AS_READ_CLEAR_MAX, update);
       } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_VEC]) == 0) {
         setClear(&gkfr, E, AS_READ_CLEAR_VEC, update);
       } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_OBTINI]) == 0) {
         setClear(&gkfr, E, AS_READ_CLEAR_OBTINI, update);
       } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_OBT]) == 0) {
         setClear(&gkfr, E, AS_READ_CLEAR_OBT, update);
-      } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_UTG]) == 0) {
-        setClear(&gkfr, E, AS_READ_CLEAR_UTG, update);
       } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_ECR1]) == 0) {
         setClear(&gkfr, E, AS_READ_CLEAR_ECR1, update);
       } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_ECR2]) == 0) {

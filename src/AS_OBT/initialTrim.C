@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: initialTrim.C,v 1.19 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id: initialTrim.C,v 1.20 2008-11-11 16:16:25 brianwalenz Exp $";
 
 //  Read a fragStore, does quality trimming based on quality scores,
 //  intersects the quality trim with a vector trim, and updates the
@@ -143,13 +143,10 @@ main(int argc, char **argv) {
     finL = qltL;
     finR = qltR;
 
-    //  Intersect with the vector clear range, if it exists
+    //  Intersect with the vector clear range.
 
-    if (fr.gkfr.hasVectorClear == false) {
-      //  no vector clear known, use the quality clear
-      stat_noVecClr++;
-
-    } else if ((fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] > finR) || (fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] < finL)) {
+    if ((fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] > finR) ||
+        (fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] < finL)) {
       //  don't intersect; trust nobody
       stat_noHQnonVec++;
       finL = 0;
@@ -191,8 +188,8 @@ main(int argc, char **argv) {
               getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_ORIG),
               qltL,
               qltR,
-              (fr.gkfr.hasVectorClear) ? getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_VEC) : 0,
-              (fr.gkfr.hasVectorClear) ? getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_VEC) : 0,
+              getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_VEC),
+              getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_VEC),
               finL,
               finR,
               ((finL + AS_FRAG_MIN_LEN) > finR) ? " (deleted)" : "");

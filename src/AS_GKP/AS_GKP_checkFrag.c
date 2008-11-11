@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.42 2008-10-23 05:08:03 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.43 2008-11-11 16:16:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -237,23 +237,24 @@ setClearRanges(GateKeeperFragmentRecord *gkf, FragMesg *frg_mesg) {
     gkf->clearEnd[which] = frg_mesg->clear_rng.end;
   }
 
-  if (frg_mesg->clear_qlt.bgn <= frg_mesg->clear_qlt.end) {
-    gkf->hasQualityClear = 1;
-    gkf->clearBeg[AS_READ_CLEAR_QLT] = frg_mesg->clear_qlt.bgn;
-    gkf->clearEnd[AS_READ_CLEAR_QLT] = frg_mesg->clear_qlt.end;
+  if (frg_mesg->clear_max.bgn <= frg_mesg->clear_max.end) {
+    gkf->clearBeg[AS_READ_CLEAR_MAX] = frg_mesg->clear_max.bgn;
+    gkf->clearEnd[AS_READ_CLEAR_MAX] = frg_mesg->clear_max.end;
   } else {
-    gkf->clearBeg[AS_READ_CLEAR_QLT] = 1;
-    gkf->clearEnd[AS_READ_CLEAR_QLT] = 0;
+    gkf->clearBeg[AS_READ_CLEAR_MAX] = 0;
+    gkf->clearEnd[AS_READ_CLEAR_MAX] = AS_FRAG_MAX_LEN;
   }
 
   if (frg_mesg->clear_vec.bgn <= frg_mesg->clear_vec.end) {
-    gkf->hasVectorClear = 1;
     gkf->clearBeg[AS_READ_CLEAR_VEC] = frg_mesg->clear_vec.bgn;
     gkf->clearEnd[AS_READ_CLEAR_VEC] = frg_mesg->clear_vec.end;
   } else {
-    gkf->clearBeg[AS_READ_CLEAR_VEC] = 1;
-    gkf->clearEnd[AS_READ_CLEAR_VEC] = 0;
+    gkf->clearBeg[AS_READ_CLEAR_VEC] = 0;
+    gkf->clearEnd[AS_READ_CLEAR_VEC] = AS_FRAG_MAX_LEN;
   }
+
+  gkf->contaminationBeg = 0;
+  gkf->contaminationEnd = 0;
 
   return(0);
 }
@@ -312,27 +313,6 @@ Check_FragMesg(FragMesg            *frg_mesg,
                          AS_UID_toString(frg_mesg->eaccession));
       gkpStore->gkp.frgErrors++;
       return(1);
-    }
-
-    //  Deal with the unfortunate hack that communicates 454 mate
-    //  linker trim points to OBT.
-    //
-    if (strncmp(frg_mesg->source, "linktrim:0x", 11) == 0) {
-      uint64 val = strtoull(frg_mesg->source, NULL, 16);
-
-      gkf.clearEnd[AS_READ_CLEAR_VEC] = val & 0x0000ffff;
-      val >>= 16;
-      gkf.clearBeg[AS_READ_CLEAR_VEC] = val & 0x0000ffff;
-      val >>= 16;
-      gkf.clearEnd[AS_READ_CLEAR_QLT] = val & 0x0000ffff;
-      val >>= 16;
-      gkf.clearBeg[AS_READ_CLEAR_QLT] = val & 0x0000ffff;
-
-      gkf.sffLinkerDetectedButNotTrimmed = 1;
-      gkf.hasVectorClear  = 0;
-      gkf.hasQualityClear = 0;
-
-      frg_mesg->source[0] = 0;
     }
 
     //  Check sequence and quality for invalid letters, lengths, etc.

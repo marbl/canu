@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.29 2008-10-08 22:02:58 brianwalenz Exp $
- * $Revision: 1.29 $
+ * $Id: OlapFromSeedsOVL.c,v 1.30 2008-11-11 16:16:25 brianwalenz Exp $
+ * $Revision: 1.30 $
 */
 
-const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.29 2008-10-08 22:02:58 brianwalenz Exp $";
+const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.30 2008-11-11 16:16:25 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -3376,16 +3376,14 @@ static void  Parse_Command_Line
         case  'C' :
           if (strcmp (optarg, "AS_READ_CLEAR_ORIG") == 0)
             Clear_Range_Used = AS_READ_CLEAR_ORIG;
-          else if (strcmp (optarg, "AS_READ_CLEAR_QLT") == 0)
-            Clear_Range_Used = AS_READ_CLEAR_QLT;
+          else if (strcmp (optarg, "AS_READ_CLEAR_MAX") == 0)
+            Clear_Range_Used = AS_READ_CLEAR_MAX;
           else if (strcmp (optarg, "AS_READ_CLEAR_VEC") == 0)
             Clear_Range_Used = AS_READ_CLEAR_VEC;
           else if (strcmp (optarg, "AS_READ_CLEAR_OBTINI") == 0)
             Clear_Range_Used = AS_READ_CLEAR_OBTINI;
           else if (strcmp (optarg, "AS_READ_CLEAR_OBT") == 0)
             Clear_Range_Used = AS_READ_CLEAR_OBT;
-          else if (strcmp (optarg, "AS_READ_CLEAR_UTG") == 0)
-            Clear_Range_Used = AS_READ_CLEAR_UTG;
           else if (strcmp (optarg, "AS_READ_CLEAR_ECR1") == 0)
             Clear_Range_Used = AS_READ_CLEAR_ECR1;
           else if (strcmp (optarg, "AS_READ_CLEAR_ECR2") == 0)

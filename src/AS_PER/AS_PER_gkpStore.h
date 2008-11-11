@@ -22,7 +22,7 @@
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 
-static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id: AS_PER_gkpStore.h,v 1.56 2008-10-29 10:53:25 brianwalenz Exp $";
+static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id: AS_PER_gkpStore.h,v 1.57 2008-11-11 16:16:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -202,14 +202,13 @@ static const char *AS_READ_STATUS_NAMES[9] = {
 // number of real and virtual (like UNTRIM) ranges.
 //
 #define AS_READ_CLEAR_ORIG     0  //  read only
-#define AS_READ_CLEAR_QLT      1  //  read only
-#define AS_READ_CLEAR_VEC      2  //  read only
+#define AS_READ_CLEAR_MAX      1  //  read only, OBT will not extend past here
+#define AS_READ_CLEAR_VEC      2  //  read only, OBT will not extend past here
 #define AS_READ_CLEAR_OBTINI   3
 #define AS_READ_CLEAR_OBT      4
-#define AS_READ_CLEAR_UTG      5  //  future use
-#define AS_READ_CLEAR_ECR1     6
-#define AS_READ_CLEAR_ECR2     7
-#define AS_READ_CLEAR_UNTRIM   8  //  read only, virtual
+#define AS_READ_CLEAR_ECR1     5
+#define AS_READ_CLEAR_ECR2     6
+#define AS_READ_CLEAR_UNTRIM   7  //  read only, virtual
 #define AS_READ_CLEAR_LATEST   (AS_READ_CLEAR_ECR2)
 
 //  These are private to AS_PER.  Please don't use!
@@ -217,7 +216,7 @@ static const char *AS_READ_STATUS_NAMES[9] = {
 #define AS_READ_CLEAR_NUMVIRT  2
 
 static const char *AS_READ_CLEAR_NAMES[AS_READ_CLEAR_NUMREAL + AS_READ_CLEAR_NUMVIRT] = {
-  "ORIG", "QLT", "VEC", "OBTINI", "OBT", "UTG", "ECR1", "ECR2", "UNTRIM", "LATEST"
+  "ORIG", "MAX", "VEC", "OBTINI", "OBT", "ECR1", "ECR2", "UNTRIM", "LATEST"
 };
 
 static
@@ -254,25 +253,20 @@ typedef struct{
 
   AS_IID           libraryIID;
 
-  uint32           deleted:1;
-  uint32           nonrandom:1;
-  uint32           status:4;
-  uint32           orientation:3;  //  copied from the library
-  uint32           hasVectorClear:1;
-  uint32           hasQualityClear:1;
-  uint32           plateLocation:8;
-  uint32           sffLinkerDetectedButNotTrimmed:1;
-  uint32           pad1:12;
-
-  //  If this structure ever gets changed (either adding or removing
-  //  data) see the comment about "unioned data" in AS_GKP_sff.c.
-  //  And/or talk to Bri.  Remind him about adding a third OBT range,
-  //  removing UTG, and fixing the only-two-runs-of-ECR problem.
+  uint64           deleted:1;
+  uint64           nonrandom:1;
+  uint64           status:4;
+  uint64           orientation:3;      //  copied from the library
+  uint64           plateLocation:8;
 
   uint64           seqLen:12;
   uint64           hpsLen:12;
   uint64           srcLen:12;
-  uint64           pad2:28;
+
+  uint64           pad:11;
+
+  uint16           contaminationBeg;
+  uint16           contaminationEnd;
 
   uint16           clearBeg[AS_READ_CLEAR_NUMREAL];
   uint16           clearEnd[AS_READ_CLEAR_NUMREAL];

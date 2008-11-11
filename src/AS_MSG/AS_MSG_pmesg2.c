@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg2.c,v 1.13 2008-10-08 22:02:57 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg2.c,v 1.14 2008-11-11 16:16:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -162,18 +162,20 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
 
   assert(frag_class == MESG_FRG);
 
-  fmesg.version        = 2;
+  fmesg.version           = 2;
 
-  fmesg.library_uid    = AS_UID_undefined();
-  fmesg.library_iid    = 0;
-  fmesg.plate_uid      = AS_UID_undefined();
-  fmesg.plate_location = 0;
-  fmesg.is_random      = 1;
-  fmesg.status_code    = 'G';
-  fmesg.clear_vec.bgn  = 0;
-  fmesg.clear_vec.end  = 0;
-  fmesg.clear_qlt.bgn  = 0;
-  fmesg.clear_qlt.end  = 0;
+  fmesg.library_uid       = AS_UID_undefined();
+  fmesg.library_iid       = 0;
+  fmesg.plate_uid         = AS_UID_undefined();
+  fmesg.plate_location    = 0;
+  fmesg.is_random         = 1;
+  fmesg.status_code       = 'G';
+  fmesg.clear_vec.bgn     = 1;
+  fmesg.clear_vec.end     = 0;
+  fmesg.clear_max.bgn     = 1;
+  fmesg.clear_max.end     = 0;
+  fmesg.contamination.bgn = 1;
+  fmesg.contamination.end = 0;
 
   fmesg.action     = (ActionType)GetType("act:%c","action",fin);
   fmesg.eaccession = GetUID("acc:",fin);
@@ -201,26 +203,28 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
     fmesg.quality  = GetText("qlt:",fin,TRUE);
     fmesg.hps      = GetText("hps:",fin,TRUE);
 
-    //  Special handling for clear ranges -- the vector and quality clear are optional.
-
-    fmesg.clear_vec.bgn = 1;
-    fmesg.clear_vec.end = 0;
-
-    fmesg.clear_qlt.bgn = 1;
-    fmesg.clear_qlt.end = 0;
-
-    fmesg.clear_rng.bgn = 1;
-    fmesg.clear_rng.end = 0;
+    //  Special handling for clear ranges -- the vector, max and
+    //  contamination clear are optional.
 
     line = ReadLine(fin, TRUE);
+    if(sscanf(line,"con:"F_COORD","F_COORD,&b,&e)==2){
+      fmesg.contamination.bgn = b;
+      fmesg.contamination.end = e;
+      line = ReadLine(fin, TRUE);
+    }
     if(sscanf(line,"clv:"F_COORD","F_COORD,&b,&e)==2){
       fmesg.clear_vec.bgn = b;
       fmesg.clear_vec.end = e;
       line = ReadLine(fin, TRUE);
     }
     if(sscanf(line,"clq:"F_COORD","F_COORD,&b,&e)==2){
-      fmesg.clear_qlt.bgn = b;
-      fmesg.clear_qlt.end = e;
+      //  Legacy support.  The origianl v2 format had a QLT clear
+      //  range that was never used.
+      line = ReadLine(fin, TRUE);
+    }
+    if(sscanf(line,"clm:"F_COORD","F_COORD,&b,&e)==2){
+      fmesg.clear_max.bgn = b;
+      fmesg.clear_max.end = e;
       line = ReadLine(fin, TRUE);
     }
     if(sscanf(line,"clr:"F_COORD","F_COORD,&b,&e)==2){
@@ -270,10 +274,13 @@ Write_Frag_Mesg(FILE *fout,void *vmesg,int frag_class) {
     PutText(fout,"seq:",mesg->sequence,TRUE);
     PutText(fout,"qlt:",mesg->quality,TRUE);
     PutText(fout,"hps:",mesg->hps,TRUE);
-    if (mesg->clear_vec.bgn <= mesg->clear_vec.end)
+
+    if (mesg->contamination.bgn < mesg->contamination.end)
+      fprintf(fout,"con:"F_COORD","F_COORD"\n",mesg->contamination.bgn,mesg->contamination.end);
+    if (mesg->clear_vec.bgn < mesg->clear_vec.end)
       fprintf(fout,"clv:"F_COORD","F_COORD"\n",mesg->clear_vec.bgn,mesg->clear_vec.end);
-    if (mesg->clear_qlt.bgn <= mesg->clear_qlt.end)
-      fprintf(fout,"clq:"F_COORD","F_COORD"\n",mesg->clear_qlt.bgn,mesg->clear_qlt.end);
+    if (mesg->clear_max.bgn < mesg->clear_max.end)
+      fprintf(fout,"clm:"F_COORD","F_COORD"\n",mesg->clear_max.bgn,mesg->clear_max.end);
     fprintf(fout,"clr:"F_COORD","F_COORD"\n",mesg->clear_rng.bgn,mesg->clear_rng.end);
   }
 
