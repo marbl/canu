@@ -33,15 +33,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.17 2008-10-08 22:02:58 brianwalenz Exp $
- * $Revision: 1.17 $
+ * $Id: OlapFromSeedsOVL.h,v 1.18 2008-11-11 16:22:26 brianwalenz Exp $
+ * $Revision: 1.18 $
 */
 
 
 #ifndef  __OLAPFROMSEEDS_H_INCLUDED
 #define  __OLAPFROMSEEDS_H_INCLUDED
 
-static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1.17 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1.18 2008-11-11 16:22:26 brianwalenz Exp $";
 
 //**ALD determine if use new code to analyze true multialignments
 #define  USE_NEW_STUFF  1
@@ -78,7 +78,7 @@ static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1
   //  Default value for  End_Exclude_Len
 #define  DEFAULT_KMER_LEN            9
   //  Default value for  Kmer_Len
-#define  DEFAULT_MIN_OLAP_LEN        40
+#define  DEFAULT_MIN_OLAP_LEN        AS_OVERLAP_MIN_LEN
   //  Default value for  Min_Olap_Len
 #define  DEFAULT_NUM_PTHREADS        2
   //  Default number of pthreads to use

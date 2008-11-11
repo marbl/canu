@@ -29,7 +29,7 @@
 extern "C" {
 #endif
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.29 2008-10-09 19:11:48 brianwalenz Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.30 2008-11-11 16:22:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -321,6 +321,8 @@ off_t ftello(FILE *stream );
 
 #define AS_READ_MAX_LEN AS_FRAG_MAX_LEN
 #define AS_READ_MIN_LEN AS_FRAG_MIN_LEN
+
+#define AS_OVERLAP_MIN_LEN   40
 
 //  AS_OVL controls both overlapper and bubble popping
 
