@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.3 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.4 2008-11-12 12:44:46 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_ALN_bruteforcedp.h"
@@ -42,30 +42,73 @@ alignLinker(char           *alignA,
             char           *stringA,
             char           *stringB,
             dpCell        (*M)[AS_READ_MAX_LEN],
-            alignLinker_s  *a) {
+            alignLinker_s  *a,
+            int             endToEnd, int abeg, int aend) {
 
   int   lenA = strlen(stringA);
   int   lenB = strlen(stringB);
 
   int   i, j;
 
+  abeg = MAX(0, abeg);
+
   for (i=0; i<lenA+1; i++) {
     M[i][0].score  = 1 << 29;
     M[i][0].action = STOP;
+
+    M[i][lenB].score  = 0;
+    M[i][lenB].action = STOP;
   }
 
   for (j=0; j<lenB+1; j++) {
-    M[0][j].score  = 1 << 29;
-    M[0][j].action = STOP;
+    M[abeg][j].score  = 1 << 29;
+    M[abeg][j].action = STOP;
+
+    M[lenA][j].score  = 0;
+    M[lenA][j].action = STOP;
   }
 
   int   scoreMax  = 0;
 
-  int   begI=0, endI=0, curI=0;
-  int   begJ=0, endJ=0, curJ=0;
+  int   endI=0, curI=0;
+  int   endJ=0, curJ=0;
 
-  for (i=1; i<=lenA; i++){
-    for (j=1; j<=lenB; j++){
+  for (i=abeg+1; i<=lenA; i++){
+    int  jb = 1;
+    int  je = lenB;
+
+#if 0
+    //  Attempt at further banding; doesn't work.
+    //
+    if (endToEnd) {
+      if (i <= aend) {
+        jb = 1;
+        je = 3 * (i-abeg) / 2;
+      } else {
+        jb = 2 * (i-aend) / 3;
+        je = 3 * (i-abeg) / 2;
+      }
+
+      if (jb < 1)
+        jb = 1;
+
+      if (jb > lenB)
+        jb = lenB;
+      if (je > lenB)
+        je = lenB;
+
+      M[i-1][je].score  = 1 << 29;
+      M[i-1][je].action = STOP;
+
+      M[i-1][jb-1].score  = 1 << 29;
+      M[i-1][jb-1].action = STOP;
+
+      M[i][jb-1].score  = 1 << 29;
+      M[i][jb-1].action = STOP;
+    }
+#endif
+
+    for (j=jb; j<=je; j++){
 
       //  Pick the max of these
 
@@ -73,9 +116,12 @@ alignLinker(char           *alignA,
       int lf = M[i-1][j].score + GAPSCORE;
       int up = M[i][j-1].score + GAPSCORE;
 
-      // (i,j) is the beginning of a subsequence, our default behavior
+      //  (i,j) is the beginning of a subsequence, our default
+      //  behavior.  If we're looking for local alignments, make the
+      //  alignment stop here.  Otherwise, it's a match.
+      //
       M[i][j].score  = 1 << 29;
-      M[i][j].action = STOP;
+      M[i][j].action = (endToEnd) ? MATCH : STOP;
 
       if (M[i][j].score < ul) {
         M[i][j].score  = ul;
@@ -99,6 +145,41 @@ alignLinker(char           *alignA,
       }
     }
   }
+
+  //  If we're not looking for local alignments, scan the end points
+  //  for the best value.
+  //
+ findAnother:
+  if (endToEnd) {
+    scoreMax = 0;
+    endI     = 0;
+    endJ     = 0;
+
+    //  Instead of these, it is somewhat easy to look for an overlap
+    //  with a given ahang,bhang.
+
+    //  Search for the best dovetail overlap
+    for (i=lenA, j=0; j<=lenB; j++) {
+      if (scoreMax < M[i][j].score) {
+        scoreMax  = M[i][j].score;
+        endI = curI = i;
+        endJ = curJ = j;
+      }
+    }
+
+    //  Search for the best contained overlap
+    for (i=MAX(0, abeg), j=lenB; i<=lenA; i++) {
+      if (scoreMax < M[i][j].score) {
+        scoreMax  = M[i][j].score;
+        endI = curI = i;
+        endJ = curJ = j;
+      }
+    }
+
+    M[endI][endJ].score = 0;
+  }
+
+  assert(scoreMax > 0);
 
   int  alignLen  = 0;
   int  matches   = 0;
@@ -141,8 +222,19 @@ alignLinker(char           *alignA,
     }
   }
 
-  begI = curI;
-  begJ = curJ;
+  if (endToEnd) {
+    //  Life would have been so much easier if we got ahang and bhang,
+    //  instead of getting a requested start position in the A
+    //  sequence.
+    //
+    //  One could probably fix this by reversing the sequences then
+    //  aligning.
+    //
+    if ((curI < abeg) || (aend < curI)) {
+      fprintf(stderr, "ANOTHER A %d-%d B %d-%d beg,end %d,%d\n", curI, endI, curJ, endJ, abeg, aend);
+      goto findAnother;
+    }
+  }
 
   alignA[alignLen] = 0;
   alignB[alignLen] = 0;
@@ -151,8 +243,8 @@ alignLinker(char           *alignA,
 
   a->matches  = matches;
   a->alignLen = alignLen;
-  a->begI     = begI;
-  a->begJ     = begJ;
+  a->begI     = curI;
+  a->begJ     = curJ;
   a->endI     = endI;
   a->endJ     = endJ;
   a->lenA     = lenA;

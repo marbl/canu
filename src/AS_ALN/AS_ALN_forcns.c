@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.13 2008-10-13 03:50:52 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.14 2008-11-12 12:44:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,25 +29,21 @@ static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.13 2008-10-13 03:50:52 bria
 #include "AS_global.h"
 #include "AS_ALN_aligners.h"
 #include "AS_ALN_forcns.h"
+#include "AS_ALN_bruteforcedp.h"
 
-/*
-   Wrappers for finding fragment overlaps with moderate sized indels
-   ("bubbles" in CGB that break up unitigging in the presence of
-   moderate polymorphisms).
-*/
-
+#include "AS_UTL_reverseComplement.h"
 
 #define AFFINE_QUALITY   /* overlap diff and length reported in affine terms */
 
 
-/* The following functions make copies of the a and b sequences, returning a
-   pointer to the location of the first character of the sequence; Gene's
-   local alignment code (like DP_Compare?) seems to assume that the character
-   before the beginning of the sequence will be '\0' -- so we copy the
-   sequence into a character array starting at the second position, and
-   return the location of the second position.
-
-   Need two versions of the function because of the use of static memory. */
+// The following functions make copies of the a and b sequences, returning a
+// pointer to the location of the first character of the sequence; Gene's
+// local alignment code (like DP_Compare?) seems to assume that the character
+// before the beginning of the sequence will be '\0' -- so we copy the
+// sequence into a character array starting at the second position, and
+// return the location of the second position.
+//
+// Need two versions of the function because of the use of static memory.
 
 static char *safe_copy_Astring_with_preceding_null(char *in){
   static char* out=NULL;
@@ -159,17 +155,15 @@ Overlap *Local_Overlap_AS_forCNS(char *a, char *b,
   }
 
 
-  /* At this point, we may have gaps at the ends of the sequences (either
-     before the first base or after the last).
-
-     These may occur, e.g., due to disagreements in optimal non-affine
-     alignment (as determined by Boundary) and optimal affine alignment
-     (as determined by OKNAffine).
-
-     These gaps give consensus hiccups, so we want to eliminate them, and
-     change the hangs appropriately.
-
-  */
+  //  At this point, we may have gaps at the ends of the sequences
+  //  (either before the first base or after the last).
+  //
+  //  These may occur, e.g., due to disagreements in optimal
+  //  non-affine alignment (as determined by Boundary) and optimal
+  //  affine alignment (as determined by OKNAffine).
+  //
+  //  These gaps give consensus hiccups, so we want to eliminate them,
+  //  and change the hangs appropriately.
 
   { int i=0;
     int j=0;
@@ -278,17 +272,15 @@ Overlap *Affine_Overlap_AS_forCNS(char *a, char *b,
     o.endpos*=-1;
   }
 
-  /* At this point, we may have gaps at the ends of the sequences (either
-     before the first base or after the last).
-
-     These seem to occur due to disagreements in optimal non-affine alignment
-     (as determined by Boundary) and optimal affine alignment
-     (as determined by OKNAffine).
-
-     These gaps give consensus hiccups, so we want to eliminate them, and
-     change the hangs appropriately.
-
-  */
+  //  At this point, we may have gaps at the ends of the sequences
+  //  (either before the first base or after the last).
+  //
+  //  These seem to occur due to disagreements in optimal non-affine
+  //  alignment (as determined by Boundary) and optimal affine
+  //  alignment (as determined by OKNAffine).
+  //
+  //  These gaps give consensus hiccups, so we want to eliminate them,
+  //  and change the hangs appropriately.
 
   { int i=0;
     int j=0;
@@ -318,4 +310,117 @@ Overlap *Affine_Overlap_AS_forCNS(char *a, char *b,
   AS_ALN_TEST_NUM_INDELS = orig_TEST_NUM_INDELS;
 
   return(&o);
+}
+
+
+
+Overlap *
+Optimal_Overlap_AS_forCNS(char *a, char *b,
+                          int beg, int end, int opposite,
+                          double erate,
+                          double thresh,
+                          int minlen,
+                          CompareOptions what) {
+
+  typedef struct {
+    char     h_alignA[AS_READ_MAX_LEN + AS_READ_MAX_LEN + 2];
+    char     h_alignB[AS_READ_MAX_LEN + AS_READ_MAX_LEN + 2];
+    dpCell   h_matrix[AS_READ_MAX_LEN][AS_READ_MAX_LEN];
+    int      h_trace[AS_READ_MAX_LEN + AS_READ_MAX_LEN + 2];
+  } dpMatrix;
+
+  static Overlap   o = {0};
+  static dpMatrix *m = NULL;
+
+  alignLinker_s   al;
+
+  if (m == NULL)
+    m = safe_malloc(sizeof(dpMatrix));
+
+  assert((0.0 <= erate) && (erate <= AS_MAX_ERROR_RATE));
+
+  if (opposite)
+    reverseComplementSequence(b, strlen(b));
+
+  alignLinker(m->h_alignA,
+              m->h_alignB,
+              a,
+              b,
+              m->h_matrix,
+              &al,
+              TRUE, beg, end);
+
+  //fprintf(stderr, "ALIGN %s\n", a);
+  //fprintf(stderr, "ALIGN %s\n", b);
+  //fprintf(stderr, "ALIGN beg:end %d %d\n", beg, end);
+  //fprintf(stderr, "ALIGN %d %d-%d %d-%d opposite=%d\n", al.alignLen, al.begI, al.endI, al.begJ, al.endJ, opposite);
+  //fprintf(stderr, "ALIGN '%s'\n", m->h_alignA);
+  //fprintf(stderr, "ALIGN '%s'\n", m->h_alignB);
+
+  if (opposite) {
+    reverseComplementSequence(b, strlen(b));
+
+    reverseComplementSequence(m->h_alignA, al.alignLen);
+    reverseComplementSequence(m->h_alignB, al.alignLen);
+
+    int x = al.begJ;
+    al.begJ = al.lenB - al.endJ;
+    al.endJ = al.lenB - x;
+  }
+
+  if ((al.begJ != 0) && (al.begI != 0)) {
+    fprintf(stderr, "Hmmm.  We failed to find an end-to-end alignment.\n");
+
+    fprintf(stderr, "ALIGN %s\n", a);
+    fprintf(stderr, "ALIGN %s\n", b);
+    fprintf(stderr, "ALIGN %d %d-%d %d-%d opposite=%d\n", al.alignLen, al.begI, al.endI, al.begJ, al.endJ, opposite);
+    fprintf(stderr, "ALIGN '%s'\n", m->h_alignA);
+    fprintf(stderr, "ALIGN '%s'\n", m->h_alignB);
+  }
+  assert((al.begJ == 0) || (al.begI == 0));
+
+  o.begpos  = al.begI;
+  o.endpos  = al.lenB - al.endJ;
+  o.length  = al.alignLen;
+  o.diffs   = 0;
+  o.comp    = opposite;
+  o.trace   = m->h_trace;
+
+  {
+    int x=0;
+
+    int tp = 0;
+    int ap = al.begI;
+    int bp = al.begJ;
+
+    for (x=0; x<al.alignLen; x++) {
+      if (m->h_alignA[x] == '-') {
+        m->h_trace[tp++] = -(ap + 1);
+        ap--;
+      }
+      if (m->h_alignB[x] == '-') {
+        m->h_trace[tp++] = bp + 1;
+        bp--;
+      }
+      if (m->h_alignA[x] != m->h_alignB[x]) {
+        o.diffs++;
+      }
+      bp++;
+      ap++;
+    }
+
+    m->h_trace[tp] = 0;
+
+    //fprintf(stderr, "trace");
+    //for (x=0; x<tp; x++)
+    //  fprintf(stderr, " %d", m->h_trace[x]);
+    //fprintf(stderr, "\n");
+  }
+
+  //fprintf(stderr, "ERATE:   diffs=%d / length=%d = %f\n", o.diffs, o.length, (double)o.diffs / o.length);
+
+  if ((double)o.diffs / o.length <= erate)
+    return(&o);
+  else
+    return(NULL);
 }

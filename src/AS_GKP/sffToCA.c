@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.6 2008-11-11 16:16:25 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.7 2008-11-12 12:44:47 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -879,7 +879,8 @@ processMate(fragRecord *fr,
               linker,
               fr->seq,
               globalMatrix->h_matrix,
-              &al);
+              &al,
+              FALSE, 0, 0);
 
 
   int  lSize = al.begJ;

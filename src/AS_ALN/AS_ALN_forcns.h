@@ -22,31 +22,36 @@
 #ifndef AS_ALN_FORCNS_H
 #define AS_ALN_FORCNS_H
 
-static const char *rcsid_AS_ALN_FORCNS_H = "$Id: AS_ALN_forcns.h,v 1.4 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_AS_ALN_FORCNS_H = "$Id: AS_ALN_forcns.h,v 1.5 2008-11-12 12:44:46 brianwalenz Exp $";
 
 #include "AS_ALN_aligners.h"
 
-/*
+//  Wrappers for finding fragment overlaps with moderate sized indels
+//  ("bubbles") in CGB that break up unitigging in the presence of
+//  moderate polymorphisms).
 
-   Wrappers for finding fragment overlaps with moderate sized indels
-   ("bubbles" in CGB that break up unitigging in the presence of
-   moderate polymorphisms).
+Overlap *
+Local_Overlap_AS_forCNS(char *aseq, char *bseq,
+                        int beg, int end, int opposite,
+                        double erate,
+                        double thresh,
+                        int minlen,
+                        CompareOptions what);
 
-   The wrappers are around the routines Local_Overlap_AS  ([originally]
-   defined in AS_ALN_loverlapper.c) and AS_ALN_affine_overlap ([originally]
-   defined in AS_ALN_qvaligner.c).  See those functions for more details.
+Overlap *
+Affine_Overlap_AS_forCNS(char *aseq, char *bseq,
+                         int beg, int end, int opposite,
+                         double erate,
+                         double thresh,
+                         int minlen,
+                         CompareOptions what);
 
-*/
-
-Overlap *Local_Overlap_AS_forCNS(char *aseq, char *bseq,
-                    int beg, int end, int opposite,
-                    double erate, double thresh, int minlen,
-				 CompareOptions what);
-
-
-Overlap *Affine_Overlap_AS_forCNS(char *aseq, char *bseq,
-                    int beg, int end, int opposite,
-                    double erate, double thresh, int minlen,
-				 CompareOptions what);
+Overlap *
+Optimal_Overlap_AS_forCNS(char *aseq, char *bseq,
+                          int beg, int end, int opposite,
+                          double erate,
+                          double thresh,
+                          int minlen,
+                          CompareOptions what);
 
 #endif

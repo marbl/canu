@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.206 2008-11-07 06:13:55 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.207 2008-11-12 12:44:46 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -596,10 +596,8 @@ int32 AppendGapBead(int32 bid) {
   char base='-';
   char qv;
 
-  if (prev == NULL ) {
-    fprintf(stderr, "AppendGapBead prev==NULL");
-    assert(0);
-  }
+  assert(prev != NULL);
+
   bead.boffset = GetNumBeads(beadStore);
   bead.soffset = GetNumchars(sequenceStore);
   bead.foffset = prev->foffset+1;
@@ -4330,6 +4328,24 @@ GetAlignmentTraceDriver(Fragment *afrag,
       return(TRUE);
     }
 
+    // try again, perhaps with dynamic programming, but only for unitigs
+
+    if (is_contig == 'u') {
+      if (VERBOSE_MULTIALIGN_OUTPUT)
+        fprintf(stderr, "%s Attemping alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f (COMPARE_FUNC)\n",
+                (is_contig == 'c') ? "MultiAlignContig()--" : "MultiAlignUnitig()--",
+                afrag->iid,
+                afrag->type,
+                bfrag->iid,
+                bfrag->type,
+                *ahang,
+                AS_CNS_ERROR_RATE);
+      if (GetAlignmentTrace(afrag->lid, 0, bfrag->lid, ahang, ovl, trace, otype, Optimal_Overlap_AS_forCNS, DONT_SHOW_OLAP, 0)) {
+        AS_CNS_ERROR_RATE = AS_CNS_ERROR_RATE_SAVE;
+        return(TRUE);
+      }
+    }
+
     // try again, perhaps with alternate overlapper
 
     if (COMPARE_FUNC != DP_Compare) {
@@ -7506,12 +7522,12 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
       //
       //
       if ((unitig->f_list[i].parent > 0) && (unitig->f_list[i].parent == afrag->iid)) {
-        fprintf(stderr, "NEW\n");
+        //fprintf(stderr, "NEW\n");
         ahang = unitig->f_list[i].ahang;
         bhang = unitig->f_list[i].bhang;
         ovl   = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
       } else {
-        fprintf(stderr, "OLD\n");
+        //fprintf(stderr, "OLD\n");
         ahang = offsets[bfrag->lid].bgn - offsets[afrag->lid].bgn;
         bhang = 0;
         ovl   = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
@@ -7625,6 +7641,11 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
   unitig->consensus = Getchar(sequence,0);
   unitig->quality   = Getchar(quality,0);
   unitig->length    = GetNumchars(sequence)-1;
+
+
+  if ((printwhat == CNS_VERBOSE) ||
+      (printwhat == CNS_VIEW_UNITIG))
+    PrintAlignment(stderr,ma->lid,0,-1,printwhat);
 
 
   //  Fix up our containments.  Sometimes consensus will move a
