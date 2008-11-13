@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.48 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.49 2008-11-13 09:51:36 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -155,6 +155,10 @@ struct BestOverlapGraph {
 
   uint16 olapLength(const OVSoverlap& olap) {
     return(olapLength(olap.a_iid, olap.b_iid, olap.dat.ovl.a_hang, olap.dat.ovl.b_hang));
+  };
+
+  int    fragmentLength(iuid id) {
+    return(_fi->fragmentLength(id));
   };
 
   bool checkForNextFrag(const OVSoverlap& olap);
