@@ -22,7 +22,7 @@
 #ifndef OVERLAPSTORE_H
 #define OVERLAPSTORE_H
 
-static const char *rcsid_OVERLAPSTORE_H = "$Id: overlapStore.h,v 1.11 2008-10-14 03:05:37 brianwalenz Exp $";
+static const char *rcsid_OVERLAPSTORE_H = "$Id: overlapStore.h,v 1.12 2008-11-13 09:14:33 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,7 +41,7 @@ void
 updateErates(char *storeName, char *eratesName);
 
 void
-dumpStore(char *storeName, uint32 dumpBinary, double dumpERate, uint32 bgnIID, uint32 endIID);
+dumpStore(char *storeName, uint32 dumpBinary, double dumpERate, uint32 bgnIID, uint32 endIID, uint32 qryIID);
 
 void
 dumpStats(char *storeName);

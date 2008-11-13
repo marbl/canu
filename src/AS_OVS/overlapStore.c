@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.16 2008-10-14 03:05:37 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.17 2008-11-13 09:14:33 brianwalenz Exp $";
 
 #include "overlapStore.h"
 
@@ -34,6 +34,7 @@ main(int argc, char **argv) {
   double    dumpERate   = 100.0;
   uint32    bgnIID      = 0;
   uint32    endIID      = 1000000000;
+  uint32    qryIID      = 0;
   uint64    memoryLimit = 512 * 1024 * 1024;
   uint32    nThreads    = 4;
   uint32    doFilterOBT = 0;
@@ -49,37 +50,37 @@ main(int argc, char **argv) {
 
     if        (strcmp(argv[arg], "-c") == 0) {
       if (storeName)
-        fprintf(stderr, "ERROR: only one of -c, -m, -d, -s, -S or -u may be supplied.\n"), err++;
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S or -u may be supplied.\n"), err++;
       storeName   = argv[++arg];
       operation   = OP_BUILD;
 
     } else if (strcmp(argv[arg], "-m") == 0) {
       if (storeName)
-        fprintf(stderr, "ERROR: only one of -c, -m, -d, -s, -S or -u may be supplied.\n"), err++;
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S or -u may be supplied.\n"), err++;
       storeName   = argv[++arg];
       operation   = OP_MERGE;
 
     } else if (strcmp(argv[arg], "-d") == 0) {
       if (storeName)
-        fprintf(stderr, "ERROR: only one of -c, -m, -d, -s, -S or -u may be supplied.\n"), err++;
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S or -u may be supplied.\n"), err++;
       storeName   = argv[++arg];
       operation   = OP_DUMP;
 
     } else if (strcmp(argv[arg], "-s") == 0) {
       if (storeName)
-        fprintf(stderr, "ERROR: only one of -c, -m, -d, -s, -S or -u may be supplied.\n"), err++;
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S or -u may be supplied.\n"), err++;
       storeName   = argv[++arg];
       operation   = OP_STATS_DUMP;
 
     } else if (strcmp(argv[arg], "-S") == 0) {
       if (storeName)
-        fprintf(stderr, "ERROR: only one of -c, -m, -d, -s, -S or -u may be supplied.\n"), err++;
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S or -u may be supplied.\n"), err++;
       storeName   = argv[++arg];
       operation   = OP_STATS_REBUILD;
 
     } else if (strcmp(argv[arg], "-u") == 0) {
       if (storeName)
-        fprintf(stderr, "ERROR: only one of -c, -m, -d, -s, -S or -u may be supplied.\n"), err++;
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S or -u may be supplied.\n"), err++;
       storeName   = argv[++arg];
       operation   = OP_UPDATE_ERATES;
 
@@ -97,6 +98,15 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       endIID = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-q") == 0) {
+      if (storeName)
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S or -u may be supplied.\n"), err++;
+      bgnIID    = atoi(argv[++arg]);
+      endIID    = bgnIID;
+      qryIID    = atoi(argv[++arg]);
+      storeName = argv[++arg];
+      operation = OP_DUMP;
 
     } else if (strcmp(argv[arg], "-O") == 0) {
       doFilterOBT = 1;
@@ -170,10 +180,11 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "DUMPING\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -B            Dump the store as binary, suitable for input to create a new store.\n");
-    fprintf(stderr, "  -E erate      Dump only overlaps <= erate error.\n");
-    fprintf(stderr, "  -b beginIID   Start dumping at 'beginIID'.\n");
-    fprintf(stderr, "  -e endIID     Stop dumping after 'endIID'.\n");
+    fprintf(stderr, "  -B                Dump the store as binary, suitable for input to create a new store.\n");
+    fprintf(stderr, "  -E erate          Dump only overlaps <= erate error.\n");
+    fprintf(stderr, "  -b beginIID       Start dumping at 'beginIID'.\n");
+    fprintf(stderr, "  -e endIID         Stop dumping after 'endIID'.\n");
+    fprintf(stderr, "  -q a b ovlStore   Report the a,b overlap.\n");
     fprintf(stderr, "\n");
     exit(1);
   }
@@ -190,7 +201,7 @@ main(int argc, char **argv) {
       mergeStore(storeName, fileList[0]);
       break;
     case OP_DUMP:
-      dumpStore(storeName, dumpBinary, dumpERate, bgnIID, endIID);
+      dumpStore(storeName, dumpBinary, dumpERate, bgnIID, endIID, qryIID);
       break;
     case OP_STATS_DUMP:
       dumpStats(storeName);

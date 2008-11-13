@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_dump.c,v 1.12 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_dump.c,v 1.13 2008-11-13 09:14:33 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +39,7 @@ static const char *rcsid = "$Id: overlapStore_dump.c,v 1.12 2008-10-08 22:02:58 
 #include "overlapStore.h"
 
 void
-dumpStore(char *storeName, uint32 dumpBinary, double dumpERate, uint32 bgnIID, uint32 endIID) {
+dumpStore(char *storeName, uint32 dumpBinary, double dumpERate, uint32 bgnIID, uint32 endIID, uint32 qryIID) {
 
   OverlapStore  *storeFile = AS_OVS_openOverlapStore(storeName);
   OVSoverlap     overlap;
@@ -51,7 +51,8 @@ dumpStore(char *storeName, uint32 dumpBinary, double dumpERate, uint32 bgnIID, u
   while (AS_OVS_readOverlapFromStore(storeFile, &overlap, AS_OVS_TYPE_ANY) == TRUE) {
     switch (overlap.dat.ovl.type) {
       case AS_OVS_TYPE_OVL:
-        if (overlap.dat.ovl.corr_erate <= erate)
+        if ((overlap.dat.ovl.corr_erate <= erate) &&
+            ((qryIID == 0) || (qryIID == overlap.b_iid)))
           if (dumpBinary)
             AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
           else
@@ -66,7 +67,8 @@ dumpStore(char *storeName, uint32 dumpBinary, double dumpERate, uint32 bgnIID, u
                     overlap.dat.ovl.seed_value);
         break;
       case AS_OVS_TYPE_OBT:
-        if (overlap.dat.obt.erate <= erate)
+        if ((overlap.dat.obt.erate <= erate) &&
+            ((qryIID == 0) || (qryIID == overlap.b_iid)))
           if (dumpBinary)
             AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
           else
@@ -81,17 +83,18 @@ dumpStore(char *storeName, uint32 dumpBinary, double dumpERate, uint32 bgnIID, u
                     AS_OVS_decodeQuality(overlap.dat.obt.erate) * 100.0);
         break;
       case AS_OVS_TYPE_MER:
-        if (dumpBinary)
-          AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
-        else
-          fprintf(stdout, "%7d %7d %c %4d %4d %4d %4d\n",
-                  overlap.a_iid,
-                  overlap.b_iid,
-                  overlap.dat.mer.palindrome ? 'p' : (overlap.dat.mer.fwd ? 'f' : 'r'),
-                  overlap.dat.mer.a_pos,
-                  overlap.dat.mer.b_pos,
-                  overlap.dat.mer.k_count,
-                  overlap.dat.mer.k_len);
+        if ((qryIID == 0) || (qryIID == overlap.b_iid))
+          if (dumpBinary)
+            AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
+          else
+            fprintf(stdout, "%7d %7d %c %4d %4d %4d %4d\n",
+                    overlap.a_iid,
+                    overlap.b_iid,
+                    overlap.dat.mer.palindrome ? 'p' : (overlap.dat.mer.fwd ? 'f' : 'r'),
+                    overlap.dat.mer.a_pos,
+                    overlap.dat.mer.b_pos,
+                    overlap.dat.mer.k_count,
+                    overlap.dat.mer.k_len);
         break;
       default:
         assert(0);
