@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_global.c,v 1.11 2008-11-06 05:25:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_global.c,v 1.12 2008-11-13 09:49:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -148,9 +148,14 @@ AS_configure(int argc, char **argv) {
     fprintf(stderr, "%s: ERROR:  Invalid AS_CNS_ERROR_RATE (%0.2f); should be between 0.0 and %0.2f\n",
             argv[0], AS_CNS_ERROR_RATE, AS_MAX_ERROR_RATE), exit(1);
 
-  fprintf(stderr, "%s: AS_configure()-- AS_OVL_ERROR_RATE set to %0.2f\n", argv[0], AS_OVL_ERROR_RATE);
-  fprintf(stderr, "%s: AS_configure()-- AS_CGW_ERROR_RATE set to %0.2f\n", argv[0], AS_CGW_ERROR_RATE);
-  fprintf(stderr, "%s: AS_configure()-- AS_CNS_ERROR_RATE set to %0.2f\n", argv[0], AS_CNS_ERROR_RATE);
+  if (AS_OVL_ERROR_RATE != 0.06)
+    fprintf(stderr, "%s: AS_configure()-- AS_OVL_ERROR_RATE set to %0.2f\n", argv[0], AS_OVL_ERROR_RATE);
+
+  if (AS_CGW_ERROR_RATE != 0.10)
+    fprintf(stderr, "%s: AS_configure()-- AS_CGW_ERROR_RATE set to %0.2f\n", argv[0], AS_CGW_ERROR_RATE);
+
+  if (AS_CNS_ERROR_RATE != 0.06)
+    fprintf(stderr, "%s: AS_configure()-- AS_CNS_ERROR_RATE set to %0.2f\n", argv[0], AS_CNS_ERROR_RATE);
 
   return(argc);
 }
