@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIG
 #define INCLUDE_AS_BOG_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.7 2008-11-07 06:13:55 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.8 2008-11-13 09:52:40 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 //#include "AS_BOG_ChunkGraph.hh"
@@ -83,7 +83,7 @@ struct Unitig{
   void addFrag(DoveTailNode, int offset=0, bool report=false);
 
   static iuid fragIn(iuid fragId) {
-    if (_inUnitig == NULL)
+    if ((_inUnitig == NULL) || (fragId == 0))
       return 0;
     return _inUnitig[fragId];
   };
