@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.7 2008-11-07 06:13:55 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.8 2008-11-13 10:17:17 brianwalenz Exp $";
 
 #include "AS_BOG_Unitig.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -357,19 +357,105 @@ void Unitig::placeContains(const ContainerMap &cMap,
     frag.contained    = containerId;
     frag.parent       = containerId;
     frag.sourceInt    = -1;
-    frag.ahang        = (containerPos.bgn < containerPos.end) ? best->a_hang : -best->b_hang;
-    frag.bhang        = (containerPos.bgn < containerPos.end) ? best->b_hang : -best->a_hang;
-    frag.position.bgn = containerPos.bgn + ((containerPos.bgn < containerPos.end) ? best->a_hang : -best->a_hang);
-    frag.position.end = containerPos.end + ((containerPos.bgn < containerPos.end) ? best->b_hang : -best->b_hang);
+
+    //  The 'best' overlap picture is always the same:
+    //
+    //  -------------------->    containerPos
+    //  a>0   -------->   b<0    frag
+    //
+    if (containerPos.bgn < containerPos.end) {
+      //  Container is oriented same as overlap.
+      frag.ahang        = best->a_hang;
+      frag.bhang        = best->b_hang;
+
+      if (best->sameOrientation) {
+        //  Containee too.  Straightforward.
+        frag.position.bgn = containerPos.bgn + frag.ahang;
+        frag.position.end = containerPos.end + frag.bhang;
+      } else {
+        //  But containee is flipped and is now 'reversed'.
+        frag.position.end = containerPos.bgn + frag.ahang;
+        frag.position.bgn = containerPos.end + frag.bhang;
+      }
+    } else {
+      //  Container is backwards from overlap.
+      frag.ahang        = -best->b_hang;
+      frag.bhang        = -best->a_hang;
+
+      if (best->sameOrientation) {
+        //  Containee too.  The tricky case.
+        //
+        //  We've already adjusted frag.ahang and frag.bhang to
+        //  account for the flipped overlap.  The subtraction below
+        //  accounts for the flipped coordinates.  The thing called
+        //  'bgn' is really the end of the overlap, and to make the
+        //  frag position smaller, we need to subtract the (adjusted
+        //  and now positive) ahang.
+        //
+        //  end               bgn
+        //  <--------------------    containerPos
+        //  bhang <-------- ahang    frag
+        //
+        //  Finally, because the frag is also reversed the 'end'
+        //  variable is storing the start position, and we add the new
+        //  ahang to the start.
+        //  
+        frag.position.end = containerPos.end + frag.ahang;
+        frag.position.bgn = containerPos.bgn + frag.bhang;
+      } else {
+        //  But containee is flipped, and is now 'forward'.
+        frag.position.bgn = containerPos.end + frag.ahang;
+        frag.position.end = containerPos.bgn + frag.bhang;
+      }
+    }
+
     frag.delta_length = 0;
     frag.delta        = NULL;
 
-    // Swap ends if containee is not same strand as container
+    //  See AS_BOG_UnitigGraph.c::populateUnitig() around line 557 for
+    //  why we reset the end coordinate.
+    //
+    //  Containments are particularily painful.  A beautiful example:
+    //  a fragment of length 253bp is contained in a fragment of
+    //  length 251bp (both hangs are zero).  In this case, the
+    //  "ahang+length" method fails, placing the contained fragment
+    //  outside the container (and if backwards oriented, _BEFORE_ the
+    //  contained fragment).  The "ahang,bhang" method works here, but
+    //  fails on other instances, shrinking deep containments to
+    //  nothing.
+    //
+    //  We can use either method first, then adjust using the other method.
+    //
+    //  We'll use 'ahang,bhang' first (mostly because it was already done, and we need
+    //  to compute those values anyway) then reset the end based on the length, limited
+    //  to maintain a containment relationship.
+    //
+#warning not knowing the overlap length really hurts.
+    if (frag.position.bgn < frag.position.end) {
+      frag.position.end = frag.position.bgn + bog->fragmentLength(fragId);
+      if (frag.position.end > MAX(containerPos.bgn, containerPos.end))
+        frag.position.end = MAX(containerPos.bgn, containerPos.end);
+    } else {
+      frag.position.bgn = frag.position.end + bog->fragmentLength(fragId);
+      if (frag.position.bgn > MAX(containerPos.bgn, containerPos.end))
+        frag.position.bgn = MAX(containerPos.bgn, containerPos.end);
+    }
 
-    if(!best->sameOrientation){
-      int tmp          = frag.position.bgn;
-      frag.position.bgn = frag.position.end;
-      frag.position.end = tmp;
+    {
+      uint32  cbgn = MIN(containerPos.bgn, containerPos.end);
+      uint32  cend = MAX(containerPos.bgn, containerPos.end);
+
+      uint32  fbgn = MIN(frag.position.bgn, frag.position.end);
+      uint32  fend = MAX(frag.position.bgn, frag.position.end);
+
+      if ((fbgn < cbgn) || (cend < fend)) {
+        fprintf(stderr, "ERROR:  Fragment became uncontained in the layout.\n");
+        fprintf(stderr, "containerPos "F_IID"\t%d %d\n", containerId, containerPos.bgn, containerPos.end);
+        fprintf(stderr, "fragment     "F_IID"\t%d %d\n", fragId,      frag.position.bgn, frag.position.end);
+      }
+
+      assert(cbgn <= fbgn);
+      assert(fend <= cend);
     }
 
     addFrag(frag, 0, false);
@@ -388,6 +474,8 @@ void Unitig::recomputeFragmentPositions(ContainerMap &cMap,
 
   for (int i=0; i < dovetail_path_ptr->size(); i++) {
     DoveTailNode *dt = &(*dovetail_path_ptr)[i];
+
+    fprintf(stderr, "PlaceContains in frag %d position %d,%d\n", dt->ident, dt->position.bgn, dt->position.end);
 
     placeContains(cMap, bog_ptr, dt->ident, dt->position, 1);
   }

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.106 2008-11-07 06:13:55 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.107 2008-11-13 10:17:17 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -86,6 +86,8 @@ UnitigGraph::checkUnitigMembership(void) {
 //  unitig, and all overlaps contained in the unitig.
 void
 UnitigGraph::reportOverlapsUsed(const char *filename) {
+
+  return;
 
   FILE *F = fopen(filename, "w");
 
@@ -165,7 +167,7 @@ UnitigGraph::~UnitigGraph() {
 
 
 void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking, char *output_prefix) {
-  bool verbose = true;
+  bool verbose = false;
 
   // Initialize where we've been to nowhere; "Do not retraverse list"
   Unitig::resetFragUnitigMap( _fi->numFragments() );
@@ -267,7 +269,7 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking, char *
 
       Unitig *utg = new Unitig(true);
 
-      populateUnitig(utg, frag_idx, FIVE_PRIME, NULL_FRAG_ID, NULL, true);
+      populateUnitig(utg, frag_idx, FIVE_PRIME, NULL_FRAG_ID, NULL, verbose);
 
       unitigs->push_back(utg);
     } else {
@@ -384,6 +386,9 @@ UnitigGraph::setParentAndHang(ChunkGraph *cg) {
     if (utg == NULL)
       continue;
 
+    if (utg->dovetail_path_ptr->size() == 0)
+      continue;
+
     //  First fragment has no parent or hangs set.
     frg = &(*utg->dovetail_path_ptr)[0];
 
@@ -433,8 +438,10 @@ UnitigGraph::setParentAndHang(ChunkGraph *cg) {
         DoveTailNode  *ooo = &(*utg->dovetail_path_ptr)[oi];
 
         if (bestcont) {
-          //  Frag is contained.  Do we have the container here?
+          //  Frag is contained.
+
           if (ooo->ident == bestcont->container) {
+            //  And the container is here too!
             frg->parent = bestcont->container;
 
             //  The hangs assume the container is forward; adjust if not so.
@@ -446,6 +453,7 @@ UnitigGraph::setParentAndHang(ChunkGraph *cg) {
               frg->bhang  = -bestcont->a_hang;
             }
           }
+
         } else {
           //  Frag is not contained.
           if ((bestedge5) && (ooo->ident == bestedge5->frag_b_id)) {
@@ -475,8 +483,24 @@ UnitigGraph::setParentAndHang(ChunkGraph *cg) {
         }
       }
 
-      //  If we didn't find our best, pick any.
-      //  Or just leave unset and use the legacy interface.
+      //  If we didn't find our best, pick any thing that overlaps us.
+      //  This should only happen for contained fragments.
+
+#if 0
+      //  Unfortunately, we didn't save the overlap info, so we cannot
+      //  set the hangs.
+
+      if (frg->parent == 0) {
+        for (int oi=fi-1; (frg->parent == 0) && (oi >= 0); oi--) {
+          if (tigGraph.bog_ptr->containHaveEdgeTo(frg->ident, oi)) {
+            frg->parent = oi;
+            frg->ahang  = 0;
+            frg->bhang  = 0;
+          }
+        }
+      }
+#endif
+
     }
   }
 }
@@ -530,8 +554,21 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
     int bgn = (last.position.bgn < last.position.end) ? last.position.bgn : last.position.end;
     int end = (last.position.bgn < last.position.end) ? last.position.end : last.position.bgn;
 
+    //  Deep coverage (and lots of contains) result in placement based
+    //  on hangs being wrong.  We don't know the length of the
+    //  overlap, and any indel in the overlap change the amount
+    //  hanging.  Reset the end to be based on the length of the fragment.
+    //
+    //  This is also reset in AS_BOG_Unitig.c::placeContains().
+
     fragBgn = bgn + ahang;
     fragEnd = end + bhang;
+
+#warning not knowing the overlap length really hurts.
+    if (fragBgn < fragEnd)
+      fragEnd = fragBgn + _fi->fragmentLength(fragID);
+    else
+      fragBgn = fragEnd + _fi->fragmentLength(fragID);
 
     fprintf(stderr, "existing unitig; new frag at %d - %d\n", fragBgn, fragEnd);
   }
@@ -548,39 +585,18 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
     assert(((nextEdge->ahang >= 0) && (nextEdge->bhang >= 0)) ||
            ((nextEdge->ahang <= 0) && (nextEdge->bhang <= 0)));
 
-    //  No edge?  See ya!  Unless this is the first fragment we're
-    //  trying to add.  If it is the first fragment, we know
-    //  everything we need to know to place it correctly.
-    //
-    //if ((nextEdge->frag_b_id == NULL_FRAG_ID) &&
-    //    (fragID != firstFragID)) {
-    //  lastID = fragID = NULL_FRAG_ID;
-    //  continue;
-    //}
-
     //  Our ahang and bhang are relative to fragID.
 
     int ahang = (nextEdge->ahang > 0) ? nextEdge->ahang : -nextEdge->bhang;
     int bhang = (nextEdge->ahang > 0) ? nextEdge->bhang : -nextEdge->ahang;
-
-#if 0
-    //  The end of the fragment is placed using the hang in the
-    //  overlap...unless we're the first fragment in the unitig, or
-    //  there is no overlap to use, then we just use the length.
-    //
-    if ((fragBgn == 0) || (nextEdge->frag_b_id == NULL_FRAG_ID))
-      fragEnd = fragBgn + _fi->fragmentLength(fragID);
-    else
-      fragEnd = unitig->getLength() + bhang;
-#endif
 
     frag.type         = AS_READ;
     frag.ident        = fragID;
     frag.contained    = 0;
     frag.parent       = nextEdge->frag_b_id;
     frag.sourceInt    = -1;
-    frag.ahang        = ahang;  //  (nextEdge->ahang < 0 && nextEdge->bhang < 0) ? -nextEdge->bhang : nextEdge->ahang;
-    frag.bhang        = bhang;  //  (nextEdge->ahang < 0 && nextEdge->bhang < 0) ? -nextEdge->ahang : nextEdge->bhang;
+    frag.ahang        = ahang;
+    frag.bhang        = bhang;
     frag.position.bgn = (walkEnd == FIVE_PRIME) ? fragEnd : fragBgn;
     frag.position.end = (walkEnd == FIVE_PRIME) ? fragBgn : fragEnd;
     frag.delta_length = 0;
@@ -588,10 +604,16 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
 
     unitig->addFrag(frag, 0, verbose);
 
-    //  Find the start of the next fragment
+    //  Find the start of the next fragment.  See above comment.
 
     fragBgn += ahang;
     fragEnd += bhang;
+
+#warning not knowing the overlap length really hurts.
+    if (fragBgn < fragEnd)
+      fragEnd = fragBgn + _fi->fragmentLength(nextEdge->frag_b_id);
+    else
+      fragBgn = fragEnd + _fi->fragmentLength(nextEdge->frag_b_id);
 
     // Move to next fragment in the chain
 

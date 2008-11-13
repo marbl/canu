@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.72 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.73 2008-11-13 10:17:17 brianwalenz Exp $";
 
 #include <math.h>
 #include "AS_BOG_MateChecker.hh"
@@ -384,122 +384,78 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
       BestContainment   *bestcont   = tigGraph.bog_ptr->getBestContainer(fragIter->ident);
       MateLocationEntry  mloc       = positions.getById(fragIter->ident);
 
-      if        ((fragIter->contained == 0) || (bestcont == NULL)) {
+      iuid    contID = (bestcont) ? thisUnitig->fragIn(bestcont->container) : 0;
+      iuid    mateID = _fi->mateIID(fragIter->ident);
+
+      //  id1 != 0 -> we found the fragment in the mate happiness table
+      //  isBad -> and the mate is unhappy.
+      //
+      //  What's id1 vs id2 in MateLocationEntry?  Dunno.  All I
+      //  know is that if there is no mate present, one of those
+      //  will be 0.  (Similar test used above too.)
+      //
+      bool    isMated    = (mateID > 0);
+      bool    isHappy    = ((isMated) && (mloc.id1 != 0) && (mloc.id2 != 0) && (mloc.isBad == false));
+
+      //
+      //  Figure out what to do.
+      //
+
+      bool    moveToContainer = false;
+      bool    moveToSingleton = false;
+
+      if        ((fragIter->contained == 0) && (bestcont == NULL)) {
         //  CASE 1:  Not contained.  Leave the fragment here.
 
-#if 0
-        fprintf(stderr, "moveContain1 f=%d c=%d(%d b=%d(%d)\n",
-                fragIter->ident,
-                fragIter->contained,
-                thisUnitig->fragIn(fragIter->contained),
-                (bestcont == NULL) ? 0 : bestcont->container,
-                (bestcont == NULL) ? 0 : thisUnitig->fragIn(bestcont->container));
-#endif
+      } else if (isMated == false) {
+        //  CASE 2: Contained but not mated.  Move to be with the
+        //  container (if the container isn't here).
 
-        if (fragIter->contained)
-          fprintf(stderr, "WARNING: frag %d is contained with no bestcontainer?!\n", fragIter->ident);
-        assert(fragIter->contained == 0);
+        if (thisUnitig->id() != contID)
+          moveToContainer = true;
 
-        //  Update the contained field in the current unitig, then
-        //  copy the fragment to the list -- if we need to rebuild the
-        //  unitig, the list is used, otherwise, we have already made
-        //  the change needed.
+      } else if (isHappy == false) {
+        //  CASE 3: Not happy.  If the frag and mate are in the same
+        //  unitig, move the frag to a singleton.  If they are in
+        //  different unitigs, assume we already moved one or the
+        //  other and do nothing -- we don't update the structures we
+        //  use to decide happiness after moving things around.
         //
-        fragIter->contained = 0;
+        //  We also do not move the frag to be with its container,
+        //  assuming that we got that wrong because this unitig got
+        //  split by mate based splitting.
 
-        frags[fragsLen] = *fragIter;
-        fragsLen++;
-      } else if ((thisUnitig->fragIn(fragIter->contained) == thisUnitig->id()) ||
-                 (thisUnitig->fragIn(bestcont->container) == thisUnitig->id())) {
-        //  CASE 2: Frag is contained, and his container is in this
-        //  unitig.  Leave here, UNLESS he is an unhappy mate, in
-        //  which case we eject him to a new unitig.
+        if (thisUnitig->id() == thisUnitig->fragIn(mateID))
+          moveToSingleton = true;
 
-#if 0
-        fprintf(stderr, "moveContain2 f=%d c=%d(%d b=%d(%d)\n",
-                fragIter->ident,
-                fragIter->contained,
-                thisUnitig->fragIn(fragIter->contained),
-                (bestcont == NULL) ? 0 : bestcont->container,
-                (bestcont == NULL) ? 0 : thisUnitig->fragIn(bestcont->container));
-#endif
+      } else {
+        //  CASE 4: Happy!  If with container, or an overlap exists to
+        //  some earlier fragment, leave it here.  Otherwise, eject it
+        //  to a singleton.  The fragment is ejected instead of moved
+        //  to be with its container since we don't know which is
+        //  correct - the mate or the overlap.
 
-        //  Is he mated?  If not, we'll always leave here.
-        //
-        //  Is the mate here?  If not, we can leave here.
-        //  (We've since decided to eject both, but here's the test)
-        //    (thisUnitig->fragIn(_fi->mateIID(fragIter->ident)) == thisUnitig->fragIn(fragIter->ident)) &&
-        //
-        //  id1 != 0 -> we found the fragment in the mate happiness table
-        //  isBad -> and the mate is unhappy.
-        //
-        //  What's id1 vs id2 in MateLocationEntry?  Dunno.  All I
-        //  know is that if there is no mate present, one of those
-        //  will be 0.  (Similar test used above too.)
-        //
-        //  See comment on similar if test below.
-        //
-        if ((_fi->mateIID(fragIter->ident) > 0) &&
-            (mloc.id1 != 0) &&
-            (mloc.id2 != 0) &&
-            (mloc.isBad == true)) {
-          Unitig        *sing = new Unitig(verbose);
+        bool  hasOverlap = (thisUnitig->id() == contID);
 
-          if (verbose)
-            fprintf(stderr, "Ejecting unhappy contained fragment %d from unitig %d into new unitig %d\n",
-                    fragIter->ident, thisUnitig->id(), sing->id());
+        if (hasOverlap == false) {
+          //  Not with container.  In all cases, this fragment will
+          //  not be contained any more.
 
           fragIter->contained = 0;
 
-          sing->addFrag(*fragIter, -MIN(fragIter->position.bgn, fragIter->position.end), verbose);
-          tigGraph.unitigs->push_back(sing);
-          thisUnitig = (*tigGraph.unitigs)[ti];  //  Reset the pointer; unitigs might be reallocated
-        } else {
-          frags[fragsLen] = *fragIter;
-          fragsLen++;
-        }
-
-      } else {
-        //  CASE 3: Frag is contained, and his container is not here.
-        //  If happy, leave him here if there is an overlap to some
-        //  other fragment, but mark as not contained.
-        //
-        //  If not happy, or no overlap found above, move to the
-        //  unitig of his container.
-
-#if 0
-        fprintf(stderr, "moveContain3 f=%d c=%d(%d b=%d(%d) mloc %d %d\n",
-                fragIter->ident,
-                fragIter->contained,
-                thisUnitig->fragIn(fragIter->contained),
-                (bestcont == NULL) ? 0 : bestcont->container,
-                (bestcont == NULL) ? 0 : thisUnitig->fragIn(bestcont->container),
-                mloc.id1, mloc.isBad);
-#endif
-
-        bool  hasOverlap = false;
-
-        //  See comment on similar if test above.
-        //
-        if ((_fi->mateIID(fragIter->ident) > 0) &&
-            (mloc.id1 != 0) &&
-            (mloc.id2 != 0) &&
-            (mloc.isBad == false)) {
-
-          //  Mate is happy.  Look for an overlap.
+          //  If the first fragment, check fragments after if there is
+          //  an overlap (note only frags with an overlap in the
+          //  layout are tested).  In rare cases, we ejected the
+          //  container, and left a containee with no overlap to
+          //  fragments remaining.
+          //
+          //  This isn't bullet proof.  One of those overlaps might be
+          //  to a contained fragment that we eject later on.  So, we
+          //  only accept overlaps to non-contained fragments.
+          //
+          //  Otherwise, check previous fragments for an overlap.
 
           if (fragsLen == 0) {
-            //  Nothing before?  Check fragments after if there is an
-            //  overlap.  In rare cases, we eject the container, and the
-            //  containee had no overlap to fragments remaining.
-            //
-            //  This isn't bullet proof.  One of those overlaps might be
-            //  to a contained fragment that we eject later on.  So, we
-            //  only accept overlaps to non-contained fragments.
-            //
-            //  And we only need to check fragments that overlap in
-            //  the layout.
-            //
             for (DoveTailIter ft=fragIter;
                  ((hasOverlap == false) &&
                   (ft != thisUnitig->dovetail_path_ptr->end()) &&
@@ -507,66 +463,75 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
                  ft++)
               if (tigGraph.bog_ptr->isContained(ft->ident) == false)
                 hasOverlap = tigGraph.bog_ptr->containHaveEdgeTo(fragIter->ident, ft->ident);
-
           } else {
-            //  Not the first fragment.  Make sure this guy overlaps
-            //  something alreay placed.
-            //
             for (int ff=0; (hasOverlap == false) && (ff<fragsLen); ff++)
               hasOverlap = tigGraph.bog_ptr->containHaveEdgeTo(fragIter->ident, frags[ff].ident);
           }
         }
 
-        if (hasOverlap) {
-          //  Overlap exists to another fragment.  Add it to this unitig.
-          //
-          if (verbose)
-            fprintf(stderr, "Removing containment relationship for fragment %d to keep it in unitig %d\n",
-                    fragIter->ident, thisUnitig->id());
+        //  If no overlap (so not with container or no overlap to
+        //  other frags) eject.
+        if (hasOverlap == false)
+          moveToSingleton     = true;
 
-          //  See the comment with above about what this line does.
-          //  Search backwards for the same line.
-          fragIter->contained = 0;
+      }  //  End of cases
 
-          frags[fragsLen] = *fragIter;
-          fragsLen++;
-        } else {
-          //  Mate is not happy, or is happy but has no overlap
-          //  anymore, or the fragment is not mated.  Eject to
-          //  container unitig (if not mated) or singleton (if mated).
+      //
+      //  Do it.
+      //
+
+      if (moveToContainer == true) {
+        //  Move the fragment to be with its container.
 
 #warning DANGEROUS assume unitig is at id-1 in vector
-          Unitig         *thatUnitig = (*tigGraph.unitigs)[thisUnitig->fragIn(bestcont->container) - 1];
-          DoveTailNode    containee  = *fragIter;  //  To make it read/write
+        Unitig         *thatUnitig = (*tigGraph.unitigs)[thisUnitig->fragIn(bestcont->container) - 1];
+        DoveTailNode    containee  = *fragIter;  //  To make it read/write
 
-          //  If fragment is mated, move to a singleton, instead of with container.
-          //
-          if (_fi->mateIID(containee.ident) != 0) {
-            Unitig        *sing = new Unitig(verbose);
+        if (verbose)
+          fprintf(stderr, "Moving contained fragment %d from unitig %d to be with its container %d in unitig %d\n",
+                  containee.ident, thisUnitig->id(), bestcont->container, thatUnitig->id());
 
-            if (verbose)
-              fprintf(stderr, "Ejecting unhappy contained fragment %d from unitig %d into new unitig %d\n",
-                      containee.ident, thisUnitig->id(), sing->id());
+        assert(thatUnitig->id() == thisUnitig->fragIn(bestcont->container));
 
-            containee.contained = 0;
+        containee.contained = bestcont->container;
 
-            sing->addFrag(containee, -MIN(containee.position.bgn, containee.position.end), verbose);
-            tigGraph.unitigs->push_back(sing);
-            thisUnitig = (*tigGraph.unitigs)[ti];  //  Reset the pointer; unitigs might be reallocated
-          } else {
-            assert(thatUnitig->id() == thisUnitig->fragIn(bestcont->container));
+        thatUnitig->addContainedFrag(containee, bestcont, verbose);
 
-            if (verbose)
-              fprintf(stderr, "Moving contained fragment %d from unitig %d to be with its container %d in unitig %d\n",
-                      containee.ident, thisUnitig->id(), bestcont->container, thatUnitig->id());
+      } else if (moveToSingleton == true) {
+        //  Eject the fragment to a singleton.
+        Unitig        *singUnitig  = new Unitig(verbose);
+        DoveTailNode    containee  = *fragIter;  //  To make it read/write
 
-            //  Make sure it's marked as contained.
-            containee.contained = bestcont->container;
+        if (verbose)
+          fprintf(stderr, "Ejecting unhappy contained fragment %d from unitig %d into new unitig %d\n",
+                  fragIter->ident, thisUnitig->id(), singUnitig->id());
 
-            thatUnitig->addContainedFrag(containee, bestcont, verbose);
-          }
-        }  // end of moving unhappy contained to container unitig
-      }  //  end of if blocks deciding what to do with a containee
+        containee.contained = 0;
+
+        singUnitig->addFrag(containee, -MIN(containee.position.bgn, containee.position.end), verbose);
+
+        tigGraph.unitigs->push_back(singUnitig);
+        thisUnitig = (*tigGraph.unitigs)[ti];  //  Reset the pointer; unitigs might be reallocated
+
+      } else {
+        //  Leave fragment here.  Copy the fragment to the list -- if
+        //  we need to rebuild the unitig (because fragments were
+        //  removed), the list is used, otherwise, we have already
+        //  made the changes needed.
+        //
+        //  Also, very important, update our containment mark.  If our
+        //  container was moved, but we stayed put because of a happy
+        //  mate, we're still marked as being contained.  Rather than
+        //  put this check in all the places where we stay put in the
+        //  above if-else-else-else, it's here.
+
+        if ((fragIter->contained) && (thisUnitig->id() != thisUnitig->fragIn(fragIter->contained)))
+          fragIter->contained = 0;
+
+        frags[fragsLen] = *fragIter;
+        fragsLen++;
+      }
+
     }  //  over all frags
 
     //  Now, rebuild this unitig if we made changes.
@@ -634,9 +599,27 @@ void MateChecker::splitDiscontinuousUnitigs(UnitigGraph& tigGraph) {
         maxEnd =  MAX(fragIter->position.bgn, fragIter->position.end);
       }
 
-      //  We require at least 10bp of overlap between fragments.  If
-      //  we don't have that, split off the fragments we've seen.
+      //  We require at least (currently 40bp, was 10bp hardcoded
+      //  here) of overlap between fragments.  If we don't have that,
+      //  split off the fragments we've seen.
       //
+      //  10bp was a bad choice.  It caught most of the breaks, but
+      //  missed one class; when a container fragment is moved out of
+      //  the unitig, fragments contained in there are marked as
+      //  uncontained.  That container fragment could have been the
+      //  one holding the unitig together:
+      //
+      //  -----------------   <- container (removed)
+      //    --------
+      //      ---------
+      //              -----------------
+      //
+      //  Because the two small guys are marked as uncontained, they
+      //  are assumed to have a good dovetail overlap.
+      //
+      //  AS_OVERLAP_MIN_LEN
+      //
+#warning AS_OVERLAP_MIN_LEN
       if (maxEnd - 10 < MIN(fragIter->position.bgn, fragIter->position.end)) {
 
         //  If there is exactly one fragment, and it's contained, and
