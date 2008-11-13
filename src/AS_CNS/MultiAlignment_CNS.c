@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.207 2008-11-12 12:44:46 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.208 2008-11-13 09:50:28 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -4328,24 +4328,6 @@ GetAlignmentTraceDriver(Fragment *afrag,
       return(TRUE);
     }
 
-    // try again, perhaps with dynamic programming, but only for unitigs
-
-    if (is_contig == 'u') {
-      if (VERBOSE_MULTIALIGN_OUTPUT)
-        fprintf(stderr, "%s Attemping alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f (COMPARE_FUNC)\n",
-                (is_contig == 'c') ? "MultiAlignContig()--" : "MultiAlignUnitig()--",
-                afrag->iid,
-                afrag->type,
-                bfrag->iid,
-                bfrag->type,
-                *ahang,
-                AS_CNS_ERROR_RATE);
-      if (GetAlignmentTrace(afrag->lid, 0, bfrag->lid, ahang, ovl, trace, otype, Optimal_Overlap_AS_forCNS, DONT_SHOW_OLAP, 0)) {
-        AS_CNS_ERROR_RATE = AS_CNS_ERROR_RATE_SAVE;
-        return(TRUE);
-      }
-    }
-
     // try again, perhaps with alternate overlapper
 
     if (COMPARE_FUNC != DP_Compare) {
@@ -4363,6 +4345,26 @@ GetAlignmentTraceDriver(Fragment *afrag,
         return(TRUE);
       }
     }
+
+    // try again, perhaps with dynamic programming, but only for unitigs
+
+#if 0
+    if (is_contig == 'u') {
+      if (VERBOSE_MULTIALIGN_OUTPUT)
+        fprintf(stderr, "%s Attemping alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f (COMPARE_FUNC)\n",
+                (is_contig == 'c') ? "MultiAlignContig()--" : "MultiAlignUnitig()--",
+                afrag->iid,
+                afrag->type,
+                bfrag->iid,
+                bfrag->type,
+                *ahang,
+                AS_CNS_ERROR_RATE);
+      if (GetAlignmentTrace(afrag->lid, 0, bfrag->lid, ahang, ovl, trace, otype, Optimal_Overlap_AS_forCNS, DONT_SHOW_OLAP, 0)) {
+        AS_CNS_ERROR_RATE = AS_CNS_ERROR_RATE_SAVE;
+        return(TRUE);
+      }
+    }
+#endif
 
     //  try again, perhaps allowing larger end gaps (contigs only)
 
