@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.17 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.18 2008-11-14 00:05:08 brianwalenz Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -36,11 +36,6 @@ static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.17 2008-10-08 22:02:55 brianwale
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "ChiSquareTest_CGW.h"
-
-// I reworked this file to make use of stack allocations instead of malloc/free
-// I left in both versions.  If you want to use the old version, uncomment
-// the following line.
-//#define USE_MALLOC_FOR_ALLOC
 
 /* Check that another fragment besides the terminal fragment extends
    by at least the minimal detectable amount into the overlap region. */
@@ -468,15 +463,9 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
   LengthT distance;
   float chiSquareScore;
   Chi2ComputeT *edgeChi2ComputePtr;
-#define FUDGE 1
-#ifdef USE_MALLOC_FOR_ALLOC
 
-  Chi2ComputeT *edgeChi2Compute = (Chi2ComputeT *)safe_malloc(numEdges *
-                                                              sizeof(*edgeChi2Compute));
+  Chi2ComputeT *edgeChi2Compute = (Chi2ComputeT *)safe_malloc(numEdges * sizeof(*edgeChi2Compute));
 
-#else
-  Chi2ComputeT edgeChi2Compute[numEdges + FUDGE];
-#endif
   if(GlobalData->verbose){
     fprintf(GlobalData->stderrc,"* MergeEdges with %d edges\n",
 	    numEdges);
@@ -507,9 +496,7 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 	PrintGraphEdge(stderr,graph," e  ", edge, edge->idA);
 	PrintGraphEdge(stderr,graph," o  ", overlapEdge, overlapEdge->idA);
 	fprintf(stderr,"*Aborting edge mate merge \n");
-#ifdef USE_MALLOC_FOR_ALLOC
-	free(edgeChi2Compute);
-#endif
+	safe_free(edgeChi2Compute);
 	return(-1);
       }else{
 	overlapEdge = edge;
@@ -547,9 +534,7 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
     AppendCDS_CID_t(inputEdges, &edgeIndex);
     numMergedEdges = 1;
     numEdgesAdded = 1;
-#ifdef USE_MALLOC_FOR_ALLOC
-    free(edgeChi2Compute);
-#endif
+    safe_free(edgeChi2Compute);
     return(numMergedEdges);
   }
   if(numEdges > 2){
@@ -559,11 +544,7 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
     CDS_CID_t skipEdgeIndex;
     Chi2ResultT  *edgeChi2ResultPtr;
     VA_TYPE(CDS_CID_t) *clusterEdges = CreateVA_CDS_CID_t(numEdges);
-#ifdef USE_MALLOC_FOR_ALLOC
     Chi2ResultT * edgeChi2Result = (Chi2ResultT *)safe_malloc(numEdges * sizeof(*edgeChi2Result));
-#else
-    Chi2ResultT edgeChi2Result[numEdges + FUDGE];
-#endif
     for (skipEdgeIndex = -1, minScore = FLT_MAX,
 	   edgeChi2ResultPtr = edgeChi2Result, edgeIndex = 0;
 	 edgeIndex < numEdges; edgeIndex++, edgeChi2ResultPtr++){
@@ -601,16 +582,12 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
       AppendCDS_CID_t(inputEdges, &skipEdgeIndex);
       numMergedEdges = 1;
       numEdgesAdded = 2;
-#ifdef USE_MALLOC_FOR_ALLOC
-      free(edgeChi2Result);
-      free(edgeChi2Compute);
-#endif
+      safe_free(edgeChi2Result);
+      safe_free(edgeChi2Compute);
       DeleteVA_CDS_CID_t(clusterEdges);
       return(numMergedEdges);
     }
-#ifdef USE_MALLOC_FOR_ALLOC
-    free(edgeChi2Result);
-#endif
+    safe_free(edgeChi2Result);
     DeleteVA_CDS_CID_t(clusterEdges);
   }
   if(numEdges > 3){
@@ -632,33 +609,22 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
        to an array of ((numEdges - 1) - index) of pairwise Chi Squared
        scores which taken together are the upper right triangle of the
        numEdges x numEdges matrix of cluster versus cluster. */
-    ClusterChi2T  *edgeClusterChi2Ptr;
+    ClusterChi2T  *edgeClusterChi2Ptr = NULL;
     /* pairClusterScoreChi2 is an array of numPairs = (numEdges * (numEdges -
        1)) / 2 elements of pairwise Chi Squared scores which taken together
        are the upper right triangle of the numEdges x numEdges matrix of
        cluster versus cluster. */
-    ClusterScoreChi2T *pairClusterScoreChi2Ptr;
+    ClusterScoreChi2T *pairClusterScoreChi2Ptr = NULL;
     /* sortClusterScoreChi2 is an array for sorting the pairwise Chi Squared
        scores. */
-    ClusterScoreChi2T **sortClusterScoreChi2Ptr;
+    ClusterScoreChi2T **sortClusterScoreChi2Ptr = NULL;
     /* clusterChi2Compute is an array which must be filled in for each cluster
        in order to perform the full Chi Squared Test for that cluster. */
     Chi2ComputeT *clusterChi2ComputePtr;
-#ifdef USE_MALLOC_FOR_ALLOC
-    ClusterScoreChi2T *pairClusterScoreChi2 =
-      (ClusterScoreChi2T *)safe_malloc(numPairs * sizeof(*pairClusterScoreChi2));
-    ClusterScoreChi2T **sortClusterScoreChi2 =
-      (ClusterScoreChi2T **)safe_malloc(numPairs * sizeof(*sortClusterScoreChi2));
-    ClusterChi2T *edgeClusterChi2 = (ClusterChi2T *)safe_malloc(numEdges *
-                                                                sizeof(*edgeClusterChi2));
-    Chi2ComputeT *clusterChi2Compute = (Chi2ComputeT *)safe_malloc(numEdges *
-                                                                   sizeof(*clusterChi2Compute));
-#else
-    ClusterScoreChi2T pairClusterScoreChi2[numPairs + FUDGE];
-    ClusterScoreChi2T *sortClusterScoreChi2[numPairs + FUDGE];
-    ClusterChi2T edgeClusterChi2[numEdges + FUDGE];
-    Chi2ComputeT clusterChi2Compute[numEdges + FUDGE];
-#endif
+    ClusterScoreChi2T *pairClusterScoreChi2 = (ClusterScoreChi2T *)safe_malloc(numPairs * sizeof(*pairClusterScoreChi2));
+    ClusterScoreChi2T **sortClusterScoreChi2 = (ClusterScoreChi2T **)safe_malloc(numPairs * sizeof(*sortClusterScoreChi2));
+    ClusterChi2T *edgeClusterChi2 = (ClusterChi2T *)safe_malloc(numEdges * sizeof(*edgeClusterChi2));
+    Chi2ComputeT *clusterChi2Compute = (Chi2ComputeT *)safe_malloc(numEdges * sizeof(*clusterChi2Compute));
 
     /* Initialize the arrays. */
     for(edgeChi2ComputePtr = edgeChi2Compute,
@@ -859,10 +825,6 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 	  numMergedEdges++;
 	  numEdgesAdded++;
 	}else{
-#if 0 // Not currently supported for ScaffoldGraphT
-	  TruncateEdgeRange(GetCIEdgeT(edges, *GetCDS_CID_t(clusterEdges, 0)),
-			    overlapEdgeAll, graph);
-#endif
 	  AppendCDS_CID_t(tmpInputEdges, GetCDS_CID_t(clusterEdges, 0));
 	  numEdgesAdded++;
 	}
@@ -902,13 +864,12 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
         }
       }
 
-#ifdef USE_MALLOC_FOR_ALLOC
-    free(pairClusterScoreChi2);
-    free(sortClusterScoreChi2);
-    free(edgeClusterChi2);
-    free(clusterChi2Compute);
-    free(edgeChi2Compute);
-#endif
+    safe_free(pairClusterScoreChi2);
+    safe_free(sortClusterScoreChi2);
+    safe_free(edgeClusterChi2);
+    safe_free(clusterChi2Compute);
+    safe_free(edgeChi2Compute);
+
     DeleteVA_CDS_CID_t(tmpInputEdges);
     DeleteVA_CDS_CID_t(clusterEdges);
     return(numMergedEdges);
@@ -929,14 +890,11 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
       for(edgeIndex = 0; edgeIndex < numEdges; edgeIndex++)
 	{
 	  edge = GetGraphEdge(graph, *GetCDS_CID_t(inputEdges, edgeIndex));
-#if 0 // Not currently supported for ScaffoldGraphT
-	  TruncateEdgeRange(edge, overlapEdgeAll, graph);
-#endif
 	  PrintGraphEdge(GlobalData->stderrc, graph," *  ", edge, edge->idA);
 	}
     }
-#ifdef USE_MALLOC_FOR_ALLOC
-  free(edgeChi2Compute);
-#endif
+
+  safe_free(edgeChi2Compute);
+
   return(numMergedEdges);
 }
