@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.73 2008-11-13 10:17:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.74 2008-11-14 00:32:29 brianwalenz Exp $";
 
 #include <math.h>
 #include "AS_BOG_MateChecker.hh"
@@ -443,27 +443,35 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
 
           fragIter->contained = 0;
 
-          //  If the first fragment, check fragments after if there is
-          //  an overlap (note only frags with an overlap in the
-          //  layout are tested).  In rare cases, we ejected the
-          //  container, and left a containee with no overlap to
-          //  fragments remaining.
-          //
-          //  This isn't bullet proof.  One of those overlaps might be
-          //  to a contained fragment that we eject later on.  So, we
-          //  only accept overlaps to non-contained fragments.
-          //
-          //  Otherwise, check previous fragments for an overlap.
-
           if (fragsLen == 0) {
-            for (DoveTailIter ft=fragIter;
-                 ((hasOverlap == false) &&
-                  (ft != thisUnitig->dovetail_path_ptr->end()) &&
-                  (MAX(fragIter->position.bgn, fragIter->position.end) < MIN(ft->position.bgn, ft->position.end)));
-                 ft++)
-              if (tigGraph.bog_ptr->isContained(ft->ident) == false)
-                hasOverlap = tigGraph.bog_ptr->containHaveEdgeTo(fragIter->ident, ft->ident);
+            DoveTailIter  ft = fragIter;
+
+            //  The first fragment.  Check fragments after to see if
+            //  there is an overlap (note only frags with an overlap
+            //  in the layout are tested).  In rare cases, we ejected
+            //  the container, and left a containee with no overlap to
+            //  fragments remaining.
+            //
+            //  Note that this checks if there is an overlap to the
+            //  very first non-contained (aka dovetail) fragment ONLY.
+            //  If there isn't an overlap to the first non-contained
+            //  fragment, then that fragment will likely NOT align
+            //  correctly.
+
+            //  Skip all the contains.
+            while ((ft != thisUnitig->dovetail_path_ptr->end()) &&
+                   (tigGraph.bog_ptr->isContained(ft->ident) == true) &&
+                   (MAX(fragIter->position.bgn, fragIter->position.end) < MIN(ft->position.bgn, ft->position.end)))
+              ft++;
+
+            //  If the frag is not contained, and overlaps in the
+            //  layout, see if there is a real overlap.
+            if ((ft != thisUnitig->dovetail_path_ptr->end()) &&
+                (tigGraph.bog_ptr->isContained(ft->ident) == false) &&
+                (MAX(fragIter->position.bgn, fragIter->position.end) < MIN(ft->position.bgn, ft->position.end)))
+              hasOverlap = tigGraph.bog_ptr->containHaveEdgeTo(fragIter->ident, ft->ident);
           } else {
+            //  Not the first fragment.  Check previous fragments for an overlap.
             for (int ff=0; (hasOverlap == false) && (ff<fragsLen); ff++)
               hasOverlap = tigGraph.bog_ptr->containHaveEdgeTo(fragIter->ident, frags[ff].ident);
           }
