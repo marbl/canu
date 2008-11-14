@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_MATECHEKER
 #define INCLUDE_AS_BOG_MATECHEKER
 
-static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.29 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.30 2008-11-14 22:14:25 brianwalenz Exp $";
 
 #include "AS_BOG_UnitigGraph.hh"
 
@@ -109,13 +109,13 @@ private:
 
 
 struct MateLocationEntry {
-  SeqInterval pos1;
-  SeqInterval pos2;
-  iuid        id1;
-  iuid        id2;
-  iuid        unitig1;
-  iuid        unitig2; // in the future the table might be across unitigs
-  bool        isBad;
+  SeqInterval mlePos1;
+  SeqInterval mlePos2;
+  iuid        mleFrgID1;
+  iuid        mleFrgID2;
+  iuid        mleUtgID1;
+  iuid        mleUtgID2; // in the future the table might be across unitigs
+  bool        isGrumpy;
 };
 
 static const MateLocationEntry NULL_MATE_ENTRY =
@@ -180,15 +180,15 @@ inline bool SeqInterval_less(SeqInterval a, SeqInterval b) {
   return a < b;
 };
 inline bool operator==(MateLocationEntry a, MateLocationEntry b) {
-  if (a.pos1 == b.pos1 && a.pos2 == b.pos2)
+  if (a.mlePos1 == b.mlePos1 && a.mlePos2 == b.mlePos2)
     return true;
   else
     return false;
 };
 inline bool operator<(MateLocationEntry a, MateLocationEntry b) {
-  if (a.pos1 < b.pos1)                     return true;
-  if (a.pos1 == b.pos1 && a.pos2 < b.pos2) return true;
-  else                                     return false;
+  if (a.mlePos1 < b.mlePos1)                           return true;
+  if (a.mlePos1 == b.mlePos1 && a.mlePos2 < b.mlePos2) return true;
+  else                                                 return false;
 };
 
 #endif
