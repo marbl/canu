@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.7 2008-11-12 12:44:47 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.8 2008-11-17 23:05:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1384,6 +1384,8 @@ main(int argc, char **argv) {
   char     *linkerFIX = "TCGTATAACTTCGTATAATGTATGCTATACGAAGTTATTACG";    // NOT
   char     *linker    = NULL;
 
+  int       bogusOptions[256] = {0};
+  int       bogusOptionsLen   = 0;
 
   int arg = 1;
   int err = 0;
@@ -1417,8 +1419,14 @@ main(int argc, char **argv) {
       else if (strcasecmp(argv[arg], "discard") == 0)
         Nread = NREAD_DISCARD;
       else if (strcasecmp(argv[arg], "trim") == 0) {
-        Nread     = NREAD_TRIM;
-        NreadTrim = atoi(argv[++arg]);
+        arg++;
+
+        if (argv[arg] == NULL) {
+          Nread = NREAD_ERRR;
+        } else {
+          Nread     = NREAD_TRIM;
+          NreadTrim = atoi(argv[++arg]);
+        }
       }
       else if (strcasecmp(argv[arg], "onlyn") == 0)
         Nread = NREAD_ONLYN;
@@ -1446,8 +1454,13 @@ main(int argc, char **argv) {
       logFileName = argv[++arg];
 
     } else {
-      firstFileArg = arg;
-      arg          = argc;
+      if (argv[arg][0] == '-') {
+        bogusOptions[bogusOptionsLen++] = arg;
+        err++;
+      } else {
+        firstFileArg = arg;
+        arg          = argc;
+      }
     }
 
     arg++;
@@ -1491,6 +1504,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "FOR FLX READS:      historical usage is '-clear none -nread discard'.\n");
     fprintf(stderr, "FOR TITANIUM READS: best results obtained with '-clear hard'.\n");
     fprintf(stderr, "\n");
+
+    for (err=0; err<bogusOptionsLen; err++)
+      fprintf(stderr, "ERROR:  Unknown option '%s'\n", argv[bogusOptions[err]]);
 
     if (libraryName == 0L)
       fprintf(stderr, "ERROR:  Need to supply -libraryname.\n");
