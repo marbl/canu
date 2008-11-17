@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.8 2008-11-17 23:05:38 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.9 2008-11-17 23:13:36 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1425,7 +1425,7 @@ main(int argc, char **argv) {
           Nread = NREAD_ERRR;
         } else {
           Nread     = NREAD_TRIM;
-          NreadTrim = atoi(argv[++arg]);
+          NreadTrim = atoi(argv[arg]);
         }
       }
       else if (strcasecmp(argv[arg], "onlyn") == 0)
