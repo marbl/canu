@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl
 
 
-# $Id: ca2ace.pl,v 1.8 2008-06-27 06:29:19 brianwalenz Exp $
+# $Id: ca2ace.pl,v 1.9 2008-11-19 21:43:54 brianwalenz Exp $
 #
 # Converts from a Celera .asm file to a new .ace file
 #
@@ -21,7 +21,7 @@ if (! defined $base){
     die ("Foundation cannot be created.  FATAL!\n");
 }
 
-my $VERSION = '$Revision: 1.8 $ ';
+my $VERSION = '$Revision: 1.9 $ ';
 $base->setVersionInfo($VERSION);
 
 my $HELPTEXT = q~
@@ -46,13 +46,13 @@ my $frgfile;
 my ($fidToInfoFile, $fidToTIFile,$seqPosFile, $contamFile);
 
 my $err = $base->TIGR_GetOptions(
-				 "i=s" => \$infile,
-				 "o=s" => \$outfile,
-                 "m=s" => \$fidToInfoFile,
-                 "s=s" => \$seqPosFile,
-                 "t=s" => \$fidToTIFile,
-                 "v=s" => \$contamFile
-				 );
+    "i=s" => \$infile,
+    "o=s" => \$outfile,
+    "m=s" => \$fidToInfoFile,
+    "s=s" => \$seqPosFile,
+    "t=s" => \$fidToTIFile,
+    "v=s" => \$contamFile
+    );
 
 if (! $err){
     $base->bail("Error processing options!");
@@ -103,7 +103,7 @@ if ( defined $contamFile ) {
     }
     close VEC;
     open(VEC, "|bzip2 >$outfile.contaminant.bz2") ||
-       $base->bail("Cannot open output file \"$outfile.contaminant\" : $!");
+        $base->bail("Cannot open output file \"$outfile.contaminant\" : $!");
 }
 
 # we're going to pre read the DSC messages so we know we have a degen contig
@@ -251,7 +251,7 @@ seek IN,0,0;
 sub printCO($$$$) {
     my ($handle, $coLine, $ctgOutRef, $seqOutRef) = @_;
     return unless @$ctgOutRef;
-	print $handle $$coLine;
+    print $handle $$coLine;
     print $handle @$ctgOutRef,"\n";
     print $handle @$seqOutRef,"\n";
     undef $$coLine;
@@ -266,8 +266,12 @@ while (my $record = getCARecord(\*IN)){
     my ($rec, $fields, $recs) = parseCARecord($record);
 
     my $id = getCAId($$fields{acc});
+    if ($id =~ m/^\(*(.*),.*\)*$/) {
+        $id = $1;
+    }
     if ($rec eq 'AFG') {
         $seqpos{ $id } .= ";$$fields{clr}"; # assembly can change clr so use it from AFG
+        #print STDERR "seqpos $id = $seqpos{$id}\n";
         next;
     }
     my $nseqs;
@@ -295,216 +299,216 @@ while (my $record = getCARecord(\*IN)){
         if ($rec eq "UTG" && $$fields{sta} ne "S"){
             next;
         }
-	my $seq = $$fields{cns};
-       $seq =~ tr/-\n/*/d;
-    my $readsInTig = 0;
-	if ($rec eq "UTG"){
-        $readsInTig = $$fields{nfr};
-	    #print STDERR "Doing unitig: $id\n";
-	    $utgs{$id} = $seq;
-        $utgs{$id} =~ tr/*//d; ## use ungapped
+        my $seq = $$fields{cns};
+        $seq =~ tr/-\n/*/d;
+        my $readsInTig = 0;
+        if ($rec eq "UTG"){
+            $readsInTig = $$fields{nfr};
+            #print STDERR "Doing unitig: $id\n";
+            $utgs{$id} = $seq;
+            $utgs{$id} =~ tr/*//d; ## use ungapped
 
-	} else {
-        $readsInTig = $$fields{npc};
-	    #print STDERR "Doing contig: $id\n";
-	}
-	$contigLen = length($seq);
-    my $numGaps = $seq =~ tr/*/*/;
-
-	my $qual = $$fields{qlt};
-    $qual =~ tr/\n//d;
-    my $qualLen = length($qual);
-    die "$contigid seqLen $contigLen qvLen $qualLen" unless $qualLen == $contigLen;
-
-	for (my $i = 0; $i < length($seq); $i += 50){
-	    push @ctgOut, substr($seq, $i, 50), "\n";
-	}
-	push @ctgOut, "\n";
-	$nContigs++;
-
-	push @ctgOut, "BQ\n";
-	my @qualvals;
-	# .ace qualities are only assigned to unpadded bases
-	for (my $i = 0; $i < length($qual); $i++){
-	    if (substr($seq, $i, 1) ne "*"){
-		push(@qualvals, ord(substr($qual, $i, 1)) - ord('0'));
-	    }
-	}
-    die "$contigid length $contigLen gaps $numGaps numQvs ".@qualvals if
-        $contigLen - $numGaps != @qualvals;
-	for (my $i = 0; $i <= $#qualvals; $i+=50){
-	    my $end = $i + 49;
-	    if ($end > $#qualvals){
-		$end = $#qualvals;
-	    }
-	    push @ctgOut, " ", join(" ", @qualvals[$i .. $end]), "\n";
-	}
-
-	push @ctgOut, "\n";
-
-
-	%seqClr = ();
-	%seqAlnClr = ();
-	%seqAlnRng = ();
-	%seqOff = ();
-	%rend = ();
-
-	for (my $r = 0; $r <= $#$recs; $r++){
-	    my ($srec, $sfields, $srecs) = parseCARecord($$recs[$r]);
-	    my $seql;
-	    my $seqr;
-	    my $sequence;
-	    if ($srec eq "MPS" || $srec eq "UPS"){
-		if ($srec eq "UPS" && $$sfields{typ} ne "S"){
-		    next; # we only deal with separable unitigs
-		}
-		$nReads++;
-		$nseqs++;
-        my $fid; # fragment id
-		if ($srec eq "UPS"){
-            $fid = $$sfields{lid};
-		    if (! exists $seenutgs{$fid}){
-			$seenutgs{$fid} = "a";
-		    } else {
-			$seenutgs{$fid} =
-			    chr(ord($seenutgs{$fid}) + 1);
-		    }
-		    $seqName = "surr${fid}_$seenutgs{$fid}";
-		    $sequence = $utgs{$fid};
-		    $seql = 0; $seqr = length($sequence);
-		}else {
-            $fid = $$sfields{mid};
-            die "$fid not in seqpos." unless exists $seqpos{$fid};
-            (my $spos,$seqName,my $sclr) = split ';',$seqpos{$fid};
-		    $sequence = get_seq(\*FRG, $fid, $spos);
-            $sequence =~ tr/\n//d;
-		    ($seql, $seqr) = split(',', $sclr);
-		}
-		my @gaps = split(' ', $$sfields{del});
-		my ($asml, $asmr) = split(',', $$sfields{pos});
-		my $left = $seql;
-		if ($asml > $asmr){
-		    $sequence  = reverseComplement($sequence);
-		    my $tmp = $asmr;
-		    $asmr = $asml;
-		    $asml = $tmp;
-
-		    $tmp = $seqr;
-		    $seqr = $seql;
-		    $seql = $tmp;
-		    $left = length($sequence) - $seql;
-		}
-		# now we add gaps to the sequence
-        my @outseqA;
-		my $gapindex = 0;
-		for (my $j = 0; $j < length($sequence); $j++){
-		    my $seqj = $j - $left;# + $seql{$id} - 1; # index in untrimmed sequence
-		    if ($gapindex <= $#gaps && $seqj > $gaps[$gapindex]){
-			print STDERR "Weird $seqName, $seqj > $gaps[$gapindex]\n";
-		    }
-		    # this here is a fix for cases when the last gap index
-		    # is equal to the length of the sequence.  In this case
-		    # the sequence gets an extra gap at the very end (which
-		    # I might add, is completely stupid).
-		    while ($gapindex <= $#gaps && $seqj == $gaps[$gapindex]){
-#                       print "GS $gapindex $#gaps $seqj $gaps[$gapindex] ",
-#			length($sequence), "\n";
-			push @outseqA,'*';
-			$gapindex++;
-#                       print "GE $gapindex\n";
-		    }
-
-		    push @outseqA, substr($sequence, $j, 1);
-		}
-		my $outseq = join '',@outseqA;
-
-#		print "Adding seq ($seqName) = ", length($sequence), " outseq = ",
-#		length($outseq), " gaps = ", $#gaps + 1, "\n";
-#		print "!$sequence\n";
-#		print "!$outseq\n";
-
-		$seqAlnRng{$seqName} = sprintf("%d %d", $asml + 1, $asmr);
-		$seqAlnClr{$seqName} = sprintf("%d %d",
-					       (($seql < $seqr)?$seql + 1:$seql),
-					       (($seql < $seqr)?$seqr : $seqr + 1));
-		my $off = $asml;
-		my $ori = ($seql > $seqr) ? "C" : "U";
-		$seqOff{$seqName} = $asml;
-		$rend{$seqName} = $asmr;
-#		if ($ori eq "C") {$seqOff{$seqName}++;} # fix a problem in BS
-		$seqOff{$seqName}++;
-		if ($ori eq "C"){
-		    $off -= length($sequence) - $seql;
-		} else {
-		    $off -= $seql;
-		}
-
-		$off++;
-
-		push @ctgOut, "AF $seqName $ori $off\n";
-		push @seqOut, "RD $seqName ", length($outseq), " 0 0\n";
-		for (my $i = 0; $i <= length($outseq); $i += 50){
-		    push @seqOut, substr($outseq, $i, 50), "\n";
-		}
-		push @seqOut, "\n";
-		my $end5;
-		my $end3;
-		if ($ori eq "C"){
-		    $end5 = length($sequence) - $seql;
-		    $end3 = length($outseq) - $seqr;
-		} else {
-		    $end5 = $seql;
-		    $end3 = length($outseq) - length($sequence) + $seqr;
-		}
-#		print "QA $end5 $end3 $seql $seqr ", length($sequence), " ", length($outseq), "\n";
-		$end5++; #all coordinates are 1 based
-		push @seqOut, sprintf("QA %d %d %d %d\n",
-				     $end5, $end3, $end5, $end3);
-		my $chrmfile = "$seqName.scf";
-        #my $phdfile = `/bin/echo ../phd_dir/*.$seqName.phd.1`;
-		my $phdfile = "$seqName.phd.1";
-		my $time;
-
-		if (defined $phdfile && -r "../phd_dir/$phdfile"){
-		    $time = `$GREP TIME ../phd_dir/$phdfile`;
-		    $time =~ s/TIME: //;
-		}
-
-		if (! defined $time){
-		    $time = localtime;
-		}
-
-		my $dir = ($ori eq "C") ? "rev" : "forw";
-
-        my $ds = "DS CHROMAT_FILE: $chrmfile PHD_FILE: $phdfile CHEM:term DYE:big TIME: $time";
-        if ( exists $fidToInfo{ $fid } ) {
-            my ($center,$ti,$traceName,$lib,$template,$dir) = split ',', $fidToInfo{ $fid };
-            push @seqOut, "DS $traceName CENTER: $center TEMPLATE: $template DIRECTION: $dir LIBRARY: $lib\n";
-
-        } elsif ( exists $fidToTraceName{ $fid } ) {
-            push @seqOut, "$ds $fidToTraceName{$fid}\n";
         } else {
-            push @seqOut, "$ds $seqName\n";
+            $readsInTig = $$fields{npc};
+            #print STDERR "Doing contig: $id\n";
         }
-    }
-	} # for each subrecord
-	my $prev;
-	my $nBS = 0;
-	foreach my $sequence ( sort {($seqOff{$a} == $seqOff{$b}) ? ($rend{$b} <=> $rend{$a}) : ($seqOff{$a} <=> $seqOff{$b})} (keys %seqOff)) {
-	    if (defined $prev) {
-		if ($seqOff{$sequence} - 1 < $seqOff{$prev} ||
-		    $rend{$sequence} < $rend{$prev}){
-		    next;
-		}
-		$nBS++;
-		push @ctgOut, "BS $seqOff{$prev} ", $seqOff{$sequence} - 1, " $prev\n";
-	    }
-	    $prev = $sequence;
-	}
-	$nBS++;
-	push @ctgOut, "BS $seqOff{$prev} $contigLen $prev\n";
+        $contigLen = length($seq);
+        my $numGaps = $seq =~ tr/*/*/;
 
-	$coLine = "CO $contigid $contigLen $nseqs $nBS U\n";
+        my $qual = $$fields{qlt};
+        $qual =~ tr/\n//d;
+        my $qualLen = length($qual);
+        die "$contigid seqLen $contigLen qvLen $qualLen" unless $qualLen == $contigLen;
+
+        for (my $i = 0; $i < length($seq); $i += 50){
+            push @ctgOut, substr($seq, $i, 50), "\n";
+        }
+        push @ctgOut, "\n";
+        $nContigs++;
+
+        push @ctgOut, "BQ\n";
+        my @qualvals;
+        # .ace qualities are only assigned to unpadded bases
+        for (my $i = 0; $i < length($qual); $i++){
+            if (substr($seq, $i, 1) ne "*"){
+                push(@qualvals, ord(substr($qual, $i, 1)) - ord('0'));
+            }
+        }
+        die "$contigid length $contigLen gaps $numGaps numQvs ".@qualvals if
+            $contigLen - $numGaps != @qualvals;
+        for (my $i = 0; $i <= $#qualvals; $i+=50){
+            my $end = $i + 49;
+            if ($end > $#qualvals){
+                $end = $#qualvals;
+            }
+            push @ctgOut, " ", join(" ", @qualvals[$i .. $end]), "\n";
+        }
+
+        push @ctgOut, "\n";
+
+
+        %seqClr = ();
+        %seqAlnClr = ();
+        %seqAlnRng = ();
+        %seqOff = ();
+        %rend = ();
+
+        for (my $r = 0; $r <= $#$recs; $r++){
+            my ($srec, $sfields, $srecs) = parseCARecord($$recs[$r]);
+            my $seql = "BOGUS";
+            my $seqr = "BOGUS";
+            my $sequence;
+            if ($srec eq "MPS" || $srec eq "UPS"){
+                if ($srec eq "UPS" && $$sfields{typ} ne "S"){
+                    next; # we only deal with separable unitigs
+                }
+                $nReads++;
+                $nseqs++;
+                my $fid; # fragment id
+                if ($srec eq "UPS"){
+                    $fid = $$sfields{lid};
+                    if (! exists $seenutgs{$fid}){
+                        $seenutgs{$fid} = "a";
+                    } else {
+                        $seenutgs{$fid} =
+                            chr(ord($seenutgs{$fid}) + 1);
+                    }
+                    $seqName = "surr${fid}_$seenutgs{$fid}";
+                    $sequence = $utgs{$fid};
+                    $seql = 0; $seqr = length($sequence);
+                }else {
+                    $fid = $$sfields{mid};
+                    die "$fid not in seqpos." unless exists $seqpos{$fid};
+                    (my $spos,$seqName,my $sclr) = split ';',$seqpos{$fid};
+                    $sequence = get_seq(\*FRG, $fid, $spos);
+                    $sequence =~ tr/\n//d;
+                    ($seql, $seqr) = split(',', $sclr);
+                }
+                my @gaps = split(' ', $$sfields{del});
+                my ($asml, $asmr) = split(',', $$sfields{pos});
+                my $left = $seql;
+                if ($asml > $asmr){
+                    $sequence  = reverseComplement($sequence);
+                    my $tmp = $asmr;
+                    $asmr = $asml;
+                    $asml = $tmp;
+
+                    $tmp = $seqr;
+                    $seqr = $seql;
+                    $seql = $tmp;
+                    $left = length($sequence) - $seql;
+                }
+                # now we add gaps to the sequence
+                my @outseqA;
+                my $gapindex = 0;
+                for (my $j = 0; $j < length($sequence); $j++){
+                    my $seqj = $j - $left;# + $seql{$id} - 1; # index in untrimmed sequence
+                    if ($gapindex <= $#gaps && $seqj > $gaps[$gapindex]){
+                        print STDERR "Weird $seqName, $seqj > $gaps[$gapindex]\n";
+                    }
+                    # this here is a fix for cases when the last gap index
+                    # is equal to the length of the sequence.  In this case
+                    # the sequence gets an extra gap at the very end (which
+                    # I might add, is completely stupid).
+                    while ($gapindex <= $#gaps && $seqj == $gaps[$gapindex]){
+                        #print "GS $gapindex $#gaps $seqj $gaps[$gapindex] ",
+                        #   length($sequence), "\n";
+                        push @outseqA,'*';
+                        $gapindex++;
+                        #print "GE $gapindex\n";
+                    }
+
+                    push @outseqA, substr($sequence, $j, 1);
+                }
+                my $outseq = join '',@outseqA;
+
+                # print "Adding seq ($seqName) = ", length($sequence), " outseq = ",
+                #  length($outseq), " gaps = ", $#gaps + 1, "\n";
+                #  print "!$sequence\n";
+                #  print "!$outseq\n";
+
+                $seqAlnRng{$seqName} = sprintf("%d %d", $asml + 1, $asmr);
+                $seqAlnClr{$seqName} = sprintf("%d %d",
+                                               (($seql < $seqr)?$seql + 1:$seql),
+                                               (($seql < $seqr)?$seqr : $seqr + 1));
+                my $off = $asml;
+                my $ori = ($seql > $seqr) ? "C" : "U";
+                $seqOff{$seqName} = $asml;
+                $rend{$seqName} = $asmr;
+                #  if ($ori eq "C") {$seqOff{$seqName}++;} # fix a problem in BS
+                $seqOff{$seqName}++;
+                if ($ori eq "C"){
+                    $off -= length($sequence) - $seql;
+                } else {
+                    $off -= $seql;
+                }
+
+                $off++;
+
+                push @ctgOut, "AF $seqName $ori $off\n";
+                push @seqOut, "RD $seqName ", length($outseq), " 0 0\n";
+                for (my $i = 0; $i <= length($outseq); $i += 50){
+                    push @seqOut, substr($outseq, $i, 50), "\n";
+                }
+                push @seqOut, "\n";
+                my $end5;
+                my $end3;
+                if ($ori eq "C"){
+                    $end5 = length($sequence) - $seql;
+                    $end3 = length($outseq) - $seqr;
+                } else {
+                    $end5 = $seql;
+                    $end3 = length($outseq) - length($sequence) + $seqr;
+                }
+                #print "QA '$end5' '$end3' '$seql' '$seqr' sequence=", length($sequence), " outseq=", length($outseq), "\n";
+                $end5++; #all coordinates are 1 based
+                push @seqOut, sprintf("QA %d %d %d %d\n",
+                                      $end5, $end3, $end5, $end3);
+                my $chrmfile = "$seqName.scf";
+                #my $phdfile = `/bin/echo ../phd_dir/*.$seqName.phd.1`;
+                my $phdfile = "$seqName.phd.1";
+                my $time;
+
+                if (defined $phdfile && -r "../phd_dir/$phdfile"){
+                    $time = `$GREP TIME ../phd_dir/$phdfile`;
+                    $time =~ s/TIME: //;
+                }
+
+                if (! defined $time){
+                    $time = localtime;
+                }
+
+                my $dir = ($ori eq "C") ? "rev" : "forw";
+
+                my $ds = "DS CHROMAT_FILE: $chrmfile PHD_FILE: $phdfile CHEM:term DYE:big TIME: $time";
+                if ( exists $fidToInfo{ $fid } ) {
+                    my ($center,$ti,$traceName,$lib,$template,$dir) = split ',', $fidToInfo{ $fid };
+                    push @seqOut, "DS $traceName CENTER: $center TEMPLATE: $template DIRECTION: $dir LIBRARY: $lib\n";
+
+                } elsif ( exists $fidToTraceName{ $fid } ) {
+                    push @seqOut, "$ds $fidToTraceName{$fid}\n";
+                } else {
+                    push @seqOut, "$ds $seqName\n";
+                }
+            }
+        } # for each subrecord
+        my $prev;
+        my $nBS = 0;
+        foreach my $sequence ( sort {($seqOff{$a} == $seqOff{$b}) ? ($rend{$b} <=> $rend{$a}) : ($seqOff{$a} <=> $seqOff{$b})} (keys %seqOff)) {
+            if (defined $prev) {
+                if ($seqOff{$sequence} - 1 < $seqOff{$prev} ||
+                    $rend{$sequence} < $rend{$prev}){
+                    next;
+                }
+                $nBS++;
+                push @ctgOut, "BS $seqOff{$prev} ", $seqOff{$sequence} - 1, " $prev\n";
+            }
+            $prev = $sequence;
+        }
+        $nBS++;
+        push @ctgOut, "BS $seqOff{$prev} $contigLen $prev\n";
+
+        $coLine = "CO $contigid $contigLen $nseqs $nBS U\n";
     } # if CCO or UTG
 } # while each record
 
@@ -542,8 +546,7 @@ sub get_seq($$$)
         return;
     }
     if ($$fields{acc} != $id){
-        print STDERR "wierd error in get_seq, expecting $id, got $$fields{acc}\n
-";
+        print STDERR "wierd error in get_seq, expecting $id, got $$fields{acc}\n";
         return;
     }
     return $$fields{seq};
