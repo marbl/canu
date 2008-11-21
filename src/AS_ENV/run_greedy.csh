@@ -88,7 +88,7 @@ cat  ${inputfile}_e${cutoff}_m50_Q_N40.layout |\
 ### compute consensus sequence
 if ( $noFrgStore == 1 ) then
   # AS_CNS_ERROR_RATE should be set to <cutoff>
-  $asmBin/consensus -P -U -G ${prefix}.gkpStore ${inputfile}_e${cutoff}_m50_Q_N40.cgb
+  $asmBin/consensus -U -G -o ${inputfile}_e${cutoff}_m50_Q_N40.cgi ${prefix}.gkpStore ${inputfile}_e${cutoff}_m50_Q_N40.cgb
 else
   # your binaries need to have been built to allow up to <cutoff> error rates
   $asmBin/consensus -P -U -G ${prefix}.frgStore ${inputfile}_e${cutoff}_m50_Q_N40.cgb
@@ -96,9 +96,9 @@ endif
 
 ### run terminator to assign UIDs
 if ( $noFrgStore == 1 ) then
-  cat ${inputfile}_e${cutoff}_m50_Q_N40.cgi | $asmBin/terminator -g ${prefix}.gkpStore -o ${inputfile}_e${cutoff}_m50_Q_N40.asm -m junk_mappings
+  cat ${inputfile}_e${cutoff}_m50_Q_N40.cgi | $asmBin/terminator -g ${prefix}.gkpStore -o ${inputfile}_e${cutoff}_m50_Q_N40.asm 
 else
-   $asmBin/terminator -P -u -N -f ${prefix}.frgStore -g ${prefix}.gkpStore -i ${inputfile}_e${cutoff}_m50_Q_N40.cgi -o ${inputfile}_e${cutoff}_m50_Q_N40.asm -m junk_mappings
+   $asmBin/terminator -u -N -f ${prefix}.frgStore -g ${prefix}.gkpStore -i ${inputfile}_e${cutoff}_m50_Q_N40.cgi -o ${inputfile}_e${cutoff}_m50_Q_N40.asm -m junk_mappings
 endif
 
 \rm junk_mappings.*

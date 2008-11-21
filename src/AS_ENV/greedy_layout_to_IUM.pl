@@ -71,12 +71,10 @@ mst:U
 print
 "{IUM
 acc:$iid
-src:
-.
 cov:0.000
+mhp:0.000
 sta:X
-abp:0
-bbp:0
+fur:X
 len:$len
 cns:
 .
@@ -94,7 +92,10 @@ print
 typ:R
 mid:$sortimps[$i]->{mid}
 con:0
+pid:0
 pos:$sortimps[$i]->{beg},$sortimps[$i]->{end}
+ahg:0
+bhg:0
 dln:0
 del:
 }\n";
