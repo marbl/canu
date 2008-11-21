@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.9 2008-11-17 23:13:36 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.10 2008-11-21 16:10:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,8 +46,12 @@ const char *mainid = "$Id: sffToCA.c,v 1.9 2008-11-17 23:13:36 brianwalenz Exp $
 #define NREAD_ONLYN    3  //  Debug, see comments later
 #define NREAD_ERRR     9
 
+#define LOG_DEFAULT    0
+#define LOG_MATES      1
+
 GateKeeperStore *gkpStore  = NULL;
 FILE            *logFile   = NULL;
+uint32           logLevel  = LOG_DEFAULT;
 uint32           clearTrim = TRIM_NONE;
 uint32           Nread     = NREAD_DISCARD;
 uint32           NreadTrim = 0;
@@ -919,8 +923,14 @@ processMate(fragRecord *fr,
   if ((al.alignLen >= 40) && (al.matches + 4 >= al.alignLen))
     goodAlignment = 1;
 
-  if (goodAlignment == 0)
+  if (goodAlignment == 0) {
+    if ((logFile) && (logLevel >= LOG_MATES) && (m1 != NULL) && (m2 != NULL))
+      //  m1, m2 are NULL if we are checking a second time for linker;
+      //  do not report no linker found for those as we have already
+      //  or will soon write a log mesasge.
+      fprintf(logFile, "No linker detected in %s.\n", AS_UID_toString(fr->gkfr.readUID));
     return(0);
+  }
 
   if ((al.alignLen >= 42) && (al.matches + 2 >= al.alignLen))
     bestAlignment = 1;
@@ -932,6 +942,10 @@ processMate(fragRecord *fr,
   //  Adapter found on the left, but not enough to make a read.  Trim it out.
   //
   if ((bestAlignment) && (lSize < 64)) {
+    if ((logFile) && (logLevel >= LOG_MATES))
+      fprintf(logFile, "Linker to close to left side (position %d-%d); no mate formed for %s (len %d).\n",
+              al.begJ, al.endJ, AS_UID_toString(fr->gkfr.readUID), fr->gkfr.seqLen);
+
     fr->gkfr.seqLen = rSize;
 
     memmove(fr->seq, fr->seq + al.endJ, rSize);
@@ -964,6 +978,10 @@ processMate(fragRecord *fr,
   //  Adapter found on the right, but not enough to make a read.  Trim it out.
   //
   if ((bestAlignment) && (rSize < 64)) {
+    if ((logFile) && (logLevel >= LOG_MATES))
+      fprintf(logFile, "Linker to close to right side (position %d-%d); no mate formed for %s (len %d).\n",
+              al.begJ, al.endJ, AS_UID_toString(fr->gkfr.readUID), fr->gkfr.seqLen);
+
     fr->gkfr.seqLen = lSize;
 
     fr->seq[lSize] = 0;
@@ -1088,8 +1106,8 @@ processMate(fragRecord *fr,
       m2->seq[rSize] = 0;
       m2->qlt[rSize] = 0;
 
-      if (logFile)
-        fprintf(logFile, "Mates '%s' (%3d-%3d) and '%s' (%3d-%3d) created.\n",
+      if ((logFile) && (logLevel >= LOG_MATES))
+        fprintf(logFile, "Mates '%s' (%d-%d) and '%s' (%d-%d) created.\n",
                 AS_UID_toString(m1->gkfr.readUID), 0, al.begJ,
                 AS_UID_toString(m2->gkfr.readUID), al.endJ, al.lenB);
     }
@@ -1127,7 +1145,7 @@ processMate(fragRecord *fr,
   //  in the fragment record.
 
   if (logFile)
-    fprintf(logFile, "Linker detected but not trimmed in '%s' linker: %3d-%3d read: %3d-%3d alignLen: %3d matches: %3d.  Passed to OBT.\n",
+    fprintf(logFile, "Linker detected but not trimmed in '%s' linker: %d-%d read: %d-%d alignLen: %d matches: %d.  Passed to OBT.\n",
             AS_UID_toString(fr->gkfr.readUID), al.begI, al.endI, al.begJ, al.endJ, al.alignLen, al.matches);
 
   fr->gkfr.contaminationBeg = al.begJ;
@@ -1453,6 +1471,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-log") == 0) {
       logFileName = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-logmates") == 0) {
+      logLevel = LOG_MATES;
+
     } else {
       if (argv[arg][0] == '-') {
         bogusOptions[bogusOptionsLen++] = arg;
@@ -1500,6 +1521,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -output f.frg          Write the CA formatted fragments to this file.\n");
     fprintf(stderr, "  -log    l.txt          Human readable log of what happened.\n");
+    fprintf(stderr, "  -logmates              Also include information about mate splitting in the log.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "FOR FLX READS:      historical usage is '-clear none -nread discard'.\n");
     fprintf(stderr, "FOR TITANIUM READS: best results obtained with '-clear hard'.\n");
