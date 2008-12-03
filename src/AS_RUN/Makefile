@@ -91,6 +91,7 @@ RUNCAOBTUTIL = runCA-OBT/runCAutil/checkOverlap.pl \
                runCA-OBT/runCAutil/overlapCorrection.pl \
                runCA-OBT/runCAutil/overlapTrim.pl \
                runCA-OBT/runCAutil/preoverlap.pl \
+               runCA-OBT/runCAutil/shred.pl \
                runCA-OBT/runCAutil/scaffolder.pl \
                runCA-OBT/runCAutil/terminate.pl \
                runCA-OBT/runCAutil/cleaner.pl \

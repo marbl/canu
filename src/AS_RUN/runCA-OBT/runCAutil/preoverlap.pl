@@ -141,7 +141,8 @@ sub preoverlap {
         (! -e "$wrk/$asm.gkpStore/frg")) {
         my $bin = getBinDirectory();
 
-        #  Make sure all the inputs are here.  We also shred any supplied ace files.
+        #  Make sure all the inputs are here.  We also shred any
+        #  supplied ace files, and convert the sff's to frg's.
         #
         my $failedFiles = 0;
         my $gkpInput = "";
@@ -159,20 +160,8 @@ sub preoverlap {
                 $frg = "$wrk/$nam.shred.frg";
 
                 if (! -e "$frg") {
-                    unlink "$wrk/NB.contigs";
-                    unlink "$wrk/NB.shred";
-
-                    if (runCommand($wrk, "perl $bin/Generate_NonShallow_Contigs.pl -a $ace -f $wrk/NB.contigs") ||
-                        runCommand($wrk, "perl $bin/Shred_Contigs.pl -f $wrk/NB.contigs > $wrk/NB.shred") ||
-                        runCommand($wrk, "perl $bin/FASTA_to_frg_file.pl -f $wrk/NB.shred -q 3 > $frg")) {
-                        unlink "$wrk/NB.contigs";
-                        unlink "$wrk/NB.shred";
-                        unlink "$frg";
-                        caFailure("Shredding '$ace' failed.");
-                    }
-
-                    unlink "$wrk/NB.contigs";
-                    unlink "$wrk/NB.shred";
+                    print STDERR "Shredding '$ace' -> '$frg'\n";
+                    shredACE($ace, $frg);
                 }
             }
 
@@ -187,6 +176,8 @@ sub preoverlap {
                 $frg = "$wrk/$nam.sff.frg";
 
                 if (! -e "$frg") {
+                    print STDERR "Converting '$sff' -> '$frg'\n";
+
                     my $bin = getBinDirectory();
 
                     if (runCommand($wrk, "$bin/sffToCA -libraryname $nam -linker flx -insertsize 3000 300 -log $log -output $frg $sff")) {
