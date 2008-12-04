@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.21 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.22 2008-12-04 18:54:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -775,16 +775,15 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
         ChunkInstanceT *mateChunk;
         int fragIsGood = 0;
 
-        if (placeAllFragsInSinglePlacedSurros && numInstances == 1) {
+        if ((placeAllFragsInSinglePlacedSurros) &&
+            (numInstances == 1))
           fragIsGood=1;
-        } else {
-          if(matePlacedOnlyIn(nextfrg,sid,&mate,&mateChunk)){
-            assert(nextfrg->flags.bits.innieMate);
-            if(FragAndMateAreCompatible(nextfrg,candidateChunk,mate,mateChunk,AS_INNIE)){
-              fragIsGood= 1;
-            }
-          }
-        }
+
+        if ((matePlacedOnlyIn(nextfrg,sid,&mate,&mateChunk)) &&
+            (nextfrg->flags.bits.innieMate) &&
+            (FragAndMateAreCompatible(nextfrg,candidateChunk,mate,mateChunk,AS_INNIE)))
+          fragIsGood= 1;
+
         if(fragIsGood){
           // we're hot to trot ... now do something!
           IntMultiPos imp;
