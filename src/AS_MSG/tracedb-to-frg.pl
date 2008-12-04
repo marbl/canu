@@ -36,13 +36,13 @@
 #  3)  (parallel)   scan the fasta/qual files, write FRG messages.
 #
 #  If you have SGE installed, you can run all three stages, parallel if
-#  appropriate with:
+#  appropriate, with:
 #    tracedb-to-frg.pl -sgeoptions '-P project -A account etc' -sge xml*
 #
 #  Otherwise, you'll need to run (sequentially) with:
-#    tracedb-to-frg.pl -xml xml  (once per file)
+#    tracedb-to-frg.pl -xml xml  (once per xml file)
 #    tracedb-to-frg.pl -lib xml* (ALL xml files)
-#    tracedb-to-frg.pl -frg xml  (once per file)
+#    tracedb-to-frg.pl -frg xml  (once per xml file)
 #
 #  Output goes in the CURRENT DIRECTORY.
 #
@@ -51,10 +51,9 @@
 #
 #  The output is:
 #
-#  hypocrea_jecorina.1.lib.frg -- all library info
-#  hypocrea_jecorina.2.001.frg -- fragment data
-#  hypocrea_jecorina.2.002.frg --   one per input fasta/qual pair
-#  hypocrea_jecorina.3.lkg.frg -- mate info
+#  prefix.1.lib.frg -- all library info
+#  prefix.2.###.frg -- fragment data, one per input fasta/qual pair
+#  prefix.3.lkg.frg -- mate info
 #
 #
 #  Other output:

@@ -101,7 +101,14 @@ while (scalar(@ARGV) > 0) {
     }
 }
 if (($err) || (!defined($seqfile)) || (!defined($qltfile)) || (!defined($lib))) {
-    die "usage: $0 [-v vector-clear-file] [-noobt] [-454] [-idregex pattern] -l libraryname -s seq.fasta -q qlt.fasta > new.frg\n";
+    print STDERR "usage: $0 [-v vector-clear-file] [-noobt] [-454] [-idregex pattern] -l libraryname -s seq.fasta -q qlt.fasta > new.frg\n";
+    print STDERR "-v vector-clear-file     A file of 'readUID vecBeg vecEnd', one per line, that is the vector clear range.\n";
+    print STDERR "-noobt                   Set the 'doNotOverlapTrim' library feature.\n";
+    print STDERR "-454                     Set library features appropriate for 454 reads (see also sffToCA).\n";
+    print STDERR "-idregex pattern         Use this perl regex to extract the read name from the seq defline.\n";
+    print STDERR "-l libraryname           Name of the library; freeformat text.\n";
+    print STDERR "-s seq                   Fasta file of sequences.\n";
+    print STDERR "-q qual                  Fasta file of quality values.\n";
 }
 
 if (defined($vec)) {

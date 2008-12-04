@@ -61,7 +61,11 @@ while (scalar(@ARGV) > 0) {
     }
 }
 if ($err) {
-    die "usage: $0 [-v vector-clear-file] [-noobt] [-unmated] < old.frg > new.frg\n";
+    print STDERR "usage: $0 [-v vector-clear-file] [-noobt] [-unmated] < old.frg > new.frg\n";
+    print STDERR "-v vector-clear-file     A file of 'readUID vecBeg vecEnd', one per line, that is the vector clear range.\n";
+    print STDERR "-noobt                   Set the 'doNotOverlapTrim' library feature (used for 454 reads; see sffToCA instead).\n";
+    print STDERR "-unmated                 Make all reads unmated.\n";
+    exit(1);
 }
 
 if (defined($vec)) {
