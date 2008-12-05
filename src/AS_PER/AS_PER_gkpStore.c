@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkpStore.c,v 1.63 2008-10-29 10:53:25 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkpStore.c,v 1.64 2008-12-05 19:06:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -329,7 +329,7 @@ createGateKeeperStore(const char *path) {
   gkpStore->uid = createStringStore(name, "uid");
 
   sprintf(name,"%s/u2i", path);
-  gkpStore->UIDtoIID = CreateScalarHashTable_AS(32 * 1024);
+  gkpStore->UIDtoIID = CreateScalarHashTable_AS();
   SaveHashTable_AS(name, gkpStore->UIDtoIID);
 
   AS_UID_setGatekeeper(gkpStore);
@@ -532,7 +532,7 @@ void       loadGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum) {
   int64  firstElem = getFirstElemStore(gkp->partfrg);
   int64  lastElem  = getLastElemStore(gkp->partfrg);
 
-  gkp->partmap = CreateScalarHashTable_AS(lastElem + 1);
+  gkp->partmap = CreateScalarHashTable_AS();
 
   for(i = firstElem; i <= lastElem; i++) {
     GateKeeperFragmentRecord *p = getIndexStorePtr(gkp->partfrg, i);
@@ -588,7 +588,7 @@ loadGatekeeperSTRtoUID(GateKeeperStore *gkp) {
   if (gkp->STRtoUID == NULL) {
     gkp->uid = convertStoreToMemoryStore(gkp->uid);
 
-    gkp->STRtoUID = CreateStringHashTable_AS(32 * 1024);
+    gkp->STRtoUID = CreateStringHashTable_AS();
 
     char          *uidptr = NULL;
     int64          uidoff = 1;
@@ -706,7 +706,7 @@ AS_GKP_createGateKeeperStoreForUIDs(void) {
   GateKeeperStore  *gkpStore = (GateKeeperStore *)safe_calloc(1, sizeof(GateKeeperStore));
 
   gkpStore->uid      = createStringStore(NULL, "uid");
-  gkpStore->STRtoUID = CreateStringHashTable_AS(32 * 1024);
+  gkpStore->STRtoUID = CreateStringHashTable_AS();
 
   return(gkpStore);
 }

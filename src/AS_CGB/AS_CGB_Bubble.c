@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_Bubble.c,v 1.14 2008-10-08 22:02:54 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_Bubble.c,v 1.15 2008-12-05 19:06:11 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -107,9 +107,7 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
   BVSPair *bp_ins_keys = NULL, bp_find_key;
 
   memset(&result,0,sizeof(AS_CGB_Bubble_List));
-  init_nodes  = CreateGenericHashTable_AS(num_valid / 2,
-                                          _hash_vset_hash,
-                                          _hash_vset_cmp);
+  init_nodes  = CreateGenericHashTable_AS(_hash_vset_hash, _hash_vset_cmp);
   bp_ins_keys = (BVSPair *)safe_malloc(sizeof(BVSPair) * num_valid );
   result.next = NULL;
 

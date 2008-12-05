@@ -22,7 +22,7 @@
 #ifndef AS_UTL_HASH_H
 #define AS_UTL_HASH_H
 
-static const char *rcsid_AS_UTL_HASH_H = "$Id: AS_UTL_Hash.h,v 1.11 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_HASH_H = "$Id: AS_UTL_Hash.h,v 1.12 2008-12-05 19:06:12 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_heap.h"
@@ -65,10 +65,10 @@ typedef struct{
   HashNode_AS            **buckets;
   HashNode_AS             *freeList;
 
-  uint32                  numNodes;
-  uint32                  numNodesAllocated;
+  uint32                  numNodes;   //  Number of nodes currently in the table
+  uint32                  maxNodes;   //  Reallocate table when we hit this size
 
-  Heap_AS                *allocated;
+  Heap_AS                *nodeheap;   //  Heap of node storage
 
   uint32                  hashmask;
 
@@ -88,9 +88,9 @@ typedef struct{
 
 uint32        Hash_AS(uint8 *k, uint32 length, uint32 initval);
 
-HashTable_AS *CreateGenericHashTable_AS(uint32 numItemsToHash, ASHashHashFn hash, ASHashCompFn comp);
-HashTable_AS *CreateScalarHashTable_AS(uint32 numItemsToHash);
-HashTable_AS *CreateStringHashTable_AS(uint32 numItemsToHash);
+HashTable_AS *CreateGenericHashTable_AS( ASHashHashFn hash, ASHashCompFn comp);
+HashTable_AS *CreateScalarHashTable_AS(void);
+HashTable_AS *CreateStringHashTable_AS(void);
 
 void          ResetHashTable_AS (HashTable_AS *table);
 void          DeleteHashTable_AS(HashTable_AS *table);

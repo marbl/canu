@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Instrument_CGW.c,v 1.35 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: Instrument_CGW.c,v 1.36 2008-12-05 19:06:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -676,12 +676,7 @@ int InitializeSurrogateTracker(ScaffoldGraphT * graph,
     {
       // assume 1/10 # of frags?
       st->numAllocatedLocs = MAX(5000, GetNumCIFragTs(graph->CIFrags) / 100);
-      st->surrogateFragHT = CreateScalarHashTable_AS(st->numAllocatedLocs);
-      if(st->surrogateFragHT == NULL)
-        {
-          fprintf(stderr, "Failed to allocate surrogate fragment hashtable\n");
-          return 1;
-        }
+      st->surrogateFragHT = CreateScalarHashTable_AS();
     }
   else
     {
@@ -767,7 +762,7 @@ int InitializeInstrumenterBookkeeping(ScaffoldGraphT * graph,
 
   if(bk->fragHT == NULL)
     {
-      bk->fragHT = CreateScalarHashTable_AS(numFrags);
+      bk->fragHT = CreateScalarHashTable_AS();
       if(bk->fragHT == NULL)
         {
           fprintf(stderr, "Failed to allocate fragment hashtable\n");
@@ -1029,11 +1024,7 @@ int InitializeScaffoldInstrumenter(ScaffoldGraphT * graph,
 
   if(si->cpHT == NULL)
     {
-      if((si->cpHT = CreateScalarHashTable_AS(1000)) == NULL)
-        {
-          fprintf(stderr, "Failed to allocate contig pair hashtable\n");
-          return 1;
-        }
+      si->cpHT = CreateScalarHashTable_AS();
     }
   else
     {
@@ -1049,11 +1040,7 @@ int InitializeScaffoldInstrumenter(ScaffoldGraphT * graph,
 
   if(si->anchoredHT == NULL)
     {
-      if((si->anchoredHT = CreateScalarHashTable_AS(1000)) == NULL)
-        {
-          fprintf(stderr, "Failed to allocate contig anchoring hashtable\n");
-          return 1;
-        }
+      si->anchoredHT = CreateScalarHashTable_AS();
     }
   else
     {
@@ -5429,13 +5416,7 @@ int FinishMissingMateList(ScaffoldGraphInstrumenter * sgi)
   if(numMatePairs == 0)
     return 0;
 
-  mateDetailHT = CreateScalarHashTable_AS(numMatePairs);
-  if(mateDetailHT == NULL)
-    {
-      fprintf(stderr, "Failed to allocate hashtable of %d elements\n",
-              numMatePairs);
-      return 1;
-    }
+  mateDetailHT = CreateScalarHashTable_AS();
 
   // loop through all missing mates, add to hashtable, look up mate, ....
   for(i = 0; i < numMatePairs; i++)

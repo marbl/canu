@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: BCPOutput.cc,v 1.8 2008-10-29 06:34:30 brianwalenz Exp $";
+static const char *rcsid = "$Id: BCPOutput.cc,v 1.9 2008-12-05 19:06:11 brianwalenz Exp $";
 
 #ifdef SYBASE
 
@@ -297,7 +297,7 @@ bool BCPOutput::storeAFG2DB (
          << end  << "\n";
 
    if (AFG_IID_to_MSGID == NULL) {
-      AFG_IID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      AFG_IID_to_MSGID = CreateScalarHashTable_AS();
    }
    InsertInHashTable_AS(AFG_IID_to_MSGID, static_cast<uint64>(iaccession), 0, AS_UID_toInteger(eaccession), 0);
 
@@ -744,7 +744,7 @@ bool BCPOutput::commitAFG2DB() {
 
    SQLOutput::commitAFG2DB();
    if (AFG_UID_to_MSGID == NULL) {
-      AFG_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      AFG_UID_to_MSGID = CreateScalarHashTable_AS();
    }
    bool result = closeFile(&afgBCP) && runBCP(AFG_FILENAME);
    result = result && getConnection()->populateHash(AFG_UID_to_MSGID, "afg_EUID", "afg_MSG_ID", "AFG", assemblyID);
@@ -758,7 +758,7 @@ bool BCPOutput::commitUTG2DB() {
    SQLOutput::commitUTG2DB();
 
    if (UTG_UID_to_MSGID == NULL) {
-      UTG_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      UTG_UID_to_MSGID = CreateScalarHashTable_AS();
    }
    bool result = closeFile(&utgBCP) && runBCP(UTG_FILENAME);
    result = result && getConnection()->populateHash(UTG_UID_to_MSGID, "utg_EUID", "utg_MSG_ID", "UTG", assemblyID);
@@ -784,7 +784,7 @@ bool BCPOutput::commitULK2DB() {
    SQLOutput::commitULK2DB();
 
    if (ULK_UID_to_MSGID == NULL) {
-      ULK_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      ULK_UID_to_MSGID = CreateScalarHashTable_AS();
    }
 
    bool result = closeFile(&ulkBCP) && runBCP(ULK_FILENAME);
@@ -809,7 +809,7 @@ bool BCPOutput::commitJMP2DB() {
    if (jmpBCP == NULL) { return true; }
 
    if (JMP_UID_to_MSGID == NULL) {
-      JMP_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+     JMP_UID_to_MSGID = CreateScalarHashTable_AS();
    }
 
    bool result = closeFile(&jmpBCP);
@@ -838,7 +838,7 @@ bool BCPOutput::commitCCO2DB() {
    SQLOutput::commitCCO2DB();
 
    if (CCO_UID_to_MSGID == NULL) {
-      CCO_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      CCO_UID_to_MSGID = CreateScalarHashTable_AS();
    }
    bool result = closeFile(&ccoBCP) && runBCP(CCO_FILENAME);
    result = result && getConnection()->populateHash(CCO_UID_to_MSGID, "cco_EUID", "cco_MSG_ID", "CCO", assemblyID);
@@ -877,7 +877,7 @@ bool BCPOutput::commitVAR2DB() {
    SQLOutput::commitVAR2DB();
 
    if (VAR_UID_to_MSGID == NULL) {
-      VAR_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      VAR_UID_to_MSGID = CreateScalarHashTable_AS();
    }
 
    bool result = closeFile(&varBCP);
@@ -914,7 +914,7 @@ bool BCPOutput::commitCLK2DB() {
    if (clkBCP == NULL) { return true; }
 
    if (CLK_UID_to_MSGID == NULL) {
-      CLK_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      CLK_UID_to_MSGID = CreateScalarHashTable_AS();
    }
 
    SQLOutput::commitCLK2DB();
@@ -939,7 +939,7 @@ bool BCPOutput::commitCLKJMP2DB() {
    if (clkJmpBCP == NULL) { return true; }
 
    if (CLK_JMP_UID_to_MSGID == NULL) {
-      CLK_JMP_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      CLK_JMP_UID_to_MSGID = CreateScalarHashTable_AS();
    }
 
    bool result = closeFile(&clkJmpBCP);
@@ -966,7 +966,7 @@ bool BCPOutput::commitSCF2DB()  {
 
    SQLOutput::commitSCF2DB();
    if (SCF_UID_to_MSGID == NULL) {
-      SCF_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      SCF_UID_to_MSGID = CreateScalarHashTable_AS();
    }
 
    bool result = closeFile(&scfBCP) && runBCP(SCF_FILENAME, false);
@@ -979,7 +979,7 @@ bool BCPOutput::commitCTP2DB()  {
    if (ctpBCP == NULL) { return true; }
 
    if (CTP_UID_to_MSGID == NULL) {
-      CTP_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      CTP_UID_to_MSGID = CreateScalarHashTable_AS();
    }
 
    bool result = closeFile(&ctpBCP);

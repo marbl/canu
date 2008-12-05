@@ -22,7 +22,7 @@
 #ifndef AS_UTL_HEAP_H
 #define AS_UTL_HEAP_H
 
-static const char *rcsid_AS_UTL_HEAP_H = "$Id: AS_UTL_heap.h,v 1.8 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_HEAP_H = "$Id: AS_UTL_heap.h,v 1.9 2008-12-05 19:06:12 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -35,7 +35,7 @@ typedef struct HeapArray {
 typedef struct {
   HeapArray_AS  *first;           // pointer to first array in set
   HeapArray_AS  *current;         // pointer to active array in set
-  uint32         num_items;       // number of items in first set
+  uint32         items_per_block; // number of items to allocate in the next set
   size_t         item_size;       // number of bytes per item
 } Heap_AS;
 
@@ -45,7 +45,7 @@ typedef struct{
   int           item;
 } HeapIterator_AS;
 
-Heap_AS       *AllocateHeap_AS(uint32 num_generics, size_t item_size);
+Heap_AS       *AllocateHeap_AS(size_t item_size);
 void          *GetHeapItem_AS(Heap_AS *heap);
 void           FreeHeap_AS(Heap_AS *heap);
 

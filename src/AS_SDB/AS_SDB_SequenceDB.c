@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_SDB_SequenceDB.c,v 1.20 2008-10-08 22:03:00 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_SDB_SequenceDB.c,v 1.21 2008-12-05 19:06:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -160,7 +160,7 @@ openSequenceDBPartition(tSequenceDB *db, int32 partition){
   }
 
   db->multiAligns      = CreateFromFileVA_tMARecord(F);
-  db->multiAlignLookup = CreateScalarHashTable_AS(GetNumtMARecords(db->multiAligns) + 1);
+  db->multiAlignLookup = CreateScalarHashTable_AS();
 
   fclose(F);
 

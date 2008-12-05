@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.64 2008-11-02 06:27:12 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.65 2008-12-05 19:06:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3069,7 +3069,7 @@ void ComputeMatePairDetailedStatus(void) {
   int foScaf = 0;
   int fsScaf = 0;
 
-  HashTable_AS *surrHash = CreateScalarHashTable_AS(262144);
+  HashTable_AS *surrHash = CreateScalarHashTable_AS();
 
   InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
 

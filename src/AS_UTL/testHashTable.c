@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: testHashTable.c,v 1.4 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: testHashTable.c,v 1.5 2008-12-05 19:06:12 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <string.h>
@@ -32,7 +32,7 @@ static const char *rcsid = "$Id: testHashTable.c,v 1.4 2008-10-08 22:03:00 brian
 
 //  cc -o test -I.. -I. testHashTable.c AS_UTL_Hash.c AS_UTL_heap.c AS_UTL_alloc.c AS_UTL_fileIO.c -lm
 
-#define NUM_TESTS   30000000
+#define NUM_ENTRIES  130000000
 
 int
 main(int argc, char **argv) {
@@ -45,12 +45,12 @@ main(int argc, char **argv) {
 
   int i;
 
-  hashtable = CreateScalarHashTable_AS(NUM_TESTS);
-  inputs    = (uint64 *)safe_malloc(NUM_TESTS * sizeof(uint64));
+  hashtable = CreateScalarHashTable_AS();
+  inputs    = (uint64 *)safe_malloc(NUM_ENTRIES * sizeof(uint64));
 
   srand48(time(NULL));
 
-  for (i=0; i<NUM_TESTS; i++){
+  for (i=0; i<NUM_ENTRIES; i++){
     inputs[i]   = lrand48();
     inputs[i] <<= 32;
     inputs[i]  |= lrand48();
@@ -62,7 +62,7 @@ main(int argc, char **argv) {
   }
 
   fprintf(stderr, "testing.\n");
-  for (i=0; i<NUM_TESTS; i++) {
+  for (i=0; i<NUM_ENTRIES; i++) {
     if (LookupValueInHashTable_AS(hashtable, inputs[i], 0) != inputs[i]) {
       fprintf(stderr, "hash error for "F_U64"\n", inputs[i]);
     }
@@ -71,22 +71,26 @@ main(int argc, char **argv) {
   fprintf(stderr, "writing.\n");
   SaveHashTable_AS("test.hashtable", hashtable);
 
+  fprintf(stderr, "deleting.\n");
   DeleteHashTable_AS(hashtable);
 
   fprintf(stderr, "reading.\n");
   hashtable = LoadUIDtoIIDHashTable_AS("test.hashtable");
 
   fprintf(stderr, "testing.\n");
-  for (i=0; i<NUM_TESTS; i++) {
+  for (i=0; i<NUM_ENTRIES; i++) {
     if (LookupValueInHashTable_AS(hashtable, inputs[i], 0) != inputs[i]) {
       fprintf(stderr, "hash error for "F_U64"\n", inputs[i]);
     }
   }
 
+  fprintf(stderr, "deleting.\n");
+  DeleteHashTable_AS(hashtable);
+
   fprintf(stderr, "all done.\n");
 
-  while (1)
-    ;
+  unlink("test.hashtable");
+  safe_free(inputs);
 
   return(0);
 }

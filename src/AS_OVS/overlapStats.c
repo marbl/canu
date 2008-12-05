@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStats.c,v 1.5 2008-10-08 22:02:58 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStats.c,v 1.6 2008-12-05 19:06:12 brianwalenz Exp $";
 
 //  install.packages(c("akima"))
 //
@@ -271,7 +271,7 @@ process_LibraryRandomness(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp
          }
       }
 
-      ovl->readsSeen = CreateScalarHashTable_AS(32 * 1024);
+      ovl->readsSeen = CreateScalarHashTable_AS();
       ovl->contained = 0;
       ovl->totalOverlaps = 0;
    }

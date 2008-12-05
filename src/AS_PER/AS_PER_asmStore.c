@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_PER_asmStore.c,v 1.13 2008-10-08 22:02:58 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_asmStore.c,v 1.14 2008-12-05 19:06:12 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_asmStore
@@ -388,7 +388,7 @@ AssemblyStore * CreateAssemblyStore(char * path,
   asmStore->sccStore = createASM_IIDStore(name, "scc",1);
 
   sprintf(name,"%s/asm.phash", asmStore->storePath);
-  asmStore->hashTable = CreateScalarHashTable_AS(1024);
+  asmStore->hashTable = CreateScalarHashTable_AS();
   SaveHashTable_AS(name, asmStore->hashTable);
 
   if(gkpStorePath != NULL)
@@ -423,7 +423,7 @@ MapStore * CreateMapStore(char * path)
   mapStore->finStore = createASM_InstanceStore(name, "fin",1);
 
   sprintf(name,"%s/map.phash", mapStore->storePath);
-  mapStore->hashTable = CreateScalarHashTable_AS(1024);
+  mapStore->hashTable = CreateScalarHashTable_AS();
   SaveHashTable_AS(name, mapStore->hashTable);
 
   return mapStore;

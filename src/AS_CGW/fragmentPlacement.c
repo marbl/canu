@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.22 2008-12-04 18:54:39 brianwalenz Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.23 2008-12-05 19:06:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -806,7 +806,7 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
     if(numFrgsToPlace==0)
       continue;
 
-    fHash = CreateScalarHashTable_AS(numFrgsToPlace);
+    fHash = CreateScalarHashTable_AS();
 
     for(i=0;i<numInstances;i++){
       int j, numToPlace = GetNumIntMultiPoss(impLists[i]);

@@ -19,21 +19,26 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_UTL_heap.c,v 1.9 2008-10-08 22:03:00 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_heap.c,v 1.10 2008-12-05 19:06:12 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_heap.h"
 
+//  AllocateHeap_AS() returns an empty heap, with items_per_block
+//  items allocated.  When those items are used, GetHeapItem_AS() will
+//  allocate another block, but after doubling the items_per_block.
+//  So, for small numbers of items, we keep our footprint small, and
+//  for large numbers of items, we do not allocate thousands of
+//  blocks.
+
 Heap_AS *
-AllocateHeap_AS(uint32 num_items, size_t item_size) {
-  if (num_items < 16 * 1024)
-    num_items = 16 * 1024;
-  Heap_AS *heap = (Heap_AS *)safe_calloc(1, sizeof(Heap_AS));
-  heap->first           = (HeapArray_AS *)safe_calloc(1, sizeof(HeapArray_AS));
-  heap->first->array    = safe_calloc(num_items, item_size);
-  heap->current         = heap->first;
-  heap->num_items       = num_items;
+AllocateHeap_AS(size_t item_size) {
+  Heap_AS *heap         = (Heap_AS *)safe_calloc(1, sizeof(Heap_AS));
+  heap->items_per_block = 4096;
   heap->item_size       = item_size;
+  heap->first           = (HeapArray_AS *)safe_calloc(1, sizeof(HeapArray_AS));
+  heap->first->array    = safe_calloc(heap->items_per_block, item_size);
+  heap->current         = heap->first;
   return(heap);
 }
 
@@ -52,9 +57,10 @@ FreeHeap_AS(Heap_AS *heap) {
 
 void *
 GetHeapItem_AS(Heap_AS *heap) {
-  if (heap->current->nextAvail >= heap->num_items) {
+  if (heap->current->nextAvail >= heap->items_per_block) {
+    heap->items_per_block     *= 2;
     heap->current->next        = (HeapArray_AS *)safe_calloc(1, sizeof(HeapArray_AS));
-    heap->current->next->array = safe_calloc(heap->num_items, heap->item_size);
+    heap->current->next->array = safe_calloc(heap->items_per_block, heap->item_size);
     heap->current              = heap->current->next;
   }
   return((char *)heap->current->array + heap->item_size * heap->current->nextAvail++);

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.16 2008-10-08 22:03:00 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.17 2008-12-05 19:06:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,10 +30,6 @@ static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.16 2008-10-08 22:03:00 brianwalenz 
 #include "AS_global.h"
 #include "AS_UTL_Hash.h"
 #include "AS_UTL_fileIO.h"
-
-#define hashsize(n) ((uint32)1<<(n))
-#define hashmask(n) (hashsize(n)-1)
-
 
 
 //  mix -- mix 3 32-bit values reversibly.
@@ -234,22 +230,18 @@ InsertNodeInHashBucket(HashTable_AS *table,
 //  Increase the size to the next power of two
 void
 ReallocHashTable_AS(HashTable_AS *htable) {
-  int           i;
-  HashNode_AS  *node;
+  HashNode_AS     *node;
+  HeapIterator_AS  iterator;
 
-  //fprintf(stderr, "ReallocHashTable()-- \n");
-
-  HeapIterator_AS iterator;
-
-  htable->freeList            = NULL;
-  htable->numBuckets         *= 2;
-  htable->numNodesAllocated  *= 2;
-  htable->hashmask            = ((htable->hashmask + 1)<<1) - 1;
+  htable->freeList      = NULL;
+  htable->numBuckets   *= 2;
+  htable->maxNodes     *= 2;
+  htable->hashmask      = htable->numBuckets - 1;
 
   safe_free(htable->buckets);
   htable->buckets = (HashNode_AS **)safe_calloc(htable->numBuckets, sizeof(HashNode_AS *));
 
-  InitHeapIterator_AS(htable->allocated, &iterator);
+  InitHeapIterator_AS(htable->nodeheap, &iterator);
   while (NULL != (node = (HashNode_AS *)NextHeapIterator_AS(&iterator)))
     if (node->isFree == 0)
       InsertNodeInHashBucket(htable, node);
@@ -258,23 +250,28 @@ ReallocHashTable_AS(HashTable_AS *htable) {
 
 
 HashTable_AS *
-CreateGenericHashTable_AS(uint32        numItemsToHash,
-                          ASHashHashFn  hashfn,
+CreateGenericHashTable_AS(ASHashHashFn  hashfn,
                           ASHashCompFn  compfn) {
+  int           size  = 4096;  //  MUST be power of two
+  HashTable_AS *table = (HashTable_AS *)safe_calloc(1, sizeof(HashTable_AS));
 
-  HashTable_AS *table= (HashTable_AS *)safe_calloc(1, sizeof(HashTable_AS));
+  //  Why are we no longer requesting the user to size the table?  For
+  //  the tables that are large -- the number of fragments -- we
+  //  usually do not know the number in advance.  We used to just
+  //  guess at 1m.  Reallocations up to there are pretty cheap, so
+  //  always defaulting to a size of 4k doesn't cost us much.
 
-  table->numBuckets        = hashsize(ceil_log2(numItemsToHash * 2));
-  table->buckets           = (HashNode_AS **)safe_calloc(table->numBuckets, sizeof(HashNode_AS *));
-  table->freeList          = NULL;
-  table->numNodes          = 0;
-  table->numNodesAllocated = hashsize(ceil_log2(numItemsToHash));
-  table->allocated         = AllocateHeap_AS(table->numNodesAllocated, sizeof(HashNode_AS));
-  table->hashmask          = hashmask(ceil_log2(numItemsToHash * 2));
-  table->dirty             = 0;
-  table->filename[0]       = 0;
-  table->compare           = compfn;
-  table->hash              = hashfn;
+  table->numBuckets  = size * 2;
+  table->buckets     = (HashNode_AS **)safe_calloc(table->numBuckets, sizeof(HashNode_AS *));
+  table->freeList    = NULL;
+  table->numNodes    = 0;
+  table->maxNodes    = size;
+  table->nodeheap    = AllocateHeap_AS(sizeof(HashNode_AS));
+  table->hashmask    = table->numBuckets - 1;
+  table->dirty       = 0;
+  table->filename[0] = 0;
+  table->compare     = compfn;
+  table->hash        = hashfn;
 
   return(table);
 }
@@ -297,8 +294,8 @@ INTcomparefunction(uint64 ka, uint64 kb) {
   return(0);
 }
 HashTable_AS *
-CreateScalarHashTable_AS(uint32 numItemsToHash) {
-  return(CreateGenericHashTable_AS(numItemsToHash, INThashfunction, INTcomparefunction));
+CreateScalarHashTable_AS(void) {
+  return(CreateGenericHashTable_AS(INThashfunction, INTcomparefunction));
 }
 
 
@@ -318,8 +315,8 @@ STRcomparefunction(uint64 ka, uint64 kb) {
   return(strcmp(kas, kbs));
 }
 HashTable_AS *
-CreateStringHashTable_AS(uint32 numItemsToHash) {
-  return(CreateGenericHashTable_AS(numItemsToHash, STRhashfunction, STRcomparefunction));
+CreateStringHashTable_AS(void) {
+  return(CreateGenericHashTable_AS(STRhashfunction, STRcomparefunction));
 }
 
 
@@ -329,8 +326,8 @@ ResetHashTable_AS(HashTable_AS *table) {
   table->freeList   = NULL;
   table->numNodes   = 0;
   table->dirty      = 1;
-  FreeHeap_AS(table->allocated);
-  table->allocated  = AllocateHeap_AS(table->numNodesAllocated, sizeof(HashNode_AS));
+  FreeHeap_AS(table->nodeheap);
+  table->nodeheap  = AllocateHeap_AS(sizeof(HashNode_AS));
 }
 
 
@@ -341,7 +338,7 @@ DeleteHashTable_AS(HashTable_AS *table) {
     SaveHashTable_AS(table->filename, table);
 
   safe_free(table->buckets);
-  FreeHeap_AS(table->allocated);
+  FreeHeap_AS(table->nodeheap);
   safe_free(table);
 }
 
@@ -365,9 +362,9 @@ InsertInHashTable_AS(HashTable_AS  *table,
     node = table->freeList;
     table->freeList = node->next;
   } else {
-    if (table->numNodes >= table->numNodesAllocated)
+    if (table->numNodes >= table->maxNodes)
       ReallocHashTable_AS(table);
-    node = (HashNode_AS *)GetHeapItem_AS(table->allocated);
+    node = (HashNode_AS *)GetHeapItem_AS(table->nodeheap);
   }
 
   node->key          = key;
@@ -558,7 +555,7 @@ UpdatePointersInHashTable_AS(HashTable_AS *table, int64 difference) {
   HeapIterator_AS  iter;
   HashNode_AS     *node;
 
-  InitHeapIterator_AS(table->allocated, &iter);
+  InitHeapIterator_AS(table->nodeheap, &iter);
 
   node = (HashNode_AS *)NextHeapIterator_AS(&iter);
 
@@ -599,13 +596,13 @@ SaveHashTable_AS(char *name, HashTable_AS *table) {
     exit(1);
   }
 
-  AS_UTL_safeWrite(fp, &table->numBuckets,        "SaveHashTable_AS numBuckets",        sizeof(uint32), 1);
-  AS_UTL_safeWrite(fp, &table->numNodes,          "SaveHashTable_AS numNodes",          sizeof(uint32), 1);
-  AS_UTL_safeWrite(fp, &table->numNodesAllocated, "SaveHashTable_AS numNodesAllocated", sizeof(uint32), 1);
-  AS_UTL_safeWrite(fp, &table->hashmask,          "SaveHashTable_AS hashmask",          sizeof(uint32), 1);
-  AS_UTL_safeWrite(fp, &actualNodes,              "SaveHashTable_AS header",            sizeof(uint32), 1);
+  AS_UTL_safeWrite(fp, &table->numBuckets, "SaveHashTable_AS numBuckets", sizeof(uint32), 1);
+  AS_UTL_safeWrite(fp, &table->numNodes,   "SaveHashTable_AS numNodes",   sizeof(uint32), 1);
+  AS_UTL_safeWrite(fp, &table->maxNodes,   "SaveHashTable_AS maxNodes",   sizeof(uint32), 1);
+  AS_UTL_safeWrite(fp, &table->hashmask,   "SaveHashTable_AS hashmask",   sizeof(uint32), 1);
+  AS_UTL_safeWrite(fp, &actualNodes,       "SaveHashTable_AS header",     sizeof(uint32), 1);
 
-  InitHeapIterator_AS(table->allocated, &iterator);
+  InitHeapIterator_AS(table->nodeheap, &iterator);
   while (NULL != (node = (HashNode_AS *)NextHeapIterator_AS(&iterator))) {
     if (node->isFree == 0) {
       if (databufferlen >= databuffermax) {
@@ -625,11 +622,11 @@ SaveHashTable_AS(char *name, HashTable_AS *table) {
   }
 
   rewind(fp);
-  AS_UTL_safeWrite(fp, &table->numBuckets,        "SaveHashTable_AS numBuckets",        sizeof(uint32), 1);
-  AS_UTL_safeWrite(fp, &table->numNodes,          "SaveHashTable_AS numNodes",          sizeof(uint32), 1);
-  AS_UTL_safeWrite(fp, &table->numNodesAllocated, "SaveHashTable_AS numNodesAllocated", sizeof(uint32), 1);
-  AS_UTL_safeWrite(fp, &table->hashmask,          "SaveHashTable_AS hashmask",          sizeof(uint32), 1);
-  AS_UTL_safeWrite(fp, &actualNodes,              "SaveHashTable_AS actualNodes",       sizeof(uint32), 1);
+  AS_UTL_safeWrite(fp, &table->numBuckets, "SaveHashTable_AS numBuckets",  sizeof(uint32), 1);
+  AS_UTL_safeWrite(fp, &table->numNodes,   "SaveHashTable_AS numNodes",    sizeof(uint32), 1);
+  AS_UTL_safeWrite(fp, &table->maxNodes,   "SaveHashTable_AS maxNodes",    sizeof(uint32), 1);
+  AS_UTL_safeWrite(fp, &table->hashmask,   "SaveHashTable_AS hashmask",    sizeof(uint32), 1);
+  AS_UTL_safeWrite(fp, &actualNodes,       "SaveHashTable_AS actualNodes", sizeof(uint32), 1);
 
   if (fclose(fp)) {
     fprintf(stderr, "SaveHashTable_AS()-- failed to close the hash table file '%s': %s\n", name, strerror(errno));
@@ -664,15 +661,15 @@ LoadHashTable_AS(char *name,
     exit(1);
   }
 
-  AS_UTL_safeRead(fp, &table->numBuckets,        "LoadHashTable_AS numBuckets",        sizeof(uint32), 1);
-  AS_UTL_safeRead(fp, &table->numNodes,          "LoadHashTable_AS numNodes",          sizeof(uint32), 1);
-  AS_UTL_safeRead(fp, &table->numNodesAllocated, "LoadHashTable_AS numNodesAllocated", sizeof(uint32), 1);
-  AS_UTL_safeRead(fp, &table->hashmask,          "LoadHashTable_AS hashmask",          sizeof(uint32), 1);
-  AS_UTL_safeRead(fp, &actualNodes,              "LoadHashTable_AS actualNodes",       sizeof(uint32), 1);
+  AS_UTL_safeRead(fp, &table->numBuckets, "LoadHashTable_AS numBuckets",  sizeof(uint32), 1);
+  AS_UTL_safeRead(fp, &table->numNodes,   "LoadHashTable_AS numNodes",    sizeof(uint32), 1);
+  AS_UTL_safeRead(fp, &table->maxNodes,   "LoadHashTable_AS maxNodes",    sizeof(uint32), 1);
+  AS_UTL_safeRead(fp, &table->hashmask,   "LoadHashTable_AS hashmask",    sizeof(uint32), 1);
+  AS_UTL_safeRead(fp, &actualNodes,       "LoadHashTable_AS actualNodes", sizeof(uint32), 1);
 
   table->buckets           = (HashNode_AS **)safe_calloc(table->numBuckets, sizeof(HashNode_AS *));
   table->freeList          = NULL;
-  table->allocated         = AllocateHeap_AS(table->numNodesAllocated, sizeof(HashNode_AS));
+  table->nodeheap          = AllocateHeap_AS(sizeof(HashNode_AS));
   table->dirty             = 0;
   table->compare           = compfn;
   table->hash              = hashfn;
@@ -719,7 +716,7 @@ void
 InitializeHashTable_Iterator_AS(HashTable_AS *table,
                                 HashTable_Iterator_AS *iterator) {
   iterator->table = table;
-  InitHeapIterator_AS(table->allocated, &(iterator->iterator));
+  InitHeapIterator_AS(table->nodeheap, &(iterator->iterator));
 }
 
 int

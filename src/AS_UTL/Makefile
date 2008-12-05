@@ -42,18 +42,10 @@ LIB_OBJECTS = $(LIB_SOURCES:.c=.o)
 
 SOURCES     = $(LIB_SOURCES)
 
-DEADSRC     = AS_UTL_skiplist_test.c \
-              testHashTable.c \
-              testVar.c \
-              testRand.c
-
 OBJECTS     = $(SOURCES:.c=.o)
 LIBRARIES   = libAS_UTL.a libCA.a
 SCRIPTS     =
 C_PROGS     =
-
-DEADSCRIPTS = AS_UTL_extractMSG.awk extractMSG
-DEADPROGS   = testVar testRand testSkiplist testHashTable
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -61,16 +53,11 @@ include $(LOCAL_WORK)/src/c_make.as
 all: $(OBJECTS) $(LIBRARIES) $(C_PROGS)
 	@test -n nop
 
-#install: $(SCRIPTS)
-#	@cp -f $(SCRIPTS) $(LOCAL_BIN)
-
 libAS_UTL.a: $(LIB_OBJECTS)
 libCA.a: $(LIB_OBJECTS)
 
-testSkiplist:   AS_UTL_skiplist_test.o libAS_UTL.a
-testHashTable:  testHashTable.o AS_UTL_Hash.o libAS_UTL.a
-testRand:       testRand.o libAS_UTL.a
-testVar:        testVar.o libAS_UTL.a
-
-extractMSG: AS_UTL_extractMSG
-	cp -f AS_UTL_extractMSG extractMSG
+.PHONY: test
+test:
+	cc -O3 -o testHashTable -I.. -I. testHashTable.c AS_UTL_Hash.c AS_UTL_heap.c AS_UTL_alloc.c AS_UTL_fileIO.c -lm
+	cc -O3 -o testRand      -I.. -I. testRand.c      AS_UTL_rand.c                                              -lm
+	cc -O3 -o testVar       -I.. -I. testVar.c       AS_UTL_Var.c                AS_UTL_alloc.c AS_UTL_fileIO.c -lm

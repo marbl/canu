@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_rebuildMap.c,v 1.7 2008-10-08 22:02:57 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_rebuildMap.c,v 1.8 2008-12-05 19:06:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +39,7 @@ rebuildMap(char *gkpStoreName) {
    {
      char name[FILENAME_MAX];
      sprintf(name,"%s/map", gkpStoreName);
-     gkp->UIDtoIID = CreateScalarHashTable_AS(32 * 1024);
+     gkp->UIDtoIID = CreateScalarHashTable_AS();
      SaveHashTable_AS(name, gkp->UIDtoIID);
    }
 

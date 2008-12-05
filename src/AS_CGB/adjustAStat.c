@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: adjustAStat.c,v 1.4 2008-10-08 22:02:54 brianwalenz Exp $";
+const char *mainid = "$Id: adjustAStat.c,v 1.5 2008-12-05 19:06:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -100,7 +100,7 @@ main(int argc, char **argv) {
 
    //  Construct an IID map to a-stat of objects we are supplied to be used for updating
    //
-   HashTable_AS* IIDtoASTAT = CreateScalarHashTable_AS(32 * 1024);
+   HashTable_AS* IIDtoASTAT = CreateScalarHashTable_AS();
    FILE            *F        = NULL;
    char             L[1024];
 

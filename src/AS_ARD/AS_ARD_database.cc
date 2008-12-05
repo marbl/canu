@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ARD_database.cc,v 1.8 2008-10-29 06:34:30 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ARD_database.cc,v 1.9 2008-12-05 19:06:11 brianwalenz Exp $";
 
 #include <iostream>
 #include <string>
@@ -38,7 +38,7 @@ using AS_ARD::AS_ARD_database;
 
 AS_ARD_database::AS_ARD_database(IDBOutput * output) :
       IAssemblyDB(output) {
-   contigLens = CreateScalarHashTable_AS(32 * 1024);
+   contigLens = CreateScalarHashTable_AS();
 }
 
 AS_ARD_database::~AS_ARD_database() {

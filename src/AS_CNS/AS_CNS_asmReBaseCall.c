@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.29 2008-11-06 05:25:11 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.30 2008-12-05 19:06:12 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -47,7 +47,7 @@ const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.29 2008-11-06 05:25:11 bri
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
 
-static const char *rcsid = "$Id: AS_CNS_asmReBaseCall.c,v 1.29 2008-11-06 05:25:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_CNS_asmReBaseCall.c,v 1.30 2008-12-05 19:06:12 brianwalenz Exp $";
 
 static HashTable_AS *utgUID2IID;
 
@@ -323,7 +323,7 @@ int main (int argc, char *argv[]) {
       loadGateKeeperStorePartial(gkpStore, 0, 0, FRAG_S_QLT);
 
     /* initialize a unitig UID-to-IID hash table */
-    utgUID2IID = CreateScalarHashTable_AS(5000000);
+    utgUID2IID = CreateScalarHashTable_AS();
 
     /****************      Initialize reusable stores          ***********/
     sequenceStore = NULL;
@@ -346,7 +346,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.29 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.30 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 

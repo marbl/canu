@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.18 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.19 2008-12-05 19:06:11 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -396,17 +396,9 @@ void DeleteOrientProcessor(OrientProcessor * op)
 OrientProcessor * CreateOrientProcessor(void)
 {
   OrientProcessor * op = safe_calloc(sizeof(OrientProcessor), 1);
-  if(op)
-    {
-      op->array = CreateVA_OrientHolder(INITIAL_NUM_ORIENTS);
-      op->ht = CreateScalarHashTable_AS(INITIAL_NUM_ORIENTS);
-    }
-  if(!op || !op->array || !op->ht)
-    {
-      fprintf(stderr, "Failed to create orientation processor!\n");
-      safe_free(op);
-      return NULL;
-    }
+
+  op->array = CreateVA_OrientHolder(INITIAL_NUM_ORIENTS);
+  op->ht = CreateScalarHashTable_AS();
 
   return op;
 }
@@ -974,18 +966,8 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
   if(scaffold->id == NULLINDEX)
     return;
 
-  linkHT = CreateScalarHashTable_AS(GetNumGraphNodes(graph->ScaffoldGraph));
-  if(linkHT == NULL)
-    {
-      fprintf(stderr, "Failed to allocate scaffold hashtable!\n");
-      return;
-    }
+  linkHT = CreateScalarHashTable_AS();
   links = CreateVA_ScfLink(GetNumGraphNodes(graph->ScaffoldGraph));
-  if(links == NULL)
-    {
-      fprintf(stderr, "Failed to allocate scaffold array!\n");
-      return;
-    }
 
   if(otherScaffoldID != NULLINDEX)
     {

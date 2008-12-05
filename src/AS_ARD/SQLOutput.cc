@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: SQLOutput.cc,v 1.8 2008-10-29 06:34:30 brianwalenz Exp $";
+static const char *rcsid = "$Id: SQLOutput.cc,v 1.9 2008-12-05 19:06:11 brianwalenz Exp $";
 
 #ifdef SYBASE
 
@@ -159,10 +159,10 @@ bool SQLOutput::storeAFG2DB (
    if (getConnection()->sqlCommand(cmd) == false) { return false; }
 
    if (AFG_UID_to_MSGID == NULL) {
-      AFG_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+     AFG_UID_to_MSGID = CreateScalarHashTable_AS();
    }
    if (AFG_IID_to_MSGID == NULL) {
-      AFG_IID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+     AFG_IID_to_MSGID = CreateScalarHashTable_AS();
    }
 
    uint64 afg = (uint64)getConnection()->getLast("afg_MSG_ID", "AFG");
@@ -212,7 +212,7 @@ bool SQLOutput::storeUTG2DB (
    if (getConnection()->sqlCommand(cmd) == false) { return false; }
 
    if (UTG_UID_to_MSGID == NULL) {
-      UTG_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      UTG_UID_to_MSGID = CreateScalarHashTable_AS();
    }
    InsertInHashTable_AS(UTG_UID_to_MSGID, AS_UID_toInteger(eaccession), 0, static_cast<uint64>(getConnection()->getLast("utg_MSG_ID", "UTG")), 0);
 
@@ -283,7 +283,7 @@ bool SQLOutput::storeULK2DB (
    if (getConnection()->sqlCommand(cmd) == false) { return false; }
 
    if (ULK_UID_to_MSGID == NULL) {
-      ULK_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      ULK_UID_to_MSGID = CreateScalarHashTable_AS();
    }
    InsertInHashTable_AS(ULK_UID_to_MSGID, AS_UID_toInteger(euid), 0, static_cast<uint64>(getConnection()->getLast("ulk_MSG_ID", "ULK")), 0);
 
@@ -364,10 +364,10 @@ std::cerr << "STORING JMP " << AS_UID_toInteger(jmpID) << " and " << AS_UID_toIn
    if (getConnection()->sqlCommand(cmd) == false) { return false; }
 
    if (JMP_UID_to_MSGID == NULL) {
-      JMP_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      JMP_UID_to_MSGID = CreateScalarHashTable_AS();
    }
    if (CLK_JMP_UID_to_MSGID == NULL) {
-      CLK_JMP_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      CLK_JMP_UID_to_MSGID = CreateScalarHashTable_AS();
    }
 
    if (jmpType == ULK_TYPE) {
@@ -456,7 +456,7 @@ std::cerr << "Storing CCO " << std::endl;
    if (getConnection()->sqlCommand(cmd) == false) { return false; }
 
    if (CCO_UID_to_MSGID == NULL) {
-      CCO_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      CCO_UID_to_MSGID = CreateScalarHashTable_AS();
    }
    InsertInHashTable_AS(CCO_UID_to_MSGID, AS_UID_toInteger(eaccession), 0, static_cast<uint64>(getConnection()->getLast("cco_MSG_ID", "CCO")), 0);
 
@@ -573,7 +573,7 @@ std::cerr << "Storing VAR " << std::endl;
    if (getConnection()->sqlCommand(cmd) == false) { return false; }
 
    if (VAR_UID_to_MSGID == NULL) {
-      VAR_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      VAR_UID_to_MSGID = CreateScalarHashTable_AS();
    }
    InsertInHashTable_AS(VAR_UID_to_MSGID, AS_UID_toInteger(varID), 0, (uint64)getConnection()->getLast("var_MSG_ID", "VAR"), 0);
 
@@ -662,7 +662,7 @@ std::cerr << "The value os mean and std is " << mean_distance << " " << std_devi
    if (getConnection()->sqlCommand(cmd) == false) { return false; }
 
    if (CLK_UID_to_MSGID == NULL) {
-      CLK_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      CLK_UID_to_MSGID = CreateScalarHashTable_AS();
    }
    InsertInHashTable_AS(CLK_UID_to_MSGID, AS_UID_toInteger(euid), 0, static_cast<uint64>(getConnection()->getLast("clk_MSG_ID", "CLK")), 0);
 
@@ -685,7 +685,7 @@ bool SQLOutput::storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_
    if (getConnection()->sqlCommand(cmd) == false) { return false; }
 
    if (SCF_UID_to_MSGID == NULL) {
-      SCF_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      SCF_UID_to_MSGID = CreateScalarHashTable_AS();
    }
    InsertInHashTable_AS(SCF_UID_to_MSGID, AS_UID_toInteger(eaccession), 0, static_cast<uint64>(getConnection()->getLast("scf_MSG_ID", "SCF")), 0);
 
@@ -711,7 +711,7 @@ bool SQLOutput::storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev
    if (getConnection()->sqlCommand(cmd) == false) { return false; }
 
    if (CTP_UID_to_MSGID == NULL) {
-      CTP_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
+      CTP_UID_to_MSGID = CreateScalarHashTable_AS();
    }
    InsertInHashTable_AS(CTP_UID_to_MSGID, AS_UID_toInteger(ctpID), 0, (uint64)getConnection()->getLast("ctp_MSG_ID", "CTP"), 0);
 

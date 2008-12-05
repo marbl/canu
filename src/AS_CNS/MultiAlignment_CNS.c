@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.208 2008-11-13 09:50:28 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.209 2008-12-05 19:06:12 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -681,7 +681,7 @@ SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
   num_frags   = GetNumIntMultiPoss(uma->f_list);
   num_unitigs = GetNumIntUnitigPoss(uma->u_list);
 
-  unitigFrags = CreateScalarHashTable_AS(2 * (num_frags + num_unitigs));
+  unitigFrags = CreateScalarHashTable_AS();
 
   //  Earlier versions of this routine were extremely paranoid, and
   //  checked that a fragment/unitig ended at the end of the conitg --
@@ -7419,7 +7419,7 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
     ResetStores(unitig->num_frags, num_columns);
   }
 
-  fragmentMap = CreateScalarHashTable_AS(2*(unitig->num_frags));
+  fragmentMap = CreateScalarHashTable_AS();
 
   //  Magic initialization prevents us calling CreateMANode() until now.
 
@@ -7877,7 +7877,7 @@ MultiAlignContig(IntConConMesg *contig,
 
   ResetStores(num_unitigs, num_columns);
 
-  fragmentMap = CreateScalarHashTable_AS(2*(num_frags+num_unitigs));
+  fragmentMap = CreateScalarHashTable_AS();
   for (i=0;i<num_frags;i++) {
     if (ExistsInHashTable_AS (fragmentMap, contig->pieces[i].ident, 0)) {
       fprintf(stderr, "MultiAlignContig: Failure to insert ident %d in fragment hashtable, already present\n",contig->pieces[i].ident);

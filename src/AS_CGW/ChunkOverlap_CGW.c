@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.32 2008-11-02 06:27:12 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.33 2008-12-05 19:06:12 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -129,8 +129,8 @@ int CanOlapHash(uint64 cO, uint32 length){
 //external
 ChunkOverlapperT *CreateChunkOverlapper(void){
   ChunkOverlapperT *chunkOverlapper = (ChunkOverlapperT *)safe_malloc(sizeof(ChunkOverlapperT));
-  chunkOverlapper->hashTable = CreateGenericHashTable_AS(1000, CanOlapHash, CanOlapCmp);
-  chunkOverlapper->ChunkOverlaps = AllocateHeap_AS(1024, sizeof(ChunkOverlapCheckT));
+  chunkOverlapper->hashTable = CreateGenericHashTable_AS(CanOlapHash, CanOlapCmp);
+  chunkOverlapper->ChunkOverlaps = AllocateHeap_AS(sizeof(ChunkOverlapCheckT));
   return chunkOverlapper;
 }
 
@@ -201,8 +201,8 @@ ChunkOverlapperT *  LoadChunkOverlapperFromStream(FILE *stream){
   assert(status == 1);
 
   chunkOverlapper = (ChunkOverlapperT *)safe_malloc(sizeof(ChunkOverlapperT));
-  chunkOverlapper->hashTable = CreateGenericHashTable_AS(1000, CanOlapHash, CanOlapCmp);
-  chunkOverlapper->ChunkOverlaps = AllocateHeap_AS(1000, sizeof(ChunkOverlapCheckT));
+  chunkOverlapper->hashTable = CreateGenericHashTable_AS(CanOlapHash, CanOlapCmp);
+  chunkOverlapper->ChunkOverlaps = AllocateHeap_AS(sizeof(ChunkOverlapCheckT));
 
   for(overlap = 0; overlap < numOverlaps; overlap++){
     status = AS_UTL_safeRead(stream, &olap, "LoadChunkOverlapperFromStream", sizeof(ChunkOverlapCheckT), 1);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.34 2008-11-07 06:13:55 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.35 2008-12-05 19:06:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -580,7 +580,7 @@ AdjustContainedOrder(IntMultiPos *impList, int numIMPs) {
   // overlap the preceding imp
   //
 
-  containing = CreateScalarHashTable_AS(numIMPs);
+  containing = CreateScalarHashTable_AS();
   contained = (IntMultiPos *) safe_malloc(numIMPs * sizeof(IntMultiPos));
   assert(containing != NULL && contained != NULL);
 

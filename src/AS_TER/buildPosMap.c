@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.7 2008-10-08 22:03:00 brianwalenz Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.8 2008-12-05 19:06:12 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -598,7 +598,7 @@ int main (int argc, char *argv[]) {
     exit(1);
   }
 
-  uid2iid = CreateScalarHashTable_AS(32 * 1024);
+  uid2iid = CreateScalarHashTable_AS();
 
   ctgInfo = (ctgInfo_t *)safe_calloc(ctgInfoMax, sizeof(ctgInfo_t));
 

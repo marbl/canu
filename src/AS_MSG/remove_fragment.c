@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: remove_fragment.c,v 1.16 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id: remove_fragment.c,v 1.17 2008-12-05 19:06:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,8 +36,8 @@ main(int argc, char ** argv) {
 
   char            line[1024] = {0};
 
-  HashTable_AS    *frag_uids_desired = CreateScalarHashTable_AS(1024);
-  HashTable_AS    *frag_uids_found   = CreateScalarHashTable_AS(1024);
+  HashTable_AS    *frag_uids_desired = CreateScalarHashTable_AS();
+  HashTable_AS    *frag_uids_found   = CreateScalarHashTable_AS();
 
   GenericMesg    *gen = NULL;
   FragMesg       *frg = NULL;
