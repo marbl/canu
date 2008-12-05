@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.43 2008-11-11 16:16:25 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.44 2008-12-05 15:40:00 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -205,12 +205,12 @@ setLibrary(GateKeeperFragmentRecord *gkf, FragMesg *frg_mesg) {
   //
 
   if (libOrientation == NULL) {
-    libOrientationMax = 256;
+    libOrientationMax = 2;
     libOrientation    = (uint64 *)safe_calloc(libOrientationMax, sizeof(uint64));
   }
 
   if (libOrientationMax <= gkf->libraryIID) {
-    libOrientation    = safe_realloc(libOrientation, 2 * gkf->libraryIID);
+    libOrientation    = safe_realloc(libOrientation, sizeof(uint64) * 2 * gkf->libraryIID);
     while (libOrientationMax < 2 * gkf->libraryIID)
       libOrientation[libOrientationMax++] = 0;
   }
