@@ -21,7 +21,7 @@
 #ifndef MULTIALIGNMENT_CNS_INCLUDE
 #define MULTIALIGNMENT_CNS_INCLUDE
 
-static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.41 2008-10-29 10:50:28 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.42 2008-12-11 22:17:20 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -126,6 +126,8 @@ int MultiAlignContig_ReBasecall(MultiAlignT *,
                                 VA_TYPE(char) *,
                                 VA_TYPE(char) *,
                                 CNS_Options *);
+
+void SequenceComplement(char *sequence, char *quality);
 
 //  Options to things in MultiAligment_CNS.c
 
