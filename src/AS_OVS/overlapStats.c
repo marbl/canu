@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStats.c,v 1.6 2008-12-05 19:06:12 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStats.c,v 1.7 2008-12-11 22:17:53 skoren Exp $";
 
 //  install.packages(c("akima"))
 //
@@ -335,7 +335,7 @@ finalize_LibraryRandomness(GateKeeperStore *gkp, RepeatModel *rm, LibraryOverlap
    uint64 uncontained = ovl->totalOverlaps - ovl->contained;
    uint64 numReads = ovl->readsSeen->numNodes;
 
-   fprintf(F, "Total overlaps: %d\tcontained: %d\tcontained percent: %.2f\n", ovl->totalOverlaps, ovl->contained, 100*(ovl->contained/(double)ovl->totalOverlaps));
+   fprintf(F, "Total overlaps: %ld\tcontained: %ld\tcontained percent: %.2f\n", ovl->totalOverlaps, ovl->contained, 100*(ovl->contained/(double)ovl->totalOverlaps));
    fprintf(F, "Overlaps per lib in [libID] [% reads] format\n");
    for (i = 0; i < numLibraries; i++) {
       fprintf(F, "%d\t%.2f\n", i, 100*(ovl->readsPerLibrary[i]/(double)numReads));
