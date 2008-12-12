@@ -41,18 +41,25 @@ sub merOverlapper($) {
     caFailure("merOverlapper()-- Help!  I have no frags!\n") if ($numFrags == 0);
     caFailure("merOverlapper()-- I need to know if I'm trimming or assembling!\n") if (!defined($isTrim));
 
-    my $outDir  = "1-overlapper";
-    my $ovlOpt  = "";
-    my $merSize = getGlobal("ovlMerSize");
-    my $merComp = getGlobal("merCompression");
-    my $merType = "ovl";
+    my ($outDir, $ovlOpt, $merSize, $merComp, $merType, $merylNeeded);
+
+    #  Set directories and parameters for either 'trimming' or 'real'
+    #  overlaps.
 
     if ($isTrim eq "trim") {
-        $outDir  = "0-overlaptrim-overlap";
-        $ovlOpt  = "-G";
-        $merSize = getGlobal("obtMerSize");
-        $merComp = getGlobal("merCompression");
-        $merType = "obt";
+        $outDir      = "0-overlaptrim-overlap";
+        $ovlOpt      = "-G";
+        $merSize     = getGlobal("obtMerSize");
+        $merComp     = getGlobal("merCompression");
+        $merType     = "obt";
+        $merylNeeded = (getGlobal("obtMerThreshold") =~ m/auto/) ? 1 : 0;
+    } else {
+        $outDir      = "1-overlapper";
+        $ovlOpt      = "";
+        $merSize     = getGlobal("ovlMerSize");
+        $merComp     = getGlobal("merCompression");
+        $merType     = "ovl";
+        $merylNeeded = (getGlobal("ovlMerThreshold") =~ m/auto/) ? 1 : 0;
     }
 
     system("mkdir $wrk/$outDir")       if (! -d "$wrk/$outDir");
@@ -71,6 +78,8 @@ sub merOverlapper($) {
     my $olpBatchSize = getGlobal("merOverlapperExtendBatchSize");
     my $olpJobs      = int(($numFrags - 1) / $olpBatchSize) + 1;
 
+    #  Need mer counts, unless there is only one partition.
+    meryl() if (($ovmJobs > 1) || ($merylNeeded));
 
     #  Create overmerry and olap-from-seeds jobs
     #
@@ -125,6 +134,8 @@ sub merOverlapper($) {
         }
         print F " -m $merSize \\\n";
         print F " -c $merComp \\\n";
+        print F " -T ", getGlobal("obtMerThreshold"), " \\\n" if ($isTrim eq "trim");
+        print F " -T ", getGlobal("ovlMerThreshold"), " \\\n" if ($isTrim ne "trim");
         print F " -t " . getGlobal("merOverlapperThreads") . "\\\n";
         print F " -o $wrk/$outDir/seeds/\$jobid.ovm.WORKING.gz \\\n";
         print F "&& \\\n";
@@ -213,19 +224,6 @@ sub merOverlapper($) {
         system("chmod +x $wrk/$outDir/olap-from-seeds.sh");
     }
 
-
-
-    #  If we're partitioned, we need to run meryl.  We don't care
-    #  about single-copy mers, only mers that occur in two or more
-    #  frags.
-    #
-    #  Possibly should only compute for the $isTrim setting.
-    #
-    if ($ovmJobs > 1) {
-        setGlobal("obtMerThreshold", 2);
-        setGlobal("ovlMerThreshold", 2);
-        meryl();
-    }
 
     #  To prevent infinite loops -- stop now if the overmerry script
     #  exists.  This will unfortunately make restarting from transient

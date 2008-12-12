@@ -5,21 +5,33 @@ sub runMeryl ($$$$$$) {
     my $merComp      = shift @_;
     my $merCanonical = shift @_;
     my $merThresh    = shift @_;
+    my $merScale     = 1.0;
     my $merType      = shift @_;
     my $merDump      = shift @_;
+
     my $bin          = getBinDirectory();
     my $cmd;
 
     #  The fasta file we should be creating.
     my $ffile = "$wrk/0-mercounts/$asm.nmers.$merType.fasta";
 
-    if ($merThresh == 0) {
+    if ($merThresh =~ m/auto\s*\*\s*(\S+)/) {
+        $merThresh = "auto";
+        $merScale  = $1;
+    }
+
+    if ($merThresh =~ m/auto\s*\/\s*(\S+)/) {
+        $merThresh = "auto";
+        $merScale  = 1.0 / $1;
+    }
+
+    if (($merThresh ne "auto") && ($merThresh == 0)) {
         touch $ffile;
         return;
     }
 
     if (-e $ffile) {
-        return;
+        print STDERR "runMeryl() would have returned.\n";
     }
 
     if (merylVersion() eq "Mighty") {
@@ -31,12 +43,24 @@ sub runMeryl ($$$$$$) {
         my $ofile = "$wrk/0-mercounts/$asm$merCanonical-ms$merSize-cm$merComp";
 
         if (! -e "$ofile.mcdat") {
-            my $merylMemory = getGlobal("merylMemory");
+            my $merylMemory  = getGlobal("merylMemory");
 	    my $merylThreads = getGlobal("merylThreads");
 
-            $cmd .= "$bin/meryl ";
+            #  A small optimization we could do if (a) not mer
+            #  overlapper, (b) not auto threshold: only save mer
+            #  counts above the smaller (of obt & ovl thresholds).
+            #  It's complicated, and potentially screws up restarts
+            #  (if the threshold is changed after meryl is finished,
+            #  for example).  It's only useful on large assemblies,
+            #  which we usually assume you know what's going on
+            #  anyway.
+            #
+            #  N.B. the mer overlapper NEEDS all mer counts 2 and
+            #  higher.
+
+            $cmd  = "$bin/meryl ";
             $cmd .= " -B $merCanonical -v -m $merSize -memory $merylMemory -threads $merylThreads -c $merComp ";
-            $cmd .= " -L $merThresh ";
+            $cmd .= " -L 2 ";
             $cmd .= " -s $wrk/$asm.gkpStore:obt ";
             $cmd .= " -o $ofile ";
             $cmd .= "> $wrk/0-mercounts/meryl.out 2>&1";
@@ -62,6 +86,33 @@ sub runMeryl ($$$$$$) {
                 }
             }
         }
+
+        if ($merThresh eq "auto") {
+            if (! -e "$ofile.estMerThresh.out") {
+                $cmd  = "$bin/estimate-mer-threshold ";
+                $cmd .= " -g $wrk/$asm.gkpStore:obt ";
+                $cmd .= " -m $ofile ";
+                $cmd .= " > $ofile.estMerThresh.out ";
+                $cmd .= "2> $ofile.estMerThresh.err";
+
+                if (runCommand("$wrk/0-mercounts", $cmd)) {
+                    rename "$ofile.estMerThresh.out", "$ofile.estMerThresh.out.FAILED";
+                    caFailure("Failed.");
+                }
+            }
+
+            open(F, "< $ofile.estMerThresh.out") or caFailure("Failed to read estimated mer threshold from '$ofile.estMerThresh.out'.");
+            $merThresh = <F>;
+            $merThresh = int($merThresh * $merScale);
+            close(F);
+
+            if ($merThresh == 0) {
+                print STDERR "Failed to estimate a mer threshold.\n";
+                print STDERR "See results in $ofile.estMerThresh.err\n";
+                caFailure("");
+            }
+        }
+
     } elsif (merylVersion() eq "CA") {
 
         #  Sigh.  The old meryl.  Not as easy.  If we assume the
@@ -91,11 +142,19 @@ sub runMeryl ($$$$$$) {
             die;
         }
 
+        if ($merThresh eq "auto") {
+            print STDERR "ERROR!  auto picking a mer threshold not supported without installing kmer\n";
+            print STDERR "        (http://sourceforge.net/projects/kmer/).\n";
+            print STDERR "If you have installed kmer, then your build is broken, as I\n";
+            print STDERR "did not find the correct 'meryl' (meryl -V should have said Mighty).\n";
+            die;
+        }
+
         if (! -e $ofile) {
-            $merThresh /= $merSkip;
+            my $mt = $merThresh / $merSkip;
 
             $cmd  = "$bin/meryl ";
-            $cmd .= "-s $wrk/$asm.gkpStore -m $merSize -n $merThresh -K $merSkip ";
+            $cmd .= "-s $wrk/$asm.gkpStore -m $merSize -n $mt -K $merSkip ";
             $cmd .= " -o $ofile";
             $cmd .= "> $wrk/0-mercounts/meryl.out 2>&1";
 
@@ -109,6 +168,8 @@ sub runMeryl ($$$$$$) {
     } else {
         caFailure("Unknown meryl version.\n");
     }
+
+    return($merThresh);
 }
 
 sub meryl {
@@ -127,6 +188,13 @@ sub meryl {
     my $ovlD = 1;  #  Dump, unless we're the mer overlapper
     my $obtD = 1;
 
+    my $obtT = 0;  #  New threshold
+    my $ovlT = 0;
+
+    #  If the mer overlapper, we don't care about single-copy mers,
+    #  only mers that occur in two or more frags (kind of important
+    #  for large assemblies).
+
     if (getGlobal("ovlOverlapper") eq "mer") {
         $ovlc = getGlobal("merCompression");
         $ovlC = "-C";
@@ -138,8 +206,18 @@ sub meryl {
         $obtD = 0;
     }
 
-    runMeryl(getGlobal('ovlMerSize'), $ovlc, $ovlC, getGlobal("ovlMerThreshold"), "ovl", $ovlD);
-    runMeryl(getGlobal('obtMerSize'), $obtc, $obtC, getGlobal("obtMerThreshold"), "obt", $obtD);
+    $ovlT = runMeryl(getGlobal('ovlMerSize'), $ovlc, $ovlC, getGlobal("ovlMerThreshold"), "ovl", $ovlD);
+    $obtT = runMeryl(getGlobal('obtMerSize'), $obtc, $obtC, getGlobal("obtMerThreshold"), "obt", $obtD);
+
+    if (getGlobal("obtMerThreshold") ne $obtT) {
+        print STDERR "Reset OBT mer threshold from ", getGlobal("obtMerThreshold"), " to $obtT.\n";
+        setGlobal("obtMerThreshold", $obtT);
+    }
+    
+    if (getGlobal("ovlMerThreshold") ne $ovlT) {
+        print STDERR "Reset OVL mer threshold from ", getGlobal("ovlMerThreshold"), " to $ovlT.\n";
+        setGlobal("ovlMerThreshold", $ovlT);
+    }
 }
 
 1;

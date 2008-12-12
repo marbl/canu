@@ -266,10 +266,10 @@ sub setDefaults () {
     $global{"ovlMemory"}                   = "2GB";
 
     $global{"ovlMerSize"}                  = 22;
-    $global{"ovlMerThreshold"}             = 500;
+    $global{"ovlMerThreshold"}             = auto;
 
     $global{"obtMerSize"}                  = 22;
-    $global{"obtMerThreshold"}             = 1000;
+    $global{"obtMerThreshold"}             = auto;
 
     $global{"merCompression"}              = 1;
     $global{"merOverlapperThreads"}        = 2;

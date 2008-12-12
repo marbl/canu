@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overmerry.C,v 1.32 2008-10-17 00:54:42 brianwalenz Exp $";
+const char *mainid = "$Id: overmerry.C,v 1.33 2008-12-12 03:44:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,7 +77,7 @@ public:
     merCountsFile = 0L;
     merSize       = 23;
     compression   = 1;
-    maxCount      = 0;
+    maxCount      = 1024 * 1024 * 1024;
     numThreads    = 4;
 
     qGK  = 0L;
@@ -184,138 +184,20 @@ public:
       closeFragStream(fs);
     }
 
+    //
     //  Open another fragStream for the query fragments.
     //
+
     qFS = openFragStream(qGK, FRAG_S_SEQ);
     resetFragStream(qFS, qBeg, qEnd);
-
 
     //
     //  Build state for the workers
     //
 
-    //  Open the gatekeeper store as a kmer seqFile.  We need to
-    //  dynamic_cast this back to our gkpStoreFile, so we can access
-    //  methods defined only on that object.
-    //
-
-
     merylStreamReader *MF = 0L;
-    if (merCountsFile) {
+    if (merCountsFile)
       MF = new merylStreamReader(merCountsFile);
-
-      //  Examine the counts, pick a reasonable upper limit.
-
-      if (maxCount == 0) {
-        uint64  totalUsefulDistinct = MF->numberOfDistinctMers() - MF->numberOfUniqueMers();
-        uint64  totalUsefulAll      = MF->numberOfTotalMers()    - MF->numberOfUniqueMers();
-        uint64  distinct            = 0;
-        uint64  total               = 0;
-        uint32  Xcoverage           = 8;
-        uint32  i                   = 0;
-
-        fprintf(stderr, "distinct: "u64bitFMT"\n", MF->numberOfDistinctMers());
-        fprintf(stderr, "unique:   "u64bitFMT"\n", MF->numberOfUniqueMers());
-        fprintf(stderr, "total:    "u64bitFMT"\n", MF->numberOfTotalMers());
-
-        //  Pass 0: try to deduce the X coverage we have.  The
-        //  pattern we should see in mer counts is an initial spike
-        //  for unique mers (these contain errors), then a drop into
-        //  a valley, and a bump at the X coverage.
-        //
-        //  .
-        //  .      ...
-        //  ..  ..........
-        //  .................
-        //
-        //  If this pattern is not found, we fallback to the default
-        //  guess of 8x coverage.
-        //
-        fprintf(stderr, "Xcoverage zero %d %d %d\n", 1, 0, MF->histogram(1));
-
-        for (i=2; (i < MF->histogramLength()) && (MF->histogram(i-1) > MF->histogram(i)); i++) {
-          fprintf(stderr, "Xcoverage drop %d %d %d\n", i, MF->histogram(i-1), MF->histogram(i));
-        }
-
-        for (; (i < MF->histogramLength()) && (MF->histogram(i-1) < MF->histogram(i)); i++) {
-          fprintf(stderr, "Xcoverage incr %d %d %d\n", i, MF->histogram(i-1), MF->histogram(i));
-          Xcoverage = i;
-        }
-
-        fprintf(stderr, "Xcoverage done %d %d %d\n", i, MF->histogram(i-1), MF->histogram(i));
-
-        fprintf(stderr, "Guessed X coverage is %d\n", Xcoverage);
-
-        //  Pass 1: look for a reasonable limit, using %distinct and %total.
-        //
-        for (i=2; (i < MF->histogramLength()) && (maxCount == 0); i++) {
-          distinct += MF->histogram(i);
-          total    += MF->histogram(i) * i;
-
-          //  If we cover 99% of all the distinct mers, that's reasonable.
-          //
-          if ((distinct / (double)totalUsefulDistinct) > 0.99)
-            maxCount = i;
-
-          //  If we're a somewhat high count, and we're covering 2/3
-          //  of the total mers, assume that there are lots of
-          //  errors (or polymorphism) that are preventing us from
-          //  covering many distinct mers.
-          //
-          if ((i > 25 * Xcoverage) && ((total / (double)totalUsefulAll) > (2.0 / 3.0)))
-            maxCount = i;
-        }
-
-        fprintf(stderr, "Set maxCount to "u32bitFMT", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
-                i, 100.0 * distinct / totalUsefulDistinct, 100.0 * total / totalUsefulAll);
-
-
-        //  Pass 2: if the limit is relatively small compared to our
-        //  guessed Xcoverage, and %total is high, keep going to
-        //  close 75% of the gap in total coverage.  So if the TC is
-        //  90%, we'd keep going until TC is 97.5%.
-        //
-        //  If we're WAY low compared to X coverage, close the gap
-        //  too, but not as much.  This only happens if we're
-        //  covering 99% of the distinct, so we're already in good
-        //  shape.  The genome doesn't appear to be very repetitive.
-        //
-        if (((maxCount <  5 * Xcoverage)) ||
-            ((maxCount < 50 * Xcoverage) && (total / (double)totalUsefulAll > 0.90))) {
-          double  closeAmount = 0.75;
-
-          if (total / (double)totalUsefulAll <= 0.90)
-            closeAmount = 0.5;
-
-          //  No, really.  This is just 0.75 * (1-TC) + TC
-          double  desiredTC = closeAmount + (1 - closeAmount) * total / (double)totalUsefulAll;
-
-          for (; (i < MF->histogramLength()) && (total / (double)totalUsefulAll < desiredTC); i++) {
-            distinct += MF->histogram(i);
-            total    += MF->histogram(i) * i;
-          }
-
-          maxCount = i;
-
-          fprintf(stderr, "Reset maxCount to "u32bitFMT", which will cover %.2f%% of distinct mers and %.2f%% of all mers.\n",
-                  maxCount, 100.0 * distinct / totalUsefulDistinct, 100.0 * total / totalUsefulAll);
-        }
-      }
-    }
-
-    if (maxCount == 0) {
-      //  This only really occurs for small assemblies and we
-      //  essentially unlimit the max.  To compute it properly we'd
-      //  need to build a histogram of counts in the posDB (and so
-      //  we'd need to make an iterator for that) and redo the logic
-      //  for the MF above.  Not worth it.
-      //
-      fprintf(stderr, "WARNING!  No merylCounts file, and no guess on maxCount supplied.  We won't limit by count.\n");
-      maxCount = 1024 * 1024 * 1024;
-    }
-
-    //  Continue with building the positionDB.
-
 
     char     gkpName[FILENAME_MAX + 64] = {0};
     sprintf(gkpName, "%s:%u-%u:obt", gkpPath, tBeg, tEnd);
@@ -330,7 +212,7 @@ public:
     //  in a table without counts can be multi-copy when combined with
     //  their reverse-complement mer.
     //
-    if (merCountsFile)
+    if (MF)
       tPS->filter(2, maxCount);
 
     delete MF;
@@ -762,6 +644,8 @@ main(int argc, char **argv) {
       g->merSize = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-c") == 0) {
       g->compression = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-T") == 0) {
+      g->maxCount = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-mc") == 0) {
       g->merCountsFile = argv[++arg];
@@ -795,6 +679,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -m merSize      mer size in bases\n");
     fprintf(stderr, "  -c compression  compression level; homopolymer runs longer than this length\n");
     fprintf(stderr, "                    are compressed to exactly this length\n");
+    fprintf(stderr, "  -T threshold    ignore mers occuring more than 'threshold' times\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -mc counts      file of mercounts\n");
     fprintf(stderr, "\n");
