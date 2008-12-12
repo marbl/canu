@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.10 2008-11-21 16:10:02 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.11 2008-12-12 17:20:09 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -902,7 +902,6 @@ processMate(fragRecord *fr,
   assert(rSize >= 0);
   assert(rSize <= AS_FRAG_MAX_LEN);
 
-
   //  Did we find enough of the linker to do something?  We just need
   //  to throw out the obviously bad stuff.  When we get shorter and
   //  shorter, it's hard to define reasonable cutoffs.
@@ -939,6 +938,17 @@ processMate(fragRecord *fr,
   int  which;
 
 
+  //  Not enough on either side of the read to make a mate. Chuck the read, return that we didn't trim
+  if ((bestAlignment) && (lSize < 64) && (rSize < 64)) {
+    if ((logFile) && (logLevel >= LOG_MATES))
+      fprintf(logFile, "Linker too close to left side and right side (position %d-%d); no mate formed for %s (len %d).\n",
+              al.begJ, al.endJ, AS_UID_toString(fr->gkfr.readUID), fr->gkfr.seqLen);
+    
+      fr->gkfr.readUID = AS_UID_undefined();
+      fr->gkfr.deleted = 1;
+      return(0);
+  }
+  
   //  Adapter found on the left, but not enough to make a read.  Trim it out.
   //
   if ((bestAlignment) && (lSize < 64)) {
@@ -947,7 +957,7 @@ processMate(fragRecord *fr,
               al.begJ, al.endJ, AS_UID_toString(fr->gkfr.readUID), fr->gkfr.seqLen);
 
     fr->gkfr.seqLen = rSize;
-
+ 
     memmove(fr->seq, fr->seq + al.endJ, rSize);
     memmove(fr->qlt, fr->qlt + al.endJ, rSize);
 
@@ -983,7 +993,6 @@ processMate(fragRecord *fr,
               al.begJ, al.endJ, AS_UID_toString(fr->gkfr.readUID), fr->gkfr.seqLen);
 
     fr->gkfr.seqLen = lSize;
-
     fr->seq[lSize] = 0;
     fr->qlt[lSize] = 0;
 
