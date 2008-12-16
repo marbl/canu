@@ -70,23 +70,6 @@ sub runMeryl ($$$$$$) {
             }
         }
 
-        #  We only need the ascii dump if we're doing overlapper, mer
-        #  overlapper reads meryl directly.
-        #
-        if ($merDump) {
-            if (! -e $ffile) {
-                $cmd  = "$bin/meryl ";
-                $cmd .= "-Dt -n $merThresh ";
-                $cmd .= "-s $ofile ";
-                $cmd .= "> $ffile ";
-
-                if (runCommand("$wrk/0-mercounts", $cmd)) {
-                    unlink $ffile;
-                    caFailure("Failed.\n");
-                }
-            }
-        }
-
         if ($merThresh eq "auto") {
             if (! -e "$ofile.estMerThresh.out") {
                 $cmd  = "$bin/estimate-mer-threshold ";
@@ -113,6 +96,22 @@ sub runMeryl ($$$$$$) {
             }
         }
 
+        #  We only need the ascii dump if we're doing overlapper, mer
+        #  overlapper reads meryl directly.
+        #
+        if ($merDump) {
+            if (! -e $ffile) {
+                $cmd  = "$bin/meryl ";
+                $cmd .= "-Dt -n $merThresh ";
+                $cmd .= "-s $ofile ";
+                $cmd .= "> $ffile ";
+
+                if (runCommand("$wrk/0-mercounts", $cmd)) {
+                    unlink $ffile;
+                    caFailure("Failed.\n");
+                }
+            }
+        }
     } elsif (merylVersion() eq "CA") {
 
         #  Sigh.  The old meryl.  Not as easy.  If we assume the
