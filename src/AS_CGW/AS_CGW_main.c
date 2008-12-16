@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.64 2008-11-10 15:21:12 skoren Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.65 2008-12-16 22:32:36 skoren Exp $";
 
 static const char *usage =
 "usage: %s [options] -g <GatekeeperStoreName> -o <OutputPath> <InputCGB.ext>\n"
@@ -172,9 +172,10 @@ int main(int argc, char *argv[]){
   assert(coc != NULL);
 #endif
 
-  GlobalData  = data = CreateGlobal_CGW();
+  GlobalData  = data = CreateGlobal_CGW();  
   GlobalData->stderrc = stderr;
   GlobalData->aligner=DP_Compare;
+  GlobalData->closureReads = NULL;
 
   argc = AS_configure(argc, argv);
 
@@ -434,9 +435,7 @@ int main(int argc, char *argv[]){
 	strcpy(data->Input_File_Name, argv[optind]);
 	infp = File_Open (data->Input_File_Name, "r", TRUE);     // frg file
 	AssertPtr(infp);
-
 	strcpy(data->File_Name_Prefix, outputPath);
-
         if (generateOutput) {
           sprintf(filepath, "%s.cgw", outputPath);
           data->cgwfp = File_Open(filepath, "w", TRUE);
@@ -521,6 +520,26 @@ int main(int argc, char *argv[]){
       GeneratePlacedContigGraphStats(tmpBuffer,0);
       GenerateScaffoldGraphStats(tmpBuffer,0);
     }
+  }
+  #warning SK - adding closure info from file now, it should be in GKP store
+  if (GlobalData->closureReads == NULL) {
+   GlobalData->closureReads = CreateScalarHashTable_AS();
+   int line_len = ( 16 * 1024 * 1024);
+   char *currLine = safe_malloc(sizeof(char)*line_len);
+   char fileName[1024];
+   sprintf(fileName, "%s.closureEdges", GlobalData->Gatekeeper_Store_Name);
+   errno = 0;
+   FILE *file = fopen(fileName, "r");
+   if (errno) {
+      errno = 0;
+   } else {
+      while (fgets(currLine, line_len-1, file) != NULL) {
+         AS_UID read = AS_UID_lookup(currLine, NULL);
+         InsertInHashTable_AS(GlobalData->closureReads, getGatekeeperUIDtoIID(ScaffoldGraph->gkpStore, read, NULL), 0, 1, 0);
+      }
+      fclose(file);
+   }
+   safe_free(currLine);
   }
 
   clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
@@ -961,6 +980,22 @@ int main(int argc, char *argv[]){
   GenerateScaffoldGraphStats("final",0);
   GenerateSurrogateStats("final");
   //  GenerateContigAlignmentStats("final");
+  
+  #ifdef DEBUG
+      int j = 0;
+      for (j = 0; j < GetNumVA_CIFragT(ScaffoldGraph->CIFrags); j++) {
+         CIFragT * frag = GetCIFragT(ScaffoldGraph->CIFrags, j);
+         
+         if (LookupValueInHashTable_AS(GlobalData->closureReads, frag->iid, 0)) {
+            AS_UID uid = getGatekeeperIIDtoUID(ScaffoldGraph->gkpStore, frag->iid, AS_IID_FRG);
+            if (frag->contigID != -1) {
+               ChunkInstanceT * ctg = GetGraphNode(ScaffoldGraph->RezGraph, frag->contigID);            
+               fprintf(stderr, "CLOSURE_READS: CLOSURE READ %s PLACED=%d CHAFF=%d SINGLETON=%d IN ASM type %c in SCF %d\n", AS_UID_toString(uid), frag->flags.bits.isPlaced, frag->flags.bits.isChaff, frag->flags.bits.isSingleton, frag->type, ctg->scaffoldID);
+            }
+         }
+      }
+   #endif
+
 
   clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 

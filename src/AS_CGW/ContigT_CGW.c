@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ContigT_CGW.c,v 1.20 2008-10-29 10:42:46 brianwalenz Exp $";
+static char *rcsid = "$Id: ContigT_CGW.c,v 1.21 2008-12-16 22:32:36 skoren Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_EDGES
@@ -825,6 +825,7 @@ void CreateInitialContig(ScaffoldGraphT *graph, CDS_CID_t cid){
   contig.flags.bits.isCI = FALSE;
   contig.flags.bits.isContig = TRUE;
   contig.flags.bits.isChaff = CI->flags.bits.isChaff; // this property is inherited
+  contig.flags.bits.isClosure = CI->flags.bits.isClosure; // this property is inherited
   contig.edgeHead = NULLINDEX;
 
   SetNodeCGW_T(graph->ContigGraph->nodes, cid, &contig);

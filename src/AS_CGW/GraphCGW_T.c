@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.65 2008-12-05 19:06:12 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.66 2008-12-16 22:32:37 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1723,6 +1723,27 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
 
   }
 
+  #warning SK - adding closure info from file now, it should be in GKP store
+  if (GlobalData->closureReads == NULL) {
+   GlobalData->closureReads = CreateScalarHashTable_AS();
+   int line_len = ( 16 * 1024 * 1024);
+   char *currLine = safe_malloc(sizeof(char)*line_len);
+   char fileName[1024];
+   sprintf(fileName, "%s.closureEdges", GlobalData->Gatekeeper_Store_Name);
+   errno = 0;
+   FILE *file = fopen(fileName, "r");
+   if (errno) {
+      errno = 0;
+   } else {
+      while (fgets(currLine, line_len-1, file) != NULL) {
+         AS_UID read = AS_UID_lookup(currLine, NULL);
+         InsertInHashTable_AS(GlobalData->closureReads, getGatekeeperUIDtoIID(ScaffoldGraph->gkpStore, read, NULL), 0, 1, 0);
+      }
+      fclose(file);
+   }
+   safe_free(currLine);
+  }
+  
   for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
     IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
     CDS_CID_t fragID = (CDS_CID_t)mp->sourceInt;
@@ -1757,25 +1778,25 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
       fprintf(GlobalData->stderrc,"* Fragment " F_CID " now has ungapped length = %d (" F_COORD "," F_COORD ")...from gapped (" F_COORD "," F_COORD ")...either bad multi-alignment or a fragment fully contained within a gap in the consensus due to a bubble\n",
               mp->ident,(int)abs(ubgn-uend), ubgn, uend, bgn,end);
 
-      if(!markUnitigAndContig){
-	fprintf(GlobalData->stderrc,"* Details: fragment in CI " F_CID " [" F_COORD "," F_COORD "] CtgID " F_CID " [" F_COORD "," F_COORD "]\n",
+    if(!markUnitigAndContig){
+	     fprintf(GlobalData->stderrc,"* Details: fragment in CI " F_CID " [" F_COORD "," F_COORD "] CtgID " F_CID " [" F_COORD "," F_COORD "]\n",
 	        frag->cid,(int)(frag->offset5p.mean),(int)(frag->offset3p.mean),
 	        frag->contigID,(int)(frag->contigOffset5p.mean),(int)(frag->contigOffset3p.mean));
       }
 
-      if(bgn < end){
-	if(ubgn<1){
-	  uend++;
-	} else {
-	  ubgn--;
-	}
-      } else {
-	assert(end<bgn);
-	if(uend<1){
-	  ubgn++;
-	} else {
-	  uend--;
-	}
+     if(bgn < end){
+	     if(ubgn<1){
+	        uend++;
+	     } else {
+	        ubgn--;
+	     }
+     } else {
+	     assert(end<bgn);
+	     if(uend<1){
+	        ubgn++;
+	     } else {
+	        uend--;
+	     }
       }
     }
     offset5p.mean = ubgn;
@@ -1812,14 +1833,23 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
 	    frag->contigID);
 #endif
 
-    if(i == extremalA){
-      frag->label = AS_INTERCHUNK_A;
-    }else if(i == extremalB){
-      frag->label = AS_INTERCHUNK_B;  /*  A->B? */
-    }else{
-      frag->label = AS_INTRACHUNK;
-    }
-  }
+      if(i == extremalA){
+         frag->label = AS_INTERCHUNK_A;
+      }else if(i == extremalB){
+         frag->label = AS_INTERCHUNK_B;  /*  A->B? */
+       }else{
+         frag->label = AS_INTRACHUNK;
+      }
+
+      // SK: for closure, mark closure contigs
+      if (LookupValueInHashTable_AS(GlobalData->closureReads, frag->iid, 0)) {
+         if (node->scaffoldID == -1) {
+            node->flags.bits.isClosure = TRUE;
+         } else {
+            node->flags.bits.isClosure = FALSE;
+         }
+      }
+   }
 }
 
 

@@ -22,11 +22,12 @@
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
-static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.21 2008-11-10 15:21:12 skoren Exp $";
+static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.22 2008-12-16 22:32:36 skoren Exp $";
 
 #include "AS_CGW_dataTypes.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_ALN_forcns.h"
+#include "AS_UTL_Hash.h"
 
 //  These are the global data structures for the CGW Module
 
@@ -68,6 +69,7 @@ typedef struct Global_CGW_tag {
   char Output_File_Name[1024];
   char Gatekeeper_Store_Name[1024];
   char OVL_Store_Name[1024];
+  HashTable_AS *closureReads;
 }Global_CGW;
 
 

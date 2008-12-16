@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.55 2008-10-29 10:42:46 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.56 2008-12-16 22:32:37 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -335,7 +335,7 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
   CI.flags.bits.smoothSeenAlready = FALSE;
   CI.flags.bits.isCI = TRUE;
   CI.flags.bits.isChaff = FALSE;
-
+  CI.flags.bits.isClosure = FALSE;
 
   if( ! sequenceOnly ) {
       CDS_CID_t extremalA = NULLINDEX;

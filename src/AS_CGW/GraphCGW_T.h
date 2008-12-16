@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.30 2008-11-02 06:27:13 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.31 2008-12-16 22:32:37 skoren Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_ALN_aligners.h"
@@ -323,6 +323,11 @@ typedef struct{
       unsigned int isRock:1;
       unsigned int isPotentialRock:1; // has at least 2 celera reads with external mates
       unsigned int isPotentialStone:1; // has at least 1 celera reads with external mates
+      
+      /* THe following is used to closure read placement to identify candidate closure reads
+       * Initialized to match the closure input status of the read or contig
+       */
+       unsigned int isClosure:1;
     }bits;
     int32 all;
   }flags;
