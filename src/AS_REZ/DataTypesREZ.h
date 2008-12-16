@@ -22,7 +22,7 @@
 #ifndef DATA_TYPES_REZ_H
 #define DATA_TYPES_REZ_H
 
-static const char *rcsid_DATA_TYPES_REZ_H = "$Id: DataTypesREZ.h,v 1.9 2008-11-02 06:28:28 brianwalenz Exp $";
+static const char *rcsid_DATA_TYPES_REZ_H = "$Id: DataTypesREZ.h,v 1.10 2008-12-16 22:33:52 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_CGW_dataTypes.h"
@@ -70,6 +70,9 @@ typedef  struct
        // Set true if chunk has been visited in DFS
    unsigned int  finished : 1;
        // Set true if chunk's subtree has been finished in DFS
+       
+   unsigned int isClosure : 1;
+      // Set true if chunk came from a closure read
  }  Gap_Chunk_t;
 
 

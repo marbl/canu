@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.18 2008-10-23 05:06:01 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.19 2008-12-16 22:33:26 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -134,7 +134,16 @@ writeToDumpFile(OVSoverlap          *overlap,
 
 
 void
-buildStore(char *storeName, char *gkpName, uint64 memoryLimit, uint32 nThreads, uint32 doFilterOBT, uint32 fileListLen, char **fileList) {
+buildStore(
+      char *storeName, 
+      char *gkpName, 
+      uint64 memoryLimit, 
+      uint32 nThreads, 
+      uint32 doFilterOBT, 
+      uint32 fileListLen, 
+      char **fileList, 
+      char *ovlSkipName, 
+      Ovl_Skip_Type_t ovlSkipOpt) {
 
   if (gkpName == NULL) {
     fprintf(stderr, "overlapStore: The '-g gkpName' parameter is required.\n");
@@ -199,6 +208,26 @@ buildStore(char *storeName, char *gkpName, uint64 memoryLimit, uint32 nThreads, 
   BinaryOverlapFile      **dumpFile    = (BinaryOverlapFile **)safe_calloc(sizeof(BinaryOverlapFile *), dumpFileMax);
   uint64                  *dumpLength  = (uint64 *)safe_calloc(sizeof(uint64), dumpFileMax);
 
+  // record the UIDs we should not process in the hashtable if we are supplied a file listing them  
+  HashTable_AS *readIIDsToSkip = CreateScalarHashTable_AS();
+  if (!doFilterOBT && ovlSkipName != NULL) {
+     int line_len = ( 16 * 1024 * 1024);
+     char *currLine = safe_malloc(sizeof(char)*line_len);
+     char fileName[1024];
+     errno = 0;
+     FILE *file = fopen(ovlSkipName, "r");
+     if (errno) {
+        errno = 0;
+     } else {
+        while (fgets(currLine, line_len-1, file) != NULL) {
+           AS_UID read = AS_UID_lookup(currLine, NULL);
+           InsertInHashTable_AS(readIIDsToSkip, getGatekeeperUIDtoIID(storeFile->gkp, read, NULL), 0, 1, 0);
+         }
+         fclose(file);
+      }
+      safe_free(currLine);
+  }
+
   for (i=0; i<fileListLen; i++) {
     BinaryOverlapFile  *inputFile;
     OVSoverlap          fovrlap;
@@ -214,6 +243,23 @@ buildStore(char *storeName, char *gkpName, uint64 memoryLimit, uint32 nThreads, 
       //  If filtering for OBT, skip the crap.
       if ((doFilterOBT) && (AS_OBT_acceptableOverlap(fovrlap) == 0))
         continue;
+
+      if (!doFilterOBT) {
+         int firstIgnore = LookupValueInHashTable_AS(readIIDsToSkip, fovrlap.a_iid, 0);
+         int secondIgnore = LookupValueInHashTable_AS(readIIDsToSkip, fovrlap.b_iid, 0);
+         
+         // option means don't ignore them at all
+         if (ovlSkipOpt == NONE) {
+         }
+         // option means don't overlap them at all
+         else if (ovlSkipOpt == ALL && ((firstIgnore == TRUE || secondIgnore == TRUE))) {
+            continue;
+         }
+         // option means let them overlap other reads but not each other
+         else if (ovlSkipOpt == INTERNAL && ((firstIgnore == TRUE && secondIgnore == TRUE))) {
+            continue;
+         }
+      }
 
       writeToDumpFile(&fovrlap, dumpFile, dumpFileMax, dumpLength, iidPerBucket, storeName);
 
@@ -275,6 +321,7 @@ buildStore(char *storeName, char *gkpName, uint64 memoryLimit, uint32 nThreads, 
     }
 #endif
   }
+  DeleteHashTable_AS(readIIDsToSkip);
 
   for (i=0; i<dumpFileMax; i++)
     AS_OVS_closeBinaryOverlapFile(dumpFile[i]);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.17 2008-11-13 09:14:33 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.18 2008-12-16 22:33:26 skoren Exp $";
 
 #include "overlapStore.h"
 
@@ -27,20 +27,22 @@ const char *mainid = "$Id: overlapStore.c,v 1.17 2008-11-13 09:14:33 brianwalenz
 
 int
 main(int argc, char **argv) {
-  uint32    operation   = OP_NONE;
-  char     *storeName   = NULL;
-  char     *gkpName     = NULL;
-  uint32    dumpBinary  = FALSE;
-  double    dumpERate   = 100.0;
-  uint32    bgnIID      = 0;
-  uint32    endIID      = 1000000000;
-  uint32    qryIID      = 0;
-  uint64    memoryLimit = 512 * 1024 * 1024;
-  uint32    nThreads    = 4;
-  uint32    doFilterOBT = 0;
-  uint32    fileListLen = 0;
-  uint32    fileListMax = 10 * 1024;  //  If you run more than 10,000 overlapper jobs, you'll die.
-  char    **fileList    = (char **)safe_malloc(sizeof(char *) * fileListMax);
+  uint32          operation   = OP_NONE;
+  char           *storeName   = NULL;
+  char           *gkpName     = NULL;
+  uint32          dumpBinary  = FALSE;
+  double          dumpERate   = 100.0;
+  uint32          bgnIID      = 0;
+  uint32          endIID      = 1000000000;
+  uint32          qryIID      = 0;
+  uint64          memoryLimit = 512 * 1024 * 1024;
+  uint32          nThreads    = 4;
+  uint32          doFilterOBT = 0;
+  uint32          fileListLen = 0;
+  uint32          fileListMax = 10 * 1024;  //  If you run more than 10,000 overlapper jobs, you'll die.
+  char          **fileList    = (char **)safe_malloc(sizeof(char *) * fileListMax);
+  char           *ovlSkipName = NULL;
+  Ovl_Skip_Type_t ovlSkipOpt  = ALL;
 
   argc = AS_configure(argc, argv);
 
@@ -139,7 +141,27 @@ main(int argc, char **argv) {
       }
       safe_free(line);
       fclose(F);
+    
+    } else if (strcmp(argv[arg], "-I") == 0) {
+      ovlSkipName = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-i") == 0) {      
+      switch (atoi(argv[++arg])) {
+         case 0:
+            ovlSkipOpt = NONE;
+            break;
+         case 1:
+            ovlSkipOpt = ALL;
+            break;
+         case 2:
+            ovlSkipOpt = INTERNAL;
+            break;
+         default:
+            fprintf(stderr, "%s: unknown overlap ignore option '%s'. Must be one of 0, 1, or 2.\n", argv[0], argv[arg]);
+            err++;
+            break;
+      }
+    
     } else if ((argv[arg][0] == '-') && (argv[arg][1] != 0)) {
       fprintf(stderr, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
       err++;
@@ -173,6 +195,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -M x         Use 'x'MB memory for sorting overlaps.\n");
     fprintf(stderr, "  -t t         Use 't' threads for sorting overlaps.\n");
     fprintf(stderr, "  -L f         Read overlaps from files listed in 'f'.\n");
+    fprintf(stderr, "  -I F         Ignore the ovls for the reads listed in 'f'.\n");
+    fprintf(stderr, "  -i x         Where x is either 0, 1, or 2. Requires -I option. 1 (default) - Delete all overlaps. 2 - Delete only the overlaps between reads listed in 'f'.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "MERGING\n");
     fprintf(stderr, "\n");
@@ -195,7 +219,7 @@ main(int argc, char **argv) {
 
   switch (operation) {
     case OP_BUILD:
-      buildStore(storeName, gkpName, memoryLimit, nThreads, doFilterOBT, fileListLen, fileList);
+      buildStore(storeName, gkpName, memoryLimit, nThreads, doFilterOBT, fileListLen, fileList, ovlSkipName, ovlSkipOpt);
       break;
     case OP_MERGE:
       mergeStore(storeName, fileList[0]);

@@ -357,6 +357,10 @@ sub setDefaults () {
     $global{"fields"}			   = 0;
 
     $global{"specFile"}                    = undef;
+    
+    #### Closure Options
+    $global{"closureEdges"}               = undef;
+    $global{"closureOverlaps"}            = 0;
 }
 
 sub makeAbsolute ($) {
@@ -915,4 +919,18 @@ sub runCommand ($$) {
     return(1);
 }
 
+sub setupFilesForClosure() {
+    makeAbsolute("closureEdges");
+
+    my $closureEdges = getGlobal("closureEdges");
+
+    if (defined($closureEdges)) {
+       #default to only allowing overlaps between closure reads and other reads. No overlaps within the set of closure reads  
+       setGlobal("closureOverlaps", 2);
+       if (-e "$wrk/closureEdges") {
+          return;
+       }
+       system("cp $closureEdges $wrk/$asm.gkpStore.closureEdges");
+    }
+}
 1;

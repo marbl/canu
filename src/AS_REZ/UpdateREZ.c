@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: UpdateREZ.c,v 1.13 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: UpdateREZ.c,v 1.14 2008-12-16 22:33:52 skoren Exp $";
 
 /**********************************************************************
 
@@ -95,12 +95,12 @@ int Trust_Edges(ScaffoldGraphT * sgraph,
     next_chunk = GetGraphNode(sgraph->RezGraph, next);
     assert(next_chunk != NULL);
 
-    if ((Is_Unique(next_chunk) && (next_chunk->scaffoldID == sid)) ||
+    if ((IsUnique(next_chunk) && (next_chunk->scaffoldID == sid)) ||
         ((table[next] != NULL) && (table[next]->scaff_id == sid) && (table[next]->keep))) {
       //
       // mark the edge only if the distance is consistent
       //
-      if (Is_Unique(next_chunk)) {
+      if (IsUnique(next_chunk)) {
 		Gap_Chunk_t
 		  unique;
 		unique.chunk_id = next_chunk->id;
@@ -278,7 +278,26 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 			  sqrt(fc->end.variance));
 #     endif
       for  (k = 0;  k < fc->num_chunks;  k++) {
-		table[fc->chunk[k].chunk_id] = &(fc->chunk[k]);
+         // SK - 10/28/08 - if we have just one chunk keep it
+         // otherwise, we pick the first one that is kept for that specific cid
+         // this was added for closure reads where we cannot tell their orientations (vs regular rocks where we can use mates to figure it out)
+         // therefore, we add both orientations of a rock and let the overlaps decide which we keep
+         // is this a good idea? who knows?
+         
+         // SK - 12/9/08 - cgw sometimes splits things into multiple fcs with the same ID but the code will always pick the latest one
+         // why? is this correct?
+         if (table[fc->chunk[k].chunk_id] == NULL || (fc->chunk[k].isClosure && fc->chunk[k].keep) || fc->chunk[k].copy_letter != ' ') {
+            if (table[fc->chunk[k].chunk_id] != NULL && table[fc->chunk[k].chunk_id]->keep == 1 && fc->chunk[k].copy_letter == ' ') {
+                  fprintf(stderr, "ERROR CHUNK %d (%f, %f) COPY_LETTER=%c KEEP=%d CLOSURE=%d PATH=%d HAS KEEP FLAG ON BUT THERE IS ALREADY A CHUNK WITH ID %d (%f, %f) COPY_LETTER=%c KEEP=%d CLOSURE=%d SCF=%d CURR SCF=%d\n", 
+                     fc->chunk[k].chunk_id, fc->chunk[k].start.mean, fc->chunk[k].end.mean,
+                     fc->chunk[k].copy_letter, fc->chunk[k].keep, fc->chunk[k].isClosure, fc->chunk[k].path_confirmed,
+                     table[fc->chunk[k].chunk_id]->chunk_id, table[fc->chunk[k].chunk_id]->start.mean, table[fc->chunk[k].chunk_id]->end.mean,
+                     table[fc->chunk[k].chunk_id]->copy_letter, table[fc->chunk[k].chunk_id]->keep, table[fc->chunk[k].chunk_id]->isClosure, table[fc->chunk[k].chunk_id]->scaff_id, fc->chunk[k].scaff_id);
+                   
+                  assert(0);
+            }
+            table[fc->chunk[k].chunk_id] = &(fc->chunk[k]);
+         }
 #       if DEBUG_UPDATE > 1
 		fprintf(stderr,"  -=> Chunk %6d: <%5.2f, %5.2f, %5.2f>-<%5.2f, %5.2f, %5.2f>-<%s>-<%s>\n",
 				fc->chunk[k].chunk_id,
@@ -500,14 +519,22 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 					"-=> TOTAL marked edges for chunk %d is %d\n",
 					cid,
 					trusted_edges);
-#         endif
-			if (trusted_edges < 1) {
-			  fprintf(stderr,
-					  "* warning : attempted to insert CI %d with a total weight %d of trusted edges - skipped\n",
-					  cid,
-					  trusted_edges);
-			  continue;
-			}
+#         endif         
+         if (trusted_edges < 1) {
+            if (fc->chunk[k].isClosure) {
+               fprintf(stderr,
+               "*warning: closure CI %d with a total weight %d of trusted edges not being inserted - should it be?\n",
+               cid,
+               trusted_edges);
+               continue;
+            } else {
+			      fprintf(stderr,
+					   "* warning : attempted to insert CI %d with a total weight %d of trusted edges - skipped\n",
+					     cid,
+					    trusted_edges);
+			      continue;
+            }
+         }
 		  }
 
 		  //
@@ -632,7 +659,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 		  }
 
 		  chunk = GetGraphNode(sgraph->RezGraph, cid);
-		  assert(chunk != NULL);
+		  assert(chunk != NULL);        
 
 		  //
 		  // remember that we touched this scaffold and the
@@ -640,8 +667,6 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 		  //
 		  scaffold_modified = TRUE;
 		  inserted++;
-
-
 
 #         if DEBUG_UPDATE > 1
 		  fprintf(stderr,
@@ -803,6 +828,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
   if( ! noRecompute )
     RebuildScaffolds(ScaffoldGraph, FALSE);
 #endif
+
 
 # if DEBUG_UPDATE > 1
   fprintf(stderr,

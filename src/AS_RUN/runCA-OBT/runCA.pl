@@ -28,7 +28,6 @@ my @steps = (
 setDefaults();
 localDefaults();
 
-
 #  Stash the original options, quoted, for later use.  We need to use
 #  these when we resubmit ourself to SGE.
 foreach my $a (@ARGV) {
@@ -125,6 +124,9 @@ if ((getGlobal("scriptOnGrid") == 1) &&
 checkDirectories();
 
 localSetup(scalar(@steps) / 2);
+
+#setup closure stuff
+setupFilesForClosure();
 
 #  If this is a continuation, we don't want to do obt or fragment
 #  error correction, or a bunch of other stuff.  We could surround

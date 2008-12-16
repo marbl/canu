@@ -13,6 +13,12 @@ sub createOverlapStore {
     $cmd  = "$bin/overlapStore ";
     $cmd .= " -c $wrk/$asm.ovlStore.BUILDING ";
     $cmd .= " -g $wrk/$asm.gkpStore ";
+    
+    if (-e "$wrk/$asm.gkpStore.closureEdges") {       
+      $cmd .= " -I $wrk/$asm.gkpStore.closureEdges";
+      $cmd .= " -i " . getGlobal("closureOverlaps");
+    }
+    
     $cmd .= " -M " . getGlobal("ovlStoreMemory");
     $cmd .= " -L $wrk/$asm.ovlStore.list ";
     $cmd .= " > $wrk/$asm.ovlStore.err 2>&1";
