@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.40 2008-10-29 10:50:28 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.41 2008-12-18 07:13:22 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -1713,8 +1713,17 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
 
     tempPos->position.bgn = fragPoss[i].bgn;
     tempPos->position.end = fragPoss[i].end;
+
+    tempPos->parent = 0;
+    tempPos->ahang  = 0;
+    tempPos->bhang  = 0;
   }
   ium_mesg.f_list = GetIntMultiPos(macopy->f_list, 0);
+
+  //  All done with this now.
+  safe_free(fragPoss);
+
+  fprintf(stderr, "extendedFragLeftward = %d\n", extendedFragLeftward);
 
   if (extendedFragLeftward)
     // definitely reorder frags in f_list if we extended a frag leftward
@@ -1736,7 +1745,6 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
                                        reformed_quality,
                                        reformed_deltas,
                                        CNS_QUIET,  //  CNS_VERBOSE, CNS_STATS_ONLY
-                                       1,
                                        Local_Overlap_AS_forCNS,
                                        &options)) {
     fprintf(stderr, "GetNewUnitigMultiAlign()-- MultiAlignUnitig failure on unitig %d\n", unitig->id);

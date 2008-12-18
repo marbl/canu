@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.65 2008-12-16 22:32:36 skoren Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.66 2008-12-18 07:13:22 brianwalenz Exp $";
 
 static const char *usage =
 "usage: %s [options] -g <GatekeeperStoreName> -o <OutputPath> <InputCGB.ext>\n"
@@ -110,7 +110,7 @@ static const char *usage =
 #include "CommonREZ.h"
 #include "RepeatRez.h"
 #include "Stats_CGW.h"
-#include "AS_ALN_forcns.h"
+#include "AS_ALN_aligners.h"
 #include "Instrument_CGW.h"
 #include "AS_CGW_EdgeDiagnostics.h"
 #include "Checkpoints_CGW.h"

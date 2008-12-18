@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.15 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.16 2008-12-18 07:13:22 brianwalenz Exp $";
 
 /* Utility routines to complement, unpack and pack alignments, and print
    overlaps.  Also a routine for re-aligning an overlap using quality
@@ -595,17 +595,16 @@ int AFFINEBLOCKSIZE= 4;
 // number of large indels allowed
 int AFFINE_MAX_BLOCKS=3;
 
-OverlapMesg *AS_ALN_affine_overlap(InternalFragMesg *a, InternalFragMesg *b,
-                           int beg, int end, int opposite,
-                           double erate, double thresh, int minlen,
-                           CompareOptions what, int *where)
-{
+OverlapMesg *
+Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
+                  int beg, int end,
+                  int opposite,
+                  double erate, double thresh, int minlen,
+                  CompareOptions what, int *where) {
 
   OverlapMesg *O;
 
-  { double my_ld_ratio=.25;
-    O = LD_DP_Compare_AS(a,b,beg,end,opposite,MAX(MAXDPERATE,erate),thresh,minlen,AS_FIND_AFFINE_ALIGN,where,my_ld_ratio);
-  }
+  O=DP_Compare_AS(a,b,beg,end,opposite,MAX(MAXDPERATE,erate),thresh,minlen,AS_FIND_AFFINE_ALIGN,where);
 
   if (O != NULL){
 

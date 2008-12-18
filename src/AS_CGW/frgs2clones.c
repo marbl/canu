@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: frgs2clones.c,v 1.31 2008-10-29 06:34:30 brianwalenz Exp $";
+const char *mainid = "$Id: frgs2clones.c,v 1.32 2008-12-18 07:13:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -228,7 +228,14 @@ main( int argc, char *argv[]) {
       // check for an overlap
       /*************************/
 
-      ovl = Local_Overlap_AS_forCNS(clear1, clear2, -len2,len1,1,.06,1e-6,40,AS_FIND_LOCAL_ALIGN_NO_TRACE);
+      ovl = Local_Overlap_AS_forCNS(clear1, clear2,
+                                    -len2, len1,
+                                    len2,  len1,
+                                    1,
+                                    .06,
+                                    1e-6,
+                                    40,
+                                    AS_FIND_LOCAL_ALIGN_NO_TRACE);
 
       if(ovl==NULL||
 	 ( (ovl->begpos<0||ovl->endpos<0) &&
@@ -292,28 +299,18 @@ main( int argc, char *argv[]) {
 	  {
 	    MultiAlignT *ma;
 	    int printwhat=CNS_STATS_ONLY;
-	    int do_rez=0;
 	    int i,j,len;
 	    char *s,*q;
-
-	    Overlap *(*COMPARE_FUNC)(COMPARE_ARGS)=Local_Overlap_AS_forCNS;
-	    //Overlap *(*COMPARE_FUNC)(COMPARE_ARGS)=DP_Compare;
-
 
 	    if(ovl->begpos<0){
 	      allow_neg_hang=1;
 	    }
 
-	    //      fprintf(stderr,"Doing the multialignment\n");
-
-	    if (MultiAlignUnitig(&ium,gkpStore,sequence,quality,deltas,printwhat,do_rez,
-                                 COMPARE_FUNC, NULL)==-1 ) {
+	    if (MultiAlignUnitig(&ium,gkpStore,sequence,quality,deltas,printwhat, Local_Overlap_AS_forCNS, NULL)==-1 ) {
 	      fprintf(stderr,"MultiAlignUnitig failed for overlap of fragments %d and %d\n",
                       fragIID,mateIID);
 	      assert(FALSE);
 	    }
-
-	    //      fprintf(stderr,"Done with the multialignment\n");
 
 	    if(ovl->begpos<0){
 	      allow_neg_hang=1;

@@ -19,7 +19,7 @@
  *************************************************************************/
 
 
-static const char *rcsid = "$Id: eCR-examineGap.c,v 1.19 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid = "$Id: eCR-examineGap.c,v 1.20 2008-12-18 07:13:22 brianwalenz Exp $";
 #include "eCR.h"
 
 #include "GapWalkerREZ.h"  //  FindGapLength
@@ -358,12 +358,11 @@ examineGap(ContigT *lcontig, int lFragIid,
   // now lcompBuffer and rcompBuffer hold the sequence of the fragments in the correct strand
   // now prepare for call to Local_Overlap_AS_forCNS
 
+  Overlap *overlap;
   int beg, end, opposite = FALSE;
   double erate, thresh, minlen;
   CompareOptions what;
-  Overlap *overlap;
   LengthT gapSize;
-  char *rcompBufferTrimmed = NULL;
 
   beg    = -strlen (rcompBuffer);
   end    = strlen (lcompBuffer);
@@ -378,13 +377,15 @@ examineGap(ContigT *lcontig, int lFragIid,
 
   overlap = Local_Overlap_AS_forCNS(lcompBuffer,
                                     rcompBuffer,
-                                    -strlen(rcompBuffer),
-                                    strlen(lcompBuffer),
+                                    beg, end,   //  band
+                                    -beg, end,  //  ahang,bhang not known
                                     opposite,
                                     erate,
                                     thresh,
                                     minlen,
                                     what);
+
+  char *rcompBufferTrimmed = NULL;
 
   // not interested in overlaps with negative ahangs or bhangs
   //
@@ -451,10 +452,13 @@ examineGap(ContigT *lcontig, int lFragIid,
   // now do overlap again after trimming to make sure it is still
   // there, sometimes trimming makes them go away
 
+  beg = -strlen(rcompBufferTrimmed);
+  end = strlen(lcompBuffer);
+
   overlap = Local_Overlap_AS_forCNS(lcompBuffer,
                                     rcompBufferTrimmed,
-                                    -strlen(rcompBufferTrimmed),
-                                    strlen(lcompBuffer),
+                                    beg, end,
+                                    -beg, end,
                                     opposite,
                                     erate,
                                     thresh,

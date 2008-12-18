@@ -22,11 +22,11 @@
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
-static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.22 2008-12-16 22:32:36 skoren Exp $";
+static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.23 2008-12-18 07:13:22 brianwalenz Exp $";
 
 #include "AS_CGW_dataTypes.h"
 #include "AS_MSG_pmesg.h"
-#include "AS_ALN_forcns.h"
+#include "AS_ALN_aligners.h"
 #include "AS_UTL_Hash.h"
 
 //  These are the global data structures for the CGW Module
@@ -62,7 +62,8 @@ typedef struct Global_CGW_tag {
   HISTOGRAM *scaffold_unique;
   HISTOGRAM *scaffold_repeat;
 #endif
-  Overlap *(*aligner)(char *, char *, int, int, int, double, double, int, CompareOptions);
+
+  AS_ALN_Aligner  *aligner;
 
   char Input_File_Name[1024];
   char File_Name_Prefix[1024];

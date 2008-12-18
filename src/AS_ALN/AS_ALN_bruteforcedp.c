@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.4 2008-11-12 12:44:46 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.5 2008-12-18 07:13:22 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_ALN_bruteforcedp.h"
@@ -31,10 +31,31 @@ static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.4 2008-11-12 12:44:46
 #define GAPB             2
 #define STOP             3
 
-#define MATCHSCORE       3
-#define GAPSCORE        -2
-#define MISMATCHSCORE   -2
+//  original 3,-2,-2
+//  suggested 5, -3, -4
 
+#define MATCHSCORE       5
+#define GAPSCORE        -4
+#define MISMATCHSCORE   -3
+
+#define SLOP             10
+
+//  Scores in the dynamic programming matrix are unsigned ints,
+//  currently 30 bits wide.
+//
+//  The smallest score is 0.
+//  The zero score is 2^29 (512 million)
+//  The largest score is 2^30-1 (1 billion).
+//
+//  Edges that we don't want to end up at are initialized to DP_NEGT
+//  (2^28, 256 million) which will take an awful lot of alignment to
+//  make it decent, or to underflow.
+//
+//  Edges that we want to end up at are set to DP_ZERO (2^29, 512
+//  million).
+
+#define DP_NEGT          (1 << 28)
+#define DP_ZERO          (1 << 29)
 
 void
 alignLinker(char           *alignA,
@@ -43,29 +64,170 @@ alignLinker(char           *alignA,
             char           *stringB,
             dpCell        (*M)[AS_READ_MAX_LEN],
             alignLinker_s  *a,
-            int             endToEnd, int abeg, int aend) {
+            int             endToEnd, int ahang, int bhang) {
 
   int   lenA = strlen(stringA);
   int   lenB = strlen(stringB);
 
-  int   i, j;
+  //  Definition of the box we want to do dynamic programming in.
+  int   i, ibgn, iend;
+  int   j, jbgn, jend;
 
-  abeg = MAX(0, abeg);
+  //  Set the edges.
 
-  for (i=0; i<lenA+1; i++) {
-    M[i][0].score  = 1 << 29;
-    M[i][0].action = STOP;
-
-    M[i][lenB].score  = 0;
-    M[i][lenB].action = STOP;
+#if 0
+  //  Debug.  Clear everything.
+  for (i=0; i<AS_READ_MAX_LEN; i++) {
+    for (j=0; j<AS_READ_MAX_LEN; j++) {
+      M[i][j].score  = DP_NEGT;
+      M[i][j].action = STOP;
+    }
   }
+#endif
 
-  for (j=0; j<lenB+1; j++) {
-    M[abeg][j].score  = 1 << 29;
-    M[abeg][j].action = STOP;
+  if (endToEnd) {
+    //  Looking for best global-ish alignment.  Hitting ends of
+    //  sequences is deadly, unless they are where we expect to end.
+    //
+    //  Four cases here (+-ahang, +-bhang).  
+    //
+    //  Plus 1 to the bgn -- zero is for the border.
+    //  Plus 0 to the end -- loops iterate till <=.
 
-    M[lenA][j].score  = 0;
-    M[lenA][j].action = STOP;
+    ibgn = (ahang < 0) ? (1) : (ahang+1);
+    iend = (bhang < 0) ? (lenA + bhang) : (lenA);
+    jbgn = (ahang < 0) ? (-ahang+1) : (1);
+    jend = (bhang < 0) ? (lenB) : (lenB - bhang);
+
+    //fprintf(stderr, "bgn: %d,%d  end: %d,%d\n", ibgn, jbgn, iend, jend);
+
+    //  To easily allow a little slip in the starting position, we
+    //  shift the Border of Death a little to the origin.  Ideally, we
+    //  would have instead carved out a little square near the origin,
+    //  which would save us the cost of computing the extra cells
+    //  included in the shift.
+    //
+    //  Note that one of ibgn or jbgn is 1 already, and so the
+    //  following changes only one bgn point.
+
+    ibgn = MAX(1, ibgn - SLOP);
+    jbgn = MAX(1, jbgn - SLOP);
+
+    //  Border of Death
+
+#if 1
+    //  This should be all that is needed.
+    for (i=ibgn-1, j=jbgn-1; i<=iend+1; i++) {
+      M[i][j].score  = DP_NEGT;
+      M[i][j].action = STOP;
+    }
+
+    for (i=ibgn-1, j=jbgn-1; j<=jend+1; j++) {
+      M[i][j].score  = DP_NEGT;
+      M[i][j].action = STOP;
+    }
+#endif
+
+#if 0
+    //  Overkill, box in the D.P.
+    for (i=0, j=jbgn-1; i<AS_READ_MAX_LEN; i++) {
+      M[i][j].score  = DP_NEGT;
+      M[i][j].action = STOP;
+      M[i][0].score  = DP_NEGT;
+      M[i][0].action = STOP;
+    }
+
+    for (i-ibgn-1, j=0; j<AS_READ_MAX_LEN; j++) {
+      M[i][j].score  = DP_NEGT;
+      M[i][j].action = STOP;
+      M[0][j].score  = DP_NEGT;
+      M[0][j].action = STOP;
+    }
+#endif
+
+    //  Successful Alignment.  The alignment hits the start of either
+    //  the A or B sequence.  We allow 2*SLOP change in the expected
+    //  alignment start.  The slop "wraps" around the origin:
+    //
+    //   |
+    //   |     x = the expected end of alignment
+    //  a|     a = allowed end points
+    //  a|
+    //  a|x
+    //  a|
+    //   o-------
+    //  a aa
+    //
+    //  Which means that, in this case, we will allow an alignment
+    //  that was supposed to have a negative ahang to instead have a
+    //  positive ahang.  Simpler case: ahang=0 would insist on an
+    //  alignment going to the origin.  Instead, we allow an alignment
+    //  with a small positive or negative ahang.
+    //
+    //  The 'wrap around' case is needed when the ahang value is
+    //  small.  The extra 2 units of slop are needed to get around the
+    //  origin (see those two gaps between the a's in the figure
+    //  above?)
+
+    assert((ibgn == 1) || (jbgn == 1));
+
+    if (jbgn == 1) {
+      int slop = 2 * SLOP + 1;
+
+      i = ibgn + SLOP;
+      j = jbgn - 1;
+
+      for (; (i >= ibgn-1) && (slop > 0); i--, slop--) {
+        M[i][j].score  = DP_ZERO;
+        M[i][j].action = STOP;
+      }
+
+      if ((i == ibgn-1) && (slop >= 0))
+        slop += 2;
+
+      for (; (slop > 0); j++, slop--) {
+        M[i][j].score  = DP_ZERO;
+        M[i][j].action = STOP;
+      }
+    }
+
+    if (ibgn == 1) {
+      int slop = 2 * SLOP + 1;
+
+      i = ibgn - 1;
+      j = jbgn + SLOP;
+
+      for (; (j >= jbgn-1) && (slop > 0); j--, slop--) {
+        M[i][j].score  = DP_ZERO;
+        M[i][j].action = STOP;
+      }
+
+      if ((j == jbgn-1) && (slop >= 0))
+        slop += 2;
+
+      for (; (slop > 0); i++, slop--) {
+        M[i][j].score  = DP_ZERO;
+        M[i][j].action = STOP;
+      }
+    }
+
+  } else {
+    //  Looking for best local alignment.  Hitting the end of a
+    //  sequence is not deadly.
+
+    ibgn = 1;
+    iend = lenA;
+    jbgn = 1;
+    jend = lenB;
+
+    for (i=ibgn-1, j=jbgn-1; i<=lenA; i++) {
+      M[i][j].score  = DP_ZERO;
+      M[i][j].action = STOP;
+    }
+    for (i=ibgn-1, j=jbgn-1; j<=lenB; j++) {
+      M[i][j].score  = DP_ZERO;
+      M[i][j].action = STOP;
+    }
   }
 
   int   scoreMax  = 0;
@@ -73,42 +235,14 @@ alignLinker(char           *alignA,
   int   endI=0, curI=0;
   int   endJ=0, curJ=0;
 
-  for (i=abeg+1; i<=lenA; i++){
-    int  jb = 1;
-    int  je = lenB;
+  //fprintf(stderr, "%d,%d - %d,%d -- ahang,bhang %d,%d alen,blen %d,%d\n",
+  //        ibgn, jbgn, iend, jend, ahang, bhang, lenA, lenB);
 
-#if 0
-    //  Attempt at further banding; doesn't work.
-    //
-    if (endToEnd) {
-      if (i <= aend) {
-        jb = 1;
-        je = 3 * (i-abeg) / 2;
-      } else {
-        jb = 2 * (i-aend) / 3;
-        je = 3 * (i-abeg) / 2;
-      }
+  assert(ibgn >= 1);
+  assert(jbgn >= 1);
 
-      if (jb < 1)
-        jb = 1;
-
-      if (jb > lenB)
-        jb = lenB;
-      if (je > lenB)
-        je = lenB;
-
-      M[i-1][je].score  = 1 << 29;
-      M[i-1][je].action = STOP;
-
-      M[i-1][jb-1].score  = 1 << 29;
-      M[i-1][jb-1].action = STOP;
-
-      M[i][jb-1].score  = 1 << 29;
-      M[i][jb-1].action = STOP;
-    }
-#endif
-
-    for (j=jb; j<=je; j++){
+  for (i=ibgn; i<=iend; i++){
+    for (j=jbgn; j<=jend; j++){
 
       //  Pick the max of these
 
@@ -116,12 +250,20 @@ alignLinker(char           *alignA,
       int lf = M[i-1][j].score + GAPSCORE;
       int up = M[i][j-1].score + GAPSCORE;
 
-      //  (i,j) is the beginning of a subsequence, our default
-      //  behavior.  If we're looking for local alignments, make the
-      //  alignment stop here.  Otherwise, it's a match.
-      //
-      M[i][j].score  = 1 << 29;
-      M[i][j].action = (endToEnd) ? MATCH : STOP;
+      if (endToEnd) {
+        //  Set score to zero; we will then ALWAYS pick an action
+        //  below.
+        //
+        M[i][j].score  = 0;
+        M[i][j].action = MATCH;
+      } else {
+        //  (i,j) is the beginning of a subsequence, our default
+        //  behavior.  If we're looking for local alignments, make the
+        //  alignment stop here.
+        //
+        M[i][j].score  = DP_ZERO;
+        M[i][j].action = STOP;
+      }
 
       if (M[i][j].score < ul) {
         M[i][j].score  = ul;
@@ -147,19 +289,16 @@ alignLinker(char           *alignA,
   }
 
   //  If we're not looking for local alignments, scan the end points
-  //  for the best value.
-  //
+  //  for the best value.  If we are looking for local alignments,
+  //  we've already found and remembered the best end point.
+
  findAnother:
   if (endToEnd) {
     scoreMax = 0;
     endI     = 0;
     endJ     = 0;
 
-    //  Instead of these, it is somewhat easy to look for an overlap
-    //  with a given ahang,bhang.
-
-    //  Search for the best dovetail overlap
-    for (i=lenA, j=0; j<=lenB; j++) {
+    for (i=ibgn, j=jend; i<=iend; i++) {
       if (scoreMax < M[i][j].score) {
         scoreMax  = M[i][j].score;
         endI = curI = i;
@@ -167,8 +306,7 @@ alignLinker(char           *alignA,
       }
     }
 
-    //  Search for the best contained overlap
-    for (i=MAX(0, abeg), j=lenB; i<=lenA; i++) {
+    for (j=jbgn, i=iend; j<=jend; j++) {
       if (scoreMax < M[i][j].score) {
         scoreMax  = M[i][j].score;
         endI = curI = i;
@@ -179,7 +317,9 @@ alignLinker(char           *alignA,
     M[endI][endJ].score = 0;
   }
 
-  assert(scoreMax > 0);
+  //  Fails if we get stuck in a loop of no good.  We should return
+  //  "no alignment" in this case.
+  assert(scoreMax > DP_ZERO);
 
   int  alignLen  = 0;
   int  matches   = 0;
@@ -222,19 +362,23 @@ alignLinker(char           *alignA,
     }
   }
 
+#if 0
   if (endToEnd) {
-    //  Life would have been so much easier if we got ahang and bhang,
-    //  instead of getting a requested start position in the A
-    //  sequence.
-    //
-    //  One could probably fix this by reversing the sequences then
-    //  aligning.
-    //
-    if ((curI < abeg) || (aend < curI)) {
-      fprintf(stderr, "ANOTHER A %d-%d B %d-%d beg,end %d,%d\n", curI, endI, curJ, endJ, abeg, aend);
+    int   ends=0;
+
+    if ((ahang >= 0) && (bhang >= 0) && (endI == lenA) && (curJ == 0))     ends++;
+    if ((ahang >= 0) && (bhang <= 0) && (curJ == 0)    && (endJ == lenB))  ends++;
+    if ((ahang <= 0) && (bhang >= 0) && (curI == 0)    && (endI == lenA))  ends++;
+    if ((ahang <= 0) && (bhang <= 0) && (curI == 0)    && (curJ == 0))     ends++;
+
+    if (ends == 0) {
+      fprintf(stderr, "No: %d,%d - %d,%d; score=%d findAnother.\n", curI, curJ, endI, endJ, (int)scoreMax - DP_ZERO);
       goto findAnother;
     }
+
+    fprintf(stderr, "Ya: %d,%d - %d,%d; score=%d.\n", curI, curJ, endI, endJ, (int)scoreMax - DP_ZERO);
   }
+#endif
 
   alignA[alignLen] = 0;
   alignB[alignLen] = 0;

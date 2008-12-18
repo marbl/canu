@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.14 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.15 2008-12-18 07:13:22 brianwalenz Exp $";
 
 /* Dynamic programming sequence comparison of two fragments.  General
    purpose utility that uses bit-vector d.p. for detection (see, "A Fast
@@ -54,13 +54,6 @@ static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.14 2008-10-08 22:02:54 b
 #undef     WARN_SHORT
 
 #define  BP_RATIO .25
-
-#define  LD_RATIO .3 /* longer alignments favored over shorter alignments with error up to this;
-			but note that this includes comparing no alignment against any alignment,
-			thus this ratio limits the maximum error rate that can meaningfully be
-			requested of the DP_Compare aligner */
-
-static double ld_ratio = LD_RATIO;
 
 #define  SUBCOST  2 /* Gap and Substitution costs for affine gap aligner */
 #define  GAPCOST  1
@@ -856,7 +849,7 @@ reloop:
    is returned.                                                          */
 
 static int Boundary(char *a, int alen, char *b, int blen,
-                    int beg, int end, int minlen, int *diff)
+                    int beg, int end, int minlen, int *diff, double ld_ratio)
 { int lft,  rgt;
   int lval, rval;
   int prob_thresh;
@@ -1279,16 +1272,16 @@ fprintf(stderr, "Boundary returning (%d, %d)\n",boundval,boundpos);
    one of the diagonals of the d.p. matrix in the interval [beg,end].
    For example if one gives the interval [-10,20], then the overlap
    either has less than the first 20bp of a unaligned or less than the
-   first 10bp of b unaligned.  If the boolean variable opposite is nonzero
+   first 10bp of b unaligned.  If the boolean variable `opposite' is nonzero
    then the fragments are to be aligned in the opposite orientation.  One
-   is assuming an error rate of erate in the sequences, and is guaranteed
+   is assuming an error rate of `erate' in the sequences, and is guaranteed
    to find only alignments for which the number of differences d in each
    prefix of length n is such that
            Sum_k=d^n (n choose k) erate^k (1-erate)^(n-k) < thresh.
    One should note carefully, that alignments not satisfying this property
    may be found, the point is that ones that don't may be missed.
-   In addition, the alignment must involve at least minlen symbols of the
-   prefix-sequence in the overlap.  The option what specifies what kind
+   In addition, the alignment must involve at least `minlen' symbols of the
+   prefix-sequence in the overlap.  The option `what' specifies what kind
    of comparison is to be performed as follows:
 
    AS_FIND_OVERLAP:
@@ -1298,8 +1291,10 @@ fprintf(stderr, "Boundary returning (%d, %d)\n",boundval,boundpos);
    AS_FIND_ALIGN:
       For this option, further go to the trouble of computing the alignment
       and store it in the overlap message.
-   AS_FIND_ALIGN_NO_TRACE
-      A hack by SAK...don't compute delta encoding.
+   AS_FIND_ALIGN_NO_TRACE:
+      For this option, further go to the trouble of computing the alignment
+      and store it in the overlap message.  Don't compute or return the
+      encoded alignment.  A Hack by SAK.
    AS_FIND_AFFINE_ALIGN
       For this option, find the best alignment using an affine gap cost
       measure.  Substitutions cost SUBCOST and gaps of length len cost
@@ -1309,14 +1304,21 @@ fprintf(stderr, "Boundary returning (%d, %d)\n",boundval,boundpos);
       NOT YET IMPLEMENTED.  Will ultimately use quality values to compute
       the best possible alignment.
 
+   As for all other routines, the space for the overlap message is owned
    by the routine, and must be copied if it is to be retained beyond the
-   given call.                                                            */
+   given call.  The routine also returns in the integer pointed at by
+   where, the starting diagonal of the alignment it finds.  While technically
+   this can be inferred from the overlap message, it is easier to take this
+   position directly and see if the returned alignment actually starts
+   in the interval [beg,end].  If it does not, then it calls the initial
+   beg,end range into question.                                            */
 
-OverlapMesg *DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
-                           int beg, int end, int opposite,
-                           double erate, double thresh, int minlen,
-                           CompareOptions what, int *where)
-{
+OverlapMesg *
+DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
+              int beg, int end,
+              int opposite,
+              double erate, double thresh, int minlen,
+              CompareOptions what, int *where) {
   char *aseq, *bseq;
   int  ahang, bhang;
   int  *trace;
@@ -1326,9 +1328,10 @@ OverlapMesg *DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
   aseq = a->sequence;  /* Setup sequence access */
   bseq = b->sequence;
 
-  rawOverlap=DP_Compare(aseq,bseq,beg,end,opposite,erate,thresh,minlen,what);
+  rawOverlap=DP_Compare(aseq,bseq,beg,end,0,0,opposite,erate,thresh,minlen,what);
 
   if(rawOverlap==NULL)return NULL;
+
 
   ahang    = rawOverlap->begpos;
   bhang    = rawOverlap->endpos;
@@ -1378,21 +1381,6 @@ OverlapMesg *DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
 
 
 
-OverlapMesg *LD_DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
-                           int beg, int end, int opposite,
-                           double erate, double thresh, int minlen,
-                           CompareOptions what, int *where, double my_ld_ratio)
-{
-  OverlapMesg *O;
-  double old_ld_ratio=ld_ratio;
-  ld_ratio=my_ld_ratio;
-  O=DP_Compare_AS(a,b,beg,end,opposite,erate,thresh,minlen,what,where);
-  ld_ratio=old_ld_ratio;
-  return(O);
-}
-
-
-
 /* WHAT WAS THE AS_CNS VERSION "DP_Compare()" IS NOW IN HERE */
 
 /* Given fragments a and b, find the best overlap between them subject
@@ -1426,24 +1414,32 @@ OverlapMesg *LD_DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
 
 Overlap *DP_Compare(char *aseq, char *bseq,
                     int beg, int end, int opposite,
+                    int ahang, int bhang,
                     double erate, double thresh, int minlen,
                     CompareOptions what)
 { int   alen,  blen;
-//  int   atop,  btop;
   int   pos1,  pos2;
   int   dif1,  dif2;
 
   static Overlap OVL;
+
   assert(erate>=0&&erate<1);
-  ld_ratio=erate/(1.-erate);
-                             /* we want to balance ld_ratio with erate such that any alignment
-				with mismatch rate <= erate will have mismatches <= ld_ratio * aligned length of one aligned substring;
 
-				max mismatches for a given length is achieved by putting that number of gaps in the short side, i.e.
-				max mismatches = d such that d/(n+d) = erate, i.e. d = n*erate/(1-erate)
+/* longer alignments favored over shorter alignments with error up to this;
+   but note that this includes comparing no alignment against any alignment,
+   thus this ratio limits the maximum error rate that can meaningfully be
+   requested of the DP_Compare aligner */
+//static double ld_ratio = 0.3;
 
-				but we also want d <= ld_ratio * n, or n*erate/(1-erate) <= ld_ratio *n, so ld_ratio >= erate/(1-erate)
-			     */
+  double ld_ratio=erate/(1.-erate);
+  /* we want to balance ld_ratio with erate such that any alignment
+     with mismatch rate <= erate will have mismatches <= ld_ratio * aligned length of one aligned substring;
+
+     max mismatches for a given length is achieved by putting that number of gaps in the short side, i.e.
+     max mismatches = d such that d/(n+d) = erate, i.e. d = n*erate/(1-erate)
+
+     but we also want d <= ld_ratio * n, or n*erate/(1-erate) <= ld_ratio *n, so ld_ratio >= erate/(1-erate)
+  */
 
   alen = strlen(aseq);
   blen = strlen(bseq);
@@ -1472,7 +1468,7 @@ Overlap *DP_Compare(char *aseq, char *bseq,
     if (end > 0 || (beg == 0 && end == 0))
       { mid = beg;
         if (beg < 0) mid = 0;
-        pos1 = Boundary(aseq,alen,bseq,blen,mid,end,minlen,&dif1);
+        pos1 = Boundary(aseq,alen,bseq,blen,mid,end,minlen,&dif1,ld_ratio);
       }
     else
       pos1 = blen;
@@ -1486,7 +1482,7 @@ Overlap *DP_Compare(char *aseq, char *bseq,
     if (beg < 0)
       { mid = end;
         if (end > 0) mid = -1;
-        pos2 = - Boundary(bseq,blen,aseq,alen,-mid,-beg,minlen,&dif2);
+        pos2 = - Boundary(bseq,blen,aseq,alen,-mid,-beg,minlen,&dif2,ld_ratio);
       }
     else
       pos2 = -alen;

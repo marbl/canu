@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: Consensus_CNS.c,v 1.68 2008-11-07 06:13:55 brianwalenz Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.69 2008-12-18 07:13:22 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,7 +38,7 @@ const char *mainid = "$Id: Consensus_CNS.c,v 1.68 2008-11-07 06:13:55 brianwalen
 #include "MultiAlignStore_CNS.h"
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
-#include "AS_ALN_forcns.h"
+#include "AS_ALN_aligners.h"
 
 #define MAX_NUM_UNITIG_FAILURES 100
 #define MAX_NUM_CONTIG_FAILURES 100
@@ -99,7 +99,7 @@ main (int argc, char **argv) {
   int num_contig_skips    = 0;
 
 
-  Overlap *(*COMPARE_FUNC)(COMPARE_ARGS)=Local_Overlap_AS_forCNS;
+  AS_ALN_Aligner *COMPARE_FUNC = Local_Overlap_AS_forCNS;
   CNS_PrintKey printwhat=CNS_STATS_ONLY;
 
   ALIGNMENT_CONTEXT = AS_CONSENSUS;
@@ -325,14 +325,14 @@ main (int argc, char **argv) {
                 iunitig->iaccession,
                 (double)iunitig->num_frags / iunitig->length);
 
-      unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, 0, COMPARE_FUNC, &options);
+      unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, COMPARE_FUNC, &options);
 
       if ((unitigfail == EXIT_FAILURE) &&
           (allow_neg_hang_retry) &&
           (allow_neg_hang == 0)) {
         fprintf(stderr, "MultiAlignUnitig failed for unitig %d -- try again with negative hangs allowed\n", iunitig->iaccession);
         allow_neg_hang = 1;
-        unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, 0, COMPARE_FUNC, &options);
+        unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, COMPARE_FUNC, &options);
         allow_neg_hang = 0;
         if (unitigfail != EXIT_FAILURE)
           NumUnitigRetrySuccess++;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.16 2008-10-13 03:50:53 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.17 2008-12-18 07:13:22 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1142,11 +1142,13 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
 */
 
 
-OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
-                              int beg, int end, int opposite,
-                              double erate, double thresh, int minlen,
-                              CompareOptions what, int *where)
-{ int   alen,  blen;
+OverlapMesg *
+Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
+                 int beg, int end,
+                 int opposite,
+                 double erate, double thresh, int minlen,
+                 CompareOptions what, int *where) {
+  int   alen,  blen;
   char *aseq, *bseq;
   int NumSegs=0;
   int seglen,sumseglen=0;

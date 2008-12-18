@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.14 2008-11-12 12:44:46 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.15 2008-12-18 07:13:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,7 +28,6 @@ static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.14 2008-11-12 12:44:46 bria
 
 #include "AS_global.h"
 #include "AS_ALN_aligners.h"
-#include "AS_ALN_forcns.h"
 #include "AS_ALN_bruteforcedp.h"
 
 #include "AS_UTL_reverseComplement.h"
@@ -82,10 +81,13 @@ static char *safe_copy_Bstring_with_preceding_null(char *in){
 }
 
 
-Overlap *Local_Overlap_AS_forCNS(char *a, char *b,
-                    int beg, int end, int opposite,
-                    double erate, double thresh, int minlen,
-				 CompareOptions what){
+Overlap *
+Local_Overlap_AS_forCNS(char *a, char *b,
+                        int beg, int end,
+                        int ahang, int bhang,
+                        int opposite,
+                        double erate, double thresh, int minlen,
+                        CompareOptions what) {
 
   InternalFragMesg  A = {0}, B = {0};
   OverlapMesg  *O;
@@ -202,10 +204,13 @@ Overlap *Local_Overlap_AS_forCNS(char *a, char *b,
 
 
 
-Overlap *Affine_Overlap_AS_forCNS(char *a, char *b,
-                    int beg, int end, int opposite,
-                    double erate, double thresh, int minlen,
-				 CompareOptions what){
+Overlap *
+Affine_Overlap_AS_forCNS(char *a, char *b,
+                         int beg, int end,
+                         int ahang, int bhang,
+                         int opposite,
+                         double erate, double thresh, int minlen,
+                         CompareOptions what){
   InternalFragMesg  A, B;
   OverlapMesg  *O;
   int alen,blen,del,sub,ins,affdel,affins,blockdel,blockins;
@@ -231,7 +236,7 @@ Overlap *Affine_Overlap_AS_forCNS(char *a, char *b,
   B.iaccession = 2;
   B.eaccession = AS_UID_fromInteger(B.iaccession);
 
-  O =AS_ALN_affine_overlap(&A,&B,beg,end,
+  O =Affine_Overlap_AS(&A,&B,beg,end,
 		       opposite,
 		       erate,
 		       thresh,
@@ -316,10 +321,10 @@ Overlap *Affine_Overlap_AS_forCNS(char *a, char *b,
 
 Overlap *
 Optimal_Overlap_AS_forCNS(char *a, char *b,
-                          int beg, int end, int opposite,
-                          double erate,
-                          double thresh,
-                          int minlen,
+                          int beg, int end,
+                          int ahang, int bhang,
+                          int opposite,
+                          double erate, double thresh, int minlen,
                           CompareOptions what) {
 
   typedef struct {
@@ -348,7 +353,7 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
               b,
               m->h_matrix,
               &al,
-              TRUE, beg, end);
+              TRUE, ahang, bhang);
 
   //fprintf(stderr, "ALIGN %s\n", a);
   //fprintf(stderr, "ALIGN %s\n", b);
@@ -369,13 +374,15 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
   }
 
   if ((al.begJ != 0) && (al.begI != 0)) {
-    fprintf(stderr, "Hmmm.  We failed to find an end-to-end alignment.\n");
+    fprintf(stderr, "Hmmm.  We failed to find an end-to-end alignment.  Discard this alignment.\n");
 
     fprintf(stderr, "ALIGN %s\n", a);
     fprintf(stderr, "ALIGN %s\n", b);
-    fprintf(stderr, "ALIGN %d %d-%d %d-%d opposite=%d\n", al.alignLen, al.begI, al.endI, al.begJ, al.endJ, opposite);
+    fprintf(stderr, "ALIGN len=%d matches=%d %d-%d %d-%d opposite=%d\n", al.alignLen, al.matches, al.begI, al.endI, al.begJ, al.endJ, opposite);
     fprintf(stderr, "ALIGN '%s'\n", m->h_alignA);
     fprintf(stderr, "ALIGN '%s'\n", m->h_alignB);
+
+    //return(NULL);
   }
   assert((al.begJ == 0) || (al.begI == 0));
 

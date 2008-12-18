@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.33 2008-12-05 19:06:12 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.34 2008-12-18 07:13:22 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -610,7 +610,9 @@ Overlap* OverlapSequences( char *seq1, char *seq2,
 
   // min_ahang and end are essentially bounds on the a-hang
   omesg = GlobalData->aligner(seq1, seq2,
-                              min_ahang, max_ahang, (int) flip,
+                              min_ahang, max_ahang,
+                              strlen(seq1), strlen(seq2),
+                              flip,
                               erate, thresh, minlen,
                               what);
 

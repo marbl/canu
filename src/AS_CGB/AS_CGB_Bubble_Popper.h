@@ -22,12 +22,12 @@
 #ifndef _AS_CGB_BUBBLE_POPPER_H_
 #define _AS_CGB_BUBBLE_POPPER_H_
 
-static const char *rcsid__AS_CGB_BUBBLE_POPPER_H_ = "$Id: AS_CGB_Bubble_Popper.h,v 1.8 2008-11-11 16:22:26 brianwalenz Exp $";
+static const char *rcsid__AS_CGB_BUBBLE_POPPER_H_ = "$Id: AS_CGB_Bubble_Popper.h,v 1.9 2008-12-18 07:13:22 brianwalenz Exp $";
 
 /* The bubble popper will REJECT bubbles with more than this many fragments! */
 #define POPPER_MAX_BUBBLE_SIZE 200
 
-/* The parameters for the AS_ALN_affine_overlap() function (should
+/* The parameters for the Affine_Overlap_AS() function (should
    eventually become a CGB parameters). */
 #define POPPER_ALN_ERATE    AS_READ_ERROR_RATE
 #define POPPER_ALN_THRESH   1e-6

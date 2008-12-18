@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.35 2008-12-05 19:06:12 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.36 2008-12-18 07:13:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -916,7 +916,6 @@ StoreIUMStruct(ScaffoldGraphT *graph,
                                     is->quality,
                                     is->deltas,
                                     CNS_STATS_ONLY,
-                                    0,
                                     Local_Overlap_AS_forCNS, // DP_Compare
                                     NULL);
 
@@ -934,40 +933,12 @@ StoreIUMStruct(ScaffoldGraphT *graph,
                                   is->quality,
                                   is->deltas,
                                   CNS_STATS_ONLY,
-                                  0,
                                   Local_Overlap_AS_forCNS, // DP_Compare
                                   NULL);
     VERBOSE_MULTIALIGN_OUTPUT = ov;
     allow_neg_hang            = oh;
   }
 
-  //  Whoops!  Failed!  Unlike consensus does, we'll also try to
-  //  force the fragment (2007-12-07).
-  //
-#if 0
-  //  Not sure if the forcing was doing anything appropriate.  It
-  //  would try to get an overlap (and a trace), fail, but then
-  //  proceed to apply the (bogus) trace to align the fragment.
-  //  (2008-11-05)
-  //
-  if (unitigFail) {
-    int  ov = VERBOSE_MULTIALIGN_OUTPUT, of=allow_forced_frags;
-
-    VERBOSE_MULTIALIGN_OUTPUT = 1;
-    allow_forced_frags        = 1;
-    unitigFail = MultiAlignUnitig(&(is->ium),
-                                  ScaffoldGraph->gkpStore,
-                                  is->sequence,
-                                  is->quality,
-                                  is->deltas,
-                                  CNS_STATS_ONLY,
-                                  0,
-                                  Local_Overlap_AS_forCNS, // DP_Compare
-                                  NULL);
-    VERBOSE_MULTIALIGN_OUTPUT = ov;
-    allow_forced_frags        = of;
-  }
-#endif
 
   if (unitigFail) {
     fprintf(GlobalData->stderrc, "FATAL ERROR: MultiAlignUnitig call failed in unitig splitting.\n");

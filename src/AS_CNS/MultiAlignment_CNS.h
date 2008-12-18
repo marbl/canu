@@ -21,14 +21,14 @@
 #ifndef MULTIALIGNMENT_CNS_INCLUDE
 #define MULTIALIGNMENT_CNS_INCLUDE
 
-static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.42 2008-12-11 22:17:20 skoren Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.43 2008-12-18 07:13:22 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_SDB_SequenceDB.h"
 #include "MultiAlignStore_CNS.h"
-#include "AS_ALN_forcns.h"
+#include "AS_ALN_aligners.h"
 
 #define CNS_MIN_QV 0
 #define CNS_MAX_QV 60
@@ -36,8 +36,6 @@ static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h
 #define CNS_NALPHABET 7
 #define CNS_NALPHABET_NULL_ARRAY {0, 0, 0, 0, 0, 0, 0}
 #define CNS_NP 32
-
-#define COMPARE_ARGS char *aseq, char *bseq, int beg, int end, int opposite, double erate, double thresh, int minlen, CompareOptions what
 
 #define MIN_SIZE_OF_MANODE 10000
 #define BC_MAX(a,b)  (((a)>(b))?(a):(b))
@@ -92,7 +90,7 @@ MultiAlignT *MergeMultiAlignsFast_new(tSequenceDB *,
                                       VA_TYPE(IntElementPos) *,
                                       int,
                                       int,
-                                      Overlap *(*)(COMPARE_ARGS),
+                                      AS_ALN_Aligner *COMPARE_FUNC,
                                       CNS_Options *opp);
 
 MultiAlignT *ReplaceEndUnitigInContig(tSequenceDB *,
@@ -100,7 +98,7 @@ MultiAlignT *ReplaceEndUnitigInContig(tSequenceDB *,
                                       uint32,
                                       uint32,
                                       int,
-                                      Overlap *(*)(COMPARE_ARGS),
+                                      AS_ALN_Aligner *COMPARE_FUNC,
                                       CNS_Options *opp);
 
 
@@ -110,8 +108,7 @@ int MultiAlignUnitig(IntUnitigMesg *,
                      VA_TYPE(char) *,
                      VA_TYPE(int32) *,
                      CNS_PrintKey,
-                     int,
-                     Overlap *(*)(COMPARE_ARGS),
+                     AS_ALN_Aligner *COMPARE_FUNC,
                      CNS_Options *opp);
 
 int MultiAlignContig(IntConConMesg *,
@@ -119,7 +116,7 @@ int MultiAlignContig(IntConConMesg *,
                      VA_TYPE(char) *,
                      VA_TYPE(int32) *,
                      CNS_PrintKey ,
-                     Overlap *(*)(COMPARE_ARGS),
+                     AS_ALN_Aligner *COMPARE_FUNC,
                      CNS_Options *opp);
 
 int MultiAlignContig_ReBasecall(MultiAlignT *,

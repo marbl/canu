@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: greedyFragmentTiling.c,v 1.16 2008-11-10 15:21:37 skoren Exp $";
+const char *mainid = "$Id: greedyFragmentTiling.c,v 1.17 2008-12-18 07:13:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,7 +40,6 @@ const char *mainid = "$Id: greedyFragmentTiling.c,v 1.16 2008-11-10 15:21:37 sko
 #include "CommonREZ.h"
 #include "RepeatRez.h"
 #include "AS_ALN_aligners.h"
-#include "AS_ALN_forcns.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_Hash.h"
 #include "AS_OVS_overlapStore.h"

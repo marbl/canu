@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildRefContigs.C,v 1.3 2008-11-01 03:17:53 brianwalenz Exp $";
+const char *mainid = "$Id: buildRefContigs.C,v 1.4 2008-12-18 07:13:22 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -620,7 +620,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-m") == 0) {
       mappingFileName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-m") == 0) {
+    } else if (strcmp(argv[arg], "-minoverlap") == 0) {
       minOverlap = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-U") == 0) {

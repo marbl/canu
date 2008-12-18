@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimChe.c,v 1.7 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id: chimChe.c,v 1.8 2008-12-18 07:13:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -590,7 +590,14 @@ int main(int argc, char *argv[])
 	// below, .9 fudge factor may be necessary to handle cases where some matching kmers are random out of order matches
 	int minovl=simplescore *.9;
 	while(erate<.4){
-	  ovl = DP_Compare(Seqs[i],SeqsB[bestsimple],-lenB[bestsimple]+minovl,len[i]-minovl,0,erate,1e-6,maxim(minlen,minovl),AS_FIND_LOCAL_ALIGN_NO_TRACE);
+	  ovl = DP_Compare(Seqs[i], SeqsB[bestsimple],
+                           -lenB[bestsimple]+minovl, len[i]-minovl,
+                           strlen(Seqs[i]), strlen(SeqsB[bestsimple]),
+                           0,
+                           erate,
+                           1e-6,
+                           maxim(minlen,minovl),
+                           AS_FIND_LOCAL_ALIGN_NO_TRACE);
 	  if(ovl!=NULL)break;
 	  erate*=2.;
 	}
@@ -653,7 +660,14 @@ int main(int argc, char *argv[])
 	int minovl=hitCounts[bestloc][bestfront]*.9;
 	if(bestfront!=bestsimple){
 	  while(erate<.4){
-	    ovl = DP_Compare(Seqs[i],SeqsB[bestfront],-lenB[bestfront]+minovl,len[i]-minovl,0,erate,1e-6,maxim(minlen,minovl),AS_FIND_LOCAL_ALIGN_NO_TRACE);
+	    ovl = DP_Compare(Seqs[i], SeqsB[bestfront],
+                             -lenB[bestfront]+minovl, len[i]-minovl,
+                             strlen(Seqs[i]), strlen(SeqsB[bestfront]),
+                             0,
+                             erate,
+                             1e-6,
+                             maxim(minlen,minovl),
+                             AS_FIND_LOCAL_ALIGN_NO_TRACE);
 	    if(ovl!=NULL)break;
 	    erate*=2.;
 	  }
@@ -681,7 +695,14 @@ int main(int argc, char *argv[])
 	if(bestback!=bestsimple){
 	  //	  fprintf(stderr,"initial settings: backstart, backend to %d %d\n",backstart,backend);
 	  while(erate<.4){
-	    ovl = DP_Compare(Seqs[i],SeqsB[bestback],-lenB[bestback],len[i],0,erate,1e-6,maxim(minlen,minovl),AS_FIND_LOCAL_ALIGN_NO_TRACE);
+	    ovl = DP_Compare(Seqs[i], SeqsB[bestback],
+                             -lenB[bestback], len[i],
+                             strlen(Seqs[i]), strlen(SeqsB[bestback]),
+                             0,
+                             erate,
+                             1e-6,
+                             maxim(minlen,minovl),
+                             AS_FIND_LOCAL_ALIGN_NO_TRACE);
 	    //ovl = DP_Compare(Seqs[i],SeqsB[bestback],-lenB[bestback],len[i],0,erate,1e-6,40,AS_FIND_LOCAL_ALIGN_NO_TRACE);
 	    if(ovl!=NULL)break;
 	    erate*=2.;
