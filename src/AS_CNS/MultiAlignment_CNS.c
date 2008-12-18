@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.209 2008-12-05 19:06:12 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.210 2008-12-18 06:52:07 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -6044,166 +6044,221 @@ char GetBase(int s) {
   return *Getchar(sequenceStore,s);
 }
 
-int ApplyAbacus(Abacus *a, CNS_Options *opp)
-{
-  Column *column;
-  int columns=0;
-  int32 bid,eid,i;
-  char a_entry;
-  double fict_var;   // variation is a column
-  Bead *bead,*exch_bead;
+void
+ApplyAbacus(Abacus *a, CNS_Options *opp) {
+  Column    *column;
+  int        columns=0;
+  char       a_entry;
+  double     fict_var;   // variation is a column
   VarRegion  vreg;
 
+  int32 bid = -1;  //  ALWAYS the id of bead
+  int32 eid = -1;  //  ALWAYS the id of exch
+
+  Bead *bead = NULL;
+  Bead *exch = NULL;
+
+  char base;
+
   SetDefault(&vreg);
-  if ( a->shift == LEFT_SHIFT)
-    {
-      column = GetColumn(columnStore,a->start_column);
-      assert(column != NULL);
-      while (columns<a->window_width)
-        {
-          char base;
-          bid = GetBead(beadStore,column->call)->down;
-          while ( bid != -1 )
-            {
-              // Update all beads in a given column
-              bead = GetBead(beadStore,bid);
-              i =  *Getint32(abacus_indices,bead->frag_index) - 1;
-              a_entry = *GetAbacus(a,i,columns);
-              if ( a_entry == 'n')
-                {
-                  exch_bead = GetBead(beadStore,bead->up);
-                  //fprintf(stderr,"Unaligning trailing gaps from %d.\n",bid);
-                  UnAlignTrailingGapBeads(bid);
-                }
-              else if ( a_entry != *Getchar(sequenceStore,bead->soffset))
-                {
-                  //  Look for matching bead in frag and exchange
-                  exch_bead = GetBead(beadStore,bead->boffset);
-                  if ( NULL == exch_bead ) {
-                    //fprintf(stderr,"Uh-oh... out of beads in fragment. (LEFT_SHIFT)\n");
-                    eid = AppendGapBead(bead->boffset);
-                    //fprintf(stderr,"Adding gapbead %d\n",eid);
-                    AlignBeadToColumn(GetColumn(columnStore,bead->column_index)->next,eid);
-                    exch_bead = GetBead(beadStore,eid);
-                  }
-                  while (  a_entry != *Getchar(sequenceStore,exch_bead->soffset))
-                    {
-                      if (exch_bead->next == -1 ) {
-                        //fprintf(stderr,"Uh-oh... out of beads in fragment. (LEFT_SHIFT)\n");
-                        eid = AppendGapBead(exch_bead->boffset);
-                        //fprintf(stderr,"Adding gapbead %d\n",eid);
-                        AlignBeadToColumn(GetColumn(columnStore,exch_bead->column_index)->next,eid);
-                      } else if (exch_bead->column_index == a->end_column) {
-                        //fprintf(stderr,"Uh-oh... out of beads in window. (LEFT_SHIFT)\n");
-                        eid = AppendGapBead(exch_bead->boffset);
-                        //fprintf(stderr,"Adding gapbead %d\n",eid);
-                        // ColumnAppend(exch_bead->column_index,eid);
-                        { // mods (ALH) to handle reallocation of columnStore
-                          int32 off   = 0;
-                          int curridx = column->lid;
 
-                          // remember bead offset in case realloc() moves the
-                          // memory and exch_bead becomes a stale pointer
-                          off = exch_bead->boffset;
-                          ColumnAppend(exch_bead->column_index,eid);
-                          exch_bead = GetBead(beadStore, off);
+  if (a->shift == LEFT_SHIFT) {
+    column = GetColumn(columnStore,a->start_column);
+    assert(column != NULL);
 
-                          column=GetColumn(columnStore,curridx);
-                        }
-                      }
-                      exch_bead = GetBead(beadStore,exch_bead->next);
-                    }
-                  /*
-                     fprintf(stderr,"LeftShifting bead %d (%c) with bead %d (%c).\n",
-                     bid, *Getchar(sequenceStore,GetBead(beadStore,bid)->soffset),
-                     exch_bead->boffset, *Getchar(sequenceStore,GetBead(beadStore,exch_bead->boffset)->soffset));
-                  */
-                  LeftEndShiftBead(bid,exch_bead->boffset);
-                } else {
-                exch_bead = bead; // no exchange necessary;
-              }
-              bid = exch_bead->down;
-              /*
-                fprintf(stderr,"New bid is %d (%c), from %d down\n",
-                bid, (bid > -1)?*Getchar(sequenceStore,GetBead(beadStore,bid)->soffset):'n',
-                exch_bead->boffset);
-              */
-            }
-          BaseCall(column->lid, 1, &fict_var, &vreg, -1, &base, 0, 0, opp);
-          column = GetColumn(columnStore,column->next);
-          columns++;
-        }
-    }
-  else if ( a->shift == RIGHT_SHIFT)
-    {
-      column = GetColumn(columnStore,a->end_column);
-      assert(column != NULL);
-      while (columns<a->window_width) {
-        char base;
-        bid = GetBead(beadStore,column->call)->down;
-        while ( bid != -1 ) {
-          bead = GetBead(beadStore,bid);
-          i =  *Getint32(abacus_indices,bead->frag_index) - 1;
-          a_entry = *GetAbacus(a,i,a->columns-columns-1);
-          if ( a_entry == 'n' ) {
-            exch_bead = GetBead(beadStore,bead->up);
-            //fprintf(stderr,"Unaligning trailing gaps from %d.\n",bid);
-            UnAlignTrailingGapBeads(bid);
-          } else if ( a_entry != *Getchar(sequenceStore,bead->soffset)) {
-            //  Look for matching bead in frag and exchange
-            exch_bead = GetBead(beadStore,bead->boffset);
-            if ( NULL == exch_bead ) {
-              //fprintf(stderr,"Uh-oh... out of beads in fragment. (RIGHT_SHIFT)\n");
-              eid = PrependGapBead(bead->boffset);
-              //fprintf(stderr,"Adding gapbead %d\n",eid);
+    while (columns < a->window_width) {
+      bid = GetBead(beadStore,column->call)->down;
+#ifdef DEBUG_APPLYABACUS
+      fprintf(stderr, "0; bid=%d eid=%d\n", bid, eid);
+#endif
 
-              AlignBeadToColumn(GetColumn(columnStore,bead->column_index)->prev,eid);
-              exch_bead = GetBead(beadStore,eid);
-            }
+      // Update all beads in a given column
 
-            while (  a_entry != *Getchar(sequenceStore,exch_bead->soffset)) {
-              int exchbeadprev = exch_bead->prev;
+      while (bid != -1) {
+        bead = GetBead(beadStore,bid);
+        a_entry = *GetAbacus(a, *Getint32(abacus_indices,bead->frag_index) - 1, columns);
 
-              if (exch_bead->prev == -1 ) {
-                //fprintf(stderr,"Uh-oh... out of beads in fragment. (RIGHT_SHIFT)\n");
-                exchbeadprev = eid = PrependGapBead(exch_bead->boffset);
-                //fprintf(stderr,"Adding gapbead %d\n",eid);
-                AlignBeadToColumn(GetColumn(columnStore,exch_bead->column_index)->prev,eid);
-              } else if (exch_bead->column_index == a->start_column) {
-                //fprintf(stderr,"Uh-oh... out of beads in window. (RIGHT_SHIFT)\n");
-                exchbeadprev = eid = AppendGapBead(exch_bead->prev);
-                //fprintf(stderr,"Adding gapbead %d\n",eid);
+#ifdef DEBUG_APPLYABACUS
+        fprintf(stderr, "a_entry=%c bead=%c\n", a_entry, *Getchar(sequenceStore,bead->soffset));
+#endif
 
-                {// ALH's change to fix reallocation of column store
-                  int curridx = column->lid;
-                  ColumnAppend(GetColumn(columnStore,exch_bead->column_index)->prev,eid);
-                  column = GetColumn(columnStore, curridx);
-                }
-              }
-              exch_bead = GetBead(beadStore, exchbeadprev);
-            }
-            /*
-              fprintf(stderr,"RightShifting bead %d (%c) with bead %d (%c).\n",
-              exch_bead->boffset, *Getchar(sequenceStore,GetBead(beadStore,exch_bead->boffset)->soffset),
-              bid, *Getchar(sequenceStore,GetBead(beadStore,bid)->soffset));
-            */
-            RightEndShiftBead(exch_bead->boffset,bid);
-          } else {
-            exch_bead = bead; // no exchange necessary;
+        if (a_entry == 'n') {
+          eid  = bead->up;
+          exch = GetBead(beadStore, eid);
+#ifdef DEBUG_APPLYABACUS
+          fprintf(stderr, "1; bid=%d eid=%d\n", bid, eid);
+#endif
+          UnAlignTrailingGapBeads(bid);
+
+        } else if (a_entry != *Getchar(sequenceStore,bead->soffset)) {
+          //  Look for matching bead in frag and exchange
+          eid  = bead->boffset;
+          exch = GetBead(beadStore,eid);
+
+#ifdef DEBUG_APPLYABACUS
+          fprintf(stderr, "2; bid=%d eid=%d\n", bid, eid);
+#endif
+
+          if (NULL == exch) {
+            eid = AppendGapBead(bead->boffset);
+            bead = GetBead(beadStore, bid);
+            AlignBeadToColumn(GetColumn(columnStore,bead->column_index)->next,eid);
+            exch = GetBead(beadStore, eid);
           }
-          bid = exch_bead->down;
-          /*
-            fprintf(stderr,"New bid is %d (%c), from %d down\n",
-            bid, (bid>-1)?*Getchar(sequenceStore,GetBead(beadStore,bid)->soffset):'n',
-            exch_bead->boffset);
-          */
+
+#ifdef DEBUG_APPLYABACUS
+          fprintf(stderr, "3; bid=%d eid=%d\n", bid, eid);
+#endif
+
+          while (a_entry != *Getchar(sequenceStore,exch->soffset)) {
+            int eidp = exch->next;
+
+            if (exch->next == -1) {
+              eidp = AppendGapBead(exch->boffset);
+              bead = GetBead(beadStore, bid);
+              exch = GetBead(beadStore, eid);
+              AlignBeadToColumn(GetColumn(columnStore,exch->column_index)->next,eidp);
+#ifdef DEBUG_APPLYABACUS
+              fprintf(stderr, "4; bid=%d eid=%d\n", bid, eid);
+#endif
+
+            } else if (exch->column_index == a->end_column) {
+              eidp = AppendGapBead(exch->boffset);
+              bead = GetBead(beadStore, bid);
+              exch = GetBead(beadStore, eid);
+#ifdef DEBUG_APPLYABACUS
+              fprintf(stderr, "5; bid=%d eid=%d\n", bid, eid);
+#endif
+
+              int cid = column->lid;
+              ColumnAppend(exch->column_index,eidp);
+              column = GetColumn(columnStore, cid);
+            }
+
+#ifdef DEBUG_APPLYABACUS
+            fprintf(stderr, "6; bid=%d eid=%d b col/frg=%d/%d e_col/frg=%d/%d\n",
+                    bid, eid,
+                    bead->column_index, bead->frag_index,
+                    exch->column_index, exch->frag_index);
+#endif
+
+            eid  = eidp;
+            exch = GetBead(beadStore,eid);
+          }
+
+#ifdef DEBUG_APPLYABACUS
+          fprintf(stderr,"LeftShifting bead %d (%c) with bead %d (%c).\n",
+                  bid, *Getchar(sequenceStore,bead->soffset),
+                  eid, *Getchar(sequenceStore,exch->soffset));
+#endif
+
+          LeftEndShiftBead(bid, eid);
+        } else {
+          // no exchange necessary;
+          eid  = bid;
+          exch = bead;
+
+#ifdef DEBUG_APPLYABACUS
+          fprintf(stderr, "7; bid=%d eid=%d\n", bid, eid);
+#endif
         }
-        BaseCall(column->lid, 1, &fict_var, &vreg, -1, &base, 0, 0, opp);
-        column = GetColumn(columnStore,column->prev);
-        columns++;
+
+        bid  = exch->down;
+        bead = NULL;
+
+#ifdef DEBUG_APPLYABACUS
+        fprintf(stderr,"New bid is %d (%c), from %d down\n",
+                bid, (bid > -1)?*Getchar(sequenceStore,GetBead(beadStore,bid)->soffset):'n',
+                eid);
+#endif
       }
+
+      //  End of update; call base now.
+
+      BaseCall(column->lid, 1, &fict_var, &vreg, -1, &base, 0, 0, opp);
+
+      column = GetColumn(columnStore,column->next);
+      columns++;
     }
-  return 1;
+  }
+
+
+  if (a->shift == RIGHT_SHIFT) {
+    column = GetColumn(columnStore,a->end_column);
+    assert(column != NULL);
+
+    while (columns<a->window_width) {
+      bid = GetBead(beadStore,column->call)->down;
+
+      while (bid != -1) {
+        bead = GetBead(beadStore,bid);
+        a_entry = *GetAbacus(a, *Getint32(abacus_indices,bead->frag_index) - 1, a->columns-columns-1);
+
+        if (a_entry == 'n') {
+          eid  = bead->up;
+          exch = GetBead(beadStore, eid);
+          UnAlignTrailingGapBeads(bid);
+        } else if (a_entry != *Getchar(sequenceStore,bead->soffset)) {
+          //  Look for matching bead in frag and exchange
+          eid  = bead->boffset;
+          exch = GetBead(beadStore, eid);
+
+          if (NULL == exch) {
+            eid  = PrependGapBead(bead->boffset);
+            bead = GetBead(beadStore, bid);
+            exch = GetBead(beadStore, eid);
+            AlignBeadToColumn(GetColumn(columnStore,bead->column_index)->prev,eid);
+          }
+
+          while (a_entry != *Getchar(sequenceStore,exch->soffset)) {
+            int eidp = exch->prev;
+
+            if (exch->prev == -1) {
+              eidp = PrependGapBead(exch->boffset);
+              bead = GetBead(beadStore, bid);
+              exch = GetBead(beadStore, eid);
+              AlignBeadToColumn(GetColumn(columnStore,exch->column_index)->prev,eid);
+            } else if (exch->column_index == a->start_column) {
+              eidp = AppendGapBead(exch->prev);
+              bead = GetBead(beadStore, bid);
+              exch = GetBead(beadStore, eid);
+
+              int cid = column->lid;
+              ColumnAppend(GetColumn(columnStore,exch->column_index)->prev,eid);
+              column = GetColumn(columnStore, cid);
+            }
+
+            eid  = eidp;
+            exch = GetBead(beadStore, eid);
+          }
+
+#ifdef DEBUG_APPLYABACUS
+          fprintf(stderr,"RightShifting bead %d (%c) with bead %d (%c).\n",
+                  eid, *Getchar(sequenceStore,exch->soffset),
+                  bid, *Getchar(sequenceStore,bead->soffset));
+#endif
+
+          RightEndShiftBead(eid, bid);
+        } else {
+          eid  = bid;
+          exch = bead; // no exchange necessary;
+        }
+
+        bid  = exch->down;
+        bead = NULL;
+
+#ifdef DEBUG_APPLYABACUS
+        fprintf(stderr,"New bid is %d (%c), from %d down\n",
+                bid, (bid>-1)?*Getchar(sequenceStore,GetBead(beadStore,bid)->soffset):'n',
+                eid);
+#endif
+      }
+
+      BaseCall(column->lid, 1, &fict_var, &vreg, -1, &base, 0, 0, opp);
+      column = GetColumn(columnStore,column->prev);
+      columns++;
+    }
+  }
 }
 
 int IdentifyWindow(Column **start_column, int *stab_bgn, CNS_RefineLevel level)
