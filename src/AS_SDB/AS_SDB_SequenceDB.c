@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_SDB_SequenceDB.c,v 1.21 2008-12-05 19:06:12 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_SDB_SequenceDB.c,v 1.22 2008-12-18 06:28:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -287,7 +287,13 @@ updateMultiAlignTInSequenceDB(tSequenceDB *db,
   assert(maRecord != NULL);
 
   if (keepInCache)
+    //  Load the object into the cache if told to....
     SetMultiAlignInStore(maStore, index, ma);
+  else
+    //  ...otherwise, remove any object already in the cache.  The
+    //  removal invalidates the pointers (but not the sequence data)
+    //  in the multialign.
+    RemoveMultiAlignFromStore(maStore, index);
 
   AS_UTL_fseek(db->dataFile[db->currentRevision], 0, SEEK_END);
 
