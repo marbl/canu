@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.211 2008-12-18 07:13:22 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.212 2008-12-19 07:52:04 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1157,19 +1157,6 @@ LateralExchangeBead(int32 lid, int32 rid) {
 
         if (ibead->boffset == rid)
           break;
-
-        ibead = GetBead(beadStore,ibead->down);
-        fprintf(stderr, "down %c boffset=%d prev=%d next=%d up=%d down=%d fragindex=%d colulmnindex=%d\n",
-                *Getchar(sequenceStore,ibead->soffset),
-                ibead->boffset,
-                ibead->prev,
-                ibead->next,
-                ibead->up,
-                ibead->down,
-                ibead->frag_index,
-                ibead->column_index);
-        ibead = GetBead(beadStore,ibead->up);
-
 
         if (limit-- == 0)
           break;
@@ -6316,14 +6303,14 @@ ApplyAbacus(Abacus *a, CNS_Options *opp) {
               eidp = PrependGapBead(exch->boffset);
               bead = GetBead(beadStore, bid);
               exch = GetBead(beadStore, eid);
-              AlignBeadToColumn(GetColumn(columnStore,exch->column_index)->prev,eid);
+              AlignBeadToColumn(GetColumn(columnStore,exch->column_index)->prev,eidp);
             } else if (exch->column_index == a->start_column) {
               eidp = AppendGapBead(exch->prev);
               bead = GetBead(beadStore, bid);
               exch = GetBead(beadStore, eid);
 
               int cid = column->lid;
-              ColumnAppend(GetColumn(columnStore,exch->column_index)->prev,eid);
+              ColumnAppend(GetColumn(columnStore,exch->column_index)->prev,eidp);
               column = GetColumn(columnStore, cid);
             }
 
@@ -8511,6 +8498,8 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
           bhang = 0;
         }
         SeedMAWithFragment(ma->lid,aid,0, opp);
+
+#warning bogus bhang
 
         //  do the alignment
         olap_success = GetAlignmentTrace(aid, 0,bid,&ahang,&bhang,ovl,trace,&otype, DP_Compare,DONT_SHOW_OLAP,0);
