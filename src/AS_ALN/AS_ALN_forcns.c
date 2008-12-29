@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.15 2008-12-18 07:13:22 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.16 2008-12-29 06:35:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +31,9 @@ static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.15 2008-12-18 07:13:22 bria
 #include "AS_ALN_bruteforcedp.h"
 
 #include "AS_UTL_reverseComplement.h"
+
+#undef DEBUG_GENERAL
+#undef DEBUG_SHOW_TRACE
 
 #define AFFINE_QUALITY   /* overlap diff and length reported in affine terms */
 
@@ -97,6 +100,10 @@ Local_Overlap_AS_forCNS(char *a, char *b,
   static Overlap o;
   int where=0;
 
+#ifdef DEBUG_GENERAL
+  fprintf(stderr, "Local_Overlap_AS_forCNS()--  Begins\n");
+#endif
+
   if (erate > AS_MAX_ERROR_RATE)
     fprintf(stderr, "WARNING:  erate=%f >= AS_MAX_ERROR_RATE=%f\n", erate, (double)AS_MAX_ERROR_RATE);
   assert((0.0 <= erate) && (erate <= 4 * AS_MAX_ERROR_RATE));
@@ -147,6 +154,10 @@ Local_Overlap_AS_forCNS(char *a, char *b,
 
   o.trace = O->alignment_trace;
 
+#ifdef DEBUG_GENERAL
+  fprintf(stderr, "aifrag=%d bifrag=%d ahg=%d bhg=%d\n", O->aifrag, O->bifrag, O->ahg, O->bhg);
+#endif
+
   if(O->aifrag==2){/*The OverlapMesg gives b first for nonnegative ahang*/
     int i=0;
     while(o.trace[i]!=0){
@@ -174,7 +185,9 @@ Local_Overlap_AS_forCNS(char *a, char *b,
     int fullLenA = strlen(a);
     int fullLenB = strlen(b);
     char c;
-    //fprintf(stderr, "Trace (lens %d %d):",fullLenA,fullLenB);
+#ifdef DEBUG_SHOW_TRACE
+    fprintf(stderr, "Local_Overlap_AS_forCNS Trace (lens %d %d):",fullLenA,fullLenB);
+#endif
     while(o.trace[i]!=0){
       c='*';
       if(o.trace[i]<-fullLenA){
@@ -189,15 +202,22 @@ Local_Overlap_AS_forCNS(char *a, char *b,
 	c=' ';
 	o.trace[j++]=o.trace[i];
       }
-      //fprintf(stderr, " %c%d",c,o.trace[i]);
+#ifdef DEBUG_SHOW_TRACE
+      fprintf(stderr, " %c%d",c,o.trace[i]);
+#endif
       i++;
     }
-    //fprintf(stderr, "\n");
+#ifdef DEBUG_SHOW_TRACE
+    fprintf(stderr, "\n");
+#endif
     o.trace[j]=0;
     o.begpos+=changeahang;
     o.endpos+=changebhang;
   }
 
+#ifdef DEBUG_GENERAL
+  fprintf(stderr, "Local_Overlap_AS_forCNS()--  Ends\n");
+#endif
 
   return(&o);
 }
@@ -220,6 +240,10 @@ Affine_Overlap_AS_forCNS(char *a, char *b,
   int AFFINEBLOCKSIZE=4;
   int where=0;
   static Overlap o;
+
+#ifdef DEBUG_GENERAL
+  fprintf(stderr, "Affine_Overlap_AS_forCNS()--  Begins\n");
+#endif
 
   assert((0.0 <= erate) && (erate <= AS_MAX_ERROR_RATE));
 
@@ -314,6 +338,10 @@ Affine_Overlap_AS_forCNS(char *a, char *b,
 
   AS_ALN_TEST_NUM_INDELS = orig_TEST_NUM_INDELS;
 
+#ifdef DEBUG_GENERAL
+  fprintf(stderr, "Affine_Overlap_AS_forCNS()--  Ends\n");
+#endif
+
   return(&o);
 }
 
@@ -341,6 +369,10 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
 
   if (m == NULL)
     m = safe_malloc(sizeof(dpMatrix));
+
+#ifdef DEBUG_GENERAL
+  fprintf(stderr, "Optimal_Overlap_AS_forCNS()--  Begins\n");
+#endif
 
   assert((0.0 <= erate) && (erate <= AS_MAX_ERROR_RATE));
 
@@ -418,13 +450,18 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
 
     m->h_trace[tp] = 0;
 
-    //fprintf(stderr, "trace");
-    //for (x=0; x<tp; x++)
-    //  fprintf(stderr, " %d", m->h_trace[x]);
-    //fprintf(stderr, "\n");
+#ifdef DEBUG_SHOW_TRACE
+    fprintf(stderr, "trace");
+    for (x=0; x<tp; x++)
+      fprintf(stderr, " %d", m->h_trace[x]);
+    fprintf(stderr, "\n");
+#endif
   }
 
-  //fprintf(stderr, "ERATE:   diffs=%d / length=%d = %f\n", o.diffs, o.length, (double)o.diffs / o.length);
+#ifdef DEBUG_GENERAL
+  fprintf(stderr, "ERATE:   diffs=%d / length=%d = %f\n", o.diffs, o.length, (double)o.diffs / o.length);
+  fprintf(stderr, "Optimal_Overlap_AS_forCNS()--  Ends\n");
+#endif
 
   if ((double)o.diffs / o.length <= erate)
     return(&o);
