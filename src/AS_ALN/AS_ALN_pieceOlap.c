@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_pieceOlap.c,v 1.10 2008-10-11 13:51:46 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_pieceOlap.c,v 1.11 2008-12-29 06:49:05 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -336,6 +336,8 @@ void fix_overlapping_pieces(char *aseq, char *bseq,
   assert(O->chain[piece0].piece.aepos<=O->chain[piece1].piece.aepos);
   assert(O->chain[piece0].piece.bepos<=O->chain[piece1].piece.bepos);
 
+  assert(piece0 < piece1);
+
 #ifdef DEBUG_FIX_OLAP
 fprintf(stderr,"fixing gap(%d,%d) (%d,%d)---(%d,%d) vs. gap(%d,%d)  (%d,%d)---(%d,%d)\n",
 	O->chain[piece0].agap,	O->chain[piece0].bgap,
@@ -391,7 +393,7 @@ fprintf(stderr," ... overlap between segments disappeared in perfecting\n"
 fprintf(stderr,"Fixing by deleting second segment since apparently contained (pieces %d %d)!\n",piece0,piece1);
 #endif
 
-
+    //  DELETE segment.
     O->chain[piece1].agap=0;
     O->chain[piece1].bgap=0;
     O->chain[piece1].piece.abpos=O->chain[piece0].piece.aepos;
@@ -433,6 +435,7 @@ fprintf(stderr,"Fixing by deleting second segment since apparently contained (pi
 fprintf(stderr,"Fixing by deleting first segment since apparently contained (pieces %d %d)!\n",piece0,piece1);
 #endif
 
+          //  DELETE segment.
 	  O->chain[piece0].agap=0;
 	  O->chain[piece0].bgap=0;
 	  if(piece0>0){
@@ -446,10 +449,8 @@ fprintf(stderr,"Fixing by deleting first segment since apparently contained (pie
 	    O->chain[piece0].piece.bbpos=0;
 	    O->chain[piece0].piece.bepos=0;
           }
-          O->chain[piece1].agap=O->chain[piece1].piece.abpos-
-	      O->chain[piece0].piece.aepos;
-          O->chain[piece1].bgap=O->chain[piece1].piece.bbpos-
-	      O->chain[piece0].piece.bepos;
+          O->chain[piece1].agap=O->chain[piece1].piece.abpos-O->chain[piece0].piece.aepos;
+          O->chain[piece1].bgap=O->chain[piece1].piece.bbpos-O->chain[piece0].piece.bepos;
 
 	  return;
   }
@@ -531,7 +532,7 @@ fprintf(stderr,"init bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
 
   while(pair_align1->aseg[into1]!='\0'&&pair_align2->aseg[into2]!='\0'){
 
-    #ifdef DEBUG_FIX_OLAP
+#ifdef DEBUG_FIX_OLAP
     fprintf(stderr,"Top of major fix loop into[%d,%d] (%d,%d)] [ (%d,%d)\n",
 	    into1,into2,offseta1,offsetb1,offseta2,offsetb2);
     if(pair_align2->aseg[into2]=='\0'){
@@ -550,7 +551,7 @@ fprintf(stderr,"init bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
 	     pair_align2->aseg+into2,
 	     pair_align2->bseg+into2);
     }
-    #endif
+#endif
 
     // Once, we did the following assert, assuming that the alignment
     // of pair_align2 would not run out before pair_align1, since otherwise
