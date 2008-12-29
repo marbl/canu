@@ -22,14 +22,9 @@
 #ifndef INCLUDE_AS_BOG_UNITIG
 #define INCLUDE_AS_BOG_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.8 2008-11-13 09:52:40 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.9 2008-12-29 16:07:17 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
-//#include "AS_BOG_ChunkGraph.hh"
-
-#include <vector>
-#include <map>
-#include <set>
 
 
 typedef IntMultiPos                       DoveTailNode;
@@ -122,10 +117,6 @@ private:
 typedef std::vector<Unitig*> UnitigVector;
 typedef UnitigVector::iterator UnitigsIter;
 typedef UnitigVector::const_iterator UnitigsConstIter;
-
-
-
-
 
 
 #endif  //  INCLUDE_AS_BOG_UNITIG

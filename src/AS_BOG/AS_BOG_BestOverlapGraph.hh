@@ -22,11 +22,9 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.49 2008-11-13 09:51:36 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.50 2008-12-29 16:07:17 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
-
-#include <set>
 
 struct BestOverlapGraph {
   BestOverlapGraph(FragmentInfo *fi, OverlapStore *ovlStore, double erate);

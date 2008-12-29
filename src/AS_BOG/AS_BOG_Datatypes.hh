@@ -22,11 +22,18 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.32 2008-11-07 06:13:54 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.33 2008-12-29 16:07:17 brianwalenz Exp $";
 
 #include <map>
+#include <set>
 #include <list>
 #include <vector>
+#include <iostream>
+#include <cmath>
+#include <limits>
+#include <algorithm>
+
+using namespace std;
 
 extern "C" {
 #include "AS_global.h"

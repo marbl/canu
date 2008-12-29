@@ -19,15 +19,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.75 2008-11-14 22:14:25 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.76 2008-12-29 16:07:17 brianwalenz Exp $";
 
-#include <math.h>
-#include "AS_BOG_MateChecker.hh"
+#include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
-#include "AS_OVL_overlap.h"
-#include "AS_UTL_alloc.h"
+#include "AS_BOG_MateChecker.hh"
 
-
+extern "C" {
+#include "AS_OVL_overlap.h"  //  For DEFAULT_MIN_OLAP_LEN
+}
 
 MateChecker::MateChecker(FragmentInfo *fi) {
 

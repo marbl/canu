@@ -19,12 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.8 2008-11-13 10:17:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.9 2008-12-29 16:07:17 brianwalenz Exp $";
 
+#include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
-
-#include <algorithm>
 
 #undef max
 
@@ -274,8 +273,7 @@ void Unitig::reverseComplement() {
     assert(iter->position.end >= 0);
   }
 
-  reverse(dovetail_path_ptr->begin(),
-          dovetail_path_ptr->end());
+  std::reverse(dovetail_path_ptr->begin(), dovetail_path_ptr->end());
 }
 
 // Recursively place all contains under this one into the FragmentPositionMap

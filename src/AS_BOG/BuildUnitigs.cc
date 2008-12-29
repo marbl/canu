@@ -17,26 +17,18 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.55 2008-11-07 06:13:55 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.56 2008-12-29 16:07:17 brianwalenz Exp $";
 
-#include<vector>
-#include<cmath>
-#include<cstdlib>
-
-#include "AS_BOG_BestOverlapGraph.hh"
+#include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
 #include "AS_BOG_UnitigGraph.hh"
+#include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_BOG_MateChecker.hh"
-
-using std::vector;
 
 extern "C" {
 #include "getopt.h"
-#include "AS_OVS_overlapStore.h"
 #include "AS_CGB_histo.h"
 }
-
-
 
 FragmentInfo     *debugfi = 0L;
 

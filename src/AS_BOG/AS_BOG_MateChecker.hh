@@ -22,13 +22,10 @@
 #ifndef INCLUDE_AS_BOG_MATECHEKER
 #define INCLUDE_AS_BOG_MATECHEKER
 
-static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.30 2008-11-14 22:14:25 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.31 2008-12-29 16:07:17 brianwalenz Exp $";
 
+#include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
-
-extern "C" {
-#include "AS_PER_gkpStore.h"
-}
 
 typedef std::map<iuid,iuid> IdMap;
 typedef IdMap::iterator IdMapIter;

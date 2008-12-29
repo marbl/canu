@@ -19,13 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.64 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.65 2008-12-29 16:07:17 brianwalenz Exp $";
 
-#include<iostream>
-#include<vector>
-#include<limits>
-#include<cmath>
-
+#include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
 
 #undef max
