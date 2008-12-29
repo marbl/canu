@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.16 2008-12-18 07:13:22 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.17 2008-12-29 06:43:02 brianwalenz Exp $";
 
 /* Utility routines to complement, unpack and pack alignments, and print
    overlaps.  Also a routine for re-aligning an overlap using quality
@@ -37,7 +37,7 @@ static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.16 2008-12-18 07:13:22 b
 
 #undef DEBUG
 
-#define PRINT_WIDTH  50   /* Width of each line of a printed alignment */
+#define PRINT_WIDTH 100   /* Width of each line of a printed alignment */
 #define BAND_WIDTH    3   /* Width of band about original for realignment */
 
 /*** UTILITY ROUTINES ***/
@@ -168,6 +168,9 @@ void PrintAlign(FILE *file, int prefix, int suffix,
   static char Abuf[PRINT_WIDTH+1], Bbuf[PRINT_WIDTH+1];
   static int  Firstime = 1;
 
+  int   alen = strlen(a);
+  int   blen = strlen(b);
+
   if (Firstime)
     { Firstime = 0;
       Abuf[PRINT_WIDTH] = Bbuf[PRINT_WIDTH] = '\0';
@@ -214,6 +217,9 @@ void PrintAlign(FILE *file, int prefix, int suffix,
         }
   }
 
+  //  This assert fails if the trace is invalid.
+  assert((i-1 <= alen) && (j-1 <= blen));
+
   if (suffix < 0) suffix = -suffix;
   if (suffix > AS_READ_MAX_LEN)
     suffix = 25;
@@ -222,7 +228,7 @@ void PrintAlign(FILE *file, int prefix, int suffix,
 
     s = 0;
     y = 1;
-    while ((x = a[i++]) != 0)
+    while (((x = a[i++]) != 0) && (i < alen))
       { if ((y = b[j++]) != 0)
           COLUMN(x,y)
         else
@@ -230,12 +236,12 @@ void PrintAlign(FILE *file, int prefix, int suffix,
               { COLUMN(x,' ')
                 s += 1;
               }
-            while ((x = a[i++]) != 0 && s < suffix);
+            while (((x = a[i++]) != 0) && (s < suffix) && (i < alen));
             break;
           }
       }
     if (y)
-      while ((y = b[j++]) != 0 && s < suffix)
+      while (((y = b[j++]) != 0) && (s < suffix) && (j < blen))
         { COLUMN(' ',y)
           s += 1;
         }
