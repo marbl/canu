@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.17 2008-12-18 07:13:22 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.18 2008-12-29 16:19:16 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -32,9 +32,13 @@ static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.17 2008-12-18 07:13:22
 #define OKNAFFINE 1
 
 #undef DEBUG_LOCALOVL
-#undef DEBUG_TRACE
+#undef DEBUG_TRACE_BUILDING
 #undef DEBUG_TRACE_CONSTR
 #undef DEBUG_FINAL_TRACE
+
+//#define DEBUG_LOCALOVL
+//#define DEBUG_TRACE_CONSTR
+//#define DEBUG_FINAL_TRACE
 
 #undef PRINT_SUMMARY
 #undef VERBOSE_SUMMARY
@@ -59,10 +63,6 @@ int asymmetricEnds=0;
 //amount of mismatch at end of the overlap that can cause
 //   an overlap to be rejected
 int MaxFreeFlap=20;
-
-// set bubblePoppingVersion to 1 to get the original behavior
-//    forcing positive ahang or set it to 0 to allow negative ahangs
-int bubblePoppingVersion=0;
 
 // set useSizeToOrderBlocks to 1 to get block mismatches resolved such that
 //    the smaller block comes first:
@@ -167,21 +167,23 @@ static void print_piece(Local_Overlap *O,int piece,char *aseq,char *bseq){
   }
 #endif
 
-  if(epnt!=0){
-    if(epnt<0){
-      aseg[alen+epnt]='\0';
-    } else {
-      bseg[blen-epnt]='\0';
+  if ((alen > 0) && (blen > 0)) {
+    if(epnt!=0){
+      if(epnt<0){
+        aseg[alen+epnt]='\0';
+      } else {
+        bseg[blen-epnt]='\0';
+      }
     }
-  }
-  if(spnt<0){
-    int i=0;
-    fprintf(stderr, "(B sequence on top (2nd place in src); spnt=%d!!!\n",spnt);
-    while(segtrace[i]!=0){segtrace[i++]*=-1;}
-    PrintAlign(stderr,-spnt,0,bseg,aseg,segtrace);
-    i=0; while(segtrace[i]!=0){segtrace[i++]*=-1;}
-  } else {
-    PrintAlign(stderr,spnt,0,aseg,bseg,segtrace);
+    if(spnt<0){
+      int i=0;
+      fprintf(stderr, "(B sequence on top (2nd place in src); spnt=%d!!!\n",spnt);
+      while(segtrace[i]!=0){segtrace[i++]*=-1;}
+      PrintAlign(stderr,-spnt,0,bseg,aseg,segtrace);
+      i=0; while(segtrace[i]!=0){segtrace[i++]*=-1;}
+    } else {
+      PrintAlign(stderr,spnt,0,aseg,bseg,segtrace);
+    }
   }
 }
 
@@ -234,11 +236,12 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
   fprintf(stderr, "Start of Trace construction!\n\n\n");
 #endif
 
+  assert(O->num_pieces>0);
+
   {
     int n=O->num_pieces;
-    assert(O->num_pieces>0);
-    O->chain[n].piece.abpos=O->chain[n].agap+O->chain[n-1].piece.aepos;
-    O->chain[n].piece.bbpos=O->chain[n].bgap+O->chain[n-1].piece.bepos;
+    O->chain[n].piece.abpos = O->chain[n].agap + O->chain[n-1].piece.aepos;
+    O->chain[n].piece.bbpos = O->chain[n].bgap + O->chain[n-1].piece.bepos;
   }
 
   /*Estimate length required to store trace*/
@@ -296,13 +299,6 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
       continue;
     }
 
-    /* guesstimate the required number of diagonals/edits to consider to
-       get optimal alignment */
-    segdiff=1+(int)((O->chain[i].piece.aepos
-		     -O->chain[i].piece.abpos)
-		    *1.5*O->chain[i].piece.error);
-
-
 
     /* Building an alignment/trace under the usual assumptions does not allow
        a given position in one sequence to simultaneously align to two or more
@@ -330,11 +326,12 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
       }
 
 #ifdef DEBUG_LOCALOVL
-      fprintf(stderr,"Checking for overlaps of %d to %d\n",i,k);
-      fprintf(stderr, "Currently, segment %d alignment:\n",k);
-      print_piece(O,k,aseq,bseq);
       {
         int j;
+        fprintf(stderr,"----------------------------------------\n");
+        fprintf(stderr,"Checking for overlaps of %d to %d\n",i,k);
+        //fprintf(stderr, "Currently, segment %d alignment:\n",k);
+        //print_piece(O,k,aseq,bseq);
         for(j=0;j<=O->num_pieces;j++)
           fprintf(stderr, "chain[%d] agap=%d abpos=%d aepos=%d  bgap=%d bbpos=%d bepos=%d\n",
                   j,
@@ -348,18 +345,6 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
 
 #ifdef DEBUG_LOCALOVL
         fprintf(stderr,"Need to fix overlaps of %d to %d\n",i,k);
-        fprintf(stderr," gap(%d,%d) (%d,%d)-(%d,%d) (piece %d)\n"
-                " gap(%d,%d) (%d,%d)-(%d,%d) (piece %d)\n",
-                O->chain[i].agap,
-                O->chain[i].bgap,
-                O->chain[i].piece.abpos,O->chain[i].piece.bbpos,
-                O->chain[i].piece.aepos,O->chain[i].piece.bepos,
-                i,
-                O->chain[k].agap,
-                O->chain[k].bgap,
-                O->chain[k].piece.abpos,O->chain[k].piece.bbpos,
-                O->chain[k].piece.aepos,O->chain[k].piece.bepos,
-                k);
 #endif
 
 	/* handle possibility of the first segment being
@@ -370,33 +355,9 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
 	   O->chain[i].piece.bbpos>O->chain[k].piece.bbpos){
 
 #ifdef DEBUG_LOCALOVL
-	  fprintf(stderr,"Warning: deleting contained piece of local_overlap: a projection of (%d,%d)-(%d,%d) (piece %d) contains the same projection of (%d,%d)-(%d,%d) (piece %d)\n",
-		  O->chain[k].piece.abpos,O->chain[k].piece.bbpos,
-		  O->chain[k].piece.aepos,O->chain[k].piece.bepos,
-		  k,
-		  O->chain[i].piece.abpos,O->chain[i].piece.bbpos,
-		  O->chain[i].piece.aepos,O->chain[i].piece.bepos,
-		  i);
+	  fprintf(stderr,"Warning: deleting contained piece of local_overlap (#1): piece %d contained in piece %d\n", i, k);
 #endif
 
-#undef FIXDELBYADVANCINGTONEXT
-#ifdef FIXDELBYADVANCINGTONEXT
-	  if(i>0){
-	    O->chain[i].agap = O->chain[k].piece.abpos-
-	      O->chain[lastgood].piece.aepos;
-	    O->chain[i].bgap = O->chain[k].piece.bbpos-
-	      O->chain[lastgood].piece.bepos;
-	  } else {
-	    O->chain[i].agap = O->chain[k].piece.abpos;
-	    O->chain[i].bgap = O->chain[k].piece.bbpos;
-	  }
-	  O->chain[i].piece.abpos=O->chain[k].piece.abpos;
-	  O->chain[i].piece.aepos=O->chain[k].piece.abpos;
-	  O->chain[i].piece.bbpos=O->chain[k].piece.bbpos;
-	  O->chain[i].piece.bepos=O->chain[k].piece.bbpos;
-	  O->chain[k].agap=0;
-	  O->chain[k].bgap=0;
-#else
 	  O->chain[i].agap=0;
 	  O->chain[i].bgap=0;
 	  if(lastgood>=0){
@@ -419,40 +380,19 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
 	    O->chain[k].agap--;
 	    O->chain[k].bgap--;
 	  }
-#endif
 
-        } else 	/* otherwise, check for 2nd piece contained within first */
-	  if(O->chain[i].piece.aepos>O->chain[k].piece.aepos||
-             O->chain[i].piece.bepos>O->chain[k].piece.bepos){
+        } else if(O->chain[i].piece.aepos>O->chain[k].piece.aepos||
+                  O->chain[i].piece.bepos>O->chain[k].piece.bepos){
+
+          /* otherwise, check for 2nd piece contained within first */
 
             /* if the next piece is completely within current piece,
                effectively remove it */
 
-
 #ifdef DEBUG_LOCALOVL
-            fprintf(stderr,"Warning: deleting contained piece of local_overlap: a projection of (%d,%d)-(%d,%d) (piece %d) contains the same projection of (%d,%d)-(%d,%d) (piece %d)\n",
-                    O->chain[i].piece.abpos,O->chain[i].piece.bbpos,
-                    O->chain[i].piece.aepos,O->chain[i].piece.bepos,
-                    i,
-                    O->chain[k].piece.abpos,O->chain[k].piece.bbpos,
-                    O->chain[k].piece.aepos,O->chain[k].piece.bepos,
-                    k);
+          fprintf(stderr,"Warning: deleting contained piece of local_overlap (#2): piece %d contains piece %d\n", i, k);
 #endif
 
-#ifdef FIXDELBYADVANCINGTONEXT
-            O->chain[k].agap = 0;
-            O->chain[k].piece.abpos=O->chain[i].piece.aepos;
-            O->chain[k].piece.aepos=O->chain[i].piece.aepos;
-            O->chain[k].bgap = 0;
-            O->chain[k].piece.bbpos=O->chain[i].piece.bepos;
-            O->chain[k].piece.bepos=O->chain[i].piece.bepos;
-            if(k+1<=O->num_pieces){
-              O->chain[k+1].agap=O->chain[k+1].piece.abpos-
-                O->chain[k-1].piece.aepos;
-              O->chain[k+1].bgap=O->chain[k+1].piece.bbpos-
-                O->chain[k-1].piece.bepos;
-            }
-#else
             O->chain[k].agap = 0;
             O->chain[k].bgap = 0;
             O->chain[k].piece.abpos=O->chain[i].piece.aepos;
@@ -470,45 +410,20 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
                 assert(l>=0);
               }
 
-              O->chain[k+1].agap=O->chain[k+1].piece.abpos-
-                O->chain[l].piece.aepos;
-              O->chain[k+1].bgap=O->chain[k+1].piece.bbpos-
-                O->chain[l].piece.bepos;
+              O->chain[k+1].agap=O->chain[k+1].piece.abpos-O->chain[l].piece.aepos;
+              O->chain[k+1].bgap=O->chain[k+1].piece.bbpos-O->chain[l].piece.bepos;
 
 #ifdef DEBUG_LOCALOVL
-              fprintf(stderr,"Resetting gaps for segment %d to point to end of segment %d\n",
-                      k+1,l);
-              fprintf(stderr, "GAPS for %d now %d,%d\n", k+1, O->chain[k+1].agap, O->chain[k+1].bgap);
+              fprintf(stderr,"Resetting gaps (#1) for segment %d to point to end of segment %d -- GAPS for %d now %d,%d\n", k+1, i, k+1, O->chain[k+1].agap, O->chain[k+1].bgap);
 #endif
             }
-
-#endif
 
             /* else, fix the overlap */
           } else {
 
 #ifdef DEBUG_LOCALOVL
-            fprintf(stderr,"Fixing overlap; was:\n"
-                    "gap(%d,%d) (%d,%d)------(%d,%d) (piece %d)\n"
-                    "gap(%d,%d) (%d,%d)------(%d,%d) (piece %d)\n",
-                    O->chain[i].agap,O->chain[i].bgap,
-                    O->chain[i].piece.abpos,O->chain[i].piece.bbpos,
-                    O->chain[i].piece.aepos,O->chain[i].piece.bepos,
-                    i,
-                    O->chain[k].agap,O->chain[k].bgap,
-                    O->chain[k].piece.abpos,O->chain[k].piece.bbpos,
-                    O->chain[k].piece.aepos,O->chain[k].piece.bepos,
-                    k);
-      {
-        int j;
-        for(j=0;j<=O->num_pieces;j++)
-          fprintf(stderr, "chain[%d] agap=%d abpos=%d aepos=%d  bgap=%d bbpos=%d bepos=%d\n",
-                  j,
-                  O->chain[j].agap, O->chain[j].piece.abpos, O->chain[j].piece.aepos,
-                  O->chain[j].bgap, O->chain[j].piece.bbpos, O->chain[j].piece.bepos);
-      }
+          fprintf(stderr, "fix_overlapping_pieces() i=%d k=%d\n", i, k);
 #endif
-
             fix_overlapping_pieces(aseq,
                                    bseq,
                                    O,i,k);
@@ -519,8 +434,9 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
                O->chain[k].piece.bbpos==O->chain[k].piece.bepos){
 
 #ifdef DEBUG_LOCALOVL
-              fprintf(stderr,"Second segment size now 0!\n");
+            fprintf(stderr,"piece %d segment size now 0!\n", k);
 #endif
+            //  DELETE
               O->chain[k].agap = 0;
               O->chain[k].bgap = 0;
               O->chain[k].piece.abpos=O->chain[i].piece.aepos;
@@ -538,28 +454,24 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
                   assert(l>=0);
                 }
 
-                O->chain[k+1].agap=O->chain[k+1].piece.abpos-
-                  O->chain[l].piece.aepos;
-                O->chain[k+1].bgap=O->chain[k+1].piece.bbpos-
-                  O->chain[l].piece.bepos;
+                O->chain[k+1].agap=O->chain[k+1].piece.abpos-O->chain[l].piece.aepos;
+                O->chain[k+1].bgap=O->chain[k+1].piece.bbpos-O->chain[l].piece.bepos;
 
 #ifdef DEBUG_LOCALOVL
-                fprintf(stderr,"Resetting gaps for segment %d to point to end of segment %d\n",
-                        k+1,l);
-                fprintf(stderr, "GAPS for %d now %d,%d\n", k+1, O->chain[k+1].agap, O->chain[k+1].bgap);
+                fprintf(stderr,"Resetting gaps (#2) for segment %d to point to end of segment %d -- GAPS for %d now %d,%d\n", k+1, l, k+1, O->chain[k+1].agap, O->chain[k+1].bgap);
 #endif
               }
-            } else {
+            } else if (O->chain[i].piece.abpos==O->chain[i].piece.aepos||
+                       O->chain[i].piece.bbpos==O->chain[i].piece.bepos){
               // if the first piece disappeared
-              if (O->chain[i].piece.abpos==O->chain[i].piece.aepos||
-                  O->chain[i].piece.bbpos==O->chain[i].piece.bepos){
-#ifdef FIXDELBYADVANCINGTONEXT
-                assert(0)/*uncovered situation; cut and paste from above to fix */
-#endif
 
 #ifdef DEBUG_LOCALOVL
-                  fprintf(stderr,"First segment size now 0!\n");
+            fprintf(stderr,"piece %d segment size now 0!\n", i);
 #endif
+
+            assert(i < k);
+
+            //  DELETE segment i
 		O->chain[i].agap=0;
                 O->chain[i].bgap=0;
                 if(lastgood>=0){
@@ -598,37 +510,11 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
                   }
                 }
               }
-            }
-          }
-
-
-#ifdef DEBUG_LOCALOVL
-        fprintf(stderr,"now:\n"
-                "gap(%d,%d) (%d,%d)------(%d,%d) (piece %d)\n"
-                "gap(%d,%d) (%d,%d)------(%d,%d) (piece %d)\n",
-                O->chain[i].agap,O->chain[i].bgap,
-                O->chain[i].piece.abpos,O->chain[i].piece.bbpos,
-                O->chain[i].piece.aepos,O->chain[i].piece.bepos,
-                i,
-                O->chain[k].agap,O->chain[k].bgap,
-                O->chain[k].piece.abpos,O->chain[k].piece.bbpos,
-                O->chain[k].piece.aepos,O->chain[k].piece.bepos,
-                k);
-      {
-        int j;
-        for(j=0;j<=O->num_pieces;j++)
-          fprintf(stderr, "chain[%d] agap=%d abpos=%d aepos=%d  bgap=%d bbpos=%d bepos=%d\n",
-                  j,
-                  O->chain[j].agap, O->chain[j].piece.abpos, O->chain[j].piece.aepos,
-                  O->chain[j].bgap, O->chain[j].piece.bbpos, O->chain[j].piece.bepos);
-      }
-#endif
-
-      }
+        }  //  fix the overlap
+      }  //  need to fix
 
       k++;
-    }
-
+    }  //  over all pieces
 
 #ifdef DEBUG_LOCALOVL
     fprintf(stderr, "After fixing, segment %d alignment:\n",i);
@@ -648,9 +534,17 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
     if(O->chain[i].agap==0 &&
        O->chain[i].bgap==0 &&
        O->chain[i].piece.abpos==O->chain[i].piece.aepos &&
-       O->chain[i].piece.bbpos==O->chain[i].piece.bepos){
+       O->chain[i].piece.bbpos==O->chain[i].piece.bepos) {
+#ifdef DEBUG_LOCALOVL
+      fprintf(stderr, "deleted piece %d, the one we were working on.\n", i);
+#endif
       continue;
     }
+
+#ifdef DEBUG_LOCALOVL
+    fprintf(stderr,"----------------------------------------\n");
+    fprintf(stderr,"Processing piece %d out of %d\n",i, O->num_pieces);
+#endif
 
     /* set up positions before which gaps are inserted to handle
        the gap portion of a chain piece */
@@ -666,71 +560,34 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
       abeg=O->chain[lastgood].piece.aepos+O->chain[i].agap;
     }
 
+#ifdef DEBUG_LOCALOVL
+    fprintf(stderr, "abeg=%d\n", abeg);
+    fprintf(stderr, "endpos=%d agap=%d bgap=%d\n", O->endpos, O->chain[i].agap, O->chain[i].bgap);
+#endif
+
     /*handle boundary case to prevent gaps preceding the b sequence*/
     if((i==0||lastgood<0)&&O->chain[i].bgap>0){
       assert(O->chain[i].agap>=0);
 
-#undef DEBUG_AHANG_CHANGE
-#ifdef DEBUG_AHANG_CHANGE
-      fprintf(stderr, "Reset ahang, abeg, agap and bgap\n");
-      fprintf(stderr, "originally: %d %d %d %d\n",
-              O->begpos,
-              abeg,
-              O->chain[i].agap,
-              O->chain[i].bgap);
-#endif
-
-      if(bubblePoppingVersion){
+      if(O->begpos>=0){
         O->begpos=O->chain[i].piece.abpos-1;
         assert(O->begpos>=0);
         O->chain[i].agap=0;
-        O->chain[i].bgap=O->chain[i].piece.bbpos-1;
-      }else{
-	if(O->begpos>=0){
-	  O->begpos=O->chain[i].piece.abpos-1;
-	  assert(O->begpos>=0);
-	  O->chain[i].agap=0;
 
-#define WE_BELIEVE_BGAP_IS_RIGHT
-#ifdef WE_BELIEVE_BGAP_IS_RIGHT
-	  assert( ( i==0&&	O->chain[i].bgap==O->chain[i].piece.bbpos-1)
-	  	  ||( i>0&&lastgood<0&&O->chain[i].bgap==O->chain[i].piece.bbpos-1))
-            ;
-#else
-	  if ( ! 	  ( ( i==0&&	O->chain[i].bgap==O->chain[i].piece.bbpos-1)
-			    ||( i>0&&lastgood<0&&O->chain[i].bgap==O->chain[i].piece.bbpos-1))) {
-	    fprintf(stderr,"LOVERLAPPER: Problem adjusting first bgap\n");
-	    fprintf(stderr,"lastgood %d piece %d bgap %d bbpos %d begpos %d\n",
-		    lastgood,
-		    i,
-		    O->chain[i].bgap,
-		    O->chain[i].piece.bbpos,
-		    O->begpos);
-	    fprintf(stderr,">Aseq\n%s\n",aseq+1);
-	    fprintf(stderr,">Bseq\n%s\n",bseq+1);
-	  }
-#endif
+        assert( ( i==0&&	O->chain[i].bgap==O->chain[i].piece.bbpos-1)
+                ||( i>0&&lastgood<0&&O->chain[i].bgap==O->chain[i].piece.bbpos-1));
 
-
-	  if(lastgood<0){
-	    O->chain[i].bgap=O->chain[i].piece.bbpos-1;
-	  }
-	} else {
-	  if(i==0){
-	    O->begpos-=O->chain[i].bgap;
-	  } else{
-	    O->begpos=-O->chain[i].bgap;
-	  }
-	  O->chain[i].bgap=0;
-	}
+        if(lastgood<0)
+          O->chain[i].bgap=O->chain[i].piece.bbpos-1;
+      } else {
+        if(i==0)
+          O->begpos-=O->chain[i].bgap;
+        else
+          O->begpos=-O->chain[i].bgap;
+        O->chain[i].bgap=0;
       }
-
-#ifdef DEBUG_AHANG_CHANGE
-      fprintf(stderr, "afterwards: %d %d %d %d\n",
-              O->begpos,
-              abeg,
-              O->chain[i].agap,
-              O->chain[i].bgap);
+#ifdef DEBUG_LOCALOVL
+      fprintf(stderr, "begpos=%d agap=%d bgap=%d\n", O->begpos, O->chain[i].agap, O->chain[i].bgap);
 #endif
     }
 
@@ -744,22 +601,20 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
        the shorter tail into a gap before the longer tail,
        or, ifdef FORCEPOSITIVEBHANG, by tucking the A tail into
        a gap before the B tail */
+
     if(i==O->num_pieces){
       if(O->endpos>=0){
 	O->endpos+=O->chain[i].bgap;
 	O->chain[i].bgap=0;
       }else {
-#undef FORCEPOSITIVEBHANG
-#ifndef FORCEPOSITIVEBHANG
 	O->endpos-=O->chain[i].agap;
 	abeg-=O->chain[i].agap;
 	O->chain[i].agap=0;
-#else
-	O->chain[i].agap-=O->endpos;
-	O->endpos=O->chain[i].bgap;
-	O->chain[i].bgap=0;
-#endif
       }
+#ifdef DEBUG_LOCALOVL
+      fprintf(stderr, "abeg=%d\n", abeg);
+      fprintf(stderr, "endpos=%d agap=%d bgap=%d\n", O->endpos, O->chain[i].agap, O->chain[i].bgap);
+#endif
     }
 
     if(i==0||lastgood<0){
@@ -769,20 +624,15 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
     /* put gaps before the portion of bseq in the gap; for the first
        piece, this means before position 0 */
     if(i==0||lastgood<0){
-      //      bbeg=1-MIN(ahang,0);
       bbeg=1-MIN(ahang,0);
     } else {
       assert(lastgood<O->num_pieces);
-      bbeg=O->chain[lastgood].piece.bepos /*-MIN(ahang,0)*/;
+      bbeg=O->chain[lastgood].piece.bepos;
     }
-
-
 
     /* now insert the right number of gaps! */
 
-
     ///////////////////////////////////////
-
 
     if(i==O->num_pieces){
 
@@ -802,6 +652,9 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
 	O->chain[i].agap=0;
       }
 
+#ifdef DEBUG_LOCALOVL
+      fprintf(stderr, "endpos=%d agap=%d bgap=%d\n", O->endpos, O->chain[i].agap, O->chain[i].bgap);
+#endif
     }
 
     if(O->chain[i].agap <= O->chain[i].bgap || ! useSizeToOrderBlocks ){
@@ -810,7 +663,7 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
 
       for(j=0;j<O->chain[i].agap;j++){
 	TraceBuffer[tracep++]=bbeg;
-#ifdef DEBUG_LOCALOVL
+#ifdef DEBUG_TRACE_BUILDING
         fprintf(stderr, "TraceBuffer1 %d = %d\n", tracep-1, TraceBuffer[tracep-1]);
 #endif
       }
@@ -820,7 +673,7 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
 
       for(j=0;j<O->chain[i].bgap;j++){
 	TraceBuffer[tracep++]=-abeg;
-#ifdef DEBUG_LOCALOVL
+#ifdef DEBUG_TRACE_BUILDING
         fprintf(stderr, "TraceBuffer2 %d = %d\n", tracep-1, TraceBuffer[tracep-1]);
 #endif
       }
@@ -837,7 +690,7 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
 
       for(j=0;j<O->chain[i].bgap   ;j++){
 	TraceBuffer[tracep++]=-abeg;
-#ifdef DEBUG_LOCALOVL
+#ifdef DEBUG_TRACE_BUILDING
         fprintf(stderr, "TraceBuffer3 %d = %d\n", tracep-1, TraceBuffer[tracep-1]);
 #endif
       }
@@ -846,7 +699,7 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
 
       for(j=0;j<O->chain[i].agap ;j++){
 	TraceBuffer[tracep++]=bbeg;
-#ifdef DEBUG_LOCALOVL
+#ifdef DEBUG_TRACE_BUILDING
         fprintf(stderr, "TraceBuffer4 %d = %d\n", tracep-1, TraceBuffer[tracep-1]);
 #endif
       }
@@ -985,7 +838,7 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
       int ctr;
       for(ctr=0;ctr<abs(spnt);ctr++){
 	TraceBuffer[tracep++]=-abeg;
-#ifdef DEBUG_LOCALOVL
+#ifdef DEBUG_TRACE_BUILDING
         fprintf(stderr, "TraceBuffer5 %d = %d\n", tracep-1, TraceBuffer[tracep-1]);
 #endif
       }
@@ -993,7 +846,7 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
       int ctr;
       for(ctr=0;ctr<spnt;ctr++){
 	TraceBuffer[tracep++]=bbeg;
-#ifdef DEBUG_LOCALOVL
+#ifdef DEBUG_TRACE_BUILDING
         fprintf(stderr, "TraceBuffer6 %d = %d\n", tracep-1, TraceBuffer[tracep-1]);
 #endif
       }
@@ -1005,12 +858,12 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
       //fprintf(stderr," %d",segtrace[j]+(segtrace[j]<0 ? 1 +MAX(0,spnt) : -1-MAX(0,-spnt)));
       if(segtrace[j]<0){
 	TraceBuffer[tracep++]=-abeg+segtrace[j++]+1 /* -MAX(0,spnt) ?? */;
-#ifdef DEBUG_LOCALOVL
+#ifdef DEBUG_TRACE_BUILDING
         fprintf(stderr, "TraceBuffer7 %d = %d\n", tracep-1, TraceBuffer[tracep-1]);
 #endif
       } else {
 	TraceBuffer[tracep++]=bbeg+segtrace[j++]-1 /* +MAX(0,-spnt) ?? */;
-#ifdef DEBUG_LOCALOVL
+#ifdef DEBUG_TRACE_BUILDING
         fprintf(stderr, "TraceBuffer8 %d = %d\n", tracep-1, TraceBuffer[tracep-1]);
 #endif
       }
@@ -1037,6 +890,15 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
     lastgood=i;
 
     /* and back to the top of the loop for another overlap piece */
+
+#ifdef DEBUG_LOCALOVL
+    fprintf(stderr, "Done with chain loop for piece %d\n", i);
+    for(j=0;j<=O->num_pieces;j++)
+      fprintf(stderr, "chain[%d] agap=%d abpos=%d aepos=%d  bgap=%d bbpos=%d bepos=%d\n",
+              j,
+              O->chain[j].agap, O->chain[j].piece.abpos, O->chain[j].piece.aepos,
+              O->chain[j].bgap, O->chain[j].piece.bbpos, O->chain[j].piece.bepos);
+#endif
   }
 
   /* terminate the trace */
@@ -1052,6 +914,13 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
   //  Note, if you have a bogus trace, this will fail.
   //
   fprintf(stderr, "End of Trace HERE IT IS!\n");
+
+    for(j=0;j<=O->num_pieces;j++)
+      fprintf(stderr, "chain[%d] agap=%d abpos=%d aepos=%d  bgap=%d bbpos=%d bepos=%d\n",
+              j,
+              O->chain[j].agap, O->chain[j].piece.abpos, O->chain[j].piece.aepos,
+              O->chain[j].bgap, O->chain[j].piece.bbpos, O->chain[j].piece.bepos);
+
   if(O->begpos>=0){
     PrintAlign(stderr,O->begpos,O->endpos,
 	       aseq+1,bseq+1,TraceBuffer);
@@ -1065,7 +934,7 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
       TraceBuffer[i]*=-1;
     }
   }
-  fprintf(stderr, "End of Trace construction!\n");
+  fprintf(stderr, "End of Trace construction in AS_Local_Trace()!\n");
   fprintf(stderr, "================================================================================\n\n\n");
 #endif
 
@@ -1271,7 +1140,7 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 
 #ifdef DEBUG_LOCALOVL
   if(O!=NULL){
-    for(i=0;i<O->num_pieces;i++){
+    for(i=0;i<=O->num_pieces;i++){
       fprintf(stderr, "overlap segment %d: (%d,%d)[---------](%d,%d)\n",
               i,
               O->chain[i].piece.abpos,
@@ -1306,7 +1175,7 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       if(O==NULL)goto nooverlap;
 
 #ifdef DEBUG_LOCALOVL
-      for(i=0;i<O->num_pieces;i++){
+      for(i=0;i<=O->num_pieces;i++){
         fprintf(stderr, "overlap segment %d: (%d,%d)[---------](%d,%d)\n",
                 i,
                 O->chain[i].piece.abpos,
@@ -1323,9 +1192,8 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 #ifdef DEBUG_LOCALOVL
   if(O!=NULL){
     fprintf(stderr,"Overlap found.\n");
-    //  Bogus traces kill this
-    //Print_Local_Overlap_withAlign(stderr,O,Ausable,Busable);
     Print_Local_Overlap(stderr,O,5);
+    //Print_Local_Overlap_withAlign(stderr,O,Ausable,Busable);  //  WARNING: bogus traces kill this
   }
 #endif
 
@@ -1497,6 +1365,10 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
     int ahang, bhang;
     int i, j;
 
+#ifdef DEBUG_LOCALOVL
+    fprintf(stderr, "before AS_Local_Trace:\n");
+#endif
+
     // coordinates from Find_Local routines will be one off from
     // those expected by the trace routines, so adjust them!
     //	O->begpos+= (O->begpos>=0 ? 1 : -1);
@@ -1506,36 +1378,18 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       O->chain[i].piece.bbpos++;
       O->chain[i].piece.aepos++;
       O->chain[i].piece.bepos++;
+#ifdef DEBUG_LOCALOVL
+      fprintf(stderr, "chain[%d] agap=%d abpos=%d aepos=%d bgap=%d bbpos=%d bepos=%d\n",
+              i,
+              O->chain[i].agap, O->chain[i].piece.abpos, O->chain[i].piece.aepos,
+              O->chain[i].bgap, O->chain[i].piece.bbpos, O->chain[i].piece.bepos);
+#endif
     }
 
 
     //AS_Local_Trace assumes string pointer one before start of string!
     trace = AS_Local_Trace(O,Ausable-1,Busable-1);
 
-    //  TEST FOR BOGUS TRACES
-    if (0) {
-      int  bogus = 0;
-      int  i, a, b;
-
-      for (i=0; trace[i]; i++) {
-        a = trace[i];
-        b = trace[i+1];
-
-        if (a < 0)  a = -a;
-        if (b < 0)  b = -b;
-
-        if ((b > 0) && (b < a))
-          bogus++;
-      }
-
-      if (bogus) {
-#ifdef DEBUG_LOCALOVL
-        fprintf(stderr,"OVERLAP REJECTED because: bogus trace\n\n");
-#endif
-        forcenext=1;
-        goto next_overlap;
-      }
-    }
 
     //TEST NUMBER OF GAPS AT SEGMENT BOUNDARIES
     {
@@ -1563,6 +1417,9 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 #ifdef DEBUG_LOCALOVL
     fprintf(stderr,"========================================Overlap after trimming BEGIN\n");
 
+    //  Print_Local_Overlap expects unadjusted chain positions.  We
+    //  unadjust, the readjust.
+
     for(i=0;i<O->num_pieces;i++){
       O->chain[i].piece.abpos--;
       O->chain[i].piece.bbpos--;
@@ -1571,12 +1428,9 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 
       fprintf(stderr, "overlap segment %d: (%d,%d)[---------](%d,%d) gap(%d,%d)\n",
               i,
-              O->chain[i].piece.abpos,
-              O->chain[i].piece.bbpos,
-              O->chain[i].piece.aepos,
-              O->chain[i].piece.bepos,
-              O->chain[i].agap,
-              O->chain[i].bgap);
+              O->chain[i].piece.abpos, O->chain[i].piece.bbpos,
+              O->chain[i].piece.aepos, O->chain[i].piece.bepos,
+              O->chain[i].agap, O->chain[i].bgap);
     }
 
     fprintf(stderr, "overlap end gaps (%d,%d)\n",
@@ -1585,6 +1439,13 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 
     Print_Local_Overlap(stderr,O,5);
     //Print_Local_Overlap_withAlign(stderr,O,Ausable,Busable);
+
+    for(i=0;i<O->num_pieces;i++){
+      O->chain[i].piece.abpos++;
+      O->chain[i].piece.bbpos++;
+      O->chain[i].piece.aepos++;
+      O->chain[i].piece.bepos++;
+    }
 
     fprintf(stderr,"========================================Overlap after trimming END\n");
 #endif
@@ -1604,7 +1465,7 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       int fullLenB = strlen(b->sequence);
 #ifdef DEBUG_FINAL_TRACE
       char c;
-      fprintf(stderr, "Trace (lens %d %d):",fullLenA,fullLenB);
+      fprintf(stderr, "Local_Overlap_AS Final Trace (lens %d %d):\n",fullLenA,fullLenB);
 #endif
       while(trace[i]!=0){
 #ifdef DEBUG_FINAL_TRACE
@@ -1692,10 +1553,11 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 
 #ifdef DEBUG_FINAL_TRACE
     {
+      fprintf(stderr, "Local_Overlap_AS Final Final Trace:\n");
       int i;
       for (i = 0; trace[i] != 0; i++)
         fprintf(stderr, " %d",trace[i]);
-      fprintf(stderr, " trace elements %d\n",i);
+      fprintf(stderr, "\n");
     }
 #endif
 
@@ -1835,8 +1697,6 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
     //    fprintf(stderr, "Affine mismatch rate %f\n",errRateAffine);
 
   }
-
-
 
 
   if (opposite)
