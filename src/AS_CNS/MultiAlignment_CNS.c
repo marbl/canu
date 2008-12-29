@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.212 2008-12-19 07:52:04 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.213 2008-12-29 06:27:37 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -39,10 +39,10 @@ static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.212 2008-12-19 07:52:04 bria
 
 #define ALT_QV_THRESH                      30
 #define DONT_SHOW_OLAP                      0
+#define SHOW_OLAP                           1
 #define MIN_AVE_QV_FOR_VARIATION           21
 #define MIN_SUM_QVS_FOR_VARIATION          60
 #define QV_FOR_MULTI_GAP                   14
-#define SHOW_OLAP                           1
 
 #define CNS_DP_THRESH                       1e-6
 #define CNS_DP_MINLEN                      30
@@ -52,15 +52,11 @@ static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.212 2008-12-19 07:52:04 bria
 #define INITIAL_NR                        100
 #define MAX_EXTEND_LENGTH                2048
 #define MAX_WINDOW_FOR_ABACUS_REFINE      100
-#define SHOW_ABACUS                         0
-#define SHOW_ALLELES                        0
-#define SHOW_READS                          0
-#define SHOW_CONFIRMED_READS                0
 #define STABWIDTH                           6
-#define DEBUG_ABACUS                        0
-#define DEBUG_CONSENSUS_CALL                0
-#define DEBUG_VAR_RECORDS                   0
-#define OUTPUT_DISTANCE_MATRIX              0
+
+#undef DEBUG_ABACUS
+#undef DEBUG_ABACUS_ALIGN
+#undef DEBUG_VAR_RECORDS
 
 // Parameters used by Abacus processing code
 #define MSTRING_SIZE                        3
@@ -996,7 +992,7 @@ ClearBead(int32 bid) {
 }
 
 void
-AlignBeadToColumn(int32 cid, int32 bid) {
+AlignBeadToColumn(int32 cid, int32 bid, char *label) {
   Column *column=GetColumn(columnStore,cid);
   assert(column != NULL );
 
@@ -1008,6 +1004,10 @@ AlignBeadToColumn(int32 cid, int32 bid) {
 
   Bead *align = GetBead(beadStore,bid);
   assert(align != NULL);
+
+#ifdef DEBUG_ABACUS_ALIGN
+  fprintf(stderr, "AlignBeadToColumn()-- %s frag=%d bead=%d moving from column=%d to column=%d\n", label, align->frag_index, bid, align->column_index, cid);
+#endif
 
   align->down         = first->boffset;
   align->up           = call->boffset;
@@ -1038,6 +1038,10 @@ UnAlignBeadFromColumn(int32 bid) {
     GetBead(beadStore, bead->down)->up = upbead->boffset;
 
   DecBaseCount(&column->base_count,bchar);
+
+#ifdef DEBUG_ABACUS_ALIGN
+  fprintf(stderr, "UnAlignBeadFromColumn()-- frag=%d bead=%d leaving column=%d\n", bead->frag_index, bead->boffset, bead->column_index);
+#endif
 
   bead->up = -1;
   bead->down = -1;
@@ -1078,6 +1082,11 @@ int32 UnAlignTrailingGapBeads(int32 bid) {
       GetBead(beadStore, bead->down)->up = upbead->boffset;
     }
     DecBaseCount(&column->base_count,bchar);
+
+#ifdef DEBUG_ABACUS_ALIGN
+    fprintf(stderr, "UnAlignTrailingGapBeads()-- frag=%d bead=%d leaving column=%d\n", bead->frag_index, bead->boffset, bead->column_index);
+#endif
+
     bead->up = -1;
     bead->down = -1;
     bead->column_index = -1;
@@ -1298,6 +1307,9 @@ Column * CreateColumn(int32 bid){
   head->column_index = column.lid;
   IncBaseCount(&column.base_count,*Getchar(sequenceStore,head->soffset));
   AppendVA_Column(columnStore, &column);
+#ifdef DEBUG_ABACUS_ALIGN
+  fprintf(stderr, "CreateColumn()-- Added consensus call bead=%d to column=%d for existing bead=%d\n", call.boffset, column.lid, head->boffset);
+#endif
   return GetColumn(columnStore, column.lid);
 }
 
@@ -1322,10 +1334,12 @@ int32 ColumnAppend(int32 cid, int32 bid) {
   Bead *bead = GetBead(beadStore,bid);
   assert(bead != NULL);
 
-  //fprintf(stderr, "ColumnAppend()-- adding column for bid %d\n", bid);
-
   Column *column = CreateColumn(bid);
   assert(column != NULL);
+
+#ifdef DEBUG_ABACUS_ALIGN
+  fprintf(stderr, "ColumnAppend()-- adding column %d for bid=%d after column cid=%d\n", column->lid, bid, cid);
+#endif
 
   Bead   *call     = GetBead(beadStore,column->call);
   Column *prev     = GetColumn(columnStore,cid);
@@ -1337,19 +1351,20 @@ int32 ColumnAppend(int32 cid, int32 bid) {
   call->prev = prevcall->boffset;
   prev->next = column->lid;
   prevcall->next = call->boffset;
-  if ( column->next != -1 )
+
+  if (column->next != -1)
     GetColumn(columnStore,column->next)->prev = column->lid;
 
-  if ( call->next != -1 )
+  if (call->next != -1)
     GetBead(beadStore,call->next)->prev = call->boffset;
 
   CreateColumnBeadIterator(cid, &ci);
 
   while ( (nid = NextColumnBead(&ci)) != -1 ) {
     bead = GetBead(beadStore,nid);
-    if ( bead->next != -1 && bead->next != bid) {
-      AlignBeadToColumn(column->lid,AppendGapBead(nid));
-    }
+    if ((bead->next != -1) &&
+        (bead->next != bid))
+      AlignBeadToColumn(column->lid, AppendGapBead(nid), "ColumnAppend()");
   }
   column->ma_id =  prev->ma_id;
   column->ma_index =  prev->ma_index + 1;
@@ -1393,7 +1408,7 @@ int32 ColumnPrepend(int32 cid, int32 bid) {
   while ( (nid = NextColumnBead(&ci)) != -1 ) {
     bead = GetBead(beadStore,nid);
     if ( bead->prev != -1 && bead->prev != bid) {
-      AlignBeadToColumn(column->lid,PrependGapBead(nid));
+      AlignBeadToColumn(column->lid,PrependGapBead(nid), "ColumnPrepend()");
     }
   }
   column->ma_id =  next->ma_id;
@@ -1515,7 +1530,7 @@ MergeCompatible(int32 cid) {
         //        mbead->column_index, cid, *Getchar(sequenceStore,mbead->soffset));
 
         UnAlignBeadFromColumn(mbead->boffset);
-        AlignBeadToColumn(cid, mbead->boffset);
+        AlignBeadToColumn(cid, mbead->boffset, "MergeCompatible()");
       } else {
         //fprintf(stderr, "delete bead from %d (gap)\n",
         //        mbead->column_index);
@@ -2322,6 +2337,7 @@ AllocateDistMatrix(VarRegion  *vreg, int init)
     }
 }
 
+#ifdef DEBUG_VAR_RECORDS
 static void
 OutputDistMatrix(FILE *fout, VarRegion  *vreg)
 {
@@ -2335,6 +2351,7 @@ OutputDistMatrix(FILE *fout, VarRegion  *vreg)
       fprintf(fout, "\n");
     }
 }
+#endif
 
 
 /*******************************************************************************
@@ -2862,7 +2879,7 @@ SetConsensusToMajorAllele(int32 *cids, VarRegion vreg, CNS_Options *opp, int get
   int i,m;
   char  cbase;
   int read_id = vreg.alleles[0].read_ids[0];
-#if DEBUG_VAR_RECORDS
+#ifdef DEBUG_VAR_RECORDS
   char *bases = (char*)safe_calloc((vreg.end-vreg.beg+1),sizeof(char));
   bases[vreg.end-vreg.beg]='\0';
   fprintf(stderr, "VAR beg= %d end= %d\n", vreg.beg, vreg.end);
@@ -2879,7 +2896,7 @@ SetConsensusToMajorAllele(int32 *cids, VarRegion vreg, CNS_Options *opp, int get
     // Set the consensus base
     cbase = vreg.reads[read_id].bases[m];
     Setchar(sequenceStore, call->soffset, &cbase);
-#if DEBUG_VAR_RECORDS
+#ifdef DEBUG_VAR_RECORDS
     bases[m]=cbase;
   }
   fprintf(stderr, "beg= %d end= %d Num_reads= %d \nConsensus= \n%s\n", vreg.beg, vreg.end, vreg.nr, bases);
@@ -2951,7 +2968,7 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
                                                 vreg.nr, vreg.dist_matrix);
         distant_allele_id = vreg.reads[distant_read_id].allele_id;
       }
-#if DEBUG_VAR_RECORDS
+#ifdef DEBUG_VAR_RECORDS
     fprintf(stderr, "VAR beg= %d end= %d\n", vreg.beg, vreg.end);
     OutputReads(stderr, vreg.reads, vreg.nr, vreg.end-vreg.beg);
     OutputDistMatrix(stderr, &vreg);
@@ -2971,7 +2988,8 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
                     int32 cid = cids[vreg.beg+m];
                     Column *column=GetColumn(columnStore,cid);
                     Bead *call = GetBead(beadStore, column->call);
-#if DEBUG_CONSENSUS_CALL
+
+#if 0
                     // Check the consistency of a consensus call
                     BaseCall(cids[vreg.beg+m], 1, &fict_var, &vreg,
                              vreg.alleles[al].id, &cbase, 0, 0, opp);
@@ -3048,7 +3066,7 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
       }
   }
   safe_free(base);
-#if DEBUG_ABACUS
+#ifdef DEBUG_VAR_RECORDS
   fprintf(stderr, "VARiation= %s\n", (*v_list)[*nvars].var_seq);
 #endif
   (*nvars)++;
@@ -3583,13 +3601,16 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
           // Calculate a sum of qvs for each read within a variation region
           // Populate the distance matrix
 
-          if (SHOW_READS) show_reads(&vreg);
+#ifdef DEBUG_VAR_RECORDS
+          show_reads(&vreg);
+#endif
 
           AllocateDistMatrix(&vreg, -1);
           PopulateDistMatrix(vreg.reads, vreg.end-vreg.beg, &vreg);
 
-          if (OUTPUT_DISTANCE_MATRIX)
-            OutputDistMatrix(stderr, &vreg);
+#ifdef DEBUG_VAR_RECORDS
+          OutputDistMatrix(stderr, &vreg);
+#endif
 
           // Allocate memory for alleles
           AllocateMemoryForAlleles(&vreg.alleles, vreg.nr, &vreg.na);
@@ -3637,9 +3658,10 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
               }
           }
 
-
-          if (SHOW_CONFIRMED_READS) show_confirmed_reads(&vreg);
-          if (SHOW_CONFIRMED_READS) show_reads_of_confirmed_alleles(&vreg);
+#ifdef DEBUG_VAR_RECORDS
+          show_confirmed_reads(&vreg);
+          show_reads_of_confirmed_alleles(&vreg);
+#endif
 
           // Update the info about the previous VAR record :
           // prev_nca, prev_nca_iid and prev_ncr_iid
@@ -3677,7 +3699,9 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
                 prev_ncr_iid[kv++] = vreg.alleles[iv].read_iids[jv];
             }
 
-            if (SHOW_ALLELES) OutputAlleles(stderr, &vreg);
+#ifdef DEBUG_VAR_RECORDS
+            OutputAlleles(stderr, &vreg);
+#endif
 
             /* Store variations in a v_list */
             if (make_v_list == 2)
@@ -4516,17 +4540,17 @@ int32 ApplyIMPAlignment(int32 afid, int32 bfid, int32 ahang, int32 *trace) {
     // align  (*trace-bpos) positions
     while ( *trace-bpos>0) {
       abead = GetBead(beadStore,apos++);
-      AlignBeadToColumn(abead->column_index, bboffset+bpos++);
+      AlignBeadToColumn(abead->column_index, bboffset+bpos++, "");
     }
     abead = GetBead(beadStore,apos++);
     binsert = AppendGapBead(bboffset+bpos-1);
-    AlignBeadToColumn(abead->column_index, binsert);
+    AlignBeadToColumn(abead->column_index, binsert, "");
     trace++;
   }
   // now, finish up aligning the rest of b
   while ( bpos<blen ) {
     abead = GetBead(beadStore,apos++);
-    AlignBeadToColumn(abead->column_index, bboffset+bpos++);
+    AlignBeadToColumn(abead->column_index, bboffset+bpos++, "");
   }
   bfrag->manode=afrag->manode;
   return bpos;
@@ -4555,7 +4579,8 @@ ApplyAlignment(int32 afid,
   int32 last_a_aligned,last_b_aligned;
   int32 next_to_align;
   int32 binsert;
-  int32 *aindex;
+
+  int32 *aindex    = NULL;
 
   Bead *abead;
 
@@ -4585,7 +4610,10 @@ ApplyAlignment(int32 afid,
     aboffset = afrag->firstbead;
   }
 
-  aindex = (int32 *)safe_malloc(alen*sizeof(int32));
+#ifdef DEBUG_ABACUS_ALIGN
+  fprintf(stderr, "allocate aindex[] with %d things.\n", alen);
+#endif
+  aindex    = (int32 *)safe_malloc(alen*sizeof(int32));
 
   {
     Bead *ab=GetBead(beadStore,aboffset);
@@ -4607,6 +4635,12 @@ ApplyAlignment(int32 afid,
 
   blen     = bfrag->length;
   bboffset = bfrag->firstbead;
+
+#ifdef DEBUG_ABACUS_ALIGN
+  fprintf(stderr, "afid=%d aboffset=%d alen=%d  bfid=%d bboffset=%d blen=%d\n",
+          afid, aboffset, alen,
+          bfid, bboffset, blen);
+#endif
 
   //  All the a beads should be in a column.  All the b beads should not.
   //
@@ -4642,8 +4676,10 @@ ApplyAlignment(int32 afid,
   bpos = 0;
 
   if ( ahang == alen ) { // special case where fragments abutt
+    assert(alen-1 < alen);
     abead = GetBead(beadStore,aindex[alen-1]);
   } else {
+    assert(apos < alen);
     abead = GetBead(beadStore,aindex[apos]);
   }
 
@@ -4658,10 +4694,15 @@ ApplyAlignment(int32 afid,
     last_b_aligned = bboffset+bpos-1;
   }
 
+  assert(apos < alen);
+  assert(bpos < blen);
+
   last_a_aligned = GetBead(beadStore,aindex[apos])->prev;
 
   while ( (NULL != trace) && *trace != 0 ) {
-    //fprintf(stderr, "trace=%d  apos=%d alen=%d bpos=%d blen=%d\n", *trace, apos, alen, bpos, blen);
+#ifdef DEBUG_ABACUS_ALIGN
+    fprintf(stderr, "trace=%d  apos=%d alen=%d bpos=%d blen=%d\n", *trace, apos, alen, bpos, blen);
+#endif
 
     if ( *trace < 0 ) {
       //
@@ -4669,8 +4710,10 @@ ApplyAlignment(int32 afid,
       //
       // align ( - *trace - apos ) positions
       while ( apos < (- *trace - 1)) {
+        assert(apos < alen);
+        assert(bpos < blen);
         abead = GetBead(beadStore,aindex[apos]);
-        AlignBeadToColumn(abead->column_index, bboffset+bpos);
+        AlignBeadToColumn(abead->column_index, bboffset+bpos, "ApplyAlignment(1)");
         last_a_aligned = aindex[apos];
         last_b_aligned = bboffset+bpos;
         apos++; bpos++;
@@ -4680,7 +4723,7 @@ ApplyAlignment(int32 afid,
           off = abead->boffset;
           binsert = AppendGapBead(binsert);
           abead = GetBead(beadStore, off);
-          AlignBeadToColumn(abead->column_index, binsert);
+          AlignBeadToColumn(abead->column_index, binsert, "ApplyAlignment(2)");
           last_a_aligned = abead->boffset;
           last_b_aligned = binsert;
         }
@@ -4709,18 +4752,23 @@ ApplyAlignment(int32 afid,
       //                             bpos
       //              * is new column
 
+      assert(apos     < alen);
+      assert(bpos - 1 < blen);
       abead = GetBead(beadStore,aindex[apos]);
       // in case the last aligned bead in a is not apos->prev
       //   (Because gap beads were inserted, for example)
       binsert = bboffset+bpos-1;
       while ( abead->prev != last_a_aligned ) {
         binsert = AppendGapBead(binsert);
+        assert(apos < alen);
         abead = GetBead(beadStore,aindex[apos]);
         next_to_align = (GetBead(beadStore,last_a_aligned))->next;
-        AlignBeadToColumn( (GetBead(beadStore,next_to_align))->column_index, binsert);
+        AlignBeadToColumn( (GetBead(beadStore,next_to_align))->column_index, binsert, "ApplyAlignment(3)");
         last_a_aligned = next_to_align;
         last_b_aligned = binsert;
       }
+      assert(apos < alen);
+      assert(bpos < blen);
       ColumnAppend((GetColumn(columnStore,abead->column_index))->prev,bboffset+bpos);
       abead = GetBead(beadStore,aindex[apos]);
       last_a_aligned = abead->prev;
@@ -4732,18 +4780,22 @@ ApplyAlignment(int32 afid,
       //
       // align ( *trace - bpos ) positions
       while ( bpos < (*trace - 1) ) {
+        assert(apos < alen);
+        assert(bpos < blen);
         abead = GetBead(beadStore,aindex[apos]);
-        AlignBeadToColumn(abead->column_index, bboffset+bpos);
+        AlignBeadToColumn(abead->column_index, bboffset+bpos, "ApplyAlignment(4)");
         last_a_aligned = aindex[apos];
         last_b_aligned = bboffset+bpos;
         apos++; bpos++;
         binsert = bboffset+bpos-1;
+        assert(apos < alen);
+        assert(bpos < blen);
         while ( abead->next > -1 && (abead = GetBead(beadStore,abead->next))->boffset != aindex[apos] ) {
           // insert a gap bead in b and align to
           off = abead->boffset;
           binsert = AppendGapBead(binsert);
           abead = GetBead(beadStore, off);
-          AlignBeadToColumn(abead->column_index, binsert);
+          AlignBeadToColumn(abead->column_index, binsert, "ApplyAlignment(5)");
           last_a_aligned = abead->boffset;
           last_b_aligned = binsert;
         }
@@ -4773,17 +4825,20 @@ ApplyAlignment(int32 afid,
       off = abead->boffset;
       binsert = AppendGapBead(last_b_aligned);
       abead = GetBead(beadStore,off);
-      AlignBeadToColumn(abead->column_index, binsert);
+      AlignBeadToColumn(abead->column_index, binsert, "ApplyAlignment(6)");
       last_a_aligned = abead->boffset;
       last_b_aligned = binsert;
       apos++;
+
+      assert((abead->next <= -1) || (apos < alen));
+      assert(bpos < blen);
 
       while ( abead->next > -1 && (abead = GetBead(beadStore,abead->next))->boffset != aindex[apos] ) {
         // insert a gap bead in b and align to
         off = abead->boffset;
         binsert = AppendGapBead(binsert);
         abead = GetBead(beadStore, off);
-        AlignBeadToColumn(abead->column_index, binsert);
+        AlignBeadToColumn(abead->column_index, binsert, "ApplyAlignment(7)");
         last_a_aligned = abead->boffset;
         last_b_aligned = binsert;
       }
@@ -4796,19 +4851,20 @@ ApplyAlignment(int32 afid,
 
   ovl_remaining  = (blen-bpos < alen-apos) ? blen-bpos : alen-apos;
   while ( ovl_remaining-- > 0 ) {
+    assert(apos < alen);
+    assert(bpos < blen);
     abead = GetBead(beadStore,aindex[apos]);
-    AlignBeadToColumn(abead->column_index, bboffset+bpos);
+    AlignBeadToColumn(abead->column_index, bboffset+bpos, "ApplyAlignment(8)");
     last_a_aligned = abead->boffset;
     last_b_aligned = bboffset+bpos;
     apos++;bpos++;
     binsert = bboffset+bpos-1;
-    while ( abead->next > -1 && apos < alen &&
-            (abead = GetBead(beadStore,abead->next))->boffset !=
-            aindex[apos] ) {
+
+    while ( abead->next > -1 && (apos < alen) && (abead = GetBead(beadStore,abead->next))->boffset != aindex[apos] ) {
       off = abead->boffset;
       binsert = AppendGapBead(binsert);
       abead = GetBead(beadStore, off);
-      AlignBeadToColumn(abead->column_index, binsert);
+      AlignBeadToColumn(abead->column_index, binsert, "ApplyAlignment(9)");
       last_a_aligned = abead->boffset;
       last_b_aligned = binsert;
     }
@@ -4824,7 +4880,7 @@ ApplyAlignment(int32 afid,
     while ( pcol->next != -1 )  {
       binsert = AppendGapBead(binsert);
       column_index = pcol->next;
-      AlignBeadToColumn(column_index, binsert);
+      AlignBeadToColumn(column_index, binsert, "ApplyAlignment(A)");
       pcol = GetColumn(columnStore,column_index);
     }
     // then, add on trailing (dovetail) beads from b
@@ -5617,7 +5673,7 @@ int MergeAbacus(Abacus *abacus, int merge_dir)
         break;
       first_non_null = j;
     }
-#if DEBUG_ABACUS
+#ifdef DEBUG_ABACUS
   fprintf(stderr, "abacus->columns=%d first_non_null = %d last_non_null= %d\n",
           abacus->columns, first_non_null, last_non_null);
 #endif
@@ -5875,7 +5931,7 @@ LeftShift(Abacus *abacus, VarRegion vreg, int *lcols)
     fprintf(stderr, "%c", abacus->calls[j]);
   fprintf(stderr, "\n");
 #endif
-#if DEBUG_ABACUS
+#ifdef DEBUG_ABACUS
   fprintf(stderr, "Abacus after LeftShift before Merge:\n");
   ShowAbacus(abacus);
 #endif
@@ -5949,7 +6005,7 @@ int32 RightShift(Abacus *abacus, VarRegion vreg, int *rcols)
             }
         }
     }
-#if DEBUG_ABACUS
+#ifdef DEBUG_ABACUS
   fprintf(stderr, "Abacus after RightShift before Merge:\n");
   ShowAbacus(abacus);
 #endif
@@ -6188,7 +6244,7 @@ ApplyAbacus(Abacus *a, CNS_Options *opp) {
           if (NULL == exch) {
             eid = AppendGapBead(bead->boffset);
             bead = GetBead(beadStore, bid);
-            AlignBeadToColumn(GetColumn(columnStore,bead->column_index)->next,eid);
+            AlignBeadToColumn(GetColumn(columnStore,bead->column_index)->next,eid, "ApplyAbacus(1)");
             exch = GetBead(beadStore, eid);
           }
 
@@ -6203,7 +6259,7 @@ ApplyAbacus(Abacus *a, CNS_Options *opp) {
               eidp = AppendGapBead(exch->boffset);
               bead = GetBead(beadStore, bid);
               exch = GetBead(beadStore, eid);
-              AlignBeadToColumn(GetColumn(columnStore,exch->column_index)->next,eidp);
+              AlignBeadToColumn(GetColumn(columnStore,exch->column_index)->next,eidp, "ApplyAbacus(2)");
 #ifdef DEBUG_APPLYABACUS
               fprintf(stderr, "4; bid=%d eid=%d\n", bid, eid);
 #endif
@@ -6293,7 +6349,7 @@ ApplyAbacus(Abacus *a, CNS_Options *opp) {
             eid  = PrependGapBead(bead->boffset);
             bead = GetBead(beadStore, bid);
             exch = GetBead(beadStore, eid);
-            AlignBeadToColumn(GetColumn(columnStore,bead->column_index)->prev,eid);
+            AlignBeadToColumn(GetColumn(columnStore,bead->column_index)->prev,eid, "ApplyAbacus(3)");
           }
 
           while (a_entry != *Getchar(sequenceStore,exch->soffset)) {
@@ -6303,7 +6359,7 @@ ApplyAbacus(Abacus *a, CNS_Options *opp) {
               eidp = PrependGapBead(exch->boffset);
               bead = GetBead(beadStore, bid);
               exch = GetBead(beadStore, eid);
-              AlignBeadToColumn(GetColumn(columnStore,exch->column_index)->prev,eidp);
+              AlignBeadToColumn(GetColumn(columnStore,exch->column_index)->prev,eidp, "ApplyAbacus(4)");
             } else if (exch->column_index == a->start_column) {
               eidp = AppendGapBead(exch->prev);
               bead = GetBead(beadStore, bid);
@@ -6955,11 +7011,11 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
   vreg.beg = 0;
   vreg.end = orig_abacus->columns-1;
   GetReadsForAbacus(vreg.reads, orig_abacus);
-#if 0
+#ifdef DEBUG_VAR_RECORDS
   OutputReads(stderr, vreg.reads, vreg.nr, orig_abacus->columns);
 #endif
   PopulateDistMatrix(vreg.reads, orig_abacus->columns, &vreg);
-#if DEBUG_ABACUS
+#ifdef DEBUG_VAR_RECORDS
   OutputDistMatrix(stderr, &vreg);
 #endif
   AllocateMemoryForAlleles(&vreg.alleles, vreg.nr, &vreg.na);
@@ -6978,7 +7034,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
 
 #endif
 
-#if DEBUG_ABACUS
+#ifdef DEBUG_ABACUS
   fprintf(stderr, "\n\nOrigCalls=\n");
   ShowCalls(orig_abacus);
   fprintf(stderr, "Abacus=\n");
@@ -6988,7 +7044,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
   //ShowAbacus(orig_abacus);
   left_abacus = CloneAbacus(orig_abacus);
   left_mm_score = LeftShift(left_abacus, vreg, &left_columns);
-#if DEBUG_ABACUS
+#ifdef DEBUG_ABACUS
   fprintf(stderr, "\n\nLeftShiftCalls=\n");
   ShowCalls(left_abacus);
   fprintf(stderr, "Abacus=\n");
@@ -6997,7 +7053,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
 #endif
   right_abacus = CloneAbacus(orig_abacus);
   right_mm_score = RightShift(right_abacus, vreg, &right_columns);
-#if DEBUG_ABACUS
+#ifdef DEBUG_ABACUS
   fprintf(stderr, "\n\nRightShiftCalls=\n");
   ShowCalls(right_abacus);
   fprintf(stderr, "Abacus=\n");
@@ -7021,7 +7077,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
   right_total_score = right_mm_score + right_columns + right_gap_score;
   best_total_score  = orig_total_score;
 
-#if DEBUG_ABACUS
+#ifdef DEBUG_ABACUS
   fprintf(stderr, "In RefineWindow: beg= %lu end= %d\n",
           start_column->lid, stab_bgn);
   fprintf(stderr, "    abacus->columns= %d, abacus->rows= %d\n",
@@ -7356,7 +7412,7 @@ int AbacusRefine(MANode *ma, int32 from, int32 to, CNS_RefineLevel level,
 
       if (window_width > 0)
         {
-#if DEBUG_ABACUS
+#ifdef DEBUG_ABACUS
           fprintf(stderr, "In AbacusRefine window_width= %d\n", window_width);
 #endif
           //
@@ -7584,6 +7640,9 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
               unitig->f_list[i].ident, unitig->iaccession);
       goto MAUnitigFailure;
     }
+
+    // This guy allocates and initializes the beads for each
+    // fragment.  Beads are not fully inserted in the abacus here.
 
     fid = AppendFragToLocalStore(unitig->f_list[i].type,
                                  unitig->f_list[i].ident,
