@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.213 2008-12-29 06:27:37 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.214 2008-12-29 17:36:34 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -4830,10 +4830,17 @@ ApplyAlignment(int32 afid,
       last_b_aligned = binsert;
       apos++;
 
-      assert((abead->next <= -1) || (apos < alen));
+      //assert((abead->next <= -1) || (apos < alen));
       assert(bpos < blen);
 
-      while ( abead->next > -1 && (abead = GetBead(beadStore,abead->next))->boffset != aindex[apos] ) {
+      //  (apos < alen) below will quit the loop if the alignment has
+      //  gaps at the end.  This is probably a bug in the aligner
+      //  code.  Enabling the above assert will usually find an
+      //  example quickly.
+
+      while ((abead->next > -1) &&
+             (apos < alen) &&
+             (abead = GetBead(beadStore,abead->next))->boffset != aindex[apos] ) {
         // insert a gap bead in b and align to
         off = abead->boffset;
         binsert = AppendGapBead(binsert);

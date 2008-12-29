@@ -22,7 +22,7 @@
 #ifndef AS_ALN_ALIGNERS_H
 #define AS_ALN_ALIGNERS_H
 
-static const char *rcsid_AS_ALN_ALIGNERS_H = "$Id: AS_ALN_aligners.h,v 1.15 2008-12-18 07:13:22 brianwalenz Exp $";
+static const char *rcsid_AS_ALN_ALIGNERS_H = "$Id: AS_ALN_aligners.h,v 1.16 2008-12-29 17:36:34 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -146,6 +146,10 @@ AS_ALN_Aligner     Optimal_Overlap_AS_forCNS;
 #include "CA_ALN_local.h"
 int *AS_Local_Trace(Local_Overlap *local_overlap, char *aseq, char *bseq);
 
+
+//  Check that the supplied trace makes sense
+int IsInvalidAlign(int prefix, int suffix,
+                   char *a, char *b, int *trace);
 
 /* Print an alignment to file between a and b given in trace (unpacked).
    Prefix gives the length of the initial prefix of a that is unaligned.  */

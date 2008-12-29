@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.17 2008-12-29 06:43:02 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.18 2008-12-29 17:36:34 brianwalenz Exp $";
 
 /* Utility routines to complement, unpack and pack alignments, and print
    overlaps.  Also a routine for re-aligning an overlap using quality
@@ -159,6 +159,48 @@ void Complement_Fragment_AS(InternalFragMesg *a)
 
 /*** OVERLAP PRINT ROUTINE ***/
 
+//  Returns true if the trace supplied is invalid.  This is derived
+//  from PrintAlign() below.
+//
+int
+IsInvalidAlign(int prefix, int suffix,
+               char *a, char *b, int *trace) {
+  int   i = 1, alen = strlen(a);
+  int   j = 1, blen = strlen(b);
+  int   p = 0;
+  int   c;
+
+  a -= 1;
+  b -= 1;
+
+  if (prefix > AS_READ_MAX_LEN) {
+    i = prefix-24;
+    prefix = 25;
+  }
+
+  while (prefix-- > 0)
+    i++;
+
+  while ((c = trace[p++]) != 0) {
+    if (c < 0) {
+      c = -c;
+      while (i < c) {
+        i++; 
+        j++;
+      }
+      j++;
+    } else {
+      while (j < c) {
+        i++;
+        j++;
+      }
+      i++;
+    }
+  }
+
+  return((i-1 > alen) || (j-1 > blen));
+}
+
 /* Print an alignment to file between a and b given in trace (unpacked).
    Prefix gives the length of the initial prefix of a that is unaligned.  */
 
@@ -206,12 +248,12 @@ void PrintAlign(FILE *file, int prefix, int suffix,
     while ((c = trace[p++]) != 0)
       if (c < 0)
         { c = -c;
-          while (i != c)
+          while (i < c)
             COLUMN(a[i++],b[j++])
           COLUMN('-',b[j++])
         }
       else
-        { while (j != c)
+        { while (j < c)
             COLUMN(a[i++],b[j++])
           COLUMN(a[i++],'-')
         }
