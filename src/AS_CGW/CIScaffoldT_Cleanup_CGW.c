@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.44 2008-10-29 10:42:46 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.45 2008-12-30 17:56:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2544,6 +2544,9 @@ ContigContainment(CIScaffoldT  *scaffold,
           rightContig->id, rightContig->offsetAEnd.mean, rightContig->offsetBEnd.mean);
 
   {
+    int lid = leftContig->id;
+    int rid = rightContig->id;
+
     int mergeStatus = 0;
     int flip        = (leftContig->offsetBEnd.mean < leftContig->offsetAEnd.mean);
     mergeStatus = CreateAContigInScaffold(scaffold,
@@ -2559,6 +2562,10 @@ ContigContainment(CIScaffoldT  *scaffold,
     //
     if (mergeStatus == FALSE) {
       fprintf(stderr, "* Retrying with Local_Overlap_AS_forCNS\n");
+
+      //  CreateAContigInScaffold can reallocate ContigGraph
+      leftContig  = GetGraphNode(ScaffoldGraph->ContigGraph, lid);
+      rightContig = GetGraphNode(ScaffoldGraph->ContigGraph, rid);
 
       GlobalData->aligner = Local_Overlap_AS_forCNS;
       mergeStatus = CreateAContigInScaffold(scaffold,
