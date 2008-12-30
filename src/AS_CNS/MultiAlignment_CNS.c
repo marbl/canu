@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.214 2008-12-29 17:36:34 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.215 2008-12-30 15:30:08 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -4198,12 +4198,14 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
     else params=paramsDefault;
   }
 
-  if ( O == NULL || (O->begpos < CNS_NEG_AHANG_CUTOFF &&  ! allow_neg_hang)) { // if begpos is negative, then this isn't the intended olap
+  if ( O == NULL || (O->begpos < CNS_NEG_AHANG_CUTOFF &&  ! allow_neg_hang)) {
+    // if begpos is negative, then this isn't the intended olap
     // perhaps a poor prefix is terminating the search, or causing an alternate
     // overlap to be found
     // try from other end
     SequenceComplement(a,NULL);
     SequenceComplement(b,NULL);
+
     ahang_tmp = alen - ahang_input - blen; // calculate the hang if coming from the right instead
     // note: the preceding calc may be problematic: we really would like to have the bhang, and
     // the equation above gives exactly the bhang only if the number of gaps in A and B is the
@@ -4230,6 +4232,8 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
       // here, we'll try to swap the fragments too
       params.bandBgn = -ahang_tmp-2*CNS_LOOSESEMIBANDWIDTH;
       params.bandEnd = -ahang_tmp+2*CNS_LOOSESEMIBANDWIDTH;
+      params.ahang = -params.ahang;
+      params.bhang = -params.bhang;
       O = Compare(b,blen,a,alen,COMPARE_FUNC,&params);
       if (O != NULL ) {
         int i=0;
@@ -4262,6 +4266,9 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
     tmp=params.bandBgn;
     params.bandBgn= -params.bandEnd;
     params.bandEnd= -tmp;
+
+    params.ahang = -params.ahang;
+    params.bhang = -params.bhang;
 
     O = Compare(b,blen,a,alen,COMPARE_FUNC,&params);
 
@@ -7735,14 +7742,32 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
       if ((unitig->f_list[i].parent > 0) && (unitig->f_list[i].parent == afrag->iid)) {
         ahang = unitig->f_list[i].ahang;
         bhang = unitig->f_list[i].bhang;
-        ovl   = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
         //fprintf(stderr, "NEW hang %d,%d ovl %d\n", ahang, bhang, ovl);
       } else {
         ahang = offsets[bfrag->lid].bgn - offsets[afrag->lid].bgn;
         bhang = offsets[bfrag->lid].end - offsets[afrag->lid].end;
-        ovl   = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
         //fprintf(stderr, "OLD hang %d,%d ovl %d\n", ahang, bhang, ovl);
       }
+
+      //  Used to compute ovl as just afrag.end - bfrag.bgn, but that
+      //  assumes b is not contained.
+      //
+      if (ahang > 0)
+        if (bhang > 0)
+          //  normal dovetail
+          ovl = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
+        else
+          //  b is contained in a
+          ovl = offsets[bfrag->lid].end - offsets[bfrag->lid].bgn;
+      else
+        if (bhang > 0)
+          //  anti normal dovetail
+          ovl = offsets[bfrag->lid].end - offsets[afrag->lid].bgn;
+        else
+          //  a is contained in b
+          ovl = offsets[afrag->lid].end - offsets[afrag->lid].bgn;
+
+      assert(ovl > 0);
 
       // Make sure ahang is above the cutoff value.  If it's not, may
       // need to sort fragments begfore processing.
@@ -8016,22 +8041,24 @@ PlaceFragments(int32 fid,
 
     if        (fcomplement && bcomplement) {
       ahang = afrag->length - bfrag->position.bgn; /* Case D */
-      bhang = 0;
     } else if (fcomplement && !bcomplement) {
       ahang = afrag->length - bfrag->position.end; /* Case C */
-      bhang = 0;
     } else if (!fcomplement && bcomplement) {
       ahang = bfrag->position.end;                 /* Case B */
-      bhang = 0;
     } else {
       ahang = bfrag->position.bgn;                 /* Case A */
-      bhang = 0;
     }
 
-#warning BOGUS BHANG CALCULATION
+    //  The afrag is a unitig, so b is always contained.
 
-    if (!GetAlignmentTrace(afrag->lid, 0, blid, &ahang, &bhang, ovl, trace, &otype, DP_Compare,   DONT_SHOW_OLAP, 0) &&
-        !GetAlignmentTrace(afrag->lid, 0, blid, &ahang, &bhang, ovl, trace, &otype, COMPARE_FUNC, DONT_SHOW_OLAP, 0)) {
+    bhang = bfrag->position.end - afrag->length;
+
+    assert(ahang >= 0);
+    assert(bhang <= 0);
+
+    if (!GetAlignmentTrace(afrag->lid, 0, blid, &ahang, &bhang, ovl, trace, &otype, DP_Compare,                DONT_SHOW_OLAP, 0) &&
+        !GetAlignmentTrace(afrag->lid, 0, blid, &ahang, &bhang, ovl, trace, &otype, COMPARE_FUNC,              DONT_SHOW_OLAP, 0) &&
+        !GetAlignmentTrace(afrag->lid, 0, blid, &ahang, &bhang, ovl, trace, &otype, Optimal_Overlap_AS_forCNS, DONT_SHOW_OLAP, 0)) {
 
       Bead   *afirst = GetBead(beadStore, afrag->firstbead + ahang);
       Column *col    = GetColumn(columnStore, afirst->column_index);
@@ -8558,14 +8585,17 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
           ahang = GetFragment(fragmentStore,tid)->length - (right-left);
           bhang = 0;
         }  else {
+          //  --------
+          //       ---+++
+          //  We extended the unitig by "+++".  The ahang is just the
+          //  start position of the original placement, and the bhang
+          //  is the amount extended (as above).
           aid=cid;
           bid=tid;
           ahang = left;
-          bhang = 0;
+          bhang = GetFragment(fragmentStore,tid)->length - (right-left);
         }
         SeedMAWithFragment(ma->lid,aid,0, opp);
-
-#warning bogus bhang
 
         //  do the alignment
         olap_success = GetAlignmentTrace(aid, 0,bid,&ahang,&bhang,ovl,trace,&otype, DP_Compare,DONT_SHOW_OLAP,0);
@@ -8851,7 +8881,7 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
               /* GD: this is a containment, assuming that
                * offsets[alid].beg < offsets[blid].beg
                */
-#warning was afrag->length - bfrag->length - (offsets[alid].end-offsets[blid].end);
+              //#warning was afrag->length - bfrag->length - (offsets[alid].end-offsets[blid].end);
               ahang = offsets[blid].bgn - offsets[alid].bgn;
               bhang = offsets[blid].end - offsets[alid].end;
             } else {
