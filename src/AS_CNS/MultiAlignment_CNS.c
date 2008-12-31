@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.216 2008-12-31 02:56:29 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.217 2008-12-31 16:12:12 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -8055,8 +8055,10 @@ PlaceFragments(int32 fid,
     assert(bhang <= 0);
 
     if (!GetAlignmentTrace(afrag->lid, 0, blid, &ahang, &bhang, ovl, trace, &otype, DP_Compare,                DONT_SHOW_OLAP, 0, AS_CONSENSUS, AS_CNS_ERROR_RATE) &&
-        !GetAlignmentTrace(afrag->lid, 0, blid, &ahang, &bhang, ovl, trace, &otype, COMPARE_FUNC,              DONT_SHOW_OLAP, 0, AS_CONSENSUS, AS_CNS_ERROR_RATE) &&
-        !GetAlignmentTrace(afrag->lid, 0, blid, &ahang, &bhang, ovl, trace, &otype, Optimal_Overlap_AS_forCNS, DONT_SHOW_OLAP, 0, AS_CONSENSUS, AS_CNS_ERROR_RATE)) {
+        !GetAlignmentTrace(afrag->lid, 0, blid, &ahang, &bhang, ovl, trace, &otype, COMPARE_FUNC,              DONT_SHOW_OLAP, 0, AS_CONSENSUS, AS_CNS_ERROR_RATE)) {
+
+      //  Can't use this due to size restrictions in the alignment matrix
+      //!GetAlignmentTrace(afrag->lid, 0, blid, &ahang, &bhang, ovl, trace, &otype, Optimal_Overlap_AS_forCNS, DONT_SHOW_OLAP, 0, AS_CONSENSUS, AS_CNS_ERROR_RATE)
 
       Bead   *afirst = GetBead(beadStore, afrag->firstbead + ahang);
       Column *col    = GetColumn(columnStore, afirst->column_index);
