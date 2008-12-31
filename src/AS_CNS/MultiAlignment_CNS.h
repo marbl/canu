@@ -21,7 +21,7 @@
 #ifndef MULTIALIGNMENT_CNS_INCLUDE
 #define MULTIALIGNMENT_CNS_INCLUDE
 
-static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.43 2008-12-18 07:13:22 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.44 2008-12-31 02:56:30 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -73,16 +73,6 @@ typedef enum {
   CNS_POLYX  = 2, // align poly-X regions
   CNS_INDEL  = 4  // push apart mushed block indels
 }  CNS_RefineLevel;
-
-typedef enum  {
-  AS_CONSENSUS   = (int) 'C',
-  AS_OVERLAY     = (int) 'O',
-  AS_MERGE       = (int) 'M',
-  AS_NOALIGNTYPE = (int) 'U'
-} ALIGN_TYPE;
-
-extern ALIGN_TYPE ALIGNMENT_CONTEXT;
-
 
 
 MultiAlignT *MergeMultiAlignsFast_new(tSequenceDB *,

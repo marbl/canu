@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: Consensus_CNS.c,v 1.69 2008-12-18 07:13:22 brianwalenz Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.70 2008-12-31 02:56:29 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -101,8 +101,6 @@ main (int argc, char **argv) {
 
   AS_ALN_Aligner *COMPARE_FUNC = Local_Overlap_AS_forCNS;
   CNS_PrintKey printwhat=CNS_STATS_ONLY;
-
-  ALIGNMENT_CONTEXT = AS_CONSENSUS;
 
   argc = AS_configure(argc, argv);
 

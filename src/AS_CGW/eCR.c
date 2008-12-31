@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.41 2008-12-18 07:13:22 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.42 2008-12-31 02:56:29 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -1737,7 +1737,6 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
   //
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
                           CNS_OPTIONS_MIN_ANCHOR_DEFAULT };
-  ALIGNMENT_CONTEXT=AS_CONSENSUS;
 
   if (EXIT_FAILURE == MultiAlignUnitig(&ium_mesg,
                                        ScaffoldGraph->gkpStore,
