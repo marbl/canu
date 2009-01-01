@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.217 2008-12-31 16:12:12 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.218 2009-01-01 04:11:00 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -57,6 +57,7 @@ static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.217 2008-12-31 16:12:12 bria
 #undef DEBUG_ABACUS
 #undef DEBUG_ABACUS_ALIGN
 #undef DEBUG_VAR_RECORDS
+#undef DEBUG_GET_ALIGNMENT_TRACE
 
 // Parameters used by Abacus processing code
 #define MSTRING_SIZE                        3
@@ -1004,7 +1005,7 @@ AlignBeadToColumn(int32 cid, int32 bid, char *label) {
   assert(align != NULL);
 
 #ifdef DEBUG_ABACUS_ALIGN
-  fprintf(stderr, "AlignBeadToColumn()-- %s frag=%d bead=%d moving from column=%d to column=%d\n", label, align->frag_index, bid, align->column_index, cid);
+  fprintf(stderr, "AlignBeadToColumn()-- %s frag=%d bead=%d,%c moving from column=%d to column=%d\n", label, align->frag_index, bid, *Getchar(sequenceStore,align->soffset), align->column_index, cid);
 #endif
 
   align->down         = first->boffset;
@@ -4120,11 +4121,23 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   // Compare with the default parameters:
 
   params = paramsDefault;
+#ifdef DEBUG_GET_ALIGNMENT_TRACE
+  fprintf(stderr, "GetAlignmentTrace()--  Default Compare\n");
+#endif
   O = Compare(a,alen,b,blen,COMPARE_FUNC,&params);
+
+  //  Give up if no alignment and using dynamic programming.
+
+  if ((COMPARE_FUNC == Optimal_Overlap_AS_forCNS) &&
+      ((O == NULL) || (O->begpos < CNS_NEG_AHANG_CUTOFF)))
+    return(NULL);
 
   if ( O == NULL ) {
     // look for potentially narrower overlap
     params.minlen=CNS_DP_THIN_MINLEN;
+#ifdef DEBUG_GET_ALIGNMENT_TRACE
+  fprintf(stderr, "GetAlignmentTrace()--  Compare 2\n");
+#endif
     O = Compare(a,alen,b,blen,COMPARE_FUNC,&params);
     if (O!=NULL) trick=CNS_ALN_THIN_OLAP;
     else params = paramsDefault;
@@ -4132,6 +4145,9 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   if ( O == NULL && ( strchr(a,'N') != NULL || strchr(b,'N') != NULL || bfrag->type==AS_UNITIG )) {
     // there are N's in the sequence, or they are consensus sequences, loosen the erate to compensate
     params.erate=2*AS_CNS_ERROR_RATE;
+#ifdef DEBUG_GET_ALIGNMENT_TRACE
+  fprintf(stderr, "GetAlignmentTrace()--  Compare 3\n");
+#endif
     O = Compare(a,alen,b,blen,COMPARE_FUNC,&params);
     if (O!=NULL) trick=CNS_ALN_HIGH_ERATE;
     else params = paramsDefault;
@@ -4142,6 +4158,9 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
     params.bandBgn=ahang_input-2*CNS_LOOSESEMIBANDWIDTH;
     params.bandEnd=ahang_input+2*CNS_LOOSESEMIBANDWIDTH;
     params.erate =2*AS_CNS_ERROR_RATE;
+#ifdef DEBUG_GET_ALIGNMENT_TRACE
+  fprintf(stderr, "GetAlignmentTrace()--  Compare 4\n");
+#endif
     O = Compare(a,alen,b,blen,COMPARE_FUNC,&params);
     if (O!=NULL) trick=CNS_ALN_WIDE;
     else params=paramsDefault;
@@ -4151,6 +4170,9 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
     params.bandBgn=ahang_input-3*CNS_LOOSESEMIBANDWIDTH;
     params.bandEnd=ahang_input+3*CNS_LOOSESEMIBANDWIDTH;
     params.erate=2*default_erate;
+#ifdef DEBUG_GET_ALIGNMENT_TRACE
+  fprintf(stderr, "GetAlignmentTrace()--  Compare 5\n");
+#endif
     O = Compare(a,alen,b,blen,COMPARE_FUNC,&params);
     if ( O != NULL ) {
       if ( O->diffs / O->length > default_erate ) O = NULL;
@@ -4163,6 +4185,9 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
     params.bandBgn=ahang_input-5*CNS_LOOSESEMIBANDWIDTH;
     params.bandEnd=ahang_input+5*CNS_LOOSESEMIBANDWIDTH;
     params.erate=2*default_erate;
+#ifdef DEBUG_GET_ALIGNMENT_TRACE
+  fprintf(stderr, "GetAlignmentTrace()--  Compare 6\n");
+#endif
     O = Compare(a,alen,b,blen,COMPARE_FUNC,&params);
     if ( O != NULL ) {
       if ( O->diffs / O->length > default_erate ) O = NULL;
@@ -4176,6 +4201,9 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
     params.bandEnd=ahang_input+2*CNS_LOOSESEMIBANDWIDTH;
     params.erate=2*default_erate;
     params.minlen=CNS_DP_THIN_MINLEN;
+#ifdef DEBUG_GET_ALIGNMENT_TRACE
+  fprintf(stderr, "GetAlignmentTrace()--  Compare 7\n");
+#endif
     O = Compare(a,alen,b,blen,COMPARE_FUNC,&params);
     if ( O != NULL ) {
       if ( O->diffs / O->length > default_erate ) O = NULL;
@@ -4189,6 +4217,9 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
     params.bandEnd=alen;
     params.erate=2*default_erate;
     params.minlen=CNS_DP_THIN_MINLEN;
+#ifdef DEBUG_GET_ALIGNMENT_TRACE
+  fprintf(stderr, "GetAlignmentTrace()--  Compare 8\n");
+#endif
     O = Compare(a,alen,b,blen,COMPARE_FUNC,&params);
     if ( O != NULL ) {
       if ( O->diffs / O->length > default_erate ) O = NULL;
@@ -4212,11 +4243,17 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
 
     params.bandBgn = ahang_tmp-CNS_TIGHTSEMIBANDWIDTH;
     params.bandEnd = ahang_tmp+CNS_TIGHTSEMIBANDWIDTH;
+#ifdef DEBUG_GET_ALIGNMENT_TRACE
+  fprintf(stderr, "GetAlignmentTrace()--  Compare 9\n");
+#endif
     O = Compare(a,alen,b,blen,COMPARE_FUNC,&params);
     if ( O == NULL || O->endpos  > -CNS_NEG_AHANG_CUTOFF ) {
       params.bandBgn = ahang_tmp-2*CNS_LOOSESEMIBANDWIDTH;
       params.bandEnd = ahang_tmp+2*CNS_LOOSESEMIBANDWIDTH;
       if ( alignment_context == AS_MERGE || bfrag->type == AS_UNITIG ) params.erate=2*default_erate;
+#ifdef DEBUG_GET_ALIGNMENT_TRACE
+  fprintf(stderr, "GetAlignmentTrace()--  Compare 10\n");
+#endif
       O = Compare(a,alen,b,blen,COMPARE_FUNC,&params);
     }
     if ( O == NULL || O->endpos  > -CNS_NEG_AHANG_CUTOFF ) {
@@ -4224,6 +4261,9 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
       params.bandBgn = -blen;
       params.bandEnd = alen;
       if ( alignment_context == AS_MERGE || bfrag->type == AS_UNITIG ) params.erate=2*default_erate;
+#ifdef DEBUG_GET_ALIGNMENT_TRACE
+  fprintf(stderr, "GetAlignmentTrace()--  Compare 11\n");
+#endif
       O = Compare(a,alen,b,blen,COMPARE_FUNC,&params);
     }
     if ( O == NULL || O->endpos > - CNS_NEG_AHANG_CUTOFF) {
@@ -4232,6 +4272,9 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
       params.bandEnd = -ahang_tmp+2*CNS_LOOSESEMIBANDWIDTH;
       params.ahang = -params.ahang;
       params.bhang = -params.bhang;
+#ifdef DEBUG_GET_ALIGNMENT_TRACE
+  fprintf(stderr, "GetAlignmentTrace()--  Compare 12\n");
+#endif
       O = Compare(b,blen,a,alen,COMPARE_FUNC,&params);
       if (O != NULL ) {
         int i=0;
@@ -4268,6 +4311,9 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
     params.ahang = -params.ahang;
     params.bhang = -params.bhang;
 
+#ifdef DEBUG_GET_ALIGNMENT_TRACE
+  fprintf(stderr, "GetAlignmentTrace()--  Compare 13\n");
+#endif
     O = Compare(b,blen,a,alen,COMPARE_FUNC,&params);
 
     if (O != NULL ) {
@@ -4794,7 +4840,7 @@ ApplyAlignment(int32 afid,
         last_b_aligned = bboffset+bpos;
         apos++; bpos++;
         binsert = bboffset+bpos-1;
-        assert(apos < alen);
+        assert((abead->next <= -1) || (apos < alen));
         assert(bpos < blen);
         while ( abead->next > -1 && (abead = GetBead(beadStore,abead->next))->boffset != aindex[apos] ) {
           // insert a gap bead in b and align to
