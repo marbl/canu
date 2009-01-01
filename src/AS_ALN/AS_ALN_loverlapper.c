@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.19 2008-12-29 17:36:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.20 2009-01-01 04:09:11 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -32,11 +32,13 @@ static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.19 2008-12-29 17:36:34
 #define OKNAFFINE 1
 
 #undef DEBUG_LOCALOVL
+#undef DEBUG_LOCALOVL_VERBOSE
 #undef DEBUG_TRACE_BUILDING
 #undef DEBUG_TRACE_CONSTR
 #undef DEBUG_FINAL_TRACE
 
 //#define DEBUG_LOCALOVL
+//#define DEBUG_LOCALOVL_VERBOSE
 //#define DEBUG_TRACE_CONSTR
 //#define DEBUG_FINAL_TRACE
 
@@ -828,7 +830,7 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
     }
 
 
-#ifdef DEBUG
+#ifdef DEBUG_LOCALOVL_VERBOSE
     if(spnt<0){
       int i=0;
       fprintf(stderr, "(B sequence on top (2nd place in src); spnt=%d!!!\n",spnt);
@@ -843,7 +845,7 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
     assert(segtrace!=NULL);
 
 
-#ifdef PRINT_SUMMARY
+#ifdef DEBUG_LOCALOVL_VERBOSE
     fprintf(stderr,"  Match A[%d,%d] to B[%d,%d]\n",
 	    O->chain[i].piece.abpos,
 	    O->chain[i].piece.aepos,
@@ -891,9 +893,8 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
       }
     }
 
-#ifdef PRINT_SUMMARY
+#ifdef DEBUG_LOCALOVL_VERBOSE
     fprintf(stderr,"\n");
-#ifdef VERBOSE_SUMMARY
     if(spnt<0){
       int i=0;
       fprintf(stderr, "(B sequence on top (2nd place in src); spnt=%d!!!\n",spnt);
@@ -903,7 +904,6 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
     } else {
       PrintAlign(stderr,spnt,0,aseg,bseg,segtrace);
     }
-#endif
 #endif
 
 
@@ -1733,12 +1733,20 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
     QVBuffer.quality = errRateAffine;
 #endif
 
-    //    fprintf(stderr, "\n\nInner: Alen %d, Blen %d, del %d, sub %d, ins %d\n"
-    //	   " affdel %d, affins %d, blockdel %d, blockins %d\n",
-    //	   alen,blen,del,sub,ins,
-    //	   affdel,affins,blockdel,blockins);
-    //    fprintf(stderr, "Simple mismatch rate %f\n",errRate);
-    //    fprintf(stderr, "Affine mismatch rate %f\n",errRateAffine);
+
+#ifdef DEBUG_FINAL_TRACE
+    {
+      fprintf(stderr, "Inner: Alen %d, Blen %d, del %d, sub %d, ins %d\n", alen,blen,del,sub,ins);
+      fprintf(stderr, "affdel %d, affins %d, blockdel %d, blockins %d\n", affdel,affins,blockdel,blockins);
+      fprintf(stderr, "Simple mismatch rate %f\n",errRate);
+      fprintf(stderr, "Affine mismatch rate %f\n",errRateAffine);
+      fprintf(stderr, "Local_Overlap_AS Final Final Final Trace:\n");
+      int i;
+      for (i = 0; trace[i] != 0; i++)
+        fprintf(stderr, " %d",trace[i]);
+      fprintf(stderr, "\n");
+    }
+#endif
 
   }
 
