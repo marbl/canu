@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.76 2008-10-29 16:51:32 skoren Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.77 2009-01-02 06:42:17 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,7 +77,7 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "  Dump metainfo for the first 100 fragments\n");
   fprintf(stdout, "    gatekeeper -b 1 -e 100 -tabular -dumpfragments my.gkpStore > first100.tsv\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "  Dump a random 25% of the reads in the first library\n");
+  fprintf(stdout, "  Dump a random 25%% of the reads in the first library\n");
   fprintf(stdout, "    gatekeeper -randomsubset 1 0.25 -dumpfrg my.gkpStore > random25.frg\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  Dump fasta sequence for the UIDs in 'uidFile'\n");
