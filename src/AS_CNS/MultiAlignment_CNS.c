@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.218 2009-01-01 04:11:00 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.219 2009-01-02 06:24:04 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -7734,6 +7734,12 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
     int         olap_success = 0;
     OverlapType otype        = 0;
 
+    if (VERBOSE_MULTIALIGN_OUTPUT) {
+      fprintf(stderr, "\n");
+      fprintf(stderr, "MultiAlignUnitig()-- processing fragment %d at position %d in unitig.\n",
+              unitig->f_list[i].ident, i);
+    }
+
     while (! olap_success) {
 
       if (align_to < 0) {
@@ -7786,32 +7792,63 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
       if ((unitig->f_list[i].parent > 0) && (unitig->f_list[i].parent == afrag->iid)) {
         ahang = unitig->f_list[i].ahang;
         bhang = unitig->f_list[i].bhang;
-        //fprintf(stderr, "NEW hang %d,%d ovl %d\n", ahang, bhang, ovl);
+
+        if (ahang > 0)
+          if (bhang > 0)
+            //  normal dovetail
+            ovl = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
+          else
+            //  b is contained in a
+            ovl = offsets[bfrag->lid].end - offsets[bfrag->lid].bgn;
+        else
+          //  We don't expect these to occur.
+          if (bhang > 0)
+            //  anti normal dovetail
+            ovl = offsets[bfrag->lid].end - offsets[afrag->lid].bgn;
+          else
+            //  a is contained in b
+            ovl = offsets[afrag->lid].end - offsets[afrag->lid].bgn;
+
+        if (VERBOSE_MULTIALIGN_OUTPUT)
+          fprintf(stderr, "MultiAlignUnitig()-- (new) ovl=%d (afrag: lid=%d %d-%d  bfrag: lid=%d %d-%d  hangs: %d %d\n",
+                  ovl,
+                  afrag->lid, offsets[afrag->lid].bgn, offsets[afrag->lid].end,
+                  bfrag->lid, offsets[bfrag->lid].bgn, offsets[bfrag->lid].end,
+                  ahang, bhang);
+
       } else {
         ahang = offsets[bfrag->lid].bgn - offsets[afrag->lid].bgn;
         bhang = offsets[bfrag->lid].end - offsets[afrag->lid].end;
-        //fprintf(stderr, "OLD hang %d,%d ovl %d\n", ahang, bhang, ovl);
+
+        if (offsets[afrag->lid].bgn < offsets[bfrag->lid].bgn)
+          if (offsets[afrag->lid].end < offsets[bfrag->lid].end)
+            ovl = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
+          else
+            ovl = offsets[bfrag->lid].end - offsets[bfrag->lid].bgn;
+        else
+          if (offsets[afrag->lid].end < offsets[bfrag->lid].end)
+            ovl = offsets[bfrag->lid].end - offsets[afrag->lid].bgn;
+          else
+            ovl = offsets[afrag->lid].end - offsets[afrag->lid].bgn;
+
+        if (VERBOSE_MULTIALIGN_OUTPUT)
+          fprintf(stderr, "MultiAlignUnitig()-- (old) ovl=%d (afrag: lid=%d %d-%d  bfrag: lid=%d %d-%d  hangs: %d %d\n",
+                  ovl,
+                  afrag->lid, offsets[afrag->lid].bgn, offsets[afrag->lid].end,
+                  bfrag->lid, offsets[bfrag->lid].bgn, offsets[bfrag->lid].end,
+                  ahang, bhang);
       }
 
-      //  Used to compute ovl as just afrag.end - bfrag.bgn, but that
-      //  assumes b is not contained.
-      //
-      if (ahang > 0)
-        if (bhang > 0)
-          //  normal dovetail
-          ovl = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
-        else
-          //  b is contained in a
-          ovl = offsets[bfrag->lid].end - offsets[bfrag->lid].bgn;
-      else
-        if (bhang > 0)
-          //  anti normal dovetail
-          ovl = offsets[bfrag->lid].end - offsets[afrag->lid].bgn;
-        else
-          //  a is contained in b
-          ovl = offsets[afrag->lid].end - offsets[afrag->lid].bgn;
 
-      assert(ovl > 0);
+      //  If there is no overlap in the layout, fail.
+      //
+      if (ovl < 0) {
+        if (VERBOSE_MULTIALIGN_OUTPUT)
+          fprintf(stderr, "MultiAlignUnitig()-- positions of afrag %d and bfrag %d do not overlap; proceed to the next upstream afrag\n",
+                  afrag->iid, bfrag->iid);
+        align_to--;
+        continue;
+      }
 
       // Make sure ahang is above the cutoff value.  If it's not, may
       // need to sort fragments begfore processing.
@@ -7820,16 +7857,6 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
         if (VERBOSE_MULTIALIGN_OUTPUT)
           fprintf(stderr, "MultiAlignUnitig()-- too negative ahang is detected for afrag %d and bfrag %d; proceed to the next upstraem afrag\n",
                   afrag->iid,  bfrag->iid);
-        align_to--;
-        continue;
-      }
-
-      //  If there is no overlap in the layout, fail.
-      //
-      if (ovl < 0) {
-        if (VERBOSE_MULTIALIGN_OUTPUT)
-          fprintf(stderr, "MultiAlignUnitig()-- positions of afrag %d and bfrag %d do not overlap; proceed to the next upstream afrag\n",
-                  afrag->iid, bfrag->iid);
         align_to--;
         continue;
       }
