@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.36 2008-11-07 06:13:55 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.37 2009-01-02 06:42:52 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_Bubble.h"
@@ -225,8 +225,7 @@ ParseCommandLine(UnitiggerGlobals * rg,
 
           rg->overlap_error_threshold = AS_OVS_encodeQuality(er);
 
-          fprintf(stderr, "The overlap error threshold = %.3f = %.3f%%\n",
-                  rg->overlap_error_threshold,
+          fprintf(stderr, "The overlap error threshold = %.3f%%\n",
                   AS_OVS_decodeQuality(rg->overlap_error_threshold) * 100.0);
         }
         break;
