@@ -18,9 +18,8 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.30 2008-11-10 15:21:12 skoren Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.31 2009-01-05 02:10:06 brianwalenz Exp $";
 
-#undef DEBUG
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
 #undef DEBUG_SPLIT
@@ -297,6 +296,11 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
   assert(!chunkInstance->flags.bits.isDead);
   assert(!ciScaffold->flags.bits.isDead);
 
+#ifdef DEBUG_INSERT
+  fprintf(stderr, "InsertCIInScaffold()--  Insert CI %d into scaffold %d at offset %.0f-%.0f orient %d\n",
+          ci, sid, aEndOffset.mean, bEndOffset.mean, AEndToBend);
+#endif
+
   // check for bad variances on ends
   if ( fabs (fabs(aEndOffset.variance - bEndOffset.variance) - chunkInstance->bpLength.variance) > 1.0 ) {
       fprintf( stderr, "*** Variance Fixup Alert ***\n");
@@ -324,7 +328,7 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
         aEndOffset.variance = bEndOffset.variance + chunkInstance->bpLength.variance;
     }
 
-#if defined(DEBUG) || defined(DEBUG_INSERT)
+#ifdef DEBUG_INSERT
   fprintf(stderr,"* Insert ci:" F_CID " sid:" F_CID " contigNow:0x%x [%g,%g]\n",
     	  ci,sid,contigNow, aEndOffset.mean, bEndOffset.mean);
 #endif
@@ -433,7 +437,7 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
     ciScaffold->bpLength = *maxOffset;
 
 #ifdef DEBUG_INSERT
-    fprintf(stderr,"* Inserted into empty scaffold aEndCoord=%d bEndCoord=%d\n", ciScaffold->aEndCoord, ciScaffold->bEndCoord);
+    fprintf(stderr,"* Inserted into empty scaffold\n");
 #endif
   }else{
     CIScaffoldTIterator CIs;
@@ -497,10 +501,6 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
 	if(ciScaffold->bpLength.variance < maxOffset->variance)
 	  ciScaffold->bpLength.variance = maxOffset->variance;
 
-#ifdef DEBUG_INSERT
-	fprintf(GlobalData->stderrc,"* Inserted at end aEndCoord:" F_COORD " bEndCoord:" F_COORD " bpLength = %g\n",
-		ciScaffold->aEndCoord, ciScaffold->bEndCoord, ciScaffold->bpLength.mean);
-#endif
 	break;
       }
     }  //  end of while()
@@ -981,7 +981,7 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
       if(chunk->id != edge->idA)
         continue;
 
-#ifdef DEBUG
+#if 0
       if(edge->flags.bits.isBridge){
         fprintf(stderr,"* WARNING: chunk " F_CID " weight = %d bridge edge\n",
                 chunk->id, weight);
@@ -1122,7 +1122,7 @@ int IsScaffoldInternallyConnectedCheck(ScaffoldGraphT *sgraph,
       if(chunk->id != edge->idA)
         continue;
 
-#ifdef DEBUG
+#if 0
       if(edge->flags.bits.isBridge){
         fprintf(stderr,"* WARNING: chunk " F_CID " weight = %d bridge edge\n", chunk->id, weight);
         PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph, "Bridge ",edge, chunk->id);
@@ -1696,9 +1696,7 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
   ScaffoldSanity(scaffold, sgraph);
 
   if(scaffold->info.Scaffold.numElements == 1){
-#ifdef DEBUG
-    fprintf(GlobalData->stderrc, " Early end to CheckCIScaffoldT() for scaffold " F_CID ": numElements ==1\n",scaffold->id);
-#endif
+    //fprintf(GlobalData->stderrc, " Early end to CheckCIScaffoldT() for scaffold " F_CID ": numElements ==1\n",scaffold->id);
     return;
   }
 
