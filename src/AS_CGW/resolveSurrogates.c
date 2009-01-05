@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: resolveSurrogates.c,v 1.20 2008-10-08 22:02:55 brianwalenz Exp $";
+const char *mainid = "$Id: resolveSurrogates.c,v 1.21 2009-01-05 16:49:04 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,8 +49,6 @@ main(int argc, char **argv) {
   int     ckptNum                           = 0;
 
   GlobalData          = CreateGlobal_CGW();
-  GlobalData->stderrc = stderr;
-  GlobalData->timefp  = stderr;
 
   argc = AS_configure(argc, argv);
 
@@ -86,7 +84,6 @@ main(int argc, char **argv) {
   }
 
   ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, TRUE);
-  GlobalData->aligner=Local_Overlap_AS_forCNS;
 
   resolveSurrogates(placeAllFragsInSinglePlacedSurros, cutoffToInferSingleCopyStatus);
 

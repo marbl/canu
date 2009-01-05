@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.31 2008-12-16 22:32:37 skoren Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.32 2009-01-05 16:49:04 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_ALN_aligners.h"
@@ -1523,10 +1523,9 @@ void CollectChunkOverlap(GraphCGW_T *graph,
 			 int verbose);
 
 Overlap* OverlapSequences(char *seq1, char *seq2,
-                           ChunkOrientationType orientation,
-                           CDS_COORD_t min_ahang, CDS_COORD_t max_ahang,
-                           double erate, double thresh, CDS_COORD_t minlen,
-                          CompareOptions what);
+                          ChunkOrientationType orientation,
+                          CDS_COORD_t min_ahang, CDS_COORD_t max_ahang,
+                          double erate, double thresh, CDS_COORD_t minlen);
 
 ChunkOverlapCheckT OverlapChunks(GraphCGW_T *graph,
                                  CDS_CID_t cidA, CDS_CID_t cidB,

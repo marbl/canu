@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.42 2008-12-31 02:56:29 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.43 2009-01-05 16:49:04 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -193,8 +193,6 @@ main(int argc, char **argv) {
   saveDefaultLocalAlignerVariables();
 
   GlobalData           = CreateGlobal_CGW();
-  GlobalData->stderrc  = stderr;
-  GlobalData->timefp   = stderr;
 
   //  Could be cleaner (allocate only if options are present) but not
   //  simpler.
@@ -290,7 +288,6 @@ main(int argc, char **argv) {
   //  On Dros Ana, DP_Compare closed 2011 gaps, compared to 2016 with
   //  Local_Overlap.
   //
-  GlobalData->aligner=DP_Compare;
   ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, TRUE);
 
   //  After the graph is loaded, we reopen the gatekeeper store for
@@ -831,7 +828,6 @@ main(int argc, char **argv) {
                                                                 ScaffoldGraph->gkpStore,
                                                                 lcontig->id, unitig->id,
                                                                 lcontig->offsetAEnd.mean >= lcontig->offsetBEnd.mean,
-                                                                GlobalData->aligner,
                                                                 NULL);
               if (newLeftMA) {
                 if (debug.diagnosticLV > 0) {
@@ -886,7 +882,6 @@ main(int argc, char **argv) {
                                                                  ScaffoldGraph->gkpStore,
                                                                  rcontig->id, unitig->id,
                                                                  rcontig->offsetAEnd.mean < rcontig->offsetBEnd.mean,
-                                                                 GlobalData->aligner,
                                                                  NULL);
               if (newRightMA) {
                 if (debug.diagnosticLV > 0) {
@@ -1744,7 +1739,6 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
                                        reformed_quality,
                                        reformed_deltas,
                                        CNS_QUIET,  //  CNS_VERBOSE, CNS_STATS_ONLY
-                                       Local_Overlap_AS_forCNS,
                                        &options)) {
     fprintf(stderr, "GetNewUnitigMultiAlign()-- MultiAlignUnitig failure on unitig %d\n", unitig->id);
     DeleteMultiAlignT(macopy);  //  We own this.

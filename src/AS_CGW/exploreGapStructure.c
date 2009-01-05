@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: exploreGapStructure.c,v 1.15 2008-10-08 22:02:55 brianwalenz Exp $";
+const char *mainid = "$Id: exploreGapStructure.c,v 1.16 2009-01-05 16:49:04 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,7 +122,7 @@ main (int argc , char * argv[] ) {
         SetVA_IntElementPos(positions,i,&pos);
       }
 
-      newma = MergeMultiAlignsFast_new(ScaffoldGraph->sequenceDB, NULL, positions, 0, 1, NULL, NULL);
+      newma = MergeMultiAlignsFast_new(ScaffoldGraph->sequenceDB, NULL, positions, 0, 1, NULL);
 
       int nfr = GetNumIntMultiPoss(newma->f_list);
       int len = GetMultiAlignLength(newma);

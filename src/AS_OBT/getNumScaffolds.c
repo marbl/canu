@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: getNumScaffolds.c,v 1.8 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id: getNumScaffolds.c,v 1.9 2009-01-05 16:49:04 brianwalenz Exp $";
 
 //  Not part of Overlap Based Trimming proper, but used by the script
 //  that runs OBT.  The build system cannot (apparently) handle
@@ -45,9 +45,6 @@ main(int argc , char **argv) {
   }
 
   GlobalData = CreateGlobal_CGW();
-  GlobalData->stderrc  = stderr;
-  GlobalData->timefp   = stderr;
-  GlobalData->aligner  = DP_Compare;
 
   strcpy(GlobalData->Gatekeeper_Store_Name, argv[1]);
   ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(argv[2], atoi(argv[3]), FALSE);

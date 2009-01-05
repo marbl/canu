@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.43 2008-12-16 22:33:52 skoren Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.44 2009-01-05 16:49:04 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -2293,8 +2293,7 @@ static void  Check_Olaps
       olap = OverlapSequences
         (j_seq, i_seq, orient, min_ahang - (int) (3.0 * allowed_error),
          max_ahang + (int) (3.0 * allowed_error),
-         AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN,
-         AS_FIND_ALIGN);
+         AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN);
 #else
       olap = OverlapChunks                 // debug code does NOT handle suspicious
         (ScaffoldGraph -> RezGraph,
@@ -6468,8 +6467,7 @@ static Overlap *  Get_Chunk_Overlap
       assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
       result = OverlapSequences
         ((* a_seq), (* b_seq), orient, min_ahang, max_ahang,
-         AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN,
-         AS_FIND_ALIGN);
+         AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN);
 #if  SHOW_OLAP_DETAILS
       fprintf (fp, "  min_ahang = %4d  max_ahang = %4d  orient = %s\n",
                min_ahang, max_ahang, Orientation_As_String (orient));
@@ -9313,8 +9311,7 @@ static void  Restore_Best_Rocks
                   scaff_seq = Get_Contig_Sequence (this_gap -> left_cid);
                   olap = OverlapSequences
                     (scaff_seq, rock_seq, orient, min_ahang, max_ahang,
-                     AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN,
-                     AS_FIND_ALIGN);
+                     AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN);
 #if  VERBOSE
                   fprintf (stderr, "Restore_Best olapping rock %d with left scaff_contig %d\n"
                            "  min_ahang = %d  max_ahang = %d  orient = %s\n",
@@ -9391,8 +9388,7 @@ static void  Restore_Best_Rocks
                   assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
                   olap = OverlapSequences
                     (rock_seq, scaff_seq, orient, min_ahang, max_ahang,
-                     AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN,
-                     AS_FIND_ALIGN);
+                     AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN);
 #if  VERBOSE
                   fprintf (stderr, "Restore_Best olapping rock %d with right scaff_contig %d\n"
                            "  min_ahang = %d  max_ahang = %d  orient = %s\n",

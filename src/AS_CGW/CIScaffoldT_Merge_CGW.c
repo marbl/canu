@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.40 2008-10-29 10:42:46 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.41 2009-01-05 16:49:04 brianwalenz Exp $";
 
 
 #undef ORIG_MERGE_EDGE_INVERT
@@ -5220,11 +5220,9 @@ void MergeScaffoldsAggressive(ScaffoldGraphT *graph, int logicalcheckpointnumber
     fprintf(GlobalData->stderrc, "** MinSatisfied: %f, MaxDelta: %f\n",
             iSpec.minSatisfied, iSpec.maxDelta);
 
-    //GlobalData->aligner = Local_Overlap_AS_forCNS;
     iSpec.checkForTinyScaffolds = FALSE;
     //LeastSquaresGapEstimates(graph, TRUE, FALSE, TRUE, TRUE, FALSE);
     MergeScaffoldsExhaustively(graph, &iSpec, logicalcheckpointnumber, verbose);
-    //GlobalData->aligner = DP_Compare;
 
   } else {
 

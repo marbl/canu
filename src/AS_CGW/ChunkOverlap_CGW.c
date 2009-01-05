@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.34 2008-12-18 07:13:22 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.35 2009-01-05 16:49:04 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -591,8 +591,7 @@ void CollectChunkOverlap(GraphCGW_T *graph,
 Overlap* OverlapSequences( char *seq1, char *seq2,
                            ChunkOrientationType orientation,
                            CDS_COORD_t min_ahang, CDS_COORD_t max_ahang,
-                           double erate, double thresh, CDS_COORD_t minlen,
-                           CompareOptions what)
+                           double erate, double thresh, CDS_COORD_t minlen)
 {
   Overlap *omesg;
   int flip = 0;
@@ -609,12 +608,20 @@ Overlap* OverlapSequences( char *seq1, char *seq2,
     flip = 1;
 
   // min_ahang and end are essentially bounds on the a-hang
-  omesg = GlobalData->aligner(seq1, seq2,
-                              min_ahang, max_ahang,
-                              strlen(seq1), strlen(seq2),
-                              flip,
-                              erate, thresh, minlen,
-                              what);
+  omesg = DP_Compare(seq1, seq2,
+                     min_ahang, max_ahang,
+                     strlen(seq1), strlen(seq2),
+                     flip,
+                     erate, thresh, minlen,
+                     AS_FIND_ALIGN);
+
+  if (!omesg)
+    omesg = Local_Overlap_AS_forCNS(seq1, seq2,
+                                    min_ahang, max_ahang,
+                                    strlen(seq1), strlen(seq2),
+                                    flip,
+                                    erate, thresh, minlen,
+                                    AS_FIND_LOCAL_OVERLAP);
 
   // return seq1 to its original state
   if (orientation == BA_AB || orientation == BA_BA)
@@ -705,9 +712,7 @@ void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
       OverlapSequences(seq1, seq2, canOlap->spec.orientation,
                        min_ahang, max_ahang,
                        canOlap->errorRate,
-                       CGW_DP_THRESH, CGW_DP_MINLEN,
-                       (GlobalData->aligner == DP_Compare) ?
-                       AS_FIND_ALIGN : AS_FIND_LOCAL_OVERLAP);
+                       CGW_DP_THRESH, CGW_DP_MINLEN);
 
     if (tempOlap1 ) {     // Found one....
 
@@ -1039,9 +1044,7 @@ static VA_TYPE(char) *quality2 = NULL;
   tempOlap1 =
     OverlapSequences( seq1, seq2,
                       *overlapOrientation, minAhang, maxAhang,
-                      erate, thresh, minlen,
-                      (GlobalData->aligner == Local_Overlap_AS_forCNS) ?
-                      AS_FIND_LOCAL_OVERLAP : AS_FIND_ALIGN);
+                      erate, thresh, minlen);
 
   if (tempOlap1 != NULL) {
     //fprintf(GlobalData->stderrc, F_CID ", " F_CID " ahang: " F_COORD ", bhang:" F_COORD "\n",

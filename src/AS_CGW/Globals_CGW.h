@@ -22,7 +22,7 @@
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
-static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.23 2008-12-18 07:13:22 brianwalenz Exp $";
+static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.24 2009-01-05 16:49:04 brianwalenz Exp $";
 
 #include "AS_CGW_dataTypes.h"
 #include "AS_MSG_pmesg.h"
@@ -62,8 +62,6 @@ typedef struct Global_CGW_tag {
   HISTOGRAM *scaffold_unique;
   HISTOGRAM *scaffold_repeat;
 #endif
-
-  AS_ALN_Aligner  *aligner;
 
   char Input_File_Name[1024];
   char File_Name_Prefix[1024];

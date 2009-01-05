@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.46 2009-01-05 02:27:50 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.47 2009-01-05 16:49:04 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2078,7 +2078,6 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
                                            ContigPositions,
                                            FALSE,
                                            TRUE,
-                                           GlobalData->aligner,
                                            NULL);
 
   if (newMultiAlign == NULL) {
@@ -2282,11 +2281,9 @@ ContigContainment(CIScaffoldT  *scaffold,
 
   if (MIN(prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean) <=
       MIN(thisCI->offsetAEnd.mean, thisCI->offsetBEnd.mean)) {
-    fprintf(stderr, "leftContig is prevCI\n");
     leftContig = prevCI;
     rightContig = thisCI;
   } else {
-    fprintf(stderr, "leftContig is thisCI (swapped order)\n");
     leftContig = thisCI;
     rightContig = prevCI;
   }
@@ -2318,23 +2315,16 @@ ContigContainment(CIScaffoldT  *scaffold,
     }
   }
 
-  fprintf(stderr, "calling OverlapContigs with orient: %c, minAhang: " F_COORD ", maxAhang: " F_COORD "\n",
-          overlapOrientation, minAhang, maxAhang);
-
   contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, minAhang, maxAhang, TRUE);
 
   // if no overlap found, try flipping orientation in case DPCompare
   // asymmetry is biting us
   //
   if ((contigOverlap == NULL) && (tryHarder)) {
-    fprintf(stderr, "no overlap found between " F_CID " and " F_CID ", retrying with flipped orientation\n",
-            leftContig->id, rightContig->id);
-
     overlapOrientation = InvertEdgeOrient(overlapOrientation);
     contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, minAhang, maxAhang, TRUE);
     overlapOrientation = InvertEdgeOrient(overlapOrientation);
 
-    //  correct for flipped orientation
     if (contigOverlap != NULL) {
       CDS_COORD_t temp      = -contigOverlap->begpos;
       contigOverlap->begpos = -contigOverlap->endpos;
@@ -2346,11 +2336,6 @@ ContigContainment(CIScaffoldT  *scaffold,
   if ((contigOverlap == NULL) && (tryHarder)) {
     CDS_COORD_t maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
-    fprintf(stderr, "no overlap found between " F_CID " and " F_CID ", retrying with max AHANGSLOP\n",
-            leftContig->id, rightContig->id);
-    fprintf(stderr, "overlapOrientation: %c, minAhang: " F_COORD ", maxAhang: " F_COORD "\n",
-            (char) overlapOrientation, -maxLength, maxLength);
-
     contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, -maxLength, maxLength, FALSE);
   }
 
@@ -2358,16 +2343,10 @@ ContigContainment(CIScaffoldT  *scaffold,
   if ((contigOverlap == NULL) && (tryHarder)) {
     CDS_COORD_t maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
-    fprintf(stderr, "no overlap found between " F_CID " and " F_CID ", retrying with flipped orientation and max AHANGSLOP\n",
-            leftContig->id, rightContig->id);
-    fprintf(stderr, "overlapOrientation: %c, minAhang: " F_COORD ", maxAhang: " F_COORD "\n",
-            (char) overlapOrientation, -maxLength, maxLength);
-
     overlapOrientation = InvertEdgeOrient(overlapOrientation);
     contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, -maxLength, maxLength, FALSE);
     overlapOrientation = InvertEdgeOrient(overlapOrientation);
 
-    //  correct for flipped orientation
     if (contigOverlap != NULL) {
       CDS_COORD_t temp      = -contigOverlap->begpos;
       contigOverlap->begpos = -contigOverlap->endpos;
@@ -2381,88 +2360,59 @@ ContigContainment(CIScaffoldT  *scaffold,
   //  - change orientation to the other contig's perspective
   //  - change ahang range to other contig's perspective -- unless we just use -/+maxLength
   //  - call OverlapContigs with left and right swapped
-  //
+
+  //  swap
   if ((contigOverlap == NULL) && (tryHarder)) {
     CDS_COORD_t maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
-
-    fprintf(stderr,"trying to swap contigs ... " F_CID " and " F_CID " with overlapOrientation %c minAhang: " F_COORD ", maxAhang: " F_COORD "\n",
-            rightContig->id,leftContig->id,
-            overlapOrientation,-maxLength,maxLength);
 
     overlapOrientation = EdgeOrientSwap(overlapOrientation);
     contigOverlap = OverlapContigs(rightContig, leftContig, &overlapOrientation, -maxLength, maxLength, FALSE);
     overlapOrientation = EdgeOrientSwap(overlapOrientation);
 
-    // after swapping fragments, need to correct the hangs
     if (contigOverlap != NULL) {
       contigOverlap->begpos *= -1;
       contigOverlap->endpos *= -1;
     }
   }
 
+  //  swap and flip orientation
   if ((contigOverlap == NULL) && (tryHarder)) {
     CDS_COORD_t maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
-    fprintf(stderr,"trying swapped and inverted contigs ... " F_CID " and " F_CID " with overlapOrientation %c minAhang: " F_COORD ", maxAhang: " F_COORD "\n",
-            rightContig->id,leftContig->id,
-            overlapOrientation,-maxLength,maxLength);
-
     overlapOrientation = EdgeOrientSwap(overlapOrientation);
     overlapOrientation = InvertEdgeOrient(overlapOrientation);
+
     contigOverlap = OverlapContigs(rightContig, leftContig, &overlapOrientation, -maxLength, maxLength, FALSE);
+
     overlapOrientation = InvertEdgeOrient(overlapOrientation);
     overlapOrientation = EdgeOrientSwap(overlapOrientation);
 
-    //  correct for flipped orientation
     if (contigOverlap != NULL) {
       CDS_COORD_t temp      = -contigOverlap->begpos;
       contigOverlap->begpos = -contigOverlap->endpos;
       contigOverlap->endpos = temp;
-    }
-    // after swapping fragments, need to correct the hangs
-    if (contigOverlap != NULL) {
+
       contigOverlap->begpos *= -1;
       contigOverlap->endpos *= -1;
     }
   }
 
-
-  // if we STILL do not have an overlap AND we have been relatively
-  // conservative finding overlaps...get out the big guns, redo the whole thing.
-  //
-  if ((contigOverlap == NULL) && (tryHarder) && (GlobalData->aligner == DP_Compare)) {
-    fprintf(stderr, "RETRY with Local_Overlap_AS_forCNS.\n");
-
-    GlobalData->aligner = Local_Overlap_AS_forCNS;
-    int success = ContigContainment(scaffold, prevCI, thisCI, overlapEdge, tryHarder);
-    GlobalData->aligner = DP_Compare;
-
-    //  If we found an overlap, then all the necessary side effects
-    //  were taken care of in the inner call of the function, so just
-    //  return.
-
-    if (success)
-      return(success);
-  }
-
-
   //  High error rate assemblies have trouble in eCR.  eCR finds
   //  overlaps at CGW_ERATE + 0.02, builds a new contig, and then dies
   //  when it calls RecomputeOffsetsInScaffold() (which calls us).
-  //  eCR uses Local_Overlap_AS_forCNS exclusively, and so we try yet
-  //  again, using that.
   //
-  if ((contigOverlap == NULL) && (tryHarder == 1) && (GlobalData->aligner == Local_Overlap_AS_forCNS)) {
-    fprintf(stderr, "RETRY with higher error rate.\n");
+  if ((contigOverlap == NULL) && (tryHarder)) {
+    CDS_COORD_t maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
     AS_CGW_ERROR_RATE += 0.02;
-    int success = ContigContainment(scaffold, prevCI, thisCI, overlapEdge, 2);
+
+    contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, minAhang, maxAhang, TRUE);
+
+    if (contigOverlap == NULL)
+      contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, -maxLength, maxLength, FALSE);
+
     AS_CGW_ERROR_RATE -= 0.02;
-
-    if (success)
-      return(success);
   }
-
 
   if (contigOverlap == NULL) {
     fprintf(stderr, "================================================================================\n");
@@ -2549,36 +2499,12 @@ ContigContainment(CIScaffoldT  *scaffold,
           rightContig->id, rightContig->offsetAEnd.mean, rightContig->offsetBEnd.mean);
 
   {
-    int lid = leftContig->id;
-    int rid = rightContig->id;
-
     int mergeStatus = 0;
     int flip        = (leftContig->offsetBEnd.mean < leftContig->offsetAEnd.mean);
     mergeStatus = CreateAContigInScaffold(scaffold,
                                           ContigPositions,
                                           flip ? leftContig->offsetBEnd : leftContig->offsetAEnd,
                                           flip ? leftContig->offsetAEnd : leftContig->offsetBEnd);
-
-    //  Very occasionally, we fail there.  This seems to get around at
-    //  least some of the failures.  How many?  At least one.  Seems
-    //  like we find an overlap with DP_Compare(), but then cannot
-    //  MergeMultiAligns with it, and we need to use
-    //  Local_Overlap_AS_forCNS instead.
-    //
-    if (mergeStatus == FALSE) {
-      fprintf(stderr, "* Retrying with Local_Overlap_AS_forCNS\n");
-
-      //  CreateAContigInScaffold can reallocate ContigGraph
-      leftContig  = GetGraphNode(ScaffoldGraph->ContigGraph, lid);
-      rightContig = GetGraphNode(ScaffoldGraph->ContigGraph, rid);
-
-      GlobalData->aligner = Local_Overlap_AS_forCNS;
-      mergeStatus = CreateAContigInScaffold(scaffold,
-                                            ContigPositions,
-                                            flip ? leftContig->offsetBEnd : leftContig->offsetAEnd,
-                                            flip ? leftContig->offsetAEnd : leftContig->offsetBEnd);
-      GlobalData->aligner = DP_Compare;
-    }
 
     if (mergeStatus == FALSE) {
       fprintf(stderr, "* CreateAContigInScaffold() failed.\n");

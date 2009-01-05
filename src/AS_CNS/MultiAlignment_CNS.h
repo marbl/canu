@@ -21,7 +21,7 @@
 #ifndef MULTIALIGNMENT_CNS_INCLUDE
 #define MULTIALIGNMENT_CNS_INCLUDE
 
-static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.44 2008-12-31 02:56:30 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.45 2009-01-05 16:49:04 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -80,7 +80,6 @@ MultiAlignT *MergeMultiAlignsFast_new(tSequenceDB *,
                                       VA_TYPE(IntElementPos) *,
                                       int,
                                       int,
-                                      AS_ALN_Aligner *COMPARE_FUNC,
                                       CNS_Options *opp);
 
 MultiAlignT *ReplaceEndUnitigInContig(tSequenceDB *,
@@ -88,7 +87,6 @@ MultiAlignT *ReplaceEndUnitigInContig(tSequenceDB *,
                                       uint32,
                                       uint32,
                                       int,
-                                      AS_ALN_Aligner *COMPARE_FUNC,
                                       CNS_Options *opp);
 
 
@@ -98,7 +96,6 @@ int MultiAlignUnitig(IntUnitigMesg *,
                      VA_TYPE(char) *,
                      VA_TYPE(int32) *,
                      CNS_PrintKey,
-                     AS_ALN_Aligner *COMPARE_FUNC,
                      CNS_Options *opp);
 
 int MultiAlignContig(IntConConMesg *,
@@ -106,7 +103,6 @@ int MultiAlignContig(IntConConMesg *,
                      VA_TYPE(char) *,
                      VA_TYPE(int32) *,
                      CNS_PrintKey ,
-                     AS_ALN_Aligner *COMPARE_FUNC,
                      CNS_Options *opp);
 
 int MultiAlignContig_ReBasecall(MultiAlignT *,

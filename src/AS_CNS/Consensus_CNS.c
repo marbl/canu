@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: Consensus_CNS.c,v 1.70 2008-12-31 02:56:29 brianwalenz Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.71 2009-01-05 16:49:04 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -99,7 +99,6 @@ main (int argc, char **argv) {
   int num_contig_skips    = 0;
 
 
-  AS_ALN_Aligner *COMPARE_FUNC = Local_Overlap_AS_forCNS;
   CNS_PrintKey printwhat=CNS_STATS_ONLY;
 
   argc = AS_configure(argc, argv);
@@ -191,24 +190,6 @@ main (int argc, char **argv) {
         fprintf(stderr, "error: form: '-s #498234'\n");
       }
 
-    } else if (strcmp(argv[arg], "-a") == 0) {
-      arg++;
-      switch (argv[arg][0]) {
-        case 'D':
-          COMPARE_FUNC=DP_Compare;
-          break;
-        case 'L':
-          COMPARE_FUNC=Local_Overlap_AS_forCNS;
-          break;
-        case 'A':
-          COMPARE_FUNC=Affine_Overlap_AS_forCNS;
-          break;
-        default:
-          fprintf(stderr, "Unrecognized value '%s' for option -a", argv[arg]);
-          err++;
-          break;
-      }
-
     } else if (strcmp(argv[arg], "-U") == 0) {
       clear_range_to_use = AS_READ_CLEAR_OBT;
 
@@ -245,10 +226,6 @@ main (int argc, char **argv) {
     fprintf(stderr, "                 then they will be treated as one block\n");
     fprintf(stderr, "    -S partition Use gkpStorePartition partition, loaded into memory\n");
     fprintf(stderr, "    -m           Load gkpStorePartition into memory (default reads from disk)\n");
-    fprintf(stderr, "    -a [DLA]     Specify aligner to use should DP_Compare fail\n");
-    fprintf(stderr, "                 L = Local_Aligner (default)\n");
-    fprintf(stderr, "                 D = standard DP_Compare (will cause failed overlaps to terminate the run)\n");
-    fprintf(stderr, "                 A = Affine_Aligner\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -D opt       Enable debugging option 'opt'.  One of 'dumpunitigs', 'verbosemultialign',\n");
     fprintf(stderr, "                    and 'forceunitigabut'.  (-X not needed).\n");
@@ -323,14 +300,14 @@ main (int argc, char **argv) {
                 iunitig->iaccession,
                 (double)iunitig->num_frags / iunitig->length);
 
-      unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, COMPARE_FUNC, &options);
+      unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, &options);
 
       if ((unitigfail == EXIT_FAILURE) &&
           (allow_neg_hang_retry) &&
           (allow_neg_hang == 0)) {
         fprintf(stderr, "MultiAlignUnitig failed for unitig %d -- try again with negative hangs allowed\n", iunitig->iaccession);
         allow_neg_hang = 1;
-        unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, COMPARE_FUNC, &options);
+        unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, &options);
         allow_neg_hang = 0;
         if (unitigfail != EXIT_FAILURE)
           NumUnitigRetrySuccess++;
@@ -381,8 +358,7 @@ main (int argc, char **argv) {
         num_contig_skips++;
         contigFail = EXIT_SUCCESS;
       } else {
-        contigFail = MultiAlignContig(pcontig, sequence, quality, deltas, printwhat,
-                                      COMPARE_FUNC, &options);
+        contigFail = MultiAlignContig(pcontig, sequence, quality, deltas, printwhat, &options);
       }
 
       if (contigFail == EXIT_FAILURE) {

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.36 2008-12-18 07:13:22 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.37 2009-01-05 16:49:04 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -916,7 +916,6 @@ StoreIUMStruct(ScaffoldGraphT *graph,
                                     is->quality,
                                     is->deltas,
                                     CNS_STATS_ONLY,
-                                    Local_Overlap_AS_forCNS, // DP_Compare
                                     NULL);
 
   //  Whoops!  Failed!  Like consensus does in MultiAlignUnitig() we
@@ -933,7 +932,6 @@ StoreIUMStruct(ScaffoldGraphT *graph,
                                   is->quality,
                                   is->deltas,
                                   CNS_STATS_ONLY,
-                                  Local_Overlap_AS_forCNS, // DP_Compare
                                   NULL);
     VERBOSE_MULTIALIGN_OUTPUT = ov;
     allow_neg_hang            = oh;
