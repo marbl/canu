@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.45 2008-12-30 17:56:46 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.46 2009-01-05 02:27:50 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2047,7 +2047,7 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
 
 
 #ifdef DEBUG_CREATEACONTIG
-  fprintf(GlobalData->stderrc, "minPos = " F_COORD " maxPos = " F_COORD " extremes are (" F_CID ",%c) and (" F_CID ",%c)\n",
+  fprintf(GlobalData->stderrc, "minPos = " F_COORD " maxPos = " F_COORD " extremes are (" F_CID ",%d) and (" F_CID ",%d)\n",
           minPos,maxPos,
           aEndID,aEndEnd,
           bEndID,bEndEnd );
@@ -2069,6 +2069,8 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
     fprintf(GlobalData->stderrc,"* Contig " F_CID "  bgn:" F_COORD " end:" F_COORD "\n",
             pos->ident, pos->position.bgn, pos->position.end);
   }
+
+  VERBOSE_MULTIALIGN_OUTPUT = 1;
 #endif
 
   newMultiAlign = MergeMultiAlignsFast_new(ScaffoldGraph->sequenceDB,
@@ -2089,23 +2091,19 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
       contig->flags.bits.failedToContig = TRUE;
 
 #ifdef DEBUG_CREATEACONTIG
-      fprintf(GlobalData->stderrc,"* Contig " F_CID " (" F_CID ")   bgn:" F_COORD " end:" F_COORD " [" F_COORD "," F_COORD "]\n",
+      fprintf(GlobalData->stderrc,"* Contig "F_CID" ("F_CID")   bgn:"F_COORD" end:"F_COORD"\n",
               pos->ident, GetOriginalContigID(contig->id),
-              pos->position.bgn, pos->position.end,
-              contig->aEndCoord, contig->bEndCoord);
+              pos->position.bgn, pos->position.end);
 #endif
     }
 
+#ifdef DEBUG_CREATEACONTIG
     DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffold, FALSE);
-
     fprintf(GlobalData->stderrc,"* MergeMultiAligns failed....bye\n");
+#endif
 
     if(GlobalData->failOn_NoOverlapFound)
       assert(0 /* No overlap found error in merge multialignments */);
-
-    //  DeleteGraphNode wants to delete a multi-align, so we insert a bogus one.
-    //
-    //insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE, NULL, FALSE);
 
     DeleteGraphNode(ScaffoldGraph->ContigGraph, contig);
 
@@ -2118,6 +2116,13 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   contig->bpLength.variance = ComputeFudgeVariance(contig->bpLength.mean);
 
   contig->info.Contig.numCI =  GetNumIntUnitigPoss(newMultiAlign->u_list);
+
+#ifdef DEBUG_CREATEACONTIG
+  for (i=0; i<GetNumIntUnitigPoss(newMultiAlign->u_list); i++) {
+    IntUnitigPos  *iup = GetIntUnitigPos(newMultiAlign->u_list, i);
+    fprintf(stderr, "utg %d %d-%d\n", iup->ident, iup->position.bgn, iup->position.end);
+  }
+#endif
 
   {
     NodeCGW_T *extremeA = GetGraphNode(ScaffoldGraph->ContigGraph, aEndID);
