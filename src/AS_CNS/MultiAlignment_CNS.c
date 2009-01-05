@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.221 2009-01-05 10:58:04 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.222 2009-01-05 16:46:42 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -58,6 +58,7 @@ static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.221 2009-01-05 10:58:04 bria
 #undef DEBUG_ABACUS_ALIGN
 #undef DEBUG_VAR_RECORDS
 #undef DEBUG_GET_ALIGNMENT_TRACE
+#undef DEBUG_MERGEMULTIALIGNS
 
 // Parameters used by Abacus processing code
 #define MSTRING_SIZE                        3
@@ -880,25 +881,21 @@ int32 AppendFragToLocalStore(FragType          type,
           fprintf(stderr,"Lookup failure in CNS: MultiAlign for unitig %d could not be found.\n",iid);
         assert(uma != NULL);
 
-        if (type == AS_CONTIG) {
-          sequence = Getchar(uma->consensus,0);
-          quality = Getchar(uma->quality,0);
-          fragment.length = GetMultiAlignLength(uma);
-        } else {
-          ResetVA_char(ungappedSequence);
-          ResetVA_char(ungappedQuality);
+        //  Contigs used to be added gapped, unitigs as ungapped.
+        //  This caused no end of trouble in MergeMultiAligns and
+        //  ReplaceEndUnitigInContig.
 
-          GetMultiAlignUngappedConsensus(uma, ungappedSequence, ungappedQuality);
-          sequence = Getchar(ungappedSequence,0);
-          quality = Getchar(ungappedQuality,0);
-          fragment.length = GetMultiAlignUngappedLength(uma);
-        }
+        ResetVA_char(ungappedSequence);
+        ResetVA_char(ungappedQuality);
 
-        if (type == AS_UNITIG) {
-          fragment.utype = utype;
-        } else {
-          fragment.utype = AS_OTHER_UNITIG;
-        }
+        GetMultiAlignUngappedConsensus(uma, ungappedSequence, ungappedQuality);
+
+        sequence = Getchar(ungappedSequence,0);
+        quality = Getchar(ungappedQuality,0);
+
+        fragment.length = GetMultiAlignUngappedLength(uma);
+
+        fragment.utype = (type == AS_UNITIG) ? utype : AS_OTHER_UNITIG;
 
         fragment.n_components = GetNumIntMultiPoss(uma->f_list) + GetNumIntUnitigPoss(uma->u_list);
         fragment.components   = SetUngappedFragmentPositions(type, fragment.n_components, uma);
@@ -9128,7 +9125,10 @@ MergeMultiAligns(tSequenceDB *sequenceDBp,
       while (ci < cfrag->n_components) {
         compci = &components[ci];
 
-        //fprintf(stderr, "compci complement=%d length=%d bgn=%d end=%d\n", cfrag->complement, cfrag->length, compci->position.bgn, compci->position.end);
+#ifdef DEBUG_MERGEMULTIALIGNS
+        if (compci->frg_or_utg==CNS_ELEMENT_IS_UNITIG)
+          fprintf(stderr, "compci complement=%d length=%d bgn=%d end=%d\n", cfrag->complement, cfrag->length, compci->position.bgn, compci->position.end);
+#endif
 
         if ( cfrag->complement ) {
           bgn = len - compci->position.bgn;
@@ -9141,7 +9141,10 @@ MergeMultiAligns(tSequenceDB *sequenceDBp,
         left  = (bgn < end) ? bgn : end;
         right = (bgn < end) ? end : bgn;
 
-        //fprintf(stderr, "left=%d right=%d bgn=%d end=%d\n", left, right, bgn, end);
+#ifdef DEBUG_MERGEMULTIALIGNS
+        if (compci->frg_or_utg==CNS_ELEMENT_IS_UNITIG)
+          fprintf(stderr, "left=%d right=%d bgn=%d end=%d\n", left, right, bgn, end);
+#endif
 
         left  = GetColumn(columnStore, GetBead(beadStore,cfrag->firstbead + left)   ->column_index)->ma_index;
         right = GetColumn(columnStore, GetBead(beadStore,cfrag->firstbead + right-1)->column_index)->ma_index + 1;
@@ -9150,7 +9153,10 @@ MergeMultiAligns(tSequenceDB *sequenceDBp,
         bgn = (bgn < end) ? left  : right;
         end = (tmp < end) ? right : left;
 
-        //fprintf(stderr, "left=%d right=%d bgn=%d end=%d\n", left, right, bgn, end);
+#ifdef DEBUG_MERGEMULTIALIGNS
+        if (compci->frg_or_utg==CNS_ELEMENT_IS_UNITIG)
+          fprintf(stderr, "left=%d right=%d bgn=%d end=%d\n", left, right, bgn, end);
+#endif
 
         if (compci->frg_or_utg==CNS_ELEMENT_IS_UNITIG) {
           iup = GetIntUnitigPos(cma->u_list,iunitig);
@@ -9159,8 +9165,10 @@ MergeMultiAligns(tSequenceDB *sequenceDBp,
           iup->delta_length = 0;
           iup->delta = NULL;
 
-          //fprintf(stderr, "Placing IUP  "F_CID" at "F_COORD","F_COORD" based on positions "F_COORD","F_COORD" (compl %d length %d within input parent)\n",
-          //        iup->ident, bgn, end, compci->position.bgn, compci->position.end, cfrag->complement, len);
+#ifdef DEBUG_MERGEMULTIALIGNS
+          fprintf(stderr, "Placing IUP  "F_CID" at "F_COORD","F_COORD" based on positions "F_COORD","F_COORD" (compl %d length %d within input parent)\n",
+                  iup->ident, bgn, end, compci->position.bgn, compci->position.end, cfrag->complement, len);
+#endif
 
           ci++;
           iunitig++;
@@ -9173,8 +9181,11 @@ MergeMultiAligns(tSequenceDB *sequenceDBp,
           imp->delta_length = 0;
           imp->delta = NULL;
 
+#ifdef DEBUG_MERGEMULTIALIGNS
+          //  Generally not interesting.
           //fprintf(stderr, "Placing IMP1 "F_CID" at "F_COORD","F_COORD" based on positions "F_COORD","F_COORD" (compl %d length %d within input parent)\n",
           //        imp->ident, bgn, end, compci->position.bgn, compci->position.end, cfrag->complement, len);
+#endif
 
           ci++;
           ifrag++;
@@ -9201,8 +9212,11 @@ MergeMultiAligns(tSequenceDB *sequenceDBp,
       imp->position.bgn = bgn;
       imp->position.end = end;
 
+#ifdef DEBUG_MERGEMULTIALIGNS
+      //  Generally not interesting.
       //fprintf(stderr, "Placing IMP2 "F_CID" at "F_COORD","F_COORD" based on positions "F_COORD","F_COORD" (compl %d length %d within input parent)\n",
       //        imp->ident, bgn,end, offsets[i].bgn, offsets[i].end, cfrag->complement, cfrag->length);
+#endif
 
       ifrag++;
     }
