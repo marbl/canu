@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.15 2008-12-18 07:13:22 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.16 2009-01-05 16:29:31 brianwalenz Exp $";
 
 /* Dynamic programming sequence comparison of two fragments.  General
    purpose utility that uses bit-vector d.p. for detection (see, "A Fast
@@ -1900,7 +1900,7 @@ void Print_Overlap(FILE *file, char *aseq, char *bseq, Overlap *align)
       }
   fprintf(file,"\n");
 
-  if (align->trace != NULL)
+  if ((align->trace != NULL) && (aseq != NULL) && (bseq != NULL))
     { int *trace;
 
       trace = align->trace;
