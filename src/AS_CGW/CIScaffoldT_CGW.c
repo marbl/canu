@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.31 2009-01-05 02:10:06 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.32 2009-01-06 13:55:07 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -1223,6 +1223,8 @@ killScaffoldIfOnlySurrogate(CDS_CID_t scaffoldID) {
         CDS_CID_t  b = *GetCDS_CID_t(basechunk->info.CI.instances.va, 1);
         CDS_CID_t  c = *GetCDS_CID_t(basechunk->info.CI.instances.va, 2);
 
+        assert(basechunk->info.CI.numInstances == GetNumCDS_CID_ts(basechunk->info.CI.instances.va));
+
         if (a == chunk->id)
           a = c;
         if (b == chunk->id)
@@ -1236,12 +1238,18 @@ killScaffoldIfOnlySurrogate(CDS_CID_t scaffoldID) {
         //  Find which one is this chunk, move the last one over it.
         int  index = 0;
 
+        assert(basechunk->info.CI.numInstances == GetNumCDS_CID_ts(basechunk->info.CI.instances.va));
+
         for (index=0; index<basechunk->info.CI.numInstances; index++)
           if (*GetCDS_CID_t(basechunk->info.CI.instances.va, index) == chunk->id)
             SetCDS_CID_t(basechunk->info.CI.instances.va,
                          index,
                          GetCDS_CID_t(basechunk->info.CI.instances.va, basechunk->info.CI.numInstances-1));
+
         basechunk->info.CI.numInstances--;
+
+        ResetToRangeVA_CDS_CID_t(basechunk->info.CI.instances.va, basechunk->info.CI.numInstances);
+        assert(basechunk->info.CI.numInstances == GetNumCDS_CID_ts(basechunk->info.CI.instances.va));
       }
 
       //  Kill the unitig, contig, scaffold edges and scaffold.

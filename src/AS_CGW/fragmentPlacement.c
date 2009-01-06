@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.23 2008-12-05 19:06:12 brianwalenz Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.24 2009-01-06 13:55:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -515,7 +515,10 @@ int matePlacedOnlyIn(CIFragT *frg, CDS_CID_t sid, CIFragT **mate, ChunkInstanceT
 
 
 
-/* given an existing chunk and a list of IntMultiPoss, update the SeqDB entry for the chunk to add the IMPs, and update the consensus sequence */
+/* given an existing chunk and a list of IntMultiPoss, update the
+   SeqDB entry for the chunk to add the IMPs, and update the consensus
+   sequence */
+
 static
 void PlaceFragmentsInMultiAlignT(CDS_CID_t toID, int isUnitig,
 				 VA_TYPE(IntMultiPos) *f_list){
@@ -524,11 +527,9 @@ void PlaceFragmentsInMultiAlignT(CDS_CID_t toID, int isUnitig,
 
   //     1. get the old multialign from the seqDB
   ma =  loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, toID, isUnitig);
+  assert(ma != NULL);
+
   //     2. add fragments to the f_list
-
-  if (ma == NULL)
-      return; // probably not good
-
   ConcatVA_IntMultiPos(ma->f_list,f_list);
 
   /* It might be a good idea to recompute consensus! */
@@ -553,57 +554,58 @@ static VA_TYPE(IntMultiPos) *f_list_CI = NULL;
 static VA_TYPE(IntMultiPos) *f_list_Contig = NULL;
 
 static
-void ReallyAssignFragsToResolvedCI(GraphCGW_T *graph,
-				   CDS_CID_t fromID, CDS_CID_t toID,
+void ReallyAssignFragsToResolvedCI(CDS_CID_t fromCIid,
+                                   CDS_CID_t toCIid,
 				   VA_TYPE(CDS_CID_t) *fragments){
   int i;
-  int32 numFrags = GetNumCDS_CID_ts(fragments);
-  NodeCGW_T *fromCI = GetGraphNode(graph, fromID);
-  NodeCGW_T *toCI = GetGraphNode(graph, toID);
-  ContigT *toContig = GetGraphNode(ScaffoldGraph->ContigGraph, toCI->info.CI.contigID);
+
+  NodeCGW_T *fromCI = GetGraphNode(ScaffoldGraph->CIGraph, fromCIid);
+  NodeCGW_T *toCI   = GetGraphNode(ScaffoldGraph->CIGraph, toCIid);
+
+  CDS_CID_t  toContigID = toCI->info.CI.contigID;
+  ContigT   *toContig   = GetGraphNode(ScaffoldGraph->ContigGraph, toContigID);
 
   CDS_COORD_t surrogateAOffset = toCI->offsetAEnd.mean;
   CDS_COORD_t surrogateBOffset = toCI->offsetBEnd.mean;
-  int flipped = (surrogateAOffset > surrogateBOffset);
-  IntMultiPos fragPos;
-  assert(graph->type == CI_GRAPH);
-  assert(fromCI->type == UNRESOLVEDCHUNK_CGW);
-  assert(toCI->type == RESOLVEDREPEATCHUNK_CGW);
+
+  IntMultiPos fragPos = {0};
+
+  assert(fromCI->type   == UNRESOLVEDCHUNK_CGW);
+  assert(toCI->type     == RESOLVEDREPEATCHUNK_CGW);
+
   assert(toCI->scaffoldID != NULLINDEX);
 
   if(f_list_CI){
     ResetVA_IntMultiPos(f_list_CI);
     ResetVA_IntMultiPos(f_list_Contig);
   }else{
-    f_list_CI = CreateVA_IntMultiPos(GetNumCDS_CID_ts(fragments));
+    f_list_CI     = CreateVA_IntMultiPos(GetNumCDS_CID_ts(fragments));
     f_list_Contig = CreateVA_IntMultiPos(GetNumCDS_CID_ts(fragments));
   }
 
-  fragPos.delta = NULL;
-  fragPos.delta_length = 0;
+  //  Assigns frags to new node and create a degenerate MultiAlignT
 
+  for(i = 0; i < GetNumCDS_CID_ts(fragments); i++){
+    CDS_CID_t fragID  = *GetCDS_CID_t(fragments,i);
+    int32     frgIdx  = GetInfoByIID(ScaffoldGraph->iidToFragIndex,fragID)->fragIndex;
+    CIFragT  *frag    = GetCIFragT(ScaffoldGraph->CIFrags, frgIdx);
 
-  /* Check that the fragments CIid == node->id ! */
-  /* Then, assign it to the new node and create a degenerate MultiAlignT */
-  for(i = 0; i < numFrags; i++){
-    CDS_CID_t fragID = *GetCDS_CID_t(fragments,i);
-    int32 frgIdx = GetInfoByIID(ScaffoldGraph->iidToFragIndex,fragID)->fragIndex;
-    CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, frgIdx);
+    assert(frag->CIid  == fromCIid);
+    assert(frag->cid   == fromCIid);
 
-    assert(frag->CIid == fromID);
-    assert(frag->cid == fromID);
-    frag->CIid = toID;              // Assign the fragment to the surrogate
-    frag->contigID = toContig->id;  // Assign the fragment to the contig
+    frag->CIid            = toCIid;
+    frag->contigID        = toContigID;
+    fragPos.type          = frag->type;
+    fragPos.ident         = fragID;
+    fragPos.sourceInt     = frgIdx;
+    fragPos.position.bgn  = frag->offset5p.mean;
+    fragPos.position.end  = frag->offset3p.mean;
 
-    fragPos.type  = frag->type;
-    fragPos.ident = fragID;
-    fragPos.sourceInt = frgIdx;
-    fragPos.position.bgn = frag->offset5p.mean;
-    fragPos.position.end = frag->offset3p.mean;
     AppendIntMultiPos(f_list_CI, &fragPos);
 
     // Now figure out fragment position in target contig
-    if(flipped){
+
+    if (surrogateAOffset > surrogateBOffset) {
       fragPos.position.bgn = surrogateAOffset - frag->offset5p.mean;
       fragPos.position.end = surrogateAOffset - frag->offset3p.mean;
       if(fragPos.position.end<0){
@@ -630,33 +632,38 @@ void ReallyAssignFragsToResolvedCI(GraphCGW_T *graph,
 	fragPos.position.end=0;
       }
     }
+
     // We shouldn't need this!
     frag->contigOffset5p.variance = ComputeFudgeVariance(fragPos.position.bgn);
-    frag->contigOffset5p.mean = fragPos.position.bgn;
+    frag->contigOffset5p.mean     = fragPos.position.bgn;
+
     frag->contigOffset3p.variance = ComputeFudgeVariance(fragPos.position.end);
-    frag->contigOffset3p.mean = fragPos.position.end;
+    frag->contigOffset3p.mean     = fragPos.position.end;
 
     AppendIntMultiPos(f_list_Contig, &fragPos);
   }
 
 
-  /* Copy IntMultiPos records from the source to destination CI, adjusting consensus sequence */
-  PlaceFragmentsInMultiAlignT(toID, TRUE, f_list_CI);
-  UpdateNodeFragments(ScaffoldGraph->CIGraph, toID, FALSE,FALSE);
+  fprintf(stderr, "ReallyAssignFragsToResolvedCI()-- CI=%d contig=%d\n", toCIid, toContigID);
 
-  /* Copy IntMultiPos records to destination Contig, adjusting consensus sequence */
-  PlaceFragmentsInMultiAlignT(toContig->id, FALSE, f_list_Contig);
-  UpdateNodeFragments(ScaffoldGraph->ContigGraph, toContig->id,FALSE,FALSE);
+  /* Copy IntMultiPos records from the source to destination CI,
+     adjusting consensus sequence */
+  PlaceFragmentsInMultiAlignT(toCIid, TRUE, f_list_CI);
+  UpdateNodeFragments(ScaffoldGraph->CIGraph, toCIid, FALSE, FALSE);
 
-  UpdateNodeUnitigs(loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, toContig->id, FALSE),
-                    toContig);
+  /* Copy IntMultiPos records to destination Contig, adjusting
+     consensus sequence */
+  PlaceFragmentsInMultiAlignT(toContigID, FALSE, f_list_Contig);
+  UpdateNodeFragments(ScaffoldGraph->ContigGraph, toContigID, FALSE, FALSE);
 
-  /* Do not Rebuild the Mate Edges of the target CI to reflect the changes in fragment membership */
+  UpdateNodeUnitigs(loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, toContig->id, FALSE), toContig);
 
-  /* Do NOT Rebuild the Mate Edges of the target CI's Contig to reflect the changes in fragment membership.
-     We will rebuild all mate edges when all fragments have been placed */
+  /* Do not Rebuild the Mate Edges of the target CI to reflect the
+     changes in fragment membership */
 
-
+  /* Do NOT Rebuild the Mate Edges of the target CI's Contig to
+     reflect the changes in fragment membership.  We will rebuild all
+     mate edges when all fragments have been placed */
 }
 
 
@@ -681,6 +688,8 @@ getChunkInstanceID(ChunkInstanceT *chunk, int index) {
 
   if (chunk->info.CI.numInstances == 2 && (index == 1))
     return(chunk->info.CI.instances.in_line.instance2);
+
+  assert(chunk->info.CI.numInstances == GetNumCDS_CID_ts(chunk->info.CI.instances.va));
 
   if (index < chunk->info.CI.numInstances)
     return(*(int32 *) Getint32(chunk->info.CI.instances.va, index));
@@ -859,8 +868,7 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
       }
 
       // now really do the placement
-      ReallyAssignFragsToResolvedCI(ScaffoldGraph->CIGraph,
-                                    parentChunk->id,
+      ReallyAssignFragsToResolvedCI(parentChunk->id,
                                     getChunkInstanceID(parentChunk,i),
                                     toplace);
 

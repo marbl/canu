@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.66 2008-12-16 22:32:37 skoren Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.67 2009-01-06 13:55:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -96,9 +96,13 @@ void SaveGraphCGWToStream(GraphCGW_T *graph, FILE *stream){
     for(i = 0; i < GetNumGraphNodes(graph); i++){
       NodeCGW_T *node = GetGraphNode(graph,i);
 
-      if(!node->flags.bits.isCI ||
-	 node->info.CI.numInstances < 3)
-	continue;
+      if (!node->flags.bits.isCI)
+        continue;
+      if (node->info.CI.numInstances < 3)
+        continue;
+
+      assert(node->info.CI.numInstances == GetNumCDS_CID_ts(node->info.CI.instances.va));
+
       CopyToFileVA_CDS_CID_t(node->info.CI.instances.va, stream);
     }
 
@@ -128,11 +132,15 @@ GraphCGW_T *LoadGraphCGWFromStream(FILE *stream){
   // Save lists of indicies, if they exist
   for(i = 0; i < GetNumGraphNodes(graph); i++){
     NodeCGW_T *node = GetGraphNode(graph,i);
-    if(!node->flags.bits.isCI )
+
+    if (!node->flags.bits.isCI)
       continue;
-    if(node->info.CI.numInstances < 3)
+    if (node->info.CI.numInstances < 3)
       continue;
+
     node->info.CI.instances.va = CreateFromFileVA_CDS_CID_t(stream);
+
+    assert(node->info.CI.numInstances == GetNumCDS_CID_ts(node->info.CI.instances.va));
   }
 
   graph->edges =          CreateFromFileVA_EdgeCGW_T( stream);
@@ -162,8 +170,9 @@ void DeleteGraphCGW(GraphCGW_T *graph){
   if(graph->type == CI_GRAPH)
     for(i = 0; i < GetNumGraphNodes(graph); i++){
       NodeCGW_T *node = GetGraphNode(graph,i);
-      if(!node->flags.bits.isCI ||
-	 node->info.CI.numInstances < 3)
+      if (!node->flags.bits.isCI)
+        continue;
+      if (node->info.CI.numInstances < 3)
 	continue;
       DeleteVA_CDS_CID_t(node->info.CI.instances.va);
     }
@@ -708,71 +717,6 @@ EdgeCGW_T *GetFreeGraphEdge(GraphCGW_T *graph){
 }
 
 
-// Repair the CI neighbors in a contig AEndNext and BEndNext when removing a surrogate copy
-void RepairContigNeighbors(ChunkInstanceT *surr){
-  ChunkInstanceT *AEndNeighbor = (surr->AEndNext >= 0) ?
-    GetGraphNode(ScaffoldGraph->CIGraph, surr->AEndNext) : NULL;
-  ChunkInstanceT *BEndNeighbor = (surr->BEndNext >= 0) ?
-    GetGraphNode(ScaffoldGraph->CIGraph, surr->BEndNext) : NULL;
-  ContigT *contig = GetGraphNode(ScaffoldGraph->ContigGraph, surr->info.CI.contigID);
-
-  assert(contig != NULL);
-  assert(surr->type == RESOLVEDREPEATCHUNK_CGW);
-  if(AEndNeighbor != NULL){
-    assert(AEndNeighbor->flags.bits.isCI);
-    if(AEndNeighbor->AEndNext == surr->id){
-      AEndNeighbor->AEndNext = surr->BEndNext;
-    }else{
-      assert(AEndNeighbor->BEndNext == surr->id);
-      AEndNeighbor->BEndNext = surr->BEndNext;
-    }
-  }else{
-    assert(contig->info.Contig.AEndCI == surr->id);
-    contig->info.Contig.AEndCI = surr->BEndNext;
-  }
-  if(BEndNeighbor != NULL){
-    assert(BEndNeighbor->flags.bits.isCI);
-    if(BEndNeighbor->AEndNext == surr->id){
-      BEndNeighbor->AEndNext = surr->AEndNext;
-    }else{
-      assert(BEndNeighbor->BEndNext == surr->id);
-      BEndNeighbor->BEndNext = surr->AEndNext;
-    }
-  }else{
-    assert(contig->info.Contig.BEndCI == surr->id);
-    contig->info.Contig.BEndCI = surr->AEndNext;
-  }
-  // For the contig containing the removed duplicate surrogate, update the SeqDB entry to delete
-  // the unitig position
-  // void PlaceFragmentsInMultiAlignT(CDS_CID_t toID, int isUnitig, VA_TYPE(IntMultiPos) *f_list)
-  {
-    MultiAlignT *ma;
-    int32 i, j;
-    int32 delete_index = -1;
-
-    //     1. get the old multialign from the seqDB
-    ma =  loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
-    //     2. delete surrogate from multialign
-
-    for(i = j = 0; i < GetNumIntUnitigPoss(ma->u_list); i++){
-      IntUnitigPos *pos = GetIntUnitigPos(ma->u_list,i);
-
-      if(surr->id == pos->ident){
-	delete_index = i;
-      }else{
-        if (i != j)
-          SetIntUnitigPos(ma->u_list, j, GetIntUnitigPos(ma->u_list,i));
-	j++;
-      }
-    }
-    assert(delete_index >= 0);
-    assert((j + 1) == i);
-    ResetToRange_IntUnitigPos(ma->u_list,j);
-
-    //     3. update the multialign
-    updateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE, ma, TRUE);
-  }
-}
 
 
 // Delete a graph node and all edges incident on this node
@@ -2584,7 +2528,6 @@ void PropagateEdgeStatusToFrag(GraphCGW_T *graph, EdgeCGW_T *edge){
 
 
 
-#if 1
 static VA_TYPE(IntMultiPos) *f_list_CI = NULL;
 static VA_TYPE(IntMultiPos) *f_list_Contig = NULL;
 
@@ -2686,121 +2629,121 @@ void AssignFragsToResolvedCI(GraphCGW_T *graph,
    An empty fragments array is handled the same as fragments == NULL.
 */
 CDS_CID_t SplitUnresolvedCI(GraphCGW_T *graph,
-                            CDS_CID_t nodeID,
+                            CDS_CID_t oldNodeID,
                             VA_TYPE(CDS_CID_t) *fragments){
-  NodeCGW_T *newNode = CreateNewGraphNode(graph);
-  NodeCGW_T *node = GetGraphNode(graph, nodeID);
-  int numFrags = (fragments == NULL?0:GetNumCDS_CID_ts(fragments));
-  MultiAlignT *oldMA = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, node->id, TRUE);
-  MultiAlignT *newMA;
-  int verbose = FALSE;
+  NodeCGW_T    *newNode   = CreateNewGraphNode(graph);
+  CDS_CID_t     newNodeID = newNode->id;
+
+  NodeCGW_T    *oldNode   = GetGraphNode(graph, oldNodeID);
+
+  MultiAlignT  *oldMA     = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, oldNodeID, TRUE);
+  MultiAlignT  *newMA     = NULL;
 
   assert(graph->type == CI_GRAPH);
-  assert(node->flags.bits.isCI);
 
-  newNode->offsetAEnd = node->offsetAEnd;
-  newNode->offsetBEnd = node->offsetBEnd;
-  newNode->flags = node->flags;
-  newNode->flags.bits.isSurrogate = TRUE;
-  newNode->info = node->info;
-  newNode->info.CI.numInstances = 0;
-  newNode->info.CI.numFragments = numFrags;
-  newNode->info.CI.baseID = node->id;
+  assert(oldNode->flags.bits.isCI);
+
+  newNode->offsetAEnd              = oldNode->offsetAEnd;
+  newNode->offsetBEnd              = oldNode->offsetBEnd;
+  newNode->flags                   = oldNode->flags;
+  newNode->flags.bits.isSurrogate  = TRUE;
+  newNode->info                    = oldNode->info;
+  newNode->info.CI.numInstances    = 0;
+  newNode->info.CI.numFragments    = (fragments == NULL) ? 0 : GetNumCDS_CID_ts(fragments);
+  newNode->info.CI.baseID          = oldNodeID;
+
   SetNodeType(newNode, RESOLVEDREPEATCHUNK_CGW);
 
-  assert(node->info.CI.numInstances >=0);
-  assert(node->type == UNRESOLVEDCHUNK_CGW);
-  assert(newNode->type == RESOLVEDREPEATCHUNK_CGW);
+  assert(oldNode->info.CI.numInstances >= 0);
+  assert(oldNode->type == UNRESOLVEDCHUNK_CGW);
 
   /* Bookkeeping on instances derived from the base */
 
-  if(node->info.CI.numInstances == 0){
-    if( node->flags.bits.isChaff == TRUE){
+  if (oldNode->info.CI.numInstances > 2)
+    assert(oldNode->info.CI.numInstances == GetNumCDS_CID_ts(oldNode->info.CI.instances.va));
+
+  if(oldNode->info.CI.numInstances == 0){
+    if( oldNode->flags.bits.isChaff == TRUE){
       CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,  (int)GetIntMultiPos(oldMA->f_list,0)->sourceInt);
       assert(frag->flags.bits.isSingleton);
       newNode->flags.bits.isChaff = FALSE;  // Making a surrogate causes the parent & surrogate to become !chaff
-      node->flags.bits.isChaff = FALSE;
+      oldNode->flags.bits.isChaff = FALSE;
       frag->flags.bits.isChaff = FALSE;
     }
-    node->info.CI.instances.in_line.instance1 = newNode->id;
-  }else if(node->info.CI.numInstances == 1){
-    node->info.CI.instances.in_line.instance2 = newNode->id;
-  }else if(node->info.CI.numInstances == 2){
+    oldNode->info.CI.instances.in_line.instance1 = newNodeID;
+  }else if(oldNode->info.CI.numInstances == 1){
+    oldNode->info.CI.instances.in_line.instance2 = newNodeID;
+  }else if(oldNode->info.CI.numInstances == 2){
     VA_TYPE(CDS_CID_t) *instances = CreateVA_CDS_CID_t(16);
-    AppendCDS_CID_t(instances, &node->info.CI.instances.in_line.instance1);
-    AppendCDS_CID_t(instances, &node->info.CI.instances.in_line.instance2);
-    AppendCDS_CID_t(instances, &(newNode->id));
-    node->info.CI.instances.va = instances;
-  }else if(node->info.CI.numInstances > 2){
-    AppendCDS_CID_t(node->info.CI.instances.va, &(newNode->id));
+    AppendCDS_CID_t(instances, &oldNode->info.CI.instances.in_line.instance1);
+    AppendCDS_CID_t(instances, &oldNode->info.CI.instances.in_line.instance2);
+    AppendCDS_CID_t(instances, &(newNodeID));
+    oldNode->info.CI.instances.va = instances;
+  }else if(oldNode->info.CI.numInstances > 2){
+    AppendCDS_CID_t(oldNode->info.CI.instances.va, &(newNodeID));
   }
-  node->info.CI.numInstances++;
+  oldNode->info.CI.numInstances++;
 
-#ifdef DEBUG
-  fprintf(GlobalData->stderrc,"* Node " F_CID " now has %d instances\n",
-	  node->id, node->info.CI.numInstances);
-#endif
+  if (oldNode->info.CI.numInstances > 2)
+    assert(oldNode->info.CI.numInstances == GetNumCDS_CID_ts(oldNode->info.CI.instances.va));
 
   //  Create Surrogate MultiAlignT -- immediately after the clone, we
   //  own the multialign, but then we hand it over to the store, and
   //  we no longer own it.
   //
-  newMA = CloneSurrogateOfMultiAlignT(oldMA, newNode->id);
-  insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, newNode->id, graph->type == CI_GRAPH,newMA, TRUE);
+  newMA = CloneSurrogateOfMultiAlignT(oldMA, newNodeID);
+  insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, newNodeID, TRUE, newMA, TRUE);
 
-  newNode->bpLength.mean = GetMultiAlignUngappedLength(newMA);
+  newNode->bpLength.mean     = GetMultiAlignUngappedLength(newMA);
   newNode->bpLength.variance = ComputeFudgeVariance(newNode->bpLength.mean);
 
-  if(verbose){
-    fprintf(GlobalData->stderrc,"* Cloned surrogate ma of CI " F_CID " (length %d) has length (%d) %g\n",
-            node->id, (int) GetMultiAlignUngappedLength(oldMA),
-            (int) GetMultiAlignLength(newMA), newNode->bpLength.mean);
-  }
   assert(GetMultiAlignLength(newMA) == newNode->bpLength.mean);
 
   /* Copy all of the overlap edges from the original node to the surrogate */
 
-  {
 #if 0
-    // There is no need to copy the edges on the surrogate unitig
-    // they are not putput and not used for anything
-    GraphEdgeIterator edges;
-    EdgeCGW_T *edge;
+  // There is no need to copy the edges on the surrogate unitig
+  // they are not putput and not used for anything
+  GraphEdgeIterator edges;
+  EdgeCGW_T *edge;
 
-    InitGraphEdgeIterator(graph, node->id, ALL_END, ALL_EDGES, GRAPH_EDGE_RAW_ONLY, &edges);
-    while(edge = NextGraphEdgeIterator(&edges)){
-      if(isOverlapEdge(edge)){
-	EdgeCGW_T *newEdge = GetFreeGraphEdge(graph);
-	CDS_CID_t eid = GetVAIndex_EdgeCGW_T(graph->edges, newEdge);
+  InitGraphEdgeIterator(graph, oldNodeID, ALL_END, ALL_EDGES, GRAPH_EDGE_RAW_ONLY, &edges);
+  while(edge = NextGraphEdgeIterator(&edges)){
+    if(isOverlapEdge(edge)){
+      EdgeCGW_T *newEdge = GetFreeGraphEdge(graph);
+      CDS_CID_t eid = GetVAIndex_EdgeCGW_T(graph->edges, newEdge);
 
-	CDS_CID_t otherCID = (edge->idA == node->id? edge->idB:edge->idA);
-	*newEdge = *edge;
-	newEdge->topLevelEdge = eid;
+      CDS_CID_t otherCID = (edge->idA == oldNodeID? edge->idB:edge->idA);
+      *newEdge = *edge;
+      newEdge->topLevelEdge = eid;
 
-	// Make it canonical WRT otherCID and node->id
+      // Make it canonical WRT otherCID and oldNodeID
 
-	if(node->id < otherCID){
-	  newEdge->idA = node->id;
-	  newEdge->idB = otherCID;
-	}else{
-	  newEdge->idB = node->id;
-	  newEdge->idA = otherCID;
-	}
-	InsertGraphEdge(graph, eid, FALSE);
+      if(oldNodeID < otherCID){
+        newEdge->idA = oldNodeID;
+        newEdge->idB = otherCID;
+      }else{
+        newEdge->idB = oldNodeID;
+        newEdge->idA = otherCID;
       }
+      InsertGraphEdge(graph, eid, FALSE);
     }
-#endif
-    /* Assign Fragments to the surrogate */
-    if(numFrags > 0){
-      AssignFragsToResolvedCI(graph, nodeID, newNode->id, fragments);
-
-    }
-
-    if(verbose){
-      fprintf(GlobalData->stderrc,"* Returning new split CI " F_CID "\n", newNode->id);
-    }
-    return newNode->id;
   }
+#endif
+
+  /* Assign Fragments to the surrogate */
+
+  if (newNode->info.CI.numFragments > 0)
+    AssignFragsToResolvedCI(graph, oldNodeID, newNodeID, fragments);
+
+  fprintf(GlobalData->stderrc,"SplitUnresolvedCI()--  Cloned surrogate ma of CI " F_CID " (length %d) has length (%d) %g\n",
+          oldNodeID, (int) GetMultiAlignUngappedLength(oldMA),
+          (int) GetMultiAlignLength(newMA), newNode->bpLength.mean);
+
+  fprintf(stderr, "SplitUnresolvedCI()--  Split base CI="F_CID" (now with %d instances) into new CI="F_CID"\n",
+          oldNodeID, oldNode->info.CI.numInstances, newNodeID);
+
+  return newNodeID;
 }
 
 
@@ -2816,169 +2759,154 @@ CDS_CID_t SplitUnresolvedCI(GraphCGW_T *graph,
    The fragments listed are marked for membership (via their contigID field) int he new element
    An empty fragments array is handled the same as fragments == NULL.
 */
-CDS_CID_t SplitUnresolvedContig(GraphCGW_T *graph,
-                                CDS_CID_t nodeID,
+CDS_CID_t SplitUnresolvedContig(GraphCGW_T         *graph,
+                                CDS_CID_t           oldID,
                                 VA_TYPE(CDS_CID_t) *fragments,
-                                int32 copyAllOverlaps){
-  NodeCGW_T *newNode = CreateNewGraphNode(graph);
-  NodeCGW_T *node = GetGraphNode(graph, nodeID);
-  int numFrags = (fragments == NULL?0:GetNumCDS_CID_ts(fragments));
-  MultiAlignT *oldMA = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, node->id, FALSE);
-  IntUnitigPos *u = GetIntUnitigPos(oldMA->u_list,0);
-  CDS_CID_t newCIid;
-  NodeCGW_T *baseCI = GetGraphNode(ScaffoldGraph->CIGraph, u->ident);
-  NodeCGW_T *newCI;
-  int verbose = FALSE;
+                                int32               copyAllOverlaps){
+  NodeCGW_T     *newNode   = CreateNewGraphNode(graph);
+  CDS_CID_t      newID     = newNode->id;
+
+  NodeCGW_T     *oldNode   = GetGraphNode(graph, oldID);
+  MultiAlignT   *oldMA     = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, oldID, FALSE);
+
+  CDS_CID_t      baseCIid  = GetIntUnitigPos(oldMA->u_list,0)->ident;
+  NodeCGW_T     *baseCI    = GetGraphNode(ScaffoldGraph->CIGraph, baseCIid);
+
+  CDS_CID_t      newCIid   = 0;
+  NodeCGW_T     *newCI     = NULL;
 
   assert(graph->type == CONTIG_GRAPH);
-  assert(node->flags.bits.isContig);
-  assert(node->scaffoldID == NULLINDEX);
+  assert(oldNode->flags.bits.isContig);
+  assert(oldNode->scaffoldID == NULLINDEX);
   assert(GetNumIntUnitigPoss(oldMA->u_list) == 1);
 
-  if(verbose){
-    fprintf(GlobalData->stderrc,
-            "* Splitting Contig " F_CID " (%s Copy Overlaps)\n",
-            node->id, (copyAllOverlaps?"":"DON'T"));
-    DumpContig(GlobalData->stderrc,ScaffoldGraph, node, FALSE);
-  }
-
-  node = GetGraphNode(graph, nodeID);
-
-  // Get the index of the base CI
-  u = GetIntUnitigPos(oldMA->u_list,0);
-  baseCI = GetGraphNode(ScaffoldGraph->CIGraph, u->ident);
-
   // Split the base CI, creating a surrogate
-  newCIid = SplitUnresolvedCI(ScaffoldGraph->CIGraph, baseCI->id, fragments);
-  newCI = GetGraphNode(ScaffoldGraph->CIGraph, newCIid);
-  newCI->flags.bits.isSurrogate = TRUE;
-  newCI->flags.bits.isStoneSurrogate = copyAllOverlaps;
-  newCI->flags.bits.isWalkSurrogate = !copyAllOverlaps;
+  newCIid = SplitUnresolvedCI(ScaffoldGraph->CIGraph, baseCIid, fragments);
 
-  // regenerate base CI pointer in case the CIGraph gets reallocated (MP)
-  baseCI = GetGraphNode(ScaffoldGraph->CIGraph, u->ident);
-
+  baseCI  = GetGraphNode(ScaffoldGraph->CIGraph, baseCIid);
+  newCI   = GetGraphNode(ScaffoldGraph->CIGraph, newCIid);
 
   assert(newCI->type == RESOLVEDREPEATCHUNK_CGW);
 
-  newCI->info.CI.contigID = newNode->id; // Set the contig id
+  assert(newNode == GetGraphNode(graph, newID));
+  assert(oldNode == GetGraphNode(graph, oldID));
 
-  // Set up the MultiAlignT
-  //
-  //  duplicateEntryInSequenceDB(ScaffoldGraph->sequenceDB, newCIid, TRUE, newNode->id, FALSE, TRUE);
-  //
+  newCI->flags.bits.isSurrogate        = TRUE;
+  newCI->flags.bits.isStoneSurrogate   = copyAllOverlaps;
+  newCI->flags.bits.isWalkSurrogate    = !copyAllOverlaps;
+
+  newCI->info.CI.contigID              = newID;
+
   //  What this does: We load unitig 'newCIid', make a copy of it, and
-  //  insert it as contig newNode->id.  Yeah, I liked lisp too.
+  //  insert it as contig newID.  Yeah, I liked lisp too.
+  //
+  //  The unitig instance is already copied in SplitUnresolvedCI.
   //
   insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB,
-                                newNode->id, FALSE,
+                                newID, FALSE,
                                 CopyMultiAlignT(NULL,
                                                 loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,
                                                                               newCIid,
                                                                               TRUE)),
                                 TRUE);
 
-
-  fprintf(GlobalData->stderrc,"* Inserting split CI " F_CID " (new = " F_CID ") multiAlign for new Contig " F_CID "\n",
-	  baseCI->id, newCIid, newNode->id);
-
   // Create the new surrogate contig
-  newNode->bpLength = newCI->bpLength; // length of new CI may differ from length of original due to gapped vs ungapped
 
+  newNode->bpLength               = newCI->bpLength;
+  newNode->flags                  = oldNode->flags;
+  newNode->flags.bits.isSurrogate = TRUE;
+  newNode->info.Contig.AEndCI     = newCIid;
+  newNode->info.Contig.BEndCI     = newCIid;
+  newNode->info.Contig.numCI      = 1;
+
+  SetNodeType(newNode, CONTIG_CGW);
+
+  // length of new CI may differ from length of original due to gapped vs ungapped
   {
-    MultiAlignT *newCIMA = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, newCIid, TRUE);
-    int32 newLength = (int32) GetMultiAlignUngappedLength(newCIMA);
+    int32 newLength = GetMultiAlignUngappedLength(loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, newCIid, TRUE));
+
     assert(newNode->bpLength.mean == newLength);
-    assert(newCI->bpLength.mean == newLength);
+    assert(newCI->bpLength.mean   == newLength);
   }
 
 
-  newNode->flags = node->flags;
-  newNode->flags.bits.isSurrogate = TRUE;
-  newNode->info.Contig.AEndCI = newCIid;
-  newNode->info.Contig.BEndCI = newCIid;
-  newNode->info.Contig.numCI = 1;
-  SetNodeType(newNode, CONTIG_CGW);
-
   // Set the fragments offset and contig membership
   {
+    int numFrags = (fragments == NULL?0:GetNumCDS_CID_ts(fragments));
     int i;
+
     for(i = 0; i < numFrags; i++){
       CDS_CID_t fragID = *GetCDS_CID_t(fragments, i);
       CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, fragID);
       frag->contigOffset5p = frag->offset5p;
       frag->contigOffset3p = frag->offset3p;
-      frag->contigID = newNode->id;
+      frag->contigID = newID;
     }
   }
-
-
 
   /* Copy all of the overlap edges from the original contig to the surrogate */
-  if(copyAllOverlaps)
-    {
-      GraphEdgeIterator edges;
-      EdgeCGW_T *edge;
-      EdgeCGW_T copyOfEdge = {0};
+  if(copyAllOverlaps) {
+    GraphEdgeIterator edges;
+    EdgeCGW_T *edge;
+    EdgeCGW_T copyOfEdge = {0};
 
-      // copyOfEdge - Bug fix by Jason Miller, 5/26/06.
-      // The call to GetFreeGraphEdge can realloc the graph.
-      // In that case, the pointer named edge became invalid.
-      // Keeping a copy of the contents solved the problem.
+    // copyOfEdge - Bug fix by Jason Miller, 5/26/06.
+    // The call to GetFreeGraphEdge can realloc the graph.
+    // In that case, the pointer named edge became invalid.
+    // Keeping a copy of the contents solved the problem.
 
-      //    fprintf(GlobalData->stderrc,"* Copying edges\n");
-      InitGraphEdgeIterator(graph, node->id, ALL_END, ALL_EDGES, GRAPH_EDGE_RAW_ONLY, &edges);
-      while(NULL != (edge = NextGraphEdgeIterator(&edges))){
-        if(isOverlapEdge(edge)){
-          EdgeCGW_T *newEdge;
-          CDS_CID_t eid;
-          CDS_CID_t otherCID = (edge->idA == node->id? edge->idB:edge->idA);
+    //    fprintf(GlobalData->stderrc,"* Copying edges\n");
 
-          copyOfEdge = *edge;
-          newEdge = GetFreeGraphEdge(graph); // has side effects!
-          eid = GetVAIndex_EdgeCGW_T(graph->edges, newEdge);
+    InitGraphEdgeIterator(graph, oldID, ALL_END, ALL_EDGES, GRAPH_EDGE_RAW_ONLY, &edges);
+    while(NULL != (edge = NextGraphEdgeIterator(&edges))){
+      if(isOverlapEdge(edge)){
+        EdgeCGW_T *newEdge;
+        CDS_CID_t eid;
+        CDS_CID_t otherCID = (edge->idA == oldID ? edge->idB : edge->idA);
 
-          *newEdge = copyOfEdge;
-          newEdge->topLevelEdge = eid;
+        copyOfEdge = *edge;
+        newEdge = GetFreeGraphEdge(graph); // has side effects!
+        eid = GetVAIndex_EdgeCGW_T(graph->edges, newEdge);
 
-          // Make it canonical WRT otherCID and node->id
+        *newEdge = copyOfEdge;
+        newEdge->topLevelEdge = eid;
 
-          if(newNode->id < otherCID){
-            newEdge->idA = newNode->id;
-            newEdge->idB = otherCID;
-            if(node->id > otherCID){
-              // If the order of the nodes is different than it used to be, flip
-              // the edge orientation.  This shouldn't happen, since  the
-              // surrogate ids are higher than any other node
-              newEdge->orient = FlipEdgeOrient(newEdge->orient);
-            }
-          }else{
-            newEdge->idA = otherCID;
-            newEdge->idB = newNode->id;
-            if(node->id < otherCID){
-              // If the order of the nodes is different than it used to be, flip
-              // the edge orientation.  This should occur with probability 0.5
-              newEdge->orient = FlipEdgeOrient(newEdge->orient);
-            }
+        // Make it canonical WRT otherCID and node->id
+
+        if(newID < otherCID){
+          newEdge->idA = newID;
+          newEdge->idB = otherCID;
+          if(oldID > otherCID){
+            // If the order of the nodes is different than it used to be, flip
+            // the edge orientation.  This shouldn't happen, since  the
+            // surrogate ids are higher than any other node
+            newEdge->orient = FlipEdgeOrient(newEdge->orient);
           }
-          // insert the graph edge in the graph
-          InsertGraphEdge(graph, eid, FALSE);
-
-          CreateChunkOverlapFromEdge(graph, newEdge, FALSE); // add a hashtable entry
+        }else{
+          newEdge->idA = otherCID;
+          newEdge->idB = newID;
+          if(oldID < otherCID){
+            // If the order of the nodes is different than it used to be, flip
+            // the edge orientation.  This should occur with probability 0.5
+            newEdge->orient = FlipEdgeOrient(newEdge->orient);
+          }
         }
-      }
+        // insert the graph edge in the graph
+        InsertGraphEdge(graph, eid, FALSE);
 
+        CreateChunkOverlapFromEdge(graph, newEdge, FALSE); // add a hashtable entry
+      }
     }
-  if(verbose){
-    fprintf(GlobalData->stderrc,"* >>> NEW SPLIT CONTIG " F_CID "\n",
-            newNode->id);
-    DumpContig(GlobalData->stderrc,ScaffoldGraph, newNode, FALSE);
   }
 
-  return newNode->id;
+  fprintf(GlobalData->stderrc,"SplitUnresolvedContig()-- Split base CI="F_CID" contig="F_CID" into new CI="F_CID" contig="F_CID"\n",
+	  baseCIid, oldID, newCIid, newID);
+
+  //DumpContig(GlobalData->stderrc,ScaffoldGraph, newNode, FALSE);
+
+  return newID;
 }
 
-#endif
 
 /***** existsContainmentRelationship *****/
 
@@ -4289,21 +4217,18 @@ void  CheckSurrogateUnitigs() {
   NodeCGW_T *curChunk;
 
   InitGraphNodeIterator( &Nodes, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
-  while(NULL != ( curChunk = NextGraphNodeIterator(&Nodes))) {
-    if((curChunk->type == UNRESOLVEDCHUNK_CGW) && (curChunk->info.CI.numInstances > 1)) {
-      if(curChunk->info.CI.numInstances == 2) {
-      } else {
-        int numVaInstances = GetNumCDS_CID_ts(curChunk->info.CI.instances.va);
-        assert(curChunk->info.CI.instances.va != NULL);
-        if (curChunk->info.CI.numInstances != GetNumCDS_CID_ts(curChunk->info.CI.instances.va)) {
-          fprintf(stderr,
-                   "curChunk CI.numInstances %d, GetNumCDS_CID_ts curChunk instances.va %d\n",
-                   curChunk->info.CI.numInstances,
-                   GetNumCDS_CID_ts(curChunk->info.CI.instances.va));
-          //assert(0);
-        }
-      }
-    }
+
+  while (NULL != (curChunk = NextGraphNodeIterator(&Nodes))) {
+    if (curChunk->type != UNRESOLVEDCHUNK_CGW)
+      continue;
+    if (curChunk->info.CI.numInstances < 3)
+      continue;
+
+    if (curChunk->info.CI.numInstances != GetNumCDS_CID_ts(curChunk->info.CI.instances.va))
+      fprintf(stderr, "CheckSurrogateUnitigs()--  CI.numInstances=%d != instances.va=%d\n",
+              curChunk->info.CI.numInstances,
+              GetNumCDS_CID_ts(curChunk->info.CI.instances.va));
+    assert(curChunk->info.CI.numInstances != GetNumCDS_CID_ts(curChunk->info.CI.instances.va));
   }
 }
 
