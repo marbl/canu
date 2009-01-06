@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.11 2008-12-12 17:20:09 skoren Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.12 2009-01-06 15:49:57 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -863,7 +863,7 @@ removeDuplicateReads(void) {
 typedef struct {
   char     h_alignA[AS_READ_MAX_LEN + AS_READ_MAX_LEN + 2];
   char     h_alignB[AS_READ_MAX_LEN + AS_READ_MAX_LEN + 2];
-  dpCell   h_matrix[AS_READ_MAX_LEN][AS_READ_MAX_LEN];
+  dpCell   h_matrix[AS_READ_MAX_LEN + 1][AS_READ_MAX_LEN + 1];
 } dpMatrix;
 
 dpMatrix  *globalMatrix = NULL;
