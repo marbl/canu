@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_SDB_SequenceDB.c,v 1.22 2008-12-18 06:28:54 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_SDB_SequenceDB.c,v 1.23 2009-01-06 13:45:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +32,7 @@ static char *rcsid = "$Id: AS_SDB_SequenceDB.c,v 1.22 2008-12-18 06:28:54 brianw
 #include "AS_UTL_fileIO.h"
 #include "AS_SDB_SequenceDB.h"
 
+#undef DEBUG_SEQDB_OPS
 
 tSequenceDB *
 createSequenceDB(char *path) {
@@ -282,7 +283,9 @@ updateMultiAlignTInSequenceDB(tSequenceDB *db,
   MultiAlignStoreT *maStore  = (isUnitig) ? db->UnitigStore : db->ContigStore;
   tMARecord        *maRecord = GettMARecord(MAStore(isUnitig), index);
 
-  //fprintf(stderr, "updateMultiAlignTFromSequenceDB()--  ma 0x%016p index=%d utg=%d\n", ma, index, isUnitig);
+#ifdef DEBUG_SEQDB_OPS
+  fprintf(stderr, "updateMultiAlignTFromSequenceDB()--  ma 0x%016p index=%d utg=%d\n", ma, index, isUnitig);
+#endif
 
   assert(maRecord != NULL);
 
@@ -316,7 +319,9 @@ insertMultiAlignTInSequenceDB(tSequenceDB *db,
   MultiAlignStoreT *maStore  = (isUnitig) ? db->UnitigStore : db->ContigStore;
   tMARecord        *maRecord = GettMARecord(MAStore(isUnitig), index);
 
-  //fprintf(stderr, "insertMultiAlignTFromSequenceDB()--  ma 0x%016p index=%d utg=%d\n", ma, index, isUnitig);
+#ifdef DEBUG_SEQDB_OPS
+  fprintf(stderr, "insertMultiAlignTFromSequenceDB()--  ma 0x%016p index=%d utg=%d\n", ma, index, isUnitig);
+#endif
 
   //  We can either have:
   //
@@ -341,7 +346,9 @@ deleteMultiAlignTFromSequenceDB(tSequenceDB *db, int index, int isUnitig){
   tMARecord        *maRecord = GettMARecord(MAStore(isUnitig), index);
   if ((maRecord == NULL) || (maRecord->isDeleted))
     return;
-  //fprintf(stderr, "deleteMultiAlignTFromSequenceDB()--  index=%d utg=%d\n", index, isUnitig);
+#ifdef DEBUG_SEQDB_OPS
+  fprintf(stderr, "deleteMultiAlignTFromSequenceDB()--  index=%d utg=%d\n", index, isUnitig);
+#endif
   maRecord->isDeleted = TRUE;
   RemoveMultiAlignFromStore(isUnitig ? db->UnitigStore : db->ContigStore, index);
 }
@@ -352,6 +359,10 @@ loadMultiAlignTFromSequenceDB(tSequenceDB *db, int index, int isUnitig){
   MultiAlignStoreT *maStore  = (isUnitig) ? db->UnitigStore : db->ContigStore;
   MultiAlignT      *ma       = NULL;
   tMARecord        *maRecord = NULL;
+
+#ifdef DEBUG_SEQDB_OPS
+  fprintf(stderr, "loadMultiAlignTFromSequenceDB()--  index=%d utg=%d\n", index, isUnitig);
+#endif
 
   //  If it's in the partition, return that -- only valid for contig?
   if (db->multiAlignLookup)
@@ -376,7 +387,9 @@ loadMultiAlignTFromSequenceDB(tSequenceDB *db, int index, int isUnitig){
   AS_UTL_fseek(db->dataFile[maRecord->storeID], maRecord->offset, SEEK_SET);
   ma = LoadMultiAlignTFromStream(db->dataFile[maRecord->storeID]);
 
-  //fprintf(stderr, "loadMultiAlignTFromSequenceDB()--  ma 0x%016p index=%d utg=%d\n", ma, index, isUnitig);
+#ifdef DEBUG_SEQDB_OPS
+  fprintf(stderr, "loadMultiAlignTFromSequenceDB()--  ma 0x%016p index=%d utg=%d\n", ma, index, isUnitig);
+#endif
 
   if (ma == NULL)
     fprintf(stderr,"loadMultiAlignTFromSequenceDB()-- FAILED for %s %d in file %d at offset "F_OFF_T"\n",
@@ -395,6 +408,10 @@ copyMultiAlignTFromSequenceDB(tSequenceDB *db, MultiAlignT *reusema, int index, 
   MultiAlignStoreT *maStore  = (isUnitig?db->UnitigStore:db->ContigStore);
   MultiAlignT      *ma       = NULL;
   tMARecord        *maRecord = NULL;
+
+#ifdef DEBUG_SEQDB_OPS
+  fprintf(stderr, "copyMultiAlignTFromSequenceDB()--  index=%d utg=%d\n", index, isUnitig);
+#endif
 
   //  If it's in the partition, return that -- only valid for contig?
   //  Otherwise, grab it from the store
