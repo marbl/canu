@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.16 2008-12-29 06:35:45 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.17 2009-01-06 15:50:27 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -358,7 +358,7 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
   typedef struct {
     char     h_alignA[AS_READ_MAX_LEN + AS_READ_MAX_LEN + 2];
     char     h_alignB[AS_READ_MAX_LEN + AS_READ_MAX_LEN + 2];
-    dpCell   h_matrix[AS_READ_MAX_LEN][AS_READ_MAX_LEN];
+    dpCell   h_matrix[AS_READ_MAX_LEN + 1][AS_READ_MAX_LEN + 1];
     int      h_trace[AS_READ_MAX_LEN + AS_READ_MAX_LEN + 2];
   } dpMatrix;
 

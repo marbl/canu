@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.5 2008-12-18 07:13:22 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.6 2009-01-06 15:50:27 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_ALN_bruteforcedp.h"
@@ -62,7 +62,7 @@ alignLinker(char           *alignA,
             char           *alignB,
             char           *stringA,
             char           *stringB,
-            dpCell        (*M)[AS_READ_MAX_LEN],
+            dpCell        (*M)[AS_READ_MAX_LEN + 1],
             alignLinker_s  *a,
             int             endToEnd, int ahang, int bhang) {
 
