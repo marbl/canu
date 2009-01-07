@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.16 2009-01-05 16:29:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.17 2009-01-07 16:05:16 brianwalenz Exp $";
 
 /* Dynamic programming sequence comparison of two fragments.  General
    purpose utility that uses bit-vector d.p. for detection (see, "A Fast
@@ -1328,6 +1328,11 @@ DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
   aseq = a->sequence;  /* Setup sequence access */
   bseq = b->sequence;
 
+  fprintf(stderr, "DP_Compare_AS()--  This function not supported; please report this error.\n");
+  assert(0);
+
+  //  Until we figure out what hangs to use, we should not call DP_Compare()
+
   rawOverlap=DP_Compare(aseq,bseq,beg,end,0,0,opposite,erate,thresh,minlen,what);
 
   if(rawOverlap==NULL)return NULL;
@@ -1413,8 +1418,9 @@ DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
    given call.                                                            */
 
 Overlap *DP_Compare(char *aseq, char *bseq,
-                    int beg, int end, int opposite,
+                    int beg, int end,
                     int ahang, int bhang,
+                    int opposite,
                     double erate, double thresh, int minlen,
                     CompareOptions what)
 { int   alen,  blen;
