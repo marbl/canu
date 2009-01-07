@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.12 2009-01-06 15:49:57 skoren Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.13 2009-01-07 15:52:56 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,6 +48,9 @@ const char *mainid = "$Id: sffToCA.c,v 1.12 2009-01-06 15:49:57 skoren Exp $";
 
 #define LOG_DEFAULT    0
 #define LOG_MATES      1
+
+#define AS_LINKER_MAX_SEQS       50
+#define AS_LINKER_CUSTOM_OFFSET  24
 
 GateKeeperStore *gkpStore  = NULL;
 FILE            *logFile   = NULL;
@@ -873,69 +876,83 @@ int
 processMate(fragRecord *fr,
             fragRecord *m1,
             fragRecord *m2,
-            char       *linker,
-            int         linkerLength) {
+            char       *linker[AS_LINKER_MAX_SEQS],
+            int         search[AS_LINKER_MAX_SEQS]) {
 
-  alignLinker_s  al = {0};
+   alignLinker_s  al = {0};
 
-  alignLinker(globalMatrix->h_alignA,
-              globalMatrix->h_alignB,
-              linker,
-              fr->seq,
-              globalMatrix->h_matrix,
-              &al,
-              FALSE, 0, 0);
+   //  Did we find enough of the linker to do something?  We just need
+   //  to throw out the obviously bad stuff.  When we get shorter and
+   //  shorter, it's hard to define reasonable cutoffs.
+   //
+   //  Things that are called good here, but are actually bad, will be
+   //  examined in OBT's chimera.  If there are no overlaps spanning,
+   //  they'll be trimmed out, usually by being called chimeric.
+   //
+   int  goodAlignment = 0;
+   int  bestAlignment = 0;
+   int  linkerID      = 0;
 
-
-  int  lSize = al.begJ;
-  int  rSize = al.lenB - al.endJ;
-
-  if ((lSize < 0) || (lSize > AS_FRAG_MAX_LEN) || (rSize < 0) || (rSize > AS_FRAG_MAX_LEN)) {
-    fprintf(stderr, "fragment %d root=%s\n", getLastElemStore(gkpStore->frg) + 1, AS_UID_toString(fr->gkfr.readUID));
-    fprintf(stderr, "alignLen=%d matches=%d lSize=%d rSize=%d\n", al.alignLen, al.matches, lSize, rSize);
-    fprintf(stderr, "I %3d-%3d %s\n", al.begI, al.endI, globalMatrix->h_alignA);
-    fprintf(stderr, "J %3d-%3d %s\n", al.begJ, al.endJ, globalMatrix->h_alignB);
+   int  lSize = 0;
+   int  rSize = 0;
+ 
+   while (linkerID < AS_LINKER_MAX_SEQS && goodAlignment == 0) {
+      if (search[linkerID] == TRUE) {
+         if (linker[linkerID] == NULL) {
+            fprintf(stderr, "error requested to search using linker in position %d which is not initialized\n", linkerID);
+            assert(0);
+         }
+         
+         alignLinker(globalMatrix->h_alignA,
+                    globalMatrix->h_alignB,
+                    linker[linkerID],
+                    fr->seq,
+                    globalMatrix->h_matrix,
+                    &al,
+                    FALSE, 0, 0);
+     
+         lSize = al.begJ;
+         rSize = al.lenB - al.endJ;
+   
+         if ((lSize < 0) || (lSize > AS_FRAG_MAX_LEN) || (rSize < 0) || (rSize > AS_FRAG_MAX_LEN)) {
+            fprintf(stderr, "fragment %d root=%s\n", getLastElemStore(gkpStore->frg) + 1, AS_UID_toString(fr->gkfr.readUID));
+            fprintf(stderr, "alignLen=%d matches=%d lSize=%d rSize=%d\n", al.alignLen, al.matches, lSize, rSize);
+            fprintf(stderr, "I %3d-%3d %s\n", al.begI, al.endI, globalMatrix->h_alignA);
+            fprintf(stderr, "J %3d-%3d %s\n", al.begJ, al.endJ, globalMatrix->h_alignB);
+         }
+   
+         assert(lSize >= 0);
+         assert(lSize <= AS_FRAG_MAX_LEN);
+         assert(rSize >= 0);
+         assert(rSize <= AS_FRAG_MAX_LEN);
+   
+         if ((al.alignLen >=  5) && (al.matches + 1 >= al.alignLen))
+            goodAlignment = 1;
+         if ((al.alignLen >= 15) && (al.matches + 2 >= al.alignLen))
+            goodAlignment = 1;
+         if ((al.alignLen >= 30) && (al.matches + 3 >= al.alignLen))
+            goodAlignment = 1;
+         if ((al.alignLen >= 40) && (al.matches + 4 >= al.alignLen))
+            goodAlignment = 1;
+      }
+      
+      linkerID++;
   }
 
-  assert(lSize >= 0);
-  assert(lSize <= AS_FRAG_MAX_LEN);
-  assert(rSize >= 0);
-  assert(rSize <= AS_FRAG_MAX_LEN);
+   // we went through all our possible linker sequences and couldn't find a match, give up
+   if (goodAlignment == 0) {
+      if ((logFile) && (logLevel >= LOG_MATES) && (m1 != NULL) && (m2 != NULL))
+         //  m1, m2 are NULL if we are checking a second time for linker;
+         //  do not report no linker found for those as we have already
+         //  or will soon write a log mesasge.
+         fprintf(logFile, "No linker detected in %s.\n", AS_UID_toString(fr->gkfr.readUID));
+      return(0);
+   }
 
-  //  Did we find enough of the linker to do something?  We just need
-  //  to throw out the obviously bad stuff.  When we get shorter and
-  //  shorter, it's hard to define reasonable cutoffs.
-  //
-  //  Things that are called good here, but are actually bad, will be
-  //  examined in OBT's chimera.  If there are no overlaps spanning,
-  //  they'll be trimmed out, usually by being called chimeric.
-  //
-  int  goodAlignment = 0;
-  int  bestAlignment = 0;
+   if ((al.alignLen >= 42) && (al.matches + 2 >= al.alignLen))
+      bestAlignment = 1;
 
-  if ((al.alignLen >=  5) && (al.matches + 1 >= al.alignLen))
-    goodAlignment = 1;
-  if ((al.alignLen >= 15) && (al.matches + 2 >= al.alignLen))
-    goodAlignment = 1;
-  if ((al.alignLen >= 30) && (al.matches + 3 >= al.alignLen))
-    goodAlignment = 1;
-  if ((al.alignLen >= 40) && (al.matches + 4 >= al.alignLen))
-    goodAlignment = 1;
-
-  if (goodAlignment == 0) {
-    if ((logFile) && (logLevel >= LOG_MATES) && (m1 != NULL) && (m2 != NULL))
-      //  m1, m2 are NULL if we are checking a second time for linker;
-      //  do not report no linker found for those as we have already
-      //  or will soon write a log mesasge.
-      fprintf(logFile, "No linker detected in %s.\n", AS_UID_toString(fr->gkfr.readUID));
-    return(0);
-  }
-
-  if ((al.alignLen >= 42) && (al.matches + 2 >= al.alignLen))
-    bestAlignment = 1;
-
-
-  int  which;
+   int  which;
 
 
   //  Not enough on either side of the read to make a mate. Chuck the read, return that we didn't trim
@@ -979,7 +996,7 @@ processMate(fragRecord *fr,
     }
 
     //  Recursively search for another copy of the linker.
-    processMate(fr, NULL, NULL, linker, linkerLength);
+    processMate(fr, NULL, NULL, linker, search);
 
     return(1);
   }
@@ -1002,7 +1019,7 @@ processMate(fragRecord *fr,
     }
 
     //  Recursively search for another copy of the linker.
-    processMate(fr, NULL, NULL, linker, linkerLength);
+    processMate(fr, NULL, NULL, linker, search);
 
     return(1);
   }
@@ -1122,8 +1139,8 @@ processMate(fragRecord *fr,
     }
 
     //  Recursively search for another copy of the linker.
-    processMate(m1, NULL, NULL, linker, linkerLength);
-    processMate(m2, NULL, NULL, linker, linkerLength);
+    processMate(m1, NULL, NULL, linker, search);
+    processMate(m2, NULL, NULL, linker, search);
 
     //  If either is deleted now, then we found another linker in
     //  the split read.
@@ -1166,7 +1183,7 @@ processMate(fragRecord *fr,
 
 
 int
-detectMates(char *linker) {
+detectMates(char *linker[AS_LINKER_MAX_SEQS], int search[AS_LINKER_MAX_SEQS]) {
   fragRecord    fr        = {0};
   fragRecord    m1        = {0};
   fragRecord    m2        = {0};
@@ -1174,8 +1191,6 @@ detectMates(char *linker) {
   uint32        firstElem = getFirstElemFragStore(gkpStore);
   uint32        lastElem  = getLastElemFragStore(gkpStore) + 1;
   uint32        thisElem  = 0;
-
-  int           linkerLen = strlen(linker);
 
   globalMatrix = safe_malloc(sizeof(dpMatrix));
 
@@ -1197,7 +1212,7 @@ detectMates(char *linker) {
     //  WARNING!  The mates MUST be added in this order, otherwise,
     //  the UID<->IID mapping will be invalid.
 
-    if (processMate(&fr, &m1, &m2, linker, linkerLen)) {
+    if (processMate(&fr, &m1, &m2, linker, search)) {
       delFrag(gkpStore, thisElem);
 
       if (AS_UID_isDefined(fr.gkfr.readUID)) {
@@ -1231,7 +1246,7 @@ void
 addLibrary(char *libraryName,
            int   insertSize,
            int   insertStdDev,
-           char *linker)  {
+           int   haveLinker)  {
   GateKeeperLibraryRecord   gkl;
 
   clearGateKeeperLibraryRecord(&gkl);
@@ -1258,7 +1273,7 @@ addLibrary(char *libraryName,
   gkl.hpsIsFlowGram               = 1;
   gkl.hpsIsPeakSpacing            = 0;
 
-  if (linker == NULL) {
+  if (haveLinker == FALSE) {
     gkl.orientation = AS_READ_ORIENT_UNKNOWN;
     gkl.mean        = 0;
     gkl.stddev      = 0;
@@ -1407,15 +1422,33 @@ main(int argc, char **argv) {
   char      gkpStoreName[FILENAME_MAX];
   char     *logFileName      = 0L;
 
-  char     *linkerFLX = "GTTGGAACCGAAAGGGTTTGAATTCAAACCCTTTCGGTTCCAAC";  // palindrome
-  char     *linkerFIX = "TCGTATAACTTCGTATAATGTATGCTATACGAAGTTATTACG";    // NOT
-  char     *linker    = NULL;
+
+  // initialize linker search structure
+  // One array stores the character sequences of the linker
+  // A boolean array stores which linkers are to be used in the search
+  int       i                 = 0;
+  int       haveLinker        = FALSE;
+  char     *linker[AS_LINKER_MAX_SEQS];
+  int       search[AS_LINKER_MAX_SEQS];  
+  for (i = 0; i < AS_LINKER_MAX_SEQS; i++) {
+    linker[i] = NULL;
+    search[i] = FALSE;
+  }
+  
+  // the first slot of the linker array is the FLX mate pair linker (which is a palindrome)
+  char   *linkerFLX     = linker[0] = "GTTGGAACCGAAAGGGTTTGAATTCAAACCCTTTCGGTTCCAAC";  // palindrome
+  // the next two slots are the Titanium linker. It requires two linkers because they are not palindromes
+  char   *linkerFIX     = linker[1] = "TCGTATAACTTCGTATAATGTATGCTATACGAAGTTATTACG";    // linker for Titanium reads
+  char   *linkerRevFIX  = linker[2] = "CGTAATAACTTCGTATAGCATACATTATACGAAGTTATACGA";    // rc of linker for Titanium reads
+  // subsequent linkers will be used for future barcoding
+  // final linkers are custom, provided by the user, filled in when parsing parameters
 
   int       bogusOptions[256] = {0};
   int       bogusOptionsLen   = 0;
 
   int arg = 1;
   int err = 0;
+
   while (arg < argc) {
     if        (strcmp(argv[arg], "-insertsize") == 0) {
       insertSize   = atoi(argv[++arg]);
@@ -1465,14 +1498,26 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-linker") == 0) {
       arg++;
 
-      if      (strcasecmp(argv[arg], "flx") == 0)
-        linker = linkerFLX;
-      else if (strcasecmp(argv[arg], "fix") == 0)
-        linker = linkerFIX;
-      else if (strcasecmp(argv[arg], "titanium") == 0)
-        linker = linkerFIX;
-      else
-        linker = argv[arg];
+      if      (strcasecmp(argv[arg], "flx") == 0) {
+        search[0]    = TRUE;
+        haveLinker   = TRUE;
+      }
+      else if (strcasecmp(argv[arg], "fix") == 0) {
+        search[1]    = TRUE;
+        search[2]    = TRUE;
+        haveLinker   = TRUE;
+      }
+      else if (strcasecmp(argv[arg], "titanium") == 0) {
+        search[1]    = TRUE;
+        search[2]    = TRUE;
+        haveLinker   = TRUE;
+      }
+      else {
+        int start = AS_LINKER_CUSTOM_OFFSET;
+        linker[start]      = argv[arg];
+        search[start++]    = TRUE;
+        haveLinker         = TRUE;
+      }
 
     } else if (strcmp(argv[arg], "-output") == 0) {
       outputName = argv[++arg];
@@ -1496,7 +1541,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if ((linker) && ((insertSize == 0) ||
+  if ((haveLinker) && ((insertSize == 0) ||
                    (insertStdDev == 0)))
     err++;
 
@@ -1525,7 +1570,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -linker [name | seq]   Search for linker, created mated reads.\n");
     fprintf(stderr, "                         Name is one of:\n");
     fprintf(stderr, "                           'flx' == %s\n", linkerFLX);
-    fprintf(stderr, "                           'fix' == %s\n", linkerFIX);
+    fprintf(stderr, "                           'fix' == %s and %s\n", linkerFIX, linkerRevFIX);
     fprintf(stderr, "                           'titanium' is the same as 'fix'\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -output f.frg          Write the CA formatted fragments to this file.\n");
@@ -1576,7 +1621,7 @@ main(int argc, char **argv) {
   gkpStore      = createGateKeeperStore(gkpStoreName);
   gkpStore->frg = convertStoreToMemoryStore(gkpStore->frg);
 
-  addLibrary(libraryName, insertSize, insertStdDev, linker);
+  addLibrary(libraryName, insertSize, insertStdDev, haveLinker);
 
   for (; firstFileArg < argc; firstFileArg++)
     loadSFF(argv[firstFileArg]);
@@ -1584,8 +1629,8 @@ main(int argc, char **argv) {
   removeLowQualityReads();
   removeDuplicateReads();
 
-  if (linker)
-    detectMates(linker);
+  if (haveLinker)
+    detectMates(linker, search);
 
   dumpFragFile(outputName, outputFile);
 
