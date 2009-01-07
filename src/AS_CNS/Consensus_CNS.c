@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: Consensus_CNS.c,v 1.71 2009-01-05 16:49:04 brianwalenz Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.72 2009-01-07 16:15:19 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -44,6 +44,10 @@ const char *mainid = "$Id: Consensus_CNS.c,v 1.71 2009-01-05 16:49:04 brianwalen
 #define MAX_NUM_CONTIG_FAILURES 100
 
 
+extern int    numScores;
+extern double lScoreAve;
+extern double aScoreAve;
+extern double bScoreAve;
 
 static void
 writeFailure(char *outName, GenericMesg *pmesg) {
@@ -442,6 +446,13 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "Consensus did NOT finish successfully.\n");
     return(1);
+  }
+
+  if (numScores > 0) {
+    fprintf(stderr, "Average Scores (%d samples):\n", numScores);
+    fprintf(stderr, "  lScore = %f\n", lScoreAve / numScores);
+    fprintf(stderr, "  aScore = %f\n", aScoreAve / numScores);
+    fprintf(stderr, "  bScore = %f\n", bScoreAve / numScores);
   }
 
   fprintf(stderr, "Consensus finished successfully.  Bye.\n");
