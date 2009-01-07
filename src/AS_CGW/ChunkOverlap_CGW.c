@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.35 2009-01-05 16:49:04 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.36 2009-01-07 16:10:50 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -593,46 +593,60 @@ Overlap* OverlapSequences( char *seq1, char *seq2,
                            CDS_COORD_t min_ahang, CDS_COORD_t max_ahang,
                            double erate, double thresh, CDS_COORD_t minlen)
 {
-  Overlap *omesg;
+  Overlap *dp_omesg = NULL;
+  Overlap *lo_omesg = NULL;
   int flip = 0;
 
-//  This function takes two sequences, their orientation and an
-//  assumed minimum and maximum ahang for which it checks.
+  //  This function takes two sequences, their orientation and an
+  //  assumed minimum and maximum ahang for which it checks.
 
-  // if the orientation is BA_AB or BA_BA, we need to reverse complement the first contig
+  // if the orientation is BA_AB or BA_BA, we need to reverse
+  // complement the first contig
   if (orientation == BA_AB || orientation == BA_BA)
     Complement_Seq( seq1 );
 
-  // if the orientation is AB_BA or BA_BA, we need to set the flip variable for the second contig
+  // if the orientation is AB_BA or BA_BA, we need to set the flip
+  // variable for the second contig
   if (orientation == AB_BA || orientation == BA_BA)
     flip = 1;
 
   // min_ahang and end are essentially bounds on the a-hang
-  omesg = DP_Compare(seq1, seq2,
-                     min_ahang, max_ahang,
-                     strlen(seq1), strlen(seq2),
-                     flip,
-                     erate, thresh, minlen,
-                     AS_FIND_ALIGN);
 
-  if (!omesg)
-    omesg = Local_Overlap_AS_forCNS(seq1, seq2,
-                                    min_ahang, max_ahang,
-                                    strlen(seq1), strlen(seq2),
-                                    flip,
-                                    erate, thresh, minlen,
-                                    AS_FIND_LOCAL_OVERLAP);
+  dp_omesg = DP_Compare(seq1, seq2,
+                        min_ahang, max_ahang,
+                        strlen(seq1), strlen(seq2),
+                        flip,
+                        erate, thresh, minlen,
+                        AS_FIND_ALIGN);
 
-  // return seq1 to its original state
+  if ((dp_omesg != NULL) && (dp_omesg->length <= minlen))
+    dp_omesg = NULL;
+
+  //if (dp_omesg != NULL)
+  //  fprintf(stderr, "OverlapSequences()-- Found overlap with DP_Compare   begpos=%d endpos=%d length=%d diffs=%d comp=%d/%d\n",
+  //          dp_omesg->begpos, dp_omesg->endpos, dp_omesg->length, dp_omesg->diffs, dp_omesg->comp, flip);
+
+  if (!dp_omesg)
+    lo_omesg = Local_Overlap_AS_forCNS(seq1, seq2,
+                                       min_ahang, max_ahang,
+                                       strlen(seq1), strlen(seq2),
+                                       flip,
+                                       erate, thresh, minlen,
+                                       AS_FIND_LOCAL_OVERLAP);
+
+  if ((lo_omesg != NULL) && (lo_omesg->length <= minlen))
+    lo_omesg = NULL;
+
+  //if (lo_omesg != NULL)
+  //  fprintf(stderr, "OverlapSequences()-- Found overlap with Local_Overlap   begpos=%d endpos=%d length=%d diffs=%d comp=%d/%d\n",
+  //          lo_omesg->begpos, lo_omesg->endpos, lo_omesg->length, lo_omesg->diffs, lo_omesg->comp, flip);
+
   if (orientation == BA_AB || orientation == BA_BA)
     Complement_Seq( seq1 );
 
-  // to protect against overlaps shorter than minlen that could be extended
-  // by end-gaps to minlen long ...
-  if(omesg!=NULL&&omesg->length<=minlen)return NULL;
-
   // omesg->begpos is the a-hang, omesg->endpos is the b-hang
-  return omesg;
+
+  return((dp_omesg) ? dp_omesg : lo_omesg);
 }
 
 
