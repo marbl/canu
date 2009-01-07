@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.32 2009-01-06 13:55:07 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.33 2009-01-07 16:08:19 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -427,7 +427,7 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
   ciScaffold->info.Scaffold.numElements++;
 
 #ifdef DEBUG_INSERT
-  fprintf(GlobalData->stderrc,"* Inserting cid " F_CID " into scaffold " F_CID " at offset %d, %d\n",
+  fprintf(GlobalData->stderrc,"* Inserting cid " F_CID " into scaffold " F_CID " at offset %d,%d\n",
           ci, sid, (int) aEndOffset.mean, (int) bEndOffset.mean);
 #endif
 
@@ -436,9 +436,6 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
     chunkInstance->AEndNext = chunkInstance->BEndNext = NULLINDEX;
     ciScaffold->bpLength = *maxOffset;
 
-#ifdef DEBUG_INSERT
-    fprintf(stderr,"* Inserted into empty scaffold\n");
-#endif
   }else{
     CIScaffoldTIterator CIs;
     ChunkInstanceT *CI;
@@ -460,9 +457,6 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
         //
 	assert(AEndToBend);
 
-#ifdef DEBUG_INSERT
-	fprintf(GlobalData->stderrc,"* Inserting before " F_CID "\n", CI->id);
-#endif
 	chunkInstance->BEndNext = CI->id;
 	chunkInstance->AEndNext = CI->AEndNext;
 	if (CI->AEndNext != NULLINDEX) {
@@ -475,12 +469,6 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
 
 	if(CI->id == ciScaffold->info.Scaffold.AEndCI){
 	  ciScaffold->info.Scaffold.AEndCI = ci;
-
-#ifdef DEBUG_INSERT
-	  fprintf(GlobalData->stderrc,"* Inserted at head\n");
-	}else{
-	  fprintf(GlobalData->stderrc,"* Inserted in middle\n");
-#endif
 	}
 
 
@@ -507,8 +495,8 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
 
 
 #ifndef DEBUG_INSERT
-    fprintf(GlobalData->stderrc,"* Inserted CI " F_CID " in scaffold " F_CID "  Anext = " F_CID "   Bnext = " F_CID "\n",
-	    chunkInstance->id, sid, chunkInstance->AEndNext, chunkInstance->BEndNext);
+    fprintf(GlobalData->stderrc,"* Inserted CI " F_CID " in scaffold " F_CID " at offset %d,%d  Anext = " F_CID "   Bnext = " F_CID "\n",
+	    chunkInstance->id, sid, (int)aEndOffset.mean, (int)bEndOffset.mean, chunkInstance->AEndNext, chunkInstance->BEndNext);
 #endif
 
     // Due to containments, the CI with the maximal mean does not
