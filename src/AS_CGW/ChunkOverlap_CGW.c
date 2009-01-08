@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.36 2009-01-07 16:10:50 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.37 2009-01-08 14:39:46 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -38,14 +38,23 @@ static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.36 2009-01-07 16:10:50 brianwa
 #include "CommonREZ.h"
 #include "UtilsREZ.h"
 
-//#define DEBUG_CHUNKOVERLAP
-//#define GREEDYDEBUG
-
 // this is the initial range we use to compute
 // overlaps with a different min/max range
 #define BEGENDSLOP 10
 
-
+// This will enable the use of Local_Overlap_AS_forCNS as a fallback
+// when DP_Compare fails.  It will slow down cgw by over an order of
+// magnitude (cgw on some microbes was taking more than 12 hours).
+//
+// In p.cnpt3, enabling this found 3 more overlaps.
+//
+//      3 only found with Local_Overlap
+//     20 only found with DP_Compare
+//    618 found by both
+//   2711 found by none
+//   3352 tries
+//
+#undef USE_LOCAL_OVERLAP_AS_FALLBACK
 
 
 
@@ -573,12 +582,6 @@ void CollectChunkOverlap(GraphCGW_T *graph,
       olap->minOverlap = MIN(minOverlap, olap->minOverlap);
       olap->maxOverlap = MAX(maxOverlap, olap->maxOverlap);
     }
-#ifdef DEBUG_CHUNKOVERLAP
-    fprintf(GlobalData->stderrc,"* Finished updating! [" F_COORD "," F_COORD "] %s\n",
-	    olap->minOverlap, olap->maxOverlap,
-            (olap->fromCGB?"(Overlap)":""));
-#endif
-
   }
 }
 
@@ -626,6 +629,7 @@ Overlap* OverlapSequences( char *seq1, char *seq2,
   //  fprintf(stderr, "OverlapSequences()-- Found overlap with DP_Compare   begpos=%d endpos=%d length=%d diffs=%d comp=%d/%d\n",
   //          dp_omesg->begpos, dp_omesg->endpos, dp_omesg->length, dp_omesg->diffs, dp_omesg->comp, flip);
 
+#ifdef USE_LOCAL_OVERLAP_AS_FALLBACK
   if (!dp_omesg)
     lo_omesg = Local_Overlap_AS_forCNS(seq1, seq2,
                                        min_ahang, max_ahang,
@@ -640,6 +644,7 @@ Overlap* OverlapSequences( char *seq1, char *seq2,
   //if (lo_omesg != NULL)
   //  fprintf(stderr, "OverlapSequences()-- Found overlap with Local_Overlap   begpos=%d endpos=%d length=%d diffs=%d comp=%d/%d\n",
   //          lo_omesg->begpos, lo_omesg->endpos, lo_omesg->length, lo_omesg->diffs, lo_omesg->comp, flip);
+#endif
 
   if (orientation == BA_AB || orientation == BA_BA)
     Complement_Seq( seq1 );
@@ -695,13 +700,6 @@ void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
   if(canOlap->minOverlap > (lengthA+lengthB-CGW_DP_MINLEN)) // no point doing the expensive part if there can be no overlap
     return;
 
-#ifdef DEBUG_CHUNKOVERLAP
-  fprintf(GlobalData->stderrc,"* ComputeOverlap " F_CID ", " F_CID " orient = %c min:" F_COORD " max:" F_COORD " beg:" F_COORD " end:" F_COORD " opposite:%d\n",
-          canOlap->spec.cidA, canOlap->spec.cidB,
-          canOlap->spec.orientation,
-          canOlap->minOverlap, canOlap->maxOverlap,
-          beg, end, opposite);
-#endif
   // Return value is length of chunk sequence/quality
   // overlap 'em
   {
@@ -709,14 +707,6 @@ void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
     CDS_COORD_t min_ahang, max_ahang;
     seq1   = Getchar(consensusA, 0);
     seq2   = Getchar(consensusB, 0);
-
-#ifdef DEBUG_CHUNKOVERLAP
-    fprintf(GlobalData->stderrc,"* Calling DP_Compare with %s sequences lengths " F_SIZE_T "," F_SIZE_T " " F_COORD "," F_COORD " beg,end =[" F_COORD "," F_COORD "] %c %c\n",
-            (!strcmp(seq1, seq2) ? "EQUAL" : "DIFFERENT"),
-            strlen(seq1), strlen(seq2),
-            lengthA, lengthB,
-            beg, end, *seq1, *seq2);
-#endif
 
     min_ahang = lengthA - canOlap->maxOverlap;
     max_ahang = lengthA - canOlap->minOverlap;
@@ -734,11 +724,6 @@ void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
         canOlap->BContainsA = TRUE;
       else if( tempOlap1->begpos > 0 && tempOlap1->endpos < 0) // ahang is pos and bhang is neg
         canOlap->AContainsB = TRUE;
-
-#ifdef DEBUG_CHUNKOVERLAP
-      fprintf(GlobalData->stderrc,
-              "**** FOUND ****\n");
-#endif
 
       //	    Print_Overlap_AS(GlobalData->stderrc,&AFR,&BFR,O);
       canOlap->computed = TRUE;
@@ -773,13 +758,8 @@ void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
         // so we can't screw around with these, without removing the
         // entry and reinserting it.
 
-        if(HASH_SUCCESS != DeleteChunkOverlap(chunkOverlapper, canOlap)){
-#ifdef DEBUG_CHUNKOVERLAP
-          fprintf(stderr,"* Couldn't delete (" F_CID "," F_CID ",%c)\n",
-                  canOlap->spec.cidA, canOlap->spec.cidB,
-                  canOlap->spec.orientation);
-#endif
-        }
+        DeleteChunkOverlap(chunkOverlapper, canOlap);
+
         canOlap->suspicious = TRUE;
         canOlap -> overlap = tempOlap1 -> length;
         switch  (canOlap -> spec . orientation)
@@ -822,24 +802,7 @@ void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
                 canOlap->overlap);
 
         // Add it to the symbol table
-
-#ifndef DEBUG_CHUNKOVERLAP
         InsertChunkOverlap(chunkOverlapper, canOlap);
-#else
-        // This insertion may not succeed, if the modified
-        // overlap is already in the hashtable
-        //
-        if(InsertChunkOverlap(chunkOverlapper, canOlap) != HASH_SUCCESS){
-          fprintf(GlobalData->stderrc,"* (" F_CID "," F_CID ",%c) already exists...not inserting in hash\n",
-                  canOlap->spec.cidB, canOlap->spec.cidA,
-                  canOlap->spec.orientation);
-        }else{
-          fprintf(GlobalData->stderrc,"* (" F_CID "," F_CID ",%c) doesn't exist...inserting in hash\n",
-                  canOlap->spec.cidB, canOlap->spec.cidA,
-                  canOlap->spec.orientation);
-        }
-#endif
-
       }
     }
   }
@@ -940,16 +903,16 @@ ChunkOverlapCheckT OverlapChunks( GraphCGW_T *graph,
           olap.suspicious = FALSE;
           lookup = LookupCanonicalOverlap(graph->overlapper,&olap.spec); // see if it is already in the table
           if(!lookup){
-            fprintf(GlobalData->stderrc,"* Inserting into hash (" F_CID "," F_CID ",%c) " F_COORD "\n",
-                    olap.spec.cidA, olap.spec.cidB,
-                    olap.spec.orientation, olap.overlap);
-            if(InsertChunkOverlap(graph->overlapper, &olap) !=
-               HASH_SUCCESS)
+            if(InsertChunkOverlap(graph->overlapper, &olap) != HASH_SUCCESS) {
+              fprintf(stderr, "Failed to insert overlap into hash table.\n");
               assert(0);
+            }
           }
         }else{
-          if(InsertChunkOverlap(graph->overlapper, &olap) != HASH_SUCCESS)
+          if(InsertChunkOverlap(graph->overlapper, &olap) != HASH_SUCCESS) {
+            fprintf(stderr, "Failed to insert overlap into hash table.\n");
             assert(0);
+          }
         }
         lookup = LookupCanonicalOverlap(graph->overlapper,&olap.spec);
         assert(lookup != NULL);
@@ -961,12 +924,6 @@ ChunkOverlapCheckT OverlapChunks( GraphCGW_T *graph,
 
 
     if(olap.overlap && insert){ // Insert all non-zero overlaps, if requested
-      /*
-        fprintf(GlobalData->stderrc,"* Inserting into graph (" F_CID "," F_CID ",%c) " F_COORD " ahang: " F_COORD ", bhang: " F_COORD "\n",
-        olap.spec.cidA, olap.spec.cidB,
-        olap.spec.orientation, olap.overlap,
-        olap.ahg, olap.bhg);
-      */
       InsertComputedOverlapEdge(graph, &olap);
     }
     /* Make sure the orientation of the edge we return is IDENTICAL with the spec returned */
@@ -1012,12 +969,6 @@ static VA_TYPE(char) *consensus2 = NULL;
 static VA_TYPE(char) *quality1 = NULL;
 static VA_TYPE(char) *quality2 = NULL;
 
-  /*
-     fprintf( GlobalData->stderrc, "\ncomputing overlap for contig1: " F_CID " and contig2: " F_CID "\n",
-     contig1->id, contig2->id);
-     fprintf( GlobalData->stderrc, "orientation is %c\n", (char) *overlapOrientation);
-  */
-
   assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
   erate = AS_CGW_ERROR_RATE;
   thresh = CGW_DP_THRESH;
@@ -1030,11 +981,7 @@ static VA_TYPE(char) *quality2 = NULL;
       maxAhang = (CDS_COORD_t) contig1->bpLength.mean;
       minlen -= 3;  // we subtract 3 because of an asymmetry in DP_COMPARE re AB_BA and BA_AB
     }
-  /*
-     fprintf( stderr, "computeAhang is %s\n", ((computeAhang == TRUE) ? "TRUE" : "FALSE"));
-     fprintf( stderr, "minAhang is " F_COORD "\n", minAhang);
-     fprintf( stderr, "maxAhang is " F_COORD "\n", maxAhang);
-  */
+
   if(consensus1 == NULL)
     {
       consensus1 = CreateVA_char(2048);
@@ -1060,17 +1007,7 @@ static VA_TYPE(char) *quality2 = NULL;
                       *overlapOrientation, minAhang, maxAhang,
                       erate, thresh, minlen);
 
-  if (tempOlap1 != NULL) {
-    //fprintf(GlobalData->stderrc, F_CID ", " F_CID " ahang: " F_COORD ", bhang:" F_COORD "\n",
-    //        contig1->id, contig2->id, tempOlap1->begpos, tempOlap1->endpos);
-    return tempOlap1;
-  } else {
-    fprintf(GlobalData->stderrc, F_CID ", " F_CID " do not overlap\n",
-            contig1->id, contig2->id);
-    // dumpContigInfo(contig1);
-    // dumpContigInfo(contig2);
-    return NULL;
-  }
+  return(tempOlap1);
 }
 
 
@@ -1100,8 +1037,6 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
   int sectionInner, sectionInnerMin, sectionInnerMax;
   int numOverlaps = 0;
 
-  fprintf(GlobalData->stderrc,"* ComputeOverlaps ************\n");
-
   // Iterate over all hashtable elements, computing overlaps
   for ( sectionOuter = 0; sectionOuter < NUM_SECTIONS; sectionOuter++)
     {
@@ -1117,22 +1052,12 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
                   sectionOuter,  sectionInner,
                   sectionOuterMin, sectionOuterMax,
                   sectionInnerMin, sectionInnerMax);
-	  fflush(GlobalData->stderrc);
 
 	  InitializeHashTable_Iterator_AS(graph->overlapper->hashTable, &iterator);
 
 	  while(NextHashTable_Iterator_AS(&iterator, &key, &value, &valuetype))
             {
               ChunkOverlapCheckT *olap = (ChunkOverlapCheckT*)(INTPTR)value;
-
-#if 0
-              fprintf(GlobalData->stderrc,"* olap is (" F_CID "," F_CID ",%c) bayes:%d computed:%d\n",
-                      olap->spec.cidA,
-                      olap->spec.cidB,
-                      olap->spec.orientation,
-                      olap->hasBayesianQuality,
-                      olap->computed);
-#endif
 
               assert(key == value);
 
@@ -1150,11 +1075,6 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
                 // The overlaps order of appearance is sorted by the smaller of the indices.
                 if(olap->computed || !inSection)
                   continue;
-
-#if 0
-                fprintf(stderr,"* (" F_CID "," F_CID ") \n",
-                        smaller, bigger);
-#endif
               }
 
 
@@ -1170,7 +1090,6 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
                 olap->suspicious = FALSE;
 
                 if(olap->maxOverlap < 0){ // Dummy!  Who put this overlap in the table?  No overlap is possible.....SAK
-                  fprintf(stderr,"* maxOverlap < 0\n");
                   olap->overlap = 0;
                   continue;
                 }
@@ -1201,12 +1120,6 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
                     }
                 }
 
-#ifdef DEBUG_CHUNKOVERLAP
-                fprintf(GlobalData->stderrc,"* addEdgeMates = %d fromCGB = %d (" F_CID "," F_CID ",%c) olap:" F_COORD "\n",
-                        addEdgeMates, olap->fromCGB,
-                        olap->spec.cidA, olap->spec.cidB,
-                        olap->spec.orientation, olap->overlap);
-#endif
                 if(addEdgeMates && !olap->fromCGB && olap->overlap)
                   InsertComputedOverlapEdge(graph, olap);
               }
