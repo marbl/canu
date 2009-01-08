@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.13 2009-01-07 15:52:56 skoren Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.14 2009-01-08 21:03:56 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,6 +38,7 @@ const char *mainid = "$Id: sffToCA.c,v 1.13 2009-01-07 15:52:56 skoren Exp $";
 #define TRIM_NONE 0
 #define TRIM_SOFT 1
 #define TRIM_HARD 2
+#define TRIM_CHOP 3
 #define TRIM_ERRR 9
 
 #define NREAD_ALLOW    0
@@ -441,13 +442,13 @@ processRead(sffHeader *h,
       break;
 
     case TRIM_HARD:
-#if 1
       //  Set the CLEAR_MAX to the current clear range....and that's
       //  it.  The rewrite vesion was for testing.
 
       fr->gkfr.clearBeg[AS_READ_CLEAR_MAX] = fr->gkfr.clearBeg[AS_READ_CLEAR_LATEST];
       fr->gkfr.clearEnd[AS_READ_CLEAR_MAX] = fr->gkfr.clearEnd[AS_READ_CLEAR_LATEST];
-#else
+      break;
+   case TRIM_CHOP:
       //  Rewrite the read to remove the non-clear sequence.  We keep
       //  in the usually four base long key at the start.
       memmove(r->bases   + h->key_length, r->bases   + h->key_length + clq, sizeof(char) * (crq - clq));
@@ -462,9 +463,7 @@ processRead(sffHeader *h,
         fr->gkfr.clearBeg[which] = 0;
         fr->gkfr.clearEnd[which] = crq - clq;
       }
-#endif
       break;
-
   }
 
   //  Reads too long cannot be loaded into the store.  We trim off
@@ -895,7 +894,7 @@ processMate(fragRecord *fr,
 
    int  lSize = 0;
    int  rSize = 0;
- 
+
    while (linkerID < AS_LINKER_MAX_SEQS && goodAlignment == 0) {
       if (search[linkerID] == TRUE) {
          if (linker[linkerID] == NULL) {
@@ -961,9 +960,9 @@ processMate(fragRecord *fr,
       fprintf(logFile, "Linker too close to left side and right side (position %d-%d); no mate formed for %s (len %d).\n",
               al.begJ, al.endJ, AS_UID_toString(fr->gkfr.readUID), fr->gkfr.seqLen);
     
-      fr->gkfr.readUID = AS_UID_undefined();
-      fr->gkfr.deleted = 1;
-      return(0);
+    fr->gkfr.readUID = AS_UID_undefined();
+    fr->gkfr.deleted = 1;
+    return(1);
   }
   
   //  Adapter found on the left, but not enough to make a read.  Trim it out.
@@ -1466,6 +1465,9 @@ main(int argc, char **argv) {
         clearTrim = TRIM_SOFT;
       else if (strcasecmp(argv[arg], "hard") == 0)
         clearTrim = TRIM_HARD;
+      else if (strcasecmp(argv[arg], "chop") == 0) {
+         clearTrim = TRIM_CHOP;
+      }
       else {
         clearTrim = TRIM_ERRR;
         err++;
