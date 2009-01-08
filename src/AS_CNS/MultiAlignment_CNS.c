@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.224 2009-01-07 16:15:19 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.225 2009-01-08 21:12:06 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -79,6 +79,7 @@ double lScoreAve = 0.0;
 double aScoreAve = 0.0;
 double bScoreAve = 0.0;
 
+double acceptThreshold = 1.0 / 3.0;
 
 //====================================================================
 // Stores for the sequence/quality/alignment information
@@ -105,6 +106,8 @@ VA_TYPE(Bead) *beadStore     = NULL;
 VA_TYPE(Fragment) *fragmentStore = NULL;
 VA_TYPE(Column)   *columnStore   = NULL;
 VA_TYPE(MANode)   *manodeStore   = NULL;
+
+int thisIsConsensus = 0;
 
 int USE_SDB = 0;
 
@@ -4365,8 +4368,6 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   //  The ahang is tight OR
   //  Both hangs are decent
 
-  double acceptThreshold = 1.0 / 3.0;
-
   if ((lScore < acceptThreshold) ||
       (aScore < acceptThreshold / 2) ||
       (aScore < acceptThreshold && bScore < acceptThreshold)) {
@@ -4553,15 +4554,16 @@ GetAlignmentTraceDriver(Fragment *afrag, int32 aoffset,
     //  try again, perhaps allowing larger end gaps (contigs only)
 
     if ((is_contig == 'c') && (max_gap > 0)) {
-      fprintf(stderr, "%s Attemping alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f max_gap %d (Local_Overlap)\n",
-              (is_contig == 'c') ? "MultiAlignContig()--" : "MultiAlignUnitig()--",
-              afrag->iid,
-              afrag->type,
-              bfrag->iid,
-              bfrag->type,
-              *ahang,
-              AS_CNS_ERROR_RATE,
-              max_gap);
+      if (VERBOSE_MULTIALIGN_OUTPUT)
+        fprintf(stderr, "%s Attemping alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f max_gap %d (Local_Overlap)\n",
+                (is_contig == 'c') ? "MultiAlignContig()--" : "MultiAlignUnitig()--",
+                afrag->iid,
+                afrag->type,
+                bfrag->iid,
+                bfrag->type,
+                *ahang,
+                AS_CNS_ERROR_RATE,
+                max_gap);
       if (GetAlignmentTrace(afrag->lid, 0,bfrag->lid, ahang, bhang, expected_length, trace, otype, Local_Overlap_AS_forCNS, DONT_SHOW_OLAP, max_gap, AS_CONSENSUS, AS_CNS_ERROR_RATE)) {
         AS_CNS_ERROR_RATE = AS_CNS_ERROR_RATE_SAVE;
         return(TRUE);
@@ -4569,8 +4571,58 @@ GetAlignmentTraceDriver(Fragment *afrag, int32 aoffset,
     }
   }
 
-
   AS_CNS_ERROR_RATE = AS_CNS_ERROR_RATE_SAVE;
+
+  //  If all those attempts failed, try again, but greatly relax the
+  //  length, ahang and bhang correctness criteria.  This is a last
+  //  ditch effort to get an alignment, used only in consensus (not
+  //  cgw).
+  //
+  //  The attepts are always reported, since this is an exceptional
+  //  event.
+  //
+  if ((is_contig == 'c') && (thisIsConsensus)) {
+    int     oldVB = VERBOSE_MULTIALIGN_OUTPUT;
+    double  oldAT = acceptThreshold;
+
+    VERBOSE_MULTIALIGN_OUTPUT = 1;
+    acceptThreshold           = 1.0;
+
+    fprintf(stderr, "%s Attemping alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f max_gap %d (DP_Compare) LAST DITCH\n",
+            (is_contig == 'c') ? "MultiAlignContig()--" : "MultiAlignUnitig()--",
+            afrag->iid,
+            afrag->type,
+            bfrag->iid,
+            bfrag->type,
+            *ahang,
+            AS_CNS_ERROR_RATE,
+            max_gap);
+    
+    if (GetAlignmentTrace(afrag->lid, 0,bfrag->lid, ahang, bhang, expected_length, trace, otype, DP_Compare, DONT_SHOW_OLAP, 0, AS_CONSENSUS, AS_CNS_ERROR_RATE)) {
+      VERBOSE_MULTIALIGN_OUTPUT = oldVB;
+      acceptThreshold           = oldAT;
+      return(TRUE);
+    }
+
+    fprintf(stderr, "%s Attemping alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f max_gap %d (Local_Overlap) LAST DITCH\n",
+            (is_contig == 'c') ? "MultiAlignContig()--" : "MultiAlignUnitig()--",
+            afrag->iid,
+            afrag->type,
+            bfrag->iid,
+            bfrag->type,
+            *ahang,
+            AS_CNS_ERROR_RATE,
+            max_gap);
+    if (GetAlignmentTrace(afrag->lid, 0,bfrag->lid, ahang, bhang, expected_length, trace, otype, Local_Overlap_AS_forCNS, DONT_SHOW_OLAP, 0, AS_CONSENSUS, AS_CNS_ERROR_RATE)) {
+      VERBOSE_MULTIALIGN_OUTPUT = oldVB;
+      acceptThreshold           = oldAT;
+      return(TRUE);
+    }
+
+    VERBOSE_MULTIALIGN_OUTPUT = oldVB;
+    acceptThreshold           = oldAT;
+  }
+
   return(FALSE);
 }
 

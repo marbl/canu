@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: Consensus_CNS.c,v 1.72 2009-01-07 16:15:19 brianwalenz Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.73 2009-01-08 21:12:06 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -104,6 +104,10 @@ main (int argc, char **argv) {
 
 
   CNS_PrintKey printwhat=CNS_STATS_ONLY;
+
+  //  Comminucate to MultiAlignment_CNS.c that we are doing consensus and not cgw.
+  thisIsConsensus = 1;
+
 
   argc = AS_configure(argc, argv);
 
