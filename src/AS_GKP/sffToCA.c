@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.14 2009-01-08 21:03:56 skoren Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.15 2009-01-09 16:04:44 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1563,6 +1563,10 @@ main(int argc, char **argv) {
     fprintf(stderr, "                           VEC <- adapter clear\n");
     fprintf(stderr, "                           CLR <- quality clear\n");
     fprintf(stderr, "                           MAX <- quality clear\n");
+    fprintf(stderr, "  -clear chop            Use 454 clear ranges; erease sequence outside the clear range.\n");
+    fprintf(stderr, "                           VEC <- 0,len\n");
+    fprintf(stderr, "                           CLR <- 0,len\n");
+    fprintf(stderr, "                           MAX <- 0,len\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -nread allow           Allow reads that contain an N in the clear range.\n");
     fprintf(stderr, "  -nread discard         Discard reads that contain an N in the clear range (default).\n");
