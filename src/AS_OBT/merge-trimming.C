@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merge-trimming.C,v 1.31 2008-11-11 16:16:25 brianwalenz Exp $";
+const char *mainid = "$Id: merge-trimming.C,v 1.32 2009-01-09 21:43:45 skoren Exp $";
 
 #include "trim.H"
 #include "constants.H"
@@ -572,7 +572,7 @@ main(int argc, char **argv) {
 
     if (diffl + diffr > 0) {
       setFragRecordClearRegion(&fr, obtl, obtr, AS_READ_CLEAR_OBT);
-      setFrag(gkp, lid, &fr);
+      setFrag(gkp, iid, &fr);
     }
   }
 
