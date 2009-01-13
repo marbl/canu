@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.37 2009-01-05 16:49:04 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.38 2009-01-13 02:04:17 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -166,11 +166,14 @@ AddIMPToIUMStruct(IUMStruct *is, IntMultiPos *imp) {
     is->ium.f_list         = (IntMultiPos *)safe_realloc(is->ium.f_list, is->numFragsAllocated * sizeof(IntMultiPos));
   }
 
-  is->ium.f_list[is->ium.num_frags].type = imp->type;
-  is->ium.f_list[is->ium.num_frags].ident = imp->ident;
-  is->ium.f_list[is->ium.num_frags].contained = imp->contained;
+  //  Copy everything.
+  is->ium.f_list[is->ium.num_frags] = *imp;
+
+  //  And modify slightly.
+
   is->ium.f_list[is->ium.num_frags].position.bgn = frag->offset5p.mean;
   is->ium.f_list[is->ium.num_frags].position.end = frag->offset3p.mean;
+
   is->ium.f_list[is->ium.num_frags].delta_length = 0;
   is->ium.f_list[is->ium.num_frags].delta = NULL;
 
