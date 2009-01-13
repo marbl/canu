@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.6 2009-01-06 15:50:27 skoren Exp $";
+static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.7 2009-01-13 02:59:25 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_ALN_bruteforcedp.h"
@@ -292,7 +292,6 @@ alignLinker(char           *alignA,
   //  for the best value.  If we are looking for local alignments,
   //  we've already found and remembered the best end point.
 
- findAnother:
   if (endToEnd) {
     scoreMax = 0;
     endI     = 0;
@@ -316,10 +315,6 @@ alignLinker(char           *alignA,
 
     M[endI][endJ].score = 0;
   }
-
-  //  Fails if we get stuck in a loop of no good.  We should return
-  //  "no alignment" in this case.
-  assert(scoreMax > DP_ZERO);
 
   int  alignLen  = 0;
   int  matches   = 0;
@@ -361,24 +356,6 @@ alignLinker(char           *alignA,
         break;
     }
   }
-
-#if 0
-  if (endToEnd) {
-    int   ends=0;
-
-    if ((ahang >= 0) && (bhang >= 0) && (endI == lenA) && (curJ == 0))     ends++;
-    if ((ahang >= 0) && (bhang <= 0) && (curJ == 0)    && (endJ == lenB))  ends++;
-    if ((ahang <= 0) && (bhang >= 0) && (curI == 0)    && (endI == lenA))  ends++;
-    if ((ahang <= 0) && (bhang <= 0) && (curI == 0)    && (curJ == 0))     ends++;
-
-    if (ends == 0) {
-      fprintf(stderr, "No: %d,%d - %d,%d; score=%d findAnother.\n", curI, curJ, endI, endJ, (int)scoreMax - DP_ZERO);
-      goto findAnother;
-    }
-
-    fprintf(stderr, "Ya: %d,%d - %d,%d; score=%d.\n", curI, curJ, endI, endJ, (int)scoreMax - DP_ZERO);
-  }
-#endif
 
   alignA[alignLen] = 0;
   alignB[alignLen] = 0;
