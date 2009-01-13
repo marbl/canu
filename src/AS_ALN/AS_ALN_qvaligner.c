@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.18 2008-12-29 17:36:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.19 2009-01-13 02:53:50 brianwalenz Exp $";
 
 /* Utility routines to complement, unpack and pack alignments, and print
    overlaps.  Also a routine for re-aligning an overlap using quality
@@ -652,6 +652,7 @@ Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 
   OverlapMesg *O;
 
+  assert(0);
   O=DP_Compare_AS(a,b,beg,end,opposite,MAX(MAXDPERATE,erate),thresh,minlen,AS_FIND_AFFINE_ALIGN,where);
 
   if (O != NULL){
