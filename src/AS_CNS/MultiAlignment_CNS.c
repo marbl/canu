@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.225 2009-01-08 21:12:06 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.226 2009-01-14 00:51:26 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -4339,8 +4339,8 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   //
 
   double   lScore = (O->length - expected_length) / (double)expected_length;
-  double   aScore = (O->begpos - ahang_input)     / (double)expected_length;
-  double   bScore = (O->endpos - bhang_input)     / (double)expected_length;
+  double   aScore = (O->begpos - ahang_input)     / (double)100.0;
+  double   bScore = (O->endpos - bhang_input)     / (double)100.0;
 
   if (lScore < 0)  lScore = -lScore;
   if (aScore < 0)  aScore = -aScore;
@@ -4364,12 +4364,15 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
 
   //  Decide if these scores are good enough to accept the overlap.
   //
-  //  The length is decent OR
-  //  The ahang is tight OR
+  //  Assuming a default acceptTreshold of 1/3:
+  //
+  //  The length is within 30% of expected) OR
+  //  The ahang is within tight OR
   //  Both hangs are decent
 
   if ((lScore < acceptThreshold) ||
       (aScore < acceptThreshold / 2) ||
+      (bScore < acceptThreshold / 2) ||
       (aScore < acceptThreshold && bScore < acceptThreshold)) {
     //  Good.
   } else {
@@ -4378,7 +4381,8 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
     ReportTrick(stderr,trick);
     ReportOverlap(stderr,alignFunction,params,aiid,atype,biid,btype,O,ahang_input);
     Print_Overlap(stderr, a, b, O);
-    fprintf(stderr,"GetAlignmentTrace()-- Overlap rejected.  lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).\n",
+    fprintf(stderr,"GetAlignmentTrace()-- Overlap rejected.  accept=%f lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).\n",
+            acceptThreshold,
             lScore, O->length, expected_length,
             aScore, O->begpos, ahang_input,
             bScore, O->endpos, bhang_input);
@@ -4388,7 +4392,8 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
 
 #if 0
   if ((lScore > 0.1) || (aScore > 0.1) || (bScore > 0.1))
-    fprintf(stderr,"GetAlignmentTrace()-- Overlap accepted.  lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).\n",
+    fprintf(stderr,"GetAlignmentTrace()-- Overlap accepted.  accept=%f lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).\n",
+            acceptThreshold,
             lScore, O->length, expected_length,
             aScore, O->begpos, ahang_input,
             bScore, O->endpos, bhang_input);
@@ -4586,7 +4591,7 @@ GetAlignmentTraceDriver(Fragment *afrag, int32 aoffset,
     double  oldAT = acceptThreshold;
 
     VERBOSE_MULTIALIGN_OUTPUT = 1;
-    acceptThreshold           = 1.0;
+    acceptThreshold           = 1000.0;
 
     fprintf(stderr, "%s Attemping alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f max_gap %d (DP_Compare) LAST DITCH\n",
             (is_contig == 'c') ? "MultiAlignContig()--" : "MultiAlignUnitig()--",
