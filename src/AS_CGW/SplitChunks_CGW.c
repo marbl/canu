@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.38 2009-01-13 02:04:17 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.39 2009-01-16 00:20:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -703,12 +703,12 @@ FixContainedOrder(IntMultiPos *impList, int numIMPs) {
             impList[i].contained);
 #endif
 
-    int  ipos = MIN(impList[i].position.bgn, impList[i].position.end);
-    int  jpos = MIN(impList[j].position.bgn, impList[j].position.end);
+    {
+      int  ipos = MIN(impList[i].position.bgn, impList[i].position.end);
 
-    while ((ipos == jpos) && (j < numIMPs)) {
-      j++;
-      jpos = MIN(impList[j].position.bgn, impList[j].position.end);
+      while ((j < numIMPs) && (ipos == MIN(impList[j].position.bgn, impList[j].position.end))) {
+        j++;
+      }
     }
 
     if (i+1 != j) {
