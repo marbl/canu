@@ -1,4 +1,5 @@
 
+
 /**************************************************************************
  * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
@@ -19,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.20 2009-01-01 04:09:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.21 2009-01-16 00:17:12 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -248,6 +249,7 @@ compressChain(Local_Overlap *O, int i) {
 #ifdef DEBUG_LOCALOVL
         fprintf(stderr, "COMPRESS piece %d into empty piece %d\n", k, j);
 #endif
+
         O->chain[j] = O->chain[k];
         O->chain[k].agap=0;
         O->chain[k].bgap=0;
@@ -482,9 +484,9 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
             O->chain[k].piece.bbpos=O->chain[k].piece.bepos;
 
             if(k+1<=O->num_pieces){
-              // Deleted piece k, so need to update gaps using first
-              // previous non-deleted and first next non-deleted
-              // piece.
+              // Deleted piece k (which isn't the last piece), so need
+              // to update gaps using first previous non-deleted and
+              // first next non-deleted piece.
               int fp=k, fn=k;
 
               while(O->chain[fp].agap==0 &&
@@ -525,12 +527,36 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
             O->chain[i].piece.abpos=O->chain[i].piece.aepos;
             O->chain[i].piece.bbpos=O->chain[i].piece.bepos;
 
-            if (i == 0) {
-              O->chain[k].agap=O->chain[k].piece.abpos - 1;
-              O->chain[k].bgap=O->chain[k].piece.bbpos - 1;
-            } else {
-              O->chain[k].agap=O->chain[k].piece.abpos-O->chain[i-1].piece.aepos;
-              O->chain[k].bgap=O->chain[k].piece.bbpos-O->chain[i-1].piece.bepos;
+            // Deleted piece i, so need to update gaps of pieces
+            // surrounding i, using first previous non-deleted and
+            // first next non-deleted piece.
+            {
+              int fp=i, fn=i;
+
+              while(fp > 0 &&
+                    O->chain[fp].agap==0 &&
+                    O->chain[fp].bgap==0 &&
+                    O->chain[fp].piece.abpos==O->chain[fp].piece.aepos &&
+                    O->chain[fp].piece.bbpos==O->chain[fp].piece.bepos){
+                fp--;
+                assert(fp>=0);
+              }
+              while(O->chain[fn].agap==0 &&
+                    O->chain[fn].bgap==0 &&
+                    O->chain[fn].piece.abpos==O->chain[fn].piece.aepos &&
+                    O->chain[fn].piece.bbpos==O->chain[fn].piece.bepos){
+                fn++;
+                assert(fn<=O->num_pieces);
+              }
+
+              if (i == 0) {
+                //  Deleted first piece.
+                O->chain[fn].agap=O->chain[fn].piece.abpos - 1;
+                O->chain[fn].bgap=O->chain[fn].piece.bbpos - 1;
+              } else {
+                O->chain[fn].agap=O->chain[fn].piece.abpos-O->chain[fp].piece.aepos;
+                O->chain[fn].bgap=O->chain[fn].piece.bbpos-O->chain[fp].piece.bepos;
+              }
             }
           }
         }  //  fix the overlap
@@ -608,6 +634,16 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
         O->begpos = O->chain[i].piece.abpos - 1;
         assert(O->begpos>=0);
         O->chain[i].agap=0;
+
+        if (O->chain[i].bgap != O->chain[i].piece.bbpos - 1) {
+          fprintf(stderr, "ERROR!  bgap != bbpos-1\n");
+          for(j=0;j<=O->num_pieces;j++)
+            fprintf(stderr, "chain[%d] agap=%d abpos=%d aepos=%d  bgap=%d bbpos=%d bepos=%d\n",
+                    j,
+                    O->chain[j].agap, O->chain[j].piece.abpos, O->chain[j].piece.aepos,
+                    O->chain[j].bgap, O->chain[j].piece.bbpos, O->chain[j].piece.bepos);
+        }
+
         assert(O->chain[i].bgap == O->chain[i].piece.bbpos - 1);
       } else {
         O->begpos-=O->chain[i].bgap;
