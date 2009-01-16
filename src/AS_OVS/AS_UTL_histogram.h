@@ -22,7 +22,7 @@
 #ifndef AS_UTL_HISTOGRAM_H
 #define AS_UTL_HISTOGRAM_H
 
-static const char *rcsid_AS_UTL_HISTOGRAM_H = "$Id: AS_UTL_histogram.h,v 1.5 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_HISTOGRAM_H = "$Id: AS_UTL_histogram.h,v 1.6 2009-01-16 16:38:42 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -131,6 +131,11 @@ AS_UTL_histogramCompute(AS_UTL_histogram *h) {
        n += h->histogram[i];
      h->median = i - 1;
 
+     // when we have only 1 sample, we never enter the loop, initialize median
+     if (n == 0) {
+       h->median = h->smallest;
+     }
+
      //  mean - sum, divide by n
      //
      for (i=h->smallest; i <= h->largest; i++)
@@ -154,12 +159,18 @@ AS_UTL_histogramCompute(AS_UTL_histogram *h) {
      //
      //  really only need max(h->largest - h->median, h->median), I think
      //
-     t = (uint64 *)safe_calloc(h->largest, sizeof(uint64));
+     t = (uint64 *)safe_calloc(h->largest + 1, sizeof(uint64));
 
      for (i=h->smallest; i <= h->largest; i++)
        t[(h->median < i) ? (i - h->median) : (h->median - i)] += h->histogram[i];
      for (i=0, n=0; n < h->nSamples/2; i++)
        n += t[i];
+     
+     // when we have only 1 sample, we never enter the loop, initialize median
+     if (n == 0) {
+       i = 1;
+       n = t[h->smallest];
+     }
      h->mad = 1.4826 * (i - 1);
   }
 

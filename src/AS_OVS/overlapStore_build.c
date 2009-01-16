@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.19 2008-12-16 22:33:26 skoren Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.20 2009-01-16 16:38:42 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -178,7 +178,7 @@ buildStore(
       uint64  no = sizeOfFile(fileList[i]);
       if (no == 0)
         fprintf(stderr, "No overlaps found (or file not found) in '%s'.\n", fileList[i]);
-      assert(no > 0);
+      
       numOverlaps += 2 * no / sizeof(OVSoverlap);
     }
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStats.c,v 1.7 2008-12-11 22:17:53 skoren Exp $";
+const char *mainid = "$Id: overlapStats.c,v 1.8 2009-01-16 16:38:42 skoren Exp $";
 
 //  install.packages(c("akima"))
 //
@@ -138,7 +138,7 @@ process_FragmentEnds(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp,
     for (i=0; i<3; i++) {
       AS_UTL_histogramAllocate(&red->overlapLength[i]);
       AS_UTL_histogramAllocate(&red->errorRates[i]);
-      AS_UTL_histogram3dAllocate(&red->lengthError[i], AS_READ_MAX_LEN, 250);
+      AS_UTL_histogram3dAllocate(&red->lengthError[i], AS_FRG_MAX_LEN+1, 250);
     }
   }
 
