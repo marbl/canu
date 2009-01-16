@@ -33,15 +33,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.18 2008-11-11 16:22:26 brianwalenz Exp $
- * $Revision: 1.18 $
+ * $Id: OlapFromSeedsOVL.h,v 1.19 2009-01-16 16:46:36 skoren Exp $
+ * $Revision: 1.19 $
 */
 
 
 #ifndef  __OLAPFROMSEEDS_H_INCLUDED
 #define  __OLAPFROMSEEDS_H_INCLUDED
 
-static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1.18 2008-11-11 16:22:26 brianwalenz Exp $";
+static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1.19 2009-01-16 16:46:36 skoren Exp $";
 
 //**ALD determine if use new code to analyze true multialignments
 #define  USE_NEW_STUFF  1
@@ -249,7 +249,7 @@ typedef  struct
    Homopoly_Match_Entry_t  ** homopoly_edit_array;
    int  * edit_space;
 #if USE_NEW_STUFF
-   Diff_Entry_t  diff_list [AS_READ_MAX_LEN];  //  only MAX_ERRORS needed
+   Diff_Entry_t  diff_list [AS_READ_MAX_LEN+1];  //  only MAX_ERRORS needed
    Alignment_Cell_t  * banded_space;
 #endif
   }  Thread_Work_Area_t;
@@ -286,9 +286,9 @@ static int  Doing_Partial_Overlaps = FALSE;
   // If set true by the G option (G for Granger)
   // then allow overlaps that do not extend to the end
   // of either read.
-static int  * Edit_Array [AS_READ_MAX_LEN];  //  only MAX_ERRORS needed
+static int  * Edit_Array [AS_READ_MAX_LEN+1];  //  only MAX_ERRORS needed
   // Use for alignment calculation.  Points into  Edit_Space .
-static int  Edit_Match_Limit [AS_READ_MAX_LEN] = {0};  //  only MAX_ERRORS needed
+static int  Edit_Match_Limit [AS_READ_MAX_LEN+1] = {0};  //  only MAX_ERRORS needed
   // This array [e] is the minimum value of  Edit_Array [e] [d]
   // to be worth pursuing in edit-distance computations between guides
 static int  Edit_Space [(AS_READ_MAX_LEN + 4) * AS_READ_MAX_LEN];  // only (MAX_ERRORS + 4) * MAX_ERRORS needed

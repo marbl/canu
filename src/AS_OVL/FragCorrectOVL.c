@@ -25,7 +25,7 @@
 //   Programmer:  A. Delcher
 //      Started:   4 Dec 2000
 
-const char *mainid = "$Id: FragCorrectOVL.c,v 1.29 2008-10-08 22:02:58 brianwalenz Exp $";
+const char *mainid = "$Id: FragCorrectOVL.c,v 1.30 2009-01-16 16:46:36 skoren Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -194,10 +194,10 @@ static char  * Correction_Filename = DEFAULT_CORRECTION_FILENAME;
     // Name of file to which correction information is sent
 static int  Degree_Threshold = DEFAULT_DEGREE_THRESHOLD;
     // Set keep flag on end of fragment if number of olaps < this value
-static int  * Edit_Array [AS_FRAG_MAX_LEN];
+static int  * Edit_Array [AS_FRAG_MAX_LEN+1];
     // Use for alignment calculation.  Points into  Edit_Space .
     // (only MAX_ERRORS needed)
-static int  Edit_Match_Limit [AS_FRAG_MAX_LEN] = {0};
+static int  Edit_Match_Limit [AS_FRAG_MAX_LEN+1] = {0};
     // This array [e] is the minimum value of  Edit_Array [e] [d]
     // to be worth pursuing in edit-distance computations between guides
     // (only MAX_ERRORS needed)
@@ -773,7 +773,7 @@ static void  Compute_Delta
 //  the number of entries in  delta .
 
   {
-    int  delta_stack [AS_FRAG_MAX_LEN];  //  only MAX_ERRORS needed
+    int  delta_stack [AS_FRAG_MAX_LEN+1];  //  only MAX_ERRORS needed
    int  from, last, max;
    int  i, j, k;
 
@@ -997,7 +997,7 @@ static void  Extract_Needed_Frags
 #endif
      {
       char *seqptr = NULL;
-      char  seq_buff[AS_READ_MAX_LEN];
+      char  seq_buff[AS_FRAG_MAX_LEN+1];
 
       FragType  read_type;
       unsigned  deleted, clear_start, clear_end;

@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.226 2009-01-14 00:51:26 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.227 2009-01-16 16:46:08 skoren Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -301,7 +301,7 @@ int IncBaseCount(BaseCount *b, char c) {
   if (c == 'N' || c == 'n' ) i=5;
   b->depth++;
   if( i<0 || i>5 ){
-    fprintf(stderr, "IncBaseCount i out of range (possibly non ACGTN letter?)");
+    fprintf(stderr, "IncBaseCount i out of range (possibly non ACGTN letter?)");    
     assert(0);
   }
   return b->count[i]++;
@@ -836,8 +836,8 @@ int32 AppendFragToLocalStore(FragType          type,
                              UnitigType        utype,
                              MultiAlignStoreT *multialignStore) {
 
-  char seqbuffer[AS_READ_MAX_LEN+1];
-  char qltbuffer[AS_READ_MAX_LEN+1];
+  char seqbuffer[AS_FRAG_MAX_LEN+1];
+  char qltbuffer[AS_FRAG_MAX_LEN+1];
   char *sequence = NULL,*quality = NULL;
   static VA_TYPE(char) *ungappedSequence = NULL;
   static VA_TYPE(char) *ungappedQuality  = NULL;
@@ -8161,7 +8161,7 @@ PlaceFragments(int32 fid,
   if (afrag->n_components == 0)
     return;
 
-  VA_TYPE(int32) *trace = CreateVA_int32(AS_READ_MAX_LEN);
+  VA_TYPE(int32) *trace = CreateVA_int32(AS_FRAG_MAX_LEN+1);
 
   for (; bfrag->frg_or_utg == CNS_ELEMENT_IS_FRAGMENT; bfrag++) {
     if (!ExistsInHashTable_AS(fragmentMap, bfrag->idx.fragment.frgIdent, 0))
@@ -8321,7 +8321,7 @@ MultiAlignContig(IntConConMesg *contig,
 
   ma = CreateMANode(contig->iaccession);
 
-  trace = CreateVA_int32(AS_READ_MAX_LEN);
+  trace = CreateVA_int32(AS_FRAG_MAX_LEN+1);
 
   // Seed multiAlignment with 1st fragment of 1st unitig
 

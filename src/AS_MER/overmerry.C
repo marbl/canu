@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overmerry.C,v 1.33 2008-12-12 03:44:03 brianwalenz Exp $";
+const char *mainid = "$Id: overmerry.C,v 1.34 2009-01-16 16:43:38 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -406,7 +406,7 @@ public:
   AS_IID      iid;
   AS_UID      uid;
 
-  char        seq[AS_FRAG_MAX_LEN];
+  char        seq[AS_FRAG_MAX_LEN+1];
 
   uint32      ovsLen;  //  Overlap Storage, waiting for output
   uint32      ovsMax;

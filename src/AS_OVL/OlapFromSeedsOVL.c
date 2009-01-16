@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.30 2008-11-11 16:16:25 brianwalenz Exp $
- * $Revision: 1.30 $
+ * $Id: OlapFromSeedsOVL.c,v 1.31 2009-01-16 16:46:36 skoren Exp $
+ * $Revision: 1.31 $
 */
 
-const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.30 2008-11-11 16:16:25 brianwalenz Exp $";
+const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.31 2009-01-16 16:46:36 skoren Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -1392,7 +1392,7 @@ static void  Compute_Delta
 //  the number of entries in  delta .
 
   {
-    int  delta_stack [AS_READ_MAX_LEN];  //  only MAX_ERRORS needed
+    int  delta_stack [AS_FRAG_MAX_LEN+1];  //  only MAX_ERRORS needed
    int  from, last, max;
    int  i, j, k;
 
@@ -1459,7 +1459,7 @@ static void  Convert_Delta_To_Diff
 //  and deletes are characters that should be deleted from A.
 
   {
-   Diff_Entry_t  diff_list [AS_READ_MAX_LEN];  //  only MAX_ERRORS needed
+   Diff_Entry_t  diff_list [AS_FRAG_MAX_LEN+1];  //  only MAX_ERRORS needed
    int  ct;
    int  i, j, k, m, p;
 
@@ -3927,10 +3927,10 @@ static void  Process_Seed
    Sequence_Diff_t  diff;
    char  * a_part, * b_part;
    unsigned  a_len;
-   int  right_delta [AS_READ_MAX_LEN], right_delta_len;
-   int  left_delta [AS_READ_MAX_LEN], left_delta_len;
+   int  right_delta [AS_FRAG_MAX_LEN+1], right_delta_len;
+   int  left_delta [AS_FRAG_MAX_LEN+1], left_delta_len;
           //  both right_ and left_delta only MAX_ERRORS needed
-   int  new_delta [AS_READ_MAX_LEN];  // only MAX_ERRORS needed
+   int  new_delta [AS_FRAG_MAX_LEN+1];  // only MAX_ERRORS needed
    int  new_errors, new_a_end, new_b_end, new_delta_len, new_match_to_end;
    int  raw_errors, score;
    int  a_part_len, b_part_len, a_end, b_end, olap_len;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.51 2008-10-08 22:58:20 brianwalenz Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.52 2009-01-16 16:46:36 skoren Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,8 +52,8 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.51 2008-10-08 22:58:20 br
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.51 2008-10-08 22:58:20 brianwalenz Exp $
- * $Revision: 1.51 $
+ * $Id: AS_OVL_overlap_common.h,v 1.52 2009-01-16 16:46:36 skoren Exp $
+ * $Revision: 1.52 $
 */
 
 
@@ -94,7 +94,7 @@ typedef  struct Olap_Info
   {
    int  s_lo, s_hi, t_lo, t_hi;
    double  quality;
-   int  delta [AS_FRAG_MAX_LEN];  //  needs only MAX_ERRORS
+   int  delta [AS_FRAG_MAX_LEN+1];  //  needs only MAX_ERRORS
    int  delta_ct;
    int  s_left_boundary, s_right_boundary;
    int  t_left_boundary, t_right_boundary;

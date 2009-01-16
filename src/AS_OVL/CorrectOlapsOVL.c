@@ -33,7 +33,7 @@
 *
 *************************************************/
 
-const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.36 2008-10-28 15:42:10 brianwalenz Exp $";
+const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.37 2009-01-16 16:46:36 skoren Exp $";
 
 //  System include files
 
@@ -158,10 +158,10 @@ static char  * Correct_File_Path;
     // Name of file containing fragment corrections
 static FILE  * Delete_fp = NULL;
     // File to which list of overlaps to delete is written if  -x  option is specified
-static int  * Edit_Array [AS_FRAG_MAX_LEN];
+static int  * Edit_Array [AS_FRAG_MAX_LEN+1];
     // Use for alignment calculation.  Points into  Edit_Space .
     // (only MAX_ERRORS needed)
-static int  Edit_Match_Limit [AS_FRAG_MAX_LEN] = {0};
+static int  Edit_Match_Limit [AS_FRAG_MAX_LEN+1] = {0};
     // This array [e] is the minimum value of  Edit_Array [e] [d]
     // to be worth pursuing in edit-distance computations between guides
     // (only MAX_ERRORS needed)
@@ -681,7 +681,7 @@ static int  Compare_Frags
 //  Display alignment between strings  a  and  b .
 
   {
-   int delta [AS_FRAG_MAX_LEN];  //  only MAX_ERRORS needed
+   int delta [AS_FRAG_MAX_LEN+1];  //  only MAX_ERRORS needed
    int  a_end, b_end, delta_len, olap_len, match_to_end;
    int  a_len, b_len, errors;
 
@@ -1607,7 +1607,7 @@ static int  Prefix_Edit_Dist
 //  a branch point.
 
   {
-   int  Delta_Stack [AS_FRAG_MAX_LEN];  //  only MAX_ERRORS needed
+   int  Delta_Stack [AS_FRAG_MAX_LEN+1];  //  only MAX_ERRORS needed
    double  Score, Max_Score;
    int  Max_Score_Len, Max_Score_Best_d, Max_Score_Best_e;
    int  Best_d, Best_e, From, Last, Longest, Max, Row;
@@ -1793,7 +1793,7 @@ static void  Process_Olap
    char  * a_part, * b_part, * a_seq;
    double  denom, quality;
    int  a_part_len, b_part_len, a_end, b_end, olap_len;
-   int  match_to_end, delta [AS_FRAG_MAX_LEN], delta_len, errors;  //  only MAX_ERRORS needed
+   int  match_to_end, delta [AS_FRAG_MAX_LEN+1], delta_len, errors;  //  only MAX_ERRORS needed
    int  sub;
 
    if  (Verbose_Level > 0)
@@ -2272,7 +2272,7 @@ static int  Rev_Prefix_Edit_Dist
 //  a branch point.
 
   {
-   int  Delta_Stack [AS_FRAG_MAX_LEN];  //  only MAX_ERRORS needed
+   int  Delta_Stack [AS_FRAG_MAX_LEN+1];  //  only MAX_ERRORS needed
    double  Score, Max_Score;
    int  Max_Score_Len, Max_Score_Best_d, Max_Score_Best_e;
    int  Best_d, Best_e, From, Last, Longest, Max, Row;

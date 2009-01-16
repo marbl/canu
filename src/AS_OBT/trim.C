@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: trim.C,v 1.9 2008-10-08 22:02:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: trim.C,v 1.10 2009-01-16 16:47:24 skoren Exp $";
 
 #include "trim.H"
 #include "util++.H"
@@ -43,8 +43,8 @@ findGoodQuality(double  *qltD,
     uint32     end;
   };
 
-  pair     f[AS_READ_MAX_LEN];  //  forward scan ranges
-  pair     r[AS_READ_MAX_LEN];  //  reverse scan ranges
+  pair     f[AS_FRAG_MAX_LEN+1];  //  forward scan ranges
+  pair     r[AS_FRAG_MAX_LEN+1];  //  reverse scan ranges
 
   uint32   fpos=0, flen=0;
   uint32   rpos=0, rlen=0;

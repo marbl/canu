@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: Array_CNS.c,v 1.19 2008-10-08 22:02:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: Array_CNS.c,v 1.20 2009-01-16 16:46:08 skoren Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -147,8 +147,8 @@ int IMP2Array(IntMultiPos *all_frags,
   Lane null_lane;
   int next_lane; Lane *free_lane,*lane; LaneNode *new_mlp; Lane space;
   int rc;
-  char seq[AS_READ_MAX_LEN];
-  char qv[AS_READ_MAX_LEN];
+  char seq[AS_FRAG_MAX_LEN+1];
+  char qv[AS_FRAG_MAX_LEN+1];
   fragRecord fsread;
 
   VA_TYPE(Lane) *Packed;

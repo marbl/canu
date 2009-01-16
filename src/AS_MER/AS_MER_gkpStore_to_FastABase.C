@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_MER_gkpStore_to_FastABase.C,v 1.14 2008-10-08 22:02:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_MER_gkpStore_to_FastABase.C,v 1.15 2009-01-16 16:43:38 skoren Exp $";
 
 #include "AS_MER_gkpStore_to_FastABase.H"
 
@@ -134,12 +134,12 @@ gkpStoreFile::getSequence(u32bit iid,
                           char *&s, u32bit &sLen, u32bit &sMax) {
 
   if (sMax == 0) {
-    sMax = AS_FRAG_MAX_LEN;
+    sMax = AS_FRAG_MAX_LEN+1;
     s    = new char [sMax];
   }
 
   if (hMax == 0) {
-    hMax = 2048;
+    hMax = AS_FRAG_MAX_LEN+1;
     h    = new char [hMax];
   }
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merge-trimming.C,v 1.32 2009-01-09 21:43:45 skoren Exp $";
+const char *mainid = "$Id: merge-trimming.C,v 1.33 2009-01-16 16:47:24 skoren Exp $";
 
 #include "trim.H"
 #include "constants.H"
@@ -63,7 +63,7 @@ public:
   };
 
 private:
-  uint32   _histo[AS_READ_MAX_LEN];
+  uint32   _histo[AS_FRAG_MAX_LEN+1];
   uint32   _mode5;
 };
 
