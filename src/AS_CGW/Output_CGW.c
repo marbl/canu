@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.36 2008-10-29 06:34:30 brianwalenz Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.37 2009-01-16 16:35:41 skoren Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -66,19 +66,13 @@ void OutputMateDists(ScaffoldGraphT *graph){
     imd.num_buckets = 0;
     imd.histogram   = NULL;
 
-    if (dptr->numSamples > 0) {
+    // the histogram does not get stored in a checkpoint
+    // if the current run of CGW did not have enough samples to recompute the histogram, we have to live without it 
+    if (dptr->histogram != NULL) {
       imd.min         = dptr->min;
       imd.max         = dptr->max;
       imd.num_buckets = dptr->bnum;
       imd.histogram   = dptr->histogram;
-
-      //  If this assert ever triggers, BPW would love to have an
-      //  example.  You can get around it by ignoring this if block --
-      //  in particular, set imd.num_buckets to 0 and imd.histogram to
-      //  NULL.  See also the comment about UNITIG_OPERATIONS in
-      //  Graph_CGW.c.
-      //
-      assert(imd.histogram != NULL);
     }
 
     if (GlobalData->cgwfp)
