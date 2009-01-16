@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_buildPartition.c,v 1.12 2008-10-09 00:48:12 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_buildPartition.c,v 1.13 2009-01-16 16:34:01 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,7 +49,7 @@ Build_Partition(char      *gatekeeperName,
   GateKeeperStore **gkpart = NULL;
 
   fragRecord        fr;
-  char              encodedsequence[AS_FRAG_MAX_LEN];
+  char              encodedsequence[AS_FRAG_MAX_LEN+1];
   //int               encodedlength;
 
   uint64            seqLen = 0;

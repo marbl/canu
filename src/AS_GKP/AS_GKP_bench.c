@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_bench.c,v 1.7 2008-10-09 00:48:12 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_bench.c,v 1.8 2009-01-16 16:34:00 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -102,9 +102,9 @@ void
 addRandomFrags(char *gkpName, uint32 numFrags) {
   GateKeeperStore          *gkp   = createGateKeeperStore(gkpName);
   GateKeeperFragmentRecord  gkf   = {0};
-  char                      seq[AS_FRAG_MAX_LEN];
-  char                      qlt[AS_FRAG_MAX_LEN];
-  char                      enc[AS_FRAG_MAX_LEN];
+  char                      seq[AS_FRAG_MAX_LEN+1];
+  char                      qlt[AS_FRAG_MAX_LEN+1];
+  char                      enc[AS_FRAG_MAX_LEN+1];
   int                       enclen;
   char                      acgt[10] = {'a', 'c', 'g', 't', 'n', 'A', 'C', 'G', 'T', 'N'};
   int                       i, j;
