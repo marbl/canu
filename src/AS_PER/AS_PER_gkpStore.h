@@ -22,7 +22,7 @@
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 
-static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id: AS_PER_gkpStore.h,v 1.57 2008-11-11 16:16:25 brianwalenz Exp $";
+static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id: AS_PER_gkpStore.h,v 1.58 2009-01-16 16:39:19 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -308,7 +308,7 @@ typedef struct {
   char                       qlt[MAX_SEQ_LENGTH];
   char                       hps[MAX_HPS_LENGTH];
   char                       src[MAX_SRC_LENGTH];
-  char                       enc[AS_FRAG_MAX_LEN];
+  char                       enc[MAX_SEQ_LENGTH];
 } fragRecord;
 
 
