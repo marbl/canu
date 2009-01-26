@@ -1,0 +1,42 @@
+
+#  Load all reads into gatekeeper.
+#   --to split mates from 454 reads.
+#   --to get rid of bogus reads
+#
+
+
+
+#  Map to reference
+#
+../../../wgs/kmer/snapper/snapper2 \
+  -verbose -numthreads 4 \
+  -queries E8YURXS01.fasta \
+  -genomic ../AE015924.fasta \
+  -mersize 19 -ignore 1000 \
+  -minhitlength 19 -minhitcoverage 0 \
+  -minmatchidentity 94 -minmatchcoverage 50 
+ > E8YURXS01.sim4db
+
+../../../wgs/kmer/snapper/snapper2 \
+  -verbose -numthreads 4 \
+  -queries E8YURXS02.fasta \
+  -genomic ../AE015924.fasta \
+  -mersize 19 -ignore 1000 \
+  -minhitlength 19 -minhitcoverage 0 \
+  -minmatchidentity 94 -minmatchcoverage 50 
+ > E8YURXS02.sim4db
+
+
+
+#  Covert to single line format.  Note, no picking of best alignment.
+#    415,000 mappings, for 250,000 fragments.
+#
+../../../wgs/kmer/sim4dbutils/convertToExtent < E8YURXS01.sim4db > E8YURXS01.sim4db.extent
+../../../wgs/kmer/sim4dbutils/convertToExtent < E8YURXS02.sim4db > E8YURXS02.sim4db.extent
+
+
+#  Trim.  Either pick the largest mapping, the smallest, etc.
+
+
+#  Infer overlaps
+
