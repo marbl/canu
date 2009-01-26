@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.227 2009-01-16 16:46:08 skoren Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.228 2009-01-26 19:41:09 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -4492,7 +4492,7 @@ GetAlignmentTraceDriver(Fragment *afrag, int32 aoffset,
   double AS_CNS_ERROR_RATE_SAVE = AS_CNS_ERROR_RATE;
 
 #if 0
-  fprintf(stderr, "%s Attemping alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f (Optimal_Overlap)\n",
+  fprintf(stderr, "%s Attempting alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f (Optimal_Overlap)\n",
           (is_contig == 'c') ? "MultiAlignContig()--" : "MultiAlignUnitig()--",
           afrag->iid,
           afrag->type,
@@ -4509,7 +4509,7 @@ GetAlignmentTraceDriver(Fragment *afrag, int32 aoffset,
     //  try with the default aligner
 
     if (VERBOSE_MULTIALIGN_OUTPUT)
-      fprintf(stderr, "%s Attemping alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d and erate %1.4f (DP_Compare)\n",
+      fprintf(stderr, "%s Attempting alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d and erate %1.4f (DP_Compare)\n",
               (is_contig == 'c') ? "MultiAlignContig()--" : "MultiAlignUnitig()--",
               afrag->iid,
               afrag->type,
@@ -4525,7 +4525,7 @@ GetAlignmentTraceDriver(Fragment *afrag, int32 aoffset,
     // try again, perhaps with alternate overlapper
 
     if (VERBOSE_MULTIALIGN_OUTPUT)
-      fprintf(stderr, "%s Attemping alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f (Local_Overlap)\n",
+      fprintf(stderr, "%s Attempting alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f (Local_Overlap)\n",
               (is_contig == 'c') ? "MultiAlignContig()--" : "MultiAlignUnitig()--",
               afrag->iid,
               afrag->type,
@@ -4542,7 +4542,7 @@ GetAlignmentTraceDriver(Fragment *afrag, int32 aoffset,
 
     if (is_contig == 'u') {
       if (VERBOSE_MULTIALIGN_OUTPUT)
-        fprintf(stderr, "%s Attemping alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f (Optimal_Overlap)\n",
+        fprintf(stderr, "%s Attempting alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f (Optimal_Overlap)\n",
                 (is_contig == 'c') ? "MultiAlignContig()--" : "MultiAlignUnitig()--",
                 afrag->iid,
                 afrag->type,
@@ -4560,7 +4560,7 @@ GetAlignmentTraceDriver(Fragment *afrag, int32 aoffset,
 
     if ((is_contig == 'c') && (max_gap > 0)) {
       if (VERBOSE_MULTIALIGN_OUTPUT)
-        fprintf(stderr, "%s Attemping alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f max_gap %d (Local_Overlap)\n",
+        fprintf(stderr, "%s Attempting alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f max_gap %d (Local_Overlap)\n",
                 (is_contig == 'c') ? "MultiAlignContig()--" : "MultiAlignUnitig()--",
                 afrag->iid,
                 afrag->type,
