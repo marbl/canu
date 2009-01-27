@@ -130,12 +130,45 @@ fi
 
 case $target in
   Darwin-i386)
-    echo "ERROR: Darwin Intel not supported because the developer doesn't have access to one."
-    exit 1
+    rm -f Make.compilers
+    cat <<EOF > Make.compilers
+# -*- makefile -*-
+#  OS-X, optimized
+#
+FAST              := -fast -fPIC
+CC                := gcc
+SHLIB_FLAGS       := -dynamiclib
+CFLAGS_COMPILE    := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
+CLDFLAGS          := 
+CLIBS             := 
+CXX               := g++
+CXXFLAGS_COMPILE  := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
+CXXLDFLAGS        := 
+CXXLIBS           := 
+CXXSHARED         := -Wl,-r -dynamic
+ARFLAGS           := ruvs
+INSTALL/          := $target/
+EOF
     ;;
   Darwin-i386-debug)
-    echo "ERROR: Darwin Intel not supported because the developer doesn't have access to one."
-    exit 1
+    rm -f Make.compilers
+    cat <<EOF > Make.compilers
+# -*- makefile -*-
+#  OS-X, debug
+#
+CC                := gcc
+SHLIB_FLAGS       := -dynamiclib
+CFLAGS_COMPILE    := -g3 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
+CLDFLAGS          := 
+CLIBS             := 
+CXX               := g++
+CXXFLAGS_COMPILE  := -g3 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
+CXXLDFLAGS        := 
+CXXLIBS           := 
+CXXSHARED         := -Wl,-r -dynamic
+ARFLAGS           := ruvs
+INSTALL/          := $target/
+EOF
     ;;
   Darwin-ppc)
     rm -f Make.compilers
