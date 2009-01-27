@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merge-trimming.C,v 1.33 2009-01-16 16:47:24 skoren Exp $";
+const char *mainid = "$Id: merge-trimming.C,v 1.34 2009-01-27 00:37:32 brianwalenz Exp $";
 
 #include "trim.H"
 #include "constants.H"
@@ -547,32 +547,37 @@ main(int argc, char **argv) {
     if ((gklr) && (gklr->doNotOverlapTrim))
       continue;
 
+    AS_UID uid  = getFragRecordUID(&fr);
+
     uint32 maxl = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_MAX);
     uint32 maxr = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_MAX);
 
     uint32 obtl = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBT);
     uint32 obtr = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBT);
 
-    uint32 diffl = 0;
-    uint32 diffr = 0;
+    uint32 adjl = obtl;
+    uint32 adjr = obtr;
 
-    if (obtl < maxl) {
-      diffl     = maxl - obtl;
-      sumdiffl += diffl;
-      stats[21]++;
-      obtl      = maxl;
-    }
+    if (maxr < adjl)  adjl = maxr;
+    if (maxr < adjr)  adjr = maxr;
 
-    if (maxr < obtr) {
-      diffr     = obtr - maxr;
-      sumdiffr += diffr;
-      stats[22]++;
-      obtr      = maxr;
-    }
+    if (adjl < maxl)  adjl = maxl;
+    if (adjr < maxl)  adjr = maxl;
 
-    if (diffl + diffr > 0) {
-      setFragRecordClearRegion(&fr, obtl, obtr, AS_READ_CLEAR_OBT);
-      setFrag(gkp, iid, &fr);
+    if (adjl == adjr) {
+      fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (deleted, obt clear outside max clear)\n",
+              AS_UID_toString(uid), iid, obtl, obtr, maxl, maxr);
+
+      if (doModify)
+        delFrag(gkp, iid);
+    } else if ((adjl != obtl) || (adjr != obtr)) {
+      fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (adjusted clear to obey specified clear max)\n",
+              AS_UID_toString(uid), iid, obtl, obtr, adjl, adjr);
+
+      if (doModify) {
+        setFragRecordClearRegion(&fr, maxl, maxr, AS_READ_CLEAR_OBT);
+        setFrag(gkp, iid, &fr);
+      }
     }
   }
 
@@ -585,8 +590,6 @@ main(int argc, char **argv) {
   fprintf(staFile, F_U32":\treset qltL to mode-of-5'mode\n", stats[0]);
   fprintf(staFile, F_U32":\treset qltL to vector left\n", stats[15]);
   fprintf(staFile, F_U32":\treset qltR to vector right\n", stats[16]);
-  fprintf(staFile, F_U32":\treset qltL to max left\t("F_U32" bp)\n", stats[21], sumdiffl);
-  fprintf(staFile, F_U32":\treset qltR to max right\t("F_U32" bp)\n", stats[22], sumdiffr);
   fprintf(staFile, F_U32":\treset qltR to qltL due to inconsistency\n", stats[17]);
   fprintf(staFile, F_U32":\tshort quality:\n", stats[1]);
   fprintf(staFile, F_U32":\t  very short quality < %d or very short in common < %d, discard frag\n", stats[2], OBT_CQ_SHORT, OBT_CQ_SHORT);
