@@ -47,7 +47,7 @@ my $matchExtenderOpts = "";
 my $filtername        = "$LIBdir/filter-heavychains.so";
 my $filteropts        = "-S 100 -J 100000";
 
-my $numSegments       = 2;
+my $numSegments       = 1;  #  More than one not supported in seatac; search for -use too
 my $numThreads        = 4;
 
 my $merylThreads      = 2;
@@ -138,6 +138,8 @@ sub usage {
     print STDERR "\n";
     print STDERR "    -numsegments s         -- number of segments to do the search in\n";
     print STDERR "                              (doubling segments halves memory usage)\n";
+    print STDERR "    -numsegments NOT SUPPORTED; DO NOT USE\n";
+    print STDERR "\n";
     print STDERR "    -numthreads t          -- number of threads to use per search\n";
     print STDERR "                              (slight increase in memory usage)\n";
     print STDERR "\n";
@@ -216,6 +218,9 @@ sub parseArgs {
             die "unknown option $arg\n";
         }
     }
+
+    #  Search for -use too.
+    die "-numsegments NOT SUPPORTED.\n" if ($numSegments != 1);
 
     if (!defined($id1) ||
         !defined($id2)) {
@@ -533,7 +538,8 @@ sub findHits {
         $cmd .= "-stream      $MERYLdir/$id2.fasta ";
         $cmd .= "-only        $ATACdir/work/$matches.include " if (-e "$ATACdir/work/$matches.include.mcdat");
         $cmd .= "-mask        $ATACdir/work/$matches.exclude " if (-e "$ATACdir/work/$matches.exclude.mcdat");
-        $cmd .= "-use         $ATACdir/work/$matches-segment-$segmentID ";
+        #  Until we fix the -use support in seatac.
+        #$cmd .= "-use         $ATACdir/work/$matches-segment-$segmentID ";
         $cmd .= "-output      $ATACdir/work/$matches-segment-$segmentID.matches ";
         $cmd .= "-filtername  $filtername " if (defined($filtername));
         $cmd .= "-filteropts  \"-1 $id1 -2 $id2 $filteropts\" ";
