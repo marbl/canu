@@ -335,7 +335,6 @@ sub countMers {
         $cmd .= "-m $mersize ";
         $cmd .= "-s $MERYLdir/$id.fasta ";
         $cmd .= "-o $MERYLdir/$id.ms$mersize ";
-        $cmd .= "-stats $MERYLdir/$id.ms$mersize.stats";
         #die "why rebuild $MERYLdir/$id.ms$mersize.mcdat\n";
         if (runCommand($cmd)) {
             unlink "$MERYLdir/$id.ms$mersize.mcidx";
@@ -350,7 +349,6 @@ sub countMers {
         $cmd .= "-M lessthanorequal $merlimit ";
         $cmd .= "-s $MERYLdir/$id.ms$mersize ";
         $cmd .= "-o $MERYLdir/$id.ms$mersize.le$merlimit ";
-        $cmd .= "-stats $MERYLdir/$id.ms$mersize.le$merlimit.stats";
         #die "why rebuild $MERYLdir/$id.ms$mersize.le$merlimit.mcdat\n";
         if (runCommand($cmd)) {
             unlink "$MERYLdir/$id.ms$mersize.le$merlimit.mcidx";
@@ -400,7 +398,6 @@ sub buildMask ($$) {
             $cmd .= "-s $MERYLdir/$mercount1 ";
             $cmd .= "-s $MERYLdir/$mercount2 ";
             $cmd .= "-o $ATACdir/work/$minFile ";
-            $cmd .= "-stats $ATACdir/work/$minFile.stats";
 
             if (runCommand($cmd)) {
                 unlink "$ATACdir/work/$minFile.mcidx";
@@ -455,7 +452,6 @@ sub buildMask ($$) {
                 $cmd .= "-s $MERYLdir/$id1.ms$mersize ";
                 $cmd .= "-s $ATACdir/work/$minFile ";
                 $cmd .= "-o $ATACdir/work/$matches.exclude ";
-                $cmd .= "-stats $ATACdir/work/$matches.exclude.stats";
 
                 if (runCommand($cmd)) {
                     unlink "$ATACdir/work/$matches.exclude.mcidx";
