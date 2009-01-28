@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #
 # This file is part of A2Amapper.
-# Copyright (c) 2005 J. Craig Venter Institute
+# Copyright (c) 2005-2009 J. Craig Venter Institute
 # Author: Brian Walenz
 # 
 # This program is free software; you can redistribute it and/or modify
@@ -135,6 +135,8 @@ sub usage {
     print STDERR "\n";
     print STDERR "NOTE:  A hash table will be built for id1.  For space and\n";
     print STDERR "       performance, this should usually be the smaller assembly.\n";
+    print STDERR "\n";
+    print STDERR "NOTE:  It is generally assumed that id1 is the REFERENCE assembly.\n";
     print STDERR "\n";
     print STDERR "    -numsegments s         -- number of segments to do the search in\n";
     print STDERR "                              (doubling segments halves memory usage)\n";
@@ -786,11 +788,20 @@ sub generateStatistics {
         }
     }
 
-    if (! -e "$ATACdir/stats/$matches.png") {
-        $cmd  = "$makeplot $ATACdir/$matches.atac $ATACdir/stats/$matches.png";
+    if (! -e "$ATACdir/stats/$matches.matches.png") {
+        $cmd  = "$makeplot u $ATACdir/$matches.atac $ATACdir/stats/$matches.matches.png";
         if (runCommand($cmd)) {
-            unlink "$ATACdir/stats/$matches.png";
-            unlink "$ATACdir/stats/$matches.ps";
+            unlink "$ATACdir/stats/$matches.matches.png";
+            unlink "$ATACdir/stats/$matches.matches.ps";
+            die "Failed to ganerate dot plots.\n";
+        }
+    }
+
+    if (! -e "$ATACdir/stats/$matches.runs.png") {
+        $cmd  = "$makeplot r $ATACdir/$matches.atac $ATACdir/stats/$matches.runs.png";
+        if (runCommand($cmd)) {
+            unlink "$ATACdir/stats/$matches.runs.png";
+            unlink "$ATACdir/stats/$matches.runs.ps";
             die "Failed to ganerate dot plots.\n";
         }
     }

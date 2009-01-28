@@ -1,10 +1,33 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
+#
+# This file is part of A2Amapper.
+# Copyright (c) 2008-2009 J. Craig Venter Institute
+# Author: Brian Walenz
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received (LICENSE.txt) a copy of the GNU General Public 
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 use strict;
+use FindBin;
 
-my $mm = "r";
+my $mm = shift @ARGV;
 my $in = shift @ARGV;
 my $ot = shift @ARGV;
+
+if (($mm ne "u") && ($mm ne "r")) {
+    die "First arg must be 'u' (ungapped matches) or 'r' (runs).\n";
+}
 
 if (!defined($ot) && ($in =~ m/(.*).atac/)) {
     $ot = $1;
@@ -28,7 +51,7 @@ print GP "set size 1,1\n";
 print GP "set grid\n";
 print GP "unset key\n";
 print GP "set border 10\n";
-print GP "set ticscale 0 0\n";
+print GP "set tics scale 0\n";
 print GP "set xlabel \"REF\"\n";
 print GP "set ylabel \"ASM\"\n";
 print GP "set title \"$ot\"\n";
@@ -133,12 +156,12 @@ close(F);
 my %asmLength;
 my $asmLength;
 
-open(F, "leaff -F $asmFile2 -i $asmId2 |");
+open(F, "$FindBin::Bin/leaff -F $asmFile2 -i $asmId2 |");
 while (<F>) {
     my @v = split '\s+', $_;
     if ($v[0] eq "G") {
-        $asmLength{$v[2]} = $v[8] if (exists($reversed{$v[2]}));
-        $asmLength       += $v[8];
+        $asmLength{$v[2]} = $v[3] if (exists($reversed{$v[2]}));
+        $asmLength       += $v[3];
     }
 }
 close(F);
@@ -384,6 +407,6 @@ close(GP);
 
 system("gnuplot $ot.gp");
 
-unlink "$ot.fdat";
-unlink "$ot.rdat";
-unlink "$ot.gp";
+#unlink "$ot.fdat";
+#unlink "$ot.rdat";
+#unlink "$ot.gp";
