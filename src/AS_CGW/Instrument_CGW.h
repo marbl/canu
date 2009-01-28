@@ -22,7 +22,7 @@
 #ifndef INSTRUMENT_CGW_H
 #define INSTRUMENT_CGW_H
 
-static const char *rcsid_INSTRUMENT_CGW_H = "$Id: Instrument_CGW.h,v 1.8 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid_INSTRUMENT_CGW_H = "$Id: Instrument_CGW.h,v 1.9 2009-01-28 01:30:28 brianwalenz Exp $";
 
 #include <math.h>
 
@@ -222,12 +222,12 @@ typedef struct
   Structure to keep track of a position of a fragment in a surrogate in
   a contig or scaffold
 */
-typedef struct
+typedef struct SurrogateFragLocation
 {
   CDS_CID_t contig;
   float offset5p;
   float offset3p;
-  CDS_CID_t nextIndex;
+  struct SurrogateFragLocation *nextSFL;
 } SurrogateFragLocation;
 
 
@@ -314,18 +314,12 @@ VA_DEF(CP_Index);
 
 /*
   Structure to keep track of many fragments in surrogates
+  bookkeeping for the multiple positions of fragments in surrogate unitigs
 */
 typedef struct
 {
-  // bookkeeping for the multiple positions of fragments in surrogate unitigs
-  HashTable_AS * surrogateFragHT;
-  // but DO NOT reallocate, because ht points to elements of locs
-  int32 numAllocatedLocs;
-  // number of loc elements in use - to keep track while adding on
-  int32 numUsedLocs;
-  // fixed size array of surrogate fragment locations
-  // estimate (number of fragments in surrogates) * (instances of each surrogate)
-  SurrogateFragLocation * surrogateFragLocs;
+  HashTable_AS *surrogateFragHT;
+  Heap_AS      *surrogateFragHP;
 } SurrogateTracker;
 
 

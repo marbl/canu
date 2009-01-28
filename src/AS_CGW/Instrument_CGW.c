@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Instrument_CGW.c,v 1.36 2008-12-05 19:06:12 brianwalenz Exp $";
+static char *rcsid = "$Id: Instrument_CGW.c,v 1.37 2009-01-28 01:30:28 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -350,8 +350,8 @@ void FreeSurrogateTracker(SurrogateTracker * st)
     {
       if(st->surrogateFragHT)
         DeleteHashTable_AS(st->surrogateFragHT);
-      if(st->surrogateFragLocs)
-        safe_free(st->surrogateFragLocs);
+      if(st->surrogateFragHP)
+        FreeHeap_AS(st->surrogateFragHP);
     }
 }
 
@@ -673,30 +673,13 @@ int InitializeSurrogateTracker(ScaffoldGraphT * graph,
                                SurrogateTracker * st)
 {
   if(st->surrogateFragHT == NULL)
-    {
-      // assume 1/10 # of frags?
-      st->numAllocatedLocs = MAX(5000, GetNumCIFragTs(graph->CIFrags) / 100);
-      st->surrogateFragHT = CreateScalarHashTable_AS();
-    }
+    st->surrogateFragHT = CreateScalarHashTable_AS();
   else
-    {
-      ResetHashTable_AS(st->surrogateFragHT);
-    }
+    ResetHashTable_AS(st->surrogateFragHT);
 
-  if(st->surrogateFragLocs == NULL)
-    {
-      st->numAllocatedLocs = MAX(5000, GetNumCIFragTs(graph->CIFrags) / 100);
-      st->numUsedLocs = 0;
-      st->surrogateFragLocs = safe_calloc(st->numAllocatedLocs,
-                                          sizeof(SurrogateFragLocation));
-    }
-  else
-    {
-      memset(st->surrogateFragLocs,
-             0,
-             st->numAllocatedLocs * sizeof(SurrogateFragLocation));
-      st->numUsedLocs = 0;
-    }
+  FreeHeap_AS(st->surrogateFragHP);
+  st->surrogateFragHP = AllocateHeap_AS(sizeof(SurrogateFragLocation));
+
   return 0;
 }
 
@@ -3720,12 +3703,6 @@ int AddFragmentToSurrogateTracker(ScaffoldGraphT * graph,
                                   float bEnd,
                                   SurrogateTracker * st)
 {
-  // Don't bother, if we've run out of room in the array
-  if(st->numAllocatedLocs == st->numUsedLocs)
-    {
-      fprintf(stderr, "Ran out of space for tracking surrogate fragments\n");
-      return 1;
-    }
 
   // the goal is to compute the fragment's coordinates relative to the
   // contig, and store them appropriately in the SurrogateTracker;
@@ -3744,49 +3721,40 @@ int AddFragmentToSurrogateTracker(ScaffoldGraphT * graph,
       if not present, add to hashtable
     */
     if((sflp = (SurrogateFragLocation *)(INTPTR)LookupValueInHashTable_AS(st->surrogateFragHT,
-                                                                          (uint64)frag->iid, 0)))
-      {
-        // found entry for fragment. follow linked list to the last one
-        while(sflp->nextIndex != 0)
-          {
-            sflp = &(st->surrogateFragLocs[sflp->nextIndex]);
-          }
-        sflp->nextIndex = st->numUsedLocs;
-        addToHashTable = 0;
-      }
+                                                                          (uint64)frag->iid, 0))) {
+      // found entry for fragment. follow linked list to the last one
+      while(sflp->nextSFL != NULL)
+        sflp = sflp->nextSFL;
+      
+      sflp = sflp->nextSFL = (SurrogateFragLocation *)GetHeapItem_AS(st->surrogateFragHP);
+      addToHashTable = 0;
+    } else {
+      sflp = (SurrogateFragLocation *)GetHeapItem_AS(st->surrogateFragHP);
+    }
 
     /* aEnd is A end coordinate of unitig in contig
        bEnd is B end coordinate of unitig in contig
        imp has coordinates of fragment in unitig
     */
     // populate the new surrogate fragment entry in the array
-    st->surrogateFragLocs[st->numUsedLocs].contig = contigID;
-#if 0
-    st->surrogateFragLocs[st->numUsedLocs].offset5p =
-      imp->position.bgn + (aEnd < bEnd) ? aEnd : bEnd;
-    st->surrogateFragLocs[st->numUsedLocs].offset3p =
-      imp->position.end + (aEnd < bEnd) ? aEnd : bEnd;
-    st->surrogateFragLocs[st->numUsedLocs].nextIndex = 0;
-#else
+    sflp->contig = contigID;
+
     if(aEnd<bEnd){
-      st->surrogateFragLocs[st->numUsedLocs].offset5p =
-	aEnd + imp->position.bgn;
-      st->surrogateFragLocs[st->numUsedLocs].offset3p =
-	aEnd + imp->position.end;
+      sflp->offset5p = aEnd + imp->position.bgn;
+      sflp->offset3p = aEnd + imp->position.end;
     }else{
-      st->surrogateFragLocs[st->numUsedLocs].offset5p =
-	aEnd - imp->position.bgn;
-      st->surrogateFragLocs[st->numUsedLocs].offset3p =
-	aEnd - imp->position.end;
+      sflp->offset5p = aEnd - imp->position.bgn;
+      sflp->offset3p = aEnd - imp->position.end;
     }
-#endif
+
+    sflp->nextSFL = NULL;
 
     // if the fragment wasn't in the hashtable, add it
     if(addToHashTable)
       {
         if(InsertInHashTable_AS(st->surrogateFragHT,
                                 (uint64)frag->iid, 0,
-                                (uint64)(INTPTR)&st->surrogateFragLocs[st->numUsedLocs], 0)
+                                (uint64)(INTPTR)sflp, 0)
            != HASH_SUCCESS)
           {
             fprintf(stderr,
@@ -3794,7 +3762,6 @@ int AddFragmentToSurrogateTracker(ScaffoldGraphT * graph,
             return 1;
           }
       }
-    st->numUsedLocs++;
   }
   return 0;
 }
@@ -4458,8 +4425,8 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
                       {
                         break; // preference is given to good ones
                       }
-                    sflp = &(st->surrogateFragLocs[sflp->nextIndex]);
-                  } while(sflp->nextIndex != 0);
+                    sflp = sflp->nextSFL;
+                  } while ((sflp) && (sflp->nextSFL != NULL));
                 /* here, we've found the best or the last mate position/orientation
                    NOTE: The problem is, there may be a 'good' link to an
                    instance of the mate fragment in a surrogate in another
@@ -4739,7 +4706,7 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
    check that frag is in correct unitig & contig
    count type
    if read or bac end & has mate, add to fragHT.
-   if in surrogate, add to surrogateFragHT & surrogateFragLocs
+   if in surrogate, add to surrogateFragHT
 
    after all unitigs have been processed,
 
