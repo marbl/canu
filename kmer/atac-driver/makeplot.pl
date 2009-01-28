@@ -372,7 +372,8 @@ if ($hasFdat && $hasRdat) {
     print GP "  \"$ot.rdat\" w lp ls 2\n";
     #print GP "pause -1\n";
 } else {
-    die;
+    #  No matches??
+    #die;
 }
 
 print GP "set terminal postscript color\n";
