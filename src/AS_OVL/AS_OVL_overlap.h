@@ -26,15 +26,15 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.29 2008-11-11 16:22:26 brianwalenz Exp $
- * $Revision: 1.29 $
+ * $Id: AS_OVL_overlap.h,v 1.30 2009-02-02 07:08:05 brianwalenz Exp $
+ * $Revision: 1.30 $
 */
 
 
 #ifndef AS_OVL_OVERLAP_H
 #define AS_OVL_OVERLAP_H
 
-static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.29 2008-11-11 16:22:26 brianwalenz Exp $";
+static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.30 2009-02-02 07:08:05 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -308,7 +308,7 @@ static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.29 2008-1
     //  in the hash table
 
 
-#define  OFFSET_MASK             ((1 << OFFSET_BITS) - 1)
+#define  OFFSET_MASK             (((uint64)1 << OFFSET_BITS) - 1)
     //  Mask used to extract bits to put in  Offset  field
 
 

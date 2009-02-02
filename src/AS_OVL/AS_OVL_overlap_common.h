@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.52 2009-01-16 16:46:36 skoren Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.53 2009-02-02 07:08:05 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,8 +52,8 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.52 2009-01-16 16:46:36 sk
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.52 2009-01-16 16:46:36 skoren Exp $
- * $Revision: 1.52 $
+ * $Id: AS_OVL_overlap_common.h,v 1.53 2009-02-02 07:08:05 brianwalenz Exp $
+ * $Revision: 1.53 $
 */
 
 
@@ -2135,7 +2135,7 @@ Hash_Find_Ct ++;
              is_empty = H_Ref . Empty;
              if  (! H_Ref . Last && ! is_empty)
                  {
-                  (* Where) = (H_Ref . String_Num << OFFSET_BITS) + H_Ref . Offset;
+                  (* Where) = ((uint64)H_Ref . String_Num << OFFSET_BITS) + H_Ref . Offset;
                   H_Ref = Extra_Ref_Space [(* Where)];
                  }
              T = Data + String_Start [H_Ref . String_Num] + H_Ref . Offset;
