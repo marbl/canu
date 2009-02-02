@@ -29,7 +29,7 @@
 extern "C" {
 #endif
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.30 2008-11-11 16:22:26 brianwalenz Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.31 2009-02-02 07:33:18 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -316,7 +316,12 @@ off_t ftello(FILE *stream );
 // calling an overlap definately a tandem repeat.
 
 
-#define AS_FRAG_MAX_LEN 2048
+//  MAX_LEN must NOT be a power of two - (at least) two places use a
+//  bit-field to store the position in a read or length of a read, and
+//  those only store [0...2^n - 1].  Bit fields are hard coded to
+//  allow MAX_LEN 2047.
+//
+#define AS_FRAG_MAX_LEN 2047
 #define AS_FRAG_MIN_LEN 64
 
 #define AS_READ_MAX_LEN AS_FRAG_MAX_LEN
