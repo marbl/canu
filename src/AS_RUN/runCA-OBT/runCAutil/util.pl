@@ -422,7 +422,7 @@ sub setParametersFromFile ($@) {
             next if (m/^\s*\#/);
             next if (m/^\s*$/);
 
-            if (m/\s*(\w*)\s*=(.*)/) {
+            if (m/\s*(\w*)\s*=([^#]*)#*.*$/) {
                 my ($var, $val) = ($1, $2);
                 print STDERR $_,"\n"; # echo the spec file
                 $var =~ s/^\s+//; $var =~ s/\s+$//;
