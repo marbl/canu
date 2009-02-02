@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_CGW_dataTypes.c,v 1.17 2008-10-29 10:42:46 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGW_dataTypes.c,v 1.18 2009-02-02 13:51:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -46,19 +46,7 @@ Global_CGW *GlobalData;
 Global_CGW *CreateGlobal_CGW(void){
   Global_CGW *g = (Global_CGW *)safe_calloc(1, sizeof(Global_CGW));
 
-#ifdef NEVER
-  g->scaffold_repeat = create_extended_histogram(10000,500,0, TRUE, sizeof(ChunkAggregate),
-						 aggregateChunks,
-						 printChunks,
-						 printChunkAggregate);
-  g->scaffold_unique = create_extended_histogram(10000,500,0, TRUE, sizeof(ChunkAggregate),
-						 aggregateChunks,
-						 printChunks,
-						 printChunkAggregate);
-#endif
-
   g->stderrc = stderr;
-  g->timefp  = stderr;
 
   return(g);
 }
@@ -103,37 +91,10 @@ int SetFileNamePrefix_CGW(Global_CGW *g, char *prefix) {
 }
 
 
-#ifdef NEVER
-void ResetHistograms_CGW(Global_CGW *g){
-
-  free_histogram(g->scaffold_repeat);
-  free_histogram(g->scaffold_unique);
-
-  g->scaffold_repeat = create_extended_histogram(10000,500,0, TRUE, sizeof(ChunkAggregate),
-						 aggregateChunks,
-						 printChunks,
-						 printChunkAggregate);
-  g->scaffold_unique = create_extended_histogram(10000,500,0, TRUE, sizeof(ChunkAggregate),
-						 aggregateChunks,
-						 printChunks,
-						 printChunkAggregate);
-
-}
-#endif
 
 void DeleteGlobal_CGW(Global_CGW *g){
-
-  AssertPtr(g);
-
-#ifdef NEVER
-  free_histogram(g->scaffold_unique);
-  free_histogram(g->scaffold_repeat);
-#endif
-
   safe_free(g);
 }
-
-
 
 
 

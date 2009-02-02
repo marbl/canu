@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: resolveSurrogates.c,v 1.21 2009-01-05 16:49:04 brianwalenz Exp $";
+const char *mainid = "$Id: resolveSurrogates.c,v 1.22 2009-02-02 13:51:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -83,12 +83,11 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, TRUE);
+  LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, TRUE);
 
   resolveSurrogates(placeAllFragsInSinglePlacedSurros, cutoffToInferSingleCopyStatus);
 
-  fprintf(GlobalData->timefp, "Checkpoint %d written after resolveSurrogates\n", ScaffoldGraph->checkPointIteration);
-  CheckpointScaffoldGraph(ScaffoldGraph, -1);
+  CheckpointScaffoldGraph("resolveSurrogates", "after resolveSurrogates");
 
   exit(0);
 }

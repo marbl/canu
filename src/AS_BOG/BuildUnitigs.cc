@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.56 2008-12-29 16:07:17 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.57 2009-02-02 13:51:13 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -206,6 +206,7 @@ main (int argc, char * argv []) {
   utg.setParentAndHang(cg);
 
   utg.writeIUMtoFile(output_prefix, fragment_count_target);
+  utg.writeOVLtoFile(output_prefix);
 
   {
     char  filename[FILENAME_MAX] = {0};

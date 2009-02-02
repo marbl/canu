@@ -22,7 +22,7 @@
 #ifndef INPUTDATATYPES_CGW_H
 #define INPUTDATATYPES_CGW_H
 
-static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id: InputDataTypes_CGW.h,v 1.18 2008-10-29 10:42:46 brianwalenz Exp $";
+static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id: InputDataTypes_CGW.h,v 1.19 2009-02-02 13:51:14 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -84,15 +84,6 @@ typedef struct {
   MateStatType mateDetail:8;
   } bits;
   } flags;
-
-  // Enable this to restore compatibility with checkpoints created
-  // before Aug 18, 2007.
-  //
-#if 0
-  CDS_CID_t   DEAD_locale;
-  SeqInterval DEAD_localePos;
-#endif
-
 }CIFragT;
 
 VA_DEF(CIFragT);

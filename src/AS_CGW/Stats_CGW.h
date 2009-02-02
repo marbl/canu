@@ -22,17 +22,13 @@
 #ifndef STATS_CGW_H
 #define STATS_CGW_H
 
-static const char *rcsid_STATS_CGW_H = "$Id: Stats_CGW.h,v 1.7 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid_STATS_CGW_H = "$Id: Stats_CGW.h,v 1.8 2009-02-02 13:51:14 brianwalenz Exp $";
 
-/* Statistics -- see Stats_CGW.c */
 void GenerateCIGraphStats(void);
 void GenerateCIGraph_U_Stats(void);
 void GeneratePlacedContigGraphStats(char *phase, int iteration);
 void GenerateScaffoldGraphStats(char *phase, int interation);
 void GenerateLinkStats(GraphCGW_T *graph, char *phase, int iteration);
 void GenerateSurrogateStats(char *label);
-void GenerateContigAlignmentStats(char *phase);
-
-void ComputeFragmentMembershipStats(void);
 
 #endif

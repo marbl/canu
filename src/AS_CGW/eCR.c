@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.43 2009-01-05 16:49:04 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.44 2009-02-02 13:51:14 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -275,20 +275,7 @@ main(int argc, char **argv) {
     exit(0);
   }
 
-  //  LoadScaffoldGraphFromCheckpoint wants to CheckCIScaffoldT()
-  //  which can RecomputeOffsetsInScaffold(), which can eventually,
-  //  try to get an overlap.  Unless we set 'alligner', that will
-  //  crash.
-  //
-  //  Previous to 14 Mar 2008 we used Local_Overlap_AS_forCNS for the
-  //  aligner.  This caused problems with a large environmental
-  //  sample.  BPW is guessing that Local_Overlap found an alignment
-  //  that DP_Compare (used by the rest of CGW) couldn't handle.
-  //
-  //  On Dros Ana, DP_Compare closed 2011 gaps, compared to 2016 with
-  //  Local_Overlap.
-  //
-  ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, TRUE);
+  LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, TRUE);
 
   //  After the graph is loaded, we reopen the gatekeeper store for
   //  read/write.
@@ -1126,8 +1113,7 @@ main(int argc, char **argv) {
   SetCIScaffoldTLengths(ScaffoldGraph, TRUE);
   CheckCIScaffoldTs(ScaffoldGraph);
 
-  fprintf(GlobalData->timefp, "checkpoint %d written at end of extendClearRanges\n", ScaffoldGraph->checkPointIteration);
-  CheckpointScaffoldGraph(ScaffoldGraph, 1);
+  CheckpointScaffoldGraph("extendClearRanges", "after extendClearRanges");
 
   DestroyScaffoldGraph(ScaffoldGraph);
   DeleteGlobal_CGW(GlobalData);

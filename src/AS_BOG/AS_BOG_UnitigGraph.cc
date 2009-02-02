@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.108 2008-12-29 16:07:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.109 2009-02-02 13:51:13 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -1485,4 +1485,103 @@ void UnitigGraph::writeIUMtoFile(char *fileprefix, int fragment_count_target){
 
   fclose(file);
   fclose(iidm);
+}
+
+
+//  For every unitig, report the best overlaps contained in the
+//  unitig, and all overlaps contained in the unitig.
+void
+UnitigGraph::writeOVLtoFile(char *fileprefix) {
+  char         filename[FILENAME_MAX] = {0};
+  GenericMesg  pmesg;
+  OverlapMesg  omesg;
+
+  sprintf(filename, "%s.unused.ovl", fileprefix);
+  FILE *file = fopen(filename, "w");
+  assert(file != NULL);
+
+  for (int  ti=0; ti<unitigs->size(); ti++) {
+    Unitig  *utg = (*unitigs)[ti];
+
+    if (utg == NULL)
+      continue;
+
+    for (int fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
+      DoveTailNode  *frg = &(*utg->dovetail_path_ptr)[fi];
+
+      //  Where is our best overlap?  Contained or dovetail?
+
+      BestEdgeOverlap *bestedge5 = bog_ptr->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
+      BestEdgeOverlap *bestedge3 = bog_ptr->getBestEdgeOverlap(frg->ident, THREE_PRIME);
+
+      int              bestident5 = 0;
+      int              bestident3 = 0;
+
+      if (bestedge5) {
+        bestident5 = bestedge5->frag_b_id;
+
+        if ((bestident5 > 0) && (utg->fragIn(bestident5) != utg->id())) {
+          omesg.aifrag          = frg->ident;
+          omesg.bifrag          = bestident5;
+          omesg.ahg             = bestedge5->ahang;
+          omesg.bhg             = bestedge5->bhang;
+          omesg.orientation     = AS_UNKNOWN;
+          omesg.overlap_type    = AS_DOVETAIL;
+          omesg.quality         = 0.0;
+          omesg.min_offset      = 0;
+          omesg.max_offset      = 0;
+          omesg.polymorph_ct    = 0;
+          omesg.alignment_trace = NULL;
+#ifdef AS_MSG_USE_OVL_DELTA
+          omesg.alignment_delta = NULL;
+#endif
+
+          //  This overlap is off of the 5' end of this fragment.
+          if (bestedge5->bend == FIVE_PRIME)
+            omesg.orientation = AS_OUTTIE;
+          if (bestedge5->bend == THREE_PRIME)
+            omesg.orientation = AS_ANTI;
+
+          pmesg.t = MESG_OVL;
+          pmesg.m = &omesg;
+
+          WriteProtoMesg_AS(file, &pmesg);
+        }
+      }
+
+      if (bestedge3) {
+        bestident3 = bestedge3->frag_b_id;
+
+        if ((bestident3 > 0) && (utg->fragIn(bestident3) != utg->id())) {
+          omesg.aifrag          = frg->ident;
+          omesg.bifrag          = bestident3;
+          omesg.ahg             = bestedge3->ahang;
+          omesg.bhg             = bestedge3->bhang;
+          omesg.orientation     = AS_UNKNOWN;
+          omesg.overlap_type    = AS_DOVETAIL;
+          omesg.quality         = 0.0;
+          omesg.min_offset      = 0;
+          omesg.max_offset      = 0;
+          omesg.polymorph_ct    = 0;
+          omesg.alignment_trace = NULL;
+#ifdef AS_MSG_USE_OVL_DELTA
+          omesg.alignment_delta = NULL;
+#endif
+
+          //  This overlap is off of the 3' end of this fragment.
+          if (bestedge3->bend == FIVE_PRIME)
+            omesg.orientation = AS_NORMAL;
+          if (bestedge3->bend == THREE_PRIME)
+            omesg.orientation = AS_INNIE;
+
+          pmesg.t = MESG_OVL;
+          pmesg.m = &omesg;
+
+          WriteProtoMesg_AS(file, &pmesg);
+        }
+      }
+    }
+  }
+
+  fclose(file);
 }

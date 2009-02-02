@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.36 2008-10-29 10:42:46 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.37 2009-02-02 13:51:14 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -40,10 +40,9 @@ static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.36 2008-10-29 10:42:46 brianw
 #include "RepeatRez.h"
 #include "CommonREZ.h"
 #include "Stats_CGW.h"
-#include "Checkpoints_CGW.h"
 
 ScaffoldGraphT *ScaffoldGraph = NULL;
-tSequenceDB *SequenceDB = NULL;
+tSequenceDB    *SequenceDB    = NULL;
 
 void ClearChunkInstance(ChunkInstanceT *ci){
   memset(ci, 0, sizeof(ChunkInstanceT));
@@ -52,112 +51,48 @@ void ClearChunkInstance(ChunkInstanceT *ci){
   ci->flags.all = 0;
 }
 
-ScaffoldGraphT *LoadScaffoldGraphFromCheckpoint( char *name,
-                                                 int32 checkPointNum,
-                                                 int readWrite){
-  char buffer[1024];
-  FILE *inStream;
-  ScaffoldGraphT *graph;
+void
+LoadScaffoldGraphFromCheckpoint(char   *name,
+                                int32   checkPointNum,
+                                int     readWrite){
+  char ckpfile[FILENAME_MAX];
+  char tmgfile[FILENAME_MAX];
 
-  sprintf(buffer,"%s.SeqStore", name);
-  SequenceDB = openSequenceDB(buffer, readWrite, checkPointNum);
+  sprintf(ckpfile, "%s.ckp.%d", name, checkPointNum);
+  sprintf(tmgfile, "%s.timing", name);
 
-  sprintf(buffer,"%s.ckp.%d",name,checkPointNum);
-  inStream = File_Open(buffer,"r",TRUE);
-  graph = LoadScaffoldGraphFromStream(inStream);
-  fclose(inStream);
+  time_t t = time(0);
+  fprintf(stderr, "====> Reading %s at %s", ckpfile, ctime(&t));
 
-  if(graph->checkPointIteration != (checkPointNum + 1)){
-    fprintf(stderr,"**** Loaded checkpoint has checkpoint iteration %d, but we tried to load checkpoint %d...fishy!\n",
-	    graph->checkPointIteration, checkPointNum);
-    graph->checkPointIteration = checkPointNum + 1;
+  errno = 0;
+  FILE *F = fopen(tmgfile, "a");
+  if (errno == 0) {
+    fprintf(F, "====> Reading %s at %s", ckpfile, ctime(&t));
+    fclose(F);
   }
 
-  AssertPtr(graph);
-  return graph;
-}
+  errno = 0;
+  F = fopen(ckpfile, "r");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s' for reading checkpoint: %s\n", ckpfile, strerror(errno)), exit(1);
 
-
-
-void CheckpointScaffoldGraph(ScaffoldGraphT *graph, int logicalCheckpoint){
-  char buffer[1024];
-  FILE *outStream;
-  char *name = GlobalData->File_Name_Prefix;
-  time_t t;
-
-  sprintf(buffer,"%s.ckp.%d",name,graph->checkPointIteration++);
-
-  t = time(0);
-  fprintf(GlobalData->timefp,"\n");
-  fprintf(GlobalData->timefp, "====> Saving %s at %s", buffer, ctime(&t));
-
-  outStream = File_Open(buffer,"w",TRUE);
-
-  SaveScaffoldGraphToStream(graph, outStream);
-
-  fclose(outStream);
-
-  t = time(0);
-  fprintf(GlobalData->timefp, "====> Done with checkpoint %d (logical %d) at %s", graph->checkPointIteration - 1, logicalCheckpoint, ctime(&t));
-  fprintf(GlobalData->timefp, "\n");
-}
-
-
-void SaveScaffoldGraphToStream(ScaffoldGraphT *sgraph, FILE *stream){
-  int status;
-
-  AS_UTL_safeWrite(stream, sgraph->name, "SaveScaffoldGraphToStream", sizeof(char), 256);
-
-
-  CopyToFileVA_InfoByIID(sgraph->iidToFragIndex, stream);
-  CopyToFileVA_CIFragT(sgraph->CIFrags, stream);
-  CopyToFileVA_DistT(sgraph->Dists, stream);
-
-  SaveGraphCGWToStream(sgraph->CIGraph,stream);
-  SaveGraphCGWToStream(sgraph->ContigGraph,stream);
-  SaveGraphCGWToStream(sgraph->ScaffoldGraph,stream);
-
-  saveSequenceDB(sgraph->sequenceDB);
-
-  AS_UTL_safeWrite(stream, &sgraph->doRezOnContigs, "SaveScaffoldGraphToStream", sizeof(int32), 1);
-  AS_UTL_safeWrite(stream, &sgraph->checkPointIteration, "SaveScaffoldGraphToStream", sizeof(int32), 1);
-  AS_UTL_safeWrite(stream, &sgraph->numContigs, "SaveScaffoldGraphToStream", sizeof(int32), 1);
-  AS_UTL_safeWrite(stream, &sgraph->numDiscriminatorUniqueCIs, "SaveScaffoldGraphToStream", sizeof(int32), 1);
-  AS_UTL_safeWrite(stream, &sgraph->numOriginalCIs, "SaveScaffoldGraphToStream", sizeof(int32), 1);
-  AS_UTL_safeWrite(stream, &sgraph->numLiveCIs, "SaveScaffoldGraphToStream", sizeof(int32), 1);
-  AS_UTL_safeWrite(stream, &sgraph->numLiveScaffolds, "SaveScaffoldGraphToStream", sizeof(int32), 1);
-}
-
-ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
-  ScaffoldGraphT *sgraph =
-    (ScaffoldGraphT *)safe_calloc(1, sizeof(ScaffoldGraphT));
+  ScaffoldGraph = (ScaffoldGraphT *)safe_calloc(1, sizeof(ScaffoldGraphT));
   int    i, status;
 
-  ScaffoldGraph = sgraph;
-  sgraph->sequenceDB = SequenceDB;
-
-  sgraph->gkpStore = openGateKeeperStore(GlobalData->Gatekeeper_Store_Name, FALSE);
-  if(sgraph->gkpStore == NULL){
-    fprintf(stderr,"**** Failure to open gatekeeper store %s ...exiting\n", GlobalData->Gatekeeper_Store_Name);
-    exit(1);
-  }
-
-  status = AS_UTL_safeRead(stream, sgraph->name, "LoadScaffoldGraphFromStream", sizeof(char), 256);
+  status = AS_UTL_safeRead(F, ScaffoldGraph->name, "LoadScaffoldGraphFromCheckpoint", sizeof(char), 256);
   assert(status == 256);
-  fprintf(GlobalData->stderrc,"* Reading graph %s *\n", sgraph->name);
 
+  ScaffoldGraph->iidToFragIndex = CreateFromFileVA_InfoByIID(F);
+  ScaffoldGraph->CIFrags        = CreateFromFileVA_CIFragT(F);
+  ScaffoldGraph->Dists          = CreateFromFileVA_DistT(F);
 
-  sgraph->iidToFragIndex = CreateFromFileVA_InfoByIID(stream);
-  sgraph->CIFrags        = CreateFromFileVA_CIFragT(stream);
-  sgraph->Dists          = CreateFromFileVA_DistT(stream);
+  ScaffoldGraph->CIGraph       = LoadGraphCGWFromStream(F);
+  ScaffoldGraph->ContigGraph   = LoadGraphCGWFromStream(F);
+  ScaffoldGraph->ScaffoldGraph = LoadGraphCGWFromStream(F);
 
-  sgraph->CIGraph       = LoadGraphCGWFromStream(stream);
-  sgraph->ContigGraph   = LoadGraphCGWFromStream(stream);
-  sgraph->ScaffoldGraph = LoadGraphCGWFromStream(stream);
-
-  CheckGraph(sgraph->CIGraph);
-  CheckGraph(sgraph->ContigGraph);
-  CheckGraph(sgraph->ScaffoldGraph);
+  CheckGraph(ScaffoldGraph->CIGraph);
+  CheckGraph(ScaffoldGraph->ContigGraph);
+  CheckGraph(ScaffoldGraph->ScaffoldGraph);
 
   //  Erase the bogus pointer in dists
   //
@@ -165,36 +100,103 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
     GetDistT(ScaffoldGraph->Dists, i)->histogram = NULL;
 
   // Temporary
-  sgraph->ChunkInstances = sgraph->CIGraph->nodes;
-  sgraph->Contigs        = sgraph->ContigGraph->nodes;
-  sgraph->CIScaffolds    = sgraph->ScaffoldGraph->nodes;
-  sgraph->CIEdges        = sgraph->CIGraph->edges;
-  sgraph->ContigEdges    = sgraph->ContigGraph->edges;
-  sgraph->SEdges         = sgraph->ScaffoldGraph->edges;
-  sgraph->overlapper     = sgraph->CIGraph->overlapper;
+  ScaffoldGraph->ChunkInstances = ScaffoldGraph->CIGraph->nodes;
+  ScaffoldGraph->Contigs        = ScaffoldGraph->ContigGraph->nodes;
+  ScaffoldGraph->CIScaffolds    = ScaffoldGraph->ScaffoldGraph->nodes;
+  ScaffoldGraph->CIEdges        = ScaffoldGraph->CIGraph->edges;
+  ScaffoldGraph->ContigEdges    = ScaffoldGraph->ContigGraph->edges;
+  ScaffoldGraph->SEdges         = ScaffoldGraph->ScaffoldGraph->edges;
+  ScaffoldGraph->overlapper     = ScaffoldGraph->CIGraph->overlapper;
 
-
-  status  = AS_UTL_safeRead(stream, &sgraph->doRezOnContigs, "LoadScaffoldGraphFromStream", sizeof(int32), 1);
-  status += AS_UTL_safeRead(stream, &sgraph->checkPointIteration, "LoadScaffoldGraphFromStream", sizeof(int32), 1);
-  status += AS_UTL_safeRead(stream, &sgraph->numContigs,"LoadScaffoldGraphFromStream",  sizeof(int32), 1);
-  status += AS_UTL_safeRead(stream, &sgraph->numDiscriminatorUniqueCIs, "LoadScaffoldGraphFromStream", sizeof(int32), 1);
-  status += AS_UTL_safeRead(stream, &sgraph->numOriginalCIs, "LoadScaffoldGraphFromStream", sizeof(int32), 1);
-  status += AS_UTL_safeRead(stream, &sgraph->numLiveCIs, "LoadScaffoldGraphFromStream", sizeof(int32), 1);
-  status += AS_UTL_safeRead(stream, &sgraph->numLiveScaffolds, "LoadScaffoldGraphFromStream", sizeof(int32), 1);
+  status  = AS_UTL_safeRead(F, &ScaffoldGraph->doRezOnContigs,            "LoadScaffoldGraphFromCheckpoint", sizeof(int32), 1);
+  status += AS_UTL_safeRead(F, &ScaffoldGraph->checkPointIteration,       "LoadScaffoldGraphFromCheckpoint", sizeof(int32), 1);
+  status += AS_UTL_safeRead(F, &ScaffoldGraph->numContigs,                "LoadScaffoldGraphFromCheckpoint", sizeof(int32), 1);
+  status += AS_UTL_safeRead(F, &ScaffoldGraph->numDiscriminatorUniqueCIs, "LoadScaffoldGraphFromCheckpoint", sizeof(int32), 1);
+  status += AS_UTL_safeRead(F, &ScaffoldGraph->numOriginalCIs,            "LoadScaffoldGraphFromCheckpoint", sizeof(int32), 1);
+  status += AS_UTL_safeRead(F, &ScaffoldGraph->numLiveCIs,                "LoadScaffoldGraphFromCheckpoint", sizeof(int32), 1);
+  status += AS_UTL_safeRead(F, &ScaffoldGraph->numLiveScaffolds,          "LoadScaffoldGraphFromCheckpoint", sizeof(int32), 1);
   assert(status == 7);
 
-  if(sgraph->doRezOnContigs){
-    sgraph->RezGraph = sgraph->ContigGraph;
+  if(ScaffoldGraph->doRezOnContigs){
+    ScaffoldGraph->RezGraph = ScaffoldGraph->ContigGraph;
   }else{
-    sgraph->RezGraph = sgraph->CIGraph;
+    ScaffoldGraph->RezGraph = ScaffoldGraph->CIGraph;
   }
 
-  ReportMemorySize(sgraph,GlobalData->stderrc);
+  ReportMemorySize(ScaffoldGraph,GlobalData->stderrc);
 
-  SetCIScaffoldTLengths(sgraph, TRUE);
-  CheckCIScaffoldTs(sgraph);
+  //  Check that the iteration we were told to load is what we loaded.
+  //  Generally not a good thing if these disagree (SeqStore will
+  //  probably be wrong).
+  //
+  if (ScaffoldGraph->checkPointIteration != (checkPointNum + 1)){
+    fprintf(stderr,"ERROR:  Checkpoint claims to be at iteration %d, but we wanted to load iteration %d!\n",
+	    ScaffoldGraph->checkPointIteration, checkPointNum);
+    exit(1);
+  }
 
-  return sgraph;
+  //  Open the seqStore
+  sprintf(ckpfile, "%s.SeqStore", name);
+  ScaffoldGraph->sequenceDB = SequenceDB = openSequenceDB(ckpfile, readWrite, checkPointNum);
+
+  //  Open the gkpStore
+  ScaffoldGraph->gkpStore = openGateKeeperStore(GlobalData->Gatekeeper_Store_Name, FALSE);
+  if (ScaffoldGraph->gkpStore == NULL)
+    fprintf(stderr,"**** Failure to open gatekeeper store %s ...exiting\n", GlobalData->Gatekeeper_Store_Name), exit(1);
+
+  //  Check (and cleanup?) scaffolds
+  SetCIScaffoldTLengths(ScaffoldGraph, TRUE);
+  CheckCIScaffoldTs(ScaffoldGraph);
+
+  fclose(F);
+}
+
+
+
+void
+CheckpointScaffoldGraph(char *logicalname, char *location) {
+  char ckpfile[FILENAME_MAX];
+  char tmgfile[FILENAME_MAX];
+
+  sprintf(ckpfile, "%s.ckp.%d", GlobalData->File_Name_Prefix, ScaffoldGraph->checkPointIteration++);
+  sprintf(tmgfile, "%s.timing", GlobalData->File_Name_Prefix);
+
+  errno = 0;
+  FILE *F = fopen(ckpfile, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s' for writing checkpoint: %s\n", ckpfile, strerror(errno)), exit(1);
+
+  AS_UTL_safeWrite(F, ScaffoldGraph->name, "CheckpointScaffoldGraph", sizeof(char), 256);
+
+  CopyToFileVA_InfoByIID(ScaffoldGraph->iidToFragIndex, F);
+  CopyToFileVA_CIFragT(ScaffoldGraph->CIFrags, F);
+  CopyToFileVA_DistT(ScaffoldGraph->Dists, F);
+
+  SaveGraphCGWToStream(ScaffoldGraph->CIGraph,F);
+  SaveGraphCGWToStream(ScaffoldGraph->ContigGraph,F);
+  SaveGraphCGWToStream(ScaffoldGraph->ScaffoldGraph,F);
+
+  saveSequenceDB(ScaffoldGraph->sequenceDB);
+
+  AS_UTL_safeWrite(F, &ScaffoldGraph->doRezOnContigs,            "CheckpointScaffoldGraph", sizeof(int32), 1);
+  AS_UTL_safeWrite(F, &ScaffoldGraph->checkPointIteration,       "CheckpointScaffoldGraph", sizeof(int32), 1);
+  AS_UTL_safeWrite(F, &ScaffoldGraph->numContigs,                "CheckpointScaffoldGraph", sizeof(int32), 1);
+  AS_UTL_safeWrite(F, &ScaffoldGraph->numDiscriminatorUniqueCIs, "CheckpointScaffoldGraph", sizeof(int32), 1);
+  AS_UTL_safeWrite(F, &ScaffoldGraph->numOriginalCIs,            "CheckpointScaffoldGraph", sizeof(int32), 1);
+  AS_UTL_safeWrite(F, &ScaffoldGraph->numLiveCIs,                "CheckpointScaffoldGraph", sizeof(int32), 1);
+  AS_UTL_safeWrite(F, &ScaffoldGraph->numLiveScaffolds,          "CheckpointScaffoldGraph", sizeof(int32), 1);
+
+  fclose(F);
+
+  time_t t = time(0);
+  fprintf(stderr, "====> Writing %s (logical %s) %s at %s", ckpfile, logicalname, location, ctime(&t));
+
+  errno = 0;
+  F = fopen(tmgfile, "a");
+  if (errno == 0) {
+    fprintf(F, "====> Writing %s (logical %s) %s at %s", ckpfile, logicalname, location, ctime(&t));
+    fclose(F);
+  }
 }
 
 
@@ -251,20 +253,17 @@ void InsertRepeatCIsInScaffolds(ScaffoldGraphT *sgraph){
 
 /****************************************************************************/
 
-ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name,
-                                    int32 numNodes, int32 numEdges){
+ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name) {
   char buffer[2000];
   ScaffoldGraphT *sgraph = (ScaffoldGraphT *)safe_calloc(1,sizeof(ScaffoldGraphT));
-  int numFrags = 0;
-  int numDists = 0;
-  sgraph->name[0] = '\0';
+
   strcpy(sgraph->name, name);
-  fprintf(GlobalData->stderrc,"* Created scaffold graph %s\n", sgraph->name);
 
   sprintf(buffer,"%s.SeqStore", name);
-  sgraph->sequenceDB = createSequenceDB(buffer);
-  sgraph->CIGraph = CreateGraphCGW(CI_GRAPH, numNodes, numEdges);
-  sgraph->ContigGraph = CreateGraphCGW(CONTIG_GRAPH, 1, 1);
+  sgraph->sequenceDB    = createSequenceDB(buffer);
+
+  sgraph->CIGraph       = CreateGraphCGW(CI_GRAPH, 16 * 1024, 16 * 1024);
+  sgraph->ContigGraph   = CreateGraphCGW(CONTIG_GRAPH, 1, 1);
   sgraph->ScaffoldGraph = CreateGraphCGW(SCAFFOLD_GRAPH, NULLINDEX, NULLINDEX);
 
   sgraph->gkpStore = openGateKeeperStore(GlobalData->Gatekeeper_Store_Name, FALSE);
@@ -273,12 +272,12 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name,
     exit(1);
   }
 
-  numFrags = getNumGateKeeperFragments(sgraph->gkpStore);
-  numDists = getNumGateKeeperLibraries(sgraph->gkpStore);
+  int numFrags = getNumGateKeeperFragments(sgraph->gkpStore);
+  int numDists = getNumGateKeeperLibraries(sgraph->gkpStore);
 
   sgraph->iidToFragIndex = CreateVA_InfoByIID(numFrags);
-  sgraph->Dists = CreateVA_DistT(numDists);
-  sgraph->CIFrags = CreateVA_CIFragT(numFrags);
+  sgraph->Dists          = CreateVA_DistT(numDists);
+  sgraph->CIFrags        = CreateVA_CIFragT(numFrags);
 
   if(rezOnContigs){
     // switch this after doing CI overlaps
@@ -289,6 +288,7 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name,
     sgraph->RezGraph = sgraph->CIGraph;
     sgraph->overlapper = sgraph->CIGraph->overlapper;
   }
+
   sgraph->doRezOnContigs = rezOnContigs;
 
   // Temporary
@@ -301,11 +301,6 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name,
   sgraph->CIScaffolds    = sgraph->ScaffoldGraph->nodes;
   sgraph->SEdges         = sgraph->ScaffoldGraph->edges;
 
-
-  sgraph->checkPointIteration = 0;
-  sgraph->numContigs = 0;
-  sgraph->numDiscriminatorUniqueCIs = 0;
-  sgraph->numLiveScaffolds = 0;
   return sgraph;
 }
 
@@ -560,7 +555,6 @@ void AddDeltaToScaffoldOffsets(ScaffoldGraphT *graph,
 
 
 
-static
 void
 CheckCITypes(ScaffoldGraphT *sgraph){
   NodeCGW_T *CI;
@@ -634,22 +628,14 @@ int RepeatRez(int repeatRezLevel, char *name){
   if(repeatRezLevel > 0) {
     int  iter = 0;
     int  normal_inserts, contained_inserts, contained_stones;
-    ReportMemorySize(ScaffoldGraph,GlobalData->stderrc);
-    fflush(GlobalData->stderrc);
-    fprintf(GlobalData->stderrc,"**** BEFORE repeat rez ****\n");
+
     //
     // repeat Fill_Gaps until we are not able to insert anymore
     //
     CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
     // commented out next call to allow mouse_20010307 run to succeed
     CheckCITypes(ScaffoldGraph);
-
-
-    fprintf(stderr,"* Calling CheckCIScaffoldTs\n");
-    fflush(stderr);
     CheckCIScaffoldTs(ScaffoldGraph);
-    fprintf(stderr,"* Done with CheckCIScaffoldTs\n");
-    fflush(stderr);
 
     do
       {
@@ -657,24 +643,16 @@ int RepeatRez(int repeatRezLevel, char *name){
         if  (normal_inserts > 0)
           {
             didSomething = TRUE;
-            fprintf(stderr,"* Calling CheckCIScaffoldTs\n");
-            fflush(stderr);
             CheckCIScaffoldTs(ScaffoldGraph);
-            fprintf(stderr,"* Done with CheckCIScaffoldTs\n");
-            fflush(stderr);
 
             TidyUpScaffolds (ScaffoldGraph);
             CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
 
-            fprintf(stderr,"* Calling CheckCIScaffoldTs\n");
-            fflush(stderr);
             CheckCIScaffoldTs(ScaffoldGraph);
-            fprintf(stderr,"* Done with CheckCIScaffoldTs\n");
-            fflush(stderr);
 
-            GeneratePlacedContigGraphStats("rocks", iter);
-            GenerateLinkStats(ScaffoldGraph->ContigGraph,"rocks",iter);
-            GenerateScaffoldGraphStats("rocks",iter);
+            //GeneratePlacedContigGraphStats("rocks", iter);
+            //GenerateLinkStats(ScaffoldGraph->ContigGraph,"rocks",iter);
+            //GenerateScaffoldGraphStats("rocks",iter);
           }
 
         if  (DO_CONTAINED_ROCKS && iter == 0)
@@ -685,9 +663,9 @@ int RepeatRez(int repeatRezLevel, char *name){
                 didSomething = TRUE;
                 TidyUpScaffolds (ScaffoldGraph);
                 CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
-                GeneratePlacedContigGraphStats("controcks", iter);
-                GenerateLinkStats(ScaffoldGraph->ContigGraph,"controcks",iter);
-                GenerateScaffoldGraphStats("controcks",iter);
+                //GeneratePlacedContigGraphStats("controcks", iter);
+                //GenerateLinkStats(ScaffoldGraph->ContigGraph,"controcks",iter);
+                //GenerateScaffoldGraphStats("controcks",iter);
               }
           }
         else
@@ -701,9 +679,9 @@ int RepeatRez(int repeatRezLevel, char *name){
                 didSomething = TRUE;
                 TidyUpScaffolds (ScaffoldGraph);
                 CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
-                GeneratePlacedContigGraphStats("contstones", iter);
-                GenerateLinkStats(ScaffoldGraph->ContigGraph,"contstones",iter);
-                GenerateScaffoldGraphStats("contstones",iter);
+                //GeneratePlacedContigGraphStats("contstones", iter);
+                //GenerateLinkStats(ScaffoldGraph->ContigGraph,"contstones",iter);
+                //GenerateScaffoldGraphStats("contstones",iter);
               }
           }
         else
@@ -711,8 +689,7 @@ int RepeatRez(int repeatRezLevel, char *name){
 
         iter++;
         if (iter >= MAX_REZ_ITERATIONS) {
-          fprintf (GlobalData->stderrc,
-                   "Maximum number of REZ iterations reached\n");
+          fprintf (GlobalData->stderrc, "Maximum number of REZ iterations reached\n");
           break;
         }
       }  while  (normal_inserts + contained_inserts
@@ -741,16 +718,11 @@ void RebuildScaffolds(ScaffoldGraphT *ScaffoldGraph,
   BuildUniqueCIScaffolds(ScaffoldGraph, markShakyBifurcations, FALSE);
 #endif
   CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
-  fprintf(GlobalData->stderrc,"* Report Memory Size in RebuildScaffolds\n");
-  ReportMemorySize(ScaffoldGraph, GlobalData->stderrc);
-  fflush(NULL);
 
 #ifdef DEBUG_BUCIS
-  LeastSquaresGapEstimates(ScaffoldGraph, TRUE, FALSE, TRUE,
-			   CHECK_CONNECTIVITY, TRUE);
+  LeastSquaresGapEstimates(ScaffoldGraph, TRUE, FALSE, TRUE, CHECK_CONNECTIVITY, TRUE);
 #else
-  LeastSquaresGapEstimates(ScaffoldGraph, TRUE, FALSE, TRUE,
-			   CHECK_CONNECTIVITY, FALSE);
+  LeastSquaresGapEstimates(ScaffoldGraph, TRUE, FALSE, TRUE, CHECK_CONNECTIVITY, FALSE);
 #endif
 
   TidyUpScaffolds (ScaffoldGraph);
@@ -779,104 +751,6 @@ void  TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph)
   MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE);
 
   //clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
-}
-
-
-
-/***************************************************************************/
-void BuildScaffoldsFromFirstPriniciples(ScaffoldGraphT *ScaffoldGraph,
-                                        int skipInitialScaffolding){
-  int changedByRepeatRez;
-
-  GenerateScaffoldGraphStats("initial",1);
-
-  if (skipInitialScaffolding) {
-
-    //  This is a continuation of a previous partial result, or a
-    //  continuation of rocks, in either case, we have a checkpoint,
-    //  so we skip the creation of a new one after TidyUpScaffolds(),
-    //  and just get on with our work.
-
-    TidyUpScaffolds (ScaffoldGraph);
-
-  } else {
-    // This includes CleanupScaffolds
-    RebuildScaffolds(ScaffoldGraph, TRUE); // Transitive reduction of RezGraph followed by construction of SEdges
-
-    //  Hooray!  We have scaffolds!  Checkpoint!
-
-    fprintf(GlobalData->timefp,"* Checkpoint %d, After Building Initial Unique CI Scaffolds and before Tidying up there are %d scaffolds\n",
-            ScaffoldGraph->checkPointIteration,
-            (int) GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph));
-    CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_AFTER_BUILDING_SCAFFOLDS);
-  }
-
-  GenerateScaffoldGraphStats("initial",1);
-  GeneratePlacedContigGraphStats("initial",1);
-  GenerateLinkStats(ScaffoldGraph->ContigGraph,"initial",1);
-
-#define  MAX_OUTER_REZ_ITERATIONS   10
-
-  if(GlobalData->repeatRezLevel > 0){
-    int iter = 0;
-    int ctme = time(0);
-
-    fprintf(GlobalData->stderrc,"** Running Level 1 Repeat Rez **\n");
-    do{
-      changedByRepeatRez = FALSE;
-      CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
-
-      // commented out next call to allow mouse_20010307 run to succeed
-      CheckCITypes(ScaffoldGraph);
-
-      changedByRepeatRez = RepeatRez(GlobalData->repeatRezLevel,
-                                     GlobalData->File_Name_Prefix);
-      if(changedByRepeatRez){
-	CheckCIScaffoldTs(ScaffoldGraph);
-        // merge in stuff placed by rocks, assuming its position is correct!
-	CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
-
-        // Transitive reduction of RezGraph followed by construction of SEdges
-	RebuildScaffolds(ScaffoldGraph, FALSE);
-
-        //  This checkpoint used to be included in RebuildScaffolds,
-        //  but checkpointing after every iteration generates far too
-        //  many checkpoints.  On a large mammal, on Opteron 2.2GHz,
-        //  an iteration takes 15 - 20 minutes.  Microbes take seconds.
-        //
-        //  So, if we've been running for 2 hours, AND we've not just completed
-        //  the last iteration, checkpoint.
-        //
-        if ((time(0) - ctme > 120 * 60) && (iter+1 < MAX_OUTER_REZ_ITERATIONS)) {
-          ctme = time(0);
-          fprintf(GlobalData->timefp, "* After RebuildScaffolds Rocks %d there are %d scaffolds\n",
-                  iter, (int)GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph));
-          CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_AFTER_BUILDING_SCAFFOLDS);
-        }
-
-        iter ++;
-      }
-
-#ifdef DEBUG_BUCIS
-      fprintf(GlobalData->stderrc,"** After Gap Filling **\n");
-      DumpChunkInstances(GlobalData->stderrc, ScaffoldGraph, FALSE, TRUE, TRUE, FALSE);
-      DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
-#endif
-    }while(changedByRepeatRez && iter < MAX_OUTER_REZ_ITERATIONS);
-
-
-    //  Hooray!  We have cleaned scaffolds!
-
-    fprintf(GlobalData->timefp,"* Checkpoint %d, After Gap Filling\n",
-            ScaffoldGraph->checkPointIteration);
-    CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_AFTER_BUILDING_AND_CLEANING_SCAFFOLDS);
-  }
-
-
-#ifdef DEBUG_BUCIS
-  fprintf(GlobalData->stderrc,"* After building scaffolds \n");
-  DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph,FALSE);
-#endif
 }
 
 

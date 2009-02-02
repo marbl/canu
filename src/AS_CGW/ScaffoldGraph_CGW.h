@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.29 2008-11-02 06:27:13 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.30 2009-02-02 13:51:14 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -34,16 +34,6 @@ static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.29 200
 #include "AS_SDB_SequenceDB.h"
 #include "AS_OVS_overlapStore.h"
 #include "AS_CGW_dataTypes.h"
-
-//#define RAT_RUN_1
-//#define RAT_RUN_2
-
-#if defined(RAT_RUN_1) || defined(RAT_RUN_2)
-#define RAT_RUN
-#endif
-
-#define EXIT_AFTER_CHECKPOINTING 1
-#define RETURN_AFTER_CHECKPOINTING 2
 
 #define NO_CONTIGGING 0
 #define DOVETAIL_CONTIGGING 1
@@ -103,7 +93,6 @@ typedef struct{
   VA_TYPE(SEdgeT)         *SEdges;
   char                    name[256];
   int32                   doRezOnContigs; // This should go away, just a hack to enable smooth transition to new code
-  int16                   alignOverlaps;  // If true, inputs are non-bayesisan, if false, inputs are bayseian quality
   int32                   checkPointIteration; // Index of next checkpoint
   int32                   numContigs;  // Number of contigs...they may be interspersed
   int32                   numOriginalCIs;
@@ -123,8 +112,7 @@ typedef struct{
 
 
 /* Constructor */
-ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name,
-                                    int32 numNodes, int32 numEdges);
+ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name);
 void InsertRepeatCIsInScaffolds(ScaffoldGraphT *sgraph);
 void BuildCIEdges(ScaffoldGraphT *graph);
 void BuildSEdgesForScaffold(ScaffoldGraphT * graph,
@@ -176,7 +164,7 @@ void BuildNewScaffoldEdges(ScaffoldGraphT * graph,
                            CDS_CID_t firstScaffoldID);
 
 void MergeScaffoldsAggressive(ScaffoldGraphT *sgraph,
-                              int logicalcheckpointnumber,
+                              char *logicalname,
                               int verbose);
 
 
@@ -452,12 +440,9 @@ void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold);
 */
 int CheckAllEdges(ScaffoldGraphT *sgraph, CDS_CID_t sid, CDS_CID_t cid);
 
-void CheckpointScaffoldGraph(ScaffoldGraphT *graph, int logicalCheckPoint);
-ScaffoldGraphT * LoadScaffoldGraphFromCheckpoint(char *name,
-                                                 int32 checkPointNum,
-                                                 int readWrite);
-void SaveScaffoldGraphToStream(ScaffoldGraphT *sgraph, FILE *stream);
-ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream);
+void CheckpointScaffoldGraph(char *logicalname, char *location);
+void LoadScaffoldGraphFromCheckpoint(char *name, int32 checkPointNum, int readWrite);
+
 void ReportMemorySize(ScaffoldGraphT *graph, FILE *stream);
 
 
@@ -530,8 +515,6 @@ void AddDeltaToScaffoldOffsets(ScaffoldGraphT *graph,
                                LengthT delta);
 
 
-void BuildScaffoldsFromFirstPriniciples(ScaffoldGraphT *ScaffoldGraph,
-                                        int skipInitialScaffolding);
 void RebuildScaffolds(ScaffoldGraphT *ScaffoldGraph,
                       int markShakyBifurcations);
 void TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph);

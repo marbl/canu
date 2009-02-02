@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.30 2008-11-02 06:27:13 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.31 2009-02-02 13:51:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -302,7 +302,7 @@ EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
         edge = GetGraphEdge(graph->RezGraph, edgeIndex);
 
         // Create an appropriate hash table entry
-        CreateChunkOverlapFromEdge(ScaffoldGraph->RezGraph, edge, FALSE);
+        CreateChunkOverlapFromEdge(ScaffoldGraph->RezGraph, edge);
 
         if(PairwiseChiSquare((float)inferredMean, (float)inferredVariance,
                              effectiveOlap,

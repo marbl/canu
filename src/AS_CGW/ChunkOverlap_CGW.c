@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.37 2009-01-08 14:39:46 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.38 2009-02-02 13:51:14 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -28,6 +28,7 @@ static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.37 2009-01-08 14:39:46 brianwa
 #include <math.h>
 
 #include "AS_global.h"
+#include "AS_MSG_pmesg.h"
 #include "AS_UTL_fileIO.h"
 #include "AS_UTL_Hash.h"
 #include "AS_UTL_Var.h"
@@ -104,6 +105,12 @@ static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.37 2009-01-08 14:39:46 brianwa
 
 */
 
+
+
+static VA_TYPE(char) *consensusA = NULL;
+static VA_TYPE(char) *consensusB = NULL;
+static VA_TYPE(char) *qualityA = NULL;
+static VA_TYPE(char) *qualityB = NULL;
 
 
 
@@ -278,8 +285,7 @@ int InitCanonicalOverlapSpec(CDS_CID_t cidA, CDS_CID_t cidB,
 /* Given a graph edge, create an overlap in the hashtable and mark it as computed */
 //external
 void CreateChunkOverlapFromEdge(GraphCGW_T *graph,
-                                EdgeCGW_T *edge,
-                                int bayesian){
+                                EdgeCGW_T *edge){
   ChunkOverlapCheckT olap = {0};
   double delta = sqrt(edge->distance.variance) * 3.0;
   assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
@@ -291,7 +297,6 @@ void CreateChunkOverlapFromEdge(GraphCGW_T *graph,
   olap.fromCGB = FALSE;
   olap.cgbMinOverlap = 0;
   olap.cgbMaxOverlap = 0;
-  olap.hasBayesianQuality = bayesian;
   olap.errorRate = AS_CGW_ERROR_RATE;
   olap.quality = edge->quality;
   olap.ahg = olap.bhg = 0;
@@ -319,7 +324,6 @@ void FillChunkOverlapWithEdge(EdgeCGW_T *edge, ChunkOverlapCheckT *olap){
   olap->fromCGB = FALSE;
   olap->cgbMinOverlap = 0;
   olap->cgbMaxOverlap = 0;
-  olap->hasBayesianQuality = FALSE;
   olap->errorRate = AS_CGW_ERROR_RATE;
   olap->quality = edge->quality;
   olap->ahg = olap->bhg = 0;
@@ -330,18 +334,134 @@ void FillChunkOverlapWithEdge(EdgeCGW_T *edge, ChunkOverlapCheckT *olap){
 
 /* Given a graph edge, create an overlap in the hashtable */
 static
-void FillChunkOverlapWithUOM(ChunkOverlapCheckT *olap, UnitigOverlapMesg *uom_mesg){
+void FillChunkOverlapWithOVL(GraphCGW_T   *graph,
+                             OverlapMesg  *ovl) {
+
+  ChunkOverlapCheckT  olap = {0};
+
+  InfoByIID          *ciinfoa, *ciinfob;
+  CIFragT            *cifraga, *cifragb;
+
+  CDS_CID_t           cia;
+  CDS_CID_t           cib;
+
+  int                 bega, enda, lena;
+  int                 begb, endb, lenb;
+
   assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
-  InitCanonicalOverlapSpec(uom_mesg->chunk1, uom_mesg->chunk2, uom_mesg->orient, &olap->spec);
-  olap->computed = FALSE;
-  olap->overlap = uom_mesg->best_overlap_length;
-  olap->minOverlap = uom_mesg->min_overlap_length;
-  olap->maxOverlap = uom_mesg->max_overlap_length;
-  olap->hasBayesianQuality = !ScaffoldGraph->alignOverlaps;
-  olap->errorRate = AS_CGW_ERROR_RATE;
-  olap->quality = uom_mesg->quality;
-  olap->ahg = olap->bhg = 0;
-  olap->min_offset = olap->max_offset = 0;
+
+  //  Find the chunks with the two fragments
+
+  ciinfoa = GetInfoByIID(ScaffoldGraph->iidToFragIndex, ovl->aifrag);
+  cifraga = GetCIFragT(ScaffoldGraph->CIFrags, ciinfoa->fragIndex);
+  cia     = cifraga->cid; // cifrag.CIid;
+  bega    = MIN(cifraga->offset5p.mean, cifraga->offset3p.mean);
+  enda    = MAX(cifraga->offset5p.mean, cifraga->offset3p.mean);
+
+  ciinfob = GetInfoByIID(ScaffoldGraph->iidToFragIndex, ovl->bifrag);
+  cifragb = GetCIFragT(ScaffoldGraph->CIFrags, ciinfob->fragIndex);
+  cib     = cifragb->cid; // cifrag.CIid;
+  begb    = MIN(cifragb->offset5p.mean, cifragb->offset3p.mean);
+  endb    = MAX(cifragb->offset5p.mean, cifragb->offset3p.mean);
+
+  if (consensusA == NULL) {
+    //  These are globals used by ComputeCanonicalOverlap_new().
+    consensusA = CreateVA_char(2048);
+    consensusB = CreateVA_char(2048);
+    qualityA   = CreateVA_char(2048);
+    qualityB   = CreateVA_char(2048);
+  }
+
+  //  Length of the ungapped consensus of each unitig.
+  lena = GetConsensus(graph, cia, consensusA, qualityA);
+  lenb = GetConsensus(graph, cib, consensusB, qualityB);
+
+  //  Based on the fragment placement in the two unitigs, determine
+  //  the size of the overlap we are expecting.
+  //
+  //  first orientation is one of
+  //     AS_READ_ORIENT_INNIE
+  //     AS_READ_ORIENT_NORMAL
+  //     AS_READ_ORIENT_ANTINORMAL
+  //     AS_READ_ORIENT_OUTTIE
+  //  which are different from the overlap orientations.
+
+  int  oo = AS_READ_ORIENT_UNKNOWN;
+
+  if (ovl->orientation == AS_INNIE)   oo = AS_READ_ORIENT_INNIE;
+  if (ovl->orientation == AS_NORMAL)  oo = AS_READ_ORIENT_NORMAL;
+  if (ovl->orientation == AS_ANTI)    oo = AS_READ_ORIENT_ANTINORMAL;
+  if (ovl->orientation == AS_OUTTIE)  oo = AS_READ_ORIENT_OUTTIE;
+
+  FragOrient orient = ciEdgeOrientFromFragment(oo, getCIFragOrient(cifraga), getCIFragOrient(cifragb));
+
+  //  Adjust positions, orientation.  We place unitig A starting at 0, then
+  //  figure out where to place unitig B based on the overlap orientation.
+
+  int utgabeg=0, utgaend=lena;
+  int utgbbeg=0, utgbend=lenb;
+  int olapsize = 0;
+  int olapmin  = 0;
+  int olapmax  = 0;
+
+  switch (orient) {
+    case AB_AB:
+      utgbbeg = (bega)        + ovl->ahg - (begb);
+      utgbend = utgbbeg + lenb;
+      break;
+    case AB_BA:
+      utgbbeg = (bega)        + ovl->ahg - (lenb - endb);
+      utgbend = utgbbeg + lenb;
+      break;
+    case BA_AB:
+      utgbbeg = (lena - enda) + ovl->ahg - (begb);
+      utgbend = utgbbeg + lenb;
+      break;
+    case BA_BA:
+      utgbbeg = (lena - enda) + ovl->ahg - (lenb - endb);
+      utgbend = utgbbeg + lenb;
+      break;
+  }
+
+  if (utgabeg < utgbbeg)
+    if (utgaend < utgbend)
+      olapsize = utgaend - utgbbeg;
+    else
+      olapsize = lenb;
+  else
+    if (utgaend < utgbend)
+      olapsize = lena;
+    else
+      olapsize = utgbend - utgabeg;
+
+  olapmin = olapsize - 0.1 * olapsize;
+  olapmax = olapsize + 0.1 * olapsize;
+
+  olap = OverlapChunks(graph,
+                       cia, cib,
+                       orient,
+                       olapmin,
+                       olapmax,
+                       AS_CGW_ERROR_RATE,
+                       TRUE);
+
+#if 0
+  fprintf(stderr, "TRY: utga %d-%d utgb %d-%d ovl %d (%d,%d) frgori %c utgori %c\n",
+          utgabeg, utgaend,
+          utgbbeg, utgbend,
+          olapsize, olapmin, olapmax,
+          ovl->orientation,
+          orient);
+
+  if (olap.overlap > 0)
+    fprintf(stderr, "FillChunkOverlapWithOVL()-- frg "F_IID" in utg "F_IID" <-> frg "F_IID" in utg "F_IID" ovl %d min %d,%d hang %d,%d\n",
+            ovl->aifrag, cia, ovl->bifrag, cib,
+            olap.overlap, olapmin, olapmax, olap.ahg, olap.bhg);
+  else
+    fprintf(stderr, "FillChunkOverlapWithOVL()-- frg "F_IID" in utg "F_IID" <-> frg "F_IID" in utg "F_IID" ovl %d min %d,%d FAILED\n",
+            ovl->aifrag, cia, ovl->bifrag, cib,
+            olapsize, olapmin, olapmax);
+#endif
 }
 
 
@@ -525,14 +645,12 @@ void CollectChunkOverlap(GraphCGW_T *graph,
     canOlap.computed = FALSE;
     canOlap.overlap = FALSE;
     canOlap.quality = 1.0;
-    canOlap.hasBayesianQuality = FALSE;
     canOlap.minOverlap = minOverlap;
     canOlap.maxOverlap = maxOverlap;
     canOlap.fromCGB = fromCGB;
     if(fromCGB && bayesian){
       canOlap.computed = TRUE;
       canOlap.quality = quality;
-      canOlap.hasBayesianQuality = TRUE;
       canOlap.overlap = (canOlap.minOverlap + canOlap.maxOverlap)/2;
     }
     canOlap.cgbMinOverlap = minOverlap;
@@ -552,7 +670,6 @@ void CollectChunkOverlap(GraphCGW_T *graph,
 	 (minOverlap < olap->minOverlap ||
           maxOverlap > olap->maxOverlap)){
 	olap->computed = FALSE; // Recompute
-	olap->hasBayesianQuality = FALSE;
 	olap->minOverlap = MIN(minOverlap, olap->minOverlap);
 	olap->maxOverlap = MAX(maxOverlap, olap->maxOverlap);
       }
@@ -572,7 +689,6 @@ void CollectChunkOverlap(GraphCGW_T *graph,
           }
         }
 	olap->quality = quality;
-	olap->hasBayesianQuality = bayesian;
 	if(bayesian){
 	  olap->overlap = (olap->cgbMinOverlap + olap->cgbMaxOverlap)/2;
 	  olap->computed = TRUE;
@@ -656,13 +772,6 @@ Overlap* OverlapSequences( char *seq1, char *seq2,
 
 
 
-static VA_TYPE(char) *consensusA = NULL;
-static VA_TYPE(char) *consensusB = NULL;
-static VA_TYPE(char) *qualityA = NULL;
-static VA_TYPE(char) *qualityB = NULL;
-
-
-
 static
 void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
                                  ChunkOverlapCheckT *canOlap)
@@ -672,13 +781,12 @@ void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
   Overlap * tempOlap1;
   ChunkOverlapSpecT inSpec;
 
-  if(consensusA == NULL)
-    {
-      consensusA = CreateVA_char(2048);
-      consensusB = CreateVA_char(2048);
-      qualityA = CreateVA_char(2048);
-      qualityB = CreateVA_char(2048);
-    }
+  if (consensusA == NULL) {
+    consensusA = CreateVA_char(2048);
+    consensusB = CreateVA_char(2048);
+    qualityA   = CreateVA_char(2048);
+    qualityB   = CreateVA_char(2048);
+  }
 
   // Save the input spec
   inSpec = canOlap->spec;
@@ -1126,4 +1234,38 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
             }
 	}
     }
+}
+
+
+
+
+//external
+void AddUnitigOverlaps(GraphCGW_T *graph,
+                       char       *ovlFileName) {
+
+  if (ovlFileName == NULL)
+    return;
+
+  fprintf(stderr, "AddUnitigOverlaps()-- reading overlaps from '%s'\n", ovlFileName);
+
+  errno = 0;
+  FILE *F = fopen(ovlFileName, "r");
+  if (errno) {
+    fprintf(stderr, "AddUnitigOverlaps()--   Couldn't open '%s' to read unitig overlaps.\n", ovlFileName);
+    exit(1);
+    return;
+  }
+
+  GenericMesg  *pmesg = NULL;
+  OverlapMesg   omesg = {0};
+
+  while (ReadProtoMesg_AS(F, &pmesg) != EOF) {
+    if (pmesg->t == MESG_OVL) {
+      FillChunkOverlapWithOVL(graph, (OverlapMesg *)pmesg->m);
+    } else {
+      fprintf(stderr, "AddUnitigOverlaps()-- unexpected message type '%s'\n", MessageTypeName[pmesg->t]);
+    }
+  }
+
+  fclose(F);
 }

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.41 2009-01-05 16:49:04 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.42 2009-02-02 13:51:14 brianwalenz Exp $";
 
 
 #undef ORIG_MERGE_EDGE_INVERT
@@ -5060,7 +5060,7 @@ void BuildNewScaffoldEdges(ScaffoldGraphT * graph,
 
 int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
                                InterleavingSpec * iSpec,
-                               int logicalcheckpointnumber,
+                               char *logicalcheckpointnumber,
                                int verbose)
 {
   static VA_TYPE(PtrT) *sEdges = NULL;
@@ -5088,19 +5088,18 @@ int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
     //  though.
     //
     if (time(0) - lastCkpTime > 120 * 60) {
-      fprintf(GlobalData->timefp,"Checkpoint %d written during MergeScaffoldsAggressive at iteration %d\n",
-              ScaffoldGraph->checkPointIteration, iterations);
-      CheckpointScaffoldGraph(ScaffoldGraph, logicalcheckpointnumber);
+      char  where[1024];
+
+      sprintf(where, "after MergeScaffoldsAggressive iteration %d", iterations);
+      CheckpointScaffoldGraph(logicalcheckpointnumber, where);
       lastCkpTime = time(0);
     }
     currFirstNewScaffoldID = GetNumGraphNodes(graph->ScaffoldGraph);
 
     t = time(0);
-    fprintf(GlobalData->stderrc, "* MergeScaffoldsAggressive iteration %d at %s\n",
-            iterations, ctime(&t));
+    fprintf(GlobalData->stderrc, "* MergeScaffoldsAggressive iteration %d at %s", iterations, ctime(&t));
     fprintf(GlobalData->stderrc, "* " F_CID " scaffolds and %d scaffold edges in the graph\n",
             currFirstNewScaffoldID, (int) GetNumGraphEdges(graph->ScaffoldGraph));
-    fflush(GlobalData->stderrc);
 
     iterations++;
 
@@ -5185,7 +5184,7 @@ void DeleteContigOverlapEdges(void)
   fprintf(stderr, "Number of null contig edges: %d\n", numNulls);
 }
 
-void MergeScaffoldsAggressive(ScaffoldGraphT *graph, int logicalcheckpointnumber, int verbose)
+void MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, int verbose)
 {
   time_t t;
   InterleavingSpec iSpec;

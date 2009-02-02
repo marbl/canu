@@ -317,6 +317,7 @@ sub setDefaults () {
     $global{"cgwOutputIntermediate"}       = 0;
     $global{"cgwPurgeCheckpoints"}         = 1;
     $global{"cgwDemoteRBP"}                = 1;
+    $global{"cgwUseUnitigOverlaps"}        = 0;
 
     $global{"astatLowBound"}		   = 1;
     $global{"astatHighBound"}		   = 5;

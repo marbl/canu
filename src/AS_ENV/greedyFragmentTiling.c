@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: greedyFragmentTiling.c,v 1.17 2008-12-18 07:13:22 brianwalenz Exp $";
+const char *mainid = "$Id: greedyFragmentTiling.c,v 1.18 2009-02-02 13:51:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -769,8 +769,6 @@ int main (int argc , char * argv[] ) {
   int avoidDeadEnds=1;
 
   GlobalData  = data = CreateGlobal_CGW();
-  data->stderrc = stderr;
-  data->timefp = stderr;
 
   setbuf(stdout,NULL);
 

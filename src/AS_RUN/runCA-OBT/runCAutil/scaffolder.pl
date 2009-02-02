@@ -12,31 +12,30 @@ sub CGW ($$$$$$) {
 
     return($thisDir) if (-e "$wrk/$thisDir/cgw.success");
 
-    my $lastckp = 0;
-    my $ckp     = "";
-
-    $lastckp = findLastCheckpoint($lastDir)  if (defined($lastDir));
-    $ckp     = "-y -R $lastckp -N $logickp"  if (defined($lastckp) && defined($logickp));
+    my $lastckp = findLastCheckpoint($lastDir)  if (defined($lastDir));
+    my $ckp     = "-R $lastckp -N $logickp"  if (defined($lastckp) && defined($logickp));
 
     #  If there is a timing file here, assume we are restarting.  Not
     #  all restarts are possible, but we try hard to make it so.
     #
     if (-e "$wrk/$thisDir/$asm.timing") {
-        $ckp = "";
+        my $restartckp = undef;
 
         open(F, "< $wrk/$thisDir/$asm.timing");
         while (<F>) {
-            if (m/Done\swith/) {
-                print $_;
-            }
-            if (m/Done\swith\scheckpoint\s(\d+)\s\(logical\s(\d+)\)/) {
-                $ckp = "-y -R $1 -N $2";
+            print STDERR $_;
+            if (m/Writing.*ckp.(\d+)\s\(logical\s(.+)\)/) {
+                $restartckp = "-R $1 -N $2";
             }
         }
         close(F);
 
-        caFailure("ERROR:  Found a timing file, but didn't find the checkpoint information!\n") if (!defined($ckp));
-        print STDERR "Found a timing file, restarting: $ckp\n";
+        if (!defined($restartckp)) {
+            print STDERR "Found an empty timing file, starting from the beginning: $ckp\n";
+        } else {
+            $ckp = $restartckp;
+            print STDERR "Found a timing file, restarting: $ckp\n";
+        }
     }
 
     system("mkdir $wrk/$thisDir")               if (! -d "$wrk/$thisDir");
@@ -79,6 +78,7 @@ sub CGW ($$$$$$) {
     $cmd .= " -S 0 " if (($finalRun == 0)   || (getGlobal("doResolveSurrogates") == 0));
     $cmd .= " -G "   if (($finalRun == 0)   && (getGlobal("cgwOutputIntermediate") == 0));
     $cmd .= " -z "   if (getGlobal("cgwDemoteRBP") == 1);
+    $cmd .= " -u $wrk/4-unitigger/$asm.unused.ovl"  if (getGlobal("cgwUseUnitigOverlaps") != 0);
     $cmd .= " -m $sampleSize";
     $cmd .= " -g $wrk/$asm.gkpStore ";
     $cmd .= " -o $wrk/$thisDir/$asm ";
@@ -273,7 +273,7 @@ sub scaffolder ($) {
         #
         my $iterationMax = getGlobal("doExtendClearRanges") + 1;
         for (my $iteration = 2; $iteration < $iterationMax; $iteration++) {
-            $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, 0, 3, 0);
+            $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, 0, "ckp01-ABS", 0);
             $thisDir++;
 
             $lastDir = eCR("7-$thisDir-ECR", $lastDir, $iteration);
@@ -283,7 +283,7 @@ sub scaffolder ($) {
         #  Then another scaffolder, chucking stones into the big holes,
         #  filling in surrogates, and writing output.
         #
-        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, 3, 1);
+        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, "ckp01-ABS", 1);
         $thisDir++;
     }
 

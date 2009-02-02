@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.37 2009-01-16 16:35:41 skoren Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.38 2009-02-02 13:51:14 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -404,11 +404,8 @@ void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges)
   pmesg.m = &clm;
   pmesg.t = MESG_ICL;
 
-  fprintf(GlobalData->stderrc,"* OutputContigLinks *\n");
-  if(JumpList == NULL){
-    fprintf(GlobalData->stderrc,"* Creating JumpList *\n");
+  if(JumpList == NULL)
     JumpList = CreateVA_IntMate_Pairs(256);
-  }
 
   InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_DEFAULT);
   while((ctg = NextGraphNodeIterator(&nodes)) != NULL){

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.44 2009-01-05 16:49:04 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.45 2009-02-02 13:51:14 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -11046,11 +11046,7 @@ int Throw_Stones
   //  without danger that somebody would reenable the historical
   //  code.
 
-  fprintf (stderr, "### starting_stone_scaffold = %d\n",
-           GlobalData -> starting_stone_scaffold);
-
-  for  (scaff_id = GlobalData -> starting_stone_scaffold;
-        scaff_id < Num_Scaffolds;  scaff_id ++)
+  for  (scaff_id = 0; scaff_id < Num_Scaffolds;  scaff_id ++)
     {
       int  total_entries, keep_entries;
 
@@ -11170,11 +11166,8 @@ int Throw_Stones
                    "* Stones CleanupScaffolds through scaffold %d\n",
                    scaff_id);
 
-          fprintf (GlobalData -> timefp,
-                   "\n\nCheckpoint %d written during Stones CleanupScaffolds"
-                   " after scaffold %d\n",
-                   ScaffoldGraph -> checkPointIteration, scaff_id);
-          CheckpointScaffoldGraph (ScaffoldGraph, 0);
+          //  Disabled, should propagate a logical checkpoint, but also debate the value of this checkpoint
+          //CheckpointScaffoldGraph (ScaffoldGraph, logicalcheckpoint, "after Stones CleanupScaffolds");
 
           clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 

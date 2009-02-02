@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.32 2009-01-05 16:49:04 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.33 2009-02-02 13:51:14 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_ALN_aligners.h"
@@ -369,7 +369,6 @@ typedef struct {
   // This is what we found
   uint32       computed:1;
   uint32       fromCGB:1;
-  uint32       hasBayesianQuality:1;
   uint32       AContainsB:1;
   uint32       BContainsA:1;
   uint32       suspicious:1;
@@ -718,7 +717,10 @@ static ChunkOrientationType GetChunkPairOrientation(ChunkOrient orientA,
 }
 
 
-
+ChunkOrientationType
+ciEdgeOrientFromFragment(int          orient,
+                         ChunkOrient  ciOrient,
+                         ChunkOrient  mciOrient);
 
 
 static ChunkInstanceType GetNodeType(NodeCGW_T *ci){
@@ -1498,8 +1500,7 @@ int InitCanonicalOverlapSpec(CDS_CID_t cidA, CDS_CID_t cidB,
                              ChunkOverlapSpecT *spec);
 
 void CreateChunkOverlapFromEdge(GraphCGW_T *graph,
-                                EdgeCGW_T *edge,
-                                int bayesian);
+                                EdgeCGW_T *edge);
 
 void FillChunkOverlapWithEdge(EdgeCGW_T *edge, ChunkOverlapCheckT *olap);
 

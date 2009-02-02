@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.61 2008-12-29 16:07:17 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.62 2009-02-02 13:51:13 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -82,7 +82,8 @@ struct UnitigGraph{
   void build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking, char *output_prefix);
   void setParentAndHang(ChunkGraph *cg_ptr);
 
-  void writeIUMtoFile(char *filename, int fragment_count_target);
+  void writeIUMtoFile(char *fileprefix, int fragment_count_target);
+  void writeOVLtoFile(char *fileprefix);
 
   float getGlobalArrivalRate(long total_random_frags_in_genome=0, long genome_size=0);
 

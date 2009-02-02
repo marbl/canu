@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: dumpSingletons.c,v 1.26 2008-10-08 22:02:55 brianwalenz Exp $";
+const char *mainid = "$Id: dumpSingletons.c,v 1.27 2009-02-02 13:51:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,11 +74,6 @@ main( int argc, char **argv) {
   UIDserver   *uids              = NULL;
 
   GlobalData          = CreateGlobal_CGW();
-  GlobalData->stderrc = stderr;
-  GlobalData->timefp  = stderr;
-
-  GlobalData->File_Name_Prefix[0] = 0;
-  GlobalData->Gatekeeper_Store_Name[0] = 0;
 
   argc = AS_configure(argc, argv);
 
@@ -120,7 +115,7 @@ main( int argc, char **argv) {
 
   char *toprint = (char *)safe_malloc(sizeof(char) * (AS_READ_MAX_LEN + 51 + AS_READ_MAX_LEN + 2));
 
-  ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, FALSE);
+  LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, FALSE);
 
   int ifrag;
   for (ifrag=0; ifrag < GetNumVA_CIFragT(ScaffoldGraph->CIFrags); ifrag++) {

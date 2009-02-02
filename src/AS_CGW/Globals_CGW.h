@@ -22,7 +22,7 @@
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
-static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.24 2009-01-05 16:49:04 brianwalenz Exp $";
+static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.25 2009-02-02 13:51:14 brianwalenz Exp $";
 
 #include "AS_CGW_dataTypes.h"
 #include "AS_MSG_pmesg.h"
@@ -34,40 +34,32 @@ static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.24 2009-01-05 1
 typedef struct Global_CGW_tag {
   int verbose;
 
-  float transQualityCutoff; // quality cutoff for TransChunkEdges
   uint64 maxSequencedbSize; // maximum size of a sequencedb between checkpoints
-  int32 maxDegree; // maximum edges to keep for 'nonUnique' nodes
-  int32 maxDegreeUnique; // maximum edges to keep for 'Unique' nodes
-  int outputCalculatedOffsets;
   int repeatRezLevel;
   int stoneLevel;  // a variable that contains different alternatives of stone throwing //
   int ignoreChaffUnitigs;
   int performCleanupScaffolds;
   int debugLevel;
-  int failOn_NoOverlapFound;
   int cgbUniqueCutoff;
   int cgbDefinitelyUniqueCutoff;
   int cgbApplyMicrohetCutoff;
-  int  starting_stone_scaffold;
   float cgbMicrohetProb;
-  int  annotateUnitigs;
   int  doInterleavedScaffoldMerging;
   int  allowDemoteMarkedUnitigs;
+
   FILE *cgwfp;    // .cgw            frags, unitigs
   FILE *ctgfp;    // .cgw_contigs    all contigs (input for post-cgw consensus)
   FILE *scffp;    // .cgw_scaffolds  all scaffolds
-  FILE *timefp;   // .timing
   FILE *stderrc;  // current - initially set to stderr
-#ifdef NEVER
-  HISTOGRAM *scaffold_unique;
-  HISTOGRAM *scaffold_repeat;
-#endif
 
-  char Input_File_Name[1024];
-  char File_Name_Prefix[1024];
-  char Output_File_Name[1024];
-  char Gatekeeper_Store_Name[1024];
-  char OVL_Store_Name[1024];
+  char File_Name_Prefix[FILENAME_MAX];
+  char Output_File_Name[FILENAME_MAX];
+  char Gatekeeper_Store_Name[FILENAME_MAX];
+  char OVL_Store_Name[FILENAME_MAX];
+
+  char unitigOverlaps[FILENAME_MAX];
+  char closureReadFile[FILENAME_MAX];
+
   HashTable_AS *closureReads;
 }Global_CGW;
 

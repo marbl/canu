@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: dumpCloneMiddles.c,v 1.18 2008-10-08 22:02:55 brianwalenz Exp $";
+const char *mainid = "$Id: dumpCloneMiddles.c,v 1.19 2009-02-02 13:51:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -182,7 +182,8 @@ main(int argc, char **argv) {
   errno=0;
   mkdir(CMDIR, S_IRWXU | S_IRWXG | S_IRWXO);
 
-  ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, FALSE);
+  LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, FALSE);
+
   ScaffoldGraph->frgOvlStore = AS_OVS_openOverlapStore(GlobalData->OVL_Store_Name);
 
   si = CreateScaffoldInstrumenter(ScaffoldGraph, INST_OPT_ALL);

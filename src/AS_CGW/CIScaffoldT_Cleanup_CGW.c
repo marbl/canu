@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.48 2009-01-06 13:55:07 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.49 2009-02-02 13:51:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -296,7 +296,7 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
         InsertGraphEdge(ScaffoldGraph->RezGraph, eid, FALSE);
 
         // Create an appropriate hash table entry
-        CreateChunkOverlapFromEdge(ScaffoldGraph->RezGraph, newEdge, FALSE);
+        CreateChunkOverlapFromEdge(ScaffoldGraph->RezGraph, newEdge);
 
       }
     }
@@ -870,7 +870,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 	InsertGraphEdge(ScaffoldGraph->RezGraph, neid, FALSE);
 
 	// Create an appropriate hash table entry
-	CreateChunkOverlapFromEdge(ScaffoldGraph->RezGraph, newEdge, FALSE);
+	CreateChunkOverlapFromEdge(ScaffoldGraph->RezGraph, newEdge);
 
 
 	FreeGraphEdgeByEID(ScaffoldGraph->RezGraph,eid);
@@ -1054,7 +1054,7 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
       InsertGraphEdge(ScaffoldGraph->RezGraph, newEdgeID, FALSE);
 
       // Create an appropriate hash table entry
-      CreateChunkOverlapFromEdge(ScaffoldGraph->RezGraph, newEdge, FALSE);
+      CreateChunkOverlapFromEdge(ScaffoldGraph->RezGraph, newEdge);
 
     }
   }
@@ -2100,9 +2100,6 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
     DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffold, FALSE);
     fprintf(GlobalData->stderrc,"* MergeMultiAligns failed....bye\n");
 #endif
-
-    if(GlobalData->failOn_NoOverlapFound)
-      assert(0 /* No overlap found error in merge multialignments */);
 
     DeleteGraphNode(ScaffoldGraph->ContigGraph, contig);
 
