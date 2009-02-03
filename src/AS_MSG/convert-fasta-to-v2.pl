@@ -57,7 +57,7 @@ my $lib    = undef;
 my $mean   = 0.0;
 my $stddev = 0.0;
 
-my $idregex = "^(\S+)";
+my $idregex = "^>(\\S+)";
 
 my $srcstr;
 
@@ -211,6 +211,10 @@ while (defined($seq) && defined($qlt)) {
     }
     print "clr:0,", length($seq), "\n";
     print "}\n";
+
+    if (length($seq) != length($qlt)) {
+        die "Length of sequence and quality do not agree for $seqid.\n";
+    }
 
     ($seqid, $seq) = readFasta();
     ($qltid, $qlt) = readQual();
