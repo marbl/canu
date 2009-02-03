@@ -275,7 +275,7 @@ ARFLAGS = rvs
 endif
 
 ifneq "$(origin LDFLAGS)" "environment"
-LDFLAGS = -lm
+LDFLAGS = 
 endif
 
 #### Delete default suffix rules

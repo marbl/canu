@@ -68,7 +68,7 @@ ifeq ($(OSTYPE), Linux)
   ARCH_CFLAGS = -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -fPIC
 
   ARCH_CFLAGS    += -pthread
-  ARCH_LDFLAGS   += -pthread
+  ARCH_LDFLAGS   += -pthread -lm
 
   ifeq ($(BUILDDEBUG), 1)
     ARCH_CFLAGS  += -g -Wimplicit
@@ -99,11 +99,11 @@ ifeq ($(OSTYPE), FreeBSD)
   CXX              = g++
 
   ifeq ($(MACHINETYPE), i386)
-    ARCH_LDFLAGS    += -pthread -lthr
+    ARCH_LDFLAGS    += -pthread -lthr -lm
     ARCH_CFLAGS      = -pthread
   endif
   ifeq ($(MACHINETYPE), amd64)
-    ARCH_LDFLAGS    += -pthread -lthr
+    ARCH_LDFLAGS    += -pthread -lthr -lm
     ARCH_CFLAGS      = -pthread
   endif
 
@@ -141,10 +141,10 @@ ifeq ($(OSTYPE), Darwin)
   ifeq ($(MACHINETYPE), i386)
     ifeq ($(BUILDDEBUG), 1)
       ARCH_CFLAGS   += -m64 -g
-      ARCH_LDFLAGS  += -m64
+      ARCH_LDFLAGS  += -m64 -lm
     else
       ARCH_CFLAGS   += -m64 -fast
-      ARCH_LDFLAGS  += -m64
+      ARCH_LDFLAGS  += -m64 -lm
     endif
   endif
 
@@ -212,7 +212,8 @@ ifeq ($(OSTYPE), aix)
                      -qignerrno \
                      -qupconv \
                      -qstrict \
-                     -lpthread
+                     -lpthread \
+                     -lm
 endif
 
 ifeq ($(OSTYPE), OSF1)
