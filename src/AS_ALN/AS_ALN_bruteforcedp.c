@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.7 2009-01-13 02:59:25 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.8 2009-02-04 23:12:45 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_ALN_bruteforcedp.h"
@@ -249,6 +249,17 @@ alignLinker(char           *alignA,
       int ul = M[i-1][j-1].score + ((stringA[i-1] == stringB[j-1]) ? MATCHSCORE : MISMATCHSCORE);
       int lf = M[i-1][j].score + GAPSCORE;
       int up = M[i][j-1].score + GAPSCORE;
+
+#if 0
+      //  When finding the alignments, we do not really want to allow
+      //  matches to Ns.  If we do, and one of the sequences has a
+      //  gap, we'll optimally align to the gap instead of the real
+      //  sequence.  However, in AS_ALN_forcns.c, we'll adjust our
+      //  score to not count any alignment to an N as a mismatch.
+      //
+      if ((stringA[i-1] == 'N') || (stringB[j-1] == 'N'))
+        ul = M[i-1][j-1].score + MATCHSCORE;
+#endif
 
       if (endToEnd) {
         //  Set score to zero; we will then ALWAYS pick an action

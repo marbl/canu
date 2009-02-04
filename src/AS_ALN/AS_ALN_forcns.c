@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.17 2009-01-06 15:50:27 skoren Exp $";
+static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.18 2009-02-04 23:12:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -441,9 +441,21 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
         m->h_trace[tp++] = bp + 1;
         bp--;
       }
-      if (m->h_alignA[x] != m->h_alignB[x]) {
+      //  Count the differences....but treat an aligment to an N as a
+      //  match, not a mismatch.  See alignLinker() also; that counts
+      //  matches to N's as a mismatch when building the alignment.
+      //
+      if (m->h_alignA[x] != m->h_alignB[x])
         o.diffs++;
-      }
+
+      //  By definition, if either of these are N, then the other is
+      //  not 'N', and we already added a point to the diff.
+      //  Subtract that point.  This rule allows N's to match to N's
+      //  (returned as 'n').
+      //
+      if ((m->h_alignA[x] == 'N') || (m->h_alignB[x] == 'N'))
+        o.diffs--;
+
       bp++;
       ap++;
     }
