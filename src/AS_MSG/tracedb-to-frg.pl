@@ -61,6 +61,7 @@
 #             info about the library
 #    *.frglib -- a map from TA frag id to CA library UID
 #
+#
 
 use strict;
 
@@ -73,6 +74,13 @@ use strict;
 #    $seqLibIDFix{"829124934"} = "WUGSCsm1";
 #
 my %seqLibIDFix;
+
+#  Switch deciding if we should use the SEQ_LIB_ID (1) or the
+#  LIBRARY_ID (0) to get the name of the library.  Some centers choose
+#  to not supply a SEQ_LIB_ID (the drosophila fragments from
+#  Agencourt).  The default is 1.
+#
+my $useSLI = 1;
 
 #  This allows one to include only certain libraries in the output, or
 #  to ignore specific libraries.  We'll do all the work, and just skip
@@ -183,14 +191,16 @@ sub readXML () {
             $end = $1;
         }
         if (m!^\s*<SEQ_LIB_ID>(.*)</!i) {
-            if ($lib eq ".") {
+            if ($useSLI == 1) {
                 $lib = $1;
                 $lib = $seqLibIDFix{$lib} if (exists($seqLibIDFix{$lib}));
             }
         }
-        #if (m!^\s*<LIBRARY_ID>(.*)</!i) {
-        #    $lib = $1;
-        #}
+        if (m!^\s*<LIBRARY_ID>(.*)</!i) {
+            if ($useSLI == 0) {
+                $lib = $1;
+            }
+        }
 
         #if (m!^\s*<RUN_GROUP_ID>(.*)</!i) {
         #    $rgi = $1;
@@ -233,6 +243,9 @@ sub readXML () {
     $clr = "$clrl,$clrr" if (defined($clrl) || defined($clrr));
     $clv = "$clvl,$clvr" if (defined($clvl) || defined($clvr));
     $clq = "$clql,$clqr" if (defined($clql) || defined($clqr));
+
+    $template =~ s/\s+/_/g;
+    $lib      =~ s/\s+/_/g;
 
     return($xid, $type, $template, $end, $lib, $libsize, $libstddev, $clr, $clv, $clq);
 }
@@ -445,6 +458,9 @@ sub runXML ($) {
             ($type eq "SHOTGUN") ||
             ($type eq "CLONEEND") ||
             ($type eq "454")) {
+
+            print STDERR "No LIB found for $xid.\n"  if ($lib eq ".");
+
             print L "$xid\t$template\t$end\t$lib\t$libsize\t$libstddev\t$clr\t$clv\t$clq\n";
         }
     }
