@@ -1,6 +1,109 @@
 #include "bio++.H"
 #include "seqCache.H"
 
+
+static
+int
+u32bit_compare(const void *a, const void *b) {
+  const u32bit A = *((const u32bit *)a);
+  const u32bit B = *((const u32bit *)b);
+  if (A < B)  return(-1);
+  if (A > B)  return(1);
+  return(0);
+}
+
+
+void
+stats(char *filename) {
+  seqCache    *F = new seqCache(filename);
+
+  bool                  V[256];
+  for (u32bit i=0; i<256; i++)
+    V[i] = false;
+  V['n'] = true;
+  V['N'] = true;
+
+  u32bit  numSeq = F->getNumberOfSequences();
+
+  //  sum of spans
+  //  lengths of spans (for N50 computation)
+  //  
+  u64bit    Ss = 0;
+  u32bit   *Ls = new u32bit [numSeq];
+
+  //  sum of bases
+  //  lengths of bases (for N50 computation)
+  //  
+  u64bit    Sb = 0;
+  u32bit   *Lb = new u32bit [numSeq];
+
+  for (u32bit i=0; i<numSeq; i++)
+    Ls[i] = Lb[i] = 0;
+
+  for (u32bit s=0; s<F->getNumberOfSequences(); s++) {
+    seqInCore  *S      = F->getSequenceInCore(s);
+    u32bit      len    = S->sequenceLength();
+    u32bit      span   = len;
+    u32bit      base   = len;
+
+    for (u32bit pos=1; pos<len; pos++) {
+      if (V[S->sequence()[pos]])
+        base--;
+    }
+
+    Ss += span;
+    Sb += base;
+
+    Ls[S->getIID()] = span;
+    Lb[S->getIID()] = base;
+
+    delete S;
+  }
+
+  qsort(Ls, numSeq, sizeof(u32bit), u32bit_compare);
+  qsort(Lb, numSeq, sizeof(u32bit), u32bit_compare);
+
+  u32bit  n50s=0, n50b=0;
+
+  for (u32bit i=0, sum=0; sum < Ss/2; i++) {
+    n50s = Ls[i];
+    sum += Ls[i];
+  }
+
+  for (u32bit i=0, sum=0; sum < Sb/2; i++) {
+    n50b = Lb[i];
+    sum += Lb[i];
+  }
+
+  fprintf(stderr, "%s\n", F->getSourceName());
+  fprintf(stderr, "\n");
+  fprintf(stderr, "numSeqs  "u32bitFMT"\n", F->getNumberOfSequences());
+  fprintf(stderr, "\n");
+  fprintf(stderr, "SPAN\n");
+  fprintf(stderr, "n50      "u32bitFMTW(10)"\n", n50s);
+  fprintf(stderr, "smallest "u32bitFMTW(10)"\n", Ls[0]);
+  fprintf(stderr, "largest  "u32bitFMTW(10)"\n", Ls[numSeq-1]);
+  fprintf(stderr, "totLen   "u64bitFMTW(10)"\n", Ss);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "BASES\n");
+  fprintf(stderr, "n50      "u32bitFMTW(10)"\n", n50b);
+  fprintf(stderr, "smallest "u32bitFMTW(10)"\n", Lb[0]);
+  fprintf(stderr, "largest  "u32bitFMTW(10)"\n", Lb[numSeq-1]);
+  fprintf(stderr, "totLen   "u64bitFMTW(10)"\n", Sb);
+
+  delete [] Ls;
+  delete [] Lb;
+}
+
+
+
+
+
+#if 0
+
+#include "bio++.H"
+#include "seqCache.H"
+
 bool  sortOnN  = false;
 
 struct info {
@@ -111,3 +214,5 @@ main(int argc, char **argv) {
               100.0 * acgtCumulative / acgtLengthTotal);
   }
 }
+
+#endif

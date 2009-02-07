@@ -4,15 +4,15 @@ LIBUTL/     :=$(call MakePath,$/../libutil/)
 LIBBIO/     :=$(call MakePath,$/../libbio/)
 LIBSEQ/     :=$(call MakePath,$/../libseq/)
 
-$/.CXX_SRCS  :=$/leaff.C $/fragmenter.C $/simseq.C $/percentLength.C $/percentGC.C
-$/.CXX_EXES  :=$/leaff   $/fragmenter              $/percentLength   $/percentGC
+$/.CXX_SRCS  :=$/leaff.C $/blocks.C $/dups.C $/gc.C $/partition.C $/simseq.C $/stats.C
+$/.CXX_EXES  :=$/leaff
 
 $/.CLEAN  :=$/*.o
 
-$/leaff                : $/leaff.o $/simseq.o  ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-$/fragmenter           : $/fragmenter.o        ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-$/percentLength        : $/percentLength.o     ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-$/percentGC            : $/percentGC.o         ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/leaff                : $/leaff.o $/blocks.o $/dups.o $/gc.o $/partition.o $/simseq.o $/stats.o \
+                                               ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBIO/} -I${LIBSEQ/} -I${LIBUTL/})
 $(eval $/%.d $/%.o:  CFLAGS  +=-I${LIBBIO/} -I${LIBSEQ/} -I${LIBUTL/})
+
+
