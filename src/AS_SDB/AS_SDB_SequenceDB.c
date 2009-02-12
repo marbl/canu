@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_SDB_SequenceDB.c,v 1.23 2009-01-06 13:45:45 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_SDB_SequenceDB.c,v 1.24 2009-02-12 21:44:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -329,7 +329,13 @@ insertMultiAlignTInSequenceDB(tSequenceDB *db,
   //
   //    with maRecord -- it is in the store -- and not deleted -- and with no
   //    existing multialign stored.
-  assert((maRecord  == NULL )||
+
+  if ((maRecord != NULL) && (maRecord->isDeleted))
+    fprintf(stderr, "ERROR:  attempt to overwrite a deleted multialign (%d).\n", index);
+  if ((maRecord != NULL) && (NULL != GetMultiAlignInStore(maStore,index)))
+    fprintf(stderr, "ERROR:  attempt to overwrite an active multialign (%d).\n", index);
+
+  assert((maRecord == NULL) ||
          (!maRecord->isDeleted && (NULL == GetMultiAlignInStore(maStore,index))));
 
   if (maRecord == NULL) {
