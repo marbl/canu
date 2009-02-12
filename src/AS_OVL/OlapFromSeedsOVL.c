@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.31 2009-01-16 16:46:36 skoren Exp $
- * $Revision: 1.31 $
+ * $Id: OlapFromSeedsOVL.c,v 1.32 2009-02-12 21:44:19 brianwalenz Exp $
+ * $Revision: 1.32 $
 */
 
-const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.31 2009-01-16 16:46:36 skoren Exp $";
+const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.32 2009-02-12 21:44:19 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -729,6 +729,7 @@ static void  Analyze_Frag
    n = Frag [sub] . num_diffs;
    for (i = 0; i < n; i ++)
      {
+       //fprintf(stderr, "Set_Insert_Size: len=%d\n", frag_len);
       Set_Insert_Sizes (insert_size, Frag [sub] . diff_list + i,
            Frag [sub] . sequence, frag_len);
 
@@ -3927,10 +3928,9 @@ static void  Process_Seed
    Sequence_Diff_t  diff;
    char  * a_part, * b_part;
    unsigned  a_len;
-   int  right_delta [AS_FRAG_MAX_LEN+1], right_delta_len;
-   int  left_delta [AS_FRAG_MAX_LEN+1], left_delta_len;
-          //  both right_ and left_delta only MAX_ERRORS needed
-   int  new_delta [AS_FRAG_MAX_LEN+1];  // only MAX_ERRORS needed
+   int  right_delta [AS_FRAG_MAX_LEN+1]={0}, right_delta_len;
+   int  left_delta [AS_FRAG_MAX_LEN+1]={0}, left_delta_len;
+   int  new_delta [AS_FRAG_MAX_LEN+1]={0};
    int  new_errors, new_a_end, new_b_end, new_delta_len, new_match_to_end;
    int  raw_errors, score;
    int  a_part_len, b_part_len, a_end, b_end, olap_len;
@@ -3939,6 +3939,8 @@ static void  Process_Seed
    int  a_offset, b_offset, allowed_errors, remaining_errors, sub;
    int  use_homopoly_type_alignments, re_do;
    int  i, k;
+
+   //  all three delta arrays only need MAX_ERRORS space
 
 //**ALD
    if (Verbose_Level > 0)
@@ -4616,6 +4618,7 @@ static void  Set_Insert_Sizes
               fprintf (stderr, "Insertion before beginning of ref string\n");
               exit(EXIT_FAILURE);
              }
+           assert(j-1 < AS_READ_MAX_LEN);
            if (++ i_ct > insert_size [j - 1])
              insert_size [j - 1] = i_ct;
            break;
