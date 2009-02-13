@@ -314,9 +314,13 @@ sub readQual {
             $q =~ s/^\s+//;
             $q =~ s/\s+$//;
 
-            foreach my $qv (split '\s+', $q) {
-                if ($qv > 60) {$qv = 60;}
-                $qstr .= chr(ord('0') + $qv);
+            if ($q =~ m/\s+/) {
+                foreach my $qv (split '\s+', $q) {
+                    if ($qv > 60) {$qv = 60;}
+                    $qstr .= chr(ord('0') + $qv);
+                }
+            } else {
+                $qstr .= $q;
             }
         }
     }
