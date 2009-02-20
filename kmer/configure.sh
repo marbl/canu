@@ -138,12 +138,12 @@ case $target in
 FAST              := -fast -fPIC
 CC                := gcc
 SHLIB_FLAGS       := -dynamiclib
-CFLAGS_COMPILE    := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
-CLDFLAGS          := 
+CFLAGS_COMPILE    := \$(FAST) -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
+CLDFLAGS          := -m64
 CLIBS             := 
 CXX               := g++
-CXXFLAGS_COMPILE  := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
-CXXLDFLAGS        := 
+CXXFLAGS_COMPILE  := \$(FAST) -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
+CXXLDFLAGS        := -m64
 CXXLIBS           := 
 CXXSHARED         := -Wl,-r -dynamic
 ARFLAGS           := ruvs
@@ -158,12 +158,12 @@ EOF
 #
 CC                := gcc
 SHLIB_FLAGS       := -dynamiclib
-CFLAGS_COMPILE    := -g3 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
-CLDFLAGS          := 
+CFLAGS_COMPILE    := -g3 -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
+CLDFLAGS          := -m64
 CLIBS             := 
 CXX               := g++
-CXXFLAGS_COMPILE  := -g3 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
-CXXLDFLAGS        := 
+CXXFLAGS_COMPILE  := -g3 -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
+CXXLDFLAGS        := -m64
 CXXLIBS           := 
 CXXSHARED         := -Wl,-r -dynamic
 ARFLAGS           := ruvs
