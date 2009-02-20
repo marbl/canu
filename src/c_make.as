@@ -131,8 +131,7 @@ ifeq ($(OSTYPE), Darwin)
     ifeq ($(BUILDDEBUG), 1)
       ARCH_CFLAGS   += -g
     else
-      #  -fast breaks Bri's OS 10.3.9 G5 with "out of stack space" so we backed off to -O3.
-      ARCH_CFLAGS   += -O3
+      ARCH_CFLAGS   += -fast
     endif
   endif
 
