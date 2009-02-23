@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.20 2009-01-16 16:38:42 skoren Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.21 2009-02-23 01:09:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,7 +79,7 @@ sizeOfFile(const char *path) {
   //
   //  bzipped files have no contents and we just guess.
 
-  if        (strcmp(path+strlen(path)-3, ".gz") == 0) {
+  if        (strcasecmp(path+strlen(path)-3, ".gz") == 0) {
     char   cmd[256];
     FILE  *F;
 
@@ -88,7 +88,7 @@ sizeOfFile(const char *path) {
     fscanf(F, " %*s %*s %*s %*s ");
     fscanf(F, " %*d %lld %*s %*s ", &size);
     fclose(F);
-  } else if (strcmp(path+strlen(path)-4, ".bz2") == 0) {
+  } else if (strcasecmp(path+strlen(path)-4, ".bz2") == 0) {
     size = s.st_size * 14 / 10;
   } else {
     size = s.st_size;

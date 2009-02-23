@@ -65,24 +65,24 @@ while (scalar(@ARGV)) {
     } elsif (($arg =~ m/^-f/) || ($arg =~ m/^--f/)) {
         setGlobal("fields", 1);
 
-    } elsif (($arg =~ /\.frg$|frg\.gz$|frg\.bz2$/) && (-e $arg)) {
+    } elsif (($arg =~ /\.frg$|frg\.gz$|frg\.bz2$/i) && (-e $arg)) {
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @fragFiles, $arg;
 
-    } elsif (($arg =~ /\.sff$|sff\.gz$|sff\.bz2$/) && (-e $arg)) {
+    } elsif (($arg =~ /\.sff$|sff\.gz$|sff\.bz2$/i) && (-e $arg)) {
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @fragFiles, $arg;
 
-    } elsif (($arg =~ /\.ace$/) && (-e $arg)) {
+    } elsif (($arg =~ /\.ace$/i) && (-e $arg)) {
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @fragFiles, $arg;
 
-    } elsif (($arg =~ /\.cgb$/) && (-e $arg)) {
+    } elsif (($arg =~ /\.cgb$/i) && (-e $arg)) {
         $isContinuation = 1;
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @cgbFiles, $arg;
 
-    } elsif (($arg =~ /\.cgi$/) && (-e $arg)) {
+    } elsif (($arg =~ /\.cgi$/i) && (-e $arg)) {
         $isContinuation = 1;
         $cgiFile = $arg;
         $cgiFile = "$ENV{'PWD'}/$cgiFile" if ($cgiFile !~ m!^/!);

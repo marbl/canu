@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapFile.c,v 1.13 2008-10-14 03:02:01 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapFile.c,v 1.14 2009-02-23 01:09:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,11 +59,11 @@ AS_OVS_openBinaryOverlapFile(const char *name, int isInternal) {
   errno = 0;
   if        (name == NULL) {
     bof->file = stdin;
-  } else if (strcmp(name+strlen(name)-3, ".gz") == 0) {
+  } else if (strcasecmp(name+strlen(name)-3, ".gz") == 0) {
     sprintf(cmd, "gzip -dc %s", name);
     bof->file = popen(cmd, "r");
     bof->isPopened = TRUE;
-  } else if (strcmp(name+strlen(name)-4, ".bz2") == 0) {
+  } else if (strcasecmp(name+strlen(name)-4, ".bz2") == 0) {
     sprintf(cmd, "bzip2 -dc %s", name);
     bof->file = popen(cmd, "r");
     bof->isPopened = TRUE;
@@ -112,11 +112,11 @@ AS_OVS_createBinaryOverlapFile(const char *name, int isInternal) {
   errno = 0;
   if (name == NULL) {
     bof->file = stdout;
-  } else if (strcmp(name+strlen(name)-3, ".gz") == 0) {
+  } else if (strcasecmp(name+strlen(name)-3, ".gz") == 0) {
     sprintf(cmd, "gzip -9c > %s", name);
     bof->file = popen(cmd, "w");
     bof->isPopened = TRUE;
-  } else if (strcmp(name+strlen(name)-4, ".bz2") == 0) {
+  } else if (strcasecmp(name+strlen(name)-4, ".bz2") == 0) {
     sprintf(cmd, "bzip2 -9c > %s", name);
     bof->file = popen(cmd, "w");
     bof->isPopened = TRUE;

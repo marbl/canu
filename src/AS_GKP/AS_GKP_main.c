@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.77 2009-01-02 06:42:17 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.78 2009-02-23 01:09:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -712,13 +712,13 @@ main(int argc, char **argv) {
 
     AS_MSG_setFormatVersion(1);
 
-    if        (strcmp(argv[firstFileArg] + strlen(argv[firstFileArg]) - 3, ".gz") == 0) {
+    if        (strcasecmp(argv[firstFileArg] + strlen(argv[firstFileArg]) - 3, ".gz") == 0) {
       char  cmd[1024];
       sprintf(cmd, "gzip -dc %s", argv[firstFileArg]);
       errno = 0;
       inFile = popen(cmd, "r");
       fileIsCompressed = 1;
-    } else if (strcmp(argv[firstFileArg] + strlen(argv[firstFileArg]) - 4, ".bz2") == 0) {
+    } else if (strcasecmp(argv[firstFileArg] + strlen(argv[firstFileArg]) - 4, ".bz2") == 0) {
       char  cmd[1024];
       sprintf(cmd, "bzip2 -dc %s", argv[firstFileArg]);
       errno = 0;

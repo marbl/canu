@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.15 2009-01-09 16:04:44 skoren Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.16 2009-02-23 01:09:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -521,12 +521,12 @@ loadSFF(char *sffName) {
 
   fprintf(stderr, "loadSFF()-- Loading '%s'.\n", sffName);
 
-  if        (strcmp(sffName + strlen(sffName) - 3, ".gz") == 0) {
+  if        (strcasecmp(sffName + strlen(sffName) - 3, ".gz") == 0) {
     char  cmd[1024];
     sprintf(cmd, "gzip -dc %s", sffName);
     sff   = popen(cmd, "r");
     fic   = 1;
-  } else if (strcmp(sffName + strlen(sffName) - 4, ".bz2") == 0) {
+  } else if (strcasecmp(sffName + strlen(sffName) - 4, ".bz2") == 0) {
     char  cmd[1024];
     sprintf(cmd, "bzip2 -dc %s", sffName);
     sff   = popen(cmd, "r");
