@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merge-trimming.C,v 1.34 2009-01-27 00:37:32 brianwalenz Exp $";
+const char *mainid = "$Id: merge-trimming.C,v 1.35 2009-02-23 02:23:41 brianwalenz Exp $";
 
 #include "trim.H"
 #include "constants.H"
@@ -565,15 +565,20 @@ main(int argc, char **argv) {
     if (adjr < maxl)  adjr = maxl;
 
     if (adjl == adjr) {
-      fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (deleted, obt clear outside max clear)\n",
+      fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (deleted, obt clear outside specified clear max)\n",
               AS_UID_toString(uid), iid, obtl, obtr, maxl, maxr);
-
       if (doModify)
         delFrag(gkp, iid);
-    } else if ((adjl != obtl) || (adjr != obtr)) {
-      fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (adjusted clear to obey specified clear max)\n",
-              AS_UID_toString(uid), iid, obtl, obtr, adjl, adjr);
 
+    } else if (adjr - adjl < AS_READ_MIN_LEN) {
+      fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (deleted, too small after adjusteding to obey specified clear max)\n",
+              AS_UID_toString(uid), iid, obtl, obtr, adjl, adjr);
+      if (doModify)
+        delFrag(gkp, iid);
+
+    } else if ((adjl != obtl) || (adjr != obtr)) {
+      fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (adjusted to obey specified clear max)\n",
+              AS_UID_toString(uid), iid, obtl, obtr, adjl, adjr);
       if (doModify) {
         setFragRecordClearRegion(&fr, maxl, maxr, AS_READ_CLEAR_OBT);
         setFrag(gkp, iid, &fr);
