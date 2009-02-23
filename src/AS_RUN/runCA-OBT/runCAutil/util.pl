@@ -619,6 +619,8 @@ sub checkDirectories () {
     system("mkdir -p $wrk") if (! -d $wrk);
     chmod 0755, "$wrk";
 
+    $ENV{'AS_RUNCA_DIRECTORY'} = $wrk;
+
     caFailure("ERROR: Directory '$wrk' doesn't exist (-d option) and couldn't be created.\n") if (! -d $wrk);
 }
 

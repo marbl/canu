@@ -19,11 +19,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_global.c,v 1.12 2008-11-13 09:49:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_global.c,v 1.13 2009-02-23 04:07:07 brianwalenz Exp $";
+
+#include "AS_global.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/stat.h>
 #include <math.h>
 
 #ifdef X86_GCC_LINUX
@@ -156,6 +161,75 @@ AS_configure(int argc, char **argv) {
 
   if (AS_CNS_ERROR_RATE != 0.06)
     fprintf(stderr, "%s: AS_configure()-- AS_CNS_ERROR_RATE set to %0.2f\n", argv[0], AS_CNS_ERROR_RATE);
+
+  //
+  //  Logging.
+  //
+
+  p = getenv("AS_RUNCA_DIRECTORY");
+  if (p) {
+    char  D[FILENAME_MAX] = {0};
+    char  N[FILENAME_MAX] = {0};
+    char  H[1024]         = {0};  //  HOST_NAME_MAX?  Undefined.
+    char *E;
+    FILE *F;
+
+    //  Make a directory for logs.  Allow all errors, in particular,
+    //  the error of "directory already exists".
+    //
+    sprintf(D, "%s/runCA-logs", p);
+    mkdir(D, S_IRWXU | S_IXGRP | S_IXOTH);
+
+    //  Our hostname is part of our unique filename.
+    //
+    gethostname(H, 1024);
+
+    //  Our executable name is part of our unique filename too.
+    //
+    E = argv[0] + strlen(argv[0]) - 1;
+    while ((E != argv[0]) && (*E != '/'))
+      E--;
+    if (*E == '/')
+      E++;
+
+    //  Construct a name for this log, and open it.  If we can't open
+    //  it, just skip the log.
+    //
+    sprintf(N, "%s/"F_U64"_%s_"F_U64"_%s",
+            D,
+            (uint64)time(NULL),
+            H,
+            (uint64)getpid(),
+            E);
+
+    fprintf(stderr, "%s\n", N);
+
+    errno = 0;
+    F = fopen(N, "w");
+    if ((errno == 0) && (F)) {
+      fprintf(F, "CA version %s (%s).\n", releaseid, mainid);
+      fprintf(F, "\n");
+
+      fprintf(F, "Error Rates:\n");
+      fprintf(F, "AS_OVL_ERROR_RATE %f\n", AS_OVL_ERROR_RATE);
+      //fprintf(F, "AS_UTG_ERROR_RATE %f\n", AS_UTG_ERROR_RATE);
+      fprintf(F, "AS_CNS_ERROR_RATE %f\n", AS_CNS_ERROR_RATE);
+      fprintf(F, "AS_CGW_ERROR_RATE %f\n", AS_CGW_ERROR_RATE);
+      fprintf(F, "AS_MAX_ERROR_RATE %f\n", AS_MAX_ERROR_RATE);
+      fprintf(F, "\n");
+
+      fprintf(F, "Current Working Directory:\n");
+      fprintf(F, "%s\n", getcwd(N, FILENAME_MAX));
+      fprintf(F, "\n");
+      fprintf(F, "Command:\n");
+      fprintf(F, "%s", argv[0]);
+      for (i=1; i<argc; i++)
+        fprintf(F, " \\\n  %s", argv[i]);
+      fprintf(F, "\n");
+    }
+
+    fclose(F);
+  }
 
   return(argc);
 }
