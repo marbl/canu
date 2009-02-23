@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.32 2009-02-12 21:44:19 brianwalenz Exp $
- * $Revision: 1.32 $
+ * $Id: OlapFromSeedsOVL.c,v 1.33 2009-02-23 01:15:30 brianwalenz Exp $
+ * $Revision: 1.33 $
 */
 
-const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.32 2009-02-12 21:44:19 brianwalenz Exp $";
+const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.33 2009-02-23 01:15:30 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -706,8 +706,8 @@ static void  Analyze_Frag
   {
    New_Vote_t  * vote;
    Sequence_Diff_t  * mod_dp;
-   char  correct [2 * MAX_FRAG_LEN];  // correction string
-   short unsigned  insert_size [MAX_FRAG_LEN];
+   char  correct [2 * MAX_FRAG_LEN] = {0};  // correction string
+   short unsigned  insert_size [MAX_FRAG_LEN] = {0};
    char  * mod_seq;
    int  frag_len, mod_len;
    int  i, n;
@@ -723,8 +723,6 @@ static void  Analyze_Frag
      }
 
    frag_len = strlen (Frag [sub] . sequence);
-   for (i = 0; i < frag_len; i++)
-     insert_size [i] = 0;
 
    n = Frag [sub] . num_diffs;
    for (i = 0; i < n; i ++)
@@ -2939,7 +2937,11 @@ static void  Init_Thread_Work_Area
    assert (sizeof (int) == sizeof (Homopoly_Match_Entry_t));
    wa -> homopoly_edit_array = (Homopoly_Match_Entry_t **) wa -> edit_array;
    wa -> edit_space = (int *) safe_malloc((MAX_ERRORS + 4) * MAX_ERRORS * sizeof(int));
-   wa -> banded_space = (Alignment_Cell_t *) safe_calloc (20 * MAX_FRAG_LEN,
+
+   //  Increase space from original 20 to ridiculous 200.
+#warning potential out of bounds in banded_space (hit in Fwd_Banded_Homopoly_Prefix_Match)
+
+   wa -> banded_space = (Alignment_Cell_t *) safe_calloc (200 * MAX_FRAG_LEN,
         sizeof (Alignment_Cell_t));
 
    offset = 2;
@@ -4618,9 +4620,9 @@ static void  Set_Insert_Sizes
               fprintf (stderr, "Insertion before beginning of ref string\n");
               exit(EXIT_FAILURE);
              }
-           assert(j-1 < AS_READ_MAX_LEN);
-           if (++ i_ct > insert_size [j - 1])
-             insert_size [j - 1] = i_ct;
+           if (j-1 < AS_READ_MAX_LEN)
+             if (++ i_ct > insert_size [j - 1])
+               insert_size [j - 1] = i_ct;
            break;
          case 1 :    // delete
          case 2 :    // substitute
@@ -4632,6 +4634,8 @@ static void  Set_Insert_Sizes
            break;
         }
      }
+
+   assert(j-1 <= AS_READ_MAX_LEN);
 
    return;
   }

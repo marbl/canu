@@ -19,13 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: SharedOVL.c,v 1.10 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid = "$Id: SharedOVL.c,v 1.11 2009-02-23 01:15:30 brianwalenz Exp $";
 
 #include  "SharedOVL.h"
 
 
-//**ALD
-#define  MAX_SEQUENCE_LEN  2048
 
 int  Fwd_Banded_Homopoly_Prefix_Match
   (const char * AA, int m, const char * TT, int n, int A_is_homopoly,
@@ -58,7 +56,7 @@ int  Fwd_Banded_Homopoly_Prefix_Match
    double  max_score, partial_score;
    int  max_score_best_row, max_score_best_col;
    int  max_score_hpscore, max_score_errs;
-   int  indent [MAX_SEQUENCE_LEN], width [MAX_SEQUENCE_LEN];
+   int  indent [AS_READ_MAX_LEN], width [AS_READ_MAX_LEN];
    int  best_row, best_col, best_score, best_errors;
    int  cutoff_score, global_best, last_row = 0;
    int  te, ts;  // temporary values for errors and score
