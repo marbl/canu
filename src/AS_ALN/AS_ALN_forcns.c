@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.18 2009-02-04 23:12:45 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.19 2009-02-23 20:42:52 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -405,18 +405,22 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
     al.endJ = al.lenB - x;
   }
 
-  if ((al.begJ != 0) && (al.begI != 0)) {
-    fprintf(stderr, "Hmmm.  We failed to find an end-to-end alignment.  Discard this alignment.\n");
-
-    fprintf(stderr, "ALIGN %s\n", a);
-    fprintf(stderr, "ALIGN %s\n", b);
-    fprintf(stderr, "ALIGN len=%d matches=%d %d-%d %d-%d opposite=%d\n", al.alignLen, al.matches, al.begI, al.endI, al.begJ, al.endJ, opposite);
-    fprintf(stderr, "ALIGN '%s'\n", m->h_alignA);
-    fprintf(stderr, "ALIGN '%s'\n", m->h_alignB);
-
-    //return(NULL);
-  }
-  assert((al.begJ == 0) || (al.begI == 0));
+  //  We don't expect partial overlaps here.  At least one fragment
+  //  must have an alignment to the very start.
+  //
+  //  ECR depends on this return value; it is allowed to fail
+  //  when building a new unitig multialign.  For example:
+  //
+  //  <-----------------------
+  //        ------>
+  //
+  //  When ECR tries to extend the second fragment, it checks that
+  //  the extended fragment overlaps the next contig.  It does not
+  //  check that the extended bits agree with the first fragment,
+  //  leaving that up to "does the unitig rebuild".
+  //
+  if ((al.begJ != 0) && (al.begI != 0))
+    return(NULL);
 
   o.begpos  = al.begI;
   o.endpos  = al.lenB - al.endJ;
