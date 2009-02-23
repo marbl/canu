@@ -46,6 +46,10 @@ sub runMeryl ($$$$$$) {
             my $merylMemory  = getGlobal("merylMemory");
 	    my $merylThreads = getGlobal("merylThreads");
 
+            if ($merylMemory !~ m/^-/) {
+                $merylMemory = "-memory $merylMemory";
+            }
+
             #  A small optimization we could do if (a) not mer
             #  overlapper, (b) not auto threshold: only save mer
             #  counts above the smaller (of obt & ovl thresholds).
@@ -59,7 +63,7 @@ sub runMeryl ($$$$$$) {
             #  higher.
 
             $cmd  = "$bin/meryl ";
-            $cmd .= " -B $merCanonical -v -m $merSize -memory $merylMemory -threads $merylThreads -c $merComp ";
+            $cmd .= " -B $merCanonical -v -m $merSize $merylMemory -threads $merylThreads -c $merComp ";
             $cmd .= " -L 2 ";
             $cmd .= " -s $wrk/$asm.gkpStore:obt ";
             $cmd .= " -o $ofile ";
