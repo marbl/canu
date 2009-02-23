@@ -142,11 +142,15 @@ sub runMeryl ($$$$$$) {
         }
 
         if ($merThresh eq "auto") {
-            print STDERR "ERROR!  auto picking a mer threshold not supported without installing kmer\n";
-            print STDERR "        (http://sourceforge.net/projects/kmer/).\n";
-            print STDERR "If you have installed kmer, then your build is broken, as I\n";
-            print STDERR "did not find the correct 'meryl' (meryl -V should have said Mighty).\n";
-            die;
+            print STDERR "WARNING!  auto picking a mer threshold not supported without installing kmer\n";
+            print STDERR "          (http://sourceforge.net/projects/kmer/).\n";
+            print STDERR "Using historical defaults.\n";
+
+            if ($merType eq "obt") {
+                $merThresh = 1000;
+            } else {
+                $merThresh = 500;
+            }
         }
 
         if (! -e $ofile) {
