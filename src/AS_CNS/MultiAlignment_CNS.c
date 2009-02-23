@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.228 2009-01-26 19:41:09 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.229 2009-02-23 20:43:28 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -4491,18 +4491,6 @@ GetAlignmentTraceDriver(Fragment *afrag, int32 aoffset,
                         int max_gap) {
   double AS_CNS_ERROR_RATE_SAVE = AS_CNS_ERROR_RATE;
 
-#if 0
-  fprintf(stderr, "%s Attempting alignment of afrag %d (%c) and bfrag %d (%c) with ahang %d erate %1.4f (Optimal_Overlap)\n",
-          (is_contig == 'c') ? "MultiAlignContig()--" : "MultiAlignUnitig()--",
-          afrag->iid,
-          afrag->type,
-          bfrag->iid,
-          bfrag->type,
-          *ahang,
-          AS_CNS_ERROR_RATE);
-
-  return(GetAlignmentTrace(afrag->lid, 0, bfrag->lid, ahang, bhang, expected_length, trace, otype, Optimal_Overlap_AS_forCNS, DONT_SHOW_OLAP, 0, AS_CONSENSUS, AS_CNS_ERROR_RATE));
-#endif
 
   for (; (AS_CNS_ERROR_RATE < AS_CNS_ERROR_RATE_SAVE + 0.02); AS_CNS_ERROR_RATE += 0.0025) {
 
@@ -7791,8 +7779,9 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
     offsets[fid].bgn = complement ? unitig->f_list[i].position.end : unitig->f_list[i].position.bgn;
     offsets[fid].end = complement ? unitig->f_list[i].position.bgn : unitig->f_list[i].position.end;
 
-    //fprintf(stderr,"MultiAlignUnitig()-- Added fragment %d (%d-%d) in unitig %d to store at local id %d.\n",
-    //        unitig->f_list[i].ident, unitig->f_list[i].position.bgn, unitig->f_list[i].position.end, unitig->iaccession, fid);
+    if (VERBOSE_MULTIALIGN_OUTPUT)
+      fprintf(stderr,"MultiAlignUnitig()-- Added fragment %d (%d-%d) in unitig %d to store at local id %d.\n",
+              unitig->f_list[i].ident, unitig->f_list[i].position.bgn, unitig->f_list[i].position.end, unitig->iaccession, fid);
   }
 
   SeedMAWithFragment(ma->lid, GetFragment(fragmentStore,0)->lid,0, opp);
