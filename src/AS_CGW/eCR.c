@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.44 2009-02-02 13:51:14 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.45 2009-02-23 20:41:40 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -238,6 +238,12 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-S") == 0) {
       gapSkip[gapSkipLen++] = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-D") == 0) {
+      arg++;
+      if (strcmp(argv[arg], "verbosemultialign") == 0) {
+        VERBOSE_MULTIALIGN_OUTPUT = 1;
+      }
 
     } else {
       fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
