@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.33 2009-02-23 01:15:30 brianwalenz Exp $
- * $Revision: 1.33 $
+ * $Id: OlapFromSeedsOVL.c,v 1.34 2009-02-24 05:45:21 brianwalenz Exp $
+ * $Revision: 1.34 $
 */
 
-const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.33 2009-02-23 01:15:30 brianwalenz Exp $";
+const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.34 2009-02-24 05:45:21 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -880,6 +880,7 @@ if (0)
    for (i = 0; i < n; i ++)
      safe_free (mod_dp [i] . de);
    safe_free (mod_dp);
+   safe_free (mod_seq);
    safe_free (vote);
 
    return;
@@ -2621,7 +2622,10 @@ static void  Extract_Needed_Frags
       while  ((* next_olap) < Num_Olaps
                 && Olap [(* next_olap)] . b_iid == frag_iid)
         (* next_olap) ++;
-      frag_iid = Olap [(* next_olap)] . b_iid;
+
+      frag_iid = hi_frag;
+      if ((* next_olap) < Num_Olaps)
+        frag_iid = Olap [(* next_olap)] . b_iid;
      }
 
 #ifdef USE_STREAM_FOR_EXTRACT
@@ -3653,7 +3657,7 @@ static void  Output_Olap_From_Diff
 // Output the overlap described in  dp  which is wrt read  Frag [sub] .
 
   {
-   OVSoverlap  overlap;
+    OVSoverlap  overlap = {0};
    double  qual;
    char  dir;
    int32  a_iid, a_len;
