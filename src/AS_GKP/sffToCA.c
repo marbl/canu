@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.16 2009-02-23 01:09:13 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.17 2009-02-25 19:58:09 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1504,11 +1504,6 @@ main(int argc, char **argv) {
         search[0]    = TRUE;
         haveLinker   = TRUE;
       }
-      else if (strcasecmp(argv[arg], "fix") == 0) {
-        search[1]    = TRUE;
-        search[2]    = TRUE;
-        haveLinker   = TRUE;
-      }
       else if (strcasecmp(argv[arg], "titanium") == 0) {
         search[1]    = TRUE;
         search[2]    = TRUE;
@@ -1575,16 +1570,14 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -linker [name | seq]   Search for linker, created mated reads.\n");
     fprintf(stderr, "                         Name is one of:\n");
-    fprintf(stderr, "                           'flx' == %s\n", linkerFLX);
-    fprintf(stderr, "                           'fix' == %s and %s\n", linkerFIX, linkerRevFIX);
-    fprintf(stderr, "                           'titanium' is the same as 'fix'\n");
+    fprintf(stderr, "                           'flx'      == %s\n", linkerFLX);
+    fprintf(stderr, "                           'titanium' == %s and %s\n", linkerFIX, linkerRevFIX);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -output f.frg          Write the CA formatted fragments to this file.\n");
     fprintf(stderr, "  -log    l.txt          Human readable log of what happened.\n");
     fprintf(stderr, "  -logmates              Also include information about mate splitting in the log.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "FOR FLX READS:      historical usage is '-clear none -nread discard'.\n");
-    fprintf(stderr, "FOR TITANIUM READS: best results obtained with '-clear hard'.\n");
+    fprintf(stderr, "See http://apps.sourceforge.net/mediawiki/wgs-assembler/index.php?title=Formatting_Inputs\n");
     fprintf(stderr, "\n");
 
     for (err=0; err<bogusOptionsLen; err++)
