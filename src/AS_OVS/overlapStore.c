@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.18 2008-12-16 22:33:26 skoren Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.19 2009-02-25 19:57:32 brianwalenz Exp $";
 
 #include "overlapStore.h"
 
@@ -182,12 +182,14 @@ main(int argc, char **argv) {
     fprintf(stderr, "       %s -d storeName [-B] [-E erate] [-b beginIID] [-e endIID]\n", argv[0]);
     fprintf(stderr, "       %s -s storeName\n", argv[0]);
     fprintf(stderr, "       %s -S storeName -g gkpStore\n", argv[0]);
+    fprintf(stderr, "       %s -q a b storeName\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -c create a new store, fails if the store exists\n");
-    fprintf(stderr, "  -m merge store mergeName into store storeName\n");
-    fprintf(stderr, "  -d dump a store\n");
-    fprintf(stderr, "  -s dump statistics about a store\n");
-    fprintf(stderr, "  -S recompute overlap statistics\n");
+    fprintf(stderr, "  -c  create a new store, fails if the store exists\n");
+    fprintf(stderr, "  -m  merge store mergeName into store storeName\n");
+    fprintf(stderr, "  -d  dump a store\n");
+    fprintf(stderr, "  -s  dump statistics about a store\n");
+    fprintf(stderr, "  -S  recompute overlap statistics\n");
+    fprintf(stderr, "  -q  Report the a,b overlap, if it exists.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "CREATION\n");
     fprintf(stderr, "\n");
@@ -208,7 +210,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -E erate          Dump only overlaps <= erate error.\n");
     fprintf(stderr, "  -b beginIID       Start dumping at 'beginIID'.\n");
     fprintf(stderr, "  -e endIID         Stop dumping after 'endIID'.\n");
-    fprintf(stderr, "  -q a b ovlStore   Report the a,b overlap.\n");
     fprintf(stderr, "\n");
     exit(1);
   }
