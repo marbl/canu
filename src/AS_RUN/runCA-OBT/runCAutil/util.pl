@@ -197,6 +197,10 @@ sub setDefaults () {
     #  5) UPDATE THE DOCUMENTATION.
     #
 
+    #####  General Configuration Options (aka miscellany)
+
+    $global{"pathMap"}                     = undef;
+
     #####  Error Rates
 
     $global{"ovlErrorRate"}                = 0.06;
@@ -207,15 +211,6 @@ sub setDefaults () {
     #####  Stopping conditions
 
     $global{"stopAfter"}                   = undef;
-
-    #####  General Configuration Options (aka miscellany)
-
-    $global{"doBackupFragStore"}           = 1;
-
-    $global{"fakeUIDs"}                    = 0;
-    $global{"uidServer"}                   = undef;
-
-    $global{"pathMap"}                     = undef;
 
     #####  Sun Grid Engine
 
@@ -243,15 +238,17 @@ sub setDefaults () {
     #####  Preoverlap
 
     $global{"gkpFixInsertSizes"}           = 1;
-    $global{"sffIsPairedEnd"}              = 1;
+
+    #####  Vector Trimming
+
+    $global{"vectorIntersect"}             = undef;
+    $global{"vectorTrimmer"}               = "ca";
+    $global{"figaroFlags"}                 = "-T 30 -M 100 -E 500 -V f";
 
     #####  Overlap Based Trimming
 
     $global{"perfectTrimming"}             = undef;  #  SECRET!
     $global{"doOverlapTrimming"}           = 1;
-    $global{"vectorIntersect"}             = undef;
-    $global{"vectorTrimmer"}               = "ca";
-    $global{"figaroFlags"}                 = "-T 30 -M 100 -E 500 -V f";
 
     #####  Overlapper
 
@@ -303,8 +300,6 @@ sub setDefaults () {
     $global{"unitigger"}                   = "utg";
 
     $global{"utgGenomeSize"}               = undef;
-    $global{"utgEdges"}                    = undef;
-    $global{"utgFragments"}                = undef;
     $global{"utgBubblePopping"}            = 1;
     $global{"utgRecalibrateGAR"}           = 1;
 
@@ -340,6 +335,9 @@ sub setDefaults () {
     $global{"consensus"}                   = "cns";
 
     #####  Terminator Options
+
+    $global{"fakeUIDs"}                    = 0;
+    $global{"uidServer"}                   = undef;
 
     $global{"createAGP"}                   = 0;
     $global{"createACE"}                   = 0;
@@ -737,10 +735,7 @@ sub restoreFragStoreBackup ($) {
 sub backupFragStore ($) {
     my $backupName = shift @_;
 
-    return if (getGlobal("doBackupFragStore") == 0);
     return if (-e "$wrk/$asm.gkpStore/frg.$backupName");
-
-    print STDERR "Backing up the gkpStore to $backupName.\n";
 
     if (system("cp -p $wrk/$asm.gkpStore/frg $wrk/$asm.gkpStore/frg.$backupName")) {
         unlink "$wrk/$asm.gkpStore/frg.$backupName";

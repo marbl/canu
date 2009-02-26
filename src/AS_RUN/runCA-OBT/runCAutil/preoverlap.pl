@@ -196,7 +196,6 @@ sub preoverlap {
         $cmd .= " -o $wrk/$asm.gkpStore.BUILDING ";
         $cmd .= " -T " if (getGlobal("doOverlapTrimming"));
         $cmd .= " -F " if (getGlobal("gkpFixInsertSizes"));
-        $cmd .= " -L " if (getGlobal("sffIsPairedEnd") == 1);
         $cmd .= " -E $wrk/$asm.gkpStore.errorLog ";
         $cmd .= "$gkpInput ";
         $cmd .= "> $wrk/$asm.gkpStore.err 2>&1";

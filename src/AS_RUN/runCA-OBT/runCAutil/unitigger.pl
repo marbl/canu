@@ -58,16 +58,12 @@ sub unitigger (@) {
             $cmd .= " -o $wrk/4-unitigger/$asm ";
             $cmd .= " > $wrk/4-unitigger/unitigger.out 2>$wrk/4-unitigger/unitigger.err";
         } elsif ($unitigger eq "utg") {
-            my $m = getGlobal("utgEdges");
-            my $n = getGlobal("utgFragments");
             my $u = getGlobal("utgBubblePopping");
 
             $cmd  = "$bin/unitigger ";
             $cmd .= " -k " if (getGlobal("utgRecalibrateGAR") == 1);
             $cmd .= " -B $B ";
             $cmd .= " -l $l " if defined($l);
-            $cmd .= " -m $m " if defined($m);
-            $cmd .= " -n $n " if defined($n);
             $cmd .= " -d 1 -x 1 -z 10 -j 5 -U $u ";
             $cmd .= " -e $e ";
             $cmd .= " -F $wrk/$asm.gkpStore ";
