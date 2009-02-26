@@ -8,6 +8,7 @@ use Cwd;
 use vars qw($wrk $asm);
 use vars qw($numFrags);
 use vars qw(%global);
+use vars qw(%synops);
 use vars qw($commandLineOptions);
 use POSIX qw(ceil floor);
 
