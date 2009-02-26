@@ -200,166 +200,319 @@ sub setDefaults () {
     #####  General Configuration Options (aka miscellany)
 
     $global{"pathMap"}                     = undef;
+    $synops{"pathMap"}                     = "File with a hostname to binary directory map";
 
     #####  Error Rates
 
     $global{"ovlErrorRate"}                = 0.06;
+    $synops{"ovlErrorRate"}                = "Overlaps above this error rate are not computed";
+
     $global{"utgErrorRate"}                = 0.015;
+    $synops{"utgErrorRate"}                = "Overlaps above this error rate are not used to construct unitigs";
+
     $global{"cnsErrorRate"}                = 0.06;
+    $synops{"cnsErrorRate"}                = "Consensus expects alignments at about this error rate";
+
     $global{"cgwErrorRate"}                = 0.10;
+    $synops{"cgwErrorRate"}                = "Unitigs/Contigs are not merged if they align above this error rate";
 
     #####  Stopping conditions
 
     $global{"stopAfter"}                   = undef;
+    $synops{"stopAfter"}                   = "Tell runCA when to halt execution";
 
     #####  Sun Grid Engine
 
     $global{"useGrid"}                     = 0;
+    $synops{"useGrid"}                     = "Enable SGE globally";
+
     $global{"scriptOnGrid"}                = 0;
+    $synops{"scriptOnGrid"}                = "Enable SGE for runCA (and unitigger, scaffolder, other sequential phases)";
 
     $global{"ovlOnGrid"}                   = 1;
-    $global{"frgCorrOnGrid"}               = 0;
-    $global{"ovlCorrOnGrid"}               = 0;
-    $global{"cnsOnGrid"}                   = 1;
+    $synops{"ovlOnGrid"}                   = "Enable SGE for overlap computations";
 
-    $global{"maxGridJobSize"}		   = undef;
+    $global{"frgCorrOnGrid"}               = 0;
+    $synops{"frgCorrOnGrid"}               = "Enable SGE for the fragment error correction";
+
+    $global{"ovlCorrOnGrid"}               = 0;
+    $synops{"ovlCorrOnGrid"}               = "Enable SGE for the overlap error correction";
+
+    $global{"cnsOnGrid"}                   = 1;
+    $synops{"cnsOnGrid"}                   = "Enable SGE for consensus";
+
+    $global{"maxGridJobSize"}              = undef;
+    $synops{"maxGridJobSize"}              = "";
 
     $global{"sge"}                         = undef;
+    $synops{"sge"}                         = "SGE options applied to all SGE jobs";
+
     $global{"sgeScript"}                   = undef;
+    $synops{"sgeScript"}                   = "SGE options applied to runCA jobs (and unitigger, scaffolder, other sequential phases)";
+
     $global{"sgeOverlap"}                  = undef;
+    $synops{"sgeOverlap"}                  = "SGE options applied to overlap computation jobs";
+
     $global{"sgeMerOverlapSeed"}           = undef;
+    $synops{"sgeMerOverlapSeed"}           = "SGE options applied to mer overlap seed (overmerry) jobs";
+
     $global{"sgeMerOverlapExtend"}         = undef;
+    $synops{"sgeMerOverlapExtend"}         = "SGE options applied to mer overlap extend (olap-from-seeds) jobs";
+
     $global{"sgeConsensus"}                = undef;
+    $synops{"sgeConsensus"}                = "SGE options applied to consensus jobs";
+
     $global{"sgeFragmentCorrection"}       = undef;
+    $synops{"sgeFragmentCorrection"}       = "SGE options applied to fragment error correction jobs";
+
     $global{"sgeOverlapCorrection"}        = undef;
+    $synops{"sgeOverlapCorrection"}        = "SGE options applied to overlap error correction jobs";
 
     $global{"sgePropagateHold"}            = undef;
+    $synops{"sgePropagateHold"}            = undef;  #  Internal option
 
     #####  Preoverlap
 
     $global{"gkpFixInsertSizes"}           = 1;
+    $synops{"gkpFixInsertSizes"}           = "Update stddev to 0.10 * mean if it is too large";
 
     #####  Vector Trimming
 
     $global{"vectorIntersect"}             = undef;
+    $synops{"vectorIntersect"}             = "File of vector clear ranges";
+
     $global{"vectorTrimmer"}               = "ca";
+    $synops{"vectorTrimmer"}               = "Use the CA default vector trimmer, or figaro";
+
     $global{"figaroFlags"}                 = "-T 30 -M 100 -E 500 -V f";
+    $synops{"figaroFlags"}                 = "Options to the figaro vector trimmer";
 
     #####  Overlap Based Trimming
 
     $global{"perfectTrimming"}             = undef;  #  SECRET!
+    $synops{"perfectTrimming"}             = undef;  #  SECRET!
+
     $global{"doOverlapTrimming"}           = 1;
+    $synops{"doOverlapTrimming"}           = "Enable the Overlap Based Trimming module";
 
     #####  Overlapper
 
     $global{"obtOverlapper"}               = "ovl";
+    $synops{"obtOverlapper"}               = "Which overlap algorithm to use for OBT overlaps";
+
     $global{"ovlOverlapper"}               = "ovl";
+    $synops{"ovlOverlapper"}               = "Which overlap algorithm to use for OVL (unitigger) overlaps";
+
     $global{"ovlStoreMemory"}              = 1024;
+    $synops{"ovlStoreMemory"}              = "How much memory (MB) to use when constructing overlap stores";
 
     $global{"ovlThreads"}                  = 2;
+    $synops{"ovlThreads"}                  = "Number of threads to use when computing overlaps";
+
     $global{"ovlStart"}                    = 1;
+    $synops{"ovlStart"}                    = "Starting fragment for overlaps (EXPERT!)";
+
     $global{"ovlHashBlockSize"}            = 200000;
+    $synops{"ovlHashBlockSize"}            = "Number of fragments to load into the in-core overlap hash table";
+
     $global{"ovlRefBlockSize"}             = 2000000;
+    $synops{"ovlRefBlockSize"}             = "Number of fragments to search against the hash table per batch";
+
     $global{"ovlMemory"}                   = "2GB";
+    $synops{"ovlMemory"}                   = "Amount of memory to use for overlaps";
 
     $global{"ovlMerSize"}                  = 22;
+    $synops{"ovlMerSize"}                  = "K-mer size for seeds in overlaps";
+
     $global{"ovlMerThreshold"}             = "auto";
+    $synops{"ovlMerThreshold"}             = "K-mer frequency threshold; mers more frequent than this are ignored";
 
     $global{"obtMerSize"}                  = 22;
+    $synops{"obtMerSize"}                  = "K-mer size";
+
     $global{"obtMerThreshold"}             = "auto";
+    $synops{"obtMerThreshold"}             = "K-mer frequency threshold; mers more frequent than this are ignored";
 
     $global{"merCompression"}              = 1;
+    $synops{"merCompression"}              = "K-mer size";
+
     $global{"merOverlapperThreads"}        = 2;
+    $synops{"merOverlapperThreads"}        = "Number of threads to use in the mer overlapper";
+
     $global{"merOverlapperSeedBatchSize"}  = 100000;
-    $global{"merOverlapperExtendBatchSize"}= 75000;
-    $global{"merOverlapperCorrelatedDiffs"}= 0;
+    $synops{"merOverlapperSeedBatchSize"}  = "Number of fragments in a mer overlapper seed finding batch; directly affects memory usage";
 
-    $global{"merOverlapperSeedConcurrency"}  = 1;
+    $global{"merOverlapperExtendBatchSize"}= 75000;
+    $synops{"merOverlapperExtendBatchSize"}= "Number of fragments in a mer overlapper seed extension batch; directly affects memory usage";
+
+    $global{"merOverlapperCorrelatedDiffs"}= 0;
+    $synops{"merOverlapperCorrelatedDiffs"}= "EXPERIMENTAL!";
+
+    $global{"merOverlapperSeedConcurrency"}= 1;
+    $synops{"merOverlapperSeedConcurrency"}= "If not SGE, number of mer overlapper seed finding processes to run at the same time";
+
     $global{"merOverlapperExtendConcurrency"}= 1;
+    $synops{"merOverlapperExtendConcurrency"}= "If not SGE, number of mer overlapper seed extension processes to run at the same time";
 
     $global{"merOverlapperThreads"}        = 2;
+    $synops{"merOverlapperThreads"}        = "Number of threads to use for both mer overlapper seed finding and extension jobs";
 
     $global{"umdOverlapperFlags"}          = "-use-uncleaned-reads -trim-error-rate 0.03 -max-minimizer-cutoff 150";
+    $synops{"umdOverlapperFlags"}          = "Options for the UMD overlapper";
 
     #####  Mers
 
     $global{"merylMemory"}                 = 800;
+    $synops{"merylMemory"}                 = "Amount of memory, in MB, to use for mer counting";
+
     $global{"merylThreads"}                = 1;
+    $synops{"merylThreads"}                = "Number of threads to use for mer counting";
 
     #####  Fragment/Overlap Error Correction
 
     $global{"frgCorrBatchSize"}            = 200000;
+    $synops{"frgCorrBatchSize"}            = "Number of fragments per fragment error detection batch, directly affects memory usage";
+
     $global{"doFragmentCorrection"}        = 1;
+    $synops{"doFragmentCorrection"}        = "Do overlap error correction";
+
     $global{"frgCorrThreads"}              = 2;
+    $synops{"frgCorrThreads"}              = "Number of threads to use while computing fragment errors";
+
     $global{"frgCorrConcurrency"}          = 1;
+    $synops{"frgCorrConcurrency"}          = "If not SGE, number of fragment error detection processes to run at the same time";
+
     $global{"ovlCorrBatchSize"}            = 200000;
+    $synops{"ovlCorrBatchSize"}            = "Number of fragments per overlap error correction batch";
+
     $global{"ovlCorrConcurrency"}          = 4;
+    $synops{"ovlCorrConcurrency"}          = "If not SGE, number of overlap error correction processes to run at the same time";
 
     #####  Unitigger & BOG Options
 
     $global{"unitigger"}                   = "utg";
+    $synops{"unitigger"}                   = "Which unitig algorithm to use; utg or bog (Best Overlap Graph)";
 
     $global{"utgGenomeSize"}               = undef;
+    $synops{"utgGenomeSize"}               = "An estimate of the size of the genome; decides if unitigs are unique or repeats";
+
     $global{"utgBubblePopping"}            = 1;
+    $synops{"utgBubblePopping"}            = "Smooth polymorphic regions";
+
     $global{"utgRecalibrateGAR"}           = 1;
+    $synops{"utgRecalibrateGAR"}           = "Use an experimental algorithm to decide unique/repeat";
 
     $global{"bogPromiscuous"}              = 0;
+    $synops{"bogPromiscuous"}              = "EXPERT!";
+
     $global{"bogEjectUnhappyContain"}      = 0;
+    $synops{"bogEjectUnhappyContain"}      = "EXPERT!";
+
     $global{"bogBadMateDepth"}             = 7;
+    $synops{"bogBadMateDepth"}             = "EXPERT!";
 
     #####  Scaffolder Options
 
     $global{"cgwOutputIntermediate"}       = 0;
-    $global{"cgwPurgeCheckpoints"}         = 1;
-    $global{"cgwDemoteRBP"}                = 1;
-    $global{"cgwUseUnitigOverlaps"}        = 0;
+    $synops{"cgwOutputIntermediate"}       = "Output .cgw files for intermediate scaffolding (advanced)";
 
-    $global{"astatLowBound"}		   = 1;
-    $global{"astatHighBound"}		   = 5;
+    $global{"cgwPurgeCheckpoints"}         = 1;
+    $synops{"cgwPurgeCheckpoints"}         = "Remove cgw checkpoint files when a scaffolding step finishes successfully";
+
+    $global{"cgwDemoteRBP"}                = 1;
+    $synops{"cgwDemoteRBP"}                = "EXPERT!";
+
+    $global{"cgwUseUnitigOverlaps"}        = 0;
+    $synops{"cgwUseUnitigOverlaps"}        = "Use unused best overlaps (from BOG) in scaffolder (EXPERIMENTAL)";
+
+    $global{"astatLowBound"}               = 1;
+    $synops{"astatLowBound"}               = "EXPERT!";
+
+    $global{"astatHighBound"}              = 5;
+    $synops{"astatHighBound"}              = "EXPERT!";
 
     $global{"stoneLevel"}                  = 2;
+    $synops{"stoneLevel"}                  = "EXPERT!";
 
     $global{"computeInsertSize"}           = 0;
+    $synops{"computeInsertSize"}           = "Compute a scratch scaffolding to estimate insert sizes";
+
     $global{"cgwDistanceSampleSize"}       = 100;
+    $synops{"cgwDistanceSampleSize"}       = "Require N mates to reestimate insert sizes";
 
     $global{"doResolveSurrogates"}         = 1;
+    $synops{"doResolveSurrogates"}         = "Place fragments in surrogates in the final assembly";
 
     $global{"doExtendClearRanges"}         = 2;
+    $synops{"doExtendClearRanges"}         = "Enable the clear range extension heuristic";
+
     $global{"extendClearRangesStepSize"}   = undef;
+    $synops{"extendClearRangesStepSize"}   = "Batch N scaffolds per ECR run";
 
     #####  Consensus Options
 
     $global{"cnsPartitions"}               = 128;
+    $synops{"cnsPartitions"}               = "Partition consensus into N jobs";
+
     $global{"cnsMinFrags"}                 = 75000;
+    $synops{"cnsMinFrags"}                 = "Don't make a consensus partition with fewer than N fragments";
+
     $global{"cnsConcurrency"}              = 2;
+    $synops{"cnsConcurrency"}              = "If not SGE, number of consensus jobs to run at the same time";
+
     $global{"consensus"}                   = "cns";
+    $synops{"consensus"}                   = "Which consensus algorithm to use; currently only 'cns' is supported";
 
     #####  Terminator Options
 
     $global{"fakeUIDs"}                    = 0;
+    $synops{"fakeUIDs"}                    = "Don't query a UID server, use UIDs specific to this assembly";
+
     $global{"uidServer"}                   = undef;
+    $synops{"uidServer"}                   = "EXPERT!";
 
     $global{"createAGP"}                   = 0;
+    $synops{"createAGP"}                   = "Create an AGP file for the assembly";
+
     $global{"createACE"}                   = 0;
+    $synops{"createACE"}                   = "Create an ACE file for the assembly";
+
     $global{"createPosMap"}                = 1;
+    $synops{"createPosMap"}                = "Create the POSMAP files for the assembly";
 
     $global{"merQC"}                       = 0;
+    $synops{"merQC"}                       = "Compute a mer-based QC for the assembly";
+
     $global{"merQCmemory"}                 = 1024;
+    $synops{"merQCmemory"}                 = "Memory to use for the mer-based QC";
+
     $global{"merQCmerSize"}                = 22;
+    $synops{"merQCmerSize"}                = "Mer size to use for the mer-based QC";
 
     $global{"cleanup"}                     = "none";
+    $synops{"cleanup"}                     = "At the end of a successful assembly, remove none/some/many/all of the intermediate files";
 
     #####  Ugly, command line options passed to printHelp()
 
     $global{"help"}                        = 0;
-    $global{"version"}			   = 0;
-    $global{"fields"}			   = 0;
+    $synops{"help"}                        = undef;
+
+    $global{"version"}                     = 0;
+    $synops{"version"}                     = undef;
+
+    $global{"help"}                        = 0;
+    $synops{"help"}                        = undef;
 
     $global{"specFile"}                    = undef;
+    $synops{"specFile"}                    = undef;
     
     #### Closure Options
-    $global{"closureEdges"}               = undef;
-    $global{"closureOverlaps"}            = 0;
+
+    $global{"closureEdge s"}               = undef;
+    $synops{"closureEdges "}               = undef;
+
+    $global{"closureOverlaps"}             = 0;
+    $synops{"closureOverlaps"}             = undef;
 }
 
 sub makeAbsolute ($) {
@@ -400,7 +553,7 @@ sub setParametersFromFile ($@) {
     #  system-wide one defined (set by your localDefaults()).
     #
     if( !defined($specFile) ) {
-    	$specFile = getGlobal("specFile");
+            $specFile = getGlobal("specFile");
     }
 
     if (defined($specFile)) {
@@ -574,13 +727,17 @@ sub printHelp () {
         exit(0);
     }
 
-    if (getGlobal("fields")) {
+    if (getGlobal("help")) {
         foreach my $k (sort keys %global) {
-            if (defined(getGlobal($k))) {
-                print substr("$k                             ", 0, 30) . getGlobal($k) . "\n";
-            } else {
-                print substr("$k                             ", 0, 30) . "<not defined>\n";
+            my $o = substr("$k                             ", 0, 35);
+            my $d = substr(getGlobal($k) . "               ", 0, 20);
+            my $u = $synops{$k};
+
+            if (!defined(getGlobal($k))) {
+                $d = substr("<unset>" . "               ", 0, 16);
             }
+
+            print "$o$d($u)\n";
         }
         exit(0);
     }
@@ -591,12 +748,12 @@ sub printHelp () {
         print "  -p <prefix>       Use <prefix> as the output prefix.  Required\n";
         print "\n";
         print "  -s <specFile>     Read options from the specifications file <specfile>.\n";
-        print "  		    <specfile> can also be one of the following key words:\n";
-        print "		      [no]OBT - run with[out] OBT\n";
-        print "		      noVec   - run with OBT but without Vector\n";
+        print "                      <specfile> can also be one of the following key words:\n";
+        print "                      [no]OBT - run with[out] OBT\n";
+        print "                      noVec   - run with OBT but without Vector\n";
         print "\n";
         print "  -version          Version information\n";
-        print "  -fields           List of possible specFile options and default values\n";
+        print "  -help             Describe specFile options, and show default values\n";
         print "\n";
         print "  <frg>             CA formatted fragment file\n";
         print "\n";
