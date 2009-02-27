@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.109 2009-02-02 13:51:13 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.110 2009-02-27 15:13:18 skoren Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -1102,7 +1102,7 @@ void UnitigGraph::filterBreakPoints(ContainerMap &cMap,
   for(UnitigBreakPoints::iterator iter = breaks.begin(); iter != breaks.end(); iter++) {
     UnitigBreakPoint nextBP = *iter;
 
-    if ((nextBP.inFrags > 1) && (nextBP.inSize > 500)) {
+    if ((nextBP.inFrags > UnitigGraph::MIN_BREAK_FRAGS) && (nextBP.inSize > UnitigGraph::MIN_BREAK_LENGTH)) {
 
       // big one, compare against smalls -- if we haven't
       // seen this break point already.

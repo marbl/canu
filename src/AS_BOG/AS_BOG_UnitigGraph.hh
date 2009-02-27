@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.62 2009-02-02 13:51:13 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.63 2009-02-27 15:13:18 skoren Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -72,7 +72,7 @@ typedef std::list<UnitigBreakPoint> UnitigBreakPoints;
 
 
 
-struct UnitigGraph{
+struct UnitigGraph{   
   // This will store the entire set of unitigs that are generated
   // It's just a unitig container.
   UnitigGraph(FragmentInfo *fi, BestOverlapGraph *);
@@ -111,6 +111,8 @@ struct UnitigGraph{
   BestOverlapGraph *bog_ptr;
 
 private:
+  static const int MIN_BREAK_FRAGS = 1;
+  static const int MIN_BREAK_LENGTH = 500;
 
   //  Add firstFragID to the unitig, then follow any fragments off of
   //  of fragEdgeEnd.  If the unitig has fragments, lastID and
