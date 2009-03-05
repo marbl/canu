@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.72 2008-11-11 16:16:25 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.73 2009-03-05 18:50:20 skoren Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.72 2008-11-11 16:16:25 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.73 2009-03-05 18:50:20 skoren Exp $";
 
 #include <stdio.h>
 #include <time.h>
@@ -798,7 +798,7 @@ typedef struct EndOfFileMesgTag {
 //  being read.  The return value in all other cases is the sum of the
 //  number of lines read in all proto files thus far.
 //
-int GetProtoLineNum_AS(void);
+uint64 GetProtoLineNum_AS(void);
 
 
 //  Returns a number in the range [1, NUM_OF_REC_TYPES -1]

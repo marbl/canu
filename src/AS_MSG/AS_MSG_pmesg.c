@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.46 2008-10-08 22:02:57 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.47 2009-03-05 18:50:20 skoren Exp $";
 
 #include "AS_MSG_pmesg_internal.h"
 
@@ -68,20 +68,20 @@ ReadLine(FILE *fin, int skipComment) {
     }
 #else
     if (fgets(AS_MSG_globals->curLine, MAX_LINE_LEN-1, fin) == NULL) {
-      fprintf(stderr,"ERROR: AS_MSG_pmesg.c::ReadLine()-- Premature end of input at line %d (%s)\n", AS_MSG_globals->curLineNum, AS_MSG_globals->msgCode);
+      fprintf(stderr,"ERROR: AS_MSG_pmesg.c::ReadLine()-- Premature end of input at line " F_U64 " (%s)\n", AS_MSG_globals->curLineNum, AS_MSG_globals->msgCode);
       fprintf(stderr,"       '%s'\n", AS_MSG_globals->curLine);
       exit(1);
     }
 #endif
 
     if (errno) {
-      fprintf(stderr,"ERROR: AS_MSG_pmesg.c::ReadLine()-- Read error at line %d: '%s'\n", AS_MSG_globals->curLineNum, strerror(errno));
+      fprintf(stderr,"ERROR: AS_MSG_pmesg.c::ReadLine()-- Read error at line " F_U64 ": '%s'\n", AS_MSG_globals->curLineNum, strerror(errno));
       fprintf(stderr,"       '%s'\n", AS_MSG_globals->curLine);
       exit(1);
     }
 
     if (AS_MSG_globals->curLine[MAX_LINE_LEN-2] != '\n') {
-      fprintf(stderr,"ERROR: Input line %d is too long (%s)\n", AS_MSG_globals->curLineNum, AS_MSG_globals->msgCode);
+      fprintf(stderr,"ERROR: Input line " F_U64 " is too long (%s)\n", AS_MSG_globals->curLineNum, AS_MSG_globals->msgCode);
       fprintf(stderr,"       '%s'\n", AS_MSG_globals->curLine);
       exit(1);
     }
@@ -99,7 +99,7 @@ ReadLine(FILE *fin, int skipComment) {
 // Found an enum out-of-range error.
 void
 MtypeError(const char * const name) {
-  fprintf(stderr,"ERROR: Illegal %s type value '%c' (%s) at line %d\n",
+  fprintf(stderr,"ERROR: Illegal %s type value '%c' (%s) at line " F_U64 " \n",
           name,AS_MSG_globals->curLine[4],AS_MSG_globals->msgCode, AS_MSG_globals->curLineNum);
   exit (1);
 }
@@ -107,7 +107,7 @@ MtypeError(const char * const name) {
 // Found a bad 3-code field name.
 void
 MtagError(const char * const tag) {
-  fprintf(stderr,"ERROR: Illegal tag '%s' (expected '%s') (%s) at line %d\n",
+  fprintf(stderr,"ERROR: Illegal tag '%s' (expected '%s') (%s) at line " F_U64 "\n",
           AS_MSG_globals->curLine, tag, AS_MSG_globals->msgCode, AS_MSG_globals->curLineNum);
   exit (1);
 }
@@ -120,7 +120,7 @@ MfieldError(const char * const mesg) {
   len = strlen(AS_MSG_globals->curLine)-1;
   if (AS_MSG_globals->curLine[len] == '\n')
     AS_MSG_globals->curLine[len] = 0;
-  fprintf(stderr,"ERROR: %s '%s' (%s) at line %d\n",
+  fprintf(stderr,"ERROR: %s '%s' (%s) at line " F_U64 "\n",
           mesg,AS_MSG_globals->curLine,AS_MSG_globals->msgCode,AS_MSG_globals->curLineNum);
   exit (1);
 }
@@ -128,7 +128,7 @@ MfieldError(const char * const mesg) {
 // General error message exit.
 void
 MgenError(const char * const mesg) {
-  fprintf(stderr,"ERROR: %s (%s) at line %d\n",
+  fprintf(stderr,"ERROR: %s (%s) at line " F_U64 "\n",
           mesg,AS_MSG_globals->msgCode,AS_MSG_globals->curLineNum);
   exit (1);
 }
@@ -345,7 +345,7 @@ GetMessageName(int type){
 }
 
 
-int
+uint64
 GetProtoLineNum_AS(void) {
   AS_MSG_globalsInitialize();
   return (AS_MSG_globals->curLineNum);
@@ -428,7 +428,7 @@ ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg) {
     int len = strlen(AS_MSG_globals->curLine)-1;
     if (AS_MSG_globals->curLine[len] == '\n')
       AS_MSG_globals->curLine[len] = 0;
-    fprintf(stderr,"ERROR: Unrecognized message type in '%s' at line %d\n",
+    fprintf(stderr,"ERROR: Unrecognized message type in '%s' at line " F_U64 "\n",
             AS_MSG_globals->curLine, AS_MSG_globals->curLineNum);
     exit (1);
   }
