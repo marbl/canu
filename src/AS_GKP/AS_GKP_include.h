@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.45 2008-10-29 16:51:32 skoren Exp $ */
+/* $Id: AS_GKP_include.h,v 1.46 2009-03-05 18:36:04 skoren Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
 
-static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.45 2008-10-29 16:51:32 skoren Exp $";
+static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.46 2009-03-05 18:36:04 skoren Exp $";
 
 #include <stdio.h>
 #include <errno.h>
@@ -59,10 +59,6 @@ Check_FragMesg(FragMesg            *frg_mesg,
 
 int
 Check_LinkMesg(LinkMesg             *lkg_mesg);
-
-
-int
-Load_SFF(FILE *sff, int searchForLinker);
 
 
 void
