@@ -18,15 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-#ifdef SYBASE
-
 #ifndef SQLOutput_H
 #define SQLOutput_H
 
-static const char *rcsid_SQLOutput_H = "$Id: SQLOutput.hh,v 1.6 2008-10-29 06:34:30 brianwalenz Exp $";
+static const char *rcsid_SQLOutput_H = "$Id: SQLOutput.hh,v 1.7 2009-03-06 19:36:41 skoren Exp $";
 
 #include <iostream>
-#include "Sybase.hh"
 #include "IDBOutput.hh"
 #include "IDBConnection.hh"
 
@@ -213,4 +210,3 @@ protected:
 };
 
 #endif // BCPOutput_H
-#endif //SYBASE

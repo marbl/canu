@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: BCPOutput.cc,v 1.9 2008-12-05 19:06:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: BCPOutput.cc,v 1.10 2009-03-06 19:36:41 skoren Exp $";
 
 #ifdef SYBASE
 
@@ -29,6 +29,7 @@ static const char *rcsid = "$Id: BCPOutput.cc,v 1.9 2008-12-05 19:06:11 brianwal
 
 #include "BCPOutput.hh"
 #include "IDBConnection.hh"
+#include "Sybase.hh"
 
 using AS_ARD::BCPOutput;
 using AS_ARD::SQLOutput;

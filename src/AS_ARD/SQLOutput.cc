@@ -19,9 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: SQLOutput.cc,v 1.9 2008-12-05 19:06:11 brianwalenz Exp $";
-
-#ifdef SYBASE
+static const char *rcsid = "$Id: SQLOutput.cc,v 1.10 2009-03-06 19:36:41 skoren Exp $";
 
 #include <iostream>
 #include <string>
@@ -29,7 +27,6 @@ static const char *rcsid = "$Id: SQLOutput.cc,v 1.9 2008-12-05 19:06:11 brianwal
 #include "SQLOutput.hh"
 
 using AS_ARD::SQLOutput;
-using AS_ARD::Sybase;
 
 SQLOutput::SQLOutput(IDBConnection * connection) {
    dbConnection = connection;
@@ -60,7 +57,7 @@ uint64 SQLOutput::storeGenome(
    assert(project != NULL);
    assert(taxon != NULL);
 
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
 
    // enforce that only one genome can be loaded into a database
    if (getConnection()->getCount("Genome") != 0) { return 0; }
@@ -87,7 +84,7 @@ uint64 SQLOutput::storeAssembly(
    assert(ver != NULL);
    assert(notes != NULL);
 
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
 
    sprintf(cmd,
             "INSERT INTO Assembly " \
@@ -115,7 +112,7 @@ bool SQLOutput::storeMDI2DB (
          int32 min,
          int32 max) {
 
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
 
    sprintf(cmd,
             "INSERT INTO MDI " \
@@ -141,7 +138,7 @@ bool SQLOutput::storeAFG2DB (
          CDS_COORD_t bgn,
          CDS_COORD_t end) {
 
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
 
    sprintf(cmd,
             "INSERT INTO AFG " \
@@ -185,7 +182,7 @@ bool SQLOutput::storeUTG2DB (
          int32 forced,
          int32 num_frags) {
 
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
 
    sprintf(cmd,
             "INSERT INTO UTG " \
@@ -228,7 +225,7 @@ bool SQLOutput::storeMPS2DB (
          CDS_COORD_t end,
          int32 delta_length,
          std::string delta) {
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
    uint64 utg = LookupValueInHashTable_AS(UTG_UID_to_MSGID, AS_UID_toInteger(unitigID), 0);
    uint64 afg = LookupValueInHashTable_AS(AFG_UID_to_MSGID, AS_UID_toInteger(afgID), 0);
 
@@ -261,7 +258,7 @@ bool SQLOutput::storeULK2DB (
          float std_deviation,
          int32 num_contributing,
          PlacementStatusType status) {
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
 
    sprintf(cmd,
             "INSERT INTO ULK " \
@@ -291,7 +288,7 @@ bool SQLOutput::storeULK2DB (
 }
 
 bool SQLOutput::storeLKList2DB(int jmpType, AS_UID utgID, AS_UID ulkID) {
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
    uint64 utg;
    uint64 ulk;
 
@@ -322,7 +319,7 @@ std::cerr << "STORING ULK " << AS_UID_toInteger(utgID) << " and " << AS_UID_toIn
 }
 
 bool SQLOutput::storeJMP2DB(int jmpType, AS_UID jmpID, AS_UID ulkID, LinkType type) {
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
    uint64 ulk = 0;
 
 std::cerr << "STORING JMP " << AS_UID_toInteger(jmpID) << " and " << AS_UID_toInteger(ulkID) << std::endl;
@@ -385,7 +382,7 @@ std::cerr << "STORING JMP " << AS_UID_toInteger(jmpID) << " and " << AS_UID_toIn
 }
 
 bool SQLOutput::storeJMPList2DB(int jmpType, AS_UID jmpListID, AS_UID jmpID, AS_UID fragID) {
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
    uint64 jmp = 0;
    uint64 afg = 0;
 
@@ -432,7 +429,7 @@ bool SQLOutput::storeCCO2DB (
                   int32 num_pieces,
                   int32 num_unitigs,
                   int32 num_vars) {
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
 
 std::cerr << "Storing CCO " << std::endl;
    sprintf(cmd,
@@ -473,7 +470,7 @@ bool SQLOutput::storeCCOMPS2DB(
                   CDS_COORD_t end,
                   int32 delta_length,
                   std::string delta) {
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
 
 std::cerr << "Storing CCOMPS " << std::endl;
    uint64 cco = static_cast<uint64>(LookupValueInHashTable_AS(UTG_UID_to_MSGID, AS_UID_toInteger(ccoID), 0));
@@ -508,7 +505,7 @@ bool SQLOutput::storeUPS2DB(
                   CDS_COORD_t end,
                   int32 delta_length,
                   std::string delta) {
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
 
 std::cerr << "Storing UPS " << std::endl;
    uint64 cco = static_cast<uint64>(LookupValueInHashTable_AS(CCO_UID_to_MSGID, AS_UID_toInteger(ccoID), 0));
@@ -545,7 +542,7 @@ bool SQLOutput::storeVAR2DB(
                   CDS_COORD_t var_length,
                   int32 curr_var_id,
                   int32 phased_var_id) {
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
 std::cerr << "Storing VAR " << std::endl;
 
    uint64 cco = static_cast<uint64>(LookupValueInHashTable_AS(CCO_UID_to_MSGID, AS_UID_toInteger(ccoID), 0));
@@ -581,7 +578,7 @@ std::cerr << "Storing VAR " << std::endl;
 }
 
 bool SQLOutput::storeVARAllele2DB(AS_UID varAlleleID, AS_UID varID, uint32 nra, uint32 wgt, std::string seq) {
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
 std::cerr << "Storing VARALL " << std::endl;
 
    uint64 var = static_cast<uint64>(LookupValueInHashTable_AS(VAR_UID_to_MSGID, AS_UID_toInteger(varID), 0));
@@ -605,7 +602,7 @@ std::cerr << "Storing VARALL " << std::endl;
 }
 
 bool SQLOutput::storeVARAFG2DB(AS_UID varAfgID, AS_UID varID, CDS_CID_t readID) {
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
 
 std::cerr << "Storing VAR AFG " << std::endl;
 
@@ -638,10 +635,9 @@ bool SQLOutput::storeCLK2DB(
                   float std_deviation,
                   uint32 num_contributing,
                   PlacementStatusType status) {
-   char cmd[Sybase::MAX_STR_LEN];
-std::cerr << "Storing CLK " << std::endl;
-std::cerr << "The value os mean and std is " << mean_distance << " " << std_deviation << std::endl;
-   sprintf(cmd,
+   char cmd[IDBConnection::MAX_STR_LEN];   
+
+   sprintf(cmd, 
             "INSERT INTO CLK " \
             "(clk_AssemblyID, clk_EUID, clk_CIID, clk_ori, clk_ovt, clk_ipc, " \
             " clk_gui, clk_mea, clk_std, clk_num, clk_sta) " \
@@ -670,7 +666,7 @@ std::cerr << "The value os mean and std is " << mean_distance << " " << std_devi
 }
 
 bool SQLOutput::storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs) {
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
 
    sprintf(cmd,
             "INSERT INTO SCF " \
@@ -693,7 +689,7 @@ bool SQLOutput::storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_
 }
 
 bool SQLOutput::storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient) {
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
 
    uint64 scf = static_cast<uint64>(LookupValueInHashTable_AS(SCF_UID_to_MSGID, AS_UID_toInteger(scfID), 0));
    sprintf(cmd,
@@ -719,7 +715,7 @@ bool SQLOutput::storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev
 }
 
 bool SQLOutput::storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID) {
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
 
    uint64 ctp = static_cast<uint64>(LookupValueInHashTable_AS(CTP_UID_to_MSGID, AS_UID_toInteger(ctpID), 0));
    uint64 cco = static_cast<uint64>(LookupValueInHashTable_AS(CCO_UID_to_MSGID, AS_UID_toInteger(ccoID), 0));
@@ -739,7 +735,7 @@ bool SQLOutput::storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID) {
 }
 
 bool SQLOutput::storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, CDS_COORD_t ctgStart, CDS_COORD_t ctgEnd) {
-   char cmd[Sybase::MAX_STR_LEN];
+   char cmd[IDBConnection::MAX_STR_LEN];
 
    uint64 ctp = static_cast<uint64>(LookupValueInHashTable_AS(CTP_UID_to_MSGID, AS_UID_toInteger(ctpID), 0));
    uint64 cco = static_cast<uint64>(LookupValueInHashTable_AS(CCO_UID_to_MSGID, AS_UID_toInteger(ccoID), 0));
@@ -905,4 +901,3 @@ bool SQLOutput::commitCPS2DB() {
    return true;
 }
 
-#endif //SYBASE
