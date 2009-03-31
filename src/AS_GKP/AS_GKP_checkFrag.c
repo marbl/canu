@@ -19,24 +19,24 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.44 2008-12-05 15:40:00 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.45 2009-03-31 20:32:30 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
 
 #include "AS_global.h"
+#include "AS_UTL_fasta.h"
 #include "AS_GKP_include.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_encodeSequenceQuality.h"
 
 
 static int    checkfraginitialized = 0;
-static int    isspacearray[256] = {0};
-static int    isvalidACGTN[256] = {0};
 static char   encodedsequence[AS_FRAG_MAX_LEN+1] = {0};
 static int    encodedlength;
-
+static int*   isspacearray;
+static int*   isValidACGTN;
 
 
 int
@@ -53,7 +53,7 @@ checkSequenceAndQuality(FragMesg *frg_mesg) {
   //  remove spaces later.
   //
   for (p = 0; s[p]; p++) {
-    if ((isspacearray[s[p]]) || (isvalidACGTN[s[p]])) {
+    if ((isspacearray[s[p]]) || (isValidACGTN[s[p]])) {
     } else {
       AS_GKP_reportError(AS_GKP_FRG_INVALID_CHAR_SEQ,
                          AS_UID_toString(frg_mesg->eaccession), s[p], p);
@@ -82,7 +82,7 @@ checkSequenceAndQuality(FragMesg *frg_mesg) {
     if (isspacearray[s[p]])
       p++;
     else
-      s[sl++] = isvalidACGTN[s[p++]];
+      s[sl++] = isValidACGTN[s[p++]];
   }
   s[sl] = 0;
 
@@ -274,22 +274,8 @@ Check_FragMesg(FragMesg            *frg_mesg,
     return 0;
 
   if (checkfraginitialized == 0) {
-    int i;
-
-    for (i=0; i<256; i++)
-      isspacearray[i] = isspace(i);
-
-    isvalidACGTN['a'] = 'A';
-    isvalidACGTN['c'] = 'C';
-    isvalidACGTN['g'] = 'G';
-    isvalidACGTN['t'] = 'T';
-    isvalidACGTN['n'] = 'N';
-    isvalidACGTN['A'] = 'A';
-    isvalidACGTN['C'] = 'C';
-    isvalidACGTN['G'] = 'G';
-    isvalidACGTN['T'] = 'T';
-    isvalidACGTN['N'] = 'N';
-
+    isspacearray = AS_UTL_getSpaceArray();
+    isValidACGTN = AS_UTL_getValidACGTN();
     checkfraginitialized = 1;
   }
 

@@ -21,13 +21,52 @@
 #ifndef AS_UTL_FASTA_H
 #define AS_UTL_FASTA_H
 
-static const char *rcsid_AS_UTL_FASTA_H = "$Id: AS_UTL_fasta.h,v 1.5 2008-10-29 16:49:58 skoren Exp $";
+static const char *rcsid_AS_UTL_FASTA_H = "$Id: AS_UTL_fasta.h,v 1.6 2009-03-31 20:32:31 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 
 #include "AS_global.h"
+
+static int    AS_UTL_isspacearray[256] = {0};
+static int    AS_UTL_isvalidACGTN[256] = {0};
+
+static inline void
+AS_UTL_initValidSequence(void) {
+  if (AS_UTL_isvalidACGTN['a'] == 0) {
+    int i;
+
+    for (i=0; i<256; i++)
+      AS_UTL_isspacearray[i] = isspace(i);
+
+    AS_UTL_isvalidACGTN['a'] = 'A';
+    AS_UTL_isvalidACGTN['c'] = 'C';
+    AS_UTL_isvalidACGTN['g'] = 'G';
+    AS_UTL_isvalidACGTN['t'] = 'T';
+    AS_UTL_isvalidACGTN['n'] = 'N';
+    AS_UTL_isvalidACGTN['A'] = 'A';
+    AS_UTL_isvalidACGTN['C'] = 'C';
+    AS_UTL_isvalidACGTN['G'] = 'G';
+    AS_UTL_isvalidACGTN['T'] = 'T';
+    AS_UTL_isvalidACGTN['N'] = 'N';
+  }
+}
+
+static inline int*
+AS_UTL_getValidACGTN() {
+   AS_UTL_initValidSequence();
+   return AS_UTL_isvalidACGTN;
+}
+
+static inline int*
+AS_UTL_getSpaceArray() {
+   AS_UTL_initValidSequence();
+   return AS_UTL_isspacearray;
+}
+
+int 
+AS_UTL_isValidSequence(char *s, int sl);
 
 void 
 AS_UTL_writeFastAWithBreaks(FILE *f,

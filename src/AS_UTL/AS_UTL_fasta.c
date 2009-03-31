@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_UTL_fasta.c,v 1.6 2008-10-29 16:49:58 skoren Exp $";
+static const char *rcsid = "$Id: AS_UTL_fasta.c,v 1.7 2009-03-31 20:32:31 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,7 +28,23 @@ static const char *rcsid = "$Id: AS_UTL_fasta.c,v 1.6 2008-10-29 16:49:58 skoren
 #include <errno.h>
 
 #include "AS_global.h"
+#include "AS_UTL_fasta.h"
 #include "AS_UTL_fileIO.h"
+
+int 
+AS_UTL_isValidSequence(char *s, int sl) {
+  AS_UTL_initValidSequence();
+  int p = 0;
+   
+  for (p = 0; s[p] && p < sl; p++) {
+    if ((AS_UTL_isspacearray[s[p]]) || (AS_UTL_isvalidACGTN[s[p]])) {
+    } else {
+      return FALSE;
+    }
+  }
+    
+  return TRUE;
+}
 
 void
 AS_UTL_writeFastAWithBreaks(FILE *f,

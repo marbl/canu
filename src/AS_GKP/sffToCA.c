@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.17 2009-02-25 19:58:09 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.18 2009-03-31 20:32:30 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1427,6 +1427,7 @@ main(int argc, char **argv) {
   // A boolean array stores which linkers are to be used in the search
   int       i                 = 0;
   int       haveLinker        = FALSE;
+  int       invalidLinkerSeq  = FALSE;
   char     *linker[AS_LINKER_MAX_SEQS];
   int       search[AS_LINKER_MAX_SEQS];  
   for (i = 0; i < AS_LINKER_MAX_SEQS; i++) {
@@ -1511,9 +1512,14 @@ main(int argc, char **argv) {
       }
       else {
         int start = AS_LINKER_CUSTOM_OFFSET;
-        linker[start]      = argv[arg];
-        search[start++]    = TRUE;
-        haveLinker         = TRUE;
+        if (AS_UTL_isValidSequence(argv[arg], strlen(argv[arg]))) {
+          linker[start]      = argv[arg];
+          search[start++]    = TRUE;
+          haveLinker         = TRUE;
+        } else {
+          invalidLinkerSeq     = TRUE;
+          err++;
+        }
       }
 
     } else if (strcmp(argv[arg], "-output") == 0) {
@@ -1596,7 +1602,10 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR:  Unknown -clear value.\n");
     if (Nread == NREAD_ERRR)
       fprintf(stderr, "ERROR:  Unknown -nread value.\n");
-
+    if (invalidLinkerSeq == TRUE) {
+      fprintf(stderr, "ERROR:  Invalid -linker value. It must be one of titanium, flx, or a valid ACGT string.\n");
+    }
+    
     exit(1);
   }
 
