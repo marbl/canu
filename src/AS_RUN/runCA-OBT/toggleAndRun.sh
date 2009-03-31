@@ -41,9 +41,6 @@ then
     ln -s ../$specFile .
 fi
 
-# frg file needed by caqc.pl
-ln ../$prefix.frg .
-
 # link the stores for space savings
 ln -s ../*.ovlStore .
 gkp="$prefix.gkpStore"
