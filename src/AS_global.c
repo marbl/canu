@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_global.c,v 1.14 2009-03-06 20:12:34 skoren Exp $";
+static const char *rcsid = "$Id: AS_global.c,v 1.15 2009-04-08 17:25:51 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -178,7 +178,7 @@ AS_configure(int argc, char **argv) {
     //  the error of "directory already exists".
     //
     sprintf(D, "%s/runCA-logs", p);
-    mkdir(D, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+    mkdir(D, S_IRWXU | S_IRWXG | S_IRWXO);
 
     //  Our hostname is part of our unique filename.
     //
