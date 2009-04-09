@@ -52,11 +52,11 @@ ifeq ($(SITE_NAME), JCVI)
 			SYBASE = /usr/local/packages/sybase15
 		endif
 
-		#### check for sybase directory, don't build if it doesn't exist
+                #### check for sybase directory, don't build if it doesn't exist
 		SYBASE_EXISTS=$(shell if test -d $(SYBASE); then echo 1; else echo 0; fi;)
 
 		ifeq ($(SYBASE_EXISTS), 1)
-			### check to make sure version is compatible
+                        ### check to make sure version is compatible
 			SYBASE_VERSION=$(shell $(SYBASE)/bin/bcp -v | grep -P -o "(\/(\d|\.)+\/)" | awk '{gsub("/", "", $$1); print $$1}')
 
 			ifeq ($(SYBASE_VERSION), $(SYBASE_REQUIRED))
@@ -79,7 +79,7 @@ ifeq ($(SITE_NAME), JCVI)
 				endif
 				export LD_LIBRARY_PATH := $(LIB_PATH)
 
-  				AS_ARD_INC = $(SYBASE)/include
+				AS_ARD_INC = $(SYBASE)/include
 				AS_ARD_LIB = $(SYB_LIB_DIR)
 			endif
 		endif
