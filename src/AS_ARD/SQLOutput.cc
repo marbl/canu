@@ -19,7 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: SQLOutput.cc,v 1.10 2009-03-06 19:36:41 skoren Exp $";
+static const char *rcsid = "$Id: SQLOutput.cc,v 1.11 2009-04-09 14:01:59 brianwalenz Exp $";
+
+#ifdef SYBASE
 
 #include <iostream>
 #include <string>
@@ -901,3 +903,5 @@ bool SQLOutput::commitCPS2DB() {
    return true;
 }
 
+
+#endif  //  SYBASE
