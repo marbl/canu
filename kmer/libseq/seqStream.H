@@ -80,6 +80,7 @@ public:
   //  For a chain position p, returns the s (above) for that position.
   //
   u32bit            sequenceNumberOfPosition(u64bit p);
+  void              tradeSpaceForTime(void);
 
 private:
   void              fillBuffer(void);
@@ -106,6 +107,8 @@ private:
 
   u32bit           _idxLen;
   seqStreamIndex  *_idx;
+
+  u32bit          *_seqNumOfPos;
 
   u64bit           _lengthOfSequences;
 

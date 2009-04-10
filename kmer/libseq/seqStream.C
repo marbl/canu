@@ -19,6 +19,8 @@ seqStream::seqStream(const char *filename) {
   _idxLen            = _file->getNumberOfSequences();
   _idx               = new seqStreamIndex [_idxLen + 1];
 
+  _seqNumOfPos       = 0L;
+
   _lengthOfSequences = 0;
 
   _eof               = false;
@@ -51,6 +53,8 @@ seqStream::seqStream(char *sequence, u32bit length) {
   _idxLen            = 1;
   _idx               = new seqStreamIndex [_idxLen + 1];
 
+  _seqNumOfPos       = 0L;
+
   _idx[0]._iid = 0;
   _idx[0]._len = length;
   _idx[0]._bgn = 0;
@@ -78,6 +82,7 @@ seqStream::~seqStream() {
     delete [] _buffer;
   }
   delete [] _idx;
+  delete [] _seqNumOfPos;
 }
 
 
@@ -120,6 +125,25 @@ seqStream::setSeparator(char sep, u32bit len) {
   _idx[_idxLen]._iid = ~u32bitZERO;
   _idx[_idxLen]._len = 0;
   _idx[_idxLen]._bgn = _lengthOfSequences;
+}
+
+
+
+void
+seqStream::tradeSpaceForTime(void) {
+  u32bit  i = 0;
+  u32bit  s = 0;
+
+  fprintf(stderr, "Allocating "u32bitFMT" u32bits for seqNumOfPos.\n", _lengthOfSequences);
+
+  _seqNumOfPos = new u32bit [_lengthOfSequences];
+
+  for (i=0; i<_lengthOfSequences; i++) {
+    if (i >= _idx[s+1]._bgn)
+      s++;
+
+    _seqNumOfPos[i] = s;
+  }
 }
 
 
@@ -217,6 +241,9 @@ seqStream::sequenceNumberOfPosition(u64bit p) {
             p, _lengthOfSequences);
     return(s);
   }
+
+  if (_seqNumOfPos)
+    return(_seqNumOfPos[p]);
 
   if (_idxLen < 16) {
     for (s=0; s<_idxLen; s++)
