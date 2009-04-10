@@ -19,10 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overmerry.C,v 1.34 2009-01-16 16:43:38 skoren Exp $";
+const char *mainid = "$Id: overmerry.C,v 1.35 2009-04-10 22:22:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
+
+#include <algorithm>
 
 extern "C" {
 #include "AS_global.h"
@@ -42,32 +44,65 @@ extern "C" {
 //  stuff in it that we cannot store a sequence iid for the table
 //  sequence and have it be small, we make our own overlap structure.
 //
-struct kmerhit {
-  u64bit   tseq:30;              //  sequence in the table
-  u64bit   tpos:AS_OVS_POSBITS;  //  position in that sequence
-  u64bit   qpos:AS_OVS_POSBITS;  //  position in the query sequence
-  u64bit   cnt:8;                //  count of the kmer
-  u64bit   pal:1;                //  palindromic ; 0 = nope,    1 = yup
-  u64bit   fwd:1;                //  orientation ; 0 = reverse, 1 = forward
-  u64bit   pad:2;
+//  The order of bit fields is compiler dependent.  To avoid the messy
+//  and somewhat expensive comparsion operator below, we need to
+//  handle to bits ourself.  This is only needed for sorting, plus,
+//  everywhere else, we want to use bit fields.  So, we use the
+//  setInteger() method to store the info initially, sort, then
+//  unpackInteger() to set the bit fields.
+//
+//  For the sort to work, the high order bits must be tseq, then cnt,
+//  then qpos, then tpos.  The sort doesn't care about pal or fwd.
+
+class kmerhit {
+public:
+  union {
+    u64bit  num;
+
+    struct {
+      u64bit   tseq:30;              //  sequence in the table
+      u64bit   tpos:AS_OVS_POSBITS;  //  position in that sequence
+      u64bit   qpos:AS_OVS_POSBITS;  //  position in the query sequence
+      u64bit   cnt:8;                //  count of the kmer
+      u64bit   pal:1;                //  palindromic ; 0 = nope,    1 = yup
+      u64bit   fwd:1;                //  orientation ; 0 = reverse, 1 = forward
+      u64bit   pad:2;
+    } val;
+  } dat;
+
+  void  setInteger(u64bit tseq, u64bit cnt, u64bit qpos, u64bit tpos, u64bit pal, u64bit fwd) {
+
+    //  Threshold cnt to the maximum allowed.
+    if (cnt > 255)
+      cnt = 255;
+
+    dat.num  = 0;
+    dat.num |= (tseq & u64bitMASK(30)) << 32;
+    dat.num |= (cnt  & u64bitMASK(8) ) << 24;
+    dat.num |= (qpos & u64bitMASK(11)) << 13;
+    dat.num |= (tpos & u64bitMASK(11)) << 2;
+    dat.num |= (pal  & u64bitMASK(1) ) << 1;
+    dat.num |= (fwd  & u64bitMASK(1) );
+  };
+
+  void  unpackInteger(void) {
+    u64bit  integer = dat.num;
+
+    dat.num      = u64bitZERO;
+    dat.val.tseq = (integer >> 32) & u64bitMASK(30);
+    dat.val.cnt  = (integer >> 24) & u64bitMASK(8);
+    dat.val.qpos = (integer >> 13) & u64bitMASK(11);
+    dat.val.tpos = (integer >>  2) & u64bitMASK(11);
+    dat.val.pal  = (integer >>  1) & u64bitMASK(1);
+    dat.val.fwd  = (integer      ) & u64bitMASK(1);
+  };
+
+
+  bool  operator<(kmerhit const that) const {
+    return (dat.num < that.dat.num);
+  };
 };
 
-
-//  Sort by increasing iid, and increasing count.
-int
-kmerhitcompare(const void *a, const void *b) {
-  const kmerhit *A = (const kmerhit *)a;
-  const kmerhit *B = (const kmerhit *)b;
-  if (A->tseq < B->tseq)  return(-1);
-  if (A->tseq > B->tseq)  return(1);
-  if (A->cnt < B->cnt)    return(-1);
-  if (A->cnt > B->cnt)    return(1);
-  if (A->qpos < B->qpos)  return(-1);
-  if (A->qpos > B->qpos)  return(1);
-  if (A->tpos < B->tpos)  return(-1);
-  if (A->tpos > B->tpos)  return(1);
-  return(0);
-}
 
 
 class ovmGlobalData {
@@ -204,6 +239,8 @@ public:
 
     tSS = new seqStream(gkpName);
 
+    tSS->tradeSpaceForTime();
+
     tMS = new merStream(new kMerBuilder(merSize, compression, 0L), tSS, true, false);
     tPS = new positionDB(tMS, merSize, 0, 0L, 0L, MF, 0, 0, 0, 0, true);
 
@@ -329,12 +366,7 @@ public:
       }
     }
 
-    hits[hitsLen].tseq = seq;
-    hits[hitsLen].tpos = pos;
-    hits[hitsLen].qpos = qpos;
-    hits[hitsLen].cnt  = cnt;
-    hits[hitsLen].pal  = pal;
-    hits[hitsLen].fwd  = fwd;
+    hits[hitsLen].setInteger(seq, cnt, qpos, pos, pal, fwd);
 
     hitsLen++;
     merfound++;
@@ -499,12 +531,17 @@ ovmWorker(void *G, void *T, void *S) {
   }
 
 
-  //  We have all the hits for this frag.  Sort them by sequence
-  //  (the other sequence), then pick out the one with the least
-  //  count for each sequence.
+  //  We have all the hits for this frag.  Sort them by sequence (the
+  //  other sequence), then pick out the one with the least count for
+  //  each sequence.
+  //
+  //  STL sort is ~10% faster than C qsort().  The compare function in
+  //  qsort() is the dominant user of CPU time.
+  //
+  std::sort(t->hits, t->hits + t->hitsLen);
 
-  qsort(t->hits, t->hitsLen, sizeof(kmerhit), kmerhitcompare);
-
+  for (u32bit i=0; i<t->hitsLen; i++)
+    t->hits[i].unpackInteger();
 
 #if 0
   //  Debug, I guess.  Generates lots of output, since frags with
@@ -514,10 +551,10 @@ ovmWorker(void *G, void *T, void *S) {
   for (u32bit i=0; i<t->hitsLen; i++) {
     if (i != t->hitsLen) {
       fprintf(stderr, u32bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u64bitFMT"\t%c\t"u32bitFMT"\n",
-              t->hits[i].tseq, t->hits[i].tpos,
-              s->iid,  t->hits[i].qpos,
-              t->hits[i].pal ? 'p' : (t->hits[i].fwd ? 'f' : 'r'),
-              t->hits[i].cnt);
+              t->hits[i].dat.val.tseq, t->hits[i].dat.val.tpos,
+              s->iid,  t->hits[i].dat.val.qpos,
+              t->hits[i].dat.val.pal ? 'p' : (t->hits[i].dat.val.fwd ? 'f' : 'r'),
+              t->hits[i].dat.val.cnt);
     }
   }
 #endif
@@ -525,7 +562,7 @@ ovmWorker(void *G, void *T, void *S) {
 
   for (u32bit i=0; i<t->hitsLen; ) {
     //fprintf(stderr, "FILTER STARTS i="u32bitFMT" tseq="u64bitFMT" tpos="u64bitFMT" qpos="u64bitFMT"\n",
-    //          i, t->hits[i].tseq, t->hits[i].tpos, t->hits[i].qpos);
+    //          i, t->hits[i].dat.val.tseq, t->hits[i].dat.val.tpos, t->hits[i].dat.val.qpos);
 
     //  By the definition of our sort, the least common mer is the
     //  first hit in the list for each pair of sequences.
@@ -537,8 +574,8 @@ ovmWorker(void *G, void *T, void *S) {
     //  built starting at the begin of the OBT clear.  Same effect for
     //  both just a different mechanism.
     //
-    t->hits[i].tpos += g->getClrBeg(t->hits[i].tseq);
-    t->hits[i].qpos += s->beg;
+    t->hits[i].dat.val.tpos += g->getClrBeg(t->hits[i].dat.val.tseq);
+    t->hits[i].dat.val.qpos += s->beg;
 
     //  Reverse if needed -- we need to remember, from when we were
     //  grabbing mers, the length of the uncompressed mer -- that's
@@ -546,20 +583,20 @@ ovmWorker(void *G, void *T, void *S) {
     //  g->merSize.  The [t->hits[i].qpos - s->beg] array index is
     //  simply the position in the trimmed read.
     //
-    if (t->hits[i].fwd == false)
-      t->hits[i].qpos = s->tln - t->hits[i].qpos - sSPAN[t->hits[i].qpos - s->beg];
+    if (t->hits[i].dat.val.fwd == false)
+      t->hits[i].dat.val.qpos = s->tln - t->hits[i].dat.val.qpos - sSPAN[t->hits[i].dat.val.qpos - s->beg];
 
     //  Save off the A vs B overlap
     //
-    overlap.a_iid                      = t->hits[i].tseq;
+    overlap.a_iid                      = t->hits[i].dat.val.tseq;
     overlap.b_iid                      = s->iid;
     overlap.dat.mer.datpad             = 0;
     overlap.dat.mer.compression_length = g->compression;
-    overlap.dat.mer.fwd                = t->hits[i].fwd;
-    overlap.dat.mer.palindrome         = t->hits[i].pal;
-    overlap.dat.mer.a_pos              = t->hits[i].tpos;
-    overlap.dat.mer.b_pos              = t->hits[i].qpos;
-    overlap.dat.mer.k_count            = t->hits[i].cnt;
+    overlap.dat.mer.fwd                = t->hits[i].dat.val.fwd;
+    overlap.dat.mer.palindrome         = t->hits[i].dat.val.pal;
+    overlap.dat.mer.a_pos              = t->hits[i].dat.val.tpos;
+    overlap.dat.mer.b_pos              = t->hits[i].dat.val.qpos;
+    overlap.dat.mer.k_count            = t->hits[i].dat.val.cnt;
     overlap.dat.mer.k_len              = g->merSize;
     overlap.dat.mer.type               = AS_OVS_TYPE_MER;
     s->addOverlap(&overlap);
@@ -567,27 +604,27 @@ ovmWorker(void *G, void *T, void *S) {
     //  Save off the B vs A overlap
     //
     overlap.a_iid = s->iid;
-    overlap.b_iid = t->hits[i].tseq;
+    overlap.b_iid = t->hits[i].dat.val.tseq;
 
     if (overlap.dat.mer.fwd) {
-      overlap.dat.mer.a_pos = t->hits[i].qpos;
-      overlap.dat.mer.b_pos = t->hits[i].tpos;
+      overlap.dat.mer.a_pos = t->hits[i].dat.val.qpos;
+      overlap.dat.mer.b_pos = t->hits[i].dat.val.tpos;
     } else {
-      uint32 othlen = g->getUntrimLength(t->hits[i].tseq);
+      uint32 othlen = g->getUntrimLength(t->hits[i].dat.val.tseq);
 
       //  The -1 is to back up to the last base in the mer.
 
-      overlap.dat.mer.a_pos = s->tln - t->hits[i].qpos - 1;
-      overlap.dat.mer.b_pos = othlen - t->hits[i].tpos - 1;
+      overlap.dat.mer.a_pos = s->tln - t->hits[i].dat.val.qpos - 1;
+      overlap.dat.mer.b_pos = othlen - t->hits[i].dat.val.tpos - 1;
     }
     s->addOverlap(&overlap);
 
     //  Now, skip ahead until we find the next pair.
     //
-    u64bit  lastiid = t->hits[i].tseq;
-    while ((i < t->hitsLen) && (t->hits[i].tseq == lastiid)) {
+    u64bit  lastiid = t->hits[i].dat.val.tseq;
+    while ((i < t->hitsLen) && (t->hits[i].dat.val.tseq == lastiid)) {
       //fprintf(stderr, "FILTER OUT i="u32bitFMT" tseq="u64bitFMT" tpos="u64bitFMT" qpos="u64bitFMT"\n",
-      //        i, t->hits[i].tseq, t->hits[i].tpos, t->hits[i].qpos);
+      //        i, t->hits[i].dat.val.tseq, t->hits[i].dat.val.tpos, t->hits[i].dat.val.qpos);
       i++;
     }
   }  //  over all hits
@@ -711,7 +748,7 @@ main(int argc, char **argv) {
   for (u32bit w=0; w<g->numThreads; w++)
     ss->setThreadData(w, new ovmThreadData(g));  //  these leak
 
-  ss->run(g, false);  //  true == verbose
+  ss->run(g, true);  //  true == verbose
 
   delete g;
 
