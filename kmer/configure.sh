@@ -485,6 +485,8 @@ CXX_TMP_ARCH      := cxx_repository
 INSTALL/          := $target/
 EOF
     ;;
+
+
   Linux-i686)
     rm -f Make.compilers
     cat <<EOF > Make.compilers
@@ -506,6 +508,31 @@ ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
     ;;
+
+
+  Linux-i686-debug)
+    rm -f Make.compilers
+    cat <<EOF > Make.compilers
+# -*- makefile -*-
+#  Linux, optimized
+THREADS           := -D_THREAD_SAFE -pthread
+THREADL           := -pthread
+CC                := cc
+SHLIB_FLAGS       := -shared
+CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CLDFLAGS          := -L/usr/local/lib
+CLIBS             := \$(THREADL) -ldl
+CXX               := g++
+CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXLDFLAGS        := -L/usr/local/lib
+CXXLIBS           := \$(THREADL) -ldl
+CXXSHARED         := -shared
+ARFLAGS           := ruvs
+INSTALL/          := $target/
+EOF
+    ;;
+
+
   Linux-amd64)
     rm -f Make.compilers
     cat <<EOF > Make.compilers
@@ -527,6 +554,8 @@ ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
     ;;
+
+
   Linux-amd64-debug)
     rm -f Make.compilers
     cat <<EOF > Make.compilers
@@ -548,20 +577,22 @@ ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
     ;;
-  Linux-i686-debug)
+
+
+  Linux-amd64-profile)
     rm -f Make.compilers
     cat <<EOF > Make.compilers
 # -*- makefile -*-
-#  Linux, optimized
+#  Linux64, optimized
 THREADS           := -D_THREAD_SAFE -pthread
 THREADL           := -pthread
 CC                := cc
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CFLAGS_COMPILE    := -pg -m64 -fPIC -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL) -ldl
 CXX               := g++
-CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXFLAGS_COMPILE  := -pg -m64 -fPIC -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL) -ldl
 CXXSHARED         := -shared
