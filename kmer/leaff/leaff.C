@@ -678,6 +678,7 @@ processArray(int argc, char **argv) {
   }
 
   delete fasta;
+  fasta = 0L;
 }
 
 
@@ -783,8 +784,7 @@ main(int argc, char **argv) {
 
   processArray(argc, argv);
 
-  if (fasta)
-    delete fasta;
+  delete fasta;
 }
 
 
