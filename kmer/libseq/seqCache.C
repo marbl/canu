@@ -179,11 +179,15 @@ seqCache::loadAllSequences(void) {
 
 void
 seqCache::flushCache(void) {
-  u32bit ns = _fb->getNumberOfSequences();
 
-  if (_cacheMap)
+  if (_fb == 0L)
+    return;
+
+  if (_cacheMap) {
+    u32bit ns = _fb->getNumberOfSequences();
     for (u32bit i=0; i<ns; i++)
       _cacheMap[i] = ~u32bitZERO;
+  }
 
   if (_cache)
     for (u32bit i=0; i<_cacheSize; i++) {
