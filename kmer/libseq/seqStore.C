@@ -329,14 +329,6 @@ constructSeqStore(char *filename, seqCache *inputseq) {
 
     seqStoreBlock  b;
 
-    if (BLOKlen >= BLOKmax) {
-      BLOKmax *= 2;
-      seqStoreBlock *nb = new seqStoreBlock [BLOKmax];
-      memcpy(nb, BLOK, BLOKlen * sizeof(seqStoreBlock));
-      delete [] BLOK;
-      BLOK = nb;
-    }
-
     if (seq) {
       INDX[iid]._hdrPosition = NAMElen;
       INDX[iid]._hdrLength   = sic->headerLength();
@@ -367,7 +359,7 @@ constructSeqStore(char *filename, seqCache *inputseq) {
 
         if (bits == 0xff) {
 
-          //  Letter is NOT ACGI, write out the last block if it was
+          //  Letter is NOT ACGT, write out the last block if it was
           //  ACGT, then increment our length.
 
           if (b._isACGT == 1) {
@@ -408,6 +400,17 @@ constructSeqStore(char *filename, seqCache *inputseq) {
 
           DATA->putBits(bits, 2);
         }
+
+        //  Make sure we have space for more blocks.  The stuff in the
+        //  current for loop adds at most one block per iteration.
+        //
+        if (BLOKlen >= BLOKmax) {
+          BLOKmax *= 2;
+          seqStoreBlock *nb = new seqStoreBlock [BLOKmax];
+          memcpy(nb, BLOK, BLOKlen * sizeof(seqStoreBlock));
+          delete [] BLOK;
+          BLOK = nb;
+        }
       }
 
       //  Emit the last block
@@ -420,13 +423,26 @@ constructSeqStore(char *filename, seqCache *inputseq) {
       }
 
       BLOK[BLOKlen++] = b;
+
+      //  Grab more blocks if needed.
+      //
+      if (BLOKlen >= BLOKmax) {
+        BLOKmax *= 2;
+        seqStoreBlock *nb = new seqStoreBlock [BLOKmax];
+        memcpy(nb, BLOK, BLOKlen * sizeof(seqStoreBlock));
+        delete [] BLOK;
+        BLOK = nb;
+      }
     }
 
-    delete seq;
+    delete sic;
   }
 
   //  And a sentinel EOF block -- gets the last position in the file,
-  //  useful for the binary search.
+  //  useful for the binary search.  We always have a space block at
+  //  the end of the list, but we don't care if we just used the last
+  //  block (and so we don't bother to reallocate the array if it is
+  //  full).
 
   BLOK[BLOKlen]._isACGT = 0;
   BLOK[BLOKlen]._iid    = u32bitMASK(32);
