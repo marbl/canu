@@ -125,6 +125,13 @@ seqStream::setSeparator(char sep, u32bit len) {
   _idx[_idxLen]._iid = ~u32bitZERO;
   _idx[_idxLen]._len = 0;
   _idx[_idxLen]._bgn = _lengthOfSequences;
+
+  //  Rebuild our sequence number of position map, if it exists.
+  //
+  if (_seqNumOfPos) {
+    delete [] _seqNumOfPos;
+    tradeSpaceForTime();
+  }
 }
 
 
@@ -139,7 +146,12 @@ seqStream::tradeSpaceForTime(void) {
   _seqNumOfPos = new u32bit [_lengthOfSequences];
 
   for (i=0; i<_lengthOfSequences; i++) {
-    if (i >= _idx[s+1]._bgn)
+
+    //  Increment the sequence number until we enter into the next
+    //  sequence.  Zero length sequences require the use of a 'while'
+    //  here.
+    //
+    while (i >= _idx[s+1]._bgn)
       s++;
 
     _seqNumOfPos[i] = s;
