@@ -24,8 +24,8 @@ private:
 public:
   ~seqInCore() {
     if (_deletable) {
-      delete [] _header;
-      delete [] _seq;
+      delete [] _header;  _header = 0L;
+      delete [] _seq;     _seq    = 0L;
     }
   };
 
