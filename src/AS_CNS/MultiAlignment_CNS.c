@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.229 2009-02-23 20:43:28 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.230 2009-04-15 20:48:41 skoren Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -69,10 +69,11 @@ static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.229 2009-02-23 20:43:28 bria
 //====================================================================
 // Persistent store of the fragment data (produced upstream)
 //
-GateKeeperStore       *gkpStore    = NULL;
-tSequenceDB           *sequenceDB  = NULL;
-HashTable_AS          *fragmentMap = NULL;
-MultiAlignStoreT      *unitigStore = NULL;
+GateKeeperStore       *gkpStore      = NULL;
+tSequenceDB           *sequenceDB    = NULL;
+HashTable_AS          *fragmentMap   = NULL;
+HashTable_AS          *fragmentToIMP = NULL;
+MultiAlignStoreT      *unitigStore   = NULL;
 
 int    numScores = 0;
 double lScoreAve = 0.0;
@@ -5083,7 +5084,7 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
   SeqInterval position;
   IntMultiPos *fimp;
   IntUnitigPos *fump;
-  int ndeletes=0;
+  int ndeletes=0, nunaligned=0;
   int odlen=0;
   int32 n_frags=0,n_unitigs=0;
   int32 i,delta_pos,prev_num_deltas;
@@ -5095,6 +5096,7 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
   }
   for (i=0;i<GetNumFragments(fragmentStore);i++) {
     fragment = GetFragment(fragmentStore,i);
+    assert(fragment->manode == mid);
     if ( fragment->deleted || fragment->manode != mid) {
       ndeletes++;
       continue;
@@ -5153,6 +5155,10 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
       //fprintf(stderr,"Fragment %d, delta_length = %d\n", fimp->ident,fimp->delta_length);
     }
   }
+  
+  // assert that all fragments are properly placed in this contig
+  assert(n_frags+ndeletes == mesg_n_frags);
+  
   // now, loop through again to asign pointers to delta in imps
   // have to do this at the end to ensure that deltas isn't realloced out from under references
   delta_pos=0;
@@ -8156,16 +8162,19 @@ PlaceFragments(int32 fid,
     if (!ExistsInHashTable_AS(fragmentMap, bfrag->idx.fragment.frgIdent, 0))
       continue;
 
+    // if it exists in the fragmentMap it should exist in this map as well since it was added at the same time
+    // look up where this fragment is placed within the entire contig, see if that matches where we're about to place it
+    // this is necessary for surrogates that are multiply placed in a single contig for example:
+    // contig: --------------*****--------*****--------> where ***** represents a surrogate
+    //                        ---->                      readA
+    // when placing readA within the surrogate unitig, we see if readA belongs in surrogate instance A or B
+    // by computing the position of the unitig within the contig and adding ahang to it
+    // if this computed position matches the position that the IMP record retrieved below tells us, proceed, otherwise skip placement
+    IntMultiPos *bimp = (IntMultiPos *)LookupValueInHashTable_AS(fragmentToIMP, bfrag->idx.fragment.frgIdent, 0);
+    CDS_COORD_t  bbgn = (bimp->position.bgn < bimp->position.end ? bimp->position.bgn : bimp->position.end);
+
     int fcomplement = afrag->complement;
     int bcomplement = (bfrag->position.bgn < bfrag->position.end) ? 0 : 1;
-
-    int blid = AppendFragToLocalStore(bfrag->idx.fragment.frgType,
-                                      bfrag->idx.fragment.frgIdent,
-                                      (bcomplement != fcomplement),
-                                      bfrag->idx.fragment.frgContained,
-                                      AS_OTHER_UNITIG, NULL);
-
-    afrag = GetFragment(fragmentStore, fid);  // AppendFragToLocalStore can change the pointer on us.
 
     int           ahang = 0;
     int           bhang = 0;
@@ -8212,6 +8221,24 @@ PlaceFragments(int32 fid,
     assert(ahang >= 0);
     assert(bhang <= 0);
     assert(ovl   >  0);
+
+    if (abs(ahang + GetColumn(columnStore,(GetBead(beadStore,afrag->firstbead))->column_index)->ma_index - bbgn) > MAX_SURROGATE_FUDGE_FACTOR) {
+      if (VERBOSE_MULTIALIGN_OUTPUT)
+         fprintf(stderr, "Not placing fragment %d into unitig %d because the positions (%d, %d) do not match (%d, %d)\n",
+                 bfrag->idx.fragment.frgIdent, afrag->iid,
+                 bimp->position.bgn, bimp->position.end,
+                 ahang + GetColumn(columnStore,(GetBead(beadStore,afrag->firstbead))->column_index)->ma_index,
+                 bhang + GetColumn(columnStore,(GetBead(beadStore,afrag->firstbead+afrag->length-1))->column_index)->ma_index+1);
+      continue;
+    }
+
+    int blid = AppendFragToLocalStore(bfrag->idx.fragment.frgType,
+                                      bfrag->idx.fragment.frgIdent,
+                                      (bcomplement != fcomplement),
+                                      bfrag->idx.fragment.frgContained,
+                                      AS_OTHER_UNITIG, NULL);
+
+    afrag = GetFragment(fragmentStore, fid);  // AppendFragToLocalStore can change the pointer on us.
 
     if (!GetAlignmentTrace(afrag->lid, 0, blid, &ahang, &bhang, ovl, trace, &otype, DP_Compare,              DONT_SHOW_OLAP, 0, AS_CONSENSUS, AS_CNS_ERROR_RATE) &&
         !GetAlignmentTrace(afrag->lid, 0, blid, &ahang, &bhang, ovl, trace, &otype, Local_Overlap_AS_forCNS, DONT_SHOW_OLAP, 0, AS_CONSENSUS, AS_CNS_ERROR_RATE)) {
@@ -8277,7 +8304,8 @@ MultiAlignContig(IntConConMesg *contig,
 
   ResetStores(num_unitigs, num_columns);
 
-  fragmentMap = CreateScalarHashTable_AS();
+  fragmentMap   = CreateScalarHashTable_AS();
+  fragmentToIMP = CreateScalarHashTable_AS();
   for (i=0;i<num_frags;i++) {
     if (ExistsInHashTable_AS (fragmentMap, contig->pieces[i].ident, 0)) {
       fprintf(stderr, "MultiAlignContig: Failure to insert ident %d in fragment hashtable, already present\n",contig->pieces[i].ident);
@@ -8287,6 +8315,9 @@ MultiAlignContig(IntConConMesg *contig,
 
     //  The '1' value stored here is used by GetMANodePositions().
     InsertInHashTable_AS(fragmentMap, contig->pieces[i].ident, 0, 1, 0);
+    
+    // SK store IID to IMP message mapping
+    InsertInHashTable_AS(fragmentToIMP, contig->pieces[i].ident, 0, (uint64)&contig->pieces[i], 0);
   }
 
   for (i=0;i<num_unitigs;i++) {
@@ -8527,7 +8558,6 @@ MultiAlignContig(IntConConMesg *contig,
     PrintAlignment(stderr,ma->lid,0,-1,printwhat);
 
   GetMANodeConsensus(ma->lid,sequence,quality);
-
   contig->consensus  = Getchar(sequence,0);
   contig->quality    = Getchar(quality,0);
   contig->num_pieces = GetMANodePositions(ma->lid, num_frags, contig->pieces, num_unitigs, contig->unitigs, deltas);
@@ -8538,8 +8568,10 @@ MultiAlignContig(IntConConMesg *contig,
 
   safe_free(offsets);
   Delete_VA(trace);
-  DeleteHashTable_AS(fragmentMap);
+  DeleteHashTable_AS(fragmentMap);  
   fragmentMap = NULL;
+  DeleteHashTable_AS(fragmentToIMP);
+  fragmentToIMP = NULL;
   return(EXIT_SUCCESS);
 
  returnFailure:
@@ -8547,6 +8579,8 @@ MultiAlignContig(IntConConMesg *contig,
   Delete_VA(trace);
   DeleteHashTable_AS(fragmentMap);
   fragmentMap = NULL;
+  DeleteHashTable_AS(fragmentToIMP);
+  fragmentToIMP = NULL;
   return(EXIT_FAILURE);
 }
 ////////////////////////////////////////
