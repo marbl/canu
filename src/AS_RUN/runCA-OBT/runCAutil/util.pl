@@ -508,8 +508,8 @@ sub setDefaults () {
     
     #### Closure Options
 
-    $global{"closureEdge s"}               = undef;
-    $synops{"closureEdges "}               = undef;
+    $global{"closureEdges"}               = undef;
+    $synops{"closureEdges"}               = undef;
 
     $global{"closureOverlaps"}             = 0;
     $synops{"closureOverlaps"}             = undef;
