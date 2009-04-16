@@ -136,7 +136,7 @@ sub createOverlapJobs($) {
     my $batchSize = 0;
     my $batch     = 1;
 
-    my $batchName = substr("0000000000" . $batch, -8);
+    my $batchName = substr("0000000000" . $batch, -10);
 
     while ($hashBeg < $numFrags) {
         $hashEnd = $hashBeg + $ovlHashBlockSize - 1;
@@ -151,8 +151,8 @@ sub createOverlapJobs($) {
             #print STDERR "hash: $hashBeg-$hashEnd ref: $refBeg-$refEnd\n";
 
             my $jobName;
-            $jobName .= "h" . substr("0000000000" . $hashBeg, -8);
-            $jobName .= "r" . substr("0000000000" . $refBeg, -8);
+            $jobName .= "h" . substr("0000000000" . $hashBeg, -10);
+            $jobName .= "r" . substr("0000000000" . $refBeg, -10);
 
             push @bat, "$batchName";
             push @job, "$jobName";
@@ -163,7 +163,7 @@ sub createOverlapJobs($) {
             $batchSize++;
             if ($batchSize >= $batchMax) {
                 $batch++;
-                $batchName = substr("0000000000" . $batch, -8);
+                $batchName = substr("0000000000" . $batch, -10);
                 $batchSize = 0;
             }
         }
