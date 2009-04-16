@@ -533,7 +533,7 @@ processArray(int argc, char **argv) {
       withDefLine    = true;
       specialDefLine = argv[++arg];
           
-    } else if (strcmp(argv[arg], "-d") == 0) {
+    } else if (strcmp(argv[arg], "-e") == 0) {
       begPos = strtou32bit(argv[++arg], 0L);
       endPos = strtou32bit(argv[++arg], 0L);
 
