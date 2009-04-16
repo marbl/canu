@@ -63,6 +63,7 @@ struct seqStoreBlock {
   u64bit      _bpf:40;      // position in the bit file of sequence
 };
 
+#define SEQSTOREBLOCK_MAXLEN u64bitMASK(24)
 
 class seqStore : public seqFile {
 protected:

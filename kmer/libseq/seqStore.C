@@ -298,6 +298,39 @@ seqStore::clear(void) {
 
 
 
+static
+void
+addSeqStoreBlock(u32bit          &BLOKmax,
+                 u32bit          &BLOKlen,
+                 seqStoreBlock*  &BLOK,
+                 seqStoreBlock   &b,
+                 u32bit          &nBlockACGT,
+                 u32bit          &nBlockGAP,
+                 u64bit          &nACGT) {
+
+  if (b._len == 0)
+    return;
+
+  if (b._isACGT == 1) {
+    nBlockACGT++;
+    nACGT += b._len;
+  } else {
+    nBlockGAP++;
+  }
+
+  BLOK[BLOKlen++] = b;
+
+  if (BLOKlen >= BLOKmax) {
+    BLOKmax *= 2;
+    seqStoreBlock *nb = new seqStoreBlock [BLOKmax];
+    memcpy(nb, BLOK, BLOKlen * sizeof(seqStoreBlock));
+    delete [] BLOK;
+    BLOK = nb;
+  }
+}
+
+
+
 void
 constructSeqStore(char *filename, seqCache *inputseq) {
 
@@ -357,17 +390,25 @@ constructSeqStore(char *filename, seqCache *inputseq) {
       for (u32bit p=0; p<sic->sequenceLength(); p++) {
         u64bit   bits = letterToBits[seq[p]];
 
+        //  If the length of the current block is too big (which would
+        //  soon overflow the bit field storing length) write out a
+        //  block and reset the length.
+        //
+        if (b._len == SEQSTOREBLOCK_MAXLEN) {
+          addSeqStoreBlock(BLOKmax, BLOKlen, BLOK, b, nBlockACGT, nBlockGAP, nACGT);
+
+          b._pos    = p;
+          b._len    = 0;
+          b._bpf    = DATA->tell() / 2;
+        }
+
+
         if (bits == 0xff) {
-
-          //  Letter is NOT ACGT, write out the last block if it was
-          //  ACGT, then increment our length.
-
+          //  This letter is NOT ACGT.  If the current block is an ACGT block, write it
+          //  and reset.
+          //
           if (b._isACGT == 1) {
-            if (b._len > 0) {
-              nBlockACGT++;
-              nACGT += b._len;
-              BLOK[BLOKlen++] = b;
-            }
+            addSeqStoreBlock(BLOKmax, BLOKlen, BLOK, b, nBlockACGT, nBlockGAP, nACGT);
 
             b._isACGT = 0;
             b._iid    = sic->getIID();
@@ -376,18 +417,13 @@ constructSeqStore(char *filename, seqCache *inputseq) {
             b._bpf    = DATA->tell() / 2;
           }
 
-          b._len++;
-
         } else {
 
-          //  Letter is ACGT.  Write out last block if it was a gap,
-          //  then emit this letter.
-
+          //  This letter is ACGT.  If the current block is NOT an ACGT block, write it
+          //  and reset.
+          //
           if (b._isACGT == 0) {
-            if (b._len > 0) {
-              nBlockGAP++;
-              BLOK[BLOKlen++] = b;
-            }
+            addSeqStoreBlock(BLOKmax, BLOKlen, BLOK, b, nBlockACGT, nBlockGAP, nACGT);
 
             b._isACGT = 1;
             b._iid    = sic->getIID();
@@ -395,44 +431,20 @@ constructSeqStore(char *filename, seqCache *inputseq) {
             b._len    = 0;
             b._bpf    = DATA->tell() / 2;
           }
-
-          b._len++;
-
-          DATA->putBits(bits, 2);
         }
 
-        //  Make sure we have space for more blocks.  The stuff in the
-        //  current for loop adds at most one block per iteration.
+        //  Always add one to the length of the current block, and
+        //  write out the base if the letter is ACGT.
         //
-        if (BLOKlen >= BLOKmax) {
-          BLOKmax *= 2;
-          seqStoreBlock *nb = new seqStoreBlock [BLOKmax];
-          memcpy(nb, BLOK, BLOKlen * sizeof(seqStoreBlock));
-          delete [] BLOK;
-          BLOK = nb;
-        }
+        b._len++;
+
+        if (bits != 0xff)
+          DATA->putBits(bits, 2);
       }
 
       //  Emit the last block
-
-      if (b._isACGT == 1) {
-        nBlockACGT++;
-        nACGT += b._len;
-      } else {
-        nBlockGAP++;
-      }
-
-      BLOK[BLOKlen++] = b;
-
-      //  Grab more blocks if needed.
       //
-      if (BLOKlen >= BLOKmax) {
-        BLOKmax *= 2;
-        seqStoreBlock *nb = new seqStoreBlock [BLOKmax];
-        memcpy(nb, BLOK, BLOKlen * sizeof(seqStoreBlock));
-        delete [] BLOK;
-        BLOK = nb;
-      }
+      addSeqStoreBlock(BLOKmax, BLOKlen, BLOK, b, nBlockACGT, nBlockGAP, nACGT);
     }
 
     delete sic;
