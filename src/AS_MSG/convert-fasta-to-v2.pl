@@ -320,7 +320,7 @@ sub readQual {
                     $qstr .= chr(ord('0') + $qv);
                 }
             } else {
-                $qstr .= $q;
+                $qstr .= chr(ord('0') + $qv)
             }
         }
     }
