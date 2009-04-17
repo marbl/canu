@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.230 2009-04-15 20:48:41 skoren Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.231 2009-04-17 21:39:59 skoren Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -184,7 +184,6 @@ int FORCE_UNITIG_ABUT = 0;
 //  AS_READ_CLEAR_LATEST.
 //
 int clear_range_to_use = AS_READ_CLEAR_LATEST;
-
 
 int isRead(FragType type){
   switch(type){
@@ -5084,7 +5083,7 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
   SeqInterval position;
   IntMultiPos *fimp;
   IntUnitigPos *fump;
-  int ndeletes=0, nunaligned=0;
+  int ndeletes=0;
   int odlen=0;
   int32 n_frags=0,n_unitigs=0;
   int32 i,delta_pos,prev_num_deltas;
@@ -5096,8 +5095,8 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
   }
   for (i=0;i<GetNumFragments(fragmentStore);i++) {
     fragment = GetFragment(fragmentStore,i);
-    assert(fragment->manode == mid);
-    if ( fragment->deleted || fragment->manode != mid) {
+    assert(fragment->deleted || fragment->manode == mid);
+    if ( fragment->deleted) {
       ndeletes++;
       continue;
     }
@@ -8148,7 +8147,8 @@ int IsDovetail(SeqInterval a,SeqInterval b) {
 static
 void
 PlaceFragments(int32 fid,
-               CNS_Options *opp) {
+               IntUnitigPos *aium,
+               CNS_Options  *opp) {
 
   Fragment                 *afrag = GetFragment(fragmentStore,fid);
   CNS_AlignedContigElement *bfrag = GetCNS_AlignedContigElement(fragment_positions, afrag->components);
@@ -8172,6 +8172,7 @@ PlaceFragments(int32 fid,
     // if this computed position matches the position that the IMP record retrieved below tells us, proceed, otherwise skip placement
     IntMultiPos *bimp = (IntMultiPos *)LookupValueInHashTable_AS(fragmentToIMP, bfrag->idx.fragment.frgIdent, 0);
     CDS_COORD_t  bbgn = (bimp->position.bgn < bimp->position.end ? bimp->position.bgn : bimp->position.end);
+    CDS_COORD_t  abgn = (aium->position.bgn < aium->position.end ? aium->position.bgn : aium->position.end);
 
     int fcomplement = afrag->complement;
     int bcomplement = (bfrag->position.bgn < bfrag->position.end) ? 0 : 1;
@@ -8222,7 +8223,7 @@ PlaceFragments(int32 fid,
     assert(bhang <= 0);
     assert(ovl   >  0);
 
-    if (abs(ahang + GetColumn(columnStore,(GetBead(beadStore,afrag->firstbead))->column_index)->ma_index - bbgn) > MAX_SURROGATE_FUDGE_FACTOR) {
+    if (abs(ahang + abgn - bbgn) > MAX_SURROGATE_FUDGE_FACTOR) { 
       if (VERBOSE_MULTIALIGN_OUTPUT)
          fprintf(stderr, "Not placing fragment %d into unitig %d because the positions (%d, %d) do not match (%d, %d)\n",
                  bfrag->idx.fragment.frgIdent, afrag->iid,
@@ -8346,7 +8347,7 @@ MultiAlignContig(IntConConMesg *contig,
   // Seed multiAlignment with 1st fragment of 1st unitig
 
   SeedMAWithFragment(ma->lid, GetFragment(fragmentStore,0)->lid, 0, opp);
-  PlaceFragments(GetFragment(fragmentStore,0)->lid, opp);
+  PlaceFragments(GetFragment(fragmentStore,0)->lid, &contig->unitigs[GetFragment(fragmentStore,0)->lid], opp);
 
   // Now, loop on remaining fragments, aligning to:
   //    a)  containing frag (if contained)
@@ -8522,12 +8523,11 @@ MultiAlignContig(IntConConMesg *contig,
       MarkAsContained(i);
 
     ApplyAlignment(afrag->lid, 0, bfrag->lid, ahang, Getint32(trace,0));
-    PlaceFragments(bfrag->lid, opp);
+    PlaceFragments(bfrag->lid, &contig->unitigs[bfrag->lid], opp);
   }  //  over all unitigs
 
   // Now, must find fragments in regions of overlapping unitigs, and adjust
   // their alignments as needed
-
   RefreshMANode(ma->lid, 0, opp, NULL, NULL, 0, 0);
 
   if (printwhat == CNS_VERBOSE) {
