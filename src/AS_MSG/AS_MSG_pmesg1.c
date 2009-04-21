@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.35 2008-11-11 16:16:25 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.36 2009-04-21 13:53:46 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -358,6 +358,7 @@ Read_IUP_Mesg(FILE *fin, IntUnitigPos *iup) {
 
   iup->type = (UnitigType)GetType("typ:%1[URSPsX]","unitigpos type", fin);
   GET_FIELD(iup->ident,"lid:"F_IID,"unitigpos id");
+  GET_FIELD(iup->num_instances,"ncp:"F_IID,"unitigcopy num");
   GET_PAIR(iup->position.bgn,iup->position.end,"pos:"F_COORD","F_COORD,"position field");
   GET_FIELD(iup->delta_length,"dln:"F_S32,"delta length");
   if (strncmp(ReadLine(fin,TRUE),"del:",4) != 0)
@@ -1194,6 +1195,7 @@ static void Write_IUP_Mesg(FILE *fout, IntUnitigPos *up)
   fprintf(fout,"{IUP\n");
   fprintf(fout,"typ:%c\n",(char) up->type);
   fprintf(fout,"lid:"F_IID"\n",up->ident);
+  fprintf(fout,"ncp:"F_IID"\n",up->num_instances);
   fprintf(fout,"pos:"F_COORD","F_COORD"\n",up->position.bgn,up->position.end);
   fprintf(fout,"dln:"F_S32"\n",up->delta_length);
   fprintf(fout,"del:\n");

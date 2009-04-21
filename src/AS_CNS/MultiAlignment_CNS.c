@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.231 2009-04-17 21:39:59 skoren Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.232 2009-04-21 13:53:45 skoren Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -8147,7 +8147,7 @@ int IsDovetail(SeqInterval a,SeqInterval b) {
 static
 void
 PlaceFragments(int32 fid,
-               IntUnitigPos *aium,
+               IntUnitigPos *aiup,
                CNS_Options  *opp) {
 
   Fragment                 *afrag = GetFragment(fragmentStore,fid);
@@ -8172,7 +8172,7 @@ PlaceFragments(int32 fid,
     // if this computed position matches the position that the IMP record retrieved below tells us, proceed, otherwise skip placement
     IntMultiPos *bimp = (IntMultiPos *)LookupValueInHashTable_AS(fragmentToIMP, bfrag->idx.fragment.frgIdent, 0);
     CDS_COORD_t  bbgn = (bimp->position.bgn < bimp->position.end ? bimp->position.bgn : bimp->position.end);
-    CDS_COORD_t  abgn = (aium->position.bgn < aium->position.end ? aium->position.bgn : aium->position.end);
+    CDS_COORD_t  abgn = (aiup->position.bgn < aiup->position.end ? aiup->position.bgn : aiup->position.end);
 
     int fcomplement = afrag->complement;
     int bcomplement = (bfrag->position.bgn < bfrag->position.end) ? 0 : 1;
@@ -8223,7 +8223,7 @@ PlaceFragments(int32 fid,
     assert(bhang <= 0);
     assert(ovl   >  0);
 
-    if (abs(ahang + abgn - bbgn) > MAX_SURROGATE_FUDGE_FACTOR) { 
+    if (aiup->num_instances > 1 && abs(ahang + abgn - bbgn) > MAX_SURROGATE_FUDGE_FACTOR) { 
       if (VERBOSE_MULTIALIGN_OUTPUT)
          fprintf(stderr, "Not placing fragment %d into unitig %d because the positions (%d, %d) do not match (%d, %d)\n",
                  bfrag->idx.fragment.frgIdent, afrag->iid,

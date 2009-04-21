@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.73 2009-03-05 18:50:20 skoren Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.74 2009-04-21 13:53:45 skoren Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.73 2009-03-05 18:50:20 skoren Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.74 2009-04-21 13:53:45 skoren Exp $";
 
 #include <stdio.h>
 #include <time.h>
@@ -432,6 +432,7 @@ typedef struct {
   UnitigType    type;
   IntUnitig_ID  ident;
   SeqInterval   position;
+  int32         num_instances;
   int32         delta_length;
   int32        *delta;
 } IntUnitigPos;

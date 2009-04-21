@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.38 2009-02-02 13:51:14 brianwalenz Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.39 2009-04-21 13:53:43 skoren Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -293,8 +293,10 @@ void OutputContigsFromMultiAligns(void){
       }
       uptr = icm_mesg.unitigs;
       for(i = 0; i < numUnitig; i++){
-        IntUnitigPos *iup = up + i;
+        IntUnitigPos *iup = up + i;        
         NodeCGW_T *unitig = GetGraphNode(ScaffoldGraph->CIGraph, iup->ident);
+        int32 num_instances = unitig->info.CI.numInstances;
+ 
         if(unitig->type == DISCRIMINATORUNIQUECHUNK_CGW){
           uptr[i].type = AS_UNIQUE_UNITIG;
         }else{
@@ -315,8 +317,10 @@ void OutputContigsFromMultiAligns(void){
         uptr[i].delta = iup->delta;
         if(unitig->type == RESOLVEDREPEATCHUNK_CGW){
           iup->ident = unitig->info.CI.baseID; // map back to the parent of this instance
+	  num_instances = GetGraphNode(ScaffoldGraph->CIGraph, unitig->info.CI.baseID)->info.CI.numInstances;
         }
-        uptr[i].ident = iup->ident;
+	uptr[i].ident = iup->ident;
+        uptr[i].num_instances = num_instances;
       }
       ctg->outputID = ctg->id ;  // cid++;
       icm_mesg.placed = (scaffold && (scaffold->type == REAL_SCAFFOLD)?AS_PLACED:AS_UNPLACED);

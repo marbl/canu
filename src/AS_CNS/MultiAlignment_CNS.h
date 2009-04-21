@@ -21,7 +21,7 @@
 #ifndef MULTIALIGNMENT_CNS_INCLUDE
 #define MULTIALIGNMENT_CNS_INCLUDE
 
-static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.47 2009-04-17 21:39:59 skoren Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.48 2009-04-21 13:53:45 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -42,7 +42,7 @@ static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h
 #define BC_MIN(a,b)  (((a)<(b))?(a):(b))
 #define MIN_ALLOCATED_DEPTH 100
 
-#define MAX_SURROGATE_FUDGE_FACTOR 3000
+#define MAX_SURROGATE_FUDGE_FACTOR 5000
 
 //  This is probably broken, or extremely inefficient, as of Nov 4 2007.
 #undef PRINTUIDS
