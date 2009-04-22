@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.46 2008-11-11 16:16:25 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.47 2009-04-22 20:38:20 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -532,8 +532,12 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
 
       if ((getFragRecordMateIID(&fr) > 0) && (iidToDump[getFragRecordMateIID(&fr)] == 0)) {
         mateAdded++;
-        if (doNotFixMates == 0)
-          iidToDump[getFragRecordMateIID(&fr)] = 1;
+        if (doNotFixMates == 0) {
+          // pull the mate fragment so we can get its UID and store it in our lookup table (needed for LKG record)
+          getFrag(gkp, getFragRecordMateIID(&fr), &fr, FRAG_S_INF);
+          iidToDump[getFragRecordIID(&fr)] = 1;
+          frgUID[getFragRecordIID(&fr)] = getFragRecordUID(&fr);
+        }
       }
     }
   }
