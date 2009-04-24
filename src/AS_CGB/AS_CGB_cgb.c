@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_cgb.c,v 1.26 2008-10-08 22:02:54 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_cgb.c,v 1.27 2009-04-24 14:13:22 skoren Exp $";
 
 //  This module builds the chunk graph from the fragment essential
 //  overlap graph with contained fragments as an augmentation, and
@@ -997,6 +997,12 @@ count_the_randomly_sampled_fragments_in_a_chunk(Tfragment   frags[],
     if ((type == AS_READ || type == AS_EXTR) && !getFragRecordIsNonRandom(&frg))
       nf++;
   }
+
+  // never return 0 fragments as the size of a unitig or we will skew astat
+  if (nf == 0) {
+   nf = 1;
+  }
+  
   return(nf);
 }
 

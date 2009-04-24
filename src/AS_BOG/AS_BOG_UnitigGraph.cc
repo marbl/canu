@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.110 2009-02-27 15:13:18 skoren Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.111 2009-04-24 14:13:21 skoren Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -1001,6 +1001,11 @@ float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long 
         }
       }
     }
+
+   std::cerr << 
+      "Computed genome_size="
+      << (_globalArrivalRate > 0.f ? ((float)total_random_frags_in_genome / _globalArrivalRate) : 0.f) 
+      << std::endl;
   }else{
     // Compute actual GAR
     _globalArrivalRate = (float)total_random_frags_in_genome / (float)genome_size;
