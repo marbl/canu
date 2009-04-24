@@ -46,6 +46,7 @@ my $clqFound = 0;
 my $clqNotFound = 0;
 
 my $noOBT = 0;
+my $isNCBIqv = 0;
 
 my $seqfile;
 my $qltfile;
@@ -213,7 +214,7 @@ while (defined($seq) && defined($qlt)) {
     print "}\n";
 
     if (length($seq) != length($qlt)) {
-        die "Length of sequence and quality do not agree for $seqid.\n";
+        die "Length of sequence (" . length($seq) . ") and quality (" . length($qlt) . ") do not agree for $seqid.\n";
     }
 
     ($seqid, $seq) = readFasta();
@@ -315,12 +316,16 @@ sub readQual {
             $q =~ s/\s+$//;
 
             if ($q =~ m/\s+/) {
+                $isNCBIqv = 1;
+
                 foreach my $qv (split '\s+', $q) {
                     if ($qv > 60) {$qv = 60;}
                     $qstr .= chr(ord('0') + $qv);
                 }
+            } elsif ($isNCBIqv) {
+                $qstr .= chr(ord('0') + $q);
             } else {
-                $qstr .= chr(ord('0') + $qv)
+                $qstr .= $q;
             }
         }
     }
