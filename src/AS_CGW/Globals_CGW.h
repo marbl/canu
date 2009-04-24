@@ -22,7 +22,7 @@
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
-static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.25 2009-02-02 13:51:14 brianwalenz Exp $";
+static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.26 2009-04-24 14:26:16 skoren Exp $";
 
 #include "AS_CGW_dataTypes.h"
 #include "AS_MSG_pmesg.h"
@@ -59,8 +59,12 @@ typedef struct Global_CGW_tag {
 
   char unitigOverlaps[FILENAME_MAX];
   char closureReadFile[FILENAME_MAX];
+  
+  int closurePlacement;
 
   HashTable_AS *closureReads;
+  HashTable_AS *closureLeftEnds;
+  HashTable_AS *closureRightEnds;
 }Global_CGW;
 
 

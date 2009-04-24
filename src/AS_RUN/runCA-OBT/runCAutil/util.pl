@@ -507,12 +507,14 @@ sub setDefaults () {
     $synops{"specFile"}                    = undef;
     
     #### Closure Options
-
     $global{"closureEdges"}               = undef;
-    $synops{"closureEdges"}               = undef;
+    $synops{"closureEdges"}               = "A link to the file of the format readUID leftMateUID rightMateUID specifying closure constraints";
 
-    $global{"closureOverlaps"}             = 0;
-    $synops{"closureOverlaps"}             = undef;
+    $global{"closureOverlaps"}            = 2;
+    $synops{"closureOverlaps"}             = "Option for handling overlaps involving closure reads.\n\t0 - Treat them just like regular reads, \n\t1 - Do not allow any overlaps (i.e. closure reads will stay as singletons until scaffolding), \n\t2 - allow overlaps betweeen closure reads and non-closure reads only";
+
+    $global{"closurePlacement"}           = 2;
+    $synops{"closurePlacement"}           = "Option for placing closure reads using the constraints.\n\t0 - Place at the first location found\n\t2 - Place at the best location (indicated by most constraints)\n\t3 - Place at multiple locations as long as the closure read/unitig in question is not unique";
 }
 
 sub makeAbsolute ($) {
@@ -710,10 +712,7 @@ sub setParameters () {
     $ENV{'AS_CNS_ERROR_RATE'} = $cnsER;
 }
 
-
-sub printHelp () {
-
-    if (getGlobal("version")) {
+sub logVersion() {
         my $bin = getBinDirectory();
 
         system("$bin/gatekeeper   --version");
@@ -723,7 +722,12 @@ sub printHelp () {
         system("$bin/cgw          --version");
         system("$bin/consensus    --version");
         system("$bin/terminator   --version");
+}
 
+sub printHelp () {
+
+    if (getGlobal("version")) {
+        logVersion();
         exit(0);
     }
 
@@ -1076,16 +1080,5 @@ sub runCommand ($$) {
 
 sub setupFilesForClosure() {
     makeAbsolute("closureEdges");
-
-    my $closureEdges = getGlobal("closureEdges");
-
-    if (defined($closureEdges)) {
-       #default to only allowing overlaps between closure reads and other reads. No overlaps within the set of closure reads  
-       setGlobal("closureOverlaps", 2);
-       if (-e "$wrk/closureEdges") {
-          return;
-       }
-       system("cp $closureEdges $wrk/$asm.gkpStore.closureEdges");
-    }
 }
 1;

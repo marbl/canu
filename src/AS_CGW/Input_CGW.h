@@ -22,7 +22,7 @@
 #ifndef INPUT_CGW_H
 #define INPUT_CGW_H
 
-static const char *rcsid_INPUT_CGW_H = "$Id: Input_CGW.h,v 1.8 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid_INPUT_CGW_H = "$Id: Input_CGW.h,v 1.9 2009-04-24 14:26:16 skoren Exp $";
 
 int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]);
 
@@ -31,5 +31,7 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
                               int sequenceOnly);
 
 void  LoadDistData(void);
+
+void LoadClosureReadData(void);
 
 #endif

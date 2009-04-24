@@ -75,10 +75,12 @@ sub CGW ($$$$$$) {
     my $astatLow = getGlobal("astatLowBound");
     my $astatHigh = getGlobal("astatHighBound");
     $cmd  = "$bin/cgw $ckp -j $astatLow -k $astatHigh -r 5 -s $stoneLevel ";
-    $cmd .= " -S 0 " if (($finalRun == 0)   || (getGlobal("doResolveSurrogates") == 0));
-    $cmd .= " -G "   if (($finalRun == 0)   && (getGlobal("cgwOutputIntermediate") == 0));
-    $cmd .= " -z "   if (getGlobal("cgwDemoteRBP") == 1);
-    $cmd .= " -u $wrk/4-unitigger/$asm.unused.ovl"  if (getGlobal("cgwUseUnitigOverlaps") != 0);
+    $cmd .= " -S 0 "                               if (($finalRun == 0)   || (getGlobal("doResolveSurrogates") == 0));
+    $cmd .= " -G "                                 if (($finalRun == 0)   && (getGlobal("cgwOutputIntermediate") == 0));
+    $cmd .= " -z "                                 if (getGlobal("cgwDemoteRBP") == 1);
+    $cmd .= " -c " . getGlobal("closureEdges")     if (defined(getGlobal("closureEdges")));
+    $cmd .= " -p " . getGlobal("closurePlacement") if (defined(getGlobal("closureEdges")));
+    $cmd .= " -u $wrk/4-unitigger/$asm.unused.ovl" if (getGlobal("cgwUseUnitigOverlaps") != 0);
     $cmd .= " -m $sampleSize";
     $cmd .= " -g $wrk/$asm.gkpStore ";
     $cmd .= " -o $wrk/$thisDir/$asm ";

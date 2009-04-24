@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.56 2008-12-16 22:32:37 skoren Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.57 2009-04-24 14:26:16 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -490,4 +490,33 @@ LoadDistData(void) {
 
     SetDistT(ScaffoldGraph->Dists, i, &dist);
   }
+}
+
+void LoadClosureReadData() {
+   #warning SK - adding closure info from file now, it should be in GKP store
+   if ((GlobalData->closureReads == NULL) && (GlobalData->closureReadFile[0])) {
+      GlobalData->closureReads = CreateScalarHashTable_AS();
+      GlobalData->closureLeftEnds = CreateScalarHashTable_AS();
+      GlobalData->closureRightEnds = CreateScalarHashTable_AS();
+      int line_len = ( 16 * 1024 * 1024);
+      char *currLine = safe_malloc(sizeof(char)*line_len);
+      errno = 0;
+      FILE *file = fopen(GlobalData->closureReadFile, "r");
+      if (errno) {
+         errno = 0;
+      } else {
+         while (fgets(currLine, line_len-1, file) != NULL) {
+            char *nextUID = currLine;
+            AS_UID read = AS_UID_lookup(nextUID, &nextUID);
+            InsertInHashTable_AS(GlobalData->closureReads, (uint64)getGatekeeperUIDtoIID(ScaffoldGraph->gkpStore, read, NULL), 0, 1, 0);
+            
+            AS_UID left = AS_UID_lookup(nextUID, &nextUID);
+            AS_UID right = AS_UID_lookup(nextUID, &nextUID);
+            InsertInHashTable_AS(GlobalData->closureLeftEnds, (uint64)getGatekeeperUIDtoIID(ScaffoldGraph->gkpStore, read, NULL), 0, (uint64)getGatekeeperUIDtoIID(ScaffoldGraph->gkpStore, left, NULL), 0);
+            InsertInHashTable_AS(GlobalData->closureRightEnds, (uint64)getGatekeeperUIDtoIID(ScaffoldGraph->gkpStore, read, NULL), 0, (uint64)getGatekeeperUIDtoIID(ScaffoldGraph->gkpStore, right, NULL), 0);
+         }
+         fclose(file);
+      }
+      safe_free(currLine);
+   }
 }

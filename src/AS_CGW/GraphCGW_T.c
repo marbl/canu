@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.68 2009-02-02 13:51:14 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.69 2009-04-24 14:26:16 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,6 +39,8 @@ static char *rcsid = "$Id: GraphCGW_T.c,v 1.68 2009-02-02 13:51:14 brianwalenz E
 #include "Instrument_CGW.h"
 #include "MultiAlignment_CNS.h"
 #include "UtilsREZ.h"
+
+#include "Input_CGW.h"
 
 VA_DEF(PtrT);
 
@@ -1667,27 +1669,9 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
 
   }
 
-  #warning SK - adding closure info from file now, it should be in GKP store
-  if (GlobalData->closureReads == NULL) {
-   GlobalData->closureReads = CreateScalarHashTable_AS();
-   int line_len = ( 16 * 1024 * 1024);
-   char *currLine = safe_malloc(sizeof(char)*line_len);
-   char fileName[1024];
-   sprintf(fileName, "%s.closureEdges", GlobalData->Gatekeeper_Store_Name);
-   errno = 0;
-   FILE *file = fopen(fileName, "r");
-   if (errno) {
-      errno = 0;
-   } else {
-      while (fgets(currLine, line_len-1, file) != NULL) {
-         AS_UID read = AS_UID_lookup(currLine, NULL);
-         InsertInHashTable_AS(GlobalData->closureReads, getGatekeeperUIDtoIID(ScaffoldGraph->gkpStore, read, NULL), 0, 1, 0);
-      }
-      fclose(file);
-   }
-   safe_free(currLine);
-  }
-  
+  // set up closure reads if they aren't yet
+  LoadClosureReadData();
+    
   for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
     IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
     CDS_CID_t fragID = (CDS_CID_t)mp->sourceInt;
@@ -1786,11 +1770,9 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
       }
 
       // SK: for closure, mark closure contigs
-      if (LookupValueInHashTable_AS(GlobalData->closureReads, frag->iid, 0)) {
+      if ((GlobalData->closureReads != NULL) && LookupValueInHashTable_AS(GlobalData->closureReads, frag->iid, 0)) {
          if (node->scaffoldID == -1) {
             node->flags.bits.isClosure = TRUE;
-         } else {
-            node->flags.bits.isClosure = FALSE;
          }
       }
    }

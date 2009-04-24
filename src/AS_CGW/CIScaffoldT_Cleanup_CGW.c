@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.49 2009-02-02 13:51:14 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.50 2009-04-24 14:26:16 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2020,6 +2020,9 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
     ctg->flags.bits.failedToContig = FALSE;
     ctg->flags.bits.beingContigged = TRUE; // flag the contig as being involved in a contigging operation
 
+    // SK: for closure, when we merge together a unique closure unitig, propagate the flag up to the new contig
+    contig->flags.bits.isClosure |= ctg->flags.bits.isClosure;
+    
     if (pos->position.bgn < pos->position.end) {
       if (pos->position.bgn < minPos) {
         minPos  = pos->position.bgn;
@@ -2044,7 +2047,6 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
       }
     }
   }
-
 
 #ifdef DEBUG_CREATEACONTIG
   fprintf(GlobalData->stderrc, "minPos = " F_COORD " maxPos = " F_COORD " extremes are (" F_CID ",%d) and (" F_CID ",%d)\n",

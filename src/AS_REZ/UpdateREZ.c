@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: UpdateREZ.c,v 1.14 2008-12-16 22:33:52 skoren Exp $";
+static const char *rcsid = "$Id: UpdateREZ.c,v 1.15 2009-04-24 14:26:16 skoren Exp $";
 
 /**********************************************************************
 
@@ -282,17 +282,15 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
          // otherwise, we pick the first one that is kept for that specific cid
          // this was added for closure reads where we cannot tell their orientations (vs regular rocks where we can use mates to figure it out)
          // therefore, we add both orientations of a rock and let the overlaps decide which we keep
-         // is this a good idea? who knows?
-         
-         // SK - 12/9/08 - cgw sometimes splits things into multiple fcs with the same ID but the code will always pick the latest one
-         // why? is this correct?
          if (table[fc->chunk[k].chunk_id] == NULL || (fc->chunk[k].isClosure && fc->chunk[k].keep) || fc->chunk[k].copy_letter != ' ') {
             if (table[fc->chunk[k].chunk_id] != NULL && table[fc->chunk[k].chunk_id]->keep == 1 && fc->chunk[k].copy_letter == ' ') {
-                  fprintf(stderr, "ERROR CHUNK %d (%f, %f) COPY_LETTER=%c KEEP=%d CLOSURE=%d PATH=%d HAS KEEP FLAG ON BUT THERE IS ALREADY A CHUNK WITH ID %d (%f, %f) COPY_LETTER=%c KEEP=%d CLOSURE=%d SCF=%d CURR SCF=%d\n", 
+                  fprintf(stderr, "ERROR: chunk %d (%f, %f) copy_letter=%c keep=%d closure=%d path=%d has keep flag on but there is already a chunk %d (%f, %f) copy_letter=%c keep=%d closure=%d scf=%d curr_scf=%d gap=%d curr_gap=%d\n", 
                      fc->chunk[k].chunk_id, fc->chunk[k].start.mean, fc->chunk[k].end.mean,
                      fc->chunk[k].copy_letter, fc->chunk[k].keep, fc->chunk[k].isClosure, fc->chunk[k].path_confirmed,
                      table[fc->chunk[k].chunk_id]->chunk_id, table[fc->chunk[k].chunk_id]->start.mean, table[fc->chunk[k].chunk_id]->end.mean,
-                     table[fc->chunk[k].chunk_id]->copy_letter, table[fc->chunk[k].chunk_id]->keep, table[fc->chunk[k].chunk_id]->isClosure, table[fc->chunk[k].chunk_id]->scaff_id, fc->chunk[k].scaff_id);
+                     table[fc->chunk[k].chunk_id]->copy_letter, table[fc->chunk[k].chunk_id]->keep, table[fc->chunk[k].chunk_id]->isClosure, 
+                     table[fc->chunk[k].chunk_id]->scaff_id, fc->chunk[k].scaff_id,
+                     table[fc->chunk[k].chunk_id]->gap, fc->chunk[k].gap);
                    
                   assert(0);
             }

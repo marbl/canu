@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.24 2009-01-06 13:55:07 brianwalenz Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.25 2009-04-24 14:26:16 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -699,7 +699,56 @@ getChunkInstanceID(ChunkInstanceT *chunk, int index) {
   return(-1);
 }
 
+int placedByClosureIn(int index, CDS_CID_t iid, CDS_CID_t sid, CDS_CID_t ctgiid) {
+   int result = FALSE;
 
+   uint32 leftIID = (uint32) LookupValueInHashTable_AS(GlobalData->closureLeftEnds, (uint64)iid, 0); 
+   uint32 rightIID = (uint32) LookupValueInHashTable_AS(GlobalData->closureRightEnds, (uint64)iid, 0);
+
+   assert(leftIID);
+   assert(rightIID);
+   
+   // get the reads indicated by the input line
+   CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, leftIID)->fragIndex); 
+   CIFragT *rightMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, rightIID)->fragIndex);
+
+   // the reads aren't in contigs so there can't be gaps to fill
+   if (leftMate->contigID == NULLINDEX || rightMate->contigID == NULLINDEX) {
+      return result;
+   }
+   ChunkInstanceT * begin_chunk = GetGraphNode(ScaffoldGraph->CIGraph, leftMate->CIid);
+   ChunkInstanceT * end_chunk   = GetGraphNode(ScaffoldGraph->CIGraph, rightMate->CIid);
+      
+   if (leftMate->contigID == ctgiid || rightMate->contigID == ctgiid) {
+      if (begin_chunk->scaffoldID == sid && end_chunk->scaffoldID == sid) {
+         // try going off the aend of the leftNode
+         while (begin_chunk->AEndNext != NULLINDEX && begin_chunk->AEndNext != end_chunk->id) {
+            if (begin_chunk->AEndNext == index) {
+               result = TRUE;
+               break;
+            }
+            begin_chunk = GetGraphNode(ScaffoldGraph->CIGraph, begin_chunk->AEndNext);
+         }
+         
+         // if we ran off the end from the left and didn't find the surrogate instance, try from the right
+         if (result || begin_chunk->AEndNext == end_chunk->id) { 
+            // we stopped because we got to the end chunk or we found the instance we were looking for, no need to search other direction
+         } else {
+            begin_chunk = GetGraphNode(ScaffoldGraph->CIGraph, leftMate->CIid);
+            while (end_chunk->AEndNext != NULLINDEX && end_chunk->AEndNext != begin_chunk->id) {
+               if (end_chunk->AEndNext == index) {
+                  result = TRUE;
+                  break;
+               }
+               end_chunk = GetGraphNode(ScaffoldGraph->CIGraph, end_chunk->AEndNext);
+            }
+         }
+      }
+   }
+   
+   return result;
+}
+      
 
 void
 resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
@@ -790,9 +839,16 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
 
         if ((matePlacedOnlyIn(nextfrg,sid,&mate,&mateChunk)) &&
             (nextfrg->flags.bits.innieMate) &&
-            (FragAndMateAreCompatible(nextfrg,candidateChunk,mate,mateChunk,AS_INNIE)))
-          fragIsGood= 1;
+            (FragAndMateAreCompatible(nextfrg,candidateChunk,mate,mateChunk,AS_INNIE))) {
+          fragIsGood= 1;          
+            }
 
+        // if this is closure read and we can place it in this location, do it
+        if ((GlobalData->closureReads) && LookupValueInHashTable_AS(GlobalData->closureReads, nextfrg->iid, 0) && 
+            placedByClosureIn(index, nextfrg->iid, sid, ctgiid)) {
+         fragIsGood = 1;
+        }
+        
         if(fragIsGood){
           // we're hot to trot ... now do something!
           IntMultiPos imp;
@@ -804,7 +860,6 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
           imp.delta_length=0;
           imp.delta=NULL;
           AppendVA_IntMultiPos(impLists[i],&imp);
-
           numFrgsToPlace++;
         }
       }

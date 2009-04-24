@@ -144,7 +144,7 @@ sub terminate ($) {
 
         #  Youch.  Run five commands, do something if all are successful.
 
-        $cmd  = "sort -k2n -T $termDir $termDir/$asm.posmap.frgscf > $termDir/$asm.posmap.frgscf.sorted &&";
+        $cmd  = "sort -k2n -k3n -T $termDir $termDir/$asm.posmap.frgscf > $termDir/$asm.posmap.frgscf.sorted &&";
         $cmd .= "$bin/fragmentDepth -min       0 -max    3000 < $termDir/$asm.posmap.frgscf.sorted > $termDir/$asm.posmap.frgscf.histogram1 && ";
         $cmd .= "$bin/fragmentDepth -min    3001 -max   10000 < $termDir/$asm.posmap.frgscf.sorted > $termDir/$asm.posmap.frgscf.histogram2 && ";
         $cmd .= "$bin/fragmentDepth -min   10001 -max 1000000 < $termDir/$asm.posmap.frgscf.sorted > $termDir/$asm.posmap.frgscf.histogram3 && ";
@@ -199,7 +199,6 @@ sub terminate ($) {
 
         #  Remove our temporary files.
 
-        unlink "$termDir/$asm.posmap.frgscf.sorted";
         unlink "$termDir/$asm.posmap.frgscf.histogram1";
         unlink "$termDir/$asm.posmap.frgscf.histogram2";
         unlink "$termDir/$asm.posmap.frgscf.histogram3";

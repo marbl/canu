@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.33 2009-01-07 16:08:19 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.34 2009-04-24 14:26:16 skoren Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -1002,6 +1002,44 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
       //
       UFUnion(UFData, chunk->setID, otherChunk->setID);
     }
+        
+    // merge unions based on closure reads as well (i.e. consider them edges)
+    if (chunk->flags.bits.isClosure) {
+       MultiAlignT *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, chunk->id, chunk->flags.bits.isCI);
+       int i = 0;
+       assert(ma != NULL);
+       
+       for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {      
+          IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
+          
+          if (GlobalData->closureReads == NULL || !ExistsInHashTable_AS(GlobalData->closureReads, (uint64)mp->ident, 0)) {
+            continue;
+          }      
+          uint32 leftIID = (uint32) LookupValueInHashTable_AS(GlobalData->closureLeftEnds, (uint64)mp->ident, 0);
+          uint32 rightIID = (uint32) LookupValueInHashTable_AS(GlobalData->closureRightEnds, (uint64)mp->ident, 0);
+          assert(leftIID);
+          assert(rightIID);
+   
+          // get the reads indicated by the input line
+          CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, leftIID)->fragIndex); 
+          CIFragT *rightMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, rightIID)->fragIndex);
+          if (leftMate->contigID == NULLINDEX || rightMate->contigID == NULLINDEX) {
+            continue;
+          }
+          ChunkInstanceT * begin_chunk = GetGraphNode(ScaffoldGraph->RezGraph, leftMate->contigID);
+          ChunkInstanceT * end_chunk   = GetGraphNode(ScaffoldGraph->RezGraph, rightMate->contigID);
+          
+          if (chunk->scaffoldID != begin_chunk->scaffoldID) {
+            continue;
+          }
+          
+          if (begin_chunk->scaffoldID != end_chunk->scaffoldID) {
+            continue;
+          }       
+          UFUnion(UFData, chunk->setID, begin_chunk->setID);
+          UFUnion(UFData, chunk->setID, end_chunk->setID);
+       }
+    }
   }
 
   //
@@ -1944,9 +1982,8 @@ void DemoteSmallSingletonScaffolds(void) {
 
     contig = GetGraphNode(ScaffoldGraph->ContigGraph, scaffold->info.Scaffold.AEndCI);
 
-    numScaffolds++;
     if (contig->info.Contig.numCI > 1)
-      continue;
+       continue;
 
     CI = GetGraphNode(ScaffoldGraph->CIGraph, contig->info.Contig.AEndCI);
 
@@ -1954,21 +1991,23 @@ void DemoteSmallSingletonScaffolds(void) {
 
     // if we are forced marked unique and we are not allowed to be demoted, continue
     if (CI->info.CI.forceUniqueRepeat == AS_FORCED_UNIQUE && GlobalData->allowDemoteMarkedUnitigs == FALSE) {
-      continue;
+       continue;
     }
 
     if ((CI->info.CI.forceUniqueRepeat != AS_FORCED_REPEAT && CI->info.CI.coverageStat > GlobalData->cgbDefinitelyUniqueCutoff) ||
-        (CI->bpLength.mean > 2000.0))
-      continue;
+         (CI->bpLength.mean > 2000.0))
+       continue;
 
     // We've found a victim!!!
 
     numDemoted++;
 
     fprintf(GlobalData->stderrc,
-            "** Demoting Contig/Unitig " F_CID "/" F_CID " with coverage stat %d length %g scaffold " F_CID "\n",
-            contig->id, CI->id, CI->info.CI.coverageStat, scaffold->bpLength.mean, scaffold->id);
-
+             "** Demoting Contig/Unitig " F_CID "/" F_CID " with coverage stat %d length %g scaffold " F_CID "\n",
+             contig->id, CI->id, CI->info.CI.coverageStat, scaffold->bpLength.mean, scaffold->id);
+    // Mark the Underlying Unitig as un-scaffolded, and not-unique
+    SetNodeType(CI, UNRESOLVEDCHUNK_CGW);
+  
     // Remove the Contig from the Scaffold.  We don't need to use the
     // RemoveCIFromScaffold machinery, since we are dealing with a
     // pathological case
@@ -1988,9 +2027,6 @@ void DemoteSmallSingletonScaffolds(void) {
     scaffold->info.Scaffold.numElements = 0;
     scaffold->bpLength.mean             = 0.0;
     scaffold->bpLength.variance         = 0.0;
-
-    // Mark the Underlying Unitig as un-scaffolded, and not-unique
-    SetNodeType(CI, UNRESOLVEDCHUNK_CGW);
   }
 
   //  If we removed any scaffolds, rebuild all the edges.

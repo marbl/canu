@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.21 2009-02-23 01:09:13 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.22 2009-04-24 14:26:16 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -245,8 +245,8 @@ buildStore(
         continue;
 
       if (!doFilterOBT) {
-         int firstIgnore = LookupValueInHashTable_AS(readIIDsToSkip, fovrlap.a_iid, 0);
-         int secondIgnore = LookupValueInHashTable_AS(readIIDsToSkip, fovrlap.b_iid, 0);
+         int firstIgnore = ExistsInHashTable_AS(readIIDsToSkip, fovrlap.a_iid, 0);
+         int secondIgnore = ExistsInHashTable_AS(readIIDsToSkip, fovrlap.b_iid, 0);
          
          // option means don't ignore them at all
          if (ovlSkipOpt == NONE) {

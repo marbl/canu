@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.68 2009-02-02 13:51:14 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.69 2009-04-24 14:26:16 skoren Exp $";
 
 
 #include <stdio.h>
@@ -144,6 +144,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-c") == 0) {
       strcpy(GlobalData->closureReadFile, argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-p") == 0) {
+      GlobalData->closurePlacement = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-D") == 0) {
       GlobalData->debugLevel = atoi(argv[++arg]);
 
@@ -256,6 +259,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "   -C           Don't cleanup scaffolds\n");
     fprintf(stderr, "   -c <file>    closure reads\n");
+    fprintf(stderr, "   -p <int>     how to place closure reads. 0 - place at first location found, 1 - place at best gap, 2 - allow to be placed in multiple gaps\n");
     fprintf(stderr, "   -D <lvl>     Debug\n");
     fprintf(stderr, "   -E           output overlap only contig edges\n");
     fprintf(stderr, "   -e <thresh>  Microhet score probability cutoff\n");
@@ -308,28 +312,6 @@ main(int argc, char **argv) {
     sprintf(filepath, "%s.cgw_scaffolds", GlobalData->File_Name_Prefix);
     GlobalData->scffp = File_Open(filepath, "w", TRUE);
   }
-
-
-#warning SK - adding closure info from file now, it should be in GKP store
-
-  if ((GlobalData->closureReads == NULL) && (GlobalData->closureReadFile[0])) {
-    GlobalData->closureReads = CreateScalarHashTable_AS();
-    int line_len = ( 16 * 1024 * 1024);
-    char *currLine = safe_malloc(sizeof(char)*line_len);
-    errno = 0;
-    FILE *file = fopen(GlobalData->closureReadFile, "r");
-    if (errno) {
-      errno = 0;
-    } else {
-      while (fgets(currLine, line_len-1, file) != NULL) {
-        AS_UID read = AS_UID_lookup(currLine, NULL);
-        InsertInHashTable_AS(GlobalData->closureReads, getGatekeeperUIDtoIID(ScaffoldGraph->gkpStore, read, NULL), 0, 1, 0);
-      }
-      fclose(file);
-    }
-    safe_free(currLine);
-  }
-
 
   if (strcasecmp(restartFromLogical, CHECKPOINT_AFTER_BUILDING_SCAFFOLDS) < 0) {
     fprintf(stderr, "Beginning CHECKPOINT_AFTER_BUILDING_SCAFFOLDS\n");
@@ -395,6 +377,8 @@ main(int argc, char **argv) {
     //  Dump stats on the loaded checkpoint
     //GeneratePlacedContigGraphStats(tmpBuffer,0);
     //GenerateScaffoldGraphStats(tmpBuffer,0);
+    
+    LoadClosureReadData();
   }
 
 
@@ -566,7 +550,6 @@ main(int argc, char **argv) {
 
   clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 
-
   if ((strcasecmp(restartFromLogical, CHECKPOINT_AFTER_FINAL_ROCKS) < 0) &&
       (GlobalData->repeatRezLevel > 0)) {
     const int  MAX_EXTRA_ROCKS_ITERS = 5;
@@ -583,7 +566,6 @@ main(int argc, char **argv) {
 
     CheckpointScaffoldGraph(CHECKPOINT_AFTER_FINAL_ROCKS, "after final rocks");
   }
-
 
   if ((strcasecmp(restartFromLogical, CHECKPOINT_AFTER_PARTIAL_STONES) < 0) &&
       (GlobalData->stoneLevel > 0)) {
