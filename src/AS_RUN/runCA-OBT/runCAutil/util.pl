@@ -295,6 +295,9 @@ sub setDefaults () {
     $global{"doOverlapTrimming"}           = 1;
     $synops{"doOverlapTrimming"}           = "Enable the Overlap Based Trimming module";
 
+    $global{"doChimeraDetection"}          = 1;
+    $synops{"doChimeraDetection"}          = "Enable the OBT chimera detection and cleaning module";
+
     #####  Overlapper
 
     $global{"obtOverlapper"}               = "ovl";
@@ -571,7 +574,9 @@ sub setParametersFromFile ($@) {
             caFailure("You gave me a specFile, but I couldn't find '$specFile' or '$bin/$specFile' or '$bin/$specFile.specFile'!\n");
         }
         while (<F>) {
-            chomp;
+            s/^\s+//;
+            s/\s+$//;
+
             next if (m/^\s*\#/);
             next if (m/^\s*$/);
 
