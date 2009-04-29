@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.18 2009-03-31 20:32:30 skoren Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.19 2009-04-29 09:24:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,6 +29,7 @@ const char *mainid = "$Id: sffToCA.c,v 1.18 2009-03-31 20:32:30 skoren Exp $";
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
 #include "AS_UTL_reverseComplement.h"
+#include "AS_UTL/AS_UTL_fasta.h"
 #include "AS_GKP_include.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_encodeSequenceQuality.h"
@@ -595,6 +596,9 @@ removeLowQualityReads(void) {
   fprintf(stderr, "removeLowQualityReads()--  from %d to %d\n", firstElem, lastElem);
 
   for (thisElem=firstElem; thisElem<lastElem; thisElem++) {
+    if ((thisElem % 1000000) == 0)
+      fprintf(stderr, "removeLowQualityReads()--  at %d\n", thisElem);
+
     getFrag(gkpStore, thisElem, &fr, FRAG_S_INF | FRAG_S_SEQ);
 
     //  Look for n's in the clear range.  This is a signature of an
@@ -652,6 +656,8 @@ removeLowQualityReads(void) {
       }
     }
   }
+
+  fprintf(stderr, "removeLowQualityReads()--  finished\n");
 }
 
 
@@ -694,7 +700,7 @@ removeDuplicateReads(void) {
   uint64 map[256] = { 0 };
   uint32 s, h, n;
 
-  uint32 elem;
+  uint32 thisElem;
 
   for (s=0; s<256; s++)
     map[s] = 0;
@@ -705,8 +711,11 @@ removeDuplicateReads(void) {
 
   fprintf(stderr, "removeDuplicateReads()-- from %d to %d\n", firstElem, lastElem);
 
-  for (elem=firstElem; elem<lastElem; elem++) {
-    getFrag(gkpStore, elem, &fr1, FRAG_S_INF | FRAG_S_SEQ);
+  for (thisElem=firstElem; thisElem<lastElem; thisElem++) {
+    if ((thisElem % 1000000) == 0)
+      fprintf(stderr, "removeDuplicateReads()--  at %d\n", thisElem);
+
+    getFrag(gkpStore, thisElem, &fr1, FRAG_S_INF | FRAG_S_SEQ);
 
     char *seq1      = getFragRecordSequence(&fr1);
 
@@ -729,7 +738,7 @@ removeDuplicateReads(void) {
     }
 
     fh[fhLen].hash     = hash;
-    fh[fhLen].iid      = elem;
+    fh[fhLen].iid      = thisElem;
 
     fhLen++;
   }
@@ -852,6 +861,8 @@ removeDuplicateReads(void) {
   }
 
   safe_free(fh);
+
+  fprintf(stderr, "removeDuplicateReads()-- finished\n");
 }
 
 
@@ -1196,6 +1207,9 @@ detectMates(char *linker[AS_LINKER_MAX_SEQS], int search[AS_LINKER_MAX_SEQS]) {
   fprintf(stderr, "detectMates()-- from %d to %d\n", firstElem, lastElem);
 
   for (thisElem=firstElem; thisElem<lastElem; thisElem++) {
+    if ((thisElem % 1000000) == 0)
+      fprintf(stderr, "removeDuplicateReads()--  at %d\n", thisElem);
+
     getFrag(gkpStore, thisElem, &fr, FRAG_S_ALL);
 
     if (fr.gkfr.deleted)
@@ -1544,8 +1558,12 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if ((haveLinker) && ((insertSize == 0) ||
-                   (insertStdDev == 0)))
+  //  Have a linker but no insert size?  Error.
+  if ((haveLinker) && ((insertSize == 0) || (insertStdDev == 0)))
+    err++;
+
+  //  Have an insert size but no linker?  Error.
+  if ((!haveLinker) && ((insertSize != 0) || (insertStdDev != 0)))
     err++;
 
   if ((err) || (libraryName == 0L) || (outputName == 0L) || (firstFileArg == 0)) {
