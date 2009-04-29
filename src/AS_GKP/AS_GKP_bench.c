@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_bench.c,v 1.8 2009-01-16 16:34:00 skoren Exp $";
+const char *mainid = "$Id: AS_GKP_bench.c,v 1.9 2009-04-29 09:21:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,13 +56,13 @@ getTime(void) {
 static
 void
 printrusage(char *gkpName, double startTime) {
-#ifndef __linux
+#if defined(__FreeBSD__) || defined(__APPLE__)
   struct   statfs  sf = {0};
 #endif
   struct   utsname un = {0};
   struct   rusage  ru = {0};
 
-#ifndef __linux
+#if defined(__FreeBSD__) || defined(__APPLE__)
   errno = 0;
   if (statfs(gkpName, &sf) == -1)
     fprintf(stdout, "statfs() call failed: %s\n", strerror(errno));
@@ -76,7 +76,7 @@ printrusage(char *gkpName, double startTime) {
   if (getrusage(RUSAGE_SELF, &ru) == -1)
     fprintf(stdout, "getrusage() call failed: %s\n", strerror(errno));
 
-#ifndef __linux
+#if defined(__FreeBSD__) || defined(__APPLE__)
   fprintf(stdout, "%s (%s|%s) ",
           gkpName,
           sf.f_fstypename,
