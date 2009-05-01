@@ -84,8 +84,8 @@ sub overlapTrim {
         my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/consolidate ";
-        $cmd .= " -ovs $wrk/$asm.obtStore";
-        $cmd .= " > $wrk/0-overlaptrim/$asm.ovl.consolidated";
+        $cmd .= " -ovs $wrk/$asm.obtStore ";
+        $cmd .= " > $wrk/0-overlaptrim/$asm.ovl.consolidated ";
         $cmd .= "2> $wrk/0-overlaptrim/$asm.ovl.consolidated.err";
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
