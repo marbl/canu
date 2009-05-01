@@ -38,8 +38,8 @@ sub merOverlapper($) {
     return if (-d "$wrk/$asm.ovlStore");
     return if (-d "$wrk/$asm.obtStore") && ($isTrim eq "trim");
 
-    caFailure("merOverlapper()-- Help!  I have no frags!\n") if ($numFrags == 0);
-    caFailure("merOverlapper()-- I need to know if I'm trimming or assembling!\n") if (!defined($isTrim));
+    caFailure("mer overlapper detected no fragments", undef) if ($numFrags == 0);
+    caFailure("mer overlapper doesn't know if trimming or assembling", undef) if (!defined($isTrim));
 
     my ($outDir, $ovlOpt, $merSize, $merComp, $merType, $merylNeeded);
 
@@ -84,7 +84,7 @@ sub merOverlapper($) {
     #  Create overmerry and olap-from-seeds jobs
     #
     if (! -e "$wrk/$outDir/overmerry.sh") {
-        open(F, "> $wrk/$outDir/overmerry.sh") or caFailure("Can't open '$wrk/$outDir/overmerry.sh'\n");
+        open(F, "> $wrk/$outDir/overmerry.sh") or caFailure("can't open '$wrk/$outDir/overmerry.sh'", undef);
         print F "#!/bin/sh\n";
         print F "\n";
         print F "jobid=\$SGE_TASK_ID\n";
@@ -146,7 +146,7 @@ sub merOverlapper($) {
     }
 
     if (! -e "$wrk/$outDir/olap-from-seeds.sh") {
-        open(F, "> $wrk/$outDir/olap-from-seeds.sh") or caFailure("Can't open '$wrk/$outDir/olap-from-seeds.sh'\n");
+        open(F, "> $wrk/$outDir/olap-from-seeds.sh") or caFailure("can't open '$wrk/$outDir/olap-from-seeds.sh'", undef);
         print F "#!/bin/sh\n";
         print F "\n";
         print F "jobid=\$SGE_TASK_ID\n";
@@ -229,9 +229,11 @@ sub merOverlapper($) {
     #  exists.  This will unfortunately make restarting from transient
     #  failures non-trivial.
     #
+    #  FAILUREHELPME
+    #
     my $ovmFailures = findOvermerryFailures($outDir, $ovmJobs);
     if (($ovmFailures != 0) && ($ovmFailures < $ovmJobs)) {
-        caFailure("mer overlapper seed finding failed.");
+        caFailure("mer overlapper seed finding failed", undef);
     }
 
     #  Submit to the grid (or tell the user to do it), or just run
@@ -264,13 +266,15 @@ sub merOverlapper($) {
 
     #  Make sure everything finished ok.
     #
+    #  FAILUREHELPME
+    #
     {
         my $f = findOvermerryFailures($outDir, $ovmJobs);
-        caFailure("There were $f overmerry failures.\n") if ($f > 0);
+        caFailure("there were $f overmerry failures", undef) if ($f > 0);
     }
 
     if (runCommand($wrk, "find $wrk/$outDir/seeds -name \\*ovm.gz -print > $wrk/$outDir/$asm.merStore.list")) {
-        caFailure("Failed to generate a list of all the overlap files.\n");
+        caFailure("failed to generate a list of all the overlap files", undef);
     }
 
     if (! -e "$wrk/$outDir/$asm.merStore") {
@@ -284,7 +288,7 @@ sub merOverlapper($) {
         $cmd .= " > $wrk/$outDir/$asm.merStore.err 2>&1";
 
         if (runCommand($wrk, $cmd)) {
-            caFailure("Failed.\n");
+            caFailure("overlap store building failed", "$wrk/$outDir/$asm.merStore.err");
         }
 
         rename "$wrk/$outDir/$asm.merStore.WORKING", "$wrk/$outDir/$asm.merStore";
@@ -298,9 +302,11 @@ sub merOverlapper($) {
     #  exists.  This will unfortunately make restarting from transient
     #  failures non-trivial.
     #
+    #  FAILUREHELPME
+    #
     my $olpFailures = findOlapFromSeedsFailures($outDir, $olpJobs);
     if (($olpFailures != 0) && ($olpFailures < $olpJobs)) {
-        caFailure("mer overlapper extension failed.");
+        caFailure("mer overlapper extension failed", undef);
     }
 
     #  Submit to the grid (or tell the user to do it), or just run
@@ -333,8 +339,10 @@ sub merOverlapper($) {
 
     #  Make sure everything finished ok.
     #
+    #  FAILUREHELPME
+    #
     {
         my $f = findOlapFromSeedsFailures($outDir, $olpJobs);
-        caFailure("There were $f olap-from-seeds failures.\n") if ($f > 0);
+        caFailure("there were $f olap-from-seeds failures", undef) if ($f > 0);
     }
 }

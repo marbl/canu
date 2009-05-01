@@ -87,15 +87,7 @@ sub CGW ($$$$$$) {
     $cmd .= " $cgiFile ";
     $cmd .= " > $wrk/$thisDir/cgw.out 2>&1";
     if (runCommand("$wrk/$thisDir", $cmd)) {
-        print STDERR "SCAFFOLDER FAILED.  Here's what it didn't like (the last 30 lines of cgw.out):\n";
-        print STDERR "----------------------------------------\n";
-        open(Z, "tail -n 30 $wrk/$thisDir/cgw.out |");
-        while (<Z>) {
-            print STDERR $_;
-        }
-        close(Z);
-        print STDERR "----------------------------------------\n";
-        caFailure("See the errors at the end of $wrk/$thisDir/cgw.out.\n");
+        caFailure("scaffolder failed", "$wrk/$thisDir/cgw.out");
     }
 
 
@@ -155,10 +147,20 @@ sub eCR ($$$) {
     my $numScaffolds = findNumScaffoldsInCheckpoint($thisDir, $lastckp);
     my $stepSize     = getGlobal("extendClearRangesStepSize");
 
+    if ($numScaffolds == 0) {
+        print STDERR "WARNING:  found no scaffolds in $thisDir checkpoint $lastckp.\n";
+        print STDERR "WARNING:  this might mean all your unitigs are degenerates now.\n";
+        print STDERR "WARNING:  extendClearRanges skipped.\n";
+        touch("$wrk/$thisDir/extendClearRanges.success");
+        return $thisDir;
+    }
+
     if (!defined($stepSize)) {
         $stepSize = 5000;
         $stepSize = int($numScaffolds / 8) + 1 if ($stepSize < $numScaffolds / 8);
     }
+
+    print STDERR "Found $numScaffolds scaffolds in $thisDir checkpoint $lastckp; using a stepSize of $stepSize.\n";
 
     my $substrlen = length("$numScaffolds");
 
@@ -194,7 +196,7 @@ sub eCR ($$$) {
             close(F);
 
             if (runCommand("$wrk/$thisDir", $cmd)) {
-                caFailure("extendClearRanges failed.");
+                caFailure("extendClearRanges failed", "$wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.err");
             }
             touch("$wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.success");
         }
@@ -226,7 +228,7 @@ sub updateDistanceRecords ($) {
     $cmd .= " $wrk/$thisDir/stat/contig_final.distupdate.dst ";
     $cmd .= " > $wrk/$thisDir/cgw.distupdate.err 2>&1";
     if (runCommand("$wrk/$thisDir", $cmd)) {
-        caFailure("Gatekeeper distupdate Failed.\n");
+        caFailure("gatekeeper distance update failed", "$wrk/$thisDir/cgw.distupdate.err");
     }
 
     touch("$wrk/$thisDir/cgw.distupdate.success");

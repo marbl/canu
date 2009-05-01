@@ -59,22 +59,6 @@ SCRIPTS = runCA \
           spec/metaGenomic.specFile
 
 
-#  JCVI likes to have both a modified (carun) and unmodified (runCA)
-#  version.  Other sites will probably be happy just redefining
-#  RUNCALOCAL.
-
-RUNCALOCAL = runCA-OBT/runCAutil/site-generic.pl
-
-ifeq ($(SITE_NAME),JCVI)
-  SCRIPTS   += carun
-  RUNCALOCAL = runCA-OBT/runCAutil/site-generic.pl
-  CARUNLOCAL = runCA-OBT/runCAutil/site-jcvi.pl
-endif
-
-ifeq ($(SITE_NAME),BRI)
-  RUNCALOCAL = runCA-OBT/runCAutil/site-bri.pl
-endif
-
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -99,14 +83,10 @@ RUNCAOBTUTIL = runCA-OBT/runCAutil/checkOverlap.pl \
 	       runCA-OBT/runCAutil/umdOverlapper.pl \
 	       runCA-OBT/runCAutil/vectorTrim.pl
 
-runCA: runCA-OBT/runCA.pl.head $(RUNCALOCAL) runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm
-	@cat runCA-OBT/runCA.pl.head $(RUNCALOCAL) runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/$@
+runCA: runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm
+	@cat runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 	@ln -fs $@ $(LOCAL_BIN)/runCA-OBT.pl
-
-carun: runCA-OBT/runCA.pl.head $(CARUNLOCAL) runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm
-	@cat runCA-OBT/runCA.pl.head $(CARUNLOCAL) runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/$@
-	@chmod 775 $(LOCAL_BIN)/$@
 
 markUniqueUnique.rb: asmQC/markUniqueUnique.rb
 	@cp -p $< $(LOCAL_BIN)/$@

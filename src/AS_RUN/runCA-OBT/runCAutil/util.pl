@@ -44,7 +44,7 @@ sub submitBatchJobs($$$$) {
        }
 
        if (runningOnGrid()) {
-          system($SGE) and caFailure("Failed to submit overlap jobs.");
+          system($SGE) and caFailure("failed to submit overlap jobs", undef);
        } else {
           pleaseExecute($SGE);
        }
@@ -98,7 +98,7 @@ sub getBinDirectory () {
 
     my $pathMap = getGlobal("pathMap");
     if (defined($pathMap)) {
-        open(F, "< $pathMap") or caFailure("Failed to open pathMap '$pathMap'.\n");
+        open(F, "< $pathMap") or caFailure("failed to open pathMap '$pathMap'", undef);
         while (<F>) {
             my ($n, $b) = split '\s+', $_;
             $path = $b if ($name eq $n);
@@ -136,7 +136,7 @@ sub getBinDirectoryShellCode () {
 
     my $pathMap = getGlobal("pathMap");
     if (defined($pathMap)) {
-        open(PM, "< $pathMap") or caFailure("Failed to open pathMap '$pathMap'.\n");
+        open(PM, "< $pathMap") or caFailure("failed to open pathMap '$pathMap'", undef);
         while (<PM>) {
             my ($n, $b) = split '\s+', $_;
             $string .= "if [ \"\$name\" = \"$n\" ] ; then\n";
@@ -159,7 +159,7 @@ sub getBinDirectoryShellCode () {
 #
 sub getGlobal ($) {
     my $var = shift @_;
-    caFailure("ERROR: $var has no defined value!\n") if (!exists($global{$var}));
+    caFailure("script error -- $var has no defined value", undef) if (!exists($global{$var}));
     return($global{$var});
 }
 
@@ -182,7 +182,7 @@ sub setGlobal ($$) {
         setGlobal("ovlOverlapper", $val);
         return;
     }
-    caFailure("ERROR: $var is not a valid option.\n") if (!exists($global{$var}));
+    caFailure("$var is not a valid option; see 'runCA -options' for a list of valid options", undef) if (!exists($global{$var}));
     $global{$var} = $val;
 }
 
@@ -506,9 +506,6 @@ sub setDefaults () {
     $global{"help"}                        = 0;
     $synops{"help"}                        = undef;
 
-    $global{"specFile"}                    = undef;
-    $synops{"specFile"}                    = undef;
-    
     #### Closure Options
     $global{"closureEdges"}               = undef;
     $synops{"closureEdges"}               = "A link to the file of the format readUID leftMateUID rightMateUID specifying closure constraints";
@@ -554,24 +551,17 @@ sub setParametersFromFile ($@) {
         print STDERR "cnsErrorRate $ENV{'AS_CNS_ERROR_RATE'}\n";
     }
 
-    #  If the user didn't give us a specFile, see if there is a
-    #  system-wide one defined (set by your localDefaults()).
-    #
-    if( !defined($specFile) ) {
-            $specFile = getGlobal("specFile");
-    }
-
     if (defined($specFile)) {
         my $bin = "$FindBin::RealBin/spec";
 
         if (-e $specFile && ! -d $specFile) {
-            open(F, "< $specFile") or caFailure("Couldn't open '$specFile'\n");
+            open(F, "< $specFile") or caFailure("Couldn't open '$specFile'", undef);
         } elsif (-e "$bin/$specFile") {
-            open(F, "< $bin/$specFile") or caFailure("Couldn't open '$bin/$specFile'\n");
+            open(F, "< $bin/$specFile") or caFailure("Couldn't open '$bin/$specFile'", undef);
         } elsif (-e "$bin/$specFile.specFile") {
-            open(F, "< $bin/$specFile.specFile") or caFailure("Couldn't open '$bin/$specFile.specFile'\n");
+            open(F, "< $bin/$specFile.specFile") or caFailure("Couldn't open '$bin/$specFile.specFile'", undef);
         } else {
-            caFailure("You gave me a specFile, but I couldn't find '$specFile' or '$bin/$specFile' or '$bin/$specFile.specFile'!\n");
+            caFailure("specFile '$specFile' or '$bin/$specFile' or '$bin/$specFile.specFile' not found", undef);
         }
         while (<F>) {
             s/^\s+//;
@@ -638,25 +628,25 @@ sub setParameters () {
     fixCase("cleanup");
 
     if ((getGlobal("obtOverlapper") ne "mer") && (getGlobal("obtOverlapper") ne "ovl")) {
-        caFailure("Invalid obtOverlapper specified (" . getGlobal("obtOverlapper") . "); must be 'mer' or 'ovl'\n");
+        caFailure("invalid obtOverlapper specified (" . getGlobal("obtOverlapper") . "); must be 'mer' or 'ovl'", undef);
     }
     if ((getGlobal("ovlOverlapper") ne "mer") && (getGlobal("ovlOverlapper") ne "ovl")) {
-        caFailure("Invalid ovlOverlapper specified (" . getGlobal("ovlOverlapper") . "); must be 'mer' or 'ovl'\n");
+        caFailure("invalid ovlOverlapper specified (" . getGlobal("ovlOverlapper") . "); must be 'mer' or 'ovl'", undef);
     }
     if ((getGlobal("unitigger") ne "utg") && (getGlobal("unitigger") ne "bog")) {
-        caFailure("Invalid unitigger specified (" . getGlobal("unitigger") . "); must be 'utg' or 'bog'\n");
+        caFailure("invalid unitigger specified (" . getGlobal("unitigger") . "); must be 'utg' or 'bog'", undef);
     }
     if ((getGlobal("vectorTrimmer") ne "ca") && (getGlobal("vectorTrimmer") ne "figaro")) {
-        caFailure("Invalid vectorTrimmer specified (" . getGlobal("vectorTrimmer") . "); must be 'ca' or 'figaro'\n");
+        caFailure("invalid vectorTrimmer specified (" . getGlobal("vectorTrimmer") . "); must be 'ca' or 'figaro'", undef);
     }
     if ((getGlobal("consensus") ne "cns") && (getGlobal("consensus") ne "seqan")) {
-        caFailure("Invalid consensus specified (" . getGlobal("consensus") . "); must be 'cns' or 'seqan'\n");
+        caFailure("invalid consensus specified (" . getGlobal("consensus") . "); must be 'cns' or 'seqan'", undef);
     }
     if ((getGlobal("cleanup") ne "none") &&
         (getGlobal("cleanup") ne "light") &&
         (getGlobal("cleanup") ne "heavy") &&
         (getGlobal("cleanup") ne "aggressive")) {
-        caFailure("Invalid cleaup specified (" . getGlobal("cleanup") . "); must be 'none', 'light', 'heavy' or 'aggressive'\n");
+        caFailure("invalid cleaup specified (" . getGlobal("cleanup") . "); must be 'none', 'light', 'heavy' or 'aggressive'", undef);
     }
 
     #  PIck a nice looking set of binaries, and check them.
@@ -664,16 +654,16 @@ sub setParameters () {
     {
         my $bin = getBinDirectory();
 
-        caFailure("Can't find 'gatekeeper' program in $bin.  Possibly incomplete installation.\n") if (! -x "$bin/gatekeeper");
-        caFailure("Can't find 'meryl' program in $bin.  Possibly incomplete installation.\n")      if (! -x "$bin/meryl");
-        caFailure("Can't find 'overlap' program in $bin.  Possibly incomplete installation.\n")    if (! -x "$bin/overlap");
-        caFailure("Can't find 'unitigger' program in $bin.  Possibly incomplete installation.\n")  if (! -x "$bin/unitigger");
-        caFailure("Can't find 'cgw' program in $bin.  Possibly incomplete installation.\n")        if (! -x "$bin/cgw");
-        caFailure("Can't find 'consensus' program in $bin.  Possibly incomplete installation.\n")  if (! -x "$bin/consensus");
-        caFailure("Can't find 'terminator' program in $bin.  Possibly incomplete installation.\n") if (! -x "$bin/terminator");
+        caFailure("can't find 'gatekeeper' program in $bin.  Possibly incomplete installation", undef) if (! -x "$bin/gatekeeper");
+        caFailure("can't find 'meryl' program in $bin.  Possibly incomplete installation", undef)      if (! -x "$bin/meryl");
+        caFailure("can't find 'overlap' program in $bin.  Possibly incomplete installation", undef)    if (! -x "$bin/overlap");
+        caFailure("can't find 'unitigger' program in $bin.  Possibly incomplete installation", undef)  if (! -x "$bin/unitigger");
+        caFailure("can't find 'cgw' program in $bin.  Possibly incomplete installation", undef)        if (! -x "$bin/cgw");
+        caFailure("can't find 'consensus' program in $bin.  Possibly incomplete installation", undef)  if (! -x "$bin/consensus");
+        caFailure("can't find 'terminator' program in $bin.  Possibly incomplete installation", undef) if (! -x "$bin/terminator");
 
         if ((getGlobal("obtOverlapper") eq "mer") || (getGlobal("ovlOverlapper") eq "mer")) {
-            caFailure("Can't find 'overmerry' program in $bin.  Possibly incomplete installation.\n") if (! -x "$bin/overmerry");
+            caFailure("can't find 'overmerry' program in $bin.  Possibly incomplete installation", undef) if (! -x "$bin/overmerry");
         }
     }
 
@@ -689,28 +679,28 @@ sub setParameters () {
     my $cnsER = getGlobal("cnsErrorRate");
 
     if (($ovlER < 0.0) || (0.25 < $ovlER)) {
-        caFailure("ovlErrorRate is $ovlER, this MUST be between 0.00 and 0.25.\n");
+        caFailure("ovlErrorRate is $ovlER, this MUST be between 0.00 and 0.25", undef);
     }
     if (($utgER < 0.0) || (0.25 < $utgER)) {
-        caFailure("utgErrorRate is $utgER, this MUST be between 0.00 and 0.25.\n");
+        caFailure("utgErrorRate is $utgER, this MUST be between 0.00 and 0.25", undef);
     }
     if (($cgwER < 0.0) || (0.25 < $cgwER)) {
-        caFailure("cgwErrorRate is $cgwER, this MUST be between 0.00 and 0.25.\n");
+        caFailure("cgwErrorRate is $cgwER, this MUST be between 0.00 and 0.25", undef);
     }
     if (($cnsER < 0.0) || (0.25 < $cnsER)) {
-        caFailure("cnsErrorRate is $cnsER, this MUST be between 0.00 and 0.25.\n");
+        caFailure("cnsErrorRate is $cnsER, this MUST be between 0.00 and 0.25", undef);
     }
     if ($utgER > $ovlER) {
-        caFailure("utgErrorRate is $utgER, this MUST be <= ovlErrorRate ($ovlER)\n");
+        caFailure("utgErrorRate is $utgER, this MUST be <= ovlErrorRate ($ovlER)", undef);
     }
     if ($ovlER > $cnsER) {
-        caFailure("ovlErrorRate is $ovlER, this MUST be <= cnsErrorRate ($cnsER)\n");
+        caFailure("ovlErrorRate is $ovlER, this MUST be <= cnsErrorRate ($cnsER)", undef);
     }
     if ($ovlER > $cgwER) {
-        caFailure("ovlErrorRate is $ovlER, this MUST be <= cgwErrorRate ($cgwER)\n");
+        caFailure("ovlErrorRate is $ovlER, this MUST be <= cgwErrorRate ($cgwER)", undef);
     }
     if ($cnsER > $cgwER) {
-        caFailure("cnsErrorRate is $cnsER, this MUST be <= cgwErrorRate ($cgwER)\n");
+        caFailure("cnsErrorRate is $cnsER, this MUST be <= cgwErrorRate ($cgwER)", undef);
     }
     $ENV{'AS_OVL_ERROR_RATE'} = $ovlER;
     $ENV{'AS_CGW_ERROR_RATE'} = $cgwER;
@@ -785,7 +775,7 @@ sub checkDirectories () {
 
     $ENV{'AS_RUNCA_DIRECTORY'} = $wrk;
 
-    caFailure("ERROR: Directory '$wrk' doesn't exist (-d option) and couldn't be created.\n") if (! -d $wrk);
+    caFailure("directory '$wrk' doesn't exist (-d option) and couldn't be created", undef) if (! -d $wrk);
 }
 
 
@@ -841,8 +831,6 @@ sub findNumScaffoldsInCheckpoint ($$) {
     close(F);
     $numscaf = int($numscaf);
 
-    caFailure("findNumScaffoldsInCheckpoint($dir, $lastckp) found no scaffolds?!") if ($numscaf == 0);
-    print STDERR "Found $numscaf scaffolds in $dir checkpoint number $lastckp.\n";
     return($numscaf);
 }
 
@@ -854,12 +842,12 @@ sub getNumberOfFragsInStore ($$) {
 
     return(0) if (! -e "$wrk/$asm.gkpStore/frg");
 
-    open(F, "$bin/gatekeeper -lastfragiid $wrk/$asm.gkpStore 2> /dev/null |") or caFailure("Failed to run gatekeeper to get the number of frags in the store.");
+    open(F, "$bin/gatekeeper -lastfragiid $wrk/$asm.gkpStore 2> /dev/null |") or caFailure("failed to run gatekeeper to get the number of frags in the store", undef);
     $_ = <F>;    chomp $_;
     close(F);
 
     $numFrags = $1 if (m/^Last frag in store is iid = (\d+)$/);
-    caFailure("No frags in the store?\n") if ($numFrags == 0);
+    caFailure("no frags in the store", undef) if ($numFrags == 0);
     return($numFrags);
 }
 
@@ -905,7 +893,7 @@ sub backupFragStore ($) {
 
     if (system("cp -p $wrk/$asm.gkpStore/frg $wrk/$asm.gkpStore/frg.$backupName")) {
         unlink "$wrk/$asm.gkpStore/frg.$backupName";
-        caFailure("Failed to backup gkpStore.\n");
+        caFailure("failed to backup gkpStore", undef);
     }
 }
 
@@ -945,7 +933,7 @@ sub submitScript ($) {
     my $output = findNextScriptOutputFile();
     my $script = "$output.sh";
 
-    open(F, "> $script") or caFailure("Failed to open '$script' for writing\n");
+    open(F, "> $script") or caFailure("failed to open '$script' for writing", undef);
     print F "#!/bin/sh\n";
     print F "#\n";
     print F "#  Attempt to (re)configure SGE.  For reasons Bri doesn't know,\n";
@@ -978,7 +966,7 @@ sub submitScript ($) {
 
     my $qcmd = "qsub $sge $sgeScript -cwd -N \"runCA_${asm}\" -j y -o $output $waitTag $script";
     print STDERR "$qcmd\n";
-    system($qcmd) and caFailure("Failed to submit script.\n");
+    system($qcmd) and caFailure("failed to submit script to SGE", undef);
 
     if (defined($sgePropHold)) {
         my $acmd = "qalter -hold_jid \"runCA_${asm}\" \"$sgePropHold\"";
@@ -990,10 +978,38 @@ sub submitScript ($) {
 }
 
 
-sub caFailure ($) {
+use Carp;
+
+sub caFailure ($$) {
     my  $msg = shift @_;
-    localFailure($msg);
-    die $msg;
+    my  $log = shift @_;
+
+    print STDERR "================================================================================\n";
+    print STDERR "\n";
+    print STDERR "runCA failed.\n";
+    print STDERR "\n";
+
+    print STDERR "----------------------------------------\n";
+    print STDERR "Stack trace:\n";
+    print STDERR "\n";
+    carp;
+
+    if (-e $log) {
+        print STDERR "\n";
+        print STDERR "----------------------------------------\n";
+        print STDERR "Last few lines of the relevant log file ($log):\n";
+        print STDERR "\n";
+        system("tail -n 20 $log");
+    }
+
+    print STDERR "\n";
+    print STDERR "----------------------------------------\n";
+    print STDERR "Failure message:\n";
+    print STDERR "\n";
+    print STDERR "$msg\n";
+    print STDERR "\n";
+
+    exit(1);
 }
 
 
@@ -1012,7 +1028,7 @@ sub rmrf (@) {
 #  Create an empty file.  Much faster than system("touch ...").
 #
 sub touch ($) {
-    open(F, "> $_[0]") or caFailure("Failed to touch '$_[0]'\n");
+    open(F, "> $_[0]") or caFailure("failed to touch file '$_[0]'", undef);
     close(F);
 }
 

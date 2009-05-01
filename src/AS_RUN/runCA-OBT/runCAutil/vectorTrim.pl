@@ -33,7 +33,7 @@ sub generateFigaroTrim($) {
     $cmd .= " > $wrk/$outDir/figaro.out 2>$wrk/$outDir/figaro.err";
 
     if (runCommand("$wrk/$outDir", $cmd)) {
-      caFailure("Failed to run figaro trimming.\n");
+      caFailure("figaro died", "$wrk/$outDir/figaro.err");
     }
 
     # update the gkpStore with newly computed clear ranges
@@ -79,7 +79,8 @@ sub generateUMDTrim($) {
     $cmd .= " > $wrk/$outDir/umd.out 2>$wrk/$outDir/umd.err";
 
     if (runCommand("$wrk/$outDir", $cmd)) {
-      caFailure("Failed to run umd trimming.\n");
+      caFailure("UMD overlapper dataWorkReduced/findVectorTrimPoints.perl died",
+                "$wrk/$outDir/umd.err");
     }
 
     return getUMDTrimClearRange($outDir);
@@ -100,13 +101,15 @@ sub generateVectorTrim ($) {
     #dump the fasta file from gkp
     if ( ! -e "$wrk/$asm.fasta" ) {
        if (runCommand($wrk, "$bin/gatekeeper -dumpfastaseq -clear UNTRIM $wrk/$asm.gkpStore 2> $wrk/$outDir/gatekeeper.err > $wrk/$asm.fasta")) {
-          caFailure("Failed to dump gatekeeper store for figaro trimmer");
+           caFailure("failed to dump gatekeeper store for figaro trimmer",
+                     "$wrk/$outDir/gatekeeper.err");
        }
     }
     #dump the clr range
     if ( ! -e "$wrk/$asm.untrimmed" ) {
        if (runCommand($wrk, "$bin/gatekeeper -dumpfragments -tabular -clear UNTRIM $wrk/$asm.gkpStore 2> $wrk/$outDir/gatekeeper.err | grep -v 'UID' |awk '{print \$1\" \"\$12\" \"\$13}' | sort -nk 1 -T $wrk/ > $wrk/$asm.untrimmed")) {
-          caFailure("Failed to dump gatekeeper quality trim points for figaro trimmer");
+           caFailure("failed to dump gatekeeper quality trim points for figaro trimmer",
+                     "$wrk/$outDir/gatekeeper.err");
        }
     }
 
@@ -115,7 +118,7 @@ sub generateVectorTrim ($) {
     } elsif($trimmer eq "umd") {
        $trimFile = generateUMDTrim($outDir);
     } else {
-       caFailure("Unknown vector trimmer $trimmer\n");
+       caFailure("unknown vector trimmer $trimmer", undef);
     }
 
     #  See comments in overlapTrim.pl; this backup gets removed there too.

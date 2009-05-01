@@ -5,11 +5,11 @@ sub getUMDOverlapperClearRange ($) {
     my $fileName = "$asm.obtClrRange";
 
     open(F, "ls -1 -d $wrk/$dir/*overlapperRunDir* |");
-    open(G, ">$wrk/$dir/$fileName") or caFailure("Failed to write '$wrk/$dir/$fileName'\n");
+    open(G, ">$wrk/$dir/$fileName") or caFailure("failed to write '$wrk/$dir/$fileName'", undef);
     while (<F>) {
         chomp;
 
-        open(T, "< $_/revisedOrigTrimsForReads.txt") or caFailure("Failed to open '$_/revisedOrigTrimsForReads.txt'\n");
+        open(T, "< $_/revisedOrigTrimsForReads.txt") or caFailure("failed to open '$_/revisedOrigTrimsForReads.txt'", undef);
         while (<T>) {
            my @trimData = split(/\s+/,$_);
            my $uid = $trimData[0];
@@ -48,17 +48,17 @@ sub UMDoverlapper () {
     # should check if vector clear then dump vec range else dump this range
     if (defined($vi)) {
        if (runCommand($wrk, "$bin/gatekeeper -clear VEC -dumpfrg $wrk/$asm.gkpStore 2> $wrk/gatekeeper.err | grep -v 'No source' > $wrk/$asm.vec.frg")) {
-          caFailure("Failed to dump gatekeeper store for UMD overlapper");
+          caFailure("failed to dump gatekeeper store for UMD overlapper", "$wrk/gatekeeper.err");
        }
     }
     elsif ( ! -s "$wrk/$asm.frg" ) {
        if (runCommand($wrk, "$bin/gatekeeper -dumpfrg $wrk/$asm.gkpStore 2> $wrk/gatekeeper.err | grep -v 'No source' > $wrk/$asm.frg")) {
-          caFailure("Failed to dump gatekeeper store for UMD overlapper");
+          caFailure("failed to dump gatekeeper store for UMD overlapper", "$wrk/gatekeeper.err");
        }
     }
 
     # create a job list (we have only one job for right now)
-    open(SUB, "> $wrk/$outDir/ovljobs.dat") or caFailure("Failed to open '$wrk/$outDir/ovljobs.dat'\n");
+    open(SUB, "> $wrk/$outDir/ovljobs.dat") or caFailure("failed to open '$wrk/$outDir/ovljobs.dat'", undef);
     print SUB "$jobID ";   print SUB "\n";
     print SUB "$jobID ";   print SUB "\n";
     close(SUB);
@@ -79,7 +79,7 @@ sub UMDoverlapper () {
     $cmd .= " > $wrk/$outDir/$jobID/overlapper.out 2>$wrk/$outDir/$jobID/overlapper.err";
 
     if (runCommand("$wrk/$outDir", $cmd)) {
-      caFailure("Failed to run UMD overlapper.\n");
+      caFailure("failed to run UMD overlapper", "$wrk/$outDir/$jobID/overlapper.err");
     }
 
     #  See comments in overlapTrim.pl
@@ -90,7 +90,7 @@ sub UMDoverlapper () {
     $cmd .= "$bin/gatekeeper --edit ";
     $cmd .= "$wrk/$outDir/$trimFile $wrk/$asm.gkpStore";
     if (runCommand("$wrk/$outDir", $cmd)) {
-      caFailure("Failed to update OBT trims.\n");
+      caFailure("failed to update OBT trims", "undef");
     }
 
     # now create the binary overlaps
@@ -101,7 +101,7 @@ sub UMDoverlapper () {
     $cmd .= "-b -ovldump ";
     $cmd .= " > $wrk/$outDir/$jobID/$jobID.ovb";
     if (runCommand("$wrk/$outDir", $cmd)) {
-      caFailure("Failed to create overlaps .\n");
+      caFailure("failed to create overlaps", undef);
     }
 
     #cleanup

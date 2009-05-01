@@ -34,10 +34,10 @@ sub overlapTrim {
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             restoreFragStoreBackup("beforeTrimming");
             rename "$wrk/0-overlaptrim/$asm.initialTrimLog", "$wrk/0-overlaptrim/$asm.initialTrimLog.FAILED";
-            caFailure("initial trimming failed.\n");
+            caFailure("initial trimming failed", "$wrk/0-overlaptrim/$asm.initialTrim.err");
         }
 
-        rmrf("0-overlaptrim/$asm.initialTrim.err");
+        unlink "0-overlaptrim/$asm.initialTrim.err";
     }
 
     #  Compute overlaps, if we don't have them already
@@ -52,7 +52,7 @@ sub overlapTrim {
 
         if (runCommand("$wrk/0-overlaptrim",
                        "find $wrk/0-overlaptrim-overlap -follow -name \\*ovb.gz -print > $wrk/$asm.obtStore.list")) {
-            caFailure("Failed to generate a list of all the overlap files.\n");
+            caFailure("failed to generate a list of all the overlap files", undef);
         }
 
         my $bin = getBinDirectory();
@@ -66,7 +66,7 @@ sub overlapTrim {
         $cmd .= " > $wrk/$asm.obtStore.err 2>&1";
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-            caFailure("Failed to build the obt store.\n");
+            caFailure("failed to build the obt store", "$wrk/$asm.obtStore.err");
         }
 
         rename "$wrk/$asm.obtStore.BUILDING", "$wrk/$asm.obtStore";
@@ -86,11 +86,13 @@ sub overlapTrim {
         $cmd  = "$bin/consolidate ";
         $cmd .= " -ovs $wrk/$asm.obtStore";
         $cmd .= " > $wrk/0-overlaptrim/$asm.ovl.consolidated";
+        $cmd .= "2> $wrk/0-overlaptrim/$asm.ovl.consolidated.err";
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
           unlink "$wrk/0-overlaptrim/$asm.ovl.consolidated";
-          caFailure("Failed to consolidate.\n");
+          caFailure("failed to consolidate overlaps", "$wrk/0-overlaptrim/$asm.ovl.consolidated.err");
         }
+        unlink "$wrk/0-overlaptrim/$asm.ovl.consolidated.err";
     }
 
 
@@ -116,7 +118,7 @@ sub overlapTrim {
             restoreFragStoreBackup("beforeTrimMerge");
             unlink "$wrk/0-overlaptrim/$asm.mergeLog";
             unlink "$wrk/0-overlaptrim/$asm.mergeLog.stats";
-            caFailure("Failed to merge trimming.\n");
+            caFailure("failed to merge trimming", "$wrk/0-overlaptrim/$asm.merge.err");
         }
     }
 
@@ -137,7 +139,7 @@ sub overlapTrim {
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             restoreFragStoreBackup("beforeChimera");
             rename "$wrk/0-overlaptrim/$asm.chimera.report", "$wrk/0-overlaptrim/$asm.chimera.report.FAILED";
-            caFailure("chimera cleaning failed.\n");
+            caFailure("chimera cleaning failed", "$wrk/0-overlaptrim/$asm.chimera.err");
         }
     }
 

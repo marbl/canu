@@ -16,7 +16,7 @@ sub overlapCorrection {
         my $numThreads  = getGlobal("frgCorrThreads");
         my $jobs        = int($numFrags / ($batchSize-1)) + 1;
 
-        open(F, "> $wrk/3-overlapcorrection/frgcorr.sh") or caFailure("Failed to write to '$wrk/3-overlapcorrection/frgcorr.sh'\n");
+        open(F, "> $wrk/3-overlapcorrection/frgcorr.sh") or caFailure("failed to write to '$wrk/3-overlapcorrection/frgcorr.sh'", undef);
         print F "#!/bin/sh\n\n";
         print F "jobid=\$SGE_TASK_ID\n";
         print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
@@ -120,13 +120,14 @@ sub overlapCorrection {
         }
         close(F);
 
+        #  FAILUREHELPME
+
         if ($failedJobs) {
             if (getGlobal("ovlOverlapper") eq "ovl") {
-                print STDERR "Remove $wrk/3-overlapcorrection/frgcorr.sh to try again.\n";
+                caFailure("$failedJobs overlap jobs failed; remove $wrk/3-overlapcorrection/frgcorr.sh to try again", undef);
             } else {
-                print STDERR "The failure is due to mer overlap seed extension.\n";
+                caFailure("$failedJobs overlap jobs failed due to mer overlap seed extension", undef);
             }
-            caFailure("$failedJobs failed.  Good luck.\n");
         }
 
         my $bin = getBinDirectory();
@@ -138,7 +139,7 @@ sub overlapCorrection {
 
         if (runCommand("$wrk/3-overlapcorrection", $cmd)) {
             rename "$wrk/3-overlapcorrection/$asm.frgcorr", "$wrk/3-overlapcorrection/$asm.frgcorr.FAILED";
-            caFailure("Failed to concatenate the fragment corrections.\n");
+            caFailure("failed to concatenate the fragment corrections", "$wrk/3-overlapcorrection/cat-corrects.err");
         }
 
         if ($cleanup) {
@@ -165,7 +166,7 @@ sub overlapCorrection {
         my $ovlCorrBatchSize  = getGlobal("ovlCorrBatchSize");
         my $jobs              = int($numFrags / ($ovlCorrBatchSize-1)) + 1;
 
-        open(F, "> $wrk/3-overlapcorrection/ovlcorr.sh") or caFailure("Failed to write '$wrk/3-overlapcorrection/ovlcorr.sh'\n");
+        open(F, "> $wrk/3-overlapcorrection/ovlcorr.sh") or caFailure("failed to write '$wrk/3-overlapcorrection/ovlcorr.sh'", undef);
         print F "jobid=\$SGE_TASK_ID\n";
         print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
         print F "  jobid=\$1\n";
@@ -262,9 +263,10 @@ sub overlapCorrection {
         }
         close(F);
 
+        #  FAILUREHELPME
+
         if ($failedJobs) {
-            print STDERR "Remove $wrk/3-overlapcorrection/ovlcorr.sh (or run by hand) to try again.\n";
-            caFailure("$failedJobs failed.  Good luck.");
+            caFailure("$failedJobs overlap correction jobs failed; remove $wrk/3-overlapcorrection/ovlcorr.sh (or run by hand) to try again", undef);
         }
 
         #unlink "$wrk/3-overlapcorrection/$asm.frgcorr" if ($cleanup);
@@ -275,7 +277,7 @@ sub overlapCorrection {
         $cmd .= "> $wrk/3-overlapcorrection/cat-erates.err 2>&1";
         if (runCommand("$wrk/3-overlapcorrection", $cmd)) {
             rename "$wrk/3-overlapcorrection/$asm.erates", "$wrk/3-overlapcorrection/$asm.erates.FAILED";
-            caFailure("Failed to concatenate the overlap erate corrections.");
+            caFailure("failed to concatenate the overlap erate corrections", "$wrk/3-overlapcorrection/cat-erates.err");
         }
 
         $cmd  = "$bin/overlapStore ";
@@ -283,7 +285,7 @@ sub overlapCorrection {
         $cmd .= " $wrk/3-overlapcorrection/$asm.erates";
         $cmd .= "> $wrk/3-overlapcorrection/overlapStore-update-erates.err 2>&1";
         if (runCommand("$wrk/3-overlapcorrection", $cmd)) {
-            caFailure("Failed to apply the overlap corrections.");
+            caFailure("failed to apply the overlap corrections", "$wrk/3-overlapcorrection/overlapStore-update-erates.err");
         }
 
         touch("$wrk/3-overlapcorrection/$asm.erates.updated");

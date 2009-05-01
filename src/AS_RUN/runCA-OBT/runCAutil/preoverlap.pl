@@ -134,7 +134,7 @@ sub preoverlap {
         goto stopafter;
     }
 
-    caFailure("ERROR: No fragment files specified, and stores not already created.\n")
+    caFailure("no fragment files specified, and stores not already created", undef)
     	if (scalar(@fragFiles) == 0);
 
     if ((! -d "$wrk/$asm.gkpStore") ||
@@ -144,12 +144,15 @@ sub preoverlap {
         #  Make sure all the inputs are here.  We also shred any
         #  supplied ace files, and convert the sff's to frg's.
         #
-        my $failedFiles = 0;
+        my $failedFiles = undef;
         my $gkpInput = "";
         foreach my $frg (@fragFiles) {
             if (! -e $frg) {
-                print STDERR "MISSING: $frg\n";
-                $failedFiles++;
+                if (defined($failedFiles)) {
+                    $failedFiles .= "; '$frg' not found";
+                } else {
+                    $failedFiles = "'$frg' not found";
+                }
             }
 
             if ($frg =~ m/^(.*)\.ace$/) {
@@ -180,16 +183,16 @@ sub preoverlap {
 
                     my $bin = getBinDirectory();
 
-                    if (runCommand($wrk, "$bin/sffToCA -libraryname $nam -linker flx -insertsize 3000 300 -log $log -output $frg $sff")) {
+                    if (runCommand($wrk, "$bin/sffToCA -libraryname $nam -linker flx -insertsize 3000 300 -log $log -output $frg $sff > sffToCA.$frg.err 2>&1")) {
                         unlink "$wrk/$frg.sff.frg";
-                        caFailure("sffToCA failed.");
+                        caFailure("sffToCA failed", "sffToCA.$frg.err");
                     }
                 }
             }
 
             $gkpInput .= " $frg";
         }
-        caFailure("Files supplied on command line not found.\n") if ($failedFiles);
+        caFailure($failedFiles, undef) if defined($failedFiles);
 
         my $cmd;
         $cmd  = "$bin/gatekeeper ";
@@ -200,11 +203,11 @@ sub preoverlap {
         $cmd .= "$gkpInput ";
         $cmd .= "> $wrk/$asm.gkpStore.err 2>&1";
         if (runCommand($wrk, $cmd)) {
-            caFailure("gatekeeper failed.  Check your input files!\n");
+            caFailure("gatekeeper failed", "$wrk/$asm.gkpStore.err");
         }
 
         rename "$wrk/$asm.gkpStore.BUILDING", "$wrk/$asm.gkpStore";
-        rmrf("$asm.gkpStore.err");
+        unlink "$asm.gkpStore.err";
     }
 
     perfectTrimming();
@@ -222,10 +225,10 @@ sub preoverlap {
 
         if (runCommand($wrk, $cmd)) {
             rename "$wrk/$asm.gkpStore/$asm.vectorClearLoaded.log", "$wrk/$asm.gkpStore/$asm.vectorClearLoaded.log.FAILED";
-            caFailure("Failed.\n");
+            caFailure("gatekeeper failed to update clear ranges", "$wrk/$asm.gkpStore/$asm.vectorClearLoaded.err");
         }
 
-        rmrf("$wrk/$asm.gkpStore/$asm.vectorClearLoaded.err");
+        unlink "$wrk/$asm.gkpStore/$asm.vectorClearLoaded.err";
     }
 
     $numFrags = getNumberOfFragsInStore($wrk, $asm);

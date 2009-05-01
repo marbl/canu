@@ -5,7 +5,7 @@ sub createOverlapStore {
     goto alldone if (-d "$wrk/$asm.ovlStore");
 
     if (runCommand($wrk, "find $wrk/1-overlapper -name \\*ovb.gz -print > $wrk/$asm.ovlStore.list")) {
-        caFailure("Failed to generate a list of all the overlap files.\n");
+        caFailure("failed to generate a list of all the overlap files", undef);
     }
 
     my $bin = getBinDirectory();
@@ -24,7 +24,7 @@ sub createOverlapStore {
     $cmd .= " > $wrk/$asm.ovlStore.err 2>&1";
 
     if (runCommand($wrk, $cmd)) {
-        caFailure("Failed to create the overlap store.\n");
+        caFailure("failed to create the overlap store", "$wrk/$asm.ovlStore.err");
     }
 
     rename "$wrk/$asm.ovlStore.BUILDING", "$wrk/$asm.ovlStore";

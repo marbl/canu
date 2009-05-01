@@ -30,9 +30,9 @@ sub runMeryl ($$$$$$) {
         return;
     }
 
-    if (-e $ffile) {
-        print STDERR "runMeryl() would have returned.\n";
-    }
+    #if (-e $ffile) {
+    #    print STDERR "runMeryl() would have returned.\n";
+    #}
 
     if (merylVersion() eq "Mighty") {
 
@@ -67,11 +67,12 @@ sub runMeryl ($$$$$$) {
             $cmd .= " -L 2 ";
             $cmd .= " -s $wrk/$asm.gkpStore:obt ";
             $cmd .= " -o $ofile ";
-            $cmd .= "> $wrk/0-mercounts/meryl.out 2>&1";
+            $cmd .= "> $wrk/0-mercounts/meryl.err 2>&1";
 
             if (runCommand("$wrk/0-mercounts", $cmd)) {
-                caFailure("Failed.\n");
+                caFailure("meryl failed", "$wrk/0-mercounts/meryl.err");
             }
+            unlink "$wrk/0-mercounts/meryl.err";
         }
 
         if ($merThresh eq "auto") {
@@ -84,19 +85,17 @@ sub runMeryl ($$$$$$) {
 
                 if (runCommand("$wrk/0-mercounts", $cmd)) {
                     rename "$ofile.estMerThresh.out", "$ofile.estMerThresh.out.FAILED";
-                    caFailure("Failed.");
+                    caFailure("estimate-mer-threshold failed", "$ofile.estMerThresh.err");
                 }
             }
 
-            open(F, "< $ofile.estMerThresh.out") or caFailure("Failed to read estimated mer threshold from '$ofile.estMerThresh.out'.");
+            open(F, "< $ofile.estMerThresh.out") or caFailure("failed to read estimated mer threshold from '$ofile.estMerThresh.out'", undef);
             $merThresh = <F>;
             $merThresh = int($merThresh * $merScale);
             close(F);
 
             if ($merThresh == 0) {
-                print STDERR "Failed to estimate a mer threshold.\n";
-                print STDERR "See results in $ofile.estMerThresh.err\n";
-                caFailure("");
+                caFailure("failed to estimate a mer threshold", "$ofile.estMerThresh.err");
             }
         }
 
@@ -109,11 +108,13 @@ sub runMeryl ($$$$$$) {
                 $cmd .= "-Dt -n $merThresh ";
                 $cmd .= "-s $ofile ";
                 $cmd .= "> $ffile ";
+                $cmd .= "2> $ffile.err ";
 
                 if (runCommand("$wrk/0-mercounts", $cmd)) {
                     unlink $ffile;
-                    caFailure("Failed.\n");
+                    caFailure("meryl failed to dump frequent mers", "$ffile.err");
                 }
+                unlink "$ffile.err";
             }
         }
     } elsif (merylVersion() eq "CA") {
@@ -163,17 +164,18 @@ sub runMeryl ($$$$$$) {
             $cmd  = "$bin/meryl ";
             $cmd .= "-s $wrk/$asm.gkpStore -m $merSize -n $mt -K $merSkip ";
             $cmd .= " -o $ofile";
-            $cmd .= "> $wrk/0-mercounts/meryl.out 2>&1";
+            $cmd .= "> $wrk/0-mercounts/meryl.err 2>&1";
 
             if (runCommand("$wrk/0-mercounts", $cmd)) {
                 unlink $ofile;
-                caFailure("Failed.\n");
+                caFailure("meryl failed to dump frequent mers", "$wrk/0-mercounts/meryl.err");
             }
+            unlink "$wrk/0-mercounts/meryl.err";
         }
 
         symlink($ofile, $ffile) if (! -e $ffile);
     } else {
-        caFailure("Unknown meryl version.\n");
+        caFailure("unknown meryl version '" . merylVersion() . "'", "");
     }
 
     return($merThresh);
@@ -183,7 +185,7 @@ sub meryl {
     system("mkdir $wrk/0-mercounts") if (! -d "$wrk/0-mercounts");
 
     if (getGlobal("ovlOverlapper") eq "umd") {
-        caFailure("meryl() attempted to compute mer counts for the umd overlapper?\n");
+        caFailure("meryl attempted to compute mer counts for the umd overlapper", undef);
     }
 
     my $ovlc = 0;  #  No compression, unless we're the mer overlapper

@@ -6,8 +6,8 @@ sub createOverlapJobs($) {
 
     return if (-d "$wrk/$asm.ovlStore");
 
-    caFailure("createOverlapJobs()-- Help!  I have no frags!\n") if ($numFrags == 0);
-    caFailure("createOverlapJobs()-- I need to know if I'm trimming or assembling!\n") if (!defined($isTrim));
+    caFailure("overlapper detected no fragments", undef) if ($numFrags == 0);
+    caFailure("overlapper needs to know if trimming or assembling", undef) if (!defined($isTrim));
 
     my $ovlThreads        = getGlobal("ovlThreads");
     my $ovlMemory         = getGlobal("ovlMemory");
@@ -53,7 +53,9 @@ sub createOverlapJobs($) {
     #  exists.  This will unfortunately make restarting from transient
     #  failures non-trivial.
     #
-    caFailure("overlapper failed.") if (-e "$wrk/$outDir/overlap.sh");
+    #  FAILUREHELPME
+    #
+    caFailure("overlapper failed\nmanual restart needed to prevent infinite loops\nremove file '$wrk/$outDir/overlap.sh'", undef) if (-e "$wrk/$outDir/overlap.sh");
 
     meryl();
 
@@ -66,7 +68,7 @@ sub createOverlapJobs($) {
     #  -r $refBeg-$refEnd).  From those, we can construct the command
     #  to run.
     #
-    open(F, "> $wrk/$outDir/overlap.sh") or caFailure("Can't open '$wrk/$outDir/overlap.sh'\n");
+    open(F, "> $wrk/$outDir/overlap.sh") or caFailure("can't open '$wrk/$outDir/overlap.sh'", undef);
     print F "#!/bin/sh\n";
     print F "\n";
     print F "perl='/usr/bin/env perl'\n";
@@ -171,7 +173,7 @@ sub createOverlapJobs($) {
         $hashBeg = $hashEnd + 1;
     }
 
-    open(SUB, "> $wrk/$outDir/ovlopts.pl") or caFailure("Failed to open '$wrk/$outDir/ovlopts.pl'\n");
+    open(SUB, "> $wrk/$outDir/ovlopts.pl") or caFailure("failed to open '$wrk/$outDir/ovlopts.pl'", undef);
     print SUB "#!/usr/bin/env perl\n";
     print SUB "use strict;\n";
     print SUB "my \@bat = (\n";  foreach my $b (@bat) { print SUB "\"$b\",\n"; }  print SUB ");\n";
@@ -192,7 +194,7 @@ sub createOverlapJobs($) {
     print SUB "exit(0);\n";
     close(SUB);
 
-    open(SUB, "> $wrk/$outDir/ovljobs.dat") or caFailure("Failed to open '$wrk/$outDir/ovljobs.dat'\n");
+    open(SUB, "> $wrk/$outDir/ovljobs.dat") or caFailure("failed to open '$wrk/$outDir/ovljobs.dat'", undef);
     foreach my $b (@bat) { print SUB "$b "; }  print SUB "\n";
     foreach my $b (@job) { print SUB "$b "; }  print SUB "\n";
     close(SUB);

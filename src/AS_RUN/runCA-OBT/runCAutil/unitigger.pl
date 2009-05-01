@@ -56,7 +56,7 @@ sub unitigger (@) {
             $cmd .= " -k "      if (getGlobal("bogEjectUnhappyContain") == 1);
             $cmd .= " -m $bmd " if (defined($bmd));
             $cmd .= " -o $wrk/4-unitigger/$asm ";
-            $cmd .= " > $wrk/4-unitigger/unitigger.out 2>$wrk/4-unitigger/unitigger.err";
+            $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
         } elsif ($unitigger eq "utg") {
             my $u = getGlobal("utgBubblePopping");
 
@@ -71,11 +71,11 @@ sub unitigger (@) {
             $cmd .= " -I $wrk/$asm.ovlStore ";
             $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
         } else {
-            caFailure("Unknown unitigger $unitigger.\n");
+            caFailure("unknown unitigger $unitigger; must be 'bog' or 'utg'", undef);
         }
 
         if (runCommand("$wrk/4-unitigger", $cmd)) {
-            caFailure("Failed to unitig.\n");
+            caFailure("failed to unitig", "$wrk/4-unitigger/unitigger.err");
         }
 
         touch("$wrk/4-unitigger/unitigger.success");
@@ -84,7 +84,7 @@ sub unitigger (@) {
   alldone:
     #  Other steps (consensus) need the list of cgb files, so we just do it here.
     #
-    open(F, "ls $wrk/4-unitigger/*.cgb |") or caFailure("Failed to ls '$wrk/4-unitigger/*.cgb'\n");
+    open(F, "ls $wrk/4-unitigger/*.cgb |") or caFailure("failed to ls '$wrk/4-unitigger/*.cgb'", undef);
     @cgbFiles = <F>;
     close(F);
     chomp @cgbFiles;

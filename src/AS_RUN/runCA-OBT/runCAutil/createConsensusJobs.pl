@@ -12,11 +12,11 @@ sub createPostScaffolderConsensusJobs ($) {
 
     #  Check that $cgwDir is complete
     #
-    caFailure("Didn't find '$cgwDir/$asm.SeqStore'.\n") if (! -d "$cgwDir/$asm.SeqStore");
-    caFailure("Didn't find '$cgwDir/$asm.cgw_contigs'.\n" ) if (! -e "$cgwDir/$asm.cgw_contigs");
+    caFailure("contig consensus didn't find '$cgwDir/$asm.SeqStore'", undef)    if (! -d "$cgwDir/$asm.SeqStore");
+    caFailure("contig consensus didn't find '$cgwDir/$asm.cgw_contigs'", undef) if (! -e "$cgwDir/$asm.cgw_contigs");
 
     my $lastckpt = findLastCheckpoint($cgwDir);
-    caFailure("Didn't find any checkpoints in '$cgwDir'\n") if (!defined($lastckpt));
+    caFailure("contig consensus didn't find any checkpoints in '$cgwDir'", undef) if (!defined($lastckpt));
 
     my $partitionSize = int($numFrags / getGlobal("cnsPartitions"));
     $partitionSize = getGlobal("cnsMinFrags") if ($partitionSize < getGlobal("cnsMinFrags"));
@@ -27,7 +27,7 @@ sub createPostScaffolderConsensusJobs ($) {
         $cmd  = "$bin/PartitionSDB -all -seqstore $cgwDir/$asm.SeqStore -version $lastckpt -fragsper $partitionSize -input $cgwDir/$asm.cgw_contigs ";
         $cmd .= "> $wrk/8-consensus/partitionSDB.err 2>&1";
 
-        caFailure("Failed.\n") if (runCommand("$wrk/8-consensus", $cmd));
+        caFailure("seqStore paritioning failed", "$wrk/8-consensus/partitionSDB.err") if (runCommand("$wrk/8-consensus", $cmd));
         touch("$wrk/8-consensus/partitionSDB.success");
     }
 
@@ -44,7 +44,7 @@ sub createPostScaffolderConsensusJobs ($) {
         $cmd  = "$bin/gatekeeper -P $wrk/8-consensus/FragPartition.txt $wrk/$asm.gkpStore ";
         $cmd .= "> $wrk/8-consensus/$asm.partitioned.err 2>&1";
 
-        caFailure("Failed.\n") if (runCommand("$wrk/8-consensus", $cmd));
+        caFailure("gatekeeper partitioning failed", "$wrk/8-consensus/$asm.partitioned.err") if (runCommand("$wrk/8-consensus", $cmd));
         touch("$wrk/8-consensus/$asm.partitioned");
     }
 
@@ -55,7 +55,7 @@ sub createPostScaffolderConsensusJobs ($) {
     my $jobP;
     my $jobs = 0;
 
-    open(CGW, "ls $cgwDir/$asm.cgw_contigs.* |") or caFailure("ls of $cgwDir/$asm.cgw_contigs.* failed.");
+    open(CGW, "ls $cgwDir/$asm.cgw_contigs.* |") or caFailure("failed to find '$cgwDir/$asm.cgw_contigs.*'", undef);
     while (<CGW>) {
         if (m/cgw_contigs.(\d+)/) {
             $jobP .= "$1\t";
@@ -68,7 +68,7 @@ sub createPostScaffolderConsensusJobs ($) {
 
     $jobP = join ' ', sort { $a <=> $b } split '\s+', $jobP;
 
-    open(F, "> $wrk/8-consensus/consensus.sh") or caFailure("Can't open '$wrk/8-consensus/consensus.sh'\n");
+    open(F, "> $wrk/8-consensus/consensus.sh") or caFailure("can't open '$wrk/8-consensus/consensus.sh'", undef);
     print F "#!/bin/sh\n";
     print F "\n";
     print F "jobid=\$SGE_TASK_ID\n";
@@ -120,7 +120,7 @@ sub createPostScaffolderConsensusJobs ($) {
        print F "&& \\\n";
        print F "touch $wrk/8-consensus/$asm.cns_contigs.\$jobp.success\n";
     } else {
-       caFailure("Unknown consensus type $consensusType.\n");
+       caFailure("unknown consensus type $consensusType; must be 'cns' or 'seqan'", undef);
     }
     print F "exit 0\n";
     close(F);
@@ -177,7 +177,7 @@ sub postScaffolderConsensus ($) {
     #
     my $failedJobs = 0;
 
-    open(CGWIN, "ls $cgwDir/$asm.cgw_contigs.* |") or caFailure("ls of $cgwDir/$asm.cgw_contigs.* failed.\n");
+    open(CGWIN, "ls $cgwDir/$asm.cgw_contigs.* |") or caFailure("didn't find '$cgwDir/$asm.cgw_contigs.*'", undef);
     while (<CGWIN>) {
         chomp;
 
@@ -193,7 +193,9 @@ sub postScaffolderConsensus ($) {
     }
     close(CGWIN);
 
-    caFailure("$failedJobs consensusAfterScaffolder jobs failed.  Good luck.\n") if ($failedJobs);
+    #  FAILUREHELPME
+    #
+    caFailure("$failedJobs consensusAfterScaffolder jobs failed", undef) if ($failedJobs);
 
     #  All jobs finished.  Remove the partitioning from the gatekeeper
     #  store.  The gatekeeper store is currently (5 Mar 2007) tolerant

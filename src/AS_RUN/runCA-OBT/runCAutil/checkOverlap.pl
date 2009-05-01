@@ -15,7 +15,7 @@ sub checkOverlapper ($) {
         $ovlOpt = "-G";
     }
 
-    open(F, "< $wrk/$outDir/ovljobs.dat") or caFailure("Failed to open '$wrk/$outDir/ovljobs.dat'\n");
+    open(F, "< $wrk/$outDir/ovljobs.dat") or caFailure("failed to open '$wrk/$outDir/ovljobs.dat'", undef);
     $_ = <F>;
     my @bat = split '\s+', $_;
     $_ = <F>;
@@ -37,7 +37,9 @@ sub checkOverlapper ($) {
         $jobIndex++;
     }
 
-    caFailure("$failedJobs overlapper jobs failed.\n") if ($failedJobs);
+    #  FAILUREHELPME
+    #
+    caFailure("$failedJobs overlapper jobs failed", undef) if ($failedJobs);
 }
 
 
@@ -63,14 +65,14 @@ sub checkMerOverlapper ($) {
         }
     }
     
-    caFailure("$failedJobs overlapper jobs failed.\n") if ($failedJobs);
+    caFailure("$failedJobs overlapper jobs failed", undef) if ($failedJobs);
 }
 
 
 sub checkOverlap {
     my $isTrim = shift @_;
 
-    caFailure("checkOverlap()-- I need to know if I'm trimming or assembling!\n") if (!defined($isTrim));
+    caFailure("overlap checker needs to know if trimming or assembling", undef) if (!defined($isTrim));
 
     if ($isTrim eq "trim") {
         return if (-d "$wrk/$asm.obtStore");

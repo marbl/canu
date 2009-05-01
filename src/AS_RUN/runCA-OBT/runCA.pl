@@ -9,24 +9,7 @@ my @cgbFiles;
 my $cgiFile;
 my $scaffoldDir;
 
-my @steps = (
-             'Pre-overlap',               'preoverlap(@fragFiles)',
-             'OverlapTrim',               'overlapTrim()',
-             'CreateOverlapJobs',         'createOverlapJobs("normal")',
-             'CheckOverlap',              'checkOverlap("normal")',
-             'CreateOverlapStore',        'createOverlapStore()',
-             'OverlapCorrection',         'overlapCorrection()',
-             'Unitigger',                 '@cgbFiles = unitigger(@cgbFiles)',
-             'PostUnitiggerConsensus',    'postUnitiggerConsensus(@cgbFiles)',
-             'Scaffolder',                'scaffolder($cgiFile)',
-             'PostScaffolderConsensus',   'postScaffolderConsensus($scaffoldDir)',
-             'Terminator',                'terminate($scaffoldDir)',
-             'Cleaner',                   'cleaner()',
-             );
-
-
 setDefaults();
-localDefaults();
 
 #  Stash the original options, quoted, for later use.  We need to use
 #  these when we resubmit ourself to SGE.
@@ -37,17 +20,6 @@ foreach my $a (@ARGV) {
 
 while (scalar(@ARGV)) {
     my $arg = shift @ARGV;
-
-    my $found = 0;
-    ($found, @ARGV) = localOption($arg, @ARGV);
-
-    if ($found == 1 ) {
-    	next;
-    }
-
-    if (!defined($arg)) {
-        last;
-    }
 
     if      ($arg =~ m/^-d/) {
         $wrk = shift @ARGV;
@@ -123,8 +95,6 @@ if ((getGlobal("scriptOnGrid") == 1) &&
 
 checkDirectories();
 
-localSetup(scalar(@steps) / 2);
-
 #setup closure stuff
 setupFilesForClosure();
 
@@ -172,22 +142,19 @@ if ($isContinuation) {
 #
 submitScript(undef) if (!runningOnGrid());
 
-
 #  Begin
 
+preoverlap(@fragFiles);
+overlapTrim();
+createOverlapJobs("normal");
+checkOverlap("normal");
+createOverlapStore();
+overlapCorrection();
+@cgbFiles = unitigger(@cgbFiles);
+postUnitiggerConsensus(@cgbFiles);
+scaffolder($cgiFile);
+postScaffolderConsensus($scaffoldDir);
+terminate($scaffoldDir);
+cleaner();
 
-while (scalar(@steps) > 0) {
-    my $stepName = shift @steps;
-    my $stepCmd  = shift @steps;
-
-    localStart($stepName);
-    eval($stepCmd);
-    if ($@) {
-        chomp $@;
-        die "step $stepName failed with '$@'\n" ;
-    }
-    localFinish($stepName);
-}
-
-localFinalize();
 exit(0);
