@@ -395,9 +395,15 @@ sub terminate ($) {
     }
 
     if (getGlobal("createACE") > 0) {
-        if (! -e "$termDir/test.ace.bz2") {
+        if (! -e "$termDir/$asm.ace.bz2") {
+            if (! -e "$termDir/$asm.frg") {
+                if (runCommand($termDir, "$bin/gatekeeper -dumpfrg -allreads $wrk/$asm.gkpStore > $termDir/$asm.frg 2> $termDir/gatekeeper.err")) {
+                    caFailure("gatekeeper failed to dump fragments for ACE generation");
+                }
+                unlink "$termDir/gatekeeper.err";
+            }
             if (runCommand($termDir, "$perl $bin/ca2ace.pl $termDir/$asm.asm")) {
-                rename "$termDir/test.ace.bz2", "$termDir/test.ace.FAILED.bz2";
+                rename "$termDir/$asm.ace.bz2", "$termDir/$asm.ace.FAILED.bz2";
             }
         }
     }
