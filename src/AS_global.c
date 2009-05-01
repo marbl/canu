@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_global.c,v 1.15 2009-04-08 17:25:51 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_global.c,v 1.16 2009-05-01 20:22:45 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -202,7 +202,7 @@ AS_configure(int argc, char **argv) {
             (uint64)getpid(),
             E);
 
-    fprintf(stderr, "%s\n", N);
+    //fprintf(stderr, "%s\n", N);
 
     errno = 0;
     F = fopen(N, "w");
