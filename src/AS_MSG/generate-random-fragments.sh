@@ -35,23 +35,31 @@
 #    coverage    10
 #    error rate  0.020
 
+if [ $# != 4 ] ; then
+  echo "usage $0 <genomesize> <readlength> <coverage> <errorrate>"
+  exit
+fi
+
 genomesize=$1
 readlength=$2
 coverage=$3
 errorrate=$4
 
+leaff="/work/wgs/kmer/leaff/leaff"
+cvtto="perl /work/wgs/src/AS_MSG/convert-fasta-to-v2.pl"
+
 numreads=`expr $genomesize \* $coverage / $readlength`
 
 if [ ! -e genome-${genomesize}bp.fasta ] ; then
-  ../wgs/kmer/leaff/leaff -G 1 $genomesize $genomesize > genome-${genomesize}bp.fasta
+  $leaff -G 1 $genomesize $genomesize > genome-${genomesize}bp.fasta
 fi
 
 if [ ! -e genome-${genomesize}bp-${coverage}x-${errorrate}percent.frg ] ; then
-  ../wgs/kmer/leaff/leaff --errors $readlength $numreads 1 $errorrate genome-${genomesize}bp.fasta > genome-${genomesize}bp-${coverage}x-${errorrate}percent.fasta
+  $leaff --errors $readlength $numreads 1 $errorrate genome-${genomesize}bp.fasta > genome-${genomesize}bp-${coverage}x-${errorrate}percent.fasta
 
   tr 'ACGT' 'NNNN' < genome-${genomesize}bp-${coverage}x-${errorrate}percent.fasta > genome-${genomesize}bp-${coverage}x-${errorrate}percent.qlt
 
-  perl ../wgs/src/AS_MSG//convert-fasta-to-v2.pl -l RAND -mean 0 -stddev 0 \
+  $cvtto -l RAND -mean 0 -stddev 0 \
     -s genome-${genomesize}bp-${coverage}x-${errorrate}percent.fasta \
     -q genome-${genomesize}bp-${coverage}x-${errorrate}percent.qlt \
     >  genome-${genomesize}bp-${coverage}x-${errorrate}percent.frg
