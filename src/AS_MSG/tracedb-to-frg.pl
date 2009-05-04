@@ -137,6 +137,12 @@ while (scalar(@ARGV) > 0) {
 if (!defined(@sgefiles) && !defined($xmlfile) && !defined(@libfiles) && !defined($frgfile)) {
     print STDERR "usage: $0 [-sge xml*]                          //  All steps on SGE\n";
     print STDERR "       $0 [-xml xml*] [-lib xml*] [-frg xml*]  //  Each stage independently\n";
+    print STDERR "\n";
+    print STDERR "       -sgeoptions \"options\"   supply this string to qsub\n";
+    print STDERR "                                 (do NOT set -N; this will break the script)\n";
+    print STDERR "       -newbler                  write format suitable for newbler\n";
+    print STDERR "       -only LIBNAME             only process reads from library LIBNAME\n";
+    print STDERR "                                 (may be used multiple times)\n";
     exit(1);
 }
 
