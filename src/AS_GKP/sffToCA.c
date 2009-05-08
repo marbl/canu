@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.19 2009-04-29 09:24:03 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.20 2009-05-08 21:57:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -691,8 +691,10 @@ removeDuplicateReads(void) {
   uint32        firstElem = getFirstElemFragStore(gkpStore);
   uint32        lastElem  = getLastElemFragStore(gkpStore) + 1;
 
-  fragRecord    fr1;
-  fragRecord    fr2;
+  uint32        fragsLen = 0;
+  uint32        fragsMax = 16384;
+  fragRecord    fr;
+  fragRecord   *frags    = (fragRecord *)safe_malloc(sizeof(fragRecord) * fragsMax);
 
   fragHash   *fh    = safe_malloc(sizeof(fragHash) * (lastElem - firstElem + 1));
   uint32      fhLen = 0;
@@ -712,18 +714,16 @@ removeDuplicateReads(void) {
   fprintf(stderr, "removeDuplicateReads()-- from %d to %d\n", firstElem, lastElem);
 
   for (thisElem=firstElem; thisElem<lastElem; thisElem++) {
-    if ((thisElem % 1000000) == 0)
-      fprintf(stderr, "removeDuplicateReads()--  at %d\n", thisElem);
+    getFrag(gkpStore, thisElem, &fr, FRAG_S_INF | FRAG_S_SEQ);
 
-    getFrag(gkpStore, thisElem, &fr1, FRAG_S_INF | FRAG_S_SEQ);
+    char *seq1      = getFragRecordSequence(&fr);
 
-    char *seq1      = getFragRecordSequence(&fr1);
-
-    uint32 seqLen   = getFragRecordSequenceLength(&fr1);
+    uint32 seqLen   = getFragRecordSequenceLength(&fr);
     uint64 hash     = 0;
 
     assert(seqLen >= 48);
 
+#if 1
     //  Our "hash" is just the spaced seed "101" (repeating).  It
     //  covers the first 48 bases, picking out 32.
     //
@@ -736,6 +736,21 @@ removeDuplicateReads(void) {
       hash  |= map[seq1[s]];
       s++;
     }
+#else
+    //  Our "hash" is just the spaced seed "1010" (repeating).  It
+    //  covers the first 64 bases, picking out 32.
+    //
+    for (s=0, n=0; n<16; n++) {
+      hash <<= 2;
+      hash  |= map[seq1[s]];
+      s++;
+      s++;
+      hash <<= 2;
+      hash  |= map[seq1[s]];
+      s++;
+      s++;
+    }
+#endif
 
     fh[fhLen].hash     = hash;
     fh[fhLen].iid      = thisElem;
@@ -778,8 +793,18 @@ removeDuplicateReads(void) {
       //  Yeah, we could extend scope of this test to include the for
       //  loops, but those will stop quick enough.
 
-      //if (beg + 1 < end)
-      //  fprintf(stderr, "Clique from "F_U32" to "F_U32" ("F_U32" things)\n", beg, end, end - beg);
+      if ((beg + 1 < end) && (end-beg > 1000))
+        fprintf(stderr, "Large potential duplicate set from "F_U32" to "F_U32" ("F_U32" things)\n", beg, end, end - beg);
+
+      //  Load the fragments
+      //
+      if (end - beg > fragsMax) {
+        fragsMax = end - beg + 1;
+        frags    = (fragRecord *)safe_realloc(frags, sizeof(fragRecord) * fragsMax);
+      }
+
+      for (b=beg; b<end; b++)
+        getFrag(gkpStore, fh[b].iid, &frags[b-beg], FRAG_S_SEQ);
 
       //  Compare all-vs-all in the range
       //
@@ -789,14 +814,17 @@ removeDuplicateReads(void) {
           AS_IID     iid1 = fh[b].iid;
           AS_IID     iid2 = fh[e].iid;
 
-          getFrag(gkpStore, iid1, &fr1, FRAG_S_SEQ);
-          getFrag(gkpStore, iid2, &fr2, FRAG_S_SEQ);
+          fragRecord  *fr1 = frags + b - beg;
+          fragRecord  *fr2 = frags + e - beg;
 
-          uint32 del1 = getFragRecordIsDeleted(&fr1);
-          uint32 del2 = getFragRecordIsDeleted(&fr2);
+          assert(iid1 == getFragRecordIID(fr1));
+          assert(iid2 == getFragRecordIID(fr2));
 
-          uint32 len1 = getFragRecordSequenceLength(&fr1);
-          uint32 len2 = getFragRecordSequenceLength(&fr2);
+          uint32 del1 = getFragRecordIsDeleted(fr1);
+          uint32 del2 = getFragRecordIsDeleted(fr2);
+
+          uint32 len1 = getFragRecordSequenceLength(fr1);
+          uint32 len2 = getFragRecordSequenceLength(fr2);
 
           if ((del1) && (len1 < len2))
             continue;
@@ -813,8 +841,8 @@ removeDuplicateReads(void) {
           if (del1 && del2)
             continue;
 
-          char *seq1 = getFragRecordSequence(&fr1);
-          char *seq2 = getFragRecordSequence(&fr2);
+          char *seq1 = getFragRecordSequence(fr1);
+          char *seq2 = getFragRecordSequence(fr2);
 
           uint32 len = MIN(len1, len2);
 
@@ -828,29 +856,35 @@ removeDuplicateReads(void) {
             AS_IID     deletedIID = 0;
             uint32     deleted    = 0;
 
-            if ((len == getFragRecordSequenceLength(&fr1)) &&
-                (len == getFragRecordSequenceLength(&fr2))) {
+            if ((len == getFragRecordSequenceLength(fr1)) &&
+                (len == getFragRecordSequenceLength(fr2))) {
               deletedIID = (iid1 < iid2) ? iid1 : iid2;
-              deletedUID = (iid1 < iid2) ? getFragRecordUID(&fr1) : getFragRecordUID(&fr2);
+              deletedUID = (iid1 < iid2) ? getFragRecordUID(fr1) : getFragRecordUID(fr2);
               deleted    = (iid1 < iid2) ? del1 : del2;
-            } else if (len == getFragRecordSequenceLength(&fr1)) {
+            } else if (len == getFragRecordSequenceLength(fr1)) {
               deletedIID = iid1;
-              deletedUID = getFragRecordUID(&fr1);
+              deletedUID = getFragRecordUID(fr1);
               deleted    = del1;
             } else {
               deletedIID = iid2;
-              deletedUID = getFragRecordUID(&fr2);
+              deletedUID = getFragRecordUID(fr2);
               deleted    = del2;
             }
 
+            //  If we need to delete something, delete it, then update
+            //  our cached copy.  We still need the sequence, as an
+            //  even shorter fragment can be deleted by the one we
+            //  just deleted.
+
             if (deleted == 0) {
               delFrag(gkpStore, deletedIID);
+              getFrag(gkpStore, deletedIID, (deletedIID == iid1) ? fr1 : fr2, FRAG_S_SEQ);
 
               if (logFile)
                 fprintf(logFile, "Delete read %s,%d a prefix of %s,%d\n",
                         AS_UID_toString(deletedUID), deletedIID,
-                        (deletedIID == getFragRecordIID(&fr1)) ? AS_UID_toString(getFragRecordUID(&fr2)) : AS_UID_toString(getFragRecordUID(&fr1)),
-                        (deletedIID == getFragRecordIID(&fr1)) ? getFragRecordIID(&fr2) : getFragRecordIID(&fr1));
+                        (deletedIID == iid1) ? AS_UID_toString(getFragRecordUID(fr2)) : AS_UID_toString(getFragRecordUID(fr1)),
+                        (deletedIID == iid1) ? iid2 : iid1);
             }
           }
         }
