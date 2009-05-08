@@ -245,13 +245,12 @@ sub merOverlapper($) {
             my $sgeOverlap = getGlobal("sgeMerOverlapSeed");
 
             my $SGE;
-            $SGE  = "qsub $sge $sgeOverlap -N NAME \\\n";
-            $SGE .= "  -t MINMAX \\\n";
+            $SGE  = "qsub $sge $sgeOverlap -N mer_$asm \\\n";
+            $SGE .= "  -t 1-$ovmJobs \\\n";
             $SGE .= "  -j y -o $wrk/$outDir/seeds/\\\$TASK_ID.out \\\n";
             $SGE .= "  $wrk/$outDir/overmerry.sh\n";
 
-            my $waitTag = submitBatchJobs("mer", $SGE, $ovmJobs, getGlobal("merOverlapperThreads"));
-            submitScript($waitTag) if (runningOnGrid());
+            submitBatchJobs($SGE, "mer_$asm");
             exit(0);
         } else {
             for (my $i=1; $i<=$ovmJobs; $i++) {
@@ -318,13 +317,12 @@ sub merOverlapper($) {
             my $sgeOverlap = getGlobal("sgeMerOverlapExtend");
 
             my $SGE;
-            $SGE  = "qsub $sge $sgeOverlap -N NAME \\\n";
-            $SGE .= "  -t MINMAX \\\n";
+            $SGE  = "qsub $sge $sgeOverlap -N olp_$asm \\\n";
+            $SGE .= "  -t 1-$olpJobs \\\n";
             $SGE .= "  -j y -o $wrk/$outDir/olaps/\\\$TASK_ID.out \\\n";
             $SGE .= "  $wrk/$outDir/olap-from-seeds.sh\n";
 
-            my $waitTag = submitBatchJobs("olp", $SGE, $olpJobs, 1);
-            submitScript("$waitTag") if (runningOnGrid());
+            submitBatchJobs($SGE, "olp_$asm");
             exit(0);
         } else {
             for (my $i=1; $i<=$olpJobs; $i++) {

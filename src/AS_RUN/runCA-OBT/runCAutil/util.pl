@@ -1,57 +1,16 @@
 use strict;
 
 
-# Submit batch jobs in groups. This function allows one to limit
-# the maximum number of jobs submitted at once to the grid. The jobs are
-# split into multiple submissions, dependent on each other.
-#
-# NOTE: inefficient because all jobs in a previous
-# submission must finish for the next submission to be scheduled.
-#
-sub submitBatchJobs($$$$) {
-   my $id = shift @_;
-   my $sgeParam = shift @_;
-   my $jobs = shift @_;
-   my $jobsSubmitted = 0;
-   my $max = 1;
-   my $min = 1;
-   my $SGE = "";
-   my $numThreads = shift @_;
+sub submitBatchJobs($$) {
+   my $SGE = shift @_;
+   my $TAG = shift @_;
 
-   my $maxSize = getGlobal("maxGridJobSize");
-   if (defined($maxSize)) {
-      $maxSize = floor($maxSize / $numThreads);
+   if (runningOnGrid()) {
+       system($SGE) and caFailure("Failed to submit batch jobs.");
+       submitScript($TAG);
+   } else {
+       pleaseExecute($SGE);
    }
-   else {
-      $maxSize = $jobs;
-   }
-
-   while ($jobsSubmitted < $jobs) {
-      my $max = $jobsSubmitted + $maxSize;
-      my $min = $jobsSubmitted + 1;
-
-      if ($max > $jobs) {
-         $max = $jobs;
-      }
-
-       $SGE = $sgeParam;
-       $SGE =~ s/NAME/"$id\_$asm\_$max"/e;
-       if ($jobsSubmitted != 0) {
-          $SGE =~ s/MINMAX/"$min-$max -hold_jid \"$id\_$asm\_$jobsSubmitted\" "/e;
-       }
-       else {
-          $SGE =~ s/MINMAX/"$min-$max"/e;
-       }
-
-       if (runningOnGrid()) {
-          system($SGE) and caFailure("failed to submit overlap jobs", undef);
-       } else {
-          pleaseExecute($SGE);
-       }
-       $jobsSubmitted = $max;
-   }
-
-   return "$id\_$asm\_$jobs";
 }
 
 
@@ -312,6 +271,9 @@ sub setDefaults () {
     $global{"ovlThreads"}                  = 2;
     $synops{"ovlThreads"}                  = "Number of threads to use when computing overlaps";
 
+    $global{"ovlConcurrency"}              = 1;
+    $synops{"ovlConcurrency"}              = "If not SGE, number of overlapper processes to run at the same time";
+
     $global{"ovlStart"}                    = 1;
     $synops{"ovlStart"}                    = "Starting fragment for overlaps (EXPERT!)";
 
@@ -340,7 +302,7 @@ sub setDefaults () {
     $synops{"merCompression"}              = "K-mer size";
 
     $global{"merOverlapperThreads"}        = 2;
-    $synops{"merOverlapperThreads"}        = "Number of threads to use in the mer overlapper";
+    $synops{"merOverlapperThreads"}        = "Number of threads to use for both mer overlapper seed finding and extension jobs";
 
     $global{"merOverlapperSeedBatchSize"}  = 100000;
     $synops{"merOverlapperSeedBatchSize"}  = "Number of fragments in a mer overlapper seed finding batch; directly affects memory usage";
@@ -356,9 +318,6 @@ sub setDefaults () {
 
     $global{"merOverlapperExtendConcurrency"}= 1;
     $synops{"merOverlapperExtendConcurrency"}= "If not SGE, number of mer overlapper seed extension processes to run at the same time";
-
-    $global{"merOverlapperThreads"}        = 2;
-    $synops{"merOverlapperThreads"}        = "Number of threads to use for both mer overlapper seed finding and extension jobs";
 
     $global{"umdOverlapperFlags"}          = "-use-uncleaned-reads -trim-error-rate 0.03 -max-minimizer-cutoff 150";
     $synops{"umdOverlapperFlags"}          = "Options for the UMD overlapper";
@@ -503,8 +462,8 @@ sub setDefaults () {
     $global{"version"}                     = 0;
     $synops{"version"}                     = undef;
 
-    $global{"help"}                        = 0;
-    $synops{"help"}                        = undef;
+    $global{"options"}                     = 0;
+    $synops{"options"}                     = undef;
 
     #### Closure Options
     $global{"closureEdges"}               = undef;
@@ -726,14 +685,14 @@ sub printHelp () {
         exit(0);
     }
 
-    if (getGlobal("help")) {
+    if (getGlobal("options")) {
         foreach my $k (sort keys %global) {
-            my $o = substr("$k                             ", 0, 35);
-            my $d = substr(getGlobal($k) . "               ", 0, 20);
+            my $o = substr("$k                                    ", 0, 35);
+            my $d = substr(getGlobal($k) . "                      ", 0, 20);
             my $u = $synops{$k};
 
             if (!defined(getGlobal($k))) {
-                $d = substr("<unset>" . "               ", 0, 16);
+                $d = substr("<unset>                    ", 0, 20);
             }
 
             print "$o$d($u)\n";
@@ -742,7 +701,7 @@ sub printHelp () {
     }
 
     if (getGlobal("help")) {
-        print "usage: runCA -d <dir> -p <prefix> [options] <frg>\n";
+        print "usage: runCA -d <dir> -p <prefix> [options] <frg> ...\n";
         print "  -d <dir>          Use <dir> as the working directory.  Required\n";
         print "  -p <prefix>       Use <prefix> as the output prefix.  Required\n";
         print "\n";
@@ -752,7 +711,8 @@ sub printHelp () {
         print "                      noVec   - run with OBT but without Vector\n";
         print "\n";
         print "  -version          Version information\n";
-        print "  -help             Describe specFile options, and show default values\n";
+        print "  -help             This information\n";
+        print "  -options          Describe specFile options, and show default values\n";
         print "\n";
         print "  <frg>             CA formatted fragment file\n";
         print "\n";
@@ -965,8 +925,11 @@ sub submitScript ($) {
     $waitTag = "-hold_jid \"$waitTag\"" if (defined($waitTag));
 
     my $qcmd = "qsub $sge $sgeScript -cwd -N \"runCA_${asm}\" -j y -o $output $waitTag $script";
-    print STDERR "$qcmd\n";
-    system($qcmd) and caFailure("failed to submit script to SGE", undef);
+
+    print STDERR "DEBUG:\n$qcmd\n";
+    system('pwd');
+
+    system($qcmd) and caFailure("Failed to submit script.\n");
 
     if (defined($sgePropHold)) {
         my $acmd = "qalter -hold_jid \"runCA_${asm}\" \"$sgePropHold\"";

@@ -72,19 +72,13 @@ sub overlapCorrection {
             my $sgeFragmentCorrection = getGlobal("sgeFragmentCorrection");
 
             my $SGE;
-            $SGE  = "qsub $sge $sgeFragmentCorrection -N NAME ";
-            $SGE .= "-t MINMAX ";
+            $SGE  = "qsub $sge $sgeFragmentCorrection -N frg_$asm ";
+            $SGE .= "-t 1-$jobs ";
             $SGE .= " -j y -o $wrk/3-overlapcorrection/\\\$TASK_ID.err ";
             $SGE .= "$wrk/3-overlapcorrection/frgcorr.sh\n";
 
-            my $waitTag = submitBatchJobs("frg", $SGE, $jobs, $numThreads);
-
-            if (runningOnGrid()) {
-                submitScript("$waitTag");
-                exit(0);
-            } else {
-                exit(0);
-            }
+            submitBatchJobs($SGE, "frg_$asm");
+            exit(0);
         } else {
             #  Run the correction job right here, right now.
 
@@ -212,20 +206,13 @@ sub overlapCorrection {
             my $sgeOverlapCorrection  = getGlobal("sgeOverlapCorrection");
 
             my $SGE;
-            $SGE  = "qsub $sge $sgeOverlapCorrection -N NAME ";
-            $SGE .= "-t MINMAX ";
+            $SGE  = "qsub $sge $sgeOverlapCorrection -N ovc_$asm ";
+            $SGE .= "-t 1-$jobs ";
             $SGE .= " -j y -o $wrk/3-overlapcorrection/\\\$TASK_ID.err ";
             $SGE .= "$wrk/3-overlapcorrection/ovlcorr.sh\n";
 
-            my $numThreads = 1;
-            my $waitTag = submitBatchJobs("ovlcorr", $SGE, $jobs, $numThreads);
-
-            if (runningOnGrid()) {
-                submitScript("$waitTag");
-                exit(0);
-            } else {
-                exit(0);
-            }
+            submitBatchJobs($SGE, "ovc_$asm");
+            exit(0);
         } else {
             #  Run the correction job right here, right now.
 

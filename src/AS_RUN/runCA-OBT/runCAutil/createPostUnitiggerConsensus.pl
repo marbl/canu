@@ -4,6 +4,8 @@ sub createPostUnitiggerConsensusJobs (@) {
     my @cgbFiles  = @_;
     my $consensusType = getGlobal("consensus");
 
+    return if (-e "$wrk/5-consensus/consensus.sh");
+
     if (! -e "$wrk/5-consensus/$asm.partitioned") {
 
         #  Then, build a partition information file, and do the partitioning.
@@ -120,22 +122,13 @@ sub createPostUnitiggerConsensusJobs (@) {
         my $sgeConsensus = getGlobal("sgeConsensus");
 
         my $SGE;
-        $SGE  = "qsub $sge $sgeConsensus -N NAME ";
-        $SGE .= "-t MINMAX ";
+        $SGE  = "qsub $sge $sgeConsensus -N utg_$asm ";
+        $SGE .= "-t 1-$jobs ";
         $SGE .= "-j y -o /dev/null ";
         $SGE .= "$wrk/5-consensus/consensus.sh\n";
 
-	my $numThreads = 1;
-        my $waitTag = submitBatchJobs("cns1", $SGE, $jobs, $numThreads);
-
-        if (runningOnGrid()) {
-            touch("$wrk/5-consensus/jobsCreated.success");
-            submitScript("$waitTag");
-            exit(0);
-        } else {
-            touch("$wrk/5-consensus/jobsCreated.success");
-            exit(0);
-        }
+        submitBatchJobs($SGE, "utg_$asm");
+        exit(0);
     } else {
         for (my $i=1; $i<=$jobs; $i++) {
             &scheduler::schedulerSubmit("sh $wrk/5-consensus/consensus.sh $i > /dev/null 2>&1");
@@ -143,8 +136,6 @@ sub createPostUnitiggerConsensusJobs (@) {
 
         &scheduler::schedulerSetNumberOfProcesses(getGlobal("cnsConcurrency"));
         &scheduler::schedulerFinish();
-
-        touch("$wrk/5-consensus/jobsCreated.success");
     }
 }
 
@@ -157,10 +148,7 @@ sub postUnitiggerConsensus (@) {
 
     goto alldone if (-e "$wrk/5-consensus/consensus.success");
 
-    #
-    #  Create and/or run consensus jobs
-    #
-    createPostUnitiggerConsensusJobs(@cgbFiles) if (! -e "$wrk/5-consensus/jobsCreated.success");
+    createPostUnitiggerConsensusJobs(@cgbFiles);
 
     #
     #  Check that consensus finished properly

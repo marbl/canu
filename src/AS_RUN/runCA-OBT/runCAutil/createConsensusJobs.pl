@@ -8,7 +8,7 @@ sub createPostScaffolderConsensusJobs ($) {
     my $cgwDir   = shift @_;
     my $consensusType = getGlobal("consensus");
 
-    return if (-e "$wrk/8-consensus/jobsCreated.success");
+    return if (-e "$wrk/8-consensus/consensus.sh");
 
     #  Check that $cgwDir is complete
     #
@@ -34,7 +34,7 @@ sub createPostScaffolderConsensusJobs ($) {
     if (-z "$wrk/8-consensus/UnitigPartition.txt") {
         print STDERR "WARNING!  Nothing for consensus to do!  Forcing consensus to skip!\n";
         touch("$wrk/8-consensus/partitionFragStore.success");
-        touch("$wrk/8-consensus/jobsCreated.success");
+        touch("$wrk/8-consensus/consensus.sh");
         return;
     }
 
@@ -132,22 +132,13 @@ sub createPostScaffolderConsensusJobs ($) {
         my $sgeConsensus = getGlobal("sgeConsensus");
 
         my $SGE;
-        $SGE  = "qsub $sge $sgeConsensus -N NAME ";
-        $SGE .= "-t MINMAX ";
+        $SGE  = "qsub $sge $sgeConsensus -N ctg_$asm ";
+        $SGE .= "-t 1-$jobs ";
         $SGE .= "-j y -o /dev/null ";
         $SGE .= "$wrk/8-consensus/consensus.sh\n";
 
-	my $numThreads = 1;
-        my $waitTag = submitBatchJobs("cns2", $SGE, $jobs, $numThreads);
-
-        if (runningOnGrid()) {
-            touch("$wrk/8-consensus/jobsCreated.success");
-            submitScript("$waitTag");
-            exit(0);
-        } else {
-            touch("$wrk/8-consensus/jobsCreated.success");
-            exit(0);
-        }
+        submitBatchJobs($SGE, "ctg_$asm");
+        exit(0);
     } else {
         for (my $i=1; $i<=$jobs; $i++) {
             &scheduler::schedulerSubmit("sh $wrk/8-consensus/consensus.sh $i > /dev/null 2>&1");
@@ -155,8 +146,6 @@ sub createPostScaffolderConsensusJobs ($) {
 
         &scheduler::schedulerSetNumberOfProcesses(getGlobal("cnsConcurrency"));
         &scheduler::schedulerFinish();
-
-        touch("$wrk/8-consensus/jobsCreated.success");
     }
 }
 
@@ -170,7 +159,7 @@ sub postScaffolderConsensus ($) {
 
     $cgwDir = "$wrk/7-CGW" if (!defined($cgwDir));
 
-    createPostScaffolderConsensusJobs($cgwDir) if (! -e "$wrk/8-consensus/jobsCreated.success");
+    createPostScaffolderConsensusJobs($cgwDir);
 
     #
     #  Check that consensus finished properly

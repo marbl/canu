@@ -25,7 +25,7 @@ sub createOverlapJobs($) {
 
     system("mkdir $wrk/$outDir") if (! -d "$wrk/$outDir");
 
-    return if (-e "$wrk/$outDir/jobsCreated.success");
+    return if (-e "$wrk/$outDir/overlap.sh");
 
     #  umd overlapper here
     #
@@ -210,32 +210,21 @@ sub createOverlapJobs($) {
         my $sgeOverlap = getGlobal("sgeOverlap");
 
         my $SGE;
-        $SGE  = "qsub $sge $sgeOverlap -N NAME \\\n";
-        $SGE .= "  -t MINMAX \\\n";
+        $SGE  = "qsub $sge $sgeOverlap -N ovl_$asm \\\n";
+        $SGE .= "  -t 1-$jobs \\\n";
         $SGE .= "  -j y -o $wrk/$outDir/overlap.\\\$TASK_ID.out \\\n";
         $SGE .= "  $wrk/$outDir/overlap.sh\n";
 
-	my $waitTag = submitBatchJobs("ovl", $SGE, $jobs, $ovlThreads);
-
-        if (runningOnGrid()) {
-            touch("$wrk/$outDir/jobsCreated.success");
-            submitScript("$waitTag");
-            exit(0);
-        } else {
-            touch("$wrk/$outDir/jobsCreated.success");
-            exit(0);
-        }
+	submitBatchJobs($SGE, "ovl_$asm");
+        exit(0);
     } else {
-        my $failures = 0;
         for (my $i=1; $i<=$jobs; $i++) {
             my $out = substr("0000" . $i, -4);
-            if (runCommand("$wrk/$outDir", "$wrk/$outDir/overlap.sh $i > $wrk/$outDir/overlap.$out.out 2>&1")) {
-                $failures++;
-            }
+            &scheduler::schedulerSubmit("$wrk/$outDir/overlap.sh $i > $wrk/$outDir/overlap.$out.out 2>&1");
         }
-        if ($failures == 0) {
-            touch("$wrk/$outDir/jobsCreated.success");
-        }
+
+        &scheduler::schedulerSetNumberOfProcesses(getGlobal("ovlConcurrency"));
+        &scheduler::schedulerFinish();
     }
 }
 

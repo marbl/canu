@@ -11,11 +11,13 @@ my $scaffoldDir;
 
 setDefaults();
 
-#  Stash the original options, quoted, for later use.  We need to use
-#  these when we resubmit ourself to SGE.
-foreach my $a (@ARGV) {
-    $commandLineOptions .= " \"$a\" ";
-}
+#  At some pain, we stash the original options for later use.  We need
+#  to use these when we resubmit ourself to SGE.
+#
+#  We can't simply dump all of @ARGV into here, because we need to
+#  fix up relative paths.
+#
+$commandLineOptions = "";
 
 
 while (scalar(@ARGV)) {
@@ -24,53 +26,65 @@ while (scalar(@ARGV)) {
     if      ($arg =~ m/^-d/) {
         $wrk = shift @ARGV;
         $wrk = "$ENV{'PWD'}/$wrk" if ($wrk !~ m!^/!);
+        $commandLineOptions .= " -d \"$wrk\"";
 
-    } elsif ($arg =~ m/^-p/) {
+    } elsif ($arg eq "-p") {
         $asm = shift @ARGV;
+        $commandLineOptions .= " -p \"$asm\"";
 
-    } elsif ($arg =~ m/^-s/) {
+    } elsif ($arg eq "-s") {
         $specFile = shift @ARGV;
+        $commandLineOptions .= " -s \"$specFile\"";
 
-    } elsif (($arg =~ m/^-v/ or $arg =~ m/^--v/)) {
+    } elsif ($arg eq "-version") {
         setGlobal("version", 1);
 
-    } elsif (($arg =~ m/^-f/) || ($arg =~ m/^--f/)) {
-        setGlobal("fields", 1);
+    } elsif ($arg eq "-options") {
+        setGlobal("options", 1);
 
     } elsif (($arg =~ /\.frg$|frg\.gz$|frg\.bz2$/i) && (-e $arg)) {
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @fragFiles, $arg;
+        $commandLineOptions .= " \"$arg\"";
 
     } elsif (($arg =~ /\.sff$|sff\.gz$|sff\.bz2$/i) && (-e $arg)) {
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @fragFiles, $arg;
+        $commandLineOptions .= " \"$arg\"";
 
     } elsif (($arg =~ /\.ace$/i) && (-e $arg)) {
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @fragFiles, $arg;
+        $commandLineOptions .= " \"$arg\"";
 
     } elsif (($arg =~ /\.cgb$/i) && (-e $arg)) {
         $isContinuation = 1;
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @cgbFiles, $arg;
+        $commandLineOptions .= " \"$arg\"";
 
     } elsif (($arg =~ /\.cgi$/i) && (-e $arg)) {
         $isContinuation = 1;
         $cgiFile = $arg;
         $cgiFile = "$ENV{'PWD'}/$cgiFile" if ($cgiFile !~ m!^/!);
+        $commandLineOptions .= " \"$arg\"";
 
     } elsif (-d $arg) {
         $isContinuation = 1;
         $scaffoldDir  = $arg;
         $scaffoldDir  = "$ENV{'PWD'}/$scaffoldDir" if ($scaffoldDir !~ m!^/!);
+        $commandLineOptions .= " \"$arg\"";
 
     } elsif ($arg =~ m/=/) {
         push @specOpts, $arg;
+        $commandLineOptions .= " \"$arg\"";
 
     } else {
         setGlobal("help", 1);
     }
 }
+
+print STDERR "commandLineOptions=$commandLineOptions\n";
 
 setGlobal("help", 1) if (!defined($asm));
 setGlobal("help", 1) if (!defined($wrk));
