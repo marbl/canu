@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.22 2009-04-24 14:26:16 skoren Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.23 2009-05-11 05:51:01 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,7 +87,7 @@ sizeOfFile(const char *path) {
     F = popen(cmd, "r");
     fscanf(F, " %*s %*s %*s %*s ");
     fscanf(F, " %*d %lld %*s %*s ", &size);
-    fclose(F);
+    pclose(F);
   } else if (strcasecmp(path+strlen(path)-4, ".bz2") == 0) {
     size = s.st_size * 14 / 10;
   } else {
