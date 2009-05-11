@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.69 2009-04-24 14:26:16 skoren Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.70 2009-05-11 05:36:03 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -135,8 +135,11 @@ main(int argc, char **argv) {
 
   argc = AS_configure(argc, argv);
 
-  int arg = 1;
-  int err = 0;
+  int arg     = 1;
+  int err     = 0;
+  int unk[64] = {0};
+  int unl     = 0;
+
   while (arg < argc) {
     if        (strcmp(argv[arg], "-C") == 0) {
       GlobalData->performCleanupScaffolds = 0;
@@ -228,35 +231,24 @@ main(int argc, char **argv) {
       arg = argc;
 
     } else {
-      fprintf(stderr, "ERROR:  Unknown option '%s'\n", argv[arg]);
+      unk[unl++] = arg;
       err++;
     }
 
     arg++;
   }
 
-
-  if (GlobalData->Gatekeeper_Store_Name[0] == 0) {
-    fprintf(stderr, "ERROR:  No gatekeeper (-g) supplied.\n");
-    exit(1);
+  if (GlobalData->Gatekeeper_Store_Name[0] == 0)
     err++;
-  }
 
-  if (GlobalData->File_Name_Prefix[0] == 0) {
-    fprintf(stderr, "ERROR:  No output prefix (-o) supplied.\n");
-    exit(1);
+  if (GlobalData->File_Name_Prefix[0] == 0)
     err++;
-  }
 
-  if (cutoffToInferSingleCopyStatus > 1.0) {
-    fprintf(GlobalData->stderrc,"ERROR:  surrogate fraction cutoff (-S) must be between 0.0 and 1.0.\n");
-    exit(1);
+  if (cutoffToInferSingleCopyStatus > 1.0)
     err++;
-  }
 
   if (err) {
     fprintf(stderr, "usage: %s [options] -g <GatekeeperStoreName> -o <OutputPath> <unitigs*.cgb>\n", argv[0]);
-    fprintf(stderr, "\n");
     fprintf(stderr, "   -C           Don't cleanup scaffolds\n");
     fprintf(stderr, "   -c <file>    closure reads\n");
     fprintf(stderr, "   -p <int>     how to place closure reads. 0 - place at first location found, 1 - place at best gap, 2 - allow to be placed in multiple gaps\n");
@@ -288,6 +280,23 @@ main(int argc, char **argv) {
     fprintf(stderr, "   -v           verbose\n");
     fprintf(stderr, "   -Z           Don't demote singleton scaffolds\n");
     fprintf(stderr, "   -z           Turn on Check for Repeat Branch Pattern (demotes some unique unitigs to repeat)\n");
+
+    fprintf(stderr, "\n");
+
+    if (GlobalData->Gatekeeper_Store_Name[0] == 0)
+      fprintf(stderr, "ERROR:  No gatekeeper (-g) supplied.\n");
+
+    if (GlobalData->File_Name_Prefix[0] == 0)
+      fprintf(stderr, "ERROR:  No output prefix (-o) supplied.\n");
+
+    if (cutoffToInferSingleCopyStatus > 1.0)
+      fprintf(stderr, "ERROR:  surrogate fraction cutoff (-S) must be between 0.0 and 1.0.\n");
+
+    if (unl) {
+      for (arg=0; arg<unl; arg++)
+        fprintf(stderr, "ERROR:  Unknown option '%s'\n", argv[unk[arg]]);
+    }
+
     exit(1);
   }
 
