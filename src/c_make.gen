@@ -218,6 +218,17 @@ ifeq ($(MACHINETYPE), Power Macintosh)
   MACHINETYPE = ppc
 endif
 
+ifeq ($(OSTYPE), SunOS)
+  MACHINETYPE = $(shell echo `uname -p`)
+  ifeq ($(MACHINETYPE), sparc)
+    ifeq ($(shell /usr/bin/isainfo -b), 64)
+      MACHINETYPE = sparc64
+    else
+      MACHINETYPE = sparc32
+    endif
+  endif
+endif
+
 LOCAL_NAME=$(OSTYPE)-$(MACHINETYPE)
 
 #  Bri occasionally finds it useful to have the version of the os in the name.
