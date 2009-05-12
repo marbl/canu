@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.8 2008-06-27 06:29:16 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.9 2009-05-12 17:25:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,6 +62,7 @@ AS_GKP_reportError(int error, ...) {
     errorMs[AS_GKP_FRG_CLR_BGN            ] = "# FRG Alert: Fragment %s invalid clear range (%d,%d) valid range is (0,%d) -- fixing clear_rng.bgn.\n";
     errorMs[AS_GKP_FRG_CLR_END            ] = "# FRG Alert: Fragment %s invalid clear range (%d,%d) valid range is (0,%d) -- fixing clear_rng.end.\n";
     errorMs[AS_GKP_FRG_CLR_TOO_SHORT      ] = "# FRG Error: Fragment %s clear range length %d < %d min allowed length.\n";
+    errorMs[AS_GKP_FRG_CLR_INVALID        ] = "# FRG Error: Fragment %s clear range clr is invalid; begin = %d > end = %d.\n";
     errorMs[AS_GKP_FRG_UNKNOWN_LIB        ] = "# FRG Error: Fragment %s references unknown library %s.\n";
     errorMs[AS_GKP_FRG_LOADED_DELETED     ] = "# FRG Alert: Fragment %s loaded, but marked as deleted due to errors previously reported.\n";
     errorMs[AS_GKP_FRG_DOESNT_EXIST       ] = "# FRG Error: Fragment %s does not exist, can't delete it.\n";
@@ -113,6 +114,7 @@ AS_GKP_reportError(int error, ...) {
     errorSs[AS_GKP_FRG_CLR_BGN            ] = "# FRG Alert: invalid clear range -- fixing clear_rng.bgn.\n";
     errorSs[AS_GKP_FRG_CLR_END            ] = "# FRG Alert: invalid clear range -- fixing clear_rng.end.\n";
     errorSs[AS_GKP_FRG_CLR_TOO_SHORT      ] = "# FRG Error: clear range length < min allowed length.\n";
+    errorSs[AS_GKP_FRG_CLR_INVALID        ] = "# FRG Error: clear range clr is invalid.\n";
     errorSs[AS_GKP_FRG_UNKNOWN_LIB        ] = "# FRG Error: references unknown library.\n";
     errorSs[AS_GKP_FRG_LOADED_DELETED     ] = "# FRG Alert: loaded, but marked as deleted due to errors previously reported.\n";
     errorSs[AS_GKP_FRG_DOESNT_EXIST       ] = "# FRG Error: does not exist, can't delete.\n";

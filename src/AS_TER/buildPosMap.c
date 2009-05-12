@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.8 2008-12-05 19:06:12 brianwalenz Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.9 2009-05-12 17:25:31 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -703,4 +703,6 @@ int main (int argc, char *argv[]) {
   fclose(frgscf);
   fclose(utgscf);
   fclose(varscf);
+
+  exit(0);
 }

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: exploreGapStructure.c,v 1.17 2009-02-02 13:51:14 brianwalenz Exp $";
+const char *mainid = "$Id: exploreGapStructure.c,v 1.18 2009-05-12 17:25:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -162,4 +162,6 @@ main (int argc , char * argv[] ) {
       }
     }
   }
+
+  exit(0);
 }

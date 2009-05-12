@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.45 2009-03-31 20:32:30 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.46 2009-05-12 17:25:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -158,9 +158,19 @@ checkClearRanges(FragMesg *frg_mesg,
   }
 
 
-  //  Check clear range length -- only if we are not OBT
+
+  //  If not OBT, check the clear range.
+  //
+  //  VEC And MAX are ALWAYS valid.  If the beg > end for those, it is
+  //  reset to the extents.
   //
   if (assembler != AS_ASSEMBLER_OBT) {
+    if (frg_mesg->clear_rng.bgn > frg_mesg->clear_rng.end) {
+      AS_GKP_reportError(AS_GKP_FRG_CLR_INVALID,
+                         AS_UID_toString(frg_mesg->eaccession), frg_mesg->clear_rng.bgn, frg_mesg->clear_rng.end);
+      failed = 1;
+    }
+
     if ((frg_mesg->clear_rng.end - frg_mesg->clear_rng.bgn) < AS_FRAG_MIN_LEN) {
       AS_GKP_reportError(AS_GKP_FRG_CLR_TOO_SHORT,
                          AS_UID_toString(frg_mesg->eaccession), frg_mesg->clear_rng.end - frg_mesg->clear_rng.bgn, AS_FRAG_MIN_LEN);

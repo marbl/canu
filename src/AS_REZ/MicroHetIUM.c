@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: MicroHetIUM.c,v 1.13 2008-10-29 06:34:30 brianwalenz Exp $";
+const char *mainid = "$Id: MicroHetIUM.c,v 1.14 2009-05-12 17:25:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -793,4 +793,6 @@ main(int argc, char **argv) {
     printf("\nTest #tp #fp #fn #tn #nt\n\n");
     printf("3 %04d %04d %04d %04d %04d\n",cor3,fp3,fn3,tn3,nt3);
   }
+
+  exit(0);
 }

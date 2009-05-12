@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fragsInVars.c,v 1.3 2008-10-08 22:03:00 brianwalenz Exp $";
+const char *mainid = "$Id: fragsInVars.c,v 1.4 2009-05-12 17:25:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -393,4 +393,6 @@ main(int argc, char **argv) {
   fprintf(stderr, "fragsLeft:        "F_U32"\n", fragsLeft);
   fprintf(stderr, "fragsContained:   "F_U32"\n", fragsContained);
   fprintf(stderr, "varsNoFrags:      "F_U32"\n", varsNoFrags);
+
+  exit(0);
 }

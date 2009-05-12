@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: mercy.C,v 1.4 2008-10-09 19:11:48 brianwalenz Exp $";
+const char *mainid = "$Id: mercy.C,v 1.5 2009-05-12 17:25:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -418,4 +418,6 @@ main(int argc, char **argv) {
   delete AC;
   delete DC;
   delete CO;
+
+  exit(0);
 }

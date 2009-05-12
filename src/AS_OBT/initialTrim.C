@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: initialTrim.C,v 1.20 2008-11-11 16:16:25 brianwalenz Exp $";
+const char *mainid = "$Id: initialTrim.C,v 1.21 2009-05-12 17:25:31 brianwalenz Exp $";
 
 //  Read a fragStore, does quality trimming based on quality scores,
 //  intersects the quality trim with a vector trim, and updates the
@@ -210,4 +210,6 @@ main(int argc, char **argv) {
   fprintf(stderr, "     5' end:                   "F_U32"\n", stat_LQtrim5);
   fprintf(stderr, "     3' end:                   "F_U32"\n", stat_LQtrim3);
   fprintf(stderr, " final clear range too short:  "F_U32" (deleted)\n", stat_tooShort);
+
+  return(0);
 }

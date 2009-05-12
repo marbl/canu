@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: consolidate.C,v 1.17 2009-01-27 00:37:59 brianwalenz Exp $";
+const char *mainid = "$Id: consolidate.C,v 1.18 2009-05-12 17:25:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -296,4 +296,6 @@ main(int argc, char **argv) {
 
   delete [] left;
   delete [] right;
+
+  exit(0);
 }
