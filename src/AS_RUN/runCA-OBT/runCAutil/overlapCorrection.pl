@@ -17,7 +17,7 @@ sub overlapCorrection {
         my $jobs        = int($numFrags / ($batchSize-1)) + 1;
 
         open(F, "> $wrk/3-overlapcorrection/frgcorr.sh") or caFailure("failed to write to '$wrk/3-overlapcorrection/frgcorr.sh'", undef);
-        print F "#!/bin/sh\n\n";
+        print F "#!" . getGlobal("shell") . "\n\n";
         print F "jobid=\$SGE_TASK_ID\n";
         print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
         print F "  jobid=\$1\n";
@@ -84,7 +84,7 @@ sub overlapCorrection {
 
             for (my $i=1; $i<=$jobs; $i++) {
                 my $out = substr("0000" . $i, -4);
-                &scheduler::schedulerSubmit("sh $wrk/3-overlapcorrection/frgcorr.sh $i > $wrk/3-overlapcorrection/$out.err 2>&1");
+                &scheduler::schedulerSubmit("$wrk/3-overlapcorrection/frgcorr.sh $i > $wrk/3-overlapcorrection/$out.err 2>&1");
             }
 
             &scheduler::schedulerSetNumberOfProcesses($global{"frgCorrConcurrency"});
@@ -218,7 +218,7 @@ sub overlapCorrection {
 
             for (my $i=1; $i<=$jobs; $i++) {
                 my $out = substr("0000" . $i, -4);
-                &scheduler::schedulerSubmit("sh $wrk/3-overlapcorrection/ovlcorr.sh $i > $wrk/3-overlapcorrection/$out.err 2>&1");
+                &scheduler::schedulerSubmit("$wrk/3-overlapcorrection/ovlcorr.sh $i > $wrk/3-overlapcorrection/$out.err 2>&1");
             }
 
             &scheduler::schedulerSetNumberOfProcesses($global{"ovlCorrConcurrency"});

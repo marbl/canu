@@ -69,7 +69,7 @@ sub createOverlapJobs($) {
     #  to run.
     #
     open(F, "> $wrk/$outDir/overlap.sh") or caFailure("can't open '$wrk/$outDir/overlap.sh'", undef);
-    print F "#!/bin/sh\n";
+    print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
     print F "perl='/usr/bin/env perl'\n";
     print F "\n";

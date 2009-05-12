@@ -161,6 +161,9 @@ sub setDefaults () {
     $global{"pathMap"}                     = undef;
     $synops{"pathMap"}                     = "File with a hostname to binary directory map";
 
+    $global{"shell"}                       = "/bin/sh";
+    $synops{"shell"}                       = "Command interpreter to use; sh-compatible (e.g., bash), NOT C-shell (csh or tcsh)";
+
     #####  Error Rates
 
     $global{"ovlErrorRate"}                = 0.06;
@@ -894,7 +897,7 @@ sub submitScript ($) {
     my $script = "$output.sh";
 
     open(F, "> $script") or caFailure("failed to open '$script' for writing", undef);
-    print F "#!/bin/sh\n";
+    print F "#!" . getGlobal("shell") . "\n";
     print F "#\n";
     print F "#  Attempt to (re)configure SGE.  For reasons Bri doesn't know,\n";
     print F "#  jobs submitted to SGE, and running under SGE, fail to read his\n";

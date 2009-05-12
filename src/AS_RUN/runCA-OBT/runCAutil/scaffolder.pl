@@ -185,7 +185,7 @@ sub eCR ($$$) {
             $cmd .= " > $wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.err 2>&1";
 
             open(F, "> $wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.sh");
-            print F "#!/bin/sh\n\n";
+            print F "#!" . getGlobal("shell") . "\n\n";
             print F "\n";
             print F "AS_OVL_ERROR_RATE=", getGlobal("ovlErrorRate"), "\n";
             print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";

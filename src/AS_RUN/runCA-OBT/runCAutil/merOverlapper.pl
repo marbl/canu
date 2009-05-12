@@ -85,7 +85,7 @@ sub merOverlapper($) {
     #
     if (! -e "$wrk/$outDir/overmerry.sh") {
         open(F, "> $wrk/$outDir/overmerry.sh") or caFailure("can't open '$wrk/$outDir/overmerry.sh'", undef);
-        print F "#!/bin/sh\n";
+        print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
         print F "jobid=\$SGE_TASK_ID\n";
         print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
@@ -147,7 +147,7 @@ sub merOverlapper($) {
 
     if (! -e "$wrk/$outDir/olap-from-seeds.sh") {
         open(F, "> $wrk/$outDir/olap-from-seeds.sh") or caFailure("can't open '$wrk/$outDir/olap-from-seeds.sh'", undef);
-        print F "#!/bin/sh\n";
+        print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
         print F "jobid=\$SGE_TASK_ID\n";
         print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
@@ -255,7 +255,7 @@ sub merOverlapper($) {
         } else {
             for (my $i=1; $i<=$ovmJobs; $i++) {
                 my $out = substr("0000" . $i, -4);
-                &scheduler::schedulerSubmit("sh $wrk/$outDir/overmerry.sh $i > $wrk/$outDir/seeds/$out.out 2>&1 && rm -f $wrk/$outDir/seeds/$out.out");
+                &scheduler::schedulerSubmit("$wrk/$outDir/overmerry.sh $i > $wrk/$outDir/seeds/$out.out 2>&1 && rm -f $wrk/$outDir/seeds/$out.out");
             }
 
             &scheduler::schedulerSetNumberOfProcesses(getGlobal("merOverlapperSeedConcurrency"));
@@ -327,7 +327,7 @@ sub merOverlapper($) {
         } else {
             for (my $i=1; $i<=$olpJobs; $i++) {
                 my $out = substr("0000" . $i, -4);
-                &scheduler::schedulerSubmit("sh $wrk/$outDir/olap-from-seeds.sh $i > $wrk/$outDir/olaps/$out.out 2>&1");
+                &scheduler::schedulerSubmit("$wrk/$outDir/olap-from-seeds.sh $i > $wrk/$outDir/olaps/$out.out 2>&1");
             }
 
             &scheduler::schedulerSetNumberOfProcesses(getGlobal("merOverlapperExtendConcurrency"));

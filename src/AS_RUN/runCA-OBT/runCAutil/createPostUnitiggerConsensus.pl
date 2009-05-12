@@ -66,7 +66,7 @@ sub createPostUnitiggerConsensusJobs (@) {
     $jobP = join ' ', sort { $a <=> $b } split '\s+', $jobP;
 
     open(F, "> $wrk/5-consensus/consensus.sh") or caFailure("can't open '$wrk/5-consensus/consensus.sh'", undef);
-    print F "#!/bin/sh\n";
+    print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
     print F "jobid=\$SGE_TASK_ID\n";
     print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
@@ -131,7 +131,7 @@ sub createPostUnitiggerConsensusJobs (@) {
         exit(0);
     } else {
         for (my $i=1; $i<=$jobs; $i++) {
-            &scheduler::schedulerSubmit("sh $wrk/5-consensus/consensus.sh $i > /dev/null 2>&1");
+            &scheduler::schedulerSubmit("$wrk/5-consensus/consensus.sh $i > /dev/null 2>&1");
         }
 
         &scheduler::schedulerSetNumberOfProcesses(getGlobal("cnsConcurrency"));
