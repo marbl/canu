@@ -19,11 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.19 2009-02-25 19:57:32 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.20 2009-05-14 14:59:48 brianwalenz Exp $";
 
 #include "overlapStore.h"
 
 #include <ctype.h>
+#include <unistd.h>  //  sysconf()
 
 int
 main(int argc, char **argv) {
@@ -211,6 +212,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -b beginIID       Start dumping at 'beginIID'.\n");
     fprintf(stderr, "  -e endIID         Stop dumping after 'endIID'.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "Limited to %d open files.\n", sysconf(_SC_OPEN_MAX));
     exit(1);
   }
   if ((fileListLen == 0) && (operation == OP_BUILD)) {
