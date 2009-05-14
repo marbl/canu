@@ -53,6 +53,11 @@ cp ../$gkp/frg $gkp/frg || exit
 $asmBin/gatekeeper -dumpfragments -tabular -allreads -clear OBT $gkp | grep -v "UID" | awk '{print "frg uid "$1" ECR1 ALL "$12" "$13}' > $gkp/$ecrEdits || exit
 $asmBin/gatekeeper --edit $gkp/$ecrEdits $gkp > /dev/null || exit
 
+# runCA looks for the 4-unitigger *.cgb files at some point
+utgDir=4-unitigger
+mkdir $utgDir
+(cd $utgDir && ln -s ../../$utgDir/*.cgb .)
+
 # runCA looks for the 5-consensus *.err files at some point
 conDir=5-consensus
 mkdir $conDir
