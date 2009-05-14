@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.232 2009-04-21 13:53:45 skoren Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.233 2009-05-14 18:41:23 skoren Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -5156,7 +5156,8 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
   }
   
   // assert that all fragments are properly placed in this contig
-  assert(n_frags+ndeletes == mesg_n_frags);
+  // note that deletes may count fragments more than once (if we still tried to place a surrogate fragment twice and failed, it gets counted as two deletions)  
+  assert(n_frags+ndeletes >= mesg_n_frags);
   
   // now, loop through again to asign pointers to delta in imps
   // have to do this at the end to ensure that deltas isn't realloced out from under references

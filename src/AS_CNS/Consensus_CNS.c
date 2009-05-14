@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: Consensus_CNS.c,v 1.73 2009-01-08 21:12:06 brianwalenz Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.74 2009-05-14 18:41:23 skoren Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -359,7 +359,7 @@ main (int argc, char **argv) {
       pcontig->v_list == NULL;
 
       if ((((double)pcontig->num_pieces / pcontig->length) > 1.0) &&
-          (pcontig->consensus != NULL)) {
+          (pcontig->consensus != NULL) && (strlen(pcontig->consensus) != 0)) {
         fprintf(stderr, "WARNING:  MultiAlignContig skipping contig %d -- %f pieces/length (and it already has a consensus sequence)\n",
                 pcontig->iaccession,
                 (double)pcontig->num_pieces / pcontig->length);
