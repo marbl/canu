@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.9 2009-05-12 17:25:31 brianwalenz Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.10 2009-05-15 16:00:13 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -191,7 +191,7 @@ processUTG(SnapUnitigMesg *utg) {
   int   *unitigGapToUngap   = NULL;
   int    unitigLengthGapped = strlen(utg->consensus);
   int    unitigLength       = 0;
-  int    i, j;
+  int    i = 0, j = 0;
 
   unitigGapToUngap = (int *)safe_calloc(unitigLengthGapped + 1, sizeof(int));
 
@@ -231,6 +231,8 @@ processUTG(SnapUnitigMesg *utg) {
     for (i=0; i<utg->num_frags; i++) {
     }
   }
+
+  safe_free(unitigGapToUngap);
 }
 
 
@@ -247,8 +249,8 @@ processCCO(SnapConConMesg *cco) {
   int   *contigGapToUngap   = NULL;
   int    contigLengthGapped = strlen(cco->consensus);
   int    contigLengthUngap  = 0;
-  int    i, j;
-  int    isDegenerate;
+  int    i = 0, j = 0;
+  int    isDegenerate = 0;
 
   //  By definition, a degenerate contig has one unitig and is unplaced.
   //  In reality, those two conditions always occur together.
@@ -346,6 +348,8 @@ processCCO(SnapConConMesg *cco) {
             AS_UID_toString(cco->eaccession),
             bgn, end, ori);
   }
+
+  safe_free(contigGapToUngap);
 }
 
 
@@ -368,11 +372,11 @@ computeGapSize(double gapsize) {
 
 void
 processSCF(SnapScaffoldMesg *scf) {
-  int     i;
-  int     bgn, end;
-  char    ori;
+  int     i = 0;
+  int     bgn = 0, end = 0;
+  char    ori = 0;
   int     scfLen = 0;
-  AS_IID  ctgIID;
+  AS_IID  ctgIID = 0;
 
   //  Tricky.  If scf->num_contig_pairs==0, there is a single contig
   //  in this scaffold.
@@ -463,46 +467,46 @@ processSLK(SnapScaffoldLinkMesg *slk) {
 
 void
 transferFrg(FILE *ctg, FILE *scf) {
-  char   frgUID[1024];
-  char   ctgUID[1024];
-  int    bgn;
-  int    end;
-  char   ori;
+  char   frgUID[1024] = {0};
+  char   ctgUID[1024] = {0};
+  int    bgn = 0;
+  int    end = 0;
+  char   ori = 0;
 
   rewind(ctg);
 
   while (!feof(ctg)) {
-    fscanf(ctg, "%s %s %d %d %c ", frgUID, ctgUID, &bgn, &end, &ori);
+    if (5 == fscanf(ctg, "%s %s %d %d %c ", frgUID, ctgUID, &bgn, &end, &ori)) {
+      AS_UID uid = AS_UID_lookup(ctgUID, NULL);
+      AS_IID iid = (AS_IID)LookupValueInHashTable_AS(uid2iid,
+                                                     AS_UID_toInteger(uid),
+                                                     0);
 
-    AS_UID uid = AS_UID_lookup(ctgUID, NULL);
-    AS_IID iid = (AS_IID)LookupValueInHashTable_AS(uid2iid,
-                                                   AS_UID_toInteger(uid),
-                                                   0);
+      if (iid > 0) {
+        uid  = ctgInfo[iid].scfUID;
 
-    if (iid > 0) {
-      uid  = ctgInfo[iid].scfUID;
+        assert(AS_UID_isDefined(uid));
 
-      assert(AS_UID_isDefined(uid));
+        if (ctgInfo[iid].scfOri == ORIF) {
+          bgn = ctgInfo[iid].scfBgn + bgn;
+          end = ctgInfo[iid].scfBgn + end;
+        } else {
+          int tmp;
+          tmp = ctgInfo[iid].scfEnd - bgn;
+          bgn = ctgInfo[iid].scfEnd - end;
+          end = tmp;
+        }
 
-      if (ctgInfo[iid].scfOri == ORIF) {
-        bgn = ctgInfo[iid].scfBgn + bgn;
-        end = ctgInfo[iid].scfBgn + end;
-      } else {
-        int tmp;
-        tmp = ctgInfo[iid].scfEnd - bgn;
-        bgn = ctgInfo[iid].scfEnd - end;
-        end = tmp;
+        if (ori == ctgInfo[iid].scfOri)
+          ori = ORIF;
+        else
+          ori = ORIR;
+
+        fprintf(scf, "%s\t%s\t%d\t%d\t%c\n",
+                frgUID,
+                AS_UID_toString(uid),
+                bgn, end, ori);
       }
-
-      if (ori == ctgInfo[iid].scfOri)
-        ori = ORIF;
-      else
-        ori = ORIR;
-
-      fprintf(scf, "%s\t%s\t%d\t%d\t%c\n",
-              frgUID,
-              AS_UID_toString(uid),
-              bgn, end, ori);
     }
   }
 }
@@ -513,54 +517,54 @@ transferFrg(FILE *ctg, FILE *scf) {
 
 void
 transferVar(FILE *ctg, FILE *scf) {
-  char   varseq[16384];
-  char   ctgUID[1024];
-  int    bgn;
-  int    end;
-  int    num_reads;
-  int    num_conf_alleles;
-  int    min_anchor_size;
-  int    var_length;
-  char   nr_conf_alleles[16384];
-  char   weights[16384];
-  char   conf_read_iids[16384];
+  char   varseq[16384] = {0};
+  char   ctgUID[1024]  = {0};
+  int    bgn = 0;
+  int    end = 0;
+  int    num_reads = 0;
+  int    num_conf_alleles = 0;
+  int    min_anchor_size = 0;
+  int    var_length = 0;
+  char   nr_conf_alleles[16384] = {0};
+  char   weights[16384] = {0};
+  char   conf_read_iids[16384] = {0};
 
   rewind(ctg);
 
   while (!feof(ctg)) {
-    fscanf(ctg, "%s %s %d %d %d %d %d %d %s %s %s ",
-           varseq, ctgUID,
-           &bgn, &end, &num_reads, &num_conf_alleles, &min_anchor_size, &var_length,
-           nr_conf_alleles,
-           weights,
-           conf_read_iids);
+    if (11 == fscanf(ctg, "%s %s %d %d %d %d %d %d %s %s %s ",
+                     varseq, ctgUID,
+                     &bgn, &end, &num_reads, &num_conf_alleles, &min_anchor_size, &var_length,
+                     nr_conf_alleles,
+                     weights,
+                     conf_read_iids)) {
+      AS_UID uid = AS_UID_lookup(ctgUID, NULL);
+      AS_IID iid = (AS_IID)LookupValueInHashTable_AS(uid2iid,
+                                                     AS_UID_toInteger(uid),
+                                                     0);
 
-    AS_UID uid = AS_UID_lookup(ctgUID, NULL);
-    AS_IID iid = (AS_IID)LookupValueInHashTable_AS(uid2iid,
-                                                   AS_UID_toInteger(uid),
-                                                   0);
+      if (iid > 0) {
+        uid  = ctgInfo[iid].scfUID;
 
-    if (iid > 0) {
-      uid  = ctgInfo[iid].scfUID;
+        assert(AS_UID_isDefined(uid));
 
-      assert(AS_UID_isDefined(uid));
+        if (ctgInfo[iid].scfOri == ORIF) {
+          bgn = ctgInfo[iid].scfBgn + bgn;
+          end = ctgInfo[iid].scfBgn + end;
+        } else {
+          int tmp;
+          tmp = ctgInfo[iid].scfEnd - bgn;
+          bgn = ctgInfo[iid].scfEnd - end;
+          end = tmp;
+        }
 
-      if (ctgInfo[iid].scfOri == ORIF) {
-        bgn = ctgInfo[iid].scfBgn + bgn;
-        end = ctgInfo[iid].scfBgn + end;
-      } else {
-        int tmp;
-        tmp = ctgInfo[iid].scfEnd - bgn;
-        bgn = ctgInfo[iid].scfEnd - end;
-        end = tmp;
+        fprintf(scf, "%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%s\t%s\n",
+                varseq, AS_UID_toString(uid),
+                bgn, end, num_reads, num_conf_alleles, min_anchor_size, var_length,
+                nr_conf_alleles,
+                weights,
+                conf_read_iids);
       }
-
-      fprintf(scf, "%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%s\t%s\n",
-              varseq, AS_UID_toString(uid),
-              bgn, end, num_reads, num_conf_alleles, min_anchor_size, var_length,
-              nr_conf_alleles,
-              weights,
-              conf_read_iids);
     }
   }
 }
@@ -703,6 +707,8 @@ int main (int argc, char *argv[]) {
   fclose(frgscf);
   fclose(utgscf);
   fclose(varscf);
+
+  DeleteHashTable_AS(uid2iid);
 
   exit(0);
 }
