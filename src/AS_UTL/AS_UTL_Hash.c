@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.17 2008-12-05 19:06:12 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.18 2009-05-15 14:04:08 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -281,7 +281,7 @@ CreateGenericHashTable_AS(ASHashHashFn  hashfn,
 static
 int
 INThashfunction(uint64 k, uint32 l) {
-  assert(l == 0);
+  assert((l == 0) || (l == 8));
   return(Hash_AS((uint8 *)&k, sizeof(uint64), 37));
 }
 static
