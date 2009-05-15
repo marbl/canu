@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.233 2009-05-14 18:41:23 skoren Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.234 2009-05-15 14:20:56 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -35,7 +35,6 @@ static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.233 2009-05-14 18:41:23 skor
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
 #include "MicroHetREZ.h"
-
 
 #define ALT_QV_THRESH                      30
 #define DONT_SHOW_OLAP                      0
@@ -70,6 +69,7 @@ static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.233 2009-05-14 18:41:23 skor
 // Persistent store of the fragment data (produced upstream)
 //
 GateKeeperStore       *gkpStore      = NULL;
+OverlapStore          *ovlStore      = NULL;
 tSequenceDB           *sequenceDB    = NULL;
 HashTable_AS          *fragmentMap   = NULL;
 HashTable_AS          *fragmentToIMP = NULL;
@@ -124,8 +124,8 @@ VA_TYPE(PtrT) *fragment_positions = NULL;
 
 int64 gaps_in_alignment = 0;
 
-int allow_neg_hang       = 0;
-
+int allow_neg_hang         = 0;
+int allow_contained_parent = 0;
 
 extern int MaxBegGap;       // [ init value is 200; this could be set to the amount you extend the clear
                             // range of seq b, plus 10 for good measure]
@@ -2877,7 +2877,7 @@ OutputAlleles(FILE *fout, VarRegion *vreg)
 
 static void
 SetConsensusToMajorAllele(int32 *cids, VarRegion vreg, CNS_Options *opp, int get_scores,
-                  int32 *conf_read_iids)
+                          int32 *conf_read_iids)
 {
   int i,m;
   char  cbase;
@@ -2891,27 +2891,27 @@ SetConsensusToMajorAllele(int32 *cids, VarRegion vreg, CNS_Options *opp, int get
   OutputAlleles(stderr, &vreg);
 #endif
   for (m=0; m<vreg.end-vreg.beg; m++)
-  {
-    int32   cid = cids[vreg.beg+m];
-    Column *column=GetColumn(columnStore,cid);
-    Bead   *call = GetBead(beadStore, column->call);
+    {
+      int32   cid = cids[vreg.beg+m];
+      Column *column=GetColumn(columnStore,cid);
+      Bead   *call = GetBead(beadStore, column->call);
 
-    // Set the consensus base
-    cbase = vreg.reads[read_id].bases[m];
-    Setchar(sequenceStore, call->soffset, &cbase);
+      // Set the consensus base
+      cbase = vreg.reads[read_id].bases[m];
+      Setchar(sequenceStore, call->soffset, &cbase);
 #ifdef DEBUG_VAR_RECORDS
-    bases[m]=cbase;
-  }
+      bases[m]=cbase;
+    }
   fprintf(stderr, "beg= %d end= %d Num_reads= %d \nConsensus= \n%s\n", vreg.beg, vreg.end, vreg.nr, bases);
   fprintf(stderr, "Reads=\n");
   for (read_id=0; read_id<vreg.nr; read_id++)
-  {
-    for (m=0; m<vreg.end-vreg.beg; m++)
     {
-      fprintf(stderr, "%c", vreg.reads[read_id].bases[m]);
+      for (m=0; m<vreg.end-vreg.beg; m++)
+        {
+          fprintf(stderr, "%c", vreg.reads[read_id].bases[m]);
+        }
+      fprintf(stderr, "   allele=%d \n", vreg.reads[read_id].allele_id);
     }
-    fprintf(stderr, "   allele=%d \n", vreg.reads[read_id].allele_id);
-  }
   safe_free(bases);
 #else
   }
@@ -3256,34 +3256,34 @@ PhaseWithPrevVreg(int32 nca, Allele *alleles, Read *reads, int32 **allele_map,
 
       /* If still not phased, try another approach for the particular case of diploid genome */
       if (!is_phased && nca == 2)
-      {
+        {
           int max = -1, max2 = -1, i_best = -1, j_best = -1;
 
           /* Find the max and 2nd max elements */
           for (i=0; i<nca; i++)
-          {
+            {
               for (j=0; j<prev_nca; j++)
-              {
+                {
                   if (max < allele_matrix[i][j])
-                  {
+                    {
                       max2 = max;
                       max = allele_matrix[i][j];
                       i_best = i;
                       j_best = j;
-                  }
+                    }
                   else if (max >= allele_matrix[i][j] && max2 < allele_matrix[i][j])
-                  {
+                    {
                       max2 = allele_matrix[i][j];
-                  }
-              }
-          }
+                    }
+                }
+            }
           if (max > max2)
-          {
+            {
               is_phased = 1;
               (*allele_map)[j_best] = i_best;
               (*allele_map)[j_best == 0 ? 1 : 0] = i_best == 0 ? 1 : 0;
-          }
-      }
+            }
+        }
 
       safe_free(allele_matrix[0]);
       safe_free(allele_matrix);
@@ -3359,7 +3359,7 @@ show_reads(VarRegion *vreg)
 //*********************************************************************************
 int
 RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
-    IntMultiVar **v_list, int make_v_list, int get_scores)
+              IntMultiVar **v_list, int make_v_list, int get_scores)
 {
   // refresh columns from cid to end
   // if quality == -1, don't recall the consensus base
@@ -3554,30 +3554,30 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
 
           /* Set the beginning of unsmoothed VAR region to the 1st position with varf != 0 */
           if (opp->smooth_win > 0)
-          {
+            {
               while (vreg.beg < len_manode - 1 &&
                      DBL_EQ_DBL(varf[vreg.beg], (double)0.0))
                 vreg.beg++;
-          }
+            }
 
           /* Set the end of smoothed VAR region to the 1st position with svarf == 0 */
           if (opp->smooth_win > 0)
-          {
+            {
               while ((svend < len_manode-1) && (svarf[svend] > ZERO_PLUS))
-                  svend++;
-          }
+                svend++;
+            }
           else if (svend < len_manode-1)
-              svend++;
+            svend++;
 
           /* Set the end of unsmoothed VAR region to the 1st position with varf == 0 */
           vreg.end = vreg.beg;
           if (opp->smooth_win > 0)
-          {
+            {
               while (vreg.end < len_manode-1 && varf[vreg.end] > ZERO_PLUS)
-                  vreg.end++;
-          }
+                vreg.end++;
+            }
           else if (svend < len_manode-1)
-              vreg.end++;
+            vreg.end++;
 
           // Store iids of all the reads in current region
           vreg.nr = 0;
@@ -3624,15 +3624,15 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
                        &(vreg.nca), vreg.dist_matrix);
 #if 0
           if (vreg.nca < 2) {
-              fprintf(stderr, "nca= %d\n", vreg.nca);
-              show_reads(&vreg);
+            fprintf(stderr, "nca= %d\n", vreg.nca);
+            show_reads(&vreg);
           }
 #endif
           if (make_v_list == 2)
-              is_phased = PhaseWithPrevVreg(vreg.nca, vreg.alleles, vreg.reads,
-                                        &allele_map,
-                                        prev_nca, prev_nca_iid, prev_nca_iid_max,
-                                        prev_ncr, prev_ncr_iid, prev_ncr_iid_max);
+            is_phased = PhaseWithPrevVreg(vreg.nca, vreg.alleles, vreg.reads,
+                                          &allele_map,
+                                          prev_nca, prev_nca_iid, prev_nca_iid_max,
+                                          prev_ncr, prev_ncr_iid, prev_ncr_iid_max);
 
           if (is_phased)
             {
@@ -3654,9 +3654,9 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
             for (i1=0; i1<vreg.nca; i1++)
               {
                 for (j=0; j<vreg.alleles[i1].num_reads; j++)
-                {
+                  {
                     conf_read_iids[start_num+j] = vreg.alleles[i1].read_iids[j];
-                }
+                  }
                 start_num += vreg.alleles[i1].num_reads;
               }
           }
@@ -3708,11 +3708,11 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
 
             /* Store variations in a v_list */
             if (make_v_list == 2)
-                PopulateVARRecord(is_phased, cids, nvars, &min_len_vlist, v_list,
-                    vreg, opp, get_scores, conf_read_iids);
+              PopulateVARRecord(is_phased, cids, nvars, &min_len_vlist, v_list,
+                                vreg, opp, get_scores, conf_read_iids);
             else
-                SetConsensusToMajorAllele(cids, vreg, opp, get_scores,
-                  conf_read_iids);
+              SetConsensusToMajorAllele(cids, vreg, opp, get_scores,
+                                        conf_read_iids);
           }
 
           if (opp->smooth_win > 0)
@@ -3817,21 +3817,6 @@ int InvertTrace(int alen, int blen, Overlap *O) {
 }
 
 
-typedef enum {
-  CNS_ALN_NONE = 'N',
-  CNS_ALN_THIN_OLAP = 'T',
-  CNS_ALN_WIDE = 'W',
-  CNS_ALN_ORIENTATION = 'O',
-  CNS_ALN_HIGH_ERATE = 'E',
-  CNS_ALN_SWAP = 'S',
-  CNS_ALN_ORIENTATION_AND_SWAP = 'B',
-  CNS_ALN_REAL_WIDE = 'X',
-  CNS_ALN_SUPER_WIDE = 'Z',
-  CNS_ALN_SEARCH_ALL = 'A',
-  CNS_ALN_EXPLICIT_DP_COMPARE = 'D',
-  CNS_ALN_END_GAPS = 'G'
-} CNS_AlignTrick;
-
 typedef struct CNS_AlignParams {
   int bandBgn;      //  A sequence band begin/end - the align must
   int bandEnd;      //  fall in this range
@@ -3901,6 +3886,14 @@ Overlap *Compare(char *a, int alen,char *b, int blen, AS_ALN_Aligner *alignFunct
   MaxBegGap = maxbegdef;
   MaxEndGap = maxenddef;
 
+#ifdef DEBUG_GET_ALIGNMENT_TRACE
+  if (O)
+    fprintf(stderr, "Compare()--  O: beg:%d end:%d len:%d diffs:%d comp:%d\n",
+            O->begpos, O->endpos, O->length, O->diffs, O->comp);
+  else
+    fprintf(stderr, "Compare()--  No O.\n");
+#endif
+
   return O;
 }
 
@@ -3927,50 +3920,80 @@ void ReportOverlap(FILE *fp, AS_ALN_Aligner *alignFunction, CNS_AlignParams para
   if (O->begpos < 0 ) fprintf(fp,"Beware, encountered unexpected negative ahang!\n");
 }
 
-void ReportTrick(FILE *fp, CNS_AlignTrick trick) {
+int
+ScoreOverlap(Overlap *O,
+             int expected_length,
+             int ahang_input,
+             int bhang_input,
+             double  *lScore_out,
+             double  *aScore_out,
+             double  *bScore_out) {
 
-  if (fp == NULL )
-    return;
+  if (O == NULL)
+    return(0);
 
-  switch (trick) {
-    case  CNS_ALN_END_GAPS:
-      fprintf(fp,"Large LocalAligner endgaps were allowed to capture overlap\n");
-      break;
-    case  CNS_ALN_HIGH_ERATE:
-      fprintf(fp,"High erate was used to capture overlap\n");
-      break;
-    case  CNS_ALN_ORIENTATION:
-      fprintf(fp,"Orientation reversed to capture overlap\n");
-      break;
-    case  CNS_ALN_THIN_OLAP:
-      fprintf(fp,"Thin overlap was used to capture overlap\n");
-      break;
-    case CNS_ALN_WIDE:
-      fprintf(fp,"Wide band was used to capture overlap\n");
-      break;
-    case CNS_ALN_SWAP:
-      fprintf(fp,"Fragments were swapped to capture overlap\n");
-      break;
-    case CNS_ALN_ORIENTATION_AND_SWAP:
-      fprintf(fp,"Orientation reversed AND fragments were swapped to capture overlap\n");
-      break;
-    case CNS_ALN_REAL_WIDE:
-      fprintf(fp,"Extra-wide band was used to capture overlap\n");
-      break;
-    case CNS_ALN_SUPER_WIDE:
-      fprintf(fp,"Super-wide band was used to capture overlap\n");
-      break;
-    case CNS_ALN_SEARCH_ALL:
-      fprintf(fp,"Whole search space was explored to capture overlap\n");
-      break;
-    case CNS_ALN_EXPLICIT_DP_COMPARE:
-      fprintf(fp,"DP_Compare was called explicitly to capture overlap\n");
-      break;
-    case CNS_ALN_NONE:
-      //fprintf(fp,"Defaults were used to capture overlap\n");
-      break;
+  double lScore = (O->length - expected_length) / (double)expected_length;
+  double aScore = (O->begpos - ahang_input)     / (double)100.0;
+  double bScore = (O->endpos - bhang_input)     / (double)100.0;
+
+  if (lScore < 0)  lScore = -lScore;
+  if (aScore < 0)  aScore = -aScore;
+  if (bScore < 0)  bScore = -bScore;
+
+  //  By design, we don't expect to have negative ahangs, so penalize
+  //  the score if so (and if this is unexpected).
+  //
+  //  This same test is used above, at the end of a fragment overlap.
+  //
+  if ((O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF)) {
+    fprintf(stderr,"GetAlignmentTrace()-- NEGATIVE HANG.  lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).\n",
+            lScore, O->length, expected_length,
+            aScore, O->begpos, ahang_input,
+            bScore, O->endpos, bhang_input);
+    aScore *= 10;
+  }
+
+  if (lScore_out) {
+    *lScore_out = lScore;
+    *aScore_out = aScore;
+    *bScore_out = bScore;
+  }
+
+  //  Decide if these scores are good enough to accept the overlap.
+  //
+  //  Assuming a default acceptTreshold of 1/3:
+  //
+  //  The length is within 30% of expected) OR
+  //  The ahang is within tight OR
+  //  Both hangs are decent
+
+  if ((lScore < acceptThreshold) ||
+      (aScore < acceptThreshold / 2) ||
+      (bScore < acceptThreshold / 2) ||
+      (aScore < acceptThreshold && bScore < acceptThreshold)) {
+    //  GOOD!
+#ifdef DEBUG_GET_ALIGNMENT_TRACE
+    fprintf(stderr,"GetAlignmentTrace()-- Overlap ACCEPTED!  accept=%f lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).\n",
+            acceptThreshold,
+            lScore, O->length, expected_length,
+            aScore, O->begpos, ahang_input,
+            bScore, O->endpos, bhang_input);
+#endif
+    return(1);
+  } else {
+    //  BAD!
+    //ReportOverlap(stderr,alignFunction,params,afrag->iid,afrag->type,bfrag->iid,bfrag->type,O,ahang_input);
+    //Print_Overlap(stderr, aseq, bseq, O);
+    if (VERBOSE_MULTIALIGN_OUTPUT)
+      fprintf(stderr,"GetAlignmentTrace()-- Overlap rejected.  accept=%f lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).\n",
+              acceptThreshold,
+              lScore, O->length, expected_length,
+              aScore, O->begpos, ahang_input,
+              bScore, O->endpos, bhang_input);
+    return(0);
   }
 }
+
 
 //*********************************************************************************
 // Look for the required overlap between two fragments, and return trace
@@ -3994,22 +4017,16 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   // aoffset is going to be used to indicate position in consensus sequence from which to start alignment
   // this will be triggered when afid == -1
 
-  Fragment *afrag = NULL, *bfrag = NULL;
-  char *a, *b;
-  int32 aiid,biid;
-  int32 alen,blen;
-  int32 ahang_input = *ahang;
-  int32 bhang_input = *bhang;
-  double default_erate = input_erate;
-  int32 ahang_tmp;
-  char atype,btype;
-  static char cnstmpseq[2*AS_READ_MAX_LEN+1];
-  static VarArrayint32 *cns_trace=NULL;
-  int *tmp;
-  Overlap *O;
-  Bead *call;
-  CNS_AlignTrick trick=CNS_ALN_NONE;
-  int align_to_consensus=0;
+  int   i;
+
+  Fragment *afrag = NULL,          *bfrag = NULL;
+  char     *aseq  = NULL,          *bseq  = NULL;
+  char     *arev  = NULL,          *brev  = NULL;
+  int       alen  = 0,              blen  = 0;
+  int       ahang_input = *ahang,   bhang_input = *bhang;
+
+  Overlap        *O = NULL;
+
   CNS_AlignParams params;
   CNS_AlignParams paramsDefault;
 
@@ -4031,288 +4048,376 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   if (AS_CNS_ERROR_RATE > 0.06)
     CNS_TIGHTSEMIBANDWIDTH = 100;
 
-  if (afid < 0  ) {
-#warning DELETE ME
-    assert(0);
-    // copy CNS sequence into cnstmpseq, then set a to start
-    int ic;
-    char callchar;
-    Column *col;
-    Bead *cb=GetBead(beadStore,aoffset);
-    align_to_consensus=1;
-    if (cns_trace==NULL) {
-      cns_trace = CreateVA_int32(256);
-    } else {
-      ResetVA_int32(cns_trace);
-    }
-    for (ic=0;ic<2*AS_READ_MAX_LEN;) {
-      if ( cb != NULL ) {
-        col = GetColumn(columnStore,cb->column_index);
-        call = GetBead(beadStore,col->call);
-        //callchar=GetMaxBaseCount(&col->base_count,0);
-        callchar=*Getchar(sequenceStore,call->soffset);
-        if ( callchar != '-') {
-          cnstmpseq[ic++] = callchar;
-        } else {
-          AppendVA_int32(cns_trace,&ic);
-        }
-        cb = GetBead(beadStore,cb->next);
-      } else {
-        cnstmpseq[ic] = '\0';
-        break;
-      }
-    }
-    a = &cnstmpseq[0];
-    aiid=-1;
-    atype = 'M'; // "multialignment consensus"
-    default_erate = 2*default_erate;
-  } else {
-    afrag = GetFragment(fragmentStore,afid);
-    assert(afrag!=NULL);
-    a = Getchar(sequenceStore,afrag->sequence);
-    aiid = afrag->iid;
-    atype = afrag->type;
-    if ( atype == AS_UNITIG || atype == AS_CONTIG ) default_erate = 2*default_erate;
-  }
+  //  If this triggers, see version 1.232 for what was here.
+  assert(afid >= 0);
+
+  afrag = GetFragment(fragmentStore,afid);
   bfrag = GetFragment(fragmentStore,bfid);
-  assert(bfrag!=NULL);
-  biid = bfrag->iid;
-  btype = bfrag->type;
-  b = Getchar(sequenceStore,bfrag->sequence);
-  assert(a != NULL);
-  assert(b != NULL);
-  alen = strlen(a);
-  blen = strlen(b);
-  paramsDefault.maxBegGap = MaxBegGap;
-  paramsDefault.maxEndGap = MaxEndGap;
 
-  if ( allow_big_endgaps > 0 ) {
-    paramsDefault.maxBegGap = allow_big_endgaps;
-    paramsDefault.maxEndGap = allow_big_endgaps;
-    if (show_olap)
-      fprintf(stderr,"GetAlignmentTrace()-- NOTE: Looking for local alignment with large endgaps.\n");
-  }
+  aseq  = Getchar(sequenceStore,afrag->sequence);
+  bseq  = Getchar(sequenceStore,bfrag->sequence);
 
-  paramsDefault.bandBgn=ahang_input-CNS_TIGHTSEMIBANDWIDTH;
-  paramsDefault.bandEnd=ahang_input+CNS_TIGHTSEMIBANDWIDTH;
+  alen  = strlen(aseq);
+  blen  = strlen(bseq);
 
-  paramsDefault.ahang = ahang_input;
-  paramsDefault.bhang = bhang_input;
-
-  if ( bfrag->type == AS_UNITIG ) paramsDefault.erate = 2*AS_CNS_ERROR_RATE;
-
-  // Compare with the default parameters:
-
-  params = paramsDefault;
-#ifdef DEBUG_GET_ALIGNMENT_TRACE
-  fprintf(stderr, "GetAlignmentTrace()--  Default Compare\n");
-#endif
-  O = Compare(a,alen,b,blen,alignFunction,&params);
-
-  //  Optimal_Overlap doesn't benefit from any of the below hacks;
-  //  skip directly to scoring the overlap.
   //
-  if (alignFunction == Optimal_Overlap_AS_forCNS)
+  //  Set our default master parameters
+  //
+  //  The old logic was to:
+  //
+  //  atype is unitig or contig  ->  default_erate = 2 * input
+  //  btype is unitig            ->  paramsDefault erate = 2 * CNS_ERATE
+  //
+  //  Then confusingly use either default_erate or paramsDefault.erate
+
+  paramsDefault.maxBegGap = (allow_big_endgaps > 0) ? allow_big_endgaps : MaxBegGap;
+  paramsDefault.maxEndGap = (allow_big_endgaps > 0) ? allow_big_endgaps : MaxEndGap;
+
+  paramsDefault.bandBgn   = ahang_input - CNS_TIGHTSEMIBANDWIDTH;
+  paramsDefault.bandEnd   = ahang_input + CNS_TIGHTSEMIBANDWIDTH;
+
+  paramsDefault.ahang     = ahang_input;
+  paramsDefault.bhang     = bhang_input;
+
+  paramsDefault.erate     = input_erate;
+
+  if ((afrag->type == AS_UNITIG) || (bfrag->type == AS_UNITIG))
+    paramsDefault.erate  *= 2;
+
+
+  ////////////////////////////////////////
+  //
+  //  Compare with the default parameters.  Optimial_Overlap doesn't benefit from any
+  //  of the tricks, so if that is the aligner, we're done after this attempt.
+  //
+#ifdef DEBUG_GET_ALIGNMENT_TRACE
+  fprintf(stderr, "GetAlignmentTrace()--  Compare 1\n");
+#endif
+  params = paramsDefault;
+  O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
+  if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
+    O = NULL;
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+    O = NULL;
+  if ((O) || (alignFunction == Optimal_Overlap_AS_forCNS))
     goto GetAlignmentTrace_ScoreOverlap;
 
-  if ( O == NULL ) {
-    // look for potentially narrower overlap
-    params.minlen=CNS_DP_THIN_MINLEN;
+
+  ////////////////////////////////////////
+  //
+  // look for potentially narrower overlap
+  //
 #ifdef DEBUG_GET_ALIGNMENT_TRACE
   fprintf(stderr, "GetAlignmentTrace()--  Compare 2\n");
 #endif
-    O = Compare(a,alen,b,blen,alignFunction,&params);
-    if (O!=NULL) trick=CNS_ALN_THIN_OLAP;
-    else params = paramsDefault;
-  }
-  if ( O == NULL && ( strchr(a,'N') != NULL || strchr(b,'N') != NULL || bfrag->type==AS_UNITIG )) {
-    // there are N's in the sequence, or they are consensus sequences, loosen the erate to compensate
-    params.erate=2*AS_CNS_ERROR_RATE;
+  params        = paramsDefault;
+  params.minlen = CNS_DP_THIN_MINLEN;
+  O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
+  if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
+    O = NULL;
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+    O = NULL;
+  if (O)
+    goto GetAlignmentTrace_ScoreOverlap;
+
+
+  ////////////////////////////////////////
+  //
+  //  If there are N's in the sequence, or they are consensus sequences, loosen the erate.
+  //
+  if ((bfrag->type==AS_UNITIG) || (strchr(aseq,'N') != NULL) || (strchr(bseq,'N') != NULL)) {
 #ifdef DEBUG_GET_ALIGNMENT_TRACE
-  fprintf(stderr, "GetAlignmentTrace()--  Compare 3\n");
+    fprintf(stderr, "GetAlignmentTrace()--  Compare 3\n");
 #endif
-    O = Compare(a,alen,b,blen,alignFunction,&params);
-    if (O!=NULL) trick=CNS_ALN_HIGH_ERATE;
-    else params = paramsDefault;
+    params       = paramsDefault;
+    params.erate = paramsDefault.erate * 2;
+    O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
+    if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
+      O = NULL;
+    if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+      O = NULL;
+    if (O)
+      goto GetAlignmentTrace_ScoreOverlap;
   }
-  if ( O == NULL  && ( alignment_context == AS_MERGE || bfrag->type == AS_UNITIG) ) {
-    // broaden scope out, and look for potentially narrower overlap
-    // don't do this for normal unitig or contig alignments, which should be accurately placed
-    params.bandBgn=ahang_input-2*CNS_LOOSESEMIBANDWIDTH;
-    params.bandEnd=ahang_input+2*CNS_LOOSESEMIBANDWIDTH;
-    params.erate =2*AS_CNS_ERROR_RATE;
+
+
+  ////////////////////////////////////////
+  //
+  //  The rest are for MERGE or UNITIG only.  No fragment-to-fragment alignments here.
+  //
+  ////////////////////////////////////////
+
+
+  if ((alignment_context != AS_MERGE) &&
+      (bfrag->type       != AS_UNITIG))
+    goto GetAlignmentTrace_ScoreOverlap;
+
+
+  ////////////////////////////////////////
+  //
+  // broaden scope out, and look for potentially narrower overlap
+  //
 #ifdef DEBUG_GET_ALIGNMENT_TRACE
   fprintf(stderr, "GetAlignmentTrace()--  Compare 4\n");
 #endif
-    O = Compare(a,alen,b,blen,alignFunction,&params);
-    if (O!=NULL) trick=CNS_ALN_WIDE;
-    else params=paramsDefault;
-  }
-  if ( O == NULL && ( alignment_context == AS_MERGE || bfrag->type == AS_UNITIG) ) {
-    // broaden even more, loosen erate
-    params.bandBgn=ahang_input-3*CNS_LOOSESEMIBANDWIDTH;
-    params.bandEnd=ahang_input+3*CNS_LOOSESEMIBANDWIDTH;
-    params.erate=2*default_erate;
+  params         = paramsDefault;
+  params.bandBgn = ahang_input-2*CNS_LOOSESEMIBANDWIDTH;
+  params.bandEnd = ahang_input+2*CNS_LOOSESEMIBANDWIDTH;
+  params.erate   = paramsDefault.erate * 2;
+  O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
+  if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
+    O = NULL;
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+    O = NULL;
+  if (O)
+    goto GetAlignmentTrace_ScoreOverlap;
+
+
+  ////////////////////////////////////////
+  //
+  // broaden even more, loosen erate
+  //
 #ifdef DEBUG_GET_ALIGNMENT_TRACE
   fprintf(stderr, "GetAlignmentTrace()--  Compare 5\n");
 #endif
-    O = Compare(a,alen,b,blen,alignFunction,&params);
-    if ( O != NULL ) {
-      if ( O->diffs / O->length > default_erate ) O = NULL;
-    }
-    if (O!=NULL) trick=CNS_ALN_REAL_WIDE;
-    else params=paramsDefault;
-  }
-  if ( O == NULL && ( alignment_context == AS_MERGE || bfrag->type == AS_UNITIG) ) {
-    // broaden even more, loosen erate
-    params.bandBgn=ahang_input-5*CNS_LOOSESEMIBANDWIDTH;
-    params.bandEnd=ahang_input+5*CNS_LOOSESEMIBANDWIDTH;
-    params.erate=2*default_erate;
+  params         = paramsDefault;
+  params.bandBgn = ahang_input-3*CNS_LOOSESEMIBANDWIDTH;
+  params.bandEnd = ahang_input+3*CNS_LOOSESEMIBANDWIDTH;
+  params.erate   = paramsDefault.erate * 2;
+  O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
+  if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
+    O = NULL;
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+    O = NULL;
+  if (O)
+    goto GetAlignmentTrace_ScoreOverlap;
+
+
+  ////////////////////////////////////////
+  //
+  // broaden even more, loosen erate
+  //
 #ifdef DEBUG_GET_ALIGNMENT_TRACE
   fprintf(stderr, "GetAlignmentTrace()--  Compare 6\n");
 #endif
-    O = Compare(a,alen,b,blen,alignFunction,&params);
-    if ( O != NULL ) {
-      if ( O->diffs / O->length > default_erate ) O = NULL;
-    }
-    if (O!=NULL) trick=CNS_ALN_SUPER_WIDE;
-    else params=paramsDefault;
-  }
-  if ( O == NULL && ( alignment_context == AS_MERGE || bfrag->type == AS_UNITIG) ) {
-    // broaden even more, loosen erate
-    params.bandBgn=ahang_input-2*CNS_LOOSESEMIBANDWIDTH;
-    params.bandEnd=ahang_input+2*CNS_LOOSESEMIBANDWIDTH;
-    params.erate=2*default_erate;
-    params.minlen=CNS_DP_THIN_MINLEN;
+  params         = paramsDefault;
+  params.bandBgn = ahang_input-5*CNS_LOOSESEMIBANDWIDTH;
+  params.bandEnd = ahang_input+5*CNS_LOOSESEMIBANDWIDTH;
+  params.erate   = paramsDefault.erate * 2;
+  O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
+  if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
+    O = NULL;
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+    O = NULL;
+  if (O)
+    goto GetAlignmentTrace_ScoreOverlap;
+
+
+  ////////////////////////////////////////
+  //
+  // broaden even more, loosen erate
+  //
 #ifdef DEBUG_GET_ALIGNMENT_TRACE
   fprintf(stderr, "GetAlignmentTrace()--  Compare 7\n");
 #endif
-    O = Compare(a,alen,b,blen,alignFunction,&params);
-    if ( O != NULL ) {
-      if ( O->diffs / O->length > default_erate ) O = NULL;
-    }
-    if (O!=NULL) trick=CNS_ALN_THIN_OLAP;
-    else params=paramsDefault;
-  }
-  if ( O == NULL && ( alignment_context == AS_MERGE || bfrag->type == AS_UNITIG) ) {
-    // broaden even more, loosen erate
-    params.bandBgn=-blen;
-    params.bandEnd=alen;
-    params.erate=2*default_erate;
-    params.minlen=CNS_DP_THIN_MINLEN;
+  params         = paramsDefault;
+  params.bandBgn = ahang_input-2*CNS_LOOSESEMIBANDWIDTH;
+  params.bandEnd = ahang_input+2*CNS_LOOSESEMIBANDWIDTH;
+  params.erate   = paramsDefault.erate * 2;
+  params.minlen  = CNS_DP_THIN_MINLEN;
+  O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
+  if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
+    O = NULL;
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+    O = NULL;
+  if (O)
+    goto GetAlignmentTrace_ScoreOverlap;
+
+
+  ////////////////////////////////////////
+  //
+  // broaden even more, loosen erate
+  //
 #ifdef DEBUG_GET_ALIGNMENT_TRACE
   fprintf(stderr, "GetAlignmentTrace()--  Compare 8\n");
 #endif
-    O = Compare(a,alen,b,blen,alignFunction,&params);
-    if ( O != NULL ) {
-      if ( O->diffs / O->length > default_erate ) O = NULL;
-    }
-    if (O!=NULL) trick=CNS_ALN_THIN_OLAP;
-    else params=paramsDefault;
-  }
+  params         = paramsDefault;
+  params.bandBgn = -blen;
+  params.bandEnd = alen;
+  params.erate   = paramsDefault.erate * 2;
+  params.minlen  = CNS_DP_THIN_MINLEN;
+  O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
+  if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
+    O = NULL;
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+    O = NULL;
+  if (O)
+    goto GetAlignmentTrace_ScoreOverlap;
 
-  if ( O == NULL || (O->begpos < CNS_NEG_AHANG_CUTOFF &&  ! allow_neg_hang)) {
-    // if begpos is negative, then this isn't the intended olap
-    // perhaps a poor prefix is terminating the search, or causing an alternate
-    // overlap to be found
-    // try from other end
-    SequenceComplement(a,NULL);
-    SequenceComplement(b,NULL);
 
-    ahang_tmp = alen - ahang_input - blen; // calculate the hang if coming from the right instead
-    // note: the preceding calc may be problematic: we really would like to have the bhang, and
-    // the equation above gives exactly the bhang only if the number of gaps in A and B is the
-    // same -- otherwise, we are off by the number of gaps
+  ////////////////////////////////////////
+  //
+  // perhaps a poor prefix is terminating the search, or causing an alternate
+  // overlap to be found
+  // try from other end
+  //
 
-    params.bandBgn = ahang_tmp-CNS_TIGHTSEMIBANDWIDTH;
-    params.bandEnd = ahang_tmp+CNS_TIGHTSEMIBANDWIDTH;
+  arev = (char *)safe_malloc(sizeof(char) * (alen + 1));
+  brev = (char *)safe_malloc(sizeof(char) * (blen + 1));
+
+  strcpy(arev, aseq);
+  strcpy(brev, bseq);
+
+  reverseComplementSequence(arev, alen);
+  reverseComplementSequence(brev, blen);
+
+
+  // calculate the hang if coming from the right instead
+  //
+  // note: the calc may be problematic: we really would like to have
+  // the bhang, and the equation above gives exactly the bhang only if
+  // the number of gaps in A and B is the same -- otherwise, we are
+  // off by the number of gaps
+  //
+  int ahang_tmp = alen - ahang_input - blen;
+
+
+  ////////////////////////////////////////
+  //
 #ifdef DEBUG_GET_ALIGNMENT_TRACE
   fprintf(stderr, "GetAlignmentTrace()--  Compare 9\n");
 #endif
-    O = Compare(a,alen,b,blen,alignFunction,&params);
-    if ( O == NULL || O->endpos  > -CNS_NEG_AHANG_CUTOFF ) {
-      params.bandBgn = ahang_tmp-2*CNS_LOOSESEMIBANDWIDTH;
-      params.bandEnd = ahang_tmp+2*CNS_LOOSESEMIBANDWIDTH;
-      if ( alignment_context == AS_MERGE || bfrag->type == AS_UNITIG ) params.erate=2*default_erate;
+  params         = paramsDefault;
+  params.bandBgn = ahang_tmp-CNS_TIGHTSEMIBANDWIDTH;
+  params.bandEnd = ahang_tmp+CNS_TIGHTSEMIBANDWIDTH;
+  O = Compare(arev,alen,brev,blen,alignFunction,&params);
+  if (O) {
+    InvertTrace(alen, blen, O);
+  }
+  if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
+    O = NULL;
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+    O = NULL;
+  if (O)
+    goto GetAlignmentTrace_ScoreOverlap;
+
+
+  ////////////////////////////////////////
+  //
 #ifdef DEBUG_GET_ALIGNMENT_TRACE
   fprintf(stderr, "GetAlignmentTrace()--  Compare 10\n");
 #endif
-      O = Compare(a,alen,b,blen,alignFunction,&params);
-    }
-    if ( O == NULL || O->endpos  > -CNS_NEG_AHANG_CUTOFF ) {
-      //try full length of fragments, due to troubles estimating the original bhang
-      params.bandBgn = -blen;
-      params.bandEnd = alen;
-      if ( alignment_context == AS_MERGE || bfrag->type == AS_UNITIG ) params.erate=2*default_erate;
+  params         = paramsDefault;
+  params.bandBgn = ahang_tmp-2*CNS_LOOSESEMIBANDWIDTH;
+  params.bandEnd = ahang_tmp+2*CNS_LOOSESEMIBANDWIDTH;
+  params.erate   = paramsDefault.erate * 2;
+  O = Compare(arev,alen,brev,blen,alignFunction,&params);
+  if (O) {
+    InvertTrace(alen, blen, O);
+  }
+  if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
+    O = NULL;
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+    O = NULL;
+  if (O)
+    goto GetAlignmentTrace_ScoreOverlap;
+
+
+  ////////////////////////////////////////
+  //
+  //  try full length of fragments, due to troubles estimating the original bhang
+  //
 #ifdef DEBUG_GET_ALIGNMENT_TRACE
   fprintf(stderr, "GetAlignmentTrace()--  Compare 11\n");
 #endif
-      O = Compare(a,alen,b,blen,alignFunction,&params);
-    }
-    if ( O == NULL || O->endpos > - CNS_NEG_AHANG_CUTOFF) {
-      // here, we'll try to swap the fragments too
-      params.bandBgn = -ahang_tmp-2*CNS_LOOSESEMIBANDWIDTH;
-      params.bandEnd = -ahang_tmp+2*CNS_LOOSESEMIBANDWIDTH;
-      params.ahang = -params.ahang;
-      params.bhang = -params.bhang;
+  params         = paramsDefault;
+  params.bandBgn = -blen;
+  params.bandEnd = alen;
+  params.erate   = paramsDefault.erate * 2;
+  O = Compare(arev,alen,brev,blen,alignFunction,&params);
+  if (O) {
+    InvertTrace(alen, blen, O);
+  }
+  if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
+    O = NULL;
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+    O = NULL;
+  if (O)
+    goto GetAlignmentTrace_ScoreOverlap;
+    
+
+  ////////////////////////////////////////
+  //
+  // here, we'll try to swap the fragments too
+  //
 #ifdef DEBUG_GET_ALIGNMENT_TRACE
   fprintf(stderr, "GetAlignmentTrace()--  Compare 12\n");
 #endif
-      O = Compare(b,blen,a,alen,alignFunction,&params);
-      if (O != NULL ) {
-        int i=0;
-        while (O->trace[i]!=0){
-          O->trace[i++]*=-1;
-        }
-        O->begpos*=-1;
-        O->endpos*=-1;
-        trick=CNS_ALN_ORIENTATION_AND_SWAP;
-      }
-    } else { // the orientation alone was enough to find the right overlap
-      trick=CNS_ALN_ORIENTATION;
-    }
-    // restore input strings and ahang for sanity if second call is necessary
-    SequenceComplement(a,NULL);
-    SequenceComplement(b,NULL);
-
-    if ( O != NULL ) InvertTrace(alen,blen,O);
-    else params = paramsDefault;
+  params         = paramsDefault;
+  params.bandBgn = -ahang_tmp-2*CNS_LOOSESEMIBANDWIDTH;
+  params.bandEnd = -ahang_tmp+2*CNS_LOOSESEMIBANDWIDTH;
+  params.ahang   = -params.ahang;
+  params.bhang   = -params.bhang;
+  O = Compare(brev,blen,arev,alen,alignFunction,&params);
+  if (O) {
+    for (i=0; O->trace[i] != 0; i++)
+      O->trace[i] = -O->trace[i];
+    O->begpos = -O->begpos;
+    O->endpos = -O->endpos;
+    InvertTrace(alen,blen,O);
   }
-  if ( O == NULL || ( O->begpos < CNS_NEG_AHANG_CUTOFF && ! allow_neg_hang) ) {
-    // this still isn't a good overlap
-    // try to see whether just swapping the fragments to see if that locates the overlap
-    int tmp;
-    params = paramsDefault;
-    params.bandBgn = ahang_input-3*CNS_LOOSESEMIBANDWIDTH;
-    params.bandEnd = ahang_input+3*CNS_LOOSESEMIBANDWIDTH;
-    params.bandEnd = alen-CNS_DP_MINLEN;
+  if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
+    O = NULL;
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+    O = NULL;
+  if (O)
+    goto GetAlignmentTrace_ScoreOverlap;
 
-    tmp=params.bandBgn;
-    params.bandBgn= -params.bandEnd;
-    params.bandEnd= -tmp;
 
-    params.ahang = -params.ahang;
-    params.bhang = -params.bhang;
 
+  ////////////////////////////////////////
+  //
+  // this still isn't a good overlap
+  // try to see whether just swapping the fragments to see if that locates the overlap
+  //
 #ifdef DEBUG_GET_ALIGNMENT_TRACE
   fprintf(stderr, "GetAlignmentTrace()--  Compare 13\n");
 #endif
-    O = Compare(b,blen,a,alen,alignFunction,&params);
 
-    if (O != NULL ) {
-      int i=0;
-      while (O->trace[i]!=0){
-        O->trace[i++]*=-1;
-      }
-      O->begpos*=-1;
-      O->endpos*=-1;
-      trick=CNS_ALN_SWAP;
-    } else {
-      params = paramsDefault;
-    }
+  params         = paramsDefault;
+  params.bandBgn = ahang_input-3*CNS_LOOSESEMIBANDWIDTH;
+  params.bandEnd = ahang_input+3*CNS_LOOSESEMIBANDWIDTH;
+  params.bandEnd = alen-CNS_DP_MINLEN;
+
+  i              = params.bandBgn;
+  params.bandBgn = -params.bandEnd;
+  params.bandEnd = -i;
+
+  params.ahang   = -params.ahang;
+  params.bhang   = -params.bhang;
+
+  O = Compare(bseq,blen,aseq,alen,alignFunction,&params);
+  if (O) {
+    for (i=0; O->trace[i] != 0; i++)
+      O->trace[i] = -O->trace[i];
+    O->begpos = -O->begpos;
+    O->endpos = -O->endpos;
   }
+  if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
+    O = NULL;
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+    O = NULL;
+  if (O)
+    goto GetAlignmentTrace_ScoreOverlap;
+
+  //
+  //  End of MERGE or UNITIG tricks
+  //
 
  GetAlignmentTrace_ScoreOverlap:
+
+  safe_free(arev);
+  safe_free(brev);
 
   {
     const char *aligner = "(something else)";
@@ -4324,13 +4429,13 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
       // Here, we're convinced there is NO acceptable overlap with this alignFunction
       if (show_olap)
         fprintf(stderr,"GetAlignmentTrace()-- Could not find overlap between %d (%c) and %d (%c) hangs: a=%d b=%d erate=%f aligner=%s\n",
-                aiid, atype, biid, btype, ahang_input, bhang_input, input_erate, aligner);
+                afrag->iid, afrag->type, bfrag->iid, bfrag->type, ahang_input, bhang_input, input_erate, aligner);
       return(FALSE);
     }
 
     if (show_olap)
       fprintf(stderr,"GetAlignmentTrace()-- Overlap found between %d (%c) and %d (%c) expected hangs: a=%d b=%d erate=%f aligner=%s\n",
-              aiid, atype, biid, btype, ahang_input, bhang_input, input_erate, aligner);
+              afrag->iid, afrag->type, bfrag->iid, bfrag->type, ahang_input, bhang_input, input_erate, aligner);
   }
 
   //
@@ -4338,49 +4443,19 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   //  it is the one we are looking for.
   //
 
-  double   lScore = (O->length - expected_length) / (double)expected_length;
-  double   aScore = (O->begpos - ahang_input)     / (double)100.0;
-  double   bScore = (O->endpos - bhang_input)     / (double)100.0;
+  double  lScore = 0.0;
+  double  aScore = 0.0;
+  double  bScore = 0.0;
 
-  if (lScore < 0)  lScore = -lScore;
-  if (aScore < 0)  aScore = -aScore;
-  if (bScore < 0)  bScore = -bScore;
-
-  //  By design, we don't expect to have negative ahangs, so penalize
-  //  the score if so (and if this is unexpected).
-
-  if ((O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF)) {
-    fprintf(stderr,"GetAlignmentTrace()-- NEGATIVE HANG.  lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).\n",
-            lScore, O->length, expected_length,
-            aScore, O->begpos, ahang_input,
-            bScore, O->endpos, bhang_input);
-    aScore *= 10;
-  }
-
-  lScoreAve += lScore;
-  aScoreAve += aScore;
-  bScoreAve += bScore;
-  numScores++;
-
-  //  Decide if these scores are good enough to accept the overlap.
-  //
-  //  Assuming a default acceptTreshold of 1/3:
-  //
-  //  The length is within 30% of expected) OR
-  //  The ahang is within tight OR
-  //  Both hangs are decent
-
-  if ((lScore < acceptThreshold) ||
-      (aScore < acceptThreshold / 2) ||
-      (bScore < acceptThreshold / 2) ||
-      (aScore < acceptThreshold && bScore < acceptThreshold)) {
-    //  Good.
-  } else {
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, &lScore, &aScore, &bScore) == 0) {
     //  Bad.
+    //
+    //  Should never occur as we throw out bad overlaps as soon as we generate them.
+    //
+    assert(0);
 
-    ReportTrick(stderr,trick);
-    ReportOverlap(stderr,alignFunction,params,aiid,atype,biid,btype,O,ahang_input);
-    Print_Overlap(stderr, a, b, O);
+    ReportOverlap(stderr,alignFunction,params,afrag->iid,afrag->type,bfrag->iid,bfrag->type,O,ahang_input);
+    Print_Overlap(stderr, aseq, bseq, O);
     fprintf(stderr,"GetAlignmentTrace()-- Overlap rejected.  accept=%f lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).\n",
             acceptThreshold,
             lScore, O->length, expected_length,
@@ -4403,81 +4478,33 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   //  From this point on, we have a Good Overlap.
   //
 
+  lScoreAve += lScore;
+  aScoreAve += aScore;
+  bScoreAve += bScore;
+  numScores++;
+
   if (show_olap) {
-    ReportTrick(stderr,trick);
-    ReportOverlap(stderr,alignFunction,params,aiid,atype,biid,btype,O,ahang_input);
+    ReportOverlap(stderr,alignFunction,params,afrag->iid,afrag->type,bfrag->iid,bfrag->type,O,ahang_input);
     Print_Overlap(stderr, NULL, NULL, O);  //  Replace with a,b to print the bases in the align
   }
 
-  tmp = O->trace;
-  ResetVA_int32(trace);
-  *otype = (O->endpos<0)?AS_CONTAINMENT:AS_DOVETAIL;
-  *ahang = O->begpos; // approximate ahang is replaced with found ahang
-  if ( ! align_to_consensus ) {
+    *otype = (O->endpos<0)?AS_CONTAINMENT:AS_DOVETAIL;
+    *ahang = O->begpos; // approximate ahang is replaced with found ahang
+
+  {
+    int *tmp = O->trace;
+
+    ResetVA_int32(trace);
+
     while ( *tmp != 0) {
       AppendVA_int32(trace,tmp);
       tmp++;
     }
-  } else {
-    // here, the ungapped consensus was used, and the trace needs to be adjusted to gapped
-    int num_c_gaps=GetNumint32s(cns_trace);
-    int i;
-    int32 *ctrace;
-    int agaps=0;
-    int bgaps=0;
-    int new_gap_in_b;
-    int ahang_gaps=0;
-    int cgaps=0;
-    tmp = O->trace;
-    //fprintf(stderr,"revised trace: ");
-    for (i=0;i<num_c_gaps;i++) {
-      ctrace=Getint32(cns_trace,i);
-      if ( (*ctrace + 1) < O->begpos ) {
-        ahang_gaps += 1;
-        cgaps++;
-      } else {
-        while ( *tmp != 0 ) {
-          if ( *tmp < 0 ) {
-            if ( (*ctrace+1)  > -*tmp ) {
-              *tmp -= cgaps;
-              AppendVA_int32(trace, tmp);
-              //fprintf(stderr,"%d ",*tmp);
-              agaps++;
-              tmp++;
-              continue;
-            }
-          } else {
-            if ( *tmp + bgaps + *ahang < (*ctrace+1) + agaps ) {
-              AppendVA_int32(trace, tmp);
-              //fprintf(stderr,"%d ",*tmp);
-              bgaps++;
-              tmp++;
-              continue;
-            }
-          }
-          new_gap_in_b= (*ctrace+1) + agaps - *ahang - ahang_gaps - bgaps;
-          AppendVA_int32(trace, &new_gap_in_b);
-          cgaps++;
-          //fprintf(stderr,"%d ",new_gap_in_b);
-          break;
-        }
-      }
-    }
-    while ( *tmp != 0 ) {
-      if ( *tmp < 0 ) {
-        *tmp -= ahang_gaps+cgaps;
-        AppendVA_int32(trace, tmp);
-        //fprintf(stderr,"%d ",*tmp);
-        tmp++;
-      } else {
-        AppendVA_int32(trace, tmp);
-        //fprintf(stderr,"%d ",*tmp);
-        tmp++;
-      }
-    }
   }
+
   return(TRUE);
 }
+
 
 int
 GetAlignmentTraceDriver(Fragment *afrag, int32 aoffset,
@@ -4706,30 +4733,12 @@ ApplyAlignment(int32 afid,
 
   int32 off;
 
-  int align_to_consensus=0;
+  assert(afid >= 0);
 
-  if ( afid < 0 ) {
-#warning DELETE ME
-    assert(0);
-    align_to_consensus = 1;
-  }
-
-  if ( align_to_consensus) {
-    aboffset = aoffset;
-    alen =0;
-    {
-      Bead *ab=GetBead(beadStore,aboffset);
-      while ( ab!=NULL && alen < 2*AS_READ_MAX_LEN ){
-        alen++;
-        ab = GetBead(beadStore,ab->next);
-      }
-    }
-  } else {
-    afrag= GetFragment(fragmentStore,afid);
-    assert(afrag != NULL);
-    alen     = afrag->length;
-    aboffset = afrag->firstbead;
-  }
+  afrag= GetFragment(fragmentStore,afid);
+  assert(afrag != NULL);
+  alen     = afrag->length;
+  aboffset = afrag->firstbead;
 
 #ifdef DEBUG_ABACUS_ALIGN
   fprintf(stderr, "allocate aindex[] with %d things.\n", alen);
@@ -4739,16 +4748,8 @@ ApplyAlignment(int32 afid,
   {
     Bead *ab=GetBead(beadStore,aboffset);
     int ai;
-    if ( align_to_consensus ) {
-      for (ai=0;ai<alen;ai++) {
-        aindex[ai] = ab->boffset;
-        ab = GetBead(beadStore,ab->next);
-      }
-    } else {
-      for (ai=0;ai<alen;ai++) {
-        aindex[ai] = aboffset+ai;
-      }
-    }
+    for (ai=0;ai<alen;ai++)
+      aindex[ai] = aboffset+ai;
   }
 
   bfrag= GetFragment(fragmentStore,bfid);
@@ -7703,19 +7704,6 @@ int MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
 }
 
 
-int32
-GetFragmentIndex(IntFragment_ID ident2, IntMultiPos *positions, int num_frags)
-{
-  int i;
-  for (i=0; i<num_frags; i++)
-    {
-      if (ident2 == positions[i].ident)
-        {
-          return i;
-        }
-    }
-  return -1;
-}
 
 int
 MultiAlignUnitig(IntUnitigMesg   *unitig,
@@ -7762,14 +7750,14 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
     int fid;
 
     if (unitig->f_list[i].type != AS_READ) {
-      fprintf(stderr, "MultiAlignUnitig()-- Fragment %d in unitig %d is not a read.  Fail.\n",
-              unitig->f_list[i].ident, unitig->iaccession);
+      fprintf(stderr, "MultiAlignUnitig()-- Unitig %d FAILED.  Fragment %d is not a read.\n",
+              unitig->iaccession, unitig->f_list[i].ident);
       goto MAUnitigFailure;
     }
 
     if (HASH_SUCCESS != InsertInHashTable_AS(fragmentMap,unitig->f_list[i].ident, 0, 1, 0)) {
-      fprintf(stderr,"MultiAlignUnitig()-- Fragment %d in unitig %d is a duplicate.  Fail.\n",
-              unitig->f_list[i].ident, unitig->iaccession);
+      fprintf(stderr, "MultiAlignUnitig()-- Unitig %d FAILED.  Fragment %d is a duplicate.\n",
+              unitig->iaccession, unitig->f_list[i].ident);
       goto MAUnitigFailure;
     }
 
@@ -7785,6 +7773,9 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
     offsets[fid].bgn = complement ? unitig->f_list[i].position.end : unitig->f_list[i].position.bgn;
     offsets[fid].end = complement ? unitig->f_list[i].position.bgn : unitig->f_list[i].position.end;
 
+    //  If this is violated, then align_to is not a valid index into unitig->f_list.
+    assert(fid == i);
+
     if (VERBOSE_MULTIALIGN_OUTPUT)
       fprintf(stderr,"MultiAlignUnitig()-- Added fragment %d (%d-%d) in unitig %d to store at local id %d.\n",
               unitig->f_list[i].ident, unitig->f_list[i].position.bgn, unitig->f_list[i].position.end, unitig->iaccession, fid);
@@ -7797,17 +7788,16 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
   // or b)  previously aligned frag
 
   for (i=1; i<unitig->num_frags; i++) {
+    int         align_to     = i-1;
     Fragment   *afrag        = NULL;                           //  Last frag
     Fragment   *bfrag        = GetFragment(fragmentStore, i);  //  This frag
-    int         align_to     = i-1;
 
     int         ahang        = 0;
     int         bhang        = 0;
 
-    int         ovl          = 0;
-
     int         olap_success = 0;
     OverlapType otype        = 0;
+
 
     if (VERBOSE_MULTIALIGN_OUTPUT) {
       fprintf(stderr, "\n");
@@ -7816,6 +7806,9 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
     }
 
     while (! olap_success) {
+      int         allow_neg_hang_once = 0;
+      int         ahangvalid   = 0;
+      int         ovl          = 0;
 
       if (align_to < 0) {
         if (VERBOSE_MULTIALIGN_OUTPUT)
@@ -7824,47 +7817,77 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
         break;
       }
 
-      //  Find a suitable afrag to align to.  If bfrag is contained,
-      //  afrag must be its container.  Otherwise, bfrag is not
-      //  contained, and afrag should be just uncontained
 
-      if (bfrag->container_iid > 0) {
-        while (align_to >= 0) {
-          afrag = GetFragment(fragmentStore, align_to);
-          //  XXX not sure what the second condition is checking for
-          if ((bfrag->container_iid == afrag->iid) &&
-              (afrag->container_iid != afrag->iid))
-            break;
-          align_to--;
-        }
-      } else {
-        while (align_to >= 0) {
-          afrag = GetFragment(fragmentStore, align_to);
-          if (afrag->container_iid == 0)
-            break;
-          align_to--;
-        }
-      }
-
-      //  Fail if nothing around to align to.
+      //  Grab the candidate fragment.
       //
-      if (align_to < 0) {
-        if (VERBOSE_MULTIALIGN_OUTPUT) {
-          if (bfrag->container_iid > 0)
-            fprintf(stderr, "MultiAlignUnitig()-- bfrag %d is contained, but no container is found upstream\n", bfrag->iid);
+      afrag = GetFragment(fragmentStore, align_to);
+
+
+      //  If there is an overlap store, and our parent isn't this fragment, query
+      //  the store to find the overlap to get the correct hangs.
+      //
+      if ((ahangvalid == 0) &&
+          (unitig->f_list[i].parent != afrag->iid) &&
+          (ovlStore)) {
+        OVSoverlap  ovsOverlap;
+        int         foundOverlap = 0;
+
+        fprintf(stderr, "get afrag=%d from store.  bfrag=%d\n", afrag->iid, bfrag->iid);
+
+        AS_OVS_setRangeOverlapStore(ovlStore, afrag->iid, afrag->iid);
+
+        while ((ahangvalid == 0) &&
+               (AS_OVS_readOverlapFromStore(ovlStore, &ovsOverlap, AS_OVS_TYPE_OVL))) {
+          if (ovsOverlap.b_iid != bfrag->iid)
+            continue;
+
+          if (unitig->f_list[align_to].position.bgn < unitig->f_list[align_to].position.end) {
+            ahang = ovsOverlap.dat.ovl.a_hang;
+            bhang = ovsOverlap.dat.ovl.b_hang;
+          } else {
+            ahang = -ovsOverlap.dat.ovl.b_hang;
+            bhang = -ovsOverlap.dat.ovl.a_hang;
+          }
+
+          if (ahang > 0)
+            if (bhang > 0)
+              //  normal dovetail
+              ovl = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
+            else
+              //  b is contained in a
+              //ovl = offsets[bfrag->lid].end - offsets[bfrag->lid].bgn;
+              ovl = bfrag->length;
           else
-            fprintf(stderr, "MultiAlignUnitig()-- bfrag %d is not contained, and no uncontained afrag is found upstream\n", bfrag->iid);
+            //  We don't expect these to occur.
+            if (bhang > 0)
+              //  a is contained in b
+              //ovl = offsets[afrag->lid].end - offsets[afrag->lid].bgn;
+              ovl = afrag->length;
+            else
+              //  anti normal dovetail
+              ovl = offsets[bfrag->lid].end - offsets[afrag->lid].bgn;
+
+          if (VERBOSE_MULTIALIGN_OUTPUT)
+            fprintf(stderr, "MultiAlignUnitig()-- (ovs) ovl=%d (afrag: lid=%d %d-%d  bfrag: lid=%d %d-%d  hangs: %d %d\n",
+                    ovl,
+                    afrag->lid, offsets[afrag->lid].bgn, offsets[afrag->lid].end,
+                    bfrag->lid, offsets[bfrag->lid].bgn, offsets[bfrag->lid].end,
+                    ahang, bhang);
+
+          //  SPECIAL CASE;  This is a REAL OVERLAP, so allow the negative hang.
+          if (ahang < 0)
+            allow_neg_hang_once = TRUE;
+
+          ahangvalid = 3;
         }
-        break;
       }
 
-      //  Find the ahang and bhang we are expecting to find.  If the
-      //  parent is defined, then unitigger/bog should have filled in
-      //  the correct ahang and bhang.  Otherwise, fallback to the
-      //  layout.
+      //  If the parent is defined, then unitigger/bog should have
+      //  filled in the correct ahang and bhang.
       //
-      //
-      if ((unitig->f_list[i].parent > 0) && (unitig->f_list[i].parent == afrag->iid)) {
+      if ((ahangvalid == 0) &&
+          (unitig->f_list[i].parent > 0) &&
+          (unitig->f_list[i].parent == afrag->iid)) {
         ahang = unitig->f_list[i].ahang;
         bhang = unitig->f_list[i].bhang;
 
@@ -7897,9 +7920,13 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
                   bfrag->lid, offsets[bfrag->lid].bgn, offsets[bfrag->lid].end,
                   ahang, bhang);
 
-      } else {
-        //  This code copied into MergeMultiAligns & MultiAlignContig
+        ahangvalid = 2;
+      }
 
+      //  Otherwise, fallback to the layout to guesstimate the hangs.
+      //
+      if (ahangvalid == 0) {
+        //  This code copied into MergeMultiAligns & MultiAlignContig
         ahang = offsets[bfrag->lid].bgn - offsets[afrag->lid].bgn;
         bhang = offsets[bfrag->lid].end - offsets[afrag->lid].end;
 
@@ -7924,12 +7951,14 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
                   afrag->lid, offsets[afrag->lid].bgn, offsets[afrag->lid].end,
                   bfrag->lid, offsets[bfrag->lid].bgn, offsets[bfrag->lid].end,
                   ahang, bhang);
+
+        ahangvalid = 1;
       }
 
 
       //  If there is no overlap in the layout, fail.
       //
-      if (ovl < 0) {
+      if (ovl <= 0) {
         if (VERBOSE_MULTIALIGN_OUTPUT)
           fprintf(stderr, "MultiAlignUnitig()-- positions of afrag %d and bfrag %d do not overlap; proceed to the next upstream afrag\n",
                   afrag->iid, bfrag->iid);
@@ -7937,13 +7966,42 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
         continue;
       }
 
+
       // Make sure ahang is above the cutoff value.  If it's not, may
       // need to sort fragments begfore processing.
       //
-      if ((ahang < CNS_NEG_AHANG_CUTOFF) && (allow_neg_hang == FALSE)) {
+      if ((ahang < CNS_NEG_AHANG_CUTOFF) && (allow_neg_hang == FALSE) && (allow_neg_hang_once == FALSE)) {
         if (VERBOSE_MULTIALIGN_OUTPUT)
           fprintf(stderr, "MultiAlignUnitig()-- too negative ahang is detected for afrag %d and bfrag %d; proceed to the next upstraem afrag\n",
                   afrag->iid,  bfrag->iid);
+        align_to--;
+        continue;
+      }
+
+
+      //  If the bfrag is marked as contained, require that it be
+      //  contained in the overlap.  This test is after the negative
+      //  ahang test, and we allow whatever ahang passed.  We only
+      //  need to check that the bhang indicates containment.
+      //
+      if ((bfrag->container_iid > 0) && (bhang > 0)) {
+        if (VERBOSE_MULTIALIGN_OUTPUT)
+          fprintf(stderr, "MultiAlignUnitig()-- afrag %d is not container of contained bfrag %d; proceed to the next upstraem afrag\n",
+                  afrag->iid, bfrag->iid);
+        align_to--;
+        continue;
+      }
+
+
+      //  If the bfrag is not contained, prevent alignments to
+      //  contained fragments, unless that is our parent.
+      //
+      if ((bfrag->container_iid == 0) &&
+          (afrag->container_iid  > 0) &&
+          ((allow_contained_parent == 0) || (unitig->f_list[i].parent != afrag->iid))) {
+        if (VERBOSE_MULTIALIGN_OUTPUT)
+          fprintf(stderr, "MultiAlignUnitig()-- afrag %d is contained, and not parent of uncontained bfrag %d; proceed to the next upstraem afrag\n",
+                  afrag->iid, bfrag->iid);
         align_to--;
         continue;
       }
@@ -7971,23 +8029,24 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
                                              0);
 
       if (!olap_success) {
-        fprintf(stderr, "MultiAlignUnitig()-- positions of bfrag %d (%c) and afrag %d (%c) overlap, but no overlap found; estimated ahang: %d%s\n",
-                bfrag->iid, bfrag->type,
-                afrag->iid, afrag->type,
-                ahang,
-                (bfrag->container_iid)?" (reported contained)":"");
+        if (VERBOSE_MULTIALIGN_OUTPUT)
+          fprintf(stderr, "MultiAlignUnitig()-- positions of bfrag %d (%c) and afrag %d (%c) overlap, but no overlap found; estimated ahang: %d%s\n",
+                  bfrag->iid, bfrag->type,
+                  afrag->iid, afrag->type,
+                  ahang,
+                  (bfrag->container_iid)?" (reported contained)":"");
         align_to--;
       }
     }   //  while (!olap_success)
 
 
     if (!olap_success) {
-      if (bfrag->container_iid && afrag->iid != bfrag->container_iid)
-        fprintf(stderr, "MultiAlignUnitig()-- Could not find overlap between bfrag %d (%c) and its containing fragment, %d.\n",
-                bfrag->iid, bfrag->type, bfrag->container_iid);
-      else
-        fprintf(stderr, "MultiAlignUnitig()-- Could not find overlap between bfrag %d (%c) and afrag %d (%c); estimated ahang: %d\n",
-                bfrag->iid, bfrag->type, afrag->iid, afrag->type, ahang);
+      fprintf(stderr, "MultiAlignUnitig()-- Unitig %d FAILED.  Overlap not found between %sbfrag %d (%c) and afrag %d (%c)%s.\n",
+              unitig->iaccession,
+              (bfrag->container_iid == 0) ? "" : "contained ",
+              bfrag->iid, bfrag->type,
+              afrag->iid, afrag->type,
+              (bfrag->container_iid == 0) ? "" : ((bfrag->container_iid == afrag->iid) ? ", the container" : ", not the container"));
 
       goto MAUnitigFailure;
     }
@@ -8061,9 +8120,9 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
             int fend = MAX(unitig->f_list[frag].position.bgn, unitig->f_list[frag].position.end);
 
             if ((fbeg < cbeg) || (cend > cend)) {
-              fprintf(stderr, "WARNING: FRAG %d (%d,%d) is NOT contained in %d (%d,%d)\n",
-                      unitig->f_list[frag].ident, unitig->f_list[frag].position.bgn, unitig->f_list[frag].position.end,
-                      unitig->f_list[cntr].ident, unitig->f_list[cntr].position.bgn, unitig->f_list[cntr].position.end);
+              //fprintf(stderr, "WARNING: FRAG %d (%d,%d) is NOT contained in %d (%d,%d)\n",
+              //        unitig->f_list[frag].ident, unitig->f_list[frag].position.bgn, unitig->f_list[frag].position.end,
+              //        unitig->f_list[cntr].ident, unitig->f_list[cntr].position.bgn, unitig->f_list[cntr].position.end);
 
               unitig->f_list[frag].contained = 0;
             }
@@ -8226,11 +8285,11 @@ PlaceFragments(int32 fid,
 
     if (aiup->num_instances > 1 && abs(ahang + abgn - bbgn) > MAX_SURROGATE_FUDGE_FACTOR) { 
       if (VERBOSE_MULTIALIGN_OUTPUT)
-         fprintf(stderr, "Not placing fragment %d into unitig %d because the positions (%d, %d) do not match (%d, %d)\n",
-                 bfrag->idx.fragment.frgIdent, afrag->iid,
-                 bimp->position.bgn, bimp->position.end,
-                 ahang + GetColumn(columnStore,(GetBead(beadStore,afrag->firstbead))->column_index)->ma_index,
-                 bhang + GetColumn(columnStore,(GetBead(beadStore,afrag->firstbead+afrag->length-1))->column_index)->ma_index+1);
+        fprintf(stderr, "Not placing fragment %d into unitig %d because the positions (%d, %d) do not match (%d, %d)\n",
+                bfrag->idx.fragment.frgIdent, afrag->iid,
+                bimp->position.bgn, bimp->position.end,
+                ahang + GetColumn(columnStore,(GetBead(beadStore,afrag->firstbead))->column_index)->ma_index,
+                bhang + GetColumn(columnStore,(GetBead(beadStore,afrag->firstbead+afrag->length-1))->column_index)->ma_index+1);
       continue;
     }
 

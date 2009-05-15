@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: Consensus_CNS.c,v 1.74 2009-05-14 18:41:23 skoren Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.75 2009-05-15 14:20:56 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -78,6 +78,7 @@ main (int argc, char **argv) {
   char   tmpName[FILENAME_MAX] = {0};
   char  *outName = NULL;
   char  *gkpName = NULL;
+  char  *ovlName = NULL;
 
   FILE   *cnsinp = NULL;
   FILE   *cnsout = NULL;
@@ -91,7 +92,8 @@ main (int argc, char **argv) {
 
   int    extract     = -1;
 
-  int    allow_neg_hang_retry = 0;
+  int    allow_neg_hang_retry         = 0;
+  int    allow_contained_parent_retry = 0;
 
   int    saveUnitigMultiAlign = 0;
 
@@ -116,9 +118,16 @@ main (int argc, char **argv) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-g") == 0) {
       allow_neg_hang = 1;
-
     } else if (strcmp(argv[arg], "-G") == 0) {
       allow_neg_hang_retry = 1;
+
+    } else if (strcmp(argv[arg], "-c") == 0) {
+      allow_contained_parent = 1;
+    } else if (strcmp(argv[arg], "-C") == 0) {
+      allow_contained_parent_retry = 1;
+
+    } else if (strcmp(argv[arg], "-O") == 0) {
+      ovlName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-K") == 0) {
       options.split_alleles = 0;
@@ -240,6 +249,12 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "    -e #%%d      Extract only a single ICM/IUM by internal id\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "    -g           Allow 'negative ahang' alignments.\n");
+    fprintf(stderr, "    -G           Allow 'negative ahang' alignments as a last resort.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -c           Allow alignments to 'contained' fragments.\n");
+    fprintf(stderr, "    -C           Allow alignments to 'contained' fragments as a last resort.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "Arguments:\n");
     fprintf(stderr, "  gkpStore       path to previously created Fragment Store\n");
     fprintf(stderr, "  input-messages previously created .cgw/.cgb file\n");
@@ -262,6 +277,9 @@ main (int argc, char **argv) {
     loadGateKeeperPartition(gkpStore, gkpPart);
   else if (gkpInMemory)
     loadGateKeeperStorePartial(gkpStore, 0, 0, FRAG_S_QLT);
+
+  if (ovlName)
+    ovlStore = AS_OVS_openOverlapStore(ovlName);
 
   //
   //  INPUT and OUTPUT
@@ -304,7 +322,7 @@ main (int argc, char **argv) {
         break;
 
       if (VERBOSE_MULTIALIGN_OUTPUT)
-        fprintf(stderr, "MultiAlignUnitig %d %f pieces/length\n",
+        fprintf(stderr, "MultiAlignUnitig()-- %d %f pieces/length\n",
                 iunitig->iaccession,
                 (double)iunitig->num_frags / iunitig->length);
 
@@ -313,7 +331,7 @@ main (int argc, char **argv) {
       if ((unitigfail == EXIT_FAILURE) &&
           (allow_neg_hang_retry) &&
           (allow_neg_hang == 0)) {
-        fprintf(stderr, "MultiAlignUnitig failed for unitig %d -- try again with negative hangs allowed\n", iunitig->iaccession);
+        fprintf(stderr, "MultiAlignUnitig()-- Try unitig %d again with negative hangs allowed\n", iunitig->iaccession);
         allow_neg_hang = 1;
         unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, &options);
         allow_neg_hang = 0;
@@ -321,13 +339,38 @@ main (int argc, char **argv) {
           NumUnitigRetrySuccess++;
       }
 
+      if ((unitigfail == EXIT_FAILURE) &&
+          (allow_contained_parent_retry) &&
+          (allow_contained_parent == 0)) {
+        fprintf(stderr, "MultiAlignUnitig()-- Try unitig %d again allowing alignments to contained parents\n", iunitig->iaccession);
+        allow_contained_parent = 1;
+        unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, &options);
+        allow_contained_parent = 0;
+        if (unitigfail != EXIT_FAILURE)
+          NumUnitigRetrySuccess++;
+      }
+
+      if ((unitigfail == EXIT_FAILURE) &&
+          (allow_neg_hang_retry) &&
+          (allow_neg_hang == 0) &&
+          (allow_contained_parent_retry) &&
+          (allow_contained_parent == 0)) {
+        fprintf(stderr, "MultiAlignUnitig()-- Try unitig %d again with both negative hangs allowed and allowing alignments to contained parents\n", iunitig->iaccession);
+        allow_neg_hang = 1;
+        allow_contained_parent = 1;
+        unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, &options);
+        allow_neg_hang = 0;
+        allow_contained_parent = 0;
+        if (unitigfail != EXIT_FAILURE)
+          NumUnitigRetrySuccess++;
+      }
+
       if (unitigfail == EXIT_FAILURE) {
         num_unitig_failures++;
         if (num_unitig_failures <= MAX_NUM_UNITIG_FAILURES) {
-          fprintf(stderr, "MultiAlignUnitig failed for unitig %d\n", iunitig->iaccession);
           writeFailure(outName, pmesg);
         } else {
-          fprintf(stderr, "MultiAlignUnitig failed more than MAX_NUM_UNITIG_FAILURES times.  Fail.");
+          fprintf(stderr, "MultiAlignUnitig()-- failed more than MAX_NUM_UNITIG_FAILURES=%d times.  Terminate.\n", MAX_NUM_UNITIG_FAILURES);
           exit(1);
         }
       }

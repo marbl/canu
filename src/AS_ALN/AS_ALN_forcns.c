@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.19 2009-02-23 20:42:52 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.20 2009-05-15 14:20:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -367,6 +367,8 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
 
   alignLinker_s   al;
 
+  int             allowNs = 0;
+
   if (m == NULL)
     m = safe_malloc(sizeof(dpMatrix));
 
@@ -376,6 +378,7 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
 
   assert((0.0 <= erate) && (erate <= AS_MAX_ERROR_RATE));
 
+ alignLinkerAgain:
   if (opposite)
     reverseComplementSequence(b, strlen(b));
 
@@ -385,7 +388,9 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
               b,
               m->h_matrix,
               &al,
-              TRUE, ahang, bhang);
+              TRUE,
+              allowNs,
+              ahang, bhang);
 
   //fprintf(stderr, "ALIGN %s\n", a);
   //fprintf(stderr, "ALIGN %s\n", b);
@@ -419,11 +424,17 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
   //  check that the extended bits agree with the first fragment,
   //  leaving that up to "does the unitig rebuild".
   //
-  if ((al.begJ != 0) && (al.begI != 0))
-    return(NULL);
+  if ((al.begJ != 0) && (al.begI != 0)) {
 
-  o.begpos  = al.begI;
-  o.endpos  = al.lenB - al.endJ;
+    //  Allow Ns in the alignment, try one more time.
+    if (++allowNs == 1)
+      goto alignLinkerAgain;
+
+    return(NULL);
+  }
+
+  o.begpos  = (al.begI           > 0) ? (al.begI)           : -(al.begJ);
+  o.endpos  = (al.lenB - al.endJ > 0) ? (al.lenB - al.endJ) : -(al.lenA - al.endI);
   o.length  = al.alignLen;
   o.diffs   = 0;
   o.comp    = opposite;
@@ -445,17 +456,16 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
         m->h_trace[tp++] = bp + 1;
         bp--;
       }
-      //  Count the differences....but treat an aligment to an N as a
-      //  match, not a mismatch.  See alignLinker() also; that counts
-      //  matches to N's as a mismatch when building the alignment.
+
+      //  Count the differences.
       //
       if (m->h_alignA[x] != m->h_alignB[x])
         o.diffs++;
 
-      //  By definition, if either of these are N, then the other is
-      //  not 'N', and we already added a point to the diff.
-      //  Subtract that point.  This rule allows N's to match to N's
-      //  (returned as 'n').
+      //  But allow N's as matches.  If either letter is N, then the
+      //  other letter is NOT N (if both letters were N, both would be
+      //  lowercase n, representing a match).  This just subtracts out
+      //  the diff we added in above.
       //
       if ((m->h_alignA[x] == 'N') || (m->h_alignB[x] == 'N'))
         o.diffs--;
@@ -471,6 +481,8 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
     for (x=0; x<tp; x++)
       fprintf(stderr, " %d", m->h_trace[x]);
     fprintf(stderr, "\n");
+    fprintf(stderr, "A: %d-%d %d %s\n", al.begI, al.endI, al.lenA, m->h_alignA);
+    fprintf(stderr, "B: %d-%d %d %s\n", al.begJ, al.endJ, al.lenB, m->h_alignB);
 #endif
   }
 
@@ -481,6 +493,9 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
 
   if ((double)o.diffs / o.length <= erate)
     return(&o);
+  else if (++allowNs == 1)
+    //  Allow Ns in the alignment, try one more time.
+    goto alignLinkerAgain;
   else
     return(NULL);
 }

@@ -22,7 +22,10 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.6 2009-01-08 21:12:06 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.7 2009-05-15 14:20:56 brianwalenz Exp $";
+
+#include "AS_OVS_overlap.h"
+#include "AS_OVS_overlapStore.h"
 
 //  These are used ONLY IN MultiAlignment_CNS.c.
 
@@ -264,6 +267,7 @@ VA_DEF(ScaffoldData)
 
 
 extern GateKeeperStore       *gkpStore;
+extern OverlapStore          *ovlStore;
 extern tSequenceDB           *sequenceDB;
 extern HashTable_AS          *fragmentMap;
 extern MultiAlignStoreT      *unitigStore;

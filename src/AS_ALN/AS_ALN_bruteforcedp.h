@@ -22,7 +22,7 @@
 #ifndef AS_ALN_BRUTEFORCEDP
 #define AS_ALN_BRUTEFORCEDP
 
-static const char *rcsid_AS_ALN_BRUTEFORCEDP = "$Id: AS_ALN_bruteforcedp.h,v 1.5 2009-01-06 15:50:27 skoren Exp $";
+static const char *rcsid_AS_ALN_BRUTEFORCEDP = "$Id: AS_ALN_bruteforcedp.h,v 1.6 2009-05-15 14:20:56 brianwalenz Exp $";
 
 
 typedef struct {
@@ -47,6 +47,8 @@ alignLinker(char           *alignA,
             char           *stringB,
             dpCell        (*M)[AS_READ_MAX_LEN + 1],
             alignLinker_s  *a,
-            int             endToEnd, int ahang, int bhang);
+            int             endToEnd,
+            int             allowNs,
+            int             ahang, int bhang);
 
 #endif  //  AS_ALN_BRUTEFORCEDP

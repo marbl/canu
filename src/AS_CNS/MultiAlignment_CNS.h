@@ -21,7 +21,7 @@
 #ifndef MULTIALIGNMENT_CNS_INCLUDE
 #define MULTIALIGNMENT_CNS_INCLUDE
 
-static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.48 2009-04-21 13:53:45 skoren Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.49 2009-05-15 14:20:56 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -118,5 +118,6 @@ void SequenceComplement(char *sequence, char *quality);
 
 extern int allow_forced_frags;
 extern int allow_neg_hang;
+extern int allow_contained_parent;
 
 #endif

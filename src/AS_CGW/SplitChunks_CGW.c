@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.39 2009-01-16 00:20:14 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.40 2009-05-15 14:20:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -925,7 +925,8 @@ StoreIUMStruct(ScaffoldGraphT *graph,
   //  now (2007-12-07) will try again, allowing negative hangs.
   //
   if (unitigFail) {
-    int  ov = VERBOSE_MULTIALIGN_OUTPUT, oh=allow_neg_hang;
+    int  ov = VERBOSE_MULTIALIGN_OUTPUT;
+    int  oa = allow_neg_hang;
 
     VERBOSE_MULTIALIGN_OUTPUT = 1;
     allow_neg_hang            = 1;
@@ -937,7 +938,24 @@ StoreIUMStruct(ScaffoldGraphT *graph,
                                   CNS_STATS_ONLY,
                                   NULL);
     VERBOSE_MULTIALIGN_OUTPUT = ov;
-    allow_neg_hang            = oh;
+    allow_neg_hang            = oa;
+  }
+
+  if (unitigFail) {
+    int  ov = VERBOSE_MULTIALIGN_OUTPUT;
+    int  oa = allow_contained_parent;
+
+    VERBOSE_MULTIALIGN_OUTPUT = 1;
+    allow_contained_parent    = 1;
+    unitigFail = MultiAlignUnitig(&(is->ium),
+                                  ScaffoldGraph->gkpStore,
+                                  is->sequence,
+                                  is->quality,
+                                  is->deltas,
+                                  CNS_STATS_ONLY,
+                                  NULL);
+    VERBOSE_MULTIALIGN_OUTPUT = ov;
+    allow_contained_parent    = oa;
   }
 
 

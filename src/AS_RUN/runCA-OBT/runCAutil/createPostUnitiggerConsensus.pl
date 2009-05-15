@@ -91,15 +91,49 @@ sub createPostUnitiggerConsensusJobs (@) {
     print F getBinDirectoryShellCode();
 
     if ($consensusType eq "cns") {
-       print F "\$bin/consensus \\\n";
-       print F "  -G -U \\\n";
-       print F "  -m -S \$jobp \\\n";
+       print F "\$bin/consensus -G -C -U -m \\\n";
+       #  Too expensive in general, let the fixUnitigs handle anything that fails here.
+       #print F "  -O $wrk/$asm.ovlStore \\\n" if (getGlobal('unitigger') eq "bog");
+       print F "  -S \$jobp \\\n";
        print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";
        print F "  $wrk/$asm.gkpStore \\\n";
        print F "  \$cgbfile \\\n";
-       print F " > $wrk/5-consensus/${asm}_\$jobp.err 2>&1 \\\n";
-       print F "&& \\\n";
-       print F "touch $wrk/5-consensus/${asm}_\$jobp.success\n";
+       print F " > $wrk/5-consensus/${asm}_\$jobp.err 2>&1\n";
+       print F "\n";
+       print F "if [ -e $wrk/5-consensus/${asm}_\$jobp.cgi_tmp ] ; then\n";
+       print F "  echo Yikes!  Consensus crashed.\n";
+       print F "  exit 1\n";
+       print F "fi\n";
+       print F "\n";
+       print F "\n";
+       print F "#  Attempt to autofix problems.\n";
+       print F "if [ -e $wrk/5-consensus/${asm}_\$jobp.cgi.failed ] ; then\n";
+       print F "  mv $wrk/5-consensus/${asm}_\$jobp.cgi.failed \\\n";
+       print F "     $wrk/5-consensus/${asm}_\$jobp.autofix.orig\n";
+       print F "\n";
+       print F "  \$bin/fixUnitigs -F -O $wrk/$asm.ovlStore \\\n";
+       print F "    < $wrk/5-consensus/${asm}_\$jobp.autofix.orig \\\n";
+       print F "    > $wrk/5-consensus/${asm}_\$jobp.autofix \\\n";
+       print F "   2> $wrk/5-consensus/${asm}_\$jobp.autofix.log\n";
+       print F "  \n";
+       print F "  \$bin/consensus -G -C -U -m \\\n";
+       print F "    -D verbosemultialign \\\n";
+       print F "    -O $wrk/$asm.ovlStore \\\n";
+       print F "    -S \$jobp \\\n";
+       print F "    -o $wrk/5-consensus/${asm}_\$jobp.autofix.cgi \\\n";
+       print F "    $wrk/$asm.gkpStore \\\n";
+       print F "    $wrk/5-consensus/${asm}_\$jobp.autofix \\\n";
+       print F "   > $wrk/5-consensus/${asm}_\$jobp.autofix.err 2>&1\n";
+       print F "  \n";
+       print F "fi\n";
+       print F "\n";
+       print F "\n";
+       print F "\n";
+       print F "if [ ! -e $wrk/5-consensus/${asm}_\$jobp.cgi.failed -a \\\n";
+       print F "     ! -e $wrk/5-consensus/${asm}_\$jobp.autofix.cgi.failed ] ; then\n";
+       print F "  touch $wrk/5-consensus/${asm}_\$jobp.success\n";
+       print F "fi\n";
+       print F "\n";
     } elsif ($consensusType eq "seqan") {
        print F "\$bin/SeqAn_CNS \\\n";
        print F "  -G $wrk/$asm.gkpStore \\\n";
