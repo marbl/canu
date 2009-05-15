@@ -122,24 +122,26 @@ sub overlapTrim {
         }
     }
 
-    if ((! -e "$wrk/0-overlaptrim/$asm.chimera.report") &&
-        (! -e "$wrk/0-overlaptrim/$asm.chimera.report.bz2")) {
+    if (getGlobal("doChimeraDetection") != 0) {
+        if ((! -e "$wrk/0-overlaptrim/$asm.chimera.report") &&
+            (! -e "$wrk/0-overlaptrim/$asm.chimera.report.bz2")) {
 
-        #  See comment on first backupFragStore() call.
-        backupFragStore("beforeChimera");
+            #  See comment on first backupFragStore() call.
+            backupFragStore("beforeChimera");
 
-        my $bin = getBinDirectory();
-        my $cmd;
-        $cmd  = "$bin/chimera ";
-        $cmd .= " -gkp $wrk/$asm.gkpStore ";
-        $cmd .= " -ovs $wrk/$asm.obtStore ";
-        $cmd .= " -summary $wrk/0-overlaptrim/$asm.chimera.summary ";
-        $cmd .= " -report  $wrk/0-overlaptrim/$asm.chimera.report ";
-        $cmd .= " > $wrk/0-overlaptrim/$asm.chimera.err 2>&1";
-        if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-            restoreFragStoreBackup("beforeChimera");
-            rename "$wrk/0-overlaptrim/$asm.chimera.report", "$wrk/0-overlaptrim/$asm.chimera.report.FAILED";
-            caFailure("chimera cleaning failed", "$wrk/0-overlaptrim/$asm.chimera.err");
+            my $bin = getBinDirectory();
+            my $cmd;
+            $cmd  = "$bin/chimera ";
+            $cmd .= " -gkp $wrk/$asm.gkpStore ";
+            $cmd .= " -ovs $wrk/$asm.obtStore ";
+            $cmd .= " -summary $wrk/0-overlaptrim/$asm.chimera.summary ";
+            $cmd .= " -report  $wrk/0-overlaptrim/$asm.chimera.report ";
+            $cmd .= " > $wrk/0-overlaptrim/$asm.chimera.err 2>&1";
+            if (runCommand("$wrk/0-overlaptrim", $cmd)) {
+                restoreFragStoreBackup("beforeChimera");
+                rename "$wrk/0-overlaptrim/$asm.chimera.report", "$wrk/0-overlaptrim/$asm.chimera.report.FAILED";
+                caFailure("chimera cleaning failed", "$wrk/0-overlaptrim/$asm.chimera.err");
+            }
         }
     }
 
