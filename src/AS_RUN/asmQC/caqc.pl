@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.30 2008-06-27 06:29:19 brianwalenz Exp $
+# $Id: caqc.pl,v 1.31 2009-05-15 17:57:26 skoren Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -20,7 +20,7 @@ use File::Copy;
 use Math::BigFloat;
 use FindBin qw($Bin);
 
-my $MY_VERSION = "caqc Version 2.13 (Build " . (qw/$Revision: 1.30 $/)[1] . ")";
+my $MY_VERSION = "caqc Version 2.13 (Build " . (qw/$Revision: 1.31 $/)[1] . ")";
 
 # Constants
 my $MINQUAL    = 20;
@@ -668,6 +668,7 @@ MAIN:
     my %inscaff;            # contigs in scaffolds
     my %adjscaflen;         # length of scaffold including inner-scaffold gaps
     my %readlens;           # sum of lengths of reads in contig
+    my %varctg;             # number of var records in a contig
     my %utgFrags;           # frags in surrogate unitigs
     my %libs_initial;       # the libraries for a project before assembly
     my %libs_final;         # the libraries for a project after assembly
@@ -679,8 +680,7 @@ MAIN:
     my $ncontigs                = 0;
     my $nunitigs                = 0;
     my $uunitigs                = 0;     #Daniela Nov 16th 2005
-    my $numSingletons           = 0;     #VI
-    my $numVarRecords           = 0;     #VI
+    my $numSingletons           = 0;     #VI    
     my $lenPlacedSurrogates     = 0;     #VI
     my $numPlacedSurrogates     = 0;     #VI
     my $numPlacedSurrogateFrags = 0;     #VI
@@ -790,7 +790,7 @@ MAIN:
                     }
                 }
                 elsif ( $sid eq 'VAR' ) {
-                    $numVarRecords++;
+                    $varctg{$contig_euid}++;
                 }
             }
         }    # if $type = CCO
@@ -1109,8 +1109,9 @@ MAIN:
     $Results{SurrogateReads}            = 0;
     $Results{SingletonReads}            = 0;
     $Results{SingletonPercentBases}     = 0.0;
+    $Results{TotalVarRecords}           = 0;
+    $Results{DegenVarRecords}           = 0;
     $Results{ChaffReads}                = $numSingletons;
-    $Results{TotalVarRecords}           = $numVarRecords;
     $Results{AllReads}                  = 0.0;
     $Results{ContigsOnly}               = 0.0;
     $Results{Contigs_Surrogates}        = 0.0;
@@ -1198,6 +1199,7 @@ MAIN:
         my $max;
         my $totlen;
         my $nseq;
+        my $vars;
 
         if ( exists $inscaff{$contig_id} ) {    # the good guys
             if ( $len >= $MINCONTIG ) {         # the good big guys
@@ -1214,6 +1216,7 @@ MAIN:
                 $totlen = 'SmallContigLength';
                 $nseq   = 'SmallContigReads';
             }
+            $vars   = 'TotalVarRecords';
             $contigReadLen += $readlens{$contig_id};
         }
         else {                                  # the chaff
@@ -1222,6 +1225,7 @@ MAIN:
             $max    = 'MaxDegenContig';
             $totlen = 'DegenContigLength';
             $nseq   = 'DegenContigReads';
+            $vars   = 'DegenVarRecords';
             $degenReadLen += $readlens{$contig_id};
         }
 
@@ -1230,6 +1234,7 @@ MAIN:
         $Results{$number}++;
         $Results{$totlen} += $len;
         $Results{$nseq}   += $seqs{$contig_id};
+        $Results{$vars} += $varctg{$contig_id};
     }    # for $i < $ncontigs
 
     #This is the same thing as TotalContigsInScaffolds
@@ -1584,6 +1589,7 @@ MAIN:
     $fh->print("[DegenContigs]\n");
     printl( 'TotalDegenContigs', \%Results, $fh );
     printl( 'DegenContigLength', \%Results, $fh );
+    printl( 'DegenVarRecords',         \%Results, $fh );
     printld( 'MeanDegenContigLength', \%Results, $fh );
     printl( 'MinDegenContig', \%Results, $fh );
     printl( 'MaxDegenContig', \%Results, $fh );
