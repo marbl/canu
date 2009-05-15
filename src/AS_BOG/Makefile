@@ -28,10 +28,10 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 LIB_SOURCES = AS_BOG_BestOverlapGraph.cc AS_BOG_ChunkGraph.cc AS_BOG_MateChecker.cc AS_BOG_Unitig.cc AS_BOG_UnitigGraph.cc
 LIB_OBJECTS = $(LIB_SOURCES:.cc=.o)
 
-SOURCES     = BuildUnitigs.cc $(LIB_SOURCES)
-OBJECTS     = BuildUnitigs.o  $(LIB_OBJECTS)
+SOURCES     = BuildUnitigs.cc fixUnitigs.c $(LIB_SOURCES)
+OBJECTS     = BuildUnitigs.o  fixUnitigs.o $(LIB_OBJECTS)
 
-CXX_PROGS = buildUnitigs
+CXX_PROGS = buildUnitigs fixUnitigs
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -40,3 +40,4 @@ all:    $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
 buildUnitigs: BuildUnitigs.o $(LIB_OBJECTS) libCA.a
+fixUnitigs:   fixUnitigs.o                  libCA.a
