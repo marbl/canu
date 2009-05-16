@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.9 2009-05-15 14:20:56 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.10 2009-05-16 16:38:26 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_ALN_bruteforcedp.h"
@@ -88,8 +88,6 @@ alignLinker(char           *alignA,
 #endif
 
 
-
-
   if (endToEnd) {
     //  Looking for best global-ish alignment.  Hitting ends of
     //  sequences is deadly, unless they are where we expect to end.
@@ -104,7 +102,7 @@ alignLinker(char           *alignA,
     jbgn = (ahang < 0) ? (-ahang+1) : (1);
     jend = (bhang < 0) ? (lenB) : (lenB - bhang);
 
-    //fprintf(stderr, "bgn: %d,%d  end: %d,%d\n", ibgn, jbgn, iend, jend);
+    //fprintf(stderr, "bgn: %d,%d  end: %d,%d  lens: %d,%d hangs: %d,%d\n", ibgn, jbgn, iend, jend, lenA, lenB, ahang, bhang);
 
     //  To easily allow a little slip in the starting position, we
     //  shift the Border of Death a little to the origin.  Ideally, we
