@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.234 2009-05-15 14:20:56 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.235 2009-05-16 16:39:47 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -80,7 +80,7 @@ double lScoreAve = 0.0;
 double aScoreAve = 0.0;
 double bScoreAve = 0.0;
 
-double acceptThreshold = 1.0 / 3.0;
+double acceptThreshold = 0.1;  //1.0 / 3.0;
 
 //====================================================================
 // Stores for the sequence/quality/alignment information
@@ -3920,17 +3920,26 @@ void ReportOverlap(FILE *fp, AS_ALN_Aligner *alignFunction, CNS_AlignParams para
   if (O->begpos < 0 ) fprintf(fp,"Beware, encountered unexpected negative ahang!\n");
 }
 
+static
 int
 ScoreOverlap(Overlap *O,
-             int expected_length,
-             int ahang_input,
-             int bhang_input,
+             int      expected_length,
+             int      ahang_input,
+             int      bhang_input,
+             double   maxerate,
              double  *lScore_out,
              double  *aScore_out,
              double  *bScore_out) {
 
   if (O == NULL)
     return(0);
+
+  if (((double)O->diffs / (double)O->length) > maxerate) {
+    if (VERBOSE_MULTIALIGN_OUTPUT)
+      fprintf(stderr,"GetAlignmentTrace()-- Overlap rejected.  erate %f > max allowed %f\n",
+              (double)O->diffs / (double)O->length, maxerate);
+    return(0);
+  }
 
   double lScore = (O->length - expected_length) / (double)expected_length;
   double aScore = (O->begpos - ahang_input)     / (double)100.0;
@@ -4097,7 +4106,7 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
   if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
     O = NULL;
-  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, params.erate, NULL, NULL, NULL) == 0)
     O = NULL;
   if ((O) || (alignFunction == Optimal_Overlap_AS_forCNS))
     goto GetAlignmentTrace_ScoreOverlap;
@@ -4115,7 +4124,7 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
   if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
     O = NULL;
-  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, params.erate, NULL, NULL, NULL) == 0)
     O = NULL;
   if (O)
     goto GetAlignmentTrace_ScoreOverlap;
@@ -4134,7 +4143,7 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
     O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
     if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
       O = NULL;
-    if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+    if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, params.erate, NULL, NULL, NULL) == 0)
       O = NULL;
     if (O)
       goto GetAlignmentTrace_ScoreOverlap;
@@ -4167,7 +4176,7 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
   if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
     O = NULL;
-  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, params.erate, NULL, NULL, NULL) == 0)
     O = NULL;
   if (O)
     goto GetAlignmentTrace_ScoreOverlap;
@@ -4187,7 +4196,7 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
   if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
     O = NULL;
-  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, params.erate, NULL, NULL, NULL) == 0)
     O = NULL;
   if (O)
     goto GetAlignmentTrace_ScoreOverlap;
@@ -4207,7 +4216,7 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
   if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
     O = NULL;
-  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, params.erate, NULL, NULL, NULL) == 0)
     O = NULL;
   if (O)
     goto GetAlignmentTrace_ScoreOverlap;
@@ -4228,7 +4237,7 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
   if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
     O = NULL;
-  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, params.erate, NULL, NULL, NULL) == 0)
     O = NULL;
   if (O)
     goto GetAlignmentTrace_ScoreOverlap;
@@ -4249,7 +4258,7 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
   if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
     O = NULL;
-  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, params.erate, NULL, NULL, NULL) == 0)
     O = NULL;
   if (O)
     goto GetAlignmentTrace_ScoreOverlap;
@@ -4296,7 +4305,7 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   }
   if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
     O = NULL;
-  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, params.erate, NULL, NULL, NULL) == 0)
     O = NULL;
   if (O)
     goto GetAlignmentTrace_ScoreOverlap;
@@ -4317,7 +4326,7 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   }
   if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
     O = NULL;
-  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, params.erate, NULL, NULL, NULL) == 0)
     O = NULL;
   if (O)
     goto GetAlignmentTrace_ScoreOverlap;
@@ -4340,7 +4349,7 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   }
   if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
     O = NULL;
-  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, params.erate, NULL, NULL, NULL) == 0)
     O = NULL;
   if (O)
     goto GetAlignmentTrace_ScoreOverlap;
@@ -4368,7 +4377,7 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   }
   if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
     O = NULL;
-  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, params.erate, NULL, NULL, NULL) == 0)
     O = NULL;
   if (O)
     goto GetAlignmentTrace_ScoreOverlap;
@@ -4405,7 +4414,7 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   }
   if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
     O = NULL;
-  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, NULL, NULL, NULL) == 0)
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, params.erate, NULL, NULL, NULL) == 0)
     O = NULL;
   if (O)
     goto GetAlignmentTrace_ScoreOverlap;
@@ -4447,7 +4456,7 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   double  aScore = 0.0;
   double  bScore = 0.0;
 
-  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, &lScore, &aScore, &bScore) == 0) {
+  if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, params.erate, &lScore, &aScore, &bScore) == 0) {
     //  Bad.
     //
     //  Should never occur as we throw out bad overlaps as soon as we generate them.
@@ -4506,6 +4515,7 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
 }
 
 
+static
 int
 GetAlignmentTraceDriver(Fragment *afrag, int32 aoffset,
                         Fragment *bfrag,
@@ -7798,6 +7808,7 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
     int         olap_success = 0;
     OverlapType otype        = 0;
 
+    int         ovl          = 0;
 
     if (VERBOSE_MULTIALIGN_OUTPUT) {
       fprintf(stderr, "\n");
@@ -7805,10 +7816,69 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
               unitig->f_list[i].ident, i);
     }
 
+    //  If we have a parent, assume the hangs are correct and just
+    //  align to it.  If that works, we're done.
+    //
+    if (unitig->f_list[i].parent > 0) {
+
+      //  Search for the parent fragment
+      //
+      for (align_to = i-1; align_to >= 0; align_to--) {
+        afrag = GetFragment(fragmentStore, align_to);
+        if (unitig->f_list[i].parent == afrag->iid) {
+          ahang = unitig->f_list[i].ahang;
+          bhang = unitig->f_list[i].bhang;
+
+          //  Here, we trust the hangs more than the placement, but we
+          //  cannot compute the overlap length from just the hangs (OK,
+          //  we could, using the fragment length, I guess).
+
+          if (ahang > 0)
+            if (bhang > 0)
+              //  normal dovetail
+              ovl = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
+            else
+              //  b is contained in a
+              //ovl = offsets[bfrag->lid].end - offsets[bfrag->lid].bgn;
+              ovl = bfrag->length;
+          else
+            //  We don't expect these to occur.
+            if (bhang > 0)
+              //  a is contained in b
+              //ovl = offsets[afrag->lid].end - offsets[afrag->lid].bgn;
+              ovl = afrag->length;
+            else
+              //  anti normal dovetail
+              ovl = offsets[bfrag->lid].end - offsets[afrag->lid].bgn;
+
+          if (VERBOSE_MULTIALIGN_OUTPUT)
+            fprintf(stderr, "MultiAlignUnitig()-- (par) ovl=%d (afrag: lid=%d %d-%d  bfrag: lid=%d %d-%d  hangs: %d %d\n",
+                    ovl,
+                    afrag->lid, offsets[afrag->lid].bgn, offsets[afrag->lid].end,
+                    bfrag->lid, offsets[bfrag->lid].bgn, offsets[bfrag->lid].end,
+                    ahang, bhang);
+
+          olap_success = GetAlignmentTraceDriver(afrag, 0,
+                                                 bfrag,
+                                                 &ahang, &bhang, ovl,
+                                                 trace,
+                                                 &otype,
+                                                 'u',
+                                                 0);
+          //  We're done with the loop now.  Continue; if we found an
+          //  overlap, we skip the while loop below and process this
+          //  overlap.
+
+          break;
+        }  //  Found the parent
+      }  //  Over all potential parent fragments
+    }  //  No parent
+
+
+
     while (! olap_success) {
       int         allow_neg_hang_once = 0;
       int         ahangvalid   = 0;
-      int         ovl          = 0;
 
       if (align_to < 0) {
         if (VERBOSE_MULTIALIGN_OUTPUT)
