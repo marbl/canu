@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.21 2009-05-15 14:20:56 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.22 2009-05-18 07:49:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -583,7 +583,7 @@ loadSFF(char *sffName) {
 //
 //
 void
-removeLowQualityReads(void) {
+removeNReads(void) {
   uint32        firstElem = getFirstElemFragStore(gkpStore);
   uint32        lastElem  = getLastElemFragStore(gkpStore) + 1;
   uint32        thisElem  = 0;
@@ -593,11 +593,14 @@ removeLowQualityReads(void) {
 
   fragRecord    fr        = {0};
 
-  fprintf(stderr, "removeLowQualityReads()--  from %d to %d\n", firstElem, lastElem);
+  if (Nread == NREAD_ALLOW)
+    return;
+
+  fprintf(stderr, "removeNReads()--  from %d to %d\n", firstElem, lastElem);
 
   for (thisElem=firstElem; thisElem<lastElem; thisElem++) {
     if ((thisElem % 1000000) == 0)
-      fprintf(stderr, "removeLowQualityReads()--  at %d\n", thisElem);
+      fprintf(stderr, "removeNReads()--  at %d\n", thisElem);
 
     getFrag(gkpStore, thisElem, &fr, FRAG_S_INF | FRAG_S_SEQ);
 
@@ -625,10 +628,6 @@ removeLowQualityReads(void) {
       //  Found an N, do something.
 
       switch (Nread) {
-        case NREAD_ALLOW:
-          //  Do nothing, allow the read with an N.
-          break;
-
         case NREAD_DISCARD:
           //  Just delete it.
           fr.gkfr.deleted = 1;
@@ -657,7 +656,7 @@ removeLowQualityReads(void) {
     }
   }
 
-  fprintf(stderr, "removeLowQualityReads()--  finished\n");
+  fprintf(stderr, "removeNReads()--  finished\n");
 }
 
 
@@ -1466,9 +1465,10 @@ main(int argc, char **argv) {
   char     *outputName       = 0L;
   FILE     *outputFile       = 0L;
   int       firstFileArg     = 0;
-  char      gkpStoreName[FILENAME_MAX];
+  char      gkpStoreName[FILENAME_MAX] = {0};
   char     *logFileName      = 0L;
 
+  bool      doDeDup          = 1;
 
   // initialize linker search structure
   // One array stores the character sequences of the linker
@@ -1570,6 +1570,9 @@ main(int argc, char **argv) {
         }
       }
 
+    } else if (strcmp(argv[arg], "-nodedup") == 0) {
+      doDeDup = 0;
+
     } else if (strcmp(argv[arg], "-output") == 0) {
       outputName = argv[++arg];
 
@@ -1631,6 +1634,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "                           'flx'      == %s\n", linkerFLX);
     fprintf(stderr, "                           'titanium' == %s and %s\n", linkerFIX, linkerRevFIX);
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -nodedup               Do not remove reads that are a perfect prefix of another read.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -output f.frg          Write the CA formatted fragments to this file.\n");
     fprintf(stderr, "  -log    l.txt          Human readable log of what happened.\n");
     fprintf(stderr, "  -logmates              Also include information about mate splitting in the log.\n");
@@ -1686,8 +1691,11 @@ main(int argc, char **argv) {
   for (; firstFileArg < argc; firstFileArg++)
     loadSFF(argv[firstFileArg]);
 
-  removeLowQualityReads();
-  removeDuplicateReads();
+  if (Nread != NREAD_ALLOW)
+    removeNReads();
+
+  if (doDeDup)
+    removeDuplicateReads();
 
   if (haveLinker)
     detectMates(linker, search);
