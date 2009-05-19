@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.235 2009-05-16 16:39:47 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.236 2009-05-19 06:19:24 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -8052,9 +8052,12 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
       //  If the bfrag is marked as contained, require that it be
       //  contained in the overlap.  This test is after the negative
       //  ahang test, and we allow whatever ahang passed.  We only
-      //  need to check that the bhang indicates containment.
+      //  need to check that the bhang indicates containment (and that
+      //  we're not to the expected container).
       //
-      if ((bfrag->container_iid > 0) && (bhang > 0)) {
+      if ((bfrag->container_iid > 0) &&
+          (bhang > 0) &&
+          (bfrag->container_iid != afrag->iid)){
         if (VERBOSE_MULTIALIGN_OUTPUT)
           fprintf(stderr, "MultiAlignUnitig()-- afrag %d is not container of contained bfrag %d; proceed to the next upstraem afrag\n",
                   afrag->iid, bfrag->iid);
