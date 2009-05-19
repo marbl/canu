@@ -132,7 +132,7 @@ sub createPostScaffolderConsensusJobs ($) {
         my $sgeConsensus = getGlobal("sgeConsensus");
 
         my $SGE;
-        $SGE  = "qsub $sge $sgeConsensus -N ctg_$asm ";
+        $SGE  = "qsub $sge $sgeConsensus -cwd -N ctg_$asm ";
         $SGE .= "-t 1-$jobs ";
         $SGE .= "-j y -o /dev/null ";
         $SGE .= "$wrk/8-consensus/consensus.sh\n";

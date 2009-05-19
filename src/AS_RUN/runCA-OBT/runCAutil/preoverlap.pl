@@ -183,9 +183,9 @@ sub preoverlap {
 
                     my $bin = getBinDirectory();
 
-                    if (runCommand($wrk, "$bin/sffToCA -libraryname $nam -linker flx -insertsize 3000 300 -log $log -output $frg $sff > sffToCA.$frg.err 2>&1")) {
-                        unlink "$wrk/$frg.sff.frg";
-                        caFailure("sffToCA failed", "sffToCA.$frg.err");
+                    if (runCommand($wrk, "$bin/sffToCA -libraryname $nam -linker flx -insertsize 3000 300 -log $log -output $frg $sff > $frg.err 2>&1")) {
+                        unlink "$wrk/$frg";
+                        caFailure("sffToCA failed", "$frg.err");
                     }
                 }
             }

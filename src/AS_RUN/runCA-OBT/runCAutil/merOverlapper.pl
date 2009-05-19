@@ -245,7 +245,7 @@ sub merOverlapper($) {
             my $sgeOverlap = getGlobal("sgeMerOverlapSeed");
 
             my $SGE;
-            $SGE  = "qsub $sge $sgeOverlap -N mer_$asm \\\n";
+            $SGE  = "qsub $sge $sgeOverlap -cwd -N mer_$asm \\\n";
             $SGE .= "  -t 1-$ovmJobs \\\n";
             $SGE .= "  -j y -o $wrk/$outDir/seeds/\\\$TASK_ID.out \\\n";
             $SGE .= "  $wrk/$outDir/overmerry.sh\n";
@@ -317,7 +317,7 @@ sub merOverlapper($) {
             my $sgeOverlap = getGlobal("sgeMerOverlapExtend");
 
             my $SGE;
-            $SGE  = "qsub $sge $sgeOverlap -N olp_$asm \\\n";
+            $SGE  = "qsub $sge $sgeOverlap -cwd -N olp_$asm \\\n";
             $SGE .= "  -t 1-$olpJobs \\\n";
             $SGE .= "  -j y -o $wrk/$outDir/olaps/\\\$TASK_ID.out \\\n";
             $SGE .= "  $wrk/$outDir/olap-from-seeds.sh\n";

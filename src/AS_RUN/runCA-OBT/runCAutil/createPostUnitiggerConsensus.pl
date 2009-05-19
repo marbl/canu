@@ -156,7 +156,7 @@ sub createPostUnitiggerConsensusJobs (@) {
         my $sgeConsensus = getGlobal("sgeConsensus");
 
         my $SGE;
-        $SGE  = "qsub $sge $sgeConsensus -N utg_$asm ";
+        $SGE  = "qsub $sge $sgeConsensus -cwd -N utg_$asm ";
         $SGE .= "-t 1-$jobs ";
         $SGE .= "-j y -o /dev/null ";
         $SGE .= "$wrk/5-consensus/consensus.sh\n";

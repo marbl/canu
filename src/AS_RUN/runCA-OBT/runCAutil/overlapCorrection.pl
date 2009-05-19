@@ -72,7 +72,7 @@ sub overlapCorrection {
             my $sgeFragmentCorrection = getGlobal("sgeFragmentCorrection");
 
             my $SGE;
-            $SGE  = "qsub $sge $sgeFragmentCorrection -N frg_$asm ";
+            $SGE  = "qsub $sge $sgeFragmentCorrection -cwd -N frg_$asm ";
             $SGE .= "-t 1-$jobs ";
             $SGE .= " -j y -o $wrk/3-overlapcorrection/\\\$TASK_ID.err ";
             $SGE .= "$wrk/3-overlapcorrection/frgcorr.sh\n";
@@ -206,7 +206,7 @@ sub overlapCorrection {
             my $sgeOverlapCorrection  = getGlobal("sgeOverlapCorrection");
 
             my $SGE;
-            $SGE  = "qsub $sge $sgeOverlapCorrection -N ovc_$asm ";
+            $SGE  = "qsub $sge $sgeOverlapCorrection -cwd -N ovc_$asm ";
             $SGE .= "-t 1-$jobs ";
             $SGE .= " -j y -o $wrk/3-overlapcorrection/\\\$TASK_ID.err ";
             $SGE .= "$wrk/3-overlapcorrection/ovlcorr.sh\n";
