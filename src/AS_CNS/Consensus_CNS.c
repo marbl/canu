@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: Consensus_CNS.c,v 1.76 2009-05-21 02:24:37 brianwalenz Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.77 2009-05-21 03:50:03 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -424,7 +424,7 @@ main (int argc, char **argv) {
         }
       }
 
-      if (contigsuccess == FALSE) {
+      if (contigsuccess == TRUE) {
         if ( printwhat == CNS_CONSENSUS && pcontig->num_pieces > 0) {
           MultiAlignT   *ma = NULL;
           ma = CreateMultiAlignTFromICM(pcontig,-1,0);
