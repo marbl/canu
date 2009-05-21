@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: SharedOVL.c,v 1.11 2009-02-23 01:15:30 brianwalenz Exp $";
+static const char *rcsid = "$Id: SharedOVL.c,v 1.12 2009-05-21 02:24:37 brianwalenz Exp $";
 
 #include  "SharedOVL.h"
 
@@ -1341,7 +1341,7 @@ void  Set_Fwd_Banded_Delta
            fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
            fprintf (stderr, "Bad from value = %d  r = %d  c = %d\n", curr -> from,
                 r, c);
-           exit (EXIT_FAILURE);
+           exit (1);
         }
      }
 

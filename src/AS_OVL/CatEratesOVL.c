@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CatEratesOVL.c,v 1.14 2008-10-08 22:02:58 brianwalenz Exp $
- * $Revision: 1.14 $
+ * $Id: CatEratesOVL.c,v 1.15 2009-05-21 02:24:37 brianwalenz Exp $
+ * $Revision: 1.15 $
 */
 
-static char *rcsid = "$Id: CatEratesOVL.c,v 1.14 2008-10-08 22:02:58 brianwalenz Exp $";
+static char *rcsid = "$Id: CatEratesOVL.c,v 1.15 2009-05-21 02:24:37 brianwalenz Exp $";
 
 
 //  System include files
@@ -243,14 +243,14 @@ static void  Parse_Command_Line
    if  (errflg)
        {
         Usage (argv [0]);
-        exit (EXIT_FAILURE);
+        exit (1);
        }
 
    if  (Outfile_Path == NULL)
        {
         fprintf (stderr, "No output file specified with -o\n");
         Usage (argv [0]);
-        exit (EXIT_FAILURE);
+        exit (1);
        }
 
    if  (File_List_Path != NULL)
@@ -279,7 +279,7 @@ static void  Parse_Command_Line
        {
         fprintf (stderr, "ERROR:  No erate files specified\n");
         Usage (argv [0]);
-        exit (EXIT_FAILURE);
+        exit (1);
        }
    for  (i = 0;  i < n;  i ++)
      {

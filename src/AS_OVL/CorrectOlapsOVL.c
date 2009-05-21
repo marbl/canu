@@ -33,7 +33,7 @@
 *
 *************************************************/
 
-const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.37 2009-01-16 16:46:36 skoren Exp $";
+const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.38 2009-05-21 02:24:37 brianwalenz Exp $";
 
 //  System include files
 
@@ -1312,7 +1312,7 @@ static void  Make_Rev_Adjust
                     "  i = %d  adj_ct = %d  adjust [i] = %d  adjust [i - 1] = %d\n",
                     i, adj_ct, forw_adj [i] . adjust,
                     forw_adj [i - 1] . adjust);
-           exit (EXIT_FAILURE);
+           exit (1);
           }
       j ++;
      }
@@ -1333,7 +1333,7 @@ static void  Make_Rev_Adjust
         fprintf (stderr,
                  "  i = %d  adj_ct = %d  adjust [i] = %d\n",
                  i, adj_ct, forw_adj [i] . adjust);
-        exit (EXIT_FAILURE);
+        exit (1);
        }
 
    return;
@@ -1544,13 +1544,13 @@ static void  Parse_Command_Line
    if  (errflg || optind != argc - 4)
        {
         Usage (argv [0]);
-        exit (EXIT_FAILURE);
+        exit (1);
        }
 
    if  (Olap_Path == NULL)
        {
         fprintf (stderr, "ERROR:  Must specify overlaps with -F or -S\n");
-        exit (EXIT_FAILURE);
+        exit (1);
        }
 
    gkpStore_Path = argv [optind ++];
@@ -1563,7 +1563,7 @@ static void  Parse_Command_Line
         fprintf (stderr, "ERROR:  Illegal low fragment IID \"%s\"\n",
                  argv [optind]);
         Usage (argv [0]);
-        exit (EXIT_FAILURE);
+        exit (1);
        }
    optind ++;
 
@@ -1579,7 +1579,7 @@ static void  Parse_Command_Line
         fprintf (stderr, "ERROR:  Illegal high fragment IID \"%s\"\n",
                  argv [optind]);
         Usage (argv [0]);
-        exit (EXIT_FAILURE);
+        exit (1);
        }
 
    fprintf (stderr, "Quality Threshold = %.2f%%\n", 100.0 * Quality_Threshold);

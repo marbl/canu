@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: Consensus_CNS.c,v 1.75 2009-05-15 14:20:56 brianwalenz Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.76 2009-05-21 02:24:37 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -316,7 +316,7 @@ main (int argc, char **argv) {
 
     if (pmesg->t == MESG_IUM) {
       IntUnitigMesg *iunitig = (IntUnitigMesg *)(pmesg->m);
-      int            unitigfail = 0;
+      int            unitigsuccess = 0;
 
       if (extract > -1 && iunitig->iaccession != extract)
         break;
@@ -326,31 +326,31 @@ main (int argc, char **argv) {
                 iunitig->iaccession,
                 (double)iunitig->num_frags / iunitig->length);
 
-      unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, &options);
+      unitigsuccess = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, &options);
 
-      if ((unitigfail == EXIT_FAILURE) &&
+      if ((unitigsuccess == FALSE) &&
           (allow_neg_hang_retry) &&
           (allow_neg_hang == 0)) {
         fprintf(stderr, "MultiAlignUnitig()-- Try unitig %d again with negative hangs allowed\n", iunitig->iaccession);
         allow_neg_hang = 1;
-        unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, &options);
+        unitigsuccess = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, &options);
         allow_neg_hang = 0;
-        if (unitigfail != EXIT_FAILURE)
+        if (unitigsuccess == TRUE)
           NumUnitigRetrySuccess++;
       }
 
-      if ((unitigfail == EXIT_FAILURE) &&
+      if ((unitigsuccess == FALSE) &&
           (allow_contained_parent_retry) &&
           (allow_contained_parent == 0)) {
         fprintf(stderr, "MultiAlignUnitig()-- Try unitig %d again allowing alignments to contained parents\n", iunitig->iaccession);
         allow_contained_parent = 1;
-        unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, &options);
+        unitigsuccess = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, &options);
         allow_contained_parent = 0;
-        if (unitigfail != EXIT_FAILURE)
+        if (unitigsuccess == TRUE)
           NumUnitigRetrySuccess++;
       }
 
-      if ((unitigfail == EXIT_FAILURE) &&
+      if ((unitigsuccess == FALSE) &&
           (allow_neg_hang_retry) &&
           (allow_neg_hang == 0) &&
           (allow_contained_parent_retry) &&
@@ -358,14 +358,14 @@ main (int argc, char **argv) {
         fprintf(stderr, "MultiAlignUnitig()-- Try unitig %d again with both negative hangs allowed and allowing alignments to contained parents\n", iunitig->iaccession);
         allow_neg_hang = 1;
         allow_contained_parent = 1;
-        unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, &options);
+        unitigsuccess = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, &options);
         allow_neg_hang = 0;
         allow_contained_parent = 0;
-        if (unitigfail != EXIT_FAILURE)
+        if (unitigsuccess == TRUE)
           NumUnitigRetrySuccess++;
       }
 
-      if (unitigfail == EXIT_FAILURE) {
+      if (unitigsuccess == FALSE) {
         num_unitig_failures++;
         if (num_unitig_failures <= MAX_NUM_UNITIG_FAILURES) {
           writeFailure(outName, pmesg);
@@ -375,7 +375,7 @@ main (int argc, char **argv) {
         }
       }
 
-      if (unitigfail == EXIT_SUCCESS) {
+      if (unitigsuccess == TRUE) {
         if (saveUnitigMultiAlign)
           SetMultiAlignInStore(unitigStore,
                                iunitig->iaccession,
@@ -388,7 +388,7 @@ main (int argc, char **argv) {
 
     } else if (pmesg->t == MESG_ICM) {
       IntConConMesg *pcontig = (IntConConMesg *)(pmesg->m);
-      int            contigFail = 0;
+      int            contigsuccess = 0;
 
       if (extract > -1 && pcontig->iaccession != extract)
         break;
@@ -407,12 +407,12 @@ main (int argc, char **argv) {
                 pcontig->iaccession,
                 (double)pcontig->num_pieces / pcontig->length);
         num_contig_skips++;
-        contigFail = EXIT_SUCCESS;
+        contigsuccess = TRUE;
       } else {
-        contigFail = MultiAlignContig(pcontig, sequence, quality, deltas, printwhat, &options);
+        contigsuccess = MultiAlignContig(pcontig, sequence, quality, deltas, printwhat, &options);
       }
 
-      if (contigFail == EXIT_FAILURE) {
+      if (contigsuccess == FALSE) {
         num_contig_failures++;
 
         if (num_contig_failures <= MAX_NUM_CONTIG_FAILURES) {
@@ -424,7 +424,7 @@ main (int argc, char **argv) {
         }
       }
 
-      if (contigFail == EXIT_SUCCESS) {
+      if (contigsuccess == FALSE) {
         if ( printwhat == CNS_CONSENSUS && pcontig->num_pieces > 0) {
           MultiAlignT   *ma = NULL;
           ma = CreateMultiAlignTFromICM(pcontig,-1,0);

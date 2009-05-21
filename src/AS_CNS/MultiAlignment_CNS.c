@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.236 2009-05-19 06:19:24 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.237 2009-05-21 02:24:37 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -8237,7 +8237,7 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
 
   safe_free(offsets);
 
-  return EXIT_SUCCESS;
+  return(TRUE);
 
  MAUnitigFailure:
   DeleteVA_int32(trace);
@@ -8246,7 +8246,7 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
 
   safe_free(offsets);
 
-  return EXIT_FAILURE;
+  return(FALSE);
 }
 
 int IsDovetail(SeqInterval a,SeqInterval b) {
@@ -8422,7 +8422,7 @@ MultiAlignContig(IntConConMesg *contig,
   int32         nv = 0;
 
   if (contig == NULL)
-    return EXIT_FAILURE;
+    return(FALSE);
 
   num_unitigs            = contig->num_unitigs;
   num_frags              = contig->num_pieces;
@@ -8705,7 +8705,7 @@ MultiAlignContig(IntConConMesg *contig,
   fragmentMap = NULL;
   DeleteHashTable_AS(fragmentToIMP);
   fragmentToIMP = NULL;
-  return(EXIT_SUCCESS);
+  return(TRUE);
 
  returnFailure:
   safe_free(offsets);
@@ -8714,7 +8714,7 @@ MultiAlignContig(IntConConMesg *contig,
   fragmentMap = NULL;
   DeleteHashTable_AS(fragmentToIMP);
   fragmentToIMP = NULL;
-  return(EXIT_FAILURE);
+  return(FALSE);
 }
 ////////////////////////////////////////
 

@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: ShowCorrectsOVL.c,v 1.12 2008-10-08 22:02:58 brianwalenz Exp $
- * $Revision: 1.12 $
+ * $Id: ShowCorrectsOVL.c,v 1.13 2009-05-21 02:24:37 brianwalenz Exp $
+ * $Revision: 1.13 $
 */
 
-static char *rcsid = "$Id: ShowCorrectsOVL.c,v 1.12 2008-10-08 22:02:58 brianwalenz Exp $";
+static char *rcsid = "$Id: ShowCorrectsOVL.c,v 1.13 2009-05-21 02:24:37 brianwalenz Exp $";
 
 
 //  System include files
@@ -82,7 +82,7 @@ int  main
    if  (argc < 2)
        {
         Usage (argv [0]);
-        exit (EXIT_FAILURE);
+        exit (1);
        }
 
    fp = File_Open (argv [1], "rb");

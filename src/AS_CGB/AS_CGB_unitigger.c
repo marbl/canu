@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.37 2009-01-02 06:42:52 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.38 2009-05-21 02:24:37 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_Bubble.h"
@@ -384,7 +384,7 @@ ParseCommandLine(UnitiggerGlobals * rg,
             "\t-z <int>        Containment outgoing degree threshold per fragment-end.\n"
             ,
             argv[0]);
-    exit (EXIT_FAILURE);
+    exit (1);
   }
 
   /* The remaining command line arguments are input Assembler

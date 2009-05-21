@@ -25,7 +25,7 @@
 //   Programmer:  A. Delcher
 //      Started:   4 Dec 2000
 
-const char *mainid = "$Id: FragCorrectOVL.c,v 1.30 2009-01-16 16:46:36 skoren Exp $";
+const char *mainid = "$Id: FragCorrectOVL.c,v 1.31 2009-05-21 02:24:37 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -1907,7 +1907,7 @@ static void  Read_Frags
        {
         fprintf (stderr, "ERROR:  Hi frag %d is past last store frag %d\n",
                  Hi_Frag_IID, high_store_frag);
-        exit (EXIT_FAILURE);
+        exit (1);
        }
 
    Num_Frags = 1 + Hi_Frag_IID - Lo_Frag_IID;
@@ -2046,7 +2046,7 @@ static void  Read_Olaps
         if  (Num_Olaps == 0)
             {
              fprintf (stderr, "No overlaps read, nothing to do\n");
-             exit (EXIT_FAILURE);
+             exit (1);
             }
 
         Olap = (Olap_Info_t *) safe_realloc (Olap, Num_Olaps * sizeof (Olap_Info_t));
@@ -2187,7 +2187,7 @@ void *  Threaded_Process_Stream
            fprintf (stderr, "frag_list iid = %d  next_olap = %d  i = %d\n",
                     wa -> frag_list -> entry [i] . id,
                     Olap [wa -> next_olap] . b_iid, i);
-           exit (EXIT_FAILURE);
+           exit (1);
           }
 
       wa -> rev_id = -1;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.46 2009-04-24 14:26:16 skoren Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.47 2009-05-21 02:24:37 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -6646,7 +6646,7 @@ static char *  Get_Contig_Sequence
   if  (len <= 0)
     {
       fprintf (stderr, "ERROR:  No multialign for contig %d\n", id);
-      exit (EXIT_FAILURE);
+      exit (1);
     }
 
   ungapped_seq = (char *) safe_malloc (len + 1);
@@ -9244,7 +9244,7 @@ static void  Reject_Non_Reachable
   if  (i >= n)
     {
       fprintf (stderr, "ERROR:  Node %d not in list\n", id);
-      exit (EXIT_FAILURE);
+      exit (1);
     }
 
   node [i] -> keep = TRUE;          // Automatically keep the start node

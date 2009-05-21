@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: frgs2clones.c,v 1.33 2009-01-05 16:49:04 brianwalenz Exp $";
+const char *mainid = "$Id: frgs2clones.c,v 1.34 2009-05-21 02:24:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -110,7 +110,7 @@ main( int argc, char *argv[]) {
 	fprintf (stderr, "USAGE:  %s -g <GatekeeperStoreName> [-U] [-C]\n",argv[0]);
 	fprintf (stderr, "\t-U uses real UIDs\n");
 	fprintf (stderr, "\t-C computes a consensus rather than splicing fragment seqs (slower, but better?)\n");
-	exit (EXIT_FAILURE);
+	exit (1);
       }
 
   }

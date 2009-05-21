@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.53 2009-02-02 07:08:05 brianwalenz Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.54 2009-05-21 02:24:37 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,8 +52,8 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.53 2009-02-02 07:08:05 br
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.53 2009-02-02 07:08:05 brianwalenz Exp $
- * $Revision: 1.53 $
+ * $Id: AS_OVL_overlap_common.h,v 1.54 2009-05-21 02:24:37 brianwalenz Exp $
+ * $Revision: 1.54 $
 */
 
 
@@ -766,13 +766,13 @@ main(int argc, char **argv) {
         if  (BACtig_Store_Path == NULL)
             {
              fprintf (stderr, "ERROR:  No BACtig store specified\n");
-             exit (EXIT_FAILURE);
+             exit (1);
             }
         if  (! testOpenGateKeeperStore(BACtig_Store_Path, FALSE))
             {
              fprintf (stderr, "ERROR:  BACtig store '%s' does NOT exist\n",
                       BACtig_Store_Path);
-             exit (EXIT_FAILURE);
+             exit (1);
             }
         BACtigStore = openGateKeeperStore(BACtig_Store_Path, FALSE);
 
@@ -784,7 +784,7 @@ main(int argc, char **argv) {
              if  (IID_List_Len <= 0)
                  {
                   fprintf (stderr, "ERROR:  Empty IID_List\n");
-                  exit (EXIT_FAILURE);
+                  exit (1);
                  }
              if  (Lo_Old_Frag != 0 || Hi_Old_Frag != INT_MAX)
                  {
@@ -955,7 +955,7 @@ static String_Ref_t  Add_Extra_Hash_String
         fprintf (stderr, "Too many skip kmer strings for hash table.\n"
              "Try skipping hopeless check (-z option)\n"
              "Exiting\n");
-        exit (EXIT_FAILURE);
+        exit (1);
        }
    ref . Offset = Extra_String_Subcount * Kmer_Len;
    ref . Last = TRUE;
@@ -2673,13 +2673,13 @@ static void  Mark_Skip_Kmers
           {
            fprintf (stderr, "ERROR:  Bad line %d in kmer skip file\n", ct);
            fputs (line, stderr);
-           exit (EXIT_FAILURE);
+           exit (1);
           }
 
       if  (fgets (line, MAX_LINE_LEN, Kmer_Skip_File) == NULL)
           {
            fprintf (stderr, "ERROR:  Bad line after %d in kmer skip file\n", ct);
-           exit (EXIT_FAILURE);
+           exit (1);
           }
       ct ++;
       len = strlen (line) - 1;
@@ -2687,7 +2687,7 @@ static void  Mark_Skip_Kmers
           {
            fprintf (stderr, "ERROR:  Bad line %d in kmer skip file\n", ct);
            fputs (line, stderr);
-           exit (EXIT_FAILURE);
+           exit (1);
           }
       line [len] = '\0';
 
@@ -4006,7 +4006,7 @@ static void  Put_String_In_Hash
    if  (i > MAX_STRING_NUM)
        {
         fprintf (stderr, "Too many strings for hash table--exiting\n");
-        exit (EXIT_FAILURE);
+        exit (1);
        }
    ref . Offset = 0;
    skip_ct = 0;

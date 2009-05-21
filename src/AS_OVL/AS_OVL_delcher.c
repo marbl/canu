@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVL_delcher.c,v 1.9 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVL_delcher.c,v 1.10 2009-05-21 02:24:37 brianwalenz Exp $";
 
 /*********************************************************************
    Module:  AS_OVL
@@ -115,7 +115,7 @@ size_t  Safe_fread
    if  (result != ct)
        {
         fprintf (stderr, "ERROR:  fread failed\n");
-        exit (EXIT_FAILURE);
+        exit (1);
        }
 
    return  result;
@@ -135,7 +135,7 @@ size_t  Safe_fwrite
    if  (result != ct)
        {
         fprintf (stderr, "ERROR:  fwrite failed\n");
-        exit (EXIT_FAILURE);
+        exit (1);
        }
 
    return  result;
@@ -157,7 +157,7 @@ int  Safe_remove
        {
         fprintf (stderr, "ERROR:  Could not delete file \"%s\"\n",
                  filename);
-        exit (EXIT_FAILURE);
+        exit (1);
        }
 
    return  result;
@@ -180,7 +180,7 @@ int  Safe_rename
        {
         fprintf (stderr, "ERROR:  Could not rename file \"%s\" to \"%s\"\n",
                  oldname, newname);
-        exit (EXIT_FAILURE);
+        exit (1);
        }
 
    return  result;

@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CatCorrectsOVL.c,v 1.12 2008-10-08 22:02:58 brianwalenz Exp $
- * $Revision: 1.12 $
+ * $Id: CatCorrectsOVL.c,v 1.13 2009-05-21 02:24:37 brianwalenz Exp $
+ * $Revision: 1.13 $
 */
 
-static char *rcsid = "$Id: CatCorrectsOVL.c,v 1.12 2008-10-08 22:02:58 brianwalenz Exp $";
+static char *rcsid = "$Id: CatCorrectsOVL.c,v 1.13 2009-05-21 02:24:37 brianwalenz Exp $";
 
 
 //  System include files
@@ -127,7 +127,7 @@ int  main
                             "ERROR:  frag IDs out of order\n"
                             "Hit frag  %d  in file  %s  preceeding frag was %d\n",
                             msg . frag . iid, argv [i], prev_id);
-                   exit (EXIT_FAILURE);
+                   exit (1);
                   }
               prev_id = (int) msg . frag . iid;
              }
@@ -181,14 +181,14 @@ static void  Parse_Command_Line
    if  (errflg)
        {
         Usage (argv [0]);
-        exit (EXIT_FAILURE);
+        exit (1);
        }
 
    if  (Outfile_Path == NULL)
        {
         fprintf (stderr, "No output file specified with -o\n");
         Usage (argv [0]);
-        exit (EXIT_FAILURE);
+        exit (1);
        }
 
    if  (File_List_Path != NULL)
@@ -217,7 +217,7 @@ static void  Parse_Command_Line
        {
         fprintf (stderr, "ERROR:  No correction files specified\n");
         Usage (argv [0]);
-        exit (EXIT_FAILURE);
+        exit (1);
        }
    for  (i = 0;  i < n;  i ++)
      {

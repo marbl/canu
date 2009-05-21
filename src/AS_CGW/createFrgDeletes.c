@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: createFrgDeletes.c,v 1.15 2008-10-08 22:02:55 brianwalenz Exp $";
+const char *mainid = "$Id: createFrgDeletes.c,v 1.16 2009-05-21 02:24:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -98,7 +98,7 @@ int main( int argc, char *argv[])
 	fprintf(stderr,"* argc = %d optind = %d setIIDLIST = %d setGatekeeperStore = %d\n",
 		argc, optind, setIIDLIST,setGatekeeperStore);
 	fprintf (stderr, "USAGE:  %s -i <file of UIDs> -g <GatekeeperStoreName>\n",argv[0]);
-	exit (EXIT_FAILURE);
+	exit (1);
       }
 
   }
