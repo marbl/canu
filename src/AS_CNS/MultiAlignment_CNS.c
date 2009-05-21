@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.237 2009-05-21 02:24:37 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.238 2009-05-21 02:41:19 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -35,6 +35,7 @@ static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.237 2009-05-21 02:24:37 bria
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
 #include "MicroHetREZ.h"
+#include "AS_UTL_reverseComplement.h"
 
 #define ALT_QV_THRESH                      30
 #define DONT_SHOW_OLAP                      0
@@ -171,7 +172,11 @@ int DUMP_UNITIGS_IN_MULTIALIGNCONTIG = 0;
 // Be noisy when doing multi alignments - this used to be a #ifdef,
 // which made it difficult to switch on in the middle of a debug.
 //
+#if !defined(DEBUG_GET_ALIGNMENT_TRACE) && !defined(DEBUG_MERGEMULTIALIGNS)
 int VERBOSE_MULTIALIGN_OUTPUT = 0;
+#else
+int VERBOSE_MULTIALIGN_OUTPUT = 1;
+#endif
 
 //  If non-zero, we'll force-abut unitigs that don't align together.
 //  Typically, these are caused by microscopic overlaps between
@@ -5121,10 +5126,7 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
       //fprintf(stderr,"INDEX %d, UNITIG %d, id %d ",i,n_unitigs,fragment->iid);
       assert( n_unitigs<mesg_n_unitigs ); // don't overwrite end of iup list from protomsg.
       fump = &iups[n_unitigs++];
-      if(fump->ident != fragment->iid){
-        fprintf(stderr, "GetMANodePositions UnitigPos id mismatch");
-        assert(0);
-      }
+      assert(fump->ident == fragment->iid);
       fump->position.bgn = (fragment->complement)?position.end:position.bgn;
       fump->position.end = (fragment->complement)?position.bgn:position.end;
       fump->delta = NULL;  // just for the moment;
@@ -8125,27 +8127,38 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
     }
 
 
-    // mark_contains is used in the case where post-unitigging
-    // processes (SplitUnitig, extendClearRange,e.g.) are used to
-    // re-align unitigs after fragments have been altered...
-    //
-    // With an extended clear range, the fragment may now "contain"
-    // another which it used to be a dovetail relationship with, or
-    // which used to contain it.  The mark_contains flag tells
-    // MultiAlignUnitig that there may be such a new relationship, and
-    // that it should be detected and marked as the alignment is being
-    // formed.
-    //
     // Without this marking, the multialignment is likely to have
     // pieces which are not properly aligned, and which will appear as
     // block indels (large gap-blocks) which will foil future overlaps
     // involving the consensus sequence of this "reformed" unitig
     //
-    // This USED to be an option -- enabled only for eCR -- but now on
-    // for everyone.  (2008-04-04, BPW)
-    //
     if (otype == AS_CONTAINMENT)
       MarkAsContained(i);
+
+    if (VERBOSE_MULTIALIGN_OUTPUT)
+      fprintf(stderr, "MultiAlignUnitig()--  bfrag %d (%c) is %s in afrag %d (%c).\n",
+              bfrag->iid, bfrag->type,
+              (otype == AS_CONTAINMENT) ? "contained" : "not contained",
+              afrag->iid, afrag->type);
+
+
+    //  Update parent and hangs to reflect the overlap that succeeded.
+    //
+    if ((unitig->f_list[i].parent != afrag->iid) ||
+        (unitig->f_list[i].ahang  != ahang) ||
+        (unitig->f_list[i].bhang  != bhang)) {
+      if (unitig->f_list[i].parent)
+        fprintf(stderr, "MultiAlignUnitig()-- update parent from id=%d %d,%d to id=%d %d,%d\n",
+                unitig->f_list[i].parent, unitig->f_list[i].ahang, unitig->f_list[i].bhang,
+                afrag->iid, ahang, bhang);
+
+      unitig->f_list[i].parent = afrag->iid;
+      unitig->f_list[i].ahang  = ahang;
+      unitig->f_list[i].bhang  = bhang;
+
+      if (unitig->f_list[i].contained)
+        unitig->f_list[i].contained = afrag->iid;
+    }
 
     ApplyAlignment(afrag->lid, 0, bfrag->lid, ahang, Getint32(trace, 0));
   }  //  over all frags
