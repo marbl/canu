@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fixUnitigs.c,v 1.1 2009-05-15 14:07:45 brianwalenz Exp $";
+const char *mainid = "$Id: fixUnitigs.c,v 1.2 2009-05-21 02:38:48 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -417,30 +417,24 @@ main(int argc, char **argv) {
 
       for (thisFrag=1; thisFrag<iunitig->num_frags; thisFrag++) {
 
-        //  Sanity check.  If contained, the parent must be the container.
-        //
-        if ((iunitig->f_list[thisFrag].contained) &&
-            (iunitig->f_list[thisFrag].contained != iunitig->f_list[thisFrag].parent)) {
-          fprintf(stderr, "UNITIG "F_IID" FRAGMENT "F_IID" -- contained fragment has no parent?!\n",
-                  iunitig->iaccession, iunitig->f_list[thisFrag].ident);
-          exit(1);
-        }
-
-        //  Check that this fragment is properly marked as contained.  I've seen rare cases where
-        //  BOG emits a fragment as a dovetail when it should be contained in some other fragment.
-        //
-        //  A ------->
-        //  B  --------------->
-        //  C     ------>
-        //
-        //  C is marked as having A for a parent, when it should be contained in B.
-        //
-        
-
         //  If a parent already exists, skip this fragment.
         //
         if ((iunitig->f_list[thisFrag].parent) && (rebuildAll == 0))
           continue;
+
+
+        //  Sanity check (only if we're not blindly rebuilding
+        //  everything).  If contained, the parent must be the
+        //  container.
+        //
+        if ((rebuildAll == 0) &&
+            (iunitig->f_list[thisFrag].contained) &&
+            (iunitig->f_list[thisFrag].contained != iunitig->f_list[thisFrag].parent)) {
+          fprintf(stderr, "UNITIG "F_IID" FRAGMENT "F_IID" -- WARNING -- contained fragment has no parent?!\n",
+                  iunitig->iaccession, iunitig->f_list[thisFrag].ident);
+          //exit(1);
+        }
+
 
         //  Update the fragment
         //
@@ -451,5 +445,5 @@ main(int argc, char **argv) {
     WriteProtoMesg_AS(stdout, pmesg);
   }
 
-return(0);
+  exit(0);
 }
