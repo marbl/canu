@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.238 2009-05-21 02:41:19 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.239 2009-05-22 16:57:45 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -7814,8 +7814,15 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
 
     if (VERBOSE_MULTIALIGN_OUTPUT) {
       fprintf(stderr, "\n");
-      fprintf(stderr, "MultiAlignUnitig()-- processing fragment %d at position %d in unitig.\n",
-              unitig->f_list[i].ident, i);
+      fprintf(stderr, "MultiAlignUnitig()-- processing fragment %d iid=%d pos=%d,%d parent=%d,%d,%d contained=%d\n",
+              i,
+              unitig->f_list[i].ident,
+              unitig->f_list[i].position.bgn,
+              unitig->f_list[i].position.end,
+              unitig->f_list[i].parent,
+              unitig->f_list[i].ahang,
+              unitig->f_list[i].bhang,
+              unitig->f_list[i].contained);
     }
 
     //  If we have a parent, assume the hangs are correct and just
@@ -7877,6 +7884,8 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
     }  //  No parent
 
 
+    //  Start over.
+    align_to = i-1;
 
     while (! olap_success) {
       int         allow_neg_hang_once = 0;
