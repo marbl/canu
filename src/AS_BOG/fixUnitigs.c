@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fixUnitigs.c,v 1.2 2009-05-21 02:38:48 brianwalenz Exp $";
+const char *mainid = "$Id: fixUnitigs.c,v 1.3 2009-05-22 16:57:45 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -27,7 +27,7 @@ const char *mainid = "$Id: fixUnitigs.c,v 1.2 2009-05-21 02:38:48 brianwalenz Ex
 #include "AS_PER_gkpStore.h"
 
 
-void
+int
 updateFragmentWithParent(IntUnitigMesg *iunitig, int thisFrag, OverlapStore *ovs) {
   uint32         ovlMax = 0;
   uint32         ovlLen = 0;
@@ -53,6 +53,8 @@ updateFragmentWithParent(IntUnitigMesg *iunitig, int thisFrag, OverlapStore *ovs
   HashTable_AS  *iidIndex  = CreateScalarHashTable_AS();
 
   int     hangSlop = 0;
+
+  int     failed   = 0;
 
   fprintf(stderr, "\n");
   fprintf(stderr, "WORKING on fragment %d == %d\n", thisFrag, iunitig->f_list[thisFrag].ident);
@@ -373,11 +375,14 @@ updateFragmentWithParent(IntUnitigMesg *iunitig, int thisFrag, OverlapStore *ovs
           oldAHang,
           oldBHang);
 
+  failed = 1;
 
  successfullyUpdated:
   DeleteHashTable_AS(ovlBefore);
   DeleteHashTable_AS(ovlAfter);
   safe_free(ovl);
+
+  return(failed);
 }
 
 
@@ -385,6 +390,7 @@ int
 main(int argc, char **argv) {
   OverlapStore  *ovs        = NULL;
   int            rebuildAll = 0;
+  int            failed     = 0;
 
   argc = AS_configure(argc, argv);
 
@@ -438,8 +444,47 @@ main(int argc, char **argv) {
 
         //  Update the fragment
         //
-        updateFragmentWithParent(iunitig, thisFrag, ovs);
+        failed += updateFragmentWithParent(iunitig, thisFrag, ovs);
       }
+
+#if 0
+      //  If we've failed to fix the unitig, reverse it and try again.
+
+      if ((rebuildAll) && (failed)) {
+        IntUnitigMesg  runitig = *iunitig;
+        int            i;
+
+        fprintf(stderr, "UNITIG "F_IID" failed to be fixed -- try flipping the unitig.\n",
+                iunitig->iaccession);
+
+        runitig.f_list = safe_malloc(sizeof(IntMultiPos) * runitig.num_frags);
+
+        for (thisFrag=0; thisFrag<runitig.num_frags; thisFrag++) {
+          int p = runitig.num_frags - thisFrag - 1;
+
+          runitig.f_list[p] = iunitig->f_list[thisFrag];
+          runitig.f_list[p].position.bgn = runitig.length - iunitig->f_list[thisFrag].position.end;
+          runitig.f_list[p].position.end = runitig.length - iunitig->f_list[thisFrag].position.bgn;
+        }
+
+        failed = 0;
+
+        for (thisFrag=1; thisFrag<runitig.num_frags; thisFrag++)
+          failed += updateFragmentWithParent(&runitig, thisFrag, ovs);
+
+        if (failed) {
+          fprintf(stderr, "UNITIG "F_IID" failed to be fixed after flipping.\n",
+                  iunitig->iaccession);
+        } else {
+          fprintf(stderr, "UNITIG "F_IID" was fixed after flipping.\n",
+                  iunitig->iaccession);
+
+          iunitig->length = runitig.length;
+          memcpy(iunitig->f_list, runitig.f_list, sizeof(IntMultiPos) * runitig.num_frags);
+          safe_free(runitig.f_list);
+        }
+      }
+#endif
     }
 
     WriteProtoMesg_AS(stdout, pmesg);
