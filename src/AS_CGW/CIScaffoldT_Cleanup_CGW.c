@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.50 2009-04-24 14:26:16 skoren Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.51 2009-05-22 00:50:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2645,12 +2645,12 @@ RemoveSurrogateDuplicates(void) {
       assert((surr1 != NULL));
       assert((surr2 != NULL));
 
-      fprintf(stderr, "RemoveSurrogateDuplicates()-- surrogate CI=%d contig=%d pos=%d,%d\n",
+      fprintf(stderr, "RemoveSurrogateDuplicates()-- surrogate CI=%d contig=%d pos="F_COORD","F_COORD"\n",
               surr1->id,
               surr1->info.CI.contigID,
               surr1->offsetAEnd.mean,
               surr1->offsetBEnd.mean);
-      fprintf(stderr, "RemoveSurrogateDuplicates()-- surrogate CI=%d contig=%d pos=%d,%d\n",
+      fprintf(stderr, "RemoveSurrogateDuplicates()-- surrogate CI=%d contig=%d pos="F_COORD","F_COORD"\n",
               surr2->id,
               surr2->info.CI.contigID,
               surr2->offsetAEnd.mean,
@@ -2691,7 +2691,7 @@ RemoveSurrogateDuplicates(void) {
       for(i = 0; i < numVaInstances; i++){
         curSurr = GetGraphNode(ScaffoldGraph->CIGraph, *GetCDS_CID_t(curChunk->info.CI.instances.va, i));
 
-        fprintf(stderr, "RemoveSurrogateDuplicates()-- surrogate CI=%d contig=%d pos=%d,%d\n",
+        fprintf(stderr, "RemoveSurrogateDuplicates()-- surrogate CI=%d contig=%d pos="F_COORD","F_COORD"\n",
                 curSurr->id,
                 curSurr->info.CI.contigID,
                 curSurr->offsetAEnd.mean,
