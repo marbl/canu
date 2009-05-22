@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.40 2009-05-15 14:20:56 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.41 2009-05-22 16:57:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -913,53 +913,53 @@ StoreIUMStruct(ScaffoldGraphT *graph,
 
   // get the multi-alignment - this fills in some unitig fields
 
-  int unitigFail = MultiAlignUnitig(&(is->ium),
-                                    ScaffoldGraph->gkpStore,
-                                    is->sequence,
-                                    is->quality,
-                                    is->deltas,
-                                    CNS_STATS_ONLY,
-                                    NULL);
+  int unitigSuccess = MultiAlignUnitig(&(is->ium),
+                                       ScaffoldGraph->gkpStore,
+                                       is->sequence,
+                                       is->quality,
+                                       is->deltas,
+                                       CNS_STATS_ONLY,
+                                       NULL);
 
   //  Whoops!  Failed!  Like consensus does in MultiAlignUnitig() we
   //  now (2007-12-07) will try again, allowing negative hangs.
   //
-  if (unitigFail) {
+  if (unitigSuccess == 0) {
     int  ov = VERBOSE_MULTIALIGN_OUTPUT;
     int  oa = allow_neg_hang;
 
     VERBOSE_MULTIALIGN_OUTPUT = 1;
     allow_neg_hang            = 1;
-    unitigFail = MultiAlignUnitig(&(is->ium),
-                                  ScaffoldGraph->gkpStore,
-                                  is->sequence,
-                                  is->quality,
-                                  is->deltas,
-                                  CNS_STATS_ONLY,
-                                  NULL);
+    unitigSuccess = MultiAlignUnitig(&(is->ium),
+                                     ScaffoldGraph->gkpStore,
+                                     is->sequence,
+                                     is->quality,
+                                     is->deltas,
+                                     CNS_STATS_ONLY,
+                                     NULL);
     VERBOSE_MULTIALIGN_OUTPUT = ov;
     allow_neg_hang            = oa;
   }
 
-  if (unitigFail) {
+  if (unitigSuccess == 0) {
     int  ov = VERBOSE_MULTIALIGN_OUTPUT;
     int  oa = allow_contained_parent;
 
     VERBOSE_MULTIALIGN_OUTPUT = 1;
     allow_contained_parent    = 1;
-    unitigFail = MultiAlignUnitig(&(is->ium),
-                                  ScaffoldGraph->gkpStore,
-                                  is->sequence,
-                                  is->quality,
-                                  is->deltas,
-                                  CNS_STATS_ONLY,
-                                  NULL);
+    unitigSuccess = MultiAlignUnitig(&(is->ium),
+                                     ScaffoldGraph->gkpStore,
+                                     is->sequence,
+                                     is->quality,
+                                     is->deltas,
+                                     CNS_STATS_ONLY,
+                                     NULL);
     VERBOSE_MULTIALIGN_OUTPUT = ov;
     allow_contained_parent    = oa;
   }
 
 
-  if (unitigFail) {
+  if (unitigSuccess == 0) {
     fprintf(GlobalData->stderrc, "FATAL ERROR: MultiAlignUnitig call failed in unitig splitting.\n");
     assert(FALSE);
   }
