@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.46 2009-05-21 02:24:37 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.47 2009-05-22 03:26:07 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -62,9 +62,6 @@ void revertClearRange(int fragIid);
 fragPositions *getAlteredFragPositions(NodeCGW_T *unitig,
                                        int alteredFragIid,
                                        int extension);
-
-void leftShiftIUM(IntMultiPos *f_list, int numFrags, int extFragIID);
-void rightShiftIUM(IntMultiPos *f_list, int numFrags, int extFragIID);
 
 void saveFragAndUnitigData(int lFragIid, int rFragIid);
 void restoreFragAndUnitigData(int lFragIid, int rFragIid);
@@ -790,14 +787,6 @@ main(int argc, char **argv) {
 
           // left unitig
           if (lFragIid != -1) {
-
-            //  This is right before the big pile of overlap
-            //  output.  Put in some more prints to isolate
-            //  where those are, then figure out where "for
-            //  unitig " gets printed then find why the
-            //  fragment isn't being extended to the end of
-            //  the contig.
-
             InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, lFragIid);
             assert(info->set);
 
@@ -1601,6 +1590,52 @@ getAlteredFragPositions(NodeCGW_T *unitig, int alteredFragIid, int ctgExt) {
 }
 
 
+//  Update containment relationships.  Fragment 'oldparent' is now
+//  contained in 'newparent'.  For any other fragments that have a
+//  parent of 'oldparent', make their parent be 'newparent'.  If the
+//  fragment is already contained, we can skip the change though.
+//
+void
+FixContainmentRelationships(int          oldparent,
+                            int          newparent,
+                            IntMultiPos *flst,
+                            int          flen) {
+
+  IntMultiPos  *oldpfrg = flst + oldparent;
+  IntMultiPos  *newpfrg = flst + newparent;
+  int           t;
+
+  if (oldpfrg->contained == 0)
+    return;
+
+  for (t=oldparent+1; t<flen; t++) {
+
+    //  This fragments parent is the 'oldparent' (now contained).  If
+    //  we are not already contained, switch the parent to
+    //  'newparent'...and recurse.
+    //
+    if ((flst[t].parent == oldpfrg->ident) &&
+        (flst[t].contained == 0)) {
+      int oldp = flst[t].parent;
+      int olda = flst[t].ahang;
+      int oldb = flst[t].bhang;
+
+      flst[t].parent    = newpfrg->ident;
+      flst[t].ahang     = MIN(flst[t].position.bgn, flst[t].position.end) - MIN(flst[newparent].position.bgn, flst[newparent].position.end);
+      flst[t].bhang     = MAX(flst[t].position.bgn, flst[t].position.end) - MAX(flst[newparent].position.bgn, flst[newparent].position.end);
+      flst[t].contained = ((flst[t].ahang > 0) && (flst[t].bhang < 0)) ? flst[t].parent : 0;
+
+      fprintf(stderr, "RESET fix-contain for id %d from %d,%d,%d to %d,%d,%d container=%d\n",
+              flst[t].ident,
+              oldp, olda, oldb, 
+              flst[t].parent, flst[t].ahang, flst[t].bhang,
+              flst[t].contained);
+
+      if (flst[t].contained)
+        FixContainmentRelationships(t, newparent, flst, flen);
+    }
+  }
+}
 
 
 int
@@ -1685,55 +1720,115 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
   ium_mesg.forced     = 0;
   ium_mesg.num_frags  = GetNumIntMultiPoss(macopy->f_list);
 
-  // replace the positions in the f_list with the adjusted positions
-  int extendedFragLeftward = FALSE;
 
-  for (i = 0; i < GetNumIntMultiPoss(macopy->f_list); i++) {
-    IntMultiPos *tempPos = GetIntMultiPos(macopy->f_list, i);
+  //  Update the f_list in the maccopy.  We do this in several passes,
+  //  for clarity mostly.
 
-    if (tempPos->ident == extFragIID) {
-      tempPos->contained = 0;    // the extended frag is no longer contained by any other frag
 
-      if (fragPoss[i].bgn == 0 || fragPoss[i].end == 0)
-        extendedFragLeftward = TRUE;  // if at the beginning of the unitig have to reorder frags
-    }
+  IntMultiPos *flst = GetIntMultiPos(macopy->f_list, 0);
+  int          flen = GetNumIntMultiPoss(macopy->f_list);
+  int          efrg = 0;
 
-    tempPos->position.bgn = fragPoss[i].bgn;
-    tempPos->position.end = fragPoss[i].end;
+  //
+  //  Update the position of all fragments.
+  //
+  for (i=0; i<flen; i++) {
+    fprintf(stderr, "RESET position for frag i=%d ident=%d from %d,%d to %d,%d\n",
+            i,
+            flst[i].ident,
+            flst[i].position.bgn, flst[i].position.end,
+            fragPoss[i].bgn, fragPoss[i].end);
+    flst[i].position.bgn = fragPoss[i].bgn;
+    flst[i].position.end = fragPoss[i].end;
 
-    tempPos->parent = 0;
-    tempPos->ahang  = 0;
-    tempPos->bhang  = 0;
+    if (flst[i].ident == extFragIID)
+      efrg = i;
   }
+
+  safe_free(fragPoss);
+  fragPoss = NULL;
+
+  //
+  //  If the extended fragment now starts the unitig, make it be the
+  //  first fragment in the f_list.
+  //
+  for (i=0; i<flen; i++) {
+    if (flst[i].ident == extFragIID) {
+      if ((i != 0) &&
+          ((flst[i].position.bgn == 0) ||
+           (flst[i].position.end == 0))) {
+        fprintf(stderr, "RESET swap-first frag i=%d (ident=%d pos=%d,%d) is now first frag\n",
+                i, flst[i].ident, flst[i].position.bgn, flst[i].position.end);
+        IntMultiPos  newfirst = flst[i];
+        memmove(flst + 1, flst, sizeof(IntMultiPos) * i);
+        flst[0] = newfirst;
+        efrg = 0;
+      }
+      break;
+    }
+  }
+
+
+  //
+  //  Reset the hangs of the new first fragment.  The second fragment
+  //  MUST have a parent of the first fragment.  We blindly set it,
+  //  leaving fixing the hangs for the final block.
+  //
+  if (efrg == 0) {
+    flst[0].parent    = 0;
+    flst[0].ahang     = 0;
+    flst[0].bhang     = 0;
+    flst[0].contained = 0;
+
+    flst[1].parent    = extFragIID;
+  }
+
+
+  //
+  //  Check all the fragments to see if anyone needs fixing.  The
+  //  first two are already done, and we skip them.
+  //
+  //  If this fragment is contained, we need to propagate the fact
+  //  that fragment i is now contained in fragment 0 to future
+  //  fragments, so they can update any dovetail relationships.
+  //
+  for (i=1; i<flen; i++) {
+    if (flst[i].parent == extFragIID) {
+      int oldp = flst[i].parent;
+      int olda = flst[i].ahang;
+      int oldb = flst[i].bhang;
+
+      flst[i].ahang     = MIN(flst[i].position.bgn, flst[i].position.end) - MIN(flst[efrg].position.bgn, flst[efrg].position.end);;
+      flst[i].bhang     = MAX(flst[i].position.bgn, flst[i].position.end) - MAX(flst[efrg].position.bgn, flst[efrg].position.end);;
+      flst[i].contained = ((flst[i].ahang > 0) && (flst[i].bhang < 0)) ? flst[i].parent : 0;;
+    
+      fprintf(stderr, "RESET extended-parent for id %d from %d,%d,%d to %d,%d,%d container=%d\n",
+              flst[i].ident,
+              oldp, olda, oldb, 
+              flst[i].parent, flst[i].ahang, flst[i].bhang,
+              flst[i].contained);
+
+      if (flst[i].contained)
+        FixContainmentRelationships(i, efrg, flst, flen);
+    }
+  }
+
+
+  //  Set the f_list in the ium_mesg to the macopy f_list
   ium_mesg.f_list = GetIntMultiPos(macopy->f_list, 0);
 
-  //  All done with this now.
-  safe_free(fragPoss);
 
-  fprintf(stderr, "extendedFragLeftward = %d\n", extendedFragLeftward);
-
-  if (extendedFragLeftward)
-    // definitely reorder frags in f_list if we extended a frag leftward
-    leftShiftIUM(ium_mesg.f_list, GetNumIntMultiPoss(macopy->f_list), extFragIID);
-  else
-    // might need to reorder frags in f_list if we extended a frag rightward
-    rightShiftIUM(ium_mesg.f_list, GetNumIntMultiPoss(macopy->f_list), extFragIID);
-
-  //  The Local_Overlap_AS_forCNS below also had a commented out
-  //  DP_Compare.
-  //
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
                           CNS_OPTIONS_MIN_ANCHOR_DEFAULT };
+  int         success = FALSE;
 
-  if (FALSE == MultiAlignUnitig(&ium_mesg,
-                                ScaffoldGraph->gkpStore,
-                                reformed_consensus,
-                                reformed_quality,
-                                reformed_deltas,
-                                CNS_QUIET,  //  CNS_VERBOSE, CNS_STATS_ONLY
-                                &options)) {
-    fprintf(stderr, "GetNewUnitigMultiAlign()-- MultiAlignUnitig failure on unitig %d\n", unitig->id);
+  if (!success)
+    success = MultiAlignUnitig(&ium_mesg, ScaffoldGraph->gkpStore, reformed_consensus, reformed_quality, reformed_deltas, CNS_QUIET, &options);
+
+  if (!success) {
+    fprintf(stderr, "WARNING: MultiAlignUnitig failure on unitig %d\n", unitig->id);
     DeleteMultiAlignT(macopy);  //  We own this.
+    //exit(1);
     return FALSE;
   }
 
@@ -1750,16 +1845,14 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
     //           +++++++<-------              +++xxxx++++<-------
     //
     if (GetMultiAlignLength(nma) > GetMultiAlignLength(macopy) + 1.1 * extLength) {
+      PrintMultiAlignT(stderr, nma, ScaffoldGraph->gkpStore, 0, 1, AS_READ_CLEAR_LATEST);
+      fprintf(stderr, "WARNING:  new multialign is too long -- expected %d got %d -- suspect alignment, don't use it.\n",
+              GetMultiAlignLength(macopy) + (int)1.1 * extLength,
+              GetMultiAlignLength(nma));
       DeleteMultiAlignT(macopy);  //  We own this.
       DeleteMultiAlignT(nma);     //  We own this.
-      fprintf(stderr, "WARNING:  new multialign is too long -- suspect alignment, don't use it.\n");
       return(FALSE);
     }
-
-    fprintf(stderr, "WARNING:  GetNewUnitigMultiAlign()-- new length %d old length %d + %f\n",
-            GetMultiAlignLength(nma),
-            GetMultiAlignLength(macopy),
-            1.1 * extLength);
 
     //  Set the keepInCache flag, since CreateMultiAlignTFromIUM() is
     //  returning an allocated multialign, and if we don't cache it,
@@ -1859,93 +1952,6 @@ revertClearRange(int fragIid) {
           clr_end);
 }
 
-
-
-
-
-
-
-
-
-// this routine shifts the frag with iid extFragIID to the front of the f_list
-void
-leftShiftIUM(IntMultiPos *f_list, int numFrags, int extFragIID) {
-  int i, currPos = 0, numShiftedInUnitig = 0;
-  IntMultiPos tempIMP;
-
-  // find out the extended frag's current position
-  for (i = 0; i < numFrags; i++)
-    if (f_list[i].ident == extFragIID)
-      currPos = i;
-
-  // save the extended frag off to the side
-  memcpy(&tempIMP, &f_list[currPos], sizeof(IntMultiPos));
-
-  // now shift everybody below currPos up a position
-  for (i = currPos - 1; i >= 0; i--) {
-    memcpy(&f_list[i+1], &f_list[i], sizeof(IntMultiPos));
-    numShiftedInUnitig++;
-  }
-
-  // and place tempPos in position 0 of the unitig
-  memcpy(&f_list[0], &tempIMP, sizeof(IntMultiPos));
-}
-
-
-// this routine shifts the frag with iid extFragIID to the appropriate place in the f_list
-void
-rightShiftIUM(IntMultiPos *f_list, int numFrags, int extFragIID) {
-  int i, currPos = 0;
-  IntMultiPos tempIMP;
-  int numShifted, shiftedFrag, fragToMovePos = NULLINDEX, numToShift;
-
-  // find out the extended frag's current position
-  for (i = 0; i < numFrags; i++)
-    if (f_list[i].ident == extFragIID)
-      currPos = i;
-
-  // we need to move all frags that
-  // i) start to the left of the extended frag and
-  // ii) are not contained by another frag
-  // before the extended frag in the array.  We could move the contained ones, but don't have to
-
-  numShifted = 0;
-  shiftedFrag = TRUE;
-  while (shiftedFrag) {
-    shiftedFrag = FALSE;
-
-    // look for a candidate frag
-    i = currPos + numShifted + 1;
-    while (i < numFrags) {
-      if ((MIN(f_list[i].position.bgn, f_list[i].position.end) <
-           MIN(f_list[currPos + numShifted].position.bgn, f_list[currPos + numShifted].position.end)) &&
-          f_list[i].contained == FALSE) {
-        fragToMovePos = i;
-        shiftedFrag = TRUE;
-        break;
-      }
-      i++;
-    }
-
-    if (shiftedFrag) {
-      // save the extended frag to be shifted off to the side
-      memcpy(&tempIMP, &f_list[fragToMovePos], sizeof(IntMultiPos));
-
-      // now shift all the frags between currPos + numShifted up a position in the array
-      numToShift = fragToMovePos - (currPos + numShifted);
-      i = 0;
-      while (i < numToShift) {
-        memcpy(&f_list[fragToMovePos - i], &f_list[fragToMovePos - i - 1], sizeof(IntMultiPos));
-        i++;
-      }
-
-      // and tempPos into open position
-      memcpy(&f_list[currPos + numShifted], &tempIMP, sizeof(IntMultiPos));
-
-      numShifted++;
-    }
-  }
-}
 
 
 void
