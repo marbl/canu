@@ -114,7 +114,7 @@ sub createPostUnitiggerConsensusJobs (@) {
        print F "  #  Consensus will remove this if successful.\n";
        print F "  touch $wrk/5-consensus/${asm}_\$jobp.autofix.cgi.failed\n";
        print F "\n";
-       print F "  \$bin/fixUnitigs -F -O $wrk/$asm.ovlStore \\\n";
+       print F "  \$bin/fixUnitigs -O $wrk/$asm.ovlStore \\\n";
        print F "    < $wrk/5-consensus/${asm}_\$jobp.autofix.orig \\\n";
        print F "    > $wrk/5-consensus/${asm}_\$jobp.autofix \\\n";
        print F "   2> $wrk/5-consensus/${asm}_\$jobp.autofix.log \\\n";

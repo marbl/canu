@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.57 2009-04-24 14:26:16 skoren Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.58 2009-05-27 14:52:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -188,35 +188,82 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
   int i,j = 0;
   int32 numIUM = 0;
 
+  int              extraUnitigsMax = 0;
+  int              extraUnitigsLen = 0;
+  IntUnitigMesg   *extraUnitigs    = NULL;
+
   for(i = optind; i < argc; i++){
     infp = fopen(argv[i],"r");
 
     while ((EOF != ReadProtoMesg_AS(infp, &pmesg))) {
       if (pmesg->t == MESG_IUM) {
         IntUnitigMesg *ium_mesg = (IntUnitigMesg *)pmesg->m;
-        MultiAlignT   *uma      = NULL;
-        MultiAlignT   *cma      = NULL;
 
         //  Insert both a unitig and a contig -- these MUST be saved
         //  in the cache, else a huge memory leak.
+        //
+        //  If one already exists for that iacc, save it for later and
+        //  give it a new iacc.  fixUnitigs generates these guys.
 
-        uma = CreateMultiAlignTFromIUM(ium_mesg, GetNumCIFragTs(ScaffoldGraph->CIFrags), FALSE);
-        cma = CopyMultiAlignT(NULL, uma),
+        if (ium_mesg->iaccession < 1000000000) {
+          MultiAlignT *uma = CreateMultiAlignTFromIUM(ium_mesg, GetNumCIFragTs(ScaffoldGraph->CIFrags), FALSE);
+          MultiAlignT *cma = CopyMultiAlignT(NULL, uma);
 
-        insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg->iaccession, TRUE,  uma, TRUE);
-        insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg->iaccession, FALSE, cma, TRUE);
+          insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg->iaccession, TRUE,  uma, TRUE);
+          insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg->iaccession, FALSE, cma, TRUE);
 
-        ProcessIUM_ScaffoldGraph(ium_mesg, GetMultiAlignUngappedLength(uma), FALSE);
+          ProcessIUM_ScaffoldGraph(ium_mesg, GetMultiAlignUngappedLength(uma), FALSE);
 
-        numIUM++;
-        if ((numIUM % 10000) == 0) {
-          fprintf(stderr, "processed "F_S32" IUM messages.\n", numIUM);
-          clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+          numIUM++;
+          if ((numIUM % 10000) == 0) {
+            fprintf(stderr, "processed "F_S32" IUM messages.\n", numIUM);
+            clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+          }
+        } else {
+          int l = strlen(ium_mesg->consensus) + 1;
+
+          if (extraUnitigsLen >= extraUnitigsMax) {
+            extraUnitigsMax = (extraUnitigsMax == 0) ? 1024 : (extraUnitigsMax * 2);
+            extraUnitigs    = (IntUnitigMesg *)safe_realloc(extraUnitigs, sizeof(IntUnitigMesg) * extraUnitigsMax);
+          }
+
+          extraUnitigs[extraUnitigsLen] = *ium_mesg;
+
+          extraUnitigs[extraUnitigsLen].consensus = (char *)safe_malloc(sizeof(char) * l);
+          extraUnitigs[extraUnitigsLen].quality   = (char *)safe_malloc(sizeof(char) * l);
+          extraUnitigs[extraUnitigsLen].f_list    = (IntMultiPos *)safe_malloc(sizeof(IntMultiPos) * ium_mesg->num_frags);
+
+          memcpy(extraUnitigs[extraUnitigsLen].consensus, ium_mesg->consensus, sizeof(char) * l);
+          memcpy(extraUnitigs[extraUnitigsLen].quality,   ium_mesg->quality,   sizeof(char) * l);
+          memcpy(extraUnitigs[extraUnitigsLen].f_list,    ium_mesg->f_list,    sizeof(IntMultiPos) * ium_mesg->num_frags);
+
+          extraUnitigsLen++;
         }
       }
     }
     fclose(infp);
   }
+
+
+  for (i=0; i<extraUnitigsLen; i++) {
+    fprintf(stderr, "WARNING: assign new accession to duplicate IUM "F_U32"; now "F_U32"\n", extraUnitigs[i].iaccession, numIUM);
+
+    extraUnitigs[i].iaccession = numIUM++;
+
+    MultiAlignT *uma = CreateMultiAlignTFromIUM(extraUnitigs + i, GetNumCIFragTs(ScaffoldGraph->CIFrags), FALSE);
+    MultiAlignT *cma = CopyMultiAlignT(NULL, uma);
+
+    insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, extraUnitigs[i].iaccession, TRUE,  uma, TRUE);
+    insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, extraUnitigs[i].iaccession, FALSE, cma, TRUE);
+
+    ProcessIUM_ScaffoldGraph(extraUnitigs + i, GetMultiAlignUngappedLength(uma), FALSE);
+
+    safe_free(extraUnitigs[i].consensus);
+    safe_free(extraUnitigs[i].quality);
+    safe_free(extraUnitigs[i].f_list);
+  }
+
+  safe_free(extraUnitigs);
 
   fprintf(stderr,"Processed %d IUM messages (max IUM acc = %d) with %d fragments\n",
           numIUM,

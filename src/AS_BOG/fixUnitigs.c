@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fixUnitigs.c,v 1.3 2009-05-22 16:57:45 brianwalenz Exp $";
+const char *mainid = "$Id: fixUnitigs.c,v 1.4 2009-05-27 14:52:29 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -54,7 +54,7 @@ updateFragmentWithParent(IntUnitigMesg *iunitig, int thisFrag, OverlapStore *ovs
 
   int     hangSlop = 0;
 
-  int     failed   = 0;
+  int     failed   = -1;
 
   fprintf(stderr, "\n");
   fprintf(stderr, "WORKING on fragment %d == %d\n", thisFrag, iunitig->f_list[thisFrag].ident);
@@ -306,11 +306,11 @@ updateFragmentWithParent(IntUnitigMesg *iunitig, int thisFrag, OverlapStore *ovs
 
 
   //  Now, we're convinced there is no decent overlap between this
-  //  fragment and any fragment before it.  From the end of the
-  //  unitig, scan until we find the last fragment with about the same
-  //  begin position -- the last fragment that has about no ahang.
+  //  fragment and any fragment before it.
   //
-  for (testFrag=iunitig->num_frags-1; testFrag>thisFrag; testFrag--) {
+  //  Scan forward for the first thing we overlap.
+
+  for (testFrag=thisFrag+1; testFrag < iunitig->num_frags; testFrag++) {
     int ahang = 0;
     int bhang = 0;
 
@@ -332,6 +332,18 @@ updateFragmentWithParent(IntUnitigMesg *iunitig, int thisFrag, OverlapStore *ovs
       bhang = -ovl[testOvl].dat.ovl.a_hang;
     }
 
+    //  Don't allow negative ahangs.  At all.  This catches the case
+    //  where the parent might be contained in us, and generally makes
+    //  consensus happier.
+    //
+    //  Don't allow empty hangs - this can lead to infinite loops
+    //  where we keep swapping the same two fragments.  OK, not
+    //  infinite, since we eventually run out of stack space and
+    //  crash.
+    //
+    if (ahang <= 0)
+      continue;
+
     fprintf(stderr, "shifttest ovl=%d testFrag="F_IID" pos %d-%d  thisFrag="F_IID" pos %d-%d  hangs %d,%d\n",
             testOvl,
             iunitig->f_list[testFrag].ident,
@@ -342,28 +354,27 @@ updateFragmentWithParent(IntUnitigMesg *iunitig, int thisFrag, OverlapStore *ovs
             iunitig->f_list[thisFrag].position.end,
             ahang, bhang);
 
-    //  If the ahang is small, move thisFrag here and shift everything
-    //  up one spot, and call ourself again to handle the new fragment
-    //  at thisFrag.
+    IntMultiPos  fragCopy = iunitig->f_list[thisFrag];
+
+    memmove(iunitig->f_list + thisFrag,
+            iunitig->f_list + thisFrag + 1,
+            sizeof(IntMultiPos) * (testFrag - thisFrag));
+
+    iunitig->f_list[testFrag] = fragCopy;
+
+    fprintf(stderr, "Shifted fragment "F_IID" from position %d to position %d\n",
+            iunitig->f_list[testFrag].ident,
+            thisFrag, testFrag);
+
+    //  Since we moved things around, we must process the new fragment
+    //  at 'thisFrag's location.
     //
-    if ((ahang > -hangSlop) &&
-        (ahang < hangSlop)) {
-      IntMultiPos  fragCopy = iunitig->f_list[thisFrag];
+    failed = updateFragmentWithParent(iunitig, thisFrag, ovs);
 
-      memmove(iunitig->f_list + thisFrag,
-              iunitig->f_list + thisFrag + 1,
-              sizeof(IntMultiPos) * (testFrag - thisFrag));
-
-      iunitig->f_list[testFrag] = fragCopy;
-
-      fprintf(stderr, "Shifted fragment "F_IID" from position %d to position %d\n",
-              iunitig->f_list[testFrag].ident,
-              thisFrag, testFrag);
-
-      updateFragmentWithParent(iunitig, thisFrag, ovs);
-
+    if (failed == -1)
       goto successfullyUpdated;
-    }
+
+    break;
   }
 
 
@@ -375,7 +386,7 @@ updateFragmentWithParent(IntUnitigMesg *iunitig, int thisFrag, OverlapStore *ovs
           oldAHang,
           oldBHang);
 
-  failed = 1;
+  failed = thisFrag;
 
  successfullyUpdated:
   DeleteHashTable_AS(ovlBefore);
@@ -386,11 +397,56 @@ updateFragmentWithParent(IntUnitigMesg *iunitig, int thisFrag, OverlapStore *ovs
 }
 
 
+
+
+void
+fixUnitig(IntUnitigMesg *iunitig, OverlapStore *ovs) {
+  int            thisFrag;
+  int            thatFrag;
+
+  for (thisFrag=1; thisFrag<iunitig->num_frags; thisFrag++) {
+    int failed = updateFragmentWithParent(iunitig, thisFrag, ovs);
+
+    //  If that failed, the iunitig is guaranteed good up until the
+    //  'failed' fragment.  It'll get written out back in main; all we
+    //  need to do is fix up the rest of the fragments, possibly into
+    //  multiple unitigs.
+
+    if (failed != -1) {
+      IntUnitigMesg  junitig = *iunitig;
+
+      assert(failed == thisFrag);
+
+      //  Make the iacc big, just to label this as needing a new iacc.
+      junitig.iaccession += 1000000000;
+
+      junitig.num_frags  = iunitig->num_frags - failed;
+      junitig.f_list     = iunitig->f_list    + failed;
+
+      junitig.f_list[0].parent    = 0;
+      junitig.f_list[0].ahang     = 0;
+      junitig.f_list[0].bhang     = 0;
+      junitig.f_list[0].contained = 0;
+
+      iunitig->num_frags = failed;
+
+      fixUnitig(&junitig, ovs);
+
+      GenericMesg   pmesg;
+
+      pmesg.t = MESG_IUM;
+      pmesg.m = &junitig;
+
+      WriteProtoMesg_AS(stdout, &pmesg);
+    }
+  }
+}
+
+
+
 int
 main(int argc, char **argv) {
   OverlapStore  *ovs        = NULL;
-  int            rebuildAll = 0;
-  int            failed     = 0;
 
   argc = AS_configure(argc, argv);
 
@@ -399,8 +455,6 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-O") == 0) {
       ovs = AS_OVS_openOverlapStore(argv[++arg]);
-    } else if (strcmp(argv[arg], "-F") == 0) {
-      rebuildAll = 1;
     } else {
       err++;
     }
@@ -408,84 +462,14 @@ main(int argc, char **argv) {
     arg++;
   }
   if ((ovs == NULL) || (err)) {
-    fprintf(stderr, "usage: %s [-F] -O ovlStore < unitigs.cgb > fixedUnitigs.cgb\n", argv[0]);
+    fprintf(stderr, "usage: %s -O ovlStore < unitigs.cgb > fixedUnitigs.cgb\n", argv[0]);
     exit(1);
   }
 
   GenericMesg   *pmesg = NULL;
   while ((ReadProtoMesg_AS(stdin, &pmesg) != EOF)) {
-    if (pmesg->t == MESG_IUM) {
-      IntUnitigMesg *iunitig = (IntUnitigMesg *)(pmesg->m);
-      int            thisFrag;
-      int            thatFrag;
-
-      //fprintf(stderr, "UNITIG "F_IID"\n", iunitig->iaccession);
-
-      for (thisFrag=1; thisFrag<iunitig->num_frags; thisFrag++) {
-
-        //  If a parent already exists, skip this fragment.
-        //
-        if ((iunitig->f_list[thisFrag].parent) && (rebuildAll == 0))
-          continue;
-
-
-        //  Sanity check (only if we're not blindly rebuilding
-        //  everything).  If contained, the parent must be the
-        //  container.
-        //
-        if ((rebuildAll == 0) &&
-            (iunitig->f_list[thisFrag].contained) &&
-            (iunitig->f_list[thisFrag].contained != iunitig->f_list[thisFrag].parent)) {
-          fprintf(stderr, "UNITIG "F_IID" FRAGMENT "F_IID" -- WARNING -- contained fragment has no parent?!\n",
-                  iunitig->iaccession, iunitig->f_list[thisFrag].ident);
-          //exit(1);
-        }
-
-
-        //  Update the fragment
-        //
-        failed += updateFragmentWithParent(iunitig, thisFrag, ovs);
-      }
-
-#if 0
-      //  If we've failed to fix the unitig, reverse it and try again.
-
-      if ((rebuildAll) && (failed)) {
-        IntUnitigMesg  runitig = *iunitig;
-        int            i;
-
-        fprintf(stderr, "UNITIG "F_IID" failed to be fixed -- try flipping the unitig.\n",
-                iunitig->iaccession);
-
-        runitig.f_list = safe_malloc(sizeof(IntMultiPos) * runitig.num_frags);
-
-        for (thisFrag=0; thisFrag<runitig.num_frags; thisFrag++) {
-          int p = runitig.num_frags - thisFrag - 1;
-
-          runitig.f_list[p] = iunitig->f_list[thisFrag];
-          runitig.f_list[p].position.bgn = runitig.length - iunitig->f_list[thisFrag].position.end;
-          runitig.f_list[p].position.end = runitig.length - iunitig->f_list[thisFrag].position.bgn;
-        }
-
-        failed = 0;
-
-        for (thisFrag=1; thisFrag<runitig.num_frags; thisFrag++)
-          failed += updateFragmentWithParent(&runitig, thisFrag, ovs);
-
-        if (failed) {
-          fprintf(stderr, "UNITIG "F_IID" failed to be fixed after flipping.\n",
-                  iunitig->iaccession);
-        } else {
-          fprintf(stderr, "UNITIG "F_IID" was fixed after flipping.\n",
-                  iunitig->iaccession);
-
-          iunitig->length = runitig.length;
-          memcpy(iunitig->f_list, runitig.f_list, sizeof(IntMultiPos) * runitig.num_frags);
-          safe_free(runitig.f_list);
-        }
-      }
-#endif
-    }
+    if (pmesg->t == MESG_IUM)
+      fixUnitig((IntUnitigMesg *)(pmesg->m), ovs);
 
     WriteProtoMesg_AS(stdout, pmesg);
   }

@@ -1,0 +1,18 @@
+Things that are allowed by BOG, but not fixUnitigs (or probably consensus):
+
+================================================================================
+1) BOG allowed a dangling fragment at the start of a unitig because it
+had an overlap to a later fragment.
+
+{IMP mid:517711  con:0 pid:0       pos:489,0    ahg:0  bhg:0
+{IMP mid:1455172 con:0 pid:0       pos:202,979  ahg:0  bhg:0
+{IMP mid:1213693 con:0 pid:1455172 pos:231,1001 ahg:21 bhg:22
+
+  517711  1455172 (no overlap)
+  517711  1213693 I  -532  -265  9.38  9.38     0
+ 1455172  1213693 N    21    22  4.01  3.88     0
+
+In this case, fixUnitigs thinks the unitig breaks between the first
+two fragments.  It cannot rearrange fragments (swapping 2 and 3)
+because the ahang becomes negative.  The first fragment is split out
+of the unitig.
