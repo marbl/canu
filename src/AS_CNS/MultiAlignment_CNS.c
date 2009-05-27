@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.239 2009-05-22 16:57:45 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.240 2009-05-27 14:52:11 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -7825,15 +7825,35 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
               unitig->f_list[i].contained);
     }
 
+    //  Scan for the thickest overlap to an existing fragment.  If our
+    //  parent is NOT this fragment, we may be in for alignment
+    //  troubles.
+    //
+
+
     //  If we have a parent, assume the hangs are correct and just
     //  align to it.  If that works, we're done.
     //
+    //  But first, we need to check that the parent is in fact our
+    //  thickest overlap.  If not, we'll introduce too many gaps in
+    //  the consensus to use this method.
+    //
     if (unitig->f_list[i].parent > 0) {
+      int  numDovetail = 0;
 
-      //  Search for the parent fragment
+      //  Search for the parent fragment -- it MUST be the first
+      //  non-contained we see, otherwise, there is a thicker overlap
+      //  we should be using.
       //
       for (align_to = i-1; align_to >= 0; align_to--) {
         afrag = GetFragment(fragmentStore, align_to);
+
+        //  Keep track of the number of non-contained fragments we've
+        //  encountered.
+        if (unitig->f_list[align_to].contained == 0)
+          numDovetail++;
+
+        //  Did we find the parent?
         if (unitig->f_list[i].parent == afrag->iid) {
           ahang = unitig->f_list[i].ahang;
           bhang = unitig->f_list[i].bhang;
@@ -7860,20 +7880,34 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
               //  anti normal dovetail
               ovl = offsets[bfrag->lid].end - offsets[afrag->lid].bgn;
 
-          if (VERBOSE_MULTIALIGN_OUTPUT)
-            fprintf(stderr, "MultiAlignUnitig()-- (par) ovl=%d (afrag: lid=%d %d-%d  bfrag: lid=%d %d-%d  hangs: %d %d\n",
-                    ovl,
-                    afrag->lid, offsets[afrag->lid].bgn, offsets[afrag->lid].end,
-                    bfrag->lid, offsets[bfrag->lid].bgn, offsets[bfrag->lid].end,
-                    ahang, bhang);
+          //  If this is the first non-contained fragment we've
+          //  encountered, OR the fragment is contained, try the
+          //  alignment.
+          //
+          if ((numDovetail == 1) || (unitig->f_list[i].contained == afrag->iid)) {
+            if (VERBOSE_MULTIALIGN_OUTPUT)
+              fprintf(stderr, "MultiAlignUnitig()-- (par) ovl=%d (afrag: lid=%d %d-%d  bfrag: lid=%d %d-%d  hangs: %d %d\n",
+                      ovl,
+                      afrag->lid, offsets[afrag->lid].bgn, offsets[afrag->lid].end,
+                      bfrag->lid, offsets[bfrag->lid].bgn, offsets[bfrag->lid].end,
+                      ahang, bhang);
 
-          olap_success = GetAlignmentTraceDriver(afrag, 0,
-                                                 bfrag,
-                                                 &ahang, &bhang, ovl,
-                                                 trace,
-                                                 &otype,
-                                                 'u',
-                                                 0);
+            olap_success = GetAlignmentTraceDriver(afrag, 0,
+                                                   bfrag,
+                                                   &ahang, &bhang, ovl,
+                                                   trace,
+                                                   &otype,
+                                                   'u',
+                                                   0);
+          } else {
+            if (VERBOSE_MULTIALIGN_OUTPUT)
+              fprintf(stderr, "MultiAlignUnitig()-- (par) ovl=%d (afrag: lid=%d %d-%d  bfrag: lid=%d %d-%d  hangs: %d %d  NOT FIRST DOVETAIL, skip\n",
+                      ovl,
+                      afrag->lid, offsets[afrag->lid].bgn, offsets[afrag->lid].end,
+                      bfrag->lid, offsets[bfrag->lid].bgn, offsets[bfrag->lid].end,
+                      ahang, bhang);
+          }
+
           //  We're done with the loop now.  Continue; if we found an
           //  overlap, we skip the while loop below and process this
           //  overlap.
@@ -8155,7 +8189,8 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
     //
     if ((unitig->f_list[i].parent != afrag->iid) ||
         (unitig->f_list[i].ahang  != ahang) ||
-        (unitig->f_list[i].bhang  != bhang)) {
+        (unitig->f_list[i].bhang  != bhang) ||
+        ((otype == AS_CONTAINMENT) && (unitig->f_list[i].contained != afrag->iid))) {
       if (unitig->f_list[i].parent)
         fprintf(stderr, "MultiAlignUnitig()-- update parent from id=%d %d,%d to id=%d %d,%d\n",
                 unitig->f_list[i].parent, unitig->f_list[i].ahang, unitig->f_list[i].bhang,
@@ -8165,7 +8200,7 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
       unitig->f_list[i].ahang  = ahang;
       unitig->f_list[i].bhang  = bhang;
 
-      if (unitig->f_list[i].contained)
+      if (otype == AS_CONTAINMENT)
         unitig->f_list[i].contained = afrag->iid;
     }
 
