@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.51 2009-05-22 00:50:12 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.52 2009-05-28 01:19:27 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,7 +46,6 @@ static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.51 2009-05-22 00:50:12 
 #include <time.h>
 
 
-#undef DEBUG_CHECKFORCTGS
 #undef DEBUG_DETAILED
 #undef DEBUG_CONNECTEDNESS
 #undef DEBUG_PROPAGATE
@@ -1731,15 +1730,9 @@ int CheckForContigs(ScaffoldGraphT *sgraph,
                           FALSE, &contigIterator);
   while((contig = NextCIScaffoldTIterator(&contigIterator)) != NULL)
     {
-#ifdef DEBUG_CHECKFORCTGS
-      fprintf(stderr,"  Testing contig %d ... ",contig->id);
-#endif
       if(IntervalsOverlap(contig->offsetAEnd.mean, contig->offsetBEnd.mean,
                           minPos, maxPos, CGW_DP_MINLEN))
         {
-#ifdef DEBUG_CHECKFORCTGS
-          fprintf(stderr," overlap!\n");
-#endif
           pos.ident = contig->id;
           pos.position.bgn = contig->offsetAEnd.mean;
           pos.position.end = contig->offsetBEnd.mean;
@@ -1758,28 +1751,13 @@ int CheckForContigs(ScaffoldGraphT *sgraph,
                 contig->offsetAEnd : myOffsetBEnd;
             }
           AppendVA_IntElementPos(ContigPositions, &pos);
-#ifdef DEBUG_CHECKFORCTGS
-          fprintf(stderr," adding overlap with %d [%g,%g]\n",
-                  pos.ident,pos.position.bgn,pos.position.end);
-#endif
         }
       else {
-#ifdef DEBUG_CHECKFORCTGS
-        fprintf(stderr," no overlap!\n");
-#endif
         if(maxPos < MIN(contig->offsetAEnd.mean, contig->offsetBEnd.mean)){
-#ifdef DEBUG_CHECKFORCTGS
-          fprintf(stderr," done checking for contigs that overlap!\n");
-#endif
           break;
         }
       }
     }
-
-#ifdef DEBUG_CHECKFORCTGS
-  fprintf(stderr,"  should insert a new contig based on %d old ones\n",
-	  GetNumIntElementPoss(ContigPositions));
-#endif
 
   if(GetNumIntElementPoss(ContigPositions) > 1)
     {
