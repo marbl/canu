@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.22 2009-05-18 07:49:16 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.23 2009-05-28 23:25:43 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -443,15 +443,15 @@ processRead(sffHeader *h,
       break;
 
     case TRIM_HARD:
-      //  Set the CLEAR_MAX to the current clear range....and that's
-      //  it.  The rewrite vesion was for testing.
+      //  Set the CLEAR_MAX to the current clear range.
 
       fr->gkfr.clearBeg[AS_READ_CLEAR_MAX] = fr->gkfr.clearBeg[AS_READ_CLEAR_LATEST];
       fr->gkfr.clearEnd[AS_READ_CLEAR_MAX] = fr->gkfr.clearEnd[AS_READ_CLEAR_LATEST];
       break;
    case TRIM_CHOP:
       //  Rewrite the read to remove the non-clear sequence.  We keep
-      //  in the usually four base long key at the start.
+      //  in the usually four base long key at the start, which gets
+      //  removed automagically later.
       memmove(r->bases   + h->key_length, r->bases   + h->key_length + clq, sizeof(char) * (crq - clq));
       memmove(r->quality + h->key_length, r->quality + h->key_length + clq, sizeof(char) * (crq - clq));
 
@@ -461,8 +461,8 @@ processRead(sffHeader *h,
       r->quality[h->key_length + crq - clq] = 0;
 
       for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-        fr->gkfr.clearBeg[which] = 0;
-        fr->gkfr.clearEnd[which] = crq - clq;
+        fr->gkfr.clearBeg[which] = (fr->gkfr.clearBeg[which] <       clq) ? 0 : fr->gkfr.clearBeg[which] -        clq;
+        fr->gkfr.clearEnd[which] = (fr->gkfr.clearBeg[which] < crq - clq) ? 0 : fr->gkfr.clearBeg[which] - (crq - clq);
       }
       break;
   }
