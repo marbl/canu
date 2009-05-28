@@ -24,7 +24,7 @@
    Assumptions:
 *********************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.240 2009-05-27 14:52:11 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.241 2009-05-28 01:21:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -8306,32 +8306,6 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
   return(FALSE);
 }
 
-int IsDovetail(SeqInterval a,SeqInterval b) {
-  int ahang;
-  int alen, blen;
-  int acomplement=0,bcomplement=0;
-  alen = a.end - a.bgn;
-  blen = b.end - b.bgn;
-  if ( alen < 0 ) {
-    acomplement++;
-    alen = -alen;
-  }
-  if ( blen < 0 ) {
-    bcomplement++;
-    blen = -blen;
-  }
-  if ( acomplement && bcomplement) {
-    ahang = b.end - a.end;
-  } else if ( acomplement && !bcomplement ) {
-    ahang = b.bgn - a.end;
-  } else if ( ! acomplement && bcomplement ) {
-    ahang = b.end -a.bgn;
-  } else {
-    ahang = b.bgn - a.bgn;
-  }
-  if ( ahang >= alen ) return -1;
-  return ahang;
-}
 
 ////////////////////////////////////////
 static
@@ -9141,6 +9115,7 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
 }
 
 
+static
 MultiAlignT *
 MergeMultiAligns(tSequenceDB *sequenceDBp,
                  GateKeeperStore *frag_store,
@@ -9203,7 +9178,12 @@ MergeMultiAligns(tSequenceDB *sequenceDBp,
     offsets[fid].end = complement?cpositions[i].position.bgn:cpositions[i].position.end;
 
     if (VERBOSE_MULTIALIGN_OUTPUT)
-      fprintf(stderr,"MergeMultiAligns()-- id=%10d %s %12d %12d\n", cpositions[i].ident, (complement) ? "<----" : "---->", offsets[fid].bgn,offsets[fid].end);
+      fprintf(stderr,"MergeMultiAligns()-- id=%10d %s %c %12d %12d\n",
+              cpositions[i].ident,
+              (complement) ? "<----" : "---->",
+              cpositions[i].type,
+              offsets[fid].bgn,
+              offsets[fid].end);
   }
 
   ma = CreateMANode(cpositions[0].ident);
@@ -9226,14 +9206,7 @@ MergeMultiAligns(tSequenceDB *sequenceDBp,
     Fragment *afrag = NULL;
     Fragment *bfrag = GetFragment(fragmentStore,i);
 
-    // check whether contained, if so
-    // align_to = containing
-    // else
     align_to = i-1;
-
-    //  BPW is not sure why this is in a while loop.  If we fail to
-    //  find an overlap, the last thing we do is break out of here
-    //  (the last "if (!olap_success)").  Feel free to document...
 
     while (!olap_success) {
       while ((align_to > 0) && (IsContained(align_to)))
@@ -9420,6 +9393,11 @@ MergeMultiAligns(tSequenceDB *sequenceDBp,
 
         left  = (bgn < end) ? bgn : end;
         right = (bgn < end) ? end : bgn;
+
+        if (left < 0)
+          left = 0;
+        if (right > len)
+          right = len;
 
 #ifdef DEBUG_MERGEMULTIALIGNS
         if (compci->frg_or_utg==CNS_ELEMENT_IS_UNITIG)
