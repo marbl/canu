@@ -22,12 +22,48 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.7 2009-05-15 14:20:56 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.8 2009-05-29 17:29:19 brianwalenz Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
 
 //  These are used ONLY IN MultiAlignment_CNS.c.
+
+#define ALT_QV_THRESH                      30
+#define DONT_SHOW_OLAP                      0
+#define SHOW_OLAP                           1
+#define MIN_AVE_QV_FOR_VARIATION           21
+#define MIN_SUM_QVS_FOR_VARIATION          60
+#define QV_FOR_MULTI_GAP                   14
+
+#define CNS_DP_THRESH                       1e-6
+#define CNS_DP_MINLEN                      30
+
+#define CNS_NEG_AHANG_CUTOFF               -5
+
+#define INITIAL_NR                        100
+#define MAX_WINDOW_FOR_ABACUS_REFINE      100
+#define STABWIDTH                           6
+
+#undef DEBUG_ABACUS
+#undef DEBUG_ABACUS_ALIGN
+#undef DEBUG_VAR_RECORDS
+#undef DEBUG_GET_ALIGNMENT_TRACE
+
+#define MSTRING_SIZE                        3
+#define MAX_SIZE_OF_ADJUSTED_REGION         5
+
+#define AS_CONSENSUS                        0
+#define AS_MERGE                            1
+
+#define CNS_MIN_QV 0
+#define CNS_MAX_QV 60
+
+#define RINDEXMAX 128
+
+#define CNS_NALPHABET 7
+#define CNS_NP 32
+
 
 typedef struct {
   int      id;
@@ -90,7 +126,7 @@ typedef struct {
 
 
 #define CNS_ELEMENT_IS_FRAGMENT 'F'
-#define CNS_ELEMENT_IS_UNITIG 'U'
+#define CNS_ELEMENT_IS_UNITIG   'U'
 
 typedef struct {
   union {
@@ -164,10 +200,9 @@ typedef struct {
 VA_DEF(Column)
 
 
+//  This is the basic multialignment atom: A collection (possibly
+//  empty) of columns given by their offsets in the global columnStore
 typedef struct {
-  //  This is the basic multialignment atom:
-  //  A collection (possibly empty) of columns
-  //  Given by their offsets in the global columnStore
   int32 lid;      // MANode id in the manodeStore
   int32 iid;      // MANode's iid
   int32 first;
@@ -176,41 +211,6 @@ typedef struct {
 } MANode;
 
 VA_DEF(MANode)
-
-
-static char ALPHABET[] = {'-','a','c','g','t','n'};
-
-static int RALPH_INIT=0;
-static char RALPHABET[CNS_NP] = {'-','A','C','G','T','N',
-                                 'a','c','g','t',   // -A, -C, -G, -T
-                                 'M','R','W',   //     AC, AG, AT
-                                 'S','Y',   //         CG, CT
-                                 'K',   //             GT
-                                 'm','r','w',   //    -AC,-AG,-AT
-                                 's','y',   //        -CG,-CT
-                                 'k',   //            -GT
-                                 'V','H','D','B',   //ACG,ACT,AGT,CGT
-                                 'v','h','d','b',   //-ACG,-ACT,-AGT,-CGT
-                                 'X','x'};// ACGT, -ACGT, ??
-static char RALPHABETC[CNS_NP] = {'-','T','G','C','A','N',
-                                  't','g','c','a',   // -A, -C, -G, -T
-                                  'K','Y','W',   //     AC, AG, AT
-                                  'S','R',   //         CG, CT
-                                  'M',   //             GT
-                                  'k','y','w',   //    -AC,-AG,-AT
-                                  's','r',   //        -CG,-CT
-                                  'm',   //            -GT
-                                  'B','D','H','V',   //ACG,ACT,AGT,CGT
-                                  'b','d','h','v',   //-ACG,-ACT,-AGT,-CGT
-                                  'X','x'};// ACGT,-ACGT, ??
-
-static double TAU_MISMATCH = (double)1./(5. - 1.);
-static uint32 AMASK[] = {
-  013607700741, // -
-  015670707042, // a
-  016733131104, // c
-  017355252210, // g
-  017566464420};
 
 
 
@@ -280,6 +280,20 @@ extern VA_TYPE(Fragment) *fragmentStore;
 extern VA_TYPE(Column)   *columnStore;
 extern VA_TYPE(MANode)   *manodeStore;
 
+extern VA_TYPE(int32) *fragment_indices;
+extern VA_TYPE(int32) *abacus_indices;
+
+extern VA_TYPE(CNS_AlignedContigElement) *fragment_positions;
+
+extern double EPROB[CNS_MAX_QV-CNS_MIN_QV+1];
+extern double PROB[CNS_MAX_QV-CNS_MIN_QV+1];
+extern int    RINDEX[RINDEXMAX];
+extern char   ALPHABET[6];
+extern char   RALPHABET[CNS_NP];
+extern char   RALPHABETC[CNS_NP];
+extern double TAU_MISMATCH;
+extern uint32 AMASK[5];
+
 extern int USE_SDB;
 
 extern int thisIsConsensus;
@@ -300,5 +314,212 @@ extern int VERBOSE_MULTIALIGN_OUTPUT;
 extern int FORCE_UNITIG_ABUT;
 
 extern int clear_range_to_use;
+
+//  Functions used by lots of pieces internally to AS_CNS.  Defined in
+//  MultiAlgnment_CNS.c.
+
+int
+IncBaseCount(BaseCount *b, char c);
+int
+DecBaseCount(BaseCount *b, char c);
+int
+GetBaseCount(BaseCount *b, char c);
+int
+GetColumnBaseCount(Column *b, char c);
+int
+GetDepth(Column *c);
+void
+ResetBaseCount(BaseCount *b);
+void
+ShowBaseCount(BaseCount *b);
+void
+ShowBaseCountPlain(FILE *out,BaseCount *b);
+char
+GetMaxBaseCount(BaseCount *b,int start_index);
+void
+CheckColumnBaseCount(Column *c);
+
+MANode *
+CreateMANode(int32 iid);
+void
+DeleteMANode(int32 iid);
+int32
+GetMANodeLength(int32 mid);
+void
+SeedMAWithFragment(int32 mid,
+                   int32 fid,
+                   int quality,
+                   CNS_Options *opp);
+int
+GetMANodeConsensus(int32 mid, VA_TYPE(char) *sequence, VA_TYPE(char) *quality);
+int
+GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_n_unitigs, IntUnitigPos *iups, VA_TYPE(int32) *deltas);
+
+void
+CreateColumnBeadIterator(int32 cid,ColumnBeadIterator *bi);
+int32
+NextColumnBead(ColumnBeadIterator *bi);
+int
+NullifyFragmentBeadIterator(FragmentBeadIterator *bi);
+int
+IsNULLIterator(FragmentBeadIterator *bi);
+void
+CreateFragmentBeadIterator(int32 fid,FragmentBeadIterator *bi);
+int32
+NextFragmentBead(FragmentBeadIterator *bi);
+void
+CreateConsensusBeadIterator(int32 mid,ConsensusBeadIterator *bi);
+int32
+NextConsensusBead(ConsensusBeadIterator *bi);
+
+void
+ClearBead(int32 bid);
+void
+AlignBeadToColumn(int32 cid, int32 bid, char *label);
+int32
+UnAlignBeadFromColumn(int32 bid);
+int32
+UnAlignTrailingGapBeads(int32 bid);
+void
+LateralExchangeBead(int32 lid, int32 rid);
+int32
+AppendGapBead(int32 bid);
+int32
+PrependGapBead(int32 bid);
+
+Column *
+CreateColumn(int32 bid);
+void
+AddColumnToMANode(int32 ma, Column column);
+int32
+ColumnAppend(int32 cid, int32 bid);
+void
+ShowColumn(int32 cid);
+
+void
+ResetStores(int32 num_frags, int32 num_columns);
+int32
+AppendFragToLocalStore(FragType          type,
+                       int               iid,
+                       int               complement,
+                       int               contained,
+                       UnitigType        utype,
+                       MultiAlignStoreT *multialignStore);
+
+void
+AllocateDistMatrix(VarRegion  *vreg, int init);
+void
+OutputDistMatrix(FILE *fout, VarRegion  *vreg);
+void
+PopulateDistMatrix(Read *reads, int len, VarRegion  *vreg);
+void
+OutputReads(FILE *fout, Read *reads, int32 nr, int32 width);
+void
+OutputAlleles(FILE *fout, VarRegion *vreg);
+void
+AllocateMemoryForReads(Read **reads, int32 nr, int32 len,
+                       int default_qv);
+void
+AllocateMemoryForAlleles(Allele **alleles, int32 nr, int32 *na);
+void
+SortAllelesByLength(Allele *alleles, int32 num_alleles, Read *reads);
+void
+SortAllelesByWeight(Allele *alleles, int32 num_alleles, Read *reads);
+void
+SortAllelesByMapping(Allele *alleles, int32 nca, Read *reads, int *allele_map);
+void
+ClusterReads(Read *reads, int nr, Allele *alleles, int32 *na, int32 *nca, int **dist_matrix);
+
+
+//
+//  Main blocks of functionality.  All are in files named after the function. 
+//
+int
+AbacusRefine(MANode *ma, int32 from, int32 to, CNS_RefineLevel level,
+             CNS_Options *opp);
+
+int
+RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
+              IntMultiVar **v_list, int make_v_list, int get_scores);
+
+
+int32
+ApplyAlignment(int32 afid,
+               int32 aoffset,
+               int32 bfid,
+               int32 ahang,
+               int32 *trace);
+
+int
+MultiAlignContig(IntConConMesg *contig,
+                 VA_TYPE(char) *sequence,
+                 VA_TYPE(char) *quality,
+                 VA_TYPE(int32) *deltas,
+                 CNS_PrintKey printwhat,
+                 CNS_Options *opp);
+
+int
+MultiAlignUnitig(IntUnitigMesg   *unitig,
+                 GateKeeperStore *fragStore,
+                 VA_TYPE(char)   *sequence,
+                 VA_TYPE(char)   *quality,
+                 VA_TYPE(int32)  *deltas,
+                 CNS_PrintKey     printwhat,
+                 CNS_Options     *opp);
+
+void
+PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey what);
+
+void
+MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars,
+            int32 utg_alleles, CNS_Options *opp, int get_scores);
+
+
+int
+GetAlignmentTrace(int32 afid, int32 aoffset,
+                  int32 bfid,
+                  int32 *ahang, int32 *bhang, int32 expected_length,
+                  VA_TYPE(int32) *trace,
+                  OverlapType *otype,
+                  AS_ALN_Aligner *alignFunction,
+                  int show_olap,
+                  int allow_big_endgaps,
+                  int alignment_context,
+                  double input_erate);
+int
+GetAlignmentTraceDriver(Fragment *afrag, int32 aoffset,
+                        Fragment *bfrag,
+                        int32 *ahang,
+                        int32 *bhang,
+                        int32  expected_length,
+                        VA_TYPE(int32) *trace,
+                        OverlapType *otype,
+                        char is_contig,
+                        int max_gap);
+
+
+MultiAlignT *
+ReplaceEndUnitigInContig(tSequenceDB *sequenceDBp,
+                         GateKeeperStore *frag_store,
+                         uint32 contig_iid, uint32 unitig_iid, int extendingLeft,
+                         CNS_Options *opp);
+
+
+int
+BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
+         int target_allele, char *cons_base, int verbose, int get_scores,
+         CNS_Options *opp);
+
+
+
+MultiAlignT *
+MergeMultiAlignsFast_new(tSequenceDB *sequenceDBp,
+                         GateKeeperStore *frag_store,
+                         VA_TYPE(IntElementPos) *positions,
+                         int quality,
+                         int verbose,
+                         CNS_Options *opp);
+
+
 
 #endif

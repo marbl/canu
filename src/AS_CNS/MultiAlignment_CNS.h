@@ -21,7 +21,7 @@
 #ifndef MULTIALIGNMENT_CNS_INCLUDE
 #define MULTIALIGNMENT_CNS_INCLUDE
 
-static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.49 2009-05-15 14:20:56 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.50 2009-05-29 17:29:19 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -30,19 +30,6 @@ static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h
 #include "MultiAlignStore_CNS.h"
 #include "AS_ALN_aligners.h"
 
-#define CNS_MIN_QV 0
-#define CNS_MAX_QV 60
-// 1/28/2008 - include the N character in the allowed alphabet
-#define CNS_NALPHABET 7
-#define CNS_NALPHABET_NULL_ARRAY {0, 0, 0, 0, 0, 0, 0}
-#define CNS_NP 32
-
-#define MIN_SIZE_OF_MANODE 10000
-#define BC_MAX(a,b)  (((a)>(b))?(a):(b))
-#define BC_MIN(a,b)  (((a)<(b))?(a):(b))
-#define MIN_ALLOCATED_DEPTH 100
-
-#define MAX_SURROGATE_FUDGE_FACTOR 5000
 
 //  This is probably broken, or extremely inefficient, as of Nov 4 2007.
 #undef PRINTUIDS
@@ -106,13 +93,6 @@ int MultiAlignContig(IntConConMesg *,
                      VA_TYPE(int32) *,
                      CNS_PrintKey ,
                      CNS_Options *opp);
-
-int MultiAlignContig_ReBasecall(MultiAlignT *,
-                                VA_TYPE(char) *,
-                                VA_TYPE(char) *,
-                                CNS_Options *);
-
-void SequenceComplement(char *sequence, char *quality);
 
 //  Options to things in MultiAligment_CNS.c
 

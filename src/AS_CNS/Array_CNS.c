@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: Array_CNS.c,v 1.20 2009-01-16 16:46:08 skoren Exp $";
+static const char *rcsid = "$Id: Array_CNS.c,v 1.21 2009-05-29 17:29:19 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -32,6 +32,7 @@ static const char *rcsid = "$Id: Array_CNS.c,v 1.20 2009-01-16 16:46:08 skoren E
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_UTL_Var.h"
+#include "AS_UTL_reverseComplement.h"
 #include "UtilsREZ.h"
 #include "MultiAlignStore_CNS.h"
 #include "MultiAlignment_CNS.h"
@@ -57,7 +58,8 @@ VA_DEF(Lane)
 
 
 static
-LaneNode * createLaneNode(IntMultiPos *read) {
+LaneNode *
+createLaneNode(IntMultiPos *read) {
   LaneNode *t = (LaneNode *)safe_malloc(sizeof(LaneNode));
   t->read = read;
   t->read_length = 0;
@@ -69,7 +71,8 @@ LaneNode * createLaneNode(IntMultiPos *read) {
 }
 
 static
-int freeLaneNode(LaneNode *node) {
+int
+ freeLaneNode(LaneNode *node) {
   safe_free(node->sequence);
   safe_free(node->quality);
   safe_free(node);
@@ -77,7 +80,8 @@ int freeLaneNode(LaneNode *node) {
 }
 
 static
-int PushLaneNode(LaneNode *new_lane_node, Lane *lane) {
+int
+ PushLaneNode(LaneNode *new_lane_node, Lane *lane) {
   int leftpos = (new_lane_node->read->position.bgn<new_lane_node->read->position.end) ?
     new_lane_node->read->position.bgn : new_lane_node->read->position.end;
   if (leftpos < lane->lastcol+3) return 0;
@@ -97,14 +101,16 @@ int PushLaneNode(LaneNode *new_lane_node, Lane *lane) {
 }
 
 static
-void ClearLane(Lane *lane) {
+void
+ClearLane(Lane *lane) {
   lane->first=NULL;
   lane->last=NULL;
   lane->lastcol = -3;
 }
 
 static
-void FreeLane(Lane *lane) {
+void
+ FreeLane(Lane *lane) {
   if (lane->first) {
     // free nodes in lane
     LaneNode *node=lane->first;
@@ -118,7 +124,8 @@ void FreeLane(Lane *lane) {
 }
 
 static
-int IntMultiPositionCmp( const IntMultiPos *l, const IntMultiPos *m) {
+int
+ IntMultiPositionCmp( const IntMultiPos *l, const IntMultiPos *m) {
   int ltmp,mtmp;
   ltmp = (l->position.bgn<l->position.end)?l->position.bgn:l->position.end;
   mtmp = (m->position.bgn<m->position.end)?m->position.bgn:m->position.end;
@@ -128,13 +135,14 @@ int IntMultiPositionCmp( const IntMultiPos *l, const IntMultiPos *m) {
 
 
 
-int IMP2Array(IntMultiPos *all_frags,
-	      int num_pieces,
-	      int length,
-	      GateKeeperStore *frag_store,
-	      int *depth,
-	      char ***array,
-	      int ***id_array,
+int
+ IMP2Array(IntMultiPos *all_frags,
+              int num_pieces,
+              int length,
+              GateKeeperStore *frag_store,
+              int *depth,
+              char ***array,
+              int ***id_array,
               int ***ori_array,
               int show_cel_status,
               uint32 clrrng_flag) {
@@ -197,7 +205,7 @@ int IMP2Array(IntMultiPos *all_frags,
     strcpy(new_mlp->sequence,&seq[clr_bgn]);
     strcpy(new_mlp->quality,&qv[clr_bgn]);
     if (new_mlp->read->position.bgn > new_mlp->read->position.end) {
-      SequenceComplement(new_mlp->sequence,new_mlp->quality);
+      reverseComplement(new_mlp->sequence, new_mlp->quality, strlen(new_mlp->sequence));
     }
     for (next_lane=0;next_lane<lane_depth;next_lane++) {
       free_lane = GetLane(Packed,next_lane);

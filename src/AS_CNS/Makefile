@@ -65,7 +65,20 @@ LIB_SOURCES = Array_CNS.c \
               MultiAlignFromIUM.c \
               MultiAlignPrint.c \
               MultiAlignStore_CNS.c \
-              MultiAlignment_CNS.c
+              MultiAlignment_CNS.c \
+              RefreshMANode.c \
+              \
+              AbacusRefine.c \
+              ApplyAlignment.c \
+              BaseCall.c \
+              GetAlignmentTrace.c \
+              MergeMultiAligns.c \
+              MergeRefine.c \
+              MultiAlignContig.c \
+              MultiAlignUnitig.c \
+              PrintAlignment.c \
+              ReplaceEndUnitigInContig.c
+
 
 LIB_OBJECTS = $(LIB_SOURCES:.c=.o)
 
