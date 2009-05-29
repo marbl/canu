@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.38 2009-02-02 13:51:14 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.39 2009-05-29 17:27:16 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -32,6 +32,7 @@ static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.38 2009-02-02 13:51:14 brianwa
 #include "AS_UTL_fileIO.h"
 #include "AS_UTL_Hash.h"
 #include "AS_UTL_Var.h"
+#include "AS_UTL_reverseComplement.h"
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"    // For DeleteCIOverlapEdge
@@ -714,7 +715,8 @@ Overlap* OverlapSequences( char *seq1, char *seq2,
 {
   Overlap *dp_omesg = NULL;
   Overlap *lo_omesg = NULL;
-  int flip = 0;
+  int      flip = 0;
+  int      len1 = 0;
 
   //  This function takes two sequences, their orientation and an
   //  assumed minimum and maximum ahang for which it checks.
@@ -722,7 +724,7 @@ Overlap* OverlapSequences( char *seq1, char *seq2,
   // if the orientation is BA_AB or BA_BA, we need to reverse
   // complement the first contig
   if (orientation == BA_AB || orientation == BA_BA)
-    Complement_Seq( seq1 );
+    reverseComplementSequence( seq1, len1=strlen(seq1) );
 
   // if the orientation is AB_BA or BA_BA, we need to set the flip
   // variable for the second contig
@@ -763,7 +765,7 @@ Overlap* OverlapSequences( char *seq1, char *seq2,
 #endif
 
   if (orientation == BA_AB || orientation == BA_BA)
-    Complement_Seq( seq1 );
+    reverseComplementSequence( seq1, len1 );
 
   // omesg->begpos is the a-hang, omesg->endpos is the b-hang
 

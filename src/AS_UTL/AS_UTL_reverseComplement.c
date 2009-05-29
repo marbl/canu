@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_UTL_reverseComplement.c,v 1.3 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_UTL_reverseComplement.c,v 1.4 2009-05-29 17:27:15 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -74,6 +74,11 @@ reverseComplement(char *seq, char *qlt, int len) {
   char   c=0;
   char  *s=seq,  *S=seq+len-1;
   char  *q=qlt,  *Q=qlt+len-1;
+
+  if (qlt == NULL) {
+    reverseComplementSequence(seq, len);
+    return;
+  }
 
   initRC();
 

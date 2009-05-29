@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.47 2009-05-21 02:24:37 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.48 2009-05-29 17:27:16 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -45,6 +45,7 @@ static const char *rcsid = "$Id: GapFillREZ.c,v 1.47 2009-05-21 02:24:37 brianwa
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_fileIO.h"
+#include "AS_UTL_reverseComplement.h"
 
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"
@@ -6605,7 +6606,7 @@ static Overlap *  Get_Chunk_Overlap
 
 fprintf(stderr, "OVERLAP FOUND BETWEEN %d and %d\n", a->chunk_id, b->chunk_id);
 if (orient == BA_AB || orient == BA_BA)
-   Complement_Seq( (*a_seq) );
+  reverseComplementSequence( (*a_seq), strlen(*a_seq) );
 Print_Overlap(stderr, (*a_seq), (*b_seq), result);
 (*a_seq) = NULL;
 (*b_seq) = NULL; 

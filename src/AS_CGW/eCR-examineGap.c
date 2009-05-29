@@ -19,12 +19,11 @@
  *************************************************************************/
 
 
-static const char *rcsid = "$Id: eCR-examineGap.c,v 1.20 2008-12-18 07:13:22 brianwalenz Exp $";
+static const char *rcsid = "$Id: eCR-examineGap.c,v 1.21 2009-05-29 17:27:16 brianwalenz Exp $";
 #include "eCR.h"
 
 #include "GapWalkerREZ.h"  //  FindGapLength
-#include "MultiAlignment_CNS.h"  //  Sequence_Complement
-
+#include "AS_UTL_reverseComplement.h"
 
 
 // extern variables for controlling use of Local_Overlap_AS_forCNS
@@ -162,8 +161,10 @@ examineGap(ContigT *lcontig, int lFragIid,
   // <---------------------- lContigOrientation == B_A
   //                  -----> frag is 5p->3p into gap, aligned opposite to contig
   //
-  if (lContigOrientation == B_A)          // the frag is oriented opposite to the contig in this case
-    SequenceComplement(lSequence, NULL);  // flip contig sequence to its orientation in scaffold
+  // the frag is oriented opposite to the contig in this case
+  // flip contig sequence to its orientation in scaffold
+  if (lContigOrientation == B_A)
+    reverseComplementSequence(lSequence, strlen(lSequence));
 
   // ----------------------> rContigOrientation == A_B
   // <-----                  frag is 5p->3p into gap, aligned opposite to contig
@@ -171,8 +172,10 @@ examineGap(ContigT *lcontig, int lFragIid,
   // <---------------------- rContigOrientation == B_A
   // <-----                  frag is 5p->3p into gap, aligned with contig
   //
-  if (rContigOrientation == B_A)          // the frag is oriented opposite to the contig in this case
-    SequenceComplement(rSequence, NULL);  // flip contig sequence to its orientation in scaffold
+  // the frag is oriented opposite to the contig in this case
+  // flip contig sequence to its orientation in scaffold
+  if (rContigOrientation == B_A)
+    reverseComplementSequence(rSequence, strlen(rSequence));
 
 
 
@@ -230,7 +233,7 @@ examineGap(ContigT *lcontig, int lFragIid,
     int temp = 0;
     int len  = strlen(rFragSeqBuffer);
 
-    SequenceComplement(rFragSeqBuffer, NULL);
+    reverseComplementSequence(rFragSeqBuffer, len);
 
     temp     = len - rclr_bgn;
     rclr_bgn = len - rclr_end;

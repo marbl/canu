@@ -22,24 +22,11 @@
 #ifndef AS_ALN_ALIGNERS_H
 #define AS_ALN_ALIGNERS_H
 
-static const char *rcsid_AS_ALN_ALIGNERS_H = "$Id: AS_ALN_aligners.h,v 1.16 2008-12-29 17:36:34 brianwalenz Exp $";
+static const char *rcsid_AS_ALN_ALIGNERS_H = "$Id: AS_ALN_aligners.h,v 1.17 2009-05-29 17:27:16 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "SUBDELREZ.h"
-
-/* Complement the sequence a.  The operation does the
-   complementation/reversal in place.  Calling it a second
-   time on a given fragment restores it to its original state.  */
-void Complement_Seq(char *a);
-
-
-/* Complement the sequence in fragment message a.  This include also
-   revsersing the order of the quality values.  The operation does the
-   complementation/reversal in place.  Calling it a second time on a
-   given fragment restores it to its original state.                */
-void Complement_Fragment_AS(InternalFragMesg *a);
-
 
 /*  Print an ASCII representation of the alignment between fragments a and
     b encoded in align to the file "file".

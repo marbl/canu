@@ -20,13 +20,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.21 2009-01-16 00:17:12 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.22 2009-05-29 17:27:16 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include "AS_global.h"
+#include "AS_UTL_reverseComplement.h"
 #include "CA_ALN_local.h"
 #include "AS_ALN_aligners.h"
 
@@ -1117,9 +1118,8 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
   alen = strlen(aseq);
   blen = strlen(bseq);
 
-  if (opposite){                 /* Compare in opposite orientation. */
-    Complement_Fragment_AS(b);
-  }
+  if (opposite)
+    reverseComplement(b->sequence, b->quality, blen);
 
 
   /* now generate the substrings of the input sequences which contain the
@@ -1731,7 +1731,7 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
     //////////
 
     if (opposite)
-      Complement_Fragment_AS(b);
+      reverseComplement(b->sequence, b->quality, strlen(b->sequence));
 
     Analyze_Affine_Overlap_AS(a,
                               b,
@@ -1750,7 +1750,7 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
                               &max_indel_AS_ALN_LOCOLAP_GLOBAL);
 
     if (opposite)
-      Complement_Fragment_AS(b);
+      reverseComplement(b->sequence, b->quality, strlen(b->sequence));
 
     errRate       = (sub+   ins+   del) / (double)(alen+      ins);
     errRateAffine = (sub+affins+affdel) / (double)(alen-del+affins+affdel);
@@ -1788,7 +1788,7 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 
 
   if (opposite)
-    Complement_Fragment_AS(b);
+    reverseComplement(b->sequence, b->quality, strlen(b->sequence));
 
   safe_free(O);
 
@@ -1797,7 +1797,7 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
  nooverlap:
 
   if (opposite)
-    Complement_Fragment_AS(b);
+    reverseComplement(b->sequence, b->quality, strlen(b->sequence));
 
   safe_free(O);
 

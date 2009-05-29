@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.17 2009-01-07 16:05:16 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.18 2009-05-29 17:27:16 brianwalenz Exp $";
 
 /* Dynamic programming sequence comparison of two fragments.  General
    purpose utility that uses bit-vector d.p. for detection (see, "A Fast
@@ -38,6 +38,7 @@ static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.17 2009-01-07 16:05:16 b
 #include <assert.h>
 
 #include "AS_global.h"
+#include "AS_UTL_reverseComplement.h"
 #include "AS_ALN_aligners.h"
 
 #undef     THRESH_DEBUG
@@ -1465,7 +1466,7 @@ Overlap *DP_Compare(char *aseq, char *bseq,
   }
 
   if (opposite)                 /* Compare in opposite orientation. */
-    Complement_Seq(bseq+1);
+    reverseComplementSequence(bseq+1, blen);
 
   { int mid;
 
@@ -1507,7 +1508,7 @@ Overlap *DP_Compare(char *aseq, char *bseq,
     if (pos1 >= blen)
       { if (pos2 <= -alen)
           { if (opposite)
-              Complement_Seq(bseq+1);
+              reverseComplementSequence(bseq+1, blen);
             return (NULL);
           }
         which = 1;
@@ -1565,7 +1566,7 @@ Overlap *DP_Compare(char *aseq, char *bseq,
   OVL.length = (alen + blen - (abs(OVL.begpos) + abs(OVL.endpos))) / 2;
 
   if (opposite)
-    Complement_Seq(bseq+1);
+    reverseComplementSequence(bseq+1, blen);
   return (&OVL);
 }
 
@@ -1921,12 +1922,12 @@ void Print_Overlap(FILE *file, char *aseq, char *bseq, Overlap *align)
 #endif
 
       if (align->comp)
-        Complement_Seq(bseq);
+        reverseComplementSequence(bseq, strlen(bseq));
 
       CNS_PrintAlign(file,align->begpos,align->endpos,aseq,bseq,trace);
 
       if (align->comp)
-        Complement_Seq(bseq);
+        reverseComplementSequence(bseq, strlen(bseq));
     }
 }
 

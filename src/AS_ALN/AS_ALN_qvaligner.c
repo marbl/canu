@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.19 2009-01-13 02:53:50 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.20 2009-05-29 17:27:16 brianwalenz Exp $";
 
 /* Utility routines to complement, unpack and pack alignments, and print
    overlaps.  Also a routine for re-aligning an overlap using quality
@@ -33,6 +33,7 @@ static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.19 2009-01-13 02:53:50 b
 #include <assert.h>
 
 #include "AS_global.h"
+#include "AS_UTL_reverseComplement.h"
 #include "AS_ALN_aligners.h"
 
 #undef DEBUG
@@ -41,120 +42,6 @@ static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.19 2009-01-13 02:53:50 b
 #define BAND_WIDTH    3   /* Width of band about original for realignment */
 
 /*** UTILITY ROUTINES ***/
-
-
-/* Complement the sequence in fragment aseq.  The operation does the
-   complementation/reversal in place.  Calling it a second time on a
-   given fragment restores it to its original state.                */
-
-void Complement_Seq(char *aseq)
-{ static char WCinvert[256];
-  static int Firstime = 1;
-
-  if (Firstime)          /* Setup complementation array */
-    { int i;
-
-      Firstime = 0;
-      for(i = 0; i < 256;i++){
-	WCinvert[i] = '?';
-      }
-      WCinvert['a'] = 't';
-      WCinvert['c'] = 'g';
-      WCinvert['g'] = 'c';
-      WCinvert['t'] = 'a';
-      WCinvert['n'] = 'n';
-      WCinvert['A'] = 'T';
-      WCinvert['C'] = 'G';
-      WCinvert['G'] = 'C';
-      WCinvert['T'] = 'A';
-      WCinvert['N'] = 'N';
-      WCinvert['-'] = '-'; // added this to enable alignment of gapped consensi
-    }
-
-  { int len;                    /* Complement and reverse sequence */
-    len = strlen(aseq);
-
-    { register char *s, *t;
-      int c;
-
-      s = aseq;
-      t = aseq + (len-1);
-      while (s < t)
-	{ c = *s;
-          *s++ = WCinvert[(int)*t];
-          *t-- = WCinvert[(int)c];
-        }
-      if (s == t)
-        *s = WCinvert[(int)*s];
-    }
-  }
-}
-
-
-/* Complement the sequence in fragment message a.  This include also
-   revsersing the order of the quality values.  The operation does the
-   complementation/reversal in place.  Calling it a second time on a
-   given fragment restores it to its original state.                */
-
-void Complement_Fragment_AS(InternalFragMesg *a)
-{ static char WCinvert[256];
-  static int Firstime = 1;
-
-  if (Firstime)          /* Setup complementation array */
-    {
-      int i;
-      Firstime = 0;
-      for(i = 0; i < 256;i++){
-	WCinvert[i] = '?';
-      }
-      WCinvert['a'] = 't';
-      WCinvert['c'] = 'g';
-      WCinvert['g'] = 'c';
-      WCinvert['t'] = 'a';
-      WCinvert['n'] = 'n';
-      WCinvert['A'] = 'T';
-      WCinvert['C'] = 'G';
-      WCinvert['G'] = 'C';
-      WCinvert['T'] = 'A';
-      WCinvert['N'] = 'N';
-      WCinvert['-'] = '-'; // added this to enable alignment of gapped consensi
-    }
-
-  { int len;                    /* Complement and reverse sequence */
-    len = strlen(a->sequence);
-
-    { register char *s, *t;
-      int c;
-
-      s = a->sequence;
-      t = a->sequence + (len-1);
-      while (s < t)
-        { // Sanity Check!
-	  assert(WCinvert[(int) *t] != '?' &&
-		 WCinvert[(int) *s] != '?');
-
-	  c = *s;
-          *s++ = WCinvert[(int) *t];
-          *t-- = WCinvert[c];
-        }
-      if (s == t)
-        *s = WCinvert[(int) *s];
-    }
-
-    if (a->quality != NULL)
-      { register char *s, *t;   /* Reverse quality value array */
-        int c;
-
-        s = a->quality;
-        t = a->quality + (len-1);
-        while (s < t)
-          { c = *s;
-            *s++ = *t;
-            *t-- = c;
-          }
-      }
-  }
-}
 
 
 /*** OVERLAP PRINT ROUTINE ***/
@@ -354,16 +241,16 @@ void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
 
   if (align->alignment_trace != NULL) {
     if (align->orientation == AS_INNIE)
-      Complement_Fragment_AS(b);
+      reverseComplement(b->sequence, b->quality, strlen(b->sequence));
     else if (align->orientation == AS_OUTTIE)
-      Complement_Fragment_AS(a);
+      reverseComplement(a->sequence, a->quality, strlen(a->sequence));
 
     PrintAlign(file,align->ahg,align->bhg,a->sequence,b->sequence,align->alignment_trace);
 
     if (align->orientation == AS_INNIE)
-      Complement_Fragment_AS(b);
+      reverseComplement(b->sequence, b->quality, strlen(b->sequence));
     else if (align->orientation == AS_OUTTIE)
-      Complement_Fragment_AS(a);
+      reverseComplement(a->sequence, a->quality, strlen(a->sequence));
   }
 }
 
@@ -526,9 +413,9 @@ void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
   }
 
   if (align->orientation == AS_INNIE)
-    Complement_Fragment_AS(b);
+    reverseComplement(b->sequence, b->quality, strlen(b->sequence));
   else if (align->orientation == AS_OUTTIE)
-    Complement_Fragment_AS(a);
+    reverseComplement(a->sequence, a->quality, strlen(a->sequence));
 
   AnalyzeAffineAlign(align->ahg,align->bhg,
                      a->sequence,b->sequence,
@@ -539,9 +426,9 @@ void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
                      biggestBlock);
 
   if (align->orientation == AS_INNIE)
-    Complement_Fragment_AS(b);
+    reverseComplement(b->sequence, b->quality, strlen(b->sequence));
   else if (align->orientation == AS_OUTTIE)
-    Complement_Fragment_AS(a);
+    reverseComplement(a->sequence, a->quality, strlen(a->sequence));
 
   if (swap) {
     swap = *alen;

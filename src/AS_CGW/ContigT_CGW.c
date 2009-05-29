@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ContigT_CGW.c,v 1.21 2008-12-16 22:32:36 skoren Exp $";
+static char *rcsid = "$Id: ContigT_CGW.c,v 1.22 2009-05-29 17:27:16 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_EDGES
@@ -34,11 +34,11 @@ static char *rcsid = "$Id: ContigT_CGW.c,v 1.21 2008-12-16 22:32:36 skoren Exp $
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_interval.h"
+#include "AS_UTL_reverseComplement.h"
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "ScaffoldGraphIterator_CGW.h"
-#include "MultiAlignment_CNS.h"  //  What a waste, only for SequenceComplement()
 
 #ifdef TRY_IANS_SEDGES
 #include "AS_CGW_EdgeDiagnostics.h"
@@ -103,7 +103,7 @@ dumpContigInfo(ChunkInstanceT *contig) {
   len1 = strlen(seq1);
 
   if (contigOrientation == 1)
-    SequenceComplement(seq1, NULL);
+    reverseComplementSequence(seq1, len1);
 
   if (len1 < 5000) {
     fprintf( stderr, ">contig%d consensus seq (flipped to reflect scaff orientation)\n", contig->id);
