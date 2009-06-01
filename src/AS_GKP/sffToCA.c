@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.23 2009-05-28 23:25:43 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.24 2009-06-01 12:25:18 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,30 +36,61 @@ const char *mainid = "$Id: sffToCA.c,v 1.23 2009-05-28 23:25:43 brianwalenz Exp 
 #include "AS_ALN_bruteforcedp.h"
 
 
-#define TRIM_NONE 0
-#define TRIM_SOFT 1
-#define TRIM_HARD 2
-#define TRIM_CHOP 3
-#define TRIM_ERRR 9
+#define CLEAR_ALL        0x00
+#define CLEAR_454        0x01
+#define CLEAR_N          0x02
+#define CLEAR_PAIR_N     0x04
+#define CLEAR_DISCARD_N  0x08
+#define CLEAR_ERRR       0xff
 
-#define NREAD_ALLOW    0
-#define NREAD_DISCARD  1
-#define NREAD_TRIM     2
-#define NREAD_ONLYN    3  //  Debug, see comments later
-#define NREAD_ERRR     9
+#define TRIM_NONE        0
+#define TRIM_SOFT        1
+#define TRIM_HARD        2
+#define TRIM_CHOP        3
+#define TRIM_ERRR        9
 
-#define LOG_DEFAULT    0
-#define LOG_MATES      1
+#define LOG_DEFAULT      0
+#define LOG_MATES        1
 
 #define AS_LINKER_MAX_SEQS       50
 #define AS_LINKER_CUSTOM_OFFSET  24
 
-GateKeeperStore *gkpStore  = NULL;
-FILE            *logFile   = NULL;
-uint32           logLevel  = LOG_DEFAULT;
-uint32           clearTrim = TRIM_NONE;
-uint32           Nread     = NREAD_DISCARD;
-uint32           NreadTrim = 0;
+GateKeeperStore *gkpStore    = NULL;
+FILE            *logFile     = NULL;
+uint32           clearAction = CLEAR_454;
+uint32           clearSet    = 0;
+uint32           trimAction  = TRIM_HARD;
+uint32           logLevel    = LOG_DEFAULT;
+
+typedef struct {
+  uint32   numReadsInSFF;
+
+  uint32   numReadsWithPartialLinker;  //  A single unmated read
+  uint32   numReadsWithFullLinker;     //  A pair of reads joined by a mate
+  uint32   numReadsWithNoLinker;       //  A single unmated read
+
+  uint32   numTooLong;
+  uint32   numTooShort;
+  uint32   numWithUnallowedN;
+  uint32   numDeDuped;
+} statistics;
+
+statistics st = {0};
+
+static
+void
+writeStatistics(FILE *statOut) {
+  fprintf(statOut, "numReadsInSFF             "F_U32"\n", st.numReadsInSFF);
+  fprintf(statOut, "numReadsWithPartialLinker "F_U32"\n", st.numReadsWithPartialLinker);
+  fprintf(statOut, "numReadsWithFullLinker    "F_U32"\n", st.numReadsWithFullLinker);
+  fprintf(statOut, "numReadsWithNoLinker      "F_U32"\n", st.numReadsWithNoLinker);
+  fprintf(statOut, "numTooLong                "F_U32"\n", st.numTooLong);
+  fprintf(statOut, "numTooShort               "F_U32"\n", st.numTooShort);
+  fprintf(statOut, "numWithUnallowedN         "F_U32"\n", st.numWithUnallowedN);
+  fprintf(statOut, "numDeDuped                "F_U32"\n", st.numDeDuped);
+}
+
+
 
 static
 void
@@ -361,6 +392,8 @@ processRead(sffHeader *h,
             sffRead   *r, fragRecord *fr) {
   int  which;
 
+  st.numReadsInSFF++;
+
   clearGateKeeperFragmentRecord(&fr->gkfr);
 
   //  Construct a UID from the 454 read name
@@ -378,107 +411,208 @@ processRead(sffHeader *h,
   fr->gkfr.libraryIID  = 1;
   fr->gkfr.orientation = AS_READ_ORIENT_UNKNOWN;
 
+  ////////////////////////////////////////
+  //
+  //  Chop off any N's at the end of the read.  Titanium likes to do
+  //  this to us.
+  //
+  while ((r->bases[r->number_of_bases-1] == 'N') ||
+         (r->bases[r->number_of_bases-1] == 'n')) {
+    r->number_of_bases--;
+    r->bases[r->number_of_bases] = 0;
+    r->quality[r->number_of_bases] = 0;
+  }
+
+  if (r->clip_adapter_right > r->number_of_bases)
+    r->clip_adapter_right = r->number_of_bases;
+
+  if (r->clip_quality_right > r->number_of_bases)
+    r->clip_quality_right = r->number_of_bases;
+
+  ////////////////////////////////////////
+  //
   //  Attempt to make sense of 454 supplied clear ranges.
   //
   //  These are base-based.  If either value is 0, that means the
   //  value was not computed.  In that case, we set it to the extent
   //  (max or min).
+  //
+  int clq = h->key_length;
+  int crq = r->number_of_bases;
 
-  //  Left point should be zero or after the key
-  assert((r->clip_quality_left == 0) || (h->key_length <= r->clip_quality_left));
-  assert((r->clip_adapter_left == 0) || (h->key_length <= r->clip_adapter_left));
+  int cla = h->key_length;
+  int cra = r->number_of_bases;
 
-  //  Right point should be zero or before the end
-  assert((r->clip_quality_right == 0) || (r->clip_quality_left <= r->number_of_bases));
-  assert((r->clip_adapter_right == 0) || (r->clip_adapter_left <= r->number_of_bases));
+  if (clearAction & CLEAR_454) {
+    //  Left point should be zero or after the key
+    assert((r->clip_quality_left == 0) || (h->key_length <= r->clip_quality_left));
+    assert((r->clip_adapter_left == 0) || (h->key_length <= r->clip_adapter_left));
 
-  //  Decode and convert to space based.
-  int  clq = MAX(r->clip_quality_left,  h->key_length + 1) - 1;
-  int  cla = MAX(r->clip_adapter_left,  h->key_length + 1) - 1;
+    //  Right point should be zero or before the end
+    assert((r->clip_quality_right == 0) || (r->clip_quality_left <= r->number_of_bases));
+    assert((r->clip_adapter_right == 0) || (r->clip_adapter_left <= r->number_of_bases));
 
-  int  crq = (r->clip_quality_right > 0) ? r->clip_quality_right : r->number_of_bases;
-  int  cra = (r->clip_adapter_right > 0) ? r->clip_adapter_right : r->number_of_bases;
+    clq = MAX(r->clip_quality_left,  h->key_length + 1) - 1;
+    cla = MAX(r->clip_adapter_left,  h->key_length + 1) - 1;
 
-  //  Finally, remove the key from the start
-  clq -= h->key_length;
-  crq -= h->key_length;
-
-  cla -= h->key_length;
-  cra -= h->key_length;
-
-  //  Set the normal clear ranges
-  for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-    fr->gkfr.clearBeg[which] = MAX(clq, cla);
-    fr->gkfr.clearEnd[which] = MIN(crq, cra);
+    crq = (r->clip_quality_right > 0) ? r->clip_quality_right : r->number_of_bases;
+    cra = (r->clip_adapter_right > 0) ? r->clip_adapter_right : r->number_of_bases;
   }
 
-  //  No maxmum set yet.
-  fr->gkfr.clearBeg[AS_READ_CLEAR_MAX] = 0;
-  fr->gkfr.clearEnd[AS_READ_CLEAR_MAX] = r->number_of_bases - h->key_length;
-
-  //  'vector' might be set.  If not, this defaults to 0,end.
-  fr->gkfr.clearBeg[AS_READ_CLEAR_VEC] = cla;
-  fr->gkfr.clearEnd[AS_READ_CLEAR_VEC] = cra;
-
-  //  And no contamination!
-  fr->gkfr.contaminationBeg = 0;
-  fr->gkfr.contaminationEnd = 0;
-
+  ////////////////////////////////////////
   //
-  //  Set clear ranges
+  //  Find the CLEAR_N and CLEAR_PAIR_N points.  If we're allowing the
+  //  use of the 454 clear ranges, don't check for N's before that.
+  //  qThis assumes that clq and cla are NOT set if the 454 clear is
+  //  NOT used.
   //
+  int  cln = h->key_length;
+  int  crn = r->number_of_bases;
 
-  switch (clearTrim) {
-    case TRIM_NONE:
-      //  Reset clear ranges to include the whole read.
+  if (clearAction & CLEAR_N) {
+    int  f  = 0;
+    int  b  = MAX(clq, cla);
+    int  e  = r->number_of_bases;
+    char *s = r->bases;
 
-      for (which=AS_READ_CLEAR_OBTINI; which <= AS_READ_CLEAR_LATEST; which++) {
-        fr->gkfr.clearBeg[which] = 0;
-        fr->gkfr.clearEnd[which] = r->number_of_bases - h->key_length;
-      }
-      break;
+    for (f=b; f<e; f++)
+      if ((s[f] == 'n') || (s[f] == 'N'))
+        break;
 
-    case TRIM_SOFT:
-      //  Done.
-      break;
-
-    case TRIM_HARD:
-      //  Set the CLEAR_MAX to the current clear range.
-
-      fr->gkfr.clearBeg[AS_READ_CLEAR_MAX] = fr->gkfr.clearBeg[AS_READ_CLEAR_LATEST];
-      fr->gkfr.clearEnd[AS_READ_CLEAR_MAX] = fr->gkfr.clearEnd[AS_READ_CLEAR_LATEST];
-      break;
-   case TRIM_CHOP:
-      //  Rewrite the read to remove the non-clear sequence.  We keep
-      //  in the usually four base long key at the start, which gets
-      //  removed automagically later.
-      memmove(r->bases   + h->key_length, r->bases   + h->key_length + clq, sizeof(char) * (crq - clq));
-      memmove(r->quality + h->key_length, r->quality + h->key_length + clq, sizeof(char) * (crq - clq));
-
-      r->number_of_bases = h->key_length + crq - clq;
-
-      r->bases  [h->key_length + crq - clq] = 0;
-      r->quality[h->key_length + crq - clq] = 0;
-
-      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-        fr->gkfr.clearBeg[which] = (fr->gkfr.clearBeg[which] <       clq) ? 0 : fr->gkfr.clearBeg[which] -        clq;
-        fr->gkfr.clearEnd[which] = (fr->gkfr.clearBeg[which] < crq - clq) ? 0 : fr->gkfr.clearBeg[which] - (crq - clq);
-      }
-      break;
+    cln = b;
+    crn = f;
   }
 
-  //  Reads too long cannot be loaded into the store.  We trim off
-  //  anything over the maximum size.  Likewise, reads too short will
-  //  never be of any use, and they're not loaded.
+  int  clp = h->key_length;
+  int  crp = r->number_of_bases;
 
-  if (r->number_of_bases - h->key_length < AS_READ_MIN_LEN) {
+  if (clearAction & CLEAR_PAIR_N) {
+    int   f = 0;
+    int   b = MAX(clq, cla);
+    int   e = r->number_of_bases - 1;
+    char *s = r->bases;
+
+    for (f=b; f<e; f++)
+      if (((s[f+0] == 'n') || (s[f+0] == 'N')) &&
+          ((s[f+1] == 'n') || (s[f+1] == 'N')))
+        break;
+
+    clp = b;
+    crp = f;
+  }
+
+
+  ////////////////////////////////////////
+  //
+  //  Make sense of all these by blindly intersecting them together.
+  //
+  int clf = MAX(MAX(clq, cla), MAX(cln, clp));
+  int crf = MIN(MIN(crq, cra), MIN(crn, crp));
+
+
+  ////////////////////////////////////////
+  //
+  //  If told to, and there is still an N in the sequence, trash the
+  //  whole thing.
+  //
+  if ((clearAction & CLEAR_DISCARD_N) && (crn < crf)) {
+    st.numWithUnallowedN++;
+
     if (logFile)
-      fprintf(logFile, "Read '%s' of length %d is too short.  Not loaded.\n",
-              r->name, r->number_of_bases - h->key_length);
+      fprintf(logFile, "Read '%s' contains an N at position %d.  Read deleted.\n",
+              AS_UID_toString(fr->gkfr.readUID), crn);
+
     fr->gkfr.readUID = AS_UID_undefined();
   }
 
+
+  ////////////////////////////////////////
+  //
+  //  Now, decide how to set the clear ranges.  Ignore, soft, hard, chop?
+  //
+  switch (trimAction) {
+    int which;
+
+    case TRIM_NONE:
+      //  Set clear range to the whole untrimmed read.
+      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+        fr->gkfr.clearBeg[which] = h->key_length;
+        fr->gkfr.clearEnd[which] = r->number_of_bases;
+      }
+
+      //  No point setting the max.
+      fr->gkfr.clearBeg[AS_READ_CLEAR_MAX] = 1;
+      fr->gkfr.clearEnd[AS_READ_CLEAR_MAX] = 0;
+      break;
+
+    case TRIM_SOFT:
+      //  Set clear ranges to whatever we discovered above, but do not
+      //  limit OBT to anything.
+      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+        fr->gkfr.clearBeg[which] = clf;
+        fr->gkfr.clearEnd[which] = crf;
+      }
+
+      //  No point setting the max.
+      fr->gkfr.clearBeg[AS_READ_CLEAR_MAX] = 1;
+      fr->gkfr.clearEnd[AS_READ_CLEAR_MAX] = 0;
+      break;
+
+    case TRIM_HARD:
+      //  Set clear ranges to whatever we discovered above, and limit
+      //  OBT to those ranges.
+      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+        fr->gkfr.clearBeg[which] = clf;
+        fr->gkfr.clearEnd[which] = crf;
+      }
+
+      //  The only one that sets the max.
+      fr->gkfr.clearBeg[AS_READ_CLEAR_MAX] = clf;
+      fr->gkfr.clearEnd[AS_READ_CLEAR_MAX] = crf;
+      break;
+
+    case TRIM_CHOP:
+      //  Rewrite the read to remove the non-clear sequence.  We keep
+      //  in the usually four base long key at the start (with some
+      //  amount of pain since clf,clr include those four bases).
+
+      memmove(r->bases   + h->key_length, r->bases   + clf, sizeof(char) * (crf - clf));
+      memmove(r->quality + h->key_length, r->quality + clf, sizeof(char) * (crf - clf));
+
+      r->number_of_bases = h->key_length + crf - clf;
+
+      r->bases  [h->key_length + crf - clf] = 0;
+      r->quality[h->key_length + crf - clf] = 0;
+
+      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+        fr->gkfr.clearBeg[which] = h->key_length;
+        fr->gkfr.clearEnd[which] = h->key_length + crf - clf;
+      }
+
+      //  No point setting the max.
+      fr->gkfr.clearBeg[AS_READ_CLEAR_MAX] = 1;
+      fr->gkfr.clearEnd[AS_READ_CLEAR_MAX] = 0;
+      break;
+    default:
+      break;
+  }
+
+  //  There is no vector clear defined for 454 reads.
+  fr->gkfr.clearBeg[AS_READ_CLEAR_VEC] = 1;
+  fr->gkfr.clearEnd[AS_READ_CLEAR_VEC] = 0;
+
+  //  Make sure that we aren't claiming contamination in the middle.
+  fr->gkfr.contaminationBeg = 0;
+  fr->gkfr.contaminationEnd = 0;
+
+  ////////////////////////////////////////////////////////////////////////////////
+
+  //  Reads too long cannot be physically loaded into the store.  Trim
+  //  off anything over the maximum size.
+  //
   if (r->number_of_bases - h->key_length > AS_READ_MAX_LEN) {
+    st.numTooLong++;
+
     if (logFile)
       fprintf(logFile, "Read '%s' of length %d is too long.  Truncating to %d bases.\n",
               r->name, r->number_of_bases - h->key_length, AS_READ_MAX_LEN);
@@ -496,12 +630,36 @@ processRead(sffHeader *h,
     }
   }
 
+  //  Likewise, reads too short will never be of any use, and they're
+  //  not loaded.  We'll give the benefit of the doubt and use the
+  //  read length here, not the trimmed length.
+  //
+  if (r->number_of_bases - h->key_length < AS_READ_MIN_LEN) {
+    st.numTooShort++;
+
+    if (logFile)
+      fprintf(logFile, "Read '%s' of length %d clear %d,%d is too short.  Not loaded.\n",
+              r->name,
+              r->number_of_bases - h->key_length,
+              fr->gkfr.clearEnd[AS_READ_CLEAR_LATEST] - h->key_length,
+              fr->gkfr.clearBeg[AS_READ_CLEAR_LATEST] - h->key_length);
+
+    fr->gkfr.readUID = AS_UID_undefined();
+  }
+
+  //  Finally, adjust everything to remove the key_length bases from the start.
+  //
+  for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
+    fr->gkfr.clearBeg[which] -= h->key_length;
+    fr->gkfr.clearEnd[which] -= h->key_length;
+  }
+
   r->final_bases    = r->bases   + h->key_length;
   r->final_quality  = r->quality + h->key_length;
-  r->final_length   = strlen(r->final_bases);
+  r->final_length   = r->number_of_bases - h->key_length;
 
   //  Copy sequence to the fragRecord
-
+  //
   memcpy(fr->seq, r->final_bases,   sizeof(char) * (r->final_length + 1));
   memcpy(fr->qlt, r->final_quality, sizeof(char) * (r->final_length + 1));
 }
@@ -576,88 +734,6 @@ loadSFF(char *sffName) {
 
 
 
-
-////////////////////////////////////////////////////////////////////////////////
-//
-//  Throws out low quality reads.
-//
-//
-void
-removeNReads(void) {
-  uint32        firstElem = getFirstElemFragStore(gkpStore);
-  uint32        lastElem  = getLastElemFragStore(gkpStore) + 1;
-  uint32        thisElem  = 0;
-  uint32        x         = 0;
-  uint32        b         = 0;
-  uint32        e         = 0;
-
-  fragRecord    fr        = {0};
-
-  if (Nread == NREAD_ALLOW)
-    return;
-
-  fprintf(stderr, "removeNReads()--  from %d to %d\n", firstElem, lastElem);
-
-  for (thisElem=firstElem; thisElem<lastElem; thisElem++) {
-    if ((thisElem % 1000000) == 0)
-      fprintf(stderr, "removeNReads()--  at %d\n", thisElem);
-
-    getFrag(gkpStore, thisElem, &fr, FRAG_S_INF | FRAG_S_SEQ);
-
-    //  Look for n's in the clear range.  This is a signature of an
-    //  instrument problem.
-    //
-    b = fr.gkfr.clearBeg[AS_READ_CLEAR_LATEST];
-    e = fr.gkfr.clearEnd[AS_READ_CLEAR_LATEST];
-
-    for (x=b; x<e; x++)
-      if ((fr.seq[x] == 'n') || (fr.seq[x] == 'N'))
-        break;
-
-    //  For debugging and other curious uses, remove reads that DO NOT
-    //  contain Ns.
-    if ((x == e) && (Nread == NREAD_ONLYN)) {
-      fr.gkfr.deleted = 1;
-      if (logFile)
-        fprintf(logFile, "Read '%s' DOES NOT contain an N.  Read deleted.\n",
-                AS_UID_toString(fr.gkfr.readUID));
-      setFrag(gkpStore, thisElem, &fr);
-    }
-
-    if (x < e) {
-      //  Found an N, do something.
-
-      switch (Nread) {
-        case NREAD_DISCARD:
-          //  Just delete it.
-          fr.gkfr.deleted = 1;
-          if (logFile)
-            fprintf(logFile, "Read '%s' contains an N at position %d.  Read deleted.\n",
-                    AS_UID_toString(fr.gkfr.readUID), x);
-          setFrag(gkpStore, thisElem, &fr);
-          break;
-
-        case NREAD_TRIM:
-          //  Trim out the N, and maybe a little bit more.
-          if (NreadTrim < x)
-            x = 0;
-          else
-            x -= NreadTrim;
-
-          if (fr.gkfr.clearEnd[AS_READ_CLEAR_MAX] > x)
-            fr.gkfr.clearEnd[AS_READ_CLEAR_MAX] = x;
-
-          if (logFile)
-            fprintf(logFile, "Read '%s' contains an N at position %d.  Read trimmed to position %d.\n",
-                    AS_UID_toString(fr.gkfr.readUID), x, x + NreadTrim);
-          setFrag(gkpStore, thisElem, &fr);
-          break;
-      }
-    }
-  }
-
-  fprintf(stderr, "removeNReads()--  finished\n");
-}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -876,14 +952,16 @@ removeDuplicateReads(void) {
             //  just deleted.
 
             if (deleted == 0) {
-              delFrag(gkpStore, deletedIID);
-              getFrag(gkpStore, deletedIID, (deletedIID == iid1) ? fr1 : fr2, FRAG_S_SEQ);
+              st.numDeDuped++;
 
               if (logFile)
                 fprintf(logFile, "Delete read %s,%d a prefix of %s,%d\n",
                         AS_UID_toString(deletedUID), deletedIID,
                         (deletedIID == iid1) ? AS_UID_toString(getFragRecordUID(fr2)) : AS_UID_toString(getFragRecordUID(fr1)),
                         (deletedIID == iid1) ? iid2 : iid1);
+
+              delFrag(gkpStore, deletedIID);
+              getFrag(gkpStore, deletedIID, (deletedIID == iid1) ? fr1 : fr2, FRAG_S_SEQ);
             }
           }
         }
@@ -945,15 +1023,15 @@ processMate(fragRecord *fr,
             fprintf(stderr, "error requested to search using linker in position %d which is not initialized\n", linkerID);
             assert(0);
          }
-         
+
          alignLinker(globalMatrix->h_alignA,
-                    globalMatrix->h_alignB,
-                    linker[linkerID],
-                    fr->seq,
-                    globalMatrix->h_matrix,
-                    &al,
+                     globalMatrix->h_alignB,
+                     linker[linkerID],
+                     fr->seq,
+                     globalMatrix->h_matrix,
+                     &al,
                      FALSE, FALSE, 0, 0);
-     
+
          lSize = al.begJ;
          rSize = al.lenB - al.endJ;
    
@@ -1262,6 +1340,8 @@ detectMates(char *linker[AS_LINKER_MAX_SEQS], int search[AS_LINKER_MAX_SEQS]) {
       delFrag(gkpStore, thisElem);
 
       if (AS_UID_isDefined(fr.gkfr.readUID)) {
+        st.numReadsWithPartialLinker++;
+
         assert(AS_UID_isDefined(m1.gkfr.readUID) == 0);
         assert(AS_UID_isDefined(m2.gkfr.readUID) == 0);
         addReadToStore(gkpStore, &fr);
@@ -1269,11 +1349,15 @@ detectMates(char *linker[AS_LINKER_MAX_SEQS], int search[AS_LINKER_MAX_SEQS]) {
 
       if (AS_UID_isDefined(m1.gkfr.readUID) &&
           AS_UID_isDefined(m2.gkfr.readUID)) {
+        st.numReadsWithFullLinker++;
+
         assert(AS_UID_isDefined(fr.gkfr.readUID) == 0);
 
         addReadToStore(gkpStore, &m1);
         addReadToStore(gkpStore, &m2);
       }
+    } else {
+      st.numReadsWithNoLinker++;
     }
   }
 
@@ -1467,27 +1551,24 @@ main(int argc, char **argv) {
   int       firstFileArg     = 0;
   char      gkpStoreName[FILENAME_MAX] = {0};
   char     *logFileName      = 0L;
+  char     *statsFileName    = 0L;
 
   bool      doDeDup          = 1;
 
   // initialize linker search structure
   // One array stores the character sequences of the linker
   // A boolean array stores which linkers are to be used in the search
-  int       i                 = 0;
+
   int       haveLinker        = FALSE;
   int       invalidLinkerSeq  = FALSE;
-  char     *linker[AS_LINKER_MAX_SEQS];
-  int       search[AS_LINKER_MAX_SEQS];  
-  for (i = 0; i < AS_LINKER_MAX_SEQS; i++) {
-    linker[i] = NULL;
-    search[i] = FALSE;
-  }
+  char     *linker[AS_LINKER_MAX_SEQS] = { NULL };
+  int       search[AS_LINKER_MAX_SEQS] = { 0    };
   
   // the first slot of the linker array is the FLX mate pair linker (which is a palindrome)
   char   *linkerFLX     = linker[0] = "GTTGGAACCGAAAGGGTTTGAATTCAAACCCTTTCGGTTCCAAC";  // palindrome
   // the next two slots are the Titanium linker. It requires two linkers because they are not palindromes
   char   *linkerFIX     = linker[1] = "TCGTATAACTTCGTATAATGTATGCTATACGAAGTTATTACG";    // linker for Titanium reads
-  char   *linkerRevFIX  = linker[2] = "CGTAATAACTTCGTATAGCATACATTATACGAAGTTATACGA";    // rc of linker for Titanium reads
+  char   *linkerXIF     = linker[2] = "CGTAATAACTTCGTATAGCATACATTATACGAAGTTATACGA";    // rc of linker for Titanium reads
   // subsequent linkers will be used for future barcoding
   // final linkers are custom, provided by the user, filled in when parsing parameters
 
@@ -1508,41 +1589,38 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-clear") == 0) {
       arg++;
 
-      if      (strcasecmp(argv[arg], "none") == 0)
-        clearTrim = TRIM_NONE;
-      else if (strcasecmp(argv[arg], "soft") == 0)
-        clearTrim = TRIM_SOFT;
-      else if (strcasecmp(argv[arg], "hard") == 0)
-        clearTrim = TRIM_HARD;
-      else if (strcasecmp(argv[arg], "chop") == 0) {
-         clearTrim = TRIM_CHOP;
-      }
+      //  If this is the first time we get a -clear switch, set
+      //  clearAction to exactly that value.  Later times through,
+      //  we'll add in more options.
+      //
+      if      (strcasecmp(argv[arg], "all") == 0)
+        clearAction = (clearSet == 0) ? (CLEAR_ALL) : (clearAction | CLEAR_ALL);
+      else if (strcasecmp(argv[arg], "454") == 0)
+        clearAction = (clearSet == 0) ? (CLEAR_454) : (clearAction | CLEAR_454);
+      else if (strcasecmp(argv[arg], "n") == 0)
+        clearAction = (clearSet == 0) ? (CLEAR_N) : (clearAction | CLEAR_N);
+      else if (strcasecmp(argv[arg], "pair-of-n") == 0)
+        clearAction = (clearSet == 0) ? (CLEAR_PAIR_N) : (clearAction | CLEAR_PAIR_N);
+      else if (strcasecmp(argv[arg], "discard-n") == 0)
+        clearAction = (clearSet == 0) ? (CLEAR_DISCARD_N) : (clearAction | CLEAR_DISCARD_N);
       else {
-        clearTrim = TRIM_ERRR;
+        clearAction = (clearSet == 0) ? (CLEAR_ERRR) : (clearAction | CLEAR_ERRR);
         err++;
       }
 
-    } else if (strcmp(argv[arg], "-nread") == 0) {
+    } else if (strcmp(argv[arg], "-trim") == 0) {
       arg++;
 
-      if      (strcasecmp(argv[arg], "allow") == 0)
-        Nread = NREAD_ALLOW;
-      else if (strcasecmp(argv[arg], "discard") == 0)
-        Nread = NREAD_DISCARD;
-      else if (strcasecmp(argv[arg], "trim") == 0) {
-        arg++;
-
-        if (argv[arg] == NULL) {
-          Nread = NREAD_ERRR;
-        } else {
-          Nread     = NREAD_TRIM;
-          NreadTrim = atoi(argv[arg]);
-        }
-      }
-      else if (strcasecmp(argv[arg], "onlyn") == 0)
-        Nread = NREAD_ONLYN;
+      if      (strcasecmp(argv[arg], "none") == 0)
+        trimAction = TRIM_NONE;
+      else if (strcasecmp(argv[arg], "soft") == 0)
+        trimAction = TRIM_SOFT;
+      else if (strcasecmp(argv[arg], "hard") == 0)
+        trimAction = TRIM_HARD;
+      else if (strcasecmp(argv[arg], "chop") == 0)
+        trimAction = TRIM_CHOP;
       else {
-        Nread = NREAD_ERRR;
+        trimAction = TRIM_ERRR;
         err++;
       }
 
@@ -1582,6 +1660,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-logmates") == 0) {
       logLevel = LOG_MATES;
 
+    } else if (strcmp(argv[arg], "-stats") == 0) {
+      statsFileName = argv[++arg];
+
     } else {
       if (argv[arg][0] == '-') {
         bogusOptions[bogusOptionsLen++] = arg;
@@ -1610,35 +1691,42 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -libraryname n         The UID of the library these reads are added to.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -clear none            Use the whole read, not the 454 clear ranges (default).\n");
-    fprintf(stderr, "  -clear soft            Use 454 clear ranges; OBT can increase the clear range.\n");
-    fprintf(stderr, "                           VEC <- adapter clear\n");
-    fprintf(stderr, "                           CLR <- quality clear\n");
-    fprintf(stderr, "                           MAX <- 0,len\n");
-    fprintf(stderr, "  -clear hard            Use 454 clear ranges; OBT can only shrink the clear range.\n");
-    fprintf(stderr, "                           VEC <- adapter clear\n");
-    fprintf(stderr, "                           CLR <- quality clear\n");
-    fprintf(stderr, "                           MAX <- quality clear\n");
-    fprintf(stderr, "  -clear chop            Use 454 clear ranges; erease sequence outside the clear range.\n");
-    fprintf(stderr, "                           VEC <- 0,len\n");
-    fprintf(stderr, "                           CLR <- 0,len\n");
-    fprintf(stderr, "                           MAX <- 0,len\n");
+    fprintf(stderr, "  -clear all             Use the whole read.\n");
+    fprintf(stderr, "  -clear 454             Use the 454 clear ranges as is (default).\n");
+    fprintf(stderr, "  -clear n               Use the whole read up to the first N.\n");
+    fprintf(stderr, "  -clear pair-of-n       Use the whole read up to the frist pair of Ns.\n");
+    fprintf(stderr, "  -clear discard-n       Delete the read if there is an N in the clear range.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -nread allow           Allow reads that contain an N in the clear range.\n");
-    fprintf(stderr, "  -nread discard         Discard reads that contain an N in the clear range (default).\n");
-    fprintf(stderr, "  -nread onlyn           Discard reads that DO NOT contain an N in the clear range (debug).\n");
-    fprintf(stderr, "  -nread trim <val>      Trim back <val> bases before the first N.\n");
+    fprintf(stderr, "  If multiple -clear options are supplied, the intersection is used.  For\n");
+    fprintf(stderr, "  'discard-n', the clear range is first computed, then if there is still an\n");
+    fprintf(stderr, "  N in the clear range, the read is deleted.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -linker [name | seq]   Search for linker, created mated reads.\n");
+    fprintf(stderr, "  Caution!  Even though the default is '454', when any -clear option is used,\n");
+    fprintf(stderr, "  the list of clear ranges to intersect is reset.  To get both '454' and 'n',\n");
+    fprintf(stderr, "  BOTH '-clear 454' and '-clear n' must be supplied on the command line.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -trim none             Use the whole read regardless of -clear settings.\n");
+    fprintf(stderr, "  -trim soft             OBT and ECR can increase the clear range.\n");
+    fprintf(stderr, "  -trim hard             OBT can only shrink the clear range, but ECR can extend (default).\n");
+    fprintf(stderr, "  -trim chop             Erase sequence outside the clear range.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  'none' will emit the whole read, and reset clear ranges to cover the whole read.\n");
+    fprintf(stderr, "  'soft' will emit the whole read, and leave clear ranges as set.\n");
+    fprintf(stderr, "  'hard' is like soft, with the addition of a 'clm' message to stop OBT.\n");
+    fprintf(stderr, "  'chop' is like none, but after the read is chopped down to just the clear bases.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -linker [name | seq]   Search for linker, create mated reads.\n");
     fprintf(stderr, "                         Name is one of:\n");
-    fprintf(stderr, "                           'flx'      == %s\n", linkerFLX);
-    fprintf(stderr, "                           'titanium' == %s and %s\n", linkerFIX, linkerRevFIX);
+    fprintf(stderr, "                           'flx'      == %s\n",     linkerFLX);
+    fprintf(stderr, "                           'titanium' == %s and\n", linkerFIX);
+    fprintf(stderr, "                                         %s\n",     linkerXIF);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -nodedup               Do not remove reads that are a perfect prefix of another read.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -output f.frg          Write the CA formatted fragments to this file.\n");
     fprintf(stderr, "  -log    l.txt          Human readable log of what happened.\n");
     fprintf(stderr, "  -logmates              Also include information about mate splitting in the log.\n");
+    fprintf(stderr, "  -stats  s.txt          Human readable statistics; summarizes the log file.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "See http://apps.sourceforge.net/mediawiki/wgs-assembler/index.php?title=Formatting_Inputs\n");
     fprintf(stderr, "\n");
@@ -1652,13 +1740,13 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR:  Need to supply -output.\n");
     if (firstFileArg == 0)
       fprintf(stderr, "ERROR:  Need to supply some SFF files.\n");
-    if ((linker) && ((insertSize == 0) ||
-                     (insertStdDev == 0)))
+    if ((haveLinker) && ((insertSize == 0) ||
+                         (insertStdDev == 0)))
       fprintf(stderr, "ERROR:  No insert size set with -insertsize.\n");
-    if (clearTrim == TRIM_ERRR)
+    if (clearAction == CLEAR_ERRR)
       fprintf(stderr, "ERROR:  Unknown -clear value.\n");
-    if (Nread == NREAD_ERRR)
-      fprintf(stderr, "ERROR:  Unknown -nread value.\n");
+    if (trimAction == TRIM_ERRR)
+      fprintf(stderr, "ERROR:  Unknown -trim value.\n");
     if (invalidLinkerSeq == TRUE) {
       fprintf(stderr, "ERROR:  Invalid -linker value. It must be one of titanium, flx, or a valid ACGT string.\n");
     }
@@ -1691,9 +1779,6 @@ main(int argc, char **argv) {
   for (; firstFileArg < argc; firstFileArg++)
     loadSFF(argv[firstFileArg]);
 
-  if (Nread != NREAD_ALLOW)
-    removeNReads();
-
   if (doDeDup)
     removeDuplicateReads();
 
@@ -1703,13 +1788,28 @@ main(int argc, char **argv) {
   dumpFragFile(outputName, outputFile);
 
   closeGateKeeperStore(gkpStore);
+  deleteGateKeeperStore(gkpStoreName);
 
   errno = 0;
   fclose(outputFile);
   if (errno)
     fprintf(stderr, "Failed to close '%s': %s\n", outputName, strerror(errno)), exit(1);
 
-  deleteGateKeeperStore(gkpStoreName);
+  errno = 0;
+  fclose(logFile);
+  if (errno)
+    fprintf(stderr, "Failed to close '%s': %s\n", logFileName, strerror(errno)), exit(1);
+
+  errno = 0;
+  logFile = (statsFileName) ? fopen(statsFileName, "w") : NULL;
+  if (errno)
+    fprintf(stderr, "ERROR: Failed to open the stats file '%s': %s\n", statsFileName);
+  if (logFile) {
+    writeStatistics(logFile);
+    fclose(logFile);
+  } else {
+    writeStatistics(stderr);
+  }
 
   return(0);
 }
