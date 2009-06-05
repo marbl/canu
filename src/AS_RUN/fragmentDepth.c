@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fragmentDepth.c,v 1.12 2008-10-08 22:03:00 brianwalenz Exp $";
+const char *mainid = "$Id: fragmentDepth.c,v 1.13 2009-06-05 15:10:41 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fasta.h"
@@ -137,17 +137,24 @@ void outputResult(AS_UID lastuid,
                   int *histmax, 
                   int stepSize) {
    int i = 0;
-   
+   uint32 lastpos = 0;
+
    switch (mode) {
       case MODE_HISTOGRAM:
       //  Update the histogram
       //
       for (i=0; i<idlen; i++) {
          if (id[i].de < HISTMAX) {
+            // if there is a gap between the previous interval and the current one, add to our 0 coverage count
+            if ((id[i].lo - lastpos) > 0) {
+               histogram[0] += id[i].lo - lastpos;
+            }
+            
             histogram[id[i].de] += id[i].hi - id[i].lo;
             if ((*histmax) < id[i].de)
                (*histmax) = id[i].de;
          }
+         lastpos = id[i].hi;
       }
       break;
 
