@@ -24,7 +24,7 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-C_PROG_SOURCES = fragmentDepth.c
+C_PROG_SOURCES = fragmentDepth.c markUniqueUnique.c
 C_PROG_OBJECTS = $(C_PROG_SOURCES:.c=.o)
 
 C_SOURCES = $(C_PROG_SOURCES)
@@ -36,7 +36,7 @@ CXX_OBJECTS = $(CXX_SOURCES:.cc=.o)
 SOURCES = $(C_SOURCES) $(CXX_SOURCES)
 OBJECTS = $(C_OBJECTS) $(CXX_OBJECTS)
 
-C_PROGS = fragmentDepth
+C_PROGS = fragmentDepth markUniqueUnique
 
 SCRIPTS = runCA \
           assemblyCompare \
@@ -51,8 +51,6 @@ SCRIPTS = runCA \
           caqc-diff.pl \
           ca2ace.pl \
           asmToAGP.pl \
-          markUniqueUnique.rb \
-          toggleAndRun.sh \
           spec/OBT.specFile \
           spec/noOBT.specFile \
           spec/noVec.specFile \
@@ -81,20 +79,13 @@ RUNCAOBTUTIL = runCA-OBT/runCAutil/checkOverlap.pl \
                runCA-OBT/runCAutil/cleaner.pl \
                runCA-OBT/runCAutil/unitigger.pl \
 	       runCA-OBT/runCAutil/umdOverlapper.pl \
-	       runCA-OBT/runCAutil/vectorTrim.pl
+	       runCA-OBT/runCAutil/vectorTrim.pl \
+	       runCA-OBT/runCAutil/toggler.pl
 
 runCA: runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm
 	@cat runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 	@ln -fs $@ $(LOCAL_BIN)/runCA-OBT.pl
-
-markUniqueUnique.rb: asmQC/markUniqueUnique.rb
-	@cp -p $< $(LOCAL_BIN)/$@
-	@chmod 775 $(LOCAL_BIN)/$@
-
-toggleAndRun.sh: runCA-OBT/toggleAndRun.sh
-	@cp -p $< $(LOCAL_BIN)/$@
-	@chmod 775 $(LOCAL_BIN)/$@
 
 TIGR: asmQC/TIGR
 	@cp -rp $< $(LOCAL_BIN)
@@ -154,3 +145,5 @@ spec/%.specFile: spec runCA-OBT/spec/%.specFile
 	@cp -p runCA-OBT/$@ $(LOCAL_BIN)/spec
 
 fragmentDepth: fragmentDepth.o libCA.a
+
+markUniqueUnique: markUniqueUnique.o libCA.a

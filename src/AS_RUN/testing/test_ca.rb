@@ -3,7 +3,7 @@
 ######################################################################
 # test_ca.rb
 #
-# $Id: test_ca.rb,v 1.6 2008-06-27 06:29:21 brianwalenz Exp $
+# $Id: test_ca.rb,v 1.7 2009-06-05 19:17:05 skoren Exp $
 #
 # Terms:
 #   test spec - combination of version, run script, config file, recipe script,
@@ -58,7 +58,7 @@ TampaFileSuffixes = {:intra_breakpoints => "intra.breakpoints.tampa",
   :inter_summary => "inter.summary.tampa"}
 
 AServerConsole = "http://assemblyconsole.tigr.org:8080/AserverConsole"
-AServerRootDir = "/local/aserver"
+AServerRootDir = "/local/aserver/var/assembly"
 RequestString = "requestInfo?id="
 CheckString = "Current State: <INITIALIZING|RUNNING|ERROR|FINISHED>"
 

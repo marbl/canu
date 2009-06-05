@@ -457,6 +457,17 @@ sub setDefaults () {
     $global{"cleanup"}                     = "none";
     $synops{"cleanup"}                     = "At the end of a successful assembly, remove none/some/many/all of the intermediate files";
 
+    #####  Options for toggling assembly. 
+
+    $global{"doToggle"}                     = 0;
+    $synops{"doToggle"}                     = "At the end of a successful assembly, search for placed surrogates and toggle them to be unique unitigs. Re-run the assembly starting from scaffolder";
+
+    $global{"toggleUnitigLength"}           = 2000;
+    $synops{"toggleUnitigLength"}           = "Minimum length for a surrogate to be toggled";
+
+    $global{"toggleNumInstances"}            = 1;
+    $synops{"toggleNumInstances"}            = "Number of instances for a surrogate to be toggled";
+
     #####  Ugly, command line options passed to printHelp()
 
     $global{"help"}                        = 0;

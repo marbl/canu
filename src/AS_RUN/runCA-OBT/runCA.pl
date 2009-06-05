@@ -4,7 +4,6 @@ my $specFile = undef;
 my @specOpts;
 my @fragFiles;
 
-my $isContinuation = 0;
 my @cgbFiles;
 my $cgiFile;
 my $scaffoldDir;
@@ -18,7 +17,6 @@ setDefaults();
 #  fix up relative paths.
 #
 $commandLineOptions = "";
-
 
 while (scalar(@ARGV)) {
     my $arg = shift @ARGV;
@@ -56,25 +54,11 @@ while (scalar(@ARGV)) {
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @fragFiles, $arg;
         $commandLineOptions .= " \"$arg\"";
-
-    } elsif (($arg =~ /\.cgb$/i) && (-e $arg)) {
-        $isContinuation = 1;
-        $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
-        push @cgbFiles, $arg;
-        $commandLineOptions .= " \"$arg\"";
-
-    } elsif (($arg =~ /\.cgi$/i) && (-e $arg)) {
-        $isContinuation = 1;
-        $cgiFile = $arg;
-        $cgiFile = "$ENV{'PWD'}/$cgiFile" if ($cgiFile !~ m!^/!);
-        $commandLineOptions .= " \"$arg\"";
-
-    } elsif (-d $arg) {
-        $isContinuation = 1;
-        $scaffoldDir  = $arg;
-        $scaffoldDir  = "$ENV{'PWD'}/$scaffoldDir" if ($scaffoldDir !~ m!^/!);
-        $commandLineOptions .= " \"$arg\"";
-
+     } elsif (($arg =~ /\.cgb$/i) && (-e $arg)) {
+         $isContinuation = 1;
+         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
+         push @cgbFiles, $arg;
+         $commandLineOptions .= " \"$arg\"";
     } elsif ($arg =~ m/=/) {
         push @specOpts, $arg;
         $commandLineOptions .= " \"$arg\"";
@@ -112,45 +96,6 @@ checkDirectories();
 #setup closure stuff
 setupFilesForClosure();
 
-#  If this is a continuation, we don't want to do obt or fragment
-#  error correction, or a bunch of other stuff.  We could surround
-#  those steps below with if's, but the whole design of this script is
-#  that each piece checks if it is done or not.  So, we disable those
-#  pieces.
-#
-if ($isContinuation) {
-    setGlobal("doOverlapTrimming", 0);
-    setGlobal("doFragmentCorrection", 0);
-
-    #  If given cgb files, we don't need to do anything more
-
-    #  If given cgi files, we need to tell unitigger and consensus that
-    #  we're done.
-    if (defined($cgiFile)) {
-        system("mkdir $wrk/4-unitigger") if (! -d "$wrk/4-unitigger");
-        touch("$wrk/4-unitigger/unitigger.success");
-
-        system("mkdir $wrk/5-consensus") if (! -d "$wrk/5-consensus");
-        touch("$wrk/5-consensus/jobsCreated.success");
-        touch ("$wrk/5-consensus/consensus.success");
-    }
-
-    #  If given a scaffold directory, tell unitigger, consensus and
-    #  scaffolder that they are done.
-    if (defined($scaffoldDir)) {
-        system("mkdir $wrk/4-unitigger") if (! -d "$wrk/4-unitigger");
-        touch("$wrk/4-unitigger/unitigger.success");
-
-        system("mkdir $wrk/5-consensus") if (! -d "$wrk/5-consensus");
-        touch("$wrk/5-consensus/jobsCreated.success");
-        touch ("$wrk/5-consensus/consensus.success");
-
-        system("mkdir $wrk/7-CGW") if (! -d "$wrk/7-CGW");
-        touch ("$wrk/7-CGW/cgw.success");
-    }
-}
-
-
 #  If not already on the grid, see if we should be on the grid.
 #  N.B. the arg MUST BE undef.
 #
@@ -170,5 +115,6 @@ scaffolder($cgiFile);
 postScaffolderConsensus($scaffoldDir);
 terminate($scaffoldDir);
 cleaner();
+toggler();
 
 exit(0);
