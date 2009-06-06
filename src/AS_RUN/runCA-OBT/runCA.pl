@@ -54,11 +54,7 @@ while (scalar(@ARGV)) {
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @fragFiles, $arg;
         $commandLineOptions .= " \"$arg\"";
-     } elsif (($arg =~ /\.cgb$/i) && (-e $arg)) {
-         $isContinuation = 1;
-         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
-         push @cgbFiles, $arg;
-         $commandLineOptions .= " \"$arg\"";
+
     } elsif ($arg =~ m/=/) {
         push @specOpts, $arg;
         $commandLineOptions .= " \"$arg\"";
