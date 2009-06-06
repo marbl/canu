@@ -60,7 +60,7 @@ sub schedulerFinish {
 
         undef @newProcesses;
         foreach my $i (@processesRunning) {
-            if (waitpid($i, &WNOHANG) > 0) {
+            if (waitpid($i, &WNOHANG) <= 0) {
                 push @newProcesses, $i;
             }
         }
