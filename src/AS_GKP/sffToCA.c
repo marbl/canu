@@ -19,12 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.24 2009-06-01 12:25:18 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.25 2009-06-08 20:36:09 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <ctype.h>
+#include <sys/stat.h>
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -49,9 +50,6 @@ const char *mainid = "$Id: sffToCA.c,v 1.24 2009-06-01 12:25:18 brianwalenz Exp 
 #define TRIM_CHOP        3
 #define TRIM_ERRR        9
 
-#define LOG_DEFAULT      0
-#define LOG_MATES        1
-
 #define AS_LINKER_MAX_SEQS       50
 #define AS_LINKER_CUSTOM_OFFSET  24
 
@@ -60,7 +58,6 @@ FILE            *logFile     = NULL;
 uint32           clearAction = CLEAR_454;
 uint32           clearSet    = 0;
 uint32           trimAction  = TRIM_HARD;
-uint32           logLevel    = LOG_DEFAULT;
 
 typedef struct {
   uint32   numReadsInSFF;
@@ -122,6 +119,51 @@ addReadToStore(GateKeeperStore *gkp,
   appendStringStore(gkpStore->src, NULL, 0);
 
   gkpStore->gkp.sffLoaded++;
+}
+
+
+
+//  Ugly hack that disappears in CA 6.x
+static
+int
+fileExists(const char *path,
+           int directory,
+           int readwrite) {
+  struct stat  s;
+  int          r;
+
+  errno = 0;
+  r = stat(path, &s);
+  if (errno) {
+    //fprintf(stderr, "Failed to stat() file '%s'; assumed to not exist.\n", path);
+    return(0);
+  }
+
+  if (directory == 1) {
+    if ((readwrite == 0) &&
+        (s.st_mode & S_IFDIR) &&
+        (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) &&
+        (s.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
+      return(1);
+    if ((readwrite == 1) &&
+        (s.st_mode & S_IFDIR) &&
+        (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) &&
+        (s.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH)) &&
+        (s.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
+      return(1);
+  }
+
+  if (directory == 0) {
+    if ((readwrite == 0) &&
+        (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)))
+      return(1);
+    if ((readwrite == 1) &&
+        (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) &&
+        (s.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH)))
+      return(1);
+  }
+
+  return(0);
 }
 
 
@@ -468,8 +510,10 @@ processRead(sffHeader *h,
   //
   int  cln = h->key_length;
   int  crn = r->number_of_bases;
+  int  frn = r->number_of_bases;  //  first-n
 
-  if (clearAction & CLEAR_N) {
+  if ((clearAction & CLEAR_N) ||
+      (clearAction & CLEAR_DISCARD_N)) {
     int  f  = 0;
     int  b  = MAX(clq, cla);
     int  e  = r->number_of_bases;
@@ -479,8 +523,12 @@ processRead(sffHeader *h,
       if ((s[f] == 'n') || (s[f] == 'N'))
         break;
 
-    cln = b;
-    crn = f;
+    if (clearAction & CLEAR_N) {
+      cln = b;
+      crn = f;
+    }
+
+    frn = f;
   }
 
   int  clp = h->key_length;
@@ -515,7 +563,7 @@ processRead(sffHeader *h,
   //  If told to, and there is still an N in the sequence, trash the
   //  whole thing.
   //
-  if ((clearAction & CLEAR_DISCARD_N) && (crn < crf)) {
+  if ((clearAction & CLEAR_DISCARD_N) && (frn < crf)) {
     st.numWithUnallowedN++;
 
     if (logFile)
@@ -650,8 +698,10 @@ processRead(sffHeader *h,
   //  Finally, adjust everything to remove the key_length bases from the start.
   //
   for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-    fr->gkfr.clearBeg[which] -= h->key_length;
-    fr->gkfr.clearEnd[which] -= h->key_length;
+    if (fr->gkfr.clearBeg[which] < fr->gkfr.clearEnd[which]) {
+      fr->gkfr.clearBeg[which] -= h->key_length;
+      fr->gkfr.clearEnd[which] -= h->key_length;
+    }
   }
 
   r->final_bases    = r->bases   + h->key_length;
@@ -1062,7 +1112,7 @@ processMate(fragRecord *fr,
 
    // we went through all our possible linker sequences and couldn't find a match, give up
    if (goodAlignment == 0) {
-      if ((logFile) && (logLevel >= LOG_MATES) && (m1 != NULL) && (m2 != NULL))
+      if ((logFile) && (m1 != NULL) && (m2 != NULL))
          //  m1, m2 are NULL if we are checking a second time for linker;
          //  do not report no linker found for those as we have already
          //  or will soon write a log mesasge.
@@ -1078,7 +1128,7 @@ processMate(fragRecord *fr,
 
   //  Not enough on either side of the read to make a mate. Chuck the read, return that we didn't trim
   if ((bestAlignment) && (lSize < 64) && (rSize < 64)) {
-    if ((logFile) && (logLevel >= LOG_MATES))
+    if (logFile)
       fprintf(logFile, "Linker too close to left side and right side (position %d-%d); no mate formed for %s (len %d).\n",
               al.begJ, al.endJ, AS_UID_toString(fr->gkfr.readUID), fr->gkfr.seqLen);
     
@@ -1090,7 +1140,7 @@ processMate(fragRecord *fr,
   //  Adapter found on the left, but not enough to make a read.  Trim it out.
   //
   if ((bestAlignment) && (lSize < 64)) {
-    if ((logFile) && (logLevel >= LOG_MATES))
+    if (logFile)
       fprintf(logFile, "Linker to close to left side (position %d-%d); no mate formed for %s (len %d).\n",
               al.begJ, al.endJ, AS_UID_toString(fr->gkfr.readUID), fr->gkfr.seqLen);
 
@@ -1103,17 +1153,19 @@ processMate(fragRecord *fr,
     fr->qlt[rSize] = 0;
 
     for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-      if (fr->gkfr.clearBeg[which] < al.endJ)
-        fr->gkfr.clearBeg[which] = 0;
-      else
-        fr->gkfr.clearBeg[which] -= al.endJ;
+      if (fr->gkfr.clearBeg[which] < fr->gkfr.clearEnd[which]) {
+        if (fr->gkfr.clearBeg[which] < al.endJ)
+          fr->gkfr.clearBeg[which] = 0;
+        else
+          fr->gkfr.clearBeg[which] -= al.endJ;
 
-      if (fr->gkfr.clearEnd[which] < al.endJ)
-        fr->gkfr.clearEnd[which] = 0;
-      else
-        fr->gkfr.clearEnd[which] -= al.endJ;
+        if (fr->gkfr.clearEnd[which] < al.endJ)
+          fr->gkfr.clearEnd[which] = 0;
+        else
+          fr->gkfr.clearEnd[which] -= al.endJ;
 
-      assert(fr->gkfr.clearEnd[which] <= rSize);
+        assert(fr->gkfr.clearEnd[which] <= rSize);
+      }
     }
 
     //  Recursively search for another copy of the linker.
@@ -1126,7 +1178,7 @@ processMate(fragRecord *fr,
   //  Adapter found on the right, but not enough to make a read.  Trim it out.
   //
   if ((bestAlignment) && (rSize < 64)) {
-    if ((logFile) && (logLevel >= LOG_MATES))
+    if (logFile)
       fprintf(logFile, "Linker to close to right side (position %d-%d); no mate formed for %s (len %d).\n",
               al.begJ, al.endJ, AS_UID_toString(fr->gkfr.readUID), fr->gkfr.seqLen);
 
@@ -1216,20 +1268,22 @@ processMate(fragRecord *fr,
     //  
     {
       for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-        uint  lend = al.begJ - fr->gkfr.clearBeg[which];
-        uint  rend = fr->gkfr.clearEnd[which] - al.endJ;
+        if (fr->gkfr.clearBeg[which] < fr->gkfr.clearEnd[which]) {
+          uint  lend = al.begJ - fr->gkfr.clearBeg[which];
+          uint  rend = fr->gkfr.clearEnd[which] - al.endJ;
 
-        if (lSize < fr->gkfr.clearBeg[which])
-          lend = 0;
+          if (lSize < fr->gkfr.clearBeg[which])
+            lend = 0;
 
-        if (fr->gkfr.clearEnd[which] < al.endJ)
-          rend = 0;
+          if (fr->gkfr.clearEnd[which] < al.endJ)
+            rend = 0;
 
-        m1->gkfr.clearBeg[which] = 0;
-        m1->gkfr.clearEnd[which] = lend;
+          m1->gkfr.clearBeg[which] = 0;
+          m1->gkfr.clearEnd[which] = lend;
 
-        m2->gkfr.clearBeg[which] = 0;
-        m2->gkfr.clearEnd[which] = rend;
+          m2->gkfr.clearBeg[which] = 0;
+          m2->gkfr.clearEnd[which] = rend;
+        }
       }
     }
 
@@ -1253,7 +1307,7 @@ processMate(fragRecord *fr,
       m2->seq[rSize] = 0;
       m2->qlt[rSize] = 0;
 
-      if ((logFile) && (logLevel >= LOG_MATES))
+      if (logFile)
         fprintf(logFile, "Mates '%s' (%d-%d) and '%s' (%d-%d) created.\n",
                 AS_UID_toString(m1->gkfr.readUID), 0, al.begJ,
                 AS_UID_toString(m2->gkfr.readUID), al.endJ, al.lenB);
@@ -1546,9 +1600,9 @@ main(int argc, char **argv) {
   int       insertSize       = 0;
   int       insertStdDev     = 0;
   char     *libraryName      = 0L;
-  char     *outputName       = 0L;
   FILE     *outputFile       = 0L;
   int       firstFileArg     = 0;
+  char      outputName[FILENAME_MAX]   = {0};
   char      gkpStoreName[FILENAME_MAX] = {0};
   char     *logFileName      = 0L;
   char     *statsFileName    = 0L;
@@ -1652,13 +1706,10 @@ main(int argc, char **argv) {
       doDeDup = 0;
 
     } else if (strcmp(argv[arg], "-output") == 0) {
-      outputName = argv[++arg];
+      strcpy(outputName, argv[++arg]);
 
     } else if (strcmp(argv[arg], "-log") == 0) {
       logFileName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-logmates") == 0) {
-      logLevel = LOG_MATES;
 
     } else if (strcmp(argv[arg], "-stats") == 0) {
       statsFileName = argv[++arg];
@@ -1684,7 +1735,7 @@ main(int argc, char **argv) {
   if ((!haveLinker) && ((insertSize != 0) || (insertStdDev != 0)))
     err++;
 
-  if ((err) || (libraryName == 0L) || (outputName == 0L) || (firstFileArg == 0)) {
+  if ((err) || (libraryName == 0L) || (outputName[0] == 0) || (firstFileArg == 0)) {
     fprintf(stderr, "usage: %s [opts] -libraryname n -output f.frg in.sff ...\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -insertsize i d        Mates are on average i +- d bp apart.\n");
@@ -1725,7 +1776,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -output f.frg          Write the CA formatted fragments to this file.\n");
     fprintf(stderr, "  -log    l.txt          Human readable log of what happened.\n");
-    fprintf(stderr, "  -logmates              Also include information about mate splitting in the log.\n");
     fprintf(stderr, "  -stats  s.txt          Human readable statistics; summarizes the log file.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "See http://apps.sourceforge.net/mediawiki/wgs-assembler/index.php?title=Formatting_Inputs\n");
@@ -1736,25 +1786,34 @@ main(int argc, char **argv) {
 
     if (libraryName == 0L)
       fprintf(stderr, "ERROR:  Need to supply -libraryname.\n");
-    if (outputName == 0L)
+
+    if (outputName[0] == 0)
       fprintf(stderr, "ERROR:  Need to supply -output.\n");
+
     if (firstFileArg == 0)
       fprintf(stderr, "ERROR:  Need to supply some SFF files.\n");
+
     if ((haveLinker) && ((insertSize == 0) ||
                          (insertStdDev == 0)))
-      fprintf(stderr, "ERROR:  No insert size set with -insertsize.\n");
+      fprintf(stderr, "ERROR:  Have a linker sequence, but no insert size set with -insertsize.\n");
+
+    if ((!haveLinker) && ((insertSize != 0) ||
+                          (insertStdDev != 0)))
+      fprintf(stderr, "ERROR:  Have an insert size, bu no linker sequence set with -linker.\n");
+
     if (clearAction == CLEAR_ERRR)
       fprintf(stderr, "ERROR:  Unknown -clear value.\n");
+
     if (trimAction == TRIM_ERRR)
       fprintf(stderr, "ERROR:  Unknown -trim value.\n");
-    if (invalidLinkerSeq == TRUE) {
+
+    if (invalidLinkerSeq == TRUE)
       fprintf(stderr, "ERROR:  Invalid -linker value. It must be one of titanium, flx, or a valid ACGT string.\n");
-    }
     
     exit(1);
   }
 
-  logFile = stderr;
+  logFile = NULL;
 
   if (logFileName) {
     errno = 0;
@@ -1763,6 +1822,15 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR: Failed to open the log file '%s': %s\n", logFileName, strerror(errno)), exit(1);
   }
 
+  if ((outputName[strlen(outputName)-4] != '.') || 
+      (outputName[strlen(outputName)-3] != 'f') || 
+      (outputName[strlen(outputName)-2] != 'r') || 
+      (outputName[strlen(outputName)-1] != 'g'))
+    strcat(outputName, ".frg");
+
+  if (fileExists(outputName, FALSE, FALSE))
+    fprintf(stderr, "ERROR: Output file '%s' exists; I will not clobber it.\n", outputName), exit(1);
+
   errno = 0;
   outputFile = fopen(outputName, "w");
   if (errno)
@@ -1770,6 +1838,12 @@ main(int argc, char **argv) {
 
   strcpy(gkpStoreName, outputName);
   strcat(gkpStoreName, ".tmpStore");
+
+  if (fileExists(gkpStoreName, TRUE, FALSE)) {
+    fprintf(stderr, "ERROR: Temporary Gatekeeper Store '%s' exists; I will not clobber it.\n", gkpStoreName);
+    fprintf(stderr, "       If this is NOT from another currently running sffToCA, simply remove this directory.\n");
+    exit(1);
+  }
 
   gkpStore      = createGateKeeperStore(gkpStoreName);
   gkpStore->frg = convertStoreToMemoryStore(gkpStore->frg);
@@ -1796,7 +1870,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "Failed to close '%s': %s\n", outputName, strerror(errno)), exit(1);
 
   errno = 0;
-  fclose(logFile);
+  if (logFile)
+    fclose(logFile);
   if (errno)
     fprintf(stderr, "Failed to close '%s': %s\n", logFileName, strerror(errno)), exit(1);
 
