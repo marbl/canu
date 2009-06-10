@@ -22,18 +22,16 @@
 #ifndef AS_ARD_database_HH
 #define AS_ARD_database_HH
 
-static const char *rcsid_AS_ARD_database_HH = "$Id: AS_ARD_database.hh,v 1.4 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_AS_ARD_database_HH = "$Id: AS_ARD_database.hh,v 1.5 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <string>
 
 #include "IAssemblyDB.hh"
 
-extern "C" {
-   #include "AS_global.h"
-   #include "SYS_UIDclient.h"
-   #include "AS_MSG_pmesg.h"
-   #include "AS_UTL_Hash.h"
-}
+#include "AS_global.h"
+#include "SYS_UIDclient.h"
+#include "AS_MSG_pmesg.h"
+#include "AS_UTL_Hash.h"
 
 namespace AS_ARD {
    class AS_ARD_database : public IAssemblyDB {

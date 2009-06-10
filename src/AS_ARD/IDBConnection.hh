@@ -21,12 +21,10 @@
 #ifndef IDBConnection_HH
 #define IDBConnection_HH
 
-static const char *rcsid_IDBConnection_HH = "$Id: IDBConnection.hh,v 1.3 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_IDBConnection_HH = "$Id: IDBConnection.hh,v 1.4 2009-06-10 18:05:13 brianwalenz Exp $";
 
-extern "C" {
-   #include "AS_global.h"
-   #include "AS_UTL_Hash.h"
-}
+#include "AS_global.h"
+#include "AS_UTL_Hash.h"
 
 namespace AS_ARD {
    class IDBConnection {

@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: updateFrag.C,v 1.4 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id: updateFrag.C,v 1.5 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include "constants.H"
 #include <stdio.h>
@@ -29,10 +29,8 @@ const char *mainid = "$Id: updateFrag.C,v 1.4 2008-10-08 22:02:57 brianwalenz Ex
 #include <time.h>
 #include <errno.h>
 
-extern "C" {
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
-}
 
 #include "util++.H"
 
@@ -79,7 +77,7 @@ main(int argc, char **argv) {
 
   //  Open the frgStore, prepare for reading fragments
   //
-  GateKeeperStore *gkp = openGateKeeperStore(frgStore, doModify);
+  gkStore *gkp = gkStore_open(frgStore, doModify);
   if (gkp == NULL) {
     fprintf(stderr, "Failed to open fragStore %s!\n", frgStore);
     exit(1);
@@ -87,7 +85,7 @@ main(int argc, char **argv) {
 
   gkpStore->frg = convertStoreToMemoryStore(gkpStore->frg);
 
-  fragRecord fr;
+  gkFragment fr;
 
   uint64  iid   = 0;
   uint32  left  = 0;
@@ -125,7 +123,7 @@ main(int argc, char **argv) {
     readLine(iidFile);
   }
 
-  closeGateKeeperStore(gkp);
+  gkStore_close(gkp);
   fclose(iidFile);
 
   return(0);

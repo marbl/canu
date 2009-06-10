@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MicroHetREZ.c,v 1.21 2008-10-08 22:03:00 brianwalenz Exp $";
+static char *rcsid = "$Id: MicroHetREZ.c,v 1.22 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <assert.h>
 #include <errno.h>
@@ -310,7 +310,7 @@ static  VA_TYPE(uint32)  *fragtype = NULL;
 static
 void
 AS_REZ_get_info(AS_IID    iid,
-                     GateKeeperStore *frag_store,
+                     gkStore *frag_store,
                      uint32 *locale,
                      uint32 *beg, uint32 *end,
                      FragType *type,
@@ -318,7 +318,7 @@ AS_REZ_get_info(AS_IID    iid,
                      VA_TYPE(uint32) *fragtype,
                      VA_TYPE(uint32) *locbeg,
                      VA_TYPE(uint32) *locend){
-  static  fragRecord input;
+  static  gkFragment input;
 
   if( iid != 0 ){ // blank positions have IID 0
 
@@ -327,7 +327,7 @@ AS_REZ_get_info(AS_IID    iid,
       mytype = NULL;
 
     if(!mytype ){ // we have not seen that iid before
-      getFrag(frag_store,iid,&input,FRAG_S_INF);
+      getFrag(frag_store,iid,&input,GKFRAGMENT_INF);
 
       //getReadType_ReadStruct(&input,type);
       *type == AS_READ;
@@ -372,7 +372,7 @@ AS_REZ_get_info(AS_IID    iid,
  */
 void AS_REZ_compress_shreds_and_null_indels(int c,
                                             int r,
-                                            GateKeeperStore *frag_store,
+                                            gkStore *frag_store,
                                             char **array,
                                             int **id_array,
                                             int verbose){
@@ -945,9 +945,8 @@ UnitigStatus_t
 AS_REZ_test_MPsimple(Alignment_t *ali, double thresh, Marker_t* m,
                      int start, int end,double *pval)
 {
-  int i;
-  int ret = UNITIG_IS_SIMPLE;
-  int rows;
+  int i, rows;
+  UnitigStatus_t ret = UNITIG_IS_SIMPLE;
 
   *pval=1.0; //Sets up default return for cases when no test can be made.
 
@@ -1018,7 +1017,7 @@ AS_REZ_test_MPsimple(Alignment_t *ali, double thresh, Marker_t* m,
 // len     : number of columns in the multialignment
 // depth   : number of rows in the multialignment
 //
-double AS_REZ_MP_MicroHet_prob(char **bqarray,int **idarray,GateKeeperStore *handle,
+double AS_REZ_MP_MicroHet_prob(char **bqarray,int **idarray,gkStore *handle,
                                int len,int depth){
   double pvalue;
   UnitigStatus_t result;

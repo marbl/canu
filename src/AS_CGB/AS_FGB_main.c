@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_FGB_main.c,v 1.25 2008-10-08 22:02:54 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_FGB_main.c,v 1.26 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 
@@ -297,7 +297,7 @@ int main_fgb(THeapGlobals  * heapva,
 
     assert(im < AS_CGB_NOT_SEEN_YET);
 
-    afr_to_avx = safe_calloc(im + 1, sizeof(IntFragment_ID));
+    afr_to_avx = (IntFragment_ID *)safe_calloc(im + 1, sizeof(IntFragment_ID));
 
     for(iv=0; iv<nfrag; iv++)
       afr_to_avx[get_iid_fragment(heapva->frags,iv)] = iv;

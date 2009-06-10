@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.46 2009-05-12 17:25:31 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.47 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,17 +32,16 @@ static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.46 2009-05-12 17:25:31 b
 #include "AS_PER_encodeSequenceQuality.h"
 
 
-static int    checkfraginitialized = 0;
-static char   encodedsequence[AS_FRAG_MAX_LEN+1] = {0};
-static int    encodedlength;
 static int*   isspacearray;
 static int*   isValidACGTN;
 
 
 int
-checkSequenceAndQuality(FragMesg *frg_mesg) {
+checkSequenceAndQuality(FragMesg *frg_mesg, int *seqLen) {
   char    *s = frg_mesg->sequence;
   char    *q = frg_mesg->quality;
+  char    *S = gkFrag1->gkFragment_getSequence();
+  char    *Q = gkFrag1->gkFragment_getQuality();
   int      sl = 0;
   int      ql = 0;
   int      p  = 0;
@@ -82,17 +81,17 @@ checkSequenceAndQuality(FragMesg *frg_mesg) {
     if (isspacearray[s[p]])
       p++;
     else
-      s[sl++] = isValidACGTN[s[p++]];
+      S[sl++] = isValidACGTN[s[p++]];
   }
-  s[sl] = 0;
+  S[sl] = 0;
 
   for (p = 0; q[p]; ) {
     if (isspacearray[q[p]])
       p++;
     else
-      q[ql++] = q[p++];
+      Q[ql++] = q[p++];
   }
-  q[ql] = 0;
+  Q[ql] = 0;
 
 
   //  Check that the two sequence lengths are the same.  If not,
@@ -103,66 +102,88 @@ checkSequenceAndQuality(FragMesg *frg_mesg) {
                        AS_UID_toString(frg_mesg->eaccession), sl, ql);
     sl = MIN(sl, ql);
     ql = sl;
-    s[sl] = 0;
-    q[ql] = 0;
+    S[sl] = 0;
+    Q[ql] = 0;
     failed = 1;
   }
+
+  if        (sl < AS_READ_MIN_LEN) {
+    AS_GKP_reportError(AS_GKP_FRG_SEQ_TOO_SHORT,
+                       AS_UID_toString(frg_mesg->eaccession), sl, AS_READ_MIN_LEN);
+    failed = 1;
+
+#if 0
+  } else if (sl < AS_READ_MAX_SHORT_LEN) {
+    gkFrag1->gkFragment_setType(GKFRAGMENT_SHORT);
+#endif
+
+  } else if (sl < AS_READ_MAX_MEDIUM_LEN) {
+    gkFrag1->gkFragment_setType(GKFRAGMENT_MEDIUM);
+
+#if 0
+  } else if (sl < AS_READ_MAX_LONG_LEN) {
+    gkFrag1->gkFragment_setType(GKFRAGMENT_LONG);
+#endif
+
+  } else {
+    gkFrag1->gkFragment_setType(GKFRAGMENT_LONG);
+
+    AS_GKP_reportError(AS_GKP_FRG_SEQ_TOO_LONG,
+                       AS_UID_toString(frg_mesg->eaccession), sl, AS_READ_MAX_LONG_LEN);
+
+    sl = AS_READ_MAX_LONG_LEN - 1;
+
+    S[sl] = 0;
+    Q[sl] = 0;
+
+    failed = 1;
+  }
+
+  gkFrag1->gkFragment_setLength(sl);
+
+  *seqLen = sl;
 
   return(failed);
 }
 
 
 
+
 static
 int
-checkClearRanges(FragMesg *frg_mesg,
-                 int       assembler) {
+checkClearRanges(FragMesg   *frg_mesg,
+                 int         seqLen,
+                 int         assembler) {
   int      failed = 0;
-  int      sl     = strlen(frg_mesg->sequence);
-
-  //  Check that lengths are legit -- not too long, not too short.  If
-  //  they are too long, we trim them, again, just so we can load them
-  //  into the store.
-  //
-  if (sl > AS_FRAG_MAX_LEN) {
-    AS_GKP_reportError(AS_GKP_FRG_SEQ_TOO_LONG,
-                       AS_UID_toString(frg_mesg->eaccession), sl, AS_FRAG_MAX_LEN);
-    sl = AS_FRAG_MAX_LEN;
-    frg_mesg->sequence[sl] = 0;
-    frg_mesg->quality[sl]  = 0;
-    failed = 1;
-  }
-
-  if (sl < AS_FRAG_MIN_LEN) {
-    AS_GKP_reportError(AS_GKP_FRG_SEQ_TOO_SHORT,
-                       AS_UID_toString(frg_mesg->eaccession), sl, AS_FRAG_MIN_LEN);
-    failed = 1;
-  }
-
 
   //  Check clear range bounds, adjust
   //
   if (frg_mesg->clear_rng.bgn < 0) {
     AS_GKP_reportError(AS_GKP_FRG_CLR_BGN,
-                       AS_UID_toString(frg_mesg->eaccession), frg_mesg->clear_rng.bgn, frg_mesg->clear_rng.end, sl);
+                       AS_UID_toString(frg_mesg->eaccession), frg_mesg->clear_rng.bgn, frg_mesg->clear_rng.end, seqLen);
     if (frg_mesg->action == AS_ADD)
-      gkpStore->gkp.frgWarnings++;
+      gkpStore->inf.frgWarnings++;
     frg_mesg->clear_rng.bgn = 0;
   }
-  if (sl < frg_mesg->clear_rng.end) {
+  if (seqLen < frg_mesg->clear_rng.end) {
     AS_GKP_reportError(AS_GKP_FRG_CLR_END,
-                       AS_UID_toString(frg_mesg->eaccession), frg_mesg->clear_rng.bgn, frg_mesg->clear_rng.end, sl);
+                       AS_UID_toString(frg_mesg->eaccession), frg_mesg->clear_rng.bgn, frg_mesg->clear_rng.end, seqLen);
     if (frg_mesg->action == AS_ADD)
-      gkpStore->gkp.frgWarnings++;
-    frg_mesg->clear_rng.end = sl;
+      gkpStore->inf.frgWarnings++;
+    frg_mesg->clear_rng.end = seqLen;
   }
 
+  if (frg_mesg->clear_vec.bgn > frg_mesg->clear_vec.end) {
+    frg_mesg->clear_vec.bgn = 1;
+    frg_mesg->clear_vec.end = 0;
+  }
 
+  if (frg_mesg->clear_max.bgn > frg_mesg->clear_max.end) {
+    frg_mesg->clear_max.bgn = 1;
+    frg_mesg->clear_max.end = 0;
+  }
 
   //  If not OBT, check the clear range.
-  //
-  //  VEC And MAX are ALWAYS valid.  If the beg > end for those, it is
-  //  reset to the extents.
   //
   if (assembler != AS_ASSEMBLER_OBT) {
     if (frg_mesg->clear_rng.bgn > frg_mesg->clear_rng.end) {
@@ -171,9 +192,9 @@ checkClearRanges(FragMesg *frg_mesg,
       failed = 1;
     }
 
-    if ((frg_mesg->clear_rng.end - frg_mesg->clear_rng.bgn) < AS_FRAG_MIN_LEN) {
+    if ((frg_mesg->clear_rng.end - frg_mesg->clear_rng.bgn) < AS_READ_MIN_LEN) {
       AS_GKP_reportError(AS_GKP_FRG_CLR_TOO_SHORT,
-                         AS_UID_toString(frg_mesg->eaccession), frg_mesg->clear_rng.end - frg_mesg->clear_rng.bgn, AS_FRAG_MIN_LEN);
+                         AS_UID_toString(frg_mesg->eaccession), frg_mesg->clear_rng.end - frg_mesg->clear_rng.bgn, AS_READ_MIN_LEN);
       failed = 1;
     }
   }
@@ -186,7 +207,7 @@ checkClearRanges(FragMesg *frg_mesg,
 
 static
 int
-setLibrary(GateKeeperFragmentRecord *gkf, FragMesg *frg_mesg) {
+setLibrary(FragMesg *frg_mesg) {
   static  uint32    libOrientationMax = 0;
   static  uint64   *libOrientation    = NULL;
 
@@ -195,76 +216,69 @@ setLibrary(GateKeeperFragmentRecord *gkf, FragMesg *frg_mesg) {
   //  Version 1 sets orient and library when mates are added.
   //  Version 1 libraries NEVER have a valid orientation.
 
-  gkf->libraryIID  = 0;
-  gkf->orientation = AS_READ_ORIENT_UNKNOWN;
+  gkFrag1->gkFragment_setLibraryIID(0);
+  gkFrag1->gkFragment_setMateIID(0);
+  gkFrag1->gkFragment_setOrientation(0);
 
   if (AS_UID_isDefined(frg_mesg->library_uid) == FALSE)
     return(0);
 
-  gkf->libraryIID = getGatekeeperUIDtoIID(gkpStore, frg_mesg->library_uid, NULL);
+  AS_IID  libIID = gkpStore->gkStore_getUIDtoIID(frg_mesg->library_uid, NULL);
+  gkFrag1->gkFragment_setLibraryIID(libIID);
 
-  if (AS_IID_isDefined(gkf->libraryIID) == FALSE) {
+  if (AS_IID_isDefined(libIID) == FALSE) {
     AS_GKP_reportError(AS_GKP_FRG_UNKNOWN_LIB,
                        AS_UID_toString(frg_mesg->eaccession),
                        AS_UID_toString(frg_mesg->library_uid));
     return(1);
   }
 
-  //
   //  Get the library orientation; cache values across invocations.
   //
-
   if (libOrientation == NULL) {
     libOrientationMax = 2;
     libOrientation    = (uint64 *)safe_calloc(libOrientationMax, sizeof(uint64));
   }
-
-  if (libOrientationMax <= gkf->libraryIID) {
-    libOrientation    = safe_realloc(libOrientation, sizeof(uint64) * 2 * gkf->libraryIID);
-    while (libOrientationMax < 2 * gkf->libraryIID)
+  if (libOrientationMax <= libIID) {
+    libOrientation = (uint64 *)safe_realloc(libOrientation, sizeof(uint64) * 2 * libIID);
+    while (libOrientationMax < 2 * libIID)
       libOrientation[libOrientationMax++] = 0;
   }
-
-  if (libOrientation[gkf->libraryIID] == 0) {
-    GateKeeperLibraryRecord  gkpl;
-    getIndexStore(gkpStore->lib, gkf->libraryIID, &gkpl);
-    libOrientation[gkf->libraryIID] = gkpl.orientation;
+  if (libOrientation[libIID] == 0) {
+    gkLibrary  gkpl;
+    gkpStore->gkStore_getLibrary(libIID, &gkpl);
+    libOrientation[libIID] = gkpl.orientation;
   }
 
-  gkf->orientation = libOrientation[gkf->libraryIID];
+  //  Set the orientation, finally.
+  //
+  gkFrag1->gkFragment_setOrientation(libOrientation[libIID]);
 
   return(0);
 }
+
 
 
 static
 int
-setClearRanges(GateKeeperFragmentRecord *gkf, FragMesg *frg_mesg) {
-  int which;
+setUID(FragMesg *frg_mesg) {
 
-  for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-    gkf->clearBeg[which] = frg_mesg->clear_rng.bgn;
-    gkf->clearEnd[which] = frg_mesg->clear_rng.end;
+  //  Make sure we haven't seen this frag record before... if so
+  //  it is a fatal error
+  //
+  if (AS_UID_isDefined(frg_mesg->eaccession) == FALSE) {
+    AS_GKP_reportError(AS_GKP_FRG_ZERO_UID);
+    return(1);
   }
 
-  if (frg_mesg->clear_max.bgn <= frg_mesg->clear_max.end) {
-    gkf->clearBeg[AS_READ_CLEAR_MAX] = frg_mesg->clear_max.bgn;
-    gkf->clearEnd[AS_READ_CLEAR_MAX] = frg_mesg->clear_max.end;
-  } else {
-    gkf->clearBeg[AS_READ_CLEAR_MAX] = 0;
-    gkf->clearEnd[AS_READ_CLEAR_MAX] = AS_FRAG_MAX_LEN;
+  if (gkpStore->gkStore_getUIDtoIID(frg_mesg->eaccession, NULL)) {
+    AS_GKP_reportError(AS_GKP_FRG_EXISTS,
+                       AS_UID_toString(frg_mesg->eaccession));
+    return(1);
   }
 
-  if (frg_mesg->clear_vec.bgn <= frg_mesg->clear_vec.end) {
-    gkf->clearBeg[AS_READ_CLEAR_VEC] = frg_mesg->clear_vec.bgn;
-    gkf->clearEnd[AS_READ_CLEAR_VEC] = frg_mesg->clear_vec.end;
-  } else {
-    gkf->clearBeg[AS_READ_CLEAR_VEC] = 0;
-    gkf->clearEnd[AS_READ_CLEAR_VEC] = AS_FRAG_MAX_LEN;
-  }
-
-  gkf->contaminationBeg = 0;
-  gkf->contaminationEnd = 0;
+  //  NOTE!  We cannot call this until gkFrag1->type is set, done in checkSequenceAndQuality()!
+  gkFrag1->gkFragment_setReadUID(frg_mesg->eaccession);
 
   return(0);
 }
@@ -272,98 +286,42 @@ setClearRanges(GateKeeperFragmentRecord *gkf, FragMesg *frg_mesg) {
 
 
 int
-Check_FragMesg(FragMesg            *frg_mesg,
-               int                   assembler) {
-
-  int               failed = 0;
+Check_FragMesg(FragMesg   *frg_mesg,
+               int         assembler) {
+  int  failed = 0;
+  int  seqLen = 0;
 
   if (frg_mesg->action == AS_ADD)
-    gkpStore->gkp.frgInput++;
+    gkpStore->inf.frgInput++;
 
   if (frg_mesg->action == AS_IGNORE)
     return 0;
 
-  if (checkfraginitialized == 0) {
-    isspacearray = AS_UTL_getSpaceArray();
-    isValidACGTN = AS_UTL_getValidACGTN();
-    checkfraginitialized = 1;
+  if (isspacearray == NULL) {
+    isspacearray    = AS_UTL_getSpaceArray();
+    isValidACGTN    = AS_UTL_getValidACGTN();
   }
 
-
   if (frg_mesg->action == AS_ADD) {
-    GateKeeperFragmentRecord gkf = {0};
-    char                    *s = NULL;
+    failed  = checkSequenceAndQuality(frg_mesg, &seqLen);
+    failed |= checkClearRanges(frg_mesg, seqLen, assembler);
+    failed |= setLibrary(frg_mesg);
+    failed |= setUID(frg_mesg);
 
-    clearGateKeeperFragmentRecord(&gkf);
-
-    //  Make sure we haven't seen this frag record before... if so
-    //  it is a fatal error
-    //
-    if (AS_UID_isDefined(frg_mesg->eaccession) == FALSE) {
-      AS_GKP_reportError(AS_GKP_FRG_ZERO_UID);
-      gkpStore->gkp.frgErrors++;
-      return(1);
-    }
-    if (getGatekeeperUIDtoIID(gkpStore, frg_mesg->eaccession, NULL)) {
-      AS_GKP_reportError(AS_GKP_FRG_EXISTS,
-                         AS_UID_toString(frg_mesg->eaccession));
-      gkpStore->gkp.frgErrors++;
-      return(1);
-    }
-
-    //  Check sequence and quality for invalid letters, lengths, etc.
-    //
-    failed |= checkSequenceAndQuality(frg_mesg);
-    failed |= checkClearRanges(frg_mesg, assembler);
-
-    //  Set the library and clear ranges
-    //
-    failed |= setLibrary(&gkf, frg_mesg);
-    failed |= setClearRanges(&gkf, frg_mesg);
-
-    //  Report if this fragment is dead
-    //
     if (failed) {
       AS_GKP_reportError(AS_GKP_FRG_LOADED_DELETED,
                          AS_UID_toString(frg_mesg->eaccession));
-      gkf.deleted = TRUE;
+      gkFrag1->gkFragment_setIsDeleted(1);
     }
 
-    //  Now add the fragment to the store
-    //
-    gkf.readUID = frg_mesg->eaccession;
-    gkf.readIID = getLastElemStore(gkpStore->frg) + 1;
-
-    gkf.seqLen = strlen(frg_mesg->sequence);
-    gkf.hpsLen = 0;
-    gkf.srcLen = strlen(frg_mesg->source);
-
-    gkf.seqOffset = getLastElemStore(gkpStore->seq) + 1;
-    gkf.qltOffset = getLastElemStore(gkpStore->qlt) + 1;
-    gkf.hpsOffset = getLastElemStore(gkpStore->hps) + 1;
-    gkf.srcOffset = getLastElemStore(gkpStore->src) + 1;
-
-    setGatekeeperUIDtoIID(gkpStore, gkf.readUID, gkf.readIID, AS_IID_FRG);
-    appendIndexStore(gkpStore->frg, &gkf);
-
-    encodedlength = encodeSequence(encodedsequence, frg_mesg->sequence);
-    appendStringStore(gkpStore->seq, encodedsequence, encodedlength);
-
-    encodeSequenceQuality(encodedsequence, frg_mesg->sequence, frg_mesg->quality);
-    appendStringStore(gkpStore->qlt, encodedsequence,    gkf.seqLen);
-
-    appendStringStore(gkpStore->hps, NULL,               0);
-    appendStringStore(gkpStore->src, frg_mesg->source,   gkf.srcLen);
-
-    if (failed)
-      gkpStore->gkp.frgErrors++;
-    else
-      gkpStore->gkp.frgLoaded++;
+    gkpStore->gkStore_addFragment(gkFrag1,
+                                  frg_mesg->clear_rng.bgn, frg_mesg->clear_rng.end,
+                                  frg_mesg->clear_vec.bgn, frg_mesg->clear_vec.end,
+                                  frg_mesg->clear_max.bgn, frg_mesg->clear_max.end,
+                                  1,                       0);
 
   } else if (frg_mesg->action == AS_DELETE) {
-
-    GateKeeperFragmentRecord gkf;
-    AS_IID                   iid = getGatekeeperUIDtoIID(gkpStore, frg_mesg->eaccession, NULL);
+    AS_IID       iid = gkpStore->gkStore_getUIDtoIID(frg_mesg->eaccession, NULL);
 
     if (iid == 0) {
       AS_GKP_reportError(AS_GKP_FRG_DOESNT_EXIST,
@@ -371,18 +329,15 @@ Check_FragMesg(FragMesg            *frg_mesg,
       return(1);
     }
 
-    getGateKeeperFragment(gkpStore, iid, &gkf);
+    gkpStore->gkStore_getFragment(iid, gkFrag1, GKFRAGMENT_INF);
 
-    if (gkf.mateIID > 0) {
+    if (gkFrag1->gkFragment_getMateIID() > 0) {
       AS_GKP_reportError(AS_GKP_FRG_HAS_MATE,
                          AS_UID_toString(frg_mesg->eaccession));
       return(1);
     }
 
-    GateKeeperFragmentRecord dr;
-    getIndexStore(gkpStore->frg, iid, &dr);
-    dr.deleted = TRUE;
-    setIndexStore(gkpStore->frg, iid, &dr);
+    gkpStore->gkStore_delFragment(iid);
 
   } else {
     AS_GKP_reportError(AS_GKP_FRG_UNKNOWN_ACTION);

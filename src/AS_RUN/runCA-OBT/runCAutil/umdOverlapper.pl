@@ -82,9 +82,6 @@ sub UMDoverlapper () {
       caFailure("failed to run UMD overlapper", "$wrk/$outDir/$jobID/overlapper.err");
     }
 
-    #  See comments in overlapTrim.pl
-    backupFragStore("beforeUMDOverlapper");
-
     my $trimFile = getUMDOverlapperClearRange($outDir);
     $cmd = "";
     $cmd .= "$bin/gatekeeper --edit ";

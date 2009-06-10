@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.33 2009-02-02 13:51:14 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.34 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_ALN_aligners.h"
@@ -1261,7 +1261,7 @@ void InitGraphEdgeFlags(GraphCGW_T *graph, EdgeCGW_T *edge);
 int32 InsertGraphEdge(GraphCGW_T *graph,  CDS_CID_t cedgeID, int verbose);
 void InsertGraphEdgeInList(GraphCGW_T *graph, CDS_CID_t CIedgeID,
                            CDS_CID_t sid, int verbose);
-void PrintGraphEdge(FILE *fp, GraphCGW_T *graph, char *label,
+void PrintGraphEdge(FILE *fp, GraphCGW_T *graph, const char *label,
                     EdgeCGW_T *edge, CDS_CID_t cid);
 
 void PrintContigEdgeInScfContext(FILE *fp, GraphCGW_T *graph, char *label, EdgeCGW_T *edge, int cid);

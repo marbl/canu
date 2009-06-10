@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: frgs2clones.c,v 1.35 2009-05-22 16:57:45 brianwalenz Exp $";
+const char *mainid = "$Id: frgs2clones.c,v 1.36 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,16 +48,15 @@ main( int argc, char *argv[]) {
   int fragIID,mateIID;
   AS_UID fragUID,mateUID;
   char GKP_Store_Name[2000];
-  GateKeeperStore *gkpStore;
-  GateKeeperFragmentRecord gkpFrag,gkpMate;
+  gkStore *gkpStore;
   char *seq1,*seq2,*qul1,*qul2,*clear1,*clear2;
   uint clr_bgn1,clr_end1;
   uint clr_bgn2,clr_end2;
   int alloclen1=5000;
   int alloclen2=5000;
   int len1,len2,lastfrg;
-  fragRecord fsread;
-  fragRecord fsmate;
+  gkFragment fsread;
+  gkFragment fsmate;
   uint64 UIDstart = 1230000;
   UIDserver   *uids              = NULL;
 
@@ -115,7 +114,7 @@ main( int argc, char *argv[]) {
 
   }
 
-  gkpStore = openGateKeeperStore(GKP_Store_Name, FALSE);
+  gkpStore = new gkStore(GKP_Store_Name, FALSE, FALSE);
 
   //  seq1=(char*)safe_malloc(sizeof(char)*alloclen1);
   //  qul1=(char*)safe_malloc(sizeof(char)*alloclen1);
@@ -141,33 +140,28 @@ main( int argc, char *argv[]) {
   // over all fragments, check for overlap with (previously unseen) mate
   /*************************/
 
-  lastfrg = getLastElemFragStore (gkpStore) ;
+  lastfrg = gkpStore->gkStore_getNumFragments () ;
   for (fragIID = 1; fragIID <= lastfrg; fragIID++){
 
     /*************************/
     // get the fragment
     /*************************/
 
-    getGateKeeperFragment(gkpStore,fragIID,&gkpFrag);
-    if(gkpFrag.deleted)continue;
+    gkpStore->gkStore_getFragment(fragIID, &fsread, GKFRAGMENT_QLT);
 
-    fragUID = gkpFrag.readUID;
+    if (fsread.gkFragment_getIsDeleted())
+      continue;
 
-      //    if(getFrag(gkpStore,fragIID,fsread,FRAG_S_ALL)!=0){
-      //      fprintf(stderr,"Couldn't get fragment from gkpStore for iid %d\n",fragIID);
-      //      assert(0);
-      //    }
-    getFrag(gkpStore,fragIID,&fsread,FRAG_S_ALL);
-    //    getClearRegion_ReadStruct(fsread, &clr_bgn1,&clr_end1, READSTRUCT_LATEST);
-    clr_bgn1 = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_LATEST);
-    clr_end1 = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_LATEST);
+    fragUID = fsread.gkFragment_getReadUID();
 
-    while(alloclen1<=getFragRecordSequenceLength(&fsread)){
+    fsread.gkFragment_getClearRegion(clr_bgn1, clr_end1);
+
+    while(alloclen1<=fsread.gkFragment_getSequenceLength()){
       alloclen1*=2;
       clear1=(char*)safe_realloc(clear1,alloclen1*sizeof(char));
     }
-    seq1 = getFragRecordSequence(&fsread);
-    qul1 = getFragRecordQuality(&fsread);
+    seq1 = fsread.gkFragment_getSequence();
+    qul1 = fsread.gkFragment_getQuality();
     strcpy(clear1,seq1+clr_bgn1);
     len1=clr_end1-clr_bgn1;
     clear1[len1]='\0';
@@ -177,42 +171,38 @@ main( int argc, char *argv[]) {
     // check for an appropriate mate
     /*************************/
 
-    if(gkpFrag.mateIID == 0){
+    mateIID = fsread.gkFragment_getMateIID();
+
+    if(mateIID == 0){
 
       // if no mate (or multiple mates), output fragment itself
       printf(">%s\n%s\n",AS_UID_toString(fragUID),clear1);
 
     } else { // there are links
-      mateIID = gkpFrag.mateIID;
 
       /*************************/
       // get (clear) sequence of mate
       /*************************/
 
-      getGateKeeperFragment(gkpStore,mateIID,&gkpFrag);
-      mateUID = gkpFrag.readUID;
+      gkpStore->gkStore_getFragment(mateIID, &fsmate, GKFRAGMENT_QLT);
 
-      if(mateIID<fragIID&&gkpFrag.deleted!=1)continue;
+      if ((mateIID < fragIID) && (fsmate.gkFragment_getIsDeleted() == 0))
+        continue;
 
-      //      if(getFrag(gkpStore,mateIID,fsmate,FRAG_S_ALL)!=0){
-      //	fprintf(stderr,"Couldn't get fragment from gkpStore for iid %d\n",mateIID);
-      //	assert(0);
-      //      }
-      getFrag(gkpStore,mateIID,&fsmate,FRAG_S_ALL);
-      //      getClearRegion_ReadStruct(fsmate, &clr_bgn2,&clr_end2, READSTRUCT_LATEST);
-      clr_bgn2 = getFragRecordClearRegionBegin(&fsmate, AS_READ_CLEAR_LATEST);
-      clr_end2 = getFragRecordClearRegionEnd  (&fsmate, AS_READ_CLEAR_LATEST);
-      while(alloclen2<=getFragRecordSequenceLength(&fsmate)){
+      mateUID = fsmate.gkFragment_getReadUID();
+
+      fsmate.gkFragment_getClearRegion(clr_bgn2, clr_end2);
+      while(alloclen2<=fsmate.gkFragment_getSequenceLength()){
 	alloclen2*=2;
 	clear2=(char*)safe_realloc(clear2,alloclen2*sizeof(char));
       }
-      seq2 = getFragRecordSequence(&fsmate);
-      qul2 = getFragRecordQuality(&fsmate);
+      seq2 = fsmate.gkFragment_getSequence();
+      qul2 = fsmate.gkFragment_getQuality();
       strcpy(clear2,seq2+clr_bgn2);
       len2=clr_end2-clr_bgn2;
       clear2[len2]='\0';
 
-      if(gkpFrag.deleted){
+      if(fsmate.gkFragment_getIsDeleted()){
 	// if no mate (or multiple mates), output fragment itself
 	printf(">%s\n%s\n",AS_UID_toString(mateUID),clear2);
 	continue;
@@ -267,11 +257,11 @@ main( int argc, char *argv[]) {
 	  ium.forced = FALSE;
 	  ium.coverage_stat = 10;
           ium.microhet_prob = 1.01;
-	  ium.status = 'U';
+	  ium.status = (UnitigStatus)'U';
 	  ium.num_frags = 2;
 	  ium.f_list = &(the_imps[0]);
 	  {
-	    the_imps[0].type = 'R';
+	    the_imps[0].type = (FragType)'R';
 	    the_imps[0].ident = fragIID;
 	    the_imps[0].contained = 0;
 	    the_imps[0].sourceInt = -1;
@@ -279,7 +269,7 @@ main( int argc, char *argv[]) {
 	    the_imps[0].position.end = (ovl->begpos >= 0 ) ? len1 : len1 - ovl->begpos;
 	    the_imps[0].delta_length = 0;
 	    the_imps[0].delta        = NULL;
-	    the_imps[1].type = 'R';
+	    the_imps[1].type = (FragType)'R';
 	    the_imps[1].ident = mateIID;
 	    the_imps[1].contained = 0;
 	    the_imps[1].sourceInt = -1;
@@ -298,7 +288,7 @@ main( int argc, char *argv[]) {
 	  /*************************/
 	  {
 	    MultiAlignT *ma;
-	    int printwhat=CNS_STATS_ONLY;
+	    CNS_PrintKey printwhat=CNS_STATS_ONLY;
 	    int i,j,len;
 	    char *s,*q;
 

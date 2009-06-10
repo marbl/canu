@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Instrument_CGW.c,v 1.37 2009-01-28 01:30:28 brianwalenz Exp $";
+static char *rcsid = "$Id: Instrument_CGW.c,v 1.38 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -590,7 +590,7 @@ MateStatusPositions * CreateMateStatusPositions(void)
 {
   MateStatusPositions * msp;
 
-  msp = safe_calloc(1, sizeof(MateStatusPositions));
+  msp = (MateStatusPositions *)safe_calloc(1, sizeof(MateStatusPositions));
 
   InitializeMateStatusPositions(msp);
   return msp;
@@ -601,7 +601,7 @@ MateStatusPositionsSet * CreateMateStatusPositionsSet(void)
 {
   MateStatusPositionsSet * msps;
 
-  msps = safe_calloc(1, sizeof(MateStatusPositionsSet));
+  msps = (MateStatusPositionsSet *)safe_calloc(1, sizeof(MateStatusPositionsSet));
 
   if((msps->intra = CreateMateStatusPositions()) == NULL)
     {
@@ -655,7 +655,7 @@ int InitializeMateInstrumenter(ScaffoldGraphT * graph,
 MateInstrumenter * CreateMateInstrumenter(ScaffoldGraphT * graph,
                                           uint32 options)
 {
-  MateInstrumenter * mi = safe_calloc(1, sizeof(MateInstrumenter));
+  MateInstrumenter * mi = (MateInstrumenter *)safe_calloc(1, sizeof(MateInstrumenter));
 
   mi->options = options;
 
@@ -3680,7 +3680,7 @@ int AddFragmentToUnitigInstrumenter(ScaffoldGraphT * graph,
               FragDetail fragDetail;
               // no mate, log it
               fragDetail.iid = frag->iid;
-              fragDetail.type = frag->type;
+              fragDetail.type = (FragType)frag->type;
               fragDetail.offset5p = frag->contigOffset5p.mean;
               AppendVA_FragDetail(ui->mates.noMate, &fragDetail);
             }
@@ -4446,7 +4446,7 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
               md.fragOffset5p = frag5p;
               md.fragChunkIID = chunkIID;
               md.libIID = frag->dist;
-              md.type = frag->type;
+              md.type = (FragType)frag->type;
               md.mateIID = graphMate->iid;
               md.mateOffset5p = -1.f;
 #ifdef TRACK_3P
@@ -4516,7 +4516,7 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
               matePair.mateChunkIID = frag->contigID;
             }
           matePair.libIID = frag->dist;
-          matePair.type = frag->type;
+          matePair.type = (FragType)frag->type;
 
           if(anchoredHT && frag->contigID != lookupMate->contigID)
             {
@@ -4885,7 +4885,7 @@ void FinishIntScaffoldMesg(IntScaffoldMesg * isf,
     isf->contig_pairs = NULL;
   else
     {
-      isf->contig_pairs = safe_malloc(isf->num_contig_pairs * sizeof(IntContigPairs));
+      isf->contig_pairs = (IntContigPairs *)safe_malloc(isf->num_contig_pairs * sizeof(IntContigPairs));
       memcpy(isf->contig_pairs, GetVA_IntContigPairs(icps, 0),
              isf->num_contig_pairs * sizeof(IntContigPairs));
     }
@@ -5690,7 +5690,7 @@ int InstrumentContigEnd(ScaffoldGraphT * graph,
                                &isf);
       numContigs += isf.num_contig_pairs;
 
-      InstrumentIntScaffoldMesg(graph, si, &isf, 0, NULL);
+      InstrumentIntScaffoldMesg(graph, si, &isf, InstrumenterSilent, NULL);
       FreeIntScaffoldMesg(&isf);
 
       // accumulate mate statuses
@@ -5750,7 +5750,7 @@ int InstrumentContigEndPartial(ScaffoldGraphT * graph,
         return 1;
 
       isf.num_contig_pairs = numContigs - 1;
-      InstrumentIntScaffoldMesg(graph, si, &isf, 0, NULL);
+      InstrumentIntScaffoldMesg(graph, si, &isf, InstrumenterSilent, NULL);
       FreeIntScaffoldMesg(&isf);
 
       // accumulate mate statuses
@@ -5859,7 +5859,7 @@ int InstrumentContigPath(ScaffoldGraphT * graph,
 
   // instrument the scaffoldmesg
   // fprintf(stderr, "\n");
-  InstrumentIntScaffoldMesg(graph, si, &isf, 0, NULL);
+  InstrumentIntScaffoldMesg(graph, si, &isf, InstrumenterSilent, NULL);
   FreeIntScaffoldMesg(&isf);
   ComputeScaffoldInstrumenterStats(graph, si);
   return 0;
@@ -6050,7 +6050,7 @@ int AdjustCIScaffoldLabels(ScaffoldGraphT * graph,
               FinishIntScaffoldMesg(&isf, icps);
 
               // instrument the scaffoldmesg
-              InstrumentIntScaffoldMesg(graph, si, &isf, 0, NULL);
+              InstrumentIntScaffoldMesg(graph, si, &isf, InstrumenterSilent, NULL);
               FreeIntScaffoldMesg(&isf);
               ComputeScaffoldInstrumenterStats(graph, si);
 

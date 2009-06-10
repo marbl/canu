@@ -30,9 +30,7 @@
 #include <errno.h>
 #include <string.h>
 
-extern "C" {
 #include "AS_global.h"
-}
 
 
 class splitToWords {

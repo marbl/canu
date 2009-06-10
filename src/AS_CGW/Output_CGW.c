@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.39 2009-04-21 13:53:43 skoren Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.40 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -500,8 +500,8 @@ void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges)
 	}
 	if(isOverlapEdge(edge)){
 	  assert(outputOverlapOnlyContigEdges);
-	  imp.type = 'X';
-	}else{
+	  imp.type = AS_UNMATED;
+        }else{
           imp.type = AS_MATE;
 	  AppendIntMate_Pairs(JumpList, &imp);
 	}

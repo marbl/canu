@@ -1,4 +1,4 @@
-const char *mainid = "$Id: markUniqueUnique.c,v 1.1 2009-06-05 19:17:05 skoren Exp $";
+const char *mainid = "$Id: markUniqueUnique.c,v 1.2 2009-06-10 18:05:14 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -74,11 +74,11 @@ int main (int argc, char *argv[]) {
    FILE           *infp;
    infp = fopen(asmFileName, "r");   
    while ((EOF != ReadProtoMesg_AS(infp, &pmesg))) {
+      SnapUnitigMesg *utg = NULL;
+      SnapConConMesg *ctg = NULL;
+
       switch(pmesg->t)
       {
-         SnapUnitigMesg *utg = NULL;
-         SnapConConMesg *ctg = NULL;
-         
          case MESG_UTG:
             utg = (SnapUnitigMesg*)(pmesg->m);
             if (utg->length >= minLength && (utg->status == AS_NOTREZ || utg->status == AS_SEP)) {
@@ -108,9 +108,9 @@ int main (int argc, char *argv[]) {
       infp = fopen(argv[i], "r");
 
       while ((EOF != ReadProtoMesg_AS(infp, &pmesg))) {
+         IntUnitigMesg *utg = NULL;
          switch(pmesg->t)
          {
-            IntUnitigMesg *utg = NULL;
             case MESG_IUM:
                utg = (IntUnitigMesg *)(pmesg->m);
                uint32 *ret = Getuint32(surrogateCount, utg->iaccession);

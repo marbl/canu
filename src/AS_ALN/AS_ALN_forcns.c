@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.21 2009-06-05 15:09:07 skoren Exp $";
+static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.22 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,13 +92,17 @@ Local_Overlap_AS_forCNS(char *a, char *b,
                         double erate, double thresh, int minlen,
                         CompareOptions what) {
 
-  InternalFragMesg  A = {0}, B = {0};
+  InternalFragMesg  A, B;
   OverlapMesg  *O;
   int alen,blen,del,sub,ins,affdel,affins,blockdel,blockins;
   double errRate,errRateAffine;
   int AFFINEBLOCKSIZE=4;
   static Overlap o;
   int where=0;
+
+  //  Ugh, hack to get around C++ not liking A = {0} above.
+  memset(&A, 0, sizeof(InternalFragMesg));
+  memset(&B, 0, sizeof(InternalFragMesg));
 
 #ifdef DEBUG_GENERAL
   fprintf(stderr, "Local_Overlap_AS_forCNS()--  Begins\n");
@@ -370,7 +374,7 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
   int             allowNs = 0;
 
   if (m == NULL)
-    m = safe_malloc(sizeof(dpMatrix));
+    m = (dpMatrix *)safe_malloc(sizeof(dpMatrix));
 
 #ifdef DEBUG_GENERAL
   fprintf(stderr, "Optimal_Overlap_AS_forCNS()--  Begins\n");

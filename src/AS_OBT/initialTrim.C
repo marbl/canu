@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: initialTrim.C,v 1.21 2009-05-12 17:25:31 brianwalenz Exp $";
+const char *mainid = "$Id: initialTrim.C,v 1.22 2009-06-10 18:05:13 brianwalenz Exp $";
 
 //  Read a fragStore, does quality trimming based on quality scores,
 //  intersects the quality trim with a vector trim, and updates the
@@ -28,10 +28,8 @@ const char *mainid = "$Id: initialTrim.C,v 1.21 2009-05-12 17:25:31 brianwalenz 
 #include <stdio.h>
 #include <stdlib.h>
 
-extern "C" {
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
-}
 
 #include "util++.H"
 #include "trim.H"
@@ -80,21 +78,20 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  GateKeeperStore  *gkpStore = openGateKeeperStore(gkpName, true);
-  if (gkpStore == NULL) {
-    fprintf(stderr, "Failed to open %s\n", gkpName);
-    exit(1);
-  }
+  gkStore  *gkpStore = new gkStore(gkpName, FALSE, TRUE);
 
-  gkpStore->frg = convertStoreToMemoryStore(gkpStore->frg);
+#warning should convert to memory store for efficiency
+  //gkpStore->frg = convertStoreToMemoryStore(gkpStore->frg);
 
-  uint32        firstElem = getFirstElemFragStore(gkpStore);
-  uint32        lastElem  = getLastElemFragStore(gkpStore) + 1;
+  gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_OBTINITIAL);
 
-  fragRecord    fr = {0};
+  gkFragment    fr;
+  gkLibrary    *lr = NULL;
 
   uint32        qltL = 0;
   uint32        qltR = 0;
+  uint32        vecL = 0;
+  uint32        vecR = 0;
   uint32        finL = 0;
   uint32        finR = 0;
 
@@ -112,30 +109,29 @@ main(int argc, char **argv) {
   if (logFile)
     fprintf(logFile, "uid,iid\torigL\torigR\tqltL\tqltR\tvecL\tvecR\tfinalL\tfinalR\tdeleted?\n");
 
-  for (uint32 iid=firstElem; iid<lastElem; iid++) {
+  for (uint32 iid=1; iid<=gkpStore->gkStore_getNumFragments(); iid++) {
+    gkpStore->gkStore_getFragment(iid, &fr, GKFRAGMENT_QLT);
 
-    getFrag(gkpStore, iid, &fr, FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
+    lr = gkpStore->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
 
-    GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkpStore, getFragRecordLibraryIID(&fr));
-
-    if (getFragRecordIsDeleted(&fr)) {
+    if (fr.gkFragment_getIsDeleted()) {
       stat_alreadyDeleted++;
       continue;
     }
 
-    if ((gklr) && (gklr->doNotOverlapTrim)) {
+    if ((lr) && (lr->doNotOverlapTrim)) {
       stat_immutable++;
       continue;
     }
 
-    if ((gklr) && (gklr->doNotQVTrim)) {
+    if ((lr) && (lr->doNotQVTrim)) {
       stat_donttrim++;
       qltL = 0;
-      qltR = getFragRecordSequenceLength(&fr);
+      qltR = fr.gkFragment_getSequenceLength();
     } else {
       double  minQuality = qual.lookupNumber(12);
-      if ((gklr) && (gklr->goodBadQVThreshold > 0))
-        minQuality = qual.lookupNumber(gklr->goodBadQVThreshold);
+      if ((lr) && (lr->goodBadQVThreshold > 0))
+        minQuality = qual.lookupNumber(lr->goodBadQVThreshold);
 
       doTrim(&fr, minQuality, qltL, qltR);
     }
@@ -144,10 +140,16 @@ main(int argc, char **argv) {
     finR = qltR;
 
     //  Intersect with the vector clear range.
+    fr.gkFragment_getClearRegion(vecL, vecR, AS_READ_CLEAR_VEC);
 
-    if ((fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] > finR) ||
-        (fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] < finL)) {
-      //  don't intersect; trust nobody
+    if (vecL > vecR) {
+      //  No vector clear defined.
+      stat_noVecClr++;
+      finL = qltL;
+      finR = qltR;
+
+    } else if ((vecL > finR) || (vecR < finL)) {
+      //  No intersection; trust nobody.
       stat_noHQnonVec++;
       finL = 0;
       finR = 0;
@@ -155,15 +157,15 @@ main(int argc, char **argv) {
     } else {
       //  They intersect.  Pick the largest begin and the smallest end
 
-      if (finL < fr.gkfr.clearBeg[AS_READ_CLEAR_VEC]) {
+      if (finL < vecL) {
         stat_HQtrim5++;
-        finL = fr.gkfr.clearBeg[AS_READ_CLEAR_VEC];
+        finL = vecL;
       } else {
         stat_LQtrim5++;
       }
-      if (fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] < finR) {
+      if (vecR < finR) {
         stat_HQtrim3++;
-        finR = fr.gkfr.clearEnd[AS_READ_CLEAR_VEC];
+        finR = vecR;
       } else {
         stat_LQtrim3++;
       }
@@ -171,31 +173,32 @@ main(int argc, char **argv) {
 
     //  Update the clear ranges
 
-    if ((finL + AS_FRAG_MIN_LEN) > finR)
+    if ((finL + AS_READ_MIN_LEN) > finR)
       stat_tooShort++;
 
-    setFragRecordClearRegion(&fr, finL, finR, AS_READ_CLEAR_OBTINI);
-    setFrag(gkpStore, iid, &fr);
+    fr.gkFragment_setClearRegion(finL, finR, AS_READ_CLEAR_OBTINITIAL);
 
-    if ((finL + AS_FRAG_MIN_LEN) > finR)
-      delFrag(gkpStore, iid);
+    gkpStore->gkStore_setFragment(&fr);
+
+    if ((finL + AS_READ_MIN_LEN) > finR)
+      gkpStore->gkStore_delFragment(iid);
 
     if (logFile)
       fprintf(logFile, "%s,"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"%s\n",
-              AS_UID_toString(getFragRecordUID(&fr)),
+              AS_UID_toString(fr.gkFragment_getReadUID()),
               iid,
-              getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_ORIG),
-              getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_ORIG),
+              fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_CLR),
+              fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_CLR),
               qltL,
               qltR,
-              getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_VEC),
-              getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_VEC),
+              fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
+              fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC),
               finL,
               finR,
-              ((finL + AS_FRAG_MIN_LEN) > finR) ? " (deleted)" : "");
+              ((finL + AS_READ_MIN_LEN) > finR) ? " (deleted)" : "");
   }
 
-  closeGateKeeperStore(gkpStore);
+  delete gkpStore;
 
   fprintf(stderr, "Fragments with:\n");
   fprintf(stderr, " no changes allowed:           "F_U32"\n", stat_immutable);

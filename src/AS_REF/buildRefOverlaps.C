@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildRefOverlaps.C,v 1.1 2009-01-26 19:57:59 brianwalenz Exp $";
+const char *mainid = "$Id: buildRefOverlaps.C,v 1.2 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -29,15 +29,13 @@ const char *mainid = "$Id: buildRefOverlaps.C,v 1.1 2009-01-26 19:57:59 brianwal
 #include <unistd.h>
 #include <math.h>
 
-extern "C" {
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_fileIO.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_gkpStore.h"
-}
 
-GateKeeperStore   *gkpStore = 0L;
+gkStore   *gkpStore = 0L;
 
 #include "splitToWords.H"
 #include "refAlignment.H"
@@ -114,7 +112,7 @@ readMapping(char *filename) {
 static
 void
 loadFragments(void) {
-  fragRecord  fr;
+  gkFragment  fr;
   uint32      err=0, alive=0, dead=0, unmapped=0;
 
   frgLen = getNumGateKeeperFragments(gkpStore) + 1;
@@ -217,7 +215,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkpStore = openGateKeeperStore(gkpStoreName, false);
+  gkpStore = gkStore_open(gkpStoreName, false);
   if (gkpStore == 0L)
     fprintf(stderr, "Failed to open gkpStore '%s'.\n", gkpStoreName);
 

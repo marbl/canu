@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.32 2009-05-29 17:29:19 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.33 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -47,7 +47,7 @@ const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.32 2009-05-29 17:29:19 bri
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
 
-static const char *rcsid = "$Id: AS_CNS_asmReBaseCall.c,v 1.32 2009-05-29 17:29:19 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_CNS_asmReBaseCall.c,v 1.33 2009-06-10 18:05:13 brianwalenz Exp $";
 
 static HashTable_AS *utgUID2IID;
 
@@ -102,7 +102,7 @@ static IntUnitigMesg* convert_UTG_to_IUM(SnapUnitigMesg* utgMesg)
       iumMesg->f_list[i].type = utgMesg->f_list[i].type;
       iumMesg->f_list[i].sourceInt = 0;
 
-      iid = getGatekeeperUIDtoIID(gkpStore, utgMesg->f_list[i].eident, NULL);
+      iid = gkpStore->gkStore_getUIDtoIID(utgMesg->f_list[i].eident, NULL);
 
       if( iid == 0 ){
 	fprintf(stderr,"Error: Unknown uid fragment ID %s at %s:%d\n",
@@ -174,7 +174,7 @@ static IntConConMesg* convert_CCO_to_ICM(SnapConConMesg* ccoMesg)
       icmMesg->pieces[i].type = ccoMesg->pieces[i].type;
       icmMesg->pieces[i].sourceInt = 0;
 
-      iid = getGatekeeperUIDtoIID(gkpStore, ccoMesg->pieces[i].eident, NULL);
+      iid = gkpStore->gkStore_getUIDtoIID(ccoMesg->pieces[i].eident, NULL);
       if( iid == 0 ){
 	fprintf(stderr,"Error: Unknown uid fragment ID %s at %s:%d\n",
 		AS_UID_toString(ccoMesg->pieces[i].eident),__FILE__,__LINE__);
@@ -281,7 +281,7 @@ int MultiAlignContig_ReBasecall(MultiAlignT *cma, VA_TYPE(char) *sequence, VA_TY
   upositions=GetIntUnitigPos(cma->u_list,0);
 
   if ( tracep == NULL ) {
-    tracep = safe_malloc(sizeof(int32)*(AS_READ_MAX_LEN+1));
+    tracep = (int32 *)safe_malloc(sizeof(int32)*(AS_READ_MAX_LEN+1));
   }
 
   ResetStores(num_unitigs,num_columns);
@@ -445,10 +445,10 @@ int main (int argc, char *argv[]) {
 
     /****************          Open Fragment Store             ***********/
 
-    gkpStore = openGateKeeperStore(argv[optind++], FALSE);
+    gkpStore = new gkStore(argv[optind++], FALSE, FALSE);
 
     if (in_memory)
-      loadGateKeeperStorePartial(gkpStore, 0, 0, FRAG_S_QLT);
+      gkpStore->gkStore_load(0, 0, GKFRAGMENT_QLT);
 
     /* initialize a unitig UID-to-IID hash table */
     utgUID2IID = CreateScalarHashTable_AS();
@@ -474,7 +474,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.32 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.33 $ processing. Started %s\n",
 	      ctime(&t));
 
       while ( (ReadProtoMesg_AS(stdin,&pmesg) != EOF)){
@@ -545,6 +545,6 @@ int main (int argc, char *argv[]) {
     }
 
     DeleteMultiAlignStoreT(unitigStore);
-    closeGateKeeperStore(gkpStore);
+    delete gkpStore;
     return 0;
 }

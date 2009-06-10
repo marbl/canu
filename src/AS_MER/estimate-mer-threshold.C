@@ -19,16 +19,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: estimate-mer-threshold.C,v 1.1 2008-12-12 03:44:03 brianwalenz Exp $";
+const char *mainid = "$Id: estimate-mer-threshold.C,v 1.2 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 
-extern "C" {
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_OVS_overlapStore.h"
-}
 
 #include "AS_MER_gkpStore_to_FastABase.H"
 
@@ -43,7 +41,7 @@ main(int argc, char **argv) {
   char              *gkpPath = 0L;
   char              *merCountsFile = 0L;
 
-  GateKeeperStore   *gkp = 0L;
+  gkStore   *gkp = 0L;
   merylStreamReader *MF  = 0L;
 
   u32bit             maxCount = 0;

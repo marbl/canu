@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.22 2008-11-02 06:27:13 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.23 2009-06-10 18:05:13 brianwalenz Exp $";
 
 // This file contains the code for computing the candidate
 // chunks of scaffolds.
@@ -2354,10 +2354,12 @@ void ActuallyInsertCIsIntoScaffolds(CDS_CID_t *currentScaffoldID,  int verbose)
     ChunkInstanceT *neighbor;
     LengthT NullLength = {0.0, 0.0};
     LengthT aEndOffset, bEndOffset, currentOffset;
-    CIScaffoldT CIScaffold = {0};
+    CIScaffoldT CIScaffold;
     ChunkOrient orientCI;
     CDS_CID_t cid;
     cid = thisCI->id;
+
+    memset(&CIScaffold, 0, sizeof(CIScaffoldT));
 
     if(thisCI->scaffoldID != NULLINDEX){
       continue;// This CI has already been placed in a Scaffold.

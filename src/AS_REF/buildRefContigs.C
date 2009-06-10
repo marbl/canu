@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildRefContigs.C,v 1.4 2008-12-18 07:13:22 brianwalenz Exp $";
+const char *mainid = "$Id: buildRefContigs.C,v 1.5 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -29,15 +29,13 @@ const char *mainid = "$Id: buildRefContigs.C,v 1.4 2008-12-18 07:13:22 brianwale
 #include <unistd.h>
 #include <math.h>
 
-extern "C" {
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_fileIO.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_gkpStore.h"
-}
 
-GateKeeperStore   *gkpStore = 0L;
+gkStore   *gkpStore = 0L;
 
 #include "splitToWords.H"
 #include "refAlignment.H"
@@ -108,10 +106,10 @@ readMapping(char *filename) {
 static
 void
 loadFragments(void) {
-  fragRecord  fr;
+  gkFragment  fr;
   uint32      err=0, alive=0, dead=0, unmapped=0;
 
-  frgLen = getNumGateKeeperFragments(gkpStore) + 1;
+  frgLen = gkpStore->gkStore_getNumFragments() + 1;
   frg    = (fragmentData *)safe_calloc(frgLen, sizeof(fragmentData));
 
   memset(frg, 0, sizeof(fragmentData) * frgLen);
@@ -120,18 +118,18 @@ loadFragments(void) {
   //  value, we'll set the real value in the loop after this.
 
   for (uint32 i=1; i<frgLen; i++) {
-    getFrag(gkpStore, i, &fr, FRAG_S_INF);
+    gkpStore->gkStore_getFragment(i, &fr, GKFRAGMENT_INF);
 
-    if (getFragRecordIsDeleted(&fr)) {
+    if (fr.gkFragment_getIsDeleted()) {
       dead++;
       frg[i].fragUID    = AS_UID_undefined();
       frg[i].mateIID    = 0;
       frg[i].libraryIID = 0;
     } else {
       alive++;
-      frg[i].fragUID    = getFragRecordUID(&fr);
-      frg[i].mateIID    = getFragRecordMateIID(&fr);
-      frg[i].libraryIID = getFragRecordLibraryIID(&fr);
+      frg[i].fragUID    = fr.gkFragment_getReadUID();
+      frg[i].mateIID    = fr.gkFragment_getMateIID();
+      frg[i].libraryIID = fr.gkFragment_getLibraryIID();
     }
 
     frg[i].mappingDataIndex = aliLen;
@@ -172,7 +170,7 @@ loadFragments(void) {
 static
 void
 outputDistances(void) {
-  int               imdLen = getNumGateKeeperLibraries(gkpStore)+1;
+  int               imdLen = gkpStore->gkStore_getNumLibraries()+1;
   IntMateDistMesg  *imd = (IntMateDistMesg *)safe_calloc(imdLen, sizeof(IntMateDistMesg));
 
   for (int i=1; i<imdLen; i++) {
@@ -649,7 +647,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkpStore = openGateKeeperStore(gkpStoreName, false);
+  gkpStore = new gkStore(gkpStoreName, FALSE, FALSE);
   if (gkpStore == 0L)
     fprintf(stderr, "Failed to open gkpStore '%s'.\n", gkpStoreName);
 
@@ -669,6 +667,8 @@ main(int argc, char **argv) {
     outputScaffolds();
     outputScaffoldLinks();
   }
+
+  delete gkpStore;
 
   exit(0);
 }

@@ -28,7 +28,7 @@
 #ifndef AS_OVL_DRIVER_COMMON_H
 #define AS_OVL_DRIVER_COMMON_H
 
-static const char *rcsid_AS_OVL_DRIVER_COMMON_H = "$Id: AS_OVL_driver_common.h,v 1.28 2008-10-09 00:48:12 brianwalenz Exp $";
+static const char *rcsid_AS_OVL_DRIVER_COMMON_H = "$Id: AS_OVL_driver_common.h,v 1.29 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include  <unistd.h>
 
@@ -41,9 +41,8 @@ static const char *rcsid_AS_OVL_DRIVER_COMMON_H = "$Id: AS_OVL_driver_common.h,v
 
 static int64  First_Hash_Frag = -1;
 static int64   Last_Hash_Frag;
-static fragRecord  myRead;
+static gkFragment  myRead;
 static int  Screen_Blocks_Used;
-static int64  Total_Frags_Read = 0;
 static int  Next_Distance_Index;
 static int  Next_Fragment_Index;
 static int  IID_Lo, IID_Hi;
@@ -59,44 +58,7 @@ void  Cleanup_Work_Area (Work_Area_t * wa);
 static int  ReadFrags (int maxFrags);
 
 
-static void  Check_VSize
-(void)
-{
-  FILE  * fp;
-  char  command [500];
-  long unsigned  pid;
-  static double  size, prev_size = 0.0;
-  char  ch;
 
-  pid = getpid ();
-  sprintf (command, "ps -o vsize -p %lu > %lu.ps", pid, pid);
-  system (command);
-
-  sprintf (command, "%lu.ps", pid);
-  fp = fopen (command, "r");
-  assert (fp != NULL);
-
-  fscanf (fp, "%s %lf%c", command, & size, & ch);
-  if  (ch == 'K')
-    size *= 1e-6;
-  else if  (ch == 'M')
-    size *= 1e-3;
-  if  (size > prev_size)
-    {
-      fprintf (stderr, ">>> vsize increased to %.2fG from %.2fG\n",
-               size, prev_size);
-      prev_size = size;
-    }
-
-  sprintf (command, "rm %lu.ps", pid);
-  system (command);
-
-  return;
-}
-
-
-
-// **********************************************************************
 
 int  OverlapDriver(int argc, char **argv)
 
@@ -105,8 +67,8 @@ int  OverlapDriver(int argc, char **argv)
 {
   pthread_attr_t  attr;
   pthread_t  * thread_id;
-  FragStream **new_stream_segment;
-  FragStream **old_stream_segment;
+  gkStream **new_stream_segment;
+  gkStream **old_stream_segment;
   Work_Area_t  * thread_wa;
   int  i;
 
@@ -118,16 +80,16 @@ int  OverlapDriver(int argc, char **argv)
   thread_id = (pthread_t *) safe_calloc
     (Num_PThreads, sizeof (pthread_t));
 
-  new_stream_segment = (FragStream **) safe_calloc
-    (Num_PThreads, sizeof (FragStream *));
-  old_stream_segment = (FragStream **) safe_calloc
-    (Num_PThreads, sizeof (FragStream *));
+  new_stream_segment = (gkStream **) safe_calloc
+    (Num_PThreads, sizeof (gkStream *));
+  old_stream_segment = (gkStream **) safe_calloc
+    (Num_PThreads, sizeof (gkStream *));
   thread_wa = (Work_Area_t *) safe_calloc
     (Num_PThreads, sizeof (Work_Area_t));
 
   for  (i = 0;  i < Num_PThreads;  i ++)
     {
-      old_stream_segment [i] = openFragStream (OldFragStore, FRAG_S_INF | FRAG_S_QLT);
+      old_stream_segment [i] = new gkStream (OldFragStore, 0, 0, GKFRAGMENT_QLT);
     }
 
   if  (Num_PThreads > 1)
@@ -144,68 +106,53 @@ int  OverlapDriver(int argc, char **argv)
   if  (Contig_Mode)
     Next_Fragment_Index = 1;
   else
-    Next_Fragment_Index = getLastElemFragStore (OldFragStore) + 1;
+    Next_Fragment_Index = OldFragStore->gkStore_getNumFragments () + 1;
 
 
   {
     int  id;
 
-    if  (Contig_Mode)
-      id = getFirstElemFragStore (BACtigStore);
-    else
-      id = getFirstElemFragStore (OldFragStore);
-    if  (Lo_Hash_Frag < id)
-      Lo_Hash_Frag = id;
+    if  (Lo_Hash_Frag < 1)
+      Lo_Hash_Frag = 1;
 
     if  (Contig_Mode)
-      id = getLastElemFragStore (BACtigStore);
+      id = BACtigStore->gkStore_getNumFragments ();
     else
-      id = getLastElemFragStore (OldFragStore);
+      id = OldFragStore->gkStore_getNumFragments ();
+
     if  (id < Hi_Hash_Frag)
       Hi_Hash_Frag = id;
   }
 
   while (ReadFrags (Max_Hash_Strings))
     {
-      int startIndex;
-
-      GateKeeperStore  *curr_frag_store;
-      GateKeeperStore  *hash_frag_store;
+      gkStore  *curr_frag_store;
+      gkStore  *hash_frag_store;
       int  highest_old_frag, lowest_old_frag;
       int  status;
 
-      FragStream  *HashFragStream = NULL;
-
       if  (Contig_Mode)
         {
-          hash_frag_store = openGateKeeperStore(BACtig_Store_Path, FALSE);
-          loadGateKeeperStorePartial(hash_frag_store,
-                                     First_Hash_Frag,
-                                     Last_Hash_Frag,
-                                     FRAG_S_INF | FRAG_S_QLT);
+          hash_frag_store = new gkStore(BACtig_Store_Path, FALSE, FALSE);
+          hash_frag_store->gkStore_load(First_Hash_Frag, Last_Hash_Frag, GKFRAGMENT_QLT);
           assert (0 < First_Hash_Frag
                   && First_Hash_Frag <= Last_Hash_Frag
-                  && Last_Hash_Frag  <= getLastElemFragStore (BACtigStore));
+                  && Last_Hash_Frag  <= BACtigStore->gkStore_getNumFragments ());
         }
       else
         {
-          hash_frag_store = openGateKeeperStore(Frag_Store_Path, FALSE);
-          loadGateKeeperStorePartial(hash_frag_store,
-                                     First_Hash_Frag,
-                                     Last_Hash_Frag,
-                                     FRAG_S_INF | FRAG_S_QLT);
+          hash_frag_store = new gkStore(Frag_Store_Path, FALSE, FALSE);
+          hash_frag_store->gkStore_load(First_Hash_Frag, Last_Hash_Frag, GKFRAGMENT_QLT);
           assert (0 < First_Hash_Frag
                   && First_Hash_Frag <= Last_Hash_Frag
-                  && Last_Hash_Frag  <= getLastElemFragStore (OldFragStore));
+                  && Last_Hash_Frag  <= OldFragStore->gkStore_getNumFragments ());
         }
-      HashFragStream = openFragStream (hash_frag_store, FRAG_S_INF | FRAG_S_QLT);
-      resetFragStream (HashFragStream, First_Hash_Frag, Last_Hash_Frag);
-      startIndex = First_Hash_Frag;
 
+      fprintf(stderr, "Build_Hash_Index from %d to %d\n", First_Hash_Frag, Last_Hash_Frag);
 
-      /* Create the hash table from the HashFragStream */
-
-      Build_Hash_Index (HashFragStream, startIndex, &myRead);
+      gkStream *hashStream = new gkStream (hash_frag_store, First_Hash_Frag, Last_Hash_Frag, GKFRAGMENT_QLT);
+      Build_Hash_Index (hashStream, First_Hash_Frag, &myRead);
+      delete hashStream;
 
       if  (Last_Hash_Frag_Read < Last_Hash_Frag)
         {
@@ -215,13 +162,10 @@ int  OverlapDriver(int argc, char **argv)
           Last_Hash_Frag = Last_Hash_Frag_Read;
         }
 
-      resetFragStream (HashFragStream, STREAM_FROMSTART,
-                       STREAM_UNTILEND);
 
+      lowest_old_frag  = 1;
+      highest_old_frag = OldFragStore->gkStore_getNumFragments ();
 
-
-      lowest_old_frag = getFirstElemFragStore (OldFragStore);
-      highest_old_frag = getLastElemFragStore (OldFragStore);
       if  (lowest_old_frag < Lo_Old_Frag)
         lowest_old_frag = Lo_Old_Frag;
       if  (highest_old_frag > Hi_Old_Frag)
@@ -253,19 +197,15 @@ int  OverlapDriver(int argc, char **argv)
               Frag_Segment_Hi = IID_List [IID_Hi];
             }
 
-          curr_frag_store = openGateKeeperStore(Frag_Store_Path, FALSE);
-          loadGateKeeperStorePartial(curr_frag_store,
-                                     Frag_Segment_Lo,
-                                     Frag_Segment_Hi,
-                                     FRAG_S_INF | FRAG_S_QLT);
+          curr_frag_store = new gkStore(Frag_Store_Path, FALSE, FALSE);
+          curr_frag_store->gkStore_load(Frag_Segment_Lo, Frag_Segment_Hi, GKFRAGMENT_QLT);
           assert (0 < Frag_Segment_Lo
                   && Frag_Segment_Lo <= Frag_Segment_Hi
-                  && Frag_Segment_Hi <= getLastElemFragStore (OldFragStore));
+                  && Frag_Segment_Hi <= OldFragStore->gkStore_getNumFragments ());
 
           for  (i = 0;  i < Num_PThreads;  i ++)
             {
-              old_stream_segment [i] = openFragStream (curr_frag_store, FRAG_S_INF | FRAG_S_QLT);
-              resetFragStream (old_stream_segment [i], Frag_Segment_Lo, Frag_Segment_Hi);
+              old_stream_segment [i] = new gkStream (curr_frag_store, Frag_Segment_Lo, Frag_Segment_Hi, GKFRAGMENT_QLT);
             }
 
 
@@ -305,8 +245,8 @@ int  OverlapDriver(int argc, char **argv)
           Now = time (NULL);
           fprintf (stderr, "### done old fragments   %s", ctime (& Now));
           for  (i = 0;  i < Num_PThreads;  i ++)
-            closeFragStream (old_stream_segment [i]);
-          closeGateKeeperStore (curr_frag_store);
+            delete old_stream_segment [i];
+          delete curr_frag_store;
 
           if  (IID_List == NULL)
             lowest_old_frag += Max_Frags_In_Memory_Store;
@@ -320,8 +260,7 @@ int  OverlapDriver(int argc, char **argv)
             }
         }
 
-      closeFragStream (HashFragStream);
-      closeGateKeeperStore (hash_frag_store);
+      delete hash_frag_store;
 
       Now = time (NULL);
       fprintf (stderr, "### Done batch #%d   %s", Batch_Num, ctime (& Now));
@@ -336,7 +275,6 @@ int  OverlapDriver(int argc, char **argv)
   safe_free (new_stream_segment);
   safe_free (old_stream_segment);
 
-  fprintf (stderr, "Total fragments read = " F_S64 "\n", Total_Frags_Read);
 
   return  0;
 }
@@ -405,7 +343,7 @@ static void *  Choose_And_Process_Stream_Segment
         pthread_mutex_lock (& FragStore_Mutex);
 
       //  This block used to be in the Fragment_Range_Mutex, then the
-      //  resetFragStream() was in the FragStore_Mutex.  Using two
+      //  gkStream_reset() was in the FragStore_Mutex.  Using two
       //  mutexes (with the little block of if's below not in a mutex)
       //  was wasteful.  All this code is now in one mutex.
 
@@ -436,7 +374,7 @@ static void *  Choose_And_Process_Stream_Segment
 
       //  BPW says we DEFINITELY need to mutex this!
       if (allDone == 0)
-        resetFragStream (WA -> stream_segment, lo, hi);
+        WA->stream_segment->reset (lo, hi);
 
       if  (Num_PThreads > 1)
         pthread_mutex_unlock (& FragStore_Mutex);

@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.30 2009-02-02 13:51:14 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.31 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -67,6 +67,8 @@ void InitializeScaffold(CIScaffoldT *scaffold, ChunkInstanceType type);
 
 int isDeadCIScaffoldT(CIScaffoldT *scaffold);
 
+int RepeatRez(int repeatRezLevel, char *name);
+
 typedef struct {
   /* For now, we just store the fragments CIFrag index */
   unsigned int set:1;  // we've seen this fragment
@@ -104,7 +106,7 @@ typedef struct{
   GraphCGW_T             *ContigGraph;
   GraphCGW_T             *ScaffoldGraph;
   GraphCGW_T             *RezGraph;  // Graph used by scaffold building and  repeat rez...either a ref to ContigGraph or CIGraph
-  GateKeeperStore        *gkpStore;
+  gkStore        *gkpStore;
   tSequenceDB            *sequenceDB;
   OverlapStore           *frgOvlStore;
 }ScaffoldGraphT;
@@ -440,7 +442,7 @@ void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold);
 */
 int CheckAllEdges(ScaffoldGraphT *sgraph, CDS_CID_t sid, CDS_CID_t cid);
 
-void CheckpointScaffoldGraph(char *logicalname, char *location);
+void CheckpointScaffoldGraph(const char *logicalname, const char *location);
 void LoadScaffoldGraphFromCheckpoint(char *name, int32 checkPointNum, int readWrite);
 
 void ReportMemorySize(ScaffoldGraphT *graph, FILE *stream);

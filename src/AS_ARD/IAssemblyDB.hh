@@ -21,15 +21,13 @@
 #ifndef IAssemblyDB_HH
 #define IAssemblyDB_HH
 
-static const char *rcsid_IAssemblyDB_HH = "$Id: IAssemblyDB.hh,v 1.4 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_IAssemblyDB_HH = "$Id: IAssemblyDB.hh,v 1.5 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <string>
 #include <IDBOutput.hh>
 
-extern "C" {
-   #include "AS_global.h"
-   #include "SYS_UIDclient.h"
-}
+#include "AS_global.h"
+#include "SYS_UIDclient.h"
 
 namespace AS_ARD {
    class IAssemblyDB {

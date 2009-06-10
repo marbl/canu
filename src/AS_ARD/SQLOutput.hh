@@ -21,7 +21,7 @@
 #ifndef SQLOutput_H
 #define SQLOutput_H
 
-static const char *rcsid_SQLOutput_H = "$Id: SQLOutput.hh,v 1.7 2009-03-06 19:36:41 skoren Exp $";
+static const char *rcsid_SQLOutput_H = "$Id: SQLOutput.hh,v 1.8 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <iostream>
 #include "IDBOutput.hh"
@@ -29,8 +29,9 @@ static const char *rcsid_SQLOutput_H = "$Id: SQLOutput.hh,v 1.7 2009-03-06 19:36
 
 extern "C" {
    #include <ctpublic.h>
-   #include "AS_UTL_Hash.h"
 }
+
+#include "AS_UTL_Hash.h"
 
 namespace AS_ARD {
    class SQLOutput : public IDBOutput {

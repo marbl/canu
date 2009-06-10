@@ -21,12 +21,10 @@
 #ifndef IDBOutput_HH
 #define IDBOutput_HH
 
-static const char *rcsid_IDBOutput_HH = "$Id: IDBOutput.hh,v 1.8 2009-02-25 20:42:23 brianwalenz Exp $";
+static const char *rcsid_IDBOutput_HH = "$Id: IDBOutput.hh,v 1.9 2009-06-10 18:05:13 brianwalenz Exp $";
 
-extern "C" {
-   #include "AS_global.h"
-   #include "AS_MSG_pmesg.h"
-}
+#include "AS_global.h"
+#include "AS_MSG_pmesg.h"
 
 namespace AS_ARD {
    //#define ULK_TYPE 0

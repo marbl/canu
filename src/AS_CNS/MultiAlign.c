@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlign.c,v 1.3 2008-10-08 22:02:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlign.c,v 1.4 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -101,14 +101,7 @@ DeleteMultiAlignTWorker(MultiAlignT *ma) {
   DeleteVA_IntMultiVar(ma->v_list);
 
   //  But first, trash it.
-  ma->maID      = -1;
-  ma->consensus = (void *)0xdeadbeef;
-  ma->quality   = (void *)0xdeadbeef;
-  ma->fdelta    = (void *)0xdeadbeef;
-  ma->f_list    = (void *)0xdeadbeef;
-  ma->udelta    = (void *)0xdeadbeef;
-  ma->u_list    = (void *)0xdeadbeef;
-  ma->v_list    = (void *)0xdeadbeef;
+  memset(ma, 0xee, sizeof(MultiAlignT));
 
   safe_free(ma);
 }

@@ -15,14 +15,6 @@ sub overlapTrim {
     #
     if ((! -e "$wrk/0-overlaptrim/$asm.initialTrimLog") &&
         (! -e "$wrk/0-overlaptrim/$asm.initialTrimLog.bz2")) {
-
-        #  OBT needs to backup the frag store because it doesn't have
-        #  enough entries to be non-destructive.  In particular, the
-        #  merge (might) and chimera (definitely) read/write the same
-        #  entry (OBT).
-        #
-        backupFragStore("beforeTrimming");
-
         my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/initialTrim ";
@@ -32,7 +24,6 @@ sub overlapTrim {
         $cmd .= " 2> $wrk/0-overlaptrim/$asm.initialTrim.err ";
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-            restoreFragStoreBackup("beforeTrimming");
             rename "$wrk/0-overlaptrim/$asm.initialTrimLog", "$wrk/0-overlaptrim/$asm.initialTrimLog.FAILED";
             caFailure("initial trimming failed", "$wrk/0-overlaptrim/$asm.initialTrim.err");
         }
@@ -102,10 +93,6 @@ sub overlapTrim {
 
     if ((! -e "$wrk/0-overlaptrim/$asm.mergeLog") &&
         (! -e "$wrk/0-overlaptrim/$asm.mergeLog.bz2")) {
-
-        #  See comment on first backupFragStore() call.
-        backupFragStore("beforeTrimMerge");
-
         my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/merge-trimming ";
@@ -115,7 +102,6 @@ sub overlapTrim {
         $cmd .= "> $wrk/0-overlaptrim/$asm.merge.err 2>&1";
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-            restoreFragStoreBackup("beforeTrimMerge");
             unlink "$wrk/0-overlaptrim/$asm.mergeLog";
             unlink "$wrk/0-overlaptrim/$asm.mergeLog.stats";
             caFailure("failed to merge trimming", "$wrk/0-overlaptrim/$asm.merge.err");
@@ -125,10 +111,6 @@ sub overlapTrim {
     if (getGlobal("doChimeraDetection") != 0) {
         if ((! -e "$wrk/0-overlaptrim/$asm.chimera.report") &&
             (! -e "$wrk/0-overlaptrim/$asm.chimera.report.bz2")) {
-
-            #  See comment on first backupFragStore() call.
-            backupFragStore("beforeChimera");
-
             my $bin = getBinDirectory();
             my $cmd;
             $cmd  = "$bin/chimera ";
@@ -138,23 +120,11 @@ sub overlapTrim {
             $cmd .= " -report  $wrk/0-overlaptrim/$asm.chimera.report ";
             $cmd .= " > $wrk/0-overlaptrim/$asm.chimera.err 2>&1";
             if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-                restoreFragStoreBackup("beforeChimera");
                 rename "$wrk/0-overlaptrim/$asm.chimera.report", "$wrk/0-overlaptrim/$asm.chimera.report.FAILED";
                 caFailure("chimera cleaning failed", "$wrk/0-overlaptrim/$asm.chimera.err");
             }
         }
     }
-
-    removeFragStoreBackup("beforePrefixDelete");
-    removeFragStoreBackup("beforeTrimMerge");
-    removeFragStoreBackup("beforeChimera");
-
-    #  Well, except we never get here if UMD.  Needs some tweaking.
-
-    removeFragStoreBackup("beforeVectorTrim");
-    removeFragStoreBackup("beforeUMDOverlapper");
-
-    backupFragStore("afterTrimming");
 
     rmrf("$asm.obtStore");
 

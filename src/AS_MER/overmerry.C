@@ -19,18 +19,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overmerry.C,v 1.35 2009-04-10 22:22:03 brianwalenz Exp $";
+const char *mainid = "$Id: overmerry.C,v 1.36 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 
 #include <algorithm>
 
-extern "C" {
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_OVS_overlapStore.h"
-}
 
 #include "AS_MER_gkpStore_to_FastABase.H"
 
@@ -140,8 +138,8 @@ public:
 
     AS_OVS_closeBinaryOverlapFile(outputFile);
 
-    closeFragStream(qFS);
-    closeGateKeeperStore(qGK);
+    delete qFS;
+    delete qGK;
 
     delete [] table_clrBeg;
     delete [] table_untrimLength;
@@ -162,11 +160,11 @@ public:
     //
     //  Open inputs for the reader
     //
-    qGK = openGateKeeperStore(gkpPath, FALSE);
+    qGK = new gkStore(gkpPath, FALSE, FALSE);
 
     //  Use that gkpStore to check and reset the desired ranges
     //
-    uint32  mIID = getNumGateKeeperFragments(qGK);
+    uint32  mIID = qGK->gkStore_getNumFragments();
 
     if (qBeg < 1)     qBeg = 1;
     if (tBeg < 1)     tBeg = 1;
@@ -185,13 +183,13 @@ public:
 
     if (qBeg >= qEnd) {
       fprintf(stderr, "ERROR: -qb="F_U32" and -qe="F_U32" are invalid ("F_U32" frags in the store)\n",
-              qBeg, qEnd, getNumGateKeeperFragments(qGK));
+              qBeg, qEnd, mIID);
       exit(1);
     }
 
     if (tBeg >= tEnd) {
       fprintf(stderr, "ERROR: -tb="F_U32" and -te="F_U32" are invalid ("F_U32" frags in the store)\n",
-              tBeg, tEnd, getNumGateKeeperFragments(qGK));
+              tBeg, tEnd, mIID);
       exit(1);
     }
 
@@ -199,32 +197,29 @@ public:
     //  and full sequence length for reads in the table.
 
     {
-      fragRecord   fr;
-      FragStream  *fs = openFragStream(qGK, FRAG_S_INF);
-
-      resetFragStream(fs, tBeg, tEnd);
+      gkFragment   fr;
+      gkStream    *fs = new gkStream(qGK, tBeg, tEnd, GKFRAGMENT_INF);
 
       table_clrBeg       = new uint32 [tEnd - tBeg + 1];
       table_untrimLength = new uint32 [tEnd - tBeg + 1];
 
-      while (nextFragStream(fs, &fr)) {
-        AS_IID iid = getFragRecordIID(&fr);
+      while (fs->next(&fr)) {
+        AS_IID iid = fr.gkFragment_getReadIID();
 
         assert((tBeg <= iid) && (iid <= tEnd));
 
-        table_clrBeg      [iid - tBeg] = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBT);
-        table_untrimLength[iid - tBeg] = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_UNTRIM);
+        table_clrBeg      [iid - tBeg] = fr.gkFragment_getClearRegionBegin();
+        table_untrimLength[iid - tBeg] = fr.gkFragment_getSequenceLength();
       }
 
-      closeFragStream(fs);
+      delete fs;
     }
 
     //
     //  Open another fragStream for the query fragments.
     //
 
-    qFS = openFragStream(qGK, FRAG_S_SEQ);
-    resetFragStream(qFS, qBeg, qEnd);
+    qFS = new gkStream(qGK, qBeg, qEnd, GKFRAGMENT_SEQ);
 
     //
     //  Build state for the workers
@@ -235,7 +230,7 @@ public:
       MF = new merylStreamReader(merCountsFile);
 
     char     gkpName[FILENAME_MAX + 64] = {0};
-    sprintf(gkpName, "%s:%u-%u:obt", gkpPath, tBeg, tEnd);
+    sprintf(gkpName, "%s:%u-%u:latest", gkpPath, tBeg, tEnd);
 
     tSS = new seqStream(gkpName);
 
@@ -277,8 +272,8 @@ public:
 
   //  for the READER only
   //
-  GateKeeperStore   *qGK;
-  FragStream        *qFS;
+  gkStore           *qGK;
+  gkStream          *qFS;
   uint32             qBeg;
   uint32             qEnd;
 
@@ -395,16 +390,16 @@ public:
 
 class ovmComputation {
 public:
-  ovmComputation(fragRecord *fr) {
-    beg = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT);
-    end = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT);
-    tln = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_UNTRIM);
+  ovmComputation(gkFragment *fr) {
+    beg = fr->gkFragment_getClearRegionBegin();
+    end = fr->gkFragment_getClearRegionEnd  ();
+    tln = fr->gkFragment_getSequenceLength();
 
-    iid = getFragRecordIID(fr);
-    uid = getFragRecordUID(fr);
+    iid = fr->gkFragment_getReadIID();
+    uid = fr->gkFragment_getReadUID();
 
-    memset(seq, 0, AS_FRAG_MAX_LEN);
-    strcpy(seq, getFragRecordSequence(fr));
+    memset(seq, 0, AS_READ_MAX_LEN);
+    strcpy(seq, fr->gkFragment_getSequence());
 
     ovsLen = 0;
     ovsMax = 1024;
@@ -438,7 +433,7 @@ public:
   AS_IID      iid;
   AS_UID      uid;
 
-  char        seq[AS_FRAG_MAX_LEN+1];
+  char        seq[AS_READ_MAX_LEN+1];
 
   uint32      ovsLen;  //  Overlap Storage, waiting for output
   uint32      ovsMax;
@@ -570,8 +565,8 @@ ovmWorker(void *G, void *T, void *S) {
     t->ovlfound++;
 
     //  Adjust coords to be relative to whole read -- the table is
-    //  built using only sequence in the OBT clear.  The query is
-    //  built starting at the begin of the OBT clear.  Same effect for
+    //  built using only sequence in the clear.  The query is
+    //  built starting at the begin of the clear.  Same effect for
     //  both just a different mechanism.
     //
     t->hits[i].dat.val.tpos += g->getClrBeg(t->hits[i].dat.val.tseq);
@@ -639,12 +634,12 @@ ovmWorker(void *G, void *T, void *S) {
 
 void*
 ovmReader(void *G) {
-  static fragRecord  fr;  //  static only for performance
+  static gkFragment  fr;  //  static only for performance
 
   do {
-    if (nextFragStream(((ovmGlobalData *)G)->qFS, &fr) == 0)
+    if (((ovmGlobalData *)G)->qFS->next(&fr) == 0)
       return(0L);
-  } while (getFragRecordIsDeleted(&fr));
+  } while (fr.gkFragment_getIsDeleted());
 
   return(new ovmComputation(&fr));
 }

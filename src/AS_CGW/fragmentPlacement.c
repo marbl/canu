@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.25 2009-04-24 14:26:16 skoren Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.26 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -534,6 +534,7 @@ void PlaceFragmentsInMultiAlignT(CDS_CID_t toID, int isUnitig,
 
   /* It might be a good idea to recompute consensus! */
   if(! isUnitig){
+#warning not updating consensus after adding surrogate fragments
     //     2'. construct an ICM or IUM containing the new fragments
     //     2''. run consensus on it
     //     2'''. convert the returned ICM or IUM back to a multialignment
@@ -568,7 +569,7 @@ void ReallyAssignFragsToResolvedCI(CDS_CID_t fromCIid,
   CDS_COORD_t surrogateAOffset = toCI->offsetAEnd.mean;
   CDS_COORD_t surrogateBOffset = toCI->offsetBEnd.mean;
 
-  IntMultiPos fragPos = {0};
+  IntMultiPos fragPos;
 
   assert(fromCI->type   == UNRESOLVEDCHUNK_CGW);
   assert(toCI->type     == RESOLVEDREPEATCHUNK_CGW);
@@ -595,11 +596,18 @@ void ReallyAssignFragsToResolvedCI(CDS_CID_t fromCIid,
 
     frag->CIid            = toCIid;
     frag->contigID        = toContigID;
-    fragPos.type          = frag->type;
+
+    fragPos.type          = (FragType)frag->type;
     fragPos.ident         = fragID;
+    fragPos.contained     = 0;
+    fragPos.parent        = 0;
     fragPos.sourceInt     = frgIdx;
+    fragPos.ahang         = 0;
+    fragPos.bhang         = 0;
     fragPos.position.bgn  = frag->offset5p.mean;
     fragPos.position.end  = frag->offset3p.mean;
+    fragPos.delta_length  = 0;
+    fragPos.delta         = NULL;
 
     AppendIntMultiPos(f_list_CI, &fragPos);
 
@@ -852,13 +860,19 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
         if(fragIsGood){
           // we're hot to trot ... now do something!
           IntMultiPos imp;
-          imp.type = nextfrg->type;
-          imp.ident = nextfrg->iid;
+
+          imp.type         = (FragType)nextfrg->type;
+          imp.ident        = nextfrg->iid;
+          imp.contained    = 0; /* this might be wrong! */
+          imp.parent       = 0;
+          imp.sourceInt    = 0;
+          imp.ahang        = 0;
+          imp.bhang        = 0;
           imp.position.bgn = nextfrg->offset5p.mean;
           imp.position.end = nextfrg->offset3p.mean;
-          imp.contained = 0; /* this might be wrong! */
-          imp.delta_length=0;
-          imp.delta=NULL;
+          imp.delta_length = 0;
+          imp.delta        = NULL;
+
           AppendVA_IntMultiPos(impLists[i],&imp);
           numFrgsToPlace++;
         }

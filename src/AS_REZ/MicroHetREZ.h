@@ -22,7 +22,7 @@
 #ifndef AS_REZ_MICROHETREZ_H
 #define AS_REZ_MICROHETREZ_H
 
-static const char *rcsid_AS_REZ_MICROHETREZ_H = "$Id: MicroHetREZ.h,v 1.12 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_AS_REZ_MICROHETREZ_H = "$Id: MicroHetREZ.h,v 1.13 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -71,7 +71,7 @@ typedef struct{
 
 double       AS_REZ_MP_MicroHet_prob(char **bqarray,
                                      int  **idarray,
-                                     GateKeeperStore  *handle,
+                                     gkStore  *handle,
                                      int len,
                                      int depth);
 
@@ -84,7 +84,7 @@ UnitigStatus_t  AS_REZ_test_MPsimple(Alignment_t *ali, double thresh, Marker_t* 
                                      int start, int end,double *pval);
 void            AS_REZ_compress_shreds_and_null_indels(int c,
                                                        int r,
-                                                       GateKeeperStore *gkpstore,
+                                                       gkStore *gkpstore,
                                                        char **array,
                                                        int **id_array,
                                                        int verbose);

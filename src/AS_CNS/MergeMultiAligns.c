@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MergeMultiAligns.c,v 1.1 2009-05-29 17:29:19 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeMultiAligns.c,v 1.2 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -37,7 +37,7 @@ static char *rcsid = "$Id: MergeMultiAligns.c,v 1.1 2009-05-29 17:29:19 brianwal
 static
 MultiAlignT *
 MergeMultiAligns(tSequenceDB *sequenceDBp,
-                 GateKeeperStore *frag_store,
+                 gkStore *frag_store,
                  VA_TYPE(IntMultiPos) *positions,
                  int quality,
                  int verbose,
@@ -417,7 +417,7 @@ MergeMultiAligns(tSequenceDB *sequenceDBp,
 
 MultiAlignT *
 MergeMultiAlignsFast_new(tSequenceDB *sequenceDBp,
-                         GateKeeperStore *frag_store,
+                         gkStore *frag_store,
                          VA_TYPE(IntElementPos) *positions,
                          int quality,
                          int verbose,

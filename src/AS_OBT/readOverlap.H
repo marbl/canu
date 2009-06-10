@@ -22,10 +22,8 @@
 #ifndef READOVERLAP_H
 #define READOVERLAP_H
 
-extern "C" {
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
-}
 
 OVSoverlap*
 readOverlap(OverlapStore *ovsprimary,

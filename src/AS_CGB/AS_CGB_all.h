@@ -22,7 +22,7 @@
 #ifndef AS_CGB_ALL_INCLUDE
 #define AS_CGB_ALL_INCLUDE
 
-static const char *rcsid_AS_CGB_ALL_INCLUDE = "$Id: AS_CGB_all.h,v 1.26 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_AS_CGB_ALL_INCLUDE = "$Id: AS_CGB_all.h,v 1.27 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #undef DONT_RUN_IN_SYMMETRIC_MODE      // Allow un-mated dovetail edges in CGB.  (??)
 
@@ -299,7 +299,7 @@ int count_the_randomly_sampled_fragments_in_a_chunk(Tfragment   frags[],
                                                     TChunkFrag  chunkfrags[],
                                                     TChunkMesg  thechunks[],
                                                     IntChunk_ID chunk_index,
-                                                    GateKeeperStore *gkp);
+                                                    gkStore *gkp);
 
 
 //  recalibrate: boolean flag to recalibrate global arrival rate to
@@ -314,7 +314,7 @@ float compute_the_global_fragment_arrival_rate(int           recalibrate,
                                                float         estimated_global_fragment_arrival_rate,
                                                TChunkFrag   *chunkfrags,
                                                TChunkMesg   *thechunks,
-                                               GateKeeperStore *gkp);
+                                               gkStore *gkp);
 
 //  AS_CGB_cgb.c (end)
 ////////////////////////////////////////

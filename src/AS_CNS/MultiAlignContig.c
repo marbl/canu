@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignContig.c,v 1.1 2009-05-29 17:29:19 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignContig.c,v 1.2 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -52,7 +52,7 @@ PlaceFragments(int32 fid,
   if (afrag->n_components == 0)
     return;
 
-  VA_TYPE(int32) *trace = CreateVA_int32(AS_FRAG_MAX_LEN+1);
+  VA_TYPE(int32) *trace = CreateVA_int32(AS_READ_MAX_LEN+1);
 
   for (; bfrag->frg_or_utg == CNS_ELEMENT_IS_FRAGMENT; bfrag++) {
     if (!ExistsInHashTable_AS(fragmentMap, bfrag->idx.fragment.frgIdent, 0))
@@ -76,7 +76,7 @@ PlaceFragments(int32 fid,
     int           ahang = 0;
     int           bhang = 0;
     int           ovl   = 0;
-    OverlapType   otype = 0;
+    OverlapType   otype;
 
     //  all of fid's component frags will be aligned to it (not to
     //  each other)
@@ -236,7 +236,7 @@ MultiAlignContig(IntConConMesg *contig,
 
   ma = CreateMANode(contig->iaccession);
 
-  trace = CreateVA_int32(AS_FRAG_MAX_LEN+1);
+  trace = CreateVA_int32(AS_READ_MAX_LEN+1);
 
   // Seed multiAlignment with 1st fragment of 1st unitig
 
@@ -257,7 +257,7 @@ MultiAlignContig(IntConConMesg *contig,
     int    alid   = 0;
     int    blid   = bfrag->lid;
 
-    OverlapType otype = 0;
+    OverlapType otype;
 
     int olap_success  = 0;
     int try_contained = 0;

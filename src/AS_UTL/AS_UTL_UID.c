@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_UTL_UID.c,v 1.9 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_UTL_UID.c,v 1.10 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,18 +30,18 @@ static const char *rcsid = "$Id: AS_UTL_UID.c,v 1.9 2008-10-08 22:03:00 brianwal
 
 #define MAX_UID_LENGTH (128)
 
-static  GateKeeperStore *AS_UID_gkp = NULL;
+static  gkStore *AS_UID_gkp = NULL;
 
 void
 AS_UID_setGatekeeper(void *gkp) {
-  AS_UID_gkp = gkp;
+  AS_UID_gkp = (gkStore *)gkp;
 }
 
 static
-GateKeeperStore *
+gkStore *
 AS_UID_getGatekeeper(void) {
   if (AS_UID_gkp == NULL)
-    AS_UID_gkp = AS_GKP_createGateKeeperStoreForUIDs();
+    AS_UID_gkp = new gkStore;
   return(AS_UID_gkp);
 }
 
@@ -68,7 +68,7 @@ AS_UID_toString(AS_UID uid) {
   char *retbuffer = localbuffer + localindex * (MAX_UID_LENGTH + 1);
 
   if (uid.isString) {
-    char  *uidstr = AS_GKP_getUIDstring(AS_UID_getGatekeeper(), uid);
+    char  *uidstr = AS_UID_getGatekeeper()->gkStore_getUIDstring(uid);
 
     if (uidstr)
       sprintf(retbuffer, "%s", uidstr);
@@ -162,7 +162,7 @@ AS_UID_lookup(char *uidstr, char **nxtstr) {
     char  end = uidstr[len];
 
     uidstr[len] = 0;
-    uid         = AS_GKP_getUIDfromString(AS_UID_getGatekeeper(), uidstr);
+    uid         = AS_UID_getGatekeeper()->gkStore_getUIDfromString(uidstr);
     uidstr[len] = end;
   }
 
@@ -192,5 +192,5 @@ AS_UID_load(char *uidstr) {
 
   //  Brand new uid.  Add it.
 
-  return(AS_GKP_addUID(AS_UID_getGatekeeper(), uidstr));
+  return(AS_UID_getGatekeeper()->gkStore_addUID(uidstr));
 }

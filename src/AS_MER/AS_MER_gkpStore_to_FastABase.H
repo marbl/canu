@@ -26,9 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern "C" {
 #include "AS_PER_gkpStore.h"
-}
 
 #include "seqFile.H"
 #include "seqFactory.H"
@@ -91,8 +89,8 @@ public:
 private:
   void                clear(void);
 
-  GateKeeperStore    *_gkp;
-  fragRecord          _frg;
+  gkStore            *_gkp;
+  gkFragment          _frg;
   uint32              _bgn;
   uint32              _end;
 

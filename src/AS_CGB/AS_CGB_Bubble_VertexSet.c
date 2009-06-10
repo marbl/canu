@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_Bubble_VertexSet.c,v 1.10 2008-10-08 22:02:54 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_Bubble_VertexSet.c,v 1.11 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <string.h>
 #include "AS_CGB_all.h"
@@ -41,7 +41,7 @@ BVS__alloc(void)
 {
   if (BVS_memstack_top_G == 0) {
     for (BVS_memstack_top_G = 0; BVS_memstack_top_G < BVS_MEMSTACK_SIZE / 2; ++BVS_memstack_top_G) {
-      BVS_memstack_G[BVS_memstack_top_G] = safe_malloc(sizeof(BubVertexEntry) * AS_CGB_BUBBLE_set_size_G );
+      BVS_memstack_G[BVS_memstack_top_G] = (BubVertexEntry *)safe_malloc(sizeof(BubVertexEntry) * AS_CGB_BUBBLE_set_size_G );
     }
   }
   return (BVS_memstack_G[--BVS_memstack_top_G]);

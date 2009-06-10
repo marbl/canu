@@ -33,15 +33,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.19 2009-01-16 16:46:36 skoren Exp $
- * $Revision: 1.19 $
+ * $Id: OlapFromSeedsOVL.h,v 1.20 2009-06-10 18:05:13 brianwalenz Exp $
+ * $Revision: 1.20 $
 */
 
 
 #ifndef  __OLAPFROMSEEDS_H_INCLUDED
 #define  __OLAPFROMSEEDS_H_INCLUDED
 
-static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1.19 2009-01-16 16:46:36 skoren Exp $";
+static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1.20 2009-06-10 18:05:13 brianwalenz Exp $";
 
 //**ALD determine if use new code to analyze true multialignments
 #define  USE_NEW_STUFF  1
@@ -153,7 +153,7 @@ typedef struct
    unsigned char  nonhp_char_ct [5];  // a,c,g,t,gap respectively for standard reads
    unsigned int  homopoly_ct : 16;
    unsigned int  non_hp_ct : 16;
-   unsigned int  mutable : 1;
+   unsigned int  mutab : 1;  //  This was called 'mutable', but c++ sucked that up from us
    double  homopoly_sum;
    double  non_hp_sum;
   }  New_Vote_t;
@@ -240,8 +240,8 @@ typedef  struct
    int32  lo_frag, hi_frag;
    int  next_olap;
    int  failed_olaps;
-   FragStream  * frag_stream;
-   fragRecord     frag_read;
+   gkStream  * frag_stream;
+   gkFragment     frag_read;
    Frag_List_t  * frag_list;
    char  rev_seq [AS_READ_MAX_LEN + 1];
    int  rev_id;
@@ -273,8 +273,6 @@ static double  Char_Match_Value = 0.0;
 static int  Check_Correlated_Differences = FALSE;
   // If set true by the -w option then check for confirmed differences
   // in columns to eliminate overlaps
-static int  Clear_Range_Used = AS_READ_CLEAR_OBT;
-  // Which clear range in read store to use
 static char  * Correction_Filename = DEFAULT_CORRECTION_FILENAME;
   // Name of file to which correction information is sent
 static int  Degree_Threshold = DEFAULT_DEGREE_THRESHOLD;
@@ -314,15 +312,15 @@ static Frag_Info_t  * Frag;
 static Frag_List_t  Frag_List;
   // List of ids and sequences of fragments with overlaps to fragments
   // in  Frag .  Allows simultaneous access by threads.
-static GateKeeperStore  *gkpStore;
+static gkStore  *gkpStore;
   // Fragment store from which fragments are loaded
-static FragStream  *Frag_Stream;
+static gkStream  *Frag_Stream;
   // Stream to extract fragments from internal store
 static char  * gkpStore_Path;
   // Name of directory containing fragment store from which to get fragments
 static int32  Hi_Frag_IID;
   // Internal ID of last fragment in frag store to process
-static GateKeeperStore  * Internal_gkpStore;
+static gkStore  * Internal_gkpStore;
   // Holds partial frag store to be processed simultanously by
   // multiple threads
 static int  Kmer_Len = DEFAULT_KMER_LEN;
@@ -440,7 +438,7 @@ static int  Eliminate_Correlated_Diff_Olaps
   (int sub, const char * ref, int ref_len, Sequence_Diff_t * dp, int dp_ct,
    int ref_is_homopoly);
 static void  Extract_Needed_Frags
-  (GateKeeperStore *store, int32 lo_frag, int32 hi_frag,
+  (gkStore *store, int32 lo_frag, int32 hi_frag,
    Frag_List_t * list, int * next_olap);
 static char  Filter
   (char ch);
@@ -455,13 +453,13 @@ static void  Initialize_Globals
 static void  Init_Thread_Work_Area
   (Thread_Work_Area_t * wa, int id);
 static char *  Insert_Gaps
-  (char * seq, const short insert_size [], int n);
+  (char * seq, const short unsigned insert_size [], int n);
 static int  Is_Homopoly_Type
-  (fragRecord * fr, GateKeeperStore * gkp);
+  (gkFragment * fr, gkStore * gkp);
 static Vote_Value_t  Matching_Vote
   (char ch);
 static void  Modify_For_Inserts
-  (Sequence_Diff_t * mod_dp, Sequence_Diff_t * dp, const short insert_size []);
+  (Sequence_Diff_t * mod_dp, Sequence_Diff_t * dp, const short unsigned insert_size []);
 static void  Output_Correction_Header
   (FILE * fp, int sub);
 static void  Output_Corrections

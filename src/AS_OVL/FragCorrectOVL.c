@@ -25,7 +25,7 @@
 //   Programmer:  A. Delcher
 //      Started:   4 Dec 2000
 
-const char *mainid = "$Id: FragCorrectOVL.c,v 1.31 2009-05-21 02:24:37 brianwalenz Exp $";
+const char *mainid = "$Id: FragCorrectOVL.c,v 1.32 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -177,8 +177,8 @@ typedef  struct
    int  thread_id;
    int32  lo_frag, hi_frag;
    int  next_olap;
-   FragStream  *frag_stream;
-   fragRecord *frag_read;
+   gkStream  *frag_stream;
+   gkFragment *frag_read;
    Frag_List_t  * frag_list;
    char  rev_seq [AS_READ_MAX_LEN + 1];
    int  rev_id;
@@ -194,14 +194,14 @@ static char  * Correction_Filename = DEFAULT_CORRECTION_FILENAME;
     // Name of file to which correction information is sent
 static int  Degree_Threshold = DEFAULT_DEGREE_THRESHOLD;
     // Set keep flag on end of fragment if number of olaps < this value
-static int  * Edit_Array [AS_FRAG_MAX_LEN+1];
+static int  * Edit_Array [AS_READ_MAX_LEN+1];
     // Use for alignment calculation.  Points into  Edit_Space .
     // (only MAX_ERRORS needed)
-static int  Edit_Match_Limit [AS_FRAG_MAX_LEN+1] = {0};
+static int  Edit_Match_Limit [AS_READ_MAX_LEN+1] = {0};
     // This array [e] is the minimum value of  Edit_Array [e] [d]
     // to be worth pursuing in edit-distance computations between guides
     // (only MAX_ERRORS needed)
-static int  Edit_Space [(AS_FRAG_MAX_LEN + 4) * AS_FRAG_MAX_LEN];
+static int  Edit_Space [(AS_READ_MAX_LEN + 4) * AS_READ_MAX_LEN];
     // Memory used by alignment calculation
     // (only (MAX_ERRORS + 4) * MAX_ERRORS needed)
 static int  End_Exclude_Len = DEFAULT_END_EXCLUDE_LEN;
@@ -222,13 +222,13 @@ static Frag_Info_t  * Frag = NULL;
 static Frag_List_t  Frag_List = {0};
     // List of ids and sequences of fragments with overlaps to fragments
     // in  Frag .  Allows simultaneous access by threads.
-static GateKeeperStore  *gkpStore = NULL;
+static gkStore  *gkpStore = NULL;
     // Fragment store from which fragments are loaded
-static FragStream  *Frag_Stream = NULL;
+static gkStream  *Frag_Stream = NULL;
     // Stream to extract fragments from internal store
 static char  * gkpStore_Path = NULL;
     // Name of directory containing fragment store from which to get fragments
-static GateKeeperStore  *Internal_gkpStore = NULL;
+static gkStore  *Internal_gkpStore = NULL;
     // Holds partial frag store to be processed simultanously by
     // multiple threads
 static int32  Lo_Frag_IID = -1;
@@ -282,7 +282,7 @@ static void  Display_Alignment
 static void  Display_Frags
     (void);
 static void  Extract_Needed_Frags
-    (GateKeeperStore *store, int32 lo_frag, int32 hi_frag,
+    (gkStore *store, int32 lo_frag, int32 hi_frag,
      Frag_List_t * list, int * next_olap);
 static char  Filter
     (char ch);
@@ -336,8 +336,7 @@ int  main
 
    Initialize_Globals ();
 
-   gkpStore = openGateKeeperStore(gkpStore_Path, FALSE);
-   assert (gkpStore != NULL);
+   gkpStore = new gkStore(gkpStore_Path, FALSE, FALSE);
 
    fprintf (stderr, "Starting Read_Frags ()\n");
    Read_Frags ();
@@ -369,7 +368,7 @@ int  main
         fprintf (stderr, "                   Failed overlaps = %d\n", Failed_Olaps);
        }
 
-   closeGateKeeperStore (gkpStore);
+   delete gkpStore;
 
    if  (Verbose_Level > 1)
        {
@@ -773,7 +772,7 @@ static void  Compute_Delta
 //  the number of entries in  delta .
 
   {
-    int  delta_stack [AS_FRAG_MAX_LEN+1];  //  only MAX_ERRORS needed
+    int  delta_stack [AS_READ_MAX_LEN+1];  //  only MAX_ERRORS needed
    int  from, last, max;
    int  i, j, k;
 
@@ -958,7 +957,7 @@ static void  Display_Frags
 
 
 static void  Extract_Needed_Frags
-    (GateKeeperStore *store, int32 lo_frag, int32 hi_frag,
+    (gkStore *store, int32 lo_frag, int32 hi_frag,
      Frag_List_t * list, int * next_olap)
 
 //  Read fragments  lo_frag .. hi_frag  from  store  and save
@@ -968,18 +967,18 @@ static void  Extract_Needed_Frags
   {
 
 #ifdef USE_STREAM_FOR_EXTRACT
-   FragStream  *frag_stream;
+   gkStream  *frag_stream;
    int i;
 #endif
-   static fragRecord  frag_read;
+   static gkFragment  frag_read;
    uint32  frag_iid;
    int  bytes_used, total_len, new_total;
    int  extract_ct, stream_ct;
    int  j;
 
 #ifdef USE_STREAM_FOR_EXTRACT
-   frag_stream = openFragStream (store, FRAG_S_SEQ);
-   resetFragStream (frag_stream, lo_frag, hi_frag);
+   frag_stream = gkStream_open (store, GKFRAGMENT_SEQ);
+   gkStream_reset (frag_stream, lo_frag, hi_frag);
 #endif
 
    list -> ct = 0;
@@ -988,7 +987,7 @@ static void  Extract_Needed_Frags
 
 #ifdef USE_STREAM_FOR_EXTRACT
    for  (i = 0;
-           nextFragStream (frag_stream, &frag_read) && (* next_olap) < Num_Olaps;
+           gkStream_next (frag_stream, &frag_read) && (* next_olap) < Num_Olaps;
            i ++)
 #else
    frag_iid = Olap [(* next_olap)] . b_iid;
@@ -997,7 +996,7 @@ static void  Extract_Needed_Frags
 #endif
      {
       char *seqptr = NULL;
-      char  seq_buff[AS_FRAG_MAX_LEN+1];
+      char  seq_buff[AS_READ_MAX_LEN+1];
 
       FragType  read_type;
       unsigned  deleted, clear_start, clear_end;
@@ -1006,14 +1005,14 @@ static void  Extract_Needed_Frags
       stream_ct ++;
 
 #ifdef USE_STREAM_FOR_EXTRACT
-      frag_iid = getFragRecordIID(&frag_read);
+      frag_iid = gkFragment_getReadIID(&frag_read);
       if  (frag_iid < Olap [(* next_olap)] . b_iid)
           continue;
 #else
-      getFrag (store, frag_iid, &frag_read, FRAG_S_SEQ);
+      store->gkStore_getFragment (frag_iid, &frag_read, GKFRAGMENT_SEQ);
 #endif
 
-      deleted = getFragRecordIsDeleted(&frag_read);
+      deleted = frag_read.gkFragment_getIsDeleted();
       if  (deleted)
           goto  Advance_Next_Olap;
 
@@ -1021,12 +1020,11 @@ static void  Extract_Needed_Frags
       read_type = AS_READ;
       shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE;
 
-      clear_start = getFragRecordClearRegionBegin(&frag_read, AS_READ_CLEAR_OBT);
-      clear_end   = getFragRecordClearRegionEnd  (&frag_read, AS_READ_CLEAR_OBT);
+      frag_read.gkFragment_getClearRegion(clear_start, clear_end);
 
       // Make sure that we have a valid lowercase sequence string
 
-      seqptr = getFragRecordSequence(&frag_read);
+      seqptr = frag_read.gkFragment_getSequence();
 
       for  (j = clear_start;  j < clear_end;  j ++)
          seq_buff [j] = Filter (seqptr [j]);
@@ -1067,7 +1065,7 @@ static void  Extract_Needed_Frags
      }
 
 #ifdef USE_STREAM_FOR_EXTRACT
-   closeFragStream (frag_stream);
+   delete frag_stream;
 #endif
 
    fprintf (stderr, "Extracted %d of %d fragments in iid range %d .. %d\n",
@@ -1562,7 +1560,7 @@ Parse_Command_Line(int argc, char **argv) {
 static int  Prefix_Edit_Dist
     (char A [], int m, char T [], int n, int Error_Limit,
      int * A_End, int * T_End, int * Match_To_End,
-     int Delta [MAX_ERRORS], int * Delta_Len, Thread_Work_Area_t * wa)
+     int *Delta, int * Delta_Len, Thread_Work_Area_t * wa)
 
 //  Return the minimum number of changes (inserts, deletes, replacements)
 //  needed to match string  A [0 .. (m-1)]  with a prefix of string
@@ -1895,12 +1893,12 @@ static void  Read_Frags
   {
    char  seq_buff [AS_READ_MAX_LEN + 1];
    char  qual_buff [AS_READ_MAX_LEN + 1];
-   fragRecord  frag_read;
+   gkFragment  frag_read;
    unsigned  clear_start, clear_end;
    int32  high_store_frag;
    int  i, j;
 
-   high_store_frag = getLastElemFragStore (gkpStore);
+   high_store_frag = gkpStore->gkStore_getNumFragments ();
    if  (Hi_Frag_IID == INT_MAX)
        Hi_Frag_IID = high_store_frag;
    if  (Hi_Frag_IID > high_store_frag)
@@ -1914,25 +1912,23 @@ static void  Read_Frags
    Frag = (Frag_Info_t *) safe_calloc (Num_Frags, sizeof (Frag_Info_t));
 
 #ifdef USE_STORE_DIRECTLY_READ
-  Internal_gkpStore = openGateKeeperStore (gkpStore_Path, FALSE);
+  Internal_gkpStore = new gkStore (gkpStore_Path, FALSE, FALSE);
   assert (Internal_gkpStore != NULL);
 #else
-  Internal_gkpStore = openGateKeeperStore (gkpStore_Path, FALSE);
-  loadGateKeeperStorePartial(Internal_gkpStore,
-                             Lo_Frag_IID, Hi_Frag_IID, FRAG_S_SEQ);
+  Internal_gkpStore = new gkStore (gkpStore_Path, FALSE, FALSE);
+  Internal_gkpStore->gkStore_load(Lo_Frag_IID, Hi_Frag_IID, GKFRAGMENT_SEQ);
 #endif
 
-   Frag_Stream = openFragStream (Internal_gkpStore, FRAG_S_SEQ);
-   resetFragStream (Frag_Stream, Lo_Frag_IID, Hi_Frag_IID);
+  Frag_Stream = new gkStream (Internal_gkpStore, Lo_Frag_IID, Hi_Frag_IID, GKFRAGMENT_SEQ);
 
-   for  (i = 0;  nextFragStream (Frag_Stream, &frag_read);
+   for  (i = 0;  Frag_Stream->next (&frag_read);
            i ++)
      {
       FragType  read_type;
       unsigned  deleted;
       int  result, frag_len;
 
-      deleted = getFragRecordIsDeleted(&frag_read);
+      deleted = frag_read.gkFragment_getIsDeleted();
       if  (deleted)
           {
            Frag [i] . sequence = NULL;
@@ -1944,10 +1940,9 @@ static void  Read_Frags
       read_type = AS_READ;
       Frag [i] . shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE;
 
-      strcpy(seq_buff, getFragRecordSequence(&frag_read));
+      strcpy(seq_buff, frag_read.gkFragment_getSequence());
 
-      clear_start = getFragRecordClearRegionBegin(&frag_read, AS_READ_CLEAR_OBT);
-      clear_end   = getFragRecordClearRegionEnd  (&frag_read, AS_READ_CLEAR_OBT);
+      frag_read.gkFragment_getClearRegion(clear_start, clear_end);
 
       // Make sure that we have a legal lowercase sequence string
 
@@ -1968,8 +1963,8 @@ static void  Read_Frags
       Frag [i] . left_degree = Frag [i] . right_degree = 0;
      }
 
-   closeFragStream (Frag_Stream);
-   closeGateKeeperStore (Internal_gkpStore);
+   delete Frag_Stream;
+   delete Internal_gkpStore;
 
    return;
   }
@@ -2083,7 +2078,7 @@ static void  Stream_Old_Frags
 
   {
    Thread_Work_Area_t  wa;
-   fragRecord frag_read;
+   gkFragment frag_read;
    char  seq_buff [AS_READ_MAX_LEN + 1];
    char *seqptr;
    char  rev_seq [AS_READ_MAX_LEN + 1] = "acgt";
@@ -2094,15 +2089,13 @@ static void  Stream_Old_Frags
 
    Init_Thread_Work_Area (& wa, 0);
 
-   Frag_Stream = openFragStream (gkpStore, FRAG_S_SEQ);
-
    lo_frag = Olap [0] . b_iid;
    hi_frag = Olap [Num_Olaps - 1] . b_iid;
 
-   resetFragStream (Frag_Stream, lo_frag, hi_frag);
+   Frag_Stream = new gkStream (gkpStore, lo_frag, hi_frag, GKFRAGMENT_SEQ);
 
    next_olap = 0;
-   for  (i = 0;  nextFragStream (Frag_Stream, &frag_read)
+   for  (i = 0;  Frag_Stream->next (&frag_read)
                    && next_olap < Num_Olaps;
            i ++)
      {
@@ -2112,11 +2105,11 @@ static void  Stream_Old_Frags
       unsigned  deleted;
       int  result, shredded;
 
-      frag_iid = getFragRecordIID(&frag_read);
+      frag_iid = frag_read.gkFragment_getReadIID();
       if  (frag_iid < Olap [next_olap] . b_iid)
           continue;
 
-      deleted = getFragRecordIsDeleted (&frag_read);
+      deleted = frag_read.gkFragment_getIsDeleted ();
       if  (deleted)
           continue;
 
@@ -2124,10 +2117,9 @@ static void  Stream_Old_Frags
       read_type = AS_READ;
       shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE;
 
-      clear_start = getFragRecordClearRegionBegin(&frag_read, AS_READ_CLEAR_OBT);
-      clear_end   = getFragRecordClearRegionEnd  (&frag_read, AS_READ_CLEAR_OBT);
+      frag_read.gkFragment_getClearRegion(clear_start, clear_end);
 
-      seqptr = getFragRecordSequence(&frag_read);
+      seqptr = frag_read.gkFragment_getSequence();
 
       // Make sure that we have a valid lowercase sequence string
 
@@ -2146,7 +2138,7 @@ static void  Stream_Old_Frags
         }
      }
 
-   closeFragStream (Frag_Stream);
+   delete Frag_Stream;
 
    return;
   }
@@ -2267,11 +2259,10 @@ static void  Threaded_Stream_Old_Frags
    next_olap = 0;
 
 #ifdef USE_STORE_DIRECTLY_STREAM
-  Internal_gkpStore = openGateKeeperStore(gkpStore_Path, FALSE);
-  assert (Internal_gkpStore != NULL);
+   Internal_gkpStore = new gkStore(gkpStore_Path, FALSE, FALSE);
 #else
-  Internal_gkpStore = openGateKeeperStore(gkpStore_Path, FALSE);
-  loadGateKeeperStorePartial(Internal_gkpStore, lo_frag, hi_frag, FRAG_S_SEQ);
+   Internal_gkpStore = new gkStore(gkpStore_Path, FALSE, FALSE);
+   Internal_gkpStore->gkStore_load(lo_frag, hi_frag, GKFRAGMENT_SEQ);
 #endif
 
    curr_frag_list = & frag_list_1;
@@ -2282,7 +2273,7 @@ static void  Threaded_Stream_Old_Frags
                          curr_frag_list, & next_olap);
 
 #ifndef USE_STORE_DIRECTLY_STREAM
-   closeGateKeeperStore (Internal_gkpStore);
+   delete Internal_gkpStore;
 #endif
 
    while  (lo_frag <= last_frag)
@@ -2314,8 +2305,8 @@ static void  Threaded_Stream_Old_Frags
                hi_frag = last_frag;
 
 #ifndef USE_STORE_DIRECTLY_STREAM
-           Internal_gkpStore = openGateKeeperStore(gkpStore_Path, FALSE);
-           loadGateKeeperStorePartial(Internal_gkpStore, lo_frag, hi_frag, FRAG_S_SEQ);
+           Internal_gkpStore = new gkStore(gkpStore_Path, FALSE, FALSE);
+           Internal_gkpStore->gkStore_load(lo_frag, hi_frag, GKFRAGMENT_SEQ);
 #endif
 
            save_olap = next_olap;
@@ -2324,7 +2315,7 @@ static void  Threaded_Stream_Old_Frags
                                  next_frag_list, & next_olap);
 
 #ifndef USE_STORE_DIRECTLY_STREAM
-           closeGateKeeperStore (Internal_gkpStore);
+           delete Internal_gkpStore;
 #endif
           }
 
@@ -2348,7 +2339,7 @@ static void  Threaded_Stream_Old_Frags
      }
 
 #ifdef USE_STORE_DIRECTLY_STREAM
-   closeGateKeeperStore (Internal_gkpStore);
+   delete Internal_gkpStore;
 #endif
 
    return;

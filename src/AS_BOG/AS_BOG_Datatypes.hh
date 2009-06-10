@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.33 2008-12-29 16:07:17 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.34 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -35,12 +35,10 @@ static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 
 
 using namespace std;
 
-extern "C" {
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_OVS_overlapStore.h"
 #include "AS_PER_gkpStore.h"
-}
 
 //  Assign values to the enum to show this bug
 #warning there is a comparison assuming fragment_end_type FIVE_PRIME < THREE_PRIME
@@ -145,12 +143,12 @@ public:
 
 class FragmentInfo {
 public:
-  FragmentInfo(GateKeeperStore *gkpStore) {
-    FragStream       *fs = openFragStream(gkpStore, FRAG_S_INF);
-    fragRecord        fr;
+  FragmentInfo(gkStore *gkpStore) {
+    gkStream         *fs = new gkStream(gkpStore, 0, 0, GKFRAGMENT_INF);
+    gkFragment        fr;
 
-    _numLibraries = getNumGateKeeperLibraries(gkpStore);
-    _numFragments = getNumGateKeeperFragments(gkpStore);
+    _numLibraries = gkpStore->gkStore_getNumLibraries();
+    _numFragments = gkpStore->gkStore_getNumFragments();
 
     _fragLength    = new int  [_numFragments + 1];
     _mateIID       = new iuid [_numFragments + 1];
@@ -176,8 +174,8 @@ public:
     }
 
     for (int i=1; i<_numLibraries + 1; i++) {
-      _mean[i]          = getGateKeeperLibrary(gkpStore, i)->mean;
-      _stddev[i]        = getGateKeeperLibrary(gkpStore, i)->stddev;
+      _mean[i]          = gkpStore->gkStore_getLibrary(i)->mean;
+      _stddev[i]        = gkpStore->gkStore_getLibrary(i)->stddev;
       _numFragsInLib[i] = 0;
       _numMatesInLib[i] = 0;
     }
@@ -185,17 +183,16 @@ public:
     int numDeleted = 0;
     int numLoaded  = 0;
 
-    while(nextFragStream(fs, &fr)) {
-      iuid  iid = getFragRecordIID(&fr);
-      iuid  lib = getFragRecordLibraryIID(&fr);
+    while(fs->next(&fr)) {
+      iuid  iid = fr.gkFragment_getReadIID();
+      iuid  lib = fr.gkFragment_getLibraryIID();
 
-      if (getFragRecordIsDeleted(&fr)) {
+      if (fr.gkFragment_getIsDeleted()) {
         numDeleted++;
       } else {
-        _fragLength[iid] = (getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBT) -
-                            getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBT));
-        _mateIID[iid]    =  getFragRecordMateIID(&fr);;
-        _libIID[iid]     =  getFragRecordLibraryIID(&fr);
+        _fragLength[iid] = fr.gkFragment_getClearRegionLength();
+        _mateIID[iid]    = fr.gkFragment_getMateIID();;
+        _libIID[iid]     = fr.gkFragment_getLibraryIID();
 
         _numFragsInLib[lib]++;
 
@@ -212,7 +209,7 @@ public:
 
     fprintf(stderr, "Loaded %d alive fragments, skipped %d dead fragments.\n", numLoaded, numDeleted);
 
-    closeFragStream(fs);
+    delete fs;
   };
   ~FragmentInfo() {
     delete [] _fragLength;

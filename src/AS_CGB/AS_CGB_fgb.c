@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_fgb.c,v 1.16 2008-10-08 22:02:54 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_fgb.c,v 1.17 2009-06-10 18:05:13 brianwalenz Exp $";
 
 //  The fragment overlap graph builder.
 //
@@ -50,7 +50,7 @@ static void in_place_permute
   char  saved_source[size], saved_target[size];
   size_t ii, jj=0;
 
-  done = safe_malloc(sizeof(char) * ndata);
+  done = (char *)safe_malloc(sizeof(char) * ndata);
 
   fprintf(stderr,"Permutation in-place " F_SIZE_T " items of " F_SIZE_T " bytes\n",
           ndata, size);
@@ -384,9 +384,9 @@ void reorder_edges(Tfragment *frags,
     assert(nedge != 0);
     assert(max_nbins != 0);
 
-    seglen    = safe_malloc(sizeof(IntEdge_ID) * max_nbins);
-    segstart  = safe_malloc(sizeof(IntEdge_ID) * max_nbins);
-    edge_rank = safe_malloc(sizeof(size_t) * nedge);
+    seglen    = (IntEdge_ID *)safe_malloc(sizeof(IntEdge_ID) * max_nbins);
+    segstart  = (IntEdge_ID *)safe_malloc(sizeof(IntEdge_ID) * max_nbins);
+    edge_rank = (size_t     *)safe_malloc(sizeof(size_t) * nedge);
 
     { // FRAGMENT-END SORT
       { // Sort all of the edges ....
@@ -442,27 +442,6 @@ void reorder_edges(Tfragment *frags,
 	  seglen[ivert] = nnode + 1;
 	}}
       } // Sort all of the edges...
-
-#ifdef CHECK99
-      {
-	IntEdge_ID * edge_index = NULL;
-	IntEdge_ID ie;
-
-	safe_malloc(edge_index, IntEdge_ID, nedge);
-	for(ie=0;ie<nedge;ie++) {
-	  edge_index[ie] = AS_FGB_EDGE_NOT_VISITED;
-	}
-	for(ie=0;ie<nedge;ie++) {
-	  edge_index[edge_rank[ie]] = ie;
-	}
-	for(ie=0;ie<nedge;ie++) {
-	  assert(edge_index[ie] != AS_FGB_EDGE_NOT_VISITED);
-	  // assert(edge_index[ie] >= 0 );
-	  assert(edge_index[ie] < nedge );
-	}
-	safe_free(edge_index);
-      }
-#endif // CHECK99
 
       // Now permute the edges by the rank.
       in_place_permute(nedge, sizeof(Aedge), edge_rank, GetVA_Aedge(edges,0));
@@ -610,7 +589,7 @@ static void histogram_initialize
   histogram->min_bin = 0;
   histogram->max_bin = allocated_number_of_bins - 1;
   histogram->bins = NULL;
-  histogram->bins = safe_malloc(sizeof(int) * allocated_number_of_bins);
+  histogram->bins = (int *)safe_malloc(sizeof(int) * allocated_number_of_bins);
   histogram_clear( histogram );
 }
 
@@ -656,8 +635,8 @@ void transitive_edge_marking
   int64 num_of_quads_visited = 0;
   int64 ntrans_test_fail = 0;
 
-  visited_a = safe_malloc(sizeof(IntFragment_ID) * 2 * nfrag);
-  visited_b = safe_malloc(sizeof(IntFragment_ID) * 2 * nfrag);
+  visited_a = (IntFragment_ID *)safe_malloc(sizeof(IntFragment_ID) * 2 * nfrag);
+  visited_b = (IntFragment_ID *)safe_malloc(sizeof(IntFragment_ID) * 2 * nfrag);
 
   // Was this fragment seen from the target overlap edge before?
 

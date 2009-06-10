@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.25 2009-06-08 20:36:09 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.26 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -444,7 +444,7 @@ processRead(sffHeader *h,
   //  Read already loaded?  Can't load again.  Set UID;s and IID's
   //  to zero to indicate this -- we'll catch it at the end.
   //
-  if (getGatekeeperUIDtoIID(gkpStore, fr->gkfr.readUID, NULL)) {
+  if (gkStore_getUIDtoIID(gkpStore, fr->gkfr.readUID, NULL)) {
     fprintf(stderr, "ERROR:  Read '%s' already exists.\n", AS_UID_toString(fr->gkfr.readUID));
     fr->gkfr.readUID = AS_UID_undefined();
     return;

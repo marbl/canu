@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignFromICM.c,v 1.3 2008-10-08 22:02:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignFromICM.c,v 1.4 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -114,7 +114,9 @@ CreateMultiAlignTFromICM(IntConConMesg *icm,
     //  Make unitigs -- not authentic, since ICM doesn't retain delta values.
 
     for (i=0; i<icm->num_unitigs; i++) {
-      IntUnitigPos  unitigPos = {0};
+      IntUnitigPos  unitigPos;
+
+      memset(&unitigPos, 0, sizeof(IntUnitigPos));
 
       unitigPos.type         = icm->unitigs[i].type;
       unitigPos.ident        = icm->unitigs[i].ident;

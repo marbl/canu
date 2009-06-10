@@ -33,7 +33,7 @@
 
 //#include <sys/cdefs.h>
 
-static char *rcsid = "$Id: AS_UTL_qsort_mt.c,v 1.4 2008-10-08 22:03:00 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_qsort_mt.c,v 1.5 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -71,9 +71,7 @@ static inline void	 swapfunc(char *, char *, int, int);
 
 
 static inline void
-swapfunc(a, b, n, swaptype)
-     char *a, *b;
-     int n, swaptype;
+swapfunc(char *a, char *b, int n, int swaptype)
 {
   if(swaptype <= 1)
     swapcode(long, a, b, n)
@@ -259,7 +257,7 @@ qsort_algo(struct qsort *qs)
 {
   char *pa, *pb, *pc, *pd, *pl, *pm, *pn;
   long d, r, swaptype, swap_cnt;
-  void *a;			/* Array of elements. */
+  char *a;			/* Array of elements. */
   size_t n, es;			/* Number of elements; size. */
   cmp_t *cmp;
   long nl, nr, i;
@@ -273,7 +271,7 @@ qsort_algo(struct qsort *qs)
   es = c->es;
   cmp = c->cmp;
   swaptype = c->swaptype;
-  a = qs->a;
+  a = (char *)qs->a;
   n = qs->n;
  top:
 
@@ -289,7 +287,7 @@ qsort_algo(struct qsort *qs)
   }
   pm = (char *)a + (n / 2) * es;
   if (n > 7) {
-    pl = a;
+    pl = (char *)a;
     pn = (char *)a + (n - 1) * es;
     if (n > 40) {
       d = (n / 8) * es;
@@ -373,7 +371,7 @@ qsort_thread(void *p)
   struct common *c;
   pthread_t id;
 
-  qs = p;
+  qs = (struct qsort *)p;
   id = qs->id;
   c = qs->common;
  again:

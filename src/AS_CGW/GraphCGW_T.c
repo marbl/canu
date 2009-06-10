@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.69 2009-04-24 14:26:16 skoren Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.70 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -731,7 +731,7 @@ void DeleteGraphNode(GraphCGW_T *graph, NodeCGW_T *node){
   InitGraphEdgeIterator(graph, node->id,
                         ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT , &edges);
   while(NULL != (edge = NextGraphEdgeIterator(&edges)))
-    AppendPtrT(edgeList, (void *)&edge);
+    AppendPtrT(edgeList, (void **)&edge);
 
   for(i = 0; i < GetNumPtrTs(edgeList); i++){
     EdgeCGW_T *edge = *(EdgeCGW_T **)GetPtrT(edgeList,i);
@@ -899,7 +899,7 @@ void  DeleteGraphEdge(GraphCGW_T *graph,  EdgeCGW_T *edge){
 
 
 void PrintGraphEdge(FILE *fp, GraphCGW_T *graph,
-                    char *label, EdgeCGW_T *edge, CDS_CID_t cid){
+                    const char *label, EdgeCGW_T *edge, CDS_CID_t cid){
   char actualOverlap[256];
   CDS_COORD_t actual = 0;
   CDS_COORD_t delta = 0;
@@ -2549,7 +2549,7 @@ void AssignFragsToResolvedCI(GraphCGW_T *graph,
     frag->CIid     = toID;          // Assign the fragment to the surrogate
     frag->contigID = toContig->id;  // Assign the fragment to the contig
 
-    fragPos.type         = frag->type;
+    fragPos.type         = (FragType)frag->type;
     fragPos.sourceInt    = fragID;
     fragPos.position.bgn = frag->offset5p.mean;
     fragPos.position.end = frag->offset3p.mean;
@@ -3971,7 +3971,7 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
   //
   //  We have to grab the UID from gatekeeper.  Sigh.
   {
-    GateKeeperStore  *gkpStore = openGateKeeperStore(GlobalData->Gatekeeper_Store_Name, FALSE);
+    gkStore  *gkpStore = new gkStore(GlobalData->Gatekeeper_Store_Name, FALSE, FALSE);
     FILE             *fout;
     char              filename[FILENAME_MAX];
     GenericMesg       pmesg;
@@ -3991,18 +3991,18 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
     WriteProtoMesg_AS(fout, &pmesg);
 
     for (i=1; i<GetNumDistTs(ScaffoldGraph->Dists); i++) {
-      DistT                         *dptr = GetDistT(ScaffoldGraph->Dists, i);
-      GateKeeperLibraryRecord       *gkpl = getGateKeeperLibrary(gkpStore, i);
+      DistT           *dptr = GetDistT(ScaffoldGraph->Dists, i);
+      gkLibrary       *gkpl = gkpStore->gkStore_getLibrary(i);
 
       lmesg.action     = AS_UPDATE;
       lmesg.eaccession = gkpl->libraryUID;
       lmesg.mean       = dptr->mu;
       lmesg.stddev     = dptr->sigma;
       lmesg.source     = NULL;
-      lmesg.link_orient  = 'X';    //  Not used for AS_UPDATE
-      lmesg.num_features = 0;      //  Not used for AS_UPDATE
-      lmesg.features     = NULL;   //  Not used for AS_UPDATE
-      lmesg.values       = NULL;   //  Not used for AS_UPDATE
+      lmesg.link_orient  = AS_UNKNOWN;   //  Not used for AS_UPDATE
+      lmesg.num_features = 0;            //  Not used for AS_UPDATE
+      lmesg.features     = NULL;         //  Not used for AS_UPDATE
+      lmesg.values       = NULL;         //  Not used for AS_UPDATE
 
       fflush(fout);
       fprintf(fout, "# LIB %s %f +- %f -> %f +- %f\n",
@@ -4016,7 +4016,7 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
 
     fclose(fout);
 
-    closeGateKeeperStore(gkpStore);
+    delete gkpStore;
   }
 }
 

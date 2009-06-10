@@ -30,7 +30,7 @@
 
 **********************************************************************/
 
-static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.13 2008-10-08 22:03:00 brianwalenz Exp $";
+static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.14 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -758,15 +758,15 @@ static OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB,
     fprintf(logFile,"assuming overlap %lf,%lf\n",dist.mean,sqrt(dist.variance));
 #endif
     if( cidA.start.mean < cidA.end.mean )
-      orientA = A_B;
+      orientA = (ChunkOrientType)A_B;
     else
-      orientA = B_A;
+      orientA = (ChunkOrientType)B_A;
     if( cidB.start.mean < cidB.end.mean )
-      orientB = A_B;
+      orientB = (ChunkOrientType)A_B;
     else
-      orientB = B_A;
+      orientB = (ChunkOrientType)B_A;
 
-    orientation = GetChunkPairOrientation(orientA,orientB);
+    orientation = GetChunkPairOrientation((ChunkOrient)orientA,(ChunkOrient)orientB);
     // Compute the orientation of the two chunks
     //    printf("Orient = %c cidA %d, cidB %d \n",orientation,cidA.chunk_id,cidB.chunk_id);
 
@@ -852,13 +852,13 @@ static void estimate_gap_distrib(const Gap_Chunk_t *cT1,
 
 
   if( chunkT1->start.mean < chunkT1->end.mean )
-    orient1 = A_B;
+    orient1 = (ChunkOrientType)A_B;
   else
-    orient1 = B_A;
+    orient1 = (ChunkOrientType)B_A;
   if( chunkT2->start.mean < chunkT2->end.mean )
-    orient2 = A_B;
+    orient2 = (ChunkOrientType)A_B;
   else
-    orient2 = B_A;
+    orient2 = (ChunkOrientType)B_A;
 
 
 

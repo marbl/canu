@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.42 2009-02-02 13:51:14 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.43 2009-06-10 18:05:13 brianwalenz Exp $";
 
 
 #undef ORIG_MERGE_EDGE_INVERT
@@ -1654,7 +1654,7 @@ int ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge)
       if(sEdge->idA == otherScaffoldID ||
          (sEdge->idB == otherScaffoldID && sEdge != curSEdge))
         {
-          ChunkOrientationType newOrientValue =
+          int newOrientValue =
             (sEdge->orient == AB_AB || sEdge->orient == BA_BA) ? 1 : -1;
 
           /*
@@ -1951,11 +1951,11 @@ int FindAllMergeCandidates(VA_TYPE(PtrT) *sEdges,
       if(overlapSEdges &&
          curSEdge->edgesContributing >= CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD)
 
-        AppendPtrT(overlapSEdges, (void *)&curSEdge);
+        AppendPtrT(overlapSEdges, (void **)&curSEdge);
       continue;
     }
 
-    AppendPtrT(sEdges, (void *)&curSEdge);
+    AppendPtrT(sEdges, (void **)&curSEdge);
     if(verbose){
       PrintGraphEdge(GlobalData->stderrc, ScaffoldGraph->ScaffoldGraph, "\t", curSEdge, fromScaffold->id);
       fflush(GlobalData->stderrc);
@@ -2819,8 +2819,8 @@ int  AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
           // If we have a singleton from each side, we accept this
           if(edge->quality +0.1 >= (float)CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD){
 
-	    //AppendPtrT(mergedEdges, (void *)&edge);
-            AppendPtrT(mergedEdges, (void *) &edge);
+	    //AppendPtrT(mergedEdges, (void **)&edge);
+            AppendPtrT(mergedEdges, (void **) &edge);
           }
 
         }else{
@@ -2828,12 +2828,12 @@ int  AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
           edge->quality = -1.0;
           if(edge->quality + 0.1 >= (float)CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD){
 
-	    //AppendPtrT(mergedEdges, (void *)&edge);
-            AppendPtrT(mergedEdges, (void *) &edge);
+	    //AppendPtrT(mergedEdges, (void **)&edge);
+            AppendPtrT(mergedEdges, (void **) &edge);
           }
 
-	  //AppendPtrT(mergedEdges, (void *)&edgeB);
-          AppendPtrT(mergedEdges, (void *)&edgeB);
+	  //AppendPtrT(mergedEdges, (void **)&edgeB);
+          AppendPtrT(mergedEdges, (void **)&edgeB);
         }
       }else{
         if(verbose)
@@ -2847,8 +2847,8 @@ int  AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
       if(edge->edgesContributing < CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD)
         continue;
 
-      //AppendPtrT(mergedEdges, (void *)&edge);
-      AppendPtrT(mergedEdges, (void *) &edge);
+      //AppendPtrT(mergedEdges, (void **)&edge);
+      AppendPtrT(mergedEdges, (void **) &edge);
 
       edge->quality = edge->edgesContributing;
       edge->flags.bits.isProbablyBogus = TRUE; // overloaded for one-sided
@@ -2882,8 +2882,8 @@ int  AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
               scaffoldB->id, otherID, GetEdgeOrientationWRT(edge, scaffoldB->id));
 
 
-    //AppendPtrT(mergedEdges, (void *)&edge);
-    AppendPtrT(mergedEdges, (void *) &edge);
+    //AppendPtrT(mergedEdges, (void **)&edge);
+    AppendPtrT(mergedEdges, (void **) &edge);
 
     edge->quality = edge->edgesContributing;
     edge->flags.bits.isProbablyBogus = TRUE; // overloaded for one-sided
@@ -3157,7 +3157,7 @@ int isQualityScaffoldMergingEdge(SEdgeT * curEdge,
                              InstrumenterVerbose2,
                              GlobalData->stderrc);
           GetMateInstrumenterFromScaffoldInstrumenter(sABefore, si);
-          SetVA_PtrT(MIs, scaffoldA->id, (void *) &sABefore);
+          SetVA_PtrT(MIs, scaffoldA->id, (void **) &sABefore);
         }
       ResetMateInstrumenterCounts(&matesBefore);
       AddMateInstrumenterCounts(&matesBefore, sABefore);
@@ -3177,7 +3177,7 @@ int isQualityScaffoldMergingEdge(SEdgeT * curEdge,
                              InstrumenterVerbose2,
                              GlobalData->stderrc);
           GetMateInstrumenterFromScaffoldInstrumenter(sBBefore, si);
-          SetVA_PtrT(MIs, scaffoldB->id, (void *) &sBBefore);
+          SetVA_PtrT(MIs, scaffoldB->id, (void **) &sBBefore);
         }
       AddMateInstrumenterCounts(&matesBefore, sBBefore);
 
@@ -4530,7 +4530,7 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
       CDS_CID_t neighborID;
       const LengthT nullLength = {0.0, 0.0};
       LengthT currentOffset = nullLength;
-      CIScaffoldT CIScaffold = {0};
+      CIScaffoldT CIScaffold;
       ChunkOrient orientCI;
       CDS_CID_t newScaffoldID;
       int numMerged;
@@ -5240,7 +5240,7 @@ void MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumb
   {
     int32 i;
     for(i = 0; i < GetNumVA_PtrT(iSpec.MIs); i++) {
-      MateInstrumenter *p = *GetVA_PtrT(iSpec.MIs, i);
+      MateInstrumenter *p = *(MateInstrumenter **)GetVA_PtrT(iSpec.MIs, i);
       safe_free(p);
     }
     DeleteVA_PtrT(iSpec.MIs);

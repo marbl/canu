@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_Bubble_Graph.c,v 1.8 2008-10-08 22:02:54 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_Bubble_Graph.c,v 1.9 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include "AS_global.h"
@@ -29,9 +29,9 @@ static char *rcsid = "$Id: AS_CGB_Bubble_Graph.c,v 1.8 2008-10-08 22:02:54 brian
 
 
 //  AS_CGB_edgemate.c
-IntEdge_ID find_overlap_edge_mate(const Tfragment frags[],
- const Tedge edges[],
- const IntEdge_ID ie0
+IntEdge_ID find_overlap_edge_mate(Tfragment frags[],
+                                  Tedge edges[],
+                                  IntEdge_ID ie0
 );
 
 

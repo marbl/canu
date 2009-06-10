@@ -23,7 +23,7 @@
 #ifndef Sybase_H
 #define Sybase_H
 
-static const char *rcsid_Sybase_H = "$Id: Sybase.hh,v 1.3 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_Sybase_H = "$Id: Sybase.hh,v 1.4 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <iostream>
 #include "IDBOutput.hh"
@@ -31,8 +31,9 @@ static const char *rcsid_Sybase_H = "$Id: Sybase.hh,v 1.3 2008-10-08 22:02:54 br
 
 extern "C" {
    #include <ctpublic.h>
-   #include "AS_UTL_Hash.h"
 }
+
+#include "AS_UTL_Hash.h"
 
 namespace AS_ARD {
    class Sybase : public IDBConnection {

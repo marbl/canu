@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_stats.c,v 1.9 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_stats.c,v 1.10 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include "AS_OVS_overlapStore.h"
 #include "overlapStore.h"
@@ -107,7 +107,7 @@ rebuildStats(char *storeName, char *gkpName) {
   OVSoverlap     ovl;
   int            i;
 
-  ovs->gkp = openGateKeeperStore(gkpName, FALSE);
+  ovs->gkp = gkStore_open(gkpName, FALSE);
 
   //  Clear the stat struct
   memset(&ovs->stats, 0, sizeof(OverlapStoreStats));

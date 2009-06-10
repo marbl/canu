@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ContigT_CGW.c,v 1.22 2009-05-29 17:27:16 brianwalenz Exp $";
+static char *rcsid = "$Id: ContigT_CGW.c,v 1.23 2009-06-10 18:05:13 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_EDGES
@@ -804,7 +804,7 @@ int BuildContigEdges(ScaffoldGraphT *graph){
 
 void CreateInitialContig(ScaffoldGraphT *graph, CDS_CID_t cid){
   ChunkInstanceT *CI = GetGraphNode (graph->CIGraph, cid);
-  ContigT contig = {0};
+  ContigT contig;
 
   //  This function apparently converts a CI node into a Contig node.
 

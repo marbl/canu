@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.31 2009-02-02 13:51:14 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.32 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,6 +57,7 @@ static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.31 2009-02-02 13:51:14 bri
 #define FTN_INT   long int
 #define F_FTN_INT    "%ld"
 
+extern "C" {
 extern int dgemv_(char *, FTN_INT *, FTN_INT *,
                   double *, double *, FTN_INT *, double *, FTN_INT *,
                   double *, double *, FTN_INT *);
@@ -64,7 +65,7 @@ extern int dpbtrf_(char *, FTN_INT *, FTN_INT *, double *,
                    FTN_INT *, FTN_INT *);
 extern int dpbtrs_(char *, FTN_INT *, FTN_INT *, FTN_INT *, double *,
                    FTN_INT *, double *, FTN_INT *, FTN_INT *);
-
+}
 
 //  Except as noted:
 //    0 nothing, 1 warnings, 2 lots of stuff

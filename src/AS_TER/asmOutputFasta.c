@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: asmOutputFasta.c,v 1.13 2008-12-05 19:06:12 brianwalenz Exp $";
+const char *mainid = "$Id: asmOutputFasta.c,v 1.14 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -363,11 +363,11 @@ processSCF(SnapScaffoldMesg *scf_mesg) {
 
 
 
-FILE *openOutput(char *prefix, char *template) {
+FILE *openOutput(char *prefix, char *format) {
   char  N[FILENAME_MAX];
   FILE *F;
 
-  sprintf(N, template, prefix);
+  sprintf(N, format, prefix);
 
   errno = 0;
   F = fopen(N, "w");

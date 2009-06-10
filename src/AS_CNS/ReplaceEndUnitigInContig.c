@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.1 2009-05-29 17:29:19 brianwalenz Exp $";
+static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.2 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -68,7 +68,7 @@ PrintIUPInfo(FILE *print, int32 nfrags, IntUnitigPos *iups) {
 
 MultiAlignT *
 ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
-                                       GateKeeperStore *frag_store,
+                                       gkStore *frag_store,
                                        uint32 contig_iid, uint32 unitig_iid, int extendingLeft,
                                        CNS_Options *opp) {
   int32 cid,tid; // local id of contig (cid), and unitig(tid)

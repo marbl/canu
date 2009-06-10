@@ -19,7 +19,7 @@
  *************************************************************************/
 
 
-static const char *rcsid = "$Id: eCR-examineGap.c,v 1.21 2009-05-29 17:27:16 brianwalenz Exp $";
+static const char *rcsid = "$Id: eCR-examineGap.c,v 1.22 2009-06-10 18:05:13 brianwalenz Exp $";
 #include "eCR.h"
 
 #include "GapWalkerREZ.h"  //  FindGapLength
@@ -112,7 +112,7 @@ examineGap(ContigT *lcontig, int lFragIid,
   int rFragContigOverlapLength = 0;
   int i;
 
-  static fragRecord fsread;  //  static for performance only
+  static gkFragment fr;  //  static for performance only
 
   static VA_TYPE(char)           *lContigConsensus = NULL;
   static VA_TYPE(char)           *rContigConsensus = NULL;
@@ -177,54 +177,26 @@ examineGap(ContigT *lcontig, int lFragIid,
   if (rContigOrientation == B_A)
     reverseComplementSequence(rSequence, strlen(rSequence));
 
-
-
-
-
   if (lFragIid != -1) {
     InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, lFragIid);
     assert(info->set);
     lFrag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+
+    ScaffoldGraph->gkpStore->gkStore_getFragment(lFragIid, &fr, GKFRAGMENT_SEQ);
+    fr.gkFragment_getClearRegion(lclr_bgn, lclr_end, AS_READ_CLEAR_ECR_0 + iterNumber - 1);
+    assert(lclr_bgn < lclr_end);
+    strcpy(lFragSeqBuffer, fr.gkFragment_getSequence());
   }
 
   if (rFragIid != -1) {
     InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, rFragIid);
     assert(info->set);
     rFrag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
-  }
 
-  switch (iterNumber) {
-    case 1:
-      if (lFragIid != -1) {
-        getFrag(ScaffoldGraph->gkpStore, lFragIid, &fsread, FRAG_S_SEQ);
-        lclr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR1 - 1);
-        lclr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR1 - 1);
-        strcpy(lFragSeqBuffer, getFragRecordSequence(&fsread));
-      }
-      if (rFragIid != -1) {
-        getFrag(ScaffoldGraph->gkpStore, rFragIid, &fsread, FRAG_S_SEQ);
-        rclr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR1 - 1);
-        rclr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR1 - 1);
-        strcpy(rFragSeqBuffer, getFragRecordSequence(&fsread));
-      }
-      break;
-    case 2:
-      if (lFragIid != -1) {
-        getFrag(ScaffoldGraph->gkpStore, lFragIid, &fsread, FRAG_S_SEQ);
-        lclr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR2 - 1);
-        lclr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR2 - 1);
-        strcpy(lFragSeqBuffer, getFragRecordSequence(&fsread));
-      }
-      if (rFragIid != -1) {
-        getFrag(ScaffoldGraph->gkpStore, rFragIid, &fsread, FRAG_S_SEQ);
-        rclr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR2 - 1);
-        rclr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR2 - 1);
-        strcpy(rFragSeqBuffer, getFragRecordSequence(&fsread));
-      }
-      break;
-    default:
-      assert(0);
-      break;
+    ScaffoldGraph->gkpStore->gkStore_getFragment(rFragIid, &fr, GKFRAGMENT_SEQ);
+    fr.gkFragment_getClearRegion(rclr_bgn, rclr_end, AS_READ_CLEAR_ECR_0 + iterNumber - 1);
+    assert(rclr_bgn < rclr_end);
+    strcpy(rFragSeqBuffer, fr.gkFragment_getSequence());
   }
 
   //  Always, we want to flip the right frag.

@@ -19,17 +19,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_MER_meryl.cc,v 1.13 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id: AS_MER_meryl.cc,v 1.14 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-extern "C" {
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_gkpStore.h"
-}
 
 
 //  Parameters for the mer counter, and a nice utility function.
@@ -103,13 +101,13 @@ private:
     if (_iid >= _max)
       return(0);
 
-    getFrag(_fs, _iid, &_fr, FRAG_S_SEQ);
+    _fs->gkStore_getFragment(_iid, &_fr, GKFRAGMENT_SEQ);
     _iid += _skipNum;
 
-    _thePos = getFragRecordClearRegionBegin(&_fr, AS_READ_CLEAR_OBT);
-    _endPos = getFragRecordClearRegionEnd  (&_fr, AS_READ_CLEAR_OBT);
+    _thePos = _fr.gkFragment_getClearRegionBegin();
+    _endPos = _fr.gkFragment_getClearRegionEnd  ();
 
-    _theSeq = getFragRecordSequence(&_fr);
+    _theSeq = _fr.gkFragment_getSequence();
 
     return('N');
   };
@@ -129,8 +127,8 @@ private:
 
   uint32                _theRMerShift;
 
-  GateKeeperStore      *_fs;
-  fragRecord            _fr;
+  gkStore              *_fs;
+  gkFragment            _fr;
 
   uint64                _iid;
   uint64                _max;
@@ -250,14 +248,10 @@ merStream::merStream(uint32 merSize, char *gkpstore, int skipNum) {
 
   _theRMerShift    = (_merSize << 1) - 2;
 
-  _fs = openGateKeeperStore(gkpstore, FALSE);
-  if (_fs == NULL) {
-    fprintf(stderr, "ERROR:  couldn't open the gatekeeper store '%s'\n", gkpstore);
-    exit(1);
-  }
+  _fs = new gkStore(gkpstore, FALSE, FALSE);
 
   _iid = 1;
-  _max = getLastElemFragStore(_fs);
+  _max = _fs->gkStore_getNumFragments();
 
   _skipNum=skipNum;
   loadMer(_merSize - 1);
@@ -265,7 +259,7 @@ merStream::merStream(uint32 merSize, char *gkpstore, int skipNum) {
 
 
 merStream::~merStream() {
-  closeGateKeeperStore(_fs);
+  delete _fs;
 }
 
 
@@ -686,7 +680,7 @@ main(int argc, char **argv) {
           outputFile = argv[arg];
           break;
         case 'V':
-          fprintf(stdout, "version: CA $Id: AS_MER_meryl.cc,v 1.13 2008-10-08 22:02:57 brianwalenz Exp $\n");
+          fprintf(stdout, "version: CA $Id: AS_MER_meryl.cc,v 1.14 2009-06-10 18:05:13 brianwalenz Exp $\n");
           exit(0);
           break;
         default:

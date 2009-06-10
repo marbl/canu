@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: consolidate.C,v 1.18 2009-05-12 17:25:31 brianwalenz Exp $";
+const char *mainid = "$Id: consolidate.C,v 1.19 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,10 +32,8 @@ const char *mainid = "$Id: consolidate.C,v 1.18 2009-05-12 17:25:31 brianwalenz 
 #include "util++.H"
 #include "readOverlap.H"
 
-extern "C" {
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
-}
 
 #define MAX_OVERLAPS_PER_FRAG   (16 * 1024 * 1024)
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: filterOverlap.c,v 1.5 2008-10-08 22:02:58 brianwalenz Exp $";
+const char *mainid = "$Id: filterOverlap.c,v 1.6 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,9 +32,9 @@ const char *mainid = "$Id: filterOverlap.c,v 1.5 2008-10-08 22:02:58 brianwalenz
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapFile.h"
 
-#define  FORMAT_NONE      -1
-#define  FORMAT_OVL       AS_READ_CLEAR_OBT
-#define  FORMAT_OBT       AS_READ_CLEAR_OBTINI
+#define  FORMAT_NONE      0
+#define  FORMAT_OVL       1
+#define  FORMAT_OBT       2
 
 void   filterOVL(void);
 void   filterOBT(void);
@@ -46,10 +46,14 @@ uint32  noContainment  = 0;
 char   *gkpStoreName   = NULL;
 
 typedef struct {
-  uint64   len:12;
-  uint64   beg:12;
-  uint64   end:12;
+  uint64   len:AS_READ_MAX_LONG_LEN_BITS;
+  uint64   beg:AS_READ_MAX_LONG_LEN_BITS;
+  uint64   end:AS_READ_MAX_LONG_LEN_BITS;
 } fragInfo;
+
+#if 3 * AS_READ_MAX_LONG_LEN_BITS > 64
+#error fragInfo is more than 64 bits.
+#endif
 
 uint32    numReads       = 0;
 fragInfo *readLength     = NULL;
@@ -113,23 +117,24 @@ main(int argc, char **argv) {
   }
 
   if (noDovetail || noContainment || (format == FORMAT_OVL)) {
-    GateKeeperStore *gkp = openGateKeeperStore(gkpStoreName, FALSE);
-    FragStream      *fs  = openFragStream(gkp, FRAG_S_INF);
-    fragRecord       fr;
+    gkStore       *gkp = new gkStore(gkpStoreName, FALSE, FALSE);
+    gkStream      *fs  = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
+    gkFragment     fr;
 
-    numReads   = getLastElemFragStore(gkp);
+    numReads   = gkp->gkStore_getNumFragments();
     readLength = (fragInfo *)safe_malloc(sizeof(fragInfo) * numReads);
 
     fprintf(stderr, "Reading gkpStore to get clear ranges for "F_U32" reads.\n", numReads);
 
-    while (nextFragStream(fs, &fr)) {
-      readLength[getFragRecordIID(&fr)].len = getFragRecordSequenceLength(&fr);
-      readLength[getFragRecordIID(&fr)].beg = getFragRecordClearRegionBegin(&fr, format);
-      readLength[getFragRecordIID(&fr)].end = getFragRecordClearRegionEnd  (&fr, format);
+    while (fs->next(&fr)) {
+      AS_IID iid = fr.gkFragment_getReadIID();
+      readLength[iid].len = fr.gkFragment_getSequenceLength();
+      readLength[iid].beg = fr.gkFragment_getClearRegionBegin();
+      readLength[iid].end = fr.gkFragment_getClearRegionEnd  ();
     }
 
-    closeFragStream(fs);
-    closeGateKeeperStore(gkp);
+    delete fs;
+    delete gkp;
   }
 
   fprintf(stderr, "WARNING:\n");

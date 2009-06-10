@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.41 2009-05-22 16:57:45 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.42 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -509,8 +509,7 @@ CreateCloneCoverageMaps(ScaffoldGraphT *graph,
 
     // get lone mate fragment
     if ((frag->flags.bits.hasMate > 0) &&
-        (frag->mateOf != NULLINDEX) &&
-        (frag->flags.bits.linkType != AS_REREAD))
+        (frag->mateOf != NULLINDEX))
       AddLinkToMaps(graph, gcc, bcc, frag,
                     GetCIFragT(graph->CIFrags, frag->mateOf),
                     ((frag->flags.bits.innieMate) ? AS_INNIE : AS_OUTTIE),
@@ -1313,7 +1312,7 @@ SplitInputUnitigs(ScaffoldGraphT *graph) {
               if(GetNumVA_SeqInterval(csis) > 0) {
                 SeqInterval *tempSI = GetVA_SeqInterval(csis, GetNumVA_SeqInterval(csis) - 1);
 
-                if(tempSI->end < interval.bgn - AS_FRAG_MIN_LEN)
+                if(tempSI->end < interval.bgn - AS_READ_MIN_LEN)
                   AppendVA_SeqInterval(csis, &interval);
                 else
                   tempSI->end = interval.end;

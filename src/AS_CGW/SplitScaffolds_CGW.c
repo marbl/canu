@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: SplitScaffolds_CGW.c,v 1.14 2008-11-02 06:27:13 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitScaffolds_CGW.c,v 1.15 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -90,7 +90,7 @@ void SplitScaffolds(ScaffoldGraphT *graph){
       LengthT NullLength = {0.0, 0.0};
       LengthT firstOffset = {0.0, 0.0};
       int seenFirstOffset;
-      CIScaffoldT CIScaffold = {0};
+      CIScaffoldT CIScaffold;
       CDS_CID_t newScaffoldID;
       InitializeScaffold(&CIScaffold, REAL_SCAFFOLD);
       CIScaffold.info.Scaffold.AEndCI = NULLINDEX;

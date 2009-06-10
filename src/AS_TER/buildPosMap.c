@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.10 2009-05-15 16:00:13 brianwalenz Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.11 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -638,28 +638,28 @@ int main (int argc, char *argv[]) {
         break;
 
       case MESG_AFG:
-        processAFG(pmesg->m);
+        processAFG((AugFragMesg *)pmesg->m);
         break;
       case MESG_AMP:
-        processAMP(pmesg->m);
+        processAMP((AugMatePairMesg *)pmesg->m);
         break;
 
       case MESG_UTG:
-        processUTG(pmesg->m);
+        processUTG((SnapUnitigMesg *)pmesg->m);
         break;
       case MESG_ULK:
         //processULK(pmesg->m);
         break;
 
       case MESG_CCO:
-        processCCO(pmesg->m);
+        processCCO((SnapConConMesg *)pmesg->m);
         break;
       case MESG_CLK:
         //processCLK(pmesg->m);
         break;
 
       case MESG_SCF:
-        processSCF(pmesg->m);
+        processSCF((SnapScaffoldMesg *)pmesg->m);
         break;
       case MESG_SLK:
         //processSLK(pmesg->m);

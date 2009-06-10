@@ -22,7 +22,7 @@
 #ifndef AS_UTL_FILEIO_H
 #define AS_UTL_FILEIO_H
 
-static const char *rcsid_AS_UTL_FILEIO_H = "$Id: AS_UTL_fileIO.h,v 1.7 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_FILEIO_H = "$Id: AS_UTL_fileIO.h,v 1.8 2009-06-10 18:05:14 brianwalenz Exp $";
 
 //  Provides a safe and reliable mechanism for reading / writing
 //  binary data.
@@ -32,11 +32,12 @@ static const char *rcsid_AS_UTL_FILEIO_H = "$Id: AS_UTL_fileIO.h,v 1.7 2008-10-0
 //  be a little more friendly (big writes are usually not
 //  interruptable).
 
-void    AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t size, size_t nobj);
-size_t  AS_UTL_safeRead (FILE *file, void *buffer,       char *desc, size_t size, size_t nobj);
+void    AS_UTL_safeWrite(FILE *file, const void *buffer, const char *desc, size_t size, size_t nobj);
+size_t  AS_UTL_safeRead (FILE *file, void *buffer,       const char *desc, size_t size, size_t nobj);
 
 int     AS_UTL_mkdir(const char *dirname);
 
+int     AS_UTL_fileExists(const char *path, int directory, int readwrite);
 
 off_t   AS_UTL_ftell(FILE *stream);
 void    AS_UTL_fseek(FILE *stream, off_t offset, int whence);

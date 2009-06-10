@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: MicroHetIUM.c,v 1.14 2009-05-12 17:25:31 brianwalenz Exp $";
+const char *mainid = "$Id: MicroHetIUM.c,v 1.15 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -493,7 +493,7 @@ static int doPrintMPobs=0;
    (mismatches are random errors).
    A return value of 1.0 may indicate that the unitig was not deep enough for meaningful test.
 */
-double AS_REZ_prob_IUM_MPsimple(IntUnitigMesg* ium, GateKeeperStore *handle)
+double AS_REZ_prob_IUM_MPsimple(IntUnitigMesg* ium, gkStore *handle)
 {
   int i;
   int rows;
@@ -538,7 +538,7 @@ double AS_REZ_prob_IUM_MPsimple(IntUnitigMesg* ium, GateKeeperStore *handle)
 
 
 Alignment_t* AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium,
-                                             GateKeeperStore *handle,
+                                             gkStore *handle,
 					     int compress)
 {
   int i;
@@ -610,7 +610,7 @@ Alignment_t* AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium,
    The Alignment_t ali contains the alignment in which the list of segments
    can be inspected in order to find repetitive segments
 */
-UnitigStatus_t AS_REZ_is_IUM_MPsimple(IntUnitigMesg* ium, GateKeeperStore *handle,
+UnitigStatus_t AS_REZ_is_IUM_MPsimple(IntUnitigMesg* ium, gkStore *handle,
                                       Alignment_t **ali, double thresh, int variant,
                                       double *pval)
 {
@@ -665,7 +665,7 @@ main(int argc, char **argv) {
   double  thresh     = 0.0;
   double  cthresh    = 0.0;
 
-  GateKeeperStore *storeHandle;
+  gkStore *storeHandle;
   FILE            *input;
 
   argc = AS_configure(argc, argv);
@@ -696,7 +696,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  storeHandle = openGateKeeperStore(storeName, FALSE);
+  storeHandle = new gkStore(storeName, FALSE, FALSE);
 
   input       = fopen(fileName,"r");
 
@@ -793,6 +793,8 @@ main(int argc, char **argv) {
     printf("\nTest #tp #fp #fn #tn #nt\n\n");
     printf("3 %04d %04d %04d %04d %04d\n",cor3,fp3,fn3,tn3,nt3);
   }
+
+  delete storeHandle;
 
   exit(0);
 }

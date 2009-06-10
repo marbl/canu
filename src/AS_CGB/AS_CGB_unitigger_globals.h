@@ -22,7 +22,7 @@
 #ifndef AS_CGB_UNITIGGER_GLOBALS_INCLUDE
 #define AS_CGB_UNITIGGER_GLOBALS_INCLUDE
 
-static const char *rcsid_AS_CGB_UNITIGGER_GLOBALS_INCLUDE = "$Id: AS_CGB_unitigger_globals.h,v 1.17 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_AS_CGB_UNITIGGER_GLOBALS_INCLUDE = "$Id: AS_CGB_unitigger_globals.h,v 1.18 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 
@@ -237,6 +237,6 @@ int main_fgb (THeapGlobals  * heapva,
 
 int main_cgb(THeapGlobals  * heapva,
              UnitiggerGlobals * rg,
-             GateKeeperStore *gkpStore);
+             gkStore *gkpStore);
 
 #endif // AS_CGB_UNITIGGER_GLOBALS_INCLUDE

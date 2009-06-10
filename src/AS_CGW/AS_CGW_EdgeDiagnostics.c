@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.19 2008-12-05 19:06:11 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.20 2009-06-10 18:05:13 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -218,9 +218,9 @@ void ComputeFragToChunkEndForEdge(ScaffoldGraphT * graph,
     ii) Outtie:            |-------|  = B_END
   */
   if(frag->flags.bits.innieMate)
-    *endFromFrag = (fragOrient == A_B) ? B_END : A_END;
+    *endFromFrag = (ChunkOrientType)((fragOrient == A_B) ? B_END : A_END);
   else
-    *endFromFrag = (fragOrient == A_B) ? A_END : B_END;
+    *endFromFrag = (ChunkOrientType)((fragOrient == A_B) ? A_END : B_END);
 
   ComputeFrag5pToChunkEndFromOffset(&offset5p,
                                     *endFromFrag,
@@ -343,15 +343,13 @@ void PopulateChunkEdgeBasics(ScaffoldGraphT * graph,
       if(-distBetweenChunks.mean >
          (chunkA->bpLength.mean + chunkB->bpLength.mean) / 2)
         {
-          chunkEndFromFragA =
-            (chunkEndFromFragA == A_END) ? B_END : A_END;
+          chunkEndFromFragA = (ChunkOrientType) ((chunkEndFromFragA == A_END) ? B_END : A_END);
           ComputeFrag5pToChunkEnd(graph, fragA,
                                   chunkEndFromFragA,
                                   &distFromAChunkEnd,
                                   chunkA);
 
-          chunkEndFromFragB =
-            (chunkEndFromFragB == A_END) ? B_END : A_END;
+          chunkEndFromFragB = (ChunkOrientType)((chunkEndFromFragB == A_END) ? B_END : A_END);
           ComputeFrag5pToChunkEnd(graph, fragB,
                                   chunkEndFromFragB,
                                   &distFromBChunkEnd,
@@ -395,7 +393,7 @@ void DeleteOrientProcessor(OrientProcessor * op)
 
 OrientProcessor * CreateOrientProcessor(void)
 {
-  OrientProcessor * op = safe_calloc(sizeof(OrientProcessor), 1);
+  OrientProcessor * op = (OrientProcessor *)safe_calloc(sizeof(OrientProcessor), 1);
 
   op->array = CreateVA_OrientHolder(INITIAL_NUM_ORIENTS);
   op->ht = CreateScalarHashTable_AS();
@@ -429,7 +427,7 @@ void DestroyContigOrientChecker(ContigOrientChecker * coc)
 
 ContigOrientChecker * CreateContigOrientChecker(void)
 {
-  ContigOrientChecker * coc = safe_calloc(sizeof(ContigOrientChecker), 1);
+  ContigOrientChecker * coc = (ContigOrientChecker *)safe_calloc(sizeof(ContigOrientChecker), 1);
 
   if(coc == NULL)
     {

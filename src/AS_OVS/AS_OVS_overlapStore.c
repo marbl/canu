@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.19 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.20 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -423,6 +423,8 @@ AS_OVS_closeOverlapStore(OverlapStore *ovs) {
     fclose(ost);
   }
 #endif
+
+  delete ovs->gkp;
 
   AS_OVS_closeBinaryOverlapFile(ovs->bof);
 

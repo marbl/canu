@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.74 2009-04-21 13:53:45 skoren Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.75 2009-06-10 18:05:13 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.74 2009-04-21 13:53:45 skoren Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.75 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <time.h>
@@ -98,16 +98,17 @@ typedef struct {
 
 typedef enum {
   AS_MATE       = (int)'M', // Mate
-  AS_REREAD     = (int)'R', // Reread
+  AS_UNMATED    = (int)'X'
+  //AS_REREAD     = (int)'R', // Reread
   //AS_UNKNOWN	= (int)'U'  // the initial value, can't be defined here as it is in OrientType
 } LinkType;
 
 typedef enum {
-  AS_NORMAL     = (int)'N',
+  AS_UNKNOWN	= (int)'U',
   AS_INNIE      = (int)'I',
   AS_OUTTIE     = (int)'O',
-  AS_ANTI	= (int)'A',
-  AS_UNKNOWN	= (int)'U'
+  AS_NORMAL     = (int)'N',
+  AS_ANTI	= (int)'A'
 } OrientType;
 
 typedef struct {
@@ -216,6 +217,9 @@ typedef FragMesg InternalFragMesg;
 typedef enum {
   AS_DOVETAIL    = (int)'D',
   AS_CONTAINMENT = (int)'C',
+
+//  These are dead.  BPW 2009-06
+
   AS_SUPERREPEAT = (int)'S',
 
   AS_DOVETAIL_TRANS = (int) 'X',

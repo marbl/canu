@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_TER_terminator.c,v 1.30 2008-10-29 06:34:30 brianwalenz Exp $";
+const char *mainid = "$Id: AS_TER_terminator.c,v 1.31 2009-06-10 18:05:14 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -624,12 +624,12 @@ convertISF(GenericMesg *pmesg,
 
 void
 convertIMD(GenericMesg     *pmesg,
-           GateKeeperStore *gkpStore,
+           gkStore *gkpStore,
            FILE            *fileOutput) {
   IntMateDistMesg  *imdMesg = (IntMateDistMesg*) pmesg->m;
   SnapMateDistMesg  mdiMesg;
 
-  mdiMesg.erefines    = getGateKeeperLibrary(gkpStore, imdMesg->refines)->libraryUID;
+  mdiMesg.erefines    = gkpStore->gkStore_getLibrary(imdMesg->refines)->libraryUID;
   mdiMesg.irefines    = imdMesg->refines;
   mdiMesg.min         = imdMesg->min;
   mdiMesg.max         = imdMesg->max;
@@ -666,9 +666,9 @@ int main (int argc, char *argv[]) {
   int numISF = 0;
   int numIMD = 0;
 
-  GateKeeperStore *gkpStore;
-  FragStream      *fs;
-  fragRecord       fr;
+  gkStore *gkpStore;
+  gkStream      *fs;
+  gkFragment       fr;
 
   argc = AS_configure(argc, argv);
 
@@ -723,18 +723,18 @@ int main (int argc, char *argv[]) {
 
   fprintf(stderr, "Reading gatekeeper store\n");
 
-  gkpStore = openGateKeeperStore(gkpStoreName, FALSE);
-  fs       = openFragStream(gkpStore, FRAG_S_INF);
-  fragInfo = (fragInfo_t *)safe_calloc(getLastElemFragStore(gkpStore) + 1, sizeof(fragInfo_t));
+  gkpStore = new gkStore(gkpStoreName, FALSE, FALSE);
+  fs       = new gkStream(gkpStore, 0, 0, GKFRAGMENT_INF);
+  fragInfo = (fragInfo_t *)safe_calloc(gkpStore->gkStore_getNumFragments() + 1, sizeof(fragInfo_t));
 
-  while (nextFragStream(fs, &fr)) {
-    AS_IID    iid = getFragRecordIID(&fr);
+  while (fs->next(&fr)) {
+    AS_IID    iid = fr.gkFragment_getReadIID();
 
     fragInfo[iid].loaded   = 1;
-    fragInfo[iid].deleted  = getFragRecordIsDeleted(&fr);
-    fragInfo[iid].clearBeg = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_LATEST);
-    fragInfo[iid].clearEnd = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_LATEST);
-    fragInfo[iid].uid      = getFragRecordUID(&fr);
+    fragInfo[iid].deleted  = fr.gkFragment_getIsDeleted();
+    fragInfo[iid].clearBeg = fr.gkFragment_getClearRegionBegin();
+    fragInfo[iid].clearEnd = fr.gkFragment_getClearRegionEnd  ();
+    fragInfo[iid].uid      = fr.gkFragment_getReadUID();
 
     if ((uidStart > 0) &&
         (AS_UID_isString(fragInfo[iid].uid) == FALSE) &&
@@ -742,7 +742,7 @@ int main (int argc, char *argv[]) {
       uidStart = AS_UID_toInteger(fragInfo[iid].uid) + 1;
   }
 
-  closeFragStream(fs);
+  delete fs;
 
   //  We still use the gkpStore for getting library info, so leave it open for now.
 
@@ -856,7 +856,7 @@ int main (int argc, char *argv[]) {
 
   //  CANNOT close this before dumping IID to UID maps -- needed for
   //  UID lookups!
-  closeGateKeeperStore(gkpStore);
+  delete gkpStore;
 
   DeleteVA_AS_IID(ICMinISF1);
   DeleteVA_AS_IID(ICMinISF2);

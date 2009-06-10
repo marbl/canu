@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLink.c,v 1.19 2008-06-16 18:07:43 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLink.c,v 1.20 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,11 +32,9 @@ int
 Check_LinkMesg(LinkMesg *lkg_mesg) {
   AS_IID                     frag1IID;
   AS_IID                     frag2IID;
-  GateKeeperFragmentRecord   gkFrag1;
-  GateKeeperFragmentRecord   gkFrag2;
 
   if (lkg_mesg->action == AS_ADD)
-    gkpStore->gkp.lkgInput++;
+    gkpStore->inf.lkgInput++;
 
   if (lkg_mesg->action == AS_IGNORE)
     return 0;
@@ -47,7 +45,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
     AS_GKP_reportError(AS_GKP_LKG_SELF_LINK,
                        AS_UID_toString(lkg_mesg->frag1));
     if (lkg_mesg->action == AS_ADD)
-      gkpStore->gkp.lkgErrors++;
+      gkpStore->inf.lkgErrors++;
     return(1);
   }
 
@@ -57,53 +55,56 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
     AS_GKP_reportError(AS_GKP_LKG_UNSUPPORTED_TYPE,
                        lkg_mesg->type, AS_UID_toString(lkg_mesg->frag1), AS_UID_toString(lkg_mesg->frag2), AS_UID_toString(lkg_mesg->distance));
     if (lkg_mesg->action == AS_ADD)
-      gkpStore->gkp.lkgErrors++;
+      gkpStore->inf.lkgErrors++;
     return(1);
   }
 
 
   //  Check that the two fragments are alive and well
   //
-  frag1IID = getGatekeeperUIDtoIID(gkpStore, lkg_mesg->frag1, NULL);
+  frag1IID = gkpStore->gkStore_getUIDtoIID(lkg_mesg->frag1, NULL);
   if (frag1IID == 0) {
     AS_GKP_reportError(AS_GKP_LKG_FRG_DOESNT_EXIST,
                        AS_UID_toString(lkg_mesg->frag1));
     if (lkg_mesg->action == AS_ADD)
-      gkpStore->gkp.lkgErrors++;
+      gkpStore->inf.lkgErrors++;
     return(1);
   }
 
-  frag2IID = getGatekeeperUIDtoIID(gkpStore, lkg_mesg->frag2, NULL);
+  frag2IID = gkpStore->gkStore_getUIDtoIID(lkg_mesg->frag2, NULL);
   if (frag2IID == 0) {
     AS_GKP_reportError(AS_GKP_LKG_FRG_DOESNT_EXIST,
                        AS_UID_toString(lkg_mesg->frag2));
     if (lkg_mesg->action == AS_ADD)
-      gkpStore->gkp.lkgErrors++;
+      gkpStore->inf.lkgErrors++;
     return(1);
   }
 
+  //fprintf(stderr, "lkg_mesg: %s,%d <-> %s,%d\n",
+  //        AS_UID_toString(lkg_mesg->frag1), frag1IID,
+  //        AS_UID_toString(lkg_mesg->frag2), frag2IID);
 
   //  Now grab the reads, we'll need them soon enough anyway.
   //
-  getGateKeeperFragment(gkpStore, frag1IID, &gkFrag1);
-  getGateKeeperFragment(gkpStore, frag2IID, &gkFrag2);
+  gkpStore->gkStore_getFragment(frag1IID, gkFrag1, GKFRAGMENT_INF);
+  gkpStore->gkStore_getFragment(frag2IID, gkFrag2, GKFRAGMENT_INF);
 
 
   //  Make sure they're not deleted
   //
-  if (gkFrag1.deleted) {
+  if (gkFrag1->gkFragment_getIsDeleted()) {
     AS_GKP_reportError(AS_GKP_LKG_FRG_DELETED,
                        AS_UID_toString(lkg_mesg->frag1));
     if (lkg_mesg->action == AS_ADD)
-      gkpStore->gkp.lkgErrors++;
+      gkpStore->inf.lkgErrors++;
     return(1);
   }
 
-  if (gkFrag2.deleted) {
+  if (gkFrag2->gkFragment_getIsDeleted()) {
     AS_GKP_reportError(AS_GKP_LKG_FRG_DELETED,
                        AS_UID_toString(lkg_mesg->frag2));
     if (lkg_mesg->action == AS_ADD)
-      gkpStore->gkp.lkgErrors++;
+      gkpStore->inf.lkgErrors++;
     return(1);
   }
 
@@ -112,22 +113,22 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   if (lkg_mesg->action == AS_ADD) {
     int err = 0;
 
-    if ((gkFrag1.mateIID > 0) && (gkFrag1.mateIID != frag2IID)) {
+    if ((gkFrag1->gkFragment_getMateIID() > 0) && (gkFrag1->gkFragment_getMateIID() != frag2IID)) {
       AS_GKP_reportError(AS_GKP_LKG_ALREADY_MATED,
-                         AS_UID_toString(gkFrag1.readUID), gkFrag1.readIID,
-                         gkFrag1.mateIID,
+                         AS_UID_toString(gkFrag1->gkFragment_getReadUID()), gkFrag1->gkFragment_getReadIID(),
+                         gkFrag1->gkFragment_getMateIID(),
                          AS_UID_toString(lkg_mesg->frag2), frag2IID);
       err++;
     }
-    if ((gkFrag2.mateIID > 0) && (gkFrag2.mateIID != frag1IID)) {
+    if ((gkFrag2->gkFragment_getMateIID() > 0) && (gkFrag2->gkFragment_getMateIID() != frag1IID)) {
       AS_GKP_reportError(AS_GKP_LKG_ALREADY_MATED,
-                         AS_UID_toString(gkFrag2.readUID), gkFrag2.readIID,
-                         gkFrag2.mateIID,
+                         AS_UID_toString(gkFrag2->gkFragment_getReadUID()), gkFrag2->gkFragment_getReadIID(),
+                         gkFrag2->gkFragment_getMateIID(),
                          AS_UID_toString(lkg_mesg->frag1), frag1IID);
       err++;
     }
     if (err) {
-      gkpStore->gkp.lkgErrors++;
+      gkpStore->inf.lkgErrors++;
       return(1);
     }
 
@@ -140,8 +141,8 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
     //  And if they ARE mated, just quit because their mates are
     //  correct.
     //
-    if ((gkFrag1.mateIID > 0) &&
-        (gkFrag2.mateIID > 0))
+    if ((gkFrag1->gkFragment_getMateIID() > 0) &&
+        (gkFrag2->gkFragment_getMateIID() > 0))
       return(0);
   }
 
@@ -151,48 +152,53 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   //  there, and get the library IID to set in the reads.
   //
   if (AS_UID_isDefined(lkg_mesg->distance) == TRUE) {
-    gkFrag1.libraryIID = getGatekeeperUIDtoIID(gkpStore, lkg_mesg->distance, NULL);
-    gkFrag2.libraryIID = gkFrag1.libraryIID;
+    gkFrag1->gkFragment_setLibraryIID(gkpStore->gkStore_getUIDtoIID(lkg_mesg->distance, NULL));
+    gkFrag2->gkFragment_setLibraryIID(gkFrag1->gkFragment_getLibraryIID());
 
-    if (gkFrag1.libraryIID == 0) {
+    if (gkFrag1->gkFragment_getLibraryIID() == 0) {
       AS_GKP_reportError(AS_GKP_LKG_LIB_DOESNT_EXIST,
                          AS_UID_toString(lkg_mesg->distance));
       if (lkg_mesg->action == AS_ADD)
-        gkpStore->gkp.lkgErrors++;
+        gkpStore->inf.lkgErrors++;
       return(1);
     }
 
-    gkFrag1.orientation = lkg_mesg->link_orient;
-    gkFrag2.orientation = lkg_mesg->link_orient;
+    gkFrag1->gkFragment_setOrientation(lkg_mesg->link_orient);
+    gkFrag2->gkFragment_setOrientation(lkg_mesg->link_orient);
   }
 
   //  Now make absolutely sure the two reads are in the same library.
   //
-  if (gkFrag1.libraryIID != gkFrag2.libraryIID) {
+  if (gkFrag1->gkFragment_getLibraryIID() != gkFrag2->gkFragment_getLibraryIID()) {
     AS_GKP_reportError(AS_GKP_LKG_DIFFERENT_LIB,
-            frag1IID, gkFrag1.libraryIID,
-            frag2IID, gkFrag2.libraryIID);
+                       frag1IID, gkFrag1->gkFragment_getLibraryIID(),
+                       frag2IID, gkFrag2->gkFragment_getLibraryIID());
     if (lkg_mesg->action == AS_ADD)
-      gkpStore->gkp.lkgErrors++;
+      gkpStore->inf.lkgErrors++;
     return(1);
   }
 
   //  And commit the change.
 
   if (lkg_mesg->action == AS_ADD) {
-    gkFrag1.mateIID    = frag2IID;
-    gkFrag2.mateIID    = frag1IID;
+    gkFrag1->gkFragment_setMateIID(frag2IID);
+    gkFrag2->gkFragment_setMateIID(frag1IID);
 
-    setIndexStore(gkpStore->frg, frag1IID, &gkFrag1);
-    setIndexStore(gkpStore->frg, frag2IID, &gkFrag2);
+    gkpStore->gkStore_setFragment(gkFrag1);
+    gkpStore->gkStore_setFragment(gkFrag2);
 
-    gkpStore->gkp.lkgLoaded++;
+    //fprintf(stderr, "ADD link from %s,%d (%d) to %s,%d (%d)\n",
+    //        AS_UID_toString(gkFrag1->gkFragment_getReadUID()), gkFrag1->gkFragment_getReadIID(), frag1IID,
+    //        AS_UID_toString(gkFrag2->gkFragment_getReadUID()), gkFrag2->gkFragment_getReadIID(), frag2IID);
+
+
+    gkpStore->inf.lkgLoaded++;
   } else if (lkg_mesg->action == AS_DELETE) {
-    gkFrag1.mateIID    = 0;
-    gkFrag2.mateIID    = 0;
+    gkFrag1->gkFragment_setMateIID(0);
+    gkFrag2->gkFragment_setMateIID(0);
 
-    setIndexStore(gkpStore->frg, frag1IID, &gkFrag1);
-    setIndexStore(gkpStore->frg, frag2IID, &gkFrag2);
+    gkpStore->gkStore_setFragment(gkFrag1);
+    gkpStore->gkStore_setFragment(gkFrag2);
   } else {
     AS_GKP_reportError(AS_GKP_LKG_UNKNOWN_ACTION);
     return 1;

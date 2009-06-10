@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.8 2009-05-29 17:29:19 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.9 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
@@ -266,7 +266,7 @@ VA_DEF(ScaffoldData)
 
 
 
-extern GateKeeperStore       *gkpStore;
+extern gkStore       *gkpStore;
 extern OverlapStore          *ovlStore;
 extern tSequenceDB           *sequenceDB;
 extern HashTable_AS          *fragmentMap;
@@ -312,8 +312,6 @@ extern int NumUnitigRetrySuccess;
 extern int DUMP_UNITIGS_IN_MULTIALIGNCONTIG;
 extern int VERBOSE_MULTIALIGN_OUTPUT;
 extern int FORCE_UNITIG_ABUT;
-
-extern int clear_range_to_use;
 
 //  Functions used by lots of pieces internally to AS_CNS.  Defined in
 //  MultiAlgnment_CNS.c.
@@ -460,7 +458,7 @@ MultiAlignContig(IntConConMesg *contig,
 
 int
 MultiAlignUnitig(IntUnitigMesg   *unitig,
-                 GateKeeperStore *fragStore,
+                 gkStore *fragStore,
                  VA_TYPE(char)   *sequence,
                  VA_TYPE(char)   *quality,
                  VA_TYPE(int32)  *deltas,
@@ -500,7 +498,7 @@ GetAlignmentTraceDriver(Fragment *afrag, int32 aoffset,
 
 MultiAlignT *
 ReplaceEndUnitigInContig(tSequenceDB *sequenceDBp,
-                         GateKeeperStore *frag_store,
+                         gkStore *frag_store,
                          uint32 contig_iid, uint32 unitig_iid, int extendingLeft,
                          CNS_Options *opp);
 
@@ -514,7 +512,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
 
 MultiAlignT *
 MergeMultiAlignsFast_new(tSequenceDB *sequenceDBp,
-                         GateKeeperStore *frag_store,
+                         gkStore *frag_store,
                          VA_TYPE(IntElementPos) *positions,
                          int quality,
                          int verbose,

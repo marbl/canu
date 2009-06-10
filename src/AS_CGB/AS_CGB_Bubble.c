@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_Bubble.c,v 1.15 2008-12-05 19:06:11 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_Bubble.c,v 1.16 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -403,7 +403,7 @@ AS_CGB_Bubble_find_bubbles(Tfragment *frags, Tedge *edges, int sz, int age,
 
 void
 AS_CGB_Bubble_find_and_remove_bubbles
-(GateKeeperStore *gkpStore,
+(gkStore *gkpStore,
  Tfragment *frags, Tedge *edges,
  TChunkMesg *chunks, TChunkFrag *cfrgs,
  float gar,

@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.35 2009-05-21 02:24:37 brianwalenz Exp $
- * $Revision: 1.35 $
+ * $Id: OlapFromSeedsOVL.c,v 1.36 2009-06-10 18:05:13 brianwalenz Exp $
+ * $Revision: 1.36 $
 */
 
-const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.35 2009-05-21 02:24:37 brianwalenz Exp $";
+const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.36 2009-06-10 18:05:13 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -100,8 +100,7 @@ if (0)
  exit(1);
 }
 
-   gkpStore = openGateKeeperStore(gkpStore_Path, FALSE);
-   assert (gkpStore != NULL);
+   gkpStore = new gkStore(gkpStore_Path, FALSE, FALSE);
 
    fprintf (stderr, "Starting Read_Frags ()\n");
    Read_Frags ();
@@ -133,7 +132,7 @@ if (0)
         fprintf (stderr, "                   Failed overlaps = %d\n", Failed_Olaps);
        }
 
-   closeGateKeeperStore (gkpStore);
+   delete gkpStore;
 
 #if USE_NEW_STUFF
    Analyze_Diffs ();
@@ -1392,7 +1391,7 @@ static void  Compute_Delta
 //  the number of entries in  delta .
 
   {
-    int  delta_stack [AS_FRAG_MAX_LEN+1];  //  only MAX_ERRORS needed
+    int  delta_stack [AS_READ_MAX_LEN+1];  //  only MAX_ERRORS needed
    int  from, last, max;
    int  i, j, k;
 
@@ -1459,7 +1458,7 @@ static void  Convert_Delta_To_Diff
 //  and deletes are characters that should be deleted from A.
 
   {
-   Diff_Entry_t  diff_list [AS_FRAG_MAX_LEN+1];  //  only MAX_ERRORS needed
+   Diff_Entry_t  diff_list [AS_READ_MAX_LEN+1];  //  only MAX_ERRORS needed
    int  ct;
    int  i, j, k, m, p;
 
@@ -1709,7 +1708,7 @@ if (0)
  printf ("%3d:  %c  hp_ct=%d  hp_sum=%d  hp_len=%d  diff=%d  hp_width=%d  x=%.3f\n",
       j, seq [j], hp_ct, hp_sum, hp_len, diff, hp_width, x);
 }
-            if (diff < 0 && hp_width > 1 && (new_hp_len > 0 || vote [j] . mutable))
+            if ((diff < 0) && (hp_width > 1) && ((new_hp_len > 0) || (vote [j] . mutab)))
               {  // delete (- diff) copies of hp_ch preceding here
 //**ALD
 //printf (" .. delete %d copies of %c in %d..%d\n", - diff, hp_ch, j, i - 1);
@@ -1861,7 +1860,7 @@ if (0)
 //**ALD  Skip for now--maybe put back when have correlated diffs
 #if 0
             if (diff < - DIFF_CUTOFF && hp_width > 1
-                  && (new_hp_len > 0 || vote [j] . mutable))
+                  && (new_hp_len > 0 || vote [j] . mutab))
               {  // delete (- diff) copies of hp_ch preceding here
 //**ALD
 //printf (" .. delete %d copies of %c in %d..%d\n", - diff, hp_ch, j, i - 1);
@@ -2391,7 +2390,7 @@ static int  Eliminate_Correlated_Diff_Olaps
    // no point continuing if there are not enough columns with
    // differences
    if (num_diff_cols < column_ct)
-     return;
+     return 0;
 
    if (Verbose_Level > 1)
      {
@@ -2512,7 +2511,7 @@ static int  Eliminate_Correlated_Diff_Olaps
 
 
 static void  Extract_Needed_Frags
-    (GateKeeperStore *store, int32 lo_frag, int32 hi_frag,
+    (gkStore *store, int32 lo_frag, int32 hi_frag,
      Frag_List_t * list, int * next_olap)
 
 //  Read fragments  lo_frag .. hi_frag  from  store  and save
@@ -2522,18 +2521,17 @@ static void  Extract_Needed_Frags
   {
 
 #ifdef USE_STREAM_FOR_EXTRACT
-   FragStream  *frag_stream;
+   gkStream  *frag_stream;
    int i;
 #endif
-   static fragRecord   frag_read;
+   static gkFragment   frag_read;
    uint32  frag_iid;
    int  bytes_used, total_len, new_total;
    int  extract_ct, stream_ct;
    int  j;
 
 #ifdef USE_STREAM_FOR_EXTRACT
-   frag_stream = openFragStream (store);
-   resetFragStream (frag_stream, lo_frag, hi_frag);
+   frag_stream = new gkStream (store, lo_frag, hi_frag, GKFRAGMENT_SEQ);
 #endif
 
    list -> ct = 0;
@@ -2541,7 +2539,7 @@ static void  Extract_Needed_Frags
    extract_ct = stream_ct = 0;
 
 #ifdef USE_STREAM_FOR_EXTRACT
-   for (i = 0; nextFragStream (frag_stream, &frag_read, FRAG_S_SEQ)
+   for (i = 0; frag_stream->next (&frag_read)
         && (* next_olap) < Num_Olaps; i ++)
 #else
    frag_iid = Olap [(* next_olap)] . b_iid;
@@ -2556,24 +2554,24 @@ static void  Extract_Needed_Frags
       stream_ct ++;
 
 #ifdef USE_STREAM_FOR_EXTRACT
-      getReadIndex_ReadStruct (&frag_read, & frag_iid);
+      frag_iid = frag_read.gkFragment_getReadIID()
       if  (frag_iid < Olap [(* next_olap)] . b_iid)
           continue;
 #else
-      getFrag (store, frag_iid, &frag_read, FRAG_S_SEQ);
+      store->gkStore_getFragment (frag_iid, &frag_read, GKFRAGMENT_SEQ);
 #endif
 
-      if (getFragRecordIsDeleted (&frag_read))
+      if (frag_read.gkFragment_getIsDeleted ())
           goto  Advance_Next_Olap;
 
       shredded = FALSE;
         // Used in Process_Seed to ignore overlaps between two "shredded" reads
         // Perhaps should check for external reads now
 
-      clear_start = getFragRecordClearRegionBegin (&frag_read, Clear_Range_Used);
-      clear_end = getFragRecordClearRegionEnd (&frag_read, Clear_Range_Used);
-      raw_len = getFragRecordSequenceLength (&frag_read);
-      seq_ptr = getFragRecordSequence (&frag_read);
+      frag_read.gkFragment_getClearRegion(clear_start, clear_end);
+
+      raw_len = frag_read.gkFragment_getSequenceLength ();
+      seq_ptr = frag_read.gkFragment_getSequence ();
 
       if (AS_READ_MAX_LEN < clear_end - clear_start)
         {
@@ -2629,7 +2627,7 @@ static void  Extract_Needed_Frags
      }
 
 #ifdef USE_STREAM_FOR_EXTRACT
-   closeFragStream (frag_stream);
+   gkStream_close (frag_stream);
 #endif
 
    if  (list -> ct == list -> size)
@@ -2795,7 +2793,7 @@ static char  Homopoly_Should_Be
 
    if (mx_ch == curr)
      {
-      vp -> mutable = FALSE;
+      vp -> mutab = FALSE;
       return  mx_ch;   // no change
      }
 
@@ -2827,11 +2825,11 @@ static char  Homopoly_Should_Be
          || (curr_ct == 1 && mx_ct > 5)   // one confirming vote, > 5 votes to change
          || (curr_ct == 2 && mx_ct > 9))  // two confirming votes, > 9 votes to change
      {
-      vp -> mutable = TRUE;
+      vp -> mutab = TRUE;
       return  mx_ch;
      }
 
-   vp -> mutable = FALSE;
+   vp -> mutab = FALSE;
    return  curr;
   }
 
@@ -2963,7 +2961,7 @@ static void  Init_Thread_Work_Area
 
 
 static char *  Insert_Gaps
-  (char * seq, const short insert_size [], int seq_len)
+  (char * seq, const short unsigned insert_size [], int seq_len)
 
 //  Return a (newly allocated) string that is the same as  seq
 //  but with  insert_size [i]  gaps ('-'s) inserted after
@@ -2994,14 +2992,14 @@ static char *  Insert_Gaps
 
 
 static int  Is_Homopoly_Type
-  (fragRecord * fr, GateKeeperStore * gkp)
+  (gkFragment * fr, gkStore * gkp)
 
 // Return  TRUE  iff fr is from a library with untrusted homopolymer runs
 
   {
-   GateKeeperLibraryRecord  * libp;
+   gkLibrary  * libp;
 
-   libp = getGateKeeperLibrary (gkp, getFragRecordLibraryIID (fr));
+   libp = gkp->gkStore_getLibrary (fr->gkFragment_getLibraryIID ());
 
    if (libp == NULL)
      return  FALSE;
@@ -3035,7 +3033,7 @@ static Vote_Value_t  Matching_Vote
 
 
 static void  Modify_For_Inserts
-  (Sequence_Diff_t * mod_dp, Sequence_Diff_t * dp, const short insert_size [])
+  (Sequence_Diff_t * mod_dp, Sequence_Diff_t * dp, const short unsigned insert_size [])
 
 // Make  mod_dp  be a modified version of  dp  that allows for extra insertions
 // after each position.  The number of insertions needed after position  i
@@ -3378,33 +3376,6 @@ static void  Parse_Command_Line
 
         case  'c' :
           Correction_Filename = optarg;
-          break;
-
-        case  'C' :
-          if (strcmp (optarg, "AS_READ_CLEAR_ORIG") == 0)
-            Clear_Range_Used = AS_READ_CLEAR_ORIG;
-          else if (strcmp (optarg, "AS_READ_CLEAR_MAX") == 0)
-            Clear_Range_Used = AS_READ_CLEAR_MAX;
-          else if (strcmp (optarg, "AS_READ_CLEAR_VEC") == 0)
-            Clear_Range_Used = AS_READ_CLEAR_VEC;
-          else if (strcmp (optarg, "AS_READ_CLEAR_OBTINI") == 0)
-            Clear_Range_Used = AS_READ_CLEAR_OBTINI;
-          else if (strcmp (optarg, "AS_READ_CLEAR_OBT") == 0)
-            Clear_Range_Used = AS_READ_CLEAR_OBT;
-          else if (strcmp (optarg, "AS_READ_CLEAR_ECR1") == 0)
-            Clear_Range_Used = AS_READ_CLEAR_ECR1;
-          else if (strcmp (optarg, "AS_READ_CLEAR_ECR2") == 0)
-            Clear_Range_Used = AS_READ_CLEAR_ECR2;
-          else if (strcmp (optarg, "AS_READ_CLEAR_UNTRIM") == 0)
-            Clear_Range_Used = AS_READ_CLEAR_UNTRIM;
-          else if (strcmp (optarg, "AS_READ_CLEAR_LATEST") == 0)
-            Clear_Range_Used = AS_READ_CLEAR_LATEST;
-          else
-            {
-              fprintf (stderr, "ERROR:  Unrecognized clear range type \"%s\"\n",
-                       optarg);
-              errflg = TRUE;
-            }
           break;
 
         case  'd' :
@@ -3934,9 +3905,9 @@ static void  Process_Seed
    Sequence_Diff_t  diff;
    char  * a_part, * b_part;
    unsigned  a_len;
-   int  right_delta [AS_FRAG_MAX_LEN+1]={0}, right_delta_len;
-   int  left_delta [AS_FRAG_MAX_LEN+1]={0}, left_delta_len;
-   int  new_delta [AS_FRAG_MAX_LEN+1]={0};
+   int  right_delta [AS_READ_MAX_LEN+1]={0}, right_delta_len;
+   int  left_delta [AS_READ_MAX_LEN+1]={0}, left_delta_len;
+   int  new_delta [AS_READ_MAX_LEN+1]={0};
    int  new_errors, new_a_end, new_b_end, new_delta_len, new_match_to_end;
    int  raw_errors, score;
    int  a_part_len, b_part_len, a_end, b_end, olap_len;
@@ -4234,7 +4205,7 @@ static void  Process_Seed
         new_errors, wa);
 
    k = Frag [sub] . num_diffs ++;
-   Frag [sub] . diff_list = safe_realloc (Frag [sub] . diff_list,
+   Frag [sub] . diff_list = (Sequence_Diff_t *)safe_realloc (Frag [sub] . diff_list,
         Frag [sub] . num_diffs * sizeof (Sequence_Diff_t));
    Frag [sub] . diff_list [k] = diff;
    Frag [sub] . diff_list [k] . b_iid = olap -> b_iid;
@@ -4275,12 +4246,12 @@ static void  Read_Frags
 
   {
    char  seq_buff [AS_READ_MAX_LEN + 1];
-   static  fragRecord    frag_read;
+   static  gkFragment    frag_read;
    unsigned  clear_start, clear_end;
    int32  high_store_frag;
    int  i, j;
 
-   high_store_frag = getLastElemFragStore (gkpStore);
+   high_store_frag = gkpStore->gkStore_getNumFragments ();
    if  (Hi_Frag_IID == INT_MAX)
        Hi_Frag_IID = high_store_frag;
    if  (Hi_Frag_IID > high_store_frag)
@@ -4295,22 +4266,20 @@ static void  Read_Frags
    Frag = (Frag_Info_t *) safe_calloc (Num_Frags, sizeof (Frag_Info_t));
 
 #ifdef USE_STORE_DIRECTLY_READ
-  Internal_gkpStore = openGateKeeperStore (gkpStore_Path, FALSE);
-  assert (Internal_gkpStore != NULL);
+  Internal_gkpStore = new gkStore (gkpStore_Path, FALSE, FALSE);
 #else
-   Internal_gkpStore
-       = loadGateKeeperStorePartial (gkpStore_Path, Lo_Frag_IID, Hi_Frag_IID);
+  Internal_gkpStore = new gkStore (gkpStore_Path, FALSE, FALSE);
+  Internal_gkpStore->gkStore_load (Lo_Frag_IID, Hi_Frag_IID, GKFRAGMENT_SEQ);
 #endif
 
-   Frag_Stream = openFragStream (Internal_gkpStore, FRAG_S_SEQ);
-   resetFragStream (Frag_Stream, Lo_Frag_IID, Hi_Frag_IID);
+  Frag_Stream = new gkStream (Internal_gkpStore, Lo_Frag_IID, Hi_Frag_IID, GKFRAGMENT_SEQ);
 
-   for (i = 0; nextFragStream (Frag_Stream, &frag_read); i ++)
+   for (i = 0; Frag_Stream->next (&frag_read); i ++)
      {
       char  * seq_ptr;
       int  raw_len, result, frag_len;
 
-      if (getFragRecordIsDeleted (&frag_read))
+      if (frag_read.gkFragment_getIsDeleted ())
         {
          Frag [i] . sequence = NULL;
          Frag [i] . vote = NULL;
@@ -4322,18 +4291,17 @@ static void  Read_Frags
         // Perhaps should check for external reads now
 
 
-      clear_start = getFragRecordClearRegionBegin (&frag_read, Clear_Range_Used);
-      clear_end = getFragRecordClearRegionEnd (&frag_read, Clear_Range_Used);
-      raw_len = getFragRecordSequenceLength (&frag_read);
+      frag_read.gkFragment_getClearRegion(clear_start, clear_end);
+      raw_len = frag_read.gkFragment_getSequenceLength ();
       if (AS_READ_MAX_LEN < raw_len)
         {
          fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
          fprintf (stderr, "Read %u is too long:  %d bp; max is %d\n",
-              getFragRecordIID (&frag_read), raw_len, AS_READ_MAX_LEN);
+              frag_read.gkFragment_getReadIID (), raw_len, AS_READ_MAX_LEN);
          exit(1);
         }
 
-      seq_ptr = getFragRecordSequence (&frag_read);
+      seq_ptr = frag_read.gkFragment_getSequence ();
       Frag [i] . trim_5p = clear_start;
       Frag [i] . trim_3p = raw_len - clear_end;
       Frag [i] . clear_len = clear_end - clear_start;
@@ -4361,8 +4329,8 @@ static void  Read_Frags
 #endif
      }
 
-   closeFragStream (Frag_Stream);
-   closeGateKeeperStore (Internal_gkpStore);
+   delete Frag_Stream;
+   delete Internal_gkpStore;
 
    return;
   }
@@ -5550,7 +5518,7 @@ static char  Standard_Should_Be
 
    if (mx_ch == curr)
      {
-      vp -> mutable = FALSE;
+      vp -> mutab = FALSE;
       return  mx_ch;   // no change
      }
 
@@ -5583,11 +5551,11 @@ static char  Standard_Should_Be
          || (curr_ct == 0 && mx_ct > 2)   // no confirming votes, > 2 votes to change
          || (curr_ct == 1 && mx_ct > 5))  // one confirming vote, > 5 votes to change
      {
-      vp -> mutable = TRUE;
+      vp -> mutab = TRUE;
       return  mx_ch;
      }
 
-   vp -> mutable = FALSE;
+   vp -> mutab = FALSE;
    return  curr;
   }
 
@@ -5603,7 +5571,7 @@ static void  Stream_Old_Frags
 
   {
    Thread_Work_Area_t  wa;
-   fragRecord   frag_read;
+   gkFragment   frag_read;
    char  * seq_ptr;
    char  seq_buff [AS_READ_MAX_LEN + 1];
    char  rev_seq [AS_READ_MAX_LEN + 1] = "acgt";
@@ -5614,15 +5582,13 @@ static void  Stream_Old_Frags
 
    Init_Thread_Work_Area (& wa, 0);
 
-   Frag_Stream = openFragStream (gkpStore, FRAG_S_SEQ);
-
    lo_frag = Olap [0] . b_iid;
    hi_frag = Olap [Num_Olaps - 1] . b_iid;
 
-   resetFragStream (Frag_Stream, lo_frag, hi_frag);
+   Frag_Stream = new gkStream (gkpStore, lo_frag, hi_frag, GKFRAGMENT_SEQ);
 
    next_olap = 0;
-   for (i = 0; nextFragStream (Frag_Stream, &frag_read)
+   for (i = 0; Frag_Stream->next (&frag_read)
         && next_olap < Num_Olaps; i ++)
      {
       int32  rev_id;
@@ -5633,21 +5599,20 @@ static void  Stream_Old_Frags
         if (i % 1000 == 0)
            printf ("Stream_Old_Frags  i = %7d\n", i);
 
-      frag_iid = (uint32) getFragRecordIID (&frag_read);
+      frag_iid = (uint32) frag_read.gkFragment_getReadIID ();
       if  (frag_iid < Olap [next_olap] . b_iid)
           continue;
 
-      if (getFragRecordIsDeleted (&frag_read))
+      if (frag_read.gkFragment_getIsDeleted ())
           continue;
 
       shredded = FALSE;
         // Used in Process_Seed to ignore overlaps between two "shredded" reads
         // Perhaps should check for external reads now
 
-      clear_start = getFragRecordClearRegionBegin (&frag_read, Clear_Range_Used);
-      clear_end = getFragRecordClearRegionEnd (&frag_read, Clear_Range_Used);
-      raw_len = getFragRecordSequenceLength (&frag_read);
-      seq_ptr = getFragRecordSequence (&frag_read);
+      frag_read.gkFragment_getClearRegion (clear_start, clear_end);
+      raw_len = frag_read.gkFragment_getSequenceLength ();
+      seq_ptr = frag_read.gkFragment_getSequence ();
       is_homopoly = Is_Homopoly_Type (&frag_read, gkpStore);
 
       if (AS_READ_MAX_LEN < clear_end - clear_start)
@@ -5681,7 +5646,7 @@ static void  Stream_Old_Frags
         }
      }
 
-   closeFragStream (Frag_Stream);
+   delete Frag_Stream;
 
    Failed_Olaps = wa . failed_olaps;
 
@@ -5818,11 +5783,10 @@ static void  Threaded_Stream_Old_Frags
    next_olap = 0;
 
 #ifdef USE_STORE_DIRECTLY_STREAM
-  Internal_gkpStore = openGateKeeperStore (gkpStore_Path, FALSE);
-  assert (Internal_gkpStore != NULL);
+   Internal_gkpStore = new gkStore (gkpStore_Path, FALSE, FALSE);
 #else
-   Internal_gkpStore
-       = loadFragStorePartial (gkpStore_Path, lo_frag, hi_frag);
+   Internal_gkpStore = new gkStore (gkpStore_Path, FALSE, FALSE);
+   Internal_gkpStore->load (lo_frag, hi_frag);
 #endif
 
    curr_frag_list = & frag_list_1;
@@ -5833,7 +5797,7 @@ static void  Threaded_Stream_Old_Frags
                          curr_frag_list, & next_olap);
 
 #ifndef USE_STORE_DIRECTLY_STREAM
-   closeGateKeeperStore (Internal_gkpStore);
+   gkStore_close (Internal_gkpStore);
 #endif
 
    while  (lo_frag <= last_frag)
@@ -5875,7 +5839,7 @@ static void  Threaded_Stream_Old_Frags
                                  next_frag_list, & next_olap);
 
 #ifndef USE_STORE_DIRECTLY_STREAM
-           closeGateKeeperStore (Internal_gkpStore);
+           gkStore_close (Internal_gkpStore);
 #endif
           }
 
@@ -5899,7 +5863,7 @@ static void  Threaded_Stream_Old_Frags
      }
 
 #ifdef USE_STORE_DIRECTLY_STREAM
-   closeGateKeeperStore (Internal_gkpStore);
+   delete Internal_gkpStore;
 #endif
 
    for (i = 0; i < Num_PThreads; i ++)
@@ -5966,7 +5930,7 @@ static void  Usage
         "-b      Output binary overlap messages\n"
         "-c <f>  Output corrections to file <f>\n"
         "-C <s>  Use clear range <s> for reads.  Default value is\n"
-        "        AS_READ_CLEAR_OBT\n"
+        "        AS_READ_CLEAR_LATEST\n"
         "-d <n>  Set keep flag in correction record on end of frags with less\n"
         "        than <n> olaps\n"
         "-e      Extend fragments beyond 3' clear range\n"

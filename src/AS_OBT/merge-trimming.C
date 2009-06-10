@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merge-trimming.C,v 1.35 2009-02-23 02:23:41 brianwalenz Exp $";
+const char *mainid = "$Id: merge-trimming.C,v 1.36 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include "trim.H"
 #include "constants.H"
@@ -40,7 +40,7 @@ readLine(FILE *F) {
 class mode5 {
 public:
   mode5() {
-    memset(_histo, 0, sizeof(uint32) * AS_READ_MAX_LEN);
+    memset(_histo, 0, sizeof(uint32) * AS_READ_MAX_MEDIUM_LEN);
     _mode5 = 999999999;
   };
   ~mode5() {
@@ -63,14 +63,14 @@ public:
   };
 
 private:
-  uint32   _histo[AS_FRAG_MAX_LEN+1];
+  uint32   _histo[AS_READ_MAX_MEDIUM_LEN + 1];
   uint32   _mode5;
 };
 
 mode5 *
-findModeOfFivePrimeMode(GateKeeperStore *gkp, char *ovlFile) {
-  mode5         *modes = new mode5 [getNumGateKeeperLibraries(gkp) + 1];
-  fragRecord     fr;
+findModeOfFivePrimeMode(gkStore *gkp, char *ovlFile) {
+  mode5         *modes = new mode5 [gkp->gkStore_getNumLibraries() + 1];
+  gkFragment     fr;
 
   errno = 0;
   FILE *O = fopen(ovlFile, "r");
@@ -82,18 +82,18 @@ findModeOfFivePrimeMode(GateKeeperStore *gkp, char *ovlFile) {
     splitToWords W(line);
 
     AS_IID  id = atoi(W[0]);
-    getFrag(gkp, id, &fr, FRAG_S_INF);
+    gkp->gkStore_getFragment(id, &fr, GKFRAGMENT_INF);
 
-    AS_IID  lb = getFragRecordLibraryIID(&fr);
+    AS_IID  lb = fr.gkFragment_getLibraryIID();
 
-    modes[lb].add(atoi(W[4]) + getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBTINI));
+    modes[lb].add(atoi(W[4]) + fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL));
 
     readLine(O);
   }
 
   fclose(O);
 
-  for (uint32 i=0; i<=getNumGateKeeperLibraries(gkp); i++)
+  for (uint32 i=0; i<=gkp->gkStore_getNumLibraries(); i++)
     modes[i].compute();
 
   return(modes);
@@ -150,18 +150,12 @@ main(int argc, char **argv) {
 
   //  Open the frgStore, prepare for reading fragments
   //
-  GateKeeperStore *gkp = openGateKeeperStore(frgStore, doModify);
-  if (gkp == NULL) {
-    fprintf(stderr, "Failed to open fragStore %s!\n", frgStore);
-    exit(1);
-  }
+  gkStore    *gkp = new gkStore(frgStore, FALSE, doModify);
+  gkFragment  fr;
 
-  gkp->frg = convertStoreToMemoryStore(gkp->frg);
+  //gkp->frg = convertStoreToMemoryStore(gkp->frg);
 
-  uint32      firstElem = getFirstElemFragStore(gkp);
-  uint32      lastElem  = getLastElemFragStore(gkp) + 1;
-  fragRecord  fr;
-
+  gkp->gkStore_enableClearRange(AS_READ_CLEAR_OBTMERGE);
 
   //  Open the overlap file
   //
@@ -198,23 +192,23 @@ main(int argc, char **argv) {
     //
     lid++;
     while (lid < iid) {
-      getFrag(gkp, lid, &fr, FRAG_S_INF | FRAG_S_QLT);
+      gkp->gkStore_getFragment(lid, &fr, GKFRAGMENT_INF | GKFRAGMENT_QLT);
 
-      uint32 qltL0 = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBTINI);
-      uint32 qltR0 = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBTINI);
+      uint32 qltL0 = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
+      uint32 qltR0 = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_OBTINITIAL);
       uint32 qltL1 = 0;
       uint32 qltR1 = 0;
-      AS_UID uid   = getFragRecordUID(&fr);
+      AS_UID uid   = fr.gkFragment_getReadUID();
 
-      GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkp, getFragRecordLibraryIID(&fr));
+      gkLibrary  *lr = gkp->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
 
       //  If not already deleted, update the clear.  Updating the
       //  clear on deleted fragments usually results in the log
       //  showing merge-trimming deleted the fragment, which is
       //  incorrect.
 
-      if (getFragRecordIsDeleted(&fr) == 0) {
-        if ((gklr) && (gklr->doNotQVTrim)) {
+      if (fr.gkFragment_getIsDeleted() == 0) {
+        if ((lr) && (lr->doNotQVTrim)) {
           //  Just leave it as is.  It should show up as a singleton.
           //qltL1 = 0;
           //qltR1 = 0;
@@ -230,10 +224,10 @@ main(int argc, char **argv) {
         uint32 l = (qltL0 < qltL1) ? qltL1 : qltL0;
         uint32 r = (qltR0 < qltR1) ? qltR0 : qltR1;
 
-        if (l + AS_FRAG_MIN_LEN < r) {
+        if (l + AS_READ_MIN_LEN < r) {
           if (doModify) {
-            setFragRecordClearRegion(&fr, l, r, AS_READ_CLEAR_OBT);
-            setFrag(gkp, lid, &fr);
+            fr.gkFragment_setClearRegion(l, r, AS_READ_CLEAR_OBTMERGE);
+            gkp->gkStore_setFragment(&fr);
           }
 
           if (logFile)
@@ -243,7 +237,7 @@ main(int argc, char **argv) {
           //  What?  No intersect...too small?  Delete it!
           //
           if (doModify)
-            delFrag(gkp, lid);
+            gkp->gkStore_delFragment(lid);
 
           if (logFile)
             if (l < r)
@@ -267,18 +261,18 @@ main(int argc, char **argv) {
     uint32 qltL = 0;
     uint32 qltR = 0;
 
-    getFrag(gkp, iid, &fr, FRAG_S_INF | FRAG_S_QLT);
+    gkp->gkStore_getFragment(iid, &fr, GKFRAGMENT_QLT);
 
-    uint32 qltLQ1 = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBTINI);
-    uint32 qltRQ1 = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBTINI);
-    AS_UID uid    = getFragRecordUID(&fr);
-    AS_IID lib    = getFragRecordLibraryIID(&fr);
+    uint32 qltLQ1 = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
+    uint32 qltRQ1 = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_OBTINITIAL);
+    AS_UID uid    = fr.gkFragment_getReadUID();
+    AS_IID lib    = fr.gkFragment_getLibraryIID();
 
-    GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkp, lib);
+    gkLibrary  *lr = gkp->gkStore_getLibrary(lib);
 
     //  Only proceed if we're mutable.
     //
-    if ((gklr) && (gklr->doNotOverlapTrim)) {
+    if ((lr) && (lr->doNotOverlapTrim)) {
       if (logFile)
         fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (immutable)\n",
                 AS_UID_toString(uid), lid, qltLQ1, qltRQ1, qltLQ1, qltRQ1);
@@ -344,9 +338,9 @@ main(int argc, char **argv) {
 
 #define BADIDEA
 #ifdef BADIDEA
-      if ((gklr) && (gklr->doNotQVTrim)) {
+      if ((lr) && (lr->doNotQVTrim)) {
         qltLQ1 = 0;
-        qltRQ1 = getFragRecordSequenceLength(&fr);
+        qltRQ1 = fr.gkFragment_getSequenceLength();
 
         qltL   = min5;
         if (mode5c > 4) qltL = mode5;
@@ -479,7 +473,7 @@ main(int argc, char **argv) {
       //  XXX: We should check if the quality of the OVL region is
       //  decent, and then use that if it is also large.
       //
-      if ((left + right > 0) && ((left + AS_FRAG_MIN_LEN) > right)) {
+      if ((left + right > 0) && ((left + AS_READ_MIN_LEN) > right)) {
         stats[13]++;
 #if 0
         fprintf(stderr, "INVALID CLEAR:\t"F_U64"\t"F_U32"\t"F_U32"\t->\t"F_U32"\t"F_U32"\t--\t%s\n",
@@ -503,7 +497,7 @@ main(int argc, char **argv) {
                   AS_UID_toString(uid), iid, qltL, qltR, left, right);
 
         if (doModify)
-          delFrag(gkp, iid);
+          gkp->gkStore_delFragment(iid);
       } else {
         stats[20]++;
 
@@ -512,8 +506,8 @@ main(int argc, char **argv) {
                   AS_UID_toString(uid), iid, qltL, qltR, left, right);
 
         if (doModify) {
-          setFragRecordClearRegion(&fr, left, right, AS_READ_CLEAR_OBT);
-          setFrag(gkp, iid, &fr);
+          fr.gkFragment_setClearRegion(left, right, AS_READ_CLEAR_OBTMERGE);
+          gkp->gkStore_setFragment(&fr);
         }
       }
     }
@@ -533,60 +527,63 @@ main(int argc, char **argv) {
   uint32  sumdiffl = 0;
   uint32  sumdiffr = 0;
 
-  for (uint32 iid=getFirstElemFragStore(gkp);
-       iid < getLastElemFragStore(gkp) + 1;
+  for (uint32 iid=1;
+       iid < gkp->gkStore_getNumFragments() + 1;
        iid++) {
 
-    getFrag(gkp, iid, &fr, FRAG_S_INF);
+    gkp->gkStore_getFragment(iid, &fr, GKFRAGMENT_INF);
 
-    GateKeeperLibraryRecord *gklr = getGateKeeperLibrary(gkp, getFragRecordLibraryIID(&fr));
+    gkLibrary *lr = gkp->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
 
-    if (getFragRecordIsDeleted(&fr))
+    if (fr.gkFragment_getIsDeleted())
       continue;
 
-    if ((gklr) && (gklr->doNotOverlapTrim))
+    if ((lr) && (lr->doNotOverlapTrim))
       continue;
 
-    AS_UID uid  = getFragRecordUID(&fr);
+    AS_UID uid  = fr.gkFragment_getReadUID();
 
-    uint32 maxl = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_MAX);
-    uint32 maxr = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_MAX);
+    uint32 maxl = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX);
+    uint32 maxr = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX);
 
-    uint32 obtl = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBT);
-    uint32 obtr = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBT);
+    uint32 obtl = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTMERGE);
+    uint32 obtr = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_OBTMERGE);
 
     uint32 adjl = obtl;
     uint32 adjr = obtr;
 
-    if (maxr < adjl)  adjl = maxr;
-    if (maxr < adjr)  adjr = maxr;
+    if (maxl < maxr) {
+      //  CLEAR_MAX is defined, adjust.
+      if (maxr < adjl)  adjl = maxr;
+      if (maxr < adjr)  adjr = maxr;
 
-    if (adjl < maxl)  adjl = maxl;
-    if (adjr < maxl)  adjr = maxl;
+      if (adjl < maxl)  adjl = maxl;
+      if (adjr < maxl)  adjr = maxl;
+    }
 
     if (adjl == adjr) {
       fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (deleted, obt clear outside specified clear max)\n",
               AS_UID_toString(uid), iid, obtl, obtr, maxl, maxr);
       if (doModify)
-        delFrag(gkp, iid);
+        gkp->gkStore_delFragment(iid);
 
     } else if (adjr - adjl < AS_READ_MIN_LEN) {
       fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (deleted, too small after adjusteding to obey specified clear max)\n",
               AS_UID_toString(uid), iid, obtl, obtr, adjl, adjr);
       if (doModify)
-        delFrag(gkp, iid);
+        gkp->gkStore_delFragment(iid);
 
     } else if ((adjl != obtl) || (adjr != obtr)) {
       fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (adjusted to obey specified clear max)\n",
               AS_UID_toString(uid), iid, obtl, obtr, adjl, adjr);
       if (doModify) {
-        setFragRecordClearRegion(&fr, maxl, maxr, AS_READ_CLEAR_OBT);
-        setFrag(gkp, iid, &fr);
+        fr.gkFragment_setClearRegion(maxl, maxr, AS_READ_CLEAR_OBTMERGE);
+        gkp->gkStore_setFragment(&fr);
       }
     }
   }
 
-  closeGateKeeperStore(gkp);
+  delete gkp;
   fclose(O);
 
   //  Report statistics

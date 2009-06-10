@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.4 2008-10-08 22:02:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.5 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -35,7 +35,7 @@ static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.4 2008-10-08 22:02:57 bri
 void
 PrintMultiAlignT(FILE *out,
 	         MultiAlignT *ma,
-	         GateKeeperStore *frag_store,
+	         gkStore *frag_store,
 	         int show_qv,
 	         int dots,
                  uint32 clrrng_flag)  {
@@ -52,7 +52,7 @@ PrintMultiAlignT(FILE *out,
   char *consensus = Getchar(ma->consensus,0);
   char *quality   = Getchar(ma->quality,0);
 
-  fragRecord rsp;
+  gkFragment rsp;
 
   length = strlen(consensus);
 
@@ -144,7 +144,7 @@ PrintMultiAlignT(FILE *out,
 
         // Look up UID for row_id
         if ( row_id > 0 ) {
-          getFrag(frag_store, row_id, &rsp, FRAG_S_INF);
+          frag_store->gkStore_getFragment(row_id, &rsp, GKFRAGMENT_INF);
 
           //getReadType_ReadStruct(rsp, &frgTypeData);
           //
@@ -159,7 +159,7 @@ PrintMultiAlignT(FILE *out,
           fprintf(out, "%-100.100s   %c   (%s,%d) %c\n",
                   multia[2*i]+window,
                   (orient>0)?'>':'<',
-                  AS_UID_toString(getFragRecordUID(&rsp)),
+                  AS_UID_toString(rsp.gkFragment_getReadUID()),
                   row_id,
                   frgTypeDisplay);
 
@@ -167,7 +167,7 @@ PrintMultiAlignT(FILE *out,
             fprintf(out, "%-100.100s   %c   (%s,%d) %c\n",
                     multia[2*i+1]+window,
                     (orient>0)?'>':'<',
-                    AS_UID_toString(getFragRecordUID(&rsp)),
+                    AS_UID_toString(rsp.gkFragment_getReadUID()),
                     row_id,
                     frgTypeDisplay);
         }

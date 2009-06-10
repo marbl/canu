@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.242 2009-05-29 17:29:19 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.243 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -36,7 +36,7 @@ static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.242 2009-05-29 17:29:19 bria
 //
 // Persistent store of the fragment data (produced upstream)
 //
-GateKeeperStore       *gkpStore      = NULL;
+gkStore       *gkpStore      = NULL;
 OverlapStore          *ovlStore      = NULL;
 tSequenceDB           *sequenceDB    = NULL;
 HashTable_AS          *fragmentMap   = NULL;
@@ -162,12 +162,6 @@ int VERBOSE_MULTIALIGN_OUTPUT = 0;
 //  unitigs -- certainly less than 20bp long.
 //
 int FORCE_UNITIG_ABUT = 0;
-
-//  Run-time selectable clear range; for unitigs, we use
-//  AS_READ_CLEAR_OBT (the same as unitigger); for contigs, we use
-//  AS_READ_CLEAR_LATEST.
-//
-int clear_range_to_use = AS_READ_CLEAR_LATEST;
 
 
 //  This is called in ResetStores -- which is called before any
@@ -1335,14 +1329,14 @@ AppendFragToLocalStore(FragType          type,
                        UnitigType        utype,
                        MultiAlignStoreT *multialignStore) {
 
-  char seqbuffer[AS_FRAG_MAX_LEN+1];
-  char qltbuffer[AS_FRAG_MAX_LEN+1];
+  char seqbuffer[AS_READ_MAX_LEN+1];
+  char qltbuffer[AS_READ_MAX_LEN+1];
   char *sequence = NULL,*quality = NULL;
   static VA_TYPE(char) *ungappedSequence = NULL;
   static VA_TYPE(char) *ungappedQuality  = NULL;
   Fragment fragment;
   uint clr_bgn, clr_end;
-  static fragRecord fsread;  //  static for performance only
+  static gkFragment fsread;  //  static for performance only
 
   if (ungappedSequence == NULL) {
     ungappedSequence = CreateVA_char(0);
@@ -1353,16 +1347,15 @@ AppendFragToLocalStore(FragType          type,
     case AS_READ:
     case AS_EXTR:
     case AS_TRNR:
-      getFrag(gkpStore,iid,&fsread,FRAG_S_QLT);
+      gkpStore->gkStore_getFragment(iid,&fsread,GKFRAGMENT_QLT);
 
-      clr_bgn = getFragRecordClearRegionBegin(&fsread, clear_range_to_use);
-      clr_end = getFragRecordClearRegionEnd  (&fsread, clear_range_to_use);
+      fsread.gkFragment_getClearRegion(clr_bgn, clr_end);
 
-      strcpy(seqbuffer, getFragRecordSequence(&fsread));
-      strcpy(qltbuffer, getFragRecordQuality(&fsread));
+      strcpy(seqbuffer, fsread.gkFragment_getSequence());
+      strcpy(qltbuffer, fsread.gkFragment_getQuality());
 
 #ifdef PRINTUIDS
-      fragment.uid = getFragRecordUID(&fsread);
+      fragment.uid = gkFragment_getReadUID(&fsread);
 #endif
       fragment.type = AS_READ;
       fragment.source = NULL;

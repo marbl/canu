@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.57 2009-02-02 13:51:13 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.58 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -25,10 +25,8 @@ const char *mainid = "$Id: BuildUnitigs.cc,v 1.57 2009-02-02 13:51:13 brianwalen
 #include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_BOG_MateChecker.hh"
 
-extern "C" {
 #include "getopt.h"
 #include "AS_CGB_histo.h"
-}
 
 FragmentInfo     *debugfi = 0L;
 
@@ -184,7 +182,7 @@ main (int argc, char * argv []) {
 
   fprintf(stderr, "Genome Size: "F_S64"\n", genome_size);
 
-  GateKeeperStore  *gkpStore = openGateKeeperStore(GKP_Store_Path, FALSE);
+  gkStore          *gkpStore = new gkStore(GKP_Store_Path, FALSE, FALSE);
   OverlapStore     *ovlStore = AS_OVS_openOverlapStore(OVL_Store_Path);
 
   FragmentInfo     *fragInfo = new FragmentInfo(gkpStore);
@@ -200,7 +198,7 @@ main (int argc, char * argv []) {
   MateChecker  mateChecker(fragInfo);
   mateChecker.checkUnitigGraph(utg, badMateBreakThreshold);
 
-  float globalARate = utg.getGlobalArrivalRate(getNumGateKeeperRandomFragments(gkpStore), genome_size);
+  float globalARate = utg.getGlobalArrivalRate(gkpStore->gkStore_getNumRandomFragments(), genome_size);
   Unitig::setGlobalArrivalRate(globalARate);
 
   utg.setParentAndHang(cg);
@@ -228,7 +226,7 @@ main (int argc, char * argv []) {
   delete fragInfo;
 
   AS_OVS_closeOverlapStore(ovlStore);
-  closeGateKeeperStore(gkpStore);
+  delete gkpStore;
 
   fprintf(stderr, "Bye.\n");
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.79 2009-03-05 18:36:04 skoren Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.80 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +27,7 @@ const char *mainid = "$Id: AS_GKP_main.c,v 1.79 2009-03-05 18:36:04 skoren Exp $
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #include "AS_global.h"
 #include "AS_PER_genericStore.h"
@@ -37,9 +38,10 @@ const char *mainid = "$Id: AS_GKP_main.c,v 1.79 2009-03-05 18:36:04 skoren Exp $
 
 char            *progName  = NULL;
 
-GateKeeperStore *gkpStore  = NULL;
+gkStore         *gkpStore  = NULL;
+gkFragment      *gkFrag1   = NULL;
+gkFragment      *gkFrag2   = NULL;
 FILE            *errorFP   = NULL;
-
 
 static
 void
@@ -85,7 +87,7 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "  -----------------------------------\n");
   fprintf(stdout, "  [selection of what objects to dump]\n");
   fprintf(stdout, "  -----------------------------------\n");
-  fprintf(stdout, "  -b <begin-iid>          dump starting at this batch, library or read\n");
+  fprintf(stdout, "  -b <begin-iid>          dump starting at this library or read\n");
   fprintf(stdout, "  -e <ending-iid>         dump stopping after this iid\n");
   fprintf(stdout, "  -uid <uid-file>         dump only objects listed in 'uid-file'\n");
   fprintf(stdout, "  -iid <iid-file>         dump only objects listed in 'iid-file'\n");
@@ -97,8 +99,8 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "  ---------\n");
   fprintf(stdout, "  [options]\n");
   fprintf(stdout, "  ---------\n");
-  fprintf(stdout, "  -tabular               dump info, batches, libraries or fragments in a tabular\n");
-  fprintf(stdout, "                         format (for -dumpinfo, -dumpbatch, -dumplibraries,\n");
+  fprintf(stdout, "  -tabular               dump info, libraries or fragments in a tabular\n");
+  fprintf(stdout, "                         format (for -dumpinfo, -dumplibraries,\n");
   fprintf(stdout, "                         and -dumpfragments, ignores -withsequence and -clear)\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  ----------------\n");
@@ -106,11 +108,10 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "  ----------------\n");
   fprintf(stdout, "  -dumpinfo              print information on the store\n");
   fprintf(stdout, "    -lastfragiid         just print the last IID in the store\n");
-  fprintf(stdout, "  -dumpbatch             dump all batch records\n");
   fprintf(stdout, "  -dumplibraries         dump all library records\n");
   fprintf(stdout, "  -dumpfragments         dump fragment info, no sequence\n");
   fprintf(stdout, "    -withsequence          ...and include sequence\n");
-  fprintf(stdout, "    -clear <clr>           ...in clear range <clr>, default=UNTRIM\n");
+  fprintf(stdout, "    -clear <clr>           ...in clear range <clr>, default=LATEST\n");
   fprintf(stdout, "  -dumpfasta[seq|qlt]    dump fragment sequence or quality, as fasta format\n");
   fprintf(stdout, "    -allreads              ...all reads, regardless of deletion status\n");
   fprintf(stdout, "    -decoded               ...quality as integers ('20 21 19')\n");
@@ -119,7 +120,7 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "    -allreads              ...all reads, regardless of deletion status\n");
   fprintf(stdout, "    -donotfixmates         ...only extract the fragments given, do not add in\n");
   fprintf(stdout, "                              missing mated reads\n");
-  fprintf(stdout, "    -clear <clr>           ...use clear range <clr>, default=ORIG\n");
+  fprintf(stdout, "    -clear <clr>           ...use clear range <clr>, default=LATEST\n");
   fprintf(stdout, "    -format2               ...extract using frg format version 2\n");
   fprintf(stdout, "  -dumpnewbler <prefix>  extract LIB, FRG and LKG messages, write in a\n");
   fprintf(stdout, "                         format appropriate for Newbler.  This will create\n");
@@ -180,8 +181,6 @@ usage(char *filename, int longhelp) {
   }
 }
 
-#include <ctype.h>
-#include "overlapStore.h"
 
 char *
 constructIIDdumpFromIDFile(char *gkpStoreName, char *iidToDump, char *uidFileName, char *iidFileName) {
@@ -189,13 +188,9 @@ constructIIDdumpFromIDFile(char *gkpStoreName, char *iidToDump, char *uidFileNam
   if ((uidFileName == NULL) && (iidFileName == NULL))
     return(iidToDump);
 
-  GateKeeperStore *gkp      = openGateKeeperStore(gkpStoreName, FALSE);
-  if (gkp == NULL) {
-    fprintf(stderr, "Failed to open %s\n", gkpStoreName);
-    exit(1);
-  }
+  gkStore *gkp      = new gkStore(gkpStoreName, FALSE, FALSE);
 
-  AS_IID           lastElem = getLastElemFragStore(gkp) + 1;
+  AS_IID           lastElem = gkp->gkStore_getNumFragments() + 1;
   FILE            *F        = NULL;
   char             L[1024];
 
@@ -239,7 +234,7 @@ constructIIDdumpFromIDFile(char *gkpStoreName, char *iidToDump, char *uidFileNam
     while (!feof(F)) {
       chomp(L);
       AS_UID  uid = AS_UID_lookup(L, NULL);
-      AS_IID  iid = getGatekeeperUIDtoIID(gkp, uid, NULL);
+      AS_IID  iid = gkp->gkStore_getUIDtoIID(uid, NULL);
 
       if (iid == 0)
         fprintf(stderr, "%s: UID %s doesn't exist, ignored.\n", progName, L);
@@ -254,7 +249,7 @@ constructIIDdumpFromIDFile(char *gkpStoreName, char *iidToDump, char *uidFileNam
       fclose(F);
   }
 
-  closeGateKeeperStore(gkp);
+  delete gkp;
 
   return(iidToDump);
 }
@@ -275,11 +270,7 @@ constructIIDdump(char  *gkpStoreName,
       (dumpRandLength == 0))
     return(iidToDump);
 
-  GateKeeperStore *gkp = openGateKeeperStore(gkpStoreName, FALSE);
-  if (gkp == NULL) {
-    fprintf(stderr, "Failed to open %s\n", gkpStoreName);
-    exit(1);
-  }
+  gkStore *gkp = new gkStore(gkpStoreName, FALSE, FALSE);
 
   uint32      numMated  = 0;
   uint32      numSingle = 0;
@@ -287,7 +278,7 @@ constructIIDdump(char  *gkpStoreName,
 
   uint64      lenFrag   = 0;
 
-  uint32      numTotal  = getLastElemFragStore(gkp) + 1;  //  Should count, or remember this when building
+  uint32      numTotal  = gkp->gkStore_getNumFragments() + 1;  //  Should count, or remember this when building
 
   uint32     *candidatesS    = (uint32 *)safe_malloc(numTotal * sizeof(uint32));
   uint32      candidatesSLen = 0;
@@ -296,55 +287,45 @@ constructIIDdump(char  *gkpStoreName,
   uint32     *candidatesB    = (uint32 *)safe_malloc(numTotal * sizeof(uint32));
   uint32      candidatesMLen = 0;
 
-  fragRecord  fr;
-  FragStream *fs = openFragStream(gkp, FRAG_S_INF);
+  gkFragment  fr;
+  gkStream   *fs = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
 
   int         i;
-
-  uint32 begIID = getFirstElemStore(gkp->frg);
-  uint32 endIID = getLastElemStore(gkp->frg);
-
-  if (begIID < getFirstElemStore(gkp->frg))
-    begIID = getFirstElemStore(gkp->frg);
-  if (getLastElemStore(gkp->frg) < endIID)
-    endIID = getLastElemStore(gkp->frg);
 
   if (iidToDump == NULL)
     iidToDump = (char *)safe_calloc(numTotal, sizeof(char));
 
-
   //  Scan the whole fragstore, looking for mated reads in the
   //  correct library, and save the lesser of the two reads.
   //
-  resetFragStream(fs, begIID, endIID);
-  while (nextFragStream(fs, &fr)) {
+  while (fs->next(&fr)) {
 
-    if (getFragRecordLibraryIID(&fr) == 0)
+    if (fr.gkFragment_getLibraryIID() == 0)
       numNoLib++;
 
     if ((dumpRandLib == 0) ||
-        (dumpRandLib == getFragRecordLibraryIID(&fr))) {
+        (dumpRandLib == fr.gkFragment_getLibraryIID())) {
 
       //  Build lists of singletons and mated frags in this library.
       //  Save only the smaller mate ID.
 
-      lenFrag += getFragRecordClearRegionEnd(&fr, AS_READ_CLEAR_UNTRIM);
+      lenFrag += fr.gkFragment_getSequenceLength();
 
-      if (getFragRecordMateIID(&fr) == 0) {
+      if (fr.gkFragment_getMateIID() == 0) {
         numSingle++;
-        candidatesS[candidatesSLen] = getFragRecordIID(&fr);
+        candidatesS[candidatesSLen] = fr.gkFragment_getReadIID();
         candidatesSLen++;
-      } else if (getFragRecordIID(&fr) < getFragRecordMateIID(&fr)) {
+      } else if (fr.gkFragment_getReadIID() < fr.gkFragment_getMateIID()) {
         numMated += 2;
-        candidatesA[candidatesMLen] = getFragRecordIID(&fr);
-        candidatesB[candidatesMLen] = getFragRecordMateIID(&fr);
+        candidatesA[candidatesMLen] = fr.gkFragment_getReadIID();
+        candidatesB[candidatesMLen] = fr.gkFragment_getMateIID();
         candidatesMLen++;
       }
     }
   }
 
-  closeFragStream(fs);
-  closeGateKeeperStore(gkp);
+  delete fs;
+  delete gkp;
 
   if (numNoLib)
     fprintf(stderr, "WARNING: found "F_U32" reads with no library (usually caused by using frg format 1).\n", numNoLib);
@@ -395,14 +376,13 @@ constructIIDdump(char  *gkpStoreName,
 
 #define DUMP_NOTHING     0
 #define DUMP_INFO        1
-#define DUMP_BATCHES     2
-#define DUMP_LIBRARIES   3
-#define DUMP_FRAGMENTS   4
-#define DUMP_FASTA       5
-#define DUMP_FRG         6
-#define DUMP_NEWBLER     7
-#define DUMP_LASTFRG     8
-#define DUMP_VELVET      9
+#define DUMP_LIBRARIES   2
+#define DUMP_FRAGMENTS   3
+#define DUMP_FASTA       4
+#define DUMP_FRG         5
+#define DUMP_NEWBLER     6
+#define DUMP_LASTFRG     7
+#define DUMP_VELVET      8
 
 int
 main(int argc, char **argv) {
@@ -435,8 +415,8 @@ main(int argc, char **argv) {
   int              dumpTabular       = 0;
   int              dumpWithSequence  = 0;
   int              dumpAllReads      = 0;
-  int              dumpClear         = AS_READ_CLEAR_UNTRIM;
-  int              dumpFRGClear      = AS_READ_CLEAR_ORIG;
+  int              dumpClear         = AS_READ_CLEAR_LATEST;
+  int              dumpFRGClear      = AS_READ_CLEAR_LATEST;
   int              dumpFastaClear    = AS_READ_CLEAR_LATEST;
   int              dumpFastaQuality  = 0;
   int              doNotFixMates     = 0;
@@ -518,8 +498,6 @@ main(int argc, char **argv) {
       dump = DUMP_INFO;
     } else if (strcmp(argv[arg], "-lastfragiid") == 0) {
       dump = DUMP_LASTFRG;
-    } else if (strcmp(argv[arg], "-dumpbatch") == 0) {
-      dump = DUMP_BATCHES;
     } else if (strcmp(argv[arg], "-dumplibraries") == 0) {
       dump = DUMP_LIBRARIES;
     } else if (strcmp(argv[arg], "-dumpfragments") == 0) {
@@ -527,7 +505,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-withsequence") == 0) {
       dumpWithSequence = 1;
     } else if (strcmp(argv[arg], "-clear") == 0) {
-      dumpClear      = AS_PER_decodeClearRangeLabel(argv[++arg]);
+      dumpClear      = gkStore_decodeClearRegionLabel(argv[++arg]);
       dumpFRGClear   = dumpClear;
       dumpFastaClear = dumpClear;
     } else if (strcmp(argv[arg], "-format2") == 0) {
@@ -555,14 +533,9 @@ main(int argc, char **argv) {
 
       //  End of dump options, SECRET OPTIONS below
 
-    } else if (strcmp(argv[arg], "--rebuildmap") == 0) {
-      rebuildMap(argv[arg+1]);
-      exit(0);
-    } else if (strcmp(argv[arg], "--rearrange") == 0) {
-      //  Takes three args:  UID order file, oldStore, newStore
-      //
-      rearrangeStore(argv[arg+1], argv[arg+2], argv[arg+3]);
-      exit(0);
+    //} else if (strcmp(argv[arg], "--rebuildmap") == 0) {
+    //  gkStore_rebuildUIDtoIID(argv[arg+1]);
+    //  exit(0);
 
     } else if ((strcmp(argv[arg], "--edit") == 0) ||
                (strcmp(argv[arg], "--testedit") == 0)) {
@@ -596,8 +569,6 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  outputExists = testOpenGateKeeperStore(gkpStoreName, FALSE);
-
   if (vectorClearFile) {
     updateVectorClear(vectorClearFile, gkpStoreName);
     exit(0);
@@ -607,17 +578,9 @@ main(int argc, char **argv) {
   iidToDump = constructIIDdump(gkpStoreName, iidToDump, dumpRandLib, dumpRandMateNum, dumpRandSingNum, dumpRandFraction, dumpRandLength);
 
   if (dump != DUMP_NOTHING) {
-    if (outputExists == 0) {
-      fprintf(stderr,"* Gatekeeper Store %s doesn't exist, but you want to dump it.  Exit.\n", gkpStoreName);
-      exit(1);
-    }
-
     switch (dump) {
       case DUMP_INFO:
         dumpGateKeeperInfo(gkpStoreName, dumpTabular);
-        break;
-      case DUMP_BATCHES:
-        dumpGateKeeperBatches(gkpStoreName, begIID, endIID, iidToDump, dumpTabular);
         break;
       case DUMP_LIBRARIES:
         dumpGateKeeperLibraries(gkpStoreName, begIID, endIID, iidToDump, dumpTabular);
@@ -647,9 +610,9 @@ main(int argc, char **argv) {
         break;
       case DUMP_LASTFRG:
         {
-          GateKeeperStore *gkp = openGateKeeperStore(gkpStoreName, FALSE);
-          fprintf(stdout, "Last frag in store is iid = "F_S64"\n", getLastElemFragStore(gkp));
-          closeGateKeeperStore(gkp);
+          gkStore *gkp = new gkStore(gkpStoreName, FALSE, FALSE);
+          fprintf(stdout, "Last frag in store is iid = "F_S64"\n", gkp->gkStore_getNumFragments());
+          delete gkp;
         }
         break;
       case DUMP_VELVET:
@@ -666,34 +629,31 @@ main(int argc, char **argv) {
 
 
   if (partitionFile) {
-    Build_Partition(gkpStoreName, partitionFile, FRAG_S_ALL);
+    Build_Partition(gkpStoreName, partitionFile, GKFRAGMENT_QLT);
     exit(0);
   }
 
 
-  if ((append == 0) && (outputExists == 1)) {
-    fprintf(stderr,"* Gatekeeper Store %s exists and append flag not supplied.  Exit.\n", gkpStoreName);
-    exit(1);
-  }
-  if ((append == 1) && (outputExists == 0)) {
-    //  Silently switch over to create
-    append = 0;
-  }
-  if ((append == 0) && (outputExists == 1)) {
-    fprintf(stderr,"* Gatekeeper Store %s exists, but not told to append.  Exit.\n", gkpStoreName);
-    exit(1);
-  }
-
   if (append)
-    gkpStore = openGateKeeperStore(gkpStoreName, TRUE);
+    gkpStore = new gkStore(gkpStoreName, FALSE, TRUE);
   else
-    gkpStore = createGateKeeperStore(gkpStoreName);
+    gkpStore = new gkStore(gkpStoreName, TRUE, TRUE);
+
+  //  This is a special case for gatekeeper; we never call
+  //  gkStore_getFragment() and so we never set up the gkFragment.
+  //  This also enables some of the set() methods.
+  //
+  gkFrag1 = new gkFragment();
+  gkFrag2 = new gkFragment();
+
+  gkFrag1->gkFragment_enableGatekeeperMode(gkpStore);
+  gkFrag2->gkFragment_enableGatekeeperMode(gkpStore);
 
   if (errorFile) {
     errno = 0;
     errorFP = fopen(errorFile, "w");
     if (errno) {
-      fprintf(stderr, "%s: cannot open error file '%s': %s\n", errorFile, strerror(errno));
+      fprintf(stderr, "%s: cannot open error file '%s': %s\n", progName, errorFile, strerror(errno));
       exit(1);
     }
   }
@@ -731,9 +691,7 @@ main(int argc, char **argv) {
 
 
     while (EOF != ReadProtoMesg_AS(inFile, &pmesg)) {
-      if        (pmesg->t == MESG_BAT) {
-        Check_BatchMesg((BatchMesg *)pmesg->m);
-      } else if (pmesg->t == MESG_DST) {
+      if        (pmesg->t == MESG_DST) {
         Check_DistanceMesg((DistanceMesg *)pmesg->m, fixInsertSizes);
       } else if (pmesg->t == MESG_LIB) {
         Check_LibraryMesg((LibraryMesg *)pmesg->m, fixInsertSizes);
@@ -759,7 +717,10 @@ main(int argc, char **argv) {
     }
   }
 
-  closeGateKeeperStore(gkpStore);
+  delete gkFrag1;
+  delete gkFrag2;
+
+  delete gkpStore;
 
   if (errorFile)
     fclose(errorFP);

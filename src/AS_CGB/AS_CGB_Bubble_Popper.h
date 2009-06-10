@@ -22,7 +22,7 @@
 #ifndef _AS_CGB_BUBBLE_POPPER_H_
 #define _AS_CGB_BUBBLE_POPPER_H_
 
-static const char *rcsid__AS_CGB_BUBBLE_POPPER_H_ = "$Id: AS_CGB_Bubble_Popper.h,v 1.9 2008-12-18 07:13:22 brianwalenz Exp $";
+static const char *rcsid__AS_CGB_BUBBLE_POPPER_H_ = "$Id: AS_CGB_Bubble_Popper.h,v 1.10 2009-06-10 18:05:13 brianwalenz Exp $";
 
 /* The bubble popper will REJECT bubbles with more than this many fragments! */
 #define POPPER_MAX_BUBBLE_SIZE 200
@@ -53,7 +53,7 @@ typedef struct BubblePopper {
   TChunkMesg *chunks;
   TChunkFrag *chunkFrags;
   float globalArrivalRate;
-  GateKeeperStore *gkpStore;
+  gkStore *gkpStore;
 
   /* Permanent statistics fields. */
 
@@ -74,7 +74,7 @@ typedef struct BubblePopper {
 
   /* Recycled scratch space for each bubble. */
 
-  fragRecord  rsp;
+  gkFragment  rsp;
   IntFragment_ID curBubSize;
   int *topDistArray;		/* Scratch space for longest path algorithm */
   BG_E_Iter *dfsStack;	        /* Scratch space for traversals (dfs and
@@ -99,7 +99,7 @@ typedef struct BubblePopper {
 void
 BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg chunks[],
 	TChunkFrag cfrgs[], float global_arrival_rate,
-        GateKeeperStore *gkpStore,
+        gkStore *gkpStore,
         const char * fileprefix
         );
 

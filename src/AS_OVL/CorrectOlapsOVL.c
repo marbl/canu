@@ -33,7 +33,7 @@
 *
 *************************************************/
 
-const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.38 2009-05-21 02:24:37 brianwalenz Exp $";
+const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.39 2009-06-10 18:05:13 brianwalenz Exp $";
 
 //  System include files
 
@@ -158,14 +158,14 @@ static char  * Correct_File_Path;
     // Name of file containing fragment corrections
 static FILE  * Delete_fp = NULL;
     // File to which list of overlaps to delete is written if  -x  option is specified
-static int  * Edit_Array [AS_FRAG_MAX_LEN+1];
+static int  * Edit_Array [AS_READ_MAX_LEN+1];
     // Use for alignment calculation.  Points into  Edit_Space .
     // (only MAX_ERRORS needed)
-static int  Edit_Match_Limit [AS_FRAG_MAX_LEN+1] = {0};
+static int  Edit_Match_Limit [AS_READ_MAX_LEN+1] = {0};
     // This array [e] is the minimum value of  Edit_Array [e] [d]
     // to be worth pursuing in edit-distance computations between guides
     // (only MAX_ERRORS needed)
-static int  Edit_Space [(AS_FRAG_MAX_LEN + 4) * AS_FRAG_MAX_LEN];
+static int  Edit_Space [(AS_READ_MAX_LEN + 4) * AS_READ_MAX_LEN];
     // Memory used by alignment calculation
     // (only (MAX_ERRORS + 4) * MAX_ERRORS needed)
 static int  End_Exclude_Len = DEFAULT_END_EXCLUDE_LEN;
@@ -188,9 +188,9 @@ static Frag_Info_t  * Frag;
 static int32  Frags_Per_File;
     // Maximum number of fragments in each data file of fragment store.
     // This is read from the store
-static GateKeeperStore  *gkpStore;
+static gkStore  *gkpStore;
     // Internal fragment store where fragments are loaded
-static FragStream  *Frag_Stream;
+static gkStream  *Frag_Stream;
     // Stream to extract fragments from internal store
 static char  * gkpStore_Path;
     // Name of directory containing fragment store from which to get fragments
@@ -681,7 +681,7 @@ static int  Compare_Frags
 //  Display alignment between strings  a  and  b .
 
   {
-   int delta [AS_FRAG_MAX_LEN+1];  //  only MAX_ERRORS needed
+   int delta [AS_READ_MAX_LEN+1];  //  only MAX_ERRORS needed
    int  a_end, b_end, delta_len, olap_len, match_to_end;
    int  a_len, b_len, errors;
 
@@ -1607,7 +1607,7 @@ static int  Prefix_Edit_Dist
 //  a branch point.
 
   {
-   int  Delta_Stack [AS_FRAG_MAX_LEN+1];  //  only MAX_ERRORS needed
+   int  Delta_Stack [AS_READ_MAX_LEN+1];  //  only MAX_ERRORS needed
    double  Score, Max_Score;
    int  Max_Score_Len, Max_Score_Best_d, Max_Score_Best_e;
    int  Best_d, Best_e, From, Last, Longest, Max, Row;
@@ -1793,7 +1793,7 @@ static void  Process_Olap
    char  * a_part, * b_part, * a_seq;
    double  denom, quality;
    int  a_part_len, b_part_len, a_end, b_end, olap_len;
-   int  match_to_end, delta [AS_FRAG_MAX_LEN+1], delta_len, errors;  //  only MAX_ERRORS needed
+   int  match_to_end, delta [AS_READ_MAX_LEN+1], delta_len, errors;  //  only MAX_ERRORS needed
    int  sub;
 
    if  (Verbose_Level > 0)
@@ -1998,28 +1998,27 @@ static void  Read_Frags
 //  global  Frag .
 
   {
-   fragRecord frag_read;
+   gkFragment frag_read;
    unsigned  clear_start, clear_end;
    int  i, j;
 
    if  (Hi_Frag_IID == INT_MAX)
        {
-        gkpStore = openGateKeeperStore (gkpStore_Path, FALSE);
+        gkpStore = new gkStore (gkpStore_Path, FALSE, FALSE);
         assert (gkpStore != NULL);
-        Hi_Frag_IID = getLastElemFragStore (gkpStore);
-        closeGateKeeperStore (gkpStore);
+        Hi_Frag_IID = gkpStore->gkStore_getNumFragments ();
+        delete gkpStore;
        }
 
    Num_Frags = 1 + Hi_Frag_IID - Lo_Frag_IID;
    Frag = (Frag_Info_t *) safe_calloc (Num_Frags, sizeof (Frag_Info_t));
 
-   gkpStore = openGateKeeperStore(gkpStore_Path, FALSE);
-   loadGateKeeperStorePartial(gkpStore, Lo_Frag_IID, Hi_Frag_IID, FRAG_S_SEQ);
+   gkpStore = new gkStore(gkpStore_Path, FALSE, FALSE);
+   gkpStore->gkStore_load(Lo_Frag_IID, Hi_Frag_IID, GKFRAGMENT_SEQ);
 
-   Frag_Stream = openFragStream (gkpStore, FRAG_S_SEQ);
-   resetFragStream (Frag_Stream, Lo_Frag_IID, Hi_Frag_IID);
+   Frag_Stream = new gkStream (gkpStore, Lo_Frag_IID, Hi_Frag_IID, GKFRAGMENT_SEQ);
 
-   for  (i = 0;  nextFragStream (Frag_Stream, &frag_read);
+   for  (i = 0;  Frag_Stream->next (&frag_read);
            i ++)
      {
       char  seq_buff [AS_READ_MAX_LEN + 1];
@@ -2027,7 +2026,7 @@ static void  Read_Frags
       unsigned  deleted;
       int  result;
 
-      deleted = getFragRecordIsDeleted (&frag_read);
+      deleted = frag_read.gkFragment_getIsDeleted ();
       if  (deleted)
           {
            Frag [i] . sequence = NULL;
@@ -2036,10 +2035,9 @@ static void  Read_Frags
            continue;
           }
 
-      clear_start = getFragRecordClearRegionBegin(&frag_read, AS_READ_CLEAR_OBT);
-      clear_end   = getFragRecordClearRegionEnd  (&frag_read, AS_READ_CLEAR_OBT);
+      frag_read.gkFragment_getClearRegion(clear_start, clear_end);
 
-      seqptr = getFragRecordSequence(&frag_read);
+      seqptr = frag_read.gkFragment_getSequence();
 
       // Make sure that we have a legal lowercase sequence string
 
@@ -2051,8 +2049,8 @@ static void  Read_Frags
       Frag [i] . sequence = strdup (seq_buff + clear_start);
      }
 
-   closeFragStream (Frag_Stream);
-   closeGateKeeperStore (gkpStore);
+   delete Frag_Stream;
+   delete gkpStore;
 
    return;
   }
@@ -2145,7 +2143,7 @@ static void  Redo_Olaps
 
   {
    FILE  * fp;
-   fragRecord frag_read;
+   gkFragment frag_read;
    unsigned  clear_start, clear_end;
    int  lo_frag, hi_frag;
    uint64  next_olap;
@@ -2157,18 +2155,16 @@ static void  Redo_Olaps
    uint32  correct_iid = 0, next_iid;
    int  i, j;
 
-   gkpStore = openGateKeeperStore (gkpStore_Path, FALSE);
-   Frag_Stream = openFragStream (gkpStore, FRAG_S_SEQ);
-
    lo_frag = Olap [0] . b_iid;
    hi_frag = Olap [Num_Olaps - 1] . b_iid;
 
-   resetFragStream (Frag_Stream, lo_frag, hi_frag);
+   gkpStore = new gkStore (gkpStore_Path, FALSE, FALSE);
+   Frag_Stream = new gkStream (gkpStore, lo_frag, hi_frag, GKFRAGMENT_SEQ);
 
    fp = File_Open (Correct_File_Path, "rb");
 
    next_olap = 0;
-   for  (i = 0;  nextFragStream (Frag_Stream, &frag_read)
+   for  (i = 0;  Frag_Stream->next (&frag_read)
                    && next_olap < Num_Olaps;
            i ++)
      {
@@ -2180,18 +2176,17 @@ static void  Redo_Olaps
       unsigned  deleted;
       int  frag_len, result;
 
-      frag_iid = getFragRecordIID (&frag_read);
+      frag_iid = frag_read.gkFragment_getReadIID ();
       if  (frag_iid < Olap [next_olap] . b_iid)
           continue;
 
-      deleted = getFragRecordIsDeleted (&frag_read);
+      deleted = frag_read.gkFragment_getIsDeleted ();
       if  (deleted)
           continue;
 
-      clear_start = getFragRecordClearRegionBegin(&frag_read, AS_READ_CLEAR_OBT);
-      clear_end   = getFragRecordClearRegionEnd  (&frag_read, AS_READ_CLEAR_OBT);
+      frag_read.gkFragment_getClearRegion(clear_start, clear_end);
 
-      seqptr = getFragRecordSequence(&frag_read);
+      seqptr = frag_read.gkFragment_getSequence();
 
       // Make sure that we have a legal lowercase sequence string
 
@@ -2245,8 +2240,8 @@ static void  Redo_Olaps
         }
      }
 
-   closeFragStream (Frag_Stream);
-   closeGateKeeperStore (gkpStore);
+   delete Frag_Stream;
+   delete gkpStore;
 
    return;
   }
@@ -2272,7 +2267,7 @@ static int  Rev_Prefix_Edit_Dist
 //  a branch point.
 
   {
-   int  Delta_Stack [AS_FRAG_MAX_LEN+1];  //  only MAX_ERRORS needed
+   int  Delta_Stack [AS_READ_MAX_LEN+1];  //  only MAX_ERRORS needed
    double  Score, Max_Score;
    int  Max_Score_Len, Max_Score_Best_d, Max_Score_Best_e;
    int  Best_d, Best_e, From, Last, Longest, Max, Row;

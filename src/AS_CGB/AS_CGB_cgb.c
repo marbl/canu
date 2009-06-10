@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_cgb.c,v 1.27 2009-04-24 14:13:22 skoren Exp $";
+static char *rcsid = "$Id: AS_CGB_cgb.c,v 1.28 2009-06-10 18:05:13 brianwalenz Exp $";
 
 //  This module builds the chunk graph from the fragment essential
 //  overlap graph with contained fragments as an augmentation, and
@@ -791,7 +791,7 @@ make_the_chunks(Tfragment frags[],
 
   //  Counts the number of times a fragment occurs in the chunks.
   //
-  int *ftic = safe_malloc(sizeof(int) * GetNumFragments(frags));
+  int *ftic = (int *)safe_malloc(sizeof(int) * GetNumFragments(frags));
 
 
   // pass==0 is to form the light-chunks, that is chunks ignoring
@@ -977,7 +977,7 @@ count_the_randomly_sampled_fragments_in_a_chunk(Tfragment   frags[],
                                                 TChunkFrag  chunkfrags[],
                                                 TChunkMesg  thechunks[],
                                                 IntChunk_ID chunk_index,
-                                                GateKeeperStore *gkp) {
+                                                gkStore *gkp) {
   IntFragment_ID   nf = 0;
   AChunkMesg      *ch = GetAChunkMesg(thechunks,chunk_index);
   int              num_frags = ch->num_frags;
@@ -987,14 +987,14 @@ count_the_randomly_sampled_fragments_in_a_chunk(Tfragment   frags[],
     IntFragment_ID i = *GetVA_AChunkFrag(chunkfrags,ch->f_list+ii);
     FragType type = get_typ_fragment(frags, i);
     IntFragment_ID iid = get_iid_fragment(frags, i);
-    fragRecord frg;
+    gkFragment frg;
 
-    getFrag(gkp, iid, &frg, 0);
+    gkp->gkStore_getFragment(iid, &frg, GKFRAGMENT_INF);
 
     // Only AS_READ, and AS_EXTR fragments are to be used in Gene
     // Myers coverage discriminator A-statistic.
     //
-    if ((type == AS_READ || type == AS_EXTR) && !getFragRecordIsNonRandom(&frg))
+    if ((type == AS_READ || type == AS_EXTR) && !frg.gkFragment_getIsNonRandom())
       nf++;
   }
 
@@ -1017,7 +1017,7 @@ compute_the_global_fragment_arrival_rate(int           recalibrate,
                                          float         estimated_global_fragment_arrival_rate,
                                          TChunkFrag   *chunkfrags,
                                          TChunkMesg   *thechunks,
-                                         GateKeeperStore *gkp) {
+                                         gkStore *gkp) {
   IntChunk_ID ichunk = 0;
   int64  total_rho = 0;
   IntFragment_ID total_nfrags = 0;
@@ -1088,7 +1088,7 @@ compute_the_global_fragment_arrival_rate(int           recalibrate,
       size_t num_arrival_rates;
       int median_index;
 
-      arrival_rate_ptr = arrival_rate_array = safe_malloc(sizeof(*arrival_rate_array) * arrival_rate_array_size);
+      arrival_rate_ptr = arrival_rate_array = (float *)safe_malloc(sizeof(float *) * arrival_rate_array_size);
       for(ichunk=0;ichunk<nchunks;ichunk++){
 	int64  rho = GetAChunkMesg(thechunks,ichunk)->rho; // The sum of overhangs ...
 
@@ -1188,7 +1188,7 @@ void chunk_graph_build_1(const char * const Graph_Store_File_Prefix,
                          float         *global_fragment_arrival_rate,
                          TChunkFrag    *chunkfrags,
                          TChunkMesg    *thechunks,
-                         GateKeeperStore *gkp) {
+                         gkStore *gkp) {
 
   make_the_chunks(frags, edges, chunkfrags, thechunks);
 

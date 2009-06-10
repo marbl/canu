@@ -26,15 +26,15 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.30 2009-02-02 07:08:05 brianwalenz Exp $
- * $Revision: 1.30 $
+ * $Id: AS_OVL_overlap.h,v 1.31 2009-06-10 18:05:13 brianwalenz Exp $
+ * $Revision: 1.31 $
 */
 
 
 #ifndef AS_OVL_OVERLAP_H
 #define AS_OVL_OVERLAP_H
 
-static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.30 2009-02-02 07:08:05 brianwalenz Exp $";
+static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.31 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -396,7 +396,7 @@ static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.30 2009-0
     //  Amount by which k-mers can overlap a screen region and still
     //  be added to the hash table.
 
-#define  MAX_EXTRA_SUBCOUNT        (AS_FRAG_MAX_LEN / Kmer_Len)
+#define  MAX_EXTRA_SUBCOUNT        (AS_READ_MAX_LEN / Kmer_Len)
 
 
 #define  HASH_FUNCTION(k)        (((k) ^ ((k) >> HSF1) ^ ((k) >> HSF2)) & HASH_MASK)
@@ -490,10 +490,10 @@ typedef  struct Work_Area
    int32  A_Olaps_For_Frag, B_Olaps_For_Frag;
             //  Counts the number of overlaps for each fragment.  Cuts off
             //  overlaps above a limit.
-   FragStream  *stream_segment;
+   gkStream  *stream_segment;
    Screen_Info_t  screen_info;
    int  status;
-   fragRecord  myRead;
+   gkFragment  myRead;
    FragType  curr_frag_type;
    int  thread_id;
 
@@ -546,8 +546,8 @@ extern char  Quality_Buffer [];
     //  Used to read fragments and to build hash table which
     //  are done single threaded.
 
-extern GateKeeperStore  *OldFragStore;
-extern GateKeeperStore  *BACtigStore;
+extern gkStore  *OldFragStore;
+extern gkStore  *BACtigStore;
 extern char  * BACtig_Store_Path;
 extern char  * Frag_Store_Path;
 extern Output_Stream  Out_Stream;
@@ -565,13 +565,13 @@ extern pthread_mutex_t  Write_Proto_Mutex;
 //
 
 int  Build_Hash_Index
-    (FragStream *stream, int32 First_Frag_ID, fragRecord *myRead);
+    (gkStream *stream, int32 First_Frag_ID, gkFragment *myRead);
 void  Initialize_Work_Area
     (Work_Area_t *, int);
 int  OverlapDriver
     (int argc, char **argv);
 void  Process_Overlaps
-    (FragStream *stream, Work_Area_t *);
+    (gkStream *stream, Work_Area_t *);
 int  Sign
     (int);
 

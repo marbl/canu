@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.28 2008-10-29 10:53:25 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.29 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,7 +41,7 @@ Check_DistanceMesg(DistanceMesg    *dst_mesg,
   lmesg.mean         = dst_mesg->mean;
   lmesg.stddev       = dst_mesg->stddev;
   lmesg.source       = NULL;
-  lmesg.link_orient  = AS_READ_ORIENT_INNIE;
+  lmesg.link_orient  = (OrientType)AS_READ_ORIENT_INNIE;
   lmesg.num_features = 0;
   lmesg.features     = NULL;
   lmesg.values       = NULL;
@@ -64,7 +64,7 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
     AS_GKP_reportError(AS_GKP_LIB_ILLEGAL_MEAN_STDDEV,
                        AS_UID_toString(lib_mesg->eaccession), lib_mesg->mean, lib_mesg->stddev);
     if (lib_mesg->action == AS_ADD)
-      gkpStore->gkp.libWarnings++;
+      gkpStore->inf.libWarnings++;
     lib_mesg->mean   = 3000.0;
     lib_mesg->stddev = 300.0;
   }
@@ -73,7 +73,7 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
     AS_GKP_reportError(AS_GKP_LIB_INVALID_MEAN,
                        AS_UID_toString(lib_mesg->eaccession), lib_mesg->mean, 10.0 * lib_mesg->stddev);
     if (lib_mesg->action == AS_ADD)
-      gkpStore->gkp.libWarnings++;
+      gkpStore->inf.libWarnings++;
     lib_mesg->mean = 10.0 * lib_mesg->stddev;
   }
 
@@ -81,7 +81,7 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
     AS_GKP_reportError(AS_GKP_LIB_INVALID_STDDEV,
                        AS_UID_toString(lib_mesg->eaccession), lib_mesg->stddev, 0.1 * lib_mesg->mean);
     if (lib_mesg->action == AS_ADD)
-      gkpStore->gkp.libWarnings++;
+      gkpStore->inf.libWarnings++;
     lib_mesg->stddev = 0.1 * lib_mesg->mean;
   }
 
@@ -90,7 +90,7 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
       AS_GKP_reportError(AS_GKP_LIB_STDDEV_TOO_BIG,
                          AS_UID_toString(lib_mesg->eaccession), lib_mesg->stddev, lib_mesg->mean, 0.1 * lib_mesg->mean);
       if (lib_mesg->action == AS_ADD)
-        gkpStore->gkp.libWarnings++;
+        gkpStore->inf.libWarnings++;
       lib_mesg->stddev = 0.1 * lib_mesg->mean;
     }
 
@@ -102,7 +102,7 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
       AS_GKP_reportError(AS_GKP_LIB_STDDEV_TOO_SMALL,
                          AS_UID_toString(lib_mesg->eaccession), lib_mesg->mean, lib_mesg->stddev, 0.1 * lib_mesg->mean);
       if (lib_mesg->action == AS_ADD)
-        gkpStore->gkp.libWarnings++;
+        gkpStore->inf.libWarnings++;
       lib_mesg->stddev = 0.1 * lib_mesg->mean;
     }
   }
@@ -113,34 +113,34 @@ int
 Check_LibraryMesg(LibraryMesg      *lib_mesg,
                   int                fixInsertSizes) {
 
-  GateKeeperLibraryRecord  gkpl;
+  gkLibrary  gkpl;
 
   if (lib_mesg->action == AS_ADD)
-    gkpStore->gkp.libInput++;
+    gkpStore->inf.libInput++;
 
   if (lib_mesg->action == AS_IGNORE)
     return 0;
 
-  clearGateKeeperLibraryRecord(&gkpl);
-
   checkLibraryDistances(lib_mesg, fixInsertSizes);
 
   if (lib_mesg->action == AS_ADD) {
-    AS_IID     iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);
+    AS_IID     iid = gkpStore->gkStore_getUIDtoIID(lib_mesg->eaccession, NULL);
     if (iid) {
       AS_GKP_reportError(AS_GKP_LIB_EXISTS,
                          AS_UID_toString(lib_mesg->eaccession), iid);
-      gkpStore->gkp.libErrors++;
+      gkpStore->inf.libErrors++;
       return(1);
     }
     if (AS_UID_isDefined(lib_mesg->eaccession) == FALSE) {
       AS_GKP_reportError(AS_GKP_LIB_ZERO_UID);
-      gkpStore->gkp.libErrors++;
+      gkpStore->inf.libErrors++;
       return(1);
     }
 
-    gkpl.libraryUID   = lib_mesg->eaccession;
-    gkpl.comment[0]   = 0;
+    gkpl.libraryUID                 = lib_mesg->eaccession;
+
+    gkpl.mean                       = lib_mesg->mean;
+    gkpl.stddev                     = lib_mesg->stddev;
 
     //  This crud is documented in AS_PER/AS_PER_gkpStore.h
     //  Zero is the default, we set to make it explicit
@@ -169,25 +169,15 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
       case 'I': gkpl.orientation = AS_READ_ORIENT_INNIE;      break;
       case 'O': gkpl.orientation = AS_READ_ORIENT_OUTTIE;     break;
       case 'N': gkpl.orientation = AS_READ_ORIENT_NORMAL;     break;
-      case 'A': gkpl.orientation = AS_READ_ORIENT_ANTINORMAL; break;
       default:  gkpl.orientation = AS_READ_ORIENT_UNKNOWN;    break;
     }
 
-    gkpl.mean                       = lib_mesg->mean;
-    gkpl.stddev                     = lib_mesg->stddev;
+    gkpl.gkLibrary_decodeFeatures(lib_mesg);
 
-    if (lib_mesg->source)
-      strncpy(gkpl.comment, lib_mesg->source, AS_PER_COMMENT_LEN);
-
-    AS_PER_decodeLibraryFeatures(&gkpl, lib_mesg);
-
-    appendIndexStore(gkpStore->lib, &gkpl);
-    setGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, getLastElemStore(gkpStore->lib), AS_IID_LIB);
-
-    gkpStore->gkp.libLoaded++;
+    gkpStore->gkStore_addLibrary(lib_mesg->eaccession, &gkpl);
 
   } else if (lib_mesg->action == AS_UPDATE) {
-    AS_IID     iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);
+    AS_IID     iid = gkpStore->gkStore_getUIDtoIID(lib_mesg->eaccession, NULL);
 
     if (iid == 0) {
       AS_GKP_reportError(AS_GKP_LIB_DOESNT_EXIST_UPDATE,
@@ -195,14 +185,14 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
       return(1);
     }
 
-    getIndexStore(gkpStore->lib, iid, &gkpl);
+    gkpStore->gkStore_getLibrary(iid, &gkpl);
 
     if ((gkpl.mean   != lib_mesg->mean) ||
         (gkpl.stddev != lib_mesg->stddev)) {
       gkpl.mean   = lib_mesg->mean;
       gkpl.stddev = lib_mesg->stddev;
 
-      setIndexStore(gkpStore->lib, iid, &gkpl);
+      gkpStore->gkStore_setLibrary(iid, &gkpl);
     }
 
   } else {

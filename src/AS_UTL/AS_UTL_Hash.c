@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.18 2009-05-15 14:04:08 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.19 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -333,6 +333,9 @@ ResetHashTable_AS(HashTable_AS *table) {
 
 void
 DeleteHashTable_AS(HashTable_AS *table) {
+
+  if (table == NULL)
+    return;
 
   if (table->dirty && table->filename[0])
     SaveHashTable_AS(table->filename, table);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.70 2009-05-11 05:36:03 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.71 2009-06-10 18:05:13 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -84,6 +84,12 @@ const char *mainid = "$Id: AS_CGW_main.c,v 1.70 2009-05-11 05:36:03 brianwalenz 
 #define CHECKPOINT_AFTER_FINAL_CLEANUP              "ckp12-FC"
 #define CHECKPOINT_AFTER_RESOLVE_SURROGATES         "ckp13-RS"
 
+
+
+void AddUnitigOverlaps(GraphCGW_T *graph, char       *ovlFileName);
+void DemoteUnitigsWithRBP(FILE *stream, GraphCGW_T *graph);
+void CheckCITypes(ScaffoldGraphT *sgraph);
+void RemoveSurrogateDuplicates(void);
 
 int
 main(int argc, char **argv) {

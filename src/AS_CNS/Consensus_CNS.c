@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: Consensus_CNS.c,v 1.77 2009-05-21 03:50:03 brianwalenz Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.78 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -208,7 +208,6 @@ main (int argc, char **argv) {
       }
 
     } else if (strcmp(argv[arg], "-U") == 0) {
-      clear_range_to_use = AS_READ_CLEAR_OBT;
 
     } else {
       if (argv[arg][0] == '-') {
@@ -264,7 +263,7 @@ main (int argc, char **argv) {
     exit(1);
   }
 
-  gkpStore = openGateKeeperStore(gkpName, FALSE);
+  gkpStore = new gkStore(gkpName, FALSE, FALSE);
 
   if (USE_SDB) {
     sequenceDB = openSequenceDB(sdbName, FALSE, sdbVers);
@@ -274,9 +273,9 @@ main (int argc, char **argv) {
   }
 
   if (gkpPart)
-    loadGateKeeperPartition(gkpStore, gkpPart);
+    gkpStore->gkStore_loadPartition(gkpPart);
   else if (gkpInMemory)
-    loadGateKeeperStorePartial(gkpStore, 0, 0, FRAG_S_QLT);
+    gkpStore->gkStore_load(0, 0, GKFRAGMENT_QLT);
 
   if (ovlName)
     ovlStore = AS_OVS_openOverlapStore(ovlName);
@@ -428,7 +427,7 @@ main (int argc, char **argv) {
         if ( printwhat == CNS_CONSENSUS && pcontig->num_pieces > 0) {
           MultiAlignT   *ma = NULL;
           ma = CreateMultiAlignTFromICM(pcontig,-1,0);
-          PrintMultiAlignT(stderr, ma, gkpStore, 1, 0, clear_range_to_use);
+          PrintMultiAlignT(stderr, ma, gkpStore, 1, 0, AS_READ_CLEAR_LATEST);
           DeleteMultiAlignT(ma);
         }
 

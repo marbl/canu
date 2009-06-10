@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.22 2009-05-29 17:27:16 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.23 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1110,6 +1110,8 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
   Local_Segment *local_results=NULL;
   Local_Overlap *O=NULL;
 
+  int *trace;
+
   assert(what == AS_FIND_LOCAL_ALIGN || what == AS_FIND_LOCAL_ALIGN_NO_TRACE
 	 || what == AS_FIND_LOCAL_OVERLAP );
 
@@ -1429,7 +1431,7 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
      by calling AS_ALN_OKNAlign or extrapolate start point as dictated by
      `what'.  Then build an overlap record modelling the overlap.   */
 
-  int *trace = NULL;
+  trace = NULL;
 
   {
     int ahang, bhang;

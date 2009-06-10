@@ -21,7 +21,7 @@
 #ifndef MULTIALIGNMENT_CNS_INCLUDE
 #define MULTIALIGNMENT_CNS_INCLUDE
 
-static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.50 2009-05-29 17:29:19 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.51 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -65,14 +65,14 @@ typedef enum {
 
 
 MultiAlignT *MergeMultiAlignsFast_new(tSequenceDB *,
-                                      GateKeeperStore *,
+                                      gkStore *,
                                       VA_TYPE(IntElementPos) *,
                                       int,
                                       int,
                                       CNS_Options *opp);
 
 MultiAlignT *ReplaceEndUnitigInContig(tSequenceDB *,
-                                      GateKeeperStore * ,
+                                      gkStore * ,
                                       uint32,
                                       uint32,
                                       int,
@@ -80,7 +80,7 @@ MultiAlignT *ReplaceEndUnitigInContig(tSequenceDB *,
 
 
 int MultiAlignUnitig(IntUnitigMesg *,
-                     GateKeeperStore *,
+                     gkStore *,
                      VA_TYPE(char) *,
                      VA_TYPE(char) *,
                      VA_TYPE(int32) *,

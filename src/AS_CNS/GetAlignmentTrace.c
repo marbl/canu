@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GetAlignmentTrace.c,v 1.1 2009-05-29 17:29:19 brianwalenz Exp $";
+static char *rcsid = "$Id: GetAlignmentTrace.c,v 1.2 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -60,7 +60,7 @@ typedef struct CNS_AlignParams {
   double erate;
   double thresh;
   int minlen;
-  int what;
+  CompareOptions what;
 } CNS_AlignParams;
 
 static
@@ -568,7 +568,6 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   // the number of gaps in A and B is the same -- otherwise, we are
   // off by the number of gaps
   //
-  int ahang_tmp = alen - ahang_input - blen;
 
 
   ////////////////////////////////////////
@@ -577,8 +576,8 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   fprintf(stderr, "GetAlignmentTrace()--  Compare 9\n");
 #endif
   params         = paramsDefault;
-  params.bandBgn = ahang_tmp-CNS_TIGHTSEMIBANDWIDTH;
-  params.bandEnd = ahang_tmp+CNS_TIGHTSEMIBANDWIDTH;
+  params.bandBgn = alen - ahang_input - blen - CNS_TIGHTSEMIBANDWIDTH;
+  params.bandEnd = alen - ahang_input - blen + CNS_TIGHTSEMIBANDWIDTH;
   O = Compare(arev,alen,brev,blen,alignFunction,&params);
   if (O) {
     InvertTrace(alen, blen, O);
@@ -597,8 +596,8 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   fprintf(stderr, "GetAlignmentTrace()--  Compare 10\n");
 #endif
   params         = paramsDefault;
-  params.bandBgn = ahang_tmp-2*CNS_LOOSESEMIBANDWIDTH;
-  params.bandEnd = ahang_tmp+2*CNS_LOOSESEMIBANDWIDTH;
+  params.bandBgn = alen - ahang_input - blen - 2*CNS_LOOSESEMIBANDWIDTH;
+  params.bandEnd = alen - ahang_input - blen + 2*CNS_LOOSESEMIBANDWIDTH;
   params.erate   = paramsDefault.erate * 2;
   O = Compare(arev,alen,brev,blen,alignFunction,&params);
   if (O) {
@@ -643,8 +642,8 @@ GetAlignmentTrace(int32 afid, int32 aoffset,
   fprintf(stderr, "GetAlignmentTrace()--  Compare 12\n");
 #endif
   params         = paramsDefault;
-  params.bandBgn = -ahang_tmp-2*CNS_LOOSESEMIBANDWIDTH;
-  params.bandEnd = -ahang_tmp+2*CNS_LOOSESEMIBANDWIDTH;
+  params.bandBgn = -alen - ahang_input - blen - 2*CNS_LOOSESEMIBANDWIDTH;
+  params.bandEnd = -alen - ahang_input - blen + 2*CNS_LOOSESEMIBANDWIDTH;
   params.ahang   = -params.ahang;
   params.bhang   = -params.bhang;
   O = Compare(brev,blen,arev,alen,alignFunction,&params);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AbacusRefine.c,v 1.1 2009-05-29 17:29:19 brianwalenz Exp $";
+static char *rcsid = "$Id: AbacusRefine.c,v 1.2 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -136,7 +136,7 @@ CreateAbacus(int32 mid, int32 from, int32 end) {
 #ifdef EXTRA_MID_COLUMNS
   if(mid_column_points[0]==75){
     for (i=0; i<MAX_MID_COLUMN_NUM; i++){
-      mid_column_points[i] = i * (AS_FRAG_MIN_LEN-1) + 30;
+      mid_column_points[i] = i * (AS_READ_MIN_LEN-1) + 30;
       mid_column[i]=NULL;
     }
   }
@@ -180,7 +180,7 @@ CreateAbacus(int32 mid, int32 from, int32 end) {
   fprintf(stderr, "\n");
 #endif
 
-  if(columns>MAX_MID_COLUMN_NUM*(AS_FRAG_MIN_LEN-1)){
+  if(columns>MAX_MID_COLUMN_NUM*(AS_READ_MIN_LEN-1)){
     fprintf(stderr,"WARNING: CreateAbacus called with such a large window that small fragments might slip through the cracks...\n");
   }
 
@@ -811,7 +811,7 @@ RightShift(Abacus *abacus, VarRegion vreg, int *rcols) {
 static
 int32
 MixedShift(Abacus *abacus, int *mcols, VarRegion  vreg, int lpos, int rpos,
-                 char *template, int long_allele, int short_allele) {
+                 char *tmpl, int long_allele, int short_allele) {
   // lcols is the number of non-null columns in result
   int32 i, j, k, l, ccol, pcol;
   char c, call;
@@ -837,7 +837,7 @@ MixedShift(Abacus *abacus, int *mcols, VarRegion  vreg, int lpos, int rpos,
 
   /* Populate calls */
   for (j=window_beg; j<window_end; j++)
-    abacus->calls[j] = template[j];
+    abacus->calls[j] = tmpl[j];
 
   /* Perform left shift */
   for (j=window_beg;j<=MIN(window_end, lpos);j++)
@@ -1775,16 +1775,16 @@ AdjustShiftingInterfaces(int *lpos, int *rpos, int lscore, int rscore,
 
 static
 void
-  GetTemplateForAbacus(char **template, char **consensus, int len,
+  GetTemplateForAbacus(char **tmpl, char **consensus, int len,
                            char **ugconsensus, int *uglen, int lpos, int rpos, int **imap,
                            int *adjleft, int *adjright, int short_allele, int long_allele) {
   int i, j;
 
-  *template = (char *)safe_malloc(len*sizeof(char));
+  *tmpl = (char *)safe_malloc(len*sizeof(char));
   for (i=0; i<len; i++)
-    (*template)[i] = consensus[long_allele][i];
+    (*tmpl)[i] = consensus[long_allele][i];
 
-  /* Set Ns in the left part of the template */
+  /* Set Ns in the left part of the tmpl */
   i = 0;
   while ((imap[long_allele][i] <= lpos) &&
          (i < uglen[short_allele] - adjleft[short_allele]) &&
@@ -1793,12 +1793,12 @@ void
       int lpos = i + adjleft[long_allele];
       int spos = i + adjleft[short_allele];
       if ((ugconsensus[short_allele][spos] != ugconsensus[long_allele][lpos]) &&
-          ((*template)[imap[long_allele][lpos]] != '-'))
-        (*template)[imap[long_allele][lpos]] = 'n';
+          ((*tmpl)[imap[long_allele][lpos]] != '-'))
+        (*tmpl)[imap[long_allele][lpos]] = 'n';
       i++;
     }
 
-  /* template bases before adjusted left boundary should be 'N's */
+  /* tmpl bases before adjusted left boundary should be 'N's */
   if (adjleft[long_allele] > 0 && lpos > 0)
     {
       i = imap[long_allele][adjleft[long_allele]-1];
@@ -1807,7 +1807,7 @@ void
         {
           if (consensus[long_allele][i] != '-')
             {
-              (*template)[i] = 'n';
+              (*tmpl)[i] = 'n';
               j++;
               i--;
             }
@@ -1816,7 +1816,7 @@ void
         }
     }
 
-  /* Set Ns in the right part of the template */
+  /* Set Ns in the right part of the tmpl */
   i = uglen[long_allele]-1-adjright[long_allele];
   j = uglen[short_allele]-1-adjright[short_allele];
   while ((i >= adjleft[long_allele]) &&
@@ -1824,15 +1824,15 @@ void
          (imap[long_allele][i] > rpos))
     {
       if ((ugconsensus[short_allele][j] != ugconsensus[long_allele][i]) &&
-          ((*template)[imap[long_allele][i]] != '-'))
+          ((*tmpl)[imap[long_allele][i]] != '-'))
         {
-          (*template)[imap[long_allele][i]] =  'n';
+          (*tmpl)[imap[long_allele][i]] =  'n';
         }
       i--;
       j--;
     }
 
-  /* template bases after adjusted right boundary should be 'N's */
+  /* tmpl bases after adjusted right boundary should be 'N's */
   if ((adjright[long_allele] > 0) && (rpos > 0))
     {
       for (i = uglen[long_allele]-adjright[long_allele];
@@ -1842,7 +1842,7 @@ void
           j = imap[long_allele][i];
           if (consensus[long_allele][j] != '-')
             {
-              (*template)[i] = 'n';
+              (*tmpl)[i] = 'n';
             }
         }
     }
@@ -2004,7 +2004,7 @@ int
 #endif
   {
     int i, j;
-    char  **consensus=NULL, **ugconsensus=NULL, *template=NULL;
+    char  **consensus=NULL, **ugconsensus=NULL, *tmpl=NULL;
     int   **imap=NULL, uglen[2]={0,0}, adjleft[2]={-1,-1}, adjright[2]={-1,-1};
     int     gapcount[2], short_allele=-1, long_allele=-1;
     int     lscore=0, rscore=0, lpos=-1, rpos=-1;
@@ -2125,7 +2125,7 @@ int
                   short_allele, long_allele, &rscore, &rpos);
     AdjustShiftingInterfaces(&lpos, &rpos, lscore, rscore,
                              adjleft, adjright, long_allele, short_allele);
-    GetTemplateForAbacus(&template, consensus, 3*best_abacus->window_width,
+    GetTemplateForAbacus(&tmpl, consensus, 3*best_abacus->window_width,
                          ugconsensus, uglen, lpos, rpos, imap, adjleft, adjright,
                          short_allele, long_allele);
 
@@ -2134,7 +2134,7 @@ int
     {
       fprintf(stderr, "Template = \n");
       for (i=0; i<3*best_abacus->window_width; i++)
-        fprintf(stderr, "%c", template[i]);
+        fprintf(stderr, "%c", tmpl[i]);
       fprintf(stderr, "\n");
     }
     fprintf(stderr, "Start calling MixedShift\n\n");
@@ -2142,7 +2142,7 @@ int
             lpos, rpos, best_abacus->window_width, long_allele, short_allele);
 #endif
     mixed_mm_score = MixedShift(mixed_abacus, &mixed_columns, vreg, lpos, rpos,
-                                template, long_allele, short_allele);
+                                tmpl, long_allele, short_allele);
 
 #if 0
     fprintf(stderr, "Mixed abacus=\n");
@@ -2214,7 +2214,7 @@ int
       safe_free(imap[0]);
       safe_free(imap[1]);
       safe_free(imap);
-      safe_free(template);
+      safe_free(tmpl);
     }
     if (vreg.nr > 0)
       {

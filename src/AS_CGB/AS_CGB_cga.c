@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_cga.c,v 1.22 2008-10-08 22:02:54 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_cga.c,v 1.23 2009-06-10 18:05:13 brianwalenz Exp $";
 
 //  A chunk graph analyzer. This functional unit computes graph
 //  statistics, and writes the chunk graph in the term representation
@@ -945,7 +945,7 @@ static void analyze_the_chunks(FILE *fout,
                                const int recalibrate_global_arrival_rate,
                                const float cgb_unique_cutoff,
                                const float global_fragment_arrival_rate,
-                               GateKeeperStore *gkp) {
+                               gkStore *gkp) {
 
   IntChunk_ID ichunk;
   IntFragment_ID num_of_chunks[MAX_NUM_CHUNK_LABELS]={0};
@@ -1014,7 +1014,7 @@ static void analyze_the_chunks(FILE *fout,
 
     assert(im < AS_CGB_NOT_SEEN_YET);
 
-    afr_to_avx = safe_calloc(im + 1, sizeof(IntFragment_ID));
+    afr_to_avx = (IntFragment_ID *)safe_calloc(im + 1, sizeof(IntFragment_ID));
 
     for(iv=0; iv<nfrag; iv++)
       afr_to_avx[get_iid_fragment(frags,iv)] = iv;
@@ -1497,7 +1497,7 @@ static void analyze_the_chunks(FILE *fout,
 void
 chunk_graph_analysis(THeapGlobals *heapva,
                      UnitiggerGlobals *rg,
-                     GateKeeperStore *gkp) {
+                     gkStore *gkp) {
   char strtmp2[FILENAME_MAX];
 
   sprintf(strtmp2,"%s.cga.0",rg->Output_Graph_Store_Prefix);

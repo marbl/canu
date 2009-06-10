@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.54 2009-05-21 02:24:37 brianwalenz Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.55 2009-06-10 18:05:13 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,8 +52,8 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.54 2009-05-21 02:24:37 br
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.54 2009-05-21 02:24:37 brianwalenz Exp $
- * $Revision: 1.54 $
+ * $Id: AS_OVL_overlap_common.h,v 1.55 2009-06-10 18:05:13 brianwalenz Exp $
+ * $Revision: 1.55 $
 */
 
 
@@ -94,7 +94,7 @@ typedef  struct Olap_Info
   {
    int  s_lo, s_hi, t_lo, t_hi;
    double  quality;
-   int  delta [AS_FRAG_MAX_LEN+1];  //  needs only MAX_ERRORS
+   int  delta [AS_READ_MAX_LEN+1];  //  needs only MAX_ERRORS
    int  delta_ct;
    int  s_left_boundary, s_right_boundary;
    int  t_left_boundary, t_right_boundary;
@@ -222,11 +222,11 @@ static int  Use_Window_Filter = FALSE;
     //  Determines whether check for a window containing too many
     //  errors is used to disqualify overlaps.
 
-static int  Read_Edit_Match_Limit [AS_FRAG_MAX_LEN] = {0};
+static int  Read_Edit_Match_Limit [AS_READ_MAX_LEN] = {0};
     //  This array [e] is the minimum value of  Edit_Array [e] [d]
     //  to be worth pursuing in edit-distance computations between reads
     //  (only MAX_ERRORS needed)
-static int  Guide_Edit_Match_Limit [AS_FRAG_MAX_LEN] = {0};
+static int  Guide_Edit_Match_Limit [AS_READ_MAX_LEN] = {0};
     //  This array [e] is the minimum value of  Edit_Array [e] [d]
     //  to be worth pursuing in edit-distance computations between guides
     //  (only MAX_ERRORS needed)
@@ -314,8 +314,8 @@ FILE  * Kmer_Skip_File = NULL;
     // Specified by the  -k  option
 Output_Stream  Out_Stream = NULL;
 BinaryOverlapFile  *Out_BOF = NULL;
-GateKeeperStore  *OldFragStore;
-GateKeeperStore  *BACtigStore;
+gkStore  *OldFragStore;
+gkStore  *BACtigStore;
 char  * Frag_Store_Path;
 char  * BACtig_Store_Path = NULL;
 uint32  * IID_List = NULL;
@@ -410,7 +410,7 @@ static void  Put_String_In_Hash
     (int i);
 static int  Read_Next_Frag
     (char frag [AS_READ_MAX_LEN + 1], char quality [AS_READ_MAX_LEN + 1],
-     FragStream *stream, fragRecord *, Screen_Info_t *,
+     gkStream *stream, gkFragment *, Screen_Info_t *,
      uint32 * last_frag_read);
 static void  Read_uint32_List
     (char * file_name, uint32 * * list, int * n);
@@ -768,13 +768,7 @@ main(int argc, char **argv) {
              fprintf (stderr, "ERROR:  No BACtig store specified\n");
              exit (1);
             }
-        if  (! testOpenGateKeeperStore(BACtig_Store_Path, FALSE))
-            {
-             fprintf (stderr, "ERROR:  BACtig store '%s' does NOT exist\n",
-                      BACtig_Store_Path);
-             exit (1);
-            }
-        BACtigStore = openGateKeeperStore(BACtig_Store_Path, FALSE);
+        BACtigStore = new gkStore(BACtig_Store_Path, FALSE, FALSE);
 
         if  (iidlist_file_name[0] != 0)
             {
@@ -798,7 +792,7 @@ main(int argc, char **argv) {
 
    fprintf (stderr, "* Using fragstore %s\n", Frag_Store_Path);
 
-   OldFragStore = openGateKeeperStore(Frag_Store_Path, FALSE);
+   OldFragStore = new gkStore(Frag_Store_Path, FALSE, FALSE);
 
    /****************************************/
    OverlapDriver(argc, argv);
@@ -851,7 +845,7 @@ fclose (Stat_File);
    fprintf (stderr, "Rejected by short window = %lld\n", Bad_Short_Window_Ct);
    fprintf (stderr, " Rejected by long window = %lld\n", Bad_Long_Window_Ct);
 
-   closeGateKeeperStore (OldFragStore);
+   delete OldFragStore;
 
 #if  SHOW_SNPS
 {
@@ -1204,7 +1198,7 @@ WA -> String_Olap_Space [Sub] . Kmer_Hits ++;
 
 
 int  Build_Hash_Index
-    (FragStream *stream, int32 first_frag_id, fragRecord *myRead)
+    (gkStream *stream, int32 first_frag_id, gkFragment *myRead)
 
 /* Read the next batch of strings from  stream  and create a hash
 *  table index of their  Kmer_Len -mers.  Return  1  if successful;
@@ -3697,7 +3691,7 @@ static void  Process_Matches
 
 
 void  Process_Overlaps
-    (FragStream *stream, Work_Area_t * WA)
+    (gkStream *stream, Work_Area_t * WA)
 
 //  Find and output all overlaps between strings in  stream
 //  and those in the global hash table.   (* WA)  has the
@@ -3730,7 +3724,7 @@ void  Process_Overlaps
       if  (frag_status == DELETED_FRAG)
            continue;
 
-      Curr_String_Num = getFragRecordIID (&WA -> myRead);
+      Curr_String_Num = WA->myRead.gkFragment_getReadIID ();
 
       //getReadType_ReadStruct (WA -> myRead, & (WA -> curr_frag_type));
       WA -> curr_frag_type = AS_READ;
@@ -4062,8 +4056,8 @@ static void  Put_String_In_Hash
 static int  Read_Next_Frag
     (char frag [AS_READ_MAX_LEN + 1],
      char quality [AS_READ_MAX_LEN + 1],
-     FragStream *stream,
-     fragRecord *myRead,
+     gkStream *stream,
+     gkFragment *myRead,
      Screen_Info_t * screen,
      uint32 * last_frag_read)
 
@@ -4081,23 +4075,23 @@ static int  Read_Next_Frag
 
 
    //  BPW says we don't need to mutex this
-   success = nextFragStream (stream, myRead);
+   success = stream->next (myRead);
 
    if  (! success)
        return(0);
 
-   *last_frag_read = getFragRecordIID (myRead);
+   *last_frag_read = myRead->gkFragment_getReadIID ();
 
-   if  (getFragRecordIsDeleted (myRead))
+   if  (myRead->gkFragment_getIsDeleted ())
        return (DELETED_FRAG);
 
 
    //  We got a read!  Lowercase it, adjust the quality, and extract
    //  the clear region.
 
-   seqptr   = getFragRecordSequence(myRead);
-   qltptr   = getFragRecordQuality(myRead);
-   frag_len = getFragRecordSequenceLength(myRead);
+   seqptr   = myRead->gkFragment_getSequence();
+   qltptr   = myRead->gkFragment_getQuality();
+   frag_len = myRead->gkFragment_getSequenceLength();
 
    for  (i = 0;  i < frag_len;  i ++)
      {
@@ -4107,8 +4101,8 @@ static int  Read_Next_Frag
 
    if  (! Ignore_Clear_Range)
      {
-       uint clear_start = getFragRecordClearRegionBegin(myRead, AS_READ_CLEAR_OBT);
-       uint clear_end   = getFragRecordClearRegionEnd  (myRead, AS_READ_CLEAR_OBT);
+       uint32 clear_start, clear_end;
+       myRead->gkFragment_getClearRegion(clear_start, clear_end);
 
        frag_len = clear_end - clear_start;
        if  (clear_start > 0)
@@ -4120,7 +4114,7 @@ static int  Read_Next_Frag
    if  (OFFSET_MASK < frag_len)
      {
        fprintf (stderr, "ERROR:  Read "F_IID" is too long (%lu) for hash table\n",
-                getFragRecordIID(myRead), frag_len);
+                myRead->gkFragment_getReadIID(), frag_len);
        exit (-1);
      }
    frag [frag_len] = '\0';

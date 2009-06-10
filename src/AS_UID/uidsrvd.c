@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: uidsrvd.c,v 1.3 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: uidsrvd.c,v 1.4 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1006,7 +1006,7 @@ Notes:
 int32  AcceptClientConnection(void)
 {
    struct sockaddr_in   client_connection_data;
-   int32                client_connection_data_size;
+   socklen_t            client_connection_data_size;
    static char          FirstTime = 1;
 
    if (FirstTime)

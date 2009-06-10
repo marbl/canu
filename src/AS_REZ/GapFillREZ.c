@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.48 2009-05-29 17:27:16 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.49 2009-06-10 18:05:14 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -638,7 +638,7 @@ static int Place_Closure_Chunk(Scaffold_Fill_t * fill_chunks, ContigT* contig, i
 
    Closure_Placement_t *placements = NULL;
    if (!placeImmediately) {
-      placements = safe_calloc(Num_Scaffolds, sizeof(Closure_Placement_t));   
+      placements = (Closure_Placement_t *)safe_calloc(Num_Scaffolds, sizeof(Closure_Placement_t));   
       memset(placements, 0, sizeof(Closure_Placement_t)*Num_Scaffolds);
    }
 
@@ -702,7 +702,7 @@ static int Place_Closure_Chunk(Scaffold_Fill_t * fill_chunks, ContigT* contig, i
       if (!placeImmediately && placements[end_chunk->scaffoldID].gaps == NULL) {
          placements[end_chunk->scaffoldID].scfID = end_chunk->scaffoldID;
          placements[end_chunk->scaffoldID].numGaps = fill_chunks[end_chunk->scaffoldID].num_gaps;
-         placements[end_chunk->scaffoldID].gaps = safe_calloc(placements[end_chunk->scaffoldID].numGaps, sizeof(Closure_Gap_t));
+         placements[end_chunk->scaffoldID].gaps = (Closure_Gap_t *)safe_calloc(placements[end_chunk->scaffoldID].numGaps, sizeof(Closure_Gap_t));
       }
 
       int i = 0;

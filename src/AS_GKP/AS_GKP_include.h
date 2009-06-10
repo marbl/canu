@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.47 2009-05-12 17:25:31 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.48 2009-06-10 18:05:13 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
 
-static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.47 2009-05-12 17:25:31 brianwalenz Exp $";
+static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.48 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <errno.h>
@@ -39,11 +39,10 @@ static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.47 2009-0
 #define AS_ASSEMBLER_GRANDE  ((int)'A')
 #define AS_ASSEMBLER_OBT     ((int)'T')
 
-extern GateKeeperStore  *gkpStore;
-extern FILE             *errorFP;
-
-int
-Check_BatchMesg(BatchMesg           *bat_mesg);
+extern gkStore     *gkpStore;
+extern gkFragment  *gkFrag1;
+extern gkFragment  *gkFrag2;
+extern FILE        *errorFP;
 
 int
 Check_DistanceMesg(DistanceMesg     *dst_mesg,
@@ -64,13 +63,6 @@ Check_LinkMesg(LinkMesg             *lkg_mesg);
 void
 dumpGateKeeperInfo(char       *gkpStoreName,
                    int         asTable);
-
-void
-dumpGateKeeperBatches(char       *gkpStoreName,
-                      AS_IID      begIID,
-                      AS_IID      endIID,
-                      char       *iidToDump,
-                      int         asTable);
 
 void
 dumpGateKeeperLibraries(char       *gkpStoreName,

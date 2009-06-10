@@ -22,7 +22,7 @@
 #ifndef MULTIALIGN_H
 #define MULTIALIGN_H
 
-static const char *rcsid_MULTIALIGN_H = "$Id: MultiAlign.h,v 1.3 2008-10-08 22:02:57 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGN_H = "$Id: MultiAlign.h,v 1.4 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_Var.h"
@@ -74,7 +74,7 @@ void         MakeCanonicalMultiAlignT(MultiAlignT *ma);
 
 void         PrintMultiAlignT(FILE *out,
                               MultiAlignT *ma,
-                              GateKeeperStore *gkp_store,
+                              gkStore *gkp_store,
                               int show_qv,
                               int dots,
                               uint32 clrrng_flag);

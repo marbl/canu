@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_Bubble_dfs.c,v 1.9 2008-10-08 22:02:54 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_Bubble_dfs.c,v 1.10 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -253,7 +253,7 @@ AS_CGB_Bubble_dfs(BubGraph_t bg)
     BG_E_setFlag(bg, e, AS_CGB_BUBBLE_E_UNUSED);
 
   /* Allocate stack space */
-  stack = safe_malloc(sizeof(BG_E_Iter) * num_v);
+  stack = (BG_E_Iter *)safe_malloc(sizeof(BG_E_Iter) * num_v);
 
   for (v = 0; v < num_v; v++)
     if ((!BG_V_isSetFlag(bg, v, AS_CGB_BUBBLE_V_DONE)) &&

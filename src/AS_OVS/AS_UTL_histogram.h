@@ -22,7 +22,7 @@
 #ifndef AS_UTL_HISTOGRAM_H
 #define AS_UTL_HISTOGRAM_H
 
-static const char *rcsid_AS_UTL_HISTOGRAM_H = "$Id: AS_UTL_histogram.h,v 1.6 2009-01-16 16:38:42 skoren Exp $";
+static const char *rcsid_AS_UTL_HISTOGRAM_H = "$Id: AS_UTL_histogram.h,v 1.7 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,7 +70,7 @@ typedef struct {
 AS_UTL_histogram *
 AS_UTL_histogramAllocate(AS_UTL_histogram *h) {
   if (h == NULL) {
-    h = safe_calloc(1, sizeof(AS_UTL_histogram));
+    h = (AS_UTL_histogram *)safe_calloc(1, sizeof(AS_UTL_histogram));
     h->isMallocd = 1;
   }
   if (h->histogram == NULL) {
@@ -294,7 +294,7 @@ AS_UTL_histogramDump(AS_UTL_histogram *h, char *filename, char *label) {
 AS_UTL_histogram3d *
 AS_UTL_histogram3dAllocate(AS_UTL_histogram3d *h, uint32 x, uint32 y) {
   if (h == NULL) {
-    h = safe_calloc(1, sizeof(AS_UTL_histogram3d));
+    h = (AS_UTL_histogram3d *)safe_calloc(1, sizeof(AS_UTL_histogram3d));
     h->isMallocd = 1;
   }
   if (h->histogramData == NULL) {

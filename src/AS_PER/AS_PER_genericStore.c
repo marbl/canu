@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_genericStore.c,v 1.31 2008-10-08 22:02:58 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_genericStore.c,v 1.32 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,11 +56,13 @@ openStore(const char *path, const char *rw) {
   FILE *fp = fopen(path, rw);
   if (errno) {
     fprintf(stderr,"openStore()-- Failed to open store %s (%s): %s\n", path, rw, strerror(errno));
+    assert(0);
     exit(1);
   }
 
   if (1 != AS_UTL_safeRead(fp, s, "openStore", sizeof(StoreStruct), 1)) {
     fprintf(stderr, "openStore()-- Failed to read the header for store %s.\n");
+    assert(0);
     exit(1);
   }
 
@@ -81,6 +83,9 @@ openStore(const char *path, const char *rw) {
 
 void
 closeStore(StoreStruct *s) {
+
+  if (s == NULL)
+    return;
 
   //  Flush the memory-resident store to our disk backing.
   //
@@ -104,6 +109,7 @@ closeStore(StoreStruct *s) {
 
     if (fclose(s->fp) != 0) {
       fprintf(stderr, "Failed to close the store; this usually means your disk is full.\n");
+      assert(0);
       exit(1);
     }
   }
@@ -143,6 +149,7 @@ createIndexStore(const char *path, const char *storeLabel, int32 elementSize, in
     s->fp = fopen(path, "w+");
     if (errno) {
       fprintf(stderr,"createIndexStore()-- Failure opening Store %s for w+: %s\n", path, strerror(errno));
+      assert(0);
       exit(1);
     }
 
@@ -188,6 +195,7 @@ createStringStore(const char *path, const char *storeLabel) {
     s->fp = fopen(path, "w+");
     if (errno) {
       fprintf(stderr,"createStringStore()-- Failure opening Store %s for w+: %s\n", path, strerror(errno));
+      assert(0);
       exit(1);
     }
 
@@ -222,6 +230,7 @@ getIndexStore(StoreStruct *s, int64 index, void *buffer) {
 
     if (1 != AS_UTL_safeRead(s->fp,buffer,"getIndexStore",s->elementSize, 1)) {
       fprintf(stderr, "getIndexStore()-- Failed to read the record.  Incomplete store?\n");
+      assert(0);
       exit(1);
     }
     s->lastWasWrite = 0;
@@ -269,6 +278,7 @@ getStringStore(StoreStruct *s, int64 offset, char *buffer, uint32 maxLength, uin
 
     if (1 != AS_UTL_safeRead(s->fp,&length,"getStringStore",sizeof(uint32), 1)) {
       fprintf(stderr, "getStringStore()-- Failed to read the length of the record.  Incomplete store?\n");
+      assert(0);
       exit(1);
     }
 
@@ -278,6 +288,7 @@ getStringStore(StoreStruct *s, int64 offset, char *buffer, uint32 maxLength, uin
     if (length > 0) {
       if (length + 1 != AS_UTL_safeRead(s->fp,buffer,"getStringStore",sizeof(char), length + 1)) {
         fprintf(stderr, "getStringStore()-- Failed to read all "F_U32" bytes.  Incomplete store?\n", length);
+        assert(0);
         exit(1);
       }
     }
@@ -452,13 +463,15 @@ nextStream(StreamStruct *ss, void *buffer, uint32 maxLength, uint32 *actualLengt
     getIndexStore(ss->store, ss->startIndex, buffer);
     ss->startIndex++;
   } else {
-    getStringStore(ss->store, ss->startIndex, buffer, maxLength, actualLength, &ss->startIndex);
+    getStringStore(ss->store, ss->startIndex, (char *)buffer, maxLength, actualLength, &ss->startIndex);
   }
   return(1);
 }
 
 void
 closeStream(StreamStruct *ss) {
+  if (ss == NULL)
+    return;
   memset(ss, 0xfe, sizeof(StreamStruct));
   safe_free(ss);
 }
@@ -496,6 +509,7 @@ convertStoreToMemoryStore(StoreStruct *source) {
                         source->allocatedSize) != source->allocatedSize) {
       fprintf(stderr, "convertStoreToMemoryStore()-- failed to convert store (label '%s') to memory store.\n",
               source->storeLabel);
+      assert(0);
       exit(1);
     }
   }
@@ -572,6 +586,7 @@ convertStoreToPartialMemoryStore(StoreStruct *source,
     if (bytesRead != sourceMaxOffset - sourceOffset) {
       fprintf(stderr, "convertStoreToPartialMemoryStore()-- failed to convert store (label '%s') to memory store.\n", source->storeLabel);
       fprintf(stderr, "convertStoreToPartialMemoryStore()-- wanted to read %d bytes, actually read %d.\n", sourceMaxOffset - sourceOffset, bytesRead);
+      assert(0);
       exit(1);
     }
   }

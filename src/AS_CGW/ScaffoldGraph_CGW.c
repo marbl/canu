@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.37 2009-02-02 13:51:14 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.38 2009-06-10 18:05:13 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -140,9 +140,7 @@ LoadScaffoldGraphFromCheckpoint(char   *name,
   ScaffoldGraph->sequenceDB = SequenceDB = openSequenceDB(ckpfile, readWrite, checkPointNum);
 
   //  Open the gkpStore
-  ScaffoldGraph->gkpStore = openGateKeeperStore(GlobalData->Gatekeeper_Store_Name, FALSE);
-  if (ScaffoldGraph->gkpStore == NULL)
-    fprintf(stderr,"**** Failure to open gatekeeper store %s ...exiting\n", GlobalData->Gatekeeper_Store_Name), exit(1);
+  ScaffoldGraph->gkpStore = new gkStore(GlobalData->Gatekeeper_Store_Name, FALSE, FALSE);
 
   //  Check (and cleanup?) scaffolds
   SetCIScaffoldTLengths(ScaffoldGraph, TRUE);
@@ -154,7 +152,7 @@ LoadScaffoldGraphFromCheckpoint(char   *name,
 
 
 void
-CheckpointScaffoldGraph(char *logicalname, char *location) {
+CheckpointScaffoldGraph(const char *logicalname, const char *location) {
   char ckpfile[FILENAME_MAX];
   char tmgfile[FILENAME_MAX];
 
@@ -210,9 +208,11 @@ void InsertRepeatCIsInScaffolds(ScaffoldGraphT *sgraph){
   CDS_CID_t cid;
   int scaffolded = 0;
   LengthT NullLength = {0,0.0};
-  CIScaffoldT CIScaffold = {0};
+  CIScaffoldT CIScaffold;
   GraphNodeIterator nodes = {0};
   NodeCGW_T *CI;
+
+  memset(&CIScaffold, 0, sizeof(CIScaffoldT));
 
   CIScaffold.info.Scaffold.AEndCI = NULLINDEX;
   CIScaffold.info.Scaffold.BEndCI = NULLINDEX;
@@ -266,14 +266,10 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name) {
   sgraph->ContigGraph   = CreateGraphCGW(CONTIG_GRAPH, 1, 1);
   sgraph->ScaffoldGraph = CreateGraphCGW(SCAFFOLD_GRAPH, NULLINDEX, NULLINDEX);
 
-  sgraph->gkpStore = openGateKeeperStore(GlobalData->Gatekeeper_Store_Name, FALSE);
-  if(sgraph->gkpStore == NULL){
-    fprintf(stderr,"**** Failure to open gatekeeper store %s ...exiting\n",buffer);
-    exit(1);
-  }
+  sgraph->gkpStore = new gkStore(GlobalData->Gatekeeper_Store_Name, FALSE, FALSE);
 
-  int numFrags = getNumGateKeeperFragments(sgraph->gkpStore);
-  int numDists = getNumGateKeeperLibraries(sgraph->gkpStore);
+  int numFrags = sgraph->gkpStore->gkStore_getNumFragments();
+  int numDists = sgraph->gkpStore->gkStore_getNumLibraries();
 
   sgraph->iidToFragIndex = CreateVA_InfoByIID(numFrags);
   sgraph->Dists          = CreateVA_DistT(numDists);
@@ -314,7 +310,7 @@ void DestroyScaffoldGraph(ScaffoldGraphT *sgraph){
   DeleteGraphCGW(sgraph->ContigGraph);
   DeleteGraphCGW(sgraph->ScaffoldGraph);
 
-  closeGateKeeperStore(sgraph->gkpStore);
+  delete sgraph->gkpStore;
 
   DeleteVA_CIFragT(sgraph->CIFrags);
 
@@ -471,6 +467,7 @@ void CheckScaffoldOrder(CIScaffoldT *scaffold, ScaffoldGraphT *graph)
 
 
 
+#if 0
 void DumpScaffoldGraph(ScaffoldGraphT *graph){
   static int version = 0;
   char fileName[FILENAME_MAX];
@@ -489,6 +486,7 @@ void DumpScaffoldGraph(ScaffoldGraphT *graph){
 
   fclose(dumpFile);
 }
+#endif
 
 
 int GetCoverageStat(ChunkInstanceT *CI){

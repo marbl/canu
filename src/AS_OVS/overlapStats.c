@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStats.c,v 1.9 2009-01-16 16:57:50 skoren Exp $";
+const char *mainid = "$Id: overlapStats.c,v 1.10 2009-06-10 18:05:14 brianwalenz Exp $";
 
 //  install.packages(c("akima"))
 //
@@ -101,7 +101,7 @@ typedef struct {
 #include "overlapStatsBoringStuff.h"
 
 FragmentEndData *
-process_FragmentEnds(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp,
+process_FragmentEnds(OVSoverlap *ovls, uint64 ovlsLen, gkStore *gkp,
                      RepeatModel *rm,
                      FragmentEndData *red,
                      int isRepeat) {
@@ -138,7 +138,7 @@ process_FragmentEnds(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp,
     for (i=0; i<3; i++) {
       AS_UTL_histogramAllocate(&red->overlapLength[i]);
       AS_UTL_histogramAllocate(&red->errorRates[i]);
-      AS_UTL_histogram3dAllocate(&red->lengthError[i], AS_FRAG_MAX_LEN+1, 250);
+      AS_UTL_histogram3dAllocate(&red->lengthError[i], AS_READ_MAX_LEN+1, 250);
     }
   }
 
@@ -175,7 +175,7 @@ process_FragmentEnds(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp,
 }
 
 void
-finalize_FragmentEnds(GateKeeperStore *gkp, RepeatModel *rm, FragmentEndData *red, char *label) {
+finalize_FragmentEnds(gkStore *gkp, RepeatModel *rm, FragmentEndData *red, char *label) {
   char  name[FILENAME_MAX];
   int   i;
 
@@ -225,47 +225,47 @@ finalize_FragmentEnds(GateKeeperStore *gkp, RepeatModel *rm, FragmentEndData *re
 
 
 void
-process_ShortInsert(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp, RepeatModel *rm) {
+process_ShortInsert(OVSoverlap *ovls, uint64 ovlsLen, gkStore *gkp, RepeatModel *rm) {
 }
 
 void
-finalize_ShortInsert(GateKeeperStore *gkp, RepeatModel *rm) {
+finalize_ShortInsert(gkStore *gkp, RepeatModel *rm) {
 }
 
 
 
 void
-process_GenomeLength(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp, RepeatModel *rm) {
+process_GenomeLength(OVSoverlap *ovls, uint64 ovlsLen, gkStore *gkp, RepeatModel *rm) {
 }
 
 void
-finalize_GenomeLength(GateKeeperStore *gkp, RepeatModel *rm) {
+finalize_GenomeLength(gkStore *gkp, RepeatModel *rm) {
 }
 
 
 
 LibraryOverlapData *
-process_LibraryRandomness(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp,
+process_LibraryRandomness(OVSoverlap *ovls, uint64 ovlsLen, gkStore *gkp,
                           RepeatModel *rm,
                           LibraryOverlapData *ovl) {
    int i = 0, j = 0;
    int repeatend = isRepeatEnd(ovls, ovlsLen, rm);
-   fragRecord fr;
+   gkFragment fr;
 
    // initialize data if necessary
    // library 0 represents reads with no library association
    if (ovl == NULL) {
       ovl = (LibraryOverlapData *)safe_calloc(1, sizeof(LibraryOverlapData));
 
-      int32 numLibraries = getNumGateKeeperLibraries(gkp)+1;
-      ovl->readsPerLibrary = safe_malloc(numLibraries * sizeof(uint64));
+      int32 numLibraries = gkp->gkStore_getNumLibraries()+1;
+      ovl->readsPerLibrary = (uint64 *)safe_malloc(numLibraries * sizeof(uint64));
       for (i = 0; i < numLibraries; i++) {
          ovl->readsPerLibrary[i] = 0;
       }
 
-      ovl->libraryVsLibraryOverlaps = safe_malloc(numLibraries * sizeof(uint64 *));
+      ovl->libraryVsLibraryOverlaps = (uint64 **)safe_malloc(numLibraries * sizeof(uint64 *));
       for (i = 0; i < numLibraries; i++) {
-         ovl->libraryVsLibraryOverlaps[i] = safe_malloc(numLibraries * sizeof(uint64));
+        ovl->libraryVsLibraryOverlaps[i] = (uint64 *)safe_malloc(numLibraries * sizeof(uint64));
          for (j = 0; j < numLibraries; j++) {
             ovl->libraryVsLibraryOverlaps[i][j] = 0;
          }
@@ -278,8 +278,8 @@ process_LibraryRandomness(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp
 
    if (ovlsLen > 0) {
       // all the records have the same a_iid so we only need to get it once
-      getFrag(gkp, ovls[0].a_iid, &fr, 0);
-      AS_IID libOne = getFragRecordLibraryIID(&fr);
+      gkp->gkStore_getFragment(ovls[0].a_iid, &fr, GKFRAGMENT_INF);
+      AS_IID libOne = fr.gkFragment_getLibraryIID();
 
       ovl->totalOverlaps += ovlsLen;
 
@@ -292,8 +292,8 @@ process_LibraryRandomness(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp
             ovl->contained++;
          }
          else {
-            getFrag(gkp, ovls[i].b_iid, &fr, 0);
-            AS_IID libTwo = getFragRecordLibraryIID(&fr);
+            gkp->gkStore_getFragment(ovls[i].b_iid, &fr, GKFRAGMENT_INF);
+            AS_IID libTwo = fr.gkFragment_getLibraryIID();
 
             if (!ExistsInHashTable_AS(ovl->readsSeen, ovls[i].a_iid, 0)) {
                ovl->readsPerLibrary[libOne]++;
@@ -314,7 +314,7 @@ process_LibraryRandomness(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp
 }
 
 void
-finalize_LibraryRandomness(GateKeeperStore *gkp, RepeatModel *rm, LibraryOverlapData *ovl) {
+finalize_LibraryRandomness(gkStore *gkp, RepeatModel *rm, LibraryOverlapData *ovl) {
    // output the results of our library analysis
    char  name[FILENAME_MAX];
    int i = 0, j = 0;
@@ -331,7 +331,7 @@ finalize_LibraryRandomness(GateKeeperStore *gkp, RepeatModel *rm, LibraryOverlap
       return;
    }
 
-   int32 numLibraries = getNumGateKeeperLibraries(gkp)+1;
+   int32 numLibraries = gkp->gkStore_getNumLibraries()+1;
    uint64 uncontained = ovl->totalOverlaps - ovl->contained;
    uint64 numReads = ovl->readsSeen->numNodes;
 
@@ -397,7 +397,7 @@ main(int argc, char **argv) {
   //  Open the stores.
 
   OverlapStore    *ovs = AS_OVS_openOverlapStore(ovsName);
-  GateKeeperStore *gkp = openGateKeeperStore(gkpName, FALSE);
+  gkStore         *gkp = new gkStore(gkpName, FALSE, FALSE);
 
   //  Make sure the store contains OVLs, and not OBTs or MERs.
 
@@ -422,7 +422,7 @@ main(int argc, char **argv) {
   OVSoverlap   ovl;
   uint64       ovlsLen = 0;
   uint64       ovlsMax = 1048576;
-  OVSoverlap  *ovls    = safe_malloc(ovlsMax * sizeof(OVSoverlap));;
+  OVSoverlap  *ovls    = (OVSoverlap *)safe_malloc(ovlsMax * sizeof(OVSoverlap));;
   AS_IID       ovlsIID = 0;
 
   FragmentEndData *repeat   = NULL;

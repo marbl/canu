@@ -19,15 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ARD_database.cc,v 1.9 2008-12-05 19:06:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ARD_database.cc,v 1.10 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <iostream>
 #include <string>
 
-extern "C" {
-   #include <math.h>
-   #include <assert.h>
-}
+#include <math.h>
+#include <assert.h>
 
 #include "AS_ARD_database.hh"
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: Array_CNS.c,v 1.21 2009-05-29 17:29:19 brianwalenz Exp $";
+static const char *rcsid = "$Id: Array_CNS.c,v 1.22 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -139,7 +139,7 @@ int
  IMP2Array(IntMultiPos *all_frags,
               int num_pieces,
               int length,
-              GateKeeperStore *frag_store,
+              gkStore *frag_store,
               int *depth,
               char ***array,
               int ***id_array,
@@ -155,9 +155,9 @@ int
   Lane null_lane;
   int next_lane; Lane *free_lane,*lane; LaneNode *new_mlp; Lane space;
   int rc;
-  char seq[AS_FRAG_MAX_LEN+1];
-  char qv[AS_FRAG_MAX_LEN+1];
-  fragRecord fsread;
+  char seq[AS_READ_MAX_LEN+1];
+  char qv[AS_READ_MAX_LEN+1];
+  gkFragment fsread;
 
   VA_TYPE(Lane) *Packed;
   lane_depth = 32;
@@ -177,15 +177,14 @@ int
   for (i=0;i<num_pieces;i++) {
     new_mlp = createLaneNode(&all_frags[i]);
 
-    getFrag(frag_store,all_frags[i].ident,&fsread,FRAG_S_QLT);
-    clr_bgn = getFragRecordClearRegionBegin(&fsread, clrrng_flag);
-    clr_end = getFragRecordClearRegionEnd  (&fsread, clrrng_flag);
-    new_mlp->read_length = getFragRecordSequenceLength(&fsread);
+    frag_store->gkStore_getFragment(all_frags[i].ident,&fsread,GKFRAGMENT_QLT);
+    fsread.gkFragment_getClearRegion(clr_bgn, clr_end, clrrng_flag);
+    new_mlp->read_length = fsread.gkFragment_getSequenceLength();
 
-    strcpy(seq, getFragRecordSequence(&fsread));
-    strcpy(qv,  getFragRecordQuality(&fsread));
+    strcpy(seq, fsread.gkFragment_getSequence());
+    strcpy(qv,  fsread.gkFragment_getQuality());
 
-    frag.eaccession = getFragRecordUID(&fsread);
+    frag.eaccession = fsread.gkFragment_getReadUID();
 
     // All this frag stuff is defined in case it becomes important to print the frag
     frag.iaccession = all_frags[i].ident;
@@ -195,7 +194,7 @@ int
     frag.clear_rng.bgn = clr_bgn;
     frag.clear_rng.end = clr_end;
 
-   new_mlp->read_length = clr_end-clr_bgn;
+    new_mlp->read_length = clr_end-clr_bgn;
     new_mlp->sequence = (char *)safe_malloc(sizeof(char)*(new_mlp->read_length+1));
     new_mlp->quality = (char *)safe_malloc(sizeof(char)*(new_mlp->read_length+1));
 

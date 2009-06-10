@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: getAssembly.cc,v 1.10 2009-05-12 17:25:31 brianwalenz Exp $";
+const char *mainid = "$Id: getAssembly.cc,v 1.11 2009-06-10 18:05:13 brianwalenz Exp $";
 
 /*************************************************************************/
 /* Local include files */
@@ -31,12 +31,10 @@ extern "C" {
 }
 #endif
 
-extern "C" {
-   #include "AS_global.h"
-   #include "SYS_UIDclient.h"
-   #include "AS_MSG_pmesg.h"
-   #include "AS_UTL_Hash.h"
-}
+#include "AS_global.h"
+#include "SYS_UIDclient.h"
+#include "AS_MSG_pmesg.h"
+#include "AS_UTL_Hash.h"
 
 #include <iostream>
 #include <string>

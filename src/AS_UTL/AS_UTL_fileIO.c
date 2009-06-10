@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char *rcsid = "$Id: AS_UTL_fileIO.c,v 1.19 2009-05-11 05:39:03 brianwalenz Exp $";
+//static char *rcsid = "$Id: AS_UTL_fileIO.c,v 1.20 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,7 +49,7 @@
 //  interruptable).
 
 void
-AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t size, size_t nobj) {
+AS_UTL_safeWrite(FILE *file, const void *buffer, const char *desc, size_t size, size_t nobj) {
   size_t  position = 0;
   size_t  length   = 32 * 1024 * 1024 / size;
   size_t  towrite  = 0;
@@ -97,7 +97,7 @@ AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t size, size_t
 
 
 size_t
-AS_UTL_safeRead(FILE *file, void *buffer, char *desc, size_t size, size_t nobj) {
+AS_UTL_safeRead(FILE *file, void *buffer, const char *desc, size_t size, size_t nobj) {
   size_t  position = 0;
   size_t  length   = 32 * 1024 * 1024 / size;
   size_t  toread   = 0;
@@ -162,6 +162,52 @@ AS_UTL_mkdir(const char *dirname) {
 
   return(1);
 }
+
+
+//  Returns true if the named file/directory exists, and permissions
+//  allow us to read and/or write.
+//
+int
+AS_UTL_fileExists(const char *path,
+                  int directory,
+                  int readwrite) {
+  struct stat  s;
+  int          r;
+
+  errno = 0;
+  r = stat(path, &s);
+  if (errno)
+    return(0);
+
+  if ((directory == 1) &&
+      (readwrite == 0) &&
+      (s.st_mode & S_IFDIR) &&
+      (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) &&
+      (s.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
+    return(1);
+
+  if ((directory == 1) &&
+      (readwrite == 1) &&
+      (s.st_mode & S_IFDIR) &&
+      (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) &&
+      (s.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH)) &&
+      (s.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
+    return(1);
+
+  if ((directory == 0) &&
+      (readwrite == 0) &&
+      (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)))
+    return(1);
+
+  if ((directory == 0) &&
+      (readwrite == 1) &&
+      (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) &&
+      (s.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH)))
+    return(1);
+
+  return(0);
+}
+
 
 
 

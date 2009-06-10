@@ -85,7 +85,7 @@ mappingDataParseLine(mappingData *md, char *line) {
 
   if (S.numWords() == 5) {
     md->frgUID = lookupUID(S[0]);
-    md->frgIID = getGatekeeperUIDtoIID(gkpStore, md->frgUID, NULL);
+    md->frgIID = gkpStore->gkStore_getUIDtoIID(md->frgUID, NULL);
     md->frgBgn = 0;
     md->frgEnd = 0;
 
@@ -97,7 +97,7 @@ mappingDataParseLine(mappingData *md, char *line) {
 
   } else if (S.numWords() == 7) {
     md->frgUID = lookupUID(S[0]);
-    md->frgIID = getGatekeeperUIDtoIID(gkpStore, md->frgUID, NULL);
+    md->frgIID = gkpStore->gkStore_getUIDtoIID(md->frgUID, NULL);
     md->frgBgn = atoi(S[1]);
     md->frgEnd = atoi(S[2]);
 

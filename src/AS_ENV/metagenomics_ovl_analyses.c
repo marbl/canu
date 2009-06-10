@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: metagenomics_ovl_analyses.c,v 1.10 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id: metagenomics_ovl_analyses.c,v 1.11 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,10 +52,9 @@ static int *alln,*othern,*selfn;
 static int maxovls=0;
 static int flen;
 
-static GateKeeperStore *gkpStore;
+static gkStore *gkpStore;
 static OverlapStore    *ovlStore;
-static fragRecord       fsread;
-static GateKeeperFragmentRecord gkpread;
+static gkFragment  fsread;
 
 static int currmate;
 static int ***samesmpantiovlhistogram;
@@ -84,11 +83,10 @@ void init_frg(){
     othern[k]=selfn[k]=alln[k]=0;
   }
 
-  getFrag(gkpStore,prev,&fsread,FRAG_S_INF);
-  flen = (getFragRecordClearRegionEnd(&fsread, AS_READ_CLEAR_LATEST) -
-          getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_LATEST));
+  gkpStore->gkStore_getFragment(prev,&fsread,GKFRAGMENT_INF);
+  flen = fsread.gkFragment_getClearRegionLength();
 
-  currmate = getFragRecordMateIID(&fsread);
+  currmate = fsread.gkFragment_getMateIID();
 
   if(debug>0){
     fprintf(stderr,"%d mate %d len %d smp %d\n",prev,currmate,flen,psmp);
@@ -299,9 +297,8 @@ void process_null_frg(int iid){
     return;
   }
 
-  getFrag(gkpStore,prev,&fsread,FRAG_S_INF);
-  flen = (getFragRecordClearRegionEnd(&fsread, AS_READ_CLEAR_LATEST) -
-          getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_LATEST));
+  gkpStore->gkStore_getFragment(prev,&fsread,GKFRAGMENT_INF);
+  flen = fsread.gkFragment_getClearRegionLength();
 
   smpbases[s]+=flen;
   smpnfrgs[s]++;
@@ -607,9 +604,8 @@ void   deletionStatus_setup(int lastfrag){
   int i;
   deletionStatus = (int *) safe_malloc( sizeof(char*)*(lastfrag+1));
   for(i=1; i<=lastfrag;i++){
-    getGateKeeperFragment(gkpStore,i,&gkpread);
-    assert(gkpread.readIID==i);
-    deletionStatus[i]=gkpread.deleted;
+    gkpStore->gkStore_getFragment(i,&fsread,GKFRAGMENT_INF);
+    deletionStatus[i] = fsread.gkFragment_getIsDeleted();
   }
   fprintf(stderr,"Deletion status checked for all reads\n");
   return;
@@ -697,9 +693,9 @@ int main (int argc, char *argv[]){
   }
 
   ovlStore = AS_OVS_openOverlapStore(full_ovlPath);
-  gkpStore = openGateKeeperStore(full_gkpPath, FALSE);
+  gkpStore = new gkStore(full_gkpPath, FALSE, FALSE);
 
-  lastfrag = getLastElemFragStore(gkpStore);
+  lastfrag = gkpStore->gkStore_getNumFragments();
 
   assert(smpsFile!=NULL);
 

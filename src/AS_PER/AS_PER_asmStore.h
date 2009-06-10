@@ -22,7 +22,7 @@
 #ifndef AS_PER_ASMSTORE_H
 #define AS_PER_ASMSTORE_H
 
-static const char *rcsid_AS_PER_ASMSTORE_H = "$Id: AS_PER_asmStore.h,v 1.19 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid_AS_PER_ASMSTORE_H = "$Id: AS_PER_asmStore.h,v 1.20 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <time.h>
 
@@ -203,7 +203,7 @@ typedef struct
 
   // ASM_Status status;
 
-  GateKeeperStore * gkpStore;
+  gkStore * gkpStore;
 
   ASM_MDIStore     mdiStore;
   ASM_BucketStore  bktStore;
@@ -229,9 +229,9 @@ typedef struct
 }AssemblyStore;
 
 
-int OpenGateKeeperStoreAssemblyStore(AssemblyStore * asmStore,
+int OpengkStoreAssemblyStore(AssemblyStore * asmStore,
                                      char * gkpStorePath);
-int CopyGateKeeperStoreLinksAssemblyStore(AssemblyStore * asmStore);
+int CopygkStoreLinksAssemblyStore(AssemblyStore * asmStore);
 
 AssemblyStore * CreateAssemblyStore(char * path,
                                     char * gkpStorePath);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: dumpSingletons.c,v 1.27 2009-02-02 13:51:14 brianwalenz Exp $";
+const char *mainid = "$Id: dumpSingletons.c,v 1.28 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,21 +47,20 @@ getFragmentClear(int    iid,
                  int    reversecomplement,
                  char  *toprint) {
 
-  static fragRecord  fs;
+  static gkFragment  fs;
   unsigned int  clr_bgn, clr_end;
 
-  getFrag(ScaffoldGraph->gkpStore, iid, &fs, FRAG_S_SEQ);
+  ScaffoldGraph->gkpStore->gkStore_getFragment(iid, &fs, GKFRAGMENT_SEQ);
 
-  clr_bgn = getFragRecordClearRegionBegin(&fs, AS_READ_CLEAR_LATEST);
-  clr_end = getFragRecordClearRegionEnd  (&fs, AS_READ_CLEAR_LATEST);
+  fs.gkFragment_getClearRegion(clr_bgn, clr_end);
 
-  strcpy(toprint, getFragRecordSequence(&fs) + clr_bgn);
+  strcpy(toprint, fs.gkFragment_getSequence() + clr_bgn);
   toprint[clr_end - clr_bgn] = 0;
 
   if (reversecomplement)
     reverseComplementSequence(toprint, clr_end - clr_bgn);
 
-  return(getFragRecordUID(&fs));
+  return(fs.gkFragment_getReadUID());
 }
 
 

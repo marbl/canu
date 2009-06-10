@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: greedyFragmentTiling.c,v 1.18 2009-02-02 13:51:14 brianwalenz Exp $";
+const char *mainid = "$Id: greedyFragmentTiling.c,v 1.19 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,8 +53,8 @@ const char *mainid = "$Id: greedyFragmentTiling.c,v 1.18 2009-02-02 13:51:14 bri
 static OverlapStore  * my_store = NULL;
 // WAS: static OVL_Store_t  * my_second_store = NULL;
 static OverlapStore  * my_second_store = NULL;
-static  GateKeeperStore *my_gkp_store;
-static fragRecord fsread;
+static  gkStore *my_gkp_store;
+static gkFragment fsread;
 static int useCorrectedErate=0;
 static int maxOvlsToConsider=-1;
 static int *IIDusability;
@@ -86,7 +86,7 @@ void setup_stores(char *OVL_Store_Path, char *Gkp_Store_Path){
   //WAS:  Open_OVL_Store (my_second_store, OVL_Store_Path);
   my_second_store = AS_OVS_openOverlapStore(OVL_Store_Path);
 
-  my_gkp_store = openGateKeeperStore( Gkp_Store_Path, FALSE);
+  my_gkp_store = new gkStore( Gkp_Store_Path, FALSE, FALSE);
 }
 
 //WAS: void print_olap(Long_Olap_Data_t olap){
@@ -114,7 +114,7 @@ AS_UID iid2uid(uint32 iid){
 
   if(uid==NULL){
     int i;
-    int last = getLastElemFragStore (my_gkp_store);
+    int last = my_gkp_store->gkStore_getNumFragments ();
     uid = (AS_UID *)safe_malloc(sizeof(AS_UID)*(last+1));
     for(i=0;i<=last;i++){
       uid[i] = AS_UID_undefined();
@@ -122,10 +122,9 @@ AS_UID iid2uid(uint32 iid){
   }
 
   if(AS_UID_isDefined(uid[iid]) == FALSE){
-    GateKeeperFragmentRecord gkpFrag;
-    getGateKeeperFragment(my_gkp_store,iid,&gkpFrag);
-    assert(gkpFrag.readIID == iid);
-    uid[iid] = gkpFrag.readUID;
+    gkFragment gkpFrag;
+    my_gkp_store->gkStore_getFragment(iid, &gkpFrag, GKFRAGMENT_INF);
+    uid[iid] = gkpFrag.gkFragment_getReadUID();
   }
   return uid[iid];
 }
@@ -135,7 +134,7 @@ int get_clr_len(uint32 iid){
   static int *len=NULL;
   if(len==NULL){
     int i;
-    int last = getLastElemFragStore (my_gkp_store);
+    int last = my_gkp_store->gkStore_getNumFragments ();
     len = (int *)safe_malloc(sizeof(int)*(last+1));
     for(i=0;i<=last;i++){
       len[i]=-1;
@@ -145,10 +144,10 @@ int get_clr_len(uint32 iid){
   if(len[iid]!=-1){
     return (len[iid]);
   } else {
-    uint clr_bgn,clr_end;
-    getFrag(my_gkp_store,iid,&fsread,FRAG_S_INF);
-    clr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_LATEST);
-    clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_LATEST);
+    uint32 clr_bgn,clr_end;
+    my_gkp_store->gkStore_getFragment(iid,&fsread,GKFRAGMENT_INF);
+
+    fsread.gkFragment_getClearRegion(clr_bgn, clr_end);
 
     len[iid]= clr_end-clr_bgn;
   }
@@ -232,7 +231,7 @@ double get_95pct_upper(int L, double obsrate){
   double tol=.001;
   double hip = 1-tol;
   double delta=1.;
-  double try;
+  double val;
   int n = (int) (obsrate * L + .1); // number of observed events
 
   /*  fprintf(stderr,"Trying to find 95%% confidence upper bound for observed rate of %f out of %d aligned bases ...\n",
@@ -241,24 +240,24 @@ double get_95pct_upper(int L, double obsrate){
   do{
     int i;
     double cum=0;
-    try = (hip+lop)/2.;
+    val = (hip+lop)/2.;
     for(i=0;i<=n;i++){
       /*      fprintf(stderr,"binom(%d,%d,%f)=%e\n",
-	      i,L,try,binom(i,L,try));*/
-      cum+=binom(i,L,try);
+	      i,L,val,binom(i,L,val));*/
+      cum+=binom(i,L,val);
     }
     if(cum>.05){
-      lop=try;
+      lop=val;
       delta = cum-.05;
     } else {
-      hip=try;
+      hip=val;
       delta = .05-cum;
     }
   } while(delta>tol);
 
-  //  fprintf(stderr,"... decided on %f\n",try);
+  //  fprintf(stderr,"... decided on %f\n",val);
 
-  return (try);
+  return (val);
 }
 
 
@@ -683,7 +682,7 @@ void usage(char *pgm){
 AS_IID uid2iid(AS_UID uid){
   static int firstFailure=1;
   AS_IID     iid;
-  iid = getGatekeeperUIDtoIID(my_gkp_store, uid, 0);
+  iid = my_gkp_store->gkStore_getUIDtoIID(uid, 0);
   if (iid == 0) {
     if (firstFailure) {
       fprintf(stderr,"Tried to look up iid of unknown uid: %s; this may reflect trying to use a deleted fragment; further instances will not be reported.\n", AS_UID_toString(uid));
@@ -745,7 +744,7 @@ int main (int argc , char * argv[] ) {
   FILE *sampleFile;
   int setFullGkp=0;
   int setFullOvl=0;
-  int bestType = BEST_MEANS_THICKEST;
+  BestMeasure bestType = BEST_MEANS_THICKEST;
   int startingFrgNum=0;
   int seediid;
   int stillGoing=0;
@@ -883,7 +882,7 @@ int main (int argc , char * argv[] ) {
   assert(AS_CNS_ERROR_RATE >= AS_OVS_decodeQuality(maxError));
 
   setup_stores(full_ovlPath, full_gkpPath);
-  last_stored_frag = getLastElemFragStore (my_gkp_store);
+  last_stored_frag = my_gkp_store->gkStore_getNumFragments();
 
   if(restrictIDs){
     IIDusability = (int *) safe_malloc(sizeof(int)*(last_stored_frag+1));
@@ -954,10 +953,9 @@ int main (int argc , char * argv[] ) {
     int built5End = 0;
 
     // skip deleted fragments
-    GateKeeperFragmentRecord gkpFrag;
-    getGateKeeperFragment(my_gkp_store,seediid,&gkpFrag);
-    if(gkpFrag.deleted)continue;
-    assert(gkpFrag.readIID);
+    gkFragment gkpFrag;
+    my_gkp_store->gkStore_getFragment(seediid,&gkpFrag, GKFRAGMENT_INF);
+    if(gkpFrag.gkFragment_getIsDeleted())continue;
 
     // if this fragment is not in the select list(s) ... skip it
     if(restrictSeeds&& SeedUsability[seediid]==0){continue;}
@@ -982,10 +980,10 @@ int main (int argc , char * argv[] ) {
     currFrg=seediid;
     seen[currFrg]='\1';
     ahang=0;
-    getFrag(my_gkp_store,currFrg,&fsread,FRAG_S_INF);
+    my_gkp_store->gkStore_getFragment(currFrg,&fsread,GKFRAGMENT_INF);
 
-    clr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_LATEST);
-    clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_LATEST);
+    fsread.gkFragment_getClearRegion(clr_bgn, clr_end);
+
     frglen=clr_end-clr_bgn;
     numFwdOvls = numOvls = setupolaps(currFrg, Aend, bestType,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,&olaps,favorSameSample,favorSameSampleAsSeed);
     if(numOvls==0||threePonly){
@@ -1061,9 +1059,8 @@ int main (int argc , char * argv[] ) {
 
 	}
 	if(!seen[currFrg]){
-	  getFrag(my_gkp_store,currFrg,&fsread,FRAG_S_INF);
-	  clr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_LATEST);
-	  clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_LATEST);
+	  my_gkp_store->gkStore_getFragment(currFrg,&fsread,GKFRAGMENT_INF);
+	  fsread.gkFragment_getClearRegion(clr_bgn, clr_end);
 	  frglen=clr_end-clr_bgn;
 	  numOvls = setupolaps(currFrg, Aend, bestType,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,&olaps,favorSameSample,favorSameSampleAsSeed);
 	} else {
@@ -1089,9 +1086,8 @@ int main (int argc , char * argv[] ) {
     stillGoing=1;
     Aend=0;
     currFrg=seediid;
-    getFrag(my_gkp_store,currFrg,&fsread,FRAG_S_INF);
-    clr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_LATEST);
-    clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_LATEST);
+    my_gkp_store->gkStore_getFragment(currFrg,&fsread,GKFRAGMENT_INF);
+    fsread.gkFragment_getClearRegion(clr_bgn, clr_end);
     frglen=clr_end-clr_bgn;
 
     numOvls = setupolaps(currFrg, Aend, bestType,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,&olaps,favorSameSample,favorSameSampleAsSeed);
@@ -1167,9 +1163,8 @@ int main (int argc , char * argv[] ) {
 	}
 	if(!seen[currFrg]){
 	  seen[currFrg]='\1';
-	  getFrag(my_gkp_store,currFrg,&fsread,FRAG_S_INF);
-	  clr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_LATEST);
-	  clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_LATEST);
+	  my_gkp_store->gkStore_getFragment(currFrg,&fsread,GKFRAGMENT_INF);
+	  fsread.gkFragment_getClearRegion(clr_bgn, clr_end);
 	  frglen=clr_end-clr_bgn;
 	  numOvls = setupolaps(currFrg, Aend, bestType,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,&olaps,favorSameSample,favorSameSampleAsSeed);
 	} else {

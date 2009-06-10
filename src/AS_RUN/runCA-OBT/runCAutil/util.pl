@@ -814,14 +814,16 @@ sub getNumberOfFragsInStore ($$) {
     my $asm = shift @_;
     my $bin = getBinDirectory();
 
-    return(0) if (! -e "$wrk/$asm.gkpStore/frg");
+    $numFrags = 0;
 
-    open(F, "$bin/gatekeeper -lastfragiid $wrk/$asm.gkpStore 2> /dev/null |") or caFailure("failed to run gatekeeper to get the number of frags in the store", undef);
-    $_ = <F>;    chomp $_;
-    close(F);
+    if (-e "$wrk/$asm.gkpStore/inf") {
+        open(F, "$bin/gatekeeper -lastfragiid $wrk/$asm.gkpStore 2> /dev/null |") or caFailure("failed to run gatekeeper to get the number of frags in the store", undef);
+        $_ = <F>;    chomp $_;
+        close(F);
 
-    $numFrags = $1 if (m/^Last frag in store is iid = (\d+)$/);
-    caFailure("no frags in the store", undef) if ($numFrags == 0);
+        $numFrags = $1 if (m/^Last frag in store is iid = (\d+)$/);
+    }
+
     return($numFrags);
 }
 
@@ -841,38 +843,6 @@ sub merylVersion () {
     return($ver);
 }
 
-
-
-sub removeFragStoreBackup ($) {
-    my $backupName = shift @_;
-
-    unlink "$wrk/$asm.gkpStore/frg.$backupName";
-}
-
-sub restoreFragStoreBackup ($) {
-    my $backupName = shift @_;
-
-    if (-e "$wrk/$asm.gkpStore/frg.$backupName") {
-        print STDERR "Restoring the gkpStore backup from $backupName.\n";
-        unlink "$wrk/$asm.gkpStore/frg.FAILED";
-        rename "$wrk/$asm.gkpStore/frg", "$wrk/$asm.gkpStore/frg.$backupName.FAILED";
-        rename "$wrk/$asm.gkpStore/frg.$backupName", "$wrk/$asm.gkpStore/frg";
-    }
-}
-
-sub backupFragStore ($) {
-    my $backupName = shift @_;
-
-    return if (-e "$wrk/$asm.gkpStore/frg.$backupName");
-
-    if (system("cp -p $wrk/$asm.gkpStore/frg $wrk/$asm.gkpStore/frg.$backupName")) {
-        unlink "$wrk/$asm.gkpStore/frg.$backupName";
-        caFailure("failed to backup gkpStore", undef);
-    }
-}
-
-
-
 sub stopAfter ($) {
     my $stopAfter = shift @_;
     if (defined($stopAfter) &&
@@ -882,10 +852,6 @@ sub stopAfter ($) {
         exit(0);
     }
 }
-
-
-
-
 
 sub runningOnGrid () {
     return(defined($ENV{'SGE_TASK_ID'}));

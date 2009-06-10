@@ -22,7 +22,7 @@
 #ifndef AS_UTL_VAR_H
 #define AS_UTL_VAR_H
 
-static const char *rcsid_AS_UTL_VAR_H = "$Id: AS_UTL_Var.h,v 1.16 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_VAR_H = "$Id: AS_UTL_Var.h,v 1.17 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <string.h>
@@ -231,10 +231,10 @@ typedef struct{\
 }Stack_##type;\
 \
 static Stack_##type *CreateStack_##type (int size){\
-  Stack_##type *new = (Stack_##type *)safe_calloc(1, sizeof(Stack_##type ));\
-  new->stack = CreateVA_##type (size);\
-  new->top = NULLINDEX; \
-  return new;\
+  Stack_##type *n = (Stack_##type *)safe_calloc(1, sizeof(Stack_##type ));\
+  n->stack = CreateVA_##type (size);\
+  n->top = NULLINDEX; \
+  return n;\
 }\
 \
 static void DeleteStack_##type(Stack_##type *stack){\

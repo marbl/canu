@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_PER_asmStore.c,v 1.14 2008-12-05 19:06:12 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_asmStore.c,v 1.15 2009-06-10 18:05:14 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_asmStore
@@ -331,8 +331,7 @@ MapStore * OpenReadOnlyMapStore(char * path)
 int OpenGateKeeperStoreAssemblyStore(AssemblyStore * asmStore,
                                      char * gkpStorePath)
 {
-  asmStore->gkpStore = openGateKeeperStore(gkpStorePath, FALSE);
-  assert(asmStore->gkpStore != NULL);
+  asmStore->gkpStore = new gkStore(gkpStorePath, FALSE, FALSE);
   return(1);
 }
 
@@ -434,7 +433,7 @@ void CloseAssemblyStore(AssemblyStore *asmStore)
 {
   fprintf(stderr,"*** Close directory %s\n", asmStore->storePath);
 
-  closeGateKeeperStore(asmStore->gkpStore);
+  delete asmStore->gkpStore;
   asmStore->gkpStore = NULL;
 
   if(asmStore->mdiStore != NULL)

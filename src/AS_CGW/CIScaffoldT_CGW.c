@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.34 2009-04-24 14:26:16 skoren Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.35 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -1340,7 +1340,7 @@ int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CDS_CID_t scaffol
       LengthT NullLength = {0.0, 0.0};
       LengthT firstOffset = {0.0, 0.0};
       int seenFirstOffset;
-      CIScaffoldT CIScaffold = {0};
+      CIScaffoldT CIScaffold;
       CDS_CID_t newScaffoldID;
 
       InitializeScaffold(&CIScaffold, REAL_SCAFFOLD);
@@ -1816,7 +1816,7 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
         fprintf(GlobalData->stderrc,"* Screwed up scaffold " F_CID ": Chunk " F_CID " has bad mean\n",
                 sid, chunk->id);
 
-        AppendPtrT(chunksToBeRemoved, (void *) &chunk);
+        AppendPtrT(chunksToBeRemoved, (void **) &chunk);
 
       }else{
         // Only update the mean if we are moving along as expected

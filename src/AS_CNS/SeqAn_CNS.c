@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: SeqAn_CNS.c,v 1.6 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id: SeqAn_CNS.c,v 1.7 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -38,7 +38,7 @@ const char *mainid = "$Id: SeqAn_CNS.c,v 1.6 2008-10-08 22:02:57 brianwalenz Exp
 #define AS_SEQAN_MAX_HEADER_LENGTH     4
 #define AS_SEQAN_MAX_LINE_LENGTH      80
 #define AS_SEQAN_MAX_BUFFER_LENGTH  1024
-#define AS_SEQAN_MAX_RESULT_LENGTH  AS_FRAG_MAX_LEN+AS_SEQAN_MAX_HEADER_LENGTH
+#define AS_SEQAN_MAX_RESULT_LENGTH  AS_READ_MAX_LEN+AS_SEQAN_MAX_HEADER_LENGTH
 #define AS_SEQAN_INPUT_NAME         "in.reads"
 #define AS_SEQAN_RESULT             "temp.result"
 #define AS_SEQAN_CNS                "temp.cns"
@@ -80,7 +80,7 @@ char * readMultiLine(FILE* inFile) {
       if ((position + AS_SEQAN_MAX_LINE_LENGTH) > resultSize) {
          resultSize += AS_SEQAN_MAX_BUFFER_LENGTH; // increase buffer size
 
-         char *temp = safe_realloc(result, resultSize);
+         char *temp = (char *)safe_realloc(result, resultSize);
          assert(temp);
          result = temp;
       }
@@ -338,13 +338,14 @@ int main(int argc, char **argv) {
       exit(1);
    }
 
-   GateKeeperStore          *gkpStore = openGateKeeperStore(gkpStoreName, FALSE);
-   loadGateKeeperPartition(gkpStore, gkpStorePart);
+   gkStore        *gkpStore = new gkStore(gkpStoreName, FALSE, FALSE);
+
+   gkpStore->gkStore_loadPartition(gkpStorePart);
    
-   fragRecord                fr;
-   GenericMesg              *pmesg;
-   tSequenceDB              *sequenceDB = NULL;   
-   
+   gkFragment      fr;
+   GenericMesg    *pmesg;
+   tSequenceDB    *sequenceDB = NULL;   
+
    FILE *infp = fopen(msgFile,"r");
    FILE *tempReads;
    FILE *outfp = fopen(outputFileName, "w");
@@ -365,10 +366,10 @@ int main(int argc, char **argv) {
 
             for (i =0; i < ium_mesg->num_frags; i++) {
                // get the fragment sequence
-               getFrag(gkpStore, ium_mesg->f_list[i].ident, &fr, FRAG_S_QLT);
-               unsigned int   clrBeg = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBT);
-               unsigned int   clrEnd = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBT);
-               char          *seqStart = getFragRecordSequence(&fr);
+               gkpStore->gkStore_getFragment(ium_mesg->f_list[i].ident, &fr, GKFRAGMENT_QLT);
+               unsigned int   clrBeg = fr.gkFragment_getClearRegionBegin();
+               unsigned int   clrEnd = fr.gkFragment_getClearRegionEnd  ();
+               char          *seqStart = fr.gkFragment_getSequence();
                char          *seq      = seqStart+clrBeg;
 
                seq[clrEnd] = 0;
@@ -404,10 +405,10 @@ int main(int argc, char **argv) {
 
             for (i =0; i < icm_mesg->num_pieces; i++) {
                // get the fragment sequence
-               getFrag(gkpStore, icm_mesg->pieces[i].ident, &fr, FRAG_S_QLT);
-               unsigned int   clrBeg   = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_LATEST);
-               unsigned int   clrEnd   = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_LATEST);
-               char          *seqStart = getFragRecordSequence(&fr);
+               gkpStore->gkStore_getFragment(icm_mesg->pieces[i].ident, &fr, GKFRAGMENT_QLT);
+               unsigned int   clrBeg   = fr.gkFragment_getClearRegionBegin();
+               unsigned int   clrEnd   = fr.gkFragment_getClearRegionEnd  ();
+               char          *seqStart = fr.gkFragment_getSequence();
                char          *seq      = seqStart+clrBeg;
 
                seq[clrEnd] = 0;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.13 2008-11-11 16:16:25 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.14 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,9 +30,6 @@ static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.13 2008-11-11 16:16:25 brianw
 #include "AS_UTL_fileIO.h"
 #include "AS_GKP_include.h"
 #include "AS_PER_gkpStore.h"
-
-
-#define EDIT_ALL_CLR "ALL"
 
 
 void
@@ -51,10 +48,8 @@ updateVectorClear(char *vectorClearFile, char *gkpStoreName) {
     exit(1);
   }
 
-  GateKeeperStore          *gkpStore = openGateKeeperStore(gkpStoreName, TRUE);
-  fragRecord                fr;
-
-  gkpStore->frg = convertStoreToMemoryStore(gkpStore->frg);
+  gkStore          *gkpStore = new gkStore(gkpStoreName, FALSE, TRUE);
+  gkFragment        fr;
 
   fgets(line, 256, v);
   while (!feof(v)) {
@@ -71,14 +66,17 @@ updateVectorClear(char *vectorClearFile, char *gkpStoreName) {
     int       r   = strtol(rstr = pine, &pine, 10);
     int       ll;
     int       rr;
+    int       mm;
 
     if (!isdigit(*lstr) || !isdigit(*rstr) || (AS_UID_isDefined(uid) == FALSE)) {
       fprintf(stderr, "unexpected line: %s\n", line);
     } else {
-      AS_IID     iid = getGatekeeperUIDtoIID(gkpStore, uid, NULL);
+      AS_IID     iid = gkpStore->gkStore_getUIDtoIID(uid, NULL);
 
       if (iid) {
-        getFrag(gkpStore, iid, &fr, FRAG_S_INF);
+        gkpStore->gkStore_getFragment(iid, &fr, GKFRAGMENT_INF);
+
+        mm = fr.gkFragment_getSequenceLength();
 
         //  Silently flip coordinates if needed.
         if (l < r) {
@@ -92,19 +90,18 @@ updateVectorClear(char *vectorClearFile, char *gkpStoreName) {
         //  Not silently fix invalid coords.
         if ((ll < 0) ||
             (rr < 0) ||
-            (ll >= AS_READ_MAX_LEN) ||
-            (rr >= AS_READ_MAX_LEN)) {
-          if (ll <  0)                  ll = 0;
-          if (rr >= AS_READ_MAX_LEN)    ll = AS_READ_MAX_LEN-1;
-          if (ll <  0)                  rr = 0;
-          if (rr >= AS_READ_MAX_LEN)    rr = AS_READ_MAX_LEN-1;
+            (ll >= mm) ||
+            (rr >= mm)) {
+          if (ll <  0)     ll = 0;
+          if (rr >= mm)    ll = mm;
+          if (ll <  0)     rr = 0;
+          if (rr >= mm)    rr = mm;
           fprintf(stderr, "WARNING:  Fixing vector clear range for '%s' to (%d,%d).\n", line, ll, rr);
         }
 
-        fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = ll;
-        fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = rr;
+        fr.gkFragment_setClearRegion(ll, rr, AS_READ_CLEAR_VEC);
+        gkpStore->gkStore_setFragment(&fr);
 
-        setFrag(gkpStore, iid, &fr);
         nupdate++;
       }
       nlines++;
@@ -114,7 +111,7 @@ updateVectorClear(char *vectorClearFile, char *gkpStoreName) {
 
   fclose(v);
 
-  closeGateKeeperStore(gkpStore);
+  delete gkpStore;
 
   fprintf(stderr, "in %d lines, updated %d fragments.\n", nlines, nupdate);
 
@@ -127,52 +124,26 @@ updateVectorClear(char *vectorClearFile, char *gkpStoreName) {
 
 static
 void
-setClear(GateKeeperFragmentRecord *gkfr, char *E, uint32 which, int update) {
-  int b = gkfr->clearBeg[which];
-  int e = gkfr->clearEnd[which];
-  int start = 0;
-  int end   = 0;
-  int updateAll = 0;
+setClear(gkFragment *fr, char *E, uint32 which, int update) {
+  uint32 bo, eo, bn, en;
 
+  //  Code used to exist to update "ALL" clear ranges, but that makes
+  //  no sense (I hope) any more.  This was used by toggleAndRun, but
+  //  now we can just nuke the appropriate clear range files in the
+  //  store.
 
-  /* possible formats are CLR start end or CLR ALL start end
-   * here, we grab the next word and see if it is equal to all or not
-   */
-  char *next = E;
-  crunch(E);
-  // put terminator character for next
-  {
-    char *t = E;
-    munch(E);
-    *t = '\0';
-  }
+  bn = strtoul(E, &E, 10);
+  munch(E);
+  en = strtoul(E, &E, 10);
 
-  if (strcasecmp(next, EDIT_ALL_CLR) == 0) {
-     // update all clear ranges
-     start = strtoul(E, &E, 10);
-     munch(E);
-     end = strtoul(E, &E, 10);
-     updateAll = 1;
-  } else {
-    gkfr->clearBeg[which] = strtoul(next, NULL, 10);
-    munch(E);
-    gkfr->clearEnd[which] = strtoul(E, &E, 10);
-  }
-
-  if (updateAll) {
-     for (; which <= AS_READ_CLEAR_LATEST; which++) {
-       gkfr->clearBeg[which] = start;
-       gkfr->clearEnd[which] = end;
-   }
-   which = AS_READ_CLEAR_LATEST;
-  }
+  fr->gkFragment_getClearRegion(bo, eo, which);
+  fr->gkFragment_setClearRegion(bn, en, which);
 
   if (update)
     fprintf(stdout, "frg uid %s %s %d %d -> %d %d\n",
-            AS_UID_toString(gkfr->readUID),
+            AS_UID_toString(fr->gkFragment_getReadUID()),
             AS_READ_CLEAR_NAMES[which],
-            b, e,
-            gkfr->clearBeg[which], gkfr->clearEnd[which]);
+            bo, eo, bn, en);
 }
 
 
@@ -180,39 +151,43 @@ setClear(GateKeeperFragmentRecord *gkfr, char *E, uint32 which, int update) {
 
 static
 void
-allFrags(GateKeeperStore *gkpStore,
+allFrags(gkStore *gkpStore,
          AS_IID           IID,
          char             action,
          int              flag,
          int              update) {
-  GateKeeperFragmentRecord gkfr = {0};
-  uint32                   i;
+  gkFragment  fr;
+  uint32      i;
 
-  int64  firstElem = getFirstElemStore(gkpStore->frg);
-  int64  lastElem  = getLastElemStore(gkpStore->frg);
+  int64  firstElem = 1;
+  int64  lastElem  = gkpStore->gkStore_getNumFragments();
 
   if (update)
     fprintf(stderr, "delete all frags in lib "F_IID" (%d,%d)\n",
             IID, firstElem, lastElem);
 
   for (i=firstElem; i<lastElem; i++) {
-    getIndexStore(gkpStore->frg, i, &gkfr);
-    if (gkfr.libraryIID == IID) {
+    gkpStore->gkStore_getFragment(i, &fr, GKFRAGMENT_INF);
+
+    if (fr.gkFragment_getLibraryIID() == IID) {
       if        (action == 'd') {
-        gkfr.deleted = flag;
+        fr.gkFragment_setIsDeleted(flag);
+
       } else if (action == 'r') {
-        gkfr.nonrandom = flag;
+        fr.gkFragment_setIsNonRandom(flag);
+
       } else if (action == 'u') {
-        gkfr.mateIID = 0;
-      } else if (action == 's') {
-        gkfr.status = flag;
+        fr.gkFragment_setMateIID(0);
+
       } else if (action == 'o') {
-        gkfr.orientation = flag;
+        fr.gkFragment_setOrientation(flag);
+
       } else {
         assert(0);
       }
+
       if (update)
-        setIndexStore(gkpStore->frg, i, &gkfr);
+        gkpStore->gkStore_setFragment(&fr);
     }
   }
 }
@@ -227,18 +202,9 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
 
   int              errors   = 0;
 
-  if (testOpenGateKeeperStore(gkpStoreName, FALSE) == 0) {
-    fprintf(stderr, "failed to open store '%s', exit.\n", gkpStoreName);
-    exit(1);
-  }
+  gkpStore = new gkStore(gkpStoreName, FALSE, update);
 
-  gkpStore = openGateKeeperStore(gkpStoreName, update);
-  if (gkpStore == NULL) {
-    fprintf(stderr, "Failed to open %s\n", gkpStoreName);
-    exit(1);
-  }
-
-  AS_IID           lastElem = getLastElemFragStore(gkpStore) + 1;
+  AS_IID           lastElem = gkpStore->gkStore_getNumFragments() + 1;
 
 
   //  "frg uid UID THING DATA"
@@ -250,7 +216,6 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
   //        "lib iid 1 mean 4300.0"
   //        "lib iid 1 stddev 400.0"
   //        "lib iid 1 distance 4300.0 400.0"
-  //        "lib iid 1 comment sample=ak42 label=ak42 name=ak42-G-01-1p4-2p0"
 
   errno = 0;
   if (strcmp(editsFileName, "-") == 0)
@@ -296,7 +261,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
       E += 3;
       munch(E);
       UID = AS_UID_lookup(E, &E);
-      IID = getGatekeeperUIDtoIID(gkpStore, UID, NULL);
+      IID = gkpStore->gkStore_getUIDtoIID(UID, NULL);
     } else if (strncasecmp("iid", E, 3) == 0) {
       E += 3;
       munch(E);
@@ -333,125 +298,86 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
     //fprintf(stderr, "ACT='%s' E='%s'\n", ACT, E);
 
     if (isFRG) {
-      GateKeeperFragmentRecord gkfr = {0};
+      gkFragment fr;
 
-      if (IID > getNumGateKeeperFragments(gkpStore)) {
+      if (IID > gkpStore->gkStore_getNumFragments()) {
         fprintf(stderr, "invalid frg iid "F_IID" in edit line: '%s'\n", IID, L);
         errors++;
         goto nextline;
       }
 
-      getIndexStore(gkpStore->frg, IID, &gkfr);
+      gkpStore->gkStore_getFragment(IID, &fr, GKFRAGMENT_INF);
 
-      if        (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_ORIG]) == 0) {
-        setClear(&gkfr, E, AS_READ_CLEAR_ORIG, update);
-      } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_MAX]) == 0) {
-        setClear(&gkfr, E, AS_READ_CLEAR_MAX, update);
-      } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_VEC]) == 0) {
-        setClear(&gkfr, E, AS_READ_CLEAR_VEC, update);
-      } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_OBTINI]) == 0) {
-        setClear(&gkfr, E, AS_READ_CLEAR_OBTINI, update);
-      } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_OBT]) == 0) {
-        setClear(&gkfr, E, AS_READ_CLEAR_OBT, update);
-      } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_ECR1]) == 0) {
-        setClear(&gkfr, E, AS_READ_CLEAR_ECR1, update);
-      } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_ECR2]) == 0) {
-        setClear(&gkfr, E, AS_READ_CLEAR_ECR2, update);
+      uint32  clr = gkStore_decodeClearRegionLabel(ACT);
+
+      if        (clr != AS_READ_CLEAR_ERROR) {
+        setClear(&fr, E, clr, update);
       } else if (strcasecmp(ACT, "mateiid") == 0) {
-        AS_IID    o = gkfr.mateIID;
-        gkfr.mateIID = AS_IID_fromString(E, &E);
+        AS_IID    o = fr.gkFragment_getMateIID();
+        fr.gkFragment_setMateIID(AS_IID_fromString(E, &E));
         if (update)
           fprintf(stdout, "frg uid %s mateiid "F_IID" -> mateiid "F_IID"\n",
-                  AS_UID_toString(gkfr.readUID), o, gkfr.mateIID);
+                  AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getMateIID());
       } else if (strcasecmp(ACT, "mateuid") == 0) {
-        AS_IID    o = gkfr.mateIID;
+        AS_IID    o = fr.gkFragment_getMateIID();
         AS_UID    n = AS_UID_lookup(E, &E);
-        gkfr.mateIID = getGatekeeperUIDtoIID(gkpStore, n, NULL);
+        fr.gkFragment_setMateIID(gkpStore->gkStore_getUIDtoIID(n, NULL));
         if (update)
           fprintf(stdout, "frg uid %s mateiid "F_IID" -> mateiid "F_IID" mateuid %s\n",
-                  AS_UID_toString(gkfr.readUID), o, gkfr.mateIID, AS_UID_toString(n));
+                  AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getMateIID(), AS_UID_toString(n));
       } else if (strcasecmp(ACT, "readuid") == 0) {
-        AS_UID    o = gkfr.readUID;
-        gkfr.readUID = AS_UID_lookup(E, &E);  //  I _really_ hope you know what you're doing
+        AS_UID    o = fr.gkFragment_getReadUID();
+        fr.gkFragment_setReadUID(AS_UID_lookup(E, &E));  //  I _really_ hope you know what you're doing
         if (update)
           fprintf(stdout, "frg iid "F_IID" readuid %s -> %s\n",
-                  gkfr.readIID, AS_UID_toString(o), AS_UID_toString(gkfr.readUID));
+                  fr.gkFragment_getReadIID(), AS_UID_toString(o), AS_UID_toString(fr.gkFragment_getReadUID()));
       } else if (strcasecmp(ACT, "libiid") == 0) {
-        AS_IID    o = gkfr.libraryIID;
-        gkfr.libraryIID = AS_IID_fromString(E, &E);
+        AS_IID    o = fr.gkFragment_getLibraryIID();
+        fr.gkFragment_setLibraryIID(AS_IID_fromString(E, &E));
         if (update)
           fprintf(stdout, "frg uid %s libiid "F_IID" -> libiid "F_IID"\n",
-                  AS_UID_toString(gkfr.readUID), o, gkfr.libraryIID);
+                  AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getLibraryIID());
       } else if (strcasecmp(ACT, "libuid") == 0) {
-        AS_IID    o = gkfr.libraryIID;
+        AS_IID    o = fr.gkFragment_getLibraryIID();
         AS_UID    n = AS_UID_lookup(E, &E);
-        gkfr.libraryIID = getGatekeeperUIDtoIID(gkpStore, n, NULL);
+        fr.gkFragment_setLibraryIID(gkpStore->gkStore_getUIDtoIID(n, NULL));
         if (update)
           fprintf(stdout, "frg uid %s libiid "F_IID" -> libiid "F_IID" libuid %s\n",
-                  AS_UID_toString(gkfr.readUID), o, gkfr.libraryIID, AS_UID_toString(n));
-      } else if (strcasecmp(ACT, "plate") == 0) {
-        AS_UID    o = gkfr.plateUID;
-        gkfr.plateUID = AS_UID_lookup(E, &E);
-        if (update)
-          fprintf(stdout, "frg uid %s plate %s -> %s\n",
-                  AS_UID_toString(gkfr.readUID), AS_UID_toString(o), AS_UID_toString(gkfr.plateUID));
-      } else if (strcasecmp(ACT, "platelocation") == 0) {
-        uint32 o = gkfr.plateLocation;
-        gkfr.plateLocation = strtoul(E, &E, 10);
-        if (update)
-          fprintf(stdout, "frg uid %s platelocation "F_U32" -> "F_U32"\n",
-                  AS_UID_toString(gkfr.readUID), o, gkfr.plateLocation);
+                  AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getLibraryIID(), AS_UID_toString(n));
       } else if (strcasecmp(ACT, "isnonrandom") == 0) {
-        uint32 o = gkfr.nonrandom;
-        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
-          gkfr.nonrandom = 1;
-        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
-          gkfr.nonrandom = 0;
-        else {
+        uint32 o = fr.gkFragment_getIsNonRandom();
+        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T')) {
+          fr.gkFragment_setIsNonRandom(1);
+        } else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F')) {
+          fr.gkFragment_setIsNonRandom(0);
+        } else {
           fprintf(stderr, "invalid frg isnonrandom flag in edit line: '%s'\n", L);
           errors++;
           goto nextline;
         }
         if (update)
           fprintf(stdout, "frg uid %s isnonrandom "F_U32" -> "F_U32"\n",
-                  AS_UID_toString(gkfr.readUID), o, gkfr.nonrandom);
+                  AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getIsNonRandom());
       } else if (strcasecmp(ACT, "isdeleted") == 0) {
-        uint32 o = gkfr.deleted;
-        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
-          gkfr.deleted = 1;
-        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
-          gkfr.deleted = 0;
-        else {
+        uint32 o = fr.gkFragment_getIsDeleted();
+        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T')) {
+          fr.gkFragment_setIsDeleted(1);
+        } else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F')) {
+          fr.gkFragment_setIsDeleted(0);
+        } else {
           fprintf(stderr, "invalid frg isdeleted flag in edit line: '%s'\n", L);
           errors++;
           goto nextline;
         }
         if (update)
           fprintf(stdout, "frg uid %s isdeleted "F_U32" -> "F_U32"\n",
-                  AS_UID_toString(gkfr.readUID), o, gkfr.deleted);
-      } else if (strcasecmp(ACT, "status") == 0) {
-        uint32 o = gkfr.status;
-        uint32 i;
-        for (i=0; i<9; i++) {
-          if (tolower(AS_READ_STATUS_NAMES[i][0]) == tolower(E[0])) {
-            gkfr.status = i;
-            break;
-          }
-        }
-        if (i == 9) {
-          fprintf(stderr, "invalid frg status in edit line: '%s'\n", L);
-          errors++;
-          goto nextline;
-        }
-        if (update)
-          fprintf(stdout, "frg uid %s status %s -> %s\n",
-                  AS_UID_toString(gkfr.readUID), AS_READ_STATUS_NAMES[o], AS_READ_STATUS_NAMES[gkfr.status]);
+                  AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getIsDeleted());
       } else if (strcasecmp(ACT, "orientation") == 0) {
-        uint32 o = gkfr.orientation;
+        uint32 o = fr.gkFragment_getOrientation();
         uint32 i;
         for (i=0; i<5; i++)
           if (tolower(AS_READ_ORIENT_NAMES[i][0]) == tolower(E[0])) {
-            gkfr.orientation = i;
+            fr.gkFragment_setOrientation(i);
             break;
           }
         if (i == 5) {
@@ -461,7 +387,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
         }
         if (update)
           fprintf(stdout, "frg uid %s orientation %s -> %s\n",
-                  AS_UID_toString(gkfr.readUID), AS_READ_ORIENT_NAMES[o], AS_READ_ORIENT_NAMES[gkfr.orientation]);
+                  AS_UID_toString(fr.gkFragment_getReadUID()), AS_READ_ORIENT_NAMES[o], AS_READ_ORIENT_NAMES[fr.gkFragment_getOrientation()]);
       } else {
         fprintf(stderr, "invalid frg action in edit line: '%s'\n", L);
         errors++;
@@ -469,19 +395,19 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
       }
 
       if (update)
-        setIndexStore(gkpStore->frg, IID, &gkfr);
+        gkpStore->gkStore_setFragment(&fr);
     }
 
     if (isLIB) {
-      GateKeeperLibraryRecord  gklr = {0};
+      gkLibrary  gklr;
 
-      if (IID > getNumGateKeeperLibraries(gkpStore)) {
+      if (IID > gkpStore->gkStore_getNumLibraries()) {
         fprintf(stderr, "invalid lib iid "F_IID" in edit line: '%s'\n", IID, L);
         errors++;
         goto nextline;
       }
 
-      getIndexStore(gkpStore->lib, IID, &gklr);
+      gkpStore->gkStore_setLibrary(IID, &gklr);
 
       if        (strcasecmp(ACT, "mean") == 0) {
         double m = gklr.mean;
@@ -505,12 +431,6 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
         if (update)
           fprintf(stdout, "lib uid %s distance %f %f -> %f %f\n",
                   AS_UID_toString(gklr.libraryUID), m, s, gklr.mean, gklr.stddev);
-      } else if (strcasecmp(ACT, "comment") == 0) {
-        if (update)
-          fprintf(stdout, "lib uid %s comment \"%s\" -> \"%s\"\n",
-                  AS_UID_toString(gklr.libraryUID), gklr.comment, E);
-        memset(gklr.comment, 0, AS_PER_COMMENT_LEN);
-        strncpy(gklr.comment, E, AS_PER_COMMENT_LEN);
 
       //  Lots of boilerplate here for T/F flags.  Sigh.
 
@@ -648,7 +568,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
       //  be (and shouldn't get) updated.
 
       if ((IID > 0) && (update))
-        setIndexStore(gkpStore->lib, IID, &gklr);
+        gkpStore->gkStore_setLibrary(IID, &gklr);
     }
 
 
@@ -656,7 +576,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
     fgets(L, 1024, F);
   }
 
-  closeGateKeeperStore(gkpStore);
+  delete gkpStore;
 
   if (errors) {
     fprintf(stderr, "%d errors detected.\n", errors);

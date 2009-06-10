@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_FGB_io.c,v 1.30 2008-10-08 22:02:54 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_FGB_io.c,v 1.31 2009-06-10 18:05:13 brianwalenz Exp $";
 
 //  Fragment Overlap Graph Builder file input and output.  This
 //  functional unit reads a *.ovl prototype i/o file an massages it
@@ -527,30 +527,18 @@ void
 process_gkp_store_for_fragments(char *gkpStoreName,
                                 Tfragment   *frags,
                                 Tedge       *edges) {
-
-  fragRecord        fr;
-  FragStream       *fs = NULL;
-
   IntFragment_ID    iid = 0;
   IntFragment_ID    vid = 0;
 
-  GateKeeperStore   *gkp = openGateKeeperStore(gkpStoreName, FALSE);
-  if (gkp == NULL) {
-    fprintf(stderr, "Failed to open %s\n", gkpStoreName);
-    exit(1);
-  }
-
   assert(0 == GetNumFragments(frags));
 
-  fs = openFragStream(gkp, FRAG_S_INF);
+  gkStore    *gkp = new gkStore(gkpStoreName, FALSE, FALSE);
+  gkStream   *fs = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
+  gkFragment  fr;
 
-  //unsigned int firstElem = getFirstElemFragStore(gkp);
-  ///unsigned int lastElem  = getLastElemFragStore(gkp) + 1;
-  //resetFragStream(fs, firstElem, lastElem);
-
-  while (nextFragStream(fs, &fr)) {
-    if (getFragRecordIsDeleted(&fr) == FALSE) {
-      iid = getFragRecordIID(&fr);
+  while (fs->next(&fr)) {
+    if (fr.gkFragment_getIsDeleted() == FALSE) {
+      iid = fr.gkFragment_getReadIID();
 
       //  Argh!  This needs to be here, other code depends on the
       //  range of the VA being the number of fragments.
@@ -561,9 +549,7 @@ process_gkp_store_for_fragments(char *gkpStoreName,
       set_cid_fragment(frags, vid, iid);
       set_typ_fragment(frags, vid, AS_READ);
       set_del_fragment(frags, vid, FALSE);
-      set_length_fragment(frags, vid,
-                          getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBT) -
-                          getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBT));
+      set_length_fragment(frags, vid, fr.gkFragment_getClearRegionLength());
 
       // Assume that each fragment spans a chunk.
       set_lab_fragment(frags, vid, AS_CGB_UNLABELED_FRAG);
@@ -595,8 +581,8 @@ process_gkp_store_for_fragments(char *gkpStoreName,
     }
   }
 
-  closeFragStream(fs);
-  closeGateKeeperStore(gkp);
+  delete fs;
+  delete gkp;
 }
 
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: RefreshMANode.c,v 1.1 2009-05-29 17:29:19 brianwalenz Exp $";
+static char *rcsid = "$Id: RefreshMANode.c,v 1.2 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -714,10 +714,8 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
       {
         int    weight = vreg.alleles[al].weight;
         int    num_reads = vreg.alleles[al].num_reads;
-        char *format_weight = (al < num_reported_alleles-1) ?
-          "%d/" : "%d\0";
-        char *format_num_reads = (al < num_reported_alleles-1) ?
-          "%d/" : "%d\0";
+        const char *format_weight = (al < num_reported_alleles-1) ? "%d/" : "%d\0";
+        const char *format_num_reads = (al < num_reported_alleles-1) ? "%d/" : "%d\0";
 
         (*v_list)[*nvars].var_seq[-1+(al+1)*shift] =
           (al < num_reported_alleles-1) ? '/' : '\0';
@@ -735,11 +733,9 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
     sprintf((*v_list)[*nvars].conf_read_iids, "");
     for (rd=0; rd < tot_num_conf_reads; rd++)
       {
-        char *format_iids = (rd < tot_num_conf_reads-1) ?
-          "%d/" : "%d\0";
+        const char *format_iids = (rd < tot_num_conf_reads-1) ? "%d/" : "%d\0";
         sprintf(buf, format_iids, conf_read_iids[rd]);
-        (*v_list)[*nvars].conf_read_iids =
-          strcat((*v_list)[*nvars].conf_read_iids, buf);
+        (*v_list)[*nvars].conf_read_iids = strcat((*v_list)[*nvars].conf_read_iids, buf);
       }
 
     for (al=0; al < num_reported_alleles; al++)
@@ -979,8 +975,8 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
   }
   SmoothenVariation(svarf, len_manode, window);
 
-  prev_nca_iid = safe_calloc(prev_nca_iid_max, sizeof(int32));
-  prev_ncr_iid = safe_calloc(prev_ncr_iid_max, sizeof(int32));
+  prev_nca_iid = (int32 *)safe_calloc(prev_nca_iid_max, sizeof(int32));
+  prev_ncr_iid = (int32 *)safe_calloc(prev_ncr_iid_max, sizeof(int32));
 
   for (i=0; i<len_manode; i++)
     {
@@ -1134,13 +1130,13 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
               while (prev_nca_iid_max < prev_nca)
                 prev_nca_iid_max *= 2;
               safe_free(prev_nca_iid);
-              prev_nca_iid = safe_calloc(prev_nca_iid_max, sizeof(int32));
+              prev_nca_iid = (int32 *)safe_calloc(prev_nca_iid_max, sizeof(int32));
             }
             if (prev_ncr_iid_max < prev_ncr) {
               while (prev_ncr_iid_max < prev_ncr)
                 prev_ncr_iid_max *= 2;
               safe_free(prev_ncr_iid);
-              prev_ncr_iid = safe_calloc(prev_ncr_iid_max, sizeof(int32));
+              prev_ncr_iid = (int32 *)safe_calloc(prev_ncr_iid_max, sizeof(int32));
             }
 
             memset(prev_nca_iid, 0, sizeof(int32) * prev_nca_iid_max);

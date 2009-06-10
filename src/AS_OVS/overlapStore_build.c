@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.23 2009-05-11 05:51:01 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.24 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -155,7 +155,7 @@ buildStore(
   //
   OverlapStore    *storeFile = AS_OVS_createOverlapStore(storeName, TRUE);
 
-  storeFile->gkp = openGateKeeperStore(gkpName, FALSE);
+  storeFile->gkp = new gkStore(gkpName, FALSE, FALSE);
 
   //  Decide on some sizes.  We need to decide on how many IID's to
   //  put in each bucket.  Except for running out of file descriptors
@@ -171,7 +171,7 @@ buildStore(
   uint64  numOverlaps         = 0;
   uint64  overlapsPerIID      = 0;
   uint64  iidPerBucket        = 0;
-  uint64  maxIID              = getLastElemFragStore(storeFile->gkp) + 1;
+  uint64  maxIID              = storeFile->gkp->gkStore_getNumFragments() + 1;
 
   if (fileList[i][0] != '-') {
     for (i=0; i<fileListLen; i++) {
@@ -212,7 +212,7 @@ buildStore(
   HashTable_AS *readIIDsToSkip = CreateScalarHashTable_AS();
   if (!doFilterOBT && ovlSkipName != NULL) {
      int line_len = ( 16 * 1024 * 1024);
-     char *currLine = safe_malloc(sizeof(char)*line_len);
+     char *currLine = (char *)safe_malloc(sizeof(char)*line_len);
      char fileName[1024];
      errno = 0;
      FILE *file = fopen(ovlSkipName, "r");
@@ -221,7 +221,7 @@ buildStore(
      } else {
         while (fgets(currLine, line_len-1, file) != NULL) {
            AS_UID read = AS_UID_lookup(currLine, NULL);
-           InsertInHashTable_AS(readIIDsToSkip, getGatekeeperUIDtoIID(storeFile->gkp, read, NULL), 0, 1, 0);
+           InsertInHashTable_AS(readIIDsToSkip, storeFile->gkp->gkStore_getUIDtoIID(read, NULL), 0, 1, 0);
          }
          fclose(file);
       }

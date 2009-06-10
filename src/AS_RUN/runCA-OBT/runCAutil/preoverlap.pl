@@ -138,7 +138,7 @@ sub preoverlap {
     	if (scalar(@fragFiles) == 0);
 
     if ((! -d "$wrk/$asm.gkpStore") ||
-        (! -e "$wrk/$asm.gkpStore/frg")) {
+        (! -e "$wrk/$asm.gkpStore/inf")) {
         my $bin = getBinDirectory();
 
         #  Make sure all the inputs are here.  We also shred any
@@ -232,6 +232,8 @@ sub preoverlap {
     }
 
     $numFrags = getNumberOfFragsInStore($wrk, $asm);
+
+    print STDERR "numFrags = $numFrags\n";
 
   stopafter:
     stopAfter("initialStoreBuilding");

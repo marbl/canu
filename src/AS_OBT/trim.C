@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: trim.C,v 1.10 2009-01-16 16:47:24 skoren Exp $";
+static const char *rcsid = "$Id: trim.C,v 1.11 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include "trim.H"
 #include "util++.H"
@@ -43,8 +43,8 @@ findGoodQuality(double  *qltD,
     uint32     end;
   };
 
-  pair     f[AS_FRAG_MAX_LEN+1];  //  forward scan ranges
-  pair     r[AS_FRAG_MAX_LEN+1];  //  reverse scan ranges
+  pair    *f = new pair [qltLen + 1];
+  pair    *r = new pair [qltLen + 1];
 
   uint32   fpos=0, flen=0;
   uint32   rpos=0, rlen=0;
@@ -208,25 +208,30 @@ findGoodQuality(double  *qltD,
       }
     }
   }
+
+  delete [] f;
+  delete [] r;
 }
 
 
 
-//  Takes a fragRecord, returns clear ranges for some quality
+//  Takes a gkFragment, returns clear ranges for some quality
 //  threshold.  Higher level than I wanted, but it obscures
 //  everything, and is exactly the interface that this and
 //  mergeTrimming.C want.
 //
 void
-doTrim(fragRecord *fr, double minQuality, uint32 &left, uint32 &right) {
-  static double  qltD[AS_READ_MAX_LEN];
-  char          *qltC   = getFragRecordQuality(fr);
-  uint32         qltLen = getFragRecordQualityLength(fr);
+doTrim(gkFragment *fr, double minQuality, uint32 &left, uint32 &right) {
+  uint32    qltLen = fr->gkFragment_getQualityLength();
+  char     *qltC   = fr->gkFragment_getQuality();
+  double   *qltD   = new double [qltLen];
 
   for (uint32 i=0; i<qltLen; i++)
     qltD[i] = qual.lookupChar(qltC[i]);
 
   findGoodQuality(qltD, qltLen, minQuality, left, right);
+
+  delete [] qltD;
 }
 
 

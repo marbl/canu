@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.2 2009-06-05 15:09:08 skoren Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.3 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -157,7 +157,7 @@ MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
 
 int
 MultiAlignUnitig(IntUnitigMesg   *unitig,
-                 GateKeeperStore *fragStore,
+                 gkStore *fragStore,
                  VA_TYPE(char)   *sequence,
                  VA_TYPE(char)   *quality,
                  VA_TYPE(int32)  *deltas,
@@ -244,7 +244,7 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
     int         bhang        = 0;
 
     int         olap_success = 0;
-    OverlapType otype        = 0;
+    OverlapType otype;
 
     int         ovl          = 0;
 

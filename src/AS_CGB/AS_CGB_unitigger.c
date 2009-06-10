@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.38 2009-05-21 02:24:37 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.39 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_Bubble.h"
@@ -29,7 +29,7 @@ extern int REAPER_VALIDATION;
 void
 chunk_graph_analysis(THeapGlobals *heapva,
                      UnitiggerGlobals *rg,
-                     GateKeeperStore *gkp);
+                     gkStore *gkp);
 
 
 void
@@ -40,7 +40,7 @@ output_the_chunks(Tfragment     *frags,
                   float          global_fragment_arrival_rate,
                   int            fragment_count_target,
                   char          *Graph_Store_File_Prefix,
-                  GateKeeperStore *gkp) {
+                  gkStore *gkp) {
 
   IntChunk_ID       chunk_index;
   IntChunk_ID       nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
@@ -63,7 +63,9 @@ output_the_chunks(Tfragment     *frags,
 
     for(ivc=0; ivc<num_frags; ivc++) {
       IntFragment_ID vid    = *GetVA_AChunkFrag(chunkfrags, ch->f_list + ivc);
-      IntMultiPos    a_frag = {0};
+      IntMultiPos    a_frag;
+
+      memset(&a_frag, 0, sizeof(IntMultiPos));
 
       a_frag.type         = get_typ_fragment(frags,vid);
       a_frag.ident        = get_iid_fragment(frags,vid);
@@ -400,7 +402,7 @@ int
 main(int argc, char **argv) {
   THeapGlobals     *heapva = (THeapGlobals      *)safe_calloc(sizeof(THeapGlobals), 1);
   UnitiggerGlobals *rg     = (UnitiggerGlobals  *)safe_calloc(sizeof(UnitiggerGlobals), 1);
-  GateKeeperStore *gkpStore;
+  gkStore *gkpStore;
 
   rg->work_limit_per_candidate_edge = 1000;
   rg->dvt_double_sided_threshold_fragment_end_degree = 1;
@@ -426,7 +428,7 @@ main(int argc, char **argv) {
 
   //BasicUnitigger( argc, argv, gstate, heapva, rg);
 
-  gkpStore = openGateKeeperStore(rg->frag_store, FALSE);
+  gkpStore = new gkStore(rg->frag_store, FALSE, FALSE);
  again:
   heapva->frags             = CreateVA_Afragment (rg->maxfrags);
   heapva->edges             = CreateVA_Aedge     (rg->maxedges);
@@ -511,7 +513,7 @@ main(int argc, char **argv) {
                     rg->Output_Graph_Store_Prefix,
                     gkpStore);
 
-  closeGateKeeperStore(gkpStore);
+  delete gkpStore;
 
 
   // Determine the blessed overlaps.  They are the overlaps

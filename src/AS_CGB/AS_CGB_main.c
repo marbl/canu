@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_main.c,v 1.19 2008-10-08 22:02:54 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_main.c,v 1.20 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_unitigger_globals.h"
@@ -46,7 +46,7 @@ void chunk_graph_build_1(const char * const Graph_Store_File_Prefix,
                          float         *global_fragment_arrival_rate,
                          TChunkFrag    *chunkfrags,
                          TChunkMesg    *thechunks,
-                         GateKeeperStore *gkpStore);
+                         gkStore *gkpStore);
 
 
 static IntEdge_ID get_the_thickest_dvt_overlap_from_vertex
@@ -346,7 +346,7 @@ static void maskout_overlaps_touching_crappy_fragments
 
 int main_cgb(THeapGlobals  * heapva,
              UnitiggerGlobals * rg,
-             GateKeeperStore *gkpStore) {
+             gkStore *gkpStore) {
 
   //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "After reading the fragment graph store");
   //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges);
@@ -398,10 +398,10 @@ int main_cgb(THeapGlobals  * heapva,
       // coverage statistic.
       //
       IntFragment_ID iid = get_iid_fragment(heapva->frags, ifrag);
-      fragRecord frg;
-      getFrag(gkpStore, iid, &frg, 0);
+      gkFragment     frg;
+      gkpStore->gkStore_getFragment(iid, &frg, GKFRAGMENT_INF);
 
-      if((type != AS_READ) && (type != AS_EXTR) || getFragRecordIsNonRandom(&frg))
+      if((type != AS_READ) && (type != AS_EXTR) || frg.gkFragment_getIsNonRandom())
         num_of_guides_total++;
 
       set_cid_fragment(heapva->frags,ifrag,ifrag); // While we are here ....

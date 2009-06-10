@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: InterleavedMerging.c,v 1.19 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid = "$Id: InterleavedMerging.c,v 1.20 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -315,16 +315,16 @@ Segment* DuplicateSegmentList(Segment * segmentList)
   Local_Overlap * ovl=NULL;
   for(curr = segmentList; curr != NULL; curr = curr->next)
     {
-      Segment *this = (Segment *)safe_malloc(sizeof(Segment));
+      Segment *nseg = (Segment *)safe_malloc(sizeof(Segment));
       ovl=(Local_Overlap*)safe_malloc(sizeof(Local_Overlap));
       *ovl=*(curr->overlap);
-      *this = *curr;
-      this->overlap=ovl;
+      *nseg = *curr;
+      nseg->overlap=ovl;
       if(head==NULL){
-        tail=head=this;
+        tail=head=nseg;
       } else {
-        tail->next=this;
-        tail=this;
+        tail->next=nseg;
+        tail=nseg;
       }
     }
   return head;
@@ -351,7 +351,7 @@ void DeleteScaffoldAlignmentInterface(ScaffoldAlignmentInterface * sai)
 
 ScaffoldPools * CreateScaffoldPools(void)
 {
-  ScaffoldPools * sp = safe_calloc(1, sizeof(ScaffoldPools));
+  ScaffoldPools * sp = (ScaffoldPools *)safe_calloc(1, sizeof(ScaffoldPools));
 
   if(sp == NULL)
     return NULL;
@@ -371,12 +371,12 @@ ScaffoldPools * CreateScaffoldPools(void)
 
 ScaffoldStuff * CreateScaffoldStuff(void)
 {
-  ScaffoldStuff * ss = safe_calloc(1, sizeof(ScaffoldStuff));
+  ScaffoldStuff * ss = (ScaffoldStuff *)safe_calloc(1, sizeof(ScaffoldStuff));
 
   if(ss == NULL)
     return NULL;
 
-  ss->scaffold = safe_calloc(1, sizeof(Scaffold));
+  ss->scaffold = (Scaffold *)safe_calloc(1, sizeof(Scaffold));
   ss->pools = CreateScaffoldPools();
   ss->contigs = CreateVA_ContigElement(100);
   ss->edgeContigs = CreateVA_ContigElement(100);
@@ -396,7 +396,7 @@ ScaffoldStuff * CreateScaffoldStuff(void)
 ScaffoldAlignmentInterface * CreateScaffoldAlignmentInterface(void)
 {
   ScaffoldAlignmentInterface * sai =
-    safe_calloc(1, sizeof(ScaffoldAlignmentInterface));
+    (ScaffoldAlignmentInterface *)safe_calloc(1, sizeof(ScaffoldAlignmentInterface));
 
   if(sai == NULL)
     return NULL;
@@ -1091,18 +1091,18 @@ int PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
                   // the head rather than tail
                   if(sai->segmentList == NULL)
                     {
-                      sai->segmentList = safe_calloc(1, sizeof(Segment));
+                      sai->segmentList = (Segment *)safe_calloc(1, sizeof(Segment));
                       assert(sai->segmentList != NULL);
                       sai->segmentList->next = NULL;
                     }
                   else
                     {
-                      Segment *s =  safe_calloc(1, sizeof(Segment));
+                      Segment *s =  (Segment *)safe_calloc(1, sizeof(Segment));
                       assert(s!=NULL);
                       s->next=sai->segmentList;
                       sai->segmentList=s;
                     }
-                  sai->segmentList->overlap = safe_calloc(1, sizeof(Local_Overlap));
+                  sai->segmentList->overlap = (Local_Overlap *)safe_calloc(1, sizeof(Local_Overlap));
                   assert(sai->segmentList->overlap != NULL);
                   sai->segmentList->overlap->begpos = overlap->begpos;
                   sai->segmentList->overlap->endpos = overlap->endpos;
@@ -1581,7 +1581,7 @@ int MarkSkippedContigsInOverlapSet(COSData * cos,
 
 int * CreateContigMap(Scaffold_Tig * contigs, int numContigs)
 {
-  int * contigMap = safe_malloc(numContigs * sizeof(int));
+  int * contigMap = (int *)safe_malloc(numContigs * sizeof(int));
 
   if(contigMap)
     {

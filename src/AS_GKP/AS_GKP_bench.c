@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_bench.c,v 1.9 2009-04-29 09:21:45 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_bench.c,v 1.10 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -100,58 +100,53 @@ printrusage(char *gkpName, double startTime) {
 static
 void
 addRandomFrags(char *gkpName, uint32 numFrags) {
-  GateKeeperStore          *gkp   = createGateKeeperStore(gkpName);
-  GateKeeperFragmentRecord  gkf   = {0};
-  char                      seq[AS_FRAG_MAX_LEN+1];
-  char                      qlt[AS_FRAG_MAX_LEN+1];
-  char                      enc[AS_FRAG_MAX_LEN+1];
-  int                       enclen;
+  gkStore                  *gkp = new gkStore(gkpName, TRUE, TRUE);
+  gkFragment                frag;
   char                      acgt[10] = {'a', 'c', 'g', 't', 'n', 'A', 'C', 'G', 'T', 'N'};
+  int                       len;
   int                       i, j;
+  AS_UID                    uid;
+
+  //  This is a special case for gatekeeper; we never call
+  //  gkStore_getFragment() and so we never set up the gkFragment.
+  //
+  frag.gkFragment_enableGatekeeperMode(gkp);
+
+  char *seq = frag.gkFragment_getSequence();
+  char *qlt = frag.gkFragment_getQuality();
 
   for (i=0; i<numFrags; i++) {
-    clearGateKeeperFragmentRecord(&gkf);
+    uid.isString = 0;
+    uid.UID      = i + 1 + 2000000000;
 
-    gkf.readUID.isString = 0;
-    gkf.readUID.UID      = getLastElemStore(gkp->frg) + 1 + 2000000000;
-    gkf.readIID          = getLastElemStore(gkp->frg) + 1;
+    frag.gkFragment_setReadUID(uid);
+    frag.gkFragment_setType(GKFRAGMENT_MEDIUM);
 
-    gkf.seqLen = 600 + lrand48() % 600;
-    gkf.hpsLen = 0;
-    gkf.srcLen = 0;
+    len = 600 + lrand48() % 600;
 
     //  Generate a bogus sequence and quality
-    for (j=0; j<gkf.seqLen; j++) {
+    for (j=0; j<len; j++) {
       seq[j] = acgt[lrand48() % 10];
       qlt[j] = '0' + lrand48() % 60;
     }
-    seq[gkf.seqLen] = 0;
-    qlt[gkf.seqLen] = 0;
+    seq[len] = 0;
+    qlt[len] = 0;
 
-    gkf.seqOffset = getLastElemStore(gkp->seq) + 1;
-    gkf.qltOffset = getLastElemStore(gkp->qlt) + 1;
-    gkf.hpsOffset = getLastElemStore(gkp->hps) + 1;
-    gkf.srcOffset = getLastElemStore(gkp->src) + 1;
-
-    setGatekeeperUIDtoIID(gkp, gkf.readUID, gkf.readIID, AS_IID_FRG);
-    appendIndexStore(gkp->frg, &gkf);
-
-    enclen = encodeSequence(enc, seq);
-    appendStringStore(gkp->seq, enc, enclen);
-
-    encodeSequenceQuality(enc, seq, qlt);
-    appendStringStore(gkp->qlt, enc, gkf.seqLen);
-
-    appendStringStore(gkp->hps, NULL, gkf.hpsLen);
-    appendStringStore(gkp->src, NULL, gkf.srcLen);
+    frag.gkFragment_setLength(len);
 
     if ((i > 50000) && (i % 10000) == 0)
       fprintf(stderr, "%.3f ops/sec %.3f%% complete\n", i / (getTime() - startTime), 100.0 * i / numFrags);
+
+    gkp->gkStore_addFragment(&frag,
+                             0, len,
+                             0, len,
+                             1, 0,
+                             1, 0);
   }
 
   fprintf(stderr, "%.3f ops/sec\n", i / (getTime() - startTime));
 
-  closeGateKeeperStore(gkp);
+  delete gkp;
 }
 
 
@@ -159,13 +154,16 @@ addRandomFrags(char *gkpName, uint32 numFrags) {
 static
 void
 updateRandomMates(char *gkpName, uint32 numMates) {
-  GateKeeperStore           *gkp   = openGateKeeperStore(gkpName, TRUE);
-  GateKeeperFragmentRecord   gkFrag1;
-  GateKeeperFragmentRecord   gkFrag2;
-  AS_IID                     frag1IID;
-  AS_IID                     frag2IID;
-  int                        i, lo, hi;
-  int                        totalFrags = getLastElemStore(gkp->frg);
+  gkStore           *gkp   = new gkStore(gkpName, FALSE, TRUE);
+  gkFragment         frag1;
+  gkFragment         frag2;
+  AS_IID             frag1IID;
+  AS_IID             frag2IID;
+  int                i, lo, hi;
+  int                totalFrags = gkp->gkStore_getNumFragments();
+
+  frag1.gkFragment_enableGatekeeperMode(gkp);
+  frag2.gkFragment_enableGatekeeperMode(gkp);
 
   for (i=0; i<numMates; i++) {
     frag1IID = (lrand48() % totalFrags) + 1;
@@ -180,14 +178,14 @@ updateRandomMates(char *gkpName, uint32 numMates) {
 
     frag2IID = lo + (lrand48() % (hi - lo));
 
-    getGateKeeperFragment(gkp, frag1IID, &gkFrag1);
-    getGateKeeperFragment(gkp, frag2IID, &gkFrag2);
+    gkp->gkStore_getFragment(frag1IID, &frag1, GKFRAGMENT_INF);
+    gkp->gkStore_getFragment(frag2IID, &frag2, GKFRAGMENT_INF);
 
-    gkFrag1.mateIID    = frag2IID;
-    gkFrag2.mateIID    = frag1IID;
+    frag1.gkFragment_setMateIID(frag2IID);
+    frag2.gkFragment_setMateIID(frag1IID);
 
-    setIndexStore(gkp->frg, frag1IID, &gkFrag1);
-    setIndexStore(gkp->frg, frag2IID, &gkFrag2);
+    gkp->gkStore_setFragment(&frag1);
+    gkp->gkStore_setFragment(&frag2);
 
     if ((i > 50000) && (i % 10000) == 0)
       fprintf(stderr, "%.3f ops/sec %.3f%% complete\n", i / (getTime() - startTime), 100.0 * i / numMates);
@@ -195,7 +193,7 @@ updateRandomMates(char *gkpName, uint32 numMates) {
 
   fprintf(stderr, "%.3f ops/sec\n", i / (getTime() - startTime));
 
-  closeGateKeeperStore(gkp);
+  delete gkp;
 }
 
 
@@ -203,16 +201,16 @@ updateRandomMates(char *gkpName, uint32 numMates) {
 static
 void
 readRandomFragments(char *gkpName, uint32 numReads) {
-  GateKeeperStore           *gkp   = openGateKeeperStore(gkpName, FALSE);
-  fragRecord                 frg;
+  gkStore                   *gkp   = new gkStore(gkpName, FALSE, FALSE);
+  gkFragment                 frg;
   AS_IID                     fragIID;
   int                        i;
-  int                        totalFrags = getLastElemStore(gkp->frg);
+  int                        totalFrags = gkp->gkStore_getNumFragments();
 
   for (i=0; i<numReads; i++) {
     fragIID = (lrand48() % totalFrags) + 1;
 
-    getFrag(gkp, fragIID, &frg, FRAG_S_ALL);
+    gkp->gkStore_getFragment(fragIID, &frg, GKFRAGMENT_QLT);
 
     if ((i > 50000) && (i % 10000) == 0)
       fprintf(stderr, "%.3f ops/sec %.3f%% complete\n", i / (getTime() - startTime), 100.0 * i / numReads);
@@ -220,7 +218,7 @@ readRandomFragments(char *gkpName, uint32 numReads) {
 
   fprintf(stderr, "%.3f ops/sec\n", i / (getTime() - startTime));
 
-  closeGateKeeperStore(gkp);
+  delete gkp;
 }
 
 

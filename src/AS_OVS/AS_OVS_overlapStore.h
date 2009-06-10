@@ -22,7 +22,7 @@
 #ifndef AS_OVS_OVERLAPSTORE_H
 #define AS_OVS_OVERLAPSTORE_H
 
-static const char *rcsid_AS_OVS_OVERLAPSTORE_H = "$Id: AS_OVS_overlapStore.h,v 1.12 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid_AS_OVS_OVERLAPSTORE_H = "$Id: AS_OVS_overlapStore.h,v 1.13 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <stdio.h>
 
@@ -67,7 +67,7 @@ typedef struct {
   int                         currentFileIndex;
   BinaryOverlapFile          *bof;
 
-  GateKeeperStore            *gkp;
+  gkStore                    *gkp;
 
 #if 0
   uint16                     *fragClearBegin;

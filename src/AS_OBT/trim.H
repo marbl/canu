@@ -27,14 +27,12 @@
 #include <time.h>
 #include <errno.h>
 
-extern "C" {
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
-}
 
 #include "util++.H"
 
-void  doTrim(fragRecord *fr,
+void  doTrim(gkFragment *fr,
              double      minQuality,
              uint32     &left,
              uint32     &right);

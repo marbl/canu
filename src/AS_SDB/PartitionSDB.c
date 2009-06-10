@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: PartitionSDB.c,v 1.7 2008-10-08 22:03:00 brianwalenz Exp $";
+const char *mainid = "$Id: PartitionSDB.c,v 1.8 2009-06-10 18:05:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -175,7 +175,7 @@ main(int argc, char **argv) {
 
   while (ReadProtoMesg_AS(inputFile, &pmesg) != EOF) {
     if (pmesg->t == MESG_ICM) {
-      IntConConMesg *ma = pmesg->m;
+      IntConConMesg *ma = (IntConConMesg *)pmesg->m;
       int nunitigs = ma->num_unitigs;
       int nfrags   = ma->num_pieces;
 

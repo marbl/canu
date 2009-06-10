@@ -121,9 +121,6 @@ sub generateVectorTrim ($) {
        caFailure("unknown vector trimmer $trimmer", undef);
     }
 
-    #  See comments in overlapTrim.pl; this backup gets removed there too.
-    backupFragStore("beforeVectorTrim");
-
     # set the global vector trim file so that the subsequent code will update the gkp for us
     setGlobal("vectorIntersect", "$wrk/$outDir/$trimFile");
 

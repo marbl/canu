@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_FGB_hanging_fragment.c,v 1.6 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_FGB_hanging_fragment.c,v 1.7 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 
@@ -69,8 +69,8 @@ void identify_early_spur_fragments
   int * thru_fragment_prefix_dovetail_overlap_count = NULL;
   int * thru_fragment_suffix_dovetail_overlap_count = NULL;
 
-  thru_fragment_prefix_dovetail_overlap_count = safe_malloc(sizeof(int) * nfrag);
-  thru_fragment_suffix_dovetail_overlap_count = safe_malloc(sizeof(int) * nfrag);
+  thru_fragment_prefix_dovetail_overlap_count = (int *)safe_malloc(sizeof(int) * nfrag);
+  thru_fragment_suffix_dovetail_overlap_count = (int *)safe_malloc(sizeof(int) * nfrag);
 
   {
     // Initialize the incoming dovetail degree at each fragment.
@@ -235,8 +235,8 @@ void separate_fragments_as_solo_hanging_thru
   int * all_fragment_prefix_dovetail_overlap_count = NULL;
   int * all_fragment_suffix_dovetail_overlap_count = NULL;
 
-  all_fragment_prefix_dovetail_overlap_count = safe_malloc(sizeof(int) * nfrag);
-  all_fragment_suffix_dovetail_overlap_count = safe_malloc(sizeof(int) * nfrag);
+  all_fragment_prefix_dovetail_overlap_count = (int *)safe_malloc(sizeof(int) * nfrag);
+  all_fragment_suffix_dovetail_overlap_count = (int *)safe_malloc(sizeof(int) * nfrag);
 
   {
     // Initialize the outgoing dovetail degree at each fragment.

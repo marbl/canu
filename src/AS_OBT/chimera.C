@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.31 2008-11-11 16:16:25 brianwalenz Exp $";
+const char *mainid = "$Id: chimera.C,v 1.32 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,11 +31,9 @@ const char *mainid = "$Id: chimera.C,v 1.31 2008-11-11 16:16:25 brianwalenz Exp 
 #include "util++.H"
 #include "readOverlap.H"
 
-extern "C" {
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_OVS_overlapStore.h"
-}
 
 
 //  WITH_REPORT_FULL will report unmodified fragments.
@@ -79,32 +77,32 @@ public:
 
 
 clear_t *
-readClearRanges(GateKeeperStore *gkp) {
-  FragStream       *fs    = openFragStream(gkp, FRAG_S_INF);
-  fragRecord        fr;
-  clear_t          *clear = new clear_t [getLastElemFragStore(gkp) + 1];
+readClearRanges(gkStore *gkp) {
+  gkStream       *fs    = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
+  gkFragment      fr;
+  clear_t        *clear = new clear_t [gkp->gkStore_getNumFragments() + 1];
 
-  while (nextFragStream(fs, &fr)) {
-    AS_IID                    iid  = getFragRecordIID(&fr);
-    GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkp, getFragRecordLibraryIID(&fr));
+  while (fs->next(&fr)) {
+    AS_IID       iid  = fr.gkFragment_getReadIID();
+    gkLibrary   *lr   = gkp->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
 
     clear[iid].pad1          = 0;
-    clear[iid].length        = getFragRecordSequenceLength(&fr);
-    clear[iid].ovlpL         = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBT);
-    clear[iid].ovlpR         = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBT);
-    clear[iid].origL         = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBTINI);
-    clear[iid].origR         = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBTINI);
-    clear[iid].deleted       = getFragRecordIsDeleted(&fr) ? 1 : 0;
-    clear[iid].doNotOBT      = ((gklr) && (gklr->doNotOverlapTrim)) ? 1 : 0;
+    clear[iid].length        = fr.gkFragment_getSequenceLength();
+    clear[iid].ovlpL         = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTMERGE);
+    clear[iid].ovlpR         = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_OBTMERGE);
+    clear[iid].origL         = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
+    clear[iid].origR         = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_OBTINITIAL);
+    clear[iid].deleted       = fr.gkFragment_getIsDeleted() ? 1 : 0;
+    clear[iid].doNotOBT      = ((lr) && (lr->doNotOverlapTrim)) ? 1 : 0;
 
     clear[iid].pad2          = 0;
-    clear[iid].fragBeg       = fr.gkfr.contaminationBeg;
-    clear[iid].fragEnd       = fr.gkfr.contaminationEnd;
+    clear[iid].fragBeg       = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT);
+    clear[iid].fragEnd       = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT);
 
-    clear[iid].uid           = getFragRecordUID(&fr);
+    clear[iid].uid           = fr.gkFragment_getReadUID();
   }
 
-  closeFragStream(fs);
+  delete fs;
 
   return(clear);
 }
@@ -294,8 +292,8 @@ printLogMessage(FILE         *reportFile,
                 uint32        intervalBeg,
                 uint32        intervalEnd,
                 bool          doUpdate,
-                char         *type,
-                char         *message) {
+                char const   *type,
+                char const   *message) {
 
   if (reportFile)
     fprintf(reportFile, "%s,"F_IID" %s Trimmed from "F_U32W(4)" "F_U32W(4)" to "F_U32W(4)" "F_U32W(4)".  %s, gatekeeper store %s.\n",
@@ -314,7 +312,7 @@ printLogMessage(FILE         *reportFile,
 void
 process(const AS_IID           iid,
         const clear_t         *clear,
-              GateKeeperStore *gkp,
+              gkStore *gkp,
               bool             doUpdate,
         const overlapList     *overlap) {
 
@@ -647,7 +645,7 @@ process(const AS_IID           iid,
   }
 
   {
-    uint32  minOvl = AS_FRAG_MAX_LEN + 1;
+    uint32  minOvl = AS_READ_MAX_MEDIUM_LEN + 1;
     uint32  maxOvl = 0;
     bool    isLeftSpur = false;
     bool    isRightSpur = false;
@@ -862,15 +860,15 @@ process(const AS_IID           iid,
       printLogMessage(reportFile, clear[iid].uid, iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "SPUR", "New length too small, fragment deleted");
 
       if (doUpdate)
-        delFrag(gkp, iid);
+        gkp->gkStore_delFragment(iid);
     } else {
       printLogMessage(reportFile, clear[iid].uid, iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "SPUR", "Length OK");
 
       if (doUpdate) {
-        fragRecord fr = {0};
-        getFrag(gkp, iid, &fr, FRAG_S_INF);
-        setFragRecordClearRegion(&fr, intervalBeg, intervalEnd, AS_READ_CLEAR_OBT);
-        setFrag(gkp, iid, &fr);
+        gkFragment fr;
+        gkp->gkStore_getFragment(iid, &fr, GKFRAGMENT_INF);
+        fr.gkFragment_setClearRegion(intervalBeg, intervalEnd, AS_READ_CLEAR_OBTCHIMERA);
+        gkp->gkStore_setFragment(&fr);
       }
     }
 
@@ -886,15 +884,15 @@ process(const AS_IID           iid,
       printLogMessage(reportFile, clear[iid].uid, iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "CHIMERA", "New length too small, fragment deleted");
 
       if (doUpdate)
-        delFrag(gkp, iid);
+        gkp->gkStore_delFragment(iid);
     } else {
       printLogMessage(reportFile, clear[iid].uid, iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "CHIMERA", "Length OK");
 
       if (doUpdate) {
-        fragRecord fr = {0};
-        getFrag(gkp, iid, &fr, FRAG_S_INF);
-        setFragRecordClearRegion(&fr, intervalBeg, intervalEnd, AS_READ_CLEAR_OBT);
-        setFrag(gkp, iid, &fr);
+        gkFragment fr;
+        gkp->gkStore_getFragment(iid, &fr, GKFRAGMENT_INF);
+        fr.gkFragment_setClearRegion(intervalBeg, intervalEnd, AS_READ_CLEAR_OBTCHIMERA);
+        gkp->gkStore_setFragment(&fr);
       }
     }
 
@@ -935,7 +933,7 @@ main(int argc, char **argv) {
   char   *summaryName       = 0L;
   char   *reportName        = 0L;
 
-  GateKeeperStore   *gkp          = 0L;
+  gkStore   *gkp          = 0L;
   OverlapStore      *ovsprimary   = 0L;
   OverlapStore      *ovssecondary = 0L;
 
@@ -948,7 +946,7 @@ main(int argc, char **argv) {
   int err=0;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-gkp", 2) == 0) {
-      gkp      = openGateKeeperStore(argv[++arg], doUpdate);
+      gkp      = new gkStore(argv[++arg], FALSE, doUpdate);
     } else if (strncmp(argv[arg], "-ovs", 2) == 0) {
       if (ovsprimary == NULL)
         ovsprimary = AS_OVS_openOverlapStore(argv[++arg]);
@@ -996,6 +994,7 @@ main(int argc, char **argv) {
       fprintf(stderr, "Failed to open '%s' for writing: %s\n", reportName, strerror(errno)), exit(1);
   }
 
+  gkp->gkStore_enableClearRange(AS_READ_CLEAR_OBTCHIMERA);
 
   OVSoverlap   *ovl = readOverlap(ovsprimary, ovssecondary);
   while (ovl) {
@@ -1242,7 +1241,7 @@ main(int argc, char **argv) {
   process(idAlast, clear, gkp, doUpdate, overlap);
   delete overlap;
 
-  closeGateKeeperStore(gkp);
+  delete gkp;
 
   if (summaryFile) {
     fprintf(summaryFile, "fullCoverage:        "F_U32"\n", fullCoverage);

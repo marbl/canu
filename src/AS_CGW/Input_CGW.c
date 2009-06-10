@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.58 2009-05-27 14:52:29 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.59 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,10 +63,10 @@ static int32 BadQuality = 0;
 static
 void
 ProcessFrags(void) {
-  CDS_CID_t i;
-  int32 unmatedFrags = 0;
-  GateKeeperFragmentRecord gkf;
-  int                      err = 0;
+  CDS_CID_t    i;
+  int32        unmatedFrags = 0;
+  gkFragment   fr;
+  int          err = 0;
 
   //  Do one pass through, reading from the gatekeeper store to fill
   //  out the cifrag info.
@@ -80,22 +80,22 @@ ProcessFrags(void) {
 
     assert(cifrag->iid == i);  //  If !set, this fails.
 
-    getGateKeeperFragment(ScaffoldGraph->gkpStore, i, &gkf);
+    ScaffoldGraph->gkpStore->gkStore_getFragment(i, &fr, GKFRAGMENT_INF);
 
-    if (gkf.mateIID != 0) {
-      InfoByIID *miinfo = GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkf.mateIID);
+    if (fr.gkFragment_getMateIID() != 0) {
+      InfoByIID *miinfo = GetInfoByIID(ScaffoldGraph->iidToFragIndex, fr.gkFragment_getMateIID());
 
       if (miinfo && miinfo->set) {
         cifrag->mateOf   = miinfo->fragIndex;
-        cifrag->dist     = gkf.libraryIID;
-        if (gkf.orientation == AS_READ_ORIENT_INNIE)
+        cifrag->dist     = fr.gkFragment_getLibraryIID();
+        if (fr.gkFragment_getOrientation() == AS_READ_ORIENT_INNIE)
           cifrag->flags.bits.innieMate = TRUE;
         cifrag->flags.bits.linkType   = AS_MATE;
         cifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
         cifrag->flags.bits.hasMate    = TRUE;
       } else {
         fprintf(stderr, "ProcessFrags()-- WARNING!  fragiid=%d,index=%d mateiid=%d,index=%d -- MATE DOESN'T EXIST!\n",
-                i, ciinfo->fragIndex, gkf.mateIID, miinfo->fragIndex);
+                i, ciinfo->fragIndex, fr.gkFragment_getMateIID(), miinfo->fragIndex);
         //  This is not a critical failure, but does indicate
         //  something amiss with either the store or the unitigs.
         //
@@ -291,7 +291,9 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
 
 void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int sequenceOnly){
   CDS_CID_t cfr;
-  ChunkInstanceT CI = {0};
+  ChunkInstanceT CI;
+
+  memset(&CI, 0, sizeof(ChunkInstanceT));
 
   CI.id = ium_mesg->iaccession;
   CI.bpLength.mean = length;
@@ -512,12 +514,12 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
 
 void
 LoadDistData(void) {
-  int32 numDists = getNumGateKeeperLibraries(ScaffoldGraph->gkpStore);
+  int32 numDists = ScaffoldGraph->gkpStore->gkStore_getNumLibraries();
   CDS_CID_t i;
 
   for(i = 1; i <= numDists; i++){
     DistT dist;
-    GateKeeperLibraryRecord  *gkpl = getGateKeeperLibrary(ScaffoldGraph->gkpStore, i);
+    gkLibrary  *gkpl = ScaffoldGraph->gkpStore->gkStore_getLibrary(i);
 
     dist.mu             = gkpl->mean;
     dist.sigma          = gkpl->stddev;
@@ -546,7 +548,7 @@ void LoadClosureReadData() {
       GlobalData->closureLeftEnds = CreateScalarHashTable_AS();
       GlobalData->closureRightEnds = CreateScalarHashTable_AS();
       int line_len = ( 16 * 1024 * 1024);
-      char *currLine = safe_malloc(sizeof(char)*line_len);
+      char *currLine = (char *)safe_malloc(sizeof(char)*line_len);
       errno = 0;
       FILE *file = fopen(GlobalData->closureReadFile, "r");
       if (errno) {
@@ -555,12 +557,12 @@ void LoadClosureReadData() {
          while (fgets(currLine, line_len-1, file) != NULL) {
             char *nextUID = currLine;
             AS_UID read = AS_UID_lookup(nextUID, &nextUID);
-            InsertInHashTable_AS(GlobalData->closureReads, (uint64)getGatekeeperUIDtoIID(ScaffoldGraph->gkpStore, read, NULL), 0, 1, 0);
+            InsertInHashTable_AS(GlobalData->closureReads, (uint64)ScaffoldGraph->gkpStore->gkStore_getUIDtoIID(read, NULL), 0, 1, 0);
             
             AS_UID left = AS_UID_lookup(nextUID, &nextUID);
             AS_UID right = AS_UID_lookup(nextUID, &nextUID);
-            InsertInHashTable_AS(GlobalData->closureLeftEnds, (uint64)getGatekeeperUIDtoIID(ScaffoldGraph->gkpStore, read, NULL), 0, (uint64)getGatekeeperUIDtoIID(ScaffoldGraph->gkpStore, left, NULL), 0);
-            InsertInHashTable_AS(GlobalData->closureRightEnds, (uint64)getGatekeeperUIDtoIID(ScaffoldGraph->gkpStore, read, NULL), 0, (uint64)getGatekeeperUIDtoIID(ScaffoldGraph->gkpStore, right, NULL), 0);
+            InsertInHashTable_AS(GlobalData->closureLeftEnds, (uint64)ScaffoldGraph->gkpStore->gkStore_getUIDtoIID(read, NULL), 0, (uint64)ScaffoldGraph->gkpStore->gkStore_getUIDtoIID(left, NULL), 0);
+            InsertInHashTable_AS(GlobalData->closureRightEnds, (uint64)ScaffoldGraph->gkpStore->gkStore_getUIDtoIID(read, NULL), 0, (uint64)ScaffoldGraph->gkpStore->gkStore_getUIDtoIID(right, NULL), 0);
          }
          fclose(file);
       }

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.39 2009-05-29 17:27:16 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.40 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -394,7 +394,7 @@ void FillChunkOverlapWithOVL(GraphCGW_T   *graph,
   if (ovl->orientation == AS_ANTI)    oo = AS_READ_ORIENT_ANTINORMAL;
   if (ovl->orientation == AS_OUTTIE)  oo = AS_READ_ORIENT_OUTTIE;
 
-  FragOrient orient = ciEdgeOrientFromFragment(oo, getCIFragOrient(cifraga), getCIFragOrient(cifragb));
+  ChunkOrientationType orient = ciEdgeOrientFromFragment(oo, getCIFragOrient(cifraga), getCIFragOrient(cifragb));
 
   //  Adjust positions, orientation.  We place unitig A starting at 0, then
   //  figure out where to place unitig B based on the overlap orientation.

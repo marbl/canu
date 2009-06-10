@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_classify.c,v 1.10 2008-10-08 22:02:54 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_classify.c,v 1.11 2009-06-10 18:05:13 brianwalenz Exp $";
 
 //  Description: These routines classify the fragments and overlaps in
 //  a local manner as to their status in chunks.
@@ -231,8 +231,8 @@ static void intrachunk_classification_of_overlaps
   const IntEdge_ID nedge = GetNumEdges(edges);
   int *fragment_npx = NULL;
   int *fragment_nsx = NULL;
-  fragment_npx = safe_malloc(sizeof(int) * nfrag);
-  fragment_nsx = safe_malloc(sizeof(int) * nfrag);
+  fragment_npx = (int *)safe_malloc(sizeof(int) * nfrag);
+  fragment_nsx = (int *)safe_malloc(sizeof(int) * nfrag);
 
 #ifdef DEBUGVIEW
   view_fgb_chkpnt("Q0", frags, edges);
@@ -345,10 +345,10 @@ static void chunk_classification_of_fragments
   char *interchunk_npx = NULL; // boolean
   char *interchunk_nsx = NULL;
 
-  intrachunk_npx = safe_malloc(sizeof(char) * nfrag); // boolean
-  intrachunk_nsx = safe_malloc(sizeof(char) * nfrag);
-  interchunk_npx = safe_malloc(sizeof(char) * nfrag); // boolean
-  interchunk_nsx = safe_malloc(sizeof(char) * nfrag);
+  intrachunk_npx = (char *)safe_malloc(sizeof(char) * nfrag); // boolean
+  intrachunk_nsx = (char *)safe_malloc(sizeof(char) * nfrag);
+  interchunk_npx = (char *)safe_malloc(sizeof(char) * nfrag); // boolean
+  interchunk_nsx = (char *)safe_malloc(sizeof(char) * nfrag);
 
   /* Label each singleton chunk with a label consistent with its
      fragment graph status.  */

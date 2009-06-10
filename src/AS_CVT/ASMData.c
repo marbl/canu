@@ -1,4 +1,4 @@
-
+ww
 /**************************************************************************
  * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
@@ -442,7 +442,7 @@ int AddMDI2Store(AssemblyStore * asmStore, SnapMateDistMesg * smdm)
     }
     else
     {
-      GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(asmStore->gkpStore, libiid);
+      gkLibrary  *gklr = gkStore_getLibrary(asmStore->gkpStore, libiid);
       mdi.inMean   = gklr->mean;
       mdi.inStddev = gklr->stddev;
     }
@@ -1095,7 +1095,7 @@ void InitializeAFGStore(AssemblyStore * asmStore)
 
   if(asmStore->gkpStore == NULL)
     return;
-  numFRGs = getNumGateKeeperFragments(asmStore->gkpStore);
+  numFRGs = gkStore_getNumFragments(asmStore->gkpStore);
   memset(&afg, 0, sizeof(ASM_AFGRecord));
 
   for(i = 1; i <= numFRGs; i++)

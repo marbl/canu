@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.14 2008-10-29 06:34:30 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.15 2009-06-10 18:05:13 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -237,7 +237,7 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
 
     do{
       GraphEdgeIterator Edges2;
-      NodeCGW_T *w = PopStack_PtrT(stack);
+      NodeCGW_T *w = (NodeCGW_T *)PopStack_PtrT(stack);
       EdgeCGW_T *edge2;
 
       wNum = w->info.Contig.contigNum;

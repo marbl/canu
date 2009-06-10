@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.47 2009-05-22 03:26:07 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.48 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -283,12 +283,8 @@ main(int argc, char **argv) {
   //  After the graph is loaded, we reopen the gatekeeper store for
   //  read/write.
   //
-  closeGateKeeperStore(ScaffoldGraph->gkpStore);
-  ScaffoldGraph->gkpStore = openGateKeeperStore(GlobalData->Gatekeeper_Store_Name, TRUE);
-  if(ScaffoldGraph->gkpStore == NULL){
-    fprintf(stderr, "%s: Failed to open the gatekeeper store '%s' for read/write.  Bye.\n", argv[0], GlobalData->Gatekeeper_Store_Name);
-    exit(1);
-  }
+  delete ScaffoldGraph->gkpStore;
+  ScaffoldGraph->gkpStore = new gkStore(GlobalData->Gatekeeper_Store_Name, FALSE, TRUE);
 
   //  Update the begin/end scaffold ids.
   //
@@ -305,6 +301,23 @@ main(int argc, char **argv) {
   reformed_consensus = CreateVA_char(256 * 1024);
   reformed_quality   = CreateVA_char(256 * 1024);
   reformed_deltas    = CreateVA_int32(8192);
+
+  //
+  //  Create the starting clear range backup, if we're the first
+  //  iteration.  We copy this from the LATEST clear, which will
+  //  either by CLR or OBTCHIMERA.  This range does not exist before
+  //  the first run of ECR, and we must create it.
+  //
+  if (iterNumber == 1)
+    ScaffoldGraph->gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_ECR_0);
+
+  //
+  //  Now, enable the range that we're going to be creating with this
+  //  run.  Similar to ECR_0, this range doesn't exist before the
+  //  first run of ECR.
+  //
+  ScaffoldGraph->gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_ECR_0 + iterNumber);
+
 
   //
   //  Scan all the scaffolds, closing gaps.  Go!
@@ -381,7 +394,7 @@ main(int argc, char **argv) {
     //
     {
       int        contigID = scaff->info.Scaffold.AEndCI;
-      fragRecord fsread;
+      gkFragment fr;
 
       while (contigID != -1) {
         ContigT     *contig = GetGraphNode(ScaffoldGraph->ContigGraph, contigID);
@@ -391,49 +404,28 @@ main(int argc, char **argv) {
         for (i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
           AS_IID          iid = GetCIFragT(ScaffoldGraph->CIFrags,
                                            GetIntMultiPos(ma->f_list, i)->sourceInt)->iid;
-          unsigned int    clr_bgn;
-          unsigned int    clr_end;
+          uint32  bgnOld, bgnCur;
+          uint32  endOld, endCur;
 
-          getFrag(ScaffoldGraph->gkpStore, iid, &fsread, FRAG_S_INF);
+          ScaffoldGraph->gkpStore->gkStore_getFragment(iid, &fr, GKFRAGMENT_INF);
 
-          switch (iterNumber) {
-            case 1:
-              clr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR1 - 1);
-              clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR1 - 1);
-              if ((clr_bgn != getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR1)) ||
-                  (clr_end != getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR1))) {
-                fprintf(stderr, "WARNING:  Reset clear for frag "F_IID",%s (ctg %d scf %d) from (%d,%d) to (%d,%d)\n",
-                        getFragRecordIID(&fsread),
-                        AS_UID_toString(getFragRecordUID(&fsread)),
-                        contigID, sid,
-                        getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR1),
-                        getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR1),
-                        clr_bgn,
-                        clr_end);
-                setFragRecordClearRegion(&fsread, clr_bgn, clr_end, AS_READ_CLEAR_ECR1);
-                setFrag(ScaffoldGraph->gkpStore, iid, &fsread);
-              }
-              break;
-            case 2:
-              clr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR2 - 1);
-              clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR2 - 1);
-              if ((clr_bgn != getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR2)) ||
-                  (clr_end != getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR2))) {
-                fprintf(stderr, "WARNING:  Reset clear for frag "F_IID",%s (ctg %f scf %d) from (%d,%d) to (%d,%d)\n",
-                        getFragRecordIID(&fsread),
-                        AS_UID_toString(getFragRecordUID(&fsread)),
-                        contigID, sid,
-                        getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR2),
-                        getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR2),
-                        clr_bgn,
-                        clr_end);
-                setFragRecordClearRegion(&fsread, clr_bgn, clr_end, AS_READ_CLEAR_ECR2);
-                setFrag(ScaffoldGraph->gkpStore, iid, &fsread);
-              }
-              break;
-            default:
-              assert(0);
-              break;
+          fr.gkFragment_getClearRegion(bgnOld, endOld, AS_READ_CLEAR_ECR_0 + iterNumber - 1);
+          fr.gkFragment_getClearRegion(bgnCur, endCur, AS_READ_CLEAR_ECR_0 + iterNumber);
+
+          //  These are violated if the clear range is not configured.
+          assert(bgnOld < endOld);
+          assert(bgnCur < endCur);
+
+          if ((bgnOld != bgnCur) || (endOld != endCur)) {
+            fprintf(stderr, "WARNING:  Reset clear for frag "F_IID",%s (ctg %d scf %d) from (%d,%d) to (%d,%d)\n",
+                    fr.gkFragment_getReadIID(),
+                    AS_UID_toString(fr.gkFragment_getReadUID()),
+                    contigID, sid,
+                    bgnCur, endCur,
+                    bgnOld, endOld);
+            fr.gkFragment_setClearRegion(bgnOld, endOld, AS_READ_CLEAR_ECR_0 + iterNumber);
+
+            ScaffoldGraph->gkpStore->gkStore_setFragment(&fr);
           }
         }
 
@@ -460,8 +452,8 @@ main(int argc, char **argv) {
       int        lunitigID           = 0;
       int        runitigID           = 0;
 
-      ContigT    lcontigBackup = {0};
-      ContigT    rcontigBackup = {0};
+      ContigT    lcontigBackup;
+      ContigT    rcontigBackup;
 
       int        leftFragIndex       = 0;
       int        rightFragIndex      = 0;
@@ -953,32 +945,34 @@ main(int argc, char **argv) {
                       rcontig->id,contigPos.position.bgn, contigPos.position.end);
           }
 
-          LengthT    newOffsetAEnd = {0};
-          LengthT    newOffsetBEnd = {0};
+          {
+            LengthT    newOffsetAEnd = {0};
+            LengthT    newOffsetBEnd = {0};
 
-          if (lcontigOrientation == A_B)
-            newOffsetAEnd.mean = lcontig->offsetAEnd.mean;
-          else
-            newOffsetAEnd.mean = lcontig->offsetBEnd.mean;
+            if (lcontigOrientation == A_B)
+              newOffsetAEnd.mean = lcontig->offsetAEnd.mean;
+            else
+              newOffsetAEnd.mean = lcontig->offsetBEnd.mean;
 
-          if (rcontigOrientation == A_B)
-            newOffsetBEnd.mean = rcontig->offsetBEnd.mean;
-          else
-            newOffsetBEnd.mean = rcontig->offsetAEnd.mean;
+            if (rcontigOrientation == A_B)
+              newOffsetBEnd.mean = rcontig->offsetBEnd.mean;
+            else
+              newOffsetBEnd.mean = rcontig->offsetAEnd.mean;
 
-          if (debug.diagnosticLV > 0) {
-            DumpContigMultiAlignInfo ("before CreateAContigInScaffold", NULL, lcontig->id);
-            DumpContigMultiAlignInfo ("before CreateAContigInScaffold", NULL, rcontig->id);
-            //DumpContigUngappedOffsets(rcontig->id);
+            if (debug.diagnosticLV > 0) {
+              DumpContigMultiAlignInfo ("before CreateAContigInScaffold", NULL, lcontig->id);
+              DumpContigMultiAlignInfo ("before CreateAContigInScaffold", NULL, rcontig->id);
+              //DumpContigUngappedOffsets(rcontig->id);
+            }
+
+            if (debug.eCRmainLV > 0)
+              fprintf(debug.eCRmainFP, "CreateAContigInScaffold()-- newOffsetAEnd=%d newOffsetBEnd=%d\n",
+                      (int)newOffsetAEnd.mean, (int)newOffsetBEnd.mean);
+
+            // have to call this routine with normalized positions
+
+            closedGap = CreateAContigInScaffold(scaff, ContigPositions, newOffsetAEnd, newOffsetBEnd);
           }
-
-          if (debug.eCRmainLV > 0)
-            fprintf(debug.eCRmainFP, "CreateAContigInScaffold()-- newOffsetAEnd=%d newOffsetBEnd=%d\n",
-                    (int)newOffsetAEnd.mean, (int)newOffsetBEnd.mean);
-
-          // have to call this routine with normalized positions
-
-          closedGap = CreateAContigInScaffold(scaff, ContigPositions, newOffsetAEnd, newOffsetBEnd);
 
           //  We might have reallocated the contig graph; lookup
           //  the contig pointers again (yes, even if we fail).
@@ -1166,8 +1160,8 @@ main(int argc, char **argv) {
 static
 int
 compExtendableFrags(const void *s1, const void *s2) {
-  const extendableFrag * t1 = s1;
-  const extendableFrag * t2 = s2;
+  const extendableFrag * t1 = (extendableFrag *)s1;
+  const extendableFrag * t2 = (extendableFrag *)s2;
 
   if (t1->ctgMaxExt > t2->ctgMaxExt)
     return -1;
@@ -1179,29 +1173,18 @@ compExtendableFrags(const void *s1, const void *s2) {
 
 
 void
-getExtendableClearRange(AS_IID        iid,
-                        unsigned int *clr_bgn,
-                        unsigned int *clr_end,
-                        unsigned int *len) {
-  static fragRecord fsread;  //  static for performance only
+getExtendableClearRange(AS_IID  iid,
+                        uint32& clr_bgn,
+                        uint32& clr_end,
+                        uint32& len) {
+  gkFragment fr;
 
-  getFrag(ScaffoldGraph->gkpStore, iid, &fsread, FRAG_S_INF);
+  ScaffoldGraph->gkpStore->gkStore_getFragment(iid, &fr, GKFRAGMENT_INF);
 
-  *len = getFragRecordSequenceLength(&fsread);
+  len = fr.gkFragment_getSequenceLength();
 
-  switch (iterNumber) {
-    case 1:
-      *clr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR1 - 1);
-      *clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR1 - 1);
-      break;
-    case 2:
-      *clr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR2 - 1);
-      *clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR2 - 1);
-      break;
-    default:
-      assert(0);
-      break;
-  }
+  fr.gkFragment_getClearRegion(clr_bgn, clr_end, AS_READ_CLEAR_ECR_0 + iterNumber - 1);
+  assert(clr_bgn < clr_end);
 }
 
 
@@ -1243,11 +1226,11 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
     if ((frag->contigOffset3p.mean < 100.0) &&                      // frag is within a cutoff of the low end of the contig
         (frag->contigOffset3p.mean < frag->contigOffset5p.mean) &&  // and points in the right direction
         (frag->cid == firstUnitigID)) {                             // and is in the first unitig
-      unsigned int clr_bgn;
-      unsigned int clr_end;
-      unsigned int seq_len;
+      uint32 clr_bgn;
+      uint32 clr_end;
+      uint32 seq_len;
 
-      getExtendableClearRange(frag->iid, &clr_bgn, &clr_end, &seq_len);
+      getExtendableClearRange(frag->iid, clr_bgn, clr_end, seq_len);
 
       int ext = seq_len - clr_end - frag->contigOffset3p.mean;
 
@@ -1344,11 +1327,11 @@ findLastExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
         (frag->contigOffset5p.mean < frag->contigOffset3p.mean) && // and points in the right direction
         (frag->cid == lastUnitigID)) {                             // and is in the last unitig
 
-      unsigned int clr_bgn;
-      unsigned int clr_end;
-      unsigned int seq_len;
+      uint32 clr_bgn;
+      uint32 clr_end;
+      uint32 seq_len;
 
-      getExtendableClearRange(frag->iid, &clr_bgn, &clr_end, &seq_len);
+      getExtendableClearRange(frag->iid, clr_bgn, clr_end, seq_len);
 
       int ext = seq_len - clr_end - (int) (contig->bpLength.mean - frag->contigOffset3p.mean);
 
@@ -1680,7 +1663,6 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
   copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, macopy, unitig->id, TRUE);
 
   if (debug.eCRmainLV > 0) {
-    //PrintMultiAlignT(stderr, loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE), ScaffoldGraph->gkpStore, 0, 0, AS_READ_CLEAR_ECR1);
     fprintf(debug.eCRmainFP, "for unitig %d, before reforming, strlen(macopy->consensus) = " F_SIZE_T "\n", unitig->id, strlen(Getchar(macopy->consensus, 0)));
     fprintf(debug.eCRmainFP, "for unitig %d, before reforming, consensus:\n%s\n", unitig->id, Getchar(macopy->consensus, 0));
   }
@@ -1864,7 +1846,6 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
   DeleteMultiAlignT(macopy);  //  We own this.
 
   if (debug.eCRmainLV > 0) {
-    //PrintMultiAlignT(stderr, loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE), ScaffoldGraph->gkpStore, 0, 0, AS_READ_CLEAR_ECR1);
     fprintf(debug.eCRmainFP, "for unitig %d, after reforming, strlen(reformed_consensus) = " F_SIZE_T "\n", unitig->id, strlen(Getchar(reformed_consensus, 0)));
     fprintf(debug.eCRmainFP, "for unitig %d, after reforming, consensus:\n%s\n", unitig->id, Getchar(reformed_consensus, 0));
   }
@@ -1877,8 +1858,8 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
 
 void
 extendClearRange(int fragIid, int frag3pDelta) {
-  unsigned int clr_bgn, clr_end;
-  fragRecord fsread;
+  uint32 clr_bgn, clr_end;
+  gkFragment fr;
 
   if (fragIid == -1)
     return;
@@ -1887,29 +1868,18 @@ extendClearRange(int fragIid, int frag3pDelta) {
     fprintf(stderr, "extendClearRange()-- WARNING: frag3pDelta less than zero: %d\n", frag3pDelta);
   assert(frag3pDelta >= 0);
 
-  getFrag(ScaffoldGraph->gkpStore, fragIid, &fsread, FRAG_S_INF);
+  ScaffoldGraph->gkpStore->gkStore_getFragment(fragIid, &fr, GKFRAGMENT_INF);
 
-  switch (iterNumber) {
-    case 1:
-      clr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR1 - 1);
-      clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR1 - 1) + frag3pDelta;
-      setFragRecordClearRegion(&fsread, clr_bgn, clr_end, AS_READ_CLEAR_ECR1);
-      break;
-    case 2:
-      clr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR2 - 1);
-      clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR2 - 1) + frag3pDelta;
-      setFragRecordClearRegion(&fsread, clr_bgn, clr_end, AS_READ_CLEAR_ECR2);
-      break;
-    default:
-      assert(0);
-      break;
-  }
+  fr.gkFragment_getClearRegion(clr_bgn, clr_end, AS_READ_CLEAR_ECR_0 + iterNumber - 1);
+  assert(clr_bgn < clr_end);
+  clr_end += frag3pDelta;
+  fr.gkFragment_setClearRegion(clr_bgn, clr_end, AS_READ_CLEAR_ECR_0 + iterNumber);
 
-  setFrag(ScaffoldGraph->gkpStore, fragIid, &fsread);
+  ScaffoldGraph->gkpStore->gkStore_setFragment(&fr);
 
   fprintf(stderr, "WARNING:  Set clear for frag "F_IID",%s from (%d,%d) to (%d,%d)\n",
-          getFragRecordIID(&fsread),
-          AS_UID_toString(getFragRecordUID(&fsread)),
+          fr.gkFragment_getReadIID(),
+          AS_UID_toString(fr.gkFragment_getReadUID()),
           clr_bgn,
           clr_end - frag3pDelta,
           clr_bgn,
@@ -1919,35 +1889,24 @@ extendClearRange(int fragIid, int frag3pDelta) {
 
 void
 revertClearRange(int fragIid) {
-  unsigned int clr_bgn, clr_end;
-  fragRecord fsread;
+  uint32     clr_bgn;
+  uint32     clr_end;
+  gkFragment fr;
 
   if (fragIid == -1)
     return;
 
-  getFrag(ScaffoldGraph->gkpStore, fragIid, &fsread, FRAG_S_INF);
+  ScaffoldGraph->gkpStore->gkStore_getFragment(fragIid, &fr, GKFRAGMENT_INF);
 
-  switch (iterNumber) {
-    case 1:
-      clr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR1 - 1);
-      clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR1 - 1);
-      setFragRecordClearRegion(&fsread, clr_bgn, clr_end, AS_READ_CLEAR_ECR1);
-      break;
-    case 2:
-      clr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR2 - 1);
-      clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR2 - 1);
-      setFragRecordClearRegion(&fsread, clr_bgn, clr_end, AS_READ_CLEAR_ECR2);
-      break;
-    default:
-      assert(0);
-      break;
-  }
+  fr.gkFragment_getClearRegion(clr_bgn, clr_end, AS_READ_CLEAR_ECR_0 + iterNumber - 1);
+  assert(clr_bgn < clr_end);
+  fr.gkFragment_setClearRegion(clr_bgn, clr_end, AS_READ_CLEAR_ECR_0 + iterNumber);
 
-  setFrag(ScaffoldGraph->gkpStore, fragIid, &fsread);
+  ScaffoldGraph->gkpStore->gkStore_setFragment(&fr);
 
   fprintf(stderr, "WARNING:  Revert clear for frag "F_IID",%s to (%d,%d)\n",
-          getFragRecordIID(&fsread),
-          AS_UID_toString(getFragRecordUID(&fsread)),
+          fr.gkFragment_getReadIID(),
+          AS_UID_toString(fr.gkFragment_getReadUID()),
           clr_bgn,
           clr_end);
 }

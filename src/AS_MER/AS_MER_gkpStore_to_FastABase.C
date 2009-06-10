@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_MER_gkpStore_to_FastABase.C,v 1.15 2009-01-16 16:43:38 skoren Exp $";
+static const char *rcsid = "$Id: AS_MER_gkpStore_to_FastABase.C,v 1.16 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include "AS_MER_gkpStore_to_FastABase.H"
 
@@ -29,45 +29,40 @@ gkpStoreFile::gkpStoreFile(char const *gkpName,
                            uint32 clr) {
   clear();
 
-  _gkp    = openGateKeeperStore(gkpName, FALSE);
+  _gkp    = new gkStore(gkpName, FALSE, FALSE);
   _bgn    = bgn;
   _end    = end;
 
-  strcpy(_filename, _gkp->storePath);
+  strcpy(_filename, _gkp->gkStore_path());
 
-  _numberOfSequences = getLastElemFragStore(_gkp) + 1;
+  _numberOfSequences = _gkp->gkStore_getNumFragments();
 
   if (_end > _numberOfSequences)
     _end = _numberOfSequences;
 
   if (_end < _bgn)
-    fprintf(stderr, "gkpStoreFile()--  ERROR:  begin IID = %u > end IID = %u\n",
-            _bgn, _end);
-
+    fprintf(stderr, "gkpStoreFile()--  ERROR:  begin IID = %u > end IID = %u\n", _bgn, _end);
   assert(_bgn <= _end);
 
-  _clrBeg = new uint16 [_numberOfSequences];
-  _clrEnd = new uint16 [_numberOfSequences];
+  _clrBeg = new uint16 [_numberOfSequences + 1];
+  _clrEnd = new uint16 [_numberOfSequences + 1];
 
-  for (uint32 i=0; i<_numberOfSequences; i++) {
+  for (uint32 i=0; i<=_numberOfSequences; i++) {
     _clrBeg[i] = 0;
     _clrEnd[i] = 0;
   }
 
-  FragStream *stm = openFragStream(_gkp, FRAG_S_INF);
+  gkStream *stm = new gkStream(_gkp, _bgn, _end, GKFRAGMENT_INF);
 
-  if ((_bgn < _numberOfSequences) && (end < _numberOfSequences))
-    resetFragStream(stm, _bgn, _end);
-
-  while (nextFragStream(stm, &_frg)) {
-    if (!getFragRecordIsDeleted(&_frg)) {
-      uint32  iid = getFragRecordIID(&_frg);
-      _clrBeg[iid] = getFragRecordClearRegionBegin(&_frg, clr);
-      _clrEnd[iid] = getFragRecordClearRegionEnd  (&_frg, clr);
+  while (stm->next(&_frg)) {
+    if (!_frg.gkFragment_getIsDeleted()) {
+      uint32  iid = _frg.gkFragment_getReadIID();
+      _clrBeg[iid] = _frg.gkFragment_getClearRegionBegin(clr);
+      _clrEnd[iid] = _frg.gkFragment_getClearRegionEnd  (clr);
     }
   }
 
-  closeFragStream(stm);
+  delete stm;
 }
 
 
@@ -79,7 +74,7 @@ gkpStoreFile::gkpStoreFile() {
 
 
 gkpStoreFile::~gkpStoreFile() {
-  closeGateKeeperStore(_gkp);
+  delete    _gkp;
   delete [] _clrBeg;
   delete [] _clrEnd;
 }
@@ -117,13 +112,12 @@ gkpStoreFile::openFile(const char *name) {
     }
 
     if (p)
-      clr = AS_PER_decodeClearRangeLabel(p+1);
+      clr = gkStore_decodeClearRegionLabel(p+1);
   }
 
-  if (testOpenGateKeeperStore(n, FALSE))
-    return(new gkpStoreFile(n, bgn, end, clr));
-  else
-    return(0L);
+  //  if can't open store, or file not there, return null
+
+  return(new gkpStoreFile(n, bgn, end, clr));
 };
 
 
@@ -134,12 +128,12 @@ gkpStoreFile::getSequence(u32bit iid,
                           char *&s, u32bit &sLen, u32bit &sMax) {
 
   if (sMax == 0) {
-    sMax = AS_FRAG_MAX_LEN+1;
+    sMax = AS_READ_MAX_LONG_LEN+1;
     s    = new char [sMax];
   }
 
   if (hMax == 0) {
-    hMax = AS_FRAG_MAX_LEN+1;
+    hMax = 1024;
     h    = new char [hMax];
   }
 
@@ -156,15 +150,15 @@ gkpStoreFile::getSequence(u32bit iid,
   if ((iid < _bgn) || (_end < iid))
     return(false);
 
-  getFrag(_gkp, iid, &_frg, FRAG_S_SEQ);
+  _gkp->gkStore_getFragment(iid, &_frg, GKFRAGMENT_SEQ);
 
-  sprintf(h, "%s,"F_IID, AS_UID_toString(getFragRecordUID(&_frg)), getFragRecordIID(&_frg));
+  sprintf(h, "%s,"F_IID, AS_UID_toString(_frg.gkFragment_getReadUID()), _frg.gkFragment_getReadIID());
 
   hLen = strlen(h);
   sLen = _clrEnd[iid] - _clrBeg[iid];
 
   if (sLen > 0)
-    strncpy(s, getFragRecordSequence(&_frg) + _clrBeg[iid], sLen);
+    strncpy(s, _frg.gkFragment_getSequence() + _clrBeg[iid], sLen);
 
   s[sLen] = 0;
 
@@ -183,9 +177,9 @@ gkpStoreFile::getSequence(u32bit iid,
   if ((iid < _bgn) || (_end < iid))
     return(false);
 
-  getFrag(_gkp, iid, &_frg, FRAG_S_SEQ);
+  _gkp->gkStore_getFragment(iid, &_frg, GKFRAGMENT_SEQ);
 
-  strncpy(s, getFragRecordSequence(&_frg) + _clrBeg[iid] + bgn, end - bgn);
+  strncpy(s, _frg.gkFragment_getSequence() + _clrBeg[iid] + bgn, end - bgn);
 
   s[end - bgn] = 0;
 

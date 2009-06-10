@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_Bubble_Popper.c,v 1.18 2008-10-08 22:02:54 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_Bubble_Popper.c,v 1.19 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +44,7 @@ extern int max_indel_AS_ALN_LOCOLAP_GLOBAL;
 void
 BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
 	TChunkFrag cfrgs[], float global_arrival_rate,
-        GateKeeperStore *gkpStore,
+        gkStore *gkpStore,
         const char * fileprefix)
 {
   IntEdge_ID e;
@@ -71,7 +71,7 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
   bp->bubOlaps     = (OverlapMesg *)safe_calloc(sizeof(OverlapMesg), BP_SQR(POPPER_MAX_BUBBLE_SIZE));
 
   for (i = 0; i < POPPER_MAX_BUBBLE_SIZE; ++i) {
-    bp->bubMesgs[i].sequence = safe_malloc(sizeof(char) * (AS_FRAG_MAX_LEN + 3));
+    bp->bubMesgs[i].sequence = (char *)safe_malloc(sizeof(char) * (AS_READ_MAX_LEN + 3));
     /* This is a hack for DP_compare.  It might not be necessary. */
     bp->bubMesgs[i].sequence[0] = '\0';
     (bp->bubMesgs[i].sequence)++;
@@ -81,7 +81,7 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
 
 #if AS_CGB_BUBBLE_DIST_OUTPUT
   {
-    char * filename = safe_malloc(strlen(fileprefix) + 80);
+    char filename[FILENAME_MAX];
     sprintf(filename,"%s.bubble.nfrags.celagram",fileprefix);
     bp->nfragsFile = fopen(filename, "w");
     if (bp->nfragsFile)
@@ -94,7 +94,6 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
     bp->sdiffFile = fopen(filename, "w");
     if (bp->sdiffFile)
       fprintf(bp->sdiffFile, "Largest Unaligned Block Per Bubble\n");
-    safe_free(filename);
   }
 #else
   bp->nfragsFile = bp->nfragspopFile = bp->sdiffFile = NULL;
@@ -191,12 +190,12 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
   id1 = get_iid_fragment(BG_vertices(bp->bg), bp->bubFrags[bid1]);
   if (if1->iaccession != id1) {
     if1->iaccession = id1;
-    getFrag(bp->gkpStore, id1, &bp->rsp, FRAG_S_SEQ);
+    bp->gkpStore->gkStore_getFragment(id1, &bp->rsp, GKFRAGMENT_SEQ);
 
-    if1->clear_rng.bgn = getFragRecordClearRegionBegin(&bp->rsp, AS_READ_CLEAR_OBT);
-    if1->clear_rng.end = getFragRecordClearRegionEnd  (&bp->rsp, AS_READ_CLEAR_OBT);
+    if1->clear_rng.bgn = bp->rsp.gkFragment_getClearRegionBegin();
+    if1->clear_rng.end = bp->rsp.gkFragment_getClearRegionEnd  ();
 
-    seq_buf = getFragRecordSequence(&bp->rsp);
+    seq_buf = bp->rsp.gkFragment_getSequence();
 
     for (src = &(seq_buf[if1->clear_rng.bgn]), dst = if1->sequence;
 	 src < &(seq_buf[if1->clear_rng.end]);
@@ -207,12 +206,12 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
   id2 = get_iid_fragment(BG_vertices(bp->bg), bp->bubFrags[bid2]);
   if (if2->iaccession != id2) {
     if2->iaccession = id2;
-    getFrag(bp->gkpStore, id2, &bp->rsp, FRAG_S_SEQ);
+    bp->gkpStore->gkStore_getFragment(id2, &bp->rsp, GKFRAGMENT_SEQ);
 
-    if2->clear_rng.bgn = getFragRecordClearRegionBegin(&bp->rsp, AS_READ_CLEAR_OBT);
-    if2->clear_rng.end = getFragRecordClearRegionEnd  (&bp->rsp, AS_READ_CLEAR_OBT);
+    if2->clear_rng.bgn = bp->rsp.gkFragment_getClearRegionBegin();
+    if2->clear_rng.end = bp->rsp.gkFragment_getClearRegionEnd  ();
 
-    seq_buf = getFragRecordSequence(&bp->rsp);
+    seq_buf = bp->rsp.gkFragment_getSequence();
 
     for (src = &(seq_buf[if2->clear_rng.bgn]), dst = if2->sequence;
 	 src < &(seq_buf[if2->clear_rng.end]);

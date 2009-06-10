@@ -22,7 +22,7 @@
 #ifndef OVERLAPSTOREBORINGSTUFF_H
 #define OVERLAPSTOREBORINGSTUFF_H
 
-static const char *rcsid_OVERLAPSTOREBORINGSTUFF_H = "$Id: overlapStatsBoringStuff.h,v 1.4 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid_OVERLAPSTOREBORINGSTUFF_H = "$Id: overlapStatsBoringStuff.h,v 1.5 2009-06-10 18:05:14 brianwalenz Exp $";
 
     ////////////////////////////////////////
     //
@@ -55,20 +55,20 @@ static const char *rcsid_OVERLAPSTOREBORINGSTUFF_H = "$Id: overlapStatsBoringStu
 
 
 void
-loadClearLengths(GateKeeperStore *gkp) {
+loadClearLengths(gkStore *gkp) {
 
   if (fragClearLength != NULL)
     return;
 
-  FragStream      *frgStream = openFragStream(gkp, FRAG_S_INF);
-  fragRecord       fr        = {0};
-  uint64           maxIID    = getLastElemFragStore(gkp) + 1;
+  gkStream        *frgStream = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
+  gkFragment       fr;
+  uint64           maxIID    = gkp->gkStore_getNumFragments() + 1;
 
   fragLibrary     = (AS_IID *)safe_calloc(maxIID, sizeof(AS_IID));
   fragMateIID     = (AS_IID *)safe_calloc(maxIID, sizeof(AS_IID));
   fragClearLength = (uint16 *)safe_calloc(maxIID, sizeof(uint16));
 
-  int  typ = AS_READ_CLEAR_OBT;
+  int  typ = AS_READ_CLEAR_LATEST;
 
 #if 0
   //  In general, we need to load a different clear length based on
@@ -92,16 +92,19 @@ loadClearLengths(GateKeeperStore *gkp) {
   }
 #endif
 
-  while (nextFragStream(frgStream, &fr)) {
-    AS_IID  iid = getFragRecordIID(&fr);
+  while (frgStream->next(&fr)) {
+    AS_IID  iid = fr.gkFragment_getReadIID();
+    uint32  b, e;
 
-    fragLibrary[iid]     = getFragRecordLibraryIID(&fr);
-    fragMateIID[iid]     = getFragRecordMateIID(&fr);
-    fragClearLength[iid] = (getFragRecordClearRegionEnd  (&fr, typ) -
-                            getFragRecordClearRegionBegin(&fr, typ));
+    fragLibrary[iid]     = fr.gkFragment_getLibraryIID();
+    fragMateIID[iid]     = fr.gkFragment_getMateIID();
+
+    fr.gkFragment_getClearRegion(b, e, typ);
+
+    fragClearLength[iid] = e - b;
   }
 
-  closeFragStream(frgStream);
+  delete frgStream;
 }
 
 
@@ -209,7 +212,7 @@ computeLengthOfOverlap(OVSoverlap ovl) {
 
 
 RepeatModel *
-computeRepeatModels(OverlapStore *ovs, GateKeeperStore *gkp) {
+computeRepeatModels(OverlapStore *ovs, gkStore *gkp) {
   int          i;
   uint32       ovl5   = 0;
   uint32       ovl3   = 0;
@@ -220,10 +223,10 @@ computeRepeatModels(OverlapStore *ovs, GateKeeperStore *gkp) {
   //  specific to a single library.
 
   //  Allocate N models, one for each library.
-  RepeatModel *rm = (RepeatModel *)safe_calloc(getNumGateKeeperLibraries(gkp) + 1, sizeof(RepeatModel));
+  RepeatModel *rm = (RepeatModel *)safe_calloc(gkp->gkStore_getNumLibraries() + 1, sizeof(RepeatModel));
 
   //  Then populate the histograms.
-  for (i=0; i <= getNumGateKeeperLibraries(gkp); i++) {
+  for (i=0; i <= gkp->gkStore_getNumLibraries(); i++) {
     AS_UTL_histogramAllocate(&rm[i].hist5);
     AS_UTL_histogramAllocate(&rm[i].hist3);
   }
@@ -268,7 +271,7 @@ computeRepeatModels(OverlapStore *ovs, GateKeeperStore *gkp) {
 
   //  Examine the histograms, build a model.
 
-  for (i=0; i <= getNumGateKeeperLibraries(gkp); i++) {
+  for (i=0; i <= gkp->gkStore_getNumLibraries(); i++) {
     char  label[256] = {0};
     char  name[FILENAME_MAX] = {0};
     FILE *file = NULL;
@@ -312,7 +315,7 @@ computeRepeatModels(OverlapStore *ovs, GateKeeperStore *gkp) {
   //  Dump the repeat thresholds
   fprintf(stderr, "== Repeat Model ==\n");
   fprintf(stderr, "\n");
-  for (i=0; i <= getNumGateKeeperLibraries(gkp); i++)
+  for (i=0; i <= gkp->gkStore_getNumLibraries(); i++)
     fprintf(stderr, "repeatThreshold[%2d] = "F_U64"\n", i, rm[i].repeatThreshold);
   AS_UTL_histogramShow(&rm[0].hist5, stderr, "Global 5'");
   AS_UTL_histogramShow(&rm[0].hist3, stderr, "Global 3'");

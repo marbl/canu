@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.9 2009-05-12 17:25:31 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.10 2009-06-10 18:05:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,9 +34,9 @@ static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.9 2009-05-12 17:25:31 brian
 
 #define AS_GKP_NUM_ERRORS  128
 
-static char   *errorMs[AS_GKP_NUM_ERRORS] = {0};
-static char   *errorSs[AS_GKP_NUM_ERRORS] = {0};
-static uint32  errorCs[AS_GKP_NUM_ERRORS] = {0};
+static char   const *errorMs[AS_GKP_NUM_ERRORS] = {0};
+static char   const *errorSs[AS_GKP_NUM_ERRORS] = {0};
+static uint32        errorCs[AS_GKP_NUM_ERRORS] = {0};
 
 
 void

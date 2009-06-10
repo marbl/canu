@@ -26,7 +26,7 @@
 #ifndef _AS_CGB_BUBBLE_H_
 #define _AS_CGB_BUBBLE_H_
 
-static const char *rcsid__AS_CGB_BUBBLE_H_ = "$Id: AS_CGB_Bubble.h,v 1.5 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid__AS_CGB_BUBBLE_H_ = "$Id: AS_CGB_Bubble.h,v 1.6 2009-06-10 18:05:13 brianwalenz Exp $";
 
 /* For debugging only.  Set this to 1 only for test-size problems ... :-) */
 #define AS_CGB_BUBBLE_VERBOSE 0
@@ -63,7 +63,7 @@ extern FILE *BUB_LOG_G;
    to take the ABS() of the quality before using it for comparison purposes. */
 void
 AS_CGB_Bubble_find_and_remove_bubbles
-(GateKeeperStore *gkpStore,
+(gkStore *gkpStore,
  Tfragment *frags, Tedge *edges,
  TChunkMesg *chunks, TChunkFrag *cfrgs,
  float global_arrival_rate,
