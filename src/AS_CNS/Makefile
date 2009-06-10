@@ -59,45 +59,45 @@ endif
 
 endif
 
-LIB_SOURCES = Array_CNS.c \
-              MultiAlign.c \
-              MultiAlignFromICM.c \
-              MultiAlignFromIUM.c \
-              MultiAlignPrint.c \
-              MultiAlignStore_CNS.c \
-              MultiAlignment_CNS.c \
-              RefreshMANode.c \
+LIB_SOURCES = Array_CNS.C \
+              MultiAlign.C \
+              MultiAlignFromICM.C \
+              MultiAlignFromIUM.C \
+              MultiAlignPrint.C \
+              MultiAlignStore_CNS.C \
+              MultiAlignment_CNS.C \
+              RefreshMANode.C \
               \
-              AbacusRefine.c \
-              ApplyAlignment.c \
-              BaseCall.c \
-              GetAlignmentTrace.c \
-              MergeMultiAligns.c \
-              MergeRefine.c \
-              MultiAlignContig.c \
-              MultiAlignUnitig.c \
-              PrintAlignment.c \
-              ReplaceEndUnitigInContig.c
+              AbacusRefine.C \
+              ApplyAlignment.C \
+              BaseCall.C \
+              GetAlignmentTrace.C \
+              MergeMultiAligns.C \
+              MergeRefine.C \
+              MultiAlignContig.C \
+              MultiAlignUnitig.C \
+              PrintAlignment.C \
+              ReplaceEndUnitigInContig.C
 
 
-LIB_OBJECTS = $(LIB_SOURCES:.c=.o)
+LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
 
 LOCAL_WORK  = $(shell cd ../..; pwd)
 
 AS_CNS_SRCS = $(LIB_SOURCES) \
-              Consensus_CNS.c \
-              AS_CNS_asmReBaseCall.c \
-              SeqAn_CNS.c
+              Consensus_CNS.C \
+              AS_CNS_asmReBaseCall.C \
+              SeqAn_CNS.C
 
-AS_CNS_OBJS = $(AS_CNS_SRCS:.c=.o)
+AS_CNS_OBJS = $(AS_CNS_SRCS:.C=.o)
 
 SOURCES   = $(AS_CNS_SRCS)
 OBJECTS   = $(AS_CNS_OBJS)
 LIBRARIES = libAS_CNS.a libCA.a
 
-C_PROGS = consensus \
-          asmReBaseCall \
-          SeqAn_CNS
+CXX_PROGS = consensus \
+            asmReBaseCall \
+            SeqAn_CNS
 
 SCRIPTS =
 
@@ -108,7 +108,7 @@ endif
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(LIB_OBJECTS) $(LIBRARIES) $(OBJECTS) $(C_PROGS) $(SCRIPTS)
+all: $(LIB_OBJECTS) $(LIBRARIES) $(OBJECTS) $(CXX_PROGS) $(SCRIPTS)
 	@test -n nop
 
 libAS_CNS.a: $(LIB_OBJECTS)

@@ -24,18 +24,18 @@
 
 LOCAL_WORK = $(shell cd ../../; pwd)
 
-LIB_SOURCES     = AS_SDB_SequenceDB.c
-LIB_OBJECTS     = $(LIB_SOURCES:.c=.o)
+LIB_SOURCES     = AS_SDB_SequenceDB.C
+LIB_OBJECTS     = $(LIB_SOURCES:.C=.o)
 
-SOURCES = $(LIB_SOURCES) PartitionSDB.c
-OBJECTS = $(SOURCES:.c=.o)
+SOURCES = $(LIB_SOURCES) PartitionSDB.C
+OBJECTS = $(SOURCES:.C=.o)
 
 LIBRARIES = libAS_SDB.a libCA.a
-C_PROGS   = PartitionSDB
+CXX_PROGS = PartitionSDB
 
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(C_PROGS)
+all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
 libAS_SDB.a: $(LIB_OBJECTS)

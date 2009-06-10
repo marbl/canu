@@ -25,19 +25,24 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-SOURCES = AS_PER_genericStore.c \
-          AS_PER_gkpStore.c \
-          AS_PER_encodeSequenceQuality.c \
-          AS_PER_asmStore.c
-OBJECTS = $(SOURCES:.c=.o)
+SOURCES = AS_PER_genericStore.C \
+          AS_PER_gkLibrary.C \
+          AS_PER_gkFragment.C \
+          AS_PER_gkStore.C \
+          AS_PER_gkStore_UID.C \
+          AS_PER_gkStore_clearRange.C \
+          AS_PER_gkStream.C \
+          AS_PER_encodeSequenceQuality.C \
+          AS_PER_asmStore.C
+OBJECTS = $(SOURCES:.C=.o)
 
 LIBRARIES = libAS_PER.a libCA.a
 
-C_PROGS =
+CXX_PROGS =
 
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(C_PROGS)
+all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
 objects: $(OBJECTS)

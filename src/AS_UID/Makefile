@@ -22,8 +22,8 @@
 ###########################################################################
 #
 
-SOURCES = uidclient.c uidsrvd.c SYS_UIDcommon.c SYS_UIDerror.c SYS_UIDclient.c
-C_PROGS = uidclient uidsvrd
+SOURCES   = uidclient.C uidsrvd.C SYS_UIDcommon.C SYS_UIDerror.C SYS_UIDclient.C
+CXX_PROGS = uidclient uidsvrd
 
 LIBRARIES = libAS_UID.a libCA.a
 
@@ -34,26 +34,26 @@ include $(LOCAL_WORK)/src/site_name.as
 SITEOBJS =
 
 ifeq ($(SITE_NAME), JCVI)
-  SOURCES        += SYS_UIDclient_JTC.c
+  SOURCES        += SYS_UIDclient_JTC.C
   SITEOBJS        = SYS_UIDclient_JTC.o
 endif
 
 ifeq ($(SITE_NAME), LOCAL)
-  SOURCES        += SYS_UIDclient_LOCAL.c
+  SOURCES        += SYS_UIDclient_LOCAL.C
   SITEOBJS       += SYS_UIDclient_LOCAL.o
 endif
 
 ifeq ($(SITE_NAME), BRI)
-  SOURCES        += SYS_UIDclient_LOCAL.c
+  SOURCES        += SYS_UIDclient_LOCAL.C
   SITEOBJS       += SYS_UIDclient_LOCAL.o
 endif
 
-OBJECTS = $(SOURCES:.c=.o)
+OBJECTS = $(SOURCES:.C=.o)
 
 ## Now include c_make.as with the updated SOURCES and OBJECTS
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(LIBRARIES) $(C_PROGS)
+all: $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
 libAS_UID.a: SYS_UIDcommon.o SYS_UIDclient.o SYS_UIDerror.o $(SITEOBJS)

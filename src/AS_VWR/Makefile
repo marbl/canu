@@ -42,7 +42,6 @@ C_PROGS = celamy celagram query_celamy
 LOCAL_WORK = $(shell cd ../../; pwd)
 include $(LOCAL_WORK)/src/c_make.as
 
-
 #  This _should_ be localized to this module, and not propagate to
 #  other modules.
 LDFLAGS += -lXt -lX11 -lm -lSM -lICE

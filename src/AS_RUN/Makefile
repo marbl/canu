@@ -24,19 +24,10 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-C_PROG_SOURCES = fragmentDepth.c markUniqueUnique.c
-C_PROG_OBJECTS = $(C_PROG_SOURCES:.c=.o)
+SOURCES = fragmentDepth.C markUniqueUnique.C
+OBJECTS = fragmentDepth.o markUniqueUnique.o
 
-C_SOURCES = $(C_PROG_SOURCES)
-C_OBJECTS = $(C_SOURCES:.c=.o)
-
-CXX_SOURCES =
-CXX_OBJECTS = $(CXX_SOURCES:.cc=.o)
-
-SOURCES = $(C_SOURCES) $(CXX_SOURCES)
-OBJECTS = $(C_OBJECTS) $(CXX_OBJECTS)
-
-C_PROGS = fragmentDepth markUniqueUnique
+CXX_PROGS = fragmentDepth markUniqueUnique
 
 SCRIPTS = runCA \
           assemblyCompare \
@@ -60,7 +51,7 @@ SCRIPTS = runCA \
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(C_PROGS) $(SCRIPTS)
+all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS) $(SCRIPTS)
 	@test -n nop
 
 RUNCAOBTUTIL = runCA-OBT/runCAutil/checkOverlap.pl \

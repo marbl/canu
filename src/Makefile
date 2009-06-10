@@ -24,7 +24,7 @@
 
 LOCAL_WORK = $(shell cd ..; pwd)
 
-SOURCES   = AS_global.c
+SOURCES   = AS_global.C
 OBJECTS   = AS_global.o
 LIBRARIES = libCA.a
 

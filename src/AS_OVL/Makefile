@@ -62,32 +62,32 @@ ifdef UMD_OVL
   AS_SCRIPTS = runUMDOverlapper overlapPipeline dataWorkReduced
 endif
 
-AS_OVL_CA_SRCS = AS_OVL_overlap_ca.c  AS_OVL_driver_ca.c
-AS_OVL_CA_OBJS = $(AS_OVL_CA_SRCS:.c=.o)
+AS_OVL_CA_SRCS = AS_OVL_overlap_ca.C  AS_OVL_driver_ca.C
+AS_OVL_CA_OBJS = $(AS_OVL_CA_SRCS:.C=.o)
 
-AS_OVL_SRCS = AS_OVL_overlap.c AS_OVL_driver.c
-AS_OVL_OBJS = $(AS_OVL_SRCS:.c=.o)
+AS_OVL_SRCS = AS_OVL_overlap.C AS_OVL_driver.C
+AS_OVL_OBJS = $(AS_OVL_SRCS:.C=.o)
 
-AS_OVL_CMN_SRCS = AS_OVL_delcher.c
-AS_OVL_CMN_OBJS = $(AS_OVL_CMN_SRCS:.c=.o)
+AS_OVL_CMN_SRCS = AS_OVL_delcher.C
+AS_OVL_CMN_OBJS = $(AS_OVL_CMN_SRCS:.C=.o)
 
-SEED_OLAP_SRCS = OlapFromSeedsOVL.c
-SEED_OLAP_OBJS = $(SEED_OLAP_SRCS:.c=.o)
+SEED_OLAP_SRCS = OlapFromSeedsOVL.C
+SEED_OLAP_OBJS = $(SEED_OLAP_SRCS:.C=.o)
 
-CORRECT_SRCS = FragCorrectOVL.c ShowCorrectsOVL.c CorrectOlapsOVL.c CatCorrectsOVL.c CatEratesOVL.c
-CORRECT_OBJS = $(CORRECT_SRCS:.c=.o)
+CORRECT_SRCS = FragCorrectOVL.C ShowCorrectsOVL.C CorrectOlapsOVL.C CatCorrectsOVL.C CatEratesOVL.C
+CORRECT_OBJS = $(CORRECT_SRCS:.C=.o)
 
-LIBSOURCES =  SharedOVL.c
-LIBOBJECTS = $(LIBSOURCES:.c=.o)
+LIBSOURCES =  SharedOVL.C
+LIBOBJECTS = $(LIBSOURCES:.C=.o)
 
 SOURCES = $(AS_OVL_SRCS) $(AS_OVL_CA_SRCS) $(AS_OVL_CMN_SRCS) $(SEED_OLAP_SRCS) $(CORRECT_SRCS) $(LIBSOURCES)
-OBJECTS = $(SOURCES:.cc=.o)
+OBJECTS = $(SOURCES:.Cc=.o)
 
 AS_OVL_PROGS    = overlap overlap_ca
 SEED_OLAP_PROGS = olap-from-seeds
 CORRECT_PROGS   = correct-frags show-corrects correct-olaps cat-corrects cat-erates
 
-C_PROGS    = $(AS_OVL_PROGS) $(SEED_OLAP_PROGS) $(CORRECT_PROGS)
+CXX_PROGS  = $(AS_OVL_PROGS) $(SEED_OLAP_PROGS) $(CORRECT_PROGS)
 SCRIPTS    = $(AS_SCRIPTS)
 LIBRARIES  = libAS_OVL.a
 LIBRARIES += libCA.a
@@ -115,7 +115,7 @@ ifeq ($(OSTYPE), Darwin)
 endif
 
 
-all:    $(OBJECTS) $(LIBRARIES) $(C_PROGS) $(SCRIPTS)
+all:    $(OBJECTS) $(LIBRARIES) $(CXX_PROGS) $(SCRIPTS)
 	@test -n nop
 
 libAS_OVL.a: $(LIBOBJECTS) AS_OVL_delcher.o

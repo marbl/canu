@@ -24,59 +24,58 @@
 
 LOCAL_WORK = $(shell cd ../../; pwd)
 
-CGW_SOURCES =     AS_CGW_main.c \
-                  eCR.c \
-                  eCR-examineGap.c \
-                  eCR-diagnostic.c \
-                  resolveSurrogates.c \
-                  dumpCloneMiddles.c \
-                  exploreGapStructure.c \
-                  frgs2clones.c \
-                  createFrgDeletes.c \
-                  dumpSingletons.c
+CGW_SOURCES =     AS_CGW_main.C \
+                  eCR.C \
+                  eCR-examineGap.C \
+                  eCR-diagnostic.C \
+                  resolveSurrogates.C \
+                  dumpCloneMiddles.C \
+                  exploreGapStructure.C \
+                  frgs2clones.C \
+                  dumpSingletons.C
 
 #  Not all of these are external, most are probably private to cgw itself.
-CGW_LIB_SOURCES = AS_CGW_dataTypes.c \
-                  AS_CGW_EdgeDiagnostics.c \
-                  CIEdgeT_CGW.c \
-                  CIScaffoldT_Biconnected_CGW.c \
-                  CIScaffoldT_CGW.c \
-                  CIScaffoldT_Cleanup_CGW.c \
-                  CIScaffoldT_Merge_CGW.c \
-                  Celamy_CGW.c \
-                  ChunkOverlap_CGW.c \
-                  ContigT_CGW.c \
-                  DemoteUnitigsWithRBP_CGW.c \
-                  fragmentPlacement.c \
-                  GraphCGW_T.c \
-                  Input_CGW.c \
-                  Instrument_CGW.c \
-                  InterleavedMerging.c \
-                  LeastSquaresGaps_CGW.c \
-                  MergeEdges_CGW.c \
-                  Output_CGW.c \
-                  SEdgeT_CGW.c \
-                  ScaffoldGraph_CGW.c \
-                  SplitChunks_CGW.c \
-                  SplitScaffolds_CGW.c \
-                  Stats_CGW.c \
-                  TransitiveReduction_CGW.c
+CGW_LIB_SOURCES = AS_CGW_dataTypes.C \
+                  AS_CGW_EdgeDiagnostics.C \
+                  CIEdgeT_CGW.C \
+                  CIScaffoldT_Biconnected_CGW.C \
+                  CIScaffoldT_CGW.C \
+                  CIScaffoldT_Cleanup_CGW.C \
+                  CIScaffoldT_Merge_CGW.C \
+                  Celamy_CGW.C \
+                  ChunkOverlap_CGW.C \
+                  ContigT_CGW.C \
+                  DemoteUnitigsWithRBP_CGW.C \
+                  fragmentPlacement.C \
+                  GraphCGW_T.C \
+                  Input_CGW.C \
+                  Instrument_CGW.C \
+                  InterleavedMerging.C \
+                  LeastSquaresGaps_CGW.C \
+                  MergeEdges_CGW.C \
+                  Output_CGW.C \
+                  SEdgeT_CGW.C \
+                  ScaffoldGraph_CGW.C \
+                  SplitChunks_CGW.C \
+                  SplitScaffolds_CGW.C \
+                  Stats_CGW.C \
+                  TransitiveReduction_CGW.C
 
 SOURCES         = $(CGW_SOURCES) $(CGW_LIB_SOURCES)
 SCRIPTS		=
 
-OBJECTS         = $(SOURCES:.c=.o)
-CGW_LIB_OBJECTS = $(CGW_LIB_SOURCES:.c=.o)
+OBJECTS         = $(SOURCES:.C=.o)
+CGW_LIB_OBJECTS = $(CGW_LIB_SOURCES:.C=.o)
 
 LIBRARIES     = libAS_CGW.a libCA.a
 LIBS          = libCA.a
 
-C_PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpSingletons exploreGapStructure frgs2clones createFrgDeletes
+CXX_PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpSingletons exploreGapStructure frgs2clones
 
 
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(C_PROGS)
+all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
 
@@ -98,5 +97,3 @@ dumpSingletons: dumpSingletons.o $(LIBS)
 exploreGapStructure: exploreGapStructure.o $(LIBS)
 
 frgs2clones: frgs2clones.o $(LIBS)
-
-createFrgDeletes: createFrgDeletes.o $(LIBS)

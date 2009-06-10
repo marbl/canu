@@ -24,27 +24,29 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-GKPSRC    = AS_GKP_buildPartition.c \
-            AS_GKP_checkBatch.c \
-            AS_GKP_checkLibrary.c \
-            AS_GKP_checkFrag.c \
-            AS_GKP_checkLink.c \
-            AS_GKP_dump.c \
-            AS_GKP_edit.c \
-            AS_GKP_errors.c \
-            AS_GKP_rebuildMap.c \
-            AS_GKP_rearrange.c
+GKPSRC    = AS_GKP_buildPartition.C \
+            AS_GKP_checkBatch.C \
+            AS_GKP_checkLibrary.C \
+            AS_GKP_checkFrag.C \
+            AS_GKP_checkLink.C \
+            AS_GKP_dump.C \
+            AS_GKP_edit.C \
+            AS_GKP_errors.C \
+            AS_GKP_rebuildMap.C \
+            AS_GKP_rearrange.C
 
-SOURCES   = AS_GKP_main.c AS_GKP_bench.c $(GKPSRC) sffToCA.c
-OBJECTS   = $(SOURCES:.c=.o)
+SOURCES   = AS_GKP_main.C AS_GKP_bench.C $(GKPSRC) sffToCA.C
+SOURCES   = AS_GKP_main.C AS_GKP_bench.C $(GKPSRC)
+OBJECTS   = $(SOURCES:.C=.o)
 LIBRARIES =
-C_PROGS   = gatekeeper gatekeeperbench sffToCA
+CXX_PROGS = gatekeeper gatekeeperbench sffToCA
+CXX_PROGS = gatekeeper gatekeeperbench
 
 include $(LOCAL_WORK)/src/c_make.as
 
-all:    $(OBJECTS) $(LIBRARIES) $(C_PROGS)
+all:    $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
-gatekeeper:      AS_GKP_main.o $(GKPSRC:.c=.o) libCA.a
+gatekeeper:      AS_GKP_main.o $(GKPSRC:.C=.o) libCA.a
 gatekeeperbench: AS_GKP_bench.o                libCA.a
 sffToCA:         sffToCA.o                     libCA.a

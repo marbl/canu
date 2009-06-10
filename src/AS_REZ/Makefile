@@ -24,26 +24,26 @@
 
 LOCAL_WORK = $(shell cd ../../; pwd)
 
-LIBSOURCES = ConsistencyChecksREZ.c \
-             GapFillREZ.c \
-             GapWalkerREZ.c \
-             StatisticsREZ.c \
-             UpdateREZ.c \
-             UtilsREZ.c \
-             MicroHetREZ.c
+LIBSOURCES = ConsistencyChecksREZ.C \
+             GapFillREZ.C \
+             GapWalkerREZ.C \
+             StatisticsREZ.C \
+             UpdateREZ.C \
+             UtilsREZ.C \
+             MicroHetREZ.C
 
-SOURCES = MicroHetIUM.c $(LIBSOURCES)
+SOURCES = MicroHetIUM.C $(LIBSOURCES)
 
-OBJECTS    = $(SOURCES:.c=.o)
-LIBOBJECTS = $(LIBSOURCES:.c=.o)
+OBJECTS    = $(SOURCES:.C=.o)
+LIBOBJECTS = $(LIBSOURCES:.C=.o)
 
 LIBRARIES  = libAS_REZ.a libCA.a
 
-C_PROGS = MicroHetIUM
+CXX_PROGS = MicroHetIUM
 
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(C_PROGS)
+all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
 libAS_REZ.a: $(LIBOBJECTS)

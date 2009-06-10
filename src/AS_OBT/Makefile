@@ -61,16 +61,16 @@ endif
 
 EXE_SOURCES = chimera.C \
               consolidate.C \
-              getNumScaffolds.c \
+              getNumScaffolds.C \
               initialTrim.C \
               merge-trimming.C \
               trim.C \
               readOverlap.C \
               util++.C
-LIB_SOURCES = AS_OBT_acceptableOverlap.c
+LIB_SOURCES = AS_OBT_acceptableOverlap.C
 
 SOURCES     = $(EXE_SOURCES) $(LIB_SOURCES)
-OBJECTS     = $(SOURCES:.C=.o) $(SOURCES:.c=.o) $(LIB_SOURCES:.c=.o)
+OBJECTS     = $(SOURCES:.C=.o) $(LIB_SOURCES:.C=.o)
 LIBRARIES   = libAS_OBT.a libCA.a
 
 CXX_PROGS   = initialTrim \
@@ -88,8 +88,8 @@ include $(LOCAL_WORK)/src/c_make.as
 all: $(CXX_PROGS) $(SCRIPTS)
 	@test -n nop
 
-libAS_OBT.a: $(LIB_SOURCES:.c=.o)
-libCA.a:     $(LIB_SOURCES:.c=.o)
+libAS_OBT.a: $(LIB_SOURCES:.C=.o)
+libCA.a:     $(LIB_SOURCES:.C=.o)
 
 initialTrim:          initialTrim.o trim.o                    libCA.a
 consolidate:          consolidate.o util++.o readOverlap.o    libCA.a

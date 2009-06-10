@@ -24,33 +24,33 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-LIB_SOURCES = AS_UTL_Hash.c \
-              AS_UTL_heap.c \
-              AS_UTL_Var.c \
-              AS_UTL_rand.c \
-              AS_UTL_interval.c \
-              UnionFind_AS.c \
-              AS_UTL_skiplist.c \
-              AS_UTL_alloc.c \
-              AS_UTL_fileIO.c \
-              AS_UTL_qsort_mt.c \
-              AS_UTL_fasta.c \
-              AS_UTL_UID.c \
-              AS_UTL_reverseComplement.c
+LIB_SOURCES = AS_UTL_Hash.C \
+              AS_UTL_heap.C \
+              AS_UTL_Var.C \
+              AS_UTL_rand.C \
+              AS_UTL_interval.C \
+              UnionFind_AS.C \
+              AS_UTL_skiplist.C \
+              AS_UTL_alloc.C \
+              AS_UTL_fileIO.C \
+              AS_UTL_qsort_mt.C \
+              AS_UTL_fasta.C \
+              AS_UTL_UID.C \
+              AS_UTL_reverseComplement.C
 
-LIB_OBJECTS = $(LIB_SOURCES:.c=.o)
+LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
 
 SOURCES     = $(LIB_SOURCES)
 
-OBJECTS     = $(SOURCES:.c=.o)
+OBJECTS     = $(SOURCES:.C=.o)
 LIBRARIES   = libAS_UTL.a libCA.a
 SCRIPTS     =
-C_PROGS     =
+CXX_PROGS   =
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(C_PROGS)
+all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
 libAS_UTL.a: $(LIB_OBJECTS)
@@ -58,6 +58,6 @@ libCA.a: $(LIB_OBJECTS)
 
 .PHONY: test
 test:
-	cc -O3 -o testHashTable -I.. -I. testHashTable.c AS_UTL_Hash.c AS_UTL_heap.c AS_UTL_alloc.c AS_UTL_fileIO.c -lm
-	cc -O3 -o testRand      -I.. -I. testRand.c      AS_UTL_rand.c                                              -lm
-	cc -O3 -o testVar       -I.. -I. testVar.c       AS_UTL_Var.c                AS_UTL_alloc.c AS_UTL_fileIO.c -lm
+	cc -O3 -o testHashTable -I.. -I. testHashTable.C AS_UTL_Hash.C AS_UTL_heap.C AS_UTL_alloc.C AS_UTL_fileIO.C -lm
+	cc -O3 -o testRand      -I.. -I. testRand.C      AS_UTL_rand.C                                              -lm
+	cc -O3 -o testVar       -I.. -I. testVar.C       AS_UTL_Var.C                AS_UTL_alloc.C AS_UTL_fileIO.C -lm

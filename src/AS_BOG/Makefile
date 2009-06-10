@@ -28,7 +28,7 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 LIB_SOURCES = AS_BOG_BestOverlapGraph.cc AS_BOG_ChunkGraph.cc AS_BOG_MateChecker.cc AS_BOG_Unitig.cc AS_BOG_UnitigGraph.cc
 LIB_OBJECTS = $(LIB_SOURCES:.cc=.o)
 
-SOURCES     = BuildUnitigs.cc fixUnitigs.c $(LIB_SOURCES)
+SOURCES     = BuildUnitigs.cc fixUnitigs.C $(LIB_SOURCES)
 OBJECTS     = BuildUnitigs.o  fixUnitigs.o $(LIB_OBJECTS)
 
 CXX_PROGS = buildUnitigs fixUnitigs

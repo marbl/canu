@@ -24,9 +24,9 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-SOURCES    = AS_MSG_pmesg.c AS_MSG_pmesg1.c AS_MSG_pmesg2.c remove_fragment.c ExtractMessages.c
-OBJECTS    = $(SOURCES:.c=.o)
-C_PROGS    = remove_fragment extractmessages
+SOURCES    = AS_MSG_pmesg.C AS_MSG_pmesg1.C AS_MSG_pmesg2.C remove_fragment.C ExtractMessages.C
+OBJECTS    = $(SOURCES:.C=.o)
+CXX_PROGS  = remove_fragment extractmessages
 LIBRARIES  = libAS_MSG.a libCA.a
 SCRIPTS    = convert-fasta-to-v2.pl convert-v1-to-v2.pl tracedb-to-frg.pl
 
@@ -34,7 +34,7 @@ SCRIPTS    = convert-fasta-to-v2.pl convert-v1-to-v2.pl tracedb-to-frg.pl
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(C_PROGS) $(SCRIPTS)
+all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS) $(SCRIPTS)
 	@cp -f convert-fasta-to-v2.pl $(LOCAL_BIN)
 	@chmod 775 $(LOCAL_BIN)/convert-fasta-to-v2.pl
 	@cp convert-v1-to-v2.pl $(LOCAL_BIN)

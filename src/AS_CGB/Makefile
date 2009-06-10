@@ -24,41 +24,41 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-AS_FGB_SRCS = AS_FGB_main.c AS_FGB_io.c
-AS_OGB_SRCS = AS_CGB_histo.c \
-              AS_CGB_fga.c AS_CGB_fgb.c AS_FGB_hanging_fragment.c AS_FGB_contained.c \
-              AS_CGB_traversal.c AS_CGB_walk.c \
-              AS_CGB_edgemate.c
-AS_CGB_SRCS = AS_CGB_main.c AS_CGB_cgb.c AS_CGB_classify.c AS_CGB_chimeras.c
-AS_CGA_SRCS = AS_CGB_cga.c
-AS_BUB_SRCS = AS_CGB_Bubble.c AS_CGB_Bubble_Graph.c \
-              AS_CGB_Bubble_VertexSet.c \
-              AS_CGB_Bubble_dfs.c AS_CGB_Bubble_Popper.c \
-              AS_CGB_Bubble_PopperMethods.c
-AS_EDT_SRC = adjustAStat.c
-AS_EDT_OBJECTS = $(AS_EDT_SRC:.c=.o)
+AS_FGB_SRCS = AS_FGB_main.C AS_FGB_io.C
+AS_OGB_SRCS = AS_CGB_histo.C \
+              AS_CGB_fga.C AS_CGB_fgb.C AS_FGB_hanging_fragment.C AS_FGB_contained.C \
+              AS_CGB_traversal.C AS_CGB_walk.C \
+              AS_CGB_edgemate.C
+AS_CGB_SRCS = AS_CGB_main.C AS_CGB_cgb.C AS_CGB_classify.C AS_CGB_chimeras.C
+AS_CGA_SRCS = AS_CGB_cga.C
+AS_BUB_SRCS = AS_CGB_Bubble.C AS_CGB_Bubble_Graph.C \
+              AS_CGB_Bubble_VertexSet.C \
+              AS_CGB_Bubble_dfs.C AS_CGB_Bubble_Popper.C \
+              AS_CGB_Bubble_PopperMethods.C
+AS_EDT_SRC = adjustAStat.C
+AS_EDT_OBJECTS = $(AS_EDT_SRC:.C=.o)
 
-AS_UTG_SRC = AS_CGB_unitigger.c $(AS_FGB_SRCS) $(AS_OGB_SRCS) $(AS_CGB_SRCS) $(AS_CGA_SRCS) $(AS_BUB_SRCS)
-AS_UTG_OBJECTS = $(AS_UTG_SRC:.c=.o)
+AS_UTG_SRC = AS_CGB_unitigger.C $(AS_FGB_SRCS) $(AS_OGB_SRCS) $(AS_CGB_SRCS) $(AS_CGA_SRCS) $(AS_BUB_SRCS)
+AS_UTG_OBJECTS = $(AS_UTG_SRC:.C=.o)
 
 SOURCES = $(AS_UTG_SRC) $(AS_EDT_SRC)
-OBJECTS = $(AS_UTG_SRC:.c=.o)
+OBJECTS = $(AS_UTG_SRC:.C=.o)
 
 #  This only for BOG
 LIB_OBJECTS   = AS_CGB_histo.o
 
 LIBRARIES = libAS_CGB.a libCA.a
 
-C_PROGS = unitigger adjustAStat
+CXX_PROGS = unitigger adjustAStat
 
 include $(LOCAL_WORK)/src/c_make.as
 
-DEPEND_FILES = *.c *.h
+DEPEND_FILES = *.C *.h
 CLEANABLE_FILES = *.o *~
 
-INST_SET= $(C_PROGS)
+INST_SET= $(CXX_PROGS)
 
-all: $(OBJECTS) $(LIBRARIES) $(C_PROGS)
+all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@cp -f stripCGBReads.pl $(LOCAL_BIN)
 	@chmod 775 $(LOCAL_BIN)/stripCGBReads.pl
 

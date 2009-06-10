@@ -56,15 +56,13 @@ ifneq "$(origin BUILDCOVERAGE)" "environment"
 BUILDCOVERAGE  = 0
 endif
 
+
 include $(LOCAL_WORK)/src/site_name.as
 include $(LOCAL_WORK)/src/c_make.gen
 
-ifeq ($(OSTYPE), Linux)
-  CC         = gcc
-  CXX        = g++
-#  CC         = /bioinfo/assembly/gcc/gcc-4.2.1/amd64/bin/gcc
-#  CXX        = /bioinfo/assembly/gcc/gcc-4.2.1/amd64/bin/g++
 
+
+ifeq ($(OSTYPE), Linux)
   ARCH_CFLAGS = -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -fPIC
 
   ARCH_CFLAGS    += -pthread
@@ -94,10 +92,8 @@ ifeq ($(OSTYPE), Linux)
 endif
 
 
-ifeq ($(OSTYPE), FreeBSD)
-  CC               = gcc
-  CXX              = g++
 
+ifeq ($(OSTYPE), FreeBSD)
   ifeq ($(MACHINETYPE), i386)
     ARCH_LDFLAGS    += -pthread -lthr -lm
     ARCH_CFLAGS      = -pthread
@@ -112,15 +108,17 @@ ifeq ($(OSTYPE), FreeBSD)
     ARCH_LDFLAGS  += -lgcov
   else
     ifeq ($(BUILDDEBUG), 1)
-      ARCH_CFLAGS   += -g -Wimplicit
+      ARCH_CFLAGS   += -g -Wimplicit -Wno-write-strings
     else
-      ARCH_CFLAGS   += -O -Wimplicit -mtune=nocona -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+      ARCH_CFLAGS   += -O -Wimplicit -Wno-write-strings -mtune=nocona -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
     endif
   endif
 
   ARCH_INC         = /usr/local/include /usr/X11R6/include
   ARCH_LIB         = /usr/local/lib     /usr/X11R6/lib
 endif
+
+
 
 ifeq ($(OSTYPE), Darwin)
   CC               = gcc
@@ -150,26 +148,22 @@ ifeq ($(OSTYPE), Darwin)
   ARCH_LIB         = /usr/local/lib /usr/X11R6/lib
 endif
 
+
+
 # Use "gmake SHELL=/bin/bash".
 #
 ifeq ($(OSTYPE), SunOS)
   ifeq ($(MACHINETYPE), i86pc)
-    CC             = gcc
-    CXX            = g++
     ARCH_CFLAGS    = -DBYTE_ORDER=LITTLE_ENDIAN -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -pthreads
     ARCH_LDFLAGS  += -lm
   endif
 
   ifeq ($(MACHINETYPE), sparc32)
-    CC             = gcc
-    CXX            = g++
     ARCH_CFLAGS    = -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -pthreads
     ARCH_LDFLAGS  += -lm -lnsl -lsocket
   endif
 
   ifeq ($(MACHINETYPE), sparc64)
-    CC             = gcc
-    CXX            = g++
     ARCH_CFLAGS    = -m64 -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -pthreads
     ARCH_LDFLAGS  += -m64 -lm -lnsl -lsocket
   endif
@@ -181,103 +175,8 @@ ifeq ($(OSTYPE), SunOS)
   endif
 endif
 
-ifeq ($(OSTYPE), aix)
-  CC               = xlc
-  CXX              = xlC_r
-  ARCH_CFLAGS      = -qflag=W:W \
-                     -qcpluscmt \
-                     -q64 \
-                     -qlonglong \
-                     -D_LARGE_FILES \
-                     -qarch=auto \
-                     -qtune=auto \
-                     -qcache=auto \
-                     -bhalt:8 \
-                     -qstaticinline \
-                     -qlanglvl=ext \
-                     -qignerrno \
-                     -qupconv \
-                     -qstrict
-  ifeq ($(BUILDDEBUG), 1)
-    ARCH_CFLAGS   += -g
-  else
-    ARCH_CFLAGS   += -O3
-  endif
-  ARCH_LDFLAGS     = -q64 \
-                     -qlonglong \
-                     -D_LARGE_FILES \
-                     -qarch=auto \
-                     -qtune=auto \
-                     -qcache=auto \
-                     -bhalt:8 \
-                     -qstaticinline \
-                     -qlanglvl=ext \
-                     -qignerrno \
-                     -qupconv \
-                     -qstrict \
-                     -lpthread \
-                     -lm
-endif
 
-ifeq ($(OSTYPE), OSF1)
-#  CC               = cc -v
-#  CXX              = cxx
-  CC         = /bioinfo/assembly/gcc/gcc-4.2.1/OSF1/bin/gcc -pthread
-  CXX        = /bioinfo/assembly/gcc/gcc-4.2.1/OSF1/bin/g++ -pthread
-  ARCH_CFLAGS      = -w0 \
-                     -warnprotos \
-                     -trapuv \
-                     -float_const \
-                     -readonly_strings \
-                     -msg_enable overflow \
-                     -msg_enable check \
-                     -msg_enable defunct \
-                     -msg_enable alignment \
-                     -msg_enable obsolescent \
-                     -msg_enable performance \
-                     -msg_enable preprocessor \
-                     -msg_enable nestedtype \
-                     -msg_disable valuepres \
-                     -msg_disable cxxcomment \
-                     -msg_disable c_to_cxx \
-                     -msg_disable unrefsdecl \
-                     -msg_disable strctpadding \
-                     -msg_disable truncintcast \
-                     -msg_disable unusedtop \
-                     -msg_disable unusedincl \
-                     -msg_disable unnecincl \
-                     -msg_disable nestincl \
-                     -msg_disable uncalled \
-                     -msg_disable ignorecallval \
-                     -msg_disable questcompare2 \
-                     -msg_disable unrefadecl \
-                     -msg_disable unrefsfunc \
-                     -msg_disable truncintasn \
-                     -msg_disable truncfltasn \
-                     -msg_disable truncfltint \
-                     -msg_disable bitnotint
-  ARCH_CFLAGS     += -pthread
-  ARCH_CFLAGS      = -warnprotos \
-                     -trapuv \
-                     -float_const \
-                     -readonly_strings \
-                     -msg_disable extrasemi
-  ARCH_CXXFLAGS    = -tlocal
 
-  #  We used to include -fast in optimized builds, but that results in F_pow() (the fastmath pow function)
-  #  being undefined for c++ code.
-
-  ifeq ($(BUILDDEBUG), 1)
-    ARCH_CFLAGS   = -g -fsingle-precision-constant -v -D__osf__
-  else
-    ARCH_CFLAGS   = -O2 -v -D__osf__
-#    ARCH_CFLAGS   += -O4 -D__osf__
-
-  ARCH_LDFLAGS     += -L/bioinfo/assembly/gcc/gcc-4.2.1/OSF1/lib
-
-  endif
-  ARCH_INC         =  /usr/local/include /usr/include /bioinfo/assembly/gcc/gcc-4.2.1/OSF1/include
-endif
 
 ifeq ($(BUILDPROFILE), 1)
   ARCH_CFLAGS  += -pg

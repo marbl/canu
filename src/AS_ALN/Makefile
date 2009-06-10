@@ -24,27 +24,27 @@
 
 LOCAL_WORK = $(shell cd ../../; pwd)
 
-LIB_SOURCES = AS_ALN_dpaligner.c \
-              AS_ALN_qvaligner.c \
-	      AS_ALN_loverlapper.c \
-              AS_ALN_pieceOlap.c AS_ALN_forcns.c \
-	      CA_ALN_local.c \
-              CA_ALN_overlap.c \
-              CA_ALN_scafcomp.c \
-              AS_ALN_bruteforcedp.c
+LIB_SOURCES = AS_ALN_dpaligner.C \
+              AS_ALN_qvaligner.C \
+	      AS_ALN_loverlapper.C \
+              AS_ALN_pieceOlap.C AS_ALN_forcns.C \
+	      CA_ALN_local.C \
+              CA_ALN_overlap.C \
+              CA_ALN_scafcomp.C \
+              AS_ALN_bruteforcedp.C
 
-LIB_OBJECTS = $(LIB_SOURCES:.c=.o)
+LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
 
 SOURCES = $(LIB_SOURCES)
-OBJECTS = $(SOURCES:.c=.o)
+OBJECTS = $(SOURCES:.C=.o)
 
 LIBRARIES = libAS_ALN.a libCA.a
 
-C_PROGS = 
+CXX_PROGS = 
 
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(C_PROGS)
+all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
 libAS_ALN.a: $(LIB_OBJECTS)
