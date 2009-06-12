@@ -141,7 +141,17 @@ sub setGlobal ($$) {
         setGlobal("ovlOverlapper", $val);
         return;
     }
-    caFailure("$var is not a valid option; see 'runCA -options' for a list of valid options", undef) if (!exists($global{$var}));
+    if (!exists($global{$var})) {
+        #  If "help" exists, we're parsing command line options, and
+        #  will catch this failure in printHelp().  Otherwise, this is
+        #  an internal error, and we should bomb now.
+        #
+        if (exists($global{"help"})) {
+            setGlobal("help", getGlobal("help") . "'$var' is not a valid option; see 'runCA -options' for a list of valid options.\n");
+        } else {
+            caFailure("'$var' is not a valid Global variable", undef);
+        }
+    }
     $global{$var} = $val;
 }
 
@@ -470,7 +480,7 @@ sub setDefaults () {
 
     #####  Ugly, command line options passed to printHelp()
 
-    $global{"help"}                        = 0;
+    $global{"help"}                        = "";
     $synops{"help"}                        = undef;
 
     $global{"version"}                     = 0;
@@ -556,7 +566,7 @@ sub setParametersFromFile ($@) {
                 if (-e $xx) {
                     push @fragFiles, $xx;
                 } else {
-                    print STDERR "WARNING!  Invalid specFile line '$_'\n";
+                    setGlobal("help", getGlobal("help") . "File not found or invalid specFile line '$_'\n");
                 }
             }
         }
@@ -577,7 +587,7 @@ sub setParametersFromCommandLine(@) {
             $val =~ s/^\s+//; $val =~ s/\s+$//;
             setGlobal($var, $val);
         } else {
-            print STDERR "WARNING!  Misformed specOption '$s'\n";
+            setGlobal("help", getGlobal("help") . "Misformed command line option '$s'.\n");
         }
     }
 }
@@ -714,7 +724,7 @@ sub printHelp () {
         exit(0);
     }
 
-    if (getGlobal("help")) {
+    if (getGlobal("help") ne "") {
         print "usage: runCA -d <dir> -p <prefix> [options] <frg> ...\n";
         print "  -d <dir>          Use <dir> as the working directory.  Required\n";
         print "  -p <prefix>       Use <prefix> as the output prefix.  Required\n";
@@ -731,8 +741,14 @@ sub printHelp () {
         print "  <frg>             CA formatted fragment file\n";
         print "\n";
         print "Complete documentation at http://wgs-assembler.sourceforge.net/\n";
+        print "\n";
+        print $global{"help"};
         exit(0);
     }
+
+    undef $global{"version"};
+    undef $global{"options"};
+    undef $global{"help"};
 }
 
 
@@ -766,7 +782,7 @@ sub findFirstCheckpoint ($) {
         if (m/ckp.(\d+)$/) {
             $firstckp = $1 if ($1 < $firstckp);
         } else {
-            print STDERR "WARNING: Didn't match $_\n";
+            caFailure("Can't parse checkpoint number from '$_'", undef);
         }
     }
     close(F);
@@ -787,7 +803,7 @@ sub findLastCheckpoint ($) {
         if (m/ckp.(\d+)$/) {
             $lastckp = $1 if ($1 > $lastckp);
         } else {
-            print STDERR "WARNING: Didn't match $_\n";
+            caFailure("Can't parse checkpoint number from '$_'", undef);
         }
     }
     close(F);

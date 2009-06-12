@@ -60,14 +60,13 @@ while (scalar(@ARGV)) {
         $commandLineOptions .= " \"$arg\"";
 
     } else {
-        setGlobal("help", 1);
+        setGlobal("help",
+                  getGlobal("help") . "File not found or invalid command line option '$arg'\n");
     }
 }
 
-print STDERR "commandLineOptions=$commandLineOptions\n";
-
-setGlobal("help", 1) if (!defined($asm));
-setGlobal("help", 1) if (!defined($wrk));
+setGlobal("help", getGlobal("help") . "Assembly name prefix not supplied with -p.\n") if (!defined($asm));
+setGlobal("help", getGlobal("help") . "Directory not supplied with -d.\n")            if (!defined($wrk));
 
 @fragFiles = setParametersFromFile($specFile, @fragFiles);
 
@@ -84,7 +83,7 @@ printHelp();
 if ((getGlobal("scriptOnGrid") == 1) &&
     (! -d "$wrk/$asm.gkpStore") &&
     (scalar(@fragFiles) == 0)) {
-    die "No frg files given on the command line.\nTry $0 -h for help.\n\n";
+    caFailure("no fragment files specified, and stores not already created", undef);
 }
 
 checkDirectories();
