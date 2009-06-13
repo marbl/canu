@@ -132,7 +132,7 @@ print_simseq(char *seq, char *hdr, Align_t *aln, double P, int CUT, int COPY) {
   while ((*hdr) && !isspace(*hdr))
     fprintf(stdout, "%c", *hdr++);
 
-  fprintf(stdout, ":seq=%d:copy=%d %d-%d %1.2f\n", CUT+1, COPY+1, aln->offset, aln->offset+aln->len-1, P);
+  fprintf(stdout, ":seq=%d:copy=%d:loc=%d-%d:err=%1.2f\n", CUT+1, COPY+1, aln->offset, aln->offset+aln->len-1, P);
 
   s = seq + aln->offset-1;
 
