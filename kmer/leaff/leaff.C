@@ -213,7 +213,8 @@ printSequence(char        *def,
   if (beg >= end)
     return;
 
-  if (endExtract + endExtract < end - beg) {
+  if ((endExtract != ~u32bitZERO) &&
+      (endExtract + endExtract < end - beg)) {
     char    d[1024];
     u32bit  l = strlen(seq);
 
@@ -222,6 +223,8 @@ printSequence(char        *def,
 
     sprintf(d, "%s_3", def);
     printSequence(d, seq, l-endExtract, l);
+
+    return;
   }
 
   if (specialDefLine)
@@ -447,13 +450,14 @@ processArray(int argc, char **argv) {
         fprintf(stderr, "leaff: usage: -G num-seqs min-length max-length\n"), exit(1);
 
       for (u32bit i=0; i<n; i++) {
-        u32bit j = s + (mtRandom32(mtctx) % (l-s));
+        u32bit j = s + ((l-s == 0) ? 0 : (mtRandom32(mtctx) % (l-s)));
         u32bit p = 0;
 
         while (p < j)
           seq[p++] = bases[mtRandom32(mtctx) & 0x3];            
+        seq[p] = 0;
 
-        sprintf(def, "random"u32bitFMTW(6), i);
+        sprintf(def, "random"u32bitFMTW(06), i);
 
         printSequence(def, seq, 0, j);
       }
