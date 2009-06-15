@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.9 2008-12-29 16:07:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.10 2009-06-15 05:52:49 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -32,10 +32,10 @@ extern FragmentInfo     *debugfi;
 
 
 // various class static methods and variables
-static std::map<iuid,int>* containPartialOrder;
+static std::map<uint32,int>* containPartialOrder;
 
-iuid Unitig::nextId        = 1;
-iuid* Unitig::_inUnitig = NULL;
+uint32 Unitig::nextId        = 1;
+uint32* Unitig::_inUnitig = NULL;
 
 
 Unitig::Unitig(bool report){
@@ -57,7 +57,7 @@ Unitig::~Unitig(void){
 
 
 
-DoveTailNode Unitig::getLastBackboneNode(iuid &prevId) {
+DoveTailNode Unitig::getLastBackboneNode(uint32 &prevId) {
   DoveTailNode lastNonContain;
 
   memset(&lastNonContain, 0, sizeof(DoveTailNode));
@@ -317,7 +317,7 @@ void Unitig::reverseComplement() {
 
 void Unitig::placeContains(const ContainerMap &cMap,
                            BestOverlapGraph *bog,
-                           const iuid containerId,
+                           const uint32 containerId,
                            const SeqInterval containerPos,
                            const int level) {
   if (cMap.size() == 0)
@@ -332,7 +332,7 @@ void Unitig::placeContains(const ContainerMap &cMap,
       ci != ctmp_itr->second.end();
       ci++) {
 
-    iuid             fragId = *ci;
+    uint32           fragId = *ci;
     BestContainment *best   =  bog->getBestContainer(fragId);
 
     if (best->isPlaced)
@@ -468,7 +468,7 @@ void Unitig::recomputeFragmentPositions(ContainerMap &cMap,
   if (dovetail_path_ptr == NULL)
     return;
 
-  containPartialOrder = new std::map<iuid,int>;
+  containPartialOrder = new std::map<uint32,int>;
 
   for (int i=0; i < dovetail_path_ptr->size(); i++) {
     DoveTailNode *dt = &(*dovetail_path_ptr)[i];

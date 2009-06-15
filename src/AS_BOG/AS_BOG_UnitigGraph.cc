@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.111 2009-04-24 14:13:21 skoren Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.112 2009-06-15 05:52:49 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -38,7 +38,7 @@ UnitigGraph::checkUnitigMembership(void) {
 
   fprintf(stderr, "checkUnitigMembership()--  numfrags=%d\n", _fi->numFragments());
 
-  iuid   *inUnitig = new iuid [_fi->numFragments()+1];
+  uint32 *inUnitig = new uint32 [_fi->numFragments()+1];
 
   for (int i=0; i<_fi->numFragments()+1; i++)
     inUnitig[i] = 987654321;
@@ -172,7 +172,7 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking, char *
   // Invert the containment map to key by container, instead of containee
   ContainerMap      cMap;
 
-  for (iuid c=0; c<=_fi->numFragments(); c++)
+  for (uint32 c=0; c<=_fi->numFragments(); c++)
     if (bog_ptr->isContained(c))
       cMap[bog_ptr->getBestContainer(c)->container].push_back(c);
 
@@ -180,7 +180,7 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking, char *
 
   fprintf(stderr, "==> BUILDING UNITIGS from %d fragments.\n", _fi->numFragments());
 
-  iuid frag_idx;
+  uint32 frag_idx;
   while( frag_idx = cg_ptr->nextFragByChunkLength() ) {
 
     if (_fi->fragmentLength(frag_idx) == 0)
@@ -203,14 +203,14 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking, char *
 
     populateUnitig(utg,
                    frag_idx, FIVE_PRIME,
-                   NULL_FRAG_ID, NULL,
+                   0, NULL,
                    verbose);
 
     //  Attempt to go off the 3' end
 
     BestEdgeOverlap   *tpBest   = bog_ptr->getBestEdgeOverlap(frag_idx, THREE_PRIME);
 
-    if (tpBest->frag_b_id == NULL_FRAG_ID)
+    if (tpBest->frag_b_id == 0)
       //  No next fragment
       continue;
 
@@ -254,26 +254,26 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking, char *
     if (Unitig::fragIn(frag_idx) > 0)
       continue;
 
-    iuid fp_dst_frag_id = bog_ptr->getBestEdgeOverlap(frag_idx, FIVE_PRIME) ->frag_b_id;
-    iuid tp_dst_frag_id = bog_ptr->getBestEdgeOverlap(frag_idx, THREE_PRIME)->frag_b_id;
+    uint32 fp_dst_frag_id = bog_ptr->getBestEdgeOverlap(frag_idx, FIVE_PRIME) ->frag_b_id;
+    uint32 tp_dst_frag_id = bog_ptr->getBestEdgeOverlap(frag_idx, THREE_PRIME)->frag_b_id;
 
     if (bog_ptr->isContained(frag_idx) == 0)
       fprintf(stderr, "frag %d missed; fp_dst_frag_id=%d tp_dst_frag_id=%d contained=%d\n",
               frag_idx, fp_dst_frag_id, tp_dst_frag_id, bog_ptr->isContained(frag_idx));
 
-    if ((fp_dst_frag_id != NULL_FRAG_ID) &&
-        (tp_dst_frag_id != NULL_FRAG_ID)) {
+    if ((fp_dst_frag_id != 0) &&
+        (tp_dst_frag_id != 0)) {
 
       Unitig *utg = new Unitig(true);
 
-      populateUnitig(utg, frag_idx, FIVE_PRIME, NULL_FRAG_ID, NULL, verbose);
+      populateUnitig(utg, frag_idx, FIVE_PRIME, 0, NULL, verbose);
 
       unitigs->push_back(utg);
     } else {
       // Should both be null or neither null otherwise main loop
       // failed to find it
-      assert(fp_dst_frag_id == NULL_FRAG_ID);
-      assert(tp_dst_frag_id == NULL_FRAG_ID);
+      assert(fp_dst_frag_id == 0);
+      assert(tp_dst_frag_id == 0);
     }
   }
 
@@ -308,7 +308,7 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking, char *
   {
     fprintf(stderr, "==> SEARCHING FOR ZOMBIES\n");
 
-    iuid   *inUnitig   = new iuid [_fi->numFragments()+1];
+    uint32 *inUnitig   = new uint32 [_fi->numFragments()+1];
     int     numZombies = 0;
 
     //  Sorry, poor fella that has more than 987,654,321 unitigs.  I
@@ -505,13 +505,13 @@ UnitigGraph::setParentAndHang(ChunkGraph *cg) {
 
 void
 UnitigGraph::populateUnitig(Unitig           *unitig,
-                            iuid              firstFragID,
+                            uint32            firstFragID,
                             fragment_end_type walkEnd,
-                            iuid              lastID,
+                            uint32            lastID,
                             BestEdgeOverlap  *lastEdge,
                             bool              verbose){
-  iuid              fragID   = firstFragID;
-  iuid              nextID   = 0;
+  uint32            fragID   = firstFragID;
+  uint32            nextID   = 0;
   int               fragBgn  = 0;
   int               fragEnd  = 0;
   BestEdgeOverlap  *nextEdge = NULL;
@@ -519,7 +519,7 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
 
   fprintf(stderr, "populateUnitig()--  STARTS for id %d\n", unitig->id());
 
-  if (fragID == NULL_FRAG_ID)
+  if (fragID == 0)
     return;
 
   if (Unitig::fragIn(fragID) != 0)
@@ -621,9 +621,9 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
     //  But stop if we're in a circle
 
     if (fragID == firstFragID)
-      fragID = NULL_FRAG_ID;
+      fragID = 0;
 
-  } while ((fragID != NULL_FRAG_ID) &&
+  } while ((fragID != 0) &&
            (Unitig::fragIn(fragID) == 0));
 
   fprintf(stderr, "populateUnitig()--  FINISHES for id %d (fragID=%d in unitig %d)\n", unitig->id(), fragID, Unitig::fragIn(fragID));
@@ -631,8 +631,8 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
   //  Save this outgoing intersection point for future use
   //  (another circular unitig test here too)
 
-  if ((lastID != NULL_FRAG_ID) &&
-      (fragID != NULL_FRAG_ID) &&
+  if ((lastID != 0) &&
+      (fragID != 0) &&
       (Unitig::fragIn(fragID) != 0)) {
     fprintf(stderr,"unitigIntersect: unitig %5d frag %7d -> unitig %5d frag %7d\n",
             unitig->id(), lastID, Unitig::fragIn(fragID), fragID);
@@ -657,14 +657,14 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
   for (int  ti=0; ti<unitigs->size(); ti++) {
     Unitig        *tig   = (*unitigs)[ti];
     DoveTailNode   first = tig->dovetail_path_ptr->front();
-    iuid           prev  = 0;
+    uint32         prev  = 0;
     DoveTailNode   last  = tig->getLastBackboneNode(prev);
 
     if ( prev == 0 )
       continue; // skip singletons
 
-    iuid id1 = first.ident;
-    iuid id2 = last.ident;
+    uint32 id1 = first.ident;
+    uint32 id2 = last.ident;
 
     assert(prev != id2);
     assert(last.contained == 0);
@@ -757,7 +757,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
         for (FragmentList::const_iterator fragItr = edge_itr->second.begin();
              fragItr != edge_itr->second.end();
              fragItr++) {
-          iuid inFrag = *fragItr;
+          uint32 inFrag = *fragItr;
 
           // check if it's incoming frag's 5' best edge.  If not, it must be the 3' edge.
           fragment_end_type bestEnd  = FIVE_PRIME;
@@ -1051,7 +1051,7 @@ UnitigBreakPoint UnitigGraph::selectSmall(ContainerMap &cMap,
     bool rev     = isReverse(small.fragPos);
     int sContain = 0;
     int lFrgs    = small.fragsBefore;
-    iuid sid     = small.fragEnd.fragId();
+    uint32 sid     = small.fragEnd.fragId();
 
     if (cMap.find(sid) != cMap.end())
       sContain = cMap[sid].size();

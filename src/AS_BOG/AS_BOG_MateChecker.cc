@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.77 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.78 2009-06-15 05:52:49 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -139,11 +139,11 @@ void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThresh
 
 LibraryStats* MateChecker::computeLibraryStats(Unitig* tig) {
   IdMap goodMates;
-  iuid max = std::numeric_limits<iuid>::max(); // Sentinel value
+  uint32 max = std::numeric_limits<uint32>::max(); // Sentinel value
   int numInTig = 0;
   int numWithMate = 0;
   LibraryStats *libs = new LibraryStats();
-  std::vector<iuid> otherUnitig; // mates to another unitig
+  std::vector<uint32> otherUnitig; // mates to another unitig
   IdMap otherTigHist; // count of mates to the other unitigs
   // Check each frag in unitig for it's mate
   DoveTailConstIter tigIter = tig->dovetail_path_ptr->begin();
@@ -164,7 +164,7 @@ LibraryStats* MateChecker::computeLibraryStats(Unitig* tig) {
             long mateDist = frag.position.bgn - goodMates[frag.ident];
             goodMates[frag.ident] = mateDist;
             // Record the good distance for later stddev recalculation
-            iuid distId = _fi->libraryIID(frag.ident);
+            uint32 distId = _fi->libraryIID(frag.ident);
             if (_dists.find( distId ) == _dists.end()) {
               DistanceList newDL;
               _dists[ distId ] = newDL;
@@ -197,7 +197,7 @@ LibraryStats* MateChecker::computeLibraryStats(Unitig* tig) {
       } else {
         // mate in other unitig, just create histogram currently
         otherUnitig.push_back( frag.ident );
-        iuid otherTig = Unitig::fragIn( _fi->mateIID(frag.ident) );
+        uint32 otherTig = Unitig::fragIn( _fi->mateIID(frag.ident) );
         if (otherTigHist.find( otherTig ) == otherTigHist.end())
           otherTigHist[ otherTig ] = 1;
         else
@@ -209,7 +209,7 @@ LibraryStats* MateChecker::computeLibraryStats(Unitig* tig) {
   // Calculate the unitig local mean
   LibraryStats::iterator dcIter = libs->begin();
   for(; dcIter != libs->end(); dcIter++) {
-    iuid lib = dcIter->first;
+    uint32 lib = dcIter->first;
     DistanceCompute *dc = &(dcIter->second);
     dc->mean = dc->sumDists / dc->numPairs;
     //fprintf(stderr,"Distance lib %ld has %ld pairs with mean dist %.1f\n",
@@ -218,17 +218,17 @@ LibraryStats* MateChecker::computeLibraryStats(Unitig* tig) {
   // Sum of (x-mean)^2, not yet full stddev
   IdMapConstIter goodIter = goodMates.begin();
   for(;goodIter != goodMates.end(); goodIter++) {
-    iuid fragId = goodIter->first;
-    iuid mateDist = goodIter->second;
+    uint32 fragId = goodIter->first;
+    uint32 mateDist = goodIter->second;
     if (mateDist == max)
       continue;
-    iuid distId = _fi->libraryIID(fragId);
+    uint32 distId = _fi->libraryIID(fragId);
     (*libs)[distId].sumSquares+=pow(mateDist-(*libs)[distId].mean,2);
   }
   // Calculate the real stddev
   dcIter = libs->begin();
   for(; dcIter != libs->end(); dcIter++) {
-    iuid lib = dcIter->first;
+    uint32 lib = dcIter->first;
     DistanceCompute *dc = &(dcIter->second);
     // really need to just collect all values and calculate in checkUnitigGraph()
     if (dc->numPairs == 1)
@@ -252,7 +252,7 @@ void MateChecker::computeGlobalLibStats( UnitigGraph& tigGraph ) {
     LibraryStats* libs = computeLibraryStats(*tigIter);
     // Accumulate per unitig stats to compute global stddev's
     for(dcIter = libs->begin(); dcIter != libs->end(); dcIter++) {
-      iuid lib = dcIter->first;
+      uint32 lib = dcIter->first;
       DistanceCompute dc = dcIter->second;
       if (_globalStats.find(lib) == _globalStats.end() ) {
         _globalStats[ lib ] = dc;
@@ -268,7 +268,7 @@ void MateChecker::computeGlobalLibStats( UnitigGraph& tigGraph ) {
   }
   // Calculate and output overall global mean
   for(dcIter= _globalStats.begin(); dcIter != _globalStats.end(); dcIter++){
-    iuid lib = dcIter->first;
+    uint32 lib = dcIter->first;
     DistanceCompute *dc = &(dcIter->second);
     dc->mean = dc->sumDists / dc->numPairs;
     fprintf(stderr,"Distance lib %ld has global %ld pairs with mean dist %.1f\n",
@@ -276,7 +276,7 @@ void MateChecker::computeGlobalLibStats( UnitigGraph& tigGraph ) {
   }
   // Calculate and output overall global stddev
   for(dcIter= _globalStats.begin(); dcIter != _globalStats.end(); dcIter++) {
-    iuid lib = dcIter->first;
+    uint32 lib = dcIter->first;
     DistanceCompute *dc = &(dcIter->second);
     if (dc->numPairs == 1)
       dc->stddev = 0.0;
@@ -298,7 +298,7 @@ void MateChecker::computeGlobalLibStats( UnitigGraph& tigGraph ) {
   // Disregard outliers and recalculate global stddev
   LibDistsConstIter libDistIter = _dists.begin();
   for(; libDistIter != _dists.end(); libDistIter++) {
-    iuid libId = libDistIter->first;
+    uint32 libId = libDistIter->first;
     DistanceList dl = libDistIter->second;
     sort(dl.begin(),dl.end());
     int size = dl.size();
@@ -311,7 +311,7 @@ void MateChecker::computeGlobalLibStats( UnitigGraph& tigGraph ) {
 
     // now go through the distances and calculate the real stddev
     // including everything within 5 stddevs
-    iuid numBad = 0;
+    uint32 numBad = 0;
     DistanceCompute *gdc = &(_globalStats[ libId ]);
     DistanceListCIter dIter = dl.begin();
     for(;dIter != dl.end(); dIter++) {
@@ -381,13 +381,13 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
       BestContainment   *bestcont   = tigGraph.bog_ptr->getBestContainer(fragIter->ident);
       MateLocationEntry  mloc       = positions.getById(fragIter->ident);
 
-      iuid    thisFrgID = fragIter->ident;
-      iuid    contFrgID = (bestcont) ? bestcont->container : 0;
-      iuid    mateFrgID = _fi->mateIID(fragIter->ident);
+      uint32  thisFrgID = fragIter->ident;
+      uint32  contFrgID = (bestcont) ? bestcont->container : 0;
+      uint32  mateFrgID = _fi->mateIID(fragIter->ident);
 
-      iuid    thisUtgID = thisUnitig->fragIn(thisFrgID);
-      iuid    contUtgID = thisUnitig->fragIn(contFrgID);
-      iuid    mateUtgID = thisUnitig->fragIn(mateFrgID);
+      uint32  thisUtgID = thisUnitig->fragIn(thisFrgID);
+      uint32  contUtgID = thisUnitig->fragIn(contFrgID);
+      uint32  mateUtgID = thisUnitig->fragIn(mateFrgID);
 
       //  id1 != 0 -> we found the fragment in the mate happiness table
       //  isBad -> and the mate is unhappy.
@@ -792,7 +792,7 @@ void MateChecker::splitDiscontinuousUnitigs(UnitigGraph& tigGraph) {
 }
 
 
-void incrRange( std::vector<short>* graph, short val, iuid n, iuid m ) {
+void incrRange( std::vector<short>* graph, short val, uint32 n, uint32 m ) {
   if (n == m)
     return;
   int sz = graph->size();
@@ -802,7 +802,7 @@ void incrRange( std::vector<short>* graph, short val, iuid n, iuid m ) {
   if (n < 0) n = 0;
   if (m >= sz) m = sz-1;
 
-  for(iuid i=n; i <=m ; i++)
+  for(uint32 i=n; i <=m ; i++)
     graph->at(i) += val;
 }
 
@@ -897,7 +897,7 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
 
   UnitigBreakPoints* breaks = new UnitigBreakPoints();
 
-  iuid backBgn; // Start position of final backbone unitig
+  uint32 backBgn; // Start position of final backbone unitig
   DoveTailNode backbone = tig->getLastBackboneNode(backBgn);
   backBgn = isReverse( backbone.position ) ? backbone.position.end :
     backbone.position.bgn ;
@@ -1068,7 +1068,7 @@ void MateLocation::buildTable( Unitig *tig) {
       frag != tig->dovetail_path_ptr->end();
       frag++) {
 
-    if ( _fi->mateIID(frag->ident) != NULL_FRAG_ID ) {
+    if ( _fi->mateIID(frag->ident) != 0 ) {
       if (hasFrag( _fi->mateIID(frag->ident) ) )
         addMate( tig->id(), frag->ident, frag->position );
       else
@@ -1088,9 +1088,9 @@ MateCounts* MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& global
 
   for(MateLocIter  posIter  = begin(); posIter != end(); posIter++) {
     MateLocationEntry loc = *posIter;
-    iuid fragId         =  loc.mleFrgID1;
-    iuid mateId         =  _fi->mateIID(fragId);
-    iuid lib            =  _fi->libraryIID(fragId);
+    uint32 fragId         =  loc.mleFrgID1;
+    uint32 mateId         =  _fi->mateIID(fragId);
+    uint32 lib            =  _fi->libraryIID(fragId);
     cnts->total++;
     DistanceCompute *gdc = &(globalStats[ lib ]);
     // Don't check libs that we didn't generate good stats for
@@ -1153,7 +1153,7 @@ MateCounts* MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& global
           }
         }
         // 1st reversed, so bad
-        iuid beg = MAX( 0, frgBgn - badMax );
+        uint32 beg = MAX( 0, frgBgn - badMax );
         incrRange( badRevGraph, -1, beg, frgEnd);
         posIter->isGrumpy = true;
 #if 0
@@ -1168,7 +1168,7 @@ MateCounts* MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& global
           cnts->badAntiNormal++;
         } else {
           // 2nd mate is forward, so mark bad towards tig end
-          iuid end = MIN( tigLen, mateBgn + badMax );
+          uint32 end = MIN( tigLen, mateBgn + badMax );
           incrRange( badFwdGraph, -1, mateEnd, end);
           cnts->badOuttie++;
         }
@@ -1192,8 +1192,8 @@ MateCounts* MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& global
           }
           else {
             // both are bad, mate points towards tig begin
-            iuid beg = MAX(0, mateBgn - badMax);
-            iuid end = mateEnd;
+            uint32 beg = MAX(0, mateBgn - badMax);
+            uint32 end = mateEnd;
 
             incrRange(badRevGraph, -1, beg, end);
             posIter->isGrumpy = true;
@@ -1214,8 +1214,8 @@ MateCounts* MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& global
           }
         } else {
           // 1st and 2nd forward so both bad
-          iuid end = MIN( tigLen, frgBgn + badMax );
-          iuid beg = frgEnd;
+          uint32 end = MIN( tigLen, frgBgn + badMax );
+          uint32 beg = frgEnd;
 
           incrRange(badFwdGraph,-1, beg, end);
           posIter->isGrumpy = true;
@@ -1243,11 +1243,11 @@ MateCounts* MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& global
 }
 
 
-bool MateLocation::startEntry(iuid unitigID, iuid fragID, SeqInterval fragPos) {
+bool MateLocation::startEntry(uint32 unitigID, uint32 fragID, SeqInterval fragPos) {
   if ( _iidIndex.find( fragID) != _iidIndex.end() )
     return false; // Entry already exists, can't start new
 
-  assert( fragID != NULL_FRAG_ID );
+  assert( fragID != 0 );
 
   MateLocationEntry entry;
 
@@ -1255,9 +1255,9 @@ bool MateLocation::startEntry(iuid unitigID, iuid fragID, SeqInterval fragPos) {
   entry.mlePos1    = fragPos;
   entry.mleUtgID1  = unitigID;
 
-  entry.mleFrgID2  = NULL_FRAG_ID;
+  entry.mleFrgID2  = 0;
   entry.mlePos2    = NULL_SEQ_LOC;
-  entry.mleUtgID2  = NULL_FRAG_ID;;
+  entry.mleUtgID2  = 0;;
 
   entry.isGrumpy   = false;
 
@@ -1267,14 +1267,14 @@ bool MateLocation::startEntry(iuid unitigID, iuid fragID, SeqInterval fragPos) {
 }
 
 
-bool MateLocation::addMate(iuid unitigId, iuid fragId, SeqInterval fragPos) {
-  iuid mateId = _fi->mateIID(fragId);
+bool MateLocation::addMate(uint32 unitigId, uint32 fragId, SeqInterval fragPos) {
+  uint32 mateId = _fi->mateIID(fragId);
   IdMapConstIter entryIndex = _iidIndex.find( mateId );
   if ( _iidIndex.find( fragId ) != _iidIndex.end() ||
        entryIndex == _iidIndex.end() )
     return false; // Missing mate or already added
 
-  iuid idx = entryIndex->second;
+  uint32 idx = entryIndex->second;
   _table[ idx ].mleFrgID2  = fragId;
   _table[ idx ].mlePos2    = fragPos;
   _table[ idx ].mleUtgID2  = unitigId;
@@ -1283,7 +1283,7 @@ bool MateLocation::addMate(iuid unitigId, iuid fragId, SeqInterval fragPos) {
 }
 
 
-MateLocationEntry MateLocation::getById( iuid fragId ) {
+MateLocationEntry MateLocation::getById( uint32 fragId ) {
   IdMapConstIter entryIndex = _iidIndex.find( fragId );
   if ( entryIndex == _iidIndex.end() )
     return NULL_MATE_ENTRY;
@@ -1292,7 +1292,7 @@ MateLocationEntry MateLocation::getById( iuid fragId ) {
 }
 
 
-bool MateLocation::hasFrag(iuid fragId) {
+bool MateLocation::hasFrag(uint32 fragId) {
   if ( _iidIndex.find( fragId ) == _iidIndex.end() )
     return false;
   else

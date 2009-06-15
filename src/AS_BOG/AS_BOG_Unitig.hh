@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIG
 #define INCLUDE_AS_BOG_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.9 2008-12-29 16:07:17 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.10 2009-06-15 05:52:49 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -35,8 +35,8 @@ typedef DoveTailPath::iterator            DoveTailIter;
 typedef DoveTailPath::const_iterator      DoveTailConstIter;
 
 
-typedef std::vector<iuid>                 ContaineeList;
-typedef std::map<iuid, ContaineeList>     ContainerMap;
+typedef std::vector<uint32>                 ContaineeList;
+typedef std::map<uint32, ContaineeList>     ContainerMap;
 
 
 struct BestOverlapGraph;
@@ -70,23 +70,23 @@ struct Unitig{
   long getNumFrags(void)        { return(dovetail_path_ptr->size()); };
   long getNumRandomFrags(void)  { return(getNumFrags());             };
 
-  DoveTailNode getLastBackboneNode(iuid&);
+  DoveTailNode getLastBackboneNode(uint32&);
 
-  iuid         id(void) { return(_id); };
+  uint32       id(void) { return(_id); };
 
   void addContainedFrag(DoveTailNode, BestContainment *bestcont, bool report=false);
   void addFrag(DoveTailNode, int offset=0, bool report=false);
 
-  static iuid fragIn(iuid fragId) {
+  static uint32 fragIn(uint32 fragId) {
     if ((_inUnitig == NULL) || (fragId == 0))
       return 0;
     return _inUnitig[fragId];
   };
 
-  static void resetFragUnitigMap(iuid numFrags) {
+  static void resetFragUnitigMap(uint32 numFrags) {
     if (_inUnitig == NULL)
-      _inUnitig = new iuid[numFrags+1];
-    memset(_inUnitig, 0, (numFrags+1) * sizeof(iuid));
+      _inUnitig = new uint32[numFrags+1];
+    memset(_inUnitig, 0, (numFrags+1) * sizeof(uint32));
   };
 
   // Public Member Variables
@@ -95,7 +95,7 @@ struct Unitig{
 private:
   void placeContains(const ContainerMap &,
                      BestOverlapGraph *,
-                     const iuid,
+                     const uint32,
                      const SeqInterval,
                      const int level);
 
@@ -106,11 +106,11 @@ private:
   float  _covStat;
   long   _length;
   float  _localArrivalRate;
-  iuid   _id;
+  uint32 _id;
 
-  static iuid   nextId;
+  static uint32 nextId;
   static float _globalArrivalRate;
-  static iuid *_inUnitig;
+  static uint32 *_inUnitig;
 };
 
 

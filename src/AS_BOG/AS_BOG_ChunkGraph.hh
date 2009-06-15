@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_CHUNKGRAPH
 #define INCLUDE_AS_BOG_CHUNKGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_CHUNKGRAPH = "$Id: AS_BOG_ChunkGraph.hh,v 1.18 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_CHUNKGRAPH = "$Id: AS_BOG_ChunkGraph.hh,v 1.19 2009-06-15 05:52:49 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -37,8 +37,8 @@ public:
     delete [] _chunk_lengths;
   };
 
-  iuid nextFragByChunkLength(void) {
-    static iuid pos = 0;
+  uint32 nextFragByChunkLength(void) {
+    static uint32 pos = 0;
 
     if (pos < _max_fragments)
       return _chunk_lengths[pos++].fragId;
@@ -48,10 +48,10 @@ public:
   };
 
 private:
-  uint32 countFullWidth(BestOverlapGraph *BOG, iuid *, iuid, fragment_end_type );
+  uint32 countFullWidth(BestOverlapGraph *BOG, uint32 *, uint32, fragment_end_type );
 
   struct _chunk_length {
-    iuid   fragId;
+    uint32 fragId;
     uint32 cnt;
 
     bool operator<(_chunk_length const that) const {
@@ -62,7 +62,7 @@ private:
   };
   _chunk_length      *_chunk_lengths;
 
-  iuid                _max_fragments;
+  uint32              _max_fragments;
 };
 
 #endif

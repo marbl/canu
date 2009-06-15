@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.34 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.35 2009-06-15 05:52:49 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -47,19 +47,16 @@ enum fragment_end_type {
   THREE_PRIME
 };
 
-typedef AS_IID    iuid;
-const iuid NULL_FRAG_ID=0;
-
 typedef std::list<SeqInterval> IntervalList;
 
 class FragmentEnd {
 public:
-  FragmentEnd(iuid id=0, fragment_end_type end=FIVE_PRIME) {
+  FragmentEnd(uint32 id=0, fragment_end_type end=FIVE_PRIME) {
     _id  = id;
     _end = end;
   };
 
-  iuid               fragId(void)  const { return(_id); };
+  uint32             fragId(void)  const { return(_id); };
   fragment_end_type  fragEnd(void) const { return(_end); };
 
   bool operator==(FragmentEnd const that) const {
@@ -78,14 +75,14 @@ public:
   };
 
 private:
-  iuid              _id;
+  uint32            _id;
   fragment_end_type _end;
 };
 
 
 class BestEdgeOverlap{
 public:
-  iuid              frag_b_id;
+  uint32            frag_b_id;
 
   float             olap_score;
   short             olap_length;
@@ -123,7 +120,7 @@ public:
     delete [] olaps;
   };
 
-  iuid    container;
+  uint32  container;
 
   float   contain_score;
 
@@ -137,7 +134,7 @@ public:
   bool    olapsSorted;
   short   olapsLen;
   short   olapsMax;
-  iuid   *olaps;
+  uint32 *olaps;
 };
 
 
@@ -151,8 +148,8 @@ public:
     _numFragments = gkpStore->gkStore_getNumFragments();
 
     _fragLength    = new int  [_numFragments + 1];
-    _mateIID       = new iuid [_numFragments + 1];
-    _libIID        = new iuid [_numFragments + 1];
+    _mateIID       = new uint32 [_numFragments + 1];
+    _libIID        = new uint32 [_numFragments + 1];
 
     _mean          = new double [_numLibraries + 1];
     _stddev        = new double [_numLibraries + 1];
@@ -184,8 +181,8 @@ public:
     int numLoaded  = 0;
 
     while(fs->next(&fr)) {
-      iuid  iid = fr.gkFragment_getReadIID();
-      iuid  lib = fr.gkFragment_getLibraryIID();
+      uint32 iid = fr.gkFragment_getReadIID();
+      uint32 lib = fr.gkFragment_getLibraryIID();
 
       if (fr.gkFragment_getIsDeleted()) {
         numDeleted++;
@@ -220,22 +217,22 @@ public:
   int     numFragments(void) { return(_numFragments); };
   int     numLibraries(void) { return(_numLibraries); };
 
-  int     fragmentLength(iuid iid) { return(_fragLength[iid]); };
-  iuid    mateIID(iuid iid)        { return(_mateIID[iid]); };
-  iuid    libraryIID(iuid iid)     { return(_libIID[iid]);  };
+  int     fragmentLength(uint32 iid) { return(_fragLength[iid]); };
+  uint32  mateIID(uint32 iid)        { return(_mateIID[iid]); };
+  uint32  libraryIID(uint32 iid)     { return(_libIID[iid]);  };
 
-  double  mean(iuid iid)   { return(_mean[iid]); };
-  double  stddev(iuid iid) { return(_stddev[iid]); };
+  double  mean(uint32 iid)   { return(_mean[iid]); };
+  double  stddev(uint32 iid) { return(_stddev[iid]); };
 
-  int     numMatesInLib(iuid iid) { return(_numMatesInLib[iid]); };
+  int     numMatesInLib(uint32 iid) { return(_numMatesInLib[iid]); };
 
 private:
   int      _numFragments;
   int      _numLibraries;
 
   int     *_fragLength;
-  iuid    *_mateIID;
-  iuid    *_libIID;
+  uint32  *_mateIID;
+  uint32  *_libIID;
 
   double  *_mean;
   double  *_stddev;

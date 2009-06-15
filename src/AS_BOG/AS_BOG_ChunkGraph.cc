@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.27 2008-12-29 16:07:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.28 2009-06-15 05:52:49 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -30,11 +30,11 @@ ChunkGraph::ChunkGraph(FragmentInfo *fi, BestOverlapGraph *BOG){
 
   _max_fragments   = fi->numFragments();
 
-  iuid *pathLen = new iuid[(_max_fragments+1)*2];
-  memset(pathLen, 0, sizeof(iuid)*(_max_fragments+1)*2);
+  uint32 *pathLen = new uint32[(_max_fragments+1)*2];
+  memset(pathLen, 0, sizeof(uint32)*(_max_fragments+1)*2);
 
   _chunk_lengths   = new _chunk_length      [_max_fragments];
-  for(iuid frag_id=1; frag_id<=_max_fragments; frag_id++){
+  for(uint32 frag_id=1; frag_id<=_max_fragments; frag_id++){
     _chunk_lengths[frag_id-1].fragId = frag_id;
     _chunk_lengths[frag_id-1].cnt    = (countFullWidth(BOG, pathLen, frag_id, FIVE_PRIME) +
                                         countFullWidth(BOG, pathLen, frag_id, THREE_PRIME));
@@ -47,8 +47,8 @@ ChunkGraph::ChunkGraph(FragmentInfo *fi, BestOverlapGraph *BOG){
 
 
 uint32
-ChunkGraph::countFullWidth(BestOverlapGraph *BOG, iuid *pathLen, iuid firstFrag, fragment_end_type end) {
-  iuid index = firstFrag * 2 + end;
+ChunkGraph::countFullWidth(BestOverlapGraph *BOG, uint32 *pathLen, uint32 firstFrag, fragment_end_type end) {
+  uint32 index = firstFrag * 2 + end;
 
   if (pathLen[index] > 0)
     return pathLen[index];
@@ -61,7 +61,7 @@ ChunkGraph::countFullWidth(BestOverlapGraph *BOG, iuid *pathLen, iuid firstFrag,
   //  Until we run off the chain, or we hit a fragment with a known
   //  length, compute the length FROM THE START.
   //
-  while ((lastEnd.fragId() != NULL_FRAG_ID) &&
+  while ((lastEnd.fragId() != 0) &&
          (pathLen[index] == 0)) {
 
     seen.insert(lastEnd);
@@ -70,11 +70,11 @@ ChunkGraph::countFullWidth(BestOverlapGraph *BOG, iuid *pathLen, iuid firstFrag,
 
     //  Follow the path of lastEnd
 
-    iuid frag = ((lastEnd.fragEnd() == FIVE_PRIME) ?
+    uint32 frag = ((lastEnd.fragEnd() == FIVE_PRIME) ?
                  BOG->getBestEdgeOverlap(lastEnd.fragId(), FIVE_PRIME) ->frag_b_id :
                  BOG->getBestEdgeOverlap(lastEnd.fragId(), THREE_PRIME)->frag_b_id);
 
-    if (frag == NULL_FRAG_ID) {
+    if (frag == 0) {
       lastEnd = FragmentEnd();
     } else {
       BOG->followOverlap( &lastEnd );
@@ -102,7 +102,7 @@ ChunkGraph::countFullWidth(BestOverlapGraph *BOG, iuid *pathLen, iuid firstFrag,
 
     //  pathLen[index] is the length of the path at the *.
     //
-    iuid        circleLen = cnt - pathLen[index];
+    uint32      circleLen = cnt - pathLen[index];
     FragmentEnd currEnd   = lastEnd;
 
     do {
@@ -112,7 +112,7 @@ ChunkGraph::countFullWidth(BestOverlapGraph *BOG, iuid *pathLen, iuid firstFrag,
       index = currEnd.fragId() * 2 + currEnd.fragEnd();
     } while (lastEnd != currEnd);
 
-  } else if (lastEnd.fragId() != NULL_FRAG_ID) {
+  } else if (lastEnd.fragId() != 0) {
     //  Otherwise, if lastEnd is not NULL, we must have stopped
     //  because of an existing path.
     cnt += pathLen[index];

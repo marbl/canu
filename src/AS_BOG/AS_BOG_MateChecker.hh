@@ -22,19 +22,19 @@
 #ifndef INCLUDE_AS_BOG_MATECHEKER
 #define INCLUDE_AS_BOG_MATECHEKER
 
-static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.31 2008-12-29 16:07:17 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.32 2009-06-15 05:52:49 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
 
-typedef std::map<iuid,iuid> IdMap;
+typedef std::map<uint32,uint32> IdMap;
 typedef IdMap::iterator IdMapIter;
 typedef IdMap::const_iterator IdMapConstIter;
 
 typedef std::vector<int> DistanceList;
 typedef DistanceList::const_iterator DistanceListCIter;
 
-typedef std::map<iuid,DistanceList> LibraryDistances;
+typedef std::map<uint32,DistanceList> LibraryDistances;
 typedef LibraryDistances::const_iterator LibDistsConstIter;
 
 static const SeqInterval NULL_SEQ_LOC = {0,0};
@@ -48,7 +48,7 @@ struct DistanceCompute {
   DistanceCompute() : stddev(0), mean(0), sumSquares(0), sumDists(0), numPairs(0) {}
 };
 
-typedef std::map<iuid,DistanceCompute> LibraryStats;
+typedef std::map<uint32,DistanceCompute> LibraryStats;
 
 struct MateCounts {
   int badOtherTig;
@@ -108,10 +108,10 @@ private:
 struct MateLocationEntry {
   SeqInterval mlePos1;
   SeqInterval mlePos2;
-  iuid        mleFrgID1;
-  iuid        mleFrgID2;
-  iuid        mleUtgID1;
-  iuid        mleUtgID2; // in the future the table might be across unitigs
+  uint32      mleFrgID1;
+  uint32      mleFrgID2;
+  uint32      mleUtgID1;
+  uint32      mleUtgID2; // in the future the table might be across unitigs
   bool        isGrumpy;
 };
 
@@ -137,10 +137,10 @@ public:
     delete badRevGraph;
   };
 
-  bool startEntry( iuid, iuid, SeqInterval);
-  bool addMate( iuid, iuid, SeqInterval);
-  bool hasFrag( iuid );
-  MateLocationEntry getById( iuid );
+  bool startEntry( uint32, uint32, SeqInterval);
+  bool addMate( uint32, uint32, SeqInterval);
+  bool hasFrag( uint32 );
+  MateLocationEntry getById( uint32 );
   void sort();
   MateLocIter begin() { return _table.begin(); }
   MateLocIter end()   { return _table.end();   }

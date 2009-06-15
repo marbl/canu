@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.65 2008-12-29 16:07:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.66 2009-06-15 05:52:49 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -63,7 +63,7 @@ fragment_end_type BestOverlapGraph::BEnd(const OVSoverlap& olap) {
 
 
 // Create BestOverlapGraph as an array of size max fragments.
-//     Assuming that our iuids start at index value of 1.
+//     Assuming that our uint32s start at index value of 1.
 //
 // AS_UTG_ERROR_RATE is fraction error, same as AS_CNS_ERROR_RATE.
 //
@@ -137,9 +137,9 @@ BestOverlapGraph::~BestOverlapGraph(){
 }
 
 
-//  Given a fragment IUID and which end, returns pointer to
+//  Given a fragment UINT32 and which end, returns pointer to
 //  BestOverlap node.
-BestEdgeOverlap *BestOverlapGraph::getBestEdgeOverlap(iuid frag_id, fragment_end_type which_end){
+BestEdgeOverlap *BestOverlapGraph::getBestEdgeOverlap(uint32 frag_id, fragment_end_type which_end){
   if(which_end == FIVE_PRIME)
     return(&_best_overlaps[frag_id].five_prime);
   if(which_end == THREE_PRIME)
@@ -156,7 +156,7 @@ void BestOverlapGraph::followOverlap(FragmentEnd* end) {
   *end = FragmentEnd(edge->frag_b_id, (edge->bend == FIVE_PRIME) ? THREE_PRIME : FIVE_PRIME);
 }
 
-bool BestOverlapGraph::containHaveEdgeTo(iuid contain, iuid otherRead) {
+bool BestOverlapGraph::containHaveEdgeTo(uint32 contain, uint32 otherRead) {
   BestContainment  *c = &_best_contains[contain];
   bool              r = false;
 
@@ -252,7 +252,7 @@ void BestOverlapGraph::scoreEdge(const OVSoverlap& olap) {
         (olap.dat.ovl.a_hang > 0 && olap.dat.ovl.b_hang > -10)) {
       BestContainment *c = &_best_contains[olap.a_iid];
       if (c->olaps == NULL)
-        c->olaps = new iuid [c->olapsMax];
+        c->olaps = new uint32 [c->olapsMax];
       c->olaps[c->olapsLen++] = olap.b_iid;
     }
     return;
@@ -287,8 +287,8 @@ void BestOverlapGraph::scoreEdge(const OVSoverlap& olap) {
   //   2.)  If the scores are identical, the one with the longer length
   //
   // Since the order of how the overlaps are read in from the overlap
-  // store are by A's increasing iuid, by default, if the score and
-  // length are the same, the iuid of the lower value will be kept.
+  // store are by A's increasing uint32, by default, if the score and
+  // length are the same, the uint32 of the lower value will be kept.
 
   if ((newScr > best->olap_score) ||
       ((newScr == best->olap_score) && (olapLen > best->olap_length))) {

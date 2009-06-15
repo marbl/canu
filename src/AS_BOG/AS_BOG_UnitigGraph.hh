@@ -22,16 +22,16 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.63 2009-02-27 15:13:18 skoren Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.64 2009-06-15 05:52:49 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
 #include "AS_BOG_Unitig.hh"
 
-typedef std::vector<iuid>                 FragmentList;
-typedef std::map<iuid, FragmentList>      FragmentEdgeList;
+typedef std::vector<uint32>                 FragmentList;
+typedef std::map<uint32, FragmentList>      FragmentEdgeList;
 
-typedef std::map<iuid, SeqInterval>       FragmentPositionMap;
+typedef std::map<uint32, SeqInterval>       FragmentPositionMap;
 
 inline bool isReverse( SeqInterval pos ) {
   return(pos.bgn > pos.end);
@@ -52,7 +52,7 @@ struct UnitigBreakPoint {
   int         inSize;           // the size of the incoming unitig
   int         inFrags;          // the number of fragments in incoming unitig
 
-  UnitigBreakPoint(iuid id=0, fragment_end_type end=FIVE_PRIME) {
+  UnitigBreakPoint(uint32 id=0, fragment_end_type end=FIVE_PRIME) {
     fragEnd      = FragmentEnd(id, end);
     fragPos.bgn  = 0;
     fragPos.end  = 0;
@@ -119,9 +119,9 @@ private:
   //  lastEdge need to be defined.
   //  
   void populateUnitig(Unitig             *unitig,
-                      iuid                firstFragID,
+                      uint32              firstFragID,
                       fragment_end_type   walkEnd,
-                      iuid                lastID,
+                      uint32              lastID,
                       BestEdgeOverlap    *lastEdge,
                       bool                verbose);
 

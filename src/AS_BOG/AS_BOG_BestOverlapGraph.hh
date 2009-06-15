@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.50 2008-12-29 16:07:17 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.51 2009-06-15 05:52:49 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -31,23 +31,23 @@ struct BestOverlapGraph {
   ~BestOverlapGraph();
 
   // Accessor Functions
-  BestEdgeOverlap *getBestEdgeOverlap(iuid frag_id, fragment_end_type which_end);
+  BestEdgeOverlap *getBestEdgeOverlap(uint32 frag_id, fragment_end_type which_end);
   BestEdgeOverlap *getBestEdgeOverlap(FragmentEnd*);
 
   // given a FragmentEnd sets it to the next FragmentEnd after following the
   // best edge
   void followOverlap(FragmentEnd*);
 
-  bool isContained(const iuid fragid) {
+  bool isContained(const uint32 fragid) {
     return(_best_contains[fragid].isContained);
   };
 
   // Given a containee, returns pointer to BestContainment record
-  BestContainment *getBestContainer(const iuid fragid) {
+  BestContainment *getBestContainer(const uint32 fragid) {
     return((isContained(fragid)) ? &_best_contains[fragid] : NULL);
   };
 
-  bool containHaveEdgeTo( iuid, iuid);
+  bool containHaveEdgeTo( uint32, uint32);
 
   // Graph building methods
   fragment_end_type AEnd(const OVSoverlap& olap);
@@ -134,7 +134,7 @@ struct BestOverlapGraph {
 #endif
   };
 
-  uint16  olapLength(iuid a_iid, iuid b_iid, short a_hang, short b_hang) {
+  uint16  olapLength(uint32 a_iid, uint32 b_iid, short a_hang, short b_hang) {
     int alen = _fi->fragmentLength(a_iid);
     int blen = _fi->fragmentLength(b_iid);
 
@@ -155,7 +155,7 @@ struct BestOverlapGraph {
     return(olapLength(olap.a_iid, olap.b_iid, olap.dat.ovl.a_hang, olap.dat.ovl.b_hang));
   };
 
-  int    fragmentLength(iuid id) {
+  int    fragmentLength(uint32 id) {
     return(_fi->fragmentLength(id));
   };
 
