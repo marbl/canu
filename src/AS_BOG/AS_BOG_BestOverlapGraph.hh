@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.51 2009-06-15 05:52:49 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.52 2009-06-15 07:01:37 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -31,7 +31,7 @@ struct BestOverlapGraph {
   ~BestOverlapGraph();
 
   // Accessor Functions
-  BestEdgeOverlap *getBestEdgeOverlap(uint32 frag_id, fragment_end_type which_end);
+  BestEdgeOverlap *getBestEdgeOverlap(uint32 frag_id, uint32 which_end);
   BestEdgeOverlap *getBestEdgeOverlap(FragmentEnd*);
 
   // given a FragmentEnd sets it to the next FragmentEnd after following the
@@ -50,93 +50,64 @@ struct BestOverlapGraph {
   bool containHaveEdgeTo( uint32, uint32);
 
   // Graph building methods
-  fragment_end_type AEnd(const OVSoverlap& olap);
-  fragment_end_type BEnd(const OVSoverlap& olap);
-  void processOverlap(const OVSoverlap& olap);
+  uint32  AEnd(const OVSoverlap& olap);
+  uint32  BEnd(const OVSoverlap& olap);
+  void    processOverlap(const OVSoverlap& olap);
 
-  float scoreOverlap(const OVSoverlap& olap) {
+  uint64  scoreOverlap(const OVSoverlap& olap) {
 
-#if 0
-    // Computes the score for a Error Rate BOG based on overlap
-    // corrected error rate.
+    //  BPW's newer new score.  For
+    //  the most part, we use the length of the overlap, but we also
+    //  want to break ties with the higher quality overlap.
     //
-    // Error rate is normalized so that the higher the error
-    // rate, the lower the score.
+    //  The high 20 bits are the length of the overlap.
+    //  The next 12 are the corrected error rate.
+    //  The last 12 are the original error rate.
     //
-    return(100.0 - AS_OVS_decodeQuality(olap.dat.ovl.corr_erate) * 100.0);
-#endif
+    //  (Well, 12 == AS_OVS_ERRBITS)
 
-#if 0
-    // Computes the score for a Longest Edge BOG based on
-    // overlap length only.
-    //
-    return(olapLength(olap));
-#endif
-
-#if 0
-    // The log for this is:
-    //   Add alternate scoring schema that wasn't tested much for posterity's sake.
-    //
     if (olap.dat.ovl.orig_erate > consensusCutoff)
       return 0;
     if (olap.dat.ovl.corr_erate > mismatchCutoff)
       return 0;
-    return(olapLength(olap) / sqrt(1 + olap.dat.ovl.corr_erate));
-#endif
 
-#if 0
-    // Computes the score for a Longest Edge BOG based on
-    // overlap length but after applying an an error rate
-    // cutoff.
-    //
-    if (olap.dat.ovl.orig_erate > consensusCutoff)
-      return 0;
-    if (olap.dat.ovl.corr_erate > mismatchCutoff)
-      return 0;
-    return olapLength(olap);
-#endif
+    uint64  leng = 0;
+    uint64  corr = (AS_OVS_MAX_ERATE - olap.dat.ovl.corr_erate);
+    uint64  orig = (AS_OVS_MAX_ERATE - olap.dat.ovl.orig_erate);
 
-#if 1
-    //  BPW's new score
-    if (olap.dat.ovl.orig_erate > consensusCutoff)
-      return 0;
-    if (olap.dat.ovl.corr_erate > mismatchCutoff)
-      return 0;
+    //  Shift AFTER assigning to a 64-bit value to avoid overflows.
+    corr <<= AS_OVS_ERRBITS;
 
     int a_hang = olap.dat.ovl.a_hang;
     int b_hang = olap.dat.ovl.b_hang;
 
-    int alen = _fi->fragmentLength(olap.a_iid);
-    int blen = _fi->fragmentLength(olap.b_iid);
-
-    double qlt = 1.0 - AS_OVS_decodeQuality(olap.dat.ovl.corr_erate) - AS_OVS_decodeQuality(olap.dat.ovl.orig_erate) / 10000;
-
     //  Containments - the length of the overlaps are all the same.
-    //  We return the quality.
+    //  We return the quality.  We possibly do not need this test, as
+    //  the leng is only set for dovetail overlaps, but lets play
+    //  safe.
     //
-    if ((a_hang >= 0) && (b_hang <= 0))
-      return(qlt);
-
-    if ((a_hang <= 0) && (b_hang >= 0))
-      return(qlt);
+    if (((a_hang >= 0) && (b_hang <= 0)) ||
+        ((a_hang <= 0) && (b_hang >= 0)))
+      return(corr | orig);
 
     //  Dovetails - the length of the overlap is the score, but we
     //  bias towards lower error.
     //
     if ((a_hang < 0) && (b_hang < 0))
-      return(alen + b_hang + 1.0 - qlt);
+      leng = _fi->fragmentLength(olap.a_iid) + b_hang;
 
     if ((a_hang > 0) && (b_hang > 0))
-      return(alen - a_hang + 1.0 - qlt);
+      leng = _fi->fragmentLength(olap.a_iid) - a_hang;
 
-    //  Fail if we're here.
-    assert(0);
-#endif
+    //  Shift AFTER assigning to a 64-bit value to avoid overflows.
+    leng <<= (2 * AS_OVS_ERRBITS);
+
+    return(leng | corr | orig);
   };
 
-  uint16  olapLength(uint32 a_iid, uint32 b_iid, short a_hang, short b_hang) {
-    int alen = _fi->fragmentLength(a_iid);
-    int blen = _fi->fragmentLength(b_iid);
+  uint32  olapLength(uint32 a_iid, uint32 b_iid, short a_hang, short b_hang) {
+    uint32 alen = _fi->fragmentLength(a_iid);
+    uint32 blen = _fi->fragmentLength(b_iid);
 
     if (a_hang < 0) {
       if (b_hang < 0 )
@@ -151,11 +122,11 @@ struct BestOverlapGraph {
     }
   };
 
-  uint16 olapLength(const OVSoverlap& olap) {
+  uint32 olapLength(const OVSoverlap& olap) {
     return(olapLength(olap.a_iid, olap.b_iid, olap.dat.ovl.a_hang, olap.dat.ovl.b_hang));
   };
 
-  int    fragmentLength(uint32 id) {
+  uint32 fragmentLength(uint32 id) {
     return(_fi->fragmentLength(id));
   };
 
@@ -167,6 +138,10 @@ private:
   BestFragmentOverlap *_best_overlaps;
   BestContainment     *_best_contains;
   FragmentInfo        *_fi;
+
+  uint64              *_best_overlaps_5p_score;
+  uint64              *_best_overlaps_3p_score;
+  uint64              *_best_contains_score;
 
 public:
   uint64 mismatchCutoff;

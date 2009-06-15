@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.112 2009-06-15 05:52:49 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.113 2009-06-15 07:01:37 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -506,7 +506,7 @@ UnitigGraph::setParentAndHang(ChunkGraph *cg) {
 void
 UnitigGraph::populateUnitig(Unitig           *unitig,
                             uint32            firstFragID,
-                            fragment_end_type walkEnd,
+                            uint32            walkEnd,
                             uint32            lastID,
                             BestEdgeOverlap  *lastEdge,
                             bool              verbose){
@@ -575,7 +575,7 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
     //  Grab the edge to the next fragment.
 
     nextEdge = bog_ptr->getBestEdgeOverlap(fragID, walkEnd);
-    nextEdge->print(stderr);
+    //nextEdge->print(stderr);
 
     //  We only work with dovetails.
 
@@ -724,7 +724,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
 #if 1
       //  First fragment?
       if (fragIdx == 0) {
-        fragment_end_type  dtEnd = (isReverse(f->position)) ? THREE_PRIME : FIVE_PRIME;
+        uint32             dtEnd = (isReverse(f->position)) ? THREE_PRIME : FIVE_PRIME;
         BestEdgeOverlap   *bEdge = bog_ptr->getBestEdgeOverlap(f->ident, dtEnd);
 
 #ifdef VERBOSEBREAK
@@ -737,7 +737,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
 
       //  Last fragment?
       if (fragIdx + 1 == tig->dovetail_path_ptr->size()) {
-        fragment_end_type  dtEnd = (isReverse(f->position)) ? FIVE_PRIME : THREE_PRIME;
+        uint32             dtEnd = (isReverse(f->position)) ? FIVE_PRIME : THREE_PRIME;
         BestEdgeOverlap   *bEdge = bog_ptr->getBestEdgeOverlap(f->ident, dtEnd);
 
 #ifdef VERBOSEBREAK
@@ -760,7 +760,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
           uint32 inFrag = *fragItr;
 
           // check if it's incoming frag's 5' best edge.  If not, it must be the 3' edge.
-          fragment_end_type bestEnd  = FIVE_PRIME;
+          uint32            bestEnd  = FIVE_PRIME;
           BestEdgeOverlap  *bestEdge = bog_ptr->getBestEdgeOverlap(inFrag, bestEnd);
 
           if (bestEdge->frag_b_id != f->ident) {

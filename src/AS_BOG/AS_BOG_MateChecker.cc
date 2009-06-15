@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.78 2009-06-15 05:52:49 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.79 2009-06-15 07:01:37 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -999,7 +999,7 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
         lastBreakBBEnd = currBackboneEnd;
         fprintf(stderr,"Frg to break in peak bad range is %d fwd %d pos (%d,%d) backbone %d\n",
                 frag.ident, isFwdBad, loc.bgn, loc.end, currBackboneEnd );
-        fragment_end_type fragEndInTig = THREE_PRIME;
+        uint32 fragEndInTig = THREE_PRIME;
         // If reverse mate is 1st and overlaps its mate break at 5'
         if ( mloc.mleUtgID2 == tig->id() && isReverse( loc ) &&
              !isReverse(mloc.mlePos2) && loc.bgn >= mloc.mlePos2.bgn )
@@ -1035,7 +1035,7 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
                 (diff < DEFAULT_MIN_OLAP_LEN) ||
                 (bog_ptr->isContained( frag.ident ) && !bog_ptr->containHaveEdgeTo( frag.ident, nextPos->ident))) {
 
-              fragment_end_type fragEndInTig = THREE_PRIME;
+              uint32 fragEndInTig = THREE_PRIME;
               if (isReverse( loc ))
                 fragEndInTig = FIVE_PRIME;
 
@@ -1181,8 +1181,8 @@ MateCounts* MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& global
         // 1st forward
         if (isReverse( loc.mlePos2 )) {
           // 2nd reverse so good orient, check distance
-          uint16 mateLen = mateBgn - mateEnd;
-          int mateDist = mateBgn - frgBgn;
+          int32 mateLen  = mateBgn - mateEnd;
+          int32 mateDist = mateBgn - frgBgn;
 
           if (mateDist >= badMin && mateDist <= badMax) {
             // For good graph only we mark from 5' to 5'

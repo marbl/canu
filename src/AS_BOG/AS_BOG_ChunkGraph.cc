@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.28 2009-06-15 05:52:49 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.29 2009-06-15 07:01:37 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -47,7 +47,7 @@ ChunkGraph::ChunkGraph(FragmentInfo *fi, BestOverlapGraph *BOG){
 
 
 uint32
-ChunkGraph::countFullWidth(BestOverlapGraph *BOG, uint32 *pathLen, uint32 firstFrag, fragment_end_type end) {
+ChunkGraph::countFullWidth(BestOverlapGraph *BOG, uint32 *pathLen, uint32 firstFrag, uint32 end) {
   uint32 index = firstFrag * 2 + end;
 
   if (pathLen[index] > 0)

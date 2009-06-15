@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.58 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.59 2009-06-15 07:01:37 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -117,6 +117,12 @@ main (int argc, char * argv []) {
   int   badMateBreakThreshold   = -7;
 
   argc = AS_configure(argc, argv);
+
+  fprintf(stderr, "sizeof(FragmentEnd)         = %d (was 8)\n", sizeof(FragmentEnd));
+  fprintf(stderr, "sizeof(BestEdgeOverlap)     = %d (was 20)\n", sizeof(BestEdgeOverlap));
+  fprintf(stderr, "sizeof(BestFragmentOverlap) = %d (was 40)\n", sizeof(BestFragmentOverlap));
+  fprintf(stderr, "sizeof(BestContainment)     = %d (was 32)\n", sizeof(BestContainment));
+
 
   optarg = NULL;
   while(!argsDone && (ch = getopt(argc, argv,"B:o:O:G:e:m:s:bk"))) {

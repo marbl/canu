@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.64 2009-06-15 05:52:49 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.65 2009-06-15 07:01:37 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -52,7 +52,7 @@ struct UnitigBreakPoint {
   int         inSize;           // the size of the incoming unitig
   int         inFrags;          // the number of fragments in incoming unitig
 
-  UnitigBreakPoint(uint32 id=0, fragment_end_type end=FIVE_PRIME) {
+  UnitigBreakPoint(uint32 id=0, uint32 end=FIVE_PRIME) {
     fragEnd      = FragmentEnd(id, end);
     fragPos.bgn  = 0;
     fragPos.end  = 0;
@@ -120,7 +120,7 @@ private:
   //  
   void populateUnitig(Unitig             *unitig,
                       uint32              firstFragID,
-                      fragment_end_type   walkEnd,
+                      uint32              walkEnd,
                       uint32              lastID,
                       BestEdgeOverlap    *lastEdge,
                       bool                verbose);

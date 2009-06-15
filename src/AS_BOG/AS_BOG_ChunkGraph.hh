@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_CHUNKGRAPH
 #define INCLUDE_AS_BOG_CHUNKGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_CHUNKGRAPH = "$Id: AS_BOG_ChunkGraph.hh,v 1.19 2009-06-15 05:52:49 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_CHUNKGRAPH = "$Id: AS_BOG_ChunkGraph.hh,v 1.20 2009-06-15 07:01:37 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -48,7 +48,7 @@ public:
   };
 
 private:
-  uint32 countFullWidth(BestOverlapGraph *BOG, uint32 *, uint32, fragment_end_type );
+  uint32 countFullWidth(BestOverlapGraph *BOG, uint32 *, uint32, uint32 );
 
   struct _chunk_length {
     uint32 fragId;

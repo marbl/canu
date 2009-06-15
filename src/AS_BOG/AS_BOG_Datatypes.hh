@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.35 2009-06-15 05:52:49 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.36 2009-06-15 07:01:37 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -42,22 +42,20 @@ using namespace std;
 
 //  Assign values to the enum to show this bug
 #warning there is a comparison assuming fragment_end_type FIVE_PRIME < THREE_PRIME
-enum fragment_end_type {
-  FIVE_PRIME,
-  THREE_PRIME
-};
+#define FIVE_PRIME   0
+#define THREE_PRIME  1
 
 typedef std::list<SeqInterval> IntervalList;
 
 class FragmentEnd {
 public:
-  FragmentEnd(uint32 id=0, fragment_end_type end=FIVE_PRIME) {
+  FragmentEnd(uint32 id=0, uint32 end=FIVE_PRIME) {
     _id  = id;
     _end = end;
   };
 
-  uint32             fragId(void)  const { return(_id); };
-  fragment_end_type  fragEnd(void) const { return(_end); };
+  uint32  fragId(void)  const { return(_id); };
+  uint32  fragEnd(void) const { return(_end); };
 
   bool operator==(FragmentEnd const that) const {
     return((fragId() == that.fragId()) && (fragEnd() == that.fragEnd()));
@@ -75,27 +73,17 @@ public:
   };
 
 private:
-  uint32            _id;
-  fragment_end_type _end;
+  uint32   _id:31;
+  uint32   _end:1;
 };
 
 
 class BestEdgeOverlap{
 public:
-  uint32            frag_b_id;
-
-  float             olap_score;
-  short             olap_length;
-
-  fragment_end_type bend;
-
-  short             ahang;
-  short             bhang;
-
-  void              print(FILE *f) {
-    fprintf(f, "BestEdgeOverlap()-- id=%d score=%f length=%hd bend=%c ahang=%hd bhang=%hd\n",
-            frag_b_id, olap_score, olap_length, (bend == FIVE_PRIME) ? '5' : '3', ahang, bhang);
-  };
+  uint32            frag_b_id:31;
+  uint32            bend:1;
+  int32             ahang;
+  int32             bhang;
 };
 
 
@@ -111,7 +99,10 @@ public:
 
 // Contains what kind of containment relationship exists between
 // fragment a and fragment b
-
+//
+// This needs 93 bits (plus a 64 bit pointer) and must be 8-byte
+// aligned, so the best we can hope for is 24 bytes.
+//
 class BestContainment{
 public:
   BestContainment() {
@@ -120,20 +111,16 @@ public:
     delete [] olaps;
   };
 
-  uint32  container;
+  uint32  container:31;
+  uint32  isContained:1;
 
-  float   contain_score;
+  int32   a_hang;
+  int32   b_hang;
 
-  short   a_hang;
-  short   b_hang;
-
-  bool    sameOrientation;
-  bool    isContained;
-  bool    isPlaced;
-
-  bool    olapsSorted;
-  short   olapsLen;
-  short   olapsMax;
+  uint32  sameOrientation:1;
+  uint32  isPlaced:1;
+  uint32  olapsSorted:1;
+  uint32  olapsLen:29;
   uint32 *olaps;
 };
 
@@ -181,15 +168,15 @@ public:
     int numLoaded  = 0;
 
     while(fs->next(&fr)) {
-      uint32 iid = fr.gkFragment_getReadIID();
-      uint32 lib = fr.gkFragment_getLibraryIID();
-
       if (fr.gkFragment_getIsDeleted()) {
         numDeleted++;
       } else {
+        uint32 iid = fr.gkFragment_getReadIID();
+        uint32 lib = fr.gkFragment_getLibraryIID();
+
         _fragLength[iid] = fr.gkFragment_getClearRegionLength();
         _mateIID[iid]    = fr.gkFragment_getMateIID();;
-        _libIID[iid]     = fr.gkFragment_getLibraryIID();
+        _libIID[iid]     = lib;
 
         _numFragsInLib[lib]++;
 
@@ -198,6 +185,9 @@ public:
 
         numLoaded++;
       }
+
+      if (((numDeleted + numLoaded) % 10000000) == 0)
+        fprintf(stderr, "Loading fragment information deleted:%9d active:%9d\n", numDeleted, numLoaded);
     }
 
     for (int i=0; i<_numLibraries + 1; i++) {
