@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.47 2009-06-10 18:05:13 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.48 2009-06-18 17:38:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -112,18 +112,14 @@ checkSequenceAndQuality(FragMesg *frg_mesg, int *seqLen) {
                        AS_UID_toString(frg_mesg->eaccession), sl, AS_READ_MIN_LEN);
     failed = 1;
 
-#if 0
   } else if (sl < AS_READ_MAX_SHORT_LEN) {
     gkFrag1->gkFragment_setType(GKFRAGMENT_SHORT);
-#endif
 
   } else if (sl < AS_READ_MAX_MEDIUM_LEN) {
     gkFrag1->gkFragment_setType(GKFRAGMENT_MEDIUM);
 
-#if 0
   } else if (sl < AS_READ_MAX_LONG_LEN) {
     gkFrag1->gkFragment_setType(GKFRAGMENT_LONG);
-#endif
 
   } else {
     gkFrag1->gkFragment_setType(GKFRAGMENT_LONG);
