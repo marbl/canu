@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.1 2009-06-10 18:05:14 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.2 2009-06-22 11:29:32 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -465,6 +465,9 @@ gkStore::gkStore_load(AS_IID beginIID, AS_IID endIID, int flags) {
 
   assert(partmap    == NULL);
   assert(isReadOnly == 1);
+
+  if (beginIID == 0)   beginIID = 1;
+  if (endIID == 0)     endIID   = gkStore_getNumFragments();
 
   gkStore_decodeTypeFromIID(beginIID, &stType, &stTiid);
   gkStore_decodeTypeFromIID(endIID,   &edType, &edTiid);
