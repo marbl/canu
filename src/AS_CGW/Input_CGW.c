@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.59 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.60 2009-06-22 07:53:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -135,14 +135,14 @@ ProcessFrags(void) {
 
       cifrag->mateOf   = NULLINDEX;
       cifrag->dist     = NULLINDEX;
-      cifrag->flags.bits.linkType   = AS_UNKNOWN;
+      cifrag->flags.bits.linkType   = (LinkType)AS_UNKNOWN;
       cifrag->flags.bits.edgeStatus = INVALID_EDGE_STATUS;
       cifrag->flags.bits.hasMate    = FALSE;
 
       if (mifrag) {
         mifrag->mateOf   = NULLINDEX;
         mifrag->dist     = NULLINDEX;
-        mifrag->flags.bits.linkType   = AS_UNKNOWN;
+        mifrag->flags.bits.linkType   = (LinkType)AS_UNKNOWN;
         mifrag->flags.bits.edgeStatus = INVALID_EDGE_STATUS;
         cifrag->flags.bits.hasMate    = FALSE;
       }
@@ -444,7 +444,7 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
 	cifrag.flags.bits.isChaff                    = FALSE;
         cifrag.flags.bits.innieMate                  = FALSE;
         cifrag.flags.bits.hasMate                    = FALSE;
-        cifrag.flags.bits.linkType                   = AS_UNKNOWN;
+        cifrag.flags.bits.linkType                   = (LinkType)AS_UNKNOWN;
 	cifrag.flags.bits.edgeStatus                 = INVALID_EDGE_STATUS;
         cifrag.flags.bits.mateDetail                 = UNASSIGNED_MATE;
 
