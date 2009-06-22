@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.4 2009-06-22 12:04:53 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.5 2009-06-22 12:40:58 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -37,7 +37,7 @@ static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.4 2009-06-22 12:04:53 brianwal
 static
 int
 MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
-                 int show_cel_status) {
+             int show_cel_status) {
   char **multia;
   int **ia;
   int length = GetNumColumns(ma->columns);
@@ -157,7 +157,7 @@ MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
 
 int
 MultiAlignUnitig(IntUnitigMesg   *unitig,
-                 gkStore *fragStore,
+                 gkStore         *fragStore,
                  VA_TYPE(char)   *sequence,
                  VA_TYPE(char)   *quality,
                  VA_TYPE(int32)  *deltas,
@@ -169,6 +169,7 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
   VA_TYPE(int32) *trace   = NULL;
   MANode         *ma      = NULL;
   SeqInterval    *offsets = NULL;
+  SeqInterval    *placed  = NULL;
 
   gkpStore          = fragStore;
 
@@ -190,8 +191,14 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
   trace   = CreateVA_int32(2 * AS_READ_MAX_LEN);
   ma      = CreateMANode(unitig->iaccession);
   offsets = (SeqInterval *)safe_calloc(unitig->num_frags, sizeof(SeqInterval));
+  placed  = (SeqInterval *)safe_calloc(unitig->num_frags, sizeof(SeqInterval));
 
   assert(ma->lid == 0);
+
+  uint32    frankensteinLen = 0;
+  uint32    frankensteinMax = 1024 * 1024;
+  char     *frankenstein    = (char *)safe_malloc(sizeof(char) * frankensteinMax);
+  int32    *frankensteinBof = (int32 *)safe_malloc(sizeof(int32) * frankensteinMax);
 
   for (i=0; i<unitig->num_frags; i++) {
     int complement = (unitig->f_list[i].position.bgn < unitig->f_list[i].position.end) ? 0 : 1;
@@ -209,8 +216,8 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
       goto MAUnitigFailure;
     }
 
-    // This guy allocates and initializes the beads for each
-    // fragment.  Beads are not fully inserted in the abacus here.
+    // This guy allocates and initializes the beads for each fragment.  Beads are not fully inserted
+    // in the abacus here.
 
     fid = AppendFragToLocalStore(unitig->f_list[i].type,
                                  unitig->f_list[i].ident,
@@ -221,7 +228,11 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
     offsets[fid].bgn = complement ? unitig->f_list[i].position.end : unitig->f_list[i].position.bgn;
     offsets[fid].end = complement ? unitig->f_list[i].position.bgn : unitig->f_list[i].position.end;
 
-    //  If this is violated, then align_to is not a valid index into unitig->f_list.
+    placed[fid].bgn  = 0;
+    placed[fid].end  = 0;
+
+    //  If this is violated, then the implicit map from offsets[] and placed[] to unitig->f_list is
+    //  incorrect.
     assert(fid == i);
 
     if (VERBOSE_MULTIALIGN_OUTPUT)
@@ -231,17 +242,42 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
 
   SeedMAWithFragment(ma->lid, GetFragment(fragmentStore,0)->lid,0, opp);
 
-  // Now, loop on remaining fragments, aligning to:
-  //    a)  containing frag (if contained)
-  // or b)  previously aligned frag
+  //  Save columns
+  {
+    int32   bidx = GetFragment(fragmentStore, 0)->firstbead;
+    Bead   *bead = GetBead(beadStore, bidx);
+
+    while (bead) {
+      frankenstein   [frankensteinLen] = *Getchar(sequenceStore, bead->soffset);
+      frankensteinBof[frankensteinLen] = bead->boffset;
+
+      frankensteinLen++;
+
+      bead = (bead->next == -1) ? NULL : GetBead(beadStore, bead->next);
+    }
+
+    frankenstein   [frankensteinLen] = 0;
+    frankensteinBof[frankensteinLen] = -1;
+
+    placed[0].bgn = 0;
+    placed[0].end = frankensteinLen;
+  }
+
+
 
   for (i=1; i<unitig->num_frags; i++) {
-    int         align_to     = i-1;
-    Fragment   *afrag        = NULL;                           //  Last frag
+    int         piid         = 0;
+    int         pbeg         = 0;
+    int         pend         = 0;
+
+    Fragment   *afrag        = NULL;
     Fragment   *bfrag        = GetFragment(fragmentStore, i);  //  This frag
 
-    int         ahang        = 0;
+    int         ahang        = 0;  //  Hangs relative to frankenstein
     int         bhang        = 0;
+
+    int         beg          = 0;  //  Positions in frankenstein
+    int         end          = 0;
 
     int         olap_success = 0;
     OverlapType otype;
@@ -259,337 +295,200 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
               unitig->f_list[i].ahang,
               unitig->f_list[i].bhang,
               unitig->f_list[i].contained);
+
+#define SHOW_PLACEMENT_BEFORE
+#ifdef SHOW_PLACEMENT_BEFORE
+      for (uint32 x=0; x<=i; x++)
+        fprintf(stderr, "MultiAlignUnitig()-- %3d  f_list %6d,%6d  offsets %6d,%6d  placed %6d,%6d\n",
+                x,
+                unitig->f_list[x].position.bgn, unitig->f_list[x].position.end,
+                offsets[x].bgn, offsets[x].end,
+                placed[x].bgn, placed[x].end);
+#endif
     }
 
-    //  Scan for the thickest overlap to an existing fragment.  If our
-    //  parent is NOT this fragment, we may be in for alignment
-    //  troubles.
+    //  Place the fragment in the frankenstein using the parent and hangs.  If no parent supplied,
+    //  fallback to the positions.
+    //
+    //   ---------------------------------
+    //              |-------------|  piid == afrag
+    //                 |----|        i
     //
 
-
-    //  If we have a parent, assume the hangs are correct and just
-    //  align to it.  If that works, we're done.
-    //
-    //  But first, we need to check that the parent is in fact our
-    //  thickest overlap.  If not, we'll introduce too many gaps in
-    //  the consensus to use this method.
-    //
     if (unitig->f_list[i].parent > 0) {
-      int  numDovetail = 0;
+      for (piid = i-1; piid >= 0; piid--) {
+        afrag = GetFragment(fragmentStore, piid);
 
-      //  Search for the parent fragment -- it MUST be the first
-      //  non-contained we see, otherwise, there is a thicker overlap
-      //  we should be using.
-      //
-      for (align_to = i-1; align_to >= 0; align_to--) {
-        afrag = GetFragment(fragmentStore, align_to);
-
-        //  Keep track of the number of non-contained fragments we've
-        //  encountered.
-        if (unitig->f_list[align_to].contained == 0)
-          numDovetail++;
-
-        //  Did we find the parent?
         if (unitig->f_list[i].parent == afrag->iid) {
-          ahang = unitig->f_list[i].ahang;
-          bhang = unitig->f_list[i].bhang;
+          beg = placed[piid].bgn + unitig->f_list[i].ahang;
+          end = placed[piid].end + unitig->f_list[i].bhang;
+          ovl = end - beg;
 
-          //  Here, we trust the hangs more than the placement, but we
-          //  cannot compute the overlap length from just the hangs (OK,
-          //  we could, using the fragment length, I guess).
+          ahang = beg;
+          bhang = end - frankensteinLen;
 
-          if (ahang > 0)
-            if (bhang > 0)
-              //  normal dovetail
-              ovl = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
-            else
-              //  b is contained in a
-              //ovl = offsets[bfrag->lid].end - offsets[bfrag->lid].bgn;
-              ovl = bfrag->length;
+          //fprintf(stderr, "PLACE(1)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
+          //        beg, end, ahang, bhang, frankensteinLen);
+
+          //  HACK.  If the positions don't agree, move along.
+          int bdiff = beg - offsets[i].bgn;
+          int ediff = end - offsets[i].end;
+
+          bdiff = (bdiff < 0) ? -bdiff : bdiff;
+          ediff = (ediff < 0) ? -ediff : ediff;
+
+          if ((bdiff < 300) && (ediff < 300))
+            goto doAlign;
           else
-            //  We don't expect these to occur.
-            if (bhang > 0)
-              //  a is contained in b
-              //ovl = offsets[afrag->lid].end - offsets[afrag->lid].bgn;
-              ovl = afrag->length;
-            else
-              //  anti normal dovetail
-              ovl = offsets[bfrag->lid].end - offsets[afrag->lid].bgn;
-
-          //  If this is the first non-contained fragment we've
-          //  encountered, OR the fragment is contained, try the
-          //  alignment.
-          //
-          if ((numDovetail == 1) || (unitig->f_list[i].contained == afrag->iid)) {
-            if (VERBOSE_MULTIALIGN_OUTPUT)
-              fprintf(stderr, "MultiAlignUnitig()-- (par) ovl=%d (afrag: lid=%d %d-%d  bfrag: lid=%d %d-%d  hangs: %d %d\n",
-                      ovl,
-                      afrag->lid, offsets[afrag->lid].bgn, offsets[afrag->lid].end,
-                      bfrag->lid, offsets[bfrag->lid].bgn, offsets[bfrag->lid].end,
-                      ahang, bhang);
-
-            olap_success = GetAlignmentTraceDriver(afrag, 0,
-                                                   bfrag,
-                                                   &ahang, &bhang, ovl,
-                                                   trace,
-                                                   &otype,
-                                                   'u',
-                                                   0);
-          } else {
-            if (VERBOSE_MULTIALIGN_OUTPUT)
-              fprintf(stderr, "MultiAlignUnitig()-- (par) ovl=%d (afrag: lid=%d %d-%d  bfrag: lid=%d %d-%d  hangs: %d %d  NOT FIRST DOVETAIL, skip\n",
-                      ovl,
-                      afrag->lid, offsets[afrag->lid].bgn, offsets[afrag->lid].end,
-                      bfrag->lid, offsets[bfrag->lid].bgn, offsets[bfrag->lid].end,
-                      ahang, bhang);
-          }
-
-          //  We're done with the loop now.  Continue; if we found an
-          //  overlap, we skip the while loop below and process this
-          //  overlap.
-
-          break;
-        }  //  Found the parent
-      }  //  Over all potential parent fragments
-    }  //  No parent
-
-
-    //  Start over.
-    align_to = i-1;
-    while (! olap_success) {
-      int         allow_neg_hang_once = 0;
-      int         ahangvalid   = 0;
-
-      if (align_to < 0) {
-        if (VERBOSE_MULTIALIGN_OUTPUT)
-          fprintf(stderr, "MultiAlignUnitig()-- hit the beginning of fragment list: no fragment upstream overlaps with current fragment %d\n",
-                  bfrag->iid);
-        break;
-      }
-
-
-      //  Grab the candidate fragment.
-      //
-      afrag = GetFragment(fragmentStore, align_to);
-
-
-      //  If there is an overlap store, and our parent isn't this fragment, query
-      //  the store to find the overlap to get the correct hangs.
-      //
-      if ((ahangvalid == 0) &&
-          (unitig->f_list[i].parent != afrag->iid) &&
-          (ovlStore)) {
-        OVSoverlap  ovsOverlap;
-        int         foundOverlap = 0;
-
-        fprintf(stderr, "get afrag=%d from store.  bfrag=%d\n", afrag->iid, bfrag->iid);
-
-        AS_OVS_setRangeOverlapStore(ovlStore, afrag->iid, afrag->iid);
-
-        while ((ahangvalid == 0) &&
-               (AS_OVS_readOverlapFromStore(ovlStore, &ovsOverlap, AS_OVS_TYPE_OVL))) {
-          if (ovsOverlap.b_iid != bfrag->iid)
-            continue;
-
-          if (unitig->f_list[align_to].position.bgn < unitig->f_list[align_to].position.end) {
-            ahang = ovsOverlap.dat.ovl.a_hang;
-            bhang = ovsOverlap.dat.ovl.b_hang;
-          } else {
-            ahang = -ovsOverlap.dat.ovl.b_hang;
-            bhang = -ovsOverlap.dat.ovl.a_hang;
-          }
-
-          if (ahang > 0)
-            if (bhang > 0)
-              //  normal dovetail
-              ovl = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
-            else
-              //  b is contained in a
-              //ovl = offsets[bfrag->lid].end - offsets[bfrag->lid].bgn;
-              ovl = bfrag->length;
-          else
-            //  We don't expect these to occur.
-            if (bhang > 0)
-              //  a is contained in b
-              //ovl = offsets[afrag->lid].end - offsets[afrag->lid].bgn;
-              ovl = afrag->length;
-            else
-              //  anti normal dovetail
-              ovl = offsets[bfrag->lid].end - offsets[afrag->lid].bgn;
-
-          if (VERBOSE_MULTIALIGN_OUTPUT)
-            fprintf(stderr, "MultiAlignUnitig()-- (ovs) ovl=%d (afrag: lid=%d %d-%d  bfrag: lid=%d %d-%d  hangs: %d %d\n",
-                    ovl,
-                    afrag->lid, offsets[afrag->lid].bgn, offsets[afrag->lid].end,
-                    bfrag->lid, offsets[bfrag->lid].bgn, offsets[bfrag->lid].end,
-                    ahang, bhang);
-
-          //  SPECIAL CASE;  This is a REAL OVERLAP, so allow the negative hang.
-          if (ahang < 0)
-            allow_neg_hang_once = TRUE;
-
-          ahangvalid = 3;
+            fprintf(stderr, "PLACE(1)-- Change too big; expected %d,%d got %d,%d\n",
+                    offsets[i].bgn, offsets[i].end,
+                    beg, end);
         }
       }
+    }
 
-      //  If the parent is defined, then unitigger/bog should have
-      //  filled in the correct ahang and bhang.
-      //
-      if ((ahangvalid == 0) &&
-          (unitig->f_list[i].parent > 0) &&
-          (unitig->f_list[i].parent == afrag->iid)) {
-        ahang = unitig->f_list[i].ahang;
-        bhang = unitig->f_list[i].bhang;
 
-        //  Here, we trust the hangs more than the placement, but we
-        //  cannot compute the overlap length from just the hangs (OK,
-        //  we could, using the fragment length, I guess).
+    if (unitig->f_list[i].contained != 0) {
+      for (piid = i-1; piid >= 0; piid--) {
+        afrag = GetFragment(fragmentStore, piid);
 
-        if (ahang > 0)
-          if (bhang > 0)
-            //  normal dovetail
-            ovl = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
-          else
-            //  b is contained in a
-            //ovl = offsets[bfrag->lid].end - offsets[bfrag->lid].bgn;
-            ovl = bfrag->length;
-        else
-          //  We don't expect these to occur.
-          if (bhang > 0)
-            //  a is contained in b
-            //ovl = offsets[afrag->lid].end - offsets[afrag->lid].bgn;
-            ovl = afrag->length;
-          else
-            //  anti normal dovetail
-            ovl = offsets[bfrag->lid].end - offsets[afrag->lid].bgn;
+        if (unitig->f_list[i].contained == afrag->iid) {
+          beg = placed[piid].bgn + offsets[i].bgn - offsets[afrag->lid].bgn;
+          end = placed[piid].end + offsets[i].end - offsets[afrag->lid].end;
+          ovl = end - beg;
 
-        if (VERBOSE_MULTIALIGN_OUTPUT)
-          fprintf(stderr, "MultiAlignUnitig()-- (new) ovl=%d (afrag: lid=%d %d-%d  bfrag: lid=%d %d-%d  hangs: %d %d\n",
-                  ovl,
-                  afrag->lid, offsets[afrag->lid].bgn, offsets[afrag->lid].end,
-                  bfrag->lid, offsets[bfrag->lid].bgn, offsets[bfrag->lid].end,
-                  ahang, bhang);
+          ahang = beg;
+          bhang = end - frankensteinLen;
 
-        ahangvalid = 2;
+          //fprintf(stderr, "PLACE(2)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
+          //        beg, end, ahang, bhang, frankensteinLen);
+
+          goto doAlign;
+        }
       }
+    }
 
-      //  Otherwise, fallback to the layout to guesstimate the hangs.
-      //
-      if (ahangvalid == 0) {
-        //  This code copied into MergeMultiAligns & MultiAlignContig
-        ahang = offsets[bfrag->lid].bgn - offsets[afrag->lid].bgn;
-        bhang = offsets[bfrag->lid].end - offsets[afrag->lid].end;
 
-        if (offsets[afrag->lid].bgn < offsets[bfrag->lid].bgn)
-          if (offsets[afrag->lid].end < offsets[bfrag->lid].end)
-            ovl = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
-          else
-            //ovl = offsets[bfrag->lid].end - offsets[bfrag->lid].bgn;
-            ovl = bfrag->length;
-        else
-          if (offsets[afrag->lid].end < offsets[bfrag->lid].end)
-            //ovl = offsets[afrag->lid].end - offsets[afrag->lid].bgn;
-            ovl = afrag->length;
-          else
-            ovl = offsets[bfrag->lid].end - offsets[afrag->lid].bgn;
+    if (unitig->f_list[i].contained == 0) {
+      int   thickest    = -1;
+      int   thickestLen = 0;
 
-        //  End of copy
+      //  Find the thickest piid overlap
+      for (piid = i-1; piid >= 0; piid--) {
+        afrag = GetFragment(fragmentStore, piid);
 
-        if (VERBOSE_MULTIALIGN_OUTPUT)
-          fprintf(stderr, "MultiAlignUnitig()-- (old) ovl=%d (afrag: lid=%d %d-%d  bfrag: lid=%d %d-%d  hangs: %d %d\n",
-                  ovl,
-                  afrag->lid, offsets[afrag->lid].bgn, offsets[afrag->lid].end,
-                  bfrag->lid, offsets[bfrag->lid].bgn, offsets[bfrag->lid].end,
-                  ahang, bhang);
+        if ((offsets[i].bgn < offsets[afrag->lid].end) ||
+            (offsets[i].end > offsets[afrag->lid].bgn)) {
+          beg = placed[piid].bgn + offsets[i].bgn - offsets[afrag->lid].bgn;
+          end = placed[piid].end + offsets[i].end - offsets[afrag->lid].end;
+          ovl = end - beg;
 
-        ahangvalid = 1;
+          if (thickestLen < ovl) {
+            thickest    = piid;
+            thickestLen = ovl;
+          }
+        }
+
+        assert(thickest >= 0);
+
+        beg = placed[thickest].bgn + offsets[i].bgn - offsets[afrag->lid].bgn;
+        end = placed[thickest].end + offsets[i].end - offsets[afrag->lid].end;
+        ovl = end - beg;
+        
+        ahang = beg;
+        bhang = end - frankensteinLen;
+
+        //fprintf(stderr, "PLACE(3)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
+        //        beg, end, ahang, bhang, frankensteinLen);
+
+        goto doAlign;
       }
+    }
+
+    assert(0);
+    
+  doAlign:
+
+#define AHANGOFFSET
+#ifdef AHANGOFFSET
+    int32  ahang_offset = MAX(0, ahang - 100);
+    int32  bhang_offset = 0;
+    int32  bhang_posn   = frankensteinLen;  //  unless reset in the test below, use only for diagnostic
+    char   bhang_base   = 0;
+
+    if (bhang + 100 < 0) {
+      bhang_offset = bhang + 100;
+      bhang_posn   = frankensteinLen + bhang_offset;
+      bhang_base   = frankenstein[bhang_posn];
+      frankenstein[bhang_posn] = 0;
+    }
+
+    ahang -= ahang_offset;
+    bhang -= bhang_offset;
+#else
+    int32 ahang_offset = 0;
+#endif
+
+    if (VERBOSE_MULTIALIGN_OUTPUT)
+      fprintf(stderr, "MultiAlignUnitig()-- Aligning bfrag iid %d utgpos %d,%d to afrag iid %d utgpos %d,%d -- frankenstein=%d,%d ovl=%d hang=%d,%d\n",
+              bfrag->iid,
+              offsets[bfrag->lid].bgn,
+              offsets[bfrag->lid].end,
+              afrag->iid,
+              offsets[afrag->lid].bgn,
+              offsets[afrag->lid].end,
+              ahang_offset, bhang_posn,
+              ovl,
+              ahang, bhang);
 
 
-      //  If there is no overlap in the layout, fail.
-      //
-      if (ovl <= 0) {
-        if (VERBOSE_MULTIALIGN_OUTPUT)
-          fprintf(stderr, "MultiAlignUnitig()-- positions of afrag %d and bfrag %d do not overlap; proceed to the next upstream afrag\n",
-                  afrag->iid, bfrag->iid);
-        align_to--;
-        continue;
-      }
+    olap_success = GetAlignmentTraceDriver(0, frankenstein + ahang_offset,
+                                           bfrag,
+                                           &ahang, &bhang, ovl,
+                                           trace,
+                                           &otype,
+                                           'u',
+                                           0);
+    //fprintf(stderr, "GetAlignmentTrace returned success=%d hang=%d,%d\n",
+    //        olap_success, ahang, bhang);
 
-
-      // Make sure ahang is above the cutoff value.  If it's not, may
-      // need to sort fragments begfore processing.
-      //
-      if ((ahang < CNS_NEG_AHANG_CUTOFF) && (allow_neg_hang == FALSE) && (allow_neg_hang_once == FALSE)) {
-        if (VERBOSE_MULTIALIGN_OUTPUT)
-          fprintf(stderr, "MultiAlignUnitig()-- too negative ahang is detected for afrag %d and bfrag %d; proceed to the next upstraem afrag\n",
-                  afrag->iid,  bfrag->iid);
-        align_to--;
-        continue;
-      }
-
-
-      //  If the bfrag is marked as contained, require that it be
-      //  contained in the overlap.
-      //  If it's not contained and not aligned to the parent, try again.  
-      //
-      if ((bfrag->container_iid > 0) &&
-	       ((bhang > 0) || (ahang < 0)) &&
-          (bfrag->container_iid != afrag->iid)) {
-        if (VERBOSE_MULTIALIGN_OUTPUT)
-          fprintf(stderr, "MultiAlignUnitig()-- afrag %d is not container of contained bfrag %d; proceed to the next upstraem afrag\n",
-                  afrag->iid, bfrag->iid);
-        align_to--;
-        continue;
-      }
-
-
-      //  If the bfrag is not contained, prevent alignments to
-      //  contained fragments, unless that is our parent.
-      //
-      if ((bfrag->container_iid == 0) &&
-          (afrag->container_iid  > 0) &&
-          ((allow_contained_parent == 0) || (unitig->f_list[i].parent != afrag->iid))) {
-        if (VERBOSE_MULTIALIGN_OUTPUT)
-          fprintf(stderr, "MultiAlignUnitig()-- afrag %d is contained, and not parent of uncontained bfrag %d; proceed to the next upstraem afrag\n",
-                  afrag->iid, bfrag->iid);
-        align_to--;
-        continue;
-      }
-
-
-      if (VERBOSE_MULTIALIGN_OUTPUT)
-        fprintf(stderr, "MultiAlignUnitig()-- Aligning frag #%d (iid %d, range %d,%d) to afrag iid %d range %d,%d -- ovl=%d ahang=%d\n",
-                unitig->f_list[i].ident,
-                bfrag->iid,
-                offsets[bfrag->lid].bgn,
-                offsets[bfrag->lid].end,
-                afrag->iid,
-                offsets[afrag->lid].bgn,
-                offsets[afrag->lid].end,
-                ovl,
-                ahang);
-
-
-      olap_success = GetAlignmentTraceDriver(afrag, 0,
+    //  Try again allowing negative hangs.
+    if (!olap_success) {
+      allow_neg_hang = 1;
+      olap_success = GetAlignmentTraceDriver(0, frankenstein + ahang_offset,
                                              bfrag,
                                              &ahang, &bhang, ovl,
                                              trace,
                                              &otype,
                                              'u',
                                              0);
+      //fprintf(stderr, "GetAlignmentTrace returned success=%d hang=%d,%d\n",
+      //        olap_success, ahang, bhang);
+      allow_neg_hang = 0;
+    }
 
-      if (!olap_success) {
-        if (VERBOSE_MULTIALIGN_OUTPUT)
-          fprintf(stderr, "MultiAlignUnitig()-- positions of bfrag %d (%c) and afrag %d (%c) overlap, but no overlap found; estimated ahang: %d%s\n",
-                  bfrag->iid, bfrag->type,
-                  afrag->iid, afrag->type,
-                  ahang,
-                  (bfrag->container_iid)?" (reported contained)":"");
-        align_to--;
-      }
-    }   //  while (!olap_success)
 
+#ifdef AHANGOFFSET
+    //  If we've set the base, we've trimmed the end of frankenstein
+    //  to limit the alignment.  Restore it to what it was before.
+    //
+    if (bhang_base)
+      frankenstein[bhang_posn] = bhang_base;
+
+    //  Update the trace to account for the bases in A we ignored in GetAlignmentTrace()....but
+    //  aren't going to ignore when we ApplyAlignment().
+    //
+    for (int32 *t = Getint32(trace, 0); (t != NULL) && (*t != 0); t++)
+      if (*t < 0)
+        *t -= ahang_offset;
+
+    //  Make sure we didn't bump against what we trimmed off
+    assert((ahang >= 0) || (ahang_offset == 0));
+    assert((bhang <= 0) || (bhang_offset == 0));
+
+    ahang += ahang_offset;
+    bhang += bhang_offset;
+#endif
 
     if (!olap_success) {
       fprintf(stderr, "MultiAlignUnitig()-- Unitig %d FAILED.  Overlap not found between %sbfrag %d (%c) and afrag %d (%c)%s.\n",
@@ -599,49 +498,163 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
               afrag->iid, afrag->type,
               (bfrag->container_iid == 0) ? "" : ((bfrag->container_iid == afrag->iid) ? ", the container" : ", not the container"));
 
+      //fprintf(stderr, ">frankenstein\n%s\n", frankenstein);
+      //assert(0);
+
       goto MAUnitigFailure;
     }
 
 
-    // Without this marking, the multialignment is likely to have
-    // pieces which are not properly aligned, and which will appear as
-    // block indels (large gap-blocks) which will foil future overlaps
-    // involving the consensus sequence of this "reformed" unitig
+    //  Add the alignment to abacus
     //
-    if (otype == AS_CONTAINMENT) {
-      bfrag->is_contained = 1;
-      if (bfrag->container_iid == 0)
-        bfrag->container_iid = 1;  //  Not sure why 1 and not afrag->iid
-    }
+    ApplyAlignment(-1,
+                   frankensteinLen, frankensteinBof,
+                   i,
+                   ahang, Getint32(trace, 0));
 
-    if (VERBOSE_MULTIALIGN_OUTPUT)
-      fprintf(stderr, "MultiAlignUnitig()--  bfrag %d (%c) is %s in afrag %d (%c).\n",
-              bfrag->iid, bfrag->type,
-              (otype == AS_CONTAINMENT) ? "contained" : "not contained",
-              afrag->iid, afrag->type);
+
+    //  Update the placement of this read in the frankenstein
+    //
+    placed[i].bgn = ahang;
+    placed[i].end = frankensteinLen + bhang;
+    //fprintf(stderr, "PLACE(4)-- set %d to %d,%d\n", i, placed[i].bgn, placed[i].end);
 
 
     //  Update parent and hangs to reflect the overlap that succeeded.
     //
     if ((unitig->f_list[i].parent != afrag->iid) ||
-        (unitig->f_list[i].ahang  != ahang) ||
-        (unitig->f_list[i].bhang  != bhang) ||
+        (unitig->f_list[i].ahang  != placed[i].bgn - placed[piid].bgn) ||
+        (unitig->f_list[i].bhang  != placed[i].end - placed[piid].end) ||
         ((otype == AS_CONTAINMENT) && (unitig->f_list[i].contained != afrag->iid))) {
-      if (unitig->f_list[i].parent)
+      if ((unitig->f_list[i].parent) &&
+          (VERBOSE_MULTIALIGN_OUTPUT))
         fprintf(stderr, "MultiAlignUnitig()-- update parent from id=%d %d,%d to id=%d %d,%d\n",
                 unitig->f_list[i].parent, unitig->f_list[i].ahang, unitig->f_list[i].bhang,
-                afrag->iid, ahang, bhang);
+                afrag->iid,
+                placed[i].bgn - placed[piid].bgn,
+                placed[i].end - placed[piid].end);
 
       unitig->f_list[i].parent = afrag->iid;
-      unitig->f_list[i].ahang  = ahang;
-      unitig->f_list[i].bhang  = bhang;
+      unitig->f_list[i].ahang  = placed[i].bgn - placed[piid].bgn;
+      unitig->f_list[i].bhang  = placed[i].end - placed[piid].end;
 
       if (otype == AS_CONTAINMENT)
         unitig->f_list[i].contained = afrag->iid;
     }
 
-    ApplyAlignment(afrag->lid, 0, NULL, bfrag->lid, ahang, Getint32(trace, 0));
+
+    //
+    //  Extend the frankenstein.  Son of Frankenstein!
+    //
+    //  We know the last bead in the current frankenstein.  We use that to find the first bead in
+    //  the new sequence, then march along the new sequence copying column IDs and bases to
+    //  frankenstein.
+    //
+    //  Details (for bhangs):
+    //
+    //  Grab the last bead of the current frankenstein.  That bead should be the first thing added
+    //  to a column, and so should be on the bottom of the column (that's the assert -- if not, grab
+    //  the column, and find the last bead).  Then, search up the column for the first bead from the
+    //  current fragment.
+    //
+    //  This bead is the last thing in the current frankenstein.  Move one spot to the right, now
+    //  we're at the first thing we need to add to frankenstein.  Walk along the beads, adding to
+    //  frankenstein, until there are no more beads.
+    //
+    //  Details (for ahangs):
+    //
+    //  Very similar to the bhang case but complicated in that we push bases onto the start of
+    //  frankenstein, and so we must also update the fragment position mapping array.
+
+    if (bhang > 0) {
+      int32   bidx = frankensteinBof[frankensteinLen-1];
+      Bead   *bead = GetBead(beadStore, bidx);
+
+      assert(bead->down == -1);  //  Just searching up will break if this triggers
+
+      while ((bead) && (bead->frag_index != i))
+        bead = (bead->up == -1) ? NULL : GetBead(beadStore, bead->up);
+
+      assert((bead) && (bead->frag_index == i));  //  Never found the correct fragment?!?
+
+      for (bead = (bead->next == -1) ? NULL : GetBead(beadStore, bead->next);
+           bead;
+           bead = (bead->next == -1) ? NULL : GetBead(beadStore, bead->next)) {
+        frankenstein   [frankensteinLen] = *Getchar(sequenceStore, bead->soffset);
+        frankensteinBof[frankensteinLen] = bead->boffset;
+
+#undef SHOW_FRANKENSTEIN_ADD
+#ifdef SHOW_FRANKENSTEIN_ADD
+        fprintf(stderr, "frankenstein[%4d]-- Added bead %d,%c frag=%d\n",
+                frankensteinLen,
+                frankensteinBof[frankensteinLen],
+                frankenstein   [frankensteinLen],
+                bead->frag_index);
+#endif
+
+        frankensteinLen++;
+
+        if (frankensteinLen > frankensteinMax) {
+          //  Just being lazy; need to reallocate this.
+          assert(frankensteinLen < frankensteinMax);
+        }
+      }
+
+      frankenstein   [frankensteinLen] = 0;
+      frankensteinBof[frankensteinLen] = -1;
+    }  //  End of extending to the right.
+
+
+    if (ahang < 0) {
+      if (frankensteinLen + -ahang > frankensteinMax) {
+        //  Just being lazy; need to reallocate this.
+        assert(frankensteinLen + -ahang < frankensteinMax);
+      }
+
+      for (int32 x=frankensteinLen; x>=0; x--) {
+        frankenstein   [x + -ahang] = frankenstein   [x];
+        frankensteinBof[x + -ahang] = frankensteinBof[x];
+      }
+      frankensteinLen += -ahang;
+
+      for (int32 x=0; x<-ahang; x++) {
+        frankenstein   [x] = 0;
+        frankensteinBof[x] = -1;
+      }
+
+      for (int32 x=0; x<=i; x++) {
+        placed[x].bgn  += -ahang;
+        placed[x].end  += -ahang;
+      }
+
+      int32   bidx = frankensteinBof[-ahang];
+      Bead   *bead = GetBead(beadStore, bidx);
+
+      assert(bead->down == -1);  //  Just searching up will break if this triggers
+      assert(bead->prev == -1);  //  Should be the first bead in the frankenstein
+
+      while ((bead) && (bead->frag_index != i))
+        bead = (bead->up == -1) ? NULL : GetBead(beadStore, bead->up);
+
+      assert((bead) && (bead->frag_index == i));  //  Never found the correct fragment?!?
+
+      while (bead->prev != -1) {
+        //fprintf(stderr, "prev bead: boffset %d prev %d\n", bead->boffset, bead->prev);
+        bead = GetBead(beadStore, bead->prev);
+      }
+
+      assert((bead) && (bead->frag_index == i));  //  Never found the correct fragment?!?
+
+      for (int x=0; x<-ahang; x++) {
+        frankenstein   [x] = *Getchar(sequenceStore, bead->soffset);
+        frankensteinBof[x] = bead->boffset;
+
+        bead = GetBead(beadStore, bead->next);
+      }
+    }  //  End of extending to the left.
   }  //  over all frags
+
+
 
   RefreshMANode(ma->lid, 0, opp, NULL, NULL, 0, 0);
 
@@ -666,37 +679,6 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
       (printwhat == CNS_VIEW_UNITIG))
     PrintAlignment(stderr,ma->lid,0,-1,printwhat);
 
-
-  //  Fix up our containments.  Sometimes consensus will move a
-  //  fragment out of the containment relationship, and this causes
-  //  headaches later on.
-  //
-  {
-    int   frag = 0;
-    int   cntr = 0;
-
-    for (frag=1; frag < unitig->num_frags; frag++) {
-      if (unitig->f_list[frag].contained) {
-        for (cntr=frag-1; cntr>=0; cntr--) {
-          if (unitig->f_list[frag].contained == unitig->f_list[cntr].ident) {
-            int cbeg = MIN(unitig->f_list[cntr].position.bgn, unitig->f_list[cntr].position.end);
-            int fbeg = MIN(unitig->f_list[frag].position.bgn, unitig->f_list[frag].position.end);
-
-            int cend = MAX(unitig->f_list[cntr].position.bgn, unitig->f_list[cntr].position.end);
-            int fend = MAX(unitig->f_list[frag].position.bgn, unitig->f_list[frag].position.end);
-
-            if ((fbeg < cbeg) || (cend > cend)) {
-              //fprintf(stderr, "WARNING: FRAG %d (%d,%d) is NOT contained in %d (%d,%d)\n",
-              //        unitig->f_list[frag].ident, unitig->f_list[frag].position.bgn, unitig->f_list[frag].position.end,
-              //        unitig->f_list[cntr].ident, unitig->f_list[cntr].position.bgn, unitig->f_list[cntr].position.end);
-
-              unitig->f_list[frag].contained = 0;
-            }
-          }
-        }
-      }
-    }
-  }
 
 
 
@@ -729,6 +711,9 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
   DeleteMANode(ma->lid);
 
   safe_free(offsets);
+  safe_free(placed);
+  safe_free(frankenstein);
+  safe_free(frankensteinBof);
 
   return(TRUE);
 
@@ -738,6 +723,9 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
   DeleteMANode(ma->lid);
 
   safe_free(offsets);
+  safe_free(placed);
+  safe_free(frankenstein);
+  safe_free(frankensteinBof);
 
   return(FALSE);
 }

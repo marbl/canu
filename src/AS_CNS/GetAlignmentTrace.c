@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GetAlignmentTrace.c,v 1.3 2009-06-22 12:04:53 brianwalenz Exp $";
+static char *rcsid = "$Id: GetAlignmentTrace.c,v 1.4 2009-06-22 12:40:58 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -306,6 +306,7 @@ GetAlignmentTrace(int32           afid,
   int   i;
 
   Fragment *afrag = NULL,          *bfrag = NULL;
+  uint32    aiid  = 0,              biid  = 0;
   char     *aseq  = NULL,          *bseq  = NULL;
   char     *arev  = NULL,          *brev  = NULL;
   int       alen  = 0,              blen  = 0;
@@ -334,14 +335,23 @@ GetAlignmentTrace(int32           afid,
   if (AS_CNS_ERROR_RATE > 0.06)
     CNS_TIGHTSEMIBANDWIDTH = 100;
 
-  //  If this triggers, see version 1.232 for what was here.
-  assert(afid >= 0);
+  if (aseq_input) {
+    assert(afid == -1);
 
-  afrag = GetFragment(fragmentStore,afid);
+    afrag = NULL;
+    aseq  = aseq_input;
+    aiid  = 0;
+  } else {
+    assert(afid >= 0);      //  If this triggers, see version 1.232 for what was here.
+
+    afrag = GetFragment(fragmentStore,afid);
+    aseq  = Getchar(sequenceStore,afrag->sequence);
+    aiid  = afrag->iid;
+  }
+
   bfrag = GetFragment(fragmentStore,bfid);
-
-  aseq  = Getchar(sequenceStore,afrag->sequence);
   bseq  = Getchar(sequenceStore,bfrag->sequence);
+  biid  = bfrag->iid;
 
   alen  = strlen(aseq);
   blen  = strlen(bseq);
@@ -367,7 +377,8 @@ GetAlignmentTrace(int32           afid,
 
   paramsDefault.erate     = input_erate;
 
-  if ((afrag->type == AS_UNITIG) || (bfrag->type == AS_UNITIG))
+  if (((afrag) && (afrag->type == AS_UNITIG)) ||
+      ((bfrag) && (bfrag->type == AS_UNITIG)))
     paramsDefault.erate  *= 2;
 
 
@@ -381,7 +392,7 @@ GetAlignmentTrace(int32           afid,
 #endif
   params = paramsDefault;
   O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
-  if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
+  if ((O) && (allow_neg_hang == 0) && (O->begpos < 0))
     O = NULL;
   if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, params.erate, NULL, NULL, NULL) == 0)
     O = NULL;
@@ -399,7 +410,7 @@ GetAlignmentTrace(int32           afid,
   params        = paramsDefault;
   params.minlen = CNS_DP_THIN_MINLEN;
   O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
-  if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
+  if ((O) && (allow_neg_hang == 0) && (O->begpos < 0))
     O = NULL;
   if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, params.erate, NULL, NULL, NULL) == 0)
     O = NULL;
@@ -418,7 +429,7 @@ GetAlignmentTrace(int32           afid,
     params       = paramsDefault;
     params.erate = paramsDefault.erate * 2;
     O = Compare(aseq,alen,bseq,blen,alignFunction,&params);
-    if ((O) && (allow_neg_hang == 0) && (O->begpos < 0) && (0 < ahang_input + CNS_NEG_AHANG_CUTOFF))
+    if ((O) && (allow_neg_hang == 0) && (O->begpos < 0))
       O = NULL;
     if (ScoreOverlap(O, expected_length, ahang_input, bhang_input, params.erate, NULL, NULL, NULL) == 0)
       O = NULL;
@@ -433,7 +444,9 @@ GetAlignmentTrace(int32           afid,
   //
   ////////////////////////////////////////
 
-
+  if (aseq_input)
+    goto GetAlignmentTrace_ScoreOverlap;
+      
   if ((alignment_context != AS_MERGE) &&
       (bfrag->type       != AS_UNITIG))
     goto GetAlignmentTrace_ScoreOverlap;
@@ -714,13 +727,13 @@ GetAlignmentTrace(int32           afid,
       // Here, we're convinced there is NO acceptable overlap with this alignFunction
       if (show_olap)
         fprintf(stderr,"GetAlignmentTrace()-- Could not find overlap between %d (%c) and %d (%c) hangs: a=%d b=%d erate=%f aligner=%s\n",
-                afrag->iid, afrag->type, bfrag->iid, bfrag->type, ahang_input, bhang_input, input_erate, aligner);
+                aiid, (afrag) ? afrag->type : 'T', biid, bfrag->type, ahang_input, bhang_input, input_erate, aligner);
       return(FALSE);
     }
 
     if (show_olap)
       fprintf(stderr,"GetAlignmentTrace()-- Overlap found between %d (%c) and %d (%c) expected hangs: a=%d b=%d erate=%f aligner=%s\n",
-              afrag->iid, afrag->type, bfrag->iid, bfrag->type, ahang_input, bhang_input, input_erate, aligner);
+              aiid, (afrag) ? afrag->type : 'T', biid, bfrag->type, ahang_input, bhang_input, input_erate, aligner);
   }
 
   //
@@ -739,7 +752,7 @@ GetAlignmentTrace(int32           afid,
     //
     assert(0);
 
-    ReportOverlap(stderr,alignFunction,params,afrag->iid,afrag->type,bfrag->iid,bfrag->type,O,ahang_input);
+    ReportOverlap(stderr, alignFunction, params, aiid, (afrag) ? afrag->type : 'T', biid, bfrag->type, O, ahang_input);
     Print_Overlap(stderr, aseq, bseq, O);
     fprintf(stderr,"GetAlignmentTrace()-- Overlap rejected.  accept=%f lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).\n",
             acceptThreshold,
@@ -769,7 +782,7 @@ GetAlignmentTrace(int32           afid,
   numScores++;
 
   if (show_olap) {
-    ReportOverlap(stderr,alignFunction,params,afrag->iid,afrag->type,bfrag->iid,bfrag->type,O,ahang_input);
+    ReportOverlap(stderr, alignFunction, params, aiid, (afrag) ? afrag->type : 'T', biid, bfrag->type, O, ahang_input);
     Print_Overlap(stderr, NULL, NULL, O);  //  Replace with a,b to print the bases in the align
   }
 

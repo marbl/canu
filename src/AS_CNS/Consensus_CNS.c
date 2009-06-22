@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: Consensus_CNS.c,v 1.78 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.79 2009-06-22 12:40:58 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -326,43 +326,6 @@ main (int argc, char **argv) {
                 (double)iunitig->num_frags / iunitig->length);
 
       unitigsuccess = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, &options);
-
-      if ((unitigsuccess == FALSE) &&
-          (allow_neg_hang_retry) &&
-          (allow_neg_hang == 0)) {
-        fprintf(stderr, "MultiAlignUnitig()-- Try unitig %d again with negative hangs allowed\n", iunitig->iaccession);
-        allow_neg_hang = 1;
-        unitigsuccess = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, &options);
-        allow_neg_hang = 0;
-        if (unitigsuccess == TRUE)
-          NumUnitigRetrySuccess++;
-      }
-
-      if ((unitigsuccess == FALSE) &&
-          (allow_contained_parent_retry) &&
-          (allow_contained_parent == 0)) {
-        fprintf(stderr, "MultiAlignUnitig()-- Try unitig %d again allowing alignments to contained parents\n", iunitig->iaccession);
-        allow_contained_parent = 1;
-        unitigsuccess = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, &options);
-        allow_contained_parent = 0;
-        if (unitigsuccess == TRUE)
-          NumUnitigRetrySuccess++;
-      }
-
-      if ((unitigsuccess == FALSE) &&
-          (allow_neg_hang_retry) &&
-          (allow_neg_hang == 0) &&
-          (allow_contained_parent_retry) &&
-          (allow_contained_parent == 0)) {
-        fprintf(stderr, "MultiAlignUnitig()-- Try unitig %d again with both negative hangs allowed and allowing alignments to contained parents\n", iunitig->iaccession);
-        allow_neg_hang = 1;
-        allow_contained_parent = 1;
-        unitigsuccess = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, &options);
-        allow_neg_hang = 0;
-        allow_contained_parent = 0;
-        if (unitigsuccess == TRUE)
-          NumUnitigRetrySuccess++;
-      }
 
       if (unitigsuccess == FALSE) {
         num_unitig_failures++;
