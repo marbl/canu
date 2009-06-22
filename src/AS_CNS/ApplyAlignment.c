@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: ApplyAlignment.c,v 1.1 2009-05-29 17:29:19 brianwalenz Exp $";
+static char *rcsid = "$Id: ApplyAlignment.c,v 1.2 2009-06-22 12:04:53 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -124,9 +124,9 @@ CheckColumns(void) {
 
 
 
-int32
+void
 ApplyAlignment(int32 afid,
-               int32 aoffset,
+               int32 alenUNUSED, int32 *aindexUNUSED,
                int32 bfid,
                int32 ahang,
                int32 *trace) {
@@ -439,5 +439,4 @@ ApplyAlignment(int32 afid,
 
   safe_free(aindex);
   bfrag->manode=afrag->manode;
-  return last_b_aligned;
 }

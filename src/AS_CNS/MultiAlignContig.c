@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignContig.c,v 1.2 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignContig.c,v 1.3 2009-06-22 12:04:53 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -151,7 +151,7 @@ PlaceFragments(int32 fid,
 
       GetFragment(fragmentStore,blid)->deleted = 1;
     } else {
-      ApplyAlignment(afrag->lid,0,blid,ahang,Getint32(trace,0));
+      ApplyAlignment(afrag->lid, 0, NULL, blid, ahang, Getint32(trace,0));
     }
   }  //  over all fragments
 
@@ -328,7 +328,7 @@ MultiAlignContig(IntConConMesg *contig,
         goto nextFrag;
       }
 
-      olap_success = GetAlignmentTraceDriver(afrag, 0,
+      olap_success = GetAlignmentTraceDriver(afrag, NULL,
                                              bfrag,
                                              &ahang, &bhang, ovl,
                                              trace,
@@ -424,7 +424,7 @@ MultiAlignContig(IntConConMesg *contig,
         bfrag->container_iid = 1;  //  Not sure why 1 and not afrag->iid
     }
 
-    ApplyAlignment(afrag->lid, 0, bfrag->lid, ahang, Getint32(trace,0));
+    ApplyAlignment(afrag->lid, 0, NULL, bfrag->lid, ahang, Getint32(trace,0));
     PlaceFragments(bfrag->lid, &contig->unitigs[bfrag->lid], opp);
   }  //  over all unitigs
 

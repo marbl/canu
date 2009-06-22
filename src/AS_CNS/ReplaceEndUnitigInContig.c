@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.2 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.3 2009-06-22 12:04:53 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -207,7 +207,7 @@ ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
           assert(olap_success);
         }
 
-        ApplyAlignment(aid, 0, bid, ahang, Getint32(trace,0));
+        ApplyAlignment(aid, 0, NULL, bid, ahang, Getint32(trace,0));
         RefreshMANode(ma->lid, 0, opp, NULL, NULL, 0, 0);
 
         //PrintAlignment(stderr,ma->lid,0,-1,'C');
