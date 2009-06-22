@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.243 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.244 2009-06-22 11:44:52 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1028,7 +1028,10 @@ CreateColumn(int32 bid) {
   IncBaseCount(&column.base_count,*Getchar(sequenceStore,head->soffset));
   AppendVA_Column(columnStore, &column);
 #ifdef DEBUG_ABACUS_ALIGN
-  fprintf(stderr, "CreateColumn()-- Added consensus call bead=%d to column=%d for existing bead=%d\n", call.boffset, column.lid, head->boffset);
+  fprintf(stderr, "CreateColumn()-- Added consensus call bead=%d,%c to column=%d for existing bead=%d,%c\n",
+          call.boffset, *Getchar(sequenceStore, call.soffset),
+          column.lid,
+          head->boffset, *Getchar(sequenceStore, head->soffset));
 #endif
   return GetColumn(columnStore, column.lid);
 }
