@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.11 2009-06-05 15:09:08 skoren Exp $";
+static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.12 2009-06-22 11:01:45 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_ALN_bruteforcedp.h"
@@ -75,6 +75,11 @@ alignLinker(char           *alignA,
   int   i, ibgn, iend;
   int   j, jbgn, jend;
 
+  if ((lenA > AS_READ_MAX_LEN) || (lenB > AS_READ_MAX_LEN)) {
+    a->alignLen = 0;
+    return;
+  }
+
   //  Set the edges.
 
 #if 0
@@ -105,8 +110,10 @@ alignLinker(char           *alignA,
       a->alignLen = 0;
       return;
     }
-    
+
     //fprintf(stderr, "bgn: %d,%d  end: %d,%d  lens: %d,%d hangs: %d,%d\n", ibgn, jbgn, iend, jend, lenA, lenB, ahang, bhang);
+    //fprintf(stderr, "A: %s\n", stringA);
+    //fprintf(stderr, "B: %s\n", stringB);
 
     //  To easily allow a little slip in the starting position, we
     //  shift the Border of Death a little to the origin.  Ideally, we
@@ -119,6 +126,9 @@ alignLinker(char           *alignA,
 
     ibgn = MAX(1, ibgn - SLOP);
     jbgn = MAX(1, jbgn - SLOP);
+
+    iend = MIN(lenA, lenA + SLOP);
+    jend = MIN(lenB, lenB + SLOP);
 
     //  Border of Death
 
