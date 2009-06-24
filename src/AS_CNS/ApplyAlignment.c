@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: ApplyAlignment.c,v 1.3 2009-06-22 12:40:58 brianwalenz Exp $";
+static char *rcsid = "$Id: ApplyAlignment.c,v 1.4 2009-06-24 08:59:56 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -375,28 +375,6 @@ ApplyAlignment(int32 afid,
     lasta = GetBead(beadStore, aindex[0])->prev;
     lastb = bindex[bpos - 1];
   }
-
-
-#if 0
-  if ( ahang < 0 ) {
-    Bead *gbead = GetBead(beadStore,bboffset);
-    while ( bpos < -ahang ) {
-      ColumnPrepend(first_touched_column,bboffset+bpos);
-      bpos++;
-    }
-    last_b_aligned = bboffset+bpos-1;
-  }
-
-  assert(apos < alen);
-  assert(bpos < blen);
-
-  last_a_aligned = GetBead(beadStore,aindex[apos])->prev;
-#endif
-
-
-
-
-
 
 
   while ((trace != NULL) && (*trace != 0)) {
