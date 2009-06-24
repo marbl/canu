@@ -218,6 +218,8 @@ endif
 # Broken by BPW's string UID hack: AS_CVT, AS_MPA.  AS_CVT might work,
 # but its only used by AS_MPA.
 
+# Broken by the C++ switch: AS_VWR (won't link on Linux64)
+
 SUBDIRS = AS_RUN \
           AS_UTL \
           AS_UID \
@@ -237,7 +239,6 @@ SUBDIRS = AS_RUN \
           AS_LIN \
           AS_CGW \
           AS_TER \
-          AS_VWR \
 	  AS_ENV \
 	  AS_ARD \
           AS_REF
