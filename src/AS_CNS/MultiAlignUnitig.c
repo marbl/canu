@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.5 2009-06-22 12:40:58 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.6 2009-06-24 09:06:21 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -155,6 +155,7 @@ MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
 
 
 
+
 int
 MultiAlignUnitig(IntUnitigMesg   *unitig,
                  gkStore         *fragStore,
@@ -284,6 +285,9 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
 
     int         ovl          = 0;
 
+    int         triedAgain   = 0;
+
+  tryAgain:
     if (VERBOSE_MULTIALIGN_OUTPUT) {
       fprintf(stderr, "\n");
       fprintf(stderr, "MultiAlignUnitig()-- processing fragment %d iid=%d pos=%d,%d parent=%d,%d,%d contained=%d\n",
@@ -327,10 +331,12 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
           ahang = beg;
           bhang = end - frankensteinLen;
 
-          //fprintf(stderr, "PLACE(1)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
-          //        beg, end, ahang, bhang, frankensteinLen);
+          if (VERBOSE_MULTIALIGN_OUTPUT)
+            fprintf(stderr, "PLACE(1)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
+                    beg, end, ahang, bhang, frankensteinLen);
 
-          //  HACK.  If the positions don't agree, move along.
+          //  HACK.  If the positions don't agree, move along.  BOG sometimes supplies the wrong
+          //  parent for a read.
           int bdiff = beg - offsets[i].bgn;
           int ediff = end - offsets[i].end;
 
@@ -360,8 +366,9 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
           ahang = beg;
           bhang = end - frankensteinLen;
 
-          //fprintf(stderr, "PLACE(2)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
-          //        beg, end, ahang, bhang, frankensteinLen);
+          if (VERBOSE_MULTIALIGN_OUTPUT)
+            fprintf(stderr, "PLACE(2)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
+                    beg, end, ahang, bhang, frankensteinLen);
 
           goto doAlign;
         }
@@ -381,7 +388,7 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
             (offsets[i].end > offsets[afrag->lid].bgn)) {
           beg = placed[piid].bgn + offsets[i].bgn - offsets[afrag->lid].bgn;
           end = placed[piid].end + offsets[i].end - offsets[afrag->lid].end;
-          ovl = end - beg;
+          ovl = MIN(end, frankensteinLen) - beg;
 
           if (thickestLen < ovl) {
             thickest    = piid;
@@ -393,20 +400,21 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
 
         beg = placed[thickest].bgn + offsets[i].bgn - offsets[afrag->lid].bgn;
         end = placed[thickest].end + offsets[i].end - offsets[afrag->lid].end;
-        ovl = end - beg;
-        
+        ovl = MIN(end, frankensteinLen) - beg;
+
         ahang = beg;
         bhang = end - frankensteinLen;
 
-        //fprintf(stderr, "PLACE(3)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
-        //        beg, end, ahang, bhang, frankensteinLen);
+        if (VERBOSE_MULTIALIGN_OUTPUT)
+          fprintf(stderr, "PLACE(3)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
+                  beg, end, ahang, bhang, frankensteinLen);
 
         goto doAlign;
       }
     }
 
     assert(0);
-    
+
   doAlign:
 
 #define AHANGOFFSET
@@ -441,30 +449,27 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
               ovl,
               ahang, bhang);
 
-
-    olap_success = GetAlignmentTraceDriver(0, frankenstein + ahang_offset,
-                                           bfrag,
-                                           &ahang, &bhang, ovl,
-                                           trace,
-                                           &otype,
-                                           'u',
-                                           0);
-    //fprintf(stderr, "GetAlignmentTrace returned success=%d hang=%d,%d\n",
-    //        olap_success, ahang, bhang);
+    olap_success = GetAlignmentTraceDriver(NULL, frankenstein + ahang_offset, bfrag, &ahang, &bhang, ovl, trace, &otype, 'u', 0);
 
     //  Try again allowing negative hangs.
     if (!olap_success) {
       allow_neg_hang = 1;
-      olap_success = GetAlignmentTraceDriver(0, frankenstein + ahang_offset,
-                                             bfrag,
-                                             &ahang, &bhang, ovl,
-                                             trace,
-                                             &otype,
-                                             'u',
-                                             0);
-      //fprintf(stderr, "GetAlignmentTrace returned success=%d hang=%d,%d\n",
-      //        olap_success, ahang, bhang);
+
+      olap_success = GetAlignmentTraceDriver(NULL, frankenstein + ahang_offset, bfrag, &ahang, &bhang, ovl, trace, &otype, 'u', 0);
+
       allow_neg_hang = 0;
+    }
+
+    //  Occasionally we get a short contained fragment that has just enough errors to
+    //  frankenstein, and is just short enough, to have a high error alignment.  Allow
+    //  a high error alignment.
+    if (!olap_success) {
+      double  origErate = AS_CNS_ERROR_RATE;
+      AS_CNS_ERROR_RATE = MIN(AS_MAX_ERROR_RATE, 2 * AS_CNS_ERROR_RATE);
+
+      olap_success = GetAlignmentTraceDriver(NULL, frankenstein + ahang_offset, bfrag, &ahang, &bhang, ovl, trace, &otype, 'u', 0);
+
+      AS_CNS_ERROR_RATE = origErate;
     }
 
 
@@ -490,6 +495,57 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
     bhang += bhang_offset;
 #endif
 
+
+
+    //  Occasionally we get a fragment that just refuses to go in the correct spot.  Search for the
+    //  correct placement in all of frankenstein, update ahang,bhang and retry.
+    //
+    if ((!olap_success) && (!triedAgain)) {
+      Overlap  *ovl         = NULL;
+      double    thresh      = 1e-6;
+      int32     minlen      = AS_OVERLAP_MIN_LEN;
+
+      char     *fragment    = Getchar(sequenceStore, GetFragment(fragmentStore, i)->sequence);
+      int32     fragmentLen = strlen(fragment);
+
+      ovl = DP_Compare(frankenstein,
+                       fragment,
+                       -fragmentLen, frankensteinLen,  //  ahang bounds
+                       frankensteinLen, fragmentLen,   //  length of fragments
+                       0,
+                       AS_CNS_ERROR_RATE, thresh, minlen,
+                       AS_FIND_ALIGN);
+
+      if (ovl) {
+        int32  b = unitig->f_list[i].position.bgn;
+        int32  e = unitig->f_list[i].position.end;
+
+        offsets[i].bgn = ovl->begpos;
+        offsets[i].end = ovl->endpos + frankensteinLen;
+
+        if (unitig->f_list[i].position.bgn < unitig->f_list[i].position.end) {
+          unitig->f_list[i].position.bgn = offsets[i].bgn;
+          unitig->f_list[i].position.end = offsets[i].end;
+        } else {
+          unitig->f_list[i].position.bgn = offsets[i].end;
+          unitig->f_list[i].position.end = offsets[i].bgn;
+        }
+
+        unitig->f_list[i].parent    = 0;
+        unitig->f_list[i].ahang     = 0;
+        unitig->f_list[i].bhang     = 0;
+        unitig->f_list[i].contained = 0;
+
+        fprintf(stderr, "MultiAlignUnitig()--  Forced update of placement from %d,%d to %d,%d.\n",
+                b, e, offsets[i].bgn, offsets[i].end);
+
+        triedAgain = 1;
+
+        goto tryAgain;
+      }
+    }
+
+
     if (!olap_success) {
       fprintf(stderr, "MultiAlignUnitig()-- Unitig %d FAILED.  Overlap not found between %sbfrag %d (%c) and afrag %d (%c)%s.\n",
               unitig->iaccession,
@@ -499,7 +555,6 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
               (bfrag->container_iid == 0) ? "" : ((bfrag->container_iid == afrag->iid) ? ", the container" : ", not the container"));
 
       //fprintf(stderr, ">frankenstein\n%s\n", frankenstein);
-      //assert(0);
 
       goto MAUnitigFailure;
     }
@@ -580,19 +635,15 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
       for (bead = (bead->next == -1) ? NULL : GetBead(beadStore, bead->next);
            bead;
            bead = (bead->next == -1) ? NULL : GetBead(beadStore, bead->next)) {
-        frankenstein   [frankensteinLen] = *Getchar(sequenceStore, bead->soffset);
-        frankensteinBof[frankensteinLen] = bead->boffset;
-
-#undef SHOW_FRANKENSTEIN_ADD
-#ifdef SHOW_FRANKENSTEIN_ADD
-        fprintf(stderr, "frankenstein[%4d]-- Added bead %d,%c frag=%d\n",
-                frankensteinLen,
-                frankensteinBof[frankensteinLen],
-                frankenstein   [frankensteinLen],
-                bead->frag_index);
-#endif
-
-        frankensteinLen++;
+        char ch = *Getchar(sequenceStore, bead->soffset);
+        if (ch != '-') {
+          frankenstein   [frankensteinLen] = ch;
+          frankensteinBof[frankensteinLen] = bead->boffset;
+          frankensteinLen++;
+        } else {
+          //  Here, ch should never be a gap, since we're just tacking on completely new
+          //  sequence.
+        }
 
         if (frankensteinLen > frankensteinMax) {
           //  Just being lazy; need to reallocate this.
@@ -652,9 +703,158 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
         bead = GetBead(beadStore, bead->next);
       }
     }  //  End of extending to the left.
+
+
+#undef REBUILD_FRANKENSTEIN
+#ifdef REBUILD_FRANKENSTEIN
+    //  Attempt to reduce the amount of fragmentation and noise near the 5' end of frankenstein by
+    //  rebuilding using all of the last fragment if that last was not contained.
+    //
+    //  Rebuild:            No rebuild:         No rebuild:
+    //
+    //  ----------          ----------------      --------
+    //    -----------          ---------        -------
+    //
+    //  This seems to break ApplyAlignment.  Perhaps we violate some unknown constraint
+    //  about gap placement?  Additionally, it doesn't take into account the orientation
+    //  of fragments, and without doing that, this seems to result in a net loss in
+    //  the quality of frankenstein.
+    //
+    //  If -----> is a fragment from 5' to 3', then the '>' end is of lower quality.
+    //  Assuming thick overlaps:
+    //
+    //                  append                   replace
+    //  ------->        adds low quality         improves the overlapping sequence
+    //    -------->     bases
+    //
+    //  ------->        adds high quality        changes cancel out
+    //    <--------     bases
+    //
+    //  <-------        adds low q               changes cancel out
+    //    -------->
+    //
+    //  <-------        adds high q              replaces high q overlap with low q
+    //    <--------
+    //
+    //
+    if ((ahang > 0) &&
+        (bhang > 0)) {
+      Bead  *bead = GetBead(beadStore, frankensteinBof[frankensteinLen-1]);
+
+      //  If the last bead is in this fragment, then we used at least one base of read i in the
+      //  frankenstein.  Back up until we find the first column used in this alignment, search up
+      //  for the Bof bead (which might be a gap) and rebuild.
+      //
+      //  Once we find the start of this read, we chop off all columns equal to or larger than
+      //  the column we are in, and reform using this read.
+
+      assert(bead->frag_index == i);
+
+      //  Potentially, we can skip all this searching if we assume frankenstein[ahang] is a bead in
+      //  the first column with this read.
+
+      //  Move to the bottom of the column....
+      while ((bead) && (bead->down != -1))
+        bead = GetBead(beadStore, bead->down);
+
+      //  Then search up for the fragment we just aligned.
+      while ((bead) && (bead->frag_index != i))
+        bead = (bead->up == -1) ? NULL : GetBead(beadStore, bead->up);
+
+      assert(bead);
+
+      //  Move to the start of the fragment.
+      while ((bead) && (bead->prev != -1))
+        bead = GetBead(beadStore, bead->prev);
+
+      assert(bead);
+      assert(bead->prev == -1);
+      assert(bead->frag_index == i);
+
+      //  Trim back frankenstein until just before the start of the fragment.
+      int32 fidx = frankensteinLen - 1;
+      while ((fidx >= 0) && (GetBead(beadStore, frankensteinBof[fidx])->column_index >= bead->column_index))
+        fidx--;
+
+      frankensteinLen = fidx + 1;
+
+      //  And append bases for this fragment.
+      for (;
+           bead;
+           bead = (bead->next == -1) ? NULL : GetBead(beadStore, bead->next)) {
+        char ch = *Getchar(sequenceStore, bead->soffset);
+
+        if (ch != '-') {
+          assert(bead->frag_index == i);
+
+          frankenstein   [frankensteinLen] = ch;
+          frankensteinBof[frankensteinLen] = bead->boffset;
+          frankensteinLen++;
+        } else {
+          //  Here, ch CAN be a gap, since we're adding in sequence from a multialignment.
+        }
+
+        if (frankensteinLen > frankensteinMax) {
+          //  Just being lazy; need to reallocate this.
+          assert(frankensteinLen < frankensteinMax);
+        }
+      }
+
+      frankenstein   [frankensteinLen] = 0;
+      frankensteinBof[frankensteinLen] = -1;
+    }
+#endif
+
+
+#undef REBUILDCONSENSUS
+#ifdef REBUILDCONSENSUS
+    //  Run abacus to rebuild an intermediate consensus sequence.  VERY expensive, and doesn't
+    //  update the placed[] array...but the changes shouldn't be huge.
+    //
+    if (bhang > 0) {
+      RefreshMANode(ma->lid, 0, opp, NULL, NULL, 0, 0);
+
+      //  Are all three needed??
+
+      AbacusRefine(ma,0,-1,CNS_SMOOTH, opp);
+      MergeRefine(ma->lid, NULL, NULL, 1, opp, 1);
+
+      AbacusRefine(ma,0,-1,CNS_POLYX, opp);
+      MergeRefine(ma->lid, NULL, NULL, 1, opp, 1);
+
+      AbacusRefine(ma,0,-1,CNS_INDEL, opp);
+      MergeRefine(ma->lid, NULL, NULL, 1, opp, 1);
+
+      //  Extract the consensus sequence
+
+      ConsensusBeadIterator  bi;
+      int32                  bid;
+
+      frankensteinLen = 0;
+
+      CreateConsensusBeadIterator(ma->lid, &bi);
+
+      while ((bid = NextConsensusBead(&bi)) != -1) {
+        Bead *bead = GetBead(beadStore, bid);
+        frankenstein   [frankensteinLen] = *Getchar(sequenceStore, bead->soffset);
+
+        while (bead->down != -1)
+          bead = GetBead(beadStore, bead->down);
+
+        frankensteinBof[frankensteinLen] = bead->boffset;
+
+        frankensteinLen++;
+      }
+
+      frankenstein   [frankensteinLen] = 0;
+      frankensteinBof[frankensteinLen] = -1;
+    }
+#endif
+
   }  //  over all frags
 
 
+  //  Run abacus one last time.
 
   RefreshMANode(ma->lid, 0, opp, NULL, NULL, 0, 0);
 
@@ -729,5 +929,3 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
 
   return(FALSE);
 }
-
-
