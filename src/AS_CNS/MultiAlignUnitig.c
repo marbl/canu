@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.7 2009-06-24 12:04:12 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.8 2009-06-24 12:05:46 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -167,7 +167,6 @@ public:
     ahang   = 0;
     bhang   = 0;
     tiid    = 0;
-    tbeg    = 0;
     piid    = 0;
     frankensteinLen = 0;
     frankensteinMax = 0;
