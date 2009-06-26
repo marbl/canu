@@ -62,6 +62,10 @@ public:
 class gkStore {
 private:
   gkStore(const char *path, int partnum);
+
+  void         gkStore_open(int writable);
+  void         gkStore_create(void);
+
 public:
   gkStore();
   gkStore(const char *path, int creatable, int writable);
@@ -103,7 +107,7 @@ public:
     inf.libLoaded++;
   };
 
-  void      gkStore_decodeTypeFromIID(AS_IID iid, uint32 *type, uint32 *tiid);
+  void      gkStore_decodeTypeFromIID(AS_IID iid, uint32& type, uint32& tiid);
 
   void      gkStore_getFragmentData(gkStream *gst, gkFragment *fr, uint32 flags);
 
@@ -168,6 +172,7 @@ private:
   char                     storePath[FILENAME_MAX];
 
   uint32                   isReadOnly;
+  uint32                   isCreating;
 
 public:
   //  Sigh, needed for AS_GKP.
@@ -201,6 +206,13 @@ private:
   //  Clear ranges
   //
   gkClearRange           **clearRange;
+
+  //  These are for use when building a gkpStore.  They map an IID
+  //  to a type and a tiid.
+  //
+  uint32                   IIDmax;
+  uint8                   *IIDtoTYPE;
+  uint32                  *IIDtoTIID;
 
   //  The rest are for a partitioned fragment store.
   //

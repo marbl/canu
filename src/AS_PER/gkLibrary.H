@@ -39,23 +39,24 @@ public:
   double         stddev;
 
   uint64         spare2:64;
-  uint64         spare1:45;
+  uint64         spare1:49;
 
+  //  Unitigger options
   uint64         forceBOGunitigger:1;          //  Default 0 -> allow any unitigger
+  uint64         isNotRandom:1;                //  Default 0 -> fragments in here are random
 
-  uint64         unused2:1;                    //  [free for use]
+  //  Consensus and alignment options
+  uint64         doNotTrustHomopolymerRuns:1;  //  Default 0 -> trust 'em
+
+  //  OBT options
   uint64         doNotQVTrim:1;                //  Default 0 -> do initial qv trimming in OBT
   uint64         goodBadQVThreshold:6;         //  Default 0 -> threshold is 12 in initialTrim.C
+  uint64         doNotOverlapTrim:1;           //  Default 0 -> do trimming
 
-  uint64         unused1:1;                    //  [free for use]
-  uint64         doNotTrustHomopolymerRuns:1;  //  Default 0 == trust 'em
-  uint64         doNotOverlapTrim:1;           //  Default 0 == do trimming
-  uint64         isNotRandom:1;                //  Default 0 == is random
+  //  Gatekeeper options
+  uint64         useShortFragments:1;          //  Default 0 -> don't store gkShortFragment types
 
-  uint64         hpsIsSomethingElse:1;         //  (placeholder, so we don't break compatibility later)
-  uint64         hpsIsFlowGram:1;              //  Default 0 == no flow gram
-  uint64         hpsIsPeakSpacing:1;           //  Default 0 == no peak spacing
-
-  uint64         orientation:3;                //  Default 0 == AS_READ_ORIENT_UNKNOWN
+  //  Mate pairs
+  uint64         orientation:3;                //  Default 0 -> AS_READ_ORIENT_UNKNOWN
 };
 

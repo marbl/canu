@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.14 2009-06-10 18:05:13 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.15 2009-06-26 03:45:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -434,35 +434,36 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
 
       //  Lots of boilerplate here for T/F flags.  Sigh.
 
-      } else if (strcasecmp(ACT, "hpsisflowgram") == 0) {
-        uint32 o = gklr.hpsIsFlowGram;
+      } else if (strcasecmp(ACT, "forceBOGunitigger") == 0) {
+        uint32 o = gklr.forceBOGunitigger;
         if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
-          gklr.hpsIsFlowGram = 1;
+          gklr.forceBOGunitigger = 1;
         else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
-          gklr.hpsIsFlowGram = 0;
+          gklr.forceBOGunitigger = 0;
         else {
-          fprintf(stderr, "invalid lib hpsisflowgram flag in edit line: '%s'\n", L);
+          fprintf(stderr, "invalid lib forceBOGunitigger flag in edit line: '%s'\n", L);
           errors++;
           goto nextline;
         }
         if (update)
-          fprintf(stdout, "lib uid %s hpsisflowgram %c -> %c\n",
-                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.hpsIsFlowGram) ? 'T' : 'F');
-      } else if (strcasecmp(ACT, "hpsispeakspacing") == 0) {
-        uint32 o = gklr.hpsIsPeakSpacing;
+          fprintf(stdout, "lib uid %s forceBOGunitigger %c -> %c\n",
+                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.forceBOGunitigger) ? 'T' : 'F');
+      } else if (strcasecmp(ACT, "isNotRandom") == 0) {
+        uint32 o = gklr.isNotRandom;
         if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
-          gklr.hpsIsPeakSpacing = 1;
+          gklr.isNotRandom = 1;
         else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
-          gklr.hpsIsPeakSpacing = 0;
+          gklr.isNotRandom = 0;
         else {
-          fprintf(stderr, "invalid lib hpsispeakspacing flag in edit line: '%s'\n", L);
+          fprintf(stderr, "invalid lib isNotRandom flag in edit line: '%s'\n", L);
           errors++;
           goto nextline;
         }
         if (update)
-          fprintf(stdout, "lib uid %s hpsispeakspacing %c -> %c\n",
-                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.hpsIsPeakSpacing) ? 'T' : 'F');
-      } else if (strcasecmp(ACT, "donottrusthomopolymerruns") == 0) {
+          fprintf(stdout, "lib uid %s isNotRandom %c -> %c\n",
+                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.isNotRandom) ? 'T' : 'F');
+        allFrags(gkpStore, IID, 'r', gklr.isNotRandom, update);
+      } else if (strcasecmp(ACT, "doNotTrustHomopolymerRuns") == 0) {
         uint32 o = gklr.doNotTrustHomopolymerRuns;
         if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
           gklr.doNotTrustHomopolymerRuns = 1;
@@ -476,35 +477,54 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
         if (update)
           fprintf(stdout, "lib uid %s donottrushhomopolymerruns %c -> %c\n",
                   AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.doNotTrustHomopolymerRuns) ? 'T' : 'F');
-      } else if (strcasecmp(ACT, "donotoverlaptrim") == 0) {
+      } else if (strcasecmp(ACT, "doNotQVTrim") == 0) {
+        uint32 o = gklr.doNotQVTrim;
+        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
+          gklr.doNotQVTrim = 1;
+        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
+          gklr.doNotQVTrim = 0;
+        else {
+          fprintf(stderr, "invalid lib doNotQVTrim flag in edit line: '%s'\n", L);
+          errors++;
+          goto nextline;
+        }
+        if (update)
+          fprintf(stdout, "lib uid %s doNotQVTrim %c -> %c\n",
+                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.doNotQVTrim) ? 'T' : 'F');
+      } else if (strcasecmp(ACT, "goodBadQVThreshold") == 0) {
+        uint32 o = gklr.goodBadQVThreshold;
+        gklr.goodBadQVThreshold = strtoul(E, NULL, 10);
+        if (update)
+          fprintf(stdout, "lib uid %s goodBadQVThreshold %c -> %c\n",
+                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.goodBadQVThreshold) ? 'T' : 'F');
+      } else if (strcasecmp(ACT, "doNotOverlapTrim") == 0) {
         uint32 o = gklr.doNotOverlapTrim;
         if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
           gklr.doNotOverlapTrim = 1;
         else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
           gklr.doNotOverlapTrim = 0;
         else {
-          fprintf(stderr, "invalid lib donotoverlaptrim flag in edit line: '%s'\n", L);
+          fprintf(stderr, "invalid lib doNotOverlapTrim flag in edit line: '%s'\n", L);
           errors++;
           goto nextline;
         }
         if (update)
-          fprintf(stdout, "lib uid %s donotoverlaptrim %c -> %c\n",
+          fprintf(stdout, "lib uid %s doNotOverlapTrim %c -> %c\n",
                   AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.doNotOverlapTrim) ? 'T' : 'F');
-      } else if (strcasecmp(ACT, "isnotrandom") == 0) {
-        uint32 o = gklr.isNotRandom;
+      } else if (strcasecmp(ACT, "useShortFragments") == 0) {
+        uint32 o = gklr.useShortFragments;
         if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
-          gklr.isNotRandom = 1;
+          gklr.useShortFragments = 1;
         else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
-          gklr.isNotRandom = 0;
+          gklr.useShortFragments = 0;
         else {
-          fprintf(stderr, "invalid lib isnotrandom flag in edit line: '%s'\n", L);
+          fprintf(stderr, "invalid lib useShortFragments flag in edit line: '%s'\n", L);
           errors++;
           goto nextline;
         }
         if (update)
-          fprintf(stdout, "lib uid %s isnotrandom %c -> %c\n",
-                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.isNotRandom) ? 'T' : 'F');
-        allFrags(gkpStore, IID, 'r', gklr.isNotRandom, update);
+          fprintf(stdout, "lib uid %s useShortFragments %c -> %c\n",
+                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.useShortFragments) ? 'T' : 'F');
       } else if (strcasecmp(ACT, "orientation") == 0) {
         uint32 o = gklr.orientation;
         uint32 i;

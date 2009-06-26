@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.48 2009-06-18 17:38:10 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.49 2009-06-26 03:45:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,6 +34,52 @@ static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.48 2009-06-18 17:38:10 b
 
 static int*   isspacearray;
 static int*   isValidACGTN;
+
+static  uint32       libMax = 0;
+static  uint32       libIID = 0;
+static  gkLibrary  **lib    = NULL;
+
+
+
+int
+updateLibraryCache(FragMesg *frg_mesg) {
+
+  libIID = 0;
+
+  if (AS_UID_isDefined(frg_mesg->library_uid) == FALSE)
+    return(0);
+
+  libIID = gkpStore->gkStore_getUIDtoIID(frg_mesg->library_uid, NULL);
+
+  if (AS_IID_isDefined(libIID) == FALSE) {
+    AS_GKP_reportError(AS_GKP_FRG_UNKNOWN_LIB,
+                       AS_UID_toString(frg_mesg->eaccession),
+                       AS_UID_toString(frg_mesg->library_uid));
+    return(1);
+  }
+
+  if (libMax == 0) {
+    libMax = 1024;
+    lib    = new gkLibrary * [libMax];
+    memset(lib, NULL, sizeof(gkLibrary *) * libMax);
+  }
+
+  if (libIID >= libMax) {
+    gkLibrary **N = new gkLibrary * [libMax * 2];
+    memcpy(N, lib, sizeof(gkLibrary *) * libMax);
+    memset(N + libMax, NULL, sizeof(gkLibrary *) * libMax);
+    delete [] lib;
+    lib = N;
+  }
+
+  if (lib[libIID] == 0L) {
+    lib[libIID] = new gkLibrary;
+    gkpStore->gkStore_getLibrary(libIID, lib[libIID]);
+  }
+
+  return(0);
+}
+
 
 
 int
@@ -112,7 +158,8 @@ checkSequenceAndQuality(FragMesg *frg_mesg, int *seqLen) {
                        AS_UID_toString(frg_mesg->eaccession), sl, AS_READ_MIN_LEN);
     failed = 1;
 
-  } else if (sl < AS_READ_MAX_SHORT_LEN) {
+  } else if ((sl < AS_READ_MAX_SHORT_LEN) &&
+             (lib[libIID]->useShortFragments)) {
     gkFrag1->gkFragment_setType(GKFRAGMENT_SHORT);
 
   } else if (sl < AS_READ_MAX_MEDIUM_LEN) {
@@ -204,51 +251,15 @@ checkClearRanges(FragMesg   *frg_mesg,
 static
 int
 setLibrary(FragMesg *frg_mesg) {
-  static  uint32    libOrientationMax = 0;
-  static  uint64   *libOrientation    = NULL;
 
-  //  Version 2 comes with library information.  Get it.
+  //  Version 1 sets orient and library when mates are added.  In this
+  //  case, libIID is zero.
   //
-  //  Version 1 sets orient and library when mates are added.
-  //  Version 1 libraries NEVER have a valid orientation.
-
-  gkFrag1->gkFragment_setLibraryIID(0);
-  gkFrag1->gkFragment_setMateIID(0);
-  gkFrag1->gkFragment_setOrientation(0);
-
-  if (AS_UID_isDefined(frg_mesg->library_uid) == FALSE)
-    return(0);
-
-  AS_IID  libIID = gkpStore->gkStore_getUIDtoIID(frg_mesg->library_uid, NULL);
+  //  Version 2 comes with library information.
+  //
   gkFrag1->gkFragment_setLibraryIID(libIID);
-
-  if (AS_IID_isDefined(libIID) == FALSE) {
-    AS_GKP_reportError(AS_GKP_FRG_UNKNOWN_LIB,
-                       AS_UID_toString(frg_mesg->eaccession),
-                       AS_UID_toString(frg_mesg->library_uid));
-    return(1);
-  }
-
-  //  Get the library orientation; cache values across invocations.
-  //
-  if (libOrientation == NULL) {
-    libOrientationMax = 2;
-    libOrientation    = (uint64 *)safe_calloc(libOrientationMax, sizeof(uint64));
-  }
-  if (libOrientationMax <= libIID) {
-    libOrientation = (uint64 *)safe_realloc(libOrientation, sizeof(uint64) * 2 * libIID);
-    while (libOrientationMax < 2 * libIID)
-      libOrientation[libOrientationMax++] = 0;
-  }
-  if (libOrientation[libIID] == 0) {
-    gkLibrary  gkpl;
-    gkpStore->gkStore_getLibrary(libIID, &gkpl);
-    libOrientation[libIID] = gkpl.orientation;
-  }
-
-  //  Set the orientation, finally.
-  //
-  gkFrag1->gkFragment_setOrientation(libOrientation[libIID]);
+  gkFrag1->gkFragment_setMateIID(0);
+  gkFrag1->gkFragment_setOrientation((libIID == 0) ? 0 : lib[libIID]->orientation);
 
   return(0);
 }
@@ -299,7 +310,8 @@ Check_FragMesg(FragMesg   *frg_mesg,
   }
 
   if (frg_mesg->action == AS_ADD) {
-    failed  = checkSequenceAndQuality(frg_mesg, &seqLen);
+    failed |= updateLibraryCache(frg_mesg);
+    failed |= checkSequenceAndQuality(frg_mesg, &seqLen);
     failed |= checkClearRanges(frg_mesg, seqLen, assembler);
     failed |= setLibrary(frg_mesg);
     failed |= setUID(frg_mesg);
@@ -308,6 +320,8 @@ Check_FragMesg(FragMesg   *frg_mesg,
       AS_GKP_reportError(AS_GKP_FRG_LOADED_DELETED,
                          AS_UID_toString(frg_mesg->eaccession));
       gkFrag1->gkFragment_setIsDeleted(1);
+    } else {
+      gkFrag1->gkFragment_setIsDeleted(0);
     }
 
     gkpStore->gkStore_addFragment(gkFrag1,

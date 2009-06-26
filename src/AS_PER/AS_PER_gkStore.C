@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.2 2009-06-22 11:29:32 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.3 2009-06-26 03:45:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,10 +70,168 @@ gkStore::gkStore(const char *path, int partition) {
 }
 
 
-gkStore::gkStore(const char *path, int creatable, int writable) {
-  char   name[FILENAME_MAX];
+void
+gkStore::gkStore_open(int writable) {
+  char  name[FILENAME_MAX];
   char   mode[4];
   FILE  *gkpinfo;
+
+  sprintf(name,"%s/inf", storePath);
+  errno = 0;
+  gkpinfo = fopen(name, "r");
+  if (errno) {
+    fprintf(stderr, "failed to open gatekeeper store '%s': %s\n", name, strerror(errno));
+    exit(1);
+  }
+
+  if (1 != AS_UTL_safeRead(gkpinfo, &inf, "gkStore_open:header", sizeof(gkStoreInfo), 1)) {
+    fprintf(stderr, "failed to open gatekeeper store '%s': couldn't read the header (%s)\n", name, strerror(errno));
+    exit(1);
+  }
+
+  fclose(gkpinfo);
+
+  if (inf.gkMagic != 1) {
+    fprintf(stderr, "gkStore_open()-- Invalid magic; corrupt %s/inf?\n", name);
+    exit(1);
+  }
+
+  if (inf.gkVersion != 2) {
+    fprintf(stderr, "gkStore_open()-- Invalid version!  Found version %d, code supports version 2.\n", inf.gkVersion);
+    exit(1);
+  }
+
+  if ((inf.gkLibrarySize        != sizeof(gkLibrary)) ||
+      (inf.gkShortFragmentSize  != sizeof(gkShortFragment)) ||
+      (inf.gkMediumFragmentSize != sizeof(gkMediumFragment)) ||
+      (inf.gkLongFragmentSize   != sizeof(gkLongFragment))) {
+    fprintf(stderr, "gkStore_open()--  ERROR!  Incorrect element sizes; code and store are incompatible.\n");
+    fprintf(stderr, "                  gkLibrary:          store %5d   code %5d bytes\n", inf.gkLibrarySize, (int)sizeof(gkLibrary));
+    fprintf(stderr, "                  gkShortFragment:    store %5d   code %5d bytes\n", inf.gkShortFragmentSize, (int)sizeof(gkShortFragment));
+    fprintf(stderr, "                  gkMediumFragment:   store %5d   code %5d bytes\n", inf.gkMediumFragmentSize, (int)sizeof(gkMediumFragment));
+    fprintf(stderr, "                  gkLongFragment:     store %5d   code %5d bytes\n", inf.gkLongFragmentSize, (int)sizeof(gkLongFragment));
+    exit(1);
+  }
+
+  assert((writable == 0) || (writable == 1));
+
+  if (writable) {
+    isReadOnly = 0;
+    isCreating = 0;
+    strcpy(mode, "r+");
+  } else {
+    isReadOnly = 1;
+    isCreating = 0;
+    strcpy(mode, "r");
+  }
+
+  sprintf(name,"%s/fsm", storePath);
+  fsm   = openStore(name, mode);
+
+  sprintf(name,"%s/fmd", storePath);
+  fmd   = openStore(name, mode);
+  sprintf(name,"%s/smd", storePath);
+  smd   = openStore(name, mode);
+  sprintf(name,"%s/qmd", storePath);
+  qmd   = openStore(name, mode);
+
+  sprintf(name,"%s/flg", storePath);
+  flg   = openStore(name, mode);
+  sprintf(name,"%s/slg", storePath);
+  slg   = openStore(name, mode);
+  sprintf(name,"%s/qlg", storePath);
+  qlg   = openStore(name, mode);
+
+  sprintf(name,"%s/lib", storePath);
+  lib   = openStore(name, mode);
+  lib   = convertStoreToMemoryStore(lib);
+
+  sprintf(name,"%s/uid", storePath);
+  uid = openStore(name, mode);
+
+  if ((NULL == fsm) ||
+      (NULL == fmd) || (NULL == smd) || (NULL == qmd) ||
+      (NULL == flg) || (NULL == slg) || (NULL == qlg) ||
+      (NULL == lib) || (NULL == uid)) {
+    fprintf(stderr,"Failed to open gkpStore '%s'.\n", storePath);
+    exit(1);
+  }
+}
+
+
+void
+gkStore::gkStore_create(void) {
+  char  name[FILENAME_MAX];
+  FILE  *gkpinfo;
+
+  isReadOnly = 0;
+  isCreating = 1;
+
+  sprintf(name,"%s/inf", storePath);
+  if (AS_UTL_fileExists(name, FALSE, TRUE)) {
+    fprintf(stderr, "GateKeeper Store '%s' exists; will not create a new one on top of it.\n", storePath);
+    exit(1);
+  }
+
+  AS_UTL_mkdir(storePath);
+
+  inf.gkMagic              = 1;
+  inf.gkVersion            = 2;
+  inf.gkLibrarySize        = sizeof(gkLibrary);
+  inf.gkShortFragmentSize  = sizeof(gkShortFragment);
+  inf.gkMediumFragmentSize = sizeof(gkMediumFragment);
+  inf.gkLongFragmentSize   = sizeof(gkLongFragment);
+
+  sprintf(name,"%s/inf", storePath);
+  errno = 0;
+  gkpinfo = fopen(name, "w");
+  if (errno) {
+    fprintf(stderr, "failed to create gatekeeper store '%s': %s\n", name, strerror(errno));
+    exit(1);
+  }
+
+  AS_UTL_safeWrite(gkpinfo, &inf, "creategkStore:header", sizeof(gkStoreInfo), 1);
+  if (fclose(gkpinfo)) {
+    fprintf(stderr, "failed to create gatekeeper store '%s': %s\n", name, strerror(errno));
+    exit(1);
+  }
+
+  sprintf(name,"%s/fsm", storePath);
+  fsm = createIndexStore(name, "fsm", sizeof(gkShortFragment), 1);
+
+  sprintf(name,"%s/fmd", storePath);
+  fmd = createIndexStore(name, "fmd", sizeof(gkMediumFragment), 1);
+  sprintf(name,"%s/smd", storePath);
+  smd = createStringStore(name, "smd");
+  sprintf(name,"%s/qmd", storePath);
+  qmd = createStringStore(name, "qmd");
+
+  sprintf(name,"%s/flg", storePath);
+  flg = createIndexStore(name, "flg", sizeof(gkLongFragment), 1);
+  sprintf(name,"%s/slg", storePath);
+  slg = createStringStore(name, "slg");
+  sprintf(name,"%s/qlg", storePath);
+  qlg = createStringStore(name, "qlg");
+
+  sprintf(name,"%s/lib", storePath);
+  lib = createIndexStore(name, "lib", sizeof(gkLibrary), 1);
+
+  sprintf(name,"%s/uid", storePath);
+  uid = createStringStore(name, "uid");
+
+  sprintf(name,"%s/u2i", storePath);
+  UIDtoIID = CreateScalarHashTable_AS();
+  SaveHashTable_AS(name, UIDtoIID);
+
+  IIDmax = 1048576;
+  IIDtoTYPE = (uint8  *)safe_malloc(sizeof(uint8)  * IIDmax);
+  IIDtoTIID = (uint32 *)safe_malloc(sizeof(uint32) * IIDmax);
+}
+
+
+
+gkStore::gkStore(const char *path, int creatable, int writable) {
+  char   name[FILENAME_MAX];
 
   gkStore_clear();
 
@@ -81,147 +239,12 @@ gkStore::gkStore(const char *path, int creatable, int writable) {
 
   sprintf(name,"%s/inf", storePath);
 
-  if ((AS_UTL_fileExists(name, 0, writable)) && (creatable == 0)) {
-    errno = 0;
-    gkpinfo = fopen(name, "r");
-    if (errno) {
-      fprintf(stderr, "failed to open gatekeeper store '%s': %s\n", name, strerror(errno));
-      exit(1);
-    }
-
-    if (1 != AS_UTL_safeRead(gkpinfo, &inf, "gkStore_open:header", sizeof(gkStoreInfo), 1)) {
-      fprintf(stderr, "failed to open gatekeeper store '%s': couldn't read the header (%s)\n", name, strerror(errno));
-      exit(1);
-    }
-
-    fclose(gkpinfo);
-
-    if (inf.gkMagic != 1) {
-      fprintf(stderr, "gkStore_open()-- Invalid magic; corrupt %s/inf?\n", name);
-      exit(1);
-    }
-
-    if (inf.gkVersion != 2) {
-      fprintf(stderr, "gkStore_open()-- Invalid version!  Found version %d, code supports version 2.\n", inf.gkVersion);
-      exit(1);
-    }
-
-    if ((inf.gkLibrarySize        != sizeof(gkLibrary)) ||
-        (inf.gkShortFragmentSize  != sizeof(gkShortFragment)) ||
-        (inf.gkMediumFragmentSize != sizeof(gkMediumFragment)) ||
-        (inf.gkLongFragmentSize   != sizeof(gkLongFragment))) {
-      fprintf(stderr, "gkStore_open()--  ERROR!  Incorrect element sizes; code and store are incompatible.\n");
-      fprintf(stderr, "                  gkLibrary:          store %5d   code %5d bytes\n", inf.gkLibrarySize, (int)sizeof(gkLibrary));
-      fprintf(stderr, "                  gkShortFragment:    store %5d   code %5d bytes\n", inf.gkShortFragmentSize, (int)sizeof(gkShortFragment));
-      fprintf(stderr, "                  gkMediumFragment:   store %5d   code %5d bytes\n", inf.gkMediumFragmentSize, (int)sizeof(gkMediumFragment));
-      fprintf(stderr, "                  gkLongFragment:     store %5d   code %5d bytes\n", inf.gkLongFragmentSize, (int)sizeof(gkLongFragment));
-      exit(1);
-    }
-
-    //  writable is -1 if we are creating a partition
-    if (writable == -1)
-      return;
-
-    if (writable) {
-      isReadOnly = 0;
-      strcpy(mode, "r+");
-    } else {
-      isReadOnly = 1;
-      strcpy(mode, "r");
-    }
-
-    sprintf(name,"%s/fsm", storePath);
-    fsm   = openStore(name, mode);
-
-    sprintf(name,"%s/fmd", storePath);
-    fmd   = openStore(name, mode);
-    sprintf(name,"%s/smd", storePath);
-    smd   = openStore(name, mode);
-    sprintf(name,"%s/qmd", storePath);
-    qmd   = openStore(name, mode);
-
-    sprintf(name,"%s/flg", storePath);
-    flg   = openStore(name, mode);
-    sprintf(name,"%s/slg", storePath);
-    slg   = openStore(name, mode);
-    sprintf(name,"%s/qlg", storePath);
-    qlg   = openStore(name, mode);
-
-    sprintf(name,"%s/lib", storePath);
-    lib   = openStore(name, mode);
-    lib   = convertStoreToMemoryStore(lib);
-
-    sprintf(name,"%s/uid", storePath);
-    uid = openStore(name, mode);
-
-    if ((NULL == fsm) ||
-        (NULL == fmd) || (NULL == smd) || (NULL == qmd) ||
-        (NULL == flg) || (NULL == slg) || (NULL == qlg) ||
-        (NULL == lib) || (NULL == uid)) {
-      fprintf(stderr,"Failed to open gkpStore '%s'.\n", storePath);
-      exit(1);
-    }
-
+  if ((AS_UTL_fileExists(name, FALSE, writable)) && (creatable == 0)) {
+    gkStore_open(writable);
   } else if (creatable) {
-    isReadOnly = 0;
-
-    if (AS_UTL_fileExists(name, 0, writable)) {
-      fprintf(stderr, "GateKeeper Store '%s' exists; will not create a new one on top of it.\n", path);
-      exit(1);
-    }
-
-    AS_UTL_mkdir(path);
-
-    inf.gkMagic              = 1;
-    inf.gkVersion            = 2;
-    inf.gkLibrarySize        = sizeof(gkLibrary);
-    inf.gkShortFragmentSize  = sizeof(gkShortFragment);
-    inf.gkMediumFragmentSize = sizeof(gkMediumFragment);
-    inf.gkLongFragmentSize   = sizeof(gkLongFragment);
-
-    sprintf(name,"%s/inf", path);
-    errno = 0;
-    gkpinfo = fopen(name, "w");
-    if (errno) {
-      fprintf(stderr, "failed to create gatekeeper store '%s': %s\n", name, strerror(errno));
-      exit(1);
-    }
-
-    AS_UTL_safeWrite(gkpinfo, &inf, "creategkStore:header", sizeof(gkStoreInfo), 1);
-    if (fclose(gkpinfo)) {
-      fprintf(stderr, "failed to create gatekeeper store '%s': %s\n", name, strerror(errno));
-      exit(1);
-    }
-
-    sprintf(name,"%s/fsm", path);
-    fsm = createIndexStore(name, "fsm", sizeof(gkShortFragment), 1);
-
-    sprintf(name,"%s/fmd", path);
-    fmd = createIndexStore(name, "fmd", sizeof(gkMediumFragment), 1);
-    sprintf(name,"%s/smd", path);
-    smd = createStringStore(name, "smd");
-    sprintf(name,"%s/qmd", path);
-    qmd = createStringStore(name, "qmd");
-
-    sprintf(name,"%s/flg", path);
-    flg = createIndexStore(name, "flg", sizeof(gkLongFragment), 1);
-    sprintf(name,"%s/slg", path);
-    slg = createStringStore(name, "slg");
-    sprintf(name,"%s/qlg", path);
-    qlg = createStringStore(name, "qlg");
-
-    sprintf(name,"%s/lib", path);
-    lib = createIndexStore(name, "lib", sizeof(gkLibrary), 1);
-
-    sprintf(name,"%s/uid", path);
-    uid = createStringStore(name, "uid");
-
-    sprintf(name,"%s/u2i", path);
-    UIDtoIID = CreateScalarHashTable_AS();
-    SaveHashTable_AS(name, UIDtoIID);
-
+    gkStore_create();
   } else {
-    fprintf(stderr, "gkStore::gkStore()-- GateKeeper Store '%s' doesn't exist.\n", path);
+    fprintf(stderr, "gkStore::gkStore()-- GateKeeper Store '%s' doesn't exist.\n", storePath);
     exit(1);
   }
 
@@ -279,6 +302,9 @@ gkStore::~gkStore() {
       delete clearRange[i];
   delete [] clearRange;
 
+  safe_free(IIDtoTYPE);
+  safe_free(IIDtoTIID);
+
   closeStore(partfsm);
   closeStore(partfmd);
   closeStore(partflg);
@@ -317,6 +343,10 @@ gkStore::gkStore_clear(void) {
   STRtoUID = NULL;
 
   frgUID = NULL;
+
+  IIDmax    = 0;
+  IIDtoTYPE = 0;
+  IIDtoTIID = NULL;
 
   clearRange = NULL;
 
@@ -385,11 +415,12 @@ gkStore::gkStore_loadPartition(uint32 partition) {
 
   assert(partmap    == NULL);
   assert(isReadOnly == 1);
+  assert(isCreating == 0);
 
   partnum = partition;
 
   sprintf(name,"%s/fsm.%03d", storePath, partnum);
-  if (AS_UTL_fileExists(name, 0, FALSE) == 0) {
+  if (AS_UTL_fileExists(name, FALSE, FALSE) == 0) {
     fprintf(stderr, "gkStore_loadPartition()--  Partition %d doesn't exist; normal store used instead.\n", partnum);
     return;
   }
@@ -397,6 +428,7 @@ gkStore::gkStore_loadPartition(uint32 partition) {
   //  load all our data
 
   isReadOnly = 1;
+  isCreating = 0;
 
   sprintf(name,"%s/fsm.%03d", storePath, partnum);
   partfsm = loadStorePartial(name, 0, 0);
@@ -465,12 +497,13 @@ gkStore::gkStore_load(AS_IID beginIID, AS_IID endIID, int flags) {
 
   assert(partmap    == NULL);
   assert(isReadOnly == 1);
+  assert(isCreating == 0);
 
   if (beginIID == 0)   beginIID = 1;
   if (endIID == 0)     endIID   = gkStore_getNumFragments();
 
-  gkStore_decodeTypeFromIID(beginIID, &stType, &stTiid);
-  gkStore_decodeTypeFromIID(endIID,   &edType, &edTiid);
+  gkStore_decodeTypeFromIID(beginIID, stType, stTiid);
+  gkStore_decodeTypeFromIID(endIID,   edType, edTiid);
 
   if (stType == edType) {
     switch (stType) {
@@ -564,23 +597,29 @@ gkStore::gkStore_load(AS_IID beginIID, AS_IID endIID, int flags) {
 ////////////////////////////////////////////////////////////////////////////////
 
 void
-gkStore::gkStore_decodeTypeFromIID(AS_IID iid, uint32 *type, uint32 *tiid) {
-  *type = 0;
-  *tiid = 0;
+gkStore::gkStore_decodeTypeFromIID(AS_IID iid, uint32& type, uint32& tiid) {
+  type = 0;
+  tiid = 0;
 
-  if (iid <= inf.numShort + inf.numMedium + inf.numLong) {
-    *type = GKFRAGMENT_LONG;
-    *tiid = iid - inf.numShort - inf.numMedium;
+  if (isCreating) {
+    type = IIDtoTYPE[iid];
+    tiid = IIDtoTIID[iid];
+  } else {
+    if (iid <= inf.numShort + inf.numMedium + inf.numLong) {
+      type = GKFRAGMENT_LONG;
+      tiid = iid - inf.numShort - inf.numMedium;
+    }
+    if (iid <= inf.numShort + inf.numMedium) {
+      type = GKFRAGMENT_MEDIUM;
+      tiid = iid - inf.numShort;
+    }
+    if (iid <= inf.numShort) {
+      type = GKFRAGMENT_SHORT;
+      tiid = iid;
+    }
   }
-  if (iid <= inf.numShort + inf.numMedium) {
-    *type = GKFRAGMENT_MEDIUM;
-    *tiid = iid - inf.numShort;
-  }
-  if (iid <= inf.numShort) {
-    *type = GKFRAGMENT_SHORT;
-    *tiid = iid;
-  }
-  if (*tiid == 0) {
+
+  if (tiid == 0) {
     fprintf(stderr, "gkStore_decodeTypeFromIID()-- ERROR:  fragment iid %d is out of range.\n", iid);
     fprintf(stderr, "gkStore_decodeTypeFromIID()--         numShort=%d numMedium=%d numLong=%d\n",
             inf.numShort, inf.numMedium, inf.numLong);
@@ -692,7 +731,7 @@ gkStore::gkStore_getFragment(AS_IID iid, gkFragment *fr, int32 flags) {
 
   fr->gkp = this;
 
-  gkStore_decodeTypeFromIID(iid, &fr->type, &fr->tiid);
+  gkStore_decodeTypeFromIID(iid, fr->type, fr->tiid);
 
   //fprintf(stderr, "gkStore_getFragment()--  Retrieving IID=%d from %d,%d\n", iid, fr->type, fr->tiid);
 
@@ -745,13 +784,16 @@ gkStore::gkStore_setFragment(gkFragment *fr) {
   assert(partmap    == NULL);
   assert(isReadOnly == 0);
 
-  uint32  type;
-  uint32  tiid;
+  //  Sanity check that type and type IID agree.  These change while the store is being built.
+  {
+    uint32  type;
+    uint32  tiid;
 
-  gkStore_decodeTypeFromIID(fr->gkFragment_getReadIID(), &type, &tiid);
+    gkStore_decodeTypeFromIID(fr->gkFragment_getReadIID(), type, tiid);
 
-  assert(type == fr->type);
-  assert(tiid == fr->tiid);
+    assert(type == fr->type);
+    assert(tiid == fr->tiid);
+  }
 
   //fprintf(stderr, "gkStore_setFragment()--  Setting IID=%d to %d,%d\n", fr->gkFragment_getReadIID(), fr->type, fr->tiid);
 
@@ -831,8 +873,11 @@ gkStore::gkStore_addFragment(gkFragment *fr,
 
   assert(partmap    == NULL);
   assert(isReadOnly == 0);
+  assert(isCreating == 1);
 
   assert(fr->type != GKFRAGMENT_ERROR);
+
+  int32 iid = gkStore_getNumFragments() + 1;
 
   if (clrBgn < clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_enableCreate();
   if (vecBgn < vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_enableCreate();
@@ -842,7 +887,7 @@ gkStore::gkStore_addFragment(gkFragment *fr,
   switch (fr->type) {
     case GKFRAGMENT_SHORT:
       fr->tiid          = ++inf.numShort;
-      fr->fr.sm.readIID = gkStore_getNumFragments() + 1;
+      fr->fr.sm.readIID = iid;
 
       assert(fr->tiid == getLastElemStore(fsm) + 1);
 
@@ -857,7 +902,7 @@ gkStore::gkStore_addFragment(gkFragment *fr,
 
     case GKFRAGMENT_MEDIUM:
       fr->tiid          = ++inf.numMedium;
-      fr->fr.md.readIID = gkStore_getNumFragments() + 1;
+      fr->fr.md.readIID = iid;
 
       assert(fr->tiid == getLastElemStore(fmd) + 1);
 
@@ -872,7 +917,7 @@ gkStore::gkStore_addFragment(gkFragment *fr,
 
     case GKFRAGMENT_LONG:
       fr->tiid           = ++inf.numLong;
-      fr->fr.lg.readIID = gkStore_getNumFragments() + 1;
+      fr->fr.lg.readIID = iid;
 
       assert(fr->tiid == getLastElemStore(flg) + 1);
 
@@ -899,12 +944,21 @@ gkStore::gkStore_addFragment(gkFragment *fr,
   if (tntBgn < tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_setClearRegion(fr, tntBgn, tntEnd);
   if (clrBgn < clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_setClearRegion(fr, clrBgn, clrEnd);
 
+  if (IIDmax <= iid) {
+    IIDmax *= 2;
+    IIDtoTYPE = (uint8  *)safe_realloc(IIDtoTYPE, sizeof(uint8)  * IIDmax);
+    IIDtoTIID = (uint32 *)safe_realloc(IIDtoTIID, sizeof(uint32) * IIDmax);
+  }
+
   switch (fr->type) {
     case GKFRAGMENT_SHORT:
       encodeSequenceQuality(fr->fr.sm.enc, fr->seq, fr->qlt);
 
       gkStore_setUIDtoIID(fr->fr.sm.readUID, fr->fr.sm.readIID, AS_IID_FRG);
       appendIndexStore(fsm, &fr->fr.sm);
+
+      IIDtoTYPE[iid] = GKFRAGMENT_SHORT;
+      IIDtoTIID[iid] = fr->tiid;
       break;
 
     case GKFRAGMENT_MEDIUM:
@@ -919,6 +973,9 @@ gkStore::gkStore_addFragment(gkFragment *fr,
 
       encodeSequenceQuality(fr->enc, fr->seq, fr->qlt);
       appendStringStore(qmd, fr->enc, fr->fr.md.seqLen);
+
+      IIDtoTYPE[iid] = GKFRAGMENT_MEDIUM;
+      IIDtoTIID[iid] = fr->tiid;
       break;
 
     case GKFRAGMENT_LONG:
@@ -933,6 +990,9 @@ gkStore::gkStore_addFragment(gkFragment *fr,
 
       encodeSequenceQuality(fr->enc, fr->seq, fr->qlt);
       appendStringStore(qlg, fr->enc, fr->fr.lg.seqLen);
+
+      IIDtoTYPE[iid] = GKFRAGMENT_LONG;
+      IIDtoTIID[iid] = fr->tiid;
       break;
   }
 
@@ -959,6 +1019,7 @@ gkStore::gkStore_buildPartitions(short *partitionMap, uint32 maxPart) {
 
   assert(partmap    == NULL);
   assert(isReadOnly == 1);
+  assert(isCreating == 0);
 
   //  Create the partitions by opening N copies of the gatekeeper store,
   //  and telling each one to make a partition.

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStream.C,v 1.1 2009-06-10 18:05:14 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStream.C,v 1.2 2009-06-26 03:45:42 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -92,8 +92,8 @@ gkStream::reset(AS_IID beginIID_, AS_IID endIID_) {
   curIID = beginIID_ - 1;
   endIID = endIID_;
 
-  gkp->gkStore_decodeTypeFromIID(bgnIID, &stType, &stTiid);
-  gkp->gkStore_decodeTypeFromIID(endIID, &edType, &edTiid);
+  gkp->gkStore_decodeTypeFromIID(bgnIID, stType, stTiid);
+  gkp->gkStore_decodeTypeFromIID(endIID, edType, edTiid);
 
   if (stType == edType) {
     switch (stType) {

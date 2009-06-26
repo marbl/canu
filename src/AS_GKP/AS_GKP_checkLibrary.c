@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.29 2009-06-10 18:05:13 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.30 2009-06-26 03:45:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -149,18 +149,15 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
     gkpl.spare1                     = 0;
 
     gkpl.forceBOGunitigger          = 0;
-
-    gkpl.doNotQVTrim                = 0;
-    gkpl.goodBadQVThreshold         = 12;
-
-    gkpl.unused1                    = 0;
-    gkpl.doNotTrustHomopolymerRuns  = 0;
-    gkpl.doNotOverlapTrim           = 0;
     gkpl.isNotRandom                = 0;
 
-    gkpl.hpsIsSomethingElse         = 0;
-    gkpl.hpsIsFlowGram              = 0;
-    gkpl.hpsIsPeakSpacing           = 0;
+    gkpl.doNotTrustHomopolymerRuns  = 0;
+
+    gkpl.doNotQVTrim                = 0;
+    gkpl.goodBadQVThreshold         = 0;
+    gkpl.doNotOverlapTrim           = 0;
+
+    gkpl.useShortFragments          = 0;
 
     gkpl.orientation                = AS_READ_ORIENT_UNKNOWN;
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.1 2009-06-10 18:05:14 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.2 2009-06-26 03:45:42 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -65,45 +65,34 @@ gkLibrary::gkLibrary_decodeFeatures(LibraryMesg *lmesg) {
     char *val = lmesg->values[f];
 
 
-    //  isNotRandom --
-    if        (strcasecmp(fea, "isNotRandom") == 0) {
-      isNotRandom = decodeBoolean("isNotRandom", val);
-    }
-
-    //  doNotOverlapTrim --
-    else if (strcasecmp(fea, "doNotOverlapTrim") == 0) {
-      doNotOverlapTrim = decodeBoolean("doNotOverlapTrim", val);
-    }
-
-    //  doNotQVTrim --
-    else if (strcasecmp(fea, "doNotQVTrim") == 0) {
-      doNotQVTrim = decodeBoolean("doNotQVTrim", val);
-    }
-
-    //  doNotTrustHomopolymerRuns --
-    else if (strcasecmp(fea, "doNotTrustHomopolymerRuns") == 0) {
-      doNotTrustHomopolymerRuns = decodeBoolean("doNotTrustHomopolymerRuns", val);
-    }
-
-    //  forceBOGunitigger --
-    else if (strcasecmp(fea, "forceBOGunitigger") == 0) {
+    if      (strcasecmp(fea, "forceBOGunitigger") == 0)
       forceBOGunitigger = decodeBoolean("forceBOGunitigger", val);
-    }
 
-    //  hpsIsPeakSpacing --
-    else if (strcasecmp(fea, "hpsIsPeakSpacing") == 0) {
-      hpsIsPeakSpacing = decodeBoolean("hpsIsPeakSpacing", val);
-    }
+    else if (strcasecmp(fea, "isNotRandom") == 0)
+      isNotRandom = decodeBoolean("isNotRandom", val);
 
-    //  hpsIsFlowGram --
-    else if (strcasecmp(fea, "hpsIsFlowGram") == 0) {
-      hpsIsFlowGram = decodeBoolean("hpsIsFlowGram", val);
-    }
 
-    else {
+    else if (strcasecmp(fea, "doNotTrustHomopolymerRuns") == 0)
+      doNotTrustHomopolymerRuns = decodeBoolean("doNotTrustHomopolymerRuns", val);
+
+
+    else if (strcasecmp(fea, "doNotQVTrim") == 0)
+      doNotQVTrim = decodeBoolean("doNotQVTrim", val);
+
+    else if (strcasecmp(fea, "goodBadQVThreshold") == 0)
+      goodBadQVThreshold = strtoul(val, NULL, 10);
+
+    else if (strcasecmp(fea, "doNotOverlapTrim") == 0)
+      doNotOverlapTrim = decodeBoolean("doNotOverlapTrim", val);
+
+
+    else if (strcasecmp(fea, "useShortFragments") == 0)
+      useShortFragments = decodeBoolean("useShortFragments", val);
+
+
+    else
       fprintf(stderr, "gkLibrary_decodeFeatures()-- found feature '%s' but don't understand it.\n",
               fea);
-    }
   }
 }
 
@@ -146,11 +135,45 @@ gkLibrary::gkLibrary_encodeFeatures(LibraryMesg *lmesg) {
   //  GoodThing(tm) to always specify optional features.
   int    alwaysEncode = 1;
 
+  if (forceBOGunitigger || alwaysEncode) {
+    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
+    val[nf] = (char *)safe_malloc(32 * sizeof(char));
+    sprintf(fea[nf], "forceBOGunitigger");
+    sprintf(val[nf], "%d", forceBOGunitigger);
+    nf++;
+  }
+
   if (isNotRandom || alwaysEncode) {
     fea[nf] = (char *)safe_malloc(32 * sizeof(char));
     val[nf] = (char *)safe_malloc(32 * sizeof(char));
     sprintf(fea[nf], "isNotRandom");
     sprintf(val[nf], "%d", isNotRandom);
+    nf++;
+  }
+
+
+  if (doNotTrustHomopolymerRuns || alwaysEncode) {
+    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
+    val[nf] = (char *)safe_malloc(32 * sizeof(char));
+    sprintf(fea[nf], "doNotTrustHomopolymerRuns");
+    sprintf(val[nf], "%d", doNotTrustHomopolymerRuns);
+    nf++;
+  }
+
+
+  if (doNotQVTrim || alwaysEncode) {
+    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
+    val[nf] = (char *)safe_malloc(32 * sizeof(char));
+    sprintf(fea[nf], "doNotQVTrim");
+    sprintf(val[nf], "%d", doNotQVTrim);
+    nf++;
+  }
+
+  if (goodBadQVThreshold || alwaysEncode) {
+    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
+    val[nf] = (char *)safe_malloc(32 * sizeof(char));
+    sprintf(fea[nf], "goodBadQVThreshold");
+    sprintf(val[nf], "%d", goodBadQVThreshold);
     nf++;
   }
 
@@ -162,43 +185,12 @@ gkLibrary::gkLibrary_encodeFeatures(LibraryMesg *lmesg) {
     nf++;
   }
 
-  if (doNotQVTrim || alwaysEncode) {
-    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
-    val[nf] = (char *)safe_malloc(32 * sizeof(char));
-    sprintf(fea[nf], "doNotQVTrim");
-    sprintf(val[nf], "%d", doNotQVTrim);
-    nf++;
-  }
 
-  if (doNotTrustHomopolymerRuns || alwaysEncode) {
+  if (useShortFragments || alwaysEncode) {
     fea[nf] = (char *)safe_malloc(32 * sizeof(char));
     val[nf] = (char *)safe_malloc(32 * sizeof(char));
-    sprintf(fea[nf], "doNotTrustHomopolymerRuns");
-    sprintf(val[nf], "%d", doNotTrustHomopolymerRuns);
-    nf++;
-  }
-
-  if (forceBOGunitigger || alwaysEncode) {
-    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
-    val[nf] = (char *)safe_malloc(32 * sizeof(char));
-    sprintf(fea[nf], "forceBOGunitigger");
-    sprintf(val[nf], "%d", forceBOGunitigger);
-    nf++;
-  }
-
-  if (hpsIsPeakSpacing || alwaysEncode) {
-    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
-    val[nf] = (char *)safe_malloc(32 * sizeof(char));
-    sprintf(fea[nf], "hpsIsPeakSpacing");
-    sprintf(val[nf], "%d", hpsIsPeakSpacing);
-    nf++;
-  }
-
-  if (hpsIsFlowGram || alwaysEncode) {
-    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
-    val[nf] = (char *)safe_malloc(32 * sizeof(char));
-    sprintf(fea[nf], "hpsIsFlowGram");
-    sprintf(val[nf], "%d", hpsIsFlowGram);
+    sprintf(fea[nf], "useShortFragments");
+    sprintf(val[nf], "%d", useShortFragments);
     nf++;
   }
 
