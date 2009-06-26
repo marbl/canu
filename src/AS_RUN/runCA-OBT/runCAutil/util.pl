@@ -476,9 +476,12 @@ sub setDefaults () {
     $synops{"toggleUnitigLength"}           = "Minimum length for a surrogate to be toggled";
 
     $global{"toggleNumInstances"}            = 1;
-    $synops{"toggleNumInstances"}            = "Number of instances for a surrogate to be toggled";
+    $synops{"toggleNumInstances"}            = "Number of instances for a surrogate to be toggled. If 0 is specified, all non-singleton unitigs are toggled to unique status.";
 
-    #####  Ugly, command line options passed to printHelp()
+    $global{"toggleDoNotDemote"}             = 0;
+    $synops{"toggleDoNotDemote"}            = "Do not allow CGW to demote toggled unitigs based on branching patterns.";
+
+   #####  Ugly, command line options passed to printHelp()
 
     $global{"help"}                        = "";
     $synops{"help"}                        = undef;

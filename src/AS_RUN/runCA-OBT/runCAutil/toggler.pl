@@ -52,6 +52,7 @@ sub toggler () {
       }
    }
 
+   system("ln -s $wrk/4-unitigger $wrk/$toggledDir") if (! -e "$wrk/$toggledDir/4-unitigger");
    system("mkdir $wrk/$toggledDir/5-consensus") if (! -d "$wrk/$toggledDir/5-consensus");
    
    my $cgiFile;

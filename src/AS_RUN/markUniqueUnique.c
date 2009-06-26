@@ -1,4 +1,4 @@
-const char *mainid = "$Id: markUniqueUnique.c,v 1.2 2009-06-10 18:05:14 brianwalenz Exp $";
+const char *mainid = "$Id: markUniqueUnique.c,v 1.3 2009-06-26 20:27:46 skoren Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -40,7 +40,7 @@ int main (int argc, char *argv[]) {
          if (minLength <= 0) err++;
       } else if (strcmp(argv[arg], "-n") == 0) {
          numInstances = atoi(argv[++arg]);
-         if (numInstances <= 0) err++;
+         if (numInstances < 0) err++;
       } else if ((argv[arg][0] != '-') && (firstFileArg == 0)) {
          firstFileArg = arg;
          arg = argc;
@@ -114,7 +114,11 @@ int main (int argc, char *argv[]) {
             case MESG_IUM:
                utg = (IntUnitigMesg *)(pmesg->m);
                uint32 *ret = Getuint32(surrogateCount, utg->iaccession);
-               if (ret != NULL && (*ret) == numInstances) {
+               if (ret != NULL && (*ret) == numInstances && numInstances != 0) {
+                  utg->unique_rept = AS_FORCED_UNIQUE;
+                  numToggled++;
+               } else if (numInstances == 0 && utg->num_frags > 1) {
+                  // special case, mark non-singleton unitigs as unique if we are given no length or instances
                   utg->unique_rept = AS_FORCED_UNIQUE;
                   numToggled++;
                }

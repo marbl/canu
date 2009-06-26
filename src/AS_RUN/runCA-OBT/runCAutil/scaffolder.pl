@@ -80,6 +80,7 @@ sub CGW ($$$$$$) {
     $cmd .= " -z "                                 if (getGlobal("cgwDemoteRBP") == 1);
     $cmd .= " -c " . getGlobal("closureEdges")     if (defined(getGlobal("closureEdges")));
     $cmd .= " -p " . getGlobal("closurePlacement") if (defined(getGlobal("closureEdges")));
+    $cmd .= " -F "                                 if (getGlobal("toggleDoNotDemote") != 0);
     $cmd .= " -u $wrk/4-unitigger/$asm.unused.ovl" if (getGlobal("cgwUseUnitigOverlaps") != 0);
     $cmd .= " -m $sampleSize";
     $cmd .= " -g $wrk/$asm.gkpStore ";
