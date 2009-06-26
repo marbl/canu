@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.32 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: chimera.C,v 1.33 2009-06-26 20:02:13 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,7 +84,10 @@ readClearRanges(gkStore *gkp) {
 
   while (fs->next(&fr)) {
     AS_IID       iid  = fr.gkFragment_getReadIID();
-    gkLibrary   *lr   = gkp->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
+    gkLibrary   *lr   = NULL;
+    if (fr.gkFragment_getLibraryIID() != 0) {
+       lr   = gkp->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
+    }
 
     clear[iid].pad1          = 0;
     clear[iid].length        = fr.gkFragment_getSequenceLength();

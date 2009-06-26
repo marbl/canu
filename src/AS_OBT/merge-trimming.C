@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merge-trimming.C,v 1.36 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: merge-trimming.C,v 1.37 2009-06-26 20:02:13 skoren Exp $";
 
 #include "trim.H"
 #include "constants.H"
@@ -194,13 +194,16 @@ main(int argc, char **argv) {
     while (lid < iid) {
       gkp->gkStore_getFragment(lid, &fr, GKFRAGMENT_INF | GKFRAGMENT_QLT);
 
-      uint32 qltL0 = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
-      uint32 qltR0 = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_OBTINITIAL);
-      uint32 qltL1 = 0;
-      uint32 qltR1 = 0;
-      AS_UID uid   = fr.gkFragment_getReadUID();
+      uint32     qltL0 = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
+      uint32     qltR0 = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_OBTINITIAL);
+      uint32     qltL1 = 0;
+      uint32     qltR1 = 0;
+      AS_UID     uid   = fr.gkFragment_getReadUID();
+      gkLibrary *lr = NULL;
 
-      gkLibrary  *lr = gkp->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
+      if (fr.gkFragment_getLibraryIID() != 0) {
+         lr = gkp->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
+      }
 
       //  If not already deleted, update the clear.  Updating the
       //  clear on deleted fragments usually results in the log
@@ -268,7 +271,10 @@ main(int argc, char **argv) {
     AS_UID uid    = fr.gkFragment_getReadUID();
     AS_IID lib    = fr.gkFragment_getLibraryIID();
 
-    gkLibrary  *lr = gkp->gkStore_getLibrary(lib);
+    gkLibrary  *lr = NULL;
+    if (lib != 0) {
+       gkp->gkStore_getLibrary(lib);
+    }
 
     //  Only proceed if we're mutable.
     //
@@ -533,7 +539,10 @@ main(int argc, char **argv) {
 
     gkp->gkStore_getFragment(iid, &fr, GKFRAGMENT_INF);
 
-    gkLibrary *lr = gkp->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
+    gkLibrary *lr = NULL;
+    if (fr.gkFragment_getLibraryIID() != 0) {
+       gkp->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
+    }
 
     if (fr.gkFragment_getIsDeleted())
       continue;

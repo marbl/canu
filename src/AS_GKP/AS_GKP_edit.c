@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.15 2009-06-26 03:45:42 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.16 2009-06-26 20:02:12 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,6 +50,9 @@ updateVectorClear(char *vectorClearFile, char *gkpStoreName) {
 
   gkStore          *gkpStore = new gkStore(gkpStoreName, FALSE, TRUE);
   gkFragment        fr;
+  
+  // enable the clear range
+  gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_VEC);
 
   fgets(line, 256, v);
   while (!feof(v)) {
@@ -87,15 +90,15 @@ updateVectorClear(char *vectorClearFile, char *gkpStoreName) {
           rr = ll;
         }
 
-        //  Not silently fix invalid coords.
+        //  Now silently fix invalid coords.
         if ((ll < 0) ||
             (rr < 0) ||
-            (ll >= mm) ||
-            (rr >= mm)) {
-          if (ll <  0)     ll = 0;
-          if (rr >= mm)    ll = mm;
-          if (ll <  0)     rr = 0;
-          if (rr >= mm)    rr = mm;
+            (ll > mm) ||
+            (rr > mm)) {
+          if (ll <  0)    ll = 0;
+          if (rr > mm)    ll = mm;
+          if (ll <  0)    rr = 0;
+          if (rr > mm)    rr = mm;
           fprintf(stderr, "WARNING:  Fixing vector clear range for '%s' to (%d,%d).\n", line, ll, rr);
         }
 
