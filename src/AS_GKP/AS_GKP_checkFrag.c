@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.49 2009-06-26 03:45:42 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.50 2009-06-28 17:01:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -242,6 +242,11 @@ checkClearRanges(FragMesg   *frg_mesg,
     }
   }
 
+  gkFrag1->clrBgn = frg_mesg->clear_rng.bgn;  gkFrag1->clrEnd = frg_mesg->clear_rng.end;
+  gkFrag1->vecBgn = frg_mesg->clear_vec.bgn;  gkFrag1->vecEnd = frg_mesg->clear_vec.end;
+  gkFrag1->maxBgn = frg_mesg->clear_max.bgn;  gkFrag1->maxEnd = frg_mesg->clear_max.end;
+  gkFrag1->tntBgn = 1;                        gkFrag1->tntEnd = 0;
+
   return(failed);
 }
 
@@ -324,11 +329,7 @@ Check_FragMesg(FragMesg   *frg_mesg,
       gkFrag1->gkFragment_setIsDeleted(0);
     }
 
-    gkpStore->gkStore_addFragment(gkFrag1,
-                                  frg_mesg->clear_rng.bgn, frg_mesg->clear_rng.end,
-                                  frg_mesg->clear_vec.bgn, frg_mesg->clear_vec.end,
-                                  frg_mesg->clear_max.bgn, frg_mesg->clear_max.end,
-                                  1,                       0);
+    gkpStore->gkStore_addFragment(gkFrag1);
 
   } else if (frg_mesg->action == AS_DELETE) {
     AS_IID       iid = gkpStore->gkStore_getUIDtoIID(frg_mesg->eaccession, NULL);

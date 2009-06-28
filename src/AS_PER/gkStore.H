@@ -76,7 +76,7 @@ public:
   void         gkStore_load(AS_IID firstElem, AS_IID lastElem, int flags);
   void         gkStore_loadPartition(uint32 partition);
 
-  void         gkStore_delete(const char *path);
+  void         gkStore_delete(void);
 
   const char  *gkStore_path(void) { return(storePath); };
 
@@ -114,11 +114,7 @@ public:
   void      gkStore_getFragment(AS_IID iid, gkFragment *fr, int32 flags);
   void      gkStore_setFragment(gkFragment *fr);
   void      gkStore_delFragment(AS_IID iid);
-  void      gkStore_addFragment(gkFragment *fr,
-                                uint32 clrBgn, uint32 clrEnd,
-                                uint32 vecBgn, uint32 vecEnd,
-                                uint32 maxBgn, uint32 maxEnd,
-                                uint32 tntBgn, uint32 tntEnd);
+  void      gkStore_addFragment(gkFragment *fr);
 
   ////////////////////////////////////////
   //

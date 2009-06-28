@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.1 2009-06-10 18:05:14 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.2 2009-06-28 17:01:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,10 +35,6 @@ static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.1 2009-06-10 18:05:14
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_encodeSequenceQuality.h"
 #include "AS_UTL_fileIO.h"
-
-#define DEBUG_CLEAR_FILES
-#undef DEBUG_CLEAR_GET
-#undef DEBUG_CLEAR_SET
 
 
 uint32
@@ -102,10 +98,6 @@ gkClearRange::~gkClearRange() {
 
     AS_UTL_safeWrite(F, sm, "gkClearRange::~glClearRange()--sm", sizeof(uint8), gkp->inf.numShort * 2 + 2);
 
-#ifdef DEBUG_CLEAR_FILES
-    fprintf(stderr, "sm wrote "F_U32" ranges to '%s'\n", gkp->inf.numShort, filePath);
-#endif
-
     fclose(F);
   }
 
@@ -119,10 +111,6 @@ gkClearRange::~gkClearRange() {
 
     AS_UTL_safeWrite(F, md, "gkClearRange::~glClearRange()--md", sizeof(uint16), gkp->inf.numMedium * 2 + 2);
 
-#ifdef DEBUG_CLEAR_FILES
-    fprintf(stderr, "md wrote "F_U32" ranges to '%s'\n", gkp->inf.numMedium, filePath);
-#endif
-
     fclose(F);
   }
 
@@ -135,10 +123,6 @@ gkClearRange::~gkClearRange() {
       fprintf(stderr, "gkClearRange::~gkClearRange()-- failed to write clear range file '%s': %s\n", filePath, strerror(errno)), exit(1);
 
     AS_UTL_safeWrite(F, lg, "gkClearRange::~glClearRange()--lg", sizeof(uint32), gkp->inf.numLong * 2 + 2);
-
-#ifdef DEBUG_CLEAR_FILES
-    fprintf(stderr, "lg wrote "F_U32" ranges to '%s'\n", gkp->inf.numLong, filePath);
-#endif
 
     fclose(F);
   }
@@ -172,15 +156,9 @@ gkClearRange::gkClearRange_getClearRegion(gkFragment *fr, uint32& begin, uint32&
       assert(fr->tiid <= mdmaxiid);
       begin = md[2*fr->tiid+0];
       end   = md[2*fr->tiid+1];
-#ifdef DEBUG_CLEAR_GET
-      fprintf(stderr, "md clear defined for iid=%d %d,%d\n", fr->tiid, begin, end);
-#endif
     } else {
       begin = 1;
       end   = 0;
-#ifdef DEBUG_CLEAR_GET
-      fprintf(stderr, "md clear UNDEFINED for iid=%d\n", fr->tiid);
-#endif
     }
   }
   if (fr->type == GKFRAGMENT_LONG) {
@@ -202,7 +180,7 @@ gkClearRange::gkClearRange_getClearRegion(gkFragment *fr, uint32& begin, uint32&
 void
 gkClearRange::gkClearRange_setClearRegion(gkFragment *fr, uint32  begin, uint32  end) {
   if (fr->type == GKFRAGMENT_SHORT) {
-    if (sm == NULL)
+    if (!smconfigured)
       gkClearRange_configureShort();
     assert(sm != NULL);
     smdirty = 1;
@@ -248,10 +226,6 @@ gkClearRange::gkClearRange_configureShort(void) {
     sm = new uint8 [smmaxiid * 2 + 2];
     AS_UTL_safeRead(F, sm, "gkClearRange::glClearRange()--sm", sizeof(uint8), smmaxiid * 2 + 2);
 
-#ifdef DEBUG_CLEAR_FILES
-    fprintf(stderr, "sm read "F_U32" ranges to '%s'\n", smmaxiid, filePath);
-#endif
-
     fclose(F);
   } else if (create) {
     smmaxiid = (gkp->inf.numShort > 0) ? gkp->inf.numShort : 1048576;
@@ -278,6 +252,9 @@ void
 gkClearRange::gkClearRange_configureMedium(void) {
   char *filePath = gkClearRange_makeName(gkp, GKFRAGMENT_MEDIUM, clearType);
 
+  assert(md == NULL);
+  assert(mdconfigured == 0);
+
   if (AS_UTL_fileExists(filePath, FALSE, TRUE)) {
     mddirty   = 0;
     mdmaxiid  = gkp->inf.numMedium;
@@ -290,10 +267,6 @@ gkClearRange::gkClearRange_configureMedium(void) {
 
     md = new uint16 [mdmaxiid * 2 + 2];
     AS_UTL_safeRead(F, md, "gkClearRange::glClearRange()--md", sizeof(uint16), mdmaxiid * 2 + 2);
-
-#ifdef DEBUG_CLEAR_FILES
-    fprintf(stderr, "md read "F_U32" ranges to '%s'\n", mdmaxiid, filePath);
-#endif
 
     fclose(F);
   } else if (create) {
@@ -333,10 +306,6 @@ gkClearRange::gkClearRange_configureLong(void) {
 
     lg = new uint32 [lgmaxiid * 2 + 2];
     AS_UTL_safeRead(F, lg, "gkClearRange::glClearRange()--lg", sizeof(uint32), lgmaxiid * 2 + 2);
-
-#ifdef DEBUG_CLEAR_FILES
-    fprintf(stderr, "lg read "F_U32" ranges to '%s'\n", lgmaxiid, filePath);
-#endif
 
     fclose(F);
   } else if (create) {
@@ -387,6 +356,8 @@ gkClearRange::gkClearRange_makeSpaceShort(AS_IID tiid) {
   delete [] sm;
   sm       = newsm;
   smmaxiid = newsmmaxiid;
+
+  smconfigured = 1;
 }
 
 
@@ -415,6 +386,8 @@ gkClearRange::gkClearRange_makeSpaceMedium(AS_IID tiid) {
   delete [] md;
   md       = newmd;
   mdmaxiid = newmdmaxiid;
+
+  mdconfigured = 1;
 }
 
 
@@ -443,4 +416,6 @@ gkClearRange::gkClearRange_makeSpaceLong(AS_IID tiid) {
   delete [] lg;
   lg       = newlg;
   lgmaxiid = newlgmaxiid;
+
+  lgconfigured = 1;
 }

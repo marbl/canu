@@ -424,6 +424,13 @@ private:
 
   uint32   isGKP;
 
+public:
+  uint32   clrBgn, clrEnd;  //  For use by gatekeeper and sffToCA ONLY.
+  uint32   vecBgn, vecEnd;  //  These are the initial clear ranges to be
+  uint32   maxBgn, maxEnd;  //  loaded into the store.
+  uint32   tntBgn, tntEnd;  //  DO NOT USE!
+
+private:
   gkStore *gkp;
 
   union {

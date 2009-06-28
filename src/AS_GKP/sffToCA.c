@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.26 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.27 2009-06-28 17:01:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,11 +53,12 @@ const char *mainid = "$Id: sffToCA.c,v 1.26 2009-06-10 18:05:13 brianwalenz Exp 
 #define AS_LINKER_MAX_SEQS       50
 #define AS_LINKER_CUSTOM_OFFSET  24
 
-GateKeeperStore *gkpStore    = NULL;
+gkStore         *gkpStore    = NULL;
 FILE            *logFile     = NULL;
 uint32           clearAction = CLEAR_454;
 uint32           clearSet    = 0;
 uint32           trimAction  = TRIM_HARD;
+
 
 typedef struct {
   uint32   numReadsInSFF;
@@ -89,85 +90,6 @@ writeStatistics(FILE *statOut) {
 
 
 
-static
-void
-addReadToStore(GateKeeperStore *gkp,
-               fragRecord      *fr) {
-  int        encodedlength;
-
-  fr->gkfr.readIID = getLastElemStore(gkpStore->frg) + 1;
-
-  fr->gkfr.seqLen = strlen(fr->seq);
-  fr->gkfr.hpsLen = 0;
-  fr->gkfr.srcLen = 0;
-
-  fr->gkfr.seqOffset = getLastElemStore(gkpStore->seq) + 1;
-  fr->gkfr.qltOffset = getLastElemStore(gkpStore->qlt) + 1;
-  fr->gkfr.hpsOffset = getLastElemStore(gkpStore->hps) + 1;
-  fr->gkfr.srcOffset = getLastElemStore(gkpStore->src) + 1;
-
-  setGatekeeperUIDtoIID(gkpStore, fr->gkfr.readUID, fr->gkfr.readIID, AS_IID_FRG);
-  appendIndexStore(gkpStore->frg, &fr->gkfr);
-
-  encodedlength = encodeSequence(fr->enc, fr->seq);
-  appendStringStore(gkpStore->seq, fr->enc, encodedlength);
-
-  encodeSequenceQuality(fr->enc, fr->seq, fr->qlt);
-  appendStringStore(gkpStore->qlt, fr->enc, fr->gkfr.seqLen);
-
-  appendStringStore(gkpStore->hps, NULL, 0);
-  appendStringStore(gkpStore->src, NULL, 0);
-
-  gkpStore->gkp.sffLoaded++;
-}
-
-
-
-//  Ugly hack that disappears in CA 6.x
-static
-int
-fileExists(const char *path,
-           int directory,
-           int readwrite) {
-  struct stat  s;
-  int          r;
-
-  errno = 0;
-  r = stat(path, &s);
-  if (errno) {
-    //fprintf(stderr, "Failed to stat() file '%s'; assumed to not exist.\n", path);
-    return(0);
-  }
-
-  if (directory == 1) {
-    if ((readwrite == 0) &&
-        (s.st_mode & S_IFDIR) &&
-        (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) &&
-        (s.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
-      return(1);
-    if ((readwrite == 1) &&
-        (s.st_mode & S_IFDIR) &&
-        (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) &&
-        (s.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH)) &&
-        (s.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
-      return(1);
-  }
-
-  if (directory == 0) {
-    if ((readwrite == 0) &&
-        (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)))
-      return(1);
-    if ((readwrite == 1) &&
-        (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) &&
-        (s.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH)))
-      return(1);
-  }
-
-  return(0);
-}
-
-
-
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  Reads an SFF file, inserts all the reads (that are of the proper length)
@@ -189,7 +111,7 @@ typedef struct {
   char    *flow_chars;        //  h->number_of_flows_per_read
   char    *key_sequence;      //  h->key_length
 
-  void    *data_block;
+  uint8   *data_block;
   uint32   data_block_len;
 
   uint32   swap_endianess;
@@ -228,7 +150,7 @@ typedef struct {
   char    *final_bases;          //  loading.  NOT zero terminated.
   char    *final_quality;        //  DO NOT ZERO TERMINATE.
 
-  void    *data_block;
+  uint8   *data_block;
   uint32   data_block_len;
 } sffRead;
 
@@ -321,13 +243,13 @@ readsff_header(FILE *sff, sffHeader *h, sffManifest *m) {
   uint32 newlen = h->number_of_flows_per_read + h->key_length + 2;
   if (h->data_block_len < newlen) {
     h->data_block_len = newlen;
-    h->data_block     = safe_realloc(h->data_block, h->data_block_len);
+    h->data_block     = (uint8 *)safe_realloc(h->data_block, sizeof(uint8) * h->data_block_len);
   }
 
   memset(h->data_block, 0, h->data_block_len);
 
-  h->flow_chars   = h->data_block;
-  h->key_sequence = h->data_block + (h->number_of_flows_per_read + 1) * sizeof(char);
+  h->flow_chars   = (char *)h->data_block;
+  h->key_sequence = (char *)h->data_block + (h->number_of_flows_per_read + 1) * sizeof(char);
 
   AS_UTL_safeRead(sff,  h->flow_chars,   "readsff_header_2", sizeof(char), h->number_of_flows_per_read);
   AS_UTL_safeRead(sff,  h->key_sequence, "readsff_header_3", sizeof(char), h->key_length);
@@ -375,17 +297,17 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
 
   if (r->data_block_len < ss[5]) {
     r->data_block_len = ss[5];
-    r->data_block     = safe_realloc(r->data_block, r->data_block_len);
+    r->data_block     = (uint8 *)safe_realloc(r->data_block, sizeof(uint8) * r->data_block_len);
   }
 
   memset(r->data_block, 0, r->data_block_len);
 
-  r->name                 = r->data_block;
-  r->flowgram_values      = r->data_block + ss[0];
-  r->flow_index_per_base  = r->data_block + ss[1];
-  r->bases                = r->data_block + ss[2];
-  r->quality_scores       = r->data_block + ss[3];
-  r->quality              = r->data_block + ss[4];
+  r->name                 = (char   *)(r->data_block);
+  r->flowgram_values      = (uint16 *)(r->data_block + ss[0]);
+  r->flow_index_per_base  = (uint8  *)(r->data_block + ss[1]);
+  r->bases                = (char   *)(r->data_block + ss[2]);
+  r->quality_scores       = (uint8  *)(r->data_block + ss[3]);
+  r->quality              = (char   *)(r->data_block + ss[4]);
 
   AS_UTL_safeRead(sff, r->name, "readsff_read_2", sizeof(char), r->name_length);
   r->name[r->name_length] = 0;
@@ -429,29 +351,32 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
 
 
 static
-void
+int
 processRead(sffHeader *h,
-            sffRead   *r, fragRecord *fr) {
+            sffRead   *r, gkFragment *fr) {
   int  which;
 
   st.numReadsInSFF++;
 
-  clearGateKeeperFragmentRecord(&fr->gkfr);
+  //  We ALWAYS use the MEDIUM size reads here.  We could use SHORT for, maybe,
+  //  the mated reads, but it's too complicated.
+  fr->gkFragment_setType(GKFRAGMENT_MEDIUM);
 
   //  Construct a UID from the 454 read name
-  fr->gkfr.readUID = AS_UID_load(r->name);
+  fr->gkFragment_setReadUID(AS_UID_load(r->name));
+  fr->gkFragment_setIsDeleted(0);
 
   //  Read already loaded?  Can't load again.  Set UID;s and IID's
   //  to zero to indicate this -- we'll catch it at the end.
   //
-  if (gkStore_getUIDtoIID(gkpStore, fr->gkfr.readUID, NULL)) {
-    fprintf(stderr, "ERROR:  Read '%s' already exists.\n", AS_UID_toString(fr->gkfr.readUID));
-    fr->gkfr.readUID = AS_UID_undefined();
-    return;
+  if (gkpStore->gkStore_getUIDtoIID(fr->gkFragment_getReadUID(), NULL)) {
+    fprintf(stderr, "Read '%s' already exists.  Duplicate deleted.\n",
+            AS_UID_toString(fr->gkFragment_getReadUID()));
+    return(false);
   }
 
-  fr->gkfr.libraryIID  = 1;
-  fr->gkfr.orientation = AS_READ_ORIENT_UNKNOWN;
+  fr->gkFragment_setLibraryIID(1);
+  fr->gkFragment_setOrientation(AS_READ_ORIENT_UNKNOWN);
 
   ////////////////////////////////////////
   //
@@ -557,6 +482,12 @@ processRead(sffHeader *h,
   int clf = MAX(MAX(clq, cla), MAX(cln, clp));
   int crf = MIN(MIN(crq, cra), MIN(crn, crp));
 
+#if 0
+  if (logFile)
+    fprintf(logFile, "Read '%s' clear ranges q:%d,%d  a:%d,%d  n:%d,%d  p:%d,%d  f:%d,%d\n",
+            AS_UID_toString(fr->gkFragment_getReadUID()),
+            clq, crq, cla, cra, cln, crn, clp, crp, clf, crf);
+#endif
 
   ////////////////////////////////////////
   //
@@ -565,65 +496,52 @@ processRead(sffHeader *h,
   //
   if ((clearAction & CLEAR_DISCARD_N) && (frn < crf)) {
     st.numWithUnallowedN++;
-
     if (logFile)
       fprintf(logFile, "Read '%s' contains an N at position %d.  Read deleted.\n",
-              AS_UID_toString(fr->gkfr.readUID), crn);
-
-    fr->gkfr.readUID = AS_UID_undefined();
+              AS_UID_toString(fr->gkFragment_getReadUID()), crn);
+    return(false);
   }
 
 
   ////////////////////////////////////////
   //
-  //  Now, decide how to set the clear ranges.  Ignore, soft, hard, chop?
+  //  Now, decide how to set the clear ranges.
   //
-  switch (trimAction) {
-    int which;
 
+  fr->maxBgn = 1;  //  No max yet.
+  fr->maxEnd = 0;
+
+  fr->vecBgn = 1;  //  There is no vector clear defined for 454 reads.
+  fr->vecEnd = 0;
+
+  fr->tntBgn = 1;  //  Nothing contaminated.
+  fr->tntEnd = 0;
+
+  switch (trimAction) {
     case TRIM_NONE:
       //  Set clear range to the whole untrimmed read.
-      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-        fr->gkfr.clearBeg[which] = h->key_length;
-        fr->gkfr.clearEnd[which] = r->number_of_bases;
-      }
-
-      //  No point setting the max.
-      fr->gkfr.clearBeg[AS_READ_CLEAR_MAX] = 1;
-      fr->gkfr.clearEnd[AS_READ_CLEAR_MAX] = 0;
+      fr->clrBgn = h->key_length;
+      fr->clrEnd = r->number_of_bases;
       break;
 
     case TRIM_SOFT:
       //  Set clear ranges to whatever we discovered above, but do not
       //  limit OBT to anything.
-      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-        fr->gkfr.clearBeg[which] = clf;
-        fr->gkfr.clearEnd[which] = crf;
-      }
-
-      //  No point setting the max.
-      fr->gkfr.clearBeg[AS_READ_CLEAR_MAX] = 1;
-      fr->gkfr.clearEnd[AS_READ_CLEAR_MAX] = 0;
+      fr->clrBgn = clf;
+      fr->clrEnd = crf;
       break;
 
     case TRIM_HARD:
       //  Set clear ranges to whatever we discovered above, and limit
       //  OBT to those ranges.
-      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-        fr->gkfr.clearBeg[which] = clf;
-        fr->gkfr.clearEnd[which] = crf;
-      }
-
-      //  The only one that sets the max.
-      fr->gkfr.clearBeg[AS_READ_CLEAR_MAX] = clf;
-      fr->gkfr.clearEnd[AS_READ_CLEAR_MAX] = crf;
+      fr->clrBgn = fr->maxBgn = clf;
+      fr->clrEnd = fr->maxEnd = crf;
       break;
 
     case TRIM_CHOP:
       //  Rewrite the read to remove the non-clear sequence.  We keep
       //  in the usually four base long key at the start (with some
       //  amount of pain since clf,clr include those four bases).
-
       memmove(r->bases   + h->key_length, r->bases   + clf, sizeof(char) * (crf - clf));
       memmove(r->quality + h->key_length, r->quality + clf, sizeof(char) * (crf - clf));
 
@@ -632,51 +550,37 @@ processRead(sffHeader *h,
       r->bases  [h->key_length + crf - clf] = 0;
       r->quality[h->key_length + crf - clf] = 0;
 
-      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-        fr->gkfr.clearBeg[which] = h->key_length;
-        fr->gkfr.clearEnd[which] = h->key_length + crf - clf;
-      }
-
-      //  No point setting the max.
-      fr->gkfr.clearBeg[AS_READ_CLEAR_MAX] = 1;
-      fr->gkfr.clearEnd[AS_READ_CLEAR_MAX] = 0;
+      fr->clrBgn = h->key_length;
+      fr->clrEnd = h->key_length + crf - clf;
       break;
     default:
       break;
   }
 
-  //  There is no vector clear defined for 454 reads.
-  fr->gkfr.clearBeg[AS_READ_CLEAR_VEC] = 1;
-  fr->gkfr.clearEnd[AS_READ_CLEAR_VEC] = 0;
-
-  //  Make sure that we aren't claiming contamination in the middle.
-  fr->gkfr.contaminationBeg = 0;
-  fr->gkfr.contaminationEnd = 0;
 
   ////////////////////////////////////////////////////////////////////////////////
 
   //  Reads too long cannot be physically loaded into the store.  Trim
   //  off anything over the maximum size.
   //
-  if (r->number_of_bases - h->key_length > AS_READ_MAX_LEN) {
+#if 0
+  if (r->number_of_bases - h->key_length > AS_READ_MAX_MEDIUM_LEN) {
     st.numTooLong++;
 
     if (logFile)
       fprintf(logFile, "Read '%s' of length %d is too long.  Truncating to %d bases.\n",
-              r->name, r->number_of_bases - h->key_length, AS_READ_MAX_LEN);
+              r->name, r->number_of_bases - h->key_length, AS_READ_MAX_MEDIUM_LEN);
 
-    r->number_of_bases = AS_READ_MAX_LEN;
+    r->number_of_bases = AS_READ_MAX_MEDIUM_LEN;
 
-    r->bases  [AS_READ_MAX_LEN + h->key_length] = 0;
-    r->quality[AS_READ_MAX_LEN + h->key_length] = 0;
+    r->bases  [AS_READ_MAX_MEDIUM_LEN + h->key_length] = 0;
+    r->quality[AS_READ_MAX_MEDIUM_LEN + h->key_length] = 0;
 
-    for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-      if (fr->gkfr.clearBeg[which] > AS_READ_MAX_LEN)
-        fr->gkfr.clearBeg[which] = AS_READ_MAX_LEN;
-      if (fr->gkfr.clearEnd[which] > AS_READ_MAX_LEN)
-        fr->gkfr.clearEnd[which] = AS_READ_MAX_LEN;
-    }
+    if (fr->clrBgn > AS_READ_MAX_MEDIUM_LEN)   fr->clrBgn = AS_READ_MAX_MEDIUM_LEN;
+    if (fr->clrEnd > AS_READ_MAX_MEDIUM_LEN)   fr->clrEnd = AS_READ_MAX_MEDIUM_LEN;
   }
+#endif
+
 
   //  Likewise, reads too short will never be of any use, and they're
   //  not loaded.  We'll give the benefit of the doubt and use the
@@ -684,34 +588,44 @@ processRead(sffHeader *h,
   //
   if (r->number_of_bases - h->key_length < AS_READ_MIN_LEN) {
     st.numTooShort++;
-
     if (logFile)
-      fprintf(logFile, "Read '%s' of length %d clear %d,%d is too short.  Not loaded.\n",
+      fprintf(logFile, "Read '%s' of length %d clear %d,%d is too short.  Read deleted.\n",
               r->name,
               r->number_of_bases - h->key_length,
-              fr->gkfr.clearEnd[AS_READ_CLEAR_LATEST] - h->key_length,
-              fr->gkfr.clearBeg[AS_READ_CLEAR_LATEST] - h->key_length);
-
-    fr->gkfr.readUID = AS_UID_undefined();
+              fr->clrBgn - h->key_length,
+              fr->clrEnd - h->key_length);
+    return(false);
   }
 
   //  Finally, adjust everything to remove the key_length bases from the start.
   //
-  for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-    if (fr->gkfr.clearBeg[which] < fr->gkfr.clearEnd[which]) {
-      fr->gkfr.clearBeg[which] -= h->key_length;
-      fr->gkfr.clearEnd[which] -= h->key_length;
-    }
+  fr->clrBgn -= h->key_length;
+  fr->clrEnd -= h->key_length;
+
+  if (fr->maxBgn < fr->maxEnd) {
+    fr->maxBgn -= h->key_length;
+    fr->maxEnd -= h->key_length;
   }
 
   r->final_bases    = r->bases   + h->key_length;
   r->final_quality  = r->quality + h->key_length;
   r->final_length   = r->number_of_bases - h->key_length;
 
-  //  Copy sequence to the fragRecord
+  //  Copy sequence to the gkFragment
   //
-  memcpy(fr->seq, r->final_bases,   sizeof(char) * (r->final_length + 1));
-  memcpy(fr->qlt, r->final_quality, sizeof(char) * (r->final_length + 1));
+  memcpy(fr->gkFragment_getSequence(), r->final_bases,   sizeof(char) * (r->final_length + 1));
+  memcpy(fr->gkFragment_getQuality(),  r->final_quality, sizeof(char) * (r->final_length + 1));
+
+  fr->gkFragment_setLength(r->final_length);
+
+  fr->gkFragment_getSequence()[r->final_length + 1] = 0;
+  fr->gkFragment_getQuality() [r->final_length + 1] = 0;
+
+  assert(fr->clrBgn < fr->clrEnd);
+  assert(fr->vecBgn > fr->vecEnd);
+  assert(fr->tntBgn > fr->tntEnd);
+
+  return(true);
 }
 
 
@@ -723,8 +637,10 @@ loadSFF(char *sffName) {
   sffHeader                  h    = {0};
   sffManifest                m    = {0};
   sffRead                    r    = {0};
-  fragRecord                 fr   = {0};
+  gkFragment                 fr;
   int                        rn   = 0;
+
+  fr.gkFragment_enableGatekeeperMode(gkpStore);
 
   errno = 0;
 
@@ -752,9 +668,8 @@ loadSFF(char *sffName) {
 
   for (rn=0; rn < h.number_of_reads; rn++) {
     readsff_read(sff, &h, &r);
-    processRead(&h, &r, &fr);
-    if (AS_UID_compare(fr.gkfr.readUID, AS_UID_undefined()) != 0)
-      addReadToStore(gkpStore, &fr);
+    if (processRead(&h, &r, &fr))
+      gkpStore->gkStore_addFragment(&fr);
   }
 
   //  Read the manifest if we haven't already done so.
@@ -812,22 +727,16 @@ fragHashCompare(const void *a, const void *b) {
 
 void
 removeDuplicateReads(void) {
-
-  uint32        firstElem = getFirstElemFragStore(gkpStore);
-  uint32        lastElem  = getLastElemFragStore(gkpStore) + 1;
-
   uint32        fragsLen = 0;
   uint32        fragsMax = 16384;
-  fragRecord    fr;
-  fragRecord   *frags    = (fragRecord *)safe_malloc(sizeof(fragRecord) * fragsMax);
+  gkFragment   *frags    = (gkFragment *)safe_malloc(sizeof(gkFragment) * fragsMax);
+  gkFragment    fr;
 
-  fragHash   *fh    = safe_malloc(sizeof(fragHash) * (lastElem - firstElem + 1));
+  fragHash   *fh    = (fragHash *)safe_malloc(sizeof(fragHash) * (gkpStore->gkStore_getNumFragments() + 1));
   uint32      fhLen = 0;
 
   uint64 map[256] = { 0 };
   uint32 s, h, n;
-
-  uint32 thisElem;
 
   for (s=0; s<256; s++)
     map[s] = 0;
@@ -836,14 +745,16 @@ removeDuplicateReads(void) {
   map['G'] = map['g'] = 0x02;
   map['T'] = map['t'] = 0x03;
 
-  fprintf(stderr, "removeDuplicateReads()-- from %d to %d\n", firstElem, lastElem);
+  fprintf(stderr, "removeDuplicateReads()-- from %d to %d\n", 1, gkpStore->gkStore_getNumFragments() + 1);
 
-  for (thisElem=firstElem; thisElem<lastElem; thisElem++) {
-    getFrag(gkpStore, thisElem, &fr, FRAG_S_INF | FRAG_S_SEQ);
+  fr.gkFragment_enableGatekeeperMode(gkpStore);
 
-    char *seq1      = getFragRecordSequence(&fr);
+  for (int32 thisElem=1; thisElem<=gkpStore->gkStore_getNumFragments(); thisElem++) {
+    gkpStore->gkStore_getFragment(thisElem, &fr, GKFRAGMENT_SEQ);
 
-    uint32 seqLen   = getFragRecordSequenceLength(&fr);
+    char *seq1      = fr.gkFragment_getSequence();
+
+    uint32 seqLen   = fr.gkFragment_getSequenceLength();
     uint64 hash     = 0;
 
     assert(seqLen >= 48);
@@ -925,11 +836,11 @@ removeDuplicateReads(void) {
       //
       if (end - beg > fragsMax) {
         fragsMax = end - beg + 1;
-        frags    = (fragRecord *)safe_realloc(frags, sizeof(fragRecord) * fragsMax);
+        frags    = (gkFragment *)safe_realloc(frags, sizeof(gkFragment) * fragsMax);
       }
 
       for (b=beg; b<end; b++)
-        getFrag(gkpStore, fh[b].iid, &frags[b-beg], FRAG_S_SEQ);
+        gkpStore->gkStore_getFragment(fh[b].iid, &frags[b-beg], GKFRAGMENT_SEQ);
 
       //  Compare all-vs-all in the range
       //
@@ -939,17 +850,17 @@ removeDuplicateReads(void) {
           AS_IID     iid1 = fh[b].iid;
           AS_IID     iid2 = fh[e].iid;
 
-          fragRecord  *fr1 = frags + b - beg;
-          fragRecord  *fr2 = frags + e - beg;
+          gkFragment  *fr1 = frags + b - beg;
+          gkFragment  *fr2 = frags + e - beg;
 
-          assert(iid1 == getFragRecordIID(fr1));
-          assert(iid2 == getFragRecordIID(fr2));
+          assert(iid1 == fr1->gkFragment_getReadIID());
+          assert(iid2 == fr2->gkFragment_getReadIID());
 
-          uint32 del1 = getFragRecordIsDeleted(fr1);
-          uint32 del2 = getFragRecordIsDeleted(fr2);
+          uint32 del1 = fr1->gkFragment_getIsDeleted();
+          uint32 del2 = fr2->gkFragment_getIsDeleted();
 
-          uint32 len1 = getFragRecordSequenceLength(fr1);
-          uint32 len2 = getFragRecordSequenceLength(fr2);
+          uint32 len1 = fr1->gkFragment_getSequenceLength();
+          uint32 len2 = fr2->gkFragment_getSequenceLength();
 
           if ((del1) && (len1 < len2))
             continue;
@@ -966,8 +877,8 @@ removeDuplicateReads(void) {
           if (del1 && del2)
             continue;
 
-          char *seq1 = getFragRecordSequence(fr1);
-          char *seq2 = getFragRecordSequence(fr2);
+          char *seq1 = fr1->gkFragment_getSequence();
+          char *seq2 = fr2->gkFragment_getSequence();
 
           uint32 len = MIN(len1, len2);
 
@@ -981,18 +892,18 @@ removeDuplicateReads(void) {
             AS_IID     deletedIID = 0;
             uint32     deleted    = 0;
 
-            if ((len == getFragRecordSequenceLength(fr1)) &&
-                (len == getFragRecordSequenceLength(fr2))) {
+            if ((len == fr1->gkFragment_getSequenceLength()) &&
+                (len == fr2->gkFragment_getSequenceLength())) {
               deletedIID = (iid1 < iid2) ? iid1 : iid2;
-              deletedUID = (iid1 < iid2) ? getFragRecordUID(fr1) : getFragRecordUID(fr2);
+              deletedUID = (iid1 < iid2) ? fr1->gkFragment_getReadUID() : fr2->gkFragment_getReadUID();
               deleted    = (iid1 < iid2) ? del1 : del2;
-            } else if (len == getFragRecordSequenceLength(fr1)) {
+            } else if (len == fr1->gkFragment_getSequenceLength()) {
               deletedIID = iid1;
-              deletedUID = getFragRecordUID(fr1);
+              deletedUID = fr1->gkFragment_getReadUID();
               deleted    = del1;
             } else {
               deletedIID = iid2;
-              deletedUID = getFragRecordUID(fr2);
+              deletedUID = fr2->gkFragment_getReadUID();
               deleted    = del2;
             }
 
@@ -1007,11 +918,11 @@ removeDuplicateReads(void) {
               if (logFile)
                 fprintf(logFile, "Delete read %s,%d a prefix of %s,%d\n",
                         AS_UID_toString(deletedUID), deletedIID,
-                        (deletedIID == iid1) ? AS_UID_toString(getFragRecordUID(fr2)) : AS_UID_toString(getFragRecordUID(fr1)),
+                        (deletedIID == iid1) ? AS_UID_toString(fr2->gkFragment_getReadUID()) : AS_UID_toString(fr1->gkFragment_getReadUID()),
                         (deletedIID == iid1) ? iid2 : iid1);
 
-              delFrag(gkpStore, deletedIID);
-              getFrag(gkpStore, deletedIID, (deletedIID == iid1) ? fr1 : fr2, FRAG_S_SEQ);
+              gkpStore->gkStore_delFragment(deletedIID);
+              gkpStore->gkStore_getFragment(deletedIID, (deletedIID == iid1) ? fr1 : fr2, GKFRAGMENT_SEQ);
             }
           }
         }
@@ -1029,7 +940,7 @@ removeDuplicateReads(void) {
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-//  For a given fragRecord, scan the sequence for a linker.  If found,
+//  For a given gkFragment, scan the sequence for a linker.  If found,
 //  generate two new mated reads and delete the original read.
 //
 //
@@ -1044,129 +955,140 @@ dpMatrix  *globalMatrix = NULL;
 
 static
 int
-processMate(fragRecord *fr,
-            fragRecord *m1,
-            fragRecord *m2,
-            char       *linker[AS_LINKER_MAX_SEQS],
-            int         search[AS_LINKER_MAX_SEQS]) {
+processMate(gkFragment *fr,
+            gkFragment *m1,
+            gkFragment *m2,
+            char        *linker[AS_LINKER_MAX_SEQS],
+            int          search[AS_LINKER_MAX_SEQS]) {
 
-   alignLinker_s  al = {0};
+  alignLinker_s  al = {0};
 
-   //  Did we find enough of the linker to do something?  We just need
-   //  to throw out the obviously bad stuff.  When we get shorter and
-   //  shorter, it's hard to define reasonable cutoffs.
-   //
-   //  Things that are called good here, but are actually bad, will be
-   //  examined in OBT's chimera.  If there are no overlaps spanning,
-   //  they'll be trimmed out, usually by being called chimeric.
-   //
-   int  goodAlignment = 0;
-   int  bestAlignment = 0;
-   int  linkerID      = 0;
+  //  Did we find enough of the linker to do something?  We just need
+  //  to throw out the obviously bad stuff.  When we get shorter and
+  //  shorter, it's hard to define reasonable cutoffs.
+  //
+  //  Things that are called good here, but are actually bad, will be
+  //  examined in OBT's chimera.  If there are no overlaps spanning,
+  //  they'll be trimmed out, usually by being called chimeric.
+  //
+  int  goodAlignment = 0;
+  int  bestAlignment = 0;
+  int  linkerID      = 0;
 
-   int  lSize = 0;
-   int  rSize = 0;
+  int  lSize = 0;
+  int  rSize = 0;
 
-   while (linkerID < AS_LINKER_MAX_SEQS && goodAlignment == 0) {
-      if (search[linkerID] == TRUE) {
-         if (linker[linkerID] == NULL) {
-            fprintf(stderr, "error requested to search using linker in position %d which is not initialized\n", linkerID);
-            assert(0);
-         }
+  //fprintf(logFile, "processMate()--  %s\n", AS_UID_toString(fr->gkFragment_getReadUID()));
 
-         alignLinker(globalMatrix->h_alignA,
-                     globalMatrix->h_alignB,
-                     linker[linkerID],
-                     fr->seq,
-                     globalMatrix->h_matrix,
-                     &al,
-                     FALSE, FALSE, 0, 0);
+  assert(fr->clrBgn < fr->clrEnd);
 
-         lSize = al.begJ;
-         rSize = al.lenB - al.endJ;
+  while (linkerID < AS_LINKER_MAX_SEQS && goodAlignment == 0) {
+    if (search[linkerID] == TRUE) {
+      assert(linker[linkerID] != NULL);
+
+      char *seq      = fr->gkFragment_getSequence();
+      char  stopBase = seq[fr->clrEnd];
+
+      seq[fr->clrEnd] = 0;
+
+      alignLinker(globalMatrix->h_alignA,
+                  globalMatrix->h_alignB,
+                  linker[linkerID],
+                  seq + fr->clrBgn,
+                  globalMatrix->h_matrix,
+                  &al,
+                  FALSE, FALSE, 0, 0);
+
+      seq[fr->clrEnd] = stopBase;
+
+      al.begJ += fr->clrBgn;
+      al.endJ += fr->clrBgn;
+      //al.lenB += fr->clrBgn;
+
+      lSize = al.begJ;
+      rSize = al.lenB - al.endJ;
    
-         if ((lSize < 0) || (lSize > AS_FRAG_MAX_LEN) || (rSize < 0) || (rSize > AS_FRAG_MAX_LEN)) {
-            fprintf(stderr, "fragment %d root=%s\n", getLastElemStore(gkpStore->frg) + 1, AS_UID_toString(fr->gkfr.readUID));
-            fprintf(stderr, "alignLen=%d matches=%d lSize=%d rSize=%d\n", al.alignLen, al.matches, lSize, rSize);
-            fprintf(stderr, "I %3d-%3d %s\n", al.begI, al.endI, globalMatrix->h_alignA);
-            fprintf(stderr, "J %3d-%3d %s\n", al.begJ, al.endJ, globalMatrix->h_alignB);
-         }
-   
-         assert(lSize >= 0);
-         assert(lSize <= AS_FRAG_MAX_LEN);
-         assert(rSize >= 0);
-         assert(rSize <= AS_FRAG_MAX_LEN);
-   
-         if ((al.alignLen >=  5) && (al.matches + 1 >= al.alignLen))
-            goodAlignment = 1;
-         if ((al.alignLen >= 15) && (al.matches + 2 >= al.alignLen))
-            goodAlignment = 1;
-         if ((al.alignLen >= 30) && (al.matches + 3 >= al.alignLen))
-            goodAlignment = 1;
-         if ((al.alignLen >= 40) && (al.matches + 4 >= al.alignLen))
-            goodAlignment = 1;
+      if ((lSize < 0) || (lSize > fr->gkFragment_getSequenceLength()) ||
+          (rSize < 0) || (rSize > fr->gkFragment_getSequenceLength())) {
+        fprintf(stderr, "fragment %d clr=%d,%d root=%s\n", gkpStore->gkStore_getNumFragments() + 1, fr->clrBgn, fr->clrEnd, AS_UID_toString(fr->gkFragment_getReadUID()));
+        fprintf(stderr, "alignLen=%d matches=%d lSize=%d rSize=%d\n", al.alignLen, al.matches, lSize, rSize);
+        fprintf(stderr, "I %3d-%3d %s\n", al.begI, al.endI, globalMatrix->h_alignA);
+        fprintf(stderr, "J %3d-%3d %s\n", al.begJ, al.endJ, globalMatrix->h_alignB);
       }
+      assert(lSize >= 0);
+      assert(lSize <= fr->gkFragment_getSequenceLength());
+      assert(rSize >= 0);
+      assert(rSize <= fr->gkFragment_getSequenceLength());
+
+      //fprintf(logFile, "LINK clr %d,%d  len %d  I %d,%d   J %d,%d\n",
+      //        fr->clrBgn, fr->clrEnd,
+      //        al.alignLen,
+      //        al.begI, al.endI,
+      //        al.begJ, al.endJ);
+
+      if ((al.alignLen >=  5) && (al.matches + 1 >= al.alignLen))
+        goodAlignment = 1;
+      if ((al.alignLen >= 15) && (al.matches + 2 >= al.alignLen))
+        goodAlignment = 1;
+      if ((al.alignLen >= 30) && (al.matches + 3 >= al.alignLen))
+        goodAlignment = 1;
+      if ((al.alignLen >= 40) && (al.matches + 4 >= al.alignLen))
+        goodAlignment = 1;
+    }
       
-      linkerID++;
+    linkerID++;
   }
 
-   // we went through all our possible linker sequences and couldn't find a match, give up
-   if (goodAlignment == 0) {
-      if ((logFile) && (m1 != NULL) && (m2 != NULL))
-         //  m1, m2 are NULL if we are checking a second time for linker;
-         //  do not report no linker found for those as we have already
-         //  or will soon write a log mesasge.
-         fprintf(logFile, "No linker detected in %s.\n", AS_UID_toString(fr->gkfr.readUID));
-      return(0);
-   }
+  //  No match after all possible linkers.  Give up.
+  //
+  //  But, m1, m2 are NULL if we are checking a second time for linker; do not report no linker
+  //  found for those as we have already or will soon write a log mesasge.
+  //
+  if (goodAlignment == 0) {
+    if ((logFile) && (m1 != NULL) && (m2 != NULL))
+      fprintf(logFile, "No linker detected in %s.\n", AS_UID_toString(fr->gkFragment_getReadUID()));
+    return(0);
+  }
 
-   if ((al.alignLen >= 42) && (al.matches + 2 >= al.alignLen))
-      bestAlignment = 1;
-
-   int  which;
-
+  if ((al.alignLen >= 42) && (al.matches + 2 >= al.alignLen))
+    bestAlignment = 1;
 
   //  Not enough on either side of the read to make a mate. Chuck the read, return that we didn't trim
-  if ((bestAlignment) && (lSize < 64) && (rSize < 64)) {
+  if ((bestAlignment) && (lSize < AS_READ_MIN_LEN) && (rSize < AS_READ_MIN_LEN)) {
     if (logFile)
       fprintf(logFile, "Linker too close to left side and right side (position %d-%d); no mate formed for %s (len %d).\n",
-              al.begJ, al.endJ, AS_UID_toString(fr->gkfr.readUID), fr->gkfr.seqLen);
+              al.begJ, al.endJ, AS_UID_toString(fr->gkFragment_getReadUID()), fr->gkFragment_getSequenceLength());
     
-    fr->gkfr.readUID = AS_UID_undefined();
-    fr->gkfr.deleted = 1;
+    fr->gkFragment_setReadUID(AS_UID_undefined());
+    fr->gkFragment_setIsDeleted(1);
     return(1);
   }
   
   //  Adapter found on the left, but not enough to make a read.  Trim it out.
   //
-  if ((bestAlignment) && (lSize < 64)) {
+  if ((bestAlignment) && (lSize < AS_READ_MIN_LEN)) {
     if (logFile)
       fprintf(logFile, "Linker to close to left side (position %d-%d); no mate formed for %s (len %d).\n",
-              al.begJ, al.endJ, AS_UID_toString(fr->gkfr.readUID), fr->gkfr.seqLen);
+              al.begJ, al.endJ, AS_UID_toString(fr->gkFragment_getReadUID()), fr->gkFragment_getSequenceLength());
 
-    fr->gkfr.seqLen = rSize;
+    fr->gkFragment_setLength(rSize);
  
-    memmove(fr->seq, fr->seq + al.endJ, rSize);
-    memmove(fr->qlt, fr->qlt + al.endJ, rSize);
+    char *seq = fr->gkFragment_getSequence();
+    char *qlt = fr->gkFragment_getQuality();
 
-    fr->seq[rSize] = 0;
-    fr->qlt[rSize] = 0;
+    memmove(seq, seq + al.endJ, rSize);
+    memmove(qlt, qlt + al.endJ, rSize);
 
-    for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-      if (fr->gkfr.clearBeg[which] < fr->gkfr.clearEnd[which]) {
-        if (fr->gkfr.clearBeg[which] < al.endJ)
-          fr->gkfr.clearBeg[which] = 0;
-        else
-          fr->gkfr.clearBeg[which] -= al.endJ;
+    seq[rSize] = 0;
+    qlt[rSize] = 0;
 
-        if (fr->gkfr.clearEnd[which] < al.endJ)
-          fr->gkfr.clearEnd[which] = 0;
-        else
-          fr->gkfr.clearEnd[which] -= al.endJ;
+    fr->clrBgn -= (fr->clrBgn < al.endJ) ? 0 : al.endJ;
+    fr->clrEnd -= (fr->clrEnd < al.endJ) ? 0 : al.endJ;
 
-        assert(fr->gkfr.clearEnd[which] <= rSize);
-      }
-    }
+    fr->maxBgn -= (fr->maxBgn < al.endJ) ? 0 : al.endJ;
+    fr->maxEnd -= (fr->maxEnd < al.endJ) ? 0 : al.endJ;
+
+    assert(fr->clrEnd <= rSize);
 
     //  Recursively search for another copy of the linker.
     processMate(fr, NULL, NULL, linker, search);
@@ -1177,19 +1099,21 @@ processMate(fragRecord *fr,
 
   //  Adapter found on the right, but not enough to make a read.  Trim it out.
   //
-  if ((bestAlignment) && (rSize < 64)) {
+  if ((bestAlignment) && (rSize < AS_READ_MIN_LEN)) {
     if (logFile)
       fprintf(logFile, "Linker to close to right side (position %d-%d); no mate formed for %s (len %d).\n",
-              al.begJ, al.endJ, AS_UID_toString(fr->gkfr.readUID), fr->gkfr.seqLen);
+              al.begJ, al.endJ, AS_UID_toString(fr->gkFragment_getReadUID()), fr->gkFragment_getSequenceLength());
 
-    fr->gkfr.seqLen = lSize;
-    fr->seq[lSize] = 0;
-    fr->qlt[lSize] = 0;
+    fr->gkFragment_setLength(lSize);
 
-    for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-      if (fr->gkfr.clearEnd[which] > lSize)
-        fr->gkfr.clearEnd[which] = lSize;
-    }
+    char *seq = fr->gkFragment_getSequence();
+    char *qlt = fr->gkFragment_getQuality();
+
+    seq[lSize] = 0;
+    qlt[lSize] = 0;
+
+    fr->clrEnd = MIN(fr->clrEnd, lSize);
+    fr->maxEnd = MIN(fr->maxEnd, lSize);
 
     //  Recursively search for another copy of the linker.
     processMate(fr, NULL, NULL, linker, search);
@@ -1200,7 +1124,7 @@ processMate(fragRecord *fr,
 
   //  Adapter found in the middle, and enough to make two mated reads.
   //
-  if ((bestAlignment) && (lSize >= 64) && (rSize >= 64)) {
+  if ((bestAlignment) && (lSize >= AS_READ_MIN_LEN) && (rSize >= AS_READ_MIN_LEN)) {
 
     //  If we get here, and the two mate reads are null, we have
     //  found a second complete linker -- the original read is
@@ -1210,15 +1134,21 @@ processMate(fragRecord *fr,
     //  The mate is deleted later.
     //
     if ((m1 == NULL) || (m2 == NULL)) {
-      fr->gkfr.readUID = AS_UID_undefined();
-      fr->gkfr.deleted = 1;
+      fr->gkFragment_setReadUID(AS_UID_undefined());
+      fr->gkFragment_setIsDeleted(1);
       return(0);
     }
 
     //  0.  Copy the fragments to new mated fragments
+    //      CANNOT just copy fr over m1 -- that nukes seq/qlt pointers!
     {
-      memcpy(m1, fr, sizeof(fragRecord));
-      memcpy(m2, fr, sizeof(fragRecord));
+      m1->gkFragment_setType(GKFRAGMENT_MEDIUM);
+      m2->gkFragment_setType(GKFRAGMENT_MEDIUM);
+
+      m1->gkFragment_setLibraryIID(1);
+      m2->gkFragment_setLibraryIID(1);
+      //memcpy(m1, fr, sizeof(gkFragment));
+      //memcpy(m2, fr, sizeof(gkFragment));
     }
 
     //  1.  Make new UIDs for the two mated reads.  Nuke the old
@@ -1230,26 +1160,26 @@ processMate(fragRecord *fr,
       char  uid[64];
       int   len;
 
-      strcpy(uid, AS_UID_toString(fr->gkfr.readUID));
+      strcpy(uid, AS_UID_toString(fr->gkFragment_getReadUID()));
       len = strlen(uid);
       uid[len+1] = 0;
 
       uid[len] = 'a';
-      m1->gkfr.readUID = AS_UID_load(uid);
-      m1->gkfr.readIID = getLastElemStore(gkpStore->frg) + 1;
+      m1->gkFragment_setReadUID(AS_UID_load(uid));
+      m1->gkFragment_setIsDeleted(0);
 
       uid[len] = 'b';
-      m2->gkfr.readUID = AS_UID_load(uid);
-      m2->gkfr.readIID = getLastElemStore(gkpStore->frg) + 2;
+      m2->gkFragment_setReadUID(AS_UID_load(uid));
+      m2->gkFragment_setIsDeleted(0);
 
-      fr->gkfr.readUID = AS_UID_undefined();
-      fr->gkfr.deleted = 1;
+      fr->gkFragment_setReadUID(AS_UID_undefined());
+      fr->gkFragment_setIsDeleted(1);
 
-      m1->gkfr.mateIID = m2->gkfr.readIID;
-      m2->gkfr.mateIID = m1->gkfr.readIID;
+      m1->gkFragment_setMateIID(gkpStore->gkStore_getNumFragments() + 2);
+      m2->gkFragment_setMateIID(gkpStore->gkStore_getNumFragments() + 1);
 
-      m1->gkfr.orientation = AS_READ_ORIENT_INNIE;
-      m2->gkfr.orientation = AS_READ_ORIENT_INNIE;
+      m1->gkFragment_setOrientation(AS_READ_ORIENT_INNIE);
+      m2->gkFragment_setOrientation(AS_READ_ORIENT_INNIE);
     }
 
     //  2.  Propagate clear ranges.  Math.
@@ -1267,51 +1197,61 @@ processMate(fragRecord *fr,
     //
     //  
     {
-      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-        if (fr->gkfr.clearBeg[which] < fr->gkfr.clearEnd[which]) {
-          uint  lend = al.begJ - fr->gkfr.clearBeg[which];
-          uint  rend = fr->gkfr.clearEnd[which] - al.endJ;
+      m1->clrBgn = 0;
+      m1->clrEnd = al.begJ - fr->clrBgn;
 
-          if (lSize < fr->gkfr.clearBeg[which])
-            lend = 0;
+      m1->vecBgn = m1->maxBgn = m1->tntBgn = 1;
+      m1->vecEnd = m1->maxEnd = m1->tntEnd = 0;
 
-          if (fr->gkfr.clearEnd[which] < al.endJ)
-            rend = 0;
+      m2->clrBgn = 0;
+      m2->clrEnd = fr->clrEnd - al.endJ - fr->clrBgn;
 
-          m1->gkfr.clearBeg[which] = 0;
-          m1->gkfr.clearEnd[which] = lend;
-
-          m2->gkfr.clearBeg[which] = 0;
-          m2->gkfr.clearEnd[which] = rend;
-        }
-      }
+      m2->vecBgn = m2->maxBgn = m2->tntBgn = 1;
+      m2->vecEnd = m2->maxEnd = m2->tntEnd = 0;
     }
 
     //  3.  Construct new rm1, rm2.  Nuke the linker.  Reverse
     //  complement -- inplace -- the left mate.
     {
-      int j;
+      char  *seq = m1->gkFragment_getSequence();
+      char  *qlt = m1->gkFragment_getQuality();
 
-      reverseComplement(m1->seq, m1->qlt, lSize);
+      assert(fr->clrBgn >= 0);
+      assert(lSize > 0);
 
-      m1->gkfr.seqLen = lSize;
+      memmove(seq, fr->gkFragment_getSequence() + fr->clrBgn, lSize);
+      memmove(qlt, fr->gkFragment_getQuality()  + fr->clrBgn, lSize);
 
-      m1->seq[lSize] = 0;
-      m1->qlt[lSize] = 0;
+      reverseComplement(seq, qlt, lSize);
 
-      m2->gkfr.seqLen    = rSize;
+      m1->gkFragment_setLength(lSize);
+      seq[lSize] = 0;
+      qlt[lSize] = 0;
 
-      memmove(m2->seq, m2->seq + al.endJ, rSize);
-      memmove(m2->qlt, m2->qlt + al.endJ, rSize);
-
-      m2->seq[rSize] = 0;
-      m2->qlt[rSize] = 0;
-
-      if (logFile)
-        fprintf(logFile, "Mates '%s' (%d-%d) and '%s' (%d-%d) created.\n",
-                AS_UID_toString(m1->gkfr.readUID), 0, al.begJ,
-                AS_UID_toString(m2->gkfr.readUID), al.endJ, al.lenB);
+      assert(strlen(seq) == lSize);
     }
+
+    {
+      char  *seq = m2->gkFragment_getSequence();
+      char  *qlt = m2->gkFragment_getQuality();
+
+      assert(al.endJ >= 0);
+      assert(rSize > 0);
+
+      memmove(seq, fr->gkFragment_getSequence() + al.endJ, rSize);
+      memmove(qlt, fr->gkFragment_getQuality()  + al.endJ, rSize);
+
+      m2->gkFragment_setLength(rSize);
+      seq[rSize] = 0;
+      qlt[rSize] = 0;
+
+      assert(strlen(seq) == rSize);
+    }
+
+    if (logFile)
+      fprintf(logFile, "Mates '%s' (%d-%d) and '%s' (%d-%d) created.\n",
+              AS_UID_toString(m1->gkFragment_getReadUID()), 0, al.begJ,
+              AS_UID_toString(m2->gkFragment_getReadUID()), al.endJ, al.lenB);
 
     //  Recursively search for another copy of the linker.
     processMate(m1, NULL, NULL, linker, search);
@@ -1320,13 +1260,17 @@ processMate(fragRecord *fr,
     //  If either is deleted now, then we found another linker in
     //  the split read.
     //
-    if ((m1->gkfr.deleted) || (m2->gkfr.deleted)) {
+    if ((m1->gkFragment_getIsDeleted()) || (m2->gkFragment_getIsDeleted())) {
       if (logFile)
-        fprintf(logFile, "Multiple linker detected in mates '%s' and '%s'.  Deleted.\n", AS_UID_toString(m1->gkfr.readUID), AS_UID_toString(m2->gkfr.readUID));
-      m1->gkfr.readUID = AS_UID_undefined();
-      m2->gkfr.readUID = AS_UID_undefined();
-      m1->gkfr.deleted = 1;
-      m2->gkfr.deleted = 1;
+        fprintf(logFile, "Multiple linker detected in mates '%s' and '%s'.  Deleted.\n",
+                AS_UID_toString(m1->gkFragment_getReadUID()),
+                AS_UID_toString(m2->gkFragment_getReadUID()));
+
+      m1->gkFragment_setReadUID(AS_UID_undefined());
+      m1->gkFragment_setIsDeleted(1);
+
+      m2->gkFragment_setReadUID(AS_UID_undefined());
+      m2->gkFragment_setIsDeleted(1);
     }
 
     return(1);
@@ -1347,10 +1291,10 @@ processMate(fragRecord *fr,
 
   if (logFile)
     fprintf(logFile, "Linker detected but not trimmed in '%s' linker: %d-%d read: %d-%d alignLen: %d matches: %d.  Passed to OBT.\n",
-            AS_UID_toString(fr->gkfr.readUID), al.begI, al.endI, al.begJ, al.endJ, al.alignLen, al.matches);
+            AS_UID_toString(fr->gkFragment_getReadUID()), al.begI, al.endI, al.begJ, al.endJ, al.alignLen, al.matches);
 
-  fr->gkfr.contaminationBeg = al.begJ;
-  fr->gkfr.contaminationEnd = al.endJ;
+  fr->tntBgn = al.begJ;
+  fr->tntEnd = al.endJ;
 
   return(0);
 }
@@ -1359,29 +1303,38 @@ processMate(fragRecord *fr,
 
 int
 detectMates(char *linker[AS_LINKER_MAX_SEQS], int search[AS_LINKER_MAX_SEQS]) {
-  fragRecord    fr        = {0};
-  fragRecord    m1        = {0};
-  fragRecord    m2        = {0};
+  gkFragment    fr;
+  gkFragment    m1;
+  gkFragment    m2;
 
-  uint32        firstElem = getFirstElemFragStore(gkpStore);
-  uint32        lastElem  = getLastElemFragStore(gkpStore) + 1;
-  uint32        thisElem  = 0;
+  fr.gkFragment_enableGatekeeperMode(gkpStore);
+  m1.gkFragment_enableGatekeeperMode(gkpStore);
+  m2.gkFragment_enableGatekeeperMode(gkpStore);
 
-  globalMatrix = safe_malloc(sizeof(dpMatrix));
+  globalMatrix = (dpMatrix *)safe_malloc(sizeof(dpMatrix));
 
-  fprintf(stderr, "detectMates()-- from %d to %d\n", firstElem, lastElem);
+  int32  lastElem = gkpStore->gkStore_getNumFragments();
 
-  for (thisElem=firstElem; thisElem<lastElem; thisElem++) {
+  fprintf(stderr, "detectMates()-- from %d to %d\n", 1, lastElem);
+
+  for (int32 thisElem=1; thisElem<=lastElem; thisElem++) {
     if ((thisElem % 1000000) == 0)
-      fprintf(stderr, "removeDuplicateReads()--  at %d\n", thisElem);
+      fprintf(stderr, "detectMates()--  at %d\n", thisElem);
 
-    getFrag(gkpStore, thisElem, &fr, FRAG_S_ALL);
+    gkpStore->gkStore_getFragment(thisElem, &fr, GKFRAGMENT_QLT);
 
-    if (fr.gkfr.deleted)
+    if (fr.gkFragment_getIsDeleted())
       continue;
-    
-    m1.gkfr.readUID = AS_UID_undefined();
-    m2.gkfr.readUID = AS_UID_undefined();
+
+    assert(fr.clrBgn < fr.clrEnd);
+
+    m1.gkFragment_setType(GKFRAGMENT_MEDIUM);
+    m1.gkFragment_setReadUID(AS_UID_undefined());
+    m1.gkFragment_setIsDeleted(1);
+
+    m2.gkFragment_setType(GKFRAGMENT_MEDIUM);
+    m2.gkFragment_setReadUID(AS_UID_undefined());
+    m2.gkFragment_setIsDeleted(1);
 
     //  If processMate returns true, something changed.  Delete the
     //  original read, and add either the new single read, or the two
@@ -1391,24 +1344,25 @@ detectMates(char *linker[AS_LINKER_MAX_SEQS], int search[AS_LINKER_MAX_SEQS]) {
     //  the UID<->IID mapping will be invalid.
 
     if (processMate(&fr, &m1, &m2, linker, search)) {
-      delFrag(gkpStore, thisElem);
+      gkpStore->gkStore_delFragment(thisElem);
 
-      if (AS_UID_isDefined(fr.gkfr.readUID)) {
+      if (fr.gkFragment_getIsDeleted() == 0) {
         st.numReadsWithPartialLinker++;
 
-        assert(AS_UID_isDefined(m1.gkfr.readUID) == 0);
-        assert(AS_UID_isDefined(m2.gkfr.readUID) == 0);
-        addReadToStore(gkpStore, &fr);
+        assert(AS_UID_isDefined(m1.gkFragment_getReadUID()) == 0);
+        assert(AS_UID_isDefined(m2.gkFragment_getReadUID()) == 0);
+
+        gkpStore->gkStore_addFragment(&fr);
       }
 
-      if (AS_UID_isDefined(m1.gkfr.readUID) &&
-          AS_UID_isDefined(m2.gkfr.readUID)) {
+      if ((m1.gkFragment_getIsDeleted() == 0) &&
+          (m2.gkFragment_getIsDeleted() == 0)) {
         st.numReadsWithFullLinker++;
 
-        assert(AS_UID_isDefined(fr.gkfr.readUID) == 0);
+        assert(AS_UID_isDefined(fr.gkFragment_getReadUID()) == 0);
 
-        addReadToStore(gkpStore, &m1);
-        addReadToStore(gkpStore, &m2);
+        gkpStore->gkStore_addFragment(&m1);
+        gkpStore->gkStore_addFragment(&m2);
       }
     } else {
       st.numReadsWithNoLinker++;
@@ -1431,31 +1385,26 @@ addLibrary(char *libraryName,
            int   insertSize,
            int   insertStdDev,
            int   haveLinker)  {
-  GateKeeperLibraryRecord   gkl;
-
-  clearGateKeeperLibraryRecord(&gkl);
+  gkLibrary   gkl;
 
   gkl.libraryUID = AS_UID_load(libraryName);
 
   //  This crud is documented in AS_PER/AS_PER_gkpStore.h
   //  Zero is the default, we set to make it explicit
 
-  gkl.spare2                      = 0;
-  gkl.spare1                      = 0;
+  gkl.spare2                     = 0;
+  gkl.spare1                     = 0;
 
-  gkl.forceBOGunitigger           = 1;
+  gkl.forceBOGunitigger          = 0;
+  gkl.isNotRandom                = 0;
 
-  gkl.doNotQVTrim                 = 1;
-  gkl.goodBadQVThreshold          = 1;  //  Effectively, don't QV trim, redundant
+  gkl.doNotTrustHomopolymerRuns  = 1;
 
-  gkl.unused1                     = 0;
-  gkl.doNotTrustHomopolymerRuns   = 1;
-  gkl.doNotOverlapTrim            = 0;
-  gkl.isNotRandom                 = 0;
+  gkl.doNotQVTrim                = 1;
+  gkl.goodBadQVThreshold         = 1;
+  gkl.doNotOverlapTrim           = 0;
 
-  gkl.hpsIsSomethingElse          = 0;
-  gkl.hpsIsFlowGram               = 1;
-  gkl.hpsIsPeakSpacing            = 0;
+  gkl.useShortFragments          = 0;
 
   if (haveLinker == FALSE) {
     gkl.orientation = AS_READ_ORIENT_UNKNOWN;
@@ -1467,32 +1416,25 @@ addLibrary(char *libraryName,
     gkl.stddev      = insertStdDev;
   }
 
-  appendIndexStore(gkpStore->lib, &gkl);
-  setGatekeeperUIDtoIID(gkpStore, gkl.libraryUID, getLastElemStore(gkpStore->lib), AS_IID_LIB);
+  gkpStore->gkStore_addLibrary(gkl.libraryUID, &gkl);
 
-  assert(getLastElemStore(gkpStore->lib) == 1);
+  assert(gkpStore->gkStore_getNumLibraries() == 1);
 }
 
 
 //  This is an efficient version of dumpGateKeeperAsFRG() in AS_GKP_dump.c
 void
 dumpFragFile(char *outName, FILE *outFile) {
-  fragRecord        fr;
-
-  unsigned int      firstElem = 0;
-  unsigned int      lastElem = 0;
+  gkFragment        fr;
 
   GenericMesg       pmesg;
-
   LibraryMesg       libMesg;
   FragMesg          frgMesg;
   LinkMesg          lnkMesg;
 
   int               i;
 
-  AS_UID           *frgUID = safe_calloc(getLastElemStore(gkpStore->frg) + 1, sizeof(AS_UID));
-
-  char              source[256];
+  AS_UID           *frgUID = new AS_UID [gkpStore->gkStore_getNumFragments() + 1];
 
   //  Dump the format message
   //
@@ -1512,86 +1454,90 @@ dumpFragFile(char *outName, FILE *outFile) {
   //  Exactly one library here.
 
   {
-    GateKeeperLibraryRecord  *gkpl = getGateKeeperLibrary(gkpStore, 1);
+    gkLibrary  gkl;
 
-    frgUID[0] = gkpl->libraryUID;
+    gkpStore->gkStore_getLibrary(1, &gkl);
+
+    frgUID[0] = gkl.libraryUID;
 
     pmesg.m = &libMesg;
     pmesg.t = MESG_LIB;
 
     libMesg.action       = AS_ADD;
-    libMesg.eaccession   = gkpl->libraryUID;
-    libMesg.mean         = gkpl->mean;
-    libMesg.stddev       = gkpl->stddev;
-    libMesg.source       = gkpl->comment;
-    libMesg.link_orient  = AS_READ_ORIENT_NAMES[gkpl->orientation][0];
+    libMesg.eaccession   = gkl.libraryUID;
+    libMesg.mean         = gkl.mean;
+    libMesg.stddev       = gkl.stddev;
+    libMesg.source       = NULL;
+#warning unsafe conversion of orient
+    libMesg.link_orient = (OrientType)AS_READ_ORIENT_NAMES[gkl.orientation][0];
 
-    AS_PER_encodeLibraryFeatures(gkpl, &libMesg);
+    gkl.gkLibrary_encodeFeatures(&libMesg);
 
     WriteProtoMesg_AS(outFile, &pmesg);
 
-    AS_PER_encodeLibraryFeaturesCleanup(&libMesg);
+    gkl.gkLibrary_encodeFeaturesCleanup(&libMesg);
   }
 
   //  Dump fragments -- as soon as both reads in a mate are defined,
   //  we dump the mate relationship.
 
-  FragStream *fs = openFragStream(gkpStore, FRAG_S_ALL);
+  gkStream *fs = new gkStream(gkpStore, 0, 0, GKFRAGMENT_QLT);
 
-  while (nextFragStream(fs, &fr)) {
-    if (getFragRecordIsDeleted(&fr))
+  while (fs->next(&fr)) {
+    if (fr.gkFragment_getIsDeleted())
       continue;
 
-    frgUID[getFragRecordIID(&fr)] = getFragRecordUID(&fr);
+    frgUID[fr.gkFragment_getReadIID()] = fr.gkFragment_getReadUID();
 
     pmesg.m = &frgMesg;
     pmesg.t = MESG_FRG;
 
     //  This code used in AS_GKP_dump.c (dumpFRG).
-    frgMesg.action            = getFragRecordIsDeleted(&fr) ? AS_DELETE : AS_ADD;
-    frgMesg.eaccession        = getFragRecordUID(&fr);
+    frgMesg.action            = fr.gkFragment_getIsDeleted() ? AS_DELETE : AS_ADD;
+    frgMesg.eaccession        = fr.gkFragment_getReadUID();
     frgMesg.library_uid       = frgUID[0];
-    frgMesg.library_iid       = getFragRecordLibraryIID(&fr);
-    frgMesg.plate_uid         = fr.gkfr.plateUID;
-    frgMesg.plate_location    = fr.gkfr.plateLocation;
+    frgMesg.library_iid       = fr.gkFragment_getLibraryIID();
+    frgMesg.plate_uid         = AS_UID_undefined();
+    frgMesg.plate_location    = 0;
     frgMesg.type              = AS_READ;
-    frgMesg.is_random         = (getFragRecordIsNonRandom(&fr)) ? 0 : 1;
-    frgMesg.status_code       = AS_READ_STATUS_NAMES[fr.gkfr.status][0];
-    frgMesg.clear_rng.bgn     = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_LATEST);
-    frgMesg.clear_rng.end     = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_LATEST);
-    frgMesg.clear_vec.bgn     = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_VEC);
-    frgMesg.clear_vec.end     = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_VEC);
-    frgMesg.clear_max.bgn     = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_MAX);
-    frgMesg.clear_max.end     = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_MAX);
-    frgMesg.contamination.bgn = fr.gkfr.contaminationBeg;
-    frgMesg.contamination.end = fr.gkfr.contaminationEnd;
-    frgMesg.source            = 0L;
-    frgMesg.sequence          = getFragRecordSequence(&fr);
-    frgMesg.quality           = getFragRecordQuality(&fr);
-    frgMesg.hps               = getFragRecordHPS(&fr);
-    frgMesg.iaccession        = getFragRecordIID(&fr);
+    frgMesg.is_random         = (fr.gkFragment_getIsNonRandom()) ? 0 : 1;
+    frgMesg.status_code       = 'G';
+    frgMesg.clear_rng.bgn     = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_CLR);
+    frgMesg.clear_rng.end     = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_CLR);
+    frgMesg.clear_vec.bgn     = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC);
+    frgMesg.clear_vec.end     = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC);
+    frgMesg.clear_max.bgn     = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX);
+    frgMesg.clear_max.end     = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX);
+    frgMesg.contamination.bgn = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT);
+    frgMesg.contamination.end = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT);
+    frgMesg.source            = NULL;
+    frgMesg.sequence          = fr.gkFragment_getSequence();
+    frgMesg.quality           = fr.gkFragment_getQuality();
+    frgMesg.hps               = NULL;
+    frgMesg.iaccession        = fr.gkFragment_getReadIID();
 
     WriteProtoMesg_AS(outFile, &pmesg);
 
-    if ((getFragRecordMateIID(&fr) > 0) &&
-        (getFragRecordMateIID(&fr) < getFragRecordIID(&fr))) {
+    if ((fr.gkFragment_getMateIID() > 0) &&
+        (fr.gkFragment_getMateIID() < fr.gkFragment_getReadIID())) {
       pmesg.m = &lnkMesg;
       pmesg.t = MESG_LKG;
 
       lnkMesg.action      = AS_ADD;
       lnkMesg.type        = AS_MATE;
-      lnkMesg.link_orient = AS_READ_ORIENT_NAMES[fr.gkfr.orientation][0];
-      lnkMesg.frag1       = frgUID[getFragRecordMateIID(&fr)];
-      lnkMesg.frag2       = getFragRecordUID(&fr);
+#warning unsafe conversion of orient
+      lnkMesg.link_orient = (OrientType)AS_READ_ORIENT_NAMES[fr.gkFragment_getOrientation()][0];
+      lnkMesg.frag1       = frgUID[fr.gkFragment_getMateIID()];
+      lnkMesg.frag2       = fr.gkFragment_getReadUID();
       lnkMesg.distance    = frgUID[0];
 
       WriteProtoMesg_AS(outFile, &pmesg);
     }
   }
 
-  safe_free(frgUID);
+  delete [] frgUID;
 
-  closeFragStream(fs);
+  delete fs;
 }
 
 
@@ -1813,7 +1759,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  logFile = NULL;
+  logFile = stderr;
 
   if (logFileName) {
     errno = 0;
@@ -1828,7 +1774,7 @@ main(int argc, char **argv) {
       (outputName[strlen(outputName)-1] != 'g'))
     strcat(outputName, ".frg");
 
-  if (fileExists(outputName, FALSE, FALSE))
+  if (AS_UTL_fileExists(outputName, FALSE, FALSE))
     fprintf(stderr, "ERROR: Output file '%s' exists; I will not clobber it.\n", outputName), exit(1);
 
   errno = 0;
@@ -1839,14 +1785,14 @@ main(int argc, char **argv) {
   strcpy(gkpStoreName, outputName);
   strcat(gkpStoreName, ".tmpStore");
 
-  if (fileExists(gkpStoreName, TRUE, FALSE)) {
+  if (AS_UTL_fileExists(gkpStoreName, TRUE, FALSE)) {
     fprintf(stderr, "ERROR: Temporary Gatekeeper Store '%s' exists; I will not clobber it.\n", gkpStoreName);
     fprintf(stderr, "       If this is NOT from another currently running sffToCA, simply remove this directory.\n");
     exit(1);
   }
 
-  gkpStore      = createGateKeeperStore(gkpStoreName);
-  gkpStore->frg = convertStoreToMemoryStore(gkpStore->frg);
+  gkpStore      = new gkStore(gkpStoreName, TRUE, TRUE);
+  //gkpStore->
 
   addLibrary(libraryName, insertSize, insertStdDev, haveLinker);
 
@@ -1861,8 +1807,8 @@ main(int argc, char **argv) {
 
   dumpFragFile(outputName, outputFile);
 
-  closeGateKeeperStore(gkpStore);
-  deleteGateKeeperStore(gkpStoreName);
+  gkpStore->gkStore_delete();
+  delete gkpStore;
 
   errno = 0;
   fclose(outputFile);
@@ -1870,7 +1816,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "Failed to close '%s': %s\n", outputName, strerror(errno)), exit(1);
 
   errno = 0;
-  if (logFile)
+  if ((logFile) && (logFile != stderr))
     fclose(logFile);
   if (errno)
     fprintf(stderr, "Failed to close '%s': %s\n", logFileName, strerror(errno)), exit(1);

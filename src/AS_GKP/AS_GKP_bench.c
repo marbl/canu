@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_bench.c,v 1.10 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_bench.c,v 1.11 2009-06-28 17:01:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -137,11 +137,13 @@ addRandomFrags(char *gkpName, uint32 numFrags) {
     if ((i > 50000) && (i % 10000) == 0)
       fprintf(stderr, "%.3f ops/sec %.3f%% complete\n", i / (getTime() - startTime), 100.0 * i / numFrags);
 
-    gkp->gkStore_addFragment(&frag,
-                             0, len,
-                             0, len,
-                             1, 0,
-                             1, 0);
+    frag.clrBgn = frag.vecBgn = 0;
+    frag.clrEnd = frag.vecEnd = len;
+
+    frag.maxBgn = frag.tntBgn = 1;
+    frag.maxEnd = frag.tntEnd = 0;
+
+    gkp->gkStore_addFragment(&frag);
   }
 
   fprintf(stderr, "%.3f ops/sec\n", i / (getTime() - startTime));

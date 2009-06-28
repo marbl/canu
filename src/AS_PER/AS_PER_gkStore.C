@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.3 2009-06-26 03:45:42 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.4 2009-06-28 17:01:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -361,46 +361,46 @@ gkStore::gkStore_clear(void) {
 
 
 void
-gkStore::gkStore_delete(const char *path) {
+gkStore::gkStore_delete(void) {
   char   name[FILENAME_MAX];
 
-  sprintf(name,"%s/inf", path);
+  sprintf(name,"%s/inf", storePath);
   unlink(name);
 
-  sprintf(name,"%s/bat", path);
+  sprintf(name,"%s/bat", storePath);
   unlink(name);
 
-  sprintf(name,"%s/fsm", path);
+  sprintf(name,"%s/fsm", storePath);
   unlink(name);
 
-  sprintf(name,"%s/fmd", path);
+  sprintf(name,"%s/fmd", storePath);
   unlink(name);
 
-  sprintf(name,"%s/flg", path);
+  sprintf(name,"%s/flg", storePath);
   unlink(name);
 
-  sprintf(name,"%s/lib", path);
+  sprintf(name,"%s/lib", storePath);
   unlink(name);
 
-  sprintf(name,"%s/seq", path);
+  sprintf(name,"%s/seq", storePath);
   unlink(name);
 
-  sprintf(name,"%s/qlt", path);
+  sprintf(name,"%s/qlt", storePath);
   unlink(name);
 
-  sprintf(name,"%s/hps", path);
+  sprintf(name,"%s/hps", storePath);
   unlink(name);
 
-  sprintf(name,"%s/src", path);
+  sprintf(name,"%s/src", storePath);
   unlink(name);
 
-  sprintf(name,"%s/uid", path);
+  sprintf(name,"%s/uid", storePath);
   unlink(name);
 
-  sprintf(name,"%s/u2i", path);
+  sprintf(name,"%s/u2i", storePath);
   unlink(name);
 
-  rmdir(path);
+  rmdir(storePath);
 }
 
 
@@ -744,6 +744,8 @@ gkStore::gkStore_getFragment(AS_IID iid, gkFragment *fr, int32 flags) {
       fprintf(stderr, "getFrag()-- ERROR!  IID "F_IID" not in partition!\n", iid);
     assert(p != NULL);
 
+    assert(fr->isGKP == 0);
+
     switch (fr->type) {
       case GKFRAGMENT_SHORT:
         memcpy(&fr->fr.sm, p, sizeof(gkShortFragment));
@@ -769,6 +771,15 @@ gkStore::gkStore_getFragment(AS_IID iid, gkFragment *fr, int32 flags) {
         getIndexStore(flg, fr->tiid, &fr->fr.lg);
         break;
     }
+  }
+
+  //  GatekeeperMode assumes these are set.  Set them.  Currently only used by sffToCA, when it
+  //  loads frags from the temporary store before detecting mate pairs.
+  if (fr->isGKP) {
+    fr->gkFragment_getClearRegion(fr->clrBgn, fr->clrEnd, AS_READ_CLEAR_CLR);
+    fr->gkFragment_getClearRegion(fr->vecBgn, fr->vecEnd, AS_READ_CLEAR_VEC);
+    fr->gkFragment_getClearRegion(fr->maxBgn, fr->maxEnd, AS_READ_CLEAR_MAX);
+    fr->gkFragment_getClearRegion(fr->tntBgn, fr->tntEnd, AS_READ_CLEAR_TNT);
   }
 
   //fprintf(stderr, "gkStore_getFragment()--  Retrieved IID=%d (asked for %d) from %d,%d\n", fr->gkFragment_getReadIID(), iid, fr->type, fr->tiid);
@@ -864,11 +875,7 @@ gkStore::gkStore_delFragment(AS_IID iid) {
 
 
 void
-gkStore::gkStore_addFragment(gkFragment *fr,
-                             uint32 clrBgn, uint32 clrEnd,
-                             uint32 vecBgn, uint32 vecEnd,
-                             uint32 maxBgn, uint32 maxEnd,
-                             uint32 tntBgn, uint32 tntEnd) {
+gkStore::gkStore_addFragment(gkFragment *fr) {
   int encLen;
 
   assert(partmap    == NULL);
@@ -879,10 +886,15 @@ gkStore::gkStore_addFragment(gkFragment *fr,
 
   int32 iid = gkStore_getNumFragments() + 1;
 
-  if (clrBgn < clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_enableCreate();
-  if (vecBgn < vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_enableCreate();
-  if (maxBgn < maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_enableCreate();
-  if (tntBgn < tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_enableCreate();
+  if (fr->clrBgn < fr->clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_enableCreate();
+  if (fr->vecBgn < fr->vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_enableCreate();
+  if (fr->maxBgn < fr->maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_enableCreate();
+  if (fr->tntBgn < fr->tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_enableCreate();
+
+  assert(strlen(fr->gkFragment_getSequence()) == fr->gkFragment_getSequenceLength());
+  assert(strlen(fr->gkFragment_getQuality())  == fr->gkFragment_getQualityLength());
+
+  assert((fr->gkFragment_getIsDeleted() == 1) || (fr->clrBgn < fr->clrEnd));
 
   switch (fr->type) {
     case GKFRAGMENT_SHORT:
@@ -891,13 +903,13 @@ gkStore::gkStore_addFragment(gkFragment *fr,
 
       assert(fr->tiid == getLastElemStore(fsm) + 1);
 
-      if (clrBgn < clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_makeSpaceShort(fr->tiid);
-      if (vecBgn < vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_makeSpaceShort(fr->tiid);
-      if (maxBgn < maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_makeSpaceShort(fr->tiid);
-      if (tntBgn < tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_makeSpaceShort(fr->tiid);
+      if (fr->clrBgn < fr->clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_makeSpaceShort(fr->tiid);
+      if (fr->vecBgn < fr->vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_makeSpaceShort(fr->tiid);
+      if (fr->maxBgn < fr->maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_makeSpaceShort(fr->tiid);
+      if (fr->tntBgn < fr->tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_makeSpaceShort(fr->tiid);
 
-      fr->fr.sm.clearBeg = clrBgn;
-      fr->fr.sm.clearEnd = clrEnd;
+      fr->fr.sm.clearBeg = fr->clrBgn;
+      fr->fr.sm.clearEnd = fr->clrEnd;
       break;
 
     case GKFRAGMENT_MEDIUM:
@@ -906,13 +918,13 @@ gkStore::gkStore_addFragment(gkFragment *fr,
 
       assert(fr->tiid == getLastElemStore(fmd) + 1);
 
-      if (clrBgn < clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_makeSpaceMedium(fr->tiid);
-      if (vecBgn < vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_makeSpaceMedium(fr->tiid);
-      if (maxBgn < maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_makeSpaceMedium(fr->tiid);
-      if (tntBgn < tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_makeSpaceMedium(fr->tiid);
+      if (fr->clrBgn < fr->clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_makeSpaceMedium(fr->tiid);
+      if (fr->vecBgn < fr->vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_makeSpaceMedium(fr->tiid);
+      if (fr->maxBgn < fr->maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_makeSpaceMedium(fr->tiid);
+      if (fr->tntBgn < fr->tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_makeSpaceMedium(fr->tiid);
 
-      fr->fr.md.clearBeg = clrBgn;
-      fr->fr.md.clearEnd = clrEnd;
+      fr->fr.md.clearBeg = fr->clrBgn;
+      fr->fr.md.clearEnd = fr->clrEnd;
       break;
 
     case GKFRAGMENT_LONG:
@@ -921,13 +933,13 @@ gkStore::gkStore_addFragment(gkFragment *fr,
 
       assert(fr->tiid == getLastElemStore(flg) + 1);
 
-      if (clrBgn < clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_makeSpaceLong(fr->tiid);
-      if (vecBgn < vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_makeSpaceLong(fr->tiid);
-      if (maxBgn < maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_makeSpaceLong(fr->tiid);
-      if (tntBgn < tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_makeSpaceLong(fr->tiid);
+      if (fr->clrBgn < fr->clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_makeSpaceLong(fr->tiid);
+      if (fr->vecBgn < fr->vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_makeSpaceLong(fr->tiid);
+      if (fr->maxBgn < fr->maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_makeSpaceLong(fr->tiid);
+      if (fr->tntBgn < fr->tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_makeSpaceLong(fr->tiid);
 
-      fr->fr.lg.clearBeg = clrBgn;
-      fr->fr.lg.clearEnd = clrEnd;
+      fr->fr.lg.clearBeg = fr->clrBgn;
+      fr->fr.lg.clearEnd = fr->clrEnd;
       break;
   }
 
@@ -939,10 +951,10 @@ gkStore::gkStore_addFragment(gkFragment *fr,
   //  the named region.  (That is, setting VEC will set both VEC and
   //  LATEST.)
   //
-  if (vecBgn < vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_setClearRegion(fr, vecBgn, vecEnd);
-  if (maxBgn < maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_setClearRegion(fr, maxBgn, maxEnd);
-  if (tntBgn < tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_setClearRegion(fr, tntBgn, tntEnd);
-  if (clrBgn < clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_setClearRegion(fr, clrBgn, clrEnd);
+  if (fr->vecBgn < fr->vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_setClearRegion(fr, fr->vecBgn, fr->vecEnd);
+  if (fr->maxBgn < fr->maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_setClearRegion(fr, fr->maxBgn, fr->maxEnd);
+  if (fr->tntBgn < fr->tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_setClearRegion(fr, fr->tntBgn, fr->tntEnd);
+  if (fr->clrBgn < fr->clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_setClearRegion(fr, fr->clrBgn, fr->clrEnd);
 
   if (IIDmax <= iid) {
     IIDmax *= 2;
@@ -952,6 +964,9 @@ gkStore::gkStore_addFragment(gkFragment *fr,
 
   switch (fr->type) {
     case GKFRAGMENT_SHORT:
+      assert(fr->seq[fr->fr.sm.seqLen] == 0);
+      assert(fr->qlt[fr->fr.sm.seqLen] == 0);
+
       encodeSequenceQuality(fr->fr.sm.enc, fr->seq, fr->qlt);
 
       gkStore_setUIDtoIID(fr->fr.sm.readUID, fr->fr.sm.readIID, AS_IID_FRG);
@@ -962,6 +977,9 @@ gkStore::gkStore_addFragment(gkFragment *fr,
       break;
 
     case GKFRAGMENT_MEDIUM:
+      assert(fr->seq[fr->fr.md.seqLen] == 0);
+      assert(fr->qlt[fr->fr.md.seqLen] == 0);
+
       fr->fr.md.seqOffset = getLastElemStore(smd) + 1;
       fr->fr.md.qltOffset = getLastElemStore(qmd) + 1;
 
@@ -979,6 +997,9 @@ gkStore::gkStore_addFragment(gkFragment *fr,
       break;
 
     case GKFRAGMENT_LONG:
+      assert(fr->seq[fr->fr.lg.seqLen] == 0);
+      assert(fr->qlt[fr->fr.lg.seqLen] == 0);
+
       fr->fr.lg.seqOffset = getLastElemStore(slg) + 1;
       fr->fr.lg.qltOffset = getLastElemStore(qlg) + 1;
 
