@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: ApplyAlignment.c,v 1.4 2009-06-24 08:59:56 brianwalenz Exp $";
+static char *rcsid = "$Id: ApplyAlignment.c,v 1.5 2009-06-29 18:41:16 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -33,7 +33,9 @@ static char *rcsid = "$Id: ApplyAlignment.c,v 1.4 2009-06-24 08:59:56 brianwalen
 #include "AS_UTL_reverseComplement.h"
 
 
-
+#undef DEBUG_FIND_BEAD
+#undef DEBUG_ALIGN_GAPS
+#undef DEBUG_ALIGN_POSITION
 
 //  Add a column before cid, seeded with bead bid.
 //
@@ -163,14 +165,18 @@ static
 int32
 findBeadInColumn(int32 bi, int32 fi) {
 
-  //fprintf(stderr, "findBeadInColumn bead bi=%d bead fi=%d\n", bi, fi);
+#ifdef DEBUG_FIND_BEAD
+  fprintf(stderr, "findBeadInColumn bead bi=%d bead fi=%d\n", bi, fi);
+#endif
 
   if ((fi == -1) || (bi == -1))
     return(-1);
 
   fi = GetBead(beadStore, fi)->frag_index;
 
-  //fprintf(stderr, "findBeadInColumn fragindex fi=%d\n", fi);
+#ifdef DEBUG_FIND_BEAD
+  fprintf(stderr, "findBeadInColumn fragindex fi=%d\n", fi);
+#endif
 
   Bead *b = GetBead(beadStore, bi);
 
@@ -181,6 +187,9 @@ findBeadInColumn(int32 bi, int32 fi) {
   //  looking for is usually up from where we start.
   while (b->up != -1) {
     b = GetBead(beadStore, b->up);
+#ifdef DEBUG_FIND_BEAD
+    fprintf(stderr, "findBeadInColumn up bead=%d fi=%d\n", b->boffset, b->frag_index);
+#endif
     if (b->frag_index == fi)
       return(b->boffset);
   }
@@ -190,11 +199,16 @@ findBeadInColumn(int32 bi, int32 fi) {
 
   while (b->down != -1) {
     b = GetBead(beadStore, b->down);
+#ifdef DEBUG_FIND_BEAD
+    fprintf(stderr, "findBeadInColumn down bead=%d fi=%d\n", b->boffset, b->frag_index);
+#endif
     if (b->frag_index == fi)
       return(b->boffset);
   }
 
-  //  Give up.
+  //  Give up.  See comments in MultiAlignUnitig around line 733, where we append new sequence to
+  //  the start of frankenstein.
+
   assert(0);
   return(-1);
 }
@@ -232,6 +246,11 @@ alignGaps(int32 *aindex, int32 &apos, int32  alen,
   //  row.  There might be gaps already in abacus that we need to add.  We move to the 'x', then
   //  walk along this 'a' fragment adding gaps.
 
+#ifdef DEBUG_ALIGN_GAPS
+  fprintf(stderr, "alignGaps()-- apos=%d alen=%d  bpos=%d blen=%d  lasta=%d  lastb=%d\n",
+          apos, alen, bpos, blen, lasta, lastb);
+#endif
+
   if (apos >= alen)
     return;
 
@@ -246,6 +265,10 @@ alignGaps(int32 *aindex, int32 &apos, int32  alen,
   //  so.
 
   while (nexta != aindex[apos]) {
+#ifdef DEBUG_ALIGN_GAPS
+    fprintf(stderr, "alignGaps()-- lasta=%d  nexta=%d  search for aindex[apos]=%d  \n", lasta, nexta, aindex[apos]);
+#endif
+
     lastb = AppendGapBead(lastb);
     lasta = nexta;
 
@@ -280,8 +303,10 @@ alignPosition(int32 *aindex, int32 &apos, int32  alen,
   apos++;
   bpos++;
 
-  //fprintf(stderr, "alignPosition()-- apos=%d bpos=%d lasta=%d lastb=%d\n",
-  //        apos, bpos, lasta, lastb);
+#ifdef DEBUG_ALIGN_POSITION
+  fprintf(stderr, "alignPosition()-- apos=%d bpos=%d lasta=%d lastb=%d\n",
+          apos, bpos, lasta, lastb);
+#endif
 
   alignGaps(aindex, apos, alen, bindex, bpos, blen, lasta, lastb);
 
@@ -344,10 +369,6 @@ ApplyAlignment(int32 afid,
   sanityCheck((afid >= 0) ? GetFragment(fragmentStore,afid)->firstbead : -1,
               (bfid >= 0) ? GetFragment(fragmentStore,bfid)->firstbead : -1);
 
-  //  trace is NULL for the first fragment, all we want to do there is load the initial abacus.
-  //
-  if (trace == NULL)
-    goto loadInitial;
 
   //  Negative ahang?  push these things onto the start of abacus.  Fail if we get a negative ahang,
   //  but there is a column already before the first one (which implies we aligned to something not
@@ -375,6 +396,12 @@ ApplyAlignment(int32 afid,
     lasta = GetBead(beadStore, aindex[0])->prev;
     lastb = bindex[bpos - 1];
   }
+
+
+  //  trace is NULL for the first fragment, all we want to do there is load the initial abacus.
+  //
+  if (trace == NULL)
+    goto loadInitial;
 
 
   while ((trace != NULL) && (*trace != 0)) {
