@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.8 2009-06-24 12:05:46 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.9 2009-06-29 18:43:07 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -32,7 +32,9 @@ static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.8 2009-06-24 12:05:46 brianwal
 #include "MicroHetREZ.h"
 #include "AS_UTL_reverseComplement.h"
 
-
+#undef SHOW_PLACEMENT_BEFORE
+#undef SHOW_PLACEMENT
+#undef DEBUG
 
 static
 int
@@ -244,7 +246,6 @@ unitigConsensus::reportStartingWork(void) {
           unitig->f_list[tiid].bhang,
           unitig->f_list[tiid].contained);
 
-#undef SHOW_PLACEMENT_BEFORE
 #ifdef SHOW_PLACEMENT_BEFORE
   for (uint32 x=0; x<=tiid; x++)
     fprintf(stderr, "MultiAlignUnitig()-- %3d  f_list %6d,%6d  offsets %6d,%6d  placed %6d,%6d\n",
@@ -381,9 +382,10 @@ unitigConsensus::computePositionFromParent() {
       ahang = beg;
       bhang = end - frankensteinLen;
 
-      //if (VERBOSE_MULTIALIGN_OUTPUT)
-      //  fprintf(stderr, "PLACE(1)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
-      //          beg, end, ahang, bhang, frankensteinLen);
+#ifdef SHOW_PLACEMENT
+      fprintf(stderr, "PLACE(1)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
+              beg, end, ahang, bhang, frankensteinLen);
+#endif
 
       //  HACK.  If the positions don't agree, move along.  BOG sometimes supplies the wrong
       //  parent for a read.
@@ -425,9 +427,10 @@ unitigConsensus::computePositionFromContainer() {
       ahang = beg;
       bhang = end - frankensteinLen;
 
-      //if (VERBOSE_MULTIALIGN_OUTPUT)
-      //  fprintf(stderr, "PLACE(2)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
-      //          beg, end, ahang, bhang, frankensteinLen);
+#ifdef SHOW_PLACEMENT
+      fprintf(stderr, "PLACE(2)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
+              beg, end, ahang, bhang, frankensteinLen);
+#endif
       
       return(true);
     }
@@ -461,9 +464,10 @@ unitigConsensus::computePositionFromLayout() {
 
     assert(thickestLen > 0);
 
-    //if (VERBOSE_MULTIALIGN_OUTPUT)
-    //  fprintf(stderr, "PLACE(3)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
-    //          beg, end, ahang, bhang, frankensteinLen);
+#ifdef SHOW_PLACEMENT
+    fprintf(stderr, "PLACE(3)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
+            ahang, bhang + frankensteinLen, ahang, bhang, frankensteinLen);
+#endif
 
     return(true);
   }
@@ -621,6 +625,7 @@ unitigConsensus::alignFragment() {
 
 void
 unitigConsensus::applyAlignment() {
+
   //  Add the alignment to abacus
   //
   ApplyAlignment(-1,
@@ -633,13 +638,16 @@ unitigConsensus::applyAlignment() {
   //
   placed[tiid].bgn = ahang;
   placed[tiid].end = frankensteinLen + bhang;
-  //fprintf(stderr, "PLACE(4)-- set %d to %d,%d\n", i, placed[tiid].bgn, placed[tiid].end);
 
+#ifdef SHOW_PLACEMENT
+  fprintf(stderr, "PLACE(4)-- set %d to %d,%d\n", tiid, placed[tiid].bgn, placed[tiid].end);
+#endif
 
   //  Update parent and hangs to reflect the overlap that succeeded.
+  //  If tiid==1, then our parent must be piid==0, and we still update.
   //
-  if (piid) {
-    unitig->f_list[tiid].parent    = piid;
+  if ((piid) || (tiid == 1)) {
+    unitig->f_list[tiid].parent    = unitig->f_list[piid].ident;
     unitig->f_list[tiid].ahang     = placed[tiid].bgn - placed[piid].bgn;
     unitig->f_list[tiid].bhang     = placed[tiid].end - placed[piid].end;
     unitig->f_list[tiid].contained = 0;
@@ -715,17 +723,20 @@ unitigConsensus::applyAlignment() {
       assert(frankensteinLen + -ahang < frankensteinMax);
     }
 
+    //  Make space for the new stuff
     for (int32 x=frankensteinLen; x>=0; x--) {
       frankenstein   [x + -ahang] = frankenstein   [x];
       frankensteinBof[x + -ahang] = frankensteinBof[x];
     }
     frankensteinLen += -ahang;
 
+    //  Zero out the new stuff, temporarily.
     for (int32 x=0; x<-ahang; x++) {
       frankenstein   [x] = 0;
       frankensteinBof[x] = -1;
     }
 
+    //  Adjust positions.
     for (int32 x=0; x<=tiid; x++) {
       placed[x].bgn  += -ahang;
       placed[x].end  += -ahang;
@@ -749,7 +760,19 @@ unitigConsensus::applyAlignment() {
 
     assert((bead) && (bead->frag_index == tiid));  //  Never found the correct fragment?!?
 
-    for (int x=0; x<-ahang; x++) {
+    //  Append the new stuff, and VERY IMPORTANT, steal the former first position from the original
+    //  (that's the <= test).  If this isn't done, we eventually hit the assert at the end of
+    //  findBeadInColumn, since frankenstein doesn't have a "dovetail overlap":
+    //
+    //  FRANK   BAAAAAA...
+    //  A        ------...
+    //  B       -------...
+    //
+    //  We need to move from the first base in B, up the abacus to fragment A, but can't do that
+    //  since fragment A has nothing in abacus.  To prevent this, we switch the second column from A
+    //  to B.
+    //
+    for (int x=0; x<=-ahang; x++) {
       frankenstein   [x] = *Getchar(sequenceStore, bead->soffset);
       frankensteinBof[x] = bead->boffset;
 
