@@ -35,7 +35,7 @@ QUERY_SOURCES = query_celamy.c layout_uint.c
 SOURCES = $(CELAMY_SOURCES) $(CELAGRAM_SOURCES) $(QUERY_SOURCES) $(COMMON_SOURCES)
 OBJECTS = $(SOURCES:.c=.o)
 
-C_PROGS = celamy celagram query_celamy
+CXX_PROGS = celamy celagram query_celamy
 
 ## Pick up global definitions after defining OBJECTS and C_PROGS, but before
 ## Using OSTYPE
