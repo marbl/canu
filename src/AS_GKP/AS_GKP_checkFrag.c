@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.50 2009-06-28 17:01:49 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.51 2009-07-02 17:45:00 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -264,8 +264,13 @@ setLibrary(FragMesg *frg_mesg) {
   //
   gkFrag1->gkFragment_setLibraryIID(libIID);
   gkFrag1->gkFragment_setMateIID(0);
+  
   gkFrag1->gkFragment_setOrientation((libIID == 0) ? 0 : lib[libIID]->orientation);
+  gkFrag1->gkFragment_setIsNonRandom(frg_mesg->is_random == 0);
 
+  if ((libIID != 0) && (lib[libIID]->isNotRandom == 1))
+    gkFrag1->gkFragment_setIsNonRandom(lib[libIID]->isNotRandom);
+  
   return(0);
 }
 
