@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.27 2009-06-28 17:01:49 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.28 2009-07-05 13:31:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -728,8 +728,8 @@ fragHashCompare(const void *a, const void *b) {
 void
 removeDuplicateReads(void) {
   uint32        fragsLen = 0;
-  uint32        fragsMax = 16384;
-  gkFragment   *frags    = (gkFragment *)safe_malloc(sizeof(gkFragment) * fragsMax);
+  uint32        fragsMax = 0;
+  gkFragment   *frags    = NULL;
   gkFragment    fr;
 
   fragHash   *fh    = (fragHash *)safe_malloc(sizeof(fragHash) * (gkpStore->gkStore_getNumFragments() + 1));
@@ -835,8 +835,9 @@ removeDuplicateReads(void) {
       //  Load the fragments
       //
       if (end - beg > fragsMax) {
+        frags    = (gkFragment *)safe_realloc(frags, sizeof(gkFragment) * (end - beg + 1));
+        memset(frags + fragsMax, 0, sizeof(gkFragment) * (end - beg + 1 - fragsMax));
         fragsMax = end - beg + 1;
-        frags    = (gkFragment *)safe_realloc(frags, sizeof(gkFragment) * fragsMax);
       }
 
       for (b=beg; b<end; b++)
@@ -1020,9 +1021,9 @@ processMate(gkFragment *fr,
       assert(rSize >= 0);
       assert(rSize <= fr->gkFragment_getSequenceLength());
 
-      //fprintf(logFile, "LINK clr %d,%d  len %d  I %d,%d   J %d,%d\n",
+      //fprintf(logFile, "LINK clr %d,%d   len %d   matches %d   I %d,%d   J %d,%d\n",
       //        fr->clrBgn, fr->clrEnd,
-      //        al.alignLen,
+      //        al.alignLen, al.matches,
       //        al.begI, al.endI,
       //        al.begJ, al.endJ);
 
