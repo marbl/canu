@@ -227,7 +227,14 @@ public:
 
    isGKP = 0;
 
+   clrBgn = clrEnd = 0;
+   vecBgn = vecEnd = 0;
+   maxBgn = maxEnd = 0;
+   tntBgn = tntEnd = 0;
+
    gkp = NULL;
+
+   memset(&fr, 0, sizeof(gkFragmentData));
 
    enc = NULL;
    seq = NULL;
@@ -433,7 +440,7 @@ public:
 private:
   gkStore *gkp;
 
-  union {
+  union gkFragmentData {
     gkShortFragment    sm;
     gkMediumFragment   md;
     gkLongFragment     lg;
