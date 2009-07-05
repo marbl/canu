@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.28 2009-07-05 13:31:25 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.29 2009-07-05 22:31:00 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -343,7 +343,7 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
                     r->number_of_bases * sizeof(uint8)) % 8;
   if (padding_length > 0) {
     //fprintf(stderr, "read pad 2 "F_U64"\n", 8-padding_length);
-    char *junk = (char *)safe_malloc(sizeof(char) * padding_length);
+    char *junk = (char *)safe_malloc(sizeof(char) * (8 - padding_length));
     AS_UTL_safeRead(sff, junk, "readsff_read_8", sizeof(char), 8 - padding_length);
     safe_free(junk);
   }
@@ -732,7 +732,7 @@ removeDuplicateReads(void) {
   gkFragment   *frags    = NULL;
   gkFragment    fr;
 
-  fragHash   *fh    = (fragHash *)safe_malloc(sizeof(fragHash) * (gkpStore->gkStore_getNumFragments() + 1));
+  fragHash   *fh    = new fragHash [gkpStore->gkStore_getNumFragments() + 1];
   uint32      fhLen = 0;
 
   uint64 map[256] = { 0 };
@@ -835,9 +835,9 @@ removeDuplicateReads(void) {
       //  Load the fragments
       //
       if (end - beg > fragsMax) {
-        frags    = (gkFragment *)safe_realloc(frags, sizeof(gkFragment) * (end - beg + 1));
-        memset(frags + fragsMax, 0, sizeof(gkFragment) * (end - beg + 1 - fragsMax));
-        fragsMax = end - beg + 1;
+        delete [] frags;
+        fragsMax = end - beg + 512;
+        frags    = new gkFragment [fragsMax];
       }
 
       for (b=beg; b<end; b++)
@@ -933,7 +933,8 @@ removeDuplicateReads(void) {
     beg = end;
   }
 
-  safe_free(fh);
+  delete [] fh;
+  delete [] frags;
 
   fprintf(stderr, "removeDuplicateReads()-- finished\n");
 }
