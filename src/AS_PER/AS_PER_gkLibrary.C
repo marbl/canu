@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.2 2009-06-26 03:45:42 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.3 2009-07-06 19:58:29 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -64,17 +64,20 @@ gkLibrary::gkLibrary_decodeFeatures(LibraryMesg *lmesg) {
     char *fea = lmesg->features[f];
     char *val = lmesg->values[f];
 
-
+    //  Unitigger options
     if      (strcasecmp(fea, "forceBOGunitigger") == 0)
       forceBOGunitigger = decodeBoolean("forceBOGunitigger", val);
 
     else if (strcasecmp(fea, "isNotRandom") == 0)
       isNotRandom = decodeBoolean("isNotRandom", val);
 
-
+    //  Alignment options
     else if (strcasecmp(fea, "doNotTrustHomopolymerRuns") == 0)
       doNotTrustHomopolymerRuns = decodeBoolean("doNotTrustHomopolymerRuns", val);
 
+    //  OBT options
+    else if (strcasecmp(fea, "doRemoveDuplicateReads") == 0)
+      doRemoveDuplicateReads = decodeBoolean("doRemoveDuplicateReads", val);
 
     else if (strcasecmp(fea, "doNotQVTrim") == 0)
       doNotQVTrim = decodeBoolean("doNotQVTrim", val);
@@ -85,10 +88,11 @@ gkLibrary::gkLibrary_decodeFeatures(LibraryMesg *lmesg) {
     else if (strcasecmp(fea, "doNotOverlapTrim") == 0)
       doNotOverlapTrim = decodeBoolean("doNotOverlapTrim", val);
 
-
+    //  Gatekeeper options
     else if (strcasecmp(fea, "useShortFragments") == 0)
       useShortFragments = decodeBoolean("useShortFragments", val);
 
+    //  Library options (orientation is not a feature, it's part of the library)
 
     else
       fprintf(stderr, "gkLibrary_decodeFeatures()-- found feature '%s' but don't understand it.\n",
@@ -135,6 +139,7 @@ gkLibrary::gkLibrary_encodeFeatures(LibraryMesg *lmesg) {
   //  GoodThing(tm) to always specify optional features.
   int    alwaysEncode = 1;
 
+  //  Unitigger options
   if (forceBOGunitigger || alwaysEncode) {
     fea[nf] = (char *)safe_malloc(32 * sizeof(char));
     val[nf] = (char *)safe_malloc(32 * sizeof(char));
@@ -151,7 +156,7 @@ gkLibrary::gkLibrary_encodeFeatures(LibraryMesg *lmesg) {
     nf++;
   }
 
-
+  //  Alignment options
   if (doNotTrustHomopolymerRuns || alwaysEncode) {
     fea[nf] = (char *)safe_malloc(32 * sizeof(char));
     val[nf] = (char *)safe_malloc(32 * sizeof(char));
@@ -160,6 +165,14 @@ gkLibrary::gkLibrary_encodeFeatures(LibraryMesg *lmesg) {
     nf++;
   }
 
+  //  OBT options
+  if (doRemoveDuplicateReads || alwaysEncode) {
+    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
+    val[nf] = (char *)safe_malloc(32 * sizeof(char));
+    sprintf(fea[nf], "doRemoveDuplicateReads");
+    sprintf(val[nf], "%d", doRemoveDuplicateReads);
+    nf++;
+  }
 
   if (doNotQVTrim || alwaysEncode) {
     fea[nf] = (char *)safe_malloc(32 * sizeof(char));
@@ -185,7 +198,7 @@ gkLibrary::gkLibrary_encodeFeatures(LibraryMesg *lmesg) {
     nf++;
   }
 
-
+  //  Gatekeeper options
   if (useShortFragments || alwaysEncode) {
     fea[nf] = (char *)safe_malloc(32 * sizeof(char));
     val[nf] = (char *)safe_malloc(32 * sizeof(char));
@@ -193,6 +206,8 @@ gkLibrary::gkLibrary_encodeFeatures(LibraryMesg *lmesg) {
     sprintf(val[nf], "%d", useShortFragments);
     nf++;
   }
+
+  //  Library options (orientation is not a feature, it's part of the library)
 
   lmesg->num_features = nf;
 

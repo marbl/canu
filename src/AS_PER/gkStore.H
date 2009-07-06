@@ -113,7 +113,7 @@ public:
 
   void      gkStore_getFragment(AS_IID iid, gkFragment *fr, int32 flags);
   void      gkStore_setFragment(gkFragment *fr);
-  void      gkStore_delFragment(AS_IID iid);
+  void      gkStore_delFragment(AS_IID iid, bool deleteMateFrag=false);
   void      gkStore_addFragment(gkFragment *fr);
 
   ////////////////////////////////////////

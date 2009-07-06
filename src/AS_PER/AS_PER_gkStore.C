@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.4 2009-06-28 17:01:49 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.5 2009-07-06 19:58:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -824,52 +824,59 @@ gkStore::gkStore_setFragment(gkFragment *fr) {
 
 
 
+//  Delete fragment with iid from the store.  If the fragment has a
+//  mate, remove the mate relationship from both fragmentss.
+//
+//  If the mate is supplied, delete it too.
+//
 void
-gkStore::gkStore_delFragment(AS_IID iid) {
+gkStore::gkStore_delFragment(AS_IID iid, bool deleteMateFrag) {
   gkFragment   fr;
-  AS_IID       mateiid;
+  int32        mid = 0;
 
   assert(partmap    == NULL);
   assert(isReadOnly == 0);
 
-  //  Delete fragment with iid from the store.  If the fragment has a
-  //  mate, remove the mate relationship from both fragmentss.
-
   gkStore_getFragment(iid, &fr, GKFRAGMENT_INF);
-
-  mateiid = fr.gkFragment_getMateIID();
-
   switch (fr.type) {
     case GKFRAGMENT_SHORT:
+      mid = fr.fr.sm.mateIID;
       fr.fr.sm.deleted = 1;
       fr.fr.sm.mateIID = 0;
       break;
     case GKFRAGMENT_MEDIUM:
+      mid = fr.fr.md.mateIID;
       fr.fr.md.deleted = 1;
       fr.fr.md.mateIID = 0;
       break;
     case GKFRAGMENT_LONG:
+      mid = fr.fr.lg.mateIID;
       fr.fr.lg.deleted = 1;
       fr.fr.lg.mateIID = 0;
       break;
   }
   gkStore_setFragment(&fr);
 
-  if (mateiid > 0) {
-    gkStore_getFragment(mateiid, &fr, GKFRAGMENT_INF);
-    switch (fr.type) {
-      case GKFRAGMENT_SHORT:
-        fr.fr.sm.mateIID = 0;
-        break;
-      case GKFRAGMENT_MEDIUM:
-        fr.fr.md.mateIID = 0;
-        break;
-      case GKFRAGMENT_LONG:
-        fr.fr.lg.mateIID = 0;
-        break;
-    }
-    gkStore_setFragment(&fr);
+  //  No mate, we're done.
+  if (mid == 0)
+    return;
+
+  gkStore_getFragment(mid, &fr, GKFRAGMENT_INF);
+  switch (fr.type) {
+    case GKFRAGMENT_SHORT:
+      fr.fr.sm.deleted = fr.fr.sm.deleted || deleteMateFrag;
+      fr.fr.sm.mateIID = 0;
+      break;
+    case GKFRAGMENT_MEDIUM:
+      fr.fr.md.deleted = fr.fr.md.deleted || deleteMateFrag;
+      fr.fr.md.mateIID = 0;
+      break;
+    case GKFRAGMENT_LONG:
+      fr.fr.lg.deleted = fr.fr.lg.deleted || deleteMateFrag;
+      fr.fr.lg.mateIID = 0;
+      break;
   }
+  gkStore_setFragment(&fr);
 }
 
 

@@ -33,7 +33,7 @@ sub overlapTrim {
 
     #  Compute overlaps, if we don't have them already
 
-    if (! -e "$wrk/$asm.obtStore") {
+    if (! -e "$wrk/0-overlaptrim/$asm.obtStore") {
 
         createOverlapJobs("trim");
         checkOverlap("trim");
@@ -42,7 +42,7 @@ sub overlapTrim {
         #  all overlaps for a fragment A are localized.
 
         if (runCommand("$wrk/0-overlaptrim",
-                       "find $wrk/0-overlaptrim-overlap -follow -name \\*ovb.gz -print > $wrk/$asm.obtStore.list")) {
+                       "find $wrk/0-overlaptrim-overlap -follow -name \\*ovb.gz -print > $wrk/0-overlaptrim/$asm.obtStore.list")) {
             caFailure("failed to generate a list of all the overlap files", undef);
         }
 
@@ -50,20 +50,63 @@ sub overlapTrim {
         my $cmd;
         $cmd  = "$bin/overlapStore ";
         $cmd .= " -O ";
-        $cmd .= " -c $wrk/$asm.obtStore.BUILDING ";
+        $cmd .= " -c $wrk/0-overlaptrim/$asm.obtStore.BUILDING ";
         $cmd .= " -g $wrk/$asm.gkpStore ";
         $cmd .= " -M " . getGlobal('ovlStoreMemory');
-        $cmd .= " -L $wrk/$asm.obtStore.list";
-        $cmd .= " > $wrk/$asm.obtStore.err 2>&1";
+        $cmd .= " -L $wrk/0-overlaptrim/$asm.obtStore.list";
+        $cmd .= " > $wrk/0-overlaptrim/$asm.obtStore.err 2>&1";
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-            caFailure("failed to build the obt store", "$wrk/$asm.obtStore.err");
+            caFailure("failed to build the obt store", "$wrk/0-overlaptrim/$asm.obtStore.err");
         }
 
-        rename "$wrk/$asm.obtStore.BUILDING", "$wrk/$asm.obtStore";
+        rename "$wrk/0-overlaptrim/$asm.obtStore.BUILDING", "$wrk/0-overlaptrim/$asm.obtStore";
 
         rmrf("$asm.obtStore.list");
         rmrf("$asm.obtStore.err");
+    }
+
+    if (getGlobal("doDeDuplication") != 0) {
+    if (! -e "$wrk/0-overlaptrim/$asm.dedup.summary") {
+        my $bin = getBinDirectory();
+        my $cmd;
+
+        if (! -e "$wrk/0-overlaptrim/$asm.dupStore") {
+            if (runCommand("$wrk/0-overlaptrim",
+                           "find $wrk/0-overlaptrim-overlap -follow -name \\*ovb.gz -print > $wrk/0-overlaptrim/$asm.dupStore.list")) {
+                caFailure("failed to generate a list of all the overlap files", undef);
+            }
+
+            $cmd  = "$bin/overlapStore ";
+            $cmd .= " -O -O ";
+            $cmd .= " -c $wrk/0-overlaptrim/$asm.dupStore.BUILDING ";
+            $cmd .= " -g $wrk/$asm.gkpStore ";
+            $cmd .= " -M " . getGlobal('ovlStoreMemory');
+            $cmd .= " -L $wrk/0-overlaptrim/$asm.dupStore.list";
+            $cmd .= " > $wrk/0-overlaptrim/$asm.dupStore.err 2>&1";
+
+            if (runCommand("$wrk/0-overlaptrim", $cmd)) {
+                caFailure("failed to build the dup store", "$wrk/0-overlaptrim/$asm.dupStore.err");
+            }
+
+            rename "$wrk/0-overlaptrim/$asm.dupStore.BUILDING", "$wrk/0-overlaptrim/$asm.dupStore";
+
+            rmrf("$asm.dupStore.list");
+            rmrf("$asm.dupStore.err");
+        }
+
+        $cmd  = "$bin/deduplicate ";
+        $cmd .= "-gkp     $wrk/$asm.gkpStore ";
+        $cmd .= "-ovs     $wrk/0-overlaptrim/$asm.obtStore ";
+        $cmd .= "-ovs     $wrk/0-overlaptrim/$asm.dupStore ";
+        $cmd .= "-report  $wrk/0-overlaptrim/$asm.deduplicate.report ";
+        $cmd .= "-summary $wrk/0-overlaptrim/$asm.deduplicate.summary ";
+        $cmd .= "> $wrk/0-overlaptrim/$asm.deduplicate.err 2>&1";
+
+        if (runCommand("$wrk/0-overlaptrim", $cmd)) {
+            caFailure("failed to deduplicate the reads", "$wrk/0-overlaptrim/$asm.deduplicate.err");
+        }
+    }
     }
 
     #  Consolidate the overlaps, listing all overlaps for a single
@@ -75,7 +118,7 @@ sub overlapTrim {
         my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/consolidate ";
-        $cmd .= " -ovs $wrk/$asm.obtStore ";
+        $cmd .= " -ovs $wrk/0-overlaptrim/$asm.obtStore ";
         $cmd .= " > $wrk/0-overlaptrim/$asm.ovl.consolidated ";
         $cmd .= "2> $wrk/0-overlaptrim/$asm.ovl.consolidated.err";
 
@@ -115,7 +158,7 @@ sub overlapTrim {
             my $cmd;
             $cmd  = "$bin/chimera ";
             $cmd .= " -gkp $wrk/$asm.gkpStore ";
-            $cmd .= " -ovs $wrk/$asm.obtStore ";
+            $cmd .= " -ovs $wrk/0-overlaptrim/$asm.obtStore ";
             $cmd .= " -summary $wrk/0-overlaptrim/$asm.chimera.summary ";
             $cmd .= " -report  $wrk/0-overlaptrim/$asm.chimera.report ";
             $cmd .= " > $wrk/0-overlaptrim/$asm.chimera.err 2>&1";
