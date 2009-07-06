@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.1 2009-07-06 19:58:29 brianwalenz Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.2 2009-07-06 22:22:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,8 +38,9 @@ const char *mainid = "$Id: deduplicate.C,v 1.1 2009-07-06 19:58:29 brianwalenz E
 #define F_U32W(X)  "%" #X F_U32P
 #define F_U64W(X)  "%" #X F_U64P
 
-#define FRAG_HANG_SLOP  1
-#define MATE_HANG_SLOP  1
+#define FRAG_HANG_SLOP  0
+#define MATE_HANG_SLOP  0
+#define DEFAULT_ERATE   2.0 / 100.0
 
 FILE    *summaryFile = stderr;
 FILE    *reportFile  = stdout;
@@ -99,7 +100,7 @@ loadFragments(gkStore *gkp) {
   gkStream       *fs = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
   gkFragment      fr;
   fragT          *frag = new fragT [gkp->gkStore_getNumFragments() + 1];
-  
+
   while (fs->next(&fr)) {
     AS_IID  iid  = fr.gkFragment_getReadIID();
 
@@ -295,8 +296,7 @@ deleteFragments(gkStore *gkp, fragT *frag) {
 
 int
 main(int argc, char **argv) {
-  bool               doUpdate     = true;  //  set to false for testing
-  uint32             errorLimit   = errorLimit = AS_OVS_encodeQuality(1.5 / 100);
+  uint32             errorLimit   = errorLimit = AS_OVS_encodeQuality(DEFAULT_ERATE);
   gkStore           *gkp          = 0L;
   OverlapStore      *ovsprimary   = 0L;
   OverlapStore      *ovssecondary = 0L;
@@ -307,7 +307,7 @@ main(int argc, char **argv) {
   int err=0;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-gkp", 2) == 0) {
-      gkp      = new gkStore(argv[++arg], FALSE, doUpdate);
+      gkp      = new gkStore(argv[++arg], FALSE, TRUE);
 
     } else if (strncmp(argv[arg], "-ovs", 2) == 0) {
       if (ovsprimary == NULL)
@@ -353,13 +353,32 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  fragT  *frag = loadFragments(gkp);
+  bool            nothingToDo = true;
 
-  readOverlapsAndProcessFragments(gkp, ovsprimary, ovssecondary, errorLimit, frag);
-  processMatedFragments(gkp, frag);
-  deleteFragments(gkp, frag);
+  for (uint32 i=1; i<=gkp->gkStore_getNumLibraries(); i++) {
+    gkLibrary  *gkl = gkp->gkStore_getLibrary(i);
 
-  delete [] frag;
+    if (gkl->doRemoveDuplicateReads == true) {
+      if (summaryFile)
+        fprintf(summaryFile, "Checking library %s for duplicates.\n", AS_UID_toString(gkl->libraryUID));
+      nothingToDo = false;
+    } else {
+      if (summaryFile)
+        fprintf(summaryFile, "Ignoring library %s.\n", AS_UID_toString(gkl->libraryUID));
+    }
+  }
+
+
+  if (nothingToDo == false) {
+    fragT  *frag = loadFragments(gkp);
+
+    readOverlapsAndProcessFragments(gkp, ovsprimary, ovssecondary, errorLimit, frag);
+    processMatedFragments(gkp, frag);
+    deleteFragments(gkp, frag);
+
+    delete [] frag;
+  }
+
   delete    gkp;
 
   if (summaryFile) {
