@@ -78,9 +78,13 @@ my %seqLibIDFix;
 #  Switch deciding if we should use the SEQ_LIB_ID (1) or the
 #  LIBRARY_ID (0) to get the name of the library.  Some centers choose
 #  to not supply a SEQ_LIB_ID (the drosophila fragments from
-#  Agencourt).  The default is 1.
+#  Agencourt).
 #
-my $useSLI = 1;
+#  0 -- use LIBRARY_ID.
+#  1 -- use SEQ_LIB_ID, but die when it isn't present.
+#  2 -- use SEQ_LIB_ID, allow missing libs.
+#
+my $useSLI = 0;
 
 #  This allows one to include only certain libraries in the output, or
 #  to ignore specific libraries.  We'll do all the work, and just skip
@@ -183,12 +187,13 @@ sub readXML () {
     #  Except it also breaks lots of mates in later files.
 
     $_ = <X>;
-    while ($_ !~ m/^\s*<\/TRACE/i) {
+    while ($_ !~ m/^\s*<\/TRACE>/i) {
         if (m!^\s*<TI>(\S+)<!i) {
             $xid = $1;
         }
         if (m!^\s*<TRACE_TYPE_CODE>(.*)<!i) {
             $type = $1;
+            $type =~ tr/a-z/A-Z/;
         }
         if (m!^\s*<TEMPLATE_ID>(.*)</!i) {
             $template = $1;
@@ -197,7 +202,7 @@ sub readXML () {
             $end = $1;
         }
         if (m!^\s*<SEQ_LIB_ID>(.*)</!i) {
-            if ($useSLI == 1) {
+            if ($useSLI != 0) {
                 $lib = $1;
                 $lib = $seqLibIDFix{$lib} if (exists($seqLibIDFix{$lib}));
             }
@@ -465,7 +470,10 @@ sub runXML ($) {
             ($type eq "CLONEEND") ||
             ($type eq "454")) {
 
-            print STDERR "No LIB found for $xid.\n"  if ($lib eq ".");
+            if ($lib eq ".") {
+                print STDERR "No LIB found for $xid.\n";
+                print STDERR "Consider setting useSLI.\n";
+            }
 
             print L "$xid\t$template\t$end\t$lib\t$libsize\t$libstddev\t$clr\t$clv\t$clq\n";
         }
@@ -816,6 +824,8 @@ sub runFRG ($) {
         my ($xid, $type, $template, $end, $lib, $libsize, $libstddev, $clr, $clv, $clq) = readXML();
         my ($sid, $seq) = readFasta(1);
         my ($qid, $qlt) = readQual(1);
+
+        print "IDs $xid $sid $qid\n";
 
         $haveMore  = !eof(X);
         $haveMore &= !eof(F);
