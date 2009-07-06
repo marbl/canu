@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.16 2009-06-26 20:02:12 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.17 2009-07-06 20:03:40 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -480,6 +480,20 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
         if (update)
           fprintf(stdout, "lib uid %s donottrushhomopolymerruns %c -> %c\n",
                   AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.doNotTrustHomopolymerRuns) ? 'T' : 'F');
+      } else if (strcasecmp(ACT, "doRemoveDuplicateReads") == 0) {
+        uint32 o = gklr.doRemoveDuplicateReads;
+        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
+          gklr.doRemoveDuplicateReads = 1;
+        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
+          gklr.doRemoveDuplicateReads = 0;
+        else {
+          fprintf(stderr, "invalid lib doRemoveDuplicateReads flag in edit line: '%s'\n", L);
+          errors++;
+          goto nextline;
+        }
+        if (update)
+          fprintf(stdout, "lib uid %s doRemoveDuplicateReads %c -> %c\n",
+                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.doRemoveDuplicateReads) ? 'T' : 'F');
       } else if (strcasecmp(ACT, "doNotQVTrim") == 0) {
         uint32 o = gklr.doNotQVTrim;
         if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))

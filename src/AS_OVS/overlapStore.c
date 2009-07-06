@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.20 2009-05-14 14:59:48 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.21 2009-07-06 20:03:40 brianwalenz Exp $";
 
 #include "overlapStore.h"
 
@@ -112,7 +112,7 @@ main(int argc, char **argv) {
       operation = OP_DUMP;
 
     } else if (strcmp(argv[arg], "-O") == 0) {
-      doFilterOBT = 1;
+      doFilterOBT++;
 
     } else if (strcmp(argv[arg], "-M") == 0) {
       memoryLimit  = atoi(argv[++arg]);  //  convert first, then multiply so we don't

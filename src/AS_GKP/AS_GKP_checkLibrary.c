@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.30 2009-06-26 03:45:42 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.31 2009-07-06 20:03:40 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -141,25 +141,6 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
 
     gkpl.mean                       = lib_mesg->mean;
     gkpl.stddev                     = lib_mesg->stddev;
-
-    //  This crud is documented in AS_PER/AS_PER_gkpStore.h
-    //  Zero is the default, we set to make it explicit
-
-    gkpl.spare2                     = 0;
-    gkpl.spare1                     = 0;
-
-    gkpl.forceBOGunitigger          = 0;
-    gkpl.isNotRandom                = 0;
-
-    gkpl.doNotTrustHomopolymerRuns  = 0;
-
-    gkpl.doNotQVTrim                = 0;
-    gkpl.goodBadQVThreshold         = 0;
-    gkpl.doNotOverlapTrim           = 0;
-
-    gkpl.useShortFragments          = 0;
-
-    gkpl.orientation                = AS_READ_ORIENT_UNKNOWN;
 
     switch (lib_mesg->link_orient) {
       case 'U': gkpl.orientation = AS_READ_ORIENT_UNKNOWN;    break;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.24 2009-06-10 18:05:14 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.25 2009-07-06 20:03:41 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -210,7 +210,7 @@ buildStore(
 
   // record the UIDs we should not process in the hashtable if we are supplied a file listing them  
   HashTable_AS *readIIDsToSkip = CreateScalarHashTable_AS();
-  if (!doFilterOBT && ovlSkipName != NULL) {
+  if (doFilterOBT == 0 && ovlSkipName != NULL) {
      int line_len = ( 16 * 1024 * 1024);
      char *currLine = (char *)safe_malloc(sizeof(char)*line_len);
      char fileName[1024];
@@ -241,10 +241,14 @@ buildStore(
     while (AS_OVS_readOverlap(inputFile, &fovrlap)) {
 
       //  If filtering for OBT, skip the crap.
-      if ((doFilterOBT) && (AS_OBT_acceptableOverlap(fovrlap) == 0))
+      if ((doFilterOBT == 1) && (AS_OBT_acceptableOverlap(fovrlap) == 0))
         continue;
 
-      if (!doFilterOBT) {
+      //  If filtering for OBTs dedup, skip the good
+      if ((doFilterOBT == 2) && (AS_OBT_acceptableOverlap(fovrlap) == 1))
+        continue;
+
+      if (doFilterOBT == 0) {
          int firstIgnore = ExistsInHashTable_AS(readIIDsToSkip, fovrlap.a_iid, 0);
          int secondIgnore = ExistsInHashTable_AS(readIIDsToSkip, fovrlap.b_iid, 0);
          

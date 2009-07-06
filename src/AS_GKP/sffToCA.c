@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.29 2009-07-05 22:31:00 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.30 2009-07-06 20:03:40 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1391,31 +1391,23 @@ addLibrary(char *libraryName,
 
   gkl.libraryUID = AS_UID_load(libraryName);
 
-  //  This crud is documented in AS_PER/AS_PER_gkpStore.h
-  //  Zero is the default, we set to make it explicit
-
-  gkl.spare2                     = 0;
-  gkl.spare1                     = 0;
-
-  gkl.forceBOGunitigger          = 0;
-  gkl.isNotRandom                = 0;
+  gkl.forceBOGunitigger          = 1;
 
   gkl.doNotTrustHomopolymerRuns  = 1;
 
+  gkl.doRemoveDuplicateReads     = 1;
   gkl.doNotQVTrim                = 1;
   gkl.goodBadQVThreshold         = 1;
   gkl.doNotOverlapTrim           = 0;
 
-  gkl.useShortFragments          = 0;
-
   if (haveLinker == FALSE) {
-    gkl.orientation = AS_READ_ORIENT_UNKNOWN;
     gkl.mean        = 0;
     gkl.stddev      = 0;
+    gkl.orientation = AS_READ_ORIENT_UNKNOWN;
   } else {
-    gkl.orientation = AS_READ_ORIENT_INNIE;
     gkl.mean        = insertSize;
     gkl.stddev      = insertStdDev;
+    gkl.orientation = AS_READ_ORIENT_INNIE;
   }
 
   gkpStore->gkStore_addLibrary(gkl.libraryUID, &gkl);
