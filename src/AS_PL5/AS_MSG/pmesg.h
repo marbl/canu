@@ -358,7 +358,9 @@ INTARRAYOUT(int32, UnitigPos, delta, delta_length);
 INTARRAYOUT(int32, IntUnitigPos, delta, delta_length);
 INTARRAYOUT(int32, IntMultiPos, delta, delta_length);
 INTARRAYOUT(int32, MultiPos, delta, delta_length);
+#ifdef AS_MSG_USE_OVL_DELTA
 INTARRAYOUT(signed char, OverlapMesg, delta, polymorph_ct);
+#endif
 STRINGARRAYOUT(LibraryMesg, features, num_features);
 STRINGARRAYOUT(LibraryMesg, values, num_features);
 /* STRINGOUT(BatchMesg, name); */
@@ -371,13 +373,13 @@ STRINGOUT(FragMesg, source);
 STRINGOUT(FragMesg, sequence);
 STRINGOUT(FragMesg, quality);
 STRINGOUT(FragMesg, hps);
-STRINGOUT(UnitigOverlapMesg, source);
-STRINGOUT(ChunkMesg, source);
+//STRINGOUT(UnitigOverlapMesg, source);
+//STRINGOUT(ChunkMesg, source);
 STRINGOUT(IntMultiVar, nr_conf_alleles);
 STRINGOUT(IntMultiVar, weights);
 STRINGOUT(IntMultiVar, var_seq);
 STRINGOUT(IntMultiVar, conf_read_iids);
-STRINGOUT(IntUnitigMesg, source);
+//STRINGOUT(IntUnitigMesg, source);
 STRINGOUT(IntUnitigMesg, consensus);
 STRINGOUT(IntUnitigMesg, quality);
 STRINGOUT(UnitigMesg, consensus);

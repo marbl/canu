@@ -90,14 +90,16 @@ $MEMBERS{ #new } = #old
   GETTERALIAS(OverlapMesg, mno, min_offset);
   GETTERALIAS(OverlapMesg, mxo, max_offset);
   GETTERALIAS(OverlapMesg, pct, polymorph_ct);
-  GETTERALIAS(OverlapMesg, del, delta);
+#ifdef AS_MSG_USE_OVL_DELTA
+  GETTERALIAS(OverlapMesg, del, alignment_delta);
+#endif
 
   PACKAGE(UnitigOverlapMesg);
   GETTERALIAS(UnitigOverlapMesg, ck1, chunk1);
   GETTERALIAS(UnitigOverlapMesg, ck2, chunk2);
   GETTERALIAS(UnitigOverlapMesg, ori, orient);
   GETTERALIAS(UnitigOverlapMesg, ovt, overlap_type);
-  GETTERALIAS(UnitigOverlapMesg, src, source);
+  //GETTERALIAS(UnitigOverlapMesg, src, source);
   GETTERALIAS(UnitigOverlapMesg, len, best_overlap_length);
   GETTERALIAS(UnitigOverlapMesg, min, min_overlap_length);
   GETTERALIAS(UnitigOverlapMesg, max, max_overlap_length);
@@ -136,7 +138,7 @@ $MEMBERS{ #new } = #old
 
   PACKAGE(IntUnitigMesg);
   GETTERALIAS(IntUnitigMesg, acc, iaccession);
-  GETTERALIAS(IntUnitigMesg, src, source);
+  //GETTERALIAS(IntUnitigMesg, src, source);
   GETTERALIAS(IntUnitigMesg, cov, coverage_stat);
   GETTERALIAS(IntUnitigMesg, sta, status);
   GETTERALIAS(IntUnitigMesg, len, length);

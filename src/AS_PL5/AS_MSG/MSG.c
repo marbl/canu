@@ -9,16 +9,37 @@
  */
 static const char *MessageTypeStruct[NUM_OF_REC_TYPES + 1] = {
   NULL,
-  "AuditMesg", "VersionMesg", "FragMesg", "InternalFragMesg", NULL,
-  "LinkMesg", NULL, "DistanceMesg", NULL, "LibraryMesg",
-  NULL, NULL, "OverlapMesg", NULL, "UnitigOverlapMesg",
-  "IntUnitigMesg", "IntUnitigLinkMesg", "IntContigLinkMesg", "AugFragMesg", "IntScaffoldMesg",
-  "IntMateDistMesg", "IntAugFragMesg", "SnapUnitigMesg", "SnapUnitigLinkMesg", "IntConConMesg",
-  "SnapConConMesg", "SnapContigLinkMesg", "SnapScaffoldMesg", "SnapMateDistMesg", "BatchMesg",
-  NULL, NULL, NULL, NULL, NULL,
-  NULL, NULL, NULL, NULL, NULL,
-  "IntDegenerateScaffoldMesg", "SnapDegenerateScaffoldMesg", "SnapScaffoldLinkMesg", "InternalScaffoldLinkMesg", NULL,
-  NULL, NULL, NULL, NULL, "EndOfFileMesg"
+  "BatchMesg",
+  "VersionMesg",
+  "DistanceMesg",
+  "LibraryMesg",
+  "FragMesg",
+  "LinkMesg",
+
+  "OverlapMesg",
+
+  "UnitigOverlapMesg",
+
+  "IntMateDistMesg",
+  "IntAugFragMesg",
+  "IntAugMatePairMesg",
+  "IntUnitigMesg",
+  "IntUnitigLinkMesg",
+  "IntConConMesg",
+  "IntContigLinkMesg",
+  "IntScaffoldMesg",
+  "InternalScaffoldLinkMesg",
+
+  "SnapMateDistMesg",
+  "AugFragMesg",
+  "AugMatePairMesg",
+  "SnapUnitigMesg",
+  "SnapUnitigLinkMesg",
+  "SnapConConMesg",
+  "SnapContigLinkMesg",
+  "SnapScaffoldMesg",
+  "SnapScaffoldLinkMesg",
+  "EndOfFileMesg"
 };
 
 static swig_type_info *MessageTypeSwigTypeInfo[NUM_OF_REC_TYPES + 1];
