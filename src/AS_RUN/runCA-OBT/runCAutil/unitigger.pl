@@ -52,8 +52,7 @@ sub unitigger (@) {
             $cmd .= " -B $B ";
             $cmd .= " -e $e ";
             $cmd .= " -s $l "   if (defined($l));
-            $cmd .= " -b "      if (getGlobal("bogPromiscuous") == 0);
-            $cmd .= " -k "      if (getGlobal("bogEjectUnhappyContain") == 1);
+            $cmd .= " -b "      if (getGlobal("bogBreakAtIntersections") == 1);
             $cmd .= " -m $bmd " if (defined($bmd));
             $cmd .= " -o $wrk/4-unitigger/$asm ";
             $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";

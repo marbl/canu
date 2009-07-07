@@ -380,11 +380,8 @@ sub setDefaults () {
     $global{"utgRecalibrateGAR"}           = 1;
     $synops{"utgRecalibrateGAR"}           = "Use an experimental algorithm to decide unique/repeat";
 
-    $global{"bogPromiscuous"}              = 0;
-    $synops{"bogPromiscuous"}              = "EXPERT!";
-
-    $global{"bogEjectUnhappyContain"}      = 0;
-    $synops{"bogEjectUnhappyContain"}      = "EXPERT!";
+    $global{"bogBreakAtIntersections"}     = 1;
+    $synops{"bogBreakAtIntersections"}     = "EXPERT!";
 
     $global{"bogBadMateDepth"}             = 7;
     $synops{"bogBadMateDepth"}             = "EXPERT!";

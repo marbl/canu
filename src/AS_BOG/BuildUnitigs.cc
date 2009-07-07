@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.59 2009-06-15 07:01:37 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.60 2009-07-07 14:53:05 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -113,7 +113,6 @@ main (int argc, char * argv []) {
   char *output_prefix         = "bog";
 
   bool  unitigIntersectBreaking = false;
-  bool  ejectUnhappyContained   = false;
   int   badMateBreakThreshold   = -7;
 
   argc = AS_configure(argc, argv);
@@ -157,8 +156,6 @@ main (int argc, char * argv []) {
                   erate, AS_OVS_decodeQuality(erate) * 100.0);
         }
         break;
-      case 'k':
-        ejectUnhappyContained = true; break;
       case 'm':
         badMateBreakThreshold = -atoi(optarg); break;
       case 's':
