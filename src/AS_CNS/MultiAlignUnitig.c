@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.9 2009-06-29 18:43:07 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.10 2009-07-07 15:00:42 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -34,7 +34,6 @@ static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.9 2009-06-29 18:43:07 brianwal
 
 #undef SHOW_PLACEMENT_BEFORE
 #undef SHOW_PLACEMENT
-#undef DEBUG
 
 static
 int
@@ -187,7 +186,7 @@ public:
     safe_free(frankensteinBof);
   };
 
-  int  initialize(); 
+  int  initialize(void); 
 
   void reportStartingWork(void);
   void reportFailure(void);
@@ -265,7 +264,7 @@ unitigConsensus::reportFailure(void) {
 }
 
 int
-unitigConsensus::initialize() {
+unitigConsensus::initialize(void) {
 
   int32 num_columns = 0;
 
@@ -291,8 +290,8 @@ unitigConsensus::initialize() {
   frankensteinBof = (int32 *)safe_malloc(sizeof(int32) * frankensteinMax);
 
   for (int32 i=0; i<unitig->num_frags; i++) {
-    int complement = (unitig->f_list[i].position.bgn < unitig->f_list[i].position.end) ? 0 : 1;
-    int fid;
+    int32 complement = (unitig->f_list[i].position.bgn < unitig->f_list[i].position.end) ? 0 : 1;
+    int32 fid;
 
     if (unitig->f_list[i].type != AS_READ) {
       fprintf(stderr, "MultiAlignUnitig()-- Unitig %d FAILED.  Fragment %d is not a read.\n",
@@ -366,7 +365,7 @@ unitigConsensus::initialize() {
 //                 |----|        i
 //
 int
-unitigConsensus::computePositionFromParent() {
+unitigConsensus::computePositionFromParent(void) {
 
   if (unitig->f_list[tiid].parent == 0)
     return(false);
@@ -389,8 +388,8 @@ unitigConsensus::computePositionFromParent() {
 
       //  HACK.  If the positions don't agree, move along.  BOG sometimes supplies the wrong
       //  parent for a read.
-      int bdiff = beg - offsets[tiid].bgn;
-      int ediff = end - offsets[tiid].end;
+      int32 bdiff = beg - offsets[tiid].bgn;
+      int32 ediff = end - offsets[tiid].end;
 
       bdiff = (bdiff < 0) ? -bdiff : bdiff;
       ediff = (ediff < 0) ? -ediff : ediff;
@@ -411,7 +410,7 @@ unitigConsensus::computePositionFromParent() {
 
 
 int
-unitigConsensus::computePositionFromContainer() {
+unitigConsensus::computePositionFromContainer(void) {
 
   if (unitig->f_list[tiid].contained == 0)
     return(false);
@@ -431,7 +430,7 @@ unitigConsensus::computePositionFromContainer() {
       fprintf(stderr, "PLACE(2)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
               beg, end, ahang, bhang, frankensteinLen);
 #endif
-      
+
       return(true);
     }
   }
@@ -441,15 +440,15 @@ unitigConsensus::computePositionFromContainer() {
 
 
 int
-unitigConsensus::computePositionFromLayout() {
-  int   thickestLen = 0;
+unitigConsensus::computePositionFromLayout(void) {
+  int32   thickestLen = 0;
 
-  //  Find the thickest piid overlap
-  for (piid = tiid-1; piid >= 0; piid--) {
-    if ((offsets[tiid].bgn < offsets[piid].end) ||
-        (offsets[tiid].end > offsets[piid].bgn)) {
-      int32 beg = placed[piid].bgn + offsets[tiid].bgn - offsets[piid].bgn;
-      int32 end = placed[piid].end + offsets[tiid].end - offsets[piid].end;
+  //  Find the thickest qiid overlap
+  for (uint32 qiid = tiid-1; qiid >= 0; qiid--) {
+    if ((offsets[tiid].bgn < offsets[qiid].end) ||
+        (offsets[tiid].end > offsets[qiid].bgn)) {
+      int32 beg = placed[qiid].bgn + offsets[tiid].bgn - offsets[qiid].bgn;
+      int32 end = placed[qiid].end + offsets[tiid].end - offsets[qiid].end;
 
       int32 ooo = MIN(end, frankensteinLen) - beg;
 
@@ -459,9 +458,12 @@ unitigConsensus::computePositionFromLayout() {
         ovl   = MIN(end, frankensteinLen) - beg;
         ahang = beg;
         bhang = end - frankensteinLen;
+
+        piid  = qiid;
       }
     }
 
+    //  Oh crap, no overlap in unitig coords?  Something broke somewhere else.
     assert(thickestLen > 0);
 
 #ifdef SHOW_PLACEMENT
@@ -478,11 +480,10 @@ unitigConsensus::computePositionFromLayout() {
 
 
 int
-unitigConsensus::computePositionFromAlignment() {
+unitigConsensus::computePositionFromAlignment(void) {
 
   //  Occasionally we get a fragment that just refuses to go in the correct spot.  Search for the
   //  correct placement in all of frankenstein, update ahang,bhang and retry.
-  //
 
   Overlap  *O           = NULL;
   double    thresh      = 1e-6;
@@ -491,6 +492,8 @@ unitigConsensus::computePositionFromAlignment() {
   char     *fragment    = Getchar(sequenceStore, GetFragment(fragmentStore, tiid)->sequence);
   int32     fragmentLen = strlen(fragment);
 
+  if (VERBOSE_MULTIALIGN_OUTPUT)
+    fprintf(stderr, "MultiAlignUnitig()--  Attempting to find placement from frankenstein using DP_Compare.\n");
   O = DP_Compare(frankenstein,
                  fragment,
                  -fragmentLen, frankensteinLen,  //  ahang bounds
@@ -499,30 +502,78 @@ unitigConsensus::computePositionFromAlignment() {
                  AS_CNS_ERROR_RATE, thresh, minlen,
                  AS_FIND_ALIGN);
 
-  if (O) {
-    int32  b = unitig->f_list[tiid].position.bgn;
-    int32  e = unitig->f_list[tiid].position.end;
+  if (O == NULL) {
+    if (VERBOSE_MULTIALIGN_OUTPUT)
+      fprintf(stderr, "MultiAlignUnitig()--  Attempting to find placement from frankenstein using Local_Overlap.\n");
+    O = Local_Overlap_AS_forCNS(frankenstein,
+                                fragment,
+                                -fragmentLen, frankensteinLen,  //  ahang bounds
+                                frankensteinLen, fragmentLen,   //  length of fragments
+                                0,
+                                AS_CNS_ERROR_RATE, thresh, minlen,
+                                AS_FIND_ALIGN);
+  }
 
-    offsets[tiid].bgn = O->begpos;
-    offsets[tiid].end = O->endpos + frankensteinLen;
+  if (O == NULL)
+    return(false);
 
-    if (unitig->f_list[tiid].position.bgn < unitig->f_list[tiid].position.end) {
-      unitig->f_list[tiid].position.bgn = offsets[tiid].bgn;
-      unitig->f_list[tiid].position.end = offsets[tiid].end;
-    } else {
-      unitig->f_list[tiid].position.bgn = offsets[tiid].end;
-      unitig->f_list[tiid].position.end = offsets[tiid].bgn;
-    }
+  //  From the overlap, reset the input unitig layout, then recompute the position from that layout.
 
-    unitig->f_list[tiid].parent    = 0;
-    unitig->f_list[tiid].ahang     = 0;
-    unitig->f_list[tiid].bhang     = 0;
-    unitig->f_list[tiid].contained = 0;
+  int32  b = unitig->f_list[tiid].position.bgn;
+  int32  e = unitig->f_list[tiid].position.end;
 
+  offsets[tiid].bgn = O->begpos;
+  offsets[tiid].end = O->endpos + frankensteinLen;
+
+  if (unitig->f_list[tiid].position.bgn < unitig->f_list[tiid].position.end) {
+    unitig->f_list[tiid].position.bgn = offsets[tiid].bgn;
+    unitig->f_list[tiid].position.end = offsets[tiid].end;
+  } else {
+    unitig->f_list[tiid].position.bgn = offsets[tiid].end;
+    unitig->f_list[tiid].position.end = offsets[tiid].bgn;
+  }
+
+  unitig->f_list[tiid].parent    = 0;
+  unitig->f_list[tiid].ahang     = 0;
+  unitig->f_list[tiid].bhang     = 0;
+  unitig->f_list[tiid].contained = 0;
+
+  if (VERBOSE_MULTIALIGN_OUTPUT)
     fprintf(stderr, "MultiAlignUnitig()--  Forced update of placement from %d,%d to %d,%d.\n",
             b, e, offsets[tiid].bgn, offsets[tiid].end);
 
-    return(computePositionFromLayout());
+  //  The rest is just like computePOsitionFromLayout, except we use the actual placements found so far.
+
+  int32   thickestLen = 0;
+
+  for (uint32 qiid = tiid-1; qiid >= 0; qiid--) {
+    if ((placed[tiid].bgn < placed[qiid].end) ||
+        (placed[tiid].end > placed[qiid].bgn)) {
+      int32 beg = placed[qiid].bgn + offsets[tiid].bgn - placed[qiid].bgn;
+      int32 end = placed[qiid].end + offsets[tiid].end - placed[qiid].end;
+
+      int32 ooo = MIN(end, frankensteinLen) - beg;
+
+      if (thickestLen < ooo) {
+        thickestLen = ooo;
+
+        ovl   = MIN(end, frankensteinLen) - beg;
+        ahang = beg;
+        bhang = end - frankensteinLen;
+
+        piid  = qiid;
+      }
+    }
+
+    //  Oh crap, no overlap in unitig coords?  Something broke somewhere else.
+    assert(thickestLen > 0);
+
+#ifdef SHOW_PLACEMENT
+    fprintf(stderr, "PLACE(5)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
+            ahang, bhang + frankensteinLen, ahang, bhang, frankensteinLen);
+#endif
+
+    return(true);
   }
 
   return(false);
@@ -531,7 +582,7 @@ unitigConsensus::computePositionFromAlignment() {
 
 
 int
-unitigConsensus::alignFragment() {
+unitigConsensus::alignFragment(void) {
 
 #define AHANGOFFSET
 #ifdef AHANGOFFSET
@@ -624,7 +675,7 @@ unitigConsensus::alignFragment() {
 
 
 void
-unitigConsensus::applyAlignment() {
+unitigConsensus::applyAlignment(void) {
 
   //  Add the alignment to abacus
   //
@@ -644,19 +695,17 @@ unitigConsensus::applyAlignment() {
 #endif
 
   //  Update parent and hangs to reflect the overlap that succeeded.
-  //  If tiid==1, then our parent must be piid==0, and we still update.
   //
-  if ((piid) || (tiid == 1)) {
-    unitig->f_list[tiid].parent    = unitig->f_list[piid].ident;
-    unitig->f_list[tiid].ahang     = placed[tiid].bgn - placed[piid].bgn;
-    unitig->f_list[tiid].bhang     = placed[tiid].end - placed[piid].end;
-    unitig->f_list[tiid].contained = 0;
-  } else {
-    unitig->f_list[tiid].parent    = 0;
-    unitig->f_list[tiid].ahang     = 0;
-    unitig->f_list[tiid].bhang     = 0;
-    unitig->f_list[tiid].contained = 0;
-  }
+  //  Containment is obvious for the bhang; if the ahang is negative, we
+  //  are not contained.
+  //
+  //  We should probably reest everything for negative ahangs...
+  //
+  unitig->f_list[tiid].parent    = unitig->f_list[piid].ident;
+  unitig->f_list[tiid].ahang     = placed[tiid].bgn - placed[piid].bgn;
+  unitig->f_list[tiid].bhang     = placed[tiid].end - placed[piid].end;
+  unitig->f_list[tiid].contained = (bhang > 0) ? 0 : unitig->f_list[piid].ident;
+  unitig->f_list[tiid].contained = (ahang < 0) ? 0 : unitig->f_list[tiid].contained;
 
 
   //
@@ -772,7 +821,7 @@ unitigConsensus::applyAlignment() {
     //  since fragment A has nothing in abacus.  To prevent this, we switch the second column from A
     //  to B.
     //
-    for (int x=0; x<=-ahang; x++) {
+    for (int32 x=0; x<=-ahang; x++) {
       frankenstein   [x] = *Getchar(sequenceStore, bead->soffset);
       frankensteinBof[x] = bead->boffset;
 
@@ -965,11 +1014,9 @@ unitigConsensus::generateConsensus(VA_TYPE(char)   *sequence,
     PrintAlignment(stderr,ma->lid,0,-1,printwhat);
 
 
-  //  While we have fragments in memory, compute the microhet
-  //  probability.  Ideally, this would be done in CGW when loading
-  //  unitigs (the only place the probability is used) but the code
-  //  wants to load sequence and quality for every fragment, and
-  //  that's too expensive.
+  //  While we have fragments in memory, compute the microhet probability.  Ideally, this would be
+  //  done in CGW when loading unitigs (the only place the probability is used) but the code wants
+  //  to load sequence and quality for every fragment, and that's too expensive.
   {
     int    depth  = 0;
     char **multia = NULL;
@@ -1027,6 +1074,12 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
 
     //  And if all that fails, run abacus and rebuild frankenstein from the consensus.
     //  This breaks the values in placed[] slightly.
+
+    if (success == false) {
+      uc.rebuildFrankensteinFromConsensus();
+      if (uc.computePositionFromAlignment())
+        success = uc.alignFragment();
+    }
 
     if (success == false) {
       uc.reportFailure();
