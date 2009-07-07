@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.10 2009-07-07 15:00:42 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.11 2009-07-07 17:29:04 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -197,11 +197,12 @@ public:
   int  computePositionFromContainer(void);
   int  computePositionFromLayout(void);
   int  computePositionFromAlignment(void);
+  int  computePositionFromConsensus(void);
+
   int  alignFragment(void);
   void applyAlignment(void);
 
   void rebuildFrankensteinFromFragment(void);
-  void rebuildFrankensteinFromConsensus(void);
 
   void generateConsensus(VA_TYPE(char)   *sequence,
                          VA_TYPE(char)   *quality,
@@ -517,40 +518,19 @@ unitigConsensus::computePositionFromAlignment(void) {
   if (O == NULL)
     return(false);
 
-  //  From the overlap, reset the input unitig layout, then recompute the position from that layout.
+  //  From the overlap and existing placements, find the thickest overlap, to set the piid and
+  //  hangs, then reset the original placement based on that parents original placement.
 
-  int32  b = unitig->f_list[tiid].position.bgn;
-  int32  e = unitig->f_list[tiid].position.end;
-
-  offsets[tiid].bgn = O->begpos;
-  offsets[tiid].end = O->endpos + frankensteinLen;
-
-  if (unitig->f_list[tiid].position.bgn < unitig->f_list[tiid].position.end) {
-    unitig->f_list[tiid].position.bgn = offsets[tiid].bgn;
-    unitig->f_list[tiid].position.end = offsets[tiid].end;
-  } else {
-    unitig->f_list[tiid].position.bgn = offsets[tiid].end;
-    unitig->f_list[tiid].position.end = offsets[tiid].bgn;
-  }
-
-  unitig->f_list[tiid].parent    = 0;
-  unitig->f_list[tiid].ahang     = 0;
-  unitig->f_list[tiid].bhang     = 0;
-  unitig->f_list[tiid].contained = 0;
-
-  if (VERBOSE_MULTIALIGN_OUTPUT)
-    fprintf(stderr, "MultiAlignUnitig()--  Forced update of placement from %d,%d to %d,%d.\n",
-            b, e, offsets[tiid].bgn, offsets[tiid].end);
-
-  //  The rest is just like computePOsitionFromLayout, except we use the actual placements found so far.
+  placed[tiid].bgn = O->begpos;
+  placed[tiid].end = O->endpos + frankensteinLen;
 
   int32   thickestLen = 0;
 
   for (uint32 qiid = tiid-1; qiid >= 0; qiid--) {
     if ((placed[tiid].bgn < placed[qiid].end) ||
         (placed[tiid].end > placed[qiid].bgn)) {
-      int32 beg = placed[qiid].bgn + offsets[tiid].bgn - placed[qiid].bgn;
-      int32 end = placed[qiid].end + offsets[tiid].end - placed[qiid].end;
+      int32 beg = placed[tiid].bgn;
+      int32 end = placed[tiid].end;
 
       int32 ooo = MIN(end, frankensteinLen) - beg;
 
@@ -568,6 +548,9 @@ unitigConsensus::computePositionFromAlignment(void) {
     //  Oh crap, no overlap in unitig coords?  Something broke somewhere else.
     assert(thickestLen > 0);
 
+    offsets[tiid].bgn = offsets[piid].bgn + placed[tiid].bgn - placed[piid].bgn;
+    offsets[tiid].end = offsets[piid].end + placed[tiid].end - placed[piid].end;
+
 #ifdef SHOW_PLACEMENT
     fprintf(stderr, "PLACE(5)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
             ahang, bhang + frankensteinLen, ahang, bhang, frankensteinLen);
@@ -578,6 +561,103 @@ unitigConsensus::computePositionFromAlignment(void) {
 
   return(false);
 }
+
+
+int
+unitigConsensus::computePositionFromConsensus(void) {
+
+  //  Run abacus to rebuild an intermediate consensus sequence.  VERY expensive, and doesn't
+  //  update the placed[] array...but the changes shouldn't be huge.
+
+  RefreshMANode(ma->lid, 0, opp, NULL, NULL, 0, 0);
+
+  //  Are all three needed??
+
+  AbacusRefine(ma,0,-1,CNS_SMOOTH, opp);
+  MergeRefine(ma->lid, NULL, NULL, 1, opp, 1);
+
+  AbacusRefine(ma,0,-1,CNS_POLYX, opp);
+  MergeRefine(ma->lid, NULL, NULL, 1, opp, 1);
+
+  AbacusRefine(ma,0,-1,CNS_INDEL, opp);
+  MergeRefine(ma->lid, NULL, NULL, 1, opp, 1);
+
+  //  Extract the consensus sequence
+
+  char          *newFrank    = (char *)safe_calloc(frankensteinMax, sizeof(char));
+  int32         *newFrankBof = (int32 *)safe_calloc(frankensteinMax, sizeof(int32));
+  int32          newFrankLen = 0;
+  SeqInterval   *newPlaced   = (SeqInterval *)safe_calloc(unitig->num_frags, sizeof(SeqInterval));
+
+  for (int32 i=0; i<unitig->num_frags; i++) {
+    newPlaced[i].bgn = frankensteinMax;
+    newPlaced[i].end = 0;
+  }
+
+  char          *oldFrank    = frankenstein;
+  int32         *oldFrankBof = frankensteinBof;
+  int32          oldFrankLen = frankensteinLen;
+  SeqInterval   *oldPlaced   = placed;
+
+  ConsensusBeadIterator  bi;
+  int32                  bid;
+
+  CreateConsensusBeadIterator(ma->lid, &bi);
+
+  while ((bid = NextConsensusBead(&bi)) != -1) {
+    Bead *bead = GetBead(beadStore, bid);
+    char  cnsc = *Getchar(sequenceStore, bead->soffset);
+
+    if (cnsc == '-')
+      continue;
+
+    while (bead->down != -1) {
+      if (bead->frag_index >= 0) {
+        if (newPlaced[bead->frag_index].bgn > newFrankLen)
+          newPlaced[bead->frag_index].bgn = newFrankLen;
+        if (newPlaced[bead->frag_index].end < newFrankLen)
+          newPlaced[bead->frag_index].end = newFrankLen;
+      }
+
+      bead = GetBead(beadStore, bead->down);
+    }
+
+    newFrank   [newFrankLen] = cnsc;
+    newFrankBof[newFrankLen] = bead->boffset;
+    newFrankLen++;
+  }
+
+  newFrank   [newFrankLen] = 0;
+  newFrankBof[newFrankLen] = -1;
+
+  //  Call the usual position-from-frankenstein function, but swap in the new one.  This might be
+  //  slightly screwing up our placement.  Hopefully that error won't propagate.
+
+  frankenstein    = newFrank;
+  frankensteinBof = newFrankBof;
+  frankensteinLen = newFrankLen;
+  placed          = newPlaced;
+
+  int    success = computePositionFromAlignment();
+
+  if (success) {
+    safe_free(oldFrank);
+    safe_free(oldFrankBof);
+    safe_free(oldPlaced);
+  } else {
+    frankenstein    = oldFrank;
+    frankensteinBof = oldFrankBof;
+    frankensteinLen = oldFrankLen;
+    placed          = oldPlaced;
+
+    safe_free(newFrank);
+    safe_free(newFrankBof);
+    safe_free(newPlaced);
+  }
+
+  return(success);
+}
+
 
 
 
@@ -934,54 +1014,6 @@ unitigConsensus::rebuildFrankensteinFromFragment(void) {
 }
 
 
-//  Run abacus to rebuild an intermediate consensus sequence.  VERY expensive, and doesn't
-//  update the placed[] array...but the changes shouldn't be huge.
-//
-void
-unitigConsensus::rebuildFrankensteinFromConsensus(void) {
-
-  if (bhang <= 0)
-    return;
-
-  RefreshMANode(ma->lid, 0, opp, NULL, NULL, 0, 0);
-
-  //  Are all three needed??
-
-  AbacusRefine(ma,0,-1,CNS_SMOOTH, opp);
-  MergeRefine(ma->lid, NULL, NULL, 1, opp, 1);
-
-  AbacusRefine(ma,0,-1,CNS_POLYX, opp);
-  MergeRefine(ma->lid, NULL, NULL, 1, opp, 1);
-
-  AbacusRefine(ma,0,-1,CNS_INDEL, opp);
-  MergeRefine(ma->lid, NULL, NULL, 1, opp, 1);
-
-  //  Extract the consensus sequence
-
-  ConsensusBeadIterator  bi;
-  int32                  bid;
-
-  frankensteinLen = 0;
-
-  CreateConsensusBeadIterator(ma->lid, &bi);
-
-  while ((bid = NextConsensusBead(&bi)) != -1) {
-    Bead *bead = GetBead(beadStore, bid);
-    frankenstein   [frankensteinLen] = *Getchar(sequenceStore, bead->soffset);
-
-    while (bead->down != -1)
-      bead = GetBead(beadStore, bead->down);
-
-    frankensteinBof[frankensteinLen] = bead->boffset;
-
-    frankensteinLen++;
-  }
-
-  frankenstein   [frankensteinLen] = 0;
-  frankensteinBof[frankensteinLen] = -1;
-}
-
-
 
 
 void
@@ -1072,14 +1104,8 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
     if ((success == false) && (uc.computePositionFromAlignment()))
       success = uc.alignFragment();
 
-    //  And if all that fails, run abacus and rebuild frankenstein from the consensus.
-    //  This breaks the values in placed[] slightly.
-
-    if (success == false) {
-      uc.rebuildFrankensteinFromConsensus();
-      if (uc.computePositionFromAlignment())
-        success = uc.alignFragment();
-    }
+    if ((success == false) && (uc.computePositionFromConsensus()))
+      success = uc.alignFragment();
 
     if (success == false) {
       uc.reportFailure();
