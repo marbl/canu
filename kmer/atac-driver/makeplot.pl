@@ -39,9 +39,23 @@ if ($ot =~ m/^(.*).ps/) {
     $ot = $1;
 }
 
-
 die if (!defined($in));
 die if (!defined($ot));
+
+my $version = `gnuplot -V`;
+
+if ($version =~ m/gnuplot\s+(\d+\.\d+)\s+/) {
+    $version = $1;
+} else {
+    chomp $version;
+    print STDERR "WARNING:  Unknown gnuplot version '$version'\n";
+    $version = 0;
+}
+
+if ($version < 4.2) {
+    print STDERR "gnuplot version 4.2 is needed for plots.\n";
+    exit(0);
+}
 
 open(FD, "> $ot.fdat");
 open(RD, "> $ot.rdat");
