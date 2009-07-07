@@ -578,17 +578,17 @@ processArray(int argc, char **argv) {
 
       char *prefix = 0L;
       if (strcmp(argv[arg], "--partition") == 0)
-        prefix = argv[arg+1];
+        prefix = argv[++arg];
 
       //  does the next arg end with gbp, mbp, kbp or bp?  If so,
       //  partition by length, else partition into buckets.
       //
-      int     al = strlen(argv[arg+2]);
-      u64bit  ps = strtou64bit(argv[arg+2], 0L);
+      int     al = strlen(argv[arg+1]);
+      u64bit  ps = strtou64bit(argv[arg+1], 0L);
 
-      char a3 = (al<3) ? '0' : (char)toLower[argv[arg+2][al-3]];
-      char a2 = (al<2) ? '0' : (char)toLower[argv[arg+2][al-2]];
-      char a1 = (al<1) ? '0' : (char)toLower[argv[arg+2][al-1]];
+      char a3 = (al<3) ? '0' : (char)toLower[argv[arg+1][al-3]];
+      char a2 = (al<2) ? '0' : (char)toLower[argv[arg+1][al-2]];
+      char a1 = (al<1) ? '0' : (char)toLower[argv[arg+1][al-1]];
 
       //  partition!
 
@@ -602,16 +602,16 @@ processArray(int argc, char **argv) {
         } else if (isdigit(a3) && (a2 == 'b') && (a1 == 'p')) {
           ps *= 1;
         } else {
-          fprintf(stderr, "Unknown partition size option '%s'\n", argv[arg+2]), exit(1);
+          fprintf(stderr, "Unknown partition size option '%s'\n", argv[arg+1]), exit(1);
         }
 
         if (ps == 0)
-          fprintf(stderr, "Unknown or zero partition size '%s'\n", argv[arg+2]), exit(1);
-        partitionBySize(prefix, ps, argv[arg+3]);
+          fprintf(stderr, "Unknown or zero partition size '%s'\n", argv[arg+1]), exit(1);
+        partitionBySize(prefix, ps, argv[arg+2]);
       } else {
         if (ps == 0)
-          fprintf(stderr, "Unknown or zero partition size '%s'\n", argv[arg+2]), exit(1);
-        partitionByBucket(prefix, ps, argv[arg+3]);
+          fprintf(stderr, "Unknown or zero partition size '%s'\n", argv[arg+1]), exit(1);
+        partitionByBucket(prefix, ps, argv[arg+2]);
       }
       exit(0);
 

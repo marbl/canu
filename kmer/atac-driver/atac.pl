@@ -489,7 +489,7 @@ sub findHits {
     my $segmentID   = "000";
     my @segmentIDs;
 
-    open(F, "$leaff -F $MERYLdir/$id1.fasta --partitionmap $numSegments |");
+    open(F, "$leaff --partitionmap $numSegments $MERYLdir/$id1.fasta |");
     $numSegments = <F>;
     while(<F>) {
         my $segments = "";
@@ -513,6 +513,8 @@ sub findHits {
         $segmentID++;
     }
     close(F);
+
+    die "No segments found?\n" if (scalar(@segmentIDs) == 0);
 
     #
     #  Now, for each segment that hasn't run, run it.
@@ -901,7 +903,7 @@ sub rewriteUIDs ($) {
 sub runCommand {
     my $cmd = shift @_;
 
-    print STDERR "$cmd\n";
+    print STDERR "\n$cmd\n\n";
 
     if (system($cmd)) {
         return(1);
