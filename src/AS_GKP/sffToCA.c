@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.30 2009-07-06 20:03:40 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.31 2009-07-08 17:28:32 jasonmiller9704 Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -955,13 +955,15 @@ typedef struct {
 
 dpMatrix  *globalMatrix = NULL;
 
+
 static
 int
 processMate(gkFragment *fr,
             gkFragment *m1,
             gkFragment *m2,
             char        *linker[AS_LINKER_MAX_SEQS],
-            int          search[AS_LINKER_MAX_SEQS]) {
+            int          search[AS_LINKER_MAX_SEQS],
+	    const int   stringent) {
 
   alignLinker_s  al = {0};
 
@@ -973,18 +975,41 @@ processMate(gkFragment *fr,
   //  examined in OBT's chimera.  If there are no overlaps spanning,
   //  they'll be trimmed out, usually by being called chimeric.
   //
-  int  goodAlignment = 0;
+  //  int  goodAlignment = 0;
   int  bestAlignment = 0;
+  int  functionalAlignment = 0;
+  int  fractionalAlignment = 0;
+  int  minimalAlignment = 0;
+  int  foundAlignment = 0;
   int  linkerID      = 0;
-
+  int  mismatches = 0;
+  const int LINKER_POSITIVE = 1;
+  const int LINKER_NEGATIVE = 0;
+  int  allowedToSplit = 0;
   int  lSize = 0;
   int  rSize = 0;
-
-  //fprintf(logFile, "processMate()--  %s\n", AS_UID_toString(fr->gkFragment_getReadUID()));
+  int another1, another2;
 
   assert(fr->clrBgn < fr->clrEnd);
+  if ((m1 == NULL) && (m2 == NULL)) {
+    allowedToSplit = 0;
+  } else {
+    allowedToSplit = 1;
+  }
+  assert (stringent==0 || stringent==1);
 
-  while (linkerID < AS_LINKER_MAX_SEQS && goodAlignment == 0) {
+  //  Linker array contains multiple linkers or the forward and reverse of one linker.
+  //  Loop tests each linker in the array.
+  //  For each linker, find the best alignment to the given read.
+  //  On first alignment found, exit the loop.
+  //  The later code may recurse, so it might find other linkers in the same read.
+
+  //  Known problem with our loop structure.
+  //  We act on the first linker with an alignment, not the best.
+  //  There is probably some loss of sensitivity.
+  //  However, a read with multiple linker hits is suspect anyway.
+
+  while (linkerID < AS_LINKER_MAX_SEQS && foundAlignment == 0) {
     if (search[linkerID] == TRUE) {
       assert(linker[linkerID] != NULL);
 
@@ -1006,153 +1031,195 @@ processMate(gkFragment *fr,
       al.begJ += fr->clrBgn;
       al.endJ += fr->clrBgn;
       //al.lenB += fr->clrBgn;
-
       lSize = al.begJ;
       rSize = al.lenB - al.endJ;
    
-      if ((lSize < 0) || (lSize > fr->gkFragment_getSequenceLength()) ||
-          (rSize < 0) || (rSize > fr->gkFragment_getSequenceLength())) {
-        fprintf(stderr, "fragment %d clr=%d,%d root=%s\n", gkpStore->gkStore_getNumFragments() + 1, fr->clrBgn, fr->clrEnd, AS_UID_toString(fr->gkFragment_getReadUID()));
-        fprintf(stderr, "alignLen=%d matches=%d lSize=%d rSize=%d\n", al.alignLen, al.matches, lSize, rSize);
-        fprintf(stderr, "I %3d-%3d %s\n", al.begI, al.endI, globalMatrix->h_alignA);
-        fprintf(stderr, "J %3d-%3d %s\n", al.begJ, al.endJ, globalMatrix->h_alignB);
-      }
       assert(lSize >= 0);
       assert(lSize <= fr->gkFragment_getSequenceLength());
       assert(rSize >= 0);
       assert(rSize <= fr->gkFragment_getSequenceLength());
 
-      //fprintf(logFile, "LINK clr %d,%d   len %d   matches %d   I %d,%d   J %d,%d\n",
-      //        fr->clrBgn, fr->clrEnd,
-      //        al.alignLen, al.matches,
-      //        al.begI, al.endI,
-      //        al.begJ, al.endJ);
-
-      if ((al.alignLen >=  5) && (al.matches + 1 >= al.alignLen))
-        goodAlignment = 1;
-      if ((al.alignLen >= 15) && (al.matches + 2 >= al.alignLen))
-        goodAlignment = 1;
-      if ((al.alignLen >= 30) && (al.matches + 3 >= al.alignLen))
-        goodAlignment = 1;
-      if ((al.alignLen >= 40) && (al.matches + 4 >= al.alignLen))
-        goodAlignment = 1;
-    }
+      // Minimal =>    Mark linker sequence as possible contaminant.
+      // Fractional => Remove the linker sequence.
+      // Functional => Try to split the read into 2 mates.
+      mismatches = al.alignLen - al.matches;
+      if (mismatches <= 5) {
+	if (1==stringent) {
+	  // Look for a full-length alignment.
+	  if ((al.alignLen >=  40) && (mismatches <= 2)) {
+	    minimalAlignment = 1;
+	    fractionalAlignment = 1; 
+	    functionalAlignment = 1;
+	  } 
+	} else {
+	  // Look for a partial alignment.
+	  functionalAlignment = 0;
+	  if (al.matches - mismatches > 15) {
+	    minimalAlignment = 1;
+	    if (al.matches - mismatches > 25) {
+	      fractionalAlignment = 1; 
+	    }
+	  }
+	}
+      }
+      foundAlignment = // Exit the loop after we find an alingment.
+	minimalAlignment+fractionalAlignment+functionalAlignment;
+      if (logFile && foundAlignment>0) {
+	fprintf(logFile, 
+		"ProcessMate(%s,%d) found %d,%d,%d.\n",
+		AS_UID_toString(fr->gkFragment_getReadUID()), stringent,
+		minimalAlignment,fractionalAlignment,functionalAlignment); 
+	fprintf(logFile, "D fragment %d clr=%d,%d root=%s\n", 
+		gkpStore->gkStore_getNumFragments() + 1, 
+		fr->clrBgn, fr->clrEnd, 
+		AS_UID_toString(fr->gkFragment_getReadUID()));
+	fprintf(logFile, "D alignLen=%d matches=%d lSize=%d rSize=%d\n", 
+		al.alignLen, al.matches, lSize, rSize);
+	fprintf(logFile, "D I %3d-%3d %s\n", al.begI, al.endI, globalMatrix->h_alignA);
+	fprintf(logFile, "D J %3d-%3d %s\n", al.begJ, al.endJ, globalMatrix->h_alignB);
+      } // log
       
-    linkerID++;
-  }
-
-  //  No match after all possible linkers.  Give up.
-  //
-  //  But, m1, m2 are NULL if we are checking a second time for linker; do not report no linker
-  //  found for those as we have already or will soon write a log mesasge.
-  //
-  if (goodAlignment == 0) {
-    if ((logFile) && (m1 != NULL) && (m2 != NULL))
-      fprintf(logFile, "No linker detected in %s.\n", AS_UID_toString(fr->gkFragment_getReadUID()));
-    return(0);
-  }
-
-  if ((al.alignLen >= 42) && (al.matches + 2 >= al.alignLen))
-    bestAlignment = 1;
-
-  //  Not enough on either side of the read to make a mate. Chuck the read, return that we didn't trim
-  if ((bestAlignment) && (lSize < AS_READ_MIN_LEN) && (rSize < AS_READ_MIN_LEN)) {
-    if (logFile)
-      fprintf(logFile, "Linker too close to left side and right side (position %d-%d); no mate formed for %s (len %d).\n",
-              al.begJ, al.endJ, AS_UID_toString(fr->gkFragment_getReadUID()), fr->gkFragment_getSequenceLength());
-    
-    fr->gkFragment_setReadUID(AS_UID_undefined());
-    fr->gkFragment_setIsDeleted(1);
-    return(1);
-  }
+    } // search linker
+    linkerID++; 
+  } // while
   
-  //  Adapter found on the left, but not enough to make a read.  Trim it out.
-  //
-  if ((bestAlignment) && (lSize < AS_READ_MIN_LEN)) {
+  if ((0==allowedToSplit) && (1==minimalAlignment)) {
+    // This is a recursive search for secondary linker.
+    // We found secondary linker.
+    // Repair the read? Too complicated!
+    // Just delete the read.
     if (logFile)
-      fprintf(logFile, "Linker to close to left side (position %d-%d); no mate formed for %s (len %d).\n",
-              al.begJ, al.endJ, AS_UID_toString(fr->gkFragment_getReadUID()), fr->gkFragment_getSequenceLength());
+      fprintf(logFile, 
+	      "Secondary linker found. Calling proc will delete the read.\n");
+    // Cannot print read ID. This variable is undefined at this point. 
+    // AS_UID_toString(fr->gkFragment_getReadUID())); 
+    return (LINKER_POSITIVE);
+  }  
 
-    fr->gkFragment_setLength(rSize);
- 
-    char *seq = fr->gkFragment_getSequence();
-    char *qlt = fr->gkFragment_getQuality();
-
-    memmove(seq, seq + al.endJ, rSize);
-    memmove(qlt, qlt + al.endJ, rSize);
-
-    seq[rSize] = 0;
-    qlt[rSize] = 0;
-
-    fr->clrBgn -= (fr->clrBgn < al.endJ) ? 0 : al.endJ;
-    fr->clrEnd -= (fr->clrEnd < al.endJ) ? 0 : al.endJ;
-
-    fr->maxBgn -= (fr->maxBgn < al.endJ) ? 0 : al.endJ;
-    fr->maxEnd -= (fr->maxEnd < al.endJ) ? 0 : al.endJ;
-
-    assert(fr->clrEnd <= rSize);
-
-    //  Recursively search for another copy of the linker.
-    processMate(fr, NULL, NULL, linker, search);
-
-    return(1);
+  if (minimalAlignment == 0) {
+    //  No match after trying all possible linkers. 
+    //  Signal no change to read.
+    return (LINKER_NEGATIVE);
   }
 
-
-  //  Adapter found on the right, but not enough to make a read.  Trim it out.
-  //
-  if ((bestAlignment) && (rSize < AS_READ_MIN_LEN)) {
-    if (logFile)
-      fprintf(logFile, "Linker to close to right side (position %d-%d); no mate formed for %s (len %d).\n",
-              al.begJ, al.endJ, AS_UID_toString(fr->gkFragment_getReadUID()), fr->gkFragment_getSequenceLength());
-
-    fr->gkFragment_setLength(lSize);
-
-    char *seq = fr->gkFragment_getSequence();
-    char *qlt = fr->gkFragment_getQuality();
-
-    seq[lSize] = 0;
-    qlt[lSize] = 0;
-
-    fr->clrEnd = MIN(fr->clrEnd, lSize);
-    fr->maxEnd = MIN(fr->maxEnd, lSize);
-
-    //  Recursively search for another copy of the linker.
-    processMate(fr, NULL, NULL, linker, search);
-
-    return(1);
-  }
-
-
-  //  Adapter found in the middle, and enough to make two mated reads.
-  //
-  if ((bestAlignment) && (lSize >= AS_READ_MIN_LEN) && (rSize >= AS_READ_MIN_LEN)) {
-
-    //  If we get here, and the two mate reads are null, we have
-    //  found a second complete linker -- the original read is
-    //  "seq-link-seq-link-seq" and we don't know where to break.
-    //  The whole read is deleted in this case.
-    //
-    //  The mate is deleted later.
-    //
-    if ((m1 == NULL) || (m2 == NULL)) {
+  if (fractionalAlignment == 1) { // or functionalAlignment
+    if ((lSize < AS_READ_MIN_LEN) && (rSize < AS_READ_MIN_LEN)) {
+      //  Linker found but read too short. 
+      //  Not enough sequence on either side of the linker to make a mate. 
+      if (logFile)
+	fprintf(logFile, 
+		"Read %s (len=%d) is nearly all linker. Linker at %d-%d. Read deleted.\n",
+		AS_UID_toString(fr->gkFragment_getReadUID()), 
+		fr->gkFragment_getSequenceLength(),
+		al.begJ, al.endJ);
+      // Delete the read.
       fr->gkFragment_setReadUID(AS_UID_undefined());
       fr->gkFragment_setIsDeleted(1);
-      return(0);
+      return (LINKER_POSITIVE);
     }
 
+    if ((lSize < AS_READ_MIN_LEN)) {
+      //  Linker on the left.
+      //  Sufficient sequence left on the right.
+      if (logFile)
+	fprintf(logFile, "Trim linker from left side of %s\n",
+		AS_UID_toString(fr->gkFragment_getReadUID()));
+      // Trim the linker.
+      fr->gkFragment_setLength(rSize);
+      char *seq = fr->gkFragment_getSequence();
+      char *qlt = fr->gkFragment_getQuality();
+      memmove(seq, seq + al.endJ, rSize);
+      memmove(qlt, qlt + al.endJ, rSize);
+      seq[rSize] = 0;
+      qlt[rSize] = 0;
+      fr->clrBgn -= (fr->clrBgn < al.endJ) ? 0 : al.endJ;
+      fr->clrEnd -= (fr->clrEnd < al.endJ) ? 0 : al.endJ;
+      fr->maxBgn -= (fr->maxBgn < al.endJ) ? 0 : al.endJ;
+      fr->maxEnd -= (fr->maxEnd < al.endJ) ? 0 : al.endJ;
+      assert(fr->clrEnd <= rSize);
+      // Launch recursive search for linker in the newly trimmed read.
+      if (0 != processMate(fr, NULL, NULL, linker, search, 0)) {  // low stringency, do not split
+	if (logFile)
+	  fprintf(logFile, "Found more linker after left trim. Delete %s.\n",
+		  AS_UID_toString(fr->gkFragment_getReadUID()));
+	// Delete the read.
+	fr->gkFragment_setReadUID(AS_UID_undefined());
+	fr->gkFragment_setIsDeleted(1);
+      }
+      return (LINKER_POSITIVE);
+    }
+
+    if ((rSize < AS_READ_MIN_LEN)) {
+      //  Linker on the right.
+      //  Sufficiently long sequence on the left.
+      if (logFile)
+	fprintf(logFile, "Trim linker from right side of %s\n",
+		AS_UID_toString(fr->gkFragment_getReadUID()));
+      // Trim the linker.
+      fr->gkFragment_setLength(lSize);
+      char *seq = fr->gkFragment_getSequence();
+      char *qlt = fr->gkFragment_getQuality();
+      seq[lSize] = 0;
+      qlt[lSize] = 0;
+      fr->clrEnd = MIN(fr->clrEnd, lSize);
+      fr->maxEnd = MIN(fr->maxEnd, lSize);
+      // Launch recursive search for linker in the newly trimmed read.
+      if (0 != processMate(fr, NULL, NULL, linker, search, 0)) {  // low stringency, do not split
+	if (logFile)
+	  fprintf(logFile, "Found more linker after right trim. Delete %s.\n",
+		  AS_UID_toString(fr->gkFragment_getReadUID()));
+	// Delete the read.
+	fr->gkFragment_setReadUID(AS_UID_undefined());
+	fr->gkFragment_setIsDeleted(1);
+      }
+      return (LINKER_POSITIVE);
+    }
+  }
+
+  if (1==fractionalAlignment && 0==functionalAlignment) {
+    //  We have a fractional alignment.
+    //  We do not have a functional alignment, so it must be partial.
+    //  The alignment is not on the left or right, so it must be in the middle.
+    assert (!(rSize < AS_READ_MIN_LEN));
+    assert (!(lSize < AS_READ_MIN_LEN));
+    //
+    //  What shall be done?
+    //  We choose not to split this read into mates.
+    //  We choose not to carve out the larger of the left & right non-linker.
+    //  We choose to delete the read. This is just for simplicity.
+    if (logFile)
+      fprintf(logFile, 
+	      "Partial linker in the middle (position %d-%d).  Delete read %s (len %d).\n",
+	      al.begJ, al.endJ, 
+	      AS_UID_toString(fr->gkFragment_getReadUID()), 
+	      fr->gkFragment_getSequenceLength());
+    // Delete the read.
+    fr->gkFragment_setReadUID(AS_UID_undefined());
+    fr->gkFragment_setIsDeleted(1);
+    return (LINKER_POSITIVE);
+  }
+    
+  if (1==functionalAlignment) {
+    //  Linker found in the middle with enough sequence to make two mated reads.
+    assert (1==minimalAlignment);
+    assert (1==fractionalAlignment);
+    assert ((lSize >= AS_READ_MIN_LEN) && (rSize >= AS_READ_MIN_LEN));
+      
+    // SPLIT THE READ INTO TWO MATES!
+    if (logFile)
+      fprintf(logFile, "Split read %s into Mates.\n",
+	      AS_UID_toString(fr->gkFragment_getReadUID()));
+    
     //  0.  Copy the fragments to new mated fragments
     //      CANNOT just copy fr over m1 -- that nukes seq/qlt pointers!
-    {
-      m1->gkFragment_setType(GKFRAGMENT_MEDIUM);
-      m2->gkFragment_setType(GKFRAGMENT_MEDIUM);
-
-      m1->gkFragment_setLibraryIID(1);
-      m2->gkFragment_setLibraryIID(1);
-      //memcpy(m1, fr, sizeof(gkFragment));
-      //memcpy(m2, fr, sizeof(gkFragment));
-    }
-
+    m1->gkFragment_setType(GKFRAGMENT_MEDIUM);
+    m2->gkFragment_setType(GKFRAGMENT_MEDIUM);
+    
+    m1->gkFragment_setLibraryIID(1);
+    m2->gkFragment_setLibraryIID(1);
+    //memcpy(m1, fr, sizeof(gkFragment));
+    //memcpy(m2, fr, sizeof(gkFragment));
+    
     //  1.  Make new UIDs for the two mated reads.  Nuke the old
     //  read.  Make the mates.
     //
@@ -1161,29 +1228,23 @@ processMate(gkFragment *fr,
     {
       char  uid[64];
       int   len;
-
       strcpy(uid, AS_UID_toString(fr->gkFragment_getReadUID()));
       len = strlen(uid);
-      uid[len+1] = 0;
-
+      uid[len+1] = 0;      
       uid[len] = 'a';
       m1->gkFragment_setReadUID(AS_UID_load(uid));
       m1->gkFragment_setIsDeleted(0);
-
       uid[len] = 'b';
       m2->gkFragment_setReadUID(AS_UID_load(uid));
-      m2->gkFragment_setIsDeleted(0);
-
+      m2->gkFragment_setIsDeleted(0); 
       fr->gkFragment_setReadUID(AS_UID_undefined());
       fr->gkFragment_setIsDeleted(1);
-
       m1->gkFragment_setMateIID(gkpStore->gkStore_getNumFragments() + 2);
-      m2->gkFragment_setMateIID(gkpStore->gkStore_getNumFragments() + 1);
-
+      m2->gkFragment_setMateIID(gkpStore->gkStore_getNumFragments() + 1);	
       m1->gkFragment_setOrientation(AS_READ_ORIENT_INNIE);
       m2->gkFragment_setOrientation(AS_READ_ORIENT_INNIE);
     }
-
+      
     //  2.  Propagate clear ranges.  Math.
     //
     //  m1 is reverse complemented, so the start of m1 is next to the
@@ -1198,109 +1259,103 @@ processMate(gkFragment *fr,
     //                   al.begJ ^      ^ al.endJ
     //
     //  
-    {
-      m1->clrBgn = 0;
-      m1->clrEnd = al.begJ - fr->clrBgn;
-
-      m1->vecBgn = m1->maxBgn = m1->tntBgn = 1;
-      m1->vecEnd = m1->maxEnd = m1->tntEnd = 0;
-
-      m2->clrBgn = 0;
-      m2->clrEnd = fr->clrEnd - al.endJ - fr->clrBgn;
-
-      m2->vecBgn = m2->maxBgn = m2->tntBgn = 1;
-      m2->vecEnd = m2->maxEnd = m2->tntEnd = 0;
-    }
-
+    m1->clrBgn = 0;
+    m1->clrEnd = al.begJ - fr->clrBgn;	
+    m1->vecBgn = m1->maxBgn = m1->tntBgn = 1;
+    m1->vecEnd = m1->maxEnd = m1->tntEnd = 0;       
+    m2->clrBgn = 0;
+    m2->clrEnd = fr->clrEnd - al.endJ - fr->clrBgn;	
+    m2->vecBgn = m2->maxBgn = m2->tntBgn = 1;
+    m2->vecEnd = m2->maxEnd = m2->tntEnd = 0;
+      
     //  3.  Construct new rm1, rm2.  Nuke the linker.  Reverse
     //  complement -- inplace -- the left mate.
     {
       char  *seq = m1->gkFragment_getSequence();
       char  *qlt = m1->gkFragment_getQuality();
-
       assert(fr->clrBgn >= 0);
       assert(lSize > 0);
-
       memmove(seq, fr->gkFragment_getSequence() + fr->clrBgn, lSize);
       memmove(qlt, fr->gkFragment_getQuality()  + fr->clrBgn, lSize);
-
       reverseComplement(seq, qlt, lSize);
-
       m1->gkFragment_setLength(lSize);
       seq[lSize] = 0;
       qlt[lSize] = 0;
-
       assert(strlen(seq) == lSize);
     }
-
+      
     {
       char  *seq = m2->gkFragment_getSequence();
       char  *qlt = m2->gkFragment_getQuality();
-
       assert(al.endJ >= 0);
       assert(rSize > 0);
-
       memmove(seq, fr->gkFragment_getSequence() + al.endJ, rSize);
       memmove(qlt, fr->gkFragment_getQuality()  + al.endJ, rSize);
-
       m2->gkFragment_setLength(rSize);
       seq[rSize] = 0;
       qlt[rSize] = 0;
-
       assert(strlen(seq) == rSize);
     }
-
+    
     if (logFile)
       fprintf(logFile, "Mates '%s' (%d-%d) and '%s' (%d-%d) created.\n",
-              AS_UID_toString(m1->gkFragment_getReadUID()), 0, al.begJ,
-              AS_UID_toString(m2->gkFragment_getReadUID()), al.endJ, al.lenB);
+	      AS_UID_toString(m1->gkFragment_getReadUID()), 0, al.begJ,
+	      AS_UID_toString(m2->gkFragment_getReadUID()), al.endJ, al.lenB);
 
-    //  Recursively search for another copy of the linker.
-    processMate(m1, NULL, NULL, linker, search);
-    processMate(m2, NULL, NULL, linker, search);
+    //  4.  Recurseive search for linker in the left and right mates.
+    //      Issue low-stringency search and don't allow any more splitting.
 
-    //  If either is deleted now, then we found another linker in
-    //  the split read.
-    //
-    if ((m1->gkFragment_getIsDeleted()) || (m2->gkFragment_getIsDeleted())) {
-      if (logFile)
-        fprintf(logFile, "Multiple linker detected in mates '%s' and '%s'.  Deleted.\n",
-                AS_UID_toString(m1->gkFragment_getReadUID()),
-                AS_UID_toString(m2->gkFragment_getReadUID()));
-
+    if (processMate(m1, NULL, NULL, linker, search, 0) ||
+	processMate(m2, NULL, NULL, linker, search, 0)) {
+      if (logFile) 
+	fprintf(logFile, "Found more linker after split. Delete mates %s,%s.\n",
+		AS_UID_toString(m1->gkFragment_getReadUID()),
+		AS_UID_toString(m2->gkFragment_getReadUID()));
+      // The read is already deleted.
+      // Must delete the mates.
       m1->gkFragment_setReadUID(AS_UID_undefined());
       m1->gkFragment_setIsDeleted(1);
-
       m2->gkFragment_setReadUID(AS_UID_undefined());
       m2->gkFragment_setIsDeleted(1);
+    } else {
+      if (logFile)
+	fprintf(logFile, "Mates (%s,%s) survived recursive search for linker.\n",
+		AS_UID_toString(m1->gkFragment_getReadUID()),
+		AS_UID_toString(m2->gkFragment_getReadUID()));
     }
-
-    return(1);
-  }  //  if match is in middle
-
-
-  //  Significant alignment, but we didn't do anything with it.  Why?
-  //  Overload some of the later clear ranges to convey this
-  //  information to downstream processes.
-  //
+  
+  return (LINKER_POSITIVE);
+  } // if functionalAlignment
+  
+  //  There was significant alignment.
+  //  To reach here means we didn't do anything with it.  
+  //  Is this a problem? Not sure.
+  
+  assert (minimalAlignment == 1);
+    
+  if (logFile)
+    fprintf(logFile, 
+	    "Linker detected in '%s' (%d bp, %d match).  Mark %d-%d as possible contaminant.\n",
+	    AS_UID_toString(fr->gkFragment_getReadUID()), 
+	    al.alignLen, al.matches,
+	    al.begJ, al.endJ);
+  
+  //  Action: mark the aligned region as possible contaminant.
+  //  Put the marks in the gatekeeper store (read database).
+  //  Hope that the OBT module can check the contaminant region for excessive overlaps.
+  
+  //  Overload some of the later clear ranges to convey coordinates to downstream processes.
   //  We have 64 bits split into 4 16 bit words.  We want to store the
   //  position of the match in both the linker and the read, as well
   //  as length and number of matches.  Six things.  If we assume the
   //  linker is 255bp or smaller, we can pack.
-  //
-  //  This could benefit from having 64-bits of generic unioned data
-  //  in the fragment record.
-
-  if (logFile)
-    fprintf(logFile, "Linker detected but not trimmed in '%s' linker: %d-%d read: %d-%d alignLen: %d matches: %d.  Passed to OBT.\n",
-            AS_UID_toString(fr->gkFragment_getReadUID()), al.begI, al.endI, al.begJ, al.endJ, al.alignLen, al.matches);
-
+  //  (This could benefit from having 64-bits of generic unioned data in the fragment record.)
+  
   fr->tntBgn = al.begJ;
   fr->tntEnd = al.endJ;
-
-  return(0);
+  
+  return (LINKER_NEGATIVE);
 }
-
 
 
 int
@@ -1308,6 +1363,7 @@ detectMates(char *linker[AS_LINKER_MAX_SEQS], int search[AS_LINKER_MAX_SEQS]) {
   gkFragment    fr;
   gkFragment    m1;
   gkFragment    m2;
+  int readChanged = 0;
 
   fr.gkFragment_enableGatekeeperMode(gkpStore);
   m1.gkFragment_enableGatekeeperMode(gkpStore);
@@ -1345,7 +1401,11 @@ detectMates(char *linker[AS_LINKER_MAX_SEQS], int search[AS_LINKER_MAX_SEQS]) {
     //  WARNING!  The mates MUST be added in this order, otherwise,
     //  the UID<->IID mapping will be invalid.
 
-    if (processMate(&fr, &m1, &m2, linker, search)) {
+    readChanged = processMate(&fr, &m1, &m2, linker, search, 1); // high stringency; split if found
+    if (0==readChanged) 
+      readChanged = processMate(&fr, &m1, &m2, linker, search, 0); // low stringency; trim if found
+      
+    if (readChanged != 0) {
       gkpStore->gkStore_delFragment(thisElem);
 
       if (fr.gkFragment_getIsDeleted() == 0) {
