@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.31 2009-07-08 17:28:32 jasonmiller9704 Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.32 2009-07-09 10:30:51 jasonmiller9704 Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -349,7 +349,18 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
   }
 }
 
-
+// Process Read.
+//
+// return:
+// The ruturn value indicates whether read should be added to the store.
+// It is ok to delete a read and retain it to the store:
+// this routine would set the deleted flag to 1 and return true.
+// Current policy is we do not add deleted reads to the store.
+//
+// parameters:
+// Pass in pointers to the input file header (h),
+// the populated input read record (r),
+// and the gatekeeper fragment record to be populated (fr). 
 static
 int
 processRead(sffHeader *h,
@@ -621,12 +632,25 @@ processRead(sffHeader *h,
   fr->gkFragment_getSequence()[r->final_length + 1] = 0;
   fr->gkFragment_getQuality() [r->final_length + 1] = 0;
 
+  if ( ! ( (fr->clrBgn < fr->clrEnd) && 
+	   (fr->vecBgn > fr->vecEnd) && 
+	   (fr->tntBgn > fr->tntEnd) ) ) {
+    if (logFile)
+      fprintf(logFile, 
+	      "Processed coordinates invalid: clr=(%d,%d)vec=(%d,%d)contam=(%d,%d)len=%d. Read %s deleted.\n",
+	      fr->clrBgn, fr->clrEnd,
+	      fr->vecBgn, fr->vecEnd,
+	      fr->tntBgn, fr->tntEnd,
+	      r->final_length,
+              r->name);
+    return(false);
+  }
   assert(fr->clrBgn < fr->clrEnd);
   assert(fr->vecBgn > fr->vecEnd);
   assert(fr->tntBgn > fr->tntEnd);
 
   return(true);
-}
+} // processRead
 
 
 
@@ -695,7 +719,7 @@ loadSFF(char *sffName) {
   safe_free(r.data_block);
 
   return(0);
-}
+} 
 
 
 
