@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.42 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.43 2009-07-10 01:20:50 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -919,44 +919,6 @@ StoreIUMStruct(ScaffoldGraphT *graph,
                                        is->deltas,
                                        CNS_STATS_ONLY,
                                        NULL);
-
-  //  Whoops!  Failed!  Like consensus does in MultiAlignUnitig() we
-  //  now (2007-12-07) will try again, allowing negative hangs.
-  //
-  if (unitigSuccess == 0) {
-    int  ov = VERBOSE_MULTIALIGN_OUTPUT;
-    int  oa = allow_neg_hang;
-
-    VERBOSE_MULTIALIGN_OUTPUT = 1;
-    allow_neg_hang            = 1;
-    unitigSuccess = MultiAlignUnitig(&(is->ium),
-                                     ScaffoldGraph->gkpStore,
-                                     is->sequence,
-                                     is->quality,
-                                     is->deltas,
-                                     CNS_STATS_ONLY,
-                                     NULL);
-    VERBOSE_MULTIALIGN_OUTPUT = ov;
-    allow_neg_hang            = oa;
-  }
-
-  if (unitigSuccess == 0) {
-    int  ov = VERBOSE_MULTIALIGN_OUTPUT;
-    int  oa = allow_contained_parent;
-
-    VERBOSE_MULTIALIGN_OUTPUT = 1;
-    allow_contained_parent    = 1;
-    unitigSuccess = MultiAlignUnitig(&(is->ium),
-                                     ScaffoldGraph->gkpStore,
-                                     is->sequence,
-                                     is->quality,
-                                     is->deltas,
-                                     CNS_STATS_ONLY,
-                                     NULL);
-    VERBOSE_MULTIALIGN_OUTPUT = ov;
-    allow_contained_parent    = oa;
-  }
-
 
   if (unitigSuccess == 0) {
     fprintf(GlobalData->stderrc, "FATAL ERROR: MultiAlignUnitig call failed in unitig splitting.\n");
