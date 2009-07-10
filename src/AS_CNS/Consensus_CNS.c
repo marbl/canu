@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: Consensus_CNS.c,v 1.79 2009-06-22 12:40:58 brianwalenz Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.80 2009-07-10 01:24:21 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -92,9 +92,6 @@ main (int argc, char **argv) {
 
   int    extract     = -1;
 
-  int    allow_neg_hang_retry         = 0;
-  int    allow_contained_parent_retry = 0;
-
   int    saveUnitigMultiAlign = 0;
 
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
@@ -118,13 +115,6 @@ main (int argc, char **argv) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-g") == 0) {
       allow_neg_hang = 1;
-    } else if (strcmp(argv[arg], "-G") == 0) {
-      allow_neg_hang_retry = 1;
-
-    } else if (strcmp(argv[arg], "-c") == 0) {
-      allow_contained_parent = 1;
-    } else if (strcmp(argv[arg], "-C") == 0) {
-      allow_contained_parent_retry = 1;
 
     } else if (strcmp(argv[arg], "-O") == 0) {
       ovlName = argv[++arg];
@@ -249,10 +239,6 @@ main (int argc, char **argv) {
     fprintf(stderr, "    -e #%%d      Extract only a single ICM/IUM by internal id\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -g           Allow 'negative ahang' alignments.\n");
-    fprintf(stderr, "    -G           Allow 'negative ahang' alignments as a last resort.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "    -c           Allow alignments to 'contained' fragments.\n");
-    fprintf(stderr, "    -C           Allow alignments to 'contained' fragments as a last resort.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Arguments:\n");
     fprintf(stderr, "  gkpStore       path to previously created Fragment Store\n");
