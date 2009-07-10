@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: BaseCall.c,v 1.1 2009-05-29 17:29:19 brianwalenz Exp $";
+static char *rcsid = "$Id: BaseCall.c,v 1.2 2009-07-10 01:22:58 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -282,8 +282,8 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
             //  Not a surrogate unitig!
             continue;
 #else
-          fprintf(stderr, "WARNING: no coverage for column=%d (b_read_depth=%d o_read_depth=%d guide_depth=%d)\n",
-                  cid, b_read_depth, o_read_depth, guide_depth);
+          //fprintf(stderr, "WARNING: no coverage for column=%d (b_read_depth=%d o_read_depth=%d guide_depth=%d)\n",
+          //        cid, b_read_depth, o_read_depth, guide_depth);
 #endif
 
           used_surrogate=1;
@@ -314,8 +314,8 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
       //  Warn, and continue.
       //
       if ((tauValid == 0) && (b_read_depth == 0) && (o_read_depth == 0) && (guide_depth == 0)) {
-        fprintf(stderr, "No coverage (tau not valid) for column=%d.  Assume it's an N in a single coverage area.\n",
-                cid);
+        //fprintf(stderr, "No coverage (tau not valid) for column=%d.  Assume it's an N in a single coverage area.\n",
+        //        cid);
         tauValid = 1;
       }
 
