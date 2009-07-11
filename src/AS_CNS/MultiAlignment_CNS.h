@@ -21,7 +21,7 @@
 #ifndef MULTIALIGNMENT_CNS_INCLUDE
 #define MULTIALIGNMENT_CNS_INCLUDE
 
-static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.51 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.52 2009-07-11 00:20:30 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -96,8 +96,6 @@ int MultiAlignContig(IntConConMesg *,
 
 //  Options to things in MultiAligment_CNS.c
 
-extern int allow_forced_frags;
 extern int allow_neg_hang;
-extern int allow_contained_parent;
 
 #endif

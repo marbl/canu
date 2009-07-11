@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.245 2009-06-22 12:04:53 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.246 2009-07-11 00:20:30 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -85,7 +85,6 @@ VA_TYPE(CNS_AlignedContigElement) *fragment_positions = NULL;
 int64 gaps_in_alignment = 0;
 
 int allow_neg_hang         = 0;
-int allow_contained_parent = 0;
 
 
 // Variables used to compute general statistics
