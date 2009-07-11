@@ -91,7 +91,7 @@ sub createPostUnitiggerConsensusJobs (@) {
     print F getBinDirectoryShellCode();
 
     if ($consensusType eq "cns") {
-       print F "\$bin/consensus -G -C -U -m \\\n";
+       print F "\$bin/consensus -U -m \\\n";
        #  Too expensive in general, let the fixUnitigs handle anything that fails here.
        #print F "  -O $wrk/$asm.ovlStore \\\n" if (getGlobal('unitigger') eq "bog");
        print F "  -S \$jobp \\\n";
@@ -119,7 +119,7 @@ sub createPostUnitiggerConsensusJobs (@) {
        print F "    > $wrk/5-consensus/${asm}_\$jobp.autofix \\\n";
        print F "   2> $wrk/5-consensus/${asm}_\$jobp.autofix.log \\\n";
        print F "  && \\\n";
-       print F "  \$bin/consensus -G -C -U -m \\\n";
+       print F "  \$bin/consensus -U -m \\\n";
        print F "    -D verbosemultialign \\\n";
        print F "    -O $wrk/$asm.ovlStore \\\n";
        print F "    -S \$jobp \\\n";
