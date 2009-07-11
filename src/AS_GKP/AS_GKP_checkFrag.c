@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.51 2009-07-02 17:45:00 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.52 2009-07-11 00:26:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -246,6 +246,15 @@ checkClearRanges(FragMesg   *frg_mesg,
   gkFrag1->vecBgn = frg_mesg->clear_vec.bgn;  gkFrag1->vecEnd = frg_mesg->clear_vec.end;
   gkFrag1->maxBgn = frg_mesg->clear_max.bgn;  gkFrag1->maxEnd = frg_mesg->clear_max.end;
   gkFrag1->tntBgn = 1;                        gkFrag1->tntEnd = 0;
+
+  //  If OBT, reset invalid clear ranges so they'll load.
+  //
+  if (assembler == AS_ASSEMBLER_OBT) {
+    if (gkFrag1->clrBgn >= gkFrag1->clrEnd) {
+      gkFrag1->clrBgn = 0;
+      gkFrag1->clrEnd = strlen(frg_mesg->sequence);
+    }
+  }
 
   return(failed);
 }
