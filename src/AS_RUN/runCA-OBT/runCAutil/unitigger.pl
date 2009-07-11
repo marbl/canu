@@ -7,6 +7,14 @@ sub unitigger (@) {
 
     my $bin = getBinDirectory();
 
+    if (0) {
+        my $cmd = "$bin/removeMateOverlap -gkp $wrk/$asm.gkpStore -ovl $wrk/$asm.ovlStore";
+        if (runCommand("$wrk", $cmd)) {
+            caFailure("failed to remove mate overlaps", undef);
+        }
+    }
+
+
     #  Check for the presence of 454 reads.  We know these cause trouble
     #  with unitigger, and we FORCE the use og BOG here.
     #

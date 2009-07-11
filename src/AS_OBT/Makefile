@@ -67,6 +67,7 @@ EXE_SOURCES = chimera.C \
               merge-trimming.C \
               trim.C \
               readOverlap.C \
+              removeMateOverlap.C \
               util++.C
 LIB_SOURCES = AS_OBT_acceptableOverlap.C
 
@@ -79,7 +80,8 @@ CXX_PROGS   = initialTrim \
               consolidate \
               chimera \
               deduplicate \
-              getNumScaffolds
+              getNumScaffolds \
+              removeMateOverlap
 SCRIPTS =
 ifdef FIGARO
   SCRIPTS += figaro
@@ -98,6 +100,7 @@ consolidate:          consolidate.o util++.o readOverlap.o    libCA.a
 merge-trimming:       merge-trimming.o trim.o                 libCA.a
 chimera:              chimera.o util++.o readOverlap.o        libCA.a
 deduplicate:          deduplicate.o util++.o readOverlap.o    libCA.a
+removeMateOverlap:    removeMateOverlap.o util++.o readOverlap.o    libCA.a
 
 getNumScaffolds:      getNumScaffolds.o                       libCA.a
 

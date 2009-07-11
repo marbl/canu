@@ -416,7 +416,7 @@ public:
   void        gkFragment_setReadUID(AS_UID u)     { assert(isGKP);  gkFragment_set(readUID, u); };
   void        gkFragment_setLength(uint32 l)      { assert(isGKP);  gkFragment_set(seqLen, l); };
   void        gkFragment_setLibraryIID(AS_IID l)  { assert(isGKP);  gkFragment_set(libraryIID, l); };
-  void        gkFragment_setMateIID(AS_IID i)     { assert(isGKP);  gkFragment_set(mateIID, i); };
+  void        gkFragment_setMateIID(AS_IID i)     {                 gkFragment_set(mateIID, i); };
 
   void        gkFragment_setOrientation(uint32 i) { assert(isGKP);  gkFragment_set(orientation, i); };
   void        gkFragment_setIsDeleted(uint32 i)   { assert(isGKP);  gkFragment_set(deleted, i); };
