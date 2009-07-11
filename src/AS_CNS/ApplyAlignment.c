@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: ApplyAlignment.c,v 1.5 2009-06-29 18:41:16 brianwalenz Exp $";
+static char *rcsid = "$Id: ApplyAlignment.c,v 1.6 2009-07-11 00:21:59 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -206,8 +206,8 @@ findBeadInColumn(int32 bi, int32 fi) {
       return(b->boffset);
   }
 
-  //  Give up.  See comments in MultiAlignUnitig around line 733, where we append new sequence to
-  //  the start of frankenstein.
+  //  Give up.  See comments in MultiAlignUnitig, where we append new sequence to the start of
+  //  frankenstein ("Append the new stuff...").
 
   assert(0);
   return(-1);
@@ -423,7 +423,7 @@ ApplyAlignment(int32 afid,
       assert(bpos < blen);
 
       //  Hmmm.  Occasionally we don't do alignPositions() above on the first thing -- the alignment
-      //  starts with a gap??!
+      //  starts with a gap??!  See below for an example.
 
       if ((lasta == -1) || (bpos == 0)) {
         assert(lasta == -1);
@@ -460,10 +460,20 @@ ApplyAlignment(int32 afid,
       assert(apos < alen);
       assert(bpos < blen);
 
-      lasta = GetBead(beadStore, lasta)->next;
+      //  Hmmm.  Occasionally we don't do alignPositions() above on the first thing -- the alignment
+      //  starts with a gap??!  Sure:
+      //
+      //   ttaaaat.....
+      //  n-taaaat.....
+      //
+      //  The negative ahang triggers code above, which adds a new
+      //  column.  lasta is still -1 because there is no last column
+      //  for a.
+
+      lasta = (lasta == -1) ? aindex[apos] : GetBead(beadStore, lasta)->next;
       lastb = AppendGapBead(lastb);
 
-      assert(lasta = aindex[apos]);
+      assert(lasta == aindex[apos]);
 
       AlignBeadToColumn(GetBead(beadStore, lasta)->column_index,
                         lastb,
