@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.20 2009-06-10 18:05:14 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.21 2009-07-12 05:54:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -272,7 +272,7 @@ AS_OVS_setRangeOverlapStore(OverlapStore *ovs, uint32 firstIID, uint32 lastIID) 
   //  those overlaps
 
   if (firstIID >= ovs->ovs.largestIID)
-    firstIID = ovs->ovs.largestIID;
+    firstIID = ovs->ovs.largestIID + 1;
   if (lastIID >= ovs->ovs.largestIID)
     lastIID = ovs->ovs.largestIID;
 
@@ -291,6 +291,13 @@ AS_OVS_setRangeOverlapStore(OverlapStore *ovs, uint32 firstIID, uint32 lastIID) 
   ovs->offset.offset   = 0;
   ovs->offset.numOlaps = 0;
 
+  //  Everything should notice that offsetFile is at EOF and not try
+  //  to find overlaps, but, just in case, we set invalid first/last
+  //  IIDs.
+  //
+  ovs->firstIIDrequested = firstIID;
+  ovs->lastIIDrequested  = lastIID;
+
   if (0 == AS_UTL_safeRead(ovs->offsetFile, &ovs->offset, "AS_OVS_readOverlap offset",
                            sizeof(OverlapStoreOffsetRecord), 1))
     return;
@@ -304,9 +311,6 @@ AS_OVS_setRangeOverlapStore(OverlapStore *ovs, uint32 firstIID, uint32 lastIID) 
   ovs->bof = AS_OVS_openBinaryOverlapFile(name, TRUE);
 
   AS_OVS_seekOverlap(ovs->bof, ovs->offset.offset);
-
-  ovs->firstIIDrequested = firstIID;
-  ovs->lastIIDrequested  = lastIID;
 }
 
 
@@ -595,6 +599,9 @@ AS_OVS_numOverlapsInRange(OverlapStore *ovs) {
   uint64                     len = 0;
   OverlapStoreOffsetRecord  *offsets = NULL;
   uint64                     numolap = 0;
+
+  if (ovs->firstIIDrequested > ovs->lastIIDrequested)
+    return(0);
 
   originalposition = AS_UTL_ftell(ovs->offsetFile);
 
