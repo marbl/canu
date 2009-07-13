@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.32 2009-07-09 10:30:51 jasonmiller9704 Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.33 2009-07-13 23:51:53 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,6 +35,15 @@ const char *mainid = "$Id: sffToCA.c,v 1.32 2009-07-09 10:30:51 jasonmiller9704 
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_encodeSequenceQuality.h"
 #include "AS_ALN_bruteforcedp.h"
+
+//  For the exact-prefix dedup to work, a fragment must be larger than
+//  the DEDUP_SPAN (valid values are 48 and 64).  After the dedup, we
+//  search for mates, and those reads must only be larger than the
+//  assembler minimum (which could be 30bp).
+//
+#define DEDUP_SPAN            48
+#define FRAG_MIN_LEN          MAX(AS_READ_MIN_LEN, DEDUP_SPAN)
+#define MATE_MIN_LEN              AS_READ_MIN_LEN
 
 
 #define CLEAR_ALL        0x00
@@ -365,29 +374,20 @@ static
 int
 processRead(sffHeader *h,
             sffRead   *r, gkFragment *fr) {
-  int  which;
+  AS_UID  readUID;
 
   st.numReadsInSFF++;
 
-  //  We ALWAYS use the MEDIUM size reads here.  We could use SHORT for, maybe,
-  //  the mated reads, but it's too complicated.
-  fr->gkFragment_setType(GKFRAGMENT_MEDIUM);
-
-  //  Construct a UID from the 454 read name
-  fr->gkFragment_setReadUID(AS_UID_load(r->name));
-  fr->gkFragment_setIsDeleted(0);
+  readUID = AS_UID_load(r->name);
 
   //  Read already loaded?  Can't load again.  Set UID;s and IID's
   //  to zero to indicate this -- we'll catch it at the end.
   //
-  if (gkpStore->gkStore_getUIDtoIID(fr->gkFragment_getReadUID(), NULL)) {
+  if (gkpStore->gkStore_getUIDtoIID(readUID, NULL)) {
     fprintf(stderr, "Read '%s' already exists.  Duplicate deleted.\n",
-            AS_UID_toString(fr->gkFragment_getReadUID()));
+            AS_UID_toString(readUID));
     return(false);
   }
-
-  fr->gkFragment_setLibraryIID(1);
-  fr->gkFragment_setOrientation(AS_READ_ORIENT_UNKNOWN);
 
   ////////////////////////////////////////
   //
@@ -493,12 +493,6 @@ processRead(sffHeader *h,
   int clf = MAX(MAX(clq, cla), MAX(cln, clp));
   int crf = MIN(MIN(crq, cra), MIN(crn, crp));
 
-#if 0
-  if (logFile)
-    fprintf(logFile, "Read '%s' clear ranges q:%d,%d  a:%d,%d  n:%d,%d  p:%d,%d  f:%d,%d\n",
-            AS_UID_toString(fr->gkFragment_getReadUID()),
-            clq, crq, cla, cra, cln, crn, clp, crp, clf, crf);
-#endif
 
   ////////////////////////////////////////
   //
@@ -509,7 +503,7 @@ processRead(sffHeader *h,
     st.numWithUnallowedN++;
     if (logFile)
       fprintf(logFile, "Read '%s' contains an N at position %d.  Read deleted.\n",
-              AS_UID_toString(fr->gkFragment_getReadUID()), crn);
+              AS_UID_toString(readUID), crn);
     return(false);
   }
 
@@ -569,12 +563,9 @@ processRead(sffHeader *h,
   }
 
 
-  ////////////////////////////////////////////////////////////////////////////////
-
-  //  Reads too long cannot be physically loaded into the store.  Trim
-  //  off anything over the maximum size.
+  //  Reads too long can be loaded into the store, but until we fix overlaps,
+  //  we cannot use them.  Truncate.
   //
-#if 0
   if (r->number_of_bases - h->key_length > AS_READ_MAX_MEDIUM_LEN) {
     st.numTooLong++;
 
@@ -590,14 +581,13 @@ processRead(sffHeader *h,
     if (fr->clrBgn > AS_READ_MAX_MEDIUM_LEN)   fr->clrBgn = AS_READ_MAX_MEDIUM_LEN;
     if (fr->clrEnd > AS_READ_MAX_MEDIUM_LEN)   fr->clrEnd = AS_READ_MAX_MEDIUM_LEN;
   }
-#endif
 
 
-  //  Likewise, reads too short will never be of any use, and they're
-  //  not loaded.  We'll give the benefit of the doubt and use the
-  //  read length here, not the trimmed length.
+  //  Reads too short will never be of any use, and they're not
+  //  loaded.  We'll give the benefit of the doubt and use the read
+  //  length here, not the trimmed length.
   //
-  if (r->number_of_bases - h->key_length < AS_READ_MIN_LEN) {
+  if (r->number_of_bases - h->key_length < FRAG_MIN_LEN) {
     st.numTooShort++;
     if (logFile)
       fprintf(logFile, "Read '%s' of length %d clear %d,%d is too short.  Read deleted.\n",
@@ -621,6 +611,27 @@ processRead(sffHeader *h,
   r->final_bases    = r->bases   + h->key_length;
   r->final_quality  = r->quality + h->key_length;
   r->final_length   = r->number_of_bases - h->key_length;
+
+  //  And build the fragment
+  //
+#if 0
+  //  Test code
+  if      (r->final_length < AS_READ_MAX_SHORT_LEN)
+    fr->gkFragment_setType(GKFRAGMENT_SHORT);
+  else if (r->final_length < AS_READ_MAX_MEDIUM_LEN)
+    fr->gkFragment_setType(GKFRAGMENT_MEDIUM);
+  else
+    fr->gkFragment_setType(GKFRAGMENT_LONG);
+#else
+  fr->gkFragment_setType(GKFRAGMENT_MEDIUM);
+#endif
+
+  //  Construct a UID from the 454 read name
+  fr->gkFragment_setReadUID(readUID);
+  fr->gkFragment_setIsDeleted(0);
+
+  fr->gkFragment_setLibraryIID(1);
+  fr->gkFragment_setOrientation(AS_READ_ORIENT_UNKNOWN);
 
   //  Copy sequence to the gkFragment
   //
@@ -729,9 +740,9 @@ loadSFF(char *sffName) {
 //
 //  Removes all reads that are a perfect prefix of some other read.
 //
-//  The algorithm builds a 64-bit value from the first N bases (N <=
-//  AS_FRAG_MIN_LEN, currently 48 <= 64), sorts the hashes, then
-//  examines any clique of hash collisions for perfect prefixes.
+//  The algorithm builds a 64-bit value from the first N bases, sorts
+//  the hashes, then examines any clique of hash collisions for
+//  perfect prefixes.
 
 typedef struct {
   uint64    hash;
@@ -781,9 +792,9 @@ removeDuplicateReads(void) {
     uint32 seqLen   = fr.gkFragment_getSequenceLength();
     uint64 hash     = 0;
 
-    assert(seqLen >= 48);
+    assert(seqLen >= DEDUP_SPAN);
 
-#if 1
+#if DEDUP_SPAN == 48
     //  Our "hash" is just the spaced seed "101" (repeating).  It
     //  covers the first 48 bases, picking out 32.
     //
@@ -796,7 +807,7 @@ removeDuplicateReads(void) {
       hash  |= map[seq1[s]];
       s++;
     }
-#else
+#elif DEDUP_SPAN == 64
     //  Our "hash" is just the spaced seed "1010" (repeating).  It
     //  covers the first 64 bases, picking out 32.
     //
@@ -810,6 +821,8 @@ removeDuplicateReads(void) {
       s++;
       s++;
     }
+#else
+#error invalid DEDUP_SPAN must be 48 or 64
 #endif
 
     fh[fhLen].hash     = hash;
@@ -1127,7 +1140,7 @@ processMate(gkFragment *fr,
   }
 
   if (fractionalAlignment == 1) { // or functionalAlignment
-    if ((lSize < AS_READ_MIN_LEN) && (rSize < AS_READ_MIN_LEN)) {
+    if ((lSize < MATE_MIN_LEN) && (rSize < MATE_MIN_LEN)) {
       //  Linker found but read too short. 
       //  Not enough sequence on either side of the linker to make a mate. 
       if (logFile)
@@ -1142,7 +1155,7 @@ processMate(gkFragment *fr,
       return (LINKER_POSITIVE);
     }
 
-    if ((lSize < AS_READ_MIN_LEN)) {
+    if ((lSize < MATE_MIN_LEN)) {
       //  Linker on the left.
       //  Sufficient sequence left on the right.
       if (logFile)
@@ -1173,7 +1186,7 @@ processMate(gkFragment *fr,
       return (LINKER_POSITIVE);
     }
 
-    if ((rSize < AS_READ_MIN_LEN)) {
+    if ((rSize < MATE_MIN_LEN)) {
       //  Linker on the right.
       //  Sufficiently long sequence on the left.
       if (logFile)
@@ -1204,8 +1217,8 @@ processMate(gkFragment *fr,
     //  We have a fractional alignment.
     //  We do not have a functional alignment, so it must be partial.
     //  The alignment is not on the left or right, so it must be in the middle.
-    assert (!(rSize < AS_READ_MIN_LEN));
-    assert (!(lSize < AS_READ_MIN_LEN));
+    assert (!(rSize < MATE_MIN_LEN));
+    assert (!(lSize < MATE_MIN_LEN));
     //
     //  What shall be done?
     //  We choose not to split this read into mates.
@@ -1227,7 +1240,7 @@ processMate(gkFragment *fr,
     //  Linker found in the middle with enough sequence to make two mated reads.
     assert (1==minimalAlignment);
     assert (1==fractionalAlignment);
-    assert ((lSize >= AS_READ_MIN_LEN) && (rSize >= AS_READ_MIN_LEN));
+    assert ((lSize >= MATE_MIN_LEN) && (rSize >= MATE_MIN_LEN));
       
     // SPLIT THE READ INTO TWO MATES!
     if (logFile)
@@ -1236,13 +1249,31 @@ processMate(gkFragment *fr,
     
     //  0.  Copy the fragments to new mated fragments
     //      CANNOT just copy fr over m1 -- that nukes seq/qlt pointers!
+    //memcpy(m1, fr, sizeof(gkFragment));
+    //memcpy(m2, fr, sizeof(gkFragment));
+
+#if 0
+    //  Test code.
+    if      (lSize < AS_READ_MAX_SHORT_LEN)
+      m1->gkFragment_setType(GKFRAGMENT_SHORT);
+    else if (lSize < AS_READ_MAX_SHORT_LEN)
+      m1->gkFragment_setType(GKFRAGMENT_MEDIUM);
+    else if (lSize < AS_READ_MAX_SHORT_LEN)
+      m1->gkFragment_setType(GKFRAGMENT_LONG);
+
+    if      (rSize < AS_READ_MAX_SHORT_LEN)
+      m2->gkFragment_setType(GKFRAGMENT_SHORT);
+    else if (rSize < AS_READ_MAX_SHORT_LEN)
+      m2->gkFragment_setType(GKFRAGMENT_MEDIUM);
+    else if (rSize < AS_READ_MAX_SHORT_LEN)
+      m2->gkFragment_setType(GKFRAGMENT_LONG);
+#else
     m1->gkFragment_setType(GKFRAGMENT_MEDIUM);
     m2->gkFragment_setType(GKFRAGMENT_MEDIUM);
+#endif
     
     m1->gkFragment_setLibraryIID(1);
     m2->gkFragment_setLibraryIID(1);
-    //memcpy(m1, fr, sizeof(gkFragment));
-    //memcpy(m2, fr, sizeof(gkFragment));
     
     //  1.  Make new UIDs for the two mated reads.  Nuke the old
     //  read.  Make the mates.
