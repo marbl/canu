@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStream.C,v 1.2 2009-06-26 03:45:42 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStream.C,v 1.3 2009-07-13 02:31:33 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -75,15 +75,15 @@ gkStream::reset(AS_IID beginIID_, AS_IID endIID_) {
 
   //  Close any open streams, we'll open them again as needed.
 
-  closeStream(fsm);
+  closeStream(fsm);  fsm = NULL;
 
-  closeStream(fmd);
-  closeStream(smd);
-  closeStream(qmd);
+  closeStream(fmd);  fmd = NULL;
+  closeStream(smd);  smd = NULL;
+  closeStream(qmd);  qmd = NULL;
 
-  closeStream(flg);
-  closeStream(slg);
-  closeStream(qlg);
+  closeStream(flg);  flg = NULL;
+  closeStream(slg);  slg = NULL;
+  closeStream(qlg);  qlg = NULL;
 
   //  Position the metadata stream -- this code is similar to
   //  gkStore_loadPartition.
@@ -128,7 +128,7 @@ gkStream::reset(AS_IID beginIID_, AS_IID endIID_) {
     qmd = openStream(gkp->qmd);
 
     resetStream(fsm, stTiid, STREAM_UNTILEND);
-    resetStream(fsm, STREAM_FROMSTART, edTiid);
+    resetStream(fmd, STREAM_FROMSTART, edTiid);
 
   } else if ((stType == GKFRAGMENT_SHORT) && (edType == GKFRAGMENT_LONG)) {
     fsm = openStream(gkp->fsm);
@@ -142,8 +142,8 @@ gkStream::reset(AS_IID beginIID_, AS_IID endIID_) {
     qlg = openStream(gkp->qlg);
 
     resetStream(fsm, stTiid, STREAM_UNTILEND);
-    resetStream(fsm, STREAM_FROMSTART, STREAM_UNTILEND);
-    resetStream(fsm, STREAM_FROMSTART, edTiid);
+    resetStream(fmd, STREAM_FROMSTART, STREAM_UNTILEND);
+    resetStream(flg, STREAM_FROMSTART, edTiid);
 
   } else if ((stType == GKFRAGMENT_MEDIUM) && (edType == GKFRAGMENT_LONG)) {
     fmd = openStream(gkp->fmd);
@@ -156,8 +156,8 @@ gkStream::reset(AS_IID beginIID_, AS_IID endIID_) {
 
     firstmd = stTiid;
 
-    resetStream(fsm, stTiid, STREAM_UNTILEND);
-    resetStream(fsm, STREAM_FROMSTART, edTiid);
+    resetStream(fmd, stTiid, STREAM_UNTILEND);
+    resetStream(flg, STREAM_FROMSTART, edTiid);
   } else {
     assert(0);
   }
@@ -218,7 +218,7 @@ gkStream::next(gkFragment *fr) {
       loaded = 1;
     } else {
       closeStream(fmd);
-      fmd == NULL;
+      fmd = NULL;
     }
   }
 
@@ -229,7 +229,7 @@ gkStream::next(gkFragment *fr) {
       loaded = 1;
     } else {
       closeStream(flg);
-      flg == NULL;
+      flg = NULL;
     }
   }
 
@@ -241,6 +241,3 @@ gkStream::next(gkFragment *fr) {
 
   return(1);
 }
-
-
-
