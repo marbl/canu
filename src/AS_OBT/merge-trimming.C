@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merge-trimming.C,v 1.37 2009-06-26 20:02:13 skoren Exp $";
+const char *mainid = "$Id: merge-trimming.C,v 1.38 2009-07-13 17:22:49 brianwalenz Exp $";
 
 #include "trim.H"
 #include "constants.H"
@@ -212,9 +212,8 @@ main(int argc, char **argv) {
 
       if (fr.gkFragment_getIsDeleted() == 0) {
         if ((lr) && (lr->doNotQVTrim)) {
-          //  Just leave it as is.  It should show up as a singleton.
-          //qltL1 = 0;
-          //qltR1 = 0;
+          qltL1 = qltL0;
+          qltR1 = qltR0;
         } else {
           doTrim(&fr, minQuality, qltL1, qltR1);
         }
