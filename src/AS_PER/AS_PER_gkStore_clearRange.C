@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.2 2009-06-28 17:01:49 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.3 2009-07-13 23:41:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -137,11 +137,17 @@ gkClearRange::~gkClearRange() {
 
 void
 gkClearRange::gkClearRange_getClearRegion(gkFragment *fr, uint32& begin, uint32& end) {
+
+  //  We can be configured (sm is valid) but still ask for a fragment
+  //  outside the range.  If the first fragment (any early fragment)
+  //  is added to the store with a vector clear, but no other
+  //  fragments have a vector clear, the clear range is configured,
+  //  but too small (we don't add undefined clear ranges).
+
   if (fr->type == GKFRAGMENT_SHORT) {
     if (!smconfigured)
       gkClearRange_configureShort();
-    if (sm) {
-      assert(fr->tiid <= smmaxiid);
+    if ((sm) && (fr->tiid <= smmaxiid)) {
       begin = sm[2*fr->tiid+0];
       end   = sm[2*fr->tiid+1];
     } else {
@@ -152,8 +158,7 @@ gkClearRange::gkClearRange_getClearRegion(gkFragment *fr, uint32& begin, uint32&
   if (fr->type == GKFRAGMENT_MEDIUM) {
     if (!mdconfigured)
       gkClearRange_configureMedium();
-    if (md) {
-      assert(fr->tiid <= mdmaxiid);
+    if ((md) && (fr->tiid <= mdmaxiid)) {
       begin = md[2*fr->tiid+0];
       end   = md[2*fr->tiid+1];
     } else {
@@ -164,8 +169,7 @@ gkClearRange::gkClearRange_getClearRegion(gkFragment *fr, uint32& begin, uint32&
   if (fr->type == GKFRAGMENT_LONG) {
     if (!lgconfigured)
       gkClearRange_configureLong();
-    if (lg) {
-      assert(fr->tiid <= lgmaxiid);
+    if ((lg) && (fr->tiid <= lgmaxiid)) {
       begin = lg[2*fr->tiid+0];
       end   = lg[2*fr->tiid+1];
     } else {
@@ -332,9 +336,14 @@ gkClearRange::gkClearRange_configureLong(void) {
 
 
 void
-gkClearRange::gkClearRange_makeSpaceShort(AS_IID tiid) {
+gkClearRange::gkClearRange_makeSpaceShort(AS_IID tiid, uint32 bgn, uint32 end) {
 
   if (tiid <= smmaxiid)
+    //  Already got space.
+    return;
+
+  if ((bgn > end) && (sm == NULL))
+    //  Nobody has used this clear range yet, and we don't want it either.
     return;
 
   uint32  newsmmaxiid = (smmaxiid == 0) ? (1048576) : (smmaxiid * 2);
@@ -362,9 +371,12 @@ gkClearRange::gkClearRange_makeSpaceShort(AS_IID tiid) {
 
 
 void
-gkClearRange::gkClearRange_makeSpaceMedium(AS_IID tiid) {
+gkClearRange::gkClearRange_makeSpaceMedium(AS_IID tiid, uint32 bgn, uint32 end) {
 
   if (tiid < mdmaxiid)
+    return;
+
+  if ((bgn > end) && (md == NULL))
     return;
 
   uint32  newmdmaxiid = (mdmaxiid == 0) ? (1048576) : (mdmaxiid * 2);
@@ -392,9 +404,12 @@ gkClearRange::gkClearRange_makeSpaceMedium(AS_IID tiid) {
 
 
 void
-gkClearRange::gkClearRange_makeSpaceLong(AS_IID tiid) {
+gkClearRange::gkClearRange_makeSpaceLong(AS_IID tiid, uint32 bgn, uint32 end) {
 
   if (tiid < lgmaxiid)
+    return;
+
+  if ((bgn > end) && (lg == NULL))
     return;
 
   uint32  newlgmaxiid = (lgmaxiid == 0) ? (1048576) : (lgmaxiid * 2);

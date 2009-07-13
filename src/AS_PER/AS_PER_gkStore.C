@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.5 2009-07-06 19:58:29 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.6 2009-07-13 23:41:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -910,10 +910,10 @@ gkStore::gkStore_addFragment(gkFragment *fr) {
 
       assert(fr->tiid == getLastElemStore(fsm) + 1);
 
-      if (fr->clrBgn < fr->clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_makeSpaceShort(fr->tiid);
-      if (fr->vecBgn < fr->vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_makeSpaceShort(fr->tiid);
-      if (fr->maxBgn < fr->maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_makeSpaceShort(fr->tiid);
-      if (fr->tntBgn < fr->tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_makeSpaceShort(fr->tiid);
+      clearRange[AS_READ_CLEAR_CLR]->gkClearRange_makeSpaceShort(fr->tiid, fr->clrBgn, fr->clrEnd);
+      clearRange[AS_READ_CLEAR_VEC]->gkClearRange_makeSpaceShort(fr->tiid, fr->vecBgn, fr->vecEnd);
+      clearRange[AS_READ_CLEAR_MAX]->gkClearRange_makeSpaceShort(fr->tiid, fr->maxBgn, fr->maxEnd);
+      clearRange[AS_READ_CLEAR_TNT]->gkClearRange_makeSpaceShort(fr->tiid, fr->tntBgn, fr->tntEnd);
 
       fr->fr.sm.clearBeg = fr->clrBgn;
       fr->fr.sm.clearEnd = fr->clrEnd;
@@ -925,10 +925,10 @@ gkStore::gkStore_addFragment(gkFragment *fr) {
 
       assert(fr->tiid == getLastElemStore(fmd) + 1);
 
-      if (fr->clrBgn < fr->clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_makeSpaceMedium(fr->tiid);
-      if (fr->vecBgn < fr->vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_makeSpaceMedium(fr->tiid);
-      if (fr->maxBgn < fr->maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_makeSpaceMedium(fr->tiid);
-      if (fr->tntBgn < fr->tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_makeSpaceMedium(fr->tiid);
+      clearRange[AS_READ_CLEAR_CLR]->gkClearRange_makeSpaceMedium(fr->tiid, fr->clrBgn, fr->clrEnd);
+      clearRange[AS_READ_CLEAR_VEC]->gkClearRange_makeSpaceMedium(fr->tiid, fr->vecBgn, fr->vecEnd);
+      clearRange[AS_READ_CLEAR_MAX]->gkClearRange_makeSpaceMedium(fr->tiid, fr->maxBgn, fr->maxEnd);
+      clearRange[AS_READ_CLEAR_TNT]->gkClearRange_makeSpaceMedium(fr->tiid, fr->tntBgn, fr->tntEnd);
 
       fr->fr.md.clearBeg = fr->clrBgn;
       fr->fr.md.clearEnd = fr->clrEnd;
@@ -940,10 +940,10 @@ gkStore::gkStore_addFragment(gkFragment *fr) {
 
       assert(fr->tiid == getLastElemStore(flg) + 1);
 
-      if (fr->clrBgn < fr->clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_makeSpaceLong(fr->tiid);
-      if (fr->vecBgn < fr->vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_makeSpaceLong(fr->tiid);
-      if (fr->maxBgn < fr->maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_makeSpaceLong(fr->tiid);
-      if (fr->tntBgn < fr->tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_makeSpaceLong(fr->tiid);
+      clearRange[AS_READ_CLEAR_CLR]->gkClearRange_makeSpaceLong(fr->tiid, fr->clrBgn, fr->clrEnd);
+      clearRange[AS_READ_CLEAR_VEC]->gkClearRange_makeSpaceLong(fr->tiid, fr->vecBgn, fr->vecEnd);
+      clearRange[AS_READ_CLEAR_MAX]->gkClearRange_makeSpaceLong(fr->tiid, fr->maxBgn, fr->maxEnd);
+      clearRange[AS_READ_CLEAR_TNT]->gkClearRange_makeSpaceLong(fr->tiid, fr->tntBgn, fr->tntEnd);
 
       fr->fr.lg.clearBeg = fr->clrBgn;
       fr->fr.lg.clearEnd = fr->clrEnd;

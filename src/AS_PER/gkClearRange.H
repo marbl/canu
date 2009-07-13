@@ -45,9 +45,9 @@ private:
   //  flag is NOT set, so unless someone actually sets one of the
   //  ranges, these empty ranges are not saved.
   //
-  void       gkClearRange_makeSpaceShort(AS_IID tiid);
-  void       gkClearRange_makeSpaceMedium(AS_IID tiid);
-  void       gkClearRange_makeSpaceLong(AS_IID tiid);
+  void       gkClearRange_makeSpaceShort(AS_IID tiid, uint32 bgn, uint32 end);
+  void       gkClearRange_makeSpaceMedium(AS_IID tiid, uint32 bgn, uint32 end);
+  void       gkClearRange_makeSpaceLong(AS_IID tiid, uint32 bgn, uint32 end);
 
   gkStore   *gkp;
 
