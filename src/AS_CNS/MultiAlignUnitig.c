@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.12 2009-07-11 00:25:07 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.13 2009-07-13 23:56:17 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1009,8 +1009,10 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
     int32   bidx = frankensteinBof[-ahang];
     Bead   *bead = GetBead(beadStore, bidx);
 
-    assert(bead->down == -1);  //  Just searching up will break if this triggers
     assert(bead->prev == -1);  //  Should be the first bead in the frankenstein
+
+    while (bead->down != -1)
+      bead = GetBead(beadStore, bead->down);
 
     while ((bead) && (bead->frag_index != tiid))
       bead = (bead->up == -1) ? NULL : GetBead(beadStore, bead->up);
