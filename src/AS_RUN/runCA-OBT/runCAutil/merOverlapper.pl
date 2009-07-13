@@ -7,7 +7,7 @@ sub findOvermerryFailures ($$) {
 
     for (my $i=1; $i<=$ovmJobs; $i++) {
         my $out = substr("0000" . $i, -4);
-        if (! -e "$wrk/$outDir/seeds/$out.ovm.gz") {
+        if (-e "$wrk/$outDir/seeds/$out.ovm.WORKING.gz") {
             $failures++;
         }
     }
@@ -15,6 +15,20 @@ sub findOvermerryFailures ($$) {
     return $failures;
 }
 
+sub findOvermerrySuccess ($$) {
+    my $outDir   = shift @_;
+    my $ovmJobs  = shift @_;
+    my $successes= 0;
+
+    for (my $i=1; $i<=$ovmJobs; $i++) {
+        my $out = substr("0000" . $i, -4);
+        if (-e "$wrk/$outDir/seeds/$out.ovm.gz") {
+            $successes++;
+        }
+    }
+
+    return($successes == $ovmJobs);
+}
 
 sub findOlapFromSeedsFailures ($$) {
     my $outDir   = shift @_;
@@ -23,12 +37,27 @@ sub findOlapFromSeedsFailures ($$) {
 
     for (my $i=1; $i<=$olpJobs; $i++) {
         my $out = substr("0000" . $i, -4);
-        if (! -e "$wrk/$outDir/olaps/$out.ovb.gz") {
+        if (-e "$wrk/$outDir/olaps/$out.ovb.WORKING.gz") {
             $failures++;
         }
     }
 
     return $failures;
+}
+
+sub findOlapFromSeedsSuccess ($$) {
+    my $outDir   = shift @_;
+    my $olpJobs  = shift @_;
+    my $successes= 0;
+
+    for (my $i=1; $i<=$olpJobs; $i++) {
+        my $out = substr("0000" . $i, -4);
+        if (-e "$wrk/$outDir/olaps/$out.ovb.gz") {
+            $successes++;
+        }
+    }
+
+    return $successes == $olpJobs;
 }
 
 
@@ -197,7 +226,6 @@ sub merOverlapper($) {
             print F " -o $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz \\\n";
             print F " $wrk/$asm.gkpStore \\\n";
             print F " \$minid \$maxid \\\n";
-            print F " > $wrk/$outDir/olaps/$asm.\$jobid.ovb.err 2>&1 \\\n";
             print F "&& \\\n";
             print F "mv $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz $wrk/$outDir/olaps/\$jobid.ovb.gz\n";
         } else {
@@ -206,18 +234,11 @@ sub merOverlapper($) {
             print F " -o $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz \\\n";
             print F " $wrk/$asm.gkpStore \\\n";
             print F " \$minid \$maxid \\\n";
-            print F " > $wrk/$outDir/olaps/$asm.\$jobid.ovb.err 2>&1 \\\n";
             print F "&& \\\n";
             print F "mv $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz $wrk/$outDir/olaps/\$jobid.ovb.gz \\\n";
             print F "&& \\\n";
-            print F "mv $wrk/3-overlapcorrection/\$jobid.frgcorr.WORKING $wrk/3-overlapcorrection/\$jobid.frgcorr \\\n";
-            print F "\n";
-            print F "rm -f $wrk/3-overlapcorrection/\$jobid.frgcorr.WORKING\n";
+            print F "mv $wrk/3-overlapcorrection/\$jobid.frgcorr.WORKING $wrk/3-overlapcorrection/\$jobid.frgcorr\n";
         }
-
-        print F "\n";
-        print F "rm -f $wrk/$outDir/olaps/\$jobid.ovb.WORKING\n";
-        print F "rm -f $wrk/$outDir/olaps/\$jobid.ovb.WORKING.gz\n";
 
         close(F);
 
@@ -231,15 +252,14 @@ sub merOverlapper($) {
     #
     #  FAILUREHELPME
     #
-    my $ovmFailures = findOvermerryFailures($outDir, $ovmJobs);
-    if (($ovmFailures != 0) && ($ovmFailures < $ovmJobs)) {
-        caFailure("mer overlapper seed finding failed", undef);
+    if (findOvermerryFailures($outDir, $ovmJobs) > 0) {
+        caFailure("overmerry failed.  See *.err in $wrk/$outDir", undef);
     }
 
     #  Submit to the grid (or tell the user to do it), or just run
     #  things here
     #
-    if (findOvermerryFailures($outDir, $ovmJobs) > 0) {
+    if (findOvermerrySuccess($outDir, $ovmJobs) == 0) {
         if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
             my $sge        = getGlobal("sge");
             my $sgeOverlap = getGlobal("sgeMerOverlapSeed");
@@ -247,7 +267,7 @@ sub merOverlapper($) {
             my $SGE;
             $SGE  = "qsub $sge $sgeOverlap -cwd -N mer_$asm \\\n";
             $SGE .= "  -t 1-$ovmJobs \\\n";
-            $SGE .= "  -j y -o $wrk/$outDir/seeds/\\\$TASK_ID.out \\\n";
+            $SGE .= "  -j y -o $wrk/$outDir/seeds/\\\$TASK_ID.err \\\n";
             $SGE .= "  $wrk/$outDir/overmerry.sh\n";
 
             submitBatchJobs($SGE, "mer_$asm");
@@ -255,9 +275,9 @@ sub merOverlapper($) {
         } else {
             for (my $i=1; $i<=$ovmJobs; $i++) {
                 my $out = substr("0000" . $i, -4);
-                &scheduler::schedulerSubmit("$wrk/$outDir/overmerry.sh $i > $wrk/$outDir/seeds/$out.out 2>&1 && rm -f $wrk/$outDir/seeds/$out.out");
+                &scheduler::schedulerSubmit("$wrk/$outDir/overmerry.sh $i > $wrk/$outDir/seeds/$out.err 2>&1");
             }
-
+        
             &scheduler::schedulerSetNumberOfProcesses(getGlobal("merOverlapperSeedConcurrency"));
             &scheduler::schedulerFinish();
         }
@@ -267,16 +287,15 @@ sub merOverlapper($) {
     #
     #  FAILUREHELPME
     #
-    {
-        my $f = findOvermerryFailures($outDir, $ovmJobs);
-        caFailure("there were $f overmerry failures", undef) if ($f > 0);
-    }
-
-    if (runCommand($wrk, "find $wrk/$outDir/seeds -name \\*ovm.gz -print > $wrk/$outDir/$asm.merStore.list")) {
-        caFailure("failed to generate a list of all the overlap files", undef);
+    if (findOvermerryFailures($outDir, $ovmJobs) > 0) {
+        caFailure("overmerry failed.  See *.err in $wrk/$outDir", undef);
     }
 
     if (! -e "$wrk/$outDir/$asm.merStore") {
+        if (runCommand($wrk, "find $wrk/$outDir/seeds -name \\*ovm.gz -print > $wrk/$outDir/$asm.merStore.list")) {
+            caFailure("failed to generate a list of all the overlap files", undef);
+        }
+
         my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/overlapStore";
@@ -303,15 +322,14 @@ sub merOverlapper($) {
     #
     #  FAILUREHELPME
     #
-    my $olpFailures = findOlapFromSeedsFailures($outDir, $olpJobs);
-    if (($olpFailures != 0) && ($olpFailures < $olpJobs)) {
-        caFailure("mer overlapper extension failed", undef);
+    if (findOlapFromSeedsFailures($outDir, $olpJobs) > 0) {
+        caFailure("olap-from-seeds failed.  See *.err in $wrk/$outDir.", undef);
     }
 
     #  Submit to the grid (or tell the user to do it), or just run
     #  things here
     #
-    if (findOlapFromSeedsFailures($outDir, $olpJobs) > 0) {
+    if (findOlapFromSeedsSuccess($outDir, $ovmJobs) == 0) {
         if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
             my $sge        = getGlobal("sge");
             my $sgeOverlap = getGlobal("sgeMerOverlapExtend");
@@ -319,7 +337,7 @@ sub merOverlapper($) {
             my $SGE;
             $SGE  = "qsub $sge $sgeOverlap -cwd -N olp_$asm \\\n";
             $SGE .= "  -t 1-$olpJobs \\\n";
-            $SGE .= "  -j y -o $wrk/$outDir/olaps/\\\$TASK_ID.out \\\n";
+            $SGE .= "  -j y -o $wrk/$outDir/olaps/\\\$TASK_ID.err \\\n";
             $SGE .= "  $wrk/$outDir/olap-from-seeds.sh\n";
 
             submitBatchJobs($SGE, "olp_$asm");
@@ -327,7 +345,7 @@ sub merOverlapper($) {
         } else {
             for (my $i=1; $i<=$olpJobs; $i++) {
                 my $out = substr("0000" . $i, -4);
-                &scheduler::schedulerSubmit("$wrk/$outDir/olap-from-seeds.sh $i > $wrk/$outDir/olaps/$out.out 2>&1");
+                &scheduler::schedulerSubmit("$wrk/$outDir/olap-from-seeds.sh $i > $wrk/$outDir/olaps/$out.err 2>&1");
             }
 
             &scheduler::schedulerSetNumberOfProcesses(getGlobal("merOverlapperExtendConcurrency"));
@@ -339,8 +357,7 @@ sub merOverlapper($) {
     #
     #  FAILUREHELPME
     #
-    {
-        my $f = findOlapFromSeedsFailures($outDir, $olpJobs);
-        caFailure("there were $f olap-from-seeds failures", undef) if ($f > 0);
+    if (findOlapFromSeedsFailures($outDir, $olpJobs) > 0) {
+        caFailure("olap-from-seeds failed.  See *.err in $wrk/$outDir.", undef);
     }
 }
