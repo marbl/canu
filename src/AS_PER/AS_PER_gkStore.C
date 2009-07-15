@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.6 2009-07-13 23:41:05 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.7 2009-07-15 03:21:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -488,9 +488,9 @@ gkStore::gkStore_load(AS_IID beginIID, AS_IID endIID, int flags) {
   uint32  edType    = 0;
   uint32  edTiid    = 0;
 
-  uint32  firstsm   = 0, lastsm = 0;
-  uint32  firstmd   = 0, lastmd = 0;
-  uint32  firstlg   = 0, lastlg = 0;
+  int64  firstsm   = 0, lastsm = 0;
+  int64  firstmd   = 0, lastmd = 0;
+  int64  firstlg   = 0, lastlg = 0;
 
   //  Position the metadata stream -- this code is similar to
   //  gkStore_loadPartition.
@@ -554,12 +554,13 @@ gkStore::gkStore_load(AS_IID beginIID, AS_IID endIID, int flags) {
     gkMediumFragment mdbeg;
     gkMediumFragment mdend;
 
-    mdbeg.seqOffset = mdend.seqOffset = 0;
+    mdbeg.seqOffset = mdend.seqOffset = 0;  //  Abuse.
     mdbeg.qltOffset = mdend.qltOffset = 0;
 
-    getIndexStore(fmd, firstmd, &mdbeg);
+    if (firstmd != STREAM_FROMSTART)
+      getIndexStore(fmd, firstmd, &mdbeg);
 
-    if (lastmd + 1 <= getLastElemStore(fmd))
+    if ((lastmd != STREAM_UNTILEND) && (lastmd + 1 <= getLastElemStore(fmd)))
       getIndexStore(fmd, lastmd+1, &mdend);
 
     fmd = convertStoreToPartialMemoryStore(fmd, firstmd, lastmd);
@@ -575,12 +576,13 @@ gkStore::gkStore_load(AS_IID beginIID, AS_IID endIID, int flags) {
     gkLongFragment lgbeg;
     gkLongFragment lgend;
 
-    lgbeg.seqOffset = lgend.seqOffset = 0;
+    lgbeg.seqOffset = lgend.seqOffset = 0;  //  Abuse.
     lgbeg.qltOffset = lgend.qltOffset = 0;
 
-    getIndexStore(flg, firstlg, &lgbeg);
+    if (firstlg != STREAM_FROMSTART)
+      getIndexStore(flg, firstlg, &lgbeg);
 
-    if (lastlg + 1 <= getLastElemStore(flg))
+    if ((lastlg != STREAM_UNTILEND) && (lastlg + 1 <= getLastElemStore(flg)))
       getIndexStore(flg, lastlg+1, &lgend);
 
     flg = convertStoreToPartialMemoryStore(flg, firstlg, lastlg);
