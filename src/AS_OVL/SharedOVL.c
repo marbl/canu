@@ -19,10 +19,85 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: SharedOVL.c,v 1.12 2009-05-21 02:24:37 brianwalenz Exp $";
+static const char *rcsid = "$Id: SharedOVL.c,v 1.13 2009-07-16 02:48:23 brianwalenz Exp $";
 
 #include  "SharedOVL.h"
 
+
+
+void  Fix_Homopoly_Substitution
+  (const char * a_string, const char * b_string, int delta [], const HP_LV_Cell_t * cell,
+   int e, int d, int * d_len, int * last, int very_end)
+
+// Check if the substitution after the last match in cell is
+// a homopoly substitution, i.e., if either of the characters matches
+// a match to the left or right of this position.  If so, convert it
+// to an insertion and a deletion and put the appropriate entry on delta
+// and change (* d_len).  Also set (* last) to the number of characters matched
+// up to this point on a_string.  b_string is the other string.  e was the
+// error row the alignment began on, and d is the offset column of cell.
+// very_end is the end position of the alignment between the two strings.
+
+{
+  char  a_ch, b_ch;
+  int  j, p;
+
+  p = cell -> len;  // position of substitution
+  a_ch = a_string [p];
+  b_ch = b_string [p + d];
+
+  if (cell -> hp_left && a_string [p - 1] == b_string [p + d - 1])
+    { // left homopoly on a_string (top string)
+      delta [e - (* d_len)] = p - (* last);
+      (* d_len) ++;
+      delta [e - (* d_len)] = +1;
+      (* d_len) ++;
+      (* last) = p;
+    }
+  else if (cell -> hp_right && a_string [p - 1] == b_string [p + d - 1])
+    { // left homopoly on b_string (bottom string)
+      delta [e - (* d_len)] = (* last) - p;
+      (* d_len) ++;
+      delta [e - (* d_len)] = -1;
+      (* d_len) ++;
+      (* last) = p;
+    }
+  else if (p < very_end)
+    {
+      if (a_ch == a_string [p + 1])
+        { // right homopoly on a_string (top string)
+          // want indel on right side of homopoly run; loop to find how
+          // long the run is
+          for (j = 0; j < (* last) - p - 1 && b_string [p + d + 1 + j] == a_ch; j ++)
+            ;
+          if (0 < j)
+            {
+              delta [e - (* d_len)] = (* last) - p - j;
+              (* d_len) ++;
+              delta [e - (* d_len)] = -1 - j;
+              (* d_len) ++;
+              (* last) = p;
+            }
+        }
+      else if (b_ch == b_string [p + d + 1])
+        { // right homopoly on b_string (bottom string)
+          // want indel on right side of homopoly run; loop to find how
+          // long the run is
+          for (j = 0; j < (* last) - p - 1 && a_string [p + 1 + j] == b_ch; j ++)
+            ;
+          if (0 < j)
+            {
+              delta [e - (* d_len)] = p - (* last) + j;
+              (* d_len) ++;
+              delta [e - (* d_len)] = +1 + j;
+              (* d_len) ++;
+              (* last) = p;
+            }
+        }
+    }
+
+  return;
+}
 
 
 int  Fwd_Banded_Homopoly_Prefix_Match
@@ -538,6 +613,436 @@ if (0 && best_end_score < MAX_HOMOPOLY_SCORE)
 
    return 0;
   }
+
+
+int  Fwd_HP_LV_Prefix_Match
+  (char a_string [], int m, char t_string [], int n, int score_limit,
+   int * return_score, int * a_end, int * t_end, int * match_to_end,
+   double match_value, int * delta, int * delta_len, HP_LV_Cell_t ** cell,
+   unsigned can_look [], int edit_match_limit [], int error_bound [],
+   int doing_partial)
+
+// Return the number of changes (inserts, deletes, replacements)
+// needed to match prefixes of strings  a_string [0 .. (m-1)]  and
+//  t_string [0 .. (n-1)]  with minimum score, if the score is not more
+// than  score_limit , where
+// the match must extend to the end of one of those strings.
+// Use a 1-2 homopoly scoring scheme where homopolymer run indels count 1
+// and other indels and substitutions count 2.  Use a modified Landau-Vishkin
+// type algorithm where rows are scores instead of numbers of errors.
+// Put delta description of alignment in  delta  and set
+// (* delta_len)  to the number of entries there if it's a complete
+// match.   match_value  is the value of a character match used to
+// score alignments in finding the end of partial alignments.
+// Set  a_end  and  t_end  to the rightmost positions where the
+// alignment ended in  a_string  and  t_string , respectively.
+// Set  match_to_end  true if the match extended to the end
+// of at least one string; otherwise, set it false to indicate
+// a branch point.
+//  cell  has storage preallocated storage that can be used
+// for this computation (including in a threaded environment).
+//  can_look [] has space for bit flags with subscripts from
+//  - score_limit .. + score_limit .
+//  edit_match_limit [e]  is the minimum match length worth attempting to
+// extend containing  e  errors.   error_bound [i]  has the most errors
+// that can be tolerated in a match of length  i .  If  doing_partial
+// is true return the best match, whether it extends to the end of either
+// string or not.
+
+{
+  double  score, max_score;
+  int  equiv_e, e_limit, errors;
+  int  max_score_len, max_score_best_d, max_score_best_e;
+  int  best_d, best_e, longest, row, tail_len;
+  int  left, right, old_left, old_right, new_left, new_right;
+  int  d, e, j, from, shorter;
+
+  best_d = best_e = 0;
+  (* delta_len) = 0;
+
+  shorter = OVL_Min_int (m, n);
+  for (row = 0; row < shorter && a_string [row] == t_string [row]; row ++)
+    ;
+
+  longest = cell [0] [0] . len = row;
+
+  if (row == shorter)                              // Exact match
+    {
+      (* a_end) = (* t_end) = row;
+      (* match_to_end) = TRUE;
+      (* return_score) = 0;
+
+      return 0;
+    }
+  cell [0] [0] . hp_left = (0 < row && a_string [row] == a_string [row - 1]);
+  cell [0] [0] . hp_right = (0 < row && t_string [row] == t_string [row - 1]);
+  cell [0] [0] . is_valid = 1;
+
+  old_left = old_right = 0;
+  max_score = 0.0;
+  max_score_len = max_score_best_d = max_score_best_e = 0;
+
+  // Add entries for row 1 which can only be homopoly errors from
+  // cell [0] [0]
+  if (! cell [0] [0] . hp_left)
+    {
+      left = 0;   // not a homopoly error
+      cell [1] [-1] . is_valid = cell [1] [-1] . len = 0;
+    }
+  else
+    {
+      d = left = -1;
+      j = 1 + row;
+      while (j < m && j + d < n
+             && a_string [j] == t_string [j + d])
+        j ++;
+      cell [1] [-1] . len = j;
+      cell [1] [-1] . from = +1;
+      if (j == m || j + d == n)
+        {
+          (* a_end) = j;           // One past last align position
+          (* t_end) = j + d;
+          Set_Fwd_HP_LV_Delta (delta, delta_len, cell, 1, d, & errors, a_string,
+                               t_string);
+          (* match_to_end) = TRUE;
+          (* return_score) = 1;
+
+          return errors;
+        }
+      cell [1] [-1] . is_valid = 1;
+      cell [1] [-1] . hp_left = (0 < j && a_string [j] == a_string [j - 1]);
+      cell [1] [-1] . hp_right = (0 < j + d && t_string [j + d] == t_string [j + d - 1]);
+      if (longest < j)
+        longest = j;
+    }
+
+  cell [1] [0] . from = cell [1] [0] . is_valid = cell [1] [0] . hp_left
+    = cell [1] [0] . hp_right = cell [1] [0] . len = 0;
+
+  if (! cell [0] [0] . hp_right)
+    {
+      right = 0;   // not a homopoly error
+      cell [1] [1] . is_valid = cell [1] [1] . len = 0;
+    }
+  else
+    {
+      d = right = 1;
+      j = row;
+      while (j < m && j + d < n
+             && a_string [j] == t_string [j + d])
+        j ++;
+      cell [1] [1] . len = j;
+      cell [1] [1] . from = -1;
+      if (j == m || j + d == n)
+        {
+          (* a_end) = j;           // One past last align position
+          (* t_end) = j + d;
+          Set_Fwd_HP_LV_Delta (delta, delta_len, cell, 1, d, & errors, a_string,
+                               t_string);
+          (* match_to_end) = TRUE;
+          (* return_score) = 1;
+
+          return errors;
+        }
+      cell [1] [1] . is_valid = 1;
+      cell [1] [1] . hp_left = (0 < j && a_string [j] == a_string [j - 1]);
+      cell [1] [1] . hp_right = (0 < j + d && t_string [j + d] == t_string [j + d - 1]);
+      if (longest < j)
+        longest = j;
+    }
+
+  if (Verbose_Level > 2)
+    {
+      #define  CELL_SHIFT  5
+      // above is number of positions to shift in d=0 column of cell display
+      e = 0;
+      printf ("\ne=%2d:%*s ", 0, 7 * (CELL_SHIFT - e), "");
+      printf (" %6u", cell [0] [0] . len);
+      printf ("\n%5s%*s ", "", 7 * (CELL_SHIFT - e), "");
+      printf (" %2d:%1u%1u%1u", cell [0] [0] . from, cell [0] [0] . hp_left,
+                cell [0] [0] . hp_right, cell [0] [0] . is_valid);
+      putchar ('\n');
+
+      e = 1;
+      printf ("\ne=%2d:%*s ", e, 7 * (CELL_SHIFT - e), "");
+      for (j = -1; j <= 1; j ++)
+        printf (" %6u", cell [1] [j] . len);
+      printf ("\n%5s%*s ", "", 7 * (CELL_SHIFT - e), "");
+      for (j = -1; j <= 1; j ++)
+        printf (" %2d:%1u%1u%1u", cell [1] [j] . from, cell [1] [j] . hp_left,
+                cell [1] [j] . hp_right, cell [1] [j] . is_valid);
+      putchar ('\n');
+    }
+
+  // Do remaining rows
+  for (e = 2; e <= score_limit; e ++)
+    {
+      if (cell [e - 1] [left] . hp_left)
+        new_left = left - 1;
+      else
+        new_left = left;
+      if (old_left - 1 < new_left)
+        new_left = old_left - 1;
+
+      if (cell [e - 1] [right] . hp_right)
+        new_right = right + 1;
+      else
+        new_right = right;
+      if (new_right < old_right + 1)
+        new_right = old_right + 1;
+
+      if (Verbose_Level > 3)
+        printf ("\nstart e=%d  old_left=%d  old_right=%d  left=%d  right=%d"
+                "  new_left=%d  new_right=%d\n",
+                e, old_left, old_right, left, right, new_left, new_right);
+
+      // set bit flags for which cells can look back where
+      for (d = new_left; d <= new_right; d ++)
+        can_look [d] = 0;
+      can_look [left - 1] |= NE_LOOK_MASK;
+      can_look [right + 1] |= NW_LOOK_MASK;
+      if (left < right)
+        {
+          can_look [left] |= NE_LOOK_MASK;
+          can_look [right] |= NW_LOOK_MASK;
+          for (d = left + 1; d < right; d ++)
+            can_look [d] |= (NE_LOOK_MASK | NW_LOOK_MASK);
+        }
+      can_look [old_left - 1] |= NNE_LOOK_MASK;
+      can_look [old_right + 1] |= NNW_LOOK_MASK;
+      if (old_left == old_right)
+        can_look [old_left] |= NN_LOOK_MASK;
+      else
+        {
+          can_look [old_left] |= (NN_LOOK_MASK | NNE_LOOK_MASK);
+          can_look [old_right] |= (NN_LOOK_MASK | NNW_LOOK_MASK);
+          for (d = old_left + 1; d < old_right; d ++)
+            can_look [d] |= (NNW_LOOK_MASK | NN_LOOK_MASK | NNE_LOOK_MASK);
+        }
+       
+      // Do cells across this row
+      for (d = new_left; d <= new_right; d ++)
+        {
+          // first try homopoly indel cases
+          row = -1;
+          from = -3;   // impossible value
+
+          if (Verbose_Level > 3)
+            printf ("d=%2d  can_look= %3s %3s %3s %3s %3s\n", d,
+                    ((can_look [d] & NNW_LOOK_MASK) ? "NNW" : ""),
+                    ((can_look [d] & NN_LOOK_MASK) ? "NN" : ""),
+                    ((can_look [d] & NNE_LOOK_MASK) ? "NNE" : ""),
+                    ((can_look [d] & NW_LOOK_MASK) ? "NW" : ""),
+                    ((can_look [d] & NE_LOOK_MASK) ? "NE" : ""));
+
+          if ((can_look [d] & NW_LOOK_MASK) && cell [e - 1] [d - 1] . hp_right)
+            {
+              row = cell [e - 1] [d - 1] . len;
+              from = -1;
+            }
+          if ((can_look [d] & NE_LOOK_MASK) && cell [e - 1] [d + 1] . hp_left
+              && (j = 1 + cell [e - 1] [d + 1] . len) > row)
+            {
+              row = j;
+              from = +1;
+            }
+
+          // now do normal cases
+          if ((can_look [d] & NN_LOOK_MASK) && cell [e - 2] [d] . is_valid
+                && (j = 1 + cell [e - 2] [d] . len) > row)
+            {
+              row = j;
+              from = 0;
+            }
+          if ((can_look [d] & NNW_LOOK_MASK) && cell [e - 2] [d - 1] . is_valid
+                && (j = cell [e - 2] [d - 1] . len) > row)
+            {
+              row = j;
+              from = -2;
+            }
+          if ((can_look [d] & NNE_LOOK_MASK) && cell [e - 2] [d + 1] . is_valid
+                && (j = 1 + cell [e - 2] [d + 1] . len) > row)
+            {
+              row = j;
+              from = +2;
+            }
+
+          cell [e] [d] . from = from;
+
+          if (row == -1)
+            {
+              cell [e] [d] . len = 0;
+              cell [e] [d] . is_valid = cell [e] [d] . hp_left
+                = cell [e] [d] . hp_right = 0;
+              continue;
+            }
+
+          while (row < m && row + d < n
+                 && a_string [row] == t_string [row + d])
+            row ++;
+
+          cell [e] [d] . len = row;
+
+          if (row == m || row + d == n)
+            {
+              // Force last error to be mismatch rather than insertion
+              // if it's not a homopoly insertion
+              if (row == m && from == +2 && row == 1 + cell [e - 2] [d + 1] . len)
+                {
+                  d ++;
+                  cell [e] [d] . len = row;
+                  cell [e] [d] . from = 0;
+                }
+              (* a_end) = row;           // One past last align position
+              (* t_end) = row + d;
+
+              //  Check for branch point here caused by uneven
+              //  distribution of errors
+              score = row * match_value - e / 2;
+              // Assumes  match_value - mismatch_value == 1.0
+              tail_len = row - max_score_len;
+              if ((doing_partial && score < max_score)
+                  || (e > MIN_BRANCH_END_DIST / 2
+                      && tail_len >= MIN_BRANCH_END_DIST
+                      && (max_score - score) / tail_len >= MIN_BRANCH_TAIL_SLOPE))
+                {
+                  (* a_end) = max_score_len;
+                  (* t_end) = max_score_len + max_score_best_d;
+                  Set_Fwd_HP_LV_Delta
+                    (delta, delta_len, cell, max_score_best_e,
+                     max_score_best_d, & errors, a_string, t_string);
+                  (* match_to_end) = FALSE;
+                  (* return_score) = max_score_best_e;
+                  return errors;
+                }
+
+              if (Verbose_Level > 2)
+                {
+                  printf ("\nnew_left=%d  new_right=%d\n", new_left, new_right);
+                  printf ("e=%2d:%*s ", e, 7 * (CELL_SHIFT + new_left), "");
+                  for (j = new_left; j <= d; j ++)
+                    printf (" %6u", cell [e] [j] . len);
+                  printf ("\n%5s%*s ", "", 7 * (CELL_SHIFT + new_left), "");
+                  for (j = new_left; j <= d; j ++)
+                    printf (" %2d:%1u%1u%1u", cell [e] [j] . from, cell [e] [j] . hp_left,
+                            cell [e] [j] . hp_right, cell [e] [j] . is_valid);
+                  putchar ('\n');
+                }
+
+              Set_Fwd_HP_LV_Delta (delta, delta_len, cell, e, d, & errors,
+                                   a_string, t_string);
+              (* match_to_end) = TRUE;
+              (* return_score) = e;
+
+              return errors;
+            }
+
+          if (Verbose_Level > 2)
+            {
+              int  i, j = d;
+
+              for (i = e; i > 0; i --)
+                switch (cell [i] [j] . from)
+                  {
+                  case 0 :
+                    i --;
+                    break;
+                  case -2 :
+                    i --;
+                  case -1 :
+                    j --;
+                    break;
+                  case +2 :
+                    i --;
+                  case +1 :
+                    j ++;
+                    break;
+                  }
+              if (i != 0 || j != 0)
+                printf ("** ERROR:  traceback from e=%d d=%d ended at e=%d d=%d\n",
+                        e, d, i, j);
+            }
+
+          cell [e] [d] . is_valid = 1;
+          cell [e] [d] . hp_left = (a_string [row] == a_string [row - 1]);
+          cell [e] [d] . hp_right = (t_string [row + d] == t_string [row + d - 1]);
+        }
+
+      equiv_e = (int) (e * 0.5 + 0.9);
+      e_limit = edit_match_limit [equiv_e];
+      while (new_left <= new_right && new_left < 0
+             && cell [e] [new_left] . len < e_limit)
+        new_left ++;
+      if (new_left >= 0)
+        while (new_left <= new_right
+               && cell [e] [new_left] . len + new_left < e_limit)
+          new_left ++;
+
+      if (new_left > new_right)
+        {
+          if (Verbose_Level > 1)
+            printf ("Row has evaporated  e=%d  new_left=%d  new_right=%d"
+                    "  equiv_e=%d  e_limit=%d\n",
+                    e, new_left, new_right, equiv_e, e_limit);
+          if (longest < e_limit)
+            break;
+          else
+            continue;
+        }
+      while (new_right > 0
+             && cell [e] [new_right] . len + new_right < edit_match_limit [equiv_e])
+        new_right --;
+      if (new_right <= 0)
+        while (cell [e] [new_right] . len < edit_match_limit [equiv_e])
+          new_right --;
+      assert (new_left <= new_right);
+
+      for (d = new_left; d <= new_right; d ++)
+        if (cell [e] [d] . len > longest)
+          {
+            best_d = d;
+            best_e = e;
+            longest = cell [e] [d] . len;
+          }
+
+      score = longest * match_value - e / 2;
+      // Assumes  match_value - mismatch_value == 1.0
+      if (score > max_score
+          && best_e <= error_bound [OVL_Min_int (longest, longest + best_d)])
+        {
+          max_score = score;
+          max_score_len = longest;
+          max_score_best_d = best_d;
+          max_score_best_e = best_e;
+        }
+
+      if (Verbose_Level > 2)
+        {
+          printf ("\nnew_left=%d  new_right=%d\n", new_left, new_right);
+          printf ("e=%2d:%*s ", e, 7 * (CELL_SHIFT + new_left), "");
+          for (j = new_left; j <= new_right; j ++)
+            printf (" %6u", cell [e] [j] . len);
+          printf ("\n%5s%*s ", "", 7 * (CELL_SHIFT + new_left), "");
+          for (j = new_left; j <= new_right; j ++)
+            printf (" %2d:%1u%1u%1u", cell [e] [j] . from, cell [e] [j] . hp_left,
+                    cell [e] [j] . hp_right, cell [e] [j] . is_valid);
+          putchar ('\n');
+        }
+      old_left = left;
+      old_right = right;
+      left = new_left;
+      right = new_right;
+    }
+
+  (* a_end) = max_score_len;
+  (* t_end) = max_score_len + max_score_best_d;
+  Set_Fwd_HP_LV_Delta (delta, delta_len, cell, max_score_best_e,
+                       max_score_best_d, & errors, a_string, t_string);
+  (* match_to_end) = FALSE;
+  (* return_score) = max_score_best_e;
+
+  return errors;
+}
 
 
 int  Fwd_Prefix_Edit_Dist
@@ -1379,6 +1884,9 @@ void  Set_Fwd_Delta
    last = edit_array [e] [d];
    d_len = 0;
 
+   if (Verbose_Level > 2)
+     printf ("\nSet_Fwd_Delta:\n");
+
    // temporarily put values in  delta  starting at subscript  e
    // and working down.
 
@@ -1397,6 +1905,10 @@ void  Set_Fwd_Delta
          from = d + 1;
          max = j;
         }
+
+       if (Verbose_Level > 2)
+         printf ("k=%d  d=%d  from=%d  max=%d  last=%d\n",
+                 k, d, from, max, last);
 
       // Save the  appropriate delta value
       if (from == d - 1)
@@ -1494,6 +2006,98 @@ if (0)
 
    return;
   }
+
+
+void  Set_Fwd_HP_LV_Delta
+  (int delta [], int * delta_len, HP_LV_Cell_t ** cell, int e, int d, int * errors,
+   const char * a_string, const char * b_string)
+
+// Set  delta  to the entries indicating the insertions/deletions
+// in the alignment encoded in  edit_array  ending at position
+//  edit_array [e] [d] .  This is the position in the first
+// string where the alignment ended.  Set  (* delta_len)  to
+// the number of entries in  delta .  Set  (* errors)  to the number of
+// errors in the alignment.
+
+{
+  int  d_len, from, last, very_end;
+  int  prior_subst = FALSE;
+  int  i, j, k, p;
+
+  last = cell [e] [d] . len;
+  very_end = last - 1;
+  (* errors) = d_len = 0;
+
+  // temporarily put values in  delta  starting at subscript  e
+  // and working down.
+
+  if (Verbose_Level > 2)
+    printf ("\nSet_Fwd_HP_LV_Delta:\n");
+
+  for (k = e; k > 0; k --)
+    {
+      if (Verbose_Level > 2)
+        printf ("k=%d  d=%d  from=%d  last=%d  prior_subst=%d\n",
+                k, d, cell [k] [d] . from, last, prior_subst);
+      if (prior_subst)
+        Fix_Homopoly_Substitution (a_string, b_string, delta, & (cell [k] [d]),
+                                   e, d, & d_len, & last, very_end);
+
+      (* errors) ++;
+      switch (cell [k] [d] . from)
+        {
+        case  0 :
+          // Replace substitution by a homopoly indel and a regular indel
+          // if possible
+          k --;   // extra decrement to go back two rows
+          prior_subst = TRUE;
+          break;
+
+        case -2 :
+          k --;   // extra decrement to go back two rows
+          // fall through to next case
+        case -1 :
+          delta [e - d_len] = cell [k - 1] [d - 1] . len - last - 1;
+          d_len ++;
+          d --;
+          last = cell [k - 1] [d] . len;
+          prior_subst = FALSE;
+          break;
+           
+        case +2 :
+          k --;   // extra decrement to go back two rows
+          // fall through to next case
+        case +1 :
+          delta [e - d_len] = last - cell [k - 1] [d + 1] . len;
+          d_len ++;
+          d ++;
+          last = cell [k - 1] [d] . len;
+          prior_subst = FALSE;
+          break;
+
+        default :
+          fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
+          fprintf (stderr, "Bad from value = %d  r = %d  c = %d\n",
+                   cell [k] [d] . from, k, d);
+          exit (EXIT_FAILURE);
+        }
+    }
+
+  if (prior_subst)
+    Fix_Homopoly_Substitution (a_string, b_string, delta, & (cell [k] [d]),
+                               e, d, & d_len, & last, very_end);
+
+  delta [e - d_len] = last + 1;
+
+  // Now shift values to the front of  delta
+  k = 0;
+  for (i = e - d_len; i < e; i ++)
+    delta [k ++] = abs (delta [i]) * Sign (delta [i + 1]);
+
+  (* delta_len) = d_len;
+
+  return;
+}
 
 
 void  Set_Rev_Delta
