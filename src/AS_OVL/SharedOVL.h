@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.h,v 1.13 2008-10-08 22:02:58 brianwalenz Exp $
- * $Revision: 1.13 $
+ * $Id: SharedOVL.h,v 1.14 2009-07-16 02:48:23 brianwalenz Exp $
+ * $Revision: 1.14 $
 */
 
 
 #ifndef  __SHAREDOVL_H_INCLUDED
 #define  __SHAREDOVL_H_INCLUDED
 
-static const char *rcsid_SHAREDOVL_H_INCLUDED = "$Id: SharedOVL.h,v 1.13 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid_SHAREDOVL_H_INCLUDED = "$Id: SharedOVL.h,v 1.14 2009-07-16 02:48:23 brianwalenz Exp $";
 
 
 #include "AS_OVL_delcher.h"
@@ -121,6 +121,15 @@ static const char *rcsid_SHAREDOVL_H_INCLUDED = "$Id: SharedOVL.h,v 1.13 2008-10
 #define  STANDARD_VOTE_FACTOR      5
   // Number of votes for each occurrence of a character in a non-homopoly-type read
 
+// Bit masks for array in function  Fwd_HP_LV_Prefix_Match that determine
+// which preceding cells the current cell can look back to to compute its
+// value.
+#define  NW_LOOK_MASK   0x1
+#define  NE_LOOK_MASK   0x2
+#define  NNW_LOOK_MASK  0x4
+#define  NN_LOOK_MASK   0x8
+#define  NNE_LOOK_MASK  0x10
+
 
 // Type definitions
 
@@ -160,6 +169,15 @@ typedef struct
   }  Diff_Entry_t;
 
 typedef struct
+{
+  int  from : 3;
+  unsigned  hp_left : 1;
+  unsigned  hp_right : 1;
+  unsigned  is_valid : 1;
+  unsigned  len : 26;
+}  HP_LV_Cell_t;
+
+typedef struct
   {
    int32  b_iid;
    unsigned  a_lo : FRAG_LEN_BITS;
@@ -194,6 +212,9 @@ typedef struct
 
 // Function prototypes
 
+void  Fix_Homopoly_Substitution
+  (const char * a_string, const char * b_string, int delta [], const HP_LV_Cell_t * cell,
+   int e, int d, int * d_len, int * last, int very_end);
 int  Fwd_Banded_Homopoly_Prefix_Match
   (const char * AA, int m, const char * TT, int n, int A_is_homopoly,
    int T_is_homopoly, int score_limit, int * return_score,
@@ -204,6 +225,12 @@ int  Fwd_Homopoly_Prefix_Match
   (const char * A, int m, const char * T, int n, int score_limit,
    int * return_score, int * a_end, int * t_end, int * match_to_end, int * delta,
    int * delta_len, Homopoly_Match_Entry_t ** edit_array);
+int  Fwd_HP_LV_Prefix_Match
+  (char a_string [], int m, char t_string [], int n, int score_limit,
+   int * return_score, int * a_end, int * t_end, int * match_to_end,
+   double match_value, int * delta, int * delta_len, HP_LV_Cell_t ** cell,
+   unsigned can_look [], int edit_match_limit [], int error_bound [],
+   int doing_partial);
 int  Fwd_Prefix_Edit_Dist
   (char A [], int m, char T [], int n, int Error_Limit,
    int * A_End, int * T_End, int * Match_To_End,
@@ -232,6 +259,9 @@ void  Set_Fwd_Delta
 void  Set_Fwd_Homopoly_Delta
   (int delta [], int * delta_len, Homopoly_Match_Entry_t ** edit_array,
    int e, int d);
+void  Set_Fwd_HP_LV_Delta
+  (int delta [], int * delta_len, HP_LV_Cell_t ** cell, int e, int d, int * errors,
+   const char * a_string, const char * b_string);
 void  Set_Rev_Delta
   (int delta [], int * delta_len, int ** edit_array,
    int e, int d, int * leftover, int * t_end, int t_len);
