@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merge-trimming.C,v 1.38 2009-07-13 17:22:49 brianwalenz Exp $";
+const char *mainid = "$Id: merge-trimming.C,v 1.39 2009-07-16 20:30:30 brianwalenz Exp $";
 
 #include "trim.H"
 #include "constants.H"
@@ -199,11 +199,8 @@ main(int argc, char **argv) {
       uint32     qltL1 = 0;
       uint32     qltR1 = 0;
       AS_UID     uid   = fr.gkFragment_getReadUID();
-      gkLibrary *lr = NULL;
 
-      if (fr.gkFragment_getLibraryIID() != 0) {
-         lr = gkp->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
-      }
+      gkLibrary *lr = gkp->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
 
       //  If not already deleted, update the clear.  Updating the
       //  clear on deleted fragments usually results in the log
@@ -268,12 +265,9 @@ main(int argc, char **argv) {
     uint32 qltLQ1 = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
     uint32 qltRQ1 = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_OBTINITIAL);
     AS_UID uid    = fr.gkFragment_getReadUID();
-    AS_IID lib    = fr.gkFragment_getLibraryIID();
 
-    gkLibrary  *lr = NULL;
-    if (lib != 0) {
-       gkp->gkStore_getLibrary(lib);
-    }
+    AS_IID      lib = fr.gkFragment_getLibraryIID();
+    gkLibrary  *lr  = gkp->gkStore_getLibrary(lib);
 
     //  Only proceed if we're mutable.
     //
@@ -594,33 +588,39 @@ main(int argc, char **argv) {
   delete gkp;
   fclose(O);
 
+  //
   //  Report statistics
   //
 
-  fprintf(staFile, F_U32":\treset qltL to mode-of-5'mode\n", stats[0]);
-  fprintf(staFile, F_U32":\treset qltL to vector left\n", stats[15]);
-  fprintf(staFile, F_U32":\treset qltR to vector right\n", stats[16]);
-  fprintf(staFile, F_U32":\treset qltR to qltL due to inconsistency\n", stats[17]);
-  fprintf(staFile, F_U32":\tshort quality:\n", stats[1]);
-  fprintf(staFile, F_U32":\t  very short quality < %d or very short in common < %d, discard frag\n", stats[2], OBT_CQ_SHORT, OBT_CQ_SHORT);
-  fprintf(staFile, F_U32":\t  short quality use overlap modes\n", stats[3]);
-  fprintf(staFile, F_U32":\tuse the min/max/mode:\n", stats[4]);
-  fprintf(staFile, F_U32":\t  use mode (5')\n", stats[5]);
-  fprintf(staFile, F_U32":\t  use min>1 (5')\n", stats[6]);
-  fprintf(staFile, F_U32":\t  use quality (5')\n", stats[7]);
-  fprintf(staFile, F_U32":\t  use max>1 (3')\n", stats[8]);
-  fprintf(staFile, F_U32":\t  use mode (3')\n", stats[9]);
-  fprintf(staFile, F_U32":\t  use quality (3')\n", stats[10]);
-  fprintf(staFile, F_U32":\t  use min (5')\n", stats[11]);
-  fprintf(staFile, F_U32":\t  use max (3')\n", stats[12]);
-  fprintf(staFile, F_U32":\t  use max>1 close to max (3')\n", stats[14]);
-  fprintf(staFile, F_U32":\tinvalid clear after merging overlaps (should be 0)\n", stats[18]);
-  fprintf(staFile, F_U32":\tshort or inconsistent\n", stats[13]);
-  fprintf(staFile, F_U32":\tdeleted fragment due to zero clear\n", stats[19]);
-  fprintf(staFile, F_U32":\tupdated fragment clear range\n", stats[20]);
+  if (staFile) {
+    fprintf(staFile, F_U32":\treset qltL to mode-of-5'mode\n", stats[0]);
+    fprintf(staFile, F_U32":\treset qltL to vector left\n", stats[15]);
+    fprintf(staFile, F_U32":\treset qltR to vector right\n", stats[16]);
+    fprintf(staFile, F_U32":\treset qltR to qltL due to inconsistency\n", stats[17]);
+    fprintf(staFile, F_U32":\tshort quality:\n", stats[1]);
+    fprintf(staFile, F_U32":\t  very short quality < %d or very short in common < %d, discard frag\n", stats[2], OBT_CQ_SHORT, OBT_CQ_SHORT);
+    fprintf(staFile, F_U32":\t  short quality use overlap modes\n", stats[3]);
+    fprintf(staFile, F_U32":\tuse the min/max/mode:\n", stats[4]);
+    fprintf(staFile, F_U32":\t  use mode (5')\n", stats[5]);
+    fprintf(staFile, F_U32":\t  use min>1 (5')\n", stats[6]);
+    fprintf(staFile, F_U32":\t  use quality (5')\n", stats[7]);
+    fprintf(staFile, F_U32":\t  use max>1 (3')\n", stats[8]);
+    fprintf(staFile, F_U32":\t  use mode (3')\n", stats[9]);
+    fprintf(staFile, F_U32":\t  use quality (3')\n", stats[10]);
+    fprintf(staFile, F_U32":\t  use min (5')\n", stats[11]);
+    fprintf(staFile, F_U32":\t  use max (3')\n", stats[12]);
+    fprintf(staFile, F_U32":\t  use max>1 close to max (3')\n", stats[14]);
+    fprintf(staFile, F_U32":\tinvalid clear after merging overlaps (should be 0)\n", stats[18]);
+    fprintf(staFile, F_U32":\tshort or inconsistent\n", stats[13]);
+    fprintf(staFile, F_U32":\tdeleted fragment due to zero clear\n", stats[19]);
+    fprintf(staFile, F_U32":\tupdated fragment clear range\n", stats[20]);
+  }
 
-  fclose(logFile);
-  fclose(staFile);
+  if (logFile)
+    fclose(logFile);
+
+  if (staFile)
+    fclose(staFile);
 
   return(0);
 }
