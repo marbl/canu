@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.13 2009-07-13 23:56:17 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.14 2009-07-16 02:54:16 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -34,6 +34,7 @@ static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.13 2009-07-13 23:56:17 brianwa
 
 #undef SHOW_PLACEMENT_BEFORE
 #undef SHOW_PLACEMENT
+#undef SHOW_ALGORITHM
 
 static
 int
@@ -378,6 +379,10 @@ unitigConsensus::computePositionFromParent(void) {
   if (unitig->f_list[tiid].parent == 0)
     return(false);
 
+#ifdef SHOW_ALGORITHM
+  fprintf(stderr, "unitigConsensus()--  Starting computePositionFromParent\n");
+#endif
+
   for (piid = tiid-1; piid >= 0; piid--) {
     Fragment *afrag = GetFragment(fragmentStore, piid);
 
@@ -423,6 +428,10 @@ unitigConsensus::computePositionFromContainer(void) {
   if (unitig->f_list[tiid].contained == 0)
     return(false);
 
+#ifdef SHOW_ALGORITHM
+  fprintf(stderr, "unitigConsensus()--  Starting computePositionFromContainer\n");
+#endif
+
   for (piid = tiid-1; piid >= 0; piid--) {
     Fragment *afrag = GetFragment(fragmentStore, piid);
 
@@ -450,6 +459,10 @@ unitigConsensus::computePositionFromContainer(void) {
 int
 unitigConsensus::computePositionFromLayout(void) {
   int32   thickestLen = 0;
+
+#ifdef SHOW_ALGORITHM
+  fprintf(stderr, "unitigConsensus()--  Starting computePositionFromLayout\n");
+#endif
 
   //  Find the thickest qiid overlap
   for (int32 qiid = tiid-1; qiid >= 0; qiid--) {
@@ -516,6 +529,10 @@ unitigConsensus::computePositionFromLayout(void) {
 int
 unitigConsensus::computePositionFromAlignment(void) {
 
+#ifdef SHOW_ALGORITHM
+  fprintf(stderr, "unitigConsensus()--  Starting computePositionFromAlignment\n");
+#endif
+
   //  Occasionally we get a fragment that just refuses to go in the correct spot.  Search for the
   //  correct placement in all of frankenstein, update ahang,bhang and retry.
 
@@ -526,8 +543,6 @@ unitigConsensus::computePositionFromAlignment(void) {
   char     *fragment    = Getchar(sequenceStore, GetFragment(fragmentStore, tiid)->sequence);
   int32     fragmentLen = strlen(fragment);
 
-  if (VERBOSE_MULTIALIGN_OUTPUT)
-    fprintf(stderr, "MultiAlignUnitig()--  Attempting to find placement from frankenstein using DP_Compare.\n");
   O = DP_Compare(frankenstein,
                  fragment,
                  -fragmentLen, frankensteinLen,  //  ahang bounds
@@ -536,9 +551,7 @@ unitigConsensus::computePositionFromAlignment(void) {
                  AS_CNS_ERROR_RATE, thresh, minlen,
                  AS_FIND_ALIGN);
 
-  if (O == NULL) {
-    if (VERBOSE_MULTIALIGN_OUTPUT)
-      fprintf(stderr, "MultiAlignUnitig()--  Attempting to find placement from frankenstein using Local_Overlap.\n");
+  if (O == NULL)
     O = Local_Overlap_AS_forCNS(frankenstein,
                                 fragment,
                                 -fragmentLen, frankensteinLen,  //  ahang bounds
@@ -546,7 +559,6 @@ unitigConsensus::computePositionFromAlignment(void) {
                                 0,
                                 AS_CNS_ERROR_RATE, thresh, minlen,
                                 AS_FIND_ALIGN);
-  }
 
   if (O == NULL)
     return(false);
@@ -598,8 +610,9 @@ unitigConsensus::computePositionFromAlignment(void) {
 void
 unitigConsensus::rebuildFrankensteinFromConsensus(void) {
 
-  if (VERBOSE_MULTIALIGN_OUTPUT)
-    fprintf(stderr, "MultiAlignUnitig()--  Rebuilding frankenstein from consensus.\n");
+#ifdef SHOW_ALGORITHM
+  fprintf(stderr, "unitigConsensus()--  Starting rebuildFrankensteinFromConsensus\n");
+#endif
 
   //  Run abacus to rebuild an intermediate consensus sequence.  VERY expensive, and doesn't
   //  update the placed[] array...but the changes shouldn't be huge.
@@ -684,7 +697,7 @@ unitigConsensus::rebuildFrankensteinFromConsensus(void) {
     placed[i].bgn = gapToUngap[frstIdx];
     placed[i].end = gapToUngap[lastIdx] + 1;
 
-    fprintf(stderr, "placed[%3d] mid %d %d,%d\n", i, unitig->f_list[i].ident, placed[i].bgn, placed[i].end);
+    //fprintf(stderr, "placed[%3d] mid %d %d,%d\n", i, unitig->f_list[i].ident, placed[i].bgn, placed[i].end);
   }
 
   delete [] gapToUngap;
@@ -804,6 +817,10 @@ unitigConsensus::alignFragment(void) {
 int
 unitigConsensus::alignFragmentToFragments(void) {
 
+#ifdef SHOW_ALGORITHM
+  fprintf(stderr, "unitigConsensus()--  Starting alignFragmentToFragment\n");
+#endif
+
   Overlap  *O           = NULL;
   double    thresh      = 1e-6;
   int32     minlen      = AS_OVERLAP_MIN_LEN;
@@ -823,6 +840,10 @@ unitigConsensus::alignFragmentToFragments(void) {
     if ((unitig->f_list[tiid].contained == 0) &&
         (placed[qiid].end != frankensteinLen))
       continue;
+
+#ifdef SHOW_ALGORITHM
+    fprintf(stderr, "alignFragmentToFragment()--  Testing vs %d\n", unitig->f_list[qiid].ident);
+#endif
 
     char      *aseq = Getchar(sequenceStore, GetFragment(fragmentStore, qiid)->sequence);
     char      *bseq = Getchar(sequenceStore, GetFragment(fragmentStore, tiid)->sequence);
@@ -1233,12 +1254,18 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
     if (uc.computePositionFromLayout()    && uc.alignFragment())  goto applyAlignment;
     if (uc.computePositionFromAlignment() && uc.alignFragment())  goto applyAlignment;
 
+    if (uc.alignFragmentToFragments())
+      continue;
+
     uc.rebuildFrankensteinFromConsensus();
 
     if (uc.computePositionFromParent()    && uc.alignFragment())  goto applyAlignment;
     if (uc.computePositionFromContainer() && uc.alignFragment())  goto applyAlignment;
     if (uc.computePositionFromLayout()    && uc.alignFragment())  goto applyAlignment;
     if (uc.computePositionFromAlignment() && uc.alignFragment())  goto applyAlignment;
+
+    if (uc.alignFragmentToFragments())
+      continue;
 
     AS_CNS_ERROR_RATE = MIN(AS_MAX_ERROR_RATE, 1.5 * AS_CNS_ERROR_RATE);
 
@@ -1247,14 +1274,15 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
     if (uc.computePositionFromLayout()    && uc.alignFragment())  goto applyAlignment;
     if (uc.computePositionFromAlignment() && uc.alignFragment())  goto applyAlignment;
 
+    if (uc.alignFragmentToFragments())
+      continue;
+
     AS_CNS_ERROR_RATE = MIN(AS_MAX_ERROR_RATE, 2.0 * AS_CNS_ERROR_RATE);
 
     if (uc.computePositionFromParent()    && uc.alignFragment())  goto applyAlignment;
     if (uc.computePositionFromContainer() && uc.alignFragment())  goto applyAlignment;
     if (uc.computePositionFromLayout()    && uc.alignFragment())  goto applyAlignment;
     if (uc.computePositionFromAlignment() && uc.alignFragment())  goto applyAlignment;
-
-    AS_CNS_ERROR_RATE = origErate;
 
     if (uc.alignFragmentToFragments())
       continue;
