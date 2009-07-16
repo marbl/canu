@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.14 2009-07-16 02:54:16 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.15 2009-07-16 02:56:54 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -535,17 +535,21 @@ unitigConsensus::computePositionFromAlignment(void) {
 
   //  Occasionally we get a fragment that just refuses to go in the correct spot.  Search for the
   //  correct placement in all of frankenstein, update ahang,bhang and retry.
+  //
+  //  We don't expect to have big negative ahangs, and so we don't allow them.  To unlimit this, use
+  //  "-fragmentLen" instead of the arbitrary cutoff below.
 
   Overlap  *O           = NULL;
   double    thresh      = 1e-6;
   int32     minlen      = AS_OVERLAP_MIN_LEN;
+  int32     ahanglimit  = -10;
 
   char     *fragment    = Getchar(sequenceStore, GetFragment(fragmentStore, tiid)->sequence);
   int32     fragmentLen = strlen(fragment);
 
   O = DP_Compare(frankenstein,
                  fragment,
-                 -fragmentLen, frankensteinLen,  //  ahang bounds
+                 ahanglimit, frankensteinLen,  //  ahang bounds
                  frankensteinLen, fragmentLen,   //  length of fragments
                  0,
                  AS_CNS_ERROR_RATE, thresh, minlen,
@@ -554,7 +558,7 @@ unitigConsensus::computePositionFromAlignment(void) {
   if (O == NULL)
     O = Local_Overlap_AS_forCNS(frankenstein,
                                 fragment,
-                                -fragmentLen, frankensteinLen,  //  ahang bounds
+                                ahanglimit, frankensteinLen,  //  ahang bounds
                                 frankensteinLen, fragmentLen,   //  length of fragments
                                 0,
                                 AS_CNS_ERROR_RATE, thresh, minlen,
@@ -855,7 +859,7 @@ unitigConsensus::alignFragmentToFragments(void) {
 
     O = DP_Compare(aseq,
                    bseq,
-                   -blen, alen,        //  ahang bounds
+                   0, alen,            //  ahang bounds
                    alen, blen,         //  length of fragments
                    0,
                    AS_CNS_ERROR_RATE, thresh, minlen,
@@ -864,7 +868,7 @@ unitigConsensus::alignFragmentToFragments(void) {
     if (O == NULL)
       O = Local_Overlap_AS_forCNS(aseq,
                                   bseq,
-                                  -blen, alen,        //  ahang bounds
+                                  0, alen,            //  ahang bounds
                                   alen, blen,         //  length of fragments
                                   0,
                                   AS_CNS_ERROR_RATE, thresh, minlen,
