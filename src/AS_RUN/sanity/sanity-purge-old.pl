@@ -1,0 +1,153 @@
+#!/usr/bin/perl
+
+use strict;
+
+#  Purge all but the last reference assembly, and all but the last two
+#  assemblies, and all but the last two that failed to complete.
+#
+#  Up to five assemblies are saved:
+#    The reference
+#    Two crashes
+#    Two successful finished assemblies
+#
+#  No crashes are save that are earlier than the latest successful assembly.
+#
+#  OLDEST
+#    crash
+#    reference (saved)
+#    crash
+#    finished
+#    finished
+#    finished  (saved)
+#    crash
+#    crash
+#    finished  (saved)
+#    crash     (saved)
+#  NEWEST
+
+my @assemblies;
+my @nightlies;
+
+open(F, "ls POINTERS/*last |");
+while (<F>) {
+    if ($_ =~ m/^POINTERS\/(.*).last$/) {
+        push @assemblies, $1;
+    }
+}
+
+open(F, "ls -d ????-??-??-???? |");
+while (<F>) {
+    chomp;
+    push @nightlies, $_;
+}
+close(F);
+
+
+foreach my $asm (@assemblies) {
+    my $reference;
+    my $last1;
+    my $last2;
+    my $crash1;
+    my $crash2;
+
+    {
+        my %ref;
+        my @ref;
+
+        $ref{"0000-00-00-0000"}++;
+
+        if (! -e "POINTERS/$asm.reference") {
+            open(F, "> POINTERS/$asm.reference");
+            close(F);
+        }
+
+        open(F, "< POINTERS/$asm.reference") or die;
+        while (<F>) {
+            chomp;
+            if (-d "$_/$asm") {
+                $ref{$_}++;
+            }
+        }
+        close(F);
+
+        @ref = sort keys %ref;
+        $reference = pop @ref;
+    }
+
+
+    {
+        my %ref;
+        my @ref;
+
+        $ref{"0000-00-00-0000"}++;
+        $ref{"0000-00-00-0001"}++;
+
+        if (! -e "POINTERS/$asm.last") {
+            open(F, "> POINTERS/$asm.last");
+            close(F);
+        }
+
+        open(F, "< POINTERS/$asm.last") or die;
+        while (<F>) {
+            chomp;
+            if (-e "$_/$asm/$asm.qc") {
+                $ref{$_}++;
+            }
+        }
+        close(F);
+
+        @ref = sort keys %ref;
+        $last1 = pop @ref;
+        $last2 = pop @ref;
+    }
+
+    {
+        my %ref;
+        my @ref;
+
+        $ref{"0000-00-00-0000"}++;
+        $ref{"0000-00-00-0001"}++;
+
+        foreach my $n (@nightlies) {
+            if (! -e "$n/$asm/$asm.qc") {
+                $ref{$n}++;
+            }
+        }
+
+        @ref = sort keys %ref;
+        $crash1 = pop @ref;
+        $crash2 = pop @ref;
+
+        $crash1 = "0000-00-00-0000" if ($crash1 lt $last1);
+        $crash2 = "0000-00-00-0000" if ($crash2 lt $last1);
+    }
+
+
+    print STDERR "REF\t$reference\tLAST\t$last1\t$last2\tCRASH\t$crash1\t$crash2\tASM\t$asm\n";
+
+    #  Save the last TWO finished assemblies, or just one?  Comment to save two.
+    $last2 = "0000-00-00-0000";
+
+    foreach my $n (@nightlies) {
+        if (-d "$n/$asm") {
+            my $finished = (-e "$n/$asm/$asm.qc") ? "FINISHED" : "CRASHED";
+
+            $finished = ($n eq $reference) ? "REFERENCE" : $finished;
+
+            if (($n ne $reference) &&
+                ($n ne $last2) &&
+                ($n ne $last1) &&
+                ($n ne $crash2) &&
+                ($n ne $crash1)) {
+                print STDERR "rm -rf $n/$asm    # $finished\n";
+
+                if (! -d "DEL")    { system("mkdir DEL");    }
+                if (! -d "DEL/$n") { system("mkdir DEL/$n"); }
+
+                rename "$n/$asm", "DEL/$n/$asm";
+            } else {
+                print STDERR "echo   $n/$asm SAVE $finished\n";
+            }
+        }
+    }
+}

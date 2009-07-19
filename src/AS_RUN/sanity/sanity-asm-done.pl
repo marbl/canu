@@ -8,6 +8,11 @@ my $wrkdir   = shift @ARGV;
 my $prefix   = shift @ARGV;
 my $thisdate = shift @ARGV;
 
+#  Special hack to add group rw
+
+system("chmod -R ug+rw $wrkdir/$thisdate/$prefix");
+system("chgrp -R atg   $wrkdir/$thisdate/$prefix");
+
 my $lastdate = undef;
 my $gooddate = undef;
 

@@ -160,6 +160,7 @@ sub checkoutAndLogKmer ($$) {
 sub checkoutAndLogCA ($$) {
     my $thisdate = shift @_;
     my $lastdate = shift @_;
+    my $tag      = "-r VERSION-5_40-BRANCH";
 
     print STDERR "Checking out $wrkdir/$thisdate (CA)\n";
 
@@ -176,7 +177,7 @@ sub checkoutAndLogCA ($$) {
     my $thisdatecvs;
     my $lastdatecvs;
 
-    my $tz = "EDT";
+    my $tz = "EST";
 
     if ($thisdate =~ m/(\d\d\d\d)-(\d\d)-(\d\d)-(\d\d)(\d\d)/) {
         $thisdatecvs = "$1-$2-$3 $4:$5 $tz";
@@ -193,7 +194,7 @@ sub checkoutAndLogCA ($$) {
     #  Add -R to cvs options, for read-only repository; breaks on jcvi
     #  cvs; this seems to be a BSD extension?
 
-    system("cd $wrkdir/$thisdate/wgs && cvs -r -d $wgscvs -z3 co  -N    -D '$thisdatecvs' src > src.checkout.err 2>&1");
+    system("cd $wrkdir/$thisdate/wgs && cvs -r -d $wgscvs -z3 co  -N    -D '$thisdatecvs' $tag src > src.checkout.err 2>&1");
 
     if ($lastdate ne "") {
         system("cd $wrkdir/$thisdate/wgs && cvs -r -d $wgscvs -z3 log -N -S -d '$lastdatecvs<$thisdatecvs' src > src.updates.raw");
@@ -406,8 +407,20 @@ sub assemble ($$@) {
         print F "#\n";
         print F "unset SGE_TASK_ID\n";
         print F "\n";
+        print F "\n";
+        print F "#  Attempt to (re)configure SGE.  For reasons Bri doesn't know,\n";
+        print F "#  jobs submitted to SGE, and running under SGE, fail to read his\n";
+        print F "#  .tcshrc (or .bashrc, limited testing), and so they don't setup\n";
+        print F "#  SGE (or ANY other paths, etc) properly.  For the record,\n";
+        print F "#  interactive SGE logins (qlogin, etc) DO set the environment.\n";
+        print F "\n";
+        print F ". \$SGE_ROOT/\$SGE_CELL/common/settings.sh\n";
+        print F "\n";
+        print F "\n";
         print F "perl $wrkdir/$thisdate/wgs/$syst-$arch/bin/runCA \\\n";
         print F "  sgePropagateHold=$jn useGrid=1 scriptOnGrid=1\\\n";
+	print F "  sge=\"-A assembly_nightly -P 334007 -l arch=lx*64 -l medium -l memory=5G\"\\\n";
+
         print F "  -p $n -d $wrkdir/$thisdate/$n -s $s\n";
         print F "\n";
         print F "#  Once that runCA finishes, we've updated the hold on $jn, and so can release\n";
@@ -428,8 +441,10 @@ sub assemble ($$@) {
         #
         #  Steps 1 and 2 are done here, step 3 is at the very end, steps 4 and 5 are done in the launch-assembly.sh above.
 
-        system("cd $wrkdir/$thisdate/$n && qsub -b n -cwd -j y -o $wrkdir/$thisdate/$n/launch-assembly.err -l fast -h               -N $jl $wrkdir/$thisdate/$n/launch-assembly.sh");
-        system("cd $wrkdir/$thisdate/$n && qsub -b n -cwd -j y -o $wrkdir/$thisdate/$n/asm-done.err        -l fast -h -hold_jid $jl -N $jn $wrkdir/$thisdate/asm-done.sh $n");
+        print STDERR "cd $wrkdir/$thisdate/$n && qsub -P 334007 -A assembly -b n -cwd -j y -o $wrkdir/$thisdate/$n/launch-assembly.err -l fast -h               -N $jl $wrkdir/$thisdate/$n/launch-assembly.sh\n";
+        system("cd $wrkdir/$thisdate/$n && qsub -P 334007 -A assembly -b n -cwd -j y -o $wrkdir/$thisdate/$n/launch-assembly.err -l fast -h               -N $jl $wrkdir/$thisdate/$n/launch-assembly.sh");
+        print STDERR "cd $wrkdir/$thisdate/$n && qsub -P 334007 -A assembly -b n -cwd -j y -o $wrkdir/$thisdate/$n/asm-done.err        -l fast -h -hold_jid $jl -N $jn $wrkdir/$thisdate/asm-done.sh $n\n";
+        system("cd $wrkdir/$thisdate/$n && qsub -P 334007 -A assembly -b n -cwd -j y -o $wrkdir/$thisdate/$n/asm-done.err        -l fast -h -hold_jid $jl -N $jn $wrkdir/$thisdate/asm-done.sh $n");
 
         if (defined($holds_done)) {
             $holds_done .= ",$jn";
@@ -446,10 +461,12 @@ sub assemble ($$@) {
         }
     }
 
-    system("cd $wrkdir/$thisdate && qsub -b n -cwd -j y -o $wrkdir/$thisdate/all-done.err -l fast -hold_jid $holds_done -N CAfin_$thisdate $wrkdir/$thisdate/all-done.sh $label $names_asms");
+    print STDERR "cd $wrkdir/$thisdate && qsub -P 334007 -A assembly -b n -cwd -j y -o $wrkdir/$thisdate/all-done.err -l fast -hold_jid $holds_done -N CAfin_$thisdate $wrkdir/$thisdate/all-done.sh $label $names_asms\n";
+    system("cd $wrkdir/$thisdate && qsub -P 334007 -A assembly -b n -cwd -j y -o $wrkdir/$thisdate/all-done.err -l fast -hold_jid $holds_done -N CAfin_$thisdate $wrkdir/$thisdate/all-done.sh $label $names_asms");
 
     #  Now, release everything to run.
 
+    print STDERR "qrls -h u $holds_asms\n";
     system("qrls -h u $holds_asms");
 }
 
