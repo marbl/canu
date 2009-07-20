@@ -28,6 +28,9 @@ use strict;
 my @assemblies;
 my @nightlies;
 
+my $doPurge = ($ARGV[0] eq "purge");
+
+#  This is automagically updated by sanity-asm-done.pl, whenever an assembly finishes.
 open(F, "ls POINTERS/*last |");
 while (<F>) {
     if ($_ =~ m/^POINTERS\/(.*).last$/) {
@@ -50,6 +53,7 @@ foreach my $asm (@assemblies) {
     my $crash1;
     my $crash2;
 
+    #  Read reference pointers, find the latest.
     {
         my %ref;
         my @ref;
@@ -74,7 +78,7 @@ foreach my $asm (@assemblies) {
         $reference = pop @ref;
     }
 
-
+    #  Read success pointers, find the latest two.
     {
         my %ref;
         my @ref;
@@ -101,6 +105,7 @@ foreach my $asm (@assemblies) {
         $last2 = pop @ref;
     }
 
+    #  Find the last two failures.
     {
         my %ref;
         my @ref;
@@ -122,7 +127,6 @@ foreach my $asm (@assemblies) {
         $crash2 = "0000-00-00-0000" if ($crash2 lt $last1);
     }
 
-
     print STDERR "REF\t$reference\tLAST\t$last1\t$last2\tCRASH\t$crash1\t$crash2\tASM\t$asm\n";
 
     #  Save the last TWO finished assemblies, or just one?  Comment to save two.
@@ -139,15 +143,42 @@ foreach my $asm (@assemblies) {
                 ($n ne $last1) &&
                 ($n ne $crash2) &&
                 ($n ne $crash1)) {
-                print STDERR "rm -rf $n/$asm    # $finished\n";
+                print STDERR "REMOVE\t$n/$asm\n";
 
-                if (! -d "DEL")    { system("mkdir DEL");    }
-                if (! -d "DEL/$n") { system("mkdir DEL/$n"); }
+                if ($doPurge) {
+                    if (! -d "DEL")    { system("mkdir DEL");    }
+                    if (! -d "DEL/$n") { system("mkdir DEL/$n"); }
 
-                rename "$n/$asm", "DEL/$n/$asm";
+                    rename "$n/$asm/$asm.qc", "$n/$asm.qc";
+                    rename "$n/$asm",         "DEL/$n/$asm";
+                }
             } else {
-                print STDERR "echo   $n/$asm SAVE $finished\n";
+                print STDERR "SAVE\t$n/$asm\n";
             }
         }
     }
 }
+
+
+foreach my $dir (@nightlies) {
+    my $asmExist = 0;
+
+    next if (! -d "$dir/wgs");
+
+    foreach my $asm (@assemblies) {
+        $asmExist++ if (-d "$dir/$asm");
+    }
+
+    if ($asmExist == 0) {
+        print STDERR "$dir has $asmExist saved assemblies; purge source code.\n";
+        if ($doPurge) {
+            if (! -d "DEL")      { system("mkdir DEL");      }
+            if (! -d "DEL/$dir") { system("mkdir DEL/$dir"); }
+
+            rename "$dir/wgs", "DEL/$dir/wgs";
+        }        
+    } else {
+        print STDERR "$dir has $asmExist saved assemblies.\n";
+    }
+}
+
