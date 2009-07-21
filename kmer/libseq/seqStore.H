@@ -88,13 +88,21 @@ public:
 
 private:
   void                clear(void);
+  void                loadIndex(void);
 
   bitPackedFile     *_bpf;
 
   seqStoreHeader     _header;
+
   seqStoreIndex     *_index;
   seqStoreBlock     *_block;
   char              *_names;
+
+  bitPackedFile     *_indexBPF;
+  bitPackedFile     *_blockBPF;
+  bitPackedFile     *_namesBPF;
+
+  u32bit             _lastIIDloaded;
 
   friend class seqFactory;
 };
