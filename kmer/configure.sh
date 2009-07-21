@@ -200,47 +200,6 @@ ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
     ;;
-  Darwin-ppc-debug)
-    rm -f Make.compilers
-    cat <<EOF > Make.compilers
-# -*- makefile -*-
-#  OS-X, debug
-#
-CC                := gcc
-SHLIB_FLAGS       := -dynamiclib
-CFLAGS_COMPILE    := -g3 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
-CLDFLAGS          := 
-CLIBS             := 
-CXX               := g++
-CXXFLAGS_COMPILE  := -g3 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
-CXXLDFLAGS        := 
-CXXLIBS           := 
-CXXSHARED         := -dynamiclib
-ARFLAGS           := ruvs
-INSTALL/          := $target/
-EOF
-    ;;
-  Darwin-ppc-profile)
-    rm -f Make.compilers
-    cat <<EOF > Make.compilers
-# -*- makefile -*-
-#  OS-X, optimized, profiled (same as OS-X, optimized, but includes -pg)
-#
-FAST              := -pg -O3 -funroll-loops -fstrict-aliasing -fsched-interblock -falign-loops=16 -falign-jumps=16 -falign-functions=16 -falign-jumps-max-skip=15 -falign-loops-max-skip=15 -malign-natural -ffast-math -mpowerpc-gpopt -force_cpusubtype_ALL -fstrict-aliasing -mtune=G5 -mcpu=G5
-CC                := gcc
-SHLIB_FLAGS       := -dynamiclib
-CFLAGS_COMPILE    := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
-CLDFLAGS          := -pg
-CLIBS             := 
-CXX               := g++
-CXXFLAGS_COMPILE  := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
-CXXLDFLAGS        := -pg
-CXXLIBS           := 
-CXXSHARED         := -dynamiclib
-ARFLAGS           := ruvs
-INSTALL/          := $target/
-EOF
-    ;;
   FreeBSD-i386)
     rm -f Make.compilers
 #    echo "Using linuxthreads by default!"
@@ -258,56 +217,6 @@ CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL)
 CXX               := g++
 CXXFLAGS_COMPILE  := -O3 -fPIC \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-CXXLDFLAGS        := -L/usr/local/lib
-CXXLIBS           := \$(THREADL)
-CXXSHARED         := -shared
-ARFLAGS           := ruvs
-INSTALL/          := $target/
-EOF
-    ;;
-  FreeBSD-i386-profile)
-    rm -f Make.compilers
-    cat <<EOF > Make.compilers
-# -*- makefile -*-
-#  FreeBSD, optimized, profiled (same as FreeBSD, optimized, but includes -pg)
-THREADS           := -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads 
-THREADL           := -llthread -llgcc_r
-THREADS           := -pthread
-THREADL           := -pthread
-CC                := cc
-SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -pg -O3 \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-CLDFLAGS          := -L/usr/local/lib
-CLIBS             := \$(THREADL)
-CXX               := g++
-CXXFLAGS_COMPILE  := -pg -O3 \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-CXXLDFLAGS        := -L/usr/local/lib
-CXXLIBS           := \$(THREADL)
-CXXSHARED         := -shared
-ARFLAGS           := ruvs
-INSTALL/          := $target/
-EOF
-    ;;
-  FreeBSD-i386-debug)
-    rm -f Make.compilers
-    cat <<EOF > Make.compilers
-# -*- makefile -*-
-#  FreeBSD, debug, warnings
-#  removed -Wredundant-decls cause it is annoying.
-#  removed -Waggregate-return cause stl does it too much
-#
-THREADS           := -D_THREAD_SAFE -pthread
-THREADL           := -pthread
-CC                := cc
-SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -g \$(THREADS) -fPIC -Wall -Wno-char-subscripts -Wshadow -Wpointer-arith -Wcast-qual \
-  -Wcast-align -Wwrite-strings -Wconversion -Wstrict-prototypes -Wmissing-prototypes \
-  -Wmissing-declarations -Wnested-externs  
-CLDFLAGS          := -L/usr/local/lib
-CLIBS             := \$(THREADL)
-CXX               := g++
-CXXFLAGS_COMPILE  := -g \$(THREADS) -fPIC -Wall -Wno-char-subscripts -Wshadow -Wpointer-arith -Wcast-qual \
-  -Wcast-align -Wwrite-strings -Wconversion
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
 CXXSHARED         := -shared
@@ -363,6 +272,30 @@ ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
     ;;
+  FreeBSD-amd64-profile)
+    rm -f Make.compilers
+    cat <<EOF > Make.compilers
+# -*- makefile -*-
+#  FreeBSD, debug, warnings
+#  removed -Wredundant-decls cause it is annoying.
+#  removed -Waggregate-return cause stl does it too much
+#
+THREADS           := -pthread
+THREADL           := -pthread -lthr
+CC                := cc
+SHLIB_FLAGS       := -shared
+CFLAGS_COMPILE    := -pg -O3 \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
+CLDFLAGS          := -pg -L/usr/local/lib
+CLIBS             := \$(THREADL)
+CXX               := g++
+CXXFLAGS_COMPILE  := -pg -O3 \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
+CXXLDFLAGS        := -pg -L/usr/local/lib
+CXXLIBS           := \$(THREADL)
+CXXSHARED         := -shared
+ARFLAGS           := ruvs
+INSTALL/          := $target/
+EOF
+    ;;
   AIX)
     rm -f Make.compilers
     cat <<EOF > Make.compilers
@@ -377,66 +310,6 @@ CLIBS             :=
 CXX               := xlC_r
 CXXFLAGS_COMPILE  := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict
 CXXLDFLAGS        := 
-CXXLIBS           := 
-CXXSHARED         := -shared
-ARFLAGS           := -X 64 ruv
-INSTALL/          := $target/
-EOF
-    ;;
-  AIX-profile)
-    rm -f Make.compilers
-    cat <<EOF > Make.compilers
-# -*- makefile -*-
-#  AIX5, optimized, profiled
-#  Untested; might not work with optimization
-CC                := xlc_r
-SHLIB_FLAGS       := -G
-CFLAGS_COMPILE    := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict -qcpluscmt
-CLDFLAGS          := 
-CLIBS             := 
-CXX               := xlC_r
-CXXFLAGS_COMPILE  := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict
-CXXLDFLAGS        := 
-CXXLIBS           := 
-CXXSHARED         := -shared
-ARFLAGS           := -X 64 ruv
-INSTALL/          := $target/
-EOF
-    ;;
-  AIX-debug)
-    rm -f Make.compilers
-    cat <<EOF > Make.compilers
-# -*- makefile -*-
-#  AIX5, debug
-ccDBUG            := 
-CC                := xlc_r
-SHLIB_FLAGS       := -G
-CFLAGS_COMPILE    := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath -qcpluscmt
-CLDFLAGS          := 
-CLIBS             := 
-CXX               := xlC_r
-CXXFLAGS_COMPILE  := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath
-CXXLDFLAGS        := 
-CXXLIBS           := 
-CXXSHARED         := -shared
-ARFLAGS           := -X 64 ruv
-INSTALL/          := $target/
-EOF
-    ;;
-  AIX-debug-full|aix-full-debug)
-    rm -f Make.compilers
-    cat <<EOF > Make.compilers
-# -*- makefile -*-
-#  AIX5, full debug, including memory checks
-ccDBUG            := -qheapdebug -qinfo=uni:use -qcheck=all -qinitauto=FF -qflttrap=inv:ov:zero:en -qfloat=nans -DMEMORY_DEBUG
-CC                := xlc_r
-SHLIB_FLAGS       := -G
-CFLAGS_COMPILE    := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath -qcpluscmt
-CLDFLAGS          := \$(ccDBUG)
-CLIBS             := 
-CXX               := xlC_r
-CXXFLAGS_COMPILE  := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath
-CXXLDFLAGS        := \$(ccDBUG)
 CXXLIBS           := 
 CXXSHARED         := -shared
 ARFLAGS           := -X 64 ruv
@@ -465,28 +338,6 @@ CXX_TMP_ARCH      := cxx_repository
 INSTALL/          := $target/
 EOF
     ;;
-  compaq-debug|tru64-debug)
-    rm -f Make.compilers
-    cat <<EOF > Make.compilers
-# -*- makefile -*-
-#  Tru64, native compilers, debug
-CC                := cxx
-SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -D_REENTRANT -std -D_XOPEN_SOURCE=500 -D_OSF_SOURCE -pthread -g -w0 -trapuv
-CLDFLAGS          := 
-CLIBS             := -lpthread -lrt
-CXX               := cxx
-CXXFLAGS_COMPILE  := -D_REENTRANT -std -D_XOPEN_SOURCE=500 -D_OSF_SOURCE -pthread -gall -w0 -trapuv
-CXXLDFLAGS        := 
-CXXLIBS           := -lpthread -lrt
-CXXSHARED         := -shared
-ARFLAGS           := ruv
-CXX_TMP_ARCH      := cxx_repository
-INSTALL/          := $target/
-EOF
-    ;;
-
-
   Linux-i686)
     rm -f Make.compilers
     cat <<EOF > Make.compilers
@@ -508,31 +359,6 @@ ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
     ;;
-
-
-  Linux-i686-debug)
-    rm -f Make.compilers
-    cat <<EOF > Make.compilers
-# -*- makefile -*-
-#  Linux, optimized
-THREADS           := -D_THREAD_SAFE -pthread
-THREADL           := -pthread
-CC                := cc
-SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-CLDFLAGS          := -L/usr/local/lib
-CLIBS             := \$(THREADL) -ldl
-CXX               := g++
-CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-CXXLDFLAGS        := -L/usr/local/lib
-CXXLIBS           := \$(THREADL) -ldl
-CXXSHARED         := -shared
-ARFLAGS           := ruvs
-INSTALL/          := $target/
-EOF
-    ;;
-
-
   Linux-amd64)
     rm -f Make.compilers
     cat <<EOF > Make.compilers
@@ -554,8 +380,6 @@ ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
     ;;
-
-
   Linux-amd64-debug)
     rm -f Make.compilers
     cat <<EOF > Make.compilers
@@ -577,8 +401,6 @@ ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
     ;;
-
-
   Linux-amd64-profile)
     rm -f Make.compilers
     cat <<EOF > Make.compilers
