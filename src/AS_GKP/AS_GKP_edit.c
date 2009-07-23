@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.17 2009-07-06 20:03:40 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.18 2009-07-23 14:24:35 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -165,10 +165,12 @@ allFrags(gkStore *gkpStore,
   int64  firstElem = 1;
   int64  lastElem  = gkpStore->gkStore_getNumFragments();
 
-  if (update)
-    fprintf(stderr, "delete all frags in lib "F_IID" (%d,%d)\n",
-            IID, firstElem, lastElem);
+  if (update) {
+    fprintf(stderr, "update all frags in lib "F_IID" (%d,%d)\n",
+            IID, firstElem, lastElem);    
+  }
 
+  fr.gkFragment_enableGatekeeperMode(gkpStore);
   for (i=firstElem; i<lastElem; i++) {
     gkpStore->gkStore_getFragment(i, &fr, GKFRAGMENT_INF);
 
@@ -302,6 +304,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
 
     if (isFRG) {
       gkFragment fr;
+      fr.gkFragment_enableGatekeeperMode(gkpStore);
 
       if (IID > gkpStore->gkStore_getNumFragments()) {
         fprintf(stderr, "invalid frg iid "F_IID" in edit line: '%s'\n", IID, L);
@@ -410,7 +413,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
         goto nextline;
       }
 
-      gkpStore->gkStore_setLibrary(IID, &gklr);
+      gkpStore->gkStore_getLibrary(IID, &gklr);
 
       if        (strcasecmp(ACT, "mean") == 0) {
         double m = gklr.mean;
