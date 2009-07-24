@@ -21,7 +21,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: meryl.C,v 1.5 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id: meryl.C,v 1.6 2009-07-24 12:09:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +32,7 @@ const char *mainid = "$Id: meryl.C,v 1.5 2008-10-08 22:02:57 brianwalenz Exp $";
 #include "meryl.H"
 
 #include "AS_MER_gkpStore_to_FastABase.H"
+#include "AS_MER_gkpStoreChain.H"
 
 #include "AS_global.h"
 
@@ -45,8 +46,8 @@ main(int argc, char **argv) {
 
   merylArgs   *args = new merylArgs(argc, argv);
 
-  //seqFactory::instance()->registerFile(new gkpStoreFile());
   gkpStoreFile::registerFile();
+  gkpStoreChain::registerFile();
 
   switch (args->personality) {
     case 'P':

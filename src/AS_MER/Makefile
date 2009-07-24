@@ -62,8 +62,8 @@ endif
 
 ifdef KMER
   MERYLSOURCE      = meryl.C
-  MERYLOBJECTS     = meryl.o AS_MER_gkpStore_to_FastABase.o
-  SOURCES          = $(MERYLSOURCE) mercy.C mercy-regions.C overmerry.C estimate-mer-threshold.C AS_MER_gkpStore_to_FastABase.C
+  MERYLOBJECTS     = meryl.o AS_MER_gkpStore_to_FastABase.o AS_MER_gkpStoreChain.o
+  SOURCES          = $(MERYLSOURCE) mercy.C mercy-regions.C overmerry.C estimate-mer-threshold.C AS_MER_gkpStore_to_FastABase.C AS_MER_gkpStoreChain.C
   OBJECTS          = $(SOURCES:.C=.o)
   CXX_PROGS        = meryl mercy overmerry estimate-mer-threshold
   INC_IMPORT_DIRS += $(KMER)/include
