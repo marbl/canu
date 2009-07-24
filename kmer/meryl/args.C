@@ -527,6 +527,7 @@ merylArgs::merylArgs(const char *prefix) {
 
 merylArgs::~merylArgs() {
   delete [] execName;
+  delete [] options;
   delete [] inputFile;
   delete [] outputFile;
 
