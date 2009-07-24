@@ -65,7 +65,7 @@ sub runMeryl ($$$$$$) {
             $cmd  = "$bin/meryl ";
             $cmd .= " -B $merCanonical -v -m $merSize $merylMemory -threads $merylThreads -c $merComp ";
             $cmd .= " -L 2 ";
-            $cmd .= " -s $wrk/$asm.gkpStore:latest ";
+            $cmd .= " -s $wrk/$asm.gkpStore:chain ";  #  Or 'latest' to get the original version
             $cmd .= " -o $ofile ";
             $cmd .= "> $wrk/0-mercounts/meryl.err 2>&1";
 
@@ -78,7 +78,7 @@ sub runMeryl ($$$$$$) {
         if ($merThresh eq "auto") {
             if (! -e "$ofile.estMerThresh.out") {
                 $cmd  = "$bin/estimate-mer-threshold ";
-                $cmd .= " -g $wrk/$asm.gkpStore:latest ";
+                $cmd .= " -g $wrk/$asm.gkpStore:chain ";  #  Or 'latest' to get the original version
                 $cmd .= " -m $ofile ";
                 $cmd .= " > $ofile.estMerThresh.out ";
                 $cmd .= "2> $ofile.estMerThresh.err";
