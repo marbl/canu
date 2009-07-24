@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: removeMateOverlap.C,v 1.1 2009-07-11 00:27:16 brianwalenz Exp $";
+const char *mainid = "$Id: removeMateOverlap.C,v 1.2 2009-07-24 12:05:34 brianwalenz Exp $";
 
 //  Remove mate relationships for any fragments that overlap
 
@@ -60,6 +60,10 @@ loadFragments(gkStore *gkp) {
     frag[iid].doDelete         = 0;
     frag[iid].isDeleted        = fr.gkFragment_getIsDeleted() ? 1 : 0;
     frag[iid].mateIID          = fr.gkFragment_getMateIID();
+
+    //  HACK!  Ignore non-illumina reads
+    if (fr.gkFragment_getLibraryIID() != 1)
+      frag[iid].mateIID = 0;
   }
 
   delete fs;
@@ -78,11 +82,8 @@ main(int argc, char **argv) {
   OverlapStore      *ovlstore     = 0L;
   OVSoverlap         ovl;
 
-  uint64            ovl0    = 0;
-  uint64            ovl1    = 0;
-  uint64            ovl2    = 0;
-  uint64            ovl3    = 0;
-  uint64            ovl4    = 0;
+  uint64             totalOverlaps = 0;
+  uint64             matesRemoved  = 0;
 
   argc = AS_configure(argc, argv);
 
@@ -111,35 +112,48 @@ main(int argc, char **argv) {
 
 
   while (AS_OVS_readOverlapFromStore(ovlstore, &ovl, AS_OVS_TYPE_OVL)) {
-    ovl0++;
+    totalOverlaps++;
 
     if ((frag[ovl.a_iid].mateIID == 0) ||
-        (frag[ovl.b_iid].mateIID == 0))
-      //  Frags must be mated
-      continue;
-
-    ovl1++;
-    if ((frag[ovl.a_iid].mateIID != ovl.b_iid) ||
+        (frag[ovl.b_iid].mateIID == 0) ||
+        (frag[ovl.a_iid].mateIID != ovl.b_iid) ||
         (frag[ovl.b_iid].mateIID != ovl.a_iid))
-      //  ...To each other
+      //  Frags must be mated to each other.
       continue;
 
-    ovl2++;
     if (ovl.dat.ovl.flipped == 0)
       //  Innie mate overlaps must be flipped
       continue;
 
-    ovl3++;
-    if ((ovl.dat.ovl.a_hang < 0) && (ovl.dat.ovl.b_hang > 0))
+    if ((ovl.dat.ovl.a_hang < 0) || (ovl.dat.ovl.b_hang < 0))
       //  ...And on the innie pointing end
       continue;
 
     //  ...Before we delete.
 
-    ovl4++;
+    matesRemoved++;
 
     frag[ovl.a_iid].doDelete = 1;
     frag[ovl.b_iid].doDelete = 1;
+
+    //  Print the overlapping sequence
+    {
+      uint32  iid = ovl.a_iid;
+      uint32  mid = ovl.b_iid;
+
+      gkFragment  fr;
+      gkFragment  mr;
+
+      gkpstore->gkStore_getFragment(iid, &fr, GKFRAGMENT_SEQ);
+      gkpstore->gkStore_getFragment(mid, &mr, GKFRAGMENT_SEQ);
+
+      fprintf(stdout, ">%s-%s %d,%d\n%s\n",
+              AS_UID_toString(fr.gkFragment_getReadUID()),
+              AS_UID_toString(mr.gkFragment_getReadUID()),
+              ovl.dat.ovl.a_hang,
+              ovl.dat.ovl.b_hang,
+              fr.gkFragment_getSequence() + ovl.dat.ovl.a_hang);
+    }
 
     //fprintf(stderr, "DELETE %d <-> %d\n", ovl.a_iid, ovl.b_iid);
   }
@@ -157,22 +171,22 @@ main(int argc, char **argv) {
       fr.gkFragment_setMateIID(0);
       mr.gkFragment_setMateIID(0);
 
-      gkpstore->gkStore_setFragment(&fr);
-      gkpstore->gkStore_setFragment(&mr);
+      //gkpstore->gkStore_setFragment(&fr);
+      //gkpstore->gkStore_setFragment(&mr);
 
       frag[iid].isDeleted = 1;
       frag[mid].isDeleted = 1;
+
+      //fprintf(stdout, ">%s\n%s\n", AS_UID_toString(fr.gkFragment_getReadUID()), fr.gkFragment_getSequence());
+      //fprintf(stdout, ">%s\n%s\n", AS_UID_toString(mr.gkFragment_getReadUID()), mr.gkFragment_getSequence());
     }
   }
 
   delete [] frag;
   delete    gkpstore;
 
-  fprintf(stderr, "ovl0 = "F_U64"\n", ovl0);
-  fprintf(stderr, "ovl1 = "F_U64"\n", ovl1);
-  fprintf(stderr, "ovl2 = "F_U64"\n", ovl2);
-  fprintf(stderr, "ovl3 = "F_U64"\n", ovl3);
-  fprintf(stderr, "ovl4 = "F_U64"\n", ovl4);
+  fprintf(stderr, "Total overlaps   "F_U64"\n", totalOverlaps);
+  fprintf(stderr, "Mates removed    "F_U64"\n", matesRemoved);
 
   exit(0);
 }
