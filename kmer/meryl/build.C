@@ -265,6 +265,8 @@ prepareBatch(merylArgs *args) {
   //
   if (args->memoryLimit) {
     args->mersPerBatch = estimateNumMersInMemorySize(args->merSize, args->memoryLimit, args->positionsEnabled, args->beVerbose);
+    if (args->mersPerBatch > args->numMersActual)
+      args->mersPerBatch = args->numMersActual;
     args->segmentLimit = (u64bit)ceil((double)args->numMersActual / (double)args->mersPerBatch);
     if (args->beVerbose)
       fprintf(stderr, "Have a memory limit: mersPerBatch="u64bitFMT" segmentLimit="u64bitFMT"\n", args->mersPerBatch, args->segmentLimit);
@@ -278,7 +280,6 @@ prepareBatch(merylArgs *args) {
     if (args->beVerbose)
       fprintf(stderr, "Have NO LIMITS!: mersPerBatch="u64bitFMT" segmentLimit="u64bitFMT"\n", args->mersPerBatch, args->segmentLimit);
   }
-
 
   //  Choose the optimal number of buckets to reduce memory usage.
   //  Yes, this is already done in estimateNumMersInMemorySize() (but
