@@ -19,6 +19,9 @@ seqStream::seqStream(const char *filename) {
   _idxLen            = _file->getNumberOfSequences();
   _idx               = new seqStreamIndex [_idxLen + 1];
 
+  fprintf(stderr, "seqStream::seqStream()--  Allocating "u64bitFMT"MB for seqStreamIndex on "u64bitFMT" sequences.\n",
+          _idxLen * sizeof(seqStreamIndex) / 1024 / 1024, _idxLen);
+
   _seqNumOfPos       = 0L;
 
   _lengthOfSequences = 0;
