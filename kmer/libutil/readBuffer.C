@@ -25,18 +25,22 @@ readBuffer::readBuffer(const char *filename, u32bit bufferMax) {
   _bufferMax   = 0;
   _buffer      = 0L;
 
-  if (filename == 0L)
-    filename = "-";
+  if (((filename == 0L) && (isatty(fileno(stdin)) == 0)) ||
+      ((filename != 0L) && (filename[0] == '-') && (filename[1] == 0))) {
+    _filename  = new char [32];
+    strcpy(_filename, "(stdin)");
 
-  if (strcmp(filename, "-") == 0) {
     _stdin = true;
 
     if (bufferMax == 0)
       bufferMax = 32 * 1024;
+  } else if (filename == 0L) {
+    fprintf(stderr, "readBuffer()-- no filename supplied, and I will not use the terminal for input.\n",
+            _filename, strerror(errno)), exit(1);
+  } else {
+    _filename  = new char [strlen(filename) + 1];
+    strcpy(_filename, filename);
   }
-
-  _filename  = new char [strlen(filename) + 1];
-  strcpy(_filename, filename);
 
   if (bufferMax == 0) {
     _mmap   = true;
