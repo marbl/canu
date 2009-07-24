@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_MER_gkpStore_to_FastABase.C,v 1.16 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_MER_gkpStore_to_FastABase.C,v 1.17 2009-07-24 12:09:14 brianwalenz Exp $";
 
 #include "AS_MER_gkpStore_to_FastABase.H"
 
@@ -114,6 +114,9 @@ gkpStoreFile::openFile(const char *name) {
     if (p)
       clr = gkStore_decodeClearRegionLabel(p+1);
   }
+
+  if (clr == AS_READ_CLEAR_ERROR)
+    return(0L);
 
   //  if can't open store, or file not there, return null
 
