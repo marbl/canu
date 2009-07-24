@@ -56,8 +56,6 @@ private:
 
   u32bit             _nextID;         //  Next sequence in the read buffer
 
-  bool               _isStreamInput;  //  If true, cannot ever be random access
-
   friend class seqFactory;
 };
 

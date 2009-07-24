@@ -1,8 +1,8 @@
 #include "seqFactory.H"
 
+#include "fastaStdin.H"
 #include "fastaFile.H"
 #include "seqStore.H"
-//#include "sffFile.H"
 
 seqFactory *seqFactory::me = 0L;
 
@@ -12,6 +12,7 @@ seqFactory::seqFactory() {
   _filesMax = 16;
   _files = new seqFile * [_filesMax];
 
+  registerFile(new fastaStdin);
   registerFile(new fastaFile);
   registerFile(new seqStore);
   //registerFile(new sffFile);

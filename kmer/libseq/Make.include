@@ -6,6 +6,7 @@ LIBSEQ/     :=$(call MakePath,$/../libseq/)
 
 src    := $/seqFile.H \
           $/fastaFile.H   $/fastaFile.C \
+          $/fastaStdin.H  $/fastaStdin.C \
           $/seqStore.H    $/seqStore.C \
           $/sffFile.H     $/sffFile.C \
           $/seqFactory.H  $/seqFactory.C \
