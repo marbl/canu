@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.15 2009-07-16 02:56:54 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.16 2009-07-26 08:30:35 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -500,7 +500,7 @@ unitigConsensus::computePositionFromLayout(void) {
           (thickestLen < ooo)) {
         thickestLen = ooo;
 
-        ovl   = MIN(end, frankensteinLen) - beg;
+        ovl   = ooo;
         ahang = beg;
         bhang = end - frankensteinLen;
 
@@ -576,19 +576,17 @@ unitigConsensus::computePositionFromAlignment(void) {
   int32   thickestLen = 0;
 
   for (int32 qiid = tiid-1; qiid >= 0; qiid--) {
-    if ((placed[tiid].bgn < placed[qiid].end) ||
+    if ((placed[tiid].bgn < placed[qiid].end) &&
         (placed[tiid].end > placed[qiid].bgn)) {
-      int32 beg = placed[tiid].bgn;
-      int32 end = placed[tiid].end;
-
-      int32 ooo = MIN(end, frankensteinLen) - beg;
+      int32 ooo = (MIN(placed[tiid].end, placed[qiid].end) -
+                   MAX(placed[tiid].bgn, placed[qiid].bgn));
 
       if (thickestLen < ooo) {
         thickestLen = ooo;
 
-        ovl   = MIN(end, frankensteinLen) - beg;
-        ahang = beg;
-        bhang = end - frankensteinLen;
+        ovl   = ooo;
+        ahang = placed[tiid].bgn;
+        bhang = placed[tiid].end - frankensteinLen;
 
         piid  = qiid;
       }
@@ -929,10 +927,6 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
     placed[tiid].end = frankensteinLen + bhang;
   }
 
-#ifdef SHOW_PLACEMENT
-  fprintf(stderr, "PLACE(4)-- set %d to %d,%d\n", tiid, placed[tiid].bgn, placed[tiid].end);
-#endif
-
   //  Update parent and hangs to reflect the overlap that succeeded.
   //
   //  Containment is obvious for the bhang; if the ahang is negative, we
@@ -946,6 +940,15 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
   unitig->f_list[tiid].contained = (bhang > 0) ? 0 : unitig->f_list[piid].ident;
   unitig->f_list[tiid].contained = (ahang < 0) ? 0 : unitig->f_list[tiid].contained;
 
+#ifdef SHOW_PLACEMENT
+  fprintf(stderr, "PLACE(4)-- set %d to %d,%d parent %d hang %d,%d contained %d\n",
+          unitig->f_list[tiid].ident,
+          placed[tiid].bgn, placed[tiid].end,
+          unitig->f_list[tiid].parent,
+          unitig->f_list[tiid].ahang,
+          unitig->f_list[tiid].bhang,
+          unitig->f_list[tiid].contained);
+#endif
 
   //
   //  Extend the frankenstein.  Son of Frankenstein!
