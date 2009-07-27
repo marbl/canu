@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.43 2009-07-10 01:20:50 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.44 2009-07-27 08:05:52 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -921,7 +921,15 @@ StoreIUMStruct(ScaffoldGraphT *graph,
                                        NULL);
 
   if (unitigSuccess == 0) {
-    fprintf(GlobalData->stderrc, "FATAL ERROR: MultiAlignUnitig call failed in unitig splitting.\n");
+    GenericMesg pmesg;
+
+    pmesg.t = MESG_IUM;
+    pmesg.m = &is->ium;
+
+    fprintf(stderr, "================================================================================\n");
+    WriteProtoMesg_AS(stderr, &pmesg);
+    fprintf(stderr, "================================================================================\n");
+    fprintf(stderr, "FATAL ERROR: MultiAlignUnitig call failed in unitig splitting.\n");
     assert(FALSE);
   }
 
