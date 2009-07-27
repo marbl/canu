@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.35 2009-07-27 08:08:28 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.36 2009-07-27 08:46:11 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_ALN_aligners.h"
@@ -858,7 +858,7 @@ static int isProbablyBogusEdge(EdgeCGW_T *edge){
   return edge->flags.bits.isProbablyBogus;
 }
 
-#define MIN_EDGES 1
+#define MIN_EDGES 2
 
 static int isConfirmedEdge(EdgeCGW_T *edge){
 #if 0  // If we want to ignore repeat overlaps, use this
