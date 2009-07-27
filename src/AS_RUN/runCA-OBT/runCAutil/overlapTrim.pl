@@ -67,7 +67,7 @@ sub overlapTrim {
     }
 
     if (getGlobal("doDeDuplication") != 0) {
-    if (! -e "$wrk/0-overlaptrim/$asm.dedup.summary") {
+    if (! -e "$wrk/0-overlaptrim/$asm.deduplicate.summary") {
         my $bin = getBinDirectory();
         my $cmd;
 
@@ -104,6 +104,7 @@ sub overlapTrim {
         $cmd .= "> $wrk/0-overlaptrim/$asm.deduplicate.err 2>&1";
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
+            unlink "$wrk/0-overlaptrim/$asm.deduplicate.summary";
             caFailure("failed to deduplicate the reads", "$wrk/0-overlaptrim/$asm.deduplicate.err");
         }
     }
