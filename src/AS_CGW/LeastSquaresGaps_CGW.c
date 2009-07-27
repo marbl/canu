@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.32 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.33 2009-07-27 08:08:28 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -606,7 +606,7 @@ dumpTrustedEdges(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold, int32 edgeTypes)
 #endif
       }
       if(isSingletonOverlapEdge(edge) ||
-         (weight == 1 && edge->flags.bits.isBridge))
+         (weight < MIN_EDGES && edge->flags.bits.isBridge))
         continue;
 
       //

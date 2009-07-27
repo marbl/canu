@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Stats_CGW.c,v 1.19 2008-11-02 06:27:13 brianwalenz Exp $";
+static char *rcsid = "$Id: Stats_CGW.c,v 1.20 2009-07-27 08:08:28 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -413,7 +413,7 @@ void GenerateScaffoldGraphStats(char *label, int iteration){
 	if(edge->flags.bits.isTransitivelyRemoved){
 	  numberRemoved++;
 	}
-	if(edge->edgesContributing > 1){
+	if(edge->edgesContributing >= MIN_EDGES){
           edges++;
           totalDegree = EdgeDegree(graph,edge);
           assert(edge->edgesContributing == totalDegree);
@@ -432,7 +432,7 @@ void GenerateScaffoldGraphStats(char *label, int iteration){
     InitGraphEdgeIterator(graph, node->id, B_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &Edges);
     while(NULL != (edge = NextGraphEdgeIterator(&Edges))){
       if(edge->idA == node->id){
-	if( edge->edgesContributing > 1){
+	if( edge->edgesContributing >= MIN_EDGES){
           edges++;
           totalDegree = EdgeDegree(graph,edge);
           assert(edge->edgesContributing == totalDegree);

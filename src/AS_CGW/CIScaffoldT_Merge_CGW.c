@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.43 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.44 2009-07-27 08:08:28 brianwalenz Exp $";
 
 
 #undef ORIG_MERGE_EDGE_INVERT
@@ -87,9 +87,33 @@ extern int do_draw_frags_in_CelamyScaffold;
 #endif
 #include "InterleavedMerging.h"
 
+#define SCAFFOLD_MERGE_CHI2_THRESHHOLD (2.f*(float)PAIRWISECHI2THRESHOLD_CGW)
+
+#define PREFERRED_GAP_SIZE  (-500)
+
+#define MAX_SCAFFOLD_GAP_OVERLAP 1000
+
+#define CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD MIN_EDGES
+
+#define EDGE_QUANTA 5
+#define OVERLAP_QUANTA -10000.
+
+#define EDGE_STRENGTH_FACTOR  MIN_EDGES
+
+#define MAX_SLOP_IN_STD 3.5
+
+#define EDGE_WEIGHT_FACTOR  MIN_EDGES
+
 #undef REQUIRE_MORE_THAN_ONE_BAD_TO_REJECT
 #define REQUIRE_BAD_APPROACHING_HAPPY_TO_REJECT
 #define MAX_FRAC_BAD_TO_GOOD .3
+
+
+
+static  FILE *fMergeWeight, *fInterleavedMergeWeight;
+static  FILE *fMergeDistance, *fInterleavedMergeDistance;
+
+
 
 void SaveEdgeMeanForLater(SEdgeT * edge)
 {
@@ -157,7 +181,6 @@ void DumpScaffoldsToFile(ScaffoldGraphT * graph,
 
 /****************************************************************************/
 
-#define SCAFFOLD_MERGE_CHI2_THRESHHOLD (2.f*(float)PAIRWISECHI2THRESHOLD_CGW)
 
 int ContigCoordinatesOkay(CIScaffoldT * scaffold)
 {
@@ -452,7 +475,6 @@ static int CompareSEdgesContributing(const void *c1, const void *c2){
                (s1->edgesContributing - (isOverlapEdge(s1) ? 1 : 0))));
 }
 
-#define PREFERRED_GAP_SIZE  (-500)
 
 static int CompareSEdgeGaps(const void *c1, const void *c2){
   SEdgeT *s1 = *(SEdgeT **)c1;
@@ -477,8 +499,6 @@ static int CompareSEdgeGaps(const void *c1, const void *c2){
 }
 
 /***************************************************************************/
-
-#define MAX_SCAFFOLD_GAP_OVERLAP 1000
 
 typedef struct {
   NodeCGW_T *nodeA;
@@ -1509,10 +1529,7 @@ int FindScaffoldMerge(ScaffoldGraphT *graph, CIScaffoldT *scaffoldAnchor,
   return(FALSE);
 }
 
-#define EMIT_STATS 1
 
-static  FILE *fMergeWeight, *fInterleavedMergeWeight;
-static  FILE *fMergeDistance, *fInterleavedMergeDistance;
 
 
 
@@ -1554,7 +1571,6 @@ void CloseStatsFiles(void){
 
 
 /****************************************************************************/
-#define CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD 2
 
 int TouchesMarkedScaffolds(SEdgeT *curEdge){
   CIScaffoldT *scaffoldA = GetGraphNode(ScaffoldGraph->ScaffoldGraph, curEdge->idA);
@@ -1599,9 +1615,6 @@ int TouchesMarkedScaffolds(SEdgeT *curEdge){
 }
 
 
-#define EDGE_QUANTA 5
-#define OVERLAP_QUANTA -10000.
-
 int isLargeOverlapSize(LengthT *overlap, int32 numEdges){
   double maxGap, minGap;
   double numEdgeQuanta = numEdges/EDGE_QUANTA;
@@ -1625,8 +1638,7 @@ int isLargeOverlap(CIEdgeT *curEdge){
 
 }
 
-#define EDGE_STRENGTH_FACTOR  2
-
+#ifdef GENERAL_STRONGER_CHECK
 /*
   it would be better to do this during scaffold edge creation
 */
@@ -1832,8 +1844,10 @@ int ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge)
     }
   return retVal;
 }
+#endif
 
 
+#ifdef OTHER_END_CHECK
 int OtherEndHasStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge)
 {
   SEdgeTIterator SEdges;
@@ -1868,6 +1882,7 @@ int OtherEndHasStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge)
     }
   return 0;
 }
+#endif
 
 
 // Find all merge candidates incident on scaffoldA
@@ -2283,7 +2298,7 @@ void MarkScaffoldsForMerging(SEdgeT *curEdge, int markForMerging){
     scaffoldB->numEssentialB = 1;
   }
   if(edgeSelected){
-#if EMIT_STATS
+#if 0
     //	    PrintGraphEdge(GlobalData->stderrc,ScaffoldGraph->ScaffoldGraph, " Non-Interleaved Merging based on ", curEdge, curEdge->idA);
     fprintf(fMergeWeight,"%d\n", curEdge->edgesContributing);
     fprintf(fMergeDistance,"%d\n", (int)curEdge->distance.mean);
@@ -3116,7 +3131,6 @@ SEdgeT *FindMoreAttractiveMergeEdge(SEdgeT *curEdge,
 }
 
 
-#define MAX_SLOP_IN_STD 3.5
 
 int isQualityScaffoldMergingEdge(SEdgeT * curEdge,
                                  CIScaffoldT * scaffoldA,
@@ -4290,7 +4304,6 @@ void ExamineUsableSEdgeSet(VA_TYPE(PtrT) *sEdges,
   }
 }
 
-#define EDGE_WEIGHT_FACTOR  2
 
 void ExamineUsableSEdges(VA_TYPE(PtrT) *sEdges,
                          int minWeightThreshold,
@@ -5151,7 +5164,7 @@ int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
     mergedSomething = MergeScaffolds(deadScaffoldIDs, iSpec, verbose);
     totalMerged += mergedSomething;
     prevFirstNewScaffoldID = currFirstNewScaffoldID;
-    if(mergedSomething == 0 && minWeightThreshold > 2.0)
+    if(mergedSomething == 0 && minWeightThreshold > 2.0)  //  MIN_EDGES??
       {
         mergedSomething = 1;
         minWeightThreshold -= 1.0;
@@ -5197,7 +5210,7 @@ void MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumb
   fprintf(GlobalData->stderrc, "* Successfully passed checks at beginning of scaffold merging\n");
   fflush(GlobalData->stderrc);
 
-#if EMIT_STATS
+#if 0
   OpenStatsFiles();
 #endif
 
@@ -5252,7 +5265,7 @@ void MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumb
   fprintf(GlobalData->stderrc,"* Exiting MSA at %s *\n", ctime(&t));
   fflush(GlobalData->stderrc);
 
-#if EMIT_STATS
+#if 0
   CloseStatsFiles();
 #endif
   return;

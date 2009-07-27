@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: DemoteUnitigsWithRBP_CGW.c,v 1.6 2008-11-10 15:21:12 skoren Exp $";
+static const char *rcsid = "$Id: DemoteUnitigsWithRBP_CGW.c,v 1.7 2009-07-27 08:08:28 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,7 +59,7 @@ void DemoteUnitigsWithRBP(FILE *stream, GraphCGW_T *graph){
 	otherNodeId = edge->idA;
       }
       otherNode = GetNodeCGW_T(graph->nodes, otherNodeId);
-      if((edge->edgesContributing >= 2) && isOverlapEdge(edge) && (otherNode->bpLength.mean > 1500.0)){
+      if((edge->edgesContributing >= MIN_EDGES) && isOverlapEdge(edge) && (otherNode->bpLength.mean > 1500.0)){
 	switch(GetEdgeOrientationWRT(edge, node->id)){
 	  /* EdgeMate from the A-End */
 	case BA_BA:
