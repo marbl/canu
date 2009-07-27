@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.2 2009-07-06 22:22:05 brianwalenz Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.3 2009-07-27 08:10:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -194,7 +194,7 @@ readOverlapsAndProcessFragments(gkStore      *gkp,
           (bbegdiff <= FRAG_HANG_SLOP) &&
           (aenddiff <= FRAG_HANG_SLOP) && (bhang >= 0) &&
           (error    <= 0.025 / 100.0)) {
-        fprintf(stderr, "%s,%u DUPof %s,%u (a %d,%d  b %d,%d  hang %d,%d  diff %d,%d  error %f\n",
+        fprintf(reportFile, "Delete %s,%u DUPof %s,%u (a %d,%d  b %d,%d  hang %d,%d  diff %d,%d  error %f\n",
                 AS_UID_toString(frag[ovl->a_iid].readUID), ovl->a_iid,
                 AS_UID_toString(frag[ovl->b_iid].readUID), ovl->b_iid,
                 abeg, aend,
@@ -241,25 +241,31 @@ processMatedFragments(gkStore *gkp, fragT *frag) {
     if ((frag[iid].mateIID   == 0) ||
         (frag[iid].isDeleted == 1) || (frag[iid].ovllen == 0) ||
         (frag[mid].isDeleted == 1) || (frag[mid].ovllen == 0))
+      //  Not mated, or already deleted, or no overlaps.
       continue;
 
     for (uint32 i=0; i<frag[iid].ovllen; i++) {
       uint32  iod = frag[iid].ovl[i].biid;   //  Read IID of my overlapping fragment
       uint32  imd = frag[iod].mateIID;       //  Mate IID of that overlapping framgnet
 
+      if ((frag[iod].isDeleted == 1) ||
+          (imd == -1) ||
+          (frag[imd].isDeleted == 1))
+        //  Overlapping frag already deleted, or no mate, or mate already deleted
+        continue;
+
       for (uint32 j=0; j<frag[mid].ovllen; j++) {
         uint32  jod = frag[mid].ovl[j].biid;
         uint32  jmd = frag[jod].mateIID;
 
-        //  If the mate of my overlapping fragment is different than the overlapping fragment of my
-        //  mate, keep searching.
         if (imd != jod)
+          //  Mate of my overlapping fragment is different than the overlapping fragment of my mate
           continue;
 
         //  If the proper overlap pattern is found, delete me.
         if ((frag[iid].ovl[i].a && frag[mid].ovl[j].b) ||
             (frag[iid].ovl[i].b && frag[mid].ovl[j].a)) {
-          fprintf(stderr, "%s,%d <-> %s,%d DUPof %s,%d <-> %s,%d\n",
+          fprintf(reportFile, "Delete %s,%d <-> %s,%d DUPof %s,%d <-> %s,%d\n",
                   AS_UID_toString(frag[iid].readUID), iid,
                   AS_UID_toString(frag[mid].readUID), mid,
                   AS_UID_toString(frag[iod].readUID), iod,
@@ -301,13 +307,15 @@ main(int argc, char **argv) {
   OverlapStore      *ovsprimary   = 0L;
   OverlapStore      *ovssecondary = 0L;
 
+  bool               testing      = false;
+
   argc = AS_configure(argc, argv);
 
   int arg=1;
   int err=0;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-gkp", 2) == 0) {
-      gkp      = new gkStore(argv[++arg], FALSE, TRUE);
+      gkp      = new gkStore(argv[++arg], FALSE, testing == false);
 
     } else if (strncmp(argv[arg], "-ovs", 2) == 0) {
       if (ovsprimary == NULL)
@@ -374,7 +382,9 @@ main(int argc, char **argv) {
 
     readOverlapsAndProcessFragments(gkp, ovsprimary, ovssecondary, errorLimit, frag);
     processMatedFragments(gkp, frag);
-    deleteFragments(gkp, frag);
+
+    if (testing == false)
+      deleteFragments(gkp, frag);
 
     delete [] frag;
   }
