@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Celamy_CGW.c,v 1.24 2009-07-28 12:23:49 brianwalenz Exp $";
+static char *rcsid = "$Id: Celamy_CGW.c,v 1.25 2009-07-28 12:30:04 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -163,7 +163,7 @@ findOverlapsOffEnds(int    id,
   char *BEpos = *BEstr = (char *)safe_malloc(sizeof(char) * 11 * nOvl);
 
   while  (AS_OVS_readOverlapFromStore(ScaffoldGraph->frgOvlStore, &olap, AS_OVS_TYPE_OVL)) {
-    if (AS_OVS_decodeQuality(olap.dat.ovl.corr_erate) > AS_UTG_ERROR_RATE)
+    if (AS_OVS_decodeQuality(olap.dat.ovl.corr_erate) > 0.015) //AS_UTG_ERROR_RATE
       //  skip overlaps missing the default conditions for unitigging
       continue;
 

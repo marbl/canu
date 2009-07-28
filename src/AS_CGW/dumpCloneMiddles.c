@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: dumpCloneMiddles.c,v 1.21 2009-07-28 12:23:49 brianwalenz Exp $";
+const char *mainid = "$Id: dumpCloneMiddles.c,v 1.22 2009-07-28 12:30:04 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -221,9 +221,9 @@ main(int argc, char **argv) {
     }
 
   } else {
-    for (sid = 0; sid < GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph); sid++) {
-      if (GetGraphNode(ScaffoldGraph->ScaffoldGraph,sid)->bpLength.mean >= minLen)
-        dumpCloneMiddle(1, sid);
+    for (id = 0; id<GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph); id++) {
+      if (GetGraphNode(ScaffoldGraph->ScaffoldGraph, id)->bpLength.mean >= minLen)
+        dumpCloneMiddle(1, id);
     }
   }
 
