@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: dumpCloneMiddles.c,v 1.20 2009-05-12 17:25:31 brianwalenz Exp $";
+const char *mainid = "$Id: dumpCloneMiddles.c,v 1.21 2009-07-28 12:23:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,16 +37,18 @@ static ScaffoldInstrumenter *si;
 
 extern int do_draw_frags_in_CelamyScaffold;
 extern int do_compute_missing_overlaps;
-extern int CelamyOvlCutoff;
 extern int do_surrogate_tracking;
 
+
 void
-dumpCloneMiddle(int sid) {
+dumpCloneMiddle(int isScaffold, int id) {
   char          camname[1000];
   FILE         *camfile = NULL;
   struct stat   sb;
 
-  CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph,sid);
+  assert(isScaffold);
+
+  CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, id);
 
   if ((isDeadCIScaffoldT(scaffold)) ||
       (scaffold->type != REAL_SCAFFOLD))
@@ -55,7 +57,7 @@ dumpCloneMiddle(int sid) {
   sprintf(camname, "%s/scf%d_cm.cam", CMDIR, scaffold->id);
 
   if (stat(camname, &sb) == 0) {
-    fprintf(stderr, "Dumping clone middle for scaffold %d -- file exists, skipped!\n", sid);
+    fprintf(stderr, "Dumping clone middle for scaffold %d -- file exists, skipped!\n", id);
     return;
   }
 
@@ -64,7 +66,7 @@ dumpCloneMiddle(int sid) {
   if (errno)
     fprintf(stderr, "Failed to open '%s': %s\n", camname, strerror(errno)), exit(1);
 
-  fprintf(stderr, "Dumping clone middle for scaffold %d\n", sid);
+  fprintf(stderr, "Dumping clone middle for scaffold %d\n", id);
 
   DumpCelamyColors(camfile);
   DumpCelamyMateColors(camfile);
@@ -94,15 +96,19 @@ usage(char *pgm) {
   fprintf(stderr, "  META OPTION\n");
   fprintf(stderr, "    -p <prefix>          -- attempt to guess all the required options, if your assembly\n");
   fprintf(stderr, "                            follows runCA-OBT naming conventions.\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "    -ctg                 -- dump contigs\n");
+  fprintf(stderr, "    -scf                 -- dump scaffolds\n");
+  fprintf(stderr, "\n");
   fprintf(stderr, "  REQUIRED OPTIONS\n");
   fprintf(stderr, "    -g <GatekeeperStoreName>\n");
   fprintf(stderr, "    -o <OVLStoreName>\n");
   fprintf(stderr, "    -c <CkptFileName>\n");
   fprintf(stderr, "    -n <CkpPtNum>\n");
+  fprintf(stderr, "\n");
   fprintf(stderr, "  OPTIONAL OPTIONS\n");
-  fprintf(stderr, "    -s <single scfIID>   -- generate a single scaffold\n");
+  fprintf(stderr, "    -i <single IID>      -- generate a single contig or scaffold\n");
   fprintf(stderr, "    -l <min length>      -- generate only scaffolds larger than min length\n");
-  fprintf(stderr, "    -e <ovl err. cutoff> -- sets cutoff for overlaps; default=0.015;\n");
   fprintf(stderr, "    -S                   -- suppress surrogate fragment placement (possibly multiple placements per frg)\n");
 }
 
@@ -110,7 +116,7 @@ usage(char *pgm) {
 int
 main(int argc, char **argv) {
   int ckptNum     = NULLINDEX;
-  int sid         = NULLINDEX;
+  int id          = NULLINDEX;
   int specificScf = NULLINDEX;
   int minLen      = 0;
   int arg         = 1;
@@ -124,34 +130,36 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-c") == 0) {
       strcpy(GlobalData->File_Name_Prefix, argv[++arg]);
-    } else if (strcmp(argv[arg],"-e") == 0) {
-      if(atof(argv[++arg])>1.){
-	  CelamyOvlCutoff=atoi(argv[arg]);
-      } else {
-	CelamyOvlCutoff=(int)(1000. * atof(argv[arg]));
-      }
+
     } else if (strcmp(argv[arg], "-g") == 0) {
       strcpy(GlobalData->Gatekeeper_Store_Name, argv[++arg]);
+
     } else if (strcmp(argv[arg], "-l") == 0) {
       minLen = atoi(argv[++arg]);
       if (minLen <= 0) {
         fprintf(stderr, "error: min length -l must be greater than zero.\n");
         err = 1;
       }
+
     } else if (strcmp(argv[arg], "-n") == 0) {
       ckptNum = atoi(argv[++arg]);
       if (ckptNum <= 0) {
         fprintf(stderr, "error: checkpoint number -n must be greater than zero.\n");
         err = 1;
       }
+
     } else if (strcmp(argv[arg], "-o") == 0) {
       strcpy(GlobalData->OVL_Store_Name, argv[++arg]);
+
     } else if (strcmp(argv[arg], "-p") == 0) {
       ckptNum = SetFileNamePrefix_CGW(GlobalData, argv[++arg]);
+
     } else if (strcmp(argv[arg], "-s") == 0) {
       specificScf = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-S") == 0) {
       do_surrogate_tracking = 0;
+
     } else {
       if (atoi(argv[arg]) > 0) {
         firstScfArg = arg;
@@ -192,26 +200,30 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  do_draw_frags_in_CelamyScaffold = 1;
-  do_compute_missing_overlaps     = 1;
+  do_draw_frags_in_CelamyScaffold = 0;
+  do_compute_missing_overlaps     = 0;
 
   // over all scfs in graph
 
   if        (specificScf != NULLINDEX){
-    dumpCloneMiddle(specificScf);
+    dumpCloneMiddle(1, specificScf);
+
   } else if (firstScfArg > 0) {
     while (firstScfArg < argc) {
-      sid = atoi(argv[firstScfArg]);
-      if (sid > 0)
-        dumpCloneMiddle(atoi(argv[firstScfArg]));
+      id = atoi(argv[firstScfArg]);
+
+      if (id > 0)
+        dumpCloneMiddle(1, id);
       else
         fprintf(stderr, "WARNING: scaffold arg %d '%s' isn't numeric!\n", firstScfArg, argv[firstScfArg]);
+
       firstScfArg++;
     }
+
   } else {
     for (sid = 0; sid < GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph); sid++) {
-      if (GetGraphNode(ScaffoldGraph->ScaffoldGraph,sid)->bpLength.mean>=minLen)
-        dumpCloneMiddle(sid);
+      if (GetGraphNode(ScaffoldGraph->ScaffoldGraph,sid)->bpLength.mean >= minLen)
+        dumpCloneMiddle(1, sid);
     }
   }
 

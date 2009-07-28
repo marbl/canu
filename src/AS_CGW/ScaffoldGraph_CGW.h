@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.31 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.32 2009-07-28 12:23:49 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -402,9 +402,6 @@ void DumpCelamyColors(FILE *file);
 void DumpCelamyMateColors(FILE *file);
 void DumpCelamyFragColors(FILE *file);
 
-/* Celamy Scaffold
-   The workhorse routine for drawing a simulator-coordinate independent view of a scaffold.
-*/
 void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold, int64 scaffoldAEndCoord, int64 scaffoldBEndCoord);
 void CelamyAssembly(char *name);
 
