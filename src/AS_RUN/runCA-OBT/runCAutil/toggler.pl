@@ -11,7 +11,7 @@ sub toggler () {
 
    my $minLength = getGlobal("toggleUnitigLength");
    my $numInstances = getGlobal("toggleNumInstances");
-    
+   my $maxDistance = getGlobal("toggleMaxDistance"); 
    my $bin = getBinDirectory();
    my $cmd = "";
    my $scaffoldDir;
@@ -71,6 +71,7 @@ sub toggler () {
       $cmd .= " -a $wrk/9-terminator/$asm.asm ";
       $cmd .= " -l $minLength ";
       $cmd .= " -n $numInstances ";
+      $cmd .= " -d $maxDistance ";
       $cmd .= " $cgiFile";
       $cmd .= " > $wrk/$toggledDir/5-consensus/$asm.cgi 2> $wrk/$toggledDir/toggle.err";
       if (runCommand("$wrk/$toggledDir", $cmd)) {

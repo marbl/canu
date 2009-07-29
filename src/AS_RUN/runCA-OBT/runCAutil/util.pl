@@ -473,11 +473,14 @@ sub setDefaults () {
     $synops{"doToggle"}                     = "At the end of a successful assembly, search for placed surrogates and toggle them to be unique unitigs. Re-run the assembly starting from scaffolder";
 
     $global{"toggleUnitigLength"}           = 2000;
-    $synops{"toggleUnitigLength"}           = "Minimum length for a surrogate to be toggled";
+    $synops{"toggleUnitigLength"}           = "Minimum length for a surrogate to be toggled.";
 
     $global{"toggleNumInstances"}            = 1;
     $synops{"toggleNumInstances"}            = "Number of instances for a surrogate to be toggled. If 0 is specified, all non-singleton unitigs are toggled to unique status.";
 
+    $global{"toggleMaxDistance"}             = 1000;
+    $synops{"toggleMaxDistance"}             = "Toggling will look for surrogates that appear exactly twice, both at the end of a scaffold. This parameter specifies how close to the scaffold end the surrogate must be.";
+    
     $global{"toggleDoNotDemote"}             = 0;
     $synops{"toggleDoNotDemote"}            = "Do not allow CGW to demote toggled unitigs based on branching patterns.";
 
@@ -496,11 +499,11 @@ sub setDefaults () {
     $global{"closureEdges"}               = undef;
     $synops{"closureEdges"}               = "A link to the file of the format readUID leftMateUID rightMateUID specifying closure constraints";
 
-    $global{"closureOverlaps"}            = 2;
+    $global{"closureOverlaps"}            = 0;
     $synops{"closureOverlaps"}             = "Option for handling overlaps involving closure reads.\n\t0 - Treat them just like regular reads, \n\t1 - Do not allow any overlaps (i.e. closure reads will stay as singletons until scaffolding), \n\t2 - allow overlaps betweeen closure reads and non-closure reads only";
 
     $global{"closurePlacement"}           = 2;
-    $synops{"closurePlacement"}           = "Option for placing closure reads using the constraints.\n\t0 - Place at the first location found\n\t2 - Place at the best location (indicated by most constraints)\n\t3 - Place at multiple locations as long as the closure read/unitig in question is not unique";
+    $synops{"closurePlacement"}           = "Option for placing closure reads using the constraints.\n\t0 - Place at the first location found\n\t1 - Place at the best location (indicated by most constraints)\n\t2 - Place at multiple locations as long as the closure read/unitig in question is not unique";
 }
 
 sub makeAbsolute ($) {
