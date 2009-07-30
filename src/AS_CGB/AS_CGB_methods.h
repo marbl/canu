@@ -24,7 +24,7 @@
 #ifndef AS_CGB_METHODS_INCLUDE
 #define AS_CGB_METHODS_INCLUDE
 
-static const char *rcsid_AS_CGB_METHODS_INCLUDE = "$Id: AS_CGB_methods.h,v 1.12 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_AS_CGB_METHODS_INCLUDE = "$Id: AS_CGB_methods.h,v 1.13 2009-07-30 11:23:56 brianwalenz Exp $";
 
 #include "AS_OVS_overlapStore.h"
 
@@ -32,24 +32,20 @@ static const char *rcsid_AS_CGB_METHODS_INCLUDE = "$Id: AS_CGB_methods.h,v 1.12 
 
 /* Object access functions */
 
-#pragma inline copy_one_fragment
 static void copy_one_fragment
 (Tfragment destination[],IntFragment_ID idest,Tfragment source[],IntFragment_ID isrc)
 /* This is a structure assignment. */
 { *GetAfragment(destination,idest) = *GetAfragment(source,isrc);}
 
-#pragma inline copy_one_edge
 static void copy_one_edge
 (Tedge destination[],IntEdge_ID idest,Tedge source[],IntEdge_ID isrc)
 /* This is a structure assignment. */
 { *GetAedge(destination,idest) = *GetAedge(source,isrc);}
 
-#pragma inline GetNumEdges
 static IntEdge_ID GetNumEdges(Tedge *edges) {
   return (IntEdge_ID) GetNumVA_Aedge(edges);
 }
 
-#pragma inline GetNumFragments
 static IntFragment_ID GetNumFragments(Tfragment *frags) {
   return (IntFragment_ID) GetNumVA_Afragment(frags);
 }
@@ -57,79 +53,55 @@ static IntFragment_ID GetNumFragments(Tfragment *frags) {
 /* We need to be very explicit about primitive type casting due to
    "features" in the Digital UNIX C compiler. */
 
-#pragma inline set_avx_edge
 static void set_avx_edge
 (Tedge edges[],const IntEdge_ID i,const IntFragment_ID value)
 { VAgetaccess(Aedge,edges,i,avx) = (IntFragment_ID)value;}
-#pragma inline set_bvx_edge
 static void set_bvx_edge
 (Tedge edges[],const IntEdge_ID i,const IntFragment_ID value)
 { VAgetaccess(Aedge,edges,i,bvx) = (IntFragment_ID)value;}
-#pragma inline set_asx_edge
 static void set_asx_edge(Tedge edges[],IntEdge_ID i,int value)
 { VAgetaccess(Aedge,edges,i,asx) = (int8)value;}
-#pragma inline set_bsx_edge
 static void set_bsx_edge(Tedge edges[],IntEdge_ID i,int value)
 { VAgetaccess(Aedge,edges,i,bsx) = (int8)value;}
-#pragma inline set_ahg_edge
 static void set_ahg_edge(Tedge edges[],IntEdge_ID i,int value)
 { VAgetaccess(Aedge,edges,i,ahg) = (int16)value;}
-#pragma inline set_bhg_edge
 static void set_bhg_edge(Tedge edges[],IntEdge_ID i,int value)
 { VAgetaccess(Aedge,edges,i,bhg) = (int16)value;}
-#pragma inline set_nes_edge
 static void set_nes_edge(Tedge edges[],IntEdge_ID i,Tnes value)
 { VAgetaccess(Aedge,edges,i,nes) = (int8)value;}
-#pragma inline set_inv_edge
 static void set_inv_edge(Tedge edges[],IntEdge_ID i,int value)
 { VAgetaccess(Aedge,edges,i,invalid) = value;}
-#pragma inline set_reflected_edge
 static void set_reflected_edge(Tedge edges[],IntEdge_ID i,int value)
 { VAgetaccess(Aedge,edges,i,reflected) = value;}
-#pragma inline set_grangered_edge
 static void set_grangered_edge(Tedge edges[],IntEdge_ID i,int value)
 { VAgetaccess(Aedge,edges,i,grangered) = value;}
-#pragma inline set_qua_edge
 static void set_qua_edge(const Tedge * const edges,IntEdge_ID i,uint32 value)
 { VAgetaccess(Aedge,edges,i,quality) = (uint32) value;}
-#pragma inline set_blessed_edge
 static void set_blessed_edge(Tedge edges[],IntEdge_ID i,int value)
 { VAgetaccess(Aedge,edges,i,blessed) = value;}
 
-#pragma inline get_avx_edge
 static IntFragment_ID get_avx_edge(const Tedge * const edges,IntEdge_ID i)
 { return (IntFragment_ID) VAgetaccess(Aedge,edges,i,avx);}
-#pragma inline get_bvx_edge
 static IntFragment_ID get_bvx_edge(const Tedge * const edges,IntEdge_ID i)
 { return (IntFragment_ID) VAgetaccess(Aedge,edges,i,bvx);}
-#pragma inline get_asx_edge
 static int get_asx_edge(const Tedge * const edges,IntEdge_ID i)
 { return (int) VAgetaccess(Aedge,edges,i,asx);}
-#pragma inline get_bsx_edge
 static int get_bsx_edge(const Tedge * const edges,IntEdge_ID i)
 { return (int) VAgetaccess(Aedge,edges,i,bsx);}
-#pragma inline get_ahg_edge
 static int get_ahg_edge(const Tedge * const edges,IntEdge_ID i)
 { return (int) VAgetaccess(Aedge,edges,i,ahg);}
-#pragma inline get_bhg_edge
 static int get_bhg_edge(const Tedge * const edges,IntEdge_ID i)
 { return (int) VAgetaccess(Aedge,edges,i,bhg);}
-#pragma inline get_nes_edge
 static Tnes get_nes_edge(const Tedge * const edges,IntEdge_ID i)
 { return (Tnes) VAgetaccess(Aedge,edges,i,nes);}
-#pragma inline get_inv_edge
 static int get_inv_edge(const Tedge * const edges,IntEdge_ID i)
 { return (int) VAgetaccess(Aedge,edges,i,invalid);}
-#pragma inline get_reflected_edge
 static int get_reflected_edge(const Tedge * const edges,IntEdge_ID i)
 { return (int) VAgetaccess(Aedge,edges,i,reflected);}
-#pragma inline get_grangered_edge
 static int get_grangered_edge(const Tedge * const edges,IntEdge_ID i)
 { return (int) VAgetaccess(Aedge,edges,i,grangered);}
-#pragma inline get_qua_edge
 static uint32 get_qua_edge(const Tedge * const edges,IntEdge_ID i)
 { return (uint32) VAgetaccess(Aedge,edges,i,quality);}
-#pragma inline get_blessed_edge
 static int get_blessed_edge(const Tedge * const edges,IntEdge_ID i)
 { return (int) VAgetaccess(Aedge,edges,i,blessed);}
 
@@ -138,25 +110,21 @@ static int get_blessed_edge(const Tedge * const edges,IntEdge_ID i)
 // reverse of a dvt(dgn) overlap edge is a dvt(dgn) overlap edge
 // whereas the reverse of a frc(toc) overlap edge is a toc(frc)
 // overlap edge.
-#pragma inline is_a_dvt_simple
 static int is_a_dvt_simple(const int ahg, const int bhg) {
   // A dovetail overlap edge.
   assert( (ahg >= 0) || (bhg >= 0));
   return (ahg > 0) && (bhg > 0);
 }
-#pragma inline is_a_frc_simple
 static int is_a_frc_simple(const int ahg, const int bhg) {
   // A from-the-contained-fragment containment overlap edge.
   assert( (ahg >= 0) || (bhg >= 0));
   return (ahg < 0) || ((ahg == 0)&&(bhg > 0));
 }
-#pragma inline is_a_toc_simple
 static int is_a_toc_simple(const int ahg, const int bhg) {
   // A to-the-contained-fragment containment overlap edge.
   assert( (ahg >= 0) || (bhg >= 0));
   return (bhg < 0) || ((bhg == 0)&&(ahg > 0));
 }
-#pragma inline is_a_dgn_simple
 static int is_a_dgn_simple(const int ahg, const int bhg) {
   // A degenerate containment overlap edge where the fragments are
   // mutually contained.
@@ -167,7 +135,6 @@ static int is_a_dgn_simple(const int ahg, const int bhg) {
           (! is_a_toc_simple(ahg,bhg)));
 }
 
-#pragma inline is_a_dvt_edge
 static int is_a_dvt_edge(const Tedge * const edges,IntEdge_ID i)
 {
   const int ahg = VAgetaccess(Aedge,edges,i,ahg);
@@ -177,7 +144,6 @@ static int is_a_dvt_edge(const Tedge * const edges,IntEdge_ID i)
 // A flag is returned that indicates if the overlap is a dovetail
 // overlap.
 
-#pragma inline is_a_frc_edge
 #ifndef DEGENERATE_CONTAINMENT_RESOLUTION
 static int is_a_frc_edge(const Tedge * const edges,IntEdge_ID i)
 {
@@ -206,7 +172,6 @@ static int get_frc_edge(const Tedge * const edges,IntEdge_ID i)
 // from-contained overlap.
 #endif // DEGENERATE CONTAINMENT RESOLUTION
 
-#pragma inline is_a_toc_edge
 static int is_a_toc_edge(const Tedge * const edges,IntEdge_ID i)
 {
   const int ahg = VAgetaccess(Aedge,edges,i,ahg);
@@ -214,7 +179,6 @@ static int is_a_toc_edge(const Tedge * const edges,IntEdge_ID i)
   return is_a_toc_simple( ahg, bhg);
 }
 
-#pragma inline is_a_dgn_edge
 static int is_a_dgn_edge(const Tedge * const edges,IntEdge_ID i)
 {
   const int ahg = VAgetaccess(Aedge,edges,i,ahg);
@@ -222,18 +186,15 @@ static int is_a_dgn_edge(const Tedge * const edges,IntEdge_ID i)
   return is_a_dgn_simple( ahg, bhg);
 }
 
-#pragma inline get_intrachunk_dvt_edge
 static int get_intrachunk_dvt_edge(const Tedge * const edges,IntEdge_ID i)
 { return (AS_CGB_INTRACHUNK_EDGE == get_nes_edge(edges,i)) ; }
 
-#pragma inline get_interchunk_dvt_edge
 static int get_interchunk_dvt_edge(const Tedge * const edges,IntEdge_ID i)
 { return
     get_intrachunk_dvt_edge(edges,i) ||
     (AS_CGB_INTERCHUNK_EDGE == get_nes_edge(edges,i));
 }
 
-#pragma inline get_thickest_dvt_edge
 static int get_thickest_dvt_edge(const Tedge * const edges,IntEdge_ID i)
 { return
     get_interchunk_dvt_edge(edges,i) ||
@@ -241,66 +202,42 @@ static int get_thickest_dvt_edge(const Tedge * const edges,IntEdge_ID i)
 }
 
 
-#pragma inline get_tied_dvt_edge
 static int get_tied_dvt_edge(const Tedge * const edges,IntEdge_ID i)
 {
   return FALSE;
 }
 
 
-#pragma inline set_iid_fragment
 static void set_iid_fragment(Tfragment frags[],IntFragment_ID i,IntFragment_ID value)
 { VAgetaccess(Afragment,frags,i,iid) = (IntFragment_ID)value;}
-#pragma inline set_typ_fragment
 static void set_typ_fragment(Tfragment frags[],IntFragment_ID i,FragType value)
 { VAgetaccess(Afragment,frags,i,frag_type) = (FragType)value;}
-#pragma inline set_lab_fragment
 static void set_lab_fragment(Tfragment frags[],IntFragment_ID i,Tlab value)
 { VAgetaccess(Afragment,frags,i,label) = value;}
 
-#pragma inline set_o3p_fragment
 static void set_o3p_fragment(Tfragment frags[],IntFragment_ID i,int64  value)
 { VAgetaccess(Afragment,frags,i,offset3p) = (int64 ) value;}
-#pragma inline set_o5p_fragment
 static void set_o5p_fragment(Tfragment frags[],IntFragment_ID i,int64  value)
 { VAgetaccess(Afragment,frags,i,offset5p) = (int64 ) value;}
 
-#pragma inline set_length_fragment
 static void set_length_fragment(Tfragment frags[],IntFragment_ID i,int32 value)
 { VAgetaccess(Afragment,frags,i,bp_length) = (int16)value;}
 
-#pragma inline set_cid_fragment
 static void set_cid_fragment(Tfragment frags[],IntFragment_ID i,IntChunk_ID value)
 { VAgetaccess(Afragment,frags,i,cid) = (IntChunk_ID)value;}
 
-#pragma inline set_container_fragment
 static void set_container_fragment(Tfragment frags[],IntFragment_ID i,
                                    IntFragment_ID value)
 { VAgetaccess(Afragment,frags,i,container) = (IntFragment_ID)value;}
 
-#pragma inline set_del_fragment
 static void set_del_fragment(Tfragment frags[],IntFragment_ID i,int value)
 { VAgetaccess(Afragment,frags,i,deleted) = value;}
-#pragma inline set_con_fragment
 static void set_con_fragment(Tfragment frags[],IntFragment_ID i,int value)
 { VAgetaccess(Afragment,frags,i,contained) = value;}
-#pragma inline set_spur_fragment
 static void set_spur_fragment(Tfragment frags[],IntFragment_ID i,int value)
 { VAgetaccess(Afragment,frags,i,spur) = value;}
 
 
-#pragma inline get_iid_fragment
-#pragma inline get_typ_fragment
-#pragma inline get_lab_fragment
-#pragma inline get_o3p_fragment
-#pragma inline get_o5p_fragment
-#pragma inline get_length_fragment
-#pragma inline get_cid_fragment
-#pragma inline get_container_fragment
-#pragma inline get_del_fragment
-#pragma inline get_con_fragment
-#pragma inline get_spur_fragment
-#pragma inline get_forward_fragment
 
 static IntFragment_ID get_iid_fragment(const Tfragment * const frags,IntFragment_ID i)
 { return (IntFragment_ID) VAgetaccess(Afragment,frags,i,iid);}
@@ -336,7 +273,6 @@ static int get_spur_fragment(const Tfragment * const frags,IntFragment_ID i)
 { return (int) VAgetaccess(Afragment,frags,i,spur);}
 
 
-#pragma inline set_segstart_vertex
 static void set_segstart_vertex
 (Tfragment frags[],IntFragment_ID i,int flag,IntEdge_ID value)
 {
@@ -346,7 +282,6 @@ static void set_segstart_vertex
     VAgetaccess(Afragment,frags,i,segbgn_prefix) = (IntEdge_ID)value;
   }
 }
-#pragma inline set_segend_vertex
 static void set_segend_vertex
 (Tfragment frags[],IntFragment_ID i,int flag,IntEdge_ID value)
 {
@@ -356,7 +291,6 @@ static void set_segend_vertex
     VAgetaccess(Afragment,frags,i,segend_prefix) = (IntEdge_ID)value;
   }
 }
-#pragma inline set_seglen_vertex
 static void set_seglen_vertex
 (Tfragment frags[],IntFragment_ID i,int flag,int32 value)
 {
@@ -366,7 +300,6 @@ static void set_seglen_vertex
     VAgetaccess(Afragment,frags,i,nprefix_all) = (int32)value;
   }
 }
-#pragma inline set_seglen_frc_vertex
 static void set_seglen_frc_vertex
 (Tfragment frags[],IntFragment_ID i,int flag,int32 value)
 {
@@ -376,7 +309,6 @@ static void set_seglen_frc_vertex
     VAgetaccess(Afragment,frags,i,nprefix_frc) = (int32)value;
   }
 }
-#pragma inline set_seglen_dvt_vertex
 static void set_seglen_dvt_vertex
 (Tfragment frags[],IntFragment_ID i,int flag,int32 value)
 {
@@ -387,19 +319,16 @@ static void set_seglen_dvt_vertex
   }
 }
 
-#pragma inline get_segstart_vertex
 static IntEdge_ID get_segstart_vertex
 (const Tfragment * const frags,IntFragment_ID i,int flag)
 { return (IntEdge_ID) (flag ?
 		       VAgetaccess(Afragment,frags,i,segbgn_suffix):
 		       VAgetaccess(Afragment,frags,i,segbgn_prefix));}
-#pragma inline get_segend_vertex
 static IntEdge_ID get_segend_vertex
 (const Tfragment * const frags,IntFragment_ID i,int flag)
 { return (IntEdge_ID) (flag ?
 		       VAgetaccess(Afragment,frags,i,segend_suffix):
 		       VAgetaccess(Afragment,frags,i,segend_prefix));}
-#pragma inline get_seglen_vertex
 static int32 get_seglen_vertex
 (const Tfragment * const frags,IntFragment_ID i,int flag)
 { return (int32) (flag ?
@@ -416,7 +345,6 @@ static int32 get_seglen_dvt_vertex
 		      VAgetaccess(Afragment,frags,i,nsuffix_dvt) :
 		      VAgetaccess(Afragment,frags,i,nprefix_dvt) );}
 
-#pragma inline get_blessed_vertex
 static int get_blessed_vertex
 (const Tfragment * const frags, IntFragment_ID vid, int suffix)
 {
@@ -425,7 +353,6 @@ static int get_blessed_vertex
                  VAgetaccess(Afragment,frags,vid,prefix_blessed) ); }
 
 
-#pragma inline set_blessed_vertex
 static void set_blessed_vertex
 (const Tfragment * const frags, IntFragment_ID vid, int suffix, int value)
 {
@@ -436,7 +363,6 @@ static void set_blessed_vertex
   }
 }
 
-#pragma inline get_best_ovl
 static int32 get_best_ovl
 (const Tfragment * const frags,
  const Tedge * const edges,
@@ -446,7 +372,6 @@ static int32 get_best_ovl
   return (int32) (ilen - get_ahg_edge(edges,ie));}
 
 
-#pragma inline get_chunk_index
 static IntChunk_ID get_chunk_index
 (// Input only
  const TChunkMesg thechunks[],
@@ -464,7 +389,6 @@ static IntChunk_ID get_chunk_index
   return cbvx;
 }
 
-#pragma inline get_chunk_suffix
 static int get_chunk_suffix
 (// Input only
  const TChunkMesg thechunks[],
@@ -484,7 +408,6 @@ static int get_chunk_suffix
   return cbsx;
 }
 
-#pragma inline set_raw_dvt_count_vertex
 static void set_raw_dvt_count_vertex
 (const Tfragment * const frags,IntFragment_ID i,int flag,int value)
 {
@@ -495,21 +418,18 @@ static void set_raw_dvt_count_vertex
   }
 }
 
-#pragma inline set_raw_frc_count_fragment
 static void set_raw_frc_count_fragment
 (const Tfragment * const frags,IntFragment_ID i,int value)
 {
   VAgetaccess(Afragment,frags,i,raw_frc_count) = value;
 }
 
-#pragma inline set_raw_toc_count_fragment
 static void set_raw_toc_count_fragment
 (const Tfragment * const frags,IntFragment_ID i,int value)
 {
   VAgetaccess(Afragment,frags,i,raw_toc_count) = value;
 }
 
-#pragma inline get_raw_dvt_count_vertex
 static int get_raw_dvt_count_vertex
 (const Tfragment * const frags,IntFragment_ID i,int flag)
 {
@@ -522,21 +442,18 @@ static int get_raw_dvt_count_vertex
   return value;
 }
 
-#pragma inline get_raw_frc_count_fragment
 static int get_raw_frc_count_fragment
 (const Tfragment * const frags,IntFragment_ID i)
 {
   return VAgetaccess(Afragment,frags,i,raw_frc_count);
 }
 
-#pragma inline get_raw_toc_count_fragment
 static int get_raw_toc_count_fragment
 (const Tfragment * const frags,IntFragment_ID i)
 {
   return VAgetaccess(Afragment,frags,i,raw_toc_count);
 }
 
-#pragma inline inc_raw_dvt_count_vertex
 static void inc_raw_dvt_count_vertex
 (const Tfragment * const frags,IntFragment_ID i,int flag)
 {
@@ -547,14 +464,12 @@ static void inc_raw_dvt_count_vertex
   }
 }
 
-#pragma inline inc_raw_frc_count_fragment
 static void inc_raw_frc_count_fragment
 (const Tfragment * const frags,IntFragment_ID i)
 {
   VAgetaccess(Afragment,frags,i,raw_frc_count) ++;
 }
 
-#pragma inline inc_raw_toc_count_fragment
 static void inc_raw_toc_count_fragment
 (const Tfragment * const frags,IntFragment_ID i)
 {
