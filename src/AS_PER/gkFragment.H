@@ -248,7 +248,7 @@ public:
 
 
   uint32 gkFragment_getClearRegionBegin(uint32 which=AS_READ_CLEAR_LATEST) {
-    uint32 r, e;
+    uint32 r=0, e=0;
     if (which == AS_READ_CLEAR_LATEST) {
       gkFragment_get(clearBeg);
     } else {
@@ -257,7 +257,7 @@ public:
     return(r);
   };
   uint32 gkFragment_getClearRegionEnd  (uint32 which=AS_READ_CLEAR_LATEST) {
-    uint32 r, b;
+    uint32 r=0, b=0;
     if (which == AS_READ_CLEAR_LATEST) {
       gkFragment_get(clearEnd);
     } else {
@@ -267,7 +267,7 @@ public:
   };
 
   uint32 gkFragment_getClearRegionLength(uint32 which=AS_READ_CLEAR_LATEST) {
-    uint32 r, b, e;
+    uint32 r=0, b=0, e=0;
     if (which == AS_READ_CLEAR_LATEST) {
       gkFragment_get(clearBeg);  b = r;
       gkFragment_get(clearEnd);  e = r;
@@ -278,7 +278,7 @@ public:
   };
 
   void   gkFragment_getClearRegion(uint32 &begin, uint32 &end, uint32 which=AS_READ_CLEAR_LATEST) {
-    uint32 r;
+    uint32 r=0;
     if (which == AS_READ_CLEAR_LATEST) {
       gkFragment_get(clearBeg);  begin = r;
       gkFragment_get(clearEnd);  end   = r;
