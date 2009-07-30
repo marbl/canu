@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_Bubble.c,v 1.16 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_Bubble.c,v 1.17 2009-07-30 10:42:55 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -117,7 +117,7 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
 	!BVS_empty(&(fwd[top[f]])) &&
 	!BVS_empty(&(rvs[top[f]]))) {
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-      fprintf(BUB_LOG_G, "Inserting " F_IID " (" F_IID ") into the table.\n", top[f],
+      fprintf(BUB_LOG_G, "Inserting "F_IID " ("F_IID ") into the table.\n", top[f],
 	      get_iid_fragment(BG_vertices(bg), top[f]));
 #endif
       bp_ins_keys[f].f = &(fwd[top[f]]);
@@ -131,7 +131,7 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
 	!BVS_empty(&(fwd[top[f]])) &&
 	!BVS_empty(&(rvs[top[f]]))) {
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-      fprintf(BUB_LOG_G, "Looking for matches for " F_IID " (" F_IID ") in the table.  ",
+      fprintf(BUB_LOG_G, "Looking for matches for "F_IID " ("F_IID ") in the table.  ",
 	      top[f], get_iid_fragment(BG_vertices(bg), top[f]));
 #endif
       bp_find_key.f = &(fwd[top[f]]);
@@ -141,7 +141,7 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
       if (!i_node)
 	fprintf(BUB_LOG_G, "None found.\n");
       else
-	fprintf(BUB_LOG_G, "Found init node = " F_IID " (" F_IID ").\n", *i_node,
+	fprintf(BUB_LOG_G, "Found init node = "F_IID " ("F_IID ").\n", *i_node,
 		get_iid_fragment(BG_vertices(bg), *i_node));
 #endif
 
@@ -258,7 +258,7 @@ AS_CGB_Bubble_topo_sort(BubGraph_t bg, IntFragment_ID *out)
       BG_E_setFlag(bg, e, AS_CGB_BUBBLE_E_UNUSED);
     }
 
-  //fprintf(BUB_LOG_G, "  * Found " F_IID " valid edges.\n", num_valid);
+  //fprintf(BUB_LOG_G, "  * Found "F_IID " valid edges.\n", num_valid);
 
   num_valid = 0;
   for (f = 0; f < GetNumFragments(BG_vertices(bg)); ++f)
@@ -268,7 +268,7 @@ AS_CGB_Bubble_topo_sort(BubGraph_t bg, IntFragment_ID *out)
 	out[q_end++] = f;
     }
 
-  //fprintf(BUB_LOG_G, "  * Found " F_IID " valid vertices.\n", num_valid);
+  //fprintf(BUB_LOG_G, "  * Found "F_IID " valid vertices.\n", num_valid);
 
   while (q_start < q_end) {
     for (e = BGEI_bgn(bg, &e_it, out[q_start], bgeiOut, valid_and_unused);
@@ -283,7 +283,7 @@ AS_CGB_Bubble_topo_sort(BubGraph_t bg, IntFragment_ID *out)
   }
 
   if (q_end < num_valid) {
-    //fprintf(BUB_LOG_G, "  * WARNING: Only processed " F_IID " of " F_IID " vertices!  Cyclic graph!\n", q_end, num_valid);
+    //fprintf(BUB_LOG_G, "  * WARNING: Only processed "F_IID " of "F_IID " vertices!  Cyclic graph!\n", q_end, num_valid);
     return 0;
   }
 
@@ -325,7 +325,7 @@ AS_CGB_Bubble_find_bubbles_with_graph(BubGraph_t bg, int sz, int age,
 
 #if AS_CGB_BUBBLE_VERY_VERBOSE
   for (f = 0; f < num_valid; ++f)
-    fprintf(BUB_LOG_G, "" F_IID " (" F_IID ")\n", top_order[f],
+    fprintf(BUB_LOG_G, ""F_IID " ("F_IID ")\n", top_order[f],
 	    get_iid_fragment(BG_vertices(bg), top_order[f]));
 #endif
 
@@ -338,7 +338,7 @@ AS_CGB_Bubble_find_bubbles_with_graph(BubGraph_t bg, int sz, int age,
   }
 
   fprintf(BUB_LOG_G, "  * Step 3: Calculating fragment labels\n");
-  fprintf(BUB_LOG_G, "  * Step 3: num_valid = " F_IID "\n", num_valid);
+  fprintf(BUB_LOG_G, "  * Step 3: num_valid = "F_IID "\n", num_valid);
   if( num_valid != 0 ) {
     _forward_collect_sets(bg, fwd, top_order, num_valid);
     _reverse_collect_sets(bg, rvs, top_order, num_valid);
@@ -346,7 +346,7 @@ AS_CGB_Bubble_find_bubbles_with_graph(BubGraph_t bg, int sz, int age,
 
 #if AS_CGB_BUBBLE_VERY_VERBOSE
   for (f = 0; f < num_valid; ++f) {
-    fprintf(BUB_LOG_G, "" F_IID " (" F_IID "):\t", top_order[f],
+    fprintf(BUB_LOG_G, ""F_IID " ("F_IID "):\t", top_order[f],
 	    get_iid_fragment(BG_vertices(bg), top_order[f]));
     BVS_print(&(fwd[top_order[f]]), stderr);
     fprintf(BUB_LOG_G, "  |  ");
@@ -356,7 +356,7 @@ AS_CGB_Bubble_find_bubbles_with_graph(BubGraph_t bg, int sz, int age,
 #endif
 
   fprintf(BUB_LOG_G, "  * Step 4: Finding matching labels\n");
-  fprintf(BUB_LOG_G, "  * Step 4: num_valid = " F_IID "\n", num_valid);
+  fprintf(BUB_LOG_G, "  * Step 4: num_valid = "F_IID "\n", num_valid);
 
   if( num_valid != 0 ) {
     result = _collect_bubbles(bg, fwd, rvs, top_order, num_valid);

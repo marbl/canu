@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_UTL_interval.c,v 1.8 2008-10-08 22:03:00 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_interval.c,v 1.9 2009-07-30 10:42:56 brianwalenz Exp $";
 #include "AS_global.h"
 #include "AS_UTL_interval.h"
 
@@ -26,12 +26,12 @@ static char *rcsid = "$Id: AS_UTL_interval.c,v 1.8 2008-10-08 22:03:00 brianwale
    returns the length of their overlap, or 0 if they don't overlap.
    Only overlaps longer than minimum_overlap are considered.
 */
-CDS_COORD_t IntervalsOverlap( CDS_COORD_t a_bgn, CDS_COORD_t a_end,
-                              CDS_COORD_t b_bgn, CDS_COORD_t b_end,
-                              CDS_COORD_t minimum_overlap){
-  CDS_COORD_t a_min, b_min, a_max, b_max;
-  CDS_COORD_t themin, themax;
-  CDS_COORD_t overlap;
+int32 IntervalsOverlap( int32 a_bgn, int32 a_end,
+                              int32 b_bgn, int32 b_end,
+                              int32 minimum_overlap){
+  int32 a_min, b_min, a_max, b_max;
+  int32 themin, themax;
+  int32 overlap;
 
   /* For a linear genome, the fragments truly overlap if the length
      of a line segment that covers both of the fragments is less than

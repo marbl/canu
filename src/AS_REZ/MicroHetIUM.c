@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: MicroHetIUM.c,v 1.15 2009-06-10 18:05:14 brianwalenz Exp $";
+const char *mainid = "$Id: MicroHetIUM.c,v 1.16 2009-07-30 10:42:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -770,9 +770,9 @@ main(int argc, char **argv) {
             ) {
 
 #if DEBUG > -1
-          printf("\nInspecting Unitig " F_IID "\n",iunitig->iaccession);
+          printf("\nInspecting Unitig "F_IID "\n",iunitig->iaccession);
           printf("Number of frags = %d\n",iunitig->num_frags);
-          printf("Length          = " F_COORD "\n",iunitig->length);
+          printf("Length          = "F_S32"\n",iunitig->length);
           printf("Source          = %s\n",iunitig->source);
 #endif
 

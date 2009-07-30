@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.44 2009-07-27 08:05:52 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.45 2009-07-30 10:42:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -98,7 +98,7 @@ typedef struct {
   VA_TYPE(char)   *sequence;
   VA_TYPE(char)   *quality;
 
-  CDS_COORD_t      minPos;
+  int32            minPos;
   int32            numFragsAllocated;
   int32            numRandomFragments;
 } IUMStruct;
@@ -113,7 +113,7 @@ CreateIUMStruct(void) {
   is->sequence  = CreateVA_char(200000);
   is->quality   = CreateVA_char(200000);
 
-  is->minPos    = CDS_COORD_MAX;
+  is->minPos    = INT32_MAX;
 
   return is;
 }
@@ -133,7 +133,7 @@ ResetIUMStruct(IUMStruct *is) {
   is->ium.quality        = NULL;
   is->ium.num_frags      = 0;
 
-  is->minPos             = CDS_COORD_MAX;
+  is->minPos             = INT32_MAX;
   is->numRandomFragments = 0;
 }
 
@@ -189,14 +189,14 @@ void
 PrintPositions(ScaffoldGraphT *graph, MultiAlignT *ma, int isUnitig, char *label) {
   int i;
 
-  fprintf(stderr, "%10" F_IIDP ": %s\n", ma->maID, label);
+  fprintf(stderr, "%10"F_IIDP": %s\n", ma->maID, label);
 
   for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {
     IntMultiPos *imp  = GetIntMultiPos(ma->f_list, i);
     InfoByIID   *info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
     CIFragT     *frag = GetCIFragT(graph->CIFrags, info->fragIndex);
 
-    fprintf(stderr, F_IID ": (" F_COORD "," F_COORD ")\t(%f,%f)\t"F_IID"\n",
+    fprintf(stderr, F_IID": ("F_S32","F_S32")\t(%f,%f)\t"F_IID"\n",
             imp->ident,
             MIN(imp->position.bgn, imp->position.end),
             MAX(imp->position.bgn, imp->position.end),
@@ -209,11 +209,10 @@ PrintPositions(ScaffoldGraphT *graph, MultiAlignT *ma, int isUnitig, char *label
 
 static
 void
-IncrementMapInterval(VA_TYPE(uint16) *map, CDS_COORD_t minPos, CDS_COORD_t maxPos) {
-  CDS_COORD_t i;
+IncrementMapInterval(VA_TYPE(uint16) *map, int32 minPos, int32 maxPos) {
   uint16     *t = GetVA_uint16(map, 0);
 
-  for (i=minPos; i<maxPos; i++)
+  for (int32 i=minPos; i<maxPos; i++)
     t[i]++;
 }
 
@@ -227,17 +226,17 @@ AddLinkToMaps(ScaffoldGraphT *graph,
               CIFragT *mfrag,
               OrientType orient,
               CDS_CID_t distID,
-              CDS_COORD_t length,
+              int32 length,
               int isUnitig) {
 
   DistT *dist = GetDistT(graph->Dists, distID);
 
-  CDS_COORD_t minPos = ((isUnitig) ?
-                        (MIN(frag->offset5p.mean, mfrag->offset5p.mean)) :
-                        (MIN(frag->contigOffset5p.mean, mfrag->contigOffset5p.mean)));
-  CDS_COORD_t maxPos = ((isUnitig) ?
-                        (MAX(frag->offset5p.mean, mfrag->offset5p.mean)) :
-                        (MAX(frag->contigOffset5p.mean, mfrag->contigOffset5p.mean)));
+  int32 minPos = ((isUnitig) ?
+                  (MIN(frag->offset5p.mean, mfrag->offset5p.mean)) :
+                  (MIN(frag->contigOffset5p.mean, mfrag->contigOffset5p.mean)));
+  int32 maxPos = ((isUnitig) ?
+                  (MAX(frag->offset5p.mean, mfrag->offset5p.mean)) :
+                  (MAX(frag->contigOffset5p.mean, mfrag->contigOffset5p.mean)));
 
   // if they're in the same unitig
   if((isUnitig && frag->cid == mfrag->cid) ||
@@ -334,7 +333,7 @@ AddLinkToMaps(ScaffoldGraphT *graph,
         }
       } else {
         // fragments are oriented differently - may be okay
-        CDS_COORD_t distance = maxPos - minPos;
+        int32 distance = maxPos - minPos;
 
         // if the distance is wrong, the pair is bad
         if(distance < dist->mu - CGW_CUTOFF * dist->sigma ||
@@ -475,13 +474,13 @@ CreateReadCoverageMap(ScaffoldGraphT *graph,
 
       // if unitig is forward vs. reverse, add to correct fragment location
 
-      CDS_COORD_t minPos = ((isUnitig) ?
-                            (MIN(frag->offset5p.mean, frag->offset3p.mean) + READ_TRIM_BASES) :
-                            (MIN(frag->contigOffset5p.mean, frag->contigOffset3p.mean) + READ_TRIM_BASES));
+      int32 minPos = ((isUnitig) ?
+                      (MIN(frag->offset5p.mean, frag->offset3p.mean) + READ_TRIM_BASES) :
+                      (MIN(frag->contigOffset5p.mean, frag->contigOffset3p.mean) + READ_TRIM_BASES));
 
-      CDS_COORD_t maxPos = ((isUnitig) ?
-                            (MAX(frag->offset5p.mean, frag->offset3p.mean) - READ_TRIM_BASES) :
-                            (MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean) - READ_TRIM_BASES));
+      int32 maxPos = ((isUnitig) ?
+                      (MAX(frag->offset5p.mean, frag->offset3p.mean) - READ_TRIM_BASES) :
+                      (MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean) - READ_TRIM_BASES));
 
       IncrementMapInterval(rc, minPos, maxPos);
     }
@@ -936,8 +935,8 @@ StoreIUMStruct(ScaffoldGraphT *graph,
 
   // add ium to the system
   {
-    MultiAlignT *ma = CreateMultiAlignTFromIUM(&(is->ium), GetNumCIFragTs(graph->CIFrags), FALSE);
-    CDS_COORD_t length = GetMultiAlignUngappedLength(ma);
+    MultiAlignT    *ma = CreateMultiAlignTFromIUM(&(is->ium), GetNumCIFragTs(graph->CIFrags), FALSE);
+    int32           length = GetMultiAlignUngappedLength(ma);
     ChunkInstanceT *ci;
 
     // need to point fragments to their new unitig/contig
@@ -1023,14 +1022,14 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
 
 #if 1
   // feedback for log file
-  fprintf(GlobalData->stderrc, "Splitting %s " F_CID " into as many as %d %s at intervals:",
+  fprintf(GlobalData->stderrc, "Splitting %s "F_CID " into as many as %d %s at intervals:",
           (isUnitig ? "unitig" : "contig"), ma->maID,
           (int) (2 * GetNumVA_SeqInterval(csis) + 1),
           (isUnitig ? "unitigs" : "contigs"));
 
   for(currI = 0; currI < GetNumVA_SeqInterval(csis); currI++) {
     currInterval = GetVA_SeqInterval(csis, currI);
-    fprintf(GlobalData->stderrc, "\t" F_COORD "," F_COORD, currInterval->bgn, currInterval->end);
+    fprintf(GlobalData->stderrc, "\t"F_S32","F_S32, currInterval->bgn, currInterval->end);
   }
   fprintf(GlobalData->stderrc, "\n");
 #endif
@@ -1054,12 +1053,12 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
     InfoByIID   *info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
     CIFragT     *frag = GetCIFragT(graph->CIFrags, info->fragIndex);
 
-    CDS_COORD_t  minPos = ((isUnitig) ?
-                           MIN(frag->offset5p.mean, frag->offset3p.mean) :
-                           MIN(frag->contigOffset5p.mean, frag->contigOffset3p.mean));
-    CDS_COORD_t  maxPos = ((isUnitig) ?
-                           MAX(frag->offset5p.mean, frag->offset3p.mean) :
-                           MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean));
+    int32  minPos = ((isUnitig) ?
+                     MIN(frag->offset5p.mean, frag->offset3p.mean) :
+                     MIN(frag->contigOffset5p.mean, frag->contigOffset3p.mean));
+    int32  maxPos = ((isUnitig) ?
+                     MAX(frag->offset5p.mean, frag->offset3p.mean) :
+                     MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean));
 
     //  keep contained with containing - avoids problem of consensus
     //  failures if overlap of contained & next fragment is very short
@@ -1184,7 +1183,7 @@ SplitInputUnitigs(ScaffoldGraphT *graph) {
   VA_TYPE(uint16) *gcc = NULL;  // good clone coverage
   VA_TYPE(uint16) *bcc = NULL;  // bad clone coverage
   VA_TYPE(SeqInterval) *csis = NULL; // chimeric sequence intervals
-  CDS_COORD_t minLength = CDS_COORD_MAX;
+  int32 minLength = INT32_MAX;
   int i;
   int numCIs = GetNumGraphNodes(graph->CIGraph);
 
@@ -1211,8 +1210,8 @@ SplitInputUnitigs(ScaffoldGraphT *graph) {
     // NOTE: add discriminator statistic checks?
 
     if(GetMultiAlignLength(ma) >= minLength) {
-      CDS_COORD_t minBase, maxBase;
-      CDS_COORD_t curBase;
+      int32 minBase, maxBase;
+      int32 curBase;
 
       // create read coverage map for unitig
 
@@ -1242,7 +1241,7 @@ SplitInputUnitigs(ScaffoldGraphT *graph) {
       // see if above loop ended in a candidate interval
 
       if(curBase < maxBase) {
-        CDS_COORD_t checkBase;
+        int32 checkBase;
         SeqInterval interval;
         int inInterval = 0;
 

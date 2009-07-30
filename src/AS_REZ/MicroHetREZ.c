@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MicroHetREZ.c,v 1.22 2009-06-10 18:05:14 brianwalenz Exp $";
+static char *rcsid = "$Id: MicroHetREZ.c,v 1.23 2009-07-30 10:42:56 brianwalenz Exp $";
 
 #include <assert.h>
 #include <errno.h>
@@ -418,11 +418,11 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
       for(j=0; j<r-1; j++){
 	iid1 = id_array[j][i];
 	if( verbose > 0 )
-	  printf("loop (%d,%d) iid1=" F_IID "\n",i,j,iid1);
+	  printf("loop (%d,%d) iid1="F_IID"\n",i,j,iid1);
 	if( iid1 != 0 ){ // blank positions have IID 0
 	  AS_REZ_get_info(iid1,frag_store,&l1,&b1,&e1,&t1,locales,fragtype,locbeg,locend);
 	  if( verbose > 0 )
-	    printf("(id,loc,beg,end,type) = (" F_IID "," F_U32 ",%d,%d,%c)\n",
+	    printf("(id,loc,beg,end,type) = ("F_IID"," F_U32 ",%d,%d,%c)\n",
                    iid1,l1,b1,e1,t1);
 
 	  if(AS_FA_SHREDDED(t1)){
@@ -432,7 +432,7 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 	      iid2 = id_array[k][i];
 	      AS_REZ_get_info(iid2,frag_store,&l2,&b2,&e2,&t2,locales,fragtype,locbeg,locend);
 	      if( verbose > 0)
-		printf("(id2,loc2,beg2,end2,type2) = (" F_IID "," F_U32 ",%d,%d,%c)\n",
+		printf("(id2,loc2,beg2,end2,type2) = ("F_IID"," F_U32 ",%d,%d,%c)\n",
                        iid2,l2,b2,e2,t2);
 
 	      if( t1 == t2  && l2 == l1 ){
@@ -465,11 +465,11 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 
 	  iid1 = id_array[j][i];
 	  if( verbose > 0 )
-	    printf("loop (%d,%d) iid1=" F_IID "\n",i,j,iid1);
+	    printf("loop (%d,%d) iid1="F_IID"\n",i,j,iid1);
 	  if( iid1 != 0 ){ // blank positions have IID 0
 	    AS_REZ_get_info(iid1,frag_store,&l1,&b1,&e1,&t1,locales,fragtype,locbeg,locend);
 	    if( verbose > 0 )
-	      printf("(id,loc,beg,end,type) = (" F_IID "," F_U32 ",%d,%d,%c)\n",
+	      printf("(id,loc,beg,end,type) = ("F_IID"," F_U32 ",%d,%d,%c)\n",
                      iid1,l1,b1,e1,t1);
 
 	    if(AS_FA_SHREDDED(t1)){
@@ -479,7 +479,7 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 		iid2 = id_array[k][i];
 		AS_REZ_get_info(iid2,frag_store,&l2,&b2,&e2,&t2,locales,fragtype,locbeg,locend);
 		if( verbose > 0)
-		  printf("(id2,loc2,beg2,end2,type2) = (" F_IID "," F_U32 ",%d,%d,%c)\n",
+		  printf("(id2,loc2,beg2,end2,type2) = ("F_IID"," F_U32 ",%d,%d,%c)\n",
                          iid2,l2,b2,e2,t2);
 
 		if( t1 == t2  && l2 == l1 ){

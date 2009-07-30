@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg2.c,v 1.15 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg2.c,v 1.16 2009-07-30 10:42:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -207,27 +207,27 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
     //  contamination clear are optional.
 
     line = ReadLine(fin, TRUE);
-    if(sscanf(line,"con:"F_COORD","F_COORD,&b,&e)==2){
+    if(sscanf(line,"con:"F_S32","F_S32,&b,&e)==2){
       fmesg.contamination.bgn = b;
       fmesg.contamination.end = e;
       line = ReadLine(fin, TRUE);
     }
-    if(sscanf(line,"clv:"F_COORD","F_COORD,&b,&e)==2){
+    if(sscanf(line,"clv:"F_S32","F_S32,&b,&e)==2){
       fmesg.clear_vec.bgn = b;
       fmesg.clear_vec.end = e;
       line = ReadLine(fin, TRUE);
     }
-    if(sscanf(line,"clq:"F_COORD","F_COORD,&b,&e)==2){
+    if(sscanf(line,"clq:"F_S32","F_S32,&b,&e)==2){
       //  Legacy support.  The origianl v2 format had a QLT clear
       //  range that was never used.
       line = ReadLine(fin, TRUE);
     }
-    if(sscanf(line,"clm:"F_COORD","F_COORD,&b,&e)==2){
+    if(sscanf(line,"clm:"F_S32","F_S32,&b,&e)==2){
       fmesg.clear_max.bgn = b;
       fmesg.clear_max.end = e;
       line = ReadLine(fin, TRUE);
     }
-    if(sscanf(line,"clr:"F_COORD","F_COORD,&b,&e)==2){
+    if(sscanf(line,"clr:"F_S32","F_S32,&b,&e)==2){
       fmesg.clear_rng.bgn = b;
       fmesg.clear_rng.end = e;
     } else {
@@ -276,12 +276,12 @@ Write_Frag_Mesg(FILE *fout,void *vmesg,int frag_class) {
     PutText(fout,"hps:",mesg->hps,TRUE);
 
     if (mesg->contamination.bgn < mesg->contamination.end)
-      fprintf(fout,"con:"F_COORD","F_COORD"\n",mesg->contamination.bgn,mesg->contamination.end);
+      fprintf(fout,"con:"F_S32","F_S32"\n",mesg->contamination.bgn,mesg->contamination.end);
     if (mesg->clear_vec.bgn < mesg->clear_vec.end)
-      fprintf(fout,"clv:"F_COORD","F_COORD"\n",mesg->clear_vec.bgn,mesg->clear_vec.end);
+      fprintf(fout,"clv:"F_S32","F_S32"\n",mesg->clear_vec.bgn,mesg->clear_vec.end);
     if (mesg->clear_max.bgn < mesg->clear_max.end)
-      fprintf(fout,"clm:"F_COORD","F_COORD"\n",mesg->clear_max.bgn,mesg->clear_max.end);
-    fprintf(fout,"clr:"F_COORD","F_COORD"\n",mesg->clear_rng.bgn,mesg->clear_rng.end);
+      fprintf(fout,"clm:"F_S32","F_S32"\n",mesg->clear_max.bgn,mesg->clear_max.end);
+    fprintf(fout,"clr:"F_S32","F_S32"\n",mesg->clear_rng.bgn,mesg->clear_rng.end);
   }
 
   fprintf(fout,"}\n");

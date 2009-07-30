@@ -22,18 +22,12 @@
 #ifndef AS_UTL_IID_H
 #define AS_UTL_IID_H
 
-static const char *rcsid_AS_UTL_IID_H = "$Id: AS_UTL_IID.h,v 1.3 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_IID_H = "$Id: AS_UTL_IID.h,v 1.4 2009-07-30 10:42:56 brianwalenz Exp $";
 
 typedef int32  CDS_CID_t;
 #define CDS_CID_MAX     INT32_MAX
 #define F_CID           F_S32
 #define F_CIDP          F_S32P
-
-typedef int32  CDS_COORD_t;
-#define CDS_COORD_MIN   INT32_MIN
-#define CDS_COORD_MAX   INT32_MAX
-#define F_COORD         F_S32
-#define F_COORDP        F_S32P
 
 typedef uint32 AS_IID;
 #define CDS_IID_MAX     UINT32_MAX

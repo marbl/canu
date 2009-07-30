@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ARD_database.cc,v 1.10 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ARD_database.cc,v 1.11 2009-07-30 10:42:55 brianwalenz Exp $";
 
 #include <iostream>
 #include <string>
@@ -366,7 +366,7 @@ bool AS_ARD_database::addSCF2SDB(SnapScaffoldMesg * scf) {
    bool result = false;
    int i = 0;
    uint32 contigPairs = 0;
-   CDS_COORD_t scfLen = 0;
+   int32 scfLen = 0;
 
    result = db->storeSCF2DB(scf->eaccession, scf->iaccession, scf->num_contig_pairs);
 
@@ -381,7 +381,7 @@ bool AS_ARD_database::addSCF2SDB(SnapScaffoldMesg * scf) {
    return result;
 }
 
-bool AS_ARD_database::addCTP2DB(AS_UID scfID, SnapContigPairs * ctp, CDS_COORD_t &scfLen) {
+bool AS_ARD_database::addCTP2DB(AS_UID scfID, SnapContigPairs * ctp, int32 &scfLen) {
    bool result = false;
    AS_UID ctpID = AS_UID_fromInteger(getUID(this->uids));
    float stddev = ctp->stddev;
@@ -401,7 +401,7 @@ bool AS_ARD_database::addCTP2DB(AS_UID scfID, SnapContigPairs * ctp, CDS_COORD_t
 
    // if there is a gap and this is not a single-contig pair
    if (AS_UID_compare(ctp->econtig1, ctp->econtig2) != 0) {
-      scfLen += (CDS_COORD_t)rintf(ctp->mean);
+      scfLen += (int32)rintf(ctp->mean);
 
       result = result & addCTPList2DB(ctpID, ctp->econtig2);
       result = result & addCPS2DB(ctpID, ctp->econtig2, (ctp->orient == AS_INNIE || ctp->orient == AS_ANTI) ? true : false, scfLen);
@@ -414,10 +414,10 @@ bool AS_ARD_database::addCTPList2DB(AS_UID ctpID, AS_UID ccoID) {
    return db->storeCTPList2DB(AS_UID_fromInteger(getUID(this->uids)), ctpID, ccoID);
 }
 
-bool AS_ARD_database::addCPS2DB(AS_UID ctpID, AS_UID ccoID, bool isReversed, CDS_COORD_t &scfLen) {
+bool AS_ARD_database::addCPS2DB(AS_UID ctpID, AS_UID ccoID, bool isReversed, int32 &scfLen) {
    bool result = false;
-   CDS_COORD_t ctgStart = scfLen;
-   CDS_COORD_t ctgEnd = scfLen + LookupValueInHashTable_AS(contigLens, AS_UID_toInteger(ccoID), 0);
+   int32 ctgStart = scfLen;
+   int32 ctgEnd = scfLen + LookupValueInHashTable_AS(contigLens, AS_UID_toInteger(ccoID), 0);
 
    scfLen = ctgEnd;
 

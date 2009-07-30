@@ -22,7 +22,7 @@
 #ifndef INTERLEAVED_MERGING_H
 #define INTERLEAVED_MERGING_H
 
-static const char *rcsid_INTERLEAVED_MERGING_H = "$Id: InterleavedMerging.h,v 1.8 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid_INTERLEAVED_MERGING_H = "$Id: InterleavedMerging.h,v 1.9 2009-07-30 10:42:56 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -60,8 +60,8 @@ typedef struct
 
 typedef struct
 {
-  CDS_COORD_t bandBeg;             // max AHang - only for scaffold A
-  CDS_COORD_t bandEnd;             // min AHang - only for scaffold A
+  int32 bandBeg;             // max AHang - only for scaffold A
+  int32 bandEnd;             // min AHang - only for scaffold A
   Scaffold * scaffold;
   ScaffoldPools * pools;
   VA_TYPE(ContigElement) * contigs;

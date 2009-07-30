@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.60 2009-06-22 07:53:58 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.61 2009-07-30 10:42:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -289,7 +289,7 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
 
 
 
-void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int sequenceOnly){
+void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, int32 length, int sequenceOnly){
   CDS_CID_t cfr;
   ChunkInstanceT CI;
 
@@ -389,15 +389,15 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
   if( ! sequenceOnly ) {
       CDS_CID_t extremalA = NULLINDEX;
       CDS_CID_t extremalB = NULLINDEX;
-      CDS_COORD_t minOffset = CDS_COORD_MAX;
-      CDS_COORD_t maxOffset = CDS_COORD_MIN;
+      int32 minOffset = INT32_MAX;
+      int32 maxOffset = INT32_MIN;
 
       /* Determine extremal fragments so we can label the fragments */
 
       for(cfr = 0; cfr < ium_mesg->num_frags; cfr++){
 	IntMultiPos *cfr_mesg = ium_mesg->f_list + cfr;
-	CDS_COORD_t end = MAX( cfr_mesg->position.end, cfr_mesg->position.bgn);
-	CDS_COORD_t beg = MIN( cfr_mesg->position.end, cfr_mesg->position.bgn);
+	int32 end = MAX( cfr_mesg->position.end, cfr_mesg->position.bgn);
+	int32 beg = MIN( cfr_mesg->position.end, cfr_mesg->position.bgn);
 
 	if(minOffset > beg){
 	  minOffset = beg;
@@ -524,8 +524,8 @@ LoadDistData(void) {
     dist.mu             = gkpl->mean;
     dist.sigma          = gkpl->stddev;
     dist.numSamples     = 0;
-    dist.min            = CDS_COORD_MAX;
-    dist.max            = CDS_COORD_MIN;
+    dist.min            = INT32_MAX;
+    dist.max            = INT32_MIN;
     dist.bnum           = 0;
     dist.bsize          = 0;
     dist.histogram      = NULL;

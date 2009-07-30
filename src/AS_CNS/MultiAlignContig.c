@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignContig.c,v 1.3 2009-06-22 12:04:53 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignContig.c,v 1.4 2009-07-30 10:42:56 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -67,8 +67,8 @@ PlaceFragments(int32 fid,
     // by computing the position of the unitig within the contig and adding ahang to it
     // if this computed position matches the position that the IMP record retrieved below tells us, proceed, otherwise skip placement
     IntMultiPos *bimp = (IntMultiPos *)LookupValueInHashTable_AS(fragmentToIMP, bfrag->idx.fragment.frgIdent, 0);
-    CDS_COORD_t  bbgn = (bimp->position.bgn < bimp->position.end ? bimp->position.bgn : bimp->position.end);
-    CDS_COORD_t  abgn = (aiup->position.bgn < aiup->position.end ? aiup->position.bgn : aiup->position.end);
+    int32  bbgn = (bimp->position.bgn < bimp->position.end ? bimp->position.bgn : bimp->position.end);
+    int32  abgn = (aiup->position.bgn < aiup->position.end ? aiup->position.bgn : aiup->position.end);
 
     int fcomplement = afrag->complement;
     int bcomplement = (bfrag->position.bgn < bfrag->position.end) ? 0 : 1;

@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.37 2009-07-30 10:34:14 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.38 2009-07-30 10:42:55 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_ALN_aligners.h"
@@ -152,7 +152,7 @@ typedef struct {
 
 typedef struct
 {
-  CDS_COORD_t samples;
+  int32 samples;
   CDS_CID_t frags;
   CDS_CID_t mates;
 } MateInfoT;
@@ -360,10 +360,10 @@ typedef struct {
 typedef struct {
   ChunkOverlapSpecT spec;
 
-  CDS_COORD_t  minOverlap;
-  CDS_COORD_t  maxOverlap;
-  CDS_COORD_t  cgbMinOverlap;
-  CDS_COORD_t  cgbMaxOverlap;
+  int32  minOverlap;
+  int32  maxOverlap;
+  int32  cgbMinOverlap;
+  int32  cgbMaxOverlap;
   float        errorRate;
 
   // This is what we found
@@ -374,12 +374,12 @@ typedef struct {
   uint32       suspicious:1;
   uint32       unused:26;
 
-  CDS_COORD_t  overlap;  // The overlaplength if there is an overlap, 0 otherwise
-  CDS_COORD_t  ahg;
-  CDS_COORD_t  bhg;
+  int32  overlap;  // The overlaplength if there is an overlap, 0 otherwise
+  int32  ahg;
+  int32  bhg;
   float        quality;
-  CDS_COORD_t  min_offset;
-  CDS_COORD_t  max_offset;
+  int32  min_offset;
+  int32  max_offset;
 } ChunkOverlapCheckT;
 
 typedef struct {
@@ -424,8 +424,8 @@ typedef struct{
 
 typedef struct{
   CDS_CID_t id;
-  CDS_COORD_t minGap;
-  CDS_COORD_t maxGap;
+  int32 minGap;
+  int32 maxGap;
   ChunkOrientationType orient;
 }RevivedEdgeT;
 
@@ -1276,7 +1276,7 @@ CDS_CID_t AddGraphEdge( GraphCGW_T *graph,
                         CDS_CID_t dist,
                         LengthT distance,
                         float   quality,
-                        CDS_COORD_t fudgeDistance,
+                        int32 fudgeDistance,
                         OrientType orientation,
                         int isInducedByUnknownOrientation,
                         int isOverlap,
@@ -1527,20 +1527,20 @@ void CollectChunkOverlap(GraphCGW_T *graph,
 
 Overlap* OverlapSequences(char *seq1, char *seq2,
                           ChunkOrientationType orientation,
-                          CDS_COORD_t min_ahang, CDS_COORD_t max_ahang,
-                          double erate, double thresh, CDS_COORD_t minlen);
+                          int32 min_ahang, int32 max_ahang,
+                          double erate, double thresh, int32 minlen);
 
 ChunkOverlapCheckT OverlapChunks(GraphCGW_T *graph,
                                  CDS_CID_t cidA, CDS_CID_t cidB,
                                  ChunkOrientationType orientation,
-                                 CDS_COORD_t minOverlap,
-                                 CDS_COORD_t maxOverlap,
+                                 int32 minOverlap,
+                                 int32 maxOverlap,
                                  float errorRate,
                                  int insertGraphEdges);
 
 Overlap* OverlapContigs(NodeCGW_T *contig1, NodeCGW_T *contig2,
                         ChunkOrientationType *overlapOrientation,
-                        CDS_COORD_t minAhang, CDS_COORD_t maxAhang,
+                        int32 minAhang, int32 maxAhang,
                         int computeAhang);
 
 void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,

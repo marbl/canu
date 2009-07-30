@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid  = "$Id: AS_FGB_contained.c,v 1.8 2008-10-08 22:02:54 brianwalenz Exp $";
+static char *rcsid  = "$Id: AS_FGB_contained.c,v 1.9 2009-07-30 10:42:55 brianwalenz Exp $";
 
 // Determines the contained status of the fragments.
 
@@ -47,7 +47,7 @@ void check_containment_edges
          (AS_CGB_DOVETAIL_EDGE == ines)
          )
        ) {
-      fprintf(stderr,"ie=" F_IID " nes=%d\n", ie,ines);
+      fprintf(stderr,"ie="F_IID " nes=%d\n", ie,ines);
     }
     assert(/* The containment overlaps... */
 	   (AS_CGB_CONTAINED_EDGE == ines) ||
@@ -68,7 +68,7 @@ void check_containment_edges
             ((is_a_toc_simple(iahg,ibhg) || is_a_frc_simple(iahg,ibhg))
              && (ines == AS_CGB_CONTAINED_EDGE))
            )) {
-	fprintf(stderr,"XX " F_IID " " F_IID " " F_IID " " F_IID " " F_IID " %d %d %d\n",
+	fprintf(stderr,"XX "F_IID " "F_IID " "F_IID " "F_IID " "F_IID " %d %d %d\n",
 		ie, aid, bid,
 		iavx, ibvx, iahg, ibhg, ines);
 	fprintf(stderr,"Break the containment tie!!\n");

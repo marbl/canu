@@ -100,7 +100,7 @@ ifeq ($(OSTYPE), FreeBSD)
   endif
   ifeq ($(MACHINETYPE), amd64)
     ARCH_LDFLAGS    += -pthread -lthr -lm
-    ARCH_CFLAGS      = -pthread
+    ARCH_CFLAGS      = -pthread -Wformat
   endif
 
   ifeq ($(BUILDCOVERAGE), 1)
@@ -110,7 +110,7 @@ ifeq ($(OSTYPE), FreeBSD)
     ifeq ($(BUILDDEBUG), 1)
       ARCH_CFLAGS   += -g -Wimplicit -Wno-write-strings
     else
-      ARCH_CFLAGS   += -O -Wimplicit -Wno-write-strings -mtune=nocona -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+      ARCH_CFLAGS   += -O -Wall -Wimplicit -Wno-write-strings -Wno-unused -mtune=nocona -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
     endif
   endif
 

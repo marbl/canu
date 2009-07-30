@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.45 2009-07-30 10:34:14 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.46 2009-07-30 10:42:55 brianwalenz Exp $";
 
 
 #undef ORIG_MERGE_EDGE_INVERT
@@ -3540,8 +3540,8 @@ int isBadScaffoldMergeEdge(SEdgeT * edge, ChunkOverlapperT * overlapper)
   ChunkOverlapCheckT * lookup;
   ChunkOverlapSpecT spec;
   double delta = sqrt(edge->distance.variance) * 3.;
-  CDS_COORD_t minOverlap = (CDS_COORD_t) -edge->distance.mean - delta;
-  CDS_COORD_t maxOverlap = (CDS_COORD_t) -edge->distance.mean + delta;
+  int32 minOverlap = (int32) -edge->distance.mean - delta;
+  int32 maxOverlap = (int32) -edge->distance.mean + delta;
 
   InitCanonicalOverlapSpec(edge->idA, edge->idB, edge->orient, &spec);
   if((lookup = LookupCanonicalOverlap(overlapper, &spec)) != NULL)

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_walk.c,v 1.7 2008-10-08 22:02:54 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_walk.c,v 1.8 2009-07-30 10:42:55 brianwalenz Exp $";
 
 //  Walks the skeleton fragment overlap graph to determine if an
 //  overlap is transitively inferable from the skeleton fragment
@@ -232,7 +232,7 @@ int is_there_an_overlap_path(const Tfragment *frags,
          {
            FILE *fwalk = stderr;
            fprintf(fwalk,
-                   "Walk1: " F_IID ":%d " F_IID ":%d %d %d %d : %d " F_IID ":%d " F_IID ":%d %d %d %d\n",
+                   "Walk1: "F_IID ":%d "F_IID ":%d %d %d %d : %d "F_IID ":%d "F_IID ":%d %d %d %d\n",
                    get_iid_fragment(frags,target_avx),
                    target_asx,
                    get_iid_fragment(frags,target_bvx),
@@ -315,7 +315,7 @@ int is_there_an_overlap_path(const Tfragment *frags,
          {
            FILE *fwalk = stderr;
            fprintf(fwalk,
-                   "Walk2: " F_IID ":%d " F_IID ":%d %d %d %d : %d " F_IID ":%d " F_IID ":%d %d %d %d\n",
+                   "Walk2: "F_IID ":%d "F_IID ":%d %d %d %d : %d "F_IID ":%d "F_IID ":%d %d %d %d\n",
                    get_iid_fragment(frags,target_avx),
                    target_asx,
                    get_iid_fragment(frags,target_bvx),

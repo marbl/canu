@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.53 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.54 2009-07-30 10:42:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,7 +73,7 @@ void RepairContigNeighbors(ChunkInstanceT *surr);
 // Propagate Containment Overlaps
 void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
                                               VA_TYPE(IntElementPos) *ContigPositions,
-                                              CDS_COORD_t contigBase,
+                                              int32 contigBase,
                                               int32 verbose){
   int32 i;
 
@@ -83,14 +83,14 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
     GraphEdgeIterator edges;
     EdgeCGW_T *edge;
     int flip =( pos->position.bgn > pos->position.end); // do we need to flip edge orientation
-    CDS_COORD_t posBgn = pos->position.bgn - contigBase;
-    CDS_COORD_t posEnd = pos->position.end - contigBase;
+    int32 posBgn = pos->position.bgn - contigBase;
+    int32 posEnd = pos->position.end - contigBase;
 
     InitGraphEdgeIterator(ScaffoldGraph->RezGraph, contig->id, ALL_END, ALL_EDGES,
                           GRAPH_EDGE_RAW_ONLY,
                           &edges);
     if(verbose) {
-      fprintf(GlobalData->stderrc,"* Scanning edges incident on contig " F_CID "\n", pos->ident);
+      fprintf(GlobalData->stderrc,"* Scanning edges incident on contig "F_CID "\n", pos->ident);
     }
 
     while((edge = NextGraphEdgeIterator(&edges)) != NULL){
@@ -98,7 +98,7 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
       ChunkOrientationType orient;
       LengthT distance;
       ContigT *otherContig = GetGraphNode(ScaffoldGraph->RezGraph, (edge->idA == contig->id? edge->idB:edge->idA));
-      CDS_COORD_t overlap;
+      int32 overlap;
 
 
       if( !(edge->flags.bits.aContainsB ||         // only handling containment edges
@@ -116,13 +116,13 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
       distance.variance = MAX(edge->distance.variance, 10.0);
 
       if(verbose){
-        fprintf(GlobalData->stderrc,"* Contain:  pos " F_CID "  flip:%d edgeOrient:%c beg:" F_COORD " end:" F_COORD " newContigLength:%g\n",
+        fprintf(GlobalData->stderrc,"* Contain:  pos "F_CID "  flip:%d edgeOrient:%c beg:"F_S32" end:"F_S32" newContigLength:%g\n",
                 pos->ident, flip, edgeOrient, posBgn, posEnd, newContig->bpLength.mean);
         PrintGraphEdge(GlobalData->stderrc,ScaffoldGraph->RezGraph,"propogating ", edge, edge->idA);
       }
 
       //  Compute the two edges for the containment
-      overlap = (CDS_COORD_t) -edge->distance.mean;
+      overlap = (int32) -edge->distance.mean;
 
       if(!flip){
         switch(edgeOrient){
@@ -257,8 +257,8 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
         }
 
         {
-          CDS_COORD_t delta =
-            (CDS_COORD_t) MIN((3 * sqrt(newEdge->distance.variance)), 50);
+          int32 delta =
+            (int32) MIN((3 * sqrt(newEdge->distance.variance)), 50);
 
           assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
 
@@ -272,7 +272,7 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
 
           if(olap.overlap == 0 || olap.suspicious){
             if(olap.suspicious){
-              fprintf(GlobalData->stderrc,"* CIS_C0 SUSPICIOUS Overlap found! Looked for (" F_CID "," F_CID ",%c) [%d,%d] found (" F_CID "," F_CID ",%c) " F_COORD "\n",
+              fprintf(GlobalData->stderrc,"* CIS_C0 SUSPICIOUS Overlap found! Looked for ("F_CID ","F_CID ",%c) [%d,%d] found ("F_CID ","F_CID ",%c) "F_S32"\n",
                       newEdge->idA, newEdge->idB, newEdge->orient,
                       (int)(-newEdge->distance.mean - delta),
                       (int) (-newEdge->distance.mean + delta),
@@ -360,7 +360,7 @@ static VA_TYPE(CDS_CID_t) *MergedEdges = NULL;
 void PropagateInternalOverlapsToNewContig(ContigT *newContig,
                                           VA_TYPE(IntElementPos) *ContigPositions,
                                           CDS_CID_t scaffoldID,
-                                          CDS_COORD_t contigBase,
+                                          int32 contigBase,
                                           int32 verbose){
   int32 i;
   int32 cnt = 0;
@@ -390,15 +390,15 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
     GraphEdgeIterator edges;
     EdgeCGW_T *edge;
     int flip =( pos->position.bgn > pos->position.end); // do we need to flip edge orientation
-    CDS_COORD_t posBgn = pos->position.bgn - contigBase;
-    CDS_COORD_t posEnd = pos->position.end - contigBase;
+    int32 posBgn = pos->position.bgn - contigBase;
+    int32 posEnd = pos->position.end - contigBase;
 
     /* We exclude containment since we handle it elsewhere */
     InitGraphEdgeIterator(ScaffoldGraph->RezGraph, contig->id, ALL_END, ALL_EDGES,
 			  GRAPH_EDGE_RAW_ONLY|GRAPH_EDGE_EXCLUDE_CONTAINMENT,
 			  &edges);
     if(verbose) {
-      fprintf(GlobalData->stderrc,"* Scanning edges incident on contig " F_CID "\n", pos->ident);
+      fprintf(GlobalData->stderrc,"* Scanning edges incident on contig "F_CID "\n", pos->ident);
     }
 
     while((edge = NextGraphEdgeIterator(&edges)) != NULL){
@@ -406,7 +406,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
       ChunkOrientationType orient1, orient2;
       LengthT distance1, distance2;
       ContigT *otherContig = GetGraphNode(ScaffoldGraph->RezGraph, (edge->idA == contig->id? edge->idB:edge->idA));
-      CDS_COORD_t overlap;
+      int32 overlap;
       double maxDistance;
 
       distance1.variance = MAX(edge->distance.variance, 10.0);
@@ -421,7 +421,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
       if(verbose){
 	fprintf
           (GlobalData->stderrc,
-           "* pos " F_CID "  flip:%d edgeOrient:%c beg:" F_COORD " end:" F_COORD " newContigLength:%g\n",
+           "* pos "F_CID "  flip:%d edgeOrient:%c beg:"F_S32" end:"F_S32" newContigLength:%g\n",
            pos->ident, flip, edgeOrient, posBgn, posEnd,
            newContig->bpLength.mean);
 	PrintGraphEdge(GlobalData->stderrc,
@@ -675,19 +675,19 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 	if(GetNumCDS_CID_ts(TentativeEdges) == 1){
 	  // keep track of which edges to discard
 #ifdef DEBUG_DETAILED
-          fprintf(GlobalData->stderrc,"* Edge " F_CID " to Discarded edges\n",
+          fprintf(GlobalData->stderrc,"* Edge "F_CID " to Discarded edges\n",
                   *GetCDS_CID_t(TentativeEdges,0));
 #endif
           AppendCDS_CID_t(DiscardedEdges, GetCDS_CID_t(TentativeEdges,0));
 	}else{
 	  if(GlobalData->debugLevel > 0)
-	    fprintf(GlobalData->stderrc,"* Merging " F_CID "," F_CID ",%c   %d edges\n",
+	    fprintf(GlobalData->stderrc,"* Merging "F_CID ","F_CID ",%c   %d edges\n",
                     e->idA, currID, currOrient,
                     (int) GetNumCDS_CID_ts(TentativeEdges));
 	  addedEdges = MergeGraphEdges(ScaffoldGraph->RezGraph, TentativeEdges);
 	  if(addedEdges> 0){
 	    if(GlobalData->debugLevel > 0)
-	      fprintf(GlobalData->stderrc,"* Merging (" F_CID "," F_CID ",%c): Added %d edges!!!\n",
+	      fprintf(GlobalData->stderrc,"* Merging ("F_CID ","F_CID ",%c): Added %d edges!!!\n",
                       e->idA, currID, currOrient, addedEdges);
 
 	    ee = GetGraphEdge(ScaffoldGraph->RezGraph, *GetCDS_CID_t(TentativeEdges,0));
@@ -746,14 +746,14 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 	eid = *GetCDS_CID_t(DiscardedEdges,i);
 	e = GetGraphEdge(ScaffoldGraph->RezGraph, eid);
 
-	//fprintf(GlobalData->stderrc,"* i = %d eid = " F_CID "\n", i,eid);
+	//fprintf(GlobalData->stderrc,"* i = %d eid = "F_CID "\n", i,eid);
 
 	if(e->flags.bits.isDeleted){
-	  fprintf(GlobalData->stderrc,"* i = %d Edge " F_CID " is ALREADY deleted...WIERD!\n", i,eid);
+	  fprintf(GlobalData->stderrc,"* i = %d Edge "F_CID " is ALREADY deleted...WIERD!\n", i,eid);
 	}else{
 	  if(verbose) {
 	    PrintGraphEdge(GlobalData->stderrc,ScaffoldGraph->RezGraph," ", e, e->idA);
-            fprintf(GlobalData->stderrc,"* i = %d Edge " F_CID "!\n", i,eid);
+            fprintf(GlobalData->stderrc,"* i = %d Edge "F_CID "!\n", i,eid);
           }
 	  FreeGraphEdgeByEID(ScaffoldGraph->RezGraph,eid);
 	}
@@ -769,7 +769,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 	CDS_CID_t neid;
 	EdgeCGW_T *e = GetGraphEdge(ScaffoldGraph->RezGraph, eid);
 	ChunkOverlapCheckT olap = {0};
-	CDS_COORD_t delta = MIN((3 * sqrt(e->distance.variance)), 50);
+	int32 delta = MIN((3 * sqrt(e->distance.variance)), 50);
 	CDS_CID_t idA, idB;
 	ChunkOrientationType orient;
 
@@ -811,7 +811,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 
 	if(olap.overlap == 0 || olap.suspicious){
           if(olap.suspicious){
-            fprintf(GlobalData->stderrc,"* CIS_C1 SUSPICIOUS Overlap found! Looked for (" F_CID "," F_CID ",%c) [%d,%d] found (" F_CID "," F_CID ",%c) " F_COORD " \n",
+            fprintf(GlobalData->stderrc,"* CIS_C1 SUSPICIOUS Overlap found! Looked for ("F_CID ","F_CID ",%c) [%d,%d] found ("F_CID ","F_CID ",%c) "F_S32" \n",
                     idA, idB, orient,
                     (int)(-e->distance.mean - delta),
                     (int)(-e->distance.mean + delta),
@@ -826,7 +826,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 	}
 
 	if(verbose) {
-	  fprintf(GlobalData->stderrc,"* Looked for [%g,%g] found " F_COORD " overlap\n",
+	  fprintf(GlobalData->stderrc,"* Looked for [%g,%g] found "F_S32" overlap\n",
                   e->distance.mean - delta,
                   e->distance.mean + delta,
                   olap.overlap);
@@ -881,14 +881,14 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 
 
 // Propagate overlap edges incident on extremal contigs to new contig
-void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, ContigT *newContig, int newContigEnd, CDS_COORD_t contigBase, int32 verbose){
+void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, ContigT *newContig, int newContigEnd, int32 contigBase, int32 verbose){
   GraphEdgeIterator edges;
   EdgeCGW_T *edge;
   int first = 0;
   CDS_CID_t rawEdgeID;
 
   if(verbose){
-    fprintf(GlobalData->stderrc,"* PropagateExtremalOverlaps from (" F_CID ",%c) to (" F_CID ",%c)\n",
+    fprintf(GlobalData->stderrc,"* PropagateExtremalOverlaps from ("F_CID ",%c) to ("F_CID ",%c)\n",
             contigID, (contigEnd == A_END?'A':'B'),
             newContig->id, (newContigEnd == A_END?'A':'B'));
 
@@ -927,7 +927,7 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
     /*****  rawEdge should be propagated to be incident on the new contig!!! ****/
     if(verbose){
       if(first++ == 0)
-	fprintf(GlobalData->stderrc,"* Need to propagate the following edges from (" F_CID ",%c) to the new contig's %c End\n",
+	fprintf(GlobalData->stderrc,"* Need to propagate the following edges from ("F_CID ",%c) to the new contig's %c End\n",
                 contigID,
                 (contigEnd == A_END?'A':'B'),
                 (newContigEnd == A_END?'A':'B')  );
@@ -999,7 +999,7 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
       {
         ChunkOverlapCheckT olap = {0};
         if(LookupOverlap(ScaffoldGraph->RezGraph, newEdge->idA, newEdge->idB, newEdge->orient, &olap)){
-          fprintf(GlobalData->stderrc,"\t* Overlap already exists (" F_CID "," F_CID ",%c)...skip\n",
+          fprintf(GlobalData->stderrc,"\t* Overlap already exists ("F_CID ","F_CID ",%c)...skip\n",
                   newEdge->idA, newEdge->idB, newEdge->orient);
           FreeGraphEdge(ScaffoldGraph->RezGraph, newEdge);
           continue;
@@ -1007,7 +1007,7 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
       }
 
       {
-        CDS_COORD_t delta = MIN((3 * sqrt(newEdge->distance.variance)), 50);
+        int32 delta = MIN((3 * sqrt(newEdge->distance.variance)), 50);
 
         assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
 
@@ -1021,7 +1021,7 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
 
         if(olap.overlap == 0 || olap.suspicious){
           if(olap.suspicious){
-            fprintf(GlobalData->stderrc,"* CIS_S2 SUSPICIOUS Overlap found! Looked for (" F_CID "," F_CID ",%c) found (" F_CID "," F_CID ",%c)\n",
+            fprintf(GlobalData->stderrc,"* CIS_S2 SUSPICIOUS Overlap found! Looked for ("F_CID ","F_CID ",%c) found ("F_CID ","F_CID ",%c)\n",
                     newEdge->idA, newEdge->idB, newEdge->orient,
                     olap.spec.cidA, olap.spec.cidB, olap.spec.orientation);
           }
@@ -1071,14 +1071,14 @@ void PropagateOverlapsToNewContig(ContigT *contig,
                                   CDS_CID_t scaffoldID, int32 verbose){
   ContigT *aContig, *bContig;
   CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, scaffoldID);
-  CDS_COORD_t contigBase = CDS_COORD_MAX;
+  int32 contigBase = INT32_MAX;
   int32 i;
 
 
   // Get a baseline for contig offsets
   for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
     IntElementPos *pos = GetIntElementPos(ContigPositions,i);
-    CDS_COORD_t minPos = MIN(pos->position.bgn, pos->position.end);
+    int32 minPos = MIN(pos->position.bgn, pos->position.end);
     if(contigBase > minPos)
       contigBase = minPos;
   }
@@ -1101,14 +1101,14 @@ void PropagateOverlapsToNewContig(ContigT *contig,
 #ifdef DEBUG_PROPAGATE
   DumpContig(GlobalData->stderrc,ScaffoldGraph, GetGraphNode(ScaffoldGraph->RezGraph, contig->id),FALSE);
 
-  fprintf(GlobalData->stderrc,"* Calling extermal on " F_CID " *\n", aEndID);
+  fprintf(GlobalData->stderrc,"* Calling extermal on "F_CID " *\n", aEndID);
 #endif
 
   // Propagate overlaps from the contig at the a end of the new contig
   PropagateExtremalOverlapsToNewContig(aEndID, aEndEnd, contig, A_END, contigBase, verbose);
 
 #ifdef DEBUG_PROPAGATE
-  fprintf(GlobalData->stderrc,"* Calling extermal on " F_CID " *\n", bEndID);
+  fprintf(GlobalData->stderrc,"* Calling extermal on "F_CID " *\n", bEndID);
   DumpContig(GlobalData->stderrc,ScaffoldGraph, GetGraphNode(ScaffoldGraph->RezGraph, contig->id),FALSE);
 #endif
   // Propagate overlaps from the contig at the b end of the enw contig
@@ -1156,7 +1156,7 @@ void  ReplaceContigsInScaffolds(CIScaffoldT *scaffold, ContigT *newContig, VA_TY
   }
 
 #ifdef DEBUG_DETAILED
-  fprintf(GlobalData->stderrc,"* Inserting new contig " F_CID " at (%g,%g) "
+  fprintf(GlobalData->stderrc,"* Inserting new contig "F_CID " at (%g,%g) "
           "with delta (%g,%g) in place of:\n",
 	  newContig->id, offsetAEnd.mean, offsetBEnd.mean,
           deltaOffsetBEnd.mean, deltaOffsetBEnd.variance);
@@ -1165,8 +1165,8 @@ void  ReplaceContigsInScaffolds(CIScaffoldT *scaffold, ContigT *newContig, VA_TY
     IntElementPos *pos = GetIntElementPos(contigPositions,i);
     ContigT *contig = GetGraphNode(ScaffoldGraph->ContigGraph,  pos->ident);
 #ifdef DEBUG_DETAILED
-    fprintf(GlobalData->stderrc,"* Removing contig " F_CID " "
-            "from scaffold " F_CID " prev:" F_CID " next:" F_CID " (%g,%g) (%g,%g) ratio:%g\n",
+    fprintf(GlobalData->stderrc,"* Removing contig "F_CID " "
+            "from scaffold "F_CID " prev:"F_CID " next:"F_CID " (%g,%g) (%g,%g) ratio:%g\n",
 	    contig->id, scaffold->id,  contig->AEndNext,contig->BEndNext,
 	    contig->offsetAEnd.mean, contig->offsetAEnd.variance,
 	    contig->offsetBEnd.mean, contig->offsetBEnd.variance,
@@ -1198,7 +1198,7 @@ void  ReplaceContigsInScaffolds(CIScaffoldT *scaffold, ContigT *newContig, VA_TY
       offset.variance = -newContig->offsetBEnd.variance;
     }
 
-    fprintf(stderr,"* newContig " F_CID " at AEND offset [%g,%g] \n", newContig->id, newContig->offsetAEnd.mean, newContig->offsetBEnd.mean);
+    fprintf(stderr,"* newContig "F_CID " at AEND offset [%g,%g] \n", newContig->id, newContig->offsetAEnd.mean, newContig->offsetBEnd.mean);
     AddDeltaToScaffoldOffsets(ScaffoldGraph,
 			      scaffold->id,
 			      newContig->id,
@@ -1292,7 +1292,7 @@ int CleanupScaffolds(ScaffoldGraphT *sgraph, int lookForSmallOverlaps,
 
     if((scaffold->id % 10000) == 0){
       clearCacheSequenceDB(sgraph->sequenceDB);
-      fprintf(GlobalData->stderrc,"* CleanupScaffolds through scaffold " F_CID "\n", scaffold->id);
+      fprintf(GlobalData->stderrc,"* CleanupScaffolds through scaffold "F_CID "\n", scaffold->id);
     }
   }
 
@@ -1328,14 +1328,14 @@ int CleanupFailedMergesInScaffolds(ScaffoldGraphT *sgraph){
 	  break;
 	if(didSomething > 0)
 	  madeChanges = TRUE;
-	//fprintf(GlobalData->stderrc,"* Merge failure(16) in scaffold " F_CID " didSomething = %d \n", scaffold->id, didSomething);
+	//fprintf(GlobalData->stderrc,"* Merge failure(16) in scaffold "F_CID " didSomething = %d \n", scaffold->id, didSomething);
 
 	didSomething = CleanupAScaffold(sgraph,scaffold, FALSE, 4 , FALSE);
 	if(didSomething == 0)
 	  break;
 	if(didSomething > 0)
 	  madeChanges = TRUE;
-	//fprintf(GlobalData->stderrc,"* Merge failure(4) in scaffold " F_CID " didSomething = %d \n", scaffold->id, didSomething);
+	//fprintf(GlobalData->stderrc,"* Merge failure(4) in scaffold "F_CID " didSomething = %d \n", scaffold->id, didSomething);
       }
 
       didSomething = CleanupAScaffold(sgraph,scaffold, FALSE, 3 , FALSE);
@@ -1343,7 +1343,7 @@ int CleanupFailedMergesInScaffolds(ScaffoldGraphT *sgraph){
 	break;
       if(didSomething > 0)
         madeChanges = TRUE;
-      //fprintf(GlobalData->stderrc,"* Merge failure(3) in scaffold " F_CID " didSomething = %d iteration %d\n", scaffold->id, didSomething, iteration);
+      //fprintf(GlobalData->stderrc,"* Merge failure(3) in scaffold "F_CID " didSomething = %d iteration %d\n", scaffold->id, didSomething, iteration);
 
       didSomething = CleanupAScaffold(sgraph,scaffold, FALSE, 2 , FALSE);
       if(didSomething > 0)
@@ -1377,7 +1377,7 @@ int  DeleteAllSurrogateContigsFromFailedMerges(CIScaffoldT *scaffold,
   int numSurrogates;
 
 #if 0
-  fprintf(GlobalData->stderrc,"* DeleteAllSurrogateContigsFromFailedMerges scaffold " F_CID " contig " F_CID "\n",
+  fprintf(GlobalData->stderrc,"* DeleteAllSurrogateContigsFromFailedMerges scaffold "F_CID " contig "F_CID "\n",
 	  scaffold->id, contig->id);
 #endif
 
@@ -1403,7 +1403,7 @@ int  DeleteAllSurrogateContigsFromFailedMerges(CIScaffoldT *scaffold,
 
     didSomething = TRUE;
 
-    fprintf(GlobalData->stderrc,"*** Deleting contig " F_CID " from scaffold " F_CID " since it is a short, all surrogate contigging failue\n",
+    fprintf(GlobalData->stderrc,"*** Deleting contig "F_CID " from scaffold "F_CID " since it is a short, all surrogate contigging failue\n",
             contig->id, contig->scaffoldID);
     DumpContig(GlobalData->stderrc,ScaffoldGraph, contig, FALSE);
 
@@ -1453,7 +1453,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   }
 
 #ifdef DEBUG_DETAILED
-  fprintf(GlobalData->stderrc,"* CleanupAScaffold " F_CID " (max:%d)\n", scaffold->id, maxContigsInMerge);
+  fprintf(GlobalData->stderrc,"* CleanupAScaffold "F_CID " (max:%d)\n", scaffold->id, maxContigsInMerge);
 #endif
 
 #ifdef DEBUG_CONNECTEDNESS
@@ -1502,7 +1502,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   }
   contig.count = 0;
   while((CI = NextCIScaffoldTIterator(&CIs)) != NULL){
-    CDS_COORD_t actual;
+    int32 actual;
 
     prevCI = currCI;
     currCI = CI;
@@ -1535,7 +1535,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 
 #ifdef DEBUG_CONTIG
       fprintf(GlobalData->stderrc,
-              "* CI " F_CID " and " F_CID " mean positions overlap by " F_COORD " (%g,%g) (%g,%g)\n",
+              "* CI "F_CID " and "F_CID " mean positions overlap by "F_S32" (%g,%g) (%g,%g)\n",
               prevCI->id,currCI->id, actual, contig.minOffset.mean,
               contig.maxOffset.mean, currCI->offsetAEnd.mean,
               currCI->offsetBEnd.mean);
@@ -1550,7 +1550,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 
     }else{
 #ifdef DEBUG_CONTIG
-      fprintf(GlobalData->stderrc,"* CI " F_CID " and " F_CID " mean positions GAP by " F_COORD " (%g,%g) (%g,%g) first " F_CID " last " F_CID " \n",
+      fprintf(GlobalData->stderrc,"* CI "F_CID " and "F_CID " mean positions GAP by "F_S32" (%g,%g) (%g,%g) first "F_CID " last "F_CID " \n",
               prevCI->id,currCI->id, actual,
               contig.minOffset.mean,  contig.maxOffset.mean,
               currCI->offsetAEnd.mean, currCI->offsetBEnd.mean,
@@ -1575,7 +1575,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
         contig.minOffset = currCI->offsetBEnd;
       }
 #ifdef DEBUG_CONTIG
-      fprintf(GlobalData->stderrc,"* Reseting contig  firstCI: " F_CID " min:%g max:%g\n",
+      fprintf(GlobalData->stderrc,"* Reseting contig  firstCI: "F_CID " min:%g max:%g\n",
               contig.firstCI->id, contig.minOffset.mean, contig.maxOffset.mean);
 #endif
     }
@@ -1693,8 +1693,8 @@ int CheckForContigs(ScaffoldGraphT *sgraph,
   CIScaffoldTIterator contigIterator;
   ChunkInstanceT * contig;
   IntElementPos pos;
-  CDS_COORD_t minPos;
-  CDS_COORD_t maxPos;
+  int32 minPos;
+  int32 maxPos;
   LengthT myOffsetAEnd;
   LengthT myOffsetBEnd;
 
@@ -1795,7 +1795,7 @@ int CheckForContainmentContigs(ScaffoldGraphT *sgraph, CDS_CID_t cid, CDS_CID_t 
 
   CI->offsetAEnd = offsetAEnd;
   CI->offsetBEnd = offsetBEnd;
-  fprintf(GlobalData->stderrc,"* CheckForContainmentContigs scaffold " F_CID "\n", scaffold->id);
+  fprintf(GlobalData->stderrc,"* CheckForContainmentContigs scaffold "F_CID "\n", scaffold->id);
   CI->scaffoldID = NULLINDEX; // test!!!
 
   if(ContigPositions == NULL){
@@ -1858,7 +1858,7 @@ int CheckForContainmentContigs(ScaffoldGraphT *sgraph, CDS_CID_t cid, CDS_CID_t 
 
     for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
       IntElementPos *ctg = GetIntElementPos(ContigPositions,i);
-      fprintf(GlobalData->stderrc,"* Inserting cid:" F_CID " into scaffold" F_CID " implied contigging with " F_CID "\n",
+      fprintf(GlobalData->stderrc,"* Inserting cid:"F_CID " into scaffold"F_CID " implied contigging with "F_CID "\n",
               cid,sid, ctg->ident);
 
       // Save the edge status in the frags so we can reconstitute it later
@@ -1888,8 +1888,8 @@ void DumpMultiAlignT(FILE * fp, ScaffoldGraphT * graph,
                      ContigT * ctg, MultiAlignT * ma)
 {
   int32 i;
-  CDS_COORD_t minPos;
-  CDS_COORD_t maxPos;
+  int32 minPos;
+  int32 maxPos;
   int32 numFrag = GetNumIntMultiPoss(ma->f_list);
   int32 numUnitig = GetNumIntUnitigPoss(ma->u_list);
   IntUnitigPos *up = GetIntUnitigPos(ma->u_list,0);
@@ -1897,7 +1897,7 @@ void DumpMultiAlignT(FILE * fp, ScaffoldGraphT * graph,
   CIScaffoldT *scaffold = GetGraphNode(graph->ScaffoldGraph,
                                        ctg->scaffoldID);
 
-  fprintf(fp,"* Contig(%s) " F_CID " with %d unitigs and %d frags\n",
+  fprintf(fp,"* Contig(%s) "F_CID " with %d unitigs and %d frags\n",
           scaffold && (scaffold->type == REAL_SCAFFOLD) ?
           "AS_PLACED": "AS_UNPLACED",
           ctg->id, numUnitig, numFrag);
@@ -1905,12 +1905,12 @@ void DumpMultiAlignT(FILE * fp, ScaffoldGraphT * graph,
           (int) GetMultiAlignLength(ma),
           (int) GetMultiAlignUngappedLength(ma));
 
-  minPos = CDS_COORD_MAX;
-  maxPos = CDS_COORD_MIN;
+  minPos = INT32_MAX;
+  maxPos = INT32_MIN;
   for(i = 0; i < numUnitig; i++){
     IntUnitigPos *iup = up + i;
     NodeCGW_T *unitig = GetGraphNode(graph->CIGraph, iup->ident);
-    fprintf(fp, "unitig " F_CID ": ", iup->ident);
+    fprintf(fp, "unitig "F_CID ": ", iup->ident);
     if(unitig->type == DISCRIMINATORUNIQUECHUNK_CGW){
       fprintf(fp, "AS_UNIQUE_UNITIG ");
     }else{
@@ -1926,19 +1926,19 @@ void DumpMultiAlignT(FILE * fp, ScaffoldGraphT * graph,
         fprintf(fp, "AS_SINGLE_UNITIG ");
       }
     }
-    fprintf(fp, "pos:(" F_COORD "," F_COORD ") delta:%d\n",
+    fprintf(fp, "pos:("F_S32","F_S32") delta:%d\n",
             iup->position.bgn, iup->position.end,
             iup->delta_length);
     minPos = MIN(minPos, MIN(iup->position.bgn, iup->position.end));
     maxPos = MAX(maxPos, MAX(iup->position.bgn, iup->position.end));
   }
-  fprintf(fp, "minPos = " F_COORD ", maxPos = " F_COORD "\n", minPos, maxPos);
+  fprintf(fp, "minPos = "F_S32", maxPos = "F_S32"\n", minPos, maxPos);
 
   // Null out the source field
   for(i = 0; i < numFrag; i++){
     IntMultiPos *mp_i = GetIntMultiPos(ma->f_list,i);
     CIFragT *frag = GetCIFragT(graph->CIFrags,(CDS_CID_t)mp_i->sourceInt);
-    fprintf(fp, "frag " F_CID ": ", frag->iid);
+    fprintf(fp, "frag "F_CID ": ", frag->iid);
     switch(frag->type)
       {
         case AS_READ:
@@ -1957,12 +1957,12 @@ void DumpMultiAlignT(FILE * fp, ScaffoldGraphT * graph,
           fprintf(fp, "AS_CONTIG ");
           break;
       }
-    fprintf(fp, " utg:" F_CID ", pos:(" F_COORD "," F_COORD ")\n", frag->cid,
+    fprintf(fp, " utg:"F_CID ", pos:("F_S32","F_S32")\n", frag->cid,
             mp_i->position.bgn, mp_i->position.end);
     minPos = MIN(minPos, MIN(mp_i->position.bgn, mp_i->position.end));
     maxPos = MAX(maxPos, MAX(mp_i->position.bgn, mp_i->position.end));
   }
-  fprintf(fp, "minPos = " F_COORD ", maxPos = " F_COORD "\n", minPos, maxPos);
+  fprintf(fp, "minPos = "F_S32", maxPos = "F_S32"\n", minPos, maxPos);
 }
 
 /***************************************************************************/
@@ -1978,14 +1978,14 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   CDS_CID_t i;
   CDS_CID_t aEndID = NULLINDEX, bEndID = NULLINDEX;
   int32 aEndEnd = NO_END, bEndEnd = NO_END;
-  CDS_COORD_t minPos = CDS_COORD_MAX;
-  CDS_COORD_t maxPos = CDS_COORD_MIN;
+  int32 minPos = INT32_MAX;
+  int32 maxPos = INT32_MIN;
 
   contig->offsetAEnd = offsetAEnd;
   contig->offsetBEnd = offsetBEnd;
 
 #ifdef DEBUG_CREATEACONTIG
-  fprintf(GlobalData->stderrc,"* Create a contig in scaffold " F_CID "\n", scaffold->id);
+  fprintf(GlobalData->stderrc,"* Create a contig in scaffold "F_CID "\n", scaffold->id);
 #endif
 
   //  Determine which ends are extremal, so we can propagate their
@@ -2027,7 +2027,7 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   }
 
 #ifdef DEBUG_CREATEACONTIG
-  fprintf(GlobalData->stderrc, "minPos = " F_COORD " maxPos = " F_COORD " extremes are (" F_CID ",%d) and (" F_CID ",%d)\n",
+  fprintf(GlobalData->stderrc, "minPos = "F_S32" maxPos = "F_S32" extremes are ("F_CID ",%d) and ("F_CID ",%d)\n",
           minPos,maxPos,
           aEndID,aEndEnd,
           bEndID,bEndEnd );
@@ -2046,7 +2046,7 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
 #ifdef DEBUG_CREATEACONTIG
   for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
     IntElementPos *pos = GetIntElementPos(ContigPositions,i);
-    fprintf(GlobalData->stderrc,"* Contig " F_CID "  bgn:" F_COORD " end:" F_COORD "\n",
+    fprintf(GlobalData->stderrc,"* Contig "F_CID "  bgn:"F_S32" end:"F_S32"\n",
             pos->ident, pos->position.bgn, pos->position.end);
   }
 
@@ -2070,7 +2070,7 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
       contig->flags.bits.failedToContig = TRUE;
 
 #ifdef DEBUG_CREATEACONTIG
-      fprintf(GlobalData->stderrc,"* Contig "F_CID" ("F_CID")   bgn:"F_COORD" end:"F_COORD"\n",
+      fprintf(GlobalData->stderrc,"* Contig "F_CID" ("F_CID")   bgn:"F_S32" end:"F_S32"\n",
               pos->ident, GetOriginalContigID(contig->id),
               pos->position.bgn, pos->position.end);
 #endif
@@ -2175,7 +2175,7 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   }
 
   if(GlobalData->debugLevel > 0)
-    fprintf(GlobalData->stderrc,"* Merged Contig " F_CID " has ungapped length %d\n",
+    fprintf(GlobalData->stderrc,"* Merged Contig "F_CID " has ungapped length %d\n",
             contig->id, (int)contig->bpLength.mean);
 
   // Sort the Unitigs from left to right
@@ -2240,8 +2240,8 @@ ContigContainment(CIScaffoldT  *scaffold,
                   NodeCGW_T    *thisCI,
                   EdgeCGW_T    *overlapEdge,
                   int           tryHarder) {
-  CDS_COORD_t            minAhang;
-  CDS_COORD_t            maxAhang;
+  int32            minAhang;
+  int32            maxAhang;
   IntElementPos          contigPos;
   Overlap               *contigOverlap;
   ChunkOrientationType   overlapOrientation;
@@ -2273,21 +2273,21 @@ ContigContainment(CIScaffoldT  *scaffold,
   if (leftContig->offsetAEnd.mean < leftContig->offsetBEnd.mean) {  // leftContig is AB
     if (rightContig->offsetAEnd.mean < rightContig->offsetBEnd.mean) {  // rightContig is AB
       overlapOrientation = AB_AB;
-      minAhang = (CDS_COORD_t) (rightContig->offsetAEnd.mean - leftContig->offsetAEnd.mean) - AHANGSLOP;
+      minAhang = (int32) (rightContig->offsetAEnd.mean - leftContig->offsetAEnd.mean) - AHANGSLOP;
       maxAhang = minAhang + (2 * AHANGSLOP);
     } else {  // rightContig is BA
       overlapOrientation = AB_BA;
-      minAhang = (CDS_COORD_t) (rightContig->offsetBEnd.mean - leftContig->offsetAEnd.mean) - AHANGSLOP;
+      minAhang = (int32) (rightContig->offsetBEnd.mean - leftContig->offsetAEnd.mean) - AHANGSLOP;
       maxAhang = minAhang + (2 * AHANGSLOP);
     }
   } else {  // leftContig is BA
     if (rightContig->offsetAEnd.mean < rightContig->offsetBEnd.mean) {  // rightContig is AB
       overlapOrientation = BA_AB;
-      minAhang = (CDS_COORD_t) (rightContig->offsetAEnd.mean - leftContig->offsetBEnd.mean) - AHANGSLOP;
+      minAhang = (int32) (rightContig->offsetAEnd.mean - leftContig->offsetBEnd.mean) - AHANGSLOP;
       maxAhang = minAhang + (2 * AHANGSLOP);
     } else {  // rightContig is BA
       overlapOrientation = BA_BA;
-      minAhang = (CDS_COORD_t) (rightContig->offsetBEnd.mean - leftContig->offsetBEnd.mean) - AHANGSLOP;
+      minAhang = (int32) (rightContig->offsetBEnd.mean - leftContig->offsetBEnd.mean) - AHANGSLOP;
       maxAhang = minAhang + (2 * AHANGSLOP);
     }
   }
@@ -2303,7 +2303,7 @@ ContigContainment(CIScaffoldT  *scaffold,
     overlapOrientation = InvertEdgeOrient(overlapOrientation);
 
     if (contigOverlap != NULL) {
-      CDS_COORD_t temp      = -contigOverlap->begpos;
+      int32 temp      = -contigOverlap->begpos;
       contigOverlap->begpos = -contigOverlap->endpos;
       contigOverlap->endpos = temp;
     }
@@ -2311,21 +2311,21 @@ ContigContainment(CIScaffoldT  *scaffold,
 
   // if still no overlap found, try maxing out hangs
   if ((contigOverlap == NULL) && (tryHarder)) {
-    CDS_COORD_t maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
+    int32 maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
     contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, -maxLength, maxLength, FALSE);
   }
 
   // if still no overlap found, try flipping orientation and maxing out hangs
   if ((contigOverlap == NULL) && (tryHarder)) {
-    CDS_COORD_t maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
+    int32 maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
     overlapOrientation = InvertEdgeOrient(overlapOrientation);
     contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, -maxLength, maxLength, FALSE);
     overlapOrientation = InvertEdgeOrient(overlapOrientation);
 
     if (contigOverlap != NULL) {
-      CDS_COORD_t temp      = -contigOverlap->begpos;
+      int32 temp      = -contigOverlap->begpos;
       contigOverlap->begpos = -contigOverlap->endpos;
       contigOverlap->endpos = temp;
     }
@@ -2340,7 +2340,7 @@ ContigContainment(CIScaffoldT  *scaffold,
 
   //  swap
   if ((contigOverlap == NULL) && (tryHarder)) {
-    CDS_COORD_t maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
+    int32 maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
     overlapOrientation = EdgeOrientSwap(overlapOrientation);
     contigOverlap = OverlapContigs(rightContig, leftContig, &overlapOrientation, -maxLength, maxLength, FALSE);
@@ -2354,7 +2354,7 @@ ContigContainment(CIScaffoldT  *scaffold,
 
   //  swap and flip orientation
   if ((contigOverlap == NULL) && (tryHarder)) {
-    CDS_COORD_t maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
+    int32 maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
     overlapOrientation = EdgeOrientSwap(overlapOrientation);
     overlapOrientation = InvertEdgeOrient(overlapOrientation);
@@ -2365,7 +2365,7 @@ ContigContainment(CIScaffoldT  *scaffold,
     overlapOrientation = EdgeOrientSwap(overlapOrientation);
 
     if (contigOverlap != NULL) {
-      CDS_COORD_t temp      = -contigOverlap->begpos;
+      int32 temp      = -contigOverlap->begpos;
       contigOverlap->begpos = -contigOverlap->endpos;
       contigOverlap->endpos = temp;
 
@@ -2379,7 +2379,7 @@ ContigContainment(CIScaffoldT  *scaffold,
   //  when it calls RecomputeOffsetsInScaffold() (which calls us).
   //
   if ((contigOverlap == NULL) && (tryHarder)) {
-    CDS_COORD_t maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
+    int32 maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
     AS_CGW_ERROR_RATE += 0.02;
 

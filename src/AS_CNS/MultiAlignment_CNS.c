@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.246 2009-07-11 00:20:30 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.247 2009-07-30 10:42:56 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1257,7 +1257,7 @@ SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
     epos.position.bgn = *Getint32(gapped_positions,frag->position.bgn);
     epos.position.end = *Getint32(gapped_positions,frag->position.end);
     if(epos.position.bgn==epos.position.end){
-      fprintf(stderr,"SetUngappedFragmentPositions()-- Encountered bgn==end==" F_COORD " in ungapped coords within SetUngappedFragmentPositions for " F_CID "(gapped coords " F_COORD "," F_COORD ")\n",
+      fprintf(stderr,"SetUngappedFragmentPositions()-- Encountered bgn==end=="F_S32" in ungapped coords within SetUngappedFragmentPositions for "F_CID "(gapped coords "F_S32","F_S32")\n",
               epos.position.bgn,frag->ident,frag->position.bgn,frag->position.end);
       assert(frag->position.bgn!=frag->position.end);
       if(frag->position.bgn<frag->position.end){
@@ -1271,7 +1271,7 @@ SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
         else
           epos.position.bgn++;
       }
-      fprintf(stderr,"SetUngappedFragmentPositions()--   Reset to " F_COORD "," F_COORD "\n",
+      fprintf(stderr,"SetUngappedFragmentPositions()--   Reset to "F_S32","F_S32"\n",
               epos.position.bgn,
               epos.position.end);
     }

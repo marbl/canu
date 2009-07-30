@@ -22,7 +22,7 @@
 #ifndef INSTRUMENT_CGW_H
 #define INSTRUMENT_CGW_H
 
-static const char *rcsid_INSTRUMENT_CGW_H = "$Id: Instrument_CGW.h,v 1.9 2009-01-28 01:30:28 brianwalenz Exp $";
+static const char *rcsid_INSTRUMENT_CGW_H = "$Id: Instrument_CGW.h,v 1.10 2009-07-30 10:42:56 brianwalenz Exp $";
 
 #include <math.h>
 
@@ -266,12 +266,12 @@ typedef struct
   CDS_CID_t iid;
   BreakpointSection section;
   CDS_CID_t contig1;
-  CDS_COORD_t end1;
+  int32 end1;
   //  FragOrient orient1;
   CDS_CID_t contig2;
-  CDS_COORD_t end2;
+  int32 end2;
   // because end2 may be to the left of the rightmost contig
-  CDS_COORD_t contigEnd;
+  int32 contigEnd;
   //  FragOrient orient2;
   InstBreakpointType type;
   VA_TYPE(MateDetail *) mates;
@@ -305,7 +305,7 @@ VA_DEF(ContigPlacement);
 typedef struct
 {
   CDS_CID_t        contig1;
-  CDS_COORD_t        size1;
+  int32        size1;
   CDS_CID_t        contig2;
   float      dist;
   ChunkOrientationType orient;
@@ -356,8 +356,8 @@ typedef struct
   uint32 options;
 
   // unitig & above level of aggregation
-  CDS_COORD_t leftEnd;
-  CDS_COORD_t rightEnd;
+  int32 leftEnd;
+  int32 rightEnd;
   int orientation;
 
   // simple counts of (some) fragment types
@@ -390,8 +390,8 @@ typedef struct
   uint32 options;
 
   // contig & above level of aggregation
-  CDS_COORD_t leftEnd;
-  CDS_COORD_t rightEnd;
+  int32 leftEnd;
+  int32 rightEnd;
   int orientation;
 
   // unitig counting/sizing
@@ -603,8 +603,8 @@ int InitializeScaffoldGraphInstrumenter(ScaffoldGraphT * graph,
                                         ScaffoldGraphInstrumenter * sgi);
 int InstrumentScaffoldGraph(ScaffoldGraphT * graph,
                             ScaffoldGraphInstrumenter * sgi,
-                            CDS_COORD_t lowerLimit,
-                            CDS_COORD_t upperLimit,
+                            int32 lowerLimit,
+                            int32 upperLimit,
                             InstrumenterVerbosity verbose,
                             FILE * printTo);
 void ComputeScaffoldGraphInstrumenterStats(ScaffoldGraphT * graph,

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIEdgeT_CGW.c,v 1.17 2008-10-29 10:42:46 brianwalenz Exp $";
+static char *rcsid = "$Id: CIEdgeT_CGW.c,v 1.18 2009-07-30 10:42:55 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -44,7 +44,7 @@ static char *rcsid = "$Id: CIEdgeT_CGW.c,v 1.17 2008-10-29 10:42:46 brianwalenz 
 void PrintCIEdgeT(FILE *fp, ScaffoldGraphT *graph,
                   char *label, CIEdgeT *edge, CDS_CID_t cid){
   char actualOverlap[256];
-  CDS_COORD_t delta = 0;
+  int32 delta = 0;
   char *flag = "  ", *flagTrans = "  ";
   ChunkInstanceT *ChunkInstanceA =
     GetChunkInstanceT(graph->ChunkInstances, edge->idA);
@@ -90,7 +90,7 @@ void PrintCIEdgeT(FILE *fp, ScaffoldGraphT *graph,
     flagTrans = "&B";
   }
 
-  fprintf(fp,"%s A:" F_CID " B:" F_CID " wgt:%d %s %s %s %s%s ori:%c con:%d dst:%d std:%g %s\n",
+  fprintf(fp,"%s A:"F_CID " B:"F_CID " wgt:%d %s %s %s %s%s ori:%c con:%d dst:%d std:%g %s\n",
           label, edge->idA, edge->idB, edge->edgesContributing, flag,
           (edge->flags.bits.hasExtremalAFrag?"$A":"  "),
           (edge->flags.bits.hasExtremalBFrag?"$B":"  "),
@@ -104,7 +104,7 @@ void PrintCIEdgeT(FILE *fp, ScaffoldGraphT *graph,
 
 void PrintChunkInstanceHeader(FILE *stream, ScaffoldGraphT *graph,
                               ChunkInstanceT *chunk){
-  fprintf(stream,"\n* CI " F_CID " cov:%d len:%d frags:%d\n",
+  fprintf(stream,"\n* CI "F_CID " cov:%d len:%d frags:%d\n",
           chunk->id,
           chunk->info.CI.coverageStat,
           (int)chunk->bpLength.mean,
@@ -240,7 +240,7 @@ int CheckImplicitOverlaps_(GraphCGW_T *graph, CDS_CID_t cid, int end){
       sourceChunk = GetGraphNode(graph, sourceCid);
 
 #ifdef DEBUG_CGW
-      fprintf(stderr,"* %c side source=" F_CID " target=" F_CID " seedSource = %d seedTarget = %d sourceLength=%d\n",
+      fprintf(stderr,"* %c side source="F_CID " target="F_CID " seedSource = %d seedTarget = %d sourceLength=%d\n",
               (sources.end == 1?'A':'B'),
               sourceCid, targetCid,
               (int) seedSource.mean, (int) seedTarget.mean,
@@ -278,10 +278,10 @@ int CheckImplicitOverlaps_(GraphCGW_T *graph, CDS_CID_t cid, int end){
 
         assert(GetChunkSeedSide(GetEdgeOrientationWRT(target, cid)) == GetChunkSeedSide(GetEdgeOrientationWRT(source, cid)));
         {
-          CDS_COORD_t delta = 3 * sqrt(sourceTarget.variance);
-          CDS_COORD_t minOverlap =
+          int32 delta = 3 * sqrt(sourceTarget.variance);
+          int32 minOverlap =
             MAX(-sourceTarget.mean - delta, 0);
-          CDS_COORD_t maxOverlap = -sourceTarget.mean + delta;
+          int32 maxOverlap = -sourceTarget.mean + delta;
           ChunkOverlapCheckT olap = {0};
 
           int overlapCheckFound = LookupOverlap(graph,
@@ -291,7 +291,7 @@ int CheckImplicitOverlaps_(GraphCGW_T *graph, CDS_CID_t cid, int end){
           if(overlapCheckFound)
             continue;
 
-          fprintf(stderr,"** Found an implied potential overlap (" F_CID "," F_CID ") min:" F_COORD " max:" F_COORD "\n",
+          fprintf(stderr,"** Found an implied potential overlap ("F_CID ","F_CID ") min:"F_S32" max:"F_S32"\n",
                   sourceCid, targetCid,
                   minOverlap, maxOverlap);
 
@@ -307,7 +307,7 @@ int CheckImplicitOverlaps_(GraphCGW_T *graph, CDS_CID_t cid, int end){
                                TRUE);
 
           if(olap.overlap > 0){
-            fprintf(stderr,"* Found Implied Overlap (" F_CID "," F_CID ",%c) with overlap " F_COORD "\n",
+            fprintf(stderr,"* Found Implied Overlap ("F_CID ","F_CID ",%c) with overlap "F_S32"\n",
                     sourceCid, targetCid, sourceTargetOrient,
                     olap.overlap);
             if(olap.suspicious){

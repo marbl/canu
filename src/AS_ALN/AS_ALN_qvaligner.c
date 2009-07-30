@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.20 2009-05-29 17:27:16 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.21 2009-07-30 10:42:55 brianwalenz Exp $";
 
 /* Utility routines to complement, unpack and pack alignments, and print
    overlaps.  Also a routine for re-aligning an overlap using quality
@@ -195,9 +195,9 @@ void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
     }
 
   fprintf(file,"\nOVERLAP BETWEEN");
-  fprintf(file," A = (%s," F_IID ")",AS_UID_toString(a->eaccession),a->iaccession);
+  fprintf(file," A = (%s,"F_IID ")",AS_UID_toString(a->eaccession),a->iaccession);
   fprintf(file," and");
-  fprintf(file," B = (%s," F_IID ")",AS_UID_toString(b->eaccession),b->iaccession);
+  fprintf(file," B = (%s,"F_IID ")",AS_UID_toString(b->eaccession),b->iaccession);
   fprintf(file,"\n\n");
 
   switch (align->orientation)

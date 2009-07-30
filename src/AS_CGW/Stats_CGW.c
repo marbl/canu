@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Stats_CGW.c,v 1.20 2009-07-27 08:08:28 brianwalenz Exp $";
+static char *rcsid = "$Id: Stats_CGW.c,v 1.21 2009-07-30 10:42:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -633,7 +633,7 @@ void GenerateLinkStats(GraphCGW_T *graph, char *label, int iteration){
 
 
 int32 ApproximateUnitigCoverage(NodeCGW_T *unitig){
-  CDS_COORD_t length=0;
+  int32 length=0;
   int i;
   MultiAlignT *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE);
 

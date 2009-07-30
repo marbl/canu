@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.79 2009-06-15 07:01:37 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.80 2009-07-30 10:42:55 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -903,8 +903,8 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
     backbone.position.bgn ;
 
   bool combine = false;
-  CDS_COORD_t currBackboneEnd = 0;
-  CDS_COORD_t lastBreakBBEnd = 0;
+  int32 currBackboneEnd = 0;
+  int32 lastBreakBBEnd = 0;
   IntervalList::const_iterator fwdIter = fwdBads->begin();
   IntervalList::const_iterator revIter = revBads->begin();
   DoveTailConstIter tigIter = tig->dovetail_path_ptr->begin();

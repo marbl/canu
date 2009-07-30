@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: SQLOutput.cc,v 1.11 2009-04-09 14:01:59 brianwalenz Exp $";
+static const char *rcsid = "$Id: SQLOutput.cc,v 1.12 2009-07-30 10:42:55 brianwalenz Exp $";
 
 #ifdef SYBASE
 
@@ -137,8 +137,8 @@ bool SQLOutput::storeAFG2DB (
          IntFragment_ID iaccession,
          MateStatType mate_status,
          int32 chaff,
-         CDS_COORD_t bgn,
-         CDS_COORD_t end) {
+         int32 bgn,
+         int32 end) {
 
    char cmd[IDBConnection::MAX_STR_LEN];
 
@@ -178,7 +178,7 @@ bool SQLOutput::storeUTG2DB (
          float microhet_prob,
          float coverage_stat,
          UnitigStatus status,
-         CDS_COORD_t length,
+         int32 length,
          const char * consensus,
          const char * quality,
          int32 forced,
@@ -223,8 +223,8 @@ bool SQLOutput::storeMPS2DB (
          AS_UID afgID,
          FragType type,
          const char * source,
-         CDS_COORD_t bgn,
-         CDS_COORD_t end,
+         int32 bgn,
+         int32 end,
          int32 delta_length,
          std::string delta) {
    char cmd[IDBConnection::MAX_STR_LEN];
@@ -424,7 +424,7 @@ bool SQLOutput::storeCCO2DB (
                   AS_UID eaccession,
                   IntFragment_ID iaccession,
                   ContigPlacementStatusType placed,
-                  CDS_COORD_t length,
+                  int32 length,
                   const char * consensus,
                   const char * quality,
                   int32 forced,
@@ -468,8 +468,8 @@ bool SQLOutput::storeCCOMPS2DB(
                   AS_UID fragID,
                   FragType type,
                   const char * source,
-                  CDS_COORD_t bgn,
-                  CDS_COORD_t end,
+                  int32 bgn,
+                  int32 end,
                   int32 delta_length,
                   std::string delta) {
    char cmd[IDBConnection::MAX_STR_LEN];
@@ -503,8 +503,8 @@ bool SQLOutput::storeUPS2DB(
                   AS_UID ccoID,
                   AS_UID unitigID,
                   UnitigType type,
-                  CDS_COORD_t bgn,
-                  CDS_COORD_t end,
+                  int32 bgn,
+                  int32 end,
                   int32 delta_length,
                   std::string delta) {
    char cmd[IDBConnection::MAX_STR_LEN];
@@ -536,12 +536,12 @@ std::cerr << "Storing UPS " << std::endl;
 bool SQLOutput::storeVAR2DB(
                   AS_UID varID,
                   AS_UID ccoID,
-                  CDS_COORD_t bgn,
-                  CDS_COORD_t end,
+                  int32 bgn,
+                  int32 end,
                   uint32 num_reads,
                   uint32 num_conf_alleles,
                   uint32 anchor_size,
-                  CDS_COORD_t var_length,
+                  int32 var_length,
                   int32 curr_var_id,
                   int32 phased_var_id) {
    char cmd[IDBConnection::MAX_STR_LEN];
@@ -736,7 +736,7 @@ bool SQLOutput::storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID) {
    return getConnection()->sqlCommand(cmd);
 }
 
-bool SQLOutput::storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, CDS_COORD_t ctgStart, CDS_COORD_t ctgEnd) {
+bool SQLOutput::storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, int32 ctgStart, int32 ctgEnd) {
    char cmd[IDBConnection::MAX_STR_LEN];
 
    uint64 ctp = static_cast<uint64>(LookupValueInHashTable_AS(CTP_UID_to_MSGID, AS_UID_toInteger(ctpID), 0));

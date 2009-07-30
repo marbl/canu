@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_fgb.c,v 1.17 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_fgb.c,v 1.18 2009-07-30 10:42:55 brianwalenz Exp $";
 
 //  The fragment overlap graph builder.
 //
@@ -125,7 +125,7 @@ static void setup_segments
     // const int ibsx = get_bsx_edge(edges,iedge);
     const IntEdge_ID iseglen = get_seglen_vertex(frags,iavx,iasx) + 1;
 
-    // printf(F_IID " : " F_IID " %d " F_IID " %d \n",iedge,iavx,iasx,ibvx,ibsx);
+    // printf(F_IID " : "F_IID " %d "F_IID " %d \n",iedge,iavx,iasx,ibvx,ibsx);
     // assert( iavx >= 0 );
     // assert( ibvx >= 0 );
     assert( iavx < nfrag );
@@ -175,7 +175,7 @@ static void setup_segments
     assert( iavx < nfrag );
     assert( ibvx < nfrag );
     if( iavx != last_avx || iasx != last_asx ) {
-      fprintf(stderr,"last_avx,iavx=" F_IID "," F_IID "\n",last_avx,iavx);
+      fprintf(stderr,"last_avx,iavx="F_IID ","F_IID "\n",last_avx,iavx);
       assert( iavx == last_avx+1);
       set_segstart_vertex(frags,iavx,iasx,iedge);
       (*nfrag_used)++;
@@ -203,12 +203,12 @@ static void setup_segments
 	nrec_used += get_seglen_vertex(frags,ifrag,FALSE);
 	nrec_used += get_seglen_vertex(frags,ifrag,TRUE);
       }
-    // fprintf(stderr,"nrec_used=%d,nedge=" F_IID "\n",nrec_used,nedge);
+    // fprintf(stderr,"nrec_used=%d,nedge="F_IID "\n",nrec_used,nedge);
   }
   fprintf(stderr,
 	  "Information on the fragments refered to by overlaps.\n"
-	  "nfrag=" F_IID ",min_frag_vid=" F_IID ",max_frag_vid=" F_IID ","
-	  "nfrag_used=" F_IID ",max_nnode=%d\n",
+	  "nfrag="F_IID ",min_frag_vid="F_IID ",max_frag_vid="F_IID ","
+	  "nfrag_used="F_IID ",max_nnode=%d\n",
 	  nfrag,min_frag_vid,max_frag_vid,num_frag_used,max_nnode);
   assert(nrec_used == nedge);
   // assert(min_frag_vid >= 0);
@@ -259,7 +259,7 @@ static void pack_the_edges
 
       if( (new_dovetail_degree == 0) && (old_dovetail_degree > 0) ) {
         fprintf(stderr,
-                "WARNING: fragment-end became dovetail disconnected iid=" F_IID " vid=" F_IID " suf=%d\n",
+                "WARNING: fragment-end became dovetail disconnected iid="F_IID " vid="F_IID " suf=%d\n",
                 get_iid_fragment(frags,old_avx), old_avx, old_asx);
         //assert(FALSE);
       }
@@ -268,7 +268,7 @@ static void pack_the_edges
 
       if( (new_containment_degree == 0) && (old_containment_degree > 0) ) {
         fprintf(stderr,
-                "WARNING: fragment-end became containment disconnected iid=" F_IID " vid=" F_IID " suf=%d\n",
+                "WARNING: fragment-end became containment disconnected iid="F_IID " vid="F_IID " suf=%d\n",
                 get_iid_fragment(frags,old_avx), old_avx, old_asx);
         //assert(FALSE);
       }
@@ -347,14 +347,14 @@ static void pack_the_edges
 
   fprintf(stderr,
 	  "Pack the edges:\n"
-	  "raw_nedge=" F_IID " reduced_nedge=" F_IID "\n"
-          "n_AS_CGB_UNUSED_EDGE                =%15" F_IIDP "\n"
-	  "n_AS_CGB_REMOVED_BY_TRANSITIVITY_DVT=%15" F_IIDP "\n"
-	  "n_AS_CGB_REMOVED_BY_THRESHOLD_DVT   =%15" F_IIDP "\n"
-	  "n_AS_CGB_REMOVED_BY_DUPLICATE_DVT   =%15" F_IIDP "\n"
-	  "n_AS_CGB_REMOVED_BY_TRANSITIVITY_CON=%15" F_IIDP "\n"
-	  "n_AS_CGB_REMOVED_BY_THRESHOLD_CON   =%15" F_IIDP "\n"
-	  "n_AS_CGB_REMOVED_BY_DUPLICATE_CON   =%15" F_IIDP "\n"
+	  "raw_nedge="F_IID " reduced_nedge="F_IID "\n"
+          "n_AS_CGB_UNUSED_EDGE                =%15"F_IIDP "\n"
+	  "n_AS_CGB_REMOVED_BY_TRANSITIVITY_DVT=%15"F_IIDP "\n"
+	  "n_AS_CGB_REMOVED_BY_THRESHOLD_DVT   =%15"F_IIDP "\n"
+	  "n_AS_CGB_REMOVED_BY_DUPLICATE_DVT   =%15"F_IIDP "\n"
+	  "n_AS_CGB_REMOVED_BY_TRANSITIVITY_CON=%15"F_IIDP "\n"
+	  "n_AS_CGB_REMOVED_BY_THRESHOLD_CON   =%15"F_IIDP "\n"
+	  "n_AS_CGB_REMOVED_BY_DUPLICATE_CON   =%15"F_IIDP "\n"
           ,
 	  nedge, idup,
           n_AS_CGB_UNUSED_EDGE,
@@ -515,7 +515,7 @@ void graph_locality_diagnostic
             twoc[i0][i1] ++;
           }
         }
-        // fprintf(fdiag,F_IID " " F_IID "\n", iv0, iv1);
+        // fprintf(fdiag,F_IID " "F_IID "\n", iv0, iv1);
         add_to_histogram(edges_locality_histogram, vdiff, NULL);
       }
     }
@@ -713,7 +713,7 @@ void transitive_edge_marking
           const int ir2asx = get_asx_edge(edges,ir2);
           const IntFragment_ID ir2afr = get_iid_fragment(frags,ir2avx);
           const IntFragment_ID ir2bfr = get_iid_fragment(frags,ir2bvx);
-          fprintf(stderr,"BUUBA " F_IID " %d " F_IID " %d %d\n",
+          fprintf(stderr,"BUUBA "F_IID " %d "F_IID " %d %d\n",
                   ir2afr,ir2asx,ir2bfr,ir2bsx,ir2nes);
         }
 

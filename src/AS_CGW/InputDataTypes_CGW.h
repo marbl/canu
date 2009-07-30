@@ -22,7 +22,7 @@
 #ifndef INPUTDATATYPES_CGW_H
 #define INPUTDATATYPES_CGW_H
 
-static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id: InputDataTypes_CGW.h,v 1.19 2009-02-02 13:51:14 brianwalenz Exp $";
+static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id: InputDataTypes_CGW.h,v 1.20 2009-07-30 10:42:55 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -109,9 +109,6 @@ static FragOrient GetContigFragOrient(CIFragT *frag){
   return B_A;
 }
 
-
-VA_DEF(CDS_COORD_t);
-
 #define CGW_NUM_BUCKETS 3
 #define CGW_CUTOFF 5
 
@@ -120,13 +117,13 @@ typedef struct {
   double        mu;              // Calculated from chunk-internal mates
   double        sigma;           // Calculated from chunk-internal mates
   int32         numSamples;      // Redundant -- REMOVE THIS!
-  CDS_COORD_t   min;             // Calculated, from contigs
-  CDS_COORD_t   max;             // Calculated, from contigs
+  int32         min;             // Calculated, from contigs
+  int32         max;             // Calculated, from contigs
   int32         bnum;            // number of buckets
   float         bsize;           // size of buckets
   int32        *histogram;
-  CDS_COORD_t   lower;
-  CDS_COORD_t   upper;
+  int32         lower;
+  int32         upper;
   int32         numReferences;   // Total number of links referencing this distance record
   int32         numBad;
 }DistT;

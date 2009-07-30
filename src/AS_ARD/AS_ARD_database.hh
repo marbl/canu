@@ -22,7 +22,7 @@
 #ifndef AS_ARD_database_HH
 #define AS_ARD_database_HH
 
-static const char *rcsid_AS_ARD_database_HH = "$Id: AS_ARD_database.hh,v 1.5 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid_AS_ARD_database_HH = "$Id: AS_ARD_database.hh,v 1.6 2009-07-30 10:42:55 brianwalenz Exp $";
 
 #include <string>
 
@@ -56,9 +56,9 @@ namespace AS_ARD {
 
          bool addCLK2DB     (SnapContigLinkMesg *);
          bool addSCF2SDB    (SnapScaffoldMesg *);
-         bool addCTP2DB     (AS_UID scfID, SnapContigPairs * ctp, CDS_COORD_t &scfLen);
+         bool addCTP2DB     (AS_UID scfID, SnapContigPairs * ctp, int32 &scfLen);
          bool addCTPList2DB (AS_UID ctpID, AS_UID ccoID);
-         bool addCPS2DB     (AS_UID ctpID, AS_UID ccoID, bool isReversed, CDS_COORD_t &scfLen);
+         bool addCPS2DB     (AS_UID ctpID, AS_UID ccoID, bool isReversed, int32 &scfLen);
 
          bool addGenericMesg2DB(GenericMesg * gen);
 

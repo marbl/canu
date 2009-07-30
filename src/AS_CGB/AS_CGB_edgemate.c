@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_edgemate.c,v 1.12 2008-10-08 22:02:54 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_edgemate.c,v 1.13 2009-07-30 10:42:55 brianwalenz Exp $";
 
 //  Description: These routines find and access the mate directed edge
 //  for a given edge of an overlap.
@@ -205,12 +205,12 @@ void fix_overlap_edge_mate
     IntFragment_ID aid = get_iid_fragment(frags,avx);
     IntFragment_ID bid = get_iid_fragment(frags,bvx);
     fprintf(stderr,"ERROR: AS_CGB_EDGE_NOT_FOUND == ie1\n");
-    fprintf(stderr,"ie0=" F_IID "\n",ie0);
-    fprintf(stderr,"aid=" F_IID "\n",aid);
-    fprintf(stderr,"avx=" F_IID "\n",avx);
+    fprintf(stderr,"ie0="F_IID "\n",ie0);
+    fprintf(stderr,"aid="F_IID "\n",aid);
+    fprintf(stderr,"avx="F_IID "\n",avx);
     fprintf(stderr,"asx=%d\n",get_asx_edge(edges,ie0));
-    fprintf(stderr,"bid=" F_IID "\n",bid);
-    fprintf(stderr,"bvx=" F_IID "\n",bvx);
+    fprintf(stderr,"bid="F_IID "\n",bid);
+    fprintf(stderr,"bvx="F_IID "\n",bvx);
     fprintf(stderr,"bsx=%d\n",get_bsx_edge(edges,ie0));
     fprintf(stderr,"nes=%d\n",get_nes_edge(edges,ie0));
   }
@@ -257,7 +257,7 @@ void append_the_edge_mates(Tfragment frags[],
     ie0,
     nedge = GetNumEdges(edges),
     nedge_delta = 0;
-  fprintf(stderr,"append_the_edge_mates: nedge=" F_IID "\n", nedge);
+  fprintf(stderr,"append_the_edge_mates: nedge="F_IID "\n", nedge);
 
   verify_that_the_edges_are_in_order(edges);
 
@@ -265,7 +265,7 @@ void append_the_edge_mates(Tfragment frags[],
     const IntEdge_ID ie1 = find_overlap_edge_mate( frags, edges, ie0);
     if( AS_CGB_EDGE_NOT_FOUND == ie1 ) {
       IntEdge_ID ie2 = nedge+nedge_delta;
-      // fprintf(stderr,"nedge_delta=" F_IID "\n", nedge_delta);
+      // fprintf(stderr,"nedge_delta="F_IID "\n", nedge_delta);
       EnableRangeVA_Aedge(edges,ie2+1);
       fill_new_edge_with_reflected_old_edge( edges, ie2, ie0);
       nedge_delta ++;
@@ -295,7 +295,7 @@ IntEdge_ID check_symmetry_of_the_edge_mates(Tfragment frags[],
     if( AS_CGB_EDGE_NOT_FOUND == ie1 )
       counter ++;
   }
-  fprintf(stderr,"check_symmetry_of_the_edge_mates: nedge=" F_IID " counter=" F_IID "\n",
+  fprintf(stderr,"check_symmetry_of_the_edge_mates: nedge="F_IID " counter="F_IID "\n",
           nedge, counter);
   return counter;
 }

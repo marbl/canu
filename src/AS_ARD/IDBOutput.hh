@@ -21,7 +21,7 @@
 #ifndef IDBOutput_HH
 #define IDBOutput_HH
 
-static const char *rcsid_IDBOutput_HH = "$Id: IDBOutput.hh,v 1.9 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid_IDBOutput_HH = "$Id: IDBOutput.hh,v 1.10 2009-07-30 10:42:55 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -56,8 +56,8 @@ namespace AS_ARD {
                   IntFragment_ID irefines,
                   MateStatType mate_status,
                   int32 chaff,
-                  CDS_COORD_t begin,
-                  CDS_COORD_t end) = 0;
+                  int32 begin,
+                  int32 end) = 0;
 
          virtual bool storeUTG2DB (
                   AS_UID eaccession,
@@ -66,7 +66,7 @@ namespace AS_ARD {
                   float microhet_prob,
                   float coverage_stat,
                   UnitigStatus status,
-                  CDS_COORD_t length,
+                  int32 length,
                   const char * consensus,
                   const char * quality,
                   int32 forced,
@@ -77,8 +77,8 @@ namespace AS_ARD {
                   AS_UID eident,
                   FragType type,
                   const char * source,
-                  CDS_COORD_t bgn,
-                  CDS_COORD_t end,
+                  int32 bgn,
+                  int32 end,
                   int32 delta_length,
                   std::string delta) = 0;
 
@@ -104,7 +104,7 @@ namespace AS_ARD {
                   AS_UID eaccession,
                   IntFragment_ID iaccession,
                   ContigPlacementStatusType placed,
-                  CDS_COORD_t length,
+                  int32 length,
                   const char * consensus,
                   const char * quality,
                   int32 forced,
@@ -118,8 +118,8 @@ namespace AS_ARD {
                   AS_UID fragID,
                   FragType type,
                   const char * source,
-                  CDS_COORD_t bgn,
-                  CDS_COORD_t end,
+                  int32 bgn,
+                  int32 end,
                   int32 delta_length,
                   std::string delta) = 0;
 
@@ -128,20 +128,20 @@ namespace AS_ARD {
                   AS_UID ccoID,
                   AS_UID unitigID,
                   UnitigType type,
-                  CDS_COORD_t bgn,
-                  CDS_COORD_t end,
+                  int32 bgn,
+                  int32 end,
                   int32 delta_length,
                   std::string delta) = 0;
 
          virtual bool storeVAR2DB(
                   AS_UID varID,
                   AS_UID ccoID,
-                  CDS_COORD_t bgn,
-                  CDS_COORD_t end,
+                  int32 bgn,
+                  int32 end,
                   uint32 num_reads,
                   uint32 num_conf_alleles,
                   uint32 anchor_size,
-                  CDS_COORD_t var_length,
+                  int32 var_length,
                   int32 curr_var_id,
                   int32 phased_var_id) = 0;
 
@@ -165,7 +165,7 @@ namespace AS_ARD {
 
          virtual bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient) = 0;
          virtual bool storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID) = 0;
-         virtual bool storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, CDS_COORD_t ctgStart, CDS_COORD_t ctgEnd) = 0;
+         virtual bool storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, int32 ctgStart, int32 ctgEnd) = 0;
 
          virtual uint64 storeGenome(
                   const char * study,

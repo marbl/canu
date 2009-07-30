@@ -22,7 +22,7 @@
 #ifndef AS_PER_ASMSTORE_H
 #define AS_PER_ASMSTORE_H
 
-static const char *rcsid_AS_PER_ASMSTORE_H = "$Id: AS_PER_asmStore.h,v 1.20 2009-06-10 18:05:14 brianwalenz Exp $";
+static const char *rcsid_AS_PER_ASMSTORE_H = "$Id: AS_PER_asmStore.h,v 1.21 2009-07-30 10:42:56 brianwalenz Exp $";
 
 #include <time.h>
 
@@ -93,7 +93,7 @@ typedef struct
   unsigned int   status:8;
   unsigned int   spare2:16;
   uint32         numInstances;
-  CDS_COORD_t    length;
+  int32    length;
   int32          numFrags;
   int32          firstFrag;
   int32          cInsIndex;
@@ -104,7 +104,7 @@ typedef struct
 typedef struct
 {
   AS_UID         uid;
-  CDS_COORD_t    length;
+  int32    length;
   unsigned int   inDegenerate:1;
   unsigned int   numFrags:31;
   int32          firstFrag;
@@ -119,7 +119,7 @@ typedef struct
 {
   float         asmMean;
   float         asmStddev;
-  CDS_COORD_t   storeMean;
+  int32   storeMean;
 } ASM_GapRecord;
 
 typedef struct

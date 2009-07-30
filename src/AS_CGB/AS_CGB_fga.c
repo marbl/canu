@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_fga.c,v 1.15 2008-10-08 22:02:54 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_fga.c,v 1.16 2009-07-30 10:42:55 brianwalenz Exp $";
 
 // Module: AS_CGB_fga.c
 //
@@ -63,7 +63,7 @@ void view_fgb_chkpnt(char * Store_File_Prefix,
     for(iv0=0; iv0<nfrag; iv0++) {
       fprintf(foutv,
               //"%6d: "
-              "iid %9" F_IIDP " "
+              "iid %9"F_IIDP " "
               "%c%c%c "
               "raw: %2d %2d %2d %2d "
               //"src %10ld "
@@ -110,12 +110,12 @@ void view_fgb_chkpnt(char * Store_File_Prefix,
 	const int bhg = get_bhg_edge(edges,ie0);
 	const int invalid = get_inv_edge(edges,ie0);
 	fprintf(foute,
-		"%9" F_IIDP " "
+		"%9"F_IIDP " "
                 "%2d "
 #ifndef HIDE_OVERHANGS
                 "%6d "
 #endif
-		"%9" F_IIDP " "
+		"%9"F_IIDP " "
                 "%2d "
 #ifndef HIDE_OVERHANGS
                 "%6d "
@@ -280,7 +280,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
         // If the fragment-end has a zero dvt degree in the current graph,
         // then it should have a zero dvt degree in the raw graph.
         const IntFragment_ID iid = get_iid_fragment(frags,ifrag);
-        fprintf(stdout,"REAPER DVT DISCONNECT: " F_IID " %d %d %d %d %d %d %d\n",
+        fprintf(stdout,"REAPER DVT DISCONNECT: "F_IID " %d %d %d %d %d %d %d\n",
                 iid,
                 deleted, spur, contained,
                 raw_prefix_dvt_degree,
@@ -302,7 +302,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
 
       if(!(deleted || contained || (!raw_thru) || cur_thru)) {
         fprintf(stdout,"REAPER THRU DISCONNECT: "
-                "iid=" F_IID " deleted=%d contained=%d raw_thru=%d cur_thru=%d\n",
+                "iid="F_IID " deleted=%d contained=%d raw_thru=%d cur_thru=%d\n",
                 iid, deleted, contained, raw_thru, cur_thru);
       }
     }
@@ -312,7 +312,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
 
     if(!(deleted || !spur || !raw_thru)) {
       const IntFragment_ID iid = get_iid_fragment(frags,ifrag);
-      fprintf(stdout,"REAPER DVT DISCONNECT: " F_IID " %d %d %d %d %d %d %d\n",
+      fprintf(stdout,"REAPER DVT DISCONNECT: "F_IID " %d %d %d %d %d %d %d\n",
               iid,
               deleted, spur, contained,
               raw_prefix_dvt_degree,
@@ -384,10 +384,10 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
 
   fprintf(fout,"Deleted Fragment types\n");
   fprintf(fout,
-          "%15" F_IIDP " : total number of fragments\n"
+          "%15"F_IIDP " : total number of fragments\n"
           "---Deleted Classification:\n"
-          "%15" F_IIDP " : number of deleted fragments\n"
-          "%15" F_IIDP " : number of non-deleted fragments\n"
+          "%15"F_IIDP " : number of deleted fragments\n"
+          "%15"F_IIDP " : number of non-deleted fragments\n"
           ,
           nfrag,
           n_as_fgb_deleted_frag,
@@ -399,10 +399,10 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   //  The Raw overlap classifications:
   fprintf(fout,
           "---Raw Dovetail Degree Classification:\n"
-          "%15" F_IIDP " : solo           fragments\n"
-          "%15" F_IIDP " : prefix hanging fragments\n"
-          "%15" F_IIDP " : suffix hanging fragments\n"
-          "%15" F_IIDP " : thru           fragments\n"
+          "%15"F_IIDP " : solo           fragments\n"
+          "%15"F_IIDP " : prefix hanging fragments\n"
+          "%15"F_IIDP " : suffix hanging fragments\n"
+          "%15"F_IIDP " : thru           fragments\n"
           ,
 
           n_raw_noncontained_nonspur_solo_frag+
@@ -428,14 +428,14 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
           );
   fprintf(fout,
           "---Raw Dovetail Degree and Spur Classification:\n"
-          "%15" F_IIDP " : non-spur solo           fragments\n"
-          "%15" F_IIDP " : non-spur prefix hanging fragments\n"
-          "%15" F_IIDP " : non-spur suffix hanging fragments\n"
-          "%15" F_IIDP " : non-spur thru           fragments\n"
-          "%15" F_IIDP " :     spur solo           fragments\n"
-          "%15" F_IIDP " :     spur prefix hanging fragments\n"
-          "%15" F_IIDP " :     spur suffix hanging fragments\n"
-          "%15" F_IIDP " :     spur thru           fragments\n"
+          "%15"F_IIDP " : non-spur solo           fragments\n"
+          "%15"F_IIDP " : non-spur prefix hanging fragments\n"
+          "%15"F_IIDP " : non-spur suffix hanging fragments\n"
+          "%15"F_IIDP " : non-spur thru           fragments\n"
+          "%15"F_IIDP " :     spur solo           fragments\n"
+          "%15"F_IIDP " :     spur prefix hanging fragments\n"
+          "%15"F_IIDP " :     spur suffix hanging fragments\n"
+          "%15"F_IIDP " :     spur thru           fragments\n"
           ,
 
           n_raw_noncontained_nonspur_solo_frag+
@@ -458,22 +458,22 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
           );
   fprintf(fout,
           "---Raw Dovetail Degree, Spur, and Containment Degree Classification:\n"
-          "%15" F_IIDP " : non-contained non-spur solo           fragments\n"
-          "%15" F_IIDP " : non-contained non-spur prefix hanging fragments\n"
-          "%15" F_IIDP " : non-contained non-spur suffix hanging fragments\n"
-          "%15" F_IIDP " : non-contained non-spur thru           fragments\n"
-          "%15" F_IIDP " : non-contained     spur solo           fragments\n"
-          "%15" F_IIDP " : non-contained     spur prefix hanging fragments\n"
-          "%15" F_IIDP " : non-contained     spur suffix hanging fragments\n"
-          "%15" F_IIDP " : non-contained     spur thru           fragments\n"
-          "%15" F_IIDP " :     contained non-spur solo           fragments\n"
-          "%15" F_IIDP " :     contained non-spur prefix hanging fragments\n"
-          "%15" F_IIDP " :     contained non-spur suffix hanging fragments\n"
-          "%15" F_IIDP " :     contained non-spur thru           fragments\n"
-          "%15" F_IIDP " :     contained     spur solo           fragments\n"
-          "%15" F_IIDP " :     contained     spur prefix hanging fragments\n"
-          "%15" F_IIDP " :     contained     spur suffix hanging fragments\n"
-          "%15" F_IIDP " :     contained     spur thru           fragments\n"
+          "%15"F_IIDP " : non-contained non-spur solo           fragments\n"
+          "%15"F_IIDP " : non-contained non-spur prefix hanging fragments\n"
+          "%15"F_IIDP " : non-contained non-spur suffix hanging fragments\n"
+          "%15"F_IIDP " : non-contained non-spur thru           fragments\n"
+          "%15"F_IIDP " : non-contained     spur solo           fragments\n"
+          "%15"F_IIDP " : non-contained     spur prefix hanging fragments\n"
+          "%15"F_IIDP " : non-contained     spur suffix hanging fragments\n"
+          "%15"F_IIDP " : non-contained     spur thru           fragments\n"
+          "%15"F_IIDP " :     contained non-spur solo           fragments\n"
+          "%15"F_IIDP " :     contained non-spur prefix hanging fragments\n"
+          "%15"F_IIDP " :     contained non-spur suffix hanging fragments\n"
+          "%15"F_IIDP " :     contained non-spur thru           fragments\n"
+          "%15"F_IIDP " :     contained     spur solo           fragments\n"
+          "%15"F_IIDP " :     contained     spur prefix hanging fragments\n"
+          "%15"F_IIDP " :     contained     spur suffix hanging fragments\n"
+          "%15"F_IIDP " :     contained     spur thru           fragments\n"
           ,
 
           n_raw_noncontained_nonspur_solo_frag,
@@ -501,10 +501,10 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   //  The Current overlap classifications:
   fprintf(fout,
           "---Current Dovetail Degree Classification:\n"
-          "%15" F_IIDP " : solo           fragments\n"
-          "%15" F_IIDP " : prefix hanging fragments\n"
-          "%15" F_IIDP " : suffix hanging fragments\n"
-          "%15" F_IIDP " : thru           fragments\n"
+          "%15"F_IIDP " : solo           fragments\n"
+          "%15"F_IIDP " : prefix hanging fragments\n"
+          "%15"F_IIDP " : suffix hanging fragments\n"
+          "%15"F_IIDP " : thru           fragments\n"
           ,
 
           n_cur_noncontained_nonspur_solo_frag+
@@ -530,14 +530,14 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
           );
   fprintf(fout,
           "---Current Dovetail Degree and Spur Classification:\n"
-          "%15" F_IIDP " : non-spur solo           fragments\n"
-          "%15" F_IIDP " : non-spur prefix hanging fragments\n"
-          "%15" F_IIDP " : non-spur suffix hanging fragments\n"
-          "%15" F_IIDP " : non-spur thru           fragments\n"
-          "%15" F_IIDP " :     spur solo           fragments\n"
-          "%15" F_IIDP " :     spur prefix hanging fragments\n"
-          "%15" F_IIDP " :     spur suffix hanging fragments\n"
-          "%15" F_IIDP " :     spur thru           fragments\n"
+          "%15"F_IIDP " : non-spur solo           fragments\n"
+          "%15"F_IIDP " : non-spur prefix hanging fragments\n"
+          "%15"F_IIDP " : non-spur suffix hanging fragments\n"
+          "%15"F_IIDP " : non-spur thru           fragments\n"
+          "%15"F_IIDP " :     spur solo           fragments\n"
+          "%15"F_IIDP " :     spur prefix hanging fragments\n"
+          "%15"F_IIDP " :     spur suffix hanging fragments\n"
+          "%15"F_IIDP " :     spur thru           fragments\n"
           ,
 
           n_cur_noncontained_nonspur_solo_frag+
@@ -560,22 +560,22 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
           );
   fprintf(fout,
           "---Current Dovetail Degree, Spur, and Containment Degree Classification:\n"
-          "%15" F_IIDP " : non-contained non-spur solo           fragments\n"
-          "%15" F_IIDP " : non-contained non-spur prefix hanging fragments\n"
-          "%15" F_IIDP " : non-contained non-spur suffix hanging fragments\n"
-          "%15" F_IIDP " : non-contained non-spur thru           fragments\n"
-          "%15" F_IIDP " : non-contained     spur solo           fragments\n"
-          "%15" F_IIDP " : non-contained     spur prefix hanging fragments\n"
-          "%15" F_IIDP " : non-contained     spur suffix hanging fragments\n"
-          "%15" F_IIDP " : non-contained     spur thru           fragments\n"
-          "%15" F_IIDP " :     contained non-spur solo           fragments\n"
-          "%15" F_IIDP " :     contained non-spur prefix hanging fragments\n"
-          "%15" F_IIDP " :     contained non-spur suffix hanging fragments\n"
-          "%15" F_IIDP " :     contained non-spur thru           fragments\n"
-          "%15" F_IIDP " :     contained     spur solo           fragments\n"
-          "%15" F_IIDP " :     contained     spur prefix hanging fragments\n"
-          "%15" F_IIDP " :     contained     spur suffix hanging fragments\n"
-          "%15" F_IIDP " :     contained     spur thru           fragments\n"
+          "%15"F_IIDP " : non-contained non-spur solo           fragments\n"
+          "%15"F_IIDP " : non-contained non-spur prefix hanging fragments\n"
+          "%15"F_IIDP " : non-contained non-spur suffix hanging fragments\n"
+          "%15"F_IIDP " : non-contained non-spur thru           fragments\n"
+          "%15"F_IIDP " : non-contained     spur solo           fragments\n"
+          "%15"F_IIDP " : non-contained     spur prefix hanging fragments\n"
+          "%15"F_IIDP " : non-contained     spur suffix hanging fragments\n"
+          "%15"F_IIDP " : non-contained     spur thru           fragments\n"
+          "%15"F_IIDP " :     contained non-spur solo           fragments\n"
+          "%15"F_IIDP " :     contained non-spur prefix hanging fragments\n"
+          "%15"F_IIDP " :     contained non-spur suffix hanging fragments\n"
+          "%15"F_IIDP " :     contained non-spur thru           fragments\n"
+          "%15"F_IIDP " :     contained     spur solo           fragments\n"
+          "%15"F_IIDP " :     contained     spur prefix hanging fragments\n"
+          "%15"F_IIDP " :     contained     spur suffix hanging fragments\n"
+          "%15"F_IIDP " :     contained     spur thru           fragments\n"
           ,
 
           n_cur_noncontained_nonspur_solo_frag,
@@ -602,12 +602,12 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
   //  Totals:
   fprintf(fout,
           "Fragment-end overlap edge degree counts\n"
-          "%15" F_IIDP " : raw dovetail edges\n"
-          "%15" F_IIDP " : raw from-contained edges\n"
-          "%15" F_IIDP " : raw to-contained edges\n"
-          "%15" F_IIDP " : current dovetail edges\n"
-          "%15" F_IIDP " : current from-contained edges\n"
-          "%15" F_IIDP " : current to-contained edges\n"
+          "%15"F_IIDP " : raw dovetail edges\n"
+          "%15"F_IIDP " : raw from-contained edges\n"
+          "%15"F_IIDP " : raw to-contained edges\n"
+          "%15"F_IIDP " : current dovetail edges\n"
+          "%15"F_IIDP " : current from-contained edges\n"
+          "%15"F_IIDP " : current to-contained edges\n"
           ,
           raw_dvt_count,
           raw_frc_count,
@@ -722,7 +722,7 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
 
     fprintf(fout,"Overlap types\n");
     fprintf(fout,
-	    "%15" F_IIDP " : total number of fragment overlaps\n"
+	    "%15"F_IIDP " : total number of fragment overlaps\n"
 	    "%15" F_SIZE_TP " : dovetail \n"
 	    "%15" F_SIZE_TP " : dovetail interchunk\n"
 	    "%15" F_SIZE_TP " : dovetail intrachunk\n"

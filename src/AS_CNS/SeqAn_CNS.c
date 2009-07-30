@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: SeqAn_CNS.c,v 1.7 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: SeqAn_CNS.c,v 1.8 2009-07-30 10:42:56 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -156,8 +156,8 @@ void updateRecord(IntUnitigMesg *ium_mesg, char * inFile, char *seqAn, char * pr
       // read the Pos line
       fgets(line, AS_SEQAN_MAX_RESULT_LENGTH, tempOut);
       chomp(line);
-      CDS_COORD_t begin, end;
-      sscanf(line,"Pos:"F_COORD","F_COORD,&begin,&end);
+      int32 begin, end;
+      sscanf(line,"Pos:"F_S32","F_S32,&begin,&end);
       ium_mesg->f_list[currRead].position.bgn = begin;
       ium_mesg->f_list[currRead].position.end = end;
 
@@ -224,8 +224,8 @@ void updateICMRecord(IntConConMesg *icm_mesg, char * inFile, char *seqAn, char *
       // read the Pos line
       fgets(line, AS_SEQAN_MAX_RESULT_LENGTH, tempOut);
       chomp(line);
-      CDS_COORD_t begin, end;
-      sscanf(line,"Pos:"F_COORD","F_COORD,&begin,&end);
+      int32 begin, end;
+      sscanf(line,"Pos:"F_S32","F_S32,&begin,&end);
       icm_mesg->pieces[currRead].position.bgn = begin;
       icm_mesg->pieces[currRead].position.end = end;
 
@@ -260,8 +260,8 @@ void updateICMRecord(IntConConMesg *icm_mesg, char * inFile, char *seqAn, char *
       }
       // we read the Pos line above, process it now
       chomp(line);
-      CDS_COORD_t begin, end;
-      sscanf(line,"Pos:"F_COORD","F_COORD,&begin,&end);
+      int32 begin, end;
+      sscanf(line,"Pos:"F_S32","F_S32,&begin,&end);
 
       // read the dln line
       fgets(line, AS_SEQAN_MAX_RESULT_LENGTH, tempOut);

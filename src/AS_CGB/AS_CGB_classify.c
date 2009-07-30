@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_classify.c,v 1.11 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_classify.c,v 1.12 2009-07-30 10:42:55 brianwalenz Exp $";
 
 //  Description: These routines classify the fragments and overlaps in
 //  a local manner as to their status in chunks.
@@ -485,12 +485,12 @@ static void chunk_classification_of_fragments
 
         if( (inpx != 0) && (jnpx != 0) ) {
           const IntFragment_ID iid = get_iid_fragment(frags,vid);
-          fprintf(stderr,"Woops: iid=" F_IID " vid=" F_IID " inpx=%d jnpx=%d\n",
+          fprintf(stderr,"Woops: iid="F_IID " vid="F_IID " inpx=%d jnpx=%d\n",
                   iid,vid,inpx,jnpx);
         }
         if( (insx != 0) && (jnsx != 0) ) {
           const IntFragment_ID iid = get_iid_fragment(frags,vid);
-          fprintf(stderr,"Woops: iid=" F_IID " vid=" F_IID " insx=%d jnsx=%d\n",
+          fprintf(stderr,"Woops: iid="F_IID " vid="F_IID " insx=%d jnsx=%d\n",
                   iid,vid,insx,jnsx);
         }
 

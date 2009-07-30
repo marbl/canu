@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: BCPOutput.cc,v 1.10 2009-03-06 19:36:41 skoren Exp $";
+static const char *rcsid = "$Id: BCPOutput.cc,v 1.11 2009-07-30 10:42:55 brianwalenz Exp $";
 
 #ifdef SYBASE
 
@@ -284,8 +284,8 @@ bool BCPOutput::storeAFG2DB (
          IntFragment_ID iaccession,
          MateStatType mate_status,
          int32 chaff,
-         CDS_COORD_t bgn,
-         CDS_COORD_t end) {
+         int32 bgn,
+         int32 end) {
    if (afgBCP == NULL) {
       afgBCP = openFile(AFG_FILENAME);
    }
@@ -312,7 +312,7 @@ bool BCPOutput::storeUTG2DB (
          float microhet_prob,
          float coverage_stat,
          UnitigStatus status,
-         CDS_COORD_t length,
+         int32 length,
          const char * consensus,
          const char * quality,
          int32 forced,
@@ -344,8 +344,8 @@ bool BCPOutput::storeMPS2DB (
          AS_UID afgID,
          FragType type,
          const char * source,
-         CDS_COORD_t bgn,
-         CDS_COORD_t end,
+         int32 bgn,
+         int32 end,
          int32 delta_length,
          std::string delta) {
    if (mpsBCP == NULL) {
@@ -493,7 +493,7 @@ bool BCPOutput::storeCCO2DB (
                   AS_UID eaccession,
                   IntFragment_ID iaccession,
                   ContigPlacementStatusType placed,
-                  CDS_COORD_t length,
+                  int32 length,
                   const char * consensus,
                   const char * quality,
                   int32 forced,
@@ -526,8 +526,8 @@ bool BCPOutput::storeCCOMPS2DB(
                   AS_UID fragID,
                   FragType type,
                   const char * source,
-                  CDS_COORD_t bgn,
-                  CDS_COORD_t end,
+                  int32 bgn,
+                  int32 end,
                   int32 delta_length,
                   std::string delta) {
    if (ccoMpsBCP == NULL) {
@@ -554,8 +554,8 @@ bool BCPOutput::storeUPS2DB(
                   AS_UID ccoID,
                   AS_UID unitigID,
                   UnitigType type,
-                  CDS_COORD_t bgn,
-                  CDS_COORD_t end,
+                  int32 bgn,
+                  int32 end,
                   int32 delta_length,
                   std::string delta) {
    if (upsBCP == NULL) {
@@ -580,12 +580,12 @@ bool BCPOutput::storeUPS2DB(
 bool BCPOutput::storeVAR2DB(
                   AS_UID varID,
                   AS_UID ccoID,
-                  CDS_COORD_t bgn,
-                  CDS_COORD_t end,
+                  int32 bgn,
+                  int32 end,
                   uint32 num_reads,
                   uint32 num_conf_alleles,
                   uint32 anchor_size,
-                  CDS_COORD_t var_length,
+                  int32 var_length,
                   int32 curr_var_id,
                   int32 phased_var_id) {
    if (varBCP == NULL) {
@@ -715,7 +715,7 @@ bool BCPOutput::storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID) {
    return true;
 }
 
-bool BCPOutput::storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, CDS_COORD_t ctgStart, CDS_COORD_t ctgEnd) {
+bool BCPOutput::storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, int32 ctgStart, int32 ctgEnd) {
    if (cpsBCP == NULL) {
       cpsBCP = openFile(CPS_FILENAME);
    }

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_Bubble_Popper.c,v 1.19 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_Bubble_Popper.c,v 1.20 2009-07-30 10:42:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -221,7 +221,7 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
   }
 
 #if AS_CGB_BUBBLE_VERBOSE
-  fprintf(BUB_LOG_G, "Overlapping " F_IID " (" F_IID " , " F_IID ") and " F_IID " (" F_IID " , " F_IID ") ... ",
+  fprintf(BUB_LOG_G, "Overlapping "F_IID " ("F_IID " , "F_IID ") and "F_IID " ("F_IID " , "F_IID ") ... ",
 	  bid1, bp->bubFrags[bid1], id1, bid2, bp->bubFrags[bid2], id2);
 #endif
 
@@ -299,7 +299,7 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
     fprintf(BUB_LOG_G, "BUBA orientation=%d reversed=%d\n", orientation, reversed);
     fprintf(BUB_LOG_G,
             "BUBB "
-            "afr=" F_IID " bfr=" F_IID " "
+            "afr="F_IID " bfr="F_IID " "
             "ahg=%d bhg=%d "
             "ori=%c "
             "olt=%c "
@@ -425,7 +425,7 @@ AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, IntFragment_ID start,
 #if AS_CGB_BUBBLE_VERBOSE
   fprintf(BUB_LOG_G, "Fragments:\n");
   for (r = 0; r < num_frags; r++) {
-    fprintf(BUB_LOG_G, "%d]\t\t" F_IID "\t(" F_IID ")\t" F_S64 "\n", r, bp->bubFrags[r],
+    fprintf(BUB_LOG_G, "%d]\t\t"F_IID "\t("F_IID ")\t" F_S64 "\n", r, bp->bubFrags[r],
 	    get_iid_fragment(BG_vertices(bp->bg), bp->bubFrags[r]),
 	    BG_V_getDistance(bp->bg, bp->bubFrags[r]));
   }

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_main.c,v 1.20 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_main.c,v 1.21 2009-07-30 10:42:55 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_unitigger_globals.h"
@@ -407,7 +407,7 @@ int main_cgb(THeapGlobals  * heapva,
       set_cid_fragment(heapva->frags,ifrag,ifrag); // While we are here ....
     }
 
-    fprintf(stderr, "Total number of guides counted: " F_IID " of " F_IID " fragments\n",
+    fprintf(stderr, "Total number of guides counted: "F_IID " of "F_IID " fragments\n",
             num_of_guides_total, nfrag);
 
     if(rg->genome_length > 0) {

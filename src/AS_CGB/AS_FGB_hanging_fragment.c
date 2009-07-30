@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_FGB_hanging_fragment.c,v 1.7 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_FGB_hanging_fragment.c,v 1.8 2009-07-30 10:42:55 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 
@@ -354,7 +354,7 @@ void separate_fragments_as_solo_hanging_thru
              ||(cur_fragment_suffix_dovetail_overlap_count>0))
            ) {
           fprintf(stdout,"GFC "
-		  "iid=" F_IID " "
+		  "iid="F_IID" "
 		  "raw_fragment_prefix_dovetail_overlap_count=%d "
 		  "raw_fragment_suffix_dovetail_overlap_count=%d "
 		  "cur_fragment_prefix_dovetail_overlap_count=%d "
@@ -397,10 +397,10 @@ void separate_fragments_as_solo_hanging_thru
     }
 
     fprintf(stderr, "separate_fragments_as_solo_hanging_thru::\n");
-    fprintf(stderr, "          solo_fragment_count = " F_IID "\n", solo_fragment_count);
-    fprintf(stderr, "prefix_hanging_fragment_count = " F_IID "\n", prefix_hanging_fragment_count);
-    fprintf(stderr, "suffix_hanging_fragment_count = " F_IID "\n", suffix_hanging_fragment_count);
-    fprintf(stderr, "          thru_fragment_count = " F_IID "\n", thru_fragment_count);
+    fprintf(stderr, "          solo_fragment_count = "F_IID"\n", solo_fragment_count);
+    fprintf(stderr, "prefix_hanging_fragment_count = "F_IID"\n", prefix_hanging_fragment_count);
+    fprintf(stderr, "suffix_hanging_fragment_count = "F_IID"\n", suffix_hanging_fragment_count);
+    fprintf(stderr, "          thru_fragment_count = "F_IID"\n", thru_fragment_count);
 
   }
 #ifndef USE_REAPERS_DVT_DEGREE

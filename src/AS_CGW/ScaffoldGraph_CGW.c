@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.39 2009-07-30 10:34:14 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.40 2009-07-30 10:42:56 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -342,8 +342,8 @@ void ScaffoldSanity(CIScaffoldT *scaffold, ScaffoldGraphT *graph){
   int numElements = 0;
   CIScaffoldTIterator CIs;
   ChunkInstanceT *CI;
-  double scaffoldMinPos = (double)CDS_COORD_MAX;
-  double scaffoldMaxPos = (double)CDS_COORD_MIN;
+  double scaffoldMinPos = (double)INT32_MAX;
+  double scaffoldMaxPos = (double)INT32_MIN;
   double scratch;
   int    scaffoldInsane = 0;
 
@@ -421,7 +421,7 @@ void ScaffoldSanity(CIScaffoldT *scaffold, ScaffoldGraphT *graph){
 // A end of the scaffold)
 void CheckScaffoldOrder(CIScaffoldT *scaffold, ScaffoldGraphT *graph)
 {
-  double currentMinPos = (double)CDS_COORD_MAX;
+  double currentMinPos = (double)INT32_MAX;
   CIScaffoldTIterator CIs;
   ChunkInstanceT *CI, *prevCI = NULL;
 

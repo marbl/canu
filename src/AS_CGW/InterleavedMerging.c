@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: InterleavedMerging.c,v 1.20 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid = "$Id: InterleavedMerging.c,v 1.21 2009-07-30 10:42:56 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -146,8 +146,8 @@ typedef struct
 {
   int minIndex;
   int maxIndex;
-  CDS_COORD_t minCoord;
-  CDS_COORD_t maxCoord;
+  int32 minCoord;
+  int32 maxCoord;
 } ContigSetInterval;
 
 typedef struct
@@ -179,7 +179,7 @@ int GetNumSegmentsInList(Segment * segmentList)
 
 void PrintSegment(FILE * fp, Segment * segment)
 {
-  fprintf(fp, "  A: %d, B: %d, beg,end,len: (" F_COORD ", " F_COORD ", " F_COORD ")\n",
+  fprintf(fp, "  A: %d, B: %d, beg,end,len: ("F_S32", "F_S32", "F_S32")\n",
           segment->a_contig, segment->b_contig,
           segment->overlap->begpos, segment->overlap->endpos,
           segment->overlap->length);
@@ -195,23 +195,23 @@ void PrintSegmentList(FILE * fp, Segment * segmentList)
 void PrintScafCompScaffold(FILE * fp, Scaffold * scaffold)
 {
   int i;
-  fprintf(fp, "  length: " F_COORD "\n", scaffold->length);
+  fprintf(fp, "  length: "F_S32"\n", scaffold->length);
   fprintf(fp, "  %d gaps:\n", scaffold->num_gaps);
-  fprintf(fp, "    tig   left: %10" F_COORDP ",   length: %10" F_COORDP "\n",
+  fprintf(fp, "    tig   left: %10"F_S32P ",   length: %10"F_S32P "\n",
           scaffold->ctgs[0].lft_end, scaffold->ctgs[0].length);
   for(i = 0; i < scaffold->num_gaps; i++)
     {
-      fprintf(fp, "    gap length: %10" F_COORDP ",   stddev: %.2f\n",
+      fprintf(fp, "    gap length: %10"F_S32P ",   stddev: %.2f\n",
               scaffold->gaps[i].gap_length,
               scaffold->gaps[i].gap_var);
-      fprintf(fp, "    tig   left: %10" F_COORDP ",   length: %10" F_COORDP "\n",
+      fprintf(fp, "    tig   left: %10"F_S32P ",   length: %10"F_S32P "\n",
               scaffold->ctgs[i+1].lft_end, scaffold->ctgs[i+1].length);
     }
 }
 
 void PrintContigElement(FILE * fp, ContigElement * ce)
 {
-  fprintf(fp, "    (%d, " F_CID ") len: %.f, min: %.f, max: %.f, orient: %c\n",
+  fprintf(fp, "    (%d, "F_CID ") len: %.f, min: %.f, max: %.f, orient: %c\n",
           ce->index, ce->id, ce->length, ce->minCoord, ce->maxCoord,
           ce->orient);
 }
@@ -240,7 +240,7 @@ void PrintLocal_Overlaps(FILE * fp, VA_TYPE(Local_Overlap) * los)
   Local_Overlap * lo = GetVA_Local_Overlap(los, 0);
   for(i = 0; i < GetNumVA_Local_Overlap(los); i++)
     {
-      fprintf(fp, "  beg: " F_COORD ", end: " F_COORD ", len: " F_COORD "\n",
+      fprintf(fp, "  beg: "F_S32", end: "F_S32", len: "F_S32"\n",
               lo[i].begpos, lo[i].endpos, lo[i].length);
     }
 }
@@ -249,7 +249,7 @@ void PrintScaffoldAlignmentInterface(FILE * fp,
                                      ScaffoldAlignmentInterface * sai)
 {
   fprintf(fp, "--------------- ScaffoldAlignmentInterface ----------------\n");
-  fprintf(fp, "band begin,end, best: " F_COORD ", " F_COORD ", %d\n",
+  fprintf(fp, "band begin,end, best: "F_S32", "F_S32", %d\n",
           sai->scaffoldA->bandBeg, sai->scaffoldA->bandEnd, sai->best);
   fprintf(fp, "\n");
 
@@ -500,7 +500,7 @@ void PopulateScaffoldStuff(ScaffoldStuff * ss,
 
 #ifdef DEBUG1
   fprintf(GlobalData->stderrc, "****PopulateScaffoldStuff:\n");
-  fprintf(GlobalData->stderrc, "  scaffold id:" F_CID ", length: %d, isA:%c\n",
+  fprintf(GlobalData->stderrc, "  scaffold id:"F_CID ", length: %d, isA:%c\n",
           scaffold->id, (int) scaffold->bpLength.mean, isA ? 'T' : 'F');
   fprintf(GlobalData->stderrc, "  edge: %s, %d - %d\n",
           sEdge->orient == AB_AB ? "AB_AB" :
@@ -721,7 +721,7 @@ void PopulateScaffoldStuff(ScaffoldStuff * ss,
 #ifdef DEBUG1
       PrintContigElement(GlobalData->stderrc, &ce);
       if(isA)
-        fprintf(GlobalData->stderrc, "  minAHang: " F_COORD ", maxAHang:" F_COORD "\n",
+        fprintf(GlobalData->stderrc, "  minAHang: "F_S32", maxAHang:"F_S32"\n",
                 ss->bandBeg, ss->bandEnd);
 #endif
 
@@ -802,16 +802,16 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
   NodeOrient orientB;
   static Overlap myOverlap;
   Overlap * retOverlap = NULL;
-  CDS_COORD_t minOverlap;
-  CDS_COORD_t maxOverlap;
+  int32 minOverlap;
+  int32 maxOverlap;
   ChunkOverlapCheckT chunkOverlap = {0};
   ChunkOrientationType overlapOrient;
   ChunkInstanceT * contigA;
   ChunkInstanceT * contigB;
-  CDS_COORD_t minLengthA;
-  CDS_COORD_t maxLengthA;
-  CDS_COORD_t minLengthB;
-  CDS_COORD_t maxLengthB;
+  int32 minLengthA;
+  int32 maxLengthA;
+  int32 minLengthB;
+  int32 maxLengthB;
 
   contigA = GetGraphNode(ScaffoldGraph->RezGraph, ceA->id);
   contigB = GetGraphNode(ScaffoldGraph->RezGraph, ceB->id);
@@ -831,10 +831,10 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
 
   // now take care of orientation of contigs within scaffold
   if(contigA->offsetAEnd.mean > contigA->offsetBEnd.mean){
-    fprintf(stderr,"Reverse orientation for " F_CID " in scf\n",contigA->id);
+    fprintf(stderr,"Reverse orientation for "F_CID " in scf\n",contigA->id);
   }
   if(contigB->offsetAEnd.mean > contigB->offsetBEnd.mean){
-    fprintf(stderr,"Reverse orientation for " F_CID " in scf\n",contigB->id);
+    fprintf(stderr,"Reverse orientation for "F_CID " in scf\n",contigB->id);
   }
 #endif
 
@@ -888,9 +888,9 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
                                    AS_CGW_ERROR_RATE, FALSE);
 
 #ifdef PRINT_OVERLAPS
-      fprintf(stderr,"A_B: Trying to find overlap between " F_CID " and "
-              F_CID " overlap range " F_COORD "," F_COORD
-              " orientation %c --> " F_COORD "\n",
+      fprintf(stderr,"A_B: Trying to find overlap between "F_CID " and "
+              F_CID " overlap range "F_S32","F_S32
+              " orientation %c --> "F_S32"\n",
               ceA->id,ceB->id,minOverlap,maxOverlap,
               overlapOrient,chunkOverlap.overlap);
 #endif
@@ -920,9 +920,9 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
           retOverlap = &myOverlap;
 
 #ifdef PRINT_OVERLAPS
-          fprintf(stderr,"B_A: Trying to find overlap between " F_CID " and "
-                  F_CID " overlap range " F_COORD "," F_COORD
-                  " orientation %c --> " F_COORD "\n",
+          fprintf(stderr,"B_A: Trying to find overlap between "F_CID " and "
+                  F_CID " overlap range "F_S32","F_S32
+                  " orientation %c --> "F_S32"\n",
                   ceA->id,ceB->id,minOverlap,maxOverlap,
                   overlapOrient,chunkOverlap.overlap);
 #endif
@@ -958,9 +958,9 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
                                    AS_CGW_ERROR_RATE, FALSE);
 
 #ifdef PRINT_OVERLAPS
-      fprintf(stderr,"B_A: Trying to find overlap between " F_CID " and "
-              F_CID " overlap range " F_COORD "," F_COORD
-              " orientation %c --> " F_COORD "\n",
+      fprintf(stderr,"B_A: Trying to find overlap between "F_CID " and "
+              F_CID " overlap range "F_S32","F_S32
+              " orientation %c --> "F_S32"\n",
               ceA->id,ceB->id,minOverlap,maxOverlap,
               overlapOrient,chunkOverlap.overlap);
 #endif
@@ -1002,7 +1002,7 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
 
 #ifdef PRINT_OVERLAPS
   if(retOverlap != NULL)
-    fprintf(GlobalData->stderrc, "Contig overlap (scaff:" F_CID ", contig:" F_CID ") & (scaff:" F_CID ", contig " F_CID "): ahg:" F_COORD ", bhg:" F_COORD ", length:" F_COORD ", quality:%.2f orient:%s\n",
+    fprintf(GlobalData->stderrc, "Contig overlap (scaff:"F_CID ", contig:"F_CID ") & (scaff:"F_CID ", contig "F_CID "): ahg:"F_S32", bhg:"F_S32", length:"F_S32", quality:%.2f orient:%s\n",
             sEdge->idA, ceA->id, sEdge->idB, ceB->id,
             retOverlap->begpos, retOverlap->endpos, retOverlap->length,
             (float) retOverlap->diffs / (float) retOverlap->length,
@@ -1139,9 +1139,9 @@ int PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
                 {
 #ifdef DEBUG1
                   fprintf(GlobalData->stderrc,
-                          "There is no overlap between (" F_CID ":"
-                          F_COORD "," F_COORD ") and (" F_CID ":"
-                          F_COORD "," F_COORD ")\n",
+                          "There is no overlap between ("F_CID ":"
+                          F_S32","F_S32") and ("F_CID ":"
+                          F_S32","F_S32")\n",
                           ceA->id, ceA->minCoord, ceA->maxCoord,
                           ceB->id, ceB->minCoord, ceB->maxCoord);
 #endif
@@ -1153,9 +1153,9 @@ int PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
                      ceB->maxCoord < ceA->minCoord + CGW_DP_MINLEN + 1);
 #ifdef DEBUG1
               fprintf(GlobalData->stderrc,
-                      "Not looking for overlap between (" F_CID ":"
-                      F_COORD "," F_COORD ") and (" F_CID ":"
-                      F_COORD "," F_COORD ")\n",
+                      "Not looking for overlap between ("F_CID ":"
+                      F_S32","F_S32") and ("F_CID ":"
+                      F_S32","F_S32")\n",
                       ceA->id, ceA->minCoord, ceA->maxCoord,
                       ceB->id, ceB->minCoord, ceB->maxCoord);
 #endif
@@ -1199,7 +1199,7 @@ static int segmentCompare(const Segment * a, const Segment * b)
   compute expansion of gaps[index] given current placement of
   contigs[index] and contigs[index+1]
 */
-CDS_COORD_t ComputeCurrentGapExpansion(Scaffold_Tig * contigs,
+int32 ComputeCurrentGapExpansion(Scaffold_Tig * contigs,
                                        Scaffold_Gap * gaps,
                                        int index)
 {
@@ -1213,7 +1213,7 @@ CDS_COORD_t ComputeCurrentGapExpansion(Scaffold_Tig * contigs,
   needed to accomodate contigs2[index2]
   assumes we're proceeding left to right
 */
-CDS_COORD_t ComputeAdditionalLeftGapExpansion(Scaffold_Tig * contigs1,
+int32 ComputeAdditionalLeftGapExpansion(Scaffold_Tig * contigs1,
                                               int index1,
                                               Scaffold_Tig * contigs2,
                                               int index2)
@@ -1230,7 +1230,7 @@ CDS_COORD_t ComputeAdditionalLeftGapExpansion(Scaffold_Tig * contigs1,
   needed to accomodate contigs2[index2]
   assumes we're proceeding right to left
 */
-CDS_COORD_t ComputeAdditionalRightGapExpansion(Scaffold_Tig * contigs1,
+int32 ComputeAdditionalRightGapExpansion(Scaffold_Tig * contigs1,
                                                int index1,
                                                Scaffold_Tig * contigs2,
                                                int index2)
@@ -1246,12 +1246,12 @@ CDS_COORD_t ComputeAdditionalRightGapExpansion(Scaffold_Tig * contigs1,
   compression of gaps1[index1-1] to fit contigs1[index1] to the left of
   contigs2[index2]
 */
-CDS_COORD_t ComputeLeftGapCompression(Scaffold_Tig * contigs1,
+int32 ComputeLeftGapCompression(Scaffold_Tig * contigs1,
                                       Scaffold_Gap * gaps1,
                                       int index1,
                                       Scaffold_Tig * contigs2,
                                       int index2,
-                                      CDS_COORD_t gap2Expansion)
+                                      int32 gap2Expansion)
 {
   return MAX(0, (contigs1[index1-1].lft_end + contigs1[index1-1].length +
                  gaps1[index1-1].gap_length) -
@@ -1263,12 +1263,12 @@ CDS_COORD_t ComputeLeftGapCompression(Scaffold_Tig * contigs1,
   compression of gaps1[index1] to fit contigs1[index1] to the right of
   contigs2[index2]
 */
-CDS_COORD_t ComputeRightGapCompression(Scaffold_Tig * contigs1,
+int32 ComputeRightGapCompression(Scaffold_Tig * contigs1,
                                        Scaffold_Gap * gaps1,
                                        int index1,
                                        Scaffold_Tig * contigs2,
                                        int index2,
-                                       CDS_COORD_t gap2Expansion)
+                                       int32 gap2Expansion)
 {
   return MAX(0, (contigs2[index2].lft_end + contigs2[index2].length +
                  MIN_GAP_LENGTH - gap2Expansion) -
@@ -1439,9 +1439,9 @@ void PlaceContigsBetweenOverlapSets(COSData * cosLeft,
 
   //Compute expansion of gaps in one of the scaffolds
   {
-    CDS_COORD_t initialPositionA;
-    CDS_COORD_t initialPositionB;
-    CDS_COORD_t spreadInA; // = negative spread in scaffold B
+    int32 initialPositionA;
+    int32 initialPositionB;
+    int32 spreadInA; // = negative spread in scaffold B
 
     initialPositionA = contigsA[cosRight->a.minIndex-1].lft_end +
       contigsA[cosRight->a.minIndex-1].length +
@@ -1507,7 +1507,7 @@ int PlaceContigsInOverlapSet(COSData * cos,
 {
   int ia = cos->a.minIndex;
   int ib = cos->b.minIndex;
-  CDS_COORD_t offset;
+  int32 offset;
 
   if(contigsA[ia].lft_end == 0)
     {
@@ -1650,7 +1650,7 @@ void UpdateCOSDataItem(COSData * cos,
 void AdjustContigOverlapSetOffsets(COSData * cos,
                                    Scaffold_Tig * contigsA,
                                    Scaffold_Tig * contigsB,
-                                   CDS_COORD_t offset)
+                                   int32 offset)
 {
   int i;
   cos->a.minCoord += offset;
@@ -1793,7 +1793,7 @@ int ExamineContigOverlapSets(ScaffoldAlignmentInterface * sai,
 }
 
 
-CDS_COORD_t ComputeLeftMostLeftEnd(Scaffold_Tig * contigs1,
+int32 ComputeLeftMostLeftEnd(Scaffold_Tig * contigs1,
                                    Scaffold_Gap * gaps1,
                                    int index1,
                                    Scaffold_Tig * contigs2,
@@ -2027,7 +2027,7 @@ void AdjustForPureInterleaving(Scaffold_Tig * contigsA,
 
   for(ia = 0, ib = 0; ia == 0 || ib == 0; )
     {
-      CDS_COORD_t aLeft, bLeft;
+      int32 aLeft, bLeft;
       // contigs ia & ib occupy same space. place one or the other
       if(ia == numContigsA)
         {
@@ -2155,7 +2155,7 @@ void PrintScaffold_Tigs(FILE * fp, Scaffold_Tig * contigs, int numContigs)
   int i;
   for(i = 0; i < numContigs; i++)
     {
-      fprintf(fp, "%d: length: " F_COORD ", left end: " F_COORD "\n",
+      fprintf(fp, "%d: length: "F_S32", left end: "F_S32"\n",
               i, contigs[i].length, contigs[i].lft_end);
     }
 }
@@ -2174,7 +2174,7 @@ void PrintSegments(FILE * fp, Segment * segments)
           thisSegment != NULL;
           thisSegment = thisSegment->next)
         {
-          fprintf(fp, "contigA: %d, contigB: %d, begpos: " F_COORD ", endpos: " F_COORD ", length: " F_COORD "\n",
+          fprintf(fp, "contigA: %d, contigB: %d, begpos: "F_S32", endpos: "F_S32", length: "F_S32"\n",
                   thisSegment->a_contig, thisSegment->b_contig,
                   thisSegment->overlap->begpos, thisSegment->overlap->endpos,
                   thisSegment->overlap->length);
@@ -2266,7 +2266,7 @@ SEdgeT * MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
                                                   cosData)) != 0)
         {
           fprintf(GlobalData->stderrc, "*** WARNING ***\n"
-                  "\tScaffolds " F_CID " and " F_CID " can't be merged with edge (%.2f,%.2f)\n"
+                  "\tScaffolds "F_CID " and "F_CID " can't be merged with edge (%.2f,%.2f)\n"
                   "\tbecause %d contigs would have to be re-ordered\n"
                   "\t(consider modifying the code to handle this)\n",
                   scaffoldA->id, scaffoldB->id,

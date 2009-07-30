@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.26 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.27 2009-07-30 10:42:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -566,8 +566,8 @@ void ReallyAssignFragsToResolvedCI(CDS_CID_t fromCIid,
   CDS_CID_t  toContigID = toCI->info.CI.contigID;
   ContigT   *toContig   = GetGraphNode(ScaffoldGraph->ContigGraph, toContigID);
 
-  CDS_COORD_t surrogateAOffset = toCI->offsetAEnd.mean;
-  CDS_COORD_t surrogateBOffset = toCI->offsetBEnd.mean;
+  int32 surrogateAOffset = toCI->offsetAEnd.mean;
+  int32 surrogateBOffset = toCI->offsetBEnd.mean;
 
   IntMultiPos fragPos;
 

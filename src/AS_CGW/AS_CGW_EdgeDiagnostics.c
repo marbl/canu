@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.20 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.21 2009-07-30 10:42:55 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -478,7 +478,7 @@ int AddScaffoldToContigOrientChecker(ScaffoldGraphT * graph,
       // get the left contig
       if((contig = GetGraphNode(graph->RezGraph, ciTemp.curr)) == NULL)
         {
-          fprintf(stderr, "Failed to get contig " F_CID " from graph!\n", ciTemp.curr);
+          fprintf(stderr, "Failed to get contig "F_CID " from graph!\n", ciTemp.curr);
           return 1;
         }
 
@@ -512,8 +512,8 @@ int CompareNewOrientationsForScaffold(ScaffoldGraphT * graph,
 {
   int status = 0;
   CIScaffoldTIterator ciTemp;
-  CDS_COORD_t lastBegin = -1;
-  CDS_COORD_t lastEnd = lastBegin;
+  int32 lastBegin = -1;
+  int32 lastEnd = lastBegin;
   CDS_CID_t lastContigID = NULLINDEX;
 
   // loop over contigs in new scaffold
@@ -527,20 +527,20 @@ int CompareNewOrientationsForScaffold(ScaffoldGraphT * graph,
       // get the left contig
       if((contig = GetGraphNode(graph->RezGraph, ciTemp.curr)) == NULL)
         {
-          fprintf(stderr, "Failed to get contig " F_CID " from graph!\n", ciTemp.curr);
+          fprintf(stderr, "Failed to get contig "F_CID " from graph!\n", ciTemp.curr);
           return -1;
         }
 
       // check strange begin/end coordinates
       if(lastBegin != -1 && lastEnd != -1)
         {
-          if((CDS_COORD_t) (contig->offsetAEnd.mean + 0.5) == lastBegin ||
-             (CDS_COORD_t) (contig->offsetBEnd.mean + 0.5) == lastEnd ||
-             (CDS_COORD_t) (contig->offsetBEnd.mean + 0.5) == lastBegin ||
-             (CDS_COORD_t) (contig->offsetAEnd.mean + 0.5) == lastEnd)
+          if((int32) (contig->offsetAEnd.mean + 0.5) == lastBegin ||
+             (int32) (contig->offsetBEnd.mean + 0.5) == lastEnd ||
+             (int32) (contig->offsetBEnd.mean + 0.5) == lastBegin ||
+             (int32) (contig->offsetAEnd.mean + 0.5) == lastEnd)
             {
-              fprintf(stderr, "!!!! Contig " F_CID " (%d, %d) has same coordinate as"
-                      " prior contig " F_CID " (" F_COORD "," F_COORD ")\n",
+              fprintf(stderr, "!!!! Contig "F_CID " (%d, %d) has same coordinate as"
+                      " prior contig "F_CID " ("F_S32","F_S32")\n",
                       contig->id,
                       (int) (contig->offsetAEnd.mean + 0.5),
                       (int) (contig->offsetBEnd.mean + 0.5),
@@ -552,8 +552,8 @@ int CompareNewOrientationsForScaffold(ScaffoldGraphT * graph,
             }
         }
 
-      lastBegin = (CDS_COORD_t) (contig->offsetAEnd.mean + 0.5);
-      lastEnd = (CDS_COORD_t) (contig->offsetBEnd.mean + 0.5);
+      lastBegin = (int32) (contig->offsetAEnd.mean + 0.5);
+      lastEnd = (int32) (contig->offsetBEnd.mean + 0.5);
       lastContigID = contig->id;
 
       // see which scaffold this contig was in
@@ -568,7 +568,7 @@ int CompareNewOrientationsForScaffold(ScaffoldGraphT * graph,
       if((scaffoldOH = (OrientHolder *)(INTPTR)LookupValueInHashTable_AS(coc->scaffolds->ht,
                                                                          (uint64)contigOH->secondID, 0)) == NULL)
         {
-          fprintf(stderr, "Failed to lookup scaffold " F_CID " in hashtable\n",
+          fprintf(stderr, "Failed to lookup scaffold "F_CID " in hashtable\n",
                   contigOH->secondID);
           return -1;
         }
@@ -594,8 +594,8 @@ int CompareNewOrientationsForScaffold(ScaffoldGraphT * graph,
                    (contigOH->orient == B_A &&
                     contig->offsetAEnd.mean < contig->offsetBEnd.mean))
                   {
-                    fprintf(stderr, "!!!!! Contig " F_CID " from scaffold " F_CID " has been "
-                            "reversed in scaffold " F_CID "\n",
+                    fprintf(stderr, "!!!!! Contig "F_CID " from scaffold "F_CID " has been "
+                            "reversed in scaffold "F_CID "\n",
                             contig->id, contigOH->secondID, contig->scaffoldID);
                     status = 1;
                   }
@@ -607,8 +607,8 @@ int CompareNewOrientationsForScaffold(ScaffoldGraphT * graph,
                    (contigOH->orient == B_A &&
                     contig->offsetAEnd.mean > contig->offsetBEnd.mean))
                   {
-                    fprintf(stderr, "!!!!! Contig " F_CID " from scaffold " F_CID " has been "
-                            "reversed in scaffold " F_CID "\n",
+                    fprintf(stderr, "!!!!! Contig "F_CID " from scaffold "F_CID " has been "
+                            "reversed in scaffold "F_CID "\n",
                             contig->id, contigOH->secondID, contig->scaffoldID);
                     status = 1;
                   }
@@ -647,7 +647,7 @@ int AddAllScaffoldsToContigOrientChecker(ScaffoldGraphT * graph,
                                                        sID),
                                           coc))
         {
-          fprintf(stderr, "Failed to add scaffold " F_CID " to ContigOrientChecker!\n",
+          fprintf(stderr, "Failed to add scaffold "F_CID " to ContigOrientChecker!\n",
                   sID);
           return 1;
         }
@@ -683,7 +683,7 @@ int CheckAllContigOrientationsInAllScaffolds(ScaffoldGraphT * graph,
                                                        sID),
                                           coc);
       if(thisStatus != 0)
-        fprintf(stderr, "Contig re-orientation problem in scaffold " F_CID "!\n", sID);
+        fprintf(stderr, "Contig re-orientation problem in scaffold "F_CID "!\n", sID);
 
       status |= thisStatus;
     }
@@ -912,7 +912,7 @@ void PrintFragPairAndEdge(CIFragT * fragA,
                           FragOrient orientB,
                           CIEdgeT * edge)
 {
-  fprintf(stdout, "%8" F_CIDP " %7" F_CIDP " %.f %s\t%8" F_CIDP " %7" F_CIDP " %.f %s\t%.f     ",
+  fprintf(stdout, "%8"F_CIDP " %7"F_CIDP " %.f %s\t%8"F_CIDP " %7"F_CIDP " %.f %s\t%.f     ",
           fragA->iid, fragA->contigID,
           offsetA->mean, (orientA == A_B) ? "A_B" : "B_A",
           fragB->iid, fragB->contigID,
@@ -969,7 +969,7 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
 
   if(otherScaffoldID != NULLINDEX)
     {
-      fprintf(stdout, "Edges between scaffolds " F_CID " and " F_CID ":\n",
+      fprintf(stdout, "Edges between scaffolds "F_CID " and "F_CID ":\n",
               scaffold->id, otherScaffoldID);
       fprintf(stdout, "FragID  ContigID Scf5p ScfOrient "
               "FragID  ContigID Scf5p ScfOrient\t"
@@ -988,7 +988,7 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
       // get the left chunk
       if((chunkA = GetGraphNode(graph->RezGraph, ciTemp.curr)) == NULL)
         {
-          fprintf(stderr, "Failed to get contig " F_CID " from graph!\n", ciTemp.curr);
+          fprintf(stderr, "Failed to get contig "F_CID " from graph!\n", ciTemp.curr);
           return;
         }
 
@@ -1086,7 +1086,7 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
       uint64 key, value;
       uint32 valuetype;
 
-      fprintf(stdout, "*** Links from scaffold " F_CID ":\n", scaffold->id);
+      fprintf(stdout, "*** Links from scaffold "F_CID ":\n", scaffold->id);
       InitializeHashTable_Iterator_AS(linkHT, &iterator);
       while(NextHashTable_Iterator_AS(&iterator, &key, &value, &valuetype) == HASH_SUCCESS)
         {
@@ -1095,7 +1095,7 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
             continue;
 
           fprintf(stdout,
-                  "\tweight %d from (%.f,%.f) to scaffold " F_CID " (%.f,%.f) orient: ",
+                  "\tweight %d from (%.f,%.f) to scaffold "F_CID " (%.f,%.f) orient: ",
                   link->weight, link->minOffset, link->maxOffset,
                   link->scaffoldID,
                   link->minOffsetScaffoldB, link->maxOffsetScaffoldB);
@@ -1194,7 +1194,7 @@ void DetectRepetitiveContigs(ScaffoldGraphT * graph)
   int numOffAEnd;
   int numOffBEnd;
   int maxOffEnd;
-  CDS_COORD_t length = CDS_COORD_MIN;
+  int32 length = INT32_MIN;
 
   fprintf(stdout,
           "Identifying potentially repetitive contigs with Astat > %.f\n",
@@ -1270,7 +1270,7 @@ void DetectRepetitiveContigs(ScaffoldGraphT * graph)
             if(numOffBEnd >= maxOffEnd || numOffAEnd >= maxOffEnd)
               {
                 numRepetitiveContigs++;
-                fprintf(stdout,"%10" F_CIDP "   %5d     %10d     %10d     %10" F_COORDP "\n",
+                fprintf(stdout,"%10"F_CIDP "   %5d     %10d     %10d     %10"F_S32P "\n",
                         contig->id, coverageStat, numOffAEnd, numOffBEnd, length);
               }
           }
@@ -1313,7 +1313,7 @@ void DoSomethingWithUnitigsInScaffolds(ScaffoldGraphT * graph)
 
               if((contig = GetGraphNode(graph->RezGraph, cisTemp.curr)) == NULL)
                 {
-                  fprintf(stderr, "Failed to get contig " F_CID " from graph!\n",
+                  fprintf(stderr, "Failed to get contig "F_CID " from graph!\n",
                           cisTemp.curr);
                   return;
                 }

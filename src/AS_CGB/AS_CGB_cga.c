@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_cga.c,v 1.23 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_cga.c,v 1.24 2009-07-30 10:42:55 brianwalenz Exp $";
 
 //  A chunk graph analyzer. This functional unit computes graph
 //  statistics, and writes the chunk graph in the term representation
@@ -102,25 +102,25 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
         case AS_CGB_DELETED_FRAG:
           n_as_cgb_deleted_frag++; break;
         default:
-          fprintf(stderr,"ifrag=" F_IID ", Unknown fragment type %d\n",ifrag,ilab);
+          fprintf(stderr,"ifrag="F_IID", Unknown fragment type %d\n",ifrag,ilab);
           assert(FALSE);
       }
     }
     fprintf(fout,
-            "%15" F_IIDP " : total number of fragment reads\n"
-            "%15" F_IIDP " :   solo\n"
-            "%15" F_IIDP " :   hanging    alone\n"
-            "%15" F_IIDP " :   hanging    chunk-end\n"
-            "%15" F_IIDP " :   hanging    spur\n"
-            "%15" F_IIDP " :   thru       alone\n"
-            "%15" F_IIDP " :   thru       chunk-end\n"
-            "%15" F_IIDP " :   thru       intrachunk\n"
-            "%15" F_IIDP " :   contained  unplaced\n"
-            "%15" F_IIDP " :   contained  singly\n"
-            "%15" F_IIDP " :   contained  multiply non-branch\n"
-            "%15" F_IIDP " :   contained  multiply branch\n"
-            "%15" F_IIDP " :   contained  orphaned\n"
-            "%15" F_IIDP " :   deleted\n",
+            "%15"F_IIDP" : total number of fragment reads\n"
+            "%15"F_IIDP" :   solo\n"
+            "%15"F_IIDP" :   hanging    alone\n"
+            "%15"F_IIDP"  :   hanging    chunk-end\n"
+            "%15"F_IIDP" :   hanging    spur\n"
+            "%15"F_IIDP" :   thru       alone\n"
+            "%15"F_IIDP" :   thru       chunk-end\n"
+            "%15"F_IIDP" :   thru       intrachunk\n"
+            "%15"F_IIDP" :   contained  unplaced\n"
+            "%15"F_IIDP" :   contained  singly\n"
+            "%15"F_IIDP" :   contained  multiply non-branch\n"
+            "%15"F_IIDP" :   contained  multiply branch\n"
+            "%15"F_IIDP" :   contained  orphaned\n"
+            "%15"F_IIDP" :   deleted\n",
             nfrag,
             n_as_cgb_solo_frag,
             n_as_cgb_hanging_frag,
@@ -258,32 +258,32 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
     }
 
     fprintf(fout,
-            "%15" F_IIDP " : total number of fragment overlaps\n"
+            "%15"F_IIDP" : total number of fragment overlaps\n"
             "      The non-chunking overlaps:\n"
-            "%15" F_IIDP " : dovetail non-chunking\n"
-            "%15" F_IIDP " : thickest non-chunking\n"
+            "%15"F_IIDP" : dovetail non-chunking\n"
+            "%15"F_IIDP" : thickest non-chunking\n"
             "      The inter-chunk skeleton overlaps:\n"
-            "%15" F_IIDP " : dovetail inter-chunk (between non-contained)\n"
-            "%15" F_IIDP " : dovetail non-contained touches contained\n"
-            "%15" F_IIDP " : dovetail between contained\n"
-            "%15" F_IIDP " : dovetail touches spur and non-spur\n"
-            "%15" F_IIDP " : dovetail between spurs\n"
-            "%15" F_IIDP " : containment to non-singly contained\n"
-            "%15" F_IIDP " : containment touches spur and non-spur\n"
-            "%15" F_IIDP " : containment between spurs\n"
+            "%15"F_IIDP" : dovetail inter-chunk (between non-contained)\n"
+            "%15"F_IIDP" : dovetail non-contained touches contained\n"
+            "%15"F_IIDP" : dovetail between contained\n"
+            "%15"F_IIDP" : dovetail touches spur and non-spur\n"
+            "%15"F_IIDP" : dovetail between spurs\n"
+            "%15"F_IIDP" : containment to non-singly contained\n"
+            "%15"F_IIDP" : containment touches spur and non-spur\n"
+            "%15"F_IIDP" : containment between spurs\n"
             "      The intra-chunk skeleton overlaps:\n"
-            "%15" F_IIDP " : dovetail intra-chunk (between non-contained)\n"
-            "%15" F_IIDP " : dovetail non-contained touches singly contained\n"
-            "%15" F_IIDP " : containment to singly contained\n"
+            "%15"F_IIDP" : dovetail intra-chunk (between non-contained)\n"
+            "%15"F_IIDP" : dovetail non-contained touches singly contained\n"
+            "%15"F_IIDP" : containment to singly contained\n"
             "      The marked overlaps:\n"
-            "%15" F_IIDP " : dovetail marked by branch points\n"
+            "%15"F_IIDP" : dovetail marked by branch points\n"
             "      The removed overlaps:\n"
-            "%15" F_IIDP " : dovetail removed by transitivity\n"
-            "%15" F_IIDP " : dovetail removed by threshold\n"
-            "%15" F_IIDP " : containment removed by transitivity\n"
-            "%15" F_IIDP " : containment removed by containment\n"
-            "%15" F_IIDP " : duplicate dvt\n"
-            "%15" F_IIDP " : duplicate con\n"
+            "%15"F_IIDP" : dovetail removed by transitivity\n"
+            "%15"F_IIDP" : dovetail removed by threshold\n"
+            "%15"F_IIDP" : containment removed by transitivity\n"
+            "%15"F_IIDP" : containment removed by containment\n"
+            "%15"F_IIDP" : duplicate dvt\n"
+            "%15"F_IIDP" : duplicate con\n"
             ,
             nedge/2,
             n_as_cgb_dovetail/2,
@@ -1058,8 +1058,7 @@ static void analyze_the_chunks(FILE *fout,
 
 #ifdef DEBUG07
     fprintf(stderr,
-	    "Process ichunk,nchunks,nfrag_in_chunk,nbase_essential_in_chunk=\n"
-            F_IID "," F_IID "," F_IID "," F_S64 "\n",
+	    "Process ichunk,nchunks,nfrag_in_chunk,nbase_essential_in_chunk=\n"F_IID","F_IID","F_IID","F_S64"\n",
             ichunk,nchunks,nfrag_in_chunk,nbase_essential_in_chunk);
 #endif
 
@@ -1321,7 +1320,7 @@ static void analyze_the_chunks(FILE *fout,
       for(ii=0;ii<MAX_NUM_CHUNK_LABELS;ii++){
 	switch(ii) {
           case CGA_SINGLETON_CONTAINED:
-            fprintf(fout,"%15"F_IIDP " : Total number of singleton, contained unitigs\n",
+            fprintf(fout,"%15"F_IIDP" : Total number of singleton, contained unitigs\n",
                     num_of_chunks[ii]);
             break;
           case CGA_SINGLETON_NONCONTAINED:
@@ -1359,7 +1358,7 @@ static void analyze_the_chunks(FILE *fout,
 
 	if( (fragment_visited[ifrag] == FRAGMENT_NOT_VISITED) &&
 	    (AS_CGB_DELETED_FRAG != lab) ) {
-	  fprintf(stderr,"Not visited: fragment iid=" F_IID ",ifrag=" F_IID ",ilab=%d\n", get_iid_fragment(frags,ifrag),ifrag,lab);
+	  fprintf(stderr,"Not visited: fragment iid="F_IID ",ifrag="F_IID ",ilab=%d\n", get_iid_fragment(frags,ifrag),ifrag,lab);
 	  nfound++;
 	}
       }
@@ -1391,7 +1390,7 @@ static void analyze_the_chunks(FILE *fout,
 	       ||(fragment_timesinchunks[ifrag]==1));
 	if(!(!(ilab==AS_CGB_INTERCHUNK_FRAG)
 	     ||(fragment_timesinchunks[ifrag]==1))) {
-	  fprintf(stderr,"** iid=" F_IID " ifrag=" F_IID " ilab=%d fragment_timesinchunks=%d\n",
+	  fprintf(stderr,"** iid="F_IID " ifrag="F_IID " ilab=%d fragment_timesinchunks=%d\n",
 		  get_iid_fragment(frags,ifrag),
 		  ifrag, ilab,
 		  fragment_timesinchunks[ifrag]
@@ -1401,9 +1400,7 @@ static void analyze_the_chunks(FILE *fout,
 	       ||(fragment_timesinchunks[ifrag]==1));
 	if(!(!(ilab==AS_CGB_INTRACHUNK_FRAG)
 	     ||(fragment_timesinchunks[ifrag]==1))) {
-	  fprintf(stderr,"Not visited? ifrag,ilab,"
-		  "fragment_timesinchunks[ifrag]="
-		  F_IID ",%d,%d\n",
+	  fprintf(stderr,"Not visited? ifrag,ilab,fragment_timesinchunks[ifrag]="F_IID",%d,%d\n",
 		  ifrag,ilab,fragment_timesinchunks[ifrag]);
 	}
 	assert(!(ilab==AS_CGB_INTRACHUNK_FRAG)

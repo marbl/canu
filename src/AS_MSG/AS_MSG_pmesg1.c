@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.37 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.38 2009-07-30 10:42:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -183,7 +183,7 @@ Read_Frag_Mesg(FILE *fin, int frag_class) {
     fmesg.sequence = (char *) GetText("seq:",fin,TRUE);
     fmesg.quality  = (char *) GetText("qlt:",fin,TRUE);
 
-    GET_PAIR(fmesg.clear_rng.bgn,fmesg.clear_rng.end,"clr:"F_COORD","F_COORD,"clear range field");
+    GET_PAIR(fmesg.clear_rng.bgn,fmesg.clear_rng.end,"clr:"F_S32","F_S32,"clear range field");
 
   }  //  action is AS_ADD or AS_IGNORE
   GetEOM(fin);
@@ -205,11 +205,11 @@ static void *Read_OVL_Mesg(FILE *fin)
   omesg.orientation = (OrientType)GetType("ori:%1[NAIO]","orientation", fin);
   omesg.overlap_type = (OverlapType)GetType("olt:%1[DCSXdc]","overlap", fin);
 
-  GET_FIELD(omesg.ahg,"ahg:"F_COORD,"a-hang field");
-  GET_FIELD(omesg.bhg,"bhg:"F_COORD,"b-hang field");
+  GET_FIELD(omesg.ahg,"ahg:"F_S32,"a-hang field");
+  GET_FIELD(omesg.bhg,"bhg:"F_S32,"b-hang field");
   GET_FIELD(omesg.quality,"qua:%f","quality field");
-  GET_FIELD(omesg.min_offset,"mno:"F_COORD,"min-offset field");
-  GET_FIELD(omesg.max_offset,"mxo:"F_COORD,"max-offset field");
+  GET_FIELD(omesg.min_offset,"mno:"F_S32,"min-offset field");
+  GET_FIELD(omesg.max_offset,"mxo:"F_S32,"max-offset field");
   GET_FIELD(omesg.polymorph_ct,"pct:"F_S32,"poly-count field");
 
   omesg.alignment_trace = NULL;
@@ -270,9 +270,9 @@ static void *Read_UOM_Mesg(FILE *fin)
   mesg.orient = (ChunkOrientationType)GetType("ori:%1[NAIO]","orientation", fin);
   mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXdcYZ]","overlap type", fin);
 
-  GET_FIELD(mesg.best_overlap_length,"len:"F_COORD,"best overlap");
-  GET_FIELD(mesg.min_overlap_length,"min:"F_COORD,"min overlap");
-  GET_FIELD(mesg.max_overlap_length,"max:"F_COORD,"max overlap");
+  GET_FIELD(mesg.best_overlap_length,"len:"F_S32,"best overlap");
+  GET_FIELD(mesg.min_overlap_length,"min:"F_S32,"min overlap");
+  GET_FIELD(mesg.max_overlap_length,"max:"F_S32,"max overlap");
   GET_FIELD(mesg.quality,"qua:%f","quality field");
   GetEOM(fin);
   return(&mesg);
@@ -290,7 +290,7 @@ Read_IMP_Mesg(FILE *fin, IntMultiPos *imp) {
   GET_FIELD(imp->contained, "con:"F_IID,"contained id");
   GET_FIELD(imp->parent,    "pid:"F_IID,"multipos id");
   imp->sourceInt = -1;
-  GET_PAIR(imp->position.bgn,imp->position.end,"pos:"F_COORD","F_COORD,"position field");
+  GET_PAIR(imp->position.bgn,imp->position.end,"pos:"F_S32","F_S32,"position field");
   GET_FIELD(imp->ahang,"ahg:"F_S32,"ahang");
   GET_FIELD(imp->bhang,"bhg:"F_S32,"bhang");
   GET_FIELD(imp->delta_length,"dln:"F_S32,"delta length");
@@ -317,7 +317,7 @@ static
 void
 Read_IMV_Mesg(FILE *fin, IntMultiVar *imv) {
 
-  GET_PAIR(imv->position.bgn,imv->position.end,"pos:"F_COORD","F_COORD,"position field");
+  GET_PAIR(imv->position.bgn,imv->position.end,"pos:"F_S32","F_S32,"position field");
   GET_FIELD(imv->num_reads,"nrd:"F_S32,"number of reads");
   GET_FIELD(imv->num_conf_alleles,"nca:"F_S32,"number of confirmed alleles");
   GET_FIELD(imv->min_anchor_size,"anc:"F_S32,"minimal anchor size");
@@ -335,7 +335,7 @@ static
 void
 Read_VAR_Mesg(FILE *fin, IntMultiVar *smv) {
 
-  GET_PAIR(smv->position.bgn,smv->position.end,"pos:"F_COORD","F_COORD,"position field");
+  GET_PAIR(smv->position.bgn,smv->position.end,"pos:"F_S32","F_S32,"position field");
   GET_FIELD(smv->num_reads,"nrd:"F_S32,"number of reads");
   GET_FIELD(smv->num_conf_alleles,"nca:"F_S32,"number of confirmed alleles");
   GET_FIELD(smv->min_anchor_size,"anc:"F_S32,"minimal anchor size");
@@ -359,7 +359,7 @@ Read_IUP_Mesg(FILE *fin, IntUnitigPos *iup) {
   iup->type = (UnitigType)GetType("typ:%1[URSPsX]","unitigpos type", fin);
   GET_FIELD(iup->ident,"lid:"F_IID,"unitigpos id");
   GET_FIELD(iup->num_instances,"ncp:"F_IID,"unitigcopy num");
-  GET_PAIR(iup->position.bgn,iup->position.end,"pos:"F_COORD","F_COORD,"position field");
+  GET_PAIR(iup->position.bgn,iup->position.end,"pos:"F_S32","F_S32,"position field");
   GET_FIELD(iup->delta_length,"dln:"F_S32,"delta length");
   if (strncmp(ReadLine(fin,TRUE),"del:",4) != 0)
     MgenError("Missing del: field");
@@ -394,7 +394,7 @@ Read_IUM_Mesg(FILE *fin) {
   // flag for handling unitig
   mesg.unique_rept = (UnitigFUR)GetType("fur:%1[XUR]","unique_rept", fin);
 
-  GET_FIELD(mesg.length,"len:"F_COORD,"length field");
+  GET_FIELD(mesg.length,"len:"F_S32,"length field");
   mesg.consensus = GetText("cns:",fin,TRUE);
   mesg.quality   = GetText("qlt:",fin,TRUE);
   GET_FIELD(mesg.forced,"for:"F_S32,"forced booleon");
@@ -524,7 +524,7 @@ static void *Read_AFG_Mesg(FILE *fin)
 
   GET_FIELD(mesg.chimeric_NOTUSED,"chi:"F_S32,"chimeric flag");
   GET_FIELD(mesg.chaff,"cha:"F_S32,"chaff flag");
-  GET_PAIR(mesg.clear_rng.bgn,mesg.clear_rng.end,"clr:"F_COORD","F_COORD,"clear range");
+  GET_PAIR(mesg.clear_rng.bgn,mesg.clear_rng.end,"clr:"F_S32","F_S32,"clear range");
   GetEOM(fin);
   return(&mesg);
 }
@@ -583,8 +583,8 @@ Read_IMD_Mesg(FILE *fin) {
   GET_FIELD(mesg.refines,"ref:"F_IID,"distance id");
   GET_FIELD(mesg.mean,"mea:%f","mean distance");
   GET_FIELD(mesg.stddev,"std:%f","standard deviation");
-  GET_FIELD(mesg.min,"min:"F_COORD,"min distance");
-  GET_FIELD(mesg.max,"max:"F_COORD,"max distance");
+  GET_FIELD(mesg.min,"min:"F_S32,"min distance");
+  GET_FIELD(mesg.max,"max:"F_S32,"max distance");
   GET_FIELD(mesg.num_buckets,"buc:"F_S32,"number of buckets");
   if (strncmp(ReadLine(fin,TRUE),"his:",4) != 0)
     MgenError("Expecting his field");
@@ -607,7 +607,7 @@ Read_ICM_Mesg(FILE *fin) {
 
   GET_FIELD(mesg.iaccession,"acc:"F_IID,"accession number");
   mesg.placed = (ContigPlacementStatusType)GetType("pla:%1[PU]","placed flag", fin);
-  GET_FIELD(mesg.length,"len:"F_COORD,"contig length");
+  GET_FIELD(mesg.length,"len:"F_S32,"contig length");
   mesg.consensus = GetText("cns:",fin,TRUE);
   mesg.quality   = GetText("qlt:",fin,TRUE);
   GET_FIELD(mesg.forced,"for:"F_S32,"forced flag");
@@ -659,7 +659,7 @@ static void *Read_IAF_Mesg(FILE *fin)
   mesg.type = (FragType)GetType("typ:%1[RXELTFSUCBWG]","type", fin);
   GET_FIELD(mesg.chimeric_NOTUSED,"chi:"F_S32,"chimeric flag");
   GET_FIELD(mesg.chaff,"cha:"F_S32,"chaff flag");
-  GET_PAIR(mesg.clear_rng.bgn,mesg.clear_rng.end,"clr:"F_COORD","F_COORD,"clear range");
+  GET_PAIR(mesg.clear_rng.bgn,mesg.clear_rng.end,"clr:"F_S32","F_S32,"clear range");
   mesg.mate_status = (MateStatType)GetType("mst:%1[ZGCLSONHADEURF]","mate status", fin);
   GetEOM(fin);
   return(&mesg);
@@ -706,7 +706,7 @@ Read_MPS_Mesg(FILE *fin, SnapMultiPos *imp) {
   imp->type = (FragType)GetType("typ:%1[RXTEFUSLuBG]","multipos type", fin);
   imp->eident = GetUID("mid:",fin);
 
-  GET_PAIR(imp->position.bgn,imp->position.end,"pos:"F_COORD","F_COORD,"position field");
+  GET_PAIR(imp->position.bgn,imp->position.end,"pos:"F_S32","F_S32,"position field");
   GET_FIELD(imp->delta_length,"dln:"F_S32,"delta length");
   if (strncmp(ReadLine(fin,TRUE),"del:",4) != 0)
     MgenError("Missing del: field");
@@ -738,7 +738,7 @@ Read_UPS_Mesg(FILE *fin, UnitigPos *iup) {
 
   iup->eident = GetUID("lid:",fin);
 
-  GET_PAIR(iup->position.bgn,iup->position.end,"pos:"F_COORD","F_COORD,"position field");
+  GET_PAIR(iup->position.bgn,iup->position.end,"pos:"F_S32","F_S32,"position field");
   GET_FIELD(iup->delta_length,"dln:"F_S32,"delta length");
   if (strncmp(ReadLine(fin,TRUE),"del:",4) != 0)
     MgenError("Missing del: field");
@@ -786,7 +786,7 @@ Read_UTG_Mesg(FILE *fin) {
   GET_FIELD(mesg.microhet_prob,"mhp:%f","microhet prob");
   mesg.status = (UnitigStatus)GetType("sta:%1[UCNSX]","status", fin);
 
-  GET_FIELD(mesg.length,"len:"F_COORD,"length field");
+  GET_FIELD(mesg.length,"len:"F_S32,"length field");
   mesg.consensus = GetText("cns:",fin,TRUE);
   mesg.quality   = GetText("qlt:",fin,TRUE);
   GET_FIELD(mesg.forced,"for:"F_S32,"forced booleon");
@@ -849,7 +849,7 @@ static void *Read_CCO_Mesg(FILE *fin)
 
   mesg.eaccession = GetUIDIID("acc:",&mesg.iaccession,fin);
   mesg.placed = (ContigPlacementStatusType)GetType("pla:%1[PU]","placed flag", fin);
-  GET_FIELD(mesg.length,"len:"F_COORD,"contig length");
+  GET_FIELD(mesg.length,"len:"F_S32,"contig length");
   mesg.consensus = GetText("cns:",fin,TRUE);
   mesg.quality   = GetText("qlt:",fin,TRUE);
   GET_FIELD(mesg.forced,"for:"F_S32,"forced flag");
@@ -990,8 +990,8 @@ static void *Read_MDI_Mesg(FILE *fin)
   mesg.erefines = GetUIDIID("ref:",&mesg.irefines,fin);
   GET_FIELD(mesg.mean,"mea:%f","mean distance");
   GET_FIELD(mesg.stddev,"std:%f","standard deviation");
-  GET_FIELD(mesg.min,"min:"F_COORD,"min distance");
-  GET_FIELD(mesg.max,"max:"F_COORD,"max distance");
+  GET_FIELD(mesg.min,"min:"F_S32,"min distance");
+  GET_FIELD(mesg.max,"max:"F_S32,"max distance");
   GET_FIELD(mesg.num_buckets,"buc:"F_S32,"number of buckets");
   if (strncmp(ReadLine(fin,TRUE),"his:",4) != 0)
     MgenError("Expecting his field");
@@ -1077,7 +1077,7 @@ static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class) {
     fprintf(fout,"etm:0\n");
     PutText(fout,"seq:",mesg->sequence,TRUE);
     PutText(fout,"qlt:",mesg->quality,TRUE);
-    fprintf(fout,"clr:"F_COORD","F_COORD"\n", mesg->clear_rng.bgn,mesg->clear_rng.end);
+    fprintf(fout,"clr:"F_S32","F_S32"\n", mesg->clear_rng.bgn,mesg->clear_rng.end);
   }
 
   fprintf(fout,"}\n");
@@ -1096,11 +1096,11 @@ static void Write_OVL_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"bfr:"F_IID"\n",omesg->bifrag);
   fprintf(fout,"ori:%c\n",omesg->orientation);
   fprintf(fout,"olt:%c\n",omesg->overlap_type);
-  fprintf(fout,"ahg:"F_COORD"\n",omesg->ahg);
-  fprintf(fout,"bhg:"F_COORD"\n",omesg->bhg);
+  fprintf(fout,"ahg:"F_S32"\n",omesg->ahg);
+  fprintf(fout,"bhg:"F_S32"\n",omesg->bhg);
   fprintf(fout,"qua:%.6f\n",omesg->quality);
-  fprintf(fout,"mno:"F_COORD"\n",omesg->min_offset);
-  fprintf(fout,"mxo:"F_COORD"\n",omesg->max_offset);
+  fprintf(fout,"mno:"F_S32"\n",omesg->min_offset);
+  fprintf(fout,"mxo:"F_S32"\n",omesg->max_offset);
   fprintf(fout,"pct:"F_S32"\n",omesg->polymorph_ct);
 #ifdef AS_MSG_USE_OVL_DELTA
   fprintf(fout,"del:\n");
@@ -1122,9 +1122,9 @@ static void Write_UOM_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"ck2:"F_IID"\n",mesg->chunk2);
   fprintf(fout,"ori:%c\n",mesg->orient);
   fprintf(fout,"ovt:%c\n",mesg->overlap_type);
-  fprintf(fout,"len:"F_COORD"\n",mesg->best_overlap_length);
-  fprintf(fout,"min:"F_COORD"\n",mesg->min_overlap_length);
-  fprintf(fout,"max:"F_COORD"\n",mesg->max_overlap_length);
+  fprintf(fout,"len:"F_S32"\n",mesg->best_overlap_length);
+  fprintf(fout,"min:"F_S32"\n",mesg->min_overlap_length);
+  fprintf(fout,"max:"F_S32"\n",mesg->max_overlap_length);
   fprintf(fout,"qua:%.6f\n",mesg->quality);
   fprintf(fout,"}\n");
   return;
@@ -1138,7 +1138,7 @@ static void Write_IMP_Mesg(FILE *fout, IntMultiPos *mlp)
   fprintf(fout,"mid:"F_IID"\n",mlp->ident);
   fprintf(fout,"con:"F_IID"\n",mlp->contained);
   fprintf(fout,"pid:"F_IID"\n",mlp->parent);
-  fprintf(fout,"pos:"F_COORD","F_COORD"\n", mlp->position.bgn,mlp->position.end);
+  fprintf(fout,"pos:"F_S32","F_S32"\n", mlp->position.bgn,mlp->position.end);
   fprintf(fout,"ahg:"F_S32"\n",mlp->ahang);
   fprintf(fout,"bhg:"F_S32"\n",mlp->bhang);
   fprintf(fout,"dln:"F_S32"\n",mlp->delta_length);
@@ -1156,7 +1156,7 @@ static void Write_IMP_Mesg(FILE *fout, IntMultiPos *mlp)
 static void Write_IMV_Mesg(FILE *fout, IntMultiVar *imv)
 {
   fprintf(fout,"{IMV\n");
-  fprintf(fout,"pos:"F_COORD","F_COORD"\n",imv->position.bgn,imv->position.end);
+  fprintf(fout,"pos:"F_S32","F_S32"\n",imv->position.bgn,imv->position.end);
   fprintf(fout,"nrd:"F_S32"\n",imv->num_reads);
   fprintf(fout,"nca:"F_S32"\n",imv->num_conf_alleles);
   fprintf(fout,"anc:"F_S32"\n",imv->min_anchor_size);
@@ -1174,7 +1174,7 @@ static void Write_IMV_Mesg(FILE *fout, IntMultiVar *imv)
 static void Write_VAR_Mesg(FILE *fout, IntMultiVar *smv)
 {
   fprintf(fout,"{VAR\n");
-  fprintf(fout,"pos:"F_COORD","F_COORD"\n",smv->position.bgn,smv->position.end);
+  fprintf(fout,"pos:"F_S32","F_S32"\n",smv->position.bgn,smv->position.end);
   fprintf(fout,"nrd:"F_S32"\n",smv->num_reads);
   fprintf(fout,"nca:"F_S32"\n",smv->num_conf_alleles);
   fprintf(fout,"anc:"F_S32"\n",smv->min_anchor_size);
@@ -1196,7 +1196,7 @@ static void Write_IUP_Mesg(FILE *fout, IntUnitigPos *up)
   fprintf(fout,"typ:%c\n",(char) up->type);
   fprintf(fout,"lid:"F_IID"\n",up->ident);
   fprintf(fout,"ncp:"F_IID"\n",up->num_instances);
-  fprintf(fout,"pos:"F_COORD","F_COORD"\n",up->position.bgn,up->position.end);
+  fprintf(fout,"pos:"F_S32","F_S32"\n",up->position.bgn,up->position.end);
   fprintf(fout,"dln:"F_S32"\n",up->delta_length);
   fprintf(fout,"del:\n");
   if (up->delta_length > 0 ) {
@@ -1223,7 +1223,7 @@ static void Write_IUM_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"mhp:%.3f\n",mesg->microhet_prob);
   fprintf(fout,"sta:%c\n",mesg->status);
   fprintf(fout,"fur:%c\n",mesg->unique_rept);
-  fprintf(fout,"len:"F_COORD"\n",mesg->length);
+  fprintf(fout,"len:"F_S32"\n",mesg->length);
   PutText(fout,"cns:",mesg->consensus,TRUE);
   PutText(fout,"qlt:",mesg->quality,TRUE);
   fprintf(fout,"for:"F_S32"\n",mesg->forced);
@@ -1322,7 +1322,7 @@ static void Write_AFG_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"mst:%c\n",mesg->mate_status);
   fprintf(fout,"chi:0\n");  //  chimeric_NOTUSED
   fprintf(fout,"cha:"F_S32"\n",mesg->chaff);
-  fprintf(fout,"clr:"F_COORD","F_COORD"\n", mesg->clear_rng.bgn,mesg->clear_rng.end);
+  fprintf(fout,"clr:"F_S32","F_S32"\n", mesg->clear_rng.bgn,mesg->clear_rng.end);
   fprintf(fout,"}\n");
   return;
 }
@@ -1371,8 +1371,8 @@ static void Write_IMD_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"ref:"F_IID"\n",mesg->refines);
   fprintf(fout,"mea:%.3f\n",mesg->mean);
   fprintf(fout,"std:%.3f\n",mesg->stddev);
-  fprintf(fout,"min:"F_COORD"\n",mesg->min);
-  fprintf(fout,"max:"F_COORD"\n",mesg->max);
+  fprintf(fout,"min:"F_S32"\n",mesg->min);
+  fprintf(fout,"max:"F_S32"\n",mesg->max);
   fprintf(fout,"buc:"F_S32"\n",mesg->num_buckets);
   fprintf(fout,"his:\n");
   for (i=0; i < mesg->num_buckets; ++i)
@@ -1388,7 +1388,7 @@ static void Write_ICM_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"{ICM\n");
   fprintf(fout,"acc:"F_IID"\n",mesg->iaccession);
   fprintf(fout,"pla:%c\n",mesg->placed);
-  fprintf(fout,"len:"F_COORD"\n",mesg->length);
+  fprintf(fout,"len:"F_S32"\n",mesg->length);
   PutText(fout,"cns:",mesg->consensus,TRUE);
   PutText(fout,"qlt:",mesg->quality,TRUE);
   fprintf(fout,"for:"F_S32"\n",mesg->forced);
@@ -1414,7 +1414,7 @@ static void Write_IAF_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"typ:%c\n",(char) mesg->type);
   fprintf(fout,"chi:0\n");  //  chimeric_NOTUSED
   fprintf(fout,"cha:"F_S32"\n",mesg->chaff);
-  fprintf(fout,"clr:"F_COORD","F_COORD"\n", mesg->clear_rng.bgn,mesg->clear_rng.end);
+  fprintf(fout,"clr:"F_S32","F_S32"\n", mesg->clear_rng.bgn,mesg->clear_rng.end);
   fprintf(fout,"mst:%c\n",mesg->mate_status);
   fprintf(fout,"}\n");
   return;
@@ -1443,7 +1443,7 @@ static void Write_UPS_Mesg(FILE *fout, UnitigPos *up)
   fprintf(fout,"{UPS\n");
   fprintf(fout,"typ:%c\n",(char) up->type);
   fprintf(fout,"lid:%s\n",AS_UID_toString(up->eident));
-  fprintf(fout,"pos:"F_COORD","F_COORD"\n",up->position.bgn,up->position.end);
+  fprintf(fout,"pos:"F_S32","F_S32"\n",up->position.bgn,up->position.end);
   fprintf(fout,"dln:"F_S32"\n",up->delta_length);
   fprintf(fout,"del:\n");
   if (up->delta_length > 0 ) {
@@ -1460,7 +1460,7 @@ static void Write_MPS_Mesg(FILE *fout, SnapMultiPos *mlp)
   fprintf(fout,"{MPS\n");
   fprintf(fout,"typ:%c\n",(char) mlp->type);
   fprintf(fout,"mid:%s\n",AS_UID_toString(mlp->eident));
-  fprintf(fout,"pos:"F_COORD","F_COORD"\n",
+  fprintf(fout,"pos:"F_S32","F_S32"\n",
           mlp->position.bgn,mlp->position.end);
   fprintf(fout,"dln:"F_S32"\n",mlp->delta_length);
   fprintf(fout,"del:\n");
@@ -1488,7 +1488,7 @@ static void Write_UTG_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"cov:%.3f\n",mesg->coverage_stat);
   fprintf(fout,"mhp:%.3f\n",mesg->microhet_prob);
   fprintf(fout,"sta:%c\n",mesg->status);
-  fprintf(fout,"len:"F_COORD"\n",mesg->length);
+  fprintf(fout,"len:"F_S32"\n",mesg->length);
   PutText(fout,"cns:",mesg->consensus,TRUE);
   PutText(fout,"qlt:",mesg->quality,TRUE);
   fprintf(fout,"for:"F_S32"\n",mesg->forced);
@@ -1541,7 +1541,7 @@ static void Write_CCO_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"{CCO\n");
   fprintf(fout,"acc:(%s,"F_IID")\n",AS_UID_toString(mesg->eaccession),mesg->iaccession);
   fprintf(fout,"pla:%c\n",mesg->placed);
-  fprintf(fout,"len:"F_COORD"\n",mesg->length);
+  fprintf(fout,"len:"F_S32"\n",mesg->length);
   PutText(fout,"cns:",mesg->consensus,TRUE);
   PutText(fout,"qlt:",mesg->quality,TRUE);
   fprintf(fout,"for:"F_S32"\n",mesg->forced);
@@ -1646,8 +1646,8 @@ static void Write_MDI_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"ref:(%s,"F_IID")\n",AS_UID_toString(mesg->erefines),mesg->irefines);
   fprintf(fout,"mea:%.3f\n",mesg->mean);
   fprintf(fout,"std:%.3f\n",mesg->stddev);
-  fprintf(fout,"min:"F_COORD"\n",mesg->min);
-  fprintf(fout,"max:"F_COORD"\n",mesg->max);
+  fprintf(fout,"min:"F_S32"\n",mesg->min);
+  fprintf(fout,"max:"F_S32"\n",mesg->max);
   fprintf(fout,"buc:"F_S32"\n",mesg->num_buckets);
   fprintf(fout,"his:\n");
   for (i=0; i < mesg->num_buckets; ++i)

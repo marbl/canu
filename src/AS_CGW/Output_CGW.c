@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.40 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.41 2009-07-30 10:42:56 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -61,8 +61,8 @@ void OutputMateDists(ScaffoldGraphT *graph){
     imd.refines     = i;
     imd.mean        = dptr->mu;
     imd.stddev      = dptr->sigma;
-    imd.min         = CDS_COORD_MIN;
-    imd.max         = CDS_COORD_MAX;
+    imd.min         = INT32_MIN;
+    imd.max         = INT32_MAX;
     imd.num_buckets = 0;
     imd.histogram   = NULL;
 

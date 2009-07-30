@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_Bubble_VertexSet.c,v 1.11 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_Bubble_VertexSet.c,v 1.12 2009-07-30 10:42:55 brianwalenz Exp $";
 
 #include <string.h>
 #include "AS_CGB_all.h"
@@ -335,5 +335,5 @@ BVS_print(BubVertexSet_t bvs, FILE *of)
   int i;
 
   for (i = 0; i < bvs->numEntries; ++i)
-    fprintf(of, F_IID " (%d)  ", bvs->entries[i].id, bvs->entries[i].age);
+    fprintf(of, F_IID" (%d) ", bvs->entries[i].id, bvs->entries[i].age);
 }

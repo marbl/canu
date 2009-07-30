@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.55 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.56 2009-07-30 10:42:56 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,8 +52,8 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.55 2009-06-10 18:05:13 br
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.55 2009-06-10 18:05:13 brianwalenz Exp $
- * $Revision: 1.55 $
+ * $Id: AS_OVL_overlap_common.h,v 1.56 2009-07-30 10:42:56 brianwalenz Exp $
+ * $Revision: 1.56 $
 */
 
 
@@ -450,7 +450,7 @@ Get_Range(char *value, char *flag, int * lo, int * hi) {
     *lo = strtol(s, &s, 10);
 
   if (*s != '-') {
-    fprintf(stderr, "ERROR:  No hyphen in -%c range '%s'\n", flag, value);
+    fprintf(stderr, "ERROR:  No hyphen in %s range '%s'\n", flag, value);
     return(1);
   }
 
@@ -462,7 +462,7 @@ Get_Range(char *value, char *flag, int * lo, int * hi) {
     *hi = strtol(s, &s, 10);
 
   if (*lo > *hi) {
-    fprintf (stderr, "ERROR:  Numbers reversed in -%c range '%s'\n", flag, value);
+    fprintf (stderr, "ERROR:  Numbers reversed in %s range '%s'\n", flag, value);
     return(1);
   }
 
@@ -680,7 +680,7 @@ main(int argc, char **argv) {
       fprintf (stderr, "ERROR:  No output file name specified\n"), err++;
 
     if ((err) || (Frag_Store_Path == NULL)) {
-      fprintf(stderr, "USAGE:  %s [options] <gkpStorePath>\n");
+      fprintf(stderr, "USAGE:  %s [options] <gkpStorePath>\n", argv[0]);
       fprintf(stderr, "\n");
       fprintf(stderr, "-b <fn>     in contig mode, specify the output file\n");
       fprintf(stderr, "-c          contig mode.  Use 2 frag stores.  First is\n");
@@ -754,7 +754,7 @@ main(int argc, char **argv) {
    fprintf (stderr, "  Max_Hash_Strings = %d\n", Max_Hash_Strings);
    fprintf (stderr, " Max_Hash_Data_Len = %d\n", Max_Hash_Data_Len);
    fprintf (stderr, "     Max_Hash_Load = %f\n", Max_Hash_Load);
-   fprintf (stderr, "       Kmer Length = %d\n", Kmer_Len);
+   fprintf (stderr, "       Kmer Length = %d\n", (int)Kmer_Len);
    fprintf (stderr, "Min Overlap Length = %d\n", Min_Olap_Len);
 
    assert (8 * sizeof (uint64) > 2 * Kmer_Len);
@@ -828,22 +828,22 @@ Print_Distrib (Diag_Dist, "Diagonals per String Olap:");
 Print_Distrib (Gap_Dist, "Num Gaps in\n  Nice Olaps:");
 Print_Distrib (Exacts_Per_Olap_Dist, "Exact Matches per\n  String Olap:");
 Print_Distrib (Edit_Depth_Dist, "Edit Distance Depth:");
-fprintf (Stat_File, "Edit_Dist_Ct = %lld\n", Edit_Dist_Ct);
-fprintf (Stat_File, "Matches = %lld\n", Match_Ct);
-fprintf (Stat_File, "%lld collisions in %lld finds\n", Collision_Ct, Hash_Find_Ct);
+fprintf (Stat_File, "Edit_Dist_Ct = "F_S64"\n", Edit_Dist_Ct);
+fprintf (Stat_File, "Matches = "F_S64"\n", Match_Ct);
+fprintf (Stat_File, ""F_S64" collisions in "F_S64" finds\n", Collision_Ct, Hash_Find_Ct);
 // fprintf (Stat_File, "String_Olap_Size = %ld\n", WA -> String_Olap_Size);
 fprintf (stderr, "Stats written to file '%s'\n", STAT_FILE_NAME);
 fclose (Stat_File);
 #endif
 
-   fprintf (stderr, " Kmer hits without olaps = %lld\n", Kmer_Hits_Without_Olap_Ct);
-   fprintf (stderr, "    Kmer hits with olaps = %lld\n", Kmer_Hits_With_Olap_Ct);
-   fprintf (stderr, "  Multiple overlaps/pair = %lld\n", Multi_Overlap_Ct);
-   fprintf (stderr, " Total overlaps produced = %lld\n", Total_Overlaps);
-   fprintf (stderr, "      Contained overlaps = %lld\n", Contained_Overlap_Ct);
-   fprintf (stderr, "       Dovetail overlaps = %lld\n", Dovetail_Overlap_Ct);
-   fprintf (stderr, "Rejected by short window = %lld\n", Bad_Short_Window_Ct);
-   fprintf (stderr, " Rejected by long window = %lld\n", Bad_Long_Window_Ct);
+   fprintf (stderr, " Kmer hits without olaps = "F_S64"\n", Kmer_Hits_Without_Olap_Ct);
+   fprintf (stderr, "    Kmer hits with olaps = "F_S64"\n", Kmer_Hits_With_Olap_Ct);
+   fprintf (stderr, "  Multiple overlaps/pair = "F_S64"\n", Multi_Overlap_Ct);
+   fprintf (stderr, " Total overlaps produced = "F_S64"\n", Total_Overlaps);
+   fprintf (stderr, "      Contained overlaps = "F_S64"\n", Contained_Overlap_Ct);
+   fprintf (stderr, "       Dovetail overlaps = "F_S64"\n", Dovetail_Overlap_Ct);
+   fprintf (stderr, "Rejected by short window = "F_S64"\n", Bad_Short_Window_Ct);
+   fprintf (stderr, " Rejected by long window = "F_S64"\n", Bad_Long_Window_Ct);
 
    delete OldFragStore;
 
@@ -1334,7 +1334,7 @@ int  Build_Hash_Index
 
       if ((STRING_NUM_BITS > 19) &&
           ((String_Ct % 10000) == 0)) {
-        fprintf (stderr, "String_Ct:%d  totalLen:%d  Hash_Entries:"F_S64"  Load:%.1f%%\n",
+        fprintf (stderr, "String_Ct:%d  totalLen:"F_S64"  Hash_Entries:"F_S64"  Load:%.1f%%\n",
                  String_Ct,
                  total_len,
                  Hash_Entries,

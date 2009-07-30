@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: DBTextOutput.cc,v 1.8 2008-10-29 06:34:30 brianwalenz Exp $";
+static const char *rcsid = "$Id: DBTextOutput.cc,v 1.9 2009-07-30 10:42:55 brianwalenz Exp $";
 
 #include <iostream>
 #include <assert.h>
@@ -101,8 +101,8 @@ bool DBTextOutput::storeAFG2DB (
          IntFragment_ID iaccession,
          MateStatType mate_status,
          int32 chaff,
-         CDS_COORD_t bgn,
-         CDS_COORD_t end) {
+         int32 bgn,
+         int32 end) {
    std::cerr << "AFG: "
           << AS_UID_toInteger(eaccession) << "\t"
           << iaccession << "\t"
@@ -121,7 +121,7 @@ bool DBTextOutput::storeUTG2DB (
          float microhet_prob,
          float coverage_stat,
          UnitigStatus status,
-         CDS_COORD_t length,
+         int32 length,
          const char * consensus,
          const char * quality,
          int32 forced,
@@ -148,8 +148,8 @@ bool DBTextOutput::storeMPS2DB (
          AS_UID afgID,
          FragType type,
          const char * source,
-         CDS_COORD_t bgn,
-         CDS_COORD_t end,
+         int32 bgn,
+         int32 end,
          int32 delta_length,
          std::string delta) {
    std::cerr << "MPS: "
@@ -238,7 +238,7 @@ bool DBTextOutput::storeCCO2DB (
                   AS_UID eaccession,
                   IntFragment_ID iaccession,
                   ContigPlacementStatusType placed,
-                  CDS_COORD_t length,
+                  int32 length,
                   const char * consensus,
                   const char * quality,
                   int32 forced,
@@ -267,8 +267,8 @@ bool DBTextOutput::storeCCOMPS2DB(
                   AS_UID fragID,
                   FragType type,
                   const char * source,
-                  CDS_COORD_t bgn,
-                  CDS_COORD_t end,
+                  int32 bgn,
+                  int32 end,
                   int32 delta_length,
                   std::string delta) {
 
@@ -292,8 +292,8 @@ bool DBTextOutput::storeUPS2DB(
                   AS_UID ccoID,
                   AS_UID unitigID,
                   UnitigType type,
-                  CDS_COORD_t bgn,
-                  CDS_COORD_t end,
+                  int32 bgn,
+                  int32 end,
                   int32 delta_length,
                   std::string delta) {
    //TODO: warning truncating delta in UPS to 1000
@@ -314,12 +314,12 @@ bool DBTextOutput::storeUPS2DB(
 bool DBTextOutput::storeVAR2DB(
                   AS_UID varID,
                   AS_UID ccoID,
-                  CDS_COORD_t bgn,
-                  CDS_COORD_t end,
+                  int32 bgn,
+                  int32 end,
                   uint32 num_reads,
                   uint32 num_conf_alleles,
                   uint32 anchor_size,
-                  CDS_COORD_t var_length,
+                  int32 var_length,
                   int32 curr_var_id,
                   int32 phased_var_id) {
    //TODO: warning using 0 as ciid for VAR
@@ -421,7 +421,7 @@ bool DBTextOutput::storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID)
    return true;
 }
 
-bool DBTextOutput::storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, CDS_COORD_t ctgStart, CDS_COORD_t ctgEnd) {
+bool DBTextOutput::storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, int32 ctgStart, int32 ctgEnd) {
    std::cerr << assemblyID << "\t"
                << AS_UID_toInteger(cpsID) << "\t"
                << (uint32)0 << "\t"

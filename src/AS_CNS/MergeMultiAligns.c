@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MergeMultiAligns.c,v 1.3 2009-06-22 12:04:53 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeMultiAligns.c,v 1.4 2009-07-30 10:42:56 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -347,7 +347,7 @@ MergeMultiAligns(tSequenceDB *sequenceDBp,
           iup->delta = NULL;
 
 #ifdef DEBUG_MERGEMULTIALIGNS
-          fprintf(stderr, "Placing IUP  "F_CID" at "F_COORD","F_COORD" based on positions "F_COORD","F_COORD" (compl %d length %d within input parent)\n",
+          fprintf(stderr, "Placing IUP  "F_CID" at "F_S32","F_S32" based on positions "F_S32","F_S32" (compl %d length %d within input parent)\n",
                   iup->ident, bgn, end, compci->position.bgn, compci->position.end, cfrag->complement, len);
 #endif
 
@@ -364,7 +364,7 @@ MergeMultiAligns(tSequenceDB *sequenceDBp,
 
 #ifdef DEBUG_MERGEMULTIALIGNS
           //  Generally not interesting.
-          //fprintf(stderr, "Placing IMP1 "F_CID" at "F_COORD","F_COORD" based on positions "F_COORD","F_COORD" (compl %d length %d within input parent)\n",
+          //fprintf(stderr, "Placing IMP1 "F_CID" at "F_S32","F_S32" based on positions "F_S32","F_S32" (compl %d length %d within input parent)\n",
           //        imp->ident, bgn, end, compci->position.bgn, compci->position.end, cfrag->complement, len);
 #endif
 
@@ -395,7 +395,7 @@ MergeMultiAligns(tSequenceDB *sequenceDBp,
 
 #ifdef DEBUG_MERGEMULTIALIGNS
       //  Generally not interesting.
-      //fprintf(stderr, "Placing IMP2 "F_CID" at "F_COORD","F_COORD" based on positions "F_COORD","F_COORD" (compl %d length %d within input parent)\n",
+      //fprintf(stderr, "Placing IMP2 "F_CID" at "F_S32","F_S32" based on positions "F_S32","F_S32" (compl %d length %d within input parent)\n",
       //        imp->ident, bgn,end, offsets[i].bgn, offsets[i].end, cfrag->complement, cfrag->length);
 #endif
 

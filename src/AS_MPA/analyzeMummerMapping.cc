@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: analyzeMummerMapping.cc,v 1.6 2008-06-27 06:29:16 brianwalenz Exp $ */
+/* $Id: analyzeMummerMapping.cc,v 1.7 2009-07-30 10:42:56 brianwalenz Exp $ */
 #include <cstdio>  // for sscanf
 #include <cmath>
 #include <cassert>
@@ -93,12 +93,12 @@ class Interval
 {
 public:
   Interval() {set(0,0);}
-  Interval(CDS_COORD_t begin, CDS_COORD_t end)
+  Interval(int32 begin, int32 end)
     {
       set(begin, end);
     }
 
-  void set(CDS_COORD_t begin, CDS_COORD_t end)
+  void set(int32 begin, int32 end)
     {
       _begin = begin;
       _end = end;
@@ -106,14 +106,14 @@ public:
       _max = (_begin > _end ? _begin : _end);
     }
 
-  void setBegin(CDS_COORD_t begin) {set(begin, getEnd());}
-  void setEnd(CDS_COORD_t end) {set(getBegin(), end);}
+  void setBegin(int32 begin) {set(begin, getEnd());}
+  void setEnd(int32 end) {set(getBegin(), end);}
 
-  CDS_COORD_t getBegin() const {return _begin;}
-  CDS_COORD_t getEnd() const {return _end;}
-  CDS_COORD_t getMin() const {return _min;}
-  CDS_COORD_t getMax() const {return _max;}
-  CDS_COORD_t getLength() const {return getMax() - getMin();}
+  int32 getBegin() const {return _begin;}
+  int32 getEnd() const {return _end;}
+  int32 getMin() const {return _min;}
+  int32 getMax() const {return _max;}
+  int32 getLength() const {return getMax() - getMin();}
   bool isVoid() const
     {
       return (getBegin() == 0 && getEnd() == 0);
@@ -126,7 +126,7 @@ public:
       return (isForward() ? AMM_Forward_e : AMM_Reverse_e);
     }
 
-  bool intersects(CDS_COORD_t coord) const
+  bool intersects(int32 coord) const
     {
       return (coord < getMax() && coord > getMin());
     }
@@ -145,7 +145,7 @@ public:
       return interval.spans(*this);
     }
 
-  bool endsBefore(CDS_COORD_t coord) const
+  bool endsBefore(int32 coord) const
     {
       return (getMax() <= coord);
     }
@@ -158,7 +158,7 @@ public:
       return endsBefore(interval.getMin());
     }
 
-  bool startsAfter(CDS_COORD_t coord) const
+  bool startsAfter(int32 coord) const
     {
       return (getMin() >= coord);
     }
@@ -172,10 +172,10 @@ public:
     }
 
 private:
-  CDS_COORD_t _begin;
-  CDS_COORD_t _end;
-  CDS_COORD_t _min;
-  CDS_COORD_t _max;
+  int32 _begin;
+  int32 _end;
+  int32 _min;
+  int32 _max;
 };
 
 
@@ -183,12 +183,12 @@ class AssemblyInterval : public Interval
 {
 public:
   AssemblyInterval() {set(0,0,0);}
-  AssemblyInterval(CDS_UID_t uid, CDS_COORD_t begin, CDS_COORD_t end)
+  AssemblyInterval(CDS_UID_t uid, int32 begin, int32 end)
     {
       set(uid, begin, end);
     }
 
-  void set(CDS_UID_t uid, CDS_COORD_t begin, CDS_COORD_t end)
+  void set(CDS_UID_t uid, int32 begin, int32 end)
     {
       setUID(uid);
       Interval::set(begin, end);
@@ -259,14 +259,14 @@ public:
     {
       return _onSeq[which];
     }
-  CDS_COORD_t getBegin(SequenceType which) const
+  int32 getBegin(SequenceType which) const
     {
       return _onSeq[which].getBegin();
     }
-  CDS_COORD_t getEnd(SequenceType which) const {return _onSeq[which].getEnd();}
-  CDS_COORD_t getMin(SequenceType which) const {return _onSeq[which].getMin();}
-  CDS_COORD_t getMax(SequenceType which) const {return _onSeq[which].getMax();}
-  CDS_COORD_t getLength(SequenceType which) const
+  int32 getEnd(SequenceType which) const {return _onSeq[which].getEnd();}
+  int32 getMin(SequenceType which) const {return _onSeq[which].getMin();}
+  int32 getMax(SequenceType which) const {return _onSeq[which].getMax();}
+  int32 getLength(SequenceType which) const
     {
       return _onSeq[which].getLength();
     }
@@ -298,11 +298,11 @@ public:
     }
 
   void setUID(SequenceType which, CDS_UID_t uid) {_onSeq[which].setUID(uid);}
-  void setBegin(SequenceType which, CDS_COORD_t begin)
+  void setBegin(SequenceType which, int32 begin)
     {
       _onSeq[which].setBegin(begin);
     }
-  void setEnd(SequenceType which, CDS_COORD_t end) {_onSeq[which].setEnd(end);}
+  void setEnd(SequenceType which, int32 end) {_onSeq[which].setEnd(end);}
   void setPctID(float pctID) {_pctID = pctID;}
 
   friend ostream & operator<<(ostream & os, const Match & m)
@@ -328,7 +328,7 @@ class Scaffold
 {
 public:
   Scaffold() {reset();}
-  Scaffold(CDS_UID_t uid, CDS_COORD_t seqLength, CDS_COORD_t gappedLength)
+  Scaffold(CDS_UID_t uid, int32 seqLength, int32 gappedLength)
     {
       set(uid, seqLength, gappedLength);
     }
@@ -346,7 +346,7 @@ public:
       return numContigs;
     }
 
-  void set(CDS_UID_t uid, CDS_COORD_t seqLength, CDS_COORD_t gappedLength)
+  void set(CDS_UID_t uid, int32 seqLength, int32 gappedLength)
     {
       reset();
       _uid = uid;
@@ -365,8 +365,8 @@ public:
     {
       // Line is space delimited. 2nd field is orientation (ignored)
       CDS_UID_t uid;
-      CDS_COORD_t begin = 0;
-      CDS_COORD_t end;
+      int32 begin = 0;
+      int32 end;
       float gapMean;
       sscanf(line, F_UID " %*c%*c %d %f %*f", &uid, &end, &gapMean);
 
@@ -379,14 +379,14 @@ public:
       if(fabsf(gapMean) > 0.00001)
       {
         gapMean = (gapMean < 20 ? 20 : gapMean);
-        Interval newGap(end, (CDS_COORD_t) (end + gapMean + 0.5));
+        Interval newGap(end, (int32) (end + gapMean + 0.5));
         _gaps.push_back(newGap);
       }
     }
 
   CDS_UID_t getUID() const {return _uid;}
-  CDS_COORD_t getSeqLength() const {return _seqLength;}
-  CDS_COORD_t getGappedLength() const {return _gappedLength;}
+  int32 getSeqLength() const {return _seqLength;}
+  int32 getGappedLength() const {return _gappedLength;}
 
   int getNumContigs() const {return _contigs.size();}
   int getNumGaps() const {return _gaps.size();}
@@ -394,7 +394,7 @@ public:
   const AssemblyInterval getContig(int i) const {return _contigs[i];}
   const Interval getGap(int i) const {return _gaps[i];}
 
-  bool intersectsGap(CDS_COORD_t begin, CDS_COORD_t end) const
+  bool intersectsGap(int32 begin, int32 end) const
     {
       Interval interval(begin, end);
       return intersectsGap(interval);
@@ -408,7 +408,7 @@ public:
       }
     }
 
-  bool isSpannedByGap(CDS_COORD_t begin, CDS_COORD_t end) const
+  bool isSpannedByGap(int32 begin, int32 end) const
     {
       Interval interval(begin, end);
       return isSpannedByGap(interval);
@@ -422,7 +422,7 @@ public:
       }
     }
 
-  bool isInGap(CDS_COORD_t coord) const
+  bool isInGap(int32 coord) const
     {
       for(int i = 0; i < getNumGaps(); i++)
       {
@@ -437,7 +437,7 @@ public:
     }
 
   bool isNearEndOfContig(const Interval & interval,
-                         CDS_COORD_t fudgeFactor) const
+                         int32 fudgeFactor) const
     {
       for(int i = 0; i < getNumContigs(); i++)
       {
@@ -483,8 +483,8 @@ public:
 
 protected:
   CDS_UID_t _uid;
-  CDS_COORD_t _seqLength;
-  CDS_COORD_t _gappedLength;
+  int32 _seqLength;
+  int32 _gappedLength;
   vector<AssemblyInterval> _contigs;
   vector<Interval> _gaps;
 };
@@ -500,7 +500,7 @@ public:
       reset();
       return Scaffold::set(line);
     }
-  void set(CDS_UID_t uid, CDS_COORD_t seqLength, CDS_COORD_t gappedLength)
+  void set(CDS_UID_t uid, int32 seqLength, int32 gappedLength)
     {
       reset();
       Scaffold::set(uid, seqLength, gappedLength);
@@ -585,9 +585,9 @@ public:
         intersecting one or more in the current list
       */
       int numIntersecting = 1;
-      CDS_COORD_t minIntersectCoord = minIter->getMin(AMM_Reference_e);
-      CDS_COORD_t maxIntersectCoord = minIter->getMax(AMM_Reference_e);
-      CDS_COORD_t bpCovered = minIter->getLength(AMM_Reference_e);
+      int32 minIntersectCoord = minIter->getMin(AMM_Reference_e);
+      int32 maxIntersectCoord = minIter->getMax(AMM_Reference_e);
+      int32 bpCovered = minIter->getLength(AMM_Reference_e);
       float sumBPIdentities =
         minIter->getPctID() * minIter->getLength(AMM_Reference_e);
 
@@ -644,7 +644,7 @@ public:
       return _mappedScaffoldUID;
     }
 
-  CDS_COORD_t getMappedScaffoldBPs() const
+  int32 getMappedScaffoldBPs() const
     {
       return _mappedScaffoldBPs;
     }
@@ -654,7 +654,7 @@ public:
       return _mappedScaffoldOrientation;
     }
 
-  CDS_COORD_t getMappedBPs() const
+  int32 getMappedBPs() const
     {
       return _mappedBPs;
     }
@@ -740,13 +740,13 @@ public:
             else
             {
               // check if spacing is about right
-              CDS_COORD_t refDelta = iter->getMin(AMM_Reference_e) -
+              int32 refDelta = iter->getMin(AMM_Reference_e) -
                 lastMatch.getMax(AMM_Reference_e);
-              CDS_COORD_t queryDelta =
+              int32 queryDelta =
                 (lastMatch.isFlipped() ?
                  lastMatch.getMin(AMM_Query_e) - iter->getMax(AMM_Query_e) :
                  iter->getMin(AMM_Query_e) - lastMatch.getMax(AMM_Query_e));
-              CDS_COORD_t diff = refDelta - queryDelta;
+              int32 diff = refDelta - queryDelta;
               float diffRatio = (queryDelta == 0 ? 1. : diff / queryDelta);
 
               if(diffRatio > ratio || diff > bps)
@@ -823,7 +823,7 @@ public:
         loop over contigs, since there has to be at least one, and
         check matches to find mis-mappings
       */
-      CDS_COORD_t currBP;
+      int32 currBP;
       vector<Match>::const_iterator iter;
       int c;
       for(currBP = 0, c = 0, iter = _matches.begin(); c < getNumContigs(); c++)
@@ -842,9 +842,9 @@ public:
 private:
   vector<Match> _matches;
   CDS_UID_t _mappedScaffoldUID;
-  CDS_COORD_t _mappedScaffoldBPs;
+  int32 _mappedScaffoldBPs;
   OrientationType _mappedScaffoldOrientation;
-  CDS_COORD_t _mappedBPs;
+  int32 _mappedBPs;
   bool _hasDeletion;
   bool _hasInsertion;
   bool _hasInversion;
@@ -857,7 +857,7 @@ private:
 
       // iterate over matches, count basepairs matched to each scaffold
       // scaffold with most matching basepairs is the mapped scaffold
-      map<CDS_UID_t, CDS_COORD_t> matchBPs[2];
+      map<CDS_UID_t, int32> matchBPs[2];
       _mappedBPs = _mappedScaffoldBPs = 0;
 
       vector<Match>::iterator iter;
@@ -979,13 +979,13 @@ void printMappings(ostream & os,
       // this contig index, this match index, this coordinate
       int tci;
       int tmi;
-      CDS_COORD_t tCoord;
+      int32 tCoord;
       // other contig index;
       int oci = (orient == AMM_Forward_e ? 0 : otherScaff.getNumContigs() -1 );
       // other match index
       int omi = (orient == AMM_Forward_e ? 0 : otherScaff.getNumMatches() -1 );
       // other coordinate
-      CDS_COORD_t oCoord =
+      int32 oCoord =
         (orient == AMM_Forward_e ? 0 : otherScaff.getGappedLength());
 
       AssemblyInterval tContig = thisScaff.getContig(tci);

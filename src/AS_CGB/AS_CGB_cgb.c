@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_cgb.c,v 1.28 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_cgb.c,v 1.29 2009-07-30 10:42:55 brianwalenz Exp $";
 
 //  This module builds the chunk graph from the fragment essential
 //  overlap graph with contained fragments as an augmentation, and
@@ -127,7 +127,7 @@ check_edge_trimming(Tfragment *frags, Tedge *edges) {
 	case AS_CGB_REMOVED_BY_DUPLICATE_CON:
           break;
 	default:
-          fprintf(stderr,"ie=" F_IID " ines=%d\n", ie, ines);
+          fprintf(stderr,"ie="F_IID " ines=%d\n", ie, ines);
 	  assert(FALSE);
 	}
       }
@@ -515,15 +515,15 @@ make_a_chunk(const int         pass,
            ((iedge_prefix != AS_CGB_EDGE_NOT_VISITED) &&
             (iedge_suffix == AS_CGB_EDGE_NOT_VISITED)) )))) {
       fprintf(stderr,"Make A Chunk pass=%d\n",pass);
-      fprintf(stderr,"ichunk,iid,iavx,lab=" F_IID "," F_IID "," F_IID ",%d\n",
+      fprintf(stderr,"ichunk,iid,iavx,lab="F_IID ","F_IID ","F_IID ",%d\n",
 	      ichunk,get_iid_fragment(frags,iavx),iavx,alab);
-      fprintf(stderr,"prefix segstart=" F_IID ",seglen=" F_S32"\n",
+      fprintf(stderr,"prefix segstart="F_IID ",seglen=" F_S32"\n",
 	      get_segstart_vertex(frags,iavx,FALSE),
 	      get_seglen_vertex(frags,iavx,FALSE));
-      fprintf(stderr,"suffix segstart=" F_IID ",seglen=" F_S32 "\n",
+      fprintf(stderr,"suffix segstart="F_IID ",seglen=" F_S32 "\n",
 	      get_segstart_vertex(frags,iavx,TRUE),
 	      get_seglen_vertex(frags,iavx,TRUE));
-      fprintf(stderr,"iedge_prefix=" F_IID ", iedge_suffix=" F_IID "\n",
+      fprintf(stderr,"iedge_prefix="F_IID ", iedge_suffix="F_IID "\n",
               iedge_prefix,iedge_suffix);
     }
     assert((AS_CGB_INTRACHUNK_FRAG == alab) ||
@@ -876,7 +876,7 @@ make_the_chunks(Tfragment frags[],
         Tlab lab = get_lab_fragment(frags,vid);
         if ((lab != AS_CGB_UNPLACEDCONT_FRAG) &&
             (lab != AS_CGB_MULTICONT_FRAG))
-          fprintf(stderr,"ERROR: mis-labeled MULTICONT fragment iid=" F_IID " lab=%d \n", get_iid_fragment(frags,vid), lab);
+          fprintf(stderr,"ERROR: mis-labeled MULTICONT fragment iid="F_IID " lab=%d \n", get_iid_fragment(frags,vid), lab);
 
 	assert((lab == AS_CGB_UNPLACEDCONT_FRAG) || (lab == AS_CGB_MULTICONT_FRAG));
         assert(TRUE == get_con_fragment(frags,vid));
@@ -1043,7 +1043,7 @@ compute_the_global_fragment_arrival_rate(int           recalibrate,
     fprintf(fout,"Estimated genome length = "F_S64"\n", nbase_in_genome);
     fprintf(fout,"Estimated global_fragment_arrival_rate=%f\n", (estimated_global_fragment_arrival_rate));
     fprintf(fout,"Computed global_fragment_arrival_rate =%f\n", computed_global_fragment_arrival_rate_tmp);
-    fprintf(fout,"Total number of randomly sampled fragments in genome = " F_IID "\n", total_randomly_sampled_fragments_in_genome);
+    fprintf(fout,"Total number of randomly sampled fragments in genome = "F_IID "\n", total_randomly_sampled_fragments_in_genome);
     fprintf(fout,"Computed genome length  = %f\n",
             ( computed_global_fragment_arrival_rate_tmp > 0.f
               ? (total_randomly_sampled_fragments_in_genome)

@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.75 2009-06-10 18:05:13 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.76 2009-07-30 10:42:56 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.75 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.76 2009-07-30 10:42:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <time.h>
@@ -47,8 +47,8 @@ typedef enum {
 } ActionType;
 
 typedef struct {
-  CDS_COORD_t bgn;
-  CDS_COORD_t end;
+  int32 bgn;
+  int32 end;
 } SeqInterval;
 
 typedef enum {
@@ -243,11 +243,11 @@ typedef enum {
 
 typedef struct {
   IntFragment_ID   aifrag, bifrag;
-  CDS_COORD_t      ahg,bhg;
+  int32      ahg,bhg;
   OrientType       orientation;
   OverlapType      overlap_type;
   float            quality;
-  CDS_COORD_t      min_offset, max_offset;
+  int32      min_offset, max_offset;
   int32            polymorph_ct;
   int32            *alignment_trace;
 #ifdef AS_MSG_USE_OVL_DELTA
@@ -353,9 +353,9 @@ typedef struct {
   IntChunk_ID     	chunk2;
   ChunkOrientationType	orient;
   UnitigOverlapType	overlap_type;
-  CDS_COORD_t           best_overlap_length;
-  CDS_COORD_t           min_overlap_length;
-  CDS_COORD_t           max_overlap_length;
+  int32           best_overlap_length;
+  int32           min_overlap_length;
+  int32           max_overlap_length;
   float                 quality;
 } UnitigOverlapMesg;
 
@@ -363,7 +363,7 @@ typedef struct {
 
 typedef struct {
   IntChunk_ID     iaccession;
-  CDS_COORD_t     bp_length;
+  int32     bp_length;
   float           coverage_stat;
   int32           num_frags;
   int32           a_degree;
@@ -469,7 +469,7 @@ typedef struct {
   float           microhet_prob;
   UnitigStatus    status;
   UnitigFUR       unique_rept;
-  CDS_COORD_t     length;
+  int32     length;
   char            *consensus;
   char            *quality;
   int32		  forced;
@@ -484,7 +484,7 @@ typedef struct {
   UnitigStatus    status;
   int32           num_occurences;
   AS_UID          *occurences;
-  CDS_COORD_t     length;
+  int32     length;
   char            *consensus;
   char            *quality;
   int32           num_reads;
@@ -503,7 +503,7 @@ typedef enum {
 typedef struct {
   IntContig_ID               iaccession;
   ContigPlacementStatusType  placed;
-  CDS_COORD_t                length;
+  int32                length;
   char                       *consensus;
   char                       *quality;
   int32		             forced;
@@ -681,7 +681,7 @@ typedef struct {
   float           coverage_stat;
   float           microhet_prob;
   UnitigStatus    status;
-  CDS_COORD_t     length;
+  int32     length;
   char            *consensus;
   char            *quality;
   int32		  forced;
@@ -716,7 +716,7 @@ typedef struct {
   AS_UID                      eaccession;
   IntContig_ID                iaccession;
   ContigPlacementStatusType   placed;
-  CDS_COORD_t                 length;
+  int32                 length;
   char                       *consensus;
   char                       *quality;
   int32                       forced;

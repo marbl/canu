@@ -59,7 +59,7 @@ typedef struct
   CDS_UID_t   distUID;
   CDS_UID_t   containerUID;
   SeqInterval fivePrimes;
-  CDS_COORD_t basePairs;
+  int32 basePairs;
   float       stddevs;
   OrientType  orient;
 } ASM_MatePair;
@@ -171,7 +171,7 @@ void PrintIntraCloneData(CDS_UID_t containerUID, CloneData * cd, FILE * fo);
 void PrintATACScaffoldGenomicAxis(AssemblyStore * asmStore,
                                   int32 index,
                                   char * parent,
-                                  CDS_COORD_t * offset,
+                                  int32 * offset,
                                   FILE * fo);
 void PrintDeflineATACAxes(AssemblyStore * asmStore,
                           FILE * dfp,

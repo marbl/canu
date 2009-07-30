@@ -21,7 +21,7 @@
 #ifndef DBTextOutput_HH
 #define DBTextOutput_HH
 
-static const char *rcsid_DBTextOutput_HH = "$Id: DBTextOutput.hh,v 1.7 2008-10-29 06:34:30 brianwalenz Exp $";
+static const char *rcsid_DBTextOutput_HH = "$Id: DBTextOutput.hh,v 1.8 2009-07-30 10:42:55 brianwalenz Exp $";
 
 #include "IDBOutput.hh"
 
@@ -60,8 +60,8 @@ namespace AS_ARD {
                   IntFragment_ID irefines,
                   MateStatType mate_status,
                   int32 chaff,
-                  CDS_COORD_t begin,
-                  CDS_COORD_t end);
+                  int32 begin,
+                  int32 end);
          bool storeUTG2DB (
                   AS_UID eaccession,
                   IntFragment_ID iaccession,
@@ -69,7 +69,7 @@ namespace AS_ARD {
                   float microhet_prob,
                   float coverage_stat,
                   UnitigStatus status,
-                  CDS_COORD_t length,
+                  int32 length,
                   const char * consensus,
                   const char * quality,
                   int32 forced,
@@ -79,8 +79,8 @@ namespace AS_ARD {
                   AS_UID afgID,
                   FragType type,
                   const char * source,
-                  CDS_COORD_t bgn,
-                  CDS_COORD_t end,
+                  int32 bgn,
+                  int32 end,
                   int32 delta_length,
                   std::string delta);
          bool storeULK2DB (
@@ -101,7 +101,7 @@ namespace AS_ARD {
                   AS_UID eaccession,
                   IntFragment_ID iaccession,
                   ContigPlacementStatusType placed,
-                  CDS_COORD_t length,
+                  int32 length,
                   const char * consensus,
                   const char * quality,
                   int32 forced,
@@ -114,8 +114,8 @@ namespace AS_ARD {
                   AS_UID fragID,
                   FragType type,
                   const char * source,
-                  CDS_COORD_t bgn,
-                  CDS_COORD_t end,
+                  int32 bgn,
+                  int32 end,
                   int32 delta_length,
                   std::string delta);
          bool storeUPS2DB(
@@ -123,19 +123,19 @@ namespace AS_ARD {
                   AS_UID ccoID,
                   AS_UID unitigID,
                   UnitigType type,
-                  CDS_COORD_t bgn,
-                  CDS_COORD_t end,
+                  int32 bgn,
+                  int32 end,
                   int32 delta_length,
                   std::string delta);
          bool storeVAR2DB(
                   AS_UID varID,
                   AS_UID ccoID,
-                  CDS_COORD_t bgn,
-                  CDS_COORD_t end,
+                  int32 bgn,
+                  int32 end,
                   uint32 num_reads,
                   uint32 num_conf_alleles,
                   uint32 anchor_size,
-                  CDS_COORD_t var_length,
+                  int32 var_length,
                   int32 curr_var_id,
                   int32 phased_var_id);
          bool storeVARAllele2DB(AS_UID varAlleleID, AS_UID varID, uint32 nra, uint32 wgt, std::string seq);
@@ -154,7 +154,7 @@ namespace AS_ARD {
          bool storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs);
          bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient);
          bool storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID);
-         bool storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, CDS_COORD_t ctgStart, CDS_COORD_t ctgEnd);
+         bool storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, int32 ctgStart, int32 ctgEnd);
 
          bool commitMDI2DB() { return true; };
          bool commitAFG2DB() { return true; };
