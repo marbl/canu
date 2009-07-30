@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.71 2009-07-27 08:08:28 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.72 2009-07-30 10:34:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1498,14 +1498,14 @@ void MergeNodeGraphEdges(GraphCGW_T *graph, NodeCGW_T *node,
 }
 
 // Merge all of the edges
-void MergeAllGraphEdges(GraphCGW_T *graph, int includeGuides){
+void MergeAllGraphEdges(GraphCGW_T *graph, int includeGuides, int mergeAll){
   GraphNodeIterator nodes;
   NodeCGW_T *CI;
 
   InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
 
   while(NULL != (CI = NextGraphNodeIterator(&nodes))){
-    MergeNodeGraphEdges(graph, CI, includeGuides, FALSE, FALSE);
+    MergeNodeGraphEdges(graph, CI, includeGuides, mergeAll, FALSE);
   }
 }
 

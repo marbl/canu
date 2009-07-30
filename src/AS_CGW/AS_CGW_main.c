@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.71 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.72 2009-07-30 10:34:13 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -355,7 +355,7 @@ main(int argc, char **argv) {
     CheckEdgesAgainstOverlapper(ScaffoldGraph->CIGraph);
     CheckSurrogateUnitigs();
 
-    MergeAllGraphEdges(ScaffoldGraph->CIGraph, FALSE);
+    MergeAllGraphEdges(ScaffoldGraph->CIGraph, FALSE, FALSE);
 
     CheckEdgesAgainstOverlapper(ScaffoldGraph->CIGraph);
     CheckSurrogateUnitigs();

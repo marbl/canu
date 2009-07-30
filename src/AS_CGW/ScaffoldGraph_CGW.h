@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.32 2009-07-28 12:23:49 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.33 2009-07-30 10:34:14 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -121,7 +121,7 @@ void BuildSEdgesForScaffold(ScaffoldGraphT * graph,
                             CIScaffoldT * scaffold,
                             int canonicalOnly,
                             int includeNegativeEdges);
-void BuildSEdges(ScaffoldGraphT *graph, int includeNegativeEdges);
+void BuildSEdges(ScaffoldGraphT *graph, int canonicalOnly, int includeNegativeEdges);
 
 /* Destructor */
 void DestroyScaffoldGraph(ScaffoldGraphT *sgraph);

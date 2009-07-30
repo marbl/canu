@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.36 2009-07-27 08:46:11 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.37 2009-07-30 10:34:14 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_ALN_aligners.h"
@@ -1204,7 +1204,7 @@ void MergeNodeGraphEdges(GraphCGW_T *graph, NodeCGW_T *node,
                          int includeGuides, int mergeAll, int debug);
 
 // Merge all of the edges
-void MergeAllGraphEdges(GraphCGW_T *graph, int includeGuides);
+void MergeAllGraphEdges(GraphCGW_T *graph, int includeGuides, int mergeAll);
 
 
 

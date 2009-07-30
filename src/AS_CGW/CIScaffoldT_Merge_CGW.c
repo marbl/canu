@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.44 2009-07-27 08:08:28 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.45 2009-07-30 10:34:14 brianwalenz Exp $";
 
 
 #undef ORIG_MERGE_EDGE_INVERT
@@ -1982,122 +1982,67 @@ int FindAllMergeCandidates(VA_TYPE(PtrT) *sEdges,
 
 
 
-// Initialize the numEssentialX and essentialEdgeX fields in all scaffolds
-// Collect a list of all "confirmed" scaffold edges thata re candidates for
-// merging.
-void SortSEdges(VA_TYPE(PtrT) * sEdges, int32 verbose)
-{
-  SEdgeT ** sEdge = (SEdgeT **)GetPtrT(sEdges,0);
+static
+void
+BuildUsableSEdges(VA_TYPE(PtrT) *sEdges,
+                  VA_TYPE(PtrT) *overlapSEdges,
+                  int32 verbose) {
 
-  if(verbose)
-    {
-      fprintf(GlobalData->stderrc,
-              "* Sorting %d sEdges of size " F_SIZE_T " sEdge = %p\n",
-              (int) GetNumPtrTs(sEdges), sizeof(*sEdge), sEdge);
-      fflush(NULL);
+  //  Reset edges
+  for (int i=0; i<GetNumGraphEdges(ScaffoldGraph->ScaffoldGraph); i++) {
+    EdgeCGW_T * edge = GetGraphEdge(ScaffoldGraph->ScaffoldGraph, i);
+
+    edge->quality                    = 1.0;
+    edge->flags.bits.isBogus         = 0;
+    edge->flags.bits.isProbablyBogus = 0;
+
+    if (edge->flags.bits.MeanChangedByWalking == TRUE) {
+      edge->flags.bits.MeanChangedByWalking = FALSE;
+      edge->distance.mean                   = edge->minDistance;
     }
+  }
+
+  //  Reset scaffolds
+  for (int i=0; i<GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph); i++) {
+    CIScaffoldT * scaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, i);
+
+    if(isDeadCIScaffoldT(scaffold) || (scaffold->type != REAL_SCAFFOLD))
+      continue;
+
+    scaffold->numEssentialA  = 0;
+    scaffold->numEssentialB  = 0;
+    scaffold->essentialEdgeA = NULLINDEX;
+    scaffold->essentialEdgeB = NULLINDEX;
+    scaffold->setID          = NULLINDEX;
+    scaffold->flags.bits.smoothSeenAlready = 0;
+    scaffold->flags.bits.walkedAlready     = 0;
+  }
+
+
+  for (int i=0; i<GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph); i++) {
+    CIScaffoldT * scaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, i);
+
+    if(isDeadCIScaffoldT(scaffold) || (scaffold->type != REAL_SCAFFOLD))
+      continue;
+
+    FindAllMergeCandidates(sEdges, overlapSEdges,
+                           scaffold,
+                           ALL_END, NULL,
+                           TRUE,
+                           CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD,
+                           GlobalData->doInterleavedScaffoldMerging,
+                           verbose);
+  }
+
+  if (GetNumPtrTs(sEdges) > 0) {
+    SEdgeT **sEdge = (SEdgeT **)GetPtrT(sEdges,0);
 
 #ifdef SORT_BY_EDGE_WEIGHTS
-  qsort((void *)sEdge,
-        GetNumPtrTs(sEdges),
-        sizeof(*sEdge),
-        CompareSEdgesContributing);
+    qsort(sEdge, GetNumPtrTs(sEdges), sizeof(SEdgeT *), CompareSEdgesContributing);
 #else
-  qsort((void *)sEdge,
-        GetNumPtrTs(sEdges),
-        sizeof(*sEdge),
-        CompareSEdgeGaps);
+    qsort(sEdge, GetNumPtrTs(sEdges), sizeof(SEdgeT *), CompareSEdgeGaps);
 #endif
-
-  if(verbose)
-    {
-      int i;
-      fprintf(GlobalData->stderrc,">>>>>>>> Usable Edges >>>>>>>\n");
-      for(i = 0; i < GetNumPtrTs(sEdges); i++)
-        {
-          SEdgeT * edge = (SEdgeT *) *GetPtrT(sEdges, i);
-          PrintGraphEdge(GlobalData->stderrc,
-                         ScaffoldGraph->ScaffoldGraph,
-                         "usable> ",
-                         edge, edge->idA);
-        }
-      fprintf(GlobalData->stderrc,">>>>>>>>>>>>>>>>>>>>>\n");
-    }
-}
-
-
-void BuildUsableSEdges(VA_TYPE(PtrT) *sEdges,
-                       VA_TYPE(PtrT) *overlapSEdges,
-                       int32 verbose)
-{
-  int32 numRealScaffolds = 0;
-  int32 numScaffolds = 0;
-  int32 numSEdges;
-  GraphNodeIterator scaffolds;
-  CIScaffoldT *scaffold;
-
-  AssertPtr(sEdges);
-
-  numScaffolds = GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph);
-  numSEdges = GetNumGraphEdges(ScaffoldGraph->ScaffoldGraph);
-
-  InitGraphNodeIterator(&scaffolds,
-                        ScaffoldGraph->ScaffoldGraph,
-                        GRAPH_NODE_DEFAULT);
-  while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL)
-    {
-      if(isDeadCIScaffoldT(scaffold) || (scaffold->type != REAL_SCAFFOLD))
-        continue;
-
-      scaffold->numEssentialA = 0;
-      scaffold->numEssentialB = 0;
-      scaffold->essentialEdgeA = NULLINDEX;
-      scaffold->essentialEdgeB = NULLINDEX;
-      scaffold->setID = NULLINDEX;
-      scaffold->flags.bits.smoothSeenAlready = 0;
-      scaffold->flags.bits.walkedAlready = 0;
-    }
-
-  InitGraphNodeIterator(&scaffolds,
-                        ScaffoldGraph->ScaffoldGraph,
-                        GRAPH_NODE_DEFAULT);
-  while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL)
-    {
-      if(isDeadCIScaffoldT(scaffold) || (scaffold->type != REAL_SCAFFOLD))
-        continue;
-      numRealScaffolds++;
-
-      FindAllMergeCandidates(sEdges, overlapSEdges,
-                             scaffold,
-                             ALL_END, NULL,
-                             TRUE,
-                             CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD,
-                             GlobalData->doInterleavedScaffoldMerging,
-                             verbose);
-    }
-
-  if(verbose){
-    fprintf(GlobalData->stderrc, "numSEdges %d numScaffolds %d\nnumRealScaffolds %d numRealSEdges %d\n",
-            numSEdges, numScaffolds, numRealScaffolds, (int) GetNumPtrTs(sEdges));
   }
-  if(verbose)
-    {
-      int i;
-      fprintf(GlobalData->stderrc,">>>>>>>> Overlap Edges >>>>>>>\n");
-      for(i = 0; i < GetNumPtrTs(overlapSEdges); i++){
-        SEdgeT *edge = (SEdgeT *) *GetPtrT(overlapSEdges, i);
-        PrintGraphEdge(GlobalData->stderrc, ScaffoldGraph->ScaffoldGraph, "overlap> ", edge, edge->idA);
-      }
-      fprintf(GlobalData->stderrc,">>>>>>>>>>>>>>>>>>>>>\n");
-    }
-  if(GetNumPtrTs(sEdges) == 0){
-    if(verbose){
-      fprintf(GlobalData->stderrc, ">>>>No Usable SEdges!!! (there are %d overlap SEdges)\n", (int) GetNumPtrTs(overlapSEdges));
-    }
-    return;
-  }
-
-  SortSEdges(sEdges, verbose);
 }
 
 
@@ -4305,91 +4250,64 @@ void ExamineUsableSEdgeSet(VA_TYPE(PtrT) *sEdges,
 }
 
 
-void ExamineUsableSEdges(VA_TYPE(PtrT) *sEdges,
-                         int minWeightThreshold,
-                         InterleavingSpec * iSpec,
-                         int verbose)
-{
-  if (GetNumPtrTs(sEdges) > 0)
-    {
-      SEdgeT ** sEdge = (SEdgeT **)GetPtrT(sEdges,0);
-      int32 maxWeightEdge = 0;
-      int i;
+static
+void
+ExamineUsableSEdges(VA_TYPE(PtrT) *sEdges,
+                    int minWeightThreshold,
+                    InterleavingSpec * iSpec,
+                    int verbose) {
 
-      if(! GlobalData->doInterleavedScaffoldMerging)
-        {
-          // find the max weight non-negative distance edge
-          for(i = 0; i < GetNumVA_PtrT(sEdges); i++)
-            {
-              if(sEdge[i]->distance.mean > 0)
-                {
-                  if(isBadScaffoldMergeEdge(sEdge[i], iSpec->badSEdges))continue;
+  if (GetNumPtrTs(sEdges) > 0) {
+    SEdgeT **sEdge = (SEdgeT **)GetPtrT(sEdges,0);
+    int32    maxWeightEdge = 0;
 
-                  maxWeightEdge = sEdge[i]->edgesContributing;
-                  break;
-                }
-            }
+    //  If not interlaved merging, find the max weight non-negative distance edge
+
+    if (! GlobalData->doInterleavedScaffoldMerging) {
+      for (int i=0; i<GetNumVA_PtrT(sEdges); i++) {
+        if (sEdge[i]->distance.mean > 0) {
+          if (isBadScaffoldMergeEdge(sEdge[i], iSpec->badSEdges))
+            continue;
+
+          maxWeightEdge = sEdge[i]->edgesContributing;
+          break;
         }
-      else
-        {
+      }
+    } else {
+      for (int i=0; i<GetNumVA_PtrT(sEdges); i++) {
+        if (isBadScaffoldMergeEdge(sEdge[i], iSpec->badSEdges))
+          continue;
 
-          for(i = 0; i < GetNumVA_PtrT(sEdges); i++)
-            {
-              if(isBadScaffoldMergeEdge(sEdge[i], iSpec->badSEdges))continue;
-              maxWeightEdge = sEdge[i]->edgesContributing;
-              break;
-            }
-
-        }
-
-      if ( maxWeightEdge/EDGE_WEIGHT_FACTOR < minWeightThreshold )
-        {
-          minWeightThreshold = maxWeightEdge / EDGE_WEIGHT_FACTOR;
-        }
-      minWeightThreshold = MAX( minWeightThreshold, EDGE_WEIGHT_FACTOR);
-      fprintf(GlobalData->stderrc,
-              "* Considering edges with weight >= %d (maxWeightEdge/%d: %d)\n",
-              minWeightThreshold, (int) EDGE_WEIGHT_FACTOR,
-              (int) (maxWeightEdge/EDGE_WEIGHT_FACTOR));
+        maxWeightEdge = sEdge[i]->edgesContributing;
+        break;
+      }
     }
+
+    minWeightThreshold = MIN(minWeightThreshold, maxWeightEdge / EDGE_WEIGHT_FACTOR);
+    minWeightThreshold = MAX(minWeightThreshold, EDGE_WEIGHT_FACTOR);
+
+    fprintf(GlobalData->stderrc, "* Considering edges with weight >= %d (maxWeightEdge/%d: %d)\n",
+            minWeightThreshold,
+            (int)EDGE_WEIGHT_FACTOR,
+            (int)(maxWeightEdge/EDGE_WEIGHT_FACTOR));
+  }
 
   // examine the edges
   ExamineUsableSEdgeSet(sEdges, minWeightThreshold, iSpec, verbose);
 }
 
 
-void BuildMergedScaffoldEdges(ScaffoldGraphT * graph)
-{
-  // create a scaffold edge for every inter-scaffold contig edge
-  fprintf(GlobalData->stderrc, "* Building scaffold edges from scratch\n");
-  BuildSEdges(graph, GlobalData->doInterleavedScaffoldMerging);
 
-  // merge all inter-scaffold edges that are compatible with each other
-  fprintf(GlobalData->stderrc, "* Merging scaffold edges from scratch\n");
-  MergeAllGraphEdges(graph->ScaffoldGraph, TRUE);// Merge 'em
-}
-
-
-int BuildSEdgesForMerging(ScaffoldGraphT * graph,
-                          VA_TYPE(PtrT) ** sEdges,
-                          VA_TYPE(PtrT) ** overlapSEdges,
-                          float * minWeightThreshold,
-                          int adjustThreshold,
-                          InterleavingSpec * iSpec,
-                          int32 verbose)
-{
+static
+int
+BuildSEdgesForMerging(ScaffoldGraphT * graph,
+                      VA_TYPE(PtrT) ** sEdges,
+                      VA_TYPE(PtrT) ** overlapSEdges,
+                      float * minWeightThreshold,
+                      int adjustThreshold,
+                      InterleavingSpec * iSpec,
+                      int32 verbose) {
   int firstTime;
-
-  fprintf(GlobalData->stderrc, "* Building SEdges for merging\n");
-  fflush(GlobalData->stderrc);
-
-  if(GetNumGraphEdges(graph->ScaffoldGraph) == 0)
-    {
-      if(verbose){
-        fprintf(GlobalData->stderrc, "No SEdges!!!\n");
-      }
-      return 1;
-    }
 
   if(*sEdges == NULL){
     *sEdges = CreateVA_PtrT(100);
@@ -4401,76 +4319,39 @@ int BuildSEdgesForMerging(ScaffoldGraphT * graph,
     firstTime = FALSE;
   }
 
-  // loop over scaffolds to find all merge candidates and
-  // create a list of pointers to scaffold edges that
-  // may be used for merging
-  fprintf(GlobalData->stderrc, "* Building usable SEdges\n");
-  fflush(GlobalData->stderrc);
+  //  find all merge candidates and create a list of pointers to scaffold edges that may be used for
+  //  merging
+  //
   BuildUsableSEdges(*sEdges, *overlapSEdges, verbose);
 
-  if(adjustThreshold)
-    {
-      if (firstTime == TRUE && GetPtrT(*sEdges, 0) != NULL)
-        {
-          SEdgeT ** sEdge = (SEdgeT **)GetPtrT(*sEdges,0);
-          if (GlobalData->doInterleavedScaffoldMerging)
-            {
-              int j;
-              for(j = 0; j < GetNumVA_PtrT(*sEdges); j++)
-                {
-                  if(sEdge[j]->distance.mean > 0)
-                    {
-                      *minWeightThreshold =
-                        sEdge[j]->edgesContributing / EDGE_WEIGHT_FACTOR;
-                      break;
-                    }
-                }
-            }
-          else
-            {
-              *minWeightThreshold = sEdge[0]->edgesContributing / EDGE_WEIGHT_FACTOR;
-            }
-          fprintf( GlobalData->stderrc,
-                   "initially setting minWeightThreshold to %f\n",
-                   *minWeightThreshold);
+  if(adjustThreshold) {
+    if (firstTime == TRUE && GetPtrT(*sEdges, 0) != NULL) {
+      SEdgeT ** sEdge = (SEdgeT **)GetPtrT(*sEdges,0);
+      if (GlobalData->doInterleavedScaffoldMerging) {
+        for(int j=0; j<GetNumVA_PtrT(*sEdges); j++) {
+          if(sEdge[j]->distance.mean > 0) {
+            *minWeightThreshold = sEdge[j]->edgesContributing / EDGE_WEIGHT_FACTOR;
+            break;
+          }
         }
-      else
-        *minWeightThreshold -= 0.2;
-
-      // don't let it get to small and go negative
-      *minWeightThreshold = MAX( *minWeightThreshold, EDGE_WEIGHT_FACTOR);
+      } else {
+        *minWeightThreshold = sEdge[0]->edgesContributing / EDGE_WEIGHT_FACTOR;
+      }
+      fprintf(GlobalData->stderrc, "initially setting minWeightThreshold to %f\n", *minWeightThreshold);
+    } else {
+      *minWeightThreshold -= 0.2;
     }
 
-  // loop over sEdges
-  // mark scaffolds for merging & associate scaffold ends
-  fprintf(GlobalData->stderrc, "* Examining usable SEdges\n");
-  fflush(GlobalData->stderrc);
+    *minWeightThreshold = MAX( *minWeightThreshold, EDGE_WEIGHT_FACTOR);
+  }
+
+  //  mark scaffolds for merging & associate scaffold ends
+  //
   ExamineUsableSEdges(*sEdges, (int) *minWeightThreshold, iSpec, verbose);
 
-  return 0;
+  return(0);
 }
 
-
-int SetUpSEdges(ScaffoldGraphT * graph,
-                VA_TYPE(PtrT) ** sEdges,
-                VA_TYPE(PtrT) ** overlapSEdges,
-                float * minWeightThreshold,
-                int adjustThreshold,
-                InterleavingSpec * iSpec,
-                int32 verbose)
-
-{
-  int retVal;
-
-  BuildMergedScaffoldEdges(graph);
-
-  retVal = BuildSEdgesForMerging(graph,
-                                 sEdges, overlapSEdges,
-                                 minWeightThreshold, adjustThreshold,
-                                 iSpec, verbose);
-
-  return retVal;
-}
 
 
 void RemoveDeadRefsFromSEdge(ScaffoldGraphT * graph, SEdgeT * sEdge)
@@ -4499,8 +4380,7 @@ void RemoveDeadRefsFromSEdge(ScaffoldGraphT * graph, SEdgeT * sEdge)
 
 
 /**********************************************************/
-int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
-                   InterleavingSpec * iSpec,
+int MergeScaffolds(InterleavingSpec * iSpec,
                    int32 verbose)
 {
   int mergedSomething = FALSE;
@@ -4668,7 +4548,7 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
       AddScaffoldToContigOrientChecker(ScaffoldGraph, thisScaffold, coc);
 #endif
 
-      AppendVA_CDS_CID_t(deadScaffoldIDs, &(thisScaffold->id));
+      //AppendVA_CDS_CID_t(deadScaffoldIDs, &(thisScaffold->id));
 
       /* Potential realloc of ScaffoldGraph->ScaffoldGraph->nodes */
 
@@ -4782,7 +4662,7 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
         AddScaffoldToContigOrientChecker(ScaffoldGraph, thisScaffold, coc);
 #endif
 
-        AppendVA_CDS_CID_t(deadScaffoldIDs, &(thisScaffold->id));
+        //AppendVA_CDS_CID_t(deadScaffoldIDs, &(thisScaffold->id));
 
         if (0 == InsertScaffoldContentsIntoScaffold(ScaffoldGraph,
                                                     newScaffoldID, thisScaffold->id,
@@ -4997,181 +4877,78 @@ void DeleteScaffoldEdgesForScaffold(ScaffoldGraphT * graph,
 }
 
 
-void DeleteDeadScaffoldEdges(ScaffoldGraphT * graph,
-                             VA_TYPE(CDS_CID_t) * deadScaffoldIDs)
-{
-  int i;
 
-  for(i = 0; i < GetNumVA_int32(deadScaffoldIDs); i++)
-    {
-      CDS_CID_t * scaffoldID = GetVA_CDS_CID_t(deadScaffoldIDs, i);
-      CIScaffoldT * scaffold = GetCIScaffoldT(graph->CIScaffolds, *scaffoldID);
-
-      assert(scaffold->flags.bits.isDead);
-
-      DeleteScaffoldEdgesForScaffold(graph, scaffold);
-    }
-  RecycleDeletedGraphElements(graph->ScaffoldGraph);
-}
-
-
-void ResetScaffoldAndEdgeFlags(ScaffoldGraphT * graph)
-{
-  // ZeroEdgeWeights is called in FindMoreAttractiveMergeEdge
-  int i;
-
-  for(i = 0; i < GetNumGraphEdges(graph->ScaffoldGraph); i++)
-    {
-      EdgeCGW_T * edge = GetGraphEdge(graph->ScaffoldGraph, i);
-      edge->quality = 1.f;
-      edge->flags.bits.isBogus = 0;
-      edge->flags.bits.isProbablyBogus = 0;
-      if(edge->flags.bits.MeanChangedByWalking == TRUE)
-        {
-          edge->flags.bits.MeanChangedByWalking = FALSE;
-          edge->distance.mean = edge->minDistance;
-        }
-    }
-
-  // Reset merge marks
-  for(i = 0; i < GetNumGraphNodes(graph->ScaffoldGraph); i++)
-    {
-      CIScaffoldT * scaffold = GetCIScaffoldT(graph->CIScaffolds, i);
-      scaffold->essentialEdgeA = scaffold->essentialEdgeB = NULLINDEX;
-      scaffold->numEssentialA = scaffold->numEssentialB = 0;
-      scaffold->flags.bits.smoothSeenAlready = FALSE;
-      scaffold->flags.bits.walkedAlready = FALSE;
-      scaffold->setID = NULLINDEX;
-    }
-}
-
-
-void BuildNewScaffoldEdges(ScaffoldGraphT * graph,
-                           CDS_CID_t firstScaffoldID)
-{
-  CDS_CID_t i;
-
-  // Reset scaffold edge heads
-  for(i = firstScaffoldID; i < GetNumGraphNodes(graph->ScaffoldGraph); i++) {
-    CIScaffoldT * newScaffold = GetCIScaffoldT(graph->CIScaffolds, i);
-    newScaffold->edgeHead = NULLINDEX;
-  }
-
-  // build raw edges
-  for(i = firstScaffoldID; i < GetNumGraphNodes(graph->ScaffoldGraph); i++) {
-    CIScaffoldT * newScaffold = GetCIScaffoldT(graph->CIScaffolds, i);
-
-    if ((newScaffold->flags.bits.isDead) ||
-        (newScaffold->type != REAL_SCAFFOLD))
-      continue;
-
-    BuildSEdgesForScaffold(graph, newScaffold, FALSE, GlobalData->doInterleavedScaffoldMerging);
-    MergeNodeGraphEdges(graph->ScaffoldGraph, newScaffold, TRUE, TRUE, FALSE);
-  }
-}
-
-
-int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
-                               InterleavingSpec * iSpec,
-                               char *logicalcheckpointnumber,
-                               int verbose)
-{
+static
+void
+MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
+                           InterleavingSpec * iSpec,
+                           char *logicalcheckpointnumber,
+                           int verbose) {
   static VA_TYPE(PtrT) *sEdges = NULL;
   static VA_TYPE(PtrT) *overlapSEdges = NULL;
-  static VA_TYPE(CDS_CID_t) * deadScaffoldIDs = NULL;
-  int mergedSomething = FALSE;
-  int32 iterations = 0;
-  time_t t;
-  float minWeightThreshold = 0.0;
-  CDS_CID_t prevFirstNewScaffoldID = NULLINDEX;
-  int32 totalMerged = 0;
 
-  int    buildEdgeCounter = -1;
-  time_t lastCkpTime      = time(0) - 90 * 60;
+  int32  mergedSomething    = TRUE;
+  int32  iterations         = 0;
+  float  minWeightThreshold = 0.0;
+  time_t lastCkpTime        = time(0) - 90 * 60;
 
-  if(deadScaffoldIDs == NULL)
-    deadScaffoldIDs = CreateVA_CDS_CID_t(10000);
+  //  Create a scaffold edge for every inter-scaffold contig edge, then merge compatible ones
+  BuildSEdges(graph, TRUE, GlobalData->doInterleavedScaffoldMerging);
+  MergeAllGraphEdges(graph->ScaffoldGraph, TRUE, FALSE);
 
   // loop until nothing gets merged
-  do{
-    CDS_CID_t currFirstNewScaffoldID;
+  while (mergedSomething) {
+    time_t t = time(0);
 
     //  Checkpoint periodically - every two hours seems nice!  The
     //  first checkpoint is done after 30 minutes of work here,
     //  though.
     //
-    if (time(0) - lastCkpTime > 120 * 60) {
+    if (t - lastCkpTime > 120 * 60) {
       char  where[1024];
 
       sprintf(where, "after MergeScaffoldsAggressive iteration %d", iterations);
       CheckpointScaffoldGraph(logicalcheckpointnumber, where);
-      lastCkpTime = time(0);
+      lastCkpTime = t;
     }
-    currFirstNewScaffoldID = GetNumGraphNodes(graph->ScaffoldGraph);
 
-    t = time(0);
-    fprintf(GlobalData->stderrc, "* MergeScaffoldsAggressive iteration %d at %s", iterations, ctime(&t));
-    fprintf(GlobalData->stderrc, "* " F_CID " scaffolds and %d scaffold edges in the graph\n",
-            currFirstNewScaffoldID, (int) GetNumGraphEdges(graph->ScaffoldGraph));
+    if (GetNumGraphEdges(graph->ScaffoldGraph) == 0) {
+      fprintf(GlobalData->stderrc, "MergeScaffoldsAggressive()-- No additional scaffold merging is possible.\n");
+      break;
+    }
+
+    BuildSEdgesForMerging(graph,
+                          &sEdges, &overlapSEdges,
+                          &minWeightThreshold, TRUE,
+                          iSpec, verbose);
+
+    mergedSomething = MergeScaffolds(iSpec, verbose);
+
+    if (mergedSomething) {
+      fprintf(stderr, "MergeScaffoldsAggressive()-- iter %d -- continue because we merged scaffolds.\n",
+              iterations);
+
+      //  Cleanup, build new edges, merge.
+      CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
+      BuildSEdges(graph, TRUE, GlobalData->doInterleavedScaffoldMerging);
+      MergeAllGraphEdges(graph->ScaffoldGraph, TRUE, FALSE);
+
+    } else if (minWeightThreshold > 2.0) {
+      fprintf(stderr, "MergeScaffoldsAggressive()-- iter %d -- continue because minWeightThreshold is %f (decrease by %f).\n",
+              iterations, minWeightThreshold, MAX(1.0, minWeightThreshold / 100.0));
+
+      //  Do we need to clean up the edges/scaffolds here?
+
+      mergedSomething     = 1;
+      minWeightThreshold -= MAX(1.0, minWeightThreshold / 100.0);
+
+    } else {
+      fprintf(GlobalData->stderrc, "MergeScaffoldsAggressive()-- iter %d -- no additional scaffold merging is possible.\n",
+              iterations);
+    }
 
     iterations++;
-
-    //  Initially & periodically build scaffold edges from scratch --
-    //  assumes that buildEdgeCounter is initialized to -1.  When
-    //  switching the checkpoint above from a fixed iteration to time
-    //  based, we needed to change the logic here.  Versions previous
-    //  to 2005-09-22 (the date of the checkpoint change) would
-    //  SetUpSEdges() on the 1st, 8th, 16th, etc iteration, which we
-    //  preserve with the following unnatural test.
-    //
-    buildEdgeCounter++;
-    if ((buildEdgeCounter == 0) || (buildEdgeCounter == 8))
-      {
-        buildEdgeCounter = 0;
-        if(SetUpSEdges(graph, &sEdges, &overlapSEdges, &minWeightThreshold,
-                       TRUE, iSpec, verbose))
-          {
-            fprintf(GlobalData->stderrc,
-                    "No additional scaffold merging is possible.\n");
-            break;
-          }
-      }
-    else
-      {
-        // delete all edges to dead (merged) scaffolds
-        DeleteDeadScaffoldEdges(graph, deadScaffoldIDs);
-
-        // raw & merged edges from new scaffolds to all other scaffolds
-        BuildNewScaffoldEdges(graph, prevFirstNewScaffoldID);
-
-        // flags used in marking scaffolds for merging
-        ResetScaffoldAndEdgeFlags(graph);
-
-        if(BuildSEdgesForMerging(graph,
-                                 &sEdges, &overlapSEdges,
-                                 &minWeightThreshold, TRUE,
-                                 iSpec,
-                                 verbose))
-          {
-            fprintf(GlobalData->stderrc,
-                    "No additional scaffold merging is possible.\n");
-            break;
-          }
-      }
-
-    ResetVA_CDS_CID_t(deadScaffoldIDs);
-
-    mergedSomething = MergeScaffolds(deadScaffoldIDs, iSpec, verbose);
-    totalMerged += mergedSomething;
-    prevFirstNewScaffoldID = currFirstNewScaffoldID;
-    if(mergedSomething == 0 && minWeightThreshold > 2.0)  //  MIN_EDGES??
-      {
-        mergedSomething = 1;
-        minWeightThreshold -= 1.0;
-      }
-      CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
-  }while(mergedSomething);
-  return totalMerged;
+  }
 }
 
 

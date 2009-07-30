@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.49 2009-06-10 18:05:14 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.50 2009-07-30 10:34:14 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -11302,9 +11302,10 @@ int Throw_Stones
   //  But since Throw_Stones can now split scaffolds, we should be
   //  rebuilding scaffold edges.
   //
-  if (splitscaffolds > 0)
-    BuildNewScaffoldEdges(ScaffoldGraph, 0);
-
+  if (splitscaffolds > 0) {
+    BuildSEdges(ScaffoldGraph, FALSE, GlobalData->doInterleavedScaffoldMerging);
+    MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, TRUE);
+  }
 
 #if  MAKE_CAM_FILE
   Update_Colours (fill_stones);

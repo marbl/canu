@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.38 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.39 2009-07-30 10:34:14 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -745,8 +745,8 @@ void  TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph)
 
   CheckAllTrustedEdges(ScaffoldGraph);
 
-  BuildSEdges(ScaffoldGraph, FALSE);
-  MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE);
+  BuildSEdges(ScaffoldGraph, TRUE, FALSE);
+  MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, FALSE);
 
   //clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 }

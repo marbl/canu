@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.16 2008-10-29 10:42:46 brianwalenz Exp $";
+static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.17 2009-07-30 10:34:14 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -727,7 +727,7 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
 }
 
 
-void BuildSEdges(ScaffoldGraphT *graph, int includeNegativeEdges)
+void BuildSEdges(ScaffoldGraphT *graph, int canonicalOnly, int includeNegativeEdges)
 {
   CDS_CID_t sid;
 
@@ -750,8 +750,6 @@ void BuildSEdges(ScaffoldGraphT *graph, int includeNegativeEdges)
   for(sid = 0; sid < GetNumGraphNodes(graph->ScaffoldGraph); sid++)
     BuildSEdgesForScaffold(graph,
                            GetGraphNode(graph->ScaffoldGraph, sid),
-                           TRUE, includeNegativeEdges);
-
-  fprintf(GlobalData->stderrc,"* BuildSEdges: %d edges on completion\n",
-          (int) GetNumGraphEdges(graph->ScaffoldGraph));
+                           canonicalOnly,
+                           includeNegativeEdges);
 }
