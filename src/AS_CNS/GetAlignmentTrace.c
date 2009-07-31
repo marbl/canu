@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GetAlignmentTrace.c,v 1.5 2009-07-11 00:21:11 brianwalenz Exp $";
+static char *rcsid = "$Id: GetAlignmentTrace.c,v 1.6 2009-07-31 15:15:04 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -253,17 +253,9 @@ ScoreOverlap(Overlap *O,
   }
 
   //  Decide if these scores are good enough to accept the overlap.
-  //
-  //  Assuming a default acceptTreshold of 1/3:
-  //
-  //  The length is within 30% of expected) OR
-  //  The ahang is within tight OR
-  //  Both hangs are decent
 
-  if ((lScore < acceptThreshold) ||
-      (aScore < acceptThreshold / 2) ||
-      (bScore < acceptThreshold / 2) ||
-      (aScore < acceptThreshold && bScore < acceptThreshold)) {
+  if (((aScore < acceptThreshold)   && (bScore < acceptThreshold)   && (lScore < acceptThreshold)) ||
+      ((aScore < acceptThreshold/2) && (bScore < acceptThreshold/2))) {
     //  GOOD!
 #ifdef DEBUG_GET_ALIGNMENT_TRACE
     fprintf(stderr,"GetAlignmentTrace()-- Overlap ACCEPTED!  accept=%f lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).\n",
