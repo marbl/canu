@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: Consensus_CNS.c,v 1.80 2009-07-10 01:24:21 brianwalenz Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.81 2009-07-31 15:11:52 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -218,7 +218,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "ERROR:  Unsupported!  SDB must be partitioned, version must be supplied.\n");
     err++;
   }
-  if (err || (inpName == NULL) || (gkpName == NULL)) {
+  if (err || (inpName == NULL) || (gkpName == NULL) || (outName == NULL)) {
     fprintf(stderr, "usage: %s [opts] gkpStore input-messages\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "    -v [0-4]     Verbose:  0 = verbose off\n");
