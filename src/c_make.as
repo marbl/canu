@@ -69,10 +69,10 @@ ifeq ($(OSTYPE), Linux)
   ARCH_LDFLAGS   += -pthread -lm
 
   ifeq ($(BUILDDEBUG), 1)
-    ARCH_CFLAGS  += -g -Wimplicit
+    ARCH_CFLAGS  += -g -Wall -Wimplicit -Wno-write-strings -Wno-unused 
     ARCH_LDFLAGS +=
   else
-    ARCH_CFLAGS  += -O2 -Wimplicit
+    ARCH_CFLAGS  += -O2 -Wall -Wimplicit -Wno-write-strings -Wno-unused 
     ARCH_LDFLAGS += -Wl,-O1
   endif
 
@@ -96,21 +96,21 @@ endif
 ifeq ($(OSTYPE), FreeBSD)
   ifeq ($(MACHINETYPE), i386)
     ARCH_LDFLAGS    += -pthread -lthr -lm
-    ARCH_CFLAGS      = -pthread
+    ARCH_CFLAGS      = -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused 
   endif
   ifeq ($(MACHINETYPE), amd64)
     ARCH_LDFLAGS    += -pthread -lthr -lm
-    ARCH_CFLAGS      = -pthread -Wformat
+    ARCH_CFLAGS      = -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused 
   endif
 
   ifeq ($(BUILDCOVERAGE), 1)
-    ARCH_CFLAGS   += -g -Wimplicit -fprofile-arcs -ftest-coverage
+    ARCH_CFLAGS   += -g -fprofile-arcs -ftest-coverage
     ARCH_LDFLAGS  += -lgcov
   else
     ifeq ($(BUILDDEBUG), 1)
-      ARCH_CFLAGS   += -g -Wimplicit -Wno-write-strings
+      ARCH_CFLAGS   += -g
     else
-      ARCH_CFLAGS   += -O -Wall -Wimplicit -Wno-write-strings -Wno-unused -mtune=nocona -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+      ARCH_CFLAGS   += -O -mtune=nocona -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
     endif
   endif
 
