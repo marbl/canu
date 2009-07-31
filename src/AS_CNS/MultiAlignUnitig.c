@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.16 2009-07-26 08:30:35 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.17 2009-07-31 15:13:02 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -32,7 +32,7 @@ static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.16 2009-07-26 08:30:35 brianwa
 #include "MicroHetREZ.h"
 #include "AS_UTL_reverseComplement.h"
 
-#undef SHOW_PLACEMENT_BEFORE
+#undef  SHOW_PLACEMENT_BEFORE
 #undef SHOW_PLACEMENT
 #undef SHOW_ALGORITHM
 
@@ -390,7 +390,7 @@ unitigConsensus::computePositionFromParent(void) {
       int32 beg = placed[piid].bgn + unitig->f_list[tiid].ahang;
       int32 end = placed[piid].end + unitig->f_list[tiid].bhang;
 
-      ovl   = end - beg;
+      ovl   = MIN(end, frankensteinLen) - beg;
       ahang = beg;
       bhang = end - frankensteinLen;
 
