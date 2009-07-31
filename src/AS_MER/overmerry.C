@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overmerry.C,v 1.36 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: overmerry.C,v 1.37 2009-07-31 15:11:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -112,6 +112,7 @@ public:
     compression   = 1;
     maxCount      = 1024 * 1024 * 1024;
     numThreads    = 4;
+    beVerbose     = false;
 
     qGK  = 0L;
     qFS  = 0L;
@@ -237,7 +238,7 @@ public:
     tSS->tradeSpaceForTime();
 
     tMS = new merStream(new kMerBuilder(merSize, compression, 0L), tSS, true, false);
-    tPS = new positionDB(tMS, merSize, 0, 0L, 0L, MF, 0, 0, 0, 0, true);
+    tPS = new positionDB(tMS, merSize, 0, 0L, 0L, MF, 0, 0, 0, 0, beVerbose);
 
     //  Filter out single copy mers, and mers too high...but ONLY if
     //  there is a merCountsFile.  In particular, the single copy mers
@@ -269,6 +270,7 @@ public:
   uint32   compression;
   uint32   maxCount;
   uint32   numThreads;
+  bool     beVerbose;
 
   //  for the READER only
   //
@@ -694,6 +696,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-qe") == 0) {
       g->qEnd = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-v") == 0) {
+      g->beVerbose = true;
+
     } else if (strcmp(argv[arg], "-o") == 0) {
       g->outputName = argv[++arg];
 
@@ -725,6 +730,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -qe N           query fragment IID range\n");
     fprintf(stderr, "                    fragments with IID y, M <= y < N, are used for the queries\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -v              entertain the user with progress reports\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -o outputName   output written here\n");
     exit(1);
   }
@@ -735,15 +742,15 @@ main(int argc, char **argv) {
 
   sweatShop *ss = new sweatShop(ovmReader, ovmWorker, ovmWriter);
 
-  ss->setLoaderQueueSize(10240);
-  ss->setWriterQueueSize(10240);
+  ss->setLoaderQueueSize(131072);
+  ss->setWriterQueueSize(1024);
 
   ss->setNumberOfWorkers(g->numThreads);
 
   for (u32bit w=0; w<g->numThreads; w++)
     ss->setThreadData(w, new ovmThreadData(g));  //  these leak
 
-  ss->run(g, true);  //  true == verbose
+  ss->run(g, g->beVerbose);  //  true == verbose
 
   delete g;
 
