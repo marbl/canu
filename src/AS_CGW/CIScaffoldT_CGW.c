@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.37 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.38 2009-08-03 23:42:11 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -1198,6 +1198,16 @@ int IsScaffoldInternallyConnectedCheck(ScaffoldGraphT *sgraph,
   }
   UFFreeSets(UFData);
   return numComponents;
+}
+
+
+static
+void
+DeleteScaffoldEdgesForScaffold(ScaffoldGraphT * graph, CIScaffoldT * scaffold) {
+  while(scaffold->edgeHead != NULLINDEX)
+      DeleteGraphEdge(graph->ScaffoldGraph,
+                      GetGraphEdge(graph->ScaffoldGraph,
+                                   scaffold->edgeHead));
 }
 
 

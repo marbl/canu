@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.33 2009-07-30 10:34:14 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.34 2009-08-03 23:42:12 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -153,22 +153,6 @@ void DumpChunkInstance(FILE *stream, ScaffoldGraphT *graph,
 /****************************************************************************
 	Operations on Scaffolds
 ***************************************************************************/
-
-
-int InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
-                                       CDS_CID_t newScaffoldID,
-                                       CDS_CID_t oldScaffoldID,
-                                       FragOrient orient,
-                                       LengthT * offset,
-                                       int contigNow);
-
-void BuildNewScaffoldEdges(ScaffoldGraphT * graph,
-                           CDS_CID_t firstScaffoldID);
-
-void MergeScaffoldsAggressive(ScaffoldGraphT *sgraph,
-                              char *logicalname,
-                              int verbose);
-
 
 
 void InsertCIInScaffold(ScaffoldGraphT *sgraph, CDS_CID_t ci, CDS_CID_t sid,
@@ -556,7 +540,7 @@ void DemoteSmallSingletonScaffolds(void);
 void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
                             CIScaffoldT * scaffold);
 
-void DeleteScaffoldEdgesForScaffold(ScaffoldGraphT * graph,
-                                    CIScaffoldT * scaffold);
+
+#include "CIScaffoldT_Merge_CGW.h"
 
 #endif

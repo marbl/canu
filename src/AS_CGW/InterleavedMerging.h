@@ -22,7 +22,7 @@
 #ifndef INTERLEAVED_MERGING_H
 #define INTERLEAVED_MERGING_H
 
-static const char *rcsid_INTERLEAVED_MERGING_H = "$Id: InterleavedMerging.h,v 1.9 2009-07-30 10:42:56 brianwalenz Exp $";
+static const char *rcsid_INTERLEAVED_MERGING_H = "$Id: InterleavedMerging.h,v 1.10 2009-08-03 23:42:12 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -39,9 +39,9 @@ VA_DEF(Segment);
 VA_DEF(Local_Overlap);
 VA_DEF(Scaffold_Gap);
 VA_DEF(Scaffold_Tig);
+VA_DEF(PtrT);
 
-typedef struct
-{
+typedef struct {
   int index;
   CDS_CID_t id;
   double length;
@@ -52,14 +52,12 @@ typedef struct
 
 VA_DEF(ContigElement);
 
-typedef struct
-{
+typedef struct {
   VA_TYPE(Scaffold_Gap) * gapPool;
   VA_TYPE(Scaffold_Tig) * tigPool;
 } ScaffoldPools;
 
-typedef struct
-{
+typedef struct {
   int32 bandBeg;             // max AHang - only for scaffold A
   int32 bandEnd;             // min AHang - only for scaffold A
   Scaffold * scaffold;
@@ -69,8 +67,7 @@ typedef struct
   NodeOrient orient;
 } ScaffoldStuff;
 
-typedef struct
-{
+typedef struct {
   Segment * segmentList;
   int numSegs;
   int varWin;
@@ -81,11 +78,7 @@ typedef struct
   ScaffoldInstrumenter * scaffInst;       // used in instrumenting
 } ScaffoldAlignmentInterface;
 
-
-VA_DEF(PtrT);
-
-typedef struct
-{
+typedef struct {
   ScaffoldAlignmentInterface * sai;
   int contigNow;
   int checkForTinyScaffolds;
@@ -97,18 +90,41 @@ typedef struct
 } InterleavingSpec;
 
 
-void DeleteScaffoldAlignmentInterface(ScaffoldAlignmentInterface * sai);
-ScaffoldAlignmentInterface * CreateScaffoldAlignmentInterface(void);
-int PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
-                                       CIScaffoldT * scaffoldB,
-                                       SEdgeT * sEdge,
-                                       ScaffoldAlignmentInterface * sai);
-SEdgeT * MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
-                                          CIScaffoldT * scaffoldB,
-                                          SEdgeT * sEdge,
-                                          ScaffoldAlignmentInterface * sai);
-Segment* DuplicateSegmentList(Segment * segmentList);
-int GetNumSegmentsInList(Segment * segmentList);
+
+ScaffoldAlignmentInterface *
+CreateScaffoldAlignmentInterface(void);
+
+
+int
+PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
+                                   CIScaffoldT * scaffoldB,
+                                   SEdgeT * sEdge,
+                                   ScaffoldAlignmentInterface * sai);
+
+
+SEdgeT *
+MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
+                                 CIScaffoldT * scaffoldB,
+                                 SEdgeT * sEdge,
+                                 ScaffoldAlignmentInterface * sai);
+
+
+void
+DeleteScaffoldAlignmentInterface(ScaffoldAlignmentInterface * sai);
+
+
+static
+int
+GetNumSegmentsInList(Segment *segmentList) {
+  int numSegments = 0;
+
+  while (segmentList != NULL) {
+    segmentList = segmentList->next;
+    numSegments++;
+  }
+
+  return(numSegments);
+}
 
 
 #endif // INTERLEAVED_MERGING_H
