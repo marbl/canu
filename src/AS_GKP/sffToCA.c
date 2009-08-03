@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.33 2009-07-13 23:51:53 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.34 2009-08-03 08:49:09 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -573,13 +573,13 @@ processRead(sffHeader *h,
       fprintf(logFile, "Read '%s' of length %d is too long.  Truncating to %d bases.\n",
               r->name, r->number_of_bases - h->key_length, AS_READ_MAX_MEDIUM_LEN);
 
-    r->number_of_bases = AS_READ_MAX_MEDIUM_LEN;
+    r->number_of_bases = AS_READ_MAX_MEDIUM_LEN + h->key_length;
 
     r->bases  [AS_READ_MAX_MEDIUM_LEN + h->key_length] = 0;
     r->quality[AS_READ_MAX_MEDIUM_LEN + h->key_length] = 0;
 
-    if (fr->clrBgn > AS_READ_MAX_MEDIUM_LEN)   fr->clrBgn = AS_READ_MAX_MEDIUM_LEN;
-    if (fr->clrEnd > AS_READ_MAX_MEDIUM_LEN)   fr->clrEnd = AS_READ_MAX_MEDIUM_LEN;
+    if (fr->clrBgn > AS_READ_MAX_MEDIUM_LEN - h->key_length)   fr->clrBgn = AS_READ_MAX_MEDIUM_LEN + h->key_length;
+    if (fr->clrEnd > AS_READ_MAX_MEDIUM_LEN - h->key_length)   fr->clrEnd = AS_READ_MAX_MEDIUM_LEN + h->key_length;
   }
 
 
@@ -1684,9 +1684,10 @@ main(int argc, char **argv) {
   int       bogusOptions[256] = {0};
   int       bogusOptionsLen   = 0;
 
+  argc = AS_configure(argc, argv);
+
   int arg = 1;
   int err = 0;
-
   while (arg < argc) {
     if        (strcmp(argv[arg], "-insertsize") == 0) {
       insertSize   = atoi(argv[++arg]);
@@ -1933,7 +1934,7 @@ main(int argc, char **argv) {
   errno = 0;
   logFile = (statsFileName) ? fopen(statsFileName, "w") : NULL;
   if (errno)
-    fprintf(stderr, "ERROR: Failed to open the stats file '%s': %s\n", statsFileName);
+    fprintf(stderr, "ERROR: Failed to open the stats file '%s': %s\n", statsFileName, strerror(errno));
   if (logFile) {
     writeStatistics(logFile);
     fclose(logFile);
