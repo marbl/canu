@@ -69,10 +69,10 @@ ifeq ($(OSTYPE), Linux)
   ARCH_LDFLAGS   += -pthread -lm
 
   ifeq ($(BUILDDEBUG), 1)
-    ARCH_CFLAGS  += -g -Wall -Wimplicit -Wno-write-strings -Wno-unused 
+    ARCH_CFLAGS  += -g -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts
     ARCH_LDFLAGS +=
   else
-    ARCH_CFLAGS  += -O2 -Wall -Wimplicit -Wno-write-strings -Wno-unused 
+    ARCH_CFLAGS  += -O2 -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts
     ARCH_LDFLAGS += -Wl,-O1
   endif
 
@@ -96,11 +96,11 @@ endif
 ifeq ($(OSTYPE), FreeBSD)
   ifeq ($(MACHINETYPE), i386)
     ARCH_LDFLAGS    += -pthread -lthr -lm
-    ARCH_CFLAGS      = -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused 
+    ARCH_CFLAGS      = -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts
   endif
   ifeq ($(MACHINETYPE), amd64)
     ARCH_LDFLAGS    += -pthread -lthr -lm
-    ARCH_CFLAGS      = -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused 
+    ARCH_CFLAGS      = -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts
   endif
 
   ifeq ($(BUILDCOVERAGE), 1)
