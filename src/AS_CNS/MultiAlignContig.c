@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignContig.c,v 1.4 2009-07-30 10:42:56 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignContig.c,v 1.5 2009-08-04 11:05:19 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -47,15 +47,17 @@ PlaceFragments(int32 fid,
                CNS_Options  *opp) {
 
   Fragment                 *afrag = GetFragment(fragmentStore,fid);
-  CNS_AlignedContigElement *bfrag = GetCNS_AlignedContigElement(fragment_positions, afrag->components);
+  Fragment                 *bfrag = NULL;
+
+  CNS_AlignedContigElement *belem = GetCNS_AlignedContigElement(fragment_positions, afrag->components);
 
   if (afrag->n_components == 0)
     return;
 
   VA_TYPE(int32) *trace = CreateVA_int32(AS_READ_MAX_LEN+1);
 
-  for (; bfrag->frg_or_utg == CNS_ELEMENT_IS_FRAGMENT; bfrag++) {
-    if (!ExistsInHashTable_AS(fragmentMap, bfrag->idx.fragment.frgIdent, 0))
+  for (; belem->frg_or_utg == CNS_ELEMENT_IS_FRAGMENT; belem++) {
+    if (!ExistsInHashTable_AS(fragmentMap, belem->idx.fragment.frgIdent, 0))
       continue;
 
     // if it exists in the fragmentMap it should exist in this map as well since it was added at the same time
@@ -66,12 +68,12 @@ PlaceFragments(int32 fid,
     // when placing readA within the surrogate unitig, we see if readA belongs in surrogate instance A or B
     // by computing the position of the unitig within the contig and adding ahang to it
     // if this computed position matches the position that the IMP record retrieved below tells us, proceed, otherwise skip placement
-    IntMultiPos *bimp = (IntMultiPos *)LookupValueInHashTable_AS(fragmentToIMP, bfrag->idx.fragment.frgIdent, 0);
+    IntMultiPos *bimp = (IntMultiPos *)LookupValueInHashTable_AS(fragmentToIMP, belem->idx.fragment.frgIdent, 0);
     int32  bbgn = (bimp->position.bgn < bimp->position.end ? bimp->position.bgn : bimp->position.end);
     int32  abgn = (aiup->position.bgn < aiup->position.end ? aiup->position.bgn : aiup->position.end);
 
     int fcomplement = afrag->complement;
-    int bcomplement = (bfrag->position.bgn < bfrag->position.end) ? 0 : 1;
+    int bcomplement = (belem->position.bgn < belem->position.end) ? 0 : 1;
 
     int           ahang = 0;
     int           bhang = 0;
@@ -95,24 +97,24 @@ PlaceFragments(int32 fid,
     //
 
     //  The afrag is a unitig, so b is always contained (length of
-    //  overlap is length of bfrag).
+    //  overlap is length of belem).
 
     if        (fcomplement && bcomplement) {
-      ahang = afrag->length - bfrag->position.bgn; /* Case D */
-      bhang = bfrag->position.end - afrag->length;
-      ovl   = bfrag->position.bgn - bfrag->position.end;
+      ahang = afrag->length - belem->position.bgn; /* Case D */
+      bhang = belem->position.end - afrag->length;
+      ovl   = belem->position.bgn - belem->position.end;
     } else if (fcomplement && !bcomplement) {
-      ahang = afrag->length - bfrag->position.end; /* Case C */
-      bhang = bfrag->position.bgn - afrag->length;
-      ovl   = bfrag->position.end - bfrag->position.bgn;
+      ahang = afrag->length - belem->position.end; /* Case C */
+      bhang = belem->position.bgn - afrag->length;
+      ovl   = belem->position.end - belem->position.bgn;
     } else if (!fcomplement && bcomplement) {
-      ahang = bfrag->position.end;                 /* Case B */
-      bhang = bfrag->position.bgn - afrag->length;
-      ovl   = bfrag->position.bgn - bfrag->position.end;
+      ahang = belem->position.end;                 /* Case B */
+      bhang = belem->position.bgn - afrag->length;
+      ovl   = belem->position.bgn - belem->position.end;
     } else {
-      ahang = bfrag->position.bgn;                 /* Case A */
-      bhang = bfrag->position.end - afrag->length;
-      ovl   = bfrag->position.end - bfrag->position.bgn;
+      ahang = belem->position.bgn;                 /* Case A */
+      bhang = belem->position.end - afrag->length;
+      ovl   = belem->position.end - belem->position.bgn;
     }
 
     assert(ahang >= 0);
@@ -122,23 +124,26 @@ PlaceFragments(int32 fid,
     if (aiup->num_instances > 1 && abs(ahang + abgn - bbgn) > MAX_SURROGATE_FUDGE_FACTOR) { 
       if (VERBOSE_MULTIALIGN_OUTPUT)
         fprintf(stderr, "Not placing fragment %d into unitig %d because the positions (%d, %d) do not match (%d, %d)\n",
-                bfrag->idx.fragment.frgIdent, afrag->iid,
+                belem->idx.fragment.frgIdent, afrag->iid,
                 bimp->position.bgn, bimp->position.end,
                 ahang + GetColumn(columnStore,(GetBead(beadStore,afrag->firstbead))->column_index)->ma_index,
                 bhang + GetColumn(columnStore,(GetBead(beadStore,afrag->firstbead+afrag->length-1))->column_index)->ma_index+1);
       continue;
     }
 
-    int blid = AppendFragToLocalStore(bfrag->idx.fragment.frgType,
-                                      bfrag->idx.fragment.frgIdent,
+    int blid = AppendFragToLocalStore(belem->idx.fragment.frgType,
+                                      belem->idx.fragment.frgIdent,
                                       (bcomplement != fcomplement),
-                                      bfrag->idx.fragment.frgContained,
+                                      belem->idx.fragment.frgContained,
                                       AS_OTHER_UNITIG, NULL);
 
     afrag = GetFragment(fragmentStore, fid);  // AppendFragToLocalStore can change the pointer on us.
+    bfrag = GetFragment(fragmentStore, blid);
 
-    if (!GetAlignmentTrace(afrag->lid, 0, blid, &ahang, &bhang, ovl, trace, &otype, DP_Compare,              DONT_SHOW_OLAP, 0, AS_CONSENSUS, AS_CNS_ERROR_RATE) &&
-        !GetAlignmentTrace(afrag->lid, 0, blid, &ahang, &bhang, ovl, trace, &otype, Local_Overlap_AS_forCNS, DONT_SHOW_OLAP, 0, AS_CONSENSUS, AS_CNS_ERROR_RATE)) {
+    if (!GetAlignmentTraceDriver(afrag, NULL, bfrag, &ahang, &bhang, ovl, trace, &otype, GETALIGNTRACE_CONTIGF, 0)) {
+
+      //if (!GetAlignmentTrace(afrag->lid, 0, blid, &ahang, &bhang, ovl, trace, &otype, DP_Compare,              DONT_SHOW_OLAP, 0, AS_CONSENSUS, AS_CNS_ERROR_RATE) &&
+      //  !GetAlignmentTrace(afrag->lid, 0, blid, &ahang, &bhang, ovl, trace, &otype, Local_Overlap_AS_forCNS, DONT_SHOW_OLAP, 0, AS_CONSENSUS, AS_CNS_ERROR_RATE)) {
 
       Bead   *afirst = GetBead(beadStore, afrag->firstbead + ahang);
       Column *col    = GetColumn(columnStore, afirst->column_index);
@@ -147,7 +152,7 @@ PlaceFragments(int32 fid,
       RefreshMANode(manode->lid, 0, opp, NULL, NULL, 0, 0);  //  BPW not sure why we need this
 
       fprintf(stderr, "Could (really) not find overlap between %d (%c) and %d (%c) estimated ahang: %d (ejecting frag %d from contig)\n",
-              afrag->iid, afrag->type, bfrag->idx.fragment.frgIdent, bfrag->idx.fragment.frgType, ahang, bfrag->idx.fragment.frgIdent);
+              afrag->iid, afrag->type, belem->idx.fragment.frgIdent, belem->idx.fragment.frgType, ahang, belem->idx.fragment.frgIdent);
 
       GetFragment(fragmentStore,blid)->deleted = 1;
     } else {
@@ -333,14 +338,14 @@ MultiAlignContig(IntConConMesg *contig,
                                              &ahang, &bhang, ovl,
                                              trace,
                                              &otype,
-                                             'c',
+                                             GETALIGNTRACE_CONTIGU,
                                              (blid + 1 < num_unitigs) ? (offsets[blid + 1].bgn - offsets[blid].bgn) : 800);
 
       //  Nope, fail.
       if (!olap_success) {
         if (VERBOSE_MULTIALIGN_OUTPUT)
           fprintf(stderr, "MultiAlignContig: Positions of afrag %d (%c) and bfrag %d (%c) overlap, but GetAlignmentTrace returns no overlap success.\n",
-                  afrag->iid,afrag->type,bfrag->iid,bfrag->type, ahang);
+                  afrag->iid, afrag->type, bfrag->iid, bfrag->type);
 
         align_to--;
 

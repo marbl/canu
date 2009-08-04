@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.17 2009-07-31 15:13:02 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.18 2009-08-04 11:05:19 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -763,7 +763,7 @@ unitigConsensus::alignFragment(void) {
     else
       allow_neg_hang = 0;
 
-    success = GetAlignmentTraceDriver(NULL, frankenstein + ahang_offset, bfrag, &ahang, &bhang, ovl, trace, &otype, 'u', 0);
+    success = GetAlignmentTraceDriver(NULL, frankenstein + ahang_offset, bfrag, &ahang, &bhang, ovl, trace, &otype, GETALIGNTRACE_UNITIG, 0);
 
     //  If we've set the base, we've trimmed the end of frankenstein to limit the alignment.  Restore
     //  it to what it was before.

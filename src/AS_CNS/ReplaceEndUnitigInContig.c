@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.3 2009-06-22 12:04:53 brianwalenz Exp $";
+static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.4 2009-08-04 11:05:19 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -192,10 +192,10 @@ ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
         //  The expected length of this alignment is always the length of the original unitig.
         int ovl = right - left;
 
-        olap_success = GetAlignmentTrace(aid, 0, bid, &ahang, &bhang, ovl, trace, &otype, DP_Compare, DONT_SHOW_OLAP, 0, AS_MERGE, AS_CGW_ERROR_RATE);
+        olap_success = GetAlignmentTrace(aid, 0, bid, &ahang, &bhang, ovl, trace, &otype, DP_Compare, DONT_SHOW_OLAP, 0, GETALIGNTRACE_MERGE, AS_CGW_ERROR_RATE);
 
         if (!olap_success)
-          olap_success = GetAlignmentTrace(aid, 0, bid, &ahang, &bhang, ovl, trace, &otype, Local_Overlap_AS_forCNS, DONT_SHOW_OLAP, 0, AS_MERGE, AS_CGW_ERROR_RATE);
+          olap_success = GetAlignmentTrace(aid, 0, bid, &ahang, &bhang, ovl, trace, &otype, Local_Overlap_AS_forCNS, DONT_SHOW_OLAP, 0, GETALIGNTRACE_MERGE, AS_CGW_ERROR_RATE);
 
         //  If the alignment fails -- usually because the ahang is
         //  negative -- return an empty alignment.  This causes

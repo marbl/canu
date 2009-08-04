@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.247 2009-07-30 10:42:56 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.248 2009-08-04 11:05:19 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1166,27 +1166,27 @@ ResetStores(int32 num_frags, int32 num_columns) {
 
 
     ResetVA_Fragment(fragmentStore);
-    MakeRoom_VA(fragmentStore,num_frags,FALSE);
+    MakeRoom_VA(fragmentStore,num_frags);
 
     ResetVA_int32(fragment_indices);
-    MakeRoom_VA(fragment_indices,num_frags,FALSE);
+    MakeRoom_VA(fragment_indices,num_frags);
 
     ResetVA_int32(abacus_indices);
 
     ResetVA_CNS_AlignedContigElement(fragment_positions);
-    MakeRoom_VA(fragment_positions,2*num_frags,FALSE);
+    MakeRoom_VA(fragment_positions,2*num_frags);
 
     ResetVA_char(sequenceStore);
-    MakeRoom_VA(sequenceStore,2048*num_frags,FALSE);
+    MakeRoom_VA(sequenceStore,2048*num_frags);
 
     ResetVA_char(qualityStore);
-    MakeRoom_VA(qualityStore,2048*num_frags,FALSE);
+    MakeRoom_VA(qualityStore,2048*num_frags);
 
     ResetVA_Column(columnStore);
-    MakeRoom_VA(columnStore,num_columns,FALSE);
+    MakeRoom_VA(columnStore,num_columns);
 
     ResetVA_Bead(beadStore);
-    MakeRoom_VA(beadStore,2048*num_frags+num_columns,FALSE);
+    MakeRoom_VA(beadStore,2048*num_frags+num_columns);
 
     ResetVA_MANode(manodeStore);
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MergeMultiAligns.c,v 1.4 2009-07-30 10:42:56 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeMultiAligns.c,v 1.5 2009-08-04 11:05:19 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -182,10 +182,13 @@ MergeMultiAligns(tSequenceDB *sequenceDBp,
         return NULL;
       }
 
-      olap_success = GetAlignmentTrace(afrag->lid, NULL, bfrag->lid, &ahang, &bhang, ovl, trace, &otype, DP_Compare, DONT_SHOW_OLAP, 0, AS_MERGE, AS_CGW_ERROR_RATE);
+      //  Use driver here?  Probably not; that will increase the erate and try other tricks we don't
+      //  really want to have done *yet).
+
+      olap_success = GetAlignmentTrace(afrag->lid, NULL, bfrag->lid, &ahang, &bhang, ovl, trace, &otype, DP_Compare, DONT_SHOW_OLAP, 0, GETALIGNTRACE_MERGE, AS_CGW_ERROR_RATE);
 
       if (!olap_success)
-        olap_success = GetAlignmentTrace(afrag->lid, NULL, bfrag->lid, &ahang, &bhang, ovl, trace, &otype, Local_Overlap_AS_forCNS, DONT_SHOW_OLAP, 0, AS_MERGE, AS_CGW_ERROR_RATE);
+        olap_success = GetAlignmentTrace(afrag->lid, NULL, bfrag->lid, &ahang, &bhang, ovl, trace, &otype, Local_Overlap_AS_forCNS, DONT_SHOW_OLAP, 0, GETALIGNTRACE_MERGE, AS_CGW_ERROR_RATE);
 
       if (!olap_success) {
         if (VERBOSE_MULTIALIGN_OUTPUT)

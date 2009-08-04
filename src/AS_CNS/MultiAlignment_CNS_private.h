@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.10 2009-06-22 12:04:53 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.11 2009-08-04 11:05:19 brianwalenz Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
@@ -53,8 +53,16 @@ static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS
 #define MSTRING_SIZE                        3
 #define MAX_SIZE_OF_ADJUSTED_REGION         5
 
-#define AS_CONSENSUS                        0
-#define AS_MERGE                            1
+//  GetAlignmentTrace alignment contexts.
+//
+//  Old ones were AS_CONSENSUS=0, AS_MERGE=1
+//
+typedef enum {
+  GETALIGNTRACE_UNITIG    = 'u',  //  unitig consensus: Fragment to fragment
+  GETALIGNTRACE_CONTIGU   = 'U',  //  contig consensus: Unitig to unitig
+  GETALIGNTRACE_CONTIGF   = 'F',  //  contig consensus: Fragment to unitig
+  GETALIGNTRACE_MERGE     = 'm'   //  cgw scaffold merging
+} GetAlignmentTraceContext;
 
 #define CNS_MIN_QV 0
 #define CNS_MAX_QV 60
@@ -473,31 +481,31 @@ MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars,
 
 
 int
-GetAlignmentTrace(int32           afid,
-                  char           *aseq_input,
-                  int32           bfid,
-                  int32          *ahang,
-                  int32          *bhang,
-                  int32           expected_length,
-                  VA_TYPE(int32) *trace,
-                  OverlapType    *otype,
-                  AS_ALN_Aligner *alignFunction,
-                  int             show_olap,
-                  int             allow_big_endgaps,
-                  int             alignment_context,
-                  double          input_erate);
+GetAlignmentTrace(int32                      afid,
+                  char                      *aseq_input,
+                  int32                      bfid,
+                  int32                     *ahang,
+                  int32                     *bhang,
+                  int32                      expected_length,
+                  VA_TYPE(int32)            *trace,
+                  OverlapType               *otype,
+                  AS_ALN_Aligner            *alignFunction,
+                  int                        show_olap,
+                  int                        allow_big_endgaps,
+                  GetAlignmentTraceContext   alignment_context,
+                  double                     input_erate);
 
 int
-GetAlignmentTraceDriver(Fragment        *afrag,
-                        char            *aseq,
-                        Fragment        *bfrag,
-                        int32           *ahang,
-                        int32           *bhang,
-                        int32            expected_length,
-                        VA_TYPE(int32)  *trace,
-                        OverlapType     *otype,
-                        char             is_contig,
-                        int              max_gap);
+GetAlignmentTraceDriver(Fragment                    *afrag,
+                        char                        *aseq,
+                        Fragment                    *bfrag,
+                        int32                       *ahang,
+                        int32                       *bhang,
+                        int32                        expected_length,
+                        VA_TYPE(int32)              *trace,
+                        OverlapType                 *otype,
+                        GetAlignmentTraceContext     alignment_context,
+                        int                          max_gap);
 
 MultiAlignT *
 ReplaceEndUnitigInContig(tSequenceDB *sequenceDBp,
