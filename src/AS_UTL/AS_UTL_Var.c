@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_UTL_Var.c,v 1.26 2008-11-05 23:32:27 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_Var.c,v 1.27 2009-08-04 11:03:02 brianwalenz Exp $";
 
 /********************************************************************/
 /* Variable Length C Array Package
@@ -41,7 +41,6 @@ static char *rcsid = "$Id: AS_UTL_Var.c,v 1.26 2008-11-05 23:32:27 brianwalenz E
 #include <math.h>
 
 #include "AS_global.h"
-#include "math_AS.h"
 #include "AS_UTL_Var.h"
 
 #include "AS_UTL_fileIO.h"
@@ -72,8 +71,7 @@ typedef struct {
 
 int
 MakeRoom_VA(VarArrayType *va,
-            size_t         maxElements,
-            int            pad_to_a_power_of_two) {
+            size_t         maxElements) {
 
   size_t newElements, newSize, tentativeNewSize, oldSize;
   char *mem = NULL;
@@ -109,20 +107,6 @@ MakeRoom_VA(VarArrayType *va,
 
   // Minimimum allocation is one element;
   newSize = MAX(maxElements, 1)*(va->sizeofElement);
-
-  if(pad_to_a_power_of_two) {
-    /* Compute a power-of-two allocation size for the va */
-
-    // Only allocate a power of 2 number of bytes.
-    tentativeNewSize = (((size_t)1) << ceil_log2(newSize));
-
-    // Cap alloc'd size at 512MB to decrease failure rate
-    if ( tentativeNewSize - newSize > (2 << 28) )
-        tentativeNewSize = oldSize + (2 << 28);
-
-    // If we need to use the end of the block, do it
-    newSize = MAX(newSize, tentativeNewSize);
-  }
 
 #ifdef DEBUG
   fprintf(stderr,"* MakeRoom_VA newSize=" F_SIZE_T "\n",newSize);
@@ -191,7 +175,7 @@ Create_VA(size_t numElements,
   strncpy(va->typeofElement,thetype,VA_TYPENAMELEN);
   va->typeofElement[VA_TYPENAMELEN-1] = (char)0;
 
-  MakeRoom_VA(va, numElements, FALSE);
+  MakeRoom_VA(va, numElements);
 
   return va;
 }
@@ -239,7 +223,7 @@ Concat_VA(VarArrayType *va,
   if ((asize + bsize == 0) || (bsize == 0))
     return;
 
-  MakeRoom_VA(va, va->numElements + vb->numElements, FALSE);
+  MakeRoom_VA(va, va->numElements + vb->numElements);
   va->numElements += vb->numElements;
   assert(va->Elements + asize != vb->Elements);
   memcpy(va->Elements + asize, vb->Elements, bsize);
@@ -275,7 +259,7 @@ void
 EnableRange_VA(VarArrayType *va, size_t maxElements){
 
   if (maxElements > va->allocatedElements)
-    MakeRoom_VA(va,maxElements,TRUE);
+    MakeRoom_VA(va, maxElements);  //  Was allocating a power of two
 
   assert(maxElements == 0 || va->Elements != NULL);
 
@@ -306,7 +290,7 @@ Clone_VA(VarArrayType *fr){
 
   strncpy(to->typeofElement, fr->typeofElement, VA_TYPENAMELEN);
 
-  MakeRoom_VA(to, fr->numElements, FALSE);
+  MakeRoom_VA(to, fr->numElements);
   EnableRange_VA(to, fr->numElements);
 
   if (fr->numElements > 0)
@@ -335,7 +319,7 @@ ReuseClone_VA(VarArrayType *to, VarArrayType *fr){
     ResetToRange_VA(to, 0);
   }
 
-  MakeRoom_VA(to, fr->numElements, FALSE);
+  MakeRoom_VA(to, fr->numElements);
   EnableRange_VA(to, fr->numElements);
 
   if (fr->numElements > 0)
@@ -345,7 +329,7 @@ ReuseClone_VA(VarArrayType *to, VarArrayType *fr){
 static
 void
 ReadVA(FILE *fp, VarArrayType *va, FileVarArrayType *vat) {
-  MakeRoom_VA(va, vat->numElements, FALSE);
+  MakeRoom_VA(va, vat->numElements);
   EnableRange_VA(va, vat->numElements);
 
   if (vat->numElements > 0) {

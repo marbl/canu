@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.73 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.74 2009-08-04 11:03:00 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,7 +67,7 @@ int isDeadCIScaffoldT(CIScaffoldT *scaffold){
 
 /* Make sure there is enough space for the number of edges we expect */
 void ReallocGraphEdges(GraphCGW_T *graph, int32 numEdges){
-  MakeRoom_VA(graph->edges, (size_t) numEdges, FALSE);
+  MakeRoom_VA(graph->edges, (size_t) numEdges);
 }
 
 GraphCGW_T *CreateGraphCGW(GraphType type,

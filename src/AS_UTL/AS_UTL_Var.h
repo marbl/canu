@@ -22,7 +22,7 @@
 #ifndef AS_UTL_VAR_H
 #define AS_UTL_VAR_H
 
-static const char *rcsid_AS_UTL_VAR_H = "$Id: AS_UTL_Var.h,v 1.17 2009-06-10 18:05:14 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_VAR_H = "$Id: AS_UTL_Var.h,v 1.18 2009-08-04 11:03:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <string.h>
@@ -48,8 +48,7 @@ typedef struct {
 
 int
 MakeRoom_VA(VarArrayType *va,
-            size_t        maxElements,
-            int           pad_to_a_power_of_two);
+            size_t        maxElements);
 
 
 VarArrayType *
