@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "meryl.H"
 #include "libmeryl.H"
@@ -18,7 +19,8 @@ binaryOperations(merylArgs *args) {
     exit(1);
   }
   if ((args->personality != PERSONALITY_SUB) &&
-      (args->personality != PERSONALITY_ABS)) {
+      (args->personality != PERSONALITY_ABS) &&
+      (args->personality != PERSONALITY_DIVIDE)) {
     fprintf(stderr, "ERROR - only personalities sub and abs\n");
     fprintf(stderr, "ERROR - are supported in binaryOperations().\n");
     fprintf(stderr, "ERROR - this is a coding error, not a user error.\n");
@@ -127,6 +129,41 @@ binaryOperations(merylArgs *args) {
           A->nextMer();
         } else {
           W->addMer(Bmer, Bcnt);
+          B->nextMer();
+        }
+      }
+      break;
+    case PERSONALITY_DIVIDE:
+      while (A->validMer() || B->validMer()) {
+        Amer = A->theFMer();
+        Acnt = A->theCount();
+        Bmer = B->theFMer();
+        Bcnt = B->theCount();
+
+        //  If the A stream is all out of mers, set Amer to be the
+        //  same as Bmer, and set Acnt to zero.  Similar for B.
+        //
+        if (!A->validMer()) {
+          Amer = Bmer;
+          Acnt = u32bitZERO;
+        }
+        if (!B->validMer()) {
+          Bmer = Amer;
+          Bcnt = u32bitZERO;
+        }
+
+        if (Amer == Bmer) {
+          if ((Acnt > 0) && (Bcnt > 0)) {
+            double d = 1000.0 * (double)Acnt / (double)Bcnt;
+            if (d > 4096.0 * 1024.0 * 1024.0)
+              d = 4096.0 * 1024.0 * 1024.0;
+            W->addMer(Amer, (u32bit)floor(d));
+          }
+          A->nextMer();
+          B->nextMer();
+        } else if (Amer < Bmer) {
+          A->nextMer();
+        } else {
           B->nextMer();
         }
       }

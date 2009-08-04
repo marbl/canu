@@ -3,20 +3,23 @@
 
 #include "bio++.H"
 
-#define PERSONALITY_MERGE         0x01
-#define PERSONALITY_MIN           0x02
-#define PERSONALITY_MINEXIST      0x03
-#define PERSONALITY_MAX           0x04
-#define PERSONALITY_ADD           0x05
-#define PERSONALITY_SUB           0x06
+#define PERSONALITY_MERGE         0xff
+
+#define PERSONALITY_MIN           0x01
+#define PERSONALITY_MINEXIST      0x02
+#define PERSONALITY_MAX           0x03
+#define PERSONALITY_ADD           0x04
+#define PERSONALITY_SUB           0x05
+#define PERSONALITY_DIVIDE        0x06
 #define PERSONALITY_ABS           0x07
-#define PERSONALITY_AND           0x08
-#define PERSONALITY_NAND          0x09
-#define PERSONALITY_OR            0x0a
-#define PERSONALITY_XOR           0x0b
-#define PERSONALITY_LEQ           0x0c
-#define PERSONALITY_GEQ           0x0d
-#define PERSONALITY_EQ            0x0e
+
+#define PERSONALITY_AND           0x10
+#define PERSONALITY_NAND          0x11
+#define PERSONALITY_OR            0x12
+#define PERSONALITY_XOR           0x13
+#define PERSONALITY_LEQ           0x14
+#define PERSONALITY_GEQ           0x15
+#define PERSONALITY_EQ            0x16
 
 class merylArgs {
 public:
