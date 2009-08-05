@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.80 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.81 2009-08-05 22:05:33 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -113,7 +113,8 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "    -withsequence          ...and include sequence\n");
   fprintf(stdout, "    -clear <clr>           ...in clear range <clr>, default=LATEST\n");
   fprintf(stdout, "  -dumpfasta[seq|qlt]    dump fragment sequence or quality, as fasta format\n");
-  fprintf(stdout, "    -allreads              ...all reads, regardless of deletion status\n");
+  fprintf(stdout, "    -allreads              ...all reads, regardless of deletion status (deleted are lowercase)\n");
+  fprintf(stdout, "    -allbases              ...all bases (lowercase for non-clear)\n");
   fprintf(stdout, "    -decoded               ...quality as integers ('20 21 19')\n");
   fprintf(stdout, "    -clear <clr>           ...in clear range <clr>, default=LATEST\n");
   fprintf(stdout, "  -dumpfrg               extract LIB, FRG and LKG messages\n");
@@ -418,6 +419,7 @@ main(int argc, char **argv) {
   int              dumpClear         = AS_READ_CLEAR_LATEST;
   int              dumpFRGClear      = AS_READ_CLEAR_LATEST;
   int              dumpFastaClear    = AS_READ_CLEAR_LATEST;
+  int              dumpAllBases      = 0;
   int              dumpFastaQuality  = 0;
   int              doNotFixMates     = 0;
   int              dumpFormat        = 1;
@@ -508,6 +510,10 @@ main(int argc, char **argv) {
       dumpClear      = gkStore_decodeClearRegionLabel(argv[++arg]);
       dumpFRGClear   = dumpClear;
       dumpFastaClear = dumpClear;
+      if (dumpClear == AS_READ_CLEAR_ERROR) {
+        fprintf(stderr, "%s: -clear %s is not a valid clear range.\n", argv[0], argv[arg]);
+        exit(0);
+      }
     } else if (strcmp(argv[arg], "-format2") == 0) {
       dumpFormat = 2;
     } else if (strcmp(argv[arg], "-dumpfastaseq") == 0) {
@@ -518,6 +524,8 @@ main(int argc, char **argv) {
       dumpFastaQuality = 1;
     } else if (strcmp(argv[arg], "-allreads") == 0) {
       dumpAllReads = 1;
+    } else if (strcmp(argv[arg], "-allbases") == 0) {
+      dumpAllBases = 1;
     } else if (strcmp(argv[arg], "-decoded") == 0) {
       dumpFastaQuality = 2;
     } else if (strcmp(argv[arg], "-dumpfrg") == 0) {
@@ -593,7 +601,7 @@ main(int argc, char **argv) {
         break;
       case DUMP_FASTA:
         dumpGateKeeperAsFasta(gkpStoreName, begIID, endIID, iidToDump,
-                              dumpAllReads,
+                              dumpAllReads, dumpAllBases,
                               dumpFastaClear,
                               dumpFastaQuality);
         break;

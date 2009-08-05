@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.48 2009-06-10 18:05:13 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.49 2009-08-05 22:05:33 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
 
-static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.48 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.49 2009-08-05 22:05:33 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <errno.h>
@@ -86,6 +86,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
                       AS_IID      endIID,
                       char       *iidToDump,
                       int         dumpAllReads,
+                      int         dumpAllBases,
                       int         dumpFastaClear,
                       int         dumpFastaQuality);
 

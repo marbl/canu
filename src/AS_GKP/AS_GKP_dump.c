@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.48 2009-06-10 18:05:13 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.49 2009-08-05 22:05:33 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -121,7 +121,7 @@ dumpGateKeeperInfo(char       *gkpStoreName,
 
   //  Header
 
-  fprintf(stdout, "LibraryName\tnumActiveFRG\tnumDeletedFRG\tnumMatedFRG\treadLength\tclearLength");
+  fprintf(stdout, "LibraryName\tnumActiveFRG\tnumDeletedFRG\tnumMatedFRG\treadLength\tclearLength\n");
 
   //  Global
 
@@ -131,7 +131,7 @@ dumpGateKeeperInfo(char       *gkpStoreName,
   //  Per Library
 
   for (j=0; j<gkp->gkStore_getNumLibraries() + 1; j++) {
-    fprintf(stdout, "%s\t"F_U32"\t"F_U32"\t"F_U32,
+    fprintf(stdout, "%s\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n",
             (j == 0) ? "LegacyUnmatedReads" : AS_UID_toString(gkp->gkStore_getLibrary(j)->libraryUID),
             numActivePerLib[j], numDeletedPerLib[j], numMatedPerLib[j], readLengthPerLib[j], clearLengthPerLib[j]);
   }
@@ -306,6 +306,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
                       AS_IID      endIID,
                       char       *iidToDump,
                       int         dumpAllReads,
+                      int         dumpAllBases,
                       int         dumpClear,
                       int         dumpQuality) {
   gkStore      *gkp = new gkStore(gkpStoreName, FALSE, FALSE);
@@ -338,12 +339,25 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
         unsigned int   clrBeg   = fr.gkFragment_getClearRegionBegin();
         unsigned int   clrEnd   = fr.gkFragment_getClearRegionEnd  ();
         char          *seqStart = fr.gkFragment_getSequence();
+        char          *seq      = seqStart;
 
         if (dumpQuality)
           seqStart = fr.gkFragment_getQuality();
 
-        char          *seq      = seqStart+clrBeg;
-        seq[clrEnd] = 0;
+        if (fr.gkFragment_getIsDeleted()) {
+          for (int i=0; seq[i]; i++)
+            seq[i] = tolower(seq[i]);
+        }
+
+        if ((dumpAllBases == 1) && (dumpQuality == 0)) {
+          for (int i=0; i<clrBeg; i++)
+            seq[i] = tolower(seq[i]); 
+          for (int i=clrEnd; seq[i]; i++)
+            seq[i] = tolower(seq[i]);
+        } else {
+          seq = seqStart + clrBeg;
+          seq[clrEnd] = 0;
+        }
 
         if (dumpQuality >=2) {
           AS_UTL_writeQVFastA(stdout, seq, clrEnd-clrBeg,
