@@ -352,6 +352,9 @@ clean_bin:
 
 
 #### Separate source types
+CXX_SOURCES_CC := $(filter %.cc, $(SOURCES))
+CXX_SOURCES_C  := $(filter %.C, $(SOURCES))
+
 C_OBJECTS      := $(patsubst %.c, %.o, $(filter %.c, $(SOURCES)))
 CXX_OBJECTS_CC := $(patsubst %.cc, %.o, $(filter %.cc, $(SOURCES)))
 CXX_OBJECTS_C  := $(patsubst %.C, %.o, $(filter %.C, $(SOURCES)))
@@ -382,10 +385,9 @@ $(CXX_OBJECTS_CC): %.o: %.cc
 $(CXX_OBJECTS_C): %.o: %.C
 	$(CXX) $(CPPFLAGS) $(CXXDEFS) $(CXXFLAGS) -c $(INC_DIRS) -o $(LOCAL_OBJ)/$*.o $<
 
-#### To accommodate referencing of objects in other working directories.
-$(SOURCES):
-	@ echo "@@@@@@@@@@@@@@@@@@@ " $@ "@@@@@@@@@@@@@@@@@@@@@";
-	@ echo $@ not present
+#### Missing files are there, we just need to rename them.
+$(CXX_SOURCES_C): %.C:
+	@ln -s $*.c $*.C
 
 $(LIBRARIES):
 	@ echo "################### " $@ "#####################";
