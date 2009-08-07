@@ -8,10 +8,11 @@
 #define PERSONALITY_MIN           0x01
 #define PERSONALITY_MINEXIST      0x02
 #define PERSONALITY_MAX           0x03
-#define PERSONALITY_ADD           0x04
-#define PERSONALITY_SUB           0x05
-#define PERSONALITY_DIVIDE        0x06
-#define PERSONALITY_ABS           0x07
+#define PERSONALITY_MAXEXIST      0x04
+#define PERSONALITY_ADD           0x05
+#define PERSONALITY_SUB           0x06
+#define PERSONALITY_DIVIDE        0x07
+#define PERSONALITY_ABS           0x08
 
 #define PERSONALITY_AND           0x10
 #define PERSONALITY_NAND          0x11

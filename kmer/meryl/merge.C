@@ -121,12 +121,13 @@ multipleOperations(merylArgs *args) {
     if ((moreInput == false) || (thisMer != currentMer)) {
       switch (args->personality) {
         case PERSONALITY_MIN:
+        case PERSONALITY_MAX:
           if (currentTimes == args->mergeFilesLen)
             W->addMer(currentMer, currentCount);
           break;
         case PERSONALITY_MERGE:
         case PERSONALITY_MINEXIST:
-        case PERSONALITY_MAX:
+        case PERSONALITY_MAXEXIST:
         case PERSONALITY_ADD:
           W->addMer(currentMer, currentCount, currentPositions);
           break;
@@ -204,6 +205,7 @@ multipleOperations(merylArgs *args) {
         }
         break;
       case PERSONALITY_MAX:
+      case PERSONALITY_MAXEXIST:
         if (currentCount < thisCount)
           currentCount = thisCount;
         break;

@@ -70,137 +70,131 @@ duplString(char *str) {
 
 
 
-
-const char *usagestring =
-"usage: %s [personality] [global options] [options]\n"
-"\n"
-"where personality is:\n"
-"        -P -- compute parameters\n"
-"        -B -- build table\n"
-"        -S -- scan table\n"
-"        -M -- \"math\" operations\n"
-"        -D -- dump table\n"
-"\n"
-"-P:  Given a sequence file (-s) or an upper limit on the\n"
-"     number of mers in the file (-n), compute the table size\n"
-"     (-t in build) to minimize the memory usage.\n"
-"        -m #          (size of a mer; required)\n"
-"        -c #          (homopolymer compression; optional)\n"
-"        -p            (enable positions)\n"
-"        -s seq.fasta  (seq.fasta is scanned to determine the number of mers)\n"
-"        -n #          (compute params assuming file with this many mers in it)\n"
-"\n"
-"     Only one of -s, -n need to be specified.  If both are given\n"
-"     -s takes priority.\n"
-"\n"
-"\n"
-"-B:  Given a sequence file (-s) and lots of parameters, compute\n"
-"     the mer-count tables.  By default, both strands are processed.\n"
-"        -f            (only build for the forward strand)\n"
-"        -r            (only build for the reverse strand)\n"
-"        -C            (use canonical mers, assumes both strands)\n"
-"        -L #          (DON'T save mers that occur less than # times)\n"
-"        -U #          (DON'T save mers that occur more than # times)\n"
-"        -m #          (size of a mer; required)\n"
-"        -c #          (homopolymer compression; optional)\n"
-"        -p            (enable positions)\n"
-"        -s seq.fasta  (sequence to build the table for)\n"
-"        -o tblprefix  (output table prefix)\n"
-"        -v            (entertain the user)\n"
-"\n"
-"     By default, the computation is done as one large sequential process.\n"
-"     Multi-threaded operation is possible, at additional memory expense, as\n"
-"     is segmented operation, at additional I/O expense.\n"
-"\n"
-"     Threaded operation: Split the counting in to n almost-equally sized\n"
-"     pieces.  This uses an extra h MB (from -P) per thread.\n"
-"        -threads n    (use n threads to build)\n"
-"\n"
-"     Segmented, sequential operation: Split the counting into pieces that\n"
-"     will fit into no more than m MB of memory, or into n equal sized pieces.\n"
-"     Each piece is computed sequentially, and the results are merged at the end.\n"
-"     Only one of -memory and -segments is needed.\n"
-"        -memory mMB   (use at most m MB of memory per segment)\n"
-"        -segments n   (use n segments)\n"
-"\n"
-"     Segmented, batched operation: Same as sequential, except this allows\n"
-"     each segment to be manually executed in parallel.\n"
-"     Only one of -memory and -segments is needed.\n"
-"        -memory mMB     (use at most m MB of memory per segment)\n"
-"        -segments n     (use n segments)\n"
-"        -configbatch    (create the batches)\n"
-"        -countbatch n   (run batch number n)\n"
-"        -mergebatch     (merge the batches)\n"
-"     Initialize the compute with -configbatch, which needs all the build options.\n"
-"     Execute all -countbatch jobs, then -mergebatch to complete.\n"
-"       meryl -configbatch -B [options] -o file\n"
-"       meryl -countbatch 0 -o file\n"
-"       meryl -countbatch 1 -o file\n"
-"       ...\n"
-"       meryl -countbatch N -o file\n"
-"       meryl -mergebatch N -o file\n"
-"     Batched mode can run on the grid.\n"
-"        -sge        jobname      unique job name for this execution.  Meryl will submit\n"
-"                                 jobs with name mpjobname, ncjobname, nmjobname, for\n"
-"                                 phases prepare, count and merge.\n"
-"        -sgebuild \"options\"    any additional options to sge, e.g.,\n"
-"        -sgemerge \"options\"    \"-p -153 -pe thread 2 -A merylaccount\"\n"
-"                                 N.B. - -N will be ignored\n"
-"                                 N.B. - be sure to quote the options\n"
-"\n"
-"-M:  Given a list of tables, perform a math, logical or threshold operation.\n"
-"     Unless specified, all operations take any number of databases.\n"
-"\n"
-"     Math operations are:\n"
-"        min       count is the minimum count for all databases.  If the mer\n"
-"                  does NOT exist in all databases, the mer has a zero count, and\n"
-"                  is NOT in the output.\n"
-"        minexist  count is the minimum count for all databases that contain the mer\n"
-"        max       count is the maximum count for all databases\n"
-"        add       count is sum of the counts for all databases\n"
-"        sub       count is the first minus the second (binary only)\n"
-"        abs       count is the absolute value of the first minus the second (binary only)\n"
-"\n"
-"     Logical operations are:\n"
-"        and       outputs mer iff it exists in all databases\n"
-"        nand      outputs mer iff it exists in at least one, but not all, databases\n"
-"        or        outputs mer iff it exists in at least one database\n"
-"        xor       outputs mer iff it exists in an odd number of databases\n"
-"\n"
-"     Threshold operations are:\n"
-"        lessthan x            outputs mer iff it has count <  x\n"
-"        lessthanorequal x     outputs mer iff it has count <= x\n"
-"        greaterthan x         outputs mer iff it has count >  x\n"
-"        greaterthanorequal x  outputs mer iff it has count >= x\n"
-"        equal x               outputs mer iff it has count == x\n"
-"     Threshold operations work on exactly one database.\n"
-"\n"
-"        -s tblprefix  (use tblprefix as a database)\n"
-"        -o tblprefix  (create this output)\n"
-"        -v            (entertain the user)\n"
-"\n"
-"     NOTE:  Multiple tables are specified with multiple -s switches; e.g.:\n"
-"              %s -M add -s 1 -s 2 -s 3 -s 4 -o all\n"
-"     NOTE:  It is NOT possible to specify more than one operation:\n"
-"              %s -M add -s 1 -s 2 -sub -s 3\n"
-"            will NOT work.\n"
-"\n"
-"\n"
-"-D:  Dump the table (not all of these work).\n"
-"\n"
-"     -Dd        Dump a histogram of the distance between the same mers.\n"
-"     -Dt        Dump mers >= a threshold.  Use -n to specify the threshold.\n"
-"     -Dc        Count the number of mers, distinct mers and unique mers.\n"
-"     -Dh        Dump (to stdout) a histogram of mer counts.\n"
-"     -s         Read the count table from here (leave off the .mcdat or .mcidx).\n"
-"\n"
-"\n";
-
-
-
 void
 merylArgs::usage(void) {
-  fprintf(stderr, usagestring, execName, execName, execName);
+  fprintf(stderr, "usage: %s [personality] [global options] [options]\n", execName);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "where personality is:\n");
+  fprintf(stderr, "        -P -- compute parameters\n");
+  fprintf(stderr, "        -B -- build table\n");
+  fprintf(stderr, "        -S -- scan table\n");
+  fprintf(stderr, "        -M -- \"math\" operations\n");
+  fprintf(stderr, "        -D -- dump table\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "-P:  Given a sequence file (-s) or an upper limit on the\n");
+  fprintf(stderr, "     number of mers in the file (-n), compute the table size\n");
+  fprintf(stderr, "     (-t in build) to minimize the memory usage.\n");
+  fprintf(stderr, "        -m #          (size of a mer; required)\n");
+  fprintf(stderr, "        -c #          (homopolymer compression; optional)\n");
+  fprintf(stderr, "        -p            (enable positions)\n");
+  fprintf(stderr, "        -s seq.fasta  (seq.fasta is scanned to determine the number of mers)\n");
+  fprintf(stderr, "        -n #          (compute params assuming file with this many mers in it)\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "     Only one of -s, -n need to be specified.  If both are given\n");
+  fprintf(stderr, "     -s takes priority.\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "-B:  Given a sequence file (-s) and lots of parameters, compute\n");
+  fprintf(stderr, "     the mer-count tables.  By default, both strands are processed.\n");
+  fprintf(stderr, "        -f            (only build for the forward strand)\n");
+  fprintf(stderr, "        -r            (only build for the reverse strand)\n");
+  fprintf(stderr, "        -C            (use canonical mers, assumes both strands)\n");
+  fprintf(stderr, "        -L #          (DON'T save mers that occur less than # times)\n");
+  fprintf(stderr, "        -U #          (DON'T save mers that occur more than # times)\n");
+  fprintf(stderr, "        -m #          (size of a mer; required)\n");
+  fprintf(stderr, "        -c #          (homopolymer compression; optional)\n");
+  fprintf(stderr, "        -p            (enable positions)\n");
+  fprintf(stderr, "        -s seq.fasta  (sequence to build the table for)\n");
+  fprintf(stderr, "        -o tblprefix  (output table prefix)\n");
+  fprintf(stderr, "        -v            (entertain the user)\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "     By default, the computation is done as one large sequential process.\n");
+  fprintf(stderr, "     Multi-threaded operation is possible, at additional memory expense, as\n");
+  fprintf(stderr, "     is segmented operation, at additional I/O expense.\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "     Threaded operation: Split the counting in to n almost-equally sized\n");
+  fprintf(stderr, "     pieces.  This uses an extra h MB (from -P) per thread.\n");
+  fprintf(stderr, "        -threads n    (use n threads to build)\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "     Segmented, sequential operation: Split the counting into pieces that\n");
+  fprintf(stderr, "     will fit into no more than m MB of memory, or into n equal sized pieces.\n");
+  fprintf(stderr, "     Each piece is computed sequentially, and the results are merged at the end.\n");
+  fprintf(stderr, "     Only one of -memory and -segments is needed.\n");
+  fprintf(stderr, "        -memory mMB   (use at most m MB of memory per segment)\n");
+  fprintf(stderr, "        -segments n   (use n segments)\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "     Segmented, batched operation: Same as sequential, except this allows\n");
+  fprintf(stderr, "     each segment to be manually executed in parallel.\n");
+  fprintf(stderr, "     Only one of -memory and -segments is needed.\n");
+  fprintf(stderr, "        -memory mMB     (use at most m MB of memory per segment)\n");
+  fprintf(stderr, "        -segments n     (use n segments)\n");
+  fprintf(stderr, "        -configbatch    (create the batches)\n");
+  fprintf(stderr, "        -countbatch n   (run batch number n)\n");
+  fprintf(stderr, "        -mergebatch     (merge the batches)\n");
+  fprintf(stderr, "     Initialize the compute with -configbatch, which needs all the build options.\n");
+  fprintf(stderr, "     Execute all -countbatch jobs, then -mergebatch to complete.\n");
+  fprintf(stderr, "       meryl -configbatch -B [options] -o file\n");
+  fprintf(stderr, "       meryl -countbatch 0 -o file\n");
+  fprintf(stderr, "       meryl -countbatch 1 -o file\n");
+  fprintf(stderr, "       ...\n");
+  fprintf(stderr, "       meryl -countbatch N -o file\n");
+  fprintf(stderr, "       meryl -mergebatch N -o file\n");
+  fprintf(stderr, "     Batched mode can run on the grid.\n");
+  fprintf(stderr, "        -sge        jobname      unique job name for this execution.  Meryl will submit\n");
+  fprintf(stderr, "                                 jobs with name mpjobname, ncjobname, nmjobname, for\n");
+  fprintf(stderr, "                                 phases prepare, count and merge.\n");
+  fprintf(stderr, "        -sgebuild \"options\"    any additional options to sge, e.g.,\n");
+  fprintf(stderr, "        -sgemerge \"options\"    \"-p -153 -pe thread 2 -A merylaccount\"\n");
+  fprintf(stderr, "                                 N.B. - -N will be ignored\n");
+  fprintf(stderr, "                                 N.B. - be sure to quote the options\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "-M:  Given a list of tables, perform a math, logical or threshold operation.\n");
+  fprintf(stderr, "     Unless specified, all operations take any number of databases.\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "     Math operations are:\n");
+  fprintf(stderr, "        min       count is the minimum count for all databases.  If the mer\n");
+  fprintf(stderr, "                  does NOT exist in all databases, the mer has a zero count, and\n");
+  fprintf(stderr, "                  is NOT in the output.\n");
+  fprintf(stderr, "        minexist  count is the minimum count for all databases that contain the mer\n");
+  fprintf(stderr, "        max       count is the maximum count for all databases\n");
+  fprintf(stderr, "        add       count is sum of the counts for all databases\n");
+  fprintf(stderr, "        sub       count is the first minus the second (binary only)\n");
+  fprintf(stderr, "        abs       count is the absolute value of the first minus the second (binary only)\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "     Logical operations are:\n");
+  fprintf(stderr, "        and       outputs mer iff it exists in all databases\n");
+  fprintf(stderr, "        nand      outputs mer iff it exists in at least one, but not all, databases\n");
+  fprintf(stderr, "        or        outputs mer iff it exists in at least one database\n");
+  fprintf(stderr, "        xor       outputs mer iff it exists in an odd number of databases\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "     Threshold operations are:\n");
+  fprintf(stderr, "        lessthan x            outputs mer iff it has count <  x\n");
+  fprintf(stderr, "        lessthanorequal x     outputs mer iff it has count <= x\n");
+  fprintf(stderr, "        greaterthan x         outputs mer iff it has count >  x\n");
+  fprintf(stderr, "        greaterthanorequal x  outputs mer iff it has count >= x\n");
+  fprintf(stderr, "        equal x               outputs mer iff it has count == x\n");
+  fprintf(stderr, "     Threshold operations work on exactly one database.\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "        -s tblprefix  (use tblprefix as a database)\n");
+  fprintf(stderr, "        -o tblprefix  (create this output)\n");
+  fprintf(stderr, "        -v            (entertain the user)\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "     NOTE:  Multiple tables are specified with multiple -s switches; e.g.:\n");
+  fprintf(stderr, "              %s -M add -s 1 -s 2 -s 3 -s 4 -o all\n", execName);
+  fprintf(stderr, "     NOTE:  It is NOT possible to specify more than one operation:\n");
+  fprintf(stderr, "              %s -M add -s 1 -s 2 -sub -s 3\n", execName);
+  fprintf(stderr, "            will NOT work.\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "-D:  Dump the table (not all of these work).\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "     -Dd        Dump a histogram of the distance between the same mers.\n");
+  fprintf(stderr, "     -Dt        Dump mers >= a threshold.  Use -n to specify the threshold.\n");
+  fprintf(stderr, "     -Dc        Count the number of mers, distinct mers and unique mers.\n");
+  fprintf(stderr, "     -Dh        Dump (to stdout) a histogram of mer counts.\n");
+  fprintf(stderr, "     -s         Read the count table from here (leave off the .mcdat or .mcidx).\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "\n");
 }
 
 
@@ -370,6 +364,8 @@ merylArgs::merylArgs(int argc, char **argv) {
         personality = PERSONALITY_MINEXIST;
       } else if (strcmp(argv[arg], "max") == 0) {
         personality = PERSONALITY_MAX;
+      } else if (strcmp(argv[arg], "maxexist") == 0) {
+        personality = PERSONALITY_MAXEXIST;
       } else if (strcmp(argv[arg], "add") == 0) {
         personality = PERSONALITY_ADD;
       } else if (strcmp(argv[arg], "sub") == 0) {
