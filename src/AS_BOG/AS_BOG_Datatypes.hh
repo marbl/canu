@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.36 2009-06-15 07:01:37 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.37 2009-08-07 19:17:36 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -134,38 +134,38 @@ public:
     _numLibraries = gkpStore->gkStore_getNumLibraries();
     _numFragments = gkpStore->gkStore_getNumFragments();
 
-    _fragLength    = new int  [_numFragments + 1];
+    _fragLength    = new uint32 [_numFragments + 1];
     _mateIID       = new uint32 [_numFragments + 1];
     _libIID        = new uint32 [_numFragments + 1];
 
     _mean          = new double [_numLibraries + 1];
     _stddev        = new double [_numLibraries + 1];
 
-    _numFragsInLib = new int [_numLibraries + 1];
-    _numMatesInLib = new int [_numLibraries + 1];
+    _numFragsInLib = new uint32 [_numLibraries + 1];
+    _numMatesInLib = new uint32 [_numLibraries + 1];
 
-    for (int i=0; i<_numFragments + 1; i++) {
+    for (uint32 i=0; i<_numFragments + 1; i++) {
       _fragLength[i] = 0;
       _mateIID[i] = 0;
       _libIID[i] = 0;
     }
 
-    for (int i=0; i<_numLibraries + 1; i++) {
+    for (uint32 i=0; i<_numLibraries + 1; i++) {
       _mean[i]          = 0.0;
       _stddev[i]        = 0.0;
       _numFragsInLib[i] = 0;
       _numMatesInLib[i] = 0;
     }
 
-    for (int i=1; i<_numLibraries + 1; i++) {
+    for (uint32 i=1; i<_numLibraries + 1; i++) {
       _mean[i]          = gkpStore->gkStore_getLibrary(i)->mean;
       _stddev[i]        = gkpStore->gkStore_getLibrary(i)->stddev;
       _numFragsInLib[i] = 0;
       _numMatesInLib[i] = 0;
     }
 
-    int numDeleted = 0;
-    int numLoaded  = 0;
+    uint32 numDeleted = 0;
+    uint32 numLoaded  = 0;
 
     while(fs->next(&fr)) {
       if (fr.gkFragment_getIsDeleted()) {
@@ -190,7 +190,7 @@ public:
         fprintf(stderr, "Loading fragment information deleted:%9d active:%9d\n", numDeleted, numLoaded);
     }
 
-    for (int i=0; i<_numLibraries + 1; i++) {
+    for (uint32 i=0; i<_numLibraries + 1; i++) {
       _numMatesInLib[i] /= 2;
     }
 
@@ -204,31 +204,31 @@ public:
     delete [] _libIID;
   };
 
-  int     numFragments(void) { return(_numFragments); };
-  int     numLibraries(void) { return(_numLibraries); };
+  uint32  numFragments(void) { return(_numFragments); };
+  uint32  numLibraries(void) { return(_numLibraries); };
 
-  int     fragmentLength(uint32 iid) { return(_fragLength[iid]); };
+  uint32  fragmentLength(uint32 iid) { return(_fragLength[iid]); };
   uint32  mateIID(uint32 iid)        { return(_mateIID[iid]); };
   uint32  libraryIID(uint32 iid)     { return(_libIID[iid]);  };
 
   double  mean(uint32 iid)   { return(_mean[iid]); };
   double  stddev(uint32 iid) { return(_stddev[iid]); };
 
-  int     numMatesInLib(uint32 iid) { return(_numMatesInLib[iid]); };
+  uint32  numMatesInLib(uint32 iid) { return(_numMatesInLib[iid]); };
 
 private:
-  int      _numFragments;
-  int      _numLibraries;
+  uint32   _numFragments;
+  uint32   _numLibraries;
 
-  int     *_fragLength;
+  uint32  *_fragLength;
   uint32  *_mateIID;
   uint32  *_libIID;
 
   double  *_mean;
   double  *_stddev;
 
-  int     *_numFragsInLib;
-  int     *_numMatesInLib;
+  uint32  *_numFragsInLib;
+  uint32  *_numMatesInLib;
 };
 
 #endif

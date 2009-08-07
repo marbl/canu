@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.113 2009-06-15 07:01:37 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.114 2009-08-07 19:17:36 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -40,10 +40,10 @@ UnitigGraph::checkUnitigMembership(void) {
 
   uint32 *inUnitig = new uint32 [_fi->numFragments()+1];
 
-  for (int i=0; i<_fi->numFragments()+1; i++)
+  for (uint32 i=0; i<_fi->numFragments()+1; i++)
     inUnitig[i] = 987654321;
 
-  for (int  ti=0; ti<unitigs->size(); ti++) {
+  for (uint32 ti=0; ti<unitigs->size(); ti++) {
     Unitig  *utg = (*unitigs)[ti];
 
     if (utg) {
@@ -60,7 +60,7 @@ UnitigGraph::checkUnitigMembership(void) {
   int lost = 0;
   int found = 0;
 
-  for (int i=0; i<_fi->numFragments()+1; i++) {
+  for (uint32 i=0; i<_fi->numFragments()+1; i++) {
     if (_fi->fragmentLength(i) > 0) {
       if (inUnitig[i] == 0) {
         fprintf(stderr, "ERROR frag %d is in unitig 0!\n", i);
@@ -91,13 +91,13 @@ UnitigGraph::reportOverlapsUsed(const char *filename) {
   if (F == NULL)
     return;
 
-  for (int  ti=0; ti<unitigs->size(); ti++) {
+  for (uint32  ti=0; ti<unitigs->size(); ti++) {
     Unitig  *utg = (*unitigs)[ti];
 
     if (utg == NULL)
       continue;
 
-    for (int fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
+    for (uint32 fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
       DoveTailNode  *frg = &(*utg->dovetail_path_ptr)[fi];
 
       //  Where is our best overlap?  Contained or dovetail?
@@ -105,8 +105,8 @@ UnitigGraph::reportOverlapsUsed(const char *filename) {
       BestEdgeOverlap *bestedge5 = bog_ptr->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
       BestEdgeOverlap *bestedge3 = bog_ptr->getBestEdgeOverlap(frg->ident, THREE_PRIME);
 
-      int              bestident5 = 0;
-      int              bestident3 = 0;
+      uint32           bestident5 = 0;
+      uint32           bestident3 = 0;
 
       if (bestedge5)
         bestident5 = bestedge5->frag_b_id;
@@ -116,7 +116,7 @@ UnitigGraph::reportOverlapsUsed(const char *filename) {
 
       //  Now search ahead, reporting any overlap to any fragment.
       //
-      for (int oi=fi+1; oi<utg->dovetail_path_ptr->size(); oi++) {
+      for (uint32 oi=fi+1; oi<utg->dovetail_path_ptr->size(); oi++) {
         DoveTailNode  *ooo = &(*utg->dovetail_path_ptr)[oi];
 
         int frgbgn = MIN(frg->position.bgn, frg->position.end);
@@ -128,7 +128,7 @@ UnitigGraph::reportOverlapsUsed(const char *filename) {
         if ((frgbgn <= ooobgn) && (ooobgn + 40 < frgend)) {
           BestContainment *bestcont  = bog_ptr->getBestContainer(ooo->ident);
 
-          int              bestident  = 0;
+          uint32           bestident  = 0;
           if (bestcont)
             bestident = bestcont->container;
 
@@ -181,7 +181,7 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking, char *
   fprintf(stderr, "==> BUILDING UNITIGS from %d fragments.\n", _fi->numFragments());
 
   uint32 frag_idx;
-  while( frag_idx = cg_ptr->nextFragByChunkLength() ) {
+  while ((frag_idx = cg_ptr->nextFragByChunkLength()) > 0) {
 
     if (_fi->fragmentLength(frag_idx) == 0)
       //  Deleted fragment.
@@ -231,7 +231,7 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking, char *
 
     utg->reverseComplement();
 
-    fprintf(stderr, "continue unitig %d (length = %d, lastfraglen = %d) with frag %d (hang %d %d)\n",
+    fprintf(stderr, "continue unitig %u (length = "F_S64", lastfraglen = %u) with frag %u (hang %d %d)\n",
             utg->id(), utg->getLength(), _fi->fragmentLength(frag_idx),
             tpBest->frag_b_id, tpBest->ahang, -tpBest->bhang);
 
@@ -316,7 +316,7 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking, char *
     //
     //  Mark fragments as dead.
     //
-    for (int i=0; i<_fi->numFragments()+1; i++)
+    for (uint32 i=0; i<_fi->numFragments()+1; i++)
       inUnitig[i] = 987654321;
 
     //  ZZZzzzzaapaapppp!  IT'S ALIVE!
@@ -331,7 +331,7 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking, char *
 
     //  Anything still dead?
     //
-    for (int i=0; i<_fi->numFragments()+1; i++) {
+    for (uint32 i=0; i<_fi->numFragments()+1; i++) {
       if (_fi->fragmentLength(i) > 0) {
         if (inUnitig[i] == 0) {
           //  We'll catch this error inna second in checkUnitigMembership().
@@ -431,7 +431,7 @@ UnitigGraph::setParentAndHang(ChunkGraph *cg) {
 
       //  Now search for the correct overlap
       //
-      for (int oi=fi-1; oi>=0; oi--) {
+      for (uint32 oi=fi; oi--; ) {
         DoveTailNode  *ooo = &(*utg->dovetail_path_ptr)[oi];
 
         if (bestcont) {
@@ -1434,7 +1434,7 @@ void UnitigGraph::writeIUMtoFile(char *fileprefix, int fragment_count_target){
 
   checkUnitigMembership();
 
-  for (int  ti=0; ti<unitigs->size(); ti++) {
+  for (uint32  ti=0; ti<unitigs->size(); ti++) {
     Unitig  *utg = (*unitigs)[ti];
 
     if (utg == NULL) {
@@ -1464,7 +1464,7 @@ void UnitigGraph::writeIUMtoFile(char *fileprefix, int fragment_count_target){
     ium_mesg_ptr->num_frags     = utg->getNumFrags();
     ium_mesg_ptr->f_list        = &(utg->dovetail_path_ptr->front());
 
-    fprintf(iidm, "Unitig %d == IUM %d (with %d frags)\n", utg->id(), ium_mesg_ptr->iaccession, utg->getNumFrags());
+    fprintf(iidm, "Unitig "F_U32" == IUM "F_U32" (with "F_S64" frags)\n", utg->id(), ium_mesg_ptr->iaccession, utg->getNumFrags());
 
     fragment_count += ium_mesg_ptr->num_frags;
 
@@ -1505,13 +1505,13 @@ UnitigGraph::writeOVLtoFile(char *fileprefix) {
   FILE *file = fopen(filename, "w");
   assert(file != NULL);
 
-  for (int  ti=0; ti<unitigs->size(); ti++) {
+  for (uint32  ti=0; ti<unitigs->size(); ti++) {
     Unitig  *utg = (*unitigs)[ti];
 
     if (utg == NULL)
       continue;
 
-    for (int fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
+    for (uint32 fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
       DoveTailNode  *frg = &(*utg->dovetail_path_ptr)[fi];
 
       //  Where is our best overlap?  Contained or dovetail?

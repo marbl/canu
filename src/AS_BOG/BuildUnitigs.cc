@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.60 2009-07-07 14:53:05 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.61 2009-08-07 19:17:36 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -98,101 +98,116 @@ void outputHistograms(UnitigGraph *utg, FragmentInfo *fi, FILE *stats) {
 
 int
 main (int argc, char * argv []) {
+  char      *gkpStorePath           = NULL;
+  char      *ovlStoreUniqPath       = NULL;
+  char      *ovlStoreReptPath       = NULL;
 
-  // Get path/names of olap and frg stores from command line
-  const char* OVL_Store_Path;
-  const char* GKP_Store_Path;
+  double    erate                   = 0.015;
+  long      genome_size             = 0;
 
-  double        erate = .015;
+  int       fragment_count_target   = 0;
+  char     *output_prefix           = NULL;
 
-  long genome_size=0;
-  int ch;
-  bool argsDone=false;
-
-  int   fragment_count_target = 0;
-  char *output_prefix         = "bog";
-
-  bool  unitigIntersectBreaking = false;
-  int   badMateBreakThreshold   = -7;
+  bool      unitigIntersectBreaking = false;
+  int       badMateBreakThreshold   = -7;
 
   argc = AS_configure(argc, argv);
 
-  fprintf(stderr, "sizeof(FragmentEnd)         = %d (was 8)\n", sizeof(FragmentEnd));
-  fprintf(stderr, "sizeof(BestEdgeOverlap)     = %d (was 20)\n", sizeof(BestEdgeOverlap));
-  fprintf(stderr, "sizeof(BestFragmentOverlap) = %d (was 40)\n", sizeof(BestFragmentOverlap));
-  fprintf(stderr, "sizeof(BestContainment)     = %d (was 32)\n", sizeof(BestContainment));
+  int err = 0;
+  int arg = 1;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-B") == 0) {
+      fragment_count_target = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      output_prefix = argv[++arg];
 
-  optarg = NULL;
-  while(!argsDone && (ch = getopt(argc, argv,"B:o:O:G:e:m:s:bk"))) {
-    switch(ch) {
-      case -1:
-        argsDone=true;
-        break;
+    } else if (strcmp(argv[arg], "-G") == 0) {
+      gkpStorePath = argv[++arg];
 
-      case 'B':
-        fragment_count_target = atoi(optarg);
-        break;
-      case 'o':
-        output_prefix = optarg;
-        break;
+    } else if (strcmp(argv[arg], "-O") == 0) {
+      if      (ovlStoreUniqPath == NULL)
+        ovlStoreUniqPath = argv[++arg];
+      else if (ovlStoreReptPath == NULL)
+        ovlStoreReptPath = argv[++arg];
+      else
+        err++;
 
-      case 'G':
-        GKP_Store_Path = strdup(optarg);
-        assert( GKP_Store_Path != NULL ); break;
-      case 'O':
-        OVL_Store_Path = strdup(optarg);
-        assert( OVL_Store_Path != NULL ); break;
-      case 'b':
-        unitigIntersectBreaking = true; break;
-      case 'e':
-        {
-          erate = atof(optarg);
-          if ((erate < 0.0) || (AS_MAX_ERROR_RATE < erate))
-            fprintf(stderr, "Invalid overlap error threshold %s; must be between 0.00 and %.2f.\n",
-                    optarg, AS_MAX_ERROR_RATE), exit(1);
+    } else if (strcmp(argv[arg], "-b") == 0) {
+      unitigIntersectBreaking = true;
 
-          fprintf(stderr, "The overlap error threshold = %.3f = %.3f%%\n",
-                  erate, AS_OVS_decodeQuality(erate) * 100.0);
-        }
-        break;
-      case 'm':
-        badMateBreakThreshold = -atoi(optarg); break;
-      case 's':
-        genome_size = atol(optarg); break;
-      default:
-        fprintf(stderr,"Unrecognized option -%c optarg %s\n\n",optopt, optarg);
-        fprintf(stderr, "usage: %s -O <OVL Store Path> -G <GKP Store Path>\n", argv[0]);
-        fprintf(stderr, "\n");
-        fprintf(stderr, "[-B b]       Target number of fragments per IUM batch.\n");
-        fprintf(stderr, "\n");
-        fprintf(stderr, "[-o prefix]  Output prefix name\n");
-        fprintf(stderr, "\n");
-        fprintf(stderr, "\n");
-        fprintf(stderr, "[-s <genome size>]\n");
-        fprintf(stderr, "  If the genome size is set to 0, this will cause the unitigger\n");
-        fprintf(stderr, "  to try to estimate the genome size based on the constructed\n");
-        fprintf(stderr, "  unitig lengths.\n");
-        fprintf(stderr, "[-b] Break promisciuous unitigs at unitig intersection points\n");
-        fprintf(stderr, "[-e] Fraction error to generate unitigs for; default is 0.015\n");
-        fprintf(stderr, "[-k] Kick out unhappy contained mated reads into singleton unitigs\n");
-        fprintf(stderr, "[-m] Number of bad mates in a region required to break a unitig\n");
-        fprintf(stderr, "     default is 7\n");
-        fprintf(stderr, " \n");
-        exit(1);
+    } else if (strcmp(argv[arg], "-e") == 0) {
+      erate = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-m") == 0) {
+      badMateBreakThreshold = -atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-s") == 0) {
+      genome_size = atol(argv[++arg]);
+
+    } else {
+      err++;
     }
+
+    arg++;
   }
 
-  fprintf(stderr, "Genome Size: "F_S64"\n", genome_size);
+  if ((erate < 0.0) || (AS_MAX_ERROR_RATE < erate))
+    err++;
+  if (output_prefix == NULL)
+    err++;
+  if (gkpStorePath == NULL)
+    err++;
+  if (ovlStoreUniqPath == NULL)
+    err++;
 
-  gkStore          *gkpStore = new gkStore(GKP_Store_Path, FALSE, FALSE);
-  OverlapStore     *ovlStore = AS_OVS_openOverlapStore(OVL_Store_Path);
+  if (err) {
+    fprintf(stderr, "usage: %s -o outputName -O ovlStore -G gkpStore\n", argv[0]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -B b       Target number of fragments per IUM batch.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -o prefix  Name of the output files\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -s size    If the genome size is set to 0, this will cause the unitigger\n");
+    fprintf(stderr, "             to try to estimate the genome size based on the constructed\n");
+    fprintf(stderr, "             unitig lengths.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -b         Break promisciuous unitigs at unitig intersection points\n");
+    fprintf(stderr, "  -e         Fraction error to generate unitigs for; default is 0.015\n");
+    fprintf(stderr, "  -m num     Number of bad mates in a region required to break a unitig; default is 7\n");
+    fprintf(stderr, " \n");
+
+    if ((erate < 0.0) || (AS_MAX_ERROR_RATE < erate))
+      fprintf(stderr, "Invalid overlap error threshold (-e option); must be between 0.00 and %.2f.\n",
+              AS_MAX_ERROR_RATE);
+
+    if (output_prefix == NULL)
+      fprintf(stderr, "No output prefix name (-o option) supplied.\n");
+
+    if (gkpStorePath == NULL)
+      fprintf(stderr, "No gatekeeper store (-G option) supplied.\n");
+
+    if (ovlStoreUniqPath == NULL)
+      fprintf(stderr, "No overlap store (-O option) supplied.\n");
+
+    if ((ovlStoreUniqPath != NULL) && (ovlStoreUniqPath == ovlStoreReptPath))
+      fprintf(stderr, "Too many overlap stores (-O option) supplied.\n");
+
+    exit(1);
+  }
+
+  fprintf(stderr, "Error threshold = %.3f%%\n", AS_OVS_decodeQuality(erate) * 100.0);
+  fprintf(stderr, "Genome Size     = "F_S64"\n", genome_size);
+
+  gkStore          *gkpStore     = new gkStore(gkpStorePath, FALSE, FALSE);
+  OverlapStore     *ovlStoreUniq = AS_OVS_openOverlapStore(ovlStoreUniqPath);
+  OverlapStore     *ovlStoreRept = ovlStoreReptPath ? AS_OVS_openOverlapStore(ovlStoreReptPath) : NULL;
 
   FragmentInfo     *fragInfo = new FragmentInfo(gkpStore);
 
   debugfi = fragInfo;
 
-  BestOverlapGraph      *BOG = new BestOverlapGraph(fragInfo, ovlStore, erate);
+  BestOverlapGraph      *BOG = new BestOverlapGraph(fragInfo, ovlStoreUniq, ovlStoreRept, erate);
 
   ChunkGraph *cg = new ChunkGraph(fragInfo, BOG);
   UnitigGraph utg(fragInfo, BOG);
@@ -217,7 +232,7 @@ main (int argc, char * argv []) {
     assert(NULL != stats);
 
     fprintf(stats, "Global Arrival Rate: %f\n", globalARate);
-    fprintf(stats, "There were %d unitigs generated.\n", utg.unitigs->size());
+    fprintf(stats, "There were %d unitigs generated.\n", (int)utg.unitigs->size());
 
     outputHistograms( &utg, fragInfo, stats );
 
@@ -228,8 +243,9 @@ main (int argc, char * argv []) {
   delete cg;
   delete fragInfo;
 
-  AS_OVS_closeOverlapStore(ovlStore);
   delete gkpStore;
+  AS_OVS_closeOverlapStore(ovlStoreUniq);
+  AS_OVS_closeOverlapStore(ovlStoreRept);
 
   fprintf(stderr, "Bye.\n");
 

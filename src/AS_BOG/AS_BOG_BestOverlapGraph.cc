@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.67 2009-06-15 07:01:37 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.68 2009-08-07 19:17:36 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -43,6 +43,7 @@ uint32 BestOverlapGraph::AEnd(const OVSoverlap& olap) {
     return THREE_PRIME;
 
   assert(0); // no contained
+  return(0);
 }
 
 uint32 BestOverlapGraph::BEnd(const OVSoverlap& olap) {
@@ -59,6 +60,7 @@ uint32 BestOverlapGraph::BEnd(const OVSoverlap& olap) {
       return FIVE_PRIME;
 
   assert(0); // no contained
+  return(0);
 }
 
 
@@ -68,7 +70,8 @@ uint32 BestOverlapGraph::BEnd(const OVSoverlap& olap) {
 // AS_UTG_ERROR_RATE is fraction error, same as AS_CNS_ERROR_RATE.
 //
 BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
-                                   OverlapStore        *ovlStore,
+                                   OverlapStore        *ovlStoreUniq,
+                                   OverlapStore        *ovlStoreRept,
                                    double               AS_UTG_ERROR_RATE) {
   OVSoverlap olap;
 
@@ -97,9 +100,15 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
   _best_contains_score    = new uint64 [fi->numFragments() + 1];
   memset(_best_contains_score,    0, sizeof(uint64) * (fi->numFragments() + 1));
 
-  AS_OVS_resetRangeOverlapStore(ovlStore);
-  while  (AS_OVS_readOverlapFromStore(ovlStore, &olap, AS_OVS_TYPE_OVL))
+  AS_OVS_resetRangeOverlapStore(ovlStoreUniq);
+  while  (AS_OVS_readOverlapFromStore(ovlStoreUniq, &olap, AS_OVS_TYPE_OVL))
     scoreContainment(olap);
+
+  if (ovlStoreRept) {
+    AS_OVS_resetRangeOverlapStore(ovlStoreRept);
+    while  (AS_OVS_readOverlapFromStore(ovlStoreRept, &olap, AS_OVS_TYPE_OVL))
+      scoreContainment(olap);
+  }
 
   delete [] _best_contains_score;
   _best_contains_score    = NULL;
@@ -124,9 +133,15 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
   memset(_best_overlaps_5p_score, 0, sizeof(uint64) * (fi->numFragments() + 1));
   memset(_best_overlaps_3p_score, 0, sizeof(uint64) * (fi->numFragments() + 1));
 
-  AS_OVS_resetRangeOverlapStore(ovlStore);
-  while  (AS_OVS_readOverlapFromStore(ovlStore, &olap, AS_OVS_TYPE_OVL))
+  AS_OVS_resetRangeOverlapStore(ovlStoreUniq);
+  while  (AS_OVS_readOverlapFromStore(ovlStoreUniq, &olap, AS_OVS_TYPE_OVL))
     scoreEdge(olap);
+
+  if (ovlStoreRept) {
+    AS_OVS_resetRangeOverlapStore(ovlStoreRept);
+    while  (AS_OVS_readOverlapFromStore(ovlStoreRept, &olap, AS_OVS_TYPE_OVL))
+      scoreEdge(olap);
+  }
 
   delete [] _best_overlaps_5p_score;
   delete [] _best_overlaps_3p_score;
@@ -144,15 +159,15 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
       fprintf(BC, "#fragId\tlibId\tmated\tbestCont\n");
       fprintf(BE, "#fragId\tlibId\tmated\tbest5\tbest3\n");
 
-      for (int id=1; id<_fi->numFragments() + 1; id++) {
+      for (uint32 id=1; id<_fi->numFragments() + 1; id++) {
         BestContainment *bestcont  = getBestContainer(id);
         BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, FIVE_PRIME);
         BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, THREE_PRIME);
 
         if (bestcont)
-          fprintf(BC, "%d\t%d\t%c\t%d\n", id, _fi->libraryIID(id), (_fi->mateIID(id) > 0) ? 'm' : 'f', bestcont->container);
+          fprintf(BC, "%u\t%u\t%c\t%u\n", id, _fi->libraryIID(id), (_fi->mateIID(id) > 0) ? 'm' : 'f', bestcont->container);
         else if ((bestedge5->frag_b_id > 0) || (bestedge3->frag_b_id > 0))
-          fprintf(BE, "%d\t%d\t%d\t%d\n", id, _fi->libraryIID(id), bestedge5->frag_b_id, bestedge3->frag_b_id);
+          fprintf(BE, "%u\t%u\t%u\t%u\n", id, _fi->libraryIID(id), bestedge5->frag_b_id, bestedge3->frag_b_id);
       }
 
       fclose(BC);
