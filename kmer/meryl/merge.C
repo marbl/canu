@@ -22,13 +22,14 @@ multipleOperations(merylArgs *args) {
       (args->personality != PERSONALITY_MIN) &&
       (args->personality != PERSONALITY_MINEXIST) &&
       (args->personality != PERSONALITY_MAX) &&
+      (args->personality != PERSONALITY_MAXEXIST) &&
       (args->personality != PERSONALITY_ADD) &&
       (args->personality != PERSONALITY_AND) &&
       (args->personality != PERSONALITY_NAND) &&
       (args->personality != PERSONALITY_OR) &&
       (args->personality != PERSONALITY_XOR)) {
-    fprintf(stderr, "ERROR - only personalities min, minexist, max, add, and, nand, or, xor\n");
-    fprintf(stderr, "ERROR - are supported in multipleOperations().\n");
+    fprintf(stderr, "ERROR - only personalities min, minexist, max, maxexist, add, and, nand, or, xor\n");
+    fprintf(stderr, "ERROR - are supported in multipleOperations().  (%d)\n", args->personality);
     fprintf(stderr, "ERROR - this is a coding error, not a user error.\n");
     exit(1);
   }

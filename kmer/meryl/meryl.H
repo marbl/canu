@@ -91,7 +91,7 @@ public:
   u32bit            mergeFilesLen;
   char            **mergeFiles;
 
-  char              personality;
+  u32bit            personality;
 };
 
 

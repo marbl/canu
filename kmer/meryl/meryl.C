@@ -38,6 +38,7 @@ main(int argc, char **argv) {
     case PERSONALITY_MIN:
     case PERSONALITY_MINEXIST:
     case PERSONALITY_MAX:
+    case PERSONALITY_MAXEXIST:
     case PERSONALITY_ADD:
     case PERSONALITY_AND:
     case PERSONALITY_NAND:
