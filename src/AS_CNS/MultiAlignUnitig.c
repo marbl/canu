@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.18 2009-08-04 11:05:19 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.19 2009-08-08 00:15:29 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -32,7 +32,7 @@ static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.18 2009-08-04 11:05:19 brianwa
 #include "MicroHetREZ.h"
 #include "AS_UTL_reverseComplement.h"
 
-#undef  SHOW_PLACEMENT_BEFORE
+#undef SHOW_PLACEMENT_BEFORE
 #undef SHOW_PLACEMENT
 #undef SHOW_ALGORITHM
 
@@ -632,7 +632,8 @@ unitigConsensus::rebuildFrankensteinFromConsensus(void) {
   AbacusRefine(ma,0,-1,CNS_INDEL, opp);
   MergeRefine(ma->lid, NULL, NULL, 1, opp, 1);
 
-  //  Extract the consensus sequence
+  //  Extract the consensus sequence.  Note that frankenstein becomes the consensus beads, not a
+  //  fragment bead anymore.
 
   ConsensusBeadIterator  bi;
   int32                  bid;
@@ -1037,7 +1038,11 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
     int32   bidx = frankensteinBof[-ahang];
     Bead   *bead = GetBead(beadStore, bidx);
 
-    assert(bead->prev == -1);  //  Should be the first bead in the frankenstein
+    //  This should be either the first bead in frankenstein, or, if frankenstein was rebuilt from
+    //  consensus in the past, it should be a consensus bead (at the top of the column).
+
+    assert((bead->prev == -1) ||  //  Should be the first bead in the frankenstein
+           (bead->up   == -1));
 
     while (bead->down != -1)
       bead = GetBead(beadStore, bead->down);
