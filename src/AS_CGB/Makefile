@@ -59,8 +59,6 @@ CLEANABLE_FILES = *.o *~
 INST_SET= $(CXX_PROGS)
 
 all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
-	@cp -f stripCGBReads.pl $(LOCAL_BIN)
-	@chmod 775 $(LOCAL_BIN)/stripCGBReads.pl
 
 libAS_CGB.a:     $(LIB_OBJECTS)
 libCA.a:         $(LIB_OBJECTS)
