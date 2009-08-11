@@ -34,8 +34,6 @@ SCRIPTS = runCA \
           qcCompare \
           tampaCompare \
           mummerCompare \
-          testVersionOnPlatform.sh \
-          apply_assembler \
           glen_est_truncadjusted.pl \
           caqc.pl \
           caqc_help.ini \
@@ -115,14 +113,6 @@ tampaCompare: testing/tampaCompare.pl
 
 mummerCompare: testing/mummerCompare.pl
 	@cp -p testing/mummerCompare.pl $(LOCAL_BIN)/$@
-	@chmod 775 $(LOCAL_BIN)/$@
-
-apply_assembler: testing/apply_assembler.pl
-	@cp -p testing/apply_assembler.pl $(LOCAL_BIN)/$@
-	@chmod 775 $(LOCAL_BIN)/$@
-
-testVersionOnPlatform.sh: testing/$@
-	@cp -p testing/$@ $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 glen_est_truncadjusted.pl: dataQC/$@
