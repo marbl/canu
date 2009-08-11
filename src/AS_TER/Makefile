@@ -26,9 +26,9 @@ LOCAL_WORK = $(shell cd ../../; pwd)
 
 include $(LOCAL_WORK)/src/site_name.as
 
-SOURCES   = AS_TER_terminator.C asmOutputFasta.C fragsInVars.C buildPosMap.C
+SOURCES   = AS_TER_terminator.C asmOutputFasta.C asmOutputStatistics.C fragsInVars.C buildPosMap.C
 OBJECTS   = (SOURCES:.C=.o)
-CXX_PROGS = terminator asmOutputFasta fragsInVars buildPosMap
+CXX_PROGS = terminator asmOutputFasta asmOutputStatistics fragsInVars buildPosMap
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -36,5 +36,6 @@ all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 
 terminator:              AS_TER_terminator.o        libCA.a
 asmOutputFasta:          asmOutputFasta.o           libCA.a
+asmOutputStatistics:     asmOutputStatistics.o      libCA.a
 fragsInVars:             fragsInVars.o              libCA.a
 buildPosMap:             buildPosMap.o              libCA.a
