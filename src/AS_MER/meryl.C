@@ -21,7 +21,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: meryl.C,v 1.6 2009-07-24 12:09:56 brianwalenz Exp $";
+const char *mainid = "$Id: meryl.C,v 1.7 2009-08-11 04:48:32 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,18 +58,18 @@ main(int argc, char **argv) {
       build(args);
       break;
 
+    case 'd':
+      dumpDistanceBetweenMers(args);
+      break;
     case 't':
       dumpThreshold(args);
+      break;
+    case 'p':
+      dumpPositions(args);
       break;
     case 'c':
       countUnique(args);
       break;
-#ifdef PLOT_DISTANCE
-      //  Can't do this with big mers
-    case 'p':
-      plotDistanceBetweenMers(args);
-      break;
-#endif
     case 'h':
       plotHistogram(args);
       break;
@@ -77,6 +77,7 @@ main(int argc, char **argv) {
     case PERSONALITY_MIN:
     case PERSONALITY_MINEXIST:
     case PERSONALITY_MAX:
+    case PERSONALITY_MAXEXIST:
     case PERSONALITY_ADD:
     case PERSONALITY_AND:
     case PERSONALITY_NAND:
@@ -87,6 +88,7 @@ main(int argc, char **argv) {
 
     case PERSONALITY_SUB:
     case PERSONALITY_ABS:
+    case PERSONALITY_DIVIDE:
       binaryOperations(args);
       break;
 
@@ -104,10 +106,6 @@ main(int argc, char **argv) {
   }
 
   delete args;
-
-#ifdef MEMORY_DEBUG
-  _dump_allocated_delta(fileno(stdout));
-#endif
 
   return(0);
 }
