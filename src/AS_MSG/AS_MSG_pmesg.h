@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.76 2009-07-30 10:42:56 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.77 2009-08-11 04:47:54 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.76 2009-07-30 10:42:56 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.77 2009-08-11 04:47:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <time.h>
@@ -381,7 +381,6 @@ typedef enum {
 
 typedef enum {
   AS_UNIQUE =     (int)'U',
-  AS_CHIMER =     (int)'C',
   AS_NOTREZ =     (int)'N',
   AS_SEP =        (int)'S',
   AS_UNASSIGNED = (int)'X'
@@ -528,7 +527,6 @@ typedef enum {
   AS_IN_ASSEMBLY	= (int) 'A',
   AS_POLYMORPHIRSM	= (int) 'P',
   AS_BAD		= (int) 'B',
-  AS_CHIMERA		= (int) 'C',
   AS_UNKNOWN_IN_ASSEMBLY= (int) 'U'
 } PlacementStatusType;
 
