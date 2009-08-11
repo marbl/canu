@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.19 2009-08-08 00:15:29 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.20 2009-08-11 04:51:27 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -255,7 +255,7 @@ unitigConsensus::reportStartingWork(void) {
           unitig->f_list[tiid].contained);
 
 #ifdef SHOW_PLACEMENT_BEFORE
-  for (uint32 x=0; x<=tiid; x++)
+  for (int32 x=0; x<=tiid; x++)
     fprintf(stderr, "MultiAlignUnitig()-- mid %3d  f_list %6d,%6d  offsets %6d,%6d  placed %6d,%6d\n",
             unitig->f_list[x].ident,
             unitig->f_list[x].position.bgn, unitig->f_list[x].position.end,
@@ -540,7 +540,7 @@ unitigConsensus::computePositionFromAlignment(void) {
   //  "-fragmentLen" instead of the arbitrary cutoff below.
 
   Overlap  *O           = NULL;
-  double    thresh      = 1e-6;
+  double    thresh      = 1e-3;
   int32     minlen      = AS_OVERLAP_MIN_LEN;
   int32     ahanglimit  = -10;
 
@@ -825,7 +825,7 @@ unitigConsensus::alignFragmentToFragments(void) {
 #endif
 
   Overlap  *O           = NULL;
-  double    thresh      = 1e-6;
+  double    thresh      = 1e-3;
   int32     minlen      = AS_OVERLAP_MIN_LEN;
 
   char     *fragment    = Getchar(sequenceStore, GetFragment(fragmentStore, tiid)->sequence);
@@ -852,37 +852,62 @@ unitigConsensus::alignFragmentToFragments(void) {
     char      *bseq = Getchar(sequenceStore, GetFragment(fragmentStore, tiid)->sequence);
 
     int32      alen = GetFragment(fragmentStore, qiid)->length;
-    int32      blen = GetFragment(fragmentStore, qiid)->length;
+    int32      blen = GetFragment(fragmentStore, tiid)->length;
 
+#ifdef SHOW_ALGORITHM
+    //fprintf(stderr, "A idx=%d id=%d len=%d %s\n", qiid, unitig->f_list[qiid].ident, alen, aseq);
+    //fprintf(stderr, "B idx=%d id=%d len=%d %s\n", tiid, unitig->f_list[tiid].ident, blen, bseq);
+#endif
     //  Go fishing for an alignment.
 
     O = DP_Compare(aseq,
                    bseq,
                    0, alen,            //  ahang bounds
-                   alen, blen,         //  length of fragments
+                   alen, blen,         //  ahang, bhang exclusion are unused here
                    0,
-                   AS_CNS_ERROR_RATE, thresh, minlen,
+                   AS_CNS_ERROR_RATE + 0.02, thresh, minlen,
                    AS_FIND_ALIGN);
 
     if (O == NULL)
       O = Local_Overlap_AS_forCNS(aseq,
                                   bseq,
                                   0, alen,            //  ahang bounds
-                                  alen, blen,         //  length of fragments
+                                  alen, blen,         //  ahang, bhang exclusion are unused here
                                   0,
-                                  AS_CNS_ERROR_RATE, thresh, minlen,
+                                  AS_CNS_ERROR_RATE + 0.02, thresh, minlen,
                                   AS_FIND_ALIGN);
 
     if (O == NULL)
+      O = Optimal_Overlap_AS_forCNS(aseq,
+                                    bseq,
+                                    0, alen,            //  ahang bounds are unused here
+                                    alen, blen,         //  ahang, bhang exclusion
+                                    0,
+                                    AS_CNS_ERROR_RATE + 0.02, thresh, minlen,
+                                    AS_FIND_ALIGN);
+
+    if (O == NULL) {
+#ifdef SHOW_ALGORITHM
+      fprintf(stderr, "alignFragmentToFragment()-- No alignment found.\n");
+#endif
       continue;
+    }
 
     //  Negative ahang?  Nope, don't want it.
-    if (O->begpos < 0)
+    if (O->begpos < 0) {
+#ifdef SHOW_ALGORITHM
+      fprintf(stderr, "alignFragmentToFragment()-- No alignment found -- begpos = %d.\n", O->begpos);
+#endif
       continue;
+    }
 
     //  Positive bhang and not the last fragment?  Nope, don't want it.
-    if ((O->endpos > 0) && (placed[qiid].end != frankensteinLen))
+    if ((O->endpos > 0) && (placed[qiid].end != frankensteinLen)) {
+#ifdef SHOW_ALGORITHM
+      fprintf(stderr, "alignFragmentToFragment()-- No alignment found -- endpos = %d.\n", O->endpos);
+#endif
       continue;
+    }
 
     //  Make up plausible guesses for where this fragment was placed.
 
