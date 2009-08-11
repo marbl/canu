@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.22 2009-06-10 18:05:13 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.23 2009-08-11 04:38:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,7 +87,7 @@ static char *safe_copy_Bstring_with_preceding_null(char *in){
 Overlap *
 Local_Overlap_AS_forCNS(char *a, char *b,
                         int beg, int end,
-                        int ahang, int bhang,
+                        int ahangUNUSED, int bhangUNUSED,
                         int opposite,
                         double erate, double thresh, int minlen,
                         CompareOptions what) {
@@ -108,8 +108,10 @@ Local_Overlap_AS_forCNS(char *a, char *b,
   fprintf(stderr, "Local_Overlap_AS_forCNS()--  Begins\n");
 #endif
 
-  if (erate > AS_MAX_ERROR_RATE)
-    fprintf(stderr, "WARNING:  erate=%f >= AS_MAX_ERROR_RATE=%f\n", erate, (double)AS_MAX_ERROR_RATE);
+  if (erate > AS_MAX_ERROR_RATE) {
+    fprintf(stderr, "Local_Overlap_AS_forCNS()--  erate=%f >= AS_MAX_ERROR_RATE=%f, reset to max\n", erate, (double)AS_MAX_ERROR_RATE);
+    erate = AS_MAX_ERROR_RATE;
+  }
   assert((0.0 <= erate) && (erate <= 4 * AS_MAX_ERROR_RATE));
 
   A.sequence   = safe_copy_Astring_with_preceding_null(a);
@@ -231,7 +233,7 @@ Local_Overlap_AS_forCNS(char *a, char *b,
 Overlap *
 Affine_Overlap_AS_forCNS(char *a, char *b,
                          int beg, int end,
-                         int ahang, int bhang,
+                         int ahangUNUSED, int bhangUNUSED,
                          int opposite,
                          double erate, double thresh, int minlen,
                          CompareOptions what){
@@ -249,6 +251,10 @@ Affine_Overlap_AS_forCNS(char *a, char *b,
   fprintf(stderr, "Affine_Overlap_AS_forCNS()--  Begins\n");
 #endif
 
+  if (erate > AS_MAX_ERROR_RATE) {
+    fprintf(stderr, "Affine_Overlap_AS_forCNS()--  erate=%f >= AS_MAX_ERROR_RATE=%f, reset to max\n", erate, (double)AS_MAX_ERROR_RATE);
+    erate = AS_MAX_ERROR_RATE;
+  }
   assert((0.0 <= erate) && (erate <= AS_MAX_ERROR_RATE));
 
   orig_TEST_NUM_INDELS = AS_ALN_TEST_NUM_INDELS;
@@ -353,7 +359,7 @@ Affine_Overlap_AS_forCNS(char *a, char *b,
 
 Overlap *
 Optimal_Overlap_AS_forCNS(char *a, char *b,
-                          int beg, int end,
+                          int begUNUSED, int endUNUSED,
                           int ahang, int bhang,
                           int opposite,
                           double erate, double thresh, int minlen,
@@ -380,6 +386,10 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
   fprintf(stderr, "Optimal_Overlap_AS_forCNS()--  Begins\n");
 #endif
 
+  if (erate > AS_MAX_ERROR_RATE) {
+    fprintf(stderr, "Optimal_Overlap_AS_forCNS()--  erate=%f >= AS_MAX_ERROR_RATE=%f, reset to max\n", erate, (double)AS_MAX_ERROR_RATE);
+    erate = AS_MAX_ERROR_RATE;
+  }
   assert((0.0 <= erate) && (erate <= AS_MAX_ERROR_RATE));
 
  alignLinkerAgain:
@@ -399,12 +409,13 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
       return NULL;
    }
 
-  //fprintf(stderr, "ALIGN %s\n", a);
-  //fprintf(stderr, "ALIGN %s\n", b);
-  //fprintf(stderr, "ALIGN beg:end %d %d\n", beg, end);
-  //fprintf(stderr, "ALIGN %d %d-%d %d-%d opposite=%d\n", al.alignLen, al.begI, al.endI, al.begJ, al.endJ, opposite);
-  //fprintf(stderr, "ALIGN '%s'\n", m->h_alignA);
-  //fprintf(stderr, "ALIGN '%s'\n", m->h_alignB);
+#if 0
+  fprintf(stderr, "ALIGN %s\n", a);
+  fprintf(stderr, "ALIGN %s\n", b);
+  fprintf(stderr, "ALIGN %d %d-%d %d-%d opposite=%d\n", al.alignLen, al.begI, al.endI, al.begJ, al.endJ, opposite);
+  fprintf(stderr, "ALIGN '%s'\n", m->h_alignA);
+  fprintf(stderr, "ALIGN '%s'\n", m->h_alignB);
+#endif
 
   if (opposite) {
     reverseComplementSequence(b, strlen(b));

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.18 2009-05-29 17:27:16 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.19 2009-08-11 04:38:05 brianwalenz Exp $";
 
 /* Dynamic programming sequence comparison of two fragments.  General
    purpose utility that uses bit-vector d.p. for detection (see, "A Fast
@@ -1420,7 +1420,7 @@ DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
 
 Overlap *DP_Compare(char *aseq, char *bseq,
                     int beg, int end,
-                    int ahang, int bhang,
+                    int ahangUNUSED, int bhangUNUSED,
                     int opposite,
                     double erate, double thresh, int minlen,
                     CompareOptions what)
