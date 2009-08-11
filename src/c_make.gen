@@ -238,7 +238,6 @@ endif
 
 #### Set up paths
 
-LOCAL_INC=$(LOCAL_WORK)/inc
 LOCAL_OS=$(LOCAL_WORK)/$(LOCAL_NAME)
 LOCAL_BIN=$(LOCAL_OS)/bin
 LOCAL_LIB=$(LOCAL_OS)/lib
@@ -301,16 +300,14 @@ if [ ! -d $(LOCAL_OS)  ] ; then mkdir $(LOCAL_OS)  ; fi ; \
 if [ ! -d $(LOCAL_BIN) ] ; then mkdir $(LOCAL_BIN) ; fi ; \
 if [ ! -d $(LOCAL_OBJ) ] ; then mkdir $(LOCAL_OBJ) ; fi ; \
 if [ ! -d $(LOCAL_LIB) ] ; then mkdir $(LOCAL_LIB) ; fi ; \
-if [ ! -d $(LOCAL_DEP) ] ; then mkdir $(LOCAL_DEP) ; fi ; \
-if [ ! -d $(LOCAL_INC) ] ; then mkdir $(LOCAL_INC) ; fi ;
+if [ ! -d $(LOCAL_DEP) ] ; then mkdir $(LOCAL_DEP) ; fi
 endef
 dummy_expected_directories := $(shell $(make_expected_directories))
 
 
 #### Set INC_DIRS for finding headers
 INC_DIRS = $(patsubst %, -I%, \
-    $(strip $(LOCAL_INC) \
-            $(INC_IMPORT_DIRS) \
+    $(strip $(INC_IMPORT_DIRS) \
             $(INC_SEARCH_PATH)) $(SITE_INC))
 
 #### Set LD_DIRS for finding libraries
