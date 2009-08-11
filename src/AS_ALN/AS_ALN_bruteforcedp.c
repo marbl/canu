@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.12 2009-06-22 11:01:45 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.13 2009-08-11 04:42:19 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_ALN_bruteforcedp.h"
@@ -31,12 +31,13 @@ static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.12 2009-06-22 11:01:4
 #define GAPB             2
 #define STOP             3
 
-//  original 3,-2,-2
-//  suggested 5, -3, -4
-
-#define MATCHSCORE       5
-#define GAPSCORE        -4
-#define MISMATCHSCORE   -3
+//  3, -2, -2 original
+//  5, -4, -3 suggested
+//  3, -6, -4 got around one problem, but made many more
+//
+#define MATCHSCORE       3
+#define GAPSCORE        -6
+#define MISMATCHSCORE   -4
 
 #define SLOP             10
 
@@ -57,6 +58,16 @@ static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.12 2009-06-22 11:01:4
 #define DP_NEGT          (1 << 28)
 #define DP_ZERO          (1 << 29)
 
+//
+//  ahang, bhang represent any sequence to EXCLUDE from the alignmet.  There is a little bit of slop
+//  in this exclusion.
+//
+//  Setting both to the length of the sequence will try to find an alignment over all bases.  The
+//  highest scoring alignment is returned, which is likely not an alignment that uses all bases --
+//  the only requirement (assuming endToEnd is set) is that the alignment reaches the end of one
+//  sequence.
+//
+
 void
 alignLinker(char           *alignA,
             char           *alignB,
@@ -66,7 +77,8 @@ alignLinker(char           *alignA,
             alignLinker_s  *a,
             int             endToEnd,
             int             allowNs,
-            int             ahang, int bhang) {
+            int             ahang,
+            int             bhang) {
 
   int   lenA = strlen(stringA);
   int   lenB = strlen(stringB);
@@ -92,9 +104,44 @@ alignLinker(char           *alignA,
   }
 #endif
 
-  if (endToEnd) {
-    //  Looking for best global-ish alignment.  Hitting ends of
-    //  sequences is deadly, unless they are where we expect to end.
+  if (!endToEnd) {
+    //  Looking for best local alignment.  Hitting the start of a sequence is NOT deadly.
+
+    ibgn = 1;
+    iend = lenA;
+    jbgn = 1;
+    jend = lenB;
+
+    for (i=ibgn-1, j=jbgn-1; i<=lenA; i++) {
+      M[i][j].score  = DP_ZERO;
+      M[i][j].action = STOP;
+    }
+    for (i=ibgn-1, j=jbgn-1; j<=lenB; j++) {
+      M[i][j].score  = DP_ZERO;
+      M[i][j].action = STOP;
+    }
+
+  } else if ((ahang == lenA) && (bhang == lenB)) {
+    //  Looking for the best global-ish alignment.  Hitting the start of the I sequence is deadly,
+    //  but J is encouraged.  (This will give us a nice dovetail overlap).
+
+    ibgn = 1;
+    iend = lenA;
+    jbgn = 1;
+    jend = lenB;
+
+    for (i=ibgn-1, j=jbgn-1; i<=lenA; i++) {
+      M[i][j].score  = DP_ZERO;
+      M[i][j].action = STOP;
+    }
+    for (i=ibgn-1, j=jbgn-1; j<=lenB; j++) {
+      M[i][j].score  = DP_NEGT;
+      M[i][j].action = STOP;
+    }
+
+  } else {
+    //  Looking for the best global-ish alignment.  Hitting the ends of sequences is deadly, unless
+    //  they are where we expect to end.
     //
     //  Four cases here (+-ahang, +-bhang).  
     //
@@ -106,12 +153,19 @@ alignLinker(char           *alignA,
     jbgn = (ahang < 0) ? (-ahang+1) : (1);
     jend = (bhang < 0) ? (lenB) : (lenB - bhang);
 
-    if (ibgn < 0 || iend < 0 || jbgn < 0 || jend < 0 || iend < ibgn || jend < jbgn) {
+    //  Catch an error
+
+    if ((ibgn < 0) || (iend < 0) ||
+        (jbgn < 0) || (jend < 0) ||
+        (iend < ibgn) ||
+        (jend < jbgn)) {
+      fprintf(stderr, "WARNING:  bgn: %d,%d  end: %d,%d  lens: %d,%d  hangs: %d,%d\n",
+              ibgn, jbgn, iend, jend, lenA, lenB, ahang, bhang);
       a->alignLen = 0;
       return;
     }
 
-    //fprintf(stderr, "bgn: %d,%d  end: %d,%d  lens: %d,%d hangs: %d,%d\n", ibgn, jbgn, iend, jend, lenA, lenB, ahang, bhang);
+    //fprintf(stderr, "bgn: %d,%d  end: %d,%d  lens: %d,%d  hangs: %d,%d\n", ibgn, jbgn, iend, jend, lenA, lenB, ahang, bhang);
     //fprintf(stderr, "A: %s\n", stringA);
     //fprintf(stderr, "B: %s\n", stringB);
 
@@ -228,23 +282,6 @@ alignLinker(char           *alignA,
       }
     }
 
-  } else {
-    //  Looking for best local alignment.  Hitting the end of a
-    //  sequence is not deadly.
-
-    ibgn = 1;
-    iend = lenA;
-    jbgn = 1;
-    jend = lenB;
-
-    for (i=ibgn-1, j=jbgn-1; i<=lenA; i++) {
-      M[i][j].score  = DP_ZERO;
-      M[i][j].action = STOP;
-    }
-    for (i=ibgn-1, j=jbgn-1; j<=lenB; j++) {
-      M[i][j].score  = DP_ZERO;
-      M[i][j].action = STOP;
-    }
   }
 
   int   scoreMax  = 0;
@@ -252,7 +289,7 @@ alignLinker(char           *alignA,
   int   endI=0, curI=0;
   int   endJ=0, curJ=0;
 
-  //fprintf(stderr, "%d,%d - %d,%d -- ahang,bhang %d,%d alen,blen %d,%d\n",
+  //fprintf(stderr, "%d,%d - %d,%d -- ahang,bhang %d,%d  alen,blen %d,%d\n",
   //        ibgn, jbgn, iend, jend, ahang, bhang, lenA, lenB);
 
   assert(ibgn >= 1);
@@ -320,15 +357,16 @@ alignLinker(char           *alignA,
   //  we've already found and remembered the best end point.
 
   if (endToEnd) {
-    scoreMax = 0;
-    endI     = 0;
-    endJ     = 0;
+    scoreMax    = 0;
+    endI = curI = 0;
+    endJ = curJ = 0;
 
     for (i=ibgn, j=jend; i<=iend; i++) {
       if (scoreMax < M[i][j].score) {
         scoreMax  = M[i][j].score;
         endI = curI = i;
         endJ = curJ = j;
+        //fprintf(stderr, "IscoreMax = %d at %d,%d\n", scoreMax - DP_ZERO, i, j);
       }
     }
 
@@ -337,6 +375,7 @@ alignLinker(char           *alignA,
         scoreMax  = M[i][j].score;
         endI = curI = i;
         endJ = curJ = j;
+        //fprintf(stderr, "JscoreMax = %d at %d,%d\n", scoreMax - DP_ZERO, i, j);
       }
     }
 
