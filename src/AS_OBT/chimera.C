@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.33 2009-06-26 20:02:13 skoren Exp $";
+const char *mainid = "$Id: chimera.C,v 1.34 2009-08-12 05:56:27 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,6 +34,11 @@ const char *mainid = "$Id: chimera.C,v 1.33 2009-06-26 20:02:13 skoren Exp $";
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_OVS_overlapStore.h"
+
+
+//  We trim each overlap end back by this amount.
+//
+#define OVLTRIM  ((AS_OVERLAP_MIN_LEN / 2) - 1)
 
 
 //  WITH_REPORT_FULL will report unmodified fragments.
@@ -200,7 +205,7 @@ public:
         break;
 
       default:
-        fprintf(stderr, "UNCLASSIFIED OVERLAP TYPE "F_U64"\n", style);
+        fprintf(stderr, "UNCLASSIFIED OVERLAP TYPE "F_U32"\n", style);
         break;
     }
 
@@ -325,9 +330,7 @@ process(const AS_IID           iid,
   if ((doUpdate) && (clear[iid].doNotOBT))
     doUpdate = false;
 
-  //fprintf(stderr, "process %s,"F_IID"\n", AS_UID_toString(clear[iid].uid), iid);
-
-  int              slopSm = 20;  //  A little slop
+  fprintf(stderr, "process %s,"F_IID"\n", AS_UID_toString(clear[iid].uid), iid);
 
   uint32           loLinker = clear[iid].fragBeg;
   uint32           hiLinker = clear[iid].fragEnd;
@@ -343,8 +346,6 @@ process(const AS_IID           iid,
     uint32  isectbefore = 0;
     uint32  isect       = 0;
     uint32  isectafter  = 0;
-
-    uint32  slop = slopSm;
 
     //  Count the number of overlaps intersecting this region, compare
     //  to the number of overlaps in the surrounding areas.
@@ -372,15 +373,15 @@ process(const AS_IID           iid,
         continue;
 
       //  Overlap ends within 5bp of the beginning of the region
-      if ((ovlhi <= loLinker + slop) && (loLinker <= ovlhi + slop))
+      if ((ovlhi <= loLinker + OVLTRIM) && (loLinker <= ovlhi + OVLTRIM))
         isectbefore++;
 
       //  Overlap spans 5bp more than both ends of the region
-      if ((ovllo + slop <= loLinker) && (hiLinker + slop <= ovlhi))
+      if ((ovllo + OVLTRIM <= loLinker) && (hiLinker + OVLTRIM <= ovlhi))
         isect++;
 
       //  Overlap begins within 5bp of the end of the region
-      if ((ovllo <= hiLinker + slop) && (hiLinker <= ovllo + slop))
+      if ((ovllo <= hiLinker + OVLTRIM) && (hiLinker <= ovllo + OVLTRIM))
         isectafter++;
     }
 
@@ -470,7 +471,6 @@ process(const AS_IID           iid,
   uint32           hasPotentialChimera = 0;
   uint32           hasInniePair        = 0;
 
-
   for (uint32 i=0; i<overlap->length(); i++) {
     overlap2_t  *ovl = overlap->get(i);
 
@@ -478,34 +478,34 @@ process(const AS_IID           iid,
       case 5:
       case 7:
         hasPotentialChimera++;
-        IL.add(ovl->Abeg, ovl->Aend - ovl->Abeg - slopSm);
+        IL.add(ovl->Abeg, ovl->Aend - ovl->Abeg - OVLTRIM);
         break;
 
       case 13:
         if ((ovl->Aend - ovl->Abeg) > 75) {
           hasPotentialChimera++;
-          IL.add(ovl->Abeg + slopSm, ovl->Aend - ovl->Abeg - 2*slopSm);
+          IL.add(ovl->Abeg + OVLTRIM, ovl->Aend - ovl->Abeg - 2*OVLTRIM);
         }
         break;
 
       case 10:
       case 11:
         hasPotentialChimera++;
-        IL.add(ovl->Abeg + slopSm, ovl->Aend - ovl->Abeg - slopSm);
+        IL.add(ovl->Abeg + OVLTRIM, ovl->Aend - ovl->Abeg - OVLTRIM);
         break;
 
       case 14:
         if ((ovl->Aend - ovl->Abeg) > 75) {
           hasPotentialChimera++;
-          IL.add(ovl->Abeg + slopSm, ovl->Aend - ovl->Abeg - 2*slopSm);
+          IL.add(ovl->Abeg + OVLTRIM, ovl->Aend - ovl->Abeg - 2*OVLTRIM);
         }
         break;
 
       case 6:
-        IL.add(ovl->Abeg, ovl->Aend - ovl->Abeg - slopSm);
+        IL.add(ovl->Abeg, ovl->Aend - ovl->Abeg - OVLTRIM);
         break;
       case 9:
-        IL.add(ovl->Abeg + slopSm, ovl->Aend - ovl->Abeg - slopSm);
+        IL.add(ovl->Abeg + OVLTRIM, ovl->Aend - ovl->Abeg - OVLTRIM);
         break;
 
       case 1:
@@ -515,14 +515,14 @@ process(const AS_IID           iid,
         break;
 
       case 4:
-        IL.add(ovl->Abeg, ovl->Aend - ovl->Abeg - slopSm);
+        IL.add(ovl->Abeg, ovl->Aend - ovl->Abeg - OVLTRIM);
         break;
       case 8:
-        IL.add(ovl->Abeg + slopSm, ovl->Aend - ovl->Abeg - slopSm);
+        IL.add(ovl->Abeg + OVLTRIM, ovl->Aend - ovl->Abeg - OVLTRIM);
         break;
 
       case 12:
-        IL.add(ovl->Abeg + slopSm, ovl->Aend - ovl->Abeg - 2*slopSm);
+        IL.add(ovl->Abeg + OVLTRIM, ovl->Aend - ovl->Abeg - 2*OVLTRIM);
         break;
 
       case 0:
@@ -530,7 +530,7 @@ process(const AS_IID           iid,
 
       case 15:
         if ((ovl->Aend - ovl->Abeg) > 75)
-          IL.add(ovl->Abeg + slopSm, ovl->Aend - ovl->Abeg - 2*slopSm);
+          IL.add(ovl->Abeg + OVLTRIM, ovl->Aend - ovl->Abeg - 2*OVLTRIM);
         break;
     }
   }
@@ -583,7 +583,7 @@ process(const AS_IID           iid,
           case 5:
           case 7:
             //  These should be to the left of the endGap to count.
-            if (((ovl->Aend - slopSm) < endGap) && (ovl->Aend >= begGap)) {
+            if (((ovl->Aend - OVLTRIM) < endGap) && (ovl->Aend >= begGap)) {
               l++;
               assert(interval > 0);
               rightIntervalHang[interval-1] = true;
@@ -593,7 +593,7 @@ process(const AS_IID           iid,
           case 13:
             if ((ovl->Aend - ovl->Abeg) > 75) {
               //  These should be to the left of the endGap to count.
-              if (((ovl->Aend - slopSm) < endGap) && (ovl->Aend >= begGap)) {
+              if (((ovl->Aend - OVLTRIM) < endGap) && (ovl->Aend >= begGap)) {
                 l++;
                 assert(interval > 0);
                 rightIntervalHang[interval-1] = true;
@@ -604,7 +604,7 @@ process(const AS_IID           iid,
           case 10:
           case 11:
             //  These should be to the right of the begGap to count.
-            if (((ovl->Abeg + slopSm) > begGap) && (ovl->Abeg <= endGap)) {
+            if (((ovl->Abeg + OVLTRIM) > begGap) && (ovl->Abeg <= endGap)) {
               r++;
               assert(interval < IL.numberOfIntervals());
               leftIntervalHang[interval] = true;
@@ -614,7 +614,7 @@ process(const AS_IID           iid,
           case 14:
             if ((ovl->Aend - ovl->Abeg) > 75) {
               //  These should be to the right of the begGap to count.
-              if (((ovl->Abeg + slopSm) > begGap) && (ovl->Abeg <= endGap)) {
+              if (((ovl->Abeg + OVLTRIM) > begGap) && (ovl->Abeg <= endGap)) {
                 r++;
                 assert(interval < IL.numberOfIntervals());
                 leftIntervalHang[interval] = true;
@@ -626,13 +626,13 @@ process(const AS_IID           iid,
             //  Repeats.
             if ((ovl->Aend - ovl->Abeg) > 75) {
               //  These should be to the left of the endGap to count.
-              if (((ovl->Aend - slopSm) < endGap) && (ovl->Aend >= begGap)) {
+              if (((ovl->Aend - OVLTRIM) < endGap) && (ovl->Aend >= begGap)) {
                 l++;
                 assert(interval  > 0);
                 rightIntervalHang[interval-1] = true;
               }
               //  These should be to the right of the begGap to count.
-              if (((ovl->Abeg + slopSm) > begGap) && (ovl->Abeg <= endGap)) {
+              if (((ovl->Abeg + OVLTRIM) > begGap) && (ovl->Abeg <= endGap)) {
                 r++;
                 assert(interval < IL.numberOfIntervals());
                 leftIntervalHang[interval] = true;
@@ -788,10 +788,10 @@ process(const AS_IID           iid,
 
     for (uint32 interval=0; interval<IL.numberOfIntervals(); interval++) {
       if (leftIntervalHang[interval]) {
-        //  If this interval (currentBeg <-> IL.lo() - slopSm) is the biggest, save it.
-        if (IL.lo(interval) > intervalMax + slopSm + currentBeg) {
+        //  If this interval (currentBeg <-> IL.lo() - OVLTRIM) is the biggest, save it.
+        if (IL.lo(interval) > intervalMax + OVLTRIM + currentBeg) {
 	  intervalBeg = currentBeg;
-	  intervalEnd = IL.lo(interval) - slopSm;
+	  intervalEnd = IL.lo(interval) - OVLTRIM;
 	  intervalMax = intervalEnd - intervalBeg;
 	}
         //  The next interval can begin where this one stops.
@@ -806,7 +806,7 @@ process(const AS_IID           iid,
 	  intervalMax = intervalEnd - intervalBeg;
 	}
         //  The next interval can begin where this one stops.
-	currentBeg = IL.hi(interval) + slopSm;
+	currentBeg = IL.hi(interval) + OVLTRIM;
       }
     }
 
@@ -829,10 +829,10 @@ process(const AS_IID           iid,
       if (currentBeg >= ora) {
         fprintf(stderr, "Yikes!  curBeg="F_U32" intervalMax="F_U32"\n", currentBeg, intervalMax);
         for (uint32 interval=0; interval<IL.numberOfIntervals(); interval++)
-          fprintf(stderr, "int %d-%d\n", IL.lo(interval), IL.hi(interval));
+          fprintf(stderr, "int "F_U64"-"F_U64"\n", IL.lo(interval), IL.hi(interval));
         for (uint32 i=0; i<overlap->length(); i++) {
           overlap2_t  *ovl = overlap->get(i);
-          fprintf(stderr, "ovl %d-%d %d-%d\n", ovl->Abeg, ovl->Aend, ovl->Bbeg, ovl->Bend);
+          fprintf(stderr, "ovl "F_U64"-"F_U64" "F_U64"-"F_U64"\n", ovl->Abeg, ovl->Aend, ovl->Bbeg, ovl->Bend);
         }
       }
 
@@ -976,11 +976,11 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  AS_IID           idA, idB, idAlast;
-  char             ori;
-  uint32           leftA, rightA, lenA;
-  uint32           leftB, rightB, lenB;
-  double           error;
+  AS_IID           idA=0, idB=0, idAlast=0;
+  char             ori=0;
+  uint32           leftA=0, rightA=0, lenA=0;
+  uint32           leftB=0, rightB=0, lenB=0;
+  double           error=0;
   clear_t         *clear = readClearRanges(gkp);
   overlapList     *overlap = new overlapList;
 
