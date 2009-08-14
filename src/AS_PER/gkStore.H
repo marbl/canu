@@ -16,6 +16,7 @@ public:
   uint32    gkShortFragmentSize;
   uint32    gkMediumFragmentSize;
   uint32    gkLongFragmentSize;
+  uint32    gkPlacementSize;
 
   //  Statistics on our load
 
@@ -33,7 +34,7 @@ public:
   uint32    lkgLoaded;
   uint32    lkgErrors;
   uint32    lkgWarnings;
-
+   
   uint32    sffInput;
   uint32    sffLoaded;
   uint32    sffErrors;
@@ -41,6 +42,11 @@ public:
 
   uint32    sffLibCreated;
 
+  uint32    plcInput;
+  uint32    plcLoaded;
+  uint32    plcErrors;
+  uint32    plcWarnings;
+  
   //  Counts of types of things we have loaded
 
   uint32    numRandom;
@@ -118,6 +124,28 @@ public:
 
   ////////////////////////////////////////
   //
+  //  Placement constraint support.
+  //
+  ////////////////////////////////////////
+private:
+   void        gkStore_loadFRGtoPLC(void);
+   int         gkStore_setFRGtoPLC(AS_IID iid, int plid);
+
+public:
+  int32        gkStore_getNumPlacement(void)                 { return(inf.plcLoaded); }
+  int          gkStore_getFRGtoPLC(AS_IID iid);
+  
+  gkPlacement *gkStore_getPlacement(int id)                  { return((id == 0) ? NULL : (gkPlacement *)getIndexStorePtr(plc, id)); }
+  void         gkStore_getPlacement(int id, gkPlacement *pl) { getIndexStore(plc, id, pl); }  
+  gkPlacement *gkStore_getReadPlacement(AS_IID iid)          { 
+    int index = gkStore_getFRGtoPLC(iid);
+    return (index == 0 ? NULL : gkStore_getPlacement(index));
+  }
+  void         gkStore_setPlacement(int id, gkPlacement *pl) { setIndexStore(plc, id, pl); }
+  void         gkStore_addPlacement(gkPlacement *pl);
+
+  ////////////////////////////////////////
+  //
   //  Clear range support.
   //
   ////////////////////////////////////////
@@ -188,6 +216,10 @@ private:
   StoreStruct             *lib;
 
   StoreStruct             *uid;
+  
+  // Stores placement constraints for fragments
+  StoreStruct             *plc;
+  HashTable_AS            *FRGtoPLC;
 
   //  Maps UIDs to IIDs; maps strings to UIDs.  The STR array
   //  holds ALL the string UIDs.

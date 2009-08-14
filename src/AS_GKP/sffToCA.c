@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.34 2009-08-03 08:49:09 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.35 2009-08-14 13:37:06 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1023,8 +1023,8 @@ processMate(gkFragment *fr,
   const int LINKER_POSITIVE = 1;
   const int LINKER_NEGATIVE = 0;
   int  allowedToSplit = 0;
-  int  lSize = 0;
-  int  rSize = 0;
+  uint32 lSize = 0;
+  uint32 rSize = 0;
   int another1, another2;
 
   assert(fr->clrBgn < fr->clrEnd);

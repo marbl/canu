@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.81 2009-08-05 22:05:33 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.82 2009-08-14 13:37:06 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -338,8 +338,8 @@ constructIIDdump(char  *gkpStoreName,
 
   if (dumpRandLength > 0) {
     double a = (double)lenFrag / (numSingle + numMated);
-    dumpRandSingNum = dumpRandLength / a * numSingle / (numSingle + numMated);
-    dumpRandMateNum = dumpRandLength / a * numMated  / (numSingle + numMated);
+    dumpRandSingNum = (uint32)(dumpRandLength / a * numSingle / (numSingle + numMated));
+    dumpRandMateNum = (uint32)(dumpRandLength / a * numMated  / (numSingle + numMated));
     //fprintf(stderr, "randLength %f %d %d\n", a, dumpRandSingNum, dumpRandMateNum);
   }
 
@@ -478,21 +478,21 @@ main(int argc, char **argv) {
       dumpRandLib      = atoi(argv[++arg]);
       dumpRandMateNum  = atoi(argv[++arg]);
       if (dumpRandMateNum == 0) {
-        fprintf(stderr, "%s: -randommated told to dump 0 mates; exit.\n");
+        fprintf(stderr, "%s: -randommated told to dump 0 mates; exit.\n", argv[0]);
         exit(0);
       }
     } else if (strcmp(argv[arg], "-randomsubset") == 0) {
       dumpRandLib      = atoi(argv[++arg]);
       dumpRandFraction = atof(argv[++arg]);
       if (dumpRandFraction == 0.0) {
-        fprintf(stderr, "%s: -randomsubset told to dump 0%%; exit.\n");
+        fprintf(stderr, "%s: -randomsubset told to dump 0%%; exit.\n", argv[0]);
         exit(0);
       }
     } else if (strcmp(argv[arg], "-randomlength") == 0) {
       dumpRandLib      = atoi(argv[++arg]);
       dumpRandLength   = atol(argv[++arg]);
       if (dumpRandLength == 0) {
-        fprintf(stderr, "%s: -randomlength told to dump 0 bases; exit.\n");
+        fprintf(stderr, "%s: -randomlength told to dump 0 bases; exit.\n", argv[0]);
         exit(0);
       }
 
@@ -707,6 +707,8 @@ main(int argc, char **argv) {
         Check_FragMesg((FragMesg *)pmesg->m, assembler);
       } else if (pmesg->t == MESG_LKG) {
         Check_LinkMesg((LinkMesg *)pmesg->m);
+      } else if (pmesg->t == MESG_PLC) {
+        Check_PlacementMesg((PlacementMesg *) pmesg->m);      
       } else if (pmesg->t == MESG_VER) {
         //  Ignore
       } else {

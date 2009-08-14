@@ -22,7 +22,7 @@
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 
-static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id: AS_PER_gkpStore.h,v 1.59 2009-06-10 18:05:14 brianwalenz Exp $";
+static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id: AS_PER_gkpStore.h,v 1.60 2009-08-14 13:37:08 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,6 +51,7 @@ class gkFragment;
 class gkStore;
 class gkStream;
 class gkClearRange;
+class gkPlacement;
 
 #include "gkStore.H"
 #include "gkStream.H"
@@ -59,5 +60,6 @@ class gkClearRange;
 
 #include "gkLibrary.H"
 #include "gkFragment.H"
+#include "gkPlacement.H"
 
 #endif

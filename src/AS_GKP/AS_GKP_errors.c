@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.10 2009-06-10 18:05:13 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.11 2009-08-14 13:37:06 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -94,6 +94,13 @@ AS_GKP_reportError(int error, ...) {
     errorMs[AS_GKP_SFF_TOO_LONG           ] = "# SFF Alert: Fragment %s trimmed from %d bases to (assembler maximum length) %d bases.\n";
     errorMs[AS_GKP_SFF_N                  ] = "# SFF Alert: Fragment %s contains an N; deleted.\n";
 
+    errorMs[AS_GKP_PLC_SAME_CONSTRAINT    ] = "# PLC Error: Can't constrain fragment %s by the same fragment %s on both sides.\n";
+    errorMs[AS_GKP_PLC_SELF_CONSTRAINT    ] = "# PLC Error: Can't constrain fragment %s using itself.\n";
+    errorMs[AS_GKP_PLC_FRG_DOESNT_EXIST   ] = "# PLC Error: Fragment %s not previously defined.\n";
+    errorMs[AS_GKP_PLC_FRG_DELETED        ] = "# PLC Error: Fragment %s is marked as deleted.\n";
+    errorMs[AS_GKP_PLC_ALREADY_CONSTRAINED] = "# PLC Error: Fragment %s,"F_IID" already has constraint enforced on it by %s,"F_IID" %s,"F_IID"; wanted to set to %s,"F_IID" %s"F_IID".\n";
+    errorMs[AS_GKP_PLC_UNKNOWN_ACTION     ] = "# PLC Error: Unknown action %c.\n";
+
     errorMs[AS_GKP_UNKNOWN_MESSAGE        ] = "# GKP Error: Unknown message with type %s.\n";
 
     //
@@ -148,6 +155,13 @@ AS_GKP_reportError(int error, ...) {
     errorSs[AS_GKP_SFF_TOO_SHORT          ] = "# SFF Alert: Fragment too short.\n";
     errorSs[AS_GKP_SFF_TOO_LONG           ] = "# SFF Alert: Fragment trimmed to assembler maximum length.\n";
     errorSs[AS_GKP_SFF_N                  ] = "# SFF Alert: Fragment contains an N; deleted.\n";
+
+    errorSs[AS_GKP_PLC_SAME_CONSTRAINT    ] = "# PLC Error: Fragment constrained by the same fragment on both sides.\n";
+    errorSs[AS_GKP_PLC_SELF_CONSTRAINT    ] = "# PLC Error: Fragment constrained by itself.\n";
+    errorSs[AS_GKP_PLC_FRG_DOESNT_EXIST   ] = "# PLC Error: Fragment not previously defined.\n";
+    errorSs[AS_GKP_PLC_FRG_DELETED        ] = "# PLC Error: Fragment is marked as deleted.\n";
+    errorSs[AS_GKP_PLC_ALREADY_CONSTRAINED] = "# PLC Error: Fragment is already constrained.\n";
+    errorSs[AS_GKP_PLC_UNKNOWN_ACTION     ] = "# PLC Error: invalid action.\n";
 
     errorSs[AS_GKP_UNKNOWN_MESSAGE        ] = "# GKP Error: Unknown message.\n";
   }

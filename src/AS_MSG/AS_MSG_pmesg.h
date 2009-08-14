@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.77 2009-08-11 04:47:54 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.78 2009-08-14 13:37:06 skoren Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.77 2009-08-11 04:47:54 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.78 2009-08-14 13:37:06 skoren Exp $";
 
 #include <stdio.h>
 #include <time.h>
@@ -53,7 +53,7 @@ typedef struct {
 
 typedef enum {
   MESG_NUL = 0,
-  MESG_BAT, MESG_VER, MESG_DST, MESG_LIB, MESG_FRG, MESG_LKG,
+  MESG_BAT, MESG_VER, MESG_DST, MESG_LIB, MESG_FRG, MESG_LKG, MESG_PLC,
   MESG_OVL,
   MESG_UOM,
   MESG_IMD, MESG_IAF, MESG_IAM, MESG_IUM, MESG_IUL, MESG_ICM, MESG_ICL, MESG_ISF, MESG_ISL,
@@ -65,7 +65,7 @@ typedef enum {
 
 static const char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "NUL",
-  "BAT", "VER", "DST", "LIB", "FRG", "LKG",
+  "BAT", "VER", "DST", "LIB", "FRG", "LKG", "PLC",
   "OVL",
   "UOM",
   "IMD", "IAF", "IAM", "IUM", "IUL", "ICM", "ICL", "ISF", "ISL",
@@ -119,6 +119,14 @@ typedef struct {
   AS_UID          frag2;
   AS_UID          distance;
 } LinkMesg;
+
+/* PLC message -- only for version 2 */
+typedef struct {
+  ActionType      action;
+  AS_UID          frag;
+  AS_UID          bound1;
+  AS_UID          bound2;
+} PlacementMesg;
 
 /* LIB message -- only for version 2 */
 

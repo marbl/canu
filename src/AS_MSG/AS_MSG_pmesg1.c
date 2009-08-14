@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.38 2009-07-30 10:42:56 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.39 2009-08-14 13:37:07 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1688,6 +1688,7 @@ static AS_MSG_callrecord CallTable1[NUM_OF_REC_TYPES + 1] = {
   {"RLIB", NULL, NULL, 0l },  //  RESERVED for Version 2's LIB message
   {"{FRG", Read_FRG_Mesg, Write_FRG_Mesg, sizeof(FragMesg)  },
   {"{LKG", Read_LKG_Mesg, Write_LKG_Mesg, sizeof(LinkMesg) },
+  {"RLIB", NULL, NULL, 0l },  //  RESERVED for Version 2's PLC message
 
   {"{OVL", Read_OVL_Mesg, Write_OVL_Mesg, sizeof(OverlapMesg) },
   {"{UOM", Read_UOM_Mesg, Write_UOM_Mesg, sizeof(UnitigOverlapMesg) },

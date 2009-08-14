@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.74 2009-08-04 11:03:00 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.75 2009-08-14 13:37:06 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1665,9 +1665,6 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
 
   }
 
-  // set up closure reads if they aren't yet
-  LoadClosureReadData();
-    
   for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
     IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
     CDS_CID_t fragID = (CDS_CID_t)mp->sourceInt;
@@ -1765,8 +1762,8 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
          frag->label = AS_INTRACHUNK;
       }
 
-      // SK: for closure, mark closure contigs
-      if ((GlobalData->closureReads != NULL) && LookupValueInHashTable_AS(GlobalData->closureReads, frag->iid, 0)) {
+      // for placement constraints, mark fragments as constrained
+      if (ScaffoldGraph->gkpStore->gkStore_getFRGtoPLC(frag->iid) != 0) {
          if (node->scaffoldID == -1) {
             node->flags.bits.isClosure = TRUE;
          }

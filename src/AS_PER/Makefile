@@ -30,6 +30,7 @@ SOURCES = AS_PER_genericStore.C \
           AS_PER_gkStore.C \
           AS_PER_gkStore_UID.C \
           AS_PER_gkStore_clearRange.C \
+          AS_PER_gkStore_PLC.C \
           AS_PER_gkStream.C \
           AS_PER_encodeSequenceQuality.C \
           AS_PER_asmStore.C

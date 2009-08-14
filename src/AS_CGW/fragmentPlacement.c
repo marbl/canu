@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.27 2009-07-30 10:42:56 brianwalenz Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.28 2009-08-14 13:37:06 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -710,15 +710,14 @@ getChunkInstanceID(ChunkInstanceT *chunk, int index) {
 int placedByClosureIn(int index, CDS_CID_t iid, CDS_CID_t sid, CDS_CID_t ctgiid) {
    int result = FALSE;
 
-   uint32 leftIID = (uint32) LookupValueInHashTable_AS(GlobalData->closureLeftEnds, (uint64)iid, 0); 
-   uint32 rightIID = (uint32) LookupValueInHashTable_AS(GlobalData->closureRightEnds, (uint64)iid, 0);
-
-   assert(leftIID);
-   assert(rightIID);
+   gkPlacement *gkpl = ScaffoldGraph->gkpStore->gkStore_getReadPlacement(iid);
+   assert(gkpl);
+   assert(gkpl->bound1);
+   assert(gkpl->bound2);
    
    // get the reads indicated by the input line
-   CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, leftIID)->fragIndex); 
-   CIFragT *rightMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, rightIID)->fragIndex);
+   CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkpl->bound1)->fragIndex); 
+   CIFragT *rightMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkpl->bound2)->fragIndex);
 
    // the reads aren't in contigs so there can't be gaps to fill
    if (leftMate->contigID == NULLINDEX || rightMate->contigID == NULLINDEX) {
@@ -852,7 +851,7 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
             }
 
         // if this is closure read and we can place it in this location, do it
-        if ((GlobalData->closureReads) && LookupValueInHashTable_AS(GlobalData->closureReads, nextfrg->iid, 0) && 
+        if (ScaffoldGraph->gkpStore->gkStore_getFRGtoPLC(nextfrg->iid) != 0 && 
             placedByClosureIn(index, nextfrg->iid, sid, ctgiid)) {
          fragIsGood = 1;
         }

@@ -1,4 +1,4 @@
-const char *mainid = "$Id: markUniqueUnique.c,v 1.4 2009-07-29 15:55:17 skoren Exp $";
+const char *mainid = "$Id: markUniqueUnique.c,v 1.5 2009-08-14 13:37:07 skoren Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -25,10 +25,10 @@ VA_DEF(uint32);
 int main (int argc, char *argv[]) {
    int      firstFileArg   = 0;
    char    *asmFileName    = NULL;
-   int32    minLength      = DEFAULT_UNITIG_LENGTH;
-   int32    numInstances   = DEFAULT_NUM_INSTANCES;
-   int32    distanceToEnds = DEFAULT_DISTANCE_TO_ENDS;
-   int32    numToggled     = 0;
+   int      minLength      = DEFAULT_UNITIG_LENGTH;
+   int      numInstances   = DEFAULT_NUM_INSTANCES;
+   int      distanceToEnds = DEFAULT_DISTANCE_TO_ENDS;
+   uint32   numToggled     = 0;
 
    argc = AS_configure(argc, argv);
   
@@ -186,6 +186,8 @@ int main (int argc, char *argv[]) {
                count = scf->iaccession;
             }
             break;
+         default:
+            break;
       }
    }
    fclose(infp);
@@ -207,7 +209,7 @@ int main (int argc, char *argv[]) {
                atScfEnd = Getuint32(surrogateAtScaffoldEnds, utg->iaccession);
                toggled = FALSE;
                               
-               if (ret != NULL && (*ret) == numInstances && numInstances != 0) {
+               if (ret != NULL && (*ret) == (uint32)numInstances && numInstances != 0) {
                   toggled = TRUE;
                } 
                // if we find a surrogate that has two instances and it is at scaffold ends mark toggle it as well
@@ -224,6 +226,8 @@ int main (int argc, char *argv[]) {
                   numToggled++;
                }
                
+               break;
+            default:
                break;
          }
          WriteProtoMesg_AS(stdout, pmesg);

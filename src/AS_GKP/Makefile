@@ -29,6 +29,7 @@ GKPSRC    = AS_GKP_buildPartition.C \
             AS_GKP_checkLibrary.C \
             AS_GKP_checkFrag.C \
             AS_GKP_checkLink.C \
+            AS_GKP_checkPlace.C \
             AS_GKP_dump.C \
             AS_GKP_edit.C \
             AS_GKP_errors.C \

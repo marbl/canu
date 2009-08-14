@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.72 2009-07-30 10:34:13 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.73 2009-08-14 13:37:05 skoren Exp $";
 
 
 #include <stdio.h>
@@ -150,9 +150,6 @@ main(int argc, char **argv) {
     if        (strcmp(argv[arg], "-C") == 0) {
       GlobalData->performCleanupScaffolds = 0;
 
-    } else if (strcmp(argv[arg], "-c") == 0) {
-      strcpy(GlobalData->closureReadFile, argv[++arg]);
-
     } else if (strcmp(argv[arg], "-p") == 0) {
       GlobalData->closurePlacement = atoi(argv[++arg]);
 
@@ -256,7 +253,6 @@ main(int argc, char **argv) {
   if (err) {
     fprintf(stderr, "usage: %s [options] -g <GatekeeperStoreName> -o <OutputPath> <unitigs*.cgb>\n", argv[0]);
     fprintf(stderr, "   -C           Don't cleanup scaffolds\n");
-    fprintf(stderr, "   -c <file>    closure reads\n");
     fprintf(stderr, "   -p <int>     how to place closure reads. 0 - place at first location found, 1 - place at best gap, 2 - allow to be placed in multiple gaps\n");
     fprintf(stderr, "   -D <lvl>     Debug\n");
     fprintf(stderr, "   -E           output overlap only contig edges\n");
@@ -392,8 +388,6 @@ main(int argc, char **argv) {
     //  Dump stats on the loaded checkpoint
     //GeneratePlacedContigGraphStats(tmpBuffer,0);
     //GenerateScaffoldGraphStats(tmpBuffer,0);
-    
-    LoadClosureReadData();
   }
 
 
@@ -702,7 +696,7 @@ main(int argc, char **argv) {
   for (j = 0; j < GetNumVA_CIFragT(ScaffoldGraph->CIFrags); j++) {
     CIFragT * frag = GetCIFragT(ScaffoldGraph->CIFrags, j);
          
-    if (LookupValueInHashTable_AS(GlobalData->closureReads, frag->iid, 0)) {
+    if (ScaffoldGraph->gkpStore->gkStore_getFRGtoPLC(frag->iid) != 0) {
       AS_UID uid = getGatekeeperIIDtoUID(ScaffoldGraph->gkpStore, frag->iid, AS_IID_FRG);
       if (frag->contigID != -1) {
         ChunkInstanceT * ctg = GetGraphNode(ScaffoldGraph->RezGraph, frag->contigID);            

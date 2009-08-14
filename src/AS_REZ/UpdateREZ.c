@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: UpdateREZ.c,v 1.15 2009-04-24 14:26:16 skoren Exp $";
+static const char *rcsid = "$Id: UpdateREZ.c,v 1.16 2009-08-14 13:37:07 skoren Exp $";
 
 /**********************************************************************
 
@@ -291,8 +291,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
                      table[fc->chunk[k].chunk_id]->copy_letter, table[fc->chunk[k].chunk_id]->keep, table[fc->chunk[k].chunk_id]->isClosure, 
                      table[fc->chunk[k].chunk_id]->scaff_id, fc->chunk[k].scaff_id,
                      table[fc->chunk[k].chunk_id]->gap, fc->chunk[k].gap);
-                   
-                  assert(0);
+		            continue;
             }
             table[fc->chunk[k].chunk_id] = &(fc->chunk[k]);
          }

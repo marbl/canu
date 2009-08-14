@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fragmentDepth.c,v 1.13 2009-06-05 15:10:41 skoren Exp $";
+const char *mainid = "$Id: fragmentDepth.c,v 1.14 2009-08-14 13:37:07 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fasta.h"
@@ -133,10 +133,10 @@ void outputResult(AS_UID lastuid,
                   intDep *id, 
                   uint32 idlen, 
                   int mode, 
-                  int *histogram, 
-                  int *histmax, 
+                  uint32 *histogram, 
+                  uint32 *histmax, 
                   int stepSize) {
-   int i = 0;
+   uint32 i = 0;
    uint32 lastpos = 0;
 
    switch (mode) {
@@ -171,7 +171,7 @@ void outputResult(AS_UID lastuid,
             uint32  currStep = 0;
 
             for (i=0; i<idlen; i++) {
-              int j;
+              uint32 j;
               for (j=id[i].lo; j<id[i].hi; j++) {
                 V[j] = id[i].de;
               }
@@ -185,7 +185,7 @@ void outputResult(AS_UID lastuid,
             }
 
             for (i = 0; i < N; i+=currStep) {
-              int E  = i+currStep;
+              uint32 E  = i+currStep;
               if (E > N) { E = N; }
 
               computeStuff(V, N, i, E, &mode, &mean, &median);
@@ -198,7 +198,7 @@ void outputResult(AS_UID lastuid,
        case MODE_DEPTH:
           {
             char   *seq = (char *)safe_malloc((id[idlen-1].hi + 1) * sizeof(char));
-            int     j;
+            uint32     j;
 
             memset(seq, '0', id[idlen-1].hi);
 
@@ -225,10 +225,10 @@ void processScaffold(AS_UID lastuid,
                      intDep *in, 
                      uint32 inlen, 
                      int mode, 
-                     int *histogram, 
-                     int *histmax, 
+                     uint32 *histogram, 
+                     uint32 *histmax, 
                      int stepSize) {
-   int              i      = 0;
+   uint32           i      = 0;
    uint32           idlen  = 0;
    intDep          *id     = NULL;
 
@@ -313,7 +313,7 @@ void processScaffold(AS_UID lastuid,
 
 int
 main(int argc, char **argv) {
-  int              i = 0;
+  uint32           i = 0;
 
   AS_UID           uidjunk = AS_UID_undefined();
   AS_UID           uid     = AS_UID_undefined();
@@ -323,8 +323,8 @@ main(int argc, char **argv) {
   AS_UID           lastuid = AS_UID_undefined();
   int              lastend = 0;
 
-  int              histogram[HISTMAX] = { 0 };
-  int              histmax = 0;
+  uint32           histogram[HISTMAX] = { 0 };
+  uint32           histmax = 0;
 
   int              minSize = 0;
   int              maxSize = DEPTHSIZE;

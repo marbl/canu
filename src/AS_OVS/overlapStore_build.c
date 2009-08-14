@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.25 2009-07-06 20:03:41 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.26 2009-08-14 13:37:05 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -142,7 +142,6 @@ buildStore(
       uint32 doFilterOBT, 
       uint32 fileListLen, 
       char **fileList, 
-      char *ovlSkipName, 
       Ovl_Skip_Type_t ovlSkipOpt) {
 
   if (gkpName == NULL) {
@@ -208,26 +207,6 @@ buildStore(
   BinaryOverlapFile      **dumpFile    = (BinaryOverlapFile **)safe_calloc(sizeof(BinaryOverlapFile *), dumpFileMax);
   uint64                  *dumpLength  = (uint64 *)safe_calloc(sizeof(uint64), dumpFileMax);
 
-  // record the UIDs we should not process in the hashtable if we are supplied a file listing them  
-  HashTable_AS *readIIDsToSkip = CreateScalarHashTable_AS();
-  if (doFilterOBT == 0 && ovlSkipName != NULL) {
-     int line_len = ( 16 * 1024 * 1024);
-     char *currLine = (char *)safe_malloc(sizeof(char)*line_len);
-     char fileName[1024];
-     errno = 0;
-     FILE *file = fopen(ovlSkipName, "r");
-     if (errno) {
-        errno = 0;
-     } else {
-        while (fgets(currLine, line_len-1, file) != NULL) {
-           AS_UID read = AS_UID_lookup(currLine, NULL);
-           InsertInHashTable_AS(readIIDsToSkip, storeFile->gkp->gkStore_getUIDtoIID(read, NULL), 0, 1, 0);
-         }
-         fclose(file);
-      }
-      safe_free(currLine);
-  }
-
   for (i=0; i<fileListLen; i++) {
     BinaryOverlapFile  *inputFile;
     OVSoverlap          fovrlap;
@@ -249,8 +228,8 @@ buildStore(
         continue;
 
       if (doFilterOBT == 0) {
-         int firstIgnore = ExistsInHashTable_AS(readIIDsToSkip, fovrlap.a_iid, 0);
-         int secondIgnore = ExistsInHashTable_AS(readIIDsToSkip, fovrlap.b_iid, 0);
+         int firstIgnore = (storeFile->gkp->gkStore_getFRGtoPLC(fovrlap.a_iid) != 0 ? TRUE : FALSE);
+         int secondIgnore = (storeFile->gkp->gkStore_getFRGtoPLC(fovrlap.b_iid) != 0 ? TRUE : FALSE);
          
          // option means don't ignore them at all
          if (ovlSkipOpt == NONE) {
@@ -325,7 +304,6 @@ buildStore(
     }
 #endif
   }
-  DeleteHashTable_AS(readIIDsToSkip);
 
   for (i=0; i<dumpFileMax; i++)
     AS_OVS_closeBinaryOverlapFile(dumpFile[i]);

@@ -14,8 +14,7 @@ sub createOverlapStore {
     $cmd .= " -c $wrk/$asm.ovlStore.BUILDING ";
     $cmd .= " -g $wrk/$asm.gkpStore ";
     
-    if (defined(getGlobal("closureEdges"))){
-      $cmd .= " -I " . getGlobal("closureEdges");
+    if (defined(getGlobal("closureOverlaps"))){
       $cmd .= " -i " . getGlobal("closureOverlaps");
     }
     

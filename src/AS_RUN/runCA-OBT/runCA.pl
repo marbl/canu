@@ -88,9 +88,6 @@ if ((getGlobal("scriptOnGrid") == 1) &&
 
 checkDirectories();
 
-#setup closure stuff
-setupFilesForClosure();
-
 #  If not already on the grid, see if we should be on the grid.
 #  N.B. the arg MUST BE undef.
 #

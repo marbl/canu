@@ -78,8 +78,7 @@ sub CGW ($$$$$$) {
     $cmd .= " -S 0 "                               if (($finalRun == 0)   || (getGlobal("doResolveSurrogates") == 0));
     $cmd .= " -G "                                 if (($finalRun == 0)   && (getGlobal("cgwOutputIntermediate") == 0));
     $cmd .= " -z "                                 if (getGlobal("cgwDemoteRBP") == 1);
-    $cmd .= " -c " . getGlobal("closureEdges")     if (defined(getGlobal("closureEdges")));
-    $cmd .= " -p " . getGlobal("closurePlacement") if (defined(getGlobal("closureEdges")));
+    $cmd .= " -p " . getGlobal("closurePlacement") if (defined(getGlobal("closurePlacement")));
     $cmd .= " -F "                                 if (getGlobal("toggleDoNotDemote") != 0);
     $cmd .= " -u $wrk/4-unitigger/$asm.unused.ovl" if (getGlobal("cgwUseUnitigOverlaps") != 0);
     $cmd .= " -m $sampleSize";

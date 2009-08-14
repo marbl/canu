@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.49 2009-08-05 22:05:33 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.50 2009-08-14 13:37:06 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,6 +63,11 @@ dumpGateKeeperInfo(char       *gkpStoreName,
     fprintf(stdout, F_U32"\tsffWarnings\n", gkp->inf.sffWarnings);
     fprintf(stdout, "\n");
     fprintf(stdout, F_U32"\tsffLibCreated\n", gkp->inf.sffLibCreated);
+    fprintf(stdout, "\n");
+    fprintf(stdout, F_U32"\tplcInput\n",    gkp->inf.plcInput);
+    fprintf(stdout, F_U32"\tplcLoaded\n",   gkp->inf.plcLoaded);
+    fprintf(stdout, F_U32"\tplcErrors\n",   gkp->inf.plcErrors);
+    fprintf(stdout, F_U32"\tplcWarnings\n", gkp->inf.plcWarnings);
     fprintf(stdout, "\n");
     fprintf(stdout, F_U32"\tnumRandom\n",   gkp->inf.numRandom);
     fprintf(stdout, F_U32"\tnumShort\n",    gkp->inf.numShort);
@@ -440,8 +445,8 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
   while (fs->next(&fr)) {
     if ((iidToDump[fr.gkFragment_getReadIID()]) &&
         (dumpAllReads || !fr.gkFragment_getIsDeleted())) {
-
-      frgUID[fr.gkFragment_getReadIID()] = fr.gkFragment_getReadUID();
+      AS_IID frgIID  = fr.gkFragment_getReadIID();
+      frgUID[frgIID] = fr.gkFragment_getReadUID();
 
       libToDump[fr.gkFragment_getLibraryIID()]++;
 
@@ -453,6 +458,18 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
           iidToDump[fr.gkFragment_getReadIID()] = 1;
           frgUID[fr.gkFragment_getReadIID()] = fr.gkFragment_getReadUID();
         }
+      }
+      if (gkp->gkStore_getFRGtoPLC(frgIID) != 0) {
+         // pull the placement fragment information so we can get their UIDs and store in the lookup table (needed for PLC record)
+         gkPlacement *gkpl = gkp->gkStore_getReadPlacement(frgIID);
+         
+         gkp->gkStore_getFragment(gkpl->bound1, &fr, GKFRAGMENT_INF);
+         iidToDump[fr.gkFragment_getReadIID()] = 1;
+         frgUID[fr.gkFragment_getReadIID()] = fr.gkFragment_getReadUID();
+         
+         gkp->gkStore_getFragment(gkpl->bound2, &fr, GKFRAGMENT_INF);
+         iidToDump[fr.gkFragment_getReadIID()] = 1;
+         frgUID[fr.gkFragment_getReadIID()] = fr.gkFragment_getReadUID();
       }
     }
   }
@@ -534,11 +551,14 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
   //  Dump fragments -- as soon as both reads in a mate are defined,
   //  we dump the mate relationship.
   //
+  //  Also, dump any constraints the fragments have
+  //
   fs = new gkStream(gkp, begIID, endIID, GKFRAGMENT_QLT);
 
   while (fs->next(&fr)) {
-    FragMesg  fmesg;
-    LinkMesg  lmesg;
+    FragMesg      fmesg;
+    LinkMesg      lmesg;
+    PlacementMesg cmesg;
 
     if ((iidToDump[fr.gkFragment_getReadIID()]) &&
         (dumpAllReads || !fr.gkFragment_getIsDeleted())) {
@@ -585,6 +605,19 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
         lmesg.distance    = libUID[fr.gkFragment_getLibraryIID()];
 
         WriteProtoMesg_AS(stdout, &pmesg);
+      }
+      
+      gkPlacement *gkpl = gkp->gkStore_getReadPlacement(fr.gkFragment_getReadIID());
+      if (gkpl != NULL) {
+         pmesg.m = &cmesg;
+         pmesg.t = MESG_PLC;
+         
+         cmesg.action  = AS_ADD;
+         cmesg.frag    = frgUID[gkpl->frag];
+         cmesg.bound1  = frgUID[gkpl->bound1];
+         cmesg.bound2  = frgUID[gkpl->bound2];
+         
+         WriteProtoMesg_AS(stdout, &pmesg);
       }
     }
   }

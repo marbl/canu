@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.49 2009-08-05 22:05:33 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.50 2009-08-14 13:37:06 skoren Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
 
-static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.49 2009-08-05 22:05:33 brianwalenz Exp $";
+static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.50 2009-08-14 13:37:06 skoren Exp $";
 
 #include <stdio.h>
 #include <errno.h>
@@ -59,6 +59,8 @@ Check_FragMesg(FragMesg            *frg_mesg,
 int
 Check_LinkMesg(LinkMesg             *lkg_mesg);
 
+int
+Check_PlacementMesg(PlacementMesg   *plc_mesg);
 
 void
 dumpGateKeeperInfo(char       *gkpStoreName,
@@ -192,6 +194,13 @@ AS_GKP_summarizeErrors(void);
 #define AS_GKP_SFF_TOO_LONG             93
 #define AS_GKP_SFF_N                    94
 
-#define AS_GKP_UNKNOWN_MESSAGE          99
+#define AS_GKP_PLC_SAME_CONSTRAINT      100
+#define AS_GKP_PLC_SELF_CONSTRAINT      101
+#define AS_GKP_PLC_FRG_DOESNT_EXIST     102
+#define AS_GKP_PLC_FRG_DELETED          103
+#define AS_GKP_PLC_ALREADY_CONSTRAINED  104
+#define AS_GKP_PLC_UNKNOWN_ACTION       105
+
+#define AS_GKP_UNKNOWN_MESSAGE          120
 
 #endif

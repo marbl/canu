@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.38 2009-08-03 23:42:11 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.39 2009-08-14 13:37:05 skoren Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -1012,17 +1012,16 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
        for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {      
           IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
           
-          if (GlobalData->closureReads == NULL || !ExistsInHashTable_AS(GlobalData->closureReads, (uint64)mp->ident, 0)) {
+          gkPlacement *gkpl = ScaffoldGraph->gkpStore->gkStore_getReadPlacement(mp->ident);
+          if (gkpl == NULL) {
             continue;
-          }      
-          uint32 leftIID = (uint32) LookupValueInHashTable_AS(GlobalData->closureLeftEnds, (uint64)mp->ident, 0);
-          uint32 rightIID = (uint32) LookupValueInHashTable_AS(GlobalData->closureRightEnds, (uint64)mp->ident, 0);
-          assert(leftIID);
-          assert(rightIID);
+          }
+          assert(gkpl->bound1);
+          assert(gkpl->bound2);
    
           // get the reads indicated by the input line
-          CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, leftIID)->fragIndex); 
-          CIFragT *rightMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, rightIID)->fragIndex);
+          CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkpl->bound1)->fragIndex); 
+          CIFragT *rightMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkpl->bound2)->fragIndex);
           if (leftMate->contigID == NULLINDEX || rightMate->contigID == NULLINDEX) {
             continue;
           }

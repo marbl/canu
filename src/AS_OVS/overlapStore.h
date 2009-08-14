@@ -22,7 +22,7 @@
 #ifndef OVERLAPSTORE_H
 #define OVERLAPSTORE_H
 
-static const char *rcsid_OVERLAPSTORE_H = "$Id: overlapStore.h,v 1.13 2008-12-16 22:33:26 skoren Exp $";
+static const char *rcsid_OVERLAPSTORE_H = "$Id: overlapStore.h,v 1.14 2009-08-14 13:37:05 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +35,7 @@ typedef  enum
   {NONE, ALL, INTERNAL}  Ovl_Skip_Type_t;
 
 void
-buildStore(char *storeName, char *gkpName, uint64 memoryLimit, uint32 nThreads, uint32 doFilterOBT, uint32 fileListLen, char **fileList, char *ovlSkipName, Ovl_Skip_Type_t ovlSkipOpt);
+buildStore(char *storeName, char *gkpName, uint64 memoryLimit, uint32 nThreads, uint32 doFilterOBT, uint32 fileListLen, char **fileList, Ovl_Skip_Type_t ovlSkipOpt);
 
 void
 mergeStore(char *storeName, char *mergeName);

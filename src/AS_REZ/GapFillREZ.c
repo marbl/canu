@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.50 2009-07-30 10:34:14 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.51 2009-08-14 13:37:07 skoren Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -587,24 +587,10 @@ typedef  struct
   Closure_Gap_t * gaps;
 }  Closure_Placement_t;
 
-static int Place_Closure_Reads = 1;
-static int Closure_Cov_Cutoff = 0;
 static int Place_Closure_Using_Repeats = 0;
 
-int Enable_Place_Closure_Chunk() {
-   Place_Closure_Reads = 1;
-}
-
-int Disable_Place_Closure_Chunk() {
-   Place_Closure_Reads = 0;
-}
-
 static int Place_Closure_Chunk(Scaffold_Fill_t * fill_chunks, ContigT* contig, int cid, int cover_stat, char copy_letter, int place_repeats) {
-   if (Place_Closure_Reads == FALSE) {
-      return 0;
-   }
-   
-   if (!place_repeats && cover_stat < GlobalData->cgbDefinitelyUniqueCutoff) {
+   if (!place_repeats && cover_stat < GlobalData->cgbDefinitelyUniqueCutoff) {   
       return 0;
    }
 
@@ -654,20 +640,19 @@ static int Place_Closure_Chunk(Scaffold_Fill_t * fill_chunks, ContigT* contig, i
       IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
 
       // skip the non-closure reads
-      if (!ExistsInHashTable_AS(GlobalData->closureReads, (uint64)mp->ident, 0)) {
+      gkPlacement *gkpl = ScaffoldGraph->gkpStore->gkStore_getReadPlacement(mp->ident);
+      if (gkpl == NULL) {
          continue;
-      }      
-      uint32 leftIID = (uint32) LookupValueInHashTable_AS(GlobalData->closureLeftEnds, (uint64)mp->ident, 0);
-      uint32 rightIID = (uint32) LookupValueInHashTable_AS(GlobalData->closureRightEnds, (uint64)mp->ident, 0);
-      assert(leftIID);
-      assert(rightIID);
+      }
+      assert(gkpl->bound1);
+      assert(gkpl->bound2);
       
 #if VERBOSE > 2
-   fprintf(stderr, "Place_Closure_Chunk(): Read=%d Left Bound=%d Right Bound=%d in CID %d\n", mp->ident, leftIID, rightIID, cid);
+   fprintf(stderr, "Place_Closure_Chunk(): Read=%d Left Bound=%d Right Bound=%d in CID %d\n", mp->ident, gkpl->bound1, gkpl->bound2, cid);
 #endif
       // get the reads indicated by the input line
-      CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, leftIID)->fragIndex); 
-      CIFragT *rightMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, rightIID)->fragIndex);
+      CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkpl->bound1)->fragIndex); 
+      CIFragT *rightMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkpl->bound2)->fragIndex);
 
       // the reads aren't in contigs so there can't be gaps to fill
       if (leftMate->contigID == NULLINDEX || rightMate->contigID == NULLINDEX) {
@@ -775,11 +760,11 @@ static int Place_Closure_Chunk(Scaffold_Fill_t * fill_chunks, ContigT* contig, i
    uint32 bestScfID, bestGap;
    uint32 bestLinks = 0;
 
-   if ((!place_repeats && badLinks != 0) || (place_repeats && badLinks > totalLinks)) {
+   if (!place_repeats && badLinks != 0) {
       safe_free(placements);
       return 0;
    }
-   
+
    if (!place_repeats && numPlacementOptions > 1) {
       safe_free(placements);
       return 0;
@@ -794,23 +779,24 @@ static int Place_Closure_Chunk(Scaffold_Fill_t * fill_chunks, ContigT* contig, i
             }
                   
             if (!placeBest) {
-               numActuallyPlaced++;
-               if (Assign_To_Gap (cid, placements[i].gaps[j].start, placements[i].gaps[j].end,
-                        j, i,
-                        0, fill_chunks,
-                        3*placements[i].gaps[j].numLinks, cover_stat, placements[i].gaps[j].numLinks,
-                        copy_letter, TRUE)) {
-                  assert(Assign_To_Gap (cid, placements[i].gaps[j].start, placements[i].gaps[j].end,
+               if (placements[i].gaps[j].numLinks > badLinks) {
+                  numActuallyPlaced++;               
+                  if (Assign_To_Gap (cid, placements[i].gaps[j].start, placements[i].gaps[j].end,
                            j, i,
-                           1, fill_chunks,
+                           0, fill_chunks,
                            3*placements[i].gaps[j].numLinks, cover_stat, placements[i].gaps[j].numLinks,
-                           copy_letter, TRUE));
+                           copy_letter, TRUE)) {
+                     assert(Assign_To_Gap (cid, placements[i].gaps[j].start, placements[i].gaps[j].end,
+                              j, i,
+                              1, fill_chunks,
+                              3*placements[i].gaps[j].numLinks, cover_stat, placements[i].gaps[j].numLinks,
+                              copy_letter, TRUE));
+                  }
                }
    
-               // placing uniques more than once is a no-no
+               // placing uniques more than once is bad
                if (cover_stat >= GlobalData->cgbDefinitelyUniqueCutoff && numActuallyPlaced > 1) {
                   fprintf(stderr, "Place_Closure_Chunk(): Multiply placing unique contig %d %d with cover_stat %f\n", cid, cover_stat);
-                  assert(0);
                }
                copy_letter++;
             } else {
@@ -827,9 +813,9 @@ static int Place_Closure_Chunk(Scaffold_Fill_t * fill_chunks, ContigT* contig, i
       }
    }
    
-   if (placeBest && bestLinks != 0) {
+   if (placeBest && bestLinks != 0 && bestLinks > badLinks) {
       numActuallyPlaced++;
-         
+
       if (Assign_To_Gap (cid, start, end,
             bestGap, bestScfID,
             0, fill_chunks,
@@ -3493,6 +3479,7 @@ static void  Choose_Safe_Chunks
             }
 
           DeleteVA_Stack_Entry_t(stackva);
+        
         }
        
         // handle the closure reads in this part of the if
@@ -3639,6 +3626,7 @@ static void  Choose_Stones
       Chunk_Info [cid] . calc_right = -1;
       cover_stat = GetCoverageStat (chunk);
       uint32 placed = FALSE;
+      char  copy_letter = 'a';
 
       if  (IsUnique (chunk)
            && ! (REF (cid) . is_singleton && UNIQUES_CAN_BE_STONES))
@@ -3810,8 +3798,7 @@ static void  Choose_Stones
           else if  (GetNumVA_Stack_Entry_t(stackva) > 0)
             {
               LengthT  left_end, right_end;
-              float  edge_quality;
-              char  copy_letter = 'a';
+              float  edge_quality;              
               int  bad_allowed, consistent;
               int  i, j;
 
@@ -3900,11 +3887,10 @@ static void  Choose_Stones
         
         if (IsClosure(chunk) && placed == FALSE && chunk->scaffoldID == NULLINDEX)
         {
-          char  copy_letter = 'a';
           Place_Closure_Chunk(fill_chunks, chunk, cid, cover_stat, copy_letter, TRUE);
         }
-    }
-
+  }
+        
   fprintf (stderr, "             Non-unique chunks: %7d\n", non_unique_ct);
   fprintf (stderr, "         With edges to uniques: %7d\n", unique_connect_ct);
   fprintf (stderr, "                        Stones: %7d\n", num_stones);

@@ -496,9 +496,6 @@ sub setDefaults () {
     $synops{"options"}                     = undef;
 
     #### Closure Options
-    $global{"closureEdges"}               = undef;
-    $synops{"closureEdges"}               = "A link to the file of the format readUID leftMateUID rightMateUID specifying closure constraints";
-
     $global{"closureOverlaps"}            = 0;
     $synops{"closureOverlaps"}             = "Option for handling overlaps involving closure reads.\n\t0 - Treat them just like regular reads, \n\t1 - Do not allow any overlaps (i.e. closure reads will stay as singletons until scaffolding), \n\t2 - allow overlaps betweeen closure reads and non-closure reads only";
 
@@ -1064,7 +1061,4 @@ sub runCommand ($$) {
     return(1);
 }
 
-sub setupFilesForClosure() {
-    makeAbsolute("closureEdges");
-}
 1;

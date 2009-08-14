@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.7 2009-07-15 03:21:25 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.8 2009-08-14 13:37:08 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -96,8 +96,8 @@ gkStore::gkStore_open(int writable) {
     exit(1);
   }
 
-  if (inf.gkVersion != 2) {
-    fprintf(stderr, "gkStore_open()-- Invalid version!  Found version %d, code supports version 2.\n", inf.gkVersion);
+  if (inf.gkVersion != 3) {
+    fprintf(stderr, "gkStore_open()-- Invalid version!  Found version %d, code supports version 3.\n", inf.gkVersion);
     exit(1);
   }
 
@@ -147,12 +147,16 @@ gkStore::gkStore_open(int writable) {
   lib   = convertStoreToMemoryStore(lib);
 
   sprintf(name,"%s/uid", storePath);
-  uid = openStore(name, mode);
+  uid    = openStore(name, mode);
+  
+  sprintf(name, "%s/plc", storePath);
+  plc    = openStore(name, mode);
+  plc    = convertStoreToMemoryStore(plc); 
 
   if ((NULL == fsm) ||
       (NULL == fmd) || (NULL == smd) || (NULL == qmd) ||
       (NULL == flg) || (NULL == slg) || (NULL == qlg) ||
-      (NULL == lib) || (NULL == uid)) {
+      (NULL == lib) || (NULL == uid) || (NULL == plc)) {
     fprintf(stderr,"Failed to open gkpStore '%s'.\n", storePath);
     exit(1);
   }
@@ -176,11 +180,12 @@ gkStore::gkStore_create(void) {
   AS_UTL_mkdir(storePath);
 
   inf.gkMagic              = 1;
-  inf.gkVersion            = 2;
+  inf.gkVersion            = 3;
   inf.gkLibrarySize        = sizeof(gkLibrary);
   inf.gkShortFragmentSize  = sizeof(gkShortFragment);
   inf.gkMediumFragmentSize = sizeof(gkMediumFragment);
   inf.gkLongFragmentSize   = sizeof(gkLongFragment);
+  inf.gkPlacementSize      = sizeof(gkPlacement);
 
   sprintf(name,"%s/inf", storePath);
   errno = 0;
@@ -215,10 +220,19 @@ gkStore::gkStore_create(void) {
 
   sprintf(name,"%s/lib", storePath);
   lib = createIndexStore(name, "lib", sizeof(gkLibrary), 1);
+  lib = convertStoreToMemoryStore(lib);
 
   sprintf(name,"%s/uid", storePath);
   uid = createStringStore(name, "uid");
 
+  sprintf(name, "%s/plc", storePath);
+  plc = createIndexStore(name, "plc", sizeof(gkPlacement), 1);
+  plc = convertStoreToMemoryStore(plc);
+  
+  sprintf(name,"%s/f2p", storePath);
+  FRGtoPLC = CreateScalarHashTable_AS();
+  SaveHashTable_AS(name, FRGtoPLC);
+  
   sprintf(name,"%s/u2i", storePath);
   UIDtoIID = CreateScalarHashTable_AS();
   SaveHashTable_AS(name, UIDtoIID);
@@ -292,6 +306,9 @@ gkStore::~gkStore() {
 
   closeStore(uid);
 
+  closeStore(plc);
+  DeleteHashTable_AS(FRGtoPLC);
+  
   DeleteHashTable_AS(UIDtoIID);
   DeleteHashTable_AS(STRtoUID);
 
@@ -339,6 +356,9 @@ gkStore::gkStore_clear(void) {
 
   uid = NULL;
 
+  plc      = NULL;
+  FRGtoPLC = NULL;
+  
   UIDtoIID = NULL;
   STRtoUID = NULL;
 
@@ -395,6 +415,12 @@ gkStore::gkStore_delete(void) {
   unlink(name);
 
   sprintf(name,"%s/uid", storePath);
+  unlink(name);
+
+  sprintf(name,"%s/plc", storePath);
+  unlink(name);
+  
+  sprintf(name,"%s/f2p", storePath);
   unlink(name);
 
   sprintf(name,"%s/u2i", storePath);

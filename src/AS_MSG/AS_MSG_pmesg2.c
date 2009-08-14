@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg2.c,v 1.16 2009-07-30 10:42:56 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg2.c,v 1.17 2009-08-14 13:37:07 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -322,6 +322,34 @@ Write_LKG_Mesg(FILE *fout,void *mesg) {
 
 
 
+static
+void *
+Read_PLC_Mesg(FILE *fin) {
+  static PlacementMesg pmesg;
+
+  pmesg.action = (ActionType)GetType("act:%c","action",fin);
+  pmesg.frag   = GetUID("frg:",fin);
+  pmesg.bound1 = GetUID("frg:",fin);
+  pmesg.bound2 = GetUID("frg:",fin);
+  GetEOM(fin);
+  return (&pmesg);
+}
+
+static
+void
+Write_PLC_Mesg(FILE *fout,void *mesg) {
+  PlacementMesg *pmesg = (PlacementMesg *)mesg;
+  fprintf(fout,"{PLC\n");
+  fprintf(fout,"act:%c\n",pmesg->action);
+  fprintf(fout,"frg:%s\n",AS_UID_toString(pmesg->frag));
+  fprintf(fout,"frg:%s\n",AS_UID_toString(pmesg->bound1));
+  fprintf(fout,"frg:%s\n",AS_UID_toString(pmesg->bound2));
+  fprintf(fout,"}\n");
+}
+
+
+
+
 void AS_MSG_setFormatVersion2(void) {
   AS_MSG_callrecord  *ct = AS_MSG_globals->CallTable;
 
@@ -354,5 +382,11 @@ void AS_MSG_setFormatVersion2(void) {
 
   ct[MESG_LKG].reader  = Read_LKG_Mesg;
   ct[MESG_LKG].writer  = Write_LKG_Mesg;
+  
+  // the PlacementMesg PLC is new.
+  ct[MESG_PLC].header  = "{PLC";
+  ct[MESG_PLC].reader  = Read_PLC_Mesg;
+  ct[MESG_PLC].writer  = Write_PLC_Mesg;
+  ct[MESG_PLC].size    = sizeof(PlacementMesg);
 }
 

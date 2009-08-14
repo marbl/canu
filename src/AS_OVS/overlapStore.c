@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.21 2009-07-06 20:03:40 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.22 2009-08-14 13:37:05 skoren Exp $";
 
 #include "overlapStore.h"
 
@@ -42,7 +42,6 @@ main(int argc, char **argv) {
   uint32          fileListLen = 0;
   uint32          fileListMax = 10 * 1024;  //  If you run more than 10,000 overlapper jobs, you'll die.
   char          **fileList    = (char **)safe_malloc(sizeof(char *) * fileListMax);
-  char           *ovlSkipName = NULL;
   Ovl_Skip_Type_t ovlSkipOpt  = ALL;
 
   argc = AS_configure(argc, argv);
@@ -143,9 +142,6 @@ main(int argc, char **argv) {
       safe_free(line);
       fclose(F);
     
-    } else if (strcmp(argv[arg], "-I") == 0) {
-      ovlSkipName = argv[++arg];
-
     } else if (strcmp(argv[arg], "-i") == 0) {      
       switch (atoi(argv[++arg])) {
          case 0:
@@ -222,7 +218,7 @@ main(int argc, char **argv) {
 
   switch (operation) {
     case OP_BUILD:
-      buildStore(storeName, gkpName, memoryLimit, nThreads, doFilterOBT, fileListLen, fileList, ovlSkipName, ovlSkipOpt);
+      buildStore(storeName, gkpName, memoryLimit, nThreads, doFilterOBT, fileListLen, fileList, ovlSkipOpt);
       break;
     case OP_MERGE:
       mergeStore(storeName, fileList[0]);
