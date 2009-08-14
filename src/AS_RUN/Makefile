@@ -77,53 +77,53 @@ runCA: runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(
 	@ln -fs $@ $(LOCAL_BIN)/runCA-OBT.pl
 
 TIGR: asmQC/TIGR
-	@cp -rp $< $(LOCAL_BIN)
+	@cp -r $< $(LOCAL_BIN)
 
 caqc_help.ini: asmQC/caqc_help.ini
-	@cp -p $< $(LOCAL_BIN)/$@
+	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 caqc.pl: asmQC/caqc.pl
-	@cp -p $< $(LOCAL_BIN)/$@
+	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 caqc-diff.pl: asmQC/caqc-diff.pl
-	@cp -p $< $(LOCAL_BIN)/$@
+	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 ca2ace.pl: asmQC/ca2ace.pl TIGR
-	@cp -p $< $(LOCAL_BIN)/$@
+	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 asmToAGP.pl: asmQC/asmToAGP.pl
-	@cp -p $< $(LOCAL_BIN)/$@
+	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 assemblyCompare: testing/assemblyCompare.pl
-	@cp -p testing/assemblyCompare.pl $(LOCAL_BIN)/$@
+	@cp testing/assemblyCompare.pl $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 qcCompare: testing/qcCompare.pl
-	@cp -p testing/qcCompare.pl $(LOCAL_BIN)/$@
+	@cp testing/qcCompare.pl $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 tampaCompare: testing/tampaCompare.pl
-	@cp -p testing/tampaCompare.pl $(LOCAL_BIN)/$@
+	@cp testing/tampaCompare.pl $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 mummerCompare: testing/mummerCompare.pl
-	@cp -p testing/mummerCompare.pl $(LOCAL_BIN)/$@
+	@cp testing/mummerCompare.pl $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 glen_est_truncadjusted.pl: dataQC/$@
-	@cp -p dataQC/$@ $(LOCAL_BIN)/$@
+	@cp dataQC/$@ $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 spec:
 	@mkdir $(LOCAL_BIN)/spec
 
 spec/%.specFile: spec runCA-OBT/spec/%.specFile
-	@cp -p runCA-OBT/$@ $(LOCAL_BIN)/spec
+	@cp runCA-OBT/$@ $(LOCAL_BIN)/spec
 
 fragmentDepth: fragmentDepth.o libCA.a
 
