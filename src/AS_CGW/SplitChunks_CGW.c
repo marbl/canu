@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.46 2009-08-14 13:35:30 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.47 2009-08-14 13:42:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,40 +35,16 @@ static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.46 2009-08-14 13:35:30 brianwal
 
 //  Initial splitting of unitigs is performed as follows:
 //
-//  For all, shortDiscriminatorUnique(+), or just DiscriminatorUnique
-//  unitigs?  Only for unitigs >= min distance mean + CGW_CUTOFF *
-//  stddev in length
+//  For all, shortDiscriminatorUnique(+), or just DiscriminatorUnique unitigs?  Only for unitigs >=
+//  min distance mean + CGW_CUTOFF * stddev in length
 //
-//  1. create sequence coverage map of reads (AS_READ | AS_EXTR |
-//  AS_TRNR?) - trim 30bp from each end of each read in creating map
-//  if, beyond initial 1x coverage & until last 1x coverage, there is
-//  at least one location with <=1x coverage then continue
+//  1. create sequence coverage map of reads (AS_READ | AS_EXTR | AS_TRNR?) - trim 30bp from each
+//  end of each read in creating map if, beyond initial 1x coverage & until last 1x coverage, there
+//  is at least one location with <=1x coverage then continue
 //
-//  2. create good & bad clone coverage maps.  if at some point in seq
-//  coverage map where coverage <= 1 (not on ends) gcc <= 1 && bcc >=
-//  2 split at that point/interval.  - remember to scan entire unitig
-//  for possibility of multiple break points
-//
-//  Splitting - make sure it will work for contigs & unitigs and for
-//  contig calling fn for unitig:
-//
-//  Inputs: chunk index, interval where to break, graph, chunk type
-//
-//  Outputs: if unitig, need to report info for contig breaking
-//
-//  FOR UNITIGS
-//
-//  1. original unitig becomes 'right' unitig.  add 2 new unitigs :
-//  chimeric middle & left
-//
-//  2. from left to right, populate new unitigs/depopulate original
-//  until interval reached: frags go to left unitig
-//  until interval left: frags go to chimeric middle unitig
-//
-//  3. finish unitig creation - A stat, consensus, unitig edges
-//
-//  take right unitig & repeat checks for good/bad/sequence coverage &
-//  possibly split again
+//  2. create good & bad clone coverage maps.  if at some point in seq coverage map where coverage
+//  <= 1 (not on ends) gcc <= 1 && bcc >= 2 split at that point/interval.  - remember to scan entire
+//  unitig for possibility of multiple break points
 
 
 #define READ_TRIM_BASES         30
@@ -77,134 +53,19 @@ static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.46 2009-08-14 13:35:30 brianwal
 #define MAX_GOOD_CLONE_COVERAGE  0
 #define LN_2                     0.693147
 
-#define SOURCE_LENGTH            100
-
-typedef struct {
-  CDS_CID_t   id;
-  SeqInterval interval;
-} SplitInterval;
-
-VA_DEF(SplitInterval);
 VA_DEF(uint16);
 VA_DEF(SeqInterval);
 
-
-
-
 typedef struct {
   IntUnitigMesg    ium;
-
-  VA_TYPE(int32)  *deltas;
-  VA_TYPE(char)   *sequence;
-  VA_TYPE(char)   *quality;
-
-  int32            minPos;
-  int32            numFragsAllocated;
-  int32            numRandomFragments;
+  int32            isGood;
+  int32            intbgn;
+  int32            intend;
+  int32            utgbgn;
+  int32            utgend;
 } IUMStruct;
 
 
-static
-IUMStruct *
-CreateIUMStruct(void) {
-  IUMStruct *is = (IUMStruct *) safe_calloc(1, sizeof(IUMStruct));
-
-  is->deltas    = CreateVA_int32(1);
-  is->sequence  = CreateVA_char(200000);
-  is->quality   = CreateVA_char(200000);
-
-  is->minPos    = INT32_MAX;
-
-  return is;
-}
-
-
-static
-void
-ResetIUMStruct(IUMStruct *is) {
-  int i;
-
-  for(i = 0; i < is->ium.num_frags; i++) {
-    is->ium.f_list[i].delta_length = 0;
-    is->ium.f_list[i].delta = NULL;
-  }
-
-  is->ium.consensus      = NULL;
-  is->ium.quality        = NULL;
-  is->ium.num_frags      = 0;
-
-  is->minPos             = INT32_MAX;
-  is->numRandomFragments = 0;
-}
-
-
-static
-void
-FreeIUMStruct(IUMStruct *is) {
-
-  if (is == NULL)
-    return;
-
-  DeleteVA_int32(is->deltas);
-  DeleteVA_char(is->sequence);
-  DeleteVA_char(is->quality);
-
-  safe_free(is->ium.f_list);
-
-  safe_free(is);
-}
-
-
-static
-void
-AddIMPToIUMStruct(IUMStruct *is, IntMultiPos *imp) {
-  InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, imp->ident);
-  CIFragT   *frag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
-
-  if (is->ium.num_frags >= is->numFragsAllocated) {
-    is->numFragsAllocated += 10;
-    is->ium.f_list         = (IntMultiPos *)safe_realloc(is->ium.f_list, is->numFragsAllocated * sizeof(IntMultiPos));
-  }
-
-  //  Copy everything.
-  is->ium.f_list[is->ium.num_frags] = *imp;
-
-  //  And modify slightly.
-
-  is->ium.f_list[is->ium.num_frags].position.bgn = frag->offset5p.mean;
-  is->ium.f_list[is->ium.num_frags].position.end = frag->offset3p.mean;
-
-  is->ium.f_list[is->ium.num_frags].delta_length = 0;
-  is->ium.f_list[is->ium.num_frags].delta = NULL;
-
-  is->ium.num_frags++;
-
-  is->minPos = MIN(is->minPos,MIN(frag->offset5p.mean,frag->offset3p.mean));
-  is->numRandomFragments += (AS_FA_RANDOM(imp->type)) ? 1 : 0;
-}
-
-
-static
-void
-PrintPositions(ScaffoldGraphT *graph, MultiAlignT *ma, int isUnitig, char *label) {
-  int i;
-
-  fprintf(stderr, "%10"F_IIDP": %s\n", ma->maID, label);
-
-  for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {
-    IntMultiPos *imp  = GetIntMultiPos(ma->f_list, i);
-    InfoByIID   *info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
-    CIFragT     *frag = GetCIFragT(graph->CIFrags, info->fragIndex);
-
-    fprintf(stderr, F_IID": ("F_S32","F_S32")\t(%f,%f)\t"F_IID"\n",
-            imp->ident,
-            MIN(imp->position.bgn, imp->position.end),
-            MAX(imp->position.bgn, imp->position.end),
-            (isUnitig) ? MIN(frag->offset5p.mean, frag->offset3p.mean) : MIN(frag->contigOffset5p.mean, frag->contigOffset3p.mean),
-            (isUnitig) ? MAX(frag->offset5p.mean, frag->offset3p.mean) : MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean),
-            imp->contained);
-  }
-}
 
 
 static
@@ -385,29 +246,30 @@ CreateReadCoverageMap(ScaffoldGraphT *graph,
                       VA_TYPE(uint16) *rc,
                       MultiAlignT *ma,
                       int isUnitig) {
-  uint32 i;
 
-  for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {
+  ResetVA_uint16(rc);
+  EnableRangeVA_uint16(rc, GetMultiAlignLength(ma));
+
+  for (int32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
     IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
 
-    // only add 'reads' to sequence coverage map
+    if (!AS_FA_READ(imp->type))
+      continue;
 
-    if (AS_FA_READ(imp->type)) {
-      InfoByIID *info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
-      CIFragT   *frag = GetCIFragT(graph->CIFrags, info->fragIndex);
+    InfoByIID *info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
+    CIFragT   *frag = GetCIFragT(graph->CIFrags, info->fragIndex);
 
-      // if unitig is forward vs. reverse, add to correct fragment location
+    // if unitig is forward vs. reverse, add to correct fragment location
 
-      int32 minPos = ((isUnitig) ?
-                      (MIN(frag->offset5p.mean, frag->offset3p.mean) + READ_TRIM_BASES) :
-                      (MIN(frag->contigOffset5p.mean, frag->contigOffset3p.mean) + READ_TRIM_BASES));
+    int32 minPos = ((isUnitig) ?
+                    (MIN(frag->offset5p.mean, frag->offset3p.mean) + READ_TRIM_BASES) :
+                    (MIN(frag->contigOffset5p.mean, frag->contigOffset3p.mean) + READ_TRIM_BASES));
 
-      int32 maxPos = ((isUnitig) ?
-                      (MAX(frag->offset5p.mean, frag->offset3p.mean) - READ_TRIM_BASES) :
-                      (MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean) - READ_TRIM_BASES));
+    int32 maxPos = ((isUnitig) ?
+                    (MAX(frag->offset5p.mean, frag->offset3p.mean) - READ_TRIM_BASES) :
+                    (MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean) - READ_TRIM_BASES));
 
-      IncrementMapInterval(rc, minPos, maxPos);
-    }
+    IncrementMapInterval(rc, minPos, maxPos);
   }
 }
 
@@ -419,10 +281,14 @@ CreateCloneCoverageMaps(ScaffoldGraphT *graph,
                         VA_TYPE(uint16) *bcc,
                         MultiAlignT *ma,
                         int isUnitig) {
-  uint32 i;
 
-  // loop over fragments in unitig
-  for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {
+  ResetVA_uint16(gcc);
+  EnableRangeVA_uint16(gcc, GetMultiAlignLength(ma));
+
+  ResetVA_uint16(bcc);
+  EnableRangeVA_uint16(bcc, GetMultiAlignLength(ma));
+
+  for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
     IntMultiPos *imp  = GetIntMultiPos(ma->f_list, i);
     InfoByIID   *info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
     CIFragT     *frag = GetCIFragT(graph->CIFrags, info->fragIndex);
@@ -430,7 +296,6 @@ CreateCloneCoverageMaps(ScaffoldGraphT *graph,
     // this is unlike ComputeMatePairStatistics, since we're interested
     // even in pairs that are in different unitigs/contigs
 
-    // get lone mate fragment
     if ((frag->flags.bits.hasMate > 0) &&
         (frag->mateOf != NULLINDEX))
       AddLinkToMaps(graph, gcc, bcc, frag,
@@ -446,400 +311,67 @@ CreateCloneCoverageMaps(ScaffoldGraphT *graph,
 
 
 
-
-
-static
-int
-positionCompare(const void *A, const void *B) {
-  const IntMultiPos *a = (const IntMultiPos *)A;
-  const IntMultiPos *b = (const IntMultiPos *)B;
-  return(MIN(a->position.bgn, a->position.end) - MIN(b->position.bgn, b->position.end));
-}
-
-//  There are two methods for fixing containment ordering.
-//
-//  AdjustContainedOrder() is very aggressive, moving all contained
-//  fragments to be immediately after their container.  This fact is
-//  used in SplitChunkByIntervals()
-//
-//  FixContainedOrder() just makes sure that all containers are after
-//  their containee, and does so without changing the position-based
-//  sorting.
-
-static
-void
-AdjustContainedOrder(IntMultiPos *impList, int numIMPs) {
-  HashTable_AS *containing;
-  IntMultiPos *contained;
-  int numContained;
-  int numContaining;
-  int numMoved;
-  int totalMoved;
-  int numContainedLeft;
-  int index;
-
-  // Keep contained fragments just after containing fragment
-  //
-  // 1. Remove contained imps from impList
-  //
-  // 2. Append them to the end of impList so that even contained imp A
-  // that contains another imp B will come before B
-  //
-  // 3. Move contained imps up through impList to position them just
-  // after their containing imp
-  //
-  // How?
-  //
-  // 1. copy contained imps into its own array.  while compacting
-  // non-contained imps in impList & adding non-contained imps to a
-  // hashtable
-  //
-  // 2. looping until no more contained imps get moved to the end of
-  // impList, make sure contained imps that somehow don't have
-  // containing imps in the impList get moved to the end, too (orphans).
-  //
-  // 3. Move contained imps up to the position after their containing
-  // imp
-  //
-  // 4. Move orphaned contained imps up to a position where they should
-  // overlap the preceding imp
-  //
-
-  containing = CreateScalarHashTable_AS();
-  contained = (IntMultiPos *) safe_malloc(numIMPs * sizeof(IntMultiPos));
-  assert(containing != NULL && contained != NULL);
-
-  for(index = 0, numContained = 0, numContaining = 0; index < numIMPs; index++) {
-    if(impList[index].contained != 0) {
-      // copy to contained array
-      contained[numContained++] = impList[index];
-    } else {
-      // move up and add to hashtable
-      impList[numContaining] = impList[index];
-      InsertInHashTable_AS(containing, impList[numContaining].ident, 0, 0, 0);
-      numContaining++;
-    }
-  }
-
-  //
-  // Until all IMPs have been moved
-  //
-  // Iterate over contained IMP list
-  //
-  // If imp status is Waiting, look up containing IMP in hashtable if
-  // it's in the hashtable, change to MarkedToMove
-  //
-  // Iterate over contained IMP list
-  //
-  // If imp status is MarkedToMove, insert in impList just after
-  // containing imp and change status to AlreadyMoved & add to
-  // hashtable
-  //
-  totalMoved = 0;
-  numMoved = 100;
-  numContainedLeft = numContained;
-  while(numMoved > 0) {
-    numMoved = 0;
-    // identify contained imps whose containing imp is in impList
-    for(index = 0; index < numContainedLeft; index++) {
-      // if this imp hasn't moved & it's containing imp is in the hashtable
-      // then move it to the end of the impList & put it in the hashtable
-      if(ExistsInHashTable_AS(containing, contained[index].contained, 0)) {
-        impList[numContaining + totalMoved] = contained[index];
-        InsertInHashTable_AS(containing, impList[numContaining + totalMoved].ident, 0, 0, 0);
-        numMoved++;
-        totalMoved++;
-      } else {
-        // move toward the head of the array
-        contained[index - numMoved] = contained[index];
-      }
-    }
-    numContainedLeft -= numMoved;
-  }
-  DeleteHashTable_AS(containing);
-
-  safe_free(contained);
-
-  assert(numContainedLeft == 0);
-
-  // Now move containeds & orphaned containeds up to behind their containing
-  for(index = numContaining; index < numIMPs; index++) {
-    int index2;
-    IntMultiPos imp = impList[index];
-
-    // move up to behind its containing
-    if(impList[index].contained != 0) {
-      for(index2 = index - 1;
-          impList[index2].ident != imp.contained &&
-            impList[index2].contained != imp.contained;
-          index2--) {
-        impList[index2 + 1] = impList[index2];
-      }
-    } else {
-      // move up to behind something it should overlap
-      for(index2 = index - 1;
-          index2 >= 0 &&
-            (MIN(impList[index2].position.bgn, impList[index2].position.end) >
-             MIN(imp.position.bgn, imp.position.end) ||
-             MAX(impList[index2].position.bgn, impList[index2].position.end) <
-             MIN(imp.position.bgn, imp.position.end));
-          index2--) {
-        impList[index2 + 1] = impList[index2];
-      }
-    }
-    impList[index2 + 1] = imp;
-  }
-}
-
-
-
-static
-void
-FixContainedOrder(IntMultiPos *impList, int numIMPs) {
-  int i=0, j=0;
-
-#if 0
-  VERBOSE_MULTIALIGN_OUTPUT = 1;
-#endif
-
-#if 0
-  fprintf(stderr, "BEFORE\n");
-  for (i=0; i<numIMPs; i++)
-    fprintf(stderr, "%d\t"F_IID"\t%d\t%d\t"F_IID"\n",
-            i,
-            impList[i].ident,
-            impList[i].position.bgn,
-            impList[i].position.end,
-            impList[i].contained);
-#endif
-
-  while (i < numIMPs - 1) {
-    j = i + 1;
-
-#if 0
-    fprintf(stderr, "TEST %d\t"F_IID"\t%d\t%d\t"F_IID"\n",
-            i,
-            impList[i].ident,
-            impList[i].position.bgn,
-            impList[i].position.end,
-            impList[i].contained);
-#endif
-
-    {
-      int  ipos = MIN(impList[i].position.bgn, impList[i].position.end);
-
-      while ((j < numIMPs) && (ipos == MIN(impList[j].position.bgn, impList[j].position.end))) {
-        j++;
-      }
-    }
-
-    if (i+1 != j) {
-
-      //  Got a set of reads that all start at the same position.  We
-      //  don't expect this to be a very large set, and we do lots of
-      //  linear searches.
-
-#if 0
-      {
-        int xx;
-        fprintf(stderr, "Found potential containments to fix.\n");
-        for (xx=i; xx<j; xx++)
-          fprintf(stderr, "%d\t"F_IID"\t%d\t%d\t"F_IID"\n",
-                  xx,
-                  impList[xx].ident,
-                  impList[xx].position.bgn,
-                  impList[xx].position.end,
-                  impList[xx].contained);
-      }
-#endif
-
-      int  beg = i;
-      int  elt = i;
-
-      //  Move all the non-contained reads to the start.  Scan the
-      //  list (variable 'elt') move any uncontained reads to position
-      //  'beg'.  Advance 'beg' to the next uncontained read.
-      //
-      while ((beg < j) && (impList[beg].contained == 0))
-        beg++;
-      for (elt = beg+1; elt < j; elt++) {
-        if (impList[elt].contained == 0) {
-#if 0
-          fprintf(stderr, "swap 1 container %d to %d\n", elt, beg);
-#endif
-          IntMultiPos t = impList[beg];
-          impList[beg]  = impList[elt];
-          impList[elt]  = t;
-          beg++;
-        }
-      }
-
-      //  beg == first read that is contained
-      //  elt == read we are examining
-
-      elt = j - 1;
-
-      //  Starting with the last read in the i-j range, check that
-      //  it's container is present in the set of properly ordered
-      //  containers [i...beg].  If it is, move that read to the set
-      //  of properly ordered containers.  If its container is in the
-      //  range [beg...elt] we need to first move the container into
-      //  the set of properly ordered containers.  And if its
-      //  container isn't found in the range [i...elt] then the
-      //  container must be before our range.
-      //
-      while (beg < elt) {
-        int scan = 0;
-        int swap = 0;
-
-        assert(impList[elt].contained != 0);
-
-        for (scan=i; scan<elt; scan++) {
-
-          //  If we found the container, move elements and stop scanning.
-          //
-          if (impList[scan].ident == impList[elt].contained) {
-            if (scan < beg) {
-              //  Container is properly ordered.  Move 'elt' into the
-              //  set of containers.
-#if 0
-              fprintf(stderr, "swap 2 containee %d to %d\n", elt, beg);
-#endif
-              IntMultiPos t = impList[beg];
-              impList[beg]  = impList[elt];
-              impList[elt]  = t;
-              swap = 1;
-              beg++;
-            } else {
-              //  Our container is here, but it's not yet in the
-              //  correct spot.  Swap the two elements, and restart
-              //  the loop to process the container.
-#if 0
-              fprintf(stderr, "swap 3 container %d to %d\n", scan, elt);
-#endif
-              IntMultiPos t = impList[scan];
-              impList[scan] = impList[elt];
-              impList[elt]  = t;
-              swap = 1;
-            }
-            scan = j;
-          }  //  end of if container found
-        }  //  end of scan loop
-
-        //  Move to the next element.  If we swapped elements, this
-        //  will move us back to the element we swapped in, and we'll
-        //  next process it.  If we didn't swap elements, this element
-        //  is contained in something not in the [i...j] range, and is thus
-        //  eligible to be moved into the set of valid containers.
-        //
-        if (swap == 0) {
-          IntMultiPos t = impList[beg];
-          impList[beg]  = impList[elt];
-          impList[elt]  = t;
-          beg++;
-        }
-      }
-
-#if 0
-      {
-        int xx;
-        fprintf(stderr, "Final containments fixed?\n");
-        for (xx=i; xx<j; xx++)
-          fprintf(stderr, "%d\t"F_IID"\t%d\t%d\t"F_IID"\n",
-                  xx,
-                  impList[xx].ident,
-                  impList[xx].position.bgn,
-                  impList[xx].position.end,
-                  impList[xx].contained);
-      }
-#endif
-
-    }  //  Done fixing the containments in range [i...j]
-
-    i = j;
-  }  //  Move to the next range
-
-#if 0
-  fprintf(stderr, "AFTER\n");
-  for (i=0; i<numIMPs; i++)
-    fprintf(stderr, F_IID"\t%d\t%d\t"F_IID"\n",
-            impList[i].ident,
-            impList[i].position.bgn,
-            impList[i].position.end,
-            impList[i].contained);
-#endif
-}
-
-
-
-
 static
 void
 StoreIUMStruct(ScaffoldGraphT *graph,
                IUMStruct *is,
                int isUnitig,
-               UnitigStatus status,
                float egfar) {
-  int i;
   int32 rho = 0;
 
-  is->ium.iaccession = ((isUnitig) ? GetNumGraphNodes(graph->CIGraph) :
-                        GetNumGraphNodes(graph->ContigGraph));
+  is->ium.iaccession = ((isUnitig) ? GetNumGraphNodes(graph->CIGraph) : GetNumGraphNodes(graph->ContigGraph));
 
-  is->ium.status = status;
+  is->ium.status      = AS_UNASSIGNED;
+  is->ium.forced      = 0;
+  is->ium.length      = 0;
+  is->ium.unique_rept = AS_FORCED_NONE;
 
-  // re-position fragments & compute (estimated) coverage statistic
-  is->ium.length = 0;
-  for(i = 0; i < is->ium.num_frags; i++) {
-    is->ium.f_list[i].position.bgn -= is->minPos;
-    is->ium.f_list[i].position.end -= is->minPos;
-    if(is->ium.f_list[i].position.end > is->ium.f_list[i].position.bgn) {
-      rho = MAX(rho,is->ium.f_list[i].position.bgn);
+  int32 minPos  = INT32_MAX;
+  int32 numRand = 0;
+
+  for (int i=0; i<is->ium.num_frags; i++) {
+    minPos = MIN(minPos, is->ium.f_list[i].position.bgn);
+    minPos = MIN(minPos, is->ium.f_list[i].position.end);
+
+    numRand += (AS_FA_RANDOM(is->ium.f_list[i].type)) ? 1 : 0;
+  }
+
+  for (int i=0; i<is->ium.num_frags; i++) {
+    is->ium.f_list[i].position.bgn -= minPos;
+    is->ium.f_list[i].position.end -= minPos;
+
+    if (is->ium.f_list[i].position.end > is->ium.f_list[i].position.bgn) {
+      rho            = MAX(rho,            is->ium.f_list[i].position.bgn);
       is->ium.length = MAX(is->ium.length, is->ium.f_list[i].position.end);
-      is->ium.f_list[i].position.end--;
     } else {
-      rho = MAX(rho,is->ium.f_list[i].position.end);
+      rho            = MAX(rho,            is->ium.f_list[i].position.end);
       is->ium.length = MAX(is->ium.length, is->ium.f_list[i].position.bgn);
-      is->ium.f_list[i].position.bgn--;
-    }
-    // check that containing fragment is present, if specified
-    // NOTE: ugly search
-    if(is->ium.f_list[i].contained) {
-      int j;
-      for(j = 0; j < is->ium.num_frags; j++) {
-        if(is->ium.f_list[j].ident == is->ium.f_list[i].contained)
-          break;
-      }
-      if(j == is->ium.num_frags)
-        is->ium.f_list[i].contained = 0;
     }
   }
 
 
-  // egfar is the estimated global fragment arrival rate based on the original
-  // chunk.
+  // egfar is the estimated global fragment arrival rate based on the original chunk.
   //
   // rho is the sum of the a-hangs (= largest starting position)
   //
   // Based on compute_coverage_statistic() in AS_CGB_cgb.h
   //
   is->ium.coverage_stat = 0.0;
-  if ((egfar > 0.f && is->numRandomFragments > 0))
-    is->ium.coverage_stat = rho * egfar - LN_2 * (is->numRandomFragments - 1);
-
-  is->ium.forced = 0;
-
-  qsort(is->ium.f_list, is->ium.num_frags, sizeof(IntMultiPos), positionCompare );
-
-  FixContainedOrder(is->ium.f_list, is->ium.num_frags);
+  if ((egfar > 0.0) &&
+      (numRand > 0))
+    is->ium.coverage_stat = rho * egfar - LN_2 * (numRand - 1);
 
   // get the multi-alignment - this fills in some unitig fields
 
-  int unitigSuccess = MultiAlignUnitig(&(is->ium),
+  VA_TYPE(int32)   *deltas     = CreateVA_int32(1);
+  VA_TYPE(char)    *sequence   = CreateVA_char(200000);
+  VA_TYPE(char)    *quality    = CreateVA_char(200000);
+
+  int unitigSuccess = MultiAlignUnitig(&is->ium,
                                        ScaffoldGraph->gkpStore,
-                                       is->sequence,
-                                       is->quality,
-                                       is->deltas,
+                                       sequence,
+                                       quality,
+                                       deltas,
                                        CNS_STATS_ONLY,
                                        NULL);
 
@@ -856,41 +388,40 @@ StoreIUMStruct(ScaffoldGraphT *graph,
     assert(FALSE);
   }
 
+  //  Add ium to the system
 
-  // add ium to the system
-  {
-    MultiAlignT    *ma = CreateMultiAlignTFromIUM(&(is->ium), GetNumCIFragTs(graph->CIFrags), FALSE);
-    int32           length = GetMultiAlignUngappedLength(ma);
-    ChunkInstanceT *ci;
+  MultiAlignT    *ma = CreateMultiAlignTFromIUM(&is->ium, GetNumCIFragTs(graph->CIFrags), FALSE);
 
-    // need to point fragments to their new unitig/contig
+  //  Point fragments to their new unitig/contig
 
-    for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {
-      IntMultiPos *imp  = GetIntMultiPos(ma->f_list, i);
-      InfoByIID   *info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
+  for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
+    IntMultiPos *imp  = GetIntMultiPos(ma->f_list, i);
+    InfoByIID   *info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
 
-      imp->sourceInt = info->fragIndex;
-    }
-
-
-    //  Insert both a unitig and a contig
-
-    insertMultiAlignTInSequenceDB(graph->sequenceDB, is->ium.iaccession, TRUE,
-                                  ma,
-                                  TRUE);
-    insertMultiAlignTInSequenceDB(graph->sequenceDB, is->ium.iaccession, FALSE,
-                                  CopyMultiAlignT(NULL, ma),
-                                  FALSE);
-
-    ProcessIUM_ScaffoldGraph(&(is->ium), length, TRUE);
-
-    ci = GetGraphNode((isUnitig ? graph->CIGraph : graph->ContigGraph), is->ium.iaccession);
-
-    UpdateNodeFragments((isUnitig ? graph->CIGraph : graph->ContigGraph),
-                        is->ium.iaccession,
-                        ci->type == DISCRIMINATORUNIQUECHUNK_CGW,
-                        TRUE);
+    imp->sourceInt = info->fragIndex;
   }
+
+  //  Insert both a unitig and a contig
+
+  insertMultiAlignTInSequenceDB(graph->sequenceDB, is->ium.iaccession, TRUE,
+                                ma,
+                                TRUE);
+  insertMultiAlignTInSequenceDB(graph->sequenceDB, is->ium.iaccession, FALSE,
+                                CopyMultiAlignT(NULL, ma),
+                                FALSE);
+
+  ProcessIUM_ScaffoldGraph(&is->ium, GetMultiAlignUngappedLength(ma), TRUE);
+
+  ChunkInstanceT *ci = GetGraphNode((isUnitig ? graph->CIGraph : graph->ContigGraph), is->ium.iaccession);
+
+  UpdateNodeFragments((isUnitig ? graph->CIGraph : graph->ContigGraph),
+                      is->ium.iaccession,
+                      ci->type == DISCRIMINATORUNIQUECHUNK_CGW,
+                      TRUE);
+
+  DeleteVA_int32(deltas);
+  DeleteVA_char(sequence);
+  DeleteVA_char(quality);
 }
 
 
@@ -901,11 +432,12 @@ StoreIUMStruct(ScaffoldGraphT *graph,
 static
 float
 EstimateGlobalFragmentArrivalRate(ChunkInstanceT *ci, MultiAlignT *ma) {
-  int    i, numRF=0, rho=0;
+  int32  numRF = 0;
+  int32  rho   = 0;
 
   // estimate random fragments/bp
 
-  for (i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
+  for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
     IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
 
     if (AS_FA_RANDOM(imp->type)) {
@@ -918,6 +450,18 @@ EstimateGlobalFragmentArrivalRate(ChunkInstanceT *ci, MultiAlignT *ma) {
 }
 
 
+
+static
+int
+positionCompare(const void *A, const void *B) {
+  const IntMultiPos *a = (const IntMultiPos *)A;
+  const IntMultiPos *b = (const IntMultiPos *)B;
+
+  return(MIN(a->position.bgn, a->position.end) - MIN(b->position.bgn, b->position.end));
+}
+
+
+
 // NOTE: csis intervals are in ungapped coordinates
 static
 void
@@ -926,56 +470,83 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
                       MultiAlignT *ma,
                       VA_TYPE(SeqInterval) *csis,
                       int isUnitig) {
-  int             currI = 0;
-  SeqInterval    *currInterval = GetVA_SeqInterval(csis,currI);
-  int             i;
-  CDS_CID_t       lastIID = 0;
-  IUMStruct      *lastPlacement = NULL;
-  IUMStruct      *good = CreateIUMStruct();
-  IUMStruct      *bad  = CreateIUMStruct();
-  float           egfar;
   ChunkInstanceT *ci = GetGraphNode(graph->CIGraph, ciID);
 
   assert(isUnitig);  // not implemented for contigs yet
 
-  qsort(ma->f_list->Elements, GetNumIntMultiPoss(ma->f_list), sizeof(IntMultiPos), positionCompare);
+  float egfar = EstimateGlobalFragmentArrivalRate(ci, ma);
 
-  egfar = EstimateGlobalFragmentArrivalRate(ci, ma);
-
-  AdjustContainedOrder((IntMultiPos *) ma->f_list->Elements, GetNumIntMultiPoss(ma->f_list));
 
 #if 1
-  // feedback for log file
   fprintf(GlobalData->stderrc, "Splitting %s "F_CID " into as many as %d %s at intervals:",
           (isUnitig ? "unitig" : "contig"), ma->maID,
           (int) (2 * GetNumVA_SeqInterval(csis) + 1),
           (isUnitig ? "unitigs" : "contigs"));
 
-  for(currI = 0; currI < GetNumVA_SeqInterval(csis); currI++) {
-    currInterval = GetVA_SeqInterval(csis, currI);
-    fprintf(GlobalData->stderrc, "\t"F_S32","F_S32, currInterval->bgn, currInterval->end);
+  for (uint32 i=0; i<GetNumVA_SeqInterval(csis); i++) {
+    SeqInterval *I = GetVA_SeqInterval(csis, i);
+    fprintf(GlobalData->stderrc, "\t"F_S32","F_S32, I->bgn, I->end);
   }
+
   fprintf(GlobalData->stderrc, "\n");
 #endif
 
+  
+  //  If a fragment even touches a bad interval, it gets placed in that bad interval.
   //
-  // loop over fragments, placing them in different chunks
+  //  This causes problems in cases such as:
   //
-  // Two chunks are populated at the same stage - a good & a bad -
-  // until the last chimeric interval is passed, in which case only a
-  // good is populated.
+  //        |     bad      |    good     |
+  //      --------------------
+  //                         --
+  //                      ----------------
+  //                               -------
   //
-  // So, when the current bad interval is exceeded, the next good/bad
-  // pair must be used. However, intervals may be close together to
-  // the point that the very next chimeric interval may not be the
-  // furthest chimeric interval into which the fragment falls...
+  //  If the little fragment is not marked as contained, it will be placed in the good interval,
+  //  resulting in a disconnected unitig.  This can (and does) happen due to consensus needing to
+  //  align the second to last fragment with a negative ahang.
   //
-  currI = 0;
-  currInterval = GetVA_SeqInterval(csis, currI);
-  for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {
+  //  We get around this by explicitly checking if the next fragment is completely contained in the
+  //  unitig associated with the previous interval.
+
+  int32            utgNum = 2 * GetNumVA_SeqInterval(csis) + 1;
+  IUMStruct       *utg    = (IUMStruct *)safe_calloc(utgNum, sizeof(IUMStruct));
+
+  for (int i=0; i<utgNum; i++) {
+    utg[i].ium.f_list = (IntMultiPos *)safe_calloc(GetNumIntMultiPoss(ma->f_list), sizeof(IntMultiPos));
+    utg[i].isGood = 1;
+
+    utg[i].intbgn = INT32_MIN;
+    utg[i].intend = INT32_MAX;
+
+    utg[i].utgbgn = INT32_MAX;
+    utg[i].utgend = INT32_MIN;
+  }
+
+
+  for (uint32 currI=0; currI < GetNumVA_SeqInterval(csis); currI++) {
+    int cp = 2 * currI;
+    int ci = 2 * currI + 1;
+    int cn = 2 * currI + 2;
+
+    utg[ci].isGood = 0;
+    utg[cp].intend = utg[ci].intbgn = GetVA_SeqInterval(csis, currI)->bgn;
+    utg[ci].intend = utg[cn].intbgn = GetVA_SeqInterval(csis, currI)->end;
+  }
+
+  //  Sort fragments based on their start position.  This is needed so that contained fragments get
+  //  placed in the correct unitig.
+
+  qsort(ma->f_list->Elements, GetNumIntMultiPoss(ma->f_list), sizeof(IntMultiPos), positionCompare);
+
+  //  Then place fragments in new unitigs.
+
+  for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
     IntMultiPos *imp  = GetIntMultiPos(ma->f_list, i);
     InfoByIID   *info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
     CIFragT     *frag = GetCIFragT(graph->CIFrags, info->fragIndex);
+
+    //  Determine the position of the fragment in the unitig or contig
 
     int32  minPos = ((isUnitig) ?
                      MIN(frag->offset5p.mean, frag->offset3p.mean) :
@@ -984,116 +555,75 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
                      MAX(frag->offset5p.mean, frag->offset3p.mean) :
                      MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean));
 
-    //  keep contained with containing - avoids problem of consensus
-    //  failures if overlap of contained & next fragment is very short
+    //  Find the interval it goes in.  We don't expect to have very many intervals, so this isn't
+    //  as terrible as it looks.
+
+    int32  interval = -1;
+
+    //  Do we belong to a toxic interval?  Anything that touches it belongs in it.
     //
-    if(imp->contained) {
-      AddIMPToIUMStruct(lastPlacement, imp);
-      continue;
+    for (int i=0; (interval == -1) && (i < utgNum); i++)
+      if ((utg[i].isGood == 0) && (maxPos >= utg[i].intbgn) && (minPos <= utg[i].intend))
+        interval = i;
+
+    //  If not in an interval, it must intersect exactly one good interval (otherwise, it would be
+    //  spanning a bad interval).  This lets use the same test as for 'toxic'; simply touching a
+    //  good interval puts the fragment in it.
+    //
+    for (int i=0; (interval == -1) && (i < utgNum); i++)
+      if ((utg[i].isGood == 1) && (maxPos >= utg[i].intbgn) && (minPos <= utg[i].intend))
+        interval = i;
+
+    assert(interval >= 0);
+    assert(interval <  utgNum);
+
+    //  Finally, if the interval is good, and the fragment is fully contained in the last interval,
+    //  place it in the last interval.
+    //
+    if ((interval > 0) &&
+        (utg[interval].isGood == 1) &&
+        (maxPos <= utg[interval-1].utgend))
+      interval--;
+
+    //  Place it.
+
+    {
+      InfoByIID      *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, imp->ident);
+      CIFragT        *frag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+      IntUnitigMesg  *ium  = &utg[interval].ium;
+
+      ium->f_list[ium->num_frags] = *imp;
+
+      //  And modify slightly.  WHY?
+
+      ium->f_list[ium->num_frags].position.bgn = frag->offset5p.mean;
+      ium->f_list[ium->num_frags].position.end = frag->offset3p.mean;
+
+      ium->num_frags++;
     }
 
-    lastIID = imp->ident;
-    // determine where the fragment goes wrt the chimeric interval
-    if(minPos >= currInterval->bgn) {
-      if(minPos > currInterval->end) {
-
-        // Three possibilities here:
-        //
-        // 1. we've run out of intervals & the rest of the fragments
-        // go in the last good interval (handled by the following if())
-        //
-        // 2. the fragment is not beyond the next bad interval
-        //
-        // 3. the fragment is beyond the next bad interval
-        //
-        if(currI < GetNumVA_SeqInterval(csis)) {
-          SeqInterval *lastInterval = NULL;
-          // chimeric intervals may be close together - close enough that
-          // the current fragment may be in the next 'bad' interval rather
-          // than the next 'good' interval - or even further down...
-          // we ARE done with the current good/bad IUMs.
-          //
-          // old bad & old good are done
-          if(good->ium.num_frags > 0) {
-            good->ium.unique_rept = AS_FORCED_NONE;
-            StoreIUMStruct(graph, good, isUnitig, AS_UNASSIGNED, egfar);
-            ci = GetGraphNode(graph->CIGraph, ciID);
-          }
-
-          if(bad->ium.num_frags > 0) {
-            bad->ium.unique_rept = AS_FORCED_NONE;
-            StoreIUMStruct(graph, bad, isUnitig, AS_UNASSIGNED, egfar);
-            ci = GetGraphNode(graph->CIGraph, ciID);
-          }
-
-          // reset the old
-          ResetIUMStruct(good);
-          ResetIUMStruct(bad);
-
-          // advance to the next relevant interval
-          while(currI < GetNumVA_SeqInterval(csis) && minPos > currInterval->end) {
-            lastInterval = currInterval;
-            currInterval = GetVA_SeqInterval(csis, ++currI);
-          }
-
-          if(currInterval) {
-            // currInterval is relevant bad interval
-            // place frag in good or bad
-            if(minPos >= currInterval->bgn) {
-              if(minPos > currInterval->end) {
-                AddIMPToIUMStruct((lastPlacement = good), imp);
-              } else {
-                AddIMPToIUMStruct((lastPlacement = bad), imp);
-              }
-            } else {
-              if(maxPos >= currInterval->bgn) {
-                AddIMPToIUMStruct((lastPlacement = bad), imp);
-              } else {
-                AddIMPToIUMStruct((lastPlacement = good), imp);
-              }
-            }
-          } else {
-            // ran out of chimeric intervals - in last good interval
-            AddIMPToIUMStruct((lastPlacement = good), imp);
-            currInterval = lastInterval;
-            currI = GetNumVA_SeqInterval(csis);
-          }
-        } else {
-          AddIMPToIUMStruct((lastPlacement = good), imp);
-        }
-      } else {
-        // goes in bad
-        AddIMPToIUMStruct((lastPlacement = bad), imp);
-      }
-    } else {
-      if(maxPos >= currInterval->bgn) {
-        // goes in bad
-        AddIMPToIUMStruct((lastPlacement = bad), imp);
-      } else {
-        // goes in good
-        AddIMPToIUMStruct((lastPlacement = good), imp);
-      }
-    }
+    utg[interval].utgbgn = MIN(utg[interval].utgbgn, minPos);
+    utg[interval].utgend = MAX(utg[interval].utgend, maxPos);
   }
 
-  // now make the last good chunk a chunk
-  if(good->ium.num_frags > 0) {
-    good->ium.unique_rept = AS_FORCED_NONE;
-    StoreIUMStruct(graph, good, isUnitig, AS_UNASSIGNED, egfar);
-    ci = GetGraphNode(graph->CIGraph, ciID);
+  //  Now, add all the new unitigs.
+
+  for (int i=0; i<utgNum; i++) {
+    if (utg[i].ium.num_frags > 0)
+      StoreIUMStruct(graph, utg + i, isUnitig, egfar);
+
+    safe_free(utg[i].ium.f_list);
   }
 
-  // if the last bad section went to the end, it's still here
-  if(bad->ium.num_frags > 0) {
-    bad->ium.unique_rept = AS_FORCED_NONE;
-    StoreIUMStruct(graph, bad, isUnitig, AS_UNASSIGNED, egfar);
-    ci = GetGraphNode(graph->CIGraph, ciID);
-  }
+  safe_free(utg);
 
-  // delete the original unitig & contig
-  if(ci->info.CI.contigID != NULLINDEX) {
+  //  Delete the original unitig and contig.
+
+  ci = GetGraphNode(graph->CIGraph, ciID);
+
+  if (ci->info.CI.contigID != NULLINDEX) {
     ChunkInstanceT *contig = GetGraphNode(graph->ContigGraph, ci->info.CI.contigID);
-    if(contig)
+    if (contig)
       DeleteGraphNode(graph->ContigGraph, contig);
   }
 
@@ -1101,25 +631,21 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
 }
 
 
+
+
+//static
 void
 SplitInputUnitigs(ScaffoldGraphT *graph) {
-  VA_TYPE(uint16) *rc = NULL;   // read coverage map
-  VA_TYPE(uint16) *gcc = NULL;  // good clone coverage
-  VA_TYPE(uint16) *bcc = NULL;  // bad clone coverage
-  VA_TYPE(SeqInterval) *csis = NULL; // chimeric sequence intervals
-  int32 minLength = INT32_MAX;
-  int i;
-  int numCIs = GetNumGraphNodes(graph->CIGraph);
-
-  rc = CreateVA_uint16(10000);
-  gcc = CreateVA_uint16(10000);
-  bcc = CreateVA_uint16(10000);
-  csis = CreateVA_SeqInterval(100);
-  assert(rc != NULL && gcc != NULL && bcc != NULL && csis != NULL);
+  VA_TYPE(uint16)       *rc  = CreateVA_uint16(10000);      // read coverage map
+  VA_TYPE(uint16)       *gcc = CreateVA_uint16(10000);      // good clone coverage
+  VA_TYPE(uint16)       *bcc = CreateVA_uint16(10000);      // bad clone coverage
+  VA_TYPE(SeqInterval)  *csis = CreateVA_SeqInterval(100);  // chimeric sequence intervals
 
   // determine minimum unitig length of interest
   //
-  for (i=1; i<GetNumDistTs(graph->Dists); i++) {
+  int32 minLength = INT32_MAX;
+
+  for (uint32 i=1; i<GetNumDistTs(graph->Dists); i++) {
     DistT *dptr = GetDistT(graph->Dists,i);
     minLength = MIN(minLength,dptr->mu + CGW_CUTOFF * dptr->sigma);
   }
@@ -1127,7 +653,7 @@ SplitInputUnitigs(ScaffoldGraphT *graph) {
   // loop over number of original unitigs - not new ones being
   // generated
   //
-  for (i=0; i<numCIs; i++) {
+  for (int32 i=0; i<GetNumGraphNodes(graph->CIGraph); i++) {
     ChunkInstanceT *ci = GetGraphNode(graph->CIGraph, i);
     MultiAlignT *ma = loadMultiAlignTFromSequenceDB(graph->sequenceDB, ci->id, TRUE);
 
@@ -1139,8 +665,6 @@ SplitInputUnitigs(ScaffoldGraphT *graph) {
 
       // create read coverage map for unitig
 
-      ResetVA_uint16(rc);
-      EnableRangeVA_uint16(rc, GetMultiAlignLength(ma));
       CreateReadCoverageMap(graph, rc, ma, TRUE);
 
       // locate region within which to look for possible chimeric
@@ -1165,28 +689,21 @@ SplitInputUnitigs(ScaffoldGraphT *graph) {
       // see if above loop ended in a candidate interval
 
       if(curBase < maxBase) {
-        int32 checkBase;
         SeqInterval interval;
-        int inInterval = 0;
+        int         inInterval = 0;
 
-        // create gcc & bcc maps for unitig
-        ResetVA_uint16(gcc);
-        EnableRangeVA_uint16(gcc, GetMultiAlignLength(ma));
-
-        ResetVA_uint16(bcc);
-        EnableRangeVA_uint16(bcc, GetMultiAlignLength(ma));
+        CreateCloneCoverageMaps(graph, gcc, bcc, ma, TRUE);
 
         // reset the number of splitting intervals to 0
         ResetVA_SeqInterval(csis);
         EnableRangeVA_SeqInterval(csis, 0);
 
-        CreateCloneCoverageMaps(graph, gcc, bcc, ma, TRUE);
-
         // identify & count chimeric sequence intervals
-        for(checkBase = curBase; checkBase < maxBase; checkBase++) {
-          if(*(GetVA_uint16(rc,checkBase)) <= MAX_SEQUENCE_COVERAGE &&
-             *(GetVA_uint16(bcc,checkBase)) >= MIN_BAD_CLONE_COVERAGE &&
-             *(GetVA_uint16(gcc,checkBase)) <= MAX_GOOD_CLONE_COVERAGE) {
+        for (int32 checkBase = curBase; checkBase < maxBase; checkBase++) {
+          if (*(GetVA_uint16(rc, checkBase)) <= MAX_SEQUENCE_COVERAGE &&
+              *(GetVA_uint16(bcc,checkBase)) >= MIN_BAD_CLONE_COVERAGE &&
+              *(GetVA_uint16(gcc,checkBase)) <= MAX_GOOD_CLONE_COVERAGE) {
+
             if(inInterval) {
               // continuing in interval
               interval.end = checkBase;
@@ -1195,6 +712,7 @@ SplitInputUnitigs(ScaffoldGraphT *graph) {
               interval.bgn = interval.end = checkBase;
               inInterval = 1;
             }
+
           } else {
             if(inInterval) {
               // ended interval
