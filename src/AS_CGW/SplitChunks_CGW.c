@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.45 2009-07-30 10:42:56 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.46 2009-08-14 13:35:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -211,8 +211,9 @@ static
 void
 IncrementMapInterval(VA_TYPE(uint16) *map, int32 minPos, int32 maxPos) {
   uint16     *t = GetVA_uint16(map, 0);
+  uint32      l = GetNumuint16s(map);
 
-  for (int32 i=minPos; i<maxPos; i++)
+  for (int32 i=minPos; (i<maxPos) && (i<l); i++)
     t[i]++;
 }
 
@@ -229,7 +230,9 @@ AddLinkToMaps(ScaffoldGraphT *graph,
               int32 length,
               int isUnitig) {
 
-  DistT *dist = GetDistT(graph->Dists, distID);
+  DistT *dist    = GetDistT(graph->Dists, distID);
+  int32  distMin = dist->mu - CGW_CUTOFF * dist->sigma;
+  int32  distMax = dist->mu + CGW_CUTOFF * dist->sigma;
 
   int32 minPos = ((isUnitig) ?
                   (MIN(frag->offset5p.mean, mfrag->offset5p.mean)) :
@@ -244,10 +247,8 @@ AddLinkToMaps(ScaffoldGraphT *graph,
     // for pairs in the same unitig, just process the lesser
     if(frag->iid < mfrag->iid) {
       // if orientation is the same, the pair is bad
-      if((isUnitig &&
-          getCIFragOrient(frag) == getCIFragOrient(mfrag)) ||
-         (!isUnitig &&
-          GetContigFragOrient(frag) == GetContigFragOrient(mfrag))) {
+      if((isUnitig && getCIFragOrient(frag) == getCIFragOrient(mfrag)) ||
+         (!isUnitig && GetContigFragOrient(frag) == GetContigFragOrient(mfrag))) {
         // bad pair - increment intervals
         if(orient == AS_INNIE) {
           // link is innie
@@ -261,16 +262,8 @@ AddLinkToMaps(ScaffoldGraphT *graph,
             //     --- increment ---?        --- increment ---?
             //
             // note that maxPos < length
-            IncrementMapInterval(bcc,
-                                 minPos,
-                                 MIN(minPos + dist->mu +
-                                     CGW_CUTOFF * dist->sigma,
-                                     maxPos));
-            IncrementMapInterval(bcc,
-                                 maxPos,
-                                 MIN(maxPos + dist->mu +
-                                     CGW_CUTOFF * dist->sigma,
-                                     length - 1));
+            IncrementMapInterval(bcc, minPos, MIN(minPos + distMax, maxPos));
+            IncrementMapInterval(bcc, maxPos, MIN(maxPos + distMax, length - 1));
           } else {
             // both are B_A oriented, so intervals < 5p are suspect
             // Increment from minPos to somewhere & maxPos to somewhere
@@ -279,16 +272,8 @@ AddLinkToMaps(ScaffoldGraphT *graph,
             //          <--------                 <--------
             // ?--- increment ---        ?--- increment ---
             //
-            IncrementMapInterval(bcc,
-                                 MAX(0,
-                                     minPos - dist->mu -
-                                     CGW_CUTOFF * dist->sigma),
-                                 minPos);
-            IncrementMapInterval(bcc,
-                                 MAX(minPos,
-                                     maxPos - dist->mu -
-                                     CGW_CUTOFF * dist->sigma),
-                                 maxPos);
+            IncrementMapInterval(bcc, MAX(0, minPos - distMax), minPos);
+            IncrementMapInterval(bcc, MAX(minPos, maxPos - distMax), maxPos);
           }
         } else {
           // link is outtie
@@ -301,16 +286,8 @@ AddLinkToMaps(ScaffoldGraphT *graph,
             //                   -------->                 -------->
             // ?--- increment ---        ?--- increment ---
             //
-            IncrementMapInterval(bcc,
-                                 MAX(0,
-                                     minPos -
-                                     dist->mu - CGW_CUTOFF * dist->sigma),
-                                 minPos);
-            IncrementMapInterval(bcc,
-                                 MAX(minPos,
-                                     maxPos -
-                                     dist->mu - CGW_CUTOFF * dist->sigma),
-                                 maxPos);
+            IncrementMapInterval(bcc, MAX(0, minPos - distMax), minPos);
+            IncrementMapInterval(bcc, MAX(minPos, maxPos - distMax), maxPos);
           } else {
             // both are B_A oriented, so
             // Increment from minPos to somewhere & maxPos to somewhere
@@ -319,16 +296,8 @@ AddLinkToMaps(ScaffoldGraphT *graph,
             // <--------                    <--------
             //          --- increment ---?           --- increment ---?
             //
-            IncrementMapInterval(bcc,
-                                 minPos,
-                                 MIN(minPos +
-                                     dist->mu + CGW_CUTOFF * dist->sigma,
-                                     maxPos));
-            IncrementMapInterval(bcc,
-                                 maxPos,
-                                 MIN(length - 1,
-                                     maxPos +
-                                     dist->mu + CGW_CUTOFF * dist->sigma));
+            IncrementMapInterval(bcc, minPos, MIN(minPos + distMax, maxPos));
+            IncrementMapInterval(bcc, maxPos, MIN(length - 1, maxPos + distMax));
           }
         }
       } else {
@@ -336,8 +305,8 @@ AddLinkToMaps(ScaffoldGraphT *graph,
         int32 distance = maxPos - minPos;
 
         // if the distance is wrong, the pair is bad
-        if(distance < dist->mu - CGW_CUTOFF * dist->sigma ||
-           distance > dist->mu + CGW_CUTOFF * dist->sigma) {
+        if(distance < distMin ||
+           distance > distMax) {
           // bad pair
           // same intervals for either innie or outtie
           //
@@ -353,17 +322,8 @@ AddLinkToMaps(ScaffoldGraphT *graph,
           //  <-------                                      -------->
           //          --- increment ---?  ?--- increment ---
           //
-          IncrementMapInterval(bcc,
-                               minPos,
-                               MIN(maxPos,
-                                   minPos +
-                                   dist->mu + CGW_CUTOFF * dist->sigma));
-          IncrementMapInterval(bcc,
-                               MAX(minPos +
-                                   dist->mu + CGW_CUTOFF * dist->sigma,
-                                   maxPos -
-                                   dist->mu - CGW_CUTOFF * dist->sigma),
-                               maxPos);
+          IncrementMapInterval(bcc, minPos, MIN(maxPos, minPos + distMax));
+          IncrementMapInterval(bcc, MAX(minPos + distMax, maxPos - distMax), maxPos);
         } else {
           // good pair
           IncrementMapInterval(gcc, minPos, maxPos);
@@ -373,82 +333,46 @@ AddLinkToMaps(ScaffoldGraphT *graph,
   } else {
     // in different unitigs, should be close to end of unitig
     if(orient == AS_INNIE) {
-      if((isUnitig && getCIFragOrient(frag) == A_B &&
-          frag->offset5p.mean <
-          length - dist->mu - CGW_CUTOFF * dist->sigma) ||
-         (!isUnitig && GetContigFragOrient(frag) == A_B &&
-          frag->contigOffset5p.mean <
-          length - dist->mu - CGW_CUTOFF * dist->sigma)) {
+      if((isUnitig && getCIFragOrient(frag) == A_B && frag->offset5p.mean < length - distMax) ||
+         (!isUnitig && GetContigFragOrient(frag) == A_B && frag->contigOffset5p.mean < length - distMax)) {
         //
         //  --------->
         //  --- increment ---
         //
         IncrementMapInterval(bcc,
-                             ((isUnitig) ?
-                              frag->offset5p.mean :
-                              frag->contigOffset5p.mean),
-                             ((isUnitig) ?
-                              frag->offset5p.mean :
-                              frag->contigOffset5p.mean) +
-                             dist->mu + CGW_CUTOFF * dist->sigma);
-      } else if((isUnitig && getCIFragOrient(frag) == B_A &&
-                 frag->offset5p.mean >
-                 dist->mu + CGW_CUTOFF * dist->sigma) ||
-                (!isUnitig && GetContigFragOrient(frag) == B_A &&
-                 frag->contigOffset5p.mean >
-                 dist->mu + CGW_CUTOFF * dist->sigma)) {
+                             ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean),
+                             ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean) + distMax);
+      } else if((isUnitig && getCIFragOrient(frag) == B_A && frag->offset5p.mean > distMax) ||
+                (!isUnitig && GetContigFragOrient(frag) == B_A && frag->contigOffset5p.mean > distMax)) {
         //
         //        <----------
         //  --- increment ---
         //
         IncrementMapInterval(bcc,
-                             ((isUnitig) ?
-                              frag->offset5p.mean :
-                              frag->contigOffset5p.mean) -
-                             dist->mu - CGW_CUTOFF * dist->sigma,
-                             ((isUnitig) ?
-                              frag->offset5p.mean :
-                              frag->contigOffset5p.mean));
+                             ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean) - distMax,
+                             ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean));
       }
     } else {
       // outtie
-      if((isUnitig && getCIFragOrient(frag) == B_A &&
-          frag->offset5p.mean <
-          length - dist->mu - CGW_CUTOFF * dist->sigma) ||
-         (!isUnitig && GetContigFragOrient(frag) == B_A &&
-          frag->contigOffset5p.mean <
-          length - dist->mu - CGW_CUTOFF * dist->sigma)) {
+      if((isUnitig && getCIFragOrient(frag) == B_A && frag->offset5p.mean < length - distMax) ||
+         (!isUnitig && GetContigFragOrient(frag) == B_A && frag->contigOffset5p.mean < length - distMax)) {
         //
         //  <----------
         //             --- increment ---
         //
         IncrementMapInterval(bcc,
-                             ((isUnitig) ?
-                              frag->offset5p.mean :
-                              frag->contigOffset5p.mean),
-                             ((isUnitig) ?
-                              frag->offset5p.mean :
-                              frag->contigOffset5p.mean) +
-                             dist->mu + CGW_CUTOFF * dist->sigma);
+                             ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean),
+                             ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean) + distMax);
 
-      } else if((isUnitig && getCIFragOrient(frag) == A_B &&
-                 frag->offset5p.mean >
-                 dist->mu + CGW_CUTOFF * dist->sigma) ||
-                (!isUnitig && GetContigFragOrient(frag) == A_B &&
-                 frag->contigOffset5p.mean >
-                 dist->mu + CGW_CUTOFF * dist->sigma)) {
+      } else if((isUnitig && getCIFragOrient(frag) == A_B && frag->offset5p.mean > distMax) ||
+                (!isUnitig && GetContigFragOrient(frag) == A_B && frag->contigOffset5p.mean > distMax)) {
         //
         //                   --------->
         //  --- increment ---
         //
         IncrementMapInterval(bcc,
-                             ((isUnitig) ?
-                              frag->offset5p.mean :
-                              frag->contigOffset5p.mean) -
-                             dist->mu - CGW_CUTOFF * dist->sigma,
-                             ((isUnitig) ?
-                              frag->offset5p.mean :
-                              frag->contigOffset5p.mean));
+                             ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean) - distMax,
+                             ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean));
       }
     }
   }
