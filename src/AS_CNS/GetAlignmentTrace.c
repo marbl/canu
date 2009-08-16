@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GetAlignmentTrace.c,v 1.7 2009-08-04 11:05:18 brianwalenz Exp $";
+static char *rcsid = "$Id: GetAlignmentTrace.c,v 1.8 2009-08-16 06:40:45 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -287,52 +287,48 @@ ScoreOverlap(Overlap *O,
   switch (alignment_context) {
     case GETALIGNTRACE_UNITIG:
       if ((isGood >= 3) || (isGreat >= 2)) {
-#ifdef DEBUG_GET_ALIGNMENT_TRACE
-        fprintf(stderr,"GetAlignmentTrace()-- Overlap ACCEPTED!  accept=%f lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).  (UNITIG)\n",
-                acceptThreshold,
-                lScore, O->length, expected_length,
-                aScore, O->begpos, ahang_input,
-                bScore, O->endpos, bhang_input);
-#endif
+        if (VERBOSE_MULTIALIGN_OUTPUT)
+          fprintf(stderr,"GetAlignmentTrace()-- Overlap ACCEPTED!  accept=%f lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).  (UNITIG)\n",
+                  acceptThreshold,
+                  lScore, O->length, expected_length,
+                  aScore, O->begpos, ahang_input,
+                  bScore, O->endpos, bhang_input);
         return(1);
       }
       break;
 
     case GETALIGNTRACE_CONTIGF:
       if (isGood >= 2) {
-#ifdef DEBUG_GET_ALIGNMENT_TRACE
-        fprintf(stderr,"GetAlignmentTrace()-- Overlap ACCEPTED!  accept=%f lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).  (CONTIGF)\n",
-                acceptThreshold,
-                lScore, O->length, expected_length,
-                aScore, O->begpos, ahang_input,
-                bScore, O->endpos, bhang_input);
-#endif
+        if (VERBOSE_MULTIALIGN_OUTPUT)
+          fprintf(stderr,"GetAlignmentTrace()-- Overlap ACCEPTED!  accept=%f lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).  (CONTIGF)\n",
+                  acceptThreshold,
+                  lScore, O->length, expected_length,
+                  aScore, O->begpos, ahang_input,
+                  bScore, O->endpos, bhang_input);
         return(1);
       }
       break;
 
     case GETALIGNTRACE_CONTIGU:
       if (isGood >= 2) {
-#ifdef DEBUG_GET_ALIGNMENT_TRACE
-        fprintf(stderr,"GetAlignmentTrace()-- Overlap ACCEPTED!  accept=%f lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).  (CONTIGU)\n",
-                acceptThreshold,
-                lScore, O->length, expected_length,
-                aScore, O->begpos, ahang_input,
-                bScore, O->endpos, bhang_input);
-#endif
+        if (VERBOSE_MULTIALIGN_OUTPUT)
+          fprintf(stderr,"GetAlignmentTrace()-- Overlap ACCEPTED!  accept=%f lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).  (CONTIGU)\n",
+                  acceptThreshold,
+                  lScore, O->length, expected_length,
+                  aScore, O->begpos, ahang_input,
+                  bScore, O->endpos, bhang_input);
         return(1);
       }
       break;
 
     case GETALIGNTRACE_MERGE:
       if ((isGood >= 2) || (isGreat >= 1)) {
-#ifdef DEBUG_GET_ALIGNMENT_TRACE
-        fprintf(stderr,"GetAlignmentTrace()-- Overlap ACCEPTED!  accept=%f lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).  (MERGE)\n",
-                acceptThreshold,
-                lScore, O->length, expected_length,
-                aScore, O->begpos, ahang_input,
-                bScore, O->endpos, bhang_input);
-#endif
+        if (VERBOSE_MULTIALIGN_OUTPUT)
+          fprintf(stderr,"GetAlignmentTrace()-- Overlap ACCEPTED!  accept=%f lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).  (MERGE)\n",
+                  acceptThreshold,
+                  lScore, O->length, expected_length,
+                  aScore, O->begpos, ahang_input,
+                  bScore, O->endpos, bhang_input);
         return(1);
       }
       break;
