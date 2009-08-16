@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.73 2009-08-14 13:37:05 skoren Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.74 2009-08-16 06:42:02 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -337,6 +337,7 @@ main(int argc, char **argv) {
 
     fprintf(GlobalData->stderrc,"* Splitting chimeric input unitigs\n");
 
+    ComputeMatePairStatisticsRestricted(UNITIG_OPERATIONS, minSamplesForOverride, "unitig_preinitial");
     SplitInputUnitigs(ScaffoldGraph);
     ComputeMatePairStatisticsRestricted(UNITIG_OPERATIONS, minSamplesForOverride, "unitig_initial");
 
