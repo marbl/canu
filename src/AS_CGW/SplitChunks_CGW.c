@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.47 2009-08-14 13:42:29 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.48 2009-08-16 06:43:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,21 +33,8 @@ static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.47 2009-08-14 13:42:29 brianwal
 #include "ScaffoldGraph_CGW.h"
 #include "Input_CGW.h"
 
-//  Initial splitting of unitigs is performed as follows:
-//
-//  For all, shortDiscriminatorUnique(+), or just DiscriminatorUnique unitigs?  Only for unitigs >=
-//  min distance mean + CGW_CUTOFF * stddev in length
-//
-//  1. create sequence coverage map of reads (AS_READ | AS_EXTR | AS_TRNR?) - trim 30bp from each
-//  end of each read in creating map if, beyond initial 1x coverage & until last 1x coverage, there
-//  is at least one location with <=1x coverage then continue
-//
-//  2. create good & bad clone coverage maps.  if at some point in seq coverage map where coverage
-//  <= 1 (not on ends) gcc <= 1 && bcc >= 2 split at that point/interval.  - remember to scan entire
-//  unitig for possibility of multiple break points
 
-
-#define READ_TRIM_BASES         30
+#define READ_TRIM_BASES          (AS_OVERLAP_MIN_LEN / 2 - 1)   //  was 30
 #define MAX_SEQUENCE_COVERAGE    1
 #define MIN_BAD_CLONE_COVERAGE   3
 #define MAX_GOOD_CLONE_COVERAGE  0
@@ -70,9 +57,14 @@ typedef struct {
 
 static
 void
-IncrementMapInterval(VA_TYPE(uint16) *map, int32 minPos, int32 maxPos) {
+IncrementMapInterval(char             *name,
+                     VA_TYPE(uint16)  *map,
+                     int32             minPos,
+                     int32             maxPos) {
   uint16     *t = GetVA_uint16(map, 0);
   uint32      l = GetNumuint16s(map);
+
+  //fprintf(stderr, "ADD %s %d-%d\n", name, minPos, maxPos);
 
   for (int32 i=minPos; (i<maxPos) && (i<l); i++)
     t[i]++;
@@ -123,8 +115,8 @@ AddLinkToMaps(ScaffoldGraphT *graph,
             //     --- increment ---?        --- increment ---?
             //
             // note that maxPos < length
-            IncrementMapInterval(bcc, minPos, MIN(minPos + distMax, maxPos));
-            IncrementMapInterval(bcc, maxPos, MIN(maxPos + distMax, length - 1));
+            IncrementMapInterval("BCC", bcc, minPos, MIN(minPos + distMax, maxPos));
+            IncrementMapInterval("BCC", bcc, maxPos, MIN(maxPos + distMax, length - 1));
           } else {
             // both are B_A oriented, so intervals < 5p are suspect
             // Increment from minPos to somewhere & maxPos to somewhere
@@ -133,8 +125,8 @@ AddLinkToMaps(ScaffoldGraphT *graph,
             //          <--------                 <--------
             // ?--- increment ---        ?--- increment ---
             //
-            IncrementMapInterval(bcc, MAX(0, minPos - distMax), minPos);
-            IncrementMapInterval(bcc, MAX(minPos, maxPos - distMax), maxPos);
+            IncrementMapInterval("BCC", bcc, MAX(0, minPos - distMax), minPos);
+            IncrementMapInterval("BCC", bcc, MAX(minPos, maxPos - distMax), maxPos);
           }
         } else {
           // link is outtie
@@ -147,8 +139,8 @@ AddLinkToMaps(ScaffoldGraphT *graph,
             //                   -------->                 -------->
             // ?--- increment ---        ?--- increment ---
             //
-            IncrementMapInterval(bcc, MAX(0, minPos - distMax), minPos);
-            IncrementMapInterval(bcc, MAX(minPos, maxPos - distMax), maxPos);
+            IncrementMapInterval("BCC", bcc, MAX(0, minPos - distMax), minPos);
+            IncrementMapInterval("BCC", bcc, MAX(minPos, maxPos - distMax), maxPos);
           } else {
             // both are B_A oriented, so
             // Increment from minPos to somewhere & maxPos to somewhere
@@ -157,8 +149,8 @@ AddLinkToMaps(ScaffoldGraphT *graph,
             // <--------                    <--------
             //          --- increment ---?           --- increment ---?
             //
-            IncrementMapInterval(bcc, minPos, MIN(minPos + distMax, maxPos));
-            IncrementMapInterval(bcc, maxPos, MIN(length - 1, maxPos + distMax));
+            IncrementMapInterval("BCC", bcc, minPos, MIN(minPos + distMax, maxPos));
+            IncrementMapInterval("BCC", bcc, maxPos, MIN(length - 1, maxPos + distMax));
           }
         }
       } else {
@@ -183,11 +175,11 @@ AddLinkToMaps(ScaffoldGraphT *graph,
           //  <-------                                      -------->
           //          --- increment ---?  ?--- increment ---
           //
-          IncrementMapInterval(bcc, minPos, MIN(maxPos, minPos + distMax));
-          IncrementMapInterval(bcc, MAX(minPos + distMax, maxPos - distMax), maxPos);
+          IncrementMapInterval("BCC", bcc, minPos, MIN(maxPos, minPos + distMax));
+          IncrementMapInterval("BCC", bcc, MAX(minPos + distMax, maxPos - distMax), maxPos);
         } else {
           // good pair
-          IncrementMapInterval(gcc, minPos, maxPos);
+          IncrementMapInterval("GCC", gcc, minPos, maxPos);
         }
       }
     }
@@ -200,7 +192,7 @@ AddLinkToMaps(ScaffoldGraphT *graph,
         //  --------->
         //  --- increment ---
         //
-        IncrementMapInterval(bcc,
+        IncrementMapInterval("BCC", bcc,
                              ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean),
                              ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean) + distMax);
       } else if((isUnitig && getCIFragOrient(frag) == B_A && frag->offset5p.mean > distMax) ||
@@ -209,7 +201,7 @@ AddLinkToMaps(ScaffoldGraphT *graph,
         //        <----------
         //  --- increment ---
         //
-        IncrementMapInterval(bcc,
+        IncrementMapInterval("BCC", bcc,
                              ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean) - distMax,
                              ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean));
       }
@@ -221,7 +213,7 @@ AddLinkToMaps(ScaffoldGraphT *graph,
         //  <----------
         //             --- increment ---
         //
-        IncrementMapInterval(bcc,
+        IncrementMapInterval("BCC", bcc,
                              ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean),
                              ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean) + distMax);
 
@@ -231,7 +223,7 @@ AddLinkToMaps(ScaffoldGraphT *graph,
         //                   --------->
         //  --- increment ---
         //
-        IncrementMapInterval(bcc,
+        IncrementMapInterval("BCC", bcc,
                              ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean) - distMax,
                              ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean));
       }
@@ -245,12 +237,17 @@ void
 CreateReadCoverageMap(ScaffoldGraphT *graph,
                       VA_TYPE(uint16) *rc,
                       MultiAlignT *ma,
+                      int32 minSplit,
                       int isUnitig) {
 
   ResetVA_uint16(rc);
   EnableRangeVA_uint16(rc, GetMultiAlignLength(ma));
 
-  for (int32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
+  uint32 n      = GetNumIntMultiPoss(ma->f_list);
+
+  int32  length = GetMultiAlignLength(ma);
+
+  for (uint32 i=0; i<n; i++) {
     IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
 
     if (!AS_FA_READ(imp->type))
@@ -258,8 +255,6 @@ CreateReadCoverageMap(ScaffoldGraphT *graph,
 
     InfoByIID *info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
     CIFragT   *frag = GetCIFragT(graph->CIFrags, info->fragIndex);
-
-    // if unitig is forward vs. reverse, add to correct fragment location
 
     int32 minPos = ((isUnitig) ?
                     (MIN(frag->offset5p.mean, frag->offset3p.mean) + READ_TRIM_BASES) :
@@ -269,7 +264,19 @@ CreateReadCoverageMap(ScaffoldGraphT *graph,
                     (MAX(frag->offset5p.mean, frag->offset3p.mean) - READ_TRIM_BASES) :
                     (MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean) - READ_TRIM_BASES));
 
-    IncrementMapInterval(rc, minPos, maxPos);
+    //  Undo the offsets if we're near the end of a unitig where we expect coverage to be low.
+
+    if ((i < 5) || (maxPos < minSplit)) {
+      minPos -= READ_TRIM_BASES;
+      maxPos += READ_TRIM_BASES;
+    }
+
+    if ((i >= n-5) || (minPos + minSplit > length)) {
+      minPos -= READ_TRIM_BASES;
+      maxPos += READ_TRIM_BASES;
+    }
+
+    IncrementMapInterval("RC ", rc, minPos, maxPos);
   }
 }
 
@@ -457,7 +464,17 @@ positionCompare(const void *A, const void *B) {
   const IntMultiPos *a = (const IntMultiPos *)A;
   const IntMultiPos *b = (const IntMultiPos *)B;
 
-  return(MIN(a->position.bgn, a->position.end) - MIN(b->position.bgn, b->position.end));
+  //  A before B -> negative
+  int  diff = MIN(a->position.bgn, a->position.end) - MIN(b->position.bgn, b->position.end);
+
+  if (diff == 0) {
+    //  A longer than B -> negative
+    int alen = MAX(a->position.bgn, a->position.end) - MIN(a->position.bgn, a->position.end);
+    int blen = MAX(b->position.bgn, b->position.end) - MIN(b->position.bgn, b->position.end);
+    diff = blen - alen;
+  }
+
+  return(diff);
 }
 
 
@@ -476,8 +493,6 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
 
   float egfar = EstimateGlobalFragmentArrivalRate(ci, ma);
 
-
-#if 1
   fprintf(GlobalData->stderrc, "Splitting %s "F_CID " into as many as %d %s at intervals:",
           (isUnitig ? "unitig" : "contig"), ma->maID,
           (int) (2 * GetNumVA_SeqInterval(csis) + 1),
@@ -489,7 +504,6 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
   }
 
   fprintf(GlobalData->stderrc, "\n");
-#endif
 
   
   //  If a fragment even touches a bad interval, it gets placed in that bad interval.
@@ -567,7 +581,7 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
         interval = i;
 
     //  If not in an interval, it must intersect exactly one good interval (otherwise, it would be
-    //  spanning a bad interval).  This lets use the same test as for 'toxic'; simply touching a
+    //  spanning a bad interval).  This lets us use the same test as for 'toxic'; simply touching a
     //  good interval puts the fragment in it.
     //
     for (int i=0; (interval == -1) && (i < utgNum); i++)
@@ -577,13 +591,76 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
     assert(interval >= 0);
     assert(interval <  utgNum);
 
-    //  Finally, if the interval is good, and the fragment is fully contained in the last interval,
-    //  place it in the last interval.
+    //  Adjust the placement in a few cases
+
+    //  1) If this fragment is not overlapping with the unitig that exists in this interval, check
+    //  if the next interval contains it.  Place it where the thicker overlap exists.
+    //
+    //  -------------BADINTERVAL---
+    //  ---------
+    //    ---------------
+    //        --
+    //            -- <- is in 'good' but there is no sequence to support it
+    //
+    if ((interval < utgNum - 1) &&
+        (utg[interval].isGood == 1) &&
+        (utg[interval].utgend - AS_OVERLAP_MIN_LEN < minPos)) {
+      int32  thisOvl = utg[interval].utgend - minPos;
+      int32  thatOvl = maxPos - utg[interval+1].utgbgn;
+
+      assert((thisOvl > 0) || (thatOvl > 0));
+
+      if (thatOvl > thisOvl)
+        interval++;
+    }
+
+    //  2) Similar to the above, but looking backwards.  Move a fragment if it is completely
+    //  contained in a previous bad interval, and if the current interval is empty.
+    //
+    //  ----------BAD1----BAD2----------
+    //   --------------            (in bad1)
+    //       --------------------  (in bad1)
+    //                   -------   (in bad2)
+    //                         --- (**)
+    //
+    //  The ** fragment does NOT need to be moved.  It is not contained.  The only way that this
+    //  unitig could have been originally connected is by an overlap from ** to a later fragment
+    //  (OK, except if that overlap is high error noise).  Because this fragment isn't contained, it
+    //  will have the thickest overlap to any later fragment.
     //
     if ((interval > 0) &&
-        (utg[interval].isGood == 1) &&
-        (maxPos <= utg[interval-1].utgend))
-      interval--;
+        (utg[interval].utgend < utg[interval].utgbgn)) {
+      for (int32 newint=interval-1; newint>=0; newint--) {
+        if (utg[newint].isGood == 1)
+          continue;
+        if ((maxPos <= utg[newint].utgend) &&
+            (utg[newint].utgbgn <= minPos))
+          interval = newint;
+      }
+    }
+
+    //  3) If we are a in a bad interval, but the previous good interval is empty then that good
+    //  interval will never get fragments; we're already past it (fragments are sorted).  Instead of
+    //  making two adjacent bad intervals, we merge them together.
+    //
+    //  The first bad interval we need to worry about is interval 3.
+    //
+    if ((interval > 2) &&
+        (utg[interval].isGood == false) &&
+        (utg[interval-1].utgend < utg[interval-1].utgbgn)) {
+      int32 newint = interval - 2;
+
+      //  Search for the first non-empty unitig before us.
+      while ((newint >= 0) && (utg[newint].utgend < utg[newint].utgbgn))
+        newint--;
+
+      //  If that non-empty unitig is a bad one, reassign the fragment.
+      if ((newint > 0) &&
+          (utg[newint].isGood == 0)) {
+        fprintf(stderr, "REASSIGN bad fragment from interval %d to interval %d\n", interval, newint);
+        interval = newint;
+      }
+    }
 
     //  Place it.
 
@@ -594,21 +671,33 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
 
       ium->f_list[ium->num_frags] = *imp;
 
-      //  And modify slightly.  WHY?
-
-      ium->f_list[ium->num_frags].position.bgn = frag->offset5p.mean;
-      ium->f_list[ium->num_frags].position.end = frag->offset3p.mean;
+      ium->f_list[ium->num_frags].position.bgn = ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean);
+      ium->f_list[ium->num_frags].position.end = ((isUnitig) ? frag->offset3p.mean : frag->contigOffset3p.mean);
 
       ium->num_frags++;
     }
 
     utg[interval].utgbgn = MIN(utg[interval].utgbgn, minPos);
     utg[interval].utgend = MAX(utg[interval].utgend, maxPos);
+
+#ifdef DEBUG
+    fprintf(stderr, "FRAG %d (%d,%d) placed in interval %d (%s) (now %d,%d)\n",
+            imp->ident, minPos, maxPos,
+            interval,
+            utg[interval].isGood ? "GOOD" : "BAD",
+            utg[interval].utgbgn, utg[interval].utgend);
+#endif
   }
 
   //  Now, add all the new unitigs.
 
   for (int i=0; i<utgNum; i++) {
+#ifdef DEBUG
+    if (utg[i].ium.num_frags == 0)
+      fprintf(stderr, "EMPTY UNITIG\n");
+    if (utg[i].ium.num_frags > 0)
+      fprintf(stderr, "NEW UNITIG with %d fragments\n", utg[i].ium.num_frags);
+#endif
     if (utg[i].ium.num_frags > 0)
       StoreIUMStruct(graph, utg + i, isUnitig, egfar);
 
@@ -641,105 +730,114 @@ SplitInputUnitigs(ScaffoldGraphT *graph) {
   VA_TYPE(uint16)       *bcc = CreateVA_uint16(10000);      // bad clone coverage
   VA_TYPE(SeqInterval)  *csis = CreateVA_SeqInterval(100);  // chimeric sequence intervals
 
-  // determine minimum unitig length of interest
-  //
   int32 minLength = INT32_MAX;
+  int32 minSplit  = INT32_MAX;  //  Not exactly the "minimum split"...
 
   for (uint32 i=1; i<GetNumDistTs(graph->Dists); i++) {
     DistT *dptr = GetDistT(graph->Dists,i);
-    minLength = MIN(minLength,dptr->mu + CGW_CUTOFF * dptr->sigma);
+
+    fprintf(stderr, "LIB %d mu = %f sigma = %f\n", i, dptr->mu, dptr->sigma);
+
+    if (dptr->mu > 0) {
+      minLength = MIN(minLength, dptr->mu + CGW_CUTOFF * dptr->sigma);
+      minSplit  = MIN(minSplit,  dptr->mu - CGW_CUTOFF * dptr->sigma);
+    }
   }
 
-  // loop over number of original unitigs - not new ones being
-  // generated
-  //
-  for (int32 i=0; i<GetNumGraphNodes(graph->CIGraph); i++) {
+  fprintf(stderr, "minLength = %d\n", minLength);
+  fprintf(stderr, "minSplit  = %d\n", minSplit);
+
+  //  Over all unitigs present now (we add unitigs as this loop progresses)
+
+  int32 numUnitigsBefore = GetNumGraphNodes(graph->CIGraph);
+
+  for (int32 i=0; i<numUnitigsBefore; i++) {
     ChunkInstanceT *ci = GetGraphNode(graph->CIGraph, i);
     MultiAlignT *ma = loadMultiAlignTFromSequenceDB(graph->sequenceDB, ci->id, TRUE);
 
     // NOTE: add discriminator statistic checks?
 
-    if(GetMultiAlignLength(ma) >= minLength) {
-      int32 minBase, maxBase;
-      int32 curBase;
+    if(GetMultiAlignLength(ma) < minLength)
+      continue;
 
-      // create read coverage map for unitig
+    int32 minBase, maxBase;
+    int32 curBase;
 
-      CreateReadCoverageMap(graph, rc, ma, TRUE);
+    CreateReadCoverageMap(graph, rc, ma, minSplit, TRUE);
 
-      // locate region within which to look for possible chimeric
-      // points i.e., ignore initial & trailing 0/1 values
+    //  Locate region within which to look for possible chimeric points i.e., ignore initial &
+    //  trailing 0/1 values
 
-      for(minBase = READ_TRIM_BASES;
-          minBase < GetMultiAlignLength(ma) - READ_TRIM_BASES && *(GetVA_uint16(rc,minBase)) <= 1;
-          minBase++)
-        ;
+    for(minBase = READ_TRIM_BASES;
+        minBase < GetMultiAlignLength(ma) - READ_TRIM_BASES && *(GetVA_uint16(rc,minBase)) <= 1;
+        minBase++)
+      ;
 
-      for(maxBase = GetMultiAlignLength(ma) - READ_TRIM_BASES;
-          maxBase > READ_TRIM_BASES && *(GetVA_uint16(rc,maxBase)) <= 1;
-          maxBase--)
-        ;
+    for(maxBase = GetMultiAlignLength(ma) - READ_TRIM_BASES;
+        maxBase > READ_TRIM_BASES && *(GetVA_uint16(rc,maxBase)) <= 1;
+        maxBase--)
+      ;
 
-      // see if there is a candidate interval
+    //  Find a candidate interval
 
-      for( curBase = minBase; curBase < maxBase; curBase++)
-        if(*(GetVA_uint16(rc,curBase)) <= MAX_SEQUENCE_COVERAGE)
-          break;
+    for( curBase = minBase; curBase < maxBase; curBase++)
+      if(*(GetVA_uint16(rc,curBase)) <= MAX_SEQUENCE_COVERAGE)
+        break;
 
-      // see if above loop ended in a candidate interval
+    //  A good candidate interval?
 
-      if(curBase < maxBase) {
-        SeqInterval interval;
-        int         inInterval = 0;
+    if(curBase >= maxBase)
+      continue;
 
-        CreateCloneCoverageMaps(graph, gcc, bcc, ma, TRUE);
+    SeqInterval interval;
+    int         inInterval = 0;
 
-        // reset the number of splitting intervals to 0
-        ResetVA_SeqInterval(csis);
-        EnableRangeVA_SeqInterval(csis, 0);
+    CreateCloneCoverageMaps(graph, gcc, bcc, ma, TRUE);
 
-        // identify & count chimeric sequence intervals
-        for (int32 checkBase = curBase; checkBase < maxBase; checkBase++) {
-          if (*(GetVA_uint16(rc, checkBase)) <= MAX_SEQUENCE_COVERAGE &&
-              *(GetVA_uint16(bcc,checkBase)) >= MIN_BAD_CLONE_COVERAGE &&
-              *(GetVA_uint16(gcc,checkBase)) <= MAX_GOOD_CLONE_COVERAGE) {
+    ResetVA_SeqInterval(csis);
+    EnableRangeVA_SeqInterval(csis, 0);
 
-            if(inInterval) {
-              // continuing in interval
-              interval.end = checkBase;
-            } else {
-              // starting interval
-              interval.bgn = interval.end = checkBase;
-              inInterval = 1;
-            }
+    //  Identify & count chimeric sequence intervals
 
-          } else {
-            if(inInterval) {
-              // ended interval
-              // if it is more than a minimum distance from the last one,
-              // add it. otherwise, combine the two - since no fragment can
-              // possibly be entirely within the intervening 'good' interval
-              //
-              if(GetNumVA_SeqInterval(csis) > 0) {
-                SeqInterval *tempSI = GetVA_SeqInterval(csis, GetNumVA_SeqInterval(csis) - 1);
+    for (int32 checkBase = curBase; checkBase < maxBase; checkBase++) {
+      if (*(GetVA_uint16(rc, checkBase)) <= MAX_SEQUENCE_COVERAGE &&
+          *(GetVA_uint16(bcc,checkBase)) >= MIN_BAD_CLONE_COVERAGE &&
+          *(GetVA_uint16(gcc,checkBase)) <= MAX_GOOD_CLONE_COVERAGE) {
 
-                if(tempSI->end < interval.bgn - AS_READ_MIN_LEN)
-                  AppendVA_SeqInterval(csis, &interval);
-                else
-                  tempSI->end = interval.end;
-              } else
-                AppendVA_SeqInterval(csis, &interval);
-              inInterval = 0;
-            }
-            // otherwise continuing not in interval - do nothing
-          }
+        if(inInterval) {
+          // continuing in interval
+          interval.end = checkBase;
+        } else {
+          // starting interval
+          interval.bgn = interval.end = checkBase;
+          inInterval = 1;
         }
 
-        if(GetNumVA_SeqInterval(csis) > 0) {
-          SplitChunkByIntervals(graph, ci->id, ma, csis, TRUE);
-          ci = GetGraphNode(graph->CIGraph, i);
+      } else {
+        if(inInterval) {
+          // ended interval
+          // if it is more than a minimum distance from the last one,
+          // add it. otherwise, combine the two - since no fragment can
+          // possibly be entirely within the intervening 'good' interval
+          //
+          if(GetNumVA_SeqInterval(csis) > 0) {
+            SeqInterval *tempSI = GetVA_SeqInterval(csis, GetNumVA_SeqInterval(csis) - 1);
+
+            if(tempSI->end < interval.bgn - AS_READ_MIN_LEN)
+              AppendVA_SeqInterval(csis, &interval);
+            else
+              tempSI->end = interval.end;
+          } else
+            AppendVA_SeqInterval(csis, &interval);
+          inInterval = 0;
         }
+        // otherwise continuing not in interval - do nothing
       }
+    }
+
+    if(GetNumVA_SeqInterval(csis) > 0) {
+      SplitChunkByIntervals(graph, ci->id, ma, csis, TRUE);
+      ci = GetGraphNode(graph->CIGraph, i);
     }
   }
 
