@@ -29,6 +29,8 @@ public:
   gkClearRange(gkStore *gkp_, uint32 clearType_, uint32 create_=FALSE);
   ~gkClearRange();
 
+  void       gkClearRange_purge(void);
+
   void       gkClearRange_enableCreate(void) { create = TRUE; };
 
   void       gkClearRange_getClearRegion(gkFragment *fr, uint32& begin, uint32& end);

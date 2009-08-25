@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.8 2009-08-14 13:37:08 skoren Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.9 2009-08-25 06:07:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -440,8 +440,11 @@ gkStore::gkStore_loadPartition(uint32 partition) {
   int        i, f, e;
 
   assert(partmap    == NULL);
-  assert(isReadOnly == 1);
   assert(isCreating == 0);
+
+  if (isReadOnly == 1)
+    fprintf(stderr, "WARNING:  loading a partition from a writable gkpStore.\n");
+  assert(isReadOnly == 1);
 
   partnum = partition;
 
@@ -452,9 +455,6 @@ gkStore::gkStore_loadPartition(uint32 partition) {
   }
 
   //  load all our data
-
-  isReadOnly = 1;
-  isCreating = 0;
 
   sprintf(name,"%s/fsm.%03d", storePath, partnum);
   partfsm = loadStorePartial(name, 0, 0);
@@ -1098,7 +1098,7 @@ gkStore::gkStore_buildPartitions(short *partitionMap, uint32 maxPart) {
 
     //  Check it's actually partitioned.  Deleted reads won't get
     //  assigned to a partition.
-    if (p == -1)
+    if (p < 1)
       continue;
 
 
@@ -1148,4 +1148,11 @@ gkStore::gkStore_enableClearRange(uint32 which) {
   //  undefined clear ranges in, e.g., gatekeeper.  gkFragment_setClearRegion()
   //  then checks this assert.
   clearRange[which]->gkClearRange_enableCreate();
+}
+
+
+void
+gkStore::gkStore_purgeClearRange(uint32 which) {
+  assert(partmap == NULL);
+  clearRange[which]->gkClearRange_purge();
 }

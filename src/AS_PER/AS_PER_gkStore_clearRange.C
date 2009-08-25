@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.3 2009-07-13 23:41:05 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.4 2009-08-25 06:07:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -133,6 +133,32 @@ gkClearRange::~gkClearRange() {
 };
 
 
+
+void
+gkClearRange::gkClearRange_purge(void) {
+  char *filePath = gkClearRange_makeName(gkp, GKFRAGMENT_SHORT, clearType);
+
+  unlink(filePath);
+
+  delete [] sm;
+  delete [] md;
+  delete [] lg;
+
+  smconfigured = 0;
+  smdirty      = 0;
+  smmaxiid     = 0;
+  sm           = NULL;
+
+  mdconfigured = 0;
+  mddirty      = 0;
+  mdmaxiid     = 0;
+  md           = NULL;
+
+  lgconfigured = 0;
+  lgdirty      = 0;
+  lgmaxiid     = 0;
+  lg           = NULL;
+}
 
 
 void

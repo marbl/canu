@@ -100,9 +100,9 @@ public:
   //
   ////////////////////////////////////////
 
-  int32 gkStore_getNumLibraries(void)       { return(inf.libLoaded); }
-  int32 gkStore_getNumFragments(void)       { return(inf.frgLoaded); }
-  int32 gkStore_getNumRandomFragments(void) { return(inf.numRandom); }
+  int32      gkStore_getNumLibraries(void)       { return(inf.libLoaded); }
+  int32      gkStore_getNumFragments(void)       { return(inf.frgLoaded); }
+  int32      gkStore_getNumRandomFragments(void) { return(inf.numRandom); }
 
   gkLibrary *gkStore_getLibrary(int id)                { return((id == 0) ? NULL : (gkLibrary *)getIndexStorePtr(lib, id)); }
   void       gkStore_getLibrary(int id, gkLibrary *lb) { getIndexStore(lib, id, lb); };
@@ -155,6 +155,7 @@ public:
   //  getClearRegion() works, and returns [1,0].
   //
   void      gkStore_enableClearRange(uint32 which);
+  void      gkStore_purgeClearRange(uint32 which);
 
   ////////////////////////////////////////
   //
