@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.82 2009-08-14 13:37:06 skoren Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.83 2009-08-25 06:11:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -545,6 +545,12 @@ main(int argc, char **argv) {
     //  gkStore_rebuildUIDtoIID(argv[arg+1]);
     //  exit(0);
 
+    } else if (strcmp(argv[arg], "--revertclear") == 0) {
+      //  Takes two args:  edit file, gkpStore
+      //
+      revertClearRange(argv[arg+1], argv[arg+2]);
+      exit(0);
+
     } else if ((strcmp(argv[arg], "--edit") == 0) ||
                (strcmp(argv[arg], "--testedit") == 0)) {
       //  Takes two args:  edit file, gkpStore
@@ -552,7 +558,7 @@ main(int argc, char **argv) {
       editStore(argv[arg+1], argv[arg+2], (strcmp(argv[arg], "--edit") == 0));
       exit(0);
 
-      //  End of SECRET options
+    //  End of SECRET options
 
     } else if (strcmp(argv[arg], "--") == 0) {
       firstFileArg = arg++;

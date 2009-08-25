@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.50 2009-08-14 13:37:06 skoren Exp $ */
+/* $Id: AS_GKP_include.h,v 1.51 2009-08-25 06:11:19 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
 
-static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.50 2009-08-14 13:37:06 skoren Exp $";
+static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.51 2009-08-25 06:11:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <errno.h>
@@ -137,7 +137,11 @@ void
 updateVectorClear(char *vectorClearFile, char *gkpStoreName);
 
 void
+revertClearRange(char *clearRegionName, char *gkpStoreName);
+
+void
 editStore(char *editsFileName, char *gkpStoreName, int update);
+
 
 
 //  Error handling

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.18 2009-07-23 14:24:35 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.19 2009-08-25 06:11:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -123,6 +123,41 @@ updateVectorClear(char *vectorClearFile, char *gkpStoreName) {
 
 
 
+void
+revertClearRange(char *clearRegionName, char *gkpStoreName) {
+  gkStore    *gkpStore = new gkStore(gkpStoreName, FALSE, TRUE);
+  gkFragment  fr;
+  uint32      br, er;
+  uint32      bl, el;
+  uint32      which = gkStore_decodeClearRegionLabel(clearRegionName);
+
+  if (which == AS_READ_CLEAR_ERROR)
+    fprintf(stderr, "invalid clear region label %s\n", clearRegionName), exit(1);
+
+  fr.gkFragment_enableGatekeeperMode(gkpStore);
+
+  for (int32 i=1; i<gkpStore->gkStore_getNumFragments(); i++) {
+    gkpStore->gkStore_getFragment(i, &fr, GKFRAGMENT_INF);
+
+    fr.gkFragment_getClearRegion(br, er, which);
+    fr.gkFragment_getClearRegion(bl, el, AS_READ_CLEAR_LATEST);
+
+    if ((br != bl) ||
+        (er != el)) {
+      fr.gkFragment_setClearRegion(bl, el, which);
+      gkpStore->gkStore_setFragment(&fr);
+    }
+  }
+
+  for (which++; which < AS_READ_CLEAR_NUM; which++)
+    gkpStore->gkStore_purgeClearRange(which);
+
+  delete gkpStore;
+
+  exit(0);
+}
+
+
 
 
 static
@@ -166,7 +201,7 @@ allFrags(gkStore *gkpStore,
   int64  lastElem  = gkpStore->gkStore_getNumFragments();
 
   if (update) {
-    fprintf(stderr, "update all frags in lib "F_IID" (%d,%d)\n",
+    fprintf(stderr, "update all frags in lib "F_IID" ("F_S64","F_S64")\n",
             IID, firstElem, lastElem);    
   }
 
@@ -623,7 +658,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
     exit(1);
   }
 
-  fprintf(stderr, "Success!\n", errors);
+  fprintf(stderr, "Success!\n");
 
   exit(0);
 }
