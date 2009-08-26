@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.48 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.49 2009-08-26 09:07:27 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -128,6 +128,7 @@ main(int argc, char **argv) {
   int   startingGap      = -1;
   int   scaffoldEnd      = -1;
   int   ckptNum          = -1;
+  int   gkpPart          = 0;
   int   arg              = 1;
   int   err              = 0;
 
@@ -211,6 +212,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-n") == 0) {
       ckptNum = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-p") == 0) {
+      gkpPart = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-b") == 0) {
       scaffoldBegin = atoi(argv[++arg]);
 
@@ -257,20 +261,22 @@ main(int argc, char **argv) {
       (err)) {
     fprintf(stderr, "usage: %s [opts] -c ckpName -n ckpNumber -g gkpStore\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -c ckpName   Use ckpName as the checkpoint name\n");
-    fprintf(stderr, "  -n ckpNumber The checkpoint to use\n");
-    fprintf(stderr, "  -g gkpStore  The gatekeeper store\n");
+    fprintf(stderr, "  -c ckpName     Use ckpName as the checkpoint name\n");
+    fprintf(stderr, "  -n ckpNumber   The checkpoint to use\n");
+    fprintf(stderr, "  -g gkpStore    The gatekeeper store\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -C gap#      Start at a specific gap number\n");
-    fprintf(stderr, "  -b scafBeg   Begin at a specific scaffold\n");
-    fprintf(stderr, "  -e scafEnd   End at a specific scaffold\n");
+    fprintf(stderr, "  -C gap#        Start at a specific gap number\n");
+    fprintf(stderr, "  -b scafBeg     Begin at a specific scaffold\n");
+    fprintf(stderr, "  -e scafEnd     End at a specific scaffold\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -o scafIID   Process only this scaffold\n");
-    fprintf(stderr, "  -s scafIID   Skip this scaffold\n");
-    fprintf(stderr, "  -O gap#      Process only this gap\n");
-    fprintf(stderr, "  -S gap#      Skip this gap\n");
+    fprintf(stderr, "  -o scafIID     Process only this scaffold\n");
+    fprintf(stderr, "  -s scafIID     Skip this scaffold\n");
+    fprintf(stderr, "  -O gap#        Process only this gap\n");
+    fprintf(stderr, "  -S gap#        Skip this gap\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -i iterNum   The iteration of ECR; either 1 or 2\n");
+    fprintf(stderr, "  -i iterNum     The iteration of ECR; either 1 or 2\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -p partition   Load a gkpStore partition into memory\n");
     exit(1);
   }
   if (scaffoldBegin == scaffoldEnd) {
@@ -285,6 +291,27 @@ main(int argc, char **argv) {
   //
   delete ScaffoldGraph->gkpStore;
   ScaffoldGraph->gkpStore = new gkStore(GlobalData->Gatekeeper_Store_Name, FALSE, TRUE);
+
+  //  Create the starting clear range backup, if we're the first
+  //  iteration.  We copy this from the LATEST clear, which will
+  //  either by CLR or OBTCHIMERA.  This range does not exist before
+  //  the first run of ECR, and we must create it.
+  //
+  if (iterNumber == 1)
+    ScaffoldGraph->gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_ECR_0);
+
+  //  Now, enable the range that we're going to be creating with this
+  //  run.  Similar to ECR_0, this range doesn't exist before the
+  //  first run of ECR.
+  //
+  ScaffoldGraph->gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_ECR_0 + iterNumber);
+
+  //  If we're partitioned, load the partition.
+  //
+  //  THIS IS BROKEN.  GKPSTORE DOES NOT ALLOW UPDATES TO PARTITIONS.
+  //
+  //if (gkpPart)
+  //  ScaffoldGraph->gkpStore->gkStore_loadPartition(gkpPart);
 
   //  Update the begin/end scaffold ids.
   //
@@ -301,22 +328,6 @@ main(int argc, char **argv) {
   reformed_consensus = CreateVA_char(256 * 1024);
   reformed_quality   = CreateVA_char(256 * 1024);
   reformed_deltas    = CreateVA_int32(8192);
-
-  //
-  //  Create the starting clear range backup, if we're the first
-  //  iteration.  We copy this from the LATEST clear, which will
-  //  either by CLR or OBTCHIMERA.  This range does not exist before
-  //  the first run of ECR, and we must create it.
-  //
-  if (iterNumber == 1)
-    ScaffoldGraph->gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_ECR_0);
-
-  //
-  //  Now, enable the range that we're going to be creating with this
-  //  run.  Similar to ECR_0, this range doesn't exist before the
-  //  first run of ECR.
-  //
-  ScaffoldGraph->gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_ECR_0 + iterNumber);
 
 
   //
@@ -1608,11 +1619,13 @@ FixContainmentRelationships(int          oldparent,
       flst[t].bhang     = MAX(flst[t].position.bgn, flst[t].position.end) - MAX(flst[newparent].position.bgn, flst[newparent].position.end);
       flst[t].contained = ((flst[t].ahang > 0) && (flst[t].bhang < 0)) ? flst[t].parent : 0;
 
+#if 0
       fprintf(stderr, "RESET fix-contain for id %d from %d,%d,%d to %d,%d,%d container=%d\n",
               flst[t].ident,
               oldp, olda, oldb, 
               flst[t].parent, flst[t].ahang, flst[t].bhang,
               flst[t].contained);
+#endif
 
       if (flst[t].contained)
         FixContainmentRelationships(t, newparent, flst, flen);
@@ -1715,11 +1728,13 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
   //  Update the position of all fragments.
   //
   for (i=0; i<flen; i++) {
+#if 0
     fprintf(stderr, "RESET position for frag i=%d ident=%d from %d,%d to %d,%d\n",
             i,
             flst[i].ident,
             flst[i].position.bgn, flst[i].position.end,
             fragPoss[i].bgn, fragPoss[i].end);
+#endif
     flst[i].position.bgn = fragPoss[i].bgn;
     flst[i].position.end = fragPoss[i].end;
 
@@ -1739,8 +1754,10 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
       if ((i != 0) &&
           ((flst[i].position.bgn == 0) ||
            (flst[i].position.end == 0))) {
+#if 0
         fprintf(stderr, "RESET swap-first frag i=%d (ident=%d pos=%d,%d) is now first frag\n",
                 i, flst[i].ident, flst[i].position.bgn, flst[i].position.end);
+#endif
         IntMultiPos  newfirst = flst[i];
         memmove(flst + 1, flst, sizeof(IntMultiPos) * i);
         flst[0] = newfirst;
@@ -1784,11 +1801,13 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
       flst[i].bhang     = MAX(flst[i].position.bgn, flst[i].position.end) - MAX(flst[efrg].position.bgn, flst[efrg].position.end);;
       flst[i].contained = ((flst[i].ahang > 0) && (flst[i].bhang < 0)) ? flst[i].parent : 0;;
     
+#if 0
       fprintf(stderr, "RESET extended-parent for id %d from %d,%d,%d to %d,%d,%d container=%d\n",
               flst[i].ident,
               oldp, olda, oldb, 
               flst[i].parent, flst[i].ahang, flst[i].bhang,
               flst[i].contained);
+#endif
 
       if (flst[i].contained)
         FixContainmentRelationships(i, efrg, flst, flen);

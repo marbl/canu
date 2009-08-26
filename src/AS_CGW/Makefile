@@ -28,6 +28,7 @@ CGW_SOURCES =     AS_CGW_main.C \
                   eCR.C \
                   eCR-examineGap.C \
                   eCR-diagnostic.C \
+                  eCR-partition.C \
                   resolveSurrogates.C \
                   dumpCloneMiddles.C \
                   exploreGapStructure.C \
@@ -70,7 +71,7 @@ CGW_LIB_OBJECTS = $(CGW_LIB_SOURCES:.C=.o)
 LIBRARIES     = libAS_CGW.a libCA.a
 LIBS          = libCA.a
 
-CXX_PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpSingletons exploreGapStructure frgs2clones
+CXX_PROGS = cgw extendClearRanges extendClearRangesPartition resolveSurrogates dumpCloneMiddles dumpSingletons exploreGapStructure frgs2clones
 
 
 include $(LOCAL_WORK)/src/c_make.as
@@ -87,6 +88,8 @@ libCA.a: $(CGW_LIB_OBJECTS)
 cgw: AS_CGW_main.o $(LIBS)
 
 extendClearRanges: eCR.o eCR-examineGap.o eCR-diagnostic.o $(LIBS)
+
+extendClearRangesPartition: eCR-partition.o $(LIBS)
 
 resolveSurrogates: resolveSurrogates.o $(LIBS)
 

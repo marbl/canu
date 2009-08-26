@@ -62,7 +62,6 @@ endif
 EXE_SOURCES = chimera.C \
               consolidate.C \
               deduplicate.C \
-              getNumScaffolds.C \
               initialTrim.C \
               merge-trimming.C \
               trim.C \
@@ -80,7 +79,6 @@ CXX_PROGS   = initialTrim \
               consolidate \
               chimera \
               deduplicate \
-              getNumScaffolds \
               removeMateOverlap
 SCRIPTS =
 ifdef FIGARO
@@ -101,8 +99,6 @@ merge-trimming:       merge-trimming.o trim.o                 libCA.a
 chimera:              chimera.o util++.o readOverlap.o        libCA.a
 deduplicate:          deduplicate.o util++.o readOverlap.o    libCA.a
 removeMateOverlap:    removeMateOverlap.o util++.o readOverlap.o    libCA.a
-
-getNumScaffolds:      getNumScaffolds.o                       libCA.a
 
 figaro: $(FIGARO)/figaro
 	@cp $< $(LOCAL_BIN)/$@

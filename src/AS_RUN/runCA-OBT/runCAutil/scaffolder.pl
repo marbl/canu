@@ -139,52 +139,45 @@ sub eCR ($$$) {
     system("ln -s ../$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp")  if (! -e "$wrk/$thisDir/$asm.ckp.$lastckp");
     system("ln -s ../$asm.SeqStore              $wrk/$thisDir/$asm.SeqStore")      if (! -e "$wrk/$thisDir/$asm.SeqStore");
 
-    #  Run eCR in smaller batches, hopefully making restarting from a failure both
-    #  faster and easier.
+    #  Partition eCR.
 
-    my $curScaffold  = 0;
-    my $endScaffold  = 0;
-    my $numScaffolds = findNumScaffoldsInCheckpoint($thisDir, $lastckp);
-    my $stepSize     = getGlobal("extendClearRangesStepSize");
+    if (! -e "$wrk/$thisDir/extendClearRanges.partitionInfo") {
+        my $bin = getBinDirectory();
+        my $cmd;
+        $cmd  = "$bin/extendClearRangesPartition ";
+        $cmd .= " -g $wrk/$asm.gkpStore ";
+        $cmd .= " -n $lastckp ";
+        $cmd .= " -c $asm ";
+        $cmd .= " -N 4 ";
+        $cmd .= " -p $wrk/$thisDir/extendClearRanges.partitionInfo";
+        $cmd .= "  > $wrk/$thisDir/extendClearRanges.partitionInfo.err 2>&1";
 
-    if ($numScaffolds == 0) {
-        print STDERR "WARNING:  found no scaffolds in $thisDir checkpoint $lastckp.\n";
-        print STDERR "WARNING:  this might mean all your unitigs are degenerates now.\n";
-        print STDERR "WARNING:  extendClearRanges skipped.\n";
-        touch("$wrk/$thisDir/extendClearRanges.success");
-        return $thisDir;
+        if (runCommand("$wrk/$thisDir", $cmd)) {
+            caFailure("extendClearRanges partitioning failed", "$wrk/$thisDir/extendClearRanges.partitionInfo.err");
+        }
     }
 
-    if (!defined($stepSize)) {
-        $stepSize = 5000;
-        $stepSize = int($numScaffolds / 8) + 1 if ($stepSize < $numScaffolds / 8);
-    }
+    #  Read the partitioning info, create jobs.  No partitions?  No ECR jobs.
 
-    print STDERR "Found $numScaffolds scaffolds in $thisDir checkpoint $lastckp; using a stepSize of $stepSize.\n";
+    my @jobs;
 
-    my $substrlen = length("$numScaffolds");
+    open(P, "< $wrk/$thisDir/extendClearRanges.partitionInfo") or caFailure("failed to find extendClearRanges partitioning file $wrk/$thisDir/extendClearRanges.partitionInfo", undef);
+    while (<P>) {
+        #  Fields are: partitionNum BgnScf partitionNum EndScf NumFrags
 
-    while ($curScaffold < $numScaffolds) {
-        $endScaffold = $curScaffold + $stepSize;
-        $endScaffold = $numScaffolds if ($endScaffold > $numScaffolds);
+        my @v = split '\s+', $_;
 
-        $curScaffold = substr("000000000$curScaffold", -$substrlen);
+        my $curScaffold = substr("000000000$v[1]", -7);
+        my $endScaffold = substr("000000000$v[3]", -7);
 
-        if (! -e "$wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.success") {
+        my $j = "$wrk/$thisDir/extendClearRanges-scaffold.$curScaffold";
+
+        if (! -e "$j.success") {
+            my $bin = getBinDirectory();
 
             $lastckp = findLastCheckpoint($thisDir);
 
-            my $bin = getBinDirectory();
-            my $cmd;
-            $cmd  = "$bin/extendClearRanges ";
-            $cmd .= " -g $wrk/$asm.gkpStore ";
-            $cmd .= " -n $lastckp ";
-            $cmd .= " -c $asm ";
-            $cmd .= " -b $curScaffold -e $endScaffold ";
-            $cmd .= " -i $iter ";
-            $cmd .= " > $wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.err 2>&1";
-
-            open(F, "> $wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.sh");
+            open(F, "> $j.sh");
             print F "#!" . getGlobal("shell") . "\n\n";
             print F "\n";
             print F "AS_OVL_ERROR_RATE=", getGlobal("ovlErrorRate"), "\n";
@@ -192,16 +185,29 @@ sub eCR ($$$) {
             print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
             print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
             print F "\n";
-            print F "$cmd\n";
+            print F "$bin/extendClearRanges \\\n";
+            print F " -g $wrk/$asm.gkpStore \\\n";
+            print F " -n $lastckp \\\n";
+            print F " -c $asm \\\n";
+            print F " -b $curScaffold -e $endScaffold \\\n";
+            print F " -i $iter \\\n";
+            print F " > $j.err 2>&1\n";
             close(F);
 
-            if (runCommand("$wrk/$thisDir", $cmd)) {
-                caFailure("extendClearRanges failed", "$wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.err");
-            }
-            touch("$wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.success");
-        }
+            system("chmod +x $j.sh");
 
-        $curScaffold = $endScaffold;
+            push @jobs, "$j";
+        }
+    }
+    close(F);
+
+    #  Run jobs.
+
+    foreach my $j (@jobs) {
+        if (runCommand("$wrk/$thisDir", "$j.sh")) {
+            caFailure("extendClearRanges failed", "$j.err");
+        }
+        touch("$j.success");
     }
 
     touch("$wrk/$thisDir/extendClearRanges.success");
