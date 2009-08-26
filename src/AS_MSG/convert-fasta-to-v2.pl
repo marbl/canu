@@ -101,6 +101,10 @@ while (scalar(@ARGV) > 0) {
         $err++;
     }
 }
+if (defined($matefile) && ($mean == 0 || $stddev == 0)){
+   print STDERR "A mean and standard deviation are required when a matepairing is provided.\n";
+   $err++;
+}
 if (($err) || (!defined($seqfile)) || (!defined($qltfile)) || (!defined($lib))) {
     print STDERR "usage: $0 [options] -l libraryname -s seq.fasta -q qlt.fasta > new.frg\n";
     print STDERR "  -v vector-clear-file     A file of 'readUID vecBeg vecEnd', one per line, that is the vector clear range.\n";
