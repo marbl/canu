@@ -22,36 +22,39 @@
 #ifndef FRAGCORRECTOVL_H
 #define FRAGCORRECTOVL_H
 
-static const char *rcsid_FRAGCORRECTOVL_H = "$Id: FragCorrectOVL.h,v 1.6 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid_FRAGCORRECTOVL_H = "$Id: FragCorrectOVL.h,v 1.7 2009-08-28 03:43:44 brianwalenz Exp $";
 
-
-typedef  enum
-  {
-   DELETE, A_SUBST, C_SUBST, G_SUBST, T_SUBST,
-   A_INSERT, C_INSERT, G_INSERT, T_INSERT, NO_VOTE,
+typedef  enum {
+   DELETE,
+   A_SUBST,
+   C_SUBST,
+   G_SUBST,
+   T_SUBST,
+   A_INSERT,
+   C_INSERT,
+   G_INSERT,
+   T_INSERT,
+   NO_VOTE,
    EXTENSION
-  }  Vote_Value_t;
+}  Vote_Value_t;
 
-typedef  struct
-  {
-   unsigned  is_ID : 1;
-   unsigned  keep_left : 1;     // set true if left overlap degree is low
-   unsigned  keep_right : 1;    // set true if right overlap degree is low
-   unsigned  iid : 28;
-  }  Frag_ID_t;
+typedef  struct {
+  uint64  is_ID       : 1;
+  uint64  keep_left   : 1;    // set true if left overlap degree is low
+  uint64  keep_right  : 1;    // set true if right overlap degree is low
+  uint64  iid         : 32;
+} Frag_ID_t;
 
-typedef  struct
-  {
-   unsigned  is_ID : 1;
-   unsigned  pos : 20;    // position in fragment
-   unsigned  type : 11;
-  }  Correction_t;
+typedef  struct {
+  uint64  is_ID : 1;
+  uint64  pos   : AS_READ_MAX_LONG_LEN_BITS;    // position in fragment
+  uint64  type  : 11;
+} Correction_t;
 
-typedef  union
-  {
-   Frag_ID_t  frag;
-   Correction_t  corr;
-  }  Correction_Output_t;
+typedef  union {
+  Frag_ID_t     frag;
+  Correction_t  corr;
+} Correction_Output_t;
 
 
 #endif

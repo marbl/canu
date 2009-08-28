@@ -18,242 +18,96 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*************************************************
-* Module:  CatCorrectsOVL.c
-* Description:
-*   Concatenate fragment correction files on command line to produce
-*   a single file.
-*
-*    Programmer:  A. Delcher
-*       Started:   24 Jan 2001
-*
-* Assumptions:
-*   Files on the command line *MUST* be in order
-*   by fragment id.
-*
-* Notes:
-*
-*************************************************/
 
-/* RCS info
- * $Id: CatCorrectsOVL.c,v 1.13 2009-05-21 02:24:37 brianwalenz Exp $
- * $Revision: 1.13 $
-*/
+static char *rcsid = "$Id: CatCorrectsOVL.c,v 1.14 2009-08-28 03:43:44 brianwalenz Exp $";
 
-static char *rcsid = "$Id: CatCorrectsOVL.c,v 1.13 2009-05-21 02:24:37 brianwalenz Exp $";
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
 
+#include "AS_global.h"
+#include "AS_UTL_fileIO.h"
+#include "FragCorrectOVL.h"
 
-//  System include files
+int
+main(int argc, char **argv) {
+  char   *inFilesPath = NULL;
+  char   *outFilePath = NULL;
+  char    inFileName[FILENAME_MAX];
 
-#include  <stdlib.h>
-#include  <stdio.h>
-#include  <assert.h>
-#include  <fcntl.h>
-#include  <string.h>
-#include  <unistd.h>
+  int arg = 1;
+  int err = 0;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-L") == 0) {
+      inFilesPath = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      outFilePath = argv[++arg];
 
-//  Local include files
+    } else {
+      err++;
+    }
 
-#include  "AS_OVL_delcher.h"
-#include  "AS_PER_gkpStore.h"
-#include  "AS_PER_genericStore.h"
-#include  "AS_UTL_Var.h"
-#include  "AS_MSG_pmesg.h"
-#include  "FragCorrectOVL.h"
+    arg++;
+  }
 
+  if ((err) || (inFilesPath == NULL) || (outFilePath == NULL)) {
+    fprintf(stderr, "usage: %s -L <listfile> -o <outfile>\n", argv[0]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Concatenate fragment corrections in <listfile> to a single file <outfile>\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -L <listfile>  a file containing names of erate files\n");
+    fprintf(stderr, "  -o <outfile>   output file\n");
+    fprintf(stderr, "\n");
 
-//  Constants
+    if (inFilesPath == NULL)
+      fprintf(stderr, "%s: no in files supplied with '-L'.\n", argv[0]);
 
-#define  INITIAL_FILE_LIST_LEN   100
-    //  Number of entries in initial list of correction files
+    if (outFilePath == NULL)
+      fprintf(stderr, "%s: no output file supplied with '-o'.\n", argv[0]);
 
+    exit(1);
+  }
 
+  errno = 0;
+  FILE *outF = fopen(outFilePath, "w");
+  if (errno)
+    fprintf(stderr, "%s: Failed to open output file '%s': %s\n", argv[0], outFilePath, strerror(errno)), exit(1);
 
+  errno = 0;
+  FILE *inFiles = fopen(inFilesPath, "r");
+  if (errno)
+    fprintf(stderr, "%s: Failed to open input file list '%s': %s\n", argv[0], inFilesPath, strerror(errno)), exit(1);
 
-typedef  char *  char_Ptr_t;
+  Correction_Output_t  msg;
+  uint64               prev_id = 0;
 
-VA_DEF (char_Ptr_t)
+  while (fgets(inFileName, FILENAME_MAX, inFiles)) {
+    chomp(inFileName);
 
+    errno = 0;
+    FILE *inF = fopen(inFileName, "r");
+    if (errno)
+      fprintf(stderr, "%s: Failed to open input file '%s': %s\n", argv[0], inFileName, strerror(errno)), exit(1);
 
-
-//  Global Variables
-
-static VA_TYPE (char_Ptr_t)  * File_List;
-    // Array of names of correction files to process
-static char  * File_List_Path = NULL;
-    // Path to file with names of correction files to process
-static char  * Outfile_Path = NULL;
-
-
-
-//  Static Functions
-
-static void  Parse_Command_Line
-    (int argc, char * argv []);
-static void  Usage
-    (char * command);
-
-
-
-int  main
-    (int argc, char * argv [])
-
-  {
-   FILE  * fp, * outfile;
-   Correction_Output_t  msg;
-   int32  prev_id = -1;
-   int  i, num_files;
-
-   Parse_Command_Line (argc, argv);
-
-   outfile = File_Open (Outfile_Path, "wb");
-
-   num_files = GetNumVA_char_Ptr_t (File_List);
-   for  (i = 0;  i < num_files;  i ++)
-     {
-      char  * filename;
-
-      filename = * GetVA_char_Ptr_t (File_List, i);
-      fp = File_Open (filename, "rb");
-
-      while  (fread (& msg, sizeof (Correction_Output_t), 1, fp) == 1)
-        {
-         if  (msg . frag . is_ID)
-             {
-              if  ((int) msg . frag . iid <= prev_id)
-                  {
-                   fprintf (stderr,
-                            "ERROR:  frag IDs out of order\n"
-                            "Hit frag  %d  in file  %s  preceeding frag was %d\n",
-                            msg . frag . iid, argv [i], prev_id);
-                   exit (1);
-                  }
-              prev_id = (int) msg . frag . iid;
-             }
-
-         fwrite (& msg, sizeof (Correction_Output_t), 1, outfile);
+    while (AS_UTL_safeRead(inF, &msg, "correction", sizeof(Correction_Output_t), 1) == 1) {
+      if  (msg.frag.is_ID) {
+        if (msg.frag.iid <= prev_id) {
+          fprintf(stderr, "ERROR; frag IDs out of order.  Got "F_U64" after "F_U64" in file %s.\n",
+                  msg.frag.iid, prev_id, inFileName);
+          exit(1);
         }
+        prev_id = msg.frag.iid;
+      }
 
-      fclose (fp);
-     }
+      AS_UTL_safeWrite(outF, &msg, "correction", sizeof(Correction_Output_t), 1);
+    }
 
-   fclose (outfile);
-
-   return  0;
+    fclose(inF);
   }
 
+  fclose(outF);
 
-
-static void  Parse_Command_Line
-    (int argc, char * argv [])
-
-//  Get options and parameters from command line with  argc
-//  arguments in  argv [0 .. (argc - 1)] .
-
-  {
-   char  buffer [FILENAME_MAX];
-   int  ch, errflg = FALSE;
-   int  i, n;
-
-   File_List = CreateVA_char_Ptr_t (INITIAL_FILE_LIST_LEN);
-   optarg = NULL;
-
-   while  (! errflg
-             && ((ch = getopt (argc, argv, "L:o:")) != EOF))
-     switch  (ch)
-       {
-        case  'L' :
-          File_List_Path = optarg;
-          break;
-
-        case  'o' :
-          Outfile_Path = optarg;
-          break;
-
-        case  '?' :
-          fprintf (stderr, "Unrecognized option -%c\n", optopt);
-
-        default :
-          errflg = TRUE;
-       }
-
-   if  (errflg)
-       {
-        Usage (argv [0]);
-        exit (1);
-       }
-
-   if  (Outfile_Path == NULL)
-       {
-        fprintf (stderr, "No output file specified with -o\n");
-        Usage (argv [0]);
-        exit (1);
-       }
-
-   if  (File_List_Path != NULL)
-       {
-        FILE  * fp;
-        char_Ptr_t  name;
-
-        fp = File_Open (File_List_Path, "r");
-        while  (fscanf (fp, "%s", buffer) == 1)
-          {
-           name = strdup (buffer);
-           Appendchar_Ptr_t (File_List, & name);
-          }
-
-        fclose (fp);
-       }
-
-   while  (optind < argc)
-     {
-      Appendchar_Ptr_t (File_List, argv + optind);
-      optind ++;
-     }
-
-   n = GetNumVA_char_Ptr_t (File_List);
-   if  (n <= 0)
-       {
-        fprintf (stderr, "ERROR:  No correction files specified\n");
-        Usage (argv [0]);
-        exit (1);
-       }
-   for  (i = 0;  i < n;  i ++)
-     {
-      FILE  * fp;
-
-      fp = File_Open (* GetVA_char_Ptr_t (File_List, i), "r");
-      fclose (fp);
-     }
-
-   return;
-  }
-
-
-
-static void  Usage
-    (char * command)
-
-//  Print to stderr description of options and command line for
-//  this program.   command  is the command that was used to
-//  invoke it.
-
-  {
-   fprintf (stderr,
-           "USAGE:  %s -o <outfile> [-L <listfile>]  <infile-1> ... <infile-n>\n"
-           "\n"
-           "Concatenate fragment corrections in <infile-1> ... <infile-n>\n"
-           "to a single file <outfile>\n"
-           "\n"
-           "Options:\n"
-           "  -L <listfile> Specify a file containing names of correction files\n"
-           "     (useful if too many to fit on command line)\n"
-           "  -o <outfile>  Specify output, REQUIRED\n",
-           command);
-
-   return;
-  }
-
-
-
+  fprintf(stderr, "Finished\n");
+  return(0);
+}

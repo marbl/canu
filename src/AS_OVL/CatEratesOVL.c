@@ -19,303 +19,143 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/*************************************************
-* Module:  CatEratesOVL.c
-* Description:
-*   Concatenate erate correction files on command line to produce
-*   a single file.
-*
-*    Programmer:  A. Halpern
-*       Started:   23 Dec 2003
-*
-* Assumptions:
-*   Files on the command line *MUST* be in order
-*   by fragment id of first frag in overlap.
-*
-* Notes:
-*
-*************************************************/
+static char *rcsid = "$Id: CatEratesOVL.c,v 1.16 2009-08-28 03:43:44 brianwalenz Exp $";
 
-/* RCS info
- * $Id: CatEratesOVL.c,v 1.15 2009-05-21 02:24:37 brianwalenz Exp $
- * $Revision: 1.15 $
-*/
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
 
-static char *rcsid = "$Id: CatEratesOVL.c,v 1.15 2009-05-21 02:24:37 brianwalenz Exp $";
+#include "AS_global.h"
+#include "AS_UTL_fileIO.h"
 
+int
+main(int argc, char **argv) {
+  char   *inFilesPath = NULL;
+  char   *outFilePath = NULL;
+  char    inFileName[FILENAME_MAX];
+  int32   header[2];
+  uint64  num;
 
-//  System include files
+  int arg = 1;
+  int err = 0;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-L") == 0) {
+      inFilesPath = argv[++arg];
 
-#include  <stdlib.h>
-#include  <stdio.h>
-#include  <assert.h>
-#include  <fcntl.h>
-#include  <string.h>
-#include  <unistd.h>
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      outFilePath = argv[++arg];
 
+    } else {
+      err++;
+    }
 
-//  Local include files
-
-#include  "AS_OVL_delcher.h"
-#include  "AS_PER_gkpStore.h"
-#include  "AS_PER_genericStore.h"
-#include  "AS_UTL_Var.h"
-#include  "AS_MSG_pmesg.h"
-
-
-
-
-//  Constants
-
-#define  INITIAL_FILE_LIST_LEN   100
-    //  Number of entries in initial list of correction files
-
-// Max number of erates to read in at a time
-#define MAX_ERATES_TO_READ 512
-
-
-//  Type definitions
-
-typedef  struct
-  {
-   unsigned  is_ID : 1;
-   unsigned  keep_left : 1;     // set true if left overlap degree is low
-   unsigned  keep_right : 1;    // set true if right overlap degree is low
-   unsigned  iid : 29;
-  }  Frag_ID_t;
-
-typedef  struct
-  {
-   unsigned  is_ID : 1;
-   unsigned  pos : 20;    // position in fragment
-   unsigned  type : 11;
-  }  Correction_t;
-
-typedef  union
-  {
-   Frag_ID_t  frag;
-   Correction_t  corr;
-  }  Correction_Output_t;
-
-typedef  char *  char_Ptr_t;
-
-VA_DEF (char_Ptr_t)
-
-
-
-//  Global Variables
-
-static VA_TYPE (char_Ptr_t)  * File_List;
-    // Array of names of correction files to process
-static char  * File_List_Path = NULL;
-    // Path to file with names of correction files to process
-static char  * Outfile_Path = NULL;
-
-
-
-//  Static Functions
-
-static void  Parse_Command_Line
-    (int argc, char * argv []);
-static void  Usage
-    (char * command);
-
-
-
-int  main
-    (int argc, char * argv [])
-
-  {
-   FILE  * fp, * outfile;
-   Correction_Output_t  msg;
-   int32  prev_id = -1;
-   int  i, num_files;
-   int16 *erate;
-   int32  header[2];
-   int32  low=999999999;
-   int32  high=-1;
-   uint64 ttlNum=0;
-
-   Parse_Command_Line (argc, argv);
-
-   outfile = File_Open (Outfile_Path, "wb");
-
-   num_files = GetNumVA_char_Ptr_t (File_List);
-
-   for  (i = 0;  i < num_files;  i ++)
-     {
-      char  * filename;
-      int32 lo,hi;
-      uint64 num;
-
-      filename = * GetVA_char_Ptr_t (File_List, i);
-      fp = File_Open (filename, "rb");
-      Safe_fread (header, sizeof (int32), 2, fp);
-      Safe_fread (&num, sizeof (uint64), 1, fp);
-      lo = header[0];
-      hi = header[1];
-      if(lo<low)low=lo;
-      if(hi>high)high=hi;
-      ttlNum+=num;
-      fclose(fp);
-      fprintf(stderr,"File %s lo %d hi %d num %d\n",
-	      filename,lo,hi,num);
-     }
-
-   header[0]=low;
-   header[1]=high;
-
-   fprintf(stderr,"total lo %d hi %d num %d\n",
-	   low,high,ttlNum);
-
-   Safe_fwrite(header,sizeof(int32),2,outfile);
-   Safe_fwrite(&ttlNum,sizeof(uint64),1,outfile);
-
-   for  (i = 0;  i < num_files;  i ++)
-     {
-      char  * filename;
-      int32 lo,hi;
-      uint64 num;
-      uint64 totalToRead = MAX_ERATES_TO_READ;
-
-      filename = * GetVA_char_Ptr_t (File_List, i);
-      fp = File_Open (filename, "rb");
-      Safe_fread (header, sizeof (int32),  2, fp);
-      Safe_fread (&num,   sizeof (uint64), 1, fp);
-
-      erate = (int16 *) safe_malloc (MAX_ERATES_TO_READ * sizeof (int16));
-
-      // stream the file through reading a subset at a time
-      while (num > 0) {
-         // when we have less to read than maximum, read whatever is left
-         if (num < totalToRead) {
-            totalToRead = num;
-         }
-
-         num -= Safe_fread (erate, sizeof (int16), totalToRead, fp);
-         Safe_fwrite(erate, sizeof (int16), totalToRead, outfile);
-      }
-      fclose (fp);
-      safe_free(erate);
-     }
-
-   fprintf (stderr, "Finished\n");
-
-   return  0;
+    arg++;
   }
 
+  if ((err) || (inFilesPath == NULL) || (outFilePath == NULL)) {
+    fprintf(stderr, "usage: %s -L <listfile> -o <outfile>\n", argv[0]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Concatenate erate corrections in <listfile> to a single file <outfile>\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -L <listfile>  a file containing names of erate files\n");
+    fprintf(stderr, "  -o <outfile>   output file\n");
+    fprintf(stderr, "\n");
 
+    if (inFilesPath == NULL)
+      fprintf(stderr, "%s: no in files supplied with '-L'.\n", argv[0]);
 
-static void  Parse_Command_Line
-    (int argc, char * argv [])
+    if (outFilePath == NULL)
+      fprintf(stderr, "%s: no output file supplied with '-o'.\n", argv[0]);
 
-//  Get options and parameters from command line with  argc
-//  arguments in  argv [0 .. (argc - 1)] .
-
-  {
-   char  buffer [FILENAME_MAX];
-   int  ch, errflg = FALSE, len;
-   int  i, n;
-   char  * p;
-
-   File_List = CreateVA_char_Ptr_t (INITIAL_FILE_LIST_LEN);
-   optarg = NULL;
-
-   while  (! errflg
-             && ((ch = getopt (argc, argv, "L:o:")) != EOF))
-     switch  (ch)
-       {
-        case  'L' :
-          File_List_Path = optarg;
-          break;
-
-        case  'o' :
-          Outfile_Path = optarg;
-          break;
-
-        case  '?' :
-          fprintf (stderr, "Unrecognized option -%c\n", optopt);
-
-        default :
-          errflg = TRUE;
-       }
-
-   if  (errflg)
-       {
-        Usage (argv [0]);
-        exit (1);
-       }
-
-   if  (Outfile_Path == NULL)
-       {
-        fprintf (stderr, "No output file specified with -o\n");
-        Usage (argv [0]);
-        exit (1);
-       }
-
-   if  (File_List_Path != NULL)
-       {
-        FILE  * fp;
-        char_Ptr_t  name;
-
-        fp = File_Open (File_List_Path, "r");
-        while  (fscanf (fp, "%s", buffer) == 1)
-          {
-           name = strdup (buffer);
-           Appendchar_Ptr_t (File_List, & name);
-          }
-
-        fclose (fp);
-       }
-
-   while  (optind < argc)
-     {
-      Appendchar_Ptr_t (File_List, argv + optind);
-      optind ++;
-     }
-
-   n = GetNumVA_char_Ptr_t (File_List);
-   if  (n <= 0)
-       {
-        fprintf (stderr, "ERROR:  No erate files specified\n");
-        Usage (argv [0]);
-        exit (1);
-       }
-   for  (i = 0;  i < n;  i ++)
-     {
-      FILE  * fp;
-
-      fp = File_Open (* GetVA_char_Ptr_t (File_List, i), "r");
-      fclose (fp);
-     }
-
-   return;
+    exit(1);
   }
 
+  int32  low    = INT32_MAX;
+  int32  high   = INT32_MIN;
+  uint64 ttlNum = 0;
 
+  FILE  *inFiles = NULL;
+  FILE  *outF    = NULL;
 
-static void  Usage
-    (char * command)
+  errno = 0;
+  inFiles = fopen(inFilesPath, "r");
+  if (errno)
+    fprintf(stderr, "%s: Failed to open input file list '%s': %s\n", argv[0], inFilesPath, strerror(errno)), exit(1);
 
-//  Print to stderr description of options and command line for
-//  this program.   command  is the command that was used to
-//  invoke it.
+  while (fgets(inFileName, FILENAME_MAX, inFiles)) {
+    chomp(inFileName);
 
-  {
-   fprintf (stderr,
-           "USAGE:  %s -o <outfile> [-L <listfile>]  <infile-1> ... <infile-n>\n"
-           "\n"
-           "Concatenate erate corrections in <infile-1> ... <infile-n>\n"
-           "to a single file <outfile>\n"
-           "\n"
-           "Options:\n"
-           "  -L <listfile> Specify a file containing names of erate files\n"
-           "     (useful if too many to fit on command line)\n"
-           "  -o <outfile>  Specify output, REQUIRED\n",
-           command);
+    errno = 0;
+    FILE *inF = fopen(inFileName, "r");
+    if (errno)
+      fprintf(stderr, "%s: Failed to open input file '%s': %s\n", argv[0], inFileName, strerror(errno)), exit(1);
 
-   return;
+    AS_UTL_safeRead(inF,  header, "header", sizeof(int32),  2);
+    AS_UTL_safeRead(inF, &num,    "number", sizeof(uint64), 1);
+
+    if (header[0] < low)   low  = header[0];
+    if (header[1] > high)  high = header[1];
+
+    ttlNum += num;
+
+    //fprintf(stderr,"File %s lo %d hi %d num %d\n", filename, header[0], header[1], num);
+
+    fclose(inF);
   }
 
+  fclose(inFiles);
 
+  header[0] = low;
+  header[1] = high;
 
+  //fprintf(stderr,"total lo %d hi %d num %d\n", low, high, ttlNum);
+
+  errno = 0;
+  outF = fopen(outFilePath, "w");
+  if (errno)
+    fprintf(stderr, "%s: Failed to open output file '%s': %s\n", argv[0], outFilePath, strerror(errno)), exit(1);
+
+  errno = 0;
+  inFiles = fopen(inFilesPath, "r");
+  if (errno)
+    fprintf(stderr, "%s: Failed to open input file list '%s': %s\n", argv[0], inFilesPath, strerror(errno)), exit(1);
+
+  AS_UTL_safeWrite(outF,  header, "header", sizeof(int32),  2);
+  AS_UTL_safeWrite(outF, &ttlNum, "number", sizeof(uint64), 1);
+
+  int16 *erate = (int16 *) safe_malloc (1048576 * sizeof (int16));
+
+  while (fgets(inFileName, FILENAME_MAX, inFiles)) {
+    chomp(inFileName);
+
+    errno = 0;
+    FILE *inF = fopen(inFileName, "r");
+    if (errno)
+      fprintf(stderr, "%s: Failed to open input file '%s': %s\n", argv[0], inFileName, strerror(errno)), exit(1);
+
+    AS_UTL_safeRead(inF,  header, "header", sizeof(int32),  2);
+    AS_UTL_safeRead(inF, &num,    "number", sizeof(uint64), 1);
+
+    uint64 totalToRead = 1048576;
+
+    while (num > 0) {
+      if (num < totalToRead)
+        totalToRead = num;
+
+      size_t  actRead = AS_UTL_safeRead(inF, erate, "errors", sizeof(int16), totalToRead);
+
+      num -= actRead;
+
+      AS_UTL_safeWrite(outF, erate, "errors", sizeof(int16), actRead);
+    }
+
+    fclose(inF);
+  }
+
+  fclose(outF);
+
+  safe_free(erate);
+
+  fprintf(stderr, "Finished\n");
+  return(0);
+}
