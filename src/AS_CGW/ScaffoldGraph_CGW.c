@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.40 2009-07-30 10:42:56 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.41 2009-08-28 17:59:47 skoren Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -517,13 +517,22 @@ int GetCoverageStat(ChunkInstanceT *CI){
 /* Add a fixed amount to the offsetAEnd and offsetBEnd starting from a given
    CI to the end of the Scaffold                                */
 /* *********************************************************************** */
+void AddDeltaToScaffoldOffsets(ScaffoldGraphT *graph,
+                CDS_CID_t scaffoldIndex,
+                CDS_CID_t indexOfCI,
+                int aEndToBEnd,
+                int verbose,
+                LengthT delta){
+AddDeltaToScaffoldOffsets(graph, scaffoldIndex, indexOfCI, aEndToBEnd, verbose, delta, 0);
+}
 
 void AddDeltaToScaffoldOffsets(ScaffoldGraphT *graph,
 			       CDS_CID_t scaffoldIndex,
 			       CDS_CID_t indexOfCI,
 			       int aEndToBEnd,
 			       int verbose,
-			       LengthT delta){
+			       LengthT delta,
+                uint32 mark){
   CIScaffoldT *scaffold;
   CIScaffoldTIterator Nodes;
   NodeCGW_T *thisNode;
@@ -543,6 +552,12 @@ void AddDeltaToScaffoldOffsets(ScaffoldGraphT *graph,
     thisNode->offsetAEnd.variance += delta.variance;
     thisNode->offsetBEnd.mean += delta.mean;
     thisNode->offsetBEnd.variance += delta.variance;
+
+#ifdef TRY_UNDO_JIGGLE_POSITIONS    
+    thisNode->flags.bits.isJiggled = mark;
+    thisNode->offsetDelta.mean = delta.mean;
+    thisNode->offsetDelta.variance = delta.variance;
+#endif
   }
 
   scaffold->bpLength.mean += delta.mean;
