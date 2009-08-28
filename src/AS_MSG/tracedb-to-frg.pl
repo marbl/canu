@@ -84,7 +84,7 @@ my %seqLibIDFix;
 #  1 -- use SEQ_LIB_ID, but die when it isn't present.
 #  2 -- use SEQ_LIB_ID, allow missing libs.
 #
-my $useSLI = 0;
+my $useSLI = 1;
 
 #  This allows one to include only certain libraries in the output, or
 #  to ignore specific libraries.  We'll do all the work, and just skip
@@ -187,7 +187,7 @@ sub readXML () {
     #  Except it also breaks lots of mates in later files.
 
     $_ = <X>;
-    while ($_ !~ m/^\s*<\/TRACE>/i) {
+    while ($_ !~ m/^\s*<\/TRACE/i) {
         if (m!^\s*<TI>(\S+)<!i) {
             $xid = $1;
         }
