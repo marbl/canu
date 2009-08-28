@@ -292,7 +292,7 @@ sub merOverlapper($) {
     }
 
     if (! -e "$wrk/$outDir/$asm.merStore") {
-        if (runCommand($wrk, "find $wrk/$outDir/seeds -name \\*ovm.gz -print > $wrk/$outDir/$asm.merStore.list")) {
+        if (runCommand($wrk, "find $wrk/$outDir/seeds \\( -name \\*ovm.gz -or -name \\*ovm \\) -print > $wrk/$outDir/$asm.merStore.list")) {
             caFailure("failed to generate a list of all the overlap files", undef);
         }
 

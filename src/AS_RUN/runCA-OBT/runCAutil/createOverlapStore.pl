@@ -4,7 +4,7 @@ sub createOverlapStore {
 
     goto alldone if (-d "$wrk/$asm.ovlStore");
 
-    if (runCommand($wrk, "find $wrk/1-overlapper -name \\*ovb.gz -print > $wrk/$asm.ovlStore.list")) {
+    if (runCommand($wrk, "find $wrk/1-overlapper \\( -name \\*ovb.gz -or -name \\*ovb \\) -print > $wrk/$asm.ovlStore.list")) {
         caFailure("failed to generate a list of all the overlap files", undef);
     }
 

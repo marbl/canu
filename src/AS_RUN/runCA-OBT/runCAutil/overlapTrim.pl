@@ -42,7 +42,7 @@ sub overlapTrim {
         #  all overlaps for a fragment A are localized.
 
         if (runCommand("$wrk/0-overlaptrim",
-                       "find $wrk/0-overlaptrim-overlap -follow -name \\*ovb.gz -print > $wrk/0-overlaptrim/$asm.obtStore.list")) {
+                       "find $wrk/0-overlaptrim-overlap -follow \\( -name \\*ovb.gz -or -name \\*ovb \\) -print > $wrk/0-overlaptrim/$asm.obtStore.list")) {
             caFailure("failed to generate a list of all the overlap files", undef);
         }
 
@@ -73,7 +73,7 @@ sub overlapTrim {
 
         if (! -e "$wrk/0-overlaptrim/$asm.dupStore") {
             if (runCommand("$wrk/0-overlaptrim",
-                           "find $wrk/0-overlaptrim-overlap -follow -name \\*ovb.gz -print > $wrk/0-overlaptrim/$asm.dupStore.list")) {
+                           "find $wrk/0-overlaptrim-overlap -follow \\( -name \\*ovb.gz -or -name \\*ovb \\) -print > $wrk/0-overlaptrim/$asm.dupStore.list")) {
                 caFailure("failed to generate a list of all the overlap files", undef);
             }
 

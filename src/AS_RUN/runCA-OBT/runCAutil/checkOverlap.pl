@@ -29,7 +29,8 @@ sub checkOverlapper ($) {
         my $batchName = shift @bat;
         my $jobName   = shift @job;
 
-        if (! -e "$wrk/$outDir/$batchName/$jobName.ovb.gz") {
+        if ((! -e "$wrk/$outDir/$batchName/$jobName.ovb.gz") &&
+            (! -e "$wrk/$outDir/$batchName/$jobName.ovb")) {
             print STDERR "$wrk/$outDir/$batchName/$jobName failed, job index $jobIndex.\n";
             $failedJobs++;
         }
@@ -59,7 +60,8 @@ sub checkMerOverlapper ($) {
     for (my $i=1; $i<=$jobs; $i++) {
         my $job = substr("0000" . $i, -4);
 
-        if (! -e "$wrk/$outDir/olaps/$job.ovb.gz") {
+        if ((! -e "$wrk/$outDir/olaps/$job.ovb.gz") &&
+            (! -e "$wrk/$outDir/olaps/$job.ovb")) {
             print STDERR "$wrk/$outDir/olaps/$job failed.\n";
             $failedJobs++;
         }
