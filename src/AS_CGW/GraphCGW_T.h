@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.38 2009-07-30 10:42:55 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.39 2009-08-28 17:35:11 skoren Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_ALN_aligners.h"
@@ -237,6 +237,10 @@ typedef struct{
   LengthT  offsetAEnd;     // Offset of A end of CI relative to A end of Contig/CIScaffold
   LengthT  offsetBEnd;     // Offset of B end of CI relative to A end of Contig/CIScaffold
 
+#ifdef TRY_UNDO_JIGGLE_POSITIONS
+  LengthT  offsetDelta;
+#endif
+
   union{  // ChunkInstanceType discriminates
     struct CIINFO_TAG {
       CDS_CID_t contigID;   // contigID -- if -1, this chunkInstance not merged into a contig
@@ -328,6 +332,9 @@ typedef struct{
        * Initialized to match the closure input status of the read or contig
        */
        unsigned int isClosure:1;
+#ifdef TRY_UNDO_JIGGLE_POSITIONS
+       unsigned int isJiggled:1;
+#endif
     }bits;
     int32 all;
   }flags;

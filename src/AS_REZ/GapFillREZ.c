@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.51 2009-08-14 13:37:07 skoren Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.52 2009-08-28 17:35:11 skoren Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -576,13 +576,13 @@ int  Global_Debug_Flag = FALSE;
 typedef  struct
 {
   LengthT  start, end;
-  unsigned int numLinks;
-}  Closure_Gap_t;
+  uint32 numLinks;
+} Closure_Gap_t;
 
 typedef  struct
 {
-  unsigned int  scfID;
-  unsigned int  numGaps;
+  uint32  scfID;
+  uint32  numGaps;
   
   Closure_Gap_t * gaps;
 }  Closure_Placement_t;
@@ -614,13 +614,13 @@ static int Place_Closure_Chunk(Scaffold_Fill_t * fill_chunks, ContigT* contig, i
          assert(0);
    };
 
-   int totalLinks = 0;
-   int badLinks = 0;
-   int numInCtgs = 0;
+   uint32 totalLinks = 0;
+   uint32 badLinks = 0;
+   uint32 numInCtgs = 0;
    int Num_Scaffolds = GetNumGraphNodes (ScaffoldGraph -> ScaffoldGraph);
    int numPlacementOptions = 0;   
    int numActuallyPlaced = 0;
-   int i = 0;
+   uint32 i = 0;
 
    Closure_Placement_t *placements = NULL;
    if (!placeImmediately) {
@@ -648,7 +648,7 @@ static int Place_Closure_Chunk(Scaffold_Fill_t * fill_chunks, ContigT* contig, i
       assert(gkpl->bound2);
       
 #if VERBOSE > 2
-   fprintf(stderr, "Place_Closure_Chunk(): Read=%d Left Bound=%d Right Bound=%d in CID %d\n", mp->ident, gkpl->bound1, gkpl->bound2, cid);
+fprintf(stderr, "Place_Closure_Chunk(): Read=%d Left Bound=%d Right Bound=%d in CID %d\n", mp->ident, gkpl->bound1, gkpl->bound2, cid);
 #endif
       // get the reads indicated by the input line
       CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkpl->bound1)->fragIndex); 
@@ -749,13 +749,15 @@ static int Place_Closure_Chunk(Scaffold_Fill_t * fill_chunks, ContigT* contig, i
          }
       }
       // we found two contigs in the same scaffold but couldnt be placed, count that as a bad link as well
-      if (!placedInScf) badLinks++;
+      if (!placedInScf) {
+         badLinks++;
+      }
    }
 
    assert(!placeImmediately);
    
    // inefficient, can we not look through all scaffolds/gaps   
-   int j = 0;      
+   uint32 j = 0;      
    LengthT start,end;
    uint32 bestScfID, bestGap;
    uint32 bestLinks = 0;
@@ -769,7 +771,7 @@ static int Place_Closure_Chunk(Scaffold_Fill_t * fill_chunks, ContigT* contig, i
       safe_free(placements);
       return 0;
    }
-   
+
    for (i = 0; i < Num_Scaffolds; i++) {
       if (placements[i].scfID != 0) {
          for (j = 0; j < placements[i].numGaps; j++) {
@@ -792,11 +794,10 @@ static int Place_Closure_Chunk(Scaffold_Fill_t * fill_chunks, ContigT* contig, i
                               3*placements[i].gaps[j].numLinks, cover_stat, placements[i].gaps[j].numLinks,
                               copy_letter, TRUE));
                   }
-               }
-   
+               }   
                // placing uniques more than once is bad
                if (cover_stat >= GlobalData->cgbDefinitelyUniqueCutoff && numActuallyPlaced > 1) {
-                  fprintf(stderr, "Place_Closure_Chunk(): Multiply placing unique contig %d %d with cover_stat %f\n", cid, cover_stat);
+                  fprintf(stderr, "Place_Closure_Chunk(): Multiply placing unique contig %d with cover_stat %f\n", cid, cover_stat);
                }
                copy_letter++;
             } else {
@@ -3479,12 +3480,11 @@ static void  Choose_Safe_Chunks
             }
 
           DeleteVA_Stack_Entry_t(stackva);
-        
         }
        
         // handle the closure reads in this part of the if
         if (IsClosure(contig) && placed == FALSE && contig->scaffoldID == NULLINDEX) 
-        {            
+        {
             num_placed += Place_Closure_Chunk(fill_chunks, contig, cid, cover_stat, ' ', FALSE);
         }
         
@@ -7556,7 +7556,7 @@ static void  Jiggle_Positions_One_Scaffold
         AddDeltaToScaffoldOffsets
           (ScaffoldGraph, scaff_id,
            this_gap -> right_cid, TRUE, FALSE,
-           this_gap -> adjustment);
+           this_gap -> adjustment, 1);
 
 #ifdef DEBUG_DETAILED
       fprintf (stderr, "### Gap %d  gapadjv = %.1f  cumadjv = %.1f  oldrefv = %.1f",

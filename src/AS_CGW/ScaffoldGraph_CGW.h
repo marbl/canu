@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.34 2009-08-03 23:42:12 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.35 2009-08-28 17:35:11 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -496,6 +496,14 @@ void AddDeltaToScaffoldOffsets(ScaffoldGraphT *graph,
                                int aEndToBEnd,
                                int verbose,
                                LengthT delta);
+
+void AddDeltaToScaffoldOffsets(ScaffoldGraphT *graph,
+                               CDS_CID_t scaffoldIndex,
+                               CDS_CID_t indexOfCI,
+                               int aEndToBEnd,
+                               int verbose,
+                               LengthT delta,
+                               uint32 mark);
 
 
 void RebuildScaffolds(ScaffoldGraphT *ScaffoldGraph,

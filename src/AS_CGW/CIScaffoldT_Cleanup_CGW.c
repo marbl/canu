@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.54 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.55 2009-08-28 17:35:10 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,7 +52,6 @@ static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.54 2009-07-30 10:42:55 
 #undef DEBUG_CONTIG
 #undef DEBUG_CREATEACONTIG
 #undef DEBUG_NEG_VARIANCE
-
 
 typedef struct{
   ChunkInstanceT *firstCI;
@@ -1443,6 +1442,9 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   ChunkInstanceT *CI;
   ChunkInstanceT *currCI = NULL;
   ChunkInstanceT *prevCI = NULL;
+#ifdef TRY_UNDO_JIGGLE_POSITIONS
+  ChunkInstanceT *endCI  = NULL;
+#endif
   ContigEndsT contig;
   int32 i;
   int mergesAttempted = 0;
@@ -1491,6 +1493,9 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
 
   contig.firstCI = currCI = CI = NextCIScaffoldTIterator(&CIs);
+#ifdef TRY_UNDO_JIGGLE_POSITIONS
+   endCI = CI;
+#endif
   contig.firstCID = contig.firstCI->id;
 
   if(currCI->offsetAEnd.mean < currCI->offsetBEnd.mean){
@@ -1524,6 +1529,48 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 
     assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
 
+#ifdef TRY_UNDO_JIGGLE_POSITIONS
+    if (actual >= 0 && actual <= CGW_DP_MINLEN && currCI->flags.bits.isJiggled == 1) {
+      IntElementPos aPos;
+      if (((uint32)rint(contig.maxOffset.mean - currCI->offsetAEnd.mean) == actual) ||
+          ((uint32)rint(contig.maxOffset.mean - currCI->offsetBEnd.mean) == actual)) {
+         currCI->offsetAEnd.mean -= currCI->offsetDelta.mean;
+         currCI->offsetBEnd.mean -= currCI->offsetDelta.mean;
+      } else {
+         fprintf(stderr, "CleanupAScaffold() Error: don't know how to unjiggle positions for contig id %d, skipping\n", currCI->id);
+      }
+      int failed = TRUE;
+      if ((abs(endCI->offsetBEnd.mean - endCI->offsetAEnd.mean) + abs(currCI->offsetBEnd.mean - currCI->offsetAEnd.mean)) < 500000) {
+        if(ContigPositions == NULL){
+            ContigPositions = CreateVA_IntElementPos(10);
+         }
+         ResetVA_IntElementPos(ContigPositions);
+         aPos.ident = endCI->id;
+         aPos.position.bgn = endCI->offsetAEnd.mean;
+         aPos.position.end = endCI->offsetBEnd.mean;
+         aPos.type = AS_CONTIG;
+         AppendIntElementPos(ContigPositions, &aPos);
+         aPos.ident = currCI->id;
+         aPos.type = AS_CONTIG;
+         aPos.position.bgn = currCI->offsetAEnd.mean;
+         aPos.position.end = currCI->offsetBEnd.mean;
+         AppendIntElementPos(ContigPositions, &aPos);
+         if (MergeMultiAlignsFast_new(ScaffoldGraph->sequenceDB, ScaffoldGraph->gkpStore, ContigPositions, FALSE, TRUE, NULL) != NULL) {
+            failed = FALSE;
+            fprintf(stderr, "CleanupAScaffold() Undoing jiggling for %d worked.\n", currCI->id);
+         }
+         ResetVA_IntElementPos(ContigPositions);
+      }
+
+      if (failed) {
+         fprintf(stderr, "CleanupAScaffold() Error: Undoing jiggle failed multi-align, backing out changes\n", currCI->id);
+         currCI->offsetAEnd.mean += currCI->offsetDelta.mean;
+         currCI->offsetBEnd.mean += currCI->offsetDelta.mean;
+      }
+      currCI->flags.bits.isJiggled = 0;
+      actual = IntervalsOverlap(contig.minOffset.mean, contig.maxOffset.mean, currCI->offsetAEnd.mean, currCI->offsetBEnd.mean, -15000);
+   }
+#endif
     //  artificially break longs merges if != NULLINDEX
     //
     // if we are not careful elsewhere, DP_Compare can return overlaps shorter than minlen;
@@ -1543,9 +1590,15 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 
       if(currCI->offsetAEnd.mean > contig.maxOffset.mean){
         contig.maxOffset = currCI->offsetAEnd;
+#ifdef TRY_UNDO_JIGGLE_POSITIONS
+        endCI = currCI;
+#endif
       }
       if(currCI->offsetBEnd.mean > contig.maxOffset.mean){
         contig.maxOffset = currCI->offsetBEnd;
+#ifdef TRY_UNDO_JIGGLE_POSITIONS
+        endCI = currCI;
+#endif
       }
 
     }else{
@@ -1566,6 +1619,9 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
       contig.count = 0;
       contig.firstCI = currCI;
       contig.firstCID = contig.firstCI->id;
+#ifdef TRY_UNDO_JIGGLE_POSITIONS
+      endCI = currCI; 
+#endif
 
       if(currCI->offsetAEnd.mean < currCI->offsetBEnd.mean){
         contig.minOffset = currCI->offsetAEnd;
@@ -1985,7 +2041,7 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   contig->offsetBEnd = offsetBEnd;
 
 #ifdef DEBUG_CREATEACONTIG
-  fprintf(GlobalData->stderrc,"* Create a contig in scaffold "F_CID "\n", scaffold->id);
+  fprintf(GlobalData->stderrc,"* Create a contig "F_CID " in scaffold "F_CID "\n", contig->id, scaffold->id);
 #endif
 
   //  Determine which ends are extremal, so we can propagate their
