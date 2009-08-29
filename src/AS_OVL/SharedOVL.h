@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.h,v 1.14 2009-07-16 02:48:23 brianwalenz Exp $
- * $Revision: 1.14 $
+ * $Id: SharedOVL.h,v 1.15 2009-08-29 05:43:09 brianwalenz Exp $
+ * $Revision: 1.15 $
 */
 
 
 #ifndef  __SHAREDOVL_H_INCLUDED
 #define  __SHAREDOVL_H_INCLUDED
 
-static const char *rcsid_SHAREDOVL_H_INCLUDED = "$Id: SharedOVL.h,v 1.14 2009-07-16 02:48:23 brianwalenz Exp $";
+static const char *rcsid_SHAREDOVL_H_INCLUDED = "$Id: SharedOVL.h,v 1.15 2009-08-29 05:43:09 brianwalenz Exp $";
 
 
 #include "AS_OVL_delcher.h"
@@ -133,33 +133,7 @@ static const char *rcsid_SHAREDOVL_H_INCLUDED = "$Id: SharedOVL.h,v 1.14 2009-07
 
 // Type definitions
 
-typedef  enum
-  {
-   DELETE, A_SUBST, C_SUBST, G_SUBST, T_SUBST,
-   A_INSERT, C_INSERT, G_INSERT, T_INSERT, NO_VOTE,
-   EXTENSION
-  }  Vote_Value_t;
-
-typedef  struct
-  {
-   unsigned  is_ID : 1;
-   unsigned  keep_left : 1;     // set true if left overlap degree is low
-   unsigned  keep_right : 1;    // set true if right overlap degree is low
-   unsigned  iid : 28;
-  }  Frag_ID_t;
-
-typedef  struct
-  {
-   unsigned  is_ID : 1;
-   unsigned  pos : 20;    // position in fragment
-   unsigned  type : 11;
-  }  Correction_t;
-
-typedef  union
-  {
-   Frag_ID_t  frag;
-   Correction_t  corr;
-  }  Correction_Output_t;
+#include "FragCorrectOVL.h"
 
 typedef struct
   {
