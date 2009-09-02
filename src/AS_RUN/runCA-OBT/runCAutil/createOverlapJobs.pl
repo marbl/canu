@@ -96,6 +96,11 @@ sub createOverlapJobs($) {
     print F "  exit\n";
     print F "fi\n";
     print F "\n";
+    print F "if [ x\$bat = x ]; then\n";
+    print F "  echo Error: Job index out of range.\n";
+    print F "  exit 1\n";
+    print F "fi\n";
+    print F "\n";
     print F "AS_OVL_ERROR_RATE=", getGlobal("ovlErrorRate"), "\n";
     print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
     print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
