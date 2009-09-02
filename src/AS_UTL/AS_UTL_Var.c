@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_UTL_Var.c,v 1.27 2009-08-04 11:03:02 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_Var.c,v 1.28 2009-09-02 01:06:47 brianwalenz Exp $";
 
 /********************************************************************/
 /* Variable Length C Array Package
@@ -336,11 +336,11 @@ ReadVA(FILE *fp, VarArrayType *va, FileVarArrayType *vat) {
     assert(va->Elements != NULL);
     assert(vat->sizeofElement == va->sizeofElement);
 
-    //  Unless we read elements from disk, it is overly paranoid to
-    //  check the size of the on-disk and in-core elements agree.  Yes,
-    //  it masks a problem that should be fixed.
+    size_t numRead = AS_UTL_safeRead(fp, va->Elements, "LoadFromFile_VA", va->sizeofElement, va->numElements);
 
-    AS_UTL_safeRead(fp, va->Elements, "LoadFromFile_VA", va->sizeofElement, va->numElements);
+    if (va->numElements != numRead)
+      fprintf(stderr, "ReadVA()-- Short read from va <%s>; expected "F_S64" elements, read "F_S64" elements.\n",
+              va->typeofElement, va->numElements, numRead), exit(1);
   }
 }
 
@@ -350,15 +350,14 @@ LoadFromFile_VA(FILE *fp,
 
   FileVarArrayType    vat = {0};
 
-  AS_UTL_safeRead(fp, &vat, "LoadFromFile_VA (vat)", sizeof(FileVarArrayType), 1);
+  if (1 != AS_UTL_safeRead(fp, &vat, "LoadFromFile_VA (vat)", sizeof(FileVarArrayType), 1))
+    fprintf(stderr, "LoadFromFile_VA()-- Failed to read vat\n"), exit(1);
 
   assert(vat.numElements <= vat.allocatedElements);
 
-  if(strncmp(va->typeofElement, vat.typeofElement, VA_TYPENAMELEN)){
+  if(strncmp(va->typeofElement, vat.typeofElement, VA_TYPENAMELEN))
     fprintf(stderr,"* Expecting array of type <%s> but read array of type <%s>\n",
-            va->typeofElement, vat.typeofElement);
-    assert(0);
-  }
+            va->typeofElement, vat.typeofElement), exit(1);
 
   ReadVA(fp, va, &vat);
 }
@@ -371,15 +370,14 @@ CreateFromFile_VA(FILE *fp,
   FileVarArrayType    vat = {0};
   VarArrayType       *va  = (VarArrayType *)safe_calloc(1, sizeof(VarArrayType));
 
-  AS_UTL_safeRead(fp, &vat, "CreateFromFile_VA (vat)", sizeof(FileVarArrayType), 1);
+  if (1 != AS_UTL_safeRead(fp, &vat, "CreateFromFile_VA (vat)", sizeof(FileVarArrayType), 1))
+    fprintf(stderr, "LoadFromFile_VA()-- Failed to read vat\n"), exit(1);
 
   assert(vat.numElements <= vat.allocatedElements);
 
-  if(strncmp(vat.typeofElement,thetype,VA_TYPENAMELEN)){
+  if(strncmp(vat.typeofElement,thetype,VA_TYPENAMELEN))
     fprintf(stderr,"* Expecting array of type <%s> but read array of type <%s>\n",
-	    thetype, vat.typeofElement);
-    assert(0);
-  }
+	    thetype, vat.typeofElement), exit(1);
 
   // We construct a VA just big enough to hold all the elements on disk.
 

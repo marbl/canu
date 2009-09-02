@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlign.c,v 1.4 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlign.c,v 1.5 2009-09-02 01:06:45 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -30,6 +30,9 @@ static const char *rcsid = "$Id: MultiAlign.c,v 1.4 2009-06-10 18:05:13 brianwal
 #include "AS_UTL_fileIO.h"
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignStore_CNS.h"
+
+#undef  DEBUG_CREATE
+#undef  DEBUG_FILES
 
 MultiAlignT *
 CreateMultiAlignT(void) {
@@ -42,7 +45,9 @@ CreateMultiAlignT(void) {
   ma->v_list    = NULL;
   ma->udelta    = NULL;
   ma->u_list    = NULL;
-  //fprintf(stderr, "CreateMultiAlignT()--  ma 0x%016p created.\n", ma);
+#ifdef DEBUG_CREATE
+  fprintf(stderr, "CreateMultiAlignT()--  ma 0x%016p created.\n", ma);
+#endif
   return(ma);
 }
 
@@ -57,7 +62,9 @@ CreateEmptyMultiAlignT(void) {
   ma->v_list    = CreateVA_IntMultiVar(0);
   ma->udelta    = CreateVA_int32(0);
   ma->u_list    = CreateVA_IntUnitigPos(0);
-  //fprintf(stderr, "CreateMultiAlignT()--  ma 0x%016p created.\n", ma);
+#ifdef DEBUG_CREATE
+  fprintf(stderr, "CreateMultiAlignT()--  ma 0x%016p created.\n", ma);
+#endif
   return(ma);
 }
 
@@ -79,7 +86,9 @@ DeleteMultiAlignTWorker(MultiAlignT *ma) {
   if (ma == NULL)
     return;
 
-  //fprintf(stderr, "DeleteMultiAlignTWorker()--  deleting ma 0x%016p\n", ma);
+#ifdef DEBUG_CREATE
+  fprintf(stderr, "DeleteMultiAlignTWorker()--  deleting ma 0x%016p\n", ma);
+#endif
 
   if (ma->v_list) {
     int i;
@@ -111,6 +120,10 @@ CopyMultiAlignT(MultiAlignT *newma, MultiAlignT *oldma) {
 
   if (newma == NULL)
     newma = CreateMultiAlignT();
+
+#ifdef DEBUG_CREATE
+  fprintf(stderr, "CopyMultiAlignT()--  copy from ma 0x%016p to ma 0x%016p\n", ma, newma);
+#endif
 
   if (newma->consensus == NULL) {
     newma->consensus = Clone_VA(oldma->consensus);
@@ -173,6 +186,10 @@ CopyMultiAlignT(MultiAlignT *newma, MultiAlignT *oldma) {
 MultiAlignT *
 CloneSurrogateOfMultiAlignT(MultiAlignT *oldma, int32 newNodeID) {
   MultiAlignT *newma     = CreateEmptyMultiAlignT();
+
+#ifdef DEBUG_CREATE
+  fprintf(stderr, "CloneSurrogateOfMultiAlignT()--  clone from ma 0x%016p to ma 0x%016p\n", oldma, newma);
+#endif
 
   assert(GetNumIntUnitigPoss(oldma->u_list) == 1);
 
@@ -267,6 +284,11 @@ SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream) {
     maID = ma->maID;
   }
 
+#ifdef DEBUG_FILES
+  fprintf(stderr, "SaveMultiAlignTToStream()--  save ma 0x%016p to stream at position "F_S64" -- ",
+          ma, AS_UTL_ftell(stream));
+#endif
+
   //  If maID == -1, then the multialign isn't here.
   AS_UTL_safeWrite(stream, &maID, "SaveMultiAlignTToStream", sizeof(int32), 1);
 
@@ -283,6 +305,11 @@ SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream) {
 
     restoreDeltaPointers(ma);
   }
+
+#ifdef DEBUG_FILES
+  fprintf(stderr, F_S64"\n",
+          AS_UTL_ftell(stream));
+#endif
 }
 
 void
@@ -292,6 +319,11 @@ ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma) {
 
   assert(ma != NULL);
   ClearMultiAlignT(ma);
+
+#ifdef DEBUG_FILES
+  fprintf(stderr, "ReLoadMultiAlignTFromStream()--  load ma 0x%016p from stream at position "F_S64" -- ",
+          ma, AS_UTL_ftell(stream));
+#endif
 
   status = AS_UTL_safeRead(stream, &maID, "ReLoadMultiAlignTFromStream", sizeof(int32), 1);
   assert(status == 1);
@@ -312,6 +344,11 @@ ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma) {
 
     CheckMAValidity(ma);
   }
+
+#ifdef DEBUG_FILES
+  fprintf(stderr, F_S64"\n",
+          AS_UTL_ftell(stream));
+#endif
 }
 
 
