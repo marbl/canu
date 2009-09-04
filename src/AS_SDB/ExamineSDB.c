@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: ExamineSDB.c,v 1.1 2009-09-02 01:06:46 brianwalenz Exp $";
+const char *mainid = "$Id: ExamineSDB.c,v 1.2 2009-09-04 20:25:53 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,14 +55,14 @@ main(int argc, char **argv) {
     arg++;
   }
   if ((storeName    == NULL) ||
-      (storeVersion == 0) ||
+      (storeVersion == -1) ||
       (err)) {
     fprintf(stderr, "usage: %s -seqstore s.SeqStore -version n\n", argv[0]);
     exit(1);
   }
 
-  fprintf(stderr, "sizeof(IntMultiPos)  = %d\n", sizeof(IntMultiPos));
-  fprintf(stderr, "sizeof(IntUnitigPos)  = %d\n", sizeof(IntUnitigPos));
+  fprintf(stderr, "sizeof(IntMultiPos)   = "F_S64"\n", sizeof(IntMultiPos));
+  fprintf(stderr, "sizeof(IntUnitigPos)  = "F_S64"\n", sizeof(IntUnitigPos));
   exit(1);
 
   {
@@ -83,8 +83,8 @@ main(int argc, char **argv) {
       tMARecord *tma = GettMARecord(sequenceDB->Unitigs, i);
 
       if ((tma->storeID > 0) && (tma->storeID == v))
-        fprintf(stderr, "TMAU: storeID=%d  multiAlignID=%d  isDeleted=%d  offset="F_S64"\n",
-                tma->storeID, tma->multiAlignID, tma->isDeleted, tma->offset);
+        fprintf(stderr, "TMAU: i=%d storeID=%d  multiAlignID=%d  isDeleted=%d  offset="F_S64"\n",
+                i, tma->storeID, tma->multiAlignID, tma->isDeleted, tma->offset);
 
       loadMultiAlignTFromSequenceDB(sequenceDB, i, TRUE);
     }
@@ -93,8 +93,8 @@ main(int argc, char **argv) {
       tMARecord *tma = GettMARecord(sequenceDB->Contigs, i);
 
       if ((tma->storeID > 0) && (tma->storeID == v))
-        fprintf(stderr, "TMAC: storeID=%d  multiAlignID=%d  isDeleted=%d  offset="F_S64"\n",
-                tma->storeID, tma->multiAlignID, tma->isDeleted, tma->offset);
+        fprintf(stderr, "TMAC: i=%d storeID=%d  multiAlignID=%d  isDeleted=%d  offset="F_S64"\n",
+                i, tma->storeID, tma->multiAlignID, tma->isDeleted, tma->offset);
 
       loadMultiAlignTFromSequenceDB(sequenceDB, i, FALSE);
     }

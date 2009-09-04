@@ -27,11 +27,11 @@ LOCAL_WORK = $(shell cd ../../; pwd)
 LIB_SOURCES     = AS_SDB_SequenceDB.C
 LIB_OBJECTS     = $(LIB_SOURCES:.C=.o)
 
-SOURCES = $(LIB_SOURCES) PartitionSDB.C ExamineSDB.C
+SOURCES = $(LIB_SOURCES) PartitionSDB.C ExamineSDB.C ExamineSDBFile.C
 OBJECTS = $(SOURCES:.C=.o)
 
 LIBRARIES = libAS_SDB.a libCA.a
-CXX_PROGS = PartitionSDB ExamineSDB
+CXX_PROGS = PartitionSDB ExamineSDB ExamineSDBFile
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -43,3 +43,4 @@ libCA.a:     $(LIB_OBJECTS)
 
 PartitionSDB:                 PartitionSDB.o                  libCA.a
 ExamineSDB:                   ExamineSDB.o                    libCA.a
+ExamineSDBFile:               ExamineSDBFile.o                libCA.a
