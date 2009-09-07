@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.5 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.6 2009-09-07 07:40:57 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -29,7 +29,6 @@ static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.5 2009-06-10 18:05:13 bri
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
 #include "MultiAlignment_CNS.h"
-#include "MultiAlignStore_CNS.h"
 #include "Array_CNS.h"
 
 void

@@ -21,13 +21,12 @@
 #ifndef MULTIALIGNMENT_CNS_INCLUDE
 #define MULTIALIGNMENT_CNS_INCLUDE
 
-static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.52 2009-07-11 00:20:30 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.53 2009-09-07 07:40:57 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_SDB_SequenceDB.h"
-#include "MultiAlignStore_CNS.h"
 #include "AS_ALN_aligners.h"
 
 

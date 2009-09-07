@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: asmOutputFasta.c,v 1.14 2009-06-10 18:05:14 brianwalenz Exp $";
+const char *mainid = "$Id: asmOutputFasta.c,v 1.15 2009-09-07 07:40:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,7 +34,6 @@ const char *mainid = "$Id: asmOutputFasta.c,v 1.14 2009-06-10 18:05:14 brianwale
 #include "AS_UTL_reverseComplement.h"
 
 #include "MultiAlign.h"
-#include "MultiAlignStore_CNS.h"
 
 
 //  Parameters

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: Array_CNS.c,v 1.22 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid = "$Id: Array_CNS.c,v 1.23 2009-09-07 07:40:57 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -34,7 +34,6 @@ static const char *rcsid = "$Id: Array_CNS.c,v 1.22 2009-06-10 18:05:13 brianwal
 #include "AS_UTL_Var.h"
 #include "AS_UTL_reverseComplement.h"
 #include "UtilsREZ.h"
-#include "MultiAlignStore_CNS.h"
 #include "MultiAlignment_CNS.h"
 #include "Array_CNS.h"
 
