@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_UTL_Var.c,v 1.29 2009-09-02 03:59:03 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_Var.c,v 1.30 2009-09-09 07:45:15 brianwalenz Exp $";
 
 /********************************************************************/
 /* Variable Length C Array Package
@@ -413,9 +413,6 @@ size_t CopyToFile_VA(VarArrayType *va,FILE *fp){
 
   AS_UTL_safeWrite(fp, &vat,         "CopyToFile_VA (vat)", sizeof(FileVarArrayType), 1);
   AS_UTL_safeWrite(fp, va->Elements, "CopyToFile_VA (dat)", va->sizeofElement,        va->numElements);
-
-  fflush(fp);
-  fsync(fileno(fp));
 
   return(sizeof(FileVarArrayType) + va->sizeofElement * va->numElements);
 }
