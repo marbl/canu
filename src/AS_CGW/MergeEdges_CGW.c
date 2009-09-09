@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.21 2009-09-04 20:24:36 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.22 2009-09-09 08:21:56 brianwalenz Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -378,7 +378,7 @@ static void InitializeMergedEdge(CIEdgeT *newEdge, CIEdgeT *overlapEdgeAll,
   if((overlapEdge != NULL) && (numEdges == 2) &&
      !ConfirmOverlap(graph, overlapEdge, nonOverlapEdge)){
     if(GlobalData->verbose){
-      fprintf(GlobalData->stderrc,"* Marked chimeric edgemate \n");
+      fprintf(stderr,"* Marked chimeric edgemate \n");
     }
     newEdge->flags.bits.isPossibleChimera = TRUE;
   }
@@ -489,7 +489,7 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
   Chi2ComputeT *edgeChi2Compute = (Chi2ComputeT *)safe_malloc(numEdges * sizeof(*edgeChi2Compute));
 
   if(GlobalData->verbose){
-    fprintf(GlobalData->stderrc,"* MergeEdges with %d edges\n",
+    fprintf(stderr,"* MergeEdges with %d edges\n",
 	    numEdges);
   }
 
@@ -870,21 +870,21 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
     edge = GetGraphEdge(graph, *GetCDS_CID_t(inputEdges, 0));
     if (GlobalData->verbose)
       {
-        fprintf(GlobalData->stderrc,"**** Couldn't merge these \n");
-        fprintf(GlobalData->stderrc,"**** MORE THAN ONE (%d)  EDGE BETWEEN "F_CID " and "F_CID "\n",
+        fprintf(stderr,"**** Couldn't merge these \n");
+        fprintf(stderr,"**** MORE THAN ONE (%d)  EDGE BETWEEN "F_CID " and "F_CID "\n",
                 numClusters, edge->idA, edge->idB);
         switch(graph->type){
           case CI_GRAPH:
-            DumpChunkInstance(GlobalData->stderrc,ScaffoldGraph,GetGraphNode(graph, edge->idA), FALSE, FALSE, FALSE, FALSE);
-            DumpChunkInstance(GlobalData->stderrc,ScaffoldGraph,GetGraphNode(graph, edge->idB), FALSE, FALSE, FALSE, FALSE);
+            DumpChunkInstance(stderr,ScaffoldGraph,GetGraphNode(graph, edge->idA), FALSE, FALSE, FALSE, FALSE);
+            DumpChunkInstance(stderr,ScaffoldGraph,GetGraphNode(graph, edge->idB), FALSE, FALSE, FALSE, FALSE);
             break;
           case CONTIG_GRAPH:
-            DumpContig(GlobalData->stderrc,ScaffoldGraph,GetGraphNode(graph, edge->idA), FALSE);
-            DumpContig(GlobalData->stderrc,ScaffoldGraph,GetGraphNode(graph, edge->idB), FALSE);
+            DumpContig(stderr,ScaffoldGraph,GetGraphNode(graph, edge->idA), FALSE);
+            DumpContig(stderr,ScaffoldGraph,GetGraphNode(graph, edge->idB), FALSE);
             break;
           case SCAFFOLD_GRAPH:
-            DumpCIScaffold(GlobalData->stderrc,ScaffoldGraph,GetGraphNode(graph, edge->idA), FALSE);
-            DumpCIScaffold(GlobalData->stderrc,ScaffoldGraph,GetGraphNode(graph, edge->idB), FALSE);
+            DumpCIScaffold(stderr,ScaffoldGraph,GetGraphNode(graph, edge->idA), FALSE);
+            DumpCIScaffold(stderr,ScaffoldGraph,GetGraphNode(graph, edge->idB), FALSE);
             break;
           default:
             break;
@@ -892,7 +892,7 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 
         for(edgeIndex = 0; edgeIndex < GetNumCDS_CID_ts(inputEdges); edgeIndex++){
           edge = GetGraphEdge(graph, *GetCDS_CID_t(inputEdges, edgeIndex));
-          PrintGraphEdge(GlobalData->stderrc, graph," *  ", edge, edge->idA);
+          PrintGraphEdge(stderr, graph," *  ", edge, edge->idA);
         }
       }
 
@@ -911,8 +911,8 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
   edge = GetGraphEdge(graph, *GetCDS_CID_t(inputEdges, 0));
   if (GlobalData->verbose)
     {
-      fprintf(GlobalData->stderrc,"**** Couldn't merge these \n");
-      fprintf(GlobalData->stderrc,"**** MORE THAN ONE (%d)  EDGE BETWEEN "F_CID " and "F_CID "\n",
+      fprintf(stderr,"**** Couldn't merge these \n");
+      fprintf(stderr,"**** MORE THAN ONE (%d)  EDGE BETWEEN "F_CID " and "F_CID "\n",
               numEdges, edge->idA, edge->idB);
     }
   numEdgesAdded = numEdges;
@@ -922,7 +922,7 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
       for(edgeIndex = 0; edgeIndex < numEdges; edgeIndex++)
 	{
 	  edge = GetGraphEdge(graph, *GetCDS_CID_t(inputEdges, edgeIndex));
-	  PrintGraphEdge(GlobalData->stderrc, graph," *  ", edge, edge->idA);
+	  PrintGraphEdge(stderr, graph," *  ", edge, edge->idA);
 	}
     }
 

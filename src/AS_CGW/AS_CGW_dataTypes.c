@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_CGW_dataTypes.c,v 1.18 2009-02-02 13:51:13 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGW_dataTypes.c,v 1.19 2009-09-09 08:21:55 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -45,9 +45,6 @@ Global_CGW *GlobalData;
 
 Global_CGW *CreateGlobal_CGW(void){
   Global_CGW *g = (Global_CGW *)safe_calloc(1, sizeof(Global_CGW));
-
-  g->stderrc = stderr;
-
   return(g);
 }
 

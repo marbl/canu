@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.74 2009-08-16 06:42:02 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.75 2009-09-09 08:21:55 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -335,7 +335,7 @@ main(int argc, char **argv) {
 
     LoadDistData();
 
-    fprintf(GlobalData->stderrc,"* Splitting chimeric input unitigs\n");
+    fprintf(stderr,"* Splitting chimeric input unitigs\n");
 
     ComputeMatePairStatisticsRestricted(UNITIG_OPERATIONS, minSamplesForOverride, "unitig_preinitial");
     SplitInputUnitigs(ScaffoldGraph);
@@ -360,7 +360,7 @@ main(int argc, char **argv) {
     //  Mark some Unitigs/Chunks/CIs as repeats based on overlaps GRANGER 2/2/07
     //
     if (checkRepeatBranchPattern)
-      DemoteUnitigsWithRBP(GlobalData->stderrc, ScaffoldGraph->CIGraph);
+      DemoteUnitigsWithRBP(stderr, ScaffoldGraph->CIGraph);
 
     //  At this Point we've constructed the CIGraph
 
@@ -401,7 +401,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "Beginning CHECKPOINT_AFTER_CLEANING_SCAFFOLDS\n");
 
     if(GlobalData->debugLevel > 0)
-      DumpContigs(GlobalData->stderrc,ScaffoldGraph, FALSE);
+      DumpContigs(stderr,ScaffoldGraph, FALSE);
 
     ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
 
@@ -416,7 +416,7 @@ main(int argc, char **argv) {
     int ctme     = time(0);
     int changed  = TRUE;
 
-    fprintf(GlobalData->stderrc,"** Running Level 1 Repeat Rez **\n");
+    fprintf(stderr,"** Running Level 1 Repeat Rez **\n");
 
     while ((changed) && (iter < iterMax)) {
       CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
@@ -451,7 +451,7 @@ main(int argc, char **argv) {
 #endif
 
     if(GlobalData->debugLevel > 0)
-      DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
+      DumpCIScaffolds(stderr,ScaffoldGraph, FALSE);
 
     CheckpointScaffoldGraph(CHECKPOINT_AFTER_CLEANING_SCAFFOLDS, "after scaffold cleaning");
   }
@@ -569,7 +569,7 @@ main(int argc, char **argv) {
 
     do {
       extra_rocks = Fill_Gaps(GlobalData, GlobalData->File_Name_Prefix, GlobalData->repeatRezLevel, iter);
-      fprintf(GlobalData->stderrc, "Threw additional %d rocks on iter %d\n", extra_rocks, iter);
+      fprintf(stderr, "Threw additional %d rocks on iter %d\n", extra_rocks, iter);
 
       clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
     } while (extra_rocks > 1 && iter < MAX_EXTRA_ROCKS_ITERS);
@@ -617,7 +617,7 @@ main(int argc, char **argv) {
     int contained_stones = Toss_Contained_Stones (GlobalData->File_Name_Prefix, GlobalData->stoneLevel, 0);
     ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
     CheckCIScaffoldTs (ScaffoldGraph);
-    fprintf (GlobalData->stderrc, "**** Finished Final Contained Stones level %d ****\n", GlobalData->stoneLevel);
+    fprintf (stderr, "**** Finished Final Contained Stones level %d ****\n", GlobalData->stoneLevel);
 
     CleanupScaffolds (ScaffoldGraph, FALSE, NULLINDEX, FALSE);
     clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
@@ -725,8 +725,8 @@ main(int argc, char **argv) {
     OutputUnitigLinksFromMultiAligns();
 
     if(GlobalData->debugLevel > 0){
-      DumpContigs(GlobalData->stderrc,ScaffoldGraph, FALSE);
-      DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
+      DumpContigs(stderr,ScaffoldGraph, FALSE);
+      DumpCIScaffolds(stderr,ScaffoldGraph, FALSE);
     }
 
     OutputContigsFromMultiAligns();

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: dumpCloneMiddles.c,v 1.22 2009-07-28 12:30:04 brianwalenz Exp $";
+const char *mainid = "$Id: dumpCloneMiddles.c,v 1.23 2009-09-09 08:21:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,7 +80,7 @@ dumpCloneMiddle(int isScaffold, int id) {
 		     scaffold,
 		     si,
 		     InstrumenterVerbose2,
-		     GlobalData->stderrc);
+		     stderr);
 
   PrintScaffoldInstrumenterMateDetails(si,camfile,PRINTCELAMY);
   PrintExternalMateDetailsAndDists(ScaffoldGraph,si->bookkeeping.wExtMates,"\t",camfile,PRINTCELAMY);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.48 2009-08-16 06:43:14 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.49 2009-09-09 08:21:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -493,17 +493,17 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
 
   float egfar = EstimateGlobalFragmentArrivalRate(ci, ma);
 
-  fprintf(GlobalData->stderrc, "Splitting %s "F_CID " into as many as %d %s at intervals:",
+  fprintf(stderr, "Splitting %s "F_CID " into as many as %d %s at intervals:",
           (isUnitig ? "unitig" : "contig"), ma->maID,
           (int) (2 * GetNumVA_SeqInterval(csis) + 1),
           (isUnitig ? "unitigs" : "contigs"));
 
   for (uint32 i=0; i<GetNumVA_SeqInterval(csis); i++) {
     SeqInterval *I = GetVA_SeqInterval(csis, i);
-    fprintf(GlobalData->stderrc, "\t"F_S32","F_S32, I->bgn, I->end);
+    fprintf(stderr, "\t"F_S32","F_S32, I->bgn, I->end);
   }
 
-  fprintf(GlobalData->stderrc, "\n");
+  fprintf(stderr, "\n");
 
   
   //  If a fragment even touches a bad interval, it gets placed in that bad interval.

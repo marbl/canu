@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.62 2009-08-14 13:37:06 skoren Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.63 2009-09-09 08:21:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -534,7 +534,7 @@ LoadDistData(void) {
     dist.numReferences  = 0;
     dist.numBad         = 0;
 
-    fprintf(GlobalData->stderrc,"* Loaded dist %s,"F_CID" (%g +/- %g)\n",
+    fprintf(stderr,"* Loaded dist %s,"F_CID" (%g +/- %g)\n",
             AS_UID_toString(gkpl->libraryUID), i, dist.mu, dist.sigma);
 
     SetDistT(ScaffoldGraph->Dists, i, &dist);

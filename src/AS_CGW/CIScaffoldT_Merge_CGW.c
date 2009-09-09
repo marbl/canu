@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.47 2009-08-03 23:42:12 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.48 2009-09-09 08:21:56 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -92,15 +92,15 @@ ContigCoordinatesOkay(CIScaffoldT * scaffold) {
     LengthT thisMax;
     if (CI->offsetAEnd.mean < 0.0 || CI->offsetAEnd.variance < 0.0 ||
         CI->offsetBEnd.mean < 0.0 || CI->offsetBEnd.variance < 0.0) {
-      fprintf(GlobalData->stderrc, "Negative contig mean or variance\n");
-      DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffold, FALSE);
+      fprintf(stderr, "Negative contig mean or variance\n");
+      DumpCIScaffold(stderr, ScaffoldGraph, scaffold, FALSE);
       return FALSE;
     }
     if (i != 0 &&
         (CI->offsetAEnd.mean == 0.0 ||
          CI->offsetBEnd.mean == 0.0)) {
-      fprintf(GlobalData->stderrc, "Zero offset of internal contig\n");
-      DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffold, FALSE);
+      fprintf(stderr, "Zero offset of internal contig\n");
+      DumpCIScaffold(stderr, ScaffoldGraph, scaffold, FALSE);
       return FALSE;
     }
 
@@ -108,14 +108,14 @@ ContigCoordinatesOkay(CIScaffoldT * scaffold) {
     thisMax = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
 
     if (thisMax.mean < lastMin.mean) {
-      fprintf(GlobalData->stderrc, "Seriously out of order contigs\n");
-      DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffold, FALSE);
+      fprintf(stderr, "Seriously out of order contigs\n");
+      DumpCIScaffold(stderr, ScaffoldGraph, scaffold, FALSE);
       return FALSE;
     }
 
     if (thisMin.mean < lastMin.mean) {
-      fprintf(GlobalData->stderrc, "Out of order contigs\n");
-      DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffold, FALSE);
+      fprintf(stderr, "Out of order contigs\n");
+      DumpCIScaffold(stderr, ScaffoldGraph, scaffold, FALSE);
       return FALSE;
     }
 
@@ -185,7 +185,7 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
   // CheckCIScaffoldTLength(sgraph, newScaffold);
 
 #ifdef DEBUG_INSERTSCAFFOLDCONTENTS
-  fprintf(GlobalData->stderrc,"* InsertContents of Scaffold " F_CID " into scaffold " F_CID " at offset %g +/- %g orient %c oldScaffold length %g\n",
+  fprintf(stderr,"* InsertContents of Scaffold " F_CID " into scaffold " F_CID " at offset %g +/- %g orient %c oldScaffold length %g\n",
           oldScaffoldID, newScaffoldID, offset->mean, sqrt(offset->variance), orient, oldScaffold->bpLength.mean);
 #endif
   assert(offset->mean >= 0.0 && offset->variance >= 0.0);
@@ -195,7 +195,7 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
     LengthT offsetAEnd, offsetBEnd;
 
 #ifdef DEBUG_INSERTSCAFFOLDCONTENTS
-    fprintf(GlobalData->stderrc, "* CI->offsetAEnd=%d  CI->offsetBEnd=%d  oldScaffold->bpLength=%d\n",
+    fprintf(stderr, "* CI->offsetAEnd=%d  CI->offsetBEnd=%d  oldScaffold->bpLength=%d\n",
             (int)CI->offsetAEnd.mean, (int)CI->offsetBEnd.mean, (int)oldScaffold->bpLength.mean);
 #endif
 
@@ -207,8 +207,8 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
     } else {
       if ((CI->offsetAEnd.mean > oldScaffold->bpLength.mean) ||
           (CI->offsetBEnd.mean > oldScaffold->bpLength.mean)) {
-        fprintf(GlobalData->stderrc, "* CI extends beyond end of scaffold!\n");
-        fprintf(GlobalData->stderrc, "* offsetAEnd = %d offsetBEnd = %d scaffoldLength = %d\n",
+        fprintf(stderr, "* CI extends beyond end of scaffold!\n");
+        fprintf(stderr, "* offsetAEnd = %d offsetBEnd = %d scaffoldLength = %d\n",
                 (int)CI->offsetAEnd.mean, (int)CI->offsetBEnd.mean, (int)oldScaffold->bpLength.mean);
         assert(0);
       }
@@ -219,13 +219,13 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
 
       if (CI->offsetBEnd.variance > oldScaffold->bpLength.variance) {
         if (GlobalData->debugLevel > 0)
-          fprintf(GlobalData->stderrc,"* CI " F_CID " has BEnd variance %g > scaffold bpLength.variance %g\n",
+          fprintf(stderr,"* CI " F_CID " has BEnd variance %g > scaffold bpLength.variance %g\n",
                   CI->id, CI->offsetBEnd.variance, oldScaffold->bpLength.variance);
         offsetBEnd.variance = offset->variance;
       }
       if (CI->offsetAEnd.variance > oldScaffold->bpLength.variance) {
         if (GlobalData->debugLevel > 0)
-          fprintf(GlobalData->stderrc,"* CI " F_CID " has AEnd variance %g > scaffold bpLength.variance %g\n",
+          fprintf(stderr,"* CI " F_CID " has AEnd variance %g > scaffold bpLength.variance %g\n",
                   CI->id, CI->offsetAEnd.variance, oldScaffold->bpLength.variance);
         offsetAEnd.variance = offset->variance;
       }
@@ -233,19 +233,19 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
 
     if ((offsetBEnd.variance < 0.0) || (offsetAEnd.variance < 0.0)) {
       fprintf(stderr, "oldScaffold:\n");
-      DumpCIScaffold(GlobalData->stderrc, sgraph, oldScaffold, FALSE);
+      DumpCIScaffold(stderr, sgraph, oldScaffold, FALSE);
 
       fprintf(stderr, "newScaffold:\n");
-      DumpCIScaffold(GlobalData->stderrc, sgraph, newScaffold, FALSE);
+      DumpCIScaffold(stderr, sgraph, newScaffold, FALSE);
 
-      fprintf(GlobalData->stderrc,"offsetAEnd mean:%d variance:%g offsetBEnd mean:%d variance:%g < 0...sigh...\n",
+      fprintf(stderr,"offsetAEnd mean:%d variance:%g offsetBEnd mean:%d variance:%g < 0...sigh...\n",
               (int)offsetAEnd.mean, offsetAEnd.variance,
               (int)offsetBEnd.mean, offsetBEnd.variance);
       assert(0);
     }
 
 #ifdef DEBUG_INSERTSCAFFOLDCONTENTS
-    fprintf(GlobalData->stderrc,"* Inserting CI " F_CID " at offset (%d,%d) was at (%d,%d)\n",
+    fprintf(stderr,"* Inserting CI " F_CID " at offset (%d,%d) was at (%d,%d)\n",
             CI->id,
             (int) offsetAEnd.mean, (int) offsetBEnd.mean,
             (int) CI->offsetAEnd.mean, (int) CI->offsetBEnd.mean);
@@ -255,7 +255,7 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
                        TRUE, contigNow);
 #if 1
     if (!ContigCoordinatesOkay(newScaffold))
-      fprintf(GlobalData->stderrc, "Problem with contig coordinates!\n");
+      fprintf(stderr, "Problem with contig coordinates!\n");
 #endif
   }
   CheckCIScaffoldTLength(sgraph, newScaffold);
@@ -282,7 +282,7 @@ MarkUnderlyingRawCIEdgeTrusted(ScaffoldGraphT * sgraph, EdgeCGW_T * raw) {
   AssertPtr(topCIEdge);
   SetGraphEdgeStatus(sgraph->RezGraph, topCIEdge, TRUSTED_EDGE_STATUS);
   if (GlobalData->debugLevel > 0) {
-    fprintf(GlobalData->stderrc,"* Marked contig edge " F_CID " (" F_CID "," F_CID ")%c as trusted(inside scaf " F_CID ")\n",
+    fprintf(stderr,"* Marked contig edge " F_CID " (" F_CID "," F_CID ")%c as trusted(inside scaf " F_CID ")\n",
             topCIEdge->topLevelEdge, topCIEdge->idA, topCIEdge->idB, topCIEdge->orient,
             contigA->scaffoldID);
   }
@@ -293,7 +293,7 @@ static
 void 
 MarkUnderlyingCIEdgesTrusted(ScaffoldGraphT *sgraph, SEdgeT *edge) {
   if (GlobalData->debugLevel > 0)
-    fprintf(GlobalData->stderrc,"* MarkUnderlyingCIEdgesTrusted on SEdge (" F_CID "," F_CID ")%c nextRaw = " F_CID "\n",
+    fprintf(stderr,"* MarkUnderlyingCIEdgesTrusted on SEdge (" F_CID "," F_CID ")%c nextRaw = " F_CID "\n",
             edge->idA, edge->idB, edge->orient, edge->nextRawEdge);
 
   if (edge->flags.bits.isRaw) {
@@ -698,7 +698,7 @@ ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
         // reversal
         if (sEdge->edgesContributing > curSEdge->edgesContributing) {
           if (retVal == 0) {
-            fprintf(GlobalData->stderrc,
+            fprintf(stderr,
                     "SCF MERGE CONFLICT: " F_CID "," F_CID "  %s  %dbp  %dvar  %dec\n",
                     curSEdge->idA, curSEdge->idB,
                     ((curSEdge->orient == AB_AB) ? "AB_AB" :
@@ -708,7 +708,7 @@ ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
                     (int) curSEdge->distance.variance,
                     curSEdge->edgesContributing);
           }
-          fprintf(GlobalData->stderrc, "\t" F_CID "," F_CID ", %s, %dbp  %dvar  %dec\n",
+          fprintf(stderr, "\t" F_CID "," F_CID ", %s, %dbp  %dvar  %dec\n",
                   sEdge->idA, sEdge->idB,
                   ((sEdge->orient == AB_AB) ? "AB_AB" :
                    ((sEdge->orient == AB_BA) ? "AB_BA" :
@@ -725,7 +725,7 @@ ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
             // both are positive, prefer stronger
             if (sEdge->edgesContributing > curSEdge->edgesContributing) {
               if (retVal == 0) {
-                fprintf(GlobalData->stderrc,
+                fprintf(stderr,
                         "SCF MERGE CONFLICT: " F_CID "," F_CID "  %s  %dbp  %dvar  %dec\n",
                         curSEdge->idA, curSEdge->idB,
                         ((curSEdge->orient == AB_AB) ? "AB_AB" :
@@ -735,7 +735,7 @@ ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
                         (int) curSEdge->distance.variance,
                         curSEdge->edgesContributing);
               }
-              fprintf(GlobalData->stderrc, "\t" F_CID "," F_CID ", %s, %dbp  %dvar  %dec\n",
+              fprintf(stderr, "\t" F_CID "," F_CID ", %s, %dbp  %dvar  %dec\n",
                       sEdge->idA, sEdge->idB,
                       ((sEdge->orient == AB_AB) ? "AB_AB" :
                        ((sEdge->orient == AB_BA) ? "AB_BA" :
@@ -753,7 +753,7 @@ ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
             if (sEdge->edgesContributing >
                 EDGE_STRENGTH_FACTOR * curSEdge->edgesContributing) {
               if (retVal == 0) {
-                fprintf(GlobalData->stderrc,
+                fprintf(stderr,
                         "SCF MERGE CONFLICT: " F_CID "," F_CID "  %s  %dbp  %dvar  %dec\n",
                         curSEdge->idA, curSEdge->idB,
                         ((curSEdge->orient == AB_AB) ? "AB_AB" :
@@ -763,7 +763,7 @@ ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
                         (int) curSEdge->distance.variance,
                         curSEdge->edgesContributing);
               }
-              fprintf(GlobalData->stderrc, "\t" F_CID "," F_CID ", %s, %dbp  %dvar  %dec\n",
+              fprintf(stderr, "\t" F_CID "," F_CID ", %s, %dbp  %dvar  %dec\n",
                       sEdge->idA, sEdge->idB,
                       ((sEdge->orient == AB_AB) ? "AB_AB" :
                        ((sEdge->orient == AB_BA) ? "AB_BA" :
@@ -782,7 +782,7 @@ ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
           if (curSEdge->edgesContributing <
               EDGE_STRENGTH_FACTOR * sEdge->edgesContributing) {
             if (retVal == 0) {
-              fprintf(GlobalData->stderrc,
+              fprintf(stderr,
                       "SCF MERGE CONFLICT: " F_CID "," F_CID "  %s  %dbp  %dvar  %dec\n",
                       curSEdge->idA, curSEdge->idB,
                       ((curSEdge->orient == AB_AB) ? "AB_AB" :
@@ -792,7 +792,7 @@ ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
                       (int) curSEdge->distance.variance,
                       curSEdge->edgesContributing);
             }
-            fprintf(GlobalData->stderrc, "\t" F_CID "," F_CID ", %s, %dbp  %dvar  %dec\n",
+            fprintf(stderr, "\t" F_CID "," F_CID ", %s, %dbp  %dvar  %dec\n",
                     sEdge->idA, sEdge->idB,
                     ((sEdge->orient == AB_AB) ? "AB_AB" :
                      ((sEdge->orient == AB_BA) ? "AB_BA" :
@@ -814,7 +814,7 @@ ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
                EDGE_STRENGTH_FACTOR * sEdge->edgesContributing >
                curSEdge->edgesContributing)) {
             if (retVal == 0) {
-              fprintf(GlobalData->stderrc,
+              fprintf(stderr,
                       "SCF MERGE CONFLICT: " F_CID "," F_CID "  %s  %dbp  %dvar  %dec\n",
                       curSEdge->idA, curSEdge->idB,
                       ((curSEdge->orient == AB_AB) ? "AB_AB" :
@@ -824,7 +824,7 @@ ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
                       (int) curSEdge->distance.variance,
                       curSEdge->edgesContributing);
             }
-            fprintf(GlobalData->stderrc, "\t" F_CID "," F_CID ", %s, %dbp  %dvar  %dec\n",
+            fprintf(stderr, "\t" F_CID "," F_CID ", %s, %dbp  %dvar  %dec\n",
                     sEdge->idA, sEdge->idB,
                     ((sEdge->orient == AB_AB) ? "AB_AB" :
                      ((sEdge->orient == AB_BA) ? "AB_BA" :
@@ -1053,7 +1053,7 @@ TranslateScaffoldOverlapToContigOverlap(CIScaffoldT *scaffoldA, CIScaffoldT *sca
   NodeCGW_T *nextNodeA, *nextNodeB;
   int AGapTowardAEnd, BGapTowardAEnd;
 #if 0
-  fprintf(GlobalData->stderrc,"* Translate (" F_CID "," F_CID ",%c)   " F_CID " has (" F_CID "," F_CID ")  " F_CID " has (" F_CID "," F_CID ")\n",
+  fprintf(stderr,"* Translate (" F_CID "," F_CID ",%c)   " F_CID " has (" F_CID "," F_CID ")  " F_CID " has (" F_CID "," F_CID ")\n",
           scaffoldA->id, scaffoldB->id, scaffoldEdgeOrient,
           scaffoldA->id, scaffoldA->info.Scaffold.AEndCI, scaffoldA->info.Scaffold.BEndCI,
           scaffoldB->id, scaffoldB->info.Scaffold.AEndCI, scaffoldB->info.Scaffold.BEndCI);
@@ -1234,9 +1234,9 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
 
 
   if (verbose) {
-    fprintf(GlobalData->stderrc,"* DoesScaffold " F_CID " fit of length %f fit between scaffolds (" F_CID "," F_CID ") in a gap of size %f +/- %f?\n",
+    fprintf(stderr,"* DoesScaffold " F_CID " fit of length %f fit between scaffolds (" F_CID "," F_CID ") in a gap of size %f +/- %f?\n",
             scaffoldC->id, scaffoldC->bpLength.mean, scaffoldA->id, scaffoldB->id, edgeAB->distance.mean, sqrt(edgeAB->distance.variance));
-    DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffoldC, FALSE);
+    DumpCIScaffold(stderr, ScaffoldGraph, scaffoldC, FALSE);
   }
 
 
@@ -1263,7 +1263,7 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
       scaffoldC->bpLength.mean < 5000 &&
       lengthC_to_dist < 0.20) {
     if (verbose) {
-      fprintf(GlobalData->stderrc,"Scaffold C is too short (%g) relative to edge length (%g)\n",
+      fprintf(stderr,"Scaffold C is too short (%g) relative to edge length (%g)\n",
               scaffoldC->bpLength.mean, edgeToC->distance.mean);
 
     }
@@ -1311,16 +1311,16 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
   alternateGap.variance = edgeAB->distance.variance + edgeToC->distance.variance + (isEdgeFromA?scaffoldB->bpLength.variance:scaffoldA->bpLength.variance);
 
   if (verbose) {
-    fprintf(GlobalData->stderrc,"Gap = (%f +/- %f)  Alternate = (%f +/- %f)\n",
+    fprintf(stderr,"Gap = (%f +/- %f)  Alternate = (%f +/- %f)\n",
             gap.mean, sqrt(gap.variance), alternateGap.mean, sqrt(alternateGap.variance));
 
-    fprintf(GlobalData->stderrc,"*DoesScaffoldCFit  CLength = %g  gap estimate = %g +/- %g\n",
+    fprintf(stderr,"*DoesScaffoldCFit  CLength = %g  gap estimate = %g +/- %g\n",
             scaffoldC->bpLength.mean, gap.mean, gap.variance);
   }
 
   if (gap.mean - 3.0 * sqrt(gap.variance)< -5000) {
     if (verbose) {
-      fprintf(GlobalData->stderrc,"* DoesScaffoldCFit fails on gap.mean < -5000  gap = %g\n", gap.mean);
+      fprintf(stderr,"* DoesScaffoldCFit fails on gap.mean < -5000  gap = %g\n", gap.mean);
     }
     return FALSE;
   }
@@ -1347,7 +1347,7 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
                            (float)gap.variance, (LengthT *)NULL,
                            &chiSquaredValue, SCAFFOLD_MERGE_CHI2_THRESHHOLD)) { // fails Chi-square
       if (verbose) {
-        fprintf(GlobalData->stderrc,"* 2 DoesScaffoldCFit fails pairwise chi square %f\n", chiSquaredValue);
+        fprintf(stderr,"* 2 DoesScaffoldCFit fails pairwise chi square %f\n", chiSquaredValue);
       }
       return FALSE;
     }
@@ -1361,11 +1361,11 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
   // If C can't overlap with A or B, we are done
   if ((gap.mean - 3.0 * sqrt(gap.variance)) > - CGW_MISSED_OVERLAP) {
     if (verbose) {
-      fprintf(GlobalData->stderrc,"* gap %g +/- %g ...can't overlap... returning TRUE\n", gap.mean, gap.variance);
+      fprintf(stderr,"* gap %g +/- %g ...can't overlap... returning TRUE\n", gap.mean, gap.variance);
     }
     return TRUE;
   } else {
-    if (verbose)fprintf(GlobalData->stderrc,"* Checking overlap\n");
+    if (verbose)fprintf(stderr,"* Checking overlap\n");
   }
 
   // C need not overlap with B
@@ -1375,7 +1375,7 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
                         (float)1.0, (LengthT *)NULL,
                         &chiSquaredValue, SCAFFOLD_MERGE_CHI2_THRESHHOLD)) { // passes Chi-square
     if (verbose)
-      fprintf(GlobalData->stderrc,"* gap.mean is chi-squ compatible with  %g +/- %g ... returning TRUE\n", (float)-CGW_MISSED_OVERLAP, 1.0);
+      fprintf(stderr,"* gap.mean is chi-squ compatible with  %g +/- %g ... returning TRUE\n", (float)-CGW_MISSED_OVERLAP, 1.0);
     needNotOverlap = TRUE;
     // If this is a one sided edge, see if the alternate placement is also compatible with
     // a no overlap scenario.  If so, bail.
@@ -1386,7 +1386,7 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
                             (float)1.0, (LengthT *)NULL,
                             &chiSquaredValue, (float)SCAFFOLD_MERGE_CHI2_THRESHHOLD)) { // passes Chi-square
         if (verbose)
-          fprintf(GlobalData->stderrc,"* One sided edge failed alternate chi square test\n");
+          fprintf(stderr,"* One sided edge failed alternate chi square test\n");
         return FALSE;
       }
     }
@@ -1394,7 +1394,7 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
   } else {
     needNotOverlap = FALSE;
     if (verbose)
-      fprintf(GlobalData->stderrc,"* gap.mean is NOT chi-squ compatible with  %g +/- %g ... \n", (float)-CGW_MISSED_OVERLAP, 1.0);
+      fprintf(stderr,"* gap.mean is NOT chi-squ compatible with  %g +/- %g ... \n", (float)-CGW_MISSED_OVERLAP, 1.0);
   }
 
 
@@ -1411,7 +1411,7 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
                                             &aGapSize, &bGapSize);
 
     if (verbose)
-      fprintf(GlobalData->stderrc,"* Looking for overlap nodeA:" F_CID " nodeB: " F_CID ", endAOrient:%c endBOrient:%c orient:%c distance:%g\n",
+      fprintf(stderr,"* Looking for overlap nodeA:" F_CID " nodeB: " F_CID ", endAOrient:%c endBOrient:%c orient:%c distance:%g\n",
               endNodeA->id, endNodeB->id, orientEndNodeA, orientEndNodeB, edgeEndsOrient, edgeToC->distance.mean);
 
     overlapEdge = FindOverlapEdgeChiSquare(ScaffoldGraph, endNodeA, endNodeB->id,
@@ -1421,11 +1421,11 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
 
     // assert(!alternate); // shouldn't get the wrong orientation, should we? What about interleaving?
     if (alternate)
-      fprintf( GlobalData->stderrc, "Warning: got an alternate edge orientation in DoesScaffoldCFit!!!!\n");
+      fprintf( stderr, "Warning: got an alternate edge orientation in DoesScaffoldCFit!!!!\n");
   }
   if (!overlapEdge) {
     if (verbose)
-      fprintf(GlobalData->stderrc,"* 3 DoesScaffoldCFit fails %s overlap and doesn't\n",(needNotOverlap?"need not ":" must "));
+      fprintf(stderr,"* 3 DoesScaffoldCFit fails %s overlap and doesn't\n",(needNotOverlap?"need not ":" must "));
     if (!needNotOverlap) {
       SaveEdgeMeanForLater(edgeToC);
       edgeToC->distance.mean = - CGW_MISSED_OVERLAP;
@@ -1434,7 +1434,7 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
   }
   *overlapFound = TRUE;
   if (verbose)
-    PrintGraphEdge(GlobalData->stderrc,ScaffoldGraph->ContigGraph, " Overlap Found! ", overlapEdge, overlapEdge->idA);
+    PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph, " Overlap Found! ", overlapEdge, overlapEdge->idA);
 
   // If overlap is X-square with gap ==> it fits
   if (PairwiseChiSquare(gap.mean,
@@ -1448,10 +1448,10 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
     edgeToC->distance.mean = overlapEdge->distance.mean;
 
     if (verbose)
-      fprintf(GlobalData->stderrc,"* Overlap is chi-sq OK...returning TRUE\n");
+      fprintf(stderr,"* Overlap is chi-sq OK...returning TRUE\n");
     return TRUE;
   } else {
-    if (verbose)fprintf(GlobalData->stderrc,"* Overlap is NOT chi-sq OK.\n");
+    if (verbose)fprintf(stderr,"* Overlap is NOT chi-sq OK.\n");
     return needNotOverlap;
   }
 
@@ -1524,11 +1524,11 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
   int i;
 
   if (verbose)
-    fprintf(GlobalData->stderrc,"* Assign Edge Weights\n");
+    fprintf(stderr,"* Assign Edge Weights\n");
 
   // Iterate through edgesFromA. (A,C)  These are sorted by increasing otherID and then by decreasing weight
   if (verbose)
-    fprintf(GlobalData->stderrc,"* Looking through %d edgesFromA\n",
+    fprintf(stderr,"* Looking through %d edgesFromA\n",
             (int) GetNumPtrTs(edgesFromA));
 
   for(i = 0; i < GetNumPtrTs(edgesFromA); i++) {
@@ -1545,11 +1545,11 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
       continue;
 
     if (verbose) {
-      fprintf(GlobalData->stderrc,"* Found an edge AC (" F_CID "," F_CID ",%c)\n",
+      fprintf(stderr,"* Found an edge AC (" F_CID "," F_CID ",%c)\n",
               scaffoldA->id, otherID, GetEdgeOrientationWRT(edge, scaffoldA->id));
 
 
-      fprintf(GlobalData->stderrc,"* Looking through %d edgesFromB\n",
+      fprintf(stderr,"* Looking through %d edgesFromB\n",
               (int) GetNumPtrTs(edgesFromB));
     }
     // For each edge, look through edgesFromB for an edge to the same Contig from (B,C)
@@ -1559,10 +1559,10 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
       CDS_CID_t otherBID;
       SEdgeT *edgeB = (SEdgeT *) *GetPtrT(edgesFromB,j);
 
-      if (verbose)PrintGraphEdge(GlobalData->stderrc, ScaffoldGraph->ScaffoldGraph, "EdgeFromBC? ", edgeB, edgeB->idA);
+      if (verbose)PrintGraphEdge(stderr, ScaffoldGraph->ScaffoldGraph, "EdgeFromBC? ", edgeB, edgeB->idA);
 
       if (edgeB->quality > 0.0) {
-        if (verbose)fprintf(GlobalData->stderrc,"*Skipping (quality = %g)\n", edgeB->quality);
+        if (verbose)fprintf(stderr,"*Skipping (quality = %g)\n", edgeB->quality);
         continue;   // This edge is already spoken for
       }
       if (edgeB->idA == scaffoldB->id)
@@ -1579,7 +1579,7 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
                 // ------------>   <----------------    ------------>
                 //      A                  C                  B
                 if (GetEdgeOrientationWRT(edgeB, scaffoldB->id) != BA_AB) { // orientation of BC
-                  if (verbose)fprintf(GlobalData->stderrc,"* 1 Orientation is %c should be BA_AB\n",
+                  if (verbose)fprintf(stderr,"* 1 Orientation is %c should be BA_AB\n",
                                       GetEdgeOrientationWRT(edgeB,scaffoldB->id));
                   continue;
                 }
@@ -1588,19 +1588,19 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
                 // ------------>   ---------------->    ------------>
                 //      A                  C                  B
                 if (GetEdgeOrientationWRT(edgeB, scaffoldB->id) != BA_BA) {
-                  if (verbose)fprintf(GlobalData->stderrc,"* 1 Orientation is %c should be BA_BA\n",
+                  if (verbose)fprintf(stderr,"* 1 Orientation is %c should be BA_BA\n",
                                       GetEdgeOrientationWRT(edgeB,scaffoldB->id));
                   continue;
                 }
                 break;
               case BA_BA:
                 if (verbose)
-                  fprintf(GlobalData->stderrc,"* 1 Wrong orientation BA_BA\n");
+                  fprintf(stderr,"* 1 Wrong orientation BA_BA\n");
                 continue;  // wrong orientation
 
               case BA_AB:
                 if (verbose)
-                  fprintf(GlobalData->stderrc,"* 1 Wrong orientation BA_AB\n");
+                  fprintf(stderr,"* 1 Wrong orientation BA_AB\n");
                 continue;  // wrong orientation
               default:
                 assert(0);
@@ -1614,7 +1614,7 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
                 //      A                  C                  B
                 if (GetEdgeOrientationWRT(edgeB, scaffoldB->id) != AB_AB) {
                   if (verbose)
-                    fprintf(GlobalData->stderrc,"* 2 Orientation is %c should be AB_AB\n",
+                    fprintf(stderr,"* 2 Orientation is %c should be AB_AB\n",
                             GetEdgeOrientationWRT(edgeB,scaffoldB->id));
                   continue;
                 }
@@ -1624,18 +1624,18 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
                 //      A                  C                  B
                 if (GetEdgeOrientationWRT(edgeB, scaffoldB->id) != AB_BA) {
                   if (verbose)
-                    fprintf(GlobalData->stderrc,"* 2 Orientation is %c should be AB_BA\n",
+                    fprintf(stderr,"* 2 Orientation is %c should be AB_BA\n",
                             GetEdgeOrientationWRT(edgeB,scaffoldB->id));
                   continue;
                 }
                 break;
               case BA_BA:
                 if (verbose)
-                  fprintf(GlobalData->stderrc,"* 2 Wrong orientation BA_BA\n");
+                  fprintf(stderr,"* 2 Wrong orientation BA_BA\n");
                 continue;  // wrong orientation
               case BA_AB:
                 if (verbose)
-                  fprintf(GlobalData->stderrc,"* 2 Wrong orientation BA_AB\n");
+                  fprintf(stderr,"* 2 Wrong orientation BA_AB\n");
                 continue;  // wrong orientation
               default:
                 assert(0);
@@ -1649,7 +1649,7 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
                 //      A                  C                  B
                 if (GetEdgeOrientationWRT(edgeB, scaffoldB->id) != BA_AB) {
                   if (verbose)
-                    fprintf(GlobalData->stderrc,"* 3 Orientation is %c should be BA_AB\n",
+                    fprintf(stderr,"* 3 Orientation is %c should be BA_AB\n",
                             GetEdgeOrientationWRT(edgeB,scaffoldB->id));
                   continue;
                 }
@@ -1659,18 +1659,18 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
                 //      A                  C                  B
                 if (GetEdgeOrientationWRT(edgeB, scaffoldB->id) != BA_BA) {
                   if (verbose)
-                    fprintf(GlobalData->stderrc,"* 3 Orientation is %c should be BA_BA\n",
+                    fprintf(stderr,"* 3 Orientation is %c should be BA_BA\n",
                             GetEdgeOrientationWRT(edgeB,scaffoldB->id));
                   continue;
                 }
                 break;
               case AB_BA:
                 if (verbose)
-                  fprintf(GlobalData->stderrc,"* 3 Wrong orientation AB_BA\n");
+                  fprintf(stderr,"* 3 Wrong orientation AB_BA\n");
                 continue;
               case AB_AB:
                 if (verbose)
-                  fprintf(GlobalData->stderrc,"* 3 Wrong orientation AB_AB\n");
+                  fprintf(stderr,"* 3 Wrong orientation AB_AB\n");
                 continue;  // wrong orientation
               default:
                 assert(0);
@@ -1684,7 +1684,7 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
                 //      A                  C                  B
                 if (GetEdgeOrientationWRT(edgeB, scaffoldB->id) != AB_AB) { // BC
                   if (verbose)
-                    fprintf(GlobalData->stderrc,"* rOrientation is %c should be AB_AB\n",
+                    fprintf(stderr,"* rOrientation is %c should be AB_AB\n",
                             GetEdgeOrientationWRT(edgeB,scaffoldB->id));
                   continue;
                 }
@@ -1694,18 +1694,18 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
                 //      A                  C                  B
                 if (GetEdgeOrientationWRT(edgeB, scaffoldB->id) != AB_AB) { // BC
                   if (verbose)
-                    fprintf(GlobalData->stderrc,"* 4 Orientation is %c should be AB_AB\n",
+                    fprintf(stderr,"* 4 Orientation is %c should be AB_AB\n",
                             GetEdgeOrientationWRT(edgeB,scaffoldB->id));
                   continue;
                 }
                 break;
               case AB_AB:
                 if (verbose)
-                  fprintf(GlobalData->stderrc,"* 4 Wrong orientation AB_AB\n");
+                  fprintf(stderr,"* 4 Wrong orientation AB_AB\n");
                 continue;
               case AB_BA:
                 if (verbose)
-                  fprintf(GlobalData->stderrc,"* 4 Wrong orientation AB_BA\n");
+                  fprintf(stderr,"* 4 Wrong orientation AB_BA\n");
                 continue;  // wrong orientation
               default:
                 assert(0);
@@ -1717,10 +1717,10 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
             break;
         }
         if (verbose)
-          fprintf(GlobalData->stderrc,"* foundBC = TRUE!\n");
+          fprintf(stderr,"* foundBC = TRUE!\n");
         foundBC = TRUE;
         if (verbose) {
-          fprintf(GlobalData->stderrc,"* Found all three edges (" F_CID "," F_CID ",%c)%d, (" F_CID "," F_CID ",%c)%d AND (" F_CID "," F_CID ",%c)%d\n",
+          fprintf(stderr,"* Found all three edges (" F_CID "," F_CID ",%c)%d, (" F_CID "," F_CID ",%c)%d AND (" F_CID "," F_CID ",%c)%d\n",
                   scaffoldA->id, scaffoldB->id, GetEdgeOrientationWRT(curEdge, scaffoldA->id), curEdge->edgesContributing,
                   scaffoldA->id, otherID, GetEdgeOrientationWRT(edge, scaffoldA->id), edge->edgesContributing,
                   otherBID,scaffoldB->id, GetEdgeOrientationWRT(edgeB, otherBID), edgeB->edgesContributing);
@@ -1749,13 +1749,13 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
         }
       } else {
         if (verbose)
-          fprintf(GlobalData->stderrc,"* otherBID(" F_CID ") != otherID(" F_CID ")\n", otherBID, otherID);
+          fprintf(stderr,"* otherBID(" F_CID ") != otherID(" F_CID ")\n", otherBID, otherID);
       }
 
     }
     if (foundBC == FALSE) {
       if (verbose)
-        fprintf(GlobalData->stderrc,"* Found %sconfirmed AC edge only\n", (edge->edgesContributing < CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD?"UN":""));
+        fprintf(stderr,"* Found %sconfirmed AC edge only\n", (edge->edgesContributing < CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD?"UN":""));
       if (edge->edgesContributing < CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD)
         continue;
 
@@ -1772,7 +1772,7 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
   // If an edge has already been weighted (weight != 0), skip it
 
   if (verbose)
-    fprintf(GlobalData->stderrc,"* Iterating over %d edges from B\n",
+    fprintf(stderr,"* Iterating over %d edges from B\n",
             (int) GetNumPtrTs(edgesFromB));
   for(i = 0; i < GetNumPtrTs(edgesFromB); i++) {
     CDS_CID_t otherID;
@@ -1790,7 +1790,7 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
     if (edge->edgesContributing < CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD)
       continue;
     if (verbose)
-      fprintf(GlobalData->stderrc,"* Found a BC edge (" F_CID "," F_CID ",%c)\n",
+      fprintf(stderr,"* Found a BC edge (" F_CID "," F_CID ",%c)\n",
               scaffoldB->id, otherID, GetEdgeOrientationWRT(edge, scaffoldB->id));
 
 
@@ -1826,13 +1826,13 @@ FindMoreAttractiveMergeEdge(SEdgeT *curEdge,
   assert(scaffoldB->id == curEdge->idA || scaffoldB->id == curEdge->idB);
 
   if (verbose)
-    fprintf(GlobalData->stderrc,"* FMA (" F_CID "," F_CID ") depth:%d\n", scaffoldA->id, scaffoldB->id, recDepth);
+    fprintf(stderr,"* FMA (" F_CID "," F_CID ") depth:%d\n", scaffoldA->id, scaffoldB->id, recDepth);
 
   if (scaffoldA->flags.bits.smoothSeenAlready &&
       scaffoldB->flags.bits.smoothSeenAlready) {
 
     if (verbose)
-      fprintf(GlobalData->stderrc,"* We've already seen both scaffolds...returning\n");
+      fprintf(stderr,"* We've already seen both scaffolds...returning\n");
     return NULL;
   }
   // Cut off recursion back to these nodes
@@ -1847,7 +1847,7 @@ FindMoreAttractiveMergeEdge(SEdgeT *curEdge,
     double aGapSize, bGapSize;
 
     if (verbose)
-      fprintf(GlobalData->stderrc,"* FindMoreAttractiveMergeEdge %d\n", recDepth);
+      fprintf(stderr,"* FindMoreAttractiveMergeEdge %d\n", recDepth);
     TranslateScaffoldOverlapToContigOverlap(scaffoldA, scaffoldB, curEdge->orient, &endNodeA, &endNodeB, &orientEndNodeA, &orientEndNodeB, &edgeEndsOrient,
                                             &aGapSize, &bGapSize);
   }
@@ -1892,7 +1892,7 @@ FindMoreAttractiveMergeEdge(SEdgeT *curEdge,
 
   if (markedA || markedB) {
     if (verbose)
-      fprintf(GlobalData->stderrc,"* Marked Edges Encountered...returning\n");
+      fprintf(stderr,"* Marked Edges Encountered...returning\n");
     //            Free memory
     DeleteVA_PtrT(edgesFromA);
     DeleteVA_PtrT(edgesFromB);
@@ -1907,7 +1907,7 @@ FindMoreAttractiveMergeEdge(SEdgeT *curEdge,
   if (GetNumPtrTs(edgesFromA) == 0 &&
       GetNumPtrTs(edgesFromB) == 0) {
     if (verbose) {
-      fprintf(GlobalData->stderrc,"* No edges from from A OR B!\n");
+      fprintf(stderr,"* No edges from from A OR B!\n");
     }
     // Clear marks
     scaffoldA->flags.bits.smoothSeenAlready = 0;
@@ -1938,8 +1938,8 @@ FindMoreAttractiveMergeEdge(SEdgeT *curEdge,
       CIScaffoldT *targetScaffold, *sourceScaffold;
 
       if (verbose) {
-        PrintGraphEdge(GlobalData->stderrc, ScaffoldGraph->ScaffoldGraph, "AEW", fEdge, fEdge->idA);
-        fprintf(GlobalData->stderrc," Edge has quality %g\n", fEdge->quality);
+        PrintGraphEdge(stderr, ScaffoldGraph->ScaffoldGraph, "AEW", fEdge, fEdge->idA);
+        fprintf(stderr," Edge has quality %g\n", fEdge->quality);
       }
       if (fEdge->idA == scaffoldA->id || fEdge->idA == scaffoldB->id) {
         targetID = fEdge->idB;
@@ -1959,18 +1959,18 @@ FindMoreAttractiveMergeEdge(SEdgeT *curEdge,
       sourceScaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph,sourceID);
 
       if (verbose)
-        PrintGraphEdge(GlobalData->stderrc, ScaffoldGraph->ScaffoldGraph, "fedge ", fEdge, fEdge->idA);
+        PrintGraphEdge(stderr, ScaffoldGraph->ScaffoldGraph, "fedge ", fEdge, fEdge->idA);
 
       if (DoesScaffoldCFit(scaffoldA, scaffoldB, targetScaffold,curEdge, fEdge, edgesFromA, edgesFromB, &overlapFound, checkForTinyScaffolds, verbose)) {
         SEdgeT *gEdge;
 
         if (verbose) {
-          fprintf(GlobalData->stderrc,"*### Scaffold " F_CID " fits between (" F_CID "," F_CID ")  curEdge = (" F_CID "," F_CID ",%c)   fEdge = (" F_CID "," F_CID ",%c)\n",
+          fprintf(stderr,"*### Scaffold " F_CID " fits between (" F_CID "," F_CID ")  curEdge = (" F_CID "," F_CID ",%c)   fEdge = (" F_CID "," F_CID ",%c)\n",
                   targetID, scaffoldA->id, scaffoldB->id,
                   curEdge->idA, curEdge->idB, curEdge->orient,
                   fEdge->idA, fEdge->idB, fEdge->orient);
 
-          fprintf(GlobalData->stderrc,"* Calling FindMoreAttractive recursively on " F_CID " " F_CID "\n", sourceScaffold->id, targetScaffold->id);
+          fprintf(stderr,"* Calling FindMoreAttractive recursively on " F_CID " " F_CID "\n", sourceScaffold->id, targetScaffold->id);
         }
 
         gEdge = FindMoreAttractiveMergeEdge(fEdge,sourceScaffold, targetScaffold, recDepth + 1, doInterleaving, checkForTinyScaffolds, verbose);
@@ -1978,13 +1978,13 @@ FindMoreAttractiveMergeEdge(SEdgeT *curEdge,
 
         if (gEdge != NULL) {
           if (verbose) {
-            PrintGraphEdge(GlobalData->stderrc, ScaffoldGraph->ScaffoldGraph, "FMA returned gedge ", gEdge,gEdge->idA);
+            PrintGraphEdge(stderr, ScaffoldGraph->ScaffoldGraph, "FMA returned gedge ", gEdge,gEdge->idA);
           }
           MarkScaffoldsForMerging(fEdge, FALSE);
           MarkScaffoldForNotMerging(targetScaffold);
         } else {
           if (verbose)
-            fprintf(GlobalData->stderrc,"*gedge = NULL returning fEdge\n");
+            fprintf(stderr,"*gedge = NULL returning fEdge\n");
           gEdge = fEdge;
         }
 
@@ -1999,7 +1999,7 @@ FindMoreAttractiveMergeEdge(SEdgeT *curEdge,
         return gEdge;
       } else {
         if (verbose)
-          fprintf(GlobalData->stderrc,"*XXX Scaffold " F_CID " DOES NOT fit between (" F_CID "," F_CID ")  curEdge = (" F_CID "," F_CID ",%c)   fEdge = (" F_CID "," F_CID ",%c)\n",
+          fprintf(stderr,"*XXX Scaffold " F_CID " DOES NOT fit between (" F_CID "," F_CID ")  curEdge = (" F_CID "," F_CID ",%c)   fEdge = (" F_CID "," F_CID ",%c)\n",
                   targetID, scaffoldA->id, scaffoldB->id,
                   curEdge->idA, curEdge->idB, curEdge->orient,
                   fEdge->idA, fEdge->idB, fEdge->orient);
@@ -2011,7 +2011,7 @@ FindMoreAttractiveMergeEdge(SEdgeT *curEdge,
 
   } else {
     if (verbose) {
-      fprintf(GlobalData->stderrc,"No edges found\n");
+      fprintf(stderr,"No edges found\n");
     }
   }
 
@@ -2064,7 +2064,7 @@ isQualityScaffoldMergingEdge(SEdgeT * curEdge,
                          scaffoldA,
                          si,
                          InstrumenterVerbose2,
-                         GlobalData->stderrc);
+                         stderr);
       GetMateInstrumenterFromScaffoldInstrumenter(sABefore, si);
       SetVA_PtrT(MIs, scaffoldA->id, (void **) &sABefore);
     }
@@ -2081,7 +2081,7 @@ isQualityScaffoldMergingEdge(SEdgeT * curEdge,
                          scaffoldB,
                          si,
                          InstrumenterVerbose2,
-                         GlobalData->stderrc);
+                         stderr);
       GetMateInstrumenterFromScaffoldInstrumenter(sBBefore, si);
       SetVA_PtrT(MIs, scaffoldB->id, (void **) &sBBefore);
     }
@@ -2091,7 +2091,7 @@ isQualityScaffoldMergingEdge(SEdgeT * curEdge,
                            curEdge,
                            si,
                            InstrumenterVerbose2,
-                           GlobalData->stderrc);
+                           stderr);
     GetMateInstrumenterFromScaffoldInstrumenter(&matesAfter,
                                                 si);
 
@@ -2115,17 +2115,17 @@ isQualityScaffoldMergingEdge(SEdgeT * curEdge,
          GetMateStatsBad(&(matesBefore.inter)) +
          GetMateStatsHappy(&(matesBefore.intra)) +
          GetMateStatsHappy(&(matesBefore.inter)));
-      fprintf(GlobalData->stderrc,
+      fprintf(stderr,
               "* %.3f mates satisfied if scaffolds " F_CID "," F_CID " instrumented separately\n",
               fractMatesHappyBefore, curEdge->idA, curEdge->idB);
     } else {
       fractMatesHappyBefore = 1.0;
-      fprintf(GlobalData->stderrc,
+      fprintf(stderr,
               "* %.3f mates satisfied if scaffolds " F_CID "," F_CID " instrumented separately (no mates)\n",
               fractMatesHappyBefore, curEdge->idA, curEdge->idB);
     }
 
-    fprintf(GlobalData->stderrc,
+    fprintf(stderr,
             "* %.3f mates satisfied if scaffolds " F_CID "," F_CID " merged via (%.2f,%.2f,%s)\n",
             fractMatesHappyAfter, curEdge->idA, curEdge->idB,
             curEdge->distance.mean, curEdge->distance.variance,
@@ -2134,10 +2134,10 @@ isQualityScaffoldMergingEdge(SEdgeT * curEdge,
               ((curEdge->orient == BA_AB) ? "BA_AB" : "BA_BA"))));
 
 #if 1
-    fprintf(GlobalData->stderrc, "******** after bad mates: %d\n", GetMateStatsBad(&(matesAfter.inter))+GetMateStatsBad(&(matesAfter.intra)));
-    fprintf(GlobalData->stderrc, "******** after good mates: %d\n", GetMateStatsHappy(&(matesAfter.inter))+GetMateStatsHappy(&(matesAfter.intra)));
-    fprintf(GlobalData->stderrc, "******** before bad mates: %d\n", GetMateStatsBad(&(matesBefore.inter))+GetMateStatsBad(&(matesBefore.intra)));
-    fprintf(GlobalData->stderrc, "******** before good mates: %d\n", GetMateStatsHappy(&(matesBefore.inter))+GetMateStatsHappy(&(matesBefore.intra)));
+    fprintf(stderr, "******** after bad mates: %d\n", GetMateStatsBad(&(matesAfter.inter))+GetMateStatsBad(&(matesAfter.intra)));
+    fprintf(stderr, "******** after good mates: %d\n", GetMateStatsHappy(&(matesAfter.inter))+GetMateStatsHappy(&(matesAfter.intra)));
+    fprintf(stderr, "******** before bad mates: %d\n", GetMateStatsBad(&(matesBefore.inter))+GetMateStatsBad(&(matesBefore.intra)));
+    fprintf(stderr, "******** before good mates: %d\n", GetMateStatsHappy(&(matesBefore.inter))+GetMateStatsHappy(&(matesBefore.intra)));
 #endif
 
     if (fractMatesHappyAfter < minSatisfied &&
@@ -2161,9 +2161,9 @@ isQualityScaffoldMergingEdge(SEdgeT * curEdge,
 #endif
         )
       {
-        fprintf(GlobalData->stderrc, "***** Merging would result in too low a satisfied mate fraction (%.3f < %.3f) - shouldn't merge\n", fractMatesHappyAfter, minSatisfied);
-        fprintf(GlobalData->stderrc, "******** inter bad mates: %d\n",GetMateStatsBad(&(matesAfter.inter)));
-        fprintf(GlobalData->stderrc, "******** inter good mates: %d\n",GetMateStatsHappy(&(matesAfter.inter)));
+        fprintf(stderr, "***** Merging would result in too low a satisfied mate fraction (%.3f < %.3f) - shouldn't merge\n", fractMatesHappyAfter, minSatisfied);
+        fprintf(stderr, "******** inter bad mates: %d\n",GetMateStatsBad(&(matesAfter.inter)));
+        fprintf(stderr, "******** inter good mates: %d\n",GetMateStatsHappy(&(matesAfter.inter)));
 #ifdef DEBUG_BAD_MATE_RATIO
         DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffoldA,FALSE);
         DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffoldB,FALSE);
@@ -2172,7 +2172,7 @@ isQualityScaffoldMergingEdge(SEdgeT * curEdge,
       }
 
     if (maxDelta > 0.0 && fractMatesHappyBefore - fractMatesHappyAfter > maxDelta) {
-      fprintf(GlobalData->stderrc, "***** Merging would decrease satisfied mate fraction by too much (%.3f > %.3f) - shouldn't merge\n", fractMatesHappyBefore - fractMatesHappyAfter, maxDelta);
+      fprintf(stderr, "***** Merging would decrease satisfied mate fraction by too much (%.3f > %.3f) - shouldn't merge\n", fractMatesHappyBefore - fractMatesHappyAfter, maxDelta);
       return FALSE;
     }
   }
@@ -2354,7 +2354,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
   scaffoldA = GetGraphNode(ScaffoldGraph->ScaffoldGraph, curEdge->idA);
   scaffoldB = GetGraphNode(ScaffoldGraph->ScaffoldGraph, curEdge->idB);
   if (verbose)
-    PrintGraphEdge(GlobalData->stderrc, ScaffoldGraph->ScaffoldGraph,
+    PrintGraphEdge(stderr, ScaffoldGraph->ScaffoldGraph,
                    "S ", curEdge, curEdge->idA);
 
   // We don't want to stick a teeny tiny element in the middle of a gap between two
@@ -2373,7 +2373,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
       min_scaffold_length < 5000 &&
       length_to_dist < 0.20) {
     if (verbose)
-      fprintf(GlobalData->stderrc,
+      fprintf(stderr,
               "Scaffolds are too short (%g,%g) relative to edge length (%g)\n",
               scaffoldA->bpLength.mean,
               scaffoldB->bpLength.mean,
@@ -2386,7 +2386,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
     //  We want to make sure that a week link doesn't preempt a strong link
     scaffoldA->flags.bits.walkedAlready =
       scaffoldB->flags.bits.walkedAlready = 1;
-    //      fprintf(GlobalData->stderrc,"* Skipping edge due to marking!\n");
+    //      fprintf(stderr,"* Skipping edge due to marking!\n");
     return;
   }
 
@@ -2395,7 +2395,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
    ******	******	******	******	******	******	******	******	*/
   if (TouchesMarkedScaffolds(curEdge)) {
     if (verbose)
-      fprintf(GlobalData->stderrc,
+      fprintf(stderr,
               "* Edge (" F_CID "," F_CID ",%c) touches marked scaffolds\n",
               curEdge->idA, curEdge->idB, curEdge->orient);
     return;
@@ -2412,7 +2412,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
        (scaffoldA->essentialEdgeA == scaffoldB->essentialEdgeA ||
         scaffoldA->essentialEdgeA == scaffoldB->essentialEdgeB ))) {
 
-    fprintf(GlobalData->stderrc,
+    fprintf(stderr,
             "* We're already trying to merge scaffold (" F_CID "," F_CID ") ...back off!\n",
             scaffoldA->id, scaffoldB->id);
     return;
@@ -2420,7 +2420,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
 
 
   if (verbose) {
-    fprintf(GlobalData->stderrc,
+    fprintf(stderr,
             "* Top Level call to FindMoreAttractiveMergeEdge (" F_CID "," F_CID ",%c) (" F_CID "," F_CID ") gap = %g\n",
             curEdge->idA, curEdge->idB, curEdge->orient,
             scaffoldA->id, scaffoldB->id, curEdge->distance.mean);
@@ -2433,7 +2433,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
     mergeDistance + MAX_SLOP_IN_STD * sqrt(curEdge->distance.variance);
 
   if (verbose) {
-    fprintf(GlobalData->stderrc,
+    fprintf(stderr,
             "* curEdge mergeDistance = (%g,%g) min:%g max:%g\n",
             mergeDistance, curEdge->distance.variance,
             minMergeDistance, maxMergeDistance);
@@ -2463,10 +2463,10 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
       mergeEdge = FindMoreAttractiveMergeEdge(curEdge, scaffoldA, scaffoldB, 0, GlobalData->doInterleavedScaffoldMerging, iSpec->checkForTinyScaffolds, verbose);
       if (verbose) {
         if (!mergeEdge) {
-          fprintf(GlobalData->stderrc,"*(NONE) Return from Top Level call to FindMoreAttractiveMergeEdge (" F_CID "," F_CID ",%c) (" F_CID "," F_CID ") ==> NONE!\n",
+          fprintf(stderr,"*(NONE) Return from Top Level call to FindMoreAttractiveMergeEdge (" F_CID "," F_CID ",%c) (" F_CID "," F_CID ") ==> NONE!\n",
                   curEdge->idA, curEdge->idB, curEdge->orient, scaffoldA->id, scaffoldB->id);
         } else {
-          fprintf(GlobalData->stderrc,"*(%s) Return from Top Level call to FindMoreAttractiveMergeEdge (" F_CID "," F_CID ",%c) (" F_CID "," F_CID ") ==> merge (" F_CID "," F_CID ",%c)\n",
+          fprintf(stderr,"*(%s) Return from Top Level call to FindMoreAttractiveMergeEdge (" F_CID "," F_CID ",%c) (" F_CID "," F_CID ") ==> merge (" F_CID "," F_CID ",%c)\n",
                   (curEdge == mergeEdge?"N":"Y"),
                   curEdge->idA, curEdge->idB, curEdge->orient, scaffoldA->id, scaffoldB->id,
                   mergeEdge->idA, mergeEdge->idB, mergeEdge->orient);
@@ -2485,7 +2485,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
       maxMergeDistance = mergeDistance + MAX_SLOP_IN_STD * sqrt(mergeEdge->distance.variance);
 
       if (verbose) {
-        fprintf(GlobalData->stderrc,"* mergeDistance = (%g,%g) min:%g max:%g\n",
+        fprintf(stderr,"* mergeDistance = (%g,%g) min:%g max:%g\n",
                 mergeDistance, mergeEdge->distance.variance,
                 minMergeDistance, maxMergeDistance);
       }
@@ -2493,7 +2493,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
 
       mayOverlap = (minMergeDistance < CGW_MISSED_OVERLAP &&    maxMergeDistance > CGW_MISSED_OVERLAP);
       mustOverlap =(minMergeDistance < CGW_MISSED_OVERLAP &&    maxMergeDistance < CGW_MISSED_OVERLAP);
-      //      fprintf(GlobalData->stderrc,"* mayOverlap = %d mustOverlap %d\n", mayOverlap, mustOverlap);
+      //      fprintf(stderr,"* mayOverlap = %d mustOverlap %d\n", mayOverlap, mustOverlap);
 
 
       if (mustOverlap && mergeEdge->edgesContributing > EDGE_QUANTA) {
@@ -2556,7 +2556,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
           return;
 
         if (verbose) {
-          fprintf(GlobalData->stderrc, "Could not find overlap " F_CID "(" F_CID ") %c " F_CID "(" F_CID ")\n",
+          fprintf(stderr, "Could not find overlap " F_CID "(" F_CID ") %c " F_CID "(" F_CID ")\n",
                   scaffoldA->id, endNodeA->id, (char)edgeEndsOrient,
                   scaffoldB->id, endNodeB->id);
         }
@@ -2566,13 +2566,13 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
               (minSizeScaffoldB > maxGapScaffoldA)) {
             SaveEdgeMeanForLater(mergeEdge);
             mergeEdge->distance.mean = MAX(- CGW_MISSED_OVERLAP, mergeEdge->distance.mean);
-            fprintf(GlobalData->stderrc,"* Must overlap edge -- can't confirm --abutting..going ahead distance is %g (%g,%g)\n", mergeEdge->distance.mean, minMergeDistance, maxMergeDistance);
-            PrintGraphEdge(GlobalData->stderrc, ScaffoldGraph->ScaffoldGraph, "  MustOverlap ", mergeEdge, mergeEdge->idA);
+            fprintf(stderr,"* Must overlap edge -- can't confirm --abutting..going ahead distance is %g (%g,%g)\n", mergeEdge->distance.mean, minMergeDistance, maxMergeDistance);
+            PrintGraphEdge(stderr, ScaffoldGraph->ScaffoldGraph, "  MustOverlap ", mergeEdge, mergeEdge->idA);
           } else {
             SaveEdgeMeanForLater(mergeEdge);
             mergeEdge->distance.mean = MAX(- CGW_MISSED_OVERLAP, mergeEdge->distance.mean);
-            fprintf(GlobalData->stderrc,"* Must overlap edge -- can't confirm, may be containment--abutting..going ahead distance is %g (%g,%g)\n", mergeEdge->distance.mean, minMergeDistance, maxMergeDistance);
-            PrintGraphEdge(GlobalData->stderrc, ScaffoldGraph->ScaffoldGraph, "  MustOverlap ", mergeEdge, mergeEdge->idA);
+            fprintf(stderr,"* Must overlap edge -- can't confirm, may be containment--abutting..going ahead distance is %g (%g,%g)\n", mergeEdge->distance.mean, minMergeDistance, maxMergeDistance);
+            PrintGraphEdge(stderr, ScaffoldGraph->ScaffoldGraph, "  MustOverlap ", mergeEdge, mergeEdge->idA);
           }
 
         } else {
@@ -2583,15 +2583,15 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
             SaveEdgeMeanForLater(mergeEdge);
             mergeEdge->distance.mean = MAX(- CGW_MISSED_OVERLAP, mergeEdge->distance.mean);
             if (verbose) {
-              fprintf(GlobalData->stderrc,"* May overlap edge -- can't confirm ...going ahead distance is %g (%g,%g)\n", mergeEdge->distance.mean, minMergeDistance, maxMergeDistance);
-              PrintGraphEdge(GlobalData->stderrc, ScaffoldGraph->ScaffoldGraph, "  MayOverlap ", mergeEdge, curEdge->idA);
+              fprintf(stderr,"* May overlap edge -- can't confirm ...going ahead distance is %g (%g,%g)\n", mergeEdge->distance.mean, minMergeDistance, maxMergeDistance);
+              PrintGraphEdge(stderr, ScaffoldGraph->ScaffoldGraph, "  MayOverlap ", mergeEdge, curEdge->idA);
             }
           } else {
             SaveEdgeMeanForLater(mergeEdge);
             mergeEdge->distance.mean = MAX(- CGW_MISSED_OVERLAP, mergeEdge->distance.mean);
             if (verbose) {
-              fprintf(GlobalData->stderrc,"* May overlap edge -- can't confirm --abutting..going ahead distance is %g (%g,%g)\n", mergeEdge->distance.mean, minMergeDistance, maxMergeDistance);
-              PrintGraphEdge(GlobalData->stderrc, ScaffoldGraph->ScaffoldGraph, "  MustOverlap ", mergeEdge, mergeEdge->idA);
+              fprintf(stderr,"* May overlap edge -- can't confirm --abutting..going ahead distance is %g (%g,%g)\n", mergeEdge->distance.mean, minMergeDistance, maxMergeDistance);
+              PrintGraphEdge(stderr, ScaffoldGraph->ScaffoldGraph, "  MustOverlap ", mergeEdge, mergeEdge->idA);
             }
           }
         }
@@ -2603,7 +2603,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
         //           |-------|                    |--------------------------|
 
 
-        fprintf(GlobalData->stderrc,"*** %s:Alternate found: NEED TO FIX THIS OVERLAP (" F_CID "," F_CID ",%c) is really (" F_CID "," F_CID ",%c)...setting to CGW_MISSED_OVERLAP\n",
+        fprintf(stderr,"*** %s:Alternate found: NEED TO FIX THIS OVERLAP (" F_CID "," F_CID ",%c) is really (" F_CID "," F_CID ",%c)...setting to CGW_MISSED_OVERLAP\n",
                 __FILE__, endNodeA->id, endNodeB->id, edgeEndsOrient, overlapEdge->idA, overlapEdge->idB, overlapEdge->orient);
 
         // To deal with this case we need to handle all of the ramifications.  once A and B have slid by each other, B may overlap with
@@ -2613,29 +2613,29 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
         // As a first cut, see if the extremal contig will fit in the gap of the other scaffold, so no positions need to be updated
         if (endNodeB->bpLength.mean + overlapEdge->distance.mean < aGapSize &&
             endNodeA->bpLength.mean + overlapEdge->distance.mean < bGapSize) {
-          fprintf(GlobalData->stderrc,"* We can safely interleave them endalength %g  endblength %g  aGap %g bGap %g\n",
+          fprintf(stderr,"* We can safely interleave them endalength %g  endblength %g  aGap %g bGap %g\n",
                   endNodeA->bpLength.mean,
                   endNodeB->bpLength.mean,
                   aGapSize, bGapSize);
           SaveEdgeMeanForLater(mergeEdge);
           mergeEdge->distance.mean = -(endNodeA->bpLength.mean + endNodeB->bpLength.mean + overlapEdge->distance.mean);
 
-          fprintf(GlobalData->stderrc,"*** Fixed so that overlap is length " F_CID " (%g) + length " F_CID " (%g) + overlap (%g) = %g\n",
+          fprintf(stderr,"*** Fixed so that overlap is length " F_CID " (%g) + length " F_CID " (%g) + overlap (%g) = %g\n",
                   endNodeA->id,endNodeA->bpLength.mean, endNodeB->id,endNodeB->bpLength.mean,overlapEdge->distance.mean, mergeEdge->distance.mean);
         } else {
-          fprintf(GlobalData->stderrc,"*** Couldn't easily fix...gaps too small\n");
+          fprintf(stderr,"*** Couldn't easily fix...gaps too small\n");
           if (iSpec->checkAbutting &&
               !AbuttingWillWork(mergeEdge, scaffoldA, scaffoldB, iSpec))
             return;
           SaveEdgeMeanForLater(mergeEdge);
           mergeEdge->distance.mean = -CGW_MISSED_OVERLAP;
-          fprintf(GlobalData->stderrc,"* We CAN'T safely interleave them, gaps too small:  endalength %g  endblength %g  aGap %g bGap %g\n",
+          fprintf(stderr,"* We CAN'T safely interleave them, gaps too small:  endalength %g  endblength %g  aGap %g bGap %g\n",
                   endNodeA->bpLength.mean,
                   endNodeB->bpLength.mean,
                   aGapSize, bGapSize);
         }
       } else {
-        fprintf(GlobalData->stderrc,"* Confirmed overlap (" F_CID "," F_CID ",%c) overlapEdge:%g   mergeEdge:%g\n",
+        fprintf(stderr,"* Confirmed overlap (" F_CID "," F_CID ",%c) overlapEdge:%g   mergeEdge:%g\n",
                 overlapEdge->idA, overlapEdge->idB, overlapEdge->orient, overlapEdge->distance.mean, mergeEdge->distance.mean);
         if (overlapEdge->orient != edgeEndsOrient && overlapEdge->idA == endNodeA->id) {
           assert(overlapEdge->orient == InvertEdgeOrient(edgeEndsOrient));
@@ -2661,13 +2661,13 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
         scaffoldB->bpLength.mean > 1000000.) {
       // edge is too negative given scaffold lengths
       if (verbose)
-        fprintf(GlobalData->stderrc, "Edge is too negative for scaffold lengths\n");
+        fprintf(stderr, "Edge is too negative for scaffold lengths\n");
       return;
     }
 
     if (isBadScaffoldMergeEdge(curEdge, iSpec->badSEdges)) {
       if (verbose)
-        fprintf(GlobalData->stderrc, "Edge previously marked as bad for merging.\n");
+        fprintf(stderr, "Edge previously marked as bad for merging.\n");
       return;
     }
 
@@ -2702,11 +2702,11 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
                                               &aGapSize, &bGapSize);
 
       if (verbose) {
-        fprintf(GlobalData->stderrc, "scaffoldA length: %d, elements: %d, end node + end gap: %d\n",
+        fprintf(stderr, "scaffoldA length: %d, elements: %d, end node + end gap: %d\n",
                 (int) scaffoldA->bpLength.mean, scaffoldA->info.Scaffold.numElements, (int) (endNodeA->bpLength.mean + aGapSize));
-        fprintf(GlobalData->stderrc, "scaffoldB length: %d, elements: %d, end node + end gap: %d\n",
+        fprintf(stderr, "scaffoldB length: %d, elements: %d, end node + end gap: %d\n",
                 (int) scaffoldB->bpLength.mean, scaffoldB->info.Scaffold.numElements, (int) (endNodeB->bpLength.mean + bGapSize));
-        fprintf(GlobalData->stderrc, "edge length: %.f, variance: %.f, weight: %d\n",
+        fprintf(stderr, "edge length: %.f, variance: %.f, weight: %d\n",
                 mergeEdge->distance.mean, mergeEdge->distance.variance, mergeEdge->edgesContributing);
       }
 
@@ -2724,7 +2724,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
                                                &alternate,
                                                verbose);
         if (verbose)
-          fprintf(GlobalData->stderrc, "Small overlap - work with end nodes; End node overlap %sfound\n", (overlapEdge) ? "" : "not ");
+          fprintf(stderr, "Small overlap - work with end nodes; End node overlap %sfound\n", (overlapEdge) ? "" : "not ");
 
         if (overlapEdge != NULL) {
           // overlap edge found. use it
@@ -2752,7 +2752,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
       } else {
         // large negative edge - may involve interleaving
         if (verbose)
-          fprintf(GlobalData->stderrc,
+          fprintf(stderr,
                   "Large overlap - attempt interleaved merging\n");
 
         //more contigs may be involved in one or both scaffolds
@@ -2760,7 +2760,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
                                                mergeEdge, sai) == 0) {
 
           if (verbose)
-            fprintf(GlobalData->stderrc, "Populated ScaffoldAlignmentInterface - %d segments in possible scaffold overlap.\n", (int) GetNumSegmentsInList(sai->segmentList));
+            fprintf(stderr, "Populated ScaffoldAlignmentInterface - %d segments in possible scaffold overlap.\n", (int) GetNumSegmentsInList(sai->segmentList));
 
 #if 0
           // punt if the edge distance is too negative & there are no overlaps
@@ -2768,9 +2768,9 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
                endNodeA->bpLength.mean + aGapSize < -minMergeDistance &&
                endNodeB->bpLength.mean + bGapSize < -minMergeDistance) {
             if (verbose) {
-              fprintf(GlobalData->stderrc,
+              fprintf(stderr,
                       "Large scaffold overlap with no contig overlaps.\n");
-              fprintf(GlobalData->stderrc, "Edge not usable for merging.\n");
+              fprintf(stderr, "Edge not usable for merging.\n");
             }
             SaveBadScaffoldMergeEdge(mergeEdge,
                                      iSpec->badSEdges);
@@ -2800,15 +2800,15 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
 
           if (sai->segmentList != NULL ||             sai->best >= 0) {
             if (verbose) {
-              fprintf(GlobalData->stderrc, "Align_Scaffold returned best = %d%s\n", sai->best, (sai->best == 0) ? " (this should mean pure interleaving)" : "");
-              fprintf(GlobalData->stderrc, "Adjusting scaffold contig positions\n");
+              fprintf(stderr, "Align_Scaffold returned best = %d%s\n", sai->best, (sai->best == 0) ? " (this should mean pure interleaving)" : "");
+              fprintf(stderr, "Adjusting scaffold contig positions\n");
             }
 
             if (sai->segmentList != NULL ||
                 (iSpec->checkAbutting &&
                  !AbuttingWillWork(mergeEdge, scaffoldA, scaffoldB, iSpec))) {
               if (verbose)
-                fprintf(GlobalData->stderrc, "%d segments in scaffold overlap.\n", GetNumSegmentsInList(sai->segmentList));
+                fprintf(stderr, "%d segments in scaffold overlap.\n", GetNumSegmentsInList(sai->segmentList));
 
               // if there are overlaps or abutting isn't an option
               overlapEdge = MakeScaffoldAlignmentAdjustments(scaffoldA, scaffoldB, mergeEdge, sai);
@@ -2817,12 +2817,12 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
                 SaveEdgeMeanForLater(mergeEdge);
                 mergeEdge->distance.mean = overlapEdge->distance.mean;
                 if (verbose)
-                  fprintf(GlobalData->stderrc, "Made scaffold adjustments for merging.\n");
+                  fprintf(stderr, "Made scaffold adjustments for merging.\n");
                 MarkScaffoldsForMerging(mergeEdge, TRUE);
               } else {
                 // else don't prevent scaffolds from merging via other edges
                 if (verbose)
-                  fprintf(GlobalData->stderrc, "Failed to make scaffold adjustments for merging.\n");
+                  fprintf(stderr, "Failed to make scaffold adjustments for merging.\n");
                 SaveBadScaffoldMergeEdge(mergeEdge, iSpec->badSEdges);
               }
             } else {
@@ -2834,7 +2834,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
           } else {
             // if here, no overlap or interleaving possible
             if (verbose)
-              fprintf(GlobalData->stderrc, "Align_Scaffold returned best = %d\n", sai->best);
+              fprintf(stderr, "Align_Scaffold returned best = %d\n", sai->best);
 
             /* if edge is not highly negative, abutt. Otherwise abort.
                criterion is if -20 abutting still leaves edge as trusted
@@ -2844,18 +2844,18 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
               SaveEdgeMeanForLater(mergeEdge);
               mergeEdge->distance.mean = MAX(-CGW_MISSED_OVERLAP, mergeEdge->distance.mean);
               if (verbose)
-                fprintf(GlobalData->stderrc, "Abutting will work.\n");
+                fprintf(stderr, "Abutting will work.\n");
               MarkScaffoldsForMerging(mergeEdge, TRUE);
             } else {
               // else don't prevent scaffolds from merging via other edges
               // record that this scaffold overlap is bad
               if (verbose)
-                fprintf(GlobalData->stderrc, "Edge not usable for merging.\n");
+                fprintf(stderr, "Edge not usable for merging.\n");
               SaveBadScaffoldMergeEdge(mergeEdge, iSpec->badSEdges);
             }
           }
         } else {
-          fprintf(GlobalData->stderrc, "Failed to populate scaffold alignment interface!\n");
+          fprintf(stderr, "Failed to populate scaffold alignment interface!\n");
           SaveBadScaffoldMergeEdge(mergeEdge, iSpec->badSEdges);
         }
       }
@@ -2921,7 +2921,7 @@ ExamineUsableSEdges(VA_TYPE(PtrT) *sEdges,
     minWeightThreshold = MIN(minWeightThreshold, maxWeightEdge / EDGE_WEIGHT_FACTOR);
     minWeightThreshold = MAX(minWeightThreshold, EDGE_WEIGHT_FACTOR);
 
-    fprintf(GlobalData->stderrc, "* Considering edges with weight >= %d (maxWeightEdge/%d: %d)\n",
+    fprintf(stderr, "* Considering edges with weight >= %d (maxWeightEdge/%d: %d)\n",
             minWeightThreshold,
             (int)EDGE_WEIGHT_FACTOR,
             (int)(maxWeightEdge/EDGE_WEIGHT_FACTOR));
@@ -2973,7 +2973,7 @@ BuildSEdgesForMerging(ScaffoldGraphT * graph,
       } else {
         *minWeightThreshold = sEdge[0]->edgesContributing / EDGE_WEIGHT_FACTOR;
       }
-      fprintf(GlobalData->stderrc, "initially setting minWeightThreshold to %f\n", *minWeightThreshold);
+      fprintf(stderr, "initially setting minWeightThreshold to %f\n", *minWeightThreshold);
     } else {
       *minWeightThreshold -= 0.2;
     }
@@ -3044,7 +3044,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
 
     thisScaffoldID = thisScaffold->id;
 
-    fprintf(GlobalData->stderrc,"* Examining scaffold %d " F_CID "\n",
+    fprintf(stderr,"* Examining scaffold %d " F_CID "\n",
             cntScaffold, thisScaffoldID);
 
     if (thisScaffold->type != REAL_SCAFFOLD) {
@@ -3119,7 +3119,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
     neighbor     = GetGraphNode(ScaffoldGraph->ScaffoldGraph, neighborID);
 
     if (verbose) {
-      fprintf(GlobalData->stderrc,"* START: Inserting scaffold " F_CID " into scaffold " F_CID "\n", thisScaffold->id, newScaffoldID);
+      fprintf(stderr,"* START: Inserting scaffold " F_CID " into scaffold " F_CID "\n", thisScaffold->id, newScaffoldID);
     }
     assert(thisScaffold->bpLength.variance >= 0);
     assert(neighbor->bpLength.variance >= 0);
@@ -3223,7 +3223,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
       assert(currentOffset.variance >= 0);
 
       if (verbose) {
-        fprintf(GlobalData->stderrc,"* Adding to scaffold " F_CID " scaffold " F_CID " at orient %c offset %g\n",
+        fprintf(stderr,"* Adding to scaffold " F_CID " scaffold " F_CID " at orient %c offset %g\n",
                 newScaffoldID, thisScaffoldID, orientCI, currentOffset.mean);
       }
 #ifdef CHECK_CONTIG_ORDERS
@@ -3328,7 +3328,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
         recomputeIteration++;
       }
       if (status != RECOMPUTE_OK)
-        fprintf(GlobalData->stderrc, "ReomputeOffsetsInScaffold failed (%d) for scaffold " F_CID " in MergeScaffolds\n", status, newScaffoldID);
+        fprintf(stderr, "ReomputeOffsetsInScaffold failed (%d) for scaffold " F_CID " in MergeScaffolds\n", status, newScaffoldID);
     }  //  if (iSpec->contigNow != NO_CONTIGGING && .....)
 
     ScaffoldGraph->numLiveScaffolds += (1 - numMerged);
@@ -3374,7 +3374,7 @@ MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
     }
 
     if (GetNumGraphEdges(graph->ScaffoldGraph) == 0) {
-      fprintf(GlobalData->stderrc, "MergeScaffoldsAggressive()-- No additional scaffold merging is possible.\n");
+      fprintf(stderr, "MergeScaffoldsAggressive()-- No additional scaffold merging is possible.\n");
       break;
     }
 
@@ -3404,7 +3404,7 @@ MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
       minWeightThreshold -= MAX(1.0, minWeightThreshold / 100.0);
 
     } else {
-      fprintf(GlobalData->stderrc, "MergeScaffoldsAggressive()-- iter %d -- no additional scaffold merging is possible.\n",
+      fprintf(stderr, "MergeScaffoldsAggressive()-- iter %d -- no additional scaffold merging is possible.\n",
               iterations);
     }
 
@@ -3420,11 +3420,11 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
   InterleavingSpec iSpec;
 
   if (verbose)
-    fprintf(GlobalData->stderrc, "Starting MergeScaffoldsAggressive\n");
+    fprintf(stderr, "Starting MergeScaffoldsAggressive\n");
 
   CheckCIScaffoldTs(ScaffoldGraph);
   CheckCIScaffoldTLengths(ScaffoldGraph);
-  fprintf(GlobalData->stderrc, "* Successfully passed checks at beginning of scaffold merging\n");
+  fprintf(stderr, "* Successfully passed checks at beginning of scaffold merging\n");
 
   iSpec.sai                    = CreateScaffoldAlignmentInterface();
   iSpec.contigNow              = ALL_CONTIGGING;
@@ -3436,16 +3436,16 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
   iSpec.badSEdges              = CreateChunkOverlapper();
 
   if (GlobalData->doInterleavedScaffoldMerging) {
-    fprintf(GlobalData->stderrc, "** Merging scaffolds with interleaving.\n");
-    fprintf(GlobalData->stderrc, "** MinSatisfied: %f, MaxDelta: %f\n", iSpec.minSatisfied, iSpec.maxDelta);
+    fprintf(stderr, "** Merging scaffolds with interleaving.\n");
+    fprintf(stderr, "** MinSatisfied: %f, MaxDelta: %f\n", iSpec.minSatisfied, iSpec.maxDelta);
 
     iSpec.checkForTinyScaffolds = FALSE;
     //LeastSquaresGapEstimates(graph, TRUE, FALSE, TRUE, TRUE, FALSE);
     MergeScaffoldsExhaustively(graph, &iSpec, logicalcheckpointnumber, verbose);
 
   } else {
-    fprintf(GlobalData->stderrc, "** Merging scaffolds without interleaving.\n");
-    fprintf(GlobalData->stderrc, "** MinSatisfied: %f, MaxDelta: %f\n", iSpec.minSatisfied, iSpec.maxDelta);
+    fprintf(stderr, "** Merging scaffolds without interleaving.\n");
+    fprintf(stderr, "** MinSatisfied: %f, MaxDelta: %f\n", iSpec.minSatisfied, iSpec.maxDelta);
 
     iSpec.checkForTinyScaffolds = TRUE;
     MergeScaffoldsExhaustively(graph, &iSpec, logicalcheckpointnumber, verbose);

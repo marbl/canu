@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.17 2009-07-30 10:34:14 brianwalenz Exp $";
+static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.18 2009-09-09 08:21:56 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -631,7 +631,7 @@ void PrintSEdges(ScaffoldGraphT * graph){
   int32 numEdges = (int32) GetNumGraphEdges(graph->ScaffoldGraph);
   CDS_CID_t i;
   for(i = 0; i < numEdges; i++){
-    PrintSEdgeT(GlobalData->stderrc, graph, "\t",
+    PrintSEdgeT(stderr, graph, "\t",
                 GetGraphEdge(graph->ScaffoldGraph, i), i);
   }
 }

@@ -22,7 +22,7 @@
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
-static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.28 2009-08-14 13:37:06 skoren Exp $";
+static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.29 2009-09-09 08:21:56 brianwalenz Exp $";
 
 #include "AS_CGW_dataTypes.h"
 #include "AS_MSG_pmesg.h"
@@ -50,7 +50,6 @@ typedef struct Global_CGW_tag {
   FILE *cgwfp;    // .cgw            frags, unitigs
   FILE *ctgfp;    // .cgw_contigs    all contigs (input for post-cgw consensus)
   FILE *scffp;    // .cgw_scaffolds  all scaffolds
-  FILE *stderrc;  // current - initially set to stderr
 
   char File_Name_Prefix[FILENAME_MAX];
   char Output_File_Name[FILENAME_MAX];

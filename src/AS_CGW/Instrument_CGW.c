@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Instrument_CGW.c,v 1.39 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid = "$Id: Instrument_CGW.c,v 1.40 2009-09-09 08:21:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -5263,7 +5263,7 @@ int InstrumentIntScaffoldMesg(ScaffoldGraphT * graph,
     /*
       char siFile[1024];
       sprintf(siFile, "s"F_CID "Mates.txt", si->id);
-      fprintf(GlobalData->stderrc, "Writing mates in scaffold "F_CID " to %s\n",
+      fprintf(stderr, "Writing mates in scaffold "F_CID " to %s\n",
       si->id, siFile);
       fp = fopen(siFile, "w");
     */

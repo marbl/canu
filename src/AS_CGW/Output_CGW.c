@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.41 2009-07-30 10:42:56 brianwalenz Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.42 2009-09-09 08:21:56 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -200,7 +200,7 @@ void MarkContigEdges(void){
 
   assert(ScaffoldGraph->doRezOnContigs);
 
-  fprintf(GlobalData->stderrc,"* MarkContigEdges\n");
+  fprintf(stderr,"* MarkContigEdges\n");
 
   // Mark the trustedness of the intra-scaffold, inter-contig edges
 
@@ -269,7 +269,7 @@ void OutputContigsFromMultiAligns(void){
     AS_IID    i;
 
     if(ctg->flags.bits.isChaff){
-      //      fprintf(GlobalData->stderrc,"* # Contig " F_CID " is CHAFF\n", ctg->id);
+      //      fprintf(stderr,"* # Contig " F_CID " is CHAFF\n", ctg->id);
       continue;
     }
 
@@ -646,9 +646,9 @@ void OutputScaffoldLinks(ScaffoldGraphT *graph)
   GraphNodeIterator nodes;
   CIScaffoldT *scaffold;
 
-  fprintf(GlobalData->stderrc,"* OutputScaffoldLinks *\n");
+  fprintf(stderr,"* OutputScaffoldLinks *\n");
   if(JumpList == NULL){
-    fprintf(GlobalData->stderrc,"* Creating JumpList *\n");
+    fprintf(stderr,"* Creating JumpList *\n");
     JumpList = CreateVA_IntMate_Pairs(256);
   }
 
@@ -678,37 +678,37 @@ void OutputUnitigsFromMultiAligns(void){
     assert(ci->id>=0 && ci->id< numCIs);
 
     if(ci->flags.bits.isChaff){
-      //      fprintf(GlobalData->stderrc,"* # Unitig " F_CID " is CHAFF\n", ci->id);
+      //      fprintf(stderr,"* # Unitig " F_CID " is CHAFF\n", ci->id);
       continue;
     }
 
     switch(ci->type){
       case DISCRIMINATORUNIQUECHUNK_CGW:
         status = AS_UNIQUE;
-        //	fprintf(GlobalData->stderrc,"* Unitig " F_CID " is UNIQUE: DISCRIMINATOR output " F_CID " \n",ci->id, cid);
+        //	fprintf(stderr,"* Unitig " F_CID " is UNIQUE: DISCRIMINATOR output " F_CID " \n",ci->id, cid);
         break;
       case UNIQUECHUNK_CGW:
         status = AS_UNIQUE;
-        //	fprintf(GlobalData->stderrc,"* Unitig " F_CID " is UNIQUE: output " F_CID " \n",ci->id, cid);
+        //	fprintf(stderr,"* Unitig " F_CID " is UNIQUE: output " F_CID " \n",ci->id, cid);
         break;
       case UNRESOLVEDCHUNK_CGW:
         if(ci->info.CI.numInstances > 0){
           assert(!ci->flags.bits.isUnique);
           status = AS_SEP;
-          //	fprintf(GlobalData->stderrc,"* Unitig " F_CID " has %d instances--- output " F_CID " SEP\n",ci->id, ci->info.CI.numInstances,cid);
+          //	fprintf(stderr,"* Unitig " F_CID " has %d instances--- output " F_CID " SEP\n",ci->id, ci->info.CI.numInstances,cid);
         }else{
           if(ci->scaffoldID != NULLINDEX){
-            //	  fprintf(GlobalData->stderrc,"* Unitig " F_CID " has %d instances--- output " F_CID " UNIQUE\n",ci->id, ci->info.CI.numInstances,cid);
+            //	  fprintf(stderr,"* Unitig " F_CID " has %d instances--- output " F_CID " UNIQUE\n",ci->id, ci->info.CI.numInstances,cid);
             status = AS_UNIQUE;
           }else{
-            //	  fprintf(GlobalData->stderrc,"* Unitig " F_CID " has %d instances--- output " F_CID " NOTREZ\n",ci->id, ci->info.CI.numInstances,cid);
+            //	  fprintf(stderr,"* Unitig " F_CID " has %d instances--- output " F_CID " NOTREZ\n",ci->id, ci->info.CI.numInstances,cid);
             status = AS_NOTREZ;
           }
         }
         break;
       case RESOLVEDREPEATCHUNK_CGW:
         /* SKIP THESE */
-        //      fprintf(GlobalData->stderrc,"* Skipping unitig " F_CID " --- RESOLVEDREPEAT\n",ci->id);
+        //      fprintf(stderr,"* Skipping unitig " F_CID " --- RESOLVEDREPEAT\n",ci->id);
         continue;
       default:
         assert(0);
@@ -752,10 +752,10 @@ void OutputUnitigLinksFromMultiAligns(void){
   pmesg.m = &ulm;
   pmesg.t = MESG_IUL;
 
-  fprintf(GlobalData->stderrc,"* OutputUnitigLinksFromMultiAligns *\n");
+  fprintf(stderr,"* OutputUnitigLinksFromMultiAligns *\n");
 
   if(JumpList == NULL){
-    fprintf(GlobalData->stderrc,"* Creating JumpList *\n");
+    fprintf(stderr,"* Creating JumpList *\n");
     JumpList = CreateVA_IntMate_Pairs(256);
     AssertPtr(JumpList);
   }
@@ -780,7 +780,7 @@ void OutputUnitigLinksFromMultiAligns(void){
       continue;
 
     if(ci->id % 50000 == 0)
-      fprintf(GlobalData->stderrc,"* Outputing links incident on unitig " F_CID "\n", ci->id);
+      fprintf(stderr,"* Outputing links incident on unitig " F_CID "\n", ci->id);
 
     ulm.unitig1 = ci->id;
     InitGraphEdgeIterator(ScaffoldGraph->CIGraph, ci->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
@@ -902,17 +902,17 @@ void OutputUnitigLinksFromMultiAligns(void){
       assert(GetNumIntMate_Pairss(JumpList) == edgeTotal);
 
       if(edgeCount != edgeTotal){
-        fprintf(GlobalData->stderrc,"* edgeCount = %d edgeTotal = %d\n",
+        fprintf(stderr,"* edgeCount = %d edgeTotal = %d\n",
                 edgeCount, edgeTotal);
-        PrintGraphEdge(GlobalData->stderrc,ScaffoldGraph->CIGraph," ", edge, edge->idA);
-        fflush(GlobalData->stderrc);
+        PrintGraphEdge(stderr,ScaffoldGraph->CIGraph," ", edge, edge->idA);
+        fflush(stderr);
 
         redge = edge;
         assert(redge->nextRawEdge != NULLINDEX); // must have >= 1 raw edge
 
         while(redge->nextRawEdge != NULLINDEX) {
           redge = GetGraphEdge(ScaffoldGraph->CIGraph,redge->nextRawEdge);
-          PrintGraphEdge(GlobalData->stderrc,ScaffoldGraph->CIGraph," ", redge, redge->idA);
+          PrintGraphEdge(stderr,ScaffoldGraph->CIGraph," ", redge, redge->idA);
         }
         assert(edgeCount == edgeTotal);
       }

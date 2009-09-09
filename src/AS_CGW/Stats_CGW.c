@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Stats_CGW.c,v 1.21 2009-07-30 10:42:56 brianwalenz Exp $";
+static char *rcsid = "$Id: Stats_CGW.c,v 1.22 2009-09-09 08:21:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,7 +53,7 @@ void GenerateCIGraph_U_Stats(void){
 
   AS_UTL_mkdir("stat");
 
-  fprintf(GlobalData->stderrc,"**** GenerateCIGraph_U_Stats ****\n");
+  fprintf(stderr,"**** GenerateCIGraph_U_Stats ****\n");
 
   InitGraphNodeIterator(&Nodes, graph, GRAPH_NODE_DEFAULT);
   while(NULL != (node = NextGraphNodeIterator(&Nodes))){
@@ -142,7 +142,7 @@ void GenerateCIGraphStats(void){
   int nu_unitigs_no_links_no_bac_fragments = 0;
   int n_unitigs = 0;
 
-  fprintf(GlobalData->stderrc,"**** GenerateCIGraphStats ****\n");
+  fprintf(stderr,"**** GenerateCIGraphStats ****\n");
 
   InitGraphNodeIterator(&Nodes, graph, GRAPH_NODE_DEFAULT);
   while(NULL != (node = NextGraphNodeIterator(&Nodes))){
@@ -178,13 +178,13 @@ void GenerateCIGraphStats(void){
     //  tfrags_nobf_nolinks += node->info.CI.numFragments;
     //}
   }
-  fprintf(GlobalData->stderrc,"*@ Graph has %d unitigs of which %d are non-unique\n",
+  fprintf(stderr,"*@ Graph has %d unitigs of which %d are non-unique\n",
 	  n_unitigs, nu_unitigs);
-  fprintf(GlobalData->stderrc,"*@ %d unitigs have no external data comprising %d total fragments\n",
+  fprintf(stderr,"*@ %d unitigs have no external data comprising %d total fragments\n",
 	  nu_unitigs_no_bac_fragments, tfrags_nobf);
-  fprintf(GlobalData->stderrc,"*@ %d unitigs have no links comprising %d total fragments\n",
+  fprintf(stderr,"*@ %d unitigs have no links comprising %d total fragments\n",
 	  nu_unitigs_no_links, tfrags_nolinks);
-  fprintf(GlobalData->stderrc,"*@ %d unitigs have no external data AND no links comprising %d total fragments\n",
+  fprintf(stderr,"*@ %d unitigs have no external data AND no links comprising %d total fragments\n",
 	  nu_unitigs_no_links_no_bac_fragments, tfrags_nobf_nolinks);
 }
 
@@ -211,7 +211,7 @@ void GeneratePlacedContigGraphStats(char *label,int iteration){
 
   AS_UTL_mkdir("stat");
 
-  fprintf(GlobalData->stderrc,"**** GeneratePlacedContigStats %s %d****\n", label, iteration);
+  fprintf(stderr,"**** GeneratePlacedContigStats %s %d****\n", label, iteration);
 
 
   sprintf(buffer,"stat/%s%d.PlacedContig.nodelength.cgm", label, iteration);
@@ -349,7 +349,7 @@ void GenerateScaffoldGraphStats(char *label, int iteration){
 
   AS_UTL_mkdir("stat");
 
-  fprintf(GlobalData->stderrc,"**** GeneratePlacedContigStats %s %d ****\n", label,iteration);
+  fprintf(stderr,"**** GeneratePlacedContigStats %s %d ****\n", label,iteration);
 
 
   sprintf(buffer,"stat/%s%d.Scaffolds.nodelength.cgm", label,iteration);
@@ -622,7 +622,7 @@ void GenerateLinkStats(GraphCGW_T *graph, char *label, int iteration){
     }
   }
   if(graph->type == CONTIG_GRAPH)
-    fprintf(GlobalData->stderrc,"*** Links confirmed by cgbOlaps %d  onCGBOlaps %d\n",
+    fprintf(stderr,"*** Links confirmed by cgbOlaps %d  onCGBOlaps %d\n",
 	    cgbOverlap, nonCGBOverlap);
 
   fclose(linkstd_all);
@@ -714,7 +714,7 @@ void GenerateSurrogateStats(char *phase){
         break;
     }
 #ifdef DEBUG_DETAILED
-    fprintf(GlobalData->stderrc,"* Node " F_CID " %c contig:" F_CID "  numInstances %d\n",
+    fprintf(stderr,"* Node " F_CID " %c contig:" F_CID "  numInstances %d\n",
 	    node->id, type, node->info.CI.contigID, node->info.CI.numInstances);
 #endif
     if((node->type != UNRESOLVEDCHUNK_CGW) ||    // is not a surrogate parent
@@ -725,7 +725,7 @@ void GenerateSurrogateStats(char *phase){
     fprintf(surrogFrags, "%d\n", node->info.CI.numFragments);
     fprintf(surrogRatio, "%d\n", ApproximateUnitigCoverage(node)/node->info.CI.numInstances );
   }
-  fprintf(GlobalData->stderrc,"* Stones: %d  Walks:%d\n",
+  fprintf(stderr,"* Stones: %d  Walks:%d\n",
 	  stoneSurrogs, walkSurrogs);
 
 

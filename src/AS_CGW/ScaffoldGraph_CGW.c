@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.41 2009-08-28 17:59:47 skoren Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.42 2009-09-09 08:21:56 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -123,7 +123,7 @@ LoadScaffoldGraphFromCheckpoint(char   *name,
     ScaffoldGraph->RezGraph = ScaffoldGraph->CIGraph;
   }
 
-  ReportMemorySize(ScaffoldGraph,GlobalData->stderrc);
+  ReportMemorySize(ScaffoldGraph,stderr);
 
   //  Check that the iteration we were told to load is what we loaded.
   //  Generally not a good thing if these disagree (SeqStore will
@@ -245,7 +245,7 @@ void InsertRepeatCIsInScaffolds(ScaffoldGraphT *sgraph){
     CI->type = type; // restore type for graphics
   }
 
-  fprintf(GlobalData->stderrc,
+  fprintf(stderr,
           "* Inserting %d Unscaffolded CIs into newly created scaffolds\n",
 	  scaffolded);
 
@@ -360,7 +360,7 @@ void ScaffoldSanity(CIScaffoldT *scaffold, ScaffoldGraphT *graph){
   }
 
   if(scaffold->bpLength.mean < 0 ||scaffold->bpLength.variance < 0 ){
-    fprintf(GlobalData->stderrc,
+    fprintf(stderr,
             "*!!! Sanity  scaffold " F_CID " length (%g,%g) screwed up!\n",
             scaffold->id,
             scaffold->bpLength.mean, scaffold->bpLength.variance);
@@ -368,7 +368,7 @@ void ScaffoldSanity(CIScaffoldT *scaffold, ScaffoldGraphT *graph){
   if(scaffold->info.Scaffold.AEndCI != NULLINDEX &&
      scaffold->bpLength.mean > 0 &&
      abs(scaffold->bpLength.mean - (scaffoldMaxPos - scaffoldMinPos)) > 100.0){
-    fprintf(GlobalData->stderrc,
+    fprintf(stderr,
             "*!!! Sanity  scaffold " F_CID " length %g not equal to (max - min) %g\n",
             scaffold->id,
             scaffold->bpLength.mean, (scaffoldMaxPos - scaffoldMinPos));
@@ -385,7 +385,7 @@ void ScaffoldSanity(CIScaffoldT *scaffold, ScaffoldGraphT *graph){
        !CI->flags.bits.isDead){
       numElements++;
     }else{
-      fprintf(GlobalData->stderrc,
+      fprintf(stderr,
               "* Scaffold Sanity: node " F_CID " is screwed: %s%s%sin scaffold " F_CID "\n",
               CI->id,
               (CI->scaffoldID == scaffold->id?"":"scaffoldID is wrong "),
@@ -399,14 +399,14 @@ void ScaffoldSanity(CIScaffoldT *scaffold, ScaffoldGraphT *graph){
   }
 
   if(numElements != scaffold->info.Scaffold.numElements){
-    fprintf(GlobalData->stderrc,
+    fprintf(stderr,
             "* numElements = %d scaffold says it has %d elements\n",
             numElements, scaffold->info.Scaffold.numElements);
     scaffoldInsane = 1;
   }
 
   if (scaffoldInsane) {
-    DumpCIScaffold(GlobalData->stderrc,graph, scaffold, FALSE);
+    DumpCIScaffold(stderr,graph, scaffold, FALSE);
     assert(!scaffoldInsane);
   }
 
@@ -437,23 +437,23 @@ void CheckScaffoldOrder(CIScaffoldT *scaffold, ScaffoldGraphT *graph)
     {
       if( MIN( CI->offsetAEnd.mean, CI->offsetBEnd.mean) < currentMinPos)
         {
-          fprintf( GlobalData->stderrc,
+          fprintf( stderr,
                    "CIs " F_CID " and " F_CID "are out of order\n",
                    CI->id, prevCI->id);
-          fprintf( GlobalData->stderrc,
+          fprintf( stderr,
                    "CI " F_CID ": AEndOffset.mean: %f, AEndOffset.mean: %f\n",
                    CI->id, CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-          fprintf( GlobalData->stderrc,
+          fprintf( stderr,
                    "CI " F_CID ": AEndOffset.mean: %f, AEndOffset.mean: %f\n",
                    prevCI->id, prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean);
-          DumpCIScaffold(GlobalData->stderrc, graph, scaffold, FALSE);
+          DumpCIScaffold(stderr, graph, scaffold, FALSE);
 
           // allow for a base of rounding error, but fix it
           if( MIN( CI->offsetAEnd.mean, CI->offsetBEnd.mean) - currentMinPos < 1.0)
             {
               CI->offsetAEnd.mean += 1.0;
               CI->offsetBEnd.mean += 1.0;
-              fprintf( GlobalData->stderrc,
+              fprintf( stderr,
                        "shifted pos of CI " F_CID " to (%f, %f)\n",
                        CI->id, CI->offsetAEnd.mean, CI->offsetBEnd.mean);
             }
@@ -476,7 +476,7 @@ void DumpScaffoldGraph(ScaffoldGraphT *graph){
   sprintf(fileName,"%s.sg%c.%d",
           graph->name, (graph->doRezOnContigs?'C':'c'),version++);
 
-  fprintf(GlobalData->stderrc,"* Dumping graph file %s\n", fileName);
+  fprintf(stderr,"* Dumping graph file %s\n", fileName);
 
   dumpFile = fopen(fileName,"w");
 
@@ -538,7 +538,7 @@ void AddDeltaToScaffoldOffsets(ScaffoldGraphT *graph,
   NodeCGW_T *thisNode;
 
 #ifdef DEBUG_DETAILED
-  fprintf(GlobalData->stderrc,
+  fprintf(stderr,
           "##### Adding delta (%g,%g) to scaffold " F_CID " at CI " F_CID " #######\n",
 	  delta.mean, delta.variance, scaffoldIndex, indexOfCI);
 #endif
@@ -702,13 +702,13 @@ int RepeatRez(int repeatRezLevel, char *name){
 
         iter++;
         if (iter >= MAX_REZ_ITERATIONS) {
-          fprintf (GlobalData->stderrc, "Maximum number of REZ iterations reached\n");
+          fprintf (stderr, "Maximum number of REZ iterations reached\n");
           break;
         }
       }  while  (normal_inserts + contained_inserts
                  + contained_stones > FILL_GAPS_THRESHHOLD);
 
-    fprintf(GlobalData->stderrc,"**** AFTER repeat rez ****\n");
+    fprintf(stderr,"**** AFTER repeat rez ****\n");
   }
   return didSomething;
 }
@@ -723,10 +723,10 @@ void RebuildScaffolds(ScaffoldGraphT *ScaffoldGraph,
 
 #ifdef DEBUG_BUCIS
   BuildUniqueCIScaffolds(ScaffoldGraph, markShakyBifurcations,TRUE);
-  fprintf(GlobalData->stderrc,"** After BuildUniqueCIScaffolds **\n");
-  DumpChunkInstances(GlobalData->stderrc, ScaffoldGraph,
+  fprintf(stderr,"** After BuildUniqueCIScaffolds **\n");
+  DumpChunkInstances(stderr, ScaffoldGraph,
                      FALSE, TRUE, TRUE, FALSE);
-  DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, TRUE);
+  DumpCIScaffolds(stderr,ScaffoldGraph, TRUE);
 #else
   BuildUniqueCIScaffolds(ScaffoldGraph, markShakyBifurcations, FALSE);
 #endif

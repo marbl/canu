@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.28 2009-08-14 13:37:06 skoren Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.29 2009-09-09 08:21:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -953,6 +953,6 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
   for (i=0;i<allocedImpLists;i++)
     DeleteVA_IntMultiPos(impLists[i]);
 
-  fprintf(GlobalData->stderrc, "Placed %d surrogate fragments out of %d surrogate fragments\n", numReallyPlaced, totalNumParentFrags);
+  fprintf(stderr, "Placed %d surrogate fragments out of %d surrogate fragments\n", numReallyPlaced, totalNumParentFrags);
 }
 

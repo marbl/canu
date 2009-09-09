@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.41 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.42 2009-09-09 08:21:56 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -835,7 +835,7 @@ void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
       else if( tempOlap1->begpos > 0 && tempOlap1->endpos < 0) // ahang is pos and bhang is neg
         canOlap->AContainsB = TRUE;
 
-      //	    Print_Overlap_AS(GlobalData->stderrc,&AFR,&BFR,O);
+      //	    Print_Overlap_AS(stderr,&AFR,&BFR,O);
       canOlap->computed = TRUE;
       canOlap->ahg = tempOlap1->begpos;
       canOlap->bhg = tempOlap1->endpos;
@@ -897,12 +897,12 @@ void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
               break;
 
             default :
-              fprintf (GlobalData->stderrc, "Non_canonical orientation = %c\n",
+              fprintf (stderr, "Non_canonical orientation = %c\n",
                        canOlap -> spec . orientation);
               assert (FALSE);
           }
 
-        fprintf(GlobalData->stderrc,">>> Fixing up suspicious overlap ("F_CID ","F_CID ",%c) (ahg:"F_S32" bhg:"F_S32") to ("F_CID ","F_CID ",%c) (ahg:"F_S32" bhg:"F_S32") len: "F_S32"\n",
+        fprintf(stderr,">>> Fixing up suspicious overlap ("F_CID ","F_CID ",%c) (ahg:"F_S32" bhg:"F_S32") to ("F_CID ","F_CID ",%c) (ahg:"F_S32" bhg:"F_S32") len: "F_S32"\n",
                 inSpec.cidA, inSpec.cidB,
                 inSpec.orientation,
                 tempOlap1->begpos, tempOlap1->endpos,
@@ -1158,7 +1158,7 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
 	  sectionInnerMin = sectionInner * (GetNumGraphNodes(graph)) / NUM_SECTIONS;
 	  sectionInnerMax = (sectionInner + 1) * (GetNumGraphNodes(graph)) / NUM_SECTIONS;
 
-	  fprintf(GlobalData->stderrc,"ComputeOverlaps section (o %d,i %d) outer:[%d,%d) inner:[%d,%d)\n",
+	  fprintf(stderr,"ComputeOverlaps section (o %d,i %d) outer:[%d,%d) inner:[%d,%d)\n",
                   sectionOuter,  sectionInner,
                   sectionOuterMin, sectionOuterMax,
                   sectionInnerMin, sectionInnerMax);
@@ -1204,7 +1204,7 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
                   continue;
                 }
                 if((++i % 100000) == 0){
-                  fprintf(GlobalData->stderrc,
+                  fprintf(stderr,
                           "* ComputeOverlaps %d  ("F_CID ","F_CID ",%c)\n",
                           i, olap->spec.cidA, olap->spec.cidB,
                           olap->spec.orientation);
@@ -1222,7 +1222,7 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
                       lengthA = GetConsensus(graph, olap->spec.cidA, consensusA, qualityA);
                       lengthB = GetConsensus(graph, olap->spec.cidB, consensusB, qualityB);
 
-                      fprintf(GlobalData->stderrc,"* CO: SUSPICIOUS Overlap found! Looked for ("F_CID ","F_CID ",%c)["F_S32","F_S32"]"
+                      fprintf(stderr,"* CO: SUSPICIOUS Overlap found! Looked for ("F_CID ","F_CID ",%c)["F_S32","F_S32"]"
                               "found ("F_CID ","F_CID ",%c) "F_S32"; contig lengths as found (%d,%d)\n",
                               inSpec.cidA, inSpec.cidB, orientation, olap->minOverlap, olap->maxOverlap,
                               olap->spec.cidA, olap->spec.cidB, olap->spec.orientation, olap->overlap,

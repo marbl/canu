@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.21 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.22 2009-09-09 08:21:55 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -867,7 +867,7 @@ void ValidateAllContigEdges(ScaffoldGraphT * graph, int fixBadOnes)
   if (fixBadOnes == -1)
     return;
 
-  fprintf(GlobalData->stderrc, "ValidateAllContigEdges()-- VALIDATING ALL CONTIG EDGES\n");
+  fprintf(stderr, "ValidateAllContigEdges()-- VALIDATING ALL CONTIG EDGES\n");
 
   for(sID = 0; sID < GetNumCIScaffoldTs(graph->CIScaffolds); sID++)
     {

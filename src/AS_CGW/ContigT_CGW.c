@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ContigT_CGW.c,v 1.23 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: ContigT_CGW.c,v 1.24 2009-09-09 08:21:56 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_EDGES
@@ -61,7 +61,7 @@ void CheckContigs()
          varianceDelta + .5 < contig->bpLength.variance ||
          varianceDelta - .5 > contig->bpLength.variance)
         {
-          fprintf(GlobalData->stderrc,
+          fprintf(stderr,
                   "Contig " F_CID " length (%f,%f) doesn't match offset difference (%f,%f)\n",
                   contig->id, contig->bpLength.mean, contig->bpLength.variance,
                   meanDelta, varianceDelta);

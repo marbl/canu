@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: InterleavedMerging.c,v 1.22 2009-08-03 23:42:12 brianwalenz Exp $";
+static const char *rcsid = "$Id: InterleavedMerging.c,v 1.23 2009-09-09 08:21:56 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -677,9 +677,9 @@ PopulateScaffoldStuff(ScaffoldStuff * ss,
     AppendVA_ContigElement(ss->contigs, &ce);
 
 #ifdef DEBUG1
-    PrintContigElement(GlobalData->stderrc, &ce);
+    PrintContigElement(stderr, &ce);
     if(isA)
-      fprintf(GlobalData->stderrc, "  minAHang: "F_S32", maxAHang:"F_S32"\n",
+      fprintf(stderr, "  minAHang: "F_S32", maxAHang:"F_S32"\n",
               ss->bandBeg, ss->bandEnd);
 #endif
 
@@ -920,7 +920,7 @@ PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
 
   if(sEdge->distance.mean -
      INTERLEAVE_CUTOFF * sqrt((double) sEdge->distance.variance) >= 0.0) {
-    fprintf(GlobalData->stderrc, "PopulateScaffoldAlignmentInterface called with non-negative edge!\n");
+    fprintf(stderr, "PopulateScaffoldAlignmentInterface called with non-negative edge!\n");
     return 1;
   }
 
@@ -938,7 +938,7 @@ PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
 
   if(sEdge->distance.mean -
      INTERLEAVE_CUTOFF * sqrt((double) sEdge->distance.variance) >= 0.0) {
-    fprintf(GlobalData->stderrc, "PopulateScaffoldAlignmentInterface called with non-negative edge!\n");
+    fprintf(stderr, "PopulateScaffoldAlignmentInterface called with non-negative edge!\n");
     return 1;
   }
 
@@ -1024,7 +1024,7 @@ PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
         else
           {
 #ifdef DEBUG1
-            fprintf(GlobalData->stderrc, "There is no overlap between ("F_CID":"F_S32","F_S32") and ("F_CID":"F_S32","F_S32")\n",
+            fprintf(stderr, "There is no overlap between ("F_CID":"F_S32","F_S32") and ("F_CID":"F_S32","F_S32")\n",
                     ceA->id, ceA->minCoord, ceA->maxCoord,
                     ceB->id, ceB->minCoord, ceB->maxCoord);
 #endif
@@ -1035,7 +1035,7 @@ PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
           assert(ceA->maxCoord < ceB->minCoord + CGW_DP_MINLEN + 1||
                  ceB->maxCoord < ceA->minCoord + CGW_DP_MINLEN + 1);
 #ifdef DEBUG1
-          fprintf(GlobalData->stderrc, "Not looking for overlap between ("F_CID":"F_S32","F_S32") and ("F_CID":"F_S32","F_S32")\n",
+          fprintf(stderr, "Not looking for overlap between ("F_CID":"F_S32","F_S32") and ("F_CID":"F_S32","F_S32")\n",
                   ceA->id, ceA->minCoord, ceA->maxCoord,
                   ceB->id, ceB->minCoord, ceB->maxCoord);
 #endif
@@ -1049,17 +1049,17 @@ PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
   sEdge->orient = orient;
 
 #ifdef DEBUG1
-  PrintScaffoldAlignmentInterface(GlobalData->stderrc, sai);
-  fprintf(GlobalData->stderrc, "Scaffold A CGW data structure:\n");
-  DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffoldA, FALSE);
-  DumpACIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffoldA, FALSE);
+  PrintScaffoldAlignmentInterface(stderr, sai);
+  fprintf(stderr, "Scaffold A CGW data structure:\n");
+  DumpCIScaffold(stderr, ScaffoldGraph, scaffoldA, FALSE);
+  DumpACIScaffold(stderr, ScaffoldGraph, scaffoldA, FALSE);
 
-  fprintf(GlobalData->stderrc, "Scaffold B CGW data structure:\n");
-  DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffoldB, FALSE);
-  DumpACIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffoldB, FALSE);
+  fprintf(stderr, "Scaffold B CGW data structure:\n");
+  DumpCIScaffold(stderr, ScaffoldGraph, scaffoldB, FALSE);
+  DumpACIScaffold(stderr, ScaffoldGraph, scaffoldB, FALSE);
 
-  fprintf(GlobalData->stderrc, "\nsEdge cgw data structure:\n");
-  PrintSEdgeT(GlobalData->stderrc, ScaffoldGraph, "sEdge", sEdge, scaffoldA->id);
+  fprintf(stderr, "\nsEdge cgw data structure:\n");
+  PrintSEdgeT(stderr, ScaffoldGraph, "sEdge", sEdge, scaffoldA->id);
 #endif
 
   return 0;
@@ -1447,7 +1447,7 @@ MarkSkippedContigsInOverlapSet(COSData * cos,
   for(i = csi->minIndex + 1; i < csi->maxIndex; i++) {
     if(contigs[i].insert_pnt != cos->index) {
       assert(contigs[i].insert_pnt == NO_OVERLAP_SET);
-      //fprintf(GlobalData->stderrc, "** Contig out of order in overlap set!\n");
+      //fprintf(stderr, "** Contig out of order in overlap set!\n");
       contigs[i].insert_pnt = SKIPPED_CONTIG;
       numSkipped++;
     }
@@ -2126,7 +2126,7 @@ MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
     if((numReordered = ExamineContigOverlapSets(sai,
                                                 overlaps, numOverlaps,
                                                 cosData)) != 0) {
-      fprintf(GlobalData->stderrc, "*** WARNING ***\n"
+      fprintf(stderr, "*** WARNING ***\n"
               "\tScaffolds "F_CID " and "F_CID " can't be merged with edge (%.2f,%.2f)\n"
               "\tbecause %d contigs would have to be re-ordered\n"
               "\t(consider modifying the code to handle this)\n",
@@ -2235,26 +2235,26 @@ MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
     sEdge->idB = idB;
     sEdge->orient = orient;
 
-    fprintf(GlobalData->stderrc,
+    fprintf(stderr,
             "WARNING - Interleaved scaffold adjustments stretch or compress edge too much!\n");
 
-    fprintf(GlobalData->stderrc, "Original Edge:\n");
-    PrintSEdgeT(GlobalData->stderrc, ScaffoldGraph, "", sEdge, sEdge->idA);
-    fprintf(GlobalData->stderrc, "\nNew mean would be %.f\n", newEdgeMean);
+    fprintf(stderr, "Original Edge:\n");
+    PrintSEdgeT(stderr, ScaffoldGraph, "", sEdge, sEdge->idA);
+    fprintf(stderr, "\nNew mean would be %.f\n", newEdgeMean);
 
-    fprintf(GlobalData->stderrc, "Contig overlaps:\n");
-    PrintSegments(GlobalData->stderrc, sai->segmentList);
+    fprintf(stderr, "Contig overlaps:\n");
+    PrintSegments(stderr, sai->segmentList);
 
     /*
-      fprintf(GlobalData->stderrc, "\nOriginal scaffolds:\n");
-      DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffoldA, FALSE);
-      DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffoldB, FALSE);
+      fprintf(stderr, "\nOriginal scaffolds:\n");
+      DumpCIScaffold(stderr, ScaffoldGraph, scaffoldA, FALSE);
+      DumpCIScaffold(stderr, ScaffoldGraph, scaffoldB, FALSE);
 
-      fprintf(GlobalData->stderrc, "\nAdjusted contig positions:");
-      fprintf(GlobalData->stderrc, "Scaffold 'A'\n");
-      PrintScaffold_Tigs(GlobalData->stderrc, contigsA, numContigsA);
-      fprintf(GlobalData->stderrc, "\nScaffold 'B'\n");
-      PrintScaffold_Tigs(GlobalData->stderrc, contigsB, numContigsB);
+      fprintf(stderr, "\nAdjusted contig positions:");
+      fprintf(stderr, "Scaffold 'A'\n");
+      PrintScaffold_Tigs(stderr, contigsA, numContigsA);
+      fprintf(stderr, "\nScaffold 'B'\n");
+      PrintScaffold_Tigs(stderr, contigsB, numContigsB);
     */
     return NULL;
   }
@@ -2329,12 +2329,12 @@ MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
   mySEdge.distance.mean = newEdgeMean;
 
 #ifdef DEBUG1
-  fprintf(GlobalData->stderrc, "Post-adjustment: Scaffold A CGW data structure:\n");
-  DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffoldA, FALSE);
-  fprintf(GlobalData->stderrc, "Post-adjustment: Scaffold B CGW data structure:\n");
-  DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffoldB, FALSE);
-  fprintf(GlobalData->stderrc, "\nsEdge cgw data structure:\n");
-  PrintSEdgeT(GlobalData->stderrc, ScaffoldGraph, "sEdge", sEdge,
+  fprintf(stderr, "Post-adjustment: Scaffold A CGW data structure:\n");
+  DumpCIScaffold(stderr, ScaffoldGraph, scaffoldA, FALSE);
+  fprintf(stderr, "Post-adjustment: Scaffold B CGW data structure:\n");
+  DumpCIScaffold(stderr, ScaffoldGraph, scaffoldB, FALSE);
+  fprintf(stderr, "\nsEdge cgw data structure:\n");
+  PrintSEdgeT(stderr, ScaffoldGraph, "sEdge", sEdge,
               scaffoldA->id);
 #endif
 
