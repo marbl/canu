@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.75 2009-09-09 08:21:55 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.76 2009-09-10 14:58:11 skoren Exp $";
 
 
 #include <stdio.h>
@@ -672,7 +672,15 @@ main(int argc, char **argv) {
     fprintf(stderr, "Beginning CHECKPOINT_AFTER_RESOLVE_SURROGATES\n");
 
     resolveSurrogates(placeAllFragsInSinglePlacedSurros, cutoffToInferSingleCopyStatus);
-
+    // Call resolve surrogate twice, this is necessary for finishing (closure) reads.
+    // Consider a closure read and its two bounding reads, named left and right:
+    //    If one (right) is placed in a unique region while the other (left) is in a surrogate itself, the closure read cannot be placed
+    //    However, once the surrogate bounding read is placed (and fully incorporated which happens at the very end of resolveSurrogates)
+    //    the closure read can be placed. 
+    //    Therefore, we run resolve surrogates twice. 
+    // Note that is closure reads are themselves mated, it may be necessary to do a third round of placement.  
+    resolveSurrogates(placeAllFragsInSinglePlacedSurros, cutoffToInferSingleCopyStatus);
+    
     CheckpointScaffoldGraph(CHECKPOINT_AFTER_RESOLVE_SURROGATES, "after resolve surrogates");
   }
 

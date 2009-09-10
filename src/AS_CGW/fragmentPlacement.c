@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.29 2009-09-09 08:21:56 brianwalenz Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.30 2009-09-10 14:58:11 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -707,7 +707,7 @@ getChunkInstanceID(ChunkInstanceT *chunk, int index) {
   return(-1);
 }
 
-int placedByClosureIn(int index, CDS_CID_t iid, CDS_CID_t sid, CDS_CID_t ctgiid) {
+int placedByClosureIn(int index, CDS_CID_t iid, CDS_CID_t sid, CDS_CID_t ctgiid, HashTable_AS *instanceList) {
    int result = FALSE;
 
    gkPlacement *gkpl = ScaffoldGraph->gkpStore->gkStore_getReadPlacement(iid);
@@ -725,34 +725,53 @@ int placedByClosureIn(int index, CDS_CID_t iid, CDS_CID_t sid, CDS_CID_t ctgiid)
    }
    ChunkInstanceT * begin_chunk = GetGraphNode(ScaffoldGraph->CIGraph, leftMate->CIid);
    ChunkInstanceT * end_chunk   = GetGraphNode(ScaffoldGraph->CIGraph, rightMate->CIid);
-      
+
+   int instanceCount = 0;
    if (leftMate->contigID == ctgiid || rightMate->contigID == ctgiid) {
       if (begin_chunk->scaffoldID == sid && end_chunk->scaffoldID == sid) {
-         // try going off the aend of the leftNode
-         while (begin_chunk->AEndNext != NULLINDEX && begin_chunk->AEndNext != end_chunk->id) {
-            if (begin_chunk->AEndNext == index) {
-               result = TRUE;
-               break;
-            }
-            begin_chunk = GetGraphNode(ScaffoldGraph->CIGraph, begin_chunk->AEndNext);
-         }
-         
-         // if we ran off the end from the left and didn't find the surrogate instance, try from the right
-         if (result || begin_chunk->AEndNext == end_chunk->id) { 
-            // we stopped because we got to the end chunk or we found the instance we were looking for, no need to search other direction
+         // if our parent is already in this surrogate instance, place us here as well
+         if (begin_chunk->id == index || end_chunk->id == index) {
+            result = TRUE;
          } else {
-            begin_chunk = GetGraphNode(ScaffoldGraph->CIGraph, leftMate->CIid);
-            while (end_chunk->AEndNext != NULLINDEX && end_chunk->AEndNext != begin_chunk->id) {
-               if (end_chunk->AEndNext == index) {
+            // try going off the aend of the leftNode
+            while (begin_chunk->BEndNext != NULLINDEX && begin_chunk->BEndNext != end_chunk->id) {
+               if (begin_chunk->BEndNext == index && instanceCount == 0) {
                   result = TRUE;
-                  break;
+                  instanceCount++;
                }
-               end_chunk = GetGraphNode(ScaffoldGraph->CIGraph, end_chunk->AEndNext);
+               else if (ExistsInHashTable_AS(instanceList, begin_chunk->BEndNext, 0)) {
+                  result = FALSE;
+                  instanceCount++;
+               } 
+               begin_chunk = GetGraphNode(ScaffoldGraph->CIGraph, begin_chunk->BEndNext);
+            }
+            
+            // if we ran off the end from the left and didn't find the surrogate instance, try from the right
+            if (result && begin_chunk->BEndNext != NULLINDEX) { 
+               // we stopped because we got to the end chunk or we found the instance we were looking for, no need to search other direction
+            } else {
+               result = FALSE;
+               instanceCount = 0;
+               begin_chunk = GetGraphNode(ScaffoldGraph->CIGraph, leftMate->CIid);
+               while (end_chunk->BEndNext != NULLINDEX && end_chunk->BEndNext != begin_chunk->id) {
+                  if (end_chunk->BEndNext == index && instanceCount == 0) {
+                     result = TRUE;
+                     instanceCount++;
+                  }
+                  else if (ExistsInHashTable_AS(instanceList, end_chunk->BEndNext, 0)) {
+                     result = FALSE;
+                     instanceCount++;
+                  }
+                  end_chunk = GetGraphNode(ScaffoldGraph->CIGraph, end_chunk->BEndNext);
+               }
+               if (end_chunk->BEndNext == NULLINDEX) {
+                  result = FALSE;
+               }
             }
          }
       }
    }
-   
+
    return result;
 }
       
@@ -801,6 +820,23 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
 
     totalNumParentFrags += numFragmentsInParent;
 
+    HashTable_AS *instanceList = CreateScalarHashTable_AS();
+    for(i=0;i<numInstances;i++){
+      ChunkInstanceT *candidateChunk;
+
+      index = getChunkInstanceID(parentChunk, i);
+      candidateChunk = GetGraphNode(ScaffoldGraph->CIGraph, index);
+      AssertPtr (candidateChunk);
+
+      //  These were historically problems that were not asserts, but
+      //  would just skip this instance.
+      assert(parentChunk->type == UNRESOLVEDCHUNK_CGW);
+      assert(candidateChunk->type == RESOLVEDREPEATCHUNK_CGW);
+      assert(parentChunk != candidateChunk);
+      assert(candidateChunk->info.CI.baseID == parentChunk->id);
+      InsertInHashTable_AS(instanceList, (uint64)index, 0, (uint64)1, 0);
+    }
+
     for(i=0;i<numInstances;i++){
       ChunkInstanceT *candidateChunk;
       CDS_CID_t sid,ctgiid;
@@ -816,16 +852,7 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
       assert(parentChunk->type == UNRESOLVEDCHUNK_CGW);
       assert(candidateChunk->type == RESOLVEDREPEATCHUNK_CGW);
       assert(parentChunk != candidateChunk);
-
-      if(candidateChunk->info.CI.baseID != parentChunk->id){
-	if(candidateChunk==parentChunk){
-	  fprintf(stderr,"resolveSurrogates: instance == parent for " F_CID " instance %d\n",
-		  parentChunk->id,i);
-	  continue;
-	} else {
-	  assert(candidateChunk->info.CI.baseID == parentChunk->id);
-	}
-      }
+	   assert(candidateChunk->info.CI.baseID == parentChunk->id);
 
       sid=candidateChunk->scaffoldID;
       ctgiid = candidateChunk->info.CI.contigID;
@@ -840,6 +867,11 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
         ChunkInstanceT *mateChunk;
         int fragIsGood = 0;
 
+        if (nextfrg->CIid != parentChunk->id) {
+          // placed in a previuos round
+          continue;
+        }
+        
         if ((placeAllFragsInSinglePlacedSurros) &&
             (numInstances == 1))
           fragIsGood=1;
@@ -848,12 +880,12 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
             (nextfrg->flags.bits.innieMate) &&
             (FragAndMateAreCompatible(nextfrg,candidateChunk,mate,mateChunk,AS_INNIE))) {
           fragIsGood= 1;          
-            }
+        }
 
         // if this is closure read and we can place it in this location, do it
         if (ScaffoldGraph->gkpStore->gkStore_getFRGtoPLC(nextfrg->iid) != 0 && 
-            placedByClosureIn(index, nextfrg->iid, sid, ctgiid)) {
-         fragIsGood = 1;
+            placedByClosureIn(index, nextfrg->iid, sid, ctgiid, instanceList)) {
+          fragIsGood = 1;
         }
         
         if(fragIsGood){
@@ -878,7 +910,7 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
       }
       CleanupCIFragTInChunkIterator(&frags);
     }  //  Over all instances
-
+    DeleteHashTable_AS(instanceList);
 
     if(numFrgsToPlace==0)
       continue;
