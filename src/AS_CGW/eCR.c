@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.49 2009-08-26 09:07:27 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.50 2009-09-12 12:07:00 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -267,7 +267,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -C gap#        Start at a specific gap number\n");
     fprintf(stderr, "  -b scafBeg     Begin at a specific scaffold\n");
-    fprintf(stderr, "  -e scafEnd     End at a specific scaffold\n");
+    fprintf(stderr, "  -e scafEnd     End after a specific scaffold (INCLUSIVE)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -o scafIID     Process only this scaffold\n");
     fprintf(stderr, "  -s scafIID     Skip this scaffold\n");
@@ -278,10 +278,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -p partition   Load a gkpStore partition into memory\n");
     exit(1);
-  }
-  if (scaffoldBegin == scaffoldEnd) {
-    fprintf(stderr, "%s: Nothing to do, no scaffolds selected: -b == -e\n", argv[0]);
-    exit(0);
   }
 
   LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, TRUE);
@@ -317,11 +313,15 @@ main(int argc, char **argv) {
   //
   if (scaffoldBegin == -1)
     scaffoldBegin = 0;
-  if (scaffoldEnd == -1)
-    scaffoldEnd = GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph);
-  if (scaffoldEnd > GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph))
-    scaffoldEnd = GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph);
 
+  if ((scaffoldEnd == -1) ||
+      (scaffoldEnd >= GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph)))
+    scaffoldEnd = GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph) - 1;
+
+  if (scaffoldBegin > scaffoldEnd) {
+    fprintf(stderr, "%s: Nothing to do, no scaffolds selected: -b = %d > -e = %d\n", argv[0], scaffoldBegin, scaffoldEnd);
+    exit(0);
+  }
 
   //  Intiialize the variable arrays
   //
@@ -334,7 +334,7 @@ main(int argc, char **argv) {
   //  Scan all the scaffolds, closing gaps.  Go!
   //
 
-  for (sid = scaffoldBegin; sid < scaffoldEnd; sid++) {
+  for (sid = scaffoldBegin; sid <= scaffoldEnd; sid++) {
     CIScaffoldT    *scaff            = NULL;
     ContigT        *lcontig          = NULL;
     int             lcontigID        = 0;
