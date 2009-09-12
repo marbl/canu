@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.50 2009-09-12 12:07:00 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.51 2009-09-12 22:35:58 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -190,7 +190,7 @@ main(int argc, char **argv) {
   //
   saveDefaultLocalAlignerVariables();
 
-  GlobalData           = CreateGlobal_CGW();
+  GlobalData           = new Globals_CGW();
 
   //  Could be cleaner (allocate only if options are present) but not
   //  simpler.
@@ -201,10 +201,10 @@ main(int argc, char **argv) {
 
   while (arg < argc) {
     if        (strcmp(argv[arg], "-c") == 0) {
-      strcpy(GlobalData->File_Name_Prefix, argv[++arg]);
+      strcpy(GlobalData->outputPrefix, argv[++arg]);
 
     } else if (strcmp(argv[arg], "-g") == 0) {
-      strcpy(GlobalData->Gatekeeper_Store_Name, argv[++arg]);
+      strcpy(GlobalData->gkpStoreName, argv[++arg]);
 
     } else if (strcmp(argv[arg], "-C") == 0) {
       startingGap = atoi(argv[++arg]);
@@ -256,8 +256,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "%s: ERROR!  Invalid iteration %d.\n", argv[0], iterNumber+1);
     err++;
   }
-  if ((GlobalData->File_Name_Prefix[0] == 0) ||
-      (GlobalData->Gatekeeper_Store_Name[0] == 0) ||
+  if ((GlobalData->outputPrefix[0] == 0) ||
+      (GlobalData->gkpStoreName[0] == 0) ||
       (err)) {
     fprintf(stderr, "usage: %s [opts] -c ckpName -n ckpNumber -g gkpStore\n", argv[0]);
     fprintf(stderr, "\n");
@@ -280,13 +280,13 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, TRUE);
+  LoadScaffoldGraphFromCheckpoint(GlobalData->outputPrefix, ckptNum, TRUE);
 
   //  After the graph is loaded, we reopen the gatekeeper store for
   //  read/write.
   //
   delete ScaffoldGraph->gkpStore;
-  ScaffoldGraph->gkpStore = new gkStore(GlobalData->Gatekeeper_Store_Name, FALSE, TRUE);
+  ScaffoldGraph->gkpStore = new gkStore(GlobalData->gkpStoreName, FALSE, TRUE);
 
   //  Create the starting clear range backup, if we're the first
   //  iteration.  We copy this from the LATEST clear, which will
@@ -1116,7 +1116,7 @@ main(int argc, char **argv) {
   CheckpointScaffoldGraph("extendClearRanges", "after extendClearRanges");
 
   DestroyScaffoldGraph(ScaffoldGraph);
-  DeleteGlobal_CGW(GlobalData);
+  delete GlobalData;
 
 
 

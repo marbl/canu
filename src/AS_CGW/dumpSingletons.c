@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: dumpSingletons.c,v 1.28 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: dumpSingletons.c,v 1.29 2009-09-12 22:35:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,7 +72,7 @@ main( int argc, char **argv) {
   uint64       uidStart          = 1230000;
   UIDserver   *uids              = NULL;
 
-  GlobalData          = CreateGlobal_CGW();
+  GlobalData = new Globals_CGW();
 
   argc = AS_configure(argc, argv);
 
@@ -80,11 +80,11 @@ main( int argc, char **argv) {
   int arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-p") == 0) {
-      ckptNum = SetFileNamePrefix_CGW(GlobalData, argv[++arg]);
+      ckptNum = GlobalData->setPrefix(argv[++arg]);
     } else if (strcmp(argv[arg], "-c") == 0) {
-      strcpy(GlobalData->File_Name_Prefix, argv[++arg]);
+      strcpy(GlobalData->outputPrefix, argv[++arg]);
     } else if (strcmp(argv[arg], "-g") == 0) {
-      strcpy(GlobalData->Gatekeeper_Store_Name, argv[++arg]);
+      strcpy(GlobalData->gkpStoreName, argv[++arg]);
     } else if (strcmp(argv[arg], "-n") == 0) {
       ckptNum = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-U") == 0) {
@@ -98,8 +98,8 @@ main( int argc, char **argv) {
     arg++;
   }
 
-  if ((GlobalData->File_Name_Prefix[0]      == 0) ||
-      (GlobalData->Gatekeeper_Store_Name[0] == 0)) {
+  if ((GlobalData->outputPrefix[0]      == 0) ||
+      (GlobalData->gkpStoreName[0] == 0)) {
     fprintf(stderr, "usage: %s [[-p prefix] | [-c name -g gkpstore -n ckptNum]] [-U] [-S]\n", argv[0]);
     fprintf(stderr, "  -p      Attempt to locate the last checkpoint in directory 7-CGW.\n");
     fprintf(stderr, "  -c      Look for checkpoints in 'name'\n");
@@ -114,7 +114,7 @@ main( int argc, char **argv) {
 
   char *toprint = (char *)safe_malloc(sizeof(char) * (AS_READ_MAX_LEN + 51 + AS_READ_MAX_LEN + 2));
 
-  LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, FALSE);
+  LoadScaffoldGraphFromCheckpoint(GlobalData->outputPrefix, ckptNum, FALSE);
 
   int ifrag;
   for (ifrag=0; ifrag < GetNumVA_CIFragT(ScaffoldGraph->CIFrags); ifrag++) {
@@ -175,6 +175,8 @@ main( int argc, char **argv) {
                         AS_UID_toString(mUID));
     }
   }
+
+  delete GlobalData;
 
   exit(0);
 }

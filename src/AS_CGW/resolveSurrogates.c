@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: resolveSurrogates.c,v 1.22 2009-02-02 13:51:14 brianwalenz Exp $";
+const char *mainid = "$Id: resolveSurrogates.c,v 1.23 2009-09-12 22:35:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,7 +48,7 @@ main(int argc, char **argv) {
   double  cutoffToInferSingleCopyStatus     = 1.0;
   int     ckptNum                           = 0;
 
-  GlobalData          = CreateGlobal_CGW();
+  GlobalData = new Globals_CGW();
 
   argc = AS_configure(argc, argv);
 
@@ -56,9 +56,9 @@ main(int argc, char **argv) {
   int err=0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-c") == 0) {
-      strcpy(GlobalData->File_Name_Prefix, argv[++arg]);
+      strcpy(GlobalData->outputPrefix, argv[++arg]);
     } else if (strcmp(argv[arg], "-g") == 0) {
-      strcpy(GlobalData->Gatekeeper_Store_Name, argv[++arg]);
+      strcpy(GlobalData->gkpStoreName, argv[++arg]);
     } else if (strcmp(argv[arg], "-n") == 0) {
       ckptNum = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-S") == 0) {
@@ -72,8 +72,8 @@ main(int argc, char **argv) {
     arg++;
   }
   if ((err) ||
-      (GlobalData->File_Name_Prefix[0] == 0) ||
-      (GlobalData->Gatekeeper_Store_Name[0] == 0) ||
+      (GlobalData->outputPrefix[0] == 0) ||
+      (GlobalData->gkpStoreName[0] == 0) ||
       (ckptNum == 0)) {
     fprintf(stderr, "usage: %s -g <gkp> -c <ckp> -n <num> opts\n",argv[0]);
     fprintf(stderr, "  -S x   place all frags in singly-placed surrogates if\n");
@@ -83,11 +83,13 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, TRUE);
+  LoadScaffoldGraphFromCheckpoint(GlobalData->outputPrefix, ckptNum, TRUE);
 
   resolveSurrogates(placeAllFragsInSinglePlacedSurros, cutoffToInferSingleCopyStatus);
 
   CheckpointScaffoldGraph("resolveSurrogates", "after resolveSurrogates");
+
+  delete GlobalData;
 
   exit(0);
 }

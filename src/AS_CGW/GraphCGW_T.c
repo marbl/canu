@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.76 2009-09-09 08:21:56 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.77 2009-09-12 22:35:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3964,7 +3964,7 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
   //
   //  We have to grab the UID from gatekeeper.  Sigh.
   {
-    gkStore  *gkpStore = new gkStore(GlobalData->Gatekeeper_Store_Name, FALSE, FALSE);
+    gkStore  *gkpStore = new gkStore(GlobalData->gkpStoreName, FALSE, FALSE);
     FILE             *fout;
     char              filename[FILENAME_MAX];
     GenericMesg       pmesg;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.63 2009-09-09 08:21:56 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.64 2009-09-12 22:35:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -182,7 +182,7 @@ ProcessFrags(void) {
 
 
 
-int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
+int ProcessInput(int optind, int argc, char *argv[]){
   GenericMesg   *pmesg;
   FILE *infp;
   int i,j = 0;

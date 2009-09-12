@@ -22,7 +22,7 @@
 #ifndef INPUTDATATYPES_CGW_H
 #define INPUTDATATYPES_CGW_H
 
-static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id: InputDataTypes_CGW.h,v 1.20 2009-07-30 10:42:55 brianwalenz Exp $";
+static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id: InputDataTypes_CGW.h,v 1.21 2009-09-12 22:35:57 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -31,13 +31,6 @@ typedef struct {
   double  mean;
   double variance;
 }LengthT;
-
-// Do the arithmetic and stats on two unordered pairs of LengthTs
-// If resulting variance is negative assert
-void ComputeIntervalLength(LengthT *result,
-			   LengthT *aEndA, LengthT *bEndA,
-			   LengthT *aEndB, LengthT *bEndB);
-
 
 
 typedef enum {X_X = 'X', A_B = 'F', B_A = 'R'} FragOrient;

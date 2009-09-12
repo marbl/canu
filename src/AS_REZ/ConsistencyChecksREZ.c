@@ -30,7 +30,7 @@
 
 **********************************************************************/
 
-static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.14 2009-06-10 18:05:14 brianwalenz Exp $";
+static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.15 2009-09-12 22:35:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -201,8 +201,7 @@ int Is_Edge_Consistent(CIEdgeT *edge,
 
 
 /* declaration of two function in ChunkOverlap_CGW.c */
-void ComputeCanonicalOverlap(Global_CGW *data,
-			     ChunkOverlapperT *chunkOverlapper,
+void ComputeCanonicalOverlap(ChunkOverlapperT *chunkOverlapper,
 			     ChunkOverlapCheckT *canOlap);
 
 int InitCanonicalOverlapSpec(int cidA, int cidB,

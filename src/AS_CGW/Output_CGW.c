@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.42 2009-09-09 08:21:56 brianwalenz Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.43 2009-09-12 22:35:57 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -399,7 +399,7 @@ static int SurrogatedSingleUnitigContig( NodeCGW_T* contig)
 
 
 
-void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges)
+void OutputContigLinks(ScaffoldGraphT *graph)
 {
   IntContigLinkMesg		clm;
   GenericMesg			pmesg;
@@ -480,7 +480,7 @@ void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges)
       edgeTotal = clm.num_contributing = edge->edgesContributing;
       if (clm.overlap_type != AS_NO_OVERLAP)
 	--edgeTotal;
-      if (!edgeTotal && !outputOverlapOnlyContigEdges)
+      if (!edgeTotal && !GlobalData->outputOverlapOnlyContigEdges)
 	continue;	// don't output pure overlap edges
 
 
@@ -499,7 +499,7 @@ void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges)
 	  imp.in1 = imp.in2 = 0;
 	}
 	if(isOverlapEdge(edge)){
-	  assert(outputOverlapOnlyContigEdges);
+	  assert(GlobalData->outputOverlapOnlyContigEdges);
 	  imp.type = AS_UNMATED;
         }else{
           imp.type = AS_MATE;

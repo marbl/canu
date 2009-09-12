@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.42 2009-09-09 08:21:56 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.43 2009-09-12 22:35:57 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -140,7 +140,7 @@ LoadScaffoldGraphFromCheckpoint(char   *name,
   ScaffoldGraph->sequenceDB = SequenceDB = openSequenceDB(ckpfile, readWrite, checkPointNum);
 
   //  Open the gkpStore
-  ScaffoldGraph->gkpStore = new gkStore(GlobalData->Gatekeeper_Store_Name, FALSE, FALSE);
+  ScaffoldGraph->gkpStore = new gkStore(GlobalData->gkpStoreName, FALSE, FALSE);
 
   //  Check (and cleanup?) scaffolds
   SetCIScaffoldTLengths(ScaffoldGraph, TRUE);
@@ -156,8 +156,8 @@ CheckpointScaffoldGraph(const char *logicalname, const char *location) {
   char ckpfile[FILENAME_MAX];
   char tmgfile[FILENAME_MAX];
 
-  sprintf(ckpfile, "%s.ckp.%d", GlobalData->File_Name_Prefix, ScaffoldGraph->checkPointIteration++);
-  sprintf(tmgfile, "%s.timing", GlobalData->File_Name_Prefix);
+  sprintf(ckpfile, "%s.ckp.%d", GlobalData->outputPrefix, ScaffoldGraph->checkPointIteration++);
+  sprintf(tmgfile, "%s.timing", GlobalData->outputPrefix);
 
   errno = 0;
   FILE *F = fopen(ckpfile, "w");
@@ -266,7 +266,7 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name) {
   sgraph->ContigGraph   = CreateGraphCGW(CONTIG_GRAPH, 1, 1);
   sgraph->ScaffoldGraph = CreateGraphCGW(SCAFFOLD_GRAPH, NULLINDEX, NULLINDEX);
 
-  sgraph->gkpStore = new gkStore(GlobalData->Gatekeeper_Store_Name, FALSE, FALSE);
+  sgraph->gkpStore = new gkStore(GlobalData->gkpStoreName, FALSE, FALSE);
 
   int numFrags = sgraph->gkpStore->gkStore_getNumFragments();
   int numDists = sgraph->gkpStore->gkStore_getNumLibraries();
@@ -652,7 +652,7 @@ int RepeatRez(int repeatRezLevel, char *name){
 
     do
       {
-        normal_inserts = Fill_Gaps (GlobalData, name, repeatRezLevel, iter);
+        normal_inserts = Fill_Gaps (name, repeatRezLevel, iter);
         if  (normal_inserts > 0)
           {
             didSomething = TRUE;

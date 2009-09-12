@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.52 2009-08-28 17:35:11 skoren Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.53 2009-09-12 22:35:58 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -5860,7 +5860,7 @@ static int  Estimate_Chunk_Ends
 
 
 int  Fill_Gaps
-(Global_CGW * data, char * prefix, int level, int redo_index)
+(char * prefix, int level, int redo_index)
 
 //  Assign unresolved fragments to scaffolds.  This is the main entry
 //  point from the chunk-graph-walker module.

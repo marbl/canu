@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: exploreGapStructure.c,v 1.18 2009-05-12 17:25:31 brianwalenz Exp $";
+const char *mainid = "$Id: exploreGapStructure.c,v 1.19 2009-09-12 22:35:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,7 +37,7 @@ main (int argc , char * argv[] ) {
 
   int            sid = 0;
 
-  GlobalData = CreateGlobal_CGW();
+  GlobalData = new Globals_CGW();
 
   argc = AS_configure(argc, argv);
 
@@ -45,7 +45,7 @@ main (int argc , char * argv[] ) {
   int err = 0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-c") == 0) {
-      strcpy(GlobalData->File_Name_Prefix, argv[++arg]);
+      strcpy(GlobalData->outputPrefix, argv[++arg]);
     } else if (strcmp(argv[arg], "-d") == 0) {
       DistFromGap = atoi(argv[++arg]);
       if (DistFromGap > 9999) {
@@ -53,7 +53,7 @@ main (int argc , char * argv[] ) {
         exit(1);
       }
     } else if (strcmp(argv[arg], "-g") == 0) {
-      strcpy(GlobalData->Gatekeeper_Store_Name, argv[++arg]);
+      strcpy(GlobalData->gkpStoreName, argv[++arg]);
     } else if (strcmp(argv[arg], "-n") == 0) {
       ckptNum = atoi(argv[++arg]);
     } else {
@@ -63,14 +63,14 @@ main (int argc , char * argv[] ) {
     arg++;
   }
   if ((err > 0) ||
-      (GlobalData->File_Name_Prefix[0] == 0) ||
-      (GlobalData->Gatekeeper_Store_Name[0] == 0)) {
+      (GlobalData->outputPrefix[0] == 0) ||
+      (GlobalData->gkpStoreName[0] == 0)) {
     fprintf(stderr, "usage: %s -g <gkpStore> -c <ckptName> -n <ckptNum> -d distance_from_end\n",
             argv[0]);
     exit(1);
   }
 
-  LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, FALSE);
+  LoadScaffoldGraphFromCheckpoint(GlobalData->outputPrefix, ckptNum, FALSE);
 
   ma            = CreateEmptyMultiAlignT();
 
@@ -162,6 +162,8 @@ main (int argc , char * argv[] ) {
       }
     }
   }
+
+  delete GlobalData;
 
   exit(0);
 }

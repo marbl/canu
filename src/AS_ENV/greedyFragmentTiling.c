@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: greedyFragmentTiling.c,v 1.19 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: greedyFragmentTiling.c,v 1.20 2009-09-12 22:35:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -727,8 +727,6 @@ int ovlThickness(OVSoverlap o, int frglen, int afrg, int Aend){
 
 
 int main (int argc , char * argv[] ) {
-
-  Global_CGW *data;
   char *prefix;
   int ckptNum = NULLINDEX;
   int i, index;
@@ -767,7 +765,7 @@ int main (int argc , char * argv[] ) {
   int minlen=40;
   int avoidDeadEnds=1;
 
-  GlobalData  = data = CreateGlobal_CGW();
+  GlobalData = new Globals_CGW();
 
   setbuf(stdout,NULL);
 
