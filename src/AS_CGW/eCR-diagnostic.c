@@ -19,7 +19,7 @@
  *************************************************************************/
 
 
-static const char *rcsid = "$Id: eCR-diagnostic.c,v 1.6 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid = "$Id: eCR-diagnostic.c,v 1.7 2009-09-14 13:28:45 brianwalenz Exp $";
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
 
@@ -165,7 +165,7 @@ DumpContigUngappedOffsets(char *label, int contigID) {
 
     fprintf(debug.diagnosticFP, "in DCUO, contig %8d, frag %10d, mp->position.bgn: %10d, mp->position.end: %10d, "
             "len: %10d, contained: %8d, source: %10d\n",
-            contigID, frag->iid, mp->position.bgn, mp->position.end, abs(mp->position.bgn - mp->position.end),
+            contigID, frag->read_iid, mp->position.bgn, mp->position.end, abs(mp->position.bgn - mp->position.end),
             mp->contained, mp->sourceInt);
   }
 }

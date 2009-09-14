@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.51 2009-09-12 22:35:58 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.52 2009-09-14 13:28:45 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -414,7 +414,7 @@ main(int argc, char **argv) {
 
         for (i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
           AS_IID          iid = GetCIFragT(ScaffoldGraph->CIFrags,
-                                           GetIntMultiPos(ma->f_list, i)->sourceInt)->iid;
+                                           GetIntMultiPos(ma->f_list, i)->sourceInt)->read_iid;
           uint32  bgnOld, bgnCur;
           uint32  endOld, endCur;
 
@@ -1241,12 +1241,12 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
       uint32 clr_end;
       uint32 seq_len;
 
-      getExtendableClearRange(frag->iid, clr_bgn, clr_end, seq_len);
+      getExtendableClearRange(frag->read_iid, clr_bgn, clr_end, seq_len);
 
       int ext = seq_len - clr_end - frag->contigOffset3p.mean;
 
       if (ext > 30) {
-        extFragsArray[extendableFragCount].fragIid           = frag->iid;
+        extFragsArray[extendableFragCount].fragIid           = frag->read_iid;
         extFragsArray[extendableFragCount].ctgMaxExt   = ext;
         extFragsArray[extendableFragCount].frgMaxExt  = seq_len - clr_end;
         extFragsArray[extendableFragCount].basesToNextFrag   = 0;
@@ -1258,7 +1258,7 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
         if (debug.eCRmainLV > 0)
           fprintf(debug.eCRmainFP, "frstExt: in contig %d, frag %d is at %f -> %f (5p->3p) -- ctgMaxExt %d, frgMaxExt %d\n",
                   contig->id,
-                  frag->iid,
+                  frag->read_iid,
                   frag->contigOffset5p.mean,
                   frag->contigOffset3p.mean,
                   extFragsArray[extendableFragCount].ctgMaxExt,
@@ -1342,12 +1342,12 @@ findLastExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
       uint32 clr_end;
       uint32 seq_len;
 
-      getExtendableClearRange(frag->iid, clr_bgn, clr_end, seq_len);
+      getExtendableClearRange(frag->read_iid, clr_bgn, clr_end, seq_len);
 
       int ext = seq_len - clr_end - (int) (contig->bpLength.mean - frag->contigOffset3p.mean);
 
       if (ext > 30) {
-        extFragsArray[extendableFragCount].fragIid           = frag->iid;
+        extFragsArray[extendableFragCount].fragIid           = frag->read_iid;
         extFragsArray[extendableFragCount].ctgMaxExt   = ext;
         extFragsArray[extendableFragCount].frgMaxExt  = seq_len - clr_end;
         extFragsArray[extendableFragCount].basesToNextFrag   = 0;
@@ -1359,7 +1359,7 @@ findLastExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
         if (debug.eCRmainLV > 0)
           fprintf(debug.eCRmainFP, "lastExt: in contig %d, frag %d is at %f -> %f (5p->3p) -- ctgExt %d, frgExt %d\n",
                   contig->id,
-                  frag->iid,
+                  frag->read_iid,
                   frag->contigOffset5p.mean,
                   frag->contigOffset3p.mean,
                   extFragsArray[extendableFragCount].ctgMaxExt,

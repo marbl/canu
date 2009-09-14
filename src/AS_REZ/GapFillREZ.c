@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.53 2009-09-12 22:35:58 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.54 2009-09-14 13:28:45 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -8900,16 +8900,16 @@ static void  Print_Frag_Info
       CIFragT  * frag = GetCIFragT (ScaffoldGraph -> CIFrags,
                                     fragID);
 
-      assert (ident == frag -> iid);
+      assert (ident == frag -> read_iid);
       fprintf (fp,
                "    %7" F_CIDP "/%7" F_CIDP "/%c [%5.0f,%5.0f]",
                fragID, ident, (char) frag -> type,
                frag -> offset5p . mean, frag -> offset3p . mean);
 
-      if  (frag -> flags . bits . hasMate == 1 && frag -> mateOf != NULLINDEX)
+      if  (frag -> flags . bits . hasMate == 1 && frag -> mate_iid != NULLINDEX)
         {
           CIFragT  * mateFrag
-            = GetCIFragT (ScaffoldGraph -> CIFrags, frag -> mateOf);
+            = GetCIFragT (ScaffoldGraph -> CIFrags, frag -> mate_iid);
           ChunkInstanceT  * mateChunk
             = GetGraphNode (ScaffoldGraph -> CIGraph,
                             mateFrag -> CIid);
@@ -8918,7 +8918,7 @@ static void  Print_Frag_Info
           assert (mateChunk != NULL);
           fprintf (fp,
                    " %7d/%6d [%5.0f,%5.0f] %6d [%6.0f,%6.0f] %6d %6.0f  %c %c",
-                   frag -> mateOf,
+                   frag -> mate_iid,
 #if  1
                    mateChunk -> id,
                    mateFrag -> offset5p . mean,
@@ -10867,10 +10867,10 @@ static void  Show_Read_Info
                " %7" F_CIDP " %6.0f %6.0f",
                ident, frag -> offset5p . mean, frag -> offset3p . mean);
 
-      if  (frag -> flags . bits. hasMate == 1 && frag -> mateOf != NULLINDEX)
+      if  (frag -> flags . bits. hasMate == 1 && frag -> mate_iid != NULLINDEX)
         {
           CIFragT  * mateFrag
-            = GetCIFragT (ScaffoldGraph -> CIFrags, frag -> mateOf);
+            = GetCIFragT (ScaffoldGraph -> CIFrags, frag -> mate_iid);
           ChunkInstanceT  * mateChunk
             = GetGraphNode (ScaffoldGraph -> CIGraph,
                             mateFrag -> CIid);

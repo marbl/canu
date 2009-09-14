@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.30 2009-09-10 14:58:11 skoren Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.31 2009-09-14 13:28:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -330,7 +330,7 @@ void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_
 
   /* If this fragment has no constraints... continue */
   if(frag->flags.bits.hasMate == 0){
-    assert(frag->mateOf == NULLINDEX);
+    assert(frag->mate_iid == NULLINDEX);
     return;
   }
 
@@ -338,7 +338,7 @@ void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_
   //  it's possibly to have links but no fragment.  Check and warn
   //  when this happens.
   //
-  if (frag->mateOf == NULLINDEX) {
+  if (frag->mate_iid == NULLINDEX) {
     if (frag->flags.bits.hasMate > 0)
       fprintf(stderr, "InitCGWMateIterator()-- WARNING!  Fragment "F_IID" has no mate, but still has a matelink!\n",
               fragIID);
@@ -392,7 +392,7 @@ void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_
   //  old code where a read could have more than one mate.  Code now
   //  has at most one mate.
 
-  mates->nextLink = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf)->iid;
+  mates->nextLink = GetCIFragT(ScaffoldGraph->CIFrags,frag->mate_iid)->read_iid;
 
   return;
 
@@ -471,7 +471,7 @@ int scaffoldOf(CDS_CID_t fiid){
 int matePlacedIn(CIFragT *frg, CDS_CID_t sid){
   CGWMateIterator mates;
   CDS_CID_t linkIID;
-  InitCGWMateIterator(&mates,frg->iid,ALL_MATES,NULL);
+  InitCGWMateIterator(&mates,frg->read_iid,ALL_MATES,NULL);
   while(NextCGWMateIterator(&mates,&linkIID)){
     if(sid == scaffoldOf(linkIID)) return TRUE;
   }
@@ -483,7 +483,7 @@ int matePlacedOnlyIn(CIFragT *frg, CDS_CID_t sid, CIFragT **mate, ChunkInstanceT
   CGWMateIterator mates;
   CDS_CID_t linkIID, mateiid;
   CDS_CID_t placedIn = NULLINDEX;
-  InitCGWMateIterator(&mates,frg->iid,ALL_MATES,NULL);
+  InitCGWMateIterator(&mates,frg->read_iid,ALL_MATES,NULL);
   while(NextCGWMateIterator(&mates,&linkIID)){
     CDS_CID_t place = scaffoldOf(linkIID);
     if(place!=NULLINDEX){
@@ -883,8 +883,8 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
         }
 
         // if this is closure read and we can place it in this location, do it
-        if (ScaffoldGraph->gkpStore->gkStore_getFRGtoPLC(nextfrg->iid) != 0 && 
-            placedByClosureIn(index, nextfrg->iid, sid, ctgiid, instanceList)) {
+        if (ScaffoldGraph->gkpStore->gkStore_getFRGtoPLC(nextfrg->read_iid) != 0 && 
+            placedByClosureIn(index, nextfrg->read_iid, sid, ctgiid, instanceList)) {
           fragIsGood = 1;
         }
         
@@ -893,7 +893,7 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
           IntMultiPos imp;
 
           imp.type         = (FragType)nextfrg->type;
-          imp.ident        = nextfrg->iid;
+          imp.ident        = nextfrg->read_iid;
           imp.contained    = 0; /* this might be wrong! */
           imp.parent       = 0;
           imp.sourceInt    = 0;
@@ -962,7 +962,7 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
         ResetVA_CDS_CID_t(toplace);
 
         while(NextCIFragTInChunkIterator(&frags, &nextfrg))
-          AppendVA_CDS_CID_t(toplace,&(nextfrg->iid));
+          AppendVA_CDS_CID_t(toplace,&(nextfrg->read_iid));
 
         CleanupCIFragTInChunkIterator(&frags);
       }

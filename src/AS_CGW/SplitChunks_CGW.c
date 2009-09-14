@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.49 2009-09-09 08:21:56 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.50 2009-09-14 13:28:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -98,7 +98,7 @@ AddLinkToMaps(ScaffoldGraphT *graph,
   if((isUnitig && frag->cid == mfrag->cid) ||
      (!isUnitig && frag->contigID == mfrag->contigID)) {
     // for pairs in the same unitig, just process the lesser
-    if(frag->iid < mfrag->iid) {
+    if(frag->read_iid < mfrag->read_iid) {
       // if orientation is the same, the pair is bad
       if((isUnitig && getCIFragOrient(frag) == getCIFragOrient(mfrag)) ||
          (!isUnitig && GetContigFragOrient(frag) == GetContigFragOrient(mfrag))) {
@@ -304,9 +304,9 @@ CreateCloneCoverageMaps(ScaffoldGraphT *graph,
     // even in pairs that are in different unitigs/contigs
 
     if ((frag->flags.bits.hasMate > 0) &&
-        (frag->mateOf != NULLINDEX))
+        (frag->mate_iid != NULLINDEX))
       AddLinkToMaps(graph, gcc, bcc, frag,
-                    GetCIFragT(graph->CIFrags, frag->mateOf),
+                    GetCIFragT(graph->CIFrags, frag->mate_iid),
                     ((frag->flags.bits.innieMate) ? AS_INNIE : AS_OUTTIE),
                     frag->dist,
                     GetMultiAlignLength(ma),

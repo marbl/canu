@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.43 2009-09-12 22:35:57 brianwalenz Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.44 2009-09-14 13:28:44 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -113,7 +113,7 @@ void OutputFrags(ScaffoldGraphT *graph){
 
     cifrag = GetCIFragT(graph->CIFrags, info->fragIndex);
 
-    assert(cifrag->iid == i);
+    assert(cifrag->read_iid == i);
 
     switch(cifrag->flags.bits.edgeStatus){
       case INVALID_EDGE_STATUS:             cinvalid++;    break;
@@ -129,7 +129,7 @@ void OutputFrags(ScaffoldGraphT *graph){
     //  Terminator sets the final fragment clear range based on the
     //  fragStore.
 
-    iaf.iaccession     = cifrag->iid;
+    iaf.iaccession     = cifrag->read_iid;
     iaf.type           = (FragType)cifrag->type;
     iaf.chaff          = cifrag->flags.bits.isChaff;
     iaf.mate_status    = cifrag->flags.bits.mateDetail;
@@ -158,27 +158,27 @@ void OutputFrags(ScaffoldGraphT *graph){
 
     cif1 = GetCIFragT(graph->CIFrags, inf1->fragIndex);
 
-    if (cif1->mateOf < 1)
+    if (cif1->mate_iid < 1)
       continue;
 
-    cif2 = GetCIFragT(graph->CIFrags, cif1->mateOf);
+    cif2 = GetCIFragT(graph->CIFrags, cif1->mate_iid);
 
-    if (cif1->iid > cif2->iid)
+    if (cif1->read_iid > cif2->read_iid)
       continue;
 
-    inf2 = GetInfoByIID(graph->iidToFragIndex, cif2->iid);
+    inf2 = GetInfoByIID(graph->iidToFragIndex, cif2->read_iid);
 
     if(!inf2->set)
       continue;
 
-    assert(inf1->fragIndex == cif2->mateOf);
-    assert(inf2->fragIndex == cif1->mateOf);
+    assert(inf1->fragIndex == cif2->mate_iid);
+    assert(inf2->fragIndex == cif1->mate_iid);
 
     assert(cif1->flags.bits.edgeStatus == cif2->flags.bits.edgeStatus);
     assert(cif1->flags.bits.mateDetail == cif2->flags.bits.mateDetail);
 
-    iam.fragment1   = cif1->iid;
-    iam.fragment2   = cif2->iid;
+    iam.fragment1   = cif1->read_iid;
+    iam.fragment2   = cif2->read_iid;
     iam.mate_status = cif1->flags.bits.mateDetail;
 
     pmesg.m = &iam;
@@ -490,11 +490,11 @@ void OutputContigLinks(ScaffoldGraphT *graph)
 	  frag = GetCIFragT(ScaffoldGraph->CIFrags, edge->fragA);
 	  //	  frag->outMateStat = mstat;
 	  frag->flags.bits.edgeStatus = GetEdgeStatus(edge);
-	  imp.in1 = frag->iid;
+	  imp.in1 = frag->read_iid;
 	  frag = GetCIFragT(ScaffoldGraph->CIFrags, edge->fragB);
 	  frag->flags.bits.edgeStatus = GetEdgeStatus(edge);
 	  //	  frag->outMateStat = mstat;
-	  imp.in2 = frag->iid;
+	  imp.in2 = frag->read_iid;
 	}else{
 	  imp.in1 = imp.in2 = 0;
 	}
@@ -518,11 +518,11 @@ void OutputContigLinks(ScaffoldGraphT *graph)
 	    continue;		// overlap edges don't count
 	  ++edgeCount;
 	  frag = GetCIFragT(ScaffoldGraph->CIFrags, redge->fragA);
-	  imp.in1 = frag->iid;
+	  imp.in1 = frag->read_iid;
 	  frag->flags.bits.edgeStatus = GetEdgeStatus(edge);
 	  frag = GetCIFragT(ScaffoldGraph->CIFrags, redge->fragB);
 	  frag->flags.bits.edgeStatus = GetEdgeStatus(edge);
-	  imp.in2 = frag->iid;
+	  imp.in2 = frag->read_iid;
           assert(!isOverlapEdge(redge));
           imp.type = AS_MATE;
           AppendIntMate_Pairs(JumpList, &imp);
@@ -584,10 +584,10 @@ static void OutputScaffoldLink(ScaffoldGraphT * graph,
     if(edgeTotal == 1){
       frag = GetCIFragT(ScaffoldGraph->CIFrags, edge->fragA);
       frag->flags.bits.edgeStatus = GetEdgeStatus(edge);
-      imp.in1 = frag->iid;
+      imp.in1 = frag->read_iid;
       frag = GetCIFragT(ScaffoldGraph->CIFrags, edge->fragB);
       frag->flags.bits.edgeStatus = GetEdgeStatus(edge);
-      imp.in2 = frag->iid;
+      imp.in2 = frag->read_iid;
     }else{
       imp.in1 = imp.in2 = 0;
     }
@@ -607,11 +607,11 @@ static void OutputScaffoldLink(ScaffoldGraphT * graph,
       assert(!isOverlapEdge(redge));
       ++edgeCount;
       frag = GetCIFragT(ScaffoldGraph->CIFrags, redge->fragA);
-      imp.in1 = frag->iid;
+      imp.in1 = frag->read_iid;
       frag->flags.bits.edgeStatus = GetEdgeStatus(edge);
       frag = GetCIFragT(ScaffoldGraph->CIFrags, redge->fragB);
       frag->flags.bits.edgeStatus = GetEdgeStatus(edge);
-      imp.in2 = frag->iid;
+      imp.in2 = frag->read_iid;
       imp.type = AS_MATE;
       AppendIntMate_Pairs(JumpList, &imp);
     }
@@ -868,9 +868,9 @@ void OutputUnitigLinksFromMultiAligns(void){
         edgeCount = 1;
         frag = GetCIFragT(ScaffoldGraph->CIFrags, edge->fragA);
         AssertPtr(frag);
-        imp.in1 = frag->iid;
+        imp.in1 = frag->read_iid;
         frag = GetCIFragT(ScaffoldGraph->CIFrags, edge->fragB);
-        imp.in2 = frag->iid;
+        imp.in2 = frag->read_iid;
         AssertPtr(frag);
         assert(!isOverlapEdge(edge));
         imp.type = AS_MATE;
@@ -889,10 +889,10 @@ void OutputUnitigLinksFromMultiAligns(void){
           ++edgeCount;
           frag = GetCIFragT(ScaffoldGraph->CIFrags, redge->fragA);
           AssertPtr(frag);
-          imp.in1 = frag->iid;
+          imp.in1 = frag->read_iid;
           frag = GetCIFragT(ScaffoldGraph->CIFrags, redge->fragB);
           AssertPtr(frag);
-          imp.in2 = frag->iid;
+          imp.in2 = frag->read_iid;
           assert(!isOverlapEdge(redge));
           imp.type = AS_MATE;
 

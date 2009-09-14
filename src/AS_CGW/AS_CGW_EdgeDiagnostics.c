@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.22 2009-09-09 08:21:55 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.23 2009-09-14 13:28:42 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -913,9 +913,9 @@ void PrintFragPairAndEdge(CIFragT * fragA,
                           CIEdgeT * edge)
 {
   fprintf(stdout, "%8"F_CIDP " %7"F_CIDP " %.f %s\t%8"F_CIDP " %7"F_CIDP " %.f %s\t%.f     ",
-          fragA->iid, fragA->contigID,
+          fragA->mate_iid, fragA->contigID,
           offsetA->mean, (orientA == A_B) ? "A_B" : "B_A",
-          fragB->iid, fragB->contigID,
+          fragB->mate_iid, fragB->contigID,
           offsetB->mean, (orientB == A_B) ? "A_B" : "B_A",
           edge->distance.mean);
   switch(edge->orient)

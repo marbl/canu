@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.64 2009-09-12 22:35:57 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.65 2009-09-14 13:28:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,7 +78,7 @@ ProcessFrags(void) {
     if(!ciinfo->set)
       continue;
 
-    assert(cifrag->iid == i);  //  If !set, this fails.
+    assert(cifrag->read_iid == i);  //  If !set, this fails.
 
     ScaffoldGraph->gkpStore->gkStore_getFragment(i, &fr, GKFRAGMENT_INF);
 
@@ -86,7 +86,7 @@ ProcessFrags(void) {
       InfoByIID *miinfo = GetInfoByIID(ScaffoldGraph->iidToFragIndex, fr.gkFragment_getMateIID());
 
       if (miinfo && miinfo->set) {
-        cifrag->mateOf   = miinfo->fragIndex;
+        cifrag->mate_iid   = miinfo->fragIndex;
         cifrag->dist     = fr.gkFragment_getLibraryIID();
         if (fr.gkFragment_getOrientation() == AS_READ_ORIENT_INNIE)
           cifrag->flags.bits.innieMate = TRUE;
@@ -124,23 +124,23 @@ ProcessFrags(void) {
     CIFragT   *mifrag = NULL;
 
     //  this frag not used, or no mate
-    if ((!ciinfo->set) || (cifrag->mateOf == NULLINDEX))
+    if ((!ciinfo->set) || (cifrag->mate_iid == NULLINDEX))
       continue;
 
-    mifrag = GetCIFragT(ScaffoldGraph->CIFrags, cifrag->mateOf);
-    miinfo = GetInfoByIID(ScaffoldGraph->iidToFragIndex, mifrag->iid);
+    mifrag = GetCIFragT(ScaffoldGraph->CIFrags, cifrag->mate_iid);
+    miinfo = GetInfoByIID(ScaffoldGraph->iidToFragIndex, mifrag->read_iid);
 
-    if ((mifrag == NULL) || (mifrag->mateOf == NULLINDEX)) {
+    if ((mifrag == NULL) || (mifrag->mate_iid == NULLINDEX)) {
       //  We set up links to a dead frag, clean up...
 
-      cifrag->mateOf   = NULLINDEX;
+      cifrag->mate_iid   = NULLINDEX;
       cifrag->dist     = NULLINDEX;
       cifrag->flags.bits.linkType   = (LinkType)AS_UNKNOWN;
       cifrag->flags.bits.edgeStatus = INVALID_EDGE_STATUS;
       cifrag->flags.bits.hasMate    = FALSE;
 
       if (mifrag) {
-        mifrag->mateOf   = NULLINDEX;
+        mifrag->mate_iid   = NULLINDEX;
         mifrag->dist     = NULLINDEX;
         mifrag->flags.bits.linkType   = (LinkType)AS_UNKNOWN;
         mifrag->flags.bits.edgeStatus = INVALID_EDGE_STATUS;
@@ -155,19 +155,19 @@ ProcessFrags(void) {
         fprintf(stderr, "ERROR: mifrag iid=%d miinfo->set == 0; mifrag not in the assembly\n");
       if (cifrag->dist   != mifrag->dist)
         fprintf(stderr, "ERROR: cifrag iid=%d mifrag iid=%d -- cifrag->dist=%d != mifrag->dist=%d; libraries not the same\n",
-                cifrag->iid, mifrag->iid, cifrag->dist, mifrag->dist);
-      if (cifrag->mateOf != miinfo->fragIndex)
-        fprintf(stderr, "ERROR: cifrag iid=%d mifrag iid==%d -- cifrag->mateOf=%d != miinfo->fragIndex=%d; messed up mate index/iid\n",
-                cifrag->iid, mifrag->iid, cifrag->mateOf, miinfo->fragIndex);
-      if (mifrag->mateOf != ciinfo->fragIndex)
-        fprintf(stderr, "ERROR: mifrag iid=%d cifrag iid==%d -- mifrag->mateOf=%d != ciinfo->fragIndex=%d; messed up mate index/iid\n",
-                mifrag->iid, cifrag->iid, mifrag->mateOf, ciinfo->fragIndex);
+                cifrag->read_iid, mifrag->read_iid, cifrag->dist, mifrag->dist);
+      if (cifrag->mate_iid != miinfo->fragIndex)
+        fprintf(stderr, "ERROR: cifrag iid=%d mifrag iid==%d -- cifrag->mate_iid=%d != miinfo->fragIndex=%d; messed up mate index/iid\n",
+                cifrag->read_iid, mifrag->read_iid, cifrag->mate_iid, miinfo->fragIndex);
+      if (mifrag->mate_iid != ciinfo->fragIndex)
+        fprintf(stderr, "ERROR: mifrag iid=%d cifrag iid==%d -- mifrag->mate_iid=%d != ciinfo->fragIndex=%d; messed up mate index/iid\n",
+                mifrag->read_iid, cifrag->read_iid, mifrag->mate_iid, ciinfo->fragIndex);
 
       assert(ciinfo->set);
       assert(miinfo->set);
       assert(cifrag->dist   == mifrag->dist);
-      assert(cifrag->mateOf == miinfo->fragIndex);
-      assert(mifrag->mateOf == ciinfo->fragIndex);
+      assert(cifrag->mate_iid == miinfo->fragIndex);
+      assert(mifrag->mate_iid == ciinfo->fragIndex);
     }
   }  //  for each frag
 
@@ -416,8 +416,8 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, int32 length, int sequenc
 	CDS_CID_t fragid = GetNumCIFragTs(ScaffoldGraph->CIFrags);
 	IntMultiPos *cfr_mesg = ium_mesg->f_list + cfr;
 
-	cifrag.iid      = cfr_mesg->ident;
-        cifrag.mateOf   = NULLINDEX;
+	cifrag.read_iid      = cfr_mesg->ident;
+        cifrag.mate_iid   = NULLINDEX;
         cifrag.dist     = 0;
 	cifrag.cid      = ium_mesg->iaccession;
 	cifrag.CIid     = ium_mesg->iaccession;
@@ -461,17 +461,17 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, int32 length, int sequenc
 	info.set         = TRUE;
 
 	// Check to see if we've already seen this fragment by IID!!!!
-	old_info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, cifrag.iid);
+	old_info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, cifrag.read_iid);
 	if(old_info && old_info->set){
 	  CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, old_info->fragIndex);
 	  fprintf(stderr,"*** FATAL ERROR:  Fragment with IID " F_CID " appears more than once with id " F_CID " and " F_CID "\n",
-                  cifrag.iid, old_info->fragIndex, fragid);
+                  cifrag.read_iid, old_info->fragIndex, fragid);
 	  fprintf(stderr,"***               First appearance was in unitig " F_CID ", currently found in unitig " F_CID "\n",
 		  frag->cid, cifrag.cid);
 	  exit(1);
 	}
 
-	SetInfoByIID(ScaffoldGraph->iidToFragIndex, cifrag.iid, &info);
+	SetInfoByIID(ScaffoldGraph->iidToFragIndex, cifrag.read_iid, &info);
 
 	// Collect read stats
         if (AS_FA_READ(cfr_mesg->type)) {

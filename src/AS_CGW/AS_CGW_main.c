@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.77 2009-09-12 22:35:57 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.78 2009-09-14 13:28:43 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -694,8 +694,8 @@ main(int argc, char **argv) {
   for (j = 0; j < GetNumVA_CIFragT(ScaffoldGraph->CIFrags); j++) {
     CIFragT * frag = GetCIFragT(ScaffoldGraph->CIFrags, j);
          
-    if (ScaffoldGraph->gkpStore->gkStore_getFRGtoPLC(frag->iid) != 0) {
-      AS_UID uid = getGatekeeperIIDtoUID(ScaffoldGraph->gkpStore, frag->iid, AS_IID_FRG);
+    if (ScaffoldGraph->gkpStore->gkStore_getFRGtoPLC(frag->read_iid) != 0) {
+      AS_UID uid = getGatekeeperIIDtoUID(ScaffoldGraph->gkpStore, frag->read_iid, AS_IID_FRG);
       if (frag->contigID != -1) {
         ChunkInstanceT * ctg = GetGraphNode(ScaffoldGraph->RezGraph, frag->contigID);            
         fprintf(stderr, "CLOSURE_READS: CLOSURE READ %s PLACED=%d CHAFF=%d SINGLETON=%d IN ASM type %c in SCF %d\n", AS_UID_toString(uid), frag->flags.bits.isPlaced, frag->flags.bits.isChaff, frag->flags.bits.isSingleton, frag->type, ctg->scaffoldID);

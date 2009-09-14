@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ContigT_CGW.c,v 1.24 2009-09-09 08:21:56 brianwalenz Exp $";
+static char *rcsid = "$Id: ContigT_CGW.c,v 1.25 2009-09-14 13:28:44 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_EDGES
@@ -740,8 +740,8 @@ int BuildContigEdges(ScaffoldGraphT *graph){
             fprintf(stderr,"* (" F_CID "," F_CID ") %c ciedge:" F_CID " cifrag:" F_CID " otherFrag:" F_CID " mciOffset = %g mciOrient = %c  ciOffset = %g ciOrient = %c\n",
                     thisCI->contigID, otherCI->contigID, contigEdgeOrient,
                     (CDS_CID_t)GetVAIndex_CIEdgeT(graph->CIEdges, edge),
-                    (frag?frag->iid:NULLINDEX),
-                    (otherFrag?otherFrag->iid:NULLINDEX),
+                    (frag?frag->read_iid:NULLINDEX),
+                    (otherFrag?otherFrag->read_iid:NULLINDEX),
                     mciOffset.mean, mciOrient, ciOffset.mean, ciOrient);
 #endif
 	    distance.mean = edge->distance.mean - ciOffset.mean - mciOffset.mean;
@@ -1004,7 +1004,7 @@ void SetCIScaffoldIds(ChunkInstanceT *CI, CDS_CID_t scaffoldID){
     CI->flags.bits.isChaff = FALSE;
     if(GlobalData->debugLevel > 0)
       fprintf(stderr,"* SetCIScaffoldIDs ci " F_CID " and frag " F_CID " are NOT chaff\n",
-	      CI->id, frag->iid);
+	      CI->id, frag->read_iid);
   }
 }
 

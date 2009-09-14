@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.22 2009-09-09 08:21:56 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.23 2009-09-14 13:28:44 brianwalenz Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -92,7 +92,7 @@ static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
 	 frag->label == AS_SINGLETON){
 #ifdef DEBUG_CONFIRM
         fprintf(stderr,"* Skipping Extremal Frag "F_CID " with label %c\n",
-                frag->iid, frag->label);
+                frag->read_iid, frag->label);
 #endif
 	continue;
       }

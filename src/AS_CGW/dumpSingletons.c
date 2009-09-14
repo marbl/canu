@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: dumpSingletons.c,v 1.29 2009-09-12 22:35:57 brianwalenz Exp $";
+const char *mainid = "$Id: dumpSingletons.c,v 1.30 2009-09-14 13:28:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,13 +122,13 @@ main( int argc, char **argv) {
     CIFragT *mate = NULL;
 
     assert(frag->cid != NULLINDEX);
-    assert((frag->flags.bits.hasMate == 0) || (frag->mateOf != NULLINDEX));
+    assert((frag->flags.bits.hasMate == 0) || (frag->mate_iid != NULLINDEX));
 
     //  Fix for missing mates -- OBT used to not delete mate links, leaving
     //  dangling mates.  Somebody else seems to be doing this too.
     //
     if (frag->flags.bits.hasMate) {
-      mate = GetCIFragT(ScaffoldGraph->CIFrags, frag->mateOf);
+      mate = GetCIFragT(ScaffoldGraph->CIFrags, frag->mate_iid);
       if (mate == NULL)
         frag->flags.bits.hasMate = 0;
     }
@@ -144,7 +144,7 @@ main( int argc, char **argv) {
     if ((mate == NULL) ||
         (mate->flags.bits.isChaff == 0) ||
         (makeMiniScaffolds == 0)) {
-      AS_UID  fUID = getFragmentClear(frag->iid, 0, toprint);
+      AS_UID  fUID = getFragmentClear(frag->read_iid, 0, toprint);
 
       AS_UTL_writeFastA(stdout,
                         toprint, strlen(toprint),
@@ -153,7 +153,7 @@ main( int argc, char **argv) {
     } else if ((mate != NULL) &&
                (mate->flags.bits.isChaff == 1) &&
                (makeMiniScaffolds == 1) &&
-               (frag->iid < mate->iid)) {
+               (frag->read_iid < mate->read_iid)) {
 
       //  make sure the following chain of Ns is divisible by three;
       //  the exact length is arbitrary but Doug Rusch points out that
@@ -161,11 +161,11 @@ main( int argc, char **argv) {
       //  the phase of a protein ...  which helps in the
       //  auto-annotation of environmental samples
 
-      AS_UID  fUID = getFragmentClear(frag->iid, 0, toprint);
+      AS_UID  fUID = getFragmentClear(frag->read_iid, 0, toprint);
 
       strcat(toprint, "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN");
 
-      AS_UID  mUID = getFragmentClear(mate->iid, 1, toprint + strlen(toprint));
+      AS_UID  mUID = getFragmentClear(mate->read_iid, 1, toprint + strlen(toprint));
 
       AS_UTL_writeFastA(stdout,
                         toprint, strlen(toprint),

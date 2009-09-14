@@ -22,7 +22,7 @@
 #ifndef INPUTDATATYPES_CGW_H
 #define INPUTDATATYPES_CGW_H
 
-static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id: InputDataTypes_CGW.h,v 1.21 2009-09-12 22:35:57 brianwalenz Exp $";
+static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id: InputDataTypes_CGW.h,v 1.22 2009-09-14 13:28:44 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -40,8 +40,8 @@ typedef FragOrient NodeOrient;
 
 /* Fragment positions within a ChunkInstance */
 typedef struct {
-  CDS_CID_t iid;                // IID of this fragment, used to reference this frag via iidToFragIndex
-  CDS_CID_t mateOf;             // the index of the CIFragT of the mate.  Valid even if numLinks > 1
+  CDS_CID_t read_iid;           // IID of this fragment, used to reference this frag via iidToFragIndex
+  CDS_CID_t mate_iid;           // the index of the CIFragT of the mate.  Valid even if numLinks > 1
   CDS_CID_t dist;		// index of the DistT record
 
   CDS_CID_t cid;                // id of the unitig containing this fragment
@@ -84,7 +84,7 @@ VA_DEF(CIFragT);
 
 static FragOrient getCIFragOrient(CIFragT *frag){
   if(frag->offset3p.mean == frag->offset5p.mean){
-    fprintf(stderr,"* Frag %d in unitig %d has 3p=%g 5p=%g\n",frag->iid,frag->cid, frag->offset3p.mean, frag->offset5p.mean);
+    fprintf(stderr,"* Frag %d in unitig %d has 3p=%g 5p=%g\n",frag->read_iid,frag->cid, frag->offset3p.mean, frag->offset5p.mean);
     assert(0);
   }
   if(frag->offset3p.mean > frag->offset5p.mean)
@@ -94,7 +94,7 @@ static FragOrient getCIFragOrient(CIFragT *frag){
 
 static FragOrient GetContigFragOrient(CIFragT *frag){
   if(frag->contigOffset3p.mean == frag->contigOffset5p.mean){
-    fprintf(stderr,"* Frag %d in contig %d has 3p=%g 5p=%g\n",frag->iid,frag->contigID, frag->contigOffset3p.mean, frag->contigOffset5p.mean);
+    fprintf(stderr,"* Frag %d in contig %d has 3p=%g 5p=%g\n",frag->read_iid,frag->contigID, frag->contigOffset3p.mean, frag->contigOffset5p.mean);
     assert(0);
   }
   if(frag->contigOffset3p.mean > frag->contigOffset5p.mean)

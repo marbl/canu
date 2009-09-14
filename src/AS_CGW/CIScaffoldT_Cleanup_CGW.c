@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.56 2009-09-09 08:21:56 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.57 2009-09-14 13:28:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1994,7 +1994,7 @@ void DumpMultiAlignT(FILE * fp, ScaffoldGraphT * graph,
   for(i = 0; i < numFrag; i++){
     IntMultiPos *mp_i = GetIntMultiPos(ma->f_list,i);
     CIFragT *frag = GetCIFragT(graph->CIFrags,(CDS_CID_t)mp_i->sourceInt);
-    fprintf(fp, "frag "F_CID ": ", frag->iid);
+    fprintf(fp, "frag "F_CID ": ", frag->read_iid);
     switch(frag->type)
       {
         case AS_READ:
