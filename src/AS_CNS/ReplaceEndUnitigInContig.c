@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.4 2009-08-04 11:05:19 brianwalenz Exp $";
+static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.5 2009-09-14 16:09:05 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -326,7 +326,6 @@ ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
         imp = GetIntMultiPos(cma->f_list,ifrag);
         imp->ident = aligned_component->idx.fragment.frgIdent;
         imp->contained = aligned_component->idx.fragment.frgContained;
-        imp->sourceInt = aligned_component->idx.fragment.frgSource;
         imp->position.bgn = bgn;
         imp->position.end = end;
 #ifdef DEBUG_POSITIONS

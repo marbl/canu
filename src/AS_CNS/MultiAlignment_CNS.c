@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.248 2009-08-04 11:05:19 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.249 2009-09-14 16:09:05 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1253,7 +1253,6 @@ SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
     epos.idx.fragment.frgType = frag->type;
     epos.idx.fragment.frgContained = frag->contained;
     epos.idx.fragment.frgInUnitig = (type == AS_CONTIG)?-1:uma->maID;
-    epos.idx.fragment.frgSource = frag->sourceInt;
     epos.position.bgn = *Getint32(gapped_positions,frag->position.bgn);
     epos.position.end = *Getint32(gapped_positions,frag->position.end);
     if(epos.position.bgn==epos.position.end){

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: frgs2clones.c,v 1.36 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: frgs2clones.c,v 1.37 2009-09-14 16:09:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -264,7 +264,6 @@ main( int argc, char *argv[]) {
 	    the_imps[0].type = (FragType)'R';
 	    the_imps[0].ident = fragIID;
 	    the_imps[0].contained = 0;
-	    the_imps[0].sourceInt = -1;
 	    the_imps[0].position.bgn = (ovl->begpos >= 0 ) ? 0 : -ovl->begpos;
 	    the_imps[0].position.end = (ovl->begpos >= 0 ) ? len1 : len1 - ovl->begpos;
 	    the_imps[0].delta_length = 0;
@@ -272,7 +271,6 @@ main( int argc, char *argv[]) {
 	    the_imps[1].type = (FragType)'R';
 	    the_imps[1].ident = mateIID;
 	    the_imps[1].contained = 0;
-	    the_imps[1].sourceInt = -1;
 	    // due to inversion of mate, note the following swap of end and beg
 	    the_imps[1].position.end = (ovl->begpos >= 0) ? ovl->begpos : 0;
 	    the_imps[1].position.bgn = (ovl->begpos >= 0) ? ovl->begpos + len2 : len2;

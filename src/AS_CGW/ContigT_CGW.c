@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ContigT_CGW.c,v 1.25 2009-09-14 13:28:44 brianwalenz Exp $";
+static char *rcsid = "$Id: ContigT_CGW.c,v 1.26 2009-09-14 16:09:04 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_EDGES
@@ -149,13 +149,10 @@ dumpContigInfo(ChunkInstanceT *contig) {
     // now print out info on the frags in the unitig
     for (icntfrag = 0; icntfrag < GetNumIntMultiPoss(uma->f_list); icntfrag++) {
       IntMultiPos *imp = GetIntMultiPos(uma->f_list, icntfrag);
-      InfoByIID   *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, imp->ident);
-      CIFragT     *frag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+      CIFragT     *frag = GetCIFragT(ScaffoldGraph->CIFrags, imp->ident);
 
-      //assert(info->set);
-
-      fprintf(stderr, "    frag: %6d\t contig pos (5p, 3p): %6d, %6d  type: %c\n",
-              imp->ident, (int) frag->contigOffset5p.mean, (int) frag->contigOffset3p.mean, frag->type);
+      fprintf(stderr, "    frag: %6d\t contig pos (5p, 3p): %6d, %6d\n",
+              imp->ident, (int) frag->contigOffset5p.mean, (int) frag->contigOffset3p.mean);
     }
   }
 #endif
@@ -998,7 +995,7 @@ void SetCIScaffoldIds(ChunkInstanceT *CI, CDS_CID_t scaffoldID){
   CI->scaffoldID = scaffoldID;
   if(CI->flags.bits.isChaff){ // This can only happen once
     MultiAlignT *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, CI->id, TRUE);
-    CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,  (int)GetIntMultiPos(ma->f_list,0)->sourceInt);
+    CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, GetIntMultiPos(ma->f_list,0)->ident);
     assert(frag->flags.bits.isSingleton);
     frag->flags.bits.isChaff = FALSE;
     CI->flags.bits.isChaff = FALSE;
@@ -1051,8 +1048,7 @@ void CheckAllContigFragments(void){
     }
     for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
       IntMultiPos *mp = GetIntMultiPos(ma->f_list,i);
-      CDS_CID_t fragID = (CDS_CID_t)mp->sourceInt;
-      CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,fragID);
+      CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, mp->ident);
       assert(frag->contigID == contig->id);
     }
   }

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.40 2009-09-09 08:21:56 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.41 2009-09-14 16:09:04 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -54,7 +54,6 @@ VA_DEF(PtrT);
 void PrintCINodeFields(FILE * stream, NodeCGW_T * node)
 {
   fprintf(stream, "\t\tcontigID:"F_CID "\n", node->info.CI.contigID);
-  fprintf(stream, "\t\theadOfFragments:"F_CID "\n", node->info.CI.headOfFragments);
   fprintf(stream, "\t\tnumFragments:%d\n", node->info.CI.numFragments);
   fprintf(stream, "\t\tcoverageStat:%d\n", node->info.CI.coverageStat);
   fprintf(stream, "\t\tbaseID:"F_CID "\n", node->info.CI.baseID);
@@ -1020,8 +1019,8 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
           assert(gkpl->bound2);
    
           // get the reads indicated by the input line
-          CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkpl->bound1)->fragIndex); 
-          CIFragT *rightMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkpl->bound2)->fragIndex);
+          CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, gkpl->bound1); 
+          CIFragT *rightMate = GetCIFragT(ScaffoldGraph->CIFrags, gkpl->bound2);
           if (leftMate->contigID == NULLINDEX || rightMate->contigID == NULLINDEX) {
             continue;
           }

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.23 2009-09-14 13:28:44 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.24 2009-09-14 16:09:04 brianwalenz Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -75,7 +75,6 @@ static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
      than the fragment at endB, that overlap the (minOffset,maxOffset)
      interval */
   {
-    CDS_CID_t fragID;
     int i;
     CIFragT *frag;
     MultiAlignT *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, CI->id, graph->type == CI_GRAPH);
@@ -83,17 +82,12 @@ static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
     int32 overlap;
     for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
       IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
-      fragID = (CDS_CID_t)mp->sourceInt;
-      frag = GetCIFragT(ScaffoldGraph->CIFrags, fragID);
+      frag = GetCIFragT(ScaffoldGraph->CIFrags, mp->ident);
 
       /* Skip the extremal read that we're trying to check */
-      if((!endB && (frag->label == AS_INTERCHUNK_A)) ||
-	 (endB && (frag->label == AS_INTERCHUNK_B)) ||
-	 frag->label == AS_SINGLETON){
-#ifdef DEBUG_CONFIRM
-        fprintf(stderr,"* Skipping Extremal Frag "F_CID " with label %c\n",
-                frag->read_iid, frag->label);
-#endif
+      if((!endB && (frag->flags.bits.chunkLabel == AS_INTERCHUNK_A)) ||
+	 (endB && (frag->flags.bits.chunkLabel == AS_INTERCHUNK_B)) ||
+	 frag->flags.bits.chunkLabel == AS_SINGLETON){
 	continue;
       }
       if((overlap = IntervalsOverlap(frag->offset3p.mean,

@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.35 2009-08-28 17:35:11 skoren Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.36 2009-09-14 16:09:04 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -69,14 +69,6 @@ int isDeadCIScaffoldT(CIScaffoldT *scaffold);
 
 int RepeatRez(int repeatRezLevel, char *name);
 
-typedef struct {
-  /* For now, we just store the fragments CIFrag index */
-  unsigned int set:1;  // we've seen this fragment
-  unsigned int fragIndex:31;
-}InfoByIID;
-
-VA_DEF(InfoByIID);
-
 VA_DEF(ChunkInstanceT);
 VA_DEF(CIScaffoldT);
 VA_DEF(ContigT);
@@ -84,11 +76,10 @@ VA_DEF(CIEdgeT);
 VA_DEF(SEdgeT);
 
 typedef struct{
-  VA_TYPE(InfoByIID)      *iidToFragIndex;  // map from iid to fragment
   VA_TYPE(CIFragT)        *CIFrags;
   VA_TYPE(DistT)          *Dists;
   VA_TYPE(ChunkInstanceT) *ChunkInstances;  // CIs and Contigs
-  VA_TYPE(ContigT) *Contigs;
+  VA_TYPE(ContigT)        *Contigs;
   VA_TYPE(CIScaffoldT)    *CIScaffolds;
   VA_TYPE(CIEdgeT)        *CIEdges;
   VA_TYPE(CIEdgeT)        *ContigEdges;

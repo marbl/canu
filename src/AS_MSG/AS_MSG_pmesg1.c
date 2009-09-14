@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.39 2009-08-14 13:37:07 skoren Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.40 2009-09-14 16:09:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -289,7 +289,6 @@ Read_IMP_Mesg(FILE *fin, IntMultiPos *imp) {
   GET_FIELD(imp->ident,     "mid:"F_IID,"multipos id");
   GET_FIELD(imp->contained, "con:"F_IID,"contained id");
   GET_FIELD(imp->parent,    "pid:"F_IID,"multipos id");
-  imp->sourceInt = -1;
   GET_PAIR(imp->position.bgn,imp->position.end,"pos:"F_S32","F_S32,"position field");
   GET_FIELD(imp->ahang,"ahg:"F_S32,"ahang");
   GET_FIELD(imp->bhang,"bhg:"F_S32,"bhang");

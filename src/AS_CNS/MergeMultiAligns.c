@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MergeMultiAligns.c,v 1.5 2009-08-04 11:05:19 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeMultiAligns.c,v 1.6 2009-09-14 16:09:05 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -359,7 +359,6 @@ MergeMultiAligns(tSequenceDB *sequenceDBp,
         } else {
           imp = GetIntMultiPos(cma->f_list,ifrag);
           imp->ident = compci->idx.fragment.frgIdent;
-          imp->sourceInt = compci->idx.fragment.frgSource;
           imp->position.bgn = bgn;
           imp->position.end = end;
           imp->delta_length = 0;

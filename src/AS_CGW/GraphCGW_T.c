@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.78 2009-09-14 13:28:44 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.79 2009-09-14 16:09:04 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1667,8 +1667,7 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
 
   for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
     IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
-    CDS_CID_t fragID = (CDS_CID_t)mp->sourceInt;
-    CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, fragID);
+    CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, mp->ident);
     LengthT offset3p, offset5p;
     int32 ubgn, uend;
     int flip = (mp->position.end < mp->position.bgn);
@@ -1755,11 +1754,11 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
 #endif
 
       if(i == extremalA){
-         frag->label = AS_INTERCHUNK_A;
+         frag->flags.bits.chunkLabel = AS_INTERCHUNK_A;
       }else if(i == extremalB){
-         frag->label = AS_INTERCHUNK_B;  /*  A->B? */
+         frag->flags.bits.chunkLabel = AS_INTERCHUNK_B;  /*  A->B? */
        }else{
-         frag->label = AS_INTRACHUNK;
+         frag->flags.bits.chunkLabel = AS_INTRACHUNK;
       }
 
       // for placement constraints, mark fragments as constrained
@@ -1824,7 +1823,7 @@ int FragOffsetAndOrientation(CIFragT     *frag,
           ChunkOrient                         A_B
         */
         chunkOffset->mean = chunk->bpLength.mean - offset5p.mean;
-        if(frag->label == AS_INTERCHUNK_B || frag->label == AS_SINGLETON)
+        if(frag->flags.bits.chunkLabel == AS_INTERCHUNK_B || frag->flags.bits.chunkLabel == AS_SINGLETON)
           *extremal = TRUE;
         break;
       case B_A:
@@ -1835,7 +1834,7 @@ int FragOffsetAndOrientation(CIFragT     *frag,
           ChunkOrient                     B_A
         */
         chunkOffset->mean = offset5p.mean;
-        if(frag->label == AS_INTERCHUNK_A || frag->label == AS_SINGLETON)
+        if(frag->flags.bits.chunkLabel == AS_INTERCHUNK_A || frag->flags.bits.chunkLabel == AS_SINGLETON)
           *extremal = TRUE;
         break;
       default:
@@ -1851,7 +1850,7 @@ int FragOffsetAndOrientation(CIFragT     *frag,
           ChunkOrient                         A_B
         */
         chunkOffset->mean = offset5p.mean;
-        if(frag->label == AS_INTERCHUNK_B || frag->label == AS_SINGLETON)
+        if(frag->flags.bits.chunkLabel == AS_INTERCHUNK_B || frag->flags.bits.chunkLabel == AS_SINGLETON)
           *extremal = TRUE;
         break;
       case B_A:
@@ -1862,7 +1861,7 @@ int FragOffsetAndOrientation(CIFragT     *frag,
           ChunkOrient                        B_A
         */
         chunkOffset->mean = chunk->bpLength.mean - offset5p.mean;
-        if(frag->label == AS_INTERCHUNK_A || frag->label == AS_SINGLETON)
+        if(frag->flags.bits.chunkLabel == AS_INTERCHUNK_A || frag->flags.bits.chunkLabel == AS_SINGLETON)
           *extremal = TRUE;
         break;
       default:
@@ -2342,23 +2341,21 @@ BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph,
 
   for (i=0; i<numFrags; i++) {
     IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
-    CIFragT     *frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->sourceInt);
+    CIFragT     *frag = GetCIFragT(ScaffoldGraph->CIFrags, mp->ident);
     int          hasExternalLinks = FALSE;
     CDS_CID_t    mfragID;
-    CDS_CID_t    fragID = (CDS_CID_t)mp->sourceInt;
     CIFragT     *mfrag;
 
     // If this fragment has no constraints... continue
-    if (frag->flags.bits.hasMate == 0) {
-      assert(frag->mate_iid == NULLINDEX);
+    if ((frag->flags.bits.hasMate == 0) ||
+        (frag->mate_iid == 0))
       continue;
-    }
 
     // If this fragment only has links to fragments within this contig...continue
     if (node->flags.bits.isContig) {
       if (frag->contigID != node->id)
         fprintf(stderr,"* Frag "F_CID " with iid "F_CID " of Contig "F_CID " has contigOf = "F_CID "!!!\n",
-                fragID, frag->read_iid, node->id, frag->contigID);
+                mp->ident, frag->read_iid, node->id, frag->contigID);
       assert(frag->contigID == node->id);
 
       if (frag->flags.bits.hasInternalOnlyContigLinks)
@@ -2368,7 +2365,7 @@ BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph,
       // If this fragment only has links to fragments within this CI...continue
       if (frag->cid != node->id)
         fprintf(stderr,"* Frag "F_CID " with iid "F_CID " of cid "F_CID " has ci = "F_CID "!!!\n",
-                fragID, frag->read_iid, node->id, frag->cid);
+                mp->ident, frag->read_iid, node->id, frag->cid);
       assert(frag->cid == node->id);
 
       if( frag->flags.bits.hasInternalOnlyCILinks)
@@ -2376,25 +2373,22 @@ BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph,
     }
 
     mfragID = frag->mate_iid;
+    mfrag = GetCIFragT(ScaffoldGraph->CIFrags, mfragID);
 
-    if (mfragID != NULLINDEX) {
-      // this could happen if there are links, but they are rereads, for example
-      mfrag = GetCIFragT(ScaffoldGraph->CIFrags, mfragID);
-      if(mfrag->flags.bits.linkType == AS_MATE)
-        stat->totalMatePairs++;
-      dist = GetDistT(ScaffoldGraph->Dists, mfrag->dist);
-      assert(dist);
+    stat->totalMatePairs++;
 
-      hasExternalLinks |= CreateGraphEdge(graph,
-                                          frag,
-                                          mfrag,
-                                          dist,
-                                          mfrag->flags.bits.linkType,
-                                          frag->flags.bits.innieMate ? AS_READ_ORIENT_INNIE : AS_READ_ORIENT_OUTTIE,
-                                          FALSE,
-                                          stat,
-                                          buildAll);
-    }
+    dist = GetDistT(ScaffoldGraph->Dists, mfrag->dist);
+    assert(dist);
+
+    hasExternalLinks |= CreateGraphEdge(graph,
+                                        frag,
+                                        mfrag,
+                                        dist,
+                                        AS_MATE,
+                                        frag->flags.bits.innieMate ? AS_READ_ORIENT_INNIE : AS_READ_ORIENT_OUTTIE,
+                                        FALSE,
+                                        stat,
+                                        buildAll);
 
     // If we didn't insert any links to other nodes, remember this, since we can save time
     // later
@@ -2405,22 +2399,22 @@ BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph,
         frag->flags.bits.hasInternalOnlyCILinks = TRUE;
         frag->flags.bits.hasInternalOnlyContigLinks = TRUE;
       } else {
-        fprintf(stderr,"* Marking frag "F_CID " as internal only -- NOT isContig or isCI??\n", fragID);
-        PrintFragment(frag, fragID, stderr);
+        fprintf(stderr,"* Marking frag "F_CID " as internal only -- NOT isContig or isCI??\n", mp->ident);
+        PrintFragment(frag, mp->ident, stderr);
         assert(0);
       }
     }else{
       if(node->flags.bits.isContig){
         if(frag->flags.bits.hasInternalOnlyContigLinks){
           fprintf(stderr,"* An internal only fragment ("F_CID ") in node ("F_CID ") induced an edge\n",
-                  fragID, node->id);
+                  mp->ident, node->id);
         }
         mfrag->flags.bits.hasInternalOnlyContigLinks = FALSE;
         frag->flags.bits.hasInternalOnlyContigLinks = FALSE;
       } else if(node->flags.bits.isCI){
         if(frag->flags.bits.hasInternalOnlyCILinks){
           fprintf(stderr,"* An internal only fragment ("F_CID ") in node ("F_CID ") induced an edge\n",
-                  fragID, node->id);
+                  mp->ident, node->id);
         }
         mfrag->flags.bits.hasInternalOnlyContigLinks = FALSE;
         mfrag->flags.bits.hasInternalOnlyCILinks = FALSE;
@@ -2542,8 +2536,7 @@ void AssignFragsToResolvedCI(GraphCGW_T *graph,
     frag->CIid     = toID;          // Assign the fragment to the surrogate
     frag->contigID = toContig->id;  // Assign the fragment to the contig
 
-    fragPos.type         = (FragType)frag->type;
-    fragPos.sourceInt    = fragID;
+    fragPos.type         = AS_READ;
     fragPos.position.bgn = frag->offset5p.mean;
     fragPos.position.end = frag->offset3p.mean;
 
@@ -2630,7 +2623,7 @@ CDS_CID_t SplitUnresolvedCI(GraphCGW_T *graph,
 
   if(oldNode->info.CI.numInstances == 0){
     if( oldNode->flags.bits.isChaff == TRUE){
-      CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,  (int)GetIntMultiPos(oldMA->f_list,0)->sourceInt);
+      CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,  GetIntMultiPos(oldMA->f_list,0)->ident);
       assert(frag->flags.bits.isSingleton);
       newNode->flags.bits.isChaff = FALSE;  // Making a surrogate causes the parent & surrogate to become !chaff
       oldNode->flags.bits.isChaff = FALSE;
@@ -3051,7 +3044,7 @@ void ComputeMatePairDetailedStatus(void) {
       CIFragT *frag, *mate;
       int32 dist;
 
-      frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->sourceInt);
+      frag = GetCIFragT(ScaffoldGraph->CIFrags, mp->ident);
       assert(frag->read_iid == mp->ident);
       if (frag->flags.bits.hasMate == 0) {
         numNoMate++;
@@ -3064,9 +3057,7 @@ void ComputeMatePairDetailedStatus(void) {
         frag->flags.bits.mateDetail = NO_MATE;
         continue;
       }
-      if ( mate->mate_iid != (CDS_CID_t)mp->sourceInt) {
-        assert(0);
-      }
+      assert(mate->mate_iid == mp->ident);
       if(frag->flags.bits.isChaff) {
         if (mate->flags.bits.isChaff) {
           if (mate->flags.bits.mateDetail != BOTH_CHAFF_MATE) {
@@ -3444,7 +3435,7 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
       DistT       *dfrg  = NULL;
 
       mp   = GetIntMultiPos(ma->f_list, i);
-      frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->sourceInt);
+      frag = GetCIFragT(ScaffoldGraph->CIFrags, mp->ident);
 
       assert(frag->read_iid == mp->ident);
 
@@ -3471,7 +3462,7 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
         numNullMate++;
         continue;
       }
-      if (mate->mate_iid != (CDS_CID_t)mp->sourceInt) {
+      if (mate->mate_iid != mp->ident) {
         numMateNotSource++;
         continue;
       }
@@ -3770,10 +3761,8 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
         if (matePairs[icnt].samples < dfrg->lower && matePairs[icnt].samples > newLower) {
           CIFragT *frag, *mate;
 
-          frag = GetCIFragT( ScaffoldGraph->CIFrags,
-                             GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].frags)->fragIndex);
-          mate = GetCIFragT( ScaffoldGraph->CIFrags,
-                             GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].mates)->fragIndex);
+          frag = GetCIFragT( ScaffoldGraph->CIFrags, matePairs[icnt].frags);
+          mate = GetCIFragT( ScaffoldGraph->CIFrags, matePairs[icnt].mates);
 
           //fprintf( stderr, "1 reclassifying samples[%d] ("F_CID ", "F_CID ") from UNTRUSTED to TRUSTED\n",
           //         icnt, frag->read_iid, mate->read_iid);
@@ -3794,10 +3783,8 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
         if (matePairs[icnt].samples > dfrg->upper && matePairs[icnt].samples < newUpper) {
           CIFragT *frag, *mate;
 
-          frag = GetCIFragT( ScaffoldGraph->CIFrags,
-                             GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].frags)->fragIndex);
-          mate = GetCIFragT( ScaffoldGraph->CIFrags,
-                             GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].mates)->fragIndex);
+          frag = GetCIFragT( ScaffoldGraph->CIFrags, matePairs[icnt].frags);
+          mate = GetCIFragT( ScaffoldGraph->CIFrags, matePairs[icnt].mates);
 
           //fprintf( stderr, "2 reclassifying samples[%d] ("F_CID ", "F_CID ") from UNTRUSTED to TRUSTED\n",
           //         icnt, frag->read_iid, mate->read_iid);
@@ -3820,10 +3807,8 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
         if (matePairs[icnt].samples > dfrg->lower && matePairs[icnt].samples < newLower) {
           CIFragT *frag, *mate;
 
-          frag = GetCIFragT( ScaffoldGraph->CIFrags,
-                             GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].frags)->fragIndex);
-          mate = GetCIFragT( ScaffoldGraph->CIFrags,
-                             GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].mates)->fragIndex);
+          frag = GetCIFragT( ScaffoldGraph->CIFrags, matePairs[icnt].frags);
+          mate = GetCIFragT( ScaffoldGraph->CIFrags, matePairs[icnt].mates);
 
           //fprintf( stderr, "3 reclassifying samples[%d] ("F_CID ", "F_CID ") from TRUSTED to UNTRUSTED\n",
           //         icnt, frag->read_iid, mate->read_iid);
@@ -3843,10 +3828,8 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
         if (matePairs[icnt].samples < dfrg->upper && matePairs[icnt].samples > newUpper) {
           CIFragT *frag, *mate;
 
-          frag = GetCIFragT( ScaffoldGraph->CIFrags,
-                             GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].frags)->fragIndex);
-          mate = GetCIFragT( ScaffoldGraph->CIFrags,
-                             GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].mates)->fragIndex);
+          frag = GetCIFragT( ScaffoldGraph->CIFrags, matePairs[icnt].frags);
+          mate = GetCIFragT( ScaffoldGraph->CIFrags, matePairs[icnt].mates);
 
           //fprintf( stderr, "4 reclassifying samples[%d] ("F_CID ", "F_CID ") from TRUSTED to UNTRUSTED\n",
           //         icnt, frag->read_iid, mate->read_iid);
@@ -4163,12 +4146,11 @@ void  CheckUnitigs(CDS_CID_t startUnitigID) {
 
     for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {
       IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
-      CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->sourceInt);
-      CDS_CID_t fragID = (CDS_CID_t) mp->sourceInt;
+      CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, mp->ident);
 
       if (frag->cid != node->id) {
         fprintf(stderr, "* CheckUnitigs: frag "F_CID " with iid "F_CID " of cid "F_CID " has ci = "F_CID "!!!\n",
-                fragID,	frag->read_iid, node->id, frag->cid);
+                mp->ident, frag->read_iid, node->id, frag->cid);
         //assert(0);
       }
     }

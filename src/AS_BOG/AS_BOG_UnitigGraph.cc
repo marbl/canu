@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.114 2009-08-07 19:17:36 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.115 2009-09-14 16:09:04 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -591,7 +591,6 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
     frag.ident        = fragID;
     frag.contained    = 0;
     frag.parent       = nextEdge->frag_b_id;
-    frag.sourceInt    = -1;
     frag.ahang        = ahang;
     frag.bhang        = bhang;
     frag.position.bgn = (walkEnd == FIVE_PRIME) ? fragEnd : fragBgn;

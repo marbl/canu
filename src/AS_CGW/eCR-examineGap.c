@@ -19,7 +19,7 @@
  *************************************************************************/
 
 
-static const char *rcsid = "$Id: eCR-examineGap.c,v 1.22 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid = "$Id: eCR-examineGap.c,v 1.23 2009-09-14 16:09:05 brianwalenz Exp $";
 #include "eCR.h"
 
 #include "GapWalkerREZ.h"  //  FindGapLength
@@ -178,9 +178,7 @@ examineGap(ContigT *lcontig, int lFragIid,
     reverseComplementSequence(rSequence, strlen(rSequence));
 
   if (lFragIid != -1) {
-    InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, lFragIid);
-    assert(info->set);
-    lFrag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+    lFrag = GetCIFragT(ScaffoldGraph->CIFrags, lFragIid);
 
     ScaffoldGraph->gkpStore->gkStore_getFragment(lFragIid, &fr, GKFRAGMENT_SEQ);
     fr.gkFragment_getClearRegion(lclr_bgn, lclr_end, AS_READ_CLEAR_ECR_0 + iterNumber - 1);
@@ -189,9 +187,7 @@ examineGap(ContigT *lcontig, int lFragIid,
   }
 
   if (rFragIid != -1) {
-    InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, rFragIid);
-    assert(info->set);
-    rFrag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+    rFrag = GetCIFragT(ScaffoldGraph->CIFrags, rFragIid);
 
     ScaffoldGraph->gkpStore->gkStore_getFragment(rFragIid, &fr, GKFRAGMENT_SEQ);
     fr.gkFragment_getClearRegion(rclr_bgn, rclr_end, AS_READ_CLEAR_ECR_0 + iterNumber - 1);

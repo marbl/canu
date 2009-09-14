@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.65 2009-09-14 13:28:44 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.66 2009-09-14 16:09:04 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,133 +60,57 @@ static int32 ContainStack = 0;
 static int32 BadQuality = 0;
 
 
-static
-void
-ProcessFrags(void) {
-  CDS_CID_t    i;
-  int32        unmatedFrags = 0;
-  gkFragment   fr;
-  int          err = 0;
-
-  //  Do one pass through, reading from the gatekeeper store to fill
-  //  out the cifrag info.
-
-  for(i = 0; i < GetNumInfoByIIDs(ScaffoldGraph->iidToFragIndex); i++){
-    InfoByIID *ciinfo = GetInfoByIID(ScaffoldGraph->iidToFragIndex, i);
-    CIFragT   *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, ciinfo->fragIndex);
-
-    if(!ciinfo->set)
-      continue;
-
-    assert(cifrag->read_iid == i);  //  If !set, this fails.
-
-    ScaffoldGraph->gkpStore->gkStore_getFragment(i, &fr, GKFRAGMENT_INF);
-
-    if (fr.gkFragment_getMateIID() != 0) {
-      InfoByIID *miinfo = GetInfoByIID(ScaffoldGraph->iidToFragIndex, fr.gkFragment_getMateIID());
-
-      if (miinfo && miinfo->set) {
-        cifrag->mate_iid   = miinfo->fragIndex;
-        cifrag->dist     = fr.gkFragment_getLibraryIID();
-        if (fr.gkFragment_getOrientation() == AS_READ_ORIENT_INNIE)
-          cifrag->flags.bits.innieMate = TRUE;
-        cifrag->flags.bits.linkType   = AS_MATE;
-        cifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
-        cifrag->flags.bits.hasMate    = TRUE;
-      } else {
-        fprintf(stderr, "ProcessFrags()-- WARNING!  fragiid=%d,index=%d mateiid=%d,index=%d -- MATE DOESN'T EXIST!\n",
-                i, ciinfo->fragIndex, fr.gkFragment_getMateIID(), miinfo->fragIndex);
-        //  This is not a critical failure, but does indicate
-        //  something amiss with either the store or the unitigs.
-        //
-        err++;
-      }
-
-      //fprintf(stderr, "Frag: iid=%d,index=%d mateiid=%d,index=%d\n", i, ciinfo->fragIndex, gkf.mateIID, miinfo->fragIndex);
-    }
-
-    if (cifrag->flags.bits.hasMate == FALSE)
-      unmatedFrags++;
-  }
-
-  if (err)
-    assert(err == 0);
-
-  //  Do a second pass to clean up mates.  We don't need to access the
-  //  gatekeeper here, since everything is already populated.  If we
-  //  put this stuff in the first loop, we'll be randomly accessing
-  //  the gatekeeper.
-
-  for(i = 0; i < GetNumInfoByIIDs(ScaffoldGraph->iidToFragIndex); i++){
-    InfoByIID *ciinfo = GetInfoByIID(ScaffoldGraph->iidToFragIndex, i);
-    CIFragT   *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, ciinfo->fragIndex);
-    InfoByIID *miinfo = NULL;
-    CIFragT   *mifrag = NULL;
-
-    //  this frag not used, or no mate
-    if ((!ciinfo->set) || (cifrag->mate_iid == NULLINDEX))
-      continue;
-
-    mifrag = GetCIFragT(ScaffoldGraph->CIFrags, cifrag->mate_iid);
-    miinfo = GetInfoByIID(ScaffoldGraph->iidToFragIndex, mifrag->read_iid);
-
-    if ((mifrag == NULL) || (mifrag->mate_iid == NULLINDEX)) {
-      //  We set up links to a dead frag, clean up...
-
-      cifrag->mate_iid   = NULLINDEX;
-      cifrag->dist     = NULLINDEX;
-      cifrag->flags.bits.linkType   = (LinkType)AS_UNKNOWN;
-      cifrag->flags.bits.edgeStatus = INVALID_EDGE_STATUS;
-      cifrag->flags.bits.hasMate    = FALSE;
-
-      if (mifrag) {
-        mifrag->mate_iid   = NULLINDEX;
-        mifrag->dist     = NULLINDEX;
-        mifrag->flags.bits.linkType   = (LinkType)AS_UNKNOWN;
-        mifrag->flags.bits.edgeStatus = INVALID_EDGE_STATUS;
-        cifrag->flags.bits.hasMate    = FALSE;
-      }
-    } else {
-      //  Both guys are alive, and we're mated.  Throw some asserts
-
-      if (ciinfo->set == 0)
-        fprintf(stderr, "ERROR: cifrag iid=%d ciinfo->set == 0; cifrag not in the assembly\n");
-      if (miinfo->set == 0)
-        fprintf(stderr, "ERROR: mifrag iid=%d miinfo->set == 0; mifrag not in the assembly\n");
-      if (cifrag->dist   != mifrag->dist)
-        fprintf(stderr, "ERROR: cifrag iid=%d mifrag iid=%d -- cifrag->dist=%d != mifrag->dist=%d; libraries not the same\n",
-                cifrag->read_iid, mifrag->read_iid, cifrag->dist, mifrag->dist);
-      if (cifrag->mate_iid != miinfo->fragIndex)
-        fprintf(stderr, "ERROR: cifrag iid=%d mifrag iid==%d -- cifrag->mate_iid=%d != miinfo->fragIndex=%d; messed up mate index/iid\n",
-                cifrag->read_iid, mifrag->read_iid, cifrag->mate_iid, miinfo->fragIndex);
-      if (mifrag->mate_iid != ciinfo->fragIndex)
-        fprintf(stderr, "ERROR: mifrag iid=%d cifrag iid==%d -- mifrag->mate_iid=%d != ciinfo->fragIndex=%d; messed up mate index/iid\n",
-                mifrag->read_iid, cifrag->read_iid, mifrag->mate_iid, ciinfo->fragIndex);
-
-      assert(ciinfo->set);
-      assert(miinfo->set);
-      assert(cifrag->dist   == mifrag->dist);
-      assert(cifrag->mate_iid == miinfo->fragIndex);
-      assert(mifrag->mate_iid == ciinfo->fragIndex);
-    }
-  }  //  for each frag
-
-  fprintf(stderr,"* Found %d frags, %g%% unmated (%d frags\n",
-          GetNumCIFragTs(ScaffoldGraph->CIFrags),
-          100.0 * unmatedFrags / GetNumCIFragTs(ScaffoldGraph->CIFrags),
-          unmatedFrags);
-}
-
-
-
-
-
-
 int ProcessInput(int optind, int argc, char *argv[]){
   GenericMesg   *pmesg;
   FILE *infp;
   int i,j = 0;
   int32 numIUM = 0;
+
+  EnableRange_VA(ScaffoldGraph->CIFrags, ScaffoldGraph->gkpStore->gkStore_getNumFragments() + 1);
+
+  gkFragment  fr;
+  gkStream   *fs = new gkStream(ScaffoldGraph->gkpStore, 0, 0, GKFRAGMENT_INF);
+
+  //  There is no zero fragment.  Make the data junk (this also sets isDeleted, so if we do ever
+  //  happen to use the fragment, it'll generally be skipped.
+
+  memset(GetCIFragT(ScaffoldGraph->CIFrags, 0), 0xff, sizeof(CIFragT));
+
+  while (fs->next(&fr)) {
+    CIFragT   *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, fr.gkFragment_getReadIID());
+
+    cifrag->read_iid                              = fr.gkFragment_getReadIID();
+    cifrag->mate_iid                              = fr.gkFragment_getMateIID();
+    cifrag->dist                                  = fr.gkFragment_getLibraryIID();
+
+    cifrag->cid                                   = NULLINDEX;
+    cifrag->CIid                                  = NULLINDEX;
+    cifrag->offset5p.mean                         = 0.0;
+    cifrag->offset5p.variance                     = 0.0;
+    cifrag->offset3p.mean                         = 0.0;
+    cifrag->offset3p.variance                     = 0.0;
+
+    cifrag->contigID                              = NULLINDEX;
+    cifrag->contigOffset5p.mean                   = 0.0;
+    cifrag->contigOffset5p.variance               = 0.0;
+    cifrag->contigOffset3p.mean                   = 0.0;
+    cifrag->contigOffset3p.variance               = 0.0;
+
+    cifrag->flags.bits.hasInternalOnlyCILinks     = FALSE;
+    cifrag->flags.bits.hasInternalOnlyContigLinks = FALSE;
+    cifrag->flags.bits.isPlaced                   = FALSE;
+    cifrag->flags.bits.isSingleton                = FALSE;
+    cifrag->flags.bits.isChaff                    = FALSE;
+    cifrag->flags.bits.isDeleted                  = fr.gkFragment_getIsDeleted();
+    cifrag->flags.bits.innieMate                  = (fr.gkFragment_getOrientation() == AS_READ_ORIENT_INNIE);
+    cifrag->flags.bits.hasMate                    = (fr.gkFragment_getMateIID()      > 0);
+
+    cifrag->flags.bits.edgeStatus                 = (fr.gkFragment_getMateIID()      > 0) ? UNKNOWN_EDGE_STATUS : INVALID_EDGE_STATUS;
+    cifrag->flags.bits.chunkLabel                 = AS_SINGLETON;
+
+    cifrag->flags.bits.mateDetail                 = UNASSIGNED_MATE;
+  }
+
 
   int              extraUnitigsMax = 0;
   int              extraUnitigsLen = 0;
@@ -206,7 +130,7 @@ int ProcessInput(int optind, int argc, char *argv[]){
         //  give it a new iacc.  fixUnitigs generates these guys.
 
         if (ium_mesg->iaccession < 1000000000) {
-          MultiAlignT *uma = CreateMultiAlignTFromIUM(ium_mesg, GetNumCIFragTs(ScaffoldGraph->CIFrags), FALSE);
+          MultiAlignT *uma = CreateMultiAlignTFromIUM(ium_mesg, 0, FALSE);
           MultiAlignT *cma = CopyMultiAlignT(NULL, uma);
 
           insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg->iaccession, TRUE,  uma, TRUE);
@@ -250,7 +174,7 @@ int ProcessInput(int optind, int argc, char *argv[]){
 
     extraUnitigs[i].iaccession = numIUM++;
 
-    MultiAlignT *uma = CreateMultiAlignTFromIUM(extraUnitigs + i, GetNumCIFragTs(ScaffoldGraph->CIFrags), FALSE);
+    MultiAlignT *uma = CreateMultiAlignTFromIUM(extraUnitigs + i, 0, FALSE);
     MultiAlignT *cma = CopyMultiAlignT(NULL, uma);
 
     insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, extraUnitigs[i].iaccession, TRUE,  uma, TRUE);
@@ -273,7 +197,6 @@ int ProcessInput(int optind, int argc, char *argv[]){
   ScaffoldGraph->numLiveCIs     = GetNumGraphNodes(ScaffoldGraph->CIGraph);
   ScaffoldGraph->numOriginalCIs = GetNumGraphNodes(ScaffoldGraph->CIGraph);
 
-  ProcessFrags();
 
   fprintf(stderr,"* Total Long Discriminator Uniques : %d   Short Uniques: %d\n",
           DiscriminatorUniques,
@@ -309,7 +232,6 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, int32 length, int sequenc
   CI.essentialEdgeB = NULLINDEX;
   CI.smoothExpectedCID = NULLINDEX;
   CI.BEndNext = CI.AEndNext = NULLINDEX;
-  CI.info.CI.headOfFragments = GetNumCIFragTs(ScaffoldGraph->CIFrags);
   CI.info.CI.numFragments = ium_mesg->num_frags;
   CI.info.CI.coverageStat = (ium_mesg->coverage_stat < -1000.0? -1000:ium_mesg->coverage_stat);
   CI.info.CI.microhetProb = ium_mesg->microhet_prob;
@@ -382,17 +304,15 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, int32 length, int sequenc
   }
 
   CI.flags.bits.smoothSeenAlready = FALSE;
-  CI.flags.bits.isCI = TRUE;
-  CI.flags.bits.isChaff = FALSE;
-  CI.flags.bits.isClosure = FALSE;
+  CI.flags.bits.isCI              = TRUE;
+  CI.flags.bits.isChaff           = FALSE;
+  CI.flags.bits.isClosure         = FALSE;
 
   if( ! sequenceOnly ) {
       CDS_CID_t extremalA = NULLINDEX;
       CDS_CID_t extremalB = NULLINDEX;
       int32 minOffset = INT32_MAX;
       int32 maxOffset = INT32_MIN;
-
-      /* Determine extremal fragments so we can label the fragments */
 
       for(cfr = 0; cfr < ium_mesg->num_frags; cfr++){
 	IntMultiPos *cfr_mesg = ium_mesg->f_list + cfr;
@@ -411,67 +331,19 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, int32 length, int sequenc
 
 
       for(cfr = 0; cfr < ium_mesg->num_frags; cfr++){
-	CIFragT        cifrag;
-	InfoByIID  info, *old_info;
-	CDS_CID_t fragid = GetNumCIFragTs(ScaffoldGraph->CIFrags);
 	IntMultiPos *cfr_mesg = ium_mesg->f_list + cfr;
+        CIFragT     *cifrag   = GetCIFragT(ScaffoldGraph->CIFrags, cfr_mesg->ident);
 
-	cifrag.read_iid      = cfr_mesg->ident;
-        cifrag.mate_iid   = NULLINDEX;
-        cifrag.dist     = 0;
-	cifrag.cid      = ium_mesg->iaccession;
-	cifrag.CIid     = ium_mesg->iaccession;
+	cifrag->cid      = ium_mesg->iaccession;
+	cifrag->CIid     = ium_mesg->iaccession;
 
-	// These get set in UpdateNodeFragments, called below
-        cifrag.offset5p.mean      = 0.0;
-        cifrag.offset5p.variance  = 0.0;
-        cifrag.offset3p.mean      = 0.0;
-        cifrag.offset3p.variance  = 0.0;
-
-	cifrag.contigID                 = NULLINDEX;
-        cifrag.contigOffset5p.mean      = 0.0;
-        cifrag.contigOffset5p.variance  = 0.0;
-        cifrag.contigOffset3p.mean      = 0.0;
-        cifrag.contigOffset3p.variance  = 0.0;
-
-        cifrag.type      = cfr_mesg->type;
-        cifrag.label     = AS_SINGLETON;
-
-	cifrag.flags.bits.hasInternalOnlyCILinks     = FALSE; // set in CreateCIEdge
-	cifrag.flags.bits.hasInternalOnlyContigLinks = FALSE; // set in CreateCIEdge
-	cifrag.flags.bits.isPlaced                   = FALSE;
-	cifrag.flags.bits.isSingleton                = FALSE;
-	cifrag.flags.bits.isChaff                    = FALSE;
-        cifrag.flags.bits.innieMate                  = FALSE;
-        cifrag.flags.bits.hasMate                    = FALSE;
-        cifrag.flags.bits.linkType                   = (LinkType)AS_UNKNOWN;
-	cifrag.flags.bits.edgeStatus                 = INVALID_EDGE_STATUS;
-        cifrag.flags.bits.mateDetail                 = UNASSIGNED_MATE;
-
-        //  Singleton chunks are chaff; singleton frags are chaff
-        //  unless proven otherwise
+        //  Singleton chunks are chaff; singleton frags are chaff unless proven otherwise
         //
         if (ium_mesg->num_frags < 2) {
-          CI.flags.bits.isChaff         = TRUE;
-          cifrag.flags.bits.isSingleton = TRUE;
-          cifrag.flags.bits.isChaff     = TRUE;
+          CI.flags.bits.isChaff          = TRUE;
+          cifrag->flags.bits.isSingleton = TRUE;
+          cifrag->flags.bits.isChaff     = TRUE;
 	}
-
-	info.fragIndex   = fragid;
-	info.set         = TRUE;
-
-	// Check to see if we've already seen this fragment by IID!!!!
-	old_info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, cifrag.read_iid);
-	if(old_info && old_info->set){
-	  CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, old_info->fragIndex);
-	  fprintf(stderr,"*** FATAL ERROR:  Fragment with IID " F_CID " appears more than once with id " F_CID " and " F_CID "\n",
-                  cifrag.read_iid, old_info->fragIndex, fragid);
-	  fprintf(stderr,"***               First appearance was in unitig " F_CID ", currently found in unitig " F_CID "\n",
-		  frag->cid, cifrag.cid);
-	  exit(1);
-	}
-
-	SetInfoByIID(ScaffoldGraph->iidToFragIndex, cifrag.read_iid, &info);
 
 	// Collect read stats
         if (AS_FA_READ(cfr_mesg->type)) {
@@ -491,12 +363,6 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, int32 length, int sequenc
 	  if(cfr == extremalA || cfr == extremalB)
 	    onEndReadFrags++;
 	}
-
-        //else if(AS_FA_SHREDDED(cfr_mesg->type)){
-	//  CI.flags.bits.includesFinishedBacFragments = TRUE;
-        //}
-
-        AppendCIFragT(ScaffoldGraph->CIFrags, &cifrag);
       }
     }
 

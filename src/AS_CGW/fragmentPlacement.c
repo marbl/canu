@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.31 2009-09-14 13:28:45 brianwalenz Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.32 2009-09-14 16:09:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -275,7 +275,7 @@ int NextCIFragTInChunkIterator(CGWFragIterator* frags, CIFragT**nextfrg){
       return FALSE;
     } else {
       CDS_CID_t fiid = GetIntMultiPos(frags->fragiterma->f_list,(frags->fOrder)++)->ident;
-      *nextfrg = GetCIFragT(ScaffoldGraph->CIFrags,GetInfoByIID(ScaffoldGraph->iidToFragIndex,fiid)->fragIndex);
+      *nextfrg = GetCIFragT(ScaffoldGraph->CIFrags, fiid);
       return TRUE;
     }
 
@@ -318,9 +318,7 @@ void CleanupCIFragTInChunkIterator(CGWFragIterator* frags){
 static
 void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_only,ChunkInstanceT *node){
 
-  CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,
-			     GetInfoByIID( ScaffoldGraph->iidToFragIndex,
-					   fragIID)->fragIndex);
+  CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, fragIID);
 
   mates->thisFragIID = fragIID;
 
@@ -329,22 +327,9 @@ void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_
   mates->nextLink = NULLINDEX;
 
   /* If this fragment has no constraints... continue */
-  if(frag->flags.bits.hasMate == 0){
-    assert(frag->mate_iid == NULLINDEX);
+  if ((frag->flags.bits.hasMate == 0) ||
+      (frag->mate_iid           == 0))
     return;
-  }
-
-  //  An early OBT bug left in mates to reads that are deleted, so
-  //  it's possibly to have links but no fragment.  Check and warn
-  //  when this happens.
-  //
-  if (frag->mate_iid == NULLINDEX) {
-    if (frag->flags.bits.hasMate > 0)
-      fprintf(stderr, "InitCGWMateIterator()-- WARNING!  Fragment "F_IID" has no mate, but still has a matelink!\n",
-              fragIID);
-    return;
-  }
-
 
   /* Determine whether we want to know about all mates or only those outside the node
      of interest (asserted below to be one containing the fragment) */
@@ -392,7 +377,7 @@ void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_
   //  old code where a read could have more than one mate.  Code now
   //  has at most one mate.
 
-  mates->nextLink = GetCIFragT(ScaffoldGraph->CIFrags,frag->mate_iid)->read_iid;
+  mates->nextLink = frag->mate_iid;
 
   return;
 
@@ -402,9 +387,7 @@ void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_
 static
 int check_internal(NodeCGW_T *node,CDS_CID_t frgIID){
 
-  CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,
-			     GetInfoByIID(ScaffoldGraph->iidToFragIndex,
-					  frgIID)->fragIndex);
+  CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, frgIID);
   AssertPtr(frag);
   if(node->flags.bits.isScaffold){
     if(GetGraphNode(ScaffoldGraph->ContigGraph,frag->contigID)->scaffoldID ==
@@ -453,8 +436,7 @@ int NextCGWMateIterator(CGWMateIterator* mates,CDS_CID_t * linkIID){
 
 static
 int scaffoldOf(CDS_CID_t fiid){
-  CIFragT *frg = GetCIFragT(ScaffoldGraph->CIFrags,
-			    GetInfoByIID(ScaffoldGraph->iidToFragIndex,fiid)->fragIndex);
+  CIFragT *frg = GetCIFragT(ScaffoldGraph->CIFrags, fiid);
   NodeCGW_T *ci;
   if(frg->contigID != NULLINDEX){
     ci = GetGraphNode(ScaffoldGraph->ContigGraph,frg->contigID);
@@ -500,8 +482,7 @@ int matePlacedOnlyIn(CIFragT *frg, CDS_CID_t sid, CIFragT **mate, ChunkInstanceT
     }
   }
   if(sid == placedIn){
-    *mate = GetCIFragT(ScaffoldGraph->CIFrags,
-		       GetInfoByIID(ScaffoldGraph->iidToFragIndex,mateiid)->fragIndex);
+    *mate = GetCIFragT(ScaffoldGraph->CIFrags, mateiid);
     assert((*mate)->cid==(*mate)->CIid);
     *mateChunk = GetGraphNode(ScaffoldGraph->CIGraph,(*mate)->cid);
     return TRUE;
@@ -588,8 +569,7 @@ void ReallyAssignFragsToResolvedCI(CDS_CID_t fromCIid,
 
   for(i = 0; i < GetNumCDS_CID_ts(fragments); i++){
     CDS_CID_t fragID  = *GetCDS_CID_t(fragments,i);
-    int32     frgIdx  = GetInfoByIID(ScaffoldGraph->iidToFragIndex,fragID)->fragIndex;
-    CIFragT  *frag    = GetCIFragT(ScaffoldGraph->CIFrags, frgIdx);
+    CIFragT  *frag    = GetCIFragT(ScaffoldGraph->CIFrags, fragID);
 
     assert(frag->CIid  == fromCIid);
     assert(frag->cid   == fromCIid);
@@ -597,11 +577,10 @@ void ReallyAssignFragsToResolvedCI(CDS_CID_t fromCIid,
     frag->CIid            = toCIid;
     frag->contigID        = toContigID;
 
-    fragPos.type          = (FragType)frag->type;
+    fragPos.type          = AS_READ;
     fragPos.ident         = fragID;
     fragPos.contained     = 0;
     fragPos.parent        = 0;
-    fragPos.sourceInt     = frgIdx;
     fragPos.ahang         = 0;
     fragPos.bhang         = 0;
     fragPos.position.bgn  = frag->offset5p.mean;
@@ -716,8 +695,8 @@ int placedByClosureIn(int index, CDS_CID_t iid, CDS_CID_t sid, CDS_CID_t ctgiid,
    assert(gkpl->bound2);
    
    // get the reads indicated by the input line
-   CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkpl->bound1)->fragIndex); 
-   CIFragT *rightMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkpl->bound2)->fragIndex);
+   CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, gkpl->bound1); 
+   CIFragT *rightMate = GetCIFragT(ScaffoldGraph->CIFrags, gkpl->bound2);
 
    // the reads aren't in contigs so there can't be gaps to fill
    if (leftMate->contigID == NULLINDEX || rightMate->contigID == NULLINDEX) {
@@ -892,11 +871,10 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
           // we're hot to trot ... now do something!
           IntMultiPos imp;
 
-          imp.type         = (FragType)nextfrg->type;
+          imp.type         = AS_READ;
           imp.ident        = nextfrg->read_iid;
           imp.contained    = 0; /* this might be wrong! */
           imp.parent       = 0;
-          imp.sourceInt    = 0;
           imp.ahang        = 0;
           imp.bhang        = 0;
           imp.position.bgn = nextfrg->offset5p.mean;

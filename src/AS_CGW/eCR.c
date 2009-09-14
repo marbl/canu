@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.52 2009-09-14 13:28:45 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.53 2009-09-14 16:09:05 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -413,8 +413,7 @@ main(int argc, char **argv) {
         int          i;
 
         for (i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
-          AS_IID          iid = GetCIFragT(ScaffoldGraph->CIFrags,
-                                           GetIntMultiPos(ma->f_list, i)->sourceInt)->read_iid;
+          AS_IID          iid = GetIntMultiPos(ma->f_list, i)->ident;
           uint32  bgnOld, bgnCur;
           uint32  endOld, endCur;
 
@@ -668,16 +667,12 @@ main(int argc, char **argv) {
 
           // have to check and make sure that the frags belong to the correct unitig
           if (lFragIid != -1) {
-            InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, lFragIid);
-            assert(info->set);
-            if (GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex)->cid != lunitigID)
+            if (GetCIFragT(ScaffoldGraph->CIFrags, lFragIid)->cid != lunitigID)
               continue;
           }
 
           if (rFragIid != -1) {
-            InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, rFragIid);
-            assert(info->set);
-            if (GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex)->cid != runitigID)
+            if (GetCIFragT(ScaffoldGraph->CIFrags, rFragIid)->cid != runitigID)
               continue;
           }
 
@@ -790,10 +785,7 @@ main(int argc, char **argv) {
 
           // left unitig
           if (lFragIid != -1) {
-            InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, lFragIid);
-            assert(info->set);
-
-            frag  = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+            frag  = GetCIFragT(ScaffoldGraph->CIFrags, lFragIid);
             unitig = GetGraphNode(ScaffoldGraph->CIGraph, frag->CIid);
 
             gotNewLeftMA = GetNewUnitigMultiAlign(unitig,
@@ -844,10 +836,7 @@ main(int argc, char **argv) {
 
           // right unitig
           if (rFragIid != -1) {
-            InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, rFragIid);
-            assert(info->set);
-
-            frag  = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+            frag  = GetCIFragT(ScaffoldGraph->CIFrags, rFragIid);
             unitig = GetGraphNode(ScaffoldGraph->CIGraph, frag->CIid);
 
             gotNewRightMA = GetNewUnitigMultiAlign(unitig,
@@ -1232,7 +1221,7 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
 
   for (i=0; i<numFrags; i++) {
     IntMultiPos *mp   = GetIntMultiPos(ma->f_list, i);
-    CIFragT     *frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) mp->sourceInt);
+    CIFragT     *frag = GetCIFragT(ScaffoldGraph->CIFrags, mp->ident);
 
     if ((frag->contigOffset3p.mean < 100.0) &&                      // frag is within a cutoff of the low end of the contig
         (frag->contigOffset3p.mean < frag->contigOffset5p.mean) &&  // and points in the right direction
@@ -1332,7 +1321,7 @@ findLastExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
 
   for (i = 0; i < numFrags; i++) {
     IntMultiPos *mp   = GetIntMultiPos(ma->f_list, i);
-    CIFragT     *frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) mp->sourceInt);
+    CIFragT     *frag = GetCIFragT(ScaffoldGraph->CIFrags, mp->ident);
 
     if ((frag->contigOffset3p.mean > maxContigPos - 100.0) &&      // frag is within a cutoff of the high end of the contig
         (frag->contigOffset5p.mean < frag->contigOffset3p.mean) && // and points in the right direction
@@ -1943,20 +1932,14 @@ saveFragAndUnitigData(int lFragIid, int rFragIid) {
   }
 
   if (lFragIid != -1) {
-    InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, lFragIid);
-    assert(info->set);
-
-    CIFragT *leftFrag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+    CIFragT *leftFrag = GetCIFragT(ScaffoldGraph->CIFrags, lFragIid);
 
     copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, savedLeftUnitigMA, leftFrag->cid, TRUE);
     copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, savedLeftContigMA, leftFrag->contigID, FALSE);
   }
 
   if (rFragIid != -1) {
-    InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, rFragIid);
-    assert(info->set);
-
-    CIFragT *rightFrag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+    CIFragT *rightFrag = GetCIFragT(ScaffoldGraph->CIFrags, rFragIid);
 
     copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, savedRightUnitigMA, rightFrag->cid, TRUE);
     copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, savedRightContigMA, rightFrag->contigID, FALSE);
@@ -1970,10 +1953,7 @@ restoreFragAndUnitigData(int lFragIid, int rFragIid) {
   revertClearRange(rFragIid);
 
   if (lFragIid != -1) {
-    InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, lFragIid);
-    assert(info->set);
-
-    CIFragT    *leftFrag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+    CIFragT    *leftFrag = GetCIFragT(ScaffoldGraph->CIFrags, lFragIid);
     NodeCGW_T  *unitig   = GetGraphNode(ScaffoldGraph->CIGraph, leftFrag->cid);
 
     updateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE, savedLeftUnitigMA, FALSE);
@@ -1983,10 +1963,7 @@ restoreFragAndUnitigData(int lFragIid, int rFragIid) {
   }
 
   if (rFragIid != -1) {
-    InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, rFragIid);
-    assert(info->set);
-
-    CIFragT    *rightFrag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+    CIFragT    *rightFrag = GetCIFragT(ScaffoldGraph->CIFrags, rFragIid);
     NodeCGW_T  *unitig    = GetGraphNode(ScaffoldGraph->CIGraph, rightFrag->cid);
 
     updateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE, savedRightUnitigMA, FALSE);

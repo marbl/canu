@@ -19,7 +19,7 @@
  *************************************************************************/
 
 
-static const char *rcsid = "$Id: eCR-diagnostic.c,v 1.7 2009-09-14 13:28:45 brianwalenz Exp $";
+static const char *rcsid = "$Id: eCR-diagnostic.c,v 1.8 2009-09-14 16:09:05 brianwalenz Exp $";
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
 
@@ -60,9 +60,8 @@ DumpContigMultiAlignInfo (char *label, MultiAlignT *cma, int contigID) {
 
     for (j = 0; j < GetNumIntMultiPoss(uma->f_list); j++) {
       IntMultiPos *pos = GetIntMultiPos(uma->f_list, j);
-      fprintf(debug.diagnosticFP, "  fragment %8d, bgn: %10d, end: %10d, length: %10d, source: %10d\n",
-              pos->ident, pos->position.bgn, pos->position.end, abs(pos->position.bgn - pos->position.end),
-              pos->sourceInt);
+      fprintf(debug.diagnosticFP, "  fragment %8d, bgn: %10d, end: %10d, length: %10d\n",
+              pos->ident, pos->position.bgn, pos->position.end, abs(pos->position.bgn - pos->position.end));
     }
   }
   fprintf(debug.diagnosticFP, "\n");
@@ -91,9 +90,8 @@ DumpUnitigInfo(char *label, NodeCGW_T *unitig) {
 
   for (j = 0; j < GetNumIntMultiPoss(uma->f_list); j++) {
     IntMultiPos *mpos = GetIntMultiPos(uma->f_list, j);
-    fprintf(debug.diagnosticFP, "  fragment %8d, bgn: %10d, end: %10d, length: %10d, source: %10d\n",
-            mpos->ident, mpos->position.bgn, mpos->position.end, abs(mpos->position.bgn - mpos->position.end),
-            mpos->sourceInt);
+    fprintf(debug.diagnosticFP, "  fragment %8d, bgn: %10d, end: %10d, length: %10d\n",
+            mpos->ident, mpos->position.bgn, mpos->position.end, abs(mpos->position.bgn - mpos->position.end));
   }
   fprintf(debug.diagnosticFP, "\n");
 }
@@ -147,10 +145,7 @@ DumpContigUngappedOffsets(char *label, int contigID) {
 
   for(i = 0; i < GetNumIntMultiPoss(cma->f_list); i++) {
     IntMultiPos *mp = GetIntMultiPos(cma->f_list, i);
-    int fragID = mp->sourceInt; // GetInfoByIID(ScaffoldGraph->iidToFragIndex, mp->ident)->fragIndex;
-    // hack next line replaces above
-    // int fragID = GetInfoByIID(ScaffoldGraph->iidToFragIndex, mp->ident)->fragIndex;
-    CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, fragID);
+    CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, mp->ident);
     int bgn, end;
 
     // mp->position is an interval.  We need to subtract one from
@@ -164,8 +159,8 @@ DumpContigUngappedOffsets(char *label, int contigID) {
       }
 
     fprintf(debug.diagnosticFP, "in DCUO, contig %8d, frag %10d, mp->position.bgn: %10d, mp->position.end: %10d, "
-            "len: %10d, contained: %8d, source: %10d\n",
+            "len: %10d, contained: %8d\n",
             contigID, frag->read_iid, mp->position.bgn, mp->position.end, abs(mp->position.bgn - mp->position.end),
-            mp->contained, mp->sourceInt);
+            mp->contained);
   }
 }

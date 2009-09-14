@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.33 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.34 2009-09-14 16:09:05 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -47,7 +47,7 @@ const char *mainid = "$Id: AS_CNS_asmReBaseCall.c,v 1.33 2009-06-10 18:05:13 bri
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
 
-static const char *rcsid = "$Id: AS_CNS_asmReBaseCall.c,v 1.33 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_CNS_asmReBaseCall.c,v 1.34 2009-09-14 16:09:05 brianwalenz Exp $";
 
 static HashTable_AS *utgUID2IID;
 
@@ -100,7 +100,6 @@ static IntUnitigMesg* convert_UTG_to_IUM(SnapUnitigMesg* utgMesg)
 
     for(i=0; i<iumMesg->num_frags; i++){
       iumMesg->f_list[i].type = utgMesg->f_list[i].type;
-      iumMesg->f_list[i].sourceInt = 0;
 
       iid = gkpStore->gkStore_getUIDtoIID(utgMesg->f_list[i].eident, NULL);
 
@@ -172,7 +171,6 @@ static IntConConMesg* convert_CCO_to_ICM(SnapConConMesg* ccoMesg)
     icmMesg->pieces = (IntMultiPos*) safe_malloc(icmMesg->num_pieces*sizeof(IntMultiPos));
     for(i=0; i<icmMesg->num_pieces; i++){// i loop
       icmMesg->pieces[i].type = ccoMesg->pieces[i].type;
-      icmMesg->pieces[i].sourceInt = 0;
 
       iid = gkpStore->gkStore_getUIDtoIID(ccoMesg->pieces[i].eident, NULL);
       if( iid == 0 ){
@@ -474,7 +472,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.33 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.34 $ processing. Started %s\n",
 	      ctime(&t));
 
       while ( (ReadProtoMesg_AS(stdin,&pmesg) != EOF)){

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.42 2009-09-09 08:21:56 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.43 2009-09-14 16:09:04 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -340,7 +340,6 @@ void FillChunkOverlapWithOVL(GraphCGW_T   *graph,
 
   ChunkOverlapCheckT  olap = {0};
 
-  InfoByIID          *ciinfoa, *ciinfob;
   CIFragT            *cifraga, *cifragb;
 
   CDS_CID_t           cia;
@@ -353,14 +352,12 @@ void FillChunkOverlapWithOVL(GraphCGW_T   *graph,
 
   //  Find the chunks with the two fragments
 
-  ciinfoa = GetInfoByIID(ScaffoldGraph->iidToFragIndex, ovl->aifrag);
-  cifraga = GetCIFragT(ScaffoldGraph->CIFrags, ciinfoa->fragIndex);
+  cifraga = GetCIFragT(ScaffoldGraph->CIFrags, ovl->aifrag);
   cia     = cifraga->cid; // cifrag.CIid;
   bega    = MIN(cifraga->offset5p.mean, cifraga->offset3p.mean);
   enda    = MAX(cifraga->offset5p.mean, cifraga->offset3p.mean);
 
-  ciinfob = GetInfoByIID(ScaffoldGraph->iidToFragIndex, ovl->bifrag);
-  cifragb = GetCIFragT(ScaffoldGraph->CIFrags, ciinfob->fragIndex);
+  cifragb = GetCIFragT(ScaffoldGraph->CIFrags, ovl->bifrag);
   cib     = cifragb->cid; // cifrag.CIid;
   begb    = MIN(cifragb->offset5p.mean, cifragb->offset3p.mean);
   endb    = MAX(cifragb->offset5p.mean, cifragb->offset3p.mean);

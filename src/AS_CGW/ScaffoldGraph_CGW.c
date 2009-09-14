@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.43 2009-09-12 22:35:57 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.44 2009-09-14 16:09:04 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -82,7 +82,6 @@ LoadScaffoldGraphFromCheckpoint(char   *name,
   status = AS_UTL_safeRead(F, ScaffoldGraph->name, "LoadScaffoldGraphFromCheckpoint", sizeof(char), 256);
   assert(status == 256);
 
-  ScaffoldGraph->iidToFragIndex = CreateFromFileVA_InfoByIID(F);
   ScaffoldGraph->CIFrags        = CreateFromFileVA_CIFragT(F);
   ScaffoldGraph->Dists          = CreateFromFileVA_DistT(F);
 
@@ -166,7 +165,6 @@ CheckpointScaffoldGraph(const char *logicalname, const char *location) {
 
   AS_UTL_safeWrite(F, ScaffoldGraph->name, "CheckpointScaffoldGraph", sizeof(char), 256);
 
-  CopyToFileVA_InfoByIID(ScaffoldGraph->iidToFragIndex, F);
   CopyToFileVA_CIFragT(ScaffoldGraph->CIFrags, F);
   CopyToFileVA_DistT(ScaffoldGraph->Dists, F);
 
@@ -271,7 +269,6 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name) {
   int numFrags = sgraph->gkpStore->gkStore_getNumFragments();
   int numDists = sgraph->gkpStore->gkStore_getNumLibraries();
 
-  sgraph->iidToFragIndex = CreateVA_InfoByIID(numFrags);
   sgraph->Dists          = CreateVA_DistT(numDists);
   sgraph->CIFrags        = CreateVA_CIFragT(numFrags);
 
@@ -315,7 +312,6 @@ void DestroyScaffoldGraph(ScaffoldGraphT *sgraph){
   DeleteVA_CIFragT(sgraph->CIFrags);
 
   DeleteVA_DistT(sgraph->Dists);
-  DeleteVA_InfoByIID(sgraph->iidToFragIndex);
 
   safe_free(sgraph);
 }
@@ -329,7 +325,6 @@ void ReportMemorySize(ScaffoldGraphT *graph, FILE *stream){
   fprintf(stream,"*\t     \tnumElements\tAllocatedElements\tAllocatedSize\n");
   totalMemorySize += ReportMemorySize_VA(graph->Dists, "Dists", stream);
   totalMemorySize += ReportMemorySize_VA(graph->CIFrags, "CIFrags", stream);
-  totalMemorySize += ReportMemorySize_VA(graph->iidToFragIndex, "iidToFrag", stream);
   totalMemorySize += ReportMemorySizeGraphCGW(graph->CIGraph, stream);
   totalMemorySize += ReportMemorySizeGraphCGW(graph->ContigGraph, stream);
   totalMemorySize += ReportMemorySizeGraphCGW(graph->ScaffoldGraph, stream);

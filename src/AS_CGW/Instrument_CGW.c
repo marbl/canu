@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Instrument_CGW.c,v 1.41 2009-09-14 13:28:44 brianwalenz Exp $";
+static char *rcsid = "$Id: Instrument_CGW.c,v 1.42 2009-09-14 16:09:04 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1985,31 +1985,14 @@ void PrintConsensus(VA_TYPE(char) * consensus, FILE * printTo)
 
 void PrintFragment(CIFragT * frag, CDS_CID_t index, FILE * printTo)
 {
-  fprintf(printTo, "Fragment iid "F_CID ", index "F_CID "\n",
-          frag->read_iid, index);
+  fprintf(printTo, "Fragment iid "F_CID "\n",
+          frag->read_iid);
 
   if(frag->flags.bits.hasMate){
-    fprintf(printTo, "  index of mate "F_CID"\n", frag->mate_iid);
-    fprintf(printTo, "  iid of mate "F_CID "\n",
-	    GetCIFragT(ScaffoldGraph->CIFrags, frag->mate_iid)->read_iid);
+    fprintf(printTo, "  iid of mate "F_CID"\n", frag->mate_iid);
   } else {
     fprintf(printTo, "  unmated");
   }
-  switch(frag->type)
-    {
-      case AS_READ:
-        fprintf(printTo, "  type: AS_READ; ");
-        break;
-      case AS_EXTR:
-        fprintf(printTo, "  type: AS_EXTR; ");
-        break;
-      case AS_TRNR:
-        fprintf(printTo, "  type: AS_TRNR; ");
-        break;
-      default:
-        fprintf(printTo, "  type: -other-; ");
-        break;
-    }
   fprintf(printTo, "%s, %s, %s\n",
           (frag->flags.bits.isPlaced) ? "placed" : "not placed",
           (frag->flags.bits.isSingleton) ? "singleton" : "not singleton",
@@ -2537,9 +2520,8 @@ void PrintUnitigInstrumenter(ScaffoldGraphT * graph,
         {
           // Don't use the convenience function, since we want to print the index
           CDS_CID_t * iid = GetVA_CDS_CID_t(ui->bookkeeping.fragArray, i);
-          InfoByIID * info = GetInfoByIID(graph->iidToFragIndex, *iid);
-          CIFragT * frag = GetCIFragT(graph->CIFrags, info->fragIndex);
-          PrintFragment(frag, info->fragIndex, printTo);
+          CIFragT * frag = GetCIFragT(graph->CIFrags, *iid);
+          PrintFragment(frag, *iid, printTo);
         }
     }
 
@@ -2616,9 +2598,8 @@ void PrintContigInstrumenter(ScaffoldGraphT * graph,
         {
           // Don't use the convenience function, since we want to print the index
           CDS_CID_t * iid = GetVA_CDS_CID_t(ci->bookkeeping.fragArray, i);
-          InfoByIID * info = GetInfoByIID(graph->iidToFragIndex, *iid);
-          CIFragT * frag = GetCIFragT(graph->CIFrags, info->fragIndex);
-          PrintFragment(frag, info->fragIndex, printTo);
+          CIFragT * frag = GetCIFragT(graph->CIFrags, *iid);
+          PrintFragment(frag, *iid, printTo);
         }
     }
 
@@ -2863,20 +2844,6 @@ void GetMateInstrumenterFromScaffoldGraphInstrumenter(
 }
 
 
-CIFragT * getFragByIID(ScaffoldGraphT * graph,
-                       CDS_CID_t iid)
-{
-  InfoByIID * info = GetInfoByIID(graph->iidToFragIndex, iid);
-  return(GetCIFragT(graph->CIFrags, info->fragIndex));
-}
-
-
-CIFragT * getBookkeepingFrag(ScaffoldGraphT * graph,
-                             VA_TYPE(CDS_CID_t) * fragArray,
-                             CDS_CID_t index)
-{
-  return(getFragByIID(graph, *(GetVA_CDS_CID_t(fragArray, index))));
-}
 
 
 /********************************************************************
@@ -2991,7 +2958,7 @@ int AddInstrumenterBookkeeping(ScaffoldGraphT * graph,
 
           if(!ExistsInHashTable_AS(dest->fragHT, (uint64)(INTPTR)fragIID, 0))
             {
-              CIFragT * frag = getFragByIID(graph, *fragIID);
+              CIFragT * frag = GetCIFragT(graph->CIFrags, *fragIID);
               InsertInHashTable_AS(dest->fragHT, (uint64)frag->read_iid, 0, (uint64)(INTPTR)frag, 0);
               AppendVA_CDS_CID_t(dest->fragArray, fragIID);
             }
@@ -3013,7 +2980,7 @@ int AddInstrumenterBookkeeping(ScaffoldGraphT * graph,
           if(!ExistsInHashTable_AS(dest->fragHT, (uint64)md->fragIID, 0))
             {
               // need to find the CIFragT - stable pointer
-              CIFragT * frag = getFragByIID(graph, md->fragIID);
+              CIFragT * frag = GetCIFragT(graph->CIFrags, md->fragIID);
 
               InsertInHashTable_AS(dest->fragHT, (uint64)frag->read_iid, 0, (uint64)(INTPTR)frag, 0);
               AppendVA_CDS_CID_t(dest->fragArray, &(md->fragIID));
@@ -3642,55 +3609,43 @@ int AddFragmentToUnitigInstrumenter(ScaffoldGraphT * graph,
                                     UnitigInstrumenter * ui)
 {
   IntMultiPos * imp = GetIntMultiPos(uma->f_list, fi);
-  InfoByIID * info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
-  CIFragT * frag = GetCIFragT(graph->CIFrags, info->fragIndex);
+  CIFragT * frag = GetCIFragT(graph->CIFrags, imp->ident);
+
+  if (frag->flags.bits.isDeleted)
+    return(0);
 
 #ifdef DEBUG2
   fprintf(stderr, "Adding fragment "F_CID " (index = "F_CID ") to unitig instrumenter\n",
           frag->read_iid, info->fragIndex);
 #endif
 
-  switch(frag->type)
-    {
-      case AS_READ:
-      case AS_EXTR:
-      case AS_TRNR:
-        {
-          ui->numReads +=
-            (frag->type == AS_READ ||
-             frag->type == AS_TRNR) ? 1 : 0;
-          ui->numExtReads += (frag->type == AS_EXTR) ? 1 : 0;
+  ui->numReads    += 1;
+  ui->numExtReads += 0;
 
-          if(frag->mate_iid != NULLINDEX)
+  if(frag->mate_iid != 0)
+    {
+      if(!ExistsInHashTable_AS(ui->bookkeeping.fragHT, (uint64)(INTPTR)&frag->read_iid, 0))
+        {
+          if(InsertInHashTable_AS(ui->bookkeeping.fragHT,
+                                  (uint64)frag->read_iid, 0,
+                                  (uint64)(INTPTR)frag, 0) == HASH_FAILURE)
             {
-              if(!ExistsInHashTable_AS(ui->bookkeeping.fragHT, (uint64)(INTPTR)&frag->read_iid, 0))
-                {
-                  if(InsertInHashTable_AS(ui->bookkeeping.fragHT,
-                                          (uint64)frag->read_iid, 0,
-                                          (uint64)(INTPTR)frag, 0) == HASH_FAILURE)
-                    {
-                      fprintf(stderr, "Failed to insert frag into hashtable.\n");
-                      return 1;
-                    }
-                  AppendVA_CDS_CID_t(ui->bookkeeping.fragArray, &(frag->read_iid));
-                }
+              fprintf(stderr, "Failed to insert frag into hashtable.\n");
+              return 1;
             }
-          else
-            {
-              FragDetail fragDetail;
-              // no mate, log it
-              fragDetail.iid = frag->read_iid;
-              fragDetail.type = (FragType)frag->type;
-              fragDetail.offset5p = frag->contigOffset5p.mean;
-              AppendVA_FragDetail(ui->mates.noMate, &fragDetail);
-            }
+          AppendVA_CDS_CID_t(ui->bookkeeping.fragArray, &(frag->read_iid));
         }
-        break;
-      default:
-        fprintf(stderr, "Unknown fragment type %c encountered\n",
-                (char) frag->type);
-        break;
     }
+  else
+    {
+      FragDetail fragDetail;
+      // no mate, log it
+      fragDetail.iid = frag->read_iid;
+      fragDetail.type = AS_READ;
+      fragDetail.offset5p = frag->contigOffset5p.mean;
+      AppendVA_FragDetail(ui->mates.noMate, &fragDetail);
+    }
+
   return 0;
 }
 
@@ -3711,8 +3666,7 @@ int AddFragmentToSurrogateTracker(ScaffoldGraphT * graph,
   {
     SurrogateFragLocation * sflp;
     int addToHashTable = 1;
-    InfoByIID * info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
-    CIFragT * frag = GetCIFragT(graph->CIFrags, info->fragIndex);
+    CIFragT * frag = GetCIFragT(graph->CIFrags, imp->ident);
 
     /*
       Look up the IID in the surrogate ht
@@ -4017,9 +3971,7 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
   char oString[1024];
   CIFragT *tmpfrg;
 
-  tmpfrg = GetCIFragT(ScaffoldGraph->CIFrags,
-		      GetInfoByIID(ScaffoldGraph->iidToFragIndex,
-				   md->fragIID)->fragIndex);
+  tmpfrg = GetCIFragT(ScaffoldGraph->CIFrags, md->fragIID);
 
 
   {
@@ -4048,9 +4000,7 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
 			&fragOrient);
   }
 
-  tmpfrg = GetCIFragT(ScaffoldGraph->CIFrags,
-		      GetInfoByIID(ScaffoldGraph->iidToFragIndex,
-				   md->mateIID)->fragIndex);
+  tmpfrg = GetCIFragT(ScaffoldGraph->CIFrags, md->mateIID);
   if(!ExistsInHashTable_AS(cpHT,(uint64)tmpfrg->contigID,0)){
     // this should apply only to surrogate fragments
 
@@ -4133,7 +4083,6 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
 #define MARK_INTER_SCAFFOLD_MATES
 #ifdef MARK_INTER_SCAFFOLD_MATES
     int frgScf,mateScf;
-    InfoByIID * info;
     CIFragT * frag;
     int32 scfId;
 #endif
@@ -4299,7 +4248,7 @@ void PrintUnmatedDetails(ScaffoldInstrumenter * si,
       fd=GetVA_FragDetail(si->mates.noMate,i);
       fragIID = fd->iid;
       //      fprintf(stderr,"Got frag detail %x iid %d\n",fd,fragIID);
-      frag = getFragByIID(ScaffoldGraph,fragIID);
+      frag = GetCIFragT(ScaffoldGraph->CIFrags, fragIID);
       //      fprintf(stderr,"Got frag %x\n",frag);
 
 
@@ -4357,7 +4306,8 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
       FragOrient mateOrient;
 
       // get current fragment & its mate
-      frag = getBookkeepingFrag(graph, bookkeeping->fragArray, i);
+      frag = GetCIFragT(graph->CIFrags, *(GetVA_CDS_CID_t(bookkeeping->fragArray, i)));
+
       GetFragmentPosition(cpHT, frag, &frag5p, &frag3p, &fragOrient);
 
       /*    fprintf(stderr,"checking mates of %d CIid %d doingContig %d\n",
@@ -4446,14 +4396,14 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
               md.fragOffset5p = frag5p;
               md.fragChunkIID = chunkIID;
               md.libIID = frag->dist;
-              md.type = (FragType)frag->type;
+              md.type = AS_READ;
               md.mateIID = graphMate->read_iid;
               md.mateOffset5p = -1.f;
 #ifdef TRACK_3P
               md.fragOffset3p = frag3p;
               md.mateOffset3p = -1.f;
 #endif
-              md.mateChunkIID = getFragByIID(ScaffoldGraph,md.mateIID)->cid;
+              md.mateChunkIID = GetCIFragT(ScaffoldGraph->CIFrags, md.mateIID)->cid;
               AppendVA_MateDetail(bookkeeping->wExtMates, &(md));
               lookupMate = NULL;
             }
@@ -4516,7 +4466,7 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
               matePair.mateChunkIID = frag->contigID;
             }
           matePair.libIID = frag->dist;
-          matePair.type = (FragType)frag->type;
+          matePair.type = AS_READ;
 
           if(anchoredHT && frag->contigID != lookupMate->contigID)
             {

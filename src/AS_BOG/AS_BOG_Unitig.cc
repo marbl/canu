@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.10 2009-06-15 05:52:49 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.11 2009-09-14 16:09:03 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -354,7 +354,6 @@ void Unitig::placeContains(const ContainerMap &cMap,
     frag.ident        = fragId;
     frag.contained    = containerId;
     frag.parent       = containerId;
-    frag.sourceInt    = -1;
 
     //  The 'best' overlap picture is always the same:
     //

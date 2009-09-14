@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: dumpSingletons.c,v 1.30 2009-09-14 13:28:45 brianwalenz Exp $";
+const char *mainid = "$Id: dumpSingletons.c,v 1.31 2009-09-14 16:09:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,7 +122,7 @@ main( int argc, char **argv) {
     CIFragT *mate = NULL;
 
     assert(frag->cid != NULLINDEX);
-    assert((frag->flags.bits.hasMate == 0) || (frag->mate_iid != NULLINDEX));
+    assert((frag->flags.bits.hasMate == 0) || (frag->mate_iid != 0));
 
     //  Fix for missing mates -- OBT used to not delete mate links, leaving
     //  dangling mates.  Somebody else seems to be doing this too.

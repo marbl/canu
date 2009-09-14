@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.11 2009-08-04 11:05:19 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.12 2009-09-14 16:09:05 brianwalenz Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
@@ -122,7 +122,6 @@ typedef struct {
   IntFragment_ID       frgIdent;
   IntFragment_ID       frgContained;
   IntUnitig_ID         frgInUnitig;
-  int32		         frgSource;
 } CNS_FragmentContigElement;
 
 typedef struct {

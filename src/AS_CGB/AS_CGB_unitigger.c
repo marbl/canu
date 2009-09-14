@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.39 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.40 2009-09-14 16:09:04 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_Bubble.h"
@@ -71,7 +71,6 @@ output_the_chunks(Tfragment     *frags,
       a_frag.ident        = get_iid_fragment(frags,vid);
       a_frag.contained    = get_container_fragment(frags,vid);
       a_frag.parent       = 0;
-      a_frag.sourceInt    = 0;
       a_frag.ahang        = 0;
       a_frag.bhang        = 0;
       a_frag.position.bgn = get_o5p_fragment(frags,vid);

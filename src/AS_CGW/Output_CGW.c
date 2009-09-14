@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.44 2009-09-14 13:28:44 brianwalenz Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.45 2009-09-14 16:09:04 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -88,8 +88,6 @@ void OutputMateDists(ScaffoldGraphT *graph){
 
 /* Must be called after OutputMateDists */
 void OutputFrags(ScaffoldGraphT *graph){
-  CDS_CID_t		i;
-
   int goodMates = 0;
   int ctenUntrust=0;
   int ctenTrust  =0;
@@ -102,16 +100,13 @@ void OutputFrags(ScaffoldGraphT *graph){
 
   // Output fragments in iid order
   //
-  for(i = 0; i < GetNumInfoByIIDs(graph->iidToFragIndex); i++) {
-    CIFragT          *cifrag = NULL;
-    InfoByIID        *info   = GetInfoByIID(graph->iidToFragIndex, i);
+  for (int32 i=1; i<GetNumCIFragTs(graph->CIFrags); i++) {
+    CIFragT          *cifrag = GetCIFragT(graph->CIFrags, i);
     GenericMesg       pmesg;
     IntAugFragMesg    iaf;
 
-    if(!info->set)
+    if (cifrag->flags.bits.isDeleted)
       continue;
-
-    cifrag = GetCIFragT(graph->CIFrags, info->fragIndex);
 
     assert(cifrag->read_iid == i);
 
@@ -130,7 +125,7 @@ void OutputFrags(ScaffoldGraphT *graph){
     //  fragStore.
 
     iaf.iaccession     = cifrag->read_iid;
-    iaf.type           = (FragType)cifrag->type;
+    iaf.type           = AS_READ;
     iaf.chaff          = cifrag->flags.bits.isChaff;
     iaf.mate_status    = cifrag->flags.bits.mateDetail;
     iaf.clear_rng.bgn  = -1;
@@ -145,34 +140,25 @@ void OutputFrags(ScaffoldGraphT *graph){
 
   // Output mates in iid order
   //
-  for(i = 0; i < GetNumInfoByIIDs(graph->iidToFragIndex); i++) {
-    CIFragT            *cif1 = NULL, *cif2 = NULL;
-    InfoByIID          *inf1 = NULL, *inf2 = NULL;
+  for (int32 i=1; i<GetNumCIFragTs(graph->CIFrags); i++) {
+    CIFragT            *cif1 = GetCIFragT(graph->CIFrags, i);
+    CIFragT            *cif2 = NULL;
     GenericMesg         pmesg;
     IntAugMatePairMesg  iam;
 
-    inf1 = GetInfoByIID(graph->iidToFragIndex, i);
-
-    if(!inf1->set)
+    if (cif1->flags.bits.isDeleted)
       continue;
 
-    cif1 = GetCIFragT(graph->CIFrags, inf1->fragIndex);
-
-    if (cif1->mate_iid < 1)
+    if (cif1->mate_iid == 0)
       continue;
 
     cif2 = GetCIFragT(graph->CIFrags, cif1->mate_iid);
 
+    if (cif2->flags.bits.isDeleted)
+      continue;
+
     if (cif1->read_iid > cif2->read_iid)
       continue;
-
-    inf2 = GetInfoByIID(graph->iidToFragIndex, cif2->read_iid);
-
-    if(!inf2->set)
-      continue;
-
-    assert(inf1->fragIndex == cif2->mate_iid);
-    assert(inf2->fragIndex == cif1->mate_iid);
 
     assert(cif1->flags.bits.edgeStatus == cif2->flags.bits.edgeStatus);
     assert(cif1->flags.bits.mateDetail == cif2->flags.bits.mateDetail);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.54 2009-09-14 13:28:45 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.55 2009-09-14 16:09:05 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -651,8 +651,8 @@ static int Place_Closure_Chunk(Scaffold_Fill_t * fill_chunks, ContigT* contig, i
 fprintf(stderr, "Place_Closure_Chunk(): Read=%d Left Bound=%d Right Bound=%d in CID %d\n", mp->ident, gkpl->bound1, gkpl->bound2, cid);
 #endif
       // get the reads indicated by the input line
-      CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkpl->bound1)->fragIndex); 
-      CIFragT *rightMate = GetCIFragT(ScaffoldGraph->CIFrags, GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkpl->bound2)->fragIndex);
+      CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, gkpl->bound1); 
+      CIFragT *rightMate = GetCIFragT(ScaffoldGraph->CIFrags, gkpl->bound2);
 
       // the reads aren't in contigs so there can't be gaps to fill
       if (leftMate->contigID == NULLINDEX || rightMate->contigID == NULLINDEX) {
@@ -8893,20 +8893,16 @@ static void  Print_Frag_Info
   for  (i = 0;  i < num_frags;  i ++)
     {
       IntMultiPos  * mp = GetIntMultiPos (ma -> f_list, i);
-      CDS_CID_t  fragID = (CDS_CID_t) mp -> sourceInt;
-      // This is an internal-data-structure ID
       CDS_CID_t  ident = (CDS_CID_t) mp -> ident;
-      // This is the read's IID
-      CIFragT  * frag = GetCIFragT (ScaffoldGraph -> CIFrags,
-                                    fragID);
+      CIFragT  * frag = GetCIFragT (ScaffoldGraph -> CIFrags, ident);
 
       assert (ident == frag -> read_iid);
       fprintf (fp,
-               "    %7" F_CIDP "/%7" F_CIDP "/%c [%5.0f,%5.0f]",
-               fragID, ident, (char) frag -> type,
+               "    %7" F_CIDP " [%5.0f,%5.0f]",
+               ident, ident,
                frag -> offset5p . mean, frag -> offset3p . mean);
 
-      if  (frag -> flags . bits . hasMate == 1 && frag -> mate_iid != NULLINDEX)
+      if  (frag -> flags . bits . hasMate == 1 && frag -> mate_iid != 0)
         {
           CIFragT  * mateFrag
             = GetCIFragT (ScaffoldGraph -> CIFrags, frag -> mate_iid);
@@ -10856,18 +10852,14 @@ static void  Show_Read_Info
   for  (i = 0;  i < num_frags;  i ++)
     {
       IntMultiPos  * mp = GetIntMultiPos (ma -> f_list, i);
-      CDS_CID_t  fragID = (CDS_CID_t) mp -> sourceInt;
-      // This is an internal-data-structure ID
       CDS_CID_t  ident = (CDS_CID_t) mp -> ident;
-      // This is the read's IID
-      CIFragT  * frag = GetCIFragT (ScaffoldGraph -> CIFrags,
-                                    fragID);
+      CIFragT  * frag = GetCIFragT (ScaffoldGraph -> CIFrags, ident);
 
       fprintf (fp,
                " %7" F_CIDP " %6.0f %6.0f",
                ident, frag -> offset5p . mean, frag -> offset3p . mean);
 
-      if  (frag -> flags . bits. hasMate == 1 && frag -> mate_iid != NULLINDEX)
+      if  (frag -> flags . bits. hasMate == 1 && frag -> mate_iid != 0)
         {
           CIFragT  * mateFrag
             = GetCIFragT (ScaffoldGraph -> CIFrags, frag -> mate_iid);

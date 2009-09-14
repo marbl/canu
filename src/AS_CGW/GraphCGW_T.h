@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.39 2009-08-28 17:35:11 skoren Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.40 2009-09-14 16:09:04 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_ALN_aligners.h"
@@ -248,8 +248,6 @@ typedef struct{
       // Both of these are redundant, since we can get
       // to the same info by looking in the multiAlignT for this CI
       // at some point we should nuke them
-      CDS_CID_t headOfFragments; /* Index of first FragInfoT record belonging to this  chunkInstance
-                                    These will be linked together.  */
       int32 numFragments;
       /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
@@ -489,7 +487,6 @@ static NodeCGW_T *CreateNewGraphNode(GraphCGW_T *graph){
       node.type = UNRESOLVEDCHUNK_CGW;
       node.flags.bits.isCI = TRUE;
       node.info.CI.contigID = NULLINDEX;
-      node.info.CI.headOfFragments = NULLINDEX;
       node.info.CI.numFragments = 0;
       node.info.CI.coverageStat = 0;
       node.info.CI.numInstances = 0;

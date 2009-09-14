@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.50 2009-09-14 13:28:45 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.51 2009-09-14 16:09:04 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -253,8 +253,7 @@ CreateReadCoverageMap(ScaffoldGraphT *graph,
     if (!AS_FA_READ(imp->type))
       continue;
 
-    InfoByIID *info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
-    CIFragT   *frag = GetCIFragT(graph->CIFrags, info->fragIndex);
+    CIFragT   *frag = GetCIFragT(graph->CIFrags, imp->ident);
 
     int32 minPos = ((isUnitig) ?
                     (MIN(frag->offset5p.mean, frag->offset3p.mean) + READ_TRIM_BASES) :
@@ -297,14 +296,13 @@ CreateCloneCoverageMaps(ScaffoldGraphT *graph,
 
   for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
     IntMultiPos *imp  = GetIntMultiPos(ma->f_list, i);
-    InfoByIID   *info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
-    CIFragT     *frag = GetCIFragT(graph->CIFrags, info->fragIndex);
+    CIFragT     *frag = GetCIFragT(graph->CIFrags, imp->ident);
 
     // this is unlike ComputeMatePairStatistics, since we're interested
     // even in pairs that are in different unitigs/contigs
 
     if ((frag->flags.bits.hasMate > 0) &&
-        (frag->mate_iid != NULLINDEX))
+        (frag->mate_iid           > 0))
       AddLinkToMaps(graph, gcc, bcc, frag,
                     GetCIFragT(graph->CIFrags, frag->mate_iid),
                     ((frag->flags.bits.innieMate) ? AS_INNIE : AS_OUTTIE),
@@ -398,15 +396,6 @@ StoreIUMStruct(ScaffoldGraphT *graph,
   //  Add ium to the system
 
   MultiAlignT    *ma = CreateMultiAlignTFromIUM(&is->ium, GetNumCIFragTs(graph->CIFrags), FALSE);
-
-  //  Point fragments to their new unitig/contig
-
-  for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
-    IntMultiPos *imp  = GetIntMultiPos(ma->f_list, i);
-    InfoByIID   *info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
-
-    imp->sourceInt = info->fragIndex;
-  }
 
   //  Insert both a unitig and a contig
 
@@ -557,8 +546,7 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
 
   for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
     IntMultiPos *imp  = GetIntMultiPos(ma->f_list, i);
-    InfoByIID   *info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
-    CIFragT     *frag = GetCIFragT(graph->CIFrags, info->fragIndex);
+    CIFragT     *frag = GetCIFragT(graph->CIFrags, imp->ident);
 
     //  Determine the position of the fragment in the unitig or contig
 
@@ -665,8 +653,7 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
     //  Place it.
 
     {
-      InfoByIID      *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, imp->ident);
-      CIFragT        *frag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+      CIFragT        *frag = GetCIFragT(ScaffoldGraph->CIFrags, imp->ident);
       IntUnitigMesg  *ium  = &utg[interval].ium;
 
       ium->f_list[ium->num_frags] = *imp;

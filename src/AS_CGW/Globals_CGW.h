@@ -22,9 +22,9 @@
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
-static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.30 2009-09-12 22:35:57 brianwalenz Exp $";
+static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.31 2009-09-14 16:09:04 brianwalenz Exp $";
 
-#include "AS_global.h";
+#include "AS_global.h"
 
 //  These are the global data structures for the CGW Module
 

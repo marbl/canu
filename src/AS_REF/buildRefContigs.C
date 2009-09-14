@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildRefContigs.C,v 1.5 2009-06-10 18:05:14 brianwalenz Exp $";
+const char *mainid = "$Id: buildRefContigs.C,v 1.6 2009-09-14 16:09:05 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -393,7 +393,6 @@ outputUnitigs(void) {
 
     imp[impLen].type           = AS_READ;
     imp[impLen].ident          = ali[i].frgIID;
-    imp[impLen].sourceInt      = 0;
     if (ali[i].fwd) {
       imp[impLen].position.bgn   = ali[i].refBgn - b;
       imp[impLen].position.end   = ali[i].refEnd - b;
@@ -486,7 +485,6 @@ outputContigs(void) {
 
     imp[impLen].type           = AS_READ;
     imp[impLen].ident          = ali[i].frgIID;
-    imp[impLen].sourceInt      = 0;
     if (ali[i].fwd) {
       imp[impLen].position.bgn   = ali[i].refBgn - b;
       imp[impLen].position.end   = ali[i].refEnd - b;

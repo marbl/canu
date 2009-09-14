@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignFromICM.c,v 1.5 2009-09-07 07:40:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignFromICM.c,v 1.6 2009-09-14 16:09:05 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -35,9 +35,6 @@ CreateMultiAlignTFromICM(IntConConMesg *icm,
                          int localID,
                          int sequenceOnly) {
   MultiAlignT *ma = CreateMultiAlignT();
-
-  //  if localID >= 0, use that for the IMP 'sourceInt' id, otherwise,
-  //  use the 'sourceInt' in the input ium->imp.
 
   if (icm->length != strlen(icm->consensus))
     fprintf(stderr, "Reported Length of ICM %d (%d) doesnt matches strlen (%d)\n",
@@ -73,11 +70,6 @@ CreateMultiAlignTFromICM(IntConConMesg *icm,
     for (i=0; i<icm->num_pieces; i++) {
       IntMultiPos *cfr =  icm->pieces + i;
       IntMultiPos  tmp = *cfr;
-
-      if (localID < 0)
-        tmp.sourceInt = cfr->sourceInt;
-      else
-        tmp.sourceInt = localID++;
 
       //  Because Getint32() returns NULL for elements out of range,
       //  we need to set the delta pointer after we append, adjusting

@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.78 2009-08-14 13:37:06 skoren Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.79 2009-09-14 16:09:05 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.78 2009-08-14 13:37:06 skoren Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.79 2009-09-14 16:09:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <time.h>
@@ -271,14 +271,6 @@ typedef enum {
   AS_B_END = (int)'B'
 } ChunkOrientType;
 
-typedef enum {
-  AS_SINGLETON    = (int)'S',
-  AS_INTERCHUNK_A = (int)'A',
-  AS_INTERCHUNK_B = (int)'B',
-  AS_INTRACHUNK   = (int)'I',
-  AS_CONTCHUNK    = (int)'C'
-} LabelType;
-
 
 /* UOM message */
 
@@ -407,8 +399,6 @@ typedef struct IntMultiPos {
   IntFragment_ID  ident;
   IntFragment_ID  contained;
   IntFragment_ID  parent;     //  IID of the fragment we align to
-
-  IntFragment_ID  sourceInt;  //  This should probably be called frgSource
 
   int32           ahang;      //  If parent defined, these are relative
   int32           bhang;      //  that fragment
