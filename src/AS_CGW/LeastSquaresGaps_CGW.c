@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.34 2009-07-30 10:42:56 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.35 2009-09-24 17:17:58 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1299,6 +1299,12 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                                                  &chiSquaredValue,
                                                  (float)PAIRWISECHI2THRESHOLD_CGW,
                                                  &alternate, verbose);
+// try to find next contig to join so we can skip this one
+// can call findoverlapedge on next node
+// until we run out of nodes or we find one
+// if we find one, throw out the old contig and return recompute
+// TODO: how to restore iterator if necessary
+// TODO: how to delete contig from a scaffold
 
           if(overlapEdge && alternate){ // found a node that is out of order!!!!
 
@@ -1428,7 +1434,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
             hardConstraintSet = TRUE;
             continue;
           }
-          if(abs(overlapEdge->distance.mean - gapSize[gapIndex]) <=
+          if(abs(overlapEdge->distance.mean - gapSize[gapIndex]) >
              MAX_OVERLAP_SLOP_CGW){
             computeGapsToGaps[computeGapIndex] = gapIndex;
             gapsToComputeGaps[gapIndex] = computeGapIndex;
