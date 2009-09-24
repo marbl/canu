@@ -181,8 +181,6 @@ sub eCR ($$$) {
         if (! -e "$j.success") {
             my $bin = getBinDirectory();
 
-            $lastckp = findLastCheckpoint($thisDir);
-
             open(F, "> $j.sh");
             print F "#!" . getGlobal("shell") . "\n\n";
             print F "\n";
@@ -203,6 +201,8 @@ sub eCR ($$$) {
             system("chmod +x $j.sh");
 
             push @jobs, "$j";
+
+            $lastckp++;
         }
     }
     close(F);
