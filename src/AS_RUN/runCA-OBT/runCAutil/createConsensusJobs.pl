@@ -93,11 +93,12 @@ sub createPostScaffolderConsensusJobs ($) {
     print F getBinDirectoryShellCode();
 
     if ($consensusType eq "cns") {
-       print F "\$bin/consensus \\\n";
+       print F "\$bin/consensus \\\n";       
        print F "  -s $cgwDir/$asm.SeqStore \\\n";
+       print F "  -P ", getGlobal("cnsPhasing"), "\\\n";
        print F "  -V $lastckpt \\\n";
        print F "  -p \$jobp \\\n";
-       print F "  -S \$jobp \\\n";
+       print F "  -S \$jobp \\\n";       
        print F "  -m \\\n";
        print F "  -o $wrk/8-consensus/$asm.cns_contigs.\$jobp \\\n";
        print F "  $wrk/$asm.gkpStore \\\n";

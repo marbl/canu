@@ -21,7 +21,7 @@
 #ifndef MULTIALIGNMENT_CNS_INCLUDE
 #define MULTIALIGNMENT_CNS_INCLUDE
 
-static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.54 2009-09-25 01:15:48 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.55 2009-09-25 15:34:31 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -38,10 +38,12 @@ extern int VERBOSE_MULTIALIGN_OUTPUT;
 
 #define CNS_OPTIONS_SPLIT_ALLELES_DEFAULT  1
 #define CNS_OPTIONS_MIN_ANCHOR_DEFAULT    11
+#define CNS_OPTIONS_DO_PHASING_DEFAULT     1
 
 typedef struct {
   int split_alleles;
   int smooth_win;
+  int do_phasing;
 } CNS_Options;
 
 typedef enum {
