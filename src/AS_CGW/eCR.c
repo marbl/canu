@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.53 2009-09-14 16:09:05 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.54 2009-09-25 01:15:48 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -96,8 +96,6 @@ int                      totalContigsBaseChange = 0;
 VA_TYPE(char)           *reformed_consensus = NULL;
 VA_TYPE(char)           *reformed_quality = NULL;
 VA_TYPE(int32)          *reformed_deltas = NULL;
-VA_TYPE(IntElementPos)  *ContigPositions = NULL;
-VA_TYPE(IntElementPos)  *UnitigPositions = NULL;
 
 static MultiAlignT      *savedLeftUnitigMA = NULL;
 static MultiAlignT      *savedRightUnitigMA = NULL;
@@ -285,8 +283,11 @@ main(int argc, char **argv) {
   //  After the graph is loaded, we reopen the gatekeeper store for
   //  read/write.
   //
+
+  extern gkStore               *gkpStore;  //  HACK until later commit.
+
   delete ScaffoldGraph->gkpStore;
-  ScaffoldGraph->gkpStore = new gkStore(GlobalData->gkpStoreName, FALSE, TRUE);
+  ScaffoldGraph->gkpStore = gkpStore = new gkStore(GlobalData->gkpStoreName, FALSE, TRUE);
 
   //  Create the starting clear range backup, if we're the first
   //  iteration.  We copy this from the LATEST clear, which will
@@ -410,9 +411,8 @@ main(int argc, char **argv) {
       while (contigID != -1) {
         ContigT     *contig = GetGraphNode(ScaffoldGraph->ContigGraph, contigID);
         MultiAlignT *ma     = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
-        int          i;
 
-        for (i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
+        for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
           AS_IID          iid = GetIntMultiPos(ma->f_list, i)->ident;
           uint32  bgnOld, bgnCur;
           uint32  endOld, endCur;
@@ -421,6 +421,8 @@ main(int argc, char **argv) {
 
           fr.gkFragment_getClearRegion(bgnOld, endOld, AS_READ_CLEAR_ECR_0 + iterNumber - 1);
           fr.gkFragment_getClearRegion(bgnCur, endCur, AS_READ_CLEAR_ECR_0 + iterNumber);
+
+          //fprintf(stderr, "CLR %d %d,%d %d,%d\n", iid, bgnOld, endOld, bgnCur, endCur);
 
           //  These are violated if the clear range is not configured.
           assert(bgnOld < endOld);
@@ -801,9 +803,7 @@ main(int argc, char **argv) {
               if (debug.diagnosticLV > 0)
                 DumpContigMultiAlignInfo ("before ReplaceEndUnitigInContig (left)", NULL, lcontig->id);
 
-              MultiAlignT *newLeftMA = ReplaceEndUnitigInContig(ScaffoldGraph->sequenceDB,
-                                                                ScaffoldGraph->gkpStore,
-                                                                lcontig->id, unitig->id,
+              MultiAlignT *newLeftMA = ReplaceEndUnitigInContig(lcontig->id, unitig->id,
                                                                 lcontig->offsetAEnd.mean >= lcontig->offsetBEnd.mean,
                                                                 NULL);
               if (newLeftMA) {
@@ -852,9 +852,7 @@ main(int argc, char **argv) {
               if (debug.diagnosticLV > 0)
                 DumpContigMultiAlignInfo ("before ReplaceEndUnitigInContig (right)", NULL, rcontig->id);
 
-              MultiAlignT *newRightMA = ReplaceEndUnitigInContig(ScaffoldGraph->sequenceDB,
-                                                                 ScaffoldGraph->gkpStore,
-                                                                 rcontig->id, unitig->id,
+              MultiAlignT *newRightMA = ReplaceEndUnitigInContig(rcontig->id, unitig->id,
                                                                  rcontig->offsetAEnd.mean < rcontig->offsetBEnd.mean,
                                                                  NULL);
               if (newRightMA) {
@@ -908,9 +906,6 @@ main(int argc, char **argv) {
           }
 
           // setup for contig merge
-          if (ContigPositions == NULL)
-            ContigPositions = CreateVA_IntElementPos(2);
-          ResetVA_IntElementPos(ContigPositions);
 
           if (lcontig->offsetAEnd.mean < lcontig->offsetBEnd.mean)
             delta = lcontig->offsetAEnd.mean;
@@ -918,6 +913,8 @@ main(int argc, char **argv) {
             delta = lcontig->offsetBEnd.mean;
 
           {
+            VA_TYPE(IntElementPos) *ContigPositions = CreateVA_IntElementPos(2);
+
             IntElementPos   contigPos;
 
             contigPos.ident = lcontig->id;
@@ -929,10 +926,6 @@ main(int argc, char **argv) {
             if (debug.eCRmainLV > 0)
               fprintf(debug.eCRmainFP, "lcontig %8d positioned at %8d, %8d\n",
                       lcontig->id,contigPos.position.bgn, contigPos.position.end);
-          }
-
-          {
-            IntElementPos   contigPos;
 
             contigPos.ident = rcontig->id;
             contigPos.type = AS_CONTIG;
@@ -943,9 +936,7 @@ main(int argc, char **argv) {
             if (debug.eCRmainLV > 0)
               fprintf(debug.eCRmainFP, "rcontig %8d positioned at %8d, %8d\n",
                       rcontig->id,contigPos.position.bgn, contigPos.position.end);
-          }
 
-          {
             LengthT    newOffsetAEnd = {0};
             LengthT    newOffsetBEnd = {0};
 
@@ -972,6 +963,8 @@ main(int argc, char **argv) {
             // have to call this routine with normalized positions
 
             closedGap = CreateAContigInScaffold(scaff, ContigPositions, newOffsetAEnd, newOffsetBEnd);
+
+            Delete_VA(ContigPositions);
           }
 
           //  We might have reallocated the contig graph; lookup
@@ -1813,7 +1806,7 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
   int         success = FALSE;
 
   if (!success)
-    success = MultiAlignUnitig(&ium_mesg, ScaffoldGraph->gkpStore, reformed_consensus, reformed_quality, reformed_deltas, CNS_QUIET, &options);
+    success = MultiAlignUnitig(&ium_mesg, reformed_consensus, reformed_quality, reformed_deltas, CNS_QUIET, &options);
 
   if (!success) {
     fprintf(stderr, "WARNING: MultiAlignUnitig failure on unitig %d\n", unitig->id);
@@ -1885,6 +1878,7 @@ extendClearRange(int fragIid, int frag3pDelta) {
 
   ScaffoldGraph->gkpStore->gkStore_setFragment(&fr);
 
+#if 0
   fprintf(stderr, "WARNING:  Set clear for frag "F_IID",%s from (%d,%d) to (%d,%d)\n",
           fr.gkFragment_getReadIID(),
           AS_UID_toString(fr.gkFragment_getReadUID()),
@@ -1892,6 +1886,7 @@ extendClearRange(int fragIid, int frag3pDelta) {
           clr_end - frag3pDelta,
           clr_bgn,
           clr_end);
+#endif
 }
 
 
@@ -1912,11 +1907,13 @@ revertClearRange(int fragIid) {
 
   ScaffoldGraph->gkpStore->gkStore_setFragment(&fr);
 
+#if 0
   fprintf(stderr, "WARNING:  Revert clear for frag "F_IID",%s to (%d,%d)\n",
           fr.gkFragment_getReadIID(),
           AS_UID_toString(fr.gkFragment_getReadUID()),
           clr_bgn,
           clr_end);
+#endif
 }
 
 

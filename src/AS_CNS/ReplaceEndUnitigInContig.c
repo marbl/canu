@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.5 2009-09-14 16:09:05 brianwalenz Exp $";
+static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.6 2009-09-25 01:15:48 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -31,6 +31,8 @@ static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.5 2009-09-14 16:09:05 
 #include "MultiAlignment_CNS_private.h"
 #include "MicroHetREZ.h"
 #include "AS_UTL_reverseComplement.h"
+
+#undef DEBUG_POSITIONS
 
 static
 void
@@ -67,10 +69,10 @@ PrintIUPInfo(FILE *print, int32 nfrags, IntUnitigPos *iups) {
 
 
 MultiAlignT *
-ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
-                                       gkStore *frag_store,
-                                       uint32 contig_iid, uint32 unitig_iid, int extendingLeft,
-                                       CNS_Options *opp) {
+ReplaceEndUnitigInContig(uint32 contig_iid,
+                         uint32 unitig_iid,
+                         int extendingLeft,
+                         CNS_Options *opp) {
   int32 cid,tid; // local id of contig (cid), and unitig(tid)
   int32 aid,bid;
   int i,num_unitigs;
@@ -87,16 +89,9 @@ ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
   Fragment *tfrag = NULL;
   static VA_TYPE(int32) *trace=NULL;
 
-  //  We need to reset the global sequenceDB pointer -- if we call
-  //  this from anything but consensus, the global pointer isn't set.
-  //
-  sequenceDB = sequenceDBp;
-
   USE_SDB    = 1;
 
-  gkpStore = frag_store;
-
-  oma =  loadMultiAlignTFromSequenceDB(sequenceDBp, contig_iid, FALSE);
+  oma =  loadMultiAlignTFromSequenceDB(sequenceDB, contig_iid, FALSE);
 
   ResetStores(2,GetNumchars(oma->consensus) + AS_READ_MAX_LEN);
 
@@ -115,7 +110,8 @@ ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
                                contig_iid,
                                0,
                                0,
-                               AS_OTHER_UNITIG, NULL);
+                               AS_OTHER_UNITIG,
+                               NULL);
 
   fprintf(stderr,"ReplaceEndUnitigInContig()-- contig %d unitig %d isLeft(%d)\n",
           contig_iid,unitig_iid,extendingLeft);
@@ -163,7 +159,8 @@ ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
                                      id,
                                      complement,
                                      0,
-                                     AS_OTHER_UNITIG, NULL);
+                                     AS_OTHER_UNITIG,
+                                     NULL);
         tfrag=GetFragment(fragmentStore,tid);
 
         if ( extendingLeft ) {

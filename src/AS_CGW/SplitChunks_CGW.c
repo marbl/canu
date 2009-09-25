@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.51 2009-09-14 16:09:04 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.52 2009-09-25 01:15:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -373,7 +373,6 @@ StoreIUMStruct(ScaffoldGraphT *graph,
   VA_TYPE(char)    *quality    = CreateVA_char(200000);
 
   int unitigSuccess = MultiAlignUnitig(&is->ium,
-                                       ScaffoldGraph->gkpStore,
                                        sequence,
                                        quality,
                                        deltas,

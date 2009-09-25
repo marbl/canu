@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.12 2009-09-14 16:09:05 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.13 2009-09-25 01:15:48 brianwalenz Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
@@ -127,8 +127,6 @@ typedef struct {
 typedef struct {
   UnitigType           utgType;
   IntUnitig_ID         utgIdent;
-  int32                utgFirst; // index of this unitig's first fragment in fragment_positions
-  int32                utgLast; // index of this unitig's last fragment in fragment_positions
 } CNS_UnitigContigElement;
 
 
@@ -454,23 +452,6 @@ ApplyAlignment(int32 afid,
                int32 ahang,
                int32 *trace);
 
-int
-MultiAlignContig(IntConConMesg *contig,
-                 VA_TYPE(char) *sequence,
-                 VA_TYPE(char) *quality,
-                 VA_TYPE(int32) *deltas,
-                 CNS_PrintKey printwhat,
-                 CNS_Options *opp);
-
-int
-MultiAlignUnitig(IntUnitigMesg   *unitig,
-                 gkStore *fragStore,
-                 VA_TYPE(char)   *sequence,
-                 VA_TYPE(char)   *quality,
-                 VA_TYPE(int32)  *deltas,
-                 CNS_PrintKey     printwhat,
-                 CNS_Options     *opp);
-
 void
 PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey what);
 
@@ -506,28 +487,9 @@ GetAlignmentTraceDriver(Fragment                    *afrag,
                         GetAlignmentTraceContext     alignment_context,
                         int                          max_gap);
 
-MultiAlignT *
-ReplaceEndUnitigInContig(tSequenceDB *sequenceDBp,
-                         gkStore *frag_store,
-                         uint32 contig_iid, uint32 unitig_iid, int extendingLeft,
-                         CNS_Options *opp);
-
-
 int
 BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
          int target_allele, char *cons_base, int verbose, int get_scores,
          CNS_Options *opp);
-
-
-
-MultiAlignT *
-MergeMultiAlignsFast_new(tSequenceDB *sequenceDBp,
-                         gkStore *frag_store,
-                         VA_TYPE(IntElementPos) *positions,
-                         int quality,
-                         int verbose,
-                         CNS_Options *opp);
-
-
 
 #endif

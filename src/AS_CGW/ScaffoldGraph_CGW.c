@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.44 2009-09-14 16:09:04 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.45 2009-09-25 01:15:48 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -42,7 +42,6 @@ static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.44 2009-09-14 16:09:04 brianw
 #include "Stats_CGW.h"
 
 ScaffoldGraphT *ScaffoldGraph = NULL;
-tSequenceDB    *SequenceDB    = NULL;
 
 void ClearChunkInstance(ChunkInstanceT *ci){
   memset(ci, 0, sizeof(ChunkInstanceT));
@@ -50,6 +49,14 @@ void ClearChunkInstance(ChunkInstanceT *ci){
   ci->info.CI.contigID = NULLINDEX;
   ci->flags.all = 0;
 }
+
+//  This is a ginormous hack.  These two variables are private globals in AS_CNS, but we need to set
+//  them before anything in consensus works.  Hopefully, we can build a 'consensus' object and set
+//  them at construction time.  Hopefully, we can also get some thread safety at the same
+//  time....dreaming....
+//
+extern gkStore               *gkpStore;
+extern tSequenceDB           *sequenceDB;
 
 void
 LoadScaffoldGraphFromCheckpoint(char   *name,
@@ -136,10 +143,10 @@ LoadScaffoldGraphFromCheckpoint(char   *name,
 
   //  Open the seqStore
   sprintf(ckpfile, "%s.SeqStore", name);
-  ScaffoldGraph->sequenceDB = SequenceDB = openSequenceDB(ckpfile, readWrite, checkPointNum);
+  ScaffoldGraph->sequenceDB = sequenceDB = openSequenceDB(ckpfile, readWrite, checkPointNum);
 
   //  Open the gkpStore
-  ScaffoldGraph->gkpStore = new gkStore(GlobalData->gkpStoreName, FALSE, FALSE);
+  ScaffoldGraph->gkpStore = gkpStore = new gkStore(GlobalData->gkpStoreName, FALSE, FALSE);
 
   //  Check (and cleanup?) scaffolds
   SetCIScaffoldTLengths(ScaffoldGraph, TRUE);
@@ -258,7 +265,7 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name) {
   strcpy(sgraph->name, name);
 
   sprintf(buffer,"%s.SeqStore", name);
-  sgraph->sequenceDB    = createSequenceDB(buffer);
+  sgraph->sequenceDB    = sequenceDB = createSequenceDB(buffer);
 
   sgraph->CIGraph       = CreateGraphCGW(CI_GRAPH, 16 * 1024, 16 * 1024);
   sgraph->ContigGraph   = CreateGraphCGW(CONTIG_GRAPH, 1, 1);

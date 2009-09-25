@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: Consensus_CNS.c,v 1.81 2009-07-31 15:11:52 brianwalenz Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.82 2009-09-25 01:15:48 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -311,7 +311,7 @@ main (int argc, char **argv) {
                 iunitig->iaccession,
                 (double)iunitig->num_frags / iunitig->length);
 
-      unitigsuccess = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, &options);
+      unitigsuccess = MultiAlignUnitig(iunitig, sequence, quality, deltas, printwhat, &options);
 
       if (unitigsuccess == FALSE) {
         num_unitig_failures++;

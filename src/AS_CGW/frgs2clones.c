@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: frgs2clones.c,v 1.37 2009-09-14 16:09:05 brianwalenz Exp $";
+const char *mainid = "$Id: frgs2clones.c,v 1.38 2009-09-25 01:15:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -294,7 +294,7 @@ main( int argc, char *argv[]) {
 	      allow_neg_hang=1;
 	    }
 
-	    if (MultiAlignUnitig(&ium,gkpStore,sequence,quality,deltas,printwhat, NULL) == 0 ) {
+	    if (MultiAlignUnitig(&ium,sequence,quality,deltas,printwhat, NULL) == 0 ) {
 	      fprintf(stderr,"MultiAlignUnitig failed for overlap of fragments %d and %d\n",
                       fragIID,mateIID);
 	      assert(FALSE);

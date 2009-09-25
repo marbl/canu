@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.58 2009-09-14 16:09:04 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.59 2009-09-25 01:15:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,8 +65,6 @@ typedef struct{
 
 VA_DEF(ContigEndsT);
 VA_TYPE(ContigEndsT) *ContigEnds = NULL;
-
-void RepairContigNeighbors(ChunkInstanceT *surr);
 
 
 // Propagate Containment Overlaps
@@ -1425,7 +1423,6 @@ int  DeleteAllSurrogateContigsFromFailedMerges(CIScaffoldT *scaffold,
 
 
 
-static VA_TYPE(IntElementPos) *ContigPositions = NULL;
 
 /****************************************************************************/
 // Cleanup contigs for a single scaffold
@@ -1541,10 +1538,8 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
       }
       int failed = TRUE;
       if ((abs(endCI->offsetBEnd.mean - endCI->offsetAEnd.mean) + abs(currCI->offsetBEnd.mean - currCI->offsetAEnd.mean)) < 500000) {
-        if(ContigPositions == NULL){
-            ContigPositions = CreateVA_IntElementPos(10);
-         }
-         ResetVA_IntElementPos(ContigPositions);
+         VA_TYPE(IntElementPos) *ContigPositions = CreateVA_IntElementPos(2);
+
          aPos.ident = endCI->id;
          aPos.position.bgn = endCI->offsetAEnd.mean;
          aPos.position.end = endCI->offsetBEnd.mean;
@@ -1555,11 +1550,12 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
          aPos.position.bgn = currCI->offsetAEnd.mean;
          aPos.position.end = currCI->offsetBEnd.mean;
          AppendIntElementPos(ContigPositions, &aPos);
-         if (MergeMultiAlignsFast_new(ScaffoldGraph->sequenceDB, ScaffoldGraph->gkpStore, ContigPositions, FALSE, TRUE, NULL) != NULL) {
+         if (MergeMultiAlignsFast_new(ContigPositions, NULL) != NULL) {
             failed = FALSE;
             fprintf(stderr, "CleanupAScaffold() Undoing jiggling for %d worked.\n", currCI->id);
          }
-         ResetVA_IntElementPos(ContigPositions);
+
+         Delete_VA(ContigPositions);
       }
 
       if (failed) {
@@ -1646,13 +1642,11 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 
   // Now we have a collection of contigs to build
   // Work through them one at a time
-  {
+
     ContigEndsT *ctg = GetContigEndsT(ContigEnds,0);
     int32 numContigs = GetNumContigEndsTs(ContigEnds);
 
-    if(ContigPositions == NULL){
-      ContigPositions = CreateVA_IntElementPos(10);
-    }
+    VA_TYPE(IntElementPos) *ContigPositions = CreateVA_IntElementPos(2);
 
     /* Now the ContigEnds VA contains the starts/ends of all the contigs */
     for(i = 0; i < numContigs; i++){
@@ -1700,7 +1694,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
         allMergesSucceeded &= CreateAContigInScaffold(scaffold, ContigPositions, ctg->minOffset, ctg->maxOffset);
       }
     }
-  }
+
 #ifdef DEBUG_CONNECTEDNESS
   // THE FOLLOWING IS DEBUG CODE
   // MAKE SURE WE DIDN'T DISCONNECT THE SCAFFOLD
@@ -1718,6 +1712,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   }
 #endif
 
+  Delete_VA(ContigPositions);
 
   if(mergesAttempted == 0)
     return 0;
@@ -1753,10 +1748,9 @@ int CheckForContigs(ScaffoldGraphT *sgraph,
   int32 maxPos;
   LengthT myOffsetAEnd;
   LengthT myOffsetBEnd;
+  int retVal = FALSE;
 
-  if(ContigPositions == NULL)
-    ContigPositions = CreateVA_IntElementPos(10);
-  ResetVA_IntElementPos(ContigPositions);
+  VA_TYPE(IntElementPos) *ContigPositions = CreateVA_IntElementPos(10);
 
   // append the interval of this cid
   pos.type = AS_CONTIG;
@@ -1815,19 +1809,18 @@ int CheckForContigs(ScaffoldGraphT *sgraph,
       }
     }
 
-  if(GetNumIntElementPoss(ContigPositions) > 1)
-    {
+  if(GetNumIntElementPoss(ContigPositions) > 1) {
       qsort(GetIntElementPos(ContigPositions,0),
             GetNumIntElementPoss(ContigPositions),
             sizeof(IntElementPos),
             CompareIntElementPosByBgnPos);
       // set will be shifted to 0 offset in this function
-      return CreateAContigInScaffold(scaffold, ContigPositions,
-                                     myOffsetAEnd, myOffsetBEnd);
+      retVal = CreateAContigInScaffold(scaffold, ContigPositions, myOffsetAEnd, myOffsetBEnd);
     }
 
-  // if here, no overlapping contigs
-  return FALSE;
+  Delete_VA(ContigPositions);
+
+  return(retVal);
 }
 
 //#include "obsolete/checkforcontigs"
@@ -1847,17 +1840,14 @@ int CheckForContainmentContigs(ScaffoldGraphT *sgraph, CDS_CID_t cid, CDS_CID_t 
   UnitigOverlapType overlapType;
   int foundContainment;
   LengthT aEnd, bEnd;
-
+  int retVal = FALSE;
 
   CI->offsetAEnd = offsetAEnd;
   CI->offsetBEnd = offsetBEnd;
   fprintf(stderr,"* CheckForContainmentContigs scaffold "F_CID "\n", scaffold->id);
   CI->scaffoldID = NULLINDEX; // test!!!
 
-  if(ContigPositions == NULL){
-    ContigPositions = CreateVA_IntElementPos(10);
-  }
-  ResetVA_IntElementPos(ContigPositions);
+  VA_TYPE(IntElementPos) *ContigPositions = CreateVA_IntElementPos(10);
 
   pos.type = AS_CONTIG;
   pos.ident = cid;
@@ -1899,15 +1889,11 @@ int CheckForContainmentContigs(ScaffoldGraphT *sgraph, CDS_CID_t cid, CDS_CID_t 
 	}
       }
       AppendIntElementPos(ContigPositions, &pos);
-
     }
   }
 
-  if(foundContainment == FALSE)
-    return FALSE;
-
-
-  if(GetNumIntElementPoss(ContigPositions) > 1)  {
+ if ((foundContainment) &&
+      (GetNumIntElementPoss(ContigPositions) > 1)) {
     GraphEdgeIterator edges;
     EdgeCGW_T *edge;
     int32 i;
@@ -1924,19 +1910,17 @@ int CheckForContainmentContigs(ScaffoldGraphT *sgraph, CDS_CID_t cid, CDS_CID_t 
                             ALL_END, ALL_EDGES,
                             GRAPH_EDGE_DEFAULT,
                             &edges);
+
       while((edge = NextGraphEdgeIterator(&edges)) != NULL)
         PropagateEdgeStatusToFrag(sgraph->RezGraph, edge);
-
     }
-    return CreateAContigInScaffold(scaffold, ContigPositions,
-                                   aEnd, bEnd);
 
+    retVal = CreateAContigInScaffold(scaffold, ContigPositions, aEnd, bEnd);
   }
-  /* This path takes care of the case where there is no contigging
-     implied by this insertion */
 
-  return FALSE;
+ Delete_VA(ContigPositions);
 
+ return(retVal);
 }
 
 
@@ -2083,19 +2067,14 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
 #ifdef DEBUG_CREATEACONTIG
   for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
     IntElementPos *pos = GetIntElementPos(ContigPositions,i);
-    fprintf(stderr,"* Contig "F_CID "  bgn:"F_S32" end:"F_S32"\n",
-            pos->ident, pos->position.bgn, pos->position.end);
+    fprintf(stderr,"* Contig "F_CID " %c bgn:"F_S32" end:"F_S32"\n",
+            pos->ident, pos->type, pos->position.bgn, pos->position.end);
   }
 
   VERBOSE_MULTIALIGN_OUTPUT = 1;
 #endif
 
-  newMultiAlign = MergeMultiAlignsFast_new(ScaffoldGraph->sequenceDB,
-                                           ScaffoldGraph->gkpStore,
-                                           ContigPositions,
-                                           FALSE,
-                                           TRUE,
-                                           NULL);
+  newMultiAlign = MergeMultiAlignsFast_new(ContigPositions, NULL);
 
   if (newMultiAlign == NULL) {
     int32 i;
@@ -2286,12 +2265,6 @@ ContigContainment(CIScaffoldT  *scaffold,
   NodeCGW_T             *leftContig;
   NodeCGW_T             *rightContig;
 
-  static VA_TYPE(IntElementPos) *ContigPositions = NULL;
-
-  if (ContigPositions == NULL)
-    ContigPositions = CreateVA_IntElementPos(10);
-
-  ResetVA_IntElementPos(ContigPositions);
 
   if (MIN(prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean) <=
       MIN(thisCI->offsetAEnd.mean, thisCI->offsetBEnd.mean)) {
@@ -2496,6 +2469,8 @@ ContigContainment(CIScaffoldT  *scaffold,
       break;
   }
 
+  VA_TYPE(IntElementPos) *ContigPositions = CreateVA_IntElementPos(2);
+
   contigPos.ident        = leftContig->id;
   contigPos.type         = AS_CONTIG;
   contigPos.position.bgn = leftContig->offsetAEnd.mean;
@@ -2512,19 +2487,17 @@ ContigContainment(CIScaffoldT  *scaffold,
           leftContig->id,  leftContig->offsetAEnd.mean,  leftContig->offsetBEnd.mean,
           rightContig->id, rightContig->offsetAEnd.mean, rightContig->offsetBEnd.mean);
 
-  {
-    int mergeStatus = 0;
-    int flip        = (leftContig->offsetBEnd.mean < leftContig->offsetAEnd.mean);
-    mergeStatus = CreateAContigInScaffold(scaffold,
-                                          ContigPositions,
-                                          flip ? leftContig->offsetBEnd : leftContig->offsetAEnd,
-                                          flip ? leftContig->offsetAEnd : leftContig->offsetBEnd);
+  int flip        = (leftContig->offsetBEnd.mean < leftContig->offsetAEnd.mean);
+  int mergeStatus = CreateAContigInScaffold(scaffold,
+                                            ContigPositions,
+                                            flip ? leftContig->offsetBEnd : leftContig->offsetAEnd,
+                                            flip ? leftContig->offsetAEnd : leftContig->offsetBEnd);
 
-    if (mergeStatus == FALSE) {
-      fprintf(stderr, "* CreateAContigInScaffold() failed.\n");
-      return(FALSE);
-    }
-    assert(mergeStatus == TRUE);
+  Delete_VA(ContigPositions);
+
+  if (mergeStatus == FALSE) {
+    fprintf(stderr, "* CreateAContigInScaffold() failed.\n");
+    return(FALSE);
   }
 
   return(TRUE);
