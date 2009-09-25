@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.19 2009-08-25 06:11:19 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.20 2009-09-25 01:08:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -127,8 +127,8 @@ void
 revertClearRange(char *clearRegionName, char *gkpStoreName) {
   gkStore    *gkpStore = new gkStore(gkpStoreName, FALSE, TRUE);
   gkFragment  fr;
-  uint32      br, er;
-  uint32      bl, el;
+  uint32      br, er;  //  Begin, End, of the range to revert to
+  uint32      bl, el;  //  Begin, End, of the latest
   uint32      which = gkStore_decodeClearRegionLabel(clearRegionName);
 
   if (which == AS_READ_CLEAR_ERROR)
@@ -142,9 +142,13 @@ revertClearRange(char *clearRegionName, char *gkpStoreName) {
     fr.gkFragment_getClearRegion(br, er, which);
     fr.gkFragment_getClearRegion(bl, el, AS_READ_CLEAR_LATEST);
 
+    //  If the latest is different, reset the clear region.  It looks like nonsense (why set the
+    //  clear range to the value it already has?!) but it also updates the latest clear range to
+    //  this value, which is what we want to do.
+    //
     if ((br != bl) ||
         (er != el)) {
-      fr.gkFragment_setClearRegion(bl, el, which);
+      fr.gkFragment_setClearRegion(br, er, which);
       gkpStore->gkStore_setFragment(&fr);
     }
   }

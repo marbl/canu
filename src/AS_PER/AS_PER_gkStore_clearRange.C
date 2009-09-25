@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.4 2009-08-25 06:07:44 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.5 2009-09-25 01:08:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -136,9 +136,25 @@ gkClearRange::~gkClearRange() {
 
 void
 gkClearRange::gkClearRange_purge(void) {
-  char *filePath = gkClearRange_makeName(gkp, GKFRAGMENT_SHORT, clearType);
+  char *filePath = NULL;
 
-  unlink(filePath);
+  filePath = gkClearRange_makeName(gkp, GKFRAGMENT_SHORT, clearType);
+  if (AS_UTL_fileExists(filePath, FALSE, FALSE)) {
+    fprintf(stderr, "gkStore: purging clear region '%s'\n", filePath);
+    unlink(filePath);
+  }
+
+  filePath = gkClearRange_makeName(gkp, GKFRAGMENT_MEDIUM, clearType);
+  if (AS_UTL_fileExists(filePath, FALSE, FALSE)) {
+    fprintf(stderr, "gkStore: purging clear region '%s'\n", filePath);
+    unlink(filePath);
+  }
+
+  filePath = gkClearRange_makeName(gkp, GKFRAGMENT_LONG, clearType);
+  if (AS_UTL_fileExists(filePath, FALSE, FALSE)) {
+    fprintf(stderr, "gkStore: purging clear region '%s'\n", filePath);
+    unlink(filePath);
+  }
 
   delete [] sm;
   delete [] md;

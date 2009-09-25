@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.83 2009-08-25 06:11:19 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.84 2009-09-25 01:08:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -546,7 +546,7 @@ main(int argc, char **argv) {
     //  exit(0);
 
     } else if (strcmp(argv[arg], "--revertclear") == 0) {
-      //  Takes two args:  edit file, gkpStore
+      //  Takes two args:  clear region name, gkpStore
       //
       revertClearRange(argv[arg+1], argv[arg+2]);
       exit(0);
