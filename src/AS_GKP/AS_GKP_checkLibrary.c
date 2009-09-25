@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.31 2009-07-06 20:03:40 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.32 2009-09-25 19:44:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -153,6 +153,10 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
     gkpl.gkLibrary_decodeFeatures(lib_mesg);
 
     gkpStore->gkStore_addLibrary(lib_mesg->eaccession, &gkpl);
+
+    //  If this library specifies Illumina reads, load them now.
+
+    checkLibraryForIlluminaPointers(lib_mesg);
 
   } else if (lib_mesg->action == AS_UPDATE) {
     AS_IID     iid = gkpStore->gkStore_getUIDtoIID(lib_mesg->eaccession, NULL);

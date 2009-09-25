@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.3 2009-07-06 19:58:29 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.4 2009-09-25 19:44:02 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -92,6 +92,12 @@ gkLibrary::gkLibrary_decodeFeatures(LibraryMesg *lmesg) {
     else if (strcasecmp(fea, "useShortFragments") == 0)
       useShortFragments = decodeBoolean("useShortFragments", val);
 
+    //  Illumina options, just to make it not complain about unknown features
+
+    else if (strcasecmp(fea, "illuminaQSequence") == 0)
+      ;
+    else if (strcasecmp(fea, "illunimaSequence") == 0)
+      ;
     //  Library options (orientation is not a feature, it's part of the library)
 
     else

@@ -33,6 +33,7 @@ GKPSRC    = AS_GKP_buildPartition.C \
             AS_GKP_dump.C \
             AS_GKP_edit.C \
             AS_GKP_errors.C \
+            AS_GKP_illumina.C \
             AS_GKP_rebuildMap.C \
             AS_GKP_rearrange.C
 
@@ -49,3 +50,4 @@ all:    $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 gatekeeper:      AS_GKP_main.o $(GKPSRC:.C=.o) libCA.a
 gatekeeperbench: AS_GKP_bench.o                libCA.a
 sffToCA:         sffToCA.o                     libCA.a
+illuminaToCA:    illuminaToCA.o                libCA.a

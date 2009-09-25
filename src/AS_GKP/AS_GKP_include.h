@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.51 2009-08-25 06:11:19 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.52 2009-09-25 19:44:02 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
 
-static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.51 2009-08-25 06:11:19 brianwalenz Exp $";
+static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.52 2009-09-25 19:44:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <errno.h>
@@ -47,6 +47,9 @@ extern FILE        *errorFP;
 int
 Check_DistanceMesg(DistanceMesg     *dst_mesg,
                    int                believeInputStdDev);
+
+void
+checkLibraryForIlluminaPointers(LibraryMesg *lib_mesg);
 
 int
 Check_LibraryMesg(LibraryMesg       *dst_mesg,
