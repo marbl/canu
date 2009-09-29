@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignFromICM.c,v 1.6 2009-09-14 16:09:05 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignFromICM.c,v 1.7 2009-09-29 18:45:42 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -65,7 +65,7 @@ CreateMultiAlignTFromICM(IntConConMesg *icm,
     ma->udelta = CreateVA_int32(0);
     ma->u_list = CreateVA_IntUnitigPos(icm->num_unitigs);
 
-    ma->v_list = CreateVA_IntMultiVar(icm->num_vars);
+    ma->v_list = CreateVA_IntMultiVar(0);
 
     for (i=0; i<icm->num_pieces; i++) {
       IntMultiPos *cfr =  icm->pieces + i;
@@ -89,6 +89,8 @@ CreateMultiAlignTFromICM(IntConConMesg *icm,
 
     assert(icm->num_pieces == GetNumIntMultiPoss(ma->f_list));
 
+#warning ignoring var records
+#if 0
     for (i=0; i<icm->num_vars; i++) {
       IntMultiVar *cvr =  icm->v_list + i;
       IntMultiVar  tmp = *cvr;
@@ -101,6 +103,7 @@ CreateMultiAlignTFromICM(IntConConMesg *icm,
 
       SetIntMultiVar(ma->v_list, i, &tmp);
     }
+#endif
 
     //  Make unitigs -- not authentic, since ICM doesn't retain delta values.
 

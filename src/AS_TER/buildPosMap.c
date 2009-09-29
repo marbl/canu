@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.11 2009-06-10 18:05:14 brianwalenz Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.12 2009-09-29 18:45:43 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -288,25 +288,22 @@ processCCO(SnapConConMesg *cco) {
 
   //  VAR/variants
   for (i=0; i<cco->num_vars; i++) {
-    int  bgn = contigGapToUngap[cco->vars[i].position.bgn];
-    int  end = contigGapToUngap[cco->vars[i].position.end];
+    IntMultiVar *v = cco->vars + i;
 
-    chomp(cco->vars[i].nr_conf_alleles);
-    chomp(cco->vars[i].weights);
-    chomp(cco->vars[i].var_seq);
-    chomp(cco->vars[i].conf_read_iids);
+    int  bgn = contigGapToUngap[v->position.bgn];
+    int  end = contigGapToUngap[v->position.end];
 
     fprintf(var, "%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%s\t%s\n",
-            cco->vars[i].var_seq,
+            v->enc_var_seq,
             AS_UID_toString(cco->eaccession),
             bgn, end,
-            cco->vars[i].num_reads,
-            cco->vars[i].num_conf_alleles,
-            cco->vars[i].min_anchor_size,
-            cco->vars[i].var_length,
-            cco->vars[i].nr_conf_alleles,
-            cco->vars[i].weights,
-            cco->vars[i].conf_read_iids);
+            v->num_reads,
+            v->num_alleles_confirmed,
+            v->min_anchor_size,
+            v->var_length,
+            v->enc_num_reads,
+            v->enc_weights,
+            v->enc_read_ids);
   }
 
   //  MPS/fragments

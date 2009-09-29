@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.250 2009-09-25 01:15:48 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.251 2009-09-29 18:45:42 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -528,7 +528,7 @@ GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_n_un
       prev_num_deltas = GetNumint32s(deltas);
       GetFragmentDeltas(i,deltas,fragment->length);
       fimp->delta_length = GetNumint32s(deltas)-prev_num_deltas;
-      //fprintf(stderr,"Fragment %d, delta_length = %d\n", fimp->ident,fimp->delta_length);
+      //fprintf(stderr,"Fragment %d, delta_length = %d %d\n", fimp->ident, fimp->delta_length, prev_num_deltas);
     }
   }
   
@@ -1204,7 +1204,7 @@ SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
   int32 num_columns   = GetMultiAlignLength(uma);
   int32 ungapped_pos  = 0;
 
-  int32 *gapped_positions = (int32 *)safe_malloc(sizeof(int32) * num_columns + 1);
+  int32 *gapped_positions = (int32 *)safe_malloc(sizeof(int32) * (num_columns + 1));
   char  *consensus        = Getchar(uma->consensus,0);
 
   for (int32 i=0; i<num_columns+1; i++) {
@@ -1229,6 +1229,11 @@ SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
       fprintf(stderr,"SetUngappedFragmentPositions()-- Failure to insert ident %d in hashtable\n", frag->ident);
       assert(0);
     }
+
+    assert(frag->position.bgn >= 0);
+    assert(frag->position.bgn < num_columns + 1);
+    assert(frag->position.end >= 0);
+    assert(frag->position.end < num_columns + 1);
 
     epos.frg_or_utg                  = CNS_ELEMENT_IS_FRAGMENT;
     epos.idx.fragment.frgIdent       = frag->ident;

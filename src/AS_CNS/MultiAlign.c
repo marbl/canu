@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlign.c,v 1.6 2009-09-07 07:40:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlign.c,v 1.7 2009-09-29 18:45:42 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -90,13 +90,11 @@ DeleteMultiAlignTWorker(MultiAlignT *ma) {
 #endif
 
   if (ma->v_list) {
-    int i;
-    for (i=0; i<GetNumIntMultiVars(ma->v_list); i++){
+    for (uint32 i=0; i<GetNumIntMultiVars(ma->v_list); i++) {
       IntMultiVar *v = GetIntMultiVar(ma->v_list, i);
-      safe_free(v->nr_conf_alleles);
-      safe_free(v->weights);
-      safe_free(v->var_seq);
-      safe_free(v->conf_read_iids);
+      safe_free(v->alleles);
+      safe_free(v->var_seq_memory);
+      safe_free(v->read_id_memory);
     }
   }
 
@@ -147,11 +145,11 @@ CopyMultiAlignT(MultiAlignT *newma, MultiAlignT *oldma) {
 
   //  Adjust the delta pointers in the clone
 
-  int32 *oldbase, *newbase, i;
+  int32 *oldbase, *newbase;
 
   oldbase = Getint32(oldma->fdelta, 0);
   newbase = Getint32(newma->fdelta, 0);
-  for (i=0; i<GetNumIntMultiPoss(oldma->f_list); i++){
+  for (uint32 i=0; i<GetNumIntMultiPoss(oldma->f_list); i++){
     IntMultiPos *npos = GetIntMultiPos(newma->f_list,i);
     IntMultiPos *opos = GetIntMultiPos(oldma->f_list,i);
     if (opos->delta)
@@ -160,21 +158,28 @@ CopyMultiAlignT(MultiAlignT *newma, MultiAlignT *oldma) {
 
   oldbase = Getint32(oldma->udelta, 0);
   newbase = Getint32(newma->udelta, 0);
-  for (i=0; i<GetNumIntUnitigPoss(oldma->u_list); i++){
+  for (uint32 i=0; i<GetNumIntUnitigPoss(oldma->u_list); i++){
     IntUnitigPos *npos = GetIntUnitigPos(newma->u_list,i);
     IntUnitigPos *opos = GetIntUnitigPos(oldma->u_list,i);
     if (opos->delta)
       npos->delta = newbase + (opos->delta - oldbase);
   }
 
-  for (i=0; i<GetNumIntMultiVars(oldma->v_list); i++) {
+  for (uint32 i=0; i<GetNumIntMultiVars(oldma->v_list); i++) {
     IntMultiVar *ovar = GetIntMultiVar(oldma->v_list,i);
     IntMultiVar *nvar = GetIntMultiVar(newma->v_list,i);
 
-    nvar->nr_conf_alleles = strdup(ovar->nr_conf_alleles);
-    nvar->weights         = strdup(ovar->weights);
-    nvar->var_seq         = strdup(ovar->var_seq);
-    nvar->conf_read_iids  = strdup(ovar->conf_read_iids);
+    int32 aSize = sizeof(IntVarAllele) * ovar->num_alleles;
+    int32 vSize = sizeof(char)         * ovar->num_alleles * ovar->var_length + ovar->num_alleles;
+    int32 rSize = sizeof(int32)        * ovar->num_reads;
+
+    nvar->alleles        = (IntVarAllele *)safe_malloc(aSize);
+    nvar->var_seq_memory = (char         *)safe_malloc(vSize);
+    nvar->read_id_memory = (int32        *)safe_malloc(rSize);
+
+    memcpy(nvar->alleles,        nvar->alleles,        aSize);
+    memcpy(nvar->var_seq_memory, nvar->var_seq_memory, vSize);
+    memcpy(nvar->read_id_memory, nvar->read_id_memory, rSize);
   }
 
   return(newma);
@@ -220,10 +225,10 @@ CloneSurrogateOfMultiAlignT(MultiAlignT *oldma, int32 newNodeID) {
 static
 void
 saveDeltaPointers(MultiAlignT *ma) {
-  int32 *base, i;
+  int32 *base;
 
   base = Getint32(ma->fdelta, 0);
-  for (i=0; i<GetNumIntMultiPoss(ma->f_list); i++){
+  for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++){
     IntMultiPos *pos = GetIntMultiPos(ma->f_list,i);
 
     if (pos->delta == NULL) {
@@ -236,7 +241,7 @@ saveDeltaPointers(MultiAlignT *ma) {
   }
 
   base = Getint32(ma->udelta, 0);
-  for (i=0; i<GetNumIntUnitigPoss(ma->u_list); i++){
+  for (uint32 i=0; i<GetNumIntUnitigPoss(ma->u_list); i++){
     IntUnitigPos *pos = GetIntUnitigPos(ma->u_list,i);
 
     if (pos->delta == NULL) {
@@ -252,10 +257,10 @@ saveDeltaPointers(MultiAlignT *ma) {
 static
 void
 restoreDeltaPointers(MultiAlignT *ma) {
-  int32 *base, i;
+  int32 *base;
 
   base = Getint32(ma->fdelta, 0);
-  for (i=0; i<GetNumIntMultiPoss(ma->f_list); i++){
+  for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++){
     IntMultiPos *pos = GetIntMultiPos(ma->f_list,i);
     if (pos->delta_length > 0) {
       assert((long)pos->delta >= 0);
@@ -264,7 +269,7 @@ restoreDeltaPointers(MultiAlignT *ma) {
   }
 
   base = Getint32(ma->udelta, 0);
-  for (i=0; i<GetNumIntUnitigPoss(ma->u_list); i++){
+  for (uint32 i=0; i<GetNumIntUnitigPoss(ma->u_list); i++){
     IntUnitigPos *pos = GetIntUnitigPos(ma->u_list,i);
     if (pos->delta_length > 0) {
       assert((long)pos->delta >= 0);

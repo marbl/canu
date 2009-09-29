@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.47 2009-03-05 18:50:20 skoren Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.48 2009-09-29 18:45:42 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg_internal.h"
 
@@ -32,6 +32,13 @@ GetMemory(size_t nbytes) {
     AS_MSG_globals->msgLen += 8 - (AS_MSG_globals->msgLen % 8);
   char *ret = AS_MSG_globals->msgBuffer + AS_MSG_globals->msgLen;
   AS_MSG_globals->msgLen += nbytes;
+  if (AS_MSG_globals->msgLen > AS_MSG_globals->msgMax) {
+    //  Wrap around.  Used when writing VARs.  VARs allocate space, on write, to generate the
+    //  strings.  When consensus writes a contig, we need to allocate space WITHOUT overwriting the
+    //  space already allocated when the contig was read in.
+    AS_MSG_globals->msgLen = 0;
+    ret = AS_MSG_globals->msgBuffer;
+  }
   return(ret);
 }
 
@@ -363,7 +370,10 @@ ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg) {
 
   errno = 0;
 
-  AS_MSG_globals->msgLen = 0;
+  //  Our memory is now round-robin.  This is VERY important for VAR messages.  Terminator (before
+  //  tigStore) would read an IMV, and attempt to write a VAR based on that memory.  Resetting the
+  //  msgLen pointer to zero caused the IMV to get overwritten.
+  //AS_MSG_globals->msgLen = 0;
 
   //  Can't use ReadLine() here, because we want to return EOF if we
   //  read an empty line.

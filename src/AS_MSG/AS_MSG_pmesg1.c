@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.40 2009-09-14 16:09:05 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.41 2009-09-29 18:45:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,21 +70,129 @@ GetUIDUIDMatePairType(AS_UID *UID1, AS_UID *UID2, FILE *fin) {
   char *str = AS_MSG_globals->curLine;
   char *currLoc = str;
 
-   // get first UID
-   while (*currLoc != ',') { currLoc++; }
-   *currLoc = '\0';
-   (*UID1) = AS_UID_lookup(str, NULL);
+  // get first UID
+  while (*currLoc != ',') { currLoc++; }
+  *currLoc = '\0';
+  (*UID1) = AS_UID_lookup(str, NULL);
 
-   // get second UID
-   str = ++currLoc;
-   while (*currLoc != ',') { currLoc++; }
-   *currLoc = '\0';
-   (*UID2) = AS_UID_lookup(str, NULL);
+  // get second UID
+  str = ++currLoc;
+  while (*currLoc != ',') { currLoc++; }
+  *currLoc = '\0';
+  (*UID2) = AS_UID_lookup(str, NULL);
 
-   // return the type value
+  // return the type value
   return(*(++currLoc));
 }
 
+/******************** VAR message ***************************/
+
+
+void
+IMV_Encode(IntMultiVar *imv) {
+  char *tv = imv->enc_var_seq   = GetMemory(imv->num_alleles * (imv->var_length + 1));
+  char *tn = imv->enc_num_reads = GetMemory(imv->num_alleles * 64);
+  char *tw = imv->enc_weights   = GetMemory(imv->num_alleles * 64);
+  char *tr = imv->enc_read_ids  = GetMemory(imv->num_reads * 64);
+
+  //  (seq) Copy var sequences
+  for (int32 j=0; j<imv->num_alleles; j++) {
+    IntVarAllele  *a = imv->alleles + j;
+
+    strcpy(tv, imv->var_seq_memory + a->var_seq_offset);
+    while (*tv)
+      tv++;
+    *tv++ = '/';
+    *tv = 0;
+
+    //fprintf(stderr, "SEQ %d '%s' '%s'\n", j, imv->var_seq_memory + a->var_seq_offset, imv->enc_var_seq);
+  }
+
+  //  (nra) Copy number of reads in each allele
+  for (int32 j=0; j<imv->num_alleles; j++) {
+    IntVarAllele  *a = imv->alleles + j;
+
+    sprintf(tn, "%d/", a->num_reads);
+    while (*tn)
+      tn++;
+    *tn = 0;
+
+    //fprintf(stderr, "NRA: %d '%d' '%s'\n", j, a->num_reads, imv->enc_num_reads);
+  }
+
+  //  (wgt) Copy weights of each allele
+  for (int32 j=0; j<imv->num_alleles; j++) {
+    IntVarAllele  *a = imv->alleles + j;
+
+    sprintf(tw, "%d/", a->weight);
+    while (*tw)
+      tw++;
+    *tw = 0;
+  }
+
+  //  (rid) Copy read ids
+  for (int32 j=0; j<imv->num_alleles; j++) {
+    IntVarAllele  *a = imv->alleles + j;
+
+    for (int32 r=0; r<a->num_reads; r++) {
+      sprintf(tr, "%d/", imv->read_id_memory[a->read_id_offset + r]);
+      while (*tr)
+        tr++;
+      *tr = 0;
+    }
+  }
+
+  //  Get rid of the trailing / in all cases;
+  *--tv = 0;
+  *--tn = 0;
+  *--tw = 0;
+  *--tr = 0;
+}
+
+
+void
+IMV_Decode(IntMultiVar *imv) {
+
+  imv->alleles        = (IntVarAllele *)GetMemory(imv->num_alleles * sizeof(IntVarAllele));
+  imv->var_seq_memory = (char         *)GetMemory(imv->num_alleles * sizeof(char) * (imv->var_length + 1));
+  imv->read_id_memory = (int32        *)GetMemory(imv->num_reads   * sizeof(int32));
+
+  //  Decode var sequences
+
+  for (int32 i=0; imv->enc_var_seq[i] != 0; i++)
+    imv->var_seq_memory[i] = (imv->enc_var_seq[i] == '/') ? 0 : imv->enc_var_seq[i];
+
+  //  Decode number of reads in each allele
+
+  for (int32 i=0, r=0; imv->enc_num_reads[i] != 0; i++)
+    if ((i == 0) ||
+        (imv->enc_num_reads[i-1] == '/'))
+      imv->alleles[r++].num_reads = atoi(imv->enc_num_reads + i);
+
+  //  Decode weights of each allele
+
+  for (int32 i=0, r=0; imv->enc_weights[i] != 0; i++)
+    if ((i == 0) ||
+        (imv->enc_weights[i-1] == '/'))
+      imv->alleles[r++].weight = atoi(imv->enc_weights + i);
+
+  //  Decode read ids
+
+  for (int32 i=0, r=0; imv->enc_read_ids[i] != 0; i++)
+    if ((i == 0) ||
+        (imv->enc_read_ids[i-1] == '/'))
+      imv->read_id_memory[r++] = atoi(imv->enc_read_ids + i);
+
+  //  Rebuild pointers
+
+  for (int32 r=0; r<imv->num_alleles; r++)
+    imv->alleles[r].var_seq_offset = r * (imv->var_length + 1);
+
+  for (int32 r=0, x=0; r<imv->num_alleles; r++) {
+    imv->alleles[r].read_id_offset = x;
+    x += imv->alleles[r].num_reads;
+  }
+}
 
 
 
@@ -318,15 +426,22 @@ Read_IMV_Mesg(FILE *fin, IntMultiVar *imv) {
 
   GET_PAIR(imv->position.bgn,imv->position.end,"pos:"F_S32","F_S32,"position field");
   GET_FIELD(imv->num_reads,"nrd:"F_S32,"number of reads");
-  GET_FIELD(imv->num_conf_alleles,"nca:"F_S32,"number of confirmed alleles");
+  //GET_FIELD(imv->num_alleles,"nta:"F_S32,"number of total alleles");
+  GET_FIELD(imv->num_alleles_confirmed,"nca:"F_S32,"number of confirmed alleles");
   GET_FIELD(imv->min_anchor_size,"anc:"F_S32,"minimal anchor size");
   GET_FIELD(imv->var_length,"len:"F_S32,"length field");
-  GET_FIELD(imv->curr_var_id,"vid:"F_S32,"current VAR record id");
-  GET_FIELD(imv->phased_var_id,"pid:"F_S32,"phased VAR record id");
-  imv->nr_conf_alleles = GetText("nra:",fin,FALSE);
-  imv->weights         = GetText("wgt:",fin,FALSE);
-  imv->var_seq         = GetText("seq:",fin,FALSE);
-  imv->conf_read_iids  = GetText("rid:",fin,FALSE);
+  GET_FIELD(imv->var_id,"vid:"F_S32,"current VAR record id");
+  GET_FIELD(imv->phased_id,"pid:"F_S32,"phased VAR record id");
+
+  imv->num_alleles = (imv->num_alleles_confirmed < 2) ? 2 : imv->num_alleles_confirmed;
+
+  imv->enc_num_reads = GetText("nra:",fin,TRUE);
+  imv->enc_weights   = GetText("wgt:",fin,TRUE);
+  imv->enc_var_seq   = GetText("seq:",fin,TRUE);
+  imv->enc_read_ids  = GetText("rid:",fin,TRUE);
+
+  IMV_Decode(imv);
+
   GetEOM(fin);
 }
 
@@ -336,15 +451,22 @@ Read_VAR_Mesg(FILE *fin, IntMultiVar *smv) {
 
   GET_PAIR(smv->position.bgn,smv->position.end,"pos:"F_S32","F_S32,"position field");
   GET_FIELD(smv->num_reads,"nrd:"F_S32,"number of reads");
-  GET_FIELD(smv->num_conf_alleles,"nca:"F_S32,"number of confirmed alleles");
+  //GET_FIELD(smv->num_alleles,"nca:"F_S32,"number of total alleles");
+  GET_FIELD(smv->num_alleles_confirmed,"nca:"F_S32,"number of confirmed alleles");
   GET_FIELD(smv->min_anchor_size,"anc:"F_S32,"minimal anchor size");
   GET_FIELD(smv->var_length,"len:"F_S32,"length field");
-  GET_FIELD(smv->curr_var_id,"vid:"F_S32,"current VAR record id");
-  GET_FIELD(smv->phased_var_id,"pid:"F_S32,"phased VAR record id");
-  smv->nr_conf_alleles = GetText("nra:",fin,FALSE);
-  smv->weights         = GetText("wgt:",fin,FALSE);
-  smv->var_seq         = GetText("seq:",fin,FALSE);
-  smv->conf_read_iids  = GetText("rid:",fin,FALSE);
+  GET_FIELD(smv->var_id,"vid:"F_S32,"current VAR record id");
+  GET_FIELD(smv->phased_id,"pid:"F_S32,"phased VAR record id");
+
+  smv->num_alleles = (smv->num_alleles_confirmed < 2) ? 2 : smv->num_alleles_confirmed;
+
+  smv->enc_num_reads = GetText("nra:",fin,TRUE);
+  smv->enc_weights   = GetText("wgt:",fin,TRUE);
+  smv->enc_var_seq   = GetText("seq:",fin,TRUE);
+  smv->enc_read_ids  = GetText("rid:",fin,TRUE);
+
+  IMV_Decode(smv);
+
   GetEOM(fin);
 }
 
@@ -1157,15 +1279,20 @@ static void Write_IMV_Mesg(FILE *fout, IntMultiVar *imv)
   fprintf(fout,"{IMV\n");
   fprintf(fout,"pos:"F_S32","F_S32"\n",imv->position.bgn,imv->position.end);
   fprintf(fout,"nrd:"F_S32"\n",imv->num_reads);
-  fprintf(fout,"nca:"F_S32"\n",imv->num_conf_alleles);
+  //fprintf(fout,"nta:"F_S32"\n",imv->num_alleles);
+  fprintf(fout,"nca:"F_S32"\n",imv->num_alleles_confirmed);
   fprintf(fout,"anc:"F_S32"\n",imv->min_anchor_size);
   fprintf(fout,"len:"F_S32"\n",imv->var_length);
-  fprintf(fout,"vid:"F_S32"\n",imv->curr_var_id);
-  fprintf(fout,"pid:"F_S32"\n",imv->phased_var_id);
-  PutText(fout,"nra:",imv->nr_conf_alleles,FALSE);
-  PutText(fout,"wgt:",imv->weights,FALSE);
-  PutText(fout,"seq:",imv->var_seq,FALSE);
-  PutText(fout,"rid:",imv->conf_read_iids,FALSE);
+  fprintf(fout,"vid:"F_S32"\n",imv->var_id);
+  fprintf(fout,"pid:"F_S32"\n",imv->phased_id);
+
+  IMV_Encode(imv);
+
+  PutText(fout,"nra:",imv->enc_num_reads, FALSE);
+  PutText(fout,"wgt:",imv->enc_weights,   FALSE);
+  PutText(fout,"seq:",imv->enc_var_seq,   FALSE);
+  PutText(fout,"rid:",imv->enc_read_ids,  FALSE);
+
   fprintf(fout,"}\n");
   return;
 }
@@ -1175,15 +1302,20 @@ static void Write_VAR_Mesg(FILE *fout, IntMultiVar *smv)
   fprintf(fout,"{VAR\n");
   fprintf(fout,"pos:"F_S32","F_S32"\n",smv->position.bgn,smv->position.end);
   fprintf(fout,"nrd:"F_S32"\n",smv->num_reads);
-  fprintf(fout,"nca:"F_S32"\n",smv->num_conf_alleles);
+  //fprintf(fout,"nta:"F_S32"\n",smv->num_alleles);
+  fprintf(fout,"nca:"F_S32"\n",smv->num_alleles_confirmed);
   fprintf(fout,"anc:"F_S32"\n",smv->min_anchor_size);
   fprintf(fout,"len:"F_S32"\n",smv->var_length);
-  fprintf(fout,"vid:"F_S32"\n",smv->curr_var_id);
-  fprintf(fout,"pid:"F_S32"\n",smv->phased_var_id);
-  PutText(fout,"nra:",smv->nr_conf_alleles,FALSE);
-  PutText(fout,"wgt:",smv->weights,FALSE);
-  PutText(fout,"seq:",smv->var_seq,FALSE);
-  PutText(fout,"rid:",smv->conf_read_iids,FALSE);
+  fprintf(fout,"vid:"F_S32"\n",smv->var_id);
+  fprintf(fout,"pid:"F_S32"\n",smv->phased_id);
+
+  IMV_Encode(smv);
+
+  PutText(fout,"nra:",smv->enc_num_reads, FALSE);
+  PutText(fout,"wgt:",smv->enc_weights,   FALSE);
+  PutText(fout,"seq:",smv->enc_var_seq,   FALSE);
+  PutText(fout,"rid:",smv->enc_read_ids,  FALSE);
+
   fprintf(fout,"}\n");
   return;
 }

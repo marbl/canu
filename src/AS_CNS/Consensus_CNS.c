@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: Consensus_CNS.c,v 1.83 2009-09-25 15:34:31 skoren Exp $";
+const char *mainid = "$Id: Consensus_CNS.c,v 1.84 2009-09-29 18:45:42 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -400,10 +400,9 @@ main (int argc, char **argv) {
         if (pcontig->v_list != NULL) {
           int i;
           for (i=0; i<pcontig->num_vars; i++) {
-            safe_free(pcontig->v_list[i].nr_conf_alleles);
-            safe_free(pcontig->v_list[i].weights);
-            safe_free(pcontig->v_list[i].var_seq);
-            safe_free(pcontig->v_list[i].conf_read_iids);
+            safe_free(pcontig->v_list[i].alleles);
+            safe_free(pcontig->v_list[i].var_seq_memory);
+            safe_free(pcontig->v_list[i].read_id_memory);
           }
           safe_free(pcontig->v_list);
         }

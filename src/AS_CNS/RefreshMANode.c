@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: RefreshMANode.c,v 1.3 2009-09-25 15:34:31 skoren Exp $";
+static char *rcsid = "$Id: RefreshMANode.c,v 1.4 2009-09-29 18:45:42 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -599,161 +599,120 @@ GetTheMostDistantRead(int curr_read_id, int32 nr, int32 **dist_matrix) {
 
 
 
-
-
 static
 void
-PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist,
-                  IntMultiVar **v_list, VarRegion vreg, CNS_Options *opp, int get_scores,
-                  int32 *conf_read_iids) {
-  double fict_var;
-  int   m;
-  int   num_reported_alleles= (vreg.nca < 2) ? 2 : vreg.nca;
-  char  cbase;
-  char *base = (char*)safe_calloc(num_reported_alleles,sizeof(char));
-  char  buf[10000];
+PopulateVARRecord(int             is_phased,
+                  int32          *cids,
+                  int32          &vn,
+                  int32          &vm,
+                  IntMultiVar   *&v,
+                  VarRegion       vreg,
+                  CNS_Options    *opp,
+                  int             get_scores,
+                  int32          *conf_read_iids) {
+
+  if (v == NULL)
+    v = (IntMultiVar *)safe_malloc(vm * sizeof(IntMultiVar));
+
+  if (vn == vm) {
+    vm += 10;
+    v = (IntMultiVar *)safe_realloc(v, vm * sizeof(IntMultiVar));
+  }
+
+  vreg_id++;
+
+  v[vn].var_id                 = vreg_id;
+  v[vn].phased_id              = is_phased ? vreg_id - 1 : -1;
+  v[vn].position.bgn           = vreg.beg;
+  v[vn].position.end           = vreg.end;
+  v[vn].num_reads              = vreg.nr;
+  v[vn].num_alleles            = (vreg.nca < 2) ? 2 : vreg.nca;
+  v[vn].num_alleles_confirmed  = vreg.nca;
+  v[vn].min_anchor_size        = opp->smooth_win;
+  v[vn].var_length             = vreg.end - vreg.beg;
+
+  v[vn].alleles        = (IntVarAllele *)safe_calloc(v[vn].num_alleles, sizeof(IntVarAllele));
+  v[vn].var_seq_memory = (char         *)safe_calloc(v[vn].num_alleles * (v[vn].var_length + 1), sizeof(char));
+  v[vn].read_id_memory = (int32        *)safe_calloc(v[vn].num_reads, sizeof(int32));
+
+  v[vn].enc_num_reads = NULL;
+  v[vn].enc_weights   = NULL;
+  v[vn].enc_var_seq   = NULL;
+  v[vn].enc_read_ids  = NULL;
+
+  int32 distant_read_id   = -42;
+  int32 distant_allele_id = -42;
+
+  if (vreg.nca < 2) {
+    distant_read_id   = GetTheMostDistantRead(vreg.alleles[0].read_ids[0], vreg.nr, vreg.dist_matrix);
+    distant_allele_id = vreg.reads[distant_read_id].allele_id;
+  }
+
+  char *base  = (char *)safe_calloc(v[vn].num_alleles, sizeof(char));
+  int32 shift = vreg.end - vreg.beg + 1;
+
+  for (int32 m=0; m<vreg.end - vreg.beg; m++) {
+    memset(base, 0, sizeof(char) * v[vn].num_alleles);
+
+    for (int32 al=v[vn].num_alleles-1; al >=0; al--) {
+      if ((al == 0) || (al < vreg.nca)) {
+        int read_id = vreg.alleles[al].read_ids[0];
+
+        base[al] = vreg.reads[read_id].bases[m];
+
+        if (al == 0) {
+          int32   cid      = cids[vreg.beg+m];
+          Column *column   = GetColumn(columnStore,cid);
+          Bead   *call     = GetBead(beadStore, column->call);
+          double  fict_var = 0;
+          char    cbase    = 0;
+
+          // Set the consensus quality and base
+          BaseCall(cid, 1, &fict_var, &vreg, -1, &cbase, 0, 0, opp);
+          Setchar(sequenceStore, call->soffset, &base[al]);
+        }
+      } else {
+        // vreg.nca < 2 and al == 1
+        base[al] = vreg.reads[distant_read_id].bases[m];
+      }
+
+      v[vn].var_seq_memory[m + al * shift] = base[al];
+    }
+
+    if (get_scores > 0)
+      UpdateScores(vreg, base, v[vn].num_alleles);
+  }
+
+  safe_free(base);
+
+  int32  vso = 0;
+  int32  rio = 0;
+
+  for (int32 al=0; al < v[vn].num_alleles; al++) {
+    v[vn].alleles[al].num_reads      = vreg.alleles[al].num_reads;
+    v[vn].alleles[al].weight         = vreg.alleles[al].weight;
+    v[vn].alleles[al].var_seq_offset = vso;
+    v[vn].alleles[al].read_id_offset = rio;
+
+    vso += v[vn].var_length + 1;
+    rio += v[vn].alleles[al].num_reads;
+  }
+
   int   tot_num_conf_reads = 0;
 
-  for (m=0; m<vreg.nca; m++)
+  for (int32 m=0; m<vreg.nca; m++)
     tot_num_conf_reads += vreg.alleles[m].num_reads;
 
-  if (!(*v_list)) {
-    *v_list = (IntMultiVar *)safe_malloc(*min_len_vlist*
-                                         sizeof(IntMultiVar));
-  }
-  if (*nvars == *min_len_vlist) {
-    *min_len_vlist += 10;
-    *v_list = (IntMultiVar *)safe_realloc(*v_list, *min_len_vlist*
-                                          sizeof(IntMultiVar));
-  }
-  vreg_id++;
-  (*v_list)[*nvars].position.bgn = vreg.beg;
-  (*v_list)[*nvars].position.end = vreg.end;
-  (*v_list)[*nvars].num_reads = (int32)vreg.nr;
-  (*v_list)[*nvars].num_conf_alleles = vreg.nca;
-  (*v_list)[*nvars].min_anchor_size = opp->smooth_win;
-  (*v_list)[*nvars].var_length = vreg.end-vreg.beg;
-  (*v_list)[*nvars].curr_var_id = vreg_id;
-  (*v_list)[*nvars].phased_var_id = is_phased ? vreg_id-1 : -1;
-  (*v_list)[*nvars].weights = (char*)safe_calloc(num_reported_alleles,
-                                                 (5+2)* sizeof(char));
-  (*v_list)[*nvars].nr_conf_alleles = (char*)safe_calloc(num_reported_alleles,
-                                                         (2+2)* sizeof(char));
-  (*v_list)[*nvars].var_seq = (char*)safe_malloc(num_reported_alleles*
-                                                 (vreg.end-vreg.beg+1)* sizeof(char));
-  (*v_list)[*nvars].conf_read_iids=
-    (char*)safe_calloc(vreg.nr, (15+2)*sizeof(char));
-  NumVARRecords++;
-  {
-    int al, rd;
-    int32 shift   = vreg.end-vreg.beg+1;
-    int distant_read_id = -42, distant_allele_id = -42;
-    if (vreg.nca < 2)
-      {
-        distant_read_id = GetTheMostDistantRead(vreg.alleles[0].read_ids[0],
-                                                vreg.nr, vreg.dist_matrix);
-        distant_allele_id = vreg.reads[distant_read_id].allele_id;
-      }
-#ifdef DEBUG_VAR_RECORDS
-    fprintf(stderr, "VAR beg= %d end= %d\n", vreg.beg, vreg.end);
-    OutputReads(stderr, vreg.reads, vreg.nr, vreg.end-vreg.beg);
-    OutputDistMatrix(stderr, &vreg);
-    OutputAlleles(stderr, &vreg);
-#endif
+  for (int32 rd=0; rd < tot_num_conf_reads; rd++)
+    v[vn].read_id_memory[rd] = conf_read_iids[rd];
 
-    for (m=0; m<vreg.end-vreg.beg; m++)
-      {
-        for (al=num_reported_alleles-1; al >=0; al--)
-          {
-            if (al == 0 || al < vreg.nca)
-              {
-                int read_id = vreg.alleles[al].read_ids[0];
-                base[al] = vreg.reads[read_id].bases[m];
-                if (al == 0)
-                  {
-                    int32 cid = cids[vreg.beg+m];
-                    Column *column=GetColumn(columnStore,cid);
-                    Bead *call = GetBead(beadStore, column->call);
+  for (int32 al=0; al < v[vn].num_alleles; al++)
+    if (v[vn].var_seq_memory[al * shift]             == '-' &&
+        v[vn].var_seq_memory[al * shift + shift - 2] == '-')
+      NumVARStringsWithFlankingGaps++;
 
-#if 0
-                    // Check the consistency of a consensus call
-                    BaseCall(cids[vreg.beg+m], 1, &fict_var, &vreg,
-                             vreg.alleles[al].id, &cbase, 0, 0, opp);
-                    if (cbase != base[al])
-                      {
-                        fprintf(stderr, "Error setting the consensus base #%d  %c/%c\n", m, cbase, base[al]);
-                        OutputReads(stderr, vreg.reads, vreg.nr, vreg.end-vreg.beg);
-                        OutputDistMatrix(stderr, &vreg);
-                        OutputAlleles(stderr, &vreg);
-                        exit(1);
-                      }
-#endif
-
-                    // Set the consensus quality
-                    BaseCall(cids[vreg.beg+m], 1, &fict_var, &vreg,
-                             -1, &cbase, 0, 0, opp);
-
-                    // Set the consensus base
-                    Setchar(sequenceStore, call->soffset, &base[al]);
-
-                  }
-              }
-            else // vreg.nca < 2 and al == 1
-              {
-                base[al] = vreg.reads[distant_read_id].bases[m];
-              }
-            (*v_list)[*nvars].var_seq[m+al*shift] = base[al];
-          }
-        if (get_scores > 0)
-          UpdateScores(vreg, base, num_reported_alleles);
-      }
-
-    sprintf((*v_list)[*nvars].weights, "");
-    sprintf((*v_list)[*nvars].nr_conf_alleles, "");
-    for (al=0; al < num_reported_alleles; al++)
-      {
-        int    weight = vreg.alleles[al].weight;
-        int    num_reads = vreg.alleles[al].num_reads;
-        const char *format_weight = (al < num_reported_alleles-1) ? "%d/" : "%d\0";
-        const char *format_num_reads = (al < num_reported_alleles-1) ? "%d/" : "%d\0";
-
-        (*v_list)[*nvars].var_seq[-1+(al+1)*shift] =
-          (al < num_reported_alleles-1) ? '/' : '\0';
-
-        sprintf(buf, format_weight, ROUND(weight));
-        (*v_list)[*nvars].weights = strcat((*v_list)[*nvars].weights, buf);
-
-        sprintf(buf, format_num_reads, num_reads);
-        (*v_list)[*nvars].nr_conf_alleles = strcat((*v_list)[*nvars].nr_conf_alleles, buf);
-      }
-#if 0
-    fprintf(stderr, "len= %d var_seq = %s\n", vreg.end-vreg.beg, (*v_list)[*nvars].var_seq);
-
-#endif
-    sprintf((*v_list)[*nvars].conf_read_iids, "");
-    for (rd=0; rd < tot_num_conf_reads; rd++)
-      {
-        const char *format_iids = (rd < tot_num_conf_reads-1) ? "%d/" : "%d\0";
-        sprintf(buf, format_iids, conf_read_iids[rd]);
-        (*v_list)[*nvars].conf_read_iids = strcat((*v_list)[*nvars].conf_read_iids, buf);
-      }
-
-    for (al=0; al < num_reported_alleles; al++)
-      {
-        if ((*v_list)[*nvars].var_seq[al*shift]             == '-' &&
-            (*v_list)[*nvars].var_seq[al*shift + shift - 2] == '-')
-          {
-            NumVARStringsWithFlankingGaps++;
-          }
-      }
-  }
-  safe_free(base);
-#ifdef DEBUG_VAR_RECORDS
-  fprintf(stderr, "VARiation= %s\n", (*v_list)[*nvars].var_seq);
-#endif
-  (*nvars)++;
+  vn++;
 }
-
 
 
 
@@ -1155,11 +1114,9 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
 
             /* Store variations in a v_list */
             if (make_v_list == 2)
-              PopulateVARRecord(is_phased, cids, nvars, &min_len_vlist, v_list,
-                                vreg, opp, get_scores, conf_read_iids);
+              PopulateVARRecord(is_phased, cids, *nvars, min_len_vlist, *v_list, vreg, opp, get_scores, conf_read_iids);
             else
-              SetConsensusToMajorAllele(cids, vreg, opp, get_scores,
-                                        conf_read_iids);
+              SetConsensusToMajorAllele(cids, vreg, opp, get_scores, conf_read_iids);
           }
 
           if (opp->smooth_win > 0)

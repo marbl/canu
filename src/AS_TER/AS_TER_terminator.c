@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_TER_terminator.c,v 1.31 2009-06-10 18:05:14 brianwalenz Exp $";
+const char *mainid = "$Id: AS_TER_terminator.c,v 1.32 2009-09-29 18:45:42 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -323,17 +323,17 @@ convertICM(GenericMesg *pmesg,
     ccoMesg.vars = (IntMultiVar*) safe_malloc(icmMesg->num_vars * sizeof(IntMultiVar));
 
     for(i=0; i<icmMesg->num_vars; i++) {
-      ccoMesg.vars[i].position         = icmMesg->v_list[i].position;
-      ccoMesg.vars[i].num_reads        = icmMesg->v_list[i].num_reads;
-      ccoMesg.vars[i].num_conf_alleles = icmMesg->v_list[i].num_conf_alleles;
-      ccoMesg.vars[i].min_anchor_size  = icmMesg->v_list[i].min_anchor_size;
-      ccoMesg.vars[i].var_length       = icmMesg->v_list[i].var_length ;
-      ccoMesg.vars[i].curr_var_id      = icmMesg->v_list[i].curr_var_id;
-      ccoMesg.vars[i].phased_var_id    = icmMesg->v_list[i].phased_var_id;
-      ccoMesg.vars[i].nr_conf_alleles  = icmMesg->v_list[i].nr_conf_alleles;
-      ccoMesg.vars[i].weights          = icmMesg->v_list[i].weights;
-      ccoMesg.vars[i].var_seq          = icmMesg->v_list[i].var_seq;
-      ccoMesg.vars[i].conf_read_iids   = icmMesg->v_list[i].conf_read_iids;
+      ccoMesg.vars[i].var_id                = icmMesg->v_list[i].var_id;
+      ccoMesg.vars[i].phased_id             = icmMesg->v_list[i].phased_id;
+      ccoMesg.vars[i].position              = icmMesg->v_list[i].position;
+      ccoMesg.vars[i].num_reads             = icmMesg->v_list[i].num_reads;
+      ccoMesg.vars[i].num_alleles           = icmMesg->v_list[i].num_alleles;
+      ccoMesg.vars[i].num_alleles_confirmed = icmMesg->v_list[i].num_alleles_confirmed;
+      ccoMesg.vars[i].min_anchor_size       = icmMesg->v_list[i].min_anchor_size;
+      ccoMesg.vars[i].var_length            = icmMesg->v_list[i].var_length;
+      ccoMesg.vars[i].alleles               = icmMesg->v_list[i].alleles;
+      ccoMesg.vars[i].var_seq_memory        = icmMesg->v_list[i].var_seq_memory;
+      ccoMesg.vars[i].read_id_memory        = icmMesg->v_list[i].read_id_memory;
     }
   }
 

@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.79 2009-09-14 16:09:05 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.80 2009-09-29 18:45:42 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.79 2009-09-14 16:09:05 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.80 2009-09-29 18:45:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <time.h>
@@ -412,18 +412,31 @@ VA_DEF(IntMultiPos);
 
 /* IMV message */
 
-typedef struct IntMultiVar {
-  SeqInterval     position;
+typedef struct IntVarAllele {
   int32           num_reads;
-  int32           num_conf_alleles;
-  int32           min_anchor_size;
-  int32           var_length;
-  int32           curr_var_id; // id of current VAR record
-  int32           phased_var_id;  // id of the VAR record phased with the current one
-  char           *nr_conf_alleles;
-  char           *weights;
-  char           *var_seq;
-  char           *conf_read_iids; // iids of phased reads
+  int32           weight;
+  int32           var_seq_offset;  //  offset into var_seq_memory for this allele
+  int32           read_id_offset;  //  offset into read_id_memory for this allele
+} IntVarAllele;
+
+typedef struct IntMultiVar {
+  int32           var_id;                 // id of current VAR record
+  int32           phased_id;              // id of the VAR record phased with the current one
+  SeqInterval     position;               // position of the var region
+  int32           num_reads;              // num reads total
+  int32           num_alleles;            // num alleles total
+  int32           num_alleles_confirmed;  // num confirmed alleles
+  int32           min_anchor_size;        //
+  int32           var_length;             // bases in the var region
+  IntVarAllele   *alleles;                // list of num_alleles alleles
+
+  char           *var_seq_memory;         // single allocation for all memory
+  int32          *read_id_memory;         // single allocation for all memory
+
+  char           *enc_num_reads;          //  the nra field
+  char           *enc_weights;            //  the wgt field
+  char           *enc_var_seq;            //  the seq field
+  char           *enc_read_ids;           //  the rid field
 } IntMultiVar;
 
 VA_DEF(IntMultiVar);
