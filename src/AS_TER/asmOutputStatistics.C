@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: asmOutputStatistics.C,v 1.1 2009-08-11 04:43:12 brianwalenz Exp $";
+const char *mainid = "$Id: asmOutputStatistics.C,v 1.2 2009-09-30 18:14:58 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -125,7 +125,7 @@ processMDI(SnapMateDistMesg *mdi) {
   for (int i=0; i<mdi->num_buckets; i++)
     samples += mdi->histogram[i];
 
-  fprintf(stderr, "MDI\t%s\t%.6f\t%.6f\t%d\n",
+  fprintf(stdout, "MDI\t%s\t%.6f\t%.6f\t%d\n",
           AS_UID_toString(mdi->erefines),
           mdi->mean, mdi->stddev, samples);
 }
@@ -136,7 +136,7 @@ processAFG(AugFragMesg *afg) {
   uint32  iid = afg->iaccession;
   uint32  len = afg->clear_rng.end - afg->clear_rng.bgn;
 
-  if (frgLength.capacity() < iid)
+  if (frgLength.capacity() <= iid)
     frgLength.reserve(iid + 10 * 1024 * 1024);
 
   frgLength[iid] = len;
@@ -289,7 +289,7 @@ processCCO(SnapConConMesg *cco) {
   allContigs.push_back(len);
   processCCOfrags(cco, allContigs_reads);
 
-  if (contigLength.capacity() < iid) {
+  if (contigLength.capacity() <= iid) {
     contigLength.reserve(iid + 1 * 1024 * 1024);
     contigGCBases.reserve(iid + 1 * 1024 * 1024);
   }
@@ -473,7 +473,7 @@ uint64
 getN(uint32 n, vector<uint64> v) {
   if (v.size() == 0)
     return(0);
-  sort(v.begin(), v.end());
+  sort(v.rbegin(), v.rend());
   uint64 m = getSum(v) * n / 100;
   uint64 s = 0;
   uint64 i = 0;
@@ -482,6 +482,21 @@ getN(uint32 n, vector<uint64> v) {
     i++;
   }
   return(v[i]);
+}
+
+uint64
+getNidx(uint32 n, vector<uint64> v) {
+  if (v.size() == 0)
+    return(0);
+  sort(v.rbegin(), v.rend());
+  uint64 m = getSum(v) * n / 100;
+  uint64 s = 0;
+  uint64 i = 0;
+  while (s < m) {
+    s += v[i];
+    i++;
+  }
+  return(i+1);
 }
 
 
@@ -572,89 +587,90 @@ int main (int argc, char *argv[]) {
     }
   }
 
-#define FU         "%10"F_U64P
+#define F10U         "%10"F_U64P
+#define F00U         "%"F_U64P
 #define UNDEFINED  (uint64)0
 
   fprintf(stdout, "========================================\n");
   fprintf(stdout, "[Scaffolds]\n");
   fprintf(stdout, "\n");
 
-  fprintf(stdout, "total scaffolds            = "FU"\n", getNum(allScaffolds_contigs));
+  fprintf(stdout, "total scaffolds            = "F10U"\n", getNum(allScaffolds_contigs));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< contigs in scaffolds >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "bases in scaffolds         = "FU"\n", getSum(allScaffolds_bases));
-  fprintf(stdout, "ave bases in scaffold      = "FU"\n", getAve(allScaffolds_bases));
-  fprintf(stdout, "min bases in scaffold      = "FU"\n", getMin(allScaffolds_bases));
-  fprintf(stdout, "max bases in scaffold      = "FU"\n", getMax(allScaffolds_bases));
+  fprintf(stdout, "bases in scaffolds         = "F10U"\n", getSum(allScaffolds_bases));
+  fprintf(stdout, "ave bases in scaffold      = "F10U"\n", getAve(allScaffolds_bases));
+  fprintf(stdout, "min bases in scaffold      = "F10U"\n", getMin(allScaffolds_bases));
+  fprintf(stdout, "max bases in scaffold      = "F10U"\n", getMax(allScaffolds_bases));
   fprintf(stdout, "\n");
-  fprintf(stdout, "N25 scaffold bases         = "FU"\n", getN(25, allScaffolds_bases));
-  fprintf(stdout, "N50 scaffold bases         = "FU"\n", getN(50, allScaffolds_bases));
-  fprintf(stdout, "N75 scaffold bases         = "FU"\n", getN(75, allScaffolds_bases));
+  fprintf(stdout, "N25 scaffold bases         = "F10U", #"F00U"\n", getN(25, allScaffolds_bases), getNidx(25, allScaffolds_bases));
+  fprintf(stdout, "N50 scaffold bases         = "F10U", #"F00U"\n", getN(50, allScaffolds_bases), getNidx(50, allScaffolds_bases));
+  fprintf(stdout, "N75 scaffold bases         = "F10U", #"F00U"\n", getN(75, allScaffolds_bases), getNidx(75, allScaffolds_bases));
   fprintf(stdout, "\n");
-  fprintf(stdout, "span of scaffolds          = "FU"\n", getSum(allScaffolds_span));
-  fprintf(stdout, "ave span of scaffold       = "FU"\n", getAve(allScaffolds_span));
-  fprintf(stdout, "min span of scaffold       = "FU"\n", getMin(allScaffolds_span));
-  fprintf(stdout, "max span of scaffold       = "FU"\n", getMax(allScaffolds_span));
+  fprintf(stdout, "span of scaffolds          = "F10U"\n", getSum(allScaffolds_span));
+  fprintf(stdout, "ave span of scaffold       = "F10U"\n", getAve(allScaffolds_span));
+  fprintf(stdout, "min span of scaffold       = "F10U"\n", getMin(allScaffolds_span));
+  fprintf(stdout, "max span of scaffold       = "F10U"\n", getMax(allScaffolds_span));
   fprintf(stdout, "\n");
-  fprintf(stdout, "N25 scaffold span          = "FU"\n", getN(25, allScaffolds_span));
-  fprintf(stdout, "N50 scaffold span          = "FU"\n", getN(50, allScaffolds_span));
-  fprintf(stdout, "N75 scaffold span          = "FU"\n", getN(75, allScaffolds_span));
+  fprintf(stdout, "N25 scaffold span          = "F10U", #"F00U"\n", getN(25, allScaffolds_span), getNidx(25, allScaffolds_span));
+  fprintf(stdout, "N50 scaffold span          = "F10U", #"F00U"\n", getN(50, allScaffolds_span), getNidx(50, allScaffolds_span));
+  fprintf(stdout, "N75 scaffold span          = "F10U", #"F00U"\n", getN(75, allScaffolds_span), getNidx(75, allScaffolds_span));
   fprintf(stdout, "\n");
-  fprintf(stdout, "intra-scaffold gaps        = "FU"\n", getNum(allScaffolds_gaps));
-  fprintf(stdout, "ave intra-scaffold gap     = "FU"\n", getAve(allScaffolds_gaps));
-  fprintf(stdout, "min intra-scaffold gap     = "FU"\n", getMin(allScaffolds_gaps));
-  fprintf(stdout, "max intra-scaffold gap     = "FU"\n", getMax(allScaffolds_gaps));
+  fprintf(stdout, "intra-scaffold gaps        = "F10U"\n", getNum(allScaffolds_gaps));
+  fprintf(stdout, "ave intra-scaffold gap     = "F10U"\n", getAve(allScaffolds_gaps));
+  fprintf(stdout, "min intra-scaffold gap     = "F10U"\n", getMin(allScaffolds_gaps));
+  fprintf(stdout, "max intra-scaffold gap     = "F10U"\n", getMax(allScaffolds_gaps));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< small scaffolds >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "bases in scaffolds         = "FU"\n", getSum(smallScaffolds_bases));
-  fprintf(stdout, "ave bases in scaffold      = "FU"\n", getAve(smallScaffolds_bases));
-  fprintf(stdout, "min bases in scaffold      = "FU"\n", getMin(smallScaffolds_bases));
-  fprintf(stdout, "max bases in scaffold      = "FU"\n", getMax(smallScaffolds_bases));
+  fprintf(stdout, "bases in scaffolds         = "F10U"\n", getSum(smallScaffolds_bases));
+  fprintf(stdout, "ave bases in scaffold      = "F10U"\n", getAve(smallScaffolds_bases));
+  fprintf(stdout, "min bases in scaffold      = "F10U"\n", getMin(smallScaffolds_bases));
+  fprintf(stdout, "max bases in scaffold      = "F10U"\n", getMax(smallScaffolds_bases));
   fprintf(stdout, "\n");
-  fprintf(stdout, "N25 scaffold bases         = "FU"\n", getN(25, smallScaffolds_bases));
-  fprintf(stdout, "N50 scaffold bases         = "FU"\n", getN(50, smallScaffolds_bases));
-  fprintf(stdout, "N75 scaffold bases         = "FU"\n", getN(75, smallScaffolds_bases));
+  fprintf(stdout, "N25 scaffold bases         = "F10U", #"F00U"\n", getN(25, smallScaffolds_bases), getNidx(25, smallScaffolds_bases));
+  fprintf(stdout, "N50 scaffold bases         = "F10U", #"F00U"\n", getN(50, smallScaffolds_bases), getNidx(50, smallScaffolds_bases));
+  fprintf(stdout, "N75 scaffold bases         = "F10U", #"F00U"\n", getN(75, smallScaffolds_bases), getNidx(75, smallScaffolds_bases));
   fprintf(stdout, "\n");
-  fprintf(stdout, "span of scaffolds          = "FU"\n", getSum(smallScaffolds_span));
-  fprintf(stdout, "ave span of scaffold       = "FU"\n", getAve(smallScaffolds_span));
-  fprintf(stdout, "min span of scaffold       = "FU"\n", getMin(smallScaffolds_span));
-  fprintf(stdout, "max span of scaffold       = "FU"\n", getMax(smallScaffolds_span));
+  fprintf(stdout, "span of scaffolds          = "F10U"\n", getSum(smallScaffolds_span));
+  fprintf(stdout, "ave span of scaffold       = "F10U"\n", getAve(smallScaffolds_span));
+  fprintf(stdout, "min span of scaffold       = "F10U"\n", getMin(smallScaffolds_span));
+  fprintf(stdout, "max span of scaffold       = "F10U"\n", getMax(smallScaffolds_span));
   fprintf(stdout, "\n");
-  fprintf(stdout, "N25 scaffold span          = "FU"\n", getN(25, smallScaffolds_span));
-  fprintf(stdout, "N50 scaffold span          = "FU"\n", getN(50, smallScaffolds_span));
-  fprintf(stdout, "N75 scaffold span          = "FU"\n", getN(75, smallScaffolds_span));
+  fprintf(stdout, "N25 scaffold span          = "F10U", #"F00U"\n", getN(25, smallScaffolds_span), getNidx(25, smallScaffolds_span));
+  fprintf(stdout, "N50 scaffold span          = "F10U", #"F00U"\n", getN(50, smallScaffolds_span), getNidx(50, smallScaffolds_span));
+  fprintf(stdout, "N75 scaffold span          = "F10U", #"F00U"\n", getN(75, smallScaffolds_span), getNidx(75, smallScaffolds_span));
   fprintf(stdout, "\n");
-  fprintf(stdout, "intra-scaffold gaps        = "FU"\n", getNum(smallScaffolds_gaps));
-  fprintf(stdout, "ave intra-scaffold gap     = "FU"\n", getAve(smallScaffolds_gaps));
-  fprintf(stdout, "min intra-scaffold gap     = "FU"\n", getMin(smallScaffolds_gaps));
-  fprintf(stdout, "max intra-scaffold gap     = "FU"\n", getMax(smallScaffolds_gaps));
+  fprintf(stdout, "intra-scaffold gaps        = "F10U"\n", getNum(smallScaffolds_gaps));
+  fprintf(stdout, "ave intra-scaffold gap     = "F10U"\n", getAve(smallScaffolds_gaps));
+  fprintf(stdout, "min intra-scaffold gap     = "F10U"\n", getMin(smallScaffolds_gaps));
+  fprintf(stdout, "max intra-scaffold gap     = "F10U"\n", getMax(smallScaffolds_gaps));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< large scaffolds >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "bases in scaffolds         = "FU"\n", getSum(largeScaffolds_bases));
-  fprintf(stdout, "ave bases in scaffold      = "FU"\n", getAve(largeScaffolds_bases));
-  fprintf(stdout, "min bases in scaffold      = "FU"\n", getMin(largeScaffolds_bases));
-  fprintf(stdout, "max bases in scaffold      = "FU"\n", getMax(largeScaffolds_bases));
+  fprintf(stdout, "bases in scaffolds         = "F10U"\n", getSum(largeScaffolds_bases));
+  fprintf(stdout, "ave bases in scaffold      = "F10U"\n", getAve(largeScaffolds_bases));
+  fprintf(stdout, "min bases in scaffold      = "F10U"\n", getMin(largeScaffolds_bases));
+  fprintf(stdout, "max bases in scaffold      = "F10U"\n", getMax(largeScaffolds_bases));
   fprintf(stdout, "\n");
-  fprintf(stdout, "N25 scaffold bases         = "FU"\n", getN(25, largeScaffolds_bases));
-  fprintf(stdout, "N50 scaffold bases         = "FU"\n", getN(50, largeScaffolds_bases));
-  fprintf(stdout, "N75 scaffold bases         = "FU"\n", getN(75, largeScaffolds_bases));
+  fprintf(stdout, "N25 scaffold bases         = "F10U", #"F00U"\n", getN(25, largeScaffolds_bases), getNidx(25, largeScaffolds_bases));
+  fprintf(stdout, "N50 scaffold bases         = "F10U", #"F00U"\n", getN(50, largeScaffolds_bases), getNidx(50, largeScaffolds_bases));
+  fprintf(stdout, "N75 scaffold bases         = "F10U", #"F00U"\n", getN(75, largeScaffolds_bases), getNidx(75, largeScaffolds_bases));
   fprintf(stdout, "\n");
-  fprintf(stdout, "span of scaffolds          = "FU"\n", getSum(largeScaffolds_span));
-  fprintf(stdout, "ave span of scaffold       = "FU"\n", getAve(largeScaffolds_span));
-  fprintf(stdout, "min span of scaffold       = "FU"\n", getMin(largeScaffolds_span));
-  fprintf(stdout, "max span of scaffold       = "FU"\n", getMax(largeScaffolds_span));
+  fprintf(stdout, "span of scaffolds          = "F10U"\n", getSum(largeScaffolds_span));
+  fprintf(stdout, "ave span of scaffold       = "F10U"\n", getAve(largeScaffolds_span));
+  fprintf(stdout, "min span of scaffold       = "F10U"\n", getMin(largeScaffolds_span));
+  fprintf(stdout, "max span of scaffold       = "F10U"\n", getMax(largeScaffolds_span));
   fprintf(stdout, "\n");
-  fprintf(stdout, "N25 scaffold span          = "FU"\n", getN(25, largeScaffolds_span));
-  fprintf(stdout, "N50 scaffold span          = "FU"\n", getN(50, largeScaffolds_span));
-  fprintf(stdout, "N75 scaffold span          = "FU"\n", getN(75, largeScaffolds_span));
+  fprintf(stdout, "N25 scaffold span          = "F10U", #"F00U"\n", getN(25, largeScaffolds_span), getNidx(25, largeScaffolds_span));
+  fprintf(stdout, "N50 scaffold span          = "F10U", #"F00U"\n", getN(50, largeScaffolds_span), getNidx(50, largeScaffolds_span));
+  fprintf(stdout, "N75 scaffold span          = "F10U", #"F00U"\n", getN(75, largeScaffolds_span), getNidx(75, largeScaffolds_span));
   fprintf(stdout, "\n");
-  fprintf(stdout, "intra-scaffold gaps        = "FU"\n", getNum(largeScaffolds_gaps));
-  fprintf(stdout, "ave intra-scaffold gap     = "FU"\n", getAve(largeScaffolds_gaps));
-  fprintf(stdout, "min intra-scaffold gap     = "FU"\n", getMin(largeScaffolds_gaps));
-  fprintf(stdout, "max intra-scaffold gap     = "FU"\n", getMax(largeScaffolds_gaps));
+  fprintf(stdout, "intra-scaffold gaps        = "F10U"\n", getNum(largeScaffolds_gaps));
+  fprintf(stdout, "ave intra-scaffold gap     = "F10U"\n", getAve(largeScaffolds_gaps));
+  fprintf(stdout, "min intra-scaffold gap     = "F10U"\n", getMin(largeScaffolds_gaps));
+  fprintf(stdout, "max intra-scaffold gap     = "F10U"\n", getMax(largeScaffolds_gaps));
   fprintf(stdout, "\n");
 
   fprintf(stdout, "========================================\n");
@@ -665,63 +681,63 @@ int main (int argc, char *argv[]) {
 
   fprintf(stdout, "<< all contigs >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "num contigs                = "FU"\n", getNum(allContigs));
-  fprintf(stdout, "bases in contigs           = "FU" %7.3f%%\n", getSum(allContigs), 100.0 * getSum(allContigs) / basesInContigs);
-  fprintf(stdout, "bases in contigs ave       = "FU"\n", getAve(allContigs));
-  fprintf(stdout, "bases in contigs min       = "FU"\n", getMin(allContigs));
-  fprintf(stdout, "bases in contigs max       = "FU"\n", getMax(allContigs));
+  fprintf(stdout, "num contigs                = "F10U"\n", getNum(allContigs));
+  fprintf(stdout, "bases in contigs           = "F10U" %7.3f%%\n", getSum(allContigs), 100.0 * getSum(allContigs) / basesInContigs);
+  fprintf(stdout, "bases in contigs ave       = "F10U"\n", getAve(allContigs));
+  fprintf(stdout, "bases in contigs min       = "F10U"\n", getMin(allContigs));
+  fprintf(stdout, "bases in contigs max       = "F10U"\n", getMax(allContigs));
   fprintf(stdout, "\n");
-  fprintf(stdout, "bases in contigs N25       = "FU"\n", getN(25, allContigs));
-  fprintf(stdout, "bases in contigs N50       = "FU"\n", getN(50, allContigs));
-  fprintf(stdout, "bases in contigs N75       = "FU"\n", getN(75, allContigs));
+  fprintf(stdout, "bases in contigs N25       = "F10U", #"F00U"\n", getN(25, allContigs), getNidx(25, allContigs));
+  fprintf(stdout, "bases in contigs N50       = "F10U", #"F00U"\n", getN(50, allContigs), getNidx(50, allContigs));
+  fprintf(stdout, "bases in contigs N75       = "F10U", #"F00U"\n", getN(75, allContigs), getNidx(75, allContigs));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< contigs in scaffolds >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "num contigs                = "FU"\n", getNum(scaffContigs));
-  fprintf(stdout, "bases in contigs           = "FU" %7.3f%%\n", getSum(scaffContigs), 100.0 * getSum(scaffContigs) / basesInContigs);
-  fprintf(stdout, "bases in contigs ave       = "FU"\n", getAve(scaffContigs));
-  fprintf(stdout, "bases in contigs min       = "FU"\n", getMin(scaffContigs));
-  fprintf(stdout, "bases in contigs max       = "FU"\n", getMax(scaffContigs));
+  fprintf(stdout, "num contigs                = "F10U"\n", getNum(scaffContigs));
+  fprintf(stdout, "bases in contigs           = "F10U" %7.3f%%\n", getSum(scaffContigs), 100.0 * getSum(scaffContigs) / basesInContigs);
+  fprintf(stdout, "bases in contigs ave       = "F10U"\n", getAve(scaffContigs));
+  fprintf(stdout, "bases in contigs min       = "F10U"\n", getMin(scaffContigs));
+  fprintf(stdout, "bases in contigs max       = "F10U"\n", getMax(scaffContigs));
   fprintf(stdout, "\n");
-  fprintf(stdout, "bases in contigs N25       = "FU"\n", getN(25, scaffContigs));
-  fprintf(stdout, "bases in contigs N50       = "FU"\n", getN(50, scaffContigs));
-  fprintf(stdout, "bases in contigs N75       = "FU"\n", getN(75, scaffContigs));
+  fprintf(stdout, "bases in contigs N25       = "F10U", #"F00U"\n", getN(25, scaffContigs), getNidx(25, scaffContigs));
+  fprintf(stdout, "bases in contigs N50       = "F10U", #"F00U"\n", getN(50, scaffContigs), getNidx(50, scaffContigs));
+  fprintf(stdout, "bases in contigs N75       = "F10U", #"F00U"\n", getN(75, scaffContigs), getNidx(75, scaffContigs));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< small contigs >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "num contigs                = "FU"\n", getNum(smallContigs));
-  fprintf(stdout, "bases in contigs           = "FU" %7.3f%%\n", getSum(smallContigs), 100.0 * getSum(smallContigs) / basesInContigs);
-  fprintf(stdout, "bases in contigs ave       = "FU"\n", getAve(smallContigs));
-  fprintf(stdout, "bases in contigs min       = "FU"\n", getMin(smallContigs));
-  fprintf(stdout, "bases in contigs max       = "FU"\n", getMax(smallContigs));
+  fprintf(stdout, "num contigs                = "F10U"\n", getNum(smallContigs));
+  fprintf(stdout, "bases in contigs           = "F10U" %7.3f%%\n", getSum(smallContigs), 100.0 * getSum(smallContigs) / basesInContigs);
+  fprintf(stdout, "bases in contigs ave       = "F10U"\n", getAve(smallContigs));
+  fprintf(stdout, "bases in contigs min       = "F10U"\n", getMin(smallContigs));
+  fprintf(stdout, "bases in contigs max       = "F10U"\n", getMax(smallContigs));
   fprintf(stdout, "\n");
-  fprintf(stdout, "bases in contigs N25       = "FU"\n", getN(25, smallContigs));
-  fprintf(stdout, "bases in contigs N50       = "FU"\n", getN(50, smallContigs));
-  fprintf(stdout, "bases in contigs N75       = "FU"\n", getN(75, smallContigs));
+  fprintf(stdout, "bases in contigs N25       = "F10U", #"F00U"\n", getN(25, smallContigs), getNidx(25, smallContigs));
+  fprintf(stdout, "bases in contigs N50       = "F10U", #"F00U"\n", getN(50, smallContigs), getNidx(50, smallContigs));
+  fprintf(stdout, "bases in contigs N75       = "F10U", #"F00U"\n", getN(75, smallContigs), getNidx(75, smallContigs));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< large contigs >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "num contigs                = "FU"\n", getNum(largeContigs));
-  fprintf(stdout, "bases in contigs           = "FU" %7.3f%%\n", getSum(largeContigs), 100.0 * getSum(largeContigs) / basesInContigs);
-  fprintf(stdout, "bases in contigs ave       = "FU"\n", getAve(largeContigs));
-  fprintf(stdout, "bases in contigs min       = "FU"\n", getMin(largeContigs));
-  fprintf(stdout, "bases in contigs max       = "FU"\n", getMax(largeContigs));
+  fprintf(stdout, "num contigs                = "F10U"\n", getNum(largeContigs));
+  fprintf(stdout, "bases in contigs           = "F10U" %7.3f%%\n", getSum(largeContigs), 100.0 * getSum(largeContigs) / basesInContigs);
+  fprintf(stdout, "bases in contigs ave       = "F10U"\n", getAve(largeContigs));
+  fprintf(stdout, "bases in contigs min       = "F10U"\n", getMin(largeContigs));
+  fprintf(stdout, "bases in contigs max       = "F10U"\n", getMax(largeContigs));
   fprintf(stdout, "\n");
-  fprintf(stdout, "bases in contigs N25       = "FU"\n", getN(25, largeContigs));
-  fprintf(stdout, "bases in contigs N50       = "FU"\n", getN(50, largeContigs));
-  fprintf(stdout, "bases in contigs N75       = "FU"\n", getN(75, largeContigs));
+  fprintf(stdout, "bases in contigs N25       = "F10U", #"F00U"\n", getN(25, largeContigs), getNidx(25, largeContigs));
+  fprintf(stdout, "bases in contigs N50       = "F10U", #"F00U"\n", getN(50, largeContigs), getNidx(50, largeContigs));
+  fprintf(stdout, "bases in contigs N75       = "F10U", #"F00U"\n", getN(75, largeContigs), getNidx(75, largeContigs));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< degenerate contigs >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "num contigs                = "FU"\n", getNum(degenContigs));
-  fprintf(stdout, "bases in contigs           = "FU" %7.3f%%\n", getSum(degenContigs), 100.0 * getSum(degenContigs) / basesInContigs);
-  fprintf(stdout, "bases in contigs ave       = "FU"\n", getAve(degenContigs));
-  fprintf(stdout, "bases in contigs min       = "FU"\n", getMin(degenContigs));
-  fprintf(stdout, "bases in contigs max       = "FU"\n", getMax(degenContigs));
+  fprintf(stdout, "num contigs                = "F10U"\n", getNum(degenContigs));
+  fprintf(stdout, "bases in contigs           = "F10U" %7.3f%%\n", getSum(degenContigs), 100.0 * getSum(degenContigs) / basesInContigs);
+  fprintf(stdout, "bases in contigs ave       = "F10U"\n", getAve(degenContigs));
+  fprintf(stdout, "bases in contigs min       = "F10U"\n", getMin(degenContigs));
+  fprintf(stdout, "bases in contigs max       = "F10U"\n", getMax(degenContigs));
   fprintf(stdout, "\n");
-  fprintf(stdout, "bases in contigs N25       = "FU"\n", getN(25, degenContigs));
-  fprintf(stdout, "bases in contigs N50       = "FU"\n", getN(50, degenContigs));
-  fprintf(stdout, "bases in contigs N75       = "FU"\n", getN(75, degenContigs));
+  fprintf(stdout, "bases in contigs N25       = "F10U", #"F00U"\n", getN(25, degenContigs), getNidx(25, degenContigs));
+  fprintf(stdout, "bases in contigs N50       = "F10U", #"F00U"\n", getN(50, degenContigs), getNidx(50, degenContigs));
+  fprintf(stdout, "bases in contigs N75       = "F10U", #"F00U"\n", getN(75, degenContigs), getNidx(75, degenContigs));
   fprintf(stdout, "\n");
 
   uint64  basesInUnitigs = getSum(allUnitigs);
@@ -731,43 +747,43 @@ int main (int argc, char *argv[]) {
   fprintf(stdout, "\n");
   fprintf(stdout, "<< all unitigs >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "num unitigs                = "FU"\n", getNum(allUnitigs));
-  fprintf(stdout, "bases in unitigs           = "FU" %7.3f%%\n", getSum(allUnitigs), 100.0 * getSum(allUnitigs) / basesInUnitigs);
-  fprintf(stdout, "bases in unitigs ave       = "FU"\n", getAve(allUnitigs));
-  fprintf(stdout, "bases in unitigs min       = "FU"\n", getMin(allUnitigs));
-  fprintf(stdout, "bases in unitigs max       = "FU"\n", getMax(allUnitigs));
+  fprintf(stdout, "num unitigs                = "F10U"\n", getNum(allUnitigs));
+  fprintf(stdout, "bases in unitigs           = "F10U" %7.3f%%\n", getSum(allUnitigs), 100.0 * getSum(allUnitigs) / basesInUnitigs);
+  fprintf(stdout, "bases in unitigs ave       = "F10U"\n", getAve(allUnitigs));
+  fprintf(stdout, "bases in unitigs min       = "F10U"\n", getMin(allUnitigs));
+  fprintf(stdout, "bases in unitigs max       = "F10U"\n", getMax(allUnitigs));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< unique unitigs >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "num unitigs                = "FU"\n", getNum(uniqueUnitigs));
-  fprintf(stdout, "bases in unitigs           = "FU" %7.3f%%\n", getSum(uniqueUnitigs), 100.0 * getSum(uniqueUnitigs) / basesInUnitigs);
-  fprintf(stdout, "bases in unitigs ave       = "FU"\n", getAve(uniqueUnitigs));
-  fprintf(stdout, "bases in unitigs min       = "FU"\n", getMin(uniqueUnitigs));
-  fprintf(stdout, "bases in unitigs max       = "FU"\n", getMax(uniqueUnitigs));
+  fprintf(stdout, "num unitigs                = "F10U"\n", getNum(uniqueUnitigs));
+  fprintf(stdout, "bases in unitigs           = "F10U" %7.3f%%\n", getSum(uniqueUnitigs), 100.0 * getSum(uniqueUnitigs) / basesInUnitigs);
+  fprintf(stdout, "bases in unitigs ave       = "F10U"\n", getAve(uniqueUnitigs));
+  fprintf(stdout, "bases in unitigs min       = "F10U"\n", getMin(uniqueUnitigs));
+  fprintf(stdout, "bases in unitigs max       = "F10U"\n", getMax(uniqueUnitigs));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< not rez unitigs >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "num unitigs                = "FU"\n", getNum(notRezUnitigs));
-  fprintf(stdout, "bases in unitigs           = "FU" %7.3f%%\n", getSum(notRezUnitigs), 100.0 * getSum(notRezUnitigs) / basesInUnitigs);
-  fprintf(stdout, "bases in unitigs ave       = "FU"\n", getAve(notRezUnitigs));
-  fprintf(stdout, "bases in unitigs min       = "FU"\n", getMin(notRezUnitigs));
-  fprintf(stdout, "bases in unitigs max       = "FU"\n", getMax(notRezUnitigs));
+  fprintf(stdout, "num unitigs                = "F10U"\n", getNum(notRezUnitigs));
+  fprintf(stdout, "bases in unitigs           = "F10U" %7.3f%%\n", getSum(notRezUnitigs), 100.0 * getSum(notRezUnitigs) / basesInUnitigs);
+  fprintf(stdout, "bases in unitigs ave       = "F10U"\n", getAve(notRezUnitigs));
+  fprintf(stdout, "bases in unitigs min       = "F10U"\n", getMin(notRezUnitigs));
+  fprintf(stdout, "bases in unitigs max       = "F10U"\n", getMax(notRezUnitigs));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< surrogate unitigs >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "num unitigs                = "FU"\n", getNum(surrogateUnitigs));
-  fprintf(stdout, "bases in unitigs           = "FU" %7.3f%%\n", getSum(surrogateUnitigs), 100.0 * getSum(surrogateUnitigs) / basesInUnitigs);
-  fprintf(stdout, "bases in unitigs ave       = "FU"\n", getAve(surrogateUnitigs));
-  fprintf(stdout, "bases in unitigs min       = "FU"\n", getMin(surrogateUnitigs));
-  fprintf(stdout, "bases in unitigs max       = "FU"\n", getMax(surrogateUnitigs));
+  fprintf(stdout, "num unitigs                = "F10U"\n", getNum(surrogateUnitigs));
+  fprintf(stdout, "bases in unitigs           = "F10U" %7.3f%%\n", getSum(surrogateUnitigs), 100.0 * getSum(surrogateUnitigs) / basesInUnitigs);
+  fprintf(stdout, "bases in unitigs ave       = "F10U"\n", getAve(surrogateUnitigs));
+  fprintf(stdout, "bases in unitigs min       = "F10U"\n", getMin(surrogateUnitigs));
+  fprintf(stdout, "bases in unitigs max       = "F10U"\n", getMax(surrogateUnitigs));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< other unitigs >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "num unitigs                = "FU"\n", getNum(otherUnitigs));
-  fprintf(stdout, "bases in unitigs           = "FU" %7.3f%%\n", getSum(otherUnitigs), 100.0 * getSum(otherUnitigs) / basesInUnitigs);
-  fprintf(stdout, "bases in unitigs ave       = "FU"\n", getAve(otherUnitigs));
-  fprintf(stdout, "bases in unitigs min       = "FU"\n", getMin(otherUnitigs));
-  fprintf(stdout, "bases in unitigs max       = "FU"\n", getMax(otherUnitigs));
+  fprintf(stdout, "num unitigs                = "F10U"\n", getNum(otherUnitigs));
+  fprintf(stdout, "bases in unitigs           = "F10U" %7.3f%%\n", getSum(otherUnitigs), 100.0 * getSum(otherUnitigs) / basesInUnitigs);
+  fprintf(stdout, "bases in unitigs ave       = "F10U"\n", getAve(otherUnitigs));
+  fprintf(stdout, "bases in unitigs min       = "F10U"\n", getMin(otherUnitigs));
+  fprintf(stdout, "bases in unitigs max       = "F10U"\n", getMax(otherUnitigs));
   fprintf(stdout, "\n");
 
   fprintf(stdout, "========================================\n");
@@ -782,67 +798,67 @@ int main (int argc, char *argv[]) {
 
   fprintf(stdout, "========================================\n");
   fprintf(stdout, "[Mate Pairs]\n");
-  fprintf(stdout, "reads with good            = "FU" %7.3f%%\n", readsWithGoodMate,          100.0 * readsWithGoodMate          / readsWithMate);
-  fprintf(stdout, "reads with bad short       = "FU" %7.3f%%\n", readsWithBadShortMate,      100.0 * readsWithBadShortMate      / readsWithMate);
-  fprintf(stdout, "reads with bad long        = "FU" %7.3f%%\n", readsWithBadLongMate,       100.0 * readsWithBadLongMate       / readsWithMate);
-  fprintf(stdout, "reads with same orient     = "FU" %7.3f%%\n", readsWithSameOrientMate,    100.0 * readsWithSameOrientMate    / readsWithMate);
-  fprintf(stdout, "reads with outtie          = "FU" %7.3f%%\n", readsWithOuttieMate,        100.0 * readsWithOuttieMate        / readsWithMate);
-  fprintf(stdout, "reads with both chaff      = "FU" %7.3f%%\n", readsWithBothChaffMate,     100.0 * readsWithBothChaffMate     / readsWithMate);
-  fprintf(stdout, "reads with chaff           = "FU" %7.3f%%\n", readsWithChaffMate,         100.0 * readsWithChaffMate         / readsWithMate);
-  fprintf(stdout, "reads with both degen      = "FU" %7.3f%%\n", readsWithBothDegenMate,     100.0 * readsWithBothDegenMate     / readsWithMate);
-  fprintf(stdout, "reads with degen           = "FU" %7.3f%%\n", readsWithDegenMate,         100.0 * readsWithDegenMate         / readsWithMate);
-  fprintf(stdout, "reads with surrogate       = "FU" %7.3f%%\n", readsWithBothSurrogateMate, 100.0 * readsWithBothSurrogateMate / readsWithMate);
-  fprintf(stdout, "reads with both surrogate  = "FU" %7.3f%%\n", readsWithSurrogateMate,     100.0 * readsWithSurrogateMate     / readsWithMate);
-  fprintf(stdout, "reads with diff scaff      = "FU" %7.3f%%\n", readsWithDiffScafMate,      100.0 * readsWithDiffScafMate      / readsWithMate);
-  fprintf(stdout, "reads with unassigned      = "FU" %7.3f%%\n", readsWithUnassignedMate,    100.0 * readsWithUnassignedMate    / readsWithMate);
+  fprintf(stdout, "reads with good            = "F10U" %7.3f%%\n", readsWithGoodMate,          100.0 * readsWithGoodMate          / readsWithMate);
+  fprintf(stdout, "reads with bad short       = "F10U" %7.3f%%\n", readsWithBadShortMate,      100.0 * readsWithBadShortMate      / readsWithMate);
+  fprintf(stdout, "reads with bad long        = "F10U" %7.3f%%\n", readsWithBadLongMate,       100.0 * readsWithBadLongMate       / readsWithMate);
+  fprintf(stdout, "reads with same orient     = "F10U" %7.3f%%\n", readsWithSameOrientMate,    100.0 * readsWithSameOrientMate    / readsWithMate);
+  fprintf(stdout, "reads with outtie          = "F10U" %7.3f%%\n", readsWithOuttieMate,        100.0 * readsWithOuttieMate        / readsWithMate);
+  fprintf(stdout, "reads with both chaff      = "F10U" %7.3f%%\n", readsWithBothChaffMate,     100.0 * readsWithBothChaffMate     / readsWithMate);
+  fprintf(stdout, "reads with chaff           = "F10U" %7.3f%%\n", readsWithChaffMate,         100.0 * readsWithChaffMate         / readsWithMate);
+  fprintf(stdout, "reads with both degen      = "F10U" %7.3f%%\n", readsWithBothDegenMate,     100.0 * readsWithBothDegenMate     / readsWithMate);
+  fprintf(stdout, "reads with degen           = "F10U" %7.3f%%\n", readsWithDegenMate,         100.0 * readsWithDegenMate         / readsWithMate);
+  fprintf(stdout, "reads with surrogate       = "F10U" %7.3f%%\n", readsWithBothSurrogateMate, 100.0 * readsWithBothSurrogateMate / readsWithMate);
+  fprintf(stdout, "reads with both surrogate  = "F10U" %7.3f%%\n", readsWithSurrogateMate,     100.0 * readsWithSurrogateMate     / readsWithMate);
+  fprintf(stdout, "reads with diff scaff      = "F10U" %7.3f%%\n", readsWithDiffScafMate,      100.0 * readsWithDiffScafMate      / readsWithMate);
+  fprintf(stdout, "reads with unassigned      = "F10U" %7.3f%%\n", readsWithUnassignedMate,    100.0 * readsWithUnassignedMate    / readsWithMate);
   fprintf(stdout, "\n");
 
   fprintf(stdout, "========================================\n");
   fprintf(stdout, "[Reads]\n");
-  fprintf(stdout, "unmated reads              = "FU" %7.3f%%\n", readsWithNoMate, 100.0 * readsWithNoMate / totalReadsFromAFG);
-  fprintf(stdout, "mated reads                = "FU" %7.3f%%\n", readsWithMate,   100.0 * readsWithMate   / totalReadsFromAFG);
+  fprintf(stdout, "unmated reads              = "F10U" %7.3f%%\n", readsWithNoMate, 100.0 * readsWithNoMate / totalReadsFromAFG);
+  fprintf(stdout, "mated reads                = "F10U" %7.3f%%\n", readsWithMate,   100.0 * readsWithMate   / totalReadsFromAFG);
   fprintf(stdout, "\n");
   fprintf(stdout, "<< all reads >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "number of reads            = "FU" %7.3f%%\n", getNum(all_reads), 100.0 * getNum(all_reads) / totalReadsFromAFG);
-  fprintf(stdout, "sum clear range            = "FU"\n",         getSum(all_reads));
-  fprintf(stdout, "ave clear range            = "FU"\n",         getAve(all_reads));
+  fprintf(stdout, "number of reads            = "F10U" %7.3f%%\n", getNum(all_reads), 100.0 * getNum(all_reads) / totalReadsFromAFG);
+  fprintf(stdout, "sum clear range            = "F10U"\n",         getSum(all_reads));
+  fprintf(stdout, "ave clear range            = "F10U"\n",         getAve(all_reads));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< all contig reads >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "number of reads            = "FU" %7.3f%%\n", getNum(allContigs_reads), 100.0 * getNum(allContigs_reads) / totalReadsFromAFG);
-  fprintf(stdout, "sum clear range            = "FU"\n",         getSum(allContigs_reads));
-  fprintf(stdout, "ave clear range            = "FU"\n",         getAve(allContigs_reads));
+  fprintf(stdout, "number of reads            = "F10U" %7.3f%%\n", getNum(allContigs_reads), 100.0 * getNum(allContigs_reads) / totalReadsFromAFG);
+  fprintf(stdout, "sum clear range            = "F10U"\n",         getSum(allContigs_reads));
+  fprintf(stdout, "ave clear range            = "F10U"\n",         getAve(allContigs_reads));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< large contig reads >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "number of reads            = "FU" %7.3f%%\n", getNum(largeContigs_reads), 100.0 * getNum(largeContigs_reads) / totalReadsFromAFG);
-  fprintf(stdout, "sum clear range            = "FU"\n",         getSum(largeContigs_reads));
-  fprintf(stdout, "ave clear range            = "FU"\n",         getAve(largeContigs_reads));
+  fprintf(stdout, "number of reads            = "F10U" %7.3f%%\n", getNum(largeContigs_reads), 100.0 * getNum(largeContigs_reads) / totalReadsFromAFG);
+  fprintf(stdout, "sum clear range            = "F10U"\n",         getSum(largeContigs_reads));
+  fprintf(stdout, "ave clear range            = "F10U"\n",         getAve(largeContigs_reads));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< small contig reads >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "number of reads            = "FU" %7.3f%%\n", getNum(smallContigs_reads), 100.0 * getNum(smallContigs_reads) / totalReadsFromAFG);
-  fprintf(stdout, "sum clear range            = "FU"\n",         getSum(smallContigs_reads));
-  fprintf(stdout, "ave clear range            = "FU"\n",         getAve(smallContigs_reads));
+  fprintf(stdout, "number of reads            = "F10U" %7.3f%%\n", getNum(smallContigs_reads), 100.0 * getNum(smallContigs_reads) / totalReadsFromAFG);
+  fprintf(stdout, "sum clear range            = "F10U"\n",         getSum(smallContigs_reads));
+  fprintf(stdout, "ave clear range            = "F10U"\n",         getAve(smallContigs_reads));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< surrogate reads >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "number of reads            = "FU" %7.3f%%\n", getNum(surrogate_reads), 100.0 * getNum(surrogate_reads) / totalReadsFromAFG);
-  fprintf(stdout, "sum clear range            = "FU"\n",         getSum(surrogate_reads));
-  fprintf(stdout, "ave clear range            = "FU"\n",         getAve(surrogate_reads));
+  fprintf(stdout, "number of reads            = "F10U" %7.3f%%\n", getNum(surrogate_reads), 100.0 * getNum(surrogate_reads) / totalReadsFromAFG);
+  fprintf(stdout, "sum clear range            = "F10U"\n",         getSum(surrogate_reads));
+  fprintf(stdout, "ave clear range            = "F10U"\n",         getAve(surrogate_reads));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< degenerate reads >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "number of reads            = "FU" %7.3f%%\n", getNum(degenContigs_reads), 100.0 * getNum(degenContigs_reads) / totalReadsFromAFG);
-  fprintf(stdout, "sum clear range            = "FU"\n",         getSum(degenContigs_reads));
-  fprintf(stdout, "ave clear range            = "FU"\n",         getAve(degenContigs_reads));
+  fprintf(stdout, "number of reads            = "F10U" %7.3f%%\n", getNum(degenContigs_reads), 100.0 * getNum(degenContigs_reads) / totalReadsFromAFG);
+  fprintf(stdout, "sum clear range            = "F10U"\n",         getSum(degenContigs_reads));
+  fprintf(stdout, "ave clear range            = "F10U"\n",         getAve(degenContigs_reads));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< singleton reads >>\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "number of reads            = "FU" %7.3f%%\n", getNum(singleton_reads), 100.0 * getNum(singleton_reads) / totalReadsFromAFG);
-  fprintf(stdout, "sum clear range            = "FU"\n",         getSum(singleton_reads));
-  fprintf(stdout, "ave clear range            = "FU"\n",         getAve(singleton_reads));
+  fprintf(stdout, "number of reads            = "F10U" %7.3f%%\n", getNum(singleton_reads), 100.0 * getNum(singleton_reads) / totalReadsFromAFG);
+  fprintf(stdout, "sum clear range            = "F10U"\n",         getSum(singleton_reads));
+  fprintf(stdout, "ave clear range            = "F10U"\n",         getAve(singleton_reads));
   fprintf(stdout, "\n");
 
 
