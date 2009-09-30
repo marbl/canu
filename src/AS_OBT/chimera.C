@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.34 2009-08-12 05:56:27 brianwalenz Exp $";
+const char *mainid = "$Id: chimera.C,v 1.35 2009-09-30 17:53:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -330,7 +330,7 @@ process(const AS_IID           iid,
   if ((doUpdate) && (clear[iid].doNotOBT))
     doUpdate = false;
 
-  fprintf(stderr, "process %s,"F_IID"\n", AS_UID_toString(clear[iid].uid), iid);
+  //fprintf(stderr, "process %s,"F_IID"\n", AS_UID_toString(clear[iid].uid), iid);
 
   uint32           loLinker = clear[iid].fragBeg;
   uint32           hiLinker = clear[iid].fragEnd;
