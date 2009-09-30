@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: asmOutputStatistics.C,v 1.3 2009-09-30 18:21:41 brianwalenz Exp $";
+const char *mainid = "$Id: asmOutputStatistics.C,v 1.4 2009-09-30 18:32:22 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -484,6 +484,22 @@ getN(uint32 n, vector<uint64> v) {
   return(v[i-1]);
 }
 
+double
+getNfrac(uint32 n, vector<uint64> v) {
+  if (v.size() == 0)
+    return(0);
+  sort(v.rbegin(), v.rend());
+  uint64 M = getSum(v);
+  uint64 m = M * n / 100;
+  uint64 s = 0;
+  uint64 i = 0;
+  while (s < m) {
+    s += v[i];
+    i++;
+  }
+  return(100.0 * s / M);
+}
+
 uint64
 getNidx(uint32 n, vector<uint64> v) {
   if (v.size() == 0)
@@ -591,6 +607,9 @@ int main (int argc, char *argv[]) {
 #define F00U         "%"F_U64P
 #define UNDEFINED  (uint64)0
 
+  //  NOTE!  The "N=%06.2f" format is IMPORTANT.  This will print N=100.00 and N=059.32, both of
+  //  which have no whitespace between the N= and the number.
+
   fprintf(stdout, "========================================\n");
   fprintf(stdout, "[Scaffolds]\n");
   fprintf(stdout, "\n");
@@ -604,18 +623,18 @@ int main (int argc, char *argv[]) {
   fprintf(stdout, "min bases in scaffold      = "F10U"\n", getMin(allScaffolds_bases));
   fprintf(stdout, "max bases in scaffold      = "F10U"\n", getMax(allScaffolds_bases));
   fprintf(stdout, "\n");
-  fprintf(stdout, "N25 scaffold bases         = "F10U", #"F00U"\n", getN(25, allScaffolds_bases), getNidx(25, allScaffolds_bases));
-  fprintf(stdout, "N50 scaffold bases         = "F10U", #"F00U"\n", getN(50, allScaffolds_bases), getNidx(50, allScaffolds_bases));
-  fprintf(stdout, "N75 scaffold bases         = "F10U", #"F00U"\n", getN(75, allScaffolds_bases), getNidx(75, allScaffolds_bases));
+  fprintf(stdout, "N25 scaffold bases         = "F10U", N=%06.2f I="F00U"\n", getN(25, allScaffolds_bases), getNfrac(25, allScaffolds_bases), getNidx(25, allScaffolds_bases));
+  fprintf(stdout, "N50 scaffold bases         = "F10U", N=%06.2f I="F00U"\n", getN(50, allScaffolds_bases), getNfrac(50, allScaffolds_bases), getNidx(50, allScaffolds_bases));
+  fprintf(stdout, "N75 scaffold bases         = "F10U", N=%06.2f I="F00U"\n", getN(75, allScaffolds_bases), getNfrac(75, allScaffolds_bases), getNidx(75, allScaffolds_bases));
   fprintf(stdout, "\n");
   fprintf(stdout, "span of scaffolds          = "F10U"\n", getSum(allScaffolds_span));
   fprintf(stdout, "ave span of scaffold       = "F10U"\n", getAve(allScaffolds_span));
   fprintf(stdout, "min span of scaffold       = "F10U"\n", getMin(allScaffolds_span));
   fprintf(stdout, "max span of scaffold       = "F10U"\n", getMax(allScaffolds_span));
   fprintf(stdout, "\n");
-  fprintf(stdout, "N25 scaffold span          = "F10U", #"F00U"\n", getN(25, allScaffolds_span), getNidx(25, allScaffolds_span));
-  fprintf(stdout, "N50 scaffold span          = "F10U", #"F00U"\n", getN(50, allScaffolds_span), getNidx(50, allScaffolds_span));
-  fprintf(stdout, "N75 scaffold span          = "F10U", #"F00U"\n", getN(75, allScaffolds_span), getNidx(75, allScaffolds_span));
+  fprintf(stdout, "N25 scaffold span          = "F10U", N=%06.2f I="F00U"\n", getN(25, allScaffolds_span), getNfrac(25, allScaffolds_span), getNidx(25, allScaffolds_span));
+  fprintf(stdout, "N50 scaffold span          = "F10U", N=%06.2f I="F00U"\n", getN(50, allScaffolds_span), getNfrac(50, allScaffolds_span), getNidx(50, allScaffolds_span));
+  fprintf(stdout, "N75 scaffold span          = "F10U", N=%06.2f I="F00U"\n", getN(75, allScaffolds_span), getNfrac(75, allScaffolds_span), getNidx(75, allScaffolds_span));
   fprintf(stdout, "\n");
   fprintf(stdout, "intra-scaffold gaps        = "F10U"\n", getNum(allScaffolds_gaps));
   fprintf(stdout, "ave intra-scaffold gap     = "F10U"\n", getAve(allScaffolds_gaps));
@@ -629,18 +648,18 @@ int main (int argc, char *argv[]) {
   fprintf(stdout, "min bases in scaffold      = "F10U"\n", getMin(smallScaffolds_bases));
   fprintf(stdout, "max bases in scaffold      = "F10U"\n", getMax(smallScaffolds_bases));
   fprintf(stdout, "\n");
-  fprintf(stdout, "N25 scaffold bases         = "F10U", #"F00U"\n", getN(25, smallScaffolds_bases), getNidx(25, smallScaffolds_bases));
-  fprintf(stdout, "N50 scaffold bases         = "F10U", #"F00U"\n", getN(50, smallScaffolds_bases), getNidx(50, smallScaffolds_bases));
-  fprintf(stdout, "N75 scaffold bases         = "F10U", #"F00U"\n", getN(75, smallScaffolds_bases), getNidx(75, smallScaffolds_bases));
+  fprintf(stdout, "N25 scaffold bases         = "F10U", N=%06.2f I="F00U"\n", getN(25, smallScaffolds_bases), getNfrac(25, smallScaffolds_bases), getNidx(25, smallScaffolds_bases));
+  fprintf(stdout, "N50 scaffold bases         = "F10U", N=%06.2f I="F00U"\n", getN(50, smallScaffolds_bases), getNfrac(50, smallScaffolds_bases), getNidx(50, smallScaffolds_bases));
+  fprintf(stdout, "N75 scaffold bases         = "F10U", N=%06.2f I="F00U"\n", getN(75, smallScaffolds_bases), getNfrac(75, smallScaffolds_bases), getNidx(75, smallScaffolds_bases));
   fprintf(stdout, "\n");
   fprintf(stdout, "span of scaffolds          = "F10U"\n", getSum(smallScaffolds_span));
   fprintf(stdout, "ave span of scaffold       = "F10U"\n", getAve(smallScaffolds_span));
   fprintf(stdout, "min span of scaffold       = "F10U"\n", getMin(smallScaffolds_span));
   fprintf(stdout, "max span of scaffold       = "F10U"\n", getMax(smallScaffolds_span));
   fprintf(stdout, "\n");
-  fprintf(stdout, "N25 scaffold span          = "F10U", #"F00U"\n", getN(25, smallScaffolds_span), getNidx(25, smallScaffolds_span));
-  fprintf(stdout, "N50 scaffold span          = "F10U", #"F00U"\n", getN(50, smallScaffolds_span), getNidx(50, smallScaffolds_span));
-  fprintf(stdout, "N75 scaffold span          = "F10U", #"F00U"\n", getN(75, smallScaffolds_span), getNidx(75, smallScaffolds_span));
+  fprintf(stdout, "N25 scaffold span          = "F10U", N=%06.2f I="F00U"\n", getN(25, smallScaffolds_span), getNfrac(25, smallScaffolds_span), getNidx(25, smallScaffolds_span));
+  fprintf(stdout, "N50 scaffold span          = "F10U", N=%06.2f I="F00U"\n", getN(50, smallScaffolds_span), getNfrac(50, smallScaffolds_span), getNidx(50, smallScaffolds_span));
+  fprintf(stdout, "N75 scaffold span          = "F10U", N=%06.2f I="F00U"\n", getN(75, smallScaffolds_span), getNfrac(75, smallScaffolds_span), getNidx(75, smallScaffolds_span));
   fprintf(stdout, "\n");
   fprintf(stdout, "intra-scaffold gaps        = "F10U"\n", getNum(smallScaffolds_gaps));
   fprintf(stdout, "ave intra-scaffold gap     = "F10U"\n", getAve(smallScaffolds_gaps));
@@ -654,18 +673,18 @@ int main (int argc, char *argv[]) {
   fprintf(stdout, "min bases in scaffold      = "F10U"\n", getMin(largeScaffolds_bases));
   fprintf(stdout, "max bases in scaffold      = "F10U"\n", getMax(largeScaffolds_bases));
   fprintf(stdout, "\n");
-  fprintf(stdout, "N25 scaffold bases         = "F10U", #"F00U"\n", getN(25, largeScaffolds_bases), getNidx(25, largeScaffolds_bases));
-  fprintf(stdout, "N50 scaffold bases         = "F10U", #"F00U"\n", getN(50, largeScaffolds_bases), getNidx(50, largeScaffolds_bases));
-  fprintf(stdout, "N75 scaffold bases         = "F10U", #"F00U"\n", getN(75, largeScaffolds_bases), getNidx(75, largeScaffolds_bases));
+  fprintf(stdout, "N25 scaffold bases         = "F10U", N=%06.2f I="F00U"\n", getN(25, largeScaffolds_bases), getNfrac(25, largeScaffolds_bases), getNidx(25, largeScaffolds_bases));
+  fprintf(stdout, "N50 scaffold bases         = "F10U", N=%06.2f I="F00U"\n", getN(50, largeScaffolds_bases), getNfrac(50, largeScaffolds_bases), getNidx(50, largeScaffolds_bases));
+  fprintf(stdout, "N75 scaffold bases         = "F10U", N=%06.2f I="F00U"\n", getN(75, largeScaffolds_bases), getNfrac(75, largeScaffolds_bases), getNidx(75, largeScaffolds_bases));
   fprintf(stdout, "\n");
   fprintf(stdout, "span of scaffolds          = "F10U"\n", getSum(largeScaffolds_span));
   fprintf(stdout, "ave span of scaffold       = "F10U"\n", getAve(largeScaffolds_span));
   fprintf(stdout, "min span of scaffold       = "F10U"\n", getMin(largeScaffolds_span));
   fprintf(stdout, "max span of scaffold       = "F10U"\n", getMax(largeScaffolds_span));
   fprintf(stdout, "\n");
-  fprintf(stdout, "N25 scaffold span          = "F10U", #"F00U"\n", getN(25, largeScaffolds_span), getNidx(25, largeScaffolds_span));
-  fprintf(stdout, "N50 scaffold span          = "F10U", #"F00U"\n", getN(50, largeScaffolds_span), getNidx(50, largeScaffolds_span));
-  fprintf(stdout, "N75 scaffold span          = "F10U", #"F00U"\n", getN(75, largeScaffolds_span), getNidx(75, largeScaffolds_span));
+  fprintf(stdout, "N25 scaffold span          = "F10U", N=%06.2f I="F00U"\n", getN(25, largeScaffolds_span), getNfrac(25, largeScaffolds_span), getNidx(25, largeScaffolds_span));
+  fprintf(stdout, "N50 scaffold span          = "F10U", N=%06.2f I="F00U"\n", getN(50, largeScaffolds_span), getNfrac(50, largeScaffolds_span), getNidx(50, largeScaffolds_span));
+  fprintf(stdout, "N75 scaffold span          = "F10U", N=%06.2f I="F00U"\n", getN(75, largeScaffolds_span), getNfrac(75, largeScaffolds_span), getNidx(75, largeScaffolds_span));
   fprintf(stdout, "\n");
   fprintf(stdout, "intra-scaffold gaps        = "F10U"\n", getNum(largeScaffolds_gaps));
   fprintf(stdout, "ave intra-scaffold gap     = "F10U"\n", getAve(largeScaffolds_gaps));
@@ -687,9 +706,9 @@ int main (int argc, char *argv[]) {
   fprintf(stdout, "bases in contigs min       = "F10U"\n", getMin(allContigs));
   fprintf(stdout, "bases in contigs max       = "F10U"\n", getMax(allContigs));
   fprintf(stdout, "\n");
-  fprintf(stdout, "bases in contigs N25       = "F10U", #"F00U"\n", getN(25, allContigs), getNidx(25, allContigs));
-  fprintf(stdout, "bases in contigs N50       = "F10U", #"F00U"\n", getN(50, allContigs), getNidx(50, allContigs));
-  fprintf(stdout, "bases in contigs N75       = "F10U", #"F00U"\n", getN(75, allContigs), getNidx(75, allContigs));
+  fprintf(stdout, "bases in contigs N25       = "F10U", N=%06.2f I="F00U"\n", getN(25, allContigs), getNfrac(25, allContigs), getNidx(25, allContigs));
+  fprintf(stdout, "bases in contigs N50       = "F10U", N=%06.2f I="F00U"\n", getN(50, allContigs), getNfrac(50, allContigs), getNidx(50, allContigs));
+  fprintf(stdout, "bases in contigs N75       = "F10U", N=%06.2f I="F00U"\n", getN(75, allContigs), getNfrac(75, allContigs), getNidx(75, allContigs));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< contigs in scaffolds >>\n");
   fprintf(stdout, "\n");
@@ -699,9 +718,9 @@ int main (int argc, char *argv[]) {
   fprintf(stdout, "bases in contigs min       = "F10U"\n", getMin(scaffContigs));
   fprintf(stdout, "bases in contigs max       = "F10U"\n", getMax(scaffContigs));
   fprintf(stdout, "\n");
-  fprintf(stdout, "bases in contigs N25       = "F10U", #"F00U"\n", getN(25, scaffContigs), getNidx(25, scaffContigs));
-  fprintf(stdout, "bases in contigs N50       = "F10U", #"F00U"\n", getN(50, scaffContigs), getNidx(50, scaffContigs));
-  fprintf(stdout, "bases in contigs N75       = "F10U", #"F00U"\n", getN(75, scaffContigs), getNidx(75, scaffContigs));
+  fprintf(stdout, "bases in contigs N25       = "F10U", N=%06.2f I="F00U"\n", getN(25, scaffContigs), getNfrac(25, scaffContigs), getNidx(25, scaffContigs));
+  fprintf(stdout, "bases in contigs N50       = "F10U", N=%06.2f I="F00U"\n", getN(50, scaffContigs), getNfrac(50, scaffContigs), getNidx(50, scaffContigs));
+  fprintf(stdout, "bases in contigs N75       = "F10U", N=%06.2f I="F00U"\n", getN(75, scaffContigs), getNfrac(75, scaffContigs), getNidx(75, scaffContigs));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< small contigs >>\n");
   fprintf(stdout, "\n");
@@ -711,9 +730,9 @@ int main (int argc, char *argv[]) {
   fprintf(stdout, "bases in contigs min       = "F10U"\n", getMin(smallContigs));
   fprintf(stdout, "bases in contigs max       = "F10U"\n", getMax(smallContigs));
   fprintf(stdout, "\n");
-  fprintf(stdout, "bases in contigs N25       = "F10U", #"F00U"\n", getN(25, smallContigs), getNidx(25, smallContigs));
-  fprintf(stdout, "bases in contigs N50       = "F10U", #"F00U"\n", getN(50, smallContigs), getNidx(50, smallContigs));
-  fprintf(stdout, "bases in contigs N75       = "F10U", #"F00U"\n", getN(75, smallContigs), getNidx(75, smallContigs));
+  fprintf(stdout, "bases in contigs N25       = "F10U", N=%06.2f I="F00U"\n", getN(25, smallContigs), getNfrac(25, smallContigs), getNidx(25, smallContigs));
+  fprintf(stdout, "bases in contigs N50       = "F10U", N=%06.2f I="F00U"\n", getN(50, smallContigs), getNfrac(50, smallContigs), getNidx(50, smallContigs));
+  fprintf(stdout, "bases in contigs N75       = "F10U", N=%06.2f I="F00U"\n", getN(75, smallContigs), getNfrac(75, smallContigs), getNidx(75, smallContigs));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< large contigs >>\n");
   fprintf(stdout, "\n");
@@ -723,9 +742,9 @@ int main (int argc, char *argv[]) {
   fprintf(stdout, "bases in contigs min       = "F10U"\n", getMin(largeContigs));
   fprintf(stdout, "bases in contigs max       = "F10U"\n", getMax(largeContigs));
   fprintf(stdout, "\n");
-  fprintf(stdout, "bases in contigs N25       = "F10U", #"F00U"\n", getN(25, largeContigs), getNidx(25, largeContigs));
-  fprintf(stdout, "bases in contigs N50       = "F10U", #"F00U"\n", getN(50, largeContigs), getNidx(50, largeContigs));
-  fprintf(stdout, "bases in contigs N75       = "F10U", #"F00U"\n", getN(75, largeContigs), getNidx(75, largeContigs));
+  fprintf(stdout, "bases in contigs N25       = "F10U", N=%06.2f I="F00U"\n", getN(25, largeContigs), getNfrac(25, largeContigs), getNidx(25, largeContigs));
+  fprintf(stdout, "bases in contigs N50       = "F10U", N=%06.2f I="F00U"\n", getN(50, largeContigs), getNfrac(50, largeContigs), getNidx(50, largeContigs));
+  fprintf(stdout, "bases in contigs N75       = "F10U", N=%06.2f I="F00U"\n", getN(75, largeContigs), getNfrac(75, largeContigs), getNidx(75, largeContigs));
   fprintf(stdout, "\n");
   fprintf(stdout, "<< degenerate contigs >>\n");
   fprintf(stdout, "\n");
@@ -735,9 +754,9 @@ int main (int argc, char *argv[]) {
   fprintf(stdout, "bases in contigs min       = "F10U"\n", getMin(degenContigs));
   fprintf(stdout, "bases in contigs max       = "F10U"\n", getMax(degenContigs));
   fprintf(stdout, "\n");
-  fprintf(stdout, "bases in contigs N25       = "F10U", #"F00U"\n", getN(25, degenContigs), getNidx(25, degenContigs));
-  fprintf(stdout, "bases in contigs N50       = "F10U", #"F00U"\n", getN(50, degenContigs), getNidx(50, degenContigs));
-  fprintf(stdout, "bases in contigs N75       = "F10U", #"F00U"\n", getN(75, degenContigs), getNidx(75, degenContigs));
+  fprintf(stdout, "bases in contigs N25       = "F10U", N=%06.2f I="F00U"\n", getN(25, degenContigs), getNfrac(25, degenContigs), getNidx(25, degenContigs));
+  fprintf(stdout, "bases in contigs N50       = "F10U", N=%06.2f I="F00U"\n", getN(50, degenContigs), getNfrac(50, degenContigs), getNidx(50, degenContigs));
+  fprintf(stdout, "bases in contigs N75       = "F10U", N=%06.2f I="F00U"\n", getN(75, degenContigs), getNfrac(75, degenContigs), getNidx(75, degenContigs));
   fprintf(stdout, "\n");
 
   uint64  basesInUnitigs = getSum(allUnitigs);
