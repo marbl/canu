@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: asmOutputStatistics.C,v 1.2 2009-09-30 18:14:58 brianwalenz Exp $";
+const char *mainid = "$Id: asmOutputStatistics.C,v 1.3 2009-09-30 18:21:41 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -481,7 +481,7 @@ getN(uint32 n, vector<uint64> v) {
     s += v[i];
     i++;
   }
-  return(v[i]);
+  return(v[i-1]);
 }
 
 uint64
@@ -496,7 +496,7 @@ getNidx(uint32 n, vector<uint64> v) {
     s += v[i];
     i++;
   }
-  return(i+1);
+  return(i);
 }
 
 
