@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.46 2009-10-01 05:39:12 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.47 2009-10-01 14:29:10 skoren Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -615,44 +615,10 @@ CheckCITypes(ScaffoldGraphT *sgraph){
   while((CI = NextGraphNodeIterator(&nodes)) != NULL){
     if(CI->flags.bits.isUnique ){
       if(CI->scaffoldID == NULLINDEX){
-        CIEdgeT *nA = NULL, *nB = NULL;
-        CDS_CID_t nidA = NULLINDEX, nidB = NULLINDEX;
-        ChunkInstanceT *CIa = NULL, *CIb = NULL;
-
-        fprintf(stderr,"* Dump SuspiciousCI " F_CID " of type %d**\n", CI->id, CI->type);
-        DumpChunkInstance(stderr, ScaffoldGraph, CI, FALSE, FALSE, FALSE, FALSE);
-
-        fprintf(stderr,"* numEssentialA:%d essentialA:" F_CID "  numEssentialB:%d essentialB:" F_CID "\n",
-                CI->numEssentialA, CI->essentialEdgeA,
-                CI->numEssentialB, CI->essentialEdgeB);
-
-        fprintf(stderr,"* Essential Edges *\n");
-        if(CI->essentialEdgeA != NULLINDEX){
-          nA = GetCIEdgeT(ScaffoldGraph->CIEdges, CI->essentialEdgeA);
-          nidA = (nA->idA == CI->id? nA->idB: nA->idA);
-          CIa = GetChunkInstanceT (ScaffoldGraph->ChunkInstances, nidA);
-          PrintCIEdgeT(stderr, ScaffoldGraph, " ", nA , nidA);
-        }
-
-        if(CI->essentialEdgeB != NULLINDEX){
-          nB = GetCIEdgeT(ScaffoldGraph->CIEdges, CI->essentialEdgeB);
-          nidB = (nB->idA == CI->id? nB->idB: nB->idA);
-          CIb = GetChunkInstanceT (ScaffoldGraph->ChunkInstances, nidB);
-          PrintCIEdgeT(stderr, ScaffoldGraph, " ", nB, nidB);
-        }
-
-        fprintf(stderr,"* Essential Neighbors *\n");
-        if(CIa){
-          fprintf(stderr,"* Chunk " F_CID " in Scaffold " F_CID " of type %d\n", CIa->id, CIa->scaffoldID, CIa->type);
-          DumpChunkInstance(stderr,ScaffoldGraph, CIa, FALSE, FALSE, FALSE, FALSE);
-        }
-
-        if(CIb){
-          fprintf(stderr,"* Chunk " F_CID " in Scaffold " F_CID " type %d\n", CIb->id, CIb->scaffoldID, CIb->type);
-          DumpChunkInstance(stderr, ScaffoldGraph, CIb, FALSE, FALSE, FALSE, FALSE);
-        }
-
-	//assert(0);
+        // This code used to print several warning messages when it found a unique Contig not in a Scaffold
+        // However, the code being used to print was not up to date with all CGW changes and was incorrect
+        // Now this code asserts
+	     assert(0);
       }
     }else{
       assert((CI->type != DISCRIMINATORUNIQUECHUNK_CGW) && (CI->type != UNIQUECHUNK_CGW));
