@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.45 2009-09-25 01:15:48 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.46 2009-10-01 05:39:12 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -491,29 +491,61 @@ void DumpScaffoldGraph(ScaffoldGraphT *graph){
 #endif
 
 
-int GetCoverageStat(ChunkInstanceT *CI){
-  // If this is a ChunkInstance, return its coverage stat
-  // If this is an unscaffolded (singleton) contig, return its
-  // lone ChunkInstance's coverage stat else, assert.
+//  If this is a ChunkInstance, return its coverage stat.  If this is an singleton contig, return
+//  its lone ChunkInstance's coverage stat else, assert.
+//
+int
+GetCoverageStat(ChunkInstanceT *CI) {
 
-  if(CI->flags.bits.isCI)
+  if (CI->flags.bits.isCI)
     return CI->info.CI.coverageStat;
 
-  if(CI->flags.bits.isContig){
+  if (CI->flags.bits.isContig) {
     ChunkInstanceT *ci;
 
-    if(CI->info.Contig.numCI == 1){
+    if (CI->info.Contig.numCI == 1) {
       ci = GetGraphNode(ScaffoldGraph->CIGraph, CI->info.Contig.AEndCI);
       AssertPtr(ci);
 
       return ci->info.CI.coverageStat;
-    }else{ // if they have stuff in 'em, they're unique-equivalent
+    } else {
+      //  They have stuff in 'em, and are unique-equivalent
       return GlobalData->cgbUniqueCutoff;
     }
   }
   assert(0);
   return(0);
 }
+
+
+//  If this is a ChunkInstance, return the number of surrogate instances.  If this is an singleton
+//  contig, return its lone ChunkInstance's number of surrogate instances, else, return 0.
+//
+int
+GetNumInstances(ChunkInstanceT *CI) {
+
+  if (CI->flags.bits.isCI)
+    return CI->info.CI.numInstances;
+
+  if (CI->flags.bits.isContig) {
+    ChunkInstanceT *ci;
+
+    if (CI->info.Contig.numCI == 1) {
+      ci = GetGraphNode(ScaffoldGraph->CIGraph, CI->info.Contig.AEndCI);
+      AssertPtr(ci);
+
+      return ci->info.CI.numInstances;
+    } else {
+      //  Multi-unitig contig, not a surrogate.
+      return 0;
+    }
+  }
+  assert(0);
+  return(0);
+}
+
+
+
 
 /* *********************************************************************** */
 /* Add a fixed amount to the offsetAEnd and offsetBEnd starting from a given

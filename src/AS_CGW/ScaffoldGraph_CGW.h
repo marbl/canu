@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.36 2009-09-14 16:09:04 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.37 2009-10-01 05:39:13 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -433,10 +433,9 @@ int GetConsensus(GraphCGW_T *graph, CDS_CID_t CIindex,
 // Return value is length of unitig or contig  sequence/quality (-1 if failure)
 // Consensus and quality are COPIED into the VAs
 
-// If this is a ChunkInstance, return its coverage stat
-// If this is an unscaffolded (singleton) contig, return its lone
-// ChunkInstance's coverage stat else, assert.
 int GetCoverageStat(ChunkInstanceT *CI);
+int GetNumInstances(ChunkInstanceT *CI);
+
 
 void CheckScaffoldOrder(CIScaffoldT *scaffold, ScaffoldGraphT *graph);
 

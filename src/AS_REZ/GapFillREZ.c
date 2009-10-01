@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.55 2009-09-14 16:09:05 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.56 2009-10-01 05:39:13 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -3316,7 +3316,7 @@ static void  Choose_Safe_Chunks
 #endif
 #endif
         }
-      else if  (contig -> info . CI . numInstances > 0)
+      else if  (GetNumInstances(contig) > 0)
         {
           fprintf (stderr, "SURPRISE:  contig %d has surrogates...skipping it\n",
                    cid);
@@ -3326,7 +3326,6 @@ static void  Choose_Safe_Chunks
           int  gap;
           VA_TYPE(Stack_Entry_t)  *stackva;
           GraphEdgeIterator  ci_edges;
-          ChunkInstanceT  * unitig;
           CIEdgeT  * edge;
 
           stackva = CreateVA_Stack_Entry_t(STACK_SIZE);
@@ -3383,12 +3382,7 @@ static void  Choose_Safe_Chunks
               Select_Good_Edges (stackva, contig);
             }
 
-          unitig = GetGraphNode (ScaffoldGraph -> CIGraph,
-                                 contig -> info . Contig . AEndCI);
-          if  (contig -> info . Contig . AEndCI == contig -> info . Contig . BEndCI
-               && contig -> info . Contig . AEndCI == cid
-               && unitig -> info . CI . numInstances > 0)
-            {
+          if (GetNumInstances(contig) > 0)  {
               fprintf (stderr, "SURPRISE:  contig %d has surrogates...skipping it\n",
                        contig -> info . Contig . AEndCI);
             }
@@ -7678,27 +7672,21 @@ static void  Kill_Duplicate_Stones_One_Scaffold
 
 
 
-static int  Maybe_Rock
-(ContigT * chunk)
-
-//  Return  TRUE  iff  chunk  has a chance of being a
-//  rock.
-
-{
-  return  chunk -> flags . bits . isPotentialRock
-    && chunk -> info . CI . numInstances == 0;
+//  Return TRUE iff chunk has a chance of being a rock.
+static
+int
+Maybe_Rock(ContigT *chunk) {
+  return((chunk->flags.bits.isPotentialRock) &&
+         (GetNumInstances(chunk) == 0));
 }
 
 
 
-static int  Maybe_Stone
-(ContigT * chunk)
-
-//  Return  TRUE  iff  chunk  has a chance of being a
-//  rock.
-
-{
-  return  chunk -> flags . bits . isPotentialStone;
+//  Return TRUE iff chunk has a chance of being a rock.
+static
+int
+Maybe_Stone(ContigT *chunk) {
+  return(chunk->flags.bits.isPotentialStone);
 }
 
 
