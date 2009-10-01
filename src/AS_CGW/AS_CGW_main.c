@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.78 2009-09-14 13:28:43 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.79 2009-10-01 14:40:27 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -129,9 +129,6 @@ main(int argc, char **argv) {
     if        (strcmp(argv[arg], "-C") == 0) {
       GlobalData->performCleanupScaffolds = 0;
 
-    } else if (strcmp(argv[arg], "-p") == 0) {
-      GlobalData->closurePlacement = atoi(argv[++arg]);
-
     } else if (strcmp(argv[arg], "-D") == 0) {
       GlobalData->debugLevel = atoi(argv[++arg]);
 
@@ -159,6 +156,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-j") == 0) {
       GlobalData->cgbUniqueCutoff = atof(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-K") == 0) {
+      GlobalData->removeNonOverlapingContigsFromScaffold = 1;
+
     } else if (strcmp(argv[arg], "-k") == 0) {
       GlobalData->cgbDefinitelyUniqueCutoff = atof(argv[++arg]);
 
@@ -173,6 +173,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-o") == 0) {
       strcpy(GlobalData->outputPrefix, argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-P") == 0) {
+      GlobalData->closurePlacement = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-p") == 0) {
       preMergeRezLevel = atoi(argv[++arg]);
@@ -231,8 +234,7 @@ main(int argc, char **argv) {
 
   if (err) {
     fprintf(stderr, "usage: %s [options] -g <GatekeeperStoreName> -o <OutputPath> <unitigs*.cgb>\n", argv[0]);
-    fprintf(stderr, "   -C           Don't cleanup scaffolds\n");
-    fprintf(stderr, "   -p <int>     how to place closure reads. 0 - place at first location found, 1 - place at best gap, 2 - allow to be placed in multiple gaps\n");
+    fprintf(stderr, "   -C           Don't cleanup scaffolds\n");    
     fprintf(stderr, "   -D <lvl>     Debug\n");
     fprintf(stderr, "   -E           output overlap only contig edges\n");
     fprintf(stderr, "   -e <thresh>  Microhet score probability cutoff\n");
@@ -244,11 +246,13 @@ main(int argc, char **argv) {
     fprintf(stderr, "   -I           ignore chaff unitigs\n");
     fprintf(stderr, "   -i <thresh>  Set max coverage stat for microhet determination of non-uniqueness (default -1)\n");
     fprintf(stderr, "   -j <thresh>  Set min coverage stat for definite uniqueness\n");
+    fprintf(stderr, "   -K           Allow kicking out a contig placed in a scaffold by mate pairs that has no overlaps to both its left and right neighbor contigs.\n");
     fprintf(stderr, "   -k <thresh>  Set max coverage stat for possible uniqueness\n");
     fprintf(stderr, "   -M           don't do interleaved scaffold merging\n");
     fprintf(stderr, "   -m <min>     Number of mate samples to recompute an insert size, default is 100\n");
     fprintf(stderr, "   -N <ckp>     restart from checkpoint location 'ckp' (see the timing file)\n");
     fprintf(stderr, "   -o           Output Name (required)\n");
+    fprintf(stderr, "   -P <int>     how to place closure reads. 0 - place at first location found, 1 - place at best gap, 2 - allow to be placed in multiple gaps\n");
     fprintf(stderr, "   -R <ckp>     restart from checkpoint file number 'ckp'\n");
     fprintf(stderr, "   -r <lvl>     repeat resolution level\n");
     fprintf(stderr, "   -S <t>       place all frags in singly-placed surrogates if at least fraction <x> can be placed\n");

@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.37 2009-10-01 05:39:13 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.38 2009-10-01 14:40:27 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -286,7 +286,8 @@ typedef enum {
   RECOMPUTE_NO_GAPS = 3,
   RECOMPUTE_FAILED_REORDER_NEEDED = 4,
   RECOMPUTE_NOT_ENOUGH_CLONES = 5,
-  RECOMPUTE_CONTIGGED_CONTAINMENTS = 6
+  RECOMPUTE_CONTIGGED_CONTAINMENTS = 6,
+  RECOMPUTE_FAILED_CONTIG_DELETED  = 7
 }RecomputeOffsetsStatus;
 
 /*

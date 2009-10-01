@@ -424,6 +424,9 @@ sub setDefaults () {
     $global{"extendClearRangesStepSize"}   = undef;
     $synops{"extendClearRangesStepSize"}   = "Batch N scaffolds per ECR run";
 
+    $global{"kickOutNonOvlContigs"}        = 0;
+    $synops{"kickOutNonOvlContigs"}        = "Allow kicking out a contig placed in a scaffold by mate pairs that has no overlaps to both its left and right neighbor contigs. EXPERT!\n";
+    
     #####  Consensus Options
 
     $global{"cnsPartitions"}               = 128;

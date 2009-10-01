@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.35 2009-09-24 17:17:58 skoren Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.36 2009-10-01 14:40:27 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1299,14 +1299,97 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                                                  &chiSquaredValue,
                                                  (float)PAIRWISECHI2THRESHOLD_CGW,
                                                  &alternate, verbose);
-// try to find next contig to join so we can skip this one
-// can call findoverlapedge on next node
-// until we run out of nodes or we find one
-// if we find one, throw out the old contig and return recompute
-// TODO: how to restore iterator if necessary
-// TODO: how to delete contig from a scaffold
 
-          if(overlapEdge && alternate){ // found a node that is out of order!!!!
+         if(GlobalData->removeNonOverlapingContigsFromScaffold && overlapEdge == (EdgeCGW_T *)NULL){
+            // try to find next contig to join so we can skip this one
+            // can call findoverlapedge on next node
+            // until we run out of nodes or we find one
+            // if we find one, throw out the old contig and return recompute
+            CDS_CID_t    startingCI          = thisCI->id;
+            NodeCGW_T   *skippedCI           = thisCI;
+            int32        startingGapIndex    = gapIndex;
+            float        currGapSize         = gapSize[gapIndex];
+            float        currGapSizeVariance = gapSizeVariance[gapIndex];
+            
+            while (overlapEdge == (EdgeCGW_T *)NULL) {
+               currGapSize += thisCI->bpLength.mean + gapSize[gapIndex+1];
+               currGapSizeVariance += thisCI->bpLength.variance + gapSizeVariance[gapIndex+1];
+               gapIndex++; 
+               thisCI = NextCIScaffoldTIterator(&CIs);
+               if (thisCI == NULL || currGapSize > - CGW_MISSED_OVERLAP) {
+                  break;
+               }
+               edgeOrient = GetChunkPairOrientation(GetNodeOrient(prevCI), GetNodeOrient(thisCI));
+               overlapEdge = FindOverlapEdgeChiSquare(graph, prevCI, thisCI->id,
+                                                      edgeOrient, currGapSize,
+                                                      currGapSizeVariance,
+                                                      &chiSquaredValue,
+                                                      (float)PAIRWISECHI2THRESHOLD_CGW,
+                                                      &alternate, verbose);
+               if (overlapEdge) {
+                  edgeOrient = GetChunkPairOrientation(GetNodeOrient(skippedCI), GetNodeOrient(thisCI));
+                  EdgeCGW_T *skippedToNextEdge = FindOverlapEdgeChiSquare(graph, skippedCI, thisCI->id,
+                                                         edgeOrient, gapSize[startingGapIndex+1],
+                                                         gapSizeVariance[startingGapIndex+1],
+                                                         &chiSquaredValue,
+                                                         (float)PAIRWISECHI2THRESHOLD_CGW,
+                                                         &alternate, verbose);
+                  if (skippedToNextEdge != NULL)
+                     overlapEdge = NULL;
+               }
+            }
+            // restore our pre-search positions
+            InitCIScaffoldTIteratorFromCI(graph, scaffold, startingCI, TRUE, FALSE, &CIs);
+            gapIndex = startingGapIndex;
+         
+            // if we did find an overlap to a subsequent neighbor, throw intermediate contigs out and rerun 
+            // otherwise advance past the contig analyzed above and continue
+            if (overlapEdge) {
+               NodeCGW_T  *toDelete        = NULL;
+               CDS_CID_t   newScaffoldID   = NULLINDEX;
+               uint32      seenFirstOffset = FALSE;
+               LengthT     firstOffset     = {0.0, 0.0};
+               LengthT     offsetAEnd      = {0.0, 0.0};
+               LengthT     offsetBEnd      = {0.0, 0.0};
+               
+               while((toDelete = NextCIScaffoldTIterator(&CIs)) != NULL && toDelete->id != thisCI->id){
+                  if(!seenFirstOffset){
+                     CIScaffoldT CIScaffold;
+                     InitializeScaffold(&CIScaffold, REAL_SCAFFOLD);
+                     CIScaffold.info.Scaffold.AEndCI = NULLINDEX;
+                     CIScaffold.info.Scaffold.BEndCI = NULLINDEX;
+                     CIScaffold.info.Scaffold.numElements = 0;
+                     CIScaffold.edgeHead = NULLINDEX;
+                     CIScaffold.bpLength = firstOffset;
+                     newScaffoldID = CIScaffold.id = GetNumGraphNodes(graph->ScaffoldGraph);
+                     CIScaffold.flags.bits.isDead = FALSE;
+                     CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
+                     CIScaffold.essentialEdgeB = CIScaffold.essentialEdgeA = NULLINDEX;
+                     AppendGraphNode(graph->ScaffoldGraph, &CIScaffold);
+                               
+                     if(GetNodeOrient(toDelete) == A_B){
+                       firstOffset = toDelete->offsetAEnd;
+                     }else{
+                       firstOffset = toDelete->offsetBEnd;
+                     }
+                     seenFirstOffset = TRUE;
+                   }
+                   offsetAEnd.mean     = toDelete->offsetAEnd.mean     - firstOffset.mean;
+                   offsetAEnd.variance = toDelete->offsetAEnd.variance - firstOffset.variance;
+                   offsetBEnd.mean     = toDelete->offsetBEnd.mean     - firstOffset.mean;
+                   offsetBEnd.variance = toDelete->offsetBEnd.variance - firstOffset.variance;
+         
+                   RemoveCIFromScaffold(graph, scaffold, toDelete, FALSE);
+                   InsertCIInScaffold(graph, toDelete->id, newScaffoldID, offsetAEnd, offsetBEnd, TRUE, FALSE);
+               }
+               freeRecomputeData(&data);
+               return(RECOMPUTE_FAILED_CONTIG_DELETED);
+            } else {
+               thisCI = NextCIScaffoldTIterator(&CIs);
+            }
+         }
+         
+         if(overlapEdge && alternate){ // found a node that is out of order!!!!
 
 #ifdef TEST_FIXUPMISORDER
             //  XXXX:  BPW is slightly confused as to why we are not
@@ -1354,6 +1437,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
               CheckInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW, 100000000000.0, 0, FALSE);
             }
 
+            freeRecomputeData(&data);
             return RECOMPUTE_CONTIGGED_CONTAINMENTS;
           }
           if(overlapEdge && isContainmentEdge(overlapEdge)){
@@ -1393,6 +1477,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
               CheckInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW, 100000000000.0, 0, FALSE);
             }
 
+            freeRecomputeData(&data);
             return RECOMPUTE_CONTIGGED_CONTAINMENTS;
           }
 
@@ -2187,7 +2272,7 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
         }else{
           if (debug.leastSquaresGapsLV > 1)
             fprintf(stderr,"* BPW Scaffold connected "F_CID " hooray!\n",
-                    sID, numComponents);
+                    sID);
 
           if(!IsScaffold2EdgeConnected(ScaffoldGraph, scaffold)){
             if (debug.leastSquaresGapsLV > 0)
@@ -2212,7 +2297,7 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
           CheckLSScaffoldWierdnesses("BEFORE", graph, scaffold);
           status =  RecomputeOffsetsInScaffold(graph, scaffold, TRUE, forceNonOverlaps, verbose);
 
-          if(status == RECOMPUTE_CONTIGGED_CONTAINMENTS) {
+          if(status == RECOMPUTE_CONTIGGED_CONTAINMENTS || status == RECOMPUTE_FAILED_CONTIG_DELETED) {
             // We want to restart from the top of the loop, including edge marking
             if (debug.leastSquaresGapsLV > 1)
               fprintf(stderr, "RecomputeOffsetsInScaffold() returned RECOMPUTE_CONTIGGED_CONTAINMENTS, begin anew!\n");

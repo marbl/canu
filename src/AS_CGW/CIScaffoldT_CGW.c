@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.41 2009-09-14 16:09:04 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.42 2009-10-01 14:40:27 skoren Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -1069,135 +1069,6 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
 
   return numComponents;
 }
-
-/****************************************************************************/
-int IsScaffoldInternallyConnectedCheck(ScaffoldGraphT *sgraph,
-                                       CIScaffoldT *scaffold,
-                                       int32 edgeTypes,
-                                       CDS_CID_t ignoredChunkID)
-{
-  //
-  // returns the number of connected components of the <scaffold>
-  // NOTE: it considers ONLY trusted edges
-  // Will modify the setId field of the NodeCGW_T structure to reflect
-  // which component a node belongs to.
-  //
-  UFDataT  * UFData = UFCreateSets(scaffold->info.Scaffold.numElements);
-  CIEdgeT  * edge;
-  ChunkInstanceT  * chunk;
-  GraphEdgeIterator   edges;
-  CIScaffoldTIterator CIs;
-  int32 numComponents;
-  int set = 0;
-
-  assert(UFData != NULL);
-  assert(scaffold != NULL);
-  assert(sgraph != NULL);
-
-  //
-  // make a set for each vertex
-  //
-  InitCIScaffoldTIterator(sgraph, scaffold, TRUE,  FALSE, &CIs);
-  while ((chunk = NextCIScaffoldTIterator(&CIs)) != NULL) {
-    //
-    // create a set
-    //
-    UFSetT
-      * chunkSet = UFGetSet(UFData, set);
-
-    if (chunk->id == ignoredChunkID)
-      continue;
-
-    //
-    // map the set to a chunk
-    //
-    chunkSet->data = (void *)chunk;
-    //
-    // map the chunkId to setId
-    //
-    chunk->setID = set++;
-  }
-
-  //
-  // now do the unions: iterate over all trusted/raw edges
-  //
-  InitCIScaffoldTIterator(sgraph, scaffold, TRUE,
-                          FALSE, &CIs);
-  while ((chunk = NextCIScaffoldTIterator(&CIs)) != NULL) {
-    if (chunk->id == ignoredChunkID)
-      continue;
-    assert(chunk->setID >= 0);
-    InitGraphEdgeIterator(sgraph->RezGraph, chunk->id,
-                          ALL_END, edgeTypes, // ALL_TRUSTED_EDGES,
-                          GRAPH_EDGE_DEFAULT, //GRAPH_EDGE_CONFIRMED_ONLY,
-                          &edges);
-    while ((edge = NextGraphEdgeIterator(&edges)) != NULL) {
-      //
-      // get the other end
-      //
-      ChunkInstanceT
-        * otherChunk = GetGraphNode(sgraph->RezGraph,
-                                    (chunk->id == edge->idA) ?
-                                    edge->idB : edge->idA);
-      int32 weight = edge->edgesContributing - (isOverlapEdge(edge));
-      assert(otherChunk != NULL);
-
-      // See each edge only once
-      if(chunk->id != edge->idA)
-        continue;
-
-#if 0
-      if(edge->flags.bits.isBridge){
-        fprintf(stderr,"* WARNING: chunk "F_CID " weight = %d bridge edge\n", chunk->id, weight);
-        PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph, "Bridge ",edge, chunk->id);
-      }
-#endif
-
-      if(isSingletonOverlapEdge(edge) ||
-         (weight == 1 && edge->flags.bits.isBridge))
-        continue;
-
-      //
-      // if the other end is not in this scaffold
-      // ignore it
-      //
-      if (chunk->scaffoldID != otherChunk->scaffoldID)
-        continue;
-
-      //
-      // do union
-      //
-      UFUnion(UFData, chunk->setID, otherChunk->setID);
-    }
-  }
-
-  //
-  // clean it up and return the # of components
-  //
-  numComponents = UFRenumberSets(UFData);
-
-  //
-  // renumber the NodeCGW_T setID to reflect component membership
-  //
-  set = 0;
-  InitCIScaffoldTIterator(sgraph, scaffold, TRUE,  FALSE, &CIs);
-  while ((chunk = NextCIScaffoldTIterator(&CIs)) != NULL) {
-    //
-    // create a set
-    //
-    UFSetT
-      * chunkSet = UFGetSet(UFData, set);
-    assert(chunkSet->data == (void *)chunk);
-    //
-    // map the chunkId to setId
-    //
-    chunk->setID = chunkSet->component;
-    set++;
-  }
-  UFFreeSets(UFData);
-  return numComponents;
-}
-
 
 static
 void
