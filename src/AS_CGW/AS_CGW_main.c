@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.79 2009-10-01 14:40:27 skoren Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.80 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,6 +82,7 @@ const char *mainid = "$Id: AS_CGW_main.c,v 1.79 2009-10-01 14:40:27 skoren Exp $
 #define CHECKPOINT_AFTER_FINAL_CONTAINED_STONES     "ckp11-FCS"
 #define CHECKPOINT_AFTER_FINAL_CLEANUP              "ckp12-FC"
 #define CHECKPOINT_AFTER_RESOLVE_SURROGATES         "ckp13-RS"
+#define CHECKPOINT_AFTER_OUTPUT                     "ckp14-FIN"
 
 
 
@@ -146,6 +147,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-g") == 0) {
       strcpy(GlobalData->gkpStoreName, argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-t") == 0) {
+      strcpy(GlobalData->tigStoreName, argv[++arg]);
 
     } else if (strcmp(argv[arg], "-I") == 0) {
       GlobalData->ignoreChaffUnitigs = 1;
@@ -296,27 +300,6 @@ main(int argc, char **argv) {
     GlobalData->repeatRezLevel = repeatRezLevel;
 
 
-  if (generateOutput) {
-    char  filepath[2048] = {0};
-
-    errno = 0;
-
-    sprintf(filepath, "%s.cgw", GlobalData->outputPrefix);
-    GlobalData->cgwfp = fopen(filepath, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for write: %s\n", filepath, strerror(errno)), exit(1);
-
-    sprintf(filepath, "%s.cgw_contigs", GlobalData->outputPrefix);
-    GlobalData->ctgfp = fopen(filepath, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for write: %s\n", filepath, strerror(errno)), exit(1);
-
-    sprintf(filepath, "%s.cgw_scaffolds", GlobalData->outputPrefix);
-    GlobalData->scffp = fopen(filepath, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for write: %s\n", filepath, strerror(errno)), exit(1);
-  }
-
   if (strcasecmp(restartFromLogical, CHECKPOINT_AFTER_BUILDING_SCAFFOLDS) < 0) {
     fprintf(stderr, "Beginning CHECKPOINT_AFTER_BUILDING_SCAFFOLDS\n");
 
@@ -385,7 +368,7 @@ main(int argc, char **argv) {
   }
 
 
-  clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+  ScaffoldGraph->tigStore->flushCache();
 
 
 
@@ -478,7 +461,7 @@ main(int argc, char **argv) {
   }
 
 
-  clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+  ScaffoldGraph->tigStore->flushCache();
 
 
   /*
@@ -551,7 +534,7 @@ main(int argc, char **argv) {
   }
 
 
-  clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+  ScaffoldGraph->tigStore->flushCache();
 
   if ((strcasecmp(restartFromLogical, CHECKPOINT_AFTER_FINAL_ROCKS) < 0) &&
       (GlobalData->repeatRezLevel > 0)) {
@@ -564,7 +547,7 @@ main(int argc, char **argv) {
       extra_rocks = Fill_Gaps(GlobalData->outputPrefix, GlobalData->repeatRezLevel, iter);
       fprintf(stderr, "Threw additional %d rocks on iter %d\n", extra_rocks, iter);
 
-      clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+      ScaffoldGraph->tigStore->flushCache();
     } while (extra_rocks > 1 && iter < MAX_EXTRA_ROCKS_ITERS);
 
     CheckpointScaffoldGraph(CHECKPOINT_AFTER_FINAL_ROCKS, "after final rocks");
@@ -581,7 +564,7 @@ main(int argc, char **argv) {
     CheckCIScaffoldTs (ScaffoldGraph);
     ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
 
-    clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+    ScaffoldGraph->tigStore->flushCache();
 
     fprintf (stderr, "Threw %d partial stones\n", partial_stones);
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
@@ -613,7 +596,7 @@ main(int argc, char **argv) {
     fprintf (stderr, "**** Finished Final Contained Stones level %d ****\n", GlobalData->stoneLevel);
 
     CleanupScaffolds (ScaffoldGraph, FALSE, NULLINDEX, FALSE);
-    clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+    ScaffoldGraph->tigStore->flushCache();
 
     fprintf(stderr, "Threw %d contained stones\n", contained_stones);
 
@@ -708,7 +691,7 @@ main(int argc, char **argv) {
   }
 #endif
 
-  clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+  ScaffoldGraph->tigStore->flushCache();
 
   FixupLengthsScaffoldTs(ScaffoldGraph);
 
@@ -716,25 +699,15 @@ main(int argc, char **argv) {
     CelamyAssembly(GlobalData->outputPrefix);
 
     MarkContigEdges();
-    OutputMateDists(ScaffoldGraph);
-
     ComputeMatePairDetailedStatus();
-    OutputFrags(ScaffoldGraph);
 
-    // We always have multiAlignments for Unitigs
+    //  Note that OutputContigs partitions the tigStore, and closes ScaffoldGraph->tigStore.  The
+    //  only operation valid after this function is CheckpointScaffoldGraph().
+
     OutputUnitigsFromMultiAligns();
-    OutputUnitigLinksFromMultiAligns();
-
-    if(GlobalData->debugLevel > 0){
-      DumpContigs(stderr,ScaffoldGraph, FALSE);
-      DumpCIScaffolds(stderr,ScaffoldGraph, FALSE);
-    }
-
     OutputContigsFromMultiAligns();
-    OutputContigLinks(ScaffoldGraph);
 
-    OutputScaffolds(ScaffoldGraph);
-    OutputScaffoldLinks(ScaffoldGraph);
+    CheckpointScaffoldGraph(CHECKPOINT_AFTER_OUTPUT, "after output");
   }
 
   DestroyScaffoldGraph(ScaffoldGraph);

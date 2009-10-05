@@ -5,7 +5,7 @@ use strict;
 sub CGW ($$$$$$) {
     my $thisDir     = shift @_;
     my $lastDir     = shift @_;
-    my $cgiFile     = shift @_;
+    my $tigStore    = shift @_;
     my $stoneLevel  = shift @_;
     my $logickp     = shift @_;
     my $finalRun    = shift @_;
@@ -45,23 +45,6 @@ sub CGW ($$$$$$) {
     }
 
     system("mkdir $wrk/$thisDir")               if (! -d "$wrk/$thisDir");
-    system("mkdir $wrk/$asm.SeqStore")          if (! -d "$wrk/$asm.SeqStore");
-
-    if (!defined($cgiFile)) {
-        open(F, "ls $wrk/5-consensus |");
-        while (<F>) {
-            chomp;
-            if (m/cgi$/) {
-                $cgiFile .= " $wrk/5-consensus/$_";
-            }
-        }
-        close(F);
-    } else {
-        system("ln -s $cgiFile $wrk/$thisDir/$asm.cgi") if (! -e "$wrk/$thisDir/$asm.cgi");
-        $cgiFile = "$wrk/$thisDir/$asm.cgi";
-    }
-
-    system("ln -s ../$asm.SeqStore  $wrk/$thisDir/$asm.SeqStore")     if (! -e "$wrk/$thisDir/$asm.SeqStore");
 
     system("ln -s ../$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp") if (defined($lastDir));
 
@@ -90,8 +73,8 @@ sub CGW ($$$$$$) {
     $cmd .= " -u $wrk/4-unitigger/$asm.unused.ovl" if (getGlobal("cgwUseUnitigOverlaps") != 0);
     $cmd .= " -m $sampleSize";
     $cmd .= " -g $wrk/$asm.gkpStore ";
+    $cmd .= " -t $tigStore ";
     $cmd .= " -o $wrk/$thisDir/$asm ";
-    $cmd .= " $cgiFile ";
     $cmd .= " > $wrk/$thisDir/cgw.out 2>&1";
     if (runCommand("$wrk/$thisDir", $cmd)) {
         caFailure("scaffolder failed", "$wrk/$thisDir/cgw.out");
@@ -144,7 +127,6 @@ sub eCR ($$$) {
     system("mkdir $wrk/$thisDir") if (! -d "$wrk/$thisDir");
 
     system("ln -s ../$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp")  if (! -e "$wrk/$thisDir/$asm.ckp.$lastckp");
-    system("ln -s ../$asm.SeqStore              $wrk/$thisDir/$asm.SeqStore")      if (! -e "$wrk/$thisDir/$asm.SeqStore");
 
     #  Partition eCR.
 
@@ -153,6 +135,7 @@ sub eCR ($$$) {
         my $cmd;
         $cmd  = "$bin/extendClearRangesPartition ";
         $cmd .= " -g $wrk/$asm.gkpStore ";
+        $cmd .= " -t $wrk/$asm.tigStore ";
         $cmd .= " -n $lastckp ";
         $cmd .= " -c $asm ";
         $cmd .= " -N 4 ";
@@ -192,6 +175,7 @@ sub eCR ($$$) {
             print F "\n";
             print F "$bin/extendClearRanges \\\n";
             print F " -g $wrk/$asm.gkpStore \\\n";
+            print F " -t $wrk/$asm.tigStore \\\n";
             print F " -n $lastckp \\\n";
             print F " -c $asm \\\n";
             print F " -b $curScaffold -e $endScaffold \\\n";
@@ -248,8 +232,7 @@ sub updateDistanceRecords ($) {
 }
 
 
-sub scaffolder ($) {
-    my $cgiFile    = shift @_;
+sub scaffolder () {
     my $lastDir    = undef;
     my $thisDir    = 0;
     my $stoneLevel = getGlobal("stoneLevel");
@@ -262,7 +245,11 @@ sub scaffolder ($) {
     #
     if ((getGlobal("computeInsertSize") == 1) ||
         (getGlobal("computeInsertSize") == 0) && ($numFrags < 1000000)) {
-        updateDistanceRecords(CGW("6-clonesize", undef, $cgiFile, $stoneLevel, undef, 0));
+        if (! -e "$wrk/6-clonesize/$asm.tigStore") {
+            system("mkdir -p $wrk/6-clonesize/$asm.tigStore");
+            system("ln -s $wrk/$asm.tigStore/* $wrk/6-clonesize/$asm.tigStore");
+        }
+        updateDistanceRecords(CGW("6-clonesize", undef, "$wrk/6-clonesize/$asm.tigStore", $stoneLevel, undef, 0));
     }
 
 
@@ -270,13 +257,13 @@ sub scaffolder ($) {
     #  get the heck outta here!  OK, we'll do resolveSurrogates(), maybe.
     #
     if (getGlobal("doExtendClearRanges") == 0) {
-        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, undef, 1);
+        $lastDir = CGW("7-$thisDir-CGW", $lastDir, "$wrk/$asm.tigStore", $stoneLevel, undef, 1);
         $thisDir++;
     } else {
 
         #  Do the initial CGW, making sure to not throw stones.
         #
-        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, 0, undef, 0);
+        $lastDir = CGW("7-$thisDir-CGW", $lastDir, "$wrk/$asm.tigStore", 0, undef, 0);
         $thisDir++;
 
         #  Followed by at least one eCR
@@ -290,7 +277,7 @@ sub scaffolder ($) {
         #
         my $iterationMax = getGlobal("doExtendClearRanges") + 1;
         for (my $iteration = 2; $iteration < $iterationMax; $iteration++) {
-            $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, 0, "ckp01-ABS", 0);
+            $lastDir = CGW("7-$thisDir-CGW", $lastDir, "$wrk/$asm.tigStore", 0, "ckp01-ABS", 0);
             $thisDir++;
 
             $lastDir = eCR("7-$thisDir-ECR", $lastDir, $iteration);
@@ -300,7 +287,7 @@ sub scaffolder ($) {
         #  Then another scaffolder, chucking stones into the big holes,
         #  filling in surrogates, and writing output.
         #
-        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, "ckp01-ABS", 1);
+        $lastDir = CGW("7-$thisDir-CGW", $lastDir, "$wrk/$asm.tigStore", $stoneLevel, "ckp01-ABS", 1);
         $thisDir++;
     }
 

@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Instrument_CGW.c,v 1.42 2009-09-14 16:09:04 brianwalenz Exp $";
+static char *rcsid = "$Id: Instrument_CGW.c,v 1.43 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1944,7 +1944,7 @@ void ComputeScaffoldGraphInstrumenterStats(ScaffoldGraphT * graph,
         {
           ChunkInstanceT * chunk = GetGraphNode(graph->CIGraph, i);
           if(chunk->scaffoldID == NULLINDEX)
-            sgi->numInUnresolvedChunks += chunk->info.CI.numFragments;
+            sgi->numInUnresolvedChunks += ScaffoldGraph->tigStore->getNumFrags(chunk->id, TRUE);
         }
     }
 
@@ -2501,8 +2501,7 @@ void PrintUnitigInstrumenter(ScaffoldGraphT * graph,
         }
       else
         {
-          MultiAlignT * cma = loadMultiAlignTFromSequenceDB(graph->sequenceDB,
-                                                            unitig->id, FALSE);
+          MultiAlignT * cma = ScaffoldGraph->tigStore->loadMultiAlign(unitig->id, FALSE);
           if(cma == NULL)
             {
               fprintf(stderr,
@@ -2579,8 +2578,7 @@ void PrintContigInstrumenter(ScaffoldGraphT * graph,
         }
       else
         {
-          MultiAlignT * cma = loadMultiAlignTFromSequenceDB(graph->sequenceDB,
-                                                            contig->id, FALSE);
+          MultiAlignT * cma = ScaffoldGraph->tigStore->loadMultiAlign(contig->id, FALSE);
           if(cma == NULL)
             {
               fprintf(stderr,
@@ -4558,7 +4556,7 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
     }
 
   // get the multialignment - lists fragments
-  uma = loadMultiAlignTFromSequenceDB(graph->sequenceDB, unitig->id, TRUE);
+  uma = ScaffoldGraph->tigStore->loadMultiAlign(unitig->id, TRUE);
   if(uma == NULL)
     {
       fprintf(stderr, "Failed to load MultiAlignT of unitig "F_CID "\n", unitig->id);

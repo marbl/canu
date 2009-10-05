@@ -14,7 +14,6 @@ sub toggler () {
    my $maxDistance = getGlobal("toggleMaxDistance"); 
    my $bin = getBinDirectory();
    my $cmd = "";
-   my $scaffoldDir;
 
    system("mkdir $wrk/$toggledDir") if (! -d "$wrk/$toggledDir");
 
@@ -87,11 +86,10 @@ sub toggler () {
    }
    else {
       $wrk = "$wrk/$toggledDir";
-      $cgiFile = "$wrk/5-consensus/$asm.cgi";
 
-      scaffolder($cgiFile);
-      postScaffolderConsensus($scaffoldDir);
-      terminate($scaffoldDir);
+      scaffolder();
+      postScaffolderConsensus();
+      terminate();
       cleaner();
    }
 }

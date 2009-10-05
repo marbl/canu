@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.59 2009-09-25 01:15:48 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.60 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1288,12 +1288,12 @@ int CleanupScaffolds(ScaffoldGraphT *sgraph, int lookForSmallOverlaps,
       didSomething |= CleanupAScaffold(sgraph,scaffold, lookForSmallOverlaps, maxContigsInMerge, deleteUnMergedSurrogates);
 
     if((scaffold->id % 10000) == 0){
-      clearCacheSequenceDB(sgraph->sequenceDB);
+      ScaffoldGraph->tigStore->flushCache();
       fprintf(stderr,"* CleanupScaffolds through scaffold "F_CID "\n", scaffold->id);
     }
   }
 
-  clearCacheSequenceDB(sgraph->sequenceDB);
+  ScaffoldGraph->tigStore->flushCache();
 
   RecycleDeletedGraphElements(sgraph->RezGraph);
   return didSomething;
@@ -1352,7 +1352,7 @@ int CleanupFailedMergesInScaffolds(ScaffoldGraphT *sgraph){
 
     //  A little aggressive to do this every scaffold.  Hopefully
     //  won't kill performance.
-    clearCacheSequenceDB(sgraph->sequenceDB);
+    ScaffoldGraph->tigStore->flushCache();
   }
 
   RecycleDeletedGraphElements(sgraph->RezGraph);
@@ -1382,7 +1382,7 @@ int  DeleteAllSurrogateContigsFromFailedMerges(CIScaffoldT *scaffold,
     return FALSE;
 
   numSurrogates = 0;
-  ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
+  ma = ScaffoldGraph->tigStore->loadMultiAlign(contig->id, FALSE);
 
   for(i = 0; i < GetNumIntUnitigPoss(ma->u_list); i++){
     IntUnitigPos *pos = GetIntUnitigPos(ma->u_list,i);
@@ -1646,7 +1646,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
     ContigEndsT *ctg = GetContigEndsT(ContigEnds,0);
     int32 numContigs = GetNumContigEndsTs(ContigEnds);
 
-    VA_TYPE(IntElementPos) *ContigPositions = CreateVA_IntElementPos(2);
+    VA_TYPE(IntElementPos) *ContigPositions = CreateVA_IntElementPos(32);
 
     /* Now the ContigEnds VA contains the starts/ends of all the contigs */
     for(i = 0; i < numContigs; i++){
@@ -1892,7 +1892,7 @@ int CheckForContainmentContigs(ScaffoldGraphT *sgraph, CDS_CID_t cid, CDS_CID_t 
     }
   }
 
- if ((foundContainment) &&
+  if ((foundContainment) &&
       (GetNumIntElementPoss(ContigPositions) > 1)) {
     GraphEdgeIterator edges;
     EdgeCGW_T *edge;
@@ -1918,7 +1918,7 @@ int CheckForContainmentContigs(ScaffoldGraphT *sgraph, CDS_CID_t cid, CDS_CID_t 
     retVal = CreateAContigInScaffold(scaffold, ContigPositions, aEnd, bEnd);
   }
 
- Delete_VA(ContigPositions);
+  Delete_VA(ContigPositions);
 
  return(retVal);
 }
@@ -1987,41 +1987,31 @@ void DumpMultiAlignT(FILE * fp, ScaffoldGraphT * graph,
 }
 
 /***************************************************************************/
+
+//  This path takes care of the on-the-fly contigging of the inserted contig with the existing
+//  contigs in the scaffld
+
 int  CreateAContigInScaffold(CIScaffoldT *scaffold,
                              VA_TYPE(IntElementPos) *ContigPositions,
                              LengthT offsetAEnd, LengthT offsetBEnd){
-  /* This path takes care of the on-the-fly contigging of the inserted contig
-     with the existing contigs in the scaffld */
-  ContigT *contig = CreateNewGraphNode(ScaffoldGraph->ContigGraph);
-  LengthT newOffsetAEnd, newOffsetBEnd, oldOffsetBEnd, deltaOffsetBEnd;
-  MultiAlignT  *newMultiAlign;
-  int32 numElements = GetNumIntElementPoss(ContigPositions);
-  CDS_CID_t i;
-  CDS_CID_t aEndID = NULLINDEX, bEndID = NULLINDEX;
-  int32 aEndEnd = NO_END, bEndEnd = NO_END;
-  int32 minPos = INT32_MAX;
-  int32 maxPos = INT32_MIN;
+  CDS_CID_t   aEndID = NULLINDEX;
+  CDS_CID_t   bEndID = NULLINDEX;
+  int32       aEndEnd = NO_END;
+  int32       bEndEnd = NO_END;
+  int32       minPos = INT32_MAX;
+  int32       maxPos = INT32_MIN;
 
-  contig->offsetAEnd = offsetAEnd;
-  contig->offsetBEnd = offsetBEnd;
-
-#ifdef DEBUG_CREATEACONTIG
-  fprintf(stderr,"* Create a contig "F_CID " in scaffold "F_CID "\n", contig->id, scaffold->id);
-#endif
 
   //  Determine which ends are extremal, so we can propagate their
   //  overlaps to the new contig.
   //
-  for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
+  for(int32 i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
     IntElementPos *pos = GetIntElementPos(ContigPositions, i);
     ContigT       *ctg = GetGraphNode(ScaffoldGraph->ContigGraph, pos->ident);
 
     ctg->flags.bits.failedToContig = FALSE;
     ctg->flags.bits.beingContigged = TRUE; // flag the contig as being involved in a contigging operation
 
-    // SK: for closure, when we merge together a unique closure unitig, propagate the flag up to the new contig
-    contig->flags.bits.isClosure |= ctg->flags.bits.isClosure;
-    
     if (pos->position.bgn < pos->position.end) {
       if (pos->position.bgn < minPos) {
         minPos  = pos->position.bgn;
@@ -2074,20 +2064,18 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   VERBOSE_MULTIALIGN_OUTPUT = 1;
 #endif
 
-  newMultiAlign = MergeMultiAlignsFast_new(ContigPositions, NULL);
+  MultiAlignT *newMultiAlign = MergeMultiAlignsFast_new(ContigPositions, NULL);
 
   if (newMultiAlign == NULL) {
-    int32 i;
+    for(int32 i = 0; i < GetNumIntElementPoss(ContigPositions); i++) {
+      IntElementPos *pos = GetIntElementPos(ContigPositions,i);
+      ContigT       *ctg = GetGraphNode(ScaffoldGraph->ContigGraph, pos->ident);
 
-    for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++) {
-      IntElementPos *pos     = GetIntElementPos(ContigPositions,i);
-      ContigT        *contig = GetGraphNode(ScaffoldGraph->ContigGraph, pos->ident);
-
-      contig->flags.bits.failedToContig = TRUE;
+      ctg->flags.bits.failedToContig = TRUE;
 
 #ifdef DEBUG_CREATEACONTIG
       fprintf(stderr,"* Contig "F_CID" ("F_CID")   bgn:"F_S32" end:"F_S32"\n",
-              pos->ident, GetOriginalContigID(contig->id),
+              pos->ident, GetOriginalContigID(ctg->id),
               pos->position.bgn, pos->position.end);
 #endif
     }
@@ -2097,17 +2085,34 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
     fprintf(stderr,"* MergeMultiAligns failed....bye\n");
 #endif
 
-    DeleteGraphNode(ScaffoldGraph->ContigGraph, contig);
-
     return FALSE;
   }
 
+  //  We have a multialign, create a new contig.
+
+  ContigT *contig = CreateNewGraphNode(ScaffoldGraph->ContigGraph);
+
+#ifdef DEBUG_CREATEACONTIG
+  fprintf(stderr,"* Create a contig "F_CID " in scaffold "F_CID "\n", contig->id, scaffold->id);
+#endif
+
   newMultiAlign->maID = contig->id;
 
-  contig->bpLength.mean = GetMultiAlignUngappedLength(newMultiAlign);
+  contig->offsetAEnd = offsetAEnd;
+  contig->offsetBEnd = offsetBEnd;
+
+  contig->bpLength.mean     = GetMultiAlignUngappedLength(newMultiAlign);
   contig->bpLength.variance = ComputeFudgeVariance(contig->bpLength.mean);
 
   contig->info.Contig.numCI =  GetNumIntUnitigPoss(newMultiAlign->u_list);
+
+  // SK: for closure, when we merge together a unique closure unitig, propagate the flag up to the new contig
+  for(int32 i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
+    IntElementPos *pos = GetIntElementPos(ContigPositions, i);
+    ContigT       *ctg = GetGraphNode(ScaffoldGraph->ContigGraph, pos->ident);
+
+    contig->flags.bits.isClosure |= ctg->flags.bits.isClosure;
+  }
 
 #ifdef DEBUG_CREATEACONTIG
   for (i=0; i<GetNumIntUnitigPoss(newMultiAlign->u_list); i++) {
@@ -2116,79 +2121,58 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   }
 #endif
 
-  {
-    NodeCGW_T *extremeA = GetGraphNode(ScaffoldGraph->ContigGraph, aEndID);
-    NodeCGW_T *extremeB = GetGraphNode(ScaffoldGraph->ContigGraph, bEndID);
+  NodeCGW_T *extremeA = GetGraphNode(ScaffoldGraph->ContigGraph, aEndID);
+  NodeCGW_T *extremeB = GetGraphNode(ScaffoldGraph->ContigGraph, bEndID);
 
-    if(aEndEnd == A_END)
-      newOffsetAEnd = extremeA->offsetAEnd;
-    else
-      newOffsetAEnd = extremeA->offsetBEnd;
+  LengthT  newOffsetAEnd = (aEndEnd == A_END) ? extremeA->offsetAEnd : extremeA->offsetBEnd;
+  LengthT  oldOffsetBEnd = (bEndEnd == A_END) ? extremeB->offsetAEnd : extremeB->offsetBEnd;
 
-    // Determine the old mean/variance of the end of the contig
-    if(bEndEnd == A_END)
-      oldOffsetBEnd = extremeB->offsetAEnd;
-    else
-      oldOffsetBEnd = extremeB->offsetBEnd;
+  // In the course of interleaved scaffold merging, we may create a new contig from pieces of both
+  // contributing scaffolds.  In this event, the adjusted variances of the original pieces may not
+  // be monotonic, which was leading to non-monotonic variances on the contigs in the resulting
+  // scaffold.  To "fix" this, we ensure that the resulting variance is based on the input piece
+  // with the lowest variance.
+  //
+  // Something similar happens when contigs are reordered (fix up a suspicious overlap)
+  //
+  // This fails (errID > 0) sometimes when:
+  //     (a) scaffolds are interleaved [variance computation here not really coherent :-(
+  //     (b) contigs are reordered (FOEXS suspicious overlap
+  //
+  int32  errID       = -1;
+  double minvariance = newOffsetAEnd.variance;
 
-    {
-      // In the course of interleaved scaffold merging, we may create a new contig
-      // from pieces of both contributing scaffolds.  In this event, the adjusted
-      // variances of the original pieces may not be monotonic, which was leading
-      // to non-monotonic variances on the contigs in the resulting scaffold.  To
-      // "fix" this, we ensure that the resulting variance is based on the input piece
-      // with the lowest variance.
-      // Something similar happens when contigs are reordered (fix up a suspicious overlap)
+  for(int32 i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
+    IntElementPos *pos = GetIntElementPos(ContigPositions,i);
+    ContigT       *ctg = GetGraphNode(ScaffoldGraph->ContigGraph, pos->ident);
 
-      int i,errflag=0,errID;
-      double minvariance = newOffsetAEnd.variance;
-      for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
-        IntElementPos *pos = GetIntElementPos(ContigPositions,i);
-        ContigT *anOrigcontig = GetGraphNode(ScaffoldGraph->ContigGraph, pos->ident);
-        if(anOrigcontig->offsetAEnd.variance<minvariance||
-           anOrigcontig->offsetBEnd.variance<minvariance){
-          errflag=1;
-          errID = pos->ident;
-          if(anOrigcontig->offsetAEnd.variance <
-             anOrigcontig->offsetBEnd.variance){
-            minvariance = anOrigcontig->offsetAEnd.variance;
-          } else {
-            minvariance = anOrigcontig->offsetBEnd.variance;
-          }
-        }
-      }
-      if(errflag){
-        double vardiff = newOffsetAEnd.variance-minvariance;
+    if ((ctg->offsetAEnd.variance < minvariance) ||
+        (ctg->offsetBEnd.variance < minvariance)) {
+      errID       = pos->ident;
+      minvariance = (ctg->offsetAEnd.variance < ctg->offsetBEnd.variance) ? ctg->offsetAEnd.variance : ctg->offsetBEnd.variance;
+    }
+  }
 
-        fprintf(stderr,
-                "WARNING: NEG. VARIANCE: Looks like in creating contig %d, the variance of the contig may be screwed up!\n"
-                "Set to %e based on extremal orig contig, but there is another, non-extremal orig contig with min variance %e, namely %d\n",
-                contig->id,
-                newOffsetAEnd.variance,
-                minvariance,
-                errID);
-        fprintf(stderr,"This sometimes happens when ...\n"
-                "\t(a) scaffolds are interleaved [variance computation here not really coherent :-(]\n"
-                "\t(b) contigs are reordered (FOEXS suspicious overlap ...)\n");
+  if (errID >= 0) {
+    fprintf(stderr, "WARNING:  NEGATIVE VARIANCE in creating contig %d.  Set to %e based on extremal orig contig, but contig %d (non-extremal) has min variance %e\n",
+            contig->id, newOffsetAEnd.variance, errID, minvariance);
 
 #ifdef DEBUG_NEG_VARIANCE
-        DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffold,FALSE);
+    DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffold,FALSE);
 #endif
-        newOffsetAEnd.variance -= vardiff;
-
-        fprintf(stderr,
-                "Resetting new contig AEnd variance to %e\n",
-                newOffsetAEnd.variance);
-      }
-    }
-
-    // Determine the NEW mean/variance of the B end of the contig
-    newOffsetBEnd.mean = newOffsetAEnd.mean + contig->bpLength.mean;
-    newOffsetBEnd.variance = newOffsetAEnd.variance + contig->bpLength.variance;
-
-    deltaOffsetBEnd.mean = newOffsetBEnd.mean - oldOffsetBEnd.mean;
-    deltaOffsetBEnd.variance = newOffsetBEnd.variance - oldOffsetBEnd.variance;
+    newOffsetAEnd.variance -= (newOffsetAEnd.variance - minvariance);
   }
+
+  // Determine the NEW mean/variance of the B end of the contig
+  LengthT newOffsetBEnd;
+  LengthT deltaOffsetBEnd;
+
+  newOffsetBEnd.mean     = newOffsetAEnd.mean     + contig->bpLength.mean;
+  newOffsetBEnd.variance = newOffsetAEnd.variance + contig->bpLength.variance;
+
+  deltaOffsetBEnd.mean     = newOffsetBEnd.mean     - oldOffsetBEnd.mean;
+  deltaOffsetBEnd.variance = newOffsetBEnd.variance - oldOffsetBEnd.variance;
+
 
   if(GlobalData->debugLevel > 0)
     fprintf(stderr,"* Merged Contig "F_CID " has ungapped length %d\n",
@@ -2197,8 +2181,8 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   // Sort the Unitigs from left to right
   MakeCanonicalMultiAlignT(newMultiAlign);
 
-  // NOTE: we keep the new multi-align in the cache for a bit, but free it at the end of this routine
-  insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, contig->id,FALSE, newMultiAlign, TRUE);
+  // INsert the multialign
+  ScaffoldGraph->tigStore->insertMultiAlign(newMultiAlign, FALSE, TRUE);
 
   // Propagate Overlaps, Tandem Marks and Branch Points to the new Contig
   PropagateOverlapsToNewContig(contig, ContigPositions, aEndID, aEndEnd, bEndID, bEndEnd, scaffold->id, FALSE);
@@ -2553,7 +2537,7 @@ RepairContigNeighbors(ChunkInstanceT *surr){
   int32 delete_index = -1;
 
   //     1. get the old multialign from the seqDB
-  ma =  loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
+  ma =  ScaffoldGraph->tigStore->loadMultiAlign(contig->id, FALSE);
 
   //     2. delete surrogate from multialign
   for(i = j = 0; i < GetNumIntUnitigPoss(ma->u_list); i++){
@@ -2573,7 +2557,8 @@ RepairContigNeighbors(ChunkInstanceT *surr){
   ResetToRange_IntUnitigPos(ma->u_list,j);
 
   //     3. update the multialign
-  updateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE, ma, TRUE);
+  assert(ma->maID == contig->id);
+  ScaffoldGraph->tigStore->insertMultiAlign(ma, FALSE, TRUE);
 }
 
 

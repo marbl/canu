@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.32 2009-09-14 16:09:05 brianwalenz Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.33 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -256,7 +256,7 @@ void InitCIFragTInChunkIterator(CGWFragIterator* frags,NodeCGW_T *chunk, int inc
     // fragments), we can use the fragments already in the
     // multialignment
 
-    frags->fragiterma = loadMultiAlignTFromSequenceDB( ScaffoldGraph->sequenceDB, chunk->id, frags->isUtg);
+    frags->fragiterma = ScaffoldGraph->tigStore->loadMultiAlign(chunk->id, frags->isUtg);
   }
 
   frags->id = chunk->id;
@@ -507,7 +507,7 @@ void PlaceFragmentsInMultiAlignT(CDS_CID_t toID, int isUnitig,
   MultiAlignT *ma;
 
   //     1. get the old multialign from the seqDB
-  ma =  loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, toID, isUnitig);
+  ma =  ScaffoldGraph->tigStore->loadMultiAlign(toID, isUnitig);
   assert(ma != NULL);
 
   //     2. add fragments to the f_list
@@ -522,7 +522,8 @@ void PlaceFragmentsInMultiAlignT(CDS_CID_t toID, int isUnitig,
   }
 
   //     3. update the multialign
-  updateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB,toID,isUnitig,ma,TRUE);
+  assert(ma->maID == toID);
+  ScaffoldGraph->tigStore->insertMultiAlign(ma ,isUnitig, TRUE);
 }
 
 
@@ -643,7 +644,7 @@ void ReallyAssignFragsToResolvedCI(CDS_CID_t fromCIid,
   PlaceFragmentsInMultiAlignT(toContigID, FALSE, f_list_Contig);
   UpdateNodeFragments(ScaffoldGraph->ContigGraph, toContigID, FALSE, FALSE);
 
-  UpdateNodeUnitigs(loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, toContig->id, FALSE), toContig);
+  UpdateNodeUnitigs(ScaffoldGraph->tigStore->loadMultiAlign(toContig->id, FALSE), toContig);
 
   /* Do not Rebuild the Mate Edges of the target CI to reflect the
      changes in fragment membership */
@@ -793,7 +794,7 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
 
     // count fragments and positions
     {
-      MultiAlignT *maParent = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, parentChunk->id, TRUE);
+      MultiAlignT *maParent = ScaffoldGraph->tigStore->loadMultiAlign(parentChunk->id, TRUE);
       numFragmentsInParent = GetNumIntMultiPoss(maParent->f_list);
     }
 

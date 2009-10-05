@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.54 2009-09-25 01:15:48 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.55 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -93,9 +93,6 @@ void DumpContigUngappedOffsets(char *label, int contigID);
 
 
 int                      totalContigsBaseChange = 0;
-VA_TYPE(char)           *reformed_consensus = NULL;
-VA_TYPE(char)           *reformed_quality = NULL;
-VA_TYPE(int32)          *reformed_deltas = NULL;
 
 static MultiAlignT      *savedLeftUnitigMA = NULL;
 static MultiAlignT      *savedRightUnitigMA = NULL;
@@ -111,9 +108,8 @@ debugflags_t             debug = {0, 0L, 0, 0L, 0, 0L};
 
 void
 SynchUnitigTWithMultiAlignT(NodeCGW_T *unitig) {
-  unitig->bpLength.mean = GetMultiAlignUngappedLength(loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,
-                                                                                    unitig->id,
-                                                                                    TRUE));
+  unitig->bpLength.mean = GetMultiAlignUngappedLength(ScaffoldGraph->tigStore->loadMultiAlign(unitig->id,
+                                                                                              TRUE));
 }
 
 
@@ -204,6 +200,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-g") == 0) {
       strcpy(GlobalData->gkpStoreName, argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-t") == 0) {
+      strcpy(GlobalData->tigStoreName, argv[++arg]);
+
     } else if (strcmp(argv[arg], "-C") == 0) {
       startingGap = atoi(argv[++arg]);
 
@@ -225,6 +224,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-v") == 0) {
       debug.eCRmainLV    = 1;
       debug.examineGapLV = 1;
+      debug.diagnosticLV = 1;
 
     } else if (strcmp(argv[arg], "-o") == 0) {
       scfOnly[scfOnlyLen++] = atoi(argv[++arg]);
@@ -280,15 +280,6 @@ main(int argc, char **argv) {
 
   LoadScaffoldGraphFromCheckpoint(GlobalData->outputPrefix, ckptNum, TRUE);
 
-  //  After the graph is loaded, we reopen the gatekeeper store for
-  //  read/write.
-  //
-
-  extern gkStore               *gkpStore;  //  HACK until later commit.
-
-  delete ScaffoldGraph->gkpStore;
-  ScaffoldGraph->gkpStore = gkpStore = new gkStore(GlobalData->gkpStoreName, FALSE, TRUE);
-
   //  Create the starting clear range backup, if we're the first
   //  iteration.  We copy this from the LATEST clear, which will
   //  either by CLR or OBTCHIMERA.  This range does not exist before
@@ -323,13 +314,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "%s: Nothing to do, no scaffolds selected: -b = %d > -e = %d\n", argv[0], scaffoldBegin, scaffoldEnd);
     exit(0);
   }
-
-  //  Intiialize the variable arrays
-  //
-  reformed_consensus = CreateVA_char(256 * 1024);
-  reformed_quality   = CreateVA_char(256 * 1024);
-  reformed_deltas    = CreateVA_int32(8192);
-
 
   //
   //  Scan all the scaffolds, closing gaps.  Go!
@@ -410,7 +394,7 @@ main(int argc, char **argv) {
 
       while (contigID != -1) {
         ContigT     *contig = GetGraphNode(ScaffoldGraph->ContigGraph, contigID);
-        MultiAlignT *ma     = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
+        MultiAlignT *ma     = ScaffoldGraph->tigStore->loadMultiAlign(contig->id, FALSE);
 
         for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
           AS_IID          iid = GetIntMultiPos(ma->f_list, i)->ident;
@@ -813,7 +797,7 @@ main(int argc, char **argv) {
                 }
 
                 newLeftMA->maID = lcontig->id;
-                updateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, lcontig->id, FALSE, newLeftMA, TRUE);
+                ScaffoldGraph->tigStore->insertMultiAlign(newLeftMA, FALSE, TRUE);
 
                 if (debug.eCRmainLV > 0)
                   fprintf(debug.eCRmainFP, "strlen(Getchar (newLeftMA->consensus)): " F_SIZE_T "\n",
@@ -862,7 +846,7 @@ main(int argc, char **argv) {
                 }
 
                 newRightMA->maID = rcontig->id;
-                updateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, rcontig->id, FALSE, newRightMA, TRUE);
+                ScaffoldGraph->tigStore->insertMultiAlign(newRightMA, FALSE, TRUE);
 
                 if (debug.eCRmainLV > 0)
                   fprintf(debug.eCRmainFP, "strlen(Getchar (newRightMA->consensus)): " F_SIZE_T "\n",
@@ -1080,7 +1064,7 @@ main(int argc, char **argv) {
 
     //  Clear out any cached multialigns.  We're all done with them.
     //
-    clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+    ScaffoldGraph->tigStore->flushCache();
   }  //  over all scaffolds
 
 
@@ -1187,7 +1171,7 @@ getExtendableClearRange(AS_IID  iid,
 int
 findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
 
-  MultiAlignT *ma                  = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
+  MultiAlignT *ma                  = ScaffoldGraph->tigStore->loadMultiAlign(contig->id, FALSE);
   int          numFrags            = GetNumIntMultiPoss(ma->f_list);
   int          firstUnitigID       = GetIntUnitigPos(ma->u_list, 0)->ident;
 
@@ -1292,7 +1276,7 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
 int
 findLastExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
 
-  MultiAlignT  *ma           = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
+  MultiAlignT  *ma           = ScaffoldGraph->tigStore->loadMultiAlign(contig->id, FALSE);
   int           numFrags     = GetNumIntMultiPoss(ma->f_list);
   int           lastUnitigID = GetIntUnitigPos(ma->u_list, GetNumIntUnitigPoss(ma->u_list) - 1)->ident;
   double        maxContigPos = contig->bpLength.mean - 1.0;
@@ -1393,7 +1377,7 @@ findLastUnitig(ContigT *contig, int *unitigID) {
   int    isSurrogate = FALSE;
   double maxContigPos = 0.0;
 
-  MultiAlignT *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
+  MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(contig->id, FALSE);
 
   // can't just jump to last unitig since unitigs are arranged by starting position, not ending
 
@@ -1428,7 +1412,7 @@ findLastUnitig(ContigT *contig, int *unitigID) {
 int
 findFirstUnitig(ContigT *contig, int *unitigID) {
 
-  MultiAlignT  *ma          = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
+  MultiAlignT  *ma          = ScaffoldGraph->tigStore->loadMultiAlign(contig->id, FALSE);
   IntUnitigPos *upos        = GetIntUnitigPos(ma->u_list, 0);
   NodeCGW_T    *unitig      = GetGraphNode(ScaffoldGraph->CIGraph, upos->ident);
   int           isSurrogate = unitig->flags.bits.isSurrogate;
@@ -1454,7 +1438,7 @@ findFirstUnitig(ContigT *contig, int *unitigID) {
 void
 extendContig(ContigT *contig, int extendAEnd) {
   int           contigOrientation = (contig->offsetAEnd.mean < contig->offsetBEnd.mean) ? A_B : B_A;
-  MultiAlignT  *cma               = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
+  MultiAlignT  *cma               = ScaffoldGraph->tigStore->loadMultiAlign(contig->id, FALSE);
   double        lengthDelta       = strlen(Getchar(cma->consensus, 0)) - contig->bpLength.mean;
 
   // have to alter the following fields in a NodeCGW_T: bpLength, offsetAEnd, offsetBEnd
@@ -1502,7 +1486,7 @@ getAlteredFragPositions(NodeCGW_T *unitig, int alteredFragIid, int ctgExt) {
   if (ctgExt < 0)
     fprintf(stderr, "getAlteredFragPositions()-- negative contig extension (%d); hope you're in the first frag!\n", ctgExt);
 
-  MultiAlignT *uma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE);
+  MultiAlignT *uma = ScaffoldGraph->tigStore->loadMultiAlign(unitig->id, TRUE);
 
   fp = (fragPositions *)safe_malloc(GetNumIntMultiPoss(uma->f_list) * sizeof(fragPositions));
 
@@ -1566,6 +1550,7 @@ getAlteredFragPositions(NodeCGW_T *unitig, int alteredFragIid, int ctgExt) {
 }
 
 
+
 //  Update containment relationships.  Fragment 'oldparent' is now
 //  contained in 'newparent'.  For any other fragments that have a
 //  parent of 'oldparent', make their parent be 'newparent'.  If the
@@ -1616,91 +1601,32 @@ FixContainmentRelationships(int          oldparent,
 }
 
 
+
 int
 GetNewUnitigMultiAlign(NodeCGW_T *unitig,
                        fragPositions *fragPoss,
                        int extFragIID,
                        int extLength) {
-  GenericMesg	    pmesg;
-  IntUnitigMesg	    ium_mesg = {0};
-  int               i;
-  MultiAlignT      *macopy = NULL;
 
-  //  If fragPoss is empty, then getAlteredFragPositions() failed and
-  //  we should abort.  It currently never does, but we should check.
+  //  If fragPoss is empty, then getAlteredFragPositions() failed and we should abort.  It currently
+  //  never does, but we should check.
   //
   if (fragPoss == NULL)
     return(FALSE);
 
-  static VA_TYPE(char) *ungappedSequence = NULL;
-  static VA_TYPE(char) *ungappedQuality  = NULL;
+  assert(unitig->type != CONTIG_CGW);
+  assert(unitig->id >= 0);
+  assert(unitig->id < GetNumGraphNodes(ScaffoldGraph->CIGraph));
 
-  if (ungappedSequence== NULL) {
-    ungappedSequence = CreateVA_char(0);
-    ungappedQuality = CreateVA_char(0);
-  } else {
-    ResetVA_char(ungappedSequence);
-    ResetVA_char(ungappedQuality);
-  }
-
-  pmesg.m = &ium_mesg;
-  pmesg.t = MESG_IUM;
-
-  assert((unitig->id >= 0) && (unitig->id < GetNumGraphNodes(ScaffoldGraph->CIGraph)));
-
-  //  Make a copy of the multialign in the store.  This is needed
-  //  because at the end of this function, we delete the multialign in
-  //  the store, and insert a new one.  The new one is based on the
-  //  copy....the construction of the new one uses an IUM message, and
-  //  the IUM message uses pieces of macopy.
-  //
-  macopy = CreateEmptyMultiAlignT();
-  copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, macopy, unitig->id, TRUE);
+  MultiAlignT  *maorig = ScaffoldGraph->tigStore->loadMultiAlign(unitig->id, TRUE);
+  MultiAlignT  *macopy = CopyMultiAlignT(NULL, maorig);
 
   if (debug.eCRmainLV > 0) {
     fprintf(debug.eCRmainFP, "for unitig %d, before reforming, strlen(macopy->consensus) = " F_SIZE_T "\n", unitig->id, strlen(Getchar(macopy->consensus, 0)));
     fprintf(debug.eCRmainFP, "for unitig %d, before reforming, consensus:\n%s\n", unitig->id, Getchar(macopy->consensus, 0));
   }
 
-  assert (unitig->type != CONTIG_CGW);
-
-  ium_mesg.iaccession     = unitig->id;
-  ium_mesg.coverage_stat  = unitig->info.CI.coverageStat;
-  ium_mesg.microhet_prob  = unitig->info.CI.microhetProb;
-  ium_mesg.unique_rept    = unitig->info.CI.forceUniqueRepeat;
-
-  switch(unitig->type) {
-    case DISCRIMINATORUNIQUECHUNK_CGW:
-      ium_mesg.status = AS_UNIQUE;
-      break;
-    case UNIQUECHUNK_CGW:
-      ium_mesg.status = AS_UNIQUE;
-      break;
-    case UNRESOLVEDCHUNK_CGW:
-      if (unitig->info.CI.numInstances > 0) {
-        ium_mesg.status = AS_SEP;
-        assert(!unitig->flags.bits.isUnique);
-      } else if (unitig->scaffoldID != NULLINDEX) {
-        ium_mesg.status = AS_UNIQUE;
-      } else {
-        ium_mesg.status = AS_NOTREZ;
-      }
-      break;
-    default:
-      assert(0);
-  }
-
-  GetMultiAlignUngappedConsensus(macopy, ungappedSequence, ungappedQuality);
-  ium_mesg.consensus  = Getchar(ungappedSequence,0);
-  ium_mesg.quality    = Getchar(ungappedQuality,0);
-  ium_mesg.length     = GetMultiAlignUngappedLength(macopy);
-  ium_mesg.forced     = 0;
-  ium_mesg.num_frags  = GetNumIntMultiPoss(macopy->f_list);
-
-
-  //  Update the f_list in the maccopy.  We do this in several passes,
-  //  for clarity mostly.
-
+  //  Update the f_list in the maccopy.  We do this in several passes, for clarity mostly.
 
   IntMultiPos *flst = GetIntMultiPos(macopy->f_list, 0);
   int          flen = GetNumIntMultiPoss(macopy->f_list);
@@ -1709,7 +1635,7 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
   //
   //  Update the position of all fragments.
   //
-  for (i=0; i<flen; i++) {
+  for (int32 i=0; i<flen; i++) {
 #if 0
     fprintf(stderr, "RESET position for frag i=%d ident=%d from %d,%d to %d,%d\n",
             i,
@@ -1728,10 +1654,9 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
   fragPoss = NULL;
 
   //
-  //  If the extended fragment now starts the unitig, make it be the
-  //  first fragment in the f_list.
+  //  If the extended fragment now starts the unitig, make it be the first fragment in the f_list.
   //
-  for (i=0; i<flen; i++) {
+  for (int32 i=0; i<flen; i++) {
     if (flst[i].ident == extFragIID) {
       if ((i != 0) &&
           ((flst[i].position.bgn == 0) ||
@@ -1751,9 +1676,8 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
 
 
   //
-  //  Reset the hangs of the new first fragment.  The second fragment
-  //  MUST have a parent of the first fragment.  We blindly set it,
-  //  leaving fixing the hangs for the final block.
+  //  Reset the hangs of the new first fragment.  The second fragment MUST have a parent of the
+  //  first fragment.  We blindly set it, leaving fixing the hangs for the final block.
   //
   if (efrg == 0) {
     flst[0].parent    = 0;
@@ -1766,14 +1690,13 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
 
 
   //
-  //  Check all the fragments to see if anyone needs fixing.  The
-  //  first two are already done, and we skip them.
+  //  Check all the fragments to see if anyone needs fixing.  The first two are already done, and we
+  //  skip them.
   //
-  //  If this fragment is contained, we need to propagate the fact
-  //  that fragment i is now contained in fragment 0 to future
-  //  fragments, so they can update any dovetail relationships.
+  //  If this fragment is contained, we need to propagate the fact that fragment i is now contained
+  //  in fragment 0 to future fragments, so they can update any dovetail relationships.
   //
-  for (i=1; i<flen; i++) {
+  for (int32 i=1; i<flen; i++) {
     if (flst[i].parent == extFragIID) {
       int oldp = flst[i].parent;
       int olda = flst[i].ahang;
@@ -1797,16 +1720,13 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
   }
 
 
-  //  Set the f_list in the ium_mesg to the macopy f_list
-  ium_mesg.f_list = GetIntMultiPos(macopy->f_list, 0);
-
 
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
                           CNS_OPTIONS_MIN_ANCHOR_DEFAULT };
   int         success = FALSE;
 
   if (!success)
-    success = MultiAlignUnitig(&ium_mesg, reformed_consensus, reformed_quality, reformed_deltas, CNS_QUIET, &options);
+    success = MultiAlignUnitig(macopy, ScaffoldGraph->gkpStore, CNS_QUIET, &options);
 
   if (!success) {
     fprintf(stderr, "WARNING: MultiAlignUnitig failure on unitig %d\n", unitig->id);
@@ -1815,40 +1735,32 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
     return FALSE;
   }
 
-  {
-    MultiAlignT  *nma = CreateMultiAlignTFromIUM(&ium_mesg, -2, FALSE);
-
-    //  If our new multialign differs wildly from the expected length,
-    //  we assume the fragment extension was bogus --
-    //  MultiAlignUnitig, instead of aligning the extension to the
-    //  unitig, just inserted gaps (where x's are gaps).
-    //
-    //  Before:    ----------------   After:  -------xxxx-------
-    //             <------                       <---xxxx---
-    //           +++++++<-------              +++xxxx++++<-------
-    //
-    if (GetMultiAlignLength(nma) > GetMultiAlignLength(macopy) + 1.1 * extLength) {
-      PrintMultiAlignT(stderr, nma, ScaffoldGraph->gkpStore, 0, 1, AS_READ_CLEAR_LATEST);
-      fprintf(stderr, "WARNING:  new multialign is too long -- expected %d got %d -- suspect alignment, don't use it.\n",
-              GetMultiAlignLength(macopy) + (int)1.1 * extLength,
-              GetMultiAlignLength(nma));
-      DeleteMultiAlignT(macopy);  //  We own this.
-      DeleteMultiAlignT(nma);     //  We own this.
-      return(FALSE);
-    }
-
-    //  Set the keepInCache flag, since CreateMultiAlignTFromIUM() is
-    //  returning an allocated multialign, and if we don't cache it,
-    //  we have a giant memory leak.
-    //
-    updateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg.iaccession, TRUE, nma, TRUE);
+  //  If our new multialign differs wildly from the expected length, we assume the fragment
+  //  extension was bogus -- MultiAlignUnitig, instead of aligning the extension to the unitig, just
+  //  inserted gaps (where x's are gaps).
+  //
+  //  Before:    ----------------   After:  -------xxxx-------
+  //             <------                       <---xxxx---
+  //           +++++++<-------              +++xxxx++++<-------
+  //
+  if (GetMultiAlignLength(macopy) > GetMultiAlignLength(maorig) + 1.1 * extLength) {
+    PrintMultiAlignT(stderr, macopy, ScaffoldGraph->gkpStore, 0, 1, AS_READ_CLEAR_LATEST);
+    fprintf(stderr, "WARNING:  new multialign is too long -- expected %d got %d -- suspect alignment, don't use it.\n",
+            GetMultiAlignLength(maorig) + (int)1.1 * extLength,
+            GetMultiAlignLength(macopy));
+    DeleteMultiAlignT(macopy);     //  We own this.
+    return(FALSE);
   }
 
-  DeleteMultiAlignT(macopy);  //  We own this.
+  assert(macopy->maID == maorig->maID);
+
+  //  We own macopy, but release ownership to the store.
+  //
+  ScaffoldGraph->tigStore->insertMultiAlign(macopy, TRUE, TRUE);
 
   if (debug.eCRmainLV > 0) {
-    fprintf(debug.eCRmainFP, "for unitig %d, after reforming, strlen(reformed_consensus) = " F_SIZE_T "\n", unitig->id, strlen(Getchar(reformed_consensus, 0)));
-    fprintf(debug.eCRmainFP, "for unitig %d, after reforming, consensus:\n%s\n", unitig->id, Getchar(reformed_consensus, 0));
+    fprintf(debug.eCRmainFP, "for unitig %d, after reforming, strlen(reformed_consensus) = " F_SIZE_T "\n", unitig->id, strlen(Getchar(macopy->consensus, 0)));
+    fprintf(debug.eCRmainFP, "for unitig %d, after reforming, consensus:\n%s\n", unitig->id, Getchar(macopy->consensus, 0));
   }
 
   return(TRUE);
@@ -1931,15 +1843,15 @@ saveFragAndUnitigData(int lFragIid, int rFragIid) {
   if (lFragIid != -1) {
     CIFragT *leftFrag = GetCIFragT(ScaffoldGraph->CIFrags, lFragIid);
 
-    copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, savedLeftUnitigMA, leftFrag->cid, TRUE);
-    copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, savedLeftContigMA, leftFrag->contigID, FALSE);
+    ScaffoldGraph->tigStore->copyMultiAlign(leftFrag->cid, TRUE, savedLeftUnitigMA);
+    ScaffoldGraph->tigStore->copyMultiAlign(leftFrag->contigID, FALSE, savedLeftContigMA);
   }
 
   if (rFragIid != -1) {
     CIFragT *rightFrag = GetCIFragT(ScaffoldGraph->CIFrags, rFragIid);
 
-    copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, savedRightUnitigMA, rightFrag->cid, TRUE);
-    copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, savedRightContigMA, rightFrag->contigID, FALSE);
+    ScaffoldGraph->tigStore->copyMultiAlign(rightFrag->cid, TRUE, savedRightUnitigMA);
+    ScaffoldGraph->tigStore->copyMultiAlign(rightFrag->contigID, FALSE, savedRightContigMA);
   }
 }
 
@@ -1953,8 +1865,8 @@ restoreFragAndUnitigData(int lFragIid, int rFragIid) {
     CIFragT    *leftFrag = GetCIFragT(ScaffoldGraph->CIFrags, lFragIid);
     NodeCGW_T  *unitig   = GetGraphNode(ScaffoldGraph->CIGraph, leftFrag->cid);
 
-    updateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE, savedLeftUnitigMA, FALSE);
-    updateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, leftFrag->contigID, FALSE, savedLeftContigMA, FALSE);
+    ScaffoldGraph->tigStore->insertMultiAlign(savedLeftUnitigMA, TRUE, FALSE);
+    ScaffoldGraph->tigStore->insertMultiAlign(savedLeftContigMA, FALSE, FALSE);
 
     SynchUnitigTWithMultiAlignT(unitig);
   }
@@ -1963,8 +1875,8 @@ restoreFragAndUnitigData(int lFragIid, int rFragIid) {
     CIFragT    *rightFrag = GetCIFragT(ScaffoldGraph->CIFrags, rFragIid);
     NodeCGW_T  *unitig    = GetGraphNode(ScaffoldGraph->CIGraph, rightFrag->cid);
 
-    updateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE, savedRightUnitigMA, FALSE);
-    updateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, rightFrag->contigID, FALSE, savedRightContigMA, FALSE);
+    ScaffoldGraph->tigStore->insertMultiAlign(savedRightUnitigMA, TRUE, FALSE);
+    ScaffoldGraph->tigStore->insertMultiAlign(savedRightContigMA, FALSE, FALSE);
 
     SynchUnitigTWithMultiAlignT(unitig);
   }

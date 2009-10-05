@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: DemoteUnitigsWithRBP_CGW.c,v 1.7 2009-07-27 08:08:28 brianwalenz Exp $";
+static const char *rcsid = "$Id: DemoteUnitigsWithRBP_CGW.c,v 1.8 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,13 +77,13 @@ void DemoteUnitigsWithRBP(FILE *stream, GraphCGW_T *graph){
     }
     
     // if the node was force-marked unique and we dont allow demotion, skip it and dont demote 
-    if (node->info.CI.forceUniqueRepeat == AS_FORCED_UNIQUE && GlobalData->allowDemoteMarkedUnitigs == FALSE) {
+    if (ScaffoldGraph->tigStore->getUnitigFUR(node->id) == AS_FORCED_UNIQUE && GlobalData->allowDemoteMarkedUnitigs == FALSE) {
       continue;
     }
     
     /* fprintf(stream, "Unitig %d: branchA %d branchB %d\n", node->id, numAEndConfirmOverlap,
 	    numBEndConfirmOverlap); */
-    if((node->info.CI.forceUniqueRepeat == AS_FORCED_REPEAT) || ((numAEndConfirmOverlap > 1) && (numBEndConfirmOverlap > 1))){
+    if((ScaffoldGraph->tigStore->getUnitigFUR(node->id) == AS_FORCED_REPEAT) || ((numAEndConfirmOverlap > 1) && (numBEndConfirmOverlap > 1))){
       /* fprintf(stream, "Demoting unitig\n"); */
       node->flags.bits.isUnique = FALSE;
       node->type = UNRESOLVEDCHUNK_CGW;

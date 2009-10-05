@@ -7,63 +7,28 @@ sub createPostUnitiggerConsensusJobs (@) {
     return if (-e "$wrk/5-consensus/consensus.sh");
 
     if (! -e "$wrk/5-consensus/$asm.partitioned") {
-
-        #  Then, build a partition information file, and do the partitioning.
-        #
-        open(G, "> $wrk/5-consensus/$asm.partFile") or caFailure("failed to write '$wrk/5-consensus/$asm.partFile'", undef);
-        foreach my $f (@cgbFiles) {
-            if ($f =~ m/^.*(\d\d\d).cgb$/) {
-                my $part = $1;
-                open(F, "grep ^mid: $f |") or caFailure("failed to grep '^mid: $f'", undef);
-                while (<F>) {
-                    print G "$part $1\n" if (m/^mid:(\d+)$/);
-                }
-                close(F);
-            } else {
-                caFailure("unitigger file '$f' didn't match ###.cgb", undef);
-            }
-        }
-        close(G);
-
         my $bin = getBinDirectory();
         my $cmd;
-        $cmd  = "$bin/gatekeeper -P ";
-        $cmd .= "$wrk/5-consensus/$asm.partFile ";
-        $cmd .= "$wrk/$asm.gkpStore ";
+        $cmd  = "$bin/gatekeeper ";
+        $cmd .= " -P $wrk/4-unitigger/$asm.partitioning ";
+        $cmd .= " $wrk/$asm.gkpStore ";
         $cmd .= "> $wrk/5-consensus/$asm.partitioned.err 2>&1";
         if (runCommand("$wrk/5-consensus", $cmd)) {
-            rename "$wrk/5-consensus/$asm.partFile", "$wrk/5-consensus/$asm.partFile.FAILED";
             caFailure("failed to partition the fragStore", "$wrk/5-consensus/$asm.partitioned.err");
         }
 
         touch "$wrk/5-consensus/$asm.partitioned";
     }
 
-    ########################################
-    #
-    #  Build consensus jobs for the grid -- this is very similar to that in createConsensusJobs.pl
-    #
-    #  Create a set of shell scripts to run consensus, one per cgb
-    #  batch.  The last batch is not used, the small tests BPW has
-    #  tried always as an empty file there.
-    #
-    my $jobP;
     my $jobs = 0;
 
-    open(F, "> $wrk/5-consensus/consensus.cgi.input") or caFailure("failed to open '$wrk/5-consensus/consensus.cgi.input'", undef);
-    foreach my $f (@cgbFiles) {
-        print F "$f\n";
-
-        if ($f =~ m/^.*(\d\d\d).cgb/) {
-            $jobP .= "$1\t";
-            $jobs++;
-        } else {
-            print STDERR "WARNING: didn't match $f for CGB filename!\n";
+    open(F, "< $wrk/4-unitigger/$asm.partitioningInfo") or caFailure("can't open '$wrk/4-unitigger/$asm.partitioningInfo'", undef);
+    while (<F>) {
+        if (m/Partition\s+(\d+)\s+has\s+(\d+)\s+unitigs\sand\s+(\d+)\s+fragments./) {
+            $jobs = $1;
         }
     }
     close(F);
-
-    $jobP = join ' ', sort { $a <=> $b } split '\s+', $jobP;
 
     open(F, "> $wrk/5-consensus/consensus.sh") or caFailure("can't open '$wrk/5-consensus/consensus.sh'", undef);
     print F "#!" . getGlobal("shell") . "\n";
@@ -76,10 +41,15 @@ sub createPostUnitiggerConsensusJobs (@) {
     print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command line.\n";
     print F "  exit 1\n";
     print F "fi\n";
-    print F "jobp=`echo $jobP | cut -d' ' -f \$jobid`\n";
-    print F "cgbfile=`head -n \$jobid < $wrk/5-consensus/consensus.cgi.input | tail -n 1`\n";
     print F "\n";
-    print F "if [ -e $wrk/5-consensus/${asm}_\$jobp.success ] ; then\n";
+    print F "if [ \$jobid -gt $jobs ]; then\n";
+    print F "  echo Error: Only $jobs partitions; you asked for \$jobid.\n";
+    print F "  exit 1\n";
+    print F "fi\n";
+    print F "\n";
+    print F "jobid=`printf %03d \$jobid`\n";
+    print F "\n";
+    print F "if [ -e $wrk/5-consensus/${asm}_\$jobid.success ] ; then\n";
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
@@ -91,50 +61,12 @@ sub createPostUnitiggerConsensusJobs (@) {
     print F getBinDirectoryShellCode();
 
     if ($consensusType eq "cns") {
-       print F "\$bin/consensus -U -m \\\n";
-       #  Too expensive in general, let the fixUnitigs handle anything that fails here.
-       #print F "  -O $wrk/$asm.ovlStore \\\n" if (getGlobal('unitigger') eq "bog");
-       print F "  -S \$jobp \\\n";
-       print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";
-       print F "  $wrk/$asm.gkpStore \\\n";
-       print F "  \$cgbfile \\\n";
-       print F " > $wrk/5-consensus/${asm}_\$jobp.err 2>&1\n";
-       print F "\n";
-       print F "if [ -e $wrk/5-consensus/${asm}_\$jobp.cgi_tmp ] ; then\n";
-       print F "  echo Yikes!  Consensus crashed.\n";
-       print F "  exit 1\n";
-       print F "fi\n";
-       print F "\n";
-       print F "\n";
-       print F "#  Attempt to autofix problems.\n";
-       print F "if [ -e $wrk/5-consensus/${asm}_\$jobp.cgi.failed ] ; then\n";
-       print F "  mv $wrk/5-consensus/${asm}_\$jobp.cgi.failed \\\n";
-       print F "     $wrk/5-consensus/${asm}_\$jobp.autofix.orig\n";
-       print F "\n";
-       print F "  #  Consensus will remove this if successful.\n";
-       print F "  touch $wrk/5-consensus/${asm}_\$jobp.autofix.cgi.failed\n";
-       print F "\n";
-       print F "  \$bin/fixUnitigs -O $wrk/$asm.ovlStore \\\n";
-       print F "    < $wrk/5-consensus/${asm}_\$jobp.autofix.orig \\\n";
-       print F "    > $wrk/5-consensus/${asm}_\$jobp.autofix \\\n";
-       print F "   2> $wrk/5-consensus/${asm}_\$jobp.autofix.log \\\n";
-       print F "  && \\\n";
-       print F "  \$bin/consensus -U -m \\\n";
-       print F "    -D verbosemultialign \\\n";
-       print F "    -O $wrk/$asm.ovlStore \\\n";
-       print F "    -S \$jobp \\\n";
-       print F "    -o $wrk/5-consensus/${asm}_\$jobp.autofix.cgi \\\n";
-       print F "    $wrk/$asm.gkpStore \\\n";
-       print F "    $wrk/5-consensus/${asm}_\$jobp.autofix \\\n";
-       print F "   > $wrk/5-consensus/${asm}_\$jobp.autofix.err 2>&1\n";
-       print F "  \n";
-       print F "fi\n";
-       print F "\n";
-       print F "\n";
-       print F "\n";
-       print F "if [ ! -e $wrk/5-consensus/${asm}_\$jobp.cgi.failed -a \\\n";
-       print F "     ! -e $wrk/5-consensus/${asm}_\$jobp.autofix.cgi.failed ] ; then\n";
-       print F "  touch $wrk/5-consensus/${asm}_\$jobp.success\n";
+       print F "\$bin/utgcns \\\n";
+       print F "  -g $wrk/$asm.gkpStore \\\n";
+       print F "  -t $wrk/$asm.tigStore 1 \$jobid \\\n";
+       print F " > $wrk/5-consensus/${asm}_\$jobid.err 2>&1 \\\n";
+       print F "&& \\\n";
+       print F "  touch $wrk/5-consensus/${asm}_\$jobid.success\n";
        print F "fi\n";
        print F "\n";
     } elsif ($consensusType eq "seqan") {
@@ -143,10 +75,10 @@ sub createPostUnitiggerConsensusJobs (@) {
        print F "  -c \$cgbfile \\\n";
        print F "  -s \$bin/graph_consensus \\\n";
        print F "  -w $wrk/5-consensus/ \\\n";
-       print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";
-       print F " > $wrk/5-consensus/${asm}_\$jobp.err 2>&1 \\\n";
+       print F "  -o $wrk/5-consensus/${asm}_\$jobid.cgi \\\n";
+       print F " > $wrk/5-consensus/${asm}_\$jobid.err 2>&1 \\\n";
        print F "&& \\\n";
-       print F "touch $wrk/5-consensus/${asm}_\$jobp.success\n";
+       print F "touch $wrk/5-consensus/${asm}_\$jobid.success\n";
     } else {
        caFailure("unknown consensus type $consensusType; should be 'cns' or 'seqan'", undef);
     }

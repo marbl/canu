@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Stats_CGW.c,v 1.22 2009-09-09 08:21:56 brianwalenz Exp $";
+static char *rcsid = "$Id: Stats_CGW.c,v 1.23 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -151,7 +151,7 @@ void GenerateCIGraphStats(void){
     int cnt = 0;
 
     // Filter surrogates
-    if(node->info.CI.numFragments == 0)
+    if(ScaffoldGraph->tigStore->getNumFrags(node->id, TRUE) == 0)
       continue;
 
     n_unitigs++;
@@ -164,19 +164,10 @@ void GenerateCIGraphStats(void){
       cnt++;
     }
 
-    //if(node->flags.bits.includesFinishedBacFragments){
-    //  nu_unitigs_no_bac_fragments++;
-    //  tfrags_nobf += node->info.CI.numFragments;
-    //}
     if(cnt == 0){
       nu_unitigs_no_links++;
-      tfrags_nolinks += node->info.CI.numFragments;
+      tfrags_nolinks += ScaffoldGraph->tigStore->getNumFrags(node->id, TRUE);
     }
-
-    //if(cnt == 0 && node->flags.bits.includesFinishedBacFragments){
-    //  nu_unitigs_no_links_no_bac_fragments++;
-    //  tfrags_nobf_nolinks += node->info.CI.numFragments;
-    //}
   }
   fprintf(stderr,"*@ Graph has %d unitigs of which %d are non-unique\n",
 	  n_unitigs, nu_unitigs);
@@ -635,7 +626,7 @@ void GenerateLinkStats(GraphCGW_T *graph, char *label, int iteration){
 int32 ApproximateUnitigCoverage(NodeCGW_T *unitig){
   int32 length=0;
   int i;
-  MultiAlignT *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE);
+  MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(unitig->id, TRUE);
 
   for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
     IntMultiPos *pos = GetIntMultiPos(ma->f_list, i);
@@ -722,7 +713,7 @@ void GenerateSurrogateStats(char *phase){
       continue;
     fprintf(surrogSize,"%d\n", (int)node->bpLength.mean);
     fprintf(surrogPer, "%d\n", (int)node->info.CI.numInstances);
-    fprintf(surrogFrags, "%d\n", node->info.CI.numFragments);
+    fprintf(surrogFrags, "%d\n", ScaffoldGraph->tigStore->getNumFrags(node->id, TRUE));
     fprintf(surrogRatio, "%d\n", ApproximateUnitigCoverage(node)/node->info.CI.numInstances );
   }
   fprintf(stderr,"* Stones: %d  Walks:%d\n",

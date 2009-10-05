@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.40 2009-09-14 16:09:04 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.41 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_ALN_aligners.h"
@@ -215,7 +215,6 @@ typedef struct{
   ChunkInstanceType type; //
 
   CDS_CID_t id;        // Instance ID
-  CDS_CID_t outputID;  // InstanceID (dense encoding over LIVE instances)
   CDS_CID_t scaffoldID; // scaffold ID
   CDS_CID_t prevScaffoldID; // previous scaffold ID from last iteration
   int32     indexInScaffold; // Relative position from A end of Scaffold (not kept current)
@@ -243,17 +242,7 @@ typedef struct{
 
   union{  // ChunkInstanceType discriminates
     struct CIINFO_TAG {
-      CDS_CID_t contigID;   // contigID -- if -1, this chunkInstance not merged into a contig
-      //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
-      // Both of these are redundant, since we can get
-      // to the same info by looking in the multiAlignT for this CI
-      // at some point we should nuke them
-      int32 numFragments;
-      /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
-
-      int32        coverageStat;
-      float        microhetProb;
-      ChunkFUR     forceUniqueRepeat;
+      CDS_CID_t    contigID;   // contigID -- if -1, this chunkInstance not merged into a contig
       CDS_CID_t    baseID;    /* If this is a  RESOLVEDREPEAT, the id of the original
                                  CI from which it was spawned */
       int32 numInstances; /* Number of actual or surrogate instances in scaffolds
@@ -487,8 +476,6 @@ static NodeCGW_T *CreateNewGraphNode(GraphCGW_T *graph){
       node.type = UNRESOLVEDCHUNK_CGW;
       node.flags.bits.isCI = TRUE;
       node.info.CI.contigID = NULLINDEX;
-      node.info.CI.numFragments = 0;
-      node.info.CI.coverageStat = 0;
       node.info.CI.numInstances = 0;
       node.info.CI.instances.va = NULL;
       break;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.251 2009-09-29 18:45:42 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.252 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,10 +38,9 @@ static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.251 2009-09-29 18:45:42 bria
 //
 gkStore               *gkpStore      = NULL;
 OverlapStore          *ovlStore      = NULL;
-tSequenceDB           *sequenceDB    = NULL;
+MultiAlignStore       *tigStore      = NULL;
 
 HashTable_AS          *fragmentMap   = NULL;
-MultiAlignStoreT      *unitigStore   = NULL;
 
 
 //
@@ -71,8 +70,6 @@ VA_TYPE(Column)   *columnStore   = NULL;
 VA_TYPE(MANode)   *manodeStore   = NULL;
 
 int thisIsConsensus = 0;
-
-int USE_SDB = 0;
 
 //
 // Convenience arrays for misc. fragment information
@@ -434,145 +431,128 @@ GetMANodeConsensus(int32 mid, VA_TYPE(char) *sequence, VA_TYPE(char) *quality) {
 
 //  Used in GetMANodePositions
 static
-int32 *
+int32
 GetFragmentDeltas(int32 fid, VA_TYPE(int32) *deltas, int length) {
-  int32 delta_count = GetNumint32s(deltas);
-  int32 bid;
-  int32 deltas_added=0;
+  int32                bid;
   FragmentBeadIterator fi;
-  int32 index=0;
+  int32                index = 0;
+  int32                added = 0;
 
   CreateFragmentBeadIterator(fid, &fi);
 
-  while ( (bid = NextFragmentBead(&fi)) != -1 && index < length) { // the index < length eliminates any endgaps from the delta list KAR, 09/19/02
-    if ( *Getchar(sequenceStore,GetBead(beadStore,bid)->soffset) == '-' ) {
-      Appendint32(deltas,&index);
-      deltas_added++;
+  //  index < length eliminates any endgaps from the delta list KAR, 09/19/02
+
+  while (((bid = NextFragmentBead(&fi)) != -1) && (index < length)) {
+    if (*Getchar(sequenceStore, GetBead(beadStore,bid)->soffset) == '-') {
+      Appendint32(deltas, &index);
+      added++;
     } else {
       index++;
     }
   }
-  return Getint32(deltas,delta_count);
+
+  return(added);
 }
 
 //external
 int
-GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_n_unitigs, IntUnitigPos *iups, VA_TYPE(int32) *deltas) {
-  MANode *ma = GetMANode(manodeStore,mid);
-  Fragment *fragment;
-  SeqInterval position;
-  IntMultiPos *fimp;
-  IntUnitigPos *fump;
-  int ndeletes=0;
-  int odlen=0;
-  int32 n_frags=0,n_unitigs=0;
-  int32 i,delta_pos,prev_num_deltas;
-  assert(ma != NULL);
-  if ( deltas == NULL ) {
-    deltas = CreateVA_int32(gaps_in_alignment);
-  } else {
-    ResetVA_int32(deltas);
-  }
-  for (i=0;i<GetNumFragments(fragmentStore);i++) {
-    fragment = GetFragment(fragmentStore,i);
-    assert(fragment->deleted || fragment->manode == mid);
-    if ( fragment->deleted) {
-      ndeletes++;
+GetMANodePositions(int32        mid,
+                   MultiAlignT *ma) {
+
+  MANode *manode = GetMANode(manodeStore, mid);
+
+  int32  n_frags   = 0;
+  int32  n_unitigs = 0;
+
+  ResetVA_int32(ma->fdelta);
+  ResetVA_int32(ma->udelta);
+
+  for (int32 i=0; i<GetNumFragments(fragmentStore); i++) {
+    Fragment *fragment = GetFragment(fragmentStore, i);
+
+    if (fragment->deleted)
       continue;
-    }
-    position.bgn = GetColumn(columnStore,(GetBead(beadStore,fragment->firstbead))->column_index)->ma_index;
-    position.end = GetColumn(columnStore,
-                             (GetBead(beadStore,fragment->firstbead+fragment->length-1))->column_index)->ma_index+1;
-    if ( odlen > 0 ) {
-      assert (iups[0].delta_length == odlen);
-    }
-    if ( fragment->type  == AS_UNITIG ) {
-      //fprintf(stderr,"INDEX %d, UNITIG %d, id %d ",i,n_unitigs,fragment->iid);
-      assert( n_unitigs<mesg_n_unitigs ); // don't overwrite end of iup list from protomsg.
-      fump = &iups[n_unitigs++];
-      assert(fump->ident == fragment->iid);
-      fump->position.bgn = (fragment->complement)?position.end:position.bgn;
-      fump->position.end = (fragment->complement)?position.bgn:position.end;
-      fump->delta = NULL;  // just for the moment;
-      prev_num_deltas = GetNumint32s(deltas);
-      GetFragmentDeltas(i,deltas,fragment->length);
-      fump->delta_length = GetNumint32s(deltas)-prev_num_deltas;
-      if ( n_unitigs==1 ) odlen=fump->delta_length;
-      //fprintf(stderr,"Unitig %d, delta_length = %d\n", fump->ident,fump->delta_length);
-    } else {
-      //fprintf(stderr,"INDEX %d, READ %d, id %d ",i,n_frags,fragment->iid);
-      if (ExistsInHashTable_AS (fragmentMap, fragment->iid, 0)) {
-        uint64  count = LookupValueInHashTable_AS (fragmentMap, fragment->iid, 0);
-        assert((count == 1) || (count == 2));
-        if (count == 1) {
-          // indicates that the fragment appears in the contig's f_list;
-          // and this is the first time it's been seen in the fragmentStore
-          // mark that it's been seen by adding a ref to it
-          //fprintf(stderr,"Fragment %d (index %d) found in the contig fragmentMap\n",i,fragment->iid);
-          ReplaceInHashTable_AS(fragmentMap, fragment->iid, 0, 2, 0);
-        } else {
-          //fprintf(stderr,"Fragment %d (index %d) already seen in the fragmentStore\n",i,fragment->iid);
-          continue;
-        }
-      } else {
-        //fprintf(stderr,"Fragment %d not in the contig's f_list\n",fragment->iid);
-        continue; // this one is not in the contig's f_list (belongs to a surrogate unitig)
-      }
-      assert( n_frags<mesg_n_frags ); // don't overwrite end of imp list from protomsg.
-      fimp = &imps[n_frags++];
-      fimp->ident = fragment->iid;
-      fimp->type = fragment->type;
-      fimp->position.bgn = (fragment->complement)?position.end:position.bgn;
-      fimp->position.end = (fragment->complement)?position.bgn:position.end;
-      fimp->delta = NULL;  // just for the moment;
-      prev_num_deltas = GetNumint32s(deltas);
-      GetFragmentDeltas(i,deltas,fragment->length);
-      fimp->delta_length = GetNumint32s(deltas)-prev_num_deltas;
-      //fprintf(stderr,"Fragment %d, delta_length = %d %d\n", fimp->ident, fimp->delta_length, prev_num_deltas);
-    }
-  }
-  
-  // assert that all fragments are properly placed in this contig
-  // note that deletes may count fragments more than once (if we still tried to place a surrogate fragment twice and failed, it gets counted as two deletions)  
-  assert(n_frags+ndeletes >= mesg_n_frags);
-  
-  // now, loop through again to asign pointers to delta in imps
-  // have to do this at the end to ensure that deltas isn't realloced out from under references
-  delta_pos=0;
-  n_frags = 0;n_unitigs = 0;
-  for (i=0;i<GetNumFragments(fragmentStore);i++) {
-    fragment = GetFragment(fragmentStore,i);
-    if ( fragment->deleted || fragment->manode != mid) continue;
-    //fprintf(stderr,"fragment type: %c ", (char) fragment->type);
-    if ( fragment->type  == AS_UNITIG ) {
-      //fprintf(stderr,"UNITIG %d, (dlen %d) ",n_unitigs,iups[n_unitigs].delta_length);
-      iups[n_unitigs].delta = Getint32(deltas,delta_pos);
-      if (iups[n_unitigs].delta == NULL) {
-        assert(iups[n_unitigs].delta_length == 0 );
-      }
-      delta_pos+= iups[n_unitigs].delta_length;
-      n_unitigs++;
-    } else {
-      if (ExistsInHashTable_AS(fragmentMap, fragment->iid, 0)) {
-        // all of the contig's fragments should've had their value set to 2 in previous block
-        assert(2 == LookupValueInHashTable_AS(fragmentMap, fragment->iid, 0));
-        // now, remove this guy from the hash_table;
-        DeleteFromHashTable_AS(fragmentMap, fragment->iid, 0);
-      } else {
+
+    assert(fragment->manode == mid);
+
+    int32 bgn = GetColumn(columnStore, (GetBead(beadStore,fragment->firstbead                       ))->column_index)->ma_index;
+    int32 end = GetColumn(columnStore, (GetBead(beadStore,fragment->firstbead + fragment->length - 1))->column_index)->ma_index + 1;
+
+    if (fragment->type == AS_READ) {
+      IntMultiPos *imp = GetIntMultiPos(ma->f_list, n_frags++);
+
+      if (FALSE == ExistsInHashTable_AS (fragmentMap, fragment->iid, 0))
+        //  Fragment is not in the contig f_list; is in a surrogate.
         continue;
-      }
-      imps[n_frags].delta = Getint32(deltas,delta_pos);
-      if (imps[n_frags].delta == NULL) {
-        assert(imps[n_frags].delta_length == 0 );
-      }
-      delta_pos+= imps[n_frags].delta_length;
-      n_frags++;
+
+      if (1 != LookupValueInHashTable_AS (fragmentMap, fragment->iid, 0))
+        //  Attempting to place a surrogate fragment more than once.
+        continue;
+
+      //  Indicate we've placed the fragment.
+      ReplaceInHashTable_AS(fragmentMap, fragment->iid, 0, 2, 0);
+
+      imp->ident        = fragment->iid;
+      imp->type         = fragment->type;
+      imp->position.bgn = (fragment->complement) ? end : bgn;
+      imp->position.end = (fragment->complement) ? bgn : end;
+      imp->delta        = NULL;
+      imp->delta_length = GetFragmentDeltas(i, ma->fdelta, fragment->length);
     }
-    //fprintf(stderr,"index %d fragment iid = %d, delta_pos = %d\n", i,fragment->iid,delta_pos);
+
+    if (fragment->type  == AS_UNITIG) {
+      IntUnitigPos  *iup = GetIntUnitigPos(ma->u_list, n_unitigs++);
+
+      assert(iup->ident == fragment->iid);
+
+      iup->position.bgn = (fragment->complement) ? end : bgn;
+      iup->position.end = (fragment->complement) ? bgn : end;
+      iup->delta        = NULL;
+      iup->delta_length = GetFragmentDeltas(i, ma->udelta, fragment->length);
+    }
   }
+
+  //  Set delta pointers into the VA.
+
+  int32  fdeltapos = 0;
+  int32  udeltapos = 0;
+
+  n_frags   = 0;
+  n_unitigs = 0;
+
+  for (int32 i=0; i<GetNumFragments(fragmentStore); i++) {
+    Fragment *fragment = GetFragment(fragmentStore, i);
+
+    if (fragment->deleted)
+      continue;
+
+    if (fragment->type == AS_READ) {
+      IntMultiPos *imp = GetIntMultiPos(ma->f_list, n_frags++);
+
+      if (FALSE == ExistsInHashTable_AS(fragmentMap, fragment->iid, 0))
+        continue;
+
+      // all of the contig's fragments should've had their value set to 2 in previous block
+
+      assert(2 == LookupValueInHashTable_AS(fragmentMap, fragment->iid, 0));
+      DeleteFromHashTable_AS(fragmentMap, fragment->iid, 0);
+
+      imp->delta = (imp->delta_length == 0) ? NULL : Getint32(ma->fdelta, fdeltapos);
+
+      fdeltapos += imp->delta_length;
+    }
+
+    if (fragment->type == AS_UNITIG) {
+      IntUnitigPos  *iup = GetIntUnitigPos(ma->u_list, n_unitigs++);
+
+      iup->delta = (iup->delta_length == 0) ? NULL : Getint32(ma->udelta, udeltapos);
+
+      udeltapos += iup->delta_length;
+    }
+  }
+
   return n_frags;
 }
-
 
 
 
@@ -1320,8 +1300,7 @@ AppendFragToLocalStore(FragType          type,
                        int               iid,
                        int               complement,
                        int               contained,
-                       UnitigType        utype,
-                       MultiAlignStoreT *multialignStore) {
+                       UnitigType        utype) {
 
   char seqbuffer[AS_READ_MAX_LEN+1];
   char qltbuffer[AS_READ_MAX_LEN+1];
@@ -1366,10 +1345,8 @@ AppendFragToLocalStore(FragType          type,
       break;
     case AS_UNITIG:
     case AS_CONTIG:
-      if (sequenceDB)
-        uma = loadMultiAlignTFromSequenceDB(sequenceDB, iid, type == AS_UNITIG);
-      if (multialignStore)
-        uma = GetMultiAlignInStore(multialignStore,iid);
+      if (tigStore)
+        uma = tigStore->loadMultiAlign(iid, type == AS_UNITIG);
       if (uma == NULL)
         fprintf(stderr,"Lookup failure in CNS: MultiAlign for unitig %d could not be found.\n",iid);
       assert(uma != NULL);

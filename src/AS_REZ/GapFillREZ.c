@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.56 2009-10-01 05:39:13 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.57 2009-10-05 22:49:42 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -633,7 +633,7 @@ static int Place_Closure_Chunk(Scaffold_Fill_t * fill_chunks, ContigT* contig, i
 #endif
    
    // go through fragments in cid
-   MultiAlignT *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, cid, ScaffoldGraph -> RezGraph -> type == CI_GRAPH);
+   MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(cid, ScaffoldGraph->RezGraph->type == CI_GRAPH);
    assert(ma != NULL);
    
    for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {      
@@ -3701,7 +3701,7 @@ static void  Choose_Stones
                 fprintf (stderr,
                          "YOWZA!! Contig %d not unique but has two unitigs\n",
                          cid);
-              if  (problem || first_chunk -> info . CI . numFragments != 1)
+              if  (problem || ScaffoldGraph->tigStore->getNumFrags(first_chunk->id, TRUE) != 1)
                 continue;
             }
 
@@ -6617,9 +6617,7 @@ static char *  Get_Contig_Sequence
   char         * p, * gapped_seq, * ungapped_seq;
   int            ct;
   int            len;
-  MultiAlignT  * ma = loadMultiAlignTFromSequenceDB (ScaffoldGraph -> sequenceDB,
-                                                     id,
-                                                     ScaffoldGraph -> RezGraph -> type == CI_GRAPH);
+  MultiAlignT  * ma = ScaffoldGraph->tigStore->loadMultiAlign(id, ScaffoldGraph->RezGraph->type == CI_GRAPH);
 
   gapped_seq = Getchar (ma -> consensus, 0);
   len = strlen (gapped_seq);
@@ -6895,7 +6893,7 @@ static void  Identify_Best_Rocks
             }
 
           if  (j % 51 == 50 || this_gap -> num_chunks >= 50)
-            clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+            ScaffoldGraph->tigStore->flushCache();
 
           // Now find the best chunk among the candidates.  Eliminate
           // any chunk that is contained in another candidate or
@@ -6940,7 +6938,7 @@ static void  Identify_Best_Rocks
         }
     }
 
-  clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+  ScaffoldGraph->tigStore->flushCache();
 
   return;
 }
@@ -8152,7 +8150,7 @@ static void  New_Confirm_Stones_One_Scaffold
         }
     }
 
-  clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+  ScaffoldGraph->tigStore->flushCache();
 
   return;
 }
@@ -8815,7 +8813,7 @@ void  Print_Fill_Info_One_Scaffold
                    this_chunk -> cover_stat,
                    this_chunk -> link_ct,
                    contig -> bpLength . mean,
-                   chunk -> info . CI . numFragments,
+                   ScaffoldGraph->tigStore->getNumFrags(chunk->id, TRUE),
                    contig -> info . Contig . numCI,
 
                    this_chunk -> index,
@@ -8858,9 +8856,7 @@ static void  Print_Frag_Info
   //   assert (contig -> info . Contig . AEndCI
   //             == contig -> info . Contig . BEndCI);
 
-  ma = loadMultiAlignTFromSequenceDB (ScaffoldGraph -> sequenceDB, cid,
-                                      ScaffoldGraph -> RezGraph -> type == CI_GRAPH);
-  assert (ma != NULL);
+  ma = ScaffoldGraph->tigStore->loadMultiAlign(cid, ScaffoldGraph->RezGraph->type == CI_GRAPH);
 
   // cycle through fragments
   num_frags = GetNumIntMultiPoss (ma -> f_list);
@@ -9012,7 +9008,7 @@ static void  Print_Potential_Fill_Chunks
                        "Non-unique #%d (len = %.0f  frags = %d)"
                        " Links to non-unique = %d  %s\n",
                        cid, chunk -> bpLength . mean,
-                       ci -> info . CI . numFragments,
+                       ScaffoldGraph->tigStore->getNumFrags(ci->id, TRUE),
                        other_links,
                        IsUnique (chunk) ? "*UNIQUE*" : "");
               fprintf (fp,
@@ -9620,7 +9616,7 @@ static void  Restore_Best_Rocks
         }
     }
 
-  clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+  ScaffoldGraph->tigStore->flushCache();
 
   return;
 }
@@ -10647,9 +10643,8 @@ static void  Set_Split_Flags_One_Scaffold
                     break;
                   case  FALSE_IFF_SINGLETON :
                     {
-                      MultiAlignT  * ma = loadMultiAlignTFromSequenceDB (ScaffoldGraph -> sequenceDB,
-                                                                         this_chunk -> chunk_id,
-                                                                         ScaffoldGraph -> RezGraph -> type == CI_GRAPH);
+                      MultiAlignT  * ma = ScaffoldGraph->tigStore->loadMultiAlign(this_chunk->chunk_id,
+                                                                                  ScaffoldGraph->RezGraph->type == CI_GRAPH);
 
                       this_chunk -> split = (GetNumIntMultiPoss (ma -> f_list) != 1);
                       break;
@@ -10799,7 +10794,7 @@ void  Show_Gap_Reads_One_Scaff
                    this_chunk -> cover_stat,
                    this_chunk -> link_ct,
                    contig -> bpLength . mean,
-                   chunk -> info . CI . numFragments);
+                   ScaffoldGraph->tigStore->getNumFrags(chunk->id, TRUE));
           Show_Read_Info (fp, this_chunk -> chunk_id);
         }
     }
@@ -10826,9 +10821,7 @@ static void  Show_Read_Info
   chunk = GetGraphNode (ScaffoldGraph -> CIGraph, chunk_id);
   cover_stat = GetCoverageStat (chunk);
 
-  ma = loadMultiAlignTFromSequenceDB (ScaffoldGraph -> sequenceDB, cid,
-                                      ScaffoldGraph -> RezGraph -> type == CI_GRAPH);
-  assert (ma != NULL);
+  ma = ScaffoldGraph->tigStore->loadMultiAlign(cid, ScaffoldGraph->RezGraph->type == CI_GRAPH);
 
   // cycle through fragments
   num_frags = GetNumIntMultiPoss (ma -> f_list);
@@ -10861,7 +10854,7 @@ static void  Show_Read_Info
                    mateFrag -> offset5p . mean,
                    mateFrag -> offset3p . mean,
                    mateChunk -> info . CI . contigID,
-                   mateChunk -> info . CI . numFragments,
+                   ScaffoldGraph->tigStore->getNumFrags(mateChunk->id, TRUE),
                    mateChunk -> scaffoldID,
                    fragDist -> mu);
         }
@@ -11254,7 +11247,7 @@ int Throw_Stones
           //  Disabled, should propagate a logical checkpoint, but also debate the value of this checkpoint
           //CheckpointScaffoldGraph (ScaffoldGraph, logicalcheckpoint, "after Stones CleanupScaffolds");
 
-          clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+          ScaffoldGraph->tigStore->flushCache();
 
           stones_last_chkpt = total_stones;
         }

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.42 2009-10-01 14:40:27 skoren Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.43 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -54,8 +54,8 @@ VA_DEF(PtrT);
 void PrintCINodeFields(FILE * stream, NodeCGW_T * node)
 {
   fprintf(stream, "\t\tcontigID:"F_CID "\n", node->info.CI.contigID);
-  fprintf(stream, "\t\tnumFragments:%d\n", node->info.CI.numFragments);
-  fprintf(stream, "\t\tcoverageStat:%d\n", node->info.CI.coverageStat);
+  fprintf(stream, "\t\tnumFragments:%d\n", ScaffoldGraph->tigStore->getNumFrags(node->id, TRUE));
+  fprintf(stream, "\t\tcoverageStat:%d\n", ScaffoldGraph->tigStore->getUnitigCoverageStat(node->id));
   fprintf(stream, "\t\tbaseID:"F_CID "\n", node->info.CI.baseID);
   fprintf(stream, "\t\tnumInstances:%d\n", node->info.CI.numInstances);
 }
@@ -112,8 +112,8 @@ void PrintNodeFlagBits(FILE * stream, NodeCGW_T * node)
 
 void PrintNodeFields(FILE * stream, NodeCGW_T * node)
 {
-  fprintf(stream,"\ttype:%c, outputID:"F_CID ", scaffoldID:"F_CID ", prevScaffoldID:"F_CID "\n",
-          node->type, node->outputID, node->scaffoldID, node->prevScaffoldID);
+  fprintf(stream,"\ttype:%c, scaffoldID:"F_CID ", prevScaffoldID:"F_CID "\n",
+          node->type, node->scaffoldID, node->prevScaffoldID);
   fprintf(stream,"\tindexInScaffold:%d, smoothExpectedCID:"F_CID "\n",
           node->indexInScaffold, node->smoothExpectedCID);
   fprintf(stream, "\tnumEssentialA:%d, numEssentialB:%d\n",
@@ -1004,7 +1004,7 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
         
     // merge unions based on closure reads as well (i.e. consider them edges)
     if (chunk->flags.bits.isClosure) {
-       MultiAlignT *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, chunk->id, chunk->flags.bits.isCI);
+       MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(chunk->id, chunk->flags.bits.isCI);
        int i = 0;
        assert(ma != NULL);
        
@@ -1113,7 +1113,7 @@ killScaffoldIfOnlySurrogate(CDS_CID_t scaffoldID) {
       //
       if (basechunk->info.CI.numInstances == 1) {
         basechunk->flags.bits.isChaff = FALSE;
-        if (basechunk->info.CI.numFragments == 1)
+        if (ScaffoldGraph->tigStore->getNumFrags(basechunk->id, TRUE) == 1)
           basechunk->flags.bits.isChaff = TRUE;
         basechunk->info.CI.instances.in_line.instance1 = -1;
         basechunk->info.CI.instances.in_line.instance2 = -1;
@@ -1869,11 +1869,13 @@ void DemoteSmallSingletonScaffolds(void) {
     numSingletonScaffolds++;
 
     // if we are forced marked unique and we are not allowed to be demoted, continue
-    if (CI->info.CI.forceUniqueRepeat == AS_FORCED_UNIQUE && GlobalData->allowDemoteMarkedUnitigs == FALSE) {
+    if (ScaffoldGraph->tigStore->getUnitigFUR(CI->id) == AS_FORCED_UNIQUE &&
+        GlobalData->allowDemoteMarkedUnitigs == FALSE) {
        continue;
     }
 
-    if ((CI->info.CI.forceUniqueRepeat != AS_FORCED_REPEAT && CI->info.CI.coverageStat > GlobalData->cgbDefinitelyUniqueCutoff) ||
+    if ((ScaffoldGraph->tigStore->getUnitigFUR(CI->id) != AS_FORCED_REPEAT &&
+         ScaffoldGraph->tigStore->getUnitigCoverageStat(CI->id) > GlobalData->cgbDefinitelyUniqueCutoff) ||
          (CI->bpLength.mean > 2000.0))
        continue;
 
@@ -1883,7 +1885,7 @@ void DemoteSmallSingletonScaffolds(void) {
 
     fprintf(stderr,
              "** Demoting Contig/Unitig "F_CID "/"F_CID " with coverage stat %d length %g scaffold "F_CID "\n",
-             contig->id, CI->id, CI->info.CI.coverageStat, scaffold->bpLength.mean, scaffold->id);
+             contig->id, CI->id, ScaffoldGraph->tigStore->getUnitigCoverageStat(CI->id), scaffold->bpLength.mean, scaffold->id);
     // Mark the Underlying Unitig as un-scaffolded, and not-unique
     SetNodeType(CI, UNRESOLVEDCHUNK_CGW);
   

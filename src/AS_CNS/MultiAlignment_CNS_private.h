@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.13 2009-09-25 01:15:48 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.14 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
@@ -198,7 +198,7 @@ typedef struct {
   int32 next;
   int32 prev; // navigation in columnStore;
   int32 ma_id;     // MANode membership;
-  int32 ma_index;  // index in MANode; // refreshed only periodically
+  int32 ma_index;  // index in MANode; // refreshed only periodically // seems to also be gapped position in the align
   BaseCount base_count;
 } Column;
 
@@ -271,11 +271,11 @@ VA_DEF(ScaffoldData)
 
 
 
-extern gkStore       *gkpStore;
+extern gkStore               *gkpStore;
 extern OverlapStore          *ovlStore;
-extern tSequenceDB           *sequenceDB;
+extern MultiAlignStore       *tigStore;
+
 extern HashTable_AS          *fragmentMap;
-extern MultiAlignStoreT      *unitigStore;
 
 extern VA_TYPE(char) *sequenceStore;
 extern VA_TYPE(char) *qualityStore;
@@ -298,8 +298,6 @@ extern char   RALPHABET[CNS_NP];
 extern char   RALPHABETC[CNS_NP];
 extern double TAU_MISMATCH;
 extern uint32 AMASK[5];
-
-extern int USE_SDB;
 
 extern int thisIsConsensus;
 
@@ -356,7 +354,7 @@ SeedMAWithFragment(int32 mid,
 int
 GetMANodeConsensus(int32 mid, VA_TYPE(char) *sequence, VA_TYPE(char) *quality);
 int
-GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_n_unitigs, IntUnitigPos *iups, VA_TYPE(int32) *deltas);
+GetMANodePositions(int32 mid, MultiAlignT *ma);
 
 void
 CreateColumnBeadIterator(int32 cid,ColumnBeadIterator *bi);
@@ -406,8 +404,7 @@ AppendFragToLocalStore(FragType          type,
                        int               iid,
                        int               complement,
                        int               contained,
-                       UnitigType        utype,
-                       MultiAlignStoreT *multialignStore);
+                       UnitigType        utype);
 
 void
 AllocateDistMatrix(VarRegion  *vreg, int init);
@@ -456,7 +453,7 @@ void
 PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey what);
 
 void
-MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars,
+MergeRefine(int32 mid, VA_TYPE(IntMultiVar) *v_list,
             int32 utg_alleles, CNS_Options *opp, int get_scores);
 
 

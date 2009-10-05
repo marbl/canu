@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.24 2009-09-14 16:09:04 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.25 2009-10-05 22:49:42 brianwalenz Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -56,7 +56,7 @@ static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
   CI = GetGraphNode(graph, chunkID);
 
   // If the chunk is a singleton, there are no other fragments!
-  if(CI->info.CI.numFragments == 1)
+  if(ScaffoldGraph->tigStore->getNumFrags(CI->id, TRUE) == 1)
     return FALSE;
 
   if(endB){
@@ -77,7 +77,7 @@ static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
   {
     int i;
     CIFragT *frag;
-    MultiAlignT *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, CI->id, graph->type == CI_GRAPH);
+    MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(CI->id, graph->type == CI_GRAPH);
 
     int32 overlap;
     for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignContig.c,v 1.5 2009-08-04 11:05:19 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignContig.c,v 1.6 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -57,7 +57,9 @@ PlaceFragments(int32 fid,
   VA_TYPE(int32) *trace = CreateVA_int32(AS_READ_MAX_LEN+1);
 
   for (; belem->frg_or_utg == CNS_ELEMENT_IS_FRAGMENT; belem++) {
-    if (!ExistsInHashTable_AS(fragmentMap, belem->idx.fragment.frgIdent, 0))
+
+    if (FALSE == ExistsInHashTable_AS(fragmentMap, belem->idx.fragment.frgIdent, 0))
+      //  Fragment is not in the contigs f_list.  It is an unplaced read from a surrogate.
       continue;
 
     // if it exists in the fragmentMap it should exist in this map as well since it was added at the same time
@@ -135,7 +137,7 @@ PlaceFragments(int32 fid,
                                       belem->idx.fragment.frgIdent,
                                       (bcomplement != fcomplement),
                                       belem->idx.fragment.frgContained,
-                                      AS_OTHER_UNITIG, NULL);
+                                      AS_OTHER_UNITIG);
 
     afrag = GetFragment(fragmentStore, fid);  // AppendFragToLocalStore can change the pointer on us.
     bfrag = GetFragment(fragmentStore, blid);
@@ -165,94 +167,82 @@ PlaceFragments(int32 fid,
 
 
 int
-MultiAlignContig(IntConConMesg *contig,
-                 VA_TYPE(char) *sequence,
-                 VA_TYPE(char) *quality,
-                 VA_TYPE(int32) *deltas,
-                 CNS_PrintKey printwhat,
-                 CNS_Options *opp) {
+MultiAlignContig(MultiAlignT  *ma,
+                 gkStore      *UNUSED,
+                 CNS_PrintKey  printwhat,
+                 CNS_Options  *opp) {
 
-  MANode       *ma=NULL;
-  int           num_unitigs=0;
-  int           num_frags=0;
-  int           num_columns=0;
-  int           complement=0;
-  int           forced_contig=0;
-  int           fid=0;
-  int           i=0;
-  int           align_to=0;
-  IntUnitigPos *upositions=NULL;
-  SeqInterval  *offsets=NULL;
+  uint32        num_unitigs   = GetNumIntUnitigPoss(ma->u_list);
+  uint32        num_frags     = GetNumIntMultiPoss(ma->f_list);
+  uint32        num_columns   = 0;
 
-  VA_TYPE(int32) *trace = NULL;
+  IntMultiPos  *flist    = GetIntMultiPos(ma->f_list, 0);
+  IntUnitigPos *ulist    = GetIntUnitigPos(ma->u_list, 0);
+  IntMultiVar  *vlist    = GetIntMultiVar(ma->v_list, 0);
 
-  IntMultiVar  *vl = NULL;
-  int32         nv = 0;
+  SeqInterval  *offsets       = (SeqInterval *) safe_calloc(num_unitigs,sizeof(SeqInterval));
 
-  if (contig == NULL)
-    return(FALSE);
-
-  num_unitigs            = contig->num_unitigs;
-  num_frags              = contig->num_pieces;
-  upositions             = contig->unitigs;
-
-  offsets = (SeqInterval *) safe_calloc(num_unitigs,sizeof(SeqInterval));
-  for (i=0;i<num_unitigs;i++) {
-    num_columns = (upositions[i].position.bgn>num_columns)? upositions[i].position.bgn : num_columns;
-    num_columns = (upositions[i].position.end>num_columns)? upositions[i].position.end : num_columns;
+  for (uint32 i=0;i<num_unitigs;i++) {
+    //fprintf(stderr, "CTG %d UTG %d %d-%d\n",
+    //        ma->maID, ulist[i].ident, ulist[i].position.bgn, ulist[i].position.end);
+    num_columns = (ulist[i].position.bgn > num_columns) ? ulist[i].position.bgn : num_columns;
+    num_columns = (ulist[i].position.end > num_columns) ? ulist[i].position.end : num_columns;
   }
 
   ResetStores(num_unitigs, num_columns);
 
   fragmentMap   = CreateScalarHashTable_AS();
   fragmentToIMP = CreateScalarHashTable_AS();
-  for (i=0;i<num_frags;i++) {
-    if (ExistsInHashTable_AS (fragmentMap, contig->pieces[i].ident, 0)) {
-      fprintf(stderr, "MultiAlignContig: Failure to insert ident %d in fragment hashtable, already present\n",contig->pieces[i].ident);
-      //  If in a rush, just skip this frag, but you're better off fixing the input.
-      assert(0);
+
+  for (uint32 i=0; i<num_frags; i++) {
+
+    //  Add all fragments in the contigs f_list to the fragmentMap.  This tells us if a fragment is
+    //  not placed in a surrogate (because they aren't in the contigs f_list, but will appear in a
+    //  surrogate unitigs f_list).
+    //
+    if (HASH_SUCCESS != InsertInHashTable_AS(fragmentMap, flist[i].ident, 0, 1, 0)) {
+      fprintf(stderr, "MultiAlignContig()-- Contig %d FAILED.  Fragment %d is a duplicate.\n",
+              ma->maID, flist[i].ident);
+      return(false);
     }
 
-    //  The '1' value stored here is used by GetMANodePositions().
-    InsertInHashTable_AS(fragmentMap, contig->pieces[i].ident, 0, 1, 0);
-    
     // SK store IID to IMP message mapping
-    InsertInHashTable_AS(fragmentToIMP, contig->pieces[i].ident, 0, (uint64)&contig->pieces[i], 0);
+    InsertInHashTable_AS(fragmentToIMP, flist[i].ident, 0, (uint64)&flist[i], 0);
   }
 
-  for (i=0;i<num_unitigs;i++) {
-    complement = (upositions[i].position.bgn<upositions[i].position.end)?0:1;
-    fid = AppendFragToLocalStore(AS_UNITIG,
-                                 upositions[i].ident,
+  for (uint32 i=0;i<num_unitigs;i++) {
+    uint32 complement = (ulist[i].position.bgn<ulist[i].position.end)?0:1;
+    uint32 fid = AppendFragToLocalStore(AS_UNITIG,
+                                 ulist[i].ident,
                                  complement,
                                  0,
-                                 upositions[i].type, unitigStore);
-    offsets[fid].bgn = complement?upositions[i].position.end:upositions[i].position.bgn;
-    offsets[fid].end = complement?upositions[i].position.bgn:upositions[i].position.end;
+                                 ulist[i].type);
+    offsets[fid].bgn = complement?ulist[i].position.end:ulist[i].position.bgn;
+    offsets[fid].end = complement?ulist[i].position.bgn:ulist[i].position.end;
   }
 
   if (DUMP_UNITIGS_IN_MULTIALIGNCONTIG > 0) {
-    for (i=0; i<num_unitigs; i++) {
+    for (uint32 i=0; i<num_unitigs; i++) {
       Fragment *f = GetFragment(fragmentStore,i);
       char     *s = Getchar(sequenceStore,f->sequence);
       fprintf(stderr, ">unitig-%d\n%s\n", f->iid, s);
     }
   }
 
-  ma = CreateMANode(contig->iaccession);
-
-  trace = CreateVA_int32(AS_READ_MAX_LEN+1);
+  MANode *manode = CreateMANode(ma->maID);
 
   // Seed multiAlignment with 1st fragment of 1st unitig
 
-  SeedMAWithFragment(ma->lid, GetFragment(fragmentStore,0)->lid, 0, opp);
-  PlaceFragments(GetFragment(fragmentStore,0)->lid, &contig->unitigs[GetFragment(fragmentStore,0)->lid], opp);
+  SeedMAWithFragment(manode->lid, GetFragment(fragmentStore,0)->lid, 0, opp);
+  PlaceFragments(GetFragment(fragmentStore,0)->lid, ulist + GetFragment(fragmentStore,0)->lid, opp);
 
   // Now, loop on remaining fragments, aligning to:
   //    a)  containing frag (if contained)
   // or b)  previously aligned frag
 
-  for (i=1;i<num_unitigs;i++) {
+  VA_TYPE(int32) *trace = CreateVA_int32(AS_READ_MAX_LONG_LEN+1);
+
+  for (uint32 i=1;i<num_unitigs;i++) {
     Fragment *afrag = NULL;
     Fragment *bfrag = GetFragment(fragmentStore,i);
 
@@ -368,8 +358,6 @@ MultiAlignContig(IntConConMesg *contig,
 
 #if 1
     if ((!olap_success) && (FORCE_UNITIG_ABUT == 1)) {
-      forced_contig = 1;
-
       if (afrag_first) {
         afrag = afrag_first;
         ahang = ahang_first;
@@ -430,48 +418,50 @@ MultiAlignContig(IntConConMesg *contig,
     }
 
     ApplyAlignment(afrag->lid, 0, NULL, bfrag->lid, ahang, Getint32(trace,0));
-    PlaceFragments(bfrag->lid, &contig->unitigs[bfrag->lid], opp);
+    PlaceFragments(bfrag->lid, ulist + bfrag->lid, opp);
   }  //  over all unitigs
 
   // Now, must find fragments in regions of overlapping unitigs, and adjust
   // their alignments as needed
-  RefreshMANode(ma->lid, 0, opp, NULL, NULL, 0, 0);
+  RefreshMANode(manode->lid, 0, opp, NULL, NULL, 0, 0);
 
   if (printwhat == CNS_VERBOSE) {
     fprintf(stderr,"MultiAlignContig: Initial pairwise induced alignment\n");
-    PrintAlignment(stderr,ma->lid,0,-1,printwhat);
+    PrintAlignment(stderr,manode->lid,0,-1,printwhat);
   }
 
-  AbacusRefine(ma,0,-1,CNS_SMOOTH, opp);
-  MergeRefine(ma->lid, NULL, NULL, 0, opp, 1);
-  AbacusRefine(ma,0,-1,CNS_POLYX, opp);
+  AbacusRefine(manode,0,-1,CNS_SMOOTH, opp);
+  MergeRefine(manode->lid, NULL, 0, opp, 1);
+  AbacusRefine(manode,0,-1,CNS_POLYX, opp);
 
   if (printwhat == CNS_VERBOSE) {
     fprintf(stderr,"MultiAlignContig: POLYX refined alignment\n");
-    PrintAlignment(stderr,ma->lid,0,-1,printwhat);
+    PrintAlignment(stderr,manode->lid,0,-1,printwhat);
   }
 
-  RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0, 0);
-  AbacusRefine(ma,0,-1,CNS_INDEL, opp);
-  MergeRefine(ma->lid, &(contig->v_list), &(contig->num_vars), 0, opp, 2);
+  {
+    IntMultiVar  *vl = NULL;
+    int32         nv = 0;
+
+    RefreshMANode(manode->lid, 0, opp, &nv, &vl, 0, 0);
+    AbacusRefine(manode,0,-1,CNS_INDEL, opp);
+    MergeRefine(manode->lid, ma->v_list, 0, opp, 2);
+  }
+
 
   if ((printwhat == CNS_VERBOSE) ||
       (printwhat == CNS_VIEW_UNITIG)) {
     fprintf(stderr,"MultiAlignContig: Final refined alignment\n");
-    PrintAlignment(stderr,ma->lid,0,-1,printwhat);
+    PrintAlignment(stderr,manode->lid,0,-1,printwhat);
   }
 
   if (num_frags == 0)
-    PrintAlignment(stderr,ma->lid,0,-1,printwhat);
+    PrintAlignment(stderr,manode->lid,0,-1,printwhat);
 
-  GetMANodeConsensus(ma->lid,sequence,quality);
-  contig->consensus  = Getchar(sequence,0);
-  contig->quality    = Getchar(quality,0);
-  contig->num_pieces = GetMANodePositions(ma->lid, num_frags, contig->pieces, num_unitigs, contig->unitigs, deltas);
-  contig->length     = GetNumchars(sequence)-1;
-  contig->forced     = forced_contig;
+  GetMANodeConsensus(manode->lid, ma->consensus, ma->quality);
+  GetMANodePositions(manode->lid, ma);
 
-  DeleteMANode(ma->lid);
+  DeleteMANode(manode->lid);
 
   safe_free(offsets);
   Delete_VA(trace);

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.24 2009-09-14 16:09:04 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.25 2009-10-05 22:49:41 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -1221,7 +1221,7 @@ void DetectRepetitiveContigs(ScaffoldGraphT * graph)
       while((unitig = NextContigTIterator(&unitigIterator)) != NULL)
         {
           numUnitigsInContig++;
-          coverageStat = unitig->info.CI.coverageStat;
+          coverageStat = ScaffoldGraph->tigStore->getUnitigCoverageStat(unitig->id);
           length = unitig->bpLength.mean;
         }
       if(numUnitigsInContig > 1)

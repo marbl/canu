@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR-partition.C,v 1.2 2009-09-12 22:35:57 brianwalenz Exp $";
+const char *mainid = "$Id: eCR-partition.C,v 1.3 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -44,6 +44,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-g") == 0) {
       strcpy(GlobalData->gkpStoreName, argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-t") == 0) {
+      strcpy(GlobalData->tigStoreName, argv[++arg]);
+
     } else if (strcmp(argv[arg], "-n") == 0) {
       ckptNum = atoi(argv[++arg]);
 
@@ -67,6 +70,7 @@ main(int argc, char **argv) {
 
   if ((GlobalData->outputPrefix[0] == 0) ||
       (GlobalData->gkpStoreName[0] == 0) ||
+      (GlobalData->tigStoreName[0] == 0) ||
       (err)) {
     fprintf(stderr, "usage: %s [opts] -g gkpStore -n ckpNumber -c ckpName -N numPart -M maxFrag\n", argv[0]);
     fprintf(stderr, "\n");
@@ -124,7 +128,7 @@ main(int argc, char **argv) {
     for (ctg = GetGraphNode(ScaffoldGraph->ContigGraph, scf->info.Scaffold.AEndCI);
          ctg;
          ctg = (ctg->BEndNext == -1) ? NULL : GetGraphNode(ScaffoldGraph->ContigGraph, ctg->BEndNext)) {
-      MultiAlignT  *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ctg->id, FALSE);
+      MultiAlignT  *ma = ScaffoldGraph->tigStore->loadMultiAlign(ctg->id, FALSE);
 
       nf += GetNumIntMultiPoss(ma->f_list);
     }
@@ -182,7 +186,7 @@ main(int argc, char **argv) {
     for (ctg = GetGraphNode(ScaffoldGraph->ContigGraph, scf->info.Scaffold.AEndCI);
          ctg;
          ctg = (ctg->BEndNext == -1) ? NULL : GetGraphNode(ScaffoldGraph->ContigGraph, ctg->BEndNext)) {
-      MultiAlignT  *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ctg->id, FALSE);
+      MultiAlignT  *ma = ScaffoldGraph->tigStore->loadMultiAlign(ctg->id, FALSE);
 
       for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++)
         partition[GetIntMultiPos(ma->f_list, i)->ident] = curPart;

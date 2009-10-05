@@ -19,329 +19,225 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: frgs2clones.c,v 1.38 2009-09-25 01:15:48 brianwalenz Exp $";
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <assert.h>
-#include <fcntl.h>
-#include <string.h>
-#include <unistd.h>
-
+const char *mainid = "$Id: frgs2clones.c,v 1.39 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
-#include "SYS_UIDclient.h"
 #include "AS_UTL_reverseComplement.h"
+#include "SYS_UIDclient.h"
 #include "MultiAlignment_CNS.h"
 
-#define MAXSEQLEN 20000
-
-
 int
-main( int argc, char *argv[]) {
-  char *inputPath;
-  char *prefix;
-
-  int setGatekeeperStore = FALSE;
-  int fragIID,mateIID;
-  AS_UID fragUID,mateUID;
-  char GKP_Store_Name[2000];
-  gkStore *gkpStore;
-  char *seq1,*seq2,*qul1,*qul2,*clear1,*clear2;
-  uint clr_bgn1,clr_end1;
-  uint clr_bgn2,clr_end2;
-  int alloclen1=5000;
-  int alloclen2=5000;
-  int len1,len2,lastfrg;
-  gkFragment fsread;
-  gkFragment fsmate;
-  uint64 UIDstart = 1230000;
-  UIDserver   *uids              = NULL;
-
-  Overlap *ovl;
-  IntUnitigMesg ium;
-  IntMultiPos the_imps[2];
-  uint64  mergeUid;
-  char seq[MAXSEQLEN], qlt[MAXSEQLEN];
-  int clr_bgn,clr_end;
-  VA_TYPE(int32) *deltas=CreateVA_int32(1);
-  VA_TYPE(char) *sequence=CreateVA_char(200000);
-  VA_TYPE(char) *quality=CreateVA_char(200000);
-  int runConsensus=0;
-  int Ngaps=0;
-
-  //  setbuf(stdout,NULL);
+main(int argc, char **argv) {
+  char   *gkpStorePath   = NULL;
+  int     runConsensus   = 0;
+  int     Ngaps          = 0;
+  uint64  UIDstart       = 1230000;
 
   argc = AS_configure(argc, argv);
 
-  { /* Parse the argument list using "man 3 getopt". */
-    int ch,errflg=0;
-    optarg = NULL;
-    while (!errflg && ((ch = getopt(argc, argv,
-				    "g:NUC")) != EOF)){
-      switch(ch) {
-        case 'C':
-          runConsensus=1;
-          break;
-        case 'g':
-          strcpy( GKP_Store_Name, argv[optind - 1]);
-          setGatekeeperStore = TRUE;
-          break;
-        case 'N':
-          Ngaps=1;
-          break;
-        case 'U':
-          UIDstart = 0;
-          break;
-        case '?':
-          fprintf(stderr,"Unrecognized option -%c",optopt);
-        default :
-          errflg++;
-      }
+  int  arg=1;
+  int  err=0;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-g") == 0) {
+      gkpStorePath = argv[++arg];
+      
+    } else if (strcmp(argv[arg], "-C") == 0) {
+      runConsensus = 1;
+
+    } else if (strcmp(argv[arg], "-N") == 0) {
+      Ngaps = 1;
+
+    } else if (strcmp(argv[arg], "-U") == 0) {
+      UIDstart = 0;
+
+    } else {
+      err++;
     }
 
-    if((setGatekeeperStore == 0) || errflg>0)
-      {
-	fprintf(stderr,"* argc = %d optind = %d setGatekeeperStore = %d\n",
-		argc, optind,setGatekeeperStore);
-	fprintf (stderr, "USAGE:  %s -g <GatekeeperStoreName> [-U] [-C]\n",argv[0]);
-	fprintf (stderr, "\t-U uses real UIDs\n");
-	fprintf (stderr, "\t-C computes a consensus rather than splicing fragment seqs (slower, but better?)\n");
-	exit (1);
-      }
-
+    arg++;
+  }
+  if ((err) || (gkpStorePath == NULL)) {
+    fprintf(stderr, "usage: %s -g gkpStore [opts]\n", argv[0]);
+    fprintf(stderr, "  -g gkpStore    read fragments from this gatekeeper store\n");
+    fprintf(stderr, "  -C             build an alignment for overlapping fragments\n");
+    fprintf(stderr, "  -N             build a scaffold for non-overlapping mated fragments\n");
+    fprintf(stderr, "  -U             use real UIDs from the UID server\n");
+    exit(1);
   }
 
-  gkpStore = new gkStore(GKP_Store_Name, FALSE, FALSE);
+  UIDserver *uidServer = UIDserverInitialize(256, UIDstart);
 
-  //  seq1=(char*)safe_malloc(sizeof(char)*alloclen1);
-  //  qul1=(char*)safe_malloc(sizeof(char)*alloclen1);
-  clear1=(char*)safe_malloc(sizeof(char)*alloclen1);
-  //  assert(seq1!=NULL);
-  //  assert(qul1!=NULL);
-  assert(clear1!=NULL);
-  //  seq2=(char*)safe_malloc(sizeof(char)*alloclen2);
-  //  qul2=(char*)safe_malloc(sizeof(char)*alloclen2);
-  clear2=(char*)safe_malloc(sizeof(char)*alloclen2);
-  //  assert(seq2!=NULL);
-  //  assert(qul2!=NULL);
-  assert(clear2!=NULL);
+  gkStore    *gs = new gkStore(gkpStorePath, FALSE, FALSE);
+  gkStream   *fs = new gkStream(gs, 0, 0, GKFRAGMENT_SEQ);
 
+  gkFragment fr;
+  gkFragment fm;
 
-  /*************************/
-  // Set up UID server stuff
-  /*************************/
-  uids = UIDserverInitialize(256, UIDstart);
-  assert(uids!=NULL);
+  char       *frseq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LONG_LEN);
+  char       *fmseq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LONG_LEN);
 
-  /*************************/
-  // over all fragments, check for overlap with (previously unseen) mate
-  /*************************/
-
-  lastfrg = gkpStore->gkStore_getNumFragments () ;
-  for (fragIID = 1; fragIID <= lastfrg; fragIID++){
-
-    /*************************/
-    // get the fragment
-    /*************************/
-
-    gkpStore->gkStore_getFragment(fragIID, &fsread, GKFRAGMENT_QLT);
-
-    if (fsread.gkFragment_getIsDeleted())
+  while (fs->next(&fr)) {
+    if (fr.gkFragment_getIsDeleted())
       continue;
 
-    fragUID = fsread.gkFragment_getReadUID();
+    //  Get the sequence of the fragment
+    //
+    uint32   frbgn = fr.gkFragment_getClearRegionBegin();
+    uint32   frend = fr.gkFragment_getClearRegionEnd();
+    uint32   frlen = frend - frbgn;
 
-    fsread.gkFragment_getClearRegion(clr_bgn1, clr_end1);
+    strcpy(frseq, fr.gkFragment_getSequence() + frbgn);    frseq[frlen] = 0;
 
-    while(alloclen1<=fsread.gkFragment_getSequenceLength()){
-      alloclen1*=2;
-      clear1=(char*)safe_realloc(clear1,alloclen1*sizeof(char));
+    //  No mate pair, just emit the sequence.
+    //
+    if (fr.gkFragment_getMateIID() == 0){
+      fprintf(stdout, ">%s\n%s\n", AS_UID_toString(fr.gkFragment_getReadUID()), frseq);
+      continue;
     }
-    seq1 = fsread.gkFragment_getSequence();
-    qul1 = fsread.gkFragment_getQuality();
-    strcpy(clear1,seq1+clr_bgn1);
-    len1=clr_end1-clr_bgn1;
-    clear1[len1]='\0';
 
+    //  Only do the pair once.
+    //
+    if (fr.gkFragment_getMateIID() < fr.gkFragment_getReadIID())
+      continue;
 
-    /*************************/
-    // check for an appropriate mate
-    /*************************/
+    //  Get the sequence of the mate
+    //
+    gs->gkStore_getFragment(fr.gkFragment_getMateIID(), &fm, GKFRAGMENT_SEQ);
 
-    mateIID = fsread.gkFragment_getMateIID();
+    uint32   fmbgn = fm.gkFragment_getClearRegionBegin();
+    uint32   fmend = fm.gkFragment_getClearRegionEnd();
+    uint32   fmlen = fmend - fmbgn;
 
-    if(mateIID == 0){
+    strcpy(fmseq, fm.gkFragment_getSequence() + fmbgn);    fmseq[fmlen] = 0;
 
-      // if no mate (or multiple mates), output fragment itself
-      printf(">%s\n%s\n",AS_UID_toString(fragUID),clear1);
+    uint64  mergeUID = getUID(uidServer);
 
-    } else { // there are links
+    //fprintf(stderr, ">A %d len=%d\n%s\n", fr.gkFragment_getReadIID(), frlen, frseq);
+    //fprintf(stderr, ">B %d len=%d\n%s\n", fr.gkFragment_getMateIID(), fmlen, fmseq);
 
-      /*************************/
-      // get (clear) sequence of mate
-      /*************************/
+    Overlap *ovl = Local_Overlap_AS_forCNS(frseq, fmseq,
+                                           -fmlen, frlen,
+                                           fmlen,  frlen,
+                                           1,
+                                           AS_CNS_ERROR_RATE,
+                                           1e-6,
+                                           40,
+                                           AS_FIND_LOCAL_ALIGN_NO_TRACE);
 
-      gkpStore->gkStore_getFragment(mateIID, &fsmate, GKFRAGMENT_QLT);
+    //  If they don't overlap reasonably, join together with a gap, or as two sequences.
+    //
+    if ((ovl == NULL) ||
+        (((ovl->begpos < 0) || (ovl->endpos < 0)) &&
+         (frlen + fmlen - abs(ovl->begpos) - abs(ovl->endpos)) / 2 < 100)) {
 
-      if ((mateIID < fragIID) && (fsmate.gkFragment_getIsDeleted() == 0))
-        continue;
+      if(Ngaps)
+        fprintf(stdout, ">"F_S64" from mated fragments %s and %s\n%sNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN%s\n",
+                mergeUID,
+                AS_UID_toString(fr.gkFragment_getReadUID()),
+                AS_UID_toString(fm.gkFragment_getReadUID()),
+                frseq, fmseq);
+      else
+        fprintf(stdout, ">"F_S64"a (fragment %s)\n%s\n>"F_S64"b (fragment %s)\n%s\n",
+                mergeUID, AS_UID_toString(fr.gkFragment_getReadUID()), frseq,
+                mergeUID, AS_UID_toString(fm.gkFragment_getReadUID()), fmseq);
 
-      mateUID = fsmate.gkFragment_getReadUID();
-
-      fsmate.gkFragment_getClearRegion(clr_bgn2, clr_end2);
-      while(alloclen2<=fsmate.gkFragment_getSequenceLength()){
-	alloclen2*=2;
-	clear2=(char*)safe_realloc(clear2,alloclen2*sizeof(char));
-      }
-      seq2 = fsmate.gkFragment_getSequence();
-      qul2 = fsmate.gkFragment_getQuality();
-      strcpy(clear2,seq2+clr_bgn2);
-      len2=clr_end2-clr_bgn2;
-      clear2[len2]='\0';
-
-      if(fsmate.gkFragment_getIsDeleted()){
-	// if no mate (or multiple mates), output fragment itself
-	printf(">%s\n%s\n",AS_UID_toString(mateUID),clear2);
-	continue;
-      }
-
-      /*********************************************/
-      // Create a UID for the clone
-      /*********************************************/
-
-      mergeUid = getUID(uids);
-
-      /*************************/
-      // check for an overlap
-      /*************************/
-
-      ovl = Local_Overlap_AS_forCNS(clear1, clear2,
-                                    -len2, len1,
-                                    len2,  len1,
-                                    1,
-                                    .06,
-                                    1e-6,
-                                    40,
-                                    AS_FIND_LOCAL_ALIGN_NO_TRACE);
-
-      if(ovl==NULL||
-	 ( (ovl->begpos<0||ovl->endpos<0) &&
-	   ((len1+len2)-abs(ovl->begpos)-abs(ovl->endpos))/2<100)
-	 ){
-
-	// if they don't overlap reasonably,
-
-	if(Ngaps){
-	  printf(">" F_S64 " from mated fragments %s and %s\n%sNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN%s\n",
-		 mergeUid,AS_UID_toString(fragUID),AS_UID_toString(mateUID),clear1,clear2);
-	} else {
-	  // output two sequences, but with a clone UID plus "a" or "b"
-
-	  printf(">" F_S64 "a (fragment %s)\n%s\n>" F_S64 "b (fragment %s)\n%s\n",
-		 mergeUid,AS_UID_toString(fragUID),clear1,mergeUid,AS_UID_toString(mateUID),clear2);
-	}
-
-      } else { // there is an overlap
-
-	if(runConsensus){
-	  /*************************/
-	  // create a unitig
-	  /*************************/
-
-	  ium.consensus = "";
-	  ium.quality = "";
-	  ium.iaccession = 0;
-	  ium.forced = FALSE;
-	  ium.coverage_stat = 10;
-          ium.microhet_prob = 1.01;
-	  ium.status = (UnitigStatus)'U';
-	  ium.num_frags = 2;
-	  ium.f_list = &(the_imps[0]);
-	  {
-	    the_imps[0].type = (FragType)'R';
-	    the_imps[0].ident = fragIID;
-	    the_imps[0].contained = 0;
-	    the_imps[0].position.bgn = (ovl->begpos >= 0 ) ? 0 : -ovl->begpos;
-	    the_imps[0].position.end = (ovl->begpos >= 0 ) ? len1 : len1 - ovl->begpos;
-	    the_imps[0].delta_length = 0;
-	    the_imps[0].delta        = NULL;
-	    the_imps[1].type = (FragType)'R';
-	    the_imps[1].ident = mateIID;
-	    the_imps[1].contained = 0;
-	    // due to inversion of mate, note the following swap of end and beg
-	    the_imps[1].position.end = (ovl->begpos >= 0) ? ovl->begpos : 0;
-	    the_imps[1].position.bgn = (ovl->begpos >= 0) ? ovl->begpos + len2 : len2;
-	    the_imps[1].delta_length = 0;
-	    the_imps[1].delta        = NULL;
-	  }
-	  ium.length = ( ium.f_list[0].position.end >  ium.f_list[1].position.bgn ) ?
-	    ium.f_list[0].position.end :  ium.f_list[1].position.bgn;
-
-
-	  /*************************/
-	  // run consensus on unitig
-	  /*************************/
-	  {
-	    MultiAlignT *ma;
-	    CNS_PrintKey printwhat=CNS_STATS_ONLY;
-	    int i,j,len;
-	    char *s,*q;
-
-	    if(ovl->begpos<0){
-	      allow_neg_hang=1;
-	    }
-
-	    if (MultiAlignUnitig(&ium,sequence,quality,deltas,printwhat, NULL) == 0 ) {
-	      fprintf(stderr,"MultiAlignUnitig failed for overlap of fragments %d and %d\n",
-                      fragIID,mateIID);
-	      assert(FALSE);
-	    }
-
-	    if(ovl->begpos<0){
-	      allow_neg_hang=1;
-	    }
-
-
-	    len = GetNumVA_char(sequence)-1;
-	    assert(len<MAXSEQLEN);
-	    j=0;
-	    s = Getchar(sequence,0);
-	    q = Getchar(quality,0);
-	    for(i=0;i<len;i++){
-	      if(s[i]!='-'){
-		seq[j] = s[i];
-		qlt[j] = q[i];
-		j++;
-	      }
-	    }
-	    seq[j]='\0';
-	    qlt[j]='\0';
-	    clr_bgn=0;
-	    clr_end=j;
-	  }
-
-	} else { // do not run consensus
-
-	  int into1 = len1;
-	  int into2 = strlen(clear2)-ovl->endpos;
-
-	  assert(len1+len2+50<MAXSEQLEN);
-	  strcpy(seq,clear1);
-	  reverseComplementSequence(clear2, strlen(clear2));
-	  strcpy(seq+into1,clear2+into2);
-	  assert(strlen(seq)<MAXSEQLEN);
-
-	}
-
-	printf(">" F_S64,mergeUid);
-	printf(" merged sequence of mated fragments %s and %s\n",AS_UID_toString(fragUID),AS_UID_toString(mateUID));
-	printf("%s\n",seq);
-
-      }
+      continue;
     }
+
+    //  Otherwise, we have an overlap.
+
+    //fprintf(stderr, ">A %d len=%d\n%s\n", fr.gkFragment_getReadIID(), frlen, frseq);
+    //fprintf(stderr, ">B %d len=%d\n%s\n", fr.gkFragment_getMateIID(), fmlen, fmseq);
+    //fprintf(stderr, "OVERLAP: begpos=%d endpos=%d  length=%d  diffs=%d  comp=%d\n",
+    //        ovl->begpos, ovl->endpos, ovl->length, ovl->diffs, ovl->comp);
+
+    //  Emit a concatenation of the sequences.
+    //
+    if (runConsensus == 0) {
+      reverseComplementSequence(fmseq, fmlen);
+
+      fprintf(stdout, ">"F_S64" merged sequence of mated fragments %s and %s\n%s%s\n",
+              mergeUID,
+              AS_UID_toString(fr.gkFragment_getReadUID()),
+              AS_UID_toString(fm.gkFragment_getReadUID()),
+              frseq, fmseq + fmlen - ovl->endpos);
+
+      continue;
+    }
+
+    //  Emit an alignment of the sequences.
+    //
+    MultiAlignT  *ma = CreateEmptyMultiAlignT();
+    IntMultiPos   imps[2];
+
+    //  Based on the overlap, decide where to put the fragment and its mate so
+    //  that the fragments are ordered correctly.
+    //
+    int f = (ovl->begpos >= 0) ? 0 : 1;
+    int s = (ovl->begpos >= 0) ? 1 : 0;
+
+    //  Add the first fragment, forward.
+    //
+    imps[f].type         = AS_READ;
+    imps[f].ident        = fr.gkFragment_getReadIID();
+    imps[f].contained    = 0;
+    imps[f].position.bgn = (ovl->begpos >= 0) ? (0)     : (0     - ovl->begpos);
+    imps[f].position.end = (ovl->begpos >= 0) ? (frlen) : (frlen - ovl->begpos);
+    imps[f].delta_length = 0;
+    imps[f].delta        = NULL;
+
+    //  Add the mate, reversed.
+    //
+    imps[s].type         = AS_READ;
+    imps[s].ident        = fm.gkFragment_getReadIID();
+    imps[s].contained    = 0;
+    imps[s].position.bgn = (ovl->begpos >= 0) ? (ovl->begpos + fmlen) : (fmlen);
+    imps[s].position.end = (ovl->begpos >= 0) ? (ovl->begpos)         : (0);
+    imps[s].delta_length = 0;
+    imps[s].delta        = NULL;
+
+    //  Build the MultiAlign
+
+    ma->maID                      = 1;
+    ma->data.unitig_coverage_stat = 0.0;
+    ma->data.unitig_microhet_prob = 1.0;
+
+    ma->data.unitig_status        = AS_UNASSIGNED;
+    ma->data.unitig_unique_rept   = AS_FORCED_NONE;
+
+    ma->data.contig_status        = AS_UNPLACED;
+
+    //  Add the fragments
+
+    ResetVA_IntMultiPos(ma->f_list);
+    SetRangeVA_IntMultiPos(ma->f_list, 0, 2, imps);
+
+    //  Call consensus
+
+    //VERBOSE_MULTIALIGN_OUTPUT = 1;
+
+    if (MultiAlignUnitig(ma, gs, CNS_STATS_ONLY, NULL) == 0)
+      fprintf(stderr, "MultiAlignUnitig() failed for overlap of fragments %s and %s\n",
+              AS_UID_toString(fr.gkFragment_getReadUID()),
+              AS_UID_toString(fm.gkFragment_getReadUID())), exit(1);
+
+    VA_TYPE(char)  *cns = CreateVA_char(2 * AS_READ_MAX_LONG_LEN);
+    VA_TYPE(char)  *qlt = CreateVA_char(2 * AS_READ_MAX_LONG_LEN);
+
+    GetMultiAlignUngappedConsensus(ma, cns, qlt);
+
+    fprintf(stdout, ">"F_S64" merged sequence of mated fragments %s and %s\n%s\n",
+            mergeUID,
+            AS_UID_toString(fr.gkFragment_getReadUID()),
+            AS_UID_toString(fm.gkFragment_getReadUID()),
+            Getchar(cns, 0));
+
+    Delete_VA(cns);
+    Delete_VA(qlt);
+
+    DeleteMultiAlignT(ma);
   }
+
   exit(0);
 }

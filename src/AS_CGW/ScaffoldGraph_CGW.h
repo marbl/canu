@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.38 2009-10-01 14:40:27 skoren Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.39 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -31,7 +31,8 @@ static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.38 200
 #include "InputDataTypes_CGW.h"
 #include "GraphCGW_T.h"
 #include "Globals_CGW.h"
-#include "AS_SDB_SequenceDB.h"
+#include "MultiAlign.h"
+#include "MultiAlignStore.h"
 #include "AS_OVS_overlapStore.h"
 #include "AS_CGW_dataTypes.h"
 
@@ -97,8 +98,8 @@ typedef struct{
   GraphCGW_T             *ContigGraph;
   GraphCGW_T             *ScaffoldGraph;
   GraphCGW_T             *RezGraph;  // Graph used by scaffold building and  repeat rez...either a ref to ContigGraph or CIGraph
-  gkStore        *gkpStore;
-  tSequenceDB            *sequenceDB;
+  gkStore                *gkpStore;
+  MultiAlignStore        *tigStore;
   OverlapStore           *frgOvlStore;
 }ScaffoldGraphT;
 
@@ -416,7 +417,7 @@ void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold);
 int CheckAllEdges(ScaffoldGraphT *sgraph, CDS_CID_t sid, CDS_CID_t cid);
 
 void CheckpointScaffoldGraph(const char *logicalname, const char *location);
-void LoadScaffoldGraphFromCheckpoint(char *name, int32 checkPointNum, int readWrite);
+void LoadScaffoldGraphFromCheckpoint(char *name, int32 checkPointNum, int writable);
 
 void ReportMemorySize(ScaffoldGraphT *graph, FILE *stream);
 

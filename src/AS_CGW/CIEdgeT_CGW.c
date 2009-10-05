@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIEdgeT_CGW.c,v 1.18 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid = "$Id: CIEdgeT_CGW.c,v 1.19 2009-10-05 22:49:42 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -106,9 +106,9 @@ void PrintChunkInstanceHeader(FILE *stream, ScaffoldGraphT *graph,
                               ChunkInstanceT *chunk){
   fprintf(stream,"\n* CI "F_CID " cov:%d len:%d frags:%d\n",
           chunk->id,
-          chunk->info.CI.coverageStat,
+          ScaffoldGraph->tigStore->getUnitigCoverageStat(chunk->id),
           (int)chunk->bpLength.mean,
-          chunk->info.CI.numFragments);
+          ScaffoldGraph->tigStore->getNumFrags(chunk->id, TRUE));
 }
 
 

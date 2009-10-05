@@ -61,10 +61,8 @@ endif
 
 LIB_SOURCES = Array_CNS.C \
               MultiAlign.C \
-              MultiAlignFromICM.C \
-              MultiAlignFromIUM.C \
               MultiAlignPrint.C \
-              MultiAlignStore_CNS.C \
+              MultiAlignStore.C \
               MultiAlignment_CNS.C \
               RefreshMANode.C \
               \
@@ -84,9 +82,7 @@ LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
 
 LOCAL_WORK  = $(shell cd ../..; pwd)
 
-AS_CNS_SRCS = $(LIB_SOURCES) \
-              Consensus_CNS.C \
-              SeqAn_CNS.C
+AS_CNS_SRCS = $(LIB_SOURCES) utgcns.C ctgcns.C tigStore.C
 
 AS_CNS_OBJS = $(AS_CNS_SRCS:.C=.o)
 
@@ -94,8 +90,7 @@ SOURCES   = $(AS_CNS_SRCS)
 OBJECTS   = $(AS_CNS_OBJS)
 LIBRARIES = libAS_CNS.a libCA.a
 
-CXX_PROGS = consensus \
-            SeqAn_CNS
+CXX_PROGS = utgcns ctgcns tigStore
 
 SCRIPTS =
 
@@ -114,7 +109,9 @@ libCA.a:     $(LIB_OBJECTS)
 
 LIBS =  libCA.a
 
-consensus:                    Consensus_CNS.o                $(LIBS)
+utgcns:                       utgcns.o                       $(LIBS)
+ctgcns:                       ctgcns.o                       $(LIBS)
+tigStore:                     tigStore.o                     $(LIBS)
 SeqAn_CNS:                    SeqAn_CNS.o                    $(LIBS)
 graph_consensus: 	      $(SEQ_AN)/demos/graph_consensus
 	@cp $< $(LOCAL_BIN)/$@

@@ -4,10 +4,6 @@ my $specFile = undef;
 my @specOpts;
 my @fragFiles;
 
-my @cgbFiles;
-my $cgiFile;
-my $scaffoldDir;
-
 setDefaults();
 
 #  At some pain, we stash the original options for later use.  We need
@@ -101,11 +97,11 @@ createOverlapJobs("normal");
 checkOverlap("normal");
 createOverlapStore();
 overlapCorrection();
-@cgbFiles = unitigger(@cgbFiles);
-postUnitiggerConsensus(@cgbFiles);
-scaffolder($cgiFile);
-postScaffolderConsensus($scaffoldDir);
-terminate($scaffoldDir);
+unitigger();
+postUnitiggerConsensus();
+scaffolder();
+postScaffolderConsensus();
+terminate();
 cleaner();
 toggler();
 

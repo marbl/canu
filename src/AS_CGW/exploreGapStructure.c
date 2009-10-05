@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: exploreGapStructure.c,v 1.20 2009-09-25 01:15:48 brianwalenz Exp $";
+const char *mainid = "$Id: exploreGapStructure.c,v 1.21 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -109,7 +109,7 @@ main (int argc , char * argv[] ) {
       MultiAlignT  *newma = NULL;
 
       VA_TYPE(IntElementPos) *positions = CreateVA_IntElementPos(5000);
-      MultiAlignT *ma =  loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
+      MultiAlignT *ma =  ScaffoldGraph->tigStore->loadMultiAlign(contig->id, FALSE);
       int num_tigs = GetNumIntUnitigPoss(ma->u_list);
       int i;
       for (i=0;i<num_tigs;i++) {

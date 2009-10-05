@@ -19,11 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.115 2009-09-14 16:09:04 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.116 2009-10-05 22:49:41 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
+
+#include "MultiAlignStore.h"
 
 #undef max
 
@@ -1409,86 +1411,120 @@ UnitigVector* UnitigGraph::breakUnitigAt(ContainerMap &cMap,
 
 
 
-void UnitigGraph::writeIUMtoFile(char *fileprefix, int fragment_count_target){
-  int         fragment_count         = 0;
-  int         file_count             = 1;
+void UnitigGraph::writeIUMtoFile(char *fileprefix, char *tigStorePath, int frg_count_target){
+  int32       utg_count              = 0;
+  int32       frg_count              = 0;
+  int32       prt_count              = 1;
   char        filename[FILENAME_MAX] = {0};
-  int         iumiid                 = 0;
-  GenericMesg mesg;
+  uint32     *partmap                = new uint32 [unitigs->size()];
 
-  int nf = 0;
-  int nu = 0;
-
-  // Open up the initial output file
-
-  sprintf(filename, "%s_%03d.cgb", fileprefix, file_count++);
-  FILE *file = fopen(filename,"w");
-  assert(NULL != file);
-
-  sprintf(filename, "%s.iidmap", fileprefix);
-  FILE *iidm = fopen(filename,"w");
-  assert(NULL != iidm);
-
-  // Step through all the unitigs
+  //  This code closely follows that in AS_CGB_unitigger.c::output_the_chunks()
 
   checkUnitigMembership();
 
-  for (uint32  ti=0; ti<unitigs->size(); ti++) {
+  // Open up the initial output file
+
+  sprintf(filename, "%s.iidmap", fileprefix);
+  FILE *iidm = fopen(filename, "w");
+  assert(NULL != iidm);
+
+  sprintf(filename, "%s.partitioning", fileprefix);
+  FILE *part = fopen(filename, "w");
+  assert(NULL != part);
+
+  sprintf(filename, "%s.partitioningInfo", fileprefix);
+  FILE *pari = fopen(filename, "w");
+  assert(NULL != pari);
+
+  //  Step through all the unitigs once to build the partition mapping and IID mapping.
+
+  for (uint32 iumiid=0, ti=0; ti<unitigs->size(); ti++) {
     Unitig  *utg = (*unitigs)[ti];
+    uint32   nf  = (utg) ? utg->getNumFrags() : 0;
 
-    if (utg == NULL) {
-      //fprintf(stderr, "unitig %d is null, skip.\n", ti);
+    if ((utg == NULL) || (nf == 0))
       continue;
-    }
-
-    if (utg->getNumFrags() == 0) {
-      fprintf(stderr, "unitig %d HAS NO FRAGS?\n", ti);
-      continue;
-    }
-
-    IntUnitigMesg *ium_mesg_ptr = new IntUnitigMesg;
 
     assert(utg->getLength() > 0);
-    assert(utg->getNumFrags() == utg->dovetail_path_ptr->size());
+    assert(nf == utg->dovetail_path_ptr->size());
 
-    ium_mesg_ptr->iaccession    = iumiid++;
-    ium_mesg_ptr->coverage_stat = utg->getCovStat(_fi);
-    ium_mesg_ptr->microhet_prob = 1.01;
-    ium_mesg_ptr->status        = AS_UNASSIGNED;
-    ium_mesg_ptr->unique_rept   = AS_FORCED_NONE;
-    ium_mesg_ptr->length        = utg->getLength();
-    ium_mesg_ptr->consensus     = "";
-    ium_mesg_ptr->quality       = "";
-    ium_mesg_ptr->forced        = 0;
-    ium_mesg_ptr->num_frags     = utg->getNumFrags();
-    ium_mesg_ptr->f_list        = &(utg->dovetail_path_ptr->front());
+    if ((0              <= frg_count_target) &&
+        (frg_count + nf >= frg_count_target) &&
+        (frg_count                      >  0)) {
+      fprintf(pari, "Partition %d has %d unitigs and %d fragments.\n",
+              prt_count, utg_count, frg_count);
 
-    fprintf(iidm, "Unitig "F_U32" == IUM "F_U32" (with "F_S64" frags)\n", utg->id(), ium_mesg_ptr->iaccession, utg->getNumFrags());
-
-    fragment_count += ium_mesg_ptr->num_frags;
-
-    if ((fragment_count_target >= 0) &&
-        (fragment_count >= fragment_count_target)) {
-      fclose(file);
-      sprintf(filename, "%s_%03d.cgb", fileprefix, file_count++);
-      file = fopen(filename,"w");
-      assert(NULL != file);
-      fragment_count = ium_mesg_ptr->num_frags;
+      prt_count++;
+      utg_count = 0;
+      frg_count = 0;
     }
 
-    mesg.m = ium_mesg_ptr;
-    mesg.t = MESG_IUM;
+    partmap[iumiid] = prt_count;
 
-    nf += ium_mesg_ptr->num_frags;
-    nu += 1;
+    fprintf(iidm, "Unitig "F_U32" == IUM "F_U32" (in partition "F_U32" with "F_S64" frags)\n",
+            utg->id(), iumiid, partmap[iumiid], nf);
 
-    WriteProtoMesg_AS(file, &mesg);
+    for (int32 fragIdx=0; fragIdx<utg->dovetail_path_ptr->size(); fragIdx++) {
+      DoveTailNode  *f = &(*utg->dovetail_path_ptr)[fragIdx];
+      fprintf(part, "%d\t%d\n", prt_count, f->ident);
+    }
 
-    delete ium_mesg_ptr;
+    utg_count += 1;
+    frg_count += nf;
+
+    iumiid++;
   }
 
-  fclose(file);
+  fprintf(pari, "Partition %d has %d unitigs and %d fragments.\n",
+          prt_count, utg_count, frg_count);
+
+  fclose(pari);
+  fclose(part);
   fclose(iidm);
+
+  //  Step through all the unitigs once to build the partition mapping and IID mapping.
+
+  MultiAlignStore  *MAS = new MultiAlignStore(tigStorePath);
+  MultiAlignT      *ma  = CreateEmptyMultiAlignT();
+
+  MAS->writeToPartitioned(partmap, NULL);
+
+  for (uint32 iumiid=0, ti=0; ti<unitigs->size(); ti++) {
+    Unitig  *utg = (*unitigs)[ti];
+    uint32   nf  = (utg) ? utg->getNumFrags() : 0;
+
+    if ((utg == NULL) || (nf == 0))
+      continue;
+
+    //  Massage the Unitig into a MultiAlignT (also used in SplitChunks_CGW.c)
+
+    ma->maID                      = iumiid;
+    ma->data.unitig_coverage_stat = utg->getCovStat(_fi);
+    ma->data.unitig_microhet_prob = 1.0;  //  Default to 100% probability of unique
+
+    ma->data.unitig_status        = AS_UNASSIGNED;
+    ma->data.unitig_unique_rept   = AS_FORCED_NONE;
+
+    ma->data.contig_status        = AS_UNPLACED;
+
+    //  Add the fragments
+
+    ResetVA_IntMultiPos(ma->f_list);
+    SetRangeVA_IntMultiPos(ma->f_list, 0, nf, &(*utg->dovetail_path_ptr)[0]);
+
+    //  NOTE!  This is not currently a valid multialign as it has NO IntUnitigPos.  That is
+    //  added during consensus.  CGW will correctly assert that it reads in unitigs with
+    //  exactly one IUP.
+
+    //  Stash the unitig in the store
+
+    MAS->insertMultiAlign(ma, TRUE, FALSE);
+
+    iumiid++;
+  }
+
+  delete    MAS;
+  delete [] partmap;
 }
 
 

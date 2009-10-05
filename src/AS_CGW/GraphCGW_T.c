@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.79 2009-09-14 16:09:04 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.80 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -747,7 +747,7 @@ void DeleteGraphNode(GraphCGW_T *graph, NodeCGW_T *node){
 
   // Unreference the consensus for this contig
   if(graph->type != SCAFFOLD_GRAPH)
-    deleteMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, node->id, graph->type == CI_GRAPH);
+    ScaffoldGraph->tigStore->deleteMultiAlign(node->id, graph->type == CI_GRAPH);
 
   DeleteVA_PtrT(edgeList);
 }
@@ -1564,7 +1564,6 @@ void UpdateNodeUnitigs(MultiAlignT *ma, ContigT *contig){
   int32 i;
   int32 numCIs = GetNumIntUnitigPoss(ma->u_list);
   NodeCGW_T *previous = NULL;
-  CDS_CID_t contigID = contig->id;
   int32 *offsets;
 
   contig->flags.bits.isChaff = FALSE;  // We need this one in the output
@@ -1580,7 +1579,9 @@ void UpdateNodeUnitigs(MultiAlignT *ma, ContigT *contig){
   GetMultiAlignUngappedOffsets(ma, UngappedOffsets);
   offsets = Getint32(UngappedOffsets,0);
 
-  for(i = 0; i < numCIs ; i++){
+  assert(numCIs > 0);
+
+  for (int32 i=0; i<numCIs ; i++){
     IntUnitigPos *pos = GetIntUnitigPos(ma->u_list, i);
     NodeCGW_T *node = GetGraphNode(ScaffoldGraph->CIGraph, pos->ident);
     int flip = (pos->position.end < pos->position.bgn);
@@ -1596,10 +1597,12 @@ void UpdateNodeUnitigs(MultiAlignT *ma, ContigT *contig){
       end = pos->position.end /* - 1 */;
     }
     // Set the contigID
-    node->info.CI.contigID = contigID;
+    node->info.CI.contigID = contig->id;
+
     // Set the scaffoldID
     node->scaffoldID = contig->scaffoldID;
     node->flags.bits.isChaff = FALSE;  // We need this one in the output
+
     // Set the intra-contig position
     node->offsetAEnd.mean = offsets[bgn];
     node->offsetAEnd.variance = ComputeFudgeVariance(node->offsetAEnd.mean);
@@ -1643,7 +1646,7 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
   if(ungappedOffsets == NULL)
     ungappedOffsets = CreateVA_int32(10);
 
-  ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, cid, graph->type == CI_GRAPH);
+  ma = ScaffoldGraph->tigStore->loadMultiAlign(cid, graph->type == CI_GRAPH);
   assert(ma != NULL);
 
   GetMultiAlignUngappedOffsets(ma, ungappedOffsets);
@@ -2308,7 +2311,7 @@ void  BuildGraphEdgesDirectly(GraphCGW_T *graph){
 
     BuildGraphEdgesFromMultiAlign(graph,
                                   node,
-                                  loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, node->id, graph->type == CI_GRAPH),
+                                  ScaffoldGraph->tigStore->loadMultiAlign(node->id, graph->type == CI_GRAPH),
                                   &stat,
                                   FALSE);
   }
@@ -2595,7 +2598,7 @@ CDS_CID_t SplitUnresolvedCI(GraphCGW_T *graph,
 
   NodeCGW_T    *oldNode   = GetGraphNode(graph, oldNodeID);
 
-  MultiAlignT  *oldMA     = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, oldNodeID, TRUE);
+  MultiAlignT  *oldMA     = ScaffoldGraph->tigStore->loadMultiAlign(oldNodeID, TRUE);
   MultiAlignT  *newMA     = NULL;
 
   assert(graph->type == CI_GRAPH);
@@ -2608,7 +2611,7 @@ CDS_CID_t SplitUnresolvedCI(GraphCGW_T *graph,
   newNode->flags.bits.isSurrogate  = TRUE;
   newNode->info                    = oldNode->info;
   newNode->info.CI.numInstances    = 0;
-  newNode->info.CI.numFragments    = (fragments == NULL) ? 0 : GetNumCDS_CID_ts(fragments);
+  //newNode->info.CI.numFragments    = (fragments == NULL) ? 0 : GetNumCDS_CID_ts(fragments);
   newNode->info.CI.baseID          = oldNodeID;
 
   SetNodeType(newNode, RESOLVEDREPEATCHUNK_CGW);
@@ -2651,7 +2654,8 @@ CDS_CID_t SplitUnresolvedCI(GraphCGW_T *graph,
   //  we no longer own it.
   //
   newMA = CloneSurrogateOfMultiAlignT(oldMA, newNodeID);
-  insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, newNodeID, TRUE, newMA, TRUE);
+  assert(newMA->maID == newNodeID);
+  ScaffoldGraph->tigStore->insertMultiAlign(newMA, TRUE, TRUE);
 
   newNode->bpLength.mean     = GetMultiAlignUngappedLength(newMA);
   newNode->bpLength.variance = ComputeFudgeVariance(newNode->bpLength.mean);
@@ -2692,7 +2696,7 @@ CDS_CID_t SplitUnresolvedCI(GraphCGW_T *graph,
 
   /* Assign Fragments to the surrogate */
 
-  if (newNode->info.CI.numFragments > 0)
+  if ((fragments) && (GetNumCDS_CID_ts(fragments) > 0))
     AssignFragsToResolvedCI(graph, oldNodeID, newNodeID, fragments);
 
   fprintf(stderr,"SplitUnresolvedCI()--  Cloned surrogate ma of CI "F_CID " (length %d) has length (%d) %g\n",
@@ -2726,7 +2730,7 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T         *graph,
   CDS_CID_t      newID     = newNode->id;
 
   NodeCGW_T     *oldNode   = GetGraphNode(graph, oldID);
-  MultiAlignT   *oldMA     = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, oldID, FALSE);
+  MultiAlignT   *oldMA     = ScaffoldGraph->tigStore->loadMultiAlign(oldID, FALSE);
 
   CDS_CID_t      baseCIid  = GetIntUnitigPos(oldMA->u_list,0)->ident;
   NodeCGW_T     *baseCI    = GetGraphNode(ScaffoldGraph->CIGraph, baseCIid);
@@ -2757,17 +2761,15 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T         *graph,
   newCI->info.CI.contigID              = newID;
 
   //  What this does: We load unitig 'newCIid', make a copy of it, and
-  //  insert it as contig newID.  Yeah, I liked lisp too.
+  //  insert it as contig newID.
   //
   //  The unitig instance is already copied in SplitUnresolvedCI.
   //
-  insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB,
-                                newID, FALSE,
-                                CopyMultiAlignT(NULL,
-                                                loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,
-                                                                              newCIid,
-                                                                              TRUE)),
-                                TRUE);
+  MultiAlignT *newMA = CopyMultiAlignT(NULL, ScaffoldGraph->tigStore->loadMultiAlign(newCIid, TRUE));
+
+  newMA->maID = newID;
+
+  ScaffoldGraph->tigStore->insertMultiAlign(newMA, FALSE, TRUE);
 
   // Create the new surrogate contig
 
@@ -2782,7 +2784,7 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T         *graph,
 
   // length of new CI may differ from length of original due to gapped vs ungapped
   {
-    int32 newLength = GetMultiAlignUngappedLength(loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, newCIid, TRUE));
+    int32 newLength = GetMultiAlignUngappedLength(ScaffoldGraph->tigStore->loadMultiAlign(newCIid, TRUE));
 
     assert(newNode->bpLength.mean == newLength);
     assert(newCI->bpLength.mean   == newLength);
@@ -2931,7 +2933,6 @@ void ComputeMatePairDetailedStatus(void) {
   GraphNodeIterator nodes;
   NodeCGW_T *node;
   DistT *dptr;
-  MultiAlignT *ma = CreateEmptyMultiAlignT();
 
   int i;
 
@@ -2959,7 +2960,6 @@ void ComputeMatePairDetailedStatus(void) {
   int numSkipChaff  = 0;
   int numSkipSurr   = 0;
   int numSkipDegen  = 0;
-  int numDeadNode   = 0;
   int numDeadCtg    = 0;
 
   int duCI = 0;
@@ -3007,35 +3007,12 @@ void ComputeMatePairDetailedStatus(void) {
         assert(0);
     }
 
-    copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, node->id, graph->type == CI_GRAPH);
+    if (node->flags.bits.isDead)
+      continue;
 
-    //  BPW isn't sure what's going on here.  The original was
-    //  checking this condition, then printing the message.  The
-    //  "continue" was disabled.  Enabling the continue causes every
-    //  node to be skipped.  I think the wrong ID's are being tested:
-    //
-    //  * skip surr chunk id 0, baseID 12548880, type 0, isStone 0
-    //  * skip surr chunk id 1, baseID 12548880, type 1, isStone 0
-    //  * skip surr chunk id 2, baseID 12548880, type 0, isStone 0
-    //  * skip surr chunk id 3, baseID 12548880, type 0, isStone 0
-    //  * skip surr chunk id 4, baseID 12548880, type 1, isStone 0
-    //  * skip surr chunk id 5, baseID 12548880, type 0, isStone 0
-    //  * skip surr chunk id 6, baseID 12548880, type 0, isStone 0
-    //  * skip surr chunk id 7, baseID 12548880, type 1, isStone 0
-    //  * skip surr chunk id 8, baseID 12548880, type 0, isStone 0
-    //
-    //
-    //if (node->info.CI.baseID != node->id ) {
-    //  fprintf(stderr,"* skip surr chunk id %d, baseID %d, type %d, isStone %d\n",node->id,node->info.CI.baseID, node->type, node->flags.bits.isStoneSurrogate);
-    //  continue;
-    //}
+    MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(node->id, graph->type == CI_GRAPH);
 
     int numFrags  = GetNumIntMultiPoss(ma->f_list);
-
-    if (node->flags.bits.isDead) {
-      numDeadNode+=numFrags;
-      continue;
-    }
 
     numTotalFrags += numFrags;
 
@@ -3265,7 +3242,6 @@ void ComputeMatePairDetailedStatus(void) {
   fprintf(stderr,"* Mate counts from ComputeMatePairDetailedStatus()\n");
   fprintf(stderr,"* num Frags                          %d\n",numTotalFrags);
   fprintf(stderr,"* num reverse frags                  %d\n",numReverse);
-  fprintf(stderr,"* num frags in dead chunks           %d\n",numDeadNode);
   fprintf(stderr,"* num frags in dead ctgs             %d\n",numDeadCtg);
   fprintf(stderr,"* num frags in unresolved chunks     %d\n",numInUnresolv);
   fprintf(stderr,"* num frags in repeat chunks         %d\n",numInResRep);
@@ -3411,12 +3387,7 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
       continue;
     }
 
-    //  Yow!  This is a lot of work just to count the number of
-    //  frags.  The copy() is used instead of load() just to keep
-    //  the cache from filling up.
-    //
-    MultiAlignT *ma = CreateEmptyMultiAlignT();
-    copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, node->id, graph->type == CI_GRAPH);
+    MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(node->id, graph->type == CI_GRAPH);
 
     numFrags  = GetNumIntMultiPoss(ma->f_list);
     numTotalFrags += numFrags;
@@ -3645,7 +3616,7 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
       }
     }  //  over all frags
 
-    DeleteMultiAlignT(ma);  //  We own it.
+    ma = NULL;
 
     // Mark unitigs as potential Rocks and Stones
     if (operateOnNodes == UNITIG_OPERATIONS) {
@@ -3876,19 +3847,19 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
       dupd->numReferences  = dfrg->numReferences;
       dupd->numBad         = dfrg->numBad;
 
-      //  If we're computing on unitigs, do NOT make a histogram.
-      //  What seems to occur (rarely) is that we allocate the
-      //  histogram, write a checkpoint with that pointer still there,
-      //  then somehow never again have enough samples to reset the
-      //  pointer to something valid.  On output, we try to write out
-      //  invalid crud and bomb.
+      //  Generate a histogram.  Up before the tigStore (early October 2009) we were skipping this
+      //  for unitigs with the following comments:
       //
-      //  Unitigs are suspected here beacuse those are the only ones that
-      //  are computed when checkpoints are written.  Scaffold and contig
-      //  computations are done right before final output, and output
-      //  cleans up the pointer.
+      //  If we're computing on unitigs, do NOT make a histogram.  What seems to occur (rarely) is
+      //  that we allocate the histogram, write a checkpoint with that pointer still there, then
+      //  somehow never again have enough samples to reset the pointer to something valid.  On
+      //  output, we try to write out invalid crud and bomb.
       //
-      if (operateOnNodes != UNITIG_OPERATIONS) {
+      //  Unitigs are suspected here beacuse those are the only ones that are computed when
+      //  checkpoints are written.  Scaffold and contig computations are done right before final
+      //  output, and output cleans up the pointer.
+      //
+      //if (operateOnNodes != UNITIG_OPERATIONS) {
         dupd->bnum           = 1;
         dupd->bsize          = dfrg->max - dfrg->min;
 
@@ -3916,7 +3887,7 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
 
           dupd->histogram[binNum]++;
         }
-      }  //  end of not UNITIG_OPERATIONS
+      //}
 
       numSamples = GetNumint32s(dworkSamples[i]);
       samples    = Getint32(dworkSamples[i],0);
@@ -4132,7 +4103,6 @@ void  CheckUnitigs(CDS_CID_t startUnitigID) {
   NodeCGW_T *node;
   int32 i;
   int totalUnitigs = (int) GetNumGraphNodes( ScaffoldGraph->CIGraph );
-  MultiAlignT *ma = CreateEmptyMultiAlignT();
 
   InitGraphNodeIterator( &Nodes, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
   while(NULL != ( node = NextGraphNodeIterator(&Nodes))) {
@@ -4142,7 +4112,7 @@ void  CheckUnitigs(CDS_CID_t startUnitigID) {
     if (node->flags.bits.isChaff && GlobalData->ignoreChaffUnitigs)
       continue;
 
-    copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, node->id, TRUE);
+    MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(node->id, TRUE);
 
     for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {
       IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
@@ -4155,7 +4125,6 @@ void  CheckUnitigs(CDS_CID_t startUnitigID) {
       }
     }
   }
-  DeleteMultiAlignT(ma);  //  We own it.
 }
 
 

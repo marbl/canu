@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.25 2009-09-09 08:21:56 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.26 2009-10-05 22:49:42 brianwalenz Exp $";
 
 // This file contains the code for computing the candidate
 // chunks of scaffolds.
@@ -2861,7 +2861,7 @@ void BuildUniqueCIScaffolds(ScaffoldGraphT *graph,
 
   DeleteInferredEdges(graph, verbose);
 
-  //clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+  //ScaffoldGraph->tigStore->flushCache();
 }
 
 

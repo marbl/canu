@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.21 2009-09-25 01:15:48 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.22 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -158,10 +158,10 @@ MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
 
 class unitigConsensus {
 public:
-  unitigConsensus(IntUnitigMesg *unitig_, CNS_Options *opp_) {
-    unitig   = unitig_;
-    fraglist = unitig->f_list;
-    numfrags = unitig->num_frags;
+  unitigConsensus(MultiAlignT *ma_, CNS_Options *opp_) {
+    ma       = ma_;
+    fraglist = GetVA_IntMultiPos(ma->f_list, 0);
+    numfrags = GetNumIntMultiPoss(ma->f_list);
     opp      = opp_;
     trace    = NULL;
     manode   = NULL;
@@ -211,13 +211,10 @@ public:
 
   void rebuildFrankensteinFromFragment(void);
 
-  void generateConsensus(VA_TYPE(char)   *sequence,
-                         VA_TYPE(char)   *quality,
-                         VA_TYPE(int32)  *deltas,
-                         CNS_PrintKey     printwhat);
+  void generateConsensus(CNS_PrintKey     printwhat);
 
 private:
-  IntUnitigMesg  *unitig;
+  MultiAlignT    *ma;
   IntMultiPos    *fraglist;
   int32           numfrags;
 
@@ -274,7 +271,7 @@ unitigConsensus::reportStartingWork(void) {
 void
 unitigConsensus::reportFailure(void) {
   fprintf(stderr, "MultiAlignUnitig()-- Unitig %d FAILED.  Could not align fragment %d.\n",
-          unitig->iaccession, fraglist[tiid].ident);
+          ma->maID, fraglist[tiid].ident);
   //fprintf(stderr, ">frankenstein\n%s\n", frankenstein);
 }
 
@@ -293,7 +290,7 @@ unitigConsensus::initialize(void) {
   //  Magic initialization (in ResetStores()) prevents us calling CreateMANode() until now.
 
   trace   = CreateVA_int32(2 * AS_READ_MAX_LEN);
-  manode  = CreateMANode(unitig->iaccession);
+  manode  = CreateMANode(ma->maID);
   offsets = (SeqInterval *)safe_calloc(numfrags, sizeof(SeqInterval));
   placed  = (SeqInterval *)safe_calloc(numfrags, sizeof(SeqInterval));
 
@@ -310,13 +307,13 @@ unitigConsensus::initialize(void) {
 
     if (fraglist[i].type != AS_READ) {
       fprintf(stderr, "MultiAlignUnitig()-- Unitig %d FAILED.  Fragment %d is not a read.\n",
-              unitig->iaccession, fraglist[i].ident);
+              ma->maID, fraglist[i].ident);
       return(false);
     }
 
     if (HASH_SUCCESS != InsertInHashTable_AS(fragmentMap,fraglist[i].ident, 0, 1, 0)) {
       fprintf(stderr, "MultiAlignUnitig()-- Unitig %d FAILED.  Fragment %d is a duplicate.\n",
-              unitig->iaccession, fraglist[i].ident);
+              ma->maID, fraglist[i].ident);
       return(false);
     }
 
@@ -327,7 +324,7 @@ unitigConsensus::initialize(void) {
                                  fraglist[i].ident,
                                  complement,
                                  fraglist[i].contained,
-                                 AS_OTHER_UNITIG, NULL);
+                                 AS_OTHER_UNITIG);
 
     offsets[fid].bgn = complement ? fraglist[i].position.end : fraglist[i].position.bgn;
     offsets[fid].end = complement ? fraglist[i].position.bgn : fraglist[i].position.end;
@@ -341,7 +338,7 @@ unitigConsensus::initialize(void) {
 
     //if (VERBOSE_MULTIALIGN_OUTPUT)
     //  fprintf(stderr,"MultiAlignUnitig()-- Added fragment mid %d pos %d,%d in unitig %d to store at local id %d.\n",
-    //          fraglist[i].ident, fraglist[i].position.bgn, fraglist[i].position.end, unitig->iaccession, fid);
+    //          fraglist[i].ident, fraglist[i].position.bgn, fraglist[i].position.end, ma->maID, fid);
   }
 
   SeedMAWithFragment(manode->lid, GetFragment(fragmentStore,0)->lid,0, opp);
@@ -630,13 +627,13 @@ unitigConsensus::rebuildFrankensteinFromConsensus(void) {
   //  Are all three needed??
 
   AbacusRefine(manode,0,-1,CNS_SMOOTH, opp);
-  MergeRefine(manode->lid, NULL, NULL, 1, opp, 1);
+  MergeRefine(manode->lid, NULL, 1, opp, 1);
 
   AbacusRefine(manode,0,-1,CNS_POLYX, opp);
-  MergeRefine(manode->lid, NULL, NULL, 1, opp, 1);
+  MergeRefine(manode->lid, NULL, 1, opp, 1);
 
   AbacusRefine(manode,0,-1,CNS_INDEL, opp);
-  MergeRefine(manode->lid, NULL, NULL, 1, opp, 1);
+  MergeRefine(manode->lid, NULL, 1, opp, 1);
 
   //  Extract the consensus sequence.  Note that frankenstein becomes the consensus beads, not a
   //  fragment bead anymore.
@@ -1218,34 +1215,55 @@ unitigConsensus::rebuildFrankensteinFromFragment(void) {
 
 
 void
-unitigConsensus::generateConsensus(VA_TYPE(char)   *sequence,
-                 VA_TYPE(char)   *quality,
-                 VA_TYPE(int32)  *deltas,
-                 CNS_PrintKey     printwhat) {
+unitigConsensus::generateConsensus(CNS_PrintKey     printwhat) {
 
   RefreshMANode(manode->lid, 0, opp, NULL, NULL, 0, 0);
 
   AbacusRefine(manode,0,-1,CNS_SMOOTH, opp);
-  MergeRefine(manode->lid, NULL, NULL, 1, opp, 1);
+  MergeRefine(manode->lid, NULL, 1, opp, 1);
 
   AbacusRefine(manode,0,-1,CNS_POLYX, opp);
-  MergeRefine(manode->lid, NULL, NULL, 1, opp, 1);
+  MergeRefine(manode->lid, NULL, 1, opp, 1);
 
   AbacusRefine(manode,0,-1,CNS_INDEL, opp);
-  MergeRefine(manode->lid, NULL, NULL, 1, opp, 1);
+  MergeRefine(manode->lid, NULL, 1, opp, 1);
 
-  GetMANodeConsensus(manode->lid,sequence,quality);
-  GetMANodePositions(manode->lid, numfrags, fraglist, 0, NULL, deltas);
+  GetMANodeConsensus(manode->lid, ma->consensus, ma->quality);
+  GetMANodePositions(manode->lid, ma);
 
-  unitig->consensus = Getchar(sequence,0);
-  unitig->quality   = Getchar(quality,0);
-  unitig->length    = GetNumchars(sequence)-1;
+  //  Although we generally don't care about delta values during assembly, we need them for the
+  //  output, and this is the only time we compute them.  So, we've gotta hang on to them.
+  //
+  //for (int32 i=0; i<numfrags; i++) {
+  //  fraglist[i].delta_length = 0;
+  //  fraglist[i].delta        = NULL;
+  //}
+
+  //  Update or create the unitig in the MultiAlignT.
+
+  if (GetNumIntUnitigPoss(ma->u_list) == 0) {
+    IntUnitigPos  iup;
+
+    iup.type           = AS_OTHER_UNITIG;
+    iup.ident          = ma->maID;
+    iup.position.bgn   = 0;
+    iup.position.end   = GetMultiAlignLength(ma);
+    iup.num_instances  = 0;
+    iup.delta_length   = 0;
+    iup.delta          = NULL;
+
+    AppendIntUnitigPos(ma->u_list, &iup);
+  } else {
+    IntUnitigPos  *iup = GetIntUnitigPos(ma->u_list, 0);
+
+    iup->position.bgn = 0;
+    iup->position.end = GetMultiAlignLength(ma);
+  }
 
 
   if ((printwhat == CNS_VERBOSE) ||
       (printwhat == CNS_VIEW_UNITIG))
     PrintAlignment(stderr,manode->lid,0,-1,printwhat);
-
 
   //  While we have fragments in memory, compute the microhet probability.  Ideally, this would be
   //  done in CGW when loading unitigs (the only place the probability is used) but the code wants
@@ -1257,7 +1275,7 @@ unitigConsensus::generateConsensus(VA_TYPE(char)   *sequence,
 
     MANode2Array(manode, &depth, &multia, &id_array,0);
 
-    unitig->microhet_prob = AS_REZ_MP_MicroHet_prob(multia, id_array, gkpStore, unitig->length, depth);
+    ma->data.unitig_microhet_prob = AS_REZ_MP_MicroHet_prob(multia, id_array, gkpStore, frankensteinLen, depth);
 
     for (int32 i=0;i<depth;i++) {
       safe_free(multia[2*i]);
@@ -1271,17 +1289,15 @@ unitigConsensus::generateConsensus(VA_TYPE(char)   *sequence,
 
 
 int
-MultiAlignUnitig(IntUnitigMesg   *unitig,
-                 VA_TYPE(char)   *sequence,
-                 VA_TYPE(char)   *quality,
-                 VA_TYPE(int32)  *deltas,
+MultiAlignUnitig(MultiAlignT     *ma,
+                 gkStore         *fragStore,
                  CNS_PrintKey     printwhat,
                  CNS_Options     *opp) {
   double  origErate = AS_CNS_ERROR_RATE;
 
   fragmentMap = CreateScalarHashTable_AS();
 
-  unitigConsensus uc(unitig, opp);
+  unitigConsensus uc(ma, opp);
 
   if (uc.initialize() == FALSE)
     return(FALSE);
@@ -1339,7 +1355,7 @@ MultiAlignUnitig(IntUnitigMesg   *unitig,
     uc.applyAlignment();
   }
 
-  uc.generateConsensus(sequence, quality, deltas, printwhat);
+  uc.generateConsensus(printwhat);
 
   return(TRUE);
 }

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Celamy_CGW.c,v 1.25 2009-07-28 12:30:04 brianwalenz Exp $";
+static char *rcsid = "$Id: Celamy_CGW.c,v 1.26 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -137,10 +137,10 @@ ComputeCIColor(ChunkInstanceT *ci, CIScaffoldT *scaffold) {
   if (ci->scaffoldID != NULLINDEX)
     return((ci->flags.bits.isStoneSurrogate) ? PSTONE_COLOUR : PWALK_COLOUR);
 
-  if (ci->info.CI.numFragments == 1)
+  if (ScaffoldGraph->tigStore->getNumFrags(ci->id, TRUE) == 1)
     return(ONEFRAG_COLOUR);
 
-  if (ci->info.CI.coverageStat > CGB_INVALID_CUTOFF)
+  if (ScaffoldGraph->tigStore->getUnitigCoverageStat(ci->id) > CGB_INVALID_CUTOFF)
     return(CONSISTENT_COLOUR);
 
   return(REPEAT_COLOUR);
@@ -191,7 +191,7 @@ void
 drawSurrogateFrags(FILE *fout, ContigT *ctg, int globallyReversed,int AEndCoord) {
   int i,j;
 
-  MultiAlignT  *contig = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ctg->id, FALSE);
+  MultiAlignT  *contig = ScaffoldGraph->tigStore->loadMultiAlign(ctg->id, FALSE);
   IntUnitigPos *u_list = GetIntUnitigPos(contig->u_list,0);
 
   for (int i=0; i<GetNumIntUnitigPoss(contig->u_list); i++) {
@@ -202,7 +202,7 @@ drawSurrogateFrags(FILE *fout, ContigT *ctg, int globallyReversed,int AEndCoord)
 
       ChunkInstanceT *utg = GetGraphNode(ScaffoldGraph->CIGraph, utg->info.CI.baseID);
 
-      MultiAlignT *unitig = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, utg->id, TRUE);
+      MultiAlignT *unitig = ScaffoldGraph->tigStore->loadMultiAlign(utg->id, TRUE);
       IntMultiPos *f_list = GetIntMultiPos(unitig->f_list,0);
 
       for (int j=0; j<GetNumIntMultiPoss(unitig->f_list); j++) {
@@ -271,7 +271,7 @@ drawSurrogateFrags(FILE *fout, ContigT *ctg, int globallyReversed,int AEndCoord)
 static
 void
 drawFrags(FILE *fout, ContigT *ctg, int globallyReversed,int AEndCoord) {
-  MultiAlignT *contig = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ctg->id, FALSE);
+  MultiAlignT *contig = ScaffoldGraph->tigStore->loadMultiAlign(ctg->id, FALSE);
   IntMultiPos *f_list = GetIntMultiPos(contig->f_list, 0);
 
   for (int i=0; i<GetNumIntMultiPoss(contig->f_list); i++) {
@@ -491,7 +491,7 @@ CelamyScaffold(FILE        *fout,
                 color,
                 ciBCoord,
                 ComputeCIRow(ci, scaffold),
-                contigID, cid, ci->info.CI.coverageStat);
+                contigID, cid, ScaffoldGraph->tigStore->getUnitigCoverageStat(ci->id));
       } else {
         NodeCGW_T *baseCI = GetGraphNode(ScaffoldGraph->CIGraph, ci->info.CI.baseID);
         fprintf(fout, F_CID"CtgCI"F_CID": "F_S64" A%dCGBColor "F_S64" R%d # Contig "F_CID" CI "F_CID" (BaseCI "F_CID" copies %d) baseCov:%d\n",
@@ -501,7 +501,7 @@ CelamyScaffold(FILE        *fout,
                 ciBCoord,
                 ComputeCIRow(ci, scaffold),
                 contigID, cid,
-                baseCI->id, baseCI->info.CI.numInstances, baseCI->info.CI.coverageStat);
+                baseCI->id, baseCI->info.CI.numInstances, ScaffoldGraph->tigStore->getUnitigCoverageStat(baseCI->id));
 
       }
     }

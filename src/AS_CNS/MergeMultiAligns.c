@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MergeMultiAligns.c,v 1.7 2009-09-25 01:15:48 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeMultiAligns.c,v 1.8 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -50,7 +50,7 @@ MergeMultiAlignsFast_new(VA_TYPE(IntElementPos) *positions, CNS_Options *opp) {
 #endif
 
   if (num_contigs == 1)
-    return(loadMultiAlignTFromSequenceDB(sequenceDB, cpositions[0].ident, FALSE));
+    return(tigStore->loadMultiAlign(cpositions[0].ident, FALSE));
 
   allow_neg_hang = 0;
 
@@ -71,7 +71,7 @@ MergeMultiAlignsFast_new(VA_TYPE(IntElementPos) *positions, CNS_Options *opp) {
                                               cpositions[i].ident,
                                               complement,
                                               0,
-                                              AS_OTHER_UNITIG, NULL);
+                                              AS_OTHER_UNITIG);
 
     assert(cpositions[i].type == AS_CONTIG);
 
@@ -214,7 +214,7 @@ MergeMultiAlignsFast_new(VA_TYPE(IntElementPos) *positions, CNS_Options *opp) {
   GetMANodeConsensus(manode->lid, cma->consensus, cma->quality);
 
   for (int32 i=0; i<num_contigs; i++) {
-    MultiAlignT *ma = loadMultiAlignTFromSequenceDB(sequenceDB, cpositions[i].ident, cpositions[i].type == AS_UNITIG);
+    MultiAlignT *ma = tigStore->loadMultiAlign(cpositions[i].ident, FALSE);
     ConcatVA_IntMultiPos(cma->f_list,  ma->f_list);
     ConcatVA_IntUnitigPos(cma->u_list, ma->u_list);
     ConcatVA_IntMultiVar(cma->v_list,  ma->v_list);

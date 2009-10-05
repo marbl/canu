@@ -97,10 +97,12 @@ ifeq ($(OSTYPE), FreeBSD)
   ifeq ($(MACHINETYPE), i386)
     ARCH_LDFLAGS    += -pthread -lthr -lm
     ARCH_CFLAGS      = -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts
+    ARCH_CFLAGS      = -pthread       -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts
   endif
   ifeq ($(MACHINETYPE), amd64)
     ARCH_LDFLAGS    += -pthread -lthr -lm
     ARCH_CFLAGS      = -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts
+    ARCH_CFLAGS      = -pthread       -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts
   endif
 
   ifeq ($(BUILDCOVERAGE), 1)
@@ -235,7 +237,6 @@ SUBDIRS = AS_RUN \
           AS_BOG \
           AS_REZ \
           AS_CNS \
-          AS_SDB \
           AS_LIN \
           AS_CGW \
           AS_TER \

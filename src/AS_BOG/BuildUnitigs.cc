@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.61 2009-08-07 19:17:36 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.62 2009-10-05 22:49:41 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -101,6 +101,7 @@ main (int argc, char * argv []) {
   char      *gkpStorePath           = NULL;
   char      *ovlStoreUniqPath       = NULL;
   char      *ovlStoreReptPath       = NULL;
+  char      *tigStorePath           = NULL;
 
   double    erate                   = 0.015;
   long      genome_size             = 0;
@@ -133,6 +134,9 @@ main (int argc, char * argv []) {
       else
         err++;
 
+    } else if (strcmp(argv[arg], "-T") == 0) {
+      tigStorePath = argv[++arg];
+
     } else if (strcmp(argv[arg], "-b") == 0) {
       unitigIntersectBreaking = true;
 
@@ -160,9 +164,11 @@ main (int argc, char * argv []) {
     err++;
   if (ovlStoreUniqPath == NULL)
     err++;
+  if (tigStorePath == NULL)
+    err++;
 
   if (err) {
-    fprintf(stderr, "usage: %s -o outputName -O ovlStore -G gkpStore\n", argv[0]);
+    fprintf(stderr, "usage: %s -o outputName -O ovlStore -G gkpStore -T tigStore\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -B b       Target number of fragments per IUM batch.\n");
     fprintf(stderr, "\n");
@@ -193,6 +199,9 @@ main (int argc, char * argv []) {
     if ((ovlStoreUniqPath != NULL) && (ovlStoreUniqPath == ovlStoreReptPath))
       fprintf(stderr, "Too many overlap stores (-O option) supplied.\n");
 
+    if (tigStorePath == NULL)
+      fprintf(stderr, "No output tigStore (-T option) supplied.\n");
+
     exit(1);
   }
 
@@ -221,7 +230,7 @@ main (int argc, char * argv []) {
 
   utg.setParentAndHang(cg);
 
-  utg.writeIUMtoFile(output_prefix, fragment_count_target);
+  utg.writeIUMtoFile(output_prefix, tigStorePath, fragment_count_target);
   utg.writeOVLtoFile(output_prefix);
 
   {

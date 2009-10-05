@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.6 2009-09-25 01:15:48 brianwalenz Exp $";
+static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.7 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -89,9 +89,7 @@ ReplaceEndUnitigInContig(uint32 contig_iid,
   Fragment *tfrag = NULL;
   static VA_TYPE(int32) *trace=NULL;
 
-  USE_SDB    = 1;
-
-  oma =  loadMultiAlignTFromSequenceDB(sequenceDB, contig_iid, FALSE);
+  oma =  tigStore->loadMultiAlign(contig_iid, FALSE);
 
   ResetStores(2,GetNumchars(oma->consensus) + AS_READ_MAX_LEN);
 
@@ -110,8 +108,7 @@ ReplaceEndUnitigInContig(uint32 contig_iid,
                                contig_iid,
                                0,
                                0,
-                               AS_OTHER_UNITIG,
-                               NULL);
+                               AS_OTHER_UNITIG);
 
   fprintf(stderr,"ReplaceEndUnitigInContig()-- contig %d unitig %d isLeft(%d)\n",
           contig_iid,unitig_iid,extendingLeft);
@@ -159,8 +156,7 @@ ReplaceEndUnitigInContig(uint32 contig_iid,
                                      id,
                                      complement,
                                      0,
-                                     AS_OTHER_UNITIG,
-                                     NULL);
+                                     AS_OTHER_UNITIG);
         tfrag=GetFragment(fragmentStore,tid);
 
         if ( extendingLeft ) {

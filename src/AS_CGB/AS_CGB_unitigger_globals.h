@@ -22,7 +22,7 @@
 #ifndef AS_CGB_UNITIGGER_GLOBALS_INCLUDE
 #define AS_CGB_UNITIGGER_GLOBALS_INCLUDE
 
-static const char *rcsid_AS_CGB_UNITIGGER_GLOBALS_INCLUDE = "$Id: AS_CGB_unitigger_globals.h,v 1.18 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid_AS_CGB_UNITIGGER_GLOBALS_INCLUDE = "$Id: AS_CGB_unitigger_globals.h,v 1.19 2009-10-05 22:49:41 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 
@@ -200,6 +200,9 @@ typedef struct {
 
   char * Dump_File_Name;
   // The file name of the output fragments and overlaps in OVL format.
+
+  char * tigStorePath;
+  // The file name of the output tigStore.
 
   char * ovl_files_list_fname;
 

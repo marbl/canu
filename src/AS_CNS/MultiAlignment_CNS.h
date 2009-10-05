@@ -21,13 +21,15 @@
 #ifndef MULTIALIGNMENT_CNS_INCLUDE
 #define MULTIALIGNMENT_CNS_INCLUDE
 
-static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.55 2009-09-25 15:34:31 skoren Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.56 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_MSG_pmesg.h"
-#include "AS_SDB_SequenceDB.h"
 #include "AS_ALN_aligners.h"
+
+#include "MultiAlign.h"
+#include "MultiAlignStore.h"
 
 
 //  This is probably broken, or extremely inefficient, as of Nov 4 2007.
@@ -73,20 +75,17 @@ MultiAlignT *ReplaceEndUnitigInContig(uint32,
                                       int,
                                       CNS_Options *opp);
 
-
-int MultiAlignUnitig(IntUnitigMesg *,
-                     VA_TYPE(char) *,
-                     VA_TYPE(char) *,
-                     VA_TYPE(int32) *,
+int MultiAlignUnitig(MultiAlignT *,
+                     gkStore *,
                      CNS_PrintKey,
                      CNS_Options *opp);
 
-int MultiAlignContig(IntConConMesg *,
-                     VA_TYPE(char) *,
-                     VA_TYPE(char) *,
-                     VA_TYPE(int32) *,
-                     CNS_PrintKey ,
+
+int MultiAlignContig(MultiAlignT *,
+                     gkStore *,
+                     CNS_PrintKey,
                      CNS_Options *opp);
+
 
 //  Options to things in MultiAligment_CNS.c
 

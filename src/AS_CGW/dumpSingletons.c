@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: dumpSingletons.c,v 1.31 2009-09-14 16:09:05 brianwalenz Exp $";
+const char *mainid = "$Id: dumpSingletons.c,v 1.32 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -98,7 +98,7 @@ main( int argc, char **argv) {
     arg++;
   }
 
-  if ((GlobalData->outputPrefix[0]      == 0) ||
+  if ((GlobalData->outputPrefix[0] == 0) ||
       (GlobalData->gkpStoreName[0] == 0)) {
     fprintf(stderr, "usage: %s [[-p prefix] | [-c name -g gkpstore -n ckptNum]] [-U] [-S]\n", argv[0]);
     fprintf(stderr, "  -p      Attempt to locate the last checkpoint in directory 7-CGW.\n");
@@ -120,6 +120,9 @@ main( int argc, char **argv) {
   for (ifrag=0; ifrag < GetNumVA_CIFragT(ScaffoldGraph->CIFrags); ifrag++) {
     CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, ifrag);
     CIFragT *mate = NULL;
+
+    if (frag->flags.bits.isDeleted)
+      continue;
 
     assert(frag->cid != NULLINDEX);
     assert((frag->flags.bits.hasMate == 0) || (frag->mate_iid != 0));

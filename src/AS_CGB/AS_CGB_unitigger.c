@@ -19,10 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.40 2009-09-14 16:09:04 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.41 2009-10-05 22:49:41 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_Bubble.h"
+
+#include "MultiAlign.h"
+#include "MultiAlignStore.h"
 
 extern int REAPER_VALIDATION;
 
@@ -38,100 +41,129 @@ output_the_chunks(Tfragment     *frags,
                   TChunkFrag    *chunkfrags,
                   TChunkMesg    *thechunks,
                   float          global_fragment_arrival_rate,
-                  int            fragment_count_target,
-                  char          *Graph_Store_File_Prefix,
-                  gkStore *gkp) {
+                  int            frg_count_target,
+                  char          *fileprefix,
+                  char          *tigStorePath,
+                  gkStore       *gkp) {
 
-  IntChunk_ID       chunk_index;
-  IntChunk_ID       nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
-  IntFragment_ID    nfrag   = GetNumFragments(frags);
+  int32       nchunks = GetNumVA_AChunkMesg(thechunks);
 
-  char filename[FILENAME_MAX];
+  int32       utg_count              = 0;
+  int32       frg_count              = 0;
+  int32       prt_count              = 1;
+  char        filename[FILENAME_MAX] = {0};
+  uint32     *partmap                = new uint32 [nchunks];
 
-  FILE *fcgb = NULL;
-  int fragment_count = 0;
-  int file_count = 0;
+  //  This code closely follows that in AS_BOG_UnitigGraph.cc::writeIUMtoFile().
 
-  VA_TYPE(IntMultiPos) * the_imps = CreateVA_IntMultiPos(0);
+  // Open up the initial output file
 
-  for(chunk_index=0;chunk_index < nchunks; chunk_index++) /* a */ {
-    AChunkMesg     *ch   = GetVA_AChunkMesg(thechunks,chunk_index);
-    IntFragment_ID  num_frags = ch->num_frags;
-    GenericMesg     pmesg;
-    IntUnitigMesg   achunk;
-    IntFragment_ID  ivc;
+  sprintf(filename, "%s.iidmap", fileprefix);
+  FILE *iidm = fopen(filename, "w");
+  assert(NULL != iidm);
 
-    for(ivc=0; ivc<num_frags; ivc++) {
-      IntFragment_ID vid    = *GetVA_AChunkFrag(chunkfrags, ch->f_list + ivc);
-      IntMultiPos    a_frag;
+  sprintf(filename, "%s.partitioning", fileprefix);
+  FILE *part = fopen(filename, "w");
+  assert(NULL != part);
 
-      memset(&a_frag, 0, sizeof(IntMultiPos));
+  sprintf(filename, "%s.partitioningInfo", fileprefix);
+  FILE *pari = fopen(filename, "w");
+  assert(NULL != pari);
 
-      a_frag.type         = get_typ_fragment(frags,vid);
-      a_frag.ident        = get_iid_fragment(frags,vid);
-      a_frag.contained    = get_container_fragment(frags,vid);
-      a_frag.parent       = 0;
-      a_frag.ahang        = 0;
-      a_frag.bhang        = 0;
-      a_frag.position.bgn = get_o5p_fragment(frags,vid);
-      a_frag.position.end = get_o3p_fragment(frags,vid);
-      a_frag.delta_length = 0;
-      a_frag.delta        = NULL;
+  //  Step through all the unitigs once to build the partition mapping and IID mapping.
 
-      SetVA_IntMultiPos(the_imps,ivc,&a_frag);
+  for (int32 ci=0; ci<nchunks; ci++) {
+    AChunkMesg     *ch  = GetVA_AChunkMesg(thechunks,ci);
+    uint32          nf  = ch->num_frags;
+
+    if ((0              <= frg_count_target) &&
+        (frg_count + nf >= frg_count_target) &&
+        (frg_count                      >  0)) {
+      fprintf(pari, "Partition %d has %d unitigs and %d fragments.\n",
+              prt_count, utg_count, frg_count);
+
+      prt_count++;
+      utg_count = 0;
+      frg_count = 0;
     }
 
-    achunk.consensus = "";
-    achunk.quality   = "";
+    partmap[ch->iaccession] = prt_count;
 
-    achunk.iaccession     = ch->iaccession;
-    achunk.coverage_stat  = compute_coverage_statistic(ch->rho,
-                                                       count_the_randomly_sampled_fragments_in_a_chunk(frags,
-                                                                                                       chunkfrags,
-                                                                                                       thechunks,
-                                                                                                       chunk_index,
-                                                                                                       gkp),
-                                                       global_fragment_arrival_rate);
-    achunk.microhet_prob  = 1.01;
-    achunk.status         = AS_UNASSIGNED;
-    achunk.unique_rept    = AS_FORCED_NONE;
-    achunk.consensus      = "";
-    achunk.quality        = "";
-    achunk.length         = ch->bp_length;
+    fprintf(iidm, "Unitig "F_U32" == IUM "F_U32" (in partition "F_U32" with "F_S64" frags)\n",
+            ch->iaccession, ch->iaccession, partmap[ch->iaccession], nf);
 
-    achunk.forced         = FALSE;
-    achunk.num_frags      = ch->num_frags;
-    achunk.f_list         = GetVA_IntMultiPos(the_imps,0);
-
-    fragment_count += ch->num_frags;
-
-    if(fragment_count_target > 0) {
-      if((fragment_count >= fragment_count_target)) {
-        if(NULL != fcgb) { fclose(fcgb); fcgb = NULL;}
-        fragment_count = 0;
-      }
-      if(NULL == fcgb) {
-        file_count ++;
-        sprintf(filename,"%s_%03d.cgb",Graph_Store_File_Prefix,file_count);
-        fcgb = fopen(filename,"w");
-        assert(NULL != fcgb);
-      }
-    } else {
-      if(NULL == fcgb) {
-        sprintf(filename,"%s.cgb",Graph_Store_File_Prefix);
-        fcgb = fopen(filename,"w");
-        assert(NULL != fcgb);
-      }
+    for (int32 ivc=0; ivc<ch->num_frags; ivc++) {
+      IntFragment_ID vid = *GetVA_AChunkFrag(chunkfrags, ch->f_list + ivc);
+      fprintf(part, "%d\t%d\n", prt_count, get_iid_fragment(frags, vid));
     }
 
-    pmesg.t = MESG_IUM;
-    pmesg.m = &achunk;
-    WriteProtoMesg_AS(fcgb,&pmesg);
+    utg_count += 1;
+    frg_count += nf;
   }
 
-  DeleteVA_IntMultiPos(the_imps);
+  fprintf(pari, "Partition %d has %d unitigs and %d fragments.\n",
+          prt_count, utg_count, frg_count);
 
-  fclose(fcgb);
+  fclose(pari);
+  fclose(part);
+  fclose(iidm);
+
+  //  Step through all the unitigs once to build the partition mapping and IID mapping.
+
+  MultiAlignStore  *MAS = new MultiAlignStore(tigStorePath);
+  MultiAlignT      *ma  = CreateEmptyMultiAlignT();
+
+  MAS->writeToPartitioned(partmap, NULL);
+
+  for (int32 ci=0; ci<nchunks; ci++) {
+    AChunkMesg     *ch  = GetVA_AChunkMesg(thechunks,ci);
+    uint32          nf  = ch->num_frags;
+
+    ma->maID                      = ch->iaccession;
+    ma->data.unitig_coverage_stat = compute_coverage_statistic(ch->rho,
+                                                               count_the_randomly_sampled_fragments_in_a_chunk(frags,
+                                                                                                               chunkfrags,
+                                                                                                               thechunks,
+                                                                                                               ci,
+                                                                                                               gkp),
+                                                               global_fragment_arrival_rate);
+    ma->data.unitig_microhet_prob = 1.0;  //  Default to 100% probability of unique
+
+    ma->data.unitig_status        = AS_UNASSIGNED;
+    ma->data.unitig_unique_rept   = AS_FORCED_NONE;
+
+    ma->data.contig_status        = AS_UNPLACED;
+
+    //  Add the fragments
+
+    ResetVA_IntMultiPos(ma->f_list);
+    //SetRangeVA_IntMultiPos(ma->f_list, 0, nf, &(*utg->dovetail_path_ptr)[0]);
+
+    for (int32 ivc=0; ivc<ch->num_frags; ivc++) {
+      IntFragment_ID vid = *GetVA_AChunkFrag(chunkfrags, ch->f_list + ivc);
+      IntMultiPos    imp;
+
+      memset(&imp, 0, sizeof(IntMultiPos));
+
+      imp.type         = get_typ_fragment(frags, vid);
+      imp.ident        = get_iid_fragment(frags, vid);
+      imp.contained    = get_container_fragment(frags, vid);
+      imp.parent       = 0;
+      imp.ahang        = 0;
+      imp.bhang        = 0;
+      imp.position.bgn = get_o5p_fragment(frags, vid);
+      imp.position.end = get_o3p_fragment(frags, vid);
+      imp.delta_length = 0;
+      imp.delta        = NULL;
+
+      AppendVA_IntMultiPos(ma->f_list, &imp);
+    }
+
+    MAS->insertMultiAlign(ma, TRUE, FALSE);
+  }
+
+  delete    MAS;
+  delete [] partmap;
 }
 
 
@@ -154,7 +186,7 @@ ParseCommandLine(UnitiggerGlobals * rg,
 
   while (!errflg &&
          ((ch = getopt(argc, argv,
-                       "B:F:H:I:L:S:U:W:Y:"
+                       "B:F:H:I:L:S:T:U:W:Y:"
                        "d:e:h:j:kl:m:n:o:p:su:w:x:y:z:"
                        "56:7"
                        )) != EOF)) {
@@ -190,7 +222,13 @@ ParseCommandLine(UnitiggerGlobals * rg,
         // -S <filename> : identify spurs file
         rg->spurs_file = optarg;
         fprintf( stderr, " * spurs file is %s\n", rg->spurs_file );
+        break; 
+
+      case 'T':
+        // -t tigStore
+        rg->tigStorePath = (char *)optarg;
         break;
+
       case 'U':
         // -U
         rg->bubble_smoothing_flag = atoi(optarg);
@@ -335,6 +373,11 @@ ParseCommandLine(UnitiggerGlobals * rg,
 
   if(rg->bubble_smoothing_flag && (NULL == rg->frag_store)) {
     fprintf(stderr,"Error: bubble smoothing needs a fragment store.\n");
+    exit(1);
+  }
+
+  if (rg->tigStorePath == NULL) {
+    fprintf(stderr, "ERROR: No output tigStorePath supplied with the -T option.\n");
     exit(1);
   }
 
@@ -510,6 +553,7 @@ main(int argc, char **argv) {
                     heapva->global_fragment_arrival_rate,
                     rg->fragment_count_target,
                     rg->Output_Graph_Store_Prefix,
+                    rg->tigStorePath,
                     gkpStore);
 
   delete gkpStore;

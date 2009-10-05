@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlign.c,v 1.7 2009-09-29 18:45:42 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlign.c,v 1.8 2009-10-05 22:49:42 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -36,14 +36,19 @@ static const char *rcsid = "$Id: MultiAlign.c,v 1.7 2009-09-29 18:45:42 brianwal
 MultiAlignT *
 CreateMultiAlignT(void) {
   MultiAlignT *ma = (MultiAlignT *)safe_calloc(1, sizeof(MultiAlignT));
-  ma->maID      = -1;
+
+  ma->maID                 = -1;
+
   ma->consensus = NULL;
   ma->quality   = NULL;
-  ma->fdelta    = NULL;
+
   ma->f_list    = NULL;
-  ma->v_list    = NULL;
-  ma->udelta    = NULL;
   ma->u_list    = NULL;
+  ma->v_list    = NULL;
+
+  ma->fdelta    = NULL;
+  ma->udelta    = NULL;
+
 #ifdef DEBUG_CREATE
   fprintf(stderr, "CreateMultiAlignT()--  ma 0x%016p created.\n", ma);
 #endif
@@ -53,30 +58,47 @@ CreateMultiAlignT(void) {
 MultiAlignT *
 CreateEmptyMultiAlignT(void) {
   MultiAlignT *ma = (MultiAlignT *)safe_calloc(1, sizeof(MultiAlignT));
-  ma->maID      = -1;
+
+  ma->maID                 = -1;
+
   ma->consensus = CreateVA_char(0);
   ma->quality   = CreateVA_char(0);
-  ma->fdelta    = CreateVA_int32(0);;
+
   ma->f_list    = CreateVA_IntMultiPos(0);
-  ma->v_list    = CreateVA_IntMultiVar(0);
-  ma->udelta    = CreateVA_int32(0);
   ma->u_list    = CreateVA_IntUnitigPos(0);
+  ma->v_list    = CreateVA_IntMultiVar(0);
+
+  ma->fdelta    = CreateVA_int32(0);;
+  ma->udelta    = CreateVA_int32(0);
+
 #ifdef DEBUG_CREATE
-  fprintf(stderr, "CreateMultiAlignT()--  ma 0x%016p created.\n", ma);
+  fprintf(stderr, "CreateEmptyMultiAlignT()--  ma 0x%016p created.\n", ma);
 #endif
   return(ma);
 }
 
 void
 ClearMultiAlignT(MultiAlignT *ma) {
-  ma->maID      = -1;
+  ma->maID                 = -1;
+
+  if (ma->v_list) {
+    for (uint32 i=0; i<GetNumIntMultiVars(ma->v_list); i++) {
+      IntMultiVar *v = GetIntMultiVar(ma->v_list, i);
+      safe_free(v->alleles);
+      safe_free(v->var_seq_memory);
+      safe_free(v->read_id_memory);
+    }
+  }
+
   ResetVA_char(ma->consensus);
   ResetVA_char(ma->quality);
-  ResetVA_int32(ma->fdelta);
+
   ResetVA_IntMultiPos(ma->f_list);
-  ResetVA_int32(ma->udelta);
   ResetVA_IntUnitigPos(ma->u_list);
   ResetVA_IntMultiVar(ma->v_list);
+
+  ResetVA_int32(ma->fdelta);
+  ResetVA_int32(ma->udelta);
 }
 
 void
@@ -100,11 +122,13 @@ DeleteMultiAlignTWorker(MultiAlignT *ma) {
 
   DeleteVA_char(ma->consensus);
   DeleteVA_char(ma->quality);
-  DeleteVA_int32(ma->fdelta);
+
   DeleteVA_IntMultiPos(ma->f_list);
-  DeleteVA_int32(ma->udelta);
   DeleteVA_IntUnitigPos(ma->u_list);
   DeleteVA_IntMultiVar(ma->v_list);
+
+  DeleteVA_int32(ma->fdelta);
+  DeleteVA_int32(ma->udelta);
 
   //  But first, trash it.
   memset(ma, 0xee, sizeof(MultiAlignT));
@@ -115,35 +139,35 @@ DeleteMultiAlignTWorker(MultiAlignT *ma) {
 MultiAlignT *
 CopyMultiAlignT(MultiAlignT *newma, MultiAlignT *oldma) {
 
+  assert(oldma->maID != -1);
+
   if (newma == NULL)
-    newma = CreateMultiAlignT();
+    newma = CreateEmptyMultiAlignT();
+  else
+    ClearMultiAlignT(newma);
 
 #ifdef DEBUG_CREATE
   fprintf(stderr, "CopyMultiAlignT()--  copy from ma 0x%016p to ma 0x%016p\n", ma, newma);
 #endif
 
-  if (newma->consensus == NULL) {
-    newma->consensus = Clone_VA(oldma->consensus);
-    newma->quality   = Clone_VA(oldma->quality);
-    newma->fdelta    = Clone_VA(oldma->fdelta);
-    newma->f_list    = Clone_VA(oldma->f_list);
-    newma->udelta    = Clone_VA(oldma->udelta);
-    newma->u_list    = Clone_VA(oldma->u_list);
-    newma->v_list    = Clone_VA(oldma->v_list);
-  } else {
-    ReuseClone_VA(newma->consensus,oldma->consensus);
-    ReuseClone_VA(newma->quality,  oldma->quality);
-    ReuseClone_VA(newma->fdelta,   oldma->fdelta);
-    ReuseClone_VA(newma->f_list,   oldma->f_list);
-    ReuseClone_VA(newma->udelta,   oldma->udelta);
-    ReuseClone_VA(newma->u_list,   oldma->u_list);
-    ReuseClone_VA(newma->v_list,   oldma->v_list);
-  }
+  //  Shallow copy first.
 
-  assert(oldma->maID != -1);
   newma->maID = oldma->maID;
+  newma->data = oldma->data;
 
-  //  Adjust the delta pointers in the clone
+  //  Then a little deeper.
+
+  ReuseClone_VA(newma->consensus,oldma->consensus);
+  ReuseClone_VA(newma->quality,  oldma->quality);
+
+  ReuseClone_VA(newma->f_list,   oldma->f_list);
+  ReuseClone_VA(newma->u_list,   oldma->u_list);
+  ReuseClone_VA(newma->v_list,   oldma->v_list);
+
+  ReuseClone_VA(newma->fdelta,   oldma->fdelta);
+  ReuseClone_VA(newma->udelta,   oldma->udelta);
+
+  //  And rob the graves.
 
   int32 *oldbase, *newbase;
 
@@ -202,6 +226,8 @@ CloneSurrogateOfMultiAlignT(MultiAlignT *oldma, int32 newNodeID) {
 
   assert(newNodeID != -1);
   newma->maID = newNodeID;
+
+  newma->data = oldma->data;
 
   //  Copy the consensus and quality from the old multialign, also
   //  clone the unitig list.
@@ -279,80 +305,177 @@ restoreDeltaPointers(MultiAlignT *ma) {
 }
 
 
+static
 void
-SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream) {
-  int32  maID = -1;
+saveVARData(MultiAlignT *ma, FILE *stream) {
+  int32          niva = 0;
+  int32          nvar = 0;
+  int32          nids = 0;
 
-  if (ma) {
-    assert(ma->maID != -1);
-    maID = ma->maID;
+  //  Figure out how much data is here
+
+  for (int32 i=0; i<GetNumIntMultiVars(ma->v_list); i++) {
+    IntMultiVar  *imv = GetIntMultiVar(ma->v_list, i);
+
+    niva += imv->num_alleles;
+    nvar += imv->num_alleles * (imv->var_length + 1);
+    nids += imv->num_reads;
   }
 
-#ifdef DEBUG_FILES
-  fprintf(stderr, "SaveMultiAlignTToStream()--  save ma 0x%016p to stream at position "F_S64" -- ",
-          ma, AS_UTL_ftell(stream));
-#endif
+  //  Allocate space to hold it all in one block
 
-  //  If maID == -1, then the multialign isn't here.
-  AS_UTL_safeWrite(stream, &maID, "SaveMultiAlignTToStream", sizeof(int32), 1);
+  IntVarAllele  *iva = (IntVarAllele *)safe_malloc(sizeof(IntVarAllele) * niva);
+  char          *var = (char         *)safe_malloc(sizeof(char)         * nvar);
+  int32         *ids = (int32        *)safe_malloc(sizeof(int32)        * nids);
 
-  if (ma) {
+  niva = nvar = nids = 0;
+
+  //  Copy into one block
+
+  for (int32 i=0; i<GetNumIntMultiVars(ma->v_list); i++) {
+    IntMultiVar  *imv = GetIntMultiVar(ma->v_list, i);
+
+    memcpy(iva + niva, imv->alleles,        sizeof(IntVarAllele) * imv->num_alleles);
+    memcpy(var + nvar, imv->var_seq_memory, sizeof(char)         * imv->num_alleles * (imv->var_length + 1));
+    memcpy(ids + nids, imv->read_id_memory, sizeof(int32)        * imv->num_reads);
+
+    niva += imv->num_alleles;
+    nvar += imv->num_alleles * (imv->var_length + 1);
+    nids += imv->num_reads;
+  }
+
+  //  Dump to disk, and release
+
+  AS_UTL_safeWrite(stream, iva, "saveVARData_iva", sizeof(IntVarAllele), niva);
+  AS_UTL_safeWrite(stream, var, "saveVARData_var", sizeof(char),         nvar);
+  AS_UTL_safeWrite(stream, ids, "saveVARData_ids", sizeof(int32),        nids);
+
+  safe_free(iva);
+  safe_free(var);
+  safe_free(ids);
+}
+
+
+static
+void
+restoreVARData(FILE *stream, MultiAlignT *ma) {
+  int32          niva = 0;
+  int32          nvar = 0;
+  int32          nids = 0;
+
+  //  Allocate the memory we want to keep first, hopefully letting the temporary allocation not
+  //  become a hole.
+
+  for (int32 i=0; i<GetNumIntMultiVars(ma->v_list); i++) {
+    IntMultiVar  *imv = GetIntMultiVar(ma->v_list, i);
+
+    niva += imv->num_alleles;
+    nvar += imv->num_alleles * (imv->var_length + 1);
+    nids += imv->num_reads;
+
+    //  The IMVs should already be empty, but our pointers are invalid and non-NULL.
+    //safe_free(imv->alleles);
+    //safe_free(imv->var_seq_memory);
+    //safe_free(imv->read_id_memory);
+
+    imv->alleles        = (IntVarAllele *)safe_malloc(sizeof(IntVarAllele) * imv->num_alleles);
+    imv->var_seq_memory = (char         *)safe_malloc(sizeof(char)         * imv->num_alleles * (imv->var_length + 1));
+    imv->read_id_memory = (int32        *)safe_malloc(sizeof(int32)        * imv->num_reads);
+
+  }
+
+  //  Allocate temporary space, load all the data
+
+  IntVarAllele  *iva = (IntVarAllele *)safe_malloc(sizeof(IntVarAllele) * niva);
+  char          *var = (char         *)safe_malloc(sizeof(char)         * nvar);
+  int32         *ids = (int32        *)safe_malloc(sizeof(int32)        * nids);
+
+  AS_UTL_safeRead(stream, iva, "restoreVARData_iva", sizeof(IntVarAllele), niva);
+  AS_UTL_safeRead(stream, var, "restoreVARData_var", sizeof(char),         nvar);
+  AS_UTL_safeRead(stream, ids, "restoreVARData_ids", sizeof(int32),        nids);
+
+  niva = nvar = nids = 0;
+
+  //  And copy it back into the correct spots in each VAR entry.
+
+  for (int32 i=0; i<GetNumIntMultiVars(ma->v_list); i++) {
+    IntMultiVar  *imv = GetIntMultiVar(ma->v_list, i);
+
+    memcpy(imv->alleles,        iva + niva, sizeof(IntVarAllele) * imv->num_alleles);
+    memcpy(imv->var_seq_memory, var + nvar, sizeof(char)         * imv->num_alleles * (imv->var_length + 1));
+    memcpy(imv->read_id_memory, ids + nids, sizeof(int32)        * imv->num_reads);
+
+    niva += imv->num_alleles;
+    nvar += imv->num_alleles * (imv->var_length + 1);
+    nids += imv->num_reads;
+  }
+
+  safe_free(iva);
+  safe_free(var);
+  safe_free(ids);
+}
+
+
+void
+SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream) {
+
+  if (ma == NULL) {
+    int32 maID = -1;
+
+    AS_UTL_safeWrite(stream, &maID, "SaveMultiAlignTToStream0", sizeof(int32), 1);
+  } else {
+    assert(ma->maID != -1);
+
+    AS_UTL_safeWrite(stream, &ma->maID, "SaveMultiAlignTToStream1", sizeof(int32), 1);
+    AS_UTL_safeWrite(stream, &ma->data, "SaveMultiAlignTToStream2", sizeof(MultiAlignD), 1);
+
     saveDeltaPointers(ma);
 
     CopyToFileVA_char(ma->consensus, stream);
     CopyToFileVA_char(ma->quality, stream);
+
     CopyToFileVA_int32(ma->fdelta, stream);
-    CopyToFileVA_IntMultiPos(ma->f_list, stream);
     CopyToFileVA_int32(ma->udelta, stream);
-    CopyToFileVA_IntMultiPos(ma->u_list, stream);
+
+    CopyToFileVA_IntMultiPos(ma->f_list, stream);
+    CopyToFileVA_IntUnitigPos(ma->u_list, stream);
     CopyToFileVA_IntMultiVar(ma->v_list, stream);
 
     restoreDeltaPointers(ma);
-  }
 
-#ifdef DEBUG_FILES
-  fprintf(stderr, F_S64"\n",
-          AS_UTL_ftell(stream));
-#endif
+    saveVARData(ma, stream);
+  }
 }
 
 void
 ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma) {
-  int32  maID   = 0;
   int    status = 0;
 
   assert(ma != NULL);
+
   ClearMultiAlignT(ma);
 
-#ifdef DEBUG_FILES
-  fprintf(stderr, "ReLoadMultiAlignTFromStream()--  load ma 0x%016p from stream at position "F_S64" -- ",
-          ma, AS_UTL_ftell(stream));
-#endif
-
-  status = AS_UTL_safeRead(stream, &maID, "ReLoadMultiAlignTFromStream", sizeof(int32), 1);
+  status += AS_UTL_safeRead(stream, &ma->maID, "ReLoadMultiAlignTFromStream1", sizeof(int32), 1);
   assert(status == 1);
 
-  //  If maID == -1, then the multialign isn't here.
-  if (maID != -1) {
-    ma->maID = maID;
+  if (ma->maID != -1) {
+    status += AS_UTL_safeRead(stream, &ma->data, "ReLoadMultiAlignTFromStream2", sizeof(MultiAlignD), 1);
+    assert(status == 2);
 
-    LoadFromFileVA_char(stream,ma->consensus);
-    LoadFromFileVA_char(stream,ma->quality);
-    LoadFromFileVA_int32(stream,ma->fdelta);
-    LoadFromFileVA_IntMultiPos(stream,ma->f_list);
-    LoadFromFileVA_int32(stream,ma->udelta);
-    LoadFromFileVA_IntUnitigPos(stream,ma->u_list);
-    LoadFromFileVA_IntMultiVar(stream,ma->v_list);
+    LoadFromFileVA_char(stream, ma->consensus);
+    LoadFromFileVA_char(stream, ma->quality);
+
+    LoadFromFileVA_int32(stream, ma->fdelta);
+    LoadFromFileVA_int32(stream, ma->udelta);
+
+    LoadFromFileVA_IntMultiPos(stream, ma->f_list);
+    LoadFromFileVA_IntUnitigPos(stream, ma->u_list);
+    LoadFromFileVA_IntMultiVar(stream, ma->v_list);
 
     restoreDeltaPointers(ma);
 
-    CheckMAValidity(ma);
+    restoreVARData(stream, ma);
   }
-
-#ifdef DEBUG_FILES
-  fprintf(stderr, F_S64"\n",
-          AS_UTL_ftell(stream));
-#endif
 }
 
 
@@ -376,6 +499,9 @@ CheckMAValidity(MultiAlignT *ma) {
   char *c      = Getchar(ma->consensus,0);
   char *q      = Getchar(ma->quality,0);
   char  v[256] = {0};
+
+  if ((c == NULL) || (q == NULL))
+    return;
 
   assert(strlen(c) == strlen(q));
 

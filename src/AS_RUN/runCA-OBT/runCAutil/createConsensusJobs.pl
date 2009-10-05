@@ -4,44 +4,24 @@ use strict;
 #    Partition the contigs
 #    Repartition the frag store
 
-sub createPostScaffolderConsensusJobs ($) {
-    my $cgwDir   = shift @_;
+sub createPostScaffolderConsensusJobs () {
     my $consensusType = getGlobal("consensus");
 
     return if (-e "$wrk/8-consensus/consensus.sh");
 
-    #  Check that $cgwDir is complete
+    caFailure("contig consensus didn't find '$wrk/$asm.tigStore'", undef)    if (! -d "$wrk/$asm.tigStore");
+
+    my $tigVersion = findLastCheckpoint("$wrk/7-CGW");
+    caFailure("contig consensus didn't find any checkpoints in '$wrk/7-CGW'", undef) if (!defined($tigVersion));
+
+    ########################################
     #
-    caFailure("contig consensus didn't find '$cgwDir/$asm.SeqStore'", undef)    if (! -d "$cgwDir/$asm.SeqStore");
-    caFailure("contig consensus didn't find '$cgwDir/$asm.cgw_contigs'", undef) if (! -e "$cgwDir/$asm.cgw_contigs");
-
-    my $lastckpt = findLastCheckpoint($cgwDir);
-    caFailure("contig consensus didn't find any checkpoints in '$cgwDir'", undef) if (!defined($lastckpt));
-
-    my $partitionSize = int($numFrags / getGlobal("cnsPartitions"));
-    $partitionSize = getGlobal("cnsMinFrags") if ($partitionSize < getGlobal("cnsMinFrags"));
-
-    if (! -e "$wrk/8-consensus/partitionSDB.success") {
-        my $bin = getBinDirectory();
-        my $cmd;
-        $cmd  = "$bin/PartitionSDB -all -seqstore $cgwDir/$asm.SeqStore -version $lastckpt -fragsper $partitionSize -input $cgwDir/$asm.cgw_contigs ";
-        $cmd .= "> $wrk/8-consensus/partitionSDB.err 2>&1";
-
-        caFailure("seqStore paritioning failed", "$wrk/8-consensus/partitionSDB.err") if (runCommand("$wrk/8-consensus", $cmd));
-        touch("$wrk/8-consensus/partitionSDB.success");
-    }
-
-    if (-z "$wrk/8-consensus/UnitigPartition.txt") {
-        print STDERR "WARNING!  Nothing for consensus to do!  Forcing consensus to skip!\n";
-        touch("$wrk/8-consensus/partitionFragStore.success");
-        touch("$wrk/8-consensus/consensus.sh");
-        return;
-    }
-
+    #  Partition the gkpStore for consensus.
+    #
     if (! -e "$wrk/8-consensus/$asm.partitioned") {
         my $bin = getBinDirectory();
         my $cmd;
-        $cmd  = "$bin/gatekeeper -P $wrk/8-consensus/FragPartition.txt $wrk/$asm.gkpStore ";
+        $cmd  = "$bin/gatekeeper -P $wrk/7-CGW/$asm.partitioning $wrk/$asm.gkpStore ";
         $cmd .= "> $wrk/8-consensus/$asm.partitioned.err 2>&1";
 
         caFailure("gatekeeper partitioning failed", "$wrk/8-consensus/$asm.partitioned.err") if (runCommand("$wrk/8-consensus", $cmd));
@@ -52,21 +32,15 @@ sub createPostScaffolderConsensusJobs ($) {
     #
     #  Build consensus jobs for the grid -- this is very similar to that in createPostUnitiggerConsensus.pl
     #
-    my $jobP;
     my $jobs = 0;
 
-    open(CGW, "ls $cgwDir/$asm.cgw_contigs.* |") or caFailure("failed to find '$cgwDir/$asm.cgw_contigs.*'", undef);
-    while (<CGW>) {
-        if (m/cgw_contigs.(\d+)/) {
-            $jobP .= "$1\t";
-            $jobs++;
-        } else {
-            print STDERR "Didn't match cgw_contigs.# in $_\n";
+    open(F, "< $wrk/7-CGW/$asm.partitionInfo") or caFailure("can't open '$wrk/7-CGW/$asm.partitionInfo'", undef);
+    while (<F>) {
+        if (m/Partition\s+(\d+)\s+has\s+(\d+)\s+contigs\sand\s+(\d+)\s+fragments./) {
+            $jobs = $1;
         }
     }
-    close(CGW);
-
-    $jobP = join ' ', sort { $a <=> $b } split '\s+', $jobP;
+    close(F);
 
     open(F, "> $wrk/8-consensus/consensus.sh") or caFailure("can't open '$wrk/8-consensus/consensus.sh'", undef);
     print F "#!" . getGlobal("shell") . "\n";
@@ -79,9 +53,14 @@ sub createPostScaffolderConsensusJobs ($) {
     print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command line.\n";
     print F "  exit 1\n";
     print F "fi\n";
-    print F "jobp=`echo $jobP | cut -d' ' -f \$jobid`\n";
+    print F "if [ \$jobid -gt $jobs ]; then\n";
+    print F "  echo Error: Only $jobs partitions; you asked for \$jobid.\n";
+    print F "  exit 1\n";
+    print F "fi\n";
     print F "\n";
-    print F "if [ -e $wrk/8-consensus/$asm.cns_contigs.\$jobp.success ] ; then\n";
+    print F "jobid=`printf %03d \$jobid`\n";
+    print F "\n";
+    print F "if [ -e $wrk/8-consensus/${asm}_\$jobid.success ] ; then\n";
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
@@ -93,33 +72,27 @@ sub createPostScaffolderConsensusJobs ($) {
     print F getBinDirectoryShellCode();
 
     if ($consensusType eq "cns") {
-       print F "\$bin/consensus \\\n";       
-       print F "  -s $cgwDir/$asm.SeqStore \\\n";
+       print F "\$bin/ctgcns \\\n";
+       print F "  -g $wrk/$asm.gkpStore \\\n";
+       print F "  -t $wrk/$asm.tigStore $tigVersion \$jobid \\\n";
        print F "  -P ", getGlobal("cnsPhasing"), "\\\n";
-       print F "  -V $lastckpt \\\n";
-       print F "  -p \$jobp \\\n";
-       print F "  -S \$jobp \\\n";       
-       print F "  -m \\\n";
-       print F "  -o $wrk/8-consensus/$asm.cns_contigs.\$jobp \\\n";
-       print F "  $wrk/$asm.gkpStore \\\n";
-       print F "  $cgwDir/$asm.cgw_contigs.\$jobp \\\n";
-       print F " > $wrk/8-consensus/$asm.cns_contigs.\$jobp.err 2>&1 \\\n";
+       print F " > $wrk/8-consensus/${asm}_\$jobid.err 2>&1 \\\n";
        print F "&& \\\n";
-       print F "touch $wrk/8-consensus/$asm.cns_contigs.\$jobp.success\n";
+       print F "touch $wrk/8-consensus/${asm}_\$jobid.success\n";
     } elsif ($consensusType eq "seqan") {
        print F "\$bin/SeqAn_CNS \\\n";
        print F "  -G $wrk/$asm.gkpStore \\\n";
-       print F "  -u $cgwDir/$asm.SeqStore \\\n";
-       print F "  -V $lastckpt \\\n";
-       print F "  -p \$jobp \\\n";
-       print F "  -S \$jobp \\\n";
-       print F "  -c $cgwDir/$asm.cgw_contigs.\$jobp \\\n";
+       print F "  -u $wrk/$asm.SeqStore \\\n";
+       print F "  -V $tigVersion \\\n";
+       print F "  -p \$jobid \\\n";
+       print F "  -S \$jobid \\\n";
+       #print F "  -c $cgwDir/$asm.cgw_contigs.\$jobid \\\n";
        print F "  -s \$bin/graph_consensus \\\n";
        print F "  -w $wrk/8-consensus/ \\\n";
-       print F "  -o $wrk/8-consensus/$asm.cns_contigs.\$jobp \\\n";
-       print F " > $wrk/8-consensus/$asm.cns_contigs.\$jobp.err 2>&1 \\\n";
+       print F "  -o $wrk/8-consensus/$asm.cns_contigs.\$jobid \\\n";
+       print F " > $wrk/8-consensus/$asm.cns_contigs.\$jobid.err 2>&1 \\\n";
        print F "&& \\\n";
-       print F "touch $wrk/8-consensus/$asm.cns_contigs.\$jobp.success\n";
+       print F "touch $wrk/8-consensus/$asm.cns_contigs.\$jobid.success\n";
     } else {
        caFailure("unknown consensus type $consensusType; must be 'cns' or 'seqan'", undef);
     }
@@ -151,37 +124,31 @@ sub createPostScaffolderConsensusJobs ($) {
 }
 
 
-sub postScaffolderConsensus ($) {
-    my $cgwDir   = shift @_;
+sub postScaffolderConsensus () {
 
     system("mkdir $wrk/8-consensus") if (! -d "$wrk/8-consensus");
 
     goto alldone if (-e "$wrk/8-consensus/consensus.success");
 
-    $cgwDir = "$wrk/7-CGW" if (!defined($cgwDir));
-
-    createPostScaffolderConsensusJobs($cgwDir);
+    createPostScaffolderConsensusJobs();
 
     #
     #  Check that consensus finished properly
     #
     my $failedJobs = 0;
 
-    open(CGWIN, "ls $cgwDir/$asm.cgw_contigs.* |") or caFailure("didn't find '$cgwDir/$asm.cgw_contigs.*'", undef);
-    while (<CGWIN>) {
-        chomp;
+    open(F, "< $wrk/7-CGW/$asm.partitionInfo") or caFailure("can't open '$wrk/7-CGW/$asm.partitionInfo'", undef);
+    while (<F>) {
+        if (m/Partition\s+(\d+)\s+has\s+(\d+)\s+contigs\sand\s+(\d+)\s+fragments./) {
+            my $id = substr("000" . $1, -3);
 
-        if (m/cgw_contigs.(\d+)/) {
-            if ((-e "$wrk/8-consensus/$asm.cns_contigs.$1.failed") ||
-                ((! -z $_) && (! -e "$wrk/8-consensus/$asm.cns_contigs.$1.success"))) {
-                print STDERR "$wrk/8-consensus/$asm.cns_contigs.$1 failed.\n";
+            if (! -e "$wrk/8-consensus/${asm}_$id.success") {
+                print STDERR "$wrk/8-consensus/${asm}_$id failed.\n";
                 $failedJobs++;
             }
-        } else {
-            print STDERR "WARNING: didn't match $_ for cgw_contigs filename!\n";
         }
     }
-    close(CGWIN);
+    close(F);
 
     #  FAILUREHELPME
     #

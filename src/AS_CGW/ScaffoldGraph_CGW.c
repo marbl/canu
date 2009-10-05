@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.47 2009-10-01 14:29:10 skoren Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.48 2009-10-05 22:49:42 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -56,12 +56,12 @@ void ClearChunkInstance(ChunkInstanceT *ci){
 //  time....dreaming....
 //
 extern gkStore               *gkpStore;
-extern tSequenceDB           *sequenceDB;
+extern MultiAlignStore       *tigStore;
 
 void
 LoadScaffoldGraphFromCheckpoint(char   *name,
                                 int32   checkPointNum,
-                                int     readWrite){
+                                int     writable){
   char ckpfile[FILENAME_MAX];
   char tmgfile[FILENAME_MAX];
 
@@ -84,7 +84,8 @@ LoadScaffoldGraphFromCheckpoint(char   *name,
     fprintf(stderr, "Failed to open '%s' for reading checkpoint: %s\n", ckpfile, strerror(errno)), exit(1);
 
   ScaffoldGraph = (ScaffoldGraphT *)safe_calloc(1, sizeof(ScaffoldGraphT));
-  int    i, status;
+
+  int    status;
 
   status = AS_UTL_safeRead(F, ScaffoldGraph->name, "LoadScaffoldGraphFromCheckpoint", sizeof(char), 256);
   assert(status == 256);
@@ -100,10 +101,16 @@ LoadScaffoldGraphFromCheckpoint(char   *name,
   CheckGraph(ScaffoldGraph->ContigGraph);
   CheckGraph(ScaffoldGraph->ScaffoldGraph);
 
-  //  Erase the bogus pointer in dists
+  //  Load distance estimate histograms
   //
-  for (i=0; i<GetNumDistTs(ScaffoldGraph->Dists); i++)
-    GetDistT(ScaffoldGraph->Dists, i)->histogram = NULL;
+  for (int32 i=0; i<GetNumDistTs(ScaffoldGraph->Dists); i++) {
+    DistT *dptr = GetDistT(ScaffoldGraph->Dists, i);
+
+    dptr->histogram = (int32 *)safe_malloc(sizeof(int32) * dptr->bnum);
+
+    status = AS_UTL_safeRead(F, dptr->histogram, "LoadScaffoldGraphFromCheckpoint", sizeof(int32), dptr->bnum);
+    assert(status == dptr->bnum);
+  }
 
   // Temporary
   ScaffoldGraph->ChunkInstances = ScaffoldGraph->CIGraph->nodes;
@@ -142,11 +149,10 @@ LoadScaffoldGraphFromCheckpoint(char   *name,
   }
 
   //  Open the seqStore
-  sprintf(ckpfile, "%s.SeqStore", name);
-  ScaffoldGraph->sequenceDB = sequenceDB = openSequenceDB(ckpfile, readWrite, checkPointNum);
+  ScaffoldGraph->tigStore = tigStore = new MultiAlignStore(GlobalData->tigStoreName, checkPointNum, 0, 0, writable);
 
   //  Open the gkpStore
-  ScaffoldGraph->gkpStore = gkpStore = new gkStore(GlobalData->gkpStoreName, FALSE, FALSE);
+  ScaffoldGraph->gkpStore = gkpStore = new gkStore(GlobalData->gkpStoreName, FALSE, writable);
 
   //  Check (and cleanup?) scaffolds
   SetCIScaffoldTLengths(ScaffoldGraph, TRUE);
@@ -179,7 +185,13 @@ CheckpointScaffoldGraph(const char *logicalname, const char *location) {
   SaveGraphCGWToStream(ScaffoldGraph->ContigGraph,F);
   SaveGraphCGWToStream(ScaffoldGraph->ScaffoldGraph,F);
 
-  saveSequenceDB(ScaffoldGraph->sequenceDB);
+  //  Save the distance estimate histograms -- terminator needs these to output
+  //
+  for (int32 i=0; i<GetNumDistTs(ScaffoldGraph->Dists); i++) {
+    DistT *dptr = GetDistT(ScaffoldGraph->Dists, i);
+
+    AS_UTL_safeWrite(F, dptr->histogram, "LoadScaffoldGraphFromCheckpoint", sizeof(int32), dptr->bnum);
+  }
 
   AS_UTL_safeWrite(F, &ScaffoldGraph->doRezOnContigs,            "CheckpointScaffoldGraph", sizeof(int32), 1);
   AS_UTL_safeWrite(F, &ScaffoldGraph->checkPointIteration,       "CheckpointScaffoldGraph", sizeof(int32), 1);
@@ -190,6 +202,9 @@ CheckpointScaffoldGraph(const char *logicalname, const char *location) {
   AS_UTL_safeWrite(F, &ScaffoldGraph->numLiveScaffolds,          "CheckpointScaffoldGraph", sizeof(int32), 1);
 
   fclose(F);
+
+  if (ScaffoldGraph->tigStore)
+    ScaffoldGraph->tigStore->nextVersion();
 
   time_t t = time(0);
   fprintf(stderr, "====> Writing %s (logical %s) %s at %s", ckpfile, logicalname, location, ctime(&t));
@@ -264,14 +279,13 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name) {
 
   strcpy(sgraph->name, name);
 
-  sprintf(buffer,"%s.SeqStore", name);
-  sgraph->sequenceDB    = sequenceDB = createSequenceDB(buffer);
+  sgraph->tigStore      = tigStore = new MultiAlignStore(GlobalData->tigStoreName, 2, 0, 0, TRUE);
 
   sgraph->CIGraph       = CreateGraphCGW(CI_GRAPH, 16 * 1024, 16 * 1024);
   sgraph->ContigGraph   = CreateGraphCGW(CONTIG_GRAPH, 1, 1);
   sgraph->ScaffoldGraph = CreateGraphCGW(SCAFFOLD_GRAPH, NULLINDEX, NULLINDEX);
 
-  sgraph->gkpStore = new gkStore(GlobalData->gkpStoreName, FALSE, FALSE);
+  sgraph->gkpStore      = gkpStore = new gkStore(GlobalData->gkpStoreName, FALSE, TRUE);
 
   int numFrags = sgraph->gkpStore->gkStore_getNumFragments();
   int numDists = sgraph->gkpStore->gkStore_getNumLibraries();
@@ -291,6 +305,8 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name) {
 
   sgraph->doRezOnContigs = rezOnContigs;
 
+  sgraph->checkPointIteration = 3;
+
   // Temporary
   sgraph->ChunkInstances = sgraph->CIGraph->nodes;
   sgraph->CIEdges        = sgraph->CIGraph->edges;
@@ -306,13 +322,17 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name) {
 
 /* Destructor */
 void DestroyScaffoldGraph(ScaffoldGraphT *sgraph){
-  int i;
 
-  deleteSequenceDB(sgraph->sequenceDB);
+  delete sgraph->tigStore;
 
   DeleteGraphCGW(sgraph->CIGraph);
   DeleteGraphCGW(sgraph->ContigGraph);
   DeleteGraphCGW(sgraph->ScaffoldGraph);
+
+  for (int32 i=0; i<GetNumDistTs(ScaffoldGraph->Dists); i++) {
+    DistT *dptr = GetDistT(ScaffoldGraph->Dists, i);
+    safe_free(dptr->histogram);
+  }
 
   delete sgraph->gkpStore;
 
@@ -498,20 +518,14 @@ int
 GetCoverageStat(ChunkInstanceT *CI) {
 
   if (CI->flags.bits.isCI)
-    return CI->info.CI.coverageStat;
+    return ScaffoldGraph->tigStore->getUnitigCoverageStat(CI->id);
 
   if (CI->flags.bits.isContig) {
-    ChunkInstanceT *ci;
-
-    if (CI->info.Contig.numCI == 1) {
-      ci = GetGraphNode(ScaffoldGraph->CIGraph, CI->info.Contig.AEndCI);
-      AssertPtr(ci);
-
-      return ci->info.CI.coverageStat;
-    } else {
-      //  They have stuff in 'em, and are unique-equivalent
+    if (CI->info.Contig.numCI == 1)
+      return ScaffoldGraph->tigStore->getUnitigCoverageStat(CI->info.Contig.AEndCI);
+    else
+      //  Multi-unitig contig, unique-equivalent
       return GlobalData->cgbUniqueCutoff;
-    }
   }
   assert(0);
   return(0);
@@ -528,12 +542,8 @@ GetNumInstances(ChunkInstanceT *CI) {
     return CI->info.CI.numInstances;
 
   if (CI->flags.bits.isContig) {
-    ChunkInstanceT *ci;
-
     if (CI->info.Contig.numCI == 1) {
-      ci = GetGraphNode(ScaffoldGraph->CIGraph, CI->info.Contig.AEndCI);
-      AssertPtr(ci);
-
+      ChunkInstanceT *ci = GetGraphNode(ScaffoldGraph->CIGraph, CI->info.Contig.AEndCI);
       return ci->info.CI.numInstances;
     } else {
       //  Multi-unitig contig, not a surrogate.
@@ -763,7 +773,7 @@ void  TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph)
   BuildSEdges(ScaffoldGraph, TRUE, FALSE);
   MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, FALSE);
 
-  //clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+  //ScaffoldGraph->tigStore->flushCache();
 }
 
 

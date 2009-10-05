@@ -1,11 +1,8 @@
 use strict;
 
-sub unitigger (@) {
-    my @cgbFiles  = @_;
-
-    goto alldone if (scalar(@cgbFiles) > 0);
-
+sub unitigger () {
     my $bin = getBinDirectory();
+
 
     if (0) {
         my $cmd = "$bin/removeMateOverlap -gkp $wrk/$asm.gkpStore -ovl $wrk/$asm.ovlStore";
@@ -57,6 +54,7 @@ sub unitigger (@) {
             $cmd  = "$bin/buildUnitigs ";
             $cmd .= " -O $wrk/$asm.ovlStore ";
             $cmd .= " -G $wrk/$asm.gkpStore ";
+            $cmd .= " -T $wrk/$asm.tigStore ";
             $cmd .= " -B $B ";
             $cmd .= " -e $e ";
             $cmd .= " -s $l "   if (defined($l));
@@ -68,14 +66,15 @@ sub unitigger (@) {
             my $u = getGlobal("utgBubblePopping");
 
             $cmd  = "$bin/unitigger ";
-            $cmd .= " -k " if (getGlobal("utgRecalibrateGAR") == 1);
+            $cmd .= " -I $wrk/$asm.ovlStore ";
+            $cmd .= " -F $wrk/$asm.gkpStore ";
+            $cmd .= " -T $wrk/$asm.tigStore ";
             $cmd .= " -B $B ";
+            $cmd .= " -e $e ";
+            $cmd .= " -k " if (getGlobal("utgRecalibrateGAR") == 1);
             $cmd .= " -l $l " if defined($l);
             $cmd .= " -d 1 -x 1 -z 10 -j 5 -U $u ";
-            $cmd .= " -e $e ";
-            $cmd .= " -F $wrk/$asm.gkpStore ";
             $cmd .= " -o $wrk/4-unitigger/$asm ";
-            $cmd .= " -I $wrk/$asm.ovlStore ";
             $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
         } else {
             caFailure("unknown unitigger $unitigger; must be 'bog' or 'utg'", undef);
@@ -88,16 +87,7 @@ sub unitigger (@) {
         touch("$wrk/4-unitigger/unitigger.success");
     }
 
-  alldone:
-    #  Other steps (consensus) need the list of cgb files, so we just do it here.
-    #
-    open(F, "ls $wrk/4-unitigger/*.cgb |") or caFailure("failed to ls '$wrk/4-unitigger/*.cgb'", undef);
-    @cgbFiles = <F>;
-    close(F);
-    chomp @cgbFiles;
-
     stopAfter("unitigger");
-    return @cgbFiles;
 }
 
 1;
