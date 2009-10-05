@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AbacusRefine.c,v 1.2 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: AbacusRefine.c,v 1.3 2009-10-05 04:30:49 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -44,6 +44,7 @@ base2int(char b) {
   if (b == 'n' || b == 'N') return 5;
   fprintf(stderr, "base2int b out of range");
   assert(0);
+  return 255;
 }
 
 
