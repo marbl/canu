@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.6 2009-09-07 07:40:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.7 2009-10-05 04:45:44 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -53,7 +53,10 @@ PrintMultiAlignT(FILE *out,
 
   gkFragment rsp;
 
-  length = strlen(consensus);
+  if (consensus)
+    length = strlen(consensus);
+  else
+    length = 0;
 
   rc = IMP2Array(GetIntMultiPos(ma->f_list,0),
                  GetNumIntMultiPoss(ma->f_list),
