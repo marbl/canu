@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.9 2009-08-25 06:07:44 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.10 2009-10-05 04:06:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -442,7 +442,7 @@ gkStore::gkStore_loadPartition(uint32 partition) {
   assert(partmap    == NULL);
   assert(isCreating == 0);
 
-  if (isReadOnly == 1)
+  if (isReadOnly == 0)
     fprintf(stderr, "WARNING:  loading a partition from a writable gkpStore.\n");
   assert(isReadOnly == 1);
 
