@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.41 2009-09-29 18:45:42 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.42 2009-10-05 04:14:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -90,22 +90,21 @@ GetUIDUIDMatePairType(AS_UID *UID1, AS_UID *UID2, FILE *fin) {
 
 void
 IMV_Encode(IntMultiVar *imv) {
-  char *tv = imv->enc_var_seq   = GetMemory(imv->num_alleles * (imv->var_length + 1));
-  char *tn = imv->enc_num_reads = GetMemory(imv->num_alleles * 64);
-  char *tw = imv->enc_weights   = GetMemory(imv->num_alleles * 64);
-  char *tr = imv->enc_read_ids  = GetMemory(imv->num_reads * 64);
+  char *tv = imv->enc_var_seq   = GetMemory(imv->num_alleles * (imv->var_length + 1) + 1);
+  char *tn = imv->enc_num_reads = GetMemory(imv->num_alleles * 64 + 1);
+  char *tw = imv->enc_weights   = GetMemory(imv->num_alleles * 64 + 1);
+  char *tr = imv->enc_read_ids  = GetMemory(imv->num_reads * 64 + 1);
+
+  //  The extra byte above is for the extra '/' we add on every string.
 
   //  (seq) Copy var sequences
   for (int32 j=0; j<imv->num_alleles; j++) {
     IntVarAllele  *a = imv->alleles + j;
 
-    strcpy(tv, imv->var_seq_memory + a->var_seq_offset);
-    while (*tv)
-      tv++;
+    for (int x=0; x<imv->var_length; x++)
+      *tv++ = imv->var_seq_memory[a->var_seq_offset + x];
     *tv++ = '/';
     *tv = 0;
-
-    //fprintf(stderr, "SEQ %d '%s' '%s'\n", j, imv->var_seq_memory + a->var_seq_offset, imv->enc_var_seq);
   }
 
   //  (nra) Copy number of reads in each allele
@@ -116,8 +115,6 @@ IMV_Encode(IntMultiVar *imv) {
     while (*tn)
       tn++;
     *tn = 0;
-
-    //fprintf(stderr, "NRA: %d '%d' '%s'\n", j, a->num_reads, imv->enc_num_reads);
   }
 
   //  (wgt) Copy weights of each allele

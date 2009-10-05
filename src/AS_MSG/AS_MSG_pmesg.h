@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.80 2009-09-29 18:45:42 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.81 2009-10-05 04:14:23 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.80 2009-09-29 18:45:42 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.81 2009-10-05 04:14:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <time.h>
@@ -479,7 +479,7 @@ typedef struct {
   float           microhet_prob;
   UnitigStatus    status;
   UnitigFUR       unique_rept;
-  int32     length;
+  int32           length;
   char            *consensus;
   char            *quality;
   int32		  forced;
@@ -494,7 +494,7 @@ typedef struct {
   UnitigStatus    status;
   int32           num_occurences;
   AS_UID          *occurences;
-  int32     length;
+  int32           length;
   char            *consensus;
   char            *quality;
   int32           num_reads;
