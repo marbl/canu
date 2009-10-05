@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.43 2009-09-14 16:09:04 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.44 2009-10-05 05:52:38 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -155,6 +155,7 @@ ChunkOverlapperT *CreateChunkOverlapper(void){
 void DestroyChunkOverlapper(ChunkOverlapperT *chunkOverlapper){
   DeleteHashTable_AS(chunkOverlapper->hashTable);
   FreeHeap_AS(chunkOverlapper->ChunkOverlaps);
+  safe_free(chunkOverlapper);
 }
 
 
