@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.48 2009-09-29 18:45:42 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.49 2009-10-06 01:40:42 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg_internal.h"
 
@@ -373,7 +373,10 @@ ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg) {
   //  Our memory is now round-robin.  This is VERY important for VAR messages.  Terminator (before
   //  tigStore) would read an IMV, and attempt to write a VAR based on that memory.  Resetting the
   //  msgLen pointer to zero caused the IMV to get overwritten.
-  //AS_MSG_globals->msgLen = 0;
+  //
+  //  AFTER tigStore, we can switch back to resetting msgLen on reads.
+  //
+  AS_MSG_globals->msgLen = 0;
 
   //  Can't use ReadLine() here, because we want to return EOF if we
   //  read an empty line.
