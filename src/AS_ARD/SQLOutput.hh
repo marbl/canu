@@ -21,7 +21,7 @@
 #ifndef SQLOutput_H
 #define SQLOutput_H
 
-static const char *rcsid_SQLOutput_H = "$Id: SQLOutput.hh,v 1.9 2009-07-30 10:42:55 brianwalenz Exp $";
+static const char *rcsid_SQLOutput_H = "$Id: SQLOutput.hh,v 1.10 2009-10-06 02:35:29 brianwalenz Exp $";
 
 #include <iostream>
 #include "IDBOutput.hh"
@@ -126,7 +126,7 @@ protected:
          virtual bool storeCCO2DB (
                   AS_UID eaccession,
                   IntFragment_ID iaccession,
-                  ContigPlacementStatusType placed,
+                  ContigStatus placed,
                   int32 length,
                   const char * consensus,
                   const char * quality,

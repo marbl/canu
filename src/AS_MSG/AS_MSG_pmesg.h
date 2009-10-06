@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.81 2009-10-05 04:14:23 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.82 2009-10-06 02:35:29 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.81 2009-10-05 04:14:23 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.82 2009-10-06 02:35:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <time.h>
@@ -506,13 +506,13 @@ typedef struct {
 typedef enum {
   AS_PLACED	= (int)'P',
   AS_UNPLACED   = (int)'U'
-} ContigPlacementStatusType;
+} ContigStatus;
 
 /* ICM */
 
 typedef struct {
   IntContig_ID               iaccession;
-  ContigPlacementStatusType  placed;
+  ContigStatus  placed;
   int32                length;
   char                       *consensus;
   char                       *quality;
@@ -724,7 +724,7 @@ typedef struct {
 typedef struct {
   AS_UID                      eaccession;
   IntContig_ID                iaccession;
-  ContigPlacementStatusType   placed;
+  ContigStatus   placed;
   int32                 length;
   char                       *consensus;
   char                       *quality;

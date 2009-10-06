@@ -21,7 +21,7 @@
 #ifndef IDBOutput_HH
 #define IDBOutput_HH
 
-static const char *rcsid_IDBOutput_HH = "$Id: IDBOutput.hh,v 1.10 2009-07-30 10:42:55 brianwalenz Exp $";
+static const char *rcsid_IDBOutput_HH = "$Id: IDBOutput.hh,v 1.11 2009-10-06 02:35:29 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -103,7 +103,7 @@ namespace AS_ARD {
          virtual bool storeCCO2DB (
                   AS_UID eaccession,
                   IntFragment_ID iaccession,
-                  ContigPlacementStatusType placed,
+                  ContigStatus placed,
                   int32 length,
                   const char * consensus,
                   const char * quality,

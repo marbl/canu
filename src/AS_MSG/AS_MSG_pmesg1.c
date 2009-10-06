@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.42 2009-10-05 04:14:25 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.43 2009-10-06 02:35:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -724,7 +724,7 @@ Read_ICM_Mesg(FILE *fin) {
   int				i;
 
   GET_FIELD(mesg.iaccession,"acc:"F_IID,"accession number");
-  mesg.placed = (ContigPlacementStatusType)GetType("pla:%1[PU]","placed flag", fin);
+  mesg.placed = (ContigStatus)GetType("pla:%1[PU]","placed flag", fin);
   GET_FIELD(mesg.length,"len:"F_S32,"contig length");
   mesg.consensus = GetText("cns:",fin,TRUE);
   mesg.quality   = GetText("qlt:",fin,TRUE);
@@ -966,7 +966,7 @@ static void *Read_CCO_Mesg(FILE *fin)
   int  	 i;
 
   mesg.eaccession = GetUIDIID("acc:",&mesg.iaccession,fin);
-  mesg.placed = (ContigPlacementStatusType)GetType("pla:%1[PU]","placed flag", fin);
+  mesg.placed = (ContigStatus)GetType("pla:%1[PU]","placed flag", fin);
   GET_FIELD(mesg.length,"len:"F_S32,"contig length");
   mesg.consensus = GetText("cns:",fin,TRUE);
   mesg.quality   = GetText("qlt:",fin,TRUE);

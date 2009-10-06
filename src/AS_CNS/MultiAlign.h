@@ -22,7 +22,7 @@
 #ifndef MULTIALIGN_H
 #define MULTIALIGN_H
 
-static const char *rcsid_MULTIALIGN_H = "$Id: MultiAlign.h,v 1.5 2009-10-05 22:49:42 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGN_H = "$Id: MultiAlign.h,v 1.6 2009-10-06 02:35:29 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_Var.h"
@@ -38,7 +38,7 @@ typedef struct {
   UnitigStatus               unitig_status;
   UnitigFUR                  unitig_unique_rept;
 
-  ContigPlacementStatusType  contig_status;
+  ContigStatus  contig_status;
 
   //uint32                     gapped_length;
   uint32                     num_frags;

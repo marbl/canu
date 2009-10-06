@@ -21,7 +21,7 @@
 #ifndef DBTextOutput_HH
 #define DBTextOutput_HH
 
-static const char *rcsid_DBTextOutput_HH = "$Id: DBTextOutput.hh,v 1.8 2009-07-30 10:42:55 brianwalenz Exp $";
+static const char *rcsid_DBTextOutput_HH = "$Id: DBTextOutput.hh,v 1.9 2009-10-06 02:35:29 brianwalenz Exp $";
 
 #include "IDBOutput.hh"
 
@@ -100,7 +100,7 @@ namespace AS_ARD {
          bool storeCCO2DB (
                   AS_UID eaccession,
                   IntFragment_ID iaccession,
-                  ContigPlacementStatusType placed,
+                  ContigStatus placed,
                   int32 length,
                   const char * consensus,
                   const char * quality,

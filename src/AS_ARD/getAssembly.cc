@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: getAssembly.cc,v 1.11 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: getAssembly.cc,v 1.12 2009-10-06 02:35:29 brianwalenz Exp $";
 
 /*************************************************************************/
 /* Local include files */
@@ -934,7 +934,7 @@ std::cerr << "Running command " << command << std::endl;
 
                   ctg.eaccession = AS_UID_lookup(EUID, NULL);
                   ctg.iaccession = CIID;
-                  ctg.placed = (ContigPlacementStatusType) pla;
+                  ctg.placed = (ContigStatus) pla;
                   ctg.length = len;
                   ctg.consensus = "";
                   ctg.quality = "";

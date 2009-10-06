@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNSTORE_H
 #define MULTIALIGNSTORE_H
 
-static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore.h,v 1.1 2009-10-05 22:49:42 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore.h,v 1.2 2009-10-06 02:35:29 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -130,7 +130,7 @@ public:
   double                     getUnitigMicroHetProb(int32 maID) { return(utgRecord[maID].mad.unitig_microhet_prob); };
   UnitigStatus               getUnitigStatus(int32 maID)       { return(utgRecord[maID].mad.unitig_status); };
   UnitigFUR                  getUnitigFUR(int32 maID)          { return(utgRecord[maID].mad.unitig_unique_rept); };
-  ContigPlacementStatusType  getContigStatus(int32 maID)       { return(ctgRecord[maID].mad.contig_status); };
+  ContigStatus  getContigStatus(int32 maID)       { return(ctgRecord[maID].mad.contig_status); };
 
   //uint32                     getGappedLength(int32 maID, bool isUnitig);
   uint32                     getNumFrags(int32 maID, bool isUnitig)    { return((isUnitig) ? utgRecord[maID].mad.num_frags   : ctgRecord[maID].mad.num_frags);   };
@@ -141,7 +141,7 @@ public:
   UnitigStatus               setUnitigStatus(int32 maID, UnitigStatus status) { utgRecord[maID].mad.unitig_status = status;     if (utgCache[maID]) utgCache[maID]->data.unitig_status = status; };
   UnitigFUR                  setUnitigFUR(int32 maID, UnitigFUR fur)          { utgRecord[maID].mad.unitig_unique_rept = fur;   if (utgCache[maID]) utgCache[maID]->data.unitig_unique_rept = fur; };
 
-  ContigPlacementStatusType  setContigStatus(int32 maID, ContigPlacementStatusType status) { ctgRecord[maID].mad.contig_status = status;  if (ctgCache[maID]) ctgCache[maID]->data.contig_status = status; };
+  ContigStatus  setContigStatus(int32 maID, ContigStatus status) { ctgRecord[maID].mad.contig_status = status;  if (ctgCache[maID]) ctgCache[maID]->data.contig_status = status; };
 
   void                       dumpMultiAlignR(int32 maID, bool isUnitig) {
     MultiAlignR  *maRecord = (isUnitig) ? utgRecord : ctgRecord;

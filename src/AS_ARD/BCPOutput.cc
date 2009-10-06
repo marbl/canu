@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: BCPOutput.cc,v 1.11 2009-07-30 10:42:55 brianwalenz Exp $";
+static const char *rcsid = "$Id: BCPOutput.cc,v 1.12 2009-10-06 02:35:29 brianwalenz Exp $";
 
 #ifdef SYBASE
 
@@ -492,7 +492,7 @@ bool BCPOutput::storeJMPList2DB(int jmpType, AS_UID jmpListID, AS_UID jmpID, AS_
 bool BCPOutput::storeCCO2DB (
                   AS_UID eaccession,
                   IntFragment_ID iaccession,
-                  ContigPlacementStatusType placed,
+                  ContigStatus placed,
                   int32 length,
                   const char * consensus,
                   const char * quality,
