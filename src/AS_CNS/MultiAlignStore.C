@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.2 2009-10-07 08:23:50 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.3 2009-10-07 09:49:27 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -278,11 +278,19 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
 
   MultiAlignT   **maCache  = (isUnitig) ? (utgCache) : (ctgCache);
 
-  if ((maCache[ma->maID] != ma) ||
-      (keepInCache == false))
-    DeleteMultiAlignT(maCache[ma->maID]);
-
-  maCache[ma->maID] = (keepInCache) ? ma : NULL;
+  //  If we want to save this in the cache, delete whatever is there (unless it is us) and save it.
+  //  If not, delete whatever is there (unless it is us) and delete us too.
+  //
+  if (keepInCache) {
+    if (maCache[ma->maID] != ma)
+      DeleteMultiAlignT(maCache[ma->maID]);
+    maCache[ma->maID] = ma;
+  } else {
+    if (maCache[ma->maID] != ma)
+      DeleteMultiAlignT(maCache[ma->maID]);
+    maCache[ma->maID] = NULL;
+    DeleteMultiAlignT(ma);    
+  }
 }
 
 
