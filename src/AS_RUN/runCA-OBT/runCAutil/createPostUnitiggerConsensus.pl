@@ -66,9 +66,7 @@ sub createPostUnitiggerConsensusJobs (@) {
        print F "  -t $wrk/$asm.tigStore 1 \$jobid \\\n";
        print F " > $wrk/5-consensus/${asm}_\$jobid.err 2>&1 \\\n";
        print F "&& \\\n";
-       print F "  touch $wrk/5-consensus/${asm}_\$jobid.success\n";
-       print F "fi\n";
-       print F "\n";
+       print F "touch $wrk/5-consensus/${asm}_\$jobid.success\n";
     } elsif ($consensusType eq "seqan") {
        print F "\$bin/SeqAn_CNS \\\n";
        print F "  -G $wrk/$asm.gkpStore \\\n";
