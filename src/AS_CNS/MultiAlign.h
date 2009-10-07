@@ -22,7 +22,7 @@
 #ifndef MULTIALIGN_H
 #define MULTIALIGN_H
 
-static const char *rcsid_MULTIALIGN_H = "$Id: MultiAlign.h,v 1.6 2009-10-06 02:35:29 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGN_H = "$Id: MultiAlign.h,v 1.7 2009-10-07 08:23:50 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_Var.h"
@@ -38,9 +38,8 @@ typedef struct {
   UnitigStatus               unitig_status;
   UnitigFUR                  unitig_unique_rept;
 
-  ContigStatus  contig_status;
+  ContigStatus               contig_status;
 
-  //uint32                     gapped_length;
   uint32                     num_frags;
   uint32                     num_unitigs;
 } MultiAlignD;
@@ -84,6 +83,9 @@ void         GetMultiAlignUngappedConsensus(MultiAlignT *ma, VA_TYPE(char) *unga
 void         GetMultiAlignUngappedOffsets(MultiAlignT *ma, VA_TYPE(int32) *ungappedOffsets);
 
 void         MakeCanonicalMultiAlignT(MultiAlignT *ma);
+
+void         DumpMultiAlignForHuman(FILE *out, MultiAlignT *ma, bool isUnitig);
+bool         LoadMultiAlignFromHuman(MultiAlignT *ma, FILE *in);
 
 void         PrintMultiAlignT(FILE *out,
                               MultiAlignT *ma,

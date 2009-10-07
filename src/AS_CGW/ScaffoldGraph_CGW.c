@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.48 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.49 2009-10-07 08:23:50 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -149,7 +149,7 @@ LoadScaffoldGraphFromCheckpoint(char   *name,
   }
 
   //  Open the seqStore
-  ScaffoldGraph->tigStore = tigStore = new MultiAlignStore(GlobalData->tigStoreName, checkPointNum, 0, 0, writable);
+  ScaffoldGraph->tigStore = tigStore = new MultiAlignStore(GlobalData->tigStoreName, checkPointNum, 0, 0, writable, FALSE);
 
   //  Open the gkpStore
   ScaffoldGraph->gkpStore = gkpStore = new gkStore(GlobalData->gkpStoreName, FALSE, writable);
@@ -279,7 +279,7 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name) {
 
   strcpy(sgraph->name, name);
 
-  sgraph->tigStore      = tigStore = new MultiAlignStore(GlobalData->tigStoreName, 2, 0, 0, TRUE);
+  sgraph->tigStore      = tigStore = new MultiAlignStore(GlobalData->tigStoreName, 2, 0, 0, TRUE, FALSE);
 
   sgraph->CIGraph       = CreateGraphCGW(CI_GRAPH, 16 * 1024, 16 * 1024);
   sgraph->ContigGraph   = CreateGraphCGW(CONTIG_GRAPH, 1, 1);

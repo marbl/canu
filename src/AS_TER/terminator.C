@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: terminator.C,v 1.1 2009-10-05 22:49:42 brianwalenz Exp $";
+const char *mainid = "$Id: terminator.C,v 1.2 2009-10-07 08:23:50 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly pipeline and replaces internal
 //  accession numbers by external accession numbers.
@@ -980,7 +980,7 @@ int main (int argc, char *argv[]) {
 
   //  Reopen the tigStore used for consensus.
   delete ScaffoldGraph->tigStore;
-  ScaffoldGraph->tigStore = new MultiAlignStore(GlobalData->tigStoreName, tigStoreVers, 0, 0, FALSE);
+  ScaffoldGraph->tigStore = new MultiAlignStore(GlobalData->tigStoreName, tigStoreVers, 0, 0, FALSE, FALSE);
 
   fprintf(stderr, "Writing assembly file\n");
 

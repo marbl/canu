@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.7 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.8 2009-10-07 08:23:50 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -212,17 +212,24 @@ ReplaceEndUnitigInContig(uint32 contig_iid,
 
   // Now, want to generate a new MultiAlignT which is an appropriate adjustment of original
   cma = CreateMultiAlignT();
+
+  cma->maID = -1;
+  cma->data = oma->data;
+
   cma->consensus = CreateVA_char(GetMANodeLength(ma->lid)+1);
-  cma->quality = CreateVA_char(GetMANodeLength(ma->lid)+1);
+  cma->quality   = CreateVA_char(GetMANodeLength(ma->lid)+1);
 
   GetMANodeConsensus(ma->lid, cma->consensus, cma->quality);
+
   // no deltas required at this stage
   // merge the f_lists and u_lists by cloning and concating
+
   cma->f_list = Clone_VA(oma->f_list);
-  cma->fdelta = CreateVA_int32(0);
   cma->u_list = Clone_VA(oma->u_list);
-  cma->udelta = CreateVA_int32(0);
   cma->v_list = Clone_VA(oma->v_list);
+
+  cma->fdelta = CreateVA_int32(0);
+  cma->udelta = CreateVA_int32(0);
 
   {
     CNS_AlignedContigElement *components;

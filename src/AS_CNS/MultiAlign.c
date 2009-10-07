@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlign.c,v 1.8 2009-10-05 22:49:42 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlign.c,v 1.9 2009-10-07 08:23:50 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -30,6 +30,8 @@ static const char *rcsid = "$Id: MultiAlign.c,v 1.8 2009-10-05 22:49:42 brianwal
 #include "AS_UTL_fileIO.h"
 #include "MultiAlignment_CNS.h"
 
+#include "splitToWords.H"
+
 #undef  DEBUG_CREATE
 #undef  DEBUG_FILES
 
@@ -37,7 +39,18 @@ MultiAlignT *
 CreateMultiAlignT(void) {
   MultiAlignT *ma = (MultiAlignT *)safe_calloc(1, sizeof(MultiAlignT));
 
-  ma->maID                 = -1;
+  ma->maID                       = -1;
+
+  ma->data.unitig_coverage_stat  = 0.0;
+  ma->data.unitig_microhet_prob  = 1.0;
+
+  ma->data.unitig_status         = AS_UNASSIGNED;
+  ma->data.unitig_unique_rept    = AS_FORCED_NONE;
+
+  ma->data.contig_status         = AS_UNPLACED;
+
+  ma->data.num_frags             = 0;
+  ma->data.num_unitigs           = 0;
 
   ma->consensus = NULL;
   ma->quality   = NULL;
@@ -59,7 +72,18 @@ MultiAlignT *
 CreateEmptyMultiAlignT(void) {
   MultiAlignT *ma = (MultiAlignT *)safe_calloc(1, sizeof(MultiAlignT));
 
-  ma->maID                 = -1;
+  ma->maID                       = -1;
+
+  ma->data.unitig_coverage_stat  = 0.0;
+  ma->data.unitig_microhet_prob  = 1.0;
+
+  ma->data.unitig_status         = AS_UNASSIGNED;
+  ma->data.unitig_unique_rept    = AS_FORCED_NONE;
+
+  ma->data.contig_status         = AS_UNPLACED;
+
+  ma->data.num_frags             = 0;
+  ma->data.num_unitigs           = 0;
 
   ma->consensus = CreateVA_char(0);
   ma->quality   = CreateVA_char(0);
@@ -79,7 +103,19 @@ CreateEmptyMultiAlignT(void) {
 
 void
 ClearMultiAlignT(MultiAlignT *ma) {
-  ma->maID                 = -1;
+
+  ma->maID                       = -1;
+
+  ma->data.unitig_coverage_stat  = 0.0;
+  ma->data.unitig_microhet_prob  = 1.0;
+
+  ma->data.unitig_status         = AS_UNASSIGNED;
+  ma->data.unitig_unique_rept    = AS_FORCED_NONE;
+
+  ma->data.contig_status         = AS_UNPLACED;
+
+  ma->data.num_frags             = 0;
+  ma->data.num_unitigs           = 0;
 
   if (ma->v_list) {
     for (uint32 i=0; i<GetNumIntMultiVars(ma->v_list); i++) {
@@ -593,4 +629,312 @@ MakeCanonicalMultiAlignT(MultiAlignT *ma) {
         CompareUnitigPos);
 }
 
+
+
+
+
+
+void
+DumpMultiAlignForHuman(FILE *out, MultiAlignT *ma, bool isUnitig) {
+
+  char *cns = ma->consensus ? Getchar(ma->consensus, 0) : NULL;
+  char *qlt = ma->quality   ? Getchar(ma->quality, 0)   : NULL;
+
+  fprintf(out, "%s %d\n", (isUnitig) ? "unitig" : "contig", ma->maID);
+  fprintf(out, "len %d\n", (cns) ? strlen(cns) : 0);
+  fprintf(out, "cns %s\n", (cns) ? cns : "");
+  fprintf(out, "qlt %s\n", (qlt) ? qlt : "");
+  fprintf(out, "data.unitig_coverage_stat %f\n", ma->data.unitig_coverage_stat);
+  fprintf(out, "data.unitig_microhet_prob %f\n", ma->data.unitig_microhet_prob);
+  fprintf(out, "data.unitig_status        %c\n", ma->data.unitig_status);
+  fprintf(out, "data.unitig_unique_rept   %c\n", ma->data.unitig_unique_rept);
+  fprintf(out, "data.contig_status        %c\n", ma->data.contig_status);
+  fprintf(out, "data.num_frags            %u\n", ma->data.num_frags);
+  fprintf(out, "data.num_unitigs          %u\n", ma->data.num_unitigs);
+
+  for (int32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
+    IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
+
+    fprintf(stdout, "FRG\ttype\t%c\tident\t%7d\tcontainer\t%7d\tparent\t%7d\thang\t%5d\t%5d\tposition\t%5d\t%5d\n",
+            imp->type,
+            imp->ident,
+            imp->contained,
+            imp->parent,
+            imp->ahang, imp->bhang,
+            imp->position.bgn, imp->position.end);
+  }
+
+  for (int32 i=0; i<GetNumIntUnitigPoss(ma->u_list); i++) {
+    IntUnitigPos *iup = GetIntUnitigPos(ma->u_list, i);
+
+    fprintf(stdout, "UTG\ttype\t%c\tident\t%7d\tposition\t%5d\t%5d\tnum_instances\t%5d\n",
+            iup->type,
+            iup->ident,
+            iup->position.bgn, iup->position.end,
+            iup->num_instances);
+  }
+}
+
+
+bool
+LoadMultiAlignFromHuman(MultiAlignT *ma, FILE *in) {
+  bool   isUnitig = false;
+
+  int32  LINElen = 0;
+  int32  LINEmax = 1048576;
+  char  *LINE    = new char [LINEmax];
+
+  splitToWords  W;
+
+  ClearMultiAlignT(ma);
+
+  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+
+  if        (strcmp(W[0], "unitig") == 0) {
+    isUnitig = true;
+    ma->maID = atoi(W[1]);
+  } else if (strcmp(W[0], "contig") == 0) {
+    isUnitig = false;
+    ma->maID = atoi(W[1]);
+  } else {
+    fprintf(stderr, "Unknown MultiAlign type (expected 'unitig' or 'contig') in '%s'\n", LINE);
+    exit(1);
+  }
+
+  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+
+  if (strcmp(W[0], "len") == 0) {
+    int32 l = atoi(W[1]) + 1024;
+    if (LINEmax < l) {
+      delete [] LINE;
+      LINEmax = l;
+      LINE = new char [LINEmax];
+    }
+  } else {
+    fprintf(stderr, "Unknown length in '%s'\n", LINE);
+    exit(1);
+  }
+
+  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+
+  if (strcmp(W[0], "cns") == 0) {
+    SetRangeVA_char(ma->consensus, 0, strlen(W[1]) + 1, W[1]);
+  } else {
+    fprintf(stderr, "Unknown cns in '%s'\n", LINE);
+    exit(1);
+  }
+
+  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+
+  if (strcmp(W[0], "qlt") == 0) {
+    SetRangeVA_char(ma->quality, 0, strlen(W[1]) + 1, W[1]);
+  } else {
+    fprintf(stderr, "Unknown qlt in '%s'\n", LINE);
+    exit(1);
+  }
+
+  ////////////////////////////////////////
+
+  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+
+  if (strcmp(W[0], "data.unitig_coverage_stat") == 0) {
+    ma->data.unitig_coverage_stat = atof(W[1]);
+  } else {
+    fprintf(stderr, "Unknown data.unitig_converage_stat in '%s'\n", LINE);
+    exit(1);
+  }
+
+  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+
+  if (strcmp(W[0], "data.unitig_microhet_prob") == 0) {
+    ma->data.unitig_microhet_prob = atof(W[1]);
+  } else {
+    fprintf(stderr, "Unknown data.unitig_microhet_prob in '%s'\n", LINE);
+    exit(1);
+  }
+
+  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+
+  if (strcmp(W[0], "data.unitig_status") == 0) {
+    switch (W[1][0]) {
+      case AS_UNIQUE:
+        ma->data.unitig_status = AS_UNIQUE;
+        break;
+      case AS_NOTREZ:
+        ma->data.unitig_status = AS_NOTREZ;
+        break;
+      case AS_SEP:
+        ma->data.unitig_status = AS_SEP;
+        break;
+      case AS_UNASSIGNED:
+        ma->data.unitig_status = AS_UNASSIGNED;
+        break;
+      default:
+        fprintf(stderr, "Unknown data.unitig_status in '%s'\n", LINE);
+        exit(1);
+        break;
+    }
+  } else {
+    fprintf(stderr, "Unknown data.unitig_status in '%s'\n", LINE);
+    exit(1);
+  }
+
+  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+
+  if (strcmp(W[0], "data.unitig_unique_rept") == 0) {
+    switch (W[1][0]) {
+      case AS_FORCED_NONE:
+        ma->data.unitig_unique_rept = AS_FORCED_NONE;
+        break;
+      case AS_FORCED_UNIQUE:
+        ma->data.unitig_unique_rept = AS_FORCED_UNIQUE;
+        break;
+      case AS_FORCED_REPEAT:
+        ma->data.unitig_unique_rept = AS_FORCED_REPEAT;
+        break;
+      default:
+        fprintf(stderr, "Unknown data.unitig_unique_rept in '%s'\n", LINE);
+        exit(1);
+        break;
+    }
+  } else {
+    fprintf(stderr, "Unknown data.unitig_unique_rept in '%s'\n", LINE);
+    exit(1);
+  }
+
+  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+
+  if (strcmp(W[0], "data.contig_status") == 0) {
+    switch (W[1][0]) {
+      case AS_PLACED:
+        ma->data.contig_status = AS_PLACED;
+        break;
+      case AS_UNPLACED:
+        ma->data.contig_status = AS_UNPLACED;
+        break;
+      default:
+        fprintf(stderr, "Unknown data.contig_status in '%s'\n", LINE);
+        exit(1);
+        break;
+    }
+  } else {
+    fprintf(stderr, "Unknown data.contig_status in '%s'\n", LINE);
+    exit(1);
+  }
+
+  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+
+  if (strcmp(W[0], "data.num_frags") == 0) {
+    ma->data.num_frags = atoi(W[1]);
+  } else {
+    fprintf(stderr, "Unknown data.num_frags in '%s'\n", LINE);
+    exit(1);
+  }
+
+  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+
+  if (strcmp(W[0], "data.num_unitigs") == 0) {
+    ma->data.num_unitigs = atoi(W[1]);
+  } else {
+    fprintf(stderr, "Unknown data.num_unitigs in '%s'\n", LINE);
+    exit(1);
+  }
+
+  ////////////////////////////////////////
+
+  ResetToRange_VA(ma->f_list, ma->data.num_frags);
+  ResetToRange_VA(ma->u_list, ma->data.num_unitigs);
+
+  ////////////////////////////////////////
+
+  for (int32 i=0; i<ma->data.num_frags; i++) {
+    IntMultiPos  *imp = GetIntMultiPos(ma->f_list, i);
+
+    do {
+      fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+    } while (W[0][0] == '#');
+
+    if ((W.numWords() != 15) ||
+        (strcmp(W[ 0], "FRG")       != 0) ||
+        (strcmp(W[ 1], "type")      != 0) ||
+        (strcmp(W[ 3], "ident")     != 0) ||
+        (strcmp(W[ 5], "container") != 0) ||
+        (strcmp(W[ 7], "parent")    != 0) ||
+        (strcmp(W[ 9], "hang")      != 0) ||
+        (strcmp(W[12], "position")  != 0)) {
+      fprintf(stderr, "Unknown FRG line in '%s'\n", LINE);
+      exit(1);
+    }
+
+    switch (W[2][0]) {
+      case AS_READ:
+        imp->type = AS_READ;
+        break;
+      default:
+        fprintf(stderr, "Unknown FRG type %c/%d in '%s'\n", W[2][0], W[2][0], LINE);
+        exit(1);
+        break;
+    }
+
+    imp->ident        = atoi(W[4]);
+    imp->contained    = atoi(W[6]);
+    imp->parent       = atoi(W[8]);
+    imp->ahang        = atoi(W[10]);
+    imp->bhang        = atoi(W[11]);
+    imp->position.bgn = atoi(W[13]);
+    imp->position.end = atoi(W[14]);
+  }
+
+  ////////////////////////////////////////
+
+  for (int32 i=0; i<ma->data.num_unitigs; i++) {
+    IntUnitigPos *iup = GetIntUnitigPos(ma->u_list, i);
+
+    do {
+      fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+    } while (W[0][0] == '#');
+
+    if ((W.numWords() != 10) ||
+        (strcmp(W[0], "UTG")           != 0) ||
+        (strcmp(W[1], "type")          != 0) ||
+        (strcmp(W[3], "ident")         != 0) ||
+        (strcmp(W[5], "position")      != 0) ||
+        (strcmp(W[8], "num_instances") != 0)) {
+      fprintf(stderr, "Unknown UTG line in '%s'\n", LINE);
+      exit(1);
+    }
+
+    switch (W[2][0]) {
+      case AS_UNIQUE_UNITIG:
+        iup->type = AS_UNIQUE_UNITIG;
+        break;
+      case AS_ROCK_UNITIG:
+        iup->type = AS_ROCK_UNITIG;
+        break;
+      case AS_STONE_UNITIG:
+        iup->type = AS_STONE_UNITIG;
+        break;
+      case AS_PEBBLE_UNITIG:
+        iup->type = AS_PEBBLE_UNITIG;
+        break;
+      case AS_SINGLE_UNITIG:
+        iup->type = AS_SINGLE_UNITIG;
+        break;
+      case AS_OTHER_UNITIG:
+        iup->type = AS_OTHER_UNITIG;
+        break;
+      default:
+        fprintf(stderr, "Unknown UTG type %c/%d in '%s'\n", W[2][0], W[2][0], LINE);
+        exit(1);
+        break;
+    }
+
+    iup->ident         = atoi(W[4]);
+    iup->position.bgn  = atoi(W[6]);
+    iup->position.end  = atoi(W[7]);
+    iup->num_instances = atoi(W[9]);
+  }
+
+  return(isUnitig);
+}
 

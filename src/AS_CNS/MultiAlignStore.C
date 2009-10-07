@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.1 2009-10-05 22:49:42 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.2 2009-10-07 08:23:50 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -29,12 +29,13 @@ static const char *rcsid = "$Id: MultiAlignStore.C,v 1.1 2009-10-05 22:49:42 bri
 #define MAX_PART   1024
 
 void
-MultiAlignStore::init(const char *path_, uint32 version_, bool writable_) {
+MultiAlignStore::init(const char *path_, uint32 version_, bool writable_, bool inplace_) {
 
   strcpy(path, path_);
 
   writable          = writable_;
   creating          = false;
+  inplace           = inplace_;
 
   currentVersion    = version_;
 
@@ -65,7 +66,7 @@ MultiAlignStore::init(const char *path_, uint32 version_, bool writable_) {
 
 
 MultiAlignStore::MultiAlignStore(const char *path_) {
-  init(path_, 1, true);
+  init(path_, 1, true, false);
 
   creating = true;
 
@@ -77,9 +78,10 @@ MultiAlignStore::MultiAlignStore(const char *path_,
                                  uint32      version_,
                                  uint32      unitigPartition_,
                                  uint32      contigPartition_,
-                                 bool        writable_) {
+                                 bool        writable_,
+                                 bool        inplace_) {
 
-  init(path_, version_, writable_);
+  init(path_, version_, writable_, inplace_);
 
   unitigPart = unitigPartition_;
   contigPart = contigPartition_;
@@ -93,9 +95,17 @@ MultiAlignStore::MultiAlignStore(const char *path_,
   loadMASR(utgRecord, "utg", utgLen, utgMax, currentVersion);
   loadMASR(ctgRecord, "ctg", ctgLen, ctgMax, currentVersion);
 
+  //  Reallocate the cache to the proper size
+
+  safe_free(utgCache);
+  safe_free(ctgCache);
+
+  utgCache = (MultiAlignT **)safe_calloc(utgMax, sizeof(MultiAlignT *));
+  ctgCache = (MultiAlignT **)safe_calloc(ctgMax, sizeof(MultiAlignT *));
+
   //  Open the next version for writing.
 
-  if (writable)
+  if ((writable == true) && (inplace == false))
     currentVersion++;
 }
 
@@ -130,6 +140,7 @@ void
 MultiAlignStore::nextVersion(void) {
 
   assert(writable == true);
+  assert(inplace == false);
   assert(unitigPartMap == NULL);
   assert(contigPartMap == NULL);
   assert(unitigPart == 0);
@@ -164,6 +175,7 @@ void
 MultiAlignStore::writeToPartitioned(uint32 *unitigPartMap_, uint32 *contigPartMap_) {
 
   assert(writable == true);          //  Must be writable to write!
+  assert(inplace == false);
   assert(unitigPartMap == NULL);
   assert(contigPartMap == NULL);
   assert(unitigPart == 0);
@@ -177,11 +189,14 @@ MultiAlignStore::writeToPartitioned(uint32 *unitigPartMap_, uint32 *contigPartMa
 
 
 
-
 void
 MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCache) {
 
   assert(ma->maID >= 0);
+
+  assert(ma->data.unitig_status      != 0);
+  assert(ma->data.unitig_unique_rept != 0);
+  assert(ma->data.contig_status      != 0);
 
   if (isUnitig == 1) {
     if (utgMax <= ma->maID) {
@@ -222,9 +237,9 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
   maRecord->svID            = currentVersion;
 
   //  ALWAYS update mad on insert.
+  ma->data.num_frags        = GetNumIntMultiPoss(ma->f_list);
+  ma->data.num_unitigs      = GetNumIntUnitigPoss(ma->u_list);
   maRecord->mad             = ma->data;
-  maRecord->mad.num_frags   = GetNumIntMultiPoss(ma->f_list);
-  maRecord->mad.num_unitigs = GetNumIntUnitigPoss(ma->u_list);
 
   //  Decide on which partition to write to.
   //
@@ -263,7 +278,8 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
 
   MultiAlignT   **maCache  = (isUnitig) ? (utgCache) : (ctgCache);
 
-  if (maCache[ma->maID] != ma)
+  if ((maCache[ma->maID] != ma) ||
+      (keepInCache == false))
     DeleteMultiAlignT(maCache[ma->maID]);
 
   maCache[ma->maID] = (keepInCache) ? ma : NULL;
@@ -548,7 +564,9 @@ MultiAlignStore::openDB(uint32 version, uint32 partition) {
 
   errno = 0;
 
-  if ((writable) && (version == currentVersion)) {
+  if ((inplace) && (version == currentVersion)) {
+    dataFile[version][partition] = fopen(name, "a+");
+  } else if ((writable) && (version == currentVersion)) {
     dataFile[version][partition] = fopen(name, "w+");
   } else {
     dataFile[version][partition] = fopen(name, "r");
@@ -558,4 +576,34 @@ MultiAlignStore::openDB(uint32 version, uint32 partition) {
     fprintf(stderr, "CreateSequenceDB()-- Failed to open '%s': %s\n", name, strerror(errno)), exit(1);
 
   return(dataFile[version][partition]);
+}
+
+
+
+void
+MultiAlignStore::dumpMultiAlignR(int32 maID, bool isUnitig) {
+  MultiAlignR  *maRecord = (isUnitig) ? utgRecord : ctgRecord;
+
+  fprintf(stderr, "maRecord.isPresent   = %d\n", maRecord[maID].isPresent);
+  fprintf(stderr, "maRecord.isDeleted   = %d\n", maRecord[maID].isDeleted);
+  fprintf(stderr, "maRecord.ptID        = %d\n", maRecord[maID].ptID);
+  fprintf(stderr, "maRecord.svID        = %d\n", maRecord[maID].svID);
+  fprintf(stderr, "maRecord.fileOffset  = %d\n", maRecord[maID].fileOffset);
+}
+
+
+
+void
+MultiAlignStore::dumpMultiAlignRTable(bool isUnitig) {
+  MultiAlignR  *maRecord = (isUnitig) ? utgRecord : ctgRecord;
+  int32         len      = (isUnitig) ? utgLen    : ctgLen;
+
+  for (int32 i=0; i<len; i++) {
+    fprintf(stderr, "%d\t", i);
+    fprintf(stderr, "isPresent\t%d\t", maRecord[i].isPresent);
+    fprintf(stderr, "isDeleted\t%d\t", maRecord[i].isDeleted);
+    fprintf(stderr, "ptID\t%d\t", maRecord[i].ptID);
+    fprintf(stderr, "svID\t%d\t", maRecord[i].svID);
+    fprintf(stderr, "fileOffset\t%d\n", maRecord[i].fileOffset);
+  }
 }
