@@ -103,12 +103,14 @@ sub terminate () {
 
 
     if (! -e "$termDir/$asm.singleton.fasta") {
-        my $lastckp = findLastCheckpoint("$wrk/7-CGW");
+        my $ckpVersion = findLastCheckpoint("$wrk/7-CGW");
+        my $tigVersion = $ckpVersion + 1;
 
         my $cmd;
         $cmd  = "$bin/dumpSingletons ";
         $cmd .= " -g $wrk/$asm.gkpStore ";
-        $cmd .= " -c $wrk/7-CGW/$asm -n $lastckp -S ";
+        $cmd .= " -t $wrk/$asm.tigStore ";
+        $cmd .= " -c $wrk/7-CGW/$asm -n $ckpVersion -S ";
         $cmd .= "> $termDir/$asm.singleton.fasta ";
         $cmd .= "2> $termDir/dumpSingletons.err ";
         if (runCommand("$termDir", $cmd)) {

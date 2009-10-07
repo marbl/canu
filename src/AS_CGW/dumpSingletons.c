@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: dumpSingletons.c,v 1.32 2009-10-05 22:49:42 brianwalenz Exp $";
+const char *mainid = "$Id: dumpSingletons.c,v 1.33 2009-10-07 07:42:59 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -85,6 +85,8 @@ main( int argc, char **argv) {
       strcpy(GlobalData->outputPrefix, argv[++arg]);
     } else if (strcmp(argv[arg], "-g") == 0) {
       strcpy(GlobalData->gkpStoreName, argv[++arg]);
+    } else if (strcmp(argv[arg], "-t") == 0) {
+      strcpy(GlobalData->tigStoreName, argv[++arg]);
     } else if (strcmp(argv[arg], "-n") == 0) {
       ckptNum = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-U") == 0) {
