@@ -3,6 +3,13 @@
 
 class splitToWords {
 public:
+  splitToWords() {
+    _argWords = 0;
+    _maxWords = 0;
+    _arg      = 0L;
+    _maxChars = 0;
+    _cmd      = 0L;
+  };
   splitToWords(char *cmd) {
     _argWords = 0;
     _maxWords = 0;
