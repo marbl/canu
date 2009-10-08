@@ -15,9 +15,10 @@ sub unitigger () {
     if (! -e "$wrk/4-unitigger/unitigger.success") {
 
         #  Check for the presence of 454 reads.  We know these cause trouble
-        #  with unitigger, and we FORCE the use og BOG here.
+        #  with unitigger, and we FORCE the use of BOG here (unless the user
+        #  has explicitly requested a unitigger).
         #
-        if (getGlobal("unitigger") ne "bog") {
+        if (!defined(getGlobal("unitigger"))) {
             my $resetToBOG = 0;
 
             open(F, "$bin/gatekeeper -dumplibraries $wrk/$asm.gkpStore |");
@@ -34,6 +35,10 @@ sub unitigger () {
                 print STDERR "WARNING:\n";
                 setGlobal("unitigger", "bog");
             }
+        }
+
+        if (!defined(getGlobal("unitigger"))) {
+            setGlobal("unitigger", "utg");
         }
 
         system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");

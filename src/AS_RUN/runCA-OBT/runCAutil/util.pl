@@ -368,8 +368,8 @@ sub setDefaults () {
 
     #####  Unitigger & BOG Options
 
-    $global{"unitigger"}                   = "utg";
-    $synops{"unitigger"}                   = "Which unitig algorithm to use; utg or bog (Best Overlap Graph)";
+    $global{"unitigger"}                   = undef;
+    $synops{"unitigger"}                   = "Which unitig algorithm to use; utg (if no SFF files) or bog (Best Overlap Graph, if SFF files)";
 
     $global{"utgGenomeSize"}               = undef;
     $synops{"utgGenomeSize"}               = "An estimate of the size of the genome; decides if unitigs are unique or repeats";
@@ -625,7 +625,7 @@ sub setParameters () {
     if ((getGlobal("ovlOverlapper") ne "mer") && (getGlobal("ovlOverlapper") ne "ovl")) {
         caFailure("invalid ovlOverlapper specified (" . getGlobal("ovlOverlapper") . "); must be 'mer' or 'ovl'", undef);
     }
-    if ((getGlobal("unitigger") ne "utg") && (getGlobal("unitigger") ne "bog")) {
+    if (defined(getGlobal("unitigger")) && (getGlobal("unitigger") ne "utg") && (getGlobal("unitigger") ne "bog")) {
         caFailure("invalid unitigger specified (" . getGlobal("unitigger") . "); must be 'utg' or 'bog'", undef);
     }
     if ((getGlobal("vectorTrimmer") ne "ca") && (getGlobal("vectorTrimmer") ne "figaro")) {
