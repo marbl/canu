@@ -22,7 +22,7 @@
 #ifndef AS_UTL_VAR_H
 #define AS_UTL_VAR_H
 
-static const char *rcsid_AS_UTL_VAR_H = "$Id: AS_UTL_Var.h,v 1.19 2009-10-09 01:07:46 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_VAR_H = "$Id: AS_UTL_Var.h,v 1.20 2009-10-09 02:03:52 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <string.h>
@@ -95,7 +95,7 @@ void
 LoadFromMemory_VA(char *&memory, VarArrayType *va);
 
 VarArrayType *
-CreateFromMemory_VA(char *&memory, char *thetype);
+CreateFromMemory_VA(char *&memory, const char *thetype);
 
 size_t
 CopyToMemory_VA(VarArrayType *va, char *&memory);
