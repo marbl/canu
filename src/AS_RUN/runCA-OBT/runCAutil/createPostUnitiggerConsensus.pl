@@ -1,7 +1,6 @@
 use strict;
 
 sub createPostUnitiggerConsensusJobs (@) {
-    my @cgbFiles  = @_;
     my $consensusType = getGlobal("consensus");
 
     return if (-e "$wrk/5-consensus/consensus.sh");
@@ -108,14 +107,13 @@ sub createPostUnitiggerConsensusJobs (@) {
 
 
 
-sub postUnitiggerConsensus (@) {
-    my @cgbFiles  = @_;
+sub postUnitiggerConsensus () {
 
     system("mkdir $wrk/5-consensus") if (! -d "$wrk/5-consensus");
 
     goto alldone if (-e "$wrk/5-consensus/consensus.success");
 
-    createPostUnitiggerConsensusJobs(@cgbFiles);
+    createPostUnitiggerConsensusJobs();
 
     #
     #  Check that consensus finished properly
@@ -123,21 +121,22 @@ sub postUnitiggerConsensus (@) {
 
     my $failedJobs = 0;
 
-    foreach my $f (@cgbFiles) {
-        if ($f =~ m/^.*(\d\d\d).cgb$/) {
-            if ((! -e "$wrk/5-consensus/${asm}_$1.success") ||
-                (! -e "$wrk/5-consensus/${asm}_$1.cgi")) {
-                print STDERR "$wrk/5-consensus/${asm}_$1 failed -- no .success or no .cgi!\n";
+    open(F, "< $wrk/4-unitigger/$asm.partitioningInfo") or caFailure("can't open '$wrk/4-unitigger/$asm.partitioningInfo'", undef);
+    while (<F>) {
+        if (m/Partition\s+(\d+)\s+has\s+(\d+)\s+unitigs\sand\s+(\d+)\s+fragments./) {
+            my $id = substr("000" . $1, -3);
+
+            if (! -e "$wrk/5-consensus/${asm}_$id.success") {
+                print STDERR "$wrk/5-consensus/${asm}_$id failed -- no .success!\n";
                 $failedJobs++;
             }
-        } else {
-            caFailure("unitigger file '$f' didn't match ###.cgb", undef);
         }
     }
+    close(F);
 
     #  FAILUREHELPME
 
-    caFailure("$failedJobs consensusAfterUnitigger jobs failed", undef) if ($failedJobs);
+    caFailure("$failedJobs consensusAfterUnitigger jobs failed; remove 5-consensus/consensus.sh to try again", undef) if ($failedJobs);
 
     #  All jobs finished.  Remove the partitioning from the gatekeeper
     #  store.  The gatekeeper store is currently (5 Mar 2007) tolerant

@@ -143,7 +143,7 @@ sub postScaffolderConsensus () {
             my $id = substr("000" . $1, -3);
 
             if (! -e "$wrk/8-consensus/${asm}_$id.success") {
-                print STDERR "$wrk/8-consensus/${asm}_$id failed.\n";
+                print STDERR "$wrk/8-consensus/${asm}_$id failed -- no .success.\n";
                 $failedJobs++;
             }
         }
@@ -152,7 +152,7 @@ sub postScaffolderConsensus () {
 
     #  FAILUREHELPME
     #
-    caFailure("$failedJobs consensusAfterScaffolder jobs failed", undef) if ($failedJobs);
+    caFailure("$failedJobs consensusAfterScaffolder jobs failed; remove 8-consensus/consensus.sh to try again", undef) if ($failedJobs);
 
     #  All jobs finished.  Remove the partitioning from the gatekeeper
     #  store.  The gatekeeper store is currently (5 Mar 2007) tolerant
