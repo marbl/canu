@@ -5,24 +5,9 @@ use Config;  #  for @signame
 
 #  The only three globals configurables:
 #
-my $site    = undef;
-my $wrkdir  = undef;
-my $wgscvs  = undef;
-my $kmersvn = undef;
-
-if      (-d "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY") {
-    $site    = "JCVI";
-    $wrkdir  = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY";
-    $wgscvs  = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY/wgs-assembler-cvs";
-    $kmersvn = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY/kmer-svn";
-} elsif (-d "/work/NIGHTLY/") {
-    $site    = "BPWI";
-    $wrkdir  = "/work/NIGHTLY";
-    $wgscvs  = "/work/NIGHTLY/wgs-assembler-cvs";
-    $kmersvn = "/work/NIGHTLY/kmer-svn";
-} else {
-    die "Unknown site configuration.\n";
-}
+my $wrkdir  = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY";
+my $wgscvs  = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY/wgs-assembler-cvs";
+my $kmersvn = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY/kmer-svn";
 
 #  Command line options are
 #
@@ -175,9 +160,9 @@ sub checkoutAndLogKmer ($$) {
 sub checkoutAndLogCA ($$) {
     my $thisdate = shift @_;
     my $lastdate = shift @_;
-    my $tag      = "-r VERSION-5_40-BRANCH";
+    my $tag      = undef;  #"-r VERSION-5_40-BRANCH";
 
-    print STDERR "Checking out $wrkdir/$thisdate (CA)\n";
+    print STDERR "Checking out $wrkdir/$thisdate (CA) ", (defined($tag)) ? "TAG=$tag" : "", "\n";
 
     if (-d "$wrkdir/$thisdate/wgs/src") {
         print STDERR "$wrkdir/$thisdate/wgs/src already exists.  Please remove to rerun.\n";
@@ -392,8 +377,7 @@ sub assemble ($$@) {
     print F "| \\\n";
     print F "tee \"$wrkdir/$thisdate/sanity-all-done.\$1\" \\\n";
     print F "| \\\n";
-    print F "/usr/sbin/sendmail -i -t -F CAtest\n"    if ($site eq "JCVI");
-    #print F "/work/NIGHTLY/ssmtp thebri\@gmail.com\n" if ($site eq "BPWI");
+    print F "/usr/sbin/sendmail -i -t -F CAtest\n";
     close(F);
 
     foreach my $s (@spec) {
@@ -432,13 +416,14 @@ sub assemble ($$@) {
         print F "\n";
         print F ". \$SGE_ROOT/\$SGE_CELL/common/settings.sh\n";
         print F "\n";
+        print F "\n";
+        print F "#  Submit runCA to the grid.  Do not set any runCA parameters here; they\n";
+        print F "#  will override ALL specFile parameters.  scriptOnGrid must be set, otherwise\n";
+        print F "#  the assembly will be performed with this call, instead of just launched\n";
+        print F "#  to the grid.\n";
+        print F "\n";
         print F "perl $wrkdir/$thisdate/wgs/$syst-$arch/bin/runCA \\\n";
-        print F "  sgePropagateHold=$jn useGrid=1 scriptOnGrid=1\\\n";
-        if      ($site eq "JCVI") {
-            print F "  sge=\"-A CAsanity -P 334007 -l arch=lx*64 -l medium -l memory=1G\"\\\n";
-        } elsif ($site eq "BPWI") {
-            print F "  sge=\"-A CAsanity                                   -l memory=1G\"\\\n";
-        }
+        print F "  sgePropagateHold=$jn scriptOnGrid=1 \\\n";
         print F "  -p $n -d $wrkdir/$thisdate/$n -s $s\n";
         print F "\n";
         print F "#  Once that runCA finishes, we've updated the hold on $jn, and so can release\n";
@@ -459,13 +444,10 @@ sub assemble ($$@) {
         #
         #  Steps 1 and 2 are done here, step 3 is at the very end, steps 4 and 5 are done in the launch-assembly.sh above.
 
-        if      ($site eq "JCVI") {
-            system("cd $wrkdir/$thisdate/$n && qsub -P 334007 -A CAsanity -b n -cwd -j y -o $wrkdir/$thisdate/$n/launch-assembly.err -l fast -h               -N $jl $wrkdir/$thisdate/$n/launch-assembly.sh");
-            system("cd $wrkdir/$thisdate/$n && qsub -P 334007 -A CAsanity -b n -cwd -j y -o $wrkdir/$thisdate/$n/asm-done.err        -l fast -h -hold_jid $jl -N $jn $wrkdir/$thisdate/asm-done.sh $n");
-        } elsif ($site eq "BPWI") {
-            system("cd $wrkdir/$thisdate/$n && qsub           -A CAsanity -b n -cwd -j y -o $wrkdir/$thisdate/$n/launch-assembly.err         -h               -N $jl $wrkdir/$thisdate/$n/launch-assembly.sh");
-            system("cd $wrkdir/$thisdate/$n && qsub           -A CAsanity -b n -cwd -j y -o $wrkdir/$thisdate/$n/asm-done.err                -h -hold_jid $jl -N $jn $wrkdir/$thisdate/asm-done.sh $n");
-        }
+        print STDERR "cd $wrkdir/$thisdate/$n && qsub -P 334007 -A assembly -b n -cwd -j y -o $wrkdir/$thisdate/$n/launch-assembly.err -l fast -h               -N $jl $wrkdir/$thisdate/$n/launch-assembly.sh\n";
+        system("cd $wrkdir/$thisdate/$n && qsub -P 334007 -A assembly -b n -cwd -j y -o $wrkdir/$thisdate/$n/launch-assembly.err -l fast -h               -N $jl $wrkdir/$thisdate/$n/launch-assembly.sh");
+        print STDERR "cd $wrkdir/$thisdate/$n && qsub -P 334007 -A assembly -b n -cwd -j y -o $wrkdir/$thisdate/$n/asm-done.err        -l fast -h -hold_jid $jl -N $jn $wrkdir/$thisdate/asm-done.sh $n\n";
+        system("cd $wrkdir/$thisdate/$n && qsub -P 334007 -A assembly -b n -cwd -j y -o $wrkdir/$thisdate/$n/asm-done.err        -l fast -h -hold_jid $jl -N $jn $wrkdir/$thisdate/asm-done.sh $n");
 
         if (defined($holds_done)) {
             $holds_done .= ",$jn";
@@ -482,14 +464,12 @@ sub assemble ($$@) {
         }
     }
 
-    if      ($site eq "JCVI") {
-        system("cd $wrkdir/$thisdate && qsub -P 334007 -A CAsanity -b n -cwd -j y -o $wrkdir/$thisdate/all-done.err -l fast -hold_jid $holds_done -N CAfin_$thisdate $wrkdir/$thisdate/all-done.sh $label $names_asms");
-    } elsif ($site eq "BPWI") {
-        system("cd $wrkdir/$thisdate && qsub           -A CAsanity -b n -cwd -j y -o $wrkdir/$thisdate/all-done.err         -hold_jid $holds_done -N CAfin_$thisdate $wrkdir/$thisdate/all-done.sh $label $names_asms");
-    }
+    print STDERR "cd $wrkdir/$thisdate && qsub -P 334007 -A assembly -b n -cwd -j y -o $wrkdir/$thisdate/all-done.err -l fast -hold_jid $holds_done -N CAfin_$thisdate $wrkdir/$thisdate/all-done.sh $label $names_asms\n";
+    system("cd $wrkdir/$thisdate && qsub -P 334007 -A assembly -b n -cwd -j y -o $wrkdir/$thisdate/all-done.err -l fast -hold_jid $holds_done -N CAfin_$thisdate $wrkdir/$thisdate/all-done.sh $label $names_asms");
 
     #  Now, release everything to run.
 
+    print STDERR "qrls -h u $holds_asms\n";
     system("qrls -h u $holds_asms");
 }
 

@@ -3,8 +3,8 @@
 date=$1
 
 email="bwalenz@jcvi.org jmiller@jcvi.org skoren@jcvi.org gsutton@jcvi.org jjohnson@jcvi.org"
-email="bwalenz@jcvi.org jmiller@jcvi.org skoren@jcvi.org"
 email="bwalenz@jcvi.org"
+email="bwalenz@jcvi.org jmiller@jcvi.org skoren@jcvi.org"
 
 #  Weekly Moore
 #

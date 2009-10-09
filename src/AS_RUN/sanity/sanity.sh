@@ -3,6 +3,9 @@
 #  (re)Load the sge config.
 . $SGE_ROOT/$SGE_CELL/common/settings.sh
 
+#  Needed for old checkouts.  Newer checkouts default to LOCAL.
+export SITE_NAME=JCVI
+
 #
 #  Master controller of nightly sanity checks.  Optional date on command line.
 #
@@ -20,13 +23,7 @@ grid=$2
 
 if [ x$date != x ] ; then
   echo "SANITY BEGINS for $date at `date`"
-  echo ""
 fi
-
-
-#  Clean up old versions
-perl sanity-purge-old.pl purge
-
 
 #  Update the repository.
 perl sanity.pl rsync
@@ -57,15 +54,16 @@ if [ x$grid = x ] ; then
     echo "  sh sanity-weekly-moore.sh $date"
 
 else
-    nextofft=7200
+    nextofft=86400   # one day
+    nextofft=604800  # one week
     nextdate=`perl sanity-get-next-date.pl $date $nextofft next`
     nexthold=`perl sanity-get-next-date.pl $date $nextofft hold`
     nextname=`perl sanity-get-next-date.pl $date $nextofft name`
 
-    sh sanity-daily-test.sh   $date
+    #sh sanity-daily-test.sh   $date
 
-    #sh sanity-daily-small.sh  $date
-    #sh sanity-daily-large.sh  $date
+    sh sanity-daily-small.sh  $date
+    sh sanity-daily-large.sh  $date
 
     #if [ `date +%u` = 6] ; then
     #    sh sanity-weekly-dros.sh  $date
@@ -75,7 +73,7 @@ else
     echo "SUBMIT for $nextdate ($nexthold)"
 
     echo \
-    qsub -cwd -j y -o $nextdate.err -A assembly-nightly -N CAsnty$nextname -a $nexthold -b n sanity.sh $nextdate grid
+    qsub -cwd -j y -o $nextdate.err -A assembly-nightly -N CAsnty$nextname -l fast -a $nexthold -b n sanity.sh $nextdate grid
 
-    qsub -cwd -j y -o $nextdate.err -A assembly-nightly -N CAsnty$nextname -a $nexthold -b n sanity.sh $nextdate grid
+    qsub -cwd -j y -o $nextdate.err -A assembly-nightly -N CAsnty$nextname -l fast -a $nexthold -b n sanity.sh $nextdate grid
 fi
