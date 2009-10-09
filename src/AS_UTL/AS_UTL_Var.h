@@ -22,7 +22,7 @@
 #ifndef AS_UTL_VAR_H
 #define AS_UTL_VAR_H
 
-static const char *rcsid_AS_UTL_VAR_H = "$Id: AS_UTL_Var.h,v 1.18 2009-08-04 11:03:02 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_VAR_H = "$Id: AS_UTL_Var.h,v 1.19 2009-10-09 01:07:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <string.h>
@@ -88,6 +88,17 @@ CreateFromFile_VA(FILE *fp, const char *thetype);
 
 size_t
 CopyToFile_VA(VarArrayType *va, FILE *fp);
+
+
+
+void
+LoadFromMemory_VA(char *&memory, VarArrayType *va);
+
+VarArrayType *
+CreateFromMemory_VA(char *&memory, char *thetype);
+
+size_t
+CopyToMemory_VA(VarArrayType *va, char *&memory);
 
 
 #define Delete_VA(V)                { Trash_VA(V); (V) = NULL; }
@@ -217,6 +228,18 @@ static void LoadFromFileVA_ ## Type (FILE *fp,VA_TYPE(Type) *va){\
 }\
 static size_t CopyToFileVA_ ## Type (VA_TYPE(Type) *va,FILE *fp){\
  return CopyToFile_VA(va,fp);\
+}\
+\
+\
+\
+static VA_TYPE(Type) * CreateFromMemoryVA_ ## Type (char *&memory){\
+ return (VA_TYPE(Type) *)CreateFromMemory_VA(memory, #Type);\
+}\
+static void LoadFromMemoryVA_ ## Type (char *&memory, VA_TYPE(Type) *va){\
+ LoadFromMemory_VA(memory, va);\
+}\
+static size_t CopyToMemoryVA_ ## Type (VA_TYPE(Type) *va, char *&memory){\
+ return CopyToMemory_VA(va,memory);\
 }\
 
 

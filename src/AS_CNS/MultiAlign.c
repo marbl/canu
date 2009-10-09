@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlign.c,v 1.9 2009-10-07 08:23:50 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlign.c,v 1.10 2009-10-09 01:07:46 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -342,72 +342,44 @@ restoreDeltaPointers(MultiAlignT *ma) {
 
 
 static
-void
-saveVARData(MultiAlignT *ma, FILE *stream) {
-  int32          niva = 0;
-  int32          nvar = 0;
-  int32          nids = 0;
+size_t
+saveVARData(MultiAlignT *ma, char *&memory) {
+  size_t  s = 0;
 
-  //  Figure out how much data is here
-
-  for (int32 i=0; i<GetNumIntMultiVars(ma->v_list); i++) {
-    IntMultiVar  *imv = GetIntMultiVar(ma->v_list, i);
-
-    niva += imv->num_alleles;
-    nvar += imv->num_alleles * (imv->var_length + 1);
-    nids += imv->num_reads;
-  }
-
-  //  Allocate space to hold it all in one block
-
-  IntVarAllele  *iva = (IntVarAllele *)safe_malloc(sizeof(IntVarAllele) * niva);
-  char          *var = (char         *)safe_malloc(sizeof(char)         * nvar);
-  int32         *ids = (int32        *)safe_malloc(sizeof(int32)        * nids);
-
-  niva = nvar = nids = 0;
-
-  //  Copy into one block
+  //  If no memory pointer, we're just requesting the size needed
+  //  Otherwise, copy into pre-allocated memory
 
   for (int32 i=0; i<GetNumIntMultiVars(ma->v_list); i++) {
     IntMultiVar  *imv = GetIntMultiVar(ma->v_list, i);
 
-    memcpy(iva + niva, imv->alleles,        sizeof(IntVarAllele) * imv->num_alleles);
-    memcpy(var + nvar, imv->var_seq_memory, sizeof(char)         * imv->num_alleles * (imv->var_length + 1));
-    memcpy(ids + nids, imv->read_id_memory, sizeof(int32)        * imv->num_reads);
+    s += sizeof(IntVarAllele) * imv->num_alleles;
+    s += sizeof(char)         * imv->num_alleles * (imv->var_length + 1);
+    s += sizeof(int32)        * imv->num_reads;
 
-    niva += imv->num_alleles;
-    nvar += imv->num_alleles * (imv->var_length + 1);
-    nids += imv->num_reads;
+    if (memory) {
+      memcpy(memory, imv->alleles, sizeof(IntVarAllele) * imv->num_alleles);
+      memory += sizeof(IntVarAllele) * imv->num_alleles;
+
+      memcpy(memory, imv->var_seq_memory, sizeof(char) * imv->num_alleles * (imv->var_length + 1));
+      memory += sizeof(char) * imv->num_alleles * (imv->var_length + 1);
+
+      memcpy(memory, imv->read_id_memory, sizeof(int32) * imv->num_reads);
+      memory += sizeof(int32) * imv->num_reads;
+    }
   }
 
-  //  Dump to disk, and release
-
-  AS_UTL_safeWrite(stream, iva, "saveVARData_iva", sizeof(IntVarAllele), niva);
-  AS_UTL_safeWrite(stream, var, "saveVARData_var", sizeof(char),         nvar);
-  AS_UTL_safeWrite(stream, ids, "saveVARData_ids", sizeof(int32),        nids);
-
-  safe_free(iva);
-  safe_free(var);
-  safe_free(ids);
+  return(s);
 }
 
 
 static
 void
-restoreVARData(FILE *stream, MultiAlignT *ma) {
-  int32          niva = 0;
-  int32          nvar = 0;
-  int32          nids = 0;
+restoreVARData(char *&memory, MultiAlignT *ma) {
 
-  //  Allocate the memory we want to keep first, hopefully letting the temporary allocation not
-  //  become a hole.
+  //  Allocate our memory.
 
   for (int32 i=0; i<GetNumIntMultiVars(ma->v_list); i++) {
     IntMultiVar  *imv = GetIntMultiVar(ma->v_list, i);
-
-    niva += imv->num_alleles;
-    nvar += imv->num_alleles * (imv->var_length + 1);
-    nids += imv->num_reads;
 
     //  The IMVs should already be empty, but our pointers are invalid and non-NULL.
     //safe_free(imv->alleles);
@@ -417,101 +389,127 @@ restoreVARData(FILE *stream, MultiAlignT *ma) {
     imv->alleles        = (IntVarAllele *)safe_malloc(sizeof(IntVarAllele) * imv->num_alleles);
     imv->var_seq_memory = (char         *)safe_malloc(sizeof(char)         * imv->num_alleles * (imv->var_length + 1));
     imv->read_id_memory = (int32        *)safe_malloc(sizeof(int32)        * imv->num_reads);
-
   }
 
-  //  Allocate temporary space, load all the data
-
-  IntVarAllele  *iva = (IntVarAllele *)safe_malloc(sizeof(IntVarAllele) * niva);
-  char          *var = (char         *)safe_malloc(sizeof(char)         * nvar);
-  int32         *ids = (int32        *)safe_malloc(sizeof(int32)        * nids);
-
-  AS_UTL_safeRead(stream, iva, "restoreVARData_iva", sizeof(IntVarAllele), niva);
-  AS_UTL_safeRead(stream, var, "restoreVARData_var", sizeof(char),         nvar);
-  AS_UTL_safeRead(stream, ids, "restoreVARData_ids", sizeof(int32),        nids);
-
-  niva = nvar = nids = 0;
-
-  //  And copy it back into the correct spots in each VAR entry.
+  //  And copy data back into the correct spots in each VAR entry.
 
   for (int32 i=0; i<GetNumIntMultiVars(ma->v_list); i++) {
     IntMultiVar  *imv = GetIntMultiVar(ma->v_list, i);
 
-    memcpy(imv->alleles,        iva + niva, sizeof(IntVarAllele) * imv->num_alleles);
-    memcpy(imv->var_seq_memory, var + nvar, sizeof(char)         * imv->num_alleles * (imv->var_length + 1));
-    memcpy(imv->read_id_memory, ids + nids, sizeof(int32)        * imv->num_reads);
+    memcpy(imv->alleles, memory, sizeof(IntVarAllele) * imv->num_alleles);
+    memory += sizeof(IntVarAllele) * imv->num_alleles;
 
-    niva += imv->num_alleles;
-    nvar += imv->num_alleles * (imv->var_length + 1);
-    nids += imv->num_reads;
+    memcpy(imv->var_seq_memory, memory, sizeof(char) * imv->num_alleles * (imv->var_length + 1));
+    memory += sizeof(char) * imv->num_alleles * (imv->var_length + 1);
+
+    memcpy(imv->read_id_memory, memory, sizeof(int32) * imv->num_reads);
+    memory += sizeof(int32) * imv->num_reads;
   }
-
-  safe_free(iva);
-  safe_free(var);
-  safe_free(ids);
 }
 
 
 void
 SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream) {
+  size_t   memorySize = 0;
+  char    *memory     = NULL;
+  char    *memoryBase = NULL;
 
   if (ma == NULL) {
-    int32 maID = -1;
-
-    AS_UTL_safeWrite(stream, &maID, "SaveMultiAlignTToStream0", sizeof(int32), 1);
-  } else {
-    assert(ma->maID != -1);
-
-    AS_UTL_safeWrite(stream, &ma->maID, "SaveMultiAlignTToStream1", sizeof(int32), 1);
-    AS_UTL_safeWrite(stream, &ma->data, "SaveMultiAlignTToStream2", sizeof(MultiAlignD), 1);
-
-    saveDeltaPointers(ma);
-
-    CopyToFileVA_char(ma->consensus, stream);
-    CopyToFileVA_char(ma->quality, stream);
-
-    CopyToFileVA_int32(ma->fdelta, stream);
-    CopyToFileVA_int32(ma->udelta, stream);
-
-    CopyToFileVA_IntMultiPos(ma->f_list, stream);
-    CopyToFileVA_IntUnitigPos(ma->u_list, stream);
-    CopyToFileVA_IntMultiVar(ma->v_list, stream);
-
-    restoreDeltaPointers(ma);
-
-    saveVARData(ma, stream);
+    AS_UTL_safeWrite(stream, &memorySize, "SaveMultiAlignTToStream0", sizeof(size_t), 1);
+    return;
   }
+
+  assert(ma->maID != -1);
+
+  saveDeltaPointers(ma);
+
+  memorySize += sizeof(int32);
+  memorySize += sizeof(MultiAlignD);
+  memorySize += CopyToMemory_VA(ma->consensus, memory);
+  memorySize += CopyToMemory_VA(ma->quality,   memory);
+
+  memorySize += CopyToMemory_VA(ma->fdelta, memory);
+  memorySize += CopyToMemory_VA(ma->udelta, memory);
+
+  memorySize += CopyToMemory_VA(ma->f_list, memory);
+  memorySize += CopyToMemory_VA(ma->u_list, memory);
+  memorySize += CopyToMemory_VA(ma->v_list, memory);
+
+  memorySize += saveVARData(ma, memory);
+
+
+  memoryBase = memory = (char *)safe_malloc(sizeof(char) * memorySize);
+
+
+  memcpy(memory, &ma->maID, sizeof(int32));
+  memory += sizeof(int32);
+
+  memcpy(memory, &ma->data, sizeof(MultiAlignD));
+  memory += sizeof(MultiAlignD);
+
+  CopyToMemoryVA_char(ma->consensus, memory);
+  CopyToMemoryVA_char(ma->quality, memory);
+
+  CopyToMemoryVA_int32(ma->fdelta, memory);
+  CopyToMemoryVA_int32(ma->udelta, memory);
+
+  CopyToMemoryVA_IntMultiPos(ma->f_list, memory);
+  CopyToMemoryVA_IntUnitigPos(ma->u_list, memory);
+  CopyToMemoryVA_IntMultiVar(ma->v_list, memory);
+
+  restoreDeltaPointers(ma);
+
+  saveVARData(ma, memory);
+
+  AS_UTL_safeWrite(stream, &memorySize, "SaveMultiAlignTToStream0", sizeof(size_t), 1);
+  AS_UTL_safeWrite(stream,  memoryBase, "SaveMultiAlignTToStream1", sizeof(char),   memorySize);
+
+  safe_free(memoryBase);
 }
 
 void
 ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma) {
-  int    status = 0;
+  size_t   memorySize = 0;
+  char    *memory     = NULL;
+  char    *memoryBase = NULL;
+  int      status = 0;
 
   assert(ma != NULL);
 
   ClearMultiAlignT(ma);
 
-  status += AS_UTL_safeRead(stream, &ma->maID, "ReLoadMultiAlignTFromStream1", sizeof(int32), 1);
+  status = AS_UTL_safeRead(stream, &memorySize, "ReLoadMultiAlignTFromStream0", sizeof(size_t), 1);
   assert(status == 1);
 
-  if (ma->maID != -1) {
-    status += AS_UTL_safeRead(stream, &ma->data, "ReLoadMultiAlignTFromStream2", sizeof(MultiAlignD), 1);
-    assert(status == 2);
+  if (memorySize == 0)
+    return;
 
-    LoadFromFileVA_char(stream, ma->consensus);
-    LoadFromFileVA_char(stream, ma->quality);
+  memoryBase = memory = (char *)safe_malloc(sizeof(char) * memorySize);
 
-    LoadFromFileVA_int32(stream, ma->fdelta);
-    LoadFromFileVA_int32(stream, ma->udelta);
+  status = AS_UTL_safeRead(stream,  memoryBase, "ReLoadMultiAlignTFromStream1", sizeof(char), memorySize);
+  assert(status == memorySize);
 
-    LoadFromFileVA_IntMultiPos(stream, ma->f_list);
-    LoadFromFileVA_IntUnitigPos(stream, ma->u_list);
-    LoadFromFileVA_IntMultiVar(stream, ma->v_list);
+  memcpy(&ma->maID, memory, sizeof(int32));
+  memory += sizeof(int32);
 
-    restoreDeltaPointers(ma);
+  memcpy(&ma->data, memory, sizeof(MultiAlignD));
+  memory += sizeof(MultiAlignD);
 
-    restoreVARData(stream, ma);
-  }
+  LoadFromMemoryVA_char(memory, ma->consensus);
+  LoadFromMemoryVA_char(memory, ma->quality);
+
+  LoadFromMemoryVA_int32(memory, ma->fdelta);
+  LoadFromMemoryVA_int32(memory, ma->udelta);
+
+  LoadFromMemoryVA_IntMultiPos(memory, ma->f_list);
+  LoadFromMemoryVA_IntUnitigPos(memory, ma->u_list);
+  LoadFromMemoryVA_IntMultiVar(memory, ma->v_list);
+
+  restoreDeltaPointers(ma);
+
+  restoreVARData(memory, ma);
+
+  safe_free(memoryBase);
 }
 
 
