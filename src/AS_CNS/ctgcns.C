@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: ctgcns.C,v 1.3 2009-10-07 16:37:12 brianwalenz Exp $";
+const char *mainid = "$Id: ctgcns.C,v 1.4 2009-10-10 12:32:53 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -36,6 +36,8 @@ main (int argc, char **argv) {
   char  *tigName = NULL;
   int32  tigVers = -1;
   int32  tigPart = -1;
+
+  int32  ctgTest = -1;
 
   int32  numFailures = 0;
 
@@ -60,6 +62,9 @@ main (int argc, char **argv) {
       tigVers = atoi(argv[++arg]);
       tigPart = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-c") == 0) {
+      ctgTest = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-v") == 0) {
       printwhat = CNS_VIEW_UNITIG;
 
@@ -81,6 +86,7 @@ main (int argc, char **argv) {
   }
   if ((err) || (gkpName == NULL) || (tigName == NULL)) {
     fprintf(stderr, "usage: %s -g gkpStore -t tigStore version partition [opts]\n", argv[0]);
+    fprintf(stderr, "    -c id        Compute only contig 'id' (must be in the correct partition!)\n");
     fprintf(stderr, "    -v           Show multialigns.\n");
     fprintf(stderr, "    -V           Enable debugging option 'verbosemultialign'.\n");
     fprintf(stderr, "\n");
@@ -96,7 +102,15 @@ main (int argc, char **argv) {
 
   fprintf(stderr, "tigVers=%d tigPart=%d\n", tigVers, tigPart);
 
-  for (uint32 i=0; i<tigStore->numContigs(); i++) {
+  uint32 b = 0;
+  uint32 e = tigStore->numContigs();
+
+  if (ctgTest != -1) {
+    b = ctgTest;
+    e = ctgTest + 1;
+  }
+
+  for (uint32 i=b; i<e; i++) {
     MultiAlignT  *ma = tigStore->loadMultiAlign(i, FALSE);
 
     if (ma == NULL)
