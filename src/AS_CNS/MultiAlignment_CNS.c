@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.252 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.253 2009-10-10 12:34:35 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -470,6 +470,9 @@ GetMANodePositions(int32        mid,
   for (int32 i=0; i<GetNumFragments(fragmentStore); i++) {
     Fragment *fragment = GetFragment(fragmentStore, i);
 
+    //fprintf(stderr, "GetMANodePositions()--  frag %d ident %d deleted %d\n",
+    //        i, fragment->iid, fragment->deleted);
+
     if (fragment->deleted)
       continue;
 
@@ -479,8 +482,6 @@ GetMANodePositions(int32        mid,
     int32 end = GetColumn(columnStore, (GetBead(beadStore,fragment->firstbead + fragment->length - 1))->column_index)->ma_index + 1;
 
     if (fragment->type == AS_READ) {
-      IntMultiPos *imp = GetIntMultiPos(ma->f_list, n_frags++);
-
       if (FALSE == ExistsInHashTable_AS (fragmentMap, fragment->iid, 0))
         //  Fragment is not in the contig f_list; is in a surrogate.
         continue;
@@ -491,6 +492,8 @@ GetMANodePositions(int32        mid,
 
       //  Indicate we've placed the fragment.
       ReplaceInHashTable_AS(fragmentMap, fragment->iid, 0, 2, 0);
+
+      IntMultiPos *imp = GetIntMultiPos(ma->f_list, n_frags++);
 
       imp->ident        = fragment->iid;
       imp->type         = fragment->type;
@@ -512,6 +515,11 @@ GetMANodePositions(int32        mid,
     }
   }
 
+  //  Because contig consensus might have ejected fragments that don't align, the new list can be
+  //  shorter than the original list.
+  //
+  ResetToRangeVA_IntMultiPos(ma->f_list, n_frags);
+
   //  Set delta pointers into the VA.
 
   int32  fdeltapos = 0;
@@ -527,8 +535,6 @@ GetMANodePositions(int32        mid,
       continue;
 
     if (fragment->type == AS_READ) {
-      IntMultiPos *imp = GetIntMultiPos(ma->f_list, n_frags++);
-
       if (FALSE == ExistsInHashTable_AS(fragmentMap, fragment->iid, 0))
         continue;
 
@@ -536,6 +542,8 @@ GetMANodePositions(int32        mid,
 
       assert(2 == LookupValueInHashTable_AS(fragmentMap, fragment->iid, 0));
       DeleteFromHashTable_AS(fragmentMap, fragment->iid, 0);
+
+      IntMultiPos *imp = GetIntMultiPos(ma->f_list, n_frags++);
 
       imp->delta = (imp->delta_length == 0) ? NULL : Getint32(ma->fdelta, fdeltapos);
 
