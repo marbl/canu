@@ -268,7 +268,7 @@ sub setDefaults () {
     $synops{"doOverlapTrimming"}           = "Enable the Overlap Based Trimming module";
 
     $global{"doDeDuplication"}             = 1;
-    $synops{"doDeDuplication"}             = "Enable the OBT duplication detection and cleaning module";
+    $synops{"doDeDuplication"}             = "Enable the OBT duplication detection and cleaning module for 454 reads, enabled automatically";
 
     $global{"doChimeraDetection"}          = 1;
     $synops{"doChimeraDetection"}          = "Enable the OBT chimera detection and cleaning module";
