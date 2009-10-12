@@ -3,11 +3,26 @@
 use strict;
 use Config;  #  for @signame
 
-#  The only three globals configurables:
+#  The only four globals configurables:
 #
-my $wrkdir  = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY";
-my $wgscvs  = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY/wgs-assembler-cvs";
-my $kmersvn = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY/kmer-svn";
+my $site    = undef;
+my $wrkdir  = undef;
+my $wgscvs  = undef;
+my $kmersvn = undef;
+
+if      (-d "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY") {
+    $site    = "JCVI";
+    $wrkdir  = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY";
+    $wgscvs  = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY/wgs-assembler-cvs";
+    $kmersvn = "/usr/local/projects/BIOINFO/ASSEMBLY/NIGHTLY/kmer-svn";
+} elsif (-d "/work/NIGHTLY/") {
+    $site    = "BPWI";
+    $wrkdir  = "/work/NIGHTLY";
+    $wgscvs  = "/work/NIGHTLY/wgs-assembler-cvs";
+    $kmersvn = "/work/NIGHTLY/kmer-svn";
+} else {
+    die "Unknown site configuration.\n";
+}
 
 #  Command line options are
 #
@@ -307,6 +322,15 @@ sub buildCA ($) {
     if (-e "$wrkdir/$thisdate/wgs/src/make.err") {
         print STDERR "$wrkdir/$thisdate/wgs/src was already built once (successuflly or not).  Please cleanup first.\n";
     } else {
+        #  Temporary hack to handle the C to C++ renaming.
+        #  This was broken on "2009/06/10 17:34:22".
+        #  This was fixed  on "2009/08/06 11:36:54"
+        #
+        if ((-e "$wrkdir/$thisdate/wgs/src/rename-to-c++.sh") &&
+            (-s "$wrkdir/$thisdate/wgs/src/c_make.gen" == 14877)) {
+            system("cd $wrkdir/$thisdate/wgs/src && sh rename-to-c++.sh");
+        }
+
         system("cd $wrkdir/$thisdate/wgs/src && gmake > make.out.raw 2> make.err.raw");
 
         my %lines;
@@ -377,7 +401,8 @@ sub assemble ($$@) {
     print F "| \\\n";
     print F "tee \"$wrkdir/$thisdate/sanity-all-done.\$1\" \\\n";
     print F "| \\\n";
-    print F "/usr/sbin/sendmail -i -t -F CAtest\n";
+    print F "/usr/sbin/sendmail -i -t -F CAtest\n"    if ($site eq "JCVI");
+    #print F "/work/NIGHTLY/ssmtp thebri\@gmail.com\n" if ($site eq "BPWI");
     close(F);
 
     foreach my $s (@spec) {
@@ -444,10 +469,13 @@ sub assemble ($$@) {
         #
         #  Steps 1 and 2 are done here, step 3 is at the very end, steps 4 and 5 are done in the launch-assembly.sh above.
 
-        print STDERR "cd $wrkdir/$thisdate/$n && qsub -P 334007 -A assembly -b n -cwd -j y -o $wrkdir/$thisdate/$n/launch-assembly.err -l fast -h               -N $jl $wrkdir/$thisdate/$n/launch-assembly.sh\n";
-        system("cd $wrkdir/$thisdate/$n && qsub -P 334007 -A assembly -b n -cwd -j y -o $wrkdir/$thisdate/$n/launch-assembly.err -l fast -h               -N $jl $wrkdir/$thisdate/$n/launch-assembly.sh");
-        print STDERR "cd $wrkdir/$thisdate/$n && qsub -P 334007 -A assembly -b n -cwd -j y -o $wrkdir/$thisdate/$n/asm-done.err        -l fast -h -hold_jid $jl -N $jn $wrkdir/$thisdate/asm-done.sh $n\n";
-        system("cd $wrkdir/$thisdate/$n && qsub -P 334007 -A assembly -b n -cwd -j y -o $wrkdir/$thisdate/$n/asm-done.err        -l fast -h -hold_jid $jl -N $jn $wrkdir/$thisdate/asm-done.sh $n");
+        if      ($site eq "JCVI") {
+            system("cd $wrkdir/$thisdate/$n && qsub -P 334007 -A CAsanity -b n -cwd -j y -o $wrkdir/$thisdate/$n/launch-assembly.err -l fast -h               -N $jl $wrkdir/$thisdate/$n/launch-assembly.sh");
+            system("cd $wrkdir/$thisdate/$n && qsub -P 334007 -A CAsanity -b n -cwd -j y -o $wrkdir/$thisdate/$n/asm-done.err        -l fast -h -hold_jid $jl -N $jn $wrkdir/$thisdate/asm-done.sh $n");
+        } elsif ($site eq "BPWI") {
+            system("cd $wrkdir/$thisdate/$n && qsub           -A CAsanity -b n -cwd -j y -o $wrkdir/$thisdate/$n/launch-assembly.err         -h               -N $jl $wrkdir/$thisdate/$n/launch-assembly.sh");
+            system("cd $wrkdir/$thisdate/$n && qsub           -A CAsanity -b n -cwd -j y -o $wrkdir/$thisdate/$n/asm-done.err                -h -hold_jid $jl -N $jn $wrkdir/$thisdate/asm-done.sh $n");
+        }
 
         if (defined($holds_done)) {
             $holds_done .= ",$jn";
@@ -464,12 +492,14 @@ sub assemble ($$@) {
         }
     }
 
-    print STDERR "cd $wrkdir/$thisdate && qsub -P 334007 -A assembly -b n -cwd -j y -o $wrkdir/$thisdate/all-done.err -l fast -hold_jid $holds_done -N CAfin_$thisdate $wrkdir/$thisdate/all-done.sh $label $names_asms\n";
-    system("cd $wrkdir/$thisdate && qsub -P 334007 -A assembly -b n -cwd -j y -o $wrkdir/$thisdate/all-done.err -l fast -hold_jid $holds_done -N CAfin_$thisdate $wrkdir/$thisdate/all-done.sh $label $names_asms");
+    if      ($site eq "JCVI") {
+        system("cd $wrkdir/$thisdate && qsub -P 334007 -A CAsanity -b n -cwd -j y -o $wrkdir/$thisdate/all-done.err -l fast -hold_jid $holds_done -N CAfin_$thisdate $wrkdir/$thisdate/all-done.sh $label $names_asms");
+    } elsif ($site eq "BPWI") {
+        system("cd $wrkdir/$thisdate && qsub           -A CAsanity -b n -cwd -j y -o $wrkdir/$thisdate/all-done.err         -hold_jid $holds_done -N CAfin_$thisdate $wrkdir/$thisdate/all-done.sh $label $names_asms");
+    }
 
     #  Now, release everything to run.
 
-    print STDERR "qrls -h u $holds_asms\n";
     system("qrls -h u $holds_asms");
 }
 

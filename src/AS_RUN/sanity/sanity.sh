@@ -25,8 +25,13 @@ if [ x$date != x ] ; then
   echo "SANITY BEGINS for $date at `date`"
 fi
 
+
+#  Remove old versions
+perl sanity-purge-old.pl purge
+
+
 #  Update the repository.
-perl sanity.pl rsync
+#perl sanity.pl rsync
 
 
 #  Checkout the latest version.
@@ -40,14 +45,13 @@ fi
 
 
 #  Build it.
-#
 perl sanity.pl build $date
 
 
 #  Let the user pick one to run
-#
 if [ x$grid = x ] ; then
     echo "$date checked out and compiled.  Run some of:"
+    echo "  sh sanity-testgrid.sh     $date"
     echo "  sh sanity-daily-small.sh  $date"
     echo "  sh sanity-daily-large.sh  $date"
     echo "  sh sanity-weekly-dros.sh  $date"

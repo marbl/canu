@@ -15,10 +15,10 @@ while (<F>) {
 
 
 foreach my $asm (@assemblies) {
-    my $reference;
-    my $last;
+    my $reference = "0000-00-00-0000";
+    my $last      = "0000-00-00-0000";
 
-    {
+    if (-e "POINTERS/$asm.reference") {
         my %ref;
         my @ref;
 
@@ -38,7 +38,7 @@ foreach my $asm (@assemblies) {
     }
 
 
-    {
+    if (-e "POINTERS/$asm.last") {
         my %ref;
         my @ref;
 
