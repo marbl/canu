@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.58 2009-10-12 06:07:10 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.59 2009-10-12 06:19:29 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -10642,12 +10642,11 @@ static void  Set_Split_Flags_One_Scaffold
                     this_chunk -> split = FALSE;
                     break;
                   case  FALSE_IFF_SINGLETON :
-                    {
-                      int32 nf = ScaffoldGraph->tigStore->getNumFrags(this_chunk->chunk_id, ScaffoldGraph->RezGraph->type == CI_GRAPH)
-
-                      this_chunk -> split = (nf != 1);
-                      break;
-                    }
+                    this_chunk -> split = TRUE;
+                    if (1 == ScaffoldGraph->tigStore->getNumFrags(this_chunk->chunk_id,
+                                                                  ScaffoldGraph->RezGraph->type == CI_GRAPH))
+                      this_chunk -> split = FALSE;
+                    break;
                   default :
                     fprintf (stderr, "ERROR:  Unexpected split type\n");
                     assert (FALSE);
