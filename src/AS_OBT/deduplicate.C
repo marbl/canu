@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.3 2009-07-27 08:10:03 brianwalenz Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.4 2009-10-12 04:20:27 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -154,8 +154,15 @@ readOverlapsAndProcessFragments(gkStore      *gkp,
       //  And not deleted already
       continue;
 
-    if ((frag[ovl->a_iid].mateIID > 0) != (frag[ovl->b_iid].mateIID > 0))
-      //  And both mated or both unmated
+    //  Require that both fragments be unmated.  There is one (rare?) case that cannot be detected,
+    //  when a circle is duplicated, but one duplicate forms an unmated fragment:
+    //
+    //  mated      ------------->     <-----
+    //  fragment   ----------------->    <-- (this frag too short)
+    //  fragment   ->    <------------------
+
+    if ((frag[ovl->a_iid].mateIID == 0) && (frag[ovl->b_iid].mateIID == 0))
+      //  And both unmated
       continue;
 
     if ((frag[ovl->a_iid].libraryIID != frag[ovl->b_iid].libraryIID))
