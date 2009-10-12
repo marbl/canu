@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.57 2009-10-05 22:49:42 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.58 2009-10-12 06:07:10 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -10643,10 +10643,9 @@ static void  Set_Split_Flags_One_Scaffold
                     break;
                   case  FALSE_IFF_SINGLETON :
                     {
-                      MultiAlignT  * ma = ScaffoldGraph->tigStore->loadMultiAlign(this_chunk->chunk_id,
-                                                                                  ScaffoldGraph->RezGraph->type == CI_GRAPH);
+                      int32 nf = ScaffoldGraph->tigStore->getNumFrags(this_chunk->chunk_id, ScaffoldGraph->RezGraph->type == CI_GRAPH)
 
-                      this_chunk -> split = (GetNumIntMultiPoss (ma -> f_list) != 1);
+                      this_chunk -> split = (nf != 1);
                       break;
                     }
                   default :
