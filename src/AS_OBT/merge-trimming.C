@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merge-trimming.C,v 1.39 2009-07-16 20:30:30 brianwalenz Exp $";
+const char *mainid = "$Id: merge-trimming.C,v 1.40 2009-10-12 04:22:30 brianwalenz Exp $";
 
 #include "trim.H"
 #include "constants.H"
@@ -30,11 +30,20 @@ const char *mainid = "$Id: merge-trimming.C,v 1.39 2009-07-16 20:30:30 brianwale
 uint32         lineMax = 128 * 1024;
 char          *line    = 0L;
 
-void
+bool
 readLine(FILE *F) {
+  if (feof(F))
+    return(false);
+
   fgets(line, lineMax, F);
+
+  if (feof(F))
+    return(false);
+
   line[lineMax-1] = 0;
   assert(strlen(line) < (lineMax-1));
+
+  return(true);
 }
 
 class mode5 {
@@ -77,8 +86,7 @@ findModeOfFivePrimeMode(gkStore *gkp, char *ovlFile) {
   if (errno)
     fprintf(stderr, "Can't open overlap-trim file %s: %s\n", ovlFile, strerror(errno)), exit(1);
 
-  readLine(O);
-  while (!feof(O)) {
+  while (readLine(O)) {
     splitToWords W(line);
 
     AS_IID  id = atoi(W[0]);
@@ -87,8 +95,6 @@ findModeOfFivePrimeMode(gkStore *gkp, char *ovlFile) {
     AS_IID  lb = fr.gkFragment_getLibraryIID();
 
     modes[lb].add(atoi(W[4]) + fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL));
-
-    readLine(O);
   }
 
   fclose(O);
@@ -111,6 +117,21 @@ main(int argc, char **argv) {
   char    *ovlFile           = 0L;
   bool     doModify          = true;  //  Make this false for testing
 
+  uint32 result_noOverlaps = 0;
+  uint32 result_noOverlaps_TooShort = 0;
+  uint32 result_noOverlaps_NoIntersect = 0;
+
+  uint32 result_immutable = 0;
+  uint32 result_alreadyDeleted = 0;
+
+  uint32 result_tooShort = 0;
+  uint32 result_noChange = 0;
+  uint32 result_modified = 0;
+
+  uint32 result_obtOutsideMax = 0;
+  uint32 result_tooSmallAfterMax = 0;
+  uint32 result_adjustedForMax = 0;
+
   line = new char [lineMax];
 
   argc = AS_configure(argc, argv);
@@ -127,8 +148,10 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strncmp(argv[arg], "-frg", 2) == 0) {
       frgStore = argv[++arg];
+
     } else if (strncmp(argv[arg], "-ovl", 2) == 0) {
       ovlFile = argv[++arg];
+
     } else if (strncmp(argv[arg], "-log", 2) == 0) {
       errno=0;
       logFile = fopen(argv[++arg], "w");
@@ -180,8 +203,7 @@ main(int argc, char **argv) {
   uint64  lid = 0;
   uint64  iid = 0;
 
-  readLine(O);
-  while (!feof(O)) {
+  for (; readLine(O); lid = iid) {
     splitToWords  W(line);
     iid    = atoi(W[0]);
 
@@ -232,19 +254,24 @@ main(int argc, char **argv) {
           if (logFile)
             fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps)\n",
                     AS_UID_toString(uid), lid, qltL0, qltR0, l, r);
+          result_noOverlaps++;
         } else {
           //  What?  No intersect...too small?  Delete it!
           //
           if (doModify)
             gkp->gkStore_delFragment(lid);
 
-          if (logFile)
-            if (l < r)
+          if (logFile) {
+            if (l < r) {
               fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps, intersection too short, deleted)\n",
                       AS_UID_toString(uid), lid, qltL0, qltR0, qltL1, qltR1);
-            else
+              result_noOverlaps_TooShort++;
+            } else {
               fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps, no intersection, deleted)\n",
                       AS_UID_toString(uid), lid, qltL0, qltR0, qltL1, qltR1);
+              result_noOverlaps_NoIntersect++;
+            }
+          }
         }
       }
 
@@ -275,7 +302,21 @@ main(int argc, char **argv) {
       if (logFile)
         fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (immutable)\n",
                 AS_UID_toString(uid), lid, qltLQ1, qltRQ1, qltLQ1, qltRQ1);
-    } else {
+      result_immutable++;
+      continue;
+    }
+
+    //  Do nothing if we're already deleted.
+    //
+    if (fr.gkFragment_getIsDeleted() == 1) {
+      if (logFile)
+        fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (already-deleted)\n",
+                AS_UID_toString(uid), lid, qltLQ1, qltRQ1, qltLQ1, qltRQ1);
+      result_alreadyDeleted++;
+      continue;
+    }
+
+
       uint32 min5   = atoi(W[1]) + qltLQ1;
       uint32 minm5  = atoi(W[2]) + qltLQ1;
       uint32 minm5c = atoi(W[3]);
@@ -489,31 +530,31 @@ main(int argc, char **argv) {
       //
 
       if ((left == 0) && (right == 0)) {
-        stats[19]++;
-
         if (logFile)
           fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (deleted, too short)\n",
                   AS_UID_toString(uid), iid, qltL, qltR, left, right);
+        result_tooShort++;
 
         if (doModify)
           gkp->gkStore_delFragment(iid);
-      } else {
-        stats[20]++;
-
+      } else if ((left == fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTMERGE)) &&
+                 (right == fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_OBTMERGE))) {
         if (logFile)
           fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n",
                   AS_UID_toString(uid), iid, qltL, qltR, left, right);
+        result_noChange++;
+
+      } else {
+        if (logFile)
+          fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n",
+                  AS_UID_toString(uid), iid, qltL, qltR, left, right);
+        result_modified++;
 
         if (doModify) {
           fr.gkFragment_setClearRegion(left, right, AS_READ_CLEAR_OBTMERGE);
           gkp->gkStore_setFragment(&fr);
         }
       }
-    }
-
-    lid = iid;
-
-    readLine(O);
   }
 
   //  Finally, make a pass through, resetting clear ranges if they
@@ -566,18 +607,24 @@ main(int argc, char **argv) {
     if (adjl == adjr) {
       fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (deleted, obt clear outside specified clear max)\n",
               AS_UID_toString(uid), iid, obtl, obtr, maxl, maxr);
+      result_obtOutsideMax++;
+
       if (doModify)
         gkp->gkStore_delFragment(iid);
 
     } else if (adjr - adjl < AS_READ_MIN_LEN) {
       fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (deleted, too small after adjusteding to obey specified clear max)\n",
               AS_UID_toString(uid), iid, obtl, obtr, adjl, adjr);
+      result_tooSmallAfterMax++;
+
       if (doModify)
         gkp->gkStore_delFragment(iid);
 
     } else if ((adjl != obtl) || (adjr != obtr)) {
       fprintf(logFile, "%s,"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (adjusted to obey specified clear max)\n",
               AS_UID_toString(uid), iid, obtl, obtr, adjl, adjr);
+      result_adjustedForMax++;
+
       if (doModify) {
         fr.gkFragment_setClearRegion(maxl, maxr, AS_READ_CLEAR_OBTMERGE);
         gkp->gkStore_setFragment(&fr);
@@ -612,8 +659,21 @@ main(int argc, char **argv) {
     fprintf(staFile, F_U32":\t  use max>1 close to max (3')\n", stats[14]);
     fprintf(staFile, F_U32":\tinvalid clear after merging overlaps (should be 0)\n", stats[18]);
     fprintf(staFile, F_U32":\tshort or inconsistent\n", stats[13]);
-    fprintf(staFile, F_U32":\tdeleted fragment due to zero clear\n", stats[19]);
-    fprintf(staFile, F_U32":\tupdated fragment clear range\n", stats[20]);
+    fprintf(staFile, "\n");
+    fprintf(staFile, F_U32":\tresult_noOverlaps\n", result_noOverlaps);
+    fprintf(staFile, F_U32":\tresult_noOverlaps_TooShort\n", result_noOverlaps_TooShort);
+    fprintf(staFile, F_U32":\tresult_noOverlaps_NoIntersect\n", result_noOverlaps_NoIntersect);
+    fprintf(staFile, "\n");
+    fprintf(staFile, F_U32":\tresult_immutable\n", result_immutable);
+    fprintf(staFile, F_U32":\tresult_alreadyDeleted\n", result_alreadyDeleted);
+    fprintf(staFile, "\n");
+    fprintf(staFile, F_U32":\tresult_tooShort\n", result_tooShort);
+    fprintf(staFile, F_U32":\tresult_noChange\n", result_noChange);
+    fprintf(staFile, F_U32":\tresult_modified\n", result_modified);
+    fprintf(staFile, "\n");
+    fprintf(staFile, F_U32":\tresult_obtOutsideMax\n", result_obtOutsideMax);
+    fprintf(staFile, F_U32":\tresult_tooSmallAfterMax\n", result_tooSmallAfterMax);
+    fprintf(staFile, F_U32":\tresult_adjustedForMax\n", result_adjustedForMax);
   }
 
   if (logFile)
