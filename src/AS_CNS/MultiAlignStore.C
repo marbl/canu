@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.4 2009-10-07 16:37:09 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.5 2009-10-12 04:02:35 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -589,11 +589,11 @@ void
 MultiAlignStore::dumpMultiAlignR(int32 maID, bool isUnitig) {
   MultiAlignR  *maRecord = (isUnitig) ? utgRecord : ctgRecord;
 
-  fprintf(stderr, "maRecord.isPresent   = %d\n", maRecord[maID].isPresent);
-  fprintf(stderr, "maRecord.isDeleted   = %d\n", maRecord[maID].isDeleted);
-  fprintf(stderr, "maRecord.ptID        = %d\n", maRecord[maID].ptID);
-  fprintf(stderr, "maRecord.svID        = %d\n", maRecord[maID].svID);
-  fprintf(stderr, "maRecord.fileOffset  = %d\n", maRecord[maID].fileOffset);
+  fprintf(stdout, "maRecord.isPresent   = %d\n", maRecord[maID].isPresent);
+  fprintf(stdout, "maRecord.isDeleted   = %d\n", maRecord[maID].isDeleted);
+  fprintf(stdout, "maRecord.ptID        = %d\n", maRecord[maID].ptID);
+  fprintf(stdout, "maRecord.svID        = %d\n", maRecord[maID].svID);
+  fprintf(stdout, "maRecord.fileOffset  = %d\n", maRecord[maID].fileOffset);
 }
 
 
@@ -603,12 +603,14 @@ MultiAlignStore::dumpMultiAlignRTable(bool isUnitig) {
   MultiAlignR  *maRecord = (isUnitig) ? utgRecord : ctgRecord;
   int32         len      = (isUnitig) ? utgLen    : ctgLen;
 
+  fprintf(stdout, "maID\tisPresent\tisDeleted\tptID\tsvID\tfileOffset\n");
+
   for (int32 i=0; i<len; i++) {
-    fprintf(stderr, "%d\t", i);
-    fprintf(stderr, "isPresent\t%d\t", maRecord[i].isPresent);
-    fprintf(stderr, "isDeleted\t%d\t", maRecord[i].isDeleted);
-    fprintf(stderr, "ptID\t%d\t", maRecord[i].ptID);
-    fprintf(stderr, "svID\t%d\t", maRecord[i].svID);
-    fprintf(stderr, "fileOffset\t%d\n", maRecord[i].fileOffset);
+    fprintf(stdout, "%d\t", i);
+    fprintf(stdout, "%d\t", maRecord[i].isPresent);
+    fprintf(stdout, "%d\t", maRecord[i].isDeleted);
+    fprintf(stdout, "%d\t", maRecord[i].ptID);
+    fprintf(stdout, "%d\t", maRecord[i].svID);
+    fprintf(stdout, "%d\n", maRecord[i].fileOffset);
   }
 }
