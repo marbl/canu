@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: ctgcns.C,v 1.4 2009-10-10 12:32:53 brianwalenz Exp $";
+const char *mainid = "$Id: ctgcns.C,v 1.5 2009-10-12 04:03:18 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -116,6 +116,9 @@ main (int argc, char **argv) {
     if (ma == NULL)
       //  Not in our partition, or deleted.
       continue;
+
+    fprintf(stderr, "Working on contig %d (%d unitigs and %d fragments)\n",
+            ma->maID, ma->data.num_unitigs, ma->data.num_frags);
 
     if (MultiAlignContig(ma, gkpStore, printwhat, &options)) {
       tigStore->insertMultiAlign(ma, FALSE, FALSE);
