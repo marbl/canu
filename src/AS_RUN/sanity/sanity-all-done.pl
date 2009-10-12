@@ -47,12 +47,12 @@ foreach my $asm (@assemblies) {
 
     chomp;
     #  Green!
-    s!SUCCESS!<FONT COLOR=\"0x00ff00\">SUCCESS</FONT>!g;
-    s!same!<FONT COLOR=\"0x00ff00\">same</FONT>!g;
+    s!SUCCESS!<FONT COLOR=0x00ff00>SUCCESS</FONT>!g;
+    s!same!<FONT COLOR=0x00ff00>same</FONT>!g;
 
     #  Red
-    s!FAILURE!<FONT COLOR=\"0xff0000\">FAILURE</FONT>!g;
-    s!differs!<FONT COLOR=\"0xff0000\">differs</FONT>!g;
+    s!FAILURE!<FONT COLOR=0xff0000>FAILURE</FONT>!g;
+    s!differs!<FONT COLOR=0xff0000>differs</FONT>!g;
 
     print "$_<BR>\n";
 }
