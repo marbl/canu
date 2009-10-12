@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.67 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.68 2009-10-12 04:01:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,17 +40,16 @@ static char *rcsid = "$Id: Input_CGW.c,v 1.67 2009-10-05 22:49:42 brianwalenz Ex
 #include "Input_CGW.h"
 
 
-static int32 DiscriminatorUniques = 0;
-static int32 ShortDiscriminatorUniques = 0;
-
 void ProcessInputUnitig(MultiAlignT *uma);
 
 
 int ProcessInput(int optind, int argc, char *argv[]){
-  GenericMesg   *pmesg;
-  FILE *infp;
   int i,j = 0;
-  int32 numIUM = 0;
+  int32  numFRG = 0;
+  int32  numUTG = 0;
+
+
+  fprintf(stderr, "Reading fragments.\n");
 
   EnableRange_VA(ScaffoldGraph->CIFrags, ScaffoldGraph->gkpStore->gkStore_getNumFragments() + 1);
 
@@ -90,14 +89,19 @@ int ProcessInput(int optind, int argc, char *argv[]){
     cifrag->flags.bits.isChaff                    = FALSE;
     cifrag->flags.bits.isDeleted                  = fr.gkFragment_getIsDeleted();
     cifrag->flags.bits.innieMate                  = (fr.gkFragment_getOrientation() == AS_READ_ORIENT_INNIE);
-    cifrag->flags.bits.hasMate                    = (fr.gkFragment_getMateIID()      > 0);
+    cifrag->flags.bits.hasMate                    = (fr.gkFragment_getMateIID() > 0);
 
-    cifrag->flags.bits.edgeStatus                 = (fr.gkFragment_getMateIID()      > 0) ? UNKNOWN_EDGE_STATUS : INVALID_EDGE_STATUS;
+    cifrag->flags.bits.edgeStatus                 = (fr.gkFragment_getMateIID() > 0) ? UNKNOWN_EDGE_STATUS : INVALID_EDGE_STATUS;
     cifrag->flags.bits.chunkLabel                 = AS_SINGLETON;
 
     cifrag->flags.bits.mateDetail                 = UNASSIGNED_MATE;
+
+    if ((++numFRG % 1000000) == 0) {
+      fprintf(stderr, "...processed "F_S32" fragments.\n", numFRG);
+    }
   }
 
+  fprintf(stderr, "Reading unitigs.\n");
 
   for (int32 i=0; i<ScaffoldGraph->tigStore->numUnitigs(); i++) {
     MultiAlignT   *uma = ScaffoldGraph->tigStore->loadMultiAlign(i, TRUE);
@@ -111,16 +115,14 @@ int ProcessInput(int optind, int argc, char *argv[]){
 
     ProcessInputUnitig(uma);
 
-    numIUM++;
-    if ((numIUM % 10000) == 0) {
-      fprintf(stderr, "processed "F_S32" IUM messages.\n", numIUM);
+    if ((++numUTG % 100000) == 0) {
+      fprintf(stderr, "...processed "F_S32" unitigs.\n", numUTG);
       ScaffoldGraph->tigStore->flushCache();
     }
   }
 
   fprintf(stderr,"Processed %d unitigs with %d fragments\n",
-          numIUM,
-          (int)GetNumCIFragTs(ScaffoldGraph->CIFrags));
+          numUTG, numFRG);
 
   ScaffoldGraph->numLiveCIs     = GetNumGraphNodes(ScaffoldGraph->CIGraph);
   ScaffoldGraph->numOriginalCIs = GetNumGraphNodes(ScaffoldGraph->CIGraph);
@@ -157,9 +159,9 @@ ProcessInputUnitig(MultiAlignT *uma) {
   CI.BEndNext                            = NULLINDEX;
   CI.AEndNext                            = NULLINDEX;
 
-  assert(uma->data.unitig_coverage_stat > -1000);
+  if (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < -1000)
+    ScaffoldGraph->tigStore->setUnitigCoverageStat(uma->maID, -1000);
 
-  //CI.info.CI.coverageStat                = (uma->data.unitig_coverage_stat < -1000.0) ? -1000 : uma->data.unitig_coverage_stat;
   CI.info.CI.contigID                    = NULLINDEX;
   CI.info.CI.numInstances                = 0;
   CI.info.CI.instances.in_line.instance1 = 0;
@@ -175,7 +177,7 @@ ProcessInputUnitig(MultiAlignT *uma) {
 
   int isUnique = FALSE;
 
-  if(uma->data.unitig_coverage_stat >= GlobalData->cgbUniqueCutoff &&
+  if (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) >= GlobalData->cgbUniqueCutoff &&
      length >= CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH &&
      GetNumIntMultiPoss(uma->f_list) >= CGW_MIN_READS_IN_UNIQUE){
 
@@ -183,16 +185,16 @@ ProcessInputUnitig(MultiAlignT *uma) {
     // sequence being UNIQUE, based on microhet considerations.
     // Falling below threshhold makes something a repeat.
 
-    if (uma->data.unitig_microhet_prob < GlobalData->cgbMicrohetProb){
-      if(uma->data.unitig_coverage_stat < GlobalData->cgbApplyMicrohetCutoff){
+    if (ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID) < GlobalData->cgbMicrohetProb){
+      if(ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbApplyMicrohetCutoff){
         //fprintf(stderr,"* CI " F_CID " with astat: %g classified as repeat based on microhet unique prob of %g < %g\n",
-        //        CI.id, uma->data.unitig_coverage_stat, uma->data.unitig_microhet_prob, GlobalData->cgbMicrohetProb);
+        //        CI.id, ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID), ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID), GlobalData->cgbMicrohetProb);
         isUnique = FALSE;
         CI.type = UNRESOLVEDCHUNK_CGW;
       }else{
         isUnique = TRUE;
         //fprintf(stderr,"* WARNING: CI " F_CID " with coverage %g WOULD HAVE BEEN classified as repeat based on microhet unique prob of %g < %g\n",
-        //        CI.id, uma->data.unitig_coverage_stat, uma->data.unitig_microhet_prob, GlobalData->cgbMicrohetProb);
+        //        CI.id, ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID), ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID), GlobalData->cgbMicrohetProb);
       }
     }else{
       isUnique = TRUE;
