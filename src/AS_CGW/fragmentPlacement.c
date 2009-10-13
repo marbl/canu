@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.33 2009-10-05 22:49:42 brianwalenz Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.34 2009-10-13 09:35:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,6 +45,8 @@ static const char *rcsid = "$Id: fragmentPlacement.c,v 1.33 2009-10-05 22:49:42 
 
 #define EXTERNAL_MATES_ONLY 1
 #define ALL_MATES 0
+
+#undef  DEBUG_RS
 
 
 // new iterator for looping over the fragments in a chunk -- note need to call cleanup routine when done
@@ -540,7 +542,6 @@ static
 void ReallyAssignFragsToResolvedCI(CDS_CID_t fromCIid,
                                    CDS_CID_t toCIid,
 				   VA_TYPE(CDS_CID_t) *fragments){
-  int i;
 
   NodeCGW_T *fromCI = GetGraphNode(ScaffoldGraph->CIGraph, fromCIid);
   NodeCGW_T *toCI   = GetGraphNode(ScaffoldGraph->CIGraph, toCIid);
@@ -558,22 +559,42 @@ void ReallyAssignFragsToResolvedCI(CDS_CID_t fromCIid,
 
   assert(toCI->scaffoldID != NULLINDEX);
 
-  if(f_list_CI){
+  if (f_list_CI) {
     ResetVA_IntMultiPos(f_list_CI);
     ResetVA_IntMultiPos(f_list_Contig);
-  }else{
+  } else {
     f_list_CI     = CreateVA_IntMultiPos(GetNumCDS_CID_ts(fragments));
     f_list_Contig = CreateVA_IntMultiPos(GetNumCDS_CID_ts(fragments));
   }
 
   //  Assigns frags to new node and create a degenerate MultiAlignT
 
-  for(i = 0; i < GetNumCDS_CID_ts(fragments); i++){
+  for (int32 i=0; i<GetNumCDS_CID_ts(fragments); i++) {
     CDS_CID_t fragID  = *GetCDS_CID_t(fragments,i);
     CIFragT  *frag    = GetCIFragT(ScaffoldGraph->CIFrags, fragID);
 
-    assert(frag->CIid  == fromCIid);
-    assert(frag->cid   == fromCIid);
+#ifdef DEBUG_RS
+    fprintf(stderr, "PLACE frag %d into instance %d\n", fragID, toCIid);
+#endif
+
+    //  Calling resolveSurrogates() multiple times (for closure reads, see AS_CGW_main.c) can result
+    //  in placed surrogate reads placing other surrogate reads.
+    //
+    //  ----------surrogate----surrogate-------------
+    //       A-------A              C-------C
+    //                  B--------B
+    //
+    //  On the first pass, the right surrogate is examined first.  We cannot place fragment B, since
+    //  the other end isn't placed.  C can be placed.  The left surrogate is examined, and placing A
+    //  triggers the "second guess" to place all fragments in this surrogate.
+    //
+    //  On the second pass, B can now be placed in the right surrogate, since it is anchored in the
+    //  left surrogate.  If that triggers the placement of all reads, we'll place C again.
+    //
+    //  So, we explicitly allow the fragment to be placed again.
+
+    assert((frag->CIid == fromCIid) || (frag->CIid == toCIid));
+    assert((frag->cid  == fromCIid) || (frag->cid  == toCIid));
 
     frag->CIid            = toCIid;
     frag->contigID        = toContigID;
@@ -596,30 +617,15 @@ void ReallyAssignFragsToResolvedCI(CDS_CID_t fromCIid,
     if (surrogateAOffset > surrogateBOffset) {
       fragPos.position.bgn = surrogateAOffset - frag->offset5p.mean;
       fragPos.position.end = surrogateAOffset - frag->offset3p.mean;
-      if(fragPos.position.end<0){
-	fprintf(stderr,"DIRE WARNING: fragment " F_CID " left end rescued from < 0 coord on ctg " F_CID "\n",
-		fragPos.ident,toContig->id);
-	fragPos.position.end=0;
-      }
-      if(fragPos.position.bgn<0){
-	fprintf(stderr,"DIRE WARNING: fragment " F_CID " left end rescued from < 0 coord on ctg " F_CID "\n",
-		fragPos.ident,toContig->id);
-	fragPos.position.bgn=0;
-      }
-    }else{
+    } else {
       fragPos.position.bgn = surrogateAOffset + frag->offset5p.mean;
       fragPos.position.end = surrogateAOffset + frag->offset3p.mean;
-      if(fragPos.position.bgn<0){
-	fprintf(stderr,"DIRE WARNING: fragment " F_CID " left end rescued from < 0 coord on ctg " F_CID "\n",
-		fragPos.ident,toContig->id);
-	fragPos.position.bgn=0;
-      }
-      if(fragPos.position.end<0){
-	fprintf(stderr,"DIRE WARNING: fragment " F_CID " left end rescued from < 0 coord on ctg " F_CID "\n",
-		fragPos.ident,toContig->id);
-	fragPos.position.end=0;
-      }
     }
+
+    if (fragPos.position.bgn < 0)
+      fragPos.position.bgn = 0;
+    if (fragPos.position.end < 0)
+      fragPos.position.end = 0;
 
     // We shouldn't need this!
     frag->contigOffset5p.variance = ComputeFudgeVariance(fragPos.position.bgn);
@@ -631,27 +637,22 @@ void ReallyAssignFragsToResolvedCI(CDS_CID_t fromCIid,
     AppendIntMultiPos(f_list_Contig, &fragPos);
   }
 
+  //fprintf(stderr, "ReallyAssignFragsToResolvedCI()-- CI=%d contig=%d\n", toCIid, toContigID);
 
-  fprintf(stderr, "ReallyAssignFragsToResolvedCI()-- CI=%d contig=%d\n", toCIid, toContigID);
-
-  /* Copy IntMultiPos records from the source to destination CI,
-     adjusting consensus sequence */
+  //  Copy IntMultiPos records from the source to destination CI, adjusting consensus sequence
   PlaceFragmentsInMultiAlignT(toCIid, TRUE, f_list_CI);
   UpdateNodeFragments(ScaffoldGraph->CIGraph, toCIid, FALSE, FALSE);
 
-  /* Copy IntMultiPos records to destination Contig, adjusting
-     consensus sequence */
+  // Copy IntMultiPos records to destination Contig, adjusting consensus sequence
   PlaceFragmentsInMultiAlignT(toContigID, FALSE, f_list_Contig);
   UpdateNodeFragments(ScaffoldGraph->ContigGraph, toContigID, FALSE, FALSE);
 
   UpdateNodeUnitigs(ScaffoldGraph->tigStore->loadMultiAlign(toContig->id, FALSE), toContig);
 
-  /* Do not Rebuild the Mate Edges of the target CI to reflect the
-     changes in fragment membership */
+  // Do not Rebuild the Mate Edges of the target CI to reflect the changes in fragment membership
 
-  /* Do NOT Rebuild the Mate Edges of the target CI's Contig to
-     reflect the changes in fragment membership.  We will rebuild all
-     mate edges when all fragments have been placed */
+  // Do NOT Rebuild the Mate Edges of the target CI's Contig to reflect the changes in fragment
+  // membership.  We will rebuild all mate edges when all fragments have been placed
 }
 
 
@@ -759,189 +760,189 @@ int placedByClosureIn(int index, CDS_CID_t iid, CDS_CID_t sid, CDS_CID_t ctgiid,
 void
 resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
                   double cutoffToInferSingleCopyStatus) {
-  int                i;
-  GraphNodeIterator  CIGraphIterator;
-  ChunkInstanceT    *parentChunk;
-  int totalNumParentFrags=0;
-  int numReallyPlaced=0;
-  int                    allocedImpLists = 128;
-  VA_TYPE(IntMultiPos) **impLists = NULL;
+  int32 totalNumParentFrags  = 0;
+  int32 numReallyPlaced      = 0;
+  int32 allocatedPlacedLists   = 128;
 
   assert((cutoffToInferSingleCopyStatus >= 0.0) &&
          (cutoffToInferSingleCopyStatus <= 1.0));
 
+  GraphNodeIterator  CIGraphIterator;
+  ChunkInstanceT    *parentChunk;
+
+
+  //  Allocate a list of IIDs for each possible surrogate instance.  We allocate enough lists for
+  //  the largest number of instances in the whole assembly.
+
   InitGraphNodeIterator(&CIGraphIterator, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
   while ((parentChunk = NextGraphNodeIterator(&CIGraphIterator)) != NULL)
-    if (allocedImpLists < parentChunk->info.CI.numInstances)
-      allocedImpLists = parentChunk->info.CI.numInstances + 128;
+    if (allocatedPlacedLists < parentChunk->info.CI.numInstances)
+      allocatedPlacedLists = parentChunk->info.CI.numInstances;
 
-  impLists = (VA_TYPE(IntMultiPos)**) safe_malloc(allocedImpLists*sizeof(VA_TYPE(IntMultiPos)*));
-  for (i=0;i<allocedImpLists;i++)
-    impLists[i] = CreateVA_IntMultiPos(20);
+  VA_TYPE(int32) **placedList = (VA_TYPE(int32)**) safe_malloc(allocatedPlacedLists * sizeof(VA_TYPE(int32)*));
+
+  for (int32 i=0; i<allocatedPlacedLists; i++)
+    placedList[i] = CreateVA_int32(20);
+
+  //  Over all unitigs, try to place surrogate fragments.
 
   InitGraphNodeIterator(&CIGraphIterator, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
   while ((parentChunk = NextGraphNodeIterator(&CIGraphIterator)) != NULL) {
-    int numFrgsToPlace=0;
-    HashTable_AS *fHash;
-    int numInstances = parentChunk->info.CI.numInstances;
-    int i,index, numFragmentsInParent;
+    int32            numFragmentsInParent;
+    int32            numFrgsToPlace = 0;
+    int              numInstances = parentChunk->info.CI.numInstances;
 
-    assert(numInstances <= allocedImpLists);
+    assert(numInstances <= allocatedPlacedLists);
 
-    // if numInstances >= 1 then it has a surrogate
-    if(numInstances==0)
+    if (numInstances == 0)
+      //  Not a surrogate
       continue;
 
-    // count fragments and positions
-    {
-      MultiAlignT *maParent = ScaffoldGraph->tigStore->loadMultiAlign(parentChunk->id, TRUE);
-      numFragmentsInParent = GetNumIntMultiPoss(maParent->f_list);
-    }
+    numFragmentsInParent  = ScaffoldGraph->tigStore->getNumFrags(parentChunk->id, TRUE);
+    totalNumParentFrags  += numFragmentsInParent;
 
-    totalNumParentFrags += numFragmentsInParent;
+#ifdef DEBUG_RS
+    fprintf(stderr, "----------------------------------------\n");
+    fprintf(stderr, "RESOLVE for parent %d with %d fragments and %d instances.\n", parentChunk->id, numFragmentsInParent, numInstances);
+#endif
 
     HashTable_AS *instanceList = CreateScalarHashTable_AS();
-    for(i=0;i<numInstances;i++){
-      ChunkInstanceT *candidateChunk;
 
-      index = getChunkInstanceID(parentChunk, i);
-      candidateChunk = GetGraphNode(ScaffoldGraph->CIGraph, index);
-      AssertPtr (candidateChunk);
+    //  Over all instances, do some sanity checking, clear the placedList, and remember the instance ID.
+
+    for (int32 i=0; i<numInstances; i++) {
+      int32           instanceID     = getChunkInstanceID(parentChunk, i);
+      ChunkInstanceT *candidateChunk = GetGraphNode(ScaffoldGraph->CIGraph, instanceID);
 
       //  These were historically problems that were not asserts, but
       //  would just skip this instance.
-      assert(parentChunk->type == UNRESOLVEDCHUNK_CGW);
-      assert(candidateChunk->type == RESOLVEDREPEATCHUNK_CGW);
-      assert(parentChunk != candidateChunk);
+      assert(parentChunk->type              == UNRESOLVEDCHUNK_CGW);
+      assert(candidateChunk->type           == RESOLVEDREPEATCHUNK_CGW);
       assert(candidateChunk->info.CI.baseID == parentChunk->id);
-      InsertInHashTable_AS(instanceList, (uint64)index, 0, (uint64)1, 0);
+      assert(parentChunk                    != candidateChunk);
+
+      ResetVA_int32(placedList[i]);
+
+      InsertInHashTable_AS(instanceList, (uint64)instanceID, 0, (uint64)1, 0);
     }
 
-    for(i=0;i<numInstances;i++){
-      ChunkInstanceT *candidateChunk;
-      CDS_CID_t sid,ctgiid;
-      CGWFragIterator frags;
-      CIFragT *nextfrg;
+    //  Over all instances (again), build a list of the fragments we can place in each instance.
 
-      index = getChunkInstanceID(parentChunk, i);
-      candidateChunk = GetGraphNode(ScaffoldGraph->CIGraph, index);
-      AssertPtr (candidateChunk);
+    HashTable_AS    *fragPlacedTimes = CreateScalarHashTable_AS();
 
-      //  These were historically problems that were not asserts, but
-      //  would just skip this instance.
-      assert(parentChunk->type == UNRESOLVEDCHUNK_CGW);
-      assert(candidateChunk->type == RESOLVEDREPEATCHUNK_CGW);
-      assert(parentChunk != candidateChunk);
-	   assert(candidateChunk->info.CI.baseID == parentChunk->id);
+    for (int32 i=0; i<numInstances; i++) {
+      int32           instanceID     = getChunkInstanceID(parentChunk, i);
+      ChunkInstanceT *candidateChunk = GetGraphNode(ScaffoldGraph->CIGraph, instanceID);
 
-      sid=candidateChunk->scaffoldID;
-      ctgiid = candidateChunk->info.CI.contigID;
+      int32       sid    = candidateChunk->scaffoldID;
+      int32       ctgiid = candidateChunk->info.CI.contigID;
 
-      if(sid==NULLINDEX)
+      if (sid == NULLINDEX)
         continue;
 
-      // now loop over fragments looking for those with mates in the scaffold
+      CGWFragIterator frags;
+      CIFragT        *frag;
+
       InitCIFragTInChunkIterator(&frags,parentChunk,FALSE);
-      while(NextCIFragTInChunkIterator(&frags, &nextfrg)){
-        CIFragT *mate;
-        ChunkInstanceT *mateChunk;
+      while(NextCIFragTInChunkIterator(&frags, &frag)){
         int fragIsGood = 0;
 
-        if (nextfrg->CIid != parentChunk->id) {
-          // placed in a previuos round
+        if (frag->CIid != parentChunk->id)
+          //  Placed in a previuos round
           continue;
-        }
         
         if ((placeAllFragsInSinglePlacedSurros) &&
             (numInstances == 1))
-          fragIsGood=1;
+          fragIsGood = 1;
 
-        if ((matePlacedOnlyIn(nextfrg,sid,&mate,&mateChunk)) &&
-            (nextfrg->flags.bits.innieMate) &&
-            (FragAndMateAreCompatible(nextfrg,candidateChunk,mate,mateChunk,AS_INNIE))) {
-          fragIsGood= 1;          
-        }
+        CIFragT        *mate      = NULL;
+        ChunkInstanceT *mateChunk = NULL;
+
+        if ((matePlacedOnlyIn(frag,sid,&mate,&mateChunk)) &&
+            (frag->flags.bits.innieMate) &&
+            (FragAndMateAreCompatible(frag,candidateChunk,mate,mateChunk,AS_INNIE)))
+          fragIsGood = 1;          
 
         // if this is closure read and we can place it in this location, do it
-        if (ScaffoldGraph->gkpStore->gkStore_getFRGtoPLC(nextfrg->read_iid) != 0 && 
-            placedByClosureIn(index, nextfrg->read_iid, sid, ctgiid, instanceList)) {
+        if (ScaffoldGraph->gkpStore->gkStore_getFRGtoPLC(frag->read_iid) != 0 && 
+            placedByClosureIn(instanceID, frag->read_iid, sid, ctgiid, instanceList))
           fragIsGood = 1;
-        }
         
-        if(fragIsGood){
-          // we're hot to trot ... now do something!
-          IntMultiPos imp;
+        if (fragIsGood) {
+#ifdef DEBUG_RS
+          fprintf(stderr, "frag %d (CIid=%d cid=%d) from parent=%d to=%d\n", frag->read_iid, frag->CIid, frag->cid, parentChunk->id, instanceID);
+#endif
+          AppendVA_int32(placedList[i], &frag->read_iid);
 
-          imp.type         = AS_READ;
-          imp.ident        = nextfrg->read_iid;
-          imp.contained    = 0; /* this might be wrong! */
-          imp.parent       = 0;
-          imp.ahang        = 0;
-          imp.bhang        = 0;
-          imp.position.bgn = nextfrg->offset5p.mean;
-          imp.position.end = nextfrg->offset3p.mean;
-          imp.delta_length = 0;
-          imp.delta        = NULL;
+          //  Count how many times we try to place this fragment
+          ReplaceInHashTable_AS(fragPlacedTimes, frag->read_iid, 0,
+                                LookupValueInHashTable_AS(fragPlacedTimes, frag->read_iid, 0) + 1, 0);
 
-          AppendVA_IntMultiPos(impLists[i],&imp);
           numFrgsToPlace++;
         }
       }
+
       CleanupCIFragTInChunkIterator(&frags);
-    }  //  Over all instances
-    DeleteHashTable_AS(instanceList);
-
-    if(numFrgsToPlace==0)
-      continue;
-
-    fHash = CreateScalarHashTable_AS();
-
-    for(i=0;i<numInstances;i++){
-      int j, numToPlace = GetNumIntMultiPoss(impLists[i]);
-      for(j=0;j<numToPlace;j++){
-	CDS_CID_t iid = GetIntMultiPos(impLists[i],j)->ident;
-        ReplaceInHashTable_AS(fHash, iid, 0,
-                              LookupValueInHashTable_AS(fHash,iid,0) + 1, 0);
-      }
     }
 
-    for(i=0;i<numInstances;i++){
-      int j, numToPlace = GetNumIntMultiPoss(impLists[i]);
-      VA_TYPE(CDS_CID_t) *toplace;
+    DeleteHashTable_AS(instanceList);
 
-      if(numToPlace==0)
+    if (numFrgsToPlace == 0)
+      //  Nothing to place.
+      continue;
+
+    //  Over all instances, again, build the final list of fragments to place.  This discards any
+    //  fragment we try to place more than once.
+
+    for (int32 i=0; i<numInstances; i++) {
+      int numToPlace = GetNumint32s(placedList[i]);
+
+      if (numToPlace == 0)
         continue;
 
-      toplace = CreateVA_CDS_CID_t(numToPlace);
+#ifdef DEBUG_RS
+      fprintf(stderr, "PLACING for instance %d\n", getChunkInstanceID(parentChunk, i));
+#endif
 
-      //  Build the list of fragments to place
-      for(j=0;j<numToPlace;j++){
-	CDS_CID_t iid = GetIntMultiPos(impLists[i],j)->ident;
+      VA_TYPE(CDS_CID_t) *toplace = CreateVA_CDS_CID_t(numToPlace);
 
-	int32 count_so_far = (int32)LookupValueInHashTable_AS(fHash,(uint64)iid,0);
-	assert(count_so_far>0);
-	if(count_so_far>1)
+      for (int32 j=0; j<numToPlace; j++){
+	CDS_CID_t iid = *Getint32(placedList[i], j);
+
+	int32 numTimes = (int32)LookupValueInHashTable_AS(fragPlacedTimes, (uint64)iid, 0);
+	assert(numTimes > 0);
+
+	if (numTimes > 1)
+          //  Whoops!  Placed it more than once.
 	  continue;
 
-	AppendVA_CDS_CID_t(toplace,&iid);
+#ifdef DEBUG_RS
+        fprintf(stderr, "frag %d is OK\n", iid);
+#endif
+	AppendVA_CDS_CID_t(toplace, &iid);
       }
 
 
-      // now, second-guess ourselves: if a sufficient fraction of
-      // reads can be placed with mates, then place all fragments
+      //  Second-guess ourselves: if a sufficient fraction of reads can be placed with mates, then
+      //  place all fragments.
       //
       if ((numInstances == 1) &&
           (GetNumCDS_CID_ts(toplace) > cutoffToInferSingleCopyStatus * numFragmentsInParent)) {
 
         CGWFragIterator frags;
-        CIFragT *nextfrg;
+        CIFragT        *frag;
 
         InitCIFragTInChunkIterator(&frags,parentChunk,FALSE);
 
         ResetVA_CDS_CID_t(toplace);
 
-        while(NextCIFragTInChunkIterator(&frags, &nextfrg))
-          AppendVA_CDS_CID_t(toplace,&(nextfrg->read_iid));
+        while (NextCIFragTInChunkIterator(&frags, &frag)) {
+#ifdef DEBUG_RS
+          fprintf(stderr, "frag %d (CIid=%d cid=%d) from parent=%d to=%d (placing all)\n", frag->read_iid, frag->CIid, frag->cid, parentChunk->id, getChunkInstanceID(parentChunk, i));
+#endif
+
+          AppendVA_CDS_CID_t(toplace, &frag->read_iid);
+        }
 
         CleanupCIFragTInChunkIterator(&frags);
       }
@@ -955,14 +956,15 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
 
       ResetVA_CDS_CID_t(toplace);
 
-      ResetVA_IntMultiPos(impLists[i]);
-    }
+      ResetVA_int32(placedList[i]);
+    }  //  Over all instances
 
-    DeleteHashTable_AS(fHash);
-  }
+    DeleteHashTable_AS(fragPlacedTimes);
+  }  //  Over all unitigs
 
-  for (i=0;i<allocedImpLists;i++)
-    DeleteVA_IntMultiPos(impLists[i]);
+  for (int32 i=0; i<allocatedPlacedLists; i++)
+    DeleteVA_int32(placedList[i]);
+  safe_free(placedList);
 
   fprintf(stderr, "Placed %d surrogate fragments out of %d surrogate fragments\n", numReallyPlaced, totalNumParentFrags);
 }
