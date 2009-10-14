@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.60 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.61 2009-10-14 16:41:09 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,6 +51,7 @@ static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.60 2009-10-05 22:49:42 
 #undef DEBUG_PROPAGATE
 #undef DEBUG_CONTIG
 #undef DEBUG_CREATEACONTIG
+#undef DEBUG_CONTIGCONTAINMENT
 #undef DEBUG_NEG_VARIANCE
 
 typedef struct{
@@ -2055,7 +2056,7 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
 #endif
 
 #ifdef DEBUG_CREATEACONTIG
-  for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
+  for(int32 i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
     IntElementPos *pos = GetIntElementPos(ContigPositions,i);
     fprintf(stderr,"* Contig "F_CID " %c bgn:"F_S32" end:"F_S32"\n",
             pos->ident, pos->type, pos->position.bgn, pos->position.end);
@@ -2115,7 +2116,7 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   }
 
 #ifdef DEBUG_CREATEACONTIG
-  for (i=0; i<GetNumIntUnitigPoss(newMultiAlign->u_list); i++) {
+  for (int32 i=0; i<GetNumIntUnitigPoss(newMultiAlign->u_list); i++) {
     IntUnitigPos  *iup = GetIntUnitigPos(newMultiAlign->u_list, i);
     fprintf(stderr, "utg %d %d-%d\n", iup->ident, iup->position.bgn, iup->position.end);
   }
@@ -2286,12 +2287,20 @@ ContigContainment(CIScaffoldT  *scaffold,
     }
   }
 
+#ifdef DEBUG_CONTIGCONTAINMENT
+  fprintf(stderr, "ContigContainment()-- orient=%d ahang min,max=%d,%d\n",
+          overlapOrientation, minAhang, maxAhang);
+#endif
+
   contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, minAhang, maxAhang, TRUE);
 
   // if no overlap found, try flipping orientation in case DPCompare
   // asymmetry is biting us
   //
   if ((contigOverlap == NULL) && (tryHarder)) {
+#ifdef DEBUG_CONTIGCONTAINMENT
+    fprintf(stderr, "ContigContainment()--  Try #2\n");
+#endif
     overlapOrientation = InvertEdgeOrient(overlapOrientation);
     contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, minAhang, maxAhang, TRUE);
     overlapOrientation = InvertEdgeOrient(overlapOrientation);
@@ -2305,6 +2314,9 @@ ContigContainment(CIScaffoldT  *scaffold,
 
   // if still no overlap found, try maxing out hangs
   if ((contigOverlap == NULL) && (tryHarder)) {
+#ifdef DEBUG_CONTIGCONTAINMENT
+    fprintf(stderr, "ContigContainment()--  Try #3\n");
+#endif
     int32 maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
     contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, -maxLength, maxLength, FALSE);
@@ -2312,6 +2324,9 @@ ContigContainment(CIScaffoldT  *scaffold,
 
   // if still no overlap found, try flipping orientation and maxing out hangs
   if ((contigOverlap == NULL) && (tryHarder)) {
+#ifdef DEBUG_CONTIGCONTAINMENT
+    fprintf(stderr, "ContigContainment()--  Try #4\n");
+#endif
     int32 maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
     overlapOrientation = InvertEdgeOrient(overlapOrientation);
@@ -2334,6 +2349,9 @@ ContigContainment(CIScaffoldT  *scaffold,
 
   //  swap
   if ((contigOverlap == NULL) && (tryHarder)) {
+#ifdef DEBUG_CONTIGCONTAINMENT
+    fprintf(stderr, "ContigContainment()--  Try #5\n");
+#endif
     int32 maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
     overlapOrientation = EdgeOrientSwap(overlapOrientation);
@@ -2348,6 +2366,9 @@ ContigContainment(CIScaffoldT  *scaffold,
 
   //  swap and flip orientation
   if ((contigOverlap == NULL) && (tryHarder)) {
+#ifdef DEBUG_CONTIGCONTAINMENT
+    fprintf(stderr, "ContigContainment()--  Try #6\n");
+#endif
     int32 maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
     overlapOrientation = EdgeOrientSwap(overlapOrientation);
@@ -2373,6 +2394,9 @@ ContigContainment(CIScaffoldT  *scaffold,
   //  when it calls RecomputeOffsetsInScaffold() (which calls us).
   //
   if ((contigOverlap == NULL) && (tryHarder)) {
+#ifdef DEBUG_CONTIGCONTAINMENT
+    fprintf(stderr, "ContigContainment()--  Try #7\n");
+#endif
     int32 maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
     AS_CGW_ERROR_RATE += 0.02;
@@ -2424,12 +2448,14 @@ ContigContainment(CIScaffoldT  *scaffold,
     actualOverlapOrientation = overlapOrientation;
   }
 
+#ifdef DEBUG_CONTIGCONTAINMENT
   fprintf(stderr, "* Containing contig is "F_CID" contained contig is "F_CID" ahg:%d bhg:%d orient:%c\n",
           leftContig->id, rightContig->id, contigOverlap->begpos, contigOverlap->endpos, actualOverlapOrientation);
 
   fprintf(stderr, "* Initial Positions:  left:"F_CID" [%g,%g]  right:"F_CID" [%g,%g]\n",
           leftContig->id,  leftContig->offsetAEnd.mean,  leftContig->offsetBEnd.mean,
           rightContig->id, rightContig->offsetAEnd.mean, rightContig->offsetBEnd.mean);
+#endif
 
   // assume we leave the leftContig where it is
   switch (actualOverlapOrientation) {
@@ -2467,9 +2493,11 @@ ContigContainment(CIScaffoldT  *scaffold,
   contigPos.position.end = rightContig->offsetBEnd.mean;
   AppendIntElementPos(ContigPositions, &contigPos);
 
+#ifdef DEBUG_CONTIGCONTAINMENT
   fprintf(stderr, "* Final   Positions:  left:"F_CID" [%g,%g]  right:"F_CID" [%g,%g]\n",
           leftContig->id,  leftContig->offsetAEnd.mean,  leftContig->offsetBEnd.mean,
           rightContig->id, rightContig->offsetAEnd.mean, rightContig->offsetBEnd.mean);
+#endif
 
   int flip        = (leftContig->offsetBEnd.mean < leftContig->offsetAEnd.mean);
   int mergeStatus = CreateAContigInScaffold(scaffold,
