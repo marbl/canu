@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.34 2009-10-13 09:35:23 brianwalenz Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.35 2009-10-14 16:38:43 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -498,80 +498,36 @@ int matePlacedOnlyIn(CIFragT *frg, CDS_CID_t sid, CIFragT **mate, ChunkInstanceT
 
 
 
-/* given an existing chunk and a list of IntMultiPoss, update the
-   SeqDB entry for the chunk to add the IMPs, and update the consensus
-   sequence */
-
-static
-void PlaceFragmentsInMultiAlignT(CDS_CID_t toID, int isUnitig,
-				 VA_TYPE(IntMultiPos) *f_list){
-
-  MultiAlignT *ma;
-
-  //     1. get the old multialign from the seqDB
-  ma =  ScaffoldGraph->tigStore->loadMultiAlign(toID, isUnitig);
-  assert(ma != NULL);
-
-  //     2. add fragments to the f_list
-  ConcatVA_IntMultiPos(ma->f_list,f_list);
-
-  /* It might be a good idea to recompute consensus! */
-  if(! isUnitig){
-#warning not updating consensus after adding surrogate fragments
-    //     2'. construct an ICM or IUM containing the new fragments
-    //     2''. run consensus on it
-    //     2'''. convert the returned ICM or IUM back to a multialignment
-  }
-
-  //     3. update the multialign
-  assert(ma->maID == toID);
-  ScaffoldGraph->tigStore->insertMultiAlign(ma ,isUnitig, TRUE);
-}
-
-
 
 /*
    Assign a subset of the fragments in an unresolved CI to one of its surrogates.
    The fragments listed are marked for membership (via their CIid field) int he new element
 */
 
-static VA_TYPE(IntMultiPos) *f_list_CI = NULL;
-static VA_TYPE(IntMultiPos) *f_list_Contig = NULL;
-
 static
-void ReallyAssignFragsToResolvedCI(CDS_CID_t fromCIid,
+void ReallyAssignFragsToResolvedCI(CDS_CID_t frCIid,
                                    CDS_CID_t toCIid,
 				   VA_TYPE(CDS_CID_t) *fragments){
 
-  NodeCGW_T *fromCI = GetGraphNode(ScaffoldGraph->CIGraph, fromCIid);
-  NodeCGW_T *toCI   = GetGraphNode(ScaffoldGraph->CIGraph, toCIid);
+  NodeCGW_T *frCI = GetGraphNode(ScaffoldGraph->CIGraph, frCIid);
+  NodeCGW_T *toCI = GetGraphNode(ScaffoldGraph->CIGraph, toCIid);
 
   CDS_CID_t  toContigID = toCI->info.CI.contigID;
   ContigT   *toContig   = GetGraphNode(ScaffoldGraph->ContigGraph, toContigID);
 
-  int32 surrogateAOffset = toCI->offsetAEnd.mean;
-  int32 surrogateBOffset = toCI->offsetBEnd.mean;
+  MultiAlignT  *utgMA = ScaffoldGraph->tigStore->loadMultiAlign(toCIid, TRUE);
+  MultiAlignT  *ctgMA = ScaffoldGraph->tigStore->loadMultiAlign(toContigID, FALSE);
 
-  IntMultiPos fragPos;
-
-  assert(fromCI->type   == UNRESOLVEDCHUNK_CGW);
-  assert(toCI->type     == RESOLVEDREPEATCHUNK_CGW);
+  assert(frCI->type == UNRESOLVEDCHUNK_CGW);
+  assert(toCI->type == RESOLVEDREPEATCHUNK_CGW);
 
   assert(toCI->scaffoldID != NULLINDEX);
-
-  if (f_list_CI) {
-    ResetVA_IntMultiPos(f_list_CI);
-    ResetVA_IntMultiPos(f_list_Contig);
-  } else {
-    f_list_CI     = CreateVA_IntMultiPos(GetNumCDS_CID_ts(fragments));
-    f_list_Contig = CreateVA_IntMultiPos(GetNumCDS_CID_ts(fragments));
-  }
-
-  //  Assigns frags to new node and create a degenerate MultiAlignT
 
   for (int32 i=0; i<GetNumCDS_CID_ts(fragments); i++) {
     CDS_CID_t fragID  = *GetCDS_CID_t(fragments,i);
     CIFragT  *frag    = GetCIFragT(ScaffoldGraph->CIFrags, fragID);
+
+    IntMultiPos fragPos;
 
 #ifdef DEBUG_RS
     fprintf(stderr, "PLACE frag %d into instance %d\n", fragID, toCIid);
@@ -591,13 +547,38 @@ void ReallyAssignFragsToResolvedCI(CDS_CID_t fromCIid,
     //  On the second pass, B can now be placed in the right surrogate, since it is anchored in the
     //  left surrogate.  If that triggers the placement of all reads, we'll place C again.
     //
-    //  So, we explicitly allow the fragment to be placed again.
+    //  So, we explicitly check that the fragment is already placed here.
+    //
+    if (frag->CIid != frCIid) {
+      fprintf(stderr, "WARNING:  Fragment %d in surrogate CI %d, previously assigned to CI %d, now being (re)assigned to CI %d.\n",
+              fragID, frCIid, frag->CIid, toCIid);
 
-    assert((frag->CIid == fromCIid) || (frag->CIid == toCIid));
-    assert((frag->cid  == fromCIid) || (frag->cid  == toCIid));
+      IntMultiPos  *imp = GetIntMultiPos(utgMA->f_list, 0);
+
+      for (int32 i=0; (imp != NULL) && (i<GetNumIntMultiPoss(utgMA->f_list)); i++) {
+        if (imp[i].ident == fragID)
+          imp = NULL;
+      }
+
+      //  If the imp is now NULL, we found the fragment already here, and can skip the rest.
+
+      if (imp == NULL)
+        continue;
+
+      //  Otherwise, we did not find the fragment already here, thus, it is somewhere else, yet we
+      //  want to put it here.  That's an error.
+
+      fprintf(stderr, "ERROR:    Fragment %d in surrogate CI %d, previously assigned to CI %d, now being (re)assigned to CI %d.\n",
+              fragID, frCIid, frag->CIid, toCIid);
+      assert(frag->CIid == frCIid);
+    }
+
+    assert(frag->cid  == frCIid);
 
     frag->CIid            = toCIid;
     frag->contigID        = toContigID;
+
+    //  Create a new fragment for the unitig.
 
     fragPos.type          = AS_READ;
     fragPos.ident         = fragID;
@@ -610,9 +591,12 @@ void ReallyAssignFragsToResolvedCI(CDS_CID_t fromCIid,
     fragPos.delta_length  = 0;
     fragPos.delta         = NULL;
 
-    AppendIntMultiPos(f_list_CI, &fragPos);
+    AppendIntMultiPos(utgMA->f_list, &fragPos);
 
-    // Now figure out fragment position in target contig
+    // Create a new fragment for the contig (by updating the placement of the fragment we just created)
+
+    int32      surrogateAOffset = toCI->offsetAEnd.mean;
+    int32      surrogateBOffset = toCI->offsetBEnd.mean;
 
     if (surrogateAOffset > surrogateBOffset) {
       fragPos.position.bgn = surrogateAOffset - frag->offset5p.mean;
@@ -634,25 +618,25 @@ void ReallyAssignFragsToResolvedCI(CDS_CID_t fromCIid,
     frag->contigOffset3p.variance = ComputeFudgeVariance(fragPos.position.end);
     frag->contigOffset3p.mean     = fragPos.position.end;
 
-    AppendIntMultiPos(f_list_Contig, &fragPos);
+    AppendIntMultiPos(ctgMA->f_list, &fragPos);
   }
 
-  //fprintf(stderr, "ReallyAssignFragsToResolvedCI()-- CI=%d contig=%d\n", toCIid, toContigID);
+  //  Update.
+  //
+  //  Do NOT rebuild consensus sequences.
+  //
+  //  Do NOT Rebuild the Mate Edges of the target CI to reflect the changes in fragment membership
+  //
+  //  Do NOT Rebuild the Mate Edges of the target CI's Contig to reflect the changes in fragment
+  //  membership.  We will rebuild all mate edges when all fragments have been placed
 
-  //  Copy IntMultiPos records from the source to destination CI, adjusting consensus sequence
-  PlaceFragmentsInMultiAlignT(toCIid, TRUE, f_list_CI);
-  UpdateNodeFragments(ScaffoldGraph->CIGraph, toCIid, FALSE, FALSE);
+  ScaffoldGraph->tigStore->insertMultiAlign(utgMA, TRUE,  TRUE);
+  ScaffoldGraph->tigStore->insertMultiAlign(ctgMA, FALSE, TRUE);
 
-  // Copy IntMultiPos records to destination Contig, adjusting consensus sequence
-  PlaceFragmentsInMultiAlignT(toContigID, FALSE, f_list_Contig);
+  UpdateNodeFragments(ScaffoldGraph->CIGraph,     toCIid,     FALSE, FALSE);
   UpdateNodeFragments(ScaffoldGraph->ContigGraph, toContigID, FALSE, FALSE);
 
-  UpdateNodeUnitigs(ScaffoldGraph->tigStore->loadMultiAlign(toContig->id, FALSE), toContig);
-
-  // Do not Rebuild the Mate Edges of the target CI to reflect the changes in fragment membership
-
-  // Do NOT Rebuild the Mate Edges of the target CI's Contig to reflect the changes in fragment
-  // membership.  We will rebuild all mate edges when all fragments have been placed
+  UpdateNodeUnitigs(ctgMA, toContig);
 }
 
 
