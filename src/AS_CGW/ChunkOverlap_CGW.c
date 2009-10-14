@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.44 2009-10-05 05:52:38 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.45 2009-10-14 16:42:28 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -39,6 +39,8 @@ static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.44 2009-10-05 05:52:38 brianwa
 #include "AS_ALN_aligners.h"
 #include "CommonREZ.h"
 #include "UtilsREZ.h"
+
+#undef DEBUG_OVERLAP_SEQUENCES
 
 // this is the initial range we use to compute
 // overlaps with a different min/max range
@@ -738,12 +740,28 @@ Overlap* OverlapSequences( char *seq1, char *seq2,
                         erate, thresh, minlen,
                         AS_FIND_ALIGN);
 
-  if ((dp_omesg != NULL) && (dp_omesg->length <= minlen))
+  if ((dp_omesg != NULL) && (dp_omesg->length <= minlen)) {
+#ifdef DEBUG_OVERLAP_SEQUENCES
+    fprintf(stderr, "OverlapSequences()-- Found overlap with DP_Compare   begpos=%d endpos=%d length=%d diffs=%d comp=%d/%d ISSHORT\n",
+            dp_omesg->begpos, dp_omesg->endpos, dp_omesg->length, dp_omesg->diffs, dp_omesg->comp, flip);
+#endif
     dp_omesg = NULL;
+  }
 
-  //if (dp_omesg != NULL)
-  //  fprintf(stderr, "OverlapSequences()-- Found overlap with DP_Compare   begpos=%d endpos=%d length=%d diffs=%d comp=%d/%d\n",
-  //          dp_omesg->begpos, dp_omesg->endpos, dp_omesg->length, dp_omesg->diffs, dp_omesg->comp, flip);
+  if ((dp_omesg != NULL) && ((double)dp_omesg->diffs / dp_omesg->length > erate)) {
+#ifdef DEBUG_OVERLAP_SEQUENCES
+    fprintf(stderr, "OverlapSequences()-- Found overlap with DP_Compare   begpos=%d endpos=%d length=%d diffs=%d comp=%d/%d ISCRAP\n",
+            dp_omesg->begpos, dp_omesg->endpos, dp_omesg->length, dp_omesg->diffs, dp_omesg->comp, flip);
+#endif
+    dp_omesg = NULL;
+  }
+
+#ifdef DEBUG_OVERLAP_SEQUENCES
+  if (dp_omesg != NULL)
+    fprintf(stderr, "OverlapSequences()-- Found overlap with DP_Compare   begpos=%d endpos=%d length=%d diffs=%d comp=%d/%d\n",
+            dp_omesg->begpos, dp_omesg->endpos, dp_omesg->length, dp_omesg->diffs, dp_omesg->comp, flip);
+#endif
+
 
 #ifdef USE_LOCAL_OVERLAP_AS_FALLBACK
   if (!dp_omesg)
@@ -754,12 +772,19 @@ Overlap* OverlapSequences( char *seq1, char *seq2,
                                        erate, thresh, minlen,
                                        AS_FIND_LOCAL_OVERLAP);
 
-  if ((lo_omesg != NULL) && (lo_omesg->length <= minlen))
+  if ((lo_omesg != NULL) && (lo_omesg->length <= minlen)) {
     lo_omesg = NULL;
+  }
 
-  //if (lo_omesg != NULL)
-  //  fprintf(stderr, "OverlapSequences()-- Found overlap with Local_Overlap   begpos=%d endpos=%d length=%d diffs=%d comp=%d/%d\n",
-  //          lo_omesg->begpos, lo_omesg->endpos, lo_omesg->length, lo_omesg->diffs, lo_omesg->comp, flip);
+  if ((lo_omesg != NULL) && ((double)lo_omesg->diffs / lo_omesg->length > erate)) {
+    lo_omesg = NULL;
+  }
+
+#ifdef DEBUG_OVERLAP_SEQUENCES
+  if (lo_omesg != NULL)
+    fprintf(stderr, "OverlapSequences()-- Found overlap with Local_Overlap   begpos=%d endpos=%d length=%d diffs=%d comp=%d/%d\n",
+            lo_omesg->begpos, lo_omesg->endpos, lo_omesg->length, lo_omesg->diffs, lo_omesg->comp, flip);
+#endif
 #endif
 
   if (orientation == BA_AB || orientation == BA_BA)
