@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.37 2009-10-20 21:57:07 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.38 2009-10-20 22:06:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -100,7 +100,7 @@ statistics st = {0};
 
 static
 void
-writeStatistics(char *stsName) {
+writeStatistics(int haveLinker, char *stsName) {
 
   errno = 0;
   FILE *statOut = fopen(stsName, "w");
@@ -120,15 +120,19 @@ writeStatistics(char *stsName) {
   fprintf(statOut, "                        -------\n");
   fprintf(statOut, "                        "F_U32"\n", st.lenTooShort + st.lenOK + st.lenTrimmedByN + st.lenTooLong);
   fprintf(statOut, "\n");
-  fprintf(statOut, "LINKER\n");
-  fprintf(statOut, "not examined            "F_U32"\n", st.notExaminedForLinker);
-  fprintf(statOut, "none detected           "F_U32"\n", st.noLinker);
-  fprintf(statOut, "inconsistent            "F_U32"\n", st.badLinker);
-  fprintf(statOut, "partial                 "F_U32"\n", st.partialLinker);
-  fprintf(statOut, "good                    "F_U32"\n", st.fullLinker);
-  fprintf(statOut, "                        -------\n");
-  fprintf(statOut, "                        "F_U32"\n", st.notExaminedForLinker + st.noLinker + st.badLinker + st.partialLinker + st.fullLinker);
-  fprintf(statOut, "\n");
+
+  if (haveLinker) {
+    fprintf(statOut, "LINKER\n");
+    fprintf(statOut, "not examined            "F_U32"\n", st.notExaminedForLinker);
+    fprintf(statOut, "none detected           "F_U32"\n", st.noLinker);
+    fprintf(statOut, "inconsistent            "F_U32"\n", st.badLinker);
+    fprintf(statOut, "partial                 "F_U32"\n", st.partialLinker);
+    fprintf(statOut, "good                    "F_U32"\n", st.fullLinker);
+    fprintf(statOut, "                        -------\n");
+    fprintf(statOut, "                        "F_U32"\n", st.notExaminedForLinker + st.noLinker + st.badLinker + st.partialLinker + st.fullLinker);
+    fprintf(statOut, "\n");
+  }
+
   fprintf(statOut, "OUTCOME\n");
   fprintf(statOut, "fragment                "F_U32"\n", st.fragmentsOutput);
   fprintf(statOut, "mate pair               "F_U32"\n", st.matesOutput);
@@ -143,7 +147,10 @@ writeStatistics(char *stsName) {
     fclose(statOut);
 
   assert(st.readsInSFF == st.lenTooShort + st.lenOK + st.lenTrimmedByN + st.lenTooLong);
-  assert(st.readsInSFF == st.notExaminedForLinker + st.noLinker + st.badLinker + st.partialLinker + st.fullLinker);
+
+  if (haveLinker)
+    assert(st.readsInSFF == st.notExaminedForLinker + st.noLinker + st.badLinker + st.partialLinker + st.fullLinker);
+
   assert(st.readsInSFF == st.fragmentsOutput + st.matesOutput + st.badLinker + st.deletedDuplicates + st.deletedTooShort + st.deletedByN);
 }
 
@@ -1996,7 +2003,7 @@ main(int argc, char **argv) {
   if (errno)
     fprintf(stderr, "Failed to close '%s': %s\n", logName, strerror(errno)), exit(1);
 
-  writeStatistics(stsName);
+  writeStatistics(haveLinker, stsName);
 
   return(0);
 }
