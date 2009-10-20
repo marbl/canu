@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.35 2009-08-14 13:37:06 skoren Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.36 2009-10-20 18:03:27 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1655,12 +1655,13 @@ main(int argc, char **argv) {
   int       insertSize       = 0;
   int       insertStdDev     = 0;
   char     *libraryName      = 0L;
-  FILE     *outputFile       = 0L;
   int       firstFileArg     = 0;
-  char      outputName[FILENAME_MAX]   = {0};
-  char      gkpStoreName[FILENAME_MAX] = {0};
-  char     *logFileName      = 0L;
-  char     *statsFileName    = 0L;
+
+  char      oPrefix[FILENAME_MAX] = {0};
+  char      frgName[FILENAME_MAX] = {0};
+  char      gkpName[FILENAME_MAX] = {0};
+  char      logName[FILENAME_MAX] = {0};
+  char      stsName[FILENAME_MAX] = {0};
 
   bool      doDeDup          = 1;
 
@@ -1762,13 +1763,7 @@ main(int argc, char **argv) {
       doDeDup = 0;
 
     } else if (strcmp(argv[arg], "-output") == 0) {
-      strcpy(outputName, argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-log") == 0) {
-      logFileName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-stats") == 0) {
-      statsFileName = argv[++arg];
+      strcpy(oPrefix, argv[++arg]);
 
     } else {
       if (argv[arg][0] == '-') {
@@ -1791,8 +1786,8 @@ main(int argc, char **argv) {
   if ((!haveLinker) && ((insertSize != 0) || (insertStdDev != 0)))
     err++;
 
-  if ((err) || (libraryName == 0L) || (outputName[0] == 0) || (firstFileArg == 0)) {
-    fprintf(stderr, "usage: %s [opts] -libraryname n -output f.frg in.sff ...\n", argv[0]);
+  if ((err) || (libraryName == 0L) || (oPrefix[0] == 0) || (firstFileArg == 0)) {
+    fprintf(stderr, "usage: %s [opts] -libraryname LIB -output NAME IN.SFF ...\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -insertsize i d        Mates are on average i +- d bp apart.\n");
     fprintf(stderr, "\n");
@@ -1830,9 +1825,10 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -nodedup               Do not remove reads that are a perfect prefix of another read.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -output f.frg          Write the CA formatted fragments to this file.\n");
-    fprintf(stderr, "  -log    l.txt          Human readable log of what happened.\n");
-    fprintf(stderr, "  -stats  s.txt          Human readable statistics; summarizes the log file.\n");
+    fprintf(stderr, "  -output name           Write output to files prefixed with 'name'.  Three files are created:\n");
+    fprintf(stderr, "                           name.frg   -- CA format fragments.\n");
+    fprintf(stderr, "                           name.log   -- Actions taken; deleted fragments, mate splits, etc.\n");
+    fprintf(stderr, "                           name.stats -- Human-readable statistics.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "See http://apps.sourceforge.net/mediawiki/wgs-assembler/index.php?title=Formatting_Inputs\n");
     fprintf(stderr, "\n");
@@ -1843,7 +1839,7 @@ main(int argc, char **argv) {
     if (libraryName == 0L)
       fprintf(stderr, "ERROR:  Need to supply -libraryname.\n");
 
-    if (outputName[0] == 0)
+    if (oPrefix[0] == 0)
       fprintf(stderr, "ERROR:  Need to supply -output.\n");
 
     if (firstFileArg == 0)
@@ -1869,40 +1865,41 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  logFile = stderr;
+  {
+    int32  oLen = strlen(oPrefix);
 
-  if (logFileName) {
-    errno = 0;
-    logFile = fopen(logFileName, "w");
-    if (errno)
-      fprintf(stderr, "ERROR: Failed to open the log file '%s': %s\n", logFileName, strerror(errno)), exit(1);
+    if ((oPrefix[oLen-4] == '.') || 
+        (oPrefix[oLen-3] == 'f') || 
+        (oPrefix[oLen-2] == 'r') || 
+        (oPrefix[oLen-1] == 'g'))
+      oPrefix[oLen-4] = 0;
   }
 
-  if ((outputName[strlen(outputName)-4] != '.') || 
-      (outputName[strlen(outputName)-3] != 'f') || 
-      (outputName[strlen(outputName)-2] != 'r') || 
-      (outputName[strlen(outputName)-1] != 'g'))
-    strcat(outputName, ".frg");
+  strcpy(frgName, oPrefix);  strcat(frgName, ".frg");
+  strcpy(gkpName, oPrefix);  strcat(gkpName, ".tmpStore");
+  strcpy(logName, oPrefix);  strcat(logName, ".log");
+  strcpy(stsName, oPrefix);  strcat(stsName, ".stats");
 
-  if (AS_UTL_fileExists(outputName, FALSE, FALSE))
-    fprintf(stderr, "ERROR: Output file '%s' exists; I will not clobber it.\n", outputName), exit(1);
+  if (AS_UTL_fileExists(frgName, FALSE, FALSE))
+    fprintf(stderr, "ERROR: Output file '%s' exists; I will not clobber it.\n", frgName), exit(1);
 
   errno = 0;
-  outputFile = fopen(outputName, "w");
+  logFile = fopen(logName, "w");
   if (errno)
-    fprintf(stderr, "ERROR: Failed to open the output file '%s': %s\n", outputName, strerror(errno)), exit(1);
+    fprintf(stderr, "ERROR: Failed to open the log file '%s': %s\n", logName, strerror(errno)), exit(1);
 
-  strcpy(gkpStoreName, outputName);
-  strcat(gkpStoreName, ".tmpStore");
+  errno = 0;
+  FILE *frgFile = fopen(frgName, "w");
+  if (errno)
+    fprintf(stderr, "ERROR: Failed to open the output file '%s': %s\n", frgName, strerror(errno)), exit(1);
 
-  if (AS_UTL_fileExists(gkpStoreName, TRUE, FALSE)) {
-    fprintf(stderr, "ERROR: Temporary Gatekeeper Store '%s' exists; I will not clobber it.\n", gkpStoreName);
+  if (AS_UTL_fileExists(gkpName, TRUE, FALSE)) {
+    fprintf(stderr, "ERROR: Temporary Gatekeeper Store '%s' exists; I will not clobber it.\n", gkpName);
     fprintf(stderr, "       If this is NOT from another currently running sffToCA, simply remove this directory.\n");
     exit(1);
   }
 
-  gkpStore      = new gkStore(gkpStoreName, TRUE, TRUE);
-  //gkpStore->
+  gkpStore = new gkStore(gkpName, TRUE, TRUE);
 
   addLibrary(libraryName, insertSize, insertStdDev, haveLinker);
 
@@ -1915,26 +1912,26 @@ main(int argc, char **argv) {
   if (haveLinker)
     detectMates(linker, search);
 
-  dumpFragFile(outputName, outputFile);
+  dumpFragFile(frgName, frgFile);
 
   gkpStore->gkStore_delete();
   delete gkpStore;
 
   errno = 0;
-  fclose(outputFile);
+  fclose(frgFile);
   if (errno)
-    fprintf(stderr, "Failed to close '%s': %s\n", outputName, strerror(errno)), exit(1);
+    fprintf(stderr, "Failed to close '%s': %s\n", frgName, strerror(errno)), exit(1);
 
   errno = 0;
   if ((logFile) && (logFile != stderr))
     fclose(logFile);
   if (errno)
-    fprintf(stderr, "Failed to close '%s': %s\n", logFileName, strerror(errno)), exit(1);
+    fprintf(stderr, "Failed to close '%s': %s\n", logName, strerror(errno)), exit(1);
 
   errno = 0;
-  logFile = (statsFileName) ? fopen(statsFileName, "w") : NULL;
+  logFile = fopen(stsName, "w");
   if (errno)
-    fprintf(stderr, "ERROR: Failed to open the stats file '%s': %s\n", statsFileName, strerror(errno));
+    fprintf(stderr, "ERROR: Failed to open the stats file '%s': %s\n", stsName, strerror(errno));
   if (logFile) {
     writeStatistics(logFile);
     fclose(logFile);
