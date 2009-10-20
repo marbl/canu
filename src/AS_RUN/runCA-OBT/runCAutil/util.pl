@@ -338,6 +338,9 @@ sub setDefaults () {
     $global{"umdOverlapperFlags"}          = "-use-uncleaned-reads -trim-error-rate 0.03 -max-minimizer-cutoff 150";
     $synops{"umdOverlapperFlags"}          = "Options for the UMD overlapper";
 
+    $global{"saveOverlaps"}                = 0;
+    $synops{"saveOverlaps"}                = "Save intermediate overlap files";
+
     #####  Mers
 
     $global{"merylMemory"}                 = 800;

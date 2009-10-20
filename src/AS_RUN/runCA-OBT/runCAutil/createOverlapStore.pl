@@ -28,8 +28,17 @@ sub createOverlapStore {
 
     rename "$wrk/$asm.ovlStore.BUILDING", "$wrk/$asm.ovlStore";
 
-    rmrf("$asm.ovlStore.list");
-    rmrf("$asm.ovlStore.err");
+    if (getGlobal("saveOverlaps") == 0) {
+        open(F, "< $wrk/$asm.ovlStore.list");
+        while (<F>) {
+            chomp;
+            unlink $_;
+        }
+        close(F);
+    }
+
+    rmrf("$wrk/$asm.ovlStore.list");
+    rmrf("$wrk/$asm.ovlStore.err");
 
   alldone:
     stopAfter("overlapper");

@@ -10,6 +10,24 @@ sub overlapTrim {
     system("mkdir $wrk/0-overlaptrim")         if (! -d "$wrk/0-overlaptrim");
     system("mkdir $wrk/0-overlaptrim-overlap") if (! -d "$wrk/0-overlaptrim-overlap");
 
+
+    #  Disable dedup, unless reads request it.  This avoids an expensive ovlStore build.
+    #
+    if (getGlobal("doDeDuplication") != 0) {
+        my $bin = getBinDirectory();
+
+        setGlobal("doDeDuplication", 0);
+
+        open(F, "$bin/gatekeeper -dumplibraries $wrk/$asm.gkpStore |");
+        while (<F>) {
+            if (m/doRemoveDuplicateReads=1/) {
+                setGlobal("doDeDuplication", 1);
+            }
+        }
+        close(F);
+    }
+
+
     #  Do an initial overly-permissive quality trimming, intersected
     #  with any known vector trimming.
     #
@@ -31,8 +49,9 @@ sub overlapTrim {
         unlink "0-overlaptrim/$asm.initialTrim.err";
     }
 
-    #  Compute overlaps, if we don't have them already
 
+    #  Compute overlaps, if we don't have them already
+    #
     if (! -e "$wrk/0-overlaptrim/$asm.obtStore") {
         createOverlapJobs("trim");
         checkOverlap("trim");
@@ -61,69 +80,75 @@ sub overlapTrim {
 
         rename "$wrk/0-overlaptrim/$asm.obtStore.BUILDING", "$wrk/0-overlaptrim/$asm.obtStore";
 
-        rmrf("$asm.obtStore.list");
-        rmrf("$asm.obtStore.err");
-    }
-
-    if (! -e "$wrk/0-overlaptrim/$asm.deduplicate.summary") {
-        my $bin = getBinDirectory();
-
-        #  Disable dedup, unless reads request it.  This avoids an expensive ovlStore build.
-        #
-        if (getGlobal("doDeDuplication") != 0) {
-            setGlobal("doDeDuplication", 0);
-
-            open(F, "$bin/gatekeeper -dumplibraries $wrk/$asm.gkpStore |");
+        #  Delete overlaps unless we're told to save them, or we need to dedup.
+        if ((getGlobal("saveOverlaps") == 0) && (getGlobal("doDeDuplication") == 0)) {
+            open(F, "< $wrk/0-overlaptrim/$asm.obtStore.list");
             while (<F>) {
-                if (m/doRemoveDuplicateReads=1/) {
-                    setGlobal("doDeDuplication", 1);
-                }
+                chomp;
+                unlink $_;
             }
             close(F);
         }
 
-        if (getGlobal("doDeDuplication") != 0) {
-            my $cmd;
-
-            if (! -e "$wrk/0-overlaptrim/$asm.dupStore") {
-                if (runCommand("$wrk/0-overlaptrim",
-                               "find $wrk/0-overlaptrim-overlap -follow \\( -name \\*ovb.gz -or -name \\*ovb \\) -print > $wrk/0-overlaptrim/$asm.dupStore.list")) {
-                    caFailure("failed to generate a list of all the overlap files", undef);
-                }
-
-                $cmd  = "$bin/overlapStore ";
-                $cmd .= " -O -O ";
-                $cmd .= " -c $wrk/0-overlaptrim/$asm.dupStore.BUILDING ";
-                $cmd .= " -g $wrk/$asm.gkpStore ";
-                $cmd .= " -M " . getGlobal('ovlStoreMemory');
-                $cmd .= " -L $wrk/0-overlaptrim/$asm.dupStore.list";
-                $cmd .= " > $wrk/0-overlaptrim/$asm.dupStore.err 2>&1";
-
-                if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-                    caFailure("failed to build the dup store", "$wrk/0-overlaptrim/$asm.dupStore.err");
-                }
-
-                rename "$wrk/0-overlaptrim/$asm.dupStore.BUILDING", "$wrk/0-overlaptrim/$asm.dupStore";
-
-                rmrf("$asm.dupStore.list");
-                rmrf("$asm.dupStore.err");
-            }
-
-            $cmd  = "$bin/deduplicate ";
-            $cmd .= "-gkp     $wrk/$asm.gkpStore ";
-            $cmd .= "-ovs     $wrk/0-overlaptrim/$asm.obtStore ";
-            $cmd .= "-ovs     $wrk/0-overlaptrim/$asm.dupStore ";
-            $cmd .= "-report  $wrk/0-overlaptrim/$asm.deduplicate.report ";
-            $cmd .= "-summary $wrk/0-overlaptrim/$asm.deduplicate.summary ";
-            $cmd .= "> $wrk/0-overlaptrim/$asm.deduplicate.err 2>&1";
-
-            if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-                unlink "$wrk/0-overlaptrim/$asm.deduplicate.summary";
-                caFailure("failed to deduplicate the reads", "$wrk/0-overlaptrim/$asm.deduplicate.err");
-            }
-        }
+        rmrf("$wrk/0-overlaptrim/$asm.obtStore.list");
+        rmrf("$wrk/0-overlaptrim/$asm.obtStore.err");
     }
 
+
+    #  Deduplicate?
+    #
+    if ((getGlobal("doDeDuplication") != 0) &&
+        (! -e "$wrk/0-overlaptrim/$asm.deduplicate.summary")) {
+        my $bin = getBinDirectory();
+        my $cmd;
+
+        if (! -e "$wrk/0-overlaptrim/$asm.dupStore") {
+            if (runCommand("$wrk/0-overlaptrim",
+                           "find $wrk/0-overlaptrim-overlap -follow \\( -name \\*ovb.gz -or -name \\*ovb \\) -print > $wrk/0-overlaptrim/$asm.dupStore.list")) {
+                caFailure("failed to generate a list of all the overlap files", undef);
+            }
+
+            $cmd  = "$bin/overlapStore ";
+            $cmd .= " -O -O ";
+            $cmd .= " -c $wrk/0-overlaptrim/$asm.dupStore.BUILDING ";
+            $cmd .= " -g $wrk/$asm.gkpStore ";
+            $cmd .= " -M " . getGlobal('ovlStoreMemory');
+            $cmd .= " -L $wrk/0-overlaptrim/$asm.dupStore.list";
+            $cmd .= " > $wrk/0-overlaptrim/$asm.dupStore.err 2>&1";
+
+            if (runCommand("$wrk/0-overlaptrim", $cmd)) {
+                caFailure("failed to build the dup store", "$wrk/0-overlaptrim/$asm.dupStore.err");
+            }
+
+            rename "$wrk/0-overlaptrim/$asm.dupStore.BUILDING", "$wrk/0-overlaptrim/$asm.dupStore";
+
+            #  Delete overlaps unless we're told to save them
+            if (getGlobal("saveOverlaps") == 0) {
+                open(F, "< $wrk/0-overlaptrim/$asm.dupStore.list");
+                while (<F>) {
+                    chomp;
+                    unlink $_;
+                }
+                close(F);
+            }
+
+            rmrf("$asm.dupStore.list");
+            rmrf("$asm.dupStore.err");
+        }
+
+        $cmd  = "$bin/deduplicate ";
+        $cmd .= "-gkp     $wrk/$asm.gkpStore ";
+        $cmd .= "-ovs     $wrk/0-overlaptrim/$asm.obtStore ";
+        $cmd .= "-ovs     $wrk/0-overlaptrim/$asm.dupStore ";
+        $cmd .= "-report  $wrk/0-overlaptrim/$asm.deduplicate.report ";
+        $cmd .= "-summary $wrk/0-overlaptrim/$asm.deduplicate.summary ";
+        $cmd .= "> $wrk/0-overlaptrim/$asm.deduplicate.err 2>&1";
+
+        if (runCommand("$wrk/0-overlaptrim", $cmd)) {
+            unlink "$wrk/0-overlaptrim/$asm.deduplicate.summary";
+            caFailure("failed to deduplicate the reads", "$wrk/0-overlaptrim/$asm.deduplicate.err");
+        }
+    }
 
     #  Consolidate the overlaps, listing all overlaps for a single
     #  fragment on a single line.  These are still iid's.

@@ -309,6 +309,15 @@ sub merOverlapper($) {
 
         rename "$wrk/$outDir/$asm.merStore.WORKING", "$wrk/$outDir/$asm.merStore";
 
+        if (getGlobal("saveOverlaps") == 0) {
+            open(F, "< $wrk/$outDir/$asm.merStore.list");
+            while (<F>) {
+                chomp;
+                unlink $_;
+            }
+            close(F);
+        }
+
         rmrf("$outDir/$asm.merStore.list");
         rmrf("$outDir/$asm.merStore.err");
     }
