@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.36 2009-10-20 18:03:27 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.37 2009-10-20 21:57:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,31 +70,81 @@ uint32           trimAction  = TRIM_HARD;
 
 
 typedef struct {
-  uint32   numReadsInSFF;
+  uint32   readsInSFF;
 
-  uint32   numReadsWithPartialLinker;  //  A single unmated read
-  uint32   numReadsWithFullLinker;     //  A pair of reads joined by a mate
-  uint32   numReadsWithNoLinker;       //  A single unmated read
+  //  Length status:  Should add to numReadsInSFF.
+  //
+  uint32   lenTooShort;
+  uint32   lenOK;
+  uint32   lenTrimmedByN;
+  uint32   lenTooLong;
 
-  uint32   numTooLong;
-  uint32   numTooShort;
-  uint32   numWithUnallowedN;
-  uint32   numDeDuped;
+  //  Linker status:  If we search for linker, these should add to numReadsInSFF.
+  //
+  uint32   notExaminedForLinker;  //  Already deleted (dup, short or N)
+  uint32   noLinker;              //  No linker detected
+  uint32   badLinker;             //  Inconsistent linker detected
+  uint32   partialLinker;         //  Some linker detected, passed to OBT
+  uint32   fullLinker;            //  Good linker
+
+  //  Final status:  Should add to numReadsInSFF.
+  //
+  uint32   fragmentsOutput;
+  uint32   matesOutput;
+  uint32   deletedDuplicates;
+  uint32   deletedTooShort;
+  uint32   deletedByN;
 } statistics;
 
 statistics st = {0};
 
 static
 void
-writeStatistics(FILE *statOut) {
-  fprintf(statOut, "numReadsInSFF             "F_U32"\n", st.numReadsInSFF);
-  fprintf(statOut, "numReadsWithPartialLinker "F_U32"\n", st.numReadsWithPartialLinker);
-  fprintf(statOut, "numReadsWithFullLinker    "F_U32"\n", st.numReadsWithFullLinker);
-  fprintf(statOut, "numReadsWithNoLinker      "F_U32"\n", st.numReadsWithNoLinker);
-  fprintf(statOut, "numTooLong                "F_U32"\n", st.numTooLong);
-  fprintf(statOut, "numTooShort               "F_U32"\n", st.numTooShort);
-  fprintf(statOut, "numWithUnallowedN         "F_U32"\n", st.numWithUnallowedN);
-  fprintf(statOut, "numDeDuped                "F_U32"\n", st.numDeDuped);
+writeStatistics(char *stsName) {
+
+  errno = 0;
+  FILE *statOut = fopen(stsName, "w");
+  if (errno) {
+    fprintf(stderr, "ERROR: Failed to open the stats file '%s': %s\n", stsName, strerror(errno));
+    statOut = stderr;
+  }
+
+  fprintf(statOut, "INPUT\n");
+  fprintf(statOut, "numReadsInSFF           "F_U32"\n", st.readsInSFF);
+  fprintf(statOut, "\n");
+  fprintf(statOut, "LENGTH\n");
+  fprintf(statOut, "too short               "F_U32"\n", st.lenTooShort);
+  fprintf(statOut, "ok                      "F_U32"\n", st.lenOK);
+  fprintf(statOut, "trimmed by N            "F_U32"\n", st.lenTrimmedByN);
+  fprintf(statOut, "too long                "F_U32"\n", st.lenTooLong);
+  fprintf(statOut, "                        -------\n");
+  fprintf(statOut, "                        "F_U32"\n", st.lenTooShort + st.lenOK + st.lenTrimmedByN + st.lenTooLong);
+  fprintf(statOut, "\n");
+  fprintf(statOut, "LINKER\n");
+  fprintf(statOut, "not examined            "F_U32"\n", st.notExaminedForLinker);
+  fprintf(statOut, "none detected           "F_U32"\n", st.noLinker);
+  fprintf(statOut, "inconsistent            "F_U32"\n", st.badLinker);
+  fprintf(statOut, "partial                 "F_U32"\n", st.partialLinker);
+  fprintf(statOut, "good                    "F_U32"\n", st.fullLinker);
+  fprintf(statOut, "                        -------\n");
+  fprintf(statOut, "                        "F_U32"\n", st.notExaminedForLinker + st.noLinker + st.badLinker + st.partialLinker + st.fullLinker);
+  fprintf(statOut, "\n");
+  fprintf(statOut, "OUTCOME\n");
+  fprintf(statOut, "fragment                "F_U32"\n", st.fragmentsOutput);
+  fprintf(statOut, "mate pair               "F_U32"\n", st.matesOutput);
+  fprintf(statOut, "deleted inconsistent    "F_U32"\n", st.badLinker);
+  fprintf(statOut, "deleted duplicate       "F_U32"\n", st.deletedDuplicates);
+  fprintf(statOut, "deleted too short       "F_U32"\n", st.deletedTooShort);
+  fprintf(statOut, "deleted N not allowed   "F_U32"\n", st.deletedByN);
+  fprintf(statOut, "                        -------\n");
+  fprintf(statOut, "                        "F_U32"\n", st.fragmentsOutput + st.matesOutput + st.badLinker + st.deletedDuplicates + st.deletedTooShort + st.deletedByN);
+
+  if (statOut != stderr)
+    fclose(statOut);
+
+  assert(st.readsInSFF == st.lenTooShort + st.lenOK + st.lenTrimmedByN + st.lenTooLong);
+  assert(st.readsInSFF == st.notExaminedForLinker + st.noLinker + st.badLinker + st.partialLinker + st.fullLinker);
+  assert(st.readsInSFF == st.fragmentsOutput + st.matesOutput + st.badLinker + st.deletedDuplicates + st.deletedTooShort + st.deletedByN);
 }
 
 
@@ -376,7 +426,7 @@ processRead(sffHeader *h,
             sffRead   *r, gkFragment *fr) {
   AS_UID  readUID;
 
-  st.numReadsInSFF++;
+  st.readsInSFF++;
 
   readUID = AS_UID_load(r->name);
 
@@ -448,6 +498,8 @@ processRead(sffHeader *h,
   int  crn = r->number_of_bases;
   int  frn = r->number_of_bases;  //  first-n
 
+  int  isTrimN = 0;  //  Remember if we changed the clear range
+
   if ((clearAction & CLEAR_N) ||
       (clearAction & CLEAR_DISCARD_N)) {
     int  f  = 0;
@@ -456,8 +508,10 @@ processRead(sffHeader *h,
     char *s = r->bases;
 
     for (f=b; f<e; f++)
-      if ((s[f] == 'n') || (s[f] == 'N'))
+      if ((s[f] == 'n') || (s[f] == 'N')) {
+        isTrimN = 1;
         break;
+      }
 
     if (clearAction & CLEAR_N) {
       cln = b;
@@ -478,8 +532,10 @@ processRead(sffHeader *h,
 
     for (f=b; f<e; f++)
       if (((s[f+0] == 'n') || (s[f+0] == 'N')) &&
-          ((s[f+1] == 'n') || (s[f+1] == 'N')))
+          ((s[f+1] == 'n') || (s[f+1] == 'N'))) {
+        isTrimN = 1;
         break;
+      }
 
     clp = b;
     crp = f;
@@ -500,10 +556,12 @@ processRead(sffHeader *h,
   //  whole thing.
   //
   if ((clearAction & CLEAR_DISCARD_N) && (frn < crf)) {
-    st.numWithUnallowedN++;
-    if (logFile)
-      fprintf(logFile, "Read '%s' contains an N at position %d.  Read deleted.\n",
-              AS_UID_toString(readUID), crn);
+    st.deletedByN++;
+    st.notExaminedForLinker++;  //  because this SFF read isn't even added to the store
+
+    fprintf(logFile, "Read '%s' contains an N at position %d.  Read deleted.\n",
+            AS_UID_toString(readUID), crn);
+
     return(false);
   }
 
@@ -563,15 +621,42 @@ processRead(sffHeader *h,
   }
 
 
-  //  Reads too long can be loaded into the store, but until we fix overlaps,
-  //  we cannot use them.  Truncate.
-  //
-  if (r->number_of_bases - h->key_length > AS_READ_MAX_MEDIUM_LEN) {
-    st.numTooLong++;
+  if ((r->clip_quality_left > r->clip_quality_right) ||
+      (r->number_of_bases - h->key_length < FRAG_MIN_LEN)) {
+    //  Reads too short will never be of any use, and they're not loaded.
+    //
+    //  The first test catches reads that 454 decided are completely trash.
+    //
+    //  The second makes sure that the bases are long enough, leaving it up to OBT to decide if
+    //  they're any good.
+    //
+    st.lenTooShort++;
+    st.deletedTooShort++;
+    st.notExaminedForLinker++;  //  because this SFF read isn't even added to the store
 
-    if (logFile)
-      fprintf(logFile, "Read '%s' of length %d is too long.  Truncating to %d bases.\n",
-              r->name, r->number_of_bases - h->key_length, AS_READ_MAX_MEDIUM_LEN);
+    fprintf(logFile, "Read '%s' of length %d clear %d,%d is too short.  Read deleted.\n",
+            r->name,
+            r->number_of_bases - h->key_length,
+            fr->clrBgn - h->key_length,
+            fr->clrEnd - h->key_length);
+
+    return(false);
+
+  } else if (r->number_of_bases - h->key_length <= AS_READ_MAX_MEDIUM_LEN) {
+    //  Read is just right.
+    if (isTrimN)
+      st.lenTrimmedByN++;
+    else
+      st.lenOK++;
+
+  } else {
+    //  Reads too long can be loaded into the store, but until we fix overlaps,
+    //  we cannot use them.  Truncate.
+    //
+    st.lenTooLong++;
+
+    fprintf(logFile, "Read '%s' of length %d is too long.  Truncating to %d bases.\n",
+            r->name, r->number_of_bases - h->key_length, AS_READ_MAX_MEDIUM_LEN);
 
     r->number_of_bases = AS_READ_MAX_MEDIUM_LEN + h->key_length;
 
@@ -583,20 +668,6 @@ processRead(sffHeader *h,
   }
 
 
-  //  Reads too short will never be of any use, and they're not
-  //  loaded.  We'll give the benefit of the doubt and use the read
-  //  length here, not the trimmed length.
-  //
-  if (r->number_of_bases - h->key_length < FRAG_MIN_LEN) {
-    st.numTooShort++;
-    if (logFile)
-      fprintf(logFile, "Read '%s' of length %d clear %d,%d is too short.  Read deleted.\n",
-              r->name,
-              r->number_of_bases - h->key_length,
-              fr->clrBgn - h->key_length,
-              fr->clrEnd - h->key_length);
-    return(false);
-  }
 
   //  Finally, adjust everything to remove the key_length bases from the start.
   //
@@ -643,19 +714,6 @@ processRead(sffHeader *h,
   fr->gkFragment_getSequence()[r->final_length + 1] = 0;
   fr->gkFragment_getQuality() [r->final_length + 1] = 0;
 
-  if ( ! ( (fr->clrBgn < fr->clrEnd) && 
-	   (fr->vecBgn > fr->vecEnd) && 
-	   (fr->tntBgn > fr->tntEnd) ) ) {
-    if (logFile)
-      fprintf(logFile, 
-	      "Processed coordinates invalid: clr=(%d,%d)vec=(%d,%d)contam=(%d,%d)len=%d. Read %s deleted.\n",
-	      fr->clrBgn, fr->clrEnd,
-	      fr->vecBgn, fr->vecEnd,
-	      fr->tntBgn, fr->tntEnd,
-	      r->final_length,
-              r->name);
-    return(false);
-  }
   assert(fr->clrBgn < fr->clrEnd);
   assert(fr->vecBgn > fr->vecEnd);
   assert(fr->tntBgn > fr->tntEnd);
@@ -951,13 +1009,12 @@ removeDuplicateReads(void) {
             //  just deleted.
 
             if (deleted == 0) {
-              st.numDeDuped++;
+              st.deletedDuplicates++;
 
-              if (logFile)
-                fprintf(logFile, "Delete read %s,%d a prefix of %s,%d\n",
-                        AS_UID_toString(deletedUID), deletedIID,
-                        (deletedIID == iid1) ? AS_UID_toString(fr2->gkFragment_getReadUID()) : AS_UID_toString(fr1->gkFragment_getReadUID()),
-                        (deletedIID == iid1) ? iid2 : iid1);
+              fprintf(logFile, "Delete read %s,%d a prefix of %s,%d\n",
+                      AS_UID_toString(deletedUID), deletedIID,
+                      (deletedIID == iid1) ? AS_UID_toString(fr2->gkFragment_getReadUID()) : AS_UID_toString(fr1->gkFragment_getReadUID()),
+                      (deletedIID == iid1) ? iid2 : iid1);
 
               gkpStore->gkStore_delFragment(deletedIID);
               gkpStore->gkStore_getFragment(deletedIID, (deletedIID == iid1) ? fr1 : fr2, GKFRAGMENT_SEQ);
@@ -1101,7 +1158,7 @@ processMate(gkFragment *fr,
       }
       foundAlignment = // Exit the loop after we find an alingment.
 	minimalAlignment+fractionalAlignment+functionalAlignment;
-      if (logFile && foundAlignment>0) {
+      if (foundAlignment>0) {
 	fprintf(logFile, 
 		"ProcessMate(%s,%d) found %d,%d,%d.\n",
 		AS_UID_toString(fr->gkFragment_getReadUID()), stringent,
@@ -1125,9 +1182,8 @@ processMate(gkFragment *fr,
     // We found secondary linker.
     // Repair the read? Too complicated!
     // Just delete the read.
-    if (logFile)
-      fprintf(logFile, 
-	      "Secondary linker found. Calling proc will delete the read.\n");
+    fprintf(logFile, 
+            "Secondary linker found. Calling proc will delete the read.\n");
     // Cannot print read ID. This variable is undefined at this point. 
     // AS_UID_toString(fr->gkFragment_getReadUID())); 
     return (LINKER_POSITIVE);
@@ -1143,12 +1199,11 @@ processMate(gkFragment *fr,
     if ((lSize < MATE_MIN_LEN) && (rSize < MATE_MIN_LEN)) {
       //  Linker found but read too short. 
       //  Not enough sequence on either side of the linker to make a mate. 
-      if (logFile)
-	fprintf(logFile, 
-		"Read %s (len=%d) is nearly all linker. Linker at %d-%d. Read deleted.\n",
-		AS_UID_toString(fr->gkFragment_getReadUID()), 
-		fr->gkFragment_getSequenceLength(),
-		al.begJ, al.endJ);
+      fprintf(logFile, 
+              "Read %s (len=%d) is nearly all linker. Linker at %d-%d. Read deleted.\n",
+              AS_UID_toString(fr->gkFragment_getReadUID()), 
+              fr->gkFragment_getSequenceLength(),
+              al.begJ, al.endJ);
       // Delete the read.
       fr->gkFragment_setReadUID(AS_UID_undefined());
       fr->gkFragment_setIsDeleted(1);
@@ -1158,9 +1213,8 @@ processMate(gkFragment *fr,
     if ((lSize < MATE_MIN_LEN)) {
       //  Linker on the left.
       //  Sufficient sequence left on the right.
-      if (logFile)
-	fprintf(logFile, "Trim linker from left side of %s\n",
-		AS_UID_toString(fr->gkFragment_getReadUID()));
+      fprintf(logFile, "Trim linker from left side of %s\n",
+              AS_UID_toString(fr->gkFragment_getReadUID()));
       // Trim the linker.
       fr->gkFragment_setLength(rSize);
       char *seq = fr->gkFragment_getSequence();
@@ -1176,9 +1230,8 @@ processMate(gkFragment *fr,
       assert(fr->clrEnd <= rSize);
       // Launch recursive search for linker in the newly trimmed read.
       if (0 != processMate(fr, NULL, NULL, linker, search, 0)) {  // low stringency, do not split
-	if (logFile)
-	  fprintf(logFile, "Found more linker after left trim. Delete %s.\n",
-		  AS_UID_toString(fr->gkFragment_getReadUID()));
+        fprintf(logFile, "Found more linker after left trim. Delete %s.\n",
+                AS_UID_toString(fr->gkFragment_getReadUID()));
 	// Delete the read.
 	fr->gkFragment_setReadUID(AS_UID_undefined());
 	fr->gkFragment_setIsDeleted(1);
@@ -1189,9 +1242,8 @@ processMate(gkFragment *fr,
     if ((rSize < MATE_MIN_LEN)) {
       //  Linker on the right.
       //  Sufficiently long sequence on the left.
-      if (logFile)
-	fprintf(logFile, "Trim linker from right side of %s\n",
-		AS_UID_toString(fr->gkFragment_getReadUID()));
+      fprintf(logFile, "Trim linker from right side of %s\n",
+              AS_UID_toString(fr->gkFragment_getReadUID()));
       // Trim the linker.
       fr->gkFragment_setLength(lSize);
       char *seq = fr->gkFragment_getSequence();
@@ -1202,9 +1254,8 @@ processMate(gkFragment *fr,
       fr->maxEnd = MIN(fr->maxEnd, lSize);
       // Launch recursive search for linker in the newly trimmed read.
       if (0 != processMate(fr, NULL, NULL, linker, search, 0)) {  // low stringency, do not split
-	if (logFile)
-	  fprintf(logFile, "Found more linker after right trim. Delete %s.\n",
-		  AS_UID_toString(fr->gkFragment_getReadUID()));
+        fprintf(logFile, "Found more linker after right trim. Delete %s.\n",
+                AS_UID_toString(fr->gkFragment_getReadUID()));
 	// Delete the read.
 	fr->gkFragment_setReadUID(AS_UID_undefined());
 	fr->gkFragment_setIsDeleted(1);
@@ -1224,12 +1275,11 @@ processMate(gkFragment *fr,
     //  We choose not to split this read into mates.
     //  We choose not to carve out the larger of the left & right non-linker.
     //  We choose to delete the read. This is just for simplicity.
-    if (logFile)
-      fprintf(logFile, 
-	      "Partial linker in the middle (position %d-%d).  Delete read %s (len %d).\n",
-	      al.begJ, al.endJ, 
-	      AS_UID_toString(fr->gkFragment_getReadUID()), 
-	      fr->gkFragment_getSequenceLength());
+    fprintf(logFile, 
+            "Partial linker in the middle (position %d-%d).  Delete read %s (len %d).\n",
+            al.begJ, al.endJ, 
+            AS_UID_toString(fr->gkFragment_getReadUID()), 
+            fr->gkFragment_getSequenceLength());
     // Delete the read.
     fr->gkFragment_setReadUID(AS_UID_undefined());
     fr->gkFragment_setIsDeleted(1);
@@ -1243,9 +1293,8 @@ processMate(gkFragment *fr,
     assert ((lSize >= MATE_MIN_LEN) && (rSize >= MATE_MIN_LEN));
       
     // SPLIT THE READ INTO TWO MATES!
-    if (logFile)
-      fprintf(logFile, "Split read %s into Mates.\n",
-	      AS_UID_toString(fr->gkFragment_getReadUID()));
+    fprintf(logFile, "Split read %s into Mates.\n",
+            AS_UID_toString(fr->gkFragment_getReadUID()));
     
     //  0.  Copy the fragments to new mated fragments
     //      CANNOT just copy fr over m1 -- that nukes seq/qlt pointers!
@@ -1352,20 +1401,18 @@ processMate(gkFragment *fr,
       assert(strlen(seq) == rSize);
     }
     
-    if (logFile)
-      fprintf(logFile, "Mates '%s' (%d-%d) and '%s' (%d-%d) created.\n",
-	      AS_UID_toString(m1->gkFragment_getReadUID()), 0, al.begJ,
-	      AS_UID_toString(m2->gkFragment_getReadUID()), al.endJ, al.lenB);
+    fprintf(logFile, "Mates '%s' (%d-%d) and '%s' (%d-%d) created.\n",
+            AS_UID_toString(m1->gkFragment_getReadUID()), 0, al.begJ,
+            AS_UID_toString(m2->gkFragment_getReadUID()), al.endJ, al.lenB);
 
     //  4.  Recurseive search for linker in the left and right mates.
     //      Issue low-stringency search and don't allow any more splitting.
 
     if (processMate(m1, NULL, NULL, linker, search, 0) ||
 	processMate(m2, NULL, NULL, linker, search, 0)) {
-      if (logFile) 
-	fprintf(logFile, "Found more linker after split. Delete mates %s,%s.\n",
-		AS_UID_toString(m1->gkFragment_getReadUID()),
-		AS_UID_toString(m2->gkFragment_getReadUID()));
+      fprintf(logFile, "Found more linker after split. Delete mates %s,%s.\n",
+              AS_UID_toString(m1->gkFragment_getReadUID()),
+              AS_UID_toString(m2->gkFragment_getReadUID()));
       // The read is already deleted.
       // Must delete the mates.
       m1->gkFragment_setReadUID(AS_UID_undefined());
@@ -1373,10 +1420,9 @@ processMate(gkFragment *fr,
       m2->gkFragment_setReadUID(AS_UID_undefined());
       m2->gkFragment_setIsDeleted(1);
     } else {
-      if (logFile)
-	fprintf(logFile, "Mates (%s,%s) survived recursive search for linker.\n",
-		AS_UID_toString(m1->gkFragment_getReadUID()),
-		AS_UID_toString(m2->gkFragment_getReadUID()));
+      fprintf(logFile, "Mates (%s,%s) survived recursive search for linker.\n",
+              AS_UID_toString(m1->gkFragment_getReadUID()),
+              AS_UID_toString(m2->gkFragment_getReadUID()));
     }
   
   return (LINKER_POSITIVE);
@@ -1388,12 +1434,11 @@ processMate(gkFragment *fr,
   
   assert (minimalAlignment == 1);
     
-  if (logFile)
-    fprintf(logFile, 
-	    "Linker detected in '%s' (%d bp, %d match).  Mark %d-%d as possible contaminant.\n",
-	    AS_UID_toString(fr->gkFragment_getReadUID()), 
-	    al.alignLen, al.matches,
-	    al.begJ, al.endJ);
+  fprintf(logFile, 
+          "Linker detected in '%s' (%d bp, %d match).  Mark %d-%d as possible contaminant.\n",
+          AS_UID_toString(fr->gkFragment_getReadUID()), 
+          al.alignLen, al.matches,
+          al.begJ, al.endJ);
   
   //  Action: mark the aligned region as possible contaminant.
   //  Put the marks in the gatekeeper store (read database).
@@ -1436,8 +1481,10 @@ detectMates(char *linker[AS_LINKER_MAX_SEQS], int search[AS_LINKER_MAX_SEQS]) {
 
     gkpStore->gkStore_getFragment(thisElem, &fr, GKFRAGMENT_QLT);
 
-    if (fr.gkFragment_getIsDeleted())
+    if (fr.gkFragment_getIsDeleted()) {
+      st.notExaminedForLinker++;  //  because it was deleted already
       continue;
+    }
 
     assert(fr.clrBgn < fr.clrEnd);
 
@@ -1459,30 +1506,45 @@ detectMates(char *linker[AS_LINKER_MAX_SEQS], int search[AS_LINKER_MAX_SEQS]) {
     readChanged = processMate(&fr, &m1, &m2, linker, search, 1); // high stringency; split if found
     if (0==readChanged) 
       readChanged = processMate(&fr, &m1, &m2, linker, search, 0); // low stringency; trim if found
+
+    //  Now figure out what happened.
       
-    if (readChanged != 0) {
+    if (readChanged == 0) {
+      st.noLinker++;
+
+    } else if (fr.gkFragment_getIsDeleted() == 0) {
+      st.partialLinker++;
+
+      assert(AS_UID_isDefined(m1.gkFragment_getReadUID()) == 0);
+      assert(AS_UID_isDefined(m2.gkFragment_getReadUID()) == 0);
+
+      gkpStore->gkStore_delFragment(thisElem);
+      gkpStore->gkStore_addFragment(&fr);
+
+    } else if ((m1.gkFragment_getIsDeleted() == 0) &&
+               (m2.gkFragment_getIsDeleted() == 0)) {
+      st.fullLinker++;
+
+      assert(AS_UID_isDefined(fr.gkFragment_getReadUID()) == 0);
+
+      gkpStore->gkStore_delFragment(thisElem);
+      gkpStore->gkStore_addFragment(&m1);
+      gkpStore->gkStore_addFragment(&m2);
+
+    } else if ((fr.gkFragment_getIsDeleted() == 1) &&
+               (m1.gkFragment_getIsDeleted() == 1) &&
+               (m2.gkFragment_getIsDeleted() == 1)) {
+      st.badLinker++;
+
+      assert(AS_UID_isDefined(fr.gkFragment_getReadUID()) == 0);
+      assert(AS_UID_isDefined(m1.gkFragment_getReadUID()) == 0);
+      assert(AS_UID_isDefined(m2.gkFragment_getReadUID()) == 0);
+
       gkpStore->gkStore_delFragment(thisElem);
 
-      if (fr.gkFragment_getIsDeleted() == 0) {
-        st.numReadsWithPartialLinker++;
-
-        assert(AS_UID_isDefined(m1.gkFragment_getReadUID()) == 0);
-        assert(AS_UID_isDefined(m2.gkFragment_getReadUID()) == 0);
-
-        gkpStore->gkStore_addFragment(&fr);
-      }
-
-      if ((m1.gkFragment_getIsDeleted() == 0) &&
-          (m2.gkFragment_getIsDeleted() == 0)) {
-        st.numReadsWithFullLinker++;
-
-        assert(AS_UID_isDefined(fr.gkFragment_getReadUID()) == 0);
-
-        gkpStore->gkStore_addFragment(&m1);
-        gkpStore->gkStore_addFragment(&m2);
-      }
     } else {
-      st.numReadsWithNoLinker++;
+      fprintf(stderr, "ERROR:  linker found, but we failed to handle it.\n");
+      exit(1);
     }
   }
 
@@ -1598,6 +1660,8 @@ dumpFragFile(char *outName, FILE *outFile) {
 
     frgUID[fr.gkFragment_getReadIID()] = fr.gkFragment_getReadUID();
 
+    st.fragmentsOutput++;
+
     pmesg.m = &frgMesg;
     pmesg.t = MESG_FRG;
 
@@ -1629,6 +1693,10 @@ dumpFragFile(char *outName, FILE *outFile) {
 
     if ((fr.gkFragment_getMateIID() > 0) &&
         (fr.gkFragment_getMateIID() < fr.gkFragment_getReadIID())) {
+      st.matesOutput++;
+      st.fragmentsOutput--;
+      st.fragmentsOutput--;
+
       pmesg.m = &lnkMesg;
       pmesg.t = MESG_LKG;
 
@@ -1928,16 +1996,7 @@ main(int argc, char **argv) {
   if (errno)
     fprintf(stderr, "Failed to close '%s': %s\n", logName, strerror(errno)), exit(1);
 
-  errno = 0;
-  logFile = fopen(stsName, "w");
-  if (errno)
-    fprintf(stderr, "ERROR: Failed to open the stats file '%s': %s\n", stsName, strerror(errno));
-  if (logFile) {
-    writeStatistics(logFile);
-    fclose(logFile);
-  } else {
-    writeStatistics(stderr);
-  }
+  writeStatistics(stsName);
 
   return(0);
 }
