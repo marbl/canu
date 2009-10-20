@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.10 2009-10-05 04:06:49 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.11 2009-10-20 18:32:08 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -384,49 +384,71 @@ void
 gkStore::gkStore_delete(void) {
   char   name[FILENAME_MAX];
 
-  sprintf(name,"%s/inf", storePath);
-  unlink(name);
+  //  This function does both a ~gkStore (needed to close open files, and etc) and then removes the
+  //  files from disk.  It does not handle a partitioned store.
 
-  sprintf(name,"%s/bat", storePath);
-  unlink(name);
+  closeStore(fsm);
 
-  sprintf(name,"%s/fsm", storePath);
-  unlink(name);
+  closeStore(fmd);
+  closeStore(smd);
+  closeStore(qmd);
 
-  sprintf(name,"%s/fmd", storePath);
-  unlink(name);
+  closeStore(flg);
+  closeStore(slg);
+  closeStore(qlg);
 
-  sprintf(name,"%s/flg", storePath);
-  unlink(name);
+  closeStore(lib);
 
-  sprintf(name,"%s/lib", storePath);
-  unlink(name);
+  closeStore(uid);
 
-  sprintf(name,"%s/seq", storePath);
-  unlink(name);
-
-  sprintf(name,"%s/qlt", storePath);
-  unlink(name);
-
-  sprintf(name,"%s/hps", storePath);
-  unlink(name);
-
-  sprintf(name,"%s/src", storePath);
-  unlink(name);
-
-  sprintf(name,"%s/uid", storePath);
-  unlink(name);
-
-  sprintf(name,"%s/plc", storePath);
-  unlink(name);
+  closeStore(plc);
+  DeleteHashTable_AS(FRGtoPLC);
   
-  sprintf(name,"%s/f2p", storePath);
-  unlink(name);
+  DeleteHashTable_AS(UIDtoIID);
+  DeleteHashTable_AS(STRtoUID);
 
-  sprintf(name,"%s/u2i", storePath);
-  unlink(name);
+  safe_free(frgUID);
+
+  safe_free(IIDtoTYPE);
+  safe_free(IIDtoTIID);
+
+  closeStore(partfsm);
+  closeStore(partfmd);
+  closeStore(partflg);
+  closeStore(partqmd);
+  closeStore(partqlg);
+
+  DeleteHashTable_AS(partmap);
+
+  //  Remove files (and close/purge clear ranges).
+
+  sprintf(name,"%s/inf", storePath);  unlink(name);
+
+  sprintf(name,"%s/fsm", storePath);  unlink(name);
+
+  sprintf(name,"%s/fmd", storePath);  unlink(name);
+  sprintf(name,"%s/smd", storePath);  unlink(name);
+  sprintf(name,"%s/qmd", storePath);  unlink(name);
+
+  sprintf(name,"%s/flg", storePath);  unlink(name);
+  sprintf(name,"%s/slg", storePath);  unlink(name);
+  sprintf(name,"%s/qlg", storePath);  unlink(name);
+
+  sprintf(name,"%s/lib", storePath);  unlink(name);
+  sprintf(name,"%s/uid", storePath);  unlink(name);
+  sprintf(name,"%s/plc", storePath);  unlink(name);
+  sprintf(name,"%s/f2p", storePath);  unlink(name);
+  sprintf(name,"%s/u2i", storePath);  unlink(name);
+
+  for (int32 i=0; i<AS_READ_CLEAR_NUM; i++) {
+    gkStore_purgeClearRange(i);
+    delete clearRange[i];
+  }
+  delete [] clearRange;
 
   rmdir(storePath);
+
+  gkStore_clear();
 }
 
 
