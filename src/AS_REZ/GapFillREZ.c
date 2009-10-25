@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.59 2009-10-12 06:19:29 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.60 2009-10-25 01:04:41 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -6892,9 +6892,6 @@ static void  Identify_Best_Rocks
                 }
             }
 
-          if  (j % 51 == 50 || this_gap -> num_chunks >= 50)
-            ScaffoldGraph->tigStore->flushCache();
-
           // Now find the best chunk among the candidates.  Eliminate
           // any chunk that is contained in another candidate or
           // contained in the scaffold chunks on the ends of this gap.
@@ -6937,8 +6934,6 @@ static void  Identify_Best_Rocks
             best_chunk -> best = TRUE;
         }
     }
-
-  ScaffoldGraph->tigStore->flushCache();
 
   return;
 }
@@ -8149,8 +8144,6 @@ static void  New_Confirm_Stones_One_Scaffold
             }
         }
     }
-
-  ScaffoldGraph->tigStore->flushCache();
 
   return;
 }
@@ -9615,8 +9608,6 @@ static void  Restore_Best_Rocks
             }
         }
     }
-
-  ScaffoldGraph->tigStore->flushCache();
 
   return;
 }
@@ -11244,8 +11235,6 @@ int Throw_Stones
 
           //  Disabled, should propagate a logical checkpoint, but also debate the value of this checkpoint
           //CheckpointScaffoldGraph (ScaffoldGraph, logicalcheckpoint, "after Stones CleanupScaffolds");
-
-          ScaffoldGraph->tigStore->flushCache();
 
           stones_last_chkpt = total_stones;
         }
