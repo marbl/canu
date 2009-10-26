@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStream.C,v 1.4 2009-10-26 13:20:26 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStream.C,v 1.5 2009-10-26 16:37:10 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -214,7 +214,7 @@ gkStream::next(gkFragment *fr) {
   if ((!loaded) && (fnm)) {
     if (nextStream(fnm, &fr->fr.normal, 0, NULL)) {
       fr->type = GKFRAGMENT_NORMAL;
-      fr->tiid = curIID - gkp->inf.numShort;
+      fr->tiid = curIID - gkp->inf.numPacked;
       loaded = 1;
     } else {
       closeStream(fnm);
@@ -225,7 +225,7 @@ gkStream::next(gkFragment *fr) {
   if ((!loaded) && (fsb)) {
     if (nextStream(fsb, &fr->fr.strobe, 0, NULL)) {
       fr->type = GKFRAGMENT_STROBE;
-      fr->tiid = curIID - gkp->inf.numShort - gkp->inf.numMedium;
+      fr->tiid = curIID - gkp->inf.numPacked - gkp->inf.numNormal;
       loaded = 1;
     } else {
       closeStream(fsb);

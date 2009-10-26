@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.50 2009-08-14 13:37:06 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.51 2009-10-26 16:37:09 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,9 +70,9 @@ dumpGateKeeperInfo(char       *gkpStoreName,
     fprintf(stdout, F_U32"\tplcWarnings\n", gkp->inf.plcWarnings);
     fprintf(stdout, "\n");
     fprintf(stdout, F_U32"\tnumRandom\n",   gkp->inf.numRandom);
-    fprintf(stdout, F_U32"\tnumShort\n",    gkp->inf.numShort);
-    fprintf(stdout, F_U32"\tnumMedium\n",   gkp->inf.numMedium);
-    fprintf(stdout, F_U32"\tnumLong\n",     gkp->inf.numLong);
+    fprintf(stdout, F_U32"\tnumPacked\n",   gkp->inf.numPacked);
+    fprintf(stdout, F_U32"\tnumNormal\n",   gkp->inf.numNormal);
+    fprintf(stdout, F_U32"\tnumStrobe\n",    gkp->inf.numStrobe);
   }
 
   gkFragment    fr;

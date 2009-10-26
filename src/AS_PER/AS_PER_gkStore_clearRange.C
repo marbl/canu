@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.6 2009-10-26 13:20:26 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.7 2009-10-26 16:37:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -96,7 +96,7 @@ gkClearRange::~gkClearRange() {
     if (errno)
       fprintf(stderr, "gkClearRange::~gkClearRange()-- failed to write clear range file '%s': %s\n", filePath, strerror(errno)), exit(1);
 
-    AS_UTL_safeWrite(F, sm, "gkClearRange::~glClearRange()--sm", sizeof(uint8), gkp->inf.numShort * 2 + 2);
+    AS_UTL_safeWrite(F, sm, "gkClearRange::~glClearRange()--sm", sizeof(uint8), gkp->inf.numPacked * 2 + 2);
 
     fclose(F);
   }
@@ -109,7 +109,7 @@ gkClearRange::~gkClearRange() {
     if (errno)
       fprintf(stderr, "gkClearRange::~gkClearRange()-- failed to write clear range file '%s': %s\n", filePath, strerror(errno)), exit(1);
 
-    AS_UTL_safeWrite(F, md, "gkClearRange::~glClearRange()--md", sizeof(uint16), gkp->inf.numMedium * 2 + 2);
+    AS_UTL_safeWrite(F, md, "gkClearRange::~glClearRange()--md", sizeof(uint16), gkp->inf.numNormal * 2 + 2);
 
     fclose(F);
   }
@@ -122,7 +122,7 @@ gkClearRange::~gkClearRange() {
     if (errno)
       fprintf(stderr, "gkClearRange::~gkClearRange()-- failed to write clear range file '%s': %s\n", filePath, strerror(errno)), exit(1);
 
-    AS_UTL_safeWrite(F, lg, "gkClearRange::~glClearRange()--lg", sizeof(uint32), gkp->inf.numLong * 2 + 2);
+    AS_UTL_safeWrite(F, lg, "gkClearRange::~glClearRange()--lg", sizeof(uint32), gkp->inf.numStrobe * 2 + 2);
 
     fclose(F);
   }
@@ -261,7 +261,7 @@ gkClearRange::gkClearRange_configureShort(void) {
 
   if (AS_UTL_fileExists(filePath, FALSE, TRUE)) {
     smdirty  = 0;
-    smmaxiid = gkp->inf.numShort;
+    smmaxiid = gkp->inf.numPacked;
     sm       = NULL;
 
     errno = 0;
@@ -274,14 +274,14 @@ gkClearRange::gkClearRange_configureShort(void) {
 
     fclose(F);
   } else if (create) {
-    smmaxiid = (gkp->inf.numShort > 0) ? gkp->inf.numShort : 1048576;
+    smmaxiid = (gkp->inf.numPacked > 0) ? gkp->inf.numPacked : 1048576;
     smdirty  = 1;
     sm       = new uint8 [smmaxiid * 2 + 2];
 
     gkFragment  fr;
     gkStream   *gs = new gkStream(gkp,
                                   1,
-                                  gkp->inf.numShort,
+                                  gkp->inf.numPacked,
                                   GKFRAGMENT_INF);
     while (gs->next(&fr)) {
       sm[2*fr.tiid+0] = fr.gkFragment_getClearRegionBegin();
@@ -303,7 +303,7 @@ gkClearRange::gkClearRange_configureMedium(void) {
 
   if (AS_UTL_fileExists(filePath, FALSE, TRUE)) {
     mddirty   = 0;
-    mdmaxiid  = gkp->inf.numMedium;
+    mdmaxiid  = gkp->inf.numNormal;
     md        = NULL;
 
     errno = 0;
@@ -316,14 +316,14 @@ gkClearRange::gkClearRange_configureMedium(void) {
 
     fclose(F);
   } else if (create) {
-    mdmaxiid = (gkp->inf.numMedium > 0) ? gkp->inf.numMedium : 1048576;
+    mdmaxiid = (gkp->inf.numNormal > 0) ? gkp->inf.numNormal : 1048576;
     mddirty  = 1;
     md       = new uint16 [mdmaxiid * 2 + 2];
 
     gkFragment  fr;
     gkStream   *gs = new gkStream(gkp,
-                                  gkp->inf.numShort + 1,
-                                  gkp->inf.numShort + gkp->inf.numMedium,
+                                  gkp->inf.numPacked + 1,
+                                  gkp->inf.numPacked + gkp->inf.numNormal,
                                   GKFRAGMENT_INF);
     while (gs->next(&fr)) {
       md[2*fr.tiid+0] = fr.gkFragment_getClearRegionBegin();
@@ -342,7 +342,7 @@ gkClearRange::gkClearRange_configureLong(void) {
 
   if (AS_UTL_fileExists(filePath, FALSE, TRUE)) {
     lgdirty   = 0;
-    lgmaxiid  = gkp->inf.numLong;
+    lgmaxiid  = gkp->inf.numStrobe;
     lg        = NULL;
 
     errno = 0;
@@ -355,14 +355,14 @@ gkClearRange::gkClearRange_configureLong(void) {
 
     fclose(F);
   } else if (create) {
-    lgmaxiid = (gkp->inf.numLong > 0) ? gkp->inf.numLong : 1048576;
+    lgmaxiid = (gkp->inf.numStrobe > 0) ? gkp->inf.numStrobe : 1048576;
     lgdirty  = 1;
     lg       = new uint32 [lgmaxiid * 2 + 2];
 
     gkFragment  fr;
     gkStream   *gs = new gkStream(gkp,
-                                  gkp->inf.numShort + gkp->inf.numMedium + 1,
-                                  gkp->inf.numShort + gkp->inf.numMedium + gkp->inf.numLong,
+                                  gkp->inf.numPacked + gkp->inf.numNormal + 1,
+                                  gkp->inf.numPacked + gkp->inf.numNormal + gkp->inf.numStrobe,
                                   GKFRAGMENT_INF);
     while (gs->next(&fr)) {
       lg[2*fr.tiid+0] = fr.gkFragment_getClearRegionBegin();

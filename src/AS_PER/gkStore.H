@@ -18,6 +18,8 @@ public:
   uint32    gkStrobeFragmentSize;
   uint32    gkPlacementSize;
 
+  uint32    readMaxLenBits;
+
   //  Statistics on our load
 
   uint32    libInput;
@@ -46,7 +48,7 @@ public:
   uint32    plcLoaded;
   uint32    plcErrors;
   uint32    plcWarnings;
-  
+
   //  Counts of types of things we have loaded
 
   uint32    numRandom;
@@ -55,9 +57,9 @@ public:
   //  the order fragments are loaded.  All short reads are first, then
   //  medium, then long.
 
-  uint32    numShort;
-  uint32    numMedium;
-  uint32    numLong;
+  uint32    numPacked;
+  uint32    numNormal;
+  uint32    numStrobe;
 
   friend class gkFragment;
   friend class gkStore;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.12 2009-10-26 13:20:26 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.13 2009-10-26 16:37:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,6 +36,8 @@ static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.12 2009-10-26 13:20:26 brianwale
 #include "AS_PER_encodeSequenceQuality.h"
 #include "AS_UTL_fileIO.h"
 
+
+#define AS_GKP_CURRENT_VERSION    5
 
 
 gkStore::gkStore() {
@@ -96,20 +98,23 @@ gkStore::gkStore_open(int writable) {
     exit(1);
   }
 
-  if (inf.gkVersion != 4) {
-    fprintf(stderr, "gkStore_open()-- Invalid version!  Found version %d, code supports version 4.\n", inf.gkVersion);
+  if (inf.gkVersion != AS_GKP_CURRENT_VERSION) {
+    fprintf(stderr, "gkStore_open()-- Invalid version!  Found version %d, code supports version %d.\n",
+            inf.gkVersion, AS_GKP_CURRENT_VERSION);
     exit(1);
   }
 
   if ((inf.gkLibrarySize        != sizeof(gkLibrary)) ||
       (inf.gkPackedFragmentSize != sizeof(gkPackedFragment)) ||
       (inf.gkNormalFragmentSize != sizeof(gkNormalFragment)) ||
-      (inf.gkStrobeFragmentSize != sizeof(gkStrobeFragment))) {
+      (inf.gkStrobeFragmentSize != sizeof(gkStrobeFragment)) ||
+      (inf.readMaxLenBits       != AS_READ_MAX_NORMAL_LEN_BITS)) {
     fprintf(stderr, "gkStore_open()--  ERROR!  Incorrect element sizes; code and store are incompatible.\n");
-    fprintf(stderr, "                  gkLibrary:          store %5d   code %5d bytes\n", inf.gkLibrarySize, (int)sizeof(gkLibrary));
-    fprintf(stderr, "                  gkPackedFragment:   store %5d   code %5d bytes\n", inf.gkPackedFragmentSize, (int)sizeof(gkPackedFragment));
-    fprintf(stderr, "                  gkNormalFragment:   store %5d   code %5d bytes\n", inf.gkNormalFragmentSize, (int)sizeof(gkNormalFragment));
-    fprintf(stderr, "                  gkStrobeFragment:   store %5d   code %5d bytes\n", inf.gkStrobeFragmentSize, (int)sizeof(gkStrobeFragment));
+    fprintf(stderr, "  gkLibrary:                    store %5d   code %5d bytes\n", inf.gkLibrarySize, (int)sizeof(gkLibrary));
+    fprintf(stderr, "  gkPackedFragment:             store %5d   code %5d bytes\n", inf.gkPackedFragmentSize, (int)sizeof(gkPackedFragment));
+    fprintf(stderr, "  gkNormalFragment:             store %5d   code %5d bytes\n", inf.gkNormalFragmentSize, (int)sizeof(gkNormalFragment));
+    fprintf(stderr, "  gkStrobeFragment:             store %5d   code %5d bytes\n", inf.gkStrobeFragmentSize, (int)sizeof(gkStrobeFragment));
+    fprintf(stderr, "  AS_READ_MAX_NORMAL_LEN_BITS:  store %5d   code %5d\n", inf.readMaxLenBits, AS_READ_MAX_NORMAL_LEN_BITS);
     exit(1);
   }
 
@@ -180,12 +185,13 @@ gkStore::gkStore_create(void) {
   AS_UTL_mkdir(storePath);
 
   inf.gkMagic              = 1;
-  inf.gkVersion            = 4;
+  inf.gkVersion            = AS_GKP_CURRENT_VERSION;
   inf.gkLibrarySize        = sizeof(gkLibrary);
   inf.gkPackedFragmentSize = sizeof(gkPackedFragment);
   inf.gkNormalFragmentSize = sizeof(gkNormalFragment);
   inf.gkStrobeFragmentSize = sizeof(gkStrobeFragment);
   inf.gkPlacementSize      = sizeof(gkPlacement);
+  inf.readMaxLenBits       = AS_READ_MAX_NORMAL_LEN_BITS;
 
   sprintf(name,"%s/inf", storePath);
   errno = 0;
@@ -655,15 +661,15 @@ gkStore::gkStore_decodeTypeFromIID(AS_IID iid, uint32& type, uint32& tiid) {
     type = IIDtoTYPE[iid];
     tiid = IIDtoTIID[iid];
   } else {
-    if (iid <= inf.numShort + inf.numMedium + inf.numLong) {
+    if (iid <= inf.numPacked + inf.numNormal + inf.numStrobe) {
       type = GKFRAGMENT_STROBE;
-      tiid = iid - inf.numShort - inf.numMedium;
+      tiid = iid - inf.numPacked - inf.numNormal;
     }
-    if (iid <= inf.numShort + inf.numMedium) {
+    if (iid <= inf.numPacked + inf.numNormal) {
       type = GKFRAGMENT_NORMAL;
-      tiid = iid - inf.numShort;
+      tiid = iid - inf.numPacked;
     }
-    if (iid <= inf.numShort) {
+    if (iid <= inf.numPacked) {
       type = GKFRAGMENT_PACKED;
       tiid = iid;
     }
@@ -671,8 +677,8 @@ gkStore::gkStore_decodeTypeFromIID(AS_IID iid, uint32& type, uint32& tiid) {
 
   if (tiid == 0) {
     fprintf(stderr, "gkStore_decodeTypeFromIID()-- ERROR:  fragment iid %d is out of range.\n", iid);
-    fprintf(stderr, "gkStore_decodeTypeFromIID()--         numShort=%d numMedium=%d numLong=%d\n",
-            inf.numShort, inf.numMedium, inf.numLong);
+    fprintf(stderr, "gkStore_decodeTypeFromIID()--         numPacked=%d numNormal=%d numStrobe=%d\n",
+            inf.numPacked, inf.numNormal, inf.numStrobe);
     assert(0);
   }
 }
@@ -955,7 +961,7 @@ gkStore::gkStore_addFragment(gkFragment *fr) {
 
   switch (fr->type) {
     case GKFRAGMENT_PACKED:
-      fr->tiid          = ++inf.numShort;
+      fr->tiid          = ++inf.numPacked;
       fr->fr.packed.readIID = iid;
 
       assert(fr->tiid == getLastElemStore(fpk) + 1);
@@ -970,7 +976,7 @@ gkStore::gkStore_addFragment(gkFragment *fr) {
       break;
 
     case GKFRAGMENT_NORMAL:
-      fr->tiid          = ++inf.numMedium;
+      fr->tiid          = ++inf.numNormal;
       fr->fr.normal.readIID = iid;
 
       assert(fr->tiid == getLastElemStore(fnm) + 1);
@@ -985,7 +991,7 @@ gkStore::gkStore_addFragment(gkFragment *fr) {
       break;
 
     case GKFRAGMENT_STROBE:
-      fr->tiid           = ++inf.numLong;
+      fr->tiid           = ++inf.numStrobe;
       fr->fr.strobe.readIID = iid;
 
       assert(fr->tiid == getLastElemStore(fsb) + 1);
