@@ -19,7 +19,7 @@
  *************************************************************************/
 
 
-static const char *rcsid = "$Id: eCR-examineGap.c,v 1.23 2009-09-14 16:09:05 brianwalenz Exp $";
+static const char *rcsid = "$Id: eCR-examineGap.c,v 1.24 2009-10-26 13:20:26 brianwalenz Exp $";
 #include "eCR.h"
 
 #include "GapWalkerREZ.h"  //  FindGapLength
@@ -95,10 +95,10 @@ examineGap(ContigT *lcontig, int lFragIid,
 
   CIFragT *lFrag = NULL;
   CIFragT *rFrag = NULL;
-  char lFragSeqBuffer[AS_READ_MAX_LEN+1];
-  char rFragSeqBuffer[AS_READ_MAX_LEN+1];
-  char lcompBuffer[AS_READ_MAX_LEN+CONTIG_BASES+1];
-  char rcompBuffer[AS_READ_MAX_LEN+CONTIG_BASES+1];
+  char lFragSeqBuffer[AS_READ_MAX_NORMAL_LEN+1];
+  char rFragSeqBuffer[AS_READ_MAX_NORMAL_LEN+1];
+  char lcompBuffer[AS_READ_MAX_NORMAL_LEN+CONTIG_BASES+1];
+  char rcompBuffer[AS_READ_MAX_NORMAL_LEN+CONTIG_BASES+1];
   uint lclr_bgn=0, lclr_end=0;
   uint rclr_bgn=0, rclr_end=0;
   char *lSequence = NULL;

@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.14 2009-10-05 22:49:42 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.15 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
@@ -398,7 +398,7 @@ void
 ShowColumn(int32 cid);
 
 void
-ResetStores(int32 num_frags, int32 num_columns);
+ResetStores(int32 num_bases, int32 num_frags, int32 num_columns);
 int32
 AppendFragToLocalStore(FragType          type,
                        int               iid,

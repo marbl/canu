@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fixUnitigs.c,v 1.5 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: fixUnitigs.c,v 1.6 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -46,7 +46,7 @@ updateFragmentWithParent(IntUnitigMesg *iunitig, int thisFrag, OverlapStore *ovs
   int     fragment        = -1;
   int     overlap         = -1;
   int     overlapIdentity = consensusCutoff;
-  int     overlapBHang    = AS_READ_MAX_LEN;
+  int     overlapBHang    = AS_READ_MAX_NORMAL_LEN;
 
   HashTable_AS  *ovlBefore = CreateScalarHashTable_AS();
   HashTable_AS  *ovlAfter  = CreateScalarHashTable_AS();

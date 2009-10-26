@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.22 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.23 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -279,17 +279,21 @@ int
 unitigConsensus::initialize(void) {
 
   int32 num_columns = 0;
+  int32 num_bases   = 0;
 
   for (int32 i=0; i<numfrags; i++) {
-    num_columns = (fraglist[i].position.bgn > num_columns) ? fraglist[i].position.bgn : num_columns;
-    num_columns = (fraglist[i].position.end > num_columns) ? fraglist[i].position.end : num_columns;
+    int32 flen   = (fraglist[i].position.bgn < fraglist[i].position.end) ? (fraglist[i].position.end < fraglist[i].position.bgn) : (fraglist[i].position.bgn - fraglist[i].position.end);
+    num_bases   += flen + 2 * AS_CNS_ERROR_RATE * flen;
+
+    num_columns  = (fraglist[i].position.bgn > num_columns) ? fraglist[i].position.bgn : num_columns;
+    num_columns  = (fraglist[i].position.end > num_columns) ? fraglist[i].position.end : num_columns;
   }
 
-  ResetStores(numfrags, num_columns);
+  ResetStores(num_bases, numfrags, num_columns);
 
   //  Magic initialization (in ResetStores()) prevents us calling CreateMANode() until now.
 
-  trace   = CreateVA_int32(2 * AS_READ_MAX_LEN);
+  trace   = CreateVA_int32(2 * AS_READ_MAX_NORMAL_LEN);
   manode  = CreateMANode(ma->maID);
   offsets = (SeqInterval *)safe_calloc(numfrags, sizeof(SeqInterval));
   placed  = (SeqInterval *)safe_calloc(numfrags, sizeof(SeqInterval));

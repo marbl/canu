@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.13 2009-08-11 04:42:19 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.14 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_ALN_bruteforcedp.h"
@@ -73,7 +73,7 @@ alignLinker(char           *alignA,
             char           *alignB,
             char           *stringA,
             char           *stringB,
-            dpCell        (*M)[AS_READ_MAX_LEN + 1],
+            dpCell        (*M)[AS_READ_MAX_NORMAL_LEN + 1],
             alignLinker_s  *a,
             int             endToEnd,
             int             allowNs,
@@ -87,7 +87,7 @@ alignLinker(char           *alignA,
   int   i, ibgn, iend;
   int   j, jbgn, jend;
 
-  if ((lenA > AS_READ_MAX_LEN) || (lenB > AS_READ_MAX_LEN)) {
+  if ((lenA > AS_READ_MAX_NORMAL_LEN) || (lenB > AS_READ_MAX_NORMAL_LEN)) {
     a->alignLen = 0;
     return;
   }
@@ -96,8 +96,8 @@ alignLinker(char           *alignA,
 
 #if 0
   //  Debug.  Clear everything.
-  for (i=0; i<AS_READ_MAX_LEN; i++) {
-    for (j=0; j<AS_READ_MAX_LEN; j++) {
+  for (i=0; i<AS_READ_MAX_NORMAL_LEN; i++) {
+    for (j=0; j<AS_READ_MAX_NORMAL_LEN; j++) {
       M[i][j].score  = DP_NEGT;
       M[i][j].action = STOP;
     }
@@ -201,14 +201,14 @@ alignLinker(char           *alignA,
 
 #if 0
     //  Overkill, box in the D.P.
-    for (i=0, j=jbgn-1; i<AS_READ_MAX_LEN; i++) {
+    for (i=0, j=jbgn-1; i<AS_READ_MAX_NORMAL_LEN; i++) {
       M[i][j].score  = DP_NEGT;
       M[i][j].action = STOP;
       M[i][0].score  = DP_NEGT;
       M[i][0].action = STOP;
     }
 
-    for (i-ibgn-1, j=0; j<AS_READ_MAX_LEN; j++) {
+    for (i-ibgn-1, j=0; j<AS_READ_MAX_NORMAL_LEN; j++) {
       M[i][j].score  = DP_NEGT;
       M[i][j].action = STOP;
       M[0][j].score  = DP_NEGT;

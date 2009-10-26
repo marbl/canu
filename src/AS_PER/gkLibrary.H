@@ -67,7 +67,7 @@ public:
     goodBadQVThreshold        = 0;
     doNotOverlapTrim          = 0;
     spareGKP                  = 0;
-    useShortFragments         = 0;
+    usePackedFragments        = 0;
     spareLIB                  = 0;
     orientation               = 0;
   };
@@ -102,7 +102,7 @@ public:
 
   //  Gatekeeper options
   uint64         spareGKP:63;                  //  Spare for gatekeeper changes
-  uint64         useShortFragments:1;          //  Default 0 -> don't store gkShortFragment types
+  uint64         usePackedFragments:1;         //  Default 0 -> don't store gkPackedFragment types
 
   //  Library options
   uint64         spareLIB:61;                  //  Spare for library changes

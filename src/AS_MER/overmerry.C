@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overmerry.C,v 1.37 2009-07-31 15:11:23 brianwalenz Exp $";
+const char *mainid = "$Id: overmerry.C,v 1.38 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,19 +38,8 @@ const char *mainid = "$Id: overmerry.C,v 1.37 2009-07-31 15:11:23 brianwalenz Ex
 #include "libmeryl.H"
 
 
-//  Instead of using the internal overlap, which has enough extra
-//  stuff in it that we cannot store a sequence iid for the table
-//  sequence and have it be small, we make our own overlap structure.
-//
-//  The order of bit fields is compiler dependent.  To avoid the messy
-//  and somewhat expensive comparsion operator below, we need to
-//  handle to bits ourself.  This is only needed for sorting, plus,
-//  everywhere else, we want to use bit fields.  So, we use the
-//  setInteger() method to store the info initially, sort, then
-//  unpackInteger() to set the bit fields.
-//
-//  For the sort to work, the high order bits must be tseq, then cnt,
-//  then qpos, then tpos.  The sort doesn't care about pal or fwd.
+//  Instead of using the internal overlap, which has enough extra stuff in it that we cannot store a
+//  sequence iid for the table sequence and have it be small, we make our own overlap structure.
 
 class kmerhit {
 public:
@@ -74,30 +63,28 @@ public:
     if (cnt > 255)
       cnt = 255;
 
-    dat.num  = 0;
-    dat.num |= (tseq & u64bitMASK(30)) << 32;
-    dat.num |= (cnt  & u64bitMASK(8) ) << 24;
-    dat.num |= (qpos & u64bitMASK(11)) << 13;
-    dat.num |= (tpos & u64bitMASK(11)) << 2;
-    dat.num |= (pal  & u64bitMASK(1) ) << 1;
-    dat.num |= (fwd  & u64bitMASK(1) );
+    dat.val.tseq = tseq;
+    dat.val.cnt  = cnt;
+    dat.val.qpos = qpos;
+    dat.val.tpos = tpos;
+    dat.val.pal  = pal;
+    dat.val.fwd  = fwd;
   };
 
   void  unpackInteger(void) {
-    u64bit  integer = dat.num;
-
-    dat.num      = u64bitZERO;
-    dat.val.tseq = (integer >> 32) & u64bitMASK(30);
-    dat.val.cnt  = (integer >> 24) & u64bitMASK(8);
-    dat.val.qpos = (integer >> 13) & u64bitMASK(11);
-    dat.val.tpos = (integer >>  2) & u64bitMASK(11);
-    dat.val.pal  = (integer >>  1) & u64bitMASK(1);
-    dat.val.fwd  = (integer      ) & u64bitMASK(1);
   };
 
 
   bool  operator<(kmerhit const that) const {
-    return (dat.num < that.dat.num);
+    if (dat.val.tseq != that.dat.val.tseq)
+      return(dat.val.tseq < that.dat.val.tseq);
+    if (dat.val.cnt  != that.dat.val.cnt)
+      return(dat.val.cnt  < that.dat.val.cnt);
+    if (dat.val.qpos != that.dat.val.qpos)
+      return(dat.val.qpos < that.dat.val.qpos);
+    if (dat.val.tpos != that.dat.val.tpos)
+      return(dat.val.tpos < that.dat.val.tpos);
+    return(false);
   };
 };
 
@@ -400,7 +387,7 @@ public:
     iid = fr->gkFragment_getReadIID();
     uid = fr->gkFragment_getReadUID();
 
-    memset(seq, 0, AS_READ_MAX_LEN);
+    memset(seq, 0, AS_READ_MAX_NORMAL_LEN);
     strcpy(seq, fr->gkFragment_getSequence());
 
     ovsLen = 0;
@@ -435,7 +422,7 @@ public:
   AS_IID      iid;
   AS_UID      uid;
 
-  char        seq[AS_READ_MAX_LEN+1];
+  char        seq[AS_READ_MAX_NORMAL_LEN+1];
 
   uint32      ovsLen;  //  Overlap Storage, waiting for output
   uint32      ovsMax;
@@ -453,7 +440,7 @@ ovmWorker(void *G, void *T, void *S) {
   ovmThreadData    *t = (ovmThreadData  *)T;
   ovmComputation   *s = (ovmComputation *)S;
 
-  OVSoverlap        overlap;
+  OVSoverlap        overlap = {0};
 
   t->hitsLen = 0;
 
@@ -587,7 +574,13 @@ ovmWorker(void *G, void *T, void *S) {
     //
     overlap.a_iid                      = t->hits[i].dat.val.tseq;
     overlap.b_iid                      = s->iid;
-    overlap.dat.mer.datpad             = 0;
+
+    overlap.dat.dat[0] = 0;
+    overlap.dat.dat[1] = 0;
+#if AS_OVS_NWORDS > 2
+    overlap.dat.dat[2] = 0;
+#endif
+
     overlap.dat.mer.compression_length = g->compression;
     overlap.dat.mer.fwd                = t->hits[i].dat.val.fwd;
     overlap.dat.mer.palindrome         = t->hits[i].dat.val.pal;
@@ -664,7 +657,7 @@ int
 main(int argc, char **argv) {
   ovmGlobalData  *g = new ovmGlobalData;
 
-  assert(sizeof(kmerhit) == 8);
+  //assert(sizeof(kmerhit) == 8);
 
   argc = AS_configure(argc, argv);
 

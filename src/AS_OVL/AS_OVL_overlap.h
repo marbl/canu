@@ -26,15 +26,15 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.31 2009-06-10 18:05:13 brianwalenz Exp $
- * $Revision: 1.31 $
+ * $Id: AS_OVL_overlap.h,v 1.32 2009-10-26 13:20:26 brianwalenz Exp $
+ * $Revision: 1.32 $
 */
 
 
 #ifndef AS_OVL_OVERLAP_H
 #define AS_OVL_OVERLAP_H
 
-static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.31 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.32 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -138,7 +138,7 @@ static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.31 2009-0
 //   The number of fragments in the New stream stored in the hash
 //   table is assumed to be at most  Max_Hash_Strings .
 //
-//   MAX_ERRORS  must be at least  ERROR_RATE * AS_READ_MAX_LEN .
+//   MAX_ERRORS  must be at least  ERROR_RATE * AS_READ_MAX_NORMAL_LEN .
 //
 //   Max_Hash_Strings  must be  < 2^21 .
 //
@@ -268,9 +268,7 @@ static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.31 2009-0
     //  just shifts from periodic regions) between 2 fragments
     //  in a given orientation.  For fragments of approximately
     //  same size, should never be more than 2.
-#define  MAX_FRAG_LEN            2048
-    //  The longest fragment allowed
-#define  MAX_ERRORS              (1 + (int) (AS_OVL_ERROR_RATE * MAX_FRAG_LEN))
+#define  MAX_ERRORS              (1 + (int) (AS_OVL_ERROR_RATE * AS_READ_MAX_NORMAL_LEN))
     //  Most errors in any edit distance computation
     //  THIS VALUE IS KNOWN ONLY AT RUN TIME!
 #define  MAX_FRAGS_PER_THREAD    500
@@ -283,6 +281,10 @@ static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.31 2009-0
     //  of not having enough space to load the kmers to ignore.  It also
     //  requires nearly infinite memory; don't expect it to work in small
     //  spaces!
+
+#if AS_READ_MAX_NORMAL_LEN_BITS > 11
+#define HUGE_TABLE_VERSION
+#endif
 
 #ifdef  CONTIG_OVERLAPPER_VERSION
  #define  STRING_NUM_BITS         11
@@ -313,9 +315,9 @@ static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.31 2009-0
 
 
 #ifdef  CONTIG_OVERLAPPER_VERSION
-#define  EXPECTED_STRING_LEN     (AS_READ_MAX_LEN / 2)
+#define  EXPECTED_STRING_LEN     (AS_READ_MAX_NORMAL_LEN / 2)
 #else
-#define  EXPECTED_STRING_LEN     (MAX_FRAG_LEN / 2)
+#define  EXPECTED_STRING_LEN     (AS_READ_MAX_NORMAL_LEN / 2)
 #endif
 #define  INITIAL_DATA_LEN        (EXPECTED_STRING_LEN * Max_Hash_Strings)
     //  The number of bytes to allocate initially for hash-table sequence
@@ -396,7 +398,7 @@ static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.31 2009-0
     //  Amount by which k-mers can overlap a screen region and still
     //  be added to the hash table.
 
-#define  MAX_EXTRA_SUBCOUNT        (AS_READ_MAX_LEN / Kmer_Len)
+#define  MAX_EXTRA_SUBCOUNT        (AS_READ_MAX_NORMAL_LEN / Kmer_Len)
 
 
 #define  HASH_FUNCTION(k)        (((k) ^ ((k) >> HSF1) ^ ((k) >> HSF2)) & HASH_MASK)

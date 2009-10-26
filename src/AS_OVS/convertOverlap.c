@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: convertOverlap.c,v 1.19 2008-10-08 22:02:58 brianwalenz Exp $";
+const char *mainid = "$Id: convertOverlap.c,v 1.20 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,121 +31,16 @@ const char *mainid = "$Id: convertOverlap.c,v 1.19 2008-10-08 22:02:58 brianwale
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapFile.h"
 
-//  Converts overlaps to/from binary/ascii.
-//
-//  Reads several input ascii formats:
-//    OVL messages
-//    OVL dump
-//    OBT (partial overlaps from overlapper)
-//    MER (overlap seeds)
-//
-//  Writes binary messages specific to each input format.  You cannot
-//  "convert" an OVL message into an OBT message.
-
-
 #define  FORMAT_NONE      0
-#define  FORMAT_OVL       1
-#define  FORMAT_OVLDUMP   2
+#define  FORMAT_OVLMESG   1
+#define  FORMAT_OVL       2
 #define  FORMAT_OBT       3
 #define  FORMAT_MER       4
 
 
-void   convertOVLtoBinary(void);
-void   convertOVLDUMPtoBinary(void);
-void   convertOBTtoBinary(void);
-void   convertMERtoBinary(void);
-
-
-void   convertOVLtoASCII(void);
-void   convertOVLDUMPtoASCII(void);
-void   convertOBTtoASCII(void);
-void   convertMERtoASCII(void);
-
-
-int
-main(int argc, char **argv) {
-
-  int    toBinary     = 0;
-  int    toASCII      = 0;
-  int    format       = FORMAT_NONE;
-
-  argc = AS_configure(argc, argv);
-
-  int arg=1;
-  int err=0;
-  while (arg < argc) {
-    if        (strcmp(argv[arg], "-a") == 0) {
-      toASCII  = 1;
-      toBinary = 0;
-    } else if (strcmp(argv[arg], "-b") == 0) {
-      toASCII  = 0;
-      toBinary = 1;
-    } else if (strcmp(argv[arg], "-ovl") == 0) {
-      format = FORMAT_OVL;
-    } else if (strcmp(argv[arg], "-ovldump") == 0) {
-      format = FORMAT_OVLDUMP;
-    } else if (strcmp(argv[arg], "-obt") == 0) {
-      format = FORMAT_OBT;
-    } else if (strcmp(argv[arg], "-mer") == 0) {
-      format = FORMAT_MER;
-    } else {
-      fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);
-      err++;
-    }
-    arg++;
-  }
-  if ((format == FORMAT_NONE) ||
-      (err)) {
-    fprintf(stderr, "usage: %s [-a | -b] [-ovl | -obt | -mer] < input > output\n", argv[0]);
-    fprintf(stderr, "  -a    convert to ASCII, from BINARY.\n");
-    fprintf(stderr, "  -b    convert to BINARY, from ASCII.\n");
-    fprintf(stderr, "  -ovl\n");
-    fprintf(stderr, "  -ovldump\n");
-    fprintf(stderr, "  -obt\n");
-    fprintf(stderr, "  -mer\n");
-    exit(1);
-  }
-
-  switch (format) {
-    case FORMAT_OVL:
-      if (toBinary)
-        convertOVLtoBinary();
-      if (toASCII)
-        convertOVLtoASCII();
-      break;
-    case FORMAT_OVLDUMP:
-      if (toBinary)
-        convertOVLDUMPtoBinary();
-      if (toASCII)
-        convertOVLDUMPtoASCII();
-      break;
-    case FORMAT_OBT:
-      if (toBinary)
-        convertOBTtoBinary();
-      if (toASCII)
-        convertOBTtoASCII();
-      break;
-    case FORMAT_MER:
-      if (toBinary)
-        convertMERtoBinary();
-      if (toASCII)
-        convertMERtoASCII();
-      break;
-    default:
-      fprintf(stderr, "%s: unknown format (%d)?!?!\n", argv[0], format);
-      return(1);
-      break;
-  }
-
-  return(0);
-}
-
-
-
-
 
 void
-convertOVLtoBinary(void) {
+convertOVLMESGtoBinary(void) {
   GenericMesg  *pmesg;
   OVSoverlap    olap;
 
@@ -162,7 +57,7 @@ convertOVLtoBinary(void) {
 }
 
 
-void   convertOVLDUMPtoBinary(void) {
+void   convertOVLtoBinary(void) {
   char          line[1024];
   OVSoverlap    olap;
 
@@ -208,7 +103,7 @@ void   convertMERtoBinary(void) {
 
 
 
-void   convertOVLtoASCII(void) {
+void   convertOVLMESGtoASCII(void) {
   OVSoverlap    olap;
   OverlapMesg   omesg;
   GenericMesg   pmesg;
@@ -240,7 +135,7 @@ void   convertOVLtoASCII(void) {
 }
 
 
-void   convertOVLDUMPtoASCII(void) {
+void   convertOVLtoASCII(void) {
   OVSoverlap    olap;
 
   BinaryOverlapFile  *input = AS_OVS_openBinaryOverlapFile(NULL, FALSE);
@@ -272,7 +167,7 @@ void   convertOBTtoASCII(void) {
             olap.dat.obt.a_beg,
             olap.dat.obt.a_end,
             olap.dat.obt.b_beg,
-            olap.dat.obt.b_end,
+            (olap.dat.obt.b_end_hi << 9) | (olap.dat.obt.b_end_lo),
             AS_OVS_decodeQuality(olap.dat.obt.erate) * 100.0);
   }
 
@@ -298,5 +193,104 @@ void   convertMERtoASCII(void) {
   }
 
   AS_OVS_closeBinaryOverlapFile(input);
+}
+
+
+
+
+int
+main(int argc, char **argv) {
+
+  int    toBinary     = 0;
+  int    toASCII      = 0;
+  int    format       = FORMAT_NONE;
+
+  argc = AS_configure(argc, argv);
+
+  int arg=1;
+  int err=0;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-a") == 0) {
+      toASCII  = 1;
+      toBinary = 0;
+
+    } else if (strcmp(argv[arg], "-b") == 0) {
+      toASCII  = 0;
+      toBinary = 1;
+
+    } else if (strcmp(argv[arg], "-ovlmesg") == 0) {
+      format = FORMAT_OVLMESG;
+
+    } else if (strcmp(argv[arg], "-ovl") == 0) {
+      format = FORMAT_OVL;
+
+    } else if (strcmp(argv[arg], "-obt") == 0) {
+      format = FORMAT_OBT;
+
+    } else if (strcmp(argv[arg], "-mer") == 0) {
+      format = FORMAT_MER;
+
+    } else {
+      fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);
+      err++;
+    }
+
+    arg++;
+  }
+
+  if ((err) || (format == FORMAT_NONE)) {
+    fprintf(stderr, "usage: %s [-a | -b] [-ovl | -obt | -mer] < input > output\n", argv[0]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -a           convert to ASCII, from BINARY.\n");
+    fprintf(stderr, "  -b           convert to BINARY, from ASCII.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "The format of the overlap is specified by:\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -ovlmesg     An OVL message.\n");
+    fprintf(stderr, "  -ovl         A tabular dovetail overlap.\n");
+    fprintf(stderr, "  -obt         A tabular partial overlap.\n");
+    fprintf(stderr, "  -mer         A tabular mer overlap.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Formats are:\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  OVL  aIID bIID [I|N] aHang bHang error error_corrected\n");
+    fprintf(stderr, "  OBT  aIID bIID [f|r] aBgn aEnd bBgn bEnd error\n");
+    fprintf(stderr, "  MER  aIID bIID [f|r] [p|n] compression_length aPos bPos kCount kLen\n");
+    fprintf(stderr, "\n");
+    exit(1);
+  }
+
+  switch (format) {
+    case FORMAT_OVLMESG:
+      if (toBinary)
+        convertOVLMESGtoBinary();
+      if (toASCII)
+        convertOVLMESGtoASCII();
+      break;
+    case FORMAT_OVL:
+      if (toBinary)
+        convertOVLtoBinary();
+      if (toASCII)
+        convertOVLtoASCII();
+      break;
+    case FORMAT_OBT:
+      if (toBinary)
+        convertOBTtoBinary();
+      if (toASCII)
+        convertOBTtoASCII();
+      break;
+    case FORMAT_MER:
+      if (toBinary)
+        convertMERtoBinary();
+      if (toASCII)
+        convertMERtoASCII();
+      break;
+    default:
+      fprintf(stderr, "%s: unknown format (%d)?!?!\n", argv[0], format);
+      return(1);
+      break;
+  }
+
+  return(0);
 }
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: dumpSingletons.c,v 1.33 2009-10-07 07:42:59 brianwalenz Exp $";
+const char *mainid = "$Id: dumpSingletons.c,v 1.34 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -114,7 +114,7 @@ main( int argc, char **argv) {
 
   uids = UIDserverInitialize(256, uidStart);
 
-  char *toprint = (char *)safe_malloc(sizeof(char) * (AS_READ_MAX_LEN + 51 + AS_READ_MAX_LEN + 2));
+  char *toprint = (char *)safe_malloc(sizeof(char) * (AS_READ_MAX_NORMAL_LEN + 51 + AS_READ_MAX_NORMAL_LEN + 2));
 
   LoadScaffoldGraphFromCheckpoint(GlobalData->outputPrefix, ckptNum, FALSE);
 

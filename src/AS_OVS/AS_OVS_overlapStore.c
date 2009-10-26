@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.21 2009-07-12 05:54:16 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.22 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -103,12 +103,13 @@ AS_OVS_openOverlapStorePrivate(const char *path, int useBackup, int saveSpace) {
   ovs->saveSpace = saveSpace;
 
   ovs->ovs.ovsMagic              = 1;
-  ovs->ovs.ovsVersion            = 1;
+  ovs->ovs.ovsVersion            = 2;
   ovs->ovs.numOverlapsPerFile    = 0;  //  not used for reading
   ovs->ovs.smallestIID           = 1000000000;
   ovs->ovs.largestIID            = 0;
   ovs->ovs.numOverlapsTotal      = 0;
   ovs->ovs.highestFileIndex      = 0;
+  ovs->ovs.maxReadLenInBits      = AS_READ_MAX_NORMAL_LEN_BITS;
 
   sprintf(name, "%s/ovs", path);
   errno = 0;
@@ -119,6 +120,25 @@ AS_OVS_openOverlapStorePrivate(const char *path, int useBackup, int saveSpace) {
   }
   AS_UTL_safeRead(ovsinfo, &ovs->ovs, "AS_OVS_openOverlapStore info", sizeof(OverlapStoreInfo), 1);
   fclose(ovsinfo);
+
+
+  if (ovs->ovs.ovsMagic != 1) {
+    fprintf(stderr, "ERROR:  Not an overlapStore directory; magic number in %s/ovs incorrect.\n",
+            path);
+    exit(1);
+  }
+
+  if (ovs->ovs.ovsVersion != 2) {
+    fprintf(stderr, "ERROR:  Wrong overlapStore version; this code supports only version %d.  %s is version %d.\n",
+            2, path, ovs->ovs.ovsVersion);
+    exit(1);
+  }
+
+  if (ovs->ovs.maxReadLenInBits != AS_READ_MAX_NORMAL_LEN_BITS) {
+    fprintf(stderr, "ERROR:  Wrong AS_READ_MAX_NORMAL_LEN_BITS; this code supports only %d bits.  %s has %d bits.\n",
+            AS_READ_MAX_NORMAL_LEN_BITS, path, ovs->ovs.maxReadLenInBits);
+    exit(1);
+  }
 
 
   //  If we're not supposed to be using the backup, load the stats.
@@ -407,6 +427,7 @@ AS_OVS_closeOverlapStore(OverlapStore *ovs) {
     fprintf(stderr, "ovs->ovs.largestIID         = "F_U64"\n", ovs->ovs.largestIID);
     fprintf(stderr, "ovs->ovs.numOverlapsTotal   = "F_U64"\n", ovs->ovs.numOverlapsTotal);
     fprintf(stderr, "ovs->ovs.highestFileIndex   = "F_U64"\n", ovs->ovs.highestFileIndex);
+    fprintf(stderr, "ovs->ovs.maxReadLenInBits   = "F_U64"\n", ovs->ovs.maxReadLenInBits);
   }
 
 #if 0
@@ -467,12 +488,14 @@ AS_OVS_createOverlapStore(const char *path, int failOnExist) {
     exit(1);
   }
   ovs->ovs.ovsMagic              = 1;
-  ovs->ovs.ovsVersion            = 1;
+  ovs->ovs.ovsVersion            = 2;
   ovs->ovs.numOverlapsPerFile    = 1024 * 1024 * 1024 / sizeof(OVSoverlapINT);
   ovs->ovs.smallestIID           = 1000000000;
   ovs->ovs.largestIID            = 0;
   ovs->ovs.numOverlapsTotal      = 0;
   ovs->ovs.highestFileIndex      = 0;
+  ovs->ovs.maxReadLenInBits      = AS_READ_MAX_NORMAL_LEN_BITS;
+
   AS_UTL_safeWrite(ovsinfo, &ovs->ovs, "AS_OVS_createOverlapStore", sizeof(OverlapStoreInfo), 1);
   fclose(ovsinfo);
 

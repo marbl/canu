@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.5 2009-09-25 01:08:31 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.6 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -89,7 +89,7 @@ gkClearRange::gkClearRange(gkStore *gkp_, uint32 clearType_, uint32 create_) {
 gkClearRange::~gkClearRange() {
 
   if ((smdirty) && (sm != NULL)) {
-    char *filePath = gkClearRange_makeName(gkp, GKFRAGMENT_SHORT, clearType);
+    char *filePath = gkClearRange_makeName(gkp, GKFRAGMENT_PACKED, clearType);
 
     errno = 0;
     FILE *F = fopen(filePath, "w");
@@ -102,7 +102,7 @@ gkClearRange::~gkClearRange() {
   }
 
   if ((mddirty) && (md != NULL)) {
-    char *filePath = gkClearRange_makeName(gkp, GKFRAGMENT_MEDIUM, clearType);
+    char *filePath = gkClearRange_makeName(gkp, GKFRAGMENT_NORMAL, clearType);
 
     errno = 0;
     FILE *F = fopen(filePath, "w");
@@ -115,7 +115,7 @@ gkClearRange::~gkClearRange() {
   }
 
   if ((lgdirty) && (lg != NULL)) {
-    char *filePath = gkClearRange_makeName(gkp, GKFRAGMENT_LONG, clearType);
+    char *filePath = gkClearRange_makeName(gkp, GKFRAGMENT_STROBE, clearType);
 
     errno = 0;
     FILE *F = fopen(filePath, "w");
@@ -138,19 +138,19 @@ void
 gkClearRange::gkClearRange_purge(void) {
   char *filePath = NULL;
 
-  filePath = gkClearRange_makeName(gkp, GKFRAGMENT_SHORT, clearType);
+  filePath = gkClearRange_makeName(gkp, GKFRAGMENT_PACKED, clearType);
   if (AS_UTL_fileExists(filePath, FALSE, FALSE)) {
     fprintf(stderr, "gkStore: purging clear region '%s'\n", filePath);
     unlink(filePath);
   }
 
-  filePath = gkClearRange_makeName(gkp, GKFRAGMENT_MEDIUM, clearType);
+  filePath = gkClearRange_makeName(gkp, GKFRAGMENT_NORMAL, clearType);
   if (AS_UTL_fileExists(filePath, FALSE, FALSE)) {
     fprintf(stderr, "gkStore: purging clear region '%s'\n", filePath);
     unlink(filePath);
   }
 
-  filePath = gkClearRange_makeName(gkp, GKFRAGMENT_LONG, clearType);
+  filePath = gkClearRange_makeName(gkp, GKFRAGMENT_STROBE, clearType);
   if (AS_UTL_fileExists(filePath, FALSE, FALSE)) {
     fprintf(stderr, "gkStore: purging clear region '%s'\n", filePath);
     unlink(filePath);
@@ -186,7 +186,7 @@ gkClearRange::gkClearRange_getClearRegion(gkFragment *fr, uint32& begin, uint32&
   //  fragments have a vector clear, the clear range is configured,
   //  but too small (we don't add undefined clear ranges).
 
-  if (fr->type == GKFRAGMENT_SHORT) {
+  if (fr->type == GKFRAGMENT_PACKED) {
     if (!smconfigured)
       gkClearRange_configureShort();
     if ((sm) && (fr->tiid <= smmaxiid)) {
@@ -197,7 +197,7 @@ gkClearRange::gkClearRange_getClearRegion(gkFragment *fr, uint32& begin, uint32&
       end   = 0;
     }
   }
-  if (fr->type == GKFRAGMENT_MEDIUM) {
+  if (fr->type == GKFRAGMENT_NORMAL) {
     if (!mdconfigured)
       gkClearRange_configureMedium();
     if ((md) && (fr->tiid <= mdmaxiid)) {
@@ -208,7 +208,7 @@ gkClearRange::gkClearRange_getClearRegion(gkFragment *fr, uint32& begin, uint32&
       end   = 0;
     }
   }
-  if (fr->type == GKFRAGMENT_LONG) {
+  if (fr->type == GKFRAGMENT_STROBE) {
     if (!lgconfigured)
       gkClearRange_configureLong();
     if ((lg) && (fr->tiid <= lgmaxiid)) {
@@ -225,7 +225,7 @@ gkClearRange::gkClearRange_getClearRegion(gkFragment *fr, uint32& begin, uint32&
 
 void
 gkClearRange::gkClearRange_setClearRegion(gkFragment *fr, uint32  begin, uint32  end) {
-  if (fr->type == GKFRAGMENT_SHORT) {
+  if (fr->type == GKFRAGMENT_PACKED) {
     if (!smconfigured)
       gkClearRange_configureShort();
     assert(sm != NULL);
@@ -233,7 +233,7 @@ gkClearRange::gkClearRange_setClearRegion(gkFragment *fr, uint32  begin, uint32 
     sm[2*fr->tiid+0] = begin;
     sm[2*fr->tiid+1] = end;
   }
-  if (fr->type == GKFRAGMENT_MEDIUM) {
+  if (fr->type == GKFRAGMENT_NORMAL) {
     if (md == NULL)
       gkClearRange_configureMedium();
     assert(md != NULL);
@@ -241,7 +241,7 @@ gkClearRange::gkClearRange_setClearRegion(gkFragment *fr, uint32  begin, uint32 
     md[2*fr->tiid+0] = begin;
     md[2*fr->tiid+1] = end;
   }
-  if (fr->type == GKFRAGMENT_LONG) {
+  if (fr->type == GKFRAGMENT_STROBE) {
     if (lg == NULL)
       gkClearRange_configureLong();
     assert(lg != NULL);
@@ -257,7 +257,7 @@ gkClearRange::gkClearRange_setClearRegion(gkFragment *fr, uint32  begin, uint32 
 
 void
 gkClearRange::gkClearRange_configureShort(void) {
-  char *filePath = gkClearRange_makeName(gkp, GKFRAGMENT_SHORT, clearType);
+  char *filePath = gkClearRange_makeName(gkp, GKFRAGMENT_PACKED, clearType);
 
   if (AS_UTL_fileExists(filePath, FALSE, TRUE)) {
     smdirty  = 0;
@@ -296,7 +296,7 @@ gkClearRange::gkClearRange_configureShort(void) {
 
 void
 gkClearRange::gkClearRange_configureMedium(void) {
-  char *filePath = gkClearRange_makeName(gkp, GKFRAGMENT_MEDIUM, clearType);
+  char *filePath = gkClearRange_makeName(gkp, GKFRAGMENT_NORMAL, clearType);
 
   assert(md == NULL);
   assert(mdconfigured == 0);
@@ -338,7 +338,7 @@ gkClearRange::gkClearRange_configureMedium(void) {
 
 void
 gkClearRange::gkClearRange_configureLong(void) {
-  char *filePath = gkClearRange_makeName(gkp, GKFRAGMENT_LONG, clearType);
+  char *filePath = gkClearRange_makeName(gkp, GKFRAGMENT_STROBE, clearType);
 
   if (AS_UTL_fileExists(filePath, FALSE, TRUE)) {
     lgdirty   = 0;

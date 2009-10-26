@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OBT_acceptableOverlap.c,v 1.1 2008-10-14 03:05:37 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OBT_acceptableOverlap.c,v 1.2 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include "AS_OBT_acceptableOverlap.h"
 #include "constants.H"
@@ -39,10 +39,15 @@ AS_OBT_acceptableOverlap(OVSoverlap ol) {
       far5prime = ((ol.dat.obt.b_beg - ol.dat.obt.a_beg) > OBT_FAR5PRIME);
   }
 
-  int Adiff = ol.dat.obt.a_end - ol.dat.obt.a_beg;
-  int Bdiff = ol.dat.obt.b_end - ol.dat.obt.b_beg;
-  if (ol.dat.obt.b_end < ol.dat.obt.b_beg)
-    Bdiff = ol.dat.obt.b_beg - ol.dat.obt.b_end;
+  int32 ab = ol.dat.obt.a_beg;
+  int32 ae = ol.dat.obt.a_end;
+  int32 bb = ol.dat.obt.b_beg;
+  int32 be = (ol.dat.obt.b_end_hi << 9) | (ol.dat.obt.b_end_lo);
+
+  int Adiff = ae - ab;
+  int Bdiff = be - bb;
+  if (be < bb)
+    Bdiff = bb - be;
 
   //  It's an acceptable overlap if the error is within tolerance,
   //  if it's long, and if the 5' ends are far apart.

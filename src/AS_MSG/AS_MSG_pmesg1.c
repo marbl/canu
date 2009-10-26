@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.43 2009-10-06 02:35:29 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.44 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -323,7 +323,7 @@ static void *Read_OVL_Mesg(FILE *fin)
   if (strncmp(ReadLine(fin,TRUE),"del:",4) != 0)
     MgenError("delta tag label");
 
-  omesg.alignment_delta = (signed char *)GetMemory(2*AS_READ_MAX_LEN);
+  omesg.alignment_delta = (signed char *)GetMemory(2*AS_READ_MAX_NORMAL_LEN);
 
   {
     int i, n;     /* Read a delta item (only one of its kind) */

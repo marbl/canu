@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.4 2009-10-12 04:20:27 brianwalenz Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.5 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,10 +81,11 @@ public:
 
   uint64   matePatternLeft:1;
   uint64   isDeleted:1;
-  uint64   clrbeg:AS_READ_MAX_MEDIUM_LEN_BITS;
-  uint64   frglen:AS_READ_MAX_MEDIUM_LEN_BITS;
   uint64   mateIID:29;
   uint64   libraryIID:11;
+
+  uint64   clrbeg:AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64   frglen:AS_READ_MAX_NORMAL_LEN_BITS;
 
   AS_UID   readUID;
 
@@ -173,17 +174,22 @@ readOverlapsAndProcessFragments(gkStore      *gkp,
       //  And marked for deduplication (lib 0 is init to not dedup)
       continue;
 
-    int32  abeg     = ovl->dat.obt.a_beg + frag[ovl->a_iid].clrbeg;
-    int32  bbeg     = ovl->dat.obt.b_beg + frag[ovl->b_iid].clrbeg;
-    int32  ahang    = bbeg - abeg;
-    int32  abegdiff = ovl->dat.obt.a_beg;
-    int32  bbegdiff = ovl->dat.obt.b_beg;
+    int32 ab = ovl->dat.obt.a_beg;
+    int32 ae = ovl->dat.obt.a_end;
+    int32 bb = ovl->dat.obt.b_beg;
+    int32 be = (ovl->dat.obt.b_end_hi << 9) | (ovl->dat.obt.b_end_lo);
 
-    int32  aend     = ovl->dat.obt.a_end + frag[ovl->a_iid].clrbeg;
-    int32  bend     = ovl->dat.obt.b_end + frag[ovl->b_iid].clrbeg;
+    int32  abeg     = ab + frag[ovl->a_iid].clrbeg;
+    int32  bbeg     = bb + frag[ovl->b_iid].clrbeg;
+    int32  ahang    = bbeg - abeg;
+    int32  abegdiff = ab;
+    int32  bbegdiff = bb;
+
+    int32  aend     = ae + frag[ovl->a_iid].clrbeg;
+    int32  bend     = be + frag[ovl->b_iid].clrbeg;
     int32  bhang    = bend - aend;
-    int32  aenddiff = frag[ovl->a_iid].frglen - ovl->dat.obt.a_end;
-    int32  benddiff = frag[ovl->b_iid].frglen - ovl->dat.obt.b_end;
+    int32  aenddiff = frag[ovl->a_iid].frglen - ae;
+    int32  benddiff = frag[ovl->b_iid].frglen - be;
 
     double error    = AS_OVS_decodeQuality(ovl->dat.obt.erate);
 

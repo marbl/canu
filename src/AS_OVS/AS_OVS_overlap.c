@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlap.c,v 1.7 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlap.c,v 1.8 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -161,18 +161,19 @@ AS_OVS_convertOBTdumpToOVSoverlap(char *line, OVSoverlap *olap) {
     olap->a_iid  = atoi(ptrs[0]);
     olap->b_iid  = atoi(ptrs[1]);
 
-    olap->dat.obt.fwd    = (ptrs[2][0] == 'f');
-    olap->dat.obt.a_beg  = atoi(ptrs[3]);
-    olap->dat.obt.a_end  = atoi(ptrs[4]);
-    olap->dat.obt.b_beg  = atoi(ptrs[5]);
-    olap->dat.obt.b_end  = atoi(ptrs[6]);
-    olap->dat.obt.erate  = AS_OVS_encodeQuality(atof(ptrs[7]) / 100.0);
-    olap->dat.ovl.type   = AS_OVS_TYPE_OBT;
+    olap->dat.obt.fwd      = (ptrs[2][0] == 'f');
+    olap->dat.obt.a_beg    = atoi(ptrs[3]);
+    olap->dat.obt.a_end    = atoi(ptrs[4]);
+    olap->dat.obt.b_beg    = atoi(ptrs[5]);
+    olap->dat.obt.b_end_hi = atoi(ptrs[6]) >> 9;
+    olap->dat.obt.b_end_lo = atoi(ptrs[6]) & 0x1f;
+    olap->dat.obt.erate    = AS_OVS_encodeQuality(atof(ptrs[7]) / 100.0);
+    olap->dat.ovl.type     = AS_OVS_TYPE_OBT;
 
     assert(olap->dat.obt.a_beg == atoi(ptrs[3]));
     assert(olap->dat.obt.a_end == atoi(ptrs[4]));
     assert(olap->dat.obt.b_beg == atoi(ptrs[5]));
-    assert(olap->dat.obt.b_end == atoi(ptrs[6]));
+    assert(((olap->dat.obt.b_end_hi << 9) | (olap->dat.obt.b_end_lo)) == atoi(ptrs[6]));
   } else {
     //  Should report the line, but we munged it.
   }

@@ -33,7 +33,7 @@
 *
 *************************************************/
 
-const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.39 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.40 2009-10-26 13:20:26 brianwalenz Exp $";
 
 //  System include files
 
@@ -87,9 +87,7 @@ const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.39 2009-06-10 18:05:13 brianwal
     //  Most bytes allowed in line of fasta file
 #define  MAX_FILENAME_LEN            1000
     //  Longest name allowed for a file in the overlap store
-#define  MAX_FRAG_LEN                2048
-    //  The longest fragment allowed
-#define  MAX_ERRORS                  (1 + (int) (AS_OVL_ERROR_RATE * MAX_FRAG_LEN))
+#define  MAX_ERRORS                  (1 + (int) (AS_OVL_ERROR_RATE * AS_READ_MAX_NORMAL_LEN))
     //  Most errors in any edit distance computation // 0.40
     //  KNOWN ONLY AT RUN TIME
 #define  EXPANSION_FACTOR            1.4
@@ -158,14 +156,14 @@ static char  * Correct_File_Path;
     // Name of file containing fragment corrections
 static FILE  * Delete_fp = NULL;
     // File to which list of overlaps to delete is written if  -x  option is specified
-static int  * Edit_Array [AS_READ_MAX_LEN+1];
+static int  * Edit_Array [AS_READ_MAX_NORMAL_LEN+1];
     // Use for alignment calculation.  Points into  Edit_Space .
     // (only MAX_ERRORS needed)
-static int  Edit_Match_Limit [AS_READ_MAX_LEN+1] = {0};
+static int  Edit_Match_Limit [AS_READ_MAX_NORMAL_LEN+1] = {0};
     // This array [e] is the minimum value of  Edit_Array [e] [d]
     // to be worth pursuing in edit-distance computations between guides
     // (only MAX_ERRORS needed)
-static int  Edit_Space [(AS_READ_MAX_LEN + 4) * AS_READ_MAX_LEN];
+static int *Edit_Space = NULL;
     // Memory used by alignment calculation
     // (only (MAX_ERRORS + 4) * MAX_ERRORS needed)
 static int  End_Exclude_Len = DEFAULT_END_EXCLUDE_LEN;
@@ -176,7 +174,7 @@ static char  * Erate_Path = NULL;
     // This allows the program to run in parallel (e.g., under LSF)
     // Presumably the error-rate files will be added to the overlap
     // store later by the  update-erates  program.
-static int  Error_Bound [MAX_FRAG_LEN + 1];
+static int  Error_Bound [AS_READ_MAX_NORMAL_LEN + 1];
     // This array [i]  is the maximum number of errors allowed
     // in a match between sequences of length  i , which is
     //  i * MAXERROR_RATE .
@@ -422,8 +420,8 @@ static void  Apply_Seq_Corrects
 //  otherwise, realloc a new string for the revised sequence.
 
   {
-   char  buff [2 * MAX_FRAG_LEN];
-   Adjust_t  adj_buff [2 * MAX_FRAG_LEN];
+   char  buff [2 * AS_READ_MAX_NORMAL_LEN];
+   Adjust_t  adj_buff [2 * AS_READ_MAX_NORMAL_LEN];
    int  adj_val, len, new_len;
    int  i, j, k, ct;
 
@@ -545,7 +543,7 @@ static int  Binomial_Bound
    if  (Start < e)
        Start = e;
 
-   for  (n = Start;  n < MAX_FRAG_LEN;  n ++)
+   for  (n = Start;  n < AS_READ_MAX_NORMAL_LEN;  n ++)
      {
       if  (n <= 35)
           {
@@ -587,7 +585,7 @@ static int  Binomial_Bound
           }
      }
 
-   return  MAX_FRAG_LEN;
+   return  AS_READ_MAX_NORMAL_LEN;
   }
 
 
@@ -681,7 +679,7 @@ static int  Compare_Frags
 //  Display alignment between strings  a  and  b .
 
   {
-   int delta [AS_READ_MAX_LEN+1];  //  only MAX_ERRORS needed
+   int delta [AS_READ_MAX_NORMAL_LEN+1];  //  only MAX_ERRORS needed
    int  a_end, b_end, delta_len, olap_len, match_to_end;
    int  a_len, b_len, errors;
 
@@ -714,7 +712,7 @@ static void  Correct_Frags
   {
    FILE  * fp;
    Correction_Output_t  msg;
-   Correction_t  correct [MAX_FRAG_LEN];
+   Correction_t  correct [AS_READ_MAX_NORMAL_LEN];
    int  before_errors = 0, after_errors;
    int  num_corrects = 0;
    int  correcting = FALSE;
@@ -1020,11 +1018,11 @@ static void  Get_Canonical_Olap_Region
 
   {
    static int32  b_rev_id = -1;
-   static char  b_rev_seq [AS_READ_MAX_LEN + 1];
-   static Adjust_t  b_rev_adj [MAX_FRAG_LEN];
+   static char  b_rev_seq [AS_READ_MAX_NORMAL_LEN + 1];
+   static Adjust_t  b_rev_adj [AS_READ_MAX_NORMAL_LEN];
 #if 0
-   static char  a_rev_seq [AS_READ_MAX_LEN + 1];
-   static Adjust_t  a_rev_adj [MAX_FRAG_LEN];
+   static char  a_rev_seq [AS_READ_MAX_NORMAL_LEN + 1];
+   static Adjust_t  a_rev_adj [AS_READ_MAX_NORMAL_LEN];
 #endif
 
 //   if  (olap -> a_iid < olap -> b_iid)
@@ -1176,6 +1174,9 @@ static void  Initialize_Globals
    int  i, offset, del;
    int  e, start;
 
+   // (only (MAX_ERRORS + 4) * MAX_ERRORS needed)
+   Edit_Space = (int32 *)safe_malloc(sizeof(int32) * (AS_READ_MAX_NORMAL_LEN + 4) * AS_READ_MAX_NORMAL_LEN);
+
    offset = 2;
    del = 6;
    for  (i = 0;  i < MAX_ERRORS;  i ++)
@@ -1201,7 +1202,7 @@ static void  Initialize_Globals
       assert (Edit_Match_Limit [e] >= Edit_Match_Limit [e - 1]);
      }
 
-   for  (i = 0;  i <= MAX_FRAG_LEN;  i ++)
+   for  (i = 0;  i <= AS_READ_MAX_NORMAL_LEN;  i ++)
      Error_Bound [i] = (int) (i * MAX_ERROR_RATE);
 
    return;
@@ -1607,7 +1608,7 @@ static int  Prefix_Edit_Dist
 //  a branch point.
 
   {
-   int  Delta_Stack [AS_READ_MAX_LEN+1];  //  only MAX_ERRORS needed
+   int  Delta_Stack [AS_READ_MAX_NORMAL_LEN+1];  //  only MAX_ERRORS needed
    double  Score, Max_Score;
    int  Max_Score_Len, Max_Score_Best_d, Max_Score_Best_e;
    int  Best_d, Best_e, From, Last, Longest, Max, Row;
@@ -1793,7 +1794,7 @@ static void  Process_Olap
    char  * a_part, * b_part, * a_seq;
    double  denom, quality;
    int  a_part_len, b_part_len, a_end, b_end, olap_len;
-   int  match_to_end, delta [AS_READ_MAX_LEN+1], delta_len, errors;  //  only MAX_ERRORS needed
+   int  match_to_end, delta [AS_READ_MAX_NORMAL_LEN+1], delta_len, errors;  //  only MAX_ERRORS needed
    int  sub;
 
    if  (Verbose_Level > 0)
@@ -2021,7 +2022,7 @@ static void  Read_Frags
    for  (i = 0;  Frag_Stream->next (&frag_read);
            i ++)
      {
-      char  seq_buff [AS_READ_MAX_LEN + 1];
+      char  seq_buff [AS_READ_MAX_NORMAL_LEN + 1];
       char *seqptr;
       unsigned  deleted;
       int  result;
@@ -2148,8 +2149,8 @@ static void  Redo_Olaps
    int  lo_frag, hi_frag;
    uint64  next_olap;
    Correction_Output_t  msg;
-   Correction_t  correct [MAX_FRAG_LEN];
-   Adjust_t  adjust [MAX_FRAG_LEN];
+   Correction_t  correct [AS_READ_MAX_NORMAL_LEN];
+   Adjust_t  adjust [AS_READ_MAX_NORMAL_LEN];
    int16  adjust_ct;
    int  num_corrects;
    uint32  correct_iid = 0, next_iid;
@@ -2168,7 +2169,7 @@ static void  Redo_Olaps
                    && next_olap < Num_Olaps;
            i ++)
      {
-      char  seq_buff [AS_READ_MAX_LEN + 1];
+      char  seq_buff [AS_READ_MAX_NORMAL_LEN + 1];
       char *seqptr;
       char  * seq_ptr = seq_buff;
       Adjust_t  * adjust_ptr = adjust;
@@ -2267,7 +2268,7 @@ static int  Rev_Prefix_Edit_Dist
 //  a branch point.
 
   {
-   int  Delta_Stack [AS_READ_MAX_LEN+1];  //  only MAX_ERRORS needed
+   int  Delta_Stack [AS_READ_MAX_NORMAL_LEN+1];  //  only MAX_ERRORS needed
    double  Score, Max_Score;
    int  Max_Score_Len, Max_Score_Best_d, Max_Score_Best_e;
    int  Best_d, Best_e, From, Last, Longest, Max, Row;

@@ -21,15 +21,15 @@ private:
   AS_IID             curIID;
   AS_IID             endIID;
 
-  StreamStruct      *fsm;
+  StreamStruct      *fpk;
 
-  StreamStruct      *fmd;
-  StreamStruct      *smd;
-  StreamStruct      *qmd;
+  StreamStruct      *fnm;
+  StreamStruct      *snm;
+  StreamStruct      *qnm;
 
-  StreamStruct      *flg;
-  StreamStruct      *slg;
-  StreamStruct      *qlg;
+  StreamStruct      *fsb;
+  StreamStruct      *ssb;
+  StreamStruct      *qsb;
 
   friend class gkStore;
 };

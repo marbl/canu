@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.253 2009-10-10 12:34:35 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.254 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1133,49 +1133,48 @@ ShowColumn(int32 cid) {
 //  Data Management
 //
 void
-ResetStores(int32 num_frags, int32 num_columns) {
+ResetStores(int32 num_bases, int32 num_frags, int32 num_columns) {
 
-  if ( fragmentStore == NULL ) {
+  if (fragmentStore == NULL) {
     InitializeAlphTable();
 
-    fragmentStore = CreateVA_Fragment(num_frags);
-    fragment_indices = CreateVA_int32(num_frags);
-    abacus_indices = CreateVA_int32(50000);
-    fragment_positions = CreateVA_CNS_AlignedContigElement(2*num_frags);
-    sequenceStore = CreateVA_char(2048*num_frags);
-    qualityStore = CreateVA_char(2048*num_frags);
-    columnStore = CreateVA_Column(num_columns);
-    beadStore = CreateVA_Bead(2048*num_frags+num_columns);
-    manodeStore = CreateVA_MANode(1);
+    fragmentStore      = CreateVA_Fragment(num_frags);
+    fragment_indices   = CreateVA_int32(num_frags);
+    abacus_indices     = CreateVA_int32(50000);
+    fragment_positions = CreateVA_CNS_AlignedContigElement(2 * num_frags);
+    sequenceStore      = CreateVA_char(num_bases);
+    qualityStore       = CreateVA_char(num_bases);
+    columnStore        = CreateVA_Column(num_columns);
+    beadStore          = CreateVA_Bead(num_bases + num_columns);
+    manodeStore        = CreateVA_MANode(1);
   }
 
+  ResetVA_Fragment(fragmentStore);
+  MakeRoom_VA(fragmentStore, num_frags);
 
-    ResetVA_Fragment(fragmentStore);
-    MakeRoom_VA(fragmentStore,num_frags);
+  ResetVA_int32(fragment_indices);
+  MakeRoom_VA(fragment_indices, num_frags);
 
-    ResetVA_int32(fragment_indices);
-    MakeRoom_VA(fragment_indices,num_frags);
+  ResetVA_int32(abacus_indices);
 
-    ResetVA_int32(abacus_indices);
+  ResetVA_CNS_AlignedContigElement(fragment_positions);
+  MakeRoom_VA(fragment_positions, 2 * num_frags);
 
-    ResetVA_CNS_AlignedContigElement(fragment_positions);
-    MakeRoom_VA(fragment_positions,2*num_frags);
+  ResetVA_char(sequenceStore);
+  MakeRoom_VA(sequenceStore, num_bases);
 
-    ResetVA_char(sequenceStore);
-    MakeRoom_VA(sequenceStore,2048*num_frags);
+  ResetVA_char(qualityStore);
+  MakeRoom_VA(qualityStore, num_bases);
 
-    ResetVA_char(qualityStore);
-    MakeRoom_VA(qualityStore,2048*num_frags);
+  ResetVA_Column(columnStore);
+  MakeRoom_VA(columnStore, num_columns);
 
-    ResetVA_Column(columnStore);
-    MakeRoom_VA(columnStore,num_columns);
+  ResetVA_Bead(beadStore);
+  MakeRoom_VA(beadStore, num_bases + num_columns);
 
-    ResetVA_Bead(beadStore);
-    MakeRoom_VA(beadStore,2048*num_frags+num_columns);
+  ResetVA_MANode(manodeStore);
 
-    ResetVA_MANode(manodeStore);
-
-  gaps_in_alignment=0;
+  gaps_in_alignment = 0;
 }
 
 
@@ -1310,8 +1309,8 @@ AppendFragToLocalStore(FragType          type,
                        int               contained,
                        UnitigType        utype) {
 
-  char seqbuffer[AS_READ_MAX_LEN+1];
-  char qltbuffer[AS_READ_MAX_LEN+1];
+  char seqbuffer[AS_READ_MAX_NORMAL_LEN+1];
+  char qltbuffer[AS_READ_MAX_NORMAL_LEN+1];
   char *sequence = NULL,*quality = NULL;
   static VA_TYPE(char) *ungappedSequence = NULL;
   static VA_TYPE(char) *ungappedQuality  = NULL;

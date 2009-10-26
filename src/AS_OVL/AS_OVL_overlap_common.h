@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.56 2009-07-30 10:42:56 brianwalenz Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.57 2009-10-26 13:20:26 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,8 +52,8 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.56 2009-07-30 10:42:56 br
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.56 2009-07-30 10:42:56 brianwalenz Exp $
- * $Revision: 1.56 $
+ * $Id: AS_OVL_overlap_common.h,v 1.57 2009-10-26 13:20:26 brianwalenz Exp $
+ * $Revision: 1.57 $
 */
 
 
@@ -94,7 +94,7 @@ typedef  struct Olap_Info
   {
    int  s_lo, s_hi, t_lo, t_hi;
    double  quality;
-   int  delta [AS_READ_MAX_LEN+1];  //  needs only MAX_ERRORS
+   int  delta [AS_READ_MAX_NORMAL_LEN+1];  //  needs only MAX_ERRORS
    int  delta_ct;
    int  s_left_boundary, s_right_boundary;
    int  t_left_boundary, t_right_boundary;
@@ -222,23 +222,23 @@ static int  Use_Window_Filter = FALSE;
     //  Determines whether check for a window containing too many
     //  errors is used to disqualify overlaps.
 
-static int  Read_Edit_Match_Limit [AS_READ_MAX_LEN] = {0};
+static int  Read_Edit_Match_Limit [AS_READ_MAX_NORMAL_LEN] = {0};
     //  This array [e] is the minimum value of  Edit_Array [e] [d]
     //  to be worth pursuing in edit-distance computations between reads
     //  (only MAX_ERRORS needed)
-static int  Guide_Edit_Match_Limit [AS_READ_MAX_LEN] = {0};
+static int  Guide_Edit_Match_Limit [AS_READ_MAX_NORMAL_LEN] = {0};
     //  This array [e] is the minimum value of  Edit_Array [e] [d]
     //  to be worth pursuing in edit-distance computations between guides
     //  (only MAX_ERRORS needed)
-static int  Read_Error_Bound [AS_READ_MAX_LEN + 1];
+static int  Read_Error_Bound [AS_READ_MAX_NORMAL_LEN + 1];
     //  This array [i]  is the maximum number of errors allowed
     //  in a match between reads of length  i , which is
     //  i * AS_READ_ERROR_RATE .
-static int  Guide_Error_Bound [AS_READ_MAX_LEN + 1];
+static int  Guide_Error_Bound [AS_READ_MAX_NORMAL_LEN + 1];
     //  This array [i]  is the maximum number of errors allowed
     //  in a match between guides of length  i , which is
     //  i * AS_GUIDE_ERROR_RATE .
-static double  Branch_Cost [AS_READ_MAX_LEN + 1];
+static double  Branch_Cost [AS_READ_MAX_NORMAL_LEN + 1];
     //  Branch_Cost [i]  is the "goodness" of matching i characters
     //  after a single error in determining branch points.
 static int  Bit_Equivalent [256] = {0};
@@ -305,8 +305,8 @@ Screen_Range_t  * Screen_Space;
 int  Screen_Space_Size;
 int  * Screen_Sub = NULL;
 
-char  Sequence_Buffer [2 * AS_READ_MAX_LEN];
-char  Quality_Buffer [2 * AS_READ_MAX_LEN];
+char  Sequence_Buffer [2 * AS_READ_MAX_NORMAL_LEN];
+char  Quality_Buffer [2 * AS_READ_MAX_NORMAL_LEN];
 
 FILE  * BOL_File = NULL;
 FILE  * Kmer_Skip_File = NULL;
@@ -409,7 +409,7 @@ static int  Process_String_Olaps
 static void  Put_String_In_Hash
     (int i);
 static int  Read_Next_Frag
-    (char frag [AS_READ_MAX_LEN + 1], char quality [AS_READ_MAX_LEN + 1],
+    (char frag [AS_READ_MAX_NORMAL_LEN + 1], char quality [AS_READ_MAX_NORMAL_LEN + 1],
      gkStream *stream, gkFragment *, Screen_Info_t *,
      uint32 * last_frag_read);
 static void  Read_uint32_List
@@ -483,9 +483,9 @@ main(int argc, char **argv) {
   {
     time_t  now = time (NULL);
 #ifdef CONTIG_OVERLAPPER_VERSION
-    fprintf (stderr, "Running Contig version, AS_READ_MAX_LEN = %d\n", AS_READ_MAX_LEN);
+    fprintf (stderr, "Running Contig version, AS_READ_MAX_NORMAL_LEN = %d\n", AS_READ_MAX_NORMAL_LEN);
 #else
-    fprintf (stderr, "Running Fragment version, AS_READ_MAX_LEN = %d\n", AS_READ_MAX_LEN);
+    fprintf (stderr, "Running Fragment version, AS_READ_MAX_NORMAL_LEN = %d\n", AS_READ_MAX_NORMAL_LEN);
 #endif
     fprintf (stderr, "### Starting at  %s\n", ctime (& now));
   }
@@ -547,10 +547,10 @@ main(int argc, char **argv) {
           fprintf(stderr, "Valid values are '8GB', '4GB', '2GB', '1GB', '256MB'\n");
           err++;
         }
-        Max_Hash_Strings  = 3 * Max_Hash_Data_Len / AS_READ_MAX_LEN;
+        Max_Hash_Strings  = 3 * Max_Hash_Data_Len / AS_READ_MAX_NORMAL_LEN;
         if  (Max_Hash_Strings > MAX_STRING_NUM)
           Max_Hash_Strings = MAX_STRING_NUM;
-        Max_Frags_In_Memory_Store = OVL_Min_int (2 * Max_Hash_Data_Len / MAX_FRAG_LEN, MAX_OLD_BATCH_SIZE);
+        Max_Frags_In_Memory_Store = OVL_Min_int (2 * Max_Hash_Data_Len / AS_READ_MAX_NORMAL_LEN, MAX_OLD_BATCH_SIZE);
 #else
         if        (strcmp (argv[arg], "16GB") == 0) {
           if (STRING_NUM_BITS <= 19) {
@@ -756,6 +756,8 @@ main(int argc, char **argv) {
    fprintf (stderr, "     Max_Hash_Load = %f\n", Max_Hash_Load);
    fprintf (stderr, "       Kmer Length = %d\n", (int)Kmer_Len);
    fprintf (stderr, "Min Overlap Length = %d\n", Min_Olap_Len);
+   fprintf (stderr, "        MAX_ERRORS = %d\n", MAX_ERRORS);
+   fprintf (stderr, "   ERRORS_FOR_FREE = %d\n", ERRORS_FOR_FREE);
 
    assert (8 * sizeof (uint64) > 2 * Kmer_Len);
 
@@ -1224,7 +1226,7 @@ int  Build_Hash_Index
    total_len = 0;
    if  (Data == NULL)
        {
-        Extra_Data_Len = Data_Len = Max_Hash_Data_Len + AS_READ_MAX_LEN;
+        Extra_Data_Len = Data_Len = Max_Hash_Data_Len + AS_READ_MAX_NORMAL_LEN;
         Data = (char *) safe_realloc (Data, Data_Len);
         Quality_Data = (char *) safe_realloc (Quality_Data, Data_Len);
         old_ref_len = Data_Len / (HASH_KMER_SKIP + 1);
@@ -1451,7 +1453,7 @@ static int  Binomial_Bound
    if  (Start < e)
        Start = e;
 
-   for  (n = Start;  n < MAX_FRAG_LEN;  n ++)
+   for  (n = Start;  n < AS_READ_MAX_NORMAL_LEN;  n ++)
      {
       if  (n <= 35)
           {
@@ -1507,7 +1509,7 @@ static int  Binomial_Bound
           }
      }
 
-   return  MAX_FRAG_LEN;
+   return  AS_READ_MAX_NORMAL_LEN;
   }
 
 
@@ -2370,13 +2372,13 @@ static void  Initialize_Globals
       assert (Guide_Edit_Match_Limit [e] >= Guide_Edit_Match_Limit [e - 1]);
      }
 
-   for  (i = 0;  i <= AS_READ_MAX_LEN;  i ++)
+   for  (i = 0;  i <= AS_READ_MAX_NORMAL_LEN;  i ++)
      Read_Error_Bound [i] = (int) (i * AS_READ_ERROR_RATE + 0.0000000000001);
 
-   for  (i = 0;  i <= AS_READ_MAX_LEN;  i ++)
+   for  (i = 0;  i <= AS_READ_MAX_NORMAL_LEN;  i ++)
      Guide_Error_Bound [i] = (int) (i * AS_GUIDE_ERROR_RATE + 0.0000000000001);
 
-   for  (i = 0;  i <= AS_READ_MAX_LEN;  i ++)
+   for  (i = 0;  i <= AS_READ_MAX_NORMAL_LEN;  i ++)
      Branch_Cost [i] = i * Branch_Match_Value + Branch_Error_Value;
 
    Bit_Equivalent ['a'] = Bit_Equivalent ['A'] = 0;
@@ -2519,6 +2521,8 @@ void  Initialize_Work_Area
    WA -> String_Olap_Space = (String_Olap_t *) safe_malloc (WA -> String_Olap_Size * sizeof (String_Olap_t));
    WA -> Match_Node_Size = INIT_MATCH_NODE_SIZE;
    WA -> Match_Node_Space = (Match_Node_t *) safe_malloc (WA -> Match_Node_Size * sizeof (Match_Node_t));
+
+   fprintf(stderr, "Initialize_Work_Area:  MAX_ERRORS = %d\n", MAX_ERRORS);
 
    Offset = 2;
    Del = 6;
@@ -2826,7 +2830,7 @@ static void  Output_Overlap
    int  this_diag;
    OverlapMesg ovMesg;
    GenericMesg outputMesg;
-   signed char deltas[2 * AS_READ_MAX_LEN];
+   signed char deltas[2 * AS_READ_MAX_NORMAL_LEN];
    signed char *deltaCursor = deltas;
    outputMesg.m = &ovMesg;
    outputMesg.t = MESG_OVL;
@@ -3065,16 +3069,23 @@ static void  Output_Partial_Overlap
        pthread_mutex_unlock (& Write_Proto_Mutex);
    } else {
      OVSoverlap  *ovl = WA->overlaps + WA->overlapsLen++;
-     ovl->a_iid           = s_id;
-     ovl->b_iid           = t_id;
-     ovl->dat.obt.datpad  = 0;
-     ovl->dat.obt.fwd     = (dir == FORWARD);
-     ovl->dat.obt.a_beg   = a;
-     ovl->dat.obt.a_end   = b;
-     ovl->dat.obt.b_beg   = c;
-     ovl->dat.obt.b_end   = d;
-     ovl->dat.obt.erate   = AS_OVS_encodeQuality(p->quality);
-     ovl->dat.obt.type    = AS_OVS_TYPE_OBT;
+     ovl->a_iid            = s_id;
+     ovl->b_iid            = t_id;
+
+     ovl->dat.dat[0]       = 0;
+     ovl->dat.dat[1]       = 0;
+#if AS_OVS_NWORDS > 2
+     ovl->dat.dat[2]       = 0;
+#endif
+
+     ovl->dat.obt.fwd      = (dir == FORWARD);
+     ovl->dat.obt.a_beg    = a;
+     ovl->dat.obt.a_end    = b;
+     ovl->dat.obt.b_beg    = c;
+     ovl->dat.obt.b_end_hi = d >> 9;
+     ovl->dat.obt.b_end_lo = d & 0x1f;
+     ovl->dat.obt.erate    = AS_OVS_encodeQuality(p->quality);
+     ovl->dat.obt.type     = AS_OVS_TYPE_OBT;
 
      //  We also flush the file at the end of a thread
 
@@ -3328,8 +3339,8 @@ static void  Process_Matches
 #if  SHOW_STATS
   Is_Duplicate_Olap = FALSE;
   {
-    int  Space [2 * AS_READ_MAX_LEN + 3] = {0};
-    int  * Ct = Space + AS_READ_MAX_LEN + 1;
+    int  Space [2 * AS_READ_MAX_NORMAL_LEN + 3] = {0};
+    int  * Ct = Space + AS_READ_MAX_NORMAL_LEN + 1;
     int  i, Diag_Ct, Gap_Ct, In_Order, Prev;
 
     In_Order = TRUE;
@@ -3347,7 +3358,7 @@ static void  Process_Matches
     if  (In_Order)
       Incr_Distrib (& Gap_Dist, Gap_Ct - 1);
     Diag_Ct = 0;
-    for  (i = - AS_READ_MAX_LEN;  i <= AS_READ_MAX_LEN;  i ++)
+    for  (i = - AS_READ_MAX_NORMAL_LEN;  i <= AS_READ_MAX_NORMAL_LEN;  i ++)
       if  (Ct [i] > 0)
         Diag_Ct ++;
     Incr_Distrib (& Diag_Dist, Diag_Ct);
@@ -3531,7 +3542,7 @@ static void  Process_Matches
               if  (Use_Window_Filter)
                 {
                   int  d, i, j, k, q_len;
-                  char  q_diff [MAX_FRAG_LEN];
+                  char  q_diff [AS_READ_MAX_NORMAL_LEN];
 
                   i = p -> s_lo;
                   j = p -> t_lo;
@@ -3698,8 +3709,8 @@ void  Process_Overlaps
 //  data structures that used to be global.
 
   {
-   char  Frag [AS_READ_MAX_LEN + 1];
-   char  quality [AS_READ_MAX_LEN + 1];
+   char  Frag [AS_READ_MAX_NORMAL_LEN + 1];
+   char  quality [AS_READ_MAX_NORMAL_LEN + 1];
    Int_Frag_ID_t  Curr_String_Num;
    uint32  last_old_frag_read;
    int  frag_status;
@@ -4054,8 +4065,8 @@ static void  Put_String_In_Hash
 
 
 static int  Read_Next_Frag
-    (char frag [AS_READ_MAX_LEN + 1],
-     char quality [AS_READ_MAX_LEN + 1],
+    (char frag [AS_READ_MAX_NORMAL_LEN + 1],
+     char quality [AS_READ_MAX_NORMAL_LEN + 1],
      gkStream *stream,
      gkFragment *myRead,
      Screen_Info_t * screen,
@@ -4492,8 +4503,8 @@ void  Show_Alignment
 //  in  (* p) .
 
   {
-   char  S_Line [AS_READ_MAX_LEN + 1], T_Line [AS_READ_MAX_LEN + 1];
-   char  X_Line [AS_READ_MAX_LEN + 1];
+   char  S_Line [AS_READ_MAX_NORMAL_LEN + 1], T_Line [AS_READ_MAX_NORMAL_LEN + 1];
+   char  X_Line [AS_READ_MAX_NORMAL_LEN + 1];
    int  i, j, ks, kt, ns, nt, ct;
 
    i = p -> s_lo;

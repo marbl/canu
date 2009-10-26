@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.38 2009-10-20 22:06:48 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.39 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -649,7 +649,7 @@ processRead(sffHeader *h,
 
     return(false);
 
-  } else if (r->number_of_bases - h->key_length <= AS_READ_MAX_MEDIUM_LEN) {
+  } else if (r->number_of_bases - h->key_length <= AS_READ_MAX_NORMAL_LEN) {
     //  Read is just right.
     if (isTrimN)
       st.lenTrimmedByN++;
@@ -663,15 +663,15 @@ processRead(sffHeader *h,
     st.lenTooLong++;
 
     fprintf(logFile, "Read '%s' of length %d is too long.  Truncating to %d bases.\n",
-            r->name, r->number_of_bases - h->key_length, AS_READ_MAX_MEDIUM_LEN);
+            r->name, r->number_of_bases - h->key_length, AS_READ_MAX_NORMAL_LEN);
 
-    r->number_of_bases = AS_READ_MAX_MEDIUM_LEN + h->key_length;
+    r->number_of_bases = AS_READ_MAX_NORMAL_LEN + h->key_length;
 
-    r->bases  [AS_READ_MAX_MEDIUM_LEN + h->key_length] = 0;
-    r->quality[AS_READ_MAX_MEDIUM_LEN + h->key_length] = 0;
+    r->bases  [AS_READ_MAX_NORMAL_LEN + h->key_length] = 0;
+    r->quality[AS_READ_MAX_NORMAL_LEN + h->key_length] = 0;
 
-    if (fr->clrBgn > AS_READ_MAX_MEDIUM_LEN - h->key_length)   fr->clrBgn = AS_READ_MAX_MEDIUM_LEN + h->key_length;
-    if (fr->clrEnd > AS_READ_MAX_MEDIUM_LEN - h->key_length)   fr->clrEnd = AS_READ_MAX_MEDIUM_LEN + h->key_length;
+    if (fr->clrBgn > AS_READ_MAX_NORMAL_LEN - h->key_length)   fr->clrBgn = AS_READ_MAX_NORMAL_LEN + h->key_length;
+    if (fr->clrEnd > AS_READ_MAX_NORMAL_LEN - h->key_length)   fr->clrEnd = AS_READ_MAX_NORMAL_LEN + h->key_length;
   }
 
 
@@ -690,19 +690,7 @@ processRead(sffHeader *h,
   r->final_quality  = r->quality + h->key_length;
   r->final_length   = r->number_of_bases - h->key_length;
 
-  //  And build the fragment
-  //
-#if 0
-  //  Test code
-  if      (r->final_length < AS_READ_MAX_SHORT_LEN)
-    fr->gkFragment_setType(GKFRAGMENT_SHORT);
-  else if (r->final_length < AS_READ_MAX_MEDIUM_LEN)
-    fr->gkFragment_setType(GKFRAGMENT_MEDIUM);
-  else
-    fr->gkFragment_setType(GKFRAGMENT_LONG);
-#else
-  fr->gkFragment_setType(GKFRAGMENT_MEDIUM);
-#endif
+  fr->gkFragment_setType(GKFRAGMENT_NORMAL);
 
   //  Construct a UID from the 454 read name
   fr->gkFragment_setReadUID(readUID);
@@ -1049,9 +1037,9 @@ removeDuplicateReads(void) {
 //
 
 typedef struct {
-  char     h_alignA[AS_READ_MAX_LEN + AS_READ_MAX_LEN + 2];
-  char     h_alignB[AS_READ_MAX_LEN + AS_READ_MAX_LEN + 2];
-  dpCell   h_matrix[AS_READ_MAX_LEN + 1][AS_READ_MAX_LEN + 1];
+  char     h_alignA[AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 2];
+  char     h_alignB[AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 2];
+  dpCell   h_matrix[AS_READ_MAX_NORMAL_LEN + 1][AS_READ_MAX_NORMAL_LEN + 1];
 } dpMatrix;
 
 dpMatrix  *globalMatrix = NULL;
@@ -1308,26 +1296,9 @@ processMate(gkFragment *fr,
     //memcpy(m1, fr, sizeof(gkFragment));
     //memcpy(m2, fr, sizeof(gkFragment));
 
-#if 0
-    //  Test code.
-    if      (lSize < AS_READ_MAX_SHORT_LEN)
-      m1->gkFragment_setType(GKFRAGMENT_SHORT);
-    else if (lSize < AS_READ_MAX_SHORT_LEN)
-      m1->gkFragment_setType(GKFRAGMENT_MEDIUM);
-    else if (lSize < AS_READ_MAX_SHORT_LEN)
-      m1->gkFragment_setType(GKFRAGMENT_LONG);
+    m1->gkFragment_setType(GKFRAGMENT_NORMAL);
+    m2->gkFragment_setType(GKFRAGMENT_NORMAL);
 
-    if      (rSize < AS_READ_MAX_SHORT_LEN)
-      m2->gkFragment_setType(GKFRAGMENT_SHORT);
-    else if (rSize < AS_READ_MAX_SHORT_LEN)
-      m2->gkFragment_setType(GKFRAGMENT_MEDIUM);
-    else if (rSize < AS_READ_MAX_SHORT_LEN)
-      m2->gkFragment_setType(GKFRAGMENT_LONG);
-#else
-    m1->gkFragment_setType(GKFRAGMENT_MEDIUM);
-    m2->gkFragment_setType(GKFRAGMENT_MEDIUM);
-#endif
-    
     m1->gkFragment_setLibraryIID(1);
     m2->gkFragment_setLibraryIID(1);
     
@@ -1495,11 +1466,11 @@ detectMates(char *linker[AS_LINKER_MAX_SEQS], int search[AS_LINKER_MAX_SEQS]) {
 
     assert(fr.clrBgn < fr.clrEnd);
 
-    m1.gkFragment_setType(GKFRAGMENT_MEDIUM);
+    m1.gkFragment_setType(GKFRAGMENT_NORMAL);
     m1.gkFragment_setReadUID(AS_UID_undefined());
     m1.gkFragment_setIsDeleted(1);
 
-    m2.gkFragment_setType(GKFRAGMENT_MEDIUM);
+    m2.gkFragment_setType(GKFRAGMENT_NORMAL);
     m2.gkFragment_setReadUID(AS_UID_undefined());
     m2.gkFragment_setIsDeleted(1);
 

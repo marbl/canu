@@ -62,13 +62,13 @@ static const char *AS_READ_CLEAR_NAMES[AS_READ_CLEAR_NUM] = {
 #define GKFRAGMENT_QLT     0x02
 
 #define GKFRAGMENT_ERROR   0x00
-#define GKFRAGMENT_SHORT   0x01
-#define GKFRAGMENT_MEDIUM  0x02
-#define GKFRAGMENT_LONG    0x03
+#define GKFRAGMENT_PACKED  0x01
+#define GKFRAGMENT_NORMAL  0x02
+#define GKFRAGMENT_STROBE  0x03
 
 #define AS_READ_TYPE_NUM   4
 
-static const char *AS_READ_TYPE_NAMES[4] = { "ERROR", "SHORT", "MEDIUM", "LONG" };
+static const char *AS_READ_TYPE_NAMES[4] = { "ERROR", "PACKED", "NORMAL", "STROBE" };
 
 
 
@@ -78,17 +78,14 @@ static const char *AS_READ_TYPE_NAMES[4] = { "ERROR", "SHORT", "MEDIUM", "LONG" 
 //
 //  There are three types of fragments:
 //
-//  Short  -- less than 256 bp.  These fragments are special in that they
-//            do not have a clear range.
+//  Short  -- less than 256 bp.
+//  Normal -- up to 1048575 bases, but set at compile time.
+//  Strobe -- for future use.
 //
-//  Medium -- up to 2047 bases.  These are allowed to be trimmed and extended.
+//  The three types are encapsulated in the gkFragment, which is the only supported access
+//  mechanism.
 //
-//  Long   -- larger than 2047 bases.  These are allowed to be split.
-//
-//  The three types are encapsulated in the gkFragment, which is the
-//  only supported access mechanism.
-//
-class gkShortFragment {
+class gkPackedFragment {
 private:
   AS_UID           readUID;
 
@@ -100,15 +97,15 @@ private:
   uint32           deleted     : 1;
   uint32           nonrandom   : 1;
   uint32           orientation : 2;
-  uint32           seqLen      : AS_READ_MAX_SHORT_LEN_BITS;
-  uint32           clearBeg    : AS_READ_MAX_SHORT_LEN_BITS;
-  uint32           clearEnd    : AS_READ_MAX_SHORT_LEN_BITS;
+  uint32           seqLen      : AS_READ_MAX_PACKED_LEN_BITS;
+  uint32           clearBeg    : AS_READ_MAX_PACKED_LEN_BITS;
+  uint32           clearEnd    : AS_READ_MAX_PACKED_LEN_BITS;
 
-#if 4 + 1 + 1 + 2 + 3 * AS_READ_MAX_SHORT_LEN_BITS != 32
-#error gkShortFragment size wrong
+#if 4 + 1 + 1 + 2 + 3 * AS_READ_MAX_PACKED_LEN_BITS != 32
+#error gkPackedFragment size wrong
 #endif
 
-  char             enc[AS_READ_MAX_SHORT_LEN];
+  char             enc[AS_READ_MAX_PACKED_LEN];
 
   friend class gkFragment;
   friend class gkStore;
@@ -116,7 +113,7 @@ private:
 };
 
 
-class  gkMediumFragment {
+class  gkNormalFragment {
 private:
   AS_UID           readUID;
 
@@ -124,17 +121,15 @@ private:
   AS_IID           mateIID;
   AS_IID           libraryIID;
 
-  uint64           pad2        : 27;
-  uint64           deleted     : 1;
-  uint64           nonrandom   : 1;
-  uint64           orientation : 2;
-  uint64           seqLen      : AS_READ_MAX_MEDIUM_LEN_BITS;
-  uint64           clearBeg    : AS_READ_MAX_MEDIUM_LEN_BITS;
-  uint64           clearEnd    : AS_READ_MAX_MEDIUM_LEN_BITS;
+  uint32           pad2        : 32 - 1 - 1 - 2;
+  uint32           deleted     : 1;
+  uint32           nonrandom   : 1;
+  uint32           orientation : 2;
 
-#if 27 + 1 + 1 + 2 + 3 * AS_READ_MAX_MEDIUM_LEN_BITS != 64
-#error gkMediumFragment size wrong
-#endif
+  uint64           pad1        : 64 - 3 * AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64           seqLen      : AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64           clearBeg    : AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64           clearEnd    : AS_READ_MAX_NORMAL_LEN_BITS;
 
   uint64           seqOffset;
   uint64           qltOffset;
@@ -145,7 +140,7 @@ private:
 };
 
 
-class gkLongFragment {
+class gkStrobeFragment {
 private:
   AS_UID           readUID;
 
@@ -153,23 +148,15 @@ private:
   AS_IID           mateIID;
   AS_IID           libraryIID;
 
-  uint32           pad2        : 28;
+  uint32           pad2        : 32 - 1 - 1 - 2;
   uint32           deleted     : 1;
   uint32           nonrandom   : 1;
   uint32           orientation : 2;
 
-#if 28 + 1 + 1 + 2 != 32
-#error gkLongFragment size wrong
-#endif
-
-  uint64           pad1        : 4;
-  uint64           seqLen      : AS_READ_MAX_LONG_LEN_BITS;
-  uint64           clearBeg    : AS_READ_MAX_LONG_LEN_BITS;
-  uint64           clearEnd    : AS_READ_MAX_LONG_LEN_BITS;
-
-#if 4 + 3 * AS_READ_MAX_LONG_LEN_BITS != 64
-#error gkLongFragment size wrong
-#endif
+  uint64           pad1        : 64 - 3 * AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64           seqLen      : AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64           clearBeg    : AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64           clearEnd    : AS_READ_MAX_NORMAL_LEN_BITS;
 
   uint64           seqOffset;
   uint64           qltOffset;
@@ -189,31 +176,31 @@ private:
 //  gkFragment -- the accessor to the store.
 //
 
-#define gkFragment_get(ITEM)                    \
+#define gkFragment_get(ITEM)                \
   switch (type) {                           \
-    case GKFRAGMENT_SHORT:                      \
-      r = fr.sm.ITEM;                       \
-      break;                                    \
-    case GKFRAGMENT_MEDIUM:                     \
-      r = fr.md.ITEM;                       \
-      break;                                    \
-    case GKFRAGMENT_LONG:                       \
-      r = fr.lg.ITEM;                       \
-      break;                                    \
+    case GKFRAGMENT_PACKED:                 \
+      r = fr.packed.ITEM;                   \
+      break;                                \
+    case GKFRAGMENT_NORMAL:                 \
+      r = fr.normal.ITEM;                   \
+      break;                                \
+    case GKFRAGMENT_STROBE:                 \
+      r = fr.strobe.ITEM;                   \
+      break;                                \
   }
 
 
-#define gkFragment_set(ITEM, VAL)          \
+#define gkFragment_set(ITEM, VAL)           \
   switch (type) {                           \
-    case GKFRAGMENT_SHORT:                      \
-      fr.sm.ITEM = (VAL);                 \
-      break;                                    \
-    case GKFRAGMENT_MEDIUM:                     \
-      fr.md.ITEM = (VAL);                 \
-      break;                                    \
-    case GKFRAGMENT_LONG:                       \
-      fr.lg.ITEM = (VAL);                 \
-      break;                                    \
+    case GKFRAGMENT_PACKED:                 \
+      fr.packed.ITEM = (VAL);               \
+      break;                                \
+    case GKFRAGMENT_NORMAL:                 \
+      fr.normal.ITEM = (VAL);               \
+      break;                                \
+    case GKFRAGMENT_STROBE:                 \
+      fr.strobe.ITEM = (VAL);               \
+      break;                                \
   }
 
 class gkFragment {
@@ -352,15 +339,15 @@ public:
   uint64      gkFragment_getSequenceOffset(void) {
     uint64 r = 0;
     switch (type) {
-      case GKFRAGMENT_SHORT:
+      case GKFRAGMENT_PACKED:
         r = 0;
         break;
-      case GKFRAGMENT_MEDIUM:
-        r = fr.md.seqOffset;
-        //assert(fr.md.qltOffset == 4 * tiid + 4 * fr.md.seqOffset);
+      case GKFRAGMENT_NORMAL:
+        r = fr.normal.seqOffset;
+        //assert(fr.normal.qltOffset == 4 * tiid + 4 * fr.normal.seqOffset);
         break;
-      case GKFRAGMENT_LONG:
-        r = fr.lg.seqOffset;
+      case GKFRAGMENT_STROBE:
+        r = fr.strobe.seqOffset;
         break;
     }
     return(r);
@@ -369,15 +356,15 @@ public:
   uint64      gkFragment_getQualityOffset(void) {
     uint64 r = 0;
     switch (type) {
-      case GKFRAGMENT_SHORT:
+      case GKFRAGMENT_PACKED:
         r = 0;
         break;
-      case GKFRAGMENT_MEDIUM:
-        r = fr.md.qltOffset;
-        //assert(fr.md.qltOffset == 4 * tiid + 4 * fr.md.seqOffset);
+      case GKFRAGMENT_NORMAL:
+        r = fr.normal.qltOffset;
+        //assert(fr.normal.qltOffset == 4 * tiid + 4 * fr.normal.seqOffset);
         break;
-      case GKFRAGMENT_LONG:
-        r = fr.lg.qltOffset;
+      case GKFRAGMENT_STROBE:
+        r = fr.strobe.qltOffset;
         break;
     }
     return(r);
@@ -406,9 +393,9 @@ public:
       hasQLT = 1;
 
       gkp = g;
-      enc = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LONG_LEN + 1);
-      seq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LONG_LEN + 1);
-      qlt = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LONG_LEN + 1);
+      enc = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
+      seq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
+      qlt = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
     }
   };
 
@@ -441,9 +428,9 @@ private:
   gkStore *gkp;
 
   union gkFragmentData {
-    gkShortFragment    sm;
-    gkMediumFragment   md;
-    gkLongFragment     lg;
+    gkPackedFragment   packed;  //  was sm
+    gkNormalFragment   normal;  //  was md
+    gkStrobeFragment   strobe;  //  was ;g
   } fr;
 
   char   *enc;

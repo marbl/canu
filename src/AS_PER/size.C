@@ -3,8 +3,8 @@
 
 int
 main(void) {
-  fprintf(stderr, "gkShortFragment   %d\n", sizeof(gkShortFragment));
-  fprintf(stderr, "gkMediumFragment  %d\n", sizeof(gkMediumFragment));
-  fprintf(stderr, "gkLongFragment    %d\n", sizeof(gkLongFragment));
+  fprintf(stderr, "gkPackedFragment  %d\n", sizeof(gkPackedFragment));
+  fprintf(stderr, "gkNormalFragment  %d\n", sizeof(gkNormalFragment));
+  fprintf(stderr, "gkStrobeFragment  %d\n", sizeof(gkStrobeFragment));
   fprintf(stderr, "gkFragment        %d\n", sizeof(gkFragment));
 }

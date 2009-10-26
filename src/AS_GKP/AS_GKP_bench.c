@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_bench.c,v 1.11 2009-06-28 17:01:49 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_bench.c,v 1.12 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -120,7 +120,7 @@ addRandomFrags(char *gkpName, uint32 numFrags) {
     uid.UID      = i + 1 + 2000000000;
 
     frag.gkFragment_setReadUID(uid);
-    frag.gkFragment_setType(GKFRAGMENT_MEDIUM);
+    frag.gkFragment_setType(GKFRAGMENT_NORMAL);
 
     len = 600 + lrand48() % 600;
 

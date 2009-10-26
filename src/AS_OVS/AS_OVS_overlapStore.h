@@ -22,7 +22,7 @@
 #ifndef AS_OVS_OVERLAPSTORE_H
 #define AS_OVS_OVERLAPSTORE_H
 
-static const char *rcsid_AS_OVS_OVERLAPSTORE_H = "$Id: AS_OVS_overlapStore.h,v 1.13 2009-06-10 18:05:14 brianwalenz Exp $";
+static const char *rcsid_AS_OVS_OVERLAPSTORE_H = "$Id: AS_OVS_overlapStore.h,v 1.14 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 
@@ -39,6 +39,7 @@ typedef struct {
   uint64    largestIID;          //  largest frag iid in the store
   uint64    numOverlapsTotal;    //  number of overlaps in the store
   uint64    highestFileIndex;
+  uint64    maxReadLenInBits;    //  length of a fragment
 } OverlapStoreInfo;
 
 typedef struct {

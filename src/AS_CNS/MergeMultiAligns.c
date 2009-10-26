@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MergeMultiAligns.c,v 1.8 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeMultiAligns.c,v 1.9 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -54,14 +54,18 @@ MergeMultiAlignsFast_new(VA_TYPE(IntElementPos) *positions, CNS_Options *opp) {
 
   allow_neg_hang = 0;
 
+  int32        num_bases   = 0;
   int32        num_columns = 0;
 
   for (int32 i=0; i<num_contigs; i++) {
+    int32 flen   = (cpositions[i].position.bgn < cpositions[i].position.end) ? (cpositions[i].position.end < cpositions[i].position.bgn) : (cpositions[i].position.bgn - cpositions[i].position.end);
+    num_bases   += flen + 2 * AS_CNS_ERROR_RATE * flen;
+
     num_columns = (cpositions[i].position.bgn > num_columns) ? cpositions[i].position.bgn : num_columns;
     num_columns = (cpositions[i].position.end > num_columns) ? cpositions[i].position.end : num_columns;
   }
 
-  ResetStores(num_contigs, num_columns);
+  ResetStores(num_bases, num_contigs, num_columns);
 
   SeqInterval *offsets     = (SeqInterval *)safe_calloc(num_contigs,sizeof(SeqInterval));
 
@@ -95,7 +99,7 @@ MergeMultiAlignsFast_new(VA_TYPE(IntElementPos) *positions, CNS_Options *opp) {
   //    a)  containing frag (if contained)
   // or b)  previously aligned frag
 
-  VA_TYPE(int32) *trace = CreateVA_int32(AS_READ_MAX_LEN);
+  VA_TYPE(int32) *trace = CreateVA_int32(AS_READ_MAX_NORMAL_LEN);
 
   for (int32 i=1; i<num_contigs; i++) {
     int           ahang,bhang,ovl;

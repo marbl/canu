@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.35 2009-09-30 17:53:26 brianwalenz Exp $";
+const char *mainid = "$Id: chimera.C,v 1.36 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,18 +64,17 @@ uint32   fullCoverage        = 0;
 
 class clear_t {
 public:
-  uint64   pad1:7;
-  uint64   length:11;
-  uint64   origL:11;
-  uint64   origR:11;
-  uint64   ovlpL:11;
-  uint64   ovlpR:11;
-  uint64   deleted:1;
-  uint64   doNotOBT:1;
+  uint64   deleted  :1;
+  uint64   doNotOBT :1;
 
-  uint64   pad2:42;
-  uint64   fragBeg:11;
-  uint64   fragEnd:11;
+  uint64   length   :AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64   origL    :AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64   origR    :AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64   ovlpL    :AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64   ovlpR    :AS_READ_MAX_NORMAL_LEN_BITS;
+
+  uint64   fragBeg  :AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64   fragEnd  :AS_READ_MAX_NORMAL_LEN_BITS;
 
   AS_UID   uid;
 };
@@ -94,16 +93,15 @@ readClearRanges(gkStore *gkp) {
        lr   = gkp->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
     }
 
-    clear[iid].pad1          = 0;
+    clear[iid].deleted       = fr.gkFragment_getIsDeleted() ? 1 : 0;
+    clear[iid].doNotOBT      = ((lr) && (lr->doNotOverlapTrim)) ? 1 : 0;
+
     clear[iid].length        = fr.gkFragment_getSequenceLength();
     clear[iid].ovlpL         = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTMERGE);
     clear[iid].ovlpR         = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_OBTMERGE);
     clear[iid].origL         = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
     clear[iid].origR         = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_OBTINITIAL);
-    clear[iid].deleted       = fr.gkFragment_getIsDeleted() ? 1 : 0;
-    clear[iid].doNotOBT      = ((lr) && (lr->doNotOverlapTrim)) ? 1 : 0;
 
-    clear[iid].pad2          = 0;
     clear[iid].fragBeg       = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT);
     clear[iid].fragEnd       = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT);
 
@@ -648,7 +646,7 @@ process(const AS_IID           iid,
   }
 
   {
-    uint32  minOvl = AS_READ_MAX_MEDIUM_LEN + 1;
+    uint32  minOvl = AS_READ_MAX_NORMAL_LEN + 1;
     uint32  maxOvl = 0;
     bool    isLeftSpur = false;
     bool    isRightSpur = false;
@@ -1017,11 +1015,11 @@ main(int argc, char **argv) {
     uint32   olb = clear[idB].ovlpL;
     uint32   dlb = clear[idA].deleted;
 
-    leftA  = ovl->dat.obt.a_beg + cla;
-    rightA = ovl->dat.obt.a_end + cla;
+    leftA  = cla + ovl->dat.obt.a_beg;
+    rightA = cla + ovl->dat.obt.a_end;
     lenA   = clear[idA].length;
-    leftB  = ovl->dat.obt.b_beg + clb;
-    rightB = ovl->dat.obt.b_end + clb;
+    leftB  = clb + ovl->dat.obt.b_beg;
+    rightB = clb + ((ovl->dat.obt.b_end_hi << 9) | (ovl->dat.obt.b_end_lo));
     lenB   = clear[idB].length;
     error  = AS_OVS_decodeQuality(ovl->dat.obt.erate);
 

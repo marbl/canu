@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_fgb.c,v 1.18 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_fgb.c,v 1.19 2009-10-26 13:20:26 brianwalenz Exp $";
 
 //  The fragment overlap graph builder.
 //
@@ -374,8 +374,7 @@ void reorder_edges(Tfragment *frags,
   const IntEdge_ID nedge = GetNumEdges(edges);
 
   if( nedge > 0) { // Sort the edges ......
-    const int max_frag_len = 2048;
-    const IntEdge_ID max_nbins = MAX(max_frag_len,2*nfrag);
+    const IntEdge_ID max_nbins = MAX(AS_READ_MAX_NORMAL_LEN,2*nfrag);
 
     IntEdge_ID * seglen = NULL;
     IntEdge_ID * segstart = NULL;

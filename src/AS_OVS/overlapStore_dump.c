@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_dump.c,v 1.13 2008-11-13 09:14:33 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_dump.c,v 1.14 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,7 +79,7 @@ dumpStore(char *storeName, uint32 dumpBinary, double dumpERate, uint32 bgnIID, u
                     overlap.dat.obt.a_beg,
                     overlap.dat.obt.a_end,
                     overlap.dat.obt.b_beg,
-                    overlap.dat.obt.b_end,
+                    (overlap.dat.obt.b_end_hi << 9) | (overlap.dat.obt.b_end_lo),
                     AS_OVS_decodeQuality(overlap.dat.obt.erate) * 100.0);
         break;
       case AS_OVS_TYPE_MER:

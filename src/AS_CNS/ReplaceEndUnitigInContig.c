@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.8 2009-10-07 08:23:50 brianwalenz Exp $";
+static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.9 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -91,7 +91,9 @@ ReplaceEndUnitigInContig(uint32 contig_iid,
 
   oma =  tigStore->loadMultiAlign(contig_iid, FALSE);
 
-  ResetStores(2,GetNumchars(oma->consensus) + AS_READ_MAX_LEN);
+  ResetStores(2 * GetNumchars(oma->consensus),
+              2,
+              2 * GetNumchars(oma->consensus));
 
   num_unitigs = GetNumIntUnitigPoss(oma->u_list);
   num_frags   = GetNumIntMultiPoss(oma->f_list);
@@ -134,7 +136,7 @@ ReplaceEndUnitigInContig(uint32 contig_iid,
   ma = CreateMANode(0);
 
   if ( trace == NULL )
-    trace = CreateVA_int32(AS_READ_MAX_LEN);
+    trace = CreateVA_int32(AS_READ_MAX_NORMAL_LEN);
   ResetVA_int32(trace);
 
   {

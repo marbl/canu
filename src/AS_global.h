@@ -25,7 +25,7 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.32 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.33 2009-10-26 13:20:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -312,28 +312,25 @@ off_t ftello(FILE *stream );
 // calling an overlap definately a tandem repeat.
 
 
-//  MAX_LEN must NOT be a power of two - (at least) two places use a
-//  bit-field to store the position in a read or length of a read, and
-//  those only store [0...2^n - 1].  Bit fields are hard coded to
-//  allow MAX_LEN 2047.
+//  AS_READ_MAX_NORMAL_LEN_BITS must be at least 11.  10 might work, 9 will not compile.
+//  AS_READ_MAX_NORMAL_LEN_BITS must be at most 20.  21 will not compile.
 //
-//  There are better values for SHORT_LEN; 104 yields a 128 byte structure.
+//  Be aware that overlapper does not work well at large sizes.  Consensus allocates excessive
+//  amounts of memory too.
+//
+#define AS_READ_MAX_PACKED_LEN_BITS       8
+#define AS_READ_MAX_NORMAL_LEN_BITS       12
+
+//  AS_READ_MAX_NORMAL_LEN must be set as below.  It is tempting to make this shorter, but that WILL
+//  NOT work.  It ends up corrupting data.
+//
+//  There are better values for PACKED_LEN than the power-of-two; 104 yields a 128 byte structure.
 //
 #define AS_READ_MIN_LEN                   64
-#define AS_READ_MAX_SHORT_LEN            104
-#define AS_READ_MAX_MEDIUM_LEN          2047
-#define AS_READ_MAX_LONG_LEN         1048575
+#define AS_READ_MAX_PACKED_LEN            104
+#define AS_READ_MAX_NORMAL_LEN            ((1 << AS_READ_MAX_NORMAL_LEN_BITS) - 1)
 
-#define AS_READ_MAX_SHORT_LEN_BITS         8
-#define AS_READ_MAX_MEDIUM_LEN_BITS       11
-#define AS_READ_MAX_LONG_LEN_BITS         20
-
-//  TEMPORARY!
-#define AS_READ_MAX_LEN                AS_READ_MAX_MEDIUM_LEN
-
-#define AS_READ_MAX_SOURCE_LEN     1024
-
-#define AS_OVERLAP_MIN_LEN           40
+#define AS_OVERLAP_MIN_LEN                40
 
 //  AS_OVL controls both overlapper and bubble popping
 

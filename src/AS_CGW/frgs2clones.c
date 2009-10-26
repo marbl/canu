@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: frgs2clones.c,v 1.39 2009-10-05 22:49:42 brianwalenz Exp $";
+const char *mainid = "$Id: frgs2clones.c,v 1.40 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -74,8 +74,8 @@ main(int argc, char **argv) {
   gkFragment fr;
   gkFragment fm;
 
-  char       *frseq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LONG_LEN);
-  char       *fmseq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LONG_LEN);
+  char       *frseq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN);
+  char       *fmseq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN);
 
   while (fs->next(&fr)) {
     if (fr.gkFragment_getIsDeleted())
@@ -222,8 +222,8 @@ main(int argc, char **argv) {
               AS_UID_toString(fr.gkFragment_getReadUID()),
               AS_UID_toString(fm.gkFragment_getReadUID())), exit(1);
 
-    VA_TYPE(char)  *cns = CreateVA_char(2 * AS_READ_MAX_LONG_LEN);
-    VA_TYPE(char)  *qlt = CreateVA_char(2 * AS_READ_MAX_LONG_LEN);
+    VA_TYPE(char)  *cns = CreateVA_char(2 * AS_READ_MAX_NORMAL_LEN);
+    VA_TYPE(char)  *qlt = CreateVA_char(2 * AS_READ_MAX_NORMAL_LEN);
 
     GetMultiAlignUngappedConsensus(ma, cns, qlt);
 

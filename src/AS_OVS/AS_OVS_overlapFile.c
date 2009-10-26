@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapFile.c,v 1.15 2009-04-10 22:21:05 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapFile.c,v 1.16 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -176,8 +176,11 @@ AS_OVS_writeOverlap(BinaryOverlapFile *bof, OVSoverlap *overlap) {
     bof->buffer[bof->bufferLen++] = overlap->a_iid;
 
   bof->buffer[bof->bufferLen++] = overlap->b_iid;
-  bof->buffer[bof->bufferLen++] = (overlap->dat.dat >> 32) & 0xffffffff;
-  bof->buffer[bof->bufferLen++] = (overlap->dat.dat)       & 0xffffffff;
+  bof->buffer[bof->bufferLen++] = overlap->dat.dat[0];
+  bof->buffer[bof->bufferLen++] = overlap->dat.dat[1];
+#if AS_OVS_NWORDS > 2
+  bof->buffer[bof->bufferLen++] = overlap->dat.dat[2];
+#endif
 }
 
 
@@ -201,10 +204,12 @@ AS_OVS_readOverlap(BinaryOverlapFile *bof, OVSoverlap *overlap) {
   if (bof->isInternal == FALSE)
     overlap->a_iid = bof->buffer[bof->bufferPos++];
 
-  overlap->b_iid     = bof->buffer[bof->bufferPos++];
-  overlap->dat.dat   = bof->buffer[bof->bufferPos++];
-  overlap->dat.dat <<= 32;
-  overlap->dat.dat  |= bof->buffer[bof->bufferPos++];
+  overlap->b_iid      = bof->buffer[bof->bufferPos++];
+  overlap->dat.dat[0] = bof->buffer[bof->bufferPos++];
+  overlap->dat.dat[1] = bof->buffer[bof->bufferPos++];
+#if AS_OVS_NWORDS > 2
+  overlap->dat.dat[2] = bof->buffer[bof->bufferPos++];
+#endif
 
   return(TRUE);
 }

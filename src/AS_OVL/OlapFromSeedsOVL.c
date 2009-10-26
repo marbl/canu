@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.38 2009-08-29 05:43:09 brianwalenz Exp $
- * $Revision: 1.38 $
+ * $Id: OlapFromSeedsOVL.c,v 1.39 2009-10-26 13:20:26 brianwalenz Exp $
+ * $Revision: 1.39 $
 */
 
-const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.38 2009-08-29 05:43:09 brianwalenz Exp $";
+const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.39 2009-10-26 13:20:26 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -192,8 +192,8 @@ static void  Adjust_For_Eliminated
 // are made.
 
 {
-  char  key [1 + MAX_FRAG_LEN];
-  unsigned char  marked_before [1 + MAX_FRAG_LEN];
+  char  key [1 + AS_READ_MAX_NORMAL_LEN];
+  unsigned char  marked_before [1 + AS_READ_MAX_NORMAL_LEN];
   int  marked_ct;
   int  i, j, k, m;
 
@@ -430,7 +430,7 @@ static void  Analyze_Alignment
 
   {
    int  prev_match, next_match;
-   Vote_t  vote [MAX_FRAG_LEN];
+   Vote_t  vote [AS_READ_MAX_NORMAL_LEN];
    int  ct;
    int  i, j, k, m, p;
 
@@ -665,8 +665,8 @@ static void  Analyze_Frag
   {
    New_Vote_t  * vote;
    Sequence_Diff_t  * mod_dp;
-   char  correct [2 * MAX_FRAG_LEN] = {0};  // correction string
-   short unsigned  insert_size [MAX_FRAG_LEN] = {0};
+   char  correct [2 * AS_READ_MAX_NORMAL_LEN] = {0};  // correction string
+   short unsigned  insert_size [AS_READ_MAX_NORMAL_LEN] = {0};
    char  * mod_seq;
    int  frag_len, mod_len;
    int  i, n;
@@ -863,7 +863,7 @@ static int  Binomial_Bound
    if  (Start < e)
        Start = e;
 
-   for  (n = Start;  n < MAX_FRAG_LEN;  n ++)
+   for  (n = Start;  n < AS_READ_MAX_NORMAL_LEN;  n ++)
      {
       if  (n <= 35)
           {
@@ -905,7 +905,7 @@ static int  Binomial_Bound
           }
      }
 
-   return  MAX_FRAG_LEN;
+   return  AS_READ_MAX_NORMAL_LEN;
   }
 
 
@@ -1350,7 +1350,7 @@ static void  Compute_Delta
 //  the number of entries in  delta .
 
   {
-    int  delta_stack [AS_READ_MAX_LEN+1];  //  only MAX_ERRORS needed
+    int  delta_stack [AS_READ_MAX_NORMAL_LEN+1];  //  only MAX_ERRORS needed
    int  from, last, max;
    int  i, j, k;
 
@@ -1417,7 +1417,7 @@ static void  Convert_Delta_To_Diff
 //  and deletes are characters that should be deleted from A.
 
   {
-   Diff_Entry_t  diff_list [AS_READ_MAX_LEN+1];  //  only MAX_ERRORS needed
+   Diff_Entry_t  diff_list [AS_READ_MAX_NORMAL_LEN+1];  //  only MAX_ERRORS needed
    int  ct;
    int  i, j, k, m, p;
 
@@ -1557,7 +1557,7 @@ static void  Convert_Delta_To_Diff
 
 
 static void  Count_From_Diff
-  (short int count [MAX_FRAG_LEN] [5], const char * seq, int seq_len,
+  (short int count [AS_READ_MAX_NORMAL_LEN] [5], const char * seq, int seq_len,
    int seq_is_homopoly, const Sequence_Diff_t * dp)
 
 // Increment the values in  count  corresponding to the characters represented
@@ -2311,8 +2311,8 @@ static int  Eliminate_Correlated_Diff_Olaps
      // need this many occurrences of each variant to be a significant column
    const int  column_ct = 2;
      // need this many columns of correlated difference to be disqualified
-   short int  count [MAX_FRAG_LEN] [5];
-   short int  diff_col [MAX_FRAG_LEN];
+   short int  count [AS_READ_MAX_NORMAL_LEN] [5];
+   short int  diff_col [AS_READ_MAX_NORMAL_LEN];
    char  * space;
    Difference_Signature_t  * signature;
    int  num_diff_cols, num_eliminated = 0;
@@ -2506,7 +2506,7 @@ static void  Extract_Needed_Frags
 #endif
      {
       char  * seq_ptr;
-      char  seq_buff [AS_READ_MAX_LEN + 1];
+      char  seq_buff [AS_READ_MAX_NORMAL_LEN + 1];
       unsigned  clear_start, clear_end;
       int  raw_len, result, shredded;
 
@@ -2532,11 +2532,11 @@ static void  Extract_Needed_Frags
       raw_len = frag_read.gkFragment_getSequenceLength ();
       seq_ptr = frag_read.gkFragment_getSequence ();
 
-      if (AS_READ_MAX_LEN < clear_end - clear_start)
+      if (AS_READ_MAX_NORMAL_LEN < clear_end - clear_start)
         {
          fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
          fprintf (stderr, "Read %u is too long:  %d bp; max is %d\n",
-              frag_iid, clear_end - clear_start, AS_READ_MAX_LEN);
+              frag_iid, clear_end - clear_start, AS_READ_MAX_NORMAL_LEN);
          exit(1);
         }
 
@@ -2841,6 +2841,9 @@ static void  Initialize_Globals
         exit(1);
      }
 
+   // only (MAX_ERRORS + 4) * MAX_ERRORS needed
+   Edit_Space = (int32 *)safe_malloc(sizeof(int32) * (AS_READ_MAX_NORMAL_LEN + 4) * AS_READ_MAX_NORMAL_LEN);
+
    offset = 2;
    del = 6;
    for  (i = 0;  i < MAX_ERRORS;  i ++)
@@ -2864,7 +2867,7 @@ static void  Initialize_Globals
       assert (Edit_Match_Limit [e] >= Edit_Match_Limit [e - 1]);
      }
 
-   for  (i = 0;  i <= MAX_FRAG_LEN;  i ++)
+   for  (i = 0;  i <= AS_READ_MAX_NORMAL_LEN;  i ++)
      Error_Bound [i] = (int) (i * Error_Rate);
 
    Frag_List . ct = 0;
@@ -2907,7 +2910,7 @@ static void  Init_Thread_Work_Area
 
   //  Increase space from original 20 to ridiculous 200.
   //  #warning potential out of bounds in banded_space (hit in Fwd_Banded_Homopoly_Prefix_Match)
-  banded_space_entries = 200 * MAX_FRAG_LEN;
+  banded_space_entries = 200 * AS_READ_MAX_NORMAL_LEN;
   wa -> banded_space = (Alignment_Cell_t *) safe_calloc
     (banded_space_entries, sizeof (Alignment_Cell_t));
 
@@ -3567,7 +3570,8 @@ static void  Output_Olap
            overlap . dat . obt . a_end = a_hi;
            overlap . dat . obt . fwd = (dir == 'f' ? 1 : 0);
            overlap . dat . obt . b_beg = x;
-           overlap . dat . obt . b_end = y;
+           overlap . dat . obt . b_end_hi = y >> 9;
+           overlap . dat . obt . b_end_lo = y & 0x1f;
            overlap . dat . obt . erate = AS_OVS_encodeQuality (qual);
            overlap . dat . obt . type = AS_OVS_TYPE_OBT;
           }
@@ -3661,7 +3665,8 @@ static void  Output_Olap_From_Diff
            overlap . dat . obt . a_end = dp -> a_hi;
            overlap . dat . obt . fwd = (dir == 'f' ? 1 : 0);
            overlap . dat . obt . b_beg = x;
-           overlap . dat . obt . b_end = y;
+           overlap . dat . obt . b_end_hi = y >> 9;
+           overlap . dat . obt . b_end_lo = y & 0x1f;
            overlap . dat . obt . erate = AS_OVS_encodeQuality (qual);
            overlap . dat . obt . type = AS_OVS_TYPE_OBT;
           }
@@ -3886,9 +3891,9 @@ static void  Process_Seed
    Sequence_Diff_t  diff;
    char  * a_part, * b_part;
    unsigned  a_len;
-   int  right_delta [AS_READ_MAX_LEN+1]={0}, right_delta_len;
-   int  left_delta [AS_READ_MAX_LEN+1]={0}, left_delta_len;
-   int  new_delta [AS_READ_MAX_LEN+1]={0};
+   int  right_delta [AS_READ_MAX_NORMAL_LEN+1]={0}, right_delta_len;
+   int  left_delta [AS_READ_MAX_NORMAL_LEN+1]={0}, left_delta_len;
+   int  new_delta [AS_READ_MAX_NORMAL_LEN+1]={0};
    int  new_errors, new_a_end, new_b_end, new_delta_len, new_match_to_end;
    int  raw_errors, score;
    int  a_part_len, b_part_len, a_end, b_end, olap_len;
@@ -4235,7 +4240,7 @@ static void  Read_Frags
 //  global  Frag .
 
   {
-   char  seq_buff [AS_READ_MAX_LEN + 1];
+   char  seq_buff [AS_READ_MAX_NORMAL_LEN + 1];
    static  gkFragment    frag_read;
    unsigned  clear_start, clear_end;
    int32  high_store_frag;
@@ -4283,11 +4288,11 @@ static void  Read_Frags
 
       frag_read.gkFragment_getClearRegion(clear_start, clear_end);
       raw_len = frag_read.gkFragment_getSequenceLength ();
-      if (AS_READ_MAX_LEN < raw_len)
+      if (AS_READ_MAX_NORMAL_LEN < raw_len)
         {
          fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
          fprintf (stderr, "Read %u is too long:  %d bp; max is %d\n",
-              frag_read.gkFragment_getReadIID (), raw_len, AS_READ_MAX_LEN);
+              frag_read.gkFragment_getReadIID (), raw_len, AS_READ_MAX_NORMAL_LEN);
          exit(1);
         }
 
@@ -4582,7 +4587,7 @@ static void  Set_Insert_Sizes
               fprintf (stderr, "Insertion before beginning of ref string\n");
               exit(1);
              }
-           if (j-1 < AS_READ_MAX_LEN)
+           if (j-1 < AS_READ_MAX_NORMAL_LEN)
              if (++ i_ct > insert_size [j - 1])
                insert_size [j - 1] = i_ct;
            break;
@@ -4597,7 +4602,7 @@ static void  Set_Insert_Sizes
         }
      }
 
-   assert(j-1 <= AS_READ_MAX_LEN);
+   assert(j-1 <= AS_READ_MAX_NORMAL_LEN);
 
    return;
   }
@@ -5546,8 +5551,8 @@ static void  Stream_Old_Frags
    Thread_Work_Area_t  wa;
    gkFragment   frag_read;
    char  * seq_ptr;
-   char  seq_buff [AS_READ_MAX_LEN + 1];
-   char  rev_seq [AS_READ_MAX_LEN + 1] = "acgt";
+   char  seq_buff [AS_READ_MAX_NORMAL_LEN + 1];
+   char  rev_seq [AS_READ_MAX_NORMAL_LEN + 1] = "acgt";
    unsigned  clear_start, clear_end, seq_len;
    int32  lo_frag, hi_frag;
    int  next_olap;
@@ -5588,11 +5593,11 @@ static void  Stream_Old_Frags
       seq_ptr = frag_read.gkFragment_getSequence ();
       is_homopoly = Is_Homopoly_Type (&frag_read, gkpStore);
 
-      if (AS_READ_MAX_LEN < clear_end - clear_start)
+      if (AS_READ_MAX_NORMAL_LEN < clear_end - clear_start)
         {
          fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
          fprintf (stderr, "Read %u is too long:  %d bp; max is %d\n",
-              frag_iid, clear_end - clear_start, AS_READ_MAX_LEN);
+              frag_iid, clear_end - clear_start, AS_READ_MAX_NORMAL_LEN);
          exit(1);
         }
 

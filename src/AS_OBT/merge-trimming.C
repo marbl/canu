@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merge-trimming.C,v 1.40 2009-10-12 04:22:30 brianwalenz Exp $";
+const char *mainid = "$Id: merge-trimming.C,v 1.41 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include "trim.H"
 #include "constants.H"
@@ -49,7 +49,7 @@ readLine(FILE *F) {
 class mode5 {
 public:
   mode5() {
-    memset(_histo, 0, sizeof(uint32) * AS_READ_MAX_MEDIUM_LEN);
+    memset(_histo, 0, sizeof(uint32) * AS_READ_MAX_NORMAL_LEN);
     _mode5 = 999999999;
   };
   ~mode5() {
@@ -72,7 +72,7 @@ public:
   };
 
 private:
-  uint32   _histo[AS_READ_MAX_MEDIUM_LEN + 1];
+  uint32   _histo[AS_READ_MAX_NORMAL_LEN + 1];
   uint32   _mode5;
 };
 

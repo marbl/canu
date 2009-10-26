@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_Bubble_Popper.c,v 1.20 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_Bubble_Popper.c,v 1.21 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,7 +71,7 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
   bp->bubOlaps     = (OverlapMesg *)safe_calloc(sizeof(OverlapMesg), BP_SQR(POPPER_MAX_BUBBLE_SIZE));
 
   for (i = 0; i < POPPER_MAX_BUBBLE_SIZE; ++i) {
-    bp->bubMesgs[i].sequence = (char *)safe_malloc(sizeof(char) * (AS_READ_MAX_LEN + 3));
+    bp->bubMesgs[i].sequence = (char *)safe_malloc(sizeof(char) * (AS_READ_MAX_NORMAL_LEN + 3));
     /* This is a hack for DP_compare.  It might not be necessary. */
     bp->bubMesgs[i].sequence[0] = '\0';
     (bp->bubMesgs[i].sequence)++;

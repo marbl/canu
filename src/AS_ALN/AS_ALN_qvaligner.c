@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.21 2009-07-30 10:42:55 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.22 2009-10-26 13:20:26 brianwalenz Exp $";
 
 /* Utility routines to complement, unpack and pack alignments, and print
    overlaps.  Also a routine for re-aligning an overlap using quality
@@ -60,7 +60,7 @@ IsInvalidAlign(int prefix, int suffix,
   a -= 1;
   b -= 1;
 
-  if (prefix > AS_READ_MAX_LEN) {
+  if (prefix > AS_READ_MAX_NORMAL_LEN) {
     i = prefix-24;
     prefix = 25;
   }
@@ -121,7 +121,7 @@ void PrintAlign(FILE *file, int prefix, int suffix,
   o  = 0;
   i = j = 1;
 
-  if (prefix > AS_READ_MAX_LEN)
+  if (prefix > AS_READ_MAX_NORMAL_LEN)
     { i = prefix-24;
       prefix = 25;
     }
@@ -150,7 +150,7 @@ void PrintAlign(FILE *file, int prefix, int suffix,
   assert((i-1 <= alen) && (j-1 <= blen));
 
   if (suffix < 0) suffix = -suffix;
-  if (suffix > AS_READ_MAX_LEN)
+  if (suffix > AS_READ_MAX_NORMAL_LEN)
     suffix = 25;
 
   { int x, y, s;     /* Output remaining column including unaligned suffix */

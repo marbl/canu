@@ -13,9 +13,9 @@ public:
   uint64    gkVersion;
 
   uint32    gkLibrarySize;
-  uint32    gkShortFragmentSize;
-  uint32    gkMediumFragmentSize;
-  uint32    gkLongFragmentSize;
+  uint32    gkPackedFragmentSize;
+  uint32    gkNormalFragmentSize;
+  uint32    gkStrobeFragmentSize;
   uint32    gkPlacementSize;
 
   //  Statistics on our load
@@ -204,15 +204,15 @@ public:
   gkStoreInfo              inf;
 
 private:
-  StoreStruct             *fsm;  //  Small fragments
+  StoreStruct             *fpk;  //  Small fragments
 
-  StoreStruct             *fmd;  //  Medium size fragments
-  StoreStruct             *smd;
-  StoreStruct             *qmd;
+  StoreStruct             *fnm;  //  Medium size fragments
+  StoreStruct             *snm;
+  StoreStruct             *qnm;
 
-  StoreStruct             *flg;  //  Large fragments
-  StoreStruct             *slg;
-  StoreStruct             *qlg;
+  StoreStruct             *fsb;  //  Large fragments
+  StoreStruct             *ssb;
+  StoreStruct             *qsb;
 
   StoreStruct             *lib;
 
@@ -252,9 +252,9 @@ private:
   //
   int32                    partnum;
 
-  StoreStruct             *partfsm;
-  StoreStruct             *partfmd, *partqmd;
-  StoreStruct             *partflg, *partqlg;
+  StoreStruct             *partfpk;
+  StoreStruct             *partfnm, *partqnm;
+  StoreStruct             *partfsb, *partqsb;
 
   HashTable_AS            *partmap;
 

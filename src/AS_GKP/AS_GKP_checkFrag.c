@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.53 2009-08-11 04:46:57 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.54 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -158,37 +158,14 @@ checkSequenceAndQuality(FragMesg *frg_mesg, int *seqLen) {
                        AS_UID_toString(frg_mesg->eaccession), sl, AS_READ_MIN_LEN);
     failed = 1;
 
-#if 0
-  //  Until someone fixes the IID problems, don't allow longs.
-  } else if ((sl < AS_READ_MAX_SHORT_LEN) &&
-             (lib[libIID]->useShortFragments)) {
-    gkFrag1->gkFragment_setType(GKFRAGMENT_SHORT);
-#endif
-
-  } else if (sl < AS_READ_MAX_MEDIUM_LEN) {
-    gkFrag1->gkFragment_setType(GKFRAGMENT_MEDIUM);
-
-#if 0
-  //  Until someone fixes the IID problems, don't allow longs.
-  } else if (sl < AS_READ_MAX_LONG_LEN) {
-    gkFrag1->gkFragment_setType(GKFRAGMENT_LONG);
-#endif
+  } else if (sl < AS_READ_MAX_NORMAL_LEN) {
+    //  Do nothing.
 
   } else {
-#if 0
-    gkFrag1->gkFragment_setType(GKFRAGMENT_LONG);
-#else
-    gkFrag1->gkFragment_setType(GKFRAGMENT_MEDIUM);
-#endif
-
     AS_GKP_reportError(AS_GKP_FRG_SEQ_TOO_LONG,
-                       AS_UID_toString(frg_mesg->eaccession), sl, AS_READ_MAX_LONG_LEN);
+                       AS_UID_toString(frg_mesg->eaccession), sl, AS_READ_MAX_NORMAL_LEN);
 
-#if 0
-    sl = AS_READ_MAX_LONG_LEN - 1;
-#else
-    sl = AS_READ_MAX_MEDIUM_LEN - 1;
-#endif
+    sl = AS_READ_MAX_NORMAL_LEN - 1;
 
     S[sl] = 0;
     Q[sl] = 0;
@@ -196,6 +173,7 @@ checkSequenceAndQuality(FragMesg *frg_mesg, int *seqLen) {
     failed = 1;
   }
 
+  gkFrag1->gkFragment_setType(GKFRAGMENT_NORMAL);
   gkFrag1->gkFragment_setLength(sl);
 
   *seqLen = sl;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.1 2009-09-25 19:44:02 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.2 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,10 +31,10 @@ static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.1 2009-09-25 19:44:02 bri
 
 class ilFragment {
  public:
-  char        snam[AS_READ_MAX_LONG_LEN];
-  char        sstr[AS_READ_MAX_LONG_LEN];
-  char        qnam[AS_READ_MAX_LONG_LEN];
-  char        qstr[AS_READ_MAX_LONG_LEN];
+  char        snam[AS_READ_MAX_NORMAL_LEN];
+  char        sstr[AS_READ_MAX_NORMAL_LEN];
+  char        qnam[AS_READ_MAX_NORMAL_LEN];
+  char        qstr[AS_READ_MAX_NORMAL_LEN];
   gkFragment  fr;
 };
 
@@ -43,7 +43,7 @@ static
 uint64
 processSeq(char *N, ilFragment *fr, char end) {
 
-  fr->fr.gkFragment_setType(GKFRAGMENT_SHORT);
+  fr->fr.gkFragment_setType(GKFRAGMENT_PACKED);
   fr->fr.gkFragment_setIsDeleted(1);
 
   fr->fr.gkFragment_setMateIID(0);
@@ -166,7 +166,7 @@ static
 uint64
 readQSeq(FILE *F, char *N, ilFragment *fr, char end) {
 
-  fgets(fr->qstr, AS_READ_MAX_LONG_LEN, F);  chomp(fr->qstr);
+  fgets(fr->qstr, AS_READ_MAX_NORMAL_LEN, F);  chomp(fr->qstr);
 
   if (feof(F))
     return(0);
@@ -203,10 +203,10 @@ static
 uint64
 readSeq(FILE *F, char *N, ilFragment *fr, char end) {
 
-  fgets(fr->snam, AS_READ_MAX_LONG_LEN, F);  chomp(fr->snam);
-  fgets(fr->sstr, AS_READ_MAX_LONG_LEN, F);  chomp(fr->sstr);
-  fgets(fr->qnam, AS_READ_MAX_LONG_LEN, F);  chomp(fr->qnam);
-  fgets(fr->qstr, AS_READ_MAX_LONG_LEN, F);  chomp(fr->qstr);
+  fgets(fr->snam, AS_READ_MAX_NORMAL_LEN, F);  chomp(fr->snam);
+  fgets(fr->sstr, AS_READ_MAX_NORMAL_LEN, F);  chomp(fr->sstr);
+  fgets(fr->qnam, AS_READ_MAX_NORMAL_LEN, F);  chomp(fr->qnam);
+  fgets(fr->qstr, AS_READ_MAX_NORMAL_LEN, F);  chomp(fr->qstr);
 
   if (feof(F))
     return(0);

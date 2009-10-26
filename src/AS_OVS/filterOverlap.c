@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: filterOverlap.c,v 1.6 2009-06-10 18:05:14 brianwalenz Exp $";
+const char *mainid = "$Id: filterOverlap.c,v 1.7 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,12 +46,12 @@ uint32  noContainment  = 0;
 char   *gkpStoreName   = NULL;
 
 typedef struct {
-  uint64   len:AS_READ_MAX_LONG_LEN_BITS;
-  uint64   beg:AS_READ_MAX_LONG_LEN_BITS;
-  uint64   end:AS_READ_MAX_LONG_LEN_BITS;
+  uint64   len:AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64   beg:AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64   end:AS_READ_MAX_NORMAL_LEN_BITS;
 } fragInfo;
 
-#if 3 * AS_READ_MAX_LONG_LEN_BITS > 64
+#if 3 * AS_READ_MAX_NORMAL_LEN_BITS > 64
 #error fragInfo is more than 64 bits.
 #endif
 
@@ -238,10 +238,10 @@ filterOBT(void) {
     uint32   abeg       = olap.dat.obt.a_beg;
     uint32   aend       = olap.dat.obt.a_end;
     uint32   bbeg       = olap.dat.obt.b_beg;
-    uint32   bend       = olap.dat.obt.b_end;
+    uint32   bend       = (olap.dat.obt.b_end_hi << 9) | (olap.dat.obt.b_end_lo);
 
     if (olap.dat.obt.fwd == 0) {
-      bbeg = olap.dat.obt.b_end;
+      bbeg = (olap.dat.obt.b_end_hi << 9) | (olap.dat.obt.b_end_lo);
       bend = olap.dat.obt.b_beg;
     }
 

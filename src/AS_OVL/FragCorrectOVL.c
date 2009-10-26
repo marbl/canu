@@ -25,7 +25,7 @@
 //   Programmer:  A. Delcher
 //      Started:   4 Dec 2000
 
-const char *mainid = "$Id: FragCorrectOVL.c,v 1.32 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: FragCorrectOVL.c,v 1.33 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -75,9 +75,7 @@ const char *mainid = "$Id: FragCorrectOVL.c,v 1.32 2009-06-10 18:05:13 brianwale
     //  store at a time for processing
 #define  MAX_FILENAME_LEN            1000
     //  Longest name allowed for a file in the overlap store
-#define  MAX_FRAG_LEN                2048
-    //  The longest fragment allowed
-#define  MAX_ERRORS                  (1 + (int) (AS_OVL_ERROR_RATE * MAX_FRAG_LEN))
+#define  MAX_ERRORS                  (1 + (int) (AS_OVL_ERROR_RATE * AS_READ_MAX_NORMAL_LEN))
     //  Most errors in any edit distance computation
     //  KNOWN ONLY AT RUN TIME
 #define  MAX_DEGREE                  32767
@@ -180,7 +178,7 @@ typedef  struct
    gkStream  *frag_stream;
    gkFragment *frag_read;
    Frag_List_t  * frag_list;
-   char  rev_seq [AS_READ_MAX_LEN + 1];
+   char  rev_seq [AS_READ_MAX_NORMAL_LEN + 1];
    int  rev_id;
    int  ** edit_array;
    int  * edit_space;
@@ -194,20 +192,19 @@ static char  * Correction_Filename = DEFAULT_CORRECTION_FILENAME;
     // Name of file to which correction information is sent
 static int  Degree_Threshold = DEFAULT_DEGREE_THRESHOLD;
     // Set keep flag on end of fragment if number of olaps < this value
-static int  * Edit_Array [AS_READ_MAX_LEN+1];
+static int  * Edit_Array [AS_READ_MAX_NORMAL_LEN+1];
     // Use for alignment calculation.  Points into  Edit_Space .
     // (only MAX_ERRORS needed)
-static int  Edit_Match_Limit [AS_READ_MAX_LEN+1] = {0};
+static int  Edit_Match_Limit [AS_READ_MAX_NORMAL_LEN+1] = {0};
     // This array [e] is the minimum value of  Edit_Array [e] [d]
     // to be worth pursuing in edit-distance computations between guides
     // (only MAX_ERRORS needed)
-static int  Edit_Space [(AS_READ_MAX_LEN + 4) * AS_READ_MAX_LEN];
+static int *Edit_Space = NULL;
     // Memory used by alignment calculation
-    // (only (MAX_ERRORS + 4) * MAX_ERRORS needed)
 static int  End_Exclude_Len = DEFAULT_END_EXCLUDE_LEN;
     // Length of ends of exact-match regions not used in preventing
     // sequence correction
-static int  Error_Bound [MAX_FRAG_LEN + 1];
+static int  Error_Bound [AS_READ_MAX_NORMAL_LEN + 1];
     //  This array [i]  is the maximum number of errors allowed
     //  in a match between sequences of length  i , which is
     //  i * MAXERROR_RATE .
@@ -422,7 +419,7 @@ static void  Analyze_Alignment
 
   {
    int  prev_match, next_match;
-   Vote_t  vote [MAX_FRAG_LEN];
+   Vote_t  vote [AS_READ_MAX_NORMAL_LEN];
    int  ct;
    int  i, j, k, m, p;
 
@@ -630,7 +627,7 @@ static int  Binomial_Bound
    if  (Start < e)
        Start = e;
 
-   for  (n = Start;  n < MAX_FRAG_LEN;  n ++)
+   for  (n = Start;  n < AS_READ_MAX_NORMAL_LEN;  n ++)
      {
       if  (n <= 35)
           {
@@ -672,7 +669,7 @@ static int  Binomial_Bound
           }
      }
 
-   return  MAX_FRAG_LEN;
+   return  AS_READ_MAX_NORMAL_LEN;
   }
 
 
@@ -772,7 +769,7 @@ static void  Compute_Delta
 //  the number of entries in  delta .
 
   {
-    int  delta_stack [AS_READ_MAX_LEN+1];  //  only MAX_ERRORS needed
+    int  delta_stack [AS_READ_MAX_NORMAL_LEN+1];  //  only MAX_ERRORS needed
    int  from, last, max;
    int  i, j, k;
 
@@ -996,7 +993,7 @@ static void  Extract_Needed_Frags
 #endif
      {
       char *seqptr = NULL;
-      char  seq_buff[AS_READ_MAX_LEN+1];
+      char  seq_buff[AS_READ_MAX_NORMAL_LEN+1];
 
       FragType  read_type;
       unsigned  deleted, clear_start, clear_end;
@@ -1169,6 +1166,9 @@ static void  Initialize_Globals
    int  i, offset, del;
    int  e, start;
 
+   // only (MAX_ERRORS + 4) * MAX_ERRORS needed
+   Edit_Space = (int32 *)safe_malloc(sizeof(int32) * (AS_READ_MAX_NORMAL_LEN + 4) * AS_READ_MAX_NORMAL_LEN);
+
    offset = 2;
    del = 6;
    for  (i = 0;  i < MAX_ERRORS;  i ++)
@@ -1190,7 +1190,7 @@ static void  Initialize_Globals
       assert (Edit_Match_Limit [e] >= Edit_Match_Limit [e - 1]);
      }
 
-   for  (i = 0;  i <= MAX_FRAG_LEN;  i ++)
+   for  (i = 0;  i <= AS_READ_MAX_NORMAL_LEN;  i ++)
      Error_Bound [i] = (int) (i * AS_OVL_ERROR_RATE);
 
    Frag_List . ct = 0;
@@ -1891,8 +1891,8 @@ static void  Read_Frags
 //  global  Frag .
 
   {
-   char  seq_buff [AS_READ_MAX_LEN + 1];
-   char  qual_buff [AS_READ_MAX_LEN + 1];
+   char  seq_buff [AS_READ_MAX_NORMAL_LEN + 1];
+   char  qual_buff [AS_READ_MAX_NORMAL_LEN + 1];
    gkFragment  frag_read;
    unsigned  clear_start, clear_end;
    int32  high_store_frag;
@@ -2079,9 +2079,9 @@ static void  Stream_Old_Frags
   {
    Thread_Work_Area_t  wa;
    gkFragment frag_read;
-   char  seq_buff [AS_READ_MAX_LEN + 1];
+   char  seq_buff [AS_READ_MAX_NORMAL_LEN + 1];
    char *seqptr;
-   char  rev_seq [AS_READ_MAX_LEN + 1] = "acgt";
+   char  rev_seq [AS_READ_MAX_NORMAL_LEN + 1] = "acgt";
    unsigned  clear_start, clear_end;
    int32  lo_frag, hi_frag;
    int  next_olap;

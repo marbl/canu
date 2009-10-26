@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.h,v 1.15 2009-08-29 05:43:09 brianwalenz Exp $
- * $Revision: 1.15 $
+ * $Id: SharedOVL.h,v 1.16 2009-10-26 13:20:26 brianwalenz Exp $
+ * $Revision: 1.16 $
 */
 
 
 #ifndef  __SHAREDOVL_H_INCLUDED
 #define  __SHAREDOVL_H_INCLUDED
 
-static const char *rcsid_SHAREDOVL_H_INCLUDED = "$Id: SharedOVL.h,v 1.15 2009-08-29 05:43:09 brianwalenz Exp $";
+static const char *rcsid_SHAREDOVL_H_INCLUDED = "$Id: SharedOVL.h,v 1.16 2009-10-26 13:20:26 brianwalenz Exp $";
 
 
 #include "AS_OVL_delcher.h"
@@ -77,9 +77,7 @@ static const char *rcsid_SHAREDOVL_H_INCLUDED = "$Id: SharedOVL.h,v 1.15 2009-08
   //  sequence in  Sequence_Diff_t
 #define  EPSILON                     1e-8
   //  Small value to correct floating-point rounding errors
-#define  FRAG_LEN_BITS            15
-  //  Number of bits to store lengths and positions on fragments
-#define  MAX_ERRORS               (1 + (int) (AS_OVL_ERROR_RATE * AS_READ_MAX_LEN))
+#define  MAX_ERRORS               (1 + (int) (AS_OVL_ERROR_RATE * AS_READ_MAX_NORMAL_LEN))
   // Most errors in any edit distance computation // 0.40
 #define  MIN_BRANCH_END_DIST      20
   // Branch points must be at least this many bases from the
@@ -154,33 +152,32 @@ typedef struct
 typedef struct
   {
    int32  b_iid;
-   unsigned  a_lo : FRAG_LEN_BITS;
-   unsigned  a_hi : FRAG_LEN_BITS;
-   unsigned  b_lo : FRAG_LEN_BITS;
-   unsigned  b_hi : FRAG_LEN_BITS;
-   unsigned  b_len : FRAG_LEN_BITS;
-   uint32  seed_value : SEED_LEN_BITS;
-   unsigned  diff_len : DIFF_LEN_BITS;
-   unsigned  disregard : 1;
-   unsigned  is_homopoly_type : 1;
-        // true means a 454-type read with homopolymer errors
-   unsigned  flipped : 1;
+   unsigned  a_lo             : AS_READ_MAX_NORMAL_LEN_BITS;
+   unsigned  a_hi             : AS_READ_MAX_NORMAL_LEN_BITS;
+   unsigned  b_lo             : AS_READ_MAX_NORMAL_LEN_BITS;
+   unsigned  b_hi             : AS_READ_MAX_NORMAL_LEN_BITS;
+   unsigned  b_len            : AS_READ_MAX_NORMAL_LEN_BITS;
+   uint32  seed_value         : SEED_LEN_BITS;
+   unsigned  diff_len         : DIFF_LEN_BITS;
+   unsigned  disregard        : 1;
+   unsigned  is_homopoly_type : 1; // true means a 454-type read with homopolymer errors
+   unsigned  flipped          : 1;
    Diff_Entry_t  * de;
   }  Sequence_Diff_t;
 
 typedef struct
   {
-   unsigned int  score : ALIGNMENT_SCORE_BITS;
-   unsigned int  errors : ALIGNMENT_ERROR_BITS;
-   int  from : 2;  // -1,0,+1 are from left,top-left,top resp.
+   unsigned int  score   : ALIGNMENT_SCORE_BITS;
+   unsigned int  errors  : ALIGNMENT_ERROR_BITS;
+   int  from             : 2;  // -1,0,+1 are from left,top-left,top resp.
   }  Alignment_Cell_t;
 
 typedef struct
   {
-   unsigned int  len : 16;
-   unsigned int  score : HOMOPOLY_SCORE_BITS;
-   unsigned int  at_end : 1;
-   int  from : 2;
+   unsigned int  len     : 16;
+   unsigned int  score   : HOMOPOLY_SCORE_BITS;
+   unsigned int  at_end  : 1;
+   int  from             : 2;
   }  Homopoly_Match_Entry_t;
 
 

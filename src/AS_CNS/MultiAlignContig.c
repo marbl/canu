@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignContig.c,v 1.6 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignContig.c,v 1.7 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -54,7 +54,7 @@ PlaceFragments(int32 fid,
   if (afrag->n_components == 0)
     return;
 
-  VA_TYPE(int32) *trace = CreateVA_int32(AS_READ_MAX_LEN+1);
+  VA_TYPE(int32) *trace = CreateVA_int32(AS_READ_MAX_NORMAL_LEN+1);
 
   for (; belem->frg_or_utg == CNS_ELEMENT_IS_FRAGMENT; belem++) {
 
@@ -171,7 +171,7 @@ MultiAlignContig(MultiAlignT  *ma,
                  gkStore      *UNUSED,
                  CNS_PrintKey  printwhat,
                  CNS_Options  *opp) {
-
+  uint32        num_bases     = 0;
   uint32        num_unitigs   = GetNumIntUnitigPoss(ma->u_list);
   uint32        num_frags     = GetNumIntMultiPoss(ma->f_list);
   uint32        num_columns   = 0;
@@ -183,13 +183,22 @@ MultiAlignContig(MultiAlignT  *ma,
   SeqInterval  *offsets       = (SeqInterval *) safe_calloc(num_unitigs,sizeof(SeqInterval));
 
   for (uint32 i=0;i<num_unitigs;i++) {
-    //fprintf(stderr, "CTG %d UTG %d %d-%d\n",
-    //        ma->maID, ulist[i].ident, ulist[i].position.bgn, ulist[i].position.end);
+    int32 flen   = (ulist[i].position.bgn < ulist[i].position.end) ? (ulist[i].position.end < ulist[i].position.bgn) : (ulist[i].position.bgn - ulist[i].position.end);
+    num_bases   += flen + 2 * AS_CNS_ERROR_RATE * flen;
+
     num_columns = (ulist[i].position.bgn > num_columns) ? ulist[i].position.bgn : num_columns;
     num_columns = (ulist[i].position.end > num_columns) ? ulist[i].position.end : num_columns;
+
+    //fprintf(stderr, "CTG %d UTG %d %d-%d\n",
+    //        ma->maID, ulist[i].ident, ulist[i].position.bgn, ulist[i].position.end);
   }
 
-  ResetStores(num_unitigs, num_columns);
+  for (uint32 i=0;i<num_frags;i++) {
+    int32 flen   = (flist[i].position.bgn < flist[i].position.end) ? (flist[i].position.end < flist[i].position.bgn) : (flist[i].position.bgn - flist[i].position.end);
+    num_bases   += flen + 2 * AS_CNS_ERROR_RATE * flen;
+  }
+
+  ResetStores(num_bases, num_unitigs, num_columns);
 
   fragmentMap   = CreateScalarHashTable_AS();
   fragmentToIMP = CreateScalarHashTable_AS();
@@ -240,7 +249,7 @@ MultiAlignContig(MultiAlignT  *ma,
   //    a)  containing frag (if contained)
   // or b)  previously aligned frag
 
-  VA_TYPE(int32) *trace = CreateVA_int32(AS_READ_MAX_LONG_LEN+1);
+  VA_TYPE(int32) *trace = CreateVA_int32(AS_READ_MAX_NORMAL_LEN+1);
 
   for (uint32 i=1;i<num_unitigs;i++) {
     Fragment *afrag = NULL;

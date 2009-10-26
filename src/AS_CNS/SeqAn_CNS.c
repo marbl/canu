@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: SeqAn_CNS.c,v 1.8 2009-07-30 10:42:56 brianwalenz Exp $";
+const char *mainid = "$Id: SeqAn_CNS.c,v 1.9 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -38,7 +38,7 @@ const char *mainid = "$Id: SeqAn_CNS.c,v 1.8 2009-07-30 10:42:56 brianwalenz Exp
 #define AS_SEQAN_MAX_HEADER_LENGTH     4
 #define AS_SEQAN_MAX_LINE_LENGTH      80
 #define AS_SEQAN_MAX_BUFFER_LENGTH  1024
-#define AS_SEQAN_MAX_RESULT_LENGTH  AS_READ_MAX_LEN+AS_SEQAN_MAX_HEADER_LENGTH
+#define AS_SEQAN_MAX_RESULT_LENGTH  AS_READ_MAX_NORMAL_LEN+AS_SEQAN_MAX_HEADER_LENGTH
 #define AS_SEQAN_INPUT_NAME         "in.reads"
 #define AS_SEQAN_RESULT             "temp.result"
 #define AS_SEQAN_CNS                "temp.cns"

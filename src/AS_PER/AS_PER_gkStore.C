@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.11 2009-10-20 18:32:08 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.12 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,18 +55,18 @@ gkStore::gkStore(const char *path, int partition) {
   assert(partition > 0);
   partnum = partition;
 
-  sprintf(name,"%s/fsm.%03d", storePath, partnum);
-  partfsm = createIndexStore(name, "partfsm", sizeof(gkShortFragment), 1);
+  sprintf(name,"%s/fpk.%03d", storePath, partnum);
+  partfpk = createIndexStore(name, "partfpk", sizeof(gkPackedFragment), 1);
 
-  sprintf(name,"%s/fmd.%03d", storePath, partnum);
-  partfmd = createIndexStore(name, "partfmd", sizeof(gkMediumFragment), 1);
-  sprintf(name,"%s/qmd.%03d", storePath, partnum);
-  partqmd = createStringStore(name, "partqmd");
+  sprintf(name,"%s/fnm.%03d", storePath, partnum);
+  partfnm = createIndexStore(name, "partfnm", sizeof(gkNormalFragment), 1);
+  sprintf(name,"%s/qnm.%03d", storePath, partnum);
+  partqnm = createStringStore(name, "partqnm");
 
-  sprintf(name,"%s/flg.%03d", storePath, partnum);
-  partflg = createIndexStore(name, "partflg", sizeof(gkLongFragment), 1);
-  sprintf(name,"%s/qlg.%03d", storePath, partnum);
-  partqlg = createStringStore(name, "partqlg");
+  sprintf(name,"%s/fsb.%03d", storePath, partnum);
+  partfsb = createIndexStore(name, "partfsb", sizeof(gkStrobeFragment), 1);
+  sprintf(name,"%s/qsb.%03d", storePath, partnum);
+  partqsb = createStringStore(name, "partqsb");
 }
 
 
@@ -96,20 +96,20 @@ gkStore::gkStore_open(int writable) {
     exit(1);
   }
 
-  if (inf.gkVersion != 3) {
-    fprintf(stderr, "gkStore_open()-- Invalid version!  Found version %d, code supports version 3.\n", inf.gkVersion);
+  if (inf.gkVersion != 4) {
+    fprintf(stderr, "gkStore_open()-- Invalid version!  Found version %d, code supports version 4.\n", inf.gkVersion);
     exit(1);
   }
 
   if ((inf.gkLibrarySize        != sizeof(gkLibrary)) ||
-      (inf.gkShortFragmentSize  != sizeof(gkShortFragment)) ||
-      (inf.gkMediumFragmentSize != sizeof(gkMediumFragment)) ||
-      (inf.gkLongFragmentSize   != sizeof(gkLongFragment))) {
+      (inf.gkPackedFragmentSize != sizeof(gkPackedFragment)) ||
+      (inf.gkNormalFragmentSize != sizeof(gkNormalFragment)) ||
+      (inf.gkStrobeFragmentSize != sizeof(gkStrobeFragment))) {
     fprintf(stderr, "gkStore_open()--  ERROR!  Incorrect element sizes; code and store are incompatible.\n");
     fprintf(stderr, "                  gkLibrary:          store %5d   code %5d bytes\n", inf.gkLibrarySize, (int)sizeof(gkLibrary));
-    fprintf(stderr, "                  gkShortFragment:    store %5d   code %5d bytes\n", inf.gkShortFragmentSize, (int)sizeof(gkShortFragment));
-    fprintf(stderr, "                  gkMediumFragment:   store %5d   code %5d bytes\n", inf.gkMediumFragmentSize, (int)sizeof(gkMediumFragment));
-    fprintf(stderr, "                  gkLongFragment:     store %5d   code %5d bytes\n", inf.gkLongFragmentSize, (int)sizeof(gkLongFragment));
+    fprintf(stderr, "                  gkPackedFragment:   store %5d   code %5d bytes\n", inf.gkPackedFragmentSize, (int)sizeof(gkPackedFragment));
+    fprintf(stderr, "                  gkNormalFragment:   store %5d   code %5d bytes\n", inf.gkNormalFragmentSize, (int)sizeof(gkNormalFragment));
+    fprintf(stderr, "                  gkStrobeFragment:   store %5d   code %5d bytes\n", inf.gkStrobeFragmentSize, (int)sizeof(gkStrobeFragment));
     exit(1);
   }
 
@@ -125,22 +125,22 @@ gkStore::gkStore_open(int writable) {
     strcpy(mode, "r");
   }
 
-  sprintf(name,"%s/fsm", storePath);
-  fsm   = openStore(name, mode);
+  sprintf(name,"%s/fpk", storePath);
+  fpk   = openStore(name, mode);
 
-  sprintf(name,"%s/fmd", storePath);
-  fmd   = openStore(name, mode);
-  sprintf(name,"%s/smd", storePath);
-  smd   = openStore(name, mode);
-  sprintf(name,"%s/qmd", storePath);
-  qmd   = openStore(name, mode);
+  sprintf(name,"%s/fnm", storePath);
+  fnm   = openStore(name, mode);
+  sprintf(name,"%s/snm", storePath);
+  snm   = openStore(name, mode);
+  sprintf(name,"%s/qnm", storePath);
+  qnm   = openStore(name, mode);
 
-  sprintf(name,"%s/flg", storePath);
-  flg   = openStore(name, mode);
-  sprintf(name,"%s/slg", storePath);
-  slg   = openStore(name, mode);
-  sprintf(name,"%s/qlg", storePath);
-  qlg   = openStore(name, mode);
+  sprintf(name,"%s/fsb", storePath);
+  fsb   = openStore(name, mode);
+  sprintf(name,"%s/ssb", storePath);
+  ssb   = openStore(name, mode);
+  sprintf(name,"%s/qsb", storePath);
+  qsb   = openStore(name, mode);
 
   sprintf(name,"%s/lib", storePath);
   lib   = openStore(name, mode);
@@ -153,9 +153,9 @@ gkStore::gkStore_open(int writable) {
   plc    = openStore(name, mode);
   plc    = convertStoreToMemoryStore(plc); 
 
-  if ((NULL == fsm) ||
-      (NULL == fmd) || (NULL == smd) || (NULL == qmd) ||
-      (NULL == flg) || (NULL == slg) || (NULL == qlg) ||
+  if ((NULL == fpk) ||
+      (NULL == fnm) || (NULL == snm) || (NULL == qnm) ||
+      (NULL == fsb) || (NULL == ssb) || (NULL == qsb) ||
       (NULL == lib) || (NULL == uid) || (NULL == plc)) {
     fprintf(stderr,"Failed to open gkpStore '%s'.\n", storePath);
     exit(1);
@@ -180,11 +180,11 @@ gkStore::gkStore_create(void) {
   AS_UTL_mkdir(storePath);
 
   inf.gkMagic              = 1;
-  inf.gkVersion            = 3;
+  inf.gkVersion            = 4;
   inf.gkLibrarySize        = sizeof(gkLibrary);
-  inf.gkShortFragmentSize  = sizeof(gkShortFragment);
-  inf.gkMediumFragmentSize = sizeof(gkMediumFragment);
-  inf.gkLongFragmentSize   = sizeof(gkLongFragment);
+  inf.gkPackedFragmentSize = sizeof(gkPackedFragment);
+  inf.gkNormalFragmentSize = sizeof(gkNormalFragment);
+  inf.gkStrobeFragmentSize = sizeof(gkStrobeFragment);
   inf.gkPlacementSize      = sizeof(gkPlacement);
 
   sprintf(name,"%s/inf", storePath);
@@ -201,22 +201,22 @@ gkStore::gkStore_create(void) {
     exit(1);
   }
 
-  sprintf(name,"%s/fsm", storePath);
-  fsm = createIndexStore(name, "fsm", sizeof(gkShortFragment), 1);
+  sprintf(name,"%s/fpk", storePath);
+  fpk = createIndexStore(name, "fpk", sizeof(gkPackedFragment), 1);
 
-  sprintf(name,"%s/fmd", storePath);
-  fmd = createIndexStore(name, "fmd", sizeof(gkMediumFragment), 1);
-  sprintf(name,"%s/smd", storePath);
-  smd = createStringStore(name, "smd");
-  sprintf(name,"%s/qmd", storePath);
-  qmd = createStringStore(name, "qmd");
+  sprintf(name,"%s/fnm", storePath);
+  fnm = createIndexStore(name, "fnm", sizeof(gkNormalFragment), 1);
+  sprintf(name,"%s/snm", storePath);
+  snm = createStringStore(name, "snm");
+  sprintf(name,"%s/qnm", storePath);
+  qnm = createStringStore(name, "qnm");
 
-  sprintf(name,"%s/flg", storePath);
-  flg = createIndexStore(name, "flg", sizeof(gkLongFragment), 1);
-  sprintf(name,"%s/slg", storePath);
-  slg = createStringStore(name, "slg");
-  sprintf(name,"%s/qlg", storePath);
-  qlg = createStringStore(name, "qlg");
+  sprintf(name,"%s/fsb", storePath);
+  fsb = createIndexStore(name, "fsb", sizeof(gkStrobeFragment), 1);
+  sprintf(name,"%s/ssb", storePath);
+  ssb = createStringStore(name, "ssb");
+  sprintf(name,"%s/qsb", storePath);
+  qsb = createStringStore(name, "qsb");
 
   sprintf(name,"%s/lib", storePath);
   lib = createIndexStore(name, "lib", sizeof(gkLibrary), 1);
@@ -292,15 +292,15 @@ gkStore::~gkStore() {
     }
   }
 
-  closeStore(fsm);
+  closeStore(fpk);
 
-  closeStore(fmd);
-  closeStore(smd);
-  closeStore(qmd);
+  closeStore(fnm);
+  closeStore(snm);
+  closeStore(qnm);
 
-  closeStore(flg);
-  closeStore(slg);
-  closeStore(qlg);
+  closeStore(fsb);
+  closeStore(ssb);
+  closeStore(qsb);
 
   closeStore(lib);
 
@@ -322,11 +322,11 @@ gkStore::~gkStore() {
   safe_free(IIDtoTYPE);
   safe_free(IIDtoTIID);
 
-  closeStore(partfsm);
-  closeStore(partfmd);
-  closeStore(partflg);
-  closeStore(partqmd);
-  closeStore(partqlg);
+  closeStore(partfpk);
+  closeStore(partfnm);
+  closeStore(partfsb);
+  closeStore(partqnm);
+  closeStore(partqsb);
 
   DeleteHashTable_AS(partmap);
 
@@ -342,15 +342,15 @@ gkStore::gkStore_clear(void) {
 
   memset(&inf, 0, sizeof(gkStoreInfo));
 
-  fsm = NULL;
+  fpk = NULL;
 
-  fmd = NULL;
-  smd = NULL;
-  qmd = NULL;
+  fnm = NULL;
+  snm = NULL;
+  qnm = NULL;
 
-  flg = NULL;
-  slg = NULL;
-  qlg = NULL;
+  fsb = NULL;
+  ssb = NULL;
+  qsb = NULL;
 
   lib = NULL;
 
@@ -372,9 +372,9 @@ gkStore::gkStore_clear(void) {
 
   partnum = 0;
 
-  partfsm = NULL;
-  partfmd = partqmd = NULL;
-  partflg = partqlg = NULL;
+  partfpk = NULL;
+  partfnm = partqnm = NULL;
+  partfsb = partqsb = NULL;
 
   partmap = NULL;
 }
@@ -387,15 +387,15 @@ gkStore::gkStore_delete(void) {
   //  This function does both a ~gkStore (needed to close open files, and etc) and then removes the
   //  files from disk.  It does not handle a partitioned store.
 
-  closeStore(fsm);
+  closeStore(fpk);
 
-  closeStore(fmd);
-  closeStore(smd);
-  closeStore(qmd);
+  closeStore(fnm);
+  closeStore(snm);
+  closeStore(qnm);
 
-  closeStore(flg);
-  closeStore(slg);
-  closeStore(qlg);
+  closeStore(fsb);
+  closeStore(ssb);
+  closeStore(qsb);
 
   closeStore(lib);
 
@@ -412,11 +412,11 @@ gkStore::gkStore_delete(void) {
   safe_free(IIDtoTYPE);
   safe_free(IIDtoTIID);
 
-  closeStore(partfsm);
-  closeStore(partfmd);
-  closeStore(partflg);
-  closeStore(partqmd);
-  closeStore(partqlg);
+  closeStore(partfpk);
+  closeStore(partfnm);
+  closeStore(partfsb);
+  closeStore(partqnm);
+  closeStore(partqsb);
 
   DeleteHashTable_AS(partmap);
 
@@ -424,15 +424,15 @@ gkStore::gkStore_delete(void) {
 
   sprintf(name,"%s/inf", storePath);  unlink(name);
 
-  sprintf(name,"%s/fsm", storePath);  unlink(name);
+  sprintf(name,"%s/fpk", storePath);  unlink(name);
 
-  sprintf(name,"%s/fmd", storePath);  unlink(name);
-  sprintf(name,"%s/smd", storePath);  unlink(name);
-  sprintf(name,"%s/qmd", storePath);  unlink(name);
+  sprintf(name,"%s/fnm", storePath);  unlink(name);
+  sprintf(name,"%s/snm", storePath);  unlink(name);
+  sprintf(name,"%s/qnm", storePath);  unlink(name);
 
-  sprintf(name,"%s/flg", storePath);  unlink(name);
-  sprintf(name,"%s/slg", storePath);  unlink(name);
-  sprintf(name,"%s/qlg", storePath);  unlink(name);
+  sprintf(name,"%s/fsb", storePath);  unlink(name);
+  sprintf(name,"%s/ssb", storePath);  unlink(name);
+  sprintf(name,"%s/qsb", storePath);  unlink(name);
 
   sprintf(name,"%s/lib", storePath);  unlink(name);
   sprintf(name,"%s/uid", storePath);  unlink(name);
@@ -470,7 +470,7 @@ gkStore::gkStore_loadPartition(uint32 partition) {
 
   partnum = partition;
 
-  sprintf(name,"%s/fsm.%03d", storePath, partnum);
+  sprintf(name,"%s/fpk.%03d", storePath, partnum);
   if (AS_UTL_fileExists(name, FALSE, FALSE) == 0) {
     fprintf(stderr, "gkStore_loadPartition()--  Partition %d doesn't exist; normal store used instead.\n", partnum);
     return;
@@ -478,47 +478,47 @@ gkStore::gkStore_loadPartition(uint32 partition) {
 
   //  load all our data
 
-  sprintf(name,"%s/fsm.%03d", storePath, partnum);
-  partfsm = loadStorePartial(name, 0, 0);
+  sprintf(name,"%s/fpk.%03d", storePath, partnum);
+  partfpk = loadStorePartial(name, 0, 0);
 
-  sprintf(name,"%s/fmd.%03d", storePath, partnum);
-  partfmd = loadStorePartial(name, 0, 0);
-  sprintf(name,"%s/qmd.%03d", storePath, partnum);
-  partqmd = loadStorePartial(name, 0, 0);
+  sprintf(name,"%s/fnm.%03d", storePath, partnum);
+  partfnm = loadStorePartial(name, 0, 0);
+  sprintf(name,"%s/qnm.%03d", storePath, partnum);
+  partqnm = loadStorePartial(name, 0, 0);
 
-  sprintf(name,"%s/flg.%03d", storePath, partnum);
-  partflg = loadStorePartial(name, 0, 0);
-  sprintf(name,"%s/qlg.%03d", storePath, partnum);
-  partqlg = loadStorePartial(name, 0, 0);
+  sprintf(name,"%s/fsb.%03d", storePath, partnum);
+  partfsb = loadStorePartial(name, 0, 0);
+  sprintf(name,"%s/qsb.%03d", storePath, partnum);
+  partqsb = loadStorePartial(name, 0, 0);
 
   //  zip through the frags and build a map from iid to the frag record
 
   partmap = CreateScalarHashTable_AS();
 
-  f = getFirstElemStore(partfsm);
-  e = getLastElemStore(partfsm);
+  f = getFirstElemStore(partfpk);
+  e = getLastElemStore(partfpk);
   for (i=f; i<=e; i++) {
-    gkShortFragment *p = (gkShortFragment *)getIndexStorePtr(partfsm, i);
+    gkPackedFragment *p = (gkPackedFragment *)getIndexStorePtr(partfpk, i);
     if (InsertInHashTable_AS(partmap,
                              (uint64)p->readIID, 0,
                              (INTPTR)(p), 0) != HASH_SUCCESS)
       assert(0);
   }
 
-  f = getFirstElemStore(partfmd);
-  e = getLastElemStore(partfmd);
+  f = getFirstElemStore(partfnm);
+  e = getLastElemStore(partfnm);
   for (i=f; i<=e; i++) {
-    gkMediumFragment *p = (gkMediumFragment *)getIndexStorePtr(partfmd, i);
+    gkNormalFragment *p = (gkNormalFragment *)getIndexStorePtr(partfnm, i);
     if (InsertInHashTable_AS(partmap,
                              (uint64)p->readIID, 0,
                              (INTPTR)(p), 0) != HASH_SUCCESS)
       assert(0);
   }
 
-  f = getFirstElemStore(partflg);
-  e = getLastElemStore(partflg);
+  f = getFirstElemStore(partfsb);
+  e = getLastElemStore(partfsb);
   for (i=f; i<=e; i++) {
-    gkLongFragment *p = (gkLongFragment *)getIndexStorePtr(partflg, i);
+    gkStrobeFragment *p = (gkStrobeFragment *)getIndexStorePtr(partfsb, i);
     if (InsertInHashTable_AS(partmap,
                              (uint64)p->readIID, 0,
                              (INTPTR)(p), 0) != HASH_SUCCESS)
@@ -555,32 +555,32 @@ gkStore::gkStore_load(AS_IID beginIID, AS_IID endIID, int flags) {
 
   if (stType == edType) {
     switch (stType) {
-      case GKFRAGMENT_SHORT:
+      case GKFRAGMENT_PACKED:
         firstsm = stTiid;
         lastsm  = edTiid;
         break;
-      case GKFRAGMENT_MEDIUM:
+      case GKFRAGMENT_NORMAL:
         firstmd = stTiid;
         lastmd  = edTiid;
         break;
-      case GKFRAGMENT_LONG:
+      case GKFRAGMENT_STROBE:
         firstlg = stTiid;
         lastlg  = edTiid;
         break;
     }
-  } else if ((stType == GKFRAGMENT_SHORT) && (edType == GKFRAGMENT_MEDIUM)) {
+  } else if ((stType == GKFRAGMENT_PACKED) && (edType == GKFRAGMENT_NORMAL)) {
     firstsm = stTiid;
     lastsm  = STREAM_UNTILEND;
     firstmd = STREAM_FROMSTART;
     lastmd  = edTiid;
-  } else if ((stType == GKFRAGMENT_SHORT) && (edType == GKFRAGMENT_LONG)) {
+  } else if ((stType == GKFRAGMENT_PACKED) && (edType == GKFRAGMENT_STROBE)) {
     firstsm = stTiid;
     lastsm  = STREAM_UNTILEND;
     firstmd = STREAM_FROMSTART;
     lastmd  = STREAM_UNTILEND;
     firstlg = STREAM_FROMSTART;
     lastlg  = edTiid;
-  } else if ((stType == GKFRAGMENT_MEDIUM) && (edType == GKFRAGMENT_LONG)) {
+  } else if ((stType == GKFRAGMENT_NORMAL) && (edType == GKFRAGMENT_STROBE)) {
     firstmd = stTiid;
     lastmd  = STREAM_UNTILEND;
     firstlg = STREAM_FROMSTART;
@@ -595,51 +595,51 @@ gkStore::gkStore_load(AS_IID beginIID, AS_IID endIID, int flags) {
   //  "from the start" or "till the end".
 
   if (firstsm != lastsm) {
-    fsm = convertStoreToPartialMemoryStore(fsm, firstsm, lastsm);
+    fpk = convertStoreToPartialMemoryStore(fpk, firstsm, lastsm);
   }
 
   if (firstmd != lastmd) {
-    gkMediumFragment mdbeg;
-    gkMediumFragment mdend;
+    gkNormalFragment mdbeg;
+    gkNormalFragment mdend;
 
     mdbeg.seqOffset = mdend.seqOffset = 0;  //  Abuse.
     mdbeg.qltOffset = mdend.qltOffset = 0;
 
     if (firstmd != STREAM_FROMSTART)
-      getIndexStore(fmd, firstmd, &mdbeg);
+      getIndexStore(fnm, firstmd, &mdbeg);
 
-    if ((lastmd != STREAM_UNTILEND) && (lastmd + 1 <= getLastElemStore(fmd)))
-      getIndexStore(fmd, lastmd+1, &mdend);
+    if ((lastmd != STREAM_UNTILEND) && (lastmd + 1 <= getLastElemStore(fnm)))
+      getIndexStore(fnm, lastmd+1, &mdend);
 
-    fmd = convertStoreToPartialMemoryStore(fmd, firstmd, lastmd);
+    fnm = convertStoreToPartialMemoryStore(fnm, firstmd, lastmd);
 
     if (flags == GKFRAGMENT_SEQ)
-      smd = convertStoreToPartialMemoryStore(smd, mdbeg.seqOffset, mdend.seqOffset);
+      snm = convertStoreToPartialMemoryStore(snm, mdbeg.seqOffset, mdend.seqOffset);
 
     if (flags == GKFRAGMENT_QLT)
-      qmd = convertStoreToPartialMemoryStore(qmd, mdbeg.qltOffset, mdend.qltOffset);
+      qnm = convertStoreToPartialMemoryStore(qnm, mdbeg.qltOffset, mdend.qltOffset);
   }
 
   if (firstlg != lastlg) {
-    gkLongFragment lgbeg;
-    gkLongFragment lgend;
+    gkStrobeFragment lgbeg;
+    gkStrobeFragment lgend;
 
     lgbeg.seqOffset = lgend.seqOffset = 0;  //  Abuse.
     lgbeg.qltOffset = lgend.qltOffset = 0;
 
     if (firstlg != STREAM_FROMSTART)
-      getIndexStore(flg, firstlg, &lgbeg);
+      getIndexStore(fsb, firstlg, &lgbeg);
 
-    if ((lastlg != STREAM_UNTILEND) && (lastlg + 1 <= getLastElemStore(flg)))
-      getIndexStore(flg, lastlg+1, &lgend);
+    if ((lastlg != STREAM_UNTILEND) && (lastlg + 1 <= getLastElemStore(fsb)))
+      getIndexStore(fsb, lastlg+1, &lgend);
 
-    flg = convertStoreToPartialMemoryStore(flg, firstlg, lastlg);
+    fsb = convertStoreToPartialMemoryStore(fsb, firstlg, lastlg);
 
     if (flags == GKFRAGMENT_SEQ)
-      slg = convertStoreToPartialMemoryStore(slg, lgbeg.seqOffset, lgend.seqOffset);
+      ssb = convertStoreToPartialMemoryStore(ssb, lgbeg.seqOffset, lgend.seqOffset);
 
     if (flags == GKFRAGMENT_QLT)
-      qlg = convertStoreToPartialMemoryStore(qlg, lgbeg.qltOffset, lgend.qltOffset);
+      qsb = convertStoreToPartialMemoryStore(qsb, lgbeg.qltOffset, lgend.qltOffset);
   }
 }
 
@@ -656,15 +656,15 @@ gkStore::gkStore_decodeTypeFromIID(AS_IID iid, uint32& type, uint32& tiid) {
     tiid = IIDtoTIID[iid];
   } else {
     if (iid <= inf.numShort + inf.numMedium + inf.numLong) {
-      type = GKFRAGMENT_LONG;
+      type = GKFRAGMENT_STROBE;
       tiid = iid - inf.numShort - inf.numMedium;
     }
     if (iid <= inf.numShort + inf.numMedium) {
-      type = GKFRAGMENT_MEDIUM;
+      type = GKFRAGMENT_NORMAL;
       tiid = iid - inf.numShort;
     }
     if (iid <= inf.numShort) {
-      type = GKFRAGMENT_SHORT;
+      type = GKFRAGMENT_PACKED;
       tiid = iid;
     }
   }
@@ -689,17 +689,17 @@ gkStore::gkStore_getFragmentData(gkStream *gst, gkFragment *fr, uint32 flags) {
   //  Get this out of the way first, it's a complete special case.
   //  It's also the easy case.  ;-)
   //
-  if (fr->type == GKFRAGMENT_SHORT) {
+  if (fr->type == GKFRAGMENT_PACKED) {
     fr->hasSEQ = 1;
     fr->hasQLT = 1;
 
     if (fr->enc == NULL) {
-      fr->enc = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LONG_LEN + 1);
-      fr->seq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LONG_LEN + 1);
-      fr->qlt = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LONG_LEN + 1);
+      fr->enc = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
+      fr->seq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
+      fr->qlt = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
     }
 
-    decodeSequenceQuality(fr->fr.sm.enc, fr->seq, fr->qlt);
+    decodeSequenceQuality(fr->fr.packed.enc, fr->seq, fr->qlt);
 
     return;
   }
@@ -721,19 +721,19 @@ gkStore::gkStore_getFragmentData(gkStream *gst, gkFragment *fr, uint32 flags) {
     fr->hasSEQ = 1;
 
     if (fr->enc == NULL) {
-      fr->enc = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LONG_LEN + 1);
-      fr->seq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LONG_LEN + 1);
-      fr->qlt = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LONG_LEN + 1);
+      fr->enc = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
+      fr->seq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
+      fr->qlt = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
     }
 
     assert(partmap == NULL);
 
     if (gst == NULL) {
-      store = (fr->type == GKFRAGMENT_MEDIUM) ? smd : slg;
-      getStringStore(store, seqOff, fr->enc, AS_READ_MAX_LONG_LEN, &actLen, &nxtOff);
+      store = (fr->type == GKFRAGMENT_NORMAL) ? snm : ssb;
+      getStringStore(store, seqOff, fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen, &nxtOff);
     } else {
-      stream = (fr->type == GKFRAGMENT_MEDIUM) ? gst->smd : gst->slg;
-      nextStream(stream, fr->enc, AS_READ_MAX_LONG_LEN, &actLen);
+      stream = (fr->type == GKFRAGMENT_NORMAL) ? gst->snm : gst->ssb;
+      nextStream(stream, fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen);
     }
 
     decodeSequence(fr->enc, fr->seq, seqLen);
@@ -747,20 +747,20 @@ gkStore::gkStore_getFragmentData(gkStream *gst, gkFragment *fr, uint32 flags) {
     fr->hasQLT = 1;
 
     if (fr->enc == NULL) {
-      fr->enc = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LONG_LEN + 1);
-      fr->seq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LONG_LEN + 1);
-      fr->qlt = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LONG_LEN + 1);
+      fr->enc = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
+      fr->seq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
+      fr->qlt = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
     }
 
     if (partmap) {
-      store = (fr->type == GKFRAGMENT_MEDIUM) ? partqmd : partqlg;
-      getStringStore(store, qltOff, fr->enc, AS_READ_MAX_LONG_LEN, &actLen, &nxtOff);
+      store = (fr->type == GKFRAGMENT_NORMAL) ? partqnm : partqsb;
+      getStringStore(store, qltOff, fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen, &nxtOff);
     } else if (gst == NULL) {
-      store = (fr->type == GKFRAGMENT_MEDIUM) ? qmd : qlg;
-      getStringStore(store, qltOff, fr->enc, AS_READ_MAX_LONG_LEN, &actLen, &nxtOff);
+      store = (fr->type == GKFRAGMENT_NORMAL) ? qnm : qsb;
+      getStringStore(store, qltOff, fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen, &nxtOff);
     } else {
-      stream = (fr->type == GKFRAGMENT_MEDIUM) ? gst->qmd : gst->qlg;
-      nextStream(stream, fr->enc, AS_READ_MAX_LONG_LEN, &actLen);
+      stream = (fr->type == GKFRAGMENT_NORMAL) ? gst->qnm : gst->qsb;
+      nextStream(stream, fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen);
     }
 
     //fr->enc[actLen] = 0;
@@ -797,28 +797,28 @@ gkStore::gkStore_getFragment(AS_IID iid, gkFragment *fr, int32 flags) {
     assert(fr->isGKP == 0);
 
     switch (fr->type) {
-      case GKFRAGMENT_SHORT:
-        memcpy(&fr->fr.sm, p, sizeof(gkShortFragment));
+      case GKFRAGMENT_PACKED:
+        memcpy(&fr->fr.packed, p, sizeof(gkPackedFragment));
         break;
-      case GKFRAGMENT_MEDIUM:
-        memcpy(&fr->fr.md, p, sizeof(gkMediumFragment));
+      case GKFRAGMENT_NORMAL:
+        memcpy(&fr->fr.normal, p, sizeof(gkNormalFragment));
         break;
-      case GKFRAGMENT_LONG:
-        memcpy(&fr->fr.lg, p, sizeof(gkLongFragment));
+      case GKFRAGMENT_STROBE:
+        memcpy(&fr->fr.strobe, p, sizeof(gkStrobeFragment));
         break;
     }
 
   } else {
     //  Not paritioned, load from disk store.
     switch (fr->type) {
-      case GKFRAGMENT_SHORT:
-        getIndexStore(fsm, fr->tiid, &fr->fr.sm);
+      case GKFRAGMENT_PACKED:
+        getIndexStore(fpk, fr->tiid, &fr->fr.packed);
         break;
-      case GKFRAGMENT_MEDIUM:
-        getIndexStore(fmd, fr->tiid, &fr->fr.md);
+      case GKFRAGMENT_NORMAL:
+        getIndexStore(fnm, fr->tiid, &fr->fr.normal);
         break;
-      case GKFRAGMENT_LONG:
-        getIndexStore(flg, fr->tiid, &fr->fr.lg);
+      case GKFRAGMENT_STROBE:
+        getIndexStore(fsb, fr->tiid, &fr->fr.strobe);
         break;
     }
   }
@@ -859,14 +859,14 @@ gkStore::gkStore_setFragment(gkFragment *fr) {
   //fprintf(stderr, "gkStore_setFragment()--  Setting IID=%d to %d,%d\n", fr->gkFragment_getReadIID(), fr->type, fr->tiid);
 
   switch (fr->type) {
-    case GKFRAGMENT_SHORT:
-      setIndexStore(fsm, fr->tiid, &fr->fr.sm);
+    case GKFRAGMENT_PACKED:
+      setIndexStore(fpk, fr->tiid, &fr->fr.packed);
       break;
-    case GKFRAGMENT_MEDIUM:
-      setIndexStore(fmd, fr->tiid, &fr->fr.md);
+    case GKFRAGMENT_NORMAL:
+      setIndexStore(fnm, fr->tiid, &fr->fr.normal);
       break;
-    case GKFRAGMENT_LONG:
-      setIndexStore(flg, fr->tiid, &fr->fr.lg);
+    case GKFRAGMENT_STROBE:
+      setIndexStore(fsb, fr->tiid, &fr->fr.strobe);
       break;
   }
 }
@@ -889,20 +889,20 @@ gkStore::gkStore_delFragment(AS_IID iid, bool deleteMateFrag) {
 
   gkStore_getFragment(iid, &fr, GKFRAGMENT_INF);
   switch (fr.type) {
-    case GKFRAGMENT_SHORT:
-      mid = fr.fr.sm.mateIID;
-      fr.fr.sm.deleted = 1;
-      fr.fr.sm.mateIID = 0;
+    case GKFRAGMENT_PACKED:
+      mid = fr.fr.packed.mateIID;
+      fr.fr.packed.deleted = 1;
+      fr.fr.packed.mateIID = 0;
       break;
-    case GKFRAGMENT_MEDIUM:
-      mid = fr.fr.md.mateIID;
-      fr.fr.md.deleted = 1;
-      fr.fr.md.mateIID = 0;
+    case GKFRAGMENT_NORMAL:
+      mid = fr.fr.normal.mateIID;
+      fr.fr.normal.deleted = 1;
+      fr.fr.normal.mateIID = 0;
       break;
-    case GKFRAGMENT_LONG:
-      mid = fr.fr.lg.mateIID;
-      fr.fr.lg.deleted = 1;
-      fr.fr.lg.mateIID = 0;
+    case GKFRAGMENT_STROBE:
+      mid = fr.fr.strobe.mateIID;
+      fr.fr.strobe.deleted = 1;
+      fr.fr.strobe.mateIID = 0;
       break;
   }
   gkStore_setFragment(&fr);
@@ -913,17 +913,17 @@ gkStore::gkStore_delFragment(AS_IID iid, bool deleteMateFrag) {
 
   gkStore_getFragment(mid, &fr, GKFRAGMENT_INF);
   switch (fr.type) {
-    case GKFRAGMENT_SHORT:
-      fr.fr.sm.deleted = fr.fr.sm.deleted || deleteMateFrag;
-      fr.fr.sm.mateIID = 0;
+    case GKFRAGMENT_PACKED:
+      fr.fr.packed.deleted = fr.fr.packed.deleted || deleteMateFrag;
+      fr.fr.packed.mateIID = 0;
       break;
-    case GKFRAGMENT_MEDIUM:
-      fr.fr.md.deleted = fr.fr.md.deleted || deleteMateFrag;
-      fr.fr.md.mateIID = 0;
+    case GKFRAGMENT_NORMAL:
+      fr.fr.normal.deleted = fr.fr.normal.deleted || deleteMateFrag;
+      fr.fr.normal.mateIID = 0;
       break;
-    case GKFRAGMENT_LONG:
-      fr.fr.lg.deleted = fr.fr.lg.deleted || deleteMateFrag;
-      fr.fr.lg.mateIID = 0;
+    case GKFRAGMENT_STROBE:
+      fr.fr.strobe.deleted = fr.fr.strobe.deleted || deleteMateFrag;
+      fr.fr.strobe.mateIID = 0;
       break;
   }
   gkStore_setFragment(&fr);
@@ -954,49 +954,49 @@ gkStore::gkStore_addFragment(gkFragment *fr) {
   assert((fr->gkFragment_getIsDeleted() == 1) || (fr->clrBgn < fr->clrEnd));
 
   switch (fr->type) {
-    case GKFRAGMENT_SHORT:
+    case GKFRAGMENT_PACKED:
       fr->tiid          = ++inf.numShort;
-      fr->fr.sm.readIID = iid;
+      fr->fr.packed.readIID = iid;
 
-      assert(fr->tiid == getLastElemStore(fsm) + 1);
+      assert(fr->tiid == getLastElemStore(fpk) + 1);
 
       clearRange[AS_READ_CLEAR_CLR]->gkClearRange_makeSpaceShort(fr->tiid, fr->clrBgn, fr->clrEnd);
       clearRange[AS_READ_CLEAR_VEC]->gkClearRange_makeSpaceShort(fr->tiid, fr->vecBgn, fr->vecEnd);
       clearRange[AS_READ_CLEAR_MAX]->gkClearRange_makeSpaceShort(fr->tiid, fr->maxBgn, fr->maxEnd);
       clearRange[AS_READ_CLEAR_TNT]->gkClearRange_makeSpaceShort(fr->tiid, fr->tntBgn, fr->tntEnd);
 
-      fr->fr.sm.clearBeg = fr->clrBgn;
-      fr->fr.sm.clearEnd = fr->clrEnd;
+      fr->fr.packed.clearBeg = fr->clrBgn;
+      fr->fr.packed.clearEnd = fr->clrEnd;
       break;
 
-    case GKFRAGMENT_MEDIUM:
+    case GKFRAGMENT_NORMAL:
       fr->tiid          = ++inf.numMedium;
-      fr->fr.md.readIID = iid;
+      fr->fr.normal.readIID = iid;
 
-      assert(fr->tiid == getLastElemStore(fmd) + 1);
+      assert(fr->tiid == getLastElemStore(fnm) + 1);
 
       clearRange[AS_READ_CLEAR_CLR]->gkClearRange_makeSpaceMedium(fr->tiid, fr->clrBgn, fr->clrEnd);
       clearRange[AS_READ_CLEAR_VEC]->gkClearRange_makeSpaceMedium(fr->tiid, fr->vecBgn, fr->vecEnd);
       clearRange[AS_READ_CLEAR_MAX]->gkClearRange_makeSpaceMedium(fr->tiid, fr->maxBgn, fr->maxEnd);
       clearRange[AS_READ_CLEAR_TNT]->gkClearRange_makeSpaceMedium(fr->tiid, fr->tntBgn, fr->tntEnd);
 
-      fr->fr.md.clearBeg = fr->clrBgn;
-      fr->fr.md.clearEnd = fr->clrEnd;
+      fr->fr.normal.clearBeg = fr->clrBgn;
+      fr->fr.normal.clearEnd = fr->clrEnd;
       break;
 
-    case GKFRAGMENT_LONG:
+    case GKFRAGMENT_STROBE:
       fr->tiid           = ++inf.numLong;
-      fr->fr.lg.readIID = iid;
+      fr->fr.strobe.readIID = iid;
 
-      assert(fr->tiid == getLastElemStore(flg) + 1);
+      assert(fr->tiid == getLastElemStore(fsb) + 1);
 
       clearRange[AS_READ_CLEAR_CLR]->gkClearRange_makeSpaceLong(fr->tiid, fr->clrBgn, fr->clrEnd);
       clearRange[AS_READ_CLEAR_VEC]->gkClearRange_makeSpaceLong(fr->tiid, fr->vecBgn, fr->vecEnd);
       clearRange[AS_READ_CLEAR_MAX]->gkClearRange_makeSpaceLong(fr->tiid, fr->maxBgn, fr->maxEnd);
       clearRange[AS_READ_CLEAR_TNT]->gkClearRange_makeSpaceLong(fr->tiid, fr->tntBgn, fr->tntEnd);
 
-      fr->fr.lg.clearBeg = fr->clrBgn;
-      fr->fr.lg.clearEnd = fr->clrEnd;
+      fr->fr.strobe.clearBeg = fr->clrBgn;
+      fr->fr.strobe.clearEnd = fr->clrEnd;
       break;
   }
 
@@ -1020,56 +1020,56 @@ gkStore::gkStore_addFragment(gkFragment *fr) {
   }
 
   switch (fr->type) {
-    case GKFRAGMENT_SHORT:
-      assert(fr->seq[fr->fr.sm.seqLen] == 0);
-      assert(fr->qlt[fr->fr.sm.seqLen] == 0);
+    case GKFRAGMENT_PACKED:
+      assert(fr->seq[fr->fr.packed.seqLen] == 0);
+      assert(fr->qlt[fr->fr.packed.seqLen] == 0);
 
-      encodeSequenceQuality(fr->fr.sm.enc, fr->seq, fr->qlt);
+      encodeSequenceQuality(fr->fr.packed.enc, fr->seq, fr->qlt);
 
-      gkStore_setUIDtoIID(fr->fr.sm.readUID, fr->fr.sm.readIID, AS_IID_FRG);
-      appendIndexStore(fsm, &fr->fr.sm);
+      gkStore_setUIDtoIID(fr->fr.packed.readUID, fr->fr.packed.readIID, AS_IID_FRG);
+      appendIndexStore(fpk, &fr->fr.packed);
 
-      IIDtoTYPE[iid] = GKFRAGMENT_SHORT;
+      IIDtoTYPE[iid] = GKFRAGMENT_PACKED;
       IIDtoTIID[iid] = fr->tiid;
       break;
 
-    case GKFRAGMENT_MEDIUM:
-      assert(fr->seq[fr->fr.md.seqLen] == 0);
-      assert(fr->qlt[fr->fr.md.seqLen] == 0);
+    case GKFRAGMENT_NORMAL:
+      assert(fr->seq[fr->fr.normal.seqLen] == 0);
+      assert(fr->qlt[fr->fr.normal.seqLen] == 0);
 
-      fr->fr.md.seqOffset = getLastElemStore(smd) + 1;
-      fr->fr.md.qltOffset = getLastElemStore(qmd) + 1;
+      fr->fr.normal.seqOffset = getLastElemStore(snm) + 1;
+      fr->fr.normal.qltOffset = getLastElemStore(qnm) + 1;
 
-      gkStore_setUIDtoIID(fr->fr.md.readUID, fr->fr.md.readIID, AS_IID_FRG);
-      appendIndexStore(fmd, &fr->fr.md);
+      gkStore_setUIDtoIID(fr->fr.normal.readUID, fr->fr.normal.readIID, AS_IID_FRG);
+      appendIndexStore(fnm, &fr->fr.normal);
 
       encLen = encodeSequence(fr->enc, fr->seq);
-      appendStringStore(smd, fr->enc, encLen);
+      appendStringStore(snm, fr->enc, encLen);
 
       encodeSequenceQuality(fr->enc, fr->seq, fr->qlt);
-      appendStringStore(qmd, fr->enc, fr->fr.md.seqLen);
+      appendStringStore(qnm, fr->enc, fr->fr.normal.seqLen);
 
-      IIDtoTYPE[iid] = GKFRAGMENT_MEDIUM;
+      IIDtoTYPE[iid] = GKFRAGMENT_NORMAL;
       IIDtoTIID[iid] = fr->tiid;
       break;
 
-    case GKFRAGMENT_LONG:
-      assert(fr->seq[fr->fr.lg.seqLen] == 0);
-      assert(fr->qlt[fr->fr.lg.seqLen] == 0);
+    case GKFRAGMENT_STROBE:
+      assert(fr->seq[fr->fr.strobe.seqLen] == 0);
+      assert(fr->qlt[fr->fr.strobe.seqLen] == 0);
 
-      fr->fr.lg.seqOffset = getLastElemStore(slg) + 1;
-      fr->fr.lg.qltOffset = getLastElemStore(qlg) + 1;
+      fr->fr.strobe.seqOffset = getLastElemStore(ssb) + 1;
+      fr->fr.strobe.qltOffset = getLastElemStore(qsb) + 1;
 
-      gkStore_setUIDtoIID(fr->fr.lg.readUID, fr->fr.lg.readIID, AS_IID_FRG);
-      appendIndexStore(flg, &fr->fr.lg);
+      gkStore_setUIDtoIID(fr->fr.strobe.readUID, fr->fr.strobe.readIID, AS_IID_FRG);
+      appendIndexStore(fsb, &fr->fr.strobe);
 
       encLen = encodeSequence(fr->enc, fr->seq);
-      appendStringStore(slg, fr->enc, encLen);
+      appendStringStore(ssb, fr->enc, encLen);
 
       encodeSequenceQuality(fr->enc, fr->seq, fr->qlt);
-      appendStringStore(qlg, fr->enc, fr->fr.lg.seqLen);
+      appendStringStore(qsb, fr->enc, fr->fr.strobe.seqLen);
 
-      IIDtoTYPE[iid] = GKFRAGMENT_LONG;
+      IIDtoTYPE[iid] = GKFRAGMENT_STROBE;
       IIDtoTIID[iid] = fr->tiid;
       break;
   }
@@ -1124,30 +1124,30 @@ gkStore::gkStore_buildPartitions(short *partitionMap, uint32 maxPart) {
       continue;
 
 
-    if (fr.type == GKFRAGMENT_SHORT) {
-      appendIndexStore(gkpart[p]->partfsm, &fr.fr.sm);
+    if (fr.type == GKFRAGMENT_PACKED) {
+      appendIndexStore(gkpart[p]->partfpk, &fr.fr.packed);
     }
 
 
-    if (fr.type == GKFRAGMENT_MEDIUM) {
-      fr.fr.md.seqOffset = -1;
-      fr.fr.md.qltOffset = getLastElemStore(gkpart[p]->partqmd) + 1;
+    if (fr.type == GKFRAGMENT_NORMAL) {
+      fr.fr.normal.seqOffset = -1;
+      fr.fr.normal.qltOffset = getLastElemStore(gkpart[p]->partqnm) + 1;
 
-      appendIndexStore(gkpart[p]->partfmd, &fr.fr.md);
+      appendIndexStore(gkpart[p]->partfnm, &fr.fr.normal);
 
       encodeSequenceQuality(fr.enc, fr.seq, fr.qlt);
-      appendStringStore(gkpart[p]->partqmd, fr.enc, fr.fr.md.seqLen);
+      appendStringStore(gkpart[p]->partqnm, fr.enc, fr.fr.normal.seqLen);
     }
 
 
-    if (fr.type == GKFRAGMENT_LONG) {
-      fr.fr.lg.seqOffset = -1;
-      fr.fr.lg.qltOffset = getLastElemStore(gkpart[p]->partqlg) + 1;
+    if (fr.type == GKFRAGMENT_STROBE) {
+      fr.fr.strobe.seqOffset = -1;
+      fr.fr.strobe.qltOffset = getLastElemStore(gkpart[p]->partqsb) + 1;
 
-      appendIndexStore(gkpart[p]->partflg, &fr.fr.lg);
+      appendIndexStore(gkpart[p]->partfsb, &fr.fr.strobe);
 
       encodeSequenceQuality(fr.enc, fr.seq, fr.qlt);
-      appendStringStore(gkpart[p]->partqlg, fr.enc, fr.fr.lg.seqLen);
+      appendStringStore(gkpart[p]->partqsb, fr.enc, fr.fr.strobe.seqLen);
     }
   }
 

@@ -33,15 +33,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.21 2009-07-16 02:48:23 brianwalenz Exp $
- * $Revision: 1.21 $
+ * $Id: OlapFromSeedsOVL.h,v 1.22 2009-10-26 13:20:26 brianwalenz Exp $
+ * $Revision: 1.22 $
 */
 
 
 #ifndef  __OLAPFROMSEEDS_H_INCLUDED
 #define  __OLAPFROMSEEDS_H_INCLUDED
 
-static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1.21 2009-07-16 02:48:23 brianwalenz Exp $";
+static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1.22 2009-10-26 13:20:26 brianwalenz Exp $";
 
 //**ALD determine if use new code to analyze true multialignments
 #define  USE_NEW_STUFF  1
@@ -103,8 +103,6 @@ static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1
 #define  HOMOPOLY_LEN_VARIATION      3
   //  Homopolymer run-length differences greater than this
   //  can be errors for correlated difference detection
-#define  MAX_FRAG_LEN                AS_READ_MAX_LEN
-  //  The longest fragment allowed
 #define  MAX_DEGREE                  32767
   //  Highest number of votes before overflow
 #define  MAX_LINE                    1000
@@ -194,13 +192,13 @@ typedef  struct
    Sequence_Diff_t  * diff_list;
    uint32  num_diffs;
 #endif
-   unsigned  clear_len : FRAG_LEN_BITS;
-   unsigned  len : FRAG_LEN_BITS;
-   unsigned  trim_5p : FRAG_LEN_BITS;
-   unsigned  trim_3p : FRAG_LEN_BITS;
-   unsigned  left_degree : FRAG_LEN_BITS;
-   unsigned  shredded : 1;    // True if shredded read
-   unsigned  right_degree : FRAG_LEN_BITS;
+   unsigned  clear_len        : AS_READ_MAX_NORMAL_LEN_BITS;
+   unsigned  len              : AS_READ_MAX_NORMAL_LEN_BITS;
+   unsigned  trim_5p          : AS_READ_MAX_NORMAL_LEN_BITS;
+   unsigned  trim_3p          : AS_READ_MAX_NORMAL_LEN_BITS;
+   unsigned  left_degree      : AS_READ_MAX_NORMAL_LEN_BITS;
+   unsigned  shredded         : 1;    // True if shredded read
+   unsigned  right_degree     : AS_READ_MAX_NORMAL_LEN_BITS;
    unsigned  is_homopoly_type : 1;
   }  Frag_Info_t;
 
@@ -210,19 +208,19 @@ const int  NORMAL = 1;
 typedef  struct
   {
    int32  a_iid, b_iid;
-   signed int  a_hang : FRAG_LEN_BITS;
-   signed int  b_hang : FRAG_LEN_BITS;
-   signed int  orient : 2;
-   unsigned int k_count : 8;
+   signed int  a_hang    : AS_READ_MAX_NORMAL_LEN_BITS;
+   signed int  b_hang    : AS_READ_MAX_NORMAL_LEN_BITS;
+   signed int  orient    : 2;
+   unsigned int k_count  : 8;
   }  Olap_Info_t;
 
 typedef  struct
   {
    int32  id;
-   unsigned  trim_5p : FRAG_LEN_BITS;
-   unsigned  trim_3p : FRAG_LEN_BITS;
-   unsigned  len : FRAG_LEN_BITS;
-   unsigned  shredded : 1;
+   unsigned  trim_5p          : AS_READ_MAX_NORMAL_LEN_BITS;
+   unsigned  trim_3p          : AS_READ_MAX_NORMAL_LEN_BITS;
+   unsigned  len              : AS_READ_MAX_NORMAL_LEN_BITS;
+   unsigned  shredded         : 1;
    unsigned  is_homopoly_type : 1;
    int  start;              // position of beginning of sequence in  buffer
   }  Frag_List_Entry_t;
@@ -243,7 +241,7 @@ typedef  struct
    gkStream  * frag_stream;
    gkFragment     frag_read;
    Frag_List_t  * frag_list;
-   char  rev_seq [AS_READ_MAX_LEN + 1];
+   char  rev_seq [AS_READ_MAX_NORMAL_LEN + 1];
    int  rev_id;
    int  ** edit_array;
    Homopoly_Match_Entry_t  ** homopoly_edit_array;
@@ -251,7 +249,7 @@ typedef  struct
    unsigned  * can_look;
    int  * edit_space;
 #if USE_NEW_STUFF
-   Diff_Entry_t  diff_list [AS_READ_MAX_LEN+1];  //  only MAX_ERRORS needed
+   Diff_Entry_t  diff_list [AS_READ_MAX_NORMAL_LEN+1];  //  only MAX_ERRORS needed
    Alignment_Cell_t  * banded_space;
 #endif
   }  Thread_Work_Area_t;
@@ -286,17 +284,17 @@ static int  Doing_Partial_Overlaps = FALSE;
   // If set true by the G option (G for Granger)
   // then allow overlaps that do not extend to the end
   // of either read.
-static int  * Edit_Array [AS_READ_MAX_LEN+1];  //  only MAX_ERRORS needed
+static int  * Edit_Array [AS_READ_MAX_NORMAL_LEN+1];  //  only MAX_ERRORS needed
   // Use for alignment calculation.  Points into  Edit_Space .
-static int  Edit_Match_Limit [AS_READ_MAX_LEN+1] = {0};  //  only MAX_ERRORS needed
+static int  Edit_Match_Limit [AS_READ_MAX_NORMAL_LEN+1] = {0};  //  only MAX_ERRORS needed
   // This array [e] is the minimum value of  Edit_Array [e] [d]
   // to be worth pursuing in edit-distance computations between guides
-static int  Edit_Space [(AS_READ_MAX_LEN + 4) * AS_READ_MAX_LEN];  // only (MAX_ERRORS + 4) * MAX_ERRORS needed
+static int *Edit_Space = NULL;
   // Memory used by alignment calculation
 static int  End_Exclude_Len = DEFAULT_END_EXCLUDE_LEN;
   // Length of ends of exact-match regions not used in preventing
   // sequence correction
-static int  Error_Bound [MAX_FRAG_LEN + 1];
+static int  Error_Bound [AS_READ_MAX_NORMAL_LEN + 1];
   // This array [i]  is the maximum number of errors allowed
   // in a match between sequences of length  i , which is
   // i * MAXERROR_RATE .
@@ -418,7 +416,7 @@ static void  Convert_Delta_To_Diff
    int  a_len, int b_len, Sequence_Diff_t * diff, int errors,
    Thread_Work_Area_t * wa);
 static void  Count_From_Diff
-  (short int count [MAX_FRAG_LEN] [5], const char * seq, int seq_len,
+  (short int count [AS_READ_MAX_NORMAL_LEN] [5], const char * seq, int seq_len,
    int seq_is_homopoly, const Sequence_Diff_t * dp);
 static void  Determine_Homopoly_Corrections
     (FILE * fp, int sub, New_Vote_t * vote, char * seq,

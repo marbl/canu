@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.20 2009-09-25 01:08:31 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.21 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -570,20 +570,20 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
         if (update)
           fprintf(stdout, "lib uid %s doNotOverlapTrim %c -> %c\n",
                   AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.doNotOverlapTrim) ? 'T' : 'F');
-      } else if (strcasecmp(ACT, "useShortFragments") == 0) {
-        uint32 o = gklr.useShortFragments;
+      } else if (strcasecmp(ACT, "usePackedFragments") == 0) {
+        uint32 o = gklr.usePackedFragments;
         if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
-          gklr.useShortFragments = 1;
+          gklr.usePackedFragments = 1;
         else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
-          gklr.useShortFragments = 0;
+          gklr.usePackedFragments = 0;
         else {
-          fprintf(stderr, "invalid lib useShortFragments flag in edit line: '%s'\n", L);
+          fprintf(stderr, "invalid lib usePackedFragments flag in edit line: '%s'\n", L);
           errors++;
           goto nextline;
         }
         if (update)
-          fprintf(stdout, "lib uid %s useShortFragments %c -> %c\n",
-                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.useShortFragments) ? 'T' : 'F');
+          fprintf(stdout, "lib uid %s usePackedFragments %c -> %c\n",
+                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.usePackedFragments) ? 'T' : 'F');
       } else if (strcasecmp(ACT, "orientation") == 0) {
         uint32 o = gklr.orientation;
         uint32 i;

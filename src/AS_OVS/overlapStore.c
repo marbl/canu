@@ -19,9 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.22 2009-08-14 13:37:05 skoren Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.23 2009-10-26 13:20:26 brianwalenz Exp $";
 
 #include "overlapStore.h"
+#include "AS_OVS_overlap.h"  //  Just to know the sizes of structs
 
 #include <ctype.h>
 #include <unistd.h>  //  sysconf()
@@ -209,6 +210,11 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -e endIID         Stop dumping after 'endIID'.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Limited to %d open files.\n", sysconf(_SC_OPEN_MAX));
+    fprintf(stderr, "OVSoverlap     %d bytes\n", sizeof(OVSoverlap));
+    fprintf(stderr, "OVSoverlapINT  %d bytes\n", sizeof(OVSoverlapINT));
+    fprintf(stderr, "OVSoverlapDAT  %d bytes\n", sizeof(OVSoverlapDAT));
+    fprintf(stderr, "               %d %d %d\n", sizeof(struct OVSoverlapOVL), sizeof(struct OVSoverlapMER), sizeof(struct OVSoverlapOBT));
+    fprintf(stderr, "AS_OVS_NWORDS  %d\n", AS_OVS_NWORDS);
     exit(1);
   }
   if ((fileListLen == 0) && (operation == OP_BUILD)) {
