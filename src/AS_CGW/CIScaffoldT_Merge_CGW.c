@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.48 2009-09-09 08:21:56 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.49 2009-10-26 15:52:16 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -3044,17 +3044,17 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
 
     thisScaffoldID = thisScaffold->id;
 
-    fprintf(stderr,"* Examining scaffold %d " F_CID "\n",
-            cntScaffold, thisScaffoldID);
+    //fprintf(stderr,"* Examining scaffold %d " F_CID "\n",
+    //        cntScaffold, thisScaffoldID);
 
     if (thisScaffold->type != REAL_SCAFFOLD) {
-      fprintf(stderr, "Not a REAL_SCAFFOLD\n");
+      //fprintf(stderr, "Not a REAL_SCAFFOLD\n");
       continue;
     }
 
     if (thisScaffold->setID != NULLINDEX) {
       // This Scaffold has already been placed in a Scaffold.
-      fprintf(stderr, "Already placed in a scaffold.\n");
+      //fprintf(stderr, "Already placed in a scaffold.\n");
       continue;
     }
 
@@ -3073,7 +3073,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
     if ((AendScaffold != NULL) &&
         (BendScaffold != NULL)) {
       // This CI is not a starting point for a Scaffold.
-      fprintf(stderr, "CI not a starting point.\n");
+      //fprintf(stderr, "CI not a starting point.\n");
       continue;
     }
 
@@ -3091,7 +3091,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
 
     } else {
       // Singleton Scaffold
-      fprintf(stderr, "singleton scaffold.\n");
+      //fprintf(stderr, "singleton scaffold.\n");
       continue;
     }
 
