@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.22 2009-10-26 13:20:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.23 2009-10-26 16:38:43 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +33,7 @@ static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.22 2009-10-26 13:20:2
 #include "AS_OVS_overlapFile.h"
 #include "AS_UTL_fileIO.h"
 
-
+#define AS_OVS_CURRENT_VERSION  2
 
 static
 void
@@ -103,7 +103,7 @@ AS_OVS_openOverlapStorePrivate(const char *path, int useBackup, int saveSpace) {
   ovs->saveSpace = saveSpace;
 
   ovs->ovs.ovsMagic              = 1;
-  ovs->ovs.ovsVersion            = 2;
+  ovs->ovs.ovsVersion            = AS_OVS_CURRENT_VERSION;
   ovs->ovs.numOverlapsPerFile    = 0;  //  not used for reading
   ovs->ovs.smallestIID           = 1000000000;
   ovs->ovs.largestIID            = 0;
@@ -128,9 +128,9 @@ AS_OVS_openOverlapStorePrivate(const char *path, int useBackup, int saveSpace) {
     exit(1);
   }
 
-  if (ovs->ovs.ovsVersion != 2) {
+  if (ovs->ovs.ovsVersion != AS_OVS_CURRENT_VERSION) {
     fprintf(stderr, "ERROR:  Wrong overlapStore version; this code supports only version %d.  %s is version %d.\n",
-            2, path, ovs->ovs.ovsVersion);
+            AS_OVS_CURRENT_VERSION, path, ovs->ovs.ovsVersion);
     exit(1);
   }
 
@@ -488,7 +488,7 @@ AS_OVS_createOverlapStore(const char *path, int failOnExist) {
     exit(1);
   }
   ovs->ovs.ovsMagic              = 1;
-  ovs->ovs.ovsVersion            = 2;
+  ovs->ovs.ovsVersion            = AS_OVS_CURRENT_VERSION;
   ovs->ovs.numOverlapsPerFile    = 1024 * 1024 * 1024 / sizeof(OVSoverlapINT);
   ovs->ovs.smallestIID           = 1000000000;
   ovs->ovs.largestIID            = 0;
