@@ -22,7 +22,7 @@
 #ifndef AS_ALN_ALIGNERS_H
 #define AS_ALN_ALIGNERS_H
 
-static const char *rcsid_AS_ALN_ALIGNERS_H = "$Id: AS_ALN_aligners.h,v 1.17 2009-05-29 17:27:16 brianwalenz Exp $";
+static const char *rcsid_AS_ALN_ALIGNERS_H = "$Id: AS_ALN_aligners.h,v 1.18 2009-10-27 12:44:31 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -120,6 +120,14 @@ typedef Overlap *(AS_ALN_Aligner)(char *aseq, char *bseq,
                                   double erate, double thresh, int minlen,
                                   CompareOptions what);
 
+typedef int (AS_ALN_OverlapScorer)(Overlap *O,
+                                   int      expected_length,
+                                   int      ahang_input,
+                                   int      bhang_input,
+                                   double   maxerate,
+                                   double  *lScore_out,
+                                   double  *aScore_out,
+                                   double  *bScore_out);
 
 AS_ALN_Aligner_AS  DP_Compare_AS;
 AS_ALN_Aligner_AS  Affine_Overlap_AS;
@@ -129,6 +137,8 @@ AS_ALN_Aligner     DP_Compare;
 AS_ALN_Aligner     Local_Overlap_AS_forCNS;
 AS_ALN_Aligner     Affine_Overlap_AS_forCNS;
 AS_ALN_Aligner     Optimal_Overlap_AS_forCNS;
+
+AS_ALN_OverlapScorer ScoreOverlap;
 
 #include "CA_ALN_local.h"
 int *AS_Local_Trace(Local_Overlap *local_overlap, char *aseq, char *bseq);

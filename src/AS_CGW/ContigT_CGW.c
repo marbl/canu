@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ContigT_CGW.c,v 1.27 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: ContigT_CGW.c,v 1.28 2009-10-27 12:44:33 skoren Exp $";
 
 #undef DEBUG_CONTIG
 
@@ -95,7 +95,7 @@ dumpContigInfo(ChunkInstanceT *contig) {
           (int)contig->offsetAEnd.mean,
           (int)contig->offsetBEnd.mean);
 
-  ma = ScaffoldGraph->tigStore->loadMultiAlign(contig->id, ScaffoldGraph->RezGraph->type == CI_GRAPH);
+  ma = ScaffoldGraph->tigStore->loadMultiAlign(contig->id, ScaffoldGraph->ContigGraph->type == CI_GRAPH);
 
   // Get the consensus sequences for the contig from the Store
   GetConsensus(ScaffoldGraph->ContigGraph, contig->id, consensus, quality);
@@ -165,9 +165,9 @@ dumpContigInfo(ChunkInstanceT *contig) {
 
   //  FALSE == ITERATOR_VERBOSE
 
-  InitGraphEdgeIterator(ScaffoldGraph->RezGraph, contig->id, ALL_END, ALL_EDGES, FALSE, &edges);
+  InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, contig->id, ALL_END, ALL_EDGES, FALSE, &edges);
   while((e = NextGraphEdgeIterator(&edges)) != NULL)
-    PrintGraphEdge( stderr, ScaffoldGraph->RezGraph, "Analyzing edge", e, 0);
+    PrintGraphEdge( stderr, ScaffoldGraph->ContigGraph, "Analyzing edge", e, 0);
 #endif
 
   DeleteVA_char(consensus);
