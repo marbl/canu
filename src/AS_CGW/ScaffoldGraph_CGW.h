@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.39 2009-10-05 22:49:42 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.40 2009-10-27 12:26:41 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -86,7 +86,6 @@ typedef struct{
   VA_TYPE(CIEdgeT)        *ContigEdges;
   VA_TYPE(SEdgeT)         *SEdges;
   char                    name[256];
-  int32                   doRezOnContigs; // This should go away, just a hack to enable smooth transition to new code
   int32                   checkPointIteration; // Index of next checkpoint
   int32                   numContigs;  // Number of contigs...they may be interspersed
   int32                   numOriginalCIs;
@@ -97,7 +96,6 @@ typedef struct{
   GraphCGW_T             *CIGraph;
   GraphCGW_T             *ContigGraph;
   GraphCGW_T             *ScaffoldGraph;
-  GraphCGW_T             *RezGraph;  // Graph used by scaffold building and  repeat rez...either a ref to ContigGraph or CIGraph
   gkStore                *gkpStore;
   MultiAlignStore        *tigStore;
   OverlapStore           *frgOvlStore;
@@ -106,7 +104,7 @@ typedef struct{
 
 
 /* Constructor */
-ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name);
+ScaffoldGraphT *CreateScaffoldGraph(char *name);
 void InsertRepeatCIsInScaffolds(ScaffoldGraphT *sgraph);
 void BuildCIEdges(ScaffoldGraphT *graph);
 void BuildSEdgesForScaffold(ScaffoldGraphT * graph,

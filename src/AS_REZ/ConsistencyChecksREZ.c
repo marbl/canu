@@ -30,7 +30,7 @@
 
 **********************************************************************/
 
-static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.15 2009-09-12 22:35:58 brianwalenz Exp $";
+static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.16 2009-10-27 12:26:41 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -276,7 +276,7 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 	// If the chunk is tested in round 1 this is set to TRUE
 
 	ChunkInstanceT  *chunk1;
-	chunk1 = GetGraphNode(ScaffoldGraph->RezGraph, cid1);
+	chunk1 = GetGraphNode(ScaffoldGraph->ContigGraph, cid1);
 	round1All++;
 
 #if DEBUG > 1
@@ -295,7 +295,7 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 
 
 	// Initialize the iterator for the CIEdges
-	InitGraphEdgeIterator(ScaffoldGraph->RezGraph,cid1,ALL_END,ALL_EDGES,GRAPH_EDGE_DEFAULT,&iterator);
+	InitGraphEdgeIterator(ScaffoldGraph->ContigGraph,cid1,ALL_END,ALL_EDGES,GRAPH_EDGE_DEFAULT,&iterator);
 
 	while( (edge = NextGraphEdgeIterator(&iterator)) != NULL )
 	  {
@@ -314,7 +314,7 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 	       to a unique chunk. We only test CI edges
 	       between assigned chunks */
 
-	    chunk2 = GetGraphNode(ScaffoldGraph->RezGraph, citer);
+	    chunk2 = GetGraphNode(ScaffoldGraph->ContigGraph, citer);
 	    assert( citer == chunk2->id );
 
 #if DEBUG > 1
@@ -780,7 +780,7 @@ static OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB,
    else
      maxOlap = abs(cidA.end.mean-cidA.start.mean);
 
-   *olap = OverlapChunks(ScaffoldGraph->RezGraph,    // handles suspicious
+   *olap = OverlapChunks(ScaffoldGraph->ContigGraph,    // handles suspicious
 			 cidA.chunk_id, cidB.chunk_id,
 			 orientation,
 			 minOlap,maxOlap,

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.49 2009-10-26 15:52:16 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.50 2009-10-27 12:26:40 skoren Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -271,16 +271,16 @@ MarkUnderlyingRawCIEdgeTrusted(ScaffoldGraphT * sgraph, EdgeCGW_T * raw) {
   CIEdgeT *ciedge, *topCIEdge;
   ContigT *contigA, *contigB;
 
-  ciedge = GetGraphEdge(sgraph->RezGraph,raw->referenceEdge);
-  topCIEdge = GetGraphEdge(sgraph->RezGraph, ciedge->topLevelEdge);
+  ciedge = GetGraphEdge(sgraph->ContigGraph,raw->referenceEdge);
+  topCIEdge = GetGraphEdge(sgraph->ContigGraph, ciedge->topLevelEdge);
   assert(topCIEdge->idA != NULLINDEX && topCIEdge->idB != NULLINDEX);
-  contigA = GetGraphNode(sgraph->RezGraph, topCIEdge->idA);
-  contigB = GetGraphNode(sgraph->RezGraph, topCIEdge->idB);
+  contigA = GetGraphNode(sgraph->ContigGraph, topCIEdge->idA);
+  contigB = GetGraphNode(sgraph->ContigGraph, topCIEdge->idB);
   assert(contigA->scaffoldID == contigB->scaffoldID);
   assert(contigA->flags.bits.isUnique);
   assert(contigB->flags.bits.isUnique);
   AssertPtr(topCIEdge);
-  SetGraphEdgeStatus(sgraph->RezGraph, topCIEdge, TRUSTED_EDGE_STATUS);
+  SetGraphEdgeStatus(sgraph->ContigGraph, topCIEdge, TRUSTED_EDGE_STATUS);
   if (GlobalData->debugLevel > 0) {
     fprintf(stderr,"* Marked contig edge " F_CID " (" F_CID "," F_CID ")%c as trusted(inside scaf " F_CID ")\n",
             topCIEdge->topLevelEdge, topCIEdge->idA, topCIEdge->idB, topCIEdge->orient,
@@ -3000,7 +3000,7 @@ RemoveDeadRefsFromSEdge(ScaffoldGraphT * graph, SEdgeT * sEdge) {
     while ((raw = GetGraphEdge(graph->ScaffoldGraph, raw->nextRawEdge)) != NULL) {
       // referenceEdge references inducing contig edge
       // topLevelEdge references top contig edge
-      CIEdgeT * ciEdge = GetGraphEdge(graph->RezGraph, raw->referenceEdge);
+      CIEdgeT * ciEdge = GetGraphEdge(graph->ContigGraph, raw->referenceEdge);
       if (ciEdge->idA == NULLINDEX || ciEdge->idB == NULLINDEX) {
         lastRaw->nextRawEdge = raw->nextRawEdge;
         raw = lastRaw;

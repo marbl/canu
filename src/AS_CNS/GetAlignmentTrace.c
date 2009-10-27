@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GetAlignmentTrace.c,v 1.8 2009-08-16 06:40:45 brianwalenz Exp $";
+static char *rcsid = "$Id: GetAlignmentTrace.c,v 1.9 2009-10-27 12:26:41 skoren Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -348,6 +348,17 @@ ScoreOverlap(Overlap *O,
   return(0);
 }
 
+int
+ScoreOverlap(Overlap *O,
+             int      expected_length,
+             int      ahang_input,
+             int      bhang_input,
+             double   maxerate,
+             double  *lScore_out,
+             double  *aScore_out,
+             double  *bScore_out) {
+   return ScoreOverlap(O, expected_length, ahang_input, bhang_input, maxerate, GETALIGNTRACE_MERGE, lScore_out, aScore_out, bScore_out);
+}
 
 //*********************************************************************************
 // Look for the required overlap between two fragments, and return trace

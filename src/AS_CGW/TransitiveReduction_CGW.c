@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.26 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.27 2009-10-27 12:26:41 skoren Exp $";
 
 // This file contains the code for computing the candidate
 // chunks of scaffolds.
@@ -123,7 +123,7 @@ void PrintLocalEdges(ScaffoldGraphT *graph, ChunkInstanceT *thisCI, int degree)
 
   fprintf(stdout, "Local Edges around CI "F_CID "\n", thisCI->id);
   fprintf(stdout, "\tA end:\n");
-  InitGraphEdgeIterator(graph->RezGraph,
+  InitGraphEdgeIterator(graph->ContigGraph,
                         thisCI->id,
                         A_END,
                         ALL_EDGES,
@@ -138,7 +138,7 @@ void PrintLocalEdges(ScaffoldGraphT *graph, ChunkInstanceT *thisCI, int degree)
     }
 
   fprintf(stdout, "\tB end:\n");
-  InitGraphEdgeIterator(graph->RezGraph,
+  InitGraphEdgeIterator(graph->ContigGraph,
                         thisCI->id,
                         B_END,
                         ALL_EDGES,
@@ -154,7 +154,7 @@ void PrintLocalEdges(ScaffoldGraphT *graph, ChunkInstanceT *thisCI, int degree)
 
   if(degree < 2)
     {
-      InitGraphEdgeIterator(graph->RezGraph,
+      InitGraphEdgeIterator(graph->ContigGraph,
                             thisCI->id,
                             A_END,
                             ALL_EDGES,
@@ -165,13 +165,13 @@ void PrintLocalEdges(ScaffoldGraphT *graph, ChunkInstanceT *thisCI, int degree)
           if(!getEssentialEdgeStatus(edge))
             continue;
           PrintLocalEdges(graph,
-                          GetGraphNode(graph->RezGraph,
+                          GetGraphNode(graph->ContigGraph,
                                        (thisCI->id == edge->idA) ?
                                        edge->idB : edge->idA),
                           degree+1);
         }
 
-      InitGraphEdgeIterator(graph->RezGraph,
+      InitGraphEdgeIterator(graph->ContigGraph,
                             thisCI->id,
                             B_END,
                             ALL_EDGES,
@@ -182,7 +182,7 @@ void PrintLocalEdges(ScaffoldGraphT *graph, ChunkInstanceT *thisCI, int degree)
           if(!getEssentialEdgeStatus(edge))
             continue;
           PrintLocalEdges(graph,
-                          GetGraphNode(graph->RezGraph,
+                          GetGraphNode(graph->ContigGraph,
                                        (thisCI->id == edge->idA) ?
                                        edge->idB : edge->idA),
                           degree+1);
@@ -330,10 +330,10 @@ int FoundTransitiveEdgePath(ScaffoldGraphT *graph,
   if((pathEdgeOrient == AB_AB) ||
      (pathEdgeOrient == BA_AB)){
     /* transEdge must be a B_END edge */
-    InitGraphEdgeIterator(graph->RezGraph, thisCI->id, B_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &transEdges);// Use merged edges
+    InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, B_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &transEdges);// Use merged edges
   }else{
     /* transEdge must be a A_END edge */
-    InitGraphEdgeIterator(graph->RezGraph, thisCI->id, A_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &transEdges);// Use merged edges
+    InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, A_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &transEdges);// Use merged edges
   }
   while((transEdge = NextGraphEdgeIterator(&transEdges))!= NULL){
     ChunkInstanceT *nextCI;
@@ -349,7 +349,7 @@ int FoundTransitiveEdgePath(ScaffoldGraphT *graph,
 
     assert(!isSloppyEdge(transEdge));
 
-    nextCI = GetGraphNode(graph->RezGraph,
+    nextCI = GetGraphNode(graph->ContigGraph,
 			  ((transEdge->idA == thisCI->id) ?
 			   transEdge->idB : transEdge->idA));
     localPathEdge = *pathEdge;
@@ -369,7 +369,7 @@ int FoundTransitiveEdgePath(ScaffoldGraphT *graph,
         fprintf(stderr,"* Set isConfirmed and returnVal to TRUE\n");
       transEdge->flags.bits.isConfirmed = TRUE;
       if(verbose)
-	PrintGraphEdge(stderr, graph->RezGraph, "\t", transEdge,
+	PrintGraphEdge(stderr, graph->ContigGraph, "\t", transEdge,
                        thisCI->id);
       returnVal = TRUE;
       /* For speed we are going to return when we find the first path
@@ -392,7 +392,7 @@ void MarkPathRemovedEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI,
 				int end, int verbose){
   GraphEdgeIterator edges;
   CIEdgeT *edge;
-  InitGraphEdgeIterator(graph->RezGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
+  InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
   while((edge = NextGraphEdgeIterator(&edges))!= NULL){
     GraphEdgeIterator transEdges;
     CIEdgeT pathEdge;
@@ -408,10 +408,10 @@ void MarkPathRemovedEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI,
       continue;
     }
     assert(!isSloppyEdge(edge));
-    endCI = GetGraphNode(graph->RezGraph,
+    endCI = GetGraphNode(graph->ContigGraph,
                          ((edge->idA == thisCI->id) ? edge->idB : edge->idA));
     // Only use edges on the same end of thisCI to transitively remove an edge.
-    InitGraphEdgeIterator(graph->RezGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &transEdges);// Use merged edges
+    InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &transEdges);// Use merged edges
     while((transEdge = NextGraphEdgeIterator(&transEdges))!= NULL){
       ChunkInstanceT *nextCI;
       CDS_CID_t nextCID;
@@ -434,7 +434,7 @@ void MarkPathRemovedEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI,
 
       nextCID = (transEdge->idA == thisCI->id) ? transEdge->idB :
         transEdge->idA;
-      nextCI = GetGraphNode(graph->RezGraph, nextCID);
+      nextCI = GetGraphNode(graph->ContigGraph, nextCID);
       pathEdge = *transEdge;
       pathEdge.idA = thisCI->id;
       pathEdge.idB = nextCID;
@@ -446,9 +446,9 @@ void MarkPathRemovedEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI,
 	edge->flags.bits.isConfirmed = TRUE;
 	transEdge->flags.bits.isConfirmed = TRUE;
 	if(verbose){
-	  PrintGraphEdge(stderr, graph->RezGraph, "\t", transEdge,
+	  PrintGraphEdge(stderr, graph->ContigGraph, "\t", transEdge,
                          thisCI->id);
-	  PrintGraphEdge(stderr, graph->RezGraph, "TR\t", edge,
+	  PrintGraphEdge(stderr, graph->ContigGraph, "TR\t", edge,
                          thisCI->id);
 	}
       }
@@ -465,7 +465,7 @@ void MarkPathRemovedEdges(ScaffoldGraphT *graph, int verbose){
   ChunkInstanceT *thisCI;
   GraphNodeIterator nodes;
   int cnt = 1;
-  InitGraphNodeIterator(&nodes, graph->RezGraph, GRAPH_NODE_UNIQUE_ONLY);
+  InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL){
 
     if(verbose){
@@ -492,7 +492,7 @@ void MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
 				    int end, int verbose){
   GraphEdgeIterator edges;
   CIEdgeT *edge;
-  InitGraphEdgeIterator(graph->RezGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
+  InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
 
   while((edge = NextGraphEdgeIterator(&edges))!= NULL){
     GraphEdgeIterator hop2Edges;
@@ -510,7 +510,7 @@ void MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
       continue;
 
     middleCID = (edge->idA == thisCI->id) ? edge->idB : edge->idA;
-    middleCI = GetGraphNode(graph->RezGraph, middleCID);
+    middleCI = GetGraphNode(graph->ContigGraph, middleCID);
     pathEdge = *edge;
     pathEdge.idA = thisCI->id;
     pathEdge.idB = middleCID;
@@ -520,10 +520,10 @@ void MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
     if((pathEdge.orient == AB_AB) ||
        (pathEdge.orient == BA_AB)){
       /* hop2Edge must be a B_END edge */
-      InitGraphEdgeIterator(graph->RezGraph, middleCID, B_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &hop2Edges);// Use merged edges
+      InitGraphEdgeIterator(graph->ContigGraph, middleCID, B_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &hop2Edges);// Use merged edges
     }else{
       /* hop2Edge must be a A_END edge */
-      InitGraphEdgeIterator(graph->RezGraph, middleCID, A_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &hop2Edges);// Use merged edges
+      InitGraphEdgeIterator(graph->ContigGraph, middleCID, A_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &hop2Edges);// Use merged edges
     }
     while((hop2Edge = NextGraphEdgeIterator(&hop2Edges))!= NULL){
       ChunkInstanceT *endCI;
@@ -541,7 +541,7 @@ void MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
       if(isSingletonOverlapEdge(hop2Edge))
 	continue;
 
-      endCI = GetGraphNode(graph->RezGraph,
+      endCI = GetGraphNode(graph->ContigGraph,
                            ((hop2Edge->idA == middleCID) ?
                             hop2Edge->idB : hop2Edge->idA));
       combinedOrient = TransitiveEdgeOrientation(pathEdge.orient,
@@ -570,7 +570,7 @@ void MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
 	  continue;
 	confirmMiddleCID = (confirmEdge->idA == thisCI->id) ?
           confirmEdge->idB : confirmEdge->idA;
-	confirmMiddleCI = GetGraphNode(graph->RezGraph,
+	confirmMiddleCI = GetGraphNode(graph->ContigGraph,
                                        confirmMiddleCID);
 	confirmPathEdge = *confirmEdge;
 	confirmPathEdge.idA = thisCI->id;
@@ -582,10 +582,10 @@ void MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
 	if((confirmPathEdge.orient == AB_AB) ||
 	   (confirmPathEdge.orient == BA_AB)){
 	  /* hop2Edge must be a B_END edge */
-	  InitGraphEdgeIterator(graph->RezGraph, confirmMiddleCID, B_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &confirmHop2Edges);// Use merged edges
+	  InitGraphEdgeIterator(graph->ContigGraph, confirmMiddleCID, B_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &confirmHop2Edges);// Use merged edges
 	}else{
 	  /* hop2Edge must be a A_END edge */
-	  InitGraphEdgeIterator(graph->RezGraph, confirmMiddleCID, A_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &confirmHop2Edges);// Use merged edges
+	  InitGraphEdgeIterator(graph->ContigGraph, confirmMiddleCID, A_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &confirmHop2Edges);// Use merged edges
 	}
 	while((confirmHop2Edge = NextGraphEdgeIterator(&confirmHop2Edges))!= NULL){
 	  ChunkInstanceT *confirmEndCI;
@@ -602,7 +602,7 @@ void MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
 	  if(isSingletonOverlapEdge(confirmHop2Edge))
 	    continue;
 
-	  confirmEndCI = GetGraphNode(graph->RezGraph,
+	  confirmEndCI = GetGraphNode(graph->ContigGraph,
                                       ((confirmHop2Edge->idA == confirmMiddleCID) ?
                                        confirmHop2Edge->idB : confirmHop2Edge->idA));
 	  confirmOrient = TransitiveEdgeOrientation(confirmPathEdge.orient,
@@ -622,13 +622,13 @@ void MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
 	    confirmEdge->flags.bits.isConfirmed = TRUE;
 	    confirmHop2Edge->flags.bits.isConfirmed = TRUE;
 	    if(verbose){
-	      PrintGraphEdge(stderr, graph->RezGraph, "2Hop\t1 ", edge,
+	      PrintGraphEdge(stderr, graph->ContigGraph, "2Hop\t1 ", edge,
 			     thisCI->id);
-	      PrintGraphEdge(stderr, graph->RezGraph, "\t2 ", hop2Edge,
+	      PrintGraphEdge(stderr, graph->ContigGraph, "\t2 ", hop2Edge,
 			     middleCID);
-	      PrintGraphEdge(stderr, graph->RezGraph, "\tC ", confirmEdge,
+	      PrintGraphEdge(stderr, graph->ContigGraph, "\tC ", confirmEdge,
 			     thisCI->id);
-	      PrintGraphEdge(stderr, graph->RezGraph, "\t2 ", confirmHop2Edge,
+	      PrintGraphEdge(stderr, graph->ContigGraph, "\t2 ", confirmHop2Edge,
 			     confirmMiddleCID);
 	    }
 	  }
@@ -648,7 +648,7 @@ void MarkTwoHopConfirmedEdges(ScaffoldGraphT *graph, int verbose){
   ChunkInstanceT *thisCI;
   GraphNodeIterator nodes;
 
-  InitGraphNodeIterator(&nodes, graph->RezGraph, GRAPH_NODE_UNIQUE_ONLY);
+  InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL){
 
     if(verbose){
@@ -741,7 +741,7 @@ void MarkRedundantUniqueToUniqueEdges(ScaffoldGraphT *graph, int verbose){
   ChunkInstanceT *thisCI;
   GraphNodeIterator nodes;
 
-  InitGraphNodeIterator(&nodes, graph->RezGraph, GRAPH_NODE_UNIQUE_ONLY);
+  InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL){
     GraphEdgeIterator edges;
     CIEdgeT *edge;
@@ -751,7 +751,7 @@ void MarkRedundantUniqueToUniqueEdges(ScaffoldGraphT *graph, int verbose){
 
     cid = thisCI->id;
 
-    InitGraphEdgeIterator(graph->RezGraph, thisCI->id , ALL_END,	ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
+    InitGraphEdgeIterator(graph->ContigGraph, thisCI->id , ALL_END,	ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
     edge = NextGraphEdgeIterator(&edges);
     while(edge != NULL){
       CIEdgeT *bestEdge;
@@ -763,7 +763,7 @@ void MarkRedundantUniqueToUniqueEdges(ScaffoldGraphT *graph, int verbose){
 	// Unique CIs.
 	if(verbose && ((edge->idA == thisCI->id) ||
 		       !edge->flags.bits.isUniquetoUnique)){
-	  PrintGraphEdge(stderr, graph->RezGraph,
+	  PrintGraphEdge(stderr, graph->ContigGraph,
                          edge->flags.bits.isUniquetoUnique ? "\tIA " : "\tNU ",
                          edge, thisCI->id);
 	}
@@ -777,7 +777,7 @@ void MarkRedundantUniqueToUniqueEdges(ScaffoldGraphT *graph, int verbose){
 	    (edge->idB == bestEdge->idB)){
 	if(!edge->flags.bits.isActive){
 	  if(verbose){
-	    PrintGraphEdge(stderr, graph->RezGraph,"\tIA ", edge, thisCI->id);
+	    PrintGraphEdge(stderr, graph->ContigGraph,"\tIA ", edge, thisCI->id);
 	  }
 	  // No need to check inactive edges.
 	  continue;
@@ -786,19 +786,19 @@ void MarkRedundantUniqueToUniqueEdges(ScaffoldGraphT *graph, int verbose){
 	  bestEdge->flags.bits.isActive = FALSE;
 	  bestEdge->flags.bits.isRedundantRemoved = TRUE;
 	  if(verbose){
-	    PrintGraphEdge(stderr, graph->RezGraph,"\tR ", bestEdge, thisCI->id);
+	    PrintGraphEdge(stderr, graph->ContigGraph,"\tR ", bestEdge, thisCI->id);
 	  }
 	  bestEdge = edge;
 	}else{
 	  edge->flags.bits.isActive = FALSE;
 	  edge->flags.bits.isRedundantRemoved = TRUE;
 	  if(verbose){
-	    PrintGraphEdge(stderr, graph->RezGraph, "\tR ", edge, thisCI->id);
+	    PrintGraphEdge(stderr, graph->ContigGraph, "\tR ", edge, thisCI->id);
 	  }
 	}
       }
       if(verbose){
-	PrintGraphEdge(stderr, graph->RezGraph, "A ", bestEdge, thisCI->id);
+	PrintGraphEdge(stderr, graph->ContigGraph, "A ", bestEdge, thisCI->id);
       }
     }
   }
@@ -1065,14 +1065,14 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
 	      numBranch, thisCI->id);
     }
     assert(numBranch == 1);
-    InitGraphEdgeIterator(graph->RezGraph, thisCI->id, end,ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
+    InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end,ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
     while((edge = NextGraphEdgeIterator(&edges))!= NULL){
       if(!getEssentialEdgeStatus(edge)){
 	// Skip nonessential edges.
 	continue;
       }
       assert(sourceCI == (ChunkInstanceT *)NULL);
-      sourceCI = GetGraphNode(graph->RezGraph,
+      sourceCI = GetGraphNode(graph->ContigGraph,
                               ((edge->idA == thisCI->id) ? edge->idB : edge->idA));
       sourceEdge = edge;
     }
@@ -1118,7 +1118,7 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
 
     sourceCI->flags.bits.smoothSeenAlready = FALSE;
     sourceCI->smoothExpectedCID = NULLINDEX;
-    sourceEdgeIndex = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->RezGraph->edges, sourceEdge);
+    sourceEdgeIndex = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->ContigGraph->edges, sourceEdge);
     if(end == B_END){
       thisCI->essentialEdgeB = sourceEdgeIndex;
     }else{
@@ -1151,7 +1151,7 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
     branchTargets = (Target_Info_t *)safe_malloc(numBranch * sizeof(*branchTargets));
     AssertPtr(branchTargets);
 #endif
-    InitGraphEdgeIterator(graph->RezGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
+    InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
     maxBound = 0.0;
     branchEnd = branchEdges;
     existingEnd = existingEdges;
@@ -1169,13 +1169,13 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
     while((edge = NextGraphEdgeIterator(&edges))!= NULL){
       ChunkInstanceT *targetCI;
       if(verbose){
-        PrintGraphEdge(stderr, graph->RezGraph, "Tgt ", edge, thisCI->id);
+        PrintGraphEdge(stderr, graph->ContigGraph, "Tgt ", edge, thisCI->id);
       }
       if(!getEssentialEdgeStatus(edge)){
         // Skip nonessential edges.
         continue;
       }
-      targetCI = GetGraphNode(graph->RezGraph,
+      targetCI = GetGraphNode(graph->ContigGraph,
                               ((edge->idA == thisCI->id) ? edge->idB : edge->idA));
       if(targetCI->flags.bits.smoothSeenAlready ||
          ((targetCI->smoothExpectedCID != NULLINDEX) &&
@@ -1206,7 +1206,7 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
       // We need to save indices instead of pointers because the Variable
       // Array graph->CIEdges can get reallocated when we insert inferred
       // edges.
-      *branchEnd++ = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->RezGraph->edges, edge);
+      *branchEnd++ = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->ContigGraph->edges, edge);
       branchTargetsEnd->id = targetCI->id;
       branchTargetsEnd->lo = (edge->distance.mean -
                               (3 * sqrt(edge->distance.variance))) +
@@ -1227,7 +1227,7 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
       fflush(NULL);
       assert(FALSE);
     }
-    graphCIEdges = graph->RezGraph->edges;
+    graphCIEdges = graph->ContigGraph->edges;
     qsort((void *)branchEdges, numBranch,
           sizeof(*branchEdges), CompareCIEdgeTMeans);
 #if 0
@@ -1250,8 +1250,8 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
       for(targetIndex = firstTargetBestPath, branchTarget = branchEdges;
           targetIndex != NULLINDEX;
           targetIndex = branchTargets[targetIndex].next, branchTarget++){
-        CIEdgeT *targetEdge = GetGraphEdge(graph->RezGraph, *branchTarget);
-        ChunkInstanceT *sortTargetCI = GetGraphNode(graph->RezGraph,
+        CIEdgeT *targetEdge = GetGraphEdge(graph->ContigGraph, *branchTarget);
+        ChunkInstanceT *sortTargetCI = GetGraphNode(graph->ContigGraph,
                                                     ((targetEdge->idA == thisCI->id) ? targetEdge->idB : targetEdge->idA));
 
         if(sortTargetCI->id != branchTargets[targetIndex].id){
@@ -1266,8 +1266,8 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
                      targetEdge->distance.variance));
       }
       for(; branchTarget < branchEnd; branchTarget++){
-        CIEdgeT *targetEdge = GetGraphEdge(graph->RezGraph, *branchTarget);
-        ChunkInstanceT *sortTargetCI = GetGraphNode(graph->RezGraph,
+        CIEdgeT *targetEdge = GetGraphEdge(graph->ContigGraph, *branchTarget);
+        ChunkInstanceT *sortTargetCI = GetGraphNode(graph->ContigGraph,
                                                     ((targetEdge->idA == thisCI->id) ? targetEdge->idB : targetEdge->idA));
 
         fprintf(stderr, "Sort: "F_CID " %f %f\n",
@@ -1290,8 +1290,8 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
       if that works, depracate the edge between thisCI and targetCI
     */
     branchSource = branchEdges;
-    sourceEdge = GetGraphEdge(graph->RezGraph, *branchSource);
-    sourceCI = GetGraphNode(graph->RezGraph,
+    sourceEdge = GetGraphEdge(graph->ContigGraph, *branchSource);
+    sourceCI = GetGraphNode(graph->ContigGraph,
                             ((sourceEdge->idA == thisCI->id) ? sourceEdge->idB :
                              sourceEdge->idA));
     sourceMean = sourceCI->bpLength.mean + sourceEdge->distance.mean;
@@ -1307,8 +1307,8 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
           numEssentialAdded = 0, numEssentialRemoved = 0;
         branchTarget < branchEnd;
         branchTarget++){
-      CIEdgeT *targetEdge = GetGraphEdge(graph->RezGraph, *branchTarget);
-      ChunkInstanceT *targetCI = GetGraphNode(graph->RezGraph,
+      CIEdgeT *targetEdge = GetGraphEdge(graph->ContigGraph, *branchTarget);
+      ChunkInstanceT *targetCI = GetGraphNode(graph->ContigGraph,
                                               ((targetEdge->idA == thisCI->id) ? targetEdge->idB : targetEdge->idA));
       CIEdgeT *existingEdge;
       CIEdgeT *inferredEdge;
@@ -1334,13 +1334,13 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
       inferredEdgeOrient = InferredEdgeOrientation(sourceEdgeOrient,
                                                    targetEdgeOrient);
 
-      existingEdge = FindEdgeBetweenCIsChiSquare(graph->RezGraph, sourceCI,
+      existingEdge = FindEdgeBetweenCIsChiSquare(graph->ContigGraph, sourceCI,
                                                  (targetEdge->idA == thisCI->id) ? targetEdge->idB :
                                                  targetEdge->idA,
                                                  inferredEdgeOrient, inferredMean, inferredVariance,
                                                  &chiSquaredValue, (float)PAIRWISECHI2THRESHOLD_CGW,
                                                  &existingIsEssential, verbose);
-      targetEdge = GetGraphEdge(graph->RezGraph, *branchTarget); // FindEdgeBetweenCIsChiSquare may cause edges to realloc
+      targetEdge = GetGraphEdge(graph->ContigGraph, *branchTarget); // FindEdgeBetweenCIsChiSquare may cause edges to realloc
       if(existingEdge != (CIEdgeT *)NULL){
         if(verbose){
           fprintf(stderr, "RecSub targetE TaId:"F_CID "(%d,%d) cId:"F_CID " orient:%c\n",
@@ -1356,19 +1356,19 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
           numEssentialAdded++;
         }
         if(verbose){
-          PrintGraphEdge(stderr,graph->RezGraph,"tE Before", targetEdge, thisCI->id);
+          PrintGraphEdge(stderr,graph->ContigGraph,"tE Before", targetEdge, thisCI->id);
         }
         targetEdge->flags.bits.isInferredRemoved = TRUE;
         setEssentialEdgeStatus(targetEdge, FALSE);
         //targetEdge->flags.bits.isEssential = FALSE;
         if(verbose){
-          PrintGraphEdge(stderr,graph->RezGraph,"tE After", targetEdge, thisCI->id);
+          PrintGraphEdge(stderr,graph->ContigGraph,"tE After", targetEdge, thisCI->id);
         }
         if(targetEdge->flags.bits.isInferred && targetEdge->flags.bits.isTentative){
-          DeleteGraphEdge(graph->RezGraph, targetEdge);
+          DeleteGraphEdge(graph->ContigGraph, targetEdge);
         }
         numEssentialRemoved++;
-        *existingEnd++ = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->RezGraph->edges, existingEdge);
+        *existingEnd++ = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->ContigGraph->edges, existingEdge);
         continue;
       }else if(existingIsEssential){
         failedInfer = TRUE;
@@ -1408,10 +1408,10 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
       targetEdge->flags.bits.isInferredRemoved = TRUE;
       setEssentialEdgeStatus(targetEdge, FALSE);
       if(targetEdge->flags.bits.isInferred && targetEdge->flags.bits.isTentative){
-        DeleteGraphEdge(graph->RezGraph, targetEdge);
+        DeleteGraphEdge(graph->ContigGraph, targetEdge);
       }
       numEssentialRemoved++;
-      inferredEdgeIndex = AddGraphEdge(graph->RezGraph, sourceCI->id, targetCI->id,
+      inferredEdgeIndex = AddGraphEdge(graph->ContigGraph, sourceCI->id, targetCI->id,
                                        NULLINDEX, NULLINDEX, // No fragments
                                        NULLINDEX, // No distance record
                                        inferredDistance, 1, // fudgeDistance???
@@ -1429,7 +1429,7 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
                                        TRUE); // insert into graph
       (*numInferredAdded)++;
       *addedEnd++ = inferredEdgeIndex;
-      inferredEdge = GetGraphEdge(graph->RezGraph, inferredEdgeIndex);
+      inferredEdge = GetGraphEdge(graph->ContigGraph, inferredEdgeIndex);
       AssertPtr(inferredEdge);
       numEssentialAdded++;
       inferredEdge->flags.bits.isInferred = TRUE;
@@ -1466,26 +1466,26 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
       sourceCI->flags.bits.smoothSeenAlready = FALSE;
       sourceCI->smoothExpectedCID = NULLINDEX;
       for(addedPtr = addedInferred; addedPtr < addedEnd; addedPtr++){
-        CIEdgeT *addedEdge = GetGraphEdge(graph->RezGraph, *addedPtr);
+        CIEdgeT *addedEdge = GetGraphEdge(graph->ContigGraph, *addedPtr);
         if(!addedEdge->flags.bits.isDeleted){
-          DeleteGraphEdge(graph->RezGraph, addedEdge);
+          DeleteGraphEdge(graph->ContigGraph, addedEdge);
         }
       }
       for(existingPtr = existingEdges; existingPtr < existingEnd; existingPtr++){
-        CIEdgeT *existingEdge = GetGraphEdge(graph->RezGraph, *existingPtr);
+        CIEdgeT *existingEdge = GetGraphEdge(graph->ContigGraph, *existingPtr);
         setEssentialEdgeStatus(existingEdge, existingEdge->flags.bits.wasEssential);
         //      existingEdge->flags.bits.isEssential =	existingEdge->flags.bits.wasEssential;
       }
       for(branchTarget = branchEdges + 1; branchTarget < branchEnd;
           branchTarget++){
-        CIEdgeT *targetEdge = GetGraphEdge(graph->RezGraph, *branchTarget);
+        CIEdgeT *targetEdge = GetGraphEdge(graph->ContigGraph, *branchTarget);
         ChunkInstanceT *targetCI;
 
         if(targetEdge->flags.bits.isDeleted){ // SAK
           //	fprintf(stderr,"* Encountered Deleted Edge at failedInfer in TransitiveReduction\n");
           continue;
         }
-        targetCI = GetGraphNode(graph->RezGraph,
+        targetCI = GetGraphNode(graph->ContigGraph,
                                 ((targetEdge->idA == thisCI->id) ?
                                  targetEdge->idB : targetEdge->idA));
         targetCI->flags.bits.smoothSeenAlready = FALSE;
@@ -1541,28 +1541,28 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
         sourceCI->flags.bits.smoothSeenAlready = FALSE;
         sourceCI->smoothExpectedCID = NULLINDEX;
         for(addedPtr = addedInferred; addedPtr < addedEnd; addedPtr++){
-          CIEdgeT *addedEdge = GetGraphEdge(graph->RezGraph, *addedPtr);
+          CIEdgeT *addedEdge = GetGraphEdge(graph->ContigGraph, *addedPtr);
           if(!addedEdge->flags.bits.isDeleted){
-            DeleteGraphEdge(graph->RezGraph, addedEdge);
+            DeleteGraphEdge(graph->ContigGraph, addedEdge);
           }
         }
         for(existingPtr = existingEdges; existingPtr < existingEnd;
             existingPtr++){
-          CIEdgeT *existingEdge = GetGraphEdge(graph->RezGraph, *existingPtr);
+          CIEdgeT *existingEdge = GetGraphEdge(graph->ContigGraph, *existingPtr);
           setEssentialEdgeStatus(existingEdge, existingEdge->flags.bits.wasEssential);
           //	existingEdge->flags.bits.isEssential =
           //	  existingEdge->flags.bits.wasEssential;
         }
         for(branchTarget = branchEdges + 1; branchTarget < branchEnd;
             branchTarget++){
-          CIEdgeT *targetEdge = GetGraphEdge(graph->RezGraph, *branchTarget);
+          CIEdgeT *targetEdge = GetGraphEdge(graph->ContigGraph, *branchTarget);
           ChunkInstanceT *targetCI;
 
           if(targetEdge->flags.bits.isDeleted){ // SAK
             //	  fprintf(stderr,"* Encountered Deleted Edge at cleanup in TransitiveReduction\n");
             continue;
           }
-          targetCI = GetGraphNode(graph->RezGraph,
+          targetCI = GetGraphNode(graph->ContigGraph,
                                   ((targetEdge->idA == thisCI->id) ?
                                    targetEdge->idB : targetEdge->idA));
           targetCI->flags.bits.smoothSeenAlready = FALSE;
@@ -1598,17 +1598,17 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
           sourceCI->essentialEdgeB = *branchSource;
         }
         for(addedPtr = addedInferred; addedPtr < addedEnd; addedPtr++){
-          CIEdgeT *addedEdge = GetGraphEdge(graph->RezGraph, *addedPtr);
+          CIEdgeT *addedEdge = GetGraphEdge(graph->ContigGraph, *addedPtr);
           if(!addedEdge->flags.bits.isDeleted){
             addedEdge->flags.bits.isTentative = FALSE;
           }
         }
         for(existingPtr = existingEdges; existingPtr < existingEnd;
             existingPtr++){
-          CIEdgeT *existingEdge = GetGraphEdge(graph->RezGraph, *existingPtr);
+          CIEdgeT *existingEdge = GetGraphEdge(graph->ContigGraph, *existingPtr);
           if(existingEdge->flags.bits.wasEssential){
             ChunkInstanceT *targetCI =
-              GetGraphNode(graph->RezGraph,
+              GetGraphNode(graph->ContigGraph,
                            ((existingEdge->idA == sourceCI->id) ?
                             existingEdge->idB : existingEdge->idA));
             ChunkOrientationType existingEdgeOrient =
@@ -1650,7 +1650,7 @@ int CountEssentialEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI,
   int count = 0;
   GraphEdgeIterator edges;
   CIEdgeT *edge;
-  InitGraphEdgeIterator(graph->RezGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
+  InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
   *essentialEdge = (CDS_CID_t)NULLINDEX;
   while((edge = NextGraphEdgeIterator(&edges))!= NULL){
     if(!edge->flags.bits.isActive || !edge->flags.bits.isConfirmed ||
@@ -1664,7 +1664,7 @@ int CountEssentialEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI,
     }
     setEssentialEdgeStatus(edge, TRUE);
     count++;
-    *essentialEdge = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->RezGraph->edges, edge);
+    *essentialEdge = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->ContigGraph->edges, edge);
   }
   return(count);
 }
@@ -1685,7 +1685,7 @@ void WriteEssentialEdgeCGM(ScaffoldGraphT * graph,
   fprintf(essentialfp,
           "#Essential edges for A & B ends of contigs\n");
 
-  InitGraphNodeIterator(&nodes, graph->RezGraph,
+  InitGraphNodeIterator(&nodes, graph->ContigGraph,
                         GRAPH_NODE_UNIQUE_ONLY );
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL)
     {
@@ -1780,7 +1780,7 @@ void SmoothWithInferredEdges(ScaffoldGraphT *graph,
   int smooth_success;
   int numInferredAdded;
 
-  InitGraphNodeIterator(&nodes, graph->RezGraph, GRAPH_NODE_UNIQUE_ONLY );
+  InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY );
   if(verbose){
     fprintf(stderr, "Smoothing: Unique CIs:\n");
   }
@@ -1888,7 +1888,7 @@ void SmoothWithInferredEdges(ScaffoldGraphT *graph,
       assert(smoothed_si != NULL);
 #endif
 
-      InitGraphNodeIterator(&nodes, graph->RezGraph, GRAPH_NODE_UNIQUE_ONLY );
+      InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY );
       while((thisCI = NextGraphNodeIterator(&nodes)) != NULL){
         /* Substitute inferred edges where the graph branches in an attempt to
            eliminate as many branches as possible. */
@@ -2063,11 +2063,11 @@ void DeleteInferredEdgesForThisCI(ScaffoldGraphT *graph,
   EdgeCGW_T *edge;
 
   // Use merged edges
-  InitGraphEdgeIterator(graph->RezGraph, cid, ALL_END,
+  InitGraphEdgeIterator(graph->ContigGraph, cid, ALL_END,
                         ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
   while((edge = NextGraphEdgeIterator(&edges)) != NULL){
     if(edge->flags.bits.isInferred){
-      DeleteGraphEdge(graph->RezGraph, edge);
+      DeleteGraphEdge(graph->ContigGraph, edge);
     }
   }
   return;
@@ -2114,7 +2114,7 @@ void DetectScaffoldCycles(CDS_CID_t *currentScaffoldID){
     ChunkInstanceT *thisCI;
     GraphNodeIterator nodes;
 
-    InitGraphNodeIterator(&nodes, ScaffoldGraph->RezGraph, GRAPH_NODE_UNIQUE_ONLY);
+    InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
     while((thisCI = NextGraphNodeIterator(&nodes)) != NULL){
       ChunkInstanceT *AendCI, *BendCI, *startingCI;
       CIEdgeT *edgeA, *edgeB, *edge;
@@ -2143,12 +2143,12 @@ void DetectScaffoldCycles(CDS_CID_t *currentScaffoldID){
       // what this leaves behind is cycles; so any remaining unique CIs
       // must be in a cycle.
       assert(thisCI->essentialEdgeA != NULLINDEX);
-      edgeA = GetGraphEdge(ScaffoldGraph->RezGraph, thisCI->essentialEdgeA);
-      AendCI = GetGraphNode(ScaffoldGraph->RezGraph,
+      edgeA = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeA);
+      AendCI = GetGraphNode(ScaffoldGraph->ContigGraph,
 			    (edgeA->idA == thisCI->id) ? edgeA->idB : edgeA->idA);
       assert(thisCI->essentialEdgeB != NULLINDEX);
-      edgeB = GetGraphEdge(ScaffoldGraph->RezGraph, thisCI->essentialEdgeB);
-      BendCI = GetGraphNode(ScaffoldGraph->RezGraph,
+      edgeB = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeB);
+      BendCI = GetGraphNode(ScaffoldGraph->ContigGraph,
 			    (edgeB->idA == thisCI->id) ? edgeB->idB : edgeB->idA);
       fprintf(stderr, "*** Found a Cycle in Essential Edge Graph\ncId:"F_CID " Aend:"F_CID " Bend:"F_CID "\n",
 	      thisCI->id, AendCI->id, BendCI->id);
@@ -2207,8 +2207,8 @@ void DetectScaffoldCycles(CDS_CID_t *currentScaffoldID){
 
 	if(orientCI == A_B){
 	  if(thisCI->essentialEdgeB != NULLINDEX){
-	    edge = GetGraphEdge(ScaffoldGraph->RezGraph, thisCI->essentialEdgeB);
-	    neighbor = GetGraphNode(ScaffoldGraph->RezGraph,
+	    edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeB);
+	    neighbor = GetGraphNode(ScaffoldGraph->ContigGraph,
 				    (edge->idA == thisCI->id) ? edge->idB : edge->idA);
 	  }else{// End of Scaffold
 	    edge = (CIEdgeT *)NULL;
@@ -2216,8 +2216,8 @@ void DetectScaffoldCycles(CDS_CID_t *currentScaffoldID){
 	  }
 	}else{// orientCI == B_A
 	  if(thisCI->essentialEdgeA != NULLINDEX){
-	    edge = GetGraphEdge(ScaffoldGraph->RezGraph, thisCI->essentialEdgeA);
-	    neighbor = GetGraphNode(ScaffoldGraph->RezGraph,
+	    edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeA);
+	    neighbor = GetGraphNode(ScaffoldGraph->ContigGraph,
 				    (edge->idA == thisCI->id) ? edge->idB : edge->idA);
 	  }else{// End of Scaffold
 	    edge = (CIEdgeT *)NULL;
@@ -2240,7 +2240,7 @@ void LabelCIScaffolds(CDS_CID_t *currentScaffoldID, int verbose){
   ChunkInstanceT *thisCI;
   GraphNodeIterator nodes;
 
-  InitGraphNodeIterator(&nodes, ScaffoldGraph->RezGraph, GRAPH_NODE_UNIQUE_ONLY);
+  InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL){
     ChunkInstanceT *AendCI, *BendCI;
     CIEdgeT *edgeA, *edgeB, *edge;
@@ -2253,16 +2253,16 @@ void LabelCIScaffolds(CDS_CID_t *currentScaffoldID, int verbose){
       continue;// This CI has already been placed in a Scaffold.
     }
     if(thisCI->essentialEdgeA != NULLINDEX){
-      edgeA = GetGraphEdge(ScaffoldGraph->RezGraph, thisCI->essentialEdgeA);
-      AendCI = GetGraphNode(ScaffoldGraph->RezGraph,
+      edgeA = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeA);
+      AendCI = GetGraphNode(ScaffoldGraph->ContigGraph,
 			    (edgeA->idA == thisCI->id) ? edgeA->idB : edgeA->idA);
     }else{
       edgeA = (CIEdgeT *)NULL;
       AendCI = (ChunkInstanceT *)NULL;
     }
     if(thisCI->essentialEdgeB != NULLINDEX){
-      edgeB = GetGraphEdge(ScaffoldGraph->RezGraph, thisCI->essentialEdgeB);
-      BendCI = GetGraphNode(ScaffoldGraph->RezGraph,
+      edgeB = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeB);
+      BendCI = GetGraphNode(ScaffoldGraph->ContigGraph,
 			    (edgeB->idA == thisCI->id) ? edgeB->idB : edgeB->idA);
     }else{
       edgeB = (CIEdgeT *)NULL;
@@ -2319,8 +2319,8 @@ void LabelCIScaffolds(CDS_CID_t *currentScaffoldID, int verbose){
       thisCI->scaffoldID = *currentScaffoldID;
       if(orientCI == A_B){
 	if(thisCI->essentialEdgeB != NULLINDEX){
-	  edge = GetGraphEdge(ScaffoldGraph->RezGraph, thisCI->essentialEdgeB);
-	  neighbor = GetGraphNode(ScaffoldGraph->RezGraph,
+	  edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeB);
+	  neighbor = GetGraphNode(ScaffoldGraph->ContigGraph,
 				  (edge->idA == thisCI->id) ? edge->idB : edge->idA);
 	}else{// End of Scaffold
 	  edge = (CIEdgeT *)NULL;
@@ -2328,8 +2328,8 @@ void LabelCIScaffolds(CDS_CID_t *currentScaffoldID, int verbose){
 	}
       }else{// orientCI == B_A
 	if(thisCI->essentialEdgeA != NULLINDEX){
-	  edge = GetGraphEdge(ScaffoldGraph->RezGraph, thisCI->essentialEdgeA);
-	  neighbor = GetGraphNode(ScaffoldGraph->RezGraph,
+	  edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeA);
+	  neighbor = GetGraphNode(ScaffoldGraph->ContigGraph,
 				  (edge->idA == thisCI->id) ? edge->idB : edge->idA);
 	}else{// End of Scaffold
 	  edge = (CIEdgeT *)NULL;
@@ -2344,9 +2344,10 @@ void LabelCIScaffolds(CDS_CID_t *currentScaffoldID, int verbose){
 /********************************************************************/
 void ActuallyInsertCIsIntoScaffolds(CDS_CID_t *currentScaffoldID,  int verbose)
 {
+   verbose = TRUE;
   ChunkInstanceT *thisCI;
   GraphNodeIterator nodes;
-  InitGraphNodeIterator(&nodes, ScaffoldGraph->RezGraph, GRAPH_NODE_UNIQUE_ONLY);
+  InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
 
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL){
     ChunkInstanceT *AendCI, *BendCI;
@@ -2365,9 +2366,9 @@ void ActuallyInsertCIsIntoScaffolds(CDS_CID_t *currentScaffoldID,  int verbose)
       continue;// This CI has already been placed in a Scaffold.
     }
     if(thisCI->essentialEdgeA != NULLINDEX){
-      edgeA = GetGraphEdge(ScaffoldGraph->RezGraph, thisCI->essentialEdgeA);
+      edgeA = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeA);
       assert(!isSloppyEdge(edgeA));
-      AendCI = GetGraphNode(ScaffoldGraph->RezGraph,
+      AendCI = GetGraphNode(ScaffoldGraph->ContigGraph,
                             (edgeA->idA == thisCI->id) ? edgeA->idB : edgeA->idA);
       SymmetricNeighbors(AendCI, GetEdgeOrientationWRT(edgeA, thisCI->id),thisCI->essentialEdgeA );
 
@@ -2376,10 +2377,10 @@ void ActuallyInsertCIsIntoScaffolds(CDS_CID_t *currentScaffoldID,  int verbose)
       AendCI = (ChunkInstanceT *)NULL;
     }
     if(thisCI->essentialEdgeB != NULLINDEX){
-      edgeB = GetGraphEdge(ScaffoldGraph->RezGraph, thisCI->essentialEdgeB);
+      edgeB = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeB);
       assert(!isSloppyEdge(edgeB));
       assert(edgeB->idA == thisCI->id || edgeB->idB == thisCI->id);
-      BendCI = GetGraphNode(ScaffoldGraph->RezGraph,
+      BendCI = GetGraphNode(ScaffoldGraph->ContigGraph,
                             (edgeB->idA == thisCI->id) ? edgeB->idB : edgeB->idA);
       SymmetricNeighbors(BendCI, GetEdgeOrientationWRT(edgeB, thisCI->id),thisCI->essentialEdgeB );
     }else{
@@ -2482,9 +2483,9 @@ void ActuallyInsertCIsIntoScaffolds(CDS_CID_t *currentScaffoldID,  int verbose)
                          aEndOffset, bEndOffset,  TRUE /* Should be FALSE */, FALSE);
       if(orientCI == A_B){
         if(thisCI->essentialEdgeB != NULLINDEX){
-          edge = GetGraphEdge(ScaffoldGraph->RezGraph, thisCI->essentialEdgeB);
+          edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeB);
           assert(!isSloppyEdge(edge));
-          neighbor = GetGraphNode(ScaffoldGraph->RezGraph,
+          neighbor = GetGraphNode(ScaffoldGraph->ContigGraph,
                                   (edge->idA == thisCI->id) ? edge->idB : edge->idA);
         }else{// End of Scaffold
           edge = (CIEdgeT *)NULL;
@@ -2492,9 +2493,9 @@ void ActuallyInsertCIsIntoScaffolds(CDS_CID_t *currentScaffoldID,  int verbose)
         }
       }else{// orientCI == B_A
         if(thisCI->essentialEdgeA != NULLINDEX){
-          edge = GetGraphEdge(ScaffoldGraph->RezGraph, thisCI->essentialEdgeA);
+          edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeA);
           assert(!isSloppyEdge(edge));
-          neighbor = GetGraphNode(ScaffoldGraph->RezGraph,
+          neighbor = GetGraphNode(ScaffoldGraph->ContigGraph,
                                   (edge->idA == thisCI->id) ? edge->idB : edge->idA);
         }else{// End of Scaffold
           edge = (CIEdgeT *)NULL;
@@ -2524,7 +2525,7 @@ void MarkBifurcations(ScaffoldGraphT *graph,  int verbose){
   ContigT *thisCI;
 
 
-  InitGraphNodeIterator(&nodes, ScaffoldGraph->RezGraph, GRAPH_NODE_UNIQUE_ONLY);
+  InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL){
 
     thisCI->scaffoldID = NULLINDEX;
@@ -2534,8 +2535,8 @@ void MarkBifurcations(ScaffoldGraphT *graph,  int verbose){
         break;
       case 1:
         if(thisCI->essentialEdgeA != NULLINDEX){
-          CIEdgeT *edge = GetGraphEdge(ScaffoldGraph->RezGraph, thisCI->essentialEdgeA);
-          if(NeighborBranches(GetGraphNode(ScaffoldGraph->RezGraph, ((edge->idA == thisCI->id) ? edge->idB : edge->idA)),
+          CIEdgeT *edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeA);
+          if(NeighborBranches(GetGraphNode(ScaffoldGraph->ContigGraph, ((edge->idA == thisCI->id) ? edge->idB : edge->idA)),
                               GetEdgeOrientationWRT(edge, thisCI->id),
                               thisCI->essentialEdgeA)){
             thisCI->essentialEdgeA = NULLINDEX;
@@ -2552,8 +2553,8 @@ void MarkBifurcations(ScaffoldGraphT *graph,  int verbose){
         break;
       case 1:
         if(thisCI->essentialEdgeB != NULLINDEX){
-          CIEdgeT *edge = GetGraphEdge(ScaffoldGraph->RezGraph, thisCI->essentialEdgeB);
-          if(NeighborBranches(GetGraphNode(ScaffoldGraph->RezGraph,
+          CIEdgeT *edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeB);
+          if(NeighborBranches(GetGraphNode(ScaffoldGraph->ContigGraph,
                                            ((edge->idA == thisCI->id) ?
 					    edge->idB : edge->idA)),
                               GetEdgeOrientationWRT(edge, thisCI->id),
@@ -2636,18 +2637,18 @@ void DeleteInferredEdges(ScaffoldGraphT *graph, int verbose){
   ChunkInstanceT *thisCI;
   GraphNodeIterator nodes;
 
-  //  InitGraphNodeIterator(&nodes, ScaffoldGraph->RezGraph, GRAPH_NODE_UNIQUE_ONLY);
+  //  InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   // An inferred edge may exist between two shaky nodes that have
   // been demoted
-  InitGraphNodeIterator(&nodes, ScaffoldGraph->RezGraph, GRAPH_NODE_DEFAULT);
+  InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_DEFAULT);
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL){
     GraphEdgeIterator edges;
     CIEdgeT *edge;
 
-    InitGraphEdgeIterator(ScaffoldGraph->RezGraph, thisCI->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
+    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, thisCI->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
     while((edge = NextGraphEdgeIterator(&edges)) != NULL){
       if(edge->flags.bits.isInferred){
-	DeleteGraphEdge(ScaffoldGraph->RezGraph, edge);
+	DeleteGraphEdge(ScaffoldGraph->ContigGraph, edge);
       }
     }
   }
@@ -2722,7 +2723,7 @@ void AddScaffoldInferredEdges(ScaffoldGraphT *graph,  int verbose){
 	  fprintf(stderr,"* Adding inferred graph edge ("F_CID ","F_CID ",%c)\n",
                   prevCI->id, thisCI->id, inferredEdgeOrient);
 
-        inferredEdgeIndex = AddGraphEdge(ScaffoldGraph->RezGraph, prevCI->id, thisCI->id,
+        inferredEdgeIndex = AddGraphEdge(ScaffoldGraph->ContigGraph, prevCI->id, thisCI->id,
                                          NULLINDEX, NULLINDEX, // No fragments
                                          NULLINDEX, // No distance record
                                          inferredDistance, 1, // fudgeDistance???
@@ -2738,7 +2739,7 @@ void AddScaffoldInferredEdges(ScaffoldGraphT *graph,  int verbose){
                                          UNKNOWN_EDGE_STATUS,
                                          FALSE, // do not collect overlap
                                          TRUE); // insert into graph
-        inferredEdge = GetGraphEdge(ScaffoldGraph->RezGraph, inferredEdgeIndex);
+        inferredEdge = GetGraphEdge(ScaffoldGraph->ContigGraph, inferredEdgeIndex);
         inferredEdge->flags.bits.isInferred = TRUE;
         inferredEdge->flags.bits.isTentative = FALSE;
         inferredEdge->flags.bits.isActive = TRUE;
@@ -2780,7 +2781,7 @@ void ResetEdgeStatus(ScaffoldGraphT *graph, int verbose){
   ChunkInstanceT *thisCI;
   GraphNodeIterator nodes;
 
-  InitGraphNodeIterator(&nodes, ScaffoldGraph->RezGraph, GRAPH_NODE_UNIQUE_ONLY);
+  InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL){
     GraphEdgeIterator edges;
     CIEdgeT *edge;
@@ -2790,10 +2791,10 @@ void ResetEdgeStatus(ScaffoldGraphT *graph, int verbose){
 
     cid = thisCI->id;
 
-    InitGraphEdgeIterator(ScaffoldGraph->RezGraph, thisCI->id, ALL_END, ALL_EDGES,
+    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, thisCI->id, ALL_END, ALL_EDGES,
 			  GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
     while((edge = NextGraphEdgeIterator(&edges)) != NULL){
-      ChunkInstanceT *otherCI = GetGraphNode(ScaffoldGraph->RezGraph,
+      ChunkInstanceT *otherCI = GetGraphNode(ScaffoldGraph->ContigGraph,
 					     (edge->idA == thisCI->id) ?
 					     edge->idB : edge->idA);
       if((edge->idA != thisCI->id) && otherCI->flags.bits.isUnique){
@@ -2801,9 +2802,9 @@ void ResetEdgeStatus(ScaffoldGraphT *graph, int verbose){
 	continue;
       }
       // Initialize the status flags for this edge
-      InitGraphEdgeFlags(ScaffoldGraph->RezGraph, edge);
+      InitGraphEdgeFlags(ScaffoldGraph->ContigGraph, edge);
       if(verbose){
-	PrintGraphEdge(stderr, ScaffoldGraph->RezGraph, "r ", edge, thisCI->id);
+	PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph, "r ", edge, thisCI->id);
       }
     }
   }
@@ -2979,14 +2980,14 @@ void ReviveTransitiveEdges(ScaffoldGraphT *graph,
   if((pathEdgeOrient == AB_AB) ||
      (pathEdgeOrient == BA_AB)){
     /* transEdge must be a B_END edge */
-    InitGraphEdgeIterator(ScaffoldGraph->RezGraph, thisCI->id, B_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &transEdges);// Use merged edges
+    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, thisCI->id, B_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &transEdges);// Use merged edges
   }else{
     /* transEdge must be a A_END edge */
-    InitGraphEdgeIterator(ScaffoldGraph->RezGraph, thisCI->id, A_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &transEdges);// Use merged edges
+    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, thisCI->id, A_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &transEdges);// Use merged edges
   }
   while((transEdge = NextGraphEdgeIterator(&transEdges))!= NULL){
     ChunkInstanceT *nextCI;
-    nextCI = GetGraphNode(ScaffoldGraph->RezGraph,
+    nextCI = GetGraphNode(ScaffoldGraph->ContigGraph,
 			  ((transEdge->idA == thisCI->id) ?
 			   transEdge->idB : transEdge->idA));
     if(!isOverlapEdge(transEdge) || edgeContainsCI(transEdge, thisCI->id)){
@@ -3049,13 +3050,13 @@ int ReviveEdges(ScaffoldGraphT *graph, ChunkInstanceT *thisCI,
   RevivedEdgeT *curReviveEdge, *endReviveEdge;
   curReviveEdge = reviveEdgeStore;
   endReviveEdge = reviveEdgeStore + maxEdges;
-  InitGraphEdgeIterator(ScaffoldGraph->RezGraph, thisCI->id, end, ALL_EDGES,
+  InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, thisCI->id, end, ALL_EDGES,
 			GRAPH_EDGE_RAW_ONLY, &edges);// Use raw edges
   while((edge = NextGraphEdgeIterator(&edges))!= NULL){
     LengthT pathDistance;
     ChunkOrientationType pathEdgeOrient;
     ChunkInstanceT *nextCI;
-    nextCI = GetGraphNode(ScaffoldGraph->RezGraph, (edge->idA == thisCI->id) ?
+    nextCI = GetGraphNode(ScaffoldGraph->ContigGraph, (edge->idA == thisCI->id) ?
 			  edge->idB : edge->idA);
     if(!isOverlapEdge(edge) || edgeContainsCI(edge, nextCI->id)){
       // Only interested in overlap edges and only if they are dovetail

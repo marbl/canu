@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.18 2009-09-09 08:21:56 brianwalenz Exp $";
+static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.19 2009-10-27 12:26:41 skoren Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -155,8 +155,8 @@ double CorrectEdgeVariance(ScaffoldGraphT *graph, CIEdgeT *edge){
   LengthT oldOffsetA, newOffsetA, oldOffsetB, newOffsetB;
   FragOrient fragOrient;
   CDS_CID_t extremalFrag;
-  NodeCGW_T *nodeA = GetGraphNode(graph->RezGraph, edge->idA);
-  NodeCGW_T *nodeB = GetGraphNode(graph->RezGraph, edge->idB);
+  NodeCGW_T *nodeA = GetGraphNode(graph->ContigGraph, edge->idA);
+  NodeCGW_T *nodeB = GetGraphNode(graph->ContigGraph, edge->idB);
   CIFragT *fragA = GetCIFragT(graph->CIFrags, edge->fragA);
   CIFragT *fragB = GetCIFragT(graph->CIFrags, edge->fragB);
 
@@ -188,7 +188,7 @@ int CIOffsetAndOrientation(ScaffoldGraphT *graph,
 			   LengthT    *ciFlipOffset,    // CI's offset within Scaffold if we flip the edge
 			   CIOrient   *ciOrient){    // CI's orientation within Scaffold
 
-  ChunkInstanceT *CI = GetGraphNode(graph->RezGraph, cid);
+  ChunkInstanceT *CI = GetGraphNode(graph->ContigGraph, cid);
   CIScaffoldT *CIS;
   CIOrient CIInScaffoldOrient;
 
@@ -537,15 +537,15 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
   sedge.edgesContributing = edge->edgesContributing;
   sedge.topLevelEdge = NULLINDEX;
   sedge.referenceEdge =
-    (CDS_CID_t)GetVAIndex_CIEdgeT(graph->RezGraph->edges, edge);
+    (CDS_CID_t)GetVAIndex_CIEdgeT(graph->ContigGraph->edges, edge);
 #if 0
   fprintf(stderr,"*SEdge (" F_CID "," F_CID ") induced by edge#" F_CID " (" F_CID "," F_CID ")\n",
           sedge.idA, sedge.idB,
           sedge.referenceEdge,
           edge->idA, edge->idB);
   {
-    CIEdgeT *edge = GetGraphEdge(graph->RezGraph, sedge.referenceEdge);
-    CIEdgeT *topEdge = GetGraphEdge(graph->RezGraph, edge->topLevelEdge);
+    CIEdgeT *edge = GetGraphEdge(graph->ContigGraph, sedge.referenceEdge);
+    CIEdgeT *topEdge = GetGraphEdge(graph->ContigGraph, edge->topLevelEdge);
     assert(edge->idA == topEdge->idA);
     assert(edge->idB == topEdge->idB);
   }
@@ -590,11 +590,11 @@ void BuildSEdgesForScaffold(ScaffoldGraphT * graph,
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
 
   while((thisCI = NextCIScaffoldTIterator(&CIs)) != NULL){
-    InitGraphEdgeIterator(graph->RezGraph,  thisCI->id,   ALL_END,   ALL_EDGES, GRAPH_EDGE_RAW_ONLY, &edges);// ONLY RAW
+    InitGraphEdgeIterator(graph->ContigGraph,  thisCI->id,   ALL_END,   ALL_EDGES, GRAPH_EDGE_RAW_ONLY, &edges);// ONLY RAW
 
     while((edge = NextGraphEdgeIterator(&edges)) != NULL){
       int isA = (edge->idA == thisCI->id);
-      ChunkInstanceT *otherCI = GetGraphNode(graph->RezGraph,
+      ChunkInstanceT *otherCI = GetGraphNode(graph->ContigGraph,
                                              (isA? edge->idB: edge->idA));
 
       // RAW EDGES ONLY
@@ -662,7 +662,7 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
       GraphEdgeIterator edges;
       CIEdgeT *edge;
 
-      InitGraphEdgeIterator(graph->RezGraph,
+      InitGraphEdgeIterator(graph->ContigGraph,
                             thisCI->id,
                             ALL_END,
                             ALL_EDGES,
@@ -673,7 +673,7 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
           if(edge->idA != edge->idB)
             {
               int isA = (edge->idA == thisCI->id);
-              ChunkInstanceT *otherCI = GetGraphNode(graph->RezGraph,
+              ChunkInstanceT *otherCI = GetGraphNode(graph->ContigGraph,
                                                      (isA? edge->idB: edge->idA));
 
               fprintf(fp, "" F_CID " to " F_CID " in scaffold " F_CID ". %s",

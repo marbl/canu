@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Instrument_CGW.c,v 1.43 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: Instrument_CGW.c,v 1.44 2009-10-27 12:26:40 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2494,7 +2494,7 @@ void PrintUnitigInstrumenter(ScaffoldGraphT * graph,
       int32 i;
       ChunkInstanceT * unitig;
 
-      if((unitig = GetGraphNode(graph->RezGraph, ui->id)) == NULL)
+      if((unitig = GetGraphNode(graph->ContigGraph, ui->id)) == NULL)
         {
           fprintf(stderr, "Unitig "F_CID " does not exist in the graph!\n", ui->id);
           return;
@@ -2571,7 +2571,7 @@ void PrintContigInstrumenter(ScaffoldGraphT * graph,
       int32 i;
       ContigT * contig;
 
-      if((contig = GetGraphNode(graph->RezGraph, ci->id)) == NULL)
+      if((contig = GetGraphNode(graph->ContigGraph, ci->id)) == NULL)
         {
           fprintf(stderr, "Contig "F_CID " does not exist in the graph!\n", ci->id);
           return;
@@ -4873,14 +4873,14 @@ int BuildFauxIntScaffoldMesgFromScaffold(ScaffoldGraphT * graph,
       int thisEnd;
 
       // get the left contig
-      if((lContig = GetGraphNode(graph->RezGraph, CIsTemp.curr)) == NULL)
+      if((lContig = GetGraphNode(graph->ContigGraph, CIsTemp.curr)) == NULL)
         {
           fprintf(stderr, "Left contig "F_CID " does not exist in the graph!\n",
                   CIsTemp.curr);
           return 1;
         }
       // get the right contig
-      if((rContig = GetGraphNode(graph->RezGraph, CIsTemp.next)) == NULL)
+      if((rContig = GetGraphNode(graph->ContigGraph, CIsTemp.next)) == NULL)
         {
           fprintf(stderr, "Right contig "F_CID " does not exist in the graph!\n",
                   CIsTemp.next);
@@ -5034,7 +5034,7 @@ int InstrumentScaffoldNextContig(ScaffoldGraphT * graph,
     isf->contig_pairs[contigIndex - 1].contig2;
 
   // get the contig
-  if((contig = GetGraphNode(graph->RezGraph, contigID)) == NULL)
+  if((contig = GetGraphNode(graph->ContigGraph, contigID)) == NULL)
     {
       fprintf(stderr, "Contig "F_CID " does not exist in the graph!\n", contigID);
       return 1;
@@ -5105,7 +5105,7 @@ int InstrumentScaffoldNextGapAndContig(ScaffoldGraphT * graph,
                        &(isf->contig_pairs[pairIndex].mean));
 
   // capture inferred edge stddevs
-  if((edge = FindGraphEdge(graph->RezGraph,
+  if((edge = FindGraphEdge(graph->ContigGraph,
                            isf->contig_pairs[pairIndex].contig1,
                            isf->contig_pairs[pairIndex].contig2,
                            isf->contig_pairs[pairIndex].orient)) == NULL)
@@ -5550,8 +5550,8 @@ int BuildFauxIntScaffoldMesg(ScaffoldGraphT * graph,
     {
       GraphEdgeIterator edges;
 
-      nextCI = GetGraphNode(graph->RezGraph, id);
-      InitGraphEdgeIterator(graph->RezGraph,
+      nextCI = GetGraphNode(graph->ContigGraph, id);
+      InitGraphEdgeIterator(graph->ContigGraph,
                             nextCI->id,
                             end,
                             ALL_EDGES,
@@ -5566,7 +5566,7 @@ int BuildFauxIntScaffoldMesg(ScaffoldGraphT * graph,
   AppendVA_IntContigPairs(icps, &icp);
 
   // get the next CI & the end of it that extends the path
-  nextCI = GetGraphNode(graph->RezGraph, icp.contig2);
+  nextCI = GetGraphNode(graph->ContigGraph, icp.contig2);
   nextEnd = (icp.orient == AB_AB || icp.orient == BA_AB) ? B_END : A_END;
   numEssential = (nextEnd == A_END) ?
     nextCI->numEssentialA : nextCI->numEssentialB;
@@ -5575,7 +5575,7 @@ int BuildFauxIntScaffoldMesg(ScaffoldGraphT * graph,
       CIEdgeT * nextEdge;
       GraphEdgeIterator edges;
 
-      InitGraphEdgeIterator(graph->RezGraph,
+      InitGraphEdgeIterator(graph->ContigGraph,
                             nextCI->id,
                             nextEnd,
                             ALL_EDGES,
@@ -5591,7 +5591,7 @@ int BuildFauxIntScaffoldMesg(ScaffoldGraphT * graph,
         break;
 
       // get the next CI & the end of it that extends the path
-      nextCI = GetGraphNode(graph->RezGraph, icp.contig2);
+      nextCI = GetGraphNode(graph->ContigGraph, icp.contig2);
       nextEnd = (icp.orient == AB_AB || icp.orient == BA_AB) ? B_END : A_END;
       numEssential = (nextEnd == A_END) ?
         nextCI->numEssentialA : nextCI->numEssentialB;
@@ -5619,7 +5619,7 @@ int InstrumentContigEnd(ScaffoldGraphT * graph,
   mi = CreateMateInstrumenter(graph, si->options);
 
   // loop over one end's essential edges & instrument each 'scaffold'
-  InitGraphEdgeIterator(graph->RezGraph,
+  InitGraphEdgeIterator(graph->ContigGraph,
                         thisCI->id,
                         end,
                         ALL_EDGES,
@@ -5676,7 +5676,7 @@ int InstrumentContigEndPartial(ScaffoldGraphT * graph,
     }
 
   // loop over one end's essential edges & instrument each 'scaffold'
-  InitGraphEdgeIterator(graph->RezGraph,
+  InitGraphEdgeIterator(graph->ContigGraph,
                         thisCI->id,
                         end,
                         ALL_EDGES,
@@ -5737,7 +5737,7 @@ int InstrumentContigPath(ScaffoldGraphT * graph,
   // fprintf(stderr,  F_CID "(%c): ", firstID, (firstEnd == A_END) ? 'A' : 'B');
   while(!done)
     {
-      ChunkInstanceT * thisCI = GetGraphNode(graph->RezGraph, thisID);
+      ChunkInstanceT * thisCI = GetGraphNode(graph->ContigGraph, thisID);
       CIEdgeT * edge;
       GraphEdgeIterator edges;
 
@@ -5751,7 +5751,7 @@ int InstrumentContigPath(ScaffoldGraphT * graph,
       */
 
       // loop over one end's essential edges & instrument each 'scaffold'
-      InitGraphEdgeIterator(graph->RezGraph,
+      InitGraphEdgeIterator(graph->ContigGraph,
                             thisCI->id,
                             thisEnd,
                             ALL_EDGES,
@@ -5817,7 +5817,7 @@ int InstrumentContigPath(ScaffoldGraphT * graph,
 void PrintEssentialEdges(ScaffoldGraphT * graph,
                          CDS_CID_t chunkID, int end)
 {
-  ChunkInstanceT * thisCI = GetGraphNode(graph->RezGraph, chunkID);
+  ChunkInstanceT * thisCI = GetGraphNode(graph->ContigGraph, chunkID);
   CIEdgeT * edge;
   GraphEdgeIterator edges;
   int thisEnd = end;
@@ -5825,7 +5825,7 @@ void PrintEssentialEdges(ScaffoldGraphT * graph,
   fprintf(stderr, F_CID "(%c): ", chunkID, (end == A_END) ? 'A' : 'B');
 
   // loop over one end's essential edges & instrument each 'scaffold'
-  InitGraphEdgeIterator(graph->RezGraph,
+  InitGraphEdgeIterator(graph->ContigGraph,
                         thisCI->id,
                         thisEnd,
                         ALL_EDGES,
@@ -5876,7 +5876,7 @@ int AdjustCIScaffoldLabels(ScaffoldGraphT * graph,
 
   // loop over all CIs
   InitGraphNodeIterator(&ciIterator,
-                        graph->RezGraph,
+                        graph->ContigGraph,
                         GRAPH_NODE_DEFAULT);
   while(NULL != (firstCI = NextGraphNodeIterator(&ciIterator)))
     {
@@ -5900,7 +5900,7 @@ int AdjustCIScaffoldLabels(ScaffoldGraphT * graph,
               while(!atLeft)
                 {
                   // iterate over edges off relevant end to get next CI
-                  InitGraphEdgeIterator(graph->RezGraph,
+                  InitGraphEdgeIterator(graph->ContigGraph,
                                         firstCI->id,
                                         firstEnd,
                                         ALL_EDGES,
@@ -5914,7 +5914,7 @@ int AdjustCIScaffoldLabels(ScaffoldGraphT * graph,
                           int nextEnd;
 
                           // get the CI to check it's scaffold ID
-                          nextCI = GetGraphNode(graph->RezGraph,
+                          nextCI = GetGraphNode(graph->ContigGraph,
                                                 (edge->idA == firstCI->id) ?
                                                 edge->idB : edge->idA);
                           if(nextCI->scaffoldID != firstCI->scaffoldID)
@@ -5960,7 +5960,7 @@ int AdjustCIScaffoldLabels(ScaffoldGraphT * graph,
 
                   foundNext = 0;
                   // loop over one end's essential edges & instrument each 'scaffold'
-                  InitGraphEdgeIterator(graph->RezGraph,
+                  InitGraphEdgeIterator(graph->ContigGraph,
                                         thisCI->id,
                                         thisEnd,
                                         ALL_EDGES,
@@ -5971,7 +5971,7 @@ int AdjustCIScaffoldLabels(ScaffoldGraphT * graph,
                       if(getEssentialEdgeStatus(edge))
                         {
                           // make sure scaffoldID of other CI is same
-                          nextCI = GetGraphNode(graph->RezGraph,
+                          nextCI = GetGraphNode(graph->ContigGraph,
                                                 (edge->idA == thisCI->id) ?
                                                 edge->idB : edge->idA);
                           if(nextCI->scaffoldID == thisCI->scaffoldID)
@@ -6021,7 +6021,7 @@ int AdjustCIScaffoldLabels(ScaffoldGraphT * graph,
                     PrintScaffoldInstrumenter(graph, si, InstrumenterVerbose2, "\t", stderr);
                     for(q = 0; q < isf.num_contig_pairs; q++)
                       {
-                        ContigT * contig = GetGraphNode(graph->RezGraph,
+                        ContigT * contig = GetGraphNode(graph->ContigGraph,
                                                         isf.contig_pairs[q].contig2);
                         contig->scaffoldID = myNumScaffoldIDs++;
                       }
@@ -6150,7 +6150,7 @@ int InstrumentScaffoldPair(ScaffoldGraphT * graph,
   // convert to contig pairs
   for(i = 0; i < ism.num_contig_pairs; i++)
     {
-      ChunkInstanceT * ci = GetGraphNode(graph->RezGraph,
+      ChunkInstanceT * ci = GetGraphNode(graph->ContigGraph,
                                          ism.contig_pairs[i].contig1);
       ism.contig_pairs[i].contig2 = ism.contig_pairs[i+1].contig1;
       if(ism.contig_pairs[i].orient == AB_AB)

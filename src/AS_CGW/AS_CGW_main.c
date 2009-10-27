@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.80 2009-10-05 22:49:42 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.81 2009-10-27 12:26:40 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -206,6 +206,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-s") == 0) {
       GlobalData->stoneLevel = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-U") == 0) {
+      GlobalData->doUnjiggleWhenMerging = 1;
+
     } else if (strcmp(argv[arg], "-u") == 0) {
       strcpy(GlobalData->unitigOverlaps, argv[++arg]);
 
@@ -265,6 +268,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "                                 (which really mean t = 0.0, but triggers a better algorithm)\n");
     fprintf(stderr, "                    if <t> =  0, do not resolve surrogate fragments\n");
     fprintf(stderr, "   -s <lvl>     stone throwing level\n");
+    fprintf(stderr, "   -U           after inserting rocks/stones try shifting contig positions back to their original location when computing overlaps to see if they overlap with the rock/stone and allow them to merge if they do\n");
     fprintf(stderr, "   -u <file>    load these overlaps (from BOG) into the scaffold graph\n");
     fprintf(stderr, "   -v           verbose\n");
     fprintf(stderr, "   -Z           Don't demote singleton scaffolds\n");
@@ -304,8 +308,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "Beginning CHECKPOINT_AFTER_BUILDING_SCAFFOLDS\n");
 
     //  Create the checkpoint from scratch
-    //  TRUE -- doRezOnContigs
-    ScaffoldGraph = CreateScaffoldGraph(TRUE, GlobalData->outputPrefix);
+    ScaffoldGraph = CreateScaffoldGraph(GlobalData->outputPrefix);
 
     ProcessInput(firstFileArg, argc, argv);    // Handle the rest of the first file
 
@@ -345,8 +348,6 @@ main(int argc, char **argv) {
       ChunkOverlapperT *tmp = ScaffoldGraph->ContigGraph->overlapper;
       ScaffoldGraph->ContigGraph->overlapper = ScaffoldGraph->CIGraph->overlapper;
       ScaffoldGraph->CIGraph->overlapper = tmp;
-
-      ScaffoldGraph->RezGraph = ScaffoldGraph->ContigGraph;
     }
 
     BuildInitialContigs(ScaffoldGraph);
@@ -354,7 +355,7 @@ main(int argc, char **argv) {
     CheckCIScaffoldTs(ScaffoldGraph);
 
     if(GlobalData->debugLevel > 0){
-      CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
+      CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
       CheckSurrogateUnitigs();
     }
 
@@ -381,7 +382,7 @@ main(int argc, char **argv) {
 
     ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
 
-    // Transitive reduction of RezGraph followed by construction of SEdges
+    // Transitive reduction of ContigGraph followed by construction of SEdges
     RebuildScaffolds(ScaffoldGraph, TRUE);
 
     //  rocks is called inside of here
@@ -395,7 +396,7 @@ main(int argc, char **argv) {
     fprintf(stderr,"** Running Level 1 Repeat Rez **\n");
 
     while ((changed) && (iter < iterMax)) {
-      CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
+      CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
       CheckCITypes(ScaffoldGraph);
 
       changed = RepeatRez(GlobalData->repeatRezLevel, GlobalData->outputPrefix);
@@ -406,7 +407,7 @@ main(int argc, char **argv) {
         // merge in stuff placed by rocks, assuming its position is correct!
         CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
 
-        // Transitive reduction of RezGraph followed by construction of SEdges
+        // Transitive reduction of ContigGraph followed by construction of SEdges
         RebuildScaffolds(ScaffoldGraph, FALSE);
 
         //  If we've been running for 2 hours, AND we've not just
@@ -684,7 +685,7 @@ main(int argc, char **argv) {
     if (ScaffoldGraph->gkpStore->gkStore_getFRGtoPLC(frag->read_iid) != 0) {
       AS_UID uid = getGatekeeperIIDtoUID(ScaffoldGraph->gkpStore, frag->read_iid, AS_IID_FRG);
       if (frag->contigID != -1) {
-        ChunkInstanceT * ctg = GetGraphNode(ScaffoldGraph->RezGraph, frag->contigID);            
+        ChunkInstanceT * ctg = GetGraphNode(ScaffoldGraph->ContigGraph, frag->contigID);            
         fprintf(stderr, "CLOSURE_READS: CLOSURE READ %s PLACED=%d CHAFF=%d SINGLETON=%d IN ASM type %c in SCF %d\n", AS_UID_toString(uid), frag->flags.bits.isPlaced, frag->flags.bits.isChaff, frag->flags.bits.isSingleton, frag->type, ctg->scaffoldID);
       }
     }

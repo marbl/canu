@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.45 2009-10-14 16:42:28 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.46 2009-10-27 12:26:40 skoren Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -59,7 +59,6 @@ static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.45 2009-10-14 16:42:28 brianwa
 //   3352 tries
 //
 #undef USE_LOCAL_OVERLAP_AS_FALLBACK
-
 
 
 /* ChunkOverlap_CGW provides tools for invoking Gene's dpalign tool to compute
@@ -711,12 +710,14 @@ void CollectChunkOverlap(GraphCGW_T *graph,
 Overlap* OverlapSequences( char *seq1, char *seq2,
                            ChunkOrientationType orientation,
                            int32 min_ahang, int32 max_ahang,
-                           double erate, double thresh, int32 minlen)
+                           double erate, double thresh, int32 minlen,
+                           uint32 tryLocal)
 {
   Overlap *dp_omesg = NULL;
   Overlap *lo_omesg = NULL;
   int      flip = 0;
-  int      len1 = 0;
+  int      len1 = strlen(seq1);
+  int      len2 = strlen(seq2);
 
   //  This function takes two sequences, their orientation and an
   //  assumed minimum and maximum ahang for which it checks.
@@ -724,7 +725,7 @@ Overlap* OverlapSequences( char *seq1, char *seq2,
   // if the orientation is BA_AB or BA_BA, we need to reverse
   // complement the first contig
   if (orientation == BA_AB || orientation == BA_BA)
-    reverseComplementSequence( seq1, len1=strlen(seq1) );
+    reverseComplementSequence( seq1, len1 );
 
   // if the orientation is AB_BA or BA_BA, we need to set the flip
   // variable for the second contig
@@ -735,7 +736,7 @@ Overlap* OverlapSequences( char *seq1, char *seq2,
 
   dp_omesg = DP_Compare(seq1, seq2,
                         min_ahang, max_ahang,
-                        strlen(seq1), strlen(seq2),
+                        len1, len2,
                         flip,
                         erate, thresh, minlen,
                         AS_FIND_ALIGN);
@@ -767,30 +768,38 @@ Overlap* OverlapSequences( char *seq1, char *seq2,
   if (!dp_omesg)
     lo_omesg = Local_Overlap_AS_forCNS(seq1, seq2,
                                        min_ahang, max_ahang,
-                                       strlen(seq1), strlen(seq2),
+                                       len1, len2,
                                        flip,
                                        erate, thresh, minlen,
                                        AS_FIND_LOCAL_OVERLAP);
+#else
+if (tryLocal == TRUE && !dp_omesg) {
+    lo_omesg = Local_Overlap_AS_forCNS(seq1, seq2,
+                                       min_ahang, max_ahang,
+                                       len1, len2,
+                                       flip,
+                                       erate, thresh, minlen,
+                                       AS_FIND_LOCAL_OVERLAP);
+}
+#endif
 
-  if ((lo_omesg != NULL) && (lo_omesg->length <= minlen)) {
-    lo_omesg = NULL;
-  }
-
-  if ((lo_omesg != NULL) && ((double)lo_omesg->diffs / lo_omesg->length > erate)) {
-    lo_omesg = NULL;
-  }
+  if (lo_omesg != NULL) {
+    if ((lo_omesg != NULL) && (lo_omesg->length <= minlen)) {
+      lo_omesg = NULL;
+    }
+    if ((lo_omesg != NULL) && ((double)lo_omesg->diffs / lo_omesg->length > erate)) {
+      lo_omesg = NULL;
+    }
 
 #ifdef DEBUG_OVERLAP_SEQUENCES
-  if (lo_omesg != NULL)
-    fprintf(stderr, "OverlapSequences()-- Found overlap with Local_Overlap   begpos=%d endpos=%d length=%d diffs=%d comp=%d/%d\n",
-            lo_omesg->begpos, lo_omesg->endpos, lo_omesg->length, lo_omesg->diffs, lo_omesg->comp, flip);
+    if (lo_omesg != NULL)
+      fprintf(stderr, "OverlapSequences()-- Found overlap with Local_Overlap   begpos=%d endpos=%d length=%d diffs=%d comp=%d/%d\n",
+              lo_omesg->begpos, lo_omesg->endpos, lo_omesg->length, lo_omesg->diffs, lo_omesg->comp, flip);
 #endif
-#endif
-
+  }
+  
   if (orientation == BA_AB || orientation == BA_BA)
     reverseComplementSequence( seq1, len1 );
-
-  // omesg->begpos is the a-hang, omesg->endpos is the b-hang
 
   return((dp_omesg) ? dp_omesg : lo_omesg);
 }
@@ -1090,7 +1099,8 @@ ChunkOverlapCheckT OverlapChunks( GraphCGW_T *graph,
 Overlap* OverlapContigs(NodeCGW_T *contig1, NodeCGW_T *contig2,
                         ChunkOrientationType *overlapOrientation,
                         int32 minAhang, int32 maxAhang,
-                        int computeAhang)
+                        int computeAhang,
+                        uint32 tryLocal, uint32 tryRev)
 {
   Overlap *tempOlap1;
   char *seq1, *seq2;
@@ -1128,17 +1138,29 @@ static VA_TYPE(char) *quality2 = NULL;
       ResetVA_char(quality2);
     }
   // Get the consensus sequences for both chunks from the Store
-  GetConsensus(ScaffoldGraph->RezGraph, contig1->id, consensus1, quality1);
-  GetConsensus(ScaffoldGraph->RezGraph, contig2->id, consensus2, quality2);
+  int len1 = GetConsensus(ScaffoldGraph->ContigGraph, contig1->id, consensus1, quality1) - 1;
+  int len2 = GetConsensus(ScaffoldGraph->ContigGraph, contig2->id, consensus2, quality2) - 1;
 
   seq1 = Getchar(consensus1, 0);
   seq2 = Getchar(consensus2, 0);
-
+  
   // tempOlap1 is a static down inside of DP_Compare
   tempOlap1 =
     OverlapSequences( seq1, seq2,
                       *overlapOrientation, minAhang, maxAhang,
-                      erate, thresh, minlen);
+                      erate, thresh, minlen, tryLocal);
+
+  if (tryRev && tempOlap1 == NULL) {
+     reverseComplementSequence(seq1, len1);
+     reverseComplementSequence(seq2, len2);
+     tempOlap1 =
+       OverlapSequences( seq1, seq2,
+                         *overlapOrientation, 
+                         MIN(len1-minAhang-len2, len1-maxAhang-len2), MAX(len1-minAhang-len2, len1-maxAhang-len2),
+                         erate, thresh, minlen, tryLocal);
+     reverseComplementSequence(seq1, len1);
+     reverseComplementSequence(seq2, len2);
+  }
 
   return(tempOlap1);
 }

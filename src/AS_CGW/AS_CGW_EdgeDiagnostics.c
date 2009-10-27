@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.25 2009-10-05 22:49:41 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.26 2009-10-27 12:26:40 skoren Exp $";
 
 
 #include <stdio.h>
@@ -126,7 +126,7 @@ void GetFragment5pAndOrientationInChunk(ScaffoldGraphT * graph,
       case OUTPUT_SCAFFOLD:
       case SCRATCH_SCAFFOLD:
         {
-          ChunkInstanceT * contig = GetGraphNode(graph->RezGraph, frag->contigID);
+          ChunkInstanceT * contig = GetGraphNode(graph->ContigGraph, frag->contigID);
           offset5p->mean = contig->offsetAEnd.mean;
           // use variances to end of contig, not to end of scaffold!
           offset5p->variance = 0.0;
@@ -476,7 +476,7 @@ int AddScaffoldToContigOrientChecker(ScaffoldGraphT * graph,
       ContigT * contig;
 
       // get the left contig
-      if((contig = GetGraphNode(graph->RezGraph, ciTemp.curr)) == NULL)
+      if((contig = GetGraphNode(graph->ContigGraph, ciTemp.curr)) == NULL)
         {
           fprintf(stderr, "Failed to get contig "F_CID " from graph!\n", ciTemp.curr);
           return 1;
@@ -525,7 +525,7 @@ int CompareNewOrientationsForScaffold(ScaffoldGraphT * graph,
       OrientHolder * scaffoldOH;
 
       // get the left contig
-      if((contig = GetGraphNode(graph->RezGraph, ciTemp.curr)) == NULL)
+      if((contig = GetGraphNode(graph->ContigGraph, ciTemp.curr)) == NULL)
         {
           fprintf(stderr, "Failed to get contig "F_CID " from graph!\n", ciTemp.curr);
           return -1;
@@ -807,13 +807,13 @@ int CheckAllEdgesForChunk(ScaffoldGraphT * graph,
              loop over all unitigs
              recurse for each unitig
           */
-          InitGraphEdgeIterator(graph->RezGraph, chunk->id, ALL_END, ALL_EDGES, GRAPH_EDGE_RAW_ONLY, &edges);
+          InitGraphEdgeIterator(graph->ContigGraph, chunk->id, ALL_END, ALL_EDGES, GRAPH_EDGE_RAW_ONLY, &edges);
           while((edge = NextGraphEdgeIterator(&edges)) != NULL)
             {
               int isA = (edge->idA == chunk->id);
               CDS_CID_t thiscid = (isA? edge->idA: edge->idB);
               CDS_CID_t othercid = (isA? edge->idB: edge->idA);
-              ChunkInstanceT * otherChunk = GetGraphNode(graph->RezGraph, othercid);
+              ChunkInstanceT * otherChunk = GetGraphNode(graph->ContigGraph, othercid);
 
               // RAW EDGES ONLY
               assert(edge->flags.bits.isRaw);
@@ -986,14 +986,14 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
       CIEdgeT myEdge;
 
       // get the left chunk
-      if((chunkA = GetGraphNode(graph->RezGraph, ciTemp.curr)) == NULL)
+      if((chunkA = GetGraphNode(graph->ContigGraph, ciTemp.curr)) == NULL)
         {
           fprintf(stderr, "Failed to get contig "F_CID " from graph!\n", ciTemp.curr);
           return;
         }
 
       // loop over edges of this chunk
-      InitGraphEdgeIterator(graph->RezGraph,
+      InitGraphEdgeIterator(graph->ContigGraph,
                             chunkA->id,
                             ALL_END,
                             ALL_EDGES,
@@ -1003,7 +1003,7 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
         {
           int isA = (edge->idA == chunkA->id);
           CDS_CID_t idB = (isA? edge->idB: edge->idA);
-          ChunkInstanceT * chunkB = GetGraphNode(graph->RezGraph, idB);
+          ChunkInstanceT * chunkB = GetGraphNode(graph->ContigGraph, idB);
           CIFragT * fragA = GetCIFragT(graph->CIFrags,
                                        (isA? edge->fragA: edge->fragB));
           CIFragT * fragB = GetCIFragT(graph->CIFrags,
@@ -1311,7 +1311,7 @@ void DoSomethingWithUnitigsInScaffolds(ScaffoldGraphT * graph)
               ChunkInstanceT * unitig;
               FragOrient contigOrient;
 
-              if((contig = GetGraphNode(graph->RezGraph, cisTemp.curr)) == NULL)
+              if((contig = GetGraphNode(graph->ContigGraph, cisTemp.curr)) == NULL)
                 {
                   fprintf(stderr, "Failed to get contig "F_CID " from graph!\n",
                           cisTemp.curr);

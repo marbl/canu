@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: terminator.C,v 1.2 2009-10-07 08:23:50 brianwalenz Exp $";
+const char *mainid = "$Id: terminator.C,v 1.3 2009-10-27 12:26:43 skoren Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly pipeline and replaces internal
 //  accession numbers by external accession numbers.
@@ -111,8 +111,6 @@ void
 writeMDI(FILE *asmFile, bool doWrite) {
   GenericMesg           pmesg;
   SnapMateDistMesg      mdi;
-
-  assert(ScaffoldGraph->doRezOnContigs);
 
   pmesg.m = &mdi;
   pmesg.t = MESG_MDI;

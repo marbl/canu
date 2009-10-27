@@ -69,6 +69,7 @@ sub CGW ($$$$$$) {
     $cmd .= " -z "                                 if (getGlobal("cgwDemoteRBP") == 1);
     $cmd .= " -P " . getGlobal("closurePlacement") if (defined(getGlobal("closurePlacement")));
     $cmd .= " -K "                                 if (getGlobal("kickOutNonOvlContigs") != 0);
+    $cmd .= " -U "                                 if (getGlobal("doUnjiggleWhenMerging") != 0);
     $cmd .= " -F "                                 if (getGlobal("toggleDoNotDemote") != 0);
     $cmd .= " -u $wrk/4-unitigger/$asm.unused.ovl" if (getGlobal("cgwUseUnitigOverlaps") != 0);
     $cmd .= " -m $sampleSize";

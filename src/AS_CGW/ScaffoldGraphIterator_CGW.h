@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_ITERATOR_H
 #define SCAFFOLD_GRAPH_ITERATOR_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_ITERATOR_H = "$Id: ScaffoldGraphIterator_CGW.h,v 1.7 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_ITERATOR_H = "$Id: ScaffoldGraphIterator_CGW.h,v 1.8 2009-10-27 12:26:41 skoren Exp $";
 
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"
@@ -286,7 +286,7 @@ static void InitCIScaffoldTIteratorFromCI(ScaffoldGraphT *graph,
 					  int aEndToBEnd,
 					  int verbose,
 					  CIScaffoldTIterator *e){
-  ChunkInstanceT *CI = GetGraphNode(graph->RezGraph, indexOfCI);
+  ChunkInstanceT *CI = GetGraphNode(graph->ContigGraph, indexOfCI);
 
   assert(graph && e && scaffold);
   assert(CI->scaffoldID == scaffold->id && !CI->flags.bits.isDead);
@@ -334,7 +334,7 @@ static ChunkInstanceT *NextCIScaffoldTIterator(CIScaffoldTIterator *e){
     return r;
   }
 
-  r = GetGraphNode(e->graph->RezGraph, e->next);
+  r = GetGraphNode(e->graph->ContigGraph, e->next);
   AssertPtr(r);
 
   e->prev = e->curr;
@@ -367,7 +367,7 @@ static ChunkInstanceT *PrevCIScaffoldTIterator(CIScaffoldTIterator *e){
     return r;
   }
 
-  r = GetGraphNode(e->graph->RezGraph, e->prev);
+  r = GetGraphNode(e->graph->ContigGraph, e->prev);
   AssertPtr(r);
 
   e->next = e->curr;
@@ -400,7 +400,7 @@ static ChunkInstanceT *GetNextFromCIScaffoldT(CIScaffoldTIterator *e){
     return r;
   }
 
-  r = GetGraphNode(e->graph->RezGraph, e->next);
+  r = GetGraphNode(e->graph->ContigGraph, e->next);
   AssertPtr(r);
   return r;
 }
@@ -415,7 +415,7 @@ static ChunkInstanceT *GetCurrFromCIScaffoldT(CIScaffoldTIterator *e){
     return r;
   }
 
-  r = GetGraphNode(e->graph->RezGraph, e->curr);
+  r = GetGraphNode(e->graph->ContigGraph, e->curr);
   AssertPtr(r);
   return r;
 }
@@ -430,7 +430,7 @@ static ChunkInstanceT *GetPrevFromCIScaffoldT(CIScaffoldTIterator *e){
     return r;
   }
 
-  r = GetGraphNode(e->graph->RezGraph, e->prev);
+  r = GetGraphNode(e->graph->ContigGraph, e->prev);
   AssertPtr(r);
   return r;
 }
@@ -453,7 +453,7 @@ static ChunkInstanceT *GetNextGivenCIFromCIScaffoldT(CIScaffoldTIterator *e,
     return r;
   }
 
-  r = GetGraphNode(e->graph->RezGraph, indexR);
+  r = GetGraphNode(e->graph->ContigGraph, indexR);
   AssertPtr(r);
   return r;
 }
@@ -476,7 +476,7 @@ static ChunkInstanceT *GetPrevGivenCIFromCIScaffoldT(CIScaffoldTIterator *e,
     return r;
   }
 
-  r = GetGraphNode(e->graph->RezGraph, indexR);
+  r = GetGraphNode(e->graph->ContigGraph, indexR);
   AssertPtr(r);
   return r;
 }
@@ -564,7 +564,7 @@ static ChunkInstanceT *NextContigTIterator(ContigTIterator *e){
 static void NormalizeScaffoldOffsets(ScaffoldGraphT *graph,
 				     CIScaffoldT *scaffold, int verbose){
   LengthT curBeginOffset;
-  NodeCGW_T *endNodeA = GetGraphNode(graph->RezGraph,
+  NodeCGW_T *endNodeA = GetGraphNode(graph->ContigGraph,
 				     scaffold->info.Scaffold.AEndCI);
   if(GetNodeOrient(endNodeA) == A_B){
     curBeginOffset = endNodeA->offsetAEnd;

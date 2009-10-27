@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.60 2009-10-25 01:04:41 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.61 2009-10-27 12:26:41 skoren Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -633,7 +633,7 @@ static int Place_Closure_Chunk(Scaffold_Fill_t * fill_chunks, ContigT* contig, i
 #endif
    
    // go through fragments in cid
-   MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(cid, ScaffoldGraph->RezGraph->type == CI_GRAPH);
+   MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(cid, ScaffoldGraph->ContigGraph->type == CI_GRAPH);
    assert(ma != NULL);
    
    for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {      
@@ -667,8 +667,8 @@ fprintf(stderr, "Place_Closure_Chunk(): Read=%d Left Bound=%d Right Bound=%d in 
       }
             
       // now pull the contigs that these reads belong to and if they are in the same scaffold, see if there is a gap we can throw things into                    
-      ChunkInstanceT * begin_chunk = GetGraphNode(ScaffoldGraph->RezGraph, leftMate->contigID);
-      ChunkInstanceT * end_chunk   = GetGraphNode(ScaffoldGraph->RezGraph, rightMate->contigID);
+      ChunkInstanceT * begin_chunk = GetGraphNode(ScaffoldGraph->ContigGraph, leftMate->contigID);
+      ChunkInstanceT * end_chunk   = GetGraphNode(ScaffoldGraph->ContigGraph, rightMate->contigID);
 
 #if VERBOSE > 2
    fprintf(stderr, "Place_Closure_Chunk(): Link between closure entry %d and nodes %d and %d\n", cid, begin_chunk->id, end_chunk->id);
@@ -909,12 +909,12 @@ static void  Add_Gap_Ends
                         right_end . variance = MIN_VARIANCE;
                     }
                   cover_stat = GetCoverageStat
-                    (GetGraphNode (ScaffoldGraph->RezGraph,
+                    (GetGraphNode (ScaffoldGraph->ContigGraph,
                                    cid));
                   assign_succeeded
                     = Assign_To_Gap (cid, left_end, right_end,
                                      j, scaff_id, flipped, fill_chunks, 0.0,
-                                     cover_stat, 0, GAP_END_CHAR, IsClosure((GetGraphNode (ScaffoldGraph->RezGraph,cid))));
+                                     cover_stat, 0, GAP_END_CHAR, IsClosure((GetGraphNode (ScaffoldGraph->ContigGraph,cid))));
                 }
 
               if  (j < fill_chunks [scaff_id] . num_gaps - 1)
@@ -950,12 +950,12 @@ static void  Add_Gap_Ends
                         right_end . variance = MIN_VARIANCE;
                     }
                   cover_stat = GetCoverageStat
-                    (GetGraphNode (ScaffoldGraph->RezGraph,
+                    (GetGraphNode (ScaffoldGraph->ContigGraph,
                                    cid));
                   assign_succeeded
                     = Assign_To_Gap (cid, left_end, right_end,
                                      j, scaff_id, flipped, fill_chunks, 0.0,
-                                     cover_stat, 0, GAP_END_CHAR, IsClosure((GetGraphNode (ScaffoldGraph->RezGraph,cid))));
+                                     cover_stat, 0, GAP_END_CHAR, IsClosure((GetGraphNode (ScaffoldGraph->ContigGraph,cid))));
                 }
             }
         }
@@ -1193,7 +1193,7 @@ static void  Analyze_Rock_Fill
           if  (j > 0)
             {
               scaff_chunk
-                = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> left_cid);
+                = GetGraphNode(ScaffoldGraph->ContigGraph, this_gap -> left_cid);
               scaffold_bases += fabs (scaff_chunk -> offsetAEnd . mean
                                       - scaff_chunk -> offsetBEnd . mean);
               prev_left = MAX (scaff_chunk -> offsetAEnd . mean,
@@ -1202,7 +1202,7 @@ static void  Analyze_Rock_Fill
           else
             {
               scaff_chunk
-                = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> right_cid);
+                = GetGraphNode(ScaffoldGraph->ContigGraph, this_gap -> right_cid);
               prev_left = - DBL_MAX;
             }
           if  (j < fill_chunks [scaff_id] . num_gaps - 1)
@@ -1210,7 +1210,7 @@ static void  Analyze_Rock_Fill
               ChunkInstanceT  * right_chunk;
 
               right_chunk
-                = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> right_cid);
+                = GetGraphNode(ScaffoldGraph->ContigGraph, this_gap -> right_cid);
               target_right = MIN (right_chunk -> offsetAEnd . mean,
                                   right_chunk -> offsetBEnd . mean);
             }
@@ -1321,12 +1321,12 @@ static void  Analyze_Rock_Fill
 
           if  (j > 0)
             left_scaff_chunk
-              = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> left_cid);
+              = GetGraphNode(ScaffoldGraph->ContigGraph, this_gap -> left_cid);
           else
             left_scaff_chunk = NULL;
           if  (j < fill_chunks [scaff_id] . num_gaps - 1)
             right_scaff_chunk
-              = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> right_cid);
+              = GetGraphNode(ScaffoldGraph->ContigGraph, this_gap -> right_cid);
           else
             right_scaff_chunk = NULL;
 
@@ -1465,7 +1465,7 @@ static void  Analyze_Stone_Fill
           if  (j > 0)
             {
               scaff_chunk
-                = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> left_cid);
+                = GetGraphNode(ScaffoldGraph->ContigGraph, this_gap -> left_cid);
               scaffold_bases += fabs (scaff_chunk -> offsetAEnd . mean
                                       - scaff_chunk -> offsetBEnd . mean);
               prev_left = MAX (scaff_chunk -> offsetAEnd . mean,
@@ -1474,7 +1474,7 @@ static void  Analyze_Stone_Fill
           else
             {
               scaff_chunk
-                = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> right_cid);
+                = GetGraphNode(ScaffoldGraph->ContigGraph, this_gap -> right_cid);
               prev_left = - DBL_MAX;
             }
           if  (j < fill_chunks [scaff_id] . num_gaps - 1)
@@ -1482,7 +1482,7 @@ static void  Analyze_Stone_Fill
               ChunkInstanceT  * right_chunk;
 
               right_chunk
-                = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> right_cid);
+                = GetGraphNode(ScaffoldGraph->ContigGraph, this_gap -> right_cid);
               target_right = MIN (right_chunk -> offsetAEnd . mean,
                                   right_chunk -> offsetBEnd . mean);
             }
@@ -1573,12 +1573,12 @@ static void  Analyze_Stone_Fill
 
           if  (j > 0)
             left_scaff_chunk
-              = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> left_cid);
+              = GetGraphNode(ScaffoldGraph->ContigGraph, this_gap -> left_cid);
           else
             left_scaff_chunk = NULL;
           if  (j < fill_chunks [scaff_id] . num_gaps - 1)
             right_scaff_chunk
-              = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> right_cid);
+              = GetGraphNode(ScaffoldGraph->ContigGraph, this_gap -> right_cid);
           else
             right_scaff_chunk = NULL;
 
@@ -2202,7 +2202,7 @@ static void  Adjust_Positions
           gap_chunk = this_gap -> chunk + gap_sub [sub];
           gap_chunk -> index = i;
 
-          chunk = GetGraphNode (ScaffoldGraph -> RezGraph, target [sub] . id);
+          chunk = GetGraphNode (ScaffoldGraph -> ContigGraph, target [sub] . id);
           chunk_len = chunk -> bpLength . mean;
 
           fprintf (fp, "Adjust:  %d  was (%.0f [%.0f], %.0f [%.0f])",
@@ -2325,7 +2325,7 @@ static void  Check_Olaps
   ct = 0;
   if  (gap -> left_cid > 0)
     {
-      chunk = GetGraphNode (ScaffoldGraph -> RezGraph,
+      chunk = GetGraphNode (ScaffoldGraph -> ContigGraph,
                             gap -> left_cid);
       place [0] . A_end = chunk -> offsetAEnd;
       place [0] . B_end = chunk -> offsetBEnd;
@@ -2362,7 +2362,7 @@ static void  Check_Olaps
 
   if  (gap -> right_cid > 0)
     {
-      chunk = GetGraphNode (ScaffoldGraph -> RezGraph,
+      chunk = GetGraphNode (ScaffoldGraph -> ContigGraph,
                             gap -> right_cid);
       place [ct] . A_end = chunk -> offsetAEnd;
       place [ct] . B_end = chunk -> offsetBEnd;
@@ -2433,7 +2433,7 @@ static void  Check_Olaps
          AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN);
 #else
       olap = OverlapChunks                 // debug code does NOT handle suspicious
-        (ScaffoldGraph -> RezGraph,
+        (ScaffoldGraph -> ContigGraph,
          place [j] . id, place [i] . id,
          orient,
          (int) (how_much - allowed_error),
@@ -2553,9 +2553,9 @@ static void  Check_Other_Links_One_Scaffold
           int  cid, good_links, bad_links;
 
           cid = fill_chunks [scaff_id] . gap [j] . chunk [k] . chunk_id;
-          chunk = GetGraphNode(ScaffoldGraph->RezGraph, cid);
+          chunk = GetGraphNode(ScaffoldGraph->ContigGraph, cid);
 
-          InitGraphEdgeIterator (ScaffoldGraph->RezGraph, cid, ALL_END, ALL_EDGES,
+          InitGraphEdgeIterator (ScaffoldGraph->ContigGraph, cid, ALL_END, ALL_EDGES,
                                  GRAPH_EDGE_DEFAULT, & ci_edges);
 
           good_links = bad_links = 0;
@@ -2640,7 +2640,7 @@ static void  Check_Rock_Olaps
 
   if  (gap -> left_cid > 0)
     {
-      chunk = GetGraphNode (ScaffoldGraph -> RezGraph,
+      chunk = GetGraphNode (ScaffoldGraph -> ContigGraph,
                             gap -> left_cid);
       place1 . A_end = chunk -> offsetAEnd;
       place1 . B_end = chunk -> offsetBEnd;
@@ -2679,7 +2679,7 @@ static void  Check_Rock_Olaps
 
                 allowed_error = 30.0 + CGW_FUDGE_FACTOR * how_much;
 
-                olap_found = LookupOverlap (ScaffoldGraph -> RezGraph,
+                olap_found = LookupOverlap (ScaffoldGraph -> ContigGraph,
                                             place1 . id,
                                             place2 . id,
                                             orient, & olap);
@@ -2696,7 +2696,7 @@ static void  Check_Rock_Olaps
 
   if  (gap -> right_cid > 0)
     {
-      chunk = GetGraphNode (ScaffoldGraph -> RezGraph,
+      chunk = GetGraphNode (ScaffoldGraph -> ContigGraph,
                             gap -> right_cid);
       place1 . A_end = chunk -> offsetAEnd;
       place1 . B_end = chunk -> offsetBEnd;
@@ -2735,7 +2735,7 @@ static void  Check_Rock_Olaps
 
                 allowed_error = 30.0 + CGW_FUDGE_FACTOR * how_much;
 
-                olap_found = LookupOverlap (ScaffoldGraph -> RezGraph,
+                olap_found = LookupOverlap (ScaffoldGraph -> ContigGraph,
                                             place2 . id,
                                             place1 . id,
                                             orient, & olap);
@@ -3057,7 +3057,7 @@ static void  Check_Scaffold_Join
     }
   link_ct += max;
 
-  contig = GetGraphNode(ScaffoldGraph->RezGraph, cid);
+  contig = GetGraphNode(ScaffoldGraph->ContigGraph, cid);
   cover_stat = GetCoverageStat (contig);
 
   bad_allowed = MAX (0, 1 - bad_links);
@@ -3247,7 +3247,7 @@ static void  Choose_Safe_Chunks
   char  annotation_string [MAX_STRING_LEN];
 #endif
 
-  InitGraphNodeIterator (& contig_iterator, ScaffoldGraph -> RezGraph,
+  InitGraphNodeIterator (& contig_iterator, ScaffoldGraph -> ContigGraph,
                          GRAPH_NODE_DEFAULT);
   while  ((contig = NextGraphNodeIterator (& contig_iterator)) != NULL)
     {
@@ -3340,7 +3340,7 @@ static void  Choose_Safe_Chunks
 
           // Put edges from chunk to a unique chunk onto a stack
 
-          InitGraphEdgeIterator (ScaffoldGraph->RezGraph, cid, ALL_END,
+          InitGraphEdgeIterator (ScaffoldGraph->ContigGraph, cid, ALL_END,
                                  ALL_EDGES, GRAPH_EDGE_DEFAULT,
                                  & ci_edges);
           while  ((edge = NextGraphEdgeIterator (& ci_edges)) != NULL)
@@ -3351,10 +3351,10 @@ static void  Choose_Safe_Chunks
                 continue;
 
               if  (edge -> idA == cid)
-                other_chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+                other_chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                                            edge -> idB);
               else
-                other_chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+                other_chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                                            edge -> idA);
 
               if  (IsUnique (other_chunk) && !IsSurrogate(other_chunk))
@@ -3610,7 +3610,7 @@ static void  Choose_Stones
   char  annotation_string [MAX_STRING_LEN];
 #endif
 
-  InitGraphNodeIterator (& contig_iterator, ScaffoldGraph -> RezGraph,
+  InitGraphNodeIterator (& contig_iterator, ScaffoldGraph -> ContigGraph,
                          GRAPH_NODE_DEFAULT);
   while  ((chunk = NextGraphNodeIterator (& contig_iterator)) != NULL)
     {
@@ -3690,7 +3690,7 @@ static void  Choose_Stones
               ContigT  * contig;
 
               contig = GetGraphNode
-                (ScaffoldGraph -> RezGraph, cid);
+                (ScaffoldGraph -> ContigGraph, cid);
               assert (contig != NULL);
               first_chunk
                 = GetGraphNode
@@ -3734,7 +3734,7 @@ static void  Choose_Stones
 
           // Put edges from chunk to a unique chunk onto a stack
 
-          InitGraphEdgeIterator (ScaffoldGraph->RezGraph, cid, ALL_END,
+          InitGraphEdgeIterator (ScaffoldGraph->ContigGraph, cid, ALL_END,
                                  ALL_EDGES, GRAPH_EDGE_DEFAULT,
                                  & ci_edges);
           while  ((edge = NextGraphEdgeIterator (& ci_edges)) != NULL)
@@ -3746,10 +3746,10 @@ static void  Choose_Stones
                 continue;
 
               if  (edge -> idA == cid)
-                other_chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+                other_chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                                            edge -> idB);
               else
-                other_chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+                other_chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                                            edge -> idA);
 
               if  (IsUnique (other_chunk))
@@ -3948,7 +3948,7 @@ static int  Chunk_Contained_In_Chunk
       else
         orient = BA_BA;
     }
-  olap_found = LookupOverlap (ScaffoldGraph -> RezGraph,
+  olap_found = LookupOverlap (ScaffoldGraph -> ContigGraph,
                               A -> chunk_id,
                               B -> chunk_id,
                               orient, & olap);
@@ -3970,7 +3970,7 @@ static int  Chunk_Contained_In_Chunk
         fprintf (stderr, "YIKES:  Bad orientation = %d\n", (int) orient);
         assert (FALSE);
     }
-  olap_found = LookupOverlap (ScaffoldGraph -> RezGraph,
+  olap_found = LookupOverlap (ScaffoldGraph -> ContigGraph,
                               A -> chunk_id,
                               B -> chunk_id,
                               orient, & olap);
@@ -3994,7 +3994,7 @@ static int  Chunk_Contained_In_Scaff
   ChunkOverlapCheckT  olap;
   int  olap_found;
 
-  B = GetGraphNode (ScaffoldGraph -> RezGraph, cid);
+  B = GetGraphNode (ScaffoldGraph -> ContigGraph, cid);
 
   // Try with  A  on the left of  B
   if  (A -> start. mean <= A -> end . mean)
@@ -4011,7 +4011,7 @@ static int  Chunk_Contained_In_Scaff
       else
         orient = BA_BA;
     }
-  olap_found = LookupOverlap (ScaffoldGraph -> RezGraph,
+  olap_found = LookupOverlap (ScaffoldGraph -> ContigGraph,
                               A -> chunk_id,
                               cid,
                               orient, & olap);
@@ -4033,7 +4033,7 @@ static int  Chunk_Contained_In_Scaff
         fprintf (stderr, "YIKES:  Bad orientation = %d\n", (int) orient);
         assert (FALSE);
     }
-  olap_found = LookupOverlap (ScaffoldGraph -> RezGraph,
+  olap_found = LookupOverlap (ScaffoldGraph -> ContigGraph,
                               A -> chunk_id,
                               cid,
                               orient, & olap);
@@ -4429,7 +4429,7 @@ static int  Depth_First_Visit
       return  succeeded;
     }
 
-  InitGraphEdgeIterator (ScaffoldGraph->RezGraph, from -> id, from_end,
+  InitGraphEdgeIterator (ScaffoldGraph->ContigGraph, from -> id, from_end,
                          ALL_EDGES, GRAPH_EDGE_DEFAULT, & edge_iterator);
 
   while  ((edge = NextGraphEdgeIterator (& edge_iterator)) != NULL)
@@ -4465,7 +4465,7 @@ static int  Depth_First_Visit
       if  (node [next_id] . visited && ! node [next_id] . finished)
         continue;          // A back-edge, ignore it.
 
-      next_node = GetGraphNode (ScaffoldGraph -> RezGraph, next_id);
+      next_node = GetGraphNode (ScaffoldGraph -> ContigGraph, next_id);
       progress = next_node -> bpLength . mean + edge -> distance . mean;
       frag_len = next_node -> bpLength . mean;
 
@@ -5379,7 +5379,7 @@ static void  Doublecheck_Positions_One_Scaffold
         }
       else
         {
-          left_chunk = GetGraphNode (ScaffoldGraph -> RezGraph,
+          left_chunk = GetGraphNode (ScaffoldGraph -> ContigGraph,
                                      this_gap -> left_cid);
           prev_hi = MAX (left_chunk -> offsetAEnd . variance,
                          left_chunk -> offsetBEnd . variance);
@@ -5413,7 +5413,7 @@ static void  Doublecheck_Positions_One_Scaffold
 
       if  (j < fill_chunks [scaff_id] . num_gaps - 1)
         {
-          right_chunk = GetGraphNode (ScaffoldGraph->RezGraph,
+          right_chunk = GetGraphNode (ScaffoldGraph->ContigGraph,
                                       this_gap -> right_cid);
           next_lo = MIN (right_chunk -> offsetAEnd . variance,
                          right_chunk -> offsetBEnd . variance);
@@ -6273,7 +6273,7 @@ int  Find_Olap_Path
   if  (to == NULL && num_targets == 0)
     return  TRUE;                        // Nothing to do
 
-  num_nodes = GetNumGraphNodes (ScaffoldGraph -> RezGraph);
+  num_nodes = GetNumGraphNodes (ScaffoldGraph -> ContigGraph);
   node = (Node_Index_t *) safe_realloc (node, num_nodes * sizeof (Node_Index_t));
   for  (i = 0;  i < num_nodes;  i ++)
     node [i] . visited = node [i] . finished = FALSE;
@@ -6617,7 +6617,7 @@ static char *  Get_Contig_Sequence
   char         * p, * gapped_seq, * ungapped_seq;
   int            ct;
   int            len;
-  MultiAlignT  * ma = ScaffoldGraph->tigStore->loadMultiAlign(id, ScaffoldGraph->RezGraph->type == CI_GRAPH);
+  MultiAlignT  * ma = ScaffoldGraph->tigStore->loadMultiAlign(id, ScaffoldGraph->ContigGraph->type == CI_GRAPH);
 
   gapped_seq = Getchar (ma -> consensus, 0);
   len = strlen (gapped_seq);
@@ -6982,7 +6982,7 @@ static void  Include_Good_Joins
         if  (p [r] -> scaff1 == p [i] -> scaff1)
           {
             scaffold = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p [r] -> scaff2);
-            chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+            chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                                  scaffold -> info . Scaffold . BEndCI);
             tail = MAX (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
             if  (p [r] -> m > 0)
@@ -6996,7 +6996,7 @@ static void  Include_Good_Joins
                 lo1 = (tail - p [r] -> b) / p [r] -> m;
               }
             scaffold = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p [i] -> scaff2);
-            chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+            chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                                  scaffold -> info . Scaffold . BEndCI);
             tail = MAX (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
             if  (p [i] -> m > 0)
@@ -7018,7 +7018,7 @@ static void  Include_Good_Joins
         else if  (p [r] -> scaff2 == p [i] -> scaff2)
           {
             scaffold = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p [r] -> scaff1);
-            chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+            chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                                  scaffold -> info . Scaffold . BEndCI);
             tail = MAX (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
             if  (p [r] -> m > 0)
@@ -7032,7 +7032,7 @@ static void  Include_Good_Joins
                 lo1 = p [r] -> m * tail + p [r] -> b;
               }
             scaffold = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p [i] -> scaff1);
-            chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+            chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                                  scaffold -> info . Scaffold . BEndCI);
             tail = MAX (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
             if  (p [i] -> m > 0)
@@ -7054,7 +7054,7 @@ static void  Include_Good_Joins
         else if  (p [r] -> scaff1 == p [i] -> scaff2)
           {
             scaffold = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p [r] -> scaff2);
-            chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+            chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                                  scaffold -> info . Scaffold . BEndCI);
             tail = MAX (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
             if  (p [r] -> m > 0)
@@ -7068,7 +7068,7 @@ static void  Include_Good_Joins
                 lo1 = (tail - p [r] -> b) / p [r] -> m;
               }
             scaffold = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p [i] -> scaff1);
-            chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+            chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                                  scaffold -> info . Scaffold . BEndCI);
             tail = MAX (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
             if  (p [i] -> m > 0)
@@ -7090,7 +7090,7 @@ static void  Include_Good_Joins
         else if  (p [r] -> scaff2 == p [i] -> scaff1)
           {
             scaffold = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p [r] -> scaff1);
-            chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+            chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                                  scaffold -> info . Scaffold . BEndCI);
             tail = MAX (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
             if  (p [r] -> m > 0)
@@ -7104,7 +7104,7 @@ static void  Include_Good_Joins
                 lo1 = p [r] -> m * tail + p [r] -> b;
               }
             scaffold = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p [i] -> scaff2);
-            chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+            chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                                  scaffold -> info . Scaffold . BEndCI);
             tail = MAX (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
             if  (p [i] -> m > 0)
@@ -7188,7 +7188,7 @@ static void  Include_Good_Joins
 #endif
 #endif
 
-        chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+        chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                              p [i] -> chunk_id);
         assign_succeeded
           = Assign_To_Gap (p [i] -> chunk_id, p [i] -> left_end,
@@ -7345,7 +7345,7 @@ static int  Insert_Chunks_In_Graph_One_Scaffold
 
               Remove_From_Scaffold (this_chunk);
 
-              contig = GetGraphNode (ScaffoldGraph -> RezGraph,
+              contig = GetGraphNode (ScaffoldGraph -> ContigGraph,
                                      this_chunk -> chunk_id);
               if  (contig -> info . Contig . numCI == 1)
                 {
@@ -7376,12 +7376,12 @@ static int  Insert_Chunks_In_Graph_One_Scaffold
 
               if  (this_chunk -> split)
                 insert_id = SplitUnresolvedContig
-                  (ScaffoldGraph -> RezGraph,
+                  (ScaffoldGraph -> ContigGraph,
                    this_chunk -> chunk_id, NULL, TRUE);
               else
                 insert_id = this_chunk -> chunk_id;
 
-              contig = GetGraphNode (ScaffoldGraph -> RezGraph, insert_id);
+              contig = GetGraphNode (ScaffoldGraph -> ContigGraph, insert_id);
 
               switch  (kind)
                 {
@@ -7450,7 +7450,7 @@ static void UnJigglePositions(void)
          !scaffold->flags.bits.isDead)
         {
           NodeCGW_T * ci;
-          ci = GetGraphNode(ScaffoldGraph->RezGraph,
+          ci = GetGraphNode(ScaffoldGraph->ContigGraph,
                             scaffold->info.Scaffold.AEndCI);
 
           // work on scaffolds where cis are off
@@ -7982,7 +7982,7 @@ static void  New_Confirm_Stones_One_Scaffold
                   CIEdgeT  * edge;
 
                   InitGraphEdgeIterator
-                    (ScaffoldGraph->RezGraph, check [p] -> chunk_id,
+                    (ScaffoldGraph->ContigGraph, check [p] -> chunk_id,
                      //                         ALL_END,
                      check [p] -> flipped ? A_END : B_END,
                      ALL_EDGES, GRAPH_EDGE_DEFAULT,
@@ -7996,10 +7996,10 @@ static void  New_Confirm_Stones_One_Scaffold
                         continue;
 
                       if  (edge -> idA == check [p] -> chunk_id)
-                        other_chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+                        other_chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                                                    edge -> idB);
                       else
-                        other_chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+                        other_chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                                                    edge -> idA);
 
                       if  (other_chunk -> id == check [q] -> chunk_id)
@@ -8355,7 +8355,7 @@ static void  Print_Scaffolds
 
       last_coord_used += MAX_MATE_DISTANCE;
       Scaffold_Start [scaff_id] = last_coord_used;
-      chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+      chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                            scaffold -> info.Scaffold.BEndCI);
       if  (chunk -> offsetAEnd . mean < chunk -> offsetBEnd . mean)
         last_coord_used += (int) chunk -> offsetBEnd . mean;
@@ -8689,7 +8689,7 @@ void  Print_Fill_Info_One_Scaffold
       if  (j > 0)
         {
           scaff_chunk
-            = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> left_cid);
+            = GetGraphNode(ScaffoldGraph->ContigGraph, this_gap -> left_cid);
 // #if 0
 #if  VERBOSE > 1
           fprintf (fp,
@@ -8706,7 +8706,7 @@ void  Print_Fill_Info_One_Scaffold
       else
         {
           scaff_chunk
-            = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> right_cid);
+            = GetGraphNode(ScaffoldGraph->ContigGraph, this_gap -> right_cid);
           ref_var = MIN (scaff_chunk -> offsetAEnd . variance,
                          scaff_chunk -> offsetBEnd . variance);
         }
@@ -8731,13 +8731,13 @@ void  Print_Fill_Info_One_Scaffold
 
         if  (this_gap -> left_cid >= 0)
           {
-            contig = GetGraphNode (ScaffoldGraph -> RezGraph, this_gap -> left_cid);
+            contig = GetGraphNode (ScaffoldGraph -> ContigGraph, this_gap -> left_cid);
             fprintf (fp, "   Left end at [%7.0f,%7.0f]",
                      contig -> offsetAEnd . mean, contig -> offsetBEnd . mean);
           }
         if  (this_gap -> right_cid >= 0)
           {
-            contig = GetGraphNode (ScaffoldGraph -> RezGraph, this_gap -> right_cid);
+            contig = GetGraphNode (ScaffoldGraph -> ContigGraph, this_gap -> right_cid);
             fprintf (fp, "   Right end at [%7.0f,%7.0f]",
                      contig -> offsetAEnd . mean, contig -> offsetBEnd . mean);
           }
@@ -8764,7 +8764,7 @@ void  Print_Fill_Info_One_Scaffold
 
 
           contig = GetGraphNode
-            (ScaffoldGraph -> RezGraph, this_chunk -> chunk_id);
+            (ScaffoldGraph -> ContigGraph, this_chunk -> chunk_id);
           if  (contig -> flags . bits . isDead)
             {
               fprintf (fp,
@@ -8836,7 +8836,7 @@ static void  Print_Frag_Info
 
 {
   ChunkInstanceT  * contig
-    = GetGraphNode (ScaffoldGraph -> RezGraph, cid);
+    = GetGraphNode (ScaffoldGraph -> ContigGraph, cid);
   ChunkInstanceT  * chunk;
   MultiAlignT  * ma;
   int  cover_stat;
@@ -8849,7 +8849,7 @@ static void  Print_Frag_Info
   //   assert (contig -> info . Contig . AEndCI
   //             == contig -> info . Contig . BEndCI);
 
-  ma = ScaffoldGraph->tigStore->loadMultiAlign(cid, ScaffoldGraph->RezGraph->type == CI_GRAPH);
+  ma = ScaffoldGraph->tigStore->loadMultiAlign(cid, ScaffoldGraph->ContigGraph->type == CI_GRAPH);
 
   // cycle through fragments
   num_frags = GetNumIntMultiPoss (ma -> f_list);
@@ -8935,9 +8935,9 @@ static void  Print_Potential_Fill_Chunks
   if  (fp != NULL)
     fprintf (fp, "\nConnections from unresolved chunks to uniques\n");
 
-  assert (Num_Chunks == GetNumGraphNodes (ScaffoldGraph -> RezGraph));
+  assert (Num_Chunks == GetNumGraphNodes (ScaffoldGraph -> ContigGraph));
 
-  InitGraphNodeIterator (& contig_iterator, ScaffoldGraph -> RezGraph,
+  InitGraphNodeIterator (& contig_iterator, ScaffoldGraph -> ContigGraph,
                          GRAPH_NODE_DEFAULT);
   while  ((chunk = NextGraphNodeIterator (& contig_iterator)) != NULL)
     {
@@ -8956,7 +8956,7 @@ static void  Print_Potential_Fill_Chunks
 
           stackva = CreateVA_Stack_Entry_t(STACK_SIZE);
 
-          InitGraphEdgeIterator (ScaffoldGraph->RezGraph, cid,
+          InitGraphEdgeIterator (ScaffoldGraph->ContigGraph, cid,
                                  ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, & ci_edges);
           while  ((edge = NextGraphEdgeIterator (& ci_edges)) != NULL)
             {
@@ -8967,10 +8967,10 @@ static void  Print_Potential_Fill_Chunks
                 continue;
 
               if  (edge -> idA == cid)
-                other_chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+                other_chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                                            edge -> idB);
               else
-                other_chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+                other_chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                                            edge -> idA);
 
               if  (IsUnique (other_chunk))
@@ -9060,7 +9060,7 @@ static void  Print_Unique_Chunks
 //  Allocate memory for global reference array  Ref  and fill in
 //  chunk id's for unique chunks.
 //  Also sets global  Num_Chunks  to the number of nodes in
-//  the  RezGraph .  Do no actual printing if  fp  is  NULL .
+//  the  ContigGraph .  Do no actual printing if  fp  is  NULL .
 
 {
   int  i, cid, unique_ct;
@@ -9068,7 +9068,7 @@ static void  Print_Unique_Chunks
   ChunkInstanceT  * chunk;
   int  ref_entry_ct;
 
-  Num_Chunks = GetNumGraphNodes (ScaffoldGraph -> RezGraph);
+  Num_Chunks = GetNumGraphNodes (ScaffoldGraph -> ContigGraph);
 
   if  (fp != NULL)
     fprintf (fp, "### Contigs in graph = %d\n", Num_Chunks);
@@ -9103,7 +9103,7 @@ static void  Print_Unique_Chunks
                "A End", "B End");
     }
 
-  InitGraphNodeIterator(& chunk_iterator, ScaffoldGraph -> RezGraph,
+  InitGraphNodeIterator(& chunk_iterator, ScaffoldGraph -> ContigGraph,
                         GRAPH_NODE_DEFAULT);
 
   unique_ct = 0;
@@ -9229,7 +9229,7 @@ static void  Remove_From_Scaffold
 // delete the scaffold, too.
 
 {
-  ContigT  * chunk = GetGraphNode (ScaffoldGraph -> RezGraph, cp -> chunk_id);
+  ContigT  * chunk = GetGraphNode (ScaffoldGraph -> ContigGraph, cp -> chunk_id);
 
   if  (chunk -> scaffoldID != NULLINDEX)
     {
@@ -10039,7 +10039,7 @@ static int  Select_Good_Edges
           // Of chunk in scaffold
           ChunkOrientationType  orientation;
 
-          scaffold_chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+          scaffold_chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                                         se -> chunk_id);
           a_side = & (REF (se -> chunk_id) . a_end);
           b_side = & (REF (se -> chunk_id) . b_end);
@@ -10635,7 +10635,7 @@ static void  Set_Split_Flags_One_Scaffold
                   case  FALSE_IFF_SINGLETON :
                     this_chunk -> split = TRUE;
                     if (1 == ScaffoldGraph->tigStore->getNumFrags(this_chunk->chunk_id,
-                                                                  ScaffoldGraph->RezGraph->type == CI_GRAPH))
+                                                                  ScaffoldGraph->ContigGraph->type == CI_GRAPH))
                       this_chunk -> split = FALSE;
                     break;
                   default :
@@ -10730,14 +10730,14 @@ void  Show_Gap_Reads_One_Scaff
       if  (j > 0)
         {
           scaff_chunk
-            = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> left_cid);
+            = GetGraphNode(ScaffoldGraph->ContigGraph, this_gap -> left_cid);
           ref_var = MAX (scaff_chunk -> offsetAEnd . variance,
                          scaff_chunk -> offsetBEnd . variance);
         }
       else
         {
           scaff_chunk
-            = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> right_cid);
+            = GetGraphNode(ScaffoldGraph->ContigGraph, this_gap -> right_cid);
           ref_var = MIN (scaff_chunk -> offsetAEnd . variance,
                          scaff_chunk -> offsetBEnd . variance);
         }
@@ -10768,7 +10768,7 @@ void  Show_Gap_Reads_One_Scaff
 
 
           contig = GetGraphNode
-            (ScaffoldGraph -> RezGraph, this_chunk -> chunk_id);
+            (ScaffoldGraph -> ContigGraph, this_chunk -> chunk_id);
           if  (contig -> flags . bits . isDead)
             continue;
 
@@ -10800,7 +10800,7 @@ static void  Show_Read_Info
 
 {
   ChunkInstanceT  * contig
-    = GetGraphNode (ScaffoldGraph -> RezGraph, cid);
+    = GetGraphNode (ScaffoldGraph -> ContigGraph, cid);
   ChunkInstanceT  * chunk;
   MultiAlignT  * ma;
   int  cover_stat;
@@ -10810,7 +10810,7 @@ static void  Show_Read_Info
   chunk = GetGraphNode (ScaffoldGraph -> CIGraph, chunk_id);
   cover_stat = GetCoverageStat (chunk);
 
-  ma = ScaffoldGraph->tigStore->loadMultiAlign(cid, ScaffoldGraph->RezGraph->type == CI_GRAPH);
+  ma = ScaffoldGraph->tigStore->loadMultiAlign(cid, ScaffoldGraph->ContigGraph->type == CI_GRAPH);
 
   // cycle through fragments
   num_frags = GetNumIntMultiPoss (ma -> f_list);

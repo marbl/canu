@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.41 2009-10-05 22:49:42 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.42 2009-10-27 12:26:40 skoren Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_ALN_aligners.h"
@@ -235,10 +235,7 @@ typedef struct{
   LengthT  bpLength;
   LengthT  offsetAEnd;     // Offset of A end of CI relative to A end of Contig/CIScaffold
   LengthT  offsetBEnd;     // Offset of B end of CI relative to A end of Contig/CIScaffold
-
-#ifdef TRY_UNDO_JIGGLE_POSITIONS
   LengthT  offsetDelta;
-#endif
 
   union{  // ChunkInstanceType discriminates
     struct CIINFO_TAG {
@@ -319,9 +316,7 @@ typedef struct{
        * Initialized to match the closure input status of the read or contig
        */
        unsigned int isClosure:1;
-#ifdef TRY_UNDO_JIGGLE_POSITIONS
        unsigned int isJiggled:1;
-#endif
     }bits;
     int32 all;
   }flags;
@@ -1519,7 +1514,8 @@ void CollectChunkOverlap(GraphCGW_T *graph,
 Overlap* OverlapSequences(char *seq1, char *seq2,
                           ChunkOrientationType orientation,
                           int32 min_ahang, int32 max_ahang,
-                          double erate, double thresh, int32 minlen);
+                          double erate, double thresh, int32 minlen,
+                          uint32 tryLocal = FALSE);
 
 ChunkOverlapCheckT OverlapChunks(GraphCGW_T *graph,
                                  CDS_CID_t cidA, CDS_CID_t cidB,
@@ -1532,7 +1528,9 @@ ChunkOverlapCheckT OverlapChunks(GraphCGW_T *graph,
 Overlap* OverlapContigs(NodeCGW_T *contig1, NodeCGW_T *contig2,
                         ChunkOrientationType *overlapOrientation,
                         int32 minAhang, int32 maxAhang,
-                        int computeAhang);
+                        int computeAhang,
+                        uint32 tryLocal = FALSE,
+                        uint32 tryRev   = FALSE);
 
 void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
                      int recomputeCGBOverlaps);

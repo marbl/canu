@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.37 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.38 2009-10-27 12:26:41 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -249,7 +249,7 @@ EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
     /* edgeOrient == BA_XX */
     end = A_END;
   }
-  InitGraphEdgeIterator(ScaffoldGraph->RezGraph, sourceCI->id, end, ALL_EDGES,
+  InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, sourceCI->id, end, ALL_EDGES,
                         GRAPH_EDGE_RAW_ONLY, &edges);// Use raw edges
   while((edge = NextGraphEdgeIterator(&edges))!= NULL){
     CDS_CID_t otherCID = (edge->idA == sourceCI->id) ? edge->idB : edge->idA;
@@ -283,7 +283,7 @@ EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
       float effectiveOlap;
       ChunkOverlapCheckT olap;
       assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
-      olap = OverlapChunks(graph->RezGraph,
+      olap = OverlapChunks(graph->ContigGraph,
                            sourceCI->id, targetId,    // handles suspicious
                            edgeOrient, minOverlap, maxOverlap,
                            AS_CGW_ERROR_RATE, FALSE);
@@ -299,11 +299,11 @@ EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
       }
       if(olap.overlap){
         CDS_CID_t edgeIndex;
-        edgeIndex = InsertComputedOverlapEdge(graph->RezGraph, &olap);
-        edge = GetGraphEdge(graph->RezGraph, edgeIndex);
+        edgeIndex = InsertComputedOverlapEdge(graph->ContigGraph, &olap);
+        edge = GetGraphEdge(graph->ContigGraph, edgeIndex);
 
         // Create an appropriate hash table entry
-        CreateChunkOverlapFromEdge(ScaffoldGraph->RezGraph, edge);
+        CreateChunkOverlapFromEdge(ScaffoldGraph->ContigGraph, edge);
 
         if(PairwiseChiSquare((float)inferredMean, (float)inferredVariance,
                              effectiveOlap,
@@ -359,13 +359,13 @@ void CheckInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   while((thisCI = NextCIScaffoldTIterator(&CIs)) != NULL){
 
     // Use merged edges
-    InitGraphEdgeIterator(ScaffoldGraph->RezGraph, thisCI->id, ALL_END,
+    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, thisCI->id, ALL_END,
                           ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
 
     while((edge = NextGraphEdgeIterator(&edges))!= NULL){
       int isA = (edge->idA == thisCI->id);
       NodeCGW_T *otherCI =
-        GetGraphNode(ScaffoldGraph->RezGraph,
+        GetGraphNode(ScaffoldGraph->ContigGraph,
                      (isA? edge->idB: edge->idA));
       ChunkOrientationType edgeOrient;
       FragOrient thisCIorient, otherCIorient;
@@ -568,7 +568,7 @@ dumpTrustedEdges(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold, int32 edgeTypes)
     //  TidyUpScaffolds() -> LeastSquaresGapEstimates() -> here
     //
     //assert(chunk->setID >= 0);
-    InitGraphEdgeIterator(sgraph->RezGraph, chunk->id,
+    InitGraphEdgeIterator(sgraph->ContigGraph, chunk->id,
                           ALL_END, edgeTypes, // ALL_TRUSTED_EDGES,
                           GRAPH_EDGE_DEFAULT, //GRAPH_EDGE_CONFIRMED_ONLY,
                           &edges);
@@ -577,7 +577,7 @@ dumpTrustedEdges(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold, int32 edgeTypes)
       //
       // get the other end
       //
-      ChunkInstanceT * otherChunk = GetGraphNode(sgraph->RezGraph,
+      ChunkInstanceT * otherChunk = GetGraphNode(sgraph->ContigGraph,
                                                  (chunk->id == edge->idA) ?
                                                  edge->idB : edge->idA);
 
@@ -789,7 +789,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 
   while((thisCI = NextCIScaffoldTIterator(&CIs)) != NULL){
 
-    InitGraphEdgeIterator(ScaffoldGraph->RezGraph, thisCI->id,
+    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, thisCI->id,
                           ALL_END,
                           (standardEdgeStatusFails ? ALL_INTERNAL_EDGES : ALL_TRUSTED_EDGES),
                           GRAPH_EDGE_RAW_ONLY,
@@ -798,7 +798,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 
     while((edge = NextGraphEdgeIterator(&edges))!= NULL){
       int isA = (edge->idA == thisCI->id);
-      NodeCGW_T *otherCI = GetGraphNode(ScaffoldGraph->RezGraph, (isA ? edge->idB : edge->idA));
+      NodeCGW_T *otherCI = GetGraphNode(ScaffoldGraph->ContigGraph, (isA ? edge->idB : edge->idA));
 
       if (otherCI->scaffoldID == -1) {
         if (debug.recomputeOffsetsLV > 1) {
@@ -949,7 +949,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 
     while((thisCI = NextCIScaffoldTIterator(&CIs)) != NULL){
 
-      InitGraphEdgeIterator(ScaffoldGraph->RezGraph, thisCI->id,
+      InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, thisCI->id,
                             ALL_END,
                             (standardEdgeStatusFails ? ALL_INTERNAL_EDGES : ALL_TRUSTED_EDGES),
                             GRAPH_EDGE_RAW_ONLY,
@@ -959,7 +959,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
       while((edge = NextGraphEdgeIterator(&edges))!= NULL){
         int isA = (edge->idA == thisCI->id);
         NodeCGW_T *otherCI =
-          GetGraphNode(ScaffoldGraph->RezGraph,
+          GetGraphNode(ScaffoldGraph->ContigGraph,
                        (isA? edge->idB: edge->idA));
         double constant, constantVariance, inverseVariance;
         int lengthCIsIndex, gapIndex;
@@ -1381,6 +1381,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
          
                    RemoveCIFromScaffold(graph, scaffold, toDelete, FALSE);
                    InsertCIInScaffold(graph, toDelete->id, newScaffoldID, offsetAEnd, offsetBEnd, TRUE, FALSE);
+                   fprintf(stderr, "KickOutNonOverlappingContig: Removing contig %d to scaffold %d because we found no overlaps to it\n", toDelete->id, newScaffoldID);
                }
                freeRecomputeData(&data);
                return(RECOMPUTE_FAILED_CONTIG_DELETED);
@@ -1719,7 +1720,7 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
     if(!operateOnMerged)
       flags |= GRAPH_EDGE_RAW_ONLY;
 
-    InitGraphEdgeIterator(ScaffoldGraph->RezGraph, thisCI->id,
+    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, thisCI->id,
                           ALL_END,
                           ALL_EDGES,
                           flags,
@@ -1728,7 +1729,7 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
     while((edge = NextGraphEdgeIterator(&edges))!= NULL){
       int isA = (edge->idA == thisCI->id);
       NodeCGW_T *otherCI =
-        GetGraphNode(ScaffoldGraph->RezGraph,
+        GetGraphNode(ScaffoldGraph->ContigGraph,
                      (isA? edge->idB: edge->idA));
       ChunkOrientationType edgeOrient;
       FragOrient thisCIorient, otherCIorient;
@@ -1750,7 +1751,7 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
       }
       /* We only want to label edges between CIs in the same scaffold. */
       if(otherCI->scaffoldID != thisCI->scaffoldID){
-        SetEdgeStatus(graph->RezGraph, edge, INTER_SCAFFOLD_EDGE_STATUS);
+        SetEdgeStatus(graph->ContigGraph, edge, INTER_SCAFFOLD_EDGE_STATUS);
         continue;
       }
       /* We only want to label an edge once and the
@@ -1821,7 +1822,7 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
                   GetNodeOrient(thisCI), thisCIorient, GetNodeOrient(otherCI),
                   otherCIorient);
 
-        SetEdgeStatus(graph->RezGraph, edge, markUntrusted ? UNTRUSTED_EDGE_STATUS :
+        SetEdgeStatus(graph->ContigGraph, edge, markUntrusted ? UNTRUSTED_EDGE_STATUS :
                       TENTATIVE_UNTRUSTED_EDGE_STATUS);
         continue;
       }
@@ -1846,7 +1847,7 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
                   gapDistance.mean, gapDistance.variance,
                   edge->distance.mean, edge->distance.variance);
 
-        SetEdgeStatus(graph->RezGraph, edge, markUntrusted ? UNTRUSTED_EDGE_STATUS :
+        SetEdgeStatus(graph->ContigGraph, edge, markUntrusted ? UNTRUSTED_EDGE_STATUS :
                       TENTATIVE_UNTRUSTED_EDGE_STATUS);
         continue;
       }
@@ -1865,7 +1866,7 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
                   chiSquareResult, gapDistance.mean, gapDistance.variance,
                   edge->distance.mean, edge->distance.variance);
 
-        SetEdgeStatus(graph->RezGraph, edge, markUntrusted ? UNTRUSTED_EDGE_STATUS :
+        SetEdgeStatus(graph->ContigGraph, edge, markUntrusted ? UNTRUSTED_EDGE_STATUS :
                       TENTATIVE_UNTRUSTED_EDGE_STATUS);
         continue;
       }
@@ -1882,7 +1883,7 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
                   thisCI->id, otherCI->id,
                   edge->distance.variance);
 
-        SetEdgeStatus(graph->RezGraph,edge, LARGE_VARIANCE_EDGE_STATUS);
+        SetEdgeStatus(graph->ContigGraph,edge, LARGE_VARIANCE_EDGE_STATUS);
         continue;
       }
 
@@ -1892,7 +1893,7 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
                 edge->distance.mean,
                 edge->distance.variance);
 
-      SetEdgeStatus(graph->RezGraph,edge, markTrusted ? TRUSTED_EDGE_STATUS :
+      SetEdgeStatus(graph->ContigGraph,edge, markTrusted ? TRUSTED_EDGE_STATUS :
                     TENTATIVE_TRUSTED_EDGE_STATUS);
     }
   }
@@ -1901,7 +1902,7 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 
   while((thisCI = NextCIScaffoldTIterator(&CIs)) != NULL){
 
-    InitGraphEdgeIterator(ScaffoldGraph->RezGraph, thisCI->id,
+    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, thisCI->id,
                           ALL_END,
                           ALL_EDGES,
                           GRAPH_EDGE_DEFAULT,
@@ -1910,7 +1911,7 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
     while((edge = NextGraphEdgeIterator(&edges))!= NULL){
       int isA = (edge->idA == thisCI->id);
       NodeCGW_T *otherCI =
-        GetGraphNode(ScaffoldGraph->RezGraph,
+        GetGraphNode(ScaffoldGraph->ContigGraph,
                      (isA? edge->idB: edge->idA));
       EdgeStatus edgeStatus;
 
@@ -1955,7 +1956,7 @@ static int EdgeAndGapAreVaguelyCompatible(double distDiff,
 /// New test code to help handle slightly messier cases!
 int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid){
 
-  NodeCGW_T *thisCI = GetGraphNode(ScaffoldGraph->RezGraph,thisCIid);
+  NodeCGW_T *thisCI = GetGraphNode(ScaffoldGraph->ContigGraph,thisCIid);
   GraphEdgeIterator edges;
 
   //  Figure out where to put our debug info
@@ -1967,7 +1968,7 @@ int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid){
   // WE ASSUME edge COMES FROM SOMETHING LIKE THE FOLLOWING:
   //
   //
-  //  InitGraphEdgeIterator(ScaffoldGraph->RezGraph, thisCI->id,
+  //  InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, thisCI->id,
   //                        ALL_END,
   //                        ALL_EDGES,
   //                        GRAPH_EDGES_RAW_ONLY,
@@ -1977,7 +1978,7 @@ int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid){
 
   int isA = (edge->idA == thisCI->id);
   NodeCGW_T *otherCI =
-    GetGraphNode(ScaffoldGraph->RezGraph,
+    GetGraphNode(ScaffoldGraph->ContigGraph,
                  (isA? edge->idB: edge->idA));
   ChunkOrientationType edgeOrient;
   FragOrient thisCIorient, otherCIorient;
@@ -1997,7 +1998,7 @@ int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid){
     //  With motivation from MarkInternalEdgeStatus(), we simply mark
     //  this edge as inter scaffold and return.
     //
-    SetEdgeStatus(ScaffoldGraph->RezGraph, edge, INTER_SCAFFOLD_EDGE_STATUS);
+    SetEdgeStatus(ScaffoldGraph->ContigGraph, edge, INTER_SCAFFOLD_EDGE_STATUS);
     //assert(0);
     return(0);
   }

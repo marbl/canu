@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Globals_CGW.C,v 1.1 2009-09-12 22:35:57 brianwalenz Exp $";
+static char *rcsid = "$Id: Globals_CGW.C,v 1.2 2009-10-27 12:26:40 skoren Exp $";
 
 #include "AS_global.h"
 #include "Globals_CGW.h"
@@ -29,30 +29,33 @@ static char *rcsid = "$Id: Globals_CGW.C,v 1.1 2009-09-12 22:35:57 brianwalenz E
 Globals_CGW *GlobalData = NULL;
 
 Globals_CGW::Globals_CGW() {
-  verbose                      = 0;
-  debugLevel                   = 0;
+  verbose                                 = 0;
+  debugLevel                              = 0;
 
-  repeatRezLevel               = repeatRezLevel;
-  stoneLevel                   = 0;
+  repeatRezLevel                          = repeatRezLevel;
+  stoneLevel                              = 0;
 
-  minSamplesForOverride        = 100;
+  minSamplesForOverride                   = 100;
 
-  outputOverlapOnlyContigEdges = 0;
-  demoteSingletonScaffolds     = TRUE;
-  checkRepeatBranchPattern     = FALSE;
+  outputOverlapOnlyContigEdges            = 0;
+  demoteSingletonScaffolds                = TRUE;
+  checkRepeatBranchPattern                = FALSE;
 
-  ignoreChaffUnitigs           = 0;
-  performCleanupScaffolds      = 1;
+  ignoreChaffUnitigs                      = 0;
+  performCleanupScaffolds                 = 1;
 
-  cgbUniqueCutoff              = CGB_UNIQUE_CUTOFF;
-  cgbDefinitelyUniqueCutoff    = CGB_UNIQUE_CUTOFF;
-  cgbApplyMicrohetCutoff       = -1;         // This basically turns it off, unless enabled
-  cgbMicrohetProb              = 1.e-05;     // scores less than this are considered repeats
+  cgbUniqueCutoff                         = CGB_UNIQUE_CUTOFF;
+  cgbDefinitelyUniqueCutoff               = CGB_UNIQUE_CUTOFF;
+  cgbApplyMicrohetCutoff                  = -1;         // This basically turns it off, unless enabled
+  cgbMicrohetProb                         = 1.e-05;     // scores less than this are considered repeats
 
-  doInterleavedScaffoldMerging = 1;
-  allowDemoteMarkedUnitigs     = TRUE;       // allow toggled unitigs to be demoted to be repeat if they were marked unique
+  doInterleavedScaffoldMerging            = 1;
+  allowDemoteMarkedUnitigs                = TRUE;       // allow toggled unitigs to be demoted to be repeat if they were marked unique
 
-  closurePlacement             = 0;
+  closurePlacement                        = 0;
+
+  removeNonOverlapingContigsFromScaffold  = 0;
+  doUnjiggleWhenMerging                   = 0;
 
   memset(outputPrefix, 0, FILENAME_MAX);
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: InterleavedMerging.c,v 1.23 2009-09-09 08:21:56 brianwalenz Exp $";
+static const char *rcsid = "$Id: InterleavedMerging.c,v 1.24 2009-10-27 12:26:41 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -772,8 +772,8 @@ LookForChunkOverlapFromContigElements(ContigElement * ceA,
   int32 minLengthB;
   int32 maxLengthB;
 
-  contigA = GetGraphNode(ScaffoldGraph->RezGraph, ceA->id);
-  contigB = GetGraphNode(ScaffoldGraph->RezGraph, ceB->id);
+  contigA = GetGraphNode(ScaffoldGraph->ContigGraph, ceA->id);
+  contigB = GetGraphNode(ScaffoldGraph->ContigGraph, ceB->id);
 
   minLengthA = contigA->bpLength.mean - 5. * sqrt(contigA->bpLength.variance);
   maxLengthA = contigA->bpLength.mean + 5. * sqrt(contigA->bpLength.variance);
@@ -823,7 +823,7 @@ LookForChunkOverlapFromContigElements(ContigElement * ceA,
     maxOverlap = MIN(MAX(maxLengthA,maxLengthB),ceA->maxCoord-ceB->minCoord+.5);
     maxOverlap = MAX(CGW_MISSED_OVERLAP, maxOverlap);
     assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
-    chunkOverlap = OverlapChunks(ScaffoldGraph->RezGraph,
+    chunkOverlap = OverlapChunks(ScaffoldGraph->ContigGraph,
                                  ceA->id, ceB->id, overlapOrient,
                                  minOverlap, maxOverlap,
                                  AS_CGW_ERROR_RATE, FALSE);
@@ -870,7 +870,7 @@ LookForChunkOverlapFromContigElements(ContigElement * ceA,
     maxOverlap = MIN(MAX(maxLengthA,maxLengthB),ceA->maxCoord-ceB->minCoord+.5);
     maxOverlap = MAX(CGW_MISSED_OVERLAP, maxOverlap);
     assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
-    chunkOverlap = OverlapChunks(ScaffoldGraph->RezGraph,
+    chunkOverlap = OverlapChunks(ScaffoldGraph->ContigGraph,
                                  ceA->id, ceB->id, overlapOrient,
                                  minOverlap, maxOverlap,
                                  AS_CGW_ERROR_RATE, FALSE);

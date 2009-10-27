@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: SplitScaffolds_CGW.c,v 1.15 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitScaffolds_CGW.c,v 1.16 2009-10-27 12:26:41 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -105,7 +105,7 @@ void SplitScaffolds(ScaffoldGraphT *graph){
       AppendGraphNode(graph->ScaffoldGraph, &CIScaffold);
       for(nodesPtr = nodes, seenFirstOffset = FALSE; nodesPtr < nodesEnd;
 	  nodesPtr++){
-	NodeCGW_T *thisNode = GetGraphNode(graph->RezGraph, *nodesPtr);
+	NodeCGW_T *thisNode = GetGraphNode(graph->ContigGraph, *nodesPtr);
 	if(thisNode->setID == component){
 	  LengthT offsetAEnd, offsetBEnd;
 	  if(!seenFirstOffset){

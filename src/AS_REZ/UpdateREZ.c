@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: UpdateREZ.c,v 1.16 2009-08-14 13:37:07 skoren Exp $";
+static const char *rcsid = "$Id: UpdateREZ.c,v 1.17 2009-10-27 12:26:42 skoren Exp $";
 
 /**********************************************************************
 
@@ -80,7 +80,7 @@ int Trust_Edges(ScaffoldGraphT * sgraph,
     buffer[256];
 # endif
 
-  InitGraphEdgeIterator(sgraph->RezGraph, cid,
+  InitGraphEdgeIterator(sgraph->ContigGraph, cid,
 						ALL_END, ALL_EDGES, FALSE, &edges);
   while((edge = NextGraphEdgeIterator(&edges)) != NULL){
     assert(edge != NULL);
@@ -92,7 +92,7 @@ int Trust_Edges(ScaffoldGraphT * sgraph,
     else
       next = edge->idA;
 
-    next_chunk = GetGraphNode(sgraph->RezGraph, next);
+    next_chunk = GetGraphNode(sgraph->ContigGraph, next);
     assert(next_chunk != NULL);
 
     if ((IsUnique(next_chunk) && (next_chunk->scaffoldID == sid)) ||
@@ -110,19 +110,19 @@ int Trust_Edges(ScaffoldGraphT * sgraph,
 
 		if (Is_Edge_Consistent(edge, table[cid], &unique)) {
 		  if (Is_Edge_Orientation_Consistent(edge, table[cid], &unique)) {
-			SetEdgeStatus(sgraph->RezGraph, edge, TENTATIVE_TRUSTED_EDGE_STATUS);
+			SetEdgeStatus(sgraph->ContigGraph, edge, TENTATIVE_TRUSTED_EDGE_STATUS);
 #           if DEBUG_UPDATE > 1
 			sprintf(buffer, "pass Knut's test & orientation test * TRUSTED *\n");
 #           endif
 			marked += edge->edgesContributing;
 		  } else {
-			SetEdgeStatus(sgraph->RezGraph, edge, TENTATIVE_UNTRUSTED_EDGE_STATUS);
+			SetEdgeStatus(sgraph->ContigGraph, edge, TENTATIVE_UNTRUSTED_EDGE_STATUS);
 #           if DEBUG_UPDATE > 1
 			sprintf(buffer, "pass Knut's test & but FAILED orientation test * UNTRUSTED *\n");
 #           endif
 		  }
 		} else {
-		  SetEdgeStatus(sgraph->RezGraph, edge, TENTATIVE_UNTRUSTED_EDGE_STATUS);
+		  SetEdgeStatus(sgraph->ContigGraph, edge, TENTATIVE_UNTRUSTED_EDGE_STATUS);
 #         if DEBUG_UPDATE > 1
 		  sprintf(buffer, "FAILED Knut's test * UNTRUSTED *\n");
 #         endif
@@ -130,19 +130,19 @@ int Trust_Edges(ScaffoldGraphT * sgraph,
       } else {
 		if (Is_Edge_Consistent(edge, table[cid], table[next])) {
 		  if (Is_Edge_Orientation_Consistent(edge, table[cid], table[next])) {
-			SetEdgeStatus(sgraph->RezGraph, edge, TENTATIVE_TRUSTED_EDGE_STATUS);
+			SetEdgeStatus(sgraph->ContigGraph, edge, TENTATIVE_TRUSTED_EDGE_STATUS);
 #           if DEBUG_UPDATE > 1
 			sprintf(buffer, "pass Knut's test & orientation test * TRUSTED *\n");
 #           endif
 			marked += edge->edgesContributing;
 		  } else {
-			SetEdgeStatus(sgraph->RezGraph, edge, TENTATIVE_UNTRUSTED_EDGE_STATUS);
+			SetEdgeStatus(sgraph->ContigGraph, edge, TENTATIVE_UNTRUSTED_EDGE_STATUS);
 #           if DEBUG_UPDATE > 1
 			sprintf(buffer, "pass Knut's test & but FAILED orientation test * UNTRUSTED *\n");
 #           endif
 		  }
 		} else {
-		  SetEdgeStatus(sgraph->RezGraph, edge, TENTATIVE_UNTRUSTED_EDGE_STATUS);
+		  SetEdgeStatus(sgraph->ContigGraph, edge, TENTATIVE_UNTRUSTED_EDGE_STATUS);
 #         if DEBUG_UPDATE > 1
 		  sprintf(buffer, "FAILED Knut's test * UNTRUSTED *\n");
 #         endif
@@ -152,7 +152,7 @@ int Trust_Edges(ScaffoldGraphT * sgraph,
       //
 	  // mark the edge as UNTRUSTED
       //
-      SetEdgeStatus(sgraph->RezGraph, edge, TENTATIVE_UNTRUSTED_EDGE_STATUS);
+      SetEdgeStatus(sgraph->ContigGraph, edge, TENTATIVE_UNTRUSTED_EDGE_STATUS);
 #     if DEBUG_UPDATE > 1
       sprintf(buffer, "UNTRUSTED *\n");
 #     endif
@@ -197,7 +197,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 
   int
     scaff_id,
-    num_chunks = GetNumGraphNodes(sgraph->RezGraph),
+    num_chunks = GetNumGraphNodes(sgraph->ContigGraph),
     num_scaffs = GetNumCIScaffoldTs(sgraph->CIScaffolds),
     j,
     inserted = 0,
@@ -381,7 +381,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
           continue;
 
         chunkScaffID
-          = GetGraphNode (ScaffoldGraph -> RezGraph,
+          = GetGraphNode (ScaffoldGraph -> ContigGraph,
                           fc -> chunk [k] . chunk_id) -> scaffoldID;
         chunkScaffold = GetCIScaffoldT (sgraph -> CIScaffolds, chunkScaffID);
         // scaffold the current chunk is in. Has ID chunkScaffID
@@ -422,7 +422,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
           // according to whether or not chunkScaffold is going to be absorbed
           for  (l=0;  l<fc->num_chunks; l++)
           {
-            ChunkInstanceT *ci = GetGraphNode(ScaffoldGraph->RezGraph, fc->chunk[l].chunk_id);
+            ChunkInstanceT *ci = GetGraphNode(ScaffoldGraph->ContigGraph, fc->chunk[l].chunk_id);
 #if DEBUG_UPDATE > 1
             fprintf(stderr,"ci->scaffoldID = %d\n",ci->scaffoldID);
 #endif
@@ -463,10 +463,10 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 		// here we have to filter out the scaffold ends
 		// that means any chunk that is in the scaffold in which the gap is
 #if DEBUG_UPDATE > 1
-		fprintf(stderr,"Chunk Scaff ID = %d, scaff_id= %d \n",GetGraphNode(ScaffoldGraph->RezGraph, fc->chunk[k].chunk_id)->scaffoldID, scaff_id);
+		fprintf(stderr,"Chunk Scaff ID = %d, scaff_id= %d \n",GetGraphNode(ScaffoldGraph->ContigGraph, fc->chunk[k].chunk_id)->scaffoldID, scaff_id);
 #endif
 
-		if( GetGraphNode(ScaffoldGraph->RezGraph, fc->chunk[k].chunk_id)->scaffoldID == scaff_id )
+		if( GetGraphNode(ScaffoldGraph->ContigGraph, fc->chunk[k].chunk_id)->scaffoldID == scaff_id )
 		  fc->chunk[k].keep = FALSE;
 
 #       if DEBUG_UPDATE > 1
@@ -487,7 +487,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 		// if the bit keep is set AND the chunk is not the from or destination chunk
 		// then we try to insert the CI
 		//
-		//	if( GetGraphNode(ScaffoldGraph->RezGraph, fc->chunk[k].chunk_id)->scaffoldID != NULLINDEX )
+		//	if( GetGraphNode(ScaffoldGraph->ContigGraph, fc->chunk[k].chunk_id)->scaffoldID != NULLINDEX )
 		//	  fprintf(stderr,"*** Skipping chunk already in Scaffold\n");
 		//	else
 		if (fc->chunk[k].keep )
@@ -547,7 +547,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
                         ContigT  * contig;
 			//	      DumpCIScaffold(stderr,sgraph, scaffold, FALSE);
 			// ScaffoldSanity(GetGraphNode(ScaffoldGraph->ScaffoldGraph, scaff_id), sgraph);
-                        contig = GetGraphNode (sgraph -> RezGraph, cid);
+                        contig = GetGraphNode (sgraph -> ContigGraph, cid);
 
                         if  (contig -> info . Contig . numCI == 1)
                             {
@@ -599,7 +599,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
                         ContigT  * contig;
 			int splitCid;
 
-                        contig = GetGraphNode (ScaffoldGraph -> RezGraph,
+                        contig = GetGraphNode (ScaffoldGraph -> ContigGraph,
                                                cid);
                         if  (contig -> info . Contig . numCI == 1)
                             {
@@ -629,13 +629,13 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
                             }
 
 			// first we split the chunk
-			splitCid = SplitUnresolvedContig(sgraph->RezGraph, cid, NULL, copyAllOverlaps);
+			splitCid = SplitUnresolvedContig(sgraph->ContigGraph, cid, NULL, copyAllOverlaps);
 
 			// now we insert the surrogate into the scaffold
 			// remember that it has a different number
 			//  fprintf(stderr, "BEFORE Inserting %d \n",splitCid);
 			//     DumpCIScaffold(stderr,sgraph, scaffold, FALSE);
-                        contig = GetGraphNode (sgraph -> RezGraph, splitCid);
+                        contig = GetGraphNode (sgraph -> ContigGraph, splitCid);
                         switch  (kind)
                           {
                            case  ROCKS :
@@ -655,7 +655,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 							   fc->chunk[k].start, fc->chunk[k].end, TRUE, NO_CONTIGGING);
 		  }
 
-		  chunk = GetGraphNode(sgraph->RezGraph, cid);
+		  chunk = GetGraphNode(sgraph->ContigGraph, cid);
 		  assert(chunk != NULL);        
 
 		  //

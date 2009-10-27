@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.49 2009-10-07 08:23:50 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.50 2009-10-27 12:26:41 skoren Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -121,20 +121,13 @@ LoadScaffoldGraphFromCheckpoint(char   *name,
   ScaffoldGraph->SEdges         = ScaffoldGraph->ScaffoldGraph->edges;
   ScaffoldGraph->overlapper     = ScaffoldGraph->CIGraph->overlapper;
 
-  status  = AS_UTL_safeRead(F, &ScaffoldGraph->doRezOnContigs,            "LoadScaffoldGraphFromCheckpoint", sizeof(int32), 1);
-  status += AS_UTL_safeRead(F, &ScaffoldGraph->checkPointIteration,       "LoadScaffoldGraphFromCheckpoint", sizeof(int32), 1);
+  status  = AS_UTL_safeRead(F, &ScaffoldGraph->checkPointIteration,       "LoadScaffoldGraphFromCheckpoint", sizeof(int32), 1);
   status += AS_UTL_safeRead(F, &ScaffoldGraph->numContigs,                "LoadScaffoldGraphFromCheckpoint", sizeof(int32), 1);
   status += AS_UTL_safeRead(F, &ScaffoldGraph->numDiscriminatorUniqueCIs, "LoadScaffoldGraphFromCheckpoint", sizeof(int32), 1);
   status += AS_UTL_safeRead(F, &ScaffoldGraph->numOriginalCIs,            "LoadScaffoldGraphFromCheckpoint", sizeof(int32), 1);
   status += AS_UTL_safeRead(F, &ScaffoldGraph->numLiveCIs,                "LoadScaffoldGraphFromCheckpoint", sizeof(int32), 1);
   status += AS_UTL_safeRead(F, &ScaffoldGraph->numLiveScaffolds,          "LoadScaffoldGraphFromCheckpoint", sizeof(int32), 1);
-  assert(status == 7);
-
-  if(ScaffoldGraph->doRezOnContigs){
-    ScaffoldGraph->RezGraph = ScaffoldGraph->ContigGraph;
-  }else{
-    ScaffoldGraph->RezGraph = ScaffoldGraph->CIGraph;
-  }
+  assert(status == 6);
 
   ReportMemorySize(ScaffoldGraph,stderr);
 
@@ -193,7 +186,6 @@ CheckpointScaffoldGraph(const char *logicalname, const char *location) {
     AS_UTL_safeWrite(F, dptr->histogram, "LoadScaffoldGraphFromCheckpoint", sizeof(int32), dptr->bnum);
   }
 
-  AS_UTL_safeWrite(F, &ScaffoldGraph->doRezOnContigs,            "CheckpointScaffoldGraph", sizeof(int32), 1);
   AS_UTL_safeWrite(F, &ScaffoldGraph->checkPointIteration,       "CheckpointScaffoldGraph", sizeof(int32), 1);
   AS_UTL_safeWrite(F, &ScaffoldGraph->numContigs,                "CheckpointScaffoldGraph", sizeof(int32), 1);
   AS_UTL_safeWrite(F, &ScaffoldGraph->numDiscriminatorUniqueCIs, "CheckpointScaffoldGraph", sizeof(int32), 1);
@@ -245,7 +237,7 @@ void InsertRepeatCIsInScaffolds(ScaffoldGraphT *sgraph){
   CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
   CIScaffold.essentialEdgeA = CIScaffold.essentialEdgeB = NULLINDEX;
 
-  InitGraphNodeIterator(&nodes, sgraph->RezGraph, GRAPH_NODE_DEFAULT);
+  InitGraphNodeIterator(&nodes, sgraph->ContigGraph, GRAPH_NODE_DEFAULT);
   while(NULL != (CI = NextGraphNodeIterator(&nodes))){
     ChunkInstanceType type = CI->type;
     cid = CI->id;
@@ -273,7 +265,7 @@ void InsertRepeatCIsInScaffolds(ScaffoldGraphT *sgraph){
 
 /****************************************************************************/
 
-ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name) {
+ScaffoldGraphT *CreateScaffoldGraph(char *name) {
   char buffer[2000];
   ScaffoldGraphT *sgraph = (ScaffoldGraphT *)safe_calloc(1,sizeof(ScaffoldGraphT));
 
@@ -293,17 +285,7 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name) {
   sgraph->Dists          = CreateVA_DistT(numDists);
   sgraph->CIFrags        = CreateVA_CIFragT(numFrags);
 
-  if(rezOnContigs){
-    // switch this after doing CI overlaps
-    sgraph->RezGraph = sgraph->CIGraph;
-    //    sgraph->overlapper = sgraph->ContigGraph->overlapper;
-    sgraph->overlapper = sgraph->CIGraph->overlapper;
-  }else{
-    sgraph->RezGraph = sgraph->CIGraph;
-    sgraph->overlapper = sgraph->CIGraph->overlapper;
-  }
-
-  sgraph->doRezOnContigs = rezOnContigs;
+  sgraph->overlapper = sgraph->CIGraph->overlapper;
 
   sgraph->checkPointIteration = 3;
 
@@ -451,7 +433,7 @@ void CheckScaffoldOrder(CIScaffoldT *scaffold, ScaffoldGraphT *graph)
   if(scaffold->type != REAL_SCAFFOLD)
     return;
 
-  CI = GetGraphNode(graph->RezGraph, scaffold->info.Scaffold.AEndCI);
+  CI = GetGraphNode(graph->ContigGraph, scaffold->info.Scaffold.AEndCI);
 
   currentMinPos = MIN( CI->offsetAEnd.mean, CI->offsetBEnd.mean);
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
@@ -495,15 +477,15 @@ void DumpScaffoldGraph(ScaffoldGraphT *graph){
   char fileName[FILENAME_MAX];
   FILE *dumpFile = NULL;
 
-  sprintf(fileName,"%s.sg%c.%d",
-          graph->name, (graph->doRezOnContigs?'C':'c'),version++);
+  sprintf(fileName,"%s.sg.%d",
+          graph->name, version++);
 
   fprintf(stderr,"* Dumping graph file %s\n", fileName);
 
   dumpFile = fopen(fileName,"w");
 
   //  DumpGraph(ScaffoldGraph->CIGraph, dumpFile);
-  DumpGraph(ScaffoldGraph->RezGraph, dumpFile);
+  DumpGraph(ScaffoldGraph->ContigGraph, dumpFile);
   DumpGraph(ScaffoldGraph->ScaffoldGraph, dumpFile);
 
   fclose(dumpFile);
@@ -597,11 +579,9 @@ void AddDeltaToScaffoldOffsets(ScaffoldGraphT *graph,
     thisNode->offsetBEnd.mean += delta.mean;
     thisNode->offsetBEnd.variance += delta.variance;
 
-#ifdef TRY_UNDO_JIGGLE_POSITIONS    
     thisNode->flags.bits.isJiggled = mark;
     thisNode->offsetDelta.mean = delta.mean;
     thisNode->offsetDelta.variance = delta.variance;
-#endif
   }
 
   scaffold->bpLength.mean += delta.mean;
@@ -618,8 +598,8 @@ CheckCITypes(ScaffoldGraphT *sgraph){
   GraphNodeIterator nodes;
 
   //  An alternate iterator
-  //  for(i = 0; i < GetNumGraphNodes(sgraph->RezGraph); i++)
-  //    ChunkInstanceT *CI = GetGraphNode(sgraph->RezGraph,i);
+  //  for(i = 0; i < GetNumGraphNodes(sgraph->ContigGraph); i++)
+  //    ChunkInstanceT *CI = GetGraphNode(sgraph->ContigGraph,i);
 
   InitGraphNodeIterator(&nodes, sgraph->ContigGraph, GRAPH_NODE_DEFAULT);
   while((CI = NextGraphNodeIterator(&nodes)) != NULL){
@@ -655,7 +635,7 @@ int RepeatRez(int repeatRezLevel, char *name){
     //
     // repeat Fill_Gaps until we are not able to insert anymore
     //
-    CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
+    CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
     // commented out next call to allow mouse_20010307 run to succeed
     CheckCITypes(ScaffoldGraph);
     CheckCIScaffoldTs(ScaffoldGraph);
@@ -669,7 +649,7 @@ int RepeatRez(int repeatRezLevel, char *name){
             CheckCIScaffoldTs(ScaffoldGraph);
 
             TidyUpScaffolds (ScaffoldGraph);
-            CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
+            CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
 
             CheckCIScaffoldTs(ScaffoldGraph);
 
@@ -685,7 +665,7 @@ int RepeatRez(int repeatRezLevel, char *name){
               {
                 didSomething = TRUE;
                 TidyUpScaffolds (ScaffoldGraph);
-                CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
+                CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
                 //GeneratePlacedContigGraphStats("controcks", iter);
                 //GenerateLinkStats(ScaffoldGraph->ContigGraph,"controcks",iter);
                 //GenerateScaffoldGraphStats("controcks",iter);
@@ -701,7 +681,7 @@ int RepeatRez(int repeatRezLevel, char *name){
               {
                 didSomething = TRUE;
                 TidyUpScaffolds (ScaffoldGraph);
-                CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
+                CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
                 //GeneratePlacedContigGraphStats("contstones", iter);
                 //GenerateLinkStats(ScaffoldGraph->ContigGraph,"contstones",iter);
                 //GenerateScaffoldGraphStats("contstones",iter);
@@ -740,7 +720,7 @@ void RebuildScaffolds(ScaffoldGraphT *ScaffoldGraph,
 #else
   BuildUniqueCIScaffolds(ScaffoldGraph, markShakyBifurcations, FALSE);
 #endif
-  CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
+  CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
 
 #ifdef DEBUG_BUCIS
   LeastSquaresGapEstimates(ScaffoldGraph, TRUE, FALSE, TRUE, CHECK_CONNECTIVITY, TRUE);

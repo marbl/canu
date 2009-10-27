@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.46 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.47 2009-10-27 12:26:41 skoren Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -37,8 +37,6 @@ static char *rcsid = "$Id: Output_CGW.c,v 1.46 2009-10-05 22:49:42 brianwalenz E
 //
 void
 MarkContigEdges(void) {
-
-  assert(ScaffoldGraph->doRezOnContigs);
 
   CIScaffoldT *scaffold;
   GraphNodeIterator scaffolds;
