@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.2 2009-10-26 13:20:26 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.3 2009-10-27 00:03:40 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,10 +49,26 @@ processSeq(char *N, ilFragment *fr, char end) {
   fr->fr.gkFragment_setMateIID(0);
   fr->fr.gkFragment_setLibraryIID(0);
 
+  //  Clean up what we read.  Remove trailing newline, truncate read names to the first word.
+
   chomp(fr->snam);
   chomp(fr->sstr);
   chomp(fr->qnam);
   chomp(fr->qstr);
+
+  for (uint32 i=0; fr->snam[i]; i++)
+    if (isspace(fr->snam[i])) {
+      fr->snam[i] = 0;
+      break;
+    }
+
+  for (uint32 i=0; fr->qnam[i]; i++)
+    if (isspace(fr->qnam[i])) {
+      fr->qnam[i] = 0;
+      break;
+    }
+
+  //  Check that things are consistent.  Same names, same lengths, etc.
 
   uint32   slen = strlen(fr->sstr);
   uint32   qlen = strlen(fr->qstr);
@@ -278,10 +294,33 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq) {
 
 static
 void
-loadIlluminaReads(char *fname, bool isSeq) {
-  fprintf(stderr, "Processing illumina reads from '%s'.\n", fname);
+loadIlluminaReads(char *uname, bool isSeq) {
+  fprintf(stderr, "Processing illumina reads from '%s'.\n", uname);
 
+  errno = 0;
+  FILE  *ufile = fopen(uname, "r");
+  if (errno)
+    fprintf(stderr, "ERROR:  Coulnd't open Illumina file '%s' for reading: %s\n", uname, strerror(errno)), exit(1);
 
+  ilFragment  *ufrg = new ilFragment;
+
+  ufrg->fr.gkFragment_enableGatekeeperMode(gkpStore);
+
+  while (!feof(ufile)) {
+    uint32 nfrg = gkpStore->gkStore_getNumFragments();
+
+    uint64 uUID = (isSeq) ? readSeq(ufile, uname, ufrg, 'u') : readQSeq(ufile, uname, ufrg, 'u');
+
+    if (ufrg->fr.gkFragment_getIsDeleted() == 0) {
+      //  Add a fragment.
+      gkpStore->gkStore_addFragment(&ufrg->fr);
+
+    } else {
+      //  Junk read, do nothing.
+    }
+  }
+
+  delete ufrg;
 }
 
 
