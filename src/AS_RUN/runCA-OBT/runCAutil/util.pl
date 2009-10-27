@@ -391,9 +391,6 @@ sub setDefaults () {
 
     #####  Scaffolder Options
 
-    $global{"cgwOutputIntermediate"}       = 0;
-    $synops{"cgwOutputIntermediate"}       = "Output .cgw files for intermediate scaffolding (advanced)";
-
     $global{"cgwPurgeCheckpoints"}         = 1;
     $synops{"cgwPurgeCheckpoints"}         = "Remove cgw checkpoint files when a scaffolding step finishes successfully";
 
