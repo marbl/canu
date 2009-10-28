@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignContig.c,v 1.7 2009-10-26 13:20:26 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignContig.c,v 1.8 2009-10-28 17:25:12 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -377,8 +377,8 @@ MultiAlignContig(MultiAlignT  *ma,
         //
         int   maxOvl = -offsets[blid].bgn;
 
-        if (VERBOSE_MULTIALIGN_OUTPUT)
-          fprintf(stderr, "MultiAlignContig:  YIKES!  Your unitig doesn't overlap with anything!  Picking the closest thing!\n");
+        //if (VERBOSE_MULTIALIGN_OUTPUT)
+        //  fprintf(stderr, "MultiAlignContig:  YIKES!  Your unitig doesn't overlap with anything!  Picking the closest thing!\n");
 
         align_to = i-1;
 
@@ -393,21 +393,20 @@ MultiAlignContig(MultiAlignT  *ma,
             ahang  = offsets[blid].bgn - offsets[alid].bgn;
             maxOvl = offsets[alid].end - offsets[blid].bgn;
 
-            fprintf(stderr, "MultiAlignContig:  RESET align_to=%d alid=%d maxOvl=%d ahang=%d\n", align_to, alid, maxOvl, ahang);
+            //fprintf(stderr, "MultiAlignContig:  RESET align_to=%d alid=%d maxOvl=%d ahang=%d\n", align_to, alid, maxOvl, ahang);
           }
 
           align_to--;
         }  //  while align_to >= 0
       }
 
-      if (VERBOSE_MULTIALIGN_OUTPUT)
-        fprintf(stderr, "MultiAlignContig:  Forcing abut between afrag %d (%c) and bfrag %d (%c).\n",
-                afrag->iid, afrag->type, bfrag->iid, bfrag->type);
+      fprintf(stderr, "MultiAlignContig:  Forcing abut between afrag %d (%c) and bfrag %d (%c) in contig %d.\n",
+              afrag->iid, afrag->type, bfrag->iid, bfrag->type, ma->maID);
 
       //  If our ahang is too big, force a 20bp overlap.
       //
       if (ahang + 20 > afrag->length) {
-        fprintf(stderr, "MultiAlignContig: RESET ahang from %d to %d\n", ahang, afrag->length-20);
+        //fprintf(stderr, "MultiAlignContig: RESET ahang from %d to %d\n", ahang, afrag->length-20);
         ahang = afrag->length - 20;
       }
 
