@@ -25,7 +25,7 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.33 2009-10-26 13:20:25 brianwalenz Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.34 2009-10-28 00:27:06 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -319,7 +319,7 @@ off_t ftello(FILE *stream );
 //  amounts of memory too.
 //
 #define AS_READ_MAX_PACKED_LEN_BITS       8
-#define AS_READ_MAX_NORMAL_LEN_BITS       12
+#define AS_READ_MAX_NORMAL_LEN_BITS       11
 
 //  AS_READ_MAX_NORMAL_LEN must be set as below.  It is tempting to make this shorter, but that WILL
 //  NOT work.  It ends up corrupting data.
