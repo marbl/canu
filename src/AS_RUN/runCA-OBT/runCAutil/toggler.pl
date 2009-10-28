@@ -27,42 +27,28 @@ sub toggler () {
       system("ln -s $wrk/$asm.gkpStore/* $wrk/$toggledDir/$asm.gkpStore") if (! -e "$wrk/$toggledDir/$asm.gkpStore/frg");
 
       # but the frg store is rewritten by cgw, so reset the ECR clear-ranges
-      system("rm -rf $wrk/$toggledDir/$asm.gkpStore/frg");
-      system("cp $wrk/$asm.gkpStore/frg $wrk/$toggledDir/$asm.gkpStore/frg");
+      system("rm -rf $wrk/$toggledDir/$asm.gkpStore/*00*");
+      system("rm -rf $wrk/$toggledDir/$asm.gkpStore/fnm");
+      system("cp $wrk/$asm.gkpStore/fnm $wrk/$toggledDir/$asm.gkpStore/fnm");
       
       # back out the ECR changes from the gkp store   
       $cmd  = "$bin/gatekeeper ";
-      $cmd .= " -dumpfragments -tabular";
-      $cmd .= " -allreads -clear OBT ";
-      $cmd .= " $wrk/$asm.gkpStore ";
-      $cmd .= " | grep -v \"UID\" ";
-      $cmd .= " | awk '{print \"frg uid \"\$1\" ECR1 ALL \"\$12\" \"\$13}' ";
-      $cmd .= " > $wrk/$toggledDir/$asm.gkpStore/$ecrEdits 2> $wrk/$toggledDir/$asm.gkpStore/$ecrEdits.err";   
+      $cmd .= " --revertclear OBTCHIMERA $wrk/$toggledDir/$asm.gkpStore";
+      $cmd .= " > $wrk/$toggledDir/$asm.gkpStore/$ecrEdits.err 2> $wrk/$toggledDir/$asm.gkpStore/$ecrEdits.err";   
       if (runCommand("$wrk/$toggledDir", $cmd)) {
          caFailure("failed to get pre-ECR clear-ranges for toggling", "$wrk/$toggledDir/$asm.gkpStore/$ecrEdits.err");
-      }
-      
-      $cmd  = "$bin/gatekeeper ";
-      $cmd .= " --edit $wrk/$toggledDir/$asm.gkpStore/$ecrEdits";
-      $cmd .= " $wrk/$toggledDir/$asm.gkpStore";
-      $cmd .= " > $wrk/$toggledDir/$asm.gkpStore/gkpEdit.err 2>&1";
-      if (runCommand("$wrk/$toggledDir", $cmd)) {
-         caFailure("failed to edit gatekeeper to set ECR clear-ranges for toggling", "$wrk/$toggledDir/$asm.gkpStore/gkpEdit.err");
       }
    }
 
    system("ln -s $wrk/4-unitigger $wrk/$toggledDir") if (! -e "$wrk/$toggledDir/4-unitigger");
-   system("mkdir $wrk/$toggledDir/5-consensus") if (! -d "$wrk/$toggledDir/5-consensus");
+   system("ln -s $wrk/5-consensus $wrk/$toggledDir") if (! -e "$wrk/$toggledDir/5-consensus");
    
-   my $cgiFile;
-   open(F, "ls $wrk/5-consensus |");
-   while (<F>) {
-      chomp;
-      if (m/cgi$/) {
-         $cgiFile .= " $wrk/5-consensus/$_";
-      }
+   # copy the tigStore
+   if (! -e "$wrk/$toggledDir/$asm.tigStore") {
+      system("mkdir $wrk/$toggledDir/$asm.tigStore") ;
+      system("cp -rf $wrk/$asm.tigStore/*v001* $wrk/$toggledDir/$asm.tigStore");
+      system("cp -rf $wrk/$asm.tigStore/*v002* $wrk/$toggledDir/$asm.tigStore");
    }
-   close(F);
    
    # create the toggled cgi file
    if (! -e "$wrk/$toggledDir/toggled.success") {
@@ -71,8 +57,8 @@ sub toggler () {
       $cmd .= " -l $minLength ";
       $cmd .= " -n $numInstances ";
       $cmd .= " -d $maxDistance ";
-      $cmd .= " $cgiFile";
-      $cmd .= " > $wrk/$toggledDir/5-consensus/$asm.cgi 2> $wrk/$toggledDir/toggle.err";
+      $cmd .= " $wrk/$toggledDir/$asm.tigStore";
+      $cmd .= " > $wrk/$toggledDir/toggle.err 2> $wrk/$toggledDir/toggle.err";
       if (runCommand("$wrk/$toggledDir", $cmd)) {
          caFailure("failed to toggle unitigs ", "$wrk/$toggledDir/toggle.err");
       }
