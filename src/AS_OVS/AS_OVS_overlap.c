@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlap.c,v 1.8 2009-10-26 13:20:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlap.c,v 1.9 2009-10-28 19:30:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -166,7 +166,7 @@ AS_OVS_convertOBTdumpToOVSoverlap(char *line, OVSoverlap *olap) {
     olap->dat.obt.a_end    = atoi(ptrs[4]);
     olap->dat.obt.b_beg    = atoi(ptrs[5]);
     olap->dat.obt.b_end_hi = atoi(ptrs[6]) >> 9;
-    olap->dat.obt.b_end_lo = atoi(ptrs[6]) & 0x1f;
+    olap->dat.obt.b_end_lo = atoi(ptrs[6]) & 0x1ff;
     olap->dat.obt.erate    = AS_OVS_encodeQuality(atof(ptrs[7]) / 100.0);
     olap->dat.ovl.type     = AS_OVS_TYPE_OBT;
 

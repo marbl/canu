@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.27 2009-10-26 13:20:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.28 2009-10-28 19:30:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -273,13 +273,13 @@ buildStore(
             rovrlap.dat.obt.a_end    = (fovrlap.dat.obt.b_end_hi << 9) | fovrlap.dat.obt.b_end_lo;
             rovrlap.dat.obt.b_beg    = fovrlap.dat.obt.a_beg;
             rovrlap.dat.obt.b_end_hi = fovrlap.dat.obt.a_end >> 9;
-            rovrlap.dat.obt.b_end_lo = fovrlap.dat.obt.a_end & 0x1f;
+            rovrlap.dat.obt.b_end_lo = fovrlap.dat.obt.a_end & 0x1ff;
           } else {
             rovrlap.dat.obt.a_beg    = (fovrlap.dat.obt.b_end_hi << 9) | fovrlap.dat.obt.b_end_lo;
             rovrlap.dat.obt.a_end    = fovrlap.dat.obt.b_beg;
             rovrlap.dat.obt.b_beg    = fovrlap.dat.obt.a_end;
             rovrlap.dat.obt.b_end_hi = fovrlap.dat.obt.a_beg >> 9;
-            rovrlap.dat.obt.b_end_lo = fovrlap.dat.obt.a_beg & 0x1f;
+            rovrlap.dat.obt.b_end_lo = fovrlap.dat.obt.a_beg & 0x1ff;
           }
 
           writeToDumpFile(&rovrlap, dumpFile, dumpFileMax, dumpLength, iidPerBucket, storeName);

@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.39 2009-10-26 13:20:26 brianwalenz Exp $
- * $Revision: 1.39 $
+ * $Id: OlapFromSeedsOVL.c,v 1.40 2009-10-28 19:30:14 brianwalenz Exp $
+ * $Revision: 1.40 $
 */
 
-const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.39 2009-10-26 13:20:26 brianwalenz Exp $";
+const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.40 2009-10-28 19:30:14 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -3571,7 +3571,7 @@ static void  Output_Olap
            overlap . dat . obt . fwd = (dir == 'f' ? 1 : 0);
            overlap . dat . obt . b_beg = x;
            overlap . dat . obt . b_end_hi = y >> 9;
-           overlap . dat . obt . b_end_lo = y & 0x1f;
+           overlap . dat . obt . b_end_lo = y & 0x1ff;
            overlap . dat . obt . erate = AS_OVS_encodeQuality (qual);
            overlap . dat . obt . type = AS_OVS_TYPE_OBT;
           }
@@ -3666,7 +3666,7 @@ static void  Output_Olap_From_Diff
            overlap . dat . obt . fwd = (dir == 'f' ? 1 : 0);
            overlap . dat . obt . b_beg = x;
            overlap . dat . obt . b_end_hi = y >> 9;
-           overlap . dat . obt . b_end_lo = y & 0x1f;
+           overlap . dat . obt . b_end_lo = y & 0x1ff;
            overlap . dat . obt . erate = AS_OVS_encodeQuality (qual);
            overlap . dat . obt . type = AS_OVS_TYPE_OBT;
           }

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.57 2009-10-26 13:20:26 brianwalenz Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.58 2009-10-28 19:30:14 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,8 +52,8 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.57 2009-10-26 13:20:26 br
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.57 2009-10-26 13:20:26 brianwalenz Exp $
- * $Revision: 1.57 $
+ * $Id: AS_OVL_overlap_common.h,v 1.58 2009-10-28 19:30:14 brianwalenz Exp $
+ * $Revision: 1.58 $
 */
 
 
@@ -3083,7 +3083,7 @@ static void  Output_Partial_Overlap
      ovl->dat.obt.a_end    = b;
      ovl->dat.obt.b_beg    = c;
      ovl->dat.obt.b_end_hi = d >> 9;
-     ovl->dat.obt.b_end_lo = d & 0x1f;
+     ovl->dat.obt.b_end_lo = d & 0x1ff;
      ovl->dat.obt.erate    = AS_OVS_encodeQuality(p->quality);
      ovl->dat.obt.type     = AS_OVS_TYPE_OBT;
 
