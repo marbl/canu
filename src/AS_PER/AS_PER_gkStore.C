@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.13 2009-10-26 16:37:10 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.14 2009-10-28 17:27:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,7 +37,7 @@ static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.13 2009-10-26 16:37:10 brianwale
 #include "AS_UTL_fileIO.h"
 
 
-#define AS_GKP_CURRENT_VERSION    5
+#define AS_GKP_CURRENT_VERSION    6
 
 
 gkStore::gkStore() {
@@ -87,8 +87,33 @@ gkStore::gkStore_open(int writable) {
   }
 
   if (1 != AS_UTL_safeRead(gkpinfo, &inf, "gkStore_open:header", sizeof(gkStoreInfo), 1)) {
-    fprintf(stderr, "failed to open gatekeeper store '%s': couldn't read the header (%s)\n", name, strerror(errno));
+    fprintf(stderr, "failed to open gatekeeper store '%s': couldn't read the header (%s)\n",
+            name, strerror(errno));
     exit(1);
+  }
+
+  if (!feof(gkpinfo)) {
+    uint32 nr = inf.numPacked + inf.numNormal + inf.numStrobe + 1;
+    uint32 na = 0;
+    uint32 nb = 0;
+
+    IIDtoTYPE = (uint8  *)safe_malloc(sizeof(uint8)  * nr);
+    IIDtoTIID = (uint32 *)safe_malloc(sizeof(uint32) * nr);
+
+    na = AS_UTL_safeRead(gkpinfo, IIDtoTYPE, "gkStore_open:header", sizeof(uint8), nr);
+    nb = AS_UTL_safeRead(gkpinfo, IIDtoTIID, "gkStore_open:header", sizeof(uint32), nr);
+
+    //  If EOF was hit, and nothing was read, there is no index saved.  Otherwise, something was
+    //  read, and we fail if either was too short.
+
+    if ((feof(gkpinfo)) && (na == 0) && (nb == 0)) {
+      safe_free(IIDtoTYPE);
+      safe_free(IIDtoTIID);
+    } else if ((na != nr) || (nb != nr)) {
+      fprintf(stderr, "failed to open gatekeeper store '%s': couldn't read the IID maps (%s)\n",
+              name, strerror(errno));
+      exit(1);
+    }
   }
 
   fclose(gkpinfo);
@@ -153,10 +178,14 @@ gkStore::gkStore_open(int writable) {
 
   sprintf(name,"%s/uid", storePath);
   uid    = openStore(name, mode);
-  
+
   sprintf(name, "%s/plc", storePath);
   plc    = openStore(name, mode);
   plc    = convertStoreToMemoryStore(plc); 
+
+  //  UIDtoIID and STRtoUID are loaded on demand.
+  UIDtoIID = NULL;
+  STRtoUID = NULL;
 
   if ((NULL == fpk) ||
       (NULL == fnm) || (NULL == snm) || (NULL == qnm) ||
@@ -243,9 +272,9 @@ gkStore::gkStore_create(void) {
   UIDtoIID = CreateScalarHashTable_AS();
   SaveHashTable_AS(name, UIDtoIID);
 
-  IIDmax = 1048576;
-  IIDtoTYPE = (uint8  *)safe_malloc(sizeof(uint8)  * IIDmax);
-  IIDtoTIID = (uint32 *)safe_malloc(sizeof(uint32) * IIDmax);
+  IIDmax    = 0;
+  IIDtoTYPE = NULL;
+  IIDtoTIID = NULL;
 }
 
 
@@ -283,15 +312,22 @@ gkStore::~gkStore() {
   char  name[FILENAME_MAX];
   FILE *gkpinfo;
 
-  if ((isReadOnly == 0) && (partnum == 0)) {
-    sprintf(name,"%s/inf", storePath);
+  if (isCreating) {
+    sprintf(name, "%s/inf", storePath);
     errno = 0;
     gkpinfo = fopen(name, "w");
     if (errno) {
       fprintf(stderr, "failed to write gatekeeper store into to '%s': %s\n", name, strerror(errno));
       exit(1);
     }
+
     AS_UTL_safeWrite(gkpinfo, &inf, "closegkStore:header", sizeof(gkStoreInfo), 1);
+
+    if (IIDtoTYPE) {
+      AS_UTL_safeWrite(gkpinfo, IIDtoTYPE, "closegkStore::IIDtoTYPE", sizeof(uint8),  inf.numPacked + inf.numNormal + inf.numStrobe + 1);
+      AS_UTL_safeWrite(gkpinfo, IIDtoTIID, "closegkStore::IIDtoTIID", sizeof(uint32), inf.numPacked + inf.numNormal + inf.numStrobe + 1);
+    }
+
     if (fclose(gkpinfo)) {
       fprintf(stderr, "failed to close gatekeeper store '%s': %s\n", name, strerror(errno));
       exit(1);
@@ -371,7 +407,7 @@ gkStore::gkStore_clear(void) {
   frgUID = NULL;
 
   IIDmax    = 0;
-  IIDtoTYPE = 0;
+  IIDtoTYPE = NULL;
   IIDtoTIID = NULL;
 
   clearRange = NULL;
@@ -459,728 +495,3 @@ gkStore::gkStore_delete(void) {
 
 
 
-////////////////////////////////////////////////////////////////////////////////
-
-
-void
-gkStore::gkStore_loadPartition(uint32 partition) {
-  char       name[FILENAME_MAX];
-  int        i, f, e;
-
-  assert(partmap    == NULL);
-  assert(isCreating == 0);
-
-  if (isReadOnly == 0)
-    fprintf(stderr, "WARNING:  loading a partition from a writable gkpStore.\n");
-  assert(isReadOnly == 1);
-
-  partnum = partition;
-
-  sprintf(name,"%s/fpk.%03d", storePath, partnum);
-  if (AS_UTL_fileExists(name, FALSE, FALSE) == 0) {
-    fprintf(stderr, "gkStore_loadPartition()--  Partition %d doesn't exist; normal store used instead.\n", partnum);
-    return;
-  }
-
-  //  load all our data
-
-  sprintf(name,"%s/fpk.%03d", storePath, partnum);
-  partfpk = loadStorePartial(name, 0, 0);
-
-  sprintf(name,"%s/fnm.%03d", storePath, partnum);
-  partfnm = loadStorePartial(name, 0, 0);
-  sprintf(name,"%s/qnm.%03d", storePath, partnum);
-  partqnm = loadStorePartial(name, 0, 0);
-
-  sprintf(name,"%s/fsb.%03d", storePath, partnum);
-  partfsb = loadStorePartial(name, 0, 0);
-  sprintf(name,"%s/qsb.%03d", storePath, partnum);
-  partqsb = loadStorePartial(name, 0, 0);
-
-  //  zip through the frags and build a map from iid to the frag record
-
-  partmap = CreateScalarHashTable_AS();
-
-  f = getFirstElemStore(partfpk);
-  e = getLastElemStore(partfpk);
-  for (i=f; i<=e; i++) {
-    gkPackedFragment *p = (gkPackedFragment *)getIndexStorePtr(partfpk, i);
-    if (InsertInHashTable_AS(partmap,
-                             (uint64)p->readIID, 0,
-                             (INTPTR)(p), 0) != HASH_SUCCESS)
-      assert(0);
-  }
-
-  f = getFirstElemStore(partfnm);
-  e = getLastElemStore(partfnm);
-  for (i=f; i<=e; i++) {
-    gkNormalFragment *p = (gkNormalFragment *)getIndexStorePtr(partfnm, i);
-    if (InsertInHashTable_AS(partmap,
-                             (uint64)p->readIID, 0,
-                             (INTPTR)(p), 0) != HASH_SUCCESS)
-      assert(0);
-  }
-
-  f = getFirstElemStore(partfsb);
-  e = getLastElemStore(partfsb);
-  for (i=f; i<=e; i++) {
-    gkStrobeFragment *p = (gkStrobeFragment *)getIndexStorePtr(partfsb, i);
-    if (InsertInHashTable_AS(partmap,
-                             (uint64)p->readIID, 0,
-                             (INTPTR)(p), 0) != HASH_SUCCESS)
-      assert(0);
-  }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-
-void
-gkStore::gkStore_load(AS_IID beginIID, AS_IID endIID, int flags) {
-  uint32  stType    = 0;
-  uint32  stTiid    = 0;
-  uint32  edType    = 0;
-  uint32  edTiid    = 0;
-
-  int64  firstsm   = 0, lastsm = 0;
-  int64  firstmd   = 0, lastmd = 0;
-  int64  firstlg   = 0, lastlg = 0;
-
-  //  Position the metadata stream -- this code is similar to
-  //  gkStore_loadPartition.
-
-  assert(partmap    == NULL);
-  assert(isReadOnly == 1);
-  assert(isCreating == 0);
-
-  if (beginIID == 0)   beginIID = 1;
-  if (endIID == 0)     endIID   = gkStore_getNumFragments();
-
-  gkStore_decodeTypeFromIID(beginIID, stType, stTiid);
-  gkStore_decodeTypeFromIID(endIID,   edType, edTiid);
-
-  if (stType == edType) {
-    switch (stType) {
-      case GKFRAGMENT_PACKED:
-        firstsm = stTiid;
-        lastsm  = edTiid;
-        break;
-      case GKFRAGMENT_NORMAL:
-        firstmd = stTiid;
-        lastmd  = edTiid;
-        break;
-      case GKFRAGMENT_STROBE:
-        firstlg = stTiid;
-        lastlg  = edTiid;
-        break;
-    }
-  } else if ((stType == GKFRAGMENT_PACKED) && (edType == GKFRAGMENT_NORMAL)) {
-    firstsm = stTiid;
-    lastsm  = STREAM_UNTILEND;
-    firstmd = STREAM_FROMSTART;
-    lastmd  = edTiid;
-  } else if ((stType == GKFRAGMENT_PACKED) && (edType == GKFRAGMENT_STROBE)) {
-    firstsm = stTiid;
-    lastsm  = STREAM_UNTILEND;
-    firstmd = STREAM_FROMSTART;
-    lastmd  = STREAM_UNTILEND;
-    firstlg = STREAM_FROMSTART;
-    lastlg  = edTiid;
-  } else if ((stType == GKFRAGMENT_NORMAL) && (edType == GKFRAGMENT_STROBE)) {
-    firstmd = stTiid;
-    lastmd  = STREAM_UNTILEND;
-    firstlg = STREAM_FROMSTART;
-    lastlg  = edTiid;
-  } else {
-    assert(0);
-  }
-
-  //  Load the stores.  If we're loading all the way till the end, the
-  //  last+1 fragment doesn't exist.  In this case, we (ab)use the
-  //  fact that convertStoreToPartialMemoryStore() treats 0 as meaning
-  //  "from the start" or "till the end".
-
-  if (firstsm != lastsm) {
-    fpk = convertStoreToPartialMemoryStore(fpk, firstsm, lastsm);
-  }
-
-  if (firstmd != lastmd) {
-    gkNormalFragment mdbeg;
-    gkNormalFragment mdend;
-
-    mdbeg.seqOffset = mdend.seqOffset = 0;  //  Abuse.
-    mdbeg.qltOffset = mdend.qltOffset = 0;
-
-    if (firstmd != STREAM_FROMSTART)
-      getIndexStore(fnm, firstmd, &mdbeg);
-
-    if ((lastmd != STREAM_UNTILEND) && (lastmd + 1 <= getLastElemStore(fnm)))
-      getIndexStore(fnm, lastmd+1, &mdend);
-
-    fnm = convertStoreToPartialMemoryStore(fnm, firstmd, lastmd);
-
-    if (flags == GKFRAGMENT_SEQ)
-      snm = convertStoreToPartialMemoryStore(snm, mdbeg.seqOffset, mdend.seqOffset);
-
-    if (flags == GKFRAGMENT_QLT)
-      qnm = convertStoreToPartialMemoryStore(qnm, mdbeg.qltOffset, mdend.qltOffset);
-  }
-
-  if (firstlg != lastlg) {
-    gkStrobeFragment lgbeg;
-    gkStrobeFragment lgend;
-
-    lgbeg.seqOffset = lgend.seqOffset = 0;  //  Abuse.
-    lgbeg.qltOffset = lgend.qltOffset = 0;
-
-    if (firstlg != STREAM_FROMSTART)
-      getIndexStore(fsb, firstlg, &lgbeg);
-
-    if ((lastlg != STREAM_UNTILEND) && (lastlg + 1 <= getLastElemStore(fsb)))
-      getIndexStore(fsb, lastlg+1, &lgend);
-
-    fsb = convertStoreToPartialMemoryStore(fsb, firstlg, lastlg);
-
-    if (flags == GKFRAGMENT_SEQ)
-      ssb = convertStoreToPartialMemoryStore(ssb, lgbeg.seqOffset, lgend.seqOffset);
-
-    if (flags == GKFRAGMENT_QLT)
-      qsb = convertStoreToPartialMemoryStore(qsb, lgbeg.qltOffset, lgend.qltOffset);
-  }
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-void
-gkStore::gkStore_decodeTypeFromIID(AS_IID iid, uint32& type, uint32& tiid) {
-  type = 0;
-  tiid = 0;
-
-  if (isCreating) {
-    type = IIDtoTYPE[iid];
-    tiid = IIDtoTIID[iid];
-  } else {
-    if (iid <= inf.numPacked + inf.numNormal + inf.numStrobe) {
-      type = GKFRAGMENT_STROBE;
-      tiid = iid - inf.numPacked - inf.numNormal;
-    }
-    if (iid <= inf.numPacked + inf.numNormal) {
-      type = GKFRAGMENT_NORMAL;
-      tiid = iid - inf.numPacked;
-    }
-    if (iid <= inf.numPacked) {
-      type = GKFRAGMENT_PACKED;
-      tiid = iid;
-    }
-  }
-
-  if (tiid == 0) {
-    fprintf(stderr, "gkStore_decodeTypeFromIID()-- ERROR:  fragment iid %d is out of range.\n", iid);
-    fprintf(stderr, "gkStore_decodeTypeFromIID()--         numPacked=%d numNormal=%d numStrobe=%d\n",
-            inf.numPacked, inf.numNormal, inf.numStrobe);
-    assert(0);
-  }
-}
-
-
-
-void
-gkStore::gkStore_getFragmentData(gkStream *gst, gkFragment *fr, uint32 flags) {
-
-  assert((flags == GKFRAGMENT_INF) || (flags == GKFRAGMENT_SEQ) || (flags == GKFRAGMENT_QLT));
-
-  fr->gkp = this;
-
-  //  Get this out of the way first, it's a complete special case.
-  //  It's also the easy case.  ;-)
-  //
-  if (fr->type == GKFRAGMENT_PACKED) {
-    fr->hasSEQ = 1;
-    fr->hasQLT = 1;
-
-    if (fr->enc == NULL) {
-      fr->enc = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-      fr->seq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-      fr->qlt = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-    }
-
-    decodeSequenceQuality(fr->fr.packed.enc, fr->seq, fr->qlt);
-
-    return;
-  }
-
-  uint32  actLen = 0;
-  int64   nxtOff = 0;
-
-  uint32  seqLen = fr->gkFragment_getSequenceLength();
-  int64   seqOff = fr->gkFragment_getSequenceOffset();
-
-  uint32  qltLen = fr->gkFragment_getQualityLength();
-  int64   qltOff = fr->gkFragment_getQualityOffset();
-
-  StoreStruct  *store  = NULL;
-  StreamStruct *stream = NULL;
-
-
-  if (flags == GKFRAGMENT_SEQ) {
-    fr->hasSEQ = 1;
-
-    if (fr->enc == NULL) {
-      fr->enc = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-      fr->seq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-      fr->qlt = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-    }
-
-    assert(partmap == NULL);
-
-    if (gst == NULL) {
-      store = (fr->type == GKFRAGMENT_NORMAL) ? snm : ssb;
-      getStringStore(store, seqOff, fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen, &nxtOff);
-    } else {
-      stream = (fr->type == GKFRAGMENT_NORMAL) ? gst->snm : gst->ssb;
-      nextStream(stream, fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen);
-    }
-
-    decodeSequence(fr->enc, fr->seq, seqLen);
-
-    assert(fr->seq[seqLen] == 0);
-  }
-
-
-  if (flags == GKFRAGMENT_QLT) {
-    fr->hasSEQ = 1;
-    fr->hasQLT = 1;
-
-    if (fr->enc == NULL) {
-      fr->enc = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-      fr->seq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-      fr->qlt = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-    }
-
-    if (partmap) {
-      store = (fr->type == GKFRAGMENT_NORMAL) ? partqnm : partqsb;
-      getStringStore(store, qltOff, fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen, &nxtOff);
-    } else if (gst == NULL) {
-      store = (fr->type == GKFRAGMENT_NORMAL) ? qnm : qsb;
-      getStringStore(store, qltOff, fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen, &nxtOff);
-    } else {
-      stream = (fr->type == GKFRAGMENT_NORMAL) ? gst->qnm : gst->qsb;
-      nextStream(stream, fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen);
-    }
-
-    //fr->enc[actLen] = 0;
-
-    decodeSequenceQuality(fr->enc, fr->seq, fr->qlt);
-    assert(fr->seq[seqLen] == 0);
-    assert(fr->qlt[seqLen] == 0);
-  }
-}
-
-
-
-void
-gkStore::gkStore_getFragment(AS_IID iid, gkFragment *fr, int32 flags) {
-
-  fr->hasSEQ = 0;
-  fr->hasQLT = 0;
-
-  fr->gkp = this;
-
-  gkStore_decodeTypeFromIID(iid, fr->type, fr->tiid);
-
-  //fprintf(stderr, "gkStore_getFragment()--  Retrieving IID=%d from %d,%d\n", iid, fr->type, fr->tiid);
-
-  if (partmap) {
-    //  If partitioned, we have everything in memory.  This is keyed
-    //  off of the global IID.
-    void *p = (void *)(INTPTR)LookupValueInHashTable_AS(partmap, iid, 0);
-
-    if (p == NULL)
-      fprintf(stderr, "getFrag()-- ERROR!  IID "F_IID" not in partition!\n", iid);
-    assert(p != NULL);
-
-    assert(fr->isGKP == 0);
-
-    switch (fr->type) {
-      case GKFRAGMENT_PACKED:
-        memcpy(&fr->fr.packed, p, sizeof(gkPackedFragment));
-        break;
-      case GKFRAGMENT_NORMAL:
-        memcpy(&fr->fr.normal, p, sizeof(gkNormalFragment));
-        break;
-      case GKFRAGMENT_STROBE:
-        memcpy(&fr->fr.strobe, p, sizeof(gkStrobeFragment));
-        break;
-    }
-
-  } else {
-    //  Not paritioned, load from disk store.
-    switch (fr->type) {
-      case GKFRAGMENT_PACKED:
-        getIndexStore(fpk, fr->tiid, &fr->fr.packed);
-        break;
-      case GKFRAGMENT_NORMAL:
-        getIndexStore(fnm, fr->tiid, &fr->fr.normal);
-        break;
-      case GKFRAGMENT_STROBE:
-        getIndexStore(fsb, fr->tiid, &fr->fr.strobe);
-        break;
-    }
-  }
-
-  //  GatekeeperMode assumes these are set.  Set them.  Currently only used by sffToCA, when it
-  //  loads frags from the temporary store before detecting mate pairs.
-  if (fr->isGKP) {
-    fr->gkFragment_getClearRegion(fr->clrBgn, fr->clrEnd, AS_READ_CLEAR_CLR);
-    fr->gkFragment_getClearRegion(fr->vecBgn, fr->vecEnd, AS_READ_CLEAR_VEC);
-    fr->gkFragment_getClearRegion(fr->maxBgn, fr->maxEnd, AS_READ_CLEAR_MAX);
-    fr->gkFragment_getClearRegion(fr->tntBgn, fr->tntEnd, AS_READ_CLEAR_TNT);
-  }
-
-  //fprintf(stderr, "gkStore_getFragment()--  Retrieved IID=%d (asked for %d) from %d,%d\n", fr->gkFragment_getReadIID(), iid, fr->type, fr->tiid);
-
-  gkStore_getFragmentData(NULL, fr, flags);
-}
-
-
-
-
-void
-gkStore::gkStore_setFragment(gkFragment *fr) {
-  assert(partmap    == NULL);
-  assert(isReadOnly == 0);
-
-  //  Sanity check that type and type IID agree.  These change while the store is being built.
-  {
-    uint32  type;
-    uint32  tiid;
-
-    gkStore_decodeTypeFromIID(fr->gkFragment_getReadIID(), type, tiid);
-
-    assert(type == fr->type);
-    assert(tiid == fr->tiid);
-  }
-
-  //fprintf(stderr, "gkStore_setFragment()--  Setting IID=%d to %d,%d\n", fr->gkFragment_getReadIID(), fr->type, fr->tiid);
-
-  switch (fr->type) {
-    case GKFRAGMENT_PACKED:
-      setIndexStore(fpk, fr->tiid, &fr->fr.packed);
-      break;
-    case GKFRAGMENT_NORMAL:
-      setIndexStore(fnm, fr->tiid, &fr->fr.normal);
-      break;
-    case GKFRAGMENT_STROBE:
-      setIndexStore(fsb, fr->tiid, &fr->fr.strobe);
-      break;
-  }
-}
-
-
-
-
-//  Delete fragment with iid from the store.  If the fragment has a
-//  mate, remove the mate relationship from both fragmentss.
-//
-//  If the mate is supplied, delete it too.
-//
-void
-gkStore::gkStore_delFragment(AS_IID iid, bool deleteMateFrag) {
-  gkFragment   fr;
-  int32        mid = 0;
-
-  assert(partmap    == NULL);
-  assert(isReadOnly == 0);
-
-  gkStore_getFragment(iid, &fr, GKFRAGMENT_INF);
-  switch (fr.type) {
-    case GKFRAGMENT_PACKED:
-      mid = fr.fr.packed.mateIID;
-      fr.fr.packed.deleted = 1;
-      fr.fr.packed.mateIID = 0;
-      break;
-    case GKFRAGMENT_NORMAL:
-      mid = fr.fr.normal.mateIID;
-      fr.fr.normal.deleted = 1;
-      fr.fr.normal.mateIID = 0;
-      break;
-    case GKFRAGMENT_STROBE:
-      mid = fr.fr.strobe.mateIID;
-      fr.fr.strobe.deleted = 1;
-      fr.fr.strobe.mateIID = 0;
-      break;
-  }
-  gkStore_setFragment(&fr);
-
-  //  No mate, we're done.
-  if (mid == 0)
-    return;
-
-  gkStore_getFragment(mid, &fr, GKFRAGMENT_INF);
-  switch (fr.type) {
-    case GKFRAGMENT_PACKED:
-      fr.fr.packed.deleted = fr.fr.packed.deleted || deleteMateFrag;
-      fr.fr.packed.mateIID = 0;
-      break;
-    case GKFRAGMENT_NORMAL:
-      fr.fr.normal.deleted = fr.fr.normal.deleted || deleteMateFrag;
-      fr.fr.normal.mateIID = 0;
-      break;
-    case GKFRAGMENT_STROBE:
-      fr.fr.strobe.deleted = fr.fr.strobe.deleted || deleteMateFrag;
-      fr.fr.strobe.mateIID = 0;
-      break;
-  }
-  gkStore_setFragment(&fr);
-}
-
-
-
-void
-gkStore::gkStore_addFragment(gkFragment *fr) {
-  int encLen;
-
-  assert(partmap    == NULL);
-  assert(isReadOnly == 0);
-  assert(isCreating == 1);
-
-  assert(fr->type != GKFRAGMENT_ERROR);
-
-  int32 iid = gkStore_getNumFragments() + 1;
-
-  if (fr->clrBgn < fr->clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_enableCreate();
-  if (fr->vecBgn < fr->vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_enableCreate();
-  if (fr->maxBgn < fr->maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_enableCreate();
-  if (fr->tntBgn < fr->tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_enableCreate();
-
-  assert(strlen(fr->gkFragment_getSequence()) == fr->gkFragment_getSequenceLength());
-  assert(strlen(fr->gkFragment_getQuality())  == fr->gkFragment_getQualityLength());
-
-  assert((fr->gkFragment_getIsDeleted() == 1) || (fr->clrBgn < fr->clrEnd));
-
-  switch (fr->type) {
-    case GKFRAGMENT_PACKED:
-      fr->tiid          = ++inf.numPacked;
-      fr->fr.packed.readIID = iid;
-
-      assert(fr->tiid == getLastElemStore(fpk) + 1);
-
-      clearRange[AS_READ_CLEAR_CLR]->gkClearRange_makeSpaceShort(fr->tiid, fr->clrBgn, fr->clrEnd);
-      clearRange[AS_READ_CLEAR_VEC]->gkClearRange_makeSpaceShort(fr->tiid, fr->vecBgn, fr->vecEnd);
-      clearRange[AS_READ_CLEAR_MAX]->gkClearRange_makeSpaceShort(fr->tiid, fr->maxBgn, fr->maxEnd);
-      clearRange[AS_READ_CLEAR_TNT]->gkClearRange_makeSpaceShort(fr->tiid, fr->tntBgn, fr->tntEnd);
-
-      fr->fr.packed.clearBeg = fr->clrBgn;
-      fr->fr.packed.clearEnd = fr->clrEnd;
-      break;
-
-    case GKFRAGMENT_NORMAL:
-      fr->tiid          = ++inf.numNormal;
-      fr->fr.normal.readIID = iid;
-
-      assert(fr->tiid == getLastElemStore(fnm) + 1);
-
-      clearRange[AS_READ_CLEAR_CLR]->gkClearRange_makeSpaceMedium(fr->tiid, fr->clrBgn, fr->clrEnd);
-      clearRange[AS_READ_CLEAR_VEC]->gkClearRange_makeSpaceMedium(fr->tiid, fr->vecBgn, fr->vecEnd);
-      clearRange[AS_READ_CLEAR_MAX]->gkClearRange_makeSpaceMedium(fr->tiid, fr->maxBgn, fr->maxEnd);
-      clearRange[AS_READ_CLEAR_TNT]->gkClearRange_makeSpaceMedium(fr->tiid, fr->tntBgn, fr->tntEnd);
-
-      fr->fr.normal.clearBeg = fr->clrBgn;
-      fr->fr.normal.clearEnd = fr->clrEnd;
-      break;
-
-    case GKFRAGMENT_STROBE:
-      fr->tiid           = ++inf.numStrobe;
-      fr->fr.strobe.readIID = iid;
-
-      assert(fr->tiid == getLastElemStore(fsb) + 1);
-
-      clearRange[AS_READ_CLEAR_CLR]->gkClearRange_makeSpaceLong(fr->tiid, fr->clrBgn, fr->clrEnd);
-      clearRange[AS_READ_CLEAR_VEC]->gkClearRange_makeSpaceLong(fr->tiid, fr->vecBgn, fr->vecEnd);
-      clearRange[AS_READ_CLEAR_MAX]->gkClearRange_makeSpaceLong(fr->tiid, fr->maxBgn, fr->maxEnd);
-      clearRange[AS_READ_CLEAR_TNT]->gkClearRange_makeSpaceLong(fr->tiid, fr->tntBgn, fr->tntEnd);
-
-      fr->fr.strobe.clearBeg = fr->clrBgn;
-      fr->fr.strobe.clearEnd = fr->clrEnd;
-      break;
-  }
-
-  assert(fr->tiid != 0);
-
-  //  Set clear ranges...if they're defined.  !!NOTE!!  The "CLR"
-  //  range MUST be set last since it is "the" clear range, and
-  //  setClearRange() always updates the latest clear range along with
-  //  the named region.  (That is, setting VEC will set both VEC and
-  //  LATEST.)
-  //
-  if (fr->vecBgn < fr->vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_setClearRegion(fr, fr->vecBgn, fr->vecEnd);
-  if (fr->maxBgn < fr->maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_setClearRegion(fr, fr->maxBgn, fr->maxEnd);
-  if (fr->tntBgn < fr->tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_setClearRegion(fr, fr->tntBgn, fr->tntEnd);
-  if (fr->clrBgn < fr->clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_setClearRegion(fr, fr->clrBgn, fr->clrEnd);
-
-  if (IIDmax <= iid) {
-    IIDmax *= 2;
-    IIDtoTYPE = (uint8  *)safe_realloc(IIDtoTYPE, sizeof(uint8)  * IIDmax);
-    IIDtoTIID = (uint32 *)safe_realloc(IIDtoTIID, sizeof(uint32) * IIDmax);
-  }
-
-  switch (fr->type) {
-    case GKFRAGMENT_PACKED:
-      assert(fr->seq[fr->fr.packed.seqLen] == 0);
-      assert(fr->qlt[fr->fr.packed.seqLen] == 0);
-
-      encodeSequenceQuality(fr->fr.packed.enc, fr->seq, fr->qlt);
-
-      gkStore_setUIDtoIID(fr->fr.packed.readUID, fr->fr.packed.readIID, AS_IID_FRG);
-      appendIndexStore(fpk, &fr->fr.packed);
-
-      IIDtoTYPE[iid] = GKFRAGMENT_PACKED;
-      IIDtoTIID[iid] = fr->tiid;
-      break;
-
-    case GKFRAGMENT_NORMAL:
-      assert(fr->seq[fr->fr.normal.seqLen] == 0);
-      assert(fr->qlt[fr->fr.normal.seqLen] == 0);
-
-      fr->fr.normal.seqOffset = getLastElemStore(snm) + 1;
-      fr->fr.normal.qltOffset = getLastElemStore(qnm) + 1;
-
-      gkStore_setUIDtoIID(fr->fr.normal.readUID, fr->fr.normal.readIID, AS_IID_FRG);
-      appendIndexStore(fnm, &fr->fr.normal);
-
-      encLen = encodeSequence(fr->enc, fr->seq);
-      appendStringStore(snm, fr->enc, encLen);
-
-      encodeSequenceQuality(fr->enc, fr->seq, fr->qlt);
-      appendStringStore(qnm, fr->enc, fr->fr.normal.seqLen);
-
-      IIDtoTYPE[iid] = GKFRAGMENT_NORMAL;
-      IIDtoTIID[iid] = fr->tiid;
-      break;
-
-    case GKFRAGMENT_STROBE:
-      assert(fr->seq[fr->fr.strobe.seqLen] == 0);
-      assert(fr->qlt[fr->fr.strobe.seqLen] == 0);
-
-      fr->fr.strobe.seqOffset = getLastElemStore(ssb) + 1;
-      fr->fr.strobe.qltOffset = getLastElemStore(qsb) + 1;
-
-      gkStore_setUIDtoIID(fr->fr.strobe.readUID, fr->fr.strobe.readIID, AS_IID_FRG);
-      appendIndexStore(fsb, &fr->fr.strobe);
-
-      encLen = encodeSequence(fr->enc, fr->seq);
-      appendStringStore(ssb, fr->enc, encLen);
-
-      encodeSequenceQuality(fr->enc, fr->seq, fr->qlt);
-      appendStringStore(qsb, fr->enc, fr->fr.strobe.seqLen);
-
-      IIDtoTYPE[iid] = GKFRAGMENT_STROBE;
-      IIDtoTIID[iid] = fr->tiid;
-      break;
-  }
-
-  //  We loaded a fragment regardless of its deleted status.  This is
-  //  just the count of fragments in the store.
-  inf.frgLoaded++;
-
-  if (fr->gkFragment_getIsDeleted()) {
-    //  Errors are defined as a fragment loaded but marked as deleted.
-    inf.frgErrors++;
-  } else {
-    //  Only living fragments count towards random fragments.
-    if (fr->gkFragment_getIsNonRandom() == 0)
-      inf.numRandom++;
-  }
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-void
-gkStore::gkStore_buildPartitions(short *partitionMap, uint32 maxPart) {
-  gkFragment        fr;
-
-  assert(partmap    == NULL);
-  assert(isReadOnly == 1);
-  assert(isCreating == 0);
-
-  //  Create the partitions by opening N copies of the gatekeeper store,
-  //  and telling each one to make a partition.
-  //
-  gkStore **gkpart = new gkStore * [maxPart + 1];
-
-  AS_PER_setBufferSize(512 * 1024);
-
-  for (uint32 i=1; i<=maxPart; i++)
-    gkpart[i] = new gkStore (storePath, i);
-
-  //  And, finally, add stuff to each partition.
-  //
-  for (uint32 iid=1; iid<=gkStore_getNumFragments(); iid++) {
-    int p;
-
-    gkStore_getFragment(iid, &fr, GKFRAGMENT_QLT);
-
-    p = partitionMap[iid];
-
-    //  Check it's actually partitioned.  Deleted reads won't get
-    //  assigned to a partition.
-    if (p < 1)
-      continue;
-
-
-    if (fr.type == GKFRAGMENT_PACKED) {
-      appendIndexStore(gkpart[p]->partfpk, &fr.fr.packed);
-    }
-
-
-    if (fr.type == GKFRAGMENT_NORMAL) {
-      fr.fr.normal.seqOffset = -1;
-      fr.fr.normal.qltOffset = getLastElemStore(gkpart[p]->partqnm) + 1;
-
-      appendIndexStore(gkpart[p]->partfnm, &fr.fr.normal);
-
-      encodeSequenceQuality(fr.enc, fr.seq, fr.qlt);
-      appendStringStore(gkpart[p]->partqnm, fr.enc, fr.fr.normal.seqLen);
-    }
-
-
-    if (fr.type == GKFRAGMENT_STROBE) {
-      fr.fr.strobe.seqOffset = -1;
-      fr.fr.strobe.qltOffset = getLastElemStore(gkpart[p]->partqsb) + 1;
-
-      appendIndexStore(gkpart[p]->partfsb, &fr.fr.strobe);
-
-      encodeSequenceQuality(fr.enc, fr.seq, fr.qlt);
-      appendStringStore(gkpart[p]->partqsb, fr.enc, fr.fr.strobe.seqLen);
-    }
-  }
-
-  //  cleanup -- close all the stores
-
-  for (uint32 i=1; i<=maxPart; i++)
-    delete gkpart[i];
-
-  delete gkpart;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-void
-gkStore::gkStore_enableClearRange(uint32 which) {
-  assert(partmap == NULL);
-  //assert(isReadOnly == 0);  --  if not writable, this will allow us to return
-  //  undefined clear ranges in, e.g., gatekeeper.  gkFragment_setClearRegion()
-  //  then checks this assert.
-  clearRange[which]->gkClearRange_enableCreate();
-}
-
-
-void
-gkStore::gkStore_purgeClearRange(uint32 which) {
-  assert(partmap == NULL);
-  clearRange[which]->gkClearRange_purge();
-}

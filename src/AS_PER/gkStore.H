@@ -53,9 +53,7 @@ public:
 
   uint32    numRandom;
 
-  //  The IID space is broken into three classes.  IIDs do NOT track
-  //  the order fragments are loaded.  All short reads are first, then
-  //  medium, then long.
+  //  The IID space is broken into three classes.  See comments in AS_PER_gkStore_IID.C
 
   uint32    numPacked;
   uint32    numNormal;
@@ -116,6 +114,11 @@ public:
   };
 
   void      gkStore_decodeTypeFromIID(AS_IID iid, uint32& type, uint32& tiid);
+  void      gkStore_addIIDtoTypeMap(AS_IID iid, uint32 type, uint32 tiid);
+  void      gkStore_computeRanges(AS_IID  bgnIID, AS_IID  endIID,
+                                  uint32 &bgnPK,  uint32 &endPK,  uint32 &valPK,
+                                  uint32 &bgnNM,  uint32 &endNM,  uint32 &valNM,
+                                  uint32 &bgnSB,  uint32 &endSB,  uint32 &valSB);
 
   void      gkStore_getFragmentData(gkStream *gst, gkFragment *fr, uint32 flags);
 
@@ -201,18 +204,17 @@ private:
   uint32                   isReadOnly;
   uint32                   isCreating;
 
-public:
-  //  Sigh, needed for AS_GKP.
+public:    //  Sigh, public needed for AS_GKP.
   gkStoreInfo              inf;
 
 private:
-  StoreStruct             *fpk;  //  Small fragments
+  StoreStruct             *fpk;  //  Packed fragments
 
-  StoreStruct             *fnm;  //  Medium size fragments
+  StoreStruct             *fnm;  //  Normal fragments
   StoreStruct             *snm;
   StoreStruct             *qnm;
 
-  StoreStruct             *fsb;  //  Large fragments
+  StoreStruct             *fsb;  //  Strobe fragments
   StoreStruct             *ssb;
   StoreStruct             *qsb;
 
@@ -224,8 +226,7 @@ private:
   StoreStruct             *plc;
   HashTable_AS            *FRGtoPLC;
 
-  //  Maps UIDs to IIDs; maps strings to UIDs.  The STR array
-  //  holds ALL the string UIDs.
+  //  Maps UIDs to IIDs; maps strings to UIDs.  The STR array holds ALL the string UIDs.
   //
   HashTable_AS            *UIDtoIID;
   HashTable_AS            *STRtoUID;
@@ -238,8 +239,9 @@ private:
   //
   gkClearRange           **clearRange;
 
-  //  These are for use when building a gkpStore.  They map an IID
-  //  to a type and a tiid.
+  //  If this is defined (not NULL) then the store contains reads of mixed types, AND, it was
+  //  created 'out of order' (in order: packed first, then normal, then strobe).  See comments in
+  //  AS_PER_gkStore_IID.C
   //
   uint32                   IIDmax;
   uint8                   *IIDtoTYPE;
@@ -247,9 +249,8 @@ private:
 
   //  The rest are for a partitioned fragment store.
   //
-  //  We load all frg and qlt in this partition into memory.  The map
-  //  converts an iid (global fragment iid) into a pointer to the
-  //  correct frg record, which we can then use to grab the
+  //  We load all frg and qlt in this partition into memory.  The map converts an iid (global
+  //  fragment iid) into a pointer to the correct frg record, which we can then use to grab the
   //  encoded seq/qlt.
   //
   int32                    partnum;
@@ -262,4 +263,5 @@ private:
 
   friend class gkStream;
   friend class gkFragment;  //  for clearRange
+  friend class gkClearRange;
 };

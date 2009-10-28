@@ -38,18 +38,18 @@ public:
 
 private:
   //  Load a range from disk, or, if create, copy from latest.
-  void       gkClearRange_configureShort(void);
-  void       gkClearRange_configureMedium(void);
-  void       gkClearRange_configureLong(void);
+  void       gkClearRange_configurePacked(void);
+  void       gkClearRange_configureNormal(void);
+  void       gkClearRange_configureStrobe(void);
 
   //  These allocate space for new clear ranges (used in gatekeeper
   //  when loading fragments) and initialize them to [1,0].  The dirty
   //  flag is NOT set, so unless someone actually sets one of the
   //  ranges, these empty ranges are not saved.
   //
-  void       gkClearRange_makeSpaceShort(AS_IID tiid, uint32 bgn, uint32 end);
-  void       gkClearRange_makeSpaceMedium(AS_IID tiid, uint32 bgn, uint32 end);
-  void       gkClearRange_makeSpaceLong(AS_IID tiid, uint32 bgn, uint32 end);
+  void       gkClearRange_makeSpacePacked(AS_IID tiid, uint32 bgn, uint32 end);
+  void       gkClearRange_makeSpaceNormal(AS_IID tiid, uint32 bgn, uint32 end);
+  void       gkClearRange_makeSpaceStrobe(AS_IID tiid, uint32 bgn, uint32 end);
 
   gkStore   *gkp;
 
@@ -61,20 +61,20 @@ private:
   //  maxiid     -- the largest iid we have space for
   //                we allocate 2*max + 2 
   //
-  uint32     smconfigured;
-  uint32     smdirty;
-  uint32     smmaxiid;
-  uint8     *sm;
+  uint32     pkconfigured;
+  uint32     pkdirty;
+  uint32     pkmaxiid;
+  uint8     *pk;
 
-  uint32     mdconfigured;
-  uint32     mddirty;
-  uint32     mdmaxiid;
-  uint16    *md;
+  uint32     nmconfigured;
+  uint32     nmdirty;
+  uint32     nmmaxiid;
+  uint16    *nm;
 
-  uint32     lgconfigured;
-  uint32     lgdirty;
-  uint32     lgmaxiid;
-  uint32    *lg;
+  uint32     sbconfigured;
+  uint32     sbdirty;
+  uint32     sbmaxiid;
+  uint32    *sb;
 
   friend class gkStore;
 };
