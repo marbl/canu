@@ -393,9 +393,9 @@ public:
       hasQLT = 1;
 
       gkp = g;
-      enc = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-      seq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-      qlt = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
+      enc = (char *)safe_malloc(sizeof(char) * (AS_READ_MAX_NORMAL_LEN + 1));
+      seq = (char *)safe_malloc(sizeof(char) * (AS_READ_MAX_NORMAL_LEN + 1));
+      qlt = (char *)safe_malloc(sizeof(char) * (AS_READ_MAX_NORMAL_LEN + 1));
     }
   };
 
