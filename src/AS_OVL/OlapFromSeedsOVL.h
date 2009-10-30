@@ -33,15 +33,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.22 2009-10-26 13:20:26 brianwalenz Exp $
- * $Revision: 1.22 $
+ * $Id: OlapFromSeedsOVL.h,v 1.23 2009-10-30 18:55:36 skoren Exp $
+ * $Revision: 1.23 $
 */
 
 
 #ifndef  __OLAPFROMSEEDS_H_INCLUDED
 #define  __OLAPFROMSEEDS_H_INCLUDED
 
-static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1.22 2009-10-26 13:20:26 brianwalenz Exp $";
+static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1.23 2009-10-30 18:55:36 skoren Exp $";
 
 //**ALD determine if use new code to analyze true multialignments
 #define  USE_NEW_STUFF  1
@@ -208,8 +208,8 @@ const int  NORMAL = 1;
 typedef  struct
   {
    int32  a_iid, b_iid;
-   signed int  a_hang    : AS_READ_MAX_NORMAL_LEN_BITS;
-   signed int  b_hang    : AS_READ_MAX_NORMAL_LEN_BITS;
+   signed int  a_hang    : AS_OVS_HNGBITS;
+   signed int  b_hang    : AS_OVS_HNGBITS;
    signed int  orient    : 2;
    unsigned int k_count  : 8;
   }  Olap_Info_t;
