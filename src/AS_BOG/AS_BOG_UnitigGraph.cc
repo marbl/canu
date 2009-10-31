@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.116 2009-10-05 22:49:41 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.117 2009-10-31 04:25:28 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -53,7 +53,7 @@ UnitigGraph::checkUnitigMembership(void) {
       for (DoveTailIter it=utg->dovetail_path_ptr->begin(); it != utg->dovetail_path_ptr->end(); it++) {
         if (it->ident > _fi->numFragments())
           fprintf(stderr, "HUH?  ident=%d numfrags=%d\n", it->ident, _fi->numFragments());
-        inUnitig[it->ident] = utg->id();
+        inUnitig[it->ident] = ti;
         nfrg++;
       }
     }
@@ -181,6 +181,9 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking, char *
   // Step through all the fragments
 
   fprintf(stderr, "==> BUILDING UNITIGS from %d fragments.\n", _fi->numFragments());
+
+  //  There is no 0th unitig.
+  unitigs->push_back(NULL);
 
   uint32 frag_idx;
   while ((frag_idx = cg_ptr->nextFragByChunkLength()) > 0) {
@@ -657,6 +660,10 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
   //  Debug output
   for (int  ti=0; ti<unitigs->size(); ti++) {
     Unitig        *tig   = (*unitigs)[ti];
+
+    if (tig == NULL)
+      continue;
+
     DoveTailNode   first = tig->dovetail_path_ptr->front();
     uint32         prev  = 0;
     DoveTailNode   last  = tig->getLastBackboneNode(prev);
@@ -691,6 +698,10 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
 
   for (int  ti=0; ti<tiMax; ti++) {
     Unitig             *tig = (*unitigs)[ti];
+
+    if (tig == NULL)
+      continue;
+
     UnitigBreakPoints   breaks;
     DoveTailNode        lastBackbone;
 
@@ -772,8 +783,9 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
 
           int pos = (bestEdge->bend == FIVE_PRIME) ? f->position.bgn : f->position.end;
 
-#warning DANGEROUS assume unitig is at id-1 in vector
-          Unitig *inTig = (*unitigs)[Unitig::fragIn(inFrag)-1];
+          Unitig *inTig = (*unitigs)[Unitig::fragIn(inFrag)];
+
+          assert(inTig->id() == Unitig::fragIn(inFrag));
 
           if (inTig) {
             UnitigBreakPoint breakPoint(f->ident, bestEdge->bend);

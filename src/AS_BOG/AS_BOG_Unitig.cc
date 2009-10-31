@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.11 2009-09-14 16:09:03 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.12 2009-10-31 04:25:28 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -34,7 +34,7 @@ extern FragmentInfo     *debugfi;
 // various class static methods and variables
 static std::map<uint32,int>* containPartialOrder;
 
-uint32 Unitig::nextId        = 1;
+uint32  Unitig::nextId    = 1;
 uint32* Unitig::_inUnitig = NULL;
 
 
@@ -82,7 +82,7 @@ void Unitig::addFrag( DoveTailNode node, int offset, bool report) {
   node.position.end += offset;
 
   // keep track of the unitig a frag is in
-  _inUnitig[ node.ident ] = id();
+  _inUnitig[ node.ident ] = _id;
 
   // keep track of max position in unitig
   int frgEnd = MAX( node.position.bgn, node.position.end);
@@ -99,12 +99,12 @@ void Unitig::addFrag( DoveTailNode node, int offset, bool report) {
   if ((report) || (node.position.bgn < 0) || (node.position.end < 0))
     if (node.contained)
       fprintf(stderr, "Added frag %d (len %d) to unitig %d at %d,%d (lendiff %d) (contained in %d)\n",
-              node.ident, len, id(), node.position.bgn, node.position.end,
+              node.ident, len, _id, node.position.bgn, node.position.end,
               pos - len,
               node.contained);
     else
       fprintf(stderr, "Added frag %d (len %d) to unitig %d at %d,%d (lendiff %d)\n",
-              node.ident, len, id(), node.position.bgn, node.position.end,
+              node.ident, len, _id, node.position.bgn, node.position.end,
               pos - len);
 
   assert(node.position.bgn >= 0);

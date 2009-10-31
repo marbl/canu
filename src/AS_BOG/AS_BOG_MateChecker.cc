@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.80 2009-07-30 10:42:55 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.81 2009-10-31 04:25:27 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -568,9 +568,10 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
       if (moveToContainer == true) {
         //  Move the fragment to be with its container.
 
-#warning DANGEROUS assume unitig is at id-1 in vector
-        Unitig         *thatUnitig = (*tigGraph.unitigs)[contUtgID - 1];
+        Unitig         *thatUnitig = (*tigGraph.unitigs)[contUtgID];
         DoveTailNode    containee  = *fragIter;
+
+        assert(thatUnitig->id() == contUtgID);
 
         //  Nuke the fragment in the current list
         fragIter->ident        = 999999999;
@@ -727,9 +728,10 @@ void MateChecker::splitDiscontinuousUnitigs(UnitigGraph& tigGraph) {
             (_fi->mateIID(splitFrags[0].ident) == 0) &&
             (splitFrags[0].contained != 0)) {
 
-#warning DANGEROUS assume unitig is at id-1 in vector
-          Unitig           *dangler  = (*tigGraph.unitigs)[unitig->fragIn(splitFrags[0].contained) - 1];
+          Unitig           *dangler  = (*tigGraph.unitigs)[unitig->fragIn(splitFrags[0].contained)];
           BestContainment  *bestcont = tigGraph.bog_ptr->getBestContainer(splitFrags[0].ident);
+
+          assert(dangler->id() == unitig->fragIn(splitFrags[0].contained));
 
           if (verbose)
             fprintf(stderr, "Dangling contained fragment in unitig %d -> move them to container unitig %d\n", unitig->id(), dangler->id());

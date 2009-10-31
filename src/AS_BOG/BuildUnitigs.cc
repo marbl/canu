@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.62 2009-10-05 22:49:41 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.63 2009-10-31 04:25:28 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -47,12 +47,12 @@ void outputHistograms(UnitigGraph *utg, FragmentInfo *fi, FILE *stats) {
   extend_histogram(arate_histogram, sizeof(MyHistoDataType),
                    myindexdata,mysetdata,myaggregate,myprintdata);
 
-  UnitigVector::const_iterator uiter = utg->unitigs->begin();
-  for(;uiter != utg->unitigs->end(); uiter++) {
+  for (uint32 ti=0; ti<utg->unitigs->size(); ti++) {
+    Unitig  *u = (*utg->unitigs)[ti];
 
-    Unitig *u = *uiter;
     if (u == NULL)
       continue;
+
     zork.nsamples = 1;
     int numFrags = u->getNumFrags();
     zork.sum_frags = zork.min_frags = zork.max_frags = numFrags;
@@ -70,7 +70,7 @@ void outputHistograms(UnitigGraph *utg, FragmentInfo *fi, FILE *stats) {
     float arateF = u->getLocalArrivalRate(fi) * 10000;
     int arate = static_cast<int>(rintf(arateF));
     if (arate < 0)
-      fprintf(stats, "Negative Local ArrivalRate %f id %d arate %d\n", arateF, u->id(), arate);
+      fprintf(stats, "Negative Local ArrivalRate %f id %d arate %d\n", arateF, ti, arate);
     zork.sum_arrival = zork.min_arrival = zork.max_arrival = arate;
 
     zork.sum_rs_frags=zork.min_rs_frags=zork.max_rs_frags=0;
