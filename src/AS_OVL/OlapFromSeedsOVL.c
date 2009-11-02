@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.40 2009-10-28 19:30:14 brianwalenz Exp $
- * $Revision: 1.40 $
+ * $Id: OlapFromSeedsOVL.c,v 1.41 2009-11-02 21:24:54 skoren Exp $
+ * $Revision: 1.41 $
 */
 
-const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.40 2009-10-28 19:30:14 brianwalenz Exp $";
+const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.41 2009-11-02 21:24:54 skoren Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -3944,6 +3944,8 @@ static void  Process_Seed
       b_part = rev_seq + b_offset;
      }
 
+   assert(a_offset >= 0);
+   assert(b_offset >= 0);   
    Adjust_For_Compressed_Seeds (& a_offset, & b_offset, & a_part, & b_part);
 
    if (Verbose_Level > 0)
