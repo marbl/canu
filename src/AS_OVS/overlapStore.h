@@ -22,7 +22,7 @@
 #ifndef OVERLAPSTORE_H
 #define OVERLAPSTORE_H
 
-static const char *rcsid_OVERLAPSTORE_H = "$Id: overlapStore.h,v 1.14 2009-08-14 13:37:05 skoren Exp $";
+static const char *rcsid_OVERLAPSTORE_H = "$Id: overlapStore.h,v 1.15 2009-11-04 16:56:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +44,10 @@ void
 updateErates(char *storeName, char *eratesName);
 
 void
-dumpStore(char *storeName, uint32 dumpBinary, double dumpERate, uint32 bgnIID, uint32 endIID, uint32 qryIID);
+dumpStore(char *storeName, uint32 dumpBinary, double dumpERate, uint32 dumpType, uint32 bgnIID, uint32 endIID, uint32 qryIID);
+
+void
+dumpPicture(char *ovlName, char *gkpName, double dumpERate, uint32 dumpType, uint32 qryIID);
 
 void
 dumpStats(char *storeName);
@@ -60,9 +63,14 @@ OVSoverlap_sort(const void *a, const void *b);
 #define OP_BUILD          1
 #define OP_MERGE          2
 #define OP_DUMP           3
-#define OP_STATS_DUMP     4
-#define OP_STATS_REBUILD  5
-#define OP_UPDATE_ERATES  6
+#define OP_DUMP_PICTURE   4
+#define OP_STATS_DUMP     5
+#define OP_STATS_REBUILD  6
+#define OP_UPDATE_ERATES  7
 
+#define DUMP_5p         1
+#define DUMP_3p         2
+#define DUMP_CONTAINED  4
+#define DUMP_CONTAINS   8
 
 #endif  //  OVERLAPSTORE_H

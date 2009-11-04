@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.23 2009-10-26 13:20:26 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.24 2009-11-04 16:56:31 brianwalenz Exp $";
 
 #include "overlapStore.h"
 #include "AS_OVS_overlap.h"  //  Just to know the sizes of structs
@@ -34,6 +34,7 @@ main(int argc, char **argv) {
   char           *gkpName     = NULL;
   uint32          dumpBinary  = FALSE;
   double          dumpERate   = 100.0;
+  uint32          dumpType    = 0;
   uint32          bgnIID      = 0;
   uint32          endIID      = 1000000000;
   uint32          qryIID      = 0;
@@ -69,6 +70,13 @@ main(int argc, char **argv) {
       storeName   = argv[++arg];
       operation   = OP_DUMP;
 
+    } else if (strcmp(argv[arg], "-dp") == 0) {
+      if (storeName)
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S or -u may be supplied.\n"), err++;
+      qryIID      = atoi(argv[++arg]);
+      storeName   = argv[++arg];
+      operation   = OP_DUMP_PICTURE;
+
     } else if (strcmp(argv[arg], "-s") == 0) {
       if (storeName)
         fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S or -u may be supplied.\n"), err++;
@@ -92,6 +100,18 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-E") == 0) {
       dumpERate = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-d5") == 0) {
+      dumpType |= DUMP_5p;
+
+    } else if (strcmp(argv[arg], "-d3") == 0) {
+      dumpType |= DUMP_3p;
+
+    } else if (strcmp(argv[arg], "-dC") == 0) {
+      dumpType |= DUMP_CONTAINS;
+
+    } else if (strcmp(argv[arg], "-dc") == 0) {
+      dumpType |= DUMP_CONTAINED;
 
     } else if (strcmp(argv[arg], "-B") == 0) {
       dumpBinary = TRUE;
@@ -206,10 +226,15 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -B                Dump the store as binary, suitable for input to create a new store.\n");
     fprintf(stderr, "  -E erate          Dump only overlaps <= erate error.\n");
+    fprintf(stderr, "  -d5               Dump only overlaps off the 5' end of the A frag.\n");
+    fprintf(stderr, "  -d3               Dump only overlaps off the 3' end of the A frag.\n");
+    fprintf(stderr, "  -dC               Dump only overlaps that are contained in the A frag (B contained in A).\n");
+    fprintf(stderr, "  -dc               Dump only overlaps that are containing the A frag (A contained in B).\n");
     fprintf(stderr, "  -b beginIID       Start dumping at 'beginIID'.\n");
     fprintf(stderr, "  -e endIID         Stop dumping after 'endIID'.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Limited to %d open files.\n", sysconf(_SC_OPEN_MAX));
+    fprintf(stderr, "\n");
     fprintf(stderr, "OVSoverlap     %d bytes\n", sizeof(OVSoverlap));
     fprintf(stderr, "OVSoverlapINT  %d bytes\n", sizeof(OVSoverlapINT));
     fprintf(stderr, "OVSoverlapDAT  %d bytes\n", sizeof(OVSoverlapDAT));
@@ -221,6 +246,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "No input files?\n");
     exit(1);
   }
+  if (dumpType == 0)
+    dumpType = DUMP_5p | DUMP_3p | DUMP_CONTAINED | DUMP_CONTAINS;
 
   switch (operation) {
     case OP_BUILD:
@@ -230,7 +257,10 @@ main(int argc, char **argv) {
       mergeStore(storeName, fileList[0]);
       break;
     case OP_DUMP:
-      dumpStore(storeName, dumpBinary, dumpERate, bgnIID, endIID, qryIID);
+      dumpStore(storeName, dumpBinary, dumpERate, dumpType, bgnIID, endIID, qryIID);
+      break;
+    case OP_DUMP_PICTURE:
+      dumpPicture(storeName, gkpName, dumpERate, dumpType, qryIID);
       break;
     case OP_STATS_DUMP:
       dumpStats(storeName);
