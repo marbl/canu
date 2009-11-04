@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.23 2009-10-26 13:20:26 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.24 2009-11-04 17:08:04 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -758,11 +758,11 @@ unitigConsensus::alignFragment(void) {
     bhang -= bhang_offset;
 
     if (VERBOSE_MULTIALIGN_OUTPUT)
-      fprintf(stderr, "MultiAlignUnitig()-- Aligning mid fragment %d utgpos %d,%d to frankenstein pos %d,%d ovl %d hang %d,%d\n",
+      fprintf(stderr, "MultiAlignUnitig()-- Aligning mid fragment %d utgpos %d,%d to frankenstein pos %d,%d (len=%d,%d) ovl %d hang %d,%d\n",
               fraglist[tiid].ident,
               offsets[tiid].bgn,
               offsets[tiid].end,
-              ahang_offset, bhang_posn,
+              ahang_offset, bhang_posn, frankensteinLen, strlen(frankenstein + ahang_offset),
               ovl,
               ahang, bhang);
 
@@ -831,15 +831,13 @@ unitigConsensus::alignFragmentToFragments(void) {
   fprintf(stderr, "unitigConsensus()--  Starting alignFragmentToFragment\n");
 #endif
 
-  Overlap  *O           = NULL;
-  double    thresh      = 1e-3;
-  int32     minlen      = AS_OVERLAP_MIN_LEN;
-
   char     *fragment    = Getchar(sequenceStore, GetFragment(fragmentStore, tiid)->sequence);
   int32     fragmentLen = strlen(fragment);
 
-
   for (int32 qiid = tiid-1; qiid >= 0; qiid--) {
+    Overlap  *O           = NULL;
+    double    thresh      = 1e-3;
+    int32     minlen      = AS_OVERLAP_MIN_LEN;
 
     //  If the current fragment is not contained and the target
     //  fragment doesn't extend to the end of frankenstein, don't even
@@ -867,15 +865,21 @@ unitigConsensus::alignFragmentToFragments(void) {
 #endif
     //  Go fishing for an alignment.
 
-    O = DP_Compare(aseq,
-                   bseq,
-                   0, alen,            //  ahang bounds
-                   alen, blen,         //  ahang, bhang exclusion are unused here
-                   0,
-                   AS_CNS_ERROR_RATE + 0.02, thresh, minlen,
-                   AS_FIND_ALIGN);
+    if (O == NULL) {
+      O = DP_Compare(aseq,
+                     bseq,
+                     0, alen,            //  ahang bounds
+                     alen, blen,         //  ahang, bhang exclusion are unused here
+                     0,
+                     AS_CNS_ERROR_RATE + 0.02, thresh, minlen,
+                     AS_FIND_ALIGN);
+      if ((O) && (VERBOSE_MULTIALIGN_OUTPUT)) {
+        fprintf(stderr, "DP_Compare found:\n");
+        Print_Overlap(stderr, aseq, bseq, O);
+      }
+    }
 
-    if (O == NULL)
+    if (O == NULL) {
       O = Local_Overlap_AS_forCNS(aseq,
                                   bseq,
                                   0, alen,            //  ahang bounds
@@ -883,8 +887,13 @@ unitigConsensus::alignFragmentToFragments(void) {
                                   0,
                                   AS_CNS_ERROR_RATE + 0.02, thresh, minlen,
                                   AS_FIND_ALIGN);
+      if ((O) && (VERBOSE_MULTIALIGN_OUTPUT)) {
+        fprintf(stderr, "Local_Overlap found:\n");
+        Print_Overlap(stderr, aseq, bseq, O);
+      }
+    }
 
-    if (O == NULL)
+    if (O == NULL) {
       O = Optimal_Overlap_AS_forCNS(aseq,
                                     bseq,
                                     0, alen,            //  ahang bounds are unused here
@@ -892,6 +901,11 @@ unitigConsensus::alignFragmentToFragments(void) {
                                     0,
                                     AS_CNS_ERROR_RATE + 0.02, thresh, minlen,
                                     AS_FIND_ALIGN);
+      if ((O) && (VERBOSE_MULTIALIGN_OUTPUT)) {
+        fprintf(stderr, "Optimal_Overlap found:\n");
+        Print_Overlap(stderr, aseq, bseq, O);
+      }
+    }
 
     if (O == NULL) {
 #ifdef SHOW_ALGORITHM
@@ -915,6 +929,25 @@ unitigConsensus::alignFragmentToFragments(void) {
 #endif
       continue;
     }
+
+    //  Too noisy?  Nope, don't want it.
+    if (((double)O->diffs / (double)O->length) > AS_CNS_ERROR_RATE) {
+#ifdef SHOW_ALGORITHM
+      fprintf(stderr, "alignFragmentToFragment()-- No alignment found -- erate %f > max allowed %f.\n",
+              (double)O->diffs / (double)O->length, AS_CNS_ERROR_RATE);
+#endif
+      continue;
+    }
+
+    //  Too short?  Nope, don't want it.
+    if (O->length < AS_OVERLAP_MIN_LEN) {
+#ifdef SHOW_ALGORITHM
+      fprintf(stderr, "alignFragmentToFragment()-- No alignment found -- too short %d < min allowed %d.\n",
+              O->length, AS_OVERLAP_MIN_LEN);
+#endif
+      continue;
+    }
+
 
     //  Make up plausible guesses for where this fragment was placed.
 
