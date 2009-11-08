@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: initialTrim.C,v 1.23 2009-06-26 20:02:13 skoren Exp $";
+const char *mainid = "$Id: initialTrim.C,v 1.24 2009-11-08 01:16:16 brianwalenz Exp $";
 
 //  Read a fragStore, does quality trimming based on quality scores,
 //  intersects the quality trim with a vector trim, and updates the
@@ -80,9 +80,7 @@ main(int argc, char **argv) {
 
   gkStore  *gkpStore = new gkStore(gkpName, FALSE, TRUE);
 
-#warning should convert to memory store for efficiency
-  //gkpStore->frg = convertStoreToMemoryStore(gkpStore->frg);
-
+  gkpStore->gkStore_metadataCaching(true);
   gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_OBTINITIAL);
 
   gkFragment    fr;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merge-trimming.C,v 1.41 2009-10-26 13:20:26 brianwalenz Exp $";
+const char *mainid = "$Id: merge-trimming.C,v 1.42 2009-11-08 01:16:16 brianwalenz Exp $";
 
 #include "trim.H"
 #include "constants.H"
@@ -176,8 +176,7 @@ main(int argc, char **argv) {
   gkStore    *gkp = new gkStore(frgStore, FALSE, doModify);
   gkFragment  fr;
 
-  //gkp->frg = convertStoreToMemoryStore(gkp->frg);
-
+  gkp->gkStore_metadataCaching(true);
   gkp->gkStore_enableClearRange(AS_READ_CLEAR_OBTMERGE);
 
   //  Open the overlap file

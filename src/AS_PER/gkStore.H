@@ -72,27 +72,31 @@ private:
   void         gkStore_open(int writable);
   void         gkStore_create(void);
 
+  void         gkStore_clear(void);
+
 public:
   gkStore();
   gkStore(const char *path, int creatable, int writable);
   ~gkStore();
 
-  void         gkStore_clear(void);
-
-  void         gkStore_load(AS_IID firstElem, AS_IID lastElem, int flags);
-  void         gkStore_loadPartition(uint32 partition);
-
-  void         gkStore_delete(void);
-
+  //  The 'name' of this gkpStore.
   const char  *gkStore_path(void) { return(storePath); };
 
   ////////////////////////////////////////
   //
-  //
+  //  Operatons on the whole store.  Loading into memory, removing from disk.
   //
   ////////////////////////////////////////
 
+  void         gkStore_load(AS_IID firstElem, AS_IID lastElem, int flags);
+
+  void         gkStore_loadPartition(uint32 partition);
   void         gkStore_buildPartitions(short *partitionMap, uint32 maxPart);
+
+  void         gkStore_delete(void);
+
+  uint64       gkStore_metadataSize(void);
+  void         gkStore_metadataCaching(bool enable=true);
 
   ////////////////////////////////////////
   //

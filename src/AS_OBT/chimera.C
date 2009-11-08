@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.36 2009-10-26 13:20:26 brianwalenz Exp $";
+const char *mainid = "$Id: chimera.C,v 1.37 2009-11-08 01:16:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -947,7 +947,11 @@ main(int argc, char **argv) {
   int err=0;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-gkp", 2) == 0) {
-      gkp      = new gkStore(argv[++arg], FALSE, doUpdate);
+      gkp = new gkStore(argv[++arg], FALSE, doUpdate);
+
+      //  The cache is not enabled, as we don't expect many changes to the store.
+      gkp->gkStore_metadataCaching(false);
+
     } else if (strncmp(argv[arg], "-ovs", 2) == 0) {
       if (ovsprimary == NULL)
         ovsprimary = AS_OVS_openOverlapStore(argv[++arg]);
@@ -957,10 +961,13 @@ main(int argc, char **argv) {
         fprintf(stderr, "Only two obtStores allowed.\n");
         err++;
       }
+
     } else if (strncmp(argv[arg], "-summary", 2) == 0) {
       summaryName = argv[++arg];
+
     } else if (strncmp(argv[arg], "-report", 2) == 0) {
       reportName = argv[++arg];
+
     } else {
       fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);
       err++;

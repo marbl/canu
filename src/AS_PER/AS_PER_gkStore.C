@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.15 2009-10-29 02:33:34 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.16 2009-11-08 01:16:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -496,3 +496,32 @@ gkStore::gkStore_delete(void) {
 
 
 
+uint64
+gkStore::gkStore_metadataSize(void) {
+  uint64   totalSize = 0;
+  char     name[FILENAME_MAX];
+
+  sprintf(name, "%s/fpk", gkStore_path());
+  totalSize += AS_UTL_sizeOfFile(name);
+
+  sprintf(name, "%s/fmd", gkStore_path());
+  totalSize += AS_UTL_sizeOfFile(name);
+
+  sprintf(name, "%s/fsb", gkStore_path());
+  totalSize += AS_UTL_sizeOfFile(name);
+
+  return(totalSize);
+}
+
+
+void
+gkStore::gkStore_metadataCaching(bool enable) {
+
+  assert(partnum == 0);
+
+  if (enable == true) {
+    fpk = convertStoreToMemoryStore(fpk);
+    fnm = convertStoreToMemoryStore(fnm);
+    fsb = convertStoreToMemoryStore(fsb);
+  }
+}
