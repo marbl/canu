@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.28 2009-10-28 19:30:14 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.29 2009-11-08 01:14:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,48 +53,6 @@ OVSoverlap_sort(const void *a, const void *b) {
   if (A->dat.dat < B->dat.dat)  return(-1);
   if (A->dat.dat > B->dat.dat)  return(1);
   return(0);
-}
-
-
-static
-off_t
-sizeOfFile(const char *path) {
-  struct stat  s;
-  int          r;
-  off_t        size = 0;
-
-  errno = 0;
-  r = stat(path, &s);
-  if (errno) {
-    fprintf(stderr, "Failed to stat() file '%s': %s\n", path, strerror(errno));
-    exit(1);
-  }
-
-  //  gzipped files contain a file contents list, which we can
-  //  use to get the uncompressed size.
-  //
-  //  gzip -l <file>
-  //  compressed        uncompressed  ratio uncompressed_name
-  //       14444               71680  79.9% up.tar
-  //
-  //  bzipped files have no contents and we just guess.
-
-  if        (strcasecmp(path+strlen(path)-3, ".gz") == 0) {
-    char   cmd[256];
-    FILE  *F;
-
-    sprintf(cmd, "gzip -l %s", path);
-    F = popen(cmd, "r");
-    fscanf(F, " %*s %*s %*s %*s ");
-    fscanf(F, " %*d %lld %*s %*s ", &size);
-    pclose(F);
-  } else if (strcasecmp(path+strlen(path)-4, ".bz2") == 0) {
-    size = s.st_size * 14 / 10;
-  } else {
-    size = s.st_size;
-  }
-
-  return(size);
 }
 
 
@@ -174,7 +132,7 @@ buildStore(
 
   if (fileList[i][0] != '-') {
     for (i=0; i<fileListLen; i++) {
-      uint64  no = sizeOfFile(fileList[i]);
+      uint64  no = AS_UTL_sizeOfFile(fileList[i]);
       if (no == 0)
         fprintf(stderr, "No overlaps found (or file not found) in '%s'.\n", fileList[i]);
       

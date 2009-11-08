@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char *rcsid = "$Id: AS_UTL_fileIO.c,v 1.20 2009-06-10 18:05:14 brianwalenz Exp $";
+//static char *rcsid = "$Id: AS_UTL_fileIO.c,v 1.21 2009-11-08 01:14:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -208,6 +208,49 @@ AS_UTL_fileExists(const char *path,
   return(0);
 }
 
+
+
+
+
+off_t
+AS_UTL_sizeOfFile(const char *path) {
+  struct stat  s;
+  int          r;
+  off_t        size = 0;
+
+  errno = 0;
+  r = stat(path, &s);
+  if (errno) {
+    fprintf(stderr, "Failed to stat() file '%s': %s\n", path, strerror(errno));
+    exit(1);
+  }
+
+  //  gzipped files contain a file contents list, which we can
+  //  use to get the uncompressed size.
+  //
+  //  gzip -l <file>
+  //  compressed        uncompressed  ratio uncompressed_name
+  //       14444               71680  79.9% up.tar
+  //
+  //  bzipped files have no contents and we just guess.
+
+  if        (strcasecmp(path+strlen(path)-3, ".gz") == 0) {
+    char   cmd[256];
+    FILE  *F;
+
+    sprintf(cmd, "gzip -l %s", path);
+    F = popen(cmd, "r");
+    fscanf(F, " %*s %*s %*s %*s ");
+    fscanf(F, " %*d %lld %*s %*s ", &size);
+    pclose(F);
+  } else if (strcasecmp(path+strlen(path)-4, ".bz2") == 0) {
+    size = s.st_size * 14 / 10;
+  } else {
+    size = s.st_size;
+  }
+
+  return(size);
+}
 
 
 
