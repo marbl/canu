@@ -170,6 +170,7 @@ sub postScaffolderConsensus () {
     touch("$wrk/8-consensus/consensus.success");
 
   alldone:
+    stopAfter("ctgcns");
     stopAfter("consensusAfterScaffolder");
 }
 

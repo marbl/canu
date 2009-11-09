@@ -154,6 +154,7 @@ sub postUnitiggerConsensus () {
     touch("$wrk/5-consensus/consensus.success");
 
   alldone:
+    stopAfter("utgcns");
     stopAfter("consensusAfterUnitigger");
 }
 

@@ -77,6 +77,9 @@ sub CGW ($$$$$$) {
     $cmd .= " -t $tigStore ";
     $cmd .= " -o $wrk/$thisDir/$asm ";
     $cmd .= " > $wrk/$thisDir/cgw.out 2>&1";
+
+    stopBefore("CGW", $cmd);
+
     if (runCommand("$wrk/$thisDir", $cmd)) {
         caFailure("scaffolder failed", "$wrk/$thisDir/cgw.out");
     }
@@ -143,6 +146,9 @@ sub eCR ($$$) {
         $cmd .= " -p $wrk/$thisDir/extendClearRanges.partitionInfo";
         $cmd .= "  > $wrk/$thisDir/extendClearRanges.partitionInfo.err 2>&1";
 
+        stopBefore("eCRPartition", $cmd);
+        stopBefore("extendClearRangesPartition", $cmd);
+
         if (runCommand("$wrk/$thisDir", $cmd)) {
             caFailure("extendClearRanges partitioning failed", "$wrk/$thisDir/extendClearRanges.partitionInfo.err");
         }
@@ -195,6 +201,9 @@ sub eCR ($$$) {
 
     #  Run jobs.
 
+    stopBefore("eCR", undef);
+    stopBefore("extendClearRanges", undef);
+
     foreach my $j (@jobs) {
         if (runCommand("$wrk/$thisDir", "$j.sh")) {
             caFailure("extendClearRanges failed", "$j.err");
@@ -237,6 +246,8 @@ sub scaffolder () {
     my $lastDir    = undef;
     my $thisDir    = 0;
     my $stoneLevel = getGlobal("stoneLevel");
+
+    stopBefore("scaffolder", undef);
 
     goto alldone if (-e "$wrk/7-CGW/cgw.success");
 

@@ -69,6 +69,8 @@ sub runMeryl ($$$$$$) {
             $cmd .= " -o $ofile ";
             $cmd .= "> $wrk/0-mercounts/meryl.err 2>&1";
 
+            stopBefore("meryl", $cmd);
+
             if (runCommand("$wrk/0-mercounts", $cmd)) {
                 caFailure("meryl failed", "$wrk/0-mercounts/meryl.err");
             }
@@ -82,6 +84,8 @@ sub runMeryl ($$$$$$) {
                 $cmd .= " -m $ofile ";
                 $cmd .= " > $ofile.estMerThresh.out ";
                 $cmd .= "2> $ofile.estMerThresh.err";
+
+                stopBefore("meryl", $cmd);
 
                 if (runCommand("$wrk/0-mercounts", $cmd)) {
                     rename "$ofile.estMerThresh.out", "$ofile.estMerThresh.out.FAILED";
@@ -165,6 +169,8 @@ sub runMeryl ($$$$$$) {
             $cmd .= "-s $wrk/$asm.gkpStore -m $merSize -n $mt -K $merSkip ";
             $cmd .= " -o $ofile";
             $cmd .= "> $wrk/0-mercounts/meryl.err 2>&1";
+
+            stopBefore("meryl", $cmd);
 
             if (runCommand("$wrk/0-mercounts", $cmd)) {
                 unlink $ofile;

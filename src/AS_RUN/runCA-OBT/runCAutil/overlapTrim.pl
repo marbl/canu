@@ -41,6 +41,8 @@ sub overlapTrim {
         $cmd .= " >  $wrk/0-overlaptrim/$asm.initialTrim.report ";
         $cmd .= " 2> $wrk/0-overlaptrim/$asm.initialTrim.err ";
 
+        stopBefore("initialTrim", $cmd);
+
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             rename "$wrk/0-overlaptrim/$asm.initialTrimLog", "$wrk/0-overlaptrim/$asm.initialTrimLog.FAILED";
             caFailure("initial trimming failed", "$wrk/0-overlaptrim/$asm.initialTrim.err");
@@ -144,6 +146,8 @@ sub overlapTrim {
         $cmd .= "-summary $wrk/0-overlaptrim/$asm.deduplicate.summary ";
         $cmd .= "> $wrk/0-overlaptrim/$asm.deduplicate.err 2>&1";
 
+        stopBefore("deDuplication", $cmd);
+
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             unlink "$wrk/0-overlaptrim/$asm.deduplicate.summary";
             caFailure("failed to deduplicate the reads", "$wrk/0-overlaptrim/$asm.deduplicate.err");
@@ -185,6 +189,8 @@ sub overlapTrim {
         $cmd .= "-ovl $wrk/0-overlaptrim/$asm.ovl.consolidated ";
         $cmd .= "> $wrk/0-overlaptrim/$asm.merge.err 2>&1";
 
+        stopBefore("mergeTrimming", $cmd);
+
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             unlink "$wrk/0-overlaptrim/$asm.mergeLog";
             unlink "$wrk/0-overlaptrim/$asm.mergeLog.stats";
@@ -203,6 +209,9 @@ sub overlapTrim {
             $cmd .= " -summary $wrk/0-overlaptrim/$asm.chimera.summary ";
             $cmd .= " -report  $wrk/0-overlaptrim/$asm.chimera.report ";
             $cmd .= " > $wrk/0-overlaptrim/$asm.chimera.err 2>&1";
+
+            stopBefore("chimeraDetection", $cmd);
+
             if (runCommand("$wrk/0-overlaptrim", $cmd)) {
                 rename "$wrk/0-overlaptrim/$asm.chimera.report", "$wrk/0-overlaptrim/$asm.chimera.report.FAILED";
                 caFailure("chimera cleaning failed", "$wrk/0-overlaptrim/$asm.chimera.err");

@@ -72,6 +72,8 @@ sub unitigger () {
             caFailure("unknown unitigger $unitigger; must be 'bog' or 'utg'", undef);
         }
 
+        stopBefore("unitigger", $cmd);
+
         if (runCommand("$wrk/4-unitigger", $cmd)) {
             caFailure("failed to unitig", "$wrk/4-unitigger/unitigger.err");
         }

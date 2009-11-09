@@ -190,6 +190,9 @@ sub setDefaults () {
 
     #####  Stopping conditions
 
+    $global{"stopBefore"}                  = undef;
+    $synops{"stopBefore"}                  = "Tell runCA when to halt execution";
+
     $global{"stopAfter"}                   = undef;
     $synops{"stopAfter"}                   = "Tell runCA when to halt execution";
 
@@ -618,6 +621,7 @@ sub setParameters () {
     fixCase("ovlOverlapper");
     fixCase("unitigger");
     fixCase("vectorTrimmer");
+    #fixCase("stopBefore");
     #fixCase("stopAfter");
     fixCase("consensus");
     fixCase("cleanup");
@@ -646,6 +650,71 @@ sub setParameters () {
         (getGlobal("cleanup") ne "aggressive")) {
         caFailure("invalid cleaup specified (" . getGlobal("cleanup") . "); must be 'none', 'light', 'heavy' or 'aggressive'", undef);
     }
+
+    if (defined(getGlobal("stopBefore"))) {
+        my $ok = 0;
+        my $st = getGlobal("stopBefore");
+        $st =~ tr/A-Z/a-z/;
+
+        my $failureString = "Invalid stopBefore specified (" . getGlobal("stopBefore") . "); must be one of:\n";
+
+        my @stopBefore = ("meryl",
+                          "initialTrimming",
+                          "deDuplication",
+                          "mergeTrimming",
+                          "chimeraDetection",
+                          "unitigger",
+                          "scaffolder",
+                          "CGW",
+                          "eCR",
+                          "extendClearRanges",
+                          "eCRPartition",
+                          "extendClearRangesPartition",
+                          "terminator");
+
+        foreach my $sb (@stopBefore) {
+            $failureString .= "    '$sb'\n";
+            $sb =~ tr/A-Z/a-z/;
+            if ($st eq $sb) {
+                $ok++;
+                setGlobal('stopBefore', $st);
+            }
+        }
+
+        caFailure($failureString, undef) if ($ok == 0);
+    }
+
+
+    if (defined(getGlobal("stopAfter"))) {
+        my $ok = 0;
+        my $st = getGlobal("stopAfter");
+        $st =~ tr/A-Z/a-z/;
+
+        my $failureString = "Invalid stopAfter specified (" . getGlobal("stopAfter") . "); must be one of:\n";
+
+        my @stopAfter = ("initialStoreBuilding",
+                         "overlapper",
+                         "OBT",
+                         "overlapBasedTrimming",
+                         "unitigger",
+                         "utgcns",
+                         "consensusAfterUnitigger",
+                         "scaffolder",
+                         "ctgcns",
+                         "consensusAfterScaffolder");
+
+        foreach my $sa (@stopAfter) {
+            $failureString .= "    '$sa'\n";
+            $sa =~ tr/A-Z/a-z/;
+            if ($st eq $sa) {
+                $ok++;
+                setGlobal('stopAfter', $st);
+            }
+        }
+
+        caFailure($failureString, undef) if ($ok == 0);
+    }
+
 
     #  PIck a nice looking set of binaries, and check them.
     #
@@ -875,8 +944,20 @@ sub merylVersion () {
     return($ver);
 }
 
+sub stopBefore ($$) {
+    my $stopBefore = shift @_;  $stopBefore =~ tr/A-Z/a-z/;
+    my $cmd        = shift @_;
+    if (defined($stopBefore) &&
+        defined(getGlobal('stopBefore')) &&
+        (getGlobal('stopBefore') eq $stopBefore)) {
+        print STDERR "Stop requested before '$stopBefore'.\n";
+        print STDERR "Command:\n$cmd\n" if (defined($cmd));
+        exit(0);
+    }
+}
+
 sub stopAfter ($) {
-    my $stopAfter = shift @_;
+    my $stopAfter = shift @_;  $stopAfter =~ tr/A-Z/a-z/;
     if (defined($stopAfter) &&
         defined(getGlobal('stopAfter')) &&
         (getGlobal('stopAfter') eq $stopAfter)) {
