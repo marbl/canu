@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.8 2009-10-28 17:27:29 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.9 2009-11-09 01:03:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -259,7 +259,7 @@ void
 gkClearRange::gkClearRange_configurePacked(void) {
   char *filePath = gkClearRange_makeName(gkp, GKFRAGMENT_PACKED, clearType);
 
-  if (AS_UTL_fileExists(filePath, FALSE, TRUE)) {
+  if (AS_UTL_fileExists(filePath, FALSE, FALSE)) {
     pkdirty  = 0;
     pkmaxiid = gkp->inf.numPacked;
     pk       = NULL;
@@ -287,6 +287,9 @@ gkClearRange::gkClearRange_configurePacked(void) {
       pk[2*iid+0] = fr.gkFragment_getClearRegionBegin();
       pk[2*iid+1] = fr.gkFragment_getClearRegionEnd();
     }
+  } else {
+    //  Nothing to configure.  Not told to create, and file doesn't exist.  We'll return the
+    //  invalid clear range (1,0) on any accesses.
   }
 
   pkconfigured = 1;
@@ -300,7 +303,7 @@ gkClearRange::gkClearRange_configureNormal(void) {
   assert(nm == NULL);
   assert(nmconfigured == 0);
 
-  if (AS_UTL_fileExists(filePath, FALSE, TRUE)) {
+  if (AS_UTL_fileExists(filePath, FALSE, FALSE)) {
     nmdirty   = 0;
     nmmaxiid  = gkp->inf.numNormal;
     nm        = NULL;
@@ -328,6 +331,9 @@ gkClearRange::gkClearRange_configureNormal(void) {
       nm[2*iid+0] = fr.gkFragment_getClearRegionBegin();
       nm[2*iid+1] = fr.gkFragment_getClearRegionEnd();
     }
+  } else {
+    //  Nothing to configure.  Not told to create, and file doesn't exist.  We'll return the
+    //  invalid clear range (1,0) on any accesses.
   }
 
   nmconfigured = 1;
@@ -338,7 +344,7 @@ void
 gkClearRange::gkClearRange_configureStrobe(void) {
   char *filePath = gkClearRange_makeName(gkp, GKFRAGMENT_STROBE, clearType);
 
-  if (AS_UTL_fileExists(filePath, FALSE, TRUE)) {
+  if (AS_UTL_fileExists(filePath, FALSE, FALSE)) {
     sbdirty   = 0;
     sbmaxiid  = gkp->inf.numStrobe;
     sb        = NULL;
@@ -366,6 +372,9 @@ gkClearRange::gkClearRange_configureStrobe(void) {
       sb[2*iid+0] = fr.gkFragment_getClearRegionBegin();
       sb[2*iid+1] = fr.gkFragment_getClearRegionEnd();
     }
+  } else {
+    //  Nothing to configure.  Not told to create, and file doesn't exist.  We'll return the
+    //  invalid clear range (1,0) on any accesses.
   }
 
   sbconfigured = 1;
