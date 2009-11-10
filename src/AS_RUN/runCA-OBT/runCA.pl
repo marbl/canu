@@ -64,7 +64,13 @@ while (scalar(@ARGV)) {
 setGlobal("help", getGlobal("help") . "Assembly name prefix not supplied with -p.\n") if (!defined($asm));
 setGlobal("help", getGlobal("help") . "Directory not supplied with -d.\n")            if (!defined($wrk));
 
-@fragFiles = setParametersFromFile($specFile, @fragFiles);
+{
+    my $bin = getBinDirectory();
+
+    @fragFiles = setParametersFromFile("$bin/runCA.default.spec", @fragFiles) if (-e "$bin/runCA.default.spec");
+    @fragFiles = setParametersFromFile("$ENV{'HOME'}/.runCA",     @fragFiles) if (-e "$ENV{'HOME'}/.runCA");
+    @fragFiles = setParametersFromFile($specFile,                 @fragFiles);
+}
 
 setParametersFromCommandLine(@specOpts);
 

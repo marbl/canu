@@ -553,15 +553,26 @@ sub setParametersFromFile ($@) {
         my $bin = "$FindBin::RealBin/spec";
 
         if (-e $specFile && ! -d $specFile) {
+            print STDERR "#\n";
+            print STDERR "#  Reading options from '$specFile'\n";
+            print STDERR "#\n";
             open(F, "< $specFile") or caFailure("Couldn't open '$specFile'", undef);
         } elsif (-e "$bin/$specFile") {
+            print STDERR "#\n";
+            print STDERR "#  Reading options from '$bin/$specFile'\n";
+            print STDERR "#\n";
             open(F, "< $bin/$specFile") or caFailure("Couldn't open '$bin/$specFile'", undef);
         } elsif (-e "$bin/$specFile.specFile") {
+            print STDERR "#\n";
+            print STDERR "#  Reading options from '$bin/$specFile.specFile'\n";
+            print STDERR "#\n";
             open(F, "< $bin/$specFile.specFile") or caFailure("Couldn't open '$bin/$specFile.specFile'", undef);
         } else {
             caFailure("specFile '$specFile' or '$bin/$specFile' or '$bin/$specFile.specFile' not found", undef);
         }
         while (<F>) {
+            print STDERR $_;
+
             s/^\s+//;
             s/\s+$//;
 
@@ -570,7 +581,6 @@ sub setParametersFromFile ($@) {
 
             if (m/\s*(\w*)\s*=([^#]*)#*.*$/) {
                 my ($var, $val) = ($1, $2);
-                print STDERR $_,"\n"; # echo the spec file
                 $var =~ s/^\s+//; $var =~ s/\s+$//;
                 $val =~ s/^\s+//; $val =~ s/\s+$//;
                 undef $val if ($val eq "undef");
@@ -595,7 +605,15 @@ sub setParametersFromFile ($@) {
 sub setParametersFromCommandLine(@) {
     my @specOpts = @_;
 
+    if (scalar(@specOpts) > 0) {
+        print STDERR "#\n";
+        print STDERR "#  Reading options from the command line.\n";
+        print STDERR "#\n";
+    }
+
     foreach my $s (@specOpts) {
+        print STDERR "$s\n";
+
         if ($s =~ m/\s*(\w*)\s*=(.*)/) {
             my ($var, $val) = ($1, $2);
             $var =~ s/^\s+//; $var =~ s/\s+$//;
