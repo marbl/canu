@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: util++.C,v 1.7 2008-10-08 22:02:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: util++.C,v 1.8 2009-11-10 04:33:17 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -128,9 +128,9 @@ intervalList::merge(void) {
   while (nextInterval < _listLen) {
 
 #if 0
-    fprintf(stderr, "merge "F_U64"-"F_U64" <- "F_U64"-"F_U64"\n",
-            _list[thisInterval].lo, _list[thisInterval].hi,
-            _list[nextInterval].lo, _list[nextInterval].hi);
+    fprintf(stderr, "merge [%2d] "F_U64"-"F_U64" <- [%2d] "F_U64"-"F_U64"\n",
+            thisInterval, _list[thisInterval].lo, _list[thisInterval].hi,
+            nextInterval, _list[nextInterval].lo, _list[nextInterval].hi);
 #endif
 
     if ((_list[thisInterval].lo == 0) &&
