@@ -273,8 +273,8 @@ sub setDefaults () {
     $global{"doDeDuplication"}             = 1;
     $synops{"doDeDuplication"}             = "Enable the OBT duplication detection and cleaning module for 454 reads, enabled automatically";
 
-    $global{"doChimeraDetection"}          = 1;
-    $synops{"doChimeraDetection"}          = "Enable the OBT chimera detection and cleaning module";
+    $global{"doChimeraDetection"}          = "normal";
+    $synops{"doChimeraDetection"}          = "Enable the OBT chimera detection and cleaning module; 'off', 'normal' or 'aggressive'";
 
     #####  Overlapper
 
@@ -628,6 +628,17 @@ sub setParametersFromCommandLine(@) {
 
 sub setParameters () {
 
+    #  Update obsolete usages.
+    #
+    if (getGlobal("doChimeraDetection") eq "1") {
+        print STDERR "WARNING: 'doChimeraDetection=1' is obsolete; use 'doChimeraDetection=normal' in the future.\n";
+        setGlobal("doChimeraDetection", "normal");
+    }
+    if (getGlobal("doChimeraDetection") eq "0") {
+        print STDERR "WARNING: 'doChimeraDetection=0' is obsolete; use 'doChimeraDetection=off' in the future.\n";
+        setGlobal("doChimeraDetection", "off");
+    }
+
     #  Fiddle with filenames to make them absolute paths.
     #
     makeAbsolute("vectorIntersect");
@@ -635,15 +646,19 @@ sub setParameters () {
 
     #  Adjust case on some of them
     #
+    fixCase("doChimeraDetection");
     fixCase("obtOverlapper");
     fixCase("ovlOverlapper");
     fixCase("unitigger");
     fixCase("vectorTrimmer");
-    #fixCase("stopBefore");
-    #fixCase("stopAfter");
+    fixCase("stopBefore");
+    fixCase("stopAfter");
     fixCase("consensus");
     fixCase("cleanup");
 
+    if ((getGlobal("doChimeraDetection") ne "off") && (getGlobal("doChimeraDetection") ne "normal") && (getGlobal("doChimeraDetection") ne "aggressive")) {
+        caFailure("invalid doChimeraDetection specified (" . getGlobal("doChimeraDetection") . "); must be 'off', 'normal', or 'aggressive'", undef);
+    }
     if ((getGlobal("obtOverlapper") ne "mer") && (getGlobal("obtOverlapper") ne "ovl")) {
         caFailure("invalid obtOverlapper specified (" . getGlobal("obtOverlapper") . "); must be 'mer' or 'ovl'", undef);
     }

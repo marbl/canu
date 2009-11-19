@@ -198,7 +198,7 @@ sub overlapTrim {
         }
     }
 
-    if (getGlobal("doChimeraDetection") != 0) {
+    if (getGlobal("doChimeraDetection") ne 'off') {
         if ((! -e "$wrk/0-overlaptrim/$asm.chimera.report") &&
             (! -e "$wrk/0-overlaptrim/$asm.chimera.report.bz2")) {
             my $bin = getBinDirectory();
@@ -208,6 +208,7 @@ sub overlapTrim {
             $cmd .= " -ovs $wrk/0-overlaptrim/$asm.obtStore \\\n";
             $cmd .= " -summary $wrk/0-overlaptrim/$asm.chimera.summary \\\n";
             $cmd .= " -report  $wrk/0-overlaptrim/$asm.chimera.report \\\n";
+            $cmd .= " -mininniepair 0 -minoverhanging 0 \\\n" if (getGlobal("doChimeraDetection") eq "aggressive");
             $cmd .= " > $wrk/0-overlaptrim/$asm.chimera.err 2>&1";
 
             stopBefore("chimeraDetection", $cmd);
