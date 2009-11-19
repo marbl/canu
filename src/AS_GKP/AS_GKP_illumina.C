@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.3 2009-10-27 00:03:40 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.4 2009-11-19 15:48:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,9 +80,9 @@ processSeq(char *N, ilFragment *fr, char end) {
   if (fr->qnam[0] != '+')
     fprintf(stderr, "ERROR:  file '%s': qlt name '%s' is not a quality start line.\n", N, fr->qnam);
 
-  if (strcmp(fr->snam+1, fr->qnam+1) != 0)
+  if ((fr->qnam[1] != 0) && (strcmp(fr->snam+1, fr->qnam+1) != 0))
     fprintf(stderr, "ERROR:  file: '%s': seq/qlt names differ; seq='%s' qlt='%s'\n", N, fr->snam, fr->qnam);
-
+    
   if (slen != qlen)
     fprintf(stderr, "ERROR:  file '%s': seq/qlt lengths differ for read '%s'; seq=%d qlt=%d\n", N, fr->snam, slen, qlen);
 
