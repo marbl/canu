@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.5 2009-10-12 04:02:35 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.6 2009-11-19 15:33:56 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -57,8 +57,8 @@ MultiAlignStore::init(const char *path_, uint32 version_, bool writable_, bool i
 
   //  Could use sysconf(_SC_OPEN_MAX) too.  Should make this dynamic?
   //
-  dataFile          = (FILE ***)safe_calloc(MAX_VERS,            sizeof(FILE **));
-  dataFile[0]       = (FILE  **)safe_calloc(MAX_VERS * MAX_PART, sizeof(FILE  *));
+  dataFile          = (dataFileT **)safe_calloc(MAX_VERS,            sizeof(dataFileT *));
+  dataFile[0]       = (dataFileT  *)safe_calloc(MAX_VERS * MAX_PART, sizeof(dataFileT));
 
   for (uint32 i=1; i<MAX_VERS; i++)
     dataFile[i] = dataFile[0] + i * MAX_PART;
@@ -127,8 +127,8 @@ MultiAlignStore::~MultiAlignStore() {
 
   for (uint32 v=0; v<MAX_VERS; v++)
     for (uint32 p=0; p<MAX_PART; p++)
-      if (dataFile[v][p])
-        fclose(dataFile[v][p]);
+      if (dataFile[v][p].FP)
+        fclose(dataFile[v][p].FP);
 
   safe_free(dataFile[0]);
   safe_free(dataFile);
@@ -154,13 +154,14 @@ MultiAlignStore::nextVersion(void) {
   //  Close the current version; we'll reopen on demand.
 
   for (uint32 p=0; p<MAX_PART; p++) {
-    if (dataFile[currentVersion][p]) {
+    if (dataFile[currentVersion][p].FP) {
       errno = 0;
-      fclose(dataFile[currentVersion][p]);
+      fclose(dataFile[currentVersion][p].FP);
       if (errno)
         fprintf(stderr, "MultiAlignStore::nextVersion()-- Failed to close '%s': %s\n", name, strerror(errno)), exit(1);
 
-      dataFile[currentVersion][p] = NULL;
+      dataFile[currentVersion][p].FP    = NULL;
+      dataFile[currentVersion][p].atEOF = false;
     }
   }
 
@@ -270,9 +271,20 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
 
   FILE *FP = openDB(maRecord->svID, maRecord->ptID);
 
-  AS_UTL_fseek(FP, 0, SEEK_END);
+  //  The atEOF flag allows us to skip a seek when we're already (supposed) to be at the EOF.  This
+  //  (hopefully) fixes a problem on one system where the seek() was placing the FP just before EOF
+  //  (almost like the last block of data wasn't being flushed), and the tell() would then place the
+  //  next tig in the middle of the previous one.
+  //
+  //  It also should (greatly) improve performance over NFS, espeically during BOG and CNS.  Both of
+  //  these only write data, so no repositioning of the stream is needed.
+  //
+  if (dataFile[maRecord->svID][maRecord->ptID].atEOF == false) {
+    AS_UTL_fseek(FP, 0, SEEK_END);
+    dataFile[maRecord->svID][maRecord->ptID].atEOF = true;
+  }
 
-  maRecord->fileOffset   = AS_UTL_ftell(FP);
+  maRecord->fileOffset = AS_UTL_ftell(FP);
 
   SaveMultiAlignTToStream(ma, FP);
 
@@ -349,7 +361,15 @@ MultiAlignStore::loadMultiAlign(int32 maID, bool isUnitig) {
   if (maCache[maID] == NULL) {
     FILE *FP = openDB(maRecord[maID].svID, maRecord[maID].ptID);
 
+    //  Seek to the correct position, and reset the atEOF to indicate we're (with high probability)
+    //  not at EOF anymore.
+    if (dataFile[maRecord[maID].svID][maRecord[maID].ptID].atEOF == true) {
+      fflush(FP);
+      dataFile[maRecord[maID].svID][maRecord[maID].ptID].atEOF = false;
+    }
+
     AS_UTL_fseek(FP, maRecord[maID].fileOffset, SEEK_SET);
+
     maCache[maID] = LoadMultiAlignTFromStream(FP);
 
     if (maCache[maID] == NULL)
@@ -385,7 +405,16 @@ MultiAlignStore::copyMultiAlign(int32 maID, bool isUnitig, MultiAlignT *macopy) 
   } else {
     FILE *FP = openDB(maRecord[maID].svID, maRecord[maID].ptID);
 
+    //  Seek to the correct position, and reset the atEOF to indicate we're (with high probability)
+    //  not at EOF anymore.
+
+    if (dataFile[maRecord[maID].svID][maRecord[maID].ptID].atEOF == true) {
+      fflush(FP);
+      dataFile[maRecord[maID].svID][maRecord[maID].ptID].atEOF = false;
+    }
+
     AS_UTL_fseek(FP, maRecord[maID].fileOffset, SEEK_SET);
+
     ReLoadMultiAlignTFromStream(FP, macopy);
   }
 
@@ -409,8 +438,8 @@ MultiAlignStore::flushCache(void) {
   memset(ctgCache, 0, ctgMax * sizeof(MultiAlignT *));
 
   for (uint32 p=0; p<MAX_PART; p++)
-    if (dataFile[currentVersion][p])
-      fflush(dataFile[currentVersion][p]);
+    if (dataFile[currentVersion][p].FP)
+      fflush(dataFile[currentVersion][p].FP);
 }
 
 
@@ -447,7 +476,7 @@ MultiAlignStore::dumpMASR(MultiAlignR* &R, char *T, int32& L, int32& M, uint32 V
   //
   if (((unitigPart == 0) && (unitigPartMap == NULL) &&
        (contigPart == 0) && (contigPartMap == NULL)) ||
-      (dataFile[V][0])) {
+      (dataFile[V][0].FP)) {
     sprintf(name, "%s/seqDB.v%03d.%s", path, V, T);
     dumpMASRfile(name, R, L, M);
   }
@@ -470,7 +499,7 @@ MultiAlignStore::dumpMASR(MultiAlignR* &R, char *T, int32& L, int32& M, uint32 V
   assert((unitigPartMap != NULL) || (contigPartMap != NULL));
 
   for (uint32 p=1; p<MAX_PART; p++) {
-    if (dataFile[currentVersion][p]) {
+    if (dataFile[currentVersion][p].FP) {
       sprintf(name, "%s/seqDB.v%03d.p%03d.%s", path, V, p, T);
       dumpMASRfile(name, R, L, M);
     }
@@ -554,8 +583,8 @@ MultiAlignStore::loadMASR(MultiAlignR* &R, char *T, int32& L, int32& M, uint32 V
 FILE *
 MultiAlignStore::openDB(uint32 version, uint32 partition) {
 
-  if (dataFile[version][partition])
-    return(dataFile[version][partition]);
+  if (dataFile[version][partition].FP)
+    return(dataFile[version][partition].FP);
 
   //  If partition is zero, open the unpartitioned store.
 
@@ -566,21 +595,27 @@ MultiAlignStore::openDB(uint32 version, uint32 partition) {
   }
 
   //  If version is the currentVersion, open for writing if allowed.
+  //
+  //  "a+" technically writes (always) to the end of file, but this hasn't been tested.
 
   errno = 0;
 
   if ((inplace) && (version == currentVersion)) {
-    dataFile[version][partition] = fopen(name, "a+");
+    dataFile[version][partition].FP = fopen(name, "a+");
+    dataFile[version][partition].atEOF = false;
   } else if ((writable) && (version == currentVersion)) {
-    dataFile[version][partition] = fopen(name, "w+");
+    dataFile[version][partition].FP = fopen(name, "w+");
+    dataFile[version][partition].atEOF = true;
   } else {
-    dataFile[version][partition] = fopen(name, "r");
+    dataFile[version][partition].FP = fopen(name, "r");
+    dataFile[version][partition].atEOF = false;
   }
+
 
   if (errno)
     fprintf(stderr, "CreateSequenceDB()-- Failed to open '%s': %s\n", name, strerror(errno)), exit(1);
 
-  return(dataFile[version][partition]);
+  return(dataFile[version][partition].FP);
 }
 
 
