@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: uidclient.c,v 1.4 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: uidclient.c,v 1.5 2009-11-20 22:19:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
-#include "SYS_UIDcommon.h"
 #include "SYS_UIDclient.h"
 
 int
@@ -40,12 +40,16 @@ main(int argc, char **argv) {
       numUIDs = atoi(argv[++arg]);
       if (numUIDs < blockSize)
         blockSize = numUIDs;
+
     } else if (strcmp(argv[arg], "-n") == 0) {
-      SYS_UIDset_euid_namespace(argv[++arg]);
+      //SYS_UIDset_euid_namespace(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-E") == 0) {
-      SYS_UIDset_euid_server(argv[++arg]);
+      //SYS_UIDset_euid_server(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-thrash") == 0) {
       msDelay = atoi(argv[++arg]);
+
     } else {
       fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);
       err++;

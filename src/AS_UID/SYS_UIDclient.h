@@ -22,77 +22,63 @@
 #ifndef UID_CLIENT_H
 #define UID_CLIENT_H
 
-static const char *rcsid_UID_CLIENT_H = "$Id: SYS_UIDclient.h,v 1.13 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_UID_CLIENT_H = "$Id: SYS_UIDclient.h,v 1.14 2009-11-20 22:19:06 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 
-#include "SYS_UIDcommon.h"
+#include "AS_global.h"
 
-//
-//  The complicated UID client interface -- probably not what you
-//  want.
-//
-
-int32    SYS_UIDgetLastUIDInterval(uint64* interval);
-int32    SYS_UIDgetNewUIDInterval(uint64* interval);
-int32    SYS_UIDgetMaxUIDSize(uint64* size);
-void     SYS_UIDsetUIDSize(uint64 block_size);
-int32    SYS_UIDgetNextUID(uint64* uid);
-int32    SYS_UIDgetLastUID(uint64* uid);
-void     SYS_UIDset_euid_server(const char * servers);
-void     SYS_UIDset_euid_namespace(const char * namespaceName);
-
-
-//
-//  The simple UID client interface -- probably what you want.
-//
-//  Call UIDserverInitialize() to initializes the UID client.  If
-//  firstUID is non-zero, the client will return numbers starting with
-//  firstUID, otherwise, the UID server is contacted to get real UIDs.
-//  getUID() returns one UID, either a fake or a real UID.
-//
+#define UID_MAX_REQUEST_SIZE 1000000
 
 typedef struct {
   int      useDummy;
-  uint64   startUID;
-  uint64   interval[4];
+
+  uint64   curUID;
+  uint64   maxUID;
+  uint64   incUID;
 } UIDserver;
 
 
-//  firstuid is an integer (and not an AS_UID) on purpose.  The UID
-//  server currently returns only integer UIDs; it makes no sense
-//  to pass in a string uid.
+uint64  getGUIDBlock(int guidRequestSize);
+void    SYS_UIDset_euid_server(const char * servers);
+void    SYS_UIDset_euid_namespace(const char * namespaceName);
+
+
+//  Call UIDserverInitialize() to initializes the UID client.
+//
+//    blockSize is how many UIDs to request at once from the server.
+//
+//    If firstUID is non-zero, the client will return numbers starting with
+//    firstUID, otherwise, the UID server is contacted to get real UIDs.
+//
+//  getUID() returns one UID, either a fake or a real UID.
+
 
 static
-UIDserver   *UIDserverInitialize(uint32 blockSize, uint64 firstuid) {
+UIDserver *
+UIDserverInitialize(uint32 blockSize, uint64 firstuid) {
   UIDserver  *u = (UIDserver *)safe_calloc(1, sizeof(UIDserver));
-  int32       s;
 
   if (firstuid) {
-    u->useDummy    = 1;
-    u->startUID    = firstuid;
+    u->useDummy = 1;
+    u->curUID   = firstuid;
+    u->incUID   = 0;
+    u->maxUID   = UINT64_MAX;
+
   } else {
-    uint64      maxBlockSize;
+    u->incUID = MIN(blockSize, UID_MAX_REQUEST_SIZE);
 
-    // First check whether the UID server can accomodate for our buffer
-    s = SYS_UIDgetMaxUIDSize(&maxBlockSize);
-    if (s != UID_CODE_OK) {
-      fprintf(stderr, "UIDserverInitialize()-- UID blocksize query failed (%d).\n", s);
-      exit(1);
-    }
-    if (maxBlockSize < blockSize)
-      blockSize = maxBlockSize;
+    //  Grab an interval
 
-    // Now set the blocksize of th UID server appropriately
-    SYS_UIDsetUIDSize(blockSize);
+    uint64  newUID = getGUIDBlock(u->incUID);
 
-    // Finally, get the actual interval
-    s = SYS_UIDgetNewUIDInterval(u->interval);
-    if (s != UID_CODE_OK) {
-      fprintf(stderr, "UIDserverInitialize()-- SYS_UIDgetNewUIDInterval failed (%d) blockSize=%d startUID="F_U64", interval="F_U64","F_U64","F_U64","F_U64".\n",
-              s, blockSize, u->startUID, u->interval[0], u->interval[1], u->interval[2], u->interval[3]);
+    if (newUID > 0) {
+      u->curUID = newUID;
+      u->maxUID = newUID + u->incUID;
+    } else {
+      fprintf(stderr, "UIDserverInitialize()-- failed to get a new UID block from the server.\n");
       exit(1);
     }
   }
@@ -100,38 +86,38 @@ UIDserver   *UIDserverInitialize(uint32 blockSize, uint64 firstuid) {
   return(u);
 }
 
+
+
 static
 uint64
 getUID(UIDserver *u) {
-  uint64   uid = 0;
-  int32    s;
 
   if (u->useDummy)
-    return(u->startUID++);
+    return(u->curUID++);
 
-  s = SYS_UIDgetNextUID(&uid);
-  if (s != UID_CODE_OK) {
-    s = SYS_UIDgetNewUIDInterval(u->interval);
-    if (s != UID_CODE_OK) {
-      fprintf(stderr, "getUID()-- SYS_UIDgetNewUIDInterval failed (%d) startUID="F_U64", interval="F_U64","F_U64","F_U64","F_U64".\n",
-              s, u->startUID, u->interval[0], u->interval[1], u->interval[2], u->interval[3]);
-      exit(1);
-    }
-    s = SYS_UIDgetNextUID(&uid);
-  }
-  if (s != UID_CODE_OK) {
-    fprintf(stderr, "getUID()-- SYS_UIDgetNextUID failed (%d).\n", s);
+  if (u->curUID < u->maxUID)
+    return(u->curUID++);
+
+  //  Grab another interval
+
+  uint64  newUID = getGUIDBlock(u->incUID);
+
+  if (newUID > 0) {
+    u->curUID = newUID;
+    u->maxUID = newUID + u->incUID;
+  } else {
+    fprintf(stderr, "getUID()-- failed to get another UID block from the server.\n");
     exit(1);
   }
 
-  return(uid);
+  if (u->curUID < u->maxUID)
+    return(u->curUID++);
+
+  //  Should never occur.
+  fprintf(stderr, "getUID()-- failed to get another UID block from the server.\n");
+  exit(1);
+
+  return(0);
 }
 
-
 #endif
-
-
-
-
-
-

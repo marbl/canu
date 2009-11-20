@@ -22,8 +22,8 @@
 ###########################################################################
 #
 
-SOURCES   = uidclient.C uidsrvd.C SYS_UIDcommon.C SYS_UIDerror.C SYS_UIDclient.C
-CXX_PROGS = uidclient uidsvrd
+SOURCES   = uidclient.C
+CXX_PROGS = uidclient
 
 LIBRARIES = libAS_UID.a libCA.a
 
@@ -56,8 +56,8 @@ include $(LOCAL_WORK)/src/c_make.as
 all: $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
-libAS_UID.a: SYS_UIDcommon.o SYS_UIDclient.o SYS_UIDerror.o $(SITEOBJS)
-libCA.a:     SYS_UIDcommon.o SYS_UIDclient.o SYS_UIDerror.o $(SITEOBJS)
+libAS_UID.a: $(SITEOBJS)
+libCA.a:     $(SITEOBJS)
 
 uidsvrd:   uidsrvd.o   libAS_UID.a libAS_UTL.a
 uidclient: uidclient.o libAS_UID.a libAS_UTL.a
