@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.63 2009-10-31 04:25:28 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.64 2009-11-20 22:21:24 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -28,8 +28,9 @@ const char *mainid = "$Id: BuildUnitigs.cc,v 1.63 2009-10-31 04:25:28 brianwalen
 #include "getopt.h"
 #include "AS_CGB_histo.h"
 
+//  Used in AS_BOG_Unitig.cc
 FragmentInfo     *debugfi = 0L;
-
+BestOverlapGraph *bog     = 0L;
 
 void outputHistograms(UnitigGraph *utg, FragmentInfo *fi, FILE *stats) {
   const int nsample=500;
@@ -109,7 +110,8 @@ main (int argc, char * argv []) {
   int       fragment_count_target   = 0;
   char     *output_prefix           = NULL;
 
-  bool      unitigIntersectBreaking = false;
+  bool      popBubbles              = false;
+  bool      breakIntersections      = false;
   int       badMateBreakThreshold   = -7;
 
   argc = AS_configure(argc, argv);
@@ -137,8 +139,11 @@ main (int argc, char * argv []) {
     } else if (strcmp(argv[arg], "-T") == 0) {
       tigStorePath = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-U") == 0) {
+      popBubbles = true;
+
     } else if (strcmp(argv[arg], "-b") == 0) {
-      unitigIntersectBreaking = true;
+      breakIntersections = true;
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       erate = atof(argv[++arg]);
@@ -170,13 +175,18 @@ main (int argc, char * argv []) {
   if (err) {
     fprintf(stderr, "usage: %s -o outputName -O ovlStore -G gkpStore -T tigStore\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -B b       Target number of fragments per IUM batch.\n");
+    fprintf(stderr, "  -O         Mandatory path to an ovlStore.\n");
+    fprintf(stderr, "  -G         Mandatory path to a gkpStore.\n");
+    fprintf(stderr, "  -T         Mandatory path to a tigStore (can exist or not).\n");
+    fprintf(stderr, "  -o prefix  Mandatory name for the output files\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -o prefix  Name of the output files\n");
+    fprintf(stderr, "  -B b       Target number of fragments per IUM batch.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -s size    If the genome size is set to 0, this will cause the unitigger\n");
     fprintf(stderr, "             to try to estimate the genome size based on the constructed\n");
     fprintf(stderr, "             unitig lengths.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -U         Enable EXPERIMENTAL bubble popping.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -b         Break promisciuous unitigs at unitig intersection points\n");
     fprintf(stderr, "  -e         Fraction error to generate unitigs for; default is 0.015\n");
@@ -218,9 +228,11 @@ main (int argc, char * argv []) {
 
   BestOverlapGraph      *BOG = new BestOverlapGraph(fragInfo, ovlStoreUniq, ovlStoreRept, erate);
 
+  bog = BOG;
+
   ChunkGraph *cg = new ChunkGraph(fragInfo, BOG);
   UnitigGraph utg(fragInfo, BOG);
-  utg.build(cg, unitigIntersectBreaking, output_prefix);
+  utg.build(cg, breakIntersections, popBubbles, output_prefix);
 
   MateChecker  mateChecker(fragInfo);
   mateChecker.checkUnitigGraph(utg, badMateBreakThreshold);

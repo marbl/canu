@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIG
 #define INCLUDE_AS_BOG_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.10 2009-06-15 05:52:49 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.11 2009-11-20 22:21:24 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -46,13 +46,8 @@ struct Unitig{
   Unitig(bool report=false);
   ~Unitig(void);
 
-  // Sort frags by position on the unitig
-  void sort();
-
-  // Compute unitig based on given dovetails and containments
-  void recomputeFragmentPositions(ContainerMap &, BestOverlapGraph*);
-
-  void reverseComplement();
+  void sort(void);
+  void reverseComplement(bool doSort=true);
 
   // Accessor methods
 
@@ -74,8 +69,13 @@ struct Unitig{
 
   uint32       id(void) { return(_id); };
 
-  void addContainedFrag(DoveTailNode, BestContainment *bestcont, bool report=false);
-  void addFrag(DoveTailNode, int offset=0, bool report=false);
+  bool placeFrag(DoveTailNode &place5, int32 &fidx5, BestEdgeOverlap *bestedge5,
+                 DoveTailNode &place3, int32 &fidx3, BestEdgeOverlap *bestedge3);
+
+  void addFrag(DoveTailNode node, int offset=0, bool report=false);
+  void addContainedFrag(int32 fid, BestContainment *bestcont, bool report=false);
+  bool addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *bestedge3, bool report=false);
+
 
   static uint32 fragIn(uint32 fragId) {
     if ((_inUnitig == NULL) || (fragId == 0))
@@ -83,21 +83,26 @@ struct Unitig{
     return _inUnitig[fragId];
   };
 
+  static uint32 pathPosition(uint32 fragId) {
+    if ((_pathPosition == NULL) || (fragId == 0))
+      return ~0;
+    return _pathPosition[fragId];
+  };
+
   static void resetFragUnitigMap(uint32 numFrags) {
     if (_inUnitig == NULL)
       _inUnitig = new uint32[numFrags+1];
     memset(_inUnitig, 0, (numFrags+1) * sizeof(uint32));
+
+    if (_pathPosition == NULL)
+      _pathPosition = new uint32[numFrags+1];
+    memset(_pathPosition, 0, (numFrags+1) * sizeof(uint32));
   };
 
   // Public Member Variables
   DoveTailPath *dovetail_path_ptr;
 
 private:
-  void placeContains(const ContainerMap &,
-                     BestOverlapGraph *,
-                     const uint32,
-                     const SeqInterval,
-                     const int level);
 
   // Do not access these private variables directly, they may
   // not be computed yet, use accessors!
@@ -110,7 +115,8 @@ private:
 
   static uint32 nextId;
   static float _globalArrivalRate;
-  static uint32 *_inUnitig;
+  static uint32 *_inUnitig;      //  Maps a fragment iid to a unitig id.
+  static uint32 *_pathPosition;  //  Maps a fragment iid to an index in the dovetail path
 };
 
 

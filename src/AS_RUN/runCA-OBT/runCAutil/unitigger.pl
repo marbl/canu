@@ -36,6 +36,8 @@ sub unitigger () {
         my $B = int($numFrags / getGlobal("cnsPartitions"));
         $B = getGlobal("cnsMinFrags") if ($B < getGlobal("cnsMinFrags"));
 
+        my $u = getGlobal("utgBubblePopping");
+
         my $unitigger = getGlobal("unitigger");
 
         my $cmd;
@@ -52,11 +54,10 @@ sub unitigger () {
             $cmd .= " -s $l "   if (defined($l));
             $cmd .= " -b "      if (getGlobal("bogBreakAtIntersections") == 1);
             $cmd .= " -m $bmd " if (defined($bmd));
+            $cmd .= " -U "      if ($u == 1);
             $cmd .= " -o $wrk/4-unitigger/$asm ";
             $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
         } elsif ($unitigger eq "utg") {
-            my $u = getGlobal("utgBubblePopping");
-
             $cmd  = "$bin/unitigger ";
             $cmd .= " -I $wrk/$asm.ovlStore ";
             $cmd .= " -F $wrk/$asm.gkpStore ";

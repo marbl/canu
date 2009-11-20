@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.66 2009-10-05 22:49:41 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.67 2009-11-20 22:21:24 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -79,7 +79,7 @@ struct UnitigGraph{
   ~UnitigGraph();
 
   // Call this on a chunk graph pointer to build a unitig graph
-  void build(ChunkGraph *cg_ptr, bool unitigIntersectBreaking, char *output_prefix);
+  void build(ChunkGraph *cg_ptr, bool enableIntersectionBreaking, bool enableBubblePopping, char *output_prefix);
   void setParentAndHang(ChunkGraph *cg_ptr);
 
   void writeIUMtoFile(char *fileprefix, char *tigStorePath, int fragment_count_target);
@@ -88,6 +88,9 @@ struct UnitigGraph{
   float getGlobalArrivalRate(long total_random_frags_in_genome=0, long genome_size=0);
 
   void breakUnitigs(ContainerMap &cMap, char *output_prefix);
+  void placeContains(void);
+  void placeZombies(void);
+  void popBubbles(void);
 
   void filterBreakPoints(ContainerMap &cMap,
                          Unitig *,
@@ -114,15 +117,11 @@ private:
   static const int MIN_BREAK_FRAGS = 1;
   static const int MIN_BREAK_LENGTH = 500;
 
-  //  Add firstFragID to the unitig, then follow any fragments off of
-  //  of fragEdgeEnd.  If the unitig has fragments, lastID and
-  //  lastEdge need to be defined.
-  //  
+  void populateUnitig(int32               fragID,
+                      bool                verbose);
+
   void populateUnitig(Unitig             *unitig,
-                      uint32              firstFragID,
-                      uint32              walkEnd,
-                      uint32              lastID,
-                      BestEdgeOverlap    *lastEdge,
+                      BestEdgeOverlap    *nextedge,
                       bool                verbose);
 
   FragmentInfo     *_fi;

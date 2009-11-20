@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.12 2009-10-31 04:25:28 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.13 2009-11-20 22:21:23 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -29,13 +29,14 @@ static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.12 2009-10-31 04:25:28 bri
 
 
 extern FragmentInfo     *debugfi;
-
+extern BestOverlapGraph *bog;
 
 // various class static methods and variables
 static std::map<uint32,int>* containPartialOrder;
 
-uint32  Unitig::nextId    = 1;
-uint32* Unitig::_inUnitig = NULL;
+uint32  Unitig::nextId        = 1;
+uint32* Unitig::_inUnitig     = NULL;
+uint32* Unitig::_pathPosition = NULL;
 
 
 Unitig::Unitig(bool report){
@@ -57,87 +58,384 @@ Unitig::~Unitig(void){
 
 
 
-DoveTailNode Unitig::getLastBackboneNode(uint32 &prevId) {
-  DoveTailNode lastNonContain;
+DoveTailNode Unitig::getLastBackboneNode(uint32 &prevID) {
+  DoveTailNode last;
 
-  memset(&lastNonContain, 0, sizeof(DoveTailNode));
+  memset(&last, 0, sizeof(DoveTailNode));
 
-  for(DoveTailPath::reverse_iterator rIter = dovetail_path_ptr->rbegin(); rIter != dovetail_path_ptr->rend(); rIter++) {
-    if (rIter->contained == 0) {
-      if (lastNonContain.ident == 0) {
-        lastNonContain = *rIter;
-      } else {
-        prevId = rIter->ident;
-        return lastNonContain;
-      }
-    }
+  prevID = 0;
+
+  for (int32 fi=dovetail_path_ptr->size()-1; (fi >= 0) && (prevID == 0); fi--) {
+    DoveTailNode  *node = &(*dovetail_path_ptr)[fi];
+
+    if (node->contained)
+      continue;
+
+    if (last.ident == 0)
+      //  Save the last dovetail node, but keep looking....
+      last = *node;
+    else
+      //  ...for the next to last ID.
+      prevID = node->ident;
   }
-  return lastNonContain;
+
+  return(last);
 }
 
 
-void Unitig::addFrag( DoveTailNode node, int offset, bool report) {
+
+
+//  Given an implicit fragment, and at least one best edge to a fragment in this unitig, compute the
+//  position of the fragment in this unitig.  If both edges are given, both will independently
+//  compute a placement, which might disagree.
+//
+//  If the bidx is already known for an edge, a linear search is avoided.  This can occur if this
+//  function is called once to see if the placements are consistent, and again to actually place the
+//  fragment.
+//
+//  If a placement is not found for an edge, the corresponding bidx value is set to -1.
+//
+//  Returns true if any placement is found, false otherwise.
+//
+bool
+Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
+                  DoveTailNode &frag3, int32 &bidx3, BestEdgeOverlap *bestedge3) {
+  bool  verbose = false;
+
+  frag5.type         = AS_READ;
+  //frag5.ident
+  frag5.contained    = 0;
+  frag5.parent       = 0;
+  frag5.ahang        = 0;
+  frag5.bhang        = 0;
+  frag5.position.bgn = 0;
+  frag5.position.end = 0;
+  frag5.delta_length = 0;
+  frag5.delta        = NULL;
+
+  frag3.type         = AS_READ;
+  //frag3.ident
+  frag3.contained    = 0;
+  frag3.parent       = 0;
+  frag3.ahang        = 0;
+  frag3.bhang        = 0;
+  frag3.position.bgn = 0;
+  frag3.position.end = 0;
+  frag3.delta_length = 0;
+  frag3.delta        = NULL;
+
+  if (bestedge5 == NULL)
+    bidx5 = -1;
+  if (bestedge3 == NULL)
+    bidx3 = -1;
+
+  //  If not given valid bidx5 or bidx3, search for the correct fragment index using the bestedge.
+  //  A complicated condition: over all fragments, while either index is not known and should be known.
+
+#if 0
+  for (int fi=0; ((fi < dovetail_path_ptr->size()) &&
+                  (((bestedge5) && (bidx5 == -1)) ||
+                   ((bestedge3) && (bidx3 == -1)))); fi++) {
+    DoveTailNode *parent = &(*dovetail_path_ptr)[fi];
+
+    if ((bestedge5) && (parent->ident == bestedge5->frag_b_id))
+      bidx5 = fi;
+
+    if ((bestedge3) && (parent->ident == bestedge3->frag_b_id))
+      bidx3 = fi;
+  }
+#else
+  if ((bestedge5) && (fragIn(bestedge5->frag_b_id) == id())) {
+    bidx5 = pathPosition(bestedge5->frag_b_id);
+    assert(bestedge5->frag_b_id == (*dovetail_path_ptr)[bidx5].ident);
+  }
+
+  if ((bestedge3) && (fragIn(bestedge3->frag_b_id) == id())) {
+    bidx3 = pathPosition(bestedge3->frag_b_id);;
+    assert(bestedge3->frag_b_id == (*dovetail_path_ptr)[bidx3].ident);
+  }
+#endif
+
+  //  Now, just compute the placement based on edges that exist.
+
+  if ((bestedge5) && (bidx5 != -1)) {
+    DoveTailNode *parent = &(*dovetail_path_ptr)[bidx5];
+
+    assert(parent->ident == bestedge5->frag_b_id);
+
+    //  Overlap is stored using 'node' as the A frag, and we negate the hangs to make them relative
+    //  to the 'parent'.  (This is opposite from how containment edges are saved.)  A special case
+    //  exists when we overlap to the 5' end of the other fragment; we need to flip the overlap to
+    //  ensure the (new) A frag is forward.
+
+    int ahang = -bestedge5->ahang;
+    int bhang = -bestedge5->bhang;
+
+    if (bestedge5->bend == FIVE_PRIME) {
+      ahang = bestedge5->bhang;
+      bhang = bestedge5->ahang;
+    }
+
+    int  bgn, end;
+
+    //  Place the new fragment using the overlap.  We don't worry about the orientation of the new
+    //  fragment, only the location.  Orientation of the parent fragment matters (1) to know which
+    //  coordinate is the lower, and (2) to decide if the overlap needs to be flipped (again).
+
+    if (parent->position.bgn < parent->position.end) {
+      bgn = parent->position.bgn + ahang;
+      end = parent->position.end + bhang;
+    } else {
+      bgn = parent->position.end - bhang;
+      end = parent->position.bgn - ahang;
+    }
+
+    assert(bgn < end);
+    assert(bgn >= 0);
+
+    //  Since we don't know the true length of the overlap, if we use just the hangs to place a
+    //  fragment, we typically shrink fragments well below their actual length.  In one case, we
+    //  shrank a container enough that the containee was placed in the unitig backwards.
+    //
+    //  See comments on other instances of this warning.
+    //
+#warning not knowing the overlap length really hurts.
+    end = bgn + debugfi->fragmentLength(frag5.ident);
+
+    //  The new frag is reverse if:
+    //    the old frag is forward and we hit its 5' end, or
+    //    the old frag is reverse and we hit its 3' end.
+    //
+    //  The new frag is forward if:
+    //    the old frag is forward and we hit its 3' end, or
+    //    the old frag is reverse and we hit its 5' end.
+    //
+    bool flip = (((parent->position.bgn < parent->position.end) && (bestedge5->bend == FIVE_PRIME)) ||
+                 ((parent->position.end < parent->position.bgn) && (bestedge5->bend == THREE_PRIME)));
+
+    if (verbose)
+      fprintf(stderr, "bestedge5:  parent iid %d pos %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d  flip %d\n",
+              parent->ident, parent->position.bgn, parent->position.end,
+              bestedge5->frag_b_id, bestedge5->bend, bestedge5->ahang, bestedge5->bhang, bgn, end, flip);
+
+    frag5.contained    = 0;
+    frag5.parent       = bestedge5->frag_b_id;
+    frag5.ahang        = ahang;
+    frag5.bhang        = bhang;
+    frag5.position.bgn = (flip) ? end : bgn;
+    frag5.position.end = (flip) ? bgn : end;
+  }
+
+
+  if ((bestedge3) && (bidx3 != -1)) {
+    DoveTailNode *parent = &(*dovetail_path_ptr)[bidx3];
+
+    assert(parent->ident == bestedge3->frag_b_id);
+
+    int ahang = -bestedge3->ahang;
+    int bhang = -bestedge3->bhang;
+
+    if (bestedge3->bend == THREE_PRIME) {
+      ahang = bestedge3->bhang;
+      bhang = bestedge3->ahang;
+    }
+
+    int  bgn, end;
+
+    if (parent->position.bgn < parent->position.end) {
+      bgn = parent->position.bgn + ahang;
+      end = parent->position.end + bhang;
+    } else {
+      bgn = parent->position.end - bhang;
+      end = parent->position.bgn - ahang;
+    }
+
+    assert(bgn < end);
+    assert(bgn >= 0);
+
+#warning not knowing the overlap length really hurts.
+    end = bgn + debugfi->fragmentLength(frag3.ident);
+
+    //  The new frag is reverse if:
+    //    the old frag is forward and we hit its 3' end, or
+    //    the old frag is reverse and we hit its 5' end.
+    //
+    //  The new frag is forward if:
+    //    the old frag is forward and we hit its 5' end, or
+    //    the old frag is reverse and we hit its 3' end.
+    //
+    bool flip = (((parent->position.bgn < parent->position.end) && (bestedge3->bend == THREE_PRIME)) ||
+                 ((parent->position.end < parent->position.bgn) && (bestedge3->bend == FIVE_PRIME)));
+
+    if (verbose)
+      fprintf(stderr, "bestedge3:  parent iid %d %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d flip %d\n",
+              parent->ident, parent->position.bgn, parent->position.end,
+              bestedge3->frag_b_id, bestedge3->bend, bestedge3->ahang, bestedge3->bhang, bgn, end, flip);
+
+    frag3.contained    = 0;
+    frag3.parent       = bestedge3->frag_b_id;
+    frag3.ahang        = ahang;
+    frag3.bhang        = bhang;
+    frag3.position.bgn = (flip) ? end : bgn;
+    frag3.position.end = (flip) ? bgn : end;
+  }
+
+  return((bidx5 != -1) || (bidx3 != -1));
+}
+
+
+
+
+void
+Unitig::addFrag(DoveTailNode node, int offset, bool report) {
 
   node.position.bgn += offset;
   node.position.end += offset;
 
+  assert(node.ident > 0);
+
   // keep track of the unitig a frag is in
-  _inUnitig[ node.ident ] = _id;
+  _inUnitig[node.ident]     = _id;
+  _pathPosition[node.ident] = dovetail_path_ptr->size();
 
   // keep track of max position in unitig
-  int frgEnd = MAX( node.position.bgn, node.position.end);
-  if ( frgEnd > _length)
+  int32 frgEnd = MAX(node.position.bgn, node.position.end);
+  if (frgEnd > _length)
     _length = frgEnd;
 
   dovetail_path_ptr->push_back(node);
 
-  report = true;
+  if ((report) || (node.position.bgn < 0) || (node.position.end < 0)) {
+    int32 len = debugfi->fragmentLength(node.ident);
+    int32 pos = (node.position.end > node.position.bgn) ? (node.position.end - node.position.bgn) : (node.position.bgn - node.position.end);
 
-  int32 len = debugfi->fragmentLength(node.ident);
-  int32 pos = (node.position.end > node.position.bgn) ? (node.position.end - node.position.bgn) : (node.position.bgn - node.position.end);
-
-  if ((report) || (node.position.bgn < 0) || (node.position.end < 0))
     if (node.contained)
-      fprintf(stderr, "Added frag %d (len %d) to unitig %d at %d,%d (lendiff %d) (contained in %d)\n",
+      fprintf(stderr, "Added frag %d (len %d) to unitig %d at %d,%d (idx %d) (lendiff %d) (contained in %d)\n",
               node.ident, len, _id, node.position.bgn, node.position.end,
+              dovetail_path_ptr->size() - 1,
               pos - len,
               node.contained);
     else
-      fprintf(stderr, "Added frag %d (len %d) to unitig %d at %d,%d (lendiff %d)\n",
+      fprintf(stderr, "Added frag %d (len %d) to unitig %d at %d,%d (idx %d) (lendiff %d)\n",
               node.ident, len, _id, node.position.bgn, node.position.end,
+              dovetail_path_ptr->size() - 1,
               pos - len);
+  }
 
   assert(node.position.bgn >= 0);
   assert(node.position.end >= 0);
 }
 
-void Unitig::addContainedFrag(DoveTailNode node, BestContainment *bestcont, bool report) {
 
-  //  This will add a contained fragment to a unitig, adjusting the
-  //  position as needed.  It is only needed when moving a contained
-  //  read from unitig A to unitig B.  It is NOT needed when
-  //  rebuilding a unitig.
+//  This will add a contained fragment to a unitig, adjusting the position as needed.  It is only
+//  needed when moving a contained read from unitig A to unitig B.  It is NOT needed when rebuilding
+//  a unitig.
+//
+void Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report) {
+  DoveTailNode  frag;
+  DoveTailNode *parent = NULL;
 
-  assert(node.contained == bestcont->container);
+  frag.type         = AS_READ;
+  frag.ident        = fid;
+  frag.contained    = bestcont->container;
+  frag.parent       = bestcont->container;
+  frag.ahang        = 0;
+  frag.bhang        = 0;
+  frag.position.bgn = 0;
+  frag.position.end = 0;
+  frag.delta_length = 0;
+  frag.delta        = NULL;
 
-  //  Apparently, no way to retrieve a single fragment from a
-  //  unitig without searching for it.
+  //  The only way to find a single fragment in a unitig is to linear search.
+
+#if 0
+  for (int fi=0; (parent == NULL) && (fi<dovetail_path_ptr->size()); fi++) {
+    DoveTailNode *ix = &(*dovetail_path_ptr)[fi];
+
+    if (parent->ident == frag.contained)
+      parent = ix;
+  }
+#else
+  parent = &(*dovetail_path_ptr)[pathPosition(frag.contained)];
+#endif
+
+  assert(parent != NULL);
+  assert(parent->ident == frag.contained);
+
+  //  Adjust orientation.  See comments in AS_BOG_Unitig.cc::placeContains().
   //
-  //  Orientation should be OK.  All we've done since the
-  //  unitig was built was to split at various spots.  But we
-  //  need to adjust the location of the read.
+  //  NOTE!  Code is duplicated there.
   //
-  for (DoveTailIter it=dovetail_path_ptr->begin(); it != dovetail_path_ptr->end(); it++)
-    if (it->ident == node.contained) {
-      int offset = MIN(it->position.bgn, it->position.end) + bestcont->a_hang;
-      int adj    = MIN(node.position.bgn, node.position.end);
+  //  NOTE!  The hangs are from the (parent) container to the (child) containee.  This is opposite
+  //  as to how dovetail edges are stored.
 
-      node.position.bgn += offset - adj;
-      node.position.end += offset - adj;
+  assert(bestcont->a_hang >= 0);
+  assert(bestcont->b_hang <= 0);
+
+  if (parent->position.bgn < parent->position.end) {
+    //  Container is forward.
+    frag.ahang = bestcont->a_hang;
+    frag.bhang = bestcont->b_hang;
+
+    if (bestcont->sameOrientation) {
+      //  ...and so is containee.
+      frag.position.bgn = parent->position.bgn + frag.ahang;
+      frag.position.end = parent->position.end + frag.bhang;
+    } else {
+      //  ...but containee is reverse.
+      frag.position.bgn = parent->position.end + frag.bhang;
+      frag.position.end = parent->position.bgn + frag.ahang;
     }
 
-  addFrag(node, 0, report);
+  } else {
+    //  Container is reverse.
+    frag.ahang = -bestcont->b_hang;
+    frag.bhang = -bestcont->a_hang;
 
+    if (bestcont->sameOrientation) {
+      //  ...and so is containee.
+      frag.position.bgn = parent->position.bgn + frag.bhang;
+      frag.position.end = parent->position.end + frag.ahang;
+    } else {
+      //  ...but containee is forward.
+      frag.position.bgn = parent->position.end + frag.ahang;
+      frag.position.end = parent->position.bgn + frag.bhang;
+    }
+  }
+
+
+  //  Containments are particularily painful.  A beautiful example: a fragment of length 253bp is
+  //  contained in a fragment of length 251bp (both hangs are zero).  In this case, the
+  //  "ahang+length" method fails, placing the contained fragment outside the container (and if
+  //  backwards oriented, _BEFORE_ the contained fragment).  The "ahang,bhang" method works here,
+  //  but fails on other instances, shrinking deep containments to nothing.
+  //
+  //  We can use either method first, then adjust using the other method.
+  //
+  //  We'll use 'ahang,bhang' first (mostly because it was already done, and we need to compute
+  //  those values anyway) then reset the end based on the length, limited to maintain a
+  //  containment relationship.
+  //
+#warning not knowing the overlap length really hurts.
+  if (frag.position.bgn < frag.position.end) {
+    frag.position.end = frag.position.bgn + bog->fragmentLength(frag.ident);
+    if (frag.position.end > MAX(parent->position.bgn, parent->position.end))
+      frag.position.end = MAX(parent->position.bgn, parent->position.end);
+  } else {
+    frag.position.bgn = frag.position.end + bog->fragmentLength(frag.ident);
+    if (frag.position.bgn > MAX(parent->position.bgn, parent->position.end))
+      frag.position.bgn = MAX(parent->position.bgn, parent->position.end);
+  }
+
+  //  So we can sort properly, we now abuse the delta_length field, and save the containment depth
+  //  of each fragment.
+
+  frag.delta_length = parent->delta_length + 1;
+
+
+  addFrag(frag, 0, report);
+
+#if 0
   //  Bump that new fragment up to be in the correct spot -- we can't
   //  use the sort() method on Unitig, since we lost the
   //  containPartialOrder.
@@ -160,9 +458,119 @@ void Unitig::addContainedFrag(DoveTailNode node, BestContainment *bestcont, bool
 
     f[i] = containee;
   }
+#endif
 }
 
 
+//  Given two edges, place fragment node.ident into this unitig using the thickest edge to decide on
+//  the placement.
+//
+//  Returns true if placement was successful.
+//
+bool
+Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *bestedge3, bool report) {
+  int32        bidx5 = -1,   bidx3 = -1;
+  int32        blen5 =  0,   blen3 =  0;
+  DoveTailNode frag;
+
+  frag.type         = AS_READ;
+  frag.ident        = fid;
+  frag.contained    = 0;
+  frag.parent       = 0;
+  frag.ahang        = 0;
+  frag.bhang        = 0;
+  frag.position.bgn = 0;
+  frag.position.end = 0;
+  frag.delta_length = 0;
+  frag.delta        = NULL;
+
+  //  The length of the overlap depends only on the length of the a frag and the hangs.  We don't
+  //  actually care about the real length (except for logging), only which is thicker.
+
+#if 0
+  for (int fi=0; fi<dovetail_path_ptr->size(); fi++) {
+    DoveTailNode *parent = &(*dovetail_path_ptr)[fi];
+
+    if ((bestedge5) && (parent->ident == bestedge5->frag_b_id)) {
+      bidx5 = fi;
+      blen5 = debugfi->fragmentLength(fid) + ((bestedge5->ahang < 0) ? bestedge5->bhang : -bestedge5->ahang);
+      fprintf(stderr, "bestedge5:  %d,%d,%d,%d len %d\n", bestedge5->frag_b_id, bestedge5->bend, bestedge5->ahang, bestedge5->bhang, blen5);
+      assert(bestedge5->frag_b_id == (*dovetail_path_ptr)[bidx5].ident);
+    }
+
+    if ((bestedge3 ) && (parent->ident == bestedge3->frag_b_id)) {
+      bidx3 = fi;
+      blen3 = debugfi->fragmentLength(fid) + ((bestedge3->ahang < 0) ? bestedge3->bhang : -bestedge3->ahang);
+      fprintf(stderr, "bestedge3:  %d,%d,%d,%d len %d\n", bestedge3->frag_b_id, bestedge3->bend, bestedge3->ahang, bestedge3->bhang, blen3);
+      assert(bestedge3->frag_b_id == (*dovetail_path_ptr)[bidx3].ident);
+    }
+  }
+#else
+  if ((bestedge5) && (fragIn(bestedge5->frag_b_id) == id())) {
+    bidx5 = pathPosition(bestedge5->frag_b_id);
+    blen5 = debugfi->fragmentLength(fid) + ((bestedge5->ahang < 0) ? bestedge5->bhang : -bestedge5->ahang);
+    fprintf(stderr, "bestedge5:  %d,%d,%d,%d len %d\n", bestedge5->frag_b_id, bestedge5->bend, bestedge5->ahang, bestedge5->bhang, blen5);
+    assert(bestedge5->frag_b_id == (*dovetail_path_ptr)[bidx5].ident);
+  }
+
+  if ((bestedge3) && (fragIn(bestedge3->frag_b_id) == id())) {
+    bidx3 = pathPosition(bestedge3->frag_b_id);;
+    blen3 = debugfi->fragmentLength(fid) + ((bestedge3->ahang < 0) ? bestedge3->bhang : -bestedge3->ahang);
+    fprintf(stderr, "bestedge3:  %d,%d,%d,%d len %d\n", bestedge3->frag_b_id, bestedge3->bend, bestedge3->ahang, bestedge3->bhang, blen3);
+    assert(bestedge3->frag_b_id == (*dovetail_path_ptr)[bidx3].ident);
+  }
+#endif
+
+  fprintf(stderr, "bug %d == %d (utg %d)   %d == %d (utg %d)\n",
+          bestedge5->frag_b_id, (*dovetail_path_ptr)[bidx5].ident, fragIn(bestedge5->frag_b_id),
+          bestedge3->frag_b_id, (*dovetail_path_ptr)[bidx3].ident, fragIn(bestedge3->frag_b_id));
+
+
+  //  Use the longest that exists -- an alternative would be to take the average position, but that
+  //  could get messy if the placements are different.  Picking one or the other has a better chance
+  //  of working, though it'll fail if the fragment is chimeric or spans something it shouldn't,
+  //  etc.
+
+  assert((blen5 > 0) || (blen3 > 0));
+
+  if (blen5 < blen3)
+    bestedge5 = NULL;
+  else
+    bestedge3 = NULL;
+
+  //  Compute the placement -- a little scary, as we stuff both placements into the same frag, but we guarantee
+  //  only one placement is computed.
+
+  if (placeFrag(frag, bidx5, bestedge5,
+                frag, bidx3, bestedge3) == false)
+    return(false);
+
+  //  If we just computed a placement before the start of the unitig, we need to shift the unitig to make space.
+
+  int32 frgBgn = MIN(frag.position.bgn, frag.position.end);
+
+  if (frgBgn < 0) {
+    frgBgn = -frgBgn;
+
+    frag.position.bgn += frgBgn;
+    frag.position.end += frgBgn;
+
+    _length += frgBgn;
+
+    for (int fi=0; fi<dovetail_path_ptr->size(); fi++) {
+      DoveTailNode *tfrg = &(*dovetail_path_ptr)[fi];
+
+      tfrg->position.bgn += frgBgn;
+      tfrg->position.end += frgBgn;
+    }
+  }
+
+  //  Finally, add the fragment.
+
+  addFrag(frag, 0, report);
+
+  return(true);
+}
 
 
 float Unitig::getAvgRho(FragmentInfo *fi){
@@ -262,277 +670,69 @@ float Unitig::getCovStat(FragmentInfo *fi){
 }
 
 
-void Unitig::reverseComplement() {
-  DoveTailIter iter  = dovetail_path_ptr->begin();
+void Unitig::reverseComplement(bool doSort) {
+  DoveTailIter iter   = dovetail_path_ptr->begin();
+
+  //  If there are contained fragments, we need to sort by position to place them correctly after
+  //  their containers.  If there are no contained fragments, sorting can break the initial unitig
+  //  building.  When two frags start at position zero, we'll exchange the order.  Initial unitig
+  //  building depends on having the first fragment added become the last fragment in the unitig
+  //  after reversing.
 
   for(; iter != dovetail_path_ptr->end(); iter++) {
     iter->position.bgn = getLength() - iter->position.bgn;
     iter->position.end = getLength() - iter->position.end;
 
+    //if (iter->contained != 0)
+    //  doSort = true;
+
     assert(iter->position.bgn >= 0);
     assert(iter->position.end >= 0);
   }
 
-  std::reverse(dovetail_path_ptr->begin(), dovetail_path_ptr->end());
-}
+  //  We've updated the positions of everything.  Now, sort or reverse the list, and rebuild the
+  //  pathPosition map.
 
-// Recursively place all contains under this one into the FragmentPositionMap
-//
-// Compute assuming that containee is the same orientation as container
-//  if(cntnr_intvl.begin < cntnr_intvl.end)
-//
-// Container is in forward direction
-//
-// |=========F0============|
-// 0          |=============CER=============>|
-//                    |=====CEE=====>|
-//
-// |---Cro----|
-//            |--Ceo--|
-// |-------Cep--------|
-//
-// Cro = container offset from beginning of unitig = cntnr_intvl.begin
-// Ceo = containee offset from 5' end of container = cntee->olap_offset
-// Cep = containee offset from beginning of unitig = cntee_intvl.begin
-// CEE fragment can be from either orientation since
-//   definition of olap_offset is based on 3' origin.
-//
-// else if(cntnr_intvl.begin > cntnr_intvl.end)
-//
-// Container is in reverse direction
-//
-// |=========F0============|
-// 0          |<============CER==============|
-//                    |<====CEE======|
-//
-// |---Cro----|
-//                                   |--Ceo--|
-// |-------Cep-----------------------|
-//
-// Cro = container offset from beginning of unitig = cntnr_intvl.end
-// Ceo = containee offset from 5' end of container = cntee->olap_offset
-// Cep = containee offset from beginning of unitig = cntee_intvl.end
-// CEE fragment can be from either orientation since
-//   definition of olap_offset is based on 3' origin.
-
-void Unitig::placeContains(const ContainerMap &cMap,
-                           BestOverlapGraph *bog,
-                           const uint32 containerId,
-                           const SeqInterval containerPos,
-                           const int level) {
-  if (cMap.size() == 0)
-    return;
-
-  ContainerMap::const_iterator ctmp_itr = cMap.find( containerId );
-
-  if (ctmp_itr == cMap.end() )
-    return;
-
-  for(ContaineeList::const_iterator ci  = ctmp_itr->second.begin();
-      ci != ctmp_itr->second.end();
-      ci++) {
-
-    uint32           fragId = *ci;
-    BestContainment *best   =  bog->getBestContainer(fragId);
-
-    if (best->isPlaced)
-      continue;
-
-    assert(best->container == containerId);
-    assert(containerPos.bgn != containerPos.end);
-
-    (*containPartialOrder)[ fragId ] = level;
-
-    //if (level > maxContainDepth)
-    //    maxContainDepth = level;
-
-    DoveTailNode frag;
-
-    //  The second condition of the position field looks strange.
-
-    frag.type         = AS_READ;
-    frag.ident        = fragId;
-    frag.contained    = containerId;
-    frag.parent       = containerId;
-
-    //  The 'best' overlap picture is always the same:
-    //
-    //  -------------------->    containerPos
-    //  a>0   -------->   b<0    frag
-    //
-    if (containerPos.bgn < containerPos.end) {
-      //  Container is oriented same as overlap.
-      frag.ahang        = best->a_hang;
-      frag.bhang        = best->b_hang;
-
-      if (best->sameOrientation) {
-        //  Containee too.  Straightforward.
-        frag.position.bgn = containerPos.bgn + frag.ahang;
-        frag.position.end = containerPos.end + frag.bhang;
-      } else {
-        //  But containee is flipped and is now 'reversed'.
-        frag.position.end = containerPos.bgn + frag.ahang;
-        frag.position.bgn = containerPos.end + frag.bhang;
-      }
-    } else {
-      //  Container is backwards from overlap.
-      frag.ahang        = -best->b_hang;
-      frag.bhang        = -best->a_hang;
-
-      if (best->sameOrientation) {
-        //  Containee too.  The tricky case.
-        //
-        //  We've already adjusted frag.ahang and frag.bhang to
-        //  account for the flipped overlap.  The subtraction below
-        //  accounts for the flipped coordinates.  The thing called
-        //  'bgn' is really the end of the overlap, and to make the
-        //  frag position smaller, we need to subtract the (adjusted
-        //  and now positive) ahang.
-        //
-        //  end               bgn
-        //  <--------------------    containerPos
-        //  bhang <-------- ahang    frag
-        //
-        //  Finally, because the frag is also reversed the 'end'
-        //  variable is storing the start position, and we add the new
-        //  ahang to the start.
-        //  
-        frag.position.end = containerPos.end + frag.ahang;
-        frag.position.bgn = containerPos.bgn + frag.bhang;
-      } else {
-        //  But containee is flipped, and is now 'forward'.
-        frag.position.bgn = containerPos.end + frag.ahang;
-        frag.position.end = containerPos.bgn + frag.bhang;
-      }
-    }
-
-    frag.delta_length = 0;
-    frag.delta        = NULL;
-
-    //  See AS_BOG_UnitigGraph.c::populateUnitig() around line 557 for
-    //  why we reset the end coordinate.
-    //
-    //  Containments are particularily painful.  A beautiful example:
-    //  a fragment of length 253bp is contained in a fragment of
-    //  length 251bp (both hangs are zero).  In this case, the
-    //  "ahang+length" method fails, placing the contained fragment
-    //  outside the container (and if backwards oriented, _BEFORE_ the
-    //  contained fragment).  The "ahang,bhang" method works here, but
-    //  fails on other instances, shrinking deep containments to
-    //  nothing.
-    //
-    //  We can use either method first, then adjust using the other method.
-    //
-    //  We'll use 'ahang,bhang' first (mostly because it was already done, and we need
-    //  to compute those values anyway) then reset the end based on the length, limited
-    //  to maintain a containment relationship.
-    //
-#warning not knowing the overlap length really hurts.
-    if (frag.position.bgn < frag.position.end) {
-      frag.position.end = frag.position.bgn + bog->fragmentLength(fragId);
-      if (frag.position.end > MAX(containerPos.bgn, containerPos.end))
-        frag.position.end = MAX(containerPos.bgn, containerPos.end);
-    } else {
-      frag.position.bgn = frag.position.end + bog->fragmentLength(fragId);
-      if (frag.position.bgn > MAX(containerPos.bgn, containerPos.end))
-        frag.position.bgn = MAX(containerPos.bgn, containerPos.end);
-    }
-
-    {
-      uint32  cbgn = MIN(containerPos.bgn, containerPos.end);
-      uint32  cend = MAX(containerPos.bgn, containerPos.end);
-
-      uint32  fbgn = MIN(frag.position.bgn, frag.position.end);
-      uint32  fend = MAX(frag.position.bgn, frag.position.end);
-
-      if ((fbgn < cbgn) || (cend < fend)) {
-        fprintf(stderr, "ERROR:  Fragment became uncontained in the layout.\n");
-        fprintf(stderr, "containerPos "F_IID"\t%d %d\n", containerId, containerPos.bgn, containerPos.end);
-        fprintf(stderr, "fragment     "F_IID"\t%d %d\n", fragId,      frag.position.bgn, frag.position.end);
-      }
-
-      assert(cbgn <= fbgn);
-      assert(fend <= cend);
-    }
-
-    addFrag(frag, 0, false);
-    best->isPlaced = true;
-    placeContains(cMap, bog, frag.ident, frag.position, level+1);
-  }
-}
-
-void Unitig::recomputeFragmentPositions(ContainerMap &cMap,
-                                        BestOverlapGraph *bog_ptr) {
-
-  if (dovetail_path_ptr == NULL)
-    return;
-
-  containPartialOrder = new std::map<uint32,int>;
-
-  for (int i=0; i < dovetail_path_ptr->size(); i++) {
-    DoveTailNode *dt = &(*dovetail_path_ptr)[i];
-
-    fprintf(stderr, "PlaceContains in frag %d position %d,%d\n", dt->ident, dt->position.bgn, dt->position.end);
-
-    placeContains(cMap, bog_ptr, dt->ident, dt->position, 1);
-  }
-
-  this->sort();
-
-  delete containPartialOrder;
-  containPartialOrder = NULL;
-}
-
-
-int IntMultiPosCmp(const void *a, const void *b){
-  IntMultiPos *impa=(IntMultiPos*)a;
-  IntMultiPos *impb=(IntMultiPos*)b;
-  long aleft,aright,bleft,bright;
-  if (impa->position.bgn < impa->position.end) {
-    aleft  = impa->position.bgn;
-    aright = impa->position.end;
+  if (doSort) {
+    sort();
   } else {
-    aright = impa->position.bgn;
-    aleft  = impa->position.end;
-  }
-  if (impb->position.bgn < impb->position.end) {
-    bleft  = impb->position.bgn;
-    bright = impb->position.end;
-  } else {
-    bright = impb->position.bgn;
-    bleft  = impb->position.end;
-  }
-  if(aleft!=bleft) {
-    return(aleft - bleft);
-  }
-  else if (aright != bright) {
-    if (impa->contained==0 && impb->contained!=0)
-      return(-1);
-    else if (impa->contained!=0 && impb->contained==0)
-      return(1);
-    if (impa->contained!=0 || impb->contained!=0)
-      return(bright - aright);
-    else
-      return(aright - bright);
-  }
-  else {
-    if(impa->contained == impb->ident)
-      return(1);
-    if(impb->contained == impa->ident)
-      return(-1);
-    if(impa->contained!=0 && impb->contained!=0)
-      if (containPartialOrder == NULL)
-        return(0);
-      else
-        return((*containPartialOrder)[impa->ident] - (*containPartialOrder)[impb->ident]);
-    if(impa->contained!=0)
-      return(1);
-    if(impb->contained!=0)
-      return(-1);
-    return(0);
+    std::reverse(dovetail_path_ptr->begin(), dovetail_path_ptr->end());
+
+    for (int fi=0; fi<dovetail_path_ptr->size(); fi++)
+      _pathPosition[(*dovetail_path_ptr)[fi].ident] = fi;
   }
 }
 
-void Unitig::sort() {
+
+
+int
+IntMultiPosCmp(const void *a, const void *b){
+  IntMultiPos *impa = (IntMultiPos *)a;
+  IntMultiPos *impb = (IntMultiPos *)b;
+
+  int32 abgn = (impa->position.bgn < impa->position.end) ? impa->position.bgn : impa->position.end;
+  int32 aend = (impa->position.bgn < impa->position.end) ? impa->position.end : impa->position.bgn;
+
+  int32 bbgn = (impb->position.bgn < impb->position.end) ? impb->position.bgn : impb->position.end;
+  int32 bend = (impb->position.bgn < impb->position.end) ? impb->position.end : impb->position.bgn;
+
+  if (abgn != bbgn)
+    //  Return negative for the one that starts first.
+    return(abgn - bbgn);
+
+  if (aend != bend)
+    //  Return negative for the one that ends last.
+    return(bend - aend);
+
+  //  Fallback on depth added, negative for earliest added
+  return(impa->delta_length - impb->delta_length);
+}
+
+
+void
+Unitig::sort(void) {
   qsort( &(dovetail_path_ptr->front()), getNumFrags(), sizeof(IntMultiPos), &IntMultiPosCmp );
+
+  for (int fi=0; fi<dovetail_path_ptr->size(); fi++)
+    _pathPosition[(*dovetail_path_ptr)[fi].ident] = fi;
 }

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.81 2009-10-31 04:25:27 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.82 2009-11-20 22:21:23 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -369,7 +369,7 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
     DoveTailNode         *frags         = new DoveTailNode [thisUnitig->dovetail_path_ptr->size()];
     int                   fragsLen      = 0;
 
-    bool                  verbose       = true;
+    bool                  verbose       = false;
 
     if (verbose)
       fprintf(stderr, "moveContain unitig %d\n", thisUnitig->id());
@@ -585,9 +585,9 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
           fprintf(stderr, "Moving contained fragment %d from unitig %d to be with its container %d in unitig %d\n",
                   thisFrgID, thisUtgID, contFrgID, contUtgID);
 
-        containee.contained = contFrgID;
+        assert(bestcont->container == contFrgID);
 
-        thatUnitig->addContainedFrag(containee, bestcont, verbose);
+        thatUnitig->addContainedFrag(thisFrgID, bestcont, verbose);
 
       } else if ((moveToSingleton == true) && (thisUnitig->getNumFrags() != 1)) {
         //  Eject the fragment to a singleton (unless we ARE the singleton)
@@ -671,7 +671,7 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
 //
 void MateChecker::splitDiscontinuousUnitigs(UnitigGraph& tigGraph) {
 
-  bool  verbose = true;
+  bool  verbose = false;
 
   for (int  ti=0; ti<tigGraph.unitigs->size(); ti++) {
     Unitig  *unitig = (*tigGraph.unitigs)[ti];
@@ -734,9 +734,10 @@ void MateChecker::splitDiscontinuousUnitigs(UnitigGraph& tigGraph) {
           assert(dangler->id() == unitig->fragIn(splitFrags[0].contained));
 
           if (verbose)
-            fprintf(stderr, "Dangling contained fragment in unitig %d -> move them to container unitig %d\n", unitig->id(), dangler->id());
+            fprintf(stderr, "Dangling contained fragment %d in unitig %d -> move them to container unitig %d\n",
+                    splitFrags[0].ident, unitig->id(), dangler->id());
 
-          dangler->addContainedFrag(splitFrags[0], bestcont, verbose);
+          dangler->addContainedFrag(splitFrags[0].ident, bestcont, verbose);
         } else {
           Unitig *dangler = new Unitig(verbose);
 
