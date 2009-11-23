@@ -22,8 +22,8 @@
 ###########################################################################
 #
 
-SOURCES   = uidclient.C
-CXX_PROGS = uidclient
+SOURCES   = uidclient.C uidserver.C
+CXX_PROGS = uidclient   uidserver
 
 LIBRARIES = libAS_UID.a libCA.a
 
@@ -44,8 +44,8 @@ ifeq ($(SITE_NAME), LOCAL)
 endif
 
 ifeq ($(SITE_NAME), BRI)
-  SOURCES        += SYS_UIDclient_LOCAL.C
-  SITEOBJS       += SYS_UIDclient_LOCAL.o
+  SOURCES        += SYS_UIDclient_SERVER.C
+  SITEOBJS       += SYS_UIDclient_SERVER.o
 endif
 
 OBJECTS = $(SOURCES:.C=.o)
@@ -59,5 +59,5 @@ all: $(LIBRARIES) $(CXX_PROGS)
 libAS_UID.a: $(SITEOBJS)
 libCA.a:     $(SITEOBJS)
 
-uidsvrd:   uidsrvd.o   libAS_UID.a libAS_UTL.a
+uidserver: uidserver.o libAS_UID.a libAS_UTL.a
 uidclient: uidclient.o libAS_UID.a libAS_UTL.a
