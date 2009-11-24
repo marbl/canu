@@ -87,7 +87,7 @@ logError(int level, const char *fmt, ...) {
 static
 void
 sigHandler(int signal) {
-  logError(LOG_WARNING, "ignored signal %s (%d)\n", sys_signame[signal], signal);
+  logError(LOG_WARNING, "ignored signal %s (%d)\n", strsignal(signal), signal);
 }
 
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: uidserver.c,v 1.1 2009-11-23 00:31:38 brianwalenz Exp $";
+static const char *rcsid = "$Id: uidserver.c,v 1.2 2009-11-24 16:20:29 brianwalenz Exp $";
 
 #include "uidserver_common.h"
 
@@ -272,13 +272,13 @@ main(int32 argc, char** argv) {
   if ((err) || (action == ACTION_NONE)) {
     fprintf(stderr, "usage: %s <command>\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "-i <filename> <initial_uid>\n", argv[0]);
+    fprintf(stderr, "-i <filename> <initial_uid>\n");
     fprintf(stderr, "    Initialize a UID database file. Should only\n");
     fprintf(stderr, "    be done ONCE when a machine is configured.  Should NOT be re-run if\n");;
     fprintf(stderr, "    the machine is turned off or server re-booted or may risk\n");
     fprintf(stderr, "    corrupting UID uniqueness.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "-r <filename> <start#> <size> <max_block> <update_freq> <port>\n", argv[0]);
+    fprintf(stderr, "-r <filename> <port>\n");
     fprintf(stderr, "    Start the UID server from an initialized database file.\n");
     fprintf(stderr, "                                                                   \n");
     fprintf(stderr, "-k <hostname> <port>\n");
@@ -342,10 +342,11 @@ main(int32 argc, char** argv) {
   //umask(0);
 
   {
-    struct sigaction sigact = {0};
+    struct sigaction sigact;
+
+    memset(&sigact, 0, sizeof(struct sigaction));
 
     sigact.sa_handler = sigHandler;
-    sigact.sa_flags   = 0;
 
     for (int sn = SIGHUP; sn <= SIGUSR2; sn++)
       sigaction(sn, &sigact, NULL);
