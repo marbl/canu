@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: remove_fragment.c,v 1.18 2009-11-24 01:36:15 brianwalenz Exp $";
+const char *mainid = "$Id: remove_fragment.c,v 1.19 2009-11-24 21:42:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -98,7 +98,7 @@ main(int argc, char ** argv) {
     exit(1);
   }
   while (fgets(line, 1024, F)) {
-    AS_UID  uid = AS_UID_lookup(line, NULL);
+    AS_UID  uid = AS_UID_load(line);
     InsertInHashTable_AS(frag_uids_desired, AS_UID_toInteger(uid), 0, 0, 0);
   }
   fclose(F);
