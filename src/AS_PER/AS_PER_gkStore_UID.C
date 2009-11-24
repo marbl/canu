@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_UID.C,v 1.1 2009-06-10 18:05:14 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_UID.C,v 1.2 2009-11-24 21:43:59 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -217,13 +217,29 @@ AS_UID
 gkStore::gkStore_getUIDfromString(char *uidstr) {
   AS_UID  uid = AS_UID_undefined();
   uint64  loc = 0;
+  uint64  len = 0;
+  char    end = 0;
 
   gkStore_loadSTRtoUID();
 
-  if (LookupInHashTable_AS(STRtoUID, (INTPTR)uidstr, strlen(uidstr), &loc, 0)) {
+  //  A common error (especially when reading from files) it to leave whitespace at the ends.  We
+  //  temporarily trim it off.
+
+  while (*uidstr && isspace(*uidstr))
+    uidstr++;
+
+  while (uidstr[len] && !isspace(uidstr[len]))
+    len++;
+
+  end         = uidstr[len];
+  uidstr[len] = 0;
+
+  if (LookupInHashTable_AS(STRtoUID, (INTPTR)uidstr, len, &loc, 0)) {
     uid.isString  = 1;
     uid.UID       = loc;
   }
+
+  uidstr[len] = end;
 
   return(uid);
 }
@@ -252,11 +268,21 @@ gkStore::gkStore_getUIDstring(AS_UID u) {
 //
 AS_UID
 gkStore::gkStore_addUID(char *uidstr) {
+  uint64     loc = 0;
+  uint64     len = 0;
+  char       end = 0;
 
-  assert(uidstr != NULL);
+  //  A common error (especially when reading from files) it to leave whitespace at the ends.  We
+  //  temporarily trim it off.
 
-  uint64     loc    = 0;
-  uint64     len    = strlen(uidstr);
+  while (*uidstr && isspace(*uidstr))
+    uidstr++;
+
+  while (uidstr[len] && !isspace(uidstr[len]))
+    len++;
+
+  end         = uidstr[len];
+  uidstr[len] = 0;
 
   gkStore_loadSTRtoUID();
 
@@ -291,6 +317,8 @@ gkStore::gkStore_addUID(char *uidstr) {
 
   u.isString  = 1;
   u.UID       = loc;
+
+  uidstr[len] = end;
 
   return(u);
 }
