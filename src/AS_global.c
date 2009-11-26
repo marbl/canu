@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_global.c,v 1.16 2009-05-01 20:22:45 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_global.c,v 1.17 2009-11-26 02:53:33 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -223,8 +223,13 @@ AS_configure(int argc, char **argv) {
       fprintf(F, "\n");
       fprintf(F, "Command:\n");
       fprintf(F, "%s", argv[0]);
+
       for (i=1; i<argc; i++)
-        fprintf(F, " \\\n  %s", argv[i]);
+        if (argv[i][0] == '-')
+          fprintf(F, " \\\n  %s", argv[i]);
+        else
+          fprintf(F, " %s", argv[i]);
+
       fprintf(F, "\n");
     }
 
