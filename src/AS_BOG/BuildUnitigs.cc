@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.64 2009-11-20 22:21:24 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.65 2009-11-26 02:54:52 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -215,8 +215,13 @@ main (int argc, char * argv []) {
     exit(1);
   }
 
-  fprintf(stderr, "Error threshold = %.3f%%\n", AS_OVS_decodeQuality(erate) * 100.0);
-  fprintf(stderr, "Genome Size     = "F_S64"\n", genome_size);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Bubble popping        = %s\n", (popBubbles) ? "on" : "off");
+  fprintf(stderr, "Intersection breaking = %s\n", (breakIntersections) ? "on" : "off");
+  fprintf(stderr, "Bad mate threshold    = %d\n", badMateBreakThreshold);
+  fprintf(stderr, "Error threshold       = %.3f%%\n", erate * 100);
+  fprintf(stderr, "Genome Size           = "F_S64"\n", genome_size);
+  fprintf(stderr, "\n");
 
   gkStore          *gkpStore     = new gkStore(gkpStorePath, FALSE, FALSE);
   OverlapStore     *ovlStoreUniq = AS_OVS_openOverlapStore(ovlStoreUniqPath);
