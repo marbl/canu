@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.13 2009-11-20 22:21:23 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.14 2009-11-26 03:02:26 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -190,8 +190,11 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
       end = parent->position.bgn - ahang;
     }
 
+    //  A bgn of less than zero IS allowed; the client must either reject this placement,
+    //  or shift the unitig so that this fragment becomes the start.
+    //
     assert(bgn < end);
-    assert(bgn >= 0);
+    //assert(bgn >= 0);
 
     //  Since we don't know the true length of the overlap, if we use just the hangs to place a
     //  fragment, we typically shrink fragments well below their actual length.  In one case, we
@@ -251,7 +254,7 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
     }
 
     assert(bgn < end);
-    assert(bgn >= 0);
+    //assert(bgn >= 0);
 
 #warning not knowing the overlap length really hurts.
     end = bgn + debugfi->fragmentLength(frag3.ident);
@@ -538,14 +541,15 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
   else
     bestedge3 = NULL;
 
-  //  Compute the placement -- a little scary, as we stuff both placements into the same frag, but we guarantee
-  //  only one placement is computed.
+  //  Compute the placement -- a little scary, as we stuff both placements into the same frag, but
+  //  we guarantee only one placement is computed.
 
   if (placeFrag(frag, bidx5, bestedge5,
                 frag, bidx3, bestedge3) == false)
     return(false);
 
-  //  If we just computed a placement before the start of the unitig, we need to shift the unitig to make space.
+  //  If we just computed a placement before the start of the unitig, we need to shift the unitig to
+  //  make space.
 
   int32 frgBgn = MIN(frag.position.bgn, frag.position.end);
 
