@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.14 2009-11-26 03:02:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.15 2009-11-30 22:09:47 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -190,20 +190,21 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
       end = parent->position.bgn - ahang;
     }
 
-    //  A bgn of less than zero IS allowed; the client must either reject this placement,
-    //  or shift the unitig so that this fragment becomes the start.
-    //
     assert(bgn < end);
-    //assert(bgn >= 0);
 
     //  Since we don't know the true length of the overlap, if we use just the hangs to place a
     //  fragment, we typically shrink fragments well below their actual length.  In one case, we
     //  shrank a container enough that the containee was placed in the unitig backwards.
     //
+    //  We now revert back to placing the end based on the actual length, but will
+    //  adjust to maintain a dovetail relationship.
+    //
     //  See comments on other instances of this warning.
     //
 #warning not knowing the overlap length really hurts.
     end = bgn + debugfi->fragmentLength(frag5.ident);
+    if (end <= MAX(parent->position.bgn, parent->position.end))
+      end = MAX(parent->position.bgn, parent->position.end) + 1;
 
     //  The new frag is reverse if:
     //    the old frag is forward and we hit its 5' end, or
@@ -254,10 +255,11 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
     }
 
     assert(bgn < end);
-    //assert(bgn >= 0);
 
 #warning not knowing the overlap length really hurts.
     end = bgn + debugfi->fragmentLength(frag3.ident);
+    if (end <= MAX(parent->position.bgn, parent->position.end))
+      end = MAX(parent->position.bgn, parent->position.end) + 1;
 
     //  The new frag is reverse if:
     //    the old frag is forward and we hit its 3' end, or
