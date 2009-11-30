@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.118 2009-11-20 22:21:24 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.119 2009-11-30 20:37:39 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -582,31 +582,25 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
       if (cMap.find(f->ident) != cMap.end())
         fragCount += cMap[f->ident].size();
 
-#if 1
-      //  First fragment?
+#ifdef VERBOSEBREAK
       if (fragIdx == 0) {
         uint32             dtEnd = (isReverse(f->position)) ? THREE_PRIME : FIVE_PRIME;
         BestEdgeOverlap   *bEdge = bog_ptr->getBestEdgeOverlap(f->ident, dtEnd);
 
-#ifdef VERBOSEBREAK
         if ((bEdge) && (bEdge->frag_b_id > 0))
           fprintf(stderr,"unitig %d %c' frag %d points to unitig %d frag %d\n",
                   tig->id(), (dtEnd == THREE_PRIME) ? '3' : '5', f->ident,
                   Unitig::fragIn(bEdge->frag_b_id), bEdge->frag_b_id);
-#endif
       }
 
-      //  Last fragment?
       if (fragIdx + 1 == tig->dovetail_path_ptr->size()) {
         uint32             dtEnd = (isReverse(f->position)) ? FIVE_PRIME : THREE_PRIME;
         BestEdgeOverlap   *bEdge = bog_ptr->getBestEdgeOverlap(f->ident, dtEnd);
 
-#ifdef VERBOSEBREAK
         if ((bEdge) && (bEdge->frag_b_id > 0))
           fprintf(stderr,"unitig %d %c' frag %d points to unitig %d frag %d\n",
                   tig->id(), (dtEnd == THREE_PRIME) ? '3' : '5', f->ident,
                   Unitig::fragIn(bEdge->frag_b_id), bEdge->frag_b_id);
-#endif
       }
 #endif
 
