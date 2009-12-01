@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: consolidate.C,v 1.19 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: consolidate.C,v 1.20 2009-12-01 22:27:17 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,49 +30,37 @@ const char *mainid = "$Id: consolidate.C,v 1.19 2009-06-10 18:05:13 brianwalenz 
 #include <assert.h>
 
 #include "util++.H"
-#include "readOverlap.H"
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
 
 #define MAX_OVERLAPS_PER_FRAG   (16 * 1024 * 1024)
 
+
 typedef struct {
-  uint32 iid;
-  uint32 min5;
-  uint32 minm5;
-  uint32 minm5c;
-  uint32 mode5;
-  uint32 mode5c;
+  uint32 iid;     //  A iid for these overlaps
+  uint32 min5;    //  minimum value we've ever seen
+  uint32 minm5;   //  minimum value we've ever seen more than once
+  uint32 minm5c;  //  number of times we've seen minm5
+  uint32 mode5;   //  mode
+  uint32 mode5c;  //  number of time we've seen the mode
   uint32 max3;
   uint32 maxm3;
   uint32 maxm3c;
   uint32 mode3;
   uint32 mode3c;
-#if 0
-  uint32 iid    = atoi(W[0]);
-  uint32 min5   = atoi(W[1]) + qltLQ1;
-  uint32 minm5  = atoi(W[2]) + qltLQ1;
-  uint32 minm5c = atoi(W[3]);
-  uint32 mode5  = atoi(W[4]) + qltLQ1;
-  uint32 mode5c = atoi(W[5]);
-  uint32 max3   = atoi(W[6]) + qltLQ1;
-  uint32 maxm3  = atoi(W[7]) + qltLQ1;
-  uint32 maxm3c = atoi(W[8]);
-  uint32 mode3  = atoi(W[9]) + qltLQ1;
-  uint32 mode3c = atoi(W[10]);
-#endif
 } obtConsolidate_t;
+
 
 
 //  sort the position values on the 5' end -- this sorts increasingly
 int
 position_compare5(const void *a, const void *b) {
-  uint32  A = (uint32)*((uint32 *)a);
-  uint32  B = (uint32)*((uint32 *)b);
+  OVSoverlap  *A = (OVSoverlap *)a;
+  OVSoverlap  *B = (OVSoverlap *)b;
 
-  if (A < B)  return(-1);
-  if (A > B)  return(1);
+  if (A->dat.obt.a_beg < B->dat.obt.a_beg)  return(-1);
+  if (A->dat.obt.a_beg > B->dat.obt.a_beg)  return(1);
   return(0);
 }
 
@@ -80,18 +68,108 @@ position_compare5(const void *a, const void *b) {
 //  sort the position values on the 3' end -- this sorts decreasingly
 int
 position_compare3(const void *a, const void *b) {
-  uint32  A = (uint32)*((uint32 *)a);
-  uint32  B = (uint32)*((uint32 *)b);
+  OVSoverlap  *A = (OVSoverlap *)a;
+  OVSoverlap  *B = (OVSoverlap *)b;
 
-  if (A < B)  return(1);
-  if (A > B)  return(-1);
+  if (A->dat.obt.a_end < B->dat.obt.a_end)  return(1);
+  if (A->dat.obt.a_end > B->dat.obt.a_end)  return(-1);
   return(0);
 }
 
 
-obtConsolidate_t *
-consolidate(OverlapStore *ovsprimary, OverlapStore *ovssecondary) {
+void
+consolidate(OverlapStore *ovsprimary, OverlapStore *ovssecondary, obtConsolidate_t &cd) {
 }
+
+
+void
+consolidate(OVSoverlap *ovl, int32 ovlLen, obtConsolidate_t &cd) {
+
+  cd.iid    = 0xffffffff;
+  cd.min5   = 0xffffffff;
+  cd.minm5  = 0xffffffff;
+  cd.minm5c = 0;
+  cd.mode5  = 0xffffffff;
+  cd.mode5c = 1;
+  cd.max3   = 0xffffffff;
+  cd.maxm3  = 0xffffffff;
+  cd.maxm3c = 0;
+  cd.mode3  = 0xffffffff;
+  cd.mode3c = 1;
+
+  if ((ovl == NULL) || (ovlLen == 0))
+    return;
+
+  cd.iid    = ovl[0].a_iid;
+
+  int32  mtmp;  //  Mode we are computing, value
+  int32  mcnt;  //  Mode we are computing, number of times we've seen it
+
+  qsort(ovl, ovlLen, sizeof(OVSoverlap), position_compare5);
+
+  cd.min5   = ovl[0].dat.obt.a_beg;
+  cd.mode5  = mtmp = ovl[0].dat.obt.a_beg;
+  cd.mode5c = mcnt = 1;
+
+  for (uint32 i=1; i<ovlLen; i++) {
+
+    //  5' end.  Scan the list, remembering the best mode we've seen so far.  When a better one
+    //  arrives, we copy it to the saved one -- and keep copying it as it gets better.
+
+    if (mtmp == ovl[i].dat.obt.a_beg) {  //  Same mode?  Count.
+      mcnt++;
+    } else {
+      mtmp = ovl[i].dat.obt.a_beg;  //  Different mode, restart.
+      mcnt = 1;
+    }
+
+    if (mcnt > cd.mode5c) {  //  Bigger mode?  Save it.
+      cd.mode5  = mtmp;
+      cd.mode5c = mcnt;
+    }
+
+    //  If our mode is more than one and we've not seen a multiple hit before
+    //  save this position.
+    //
+    if ((cd.mode5c > 1) && (cd.minm5 == 0xffffffff))
+      cd.minm5  = cd.mode5;
+
+    if (cd.minm5 == cd.mode5)
+      cd.minm5c = cd.mode5c;
+  }
+
+  //  Do it all again for the 3' -- remember that we've sorted this decreasingly.
+  //
+  qsort(ovl, ovlLen, sizeof(OVSoverlap), position_compare3);
+
+  cd.max3   = ovl[0].dat.obt.a_end;
+  cd.mode3  = mtmp = ovl[0].dat.obt.a_end;
+  cd.mode3c = mcnt = 1;
+
+  for (uint32 i=1; i<ovlLen; i++) {
+    if (mtmp == ovl[i].dat.obt.a_end) {
+      mcnt++;
+    } else {
+      mtmp = ovl[i].dat.obt.a_end;
+      mcnt = 1;
+    }
+
+    if (mcnt > cd.mode3c) {
+      cd.mode3  = mtmp;
+      cd.mode3c = mcnt;
+    }
+
+    if ((cd.mode3c > 1) && (cd.maxm3 == 0xffffffff))
+      cd.maxm3  = cd.mode3;
+
+    if (cd.maxm3 == cd.mode3)
+      cd.maxm3c = cd.mode3c;
+  }
+}
+
+
+
+
 
 
 int
@@ -122,178 +200,32 @@ main(int argc, char **argv) {
   if ((ovsprimary == NULL) || err)
     fprintf(stderr, "usage: %s -ovs obtStore > asm.ovl.consolidated\n", argv[0]), exit(1);
 
-  AS_IID       lastFrag    = AS_OVS_lastFragInStore(ovsprimary);
 
-  if ((ovssecondary) && (lastFrag < AS_OVS_lastFragInStore(ovssecondary)))
-    lastFrag = AS_OVS_lastFragInStore(ovssecondary);
+  uint32      ovlMax = MAX_OVERLAPS_PER_FRAG;
+  uint32      ovlLen = 0;
+  OVSoverlap *ovl    = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * ovlMax);
 
-  uint32       idAlast     = 0;
-  uint32       numOverlaps = 0;
-  uint32      *left        = new uint32    [MAX_OVERLAPS_PER_FRAG];
-  uint32      *right       = new uint32    [MAX_OVERLAPS_PER_FRAG];
-  AS_IID      *biid        = new AS_IID    [MAX_OVERLAPS_PER_FRAG];
-  char        *bseen       = new char      [lastFrag + 1];
+  ovlLen += AS_OVS_readOverlapsFromStore(ovsprimary,   ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
+  ovlLen += AS_OVS_readOverlapsFromStore(ovssecondary, ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
 
-  for (uint32 i=0; i<lastFrag+1; i++)
-    bseen[i] = 0;
+  //  NOTE!  We DO get multiple overlaps for the same pair of fragments in the partial overlap
+  //  output.  We used to pick one of the overlaps (the first seen) and ignore the rest.  We do not
+  //  do that anymore.
 
-  OVSoverlap *ovl     = readOverlap(ovsprimary, ovssecondary);
-  bool        notDone = true;
+  while (ovlLen > 0) {
+    obtConsolidate_t  cd;
 
-  while (notDone) {
+    consolidate(ovl, ovlLen, cd);
 
-    //  If we see a different idA than we had last time, process the
-    //  previous read.  The first time through here, idAlast !=
-    //  ovl->a_iid, but numOverlaps == 0, and we skip.  On the last
-    //  time, ovl == NULL, and numOverlaps > 0, and we emit the last
-    //  block.
-    //
-    if (((ovl == NULL) || (idAlast != ovl->a_iid)) &&
-        (numOverlaps > 0)) {
+    fprintf(stdout, F_U32"  "F_U32" "F_U32" "F_U32" "F_U32" "F_U32"  "F_U32" "F_U32" "F_U32" "F_U32" "F_U32"\n",
+            cd.iid,
+            cd.min5, cd.minm5, cd.minm5c, cd.mode5, cd.mode5c,
+            cd.max3, cd.maxm3, cd.maxm3c, cd.mode3, cd.mode3c);
 
-      assert((ovl == NULL) || (ovl->a_iid > idAlast));
-
-      qsort(left,  numOverlaps, sizeof(uint32), position_compare5);
-      qsort(right, numOverlaps, sizeof(uint32), position_compare3);
-
-      //  XXX:  Print the 5' and 3' stuff
-      //
-      //  We might as well find the
-      //    min/max
-      //    min/max with more than one hit
-      //    mode
-      //  since we have everything here
-      //
-      //  minN    -- minimum value we've ever seen
-      //  minmN   -- minimum value we've seen more than once
-      //  minmNc  -- number of times we've seen minm
-      //  modeN   -- mode
-      //  modeNc  -- number of times we've seen the mode
-      //  modeNt  -- temp copy of the mode
-      //  modeNtc -- temp copy of the mode, number of times
-      //
-      uint32  min5, minm5, minm5c,  mode5, mode5c,  mode5t, mode5tc;
-      uint32  max3, maxm3, maxm3c,  mode3, mode3c,  mode3t, mode3tc;
-
-      min5 = left[0];
-      max3 = right[0];
-
-      minm5 = 9999;       minm5c  = 0;
-      maxm3 = 9999;       maxm3c  = 0;
-
-      mode5 = left[0];    mode5c  = 1;
-      mode3 = right[0];   mode3c  = 1;
-
-      mode5t = left[0];   mode5tc = 1;
-      mode3t = right[0];  mode3tc = 1;
-
-      for (uint32 i=1; i<numOverlaps; i++) {
-
-        //  5' end.  We scan the list, remembering the best mode
-        //  we've seen so far.  When a better one arrives, we copy
-        //  it to the saved one -- and keep copying it as it gets
-        //  better.
-        //
-        if (mode5t == left[i]) {  //  Same mode?  Count.
-          mode5tc++;
-        } else {
-          mode5t  = left[i];  //  Different mode, restart.
-          mode5tc = 1;
-        }
-        if (mode5tc > mode5c) {  //  Bigger mode?  Save it.
-          mode5  = mode5t;
-          mode5c = mode5tc;
-        }
-
-        //  If our mode is more than one and we've not seen a multiple hit before
-        //  save this position.
-        //
-        if ((mode5c > 1) && (minm5 == 9999))
-          minm5  = mode5;
-        if (minm5 == mode5)
-          minm5c = mode5c;
-
-
-        //  Do it all again for the 3' -- remember that we've
-        //  sorted this decreasingly.
-
-
-        if (mode3t == right[i]) {  //  Same mode?  Count.
-          mode3tc++;
-        } else {
-          mode3t  = right[i];  //  Different mode, restart.
-          mode3tc = 1;
-        }
-        if (mode3tc > mode3c) {  //  Bigger mode?  Save it.
-          mode3  = mode3t;
-          mode3c = mode3tc;
-        }
-        if ((mode3c > 1) && (maxm3 == 9999))
-          maxm3  = mode3;
-        if (maxm3 == mode3)
-          maxm3c = mode3c;
-      }
-
-      //  Output!
-      //
-      fprintf(stdout, F_U32"  "F_U32" "F_U32" "F_U32" "F_U32" "F_U32"  "F_U32" "F_U32" "F_U32" "F_U32" "F_U32"",
-              idAlast,
-              min5, minm5, minm5c, mode5, mode5c,
-              max3, maxm3, maxm3c, mode3, mode3c);
-
-      //  Save all the overlaps too
-      //
-#if 0
-      fprintf(stdout, "  "F_U32"", numOverlaps);
-      for (uint32 i=0; i<numOverlaps; i++)
-        fprintf(stdout, "  "F_U32" "F_U32"",
-                left[i], right[i]);
-#endif
-
-      fprintf(stdout, "\n");
-
-      for (uint32 i=0; i<numOverlaps; i++)
-        bseen[biid[i]] = 0;
-
-      numOverlaps = 0;
-    }
-
-    //  No more overlaps, just get outta here.
-    //
-    if (ovl == NULL) {
-      notDone = false;
-      break;
-    }
-
-    //  We DO get duplicates in the normal partial overlap output.
-    //  Check that we don't already have this overlap -- we just check
-    //  that we've not seen the b_iid already.
-    //
-    //  The "1.0 *" is to remind us how to scale this down in the
-    //  future.
-    //
-    if ((AS_OVS_decodeQuality(ovl->dat.obt.erate) <= 1.0 * AS_OVL_ERROR_RATE) &&
-        (bseen[ovl->b_iid] == 0)) {
-      if (numOverlaps < MAX_OVERLAPS_PER_FRAG) {
-        idAlast            = ovl->a_iid;
-        left[numOverlaps]  = ovl->dat.obt.a_beg;
-        right[numOverlaps] = ovl->dat.obt.a_end;
-        biid[numOverlaps]  = ovl->b_iid;
-
-        numOverlaps++;
-
-        bseen[ovl->b_iid] = 1;
-      } else {
-        fprintf(stderr, "TOO MANY OVERLAPS for fragment a_iid "F_IID".\n", ovl->a_iid);
-        exit(1);
-      }
-    }
-
-    ovl = readOverlap(ovsprimary, ovssecondary);
+    ovlLen  = 0;
+    ovlLen += AS_OVS_readOverlapsFromStore(ovsprimary,   ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
+    ovlLen += AS_OVS_readOverlapsFromStore(ovssecondary, ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
   }
-
-  delete [] left;
-  delete [] right;
 
   exit(0);
 }

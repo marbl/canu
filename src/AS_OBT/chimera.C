@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.39 2009-11-30 17:32:54 brianwalenz Exp $";
+const char *mainid = "$Id: chimera.C,v 1.40 2009-12-01 22:27:17 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,11 +29,12 @@ const char *mainid = "$Id: chimera.C,v 1.39 2009-11-30 17:32:54 brianwalenz Exp 
 #include <assert.h>
 
 #include "util++.H"
-#include "readOverlap.H"
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_OVS_overlapStore.h"
+
+#define MAX_OVERLAPS_PER_FRAG   (16 * 1024 * 1024)
 
 
 //  We trim each overlap end back by this amount.
@@ -149,7 +150,7 @@ readClearRanges(gkStore *gkp) {
     AS_IID       iid  = fr.gkFragment_getReadIID();
     gkLibrary   *lr   = NULL;
     if (fr.gkFragment_getLibraryIID() != 0) {
-       lr   = gkp->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
+      lr   = gkp->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
     }
 
     clear[iid].deleted       = fr.gkFragment_getIsDeleted() ? 1 : 0;
@@ -358,14 +359,194 @@ printLogMessage(AS_UID        uid,
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+overlapList *
+adjust(OVSoverlap *ovl, uint32 ovlLen, const clear_t *clear) {
+
+  overlapList *olist = new overlapList;
+
+  for (uint32 o=0; o<ovlLen; o++) {
+    int32 idA    = ovl[o].a_iid;
+    int32 idB    = ovl[o].b_iid;
+
+    //  Grab the clear ranges for each read.
+
+    int32  ori    = (ovl[o].dat.obt.fwd) ? 'f' : 'r';
+
+    int32 initLa = clear[idA].initL;
+    int32 initRa = clear[idA].initR;
+    int32 mergLa = clear[idA].mergL;
+    int32 mergRa = clear[idA].mergR;
+    int32 dela   = clear[idA].deleted;
+
+    int32 initLb = clear[idB].initL;
+    int32 initRb = clear[idB].initR;
+    int32 mergLb = clear[idB].mergL;
+    int32 mergRb = clear[idB].mergR;
+    int32 delb   = clear[idA].deleted;
+
+    //  OBT overlaps are relative to the OBTINITIAL clear range.  We convert them to be relative to
+    //  the start of the fragment.
+
+    int32 leftA = initLa + ovl[o].dat.obt.a_beg;
+    int32 righA = initLa + ovl[o].dat.obt.a_end;
+    int32 lenA  = clear[idA].length;
+
+    int32 leftB = initLb + ovl[o].dat.obt.b_beg;
+    int32 righB = initLb + ((ovl[o].dat.obt.b_end_hi << 9) | (ovl[o].dat.obt.b_end_lo));
+    int32 lenB  = clear[idB].length;
+
+    if (ori == 'r') {
+      int32 t = leftB;
+      leftB   = righB;
+      righB   = t;
+    }
+
+    assert(leftA < righA);
+    assert(leftB < righB);
+
+    double error  = AS_OVS_decodeQuality(ovl[o].dat.obt.erate);
+
+#ifdef REPORT_OVERLAPS
+    if (reportFile)
+      fprintf(reportFile, F_U32"\t"F_U32"\t%c\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t%5.3f -- ",
+              idA, idB, ori, leftA, righA, lenA, leftB, righB, lenB, error);
+#endif
+
+    //  Decide how much we already trimmed off.  This could be described as taking the intersection
+    //  of the two OBTMERGE clear ranges for each read, with the overlap.
+    //
+    int32  trimLa = (leftA  < mergLa) ? (mergLa - leftA)  : 0;
+    int32  trimRa = (mergRa < righA)  ? (righA  - mergRa) : 0;
+    int32  trimLb = (leftB  < mergLb) ? (mergLb - leftB)  : 0;
+    int32  trimRb = (mergRb < righB)  ? (righB  - mergRb) : 0;
+
+    assert(trimLa >= 0);
+    assert(trimRa >= 0);
+    assert(trimLb >= 0);
+    assert(trimRb >= 0);
+
+    int32  trimL = MAX(trimLa, trimLb);
+    int32  trimR = MAX(trimRa, trimRb);
+
+#ifdef REPORT_OVERLAPS
+    fprintf(reportFile, "TRIM %d %d %d %d -- ", trimLa, trimRa, trimLb, trimRb);
+#endif
+
+    leftA += trimL;
+    righA -= trimR;
+
+    leftB += trimL;
+    righB -= trimR;
+
+    //  Until told otherwise, the overlap is tiny and bad.
+
+    bool isNotCrap = false;
+
+
+    if ((0 <= leftA) && (0 <= righA) &&
+        (0 <= leftB) && (0 <= righB) &&
+        (leftA + 40 <= righA) &&
+        (leftB + 40 <= righB)) {
+
+      //  We used to use hard and fast cutoffs here.  The original said use the overlap if its
+      //  length (righA-leftA) was >=35 and error <= 0.02, or if length >= 70.  This is completely
+      //  unfair to 454 reads.
+      //
+      //  Second idea was:
+      //    length >=  40, error <= 1/3 OVL_ERATE
+      //    length >= 100, error <= 1/2 OVL_ERATE
+      //    length >= 200, error <= 1/1 OVL_ERATE
+      //  which is even more unfair.
+      //
+      //  lenA, the untrimmed length of the A read.
+      //
+      if (lenA < 200) {
+        //  454 mate read -- The smallest overlap we should be seeing from overlapper is 40bp.
+        //  That's nearly half of a 454 mated read, so we allow much higher error overlaps at that
+        //  length.
+        //
+        isNotCrap = (((righA - leftA >=  40) && (error <= 0.333 * AS_OVL_ERROR_RATE)) ||
+                     ((righA - leftA >=  40) && (error <= 0.750 * AS_OVL_ERROR_RATE)) ||
+                     ((righA - leftA >=  70) && (error <= 1.000 * AS_OVL_ERROR_RATE)));
+      } else if (lenA < 400) {
+        //  454 unmated read
+        isNotCrap = (((righA - leftA >=  40) && (error <= 0.333 * AS_OVL_ERROR_RATE)) ||
+                     ((righA - leftA >=  70) && (error <= 0.750 * AS_OVL_ERROR_RATE)) ||
+                     ((righA - leftA >= 100) && (error <= 1.000 * AS_OVL_ERROR_RATE)));
+      } else {
+        //  Sanger read
+        isNotCrap = (((righA - leftA >=  40) && (error <= 0.333 * AS_OVL_ERROR_RATE)) ||
+                     ((righA - leftA >= 100) && (error <= 0.750 * AS_OVL_ERROR_RATE)) ||
+                     ((righA - leftA >= 200) && (error <= 1.000 * AS_OVL_ERROR_RATE)));
+      }
+    }
+
+    if ((isNotCrap) && (dela == false) && (delb == false)) {
+      int32 lhangA = leftA  - mergLa;
+      int32 rhangA = mergRa - righA;
+      int32 lhangB = leftB  - mergLb;
+      int32 rhangB = mergRb - righB;
+
+      if (ori == 'r') {
+        int32 t = lhangB;
+        lhangB  = rhangB;
+        rhangB  = t;
+      }
+
+      if (lhangA < 15)  lhangA = 0;
+      if (rhangA < 15)  rhangA = 0;
+      if (lhangB < 15)  lhangB = 0;
+      if (rhangB < 15)  rhangB = 0;
+
+      //  Add to the list.
+
+#ifdef REPORT_OVERLAPS
+      fprintf(reportFile, "ADD %3d %3d-%3d %3d vs %3d %3d-%3d %3d ori %c\n",
+              lhangA, leftA, righA, rhangA,
+              lhangB, leftB, righB, rhangB, ori);
+#endif
+
+      olist->add(idA, lhangA, leftA, righA, rhangA,
+                 idB, lhangB, leftB, righB, rhangB, ori);
+    } else {
+#ifdef REPORT_OVERLAPS
+      fprintf(reportFile, "SKIP\n");
+#endif
+    }
+  }
+
+  return(olist);
+}
+
+
+
+
+
 void
 process(const AS_IID           iid,
         const clear_t         *clear,
-              gkStore *gkp,
-              bool             doUpdate,
-        const overlapList     *overlap) {
+        gkStore *gkp,
+        bool             doUpdate,
+        const overlapList     *olist) {
 
-  if (overlap->length() <= 0)
+  if (olist->length() <= 0)
     return;
 
   readsProcessed++;
@@ -407,8 +588,8 @@ process(const AS_IID           iid,
     //  above) to notice that this overlap has more sequence spurring
     //  off because it diagrees with the linker.
     //
-    for (uint32 i=0; i<overlap->length(); i++) {
-      overlap2_t  *ovl   = overlap->get(i);
+    for (uint32 i=0; i<olist->length(); i++) {
+      overlap2_t  *ovl   = olist->get(i);
       uint32       ovllo = ovl->Abeg;
       uint32       ovlhi = ovl->Aend;
 
@@ -451,8 +632,8 @@ process(const AS_IID           iid,
               loLinker, hiLinker, isectbefore, isect, isectafter);
 #endif
 
-      for (uint32 i=0; i<overlap->length(); i++) {
-        overlap2_t  *ovl = overlap->get(i);
+      for (uint32 i=0; i<olist->length(); i++) {
+        overlap2_t  *ovl = olist->get(i);
         uint32       ovllo = ovl->Abeg;
         uint32       ovlhi = ovl->Aend;
 
@@ -518,8 +699,8 @@ process(const AS_IID           iid,
 
   //  These types are described in Bri's VI Notebook #2 page 33.
 
-  for (uint32 i=0; i<overlap->length(); i++) {
-    overlap2_t  *ovl   = overlap->get(i);
+  for (uint32 i=0; i<olist->length(); i++) {
+    overlap2_t  *ovl   = olist->get(i);
     bool         valid = false;
     int32        bgn   = 0;
     int32        end   = 0;
@@ -694,8 +875,8 @@ process(const AS_IID           iid,
       //  Count the number of overlaps with hangs that are
       //  on the correct side to be chimeric.
       //
-      for (uint32 i=0; i<overlap->length(); i++) {
-        overlap2_t  *ovl = overlap->get(i);
+      for (uint32 i=0; i<olist->length(); i++) {
+        overlap2_t  *ovl = olist->get(i);
 
         switch (ovl->style) {
           case 5:
@@ -844,8 +1025,8 @@ process(const AS_IID           iid,
   bool    isRightSpur = false;
   bool    isSpur      = false;
 
-  for (uint32 i=0; i<overlap->length(); i++) {
-    overlap2_t  *ovl = overlap->get(i);
+  for (uint32 i=0; i<olist->length(); i++) {
+    overlap2_t  *ovl = olist->get(i);
 
     switch (ovl->style) {
       case 5:
@@ -1045,7 +1226,7 @@ process(const AS_IID           iid,
         intervalEnd = currentEnd;
         intervalMax = intervalEnd - intervalBeg;
 #ifdef DEBUG_INTERVAL
-      fprintf(reportFile, "+after %d,%d -- ", intervalBeg, intervalEnd);
+        fprintf(reportFile, "+after %d,%d -- ", intervalBeg, intervalEnd);
 #endif
       }
     }
@@ -1086,7 +1267,7 @@ process(const AS_IID           iid,
         gkp->gkStore_setFragment(&fr);
       }
     }
-    printReport("SPUR", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, overlap);
+    printReport("SPUR", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, olist);
 
   } else if (isChimera) {
     if (intervalMax < AS_READ_MIN_LEN) {
@@ -1106,11 +1287,11 @@ process(const AS_IID           iid,
         gkp->gkStore_setFragment(&fr);
       }
     }
-    printReport("CHIMERA", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, overlap);
+    printReport("CHIMERA", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, olist);
 
   } else {
     gapNotChimera++;
-    printReport("NOT CHIMERA", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, overlap);
+    printReport("NOT CHIMERA", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, olist);
   }
 }
 
@@ -1180,10 +1361,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  AS_IID           idA=0, idB=0, idAlast=0;
-
   clear_t         *clear = readClearRanges(gkp);
-  overlapList     *overlap = new overlapList;
 
   if (summaryName) {
     errno = 0;
@@ -1198,171 +1376,28 @@ main(int argc, char **argv) {
       fprintf(stderr, "Failed to open '%s' for writing: %s\n", reportName, strerror(errno)), exit(1);
   }
 
-  OVSoverlap   *ovl = readOverlap(ovsprimary, ovssecondary);
-  while (ovl) {
-    idA    = ovl->a_iid;
-    idB    = ovl->b_iid;
+  uint32      ovlMax = MAX_OVERLAPS_PER_FRAG;
+  uint32      ovlLen = 0;
+  OVSoverlap *ovl    = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * ovlMax);
 
-    //  Process any last read.
+  ovlLen += AS_OVS_readOverlapsFromStore(ovsprimary,   ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
+  ovlLen += AS_OVS_readOverlapsFromStore(ovssecondary, ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
 
-    if (idA != idAlast) {
-      process(idAlast, clear, gkp, doUpdate, overlap);
-      delete overlap;
-      overlap = new overlapList;
-    }
-    idAlast = ovl->a_iid;
+  //  NOTE!  We DO get multiple overlaps for the same pair of fragments in the partial overlap
+  //  output.  We used to pick one of the overlaps (the first seen) and ignore the rest.  We do not
+  //  do that anymore.
 
-    //  Grab the clear ranges for each read.
+  while (ovlLen > 0) {
+    overlapList *olist = adjust(ovl, ovlLen, clear);
 
-    int32  ori    = (ovl->dat.obt.fwd) ? 'f' : 'r';
+    process(ovl[0].a_iid, clear, gkp, doUpdate, olist);
 
-    int32 initLa = clear[idA].initL;
-    int32 initRa = clear[idA].initR;
-    int32 mergLa = clear[idA].mergL;
-    int32 mergRa = clear[idA].mergR;
-    int32 dela = clear[idA].deleted;
+    delete olist;
 
-    int32 initLb = clear[idB].initL;
-    int32 initRb = clear[idB].initR;
-    int32 mergLb = clear[idB].mergL;
-    int32 mergRb = clear[idB].mergR;
-    int32 delb = clear[idA].deleted;
-
-    //  OBT overlaps are relative to the OBTINITIAL clear range.  We convert them to be relative to
-    //  the start of the fragment.
-
-    int32 leftA = initLa + ovl->dat.obt.a_beg;
-    int32 righA = initLa + ovl->dat.obt.a_end;
-    int32 lenA  = clear[idA].length;
-
-    int32 leftB = initLb + ovl->dat.obt.b_beg;
-    int32 righB = initLb + ((ovl->dat.obt.b_end_hi << 9) | (ovl->dat.obt.b_end_lo));
-    int32 lenB  = clear[idB].length;
-
-    if (ori == 'r') {
-      int32 t = leftB;
-      leftB   = righB;
-      righB   = t;
-    }
-
-    assert(leftA < righA);
-    assert(leftB < righB);
-
-    double error  = AS_OVS_decodeQuality(ovl->dat.obt.erate);
-
-#ifdef REPORT_OVERLAPS
-    if (reportFile)
-      fprintf(reportFile, F_U32"\t"F_U32"\t%c\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t%5.3f -- ",
-              idA, idB, ori, leftA, righA, lenA, leftB, righB, lenB, error);
-#endif
-
-    //  Decide how much we already trimmed off.  This could be described as taking the intersection
-    //  of the two OBTMERGE clear ranges for each read, with the overlap.
-    //
-    int32  trimLa = (leftA  < mergLa) ? (mergLa - leftA)  : 0;
-    int32  trimRa = (mergRa < righA)  ? (righA  - mergRa) : 0;
-    int32  trimLb = (leftB  < mergLb) ? (mergLb - leftB)  : 0;
-    int32  trimRb = (mergRb < righB)  ? (righB  - mergRb) : 0;
-
-    assert(trimLa >= 0);
-    assert(trimRa >= 0);
-    assert(trimLb >= 0);
-    assert(trimRb >= 0);
-
-    int32  trimL = MAX(trimLa, trimLb);
-    int32  trimR = MAX(trimRa, trimRb);
-
-#ifdef REPORT_OVERLAPS
-    fprintf(reportFile, "TRIM %d %d %d %d -- ", trimLa, trimRa, trimLb, trimRb);
-#endif
-
-    leftA += trimL;
-    righA -= trimR;
-
-    leftB += trimL;
-    righB -= trimR;
-
-    //  Until told otherwise, the overlap is tiny and bad.
-
-    bool isNotCrap = false;
-
-
-    if ((0 <= leftA) && (0 <= righA) &&
-        (0 <= leftB) && (0 <= righB) &&
-        (leftA + 40 <= righA) &&
-        (leftB + 40 <= righB)) {
-
-      //  We used to use hard and fast cutoffs here.  The original said use the overlap if its
-      //  length (righA-leftA) was >=35 and error <= 0.02, or if length >= 70.  This is completely
-      //  unfair to 454 reads.
-      //
-      //  Second idea was:
-      //    length >=  40, error <= 1/3 OVL_ERATE
-      //    length >= 100, error <= 1/2 OVL_ERATE
-      //    length >= 200, error <= 1/1 OVL_ERATE
-      //  which is even more unfair.
-      //
-      //  lenA, the untrimmed length of the A read.
-      //
-      if (lenA < 200) {
-        //  454 mate read -- The smallest overlap we should be seeing from overlapper is 40bp.
-        //  That's nearly half of a 454 mated read, so we allow much higher error overlaps at that
-        //  length.
-        //
-        isNotCrap = (((righA - leftA >=  40) && (error <= 0.333 * AS_OVL_ERROR_RATE)) ||
-                     ((righA - leftA >=  40) && (error <= 0.750 * AS_OVL_ERROR_RATE)) ||
-                     ((righA - leftA >=  70) && (error <= 1.000 * AS_OVL_ERROR_RATE)));
-      } else if (lenA < 400) {
-        //  454 unmated read
-        isNotCrap = (((righA - leftA >=  40) && (error <= 0.333 * AS_OVL_ERROR_RATE)) ||
-                     ((righA - leftA >=  70) && (error <= 0.750 * AS_OVL_ERROR_RATE)) ||
-                     ((righA - leftA >= 100) && (error <= 1.000 * AS_OVL_ERROR_RATE)));
-      } else {
-        //  Sanger read
-        isNotCrap = (((righA - leftA >=  40) && (error <= 0.333 * AS_OVL_ERROR_RATE)) ||
-                     ((righA - leftA >= 100) && (error <= 0.750 * AS_OVL_ERROR_RATE)) ||
-                     ((righA - leftA >= 200) && (error <= 1.000 * AS_OVL_ERROR_RATE)));
-      }
-    }
-
-    if ((isNotCrap) && (dela == false) && (delb == false)) {
-      int32 lhangA = leftA  - mergLa;
-      int32 rhangA = mergRa - righA;
-      int32 lhangB = leftB  - mergLb;
-      int32 rhangB = mergRb - righB;
-
-      if (ori == 'r') {
-        int32 t = lhangB;
-        lhangB  = rhangB;
-        rhangB  = t;
-      }
-
-      if (lhangA < 15)  lhangA = 0;
-      if (rhangA < 15)  rhangA = 0;
-      if (lhangB < 15)  lhangB = 0;
-      if (rhangB < 15)  rhangB = 0;
-
-      //  Add to the list.
-
-#ifdef REPORT_OVERLAPS
-      fprintf(reportFile, "ADD %3d %3d-%3d %3d vs %3d %3d-%3d %3d ori %c\n",
-              lhangA, leftA, righA, rhangA,
-              lhangB, leftB, righB, rhangB, ori);
-#endif
-
-      overlap->add(idA, lhangA, leftA, righA, rhangA,
-                   idB, lhangB, leftB, righB, rhangB, ori);
-    } else {
-#ifdef REPORT_OVERLAPS
-      fprintf(reportFile, "SKIP\n");
-#endif
-    }
-
-    ovl = readOverlap(ovsprimary, ovssecondary);
+    ovlLen  = 0;
+    ovlLen += AS_OVS_readOverlapsFromStore(ovsprimary,   ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
+    ovlLen += AS_OVS_readOverlapsFromStore(ovssecondary, ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
   }
-
-  process(idAlast, clear, gkp, doUpdate, overlap);
-  delete overlap;
 
   delete gkp;
 
