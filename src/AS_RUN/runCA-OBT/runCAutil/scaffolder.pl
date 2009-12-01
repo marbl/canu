@@ -67,6 +67,8 @@ sub CGW ($$$$$$) {
     my $B = int($numFrags / getGlobal("cnsPartitions"));
     $B = getGlobal("cnsMinFrags") if ($B < getGlobal("cnsMinFrags"));
 
+    my $P = getGlobal("closurePlacement");
+
     $cmd  = "$bin/cgw $ckp \\\n";
     $cmd .= "  -j $astatLow -k $astatHigh \\\n";
     $cmd .= "  -r 5 \\\n";
@@ -74,7 +76,7 @@ sub CGW ($$$$$$) {
     $cmd .= "  -S 0 \\\n"                                if (($finalRun == 0)   || (getGlobal("doResolveSurrogates") == 0));
     $cmd .= "  -G \\\n"                                  if ($finalRun == 0);
     $cmd .= "  -z \\\n"                                  if (getGlobal("cgwDemoteRBP") == 1);
-    $cmd .= "  -P \\\n" . getGlobal("closurePlacement")  if (defined(getGlobal("closurePlacement")));
+    $cmd .= "  -P $P \\\n"                               if (defined($P));
     $cmd .= "  -K \\\n"                                  if (getGlobal("kickOutNonOvlContigs") != 0);
     $cmd .= "  -U \\\n"                                  if (getGlobal("doUnjiggleWhenMerging") != 0);
     $cmd .= "  -F \\\n"                                  if (getGlobal("toggleDoNotDemote") != 0);
