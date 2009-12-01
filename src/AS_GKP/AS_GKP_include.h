@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.52 2009-09-25 19:44:02 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.53 2009-12-01 13:53:12 skoren Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
 
-static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.52 2009-09-25 19:44:02 brianwalenz Exp $";
+static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.53 2009-12-01 13:53:12 skoren Exp $";
 
 #include <stdio.h>
 #include <errno.h>
@@ -122,6 +122,11 @@ dumpGateKeeperAsVelvet(char       *gkpStoreName,
                         char       *iidToDump,
                         int         doNotFixMates,
                         int         dumpFRGClear);
+
+int
+dumpGateKeeperIsFeatureSet(char       *gkpStoreName,
+                           AS_IID     featureLibIID,
+                           char      *featureName);
 
 int
 Build_Partition(char      *gatekeeperName,

@@ -19,13 +19,9 @@ sub unitigger () {
         if (!defined(getGlobal("unitigger"))) {
             setGlobal("unitigger", "utg");
 
-            open(F, "$bin/gatekeeper -dumplibraries $wrk/$asm.gkpStore |");
-            while (<F>) {
-                if (m/forceBOGunitigger=1/) {
-                    setGlobal("unitigger", "bog");
-                }
+            if (system("$bin/gatekeeper -isfeatureset 0 forceBOGunitigger $wrk/$asm.gkpStore") == 0) {
+               setGlobal("unitigger", "bog");
             }
-            close(F);
         }
 
         system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");

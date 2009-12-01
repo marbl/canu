@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.84 2009-09-25 01:08:31 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.85 2009-12-01 13:53:12 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -133,6 +133,8 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "                        dumped into a single file. Use at your own risk! This will create\n");
   fprintf(stdout, "                        files 'prefix.fastq' and 'prefix.unmated.fastq' for unmated reads.\n");
   fprintf(stdout, "                        Options -donotfixmates and -clear also apply.\n");
+  fprintf(stdout, "  -isfeatureset <libID> <X> Sets exit value to 0 if feature X is set in library libID, 1 otherwise.\n");
+  fprintf(stdout, "                        If libID == 0, check all libraries.\n");
   fprintf(stdout, "\n");
   if (longhelp == 0) {
     fprintf(stdout, "Use '-h' to get a discussion of what gatekeeper is.\n");
@@ -384,6 +386,7 @@ constructIIDdump(char  *gkpStoreName,
 #define DUMP_NEWBLER     6
 #define DUMP_LASTFRG     7
 #define DUMP_VELVET      8
+#define DUMP_FEATURE     9
 
 int
 main(int argc, char **argv) {
@@ -431,6 +434,9 @@ main(int argc, char **argv) {
   double           dumpRandFraction  = 0.0;
   uint64           dumpRandLength    = 0;
   char            *iidToDump         = NULL;
+  
+  AS_IID           featureLibIID     = 0;
+  char            *featureName       = NULL;          
 
   progName = argv[0];
   gkpStore = NULL;
@@ -536,6 +542,10 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-dumpvelvet") == 0) {
       dump = DUMP_VELVET;
       velvetPrefix = argv[++arg];
+    } else if (strcmp(argv[arg], "-isfeatureset") == 0 ) {
+      dump = DUMP_FEATURE;
+      featureLibIID = atoi(argv[++arg]);
+      featureName = argv[++arg];
     } else if (strcmp(argv[arg], "-donotfixmates") == 0) {
       doNotFixMates = 1;
 
@@ -592,6 +602,8 @@ main(int argc, char **argv) {
   iidToDump = constructIIDdump(gkpStoreName, iidToDump, dumpRandLib, dumpRandMateNum, dumpRandSingNum, dumpRandFraction, dumpRandLength);
 
   if (dump != DUMP_NOTHING) {
+    int exitVal = 0;
+   
     switch (dump) {
       case DUMP_INFO:
         dumpGateKeeperInfo(gkpStoreName, dumpTabular);
@@ -634,11 +646,13 @@ main(int argc, char **argv) {
                                 doNotFixMates,
                                 dumpFRGClear);
         break;
+      case DUMP_FEATURE:
+         exitVal = (dumpGateKeeperIsFeatureSet(gkpStoreName, featureLibIID, featureName) == 0);
       default:
         break;
     }
 
-    exit(0);
+    exit(exitVal);
   }
 
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.51 2009-10-26 16:37:09 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.52 2009-12-01 13:53:12 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1005,4 +1005,39 @@ dumpGateKeeperAsVelvet(char       *gkpStoreName,
 
   delete fs;
   delete gkp;
+}
+
+int
+dumpGateKeeperIsFeatureSet(char      *gkpStoreName,
+                           AS_IID     libIID,
+                           char      *featureName)
+{
+   assert(featureName != NULL);
+  
+   gkStore *gkp = new gkStore(gkpStoreName, FALSE, FALSE);
+   int isSet = 0;
+   uint32 i;
+   
+   uint32 begIID, endIID;
+   begIID = endIID = libIID;
+   if (libIID <= 0 || libIID > gkp->gkStore_getNumLibraries()) {   
+      begIID = 1;
+      endIID = gkp->gkStore_getNumLibraries();
+   }
+
+   for (i=begIID; i<=endIID; i++) {
+      gkLibrary      *gkpl = gkp->gkStore_getLibrary(i);
+      LibraryMesg     lmesg;
+      uint32          f;
+      gkpl->gkLibrary_encodeFeatures(&lmesg);
+
+      for (f=0; f<lmesg.num_features; f++)
+         if (strcasecmp(lmesg.features[f], featureName) == 0)
+            isSet |= atoi(lmesg.values[f]);
+
+      gkpl->gkLibrary_encodeFeaturesCleanup(&lmesg);
+   }
+   
+   delete gkp;
+   return isSet;
 }

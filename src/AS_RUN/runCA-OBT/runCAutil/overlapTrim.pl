@@ -18,13 +18,9 @@ sub overlapTrim {
 
         setGlobal("doDeDuplication", 0);
 
-        open(F, "$bin/gatekeeper -dumplibraries $wrk/$asm.gkpStore |");
-        while (<F>) {
-            if (m/doRemoveDuplicateReads=1/) {
-                setGlobal("doDeDuplication", 1);
-            }
+        if (system("$bin/gatekeeper -isfeatureset 0 doRemoveDuplicateReads $wrk/$asm.gkpStore") == 0) {
+           setGlobal("doDeDuplication", 1);   
         }
-        close(F);
     }
 
 
