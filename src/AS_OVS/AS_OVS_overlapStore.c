@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.23 2009-10-26 16:38:43 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.24 2009-12-01 22:25:20 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -226,6 +226,9 @@ AS_OVS_restoreBackup(OverlapStore *ovs) {
 int
 AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap, uint32 type) {
 
+  if (ovs == NULL)
+    return(0);
+
   assert(ovs->isOutput == FALSE);
 
   //  If we've finished reading overlaps for the current a_iid, get
@@ -236,12 +239,12 @@ AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap, uint32 type)
   while (ovs->offset.numOlaps == 0)
     if (0 == AS_UTL_safeRead(ovs->offsetFile, &ovs->offset, "AS_OVS_readOverlap offset",
                              sizeof(OverlapStoreOffsetRecord), 1))
-      return(FALSE);
+      return(0);
 
   //  And if we've exited the range of overlaps requested, return.
   //
   if (ovs->offset.a_iid > ovs->lastIIDrequested)
-    return(FALSE);
+    return(0);
 
   while (AS_OVS_readOverlap(ovs->bof, overlap) == FALSE) {
     char name[FILENAME_MAX];
@@ -272,15 +275,81 @@ AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap, uint32 type)
   ovs->offset.numOlaps--;
 
   if (type == AS_OVS_TYPE_ANY)
-    return(TRUE);
+    return(1);
 
   if (type != overlap->dat.ovl.type)
     goto again;
 
-  return(TRUE);
+  return(1);
 }
 
 
+int
+AS_OVS_readOverlapsFromStore(OverlapStore *ovs, OVSoverlap *overlaps, uint32 maxOverlaps, uint32 type) {
+  int    numOvl = 0;
+
+  if (ovs == NULL)
+    return(0);
+
+  assert(ovs->isOutput == FALSE);
+
+  //  If we've finished reading overlaps for the current a_iid, get
+  //  another a_iid.  If we hit EOF here, we're all done, no more
+  //  overlaps.
+  //
+  while (ovs->offset.numOlaps == 0)
+    if (0 == AS_UTL_safeRead(ovs->offsetFile, &ovs->offset, "AS_OVS_readOverlap offset",
+                             sizeof(OverlapStoreOffsetRecord), 1))
+      return(0);
+
+  //  And if we've exited the range of overlaps requested, return.
+  //
+  if (ovs->offset.a_iid > ovs->lastIIDrequested)
+    return(0);
+
+  //  Read all the overlaps for this ID.
+
+  assert(ovs->offset.numOlaps < maxOverlaps);
+
+  while (ovs->offset.numOlaps > 0) {
+
+    //  Read an overlap.  If this fails, open the next partition and read from there.
+
+    while (AS_OVS_readOverlap(ovs->bof, overlaps + numOvl) == FALSE) {
+      char name[FILENAME_MAX];
+
+      //  We read no overlap, open the next file and try again.
+
+      AS_OVS_closeBinaryOverlapFile(ovs->bof);
+      
+      if (ovs->saveSpace) {
+        sprintf(name, "%04d", ovs->currentFileIndex);
+        nukeBackup(ovs->storePath, name);
+      }
+
+      ovs->currentFileIndex++;
+
+      sprintf(name, "%s/%04d%c", ovs->storePath, ovs->currentFileIndex, ovs->useBackup);
+      ovs->bof = AS_OVS_openBinaryOverlapFile(name, TRUE);
+
+      //  AS_OVS_openBinaryOverlapFile() actually bombs if it can't open; this test is useless....
+      if (ovs->bof == NULL) {
+        fprintf(stderr, "AS_OVS_readOverlapFromStore()-- failed to open overlap file '%s': %s\n", name, strerror(errno));
+        exit(1);
+      }
+    }
+
+    overlaps[numOvl].a_iid = ovs->offset.a_iid;
+
+    ovs->offset.numOlaps--;
+
+    if ((type == AS_OVS_TYPE_ANY) ||
+        (type == overlaps[numOvl].dat.ovl.type))
+      numOvl++;
+  }
+
+  return(numOvl);
+}
 
 
 void
