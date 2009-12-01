@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: ctgcns.C,v 1.6 2009-10-26 13:20:26 brianwalenz Exp $";
+const char *mainid = "$Id: ctgcns.C,v 1.7 2009-12-01 01:25:36 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -69,7 +69,7 @@ main (int argc, char **argv) {
       printwhat = CNS_VIEW_UNITIG;
 
     } else if (strcmp(argv[arg], "-V") == 0) {
-      VERBOSE_MULTIALIGN_OUTPUT = 1;
+      VERBOSE_MULTIALIGN_OUTPUT++;
 
     } else if (strcmp(argv[arg], "-w") == 0) {
       options.smooth_win = atoi(argv[++arg]);
