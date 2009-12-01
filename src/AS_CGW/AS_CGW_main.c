@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.81 2009-10-27 12:26:40 skoren Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.82 2009-12-01 00:20:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -110,6 +110,7 @@ main(int argc, char **argv) {
 
   int    firstFileArg = 0;
 
+  int32  outputFragsPerPartition = 0;
 
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
   ContigOrientChecker * coc;
@@ -177,6 +178,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-o") == 0) {
       strcpy(GlobalData->outputPrefix, argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-B") == 0) {
+      outputFragsPerPartition = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-P") == 0) {
       GlobalData->closurePlacement = atoi(argv[++arg]);
@@ -706,7 +710,7 @@ main(int argc, char **argv) {
     //  only operation valid after this function is CheckpointScaffoldGraph().
 
     OutputUnitigsFromMultiAligns();
-    OutputContigsFromMultiAligns();
+    OutputContigsFromMultiAligns(outputFragsPerPartition);
 
     CheckpointScaffoldGraph(CHECKPOINT_AFTER_OUTPUT, "after output");
   }

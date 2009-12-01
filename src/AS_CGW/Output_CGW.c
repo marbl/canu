@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.47 2009-10-27 12:26:41 skoren Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.48 2009-12-01 00:20:30 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -132,12 +132,12 @@ OutputUnitigsFromMultiAligns(void) {
 
 
 void
-OutputContigsFromMultiAligns(void){
+OutputContigsFromMultiAligns(int32 outputFragsPerPartition) {
   GraphNodeIterator      nodes;
   ContigT		*ctg;
 
   uint32                 partitionNum     = 1;
-  uint32                 partitionLimit   = 150000;  //  Future command line parameter
+  uint32                 partitionLimit   = outputFragsPerPartition;
   uint32                 partitionSize    = 0;
   uint32                 partitionContigs = 0;
 
@@ -146,6 +146,27 @@ OutputContigsFromMultiAligns(void){
   char                   partName[FILENAME_MAX];
   FILE                  *part;
   FILE                  *pari;
+
+  //  Figure out how many fragments to place in each partition.  We can generally do this better
+  //  than runCA, since we can ignore singletons.....too bad we don't know the correct parameters
+  //  (being the number of partitions desired (128) and the minimum partition size (75000)).
+
+#if 0
+  if (partitionLimit == 0) {
+    InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_DEFAULT);
+    while ((ctg = NextGraphNodeIterator(&nodes)) != NULL) {
+      if (ctg->flags.bits.isChaff)
+        continue;
+
+      partitionLimit += ScaffoldGraph->tigStore->getNumFrags(ctg->id, FALSE);
+    }
+
+    partitionLimit = partitionLimit / 128 + 1;
+
+    if (partitionLimit < 75000)
+      partitionLimit = 75000;
+  }
+#endif
 
   //  Open the partition mapping output file -- we do NOT fail here, as we're so close to finishing
   //  scaffolding.  Better to let runCA fail, and have a complete scaffolder output.

@@ -63,19 +63,27 @@ sub CGW ($$$$$$) {
     my $cmd;
     my $astatLow = getGlobal("astatLowBound");
     my $astatHigh = getGlobal("astatHighBound");
-    $cmd  = "$bin/cgw $ckp -j $astatLow -k $astatHigh -r 5 -s $stoneLevel ";
-    $cmd .= " -S 0 "                               if (($finalRun == 0)   || (getGlobal("doResolveSurrogates") == 0));
-    $cmd .= " -G "                                 if ($finalRun == 0);
-    $cmd .= " -z "                                 if (getGlobal("cgwDemoteRBP") == 1);
-    $cmd .= " -P " . getGlobal("closurePlacement") if (defined(getGlobal("closurePlacement")));
-    $cmd .= " -K "                                 if (getGlobal("kickOutNonOvlContigs") != 0);
-    $cmd .= " -U "                                 if (getGlobal("doUnjiggleWhenMerging") != 0);
-    $cmd .= " -F "                                 if (getGlobal("toggleDoNotDemote") != 0);
-    $cmd .= " -u $wrk/4-unitigger/$asm.unused.ovl" if (getGlobal("cgwUseUnitigOverlaps") != 0);
-    $cmd .= " -m $sampleSize";
-    $cmd .= " -g $wrk/$asm.gkpStore ";
-    $cmd .= " -t $tigStore ";
-    $cmd .= " -o $wrk/$thisDir/$asm ";
+
+    my $B = int($numFrags / getGlobal("cnsPartitions"));
+    $B = getGlobal("cnsMinFrags") if ($B < getGlobal("cnsMinFrags"));
+
+    $cmd  = "$bin/cgw $ckp \\\n";
+    $cmd .= "  -j $astatLow -k $astatHigh \\\n";
+    $cmd .= "  -r 5 \\\n";
+    $cmd .= "  -s $stoneLevel \\\n";
+    $cmd .= "  -S 0 \\\n"                                if (($finalRun == 0)   || (getGlobal("doResolveSurrogates") == 0));
+    $cmd .= "  -G \\\n"                                  if ($finalRun == 0);
+    $cmd .= "  -z \\\n"                                  if (getGlobal("cgwDemoteRBP") == 1);
+    $cmd .= "  -P \\\n" . getGlobal("closurePlacement")  if (defined(getGlobal("closurePlacement")));
+    $cmd .= "  -K \\\n"                                  if (getGlobal("kickOutNonOvlContigs") != 0);
+    $cmd .= "  -U \\\n"                                  if (getGlobal("doUnjiggleWhenMerging") != 0);
+    $cmd .= "  -F \\\n"                                  if (getGlobal("toggleDoNotDemote") != 0);
+    $cmd .= "  -B $B \\\n";
+    $cmd .= "  -u $wrk/4-unitigger/$asm.unused.ovl \\\n" if (getGlobal("cgwUseUnitigOverlaps") != 0);
+    $cmd .= "  -m $sampleSize \\\n";
+    $cmd .= "  -g $wrk/$asm.gkpStore \\\n";
+    $cmd .= "  -t $tigStore \\\n";
+    $cmd .= "  -o $wrk/$thisDir/$asm \\\n";
     $cmd .= " > $wrk/$thisDir/cgw.out 2>&1";
 
     stopBefore("CGW", $cmd);
