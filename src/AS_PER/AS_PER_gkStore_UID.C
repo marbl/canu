@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_UID.C,v 1.2 2009-11-24 21:43:59 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_UID.C,v 1.3 2009-12-02 12:52:28 skoren Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -48,9 +48,13 @@ static char *rcsid = "$Id: AS_PER_gkStore_UID.C,v 1.2 2009-11-24 21:43:59 brianw
 void
 gkStore::gkStore_loadUIDtoIID(void) {
   if (UIDtoIID == NULL) {
-    char  name[FILENAME_MAX];
-    sprintf(name,"%s/u2i", storePath);
-    UIDtoIID = LoadUIDtoIIDHashTable_AS(name);
+     if (doNotLoadUIDs == FALSE) {
+          char  name[FILENAME_MAX];
+          sprintf(name,"%s/u2i", storePath);
+          UIDtoIID = LoadUIDtoIIDHashTable_AS(name);
+     } else {
+       UIDtoIID = CreateScalarHashTable_AS();
+     }
   }
   assert(UIDtoIID != NULL);
 }
@@ -177,37 +181,39 @@ gkStore::gkStore_rebuildUIDtoIID(void) {
 //  AS_MSG utility functions
 //
 void
-gkStore::gkStore_loadSTRtoUID(void) {
-  if (STRtoUID == NULL) {
-    uid = convertStoreToMemoryStore(uid);
-
-    STRtoUID = CreateStringHashTable_AS();
-
-    char          *uidptr = NULL;
-    int64          uidoff = 1;
-    int64          nxtoff = 1;
-    uint32         actlen = 0;
-
-    while ((uidptr = getStringStorePtr(uid, uidoff, &actlen, &nxtoff)) != NULL) {
-      if (strlen(uidptr) != actlen) {
-        int i;
-        fprintf(stderr, "gkStore_loadSTRtoUID()-- string '%s' length %d != stored actlen = %d\n",
-                uidptr, strlen(uidptr), actlen);
-        for (i=0; i<strlen(uidptr); i++)
-          fprintf(stderr, "[%2d] %3d '%c'\n", i, uidptr[i], uidptr[i]);
-      }
-      assert(strlen(uidptr) == actlen);
-
-      if (InsertInHashTable_AS(STRtoUID,
-                               (INTPTR)uidptr, actlen,
-                               uidoff, 0) == HASH_FAILURE) {
-        fprintf(stderr, "gkStore_loadSTRtoUID()-- failed to insert uid '%s' into store; already there?!\n", uidptr);
-        assert(0);
-      }
-      uidoff = nxtoff;
-    }
+gkStore::gkStore_loadSTRtoUID(void) {  
+  if (doNotLoadUIDs == FALSE) {
+     if (STRtoUID == NULL) {
+       uid = convertStoreToMemoryStore(uid);
+   
+       STRtoUID = CreateStringHashTable_AS();
+   
+       char          *uidptr = NULL;
+       int64          uidoff = 1;
+       int64          nxtoff = 1;
+       uint32         actlen = 0;
+   
+       while ((uidptr = getStringStorePtr(uid, uidoff, &actlen, &nxtoff)) != NULL) {
+         if (strlen(uidptr) != actlen) {
+           int i;
+           fprintf(stderr, "gkStore_loadSTRtoUID()-- string '%s' length %d != stored actlen = %d\n",
+                   uidptr, strlen(uidptr), actlen);
+           for (i=0; i<strlen(uidptr); i++)
+             fprintf(stderr, "[%2d] %3d '%c'\n", i, uidptr[i], uidptr[i]);
+         }
+         assert(strlen(uidptr) == actlen);
+   
+         if (InsertInHashTable_AS(STRtoUID,
+                                  (INTPTR)uidptr, actlen,
+                                  uidoff, 0) == HASH_FAILURE) {
+           fprintf(stderr, "gkStore_loadSTRtoUID()-- failed to insert uid '%s' into store; already there?!\n", uidptr);
+           assert(0);
+         }
+         uidoff = nxtoff;
+       }
+     }
+     assert(STRtoUID != NULL);
   }
-  assert(STRtoUID != NULL);
 }
 
 
@@ -216,6 +222,11 @@ gkStore::gkStore_loadSTRtoUID(void) {
 AS_UID
 gkStore::gkStore_getUIDfromString(char *uidstr) {
   AS_UID  uid = AS_UID_undefined();
+  
+  if (doNotLoadUIDs == TRUE) {
+    return uid;
+  }
+  
   uint64  loc = 0;
   uint64  len = 0;
   char    end = 0;
@@ -251,7 +262,7 @@ char *
 gkStore::gkStore_getUIDstring(AS_UID u) {
   char *retval = NULL;
 
-  if (u.isString) {
+  if (!doNotLoadUIDs && u.isString) {
     uint32  actlen = 0;
     int64   uidoff = 0;
 
@@ -272,6 +283,11 @@ gkStore::gkStore_addUID(char *uidstr) {
   uint64     len = 0;
   char       end = 0;
 
+  if (doNotLoadUIDs == TRUE) {
+    fprintf(stderr, "gkStore_addUID: UID string store is turned off but it is being added to.\n");
+    assert(0); 
+  }
+  
   //  A common error (especially when reading from files) it to leave whitespace at the ends.  We
   //  temporarily trim it off.
 

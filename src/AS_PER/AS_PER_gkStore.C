@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.16 2009-11-08 01:16:16 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.17 2009-12-02 12:52:26 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,7 +73,7 @@ gkStore::gkStore(const char *path, int partition) {
 
 
 void
-gkStore::gkStore_open(int writable) {
+gkStore::gkStore_open(int writable, int doNotUseUIDs) {
   char  name[FILENAME_MAX];
   char   mode[4];
   FILE  *gkpinfo;
@@ -186,6 +186,7 @@ gkStore::gkStore_open(int writable) {
   //  UIDtoIID and STRtoUID are loaded on demand.
   UIDtoIID = NULL;
   STRtoUID = NULL;
+  doNotLoadUIDs = doNotUseUIDs;
 
   if ((NULL == fpk) ||
       (NULL == fnm) || (NULL == snm) || (NULL == qnm) ||
@@ -202,8 +203,9 @@ gkStore::gkStore_create(void) {
   char  name[FILENAME_MAX];
   FILE  *gkpinfo;
 
-  isReadOnly = 0;
-  isCreating = 1;
+  isReadOnly      = 0;
+  isCreating      = 1;
+  doNotLoadUIDs   = 0;
 
   sprintf(name,"%s/inf", storePath);
   if (AS_UTL_fileExists(name, FALSE, TRUE)) {
@@ -278,8 +280,8 @@ gkStore::gkStore_create(void) {
 }
 
 
-
-gkStore::gkStore(const char *path, int creatable, int writable) {
+void
+gkStore::gkStore_construct(const char * path, int creatable, int writable, int doNotUseUIDs) {
   char   name[FILENAME_MAX];
 
   gkStore_clear();
@@ -289,7 +291,7 @@ gkStore::gkStore(const char *path, int creatable, int writable) {
   sprintf(name,"%s/inf", storePath);
 
   if ((AS_UTL_fileExists(name, FALSE, writable)) && (creatable == 0)) {
-    gkStore_open(writable);
+    gkStore_open(writable, doNotUseUIDs);
   } else if (creatable) {
     gkStore_create();
   } else {
@@ -304,6 +306,15 @@ gkStore::gkStore(const char *path, int creatable, int writable) {
     clearRange[i] = new gkClearRange(this, i, FALSE);
 
   AS_UID_setGatekeeper(this);
+}
+
+
+gkStore::gkStore(const char *path, int creatable, int writable) {
+   gkStore_construct(path, creatable, writable, FALSE);
+}
+
+gkStore::gkStore(const char *path, int creatable, int writable, int doNotUseUIDs) {
+  gkStore_construct(path, creatable, writable, doNotUseUIDs);
 }
 
 
@@ -420,6 +431,8 @@ gkStore::gkStore_clear(void) {
   partfsb = partqsb = NULL;
 
   partmap = NULL;
+  
+  doNotLoadUIDs = FALSE;
 }
 
 

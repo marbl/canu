@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.85 2009-12-01 13:53:12 skoren Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.86 2009-12-02 12:52:25 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -102,6 +102,9 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "  -tabular               dump info, libraries or fragments in a tabular\n");
   fprintf(stdout, "                         format (for -dumpinfo, -dumplibraries,\n");
   fprintf(stdout, "                         and -dumpfragments, ignores -withsequence and -clear)\n");
+  fprintf(stdout, "  -isfeatureset <libID> <X> sets exit value to 0 if feature X is set in library libID, 1 otherwise.\n");
+  fprintf(stdout, "                        If libID == 0, check all libraries.\n");
+  fprintf(stdout, "  -nouid                dump info without including the read UID (for -dumpinfo, -dumplibraries, -dumpfragments)\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  ----------------\n");
   fprintf(stdout, "  [format of dump]\n");
@@ -133,8 +136,6 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "                        dumped into a single file. Use at your own risk! This will create\n");
   fprintf(stdout, "                        files 'prefix.fastq' and 'prefix.unmated.fastq' for unmated reads.\n");
   fprintf(stdout, "                        Options -donotfixmates and -clear also apply.\n");
-  fprintf(stdout, "  -isfeatureset <libID> <X> Sets exit value to 0 if feature X is set in library libID, 1 otherwise.\n");
-  fprintf(stdout, "                        If libID == 0, check all libraries.\n");
   fprintf(stdout, "\n");
   if (longhelp == 0) {
     fprintf(stdout, "Use '-h' to get a discussion of what gatekeeper is.\n");
@@ -436,7 +437,9 @@ main(int argc, char **argv) {
   char            *iidToDump         = NULL;
   
   AS_IID           featureLibIID     = 0;
-  char            *featureName       = NULL;          
+  char            *featureName       = NULL;
+
+  int              dumpDoNotUseUIDs  = FALSE;
 
   progName = argv[0];
   gkpStore = NULL;
@@ -546,6 +549,8 @@ main(int argc, char **argv) {
       dump = DUMP_FEATURE;
       featureLibIID = atoi(argv[++arg]);
       featureName = argv[++arg];
+    } else if (strcmp(argv[arg], "-nouid") == 0 ) {
+      dumpDoNotUseUIDs = 1;
     } else if (strcmp(argv[arg], "-donotfixmates") == 0) {
       doNotFixMates = 1;
 
@@ -602,20 +607,25 @@ main(int argc, char **argv) {
   iidToDump = constructIIDdump(gkpStoreName, iidToDump, dumpRandLib, dumpRandMateNum, dumpRandSingNum, dumpRandFraction, dumpRandLength);
 
   if (dump != DUMP_NOTHING) {
+    if (dumpDoNotUseUIDs == 1) {
+      fprintf(stderr, "WARNING: Output selected to exclude UIDs, an NA will be output instead of UID values.\n");
+    }
+    
     int exitVal = 0;
    
     switch (dump) {
       case DUMP_INFO:
-        dumpGateKeeperInfo(gkpStoreName, dumpTabular);
+        dumpGateKeeperInfo(gkpStoreName, dumpTabular, dumpDoNotUseUIDs);
         break;
       case DUMP_LIBRARIES:
-        dumpGateKeeperLibraries(gkpStoreName, begIID, endIID, iidToDump, dumpTabular);
+        dumpGateKeeperLibraries(gkpStoreName, begIID, endIID, iidToDump, dumpTabular, dumpDoNotUseUIDs);
         break;
       case DUMP_FRAGMENTS:
         dumpGateKeeperFragments(gkpStoreName, begIID, endIID, iidToDump,
                                 dumpWithSequence,
                                 dumpClear,
-                                dumpTabular);
+                                dumpTabular,
+                                dumpDoNotUseUIDs);
         break;
       case DUMP_FASTA:
         dumpGateKeeperAsFasta(gkpStoreName, begIID, endIID, iidToDump,

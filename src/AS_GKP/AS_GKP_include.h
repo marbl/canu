@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.53 2009-12-01 13:53:12 skoren Exp $ */
+/* $Id: AS_GKP_include.h,v 1.54 2009-12-02 12:52:24 skoren Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
 
-static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.53 2009-12-01 13:53:12 skoren Exp $";
+static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.54 2009-12-02 12:52:24 skoren Exp $";
 
 #include <stdio.h>
 #include <errno.h>
@@ -67,14 +67,16 @@ Check_PlacementMesg(PlacementMesg   *plc_mesg);
 
 void
 dumpGateKeeperInfo(char       *gkpStoreName,
-                   int         asTable);
+                   int         asTable,
+                   int         withoutUIDs);
 
 void
 dumpGateKeeperLibraries(char       *gkpStoreName,
                         AS_IID      begIID,
                         AS_IID      endIID,
                         char       *iidToDump,
-                        int         asTable);
+                        int         asTable,
+                        int         withoutUIDs);
 
 void
 dumpGateKeeperFragments(char       *gkpStoreName,
@@ -83,7 +85,8 @@ dumpGateKeeperFragments(char       *gkpStoreName,
                         char       *iidToDump,
                         int         dumpWithSequence,
                         int         dumpClear,
-                        int         asTable);
+                        int         asTable,
+                        int         withoutUIDs);
 
 void
 dumpGateKeeperAsFasta(char       *gkpStoreName,

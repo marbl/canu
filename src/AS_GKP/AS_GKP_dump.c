@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.52 2009-12-01 13:53:12 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.53 2009-12-02 12:52:22 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,9 +31,10 @@ static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.52 2009-12-01 13:53:12 skoren
 
 void
 dumpGateKeeperInfo(char       *gkpStoreName,
-                   int         asTable) {
+                   int         asTable,
+                   int         withoutUIDs) {
 
-  gkStore   *gkp = new gkStore(gkpStoreName, FALSE, FALSE);
+  gkStore   *gkp = new gkStore(gkpStoreName, FALSE, FALSE, withoutUIDs);
   if (gkp == NULL) {
     fprintf(stderr, "Failed to open %s\n", gkpStoreName);
     exit(1);
@@ -136,8 +137,12 @@ dumpGateKeeperInfo(char       *gkpStoreName,
   //  Per Library
 
   for (j=0; j<gkp->gkStore_getNumLibraries() + 1; j++) {
-    fprintf(stdout, "%s\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n",
-            (j == 0) ? "LegacyUnmatedReads" : AS_UID_toString(gkp->gkStore_getLibrary(j)->libraryUID),
+   if (withoutUIDs == TRUE && j != 0) 
+      fprintf(stdout, "%d\t", j);
+   else
+      fprintf(stdout, "%s\t", (j == 0 ? "LegacyUnmatedReads" : AS_UID_toString(gkp->gkStore_getLibrary(j)->libraryUID)));
+
+    fprintf(stdout, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n",
             numActivePerLib[j], numDeletedPerLib[j], numMatedPerLib[j], readLengthPerLib[j], clearLengthPerLib[j]);
   }
 
@@ -157,8 +162,9 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
                         AS_IID      begIID,
                         AS_IID      endIID,
                         char       *iidToDump,
-                        int         asTable) {
-  gkStore   *gkp = new gkStore(gkpStoreName, FALSE, FALSE);
+                        int         asTable,
+                        int         withoutUIDs) {
+  gkStore   *gkp = new gkStore(gkpStoreName, FALSE, FALSE, withoutUIDs);
 
   int       i;
 
@@ -180,7 +186,7 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
 
       if (asTable) {
         fprintf(stdout, "%s\t"F_IID"\t%s\t%.3f\t%.3f\t%d\n",
-                AS_UID_toString(gkpl->libraryUID), i,
+                (withoutUIDs == TRUE ? "NA" : AS_UID_toString(gkpl->libraryUID)), i,
                 AS_READ_ORIENT_NAMES[gkpl->orientation],
                 gkpl->mean,
                 gkpl->stddev,
@@ -214,8 +220,9 @@ dumpGateKeeperFragments(char       *gkpStoreName,
                         char       *iidToDump,
                         int         dumpWithSequence,
                         int         dumpClear,
-                        int         asTable) {
-  gkStore   *gkp = new gkStore(gkpStoreName, FALSE, FALSE);
+                        int         asTable,
+                        int         withoutUIDs) {
+  gkStore   *gkp = new gkStore(gkpStoreName, FALSE, FALSE, withoutUIDs);
 
   if (begIID < 1)
     begIID = 1;
@@ -250,9 +257,9 @@ dumpGateKeeperFragments(char       *gkpStoreName,
 
       if (asTable) {
         fprintf(stdout, "%s\t"F_IID"\t%s\t"F_IID"\t%s\t"F_IID"\t%d\t%d\t%s\t%d\t%d\t%d\n",
-                AS_UID_toString(fr.gkFragment_getReadUID()), fr.gkFragment_getReadIID(),
-                AS_UID_toString(mateuid), mateiid,
-                AS_UID_toString(libuid), libiid,
+                (withoutUIDs == TRUE ? "NA" : AS_UID_toString(fr.gkFragment_getReadUID())), fr.gkFragment_getReadIID(),
+                (withoutUIDs == TRUE ? "NA" : AS_UID_toString(mateuid)), mateiid,
+                (withoutUIDs == TRUE ? "NA" : AS_UID_toString(libuid)), libiid,
                 fr.gkFragment_getIsDeleted(),
                 fr.gkFragment_getIsNonRandom(),
                 AS_READ_ORIENT_NAMES[fr.gkFragment_getOrientation()],
@@ -1014,7 +1021,7 @@ dumpGateKeeperIsFeatureSet(char      *gkpStoreName,
 {
    assert(featureName != NULL);
   
-   gkStore *gkp = new gkStore(gkpStoreName, FALSE, FALSE);
+   gkStore *gkp = new gkStore(gkpStoreName, FALSE, FALSE, TRUE);
    int isSet = 0;
    uint32 i;
    

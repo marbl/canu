@@ -69,14 +69,18 @@ class gkStore {
 private:
   gkStore(const char *path, int partnum);
 
-  void         gkStore_open(int writable);
+  void         gkStore_open(int writable) { gkStore_open(writable, 1); }
+  void         gkStore_open(int writable, int doNotUseUIDs);
   void         gkStore_create(void);
 
   void         gkStore_clear(void);
+  
+  void         gkStore_construct(const char * path, int creatable, int writable, int doNotUseUIDs);
 
 public:
   gkStore();
   gkStore(const char *path, int creatable, int writable);
+  gkStore(const char *path, int creatable, int writable, int doNotUseUIDs);
   ~gkStore();
 
   //  The 'name' of this gkpStore.
@@ -239,6 +243,9 @@ private:
   //
   uint64                  *frgUID;
 
+  //  Flag to indicate whether we are using UIDs. If this is set to true, UIDs will not be loaded
+  uint32                   doNotLoadUIDs;
+  
   //  Clear ranges
   //
   gkClearRange           **clearRange;
