@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.39 2009-10-26 13:20:26 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.40 2009-12-02 17:04:00 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1117,11 +1117,10 @@ processMate(gkFragment *fr,
 
       seq[fr->clrEnd] = stopBase;
 
-      al.begJ += fr->clrBgn;
-      al.endJ += fr->clrBgn;
-      //al.lenB += fr->clrBgn;
       lSize = al.begJ;
       rSize = al.lenB - al.endJ;
+      al.begJ += fr->clrBgn;
+      al.endJ += fr->clrBgn;
    
       assert(lSize >= 0);
       assert(lSize <= fr->gkFragment_getSequenceLength());
@@ -1218,18 +1217,22 @@ processMate(gkFragment *fr,
       memmove(qlt, qlt + al.endJ, rSize);
       seq[rSize] = 0;
       qlt[rSize] = 0;
-      fr->clrBgn -= (fr->clrBgn < al.endJ) ? 0 : al.endJ;
-      fr->clrEnd -= (fr->clrEnd < al.endJ) ? 0 : al.endJ;
-      fr->maxBgn -= (fr->maxBgn < al.endJ) ? 0 : al.endJ;
-      fr->maxEnd -= (fr->maxEnd < al.endJ) ? 0 : al.endJ;
+      fr->clrBgn = 0;
+      fr->clrEnd = (fr->clrEnd < al.endJ) ? 0 : (fr->clrEnd - al.endJ);
+      if (fr->maxEnd >= fr->maxBgn) {
+         fr->maxBgn = (fr->maxBgn < al.endJ) ? 0 : (fr->maxBgn - al.endJ);
+         fr->maxEnd = (fr->maxEnd < al.endJ) ? 0 : (fr->maxEnd - al.endJ);
+      }
+      fr->vecBgn = 1;
+      fr->vecEnd = 0;
       assert(fr->clrEnd <= rSize);
       // Launch recursive search for linker in the newly trimmed read.
       if (0 != processMate(fr, NULL, NULL, linker, search, 0)) {  // low stringency, do not split
         fprintf(logFile, "Found more linker after left trim. Delete %s.\n",
                 AS_UID_toString(fr->gkFragment_getReadUID()));
-	// Delete the read.
-	fr->gkFragment_setReadUID(AS_UID_undefined());
-	fr->gkFragment_setIsDeleted(1);
+      	// Delete the read.
+      	fr->gkFragment_setReadUID(AS_UID_undefined());
+      	fr->gkFragment_setIsDeleted(1);
       }
       return (LINKER_POSITIVE);
     }
@@ -1240,20 +1243,21 @@ processMate(gkFragment *fr,
       fprintf(logFile, "Trim linker from right side of %s\n",
               AS_UID_toString(fr->gkFragment_getReadUID()));
       // Trim the linker.
-      fr->gkFragment_setLength(lSize);
+      fr->gkFragment_setLength(al.begJ);
       char *seq = fr->gkFragment_getSequence();
       char *qlt = fr->gkFragment_getQuality();
-      seq[lSize] = 0;
-      qlt[lSize] = 0;
-      fr->clrEnd = MIN(fr->clrEnd, lSize);
-      fr->maxEnd = MIN(fr->maxEnd, lSize);
+      seq[al.begJ] = 0;
+      qlt[al.begJ] = 0;
+      fr->clrEnd = MIN(fr->clrEnd, al.begJ);
+      fr->maxEnd = MIN(fr->maxEnd, al.begJ);
+      fr->vecEnd = MIN(fr->vecEnd, al.begJ);
       // Launch recursive search for linker in the newly trimmed read.
       if (0 != processMate(fr, NULL, NULL, linker, search, 0)) {  // low stringency, do not split
         fprintf(logFile, "Found more linker after right trim. Delete %s.\n",
                 AS_UID_toString(fr->gkFragment_getReadUID()));
-	// Delete the read.
-	fr->gkFragment_setReadUID(AS_UID_undefined());
-	fr->gkFragment_setIsDeleted(1);
+      	// Delete the read.
+      	fr->gkFragment_setReadUID(AS_UID_undefined());
+      	fr->gkFragment_setIsDeleted(1);
       }
       return (LINKER_POSITIVE);
     }
@@ -1333,8 +1337,8 @@ processMate(gkFragment *fr,
     //  linker, and the end can extend into low quality sequence at
     //  the start of the read.
     //
-    //  lSize - size of the left half of the read, including X's
-    //  rSize - size of the right half of the read, including X's
+    //  lSize - size of the left half of the read, excluding X's
+    //  rSize - size of the right half of the read, excluding X's
     //
     //       v clearBeg                   clearEnd v
     //  XXXXXX-------------------[linker]----------XXXXXXXXXXX
@@ -1342,13 +1346,27 @@ processMate(gkFragment *fr,
     //
     //  
     m1->clrBgn = 0;
-    m1->clrEnd = al.begJ - fr->clrBgn;	
-    m1->vecBgn = m1->maxBgn = m1->tntBgn = 1;
-    m1->vecEnd = m1->maxEnd = m1->tntEnd = 0;       
+    m1->clrEnd = lSize;
+    if (fr->maxEnd < fr->maxBgn) {
+      m1->maxBgn = fr->maxBgn;
+      m1->maxEnd = fr->maxEnd;
+    } else {
+       m1->maxBgn = 0;
+       m1->maxEnd = lSize;
+    }
+    m1->vecBgn = m1->tntBgn = 1;
+    m1->vecEnd = m1->tntEnd = 0;       
     m2->clrBgn = 0;
-    m2->clrEnd = fr->clrEnd - al.endJ - fr->clrBgn;	
-    m2->vecBgn = m2->maxBgn = m2->tntBgn = 1;
-    m2->vecEnd = m2->maxEnd = m2->tntEnd = 0;
+    m2->clrEnd = (fr->clrEnd < al.endJ) ? 0 : (fr->clrEnd - al.endJ);
+    if (fr->maxEnd < fr->maxBgn) {
+      m2->maxBgn = fr->maxBgn;
+      m2->maxEnd = fr->maxEnd;      
+    } else {    
+      m2->maxBgn = (fr->maxBgn < al.endJ) ? 0 : (fr->maxBgn - al.endJ);
+      m2->maxEnd = (fr->maxEnd < al.endJ) ? 0 : (fr->maxEnd - al.endJ);
+    }
+    m2->vecBgn = m2->tntBgn = 1;
+    m2->vecEnd = m2->tntEnd = 0;
       
     //  3.  Construct new rm1, rm2.  Nuke the linker.  Reverse
     //  complement -- inplace -- the left mate.
@@ -1357,13 +1375,13 @@ processMate(gkFragment *fr,
       char  *qlt = m1->gkFragment_getQuality();
       assert(fr->clrBgn >= 0);
       assert(lSize > 0);
-      memmove(seq, fr->gkFragment_getSequence() + fr->clrBgn, lSize);
-      memmove(qlt, fr->gkFragment_getQuality()  + fr->clrBgn, lSize);
-      reverseComplement(seq, qlt, lSize);
-      m1->gkFragment_setLength(lSize);
-      seq[lSize] = 0;
-      qlt[lSize] = 0;
-      assert(strlen(seq) == lSize);
+      memmove(seq, fr->gkFragment_getSequence(), al.begJ);
+      memmove(qlt, fr->gkFragment_getQuality() , al.begJ);
+      reverseComplement(seq, qlt, al.begJ);
+      m1->gkFragment_setLength(al.begJ);
+      seq[al.begJ] = 0;
+      qlt[al.begJ] = 0;
+      assert(strlen(seq) == al.begJ);
     }
       
     {
@@ -1371,12 +1389,12 @@ processMate(gkFragment *fr,
       char  *qlt = m2->gkFragment_getQuality();
       assert(al.endJ >= 0);
       assert(rSize > 0);
-      memmove(seq, fr->gkFragment_getSequence() + al.endJ, rSize);
-      memmove(qlt, fr->gkFragment_getQuality()  + al.endJ, rSize);
-      m2->gkFragment_setLength(rSize);
-      seq[rSize] = 0;
-      qlt[rSize] = 0;
-      assert(strlen(seq) == rSize);
+      memmove(seq, fr->gkFragment_getSequence() + al.endJ, rSize + (fr->gkFragment_getSequenceLength() - fr->clrEnd));
+      memmove(qlt, fr->gkFragment_getQuality()  + al.endJ, rSize + (fr->gkFragment_getSequenceLength() - fr->clrEnd));
+      m2->gkFragment_setLength(rSize + (fr->gkFragment_getSequenceLength() - fr->clrEnd));
+      seq[rSize + (fr->gkFragment_getSequenceLength() - fr->clrEnd)] = 0;
+      qlt[rSize + (fr->gkFragment_getSequenceLength() - fr->clrEnd)] = 0;
+      assert(strlen(seq) == rSize + (fr->gkFragment_getSequenceLength() - fr->clrEnd));
     }
     
     fprintf(logFile, "Mates '%s' (%d-%d) and '%s' (%d-%d) created.\n",
