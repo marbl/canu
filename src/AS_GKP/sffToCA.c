@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.40 2009-12-02 17:04:00 skoren Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.41 2009-12-02 19:00:32 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1210,13 +1210,14 @@ processMate(gkFragment *fr,
       fprintf(logFile, "Trim linker from left side of %s\n",
               AS_UID_toString(fr->gkFragment_getReadUID()));
       // Trim the linker.
-      fr->gkFragment_setLength(rSize);
+      uint32 oldLen = fr->gkFragment_getSequenceLength();
+      fr->gkFragment_setLength(rSize + (oldLen - fr->clrEnd));
       char *seq = fr->gkFragment_getSequence();
       char *qlt = fr->gkFragment_getQuality();
-      memmove(seq, seq + al.endJ, rSize);
-      memmove(qlt, qlt + al.endJ, rSize);
-      seq[rSize] = 0;
-      qlt[rSize] = 0;
+      memmove(seq, seq + al.endJ, rSize + (oldLen - fr->clrEnd));
+      memmove(qlt, qlt + al.endJ, rSize + (oldLen - fr->clrEnd));
+      seq[rSize + (oldLen - fr->clrEnd)] = 0;
+      qlt[rSize + (oldLen - fr->clrEnd)] = 0;
       fr->clrBgn = 0;
       fr->clrEnd = (fr->clrEnd < al.endJ) ? 0 : (fr->clrEnd - al.endJ);
       if (fr->maxEnd >= fr->maxBgn) {
