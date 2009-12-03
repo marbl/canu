@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlign.c,v 1.10 2009-10-09 01:07:46 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlign.c,v 1.11 2009-12-03 21:40:25 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -675,6 +675,25 @@ DumpMultiAlignForHuman(FILE *out, MultiAlignT *ma, bool isUnitig) {
 
 
 bool
+LoadMultiAlignFromHumanGetLine(FILE *in, int32 LINElen, int32 LINEmax, char *LINE, splitToWords &W) {
+
+  LINE[0] = 0;
+
+  while ((fgets(LINE, LINEmax, in) != NULL) &&
+         (LINE[0] == '#'))
+    ;
+
+  //if (LINE[0] == 0)
+  //  return(false);
+
+  chomp(LINE);
+  W.split(LINE);
+
+  return(W.numWords() > 0);
+}
+
+
+bool
 LoadMultiAlignFromHuman(MultiAlignT *ma, FILE *in) {
   bool   isUnitig = false;
 
@@ -686,7 +705,7 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, FILE *in) {
 
   ClearMultiAlignT(ma);
 
-  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
 
   if        (strcmp(W[0], "unitig") == 0) {
     isUnitig = true;
@@ -699,7 +718,7 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, FILE *in) {
     exit(1);
   }
 
-  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
 
   if (strcmp(W[0], "len") == 0) {
     int32 l = atoi(W[1]) + 1024;
@@ -713,19 +732,21 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, FILE *in) {
     exit(1);
   }
 
-  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
 
   if (strcmp(W[0], "cns") == 0) {
-    SetRangeVA_char(ma->consensus, 0, strlen(W[1]) + 1, W[1]);
+    if (W[1])
+      SetRangeVA_char(ma->consensus, 0, strlen(W[1]) + 1, W[1]);
   } else {
     fprintf(stderr, "Unknown cns in '%s'\n", LINE);
     exit(1);
   }
 
-  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
 
   if (strcmp(W[0], "qlt") == 0) {
-    SetRangeVA_char(ma->quality, 0, strlen(W[1]) + 1, W[1]);
+    if (W[1])
+      SetRangeVA_char(ma->quality, 0, strlen(W[1]) + 1, W[1]);
   } else {
     fprintf(stderr, "Unknown qlt in '%s'\n", LINE);
     exit(1);
@@ -733,7 +754,7 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, FILE *in) {
 
   ////////////////////////////////////////
 
-  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
 
   if (strcmp(W[0], "data.unitig_coverage_stat") == 0) {
     ma->data.unitig_coverage_stat = atof(W[1]);
@@ -742,7 +763,7 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, FILE *in) {
     exit(1);
   }
 
-  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
 
   if (strcmp(W[0], "data.unitig_microhet_prob") == 0) {
     ma->data.unitig_microhet_prob = atof(W[1]);
@@ -751,7 +772,7 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, FILE *in) {
     exit(1);
   }
 
-  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
 
   if (strcmp(W[0], "data.unitig_status") == 0) {
     switch (W[1][0]) {
@@ -777,7 +798,7 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, FILE *in) {
     exit(1);
   }
 
-  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
 
   if (strcmp(W[0], "data.unitig_unique_rept") == 0) {
     switch (W[1][0]) {
@@ -800,7 +821,7 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, FILE *in) {
     exit(1);
   }
 
-  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
 
   if (strcmp(W[0], "data.contig_status") == 0) {
     switch (W[1][0]) {
@@ -820,7 +841,7 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, FILE *in) {
     exit(1);
   }
 
-  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
 
   if (strcmp(W[0], "data.num_frags") == 0) {
     ma->data.num_frags = atoi(W[1]);
@@ -829,7 +850,7 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, FILE *in) {
     exit(1);
   }
 
-  fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
+  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
 
   if (strcmp(W[0], "data.num_unitigs") == 0) {
     ma->data.num_unitigs = atoi(W[1]);
@@ -848,9 +869,14 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, FILE *in) {
   for (int32 i=0; i<ma->data.num_frags; i++) {
     IntMultiPos  *imp = GetIntMultiPos(ma->f_list, i);
 
-    do {
-      fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
-    } while (W[0][0] == '#');
+    while ((LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W)) &&
+           (W[0][0] == '#'))
+      ;
+
+    if (W.numWords() == 0) {
+      fprintf(stderr, "Too few FRG lines\n");
+      exit(1);
+    }
 
     if ((W.numWords() != 15) ||
         (strcmp(W[ 0], "FRG")       != 0) ||
@@ -888,9 +914,14 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, FILE *in) {
   for (int32 i=0; i<ma->data.num_unitigs; i++) {
     IntUnitigPos *iup = GetIntUnitigPos(ma->u_list, i);
 
-    do {
-      fgets(LINE, LINEmax, in);  chomp(LINE);  W.split(LINE);
-    } while (W[0][0] == '#');
+    while ((LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W)) &&
+           (W[0][0] == '#'))
+      ;
+
+    if (W.numWords() == 0) {
+      fprintf(stderr, "Too few FRG lines\n");
+      exit(1);
+    }
 
     if ((W.numWords() != 10) ||
         (strcmp(W[0], "UTG")           != 0) ||
