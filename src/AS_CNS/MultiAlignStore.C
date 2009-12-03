@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.6 2009-11-19 15:33:56 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.7 2009-12-03 01:08:29 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -168,6 +168,24 @@ MultiAlignStore::nextVersion(void) {
   //  Bump to the next version.
 
   currentVersion++;
+
+  //  Remove any existing files at that version level.
+
+  {
+    char  name[FILENAME_MAX];
+    int32 part = 1;
+
+    sprintf(name, "%s/seqDB.v%03d.dat", path, currentVersion);   AS_UTL_unlink(name);
+    sprintf(name, "%s/seqDB.v%03d.ctg", path, currentVersion);   AS_UTL_unlink(name);
+    sprintf(name, "%s/seqDB.v%03d.utg", path, currentVersion);   AS_UTL_unlink(name);
+
+    sprintf(name, "%s/seqDB.v%03d.p001.dat", path, currentVersion);
+    while (AS_UTL_unlink(name)) {
+      sprintf(name, "%s/seqDB.v%03d.p%03d.ctg", path, currentVersion, part);   AS_UTL_unlink(name);
+      sprintf(name, "%s/seqDB.v%03d.p%03d.utg", path, currentVersion, part);   AS_UTL_unlink(name);
+      sprintf(name, "%s/seqDB.v%03d.p%03d.dat", path, currentVersion, ++part);
+    }
+  }
 }
 
 
@@ -594,11 +612,23 @@ MultiAlignStore::openDB(uint32 version, uint32 partition) {
     sprintf(name, "%s/seqDB.v%03d.p%03d.dat", path, version, partition);
   }
 
+  //  Try again: On some large assemblies (or misconfigured partitioning) we exhaust the number of
+  //  open files.  This will close the earlier versions (repoened on demand) when we fail to open a
+  //  file.
+  //
+  //  This came into existence after BPW forgot to pass the desired partition size from runCA to
+  //  CGW, and ended up with an assembly with too many partitions.  Gatekeeper couldn't open enough
+  //  files for the gkpStore partitioning.  CGW was called again to repartition, but it too opened
+  //  too many files.
+  //
+  int  tryAgain = 1;
+ doTryAgain:
+
+  errno = 0;
+
   //  If version is the currentVersion, open for writing if allowed.
   //
   //  "a+" technically writes (always) to the end of file, but this hasn't been tested.
-
-  errno = 0;
 
   if ((inplace) && (version == currentVersion)) {
     dataFile[version][partition].FP = fopen(name, "a+");
@@ -611,9 +641,23 @@ MultiAlignStore::openDB(uint32 version, uint32 partition) {
     dataFile[version][partition].atEOF = false;
   }
 
+  if ((errno) && (tryAgain)) {
+    tryAgain = 0;
+
+    fprintf(stderr, "MultiAlignStore::openDB()-- Failed to open '%s': %s\n", name, strerror(errno));
+    fprintf(stderr, "MultiAlignStore::openDB()-- Trying again.\n");
+
+    for (int v=0; v<currentVersion; v++)
+      for (int p=0; p<MAX_PART; p++)
+        if (dataFile[v][p].FP) {
+          fclose(dataFile[v][p].FP);
+          dataFile[v][p].FP = NULL;
+        }
+    goto doTryAgain;
+  }
 
   if (errno)
-    fprintf(stderr, "CreateSequenceDB()-- Failed to open '%s': %s\n", name, strerror(errno)), exit(1);
+    fprintf(stderr, "MultiAlignStore::openDB()-- Failed to open '%s': %s\n", name, strerror(errno)), exit(1);
 
   return(dataFile[version][partition].FP);
 }
