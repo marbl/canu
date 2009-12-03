@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.7 2009-12-03 01:08:29 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.8 2009-12-03 21:41:01 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -563,6 +563,25 @@ MultiAlignStore::loadMASR(MultiAlignR* &R, char *T, int32& L, int32& M, uint32 V
   }
 
   assert(creating == false);
+
+  //  Are we restricted to a single partition?
+
+  if ((unitigPart > 0) ||
+      (contigPart > 0)) {
+    assert((unitigPart == 0) || (contigPart == 0));
+
+    sprintf(name, "%s/seqDB.v%03d.p%03d.%s", path, V, unitigPart, T);
+
+    if (AS_UTL_fileExists(name, false, false)) {
+      loadMASRfile(name, R, L, M);
+    } else {
+      fprintf(stderr, "MultiAlignStore::loadMASR()-- ERROR:  Didn't find version %d, partition %d\n", V, 1);
+      fprintf(stderr, "  %s/seqDB.v%03d.%s        not present\n", path, V, T);
+      fprintf(stderr, "  %s/seqDB.v%03d.p001.%s   not present\n", path, V, T);
+      exit(1);
+    }
+    return;
+  }
 
   //  Load the first partition; nice side effect is that this allocates the R array to the correct
   //  size.
