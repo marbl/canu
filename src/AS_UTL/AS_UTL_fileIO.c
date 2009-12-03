@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char *rcsid = "$Id: AS_UTL_fileIO.c,v 1.21 2009-11-08 01:14:46 brianwalenz Exp $";
+//static char *rcsid = "$Id: AS_UTL_fileIO.c,v 1.22 2009-12-03 01:19:27 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -162,6 +162,26 @@ AS_UTL_mkdir(const char *dirname) {
 
   return(1);
 }
+
+//  Remove a file, or do nothing if the file doesn't exist.  Returns true if the file
+//  was deleted, false if the file never existsed.
+int
+AS_UTL_unlink(const char *filename) {
+
+  if (AS_UTL_fileExists(filename, FALSE, FALSE) == 0)
+    return(0);
+
+  errno = 0;
+  unlink(filename);
+  if (errno) {
+    fprintf(stderr, "AS_UTL_unlink()--  Failed to remove file '%s': %s\n", filename, strerror(errno));
+    exit(1);
+  }
+
+  return(1);
+}
+
+
 
 
 //  Returns true if the named file/directory exists, and permissions
