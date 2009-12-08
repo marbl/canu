@@ -73,11 +73,23 @@ if (defined($vec)) {
     while (<F>) {
         s/^\s+//;
         s/\s$//;
+
         my @v = split '\s+', $_;
-        $clv{$v[0]} = "$v[1],$v[2]";
+        my @t = split '\t', $_;
+
+        if      (scalar(@v) == 3) {
+            $clv{$v[0]} = "$v[1],$v[2]";
+
+        } elsif (scalar(@t) == 14) {
+            $clv{$t[0]} = "$t[11],$t[12]";
+
+        } else {
+            die "Unknown metadata format in line '$_'\n";
+        }
     }
     close(F);
-    #print STDERR "Read vector info for ", scalar(keys %clv), " reads.\n";
+
+    #print STDERR "$vec: Read vector info for ", scalar(keys %clv), " reads.\n";
 }
 
 
@@ -259,7 +271,7 @@ print "ver:1\n";
 print "}\n";
 
 if (defined(%clv) && ($clvNotFound > 0)) {
-    print STDERR "Updated $clvFound vector clear ranges ($clvNotFound NOT updated).\n";
+    print STDERR "$vec: Updated $clvFound vector clear ranges ($clvNotFound NOT updated).\n";
 }
 
 #print STDERR "Updated $clqFound quality clear ranges ($clqNotFound NOT updated).\n";
