@@ -1052,9 +1052,6 @@ sub submitScript ($) {
 
     my $qcmd = "qsub $sge $sgeScript -cwd -N \"runCA_${asm}\" -j y -o $output $waitTag $script";
 
-    print STDERR "DEBUG:\n$qcmd\n";
-    system('pwd');
-
     system($qcmd) and caFailure("Failed to submit script.\n");
 
     if (defined($sgePropHold)) {
