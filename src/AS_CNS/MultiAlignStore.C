@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.11 2009-12-10 10:17:41 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.12 2009-12-10 21:50:48 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -99,8 +99,8 @@ MultiAlignStore::MultiAlignStore(const char *path_,
 
   //  Load the MultiAlignRs for the current version.
 
-  loadMASR(utgRecord, utgLen, utgMax, currentVersion, TRUE);
-  loadMASR(ctgRecord, ctgLen, ctgMax, currentVersion, FALSE);
+  loadMASR(utgRecord, utgLen, utgMax, currentVersion, TRUE,  FALSE);
+  loadMASR(ctgRecord, ctgLen, ctgMax, currentVersion, FALSE, FALSE);
 
   if ((utgLen == 0) && (ctgLen == 0) && (append == false)) {
     fprintf(stderr, "MultiAlignStore::MultiAlignStore()-- ERROR, didn't find any unitigs or contigs in the store.  Correct version?\n");
@@ -123,13 +123,13 @@ MultiAlignStore::MultiAlignStore(const char *path_,
     purgeCurrentVersion();
   }
 
-  //  Open the next version for writing, but keep what is currently there.
+  //  Open the next version for writing, but keep the data that has changed in this version.
 
   if (append == true) {
     currentVersion++;
 
-    loadMASR(utgRecord, utgLen, utgMax, currentVersion, TRUE);
-    loadMASR(ctgRecord, ctgLen, ctgMax, currentVersion, FALSE);
+    loadMASR(utgRecord, utgLen, utgMax, currentVersion, TRUE,  TRUE);
+    loadMASR(ctgRecord, ctgLen, ctgMax, currentVersion, FALSE, TRUE);
   }
 
   if ((utgLen == 0) && (ctgLen == 0)) {
@@ -580,7 +580,7 @@ MultiAlignStore::dumpMASRfile(char *name, MultiAlignR *R, uint32 L, uint32 M, ui
 
 
 bool
-MultiAlignStore::loadMASRfile(char *name, MultiAlignR* &R, uint32& L, uint32& M, uint32 part) {
+MultiAlignStore::loadMASRfile(char *name, MultiAlignR* &R, uint32& L, uint32& M, uint32 part, bool onlyThisV) {
   uint32        MASRmagicInFile   = 0;
   uint32        MASRversionInFile = 0;
   uint32        MASRtotalInFile   = 0;
@@ -638,7 +638,8 @@ MultiAlignStore::loadMASRfile(char *name, MultiAlignR* &R, uint32& L, uint32& M,
     AS_UTL_safeRead(F, masr, "masr", sizeof(MultiAlignR), masrLen);
 
     for (uint32 i=0; i<indxLen; i++)
-      R[indx[i]] = masr[i];
+      if ((onlyThisV == FALSE) || (masr[i].svID == currentVersion))
+        R[indx[i]] = masr[i];
 
     safe_free(indx);
     safe_free(masr);
@@ -700,7 +701,7 @@ MultiAlignStore::dumpMASR(MultiAlignR* &R, uint32& L, uint32& M, uint32 V, bool 
 
 
 void
-MultiAlignStore::loadMASR(MultiAlignR* &R, uint32& L, uint32& M, uint32 V, bool isUnitig) {
+MultiAlignStore::loadMASR(MultiAlignR* &R, uint32& L, uint32& M, uint32 V, bool isUnitig, bool onlyThisV) {
   uint32   part = (isUnitig) ? unitigPart    : contigPart;
   uint32  *pmap = (isUnitig) ? unitigPartMap : contigPartMap;
 
@@ -716,7 +717,7 @@ MultiAlignStore::loadMASR(MultiAlignR* &R, uint32& L, uint32& M, uint32 V, bool 
   //
   if (part != 0) {
     sprintf(name, "%s/seqDB.v%03d.p%03d.%s", path, V, part, (isUnitig) ? "utg" : "ctg");
-    loadMASRfile(name, R, L, M, part);
+    loadMASRfile(name, R, L, M, part, onlyThisV);
     return;
   }
 
@@ -728,7 +729,7 @@ MultiAlignStore::loadMASR(MultiAlignR* &R, uint32& L, uint32& M, uint32 V, bool 
   //
   if ((part == 0) && (pmap == NULL)) {
     sprintf(name, "%s/seqDB.v%03d.%s", path, V, (isUnitig) ? "utg" : "ctg");
-    if (loadMASRfile(name, R, L, M, 0))
+    if (loadMASRfile(name, R, L, M, 0, onlyThisV))
       return;
   }
 
@@ -743,12 +744,12 @@ MultiAlignStore::loadMASR(MultiAlignR* &R, uint32& L, uint32& M, uint32 V, bool 
   //
   for (int32 i=V; i>0; i--) {
     sprintf(name, "%s/seqDB.v%03d.%s", path, i, (isUnitig) ? "utg" : "ctg");
-    if (loadMASRfile(name, R, L, M, 0))
+    if (loadMASRfile(name, R, L, M, 0, onlyThisV))
       break;
   }
 
   sprintf(name, "%s/seqDB.v%03d.p001.%s", path, V, (isUnitig) ? "utg" : "ctg");
-  for (uint32 p=1; loadMASRfile(name, R, L, M, p); p++)
+  for (uint32 p=1; loadMASRfile(name, R, L, M, p, onlyThisV); p++)
     sprintf(name, "%s/seqDB.v%03d.p%03d.%s", path, V, p+1, (isUnitig) ? "utg" : "ctg");
 }
 
@@ -773,7 +774,7 @@ MultiAlignStore::openDB(uint32 version, uint32 partition) {
   //  file.
   //
   //  This came into existence after BPW forgot to pass the desired partition size from runCA to 
- //  CGW, and ended up with an assembly with too many partitions.  Gatekeeper couldn't open enough
+  //  CGW, and ended up with an assembly with too many partitions.  Gatekeeper couldn't open enough
   //  files for the gkpStore partitioning.  CGW was called again to repartition, but it too opened
   //  too many files.
   //
@@ -788,7 +789,7 @@ MultiAlignStore::openDB(uint32 version, uint32 partition) {
 
   if ((writable) && (version == currentVersion)) {
     dataFile[version][partition].FP = fopen(name, "a+");
-    dataFile[version][partition].atEOF = true;
+    dataFile[version][partition].atEOF = false;
   } else {
     dataFile[version][partition].FP = fopen(name, "r");
     dataFile[version][partition].atEOF = false;

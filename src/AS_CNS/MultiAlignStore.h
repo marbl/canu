@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNSTORE_H
 #define MULTIALIGNSTORE_H
 
-static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore.h,v 1.5 2009-12-10 04:01:11 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore.h,v 1.6 2009-12-10 21:50:49 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -164,10 +164,10 @@ private:
   void                    init(const char *path_, uint32 version_, bool writable_, bool inplace_, bool append_);
 
   void                    dumpMASRfile(char *name, MultiAlignR  *R, uint32  L, uint32  M, uint32 part);
-  bool                    loadMASRfile(char *name, MultiAlignR* &R, uint32& L, uint32& M, uint32 part);
+  bool                    loadMASRfile(char *name, MultiAlignR* &R, uint32& L, uint32& M, uint32 part, bool onlyThisV);
 
   void                    dumpMASR(MultiAlignR* &R, uint32& L, uint32& M, uint32 V, bool isUnitig);
-  void                    loadMASR(MultiAlignR* &R, uint32& L, uint32& M, uint32 V, bool isUnitig);
+  void                    loadMASR(MultiAlignR* &R, uint32& L, uint32& M, uint32 V, bool isUnitig, bool onlyThisV);
 
   void                    purgeCurrentVersion(void);
 
