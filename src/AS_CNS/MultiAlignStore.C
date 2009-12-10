@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.10 2009-12-10 04:23:03 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.11 2009-12-10 10:17:41 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -623,7 +623,7 @@ MultiAlignStore::loadMASRfile(char *name, MultiAlignR* &R, uint32& L, uint32& M,
 
   if (M < MASRtotalInFile) {
     R = (MultiAlignR *)safe_realloc(R, L * sizeof(MultiAlignR));
-    memset(R + M * sizeof(MultiAlignR), 0, (L-M) * sizeof(MultiAlignR));
+    memset(R + M, 0, (L-M) * sizeof(MultiAlignR));
     M = L;
   }
 
