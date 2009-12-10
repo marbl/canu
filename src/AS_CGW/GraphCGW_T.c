@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.80 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.81 2009-12-10 15:12:16 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3094,7 +3094,7 @@ void ComputeMatePairDetailedStatus(void) {
           numMore++;
         }
 
-        if ( node->info.CI.numInstances > 1 || node->flags.bits.isStoneSurrogate ) {
+        if ( (node->info.CI.numInstances > 1 || node->flags.bits.isStoneSurrogate) && !frag->flags.bits.isPlaced) {
           int fragExists  = ExistsInHashTable_AS(surrHash, frag->read_iid, 0);
           int mateExists  = ExistsInHashTable_AS(surrHash, mate->read_iid, 0);
 
@@ -3107,6 +3107,7 @@ void ComputeMatePairDetailedStatus(void) {
               //fprintf(stderr, "* Both surr %d,%d from chunks %d.\n",
               //        frag->read_iid, mate->read_iid, node->id, mchunk->id);
             }
+            continue;
           } else {
             numSurrogate++;
             mate->flags.bits.mateDetail = SURR_MATE;
@@ -3117,36 +3118,34 @@ void ComputeMatePairDetailedStatus(void) {
               InsertInHashTable_AS(surrHash, frag->read_iid, 0, 0, 0);
             }
           }
-          continue;
-        } else {
-          //fprintf(stderr,"* Non surrogate node %d, num %d, frag %d\n",
-          //        node->id, node->info.CI.numInstances, frag->read_iid);
+      
+            if( (mchunk->info.CI.numInstances > 1 || mchunk->flags.bits.isStoneSurrogate) && !mate->flags.bits.isPlaced ) {
+              int fragExists = ExistsInHashTable_AS(surrHash, frag->read_iid, 0);
+      
+              if (fragExists) { // already seen
+                if (frag->flags.bits.mateDetail != BOTH_SURR_MATE) {
+                  numSurrogate-=1;
+                  numBothSurr+=2;
+                  mate->flags.bits.mateDetail = BOTH_SURR_MATE;
+                  frag->flags.bits.mateDetail = BOTH_SURR_MATE;
+                  InsertInHashTable_AS(surrHash, mate->read_iid, 0, 0, 0);
+                }
+                continue;
+              }
+              int mateExists = ExistsInHashTable_AS(surrHash, mate->read_iid, 0);
+              if (!mateExists) {
+                //fprintf(stderr, "* Add frag %d from chunk %d to surr hash, num: %d\n",
+                //        mate->read_iid, mchunk->id, mchunk->info.CI.numInstances );
+                InsertInHashTable_AS(surrHash, mate->read_iid, 0, 0, 0);
+                numSurrogate++;
+                mate->flags.bits.mateDetail = SURR_MATE;
+                frag->flags.bits.mateDetail = SURR_MATE;
+              }
+            }
+            continue;
         }
       }
-      if( mchunk->info.CI.numInstances > 1 || mchunk->flags.bits.isStoneSurrogate ) {
-        int fragExists = ExistsInHashTable_AS(surrHash, frag->read_iid, 0);
-
-        if (fragExists) { // already seen
-          if (frag->flags.bits.mateDetail != BOTH_SURR_MATE) {
-            numSurrogate-=1;
-            numBothSurr+=2;
-            mate->flags.bits.mateDetail = BOTH_SURR_MATE;
-            frag->flags.bits.mateDetail = BOTH_SURR_MATE;
-            InsertInHashTable_AS(surrHash, mate->read_iid, 0, 0, 0);
-          }
-          continue;
-        }
-        int mateExists = ExistsInHashTable_AS(surrHash, mate->read_iid, 0);
-        if (!mateExists) {
-          //fprintf(stderr, "* Add frag %d from chunk %d to surr hash, num: %d\n",
-          //        mate->read_iid, mchunk->id, mchunk->info.CI.numInstances );
-          InsertInHashTable_AS(surrHash, mate->read_iid, 0, 0, 0);
-          numSurrogate++;
-          mate->flags.bits.mateDetail = SURR_MATE;
-          frag->flags.bits.mateDetail = SURR_MATE;
-        }
-        continue;
-      }
+      
       if ( node->type == UNRESOLVEDCHUNK_CGW)
         numInUnresolv++;
       if ( fragContig->scaffoldID == NULLINDEX )
@@ -3154,7 +3153,7 @@ void ComputeMatePairDetailedStatus(void) {
 
       if( fragContig->scaffoldID == NULLINDEX ) {
         assert( node->type != DISCRIMINATORUNIQUECHUNK_CGW );
-        if (mateContig->scaffoldID == NULLINDEX) {
+        if (mateContig->scaffoldID == NULLINDEX && mchunk->info.CI.numInstances <= 1) {
           if (mate->flags.bits.mateDetail != BOTH_DEGEN_MATE) {
             mate->flags.bits.mateDetail  = BOTH_DEGEN_MATE;
             frag->flags.bits.mateDetail  = BOTH_DEGEN_MATE;
