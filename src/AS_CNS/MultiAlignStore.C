@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.9 2009-12-10 04:01:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.10 2009-12-10 04:23:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -348,7 +348,7 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
 
   SaveMultiAlignTToStream(ma, FP);
 
-  fprintf(stderr, "MA %d in store version %d partition %d at file position %d\n", ma->maID, maRecord->svID, maRecord->ptID, maRecord->fileOffset);
+  //fprintf(stderr, "MA %d in store version %d partition %d at file position %d\n", ma->maID, maRecord->svID, maRecord->ptID, maRecord->fileOffset);
 
   MultiAlignT   **maCache  = (isUnitig) ? (utgCache) : (ctgCache);
 

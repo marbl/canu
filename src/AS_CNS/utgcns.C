@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: utgcns.C,v 1.8 2009-12-10 04:01:11 brianwalenz Exp $";
+const char *mainid = "$Id: utgcns.C,v 1.9 2009-12-10 04:23:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -146,7 +146,7 @@ main (int argc, char **argv) {
   //  Reopen for writing, if we have work to do.
   if (b < e) {
     delete tigStore;
-    tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, FALSE, FALSE, TRUE);
+    tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, TRUE, FALSE, TRUE);
   }
 
   //  Now the usual case.  Iterate over all unitigs, compute and update.
