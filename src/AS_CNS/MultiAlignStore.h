@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNSTORE_H
 #define MULTIALIGNSTORE_H
 
-static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore.h,v 1.4 2009-11-19 15:33:56 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore.h,v 1.5 2009-12-10 04:01:11 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -81,8 +81,9 @@ public:
                   uint32      version,
                   uint32      unitigPartition,
                   uint32      contigPartition,
-                  bool        writable,
-                  bool        inplace);
+                  bool        writable=false,
+                  bool        inplace=false,
+                  bool        append=false);
   ~MultiAlignStore();
 
   //  Update to the next version.  Fails if the store is opened partitioned -- there is no decent
@@ -160,13 +161,15 @@ private:
     uint64       fileOffset  : 40;  //  40 -> 1 TB file size; offset in file where MA is stored
   };
 
-  void                    init(const char *path_, uint32 version_, bool writable_, bool inplace_);
+  void                    init(const char *path_, uint32 version_, bool writable_, bool inplace_, bool append_);
 
-  void                    dumpMASRfile(char *name, MultiAlignR *R, int32 L, int32 M);
-  void                    loadMASRfile(char *name, MultiAlignR* &R, int32& L, int32& M);
+  void                    dumpMASRfile(char *name, MultiAlignR  *R, uint32  L, uint32  M, uint32 part);
+  bool                    loadMASRfile(char *name, MultiAlignR* &R, uint32& L, uint32& M, uint32 part);
 
-  void                    dumpMASR(MultiAlignR* &R, char *T, int32& L, int32& M, uint32 V);
-  void                    loadMASR(MultiAlignR* &R, char *T, int32& L, int32& M, uint32 V);
+  void                    dumpMASR(MultiAlignR* &R, uint32& L, uint32& M, uint32 V, bool isUnitig);
+  void                    loadMASR(MultiAlignR* &R, uint32& L, uint32& M, uint32 V, bool isUnitig);
+
+  void                    purgeCurrentVersion(void);
 
   FILE                   *openDB(uint32 V, uint32 P);
 
@@ -174,8 +177,8 @@ private:
   char                    name[FILENAME_MAX];
 
   bool                    writable;               //  We are able to write
-  bool                    creating;               //  We are creating the initial store
   bool                    inplace;                //  We read and write to the same version
+  bool                    append;                 //  Do not nuke an existing partition
 
   uint32                  currentVersion;         //  Version we are writing to
 
@@ -202,13 +205,13 @@ private:
   uint32                  contigPart;             //  Partition we are restricted to read from
 
 
-  int32                   utgMax;
-  int32                   utgLen;
+  uint32                  utgMax;
+  uint32                  utgLen;
   MultiAlignR            *utgRecord;
   MultiAlignT           **utgCache;
 
-  int32                   ctgMax;
-  int32                   ctgLen;
+  uint32                  ctgMax;
+  uint32                  ctgLen;
   MultiAlignR            *ctgRecord;
   MultiAlignT           **ctgCache;
 

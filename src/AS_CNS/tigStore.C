@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.3 2009-11-04 17:03:56 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.4 2009-12-10 04:01:11 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -202,22 +202,23 @@ dumpConsensus(MultiAlignStore *tigStore,
 int
 main (int argc, char **argv) {
   char          tmpName[FILENAME_MAX] = {0};
-  char         *gkpName     = NULL;
-  char         *tigName     = NULL;
-  int           tigVers     = -1;
-  int           tigPartU    = 0;
-  int           tigPartC    = 0;
-  int32         tigID       = 0;
-  int32         tigIsUnitig = TRUE;
-  uint32        dumpType    = 0;
-  uint32        dumpFlags   = 0;
-  uint32        dumpAll     = 0;
-  char         *editName    = NULL;
-  char         *replaceName = NULL;
-  MultiAlignT  *ma          = NULL;
+  char         *gkpName        = NULL;
+  char         *tigName        = NULL;
+  int           tigVers        = -1;
+  int           tigPartU       = 0;
+  int           tigPartC       = 0;
+  int32         tigID          = 0;
+  int32         tigIsUnitig    = TRUE;
+  uint32        dumpType       = 0;
+  uint32        dumpFlags      = 0;
+  uint32        dumpAll        = 0;
+  char         *editName       = NULL;
+  char         *replaceName    = NULL;
+  bool          replaceInPlace = TRUE;
+  MultiAlignT  *ma             = NULL;
 
-  int           showQV   = 0;
-  int           showDots = 1;
+  int           showQV         = 0;
+  int           showDots       = 1;
 
   argc = AS_configure(argc, argv);
 
@@ -301,6 +302,9 @@ main (int argc, char **argv) {
       dumpType = OPERATION_REPLACE;
       replaceName = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-N") == 0) {
+      replaceInPlace = FALSE;
+
     } else {
       fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
       err++;
@@ -341,19 +345,39 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -R <layout>           Replace a multialign with this one (type and id are from the layout)\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -N                    Replace a multialign in the next version of the store.  This option is\n");
+    fprintf(stderr, "                        rarely useful, but is needed if the version of the store to add a multialign\n");
+    fprintf(stderr, "                        does not exist.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     exit(1);
   }
 
+  //  To add a new multialign: In the layout, assign an id of -1 to the multialign (e.g., "unitig
+  //  -1" or "contig -1").  Use -R to 'replace' this unitig in the store.  The store will assign the
+  //  next unitig/contig ID to this new multialign.  WARNING!  The new multialign MUST be added to
+  //  the latest version.
+  //
+  //  To delete a multialign: Remove ALL FRG and UTG lines, and set data.num_frags and
+  //  data.num_unitigs to zero.  Use -R to 'replae' this unitig in the store.
+  //  EXCEPT the code below will ignore treat these as EOF.
+  //
+  //  One can change partitioning by deleting a multialign from one partition and adding it to
+  //  another partition.  Doing so WILL cause consensus to fail, as consensus is expecting a
+  //  specific set of fragments in each partition.
+  //
+  //  It is not possible to add a new partition:
+  //  MultiAlignStore::MultiAlignStore()-- ERROR, didn't find any unitigs or contigs in the store.  Correct version?
+
+
   gkpStore = new gkStore(gkpName, FALSE, FALSE);
-  tigStore = new MultiAlignStore(tigName, tigVers, tigPartU, tigPartC, FALSE, FALSE);
+  tigStore = new MultiAlignStore(tigName, tigVers, tigPartU, tigPartC, FALSE, FALSE, FALSE);
 
 
 
   if ((dumpType == OPERATION_EDIT) && (editName != NULL)) {
     delete tigStore;
-    tigStore = new MultiAlignStore(tigName, tigVers, tigPartU, tigPartC, TRUE, TRUE);
+    tigStore = new MultiAlignStore(tigName, tigVers, tigPartU, tigPartC, TRUE, TRUE, FALSE);
     changeProperties(tigStore, editName);
   }
 
@@ -364,15 +388,26 @@ main (int argc, char **argv) {
     if (errno)
       fprintf(stderr, "Failed to open '%s': %s\n", replaceName, strerror(errno)), exit(1);
 
+    delete tigStore;
+    tigStore = new MultiAlignStore(tigName, tigVers, tigPartU, tigPartC, TRUE, replaceInPlace, !replaceInPlace);
+
     MultiAlignT  *ma       = CreateEmptyMultiAlignT();
-    bool          isUnitig = LoadMultiAlignFromHuman(ma, F);
+    bool          isUnitig = false;
+
+    while (LoadMultiAlignFromHuman(ma, isUnitig, F) == true) {
+      if (ma->maID < 0)
+        ma->maID = (isUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
+
+      if (ma->data.num_frags + ma->data.num_unitigs == 0) {
+        fprintf(stderr, "DELETING %s %d\n", (isUnitig) ? "unitig" : "contig", ma->maID);
+        tigStore->deleteMultiAlign(ma->maID, isUnitig);
+      } else {
+        fprintf(stderr, "INSERTING %s %d\n", (isUnitig) ? "unitig" : "contig", ma->maID);
+        tigStore->insertMultiAlign(ma, isUnitig, FALSE);
+      }
+    }
 
     fclose(F);
-
-    delete tigStore;
-    tigStore = new MultiAlignStore(tigName, tigVers, tigPartU, tigPartC, TRUE, TRUE);
-
-    tigStore->insertMultiAlign(ma, isUnitig, TRUE);
   }
 
 
@@ -416,10 +451,8 @@ main (int argc, char **argv) {
     for (tigID=bgn; tigID<end; tigID++) {
       ma = tigStore->loadMultiAlign(tigID, tigIsUnitig);
 
-      if (ma == NULL) {
-        fprintf(stderr, "MultiAlign not loaded.\n");
-        exit(0);
-      }
+      if (ma == NULL)
+        continue;
 
       if (dumpFlags & DUMP_PROPERTIES)
         dumpProperties(tigStore, tigID, tigIsUnitig, ma);

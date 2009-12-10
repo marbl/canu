@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: utgcns.C,v 1.7 2009-12-01 01:25:36 brianwalenz Exp $";
+const char *mainid = "$Id: utgcns.C,v 1.8 2009-12-10 04:01:11 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -38,8 +38,12 @@ main (int argc, char **argv) {
   int32  tigPart = -1;
 
   int32  utgTest = -1;
+  char  *utgFile = NULL;
+
+  bool   forceCompute = false;
 
   int32  numFailures = 0;
+  int32  numSkipped  = 0;
 
   CNS_PrintKey printwhat=CNS_STATS_ONLY;
 
@@ -65,6 +69,12 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-u") == 0) {
       utgTest = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-T") == 0) {
+      utgFile = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-f") == 0) {
+      forceCompute = true;
+
     } else if (strcmp(argv[arg], "-v") == 0) {
       printwhat = CNS_VIEW_UNITIG;
 
@@ -80,17 +90,25 @@ main (int argc, char **argv) {
   }
   if ((err) || (gkpName == NULL) || (tigName == NULL)) {
     fprintf(stderr, "usage: %s -g gkpStore -t tigStore version partition [opts]\n", argv[0]);
+    fprintf(stderr, "\n");
     fprintf(stderr, "    -u id        Compute only unitig 'id' (must be in the correct partition!)\n");
+    fprintf(stderr, "    -T file      Test the computation of the unitig layout in 'file'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -f           Recompute unitigs that already have a multialignment\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "    -v           Show multialigns.\n");
     fprintf(stderr, "    -V           Enable debugging option 'verbosemultialign'.\n");
     fprintf(stderr, "\n");
     exit(1);
   }
 
+  //  Open both stores for read only.
   gkpStore = new gkStore(gkpName, FALSE, FALSE);
-  tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, TRUE, FALSE);
+  tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, FALSE, FALSE, FALSE);
 
   gkpStore->gkStore_loadPartition(tigPart);
+
+  //  Decide on what to compute.  Either all unitigs, or a single unitig, or a special case test.
 
   uint32  b = 0;
   uint32  e = tigStore->numUnitigs();
@@ -100,22 +118,67 @@ main (int argc, char **argv) {
     e = utgTest + 1;
   }
 
+  if (utgFile != NULL) {
+    errno = 0;
+    FILE         *F = fopen(utgFile, "r");
+    if (errno)
+      fprintf(stderr, "Failed to open input unitig file '%s': %s\n", utgFile, strerror(errno)), exit(1);
+
+    MultiAlignT  *ma       = CreateEmptyMultiAlignT();
+    bool          isUnitig = false;
+
+    while (LoadMultiAlignFromHuman(ma, isUnitig, F) == true) {
+      if (ma->maID < 0)
+        ma->maID = (isUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
+
+      if (MultiAlignUnitig(ma, gkpStore, printwhat, &options)) {
+      } else {
+        fprintf(stderr, "MultiAlignUnitig()-- unitig %d failed.\n", ma->maID);
+        numFailures++;
+      }
+    }
+
+    DeleteMultiAlignT(ma);
+
+    b = e = 0;
+  }
+
+  //  Reopen for writing, if we have work to do.
+  if (b < e) {
+    delete tigStore;
+    tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, FALSE, FALSE, TRUE);
+  }
+
+  //  Now the usual case.  Iterate over all unitigs, compute and update.
   for (uint32 i=b; i<e; i++) {
     MultiAlignT  *ma = tigStore->loadMultiAlign(i, TRUE);
 
-    if (ma == NULL)
+    if (ma == NULL) {
       //  Not in our partition, or deleted.
       continue;
+    }
+
+    bool exists = (ma->consensus != NULL) && (GetNumchars(ma->consensus) > 1);
+
+    if ((forceCompute == false) && (exists == true)) {
+      //  Already finished unitig consensus.
+      if (ma->data.num_frags > 1)
+        fprintf(stderr, "Working on unitig %d (%d unitigs and %d fragments) - already computed, skipped\n",
+                ma->maID, ma->data.num_unitigs, ma->data.num_frags);
+      numSkipped++;
+      continue;
+    }
 
     if (ma->data.num_frags > 1)
-      fprintf(stderr, "Working on unitig %d (%d unitigs and %d fragments)\n",
-              ma->maID, ma->data.num_unitigs, ma->data.num_frags);
+      fprintf(stderr, "Working on unitig %d (%d unitigs and %d fragments)%s\n",
+              ma->maID, ma->data.num_unitigs, ma->data.num_frags,
+              (exists) ? " - already computed, recomputing" : "");
 
     if (MultiAlignUnitig(ma, gkpStore, printwhat, &options)) {
       tigStore->insertMultiAlign(ma, TRUE, FALSE);
       DeleteMultiAlignT(ma);
     } else {
-      fprintf(stderr, "MultiAlignUnitig()-- unitig %d failed.\n", i);
+      fprintf(stderr, "MultiAlignUnitig()-- unitig %d failed.\n", ma->maID);
       numFailures++;
     }
   }

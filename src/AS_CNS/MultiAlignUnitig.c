@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.25 2009-12-01 01:25:36 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.26 2009-12-10 04:01:11 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -182,7 +182,8 @@ public:
   ~unitigConsensus() {
     DeleteVA_int32(trace);
     DeleteHashTable_AS(fragmentMap);  fragmentMap = NULL;
-    DeleteMANode(manode->lid);
+    if (manode)
+      DeleteMANode(manode->lid);
 
     safe_free(offsets);
     safe_free(placed);
@@ -279,6 +280,9 @@ unitigConsensus::initialize(void) {
 
   int32 num_columns = 0;
   int32 num_bases   = 0;
+
+  if (numfrags == 0)
+    return(false);
 
   for (int32 i=0; i<numfrags; i++) {
     int32 flen   = (fraglist[i].position.bgn < fraglist[i].position.end) ? (fraglist[i].position.end < fraglist[i].position.bgn) : (fraglist[i].position.bgn - fraglist[i].position.end);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: ctgcns.C,v 1.7 2009-12-01 01:25:36 brianwalenz Exp $";
+const char *mainid = "$Id: ctgcns.C,v 1.8 2009-12-10 04:01:11 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -38,8 +38,12 @@ main (int argc, char **argv) {
   int32  tigPart = -1;
 
   int32  ctgTest = -1;
+  char  *ctgFile = NULL;
+
+  bool   forceCompute = false;
 
   int32  numFailures = 0;
+  int32  numSkipped  = 0;
 
   CNS_PrintKey printwhat=CNS_STATS_ONLY;
 
@@ -65,6 +69,12 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-c") == 0) {
       ctgTest = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-T") == 0) {
+      ctgFile = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-f") == 0) {
+      forceCompute = true;
+
     } else if (strcmp(argv[arg], "-v") == 0) {
       printwhat = CNS_VIEW_UNITIG;
 
@@ -87,6 +97,10 @@ main (int argc, char **argv) {
   if ((err) || (gkpName == NULL) || (tigName == NULL)) {
     fprintf(stderr, "usage: %s -g gkpStore -t tigStore version partition [opts]\n", argv[0]);
     fprintf(stderr, "    -c id        Compute only contig 'id' (must be in the correct partition!)\n");
+    fprintf(stderr, "    -T file      Test the computation of the contig layout in 'file'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -f           Recompute contigs that already have a multialignment\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "    -v           Show multialigns.\n");
     fprintf(stderr, "    -V           Enable debugging option 'verbosemultialign'.\n");
     fprintf(stderr, "\n");
@@ -95,13 +109,13 @@ main (int argc, char **argv) {
     exit(1);
   }
 
+  //  Open both stores for read only.
   gkpStore = new gkStore(gkpName, FALSE, FALSE);
-  tigStore = new MultiAlignStore(tigName, tigVers, 0, tigPart, TRUE, FALSE);
+  tigStore = new MultiAlignStore(tigName, tigVers, 0, tigPart, FALSE, FALSE, TRUE);
 
   gkpStore->gkStore_loadPartition(tigPart);
 
-  fprintf(stderr, "tigVers=%d tigPart=%d\n", tigVers, tigPart);
-
+  //  Decide on what to compute.  Either all contigs, or a single contig, or a special case test.
   uint32 b = 0;
   uint32 e = tigStore->numContigs();
 
@@ -110,15 +124,59 @@ main (int argc, char **argv) {
     e = ctgTest + 1;
   }
 
+  if (ctgFile != NULL) {
+    errno = 0;
+    FILE         *F = fopen(ctgFile, "r");
+    if (errno)
+      fprintf(stderr, "Failed to open input contig file '%s': %s\n", ctgFile, strerror(errno)), exit(1);
+
+    MultiAlignT  *ma       = CreateEmptyMultiAlignT();
+    bool          isUnitig = false;
+
+    while (LoadMultiAlignFromHuman(ma, isUnitig, F) == true) {
+      if (ma->maID < 0)
+        ma->maID = (isUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
+
+      if (MultiAlignContig(ma, gkpStore, printwhat, &options)) {
+      } else {
+        fprintf(stderr, "MultiAlignContig()-- contig %d failed.\n", ma->maID);
+        numFailures++;
+      }
+    }
+
+    DeleteMultiAlignT(ma);
+
+    b = e = 0;
+  }
+
+  //  Reopen for writing, if we have work to do.
+  if (b < e) {
+    delete tigStore;
+    tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, FALSE, FALSE, TRUE);
+  }
+
+  //  Now the usual case.  Iterate over all unitigs, compute and update.
   for (uint32 i=b; i<e; i++) {
     MultiAlignT  *ma = tigStore->loadMultiAlign(i, FALSE);
 
-    if (ma == NULL)
+    if (ma == NULL) {
       //  Not in our partition, or deleted.
       continue;
+    }
 
-    fprintf(stderr, "Working on contig %d (%d unitigs and %d fragments)\n",
-            ma->maID, ma->data.num_unitigs, ma->data.num_frags);
+    bool  exists = (ma->consensus != NULL) && (GetNumchars(ma->consensus) > 1);
+
+    if ((forceCompute == false) && (exists == true)) {
+      //  Already finished contig consensus.
+      fprintf(stderr, "Working on contig %d (%d unitigs and %d fragments) - already computed, skipped\n",
+              ma->maID, ma->data.num_unitigs, ma->data.num_frags);
+      numSkipped++;
+      continue;
+    }
+
+    fprintf(stderr, "Working on contig %d (%d unitigs and %d fragments)%s\n",
+            ma->maID, ma->data.num_unitigs, ma->data.num_frags,
+            (exists) ? " - already computed, recomputing" : "");
 
     FORCE_UNITIG_ABUT = 1;
 
@@ -126,7 +184,7 @@ main (int argc, char **argv) {
       tigStore->insertMultiAlign(ma, FALSE, FALSE);
       DeleteMultiAlignT(ma);
     } else {
-      fprintf(stderr, "MultiAlignContig()-- contig %d failed.\n", i);
+      fprintf(stderr, "MultiAlignContig()-- contig %d failed.\n", ma->maID);
       numFailures++;
     }
   }
