@@ -42,7 +42,7 @@ sub createPostUnitiggerConsensusJobs (@) {
     print F "fi\n";
     print F "\n";
     print F "if [ \$jobid -gt $jobs ]; then\n";
-    print F "  echo Error: Only $jobs partitions; you asked for \$jobid.\n";
+    print F "  echo Error: Only $jobs partitions, you asked for \$jobid.\n";
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
