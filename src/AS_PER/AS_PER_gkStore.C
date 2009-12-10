@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.17 2009-12-02 12:52:26 skoren Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.18 2009-12-10 23:00:53 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,6 +51,11 @@ gkStore::gkStore(const char *path, int partition) {
   char       name[FILENAME_MAX];
 
   gkStore_clear();
+
+  if ((path == NULL) || (path[0] == 0)) {
+    fprintf(stderr, "gkStore::gkStore()--  ERROR!  Empty gkpStore path supplied.\n");
+    exit(1);
+  }
 
   strcpy(storePath, path);
 
@@ -285,6 +290,11 @@ gkStore::gkStore_construct(const char * path, int creatable, int writable, int d
   char   name[FILENAME_MAX];
 
   gkStore_clear();
+
+  if ((path == NULL) || (path[0] == 0)) {
+    fprintf(stderr, "gkStore::gkStore()--  ERROR!  Empty gkpStore path supplied.\n");
+    exit(1);
+  }
 
   strcpy(storePath, path);
 
