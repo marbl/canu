@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlign.c,v 1.12 2009-12-10 04:01:10 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlign.c,v 1.13 2009-12-11 03:00:33 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -653,7 +653,7 @@ DumpMultiAlignForHuman(FILE *out, MultiAlignT *ma, bool isUnitig) {
   for (int32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
     IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
 
-    fprintf(stdout, "FRG\ttype\t%c\tident\t%7d\tcontainer\t%7d\tparent\t%7d\thang\t%5d\t%5d\tposition\t%5d\t%5d\n",
+    fprintf(stdout, "FRG type %c ident %9d container %9d parent %9d hang %6d %6d position %6d %6d\n",
             imp->type,
             imp->ident,
             imp->contained,
@@ -665,7 +665,7 @@ DumpMultiAlignForHuman(FILE *out, MultiAlignT *ma, bool isUnitig) {
   for (int32 i=0; i<GetNumIntUnitigPoss(ma->u_list); i++) {
     IntUnitigPos *iup = GetIntUnitigPos(ma->u_list, i);
 
-    fprintf(stdout, "UTG\ttype\t%c\tident\t%7d\tposition\t%5d\t%5d\tnum_instances\t%5d\n",
+    fprintf(stdout, "UTG type %c ident %9d position %6d %6d num_instances %d\n",
             iup->type,
             iup->ident,
             iup->position.bgn, iup->position.end,
