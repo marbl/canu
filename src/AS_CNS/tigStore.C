@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.4 2009-12-10 04:01:11 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.5 2009-12-12 11:54:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -147,8 +147,8 @@ dumpProperties(MultiAlignStore *tigStore,
   fprintf(stderr, "unitigStatus        %c/%d\n",   ma->data.unitig_status, ma->data.unitig_status);
   fprintf(stderr, "unitigFUR           %c/%d\n",   ma->data.unitig_unique_rept, ma->data.unitig_unique_rept);
   fprintf(stderr, "contigStatus        %c/%d\n",   ma->data.contig_status, ma->data.contig_status);
-  fprintf(stderr, "numFrags            "F_U32" (vs "F_U32")\n", ma->data.num_frags, GetNumIntMultiPoss(ma->f_list));
-  fprintf(stderr, "numUnitigs          "F_U32" (vs "F_U32")\n", ma->data.num_unitigs, GetNumIntUnitigPoss(ma->u_list));
+  fprintf(stderr, "numFrags            "F_U32" (vs "F_U64")\n", ma->data.num_frags, (uint64)GetNumIntMultiPoss(ma->f_list));
+  fprintf(stderr, "numUnitigs          "F_U32" (vs "F_U64")\n", ma->data.num_unitigs, (uint64)GetNumIntUnitigPoss(ma->u_list));
 
   tigStore->dumpMultiAlignR(tigID, tigIsUnitig);
 }
@@ -160,7 +160,7 @@ dumpFrags(MultiAlignStore *tigStore,
           int32 tigIsUnitig,
           MultiAlignT *ma) {
 
-  for (int32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
+  for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
     IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
 
     fprintf(stdout, "FRG %7d %5d,%5d\n",
@@ -175,7 +175,7 @@ dumpUnitigs(MultiAlignStore *tigStore,
             int32 tigIsUnitig,
             MultiAlignT *ma) {
 
-  for (int32 i=0; i<GetNumIntUnitigPoss(ma->u_list); i++) {
+  for (uint32 i=0; i<GetNumIntUnitigPoss(ma->u_list); i++) {
     IntUnitigPos *iup = GetIntUnitigPos(ma->u_list, i);
 
     fprintf(stdout, "UTG %7d %5d,%5d\n",
@@ -190,9 +190,11 @@ dumpConsensus(MultiAlignStore *tigStore,
               int32 tigIsUnitig,
               MultiAlignT *ma) {
 
-  if (ma->consensus) {
-    fprintf(stderr, "cns=%d (incl null)\n", GetNumchars(ma->consensus));
-    fprintf(stderr, "cns=%s\n", Getchar(ma->consensus, 0));
+  if ((ma->consensus) &&
+      ( Getchar(ma->consensus, 0) != NULL) &&
+      (*Getchar(ma->consensus, 0) != 0)) {
+    fprintf(stderr, ">%s%d len="F_U64"\n", (tigIsUnitig) ? "utg" : "ctg", ma->maID, GetNumchars(ma->consensus) - 1);
+    fprintf(stderr, "%s\n", Getchar(ma->consensus, 0));
   }
 }
 
@@ -343,11 +345,14 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -E <editFile>         Change properties of multialigns\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -R <layout>           Replace a multialign with this one (type and id are from the layout)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -N                    Replace a multialign in the next version of the store.  This option is\n");
+    fprintf(stderr, "  -R <layout>           Replace a multialign with this one (type and id are from the layout)\n");
+    fprintf(stderr, "  -A <layout>           Add new tigs.\n");
+    fprintf(stderr, "  -D                    Delete a tig.  The tig is specified with -u or -c.\n");
+    fprintf(stderr, "  -N                    Replace or add a multialign in the next version of the store.  This option is\n");
     fprintf(stderr, "                        rarely useful, but is needed if the version of the store to add a multialign\n");
     fprintf(stderr, "                        does not exist.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     exit(1);
@@ -395,15 +400,12 @@ main (int argc, char **argv) {
     bool          isUnitig = false;
 
     while (LoadMultiAlignFromHuman(ma, isUnitig, F) == true) {
-      if (ma->maID < 0)
-        ma->maID = (isUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
-
       if (ma->data.num_frags + ma->data.num_unitigs == 0) {
         fprintf(stderr, "DELETING %s %d\n", (isUnitig) ? "unitig" : "contig", ma->maID);
         tigStore->deleteMultiAlign(ma->maID, isUnitig);
       } else {
-        fprintf(stderr, "INSERTING %s %d\n", (isUnitig) ? "unitig" : "contig", ma->maID);
         tigStore->insertMultiAlign(ma, isUnitig, FALSE);
+        fprintf(stderr, "INSERTING %s %d\n", (isUnitig) ? "unitig" : "contig", ma->maID);
       }
     }
 
@@ -424,7 +426,7 @@ main (int argc, char **argv) {
   if (dumpType == OPERATION_PROPERTIES) {
     for (uint32 i=0; i<tigStore->numUnitigs(); i++) {
       if (tigStore->isDeleted(i, TRUE) == false) {
-        fprintf(stdout, "unitig_coverage_stat %8u %f\n", i, tigStore->getUnitigCoverageStat(i));
+        fprintf(stdout, "unitig_coverage_stat %8u %d\n", i, tigStore->getUnitigCoverageStat(i));
         fprintf(stdout, "unitig_microhet_prob %8u %f\n", i, tigStore->getUnitigMicroHetProb(i));
         fprintf(stdout, "unitig_status        %8u %c\n", i, tigStore->getUnitigStatus(i));
         fprintf(stdout, "unitig_unique_rept   %8u %c\n", i, tigStore->getUnitigFUR(i));
@@ -440,8 +442,8 @@ main (int argc, char **argv) {
 
 
   if (dumpType == OPERATION_TIG) {
-    uint32  bgn = tigID;
-    uint32  end = tigID + 1;
+    int32  bgn = tigID;
+    int32  end = tigID + 1;
 
     if (dumpAll == TRUE) {
       bgn = 0;

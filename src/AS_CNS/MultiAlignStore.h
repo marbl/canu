@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNSTORE_H
 #define MULTIALIGNSTORE_H
 
-static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore.h,v 1.6 2009-12-10 21:50:49 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore.h,v 1.7 2009-12-12 11:54:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -140,12 +140,12 @@ public:
   uint32                     getNumFrags(int32 maID, bool isUnitig);
   uint32                     getNumUnitigs(int32 maID, bool isUnitig);
 
-  double                     setUnitigCoverageStat(int32 maID, double cs);
-  double                     setUnitigMicroHetProb(int32 maID, double mp);
-  UnitigStatus               setUnitigStatus(int32 maID, UnitigStatus status);
-  UnitigFUR                  setUnitigFUR(int32 maID, UnitigFUR fur);
+  void                       setUnitigCoverageStat(int32 maID, double cs);
+  void                       setUnitigMicroHetProb(int32 maID, double mp);
+  void                       setUnitigStatus(int32 maID, UnitigStatus status);
+  void                       setUnitigFUR(int32 maID, UnitigFUR fur);
 
-  ContigStatus               setContigStatus(int32 maID, ContigStatus status);
+  void                       setContigStatus(int32 maID, ContigStatus status);
 
   void                       dumpMultiAlignR(int32 maID, bool isUnitig);
   void                       dumpMultiAlignRTable(bool isUnitig);
@@ -163,8 +163,9 @@ private:
 
   void                    init(const char *path_, uint32 version_, bool writable_, bool inplace_, bool append_);
 
-  void                    dumpMASRfile(char *name, MultiAlignR  *R, uint32  L, uint32  M, uint32 part);
-  bool                    loadMASRfile(char *name, MultiAlignR* &R, uint32& L, uint32& M, uint32 part, bool onlyThisV);
+  void                    dumpMASRfile(char *name, MultiAlignR *R, uint32 L, uint32 M, uint32 part);
+  bool                    loadMASRfile(char *name, MultiAlignR *R, uint32 L, uint32 M, uint32 part, bool onlyThisV);
+  uint32                  numTigsInMASRfile(char *name);
 
   void                    dumpMASR(MultiAlignR* &R, uint32& L, uint32& M, uint32 V, bool isUnitig);
   void                    loadMASR(MultiAlignR* &R, uint32& L, uint32& M, uint32 V, bool isUnitig, bool onlyThisV);
@@ -180,6 +181,9 @@ private:
   bool                    inplace;                //  We read and write to the same version
   bool                    append;                 //  Do not nuke an existing partition
 
+  bool                    newTigs;                //  internal flag, set if tigs were added
+
+  uint32                  originalVersion;        //  Version we started from (see newTigs in code)
   uint32                  currentVersion;         //  Version we are writing to
 
   //  Creating or changing the partitioning.  These act independently, though it (currently) makes
@@ -224,100 +228,112 @@ private:
 };
 
 
-
 inline
 bool
 MultiAlignStore::isDeleted(int32 maID, bool isUnitig) {
+  assert(maID >= 0);
   return((isUnitig) ? utgRecord[maID].isDeleted : ctgRecord[maID].isDeleted);
 }
 
 inline
 int
 MultiAlignStore::getUnitigCoverageStat(int32 maID) {
-  assert(maID < utgLen);
+  assert(maID >= 0);
+  assert(maID < (int32)utgLen);
   return((int)utgRecord[maID].mad.unitig_coverage_stat);
 }
 
 inline
 double
 MultiAlignStore::getUnitigMicroHetProb(int32 maID) {
-  assert(maID < utgLen);
+  assert(maID >= 0);
+  assert(maID < (int32)utgLen);
   return(utgRecord[maID].mad.unitig_microhet_prob);
 }
 
 inline
 UnitigStatus
 MultiAlignStore::getUnitigStatus(int32 maID) {
-  assert(maID < utgLen);
+  assert(maID >= 0);
+  assert(maID < (int32)utgLen);
   return(utgRecord[maID].mad.unitig_status);
 }
 
 inline
 UnitigFUR
 MultiAlignStore::getUnitigFUR(int32 maID) {
-  assert(maID < utgLen);
+  assert(maID >= 0);
+  assert(maID < (int32)utgLen);
   return(utgRecord[maID].mad.unitig_unique_rept);
 }
 
 inline
 ContigStatus
 MultiAlignStore::getContigStatus(int32 maID) {
-  assert(maID < ctgLen);
+  assert(maID >= 0);
+  assert(maID < (int32)ctgLen);
   return(ctgRecord[maID].mad.contig_status);
 }
 
 inline
 uint32
 MultiAlignStore::getNumFrags(int32 maID, bool isUnitig) {
+  assert(maID >= 0);
   return((isUnitig) ? utgRecord[maID].mad.num_frags : ctgRecord[maID].mad.num_frags);  
 }
 
 inline
 uint32
 MultiAlignStore::getNumUnitigs(int32 maID, bool isUnitig) {
+  assert(maID >= 0);
   return((isUnitig) ? utgRecord[maID].mad.num_unitigs : ctgRecord[maID].mad.num_unitigs);
 }
 
 inline
-double
+void
 MultiAlignStore::setUnitigCoverageStat(int32 maID, double cs) {
-  assert(maID < utgLen);
+  assert(maID >= 0);
+  assert(maID < (int32)utgLen);
   utgRecord[maID].mad.unitig_coverage_stat = cs;
   if (utgCache[maID])
     utgCache[maID]->data.unitig_coverage_stat = cs;
 }
 
 inline
-double
+void
 MultiAlignStore::setUnitigMicroHetProb(int32 maID, double mp) {
-  assert(maID < utgLen);
+  assert(maID >= 0);
+  assert(maID < (int32)utgLen);
   utgRecord[maID].mad.unitig_microhet_prob = mp;
   if (utgCache[maID])
     utgCache[maID]->data.unitig_microhet_prob = mp;
 }
 
 inline
-UnitigStatus
+void
 MultiAlignStore::setUnitigStatus(int32 maID, UnitigStatus status) {
-  assert(maID < utgLen);
+  assert(maID >= 0);
+  assert(maID < (int32)utgLen);
   utgRecord[maID].mad.unitig_status = status;
   if (utgCache[maID])
     utgCache[maID]->data.unitig_status = status;
 }
 
 inline
-UnitigFUR
+void
 MultiAlignStore::setUnitigFUR(int32 maID, UnitigFUR fur) {
-  assert(maID < utgLen);
+  assert(maID >= 0);
+  assert(maID < (int32)utgLen);
   utgRecord[maID].mad.unitig_unique_rept = fur;
   if (utgCache[maID])
     utgCache[maID]->data.unitig_unique_rept = fur;
 }
 
 inline
-ContigStatus
+void
 MultiAlignStore::setContigStatus(int32 maID, ContigStatus status) {
-  assert(maID < ctgLen);
+  assert(maID >= 0);
+  assert(maID < (int32)ctgLen);
   ctgRecord[maID].mad.contig_status = status;
   if (ctgCache[maID])
     ctgCache[maID]->data.contig_status = status;
