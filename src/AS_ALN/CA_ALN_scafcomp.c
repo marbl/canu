@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: CA_ALN_scafcomp.c,v 1.19 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: CA_ALN_scafcomp.c,v 1.20 2009-12-14 19:23:36 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -584,6 +584,10 @@ Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, double A
 
       //handle the final contig
 
+      if (! (Bmax==B->ctgs[i].lft_end||(Bmax==bot&&bot>B->ctgs[i].lft_end))) {
+        fprintf(stderr, "CA_ALN_scafcomp::Project_across_Agap_one_interval()-- Ignoring assert.  Returning failure.\n");
+        return(0);
+      }
       assert(Bmax==B->ctgs[i].lft_end||(Bmax==bot&&bot>B->ctgs[i].lft_end));
 
       // is this conditional gratuitous?
