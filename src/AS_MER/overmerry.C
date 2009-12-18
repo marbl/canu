@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overmerry.C,v 1.38 2009-10-26 13:20:26 brianwalenz Exp $";
+const char *mainid = "$Id: overmerry.C,v 1.39 2009-12-18 04:29:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,6 +36,12 @@ const char *mainid = "$Id: overmerry.C,v 1.38 2009-10-26 13:20:26 brianwalenz Ex
 #include "sweatShop.H"
 #include "positionDB.H"
 #include "libmeryl.H"
+
+
+#define MAX_COUNT_GLOBAL     0x01
+#define MAX_COUNT_FRAG_MEAN  0x02
+#define MAX_COUNT_FRAG_MODE  0x03
+
 
 
 //  Instead of using the internal overlap, which has enough extra stuff in it that we cannot store a
@@ -93,13 +99,14 @@ public:
 class ovmGlobalData {
 public:
   ovmGlobalData() {
-    gkpPath       = 0L;
-    merCountsFile = 0L;
-    merSize       = 23;
-    compression   = 1;
-    maxCount      = 1024 * 1024 * 1024;
-    numThreads    = 4;
-    beVerbose     = false;
+    gkpPath        = 0L;
+    merCountsFile  = 0L;
+    merSize        = 23;
+    compression    = 1;
+    maxCountGlobal = 1024 * 1024 * 1024;
+    maxCountType   = MAX_COUNT_GLOBAL;
+    numThreads     = 4;
+    beVerbose      = false;
 
     qGK  = 0L;
     qFS  = 0L;
@@ -233,7 +240,7 @@ public:
     //  their reverse-complement mer.
     //
     if (MF)
-      tPS->filter(2, maxCount);
+      tPS->filter(2, maxCountGlobal);
 
     delete MF;
   };
@@ -255,7 +262,8 @@ public:
   char    *merCountsFile;
   uint32   merSize;
   uint32   compression;
-  uint32   maxCount;
+  uint32   maxCountGlobal;
+  uint32   maxCountType;
   uint32   numThreads;
   bool     beVerbose;
 
@@ -432,6 +440,86 @@ public:
 
 
 
+u32bit
+ovmWorker_analyzeReadForThreshold(ovmGlobalData    *g,
+                                  ovmThreadData    *t,
+                                  ovmComputation   *s,
+                                  merStream        *sMSTR,
+                                  uint32           *sSPAN) {
+
+  u32bit  maxCount = 0;
+  u32bit  cnt = 0;
+  u32bit  ave = 0;
+
+  while (sMSTR->nextMer()) {
+    u32bit  c = (u32bit)g->tPS->countExact(sMSTR->theFMer());
+
+    if (c > 1) {
+      sSPAN[cnt]  = c;
+      ave        += c;
+      cnt++;
+    }
+  }
+
+  u32bit  minc = 0;  //  Min count observed
+  u32bit  maxc = 0;  //  Max count observed
+
+  u32bit  medi = 0;  //  Median count
+  u32bit  mean = 0;  //  Mean count;
+
+  u32bit  mode = 0;  //  Modal count
+  u32bit  mcnt = 0;  //  Times we saw the modal count
+
+  u32bit  mtmp = 0;  //  A temporary for counting the mode
+
+  if (cnt > 0) {
+    std::sort(sSPAN, sSPAN + cnt);
+
+    minc = sSPAN[0];
+    medi = sSPAN[cnt/2];
+    maxc = sSPAN[cnt-1];
+    mean = sSPAN[0];
+
+    mode  = sSPAN[0];
+    mcnt  = 1;
+
+    mtmp = 1;
+
+    for (u32bit i=1; i<cnt; i++) {
+      mean += sSPAN[i];
+
+      if (sSPAN[i] == sSPAN[i-1])
+        mtmp++;
+      else
+        mtmp = 1;
+
+      if (mcnt < mtmp) {
+        mode = sSPAN[i-1];
+        mcnt = mtmp;
+      }
+    }
+
+    mean /= cnt;
+  }
+
+  fprintf(stderr, "FRAG %u MIN %u MED %u MAX %u MEAN %u MODE %u (%u) NEWMAX %u\n",
+          s->iid, minc, medi, maxc, mean, mode, mcnt, maxCount);
+
+  sMSTR->rewind();
+
+  switch (g->maxCountType) {
+    case MAX_COUNT_FRAG_MEAN:
+      maxCount = mean;
+      break;
+    case MAX_COUNT_FRAG_MODE:
+      maxCount = mode;
+    default:
+      maxCount = 0;
+  }
+
+  return(maxCount);
+}
+
 
 
 void
@@ -442,13 +530,32 @@ ovmWorker(void *G, void *T, void *S) {
 
   OVSoverlap        overlap = {0};
 
-  t->hitsLen = 0;
+  merStream        *sMSTR  = new merStream(t->qKB,
+                                           new seqStream(s->seq + s->beg, s->end - s->beg),
+                                           false, true);
+  uint32           *sSPAN  = new uint32 [s->end - s->beg];
 
-  merStream *sMSTR  = new merStream(t->qKB,
-                                    new seqStream(s->seq + s->beg, s->end - s->beg),
-                                    false, true);
-  uint32    *sSPAN  = new uint32 [s->end - s->beg];
+  u32bit            maxCountForFrag = g->maxCountGlobal;
 
+  switch (g->maxCountType) {
+    case MAX_COUNT_GLOBAL:
+      maxCountForFrag = g->maxCountGlobal;
+      break;
+
+    case MAX_COUNT_FRAG_MEAN:
+      maxCountForFrag = ovmWorker_analyzeReadForThreshold(g, t, s, sMSTR, sSPAN);
+      break;
+
+    case MAX_COUNT_FRAG_MODE:
+      maxCountForFrag = ovmWorker_analyzeReadForThreshold(g, t, s, sMSTR, sSPAN);
+      break;
+
+    default:
+      assert(0);
+      break;
+  }
+
+  t->hitsLen  = 0;
   t->posnFLen = 0;
   t->posnRLen = 0;
 
@@ -464,7 +571,7 @@ ovmWorker(void *G, void *T, void *S) {
     if (sMSTR->theFMer() == sMSTR->theRMer()) {
       g->tPS->getExact(sMSTR->theFMer(), t->posnF, t->posnFMax, t->posnFLen, fcount);
 
-      if (fcount < g->maxCount) {
+      if (fcount < maxCountForFrag) {
         for (u32bit i=0; i<t->posnFLen; i++)
           t->addHit(g->tSS, s->iid, qpos, t->posnF[i], fcount, 1, 0);
       }
@@ -498,7 +605,7 @@ ovmWorker(void *G, void *T, void *S) {
       }
 
 
-      if (tcount < g->maxCount) {
+      if (tcount < maxCountForFrag) {
         for (u32bit i=0; i<t->posnFLen; i++)
           t->addHit(g->tSS, s->iid, qpos, t->posnF[i], tcount, 0, 1);
         for (u32bit i=0; i<t->posnRLen; i++)
@@ -671,8 +778,22 @@ main(int argc, char **argv) {
       g->merSize = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-c") == 0) {
       g->compression = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-T") == 0) {
-      g->maxCount = atoi(argv[++arg]);
+      ++arg;
+
+      //  Do NOT reset maxCountGlobal on the per frag types.  We might want to use the global to
+      //  limit pathological cases.
+      //
+      //  Do NOT set maxCountType on the global setting.  This will let us do "-T mean -T 100" or
+      //  "-T 100 -T mean".
+      //
+      if        (strcmp(argv[arg], "mean") == 0)
+        g->maxCountType   = MAX_COUNT_FRAG_MEAN;
+      else if (strcmp(argv[arg], "mode") == 0)
+        g->maxCountType   = MAX_COUNT_FRAG_MODE;
+      else
+        g->maxCountGlobal = atoi(argv[arg]);
 
     } else if (strcmp(argv[arg], "-mc") == 0) {
       g->merCountsFile = argv[++arg];
