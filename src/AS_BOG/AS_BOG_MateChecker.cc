@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.82 2009-11-20 22:21:23 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.83 2009-12-18 05:18:37 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -890,6 +890,8 @@ IntervalList* findPeakBad(std::vector<short>* badGraph, int tigLen, int badMateB
 UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGraph* bog_ptr, int badMateBreakThreshold) {
   int tigLen = tig->getLength();
 
+  bool verbose = false;
+
   MateLocation positions(_fi);
   positions.buildTable( tig );
   MateCounts *unused = positions.buildHappinessGraphs( tigLen, _globalStats );
@@ -923,16 +925,18 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
       fwdIter++;
       if (lastBreakBBEnd >= bad.bgn) {
         // Skip, instead of combine trying to detect in combine case
-        fprintf(stderr,"Skip fwd bad range %d %d due to backbone %d\n",
-                bad.bgn, bad.end, lastBreakBBEnd);
+        if (verbose)
+          fprintf(stderr,"Skip fwd bad range %d %d due to backbone %d\n",
+                  bad.bgn, bad.end, lastBreakBBEnd);
         continue;
       }
     } else {                     // reverse bad group, break at last frag
       bad = *revIter;
       if (lastBreakBBEnd >= bad.bgn) {
         // Skip, instead of combine trying to detect in combine case
-        fprintf(stderr,"Skip rev bad range %d %d due to backbone %d\n",
-                bad.bgn, bad.end, lastBreakBBEnd);
+        if (verbose)
+          fprintf(stderr,"Skip rev bad range %d %d due to backbone %d\n",
+                  bad.bgn, bad.end, lastBreakBBEnd);
         revIter++;
         continue;
       }
@@ -947,8 +951,9 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
           if ( fwdIter->bgn < bad.end &&
                fwdIter->end > bad.end &&
                bad.end - fwdIter->end < 200) {
-            fprintf(stderr,"Combine bad ranges %d - %d with %d - %d\n",
-                    bad.bgn, bad.end, fwdIter->bgn, fwdIter->end);
+            if (verbose)
+              fprintf(stderr,"Combine bad ranges %d - %d with %d - %d\n",
+                      bad.bgn, bad.end, fwdIter->bgn, fwdIter->end);
             if (bad.bgn == 0) { // ignore reverse at start of tig
               bad.bgn = fwdIter->bgn;
               bad.end = fwdIter->end;
@@ -966,7 +971,8 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
       }
     }
 
-    fprintf(stderr,"Bad peak from %d to %d\n",bad.bgn,bad.end);
+    if (verbose)
+      fprintf(stderr,"Bad peak from %d to %d\n",bad.bgn,bad.end);
 
     for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++) {
       DoveTailNode frag = *tigIter;
@@ -1000,8 +1006,9 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
       if (breakNow) {
         combine = false;
         lastBreakBBEnd = currBackboneEnd;
-        fprintf(stderr,"Frg to break in peak bad range is %d fwd %d pos (%d,%d) backbone %d\n",
-                frag.ident, isFwdBad, loc.bgn, loc.end, currBackboneEnd );
+        if (verbose)
+          fprintf(stderr,"Frg to break in peak bad range is %d fwd %d pos (%d,%d) backbone %d\n",
+                  frag.ident, isFwdBad, loc.bgn, loc.end, currBackboneEnd );
         uint32 fragEndInTig = THREE_PRIME;
         // If reverse mate is 1st and overlaps its mate break at 5'
         if ( mloc.mleUtgID2 == tig->id() && isReverse( loc ) &&
@@ -1047,8 +1054,9 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
               bp.inSize = 100001;
               bp.inFrags = 11;
               breaks->push_back( bp );
-              fprintf(stderr,"Might make frg %d singleton, end %d size %d pos %d,%d\n",
-                      frag.ident, fragEndInTig, breaks->size(),loc.bgn,loc.end);
+              if (verbose)
+                fprintf(stderr,"Might make frg %d singleton, end %d size %d pos %d,%d\n",
+                        frag.ident, fragEndInTig, breaks->size(),loc.bgn,loc.end);
             }
           }
         }
