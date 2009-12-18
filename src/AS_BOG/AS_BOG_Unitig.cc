@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.15 2009-11-30 22:09:47 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.16 2009-12-18 05:29:00 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -96,6 +96,7 @@ DoveTailNode Unitig::getLastBackboneNode(uint32 &prevID) {
 //  If a placement is not found for an edge, the corresponding bidx value is set to -1.
 //
 //  Returns true if any placement is found, false otherwise.
+//  The bidx value is set to -1 if no placement is found for that end.
 //
 bool
 Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
@@ -124,38 +125,28 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
   frag3.delta_length = 0;
   frag3.delta        = NULL;
 
-  if (bestedge5 == NULL)
-    bidx5 = -1;
-  if (bestedge3 == NULL)
-    bidx3 = -1;
+  bidx5              = -1;
+  bidx3              = -1;
 
-  //  If not given valid bidx5 or bidx3, search for the correct fragment index using the bestedge.
-  //  A complicated condition: over all fragments, while either index is not known and should be known.
-
-#if 0
-  for (int fi=0; ((fi < dovetail_path_ptr->size()) &&
-                  (((bestedge5) && (bidx5 == -1)) ||
-                   ((bestedge3) && (bidx3 == -1)))); fi++) {
-    DoveTailNode *parent = &(*dovetail_path_ptr)[fi];
-
-    if ((bestedge5) && (parent->ident == bestedge5->frag_b_id))
-      bidx5 = fi;
-
-    if ((bestedge3) && (parent->ident == bestedge3->frag_b_id))
-      bidx3 = fi;
-  }
-#else
+  //  If we have an incoming edge, AND the fragment for that edge is in this unitig, look up its
+  //  index.  Otherwise, discard the edge to prevent placement.
+  //
   if ((bestedge5) && (fragIn(bestedge5->frag_b_id) == id())) {
     bidx5 = pathPosition(bestedge5->frag_b_id);
     assert(bestedge5->frag_b_id == (*dovetail_path_ptr)[bidx5].ident);
+  } else {
+    bestedge5 = NULL;
+    bidx5     = -1;
   }
 
   if ((bestedge3) && (fragIn(bestedge3->frag_b_id) == id())) {
     bidx3 = pathPosition(bestedge3->frag_b_id);;
     assert(bestedge3->frag_b_id == (*dovetail_path_ptr)[bidx3].ident);
-  }
-#endif
+  } else {
+    bestedge3 = NULL;
+    bidx3     = -1;
 
+  }
   //  Now, just compute the placement based on edges that exist.
 
   if ((bestedge5) && (bidx5 != -1)) {
@@ -468,7 +459,8 @@ void Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report)
 
 
 //  Given two edges, place fragment node.ident into this unitig using the thickest edge to decide on
-//  the placement.
+//  the placement.  At least one of the edges must be from the node to a fragment in the target
+//  unitig.
 //
 //  Returns true if placement was successful.
 //
@@ -492,44 +484,19 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
   //  The length of the overlap depends only on the length of the a frag and the hangs.  We don't
   //  actually care about the real length (except for logging), only which is thicker.
 
-#if 0
-  for (int fi=0; fi<dovetail_path_ptr->size(); fi++) {
-    DoveTailNode *parent = &(*dovetail_path_ptr)[fi];
-
-    if ((bestedge5) && (parent->ident == bestedge5->frag_b_id)) {
-      bidx5 = fi;
-      blen5 = debugfi->fragmentLength(fid) + ((bestedge5->ahang < 0) ? bestedge5->bhang : -bestedge5->ahang);
-      fprintf(stderr, "bestedge5:  %d,%d,%d,%d len %d\n", bestedge5->frag_b_id, bestedge5->bend, bestedge5->ahang, bestedge5->bhang, blen5);
-      assert(bestedge5->frag_b_id == (*dovetail_path_ptr)[bidx5].ident);
-    }
-
-    if ((bestedge3 ) && (parent->ident == bestedge3->frag_b_id)) {
-      bidx3 = fi;
-      blen3 = debugfi->fragmentLength(fid) + ((bestedge3->ahang < 0) ? bestedge3->bhang : -bestedge3->ahang);
-      fprintf(stderr, "bestedge3:  %d,%d,%d,%d len %d\n", bestedge3->frag_b_id, bestedge3->bend, bestedge3->ahang, bestedge3->bhang, blen3);
-      assert(bestedge3->frag_b_id == (*dovetail_path_ptr)[bidx3].ident);
-    }
-  }
-#else
   if ((bestedge5) && (fragIn(bestedge5->frag_b_id) == id())) {
     bidx5 = pathPosition(bestedge5->frag_b_id);
     blen5 = debugfi->fragmentLength(fid) + ((bestedge5->ahang < 0) ? bestedge5->bhang : -bestedge5->ahang);
-    fprintf(stderr, "bestedge5:  %d,%d,%d,%d len %d\n", bestedge5->frag_b_id, bestedge5->bend, bestedge5->ahang, bestedge5->bhang, blen5);
+    //fprintf(stderr, "bestedge5:  %d,%d,%d,%d len %d\n", bestedge5->frag_b_id, bestedge5->bend, bestedge5->ahang, bestedge5->bhang, blen5);
     assert(bestedge5->frag_b_id == (*dovetail_path_ptr)[bidx5].ident);
   }
 
   if ((bestedge3) && (fragIn(bestedge3->frag_b_id) == id())) {
     bidx3 = pathPosition(bestedge3->frag_b_id);;
     blen3 = debugfi->fragmentLength(fid) + ((bestedge3->ahang < 0) ? bestedge3->bhang : -bestedge3->ahang);
-    fprintf(stderr, "bestedge3:  %d,%d,%d,%d len %d\n", bestedge3->frag_b_id, bestedge3->bend, bestedge3->ahang, bestedge3->bhang, blen3);
+    //fprintf(stderr, "bestedge3:  %d,%d,%d,%d len %d\n", bestedge3->frag_b_id, bestedge3->bend, bestedge3->ahang, bestedge3->bhang, blen3);
     assert(bestedge3->frag_b_id == (*dovetail_path_ptr)[bidx3].ident);
   }
-#endif
-
-  fprintf(stderr, "bug %d == %d (utg %d)   %d == %d (utg %d)\n",
-          bestedge5->frag_b_id, (*dovetail_path_ptr)[bidx5].ident, fragIn(bestedge5->frag_b_id),
-          bestedge3->frag_b_id, (*dovetail_path_ptr)[bidx3].ident, fragIn(bestedge3->frag_b_id));
-
 
   //  Use the longest that exists -- an alternative would be to take the average position, but that
   //  could get messy if the placements are different.  Picking one or the other has a better chance
