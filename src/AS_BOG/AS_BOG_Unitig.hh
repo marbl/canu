@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIG
 #define INCLUDE_AS_BOG_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.11 2009-11-20 22:21:24 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.12 2009-12-18 21:06:34 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -34,7 +34,12 @@ typedef std::vector<DoveTailNode>         DoveTailPath;
 typedef DoveTailPath::iterator            DoveTailIter;
 typedef DoveTailPath::const_iterator      DoveTailConstIter;
 
-
+//  The ContainerMap stores a list of IDs contained in the index fragment:
+//    cMap[index] = list of IDs contained in index
+//
+//  It is used during splitting to get the total number of fragments in a unitig, the number of
+//  fragments before/after the split point.
+//
 typedef std::vector<uint32>                 ContaineeList;
 typedef std::map<uint32, ContaineeList>     ContainerMap;
 

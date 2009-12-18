@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.67 2009-11-20 22:21:24 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.68 2009-12-18 21:06:34 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -128,6 +128,9 @@ private:
 
   //  This is a map from 'invaded fragment' to a list of 'invading fragments';
   //    unitigIntersect[a] = b means that b is invading into a.
+  //
+  //  unitigIntersect is a FragmentEdgeList, a map<uint32, FragmentList>.
+  //                       FragmentList,     a vector<uint32>
   //
   FragmentEdgeList  unitigIntersect;
 };
