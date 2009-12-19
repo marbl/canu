@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.65 2009-11-26 02:54:52 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.66 2009-12-19 05:36:16 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -112,6 +112,7 @@ main (int argc, char * argv []) {
 
   bool      popBubbles              = false;
   bool      breakIntersections      = false;
+  bool      joinUnitigs             = false;
   int       badMateBreakThreshold   = -7;
 
   argc = AS_configure(argc, argv);
@@ -144,6 +145,9 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-b") == 0) {
       breakIntersections = true;
+
+    } else if (strcmp(argv[arg], "-J") == 0) {
+      joinUnitigs = true;
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       erate = atof(argv[++arg]);
@@ -186,7 +190,8 @@ main (int argc, char * argv []) {
     fprintf(stderr, "             to try to estimate the genome size based on the constructed\n");
     fprintf(stderr, "             unitig lengths.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -U         Enable EXPERIMENTAL bubble popping.\n");
+    fprintf(stderr, "  -U         Enable EXPERIMENTAL short unitig merging (aka bubble popping).\n");
+    fprintf(stderr, "  -J         Enable EXPERIMENTAL long unitig joining.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -b         Break promisciuous unitigs at unitig intersection points\n");
     fprintf(stderr, "  -e         Fraction error to generate unitigs for; default is 0.015\n");
@@ -237,7 +242,7 @@ main (int argc, char * argv []) {
 
   ChunkGraph *cg = new ChunkGraph(fragInfo, BOG);
   UnitigGraph utg(fragInfo, BOG);
-  utg.build(cg, breakIntersections, popBubbles, output_prefix);
+  utg.build(cg, breakIntersections, joinUnitigs, popBubbles, output_prefix);
 
   MateChecker  mateChecker(fragInfo);
   mateChecker.checkUnitigGraph(utg, badMateBreakThreshold);

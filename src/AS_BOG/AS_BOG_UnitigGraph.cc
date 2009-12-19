@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.119 2009-11-30 20:37:39 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.120 2009-12-19 05:36:16 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -29,8 +29,19 @@ static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.119 2009-11-30 20:37:
 
 #undef max
 
-#define VERBOSEBUILD
-#define VERBOSEBREAK
+//  Debugging
+#undef DEBUG_BUILD   //  Dovetail path construction
+#undef DEBUG_MERGE   //  Bubbles
+#undef DEBUG_BREAK   //  Breaking
+#undef DEBUG_JOIN    //  Joining
+
+//  Logging
+bool verboseBuild    = false;  //  Dovetail path construction
+bool verboseMerge    = false;  //  Bubbles
+bool verboseBreak    = false;  //  Intersection breaking
+bool verboseJoin     = false;  //  Joining
+bool verboseContains = false;  //  Containment placing
+
 
 
 void
@@ -165,8 +176,11 @@ UnitigGraph::~UnitigGraph() {
 }
 
 
-void UnitigGraph::build(ChunkGraph *cg_ptr, bool enableIntersectionBreaking, bool enableBubblePopping, char *output_prefix) {
-  bool verbose = false;
+void UnitigGraph::build(ChunkGraph *cg_ptr,
+                        bool enableIntersectionBreaking,
+                        bool enableJoining,
+                        bool enableBubblePopping,
+                        char *output_prefix) {
 
   // Initialize where we've been to nowhere
   Unitig::resetFragUnitigMap( _fi->numFragments() );
@@ -193,7 +207,7 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool enableIntersectionBreaking, boo
       //  Skip deleted fragments, already placed fragments, and contained fragments.
       continue;
 
-    populateUnitig(frag_idx, false);
+    populateUnitig(frag_idx);
   }
 
   reportOverlapsUsed("overlaps.afterbuild");
@@ -208,18 +222,25 @@ void UnitigGraph::build(ChunkGraph *cg_ptr, bool enableIntersectionBreaking, boo
         (bog_ptr->isContained(frag_idx) == true))
       continue;
 
-    populateUnitig(frag_idx, false);
+    populateUnitig(frag_idx);
   }
 
   reportOverlapsUsed("overlaps.afterbuild2");
 
-  if (enableIntersectionBreaking)
-    breakUnitigs(cMap, output_prefix);
+  if (enableBubblePopping)
+    popBubbles();
 
-  reportOverlapsUsed("overlaps.afterbreak");
+  if (enableIntersectionBreaking) {
+    breakUnitigs(cMap, output_prefix);
+    reportOverlapsUsed("overlaps.afterbreak");
+  }
+
+  if (enableJoining) {
+    joinUnitigs();
+    reportOverlapsUsed("overlaps.afterjoin");
+  }
 
   placeContains();
-
   reportOverlapsUsed("overlaps.aftercontains");
 
   placeZombies();
@@ -238,7 +259,6 @@ UnitigGraph::setParentAndHang(ChunkGraph *cg) {
 
   for (int  ti=0; ti<unitigs->size(); ti++) {
     Unitig        *utg = (*unitigs)[ti];
-    DoveTailNode  *frg;
 
     if (utg == NULL)
       continue;
@@ -246,94 +266,107 @@ UnitigGraph::setParentAndHang(ChunkGraph *cg) {
     if (utg->dovetail_path_ptr->size() == 0)
       continue;
 
-    //  First fragment has no parent or hangs set.
-    frg = &(*utg->dovetail_path_ptr)[0];
+    //  Reset parent and hangs for everything.
 
-    frg->parent       = 0;
-    frg->ahang        = 0;
-    frg->bhang        = 0;
-
-    //  All other fragments can have a parent, if the best overlap is
-    //  in our unitig.
-    //
     for (int fi=1; fi<utg->dovetail_path_ptr->size(); fi++) {
-      frg = &(*utg->dovetail_path_ptr)[fi];
+      DoveTailNode *frg = &(*utg->dovetail_path_ptr)[fi];
 
-      //  Where is our best overlap?  Contained or dovetail?
-
-      BestEdgeOverlap *bestedge5 = bog_ptr->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
-      BestEdgeOverlap *bestedge3 = bog_ptr->getBestEdgeOverlap(frg->ident, THREE_PRIME);
-      BestContainment *bestcont  = bog_ptr->getBestContainer(frg->ident);
-
-      if (frg->contained) {
-        //  Fragment is contained.  Don't use the edges off the ends.
-        bestedge5 = NULL;
-        bestedge3 = NULL;
-      } else {
-        //  Fragment is dovetail.  Don't use the best containment.
-        bestcont == NULL;
-      }
-
-      if (frg->position.bgn < frg->position.end) {
-        //  Fragment is forward.  Looking for the best edge off of our 5' end.
-        bestedge3 = NULL;
-      } else {
-        //  Fragment is reverse.  Looking for the best edge off of our 3' end.
-        bestedge5 = NULL;
-      }
-
-      //  Initialize to 'unset'.
       frg->parent       = 0;
       frg->ahang        = 0;
       frg->bhang        = 0;
+    }
 
-      //  Now search for the correct overlap
-      //
-      for (uint32 oi=fi; oi--; ) {
-        DoveTailNode  *ooo = &(*utg->dovetail_path_ptr)[oi];
+    //  For each fragment, set parent/hangs using the edges.
 
-        if (bestcont) {
-          //  Frag is contained.
+    for (int fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
+      DoveTailNode *frg  = &(*utg->dovetail_path_ptr)[fi];
 
-          if (ooo->ident == bestcont->container) {
-            //  And the container is here too!
-            frg->parent = bestcont->container;
+      //  If we're contained, gee, I sure hope the container is here!
 
-            //  The hangs assume the container is forward; adjust if not so.
-            if (ooo->position.bgn < ooo->position.end) {
-              frg->ahang  = bestcont->a_hang;
-              frg->bhang  = bestcont->b_hang;
-            } else {
-              frg->ahang  = -bestcont->b_hang;
-              frg->bhang  = -bestcont->a_hang;
-            }
-          }
+      BestContainment *bestcont  = bog_ptr->getBestContainer(frg->ident);
 
+      if ((bestcont) && (utg->fragIn(bestcont->container) == utg->id())) {
+        int32         pi   = utg->pathPosition(bestcont->container);
+        DoveTailNode *par  = &(*utg->dovetail_path_ptr)[pi];
+
+        frg->parent = bestcont->container;
+
+        //  The hangs assume the container is forward; adjust if not so.
+        if (par->position.bgn < par->position.end) {
+          frg->ahang  = bestcont->a_hang;
+          frg->bhang  = bestcont->b_hang;
         } else {
-          //  Frag is not contained.
-          if ((bestedge5) && (ooo->ident == bestedge5->frag_b_id)) {
-            //  Our fragment is forward.  Reverse the overlap.
-            //
-            //  reality  A -----------      bestedge  B    -------->
-            //                B --------->            A -------
-            //  
+          frg->ahang  = -bestcont->b_hang;
+          frg->bhang  = -bestcont->a_hang;
+        }
+
+        continue;
+      }
+
+      //  Nope, not contained.  If we don't have a parent set, see if one of our best overlaps
+      //  can set it.
+
+      BestEdgeOverlap *bestedge5 = bog_ptr->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
+      BestEdgeOverlap *bestedge3 = bog_ptr->getBestEdgeOverlap(frg->ident, THREE_PRIME);
+
+      if ((bestedge5->frag_b_id) && (utg->fragIn(bestedge5->frag_b_id) == utg->id())) {
+        int32         pi5  = utg->pathPosition(bestedge5->frag_b_id);
+        DoveTailNode *oth  = &(*utg->dovetail_path_ptr)[pi5];
+
+        //  Consensus is expected parent/hangs to be relative to the parent fragment.  This is used
+        //  ONLY to place the fragment, not to orient the fragment.  Orientation comes from the
+        //  absolute positioning coordinates.
+        //
+        //  Interestingly, all four overlap transformations are used here.
+        //
+        //  The inner if tests (on fragment orientation) should be asserts, but due to imprecise
+        //  layouts, they are sometimes violated:
+        //    A fragment from       271-547 had a 5'overlap to something after it;
+        //    the frag after was at 543-272, close enough to a tie to screw up placements
+        //
+        if (pi5 < fi) {
+          //  We have an edge off our 5' end to something before us --> fragment MUST be forward.
+          //  Flip the overlap so it is relative to the other fragment.
+          if (frg->position.bgn < frg->position.end) {
             frg->parent = bestedge5->frag_b_id;
             frg->ahang  = -bestedge5->ahang;
             frg->bhang  = -bestedge5->bhang;
-
             assert(frg->ahang >= 0);
           }
-          if ((bestedge3) && (ooo->ident == bestedge3->frag_b_id)) {
-            //  Our fragment is backward.  Reverse the overlap.
-            //
-            //  reality  A ---------       bestedge  B ------->
-            //                 B <-------            A    --------->
-            //
+        } else {
+          //  We have an edge off our 5' end to something after us --> fragment MUST be reverse.
+          //  Because our fragment is now reverse, we must reverse the overlap too.
+          if (frg->position.end < frg->position.bgn) {
+            oth->parent = frg->ident;
+            oth->ahang  = -bestedge5->bhang;
+            oth->bhang  = -bestedge5->ahang;
+            assert(oth->ahang >= 0);
+          }
+        }
+      }
+
+      if ((bestedge3->frag_b_id) && (utg->fragIn(bestedge3->frag_b_id) == utg->id())) {
+        int32         pi3  = utg->pathPosition(bestedge3->frag_b_id);
+        DoveTailNode *oth  = &(*utg->dovetail_path_ptr)[pi3];
+
+        if (pi3 < fi) {
+          //  We have an edge off our 3' end to something before us --> fragment MUST be reverse.
+          //  Flip the overlap so it is relative to the other fragment.
+          //  Because our fragment is now reverse, we must reverse the overlap too.
+          if (frg->position.end < frg->position.bgn) {
             frg->parent = bestedge3->frag_b_id;
             frg->ahang  = bestedge3->bhang;
             frg->bhang  = bestedge3->ahang;
-
             assert(frg->ahang >= 0);
+          }
+        } else {
+          //  We have an edge off our 3' end to something after us --> fragment MUST be forward.
+          //  This is the simplest case, the overlap is already correct.
+          if (frg->position.bgn < frg->position.end) {
+            oth->parent = frg->ident;
+            oth->ahang  = bestedge3->ahang;
+            oth->bhang  = bestedge3->bhang;
+            assert(oth->ahang >= 0);
           }
         }
       }
@@ -344,10 +377,10 @@ UnitigGraph::setParentAndHang(ChunkGraph *cg) {
 
 
 
+
 void
 UnitigGraph::populateUnitig(Unitig           *unitig,
-                            BestEdgeOverlap  *bestnext,
-                            bool              verbose){
+                            BestEdgeOverlap  *bestnext) {
 
   assert(unitig->getLength() > 0);
 
@@ -368,8 +401,9 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
 
   if (Unitig::fragIn(bestnext->frag_b_id) != 0) {
     //  Intersection.  Remember.
-    fprintf(stderr,"unitigIntersect: unitig %5d frag %7d -> unitig %5d frag %7d (before construction)\n",
-            unitig->id(), lastID, Unitig::fragIn(bestnext->frag_b_id), bestnext->frag_b_id);
+    if (verboseBuild)
+      fprintf(stderr,"unitigIntersect: unitig %5d frag %7d -> unitig %5d frag %7d (before construction)\n",
+              unitig->id(), lastID, Unitig::fragIn(bestnext->frag_b_id), bestnext->frag_b_id);
     unitigIntersect[bestnext->frag_b_id].push_back(lastID);
     return;
   }
@@ -402,7 +436,7 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
 
     if (unitig->placeFrag(frag, bidx5, (bestnext->bend == THREE_PRIME) ? NULL : &bestprev,
                           frag, bidx3, (bestnext->bend == THREE_PRIME) ? &bestprev : NULL)) {
-      unitig->addFrag(frag, 0, true);
+      unitig->addFrag(frag, 0, verboseBuild);
 
     } else {
 
@@ -420,18 +454,19 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
     //  Abort if we intersect, or are circular
 
     if (Unitig::fragIn(bestnext->frag_b_id) == unitig->id()) {
-      //fprintf(stderr,"unitigIntersect: unitig %5d frag %7d -> unitig %5d frag %7d\n",
-      //        unitig->id(), lastID, Unitig::fragIn(bestnext->frag_b_id), bestnext->frag_b_id);
-      //unitigIntersect[bestnext->frag_b_id].push_back(lastID);
-      //bestnext->frag_b_id = 0;BAD
+#warning not saving self-intersection
+      //if (verboseBuild)
+      //  fprintf(stderr,"unitigIntersect: unitig %5d frag %7d -> unitig %5d frag %7d\n",
+      //          unitig->id(), lastID, Unitig::fragIn(bestnext->frag_b_id), bestnext->frag_b_id);
+      //  unitigIntersect[bestnext->frag_b_id].push_back(lastID);
       break;
     }
 
     if (Unitig::fragIn(bestnext->frag_b_id) != 0) {
-      fprintf(stderr,"unitigIntersect: unitig %5d frag %7d -> unitig %5d frag %7d (during construction)\n",
-              unitig->id(), lastID, Unitig::fragIn(bestnext->frag_b_id), bestnext->frag_b_id);
+      if (verboseBuild)
+        fprintf(stderr,"unitigIntersect: unitig %5d frag %7d -> unitig %5d frag %7d (during construction)\n",
+                unitig->id(), lastID, Unitig::fragIn(bestnext->frag_b_id), bestnext->frag_b_id);
       unitigIntersect[bestnext->frag_b_id].push_back(lastID);
-      //bestnext->frag_b_id = 0;
       break;
     }
   }
@@ -441,10 +476,9 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
 
 
 void
-UnitigGraph::populateUnitig(int32 frag_idx,
-                            bool  verbose) {
+UnitigGraph::populateUnitig(int32 frag_idx) {
 
-  Unitig *utg = new Unitig(verbose);
+  Unitig *utg = new Unitig(verboseBuild);
 
   unitigs->push_back(utg);
 
@@ -464,26 +498,28 @@ UnitigGraph::populateUnitig(int32 frag_idx,
   frag.delta_length = 0;
   frag.delta        = NULL;
 
-  utg->addFrag(frag, 0, true);
+  utg->addFrag(frag, 0, verboseBuild);
 
   //  Add fragments as long as there is a path to follow...from the 3' end of the first fragment.
 
   BestEdgeOverlap  *bestedge5 = bog_ptr->getBestEdgeOverlap(frag_idx, FIVE_PRIME);
   BestEdgeOverlap  *bestedge3 = bog_ptr->getBestEdgeOverlap(frag_idx, THREE_PRIME);
 
-  fprintf(stderr, "Adding 5' edges off of fragment %d in unitig %d\n",
-          utg->dovetail_path_ptr->back().ident, utg->id());
+  if (verboseBuild)
+    fprintf(stderr, "Adding 5' edges off of fragment %d in unitig %d\n",
+            utg->dovetail_path_ptr->back().ident, utg->id());
 
   if (bestedge5->frag_b_id)
-    populateUnitig(utg, bestedge5, verbose);
+    populateUnitig(utg, bestedge5);
 
   utg->reverseComplement(false);
 
-  fprintf(stderr, "Adding 3' edges off of fragment %d in unitig %d\n",
-          utg->dovetail_path_ptr->back().ident, utg->id());
+  if (verboseBuild)
+    fprintf(stderr, "Adding 3' edges off of fragment %d in unitig %d\n",
+            utg->dovetail_path_ptr->back().ident, utg->id());
 
   if (bestedge3->frag_b_id)
-    populateUnitig(utg, bestedge3, verbose);
+    populateUnitig(utg, bestedge3);
 
   utg->reverseComplement(false);
 }
@@ -533,10 +569,11 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
     if (lastBest->frag_b_id == 0 || firstBest->frag_b_id == 0)
       continue;
 
-    if (firstBest->frag_b_id == lastBest->frag_b_id)
-      fprintf(stderr, "Bubble %d to %d len %d (self bubble %d to %d)\n", firstBest->frag_b_id, lastBest->frag_b_id, tig->getLength(), id1, id2);
-    else
-      fprintf(stderr, "Bubble %d to %d len %d\n", firstBest->frag_b_id, lastBest->frag_b_id, tig->getLength());
+    if (verboseBreak)
+      if (firstBest->frag_b_id == lastBest->frag_b_id)
+        fprintf(stderr, "Bubble %d to %d len %d (self bubble %d to %d)\n", firstBest->frag_b_id, lastBest->frag_b_id, tig->getLength(), id1, id2);
+      else
+        fprintf(stderr, "Bubble %d to %d len %d\n", firstBest->frag_b_id, lastBest->frag_b_id, tig->getLength());
   }
 
 
@@ -582,7 +619,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
       if (cMap.find(f->ident) != cMap.end())
         fragCount += cMap[f->ident].size();
 
-#ifdef VERBOSEBREAK
+#ifdef DEBUG_BREAK
       if (fragIdx == 0) {
         uint32             dtEnd = (isReverse(f->position)) ? THREE_PRIME : FIVE_PRIME;
         BestEdgeOverlap   *bEdge = bog_ptr->getBestEdgeOverlap(f->ident, dtEnd);
@@ -615,37 +652,66 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
            fragItr++) {
         uint32 inFrag = *fragItr;
 
-        // check if it's incoming frag's 5' best edge.  If not, it must be the 3' edge.
-        uint32            bestEnd  = FIVE_PRIME;
-        BestEdgeOverlap  *bestEdge = bog_ptr->getBestEdgeOverlap(inFrag, bestEnd);
+        BestEdgeOverlap  *best5 = bog_ptr->getBestEdgeOverlap(inFrag, FIVE_PRIME);
+        BestEdgeOverlap  *best3 = bog_ptr->getBestEdgeOverlap(inFrag, THREE_PRIME);
 
-        if (bestEdge->frag_b_id != f->ident) {
+        // check if it's incoming frag's 5' best edge.  If not, it must be the 3' edge.
+
+        uint32            bestEnd;
+        BestEdgeOverlap  *bestEdge;
+
+        if        (best5->frag_b_id == f->ident) {
+          bestEnd  = FIVE_PRIME;
+          bestEdge = best5;
+        } else if (best3->frag_b_id == f->ident) {
           bestEnd  = THREE_PRIME;
-          bestEdge = bog_ptr->getBestEdgeOverlap(inFrag, bestEnd);
-          assert(bestEdge->frag_b_id == f->ident);
+          bestEdge = best3;
+        } else {
+          assert(0);
+          continue;
         }
 
         int pos = (bestEdge->bend == FIVE_PRIME) ? f->position.bgn : f->position.end;
 
         Unitig *inTig = (*unitigs)[Unitig::fragIn(inFrag)];
-
         assert(inTig->id() == Unitig::fragIn(inFrag));
 
-        if (inTig) {
-          UnitigBreakPoint breakPoint(f->ident, bestEdge->bend);
-
-          breakPoint.fragPos     = f->position;
-          breakPoint.fragsBefore = fragCount;
-          breakPoint.fragsAfter  = numFragsInUnitig - fragCount;
-          breakPoint.inSize      = inTig->getLength();
-          breakPoint.inFrags     = inTig->getNumFrags();
-
-          breaks.push_back(breakPoint);
-        } else {
-          //fprintf(stderr, "  NullBreak tig %5d at frag %7d\n", tig->id(), f->ident);
+        //  Don't break on spur fragments!  These will only chop off the ends of unitigs anyway.
+        if ((inTig->dovetail_path_ptr->size() == 1) &&
+            ((best5->frag_b_id == 0) || (best3->frag_b_id == 0))) {
+#ifdef DEBUG_BREAK
+        fprintf(stderr, "unitig %d (%d frags, len %d) frag %d end %c' into unitig %d frag %d end %c' pos %d -- IS A SPUR, skip it\n",
+                Unitig::fragIn(inFrag),
+                inTig->getNumFrags(),
+                inTig->getLength(),
+                inFrag,
+                (bestEnd == FIVE_PRIME) ? '5' : '3',
+                tig->id(),
+                f->ident,
+                (bestEdge->bend == FIVE_PRIME) ? '5' : '3',
+                pos);
+#endif
+          continue;
         }
 
-#ifdef VERBOSEBREAK
+        //  Don't break on self-intersections.  These might be bubbles that we popped...but they
+        //  might also be real intersections (loops) that should be broken.
+#warning not breaking on self intersections
+        if (Unitig::fragIn(inFrag) == tig->id())
+          continue;
+
+
+        UnitigBreakPoint breakPoint(f->ident, bestEdge->bend);
+
+        breakPoint.fragPos     = f->position;
+        breakPoint.fragsBefore = fragCount;
+        breakPoint.fragsAfter  = numFragsInUnitig - fragCount;
+        breakPoint.inSize      = inTig->getLength();
+        breakPoint.inFrags     = inTig->getNumFrags();
+
+        breaks.push_back(breakPoint);
+
+#ifdef DEBUG_BREAK
         fprintf(stderr, "unitig %d (%d frags, len %d) frag %d end %c' into unitig %d frag %d end %c' pos %d\n",
                 Unitig::fragIn(inFrag),
                 inTig->getNumFrags(),
@@ -731,6 +797,327 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
 
 
 
+class joinEntry {
+public:
+  int32             toFragID;
+  int32             frFragID;
+
+  uint32            toLen;
+  uint32            frLen;
+  uint32            combinedLength;
+
+  bool operator<(const joinEntry &that) const { return(combinedLength < that.combinedLength); };
+  bool operator>(const joinEntry &that) const { return(combinedLength > that.combinedLength); };
+};
+
+
+void
+UnitigGraph::joinUnitigs(void) {
+
+  fprintf(stderr, "==> JOINING SPLIT UNITIGS\n");
+
+  //  Sort unitigs by joined size.  Sort.  Join the largest first.
+
+  joinEntry  *joins    = new joinEntry [ 2*unitigs->size() ];
+  uint32      joinsLen = 0;
+
+  for (int32 frID=0; frID<unitigs->size(); frID++) {
+    Unitig        *fr   = (*unitigs)[frID];
+
+    if (fr == NULL)
+      continue;
+
+    if (fr->dovetail_path_ptr->size() == 1)
+      continue;
+
+    //  Examine the first fragment.
+    {
+      DoveTailNode *frg      = &(*fr->dovetail_path_ptr)[0];
+      DoveTailNode *tgt      = NULL;
+      uint32        tgtEnd   = 0;
+
+      bool  fragForward = (frg->position.bgn < frg->position.end);
+
+      uint32           bestEnd  = (fragForward) ? FIVE_PRIME : THREE_PRIME;
+      BestEdgeOverlap *bestEdge = bog_ptr->getBestEdgeOverlap(frg->ident, bestEnd);
+
+      int32            toID = 0;
+      Unitig          *to   = NULL;
+
+      //  No best edge?  Skip it.
+      if (bestEdge->frag_b_id == 0)
+        goto skipFirst;
+
+      toID = fr->fragIn(bestEdge->frag_b_id);
+      to   = (*unitigs)[toID];
+
+      //  Joining to something teeny?  Skip it.
+      if (to->dovetail_path_ptr->size() == 1)
+        goto skipFirst;
+
+      //  Figure out which fragment we have an edge to, and which end of it is sticking out from the
+      //  end of the unitig.
+
+      if (bestEdge->frag_b_id == (*to->dovetail_path_ptr)[0].ident) {
+        tgt      = &(*to->dovetail_path_ptr)[0];
+        tgtEnd   = (tgt->position.bgn < tgt->position.end) ? FIVE_PRIME : THREE_PRIME;
+      }
+
+      if (bestEdge->frag_b_id == (*to->dovetail_path_ptr)[to->dovetail_path_ptr->size()-1].ident) {
+        tgt      = &(*to->dovetail_path_ptr)[to->dovetail_path_ptr->size()-1];
+        tgtEnd   = (tgt->position.bgn < tgt->position.end) ? THREE_PRIME : FIVE_PRIME;
+      }
+
+      //  Attempt to join to a fragment that isn't first or last.  Skip it.
+      if (tgt == NULL)
+        goto skipFirst;
+
+      //  Joining to the wrong end of the first/last fragment?  Skip it.
+      if (bestEdge->bend != tgtEnd)
+        goto skipFirst;
+
+      //  OK, join.
+
+      joins[joinsLen].toFragID       = tgt->ident;
+      joins[joinsLen].frFragID       = frg->ident;
+
+      joins[joinsLen].toLen          = to->getLength();
+      joins[joinsLen].frLen          = fr->getLength();
+      joins[joinsLen].combinedLength = to->getLength() + fr->getLength();
+
+      joinsLen++;
+
+  skipFirst:
+      ;
+    }
+
+    //  Examine the last fragment.
+    {
+      DoveTailNode *frg      = &(*fr->dovetail_path_ptr)[0];
+      DoveTailNode *tgt      = NULL;
+      uint32        tgtEnd   = 0;
+
+      bool  fragForward = (frg->position.bgn < frg->position.end);
+
+      uint32           bestEnd  = (fragForward) ? THREE_PRIME : FIVE_PRIME;
+      BestEdgeOverlap *bestEdge = bog_ptr->getBestEdgeOverlap(frg->ident, bestEnd);
+
+      int32            toID = 0;
+      Unitig          *to   = NULL;
+
+      //  No best edge?  Skip it.
+      if (bestEdge->frag_b_id == 0)
+        goto skipLast;
+
+      toID = fr->fragIn(bestEdge->frag_b_id);
+      to   = (*unitigs)[toID];
+
+      //  Joining to something teeny?  Skip it.
+      if (to->dovetail_path_ptr->size() == 1)
+        goto skipLast;
+
+      //  Figure out which fragment we have an edge to, and which end of it is sticking out from the
+      //  end of the unitig.
+
+      if (bestEdge->frag_b_id == (*to->dovetail_path_ptr)[0].ident) {
+        tgt      = &(*to->dovetail_path_ptr)[0];
+        tgtEnd   = (tgt->position.bgn < tgt->position.end) ? FIVE_PRIME : THREE_PRIME;
+      }
+
+      if (bestEdge->frag_b_id == (*to->dovetail_path_ptr)[to->dovetail_path_ptr->size()-1].ident) {
+        tgt      = &(*to->dovetail_path_ptr)[to->dovetail_path_ptr->size()-1];
+        tgtEnd   = (tgt->position.bgn < tgt->position.end) ? THREE_PRIME : FIVE_PRIME;
+      }
+
+      //  Attempt to join to a fragment that isn't first or last.  Skip it.
+      if (tgt == NULL)
+        goto skipLast;
+
+      //  Joining to the wrong end of the first/last fragment?  Skip it.
+      if (bestEdge->bend != tgtEnd)
+        goto skipLast;
+
+      //  OK, join.
+
+      joins[joinsLen].toFragID       = tgt->ident;
+      joins[joinsLen].frFragID       = frg->ident;
+
+      joins[joinsLen].toLen          = to->getLength();
+      joins[joinsLen].frLen          = fr->getLength();
+      joins[joinsLen].combinedLength = to->getLength() + fr->getLength();
+
+      joinsLen++;
+
+    skipLast:
+      ;
+    }
+  }  //  Over all unitigs.
+
+  fprintf(stderr, "Found %d pairs of unitigs to join.\n", joinsLen);
+
+  std::sort(joins, joins + joinsLen, greater<joinEntry>());
+
+  for (uint32 j=0; j<joinsLen; j++) {
+    joinEntry  *join = joins + j;
+
+    int32    frUnitigID = Unitig::fragIn(join->frFragID);
+    int32    toUnitigID = Unitig::fragIn(join->toFragID);
+
+    Unitig  *frUnitig = (*unitigs)[frUnitigID];
+    Unitig  *toUnitig = (*unitigs)[toUnitigID];
+
+    if ((frUnitig == NULL) || (toUnitig == NULL))
+      //  Already added one of the unitigs to another one.  Should never happen, really.
+      continue;
+
+    int32  frIdx = Unitig::pathPosition(join->frFragID);
+    int32  toIdx = Unitig::pathPosition(join->toFragID);
+
+    //  If either fragment is not the first or last, bail.  We already joined something to
+    //  one of these unitigs.
+
+    if ((frIdx != 0) && (frIdx != frUnitig->dovetail_path_ptr->size() - 1))
+      continue;
+
+    if ((toIdx != 0) && (toIdx != toUnitig->dovetail_path_ptr->size() - 1))
+      continue;
+
+#ifdef DEBUG_JOIN
+    fprintf(stderr, "Join from unitig %d (length %d idx %d/%d) to unitig %d (length %d idx %d/%d) for a total length of %d\n",
+            frUnitigID, join->frLen, frIdx, frUnitig->dovetail_path_ptr->size(),
+            toUnitigID, join->toLen, toIdx, toUnitig->dovetail_path_ptr->size(),
+            join->combinedLength);
+#endif
+
+    //  Reverse complement to ensure that we append to the tail of the toUnitig, and grab fragments
+    //  from the start of the frUnitig.
+
+    if (frIdx != 0)
+      frUnitig->reverseComplement();
+
+    if (toIdx == 0)
+      toUnitig->reverseComplement();
+
+    frIdx = 0;
+    toIdx = toUnitig->dovetail_path_ptr->size() - 1;
+
+    //  Over all fragments in the frUnitig, add them to the toUnitig.
+
+    while (frIdx < frUnitig->dovetail_path_ptr->size()) {
+      DoveTailNode  *frFragment = &(*frUnitig->dovetail_path_ptr)[frIdx];
+      DoveTailNode  *toFragment = &(*toUnitig->dovetail_path_ptr)[toIdx];
+
+      //  Construct an edge that will place the frFragment onto the toUnitig.  This edge
+      //  can come from either fragment.
+
+      BestEdgeOverlap  *best5fr = bog_ptr->getBestEdgeOverlap(frFragment->ident, FIVE_PRIME);
+      BestEdgeOverlap  *best3fr = bog_ptr->getBestEdgeOverlap(frFragment->ident, THREE_PRIME);
+      BestEdgeOverlap  *best5to = bog_ptr->getBestEdgeOverlap(toFragment->ident, FIVE_PRIME);
+      BestEdgeOverlap  *best3to = bog_ptr->getBestEdgeOverlap(toFragment->ident, THREE_PRIME);
+
+      BestEdgeOverlap   joinEdge5;
+      BestEdgeOverlap   joinEdge3;
+
+      joinEdge5.frag_b_id = 0;
+      joinEdge5.bend      = 0;
+      joinEdge5.ahang     = 0;
+      joinEdge5.bhang     = 0;
+
+      joinEdge3.frag_b_id = 0;
+      joinEdge3.bend      = 0;
+      joinEdge3.ahang     = 0;
+      joinEdge3.bhang     = 0;
+
+      //  The first two cases are trivial, the edge is already correctly oriented, so just copy it over.
+
+      if ((best5fr->frag_b_id == toFragment->ident) ||
+          (Unitig::fragIn(best5fr->frag_b_id) == toUnitigID))
+        joinEdge5 = *best5fr;
+
+      if ((best3fr->frag_b_id == toFragment->ident) ||
+          (Unitig::fragIn(best3fr->frag_b_id) == toUnitigID))
+        joinEdge3 = *best3fr;
+
+
+      //  The last two cases are trouble.  The edge is from the toFrag to the frFrag, and we need to
+      //  reverse it.  In the first case, the edge is off of the 5' end of the toFrag, but which
+      //  edge we create depends on what end of the frFrag it hits.
+      //
+      //  If the fragments are innie/outtie, we need to reverse the overlap to maintain that the
+      //  A fragment is forward.
+      //
+      if (best5to->frag_b_id == frFragment->ident) {
+        if (best5to->bend == FIVE_PRIME) {
+          joinEdge5.frag_b_id = toFragment->ident;
+          joinEdge5.bend      = FIVE_PRIME;
+          joinEdge5.ahang     = best5to->bhang;
+          joinEdge5.bhang     = best5to->ahang;
+        } else {
+          joinEdge3.frag_b_id = toFragment->ident;
+          joinEdge3.bend      = FIVE_PRIME;
+          joinEdge3.ahang     = -best5to->ahang;
+          joinEdge3.bhang     = -best5to->bhang;
+        }
+      }
+
+      if (best3to->frag_b_id == frFragment->ident) {
+        if (best3to->bend == FIVE_PRIME) {
+          joinEdge5.frag_b_id = toFragment->ident;
+          joinEdge5.bend      = THREE_PRIME;
+          joinEdge5.ahang     = -best3to->ahang;
+          joinEdge5.bhang     = -best3to->bhang;
+        } else {
+          joinEdge3.frag_b_id = toFragment->ident;
+          joinEdge3.bend      = THREE_PRIME;
+          joinEdge3.ahang     = best3to->bhang;
+          joinEdge3.bhang     = best3to->ahang;
+        }
+      }
+
+#ifdef DEBUG_JOIN
+      fprintf(stderr, "Adding frag %d using frag %d (%d,%d)\n", frFragment->ident, toFragment->ident, toFragment->position.bgn, toFragment->position.end);
+      fprintf(stderr, "best5fr = %8d %1d %5d %5d\n", best5fr->frag_b_id, best5fr->bend, best5fr->ahang, best5fr->bhang);
+      fprintf(stderr, "best3fr = %8d %1d %5d %5d\n", best3fr->frag_b_id, best3fr->bend, best3fr->ahang, best3fr->bhang);
+      fprintf(stderr, "best5to = %8d %1d %5d %5d\n", best5to->frag_b_id, best5to->bend, best5to->ahang, best5to->bhang);
+      fprintf(stderr, "best3to = %8d %1d %5d %5d\n", best3to->frag_b_id, best3to->bend, best3to->ahang, best3to->bhang);
+      fprintf(stderr, "join3   = %8d %1d %5d %5d\n", best5to->frag_b_id, best5to->bend, best5to->ahang, best5to->bhang);
+      fprintf(stderr, "join5   = %8d %1d %5d %5d\n", best3to->frag_b_id, best3to->bend, best3to->ahang, best3to->bhang);
+#endif
+
+      if ((joinEdge5.frag_b_id == 0) &&
+          (joinEdge3.frag_b_id == 0)) {
+        //  No suitable edge found to add frFragment to the toUnitig!
+        fprintf(stderr, "No edge found!  Argh!\n");
+        fprintf(stderr, "best5fr = %d %d %d %d\n", best5fr->frag_b_id, best5fr->bend, best5fr->ahang, best5fr->bhang);
+        fprintf(stderr, "best3fr = %d %d %d %d\n", best3fr->frag_b_id, best3fr->bend, best3fr->ahang, best3fr->bhang);
+        fprintf(stderr, "best5to = %d %d %d %d\n", best5to->frag_b_id, best5to->bend, best5to->ahang, best5to->bhang);
+        fprintf(stderr, "best3to = %d %d %d %d\n", best3to->frag_b_id, best3to->bend, best3to->ahang, best3to->bhang);
+        assert(0);
+      }
+
+      //  Now, just add the fragment.  Simple!
+
+      if (toUnitig->addAndPlaceFrag(frFragment->ident,
+                                    (joinEdge5.frag_b_id == 0) ? NULL : &joinEdge5,
+                                    (joinEdge3.frag_b_id == 0) ? NULL : &joinEdge3,
+                                    verboseMerge) == false) {
+        fprintf(stderr, "ERROR:  Failed to place frag %d into extended unitig.\n", frFragment->ident);
+        assert(0);
+      }
+
+      frIdx++;
+      toIdx++;
+    }
+
+    //  Finally, delete the frUnitig.  It's now in the toUnitig.
+
+    delete frUnitig;
+    (*unitigs)[frUnitigID] = NULL;
+  }  //  Over all joins.
+}
+
+
+
 void
 UnitigGraph::placeContains(void) {
   uint32   fragsPlaced  = 1;
@@ -761,7 +1148,7 @@ UnitigGraph::placeContains(void) {
       }
 
       utg = (*unitigs)[Unitig::fragIn(bestcont->container)];
-      utg->addContainedFrag(fid, bestcont, true);
+      utg->addContainedFrag(fid, bestcont, verboseContains);
 
       bestcont->isPlaced = true;
 
@@ -878,12 +1265,19 @@ UnitigGraph::popBubbles(void) {
         (utg->dovetail_path_ptr->size() >= 30))
       continue;
 
-    uint32         otherUtg  = 987654321;
-    uint32         conflicts = 0;
-    uint32         self      = 0;
-    uint32         nonmated  = 0;
-    uint32         matedcont = 0;
-    uint32         spurs     = 0;
+    uint32         otherUtg   = 987654321;
+    uint32         conflicts  = 0;
+    uint32         self       = 0;
+    uint32         nonmated   = 0;
+    uint32         matedcont  = 0;
+    uint32         spurs      = 0;
+
+    uint32         diffOrient = 0;
+    uint32         tooLong    = 0;
+    uint32         tigLong    = 0;
+
+    int32          minNewPos  = INT32_MAX;
+    int32          maxNewPos  = INT32_MIN;
 
     for (int fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
       DoveTailNode *frg = &(*utg->dovetail_path_ptr)[fi];
@@ -938,57 +1332,108 @@ UnitigGraph::popBubbles(void) {
             conflicts++;
         }
       }
+
+
+#if 1
+      //  Check sanity of the new placement.
+
+      if ((otherUtg  != 987654321) &&
+          (conflicts == 0)) {
+        DoveTailNode place5;
+        DoveTailNode place3;
+
+        int32 bidx5 = -1;
+        int32 bidx3 = -1;
+
+        Unitig  *mergeTig = (*unitigs)[otherUtg];
+
+        mergeTig->placeFrag(place5, bidx5, bestedge5,
+                            place3, bidx3, bestedge3);
+
+        //  Either or both ends can fail to place in the new unitig -- edges can be to a fragment in
+        //  the tig we're testing.  This doesn't matter for finding the min/max, but does matter
+        //  when we decide if the placements are about the correct size.
+          
+        //  Update the min/max placement for the whole tig.  At the end of everyhing we'll
+        //  make sure the min/max agree with the size of the tig.
+
+        int32  min5 = INT32_MAX, max5 = INT32_MIN;
+        int32  min3 = INT32_MAX, max3 = INT32_MIN;
+
+        int32  minU = INT32_MAX;
+        int32  maxU = INT32_MIN;
+
+        if (bidx5 != -1) {
+          min5 = MIN(place5.position.bgn, place5.position.end);
+          max5 = MAX(place5.position.bgn, place5.position.end);
+        }
+
+        if (bidx3 != -1) {
+          min3 = MIN(place3.position.bgn, place3.position.end);
+          max3 = MAX(place3.position.bgn, place3.position.end);
+        }
+
+        minU = MIN(min5, min3);
+        maxU = MAX(max5, max3);
+
+        minNewPos = MIN(minU, minNewPos);
+        maxNewPos = MAX(maxU, maxNewPos);
+
+        //  Check that the two placements agree with each other.  Same orientation, more or less the
+        //  same location, more or less the correct length.
+
+        if ((bidx5 != -1) && (bidx3 != -1)) {
+
+          //  Orientation.
+          if ((min5 < max5) != (min3 < max3))
+            diffOrient++;
+
+          //  Location.
+          if (maxU - minU > (1 + 2 * 0.03) * _fi->fragmentLength(frgID))
+            tooLong++;
+
+          //  Length.
+          if (max5 - min5 > (1 + 2 * 0.03) * _fi->fragmentLength(frgID))
+            tooLong++;
+
+          if (max3 - min3 > (1 + 2 * 0.03) * _fi->fragmentLength(frgID))
+            tooLong++;
+        }
+      }
+#endif
     }  //  Over all frags
 
-    fprintf(stderr, "CONFLICTS %d SPURS %d SELF %d len %d frags %d matedcont %d nonmated %d\n",
-            conflicts, spurs, self, utg->getLength(), utg->dovetail_path_ptr->size(), matedcont, nonmated);
+#warning NEED TO SET AS_UTG_ERROR_RATE
+#warning NEED TO SET AS_UTG_ERROR_RATE
+#warning NEED TO SET AS_UTG_ERROR_RATE
+    if (maxNewPos - minNewPos > (1 + 2 * 0.03) * utg->getLength())
+      tigLong++;
 
-    if ((conflicts > 0) ||
-        (spurs     > 0) ||
-        (self      > 6) ||
-        (matedcont > 6) ||
+#ifdef DEBUG_MERGE
+    fprintf(stderr, "CONFLICTS %d SPURS %d SELF %d len %d frags %d matedcont %d nonmated %d diffOrient %d tooLong %d tigLong %d\n",
+            conflicts, spurs, self, utg->getLength(), utg->dovetail_path_ptr->size(), matedcont, nonmated, diffOrient, tooLong, tigLong);
+#endif
+
+    if ((conflicts  > 0) ||
+        (spurs      > 0) ||
+        (self       > 6) ||
+        (matedcont  > 6) ||
+        (diffOrient > 0) ||
+        (tooLong    > 0) ||
+        (tigLong    > 0) ||
         (otherUtg == 987654321))
       continue;
 
-    //  Does the new length make sense?
-
-    Unitig  *mergeTig    = (*unitigs)[otherUtg];
-
-#if 0
-    int32  minU = 0;
-    int32  maxU = 0;
-
-    for (int fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
-      DoveTailNode *frg = &(*utg->dovetail_path_ptr)[fi];
-
-      BestEdgeOverlap *bestedge5 = bog_ptr->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
-      BestEdgeOverlap *bestedge3 = bog_ptr->getBestEdgeOverlap(frg->ident, THREE_PRIME);
-
-      DoveTailNode place5 = {0};
-      DoveTailNode place3 = {0};
-
-      mergeTig->placeFrag(place5, place3, bestedge5, bestedge3);
-
-      int32  minF5 = 0, minF3 = 0;
-      int32  maxF5 = 0, maxF3 = 0;
-
-      if (place5.position.bgn != place5.position.end) {
-        minF5 = MIN(place5.position.bgn, place5.position.end);
-        maxF5 = MAX(place5.position.bgn, place5.position.end);
-      }
-
-      if (place3.position.bgn != place3.position.end) {
-        minF3 = MIN(place3.position.bgn, place3.position.end);
-        maxF3 = MAX(place3.position.bgn, place3.position.end);
-      }
-    }
-#endif
 
     //  Merge this unitig into otherUtg.
 
+    Unitig  *mergeTig    = (*unitigs)[otherUtg];
+
+#ifdef DEBUG_MERGE
     fprintf(stderr, "MERGE unitig %d (len %d) into unitig %d (len %d)\n",
             utg->id(), utg->getLength(),
             mergeTig->id(), mergeTig->getLength());
+#endif
 
     for (int fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
       DoveTailNode  *frag = &(*utg->dovetail_path_ptr)[fi];
@@ -996,12 +1441,12 @@ UnitigGraph::popBubbles(void) {
       if (bog_ptr->getBestContainer(frag->ident))
         mergeTig->addContainedFrag(frag->ident,
                                    bog_ptr->getBestContainer(frag->ident),
-                                   true);
+                                   verboseMerge);
       else
         mergeTig->addAndPlaceFrag(frag->ident,
                                   bog_ptr->getBestEdgeOverlap(frag->ident, FIVE_PRIME),
                                   bog_ptr->getBestEdgeOverlap(frag->ident, THREE_PRIME),
-                                  true);
+                                  verboseMerge);
     }
 
     mergeTig->sort();
@@ -1410,8 +1855,6 @@ UnitigVector* UnitigGraph::breakUnitigAt(ContainerMap &cMap,
 
   //  Emit a log of unitig creation and fragment moves
   //
-  bool          verbose = false;
-
   UnitigBreakPoint breakPoint = breaks.front();
   breaks.pop_front();
 
@@ -1467,15 +1910,15 @@ UnitigVector* UnitigGraph::breakUnitigAt(ContainerMap &cMap,
         //
         //  Break at both ends, create a singleton for this fragment.
         //
-        if (verbose)
+        if (verboseBreak)
           fprintf(stderr,"  Break tig %d at both ends of %d num %d\n", tig->id(), breakPoint.fragEnd.fragId(), breakPoint.fragsBefore);
 
-        newTig = new Unitig(verbose);  //  always make a new unitig, we put a frag in it now
-        splits->push_back( newTig );
+        newTig = new Unitig(verboseBreak);  //  always make a new unitig, we put a frag in it now
+        splits->push_back(newTig);
 
         if (newTig->dovetail_path_ptr->empty())
           offset = reverse ? -frg.position.end : -frg.position.bgn;
-        newTig->addFrag( frg, offset, false );
+        newTig->addFrag(frg, offset, verboseBreak);
 
         newTig = NULL;  //  delay until we need to make it
       }
@@ -1485,33 +1928,33 @@ UnitigVector* UnitigGraph::breakUnitigAt(ContainerMap &cMap,
         //
         //  Break at left end of frg, frg starts new tig
         //
-        if (verbose)
+        if (verboseBreak)
           fprintf(stderr,"  Break tig %d before %d num %d\n", tig->id(), breakPoint.fragEnd.fragId(), breakPoint.fragsBefore);
 
-        newTig = new Unitig(verbose);  //  always make a new unitig, we put a frag in it now
-        splits->push_back( newTig );
+        newTig = new Unitig(verboseBreak);  //  always make a new unitig, we put a frag in it now
+        splits->push_back(newTig);
 
         if (newTig->dovetail_path_ptr->empty())
           offset = reverse ? -frg.position.end : -frg.position.bgn;
-        newTig->addFrag( frg, offset, false );
+        newTig->addFrag(frg, offset, verboseBreak);
       }
 
       else if (breakPoint.fragEnd.fragEnd() ==  FIVE_PRIME && reverse ||
-               breakPoint.fragEnd.fragEnd() == THREE_PRIME && !reverse ) {
+               breakPoint.fragEnd.fragEnd() == THREE_PRIME && !reverse) {
         //
         //  Break at right end of frg, frg goes in existing tig, then make new unitig
         //
 
         if (newTig == NULL) {  //  delayed creation?
-          newTig = new Unitig(verbose);
-          splits->push_back( newTig );
+          newTig = new Unitig(verboseBreak);
+          splits->push_back(newTig);
         }
 
         if (newTig->dovetail_path_ptr->empty())
           offset = reverse ? -frg.position.end : -frg.position.bgn;
-        newTig->addFrag( frg, offset, false );
+        newTig->addFrag(frg, offset, verboseBreak);
 
-        if (verbose)
+        if (verboseBreak)
           fprintf(stderr,"  Break tig %d after %d num %d\n", tig->id(), breakPoint.fragEnd.fragId(), breakPoint.fragsBefore);
 
         //  Delay making a new unitig until we need it.
@@ -1537,12 +1980,12 @@ UnitigVector* UnitigGraph::breakUnitigAt(ContainerMap &cMap,
       //
 
       if (newTig == NULL) {  //  delayed creation?
-        newTig = new Unitig(verbose);
-        splits->push_back( newTig );
+        newTig = new Unitig(verboseBreak);
+        splits->push_back(newTig);
       }
       if (newTig->dovetail_path_ptr->empty())
         offset = reverse ? -frg.position.end : -frg.position.bgn;
-      newTig->addFrag( frg, offset, false );
+      newTig->addFrag(frg, offset, verboseBreak);
     }
   }
 

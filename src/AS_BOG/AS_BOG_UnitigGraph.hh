@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.68 2009-12-18 21:06:34 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.69 2009-12-19 05:36:16 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -79,7 +79,11 @@ struct UnitigGraph{
   ~UnitigGraph();
 
   // Call this on a chunk graph pointer to build a unitig graph
-  void build(ChunkGraph *cg_ptr, bool enableIntersectionBreaking, bool enableBubblePopping, char *output_prefix);
+  void build(ChunkGraph *cg_ptr,
+             bool enableIntersectionBreaking,
+             bool enableJoining,
+             bool enableBubblePopping,
+             char *output_prefix);
   void setParentAndHang(ChunkGraph *cg_ptr);
 
   void writeIUMtoFile(char *fileprefix, char *tigStorePath, int fragment_count_target);
@@ -88,6 +92,7 @@ struct UnitigGraph{
   float getGlobalArrivalRate(long total_random_frags_in_genome=0, long genome_size=0);
 
   void breakUnitigs(ContainerMap &cMap, char *output_prefix);
+  void joinUnitigs(void);
   void placeContains(void);
   void placeZombies(void);
   void popBubbles(void);
@@ -117,12 +122,10 @@ private:
   static const int MIN_BREAK_FRAGS = 1;
   static const int MIN_BREAK_LENGTH = 500;
 
-  void populateUnitig(int32               fragID,
-                      bool                verbose);
+  void populateUnitig(int32               fragID);
 
   void populateUnitig(Unitig             *unitig,
-                      BestEdgeOverlap    *nextedge,
-                      bool                verbose);
+                      BestEdgeOverlap    *nextedge);
 
   FragmentInfo     *_fi;
 
