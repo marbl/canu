@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLink.c,v 1.20 2009-06-10 18:05:13 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLink.c,v 1.21 2010-01-04 21:22:50 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -173,6 +173,35 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
     AS_GKP_reportError(AS_GKP_LKG_DIFFERENT_LIB,
                        frag1IID, gkFrag1->gkFragment_getLibraryIID(),
                        frag2IID, gkFrag2->gkFragment_getLibraryIID());
+    if (lkg_mesg->action == AS_ADD)
+      gkpStore->inf.lkgErrors++;
+    return(1);
+  }
+
+  //  Make sure that the library is expecting mated reads.
+  //
+  //  Case 1: Library has unknown (aka unset) orientation.  Version 2 should be setting this
+  //  explicitly, and version 1 defaults to INNIE.
+  //
+  //  Case 2: Reads differ from library.  Version 2 sets the orientation when the fragment is added.
+  //  Version 1 sets the orientation a few blocks of code above.
+  //
+  uint64  orient = gkpStore->gkStore_getLibrary(gkFrag1->gkFragment_getLibraryIID())->orientation;
+
+  if (orient == AS_READ_ORIENT_UNKNOWN) {
+    AS_GKP_reportError(AS_GKP_LKG_UNMATED_LIB,
+                       frag1IID, frag2IID, gkFrag1->gkFragment_getLibraryIID());
+    if (lkg_mesg->action == AS_ADD)
+      gkpStore->inf.lkgErrors++;
+    return(1);
+  }
+
+  if ((orient != gkFrag1->gkFragment_getOrientation()) ||
+      (orient != gkFrag2->gkFragment_getOrientation())) {
+    AS_GKP_reportError(AS_GKP_LKG_DIFFERENT_ORIENT,
+                       frag1IID,gkFrag1->gkFragment_getOrientation(),
+                       frag2IID, gkFrag1->gkFragment_getOrientation(),
+                       gkFrag1->gkFragment_getLibraryIID(), orient);
     if (lkg_mesg->action == AS_ADD)
       gkpStore->inf.lkgErrors++;
     return(1);

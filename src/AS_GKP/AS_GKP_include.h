@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.55 2010-01-04 20:23:22 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.56 2010-01-04 21:22:50 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
 
-static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.55 2010-01-04 20:23:22 brianwalenz Exp $";
+static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.56 2010-01-04 21:22:50 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <errno.h>
@@ -207,7 +207,9 @@ AS_GKP_summarizeErrors(void);
 #define AS_GKP_LKG_ALREADY_MATED        74
 #define AS_GKP_LKG_LIB_DOESNT_EXIST     75
 #define AS_GKP_LKG_DIFFERENT_LIB        76
-#define AS_GKP_LKG_UNKNOWN_ACTION       77
+#define AS_GKP_LKG_UNMATED_LIB          77
+#define AS_GKP_LKG_DIFFERENT_ORIENT     78
+#define AS_GKP_LKG_UNKNOWN_ACTION       79
 
 #define AS_GKP_SFF_ALREADY_EXISTS       90
 #define AS_GKP_SFF_UID_ERROR            91

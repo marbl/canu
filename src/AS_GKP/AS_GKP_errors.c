@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.12 2010-01-04 20:23:21 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.13 2010-01-04 21:22:50 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,6 +92,8 @@ AS_GKP_reportError(int error, ...) {
     errorMs[AS_GKP_LKG_ALREADY_MATED      ] = "# LKG Error: Fragment %s,"F_IID" already has mate of iid="F_IID"; wanted to set to %s,"F_IID".\n";
     errorMs[AS_GKP_LKG_LIB_DOESNT_EXIST   ] = "# LKG Error: Library %s not previously defined.\n";
     errorMs[AS_GKP_LKG_DIFFERENT_LIB      ] = "# LKG Error: Fragment "F_IID" in lib "F_IID", different from fragment "F_IID" in lib "F_IID".\n";
+    errorMs[AS_GKP_LKG_UNMATED_LIB        ] = "# LKG Error: Fragments "F_IID" and "F_IID" cannot be added to unmated library "F_IID".\n";
+    errorMs[AS_GKP_LKG_DIFFERENT_ORIENT   ] = "# LKG Error: Fragments "F_IID" (mate type %c) and "F_IID" (mate type %c) not allowed in library "F_IID" (mate type %c).\n";
     errorMs[AS_GKP_LKG_UNKNOWN_ACTION     ] = "# LKG Error: Unknown action %c.\n";
 
     errorMs[AS_GKP_SFF_UID_ERROR          ] = "# SFF Error: 454 Universal Accession Number '%s' out of range.\n";
@@ -159,6 +161,8 @@ AS_GKP_reportError(int error, ...) {
 
     errorSs[AS_GKP_LKG_LIB_DOESNT_EXIST   ] = "# LKG Error: Library not previously defined.\n";
     errorSs[AS_GKP_LKG_DIFFERENT_LIB      ] = "# LKG Error: Fragments to mate are in different libraries.\n";
+    errorSs[AS_GKP_LKG_UNMATED_LIB        ] = "# LKG Error: Fragments to mate are in an unmated library.\n";
+    errorSs[AS_GKP_LKG_DIFFERENT_ORIENT   ] = "# LKG Error: Fragments to mate are not supported in library of different mate type.\n";
     errorSs[AS_GKP_LKG_UNKNOWN_ACTION     ] = "# LKG Error: Unknown action.\n";
 
     errorSs[AS_GKP_SFF_UID_ERROR          ] = "# SFF Error: 454 Universal Accession Number out of range.\n";
