@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.11 2009-08-14 13:37:06 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.12 2010-01-04 20:23:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,6 +68,12 @@ AS_GKP_reportError(int error, ...) {
     errorMs[AS_GKP_FRG_DOESNT_EXIST       ] = "# FRG Error: Fragment %s does not exist, can't delete it.\n";
     errorMs[AS_GKP_FRG_HAS_MATE           ] = "# FRG Error: Fragment %s has mate pair relationship, can't delete it.\n";
     errorMs[AS_GKP_FRG_UNKNOWN_ACTION     ] = "# FRG Error: invalid action %c.\n";
+
+    errorMs[AS_GKP_ILL_NOT_SEQ_START_LINE ] = "# ILL Error: File '%s': seq name '%s' is not a sequence start line.\n";
+    errorMs[AS_GKP_ILL_NOT_QLT_START_LINE ] = "# ILL Error: File '%s': qlt name '%s' is not a quality start line.\n";
+    errorMs[AS_GKP_ILL_SEQ_QLT_NAME_DIFFER] = "# ILL Error: File '%s': seq/qlt names differ; seq='%s' qlt='%s'\n";
+    errorMs[AS_GKP_ILL_SEQ_QLT_LEN_DIFFER ] = "# ILL Error: File '%s': seq/qlt lengths differ for read '%s'; seq=%d qlt=%d\n";
+    errorMs[AS_GKP_ILL_CANT_OPEN_INPUT    ] = "# ILL Error: Coulnd't open Illumina file '%s' for reading: %s\n";
 
     errorMs[AS_GKP_LIB_ILLEGAL_MEAN_STDDEV] = "# LIB Alert: Library %s has lllegal mean (%g) and standard deviation (%g); reset to mean 3000, stddev 300.\n";
     errorMs[AS_GKP_LIB_INVALID_MEAN       ] = "# LIB Alert: Library %s has invalid mean (%g); reset mean to 10 * stddev = %g.\n";
@@ -127,6 +133,12 @@ AS_GKP_reportError(int error, ...) {
     errorSs[AS_GKP_FRG_DOESNT_EXIST       ] = "# FRG Error: does not exist, can't delete.\n";
     errorSs[AS_GKP_FRG_HAS_MATE           ] = "# FRG Error: has mate pair relationship, can't delete.\n";
     errorSs[AS_GKP_FRG_UNKNOWN_ACTION     ] = "# FRG Error: invalid action.\n";
+
+    errorSs[AS_GKP_ILL_NOT_SEQ_START_LINE ] = "# ILL Error: not a sequence start line.\n";
+    errorSs[AS_GKP_ILL_NOT_QLT_START_LINE ] = "# ILL Error: not a quality start line.\n";
+    errorSs[AS_GKP_ILL_SEQ_QLT_NAME_DIFFER] = "# ILL Error: seq/qlt names differ.\n";
+    errorSs[AS_GKP_ILL_SEQ_QLT_LEN_DIFFER ] = "# ILL Error: seq/qlt lengths differ.\n";
+    errorSs[AS_GKP_ILL_CANT_OPEN_INPUT    ] = "# ILL Error: Coulnd't open Illumina file for reading.\n";
 
     errorSs[AS_GKP_LIB_ILLEGAL_MEAN_STDDEV] = "# LIB Alert: lllegal mean and standard deviation; reset to mean 3000, stddev 300.\n";
     errorSs[AS_GKP_LIB_INVALID_MEAN       ] = "# LIB Alert: invalid mean; reset mean to 10 * stddev.\n";

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.4 2009-11-19 15:48:44 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.5 2010-01-04 20:23:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,16 +75,25 @@ processSeq(char *N, ilFragment *fr, char end) {
 
   uint32   clrL=0, clrR=slen;
 
-  if (fr->snam[0] != '@')
-    fprintf(stderr, "ERROR:  file '%s': seq name '%s' is not a sequence start line.\n", N, fr->snam);
-  if (fr->qnam[0] != '+')
-    fprintf(stderr, "ERROR:  file '%s': qlt name '%s' is not a quality start line.\n", N, fr->qnam);
+  if (fr->snam[0] != '@') {
+    AS_GKP_reportError(AS_GKP_ILL_NOT_SEQ_START_LINE, N, fr->snam);
+    return(0);
+  }
 
-  if ((fr->qnam[1] != 0) && (strcmp(fr->snam+1, fr->qnam+1) != 0))
-    fprintf(stderr, "ERROR:  file: '%s': seq/qlt names differ; seq='%s' qlt='%s'\n", N, fr->snam, fr->qnam);
-    
-  if (slen != qlen)
-    fprintf(stderr, "ERROR:  file '%s': seq/qlt lengths differ for read '%s'; seq=%d qlt=%d\n", N, fr->snam, slen, qlen);
+  if (fr->qnam[0] != '+') {
+    AS_GKP_reportError(AS_GKP_ILL_NOT_QLT_START_LINE, N, fr->qnam);
+    return(0);
+  }
+
+  if ((fr->qnam[1] != 0) && (strcmp(fr->snam+1, fr->qnam+1) != 0)) {
+    AS_GKP_reportError(AS_GKP_ILL_SEQ_QLT_NAME_DIFFER, N, fr->snam, fr->qnam);
+    return(0);
+  }
+
+  if (slen != qlen) {
+    AS_GKP_reportError(AS_GKP_ILL_SEQ_QLT_LEN_DIFFER, N, fr->snam, slen, qlen);
+    return(0);
+  }
 
   //  Convert QVs
 
@@ -107,10 +116,8 @@ processSeq(char *N, ilFragment *fr, char end) {
   //  Make sure there aren't any bogus letters
 
   for (int32 i=0; i<slen; i++)
-    if (fr->sstr[i] == '.') {
-      //fprintf(stderr, "%s %s %d %d\n", fr->sstr, fr->qstr, clrL, clrR);
+    if (fr->sstr[i] == '.')
       return(0);
-    }
 
 
   //  Construct a UID for this read
@@ -240,11 +247,11 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq) {
   errno = 0;
   FILE  *lfile = fopen(lname, "r");
   if (errno)
-    fprintf(stderr, "ERROR:  Coulnd't open Illumina file '%s' for reading: %s\n", lname, strerror(errno)), exit(1);
+    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, lname, strerror(errno)), exit(1);
 
   FILE  *rfile = fopen(rname, "r");
   if (errno)
-    fprintf(stderr, "ERROR:  Coulnd't open Illumina file '%s' for reading: %s\n", rname, strerror(errno)), exit(1);
+    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, rname, strerror(errno)), exit(1);
 
   ilFragment  *lfrg = new ilFragment;
   ilFragment  *rfrg = new ilFragment;
@@ -300,7 +307,7 @@ loadIlluminaReads(char *uname, bool isSeq) {
   errno = 0;
   FILE  *ufile = fopen(uname, "r");
   if (errno)
-    fprintf(stderr, "ERROR:  Coulnd't open Illumina file '%s' for reading: %s\n", uname, strerror(errno)), exit(1);
+    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, uname, strerror(errno)), exit(1);
 
   ilFragment  *ufrg = new ilFragment;
 

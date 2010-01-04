@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.54 2009-12-02 12:52:24 skoren Exp $ */
+/* $Id: AS_GKP_include.h,v 1.55 2010-01-04 20:23:22 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
 
-static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.54 2009-12-02 12:52:24 skoren Exp $";
+static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.55 2010-01-04 20:23:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <errno.h>
@@ -183,6 +183,12 @@ AS_GKP_summarizeErrors(void);
 #define AS_GKP_FRG_DOESNT_EXIST         23
 #define AS_GKP_FRG_HAS_MATE             24
 #define AS_GKP_FRG_UNKNOWN_ACTION       25
+
+#define AS_GKP_ILL_NOT_SEQ_START_LINE   30
+#define AS_GKP_ILL_NOT_QLT_START_LINE   31
+#define AS_GKP_ILL_SEQ_QLT_NAME_DIFFER  32
+#define AS_GKP_ILL_SEQ_QLT_LEN_DIFFER   33
+#define AS_GKP_ILL_CANT_OPEN_INPUT      34
 
 #define AS_GKP_LIB_ILLEGAL_MEAN_STDDEV  50
 #define AS_GKP_LIB_INVALID_MEAN         51
