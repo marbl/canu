@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.27 2009-10-27 12:26:41 skoren Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.28 2010-01-06 23:51:12 brianwalenz Exp $";
 
 // This file contains the code for computing the candidate
 // chunks of scaffolds.
@@ -259,7 +259,7 @@ int FoundTransitiveEdgePath(ScaffoldGraphT *graph,
 			    ChunkInstanceT *startCI, /* Start of path */
 			    ChunkInstanceT *endCI,   /* End of Path */
 			    ChunkInstanceT *thisCI, /* Where we are now */
-			    int verbose, int recurseDepth){
+			    int recurseDepth){
 
   CIEdgeT localPathEdge;
   CIEdgeT *transEdge;
@@ -270,16 +270,8 @@ int FoundTransitiveEdgePath(ScaffoldGraphT *graph,
 
 
   assert(!isSloppyEdge(edge));
-  if(++recurseDepth > AS_CGW_MAX_FTEP_RECURSE_DEPTH){
-    if(verbose)
-      fprintf(stderr,"* Max recursion Returning false\n");
+  if(++recurseDepth > AS_CGW_MAX_FTEP_RECURSE_DEPTH)
     return(FALSE);
-  }
-  if(verbose)
-    fprintf(stderr,"* FoundTransEdgepath path ("F_CID ","F_CID ") edge ("F_CID ","F_CID ") start:"F_CID " end:"F_CID " this:"F_CID " depth %d\n",
-	    pathEdge->idA, pathEdge->idB,
-	    edge->idA, edge->idB,
-	    startCI->id, endCI->id, thisCI->id,recurseDepth);
 
   edgeOrient = GetEdgeOrientationWRT(edge, startCI->id);
   pathEdgeOrient = GetEdgeOrientationWRT(pathEdge, startCI->id);
@@ -290,30 +282,13 @@ int FoundTransitiveEdgePath(ScaffoldGraphT *graph,
 			   (float)edge->distance.mean,
 			   (float)edge->distance.variance, (LengthT *)NULL,
 			   &chiSquaredValue, (float)PAIRWISECHI2THRESHOLD_CGW)){ // passes Chi-square
-	if(verbose)
-	  fprintf(stderr,"* Returning true\n");
 	return(TRUE);
       }else{
-	if(verbose){
-	  fprintf(stderr, "Path Failed PairwiseChiSquare cid:"F_CID "-"F_CID "\nReal(%d %f) Implied(%d %f) ChiSquared %f\n",
-		  startCI->id, endCI->id,
-		  (int)edge->distance.mean, sqrt(edge->distance.variance),
-		  (int)pathEdge->distance.mean,
-		  sqrt(pathEdge->distance.variance),
-		  chiSquaredValue);
-	}
-	if(verbose)
-	  fprintf(stderr,"* Returning false1\n");
 	return(FALSE);
       }
     }else{
-      if(verbose){
-	fprintf(stderr, "Path Failed Orientation cid:"F_CID "-"F_CID " Orientation:%c-%c\n",
-		startCI->id, endCI->id, (char)edgeOrient, (char)pathEdgeOrient);
-	if(verbose)
-	  fprintf(stderr,"* Returning FALSE2\n");
-	return(FALSE);
-      }
+      //  FORMER BUG.  return(FALSE) was done only if a (removed) verbose flag was true.
+      return(FALSE);
     }
   }
   if(pathEdge->distance.mean > edge->distance.mean){
@@ -322,8 +297,6 @@ int FoundTransitiveEdgePath(ScaffoldGraphT *graph,
 			  (float)edge->distance.mean,
 			  (float)edge->distance.variance, (LengthT *)NULL,
 			  &chiSquaredValue, (float)PAIRWISECHI2THRESHOLD_CGW)){
-      if(verbose)
-	fprintf(stderr,"* Returning FALSE3\n");
       return(FALSE);
     }
   }
@@ -361,16 +334,9 @@ int FoundTransitiveEdgePath(ScaffoldGraphT *graph,
       transEdge->idB : transEdge->idA;
     localPathEdge.orient = TransitiveEdgeOrientation(pathEdgeOrient,
 						     GetEdgeOrientationWRT(transEdge, thisCI->id));
-    if(verbose)
-      fprintf(stderr,"* Recurse\n");
     if(FoundTransitiveEdgePath(graph, &localPathEdge, edge, startCI, endCI,
-			       nextCI, verbose, recurseDepth)){
-      if(verbose)
-        fprintf(stderr,"* Set isConfirmed and returnVal to TRUE\n");
+			       nextCI, recurseDepth)){
       transEdge->flags.bits.isConfirmed = TRUE;
-      if(verbose)
-	PrintGraphEdge(stderr, graph->ContigGraph, "\t", transEdge,
-                       thisCI->id);
       returnVal = TRUE;
       /* For speed we are going to return when we find the first path
 	 and not find all paths so as to possibly confirm some extra
@@ -379,8 +345,6 @@ int FoundTransitiveEdgePath(ScaffoldGraphT *graph,
       return(returnVal);
     }
   }
-  if(verbose)
-    fprintf(stderr,"* Returning %s\n", (returnVal?"TRUEF":"FALSEF"));
   return(returnVal);
 }
 
@@ -389,7 +353,7 @@ int FoundTransitiveEdgePath(ScaffoldGraphT *graph,
  *
  ****************************************************************************/
 void MarkPathRemovedEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI,
-				int end, int verbose){
+				int end){
   GraphEdgeIterator edges;
   CIEdgeT *edge;
   InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
@@ -427,10 +391,6 @@ void MarkPathRemovedEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI,
 	continue;
       }
       assert(!isSloppyEdge(transEdge));
-      if(verbose)
-        fprintf(stderr,"* Trying to transitively remove ("F_CID ","F_CID ",%c) with ("F_CID ","F_CID ",%c)\n",
-                edge->idA, edge->idB, GetEdgeOrientationWRT(edge, thisCI->id),
-                transEdge->idA, transEdge->idB, GetEdgeOrientationWRT(transEdge, thisCI->id));
 
       nextCID = (transEdge->idA == thisCI->id) ? transEdge->idB :
         transEdge->idA;
@@ -441,46 +401,28 @@ void MarkPathRemovedEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI,
       pathEdge.orient = GetEdgeOrientationWRT(transEdge, thisCI->id);
       recurseDepth = 0;
       if(FoundTransitiveEdgePath(graph, &pathEdge, edge, thisCI, endCI,
-				 nextCI, verbose, recurseDepth)){
+				 nextCI, recurseDepth)){
 	edge->flags.bits.isTransitivelyRemoved = TRUE;
 	edge->flags.bits.isConfirmed = TRUE;
 	transEdge->flags.bits.isConfirmed = TRUE;
-	if(verbose){
-	  PrintGraphEdge(stderr, graph->ContigGraph, "\t", transEdge,
-                         thisCI->id);
-	  PrintGraphEdge(stderr, graph->ContigGraph, "TR\t", edge,
-                         thisCI->id);
-	}
       }
     }
   }
-  return;
 }
 
 /*****************************************************************************
  *  MarkPathRemovedEdges
  *
  ****************************************************************************/
-void MarkPathRemovedEdges(ScaffoldGraphT *graph, int verbose){
+void MarkPathRemovedEdges(ScaffoldGraphT *graph){
   ChunkInstanceT *thisCI;
   GraphNodeIterator nodes;
-  int cnt = 1;
+
   InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL){
-
-    if(verbose){
-      if((cnt++ % 1000) == 0){
-        fprintf(stderr,"* %d MarkPathRemoved for node "F_CID "\n",
-                cnt, thisCI->id);
-        fflush(stderr);
-      }
-    }
-    // Do the A_END edges.
-    MarkPathRemovedEdgesOneEnd(graph, thisCI, A_END, verbose);
-    // Do the B_END edges.
-    MarkPathRemovedEdgesOneEnd(graph, thisCI, B_END, verbose);
+    MarkPathRemovedEdgesOneEnd(graph, thisCI, A_END);
+    MarkPathRemovedEdgesOneEnd(graph, thisCI, B_END);
   }
-  return;
 }
 
 /****************************************************************************
@@ -489,7 +431,7 @@ void MarkPathRemovedEdges(ScaffoldGraphT *graph, int verbose){
  ****************************************************************************/
 void MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
 				    ChunkInstanceT *thisCI,
-				    int end, int verbose){
+				    int end){
   GraphEdgeIterator edges;
   CIEdgeT *edge;
   InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
@@ -621,50 +563,31 @@ void MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
 	    hop2Edge->flags.bits.isConfirmed = TRUE;
 	    confirmEdge->flags.bits.isConfirmed = TRUE;
 	    confirmHop2Edge->flags.bits.isConfirmed = TRUE;
-	    if(verbose){
-	      PrintGraphEdge(stderr, graph->ContigGraph, "2Hop\t1 ", edge,
-			     thisCI->id);
-	      PrintGraphEdge(stderr, graph->ContigGraph, "\t2 ", hop2Edge,
-			     middleCID);
-	      PrintGraphEdge(stderr, graph->ContigGraph, "\tC ", confirmEdge,
-			     thisCI->id);
-	      PrintGraphEdge(stderr, graph->ContigGraph, "\t2 ", confirmHop2Edge,
-			     confirmMiddleCID);
-	    }
+
+            //PrintGraphEdge(stderr, graph->ContigGraph, "2Hop\t1 ", edge, thisCI->id);
+            //PrintGraphEdge(stderr, graph->ContigGraph, "\t2 ", hop2Edge, middleCID);
+            //PrintGraphEdge(stderr, graph->ContigGraph, "\tC ", confirmEdge, thisCI->id);
+            //PrintGraphEdge(stderr, graph->ContigGraph, "\t2 ", confirmHop2Edge, confirmMiddleCID);
 	  }
 	}
       }
     }
   }
-  return;
 }
 
 /****************************************************************************
  *  MarkTwoHopConfirmedEdges
  *
  ****************************************************************************/
-void MarkTwoHopConfirmedEdges(ScaffoldGraphT *graph, int verbose){
-
+void MarkTwoHopConfirmedEdges(ScaffoldGraphT *graph){
   ChunkInstanceT *thisCI;
   GraphNodeIterator nodes;
 
   InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL){
-
-    if(verbose){
-      if((thisCI->id % 10000) == 0){
-        fprintf(stderr,"* MarkTwoHopConfirmedEdges for node "F_CID "\n",
-                thisCI->id);
-        fflush(stderr);
-      }
-    }
-
-    // Do the A_END edges.
-    MarkTwoHopConfirmedEdgesOneEnd(graph, thisCI, A_END, verbose);
-    // Do the B_END edges.
-    MarkTwoHopConfirmedEdgesOneEnd(graph, thisCI, B_END, verbose);
+    MarkTwoHopConfirmedEdgesOneEnd(graph, thisCI, A_END);
+    MarkTwoHopConfirmedEdgesOneEnd(graph, thisCI, B_END);
   }
-  return;
 }
 
 /****************************************************************************
@@ -735,7 +658,7 @@ static int CompareBestCIEdgeT(const void *c1, const void *c2){
  *  MarkRedundantUniqueToUniqueEdges
  *
  ****************************************************************************/
-void MarkRedundantUniqueToUniqueEdges(ScaffoldGraphT *graph, int verbose){
+void MarkRedundantUniqueToUniqueEdges(ScaffoldGraphT *graph){
 
   CDS_CID_t cid;
   ChunkInstanceT *thisCI;
@@ -745,9 +668,6 @@ void MarkRedundantUniqueToUniqueEdges(ScaffoldGraphT *graph, int verbose){
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL){
     GraphEdgeIterator edges;
     CIEdgeT *edge;
-
-    if(verbose)
-      fprintf(stderr,"*MarkRedundant on node "F_CID "\n",   thisCI->id);
 
     cid = thisCI->id;
 
@@ -761,12 +681,6 @@ void MarkRedundantUniqueToUniqueEdges(ScaffoldGraphT *graph, int verbose){
 	// Only check canonical edges so as not to repeat the work.
 	// No need to check inactive edges - only interested in edges between
 	// Unique CIs.
-	if(verbose && ((edge->idA == thisCI->id) ||
-		       !edge->flags.bits.isUniquetoUnique)){
-	  PrintGraphEdge(stderr, graph->ContigGraph,
-                         edge->flags.bits.isUniquetoUnique ? "\tIA " : "\tNU ",
-                         edge, thisCI->id);
-	}
 	edge = NextGraphEdgeIterator(&edges);
 	continue;
       }
@@ -776,33 +690,20 @@ void MarkRedundantUniqueToUniqueEdges(ScaffoldGraphT *graph, int verbose){
       while(((edge = NextGraphEdgeIterator(&edges)) != NULL) &&
 	    (edge->idB == bestEdge->idB)){
 	if(!edge->flags.bits.isActive){
-	  if(verbose){
-	    PrintGraphEdge(stderr, graph->ContigGraph,"\tIA ", edge, thisCI->id);
-	  }
 	  // No need to check inactive edges.
 	  continue;
 	}
 	if(CompareBestCIEdgeT(bestEdge, edge) < 0){
 	  bestEdge->flags.bits.isActive = FALSE;
 	  bestEdge->flags.bits.isRedundantRemoved = TRUE;
-	  if(verbose){
-	    PrintGraphEdge(stderr, graph->ContigGraph,"\tR ", bestEdge, thisCI->id);
-	  }
 	  bestEdge = edge;
 	}else{
 	  edge->flags.bits.isActive = FALSE;
 	  edge->flags.bits.isRedundantRemoved = TRUE;
-	  if(verbose){
-	    PrintGraphEdge(stderr, graph->ContigGraph, "\tR ", edge, thisCI->id);
-	  }
 	}
-      }
-      if(verbose){
-	PrintGraphEdge(stderr, graph->ContigGraph, "A ", bestEdge, thisCI->id);
       }
     }
   }
-  return;
 }
 
 EdgeCGW_T *FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
@@ -810,8 +711,7 @@ EdgeCGW_T *FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
                                        ChunkOrientationType edgeOrient,
                                        double inferredMean, double inferredVariance,
                                        float *returnChiSquaredValue,
-                                       float chiSquareThreshold, int *isEssential,
-                                       int verbose){
+                                       float chiSquareThreshold, int *isEssential){
   GraphEdgeIterator edges;
   CIEdgeT *edge;
   CIEdgeT *bestEdge = (CIEdgeT *)NULL;
@@ -843,22 +743,12 @@ EdgeCGW_T *FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
   }
   // Were any edges found irrespective of orientation between source,target?
   if(bestEdge != (CIEdgeT *)NULL){
-    if(verbose){
-      PrintGraphEdge(stderr, graph, "FindChi ", bestEdge,
-		     sourceCI->id);
-    }
     // This is a return value that, if true, causes the caller NOT to add an inferred
     // edge when this function returns NULL
     *isEssential = getEssentialEdgeStatus(bestEdge);
 
     // If the orientation was 'wrong'
     if(GetEdgeOrientationWRT(bestEdge, sourceCI->id) != edgeOrient){
-      if(verbose){
-	fprintf(stderr, "RecSub(%d) Orientation:%c,%c SoId:"F_CID " TaId:"F_CID "\n",
-		bestEdge->flags.bits.isEssential,
-		(char)GetEdgeOrientationWRT(bestEdge, sourceCI->id),
-		(char)edgeOrient, sourceCI->id, targetId);
-      }
       // and the edge is essential, return NULL
       if(getEssentialEdgeStatus(bestEdge) == TRUE){
 	return((CIEdgeT *)NULL);
@@ -872,22 +762,9 @@ EdgeCGW_T *FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
                          (float)bestEdge->distance.variance,
                          (LengthT *)NULL, &chiSquaredValue,
                          (float)chiSquareThreshold)){
-      if(verbose){
-	fprintf(stderr, "RecSub(%d) PassedChi2:%f SoId:"F_CID " TaId:"F_CID "\n",
-		bestEdge->flags.bits.isEssential,
-		chiSquaredValue, sourceCI->id, targetId);
-      }
       *returnChiSquaredValue = chiSquaredValue;
       return(bestEdge);
     }else{ // If right orientation, but not chi square compatible
-      if(verbose){
-	fprintf(stderr, "RecSub(%d) ChiSquare:%f,%f,%f,%f,%f SoId:"F_CID " TaId:"F_CID "\n",
-		bestEdge->flags.bits.isEssential, chiSquaredValue,
-		inferredMean, sqrt(inferredVariance),
-		bestEdge->distance.mean,
-		sqrt(bestEdge->distance.variance),
-		sourceCI->id, targetId);
-      }
       // If marked essential, return NULL
       if(getEssentialEdgeStatus(bestEdge) == TRUE){
 	return((CIEdgeT *)NULL);
@@ -935,11 +812,6 @@ EdgeCGW_T *FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
                 olap.spec.cidA, olap.spec.cidB, olap.spec.orientation,
                 olap.overlap,olap.overlap+olap.ahg+olap.bhg);
       }else if(olap.overlap){
-	if(verbose){
-	  fprintf(stderr, "RecSub Transitive reduction inserting edge ("F_CID ","F_CID ",%c) "F_S32" (searched on range "F_S32","F_S32", inf:%g del:"F_S32")\n",
-		  olap.spec.cidA, olap.spec.cidB, olap.spec.orientation,
-		  olap.overlap, minOverlap, maxOverlap, inferredMean, delta);
-	}
       }else if(bestEdge == (CIEdgeT *)NULL){ // If we didn't find an overlap, and there was no other edge return NULL
 	return((CIEdgeT *)NULL);
       }
@@ -987,11 +859,6 @@ EdgeCGW_T *FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
 	bestEdge = edge;
 	bestChiSquaredValue = chiSquaredValue;
 	*isEssential = getEssentialEdgeStatus(bestEdge);
-	if(verbose){
-	  fprintf(stderr, "RecSub(%d) PassedChi2Loop:%f SoId:"F_CID " TaId:"F_CID "\n",
-		  bestEdge->flags.bits.isEssential,
-		  chiSquaredValue, sourceCI->id, targetId);
-	}
       }
     }
   }
@@ -1001,7 +868,7 @@ EdgeCGW_T *FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
 
 int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
 				     ChunkInstanceT *thisCI,
-				     int end, int verbose,
+				     int end,
                                      int * numInferredAdded,
                                      CDS_CID_t firstID,
                                      int instFirstEnd,
@@ -1037,18 +904,10 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
 #endif
 
   // get the number of essential edges off end of thisCI
-  if(end == A_END){
+  if(end == A_END)
     numBranch = thisCI->numEssentialA;
-  }else{
+  else
     numBranch = thisCI->numEssentialB;
-  }
-  if(verbose){
-    fprintf(stderr, "RecSub(%d,"F_CID ") numBranch:%d cId:"F_CID "(%d{"F_CID "},%d{"F_CID "})\n",
-	    thisCI->flags.bits.smoothSeenAlready,
-	    thisCI->smoothExpectedCID, numBranch, thisCI->id,
-	    thisCI->numEssentialA, thisCI->essentialEdgeA,
-	    thisCI->numEssentialB, thisCI->essentialEdgeB);
-  }
 
   /*
     if there is one essential edge off end of thisCI, simple resolution:
@@ -1060,10 +919,6 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
   if(numBranch < 2){
     CDS_CID_t sourceEdgeIndex;
     sourceCI = (ChunkInstanceT *)NULL;
-    if(verbose){
-      fprintf(stderr, "RecSub numBranch<2:%d cId:"F_CID "\n",
-	      numBranch, thisCI->id);
-    }
     assert(numBranch == 1);
     InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end,ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
     while((edge = NextGraphEdgeIterator(&edges))!= NULL){
@@ -1081,8 +936,6 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
     // instrument the scaffold to see if it's acceptable
     // before modifying anything
     *lastID = (*lastID == NULLINDEX) ? sourceCI->id : *lastID;
-    if(verbose)
-      fprintf(stderr, F_CID " ", sourceCI->id);
 
 #ifdef INSTRUMENT_TRANS_REDUCED
     {
@@ -1168,13 +1021,10 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
     */
     while((edge = NextGraphEdgeIterator(&edges))!= NULL){
       ChunkInstanceT *targetCI;
-      if(verbose){
-        PrintGraphEdge(stderr, graph->ContigGraph, "Tgt ", edge, thisCI->id);
-      }
-      if(!getEssentialEdgeStatus(edge)){
+      if(!getEssentialEdgeStatus(edge))
         // Skip nonessential edges.
         continue;
-      }
+
       targetCI = GetGraphNode(graph->ContigGraph,
                               ((edge->idA == thisCI->id) ? edge->idB : edge->idA));
       if(targetCI->flags.bits.smoothSeenAlready ||
@@ -1190,11 +1040,6 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
                                   "", instSmoothFailurefp);
 #endif
 
-        if(verbose){
-          fprintf(stderr, "RecSub Loop(%d,"F_CID ") cId:"F_CID " TcId:"F_CID "\n",
-                  targetCI->flags.bits.smoothSeenAlready,
-                  targetCI->smoothExpectedCID, thisCI->id, targetCI->id);
-        }
 #ifndef ALLOC_MEMORY_ON_STACK
         safe_free(branchEdges);
         safe_free(existingEdges);
@@ -1297,11 +1142,6 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
     sourceMean = sourceCI->bpLength.mean + sourceEdge->distance.mean;
     sourceVariance = sourceCI->bpLength.variance + sourceEdge->distance.variance;
     sourceEdgeOrient = GetEdgeOrientationWRT(sourceEdge, thisCI->id);
-    if(verbose){
-      fprintf(stderr, "RecSub source SoId:"F_CID "(%d,%d) cId:"F_CID " orient:%c\n",
-              sourceCI->id, sourceCI->numEssentialA, sourceCI->numEssentialB,
-              thisCI->id, (char)sourceEdgeOrient);
-    }
     sourceCI->flags.bits.smoothSeenAlready = TRUE;
     for(branchTarget = branchEdges + 1, failedInfer = FALSE,
           numEssentialAdded = 0, numEssentialRemoved = 0;
@@ -1339,14 +1179,9 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
                                                  targetEdge->idA,
                                                  inferredEdgeOrient, inferredMean, inferredVariance,
                                                  &chiSquaredValue, (float)PAIRWISECHI2THRESHOLD_CGW,
-                                                 &existingIsEssential, verbose);
+                                                 &existingIsEssential);
       targetEdge = GetGraphEdge(graph->ContigGraph, *branchTarget); // FindEdgeBetweenCIsChiSquare may cause edges to realloc
       if(existingEdge != (CIEdgeT *)NULL){
-        if(verbose){
-          fprintf(stderr, "RecSub targetE TaId:"F_CID "(%d,%d) cId:"F_CID " orient:%c\n",
-                  targetCI->id, targetCI->numEssentialA, targetCI->numEssentialB,
-                  thisCI->id, (char)targetEdgeOrient);
-        }
         existingEdge->flags.bits.wasEssential =
           getEssentialEdgeStatus(existingEdge);
         if(!existingEdge->flags.bits.isEssential){
@@ -1355,15 +1190,9 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
           //	assert(!isSloppyEdge(existingEdge));
           numEssentialAdded++;
         }
-        if(verbose){
-          PrintGraphEdge(stderr,graph->ContigGraph,"tE Before", targetEdge, thisCI->id);
-        }
         targetEdge->flags.bits.isInferredRemoved = TRUE;
         setEssentialEdgeStatus(targetEdge, FALSE);
         //targetEdge->flags.bits.isEssential = FALSE;
-        if(verbose){
-          PrintGraphEdge(stderr,graph->ContigGraph,"tE After", targetEdge, thisCI->id);
-        }
         if(targetEdge->flags.bits.isInferred && targetEdge->flags.bits.isTentative){
           DeleteGraphEdge(graph->ContigGraph, targetEdge);
         }
@@ -1390,20 +1219,8 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
                               (LengthT *)NULL, &chiSquaredValue,
                               (float)PAIRWISECHI2THRESHOLD_CGW)){
           failedInfer = TRUE;
-          if(verbose){
-            fprintf(stderr, "RecSub ChiSquareN:%f,%f,%f,%f,%f SoId:"F_CID " TaId:"F_CID "\n",
-                    chiSquaredValue, inferredMean,
-                    (float)sqrt((double)inferredVariance),
-                    (float)(- CGW_MISSED_OVERLAP), (float)1.0,
-                    sourceCI->id, targetCI->id);
-          }
           break;
         }
-      }
-      if(verbose){
-        fprintf(stderr, "RecSub target TaId:"F_CID "(%d,%d) cId:"F_CID " orient:%c\n",
-                targetCI->id, targetCI->numEssentialA, targetCI->numEssentialB,
-                thisCI->id, (char)targetEdgeOrient);
       }
       targetEdge->flags.bits.isInferredRemoved = TRUE;
       setEssentialEdgeStatus(targetEdge, FALSE);
@@ -1460,9 +1277,6 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
                                 "", instSmoothFailurefp);
 #endif
 
-      if(verbose){
-        fprintf(stderr,"Failed RecSub on node "F_CID "\n", thisCI->id);
-      }
       sourceCI->flags.bits.smoothSeenAlready = FALSE;
       sourceCI->smoothExpectedCID = NULLINDEX;
       for(addedPtr = addedInferred; addedPtr < addedEnd; addedPtr++){
@@ -1502,11 +1316,6 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
       safe_free(addedInferred);
       safe_free(branchTargets);
 #endif
-      if(verbose){
-        fprintf(stderr, "RecSub FailedInfer scId:"F_CID "(%d,%d) cId:"F_CID "(%d,%d)\n",
-                sourceCI->id, sourceCI->numEssentialA, sourceCI->numEssentialB,
-                thisCI->id, thisCI->numEssentialA, thisCI->numEssentialB);
-      }
       return(FALSE);
     }else{
       CDS_CID_t sourceEnd;
@@ -1522,7 +1331,7 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
         sourceEnd = A_END;
         sourceCI->numEssentialA += numEssentialAdded;
       }
-      if(!RecursiveSmoothWithInferredEdges(graph, sourceCI, sourceEnd, verbose,
+      if(!RecursiveSmoothWithInferredEdges(graph, sourceCI, sourceEnd,
                                            numInferredAdded,
                                            firstID, instFirstEnd, lastID,
                                            smoothed_si,
@@ -1578,11 +1387,6 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
         safe_free(addedInferred);
         safe_free(branchTargets);
 #endif
-        if(verbose){
-          fprintf(stderr, "RecSub Failed scId:"F_CID "(%d,%d) cId:"F_CID "(%d,%d)\n",
-                  sourceCI->id, sourceCI->numEssentialA, sourceCI->numEssentialB,
-                  thisCI->id, thisCI->numEssentialA, thisCI->numEssentialB);
-        }
         return(FALSE);
       }else{
         sourceCI->flags.bits.smoothSeenAlready = FALSE;
@@ -1619,25 +1423,14 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
             }else{
               targetCI->numEssentialB--;
             }
-            if(verbose){
-              fprintf(stderr, "RecSub numEssentialFixed-- taId:"F_CID "(%d,%d)\n",
-                      targetCI->id, targetCI->numEssentialA,
-                      targetCI->numEssentialB);
-            }
           }
         }
-        if(verbose){
-          fprintf(stderr, "RecSub numEssentialAdded:%d scId:"F_CID "(%d,%d) cId:"F_CID "(%d,%d)\n",
-                  numEssentialAdded, sourceCI->id, sourceCI->numEssentialA,
-                  sourceCI->numEssentialB, thisCI->id, thisCI->numEssentialA,
-                  thisCI->numEssentialB);
-        }
-#ifndef ALLOC_MEMORY_ON_STACK
+
         safe_free(branchEdges);
         safe_free(existingEdges);
         safe_free(addedInferred);
         safe_free(branchTargets);
-#endif
+
         return(TRUE);
       }
     }
@@ -1771,8 +1564,7 @@ void WriteEssentialEdgeCGM(ScaffoldGraphT * graph,
 
 
 void SmoothWithInferredEdges(ScaffoldGraphT *graph,
-                             int markShakyBifurcations,
-                             int verbose){
+                             int markShakyBifurcations){
 
   GraphNodeIterator nodes;
   ContigT *thisCI;
@@ -1781,38 +1573,19 @@ void SmoothWithInferredEdges(ScaffoldGraphT *graph,
   int numInferredAdded;
 
   InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY );
-  if(verbose){
-    fprintf(stderr, "Smoothing: Unique CIs:\n");
-  }
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL){
-
-    if (verbose) {
-      if((cnt++ % 10000) == 0){
-        fprintf(stderr,"* %d SmoothWithInferredEdges "F_CID "\n",
-                cnt, thisCI->id);
-        fflush(stderr);
-      }
-    }
     thisCI->smoothExpectedCID = NULLINDEX;
     thisCI->flags.bits.smoothSeenAlready = FALSE;
+
     // Do the A_END edges.
-    thisCI->numEssentialA = CountEssentialEdgesOneEnd(graph, thisCI, A_END,
-                                                      &(thisCI->essentialEdgeA));
-    assert((thisCI->numEssentialA == 0) ||
-	   (thisCI->essentialEdgeA != NULLINDEX));
+    thisCI->numEssentialA = CountEssentialEdgesOneEnd(graph, thisCI, A_END, &(thisCI->essentialEdgeA));
+    assert((thisCI->numEssentialA == 0) || (thisCI->essentialEdgeA != NULLINDEX));
     // Do the B_END edges.
-    thisCI->numEssentialB = CountEssentialEdgesOneEnd(graph, thisCI, B_END,
-                                                      &(thisCI->essentialEdgeB));
-    assert((thisCI->numEssentialB == 0) ||
-	   (thisCI->essentialEdgeB != NULLINDEX));
-    if(verbose){
-      fprintf(stderr, F_CID "(%d{"F_CID "},%d{"F_CID "})\n",
-	      thisCI->id, thisCI->numEssentialA, thisCI->essentialEdgeA,
-	      thisCI->numEssentialB, thisCI->essentialEdgeB);
-    }
+    thisCI->numEssentialB = CountEssentialEdgesOneEnd(graph, thisCI, B_END, &(thisCI->essentialEdgeB));
+    assert((thisCI->numEssentialB == 0) || (thisCI->essentialEdgeB != NULLINDEX));
   }
-  if(!markShakyBifurcations)
-    {
+
+  if(!markShakyBifurcations) {
       // for instrumenting successfully/failed smoothings - start & end contigs
       CDS_CID_t firstID;
       CDS_CID_t lastID;
@@ -1894,10 +1667,6 @@ void SmoothWithInferredEdges(ScaffoldGraphT *graph,
            eliminate as many branches as possible. */
         if(thisCI->numEssentialA > 1){
           thisCI->flags.bits.smoothSeenAlready = TRUE;
-          if(verbose){
-            fprintf(stderr,"Calling RecSmooth on node "F_CID " A_END\n",
-                    thisCI->id);
-          }
 
 #ifdef INSTRUMENT_CGW
           num_before = InstrumentContigEnd(graph, si_before, thisCI, A_END);
@@ -1905,13 +1674,10 @@ void SmoothWithInferredEdges(ScaffoldGraphT *graph,
           firstID = thisCI->id;
           lastID = NULLINDEX;
           instFirstEnd = A_END;
-          if(verbose)
-            fprintf(stderr,  F_CID ": ", thisCI->id);
-
 
           numInferredAdded = 0;
           smooth_success =
-            RecursiveSmoothWithInferredEdges(graph, thisCI, A_END, verbose,
+            RecursiveSmoothWithInferredEdges(graph, thisCI, A_END,
                                              &numInferredAdded,
                                              firstID, instFirstEnd, &lastID,
                                              smoothed_si,
@@ -1965,22 +1731,16 @@ void SmoothWithInferredEdges(ScaffoldGraphT *graph,
         } // if(thisCI->numEssentialA > 1){
         if(thisCI->numEssentialB > 1){
           thisCI->flags.bits.smoothSeenAlready = TRUE;
-          if(verbose){
-            fprintf(stderr,"Calling RecSmooth on node "F_CID " B_END\n",
-                    thisCI->id);
-          }
 #ifdef INSTRUMENT_CGW
           num_before = InstrumentContigEnd(graph, si_before, thisCI, B_END);
 #endif
           firstID = thisCI->id;
           lastID = NULLINDEX;
           instFirstEnd = B_END;
-          if(verbose)
-            fprintf(stderr, F_CID ": ", thisCI->id);
 
           numInferredAdded = 0;
           smooth_success =
-            RecursiveSmoothWithInferredEdges(graph, thisCI, B_END, verbose,
+            RecursiveSmoothWithInferredEdges(graph, thisCI, B_END,
                                              &numInferredAdded,
                                              firstID, instFirstEnd, &lastID,
                                              smoothed_si,
@@ -2055,30 +1815,14 @@ void SmoothWithInferredEdges(ScaffoldGraphT *graph,
   return;
 }
 
-void DeleteInferredEdgesForThisCI(ScaffoldGraphT *graph,
-                                  CDS_CID_t cid,
-				  int verbose){
-
-  GraphEdgeIterator edges;
-  EdgeCGW_T *edge;
-
-  // Use merged edges
-  InitGraphEdgeIterator(graph->ContigGraph, cid, ALL_END,
-                        ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
-  while((edge = NextGraphEdgeIterator(&edges)) != NULL){
-    if(edge->flags.bits.isInferred){
-      DeleteGraphEdge(graph->ContigGraph, edge);
-    }
-  }
-  return;
-}
-
 void SymmetricNeighbors(ChunkInstanceT *thisCI, ChunkOrientationType orient, CDS_CID_t edgeID){
 
-  if((orient == AB_AB) || (orient == BA_AB)){// A end of this CI
+  if ((orient == AB_AB) || (orient == BA_AB)) {
+    // A end of this CI
     assert(thisCI->numEssentialA == 1);
     assert(edgeID == thisCI->essentialEdgeA);
-  }else{// B end of this CI
+  } else {
+    // B end of this CI
     assert(thisCI->numEssentialB == 1);
     assert(edgeID == thisCI->essentialEdgeB);
   }
@@ -2089,18 +1833,20 @@ int NeighborBranches(ChunkInstanceT *thisCI,
                      ChunkOrientationType orient,
                      CDS_CID_t edgeID){
 
-  if((orient == AB_AB) || (orient == BA_AB)){// A end of this CI
-    if(thisCI->numEssentialA != 1){
+  if((orient == AB_AB) || (orient == BA_AB)) {
+    // A end of this CI
+    if(thisCI->numEssentialA != 1) {
       return(TRUE);
-    }else{
+    } else {
       assert(edgeID == thisCI->essentialEdgeA);
       return(FALSE);
     }
-  }else{// B end of this CI
+  } else {
+    // B end of this CI
     assert(thisCI->numEssentialB >= 1);
-    if(thisCI->numEssentialB != 1){
+    if(thisCI->numEssentialB != 1) {
       return(TRUE);
-    }else{
+    } else {
       assert(edgeID == thisCI->essentialEdgeB);
       return(FALSE);
     }
@@ -2188,12 +1934,6 @@ void DetectScaffoldCycles(CDS_CID_t *currentScaffoldID){
 	}
 	thisCI->essentialEdgeA = NULLINDEX;
 	thisCI->essentialEdgeB = NULLINDEX;
-	//	if(GetNodeType(thisCI) == UNIQUECHUNK_CGW){
-	//	  thisCI->scaffoldID = NULLINDEX;
-	//	  ResetNodeType(thisCI);
-	//	  DeleteInferredEdgesForThisCI(graph, thisCI->id, verbose);
-	//	}else{
-	//	  assert(GetNodeType(thisCI) == DISCRIMINATORUNIQUECHUNK_CGW);
 
 	// the actual id assigned here is immaterial; what matters is
 	// that all contigs in the cycle get some value not NULLINDEX
@@ -2234,7 +1974,7 @@ void DetectScaffoldCycles(CDS_CID_t *currentScaffoldID){
 }
 
 /****************************************************************************/
-void LabelCIScaffolds(CDS_CID_t *currentScaffoldID, int verbose){
+void LabelCIScaffolds(CDS_CID_t *currentScaffoldID){
   /* Label which scaffold a CI would go into but do not create the
      scaffold as a way to detect cycles. */
   ChunkInstanceT *thisCI;
@@ -2267,12 +2007,6 @@ void LabelCIScaffolds(CDS_CID_t *currentScaffoldID, int verbose){
     }else{
       edgeB = (CIEdgeT *)NULL;
       BendCI = (ChunkInstanceT *)NULL;
-    }
-    if(verbose){
-      fprintf(stderr, "ScId:"F_CID " cId:"F_CID " Aend:"F_CID " Bend:"F_CID "\n",
-	      thisCI->scaffoldID, thisCI->id,
-	      AendCI != (ChunkInstanceT *)NULL ? AendCI->id : NULLINDEX,
-	      BendCI != (ChunkInstanceT *)NULL ? BendCI->id : NULLINDEX);
     }
     if((AendCI != (ChunkInstanceT *)NULL) &&
        (BendCI != (ChunkInstanceT *)NULL)){
@@ -2342,9 +2076,8 @@ void LabelCIScaffolds(CDS_CID_t *currentScaffoldID, int verbose){
 }
 
 /********************************************************************/
-void ActuallyInsertCIsIntoScaffolds(CDS_CID_t *currentScaffoldID,  int verbose)
+void ActuallyInsertCIsIntoScaffolds(CDS_CID_t *currentScaffoldID)
 {
-   verbose = TRUE;
   ChunkInstanceT *thisCI;
   GraphNodeIterator nodes;
   InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
@@ -2386,12 +2119,6 @@ void ActuallyInsertCIsIntoScaffolds(CDS_CID_t *currentScaffoldID,  int verbose)
     }else{
       edgeB = (CIEdgeT *)NULL;
       BendCI = (ChunkInstanceT *)NULL;
-    }
-    if(verbose){
-      fprintf(stderr, "ScId:"F_CID " cId:"F_CID " Aend:"F_CID " Bend:"F_CID "\n",
-              thisCI->scaffoldID, thisCI->id,
-              AendCI != (ChunkInstanceT *)NULL ? AendCI->id : NULLINDEX,
-              BendCI != (ChunkInstanceT *)NULL ? BendCI->id : NULLINDEX);
     }
     if((AendCI != (ChunkInstanceT *)NULL) &&
        (BendCI != (ChunkInstanceT *)NULL)){
@@ -2520,10 +2247,9 @@ void ActuallyInsertCIsIntoScaffolds(CDS_CID_t *currentScaffoldID,  int verbose)
 
 
 /**********************************************************************/
-void MarkBifurcations(ScaffoldGraphT *graph,  int verbose){
+void MarkBifurcations(ScaffoldGraphT *graph){
   GraphNodeIterator nodes;
   ContigT *thisCI;
-
 
   InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL){
@@ -2571,7 +2297,7 @@ void MarkBifurcations(ScaffoldGraphT *graph,  int verbose){
 }
 
 /**********************************************************************/
-CDS_CID_t MarkShakyBifurcations(ScaffoldGraphT *graph,  int verbose){
+CDS_CID_t MarkShakyBifurcations(ScaffoldGraphT *graph){
   int numShaky = 0;
   GraphNodeIterator nodes;
   ContigT *contig;
@@ -2587,11 +2313,6 @@ CDS_CID_t MarkShakyBifurcations(ScaffoldGraphT *graph,  int verbose){
       contig->AEndNext = contig->BEndNext = NULLINDEX;
 
       numShaky++;
-
-      if (verbose) {
-        fprintf(stderr,"* Didn't include the following shaky contig  A end\n");
-        DumpContig(stderr,ScaffoldGraph, contig, FALSE);
-      }
     }
   }
 
@@ -2604,17 +2325,17 @@ CDS_CID_t MarkShakyBifurcations(ScaffoldGraphT *graph,  int verbose){
 
 
 /****************************************************************************/
-void CreateScaffolds(ScaffoldGraphT *graph, int verbose){
+void CreateScaffolds(ScaffoldGraphT *graph){
 
   CDS_CID_t currentScaffoldID;
 
   /* Recycle the CIScaffolds VA */
   ResetNodeCGW_T(graph->ScaffoldGraph->nodes);
 
-  MarkBifurcations(graph,  verbose);
+  MarkBifurcations(graph);
 
   currentScaffoldID = 0;
-  LabelCIScaffolds(&currentScaffoldID, verbose);
+  LabelCIScaffolds(&currentScaffoldID);
 
   /* We're looking for cycles where some of the Unique CIs have not been
      labeled as belonging to a scaffold. */
@@ -2626,13 +2347,13 @@ void CreateScaffolds(ScaffoldGraphT *graph, int verbose){
 
   /* Actually insert CIs into scaffolds. */
   currentScaffoldID = 0;
-  ActuallyInsertCIsIntoScaffolds(&currentScaffoldID,  verbose);
+  ActuallyInsertCIsIntoScaffolds(&currentScaffoldID);
 
   graph->numLiveScaffolds = GetNumCIScaffoldTs(graph->CIScaffolds);
   assert(graph->numLiveScaffolds == currentScaffoldID);
 }
 
-void DeleteInferredEdges(ScaffoldGraphT *graph, int verbose){
+void DeleteInferredEdges(ScaffoldGraphT *graph){
 
   ChunkInstanceT *thisCI;
   GraphNodeIterator nodes;
@@ -2652,7 +2373,6 @@ void DeleteInferredEdges(ScaffoldGraphT *graph, int verbose){
       }
     }
   }
-  return;
 }
 
 /************************************************************
@@ -2663,7 +2383,7 @@ void DeleteInferredEdges(ScaffoldGraphT *graph, int verbose){
  *
  ***********************************************************/
 
-void AddScaffoldInferredEdges(ScaffoldGraphT *graph,  int verbose){
+void AddScaffoldInferredEdges(ScaffoldGraphT *graph){
   GraphNodeIterator scaffolds;
   CDS_CID_t sid;
   CIScaffoldT *scaffold;
@@ -2719,10 +2439,6 @@ void AddScaffoldInferredEdges(ScaffoldGraphT *graph,  int verbose){
       }
 
       if( inferredDistance.variance > 0.0 ){// SAK HACK!
-	if(verbose)
-	  fprintf(stderr,"* Adding inferred graph edge ("F_CID ","F_CID ",%c)\n",
-                  prevCI->id, thisCI->id, inferredEdgeOrient);
-
         inferredEdgeIndex = AddGraphEdge(ScaffoldGraph->ContigGraph, prevCI->id, thisCI->id,
                                          NULLINDEX, NULLINDEX, // No fragments
                                          NULLINDEX, // No distance record
@@ -2775,7 +2491,7 @@ void AddScaffoldInferredEdges(ScaffoldGraphT *graph,  int verbose){
  *  ResetEdgeStatus
  *
  ****************************************************************************/
-void ResetEdgeStatus(ScaffoldGraphT *graph, int verbose){
+void ResetEdgeStatus(ScaffoldGraphT *graph){
 
   CDS_CID_t cid;
   ChunkInstanceT *thisCI;
@@ -2785,9 +2501,6 @@ void ResetEdgeStatus(ScaffoldGraphT *graph, int verbose){
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL){
     GraphEdgeIterator edges;
     CIEdgeT *edge;
-
-    if(verbose)
-      fprintf(stderr,"*ResetEdgeStatus on node "F_CID "\n",   thisCI->id);
 
     cid = thisCI->id;
 
@@ -2803,9 +2516,6 @@ void ResetEdgeStatus(ScaffoldGraphT *graph, int verbose){
       }
       // Initialize the status flags for this edge
       InitGraphEdgeFlags(ScaffoldGraph->ContigGraph, edge);
-      if(verbose){
-	PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph, "r ", edge, thisCI->id);
-      }
     }
   }
   return;
@@ -2813,14 +2523,13 @@ void ResetEdgeStatus(ScaffoldGraphT *graph, int verbose){
 
 
 void MarkEssentialEdges(ScaffoldGraphT *graph,
-                        int markShakyBifurcations,
-                        int verbose){
-  ResetEdgeStatus(graph,  verbose);
-  AddScaffoldInferredEdges(graph,  verbose);
-  MarkRedundantUniqueToUniqueEdges(graph,  verbose);
-  MarkTwoHopConfirmedEdges(graph, verbose);
-  MarkPathRemovedEdges(graph, verbose);
-  SmoothWithInferredEdges(graph, markShakyBifurcations, verbose);
+                        int markShakyBifurcations){
+  ResetEdgeStatus(graph);
+  AddScaffoldInferredEdges(graph);
+  MarkRedundantUniqueToUniqueEdges(graph);
+  MarkTwoHopConfirmedEdges(graph);
+  MarkPathRemovedEdges(graph);
+  SmoothWithInferredEdges(graph, markShakyBifurcations);
 }
 
 
@@ -2847,229 +2556,20 @@ void BuildUniqueCIScaffolds(ScaffoldGraphT *graph,
   if(markShakyBifurcations){
     for(iteration = 0; todo == TRUE ; iteration++){
       int numShaky = 0;
-      MarkEssentialEdges(graph,markShakyBifurcations,verbose);
+      MarkEssentialEdges(graph,markShakyBifurcations);
 
-      numShaky = MarkShakyBifurcations(graph, verbose);
+      numShaky = MarkShakyBifurcations(graph);
       todo = (numShaky > 0);
       if(todo)
-	DeleteInferredEdges(graph, verbose);
+	DeleteInferredEdges(graph);
     }
   }
-  DeleteInferredEdges(graph, verbose);
-  MarkEssentialEdges(graph,FALSE,verbose);
+  DeleteInferredEdges(graph);
+  MarkEssentialEdges(graph,FALSE);
 
-  CreateScaffolds(graph,  verbose);
+  CreateScaffolds(graph);
 
-  DeleteInferredEdges(graph, verbose);
+  DeleteInferredEdges(graph);
 
   //ScaffoldGraph->tigStore->flushCache();
-}
-
-
-//#include "obsolete/saul_new_transitive_reduction"
-
-
-/*****************************************************************************
- *  CompareReviveEdgesMean
- *
- ****************************************************************************/
-static int CompareReviveEdgesMean(const void *c1, const void *c2){
-  RevivedEdgeT *s1 = (RevivedEdgeT *)c1;
-  RevivedEdgeT *s2 = (RevivedEdgeT *)c2;
-  int32 mean1, mean2;
-
-  mean1 = s1->minGap + s1->maxGap;
-  mean2 = s2->minGap + s2->maxGap;
-  if(mean1 > mean2){
-    return((int)1);
-  }else{
-    return((int)-1);
-  }
-}
-/*****************************************************************************
- *  CompareReviveEdgesID
- *
- ****************************************************************************/
-static int CompareReviveEdgesID(const void *c1, const void *c2){
-  RevivedEdgeT *s1 = (RevivedEdgeT *)c1;
-  RevivedEdgeT *s2 = (RevivedEdgeT *)c2;
-
-  if(s1->id > s2->id){
-    return((int)1);
-  }
-  if(s1->id < s2->id){
-    return((int)-1);
-  }
-  if((int)s1->orient > (int)s2->orient){
-    return((int)1);
-  }else{
-    return((int)-1);
-  }
-}
-
-/******************************************************************************
- *  CleanReviveEdges
- *
- *****************************************************************************/
-void CleanReviveEdges(RevivedEdgeT *reviveEdgeStore,
-		      RevivedEdgeT *endReviveEdge,
-		      RevivedEdgeT **curReviveEdge){
-  RevivedEdgeT *edgePtr, *packPtr;
-  int numEdges = endReviveEdge - reviveEdgeStore;
-  int numPackedEdges;
-  int32 minGap, maxGap;
-
-  qsort((void *)reviveEdgeStore, numEdges,
-	sizeof(*reviveEdgeStore), CompareReviveEdgesID);
-  for(edgePtr = packPtr = reviveEdgeStore, minGap = edgePtr->minGap,
-	maxGap = edgePtr->maxGap; edgePtr < endReviveEdge; edgePtr++){
-    if((edgePtr->id != packPtr->id) || (edgePtr->orient != packPtr->orient)){
-      packPtr->minGap = minGap;
-      packPtr->maxGap = maxGap;
-      packPtr++;
-      packPtr->id = edgePtr->id;
-      packPtr->orient = edgePtr->orient;
-      minGap = edgePtr->minGap;
-      maxGap = edgePtr->maxGap;
-    }else{
-      if(edgePtr->minGap < minGap){
-	minGap = edgePtr->minGap;
-      }
-      if(edgePtr->maxGap > maxGap){
-	maxGap = edgePtr->maxGap;
-      }
-    }
-  }
-  packPtr->minGap = minGap;
-  packPtr->maxGap = maxGap;
-  packPtr++;
-  numPackedEdges = packPtr - reviveEdgeStore;
-  if(numPackedEdges < (numEdges / 2)){
-    *curReviveEdge = reviveEdgeStore + numPackedEdges;
-    return;
-  }
-  qsort((void *)reviveEdgeStore, numPackedEdges,
-	sizeof(*reviveEdgeStore), CompareReviveEdgesMean);
-  *curReviveEdge = reviveEdgeStore + (numEdges / 2);
-  return;
-}
-
-/****************************************************************************
- *  ReviveTransitiveEdges
- *
- ****************************************************************************/
-void ReviveTransitiveEdges(ScaffoldGraphT *graph,
-			   LengthT *pathDistance,
-			   ChunkOrientationType pathEdgeOrient,
-			   ChunkInstanceT *thisCI,
-			   RevivedEdgeT *reviveEdgeStore,
-			   RevivedEdgeT *endReviveEdge,
-			   RevivedEdgeT **curReviveEdge,
-			   int end,
-			   int verbose){
-
-  CIEdgeT *transEdge;
-  GraphEdgeIterator transEdges;
-
-  if(verbose){
-    fprintf(stderr,"*ReviveT thisCI "F_CID " distance (%f,%f) orient %c\n",
-	    thisCI->id, pathDistance->mean, sqrt(pathDistance->variance),
-	    (char)pathEdgeOrient);
-  }
-
-  if((pathEdgeOrient == AB_AB) ||
-     (pathEdgeOrient == BA_AB)){
-    /* transEdge must be a B_END edge */
-    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, thisCI->id, B_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &transEdges);// Use merged edges
-  }else{
-    /* transEdge must be a A_END edge */
-    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, thisCI->id, A_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &transEdges);// Use merged edges
-  }
-  while((transEdge = NextGraphEdgeIterator(&transEdges))!= NULL){
-    ChunkInstanceT *nextCI;
-    nextCI = GetGraphNode(ScaffoldGraph->ContigGraph,
-			  ((transEdge->idA == thisCI->id) ?
-			   transEdge->idB : transEdge->idA));
-    if(!isOverlapEdge(transEdge) || edgeContainsCI(transEdge, thisCI->id)){
-      // Only interested in overlap edges and only if they are dovetail
-      continue;
-    }
-    pathDistance->mean += thisCI->bpLength.mean +
-      transEdge->distance.mean;
-    pathDistance->variance += thisCI->bpLength.variance +
-      ComputeFudgeVariance(transEdge->distance.mean);
-    pathEdgeOrient = GetEdgeOrientationWRT(transEdge, thisCI->id);
-    if(pathDistance->mean > - CGW_MISSED_OVERLAP){
-      // Only revive edges longer than some minimum length
-      continue;
-    }
-    if(*curReviveEdge == endReviveEdge){
-      CleanReviveEdges(reviveEdgeStore, endReviveEdge, curReviveEdge);
-    }
-    //revive the edge
-    (*curReviveEdge)->id = nextCI->id;
-    if(end == A_END){
-      if((pathEdgeOrient == AB_AB) ||
-	 (pathEdgeOrient == BA_AB)){
-	(*curReviveEdge)->orient = BA_AB;
-      }else{
-	(*curReviveEdge)->orient = BA_BA;
-      }
-    }else{
-      if((pathEdgeOrient == AB_AB) ||
-	 (pathEdgeOrient == BA_AB)){
-	(*curReviveEdge)->orient = AB_AB;
-      }else{
-	(*curReviveEdge)->orient = AB_BA;
-      }
-    }
-    (*curReviveEdge)->minGap =  (int32)(pathDistance->mean -
-                                              (3.0 * sqrt(pathDistance->variance)));
-    (*curReviveEdge)->maxGap =  (int32)(pathDistance->mean +
-                                              (3.0 * sqrt(pathDistance->variance)));
-    if(edgeContainsCI(transEdge, nextCI->id)){
-      // Only interested in overlap edges and only if they are dovetail
-      continue;
-    }
-    ReviveTransitiveEdges(graph, pathDistance, pathEdgeOrient,
-			  nextCI, reviveEdgeStore, endReviveEdge,
-			  curReviveEdge, end, verbose);
-  }
-  return;
-}
-
-/****************************************************************************
- *  ReviveEdges
- *
- ***************************************************************************/
-int ReviveEdges(ScaffoldGraphT *graph, ChunkInstanceT *thisCI,
-                int end, RevivedEdgeT *reviveEdgeStore, int maxEdges,
-                int verbose){
-  GraphEdgeIterator edges;
-  CIEdgeT *edge;
-  RevivedEdgeT *curReviveEdge, *endReviveEdge;
-  curReviveEdge = reviveEdgeStore;
-  endReviveEdge = reviveEdgeStore + maxEdges;
-  InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, thisCI->id, end, ALL_EDGES,
-			GRAPH_EDGE_RAW_ONLY, &edges);// Use raw edges
-  while((edge = NextGraphEdgeIterator(&edges))!= NULL){
-    LengthT pathDistance;
-    ChunkOrientationType pathEdgeOrient;
-    ChunkInstanceT *nextCI;
-    nextCI = GetGraphNode(ScaffoldGraph->ContigGraph, (edge->idA == thisCI->id) ?
-			  edge->idB : edge->idA);
-    if(!isOverlapEdge(edge) || edgeContainsCI(edge, nextCI->id)){
-      // Only interested in overlap edges and only if they are dovetail
-      // or contain thisCI (NOT!!! contained by thisCI)
-      continue;
-    }
-    pathEdgeOrient = GetEdgeOrientationWRT(edge, thisCI->id);
-    pathDistance.mean = edge->distance.mean;
-    pathDistance.variance = ComputeFudgeVariance(edge->distance.mean);
-    ReviveTransitiveEdges(graph, &pathDistance, pathEdgeOrient,
-			  nextCI, reviveEdgeStore, endReviveEdge,
-			  &curReviveEdge, end, verbose);
-  }
-  CleanReviveEdges(reviveEdgeStore, endReviveEdge, &curReviveEdge);
-  return(curReviveEdge - reviveEdgeStore);
 }
