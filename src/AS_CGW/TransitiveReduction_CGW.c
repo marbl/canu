@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.29 2010-01-07 01:09:25 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.30 2010-01-07 02:44:43 brianwalenz Exp $";
 
 //#define INSTRUMENT_CGW
 //#define INSTRUMENT_SMOOTHED
@@ -1414,38 +1414,12 @@ SymmetricNeighbors(ChunkInstanceT *thisCI, ChunkOrientationType orient, CDS_CID_
 }
 
 
-static
-int
-NeighborBranches(ChunkInstanceT *thisCI,
-                 ChunkOrientationType orient,
-                 CDS_CID_t edgeID) {
-
-  if ((orient == AB_AB) || (orient == BA_AB)) {
-    // A end of this CI
-    if (thisCI->numEssentialA != 1) {
-      return(TRUE);
-    } else {
-      assert(edgeID == thisCI->essentialEdgeA);
-      return(FALSE);
-    }
-  } else {
-    // B end of this CI
-    assert(thisCI->numEssentialB >= 1);
-    if (thisCI->numEssentialB != 1) {
-      return(TRUE);
-    } else {
-      assert(edgeID == thisCI->essentialEdgeB);
-      return(FALSE);
-    }
-  }
-}
-
 
 static
-void
-DetectScaffoldCycles(CDS_CID_t *currentScaffoldID) {
-  ChunkInstanceT *thisCI;
-  GraphNodeIterator nodes;
+CDS_CID_t
+DetectScaffoldCycles(CDS_CID_t currentScaffoldID) {
+  GraphNodeIterator   nodes;
+  ChunkInstanceT     *thisCI;
 
   InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL) {
@@ -1493,11 +1467,9 @@ DetectScaffoldCycles(CDS_CID_t *currentScaffoldID) {
     // starting CI), remove their essential edges ... i.e. completely
     // break the cycle into singleton bits
     do{
-      ChunkOrientationType edgeOrient = GetEdgeOrientationWRT(edge,
-                                                              thisCI->id);
+      ChunkOrientationType edgeOrient = GetEdgeOrientationWRT(edge, thisCI->id);
       // Dump
-      DumpContig(stderr, ScaffoldGraph, thisCI,  FALSE);
-
+      //DumpContig(stderr, ScaffoldGraph, thisCI,  FALSE);
 
       assert(neighbor != NULL);
       if (orientCI == A_B) {
@@ -1525,7 +1497,7 @@ DetectScaffoldCycles(CDS_CID_t *currentScaffoldID) {
       // so that as each one is visited it will pass the test for
       // id != NULLINDEX, have the id set to NULLINDEX, and then
       // continue (see top of outer while loop)
-      thisCI->scaffoldID = *currentScaffoldID;
+      thisCI->scaffoldID = currentScaffoldID;
 
       thisCI = neighbor;
 
@@ -1552,17 +1524,20 @@ DetectScaffoldCycles(CDS_CID_t *currentScaffoldID) {
     // take the original node that gave us access to the cycle and
     // mark it as processed
     startingCI->scaffoldID = NULLINDEX;
-    (*currentScaffoldID)++;
+    currentScaffoldID++;
   }
+
+  return(currentScaffoldID);
 }
 
+//  Label which scaffold a CI would go into but do not create the scaffold as a way to detect
+//  cycles.
 static
-void
-LabelCIScaffolds(CDS_CID_t *currentScaffoldID) {
-  /* Label which scaffold a CI would go into but do not create the
-     scaffold as a way to detect cycles. */
-  ChunkInstanceT *thisCI;
-  GraphNodeIterator nodes;
+CDS_CID_t
+LabelCIScaffolds(void) {
+  CDS_CID_t          currentScaffoldID = 0;
+  GraphNodeIterator  nodes;
+  ChunkInstanceT    *thisCI;
 
   InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL) {
@@ -1612,7 +1587,7 @@ LabelCIScaffolds(CDS_CID_t *currentScaffoldID) {
       neighbor = (ChunkInstanceT *)NULL;
     }
 
-    thisCI->scaffoldID = *currentScaffoldID;
+    thisCI->scaffoldID = currentScaffoldID;
     while(neighbor != (ChunkInstanceT *)NULL) {
       ChunkOrientationType edgeOrient = GetEdgeOrientationWRT(edge,
 							      thisCI->id);
@@ -1634,7 +1609,7 @@ LabelCIScaffolds(CDS_CID_t *currentScaffoldID) {
 	}
       }
       thisCI = neighbor;
-      thisCI->scaffoldID = *currentScaffoldID;
+      thisCI->scaffoldID = currentScaffoldID;
       if (orientCI == A_B) {
 	if (thisCI->essentialEdgeB != NULLINDEX) {
 	  edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeB);
@@ -1655,15 +1630,19 @@ LabelCIScaffolds(CDS_CID_t *currentScaffoldID) {
 	}
       }
     }
-    (*currentScaffoldID)++;
+    currentScaffoldID++;
   }
+
+  return(currentScaffoldID);
 }
 
 static
-void
-ActuallyInsertCIsIntoScaffolds(CDS_CID_t *currentScaffoldID) {
-  ChunkInstanceT *thisCI;
-  GraphNodeIterator nodes;
+CDS_CID_t
+ActuallyInsertCIsIntoScaffolds(void) {
+  CDS_CID_t          currentScaffoldID = 0;
+  GraphNodeIterator  nodes;
+  ChunkInstanceT    *thisCI;
+
   InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
 
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL) {
@@ -1719,9 +1698,7 @@ ActuallyInsertCIsIntoScaffolds(CDS_CID_t *currentScaffoldID) {
       edge = (CIEdgeT *)NULL;
       neighbor = (ChunkInstanceT *)NULL;
     }
-    if (*currentScaffoldID == 404) {
-      fprintf(stderr,"* Scaffold 404\n");
-    }
+
     InitializeScaffold(&CIScaffold, REAL_SCAFFOLD);
     CIScaffold.info.Scaffold.AEndCI = NULLINDEX;
     CIScaffold.info.Scaffold.BEndCI = NULLINDEX;
@@ -1729,12 +1706,12 @@ ActuallyInsertCIsIntoScaffolds(CDS_CID_t *currentScaffoldID) {
     CIScaffold.info.Scaffold.leastSquareError = 0.0;
     CIScaffold.edgeHead = NULLINDEX;
     CIScaffold.bpLength = NullLength;
-    thisCI->scaffoldID = CIScaffold.id = *currentScaffoldID;
+    thisCI->scaffoldID = CIScaffold.id = currentScaffoldID;
     CIScaffold.flags.bits.isDead = FALSE;
     CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
     CIScaffold.essentialEdgeB = CIScaffold.essentialEdgeA = NULLINDEX;
     AppendCIScaffoldT(ScaffoldGraph->CIScaffolds, &CIScaffold);
-    assert(*currentScaffoldID == (GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds) - 1));
+    assert(currentScaffoldID == (GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds) - 1));
 
     aEndOffset = bEndOffset = currentOffset = NullLength;
 
@@ -1746,7 +1723,7 @@ ActuallyInsertCIsIntoScaffolds(CDS_CID_t *currentScaffoldID) {
       aEndOffset = thisCI->bpLength;
     }
     /* DON'T ContigNOW!!! */
-    InsertCIInScaffold(ScaffoldGraph, thisCI->id, *currentScaffoldID,
+    InsertCIInScaffold(ScaffoldGraph, thisCI->id, currentScaffoldID,
                        aEndOffset, bEndOffset,  TRUE /* Should be FALSE */, FALSE);
     currentOffset = thisCI->bpLength;
 
@@ -1771,7 +1748,7 @@ ActuallyInsertCIsIntoScaffolds(CDS_CID_t *currentScaffoldID) {
         }
       }
       thisCI = neighbor;
-      thisCI->scaffoldID = *currentScaffoldID;
+      thisCI->scaffoldID = currentScaffoldID;
       currentOffset.mean += edge->distance.mean;
       currentOffset.variance += edge->distance.variance;
       if (orientCI == A_B) {
@@ -1787,7 +1764,7 @@ ActuallyInsertCIsIntoScaffolds(CDS_CID_t *currentScaffoldID) {
         aEndOffset = currentOffset;
       }
       /* Don't Contig NOW!!! */
-      InsertCIInScaffold(ScaffoldGraph, thisCI->id, *currentScaffoldID,
+      InsertCIInScaffold(ScaffoldGraph, thisCI->id, currentScaffoldID,
                          aEndOffset, bEndOffset,  TRUE /* Should be FALSE */, FALSE);
       if (orientCI == A_B) {
         if (thisCI->essentialEdgeB != NULLINDEX) {
@@ -1813,19 +1790,45 @@ ActuallyInsertCIsIntoScaffolds(CDS_CID_t *currentScaffoldID) {
     }
 
     {/***** Check that scaffold is connected ****/
-      CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, *currentScaffoldID);
+      CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, currentScaffoldID);
       if (!IsScaffoldInternallyConnected(ScaffoldGraph,  scaffold, ALL_TRUSTED_EDGES)) {
         fprintf(stderr,"* Scaffold "F_CID
                 " is DISCONNECTED IMMEDIATELY AFTER INITIAL CONSTRUCTION!!!!\n",
-                *currentScaffoldID);
+                currentScaffoldID);
         DumpACIScaffold(stderr,ScaffoldGraph, scaffold, FALSE);
         assert(0);
       }
     }
-    (*currentScaffoldID)++;
+    currentScaffoldID++;
   }
+
+  return(currentScaffoldID);
 }
 
+
+static
+int
+NeighborBranches(ChunkInstanceT *thisCI,
+                 ChunkOrientationType orient,
+                 CDS_CID_t edgeID) {
+
+  if ((orient == AB_AB) ||
+      (orient == BA_AB)) {
+    // A end of this CI
+    if (thisCI->numEssentialA != 1)
+      return(TRUE);
+    assert(edgeID == thisCI->essentialEdgeA);
+    return(FALSE);
+
+  } else {
+    // B end of this CI
+    assert(thisCI->numEssentialB >= 1);
+    if (thisCI->numEssentialB != 1)
+      return(TRUE);
+    assert(edgeID == thisCI->essentialEdgeB);
+    return(FALSE);
+  }
+}
 
 static
 void
@@ -1835,7 +1838,6 @@ MarkBifurcations(ScaffoldGraphT *graph) {
 
   InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while((thisCI = NextGraphNodeIterator(&nodes)) != NULL) {
-
     thisCI->scaffoldID = NULLINDEX;
 
     switch(thisCI->numEssentialA) {
@@ -1862,9 +1864,7 @@ MarkBifurcations(ScaffoldGraphT *graph) {
       case 1:
         if (thisCI->essentialEdgeB != NULLINDEX) {
           CIEdgeT *edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeB);
-          if (NeighborBranches(GetGraphNode(ScaffoldGraph->ContigGraph,
-                                            ((edge->idA == thisCI->id) ?
-                                             edge->idB : edge->idA)),
+          if (NeighborBranches(GetGraphNode(ScaffoldGraph->ContigGraph, ((edge->idA == thisCI->id) ? edge->idB : edge->idA)),
                                GetEdgeOrientationWRT(edge, thisCI->id),
                                thisCI->essentialEdgeB)) {
             thisCI->essentialEdgeB = NULLINDEX;
@@ -1878,86 +1878,6 @@ MarkBifurcations(ScaffoldGraphT *graph) {
   }
 }
 
-static
-CDS_CID_t
-MarkShakyBifurcations(ScaffoldGraphT *graph) {
-  int numShaky = 0;
-  GraphNodeIterator nodes;
-  ContigT *contig;
-
-  InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
-  while((contig = NextGraphNodeIterator(&nodes)) != NULL) {
-    if (IsShakyContigAtScaffoldEnd(contig)) {
-      SetNodeType(GetGraphNode(ScaffoldGraph->CIGraph, contig->info.Contig.AEndCI),
-                  UNRESOLVEDCHUNK_CGW);
-
-      contig->flags.bits.isUnique = 0;
-      contig->scaffoldID = NULLINDEX;
-      contig->AEndNext = contig->BEndNext = NULLINDEX;
-
-      numShaky++;
-    }
-  }
-
-  return numShaky;
-}
-
-
-
-static
-void
-CreateScaffolds(ScaffoldGraphT *graph) {
-
-  CDS_CID_t currentScaffoldID;
-
-  /* Recycle the CIScaffolds VA */
-  ResetNodeCGW_T(graph->ScaffoldGraph->nodes);
-
-  MarkBifurcations(graph);
-
-  currentScaffoldID = 0;
-  LabelCIScaffolds(&currentScaffoldID);
-
-  /* We're looking for cycles where some of the Unique CIs have not been
-     labeled as belonging to a scaffold. */
-
-  DetectScaffoldCycles(&currentScaffoldID);
-
-  // Adjust scaffold labeling, based on instrumenting
-  // AdjustCIScaffoldLabels(graph, &currentScaffoldID);
-
-  /* Actually insert CIs into scaffolds. */
-  currentScaffoldID = 0;
-  ActuallyInsertCIsIntoScaffolds(&currentScaffoldID);
-
-  graph->numLiveScaffolds = GetNumCIScaffoldTs(graph->CIScaffolds);
-  assert(graph->numLiveScaffolds == currentScaffoldID);
-}
-
-static
-void
-DeleteInferredEdges(ScaffoldGraphT *graph) {
-
-  ChunkInstanceT *thisCI;
-  GraphNodeIterator nodes;
-
-  //  InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
-  // An inferred edge may exist between two shaky nodes that have
-  // been demoted
-  InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_DEFAULT);
-  while((thisCI = NextGraphNodeIterator(&nodes)) != NULL) {
-    GraphEdgeIterator edges;
-    CIEdgeT *edge;
-
-    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, thisCI->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
-    while((edge = NextGraphEdgeIterator(&edges)) != NULL) {
-      if (edge->flags.bits.isInferred) {
-	DeleteGraphEdge(ScaffoldGraph->ContigGraph, edge);
-      }
-    }
-  }
-}
-
 
 
 //  This computes edges between the CIs in a scaffold, inferred by the relative positions of the CIs
@@ -1967,8 +1887,8 @@ static
 void
 AddScaffoldInferredEdges(ScaffoldGraphT *graph) {
   GraphNodeIterator scaffolds;
-  CDS_CID_t sid;
-  CIScaffoldT *scaffold;
+  CIScaffoldT      *scaffold;
+
   fprintf(stderr,"* AddScaffoldInferredEdges   scaffolds = %d\n",
 	  (int) GetNumGraphNodes(graph->ScaffoldGraph));
 
@@ -1976,16 +1896,12 @@ AddScaffoldInferredEdges(ScaffoldGraphT *graph) {
   while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL) {
     CIScaffoldTIterator CIs;
     ChunkInstanceT *thisCI, *prevCI;
-    sid = scaffold->id;
 
     InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
     prevCI = NextCIScaffoldTIterator(&CIs);
     while((thisCI = NextCIScaffoldTIterator(&CIs)) != NULL) {
-      LengthT inferredDistance;
+      LengthT              inferredDistance;
       ChunkOrientationType inferredEdgeOrient;
-      CDS_CID_t inferredEdgeIndex;
-      CIEdgeT *inferredEdge;
-      int isOverlapInferred = FALSE;
 
       assert(!thisCI->flags.bits.isDead &&
              !prevCI->flags.bits.isDead);
@@ -2013,23 +1929,24 @@ AddScaffoldInferredEdges(ScaffoldGraphT *graph) {
       }
 
       if ( inferredDistance.variance > 0.0 ) {// SAK HACK!
-        inferredEdgeIndex = AddGraphEdge(ScaffoldGraph->ContigGraph, prevCI->id, thisCI->id,
-                                         NULLINDEX, NULLINDEX, // No fragments
-                                         NULLINDEX, // No distance record
-                                         inferredDistance, 1, // fudgeDistance???
-                                         1.0, // quality
-                                         inferredEdgeOrient,
-                                         FALSE, // not unknown orientation
-                                         isOverlapInferred,
-                                         FALSE, // isAContainsB
-                                         FALSE, // isBContainsA
-                                         FALSE, // isTransChunk
-                                         FALSE, // not extremalA
-                                         FALSE, // not extremalB
-                                         UNKNOWN_EDGE_STATUS,
-                                         FALSE, // do not collect overlap
-                                         TRUE); // insert into graph
-        inferredEdge = GetGraphEdge(ScaffoldGraph->ContigGraph, inferredEdgeIndex);
+        CDS_CID_t inferredEdgeIndex = AddGraphEdge(ScaffoldGraph->ContigGraph, prevCI->id, thisCI->id,
+                                                   NULLINDEX, NULLINDEX, // No fragments
+                                                   NULLINDEX, // No distance record
+                                                   inferredDistance, 1, // fudgeDistance???
+                                                   1.0, // quality
+                                                   inferredEdgeOrient,
+                                                   FALSE, // not unknown orientation
+                                                   FALSE, // isOverlapInferred,
+                                                   FALSE, // isAContainsB
+                                                   FALSE, // isBContainsA
+                                                   FALSE, // isTransChunk
+                                                   FALSE, // not extremalA
+                                                   FALSE, // not extremalB
+                                                   UNKNOWN_EDGE_STATUS,
+                                                   FALSE, // do not collect overlap
+                                                   TRUE); // insert into graph
+
+        CIEdgeT *inferredEdge = GetGraphEdge(ScaffoldGraph->ContigGraph, inferredEdgeIndex);
         inferredEdge->flags.bits.isInferred = TRUE;
         inferredEdge->flags.bits.isTentative = FALSE;
         inferredEdge->flags.bits.isActive = TRUE;
@@ -2057,91 +1974,149 @@ AddScaffoldInferredEdges(ScaffoldGraphT *graph) {
       prevCI = thisCI;
     }
   }
-  return;
 }
+
+
+//  Clears the edge status flags for all canonical edges.
+//  Iterates over all contigs, and then all edges from each contig.
+static
+void
+ResetEdgeStatus(ScaffoldGraphT *graph) {
+  GraphNodeIterator nodes;
+  ChunkInstanceT   *node;
+
+  InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
+  while ((node = NextGraphNodeIterator(&nodes)) != NULL) {
+    GraphEdgeIterator edges;
+    CIEdgeT          *edge;
+
+    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, node->id, ALL_END, ALL_EDGES,
+			  GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
+    while ((edge = NextGraphEdgeIterator(&edges)) != NULL) {
+      ChunkInstanceT *otherCI = GetGraphNode(ScaffoldGraph->ContigGraph,
+					     (edge->idA == node->id) ?
+					     edge->idB : edge->idA);
+
+      if ((edge->idA != node->id) && otherCI->flags.bits.isUnique)
+	// Only reset canonical edges so as not to repeat the work.
+	continue;
+
+      InitGraphEdgeFlags(ScaffoldGraph->ContigGraph, edge);
+    }
+  }
+}
+
 
 
 static
 void
-ResetEdgeStatus(ScaffoldGraphT *graph) {
-
-  CDS_CID_t cid;
-  ChunkInstanceT *thisCI;
+DeleteInferredEdges(ScaffoldGraphT *graph) {
   GraphNodeIterator nodes;
+  ChunkInstanceT   *node;
 
-  InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
-  while((thisCI = NextGraphNodeIterator(&nodes)) != NULL) {
+  // An inferred edge may exist between two shaky nodes that have been demoted
+
+  InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_DEFAULT);
+  while ((node = NextGraphNodeIterator(&nodes)) != NULL) {
     GraphEdgeIterator edges;
     CIEdgeT *edge;
 
-    cid = thisCI->id;
-
-    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, thisCI->id, ALL_END, ALL_EDGES,
-			  GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
-    while((edge = NextGraphEdgeIterator(&edges)) != NULL) {
-      ChunkInstanceT *otherCI = GetGraphNode(ScaffoldGraph->ContigGraph,
-					     (edge->idA == thisCI->id) ?
-					     edge->idB : edge->idA);
-
-      if ((edge->idA != thisCI->id) && otherCI->flags.bits.isUnique)
-	// Only reset canonical edges so as not to repeat the work.
-	continue;
-
-      // Initialize the status flags for this edge
-      InitGraphEdgeFlags(ScaffoldGraph->ContigGraph, edge);
-    }
+    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, node->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
+    while ((edge = NextGraphEdgeIterator(&edges)) != NULL)
+      if (edge->flags.bits.isInferred)
+	DeleteGraphEdge(ScaffoldGraph->ContigGraph, edge);
   }
-  return;
 }
-
-
-void MarkEssentialEdges(ScaffoldGraphT *graph,
-                        int markShakyBifurcations) {
-  ResetEdgeStatus(graph);
-  AddScaffoldInferredEdges(graph);
-  MarkRedundantUniqueToUniqueEdges(graph);
-  MarkTwoHopConfirmedEdges(graph);
-  MarkPathRemovedEdges(graph);
-  SmoothWithInferredEdges(graph, markShakyBifurcations);
-}
-
-
-
-
 
 
 void
 BuildUniqueCIScaffolds(ScaffoldGraphT *graph,
                        int markShakyBifurcations,
                        int verbose) {
-  int iteration = 0;
-  int todo = TRUE;
 
-  // on_on
-  // this setting used for mouse_20010730 cgw run
-  // markShakyBifurcations = FALSE;
+  //  mouse_20010730 disabled markShakyBifurcations.
+  //markShakyBifurcations = FALSE;
 
-  // off_on
-  markShakyBifurcations = TRUE;  // ALH, 6/20/2004: why turn this on?
+  //  aaron_20040620 wonders why this is now forced on.
+  markShakyBifurcations = TRUE;
 
   // Mark essential edges, and look for shaky bifurcations
   // Iterate, until there are no shaky bifucations left
   //
   if (markShakyBifurcations) {
-    for(iteration = 0; todo == TRUE ; iteration++) {
-      int numShaky = 0;
-      MarkEssentialEdges(graph,markShakyBifurcations);
+    int               numIters = 0;
+    int               numShaky = 0;
+    GraphNodeIterator contigs;
+    ContigT          *contig;
 
-      numShaky = MarkShakyBifurcations(graph);
-      todo = (numShaky > 0);
-      if (todo)
-	DeleteInferredEdges(graph);
-    }
+    do {
+
+      //  Mark Essential Edges
+
+      DeleteInferredEdges(graph);
+      ResetEdgeStatus(graph);
+      AddScaffoldInferredEdges(graph);
+      MarkRedundantUniqueToUniqueEdges(graph);
+      MarkTwoHopConfirmedEdges(graph);
+      MarkPathRemovedEdges(graph);  //  EXPENSIVE
+      SmoothWithInferredEdges(graph, markShakyBifurcations);
+
+      //  Mark shaky bifurcations.
+
+      numShaky = 0;
+
+      InitGraphNodeIterator(&contigs, ScaffoldGraph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
+      while((contig = NextGraphNodeIterator(&contigs)) != NULL) {
+        if (IsShakyContigAtScaffoldEnd(contig)) {
+          SetNodeType(GetGraphNode(ScaffoldGraph->CIGraph, contig->info.Contig.AEndCI), UNRESOLVEDCHUNK_CGW);
+
+          contig->flags.bits.isUnique = 0;
+          contig->scaffoldID          = NULLINDEX;
+          contig->AEndNext            = NULLINDEX;
+          contig->BEndNext            = NULLINDEX;
+
+          numShaky++;
+
+          //fprintf(stderr,"* Didn't include the following shaky contig  A end\n");
+          //DumpContig(stderr,ScaffoldGraph, contig, FALSE);
+        }
+      }
+
+      fprintf(stderr, "BuildUniqueCIScaffolds()-- After iteration %d, found %d shaky contigs.\n", ++numIters, numShaky);
+    } while (numShaky > 0);
   }
-  DeleteInferredEdges(graph);
-  MarkEssentialEdges(graph,FALSE);
 
-  CreateScaffolds(graph);
+  //  Mark Essential Edges, WITHOUT marking shaky bifurcations (in SmoothWithInferredEdges()).
+
+  DeleteInferredEdges(graph);
+  ResetEdgeStatus(graph);
+  AddScaffoldInferredEdges(graph);
+  MarkRedundantUniqueToUniqueEdges(graph);
+  MarkTwoHopConfirmedEdges(graph);
+  MarkPathRemovedEdges(graph);  //  EXPENSIVE
+  SmoothWithInferredEdges(graph, FALSE);
+
+  //
+  //  Create Scaffolds
+  //
+
+  //  Recycle the CIScaffolds VA
+  ResetNodeCGW_T(graph->ScaffoldGraph->nodes);
+
+  MarkBifurcations(graph);
+
+  int currentScaffoldID = LabelCIScaffolds();
+
+  //  We're looking for cycles where some of the Unique CIs have not been labeled as belonging to a
+  //  scaffold.
+
+  currentScaffoldID = DetectScaffoldCycles(currentScaffoldID);
+
+  //  Actually insert CIs into scaffolds.
+  currentScaffoldID = ActuallyInsertCIsIntoScaffolds();
+
+  graph->numLiveScaffolds = GetNumCIScaffoldTs(graph->CIScaffolds);
+  assert(graph->numLiveScaffolds == currentScaffoldID);
 
   DeleteInferredEdges(graph);
 }
