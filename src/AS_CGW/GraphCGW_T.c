@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.81 2009-12-10 15:12:16 skoren Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.82 2010-01-07 21:40:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -601,22 +601,13 @@ void InitGraphEdgeFlags(GraphCGW_T *graph, EdgeCGW_T *edge){
     }
   }
 
-  // Default state for isEssential is FALSE will be set later.
   edge->flags.bits.isEssential = FALSE;
-  // Default state for wasEssential is FALSE will be set later.
   edge->flags.bits.wasEssential = FALSE;
-  // Default state for isInferred is FALSE will be set later.
   edge->flags.bits.isInferred = FALSE;
-  // Default state for isInferredRemoved is FALSE will be set later.
   edge->flags.bits.isInferredRemoved = FALSE;
-  // Default state for isRedundantRemoved is FALSE will be set later.
   edge->flags.bits.isRedundantRemoved = FALSE;
-  // Default state for isTransitivelyRemoved is FALSE will be set later.
   edge->flags.bits.isTransitivelyRemoved = FALSE;
-  // Default state for isDeleted is FALSE will be set later.
   edge->flags.bits.isDeleted = FALSE;
-
-  return;
 }
 
 // Insert a copy of the tobeInserted Mate Edge
