@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.30 2010-01-07 02:44:43 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.31 2010-01-13 00:51:58 brianwalenz Exp $";
 
 //#define INSTRUMENT_CGW
 //#define INSTRUMENT_SMOOTHED
@@ -81,324 +81,359 @@ TransitiveEdgeOrientation(ChunkOrientationType leftOrient,
 }
 
 
+//
+//  Transitive Edge Removal.
+//
+//
+//  Only check an edge once in canonical direction.
+//
+//  Don't check inactive edges.
+//  Don't check edges between non-unique CIs.
+//
+//  For gos3a, 15,  500000, 30 needed about 4 hours (per iter).
+//  For gos3a, 15, 1000000, 30 needed about 7 hours (per iter) and was used.
+//
+//  The values below (15, 50^4, 50) are complete gueses.
+//
+int AS_CGW_MAX_FTEP_RECURSE_DEPTH   = 15;
+int AS_CGW_MAX_FTEP_RECURSE_SIZE    = 50 * 50 * 50 * 50;
+int AS_CGW_MAX_FTEP_OUTGOING_EDGES  = 50;
 
-#define AS_CGW_MAX_FTEP_RECURSE_DEPTH 15
+//  Count the number of possible outgoing edges 
+static
+int
+countNumberOfEdges(ScaffoldGraphT  *graph,
+                   ChunkInstanceT  *thisCI,
+                   int              end,
+                   int             &totedges,
+                   int             &outgoing) {
+  GraphEdgeIterator edges;
+  CIEdgeT          *edge;
+
+  totedges = 0;
+  outgoing = 0;
+
+  InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
+  while ((edge = NextGraphEdgeIterator(&edges))!= NULL) {
+    totedges++;
+
+    if ((!edge->flags.bits.isActive) ||
+        (!edge->flags.bits.isUniquetoUnique) ||
+        (isSingletonOverlapEdge(edge)))
+      continue;
+
+    assert(!isSloppyEdge(edge));
+
+    outgoing++;
+  }
+
+  return(outgoing);
+}
+
 
 static
 int
 FoundTransitiveEdgePath(ScaffoldGraphT *graph,
-                        CIEdgeT *pathEdge,
-                        CIEdgeT *edge,  /* edge we're trying to transitively remove */
-                        ChunkInstanceT *startCI, /* Start of path */
-                        ChunkInstanceT *endCI,   /* End of Path */
-                        ChunkInstanceT *thisCI, /* Where we are now */
-                        int recurseDepth) {
-
-  CIEdgeT localPathEdge;
-  CIEdgeT *transEdge;
-  GraphEdgeIterator transEdges;
-  float chiSquaredValue;
-  ChunkOrientationType edgeOrient, pathEdgeOrient;
-  int returnVal = FALSE;
+                        CIEdgeT        *path,
+                        CIEdgeT        *edge,        //  Edge we're trying to transitively remove
+                        ChunkInstanceT *startCI,     //  Start of path
+                        ChunkInstanceT *endCI,       //  End of Path
+                        ChunkInstanceT *thisCI,      //  Where we are now
+                        uint32          recurseDepth,
+                        uint64          recurseSize) {
+  float             chiSquaredValue = 0.0;
 
   assert(!isSloppyEdge(edge));
 
-  if (++recurseDepth > AS_CGW_MAX_FTEP_RECURSE_DEPTH)
+  assert(recurseSize > 0);
+
+  if (recurseDepth > AS_CGW_MAX_FTEP_RECURSE_DEPTH)
     return(FALSE);
 
-  edgeOrient = GetEdgeOrientationWRT(edge, startCI->id);
-  pathEdgeOrient = GetEdgeOrientationWRT(pathEdge, startCI->id);
+  if (recurseSize > AS_CGW_MAX_FTEP_RECURSE_SIZE)
+    return(FALSE);
 
+  ChunkOrientationType edgeOrient = GetEdgeOrientationWRT(edge, startCI->id);
+  ChunkOrientationType pathOrient = GetEdgeOrientationWRT(path, startCI->id);
+
+  //  Which end of thisCI are we walking off of.
+  int end = ((pathOrient == AB_AB) || (pathOrient == BA_AB)) ? B_END : A_END;
+
+
+  //  If we got to the end, return true if the orientation is correct and the distance is correct.
+  //
   if (thisCI == endCI)
-    // we got there
-    if (edgeOrient == pathEdgeOrient)
-      // correct orientation
-      return(PairwiseChiSquare((float)pathEdge->distance.mean,
-                               (float)pathEdge->distance.variance,
-                               (float)edge->distance.mean,
-                               (float)edge->distance.variance, (LengthT *)NULL,
-                               &chiSquaredValue, (float)PAIRWISECHI2THRESHOLD_CGW));
-    else
-      // incorrect orientation
-      return(FALSE);
+    return((edgeOrient == pathOrient) &&
+           (PairwiseChiSquare((float)path->distance.mean,
+                              (float)path->distance.variance,
+                              (float)edge->distance.mean,
+                              (float)edge->distance.variance, (LengthT *)NULL,
+                              &chiSquaredValue, (float)PAIRWISECHI2THRESHOLD_CGW)));
 
-  if (pathEdge->distance.mean > edge->distance.mean)
-    if (!PairwiseChiSquare((float)pathEdge->distance.mean,
-                           (float)pathEdge->distance.variance,
-                           (float)edge->distance.mean,
-                           (float)edge->distance.variance, (LengthT *)NULL,
-                           &chiSquaredValue, (float)PAIRWISECHI2THRESHOLD_CGW))
-      return(FALSE);
+  //  Not at the end, but if the current path is longer than we are, and this is too long, return
+  //  failure.
+  //
+  if ((path->distance.mean > edge->distance.mean) &&
+      (!PairwiseChiSquare((float)path->distance.mean,
+                          (float)path->distance.variance,
+                          (float)edge->distance.mean,
+                          (float)edge->distance.variance, (LengthT *)NULL,
+                          &chiSquaredValue, (float)PAIRWISECHI2THRESHOLD_CGW)))
+    return(FALSE);
 
-  if ((pathEdgeOrient == AB_AB) || (pathEdgeOrient == BA_AB))
-    //  transEdge must be a B_END edge
-    InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, B_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &transEdges);// Use merged edges
-  else
-    //  transEdge must be a A_END edge
-    InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, A_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &transEdges);// Use merged edges
+  //  Not at the end, but if the current CI has too many outgoing edges, we'll abort now.  It might
+  //  be a repeat.
+  //
+  int totedges = 0;
+  int outgoing = 0;
 
-  while((transEdge = NextGraphEdgeIterator(&transEdges))!= NULL) {
-    ChunkInstanceT *nextCI;
+  if (countNumberOfEdges(graph, thisCI, end, totedges, outgoing) > AS_CGW_MAX_FTEP_OUTGOING_EDGES) {
+    //fprintf(stderr, "TransitiveReduction:  CI %d has %d/%d edges; too many, possible repeat, skipping (depth %d).\n", thisCI->id, outgoing, totedges, recurseDepth);
+    return(FALSE);
+  }
 
-    if (!transEdge->flags.bits.isActive || !transEdge->flags.bits.isUniquetoUnique)
+  if (recurseSize * outgoing > AS_CGW_MAX_FTEP_RECURSE_SIZE) {
+    //fprintf(stderr, "TransitiveReduction:  CI %d has %d/%d edges; size too big (%d) for path, skipping (depth %d).\n", thisCI->id, outgoing, totedges, recurseSize * outgoing, recurseDepth);
+    return(FALSE);
+  }
+
+  if (outgoing == 0)
+    return(FALSE);
+
+  GraphEdgeIterator trans;
+  CIEdgeT          *tran  = NULL;
+
+  InitGraphEdgeIterator(graph->ContigGraph,
+                        thisCI->id,
+                        end,
+                        ALL_EDGES,
+                        GRAPH_EDGE_DEFAULT,
+                        &trans);// Use merged edges
+
+  while((tran = NextGraphEdgeIterator(&trans))!= NULL) {
+    if ((!tran->flags.bits.isActive) ||
+        (!tran->flags.bits.isUniquetoUnique) ||
+        (isSingletonOverlapEdge(tran)))
       //  Do not use inactive edges or edges to nonUnique CIs.
-      continue;
-
-    if (isSingletonOverlapEdge(transEdge))
       //  Do not use overlap edges in path walks
       continue;
 
-    assert(!isSloppyEdge(transEdge));
+    assert(!isSloppyEdge(tran));
 
-    nextCI = GetGraphNode(graph->ContigGraph,
-			  ((transEdge->idA == thisCI->id) ?
-			   transEdge->idB : transEdge->idA));
-    localPathEdge = *pathEdge;
-    localPathEdge.distance.mean += thisCI->bpLength.mean + transEdge->distance.mean;
-    localPathEdge.distance.variance += thisCI->bpLength.variance + transEdge->distance.variance;
-    localPathEdge.idB = (transEdge->idA == thisCI->id) ? transEdge->idB : transEdge->idA;
-    localPathEdge.orient = TransitiveEdgeOrientation(pathEdgeOrient, GetEdgeOrientationWRT(transEdge, thisCI->id));
+    ChunkInstanceT *nextCI = GetGraphNode(graph->ContigGraph, (tran->idA == thisCI->id) ? tran->idB : tran->idA);
+    
+    CIEdgeT next = *path;
 
-    if (FoundTransitiveEdgePath(graph, &localPathEdge, edge, startCI, endCI, nextCI, recurseDepth)) {
-      transEdge->flags.bits.isConfirmed = TRUE;
-      returnVal = TRUE;
+    next.distance.mean     += thisCI->bpLength.mean     + tran->distance.mean;
+    next.distance.variance += thisCI->bpLength.variance + tran->distance.variance;
+    next.idB                = (tran->idA == thisCI->id) ? tran->idB : tran->idA;
+    next.orient             = TransitiveEdgeOrientation(pathOrient, GetEdgeOrientationWRT(tran, thisCI->id));
 
-      // For speed we are going to return when we find the first path and not find all paths so as
-      // to possibly confirm some extra edges.
+    if (FoundTransitiveEdgePath(graph, &next, edge, startCI, endCI, nextCI, recurseDepth + 1, recurseSize * outgoing)) {
+      tran->flags.bits.isConfirmed = TRUE;
+
+      //  For speed we are going to return when we find the first path and not find all paths so as
+      //  to possibly confirm some extra edges.
       //
-      return(returnVal);
+      return(TRUE);
     }
   }
-  return(returnVal);
+
+  return(FALSE);
 }
+
 
 static
 void
-MarkPathRemovedEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI,
-                           int end) {
+MarkPathRemovedEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI, int end) {
   GraphEdgeIterator edges;
-  CIEdgeT *edge;
+  CIEdgeT          *edge;
+  GraphEdgeIterator trans;
+  CIEdgeT          *tran;
+
+  //  Count the number of possible outgoing edges 
+
+  int totedges = 0;
+  int outgoing = 0;
+
+  if (countNumberOfEdges(graph, thisCI, end, totedges, outgoing) > AS_CGW_MAX_FTEP_OUTGOING_EDGES) {
+    fprintf(stderr, "TransitiveReduction:  CI %d has %d/%d edges; too many, possible repeat, skipping.\n", thisCI->id, outgoing, totedges);
+    return;
+  }
+
+  //  Appropriately small count, try to mark edges.
+
   InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
-  while((edge = NextGraphEdgeIterator(&edges))!= NULL) {
-    GraphEdgeIterator transEdges;
-    CIEdgeT pathEdge;
-    CIEdgeT *transEdge;
-    ChunkInstanceT *endCI;
-
-    if (edge->idA != thisCI->id)
-      // Only check an edge once in canonical direction.
+  while ((edge = NextGraphEdgeIterator(&edges))!= NULL) {
+    if ((edge->idA != thisCI->id) ||
+        (!edge->flags.bits.isActive) ||
+        (!edge->flags.bits.isUniquetoUnique))
       continue;
 
-    if (!edge->flags.bits.isActive || !edge->flags.bits.isUniquetoUnique)
-      // No need to check inactive edges - only interested in edges between Unique CIs.
-      continue;
+    ChunkInstanceT *endCI = GetGraphNode(graph->ContigGraph, ((edge->idA == thisCI->id) ? edge->idB : edge->idA));
 
-    assert(!isSloppyEdge(edge));
-    endCI = GetGraphNode(graph->ContigGraph,
-                         ((edge->idA == thisCI->id) ? edge->idB : edge->idA));
     // Only use edges on the same end of thisCI to transitively remove an edge.
-    InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &transEdges);// Use merged edges
-    while((transEdge = NextGraphEdgeIterator(&transEdges))!= NULL) {
-      ChunkInstanceT *nextCI;
-      CDS_CID_t nextCID;
-      int recurseDepth;
+    InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &trans);// Use merged edges
+    while ((tran = NextGraphEdgeIterator(&trans))!= NULL) {
+      if ((edge == tran) ||
+          (!tran->flags.bits.isActive) ||
+          (!tran->flags.bits.isUniquetoUnique) ||
+          (isSingletonOverlapEdge(tran)))
+        continue;
 
-      if (edge == transEdge)
-	// Do not remove an edge with itself.
-	continue;
+      CIEdgeT         path    = *tran;
+      CDS_CID_t       nextCID = (tran->idA == thisCI->id) ? tran->idB : tran->idA;
+      ChunkInstanceT *nextCI  = GetGraphNode(graph->ContigGraph, nextCID);
 
-      if (!transEdge->flags.bits.isActive || !transEdge->flags.bits.isUniquetoUnique)
-	// Do not use inactive edges - only interested in edges between Unique CIs.
-	continue;
+      path.idA    = thisCI->id;
+      path.idB    = nextCID;
+      path.orient = GetEdgeOrientationWRT(tran, thisCI->id);
 
-      assert(!isSloppyEdge(transEdge));
-
-      nextCID = (transEdge->idA == thisCI->id) ? transEdge->idB : transEdge->idA;
-      nextCI = GetGraphNode(graph->ContigGraph, nextCID);
-      pathEdge = *transEdge;
-      pathEdge.idA = thisCI->id;
-      pathEdge.idB = nextCID;
-      pathEdge.orient = GetEdgeOrientationWRT(transEdge, thisCI->id);
-      recurseDepth = 0;
-      if (FoundTransitiveEdgePath(graph, &pathEdge, edge, thisCI, endCI,
-                                  nextCI, recurseDepth)) {
-	edge->flags.bits.isTransitivelyRemoved = TRUE;
-	edge->flags.bits.isConfirmed = TRUE;
-	transEdge->flags.bits.isConfirmed = TRUE;
+      if (FoundTransitiveEdgePath(graph, &path, edge, thisCI, endCI, nextCI, 0, outgoing)) {
+        edge->flags.bits.isTransitivelyRemoved = TRUE;
+        edge->flags.bits.isConfirmed           = TRUE;
+        tran->flags.bits.isConfirmed           = TRUE;
       }
     }
   }
 }
+
+
+
 
 static
 void
 MarkPathRemovedEdges(ScaffoldGraphT *graph) {
   GraphNodeIterator nodes;
-  ChunkInstanceT   *thisCI;
+  ChunkInstanceT   *node;
 
   InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
-  while((thisCI = NextGraphNodeIterator(&nodes)) != NULL) {
-    MarkPathRemovedEdgesOneEnd(graph, thisCI, A_END);
-    MarkPathRemovedEdgesOneEnd(graph, thisCI, B_END);
+  while((node = NextGraphNodeIterator(&nodes)) != NULL) {
+    MarkPathRemovedEdgesOneEnd(graph, node, A_END);
+    MarkPathRemovedEdgesOneEnd(graph, node, B_END);
   }
 }
 
+
+
+//  This looks for two two-hop paths from thisCI to the same endCI.  If found, and they agree, all
+//  edges are confirmed.
+//
+//  Path 1:   thisCI -> Ahop1 (edge) -> AmidCI -> Ahop2 (edge) -> AendCI
+//  Path 2:   thisCI -> Bhop1 (edge) -> BmidCI -> Bhop2 (edge) -> BendCI
+//
+//  As with the general transitive edge reduction:
+//    Don't use inactive edges.
+//    Don't use edges between non-unique CIs.
+//    Don't use overlap edges.
+//
 static
 void
 MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
                                ChunkInstanceT *thisCI,
                                int end) {
-  GraphEdgeIterator edges;
-  CIEdgeT          *edge;
-  InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
 
-  while((edge = NextGraphEdgeIterator(&edges))!= NULL) {
-    GraphEdgeIterator hop2Edges;
-    CIEdgeT pathEdge;
-    CIEdgeT *hop2Edge;
-    CDS_CID_t middleCID;
-    ChunkInstanceT *middleCI;
+  GraphEdgeIterator Ahop1s;
+  CIEdgeT          *Ahop1;
 
-    if (!edge->flags.bits.isActive || !edge->flags.bits.isUniquetoUnique)
-      // No need to check inactive edges - only interested in edges between Unique CIs.
+  InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &Ahop1s);// Use merged edges
+
+  while((Ahop1 = NextGraphEdgeIterator(&Ahop1s))!= NULL) {
+    if ((!Ahop1->flags.bits.isActive) ||
+        (!Ahop1->flags.bits.isUniquetoUnique) ||
+        (isSingletonOverlapEdge(Ahop1)))
       continue;
 
-    if (isSingletonOverlapEdge(edge))
-      //  Do not use overlap edges in two hops
-      continue;
+    CDS_CID_t             AmidCID = (Ahop1->idA == thisCI->id) ? Ahop1->idB : Ahop1->idA;
+    ChunkInstanceT       *AmidCI  = GetGraphNode(graph->ContigGraph, AmidCID);
+    ChunkOrientationType  AmidOri = GetEdgeOrientationWRT(Ahop1, thisCI->id);
 
-    middleCID = (edge->idA == thisCI->id) ? edge->idB : edge->idA;
-    middleCI = GetGraphNode(graph->ContigGraph, middleCID);
+    GraphEdgeIterator  Ahop2s;
+    CIEdgeT           *Ahop2;
 
-    pathEdge = *edge;
-    pathEdge.idA = thisCI->id;
-    pathEdge.idB = middleCID;
-    pathEdge.orient = GetEdgeOrientationWRT(edge, thisCI->id);
-    pathEdge.distance.mean += middleCI->bpLength.mean;
-    pathEdge.distance.variance += middleCI->bpLength.variance;
+    InitGraphEdgeIterator(graph->ContigGraph, AmidCID,
+                          (AmidOri == AB_AB) || (AmidOri == BA_AB) ? B_END : A_END,
+                          ALL_EDGES, GRAPH_EDGE_DEFAULT, &Ahop2s);// Use merged edges
 
-    if ((pathEdge.orient == AB_AB) ||
-        (pathEdge.orient == BA_AB))
-      //  hop2Edge must be a B_END edge
-      InitGraphEdgeIterator(graph->ContigGraph, middleCID, B_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &hop2Edges);// Use merged edges
-    else
-      //  hop2Edge must be a A_END edge
-      InitGraphEdgeIterator(graph->ContigGraph, middleCID, A_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &hop2Edges);// Use merged edges
+    while((Ahop2 = NextGraphEdgeIterator(&Ahop2s))!= NULL) {
+      if ((!Ahop2->flags.bits.isActive) ||
+          (!Ahop2->flags.bits.isUniquetoUnique) ||
+          (isSingletonOverlapEdge(Ahop2)))
+        continue;
 
-    while((hop2Edge = NextGraphEdgeIterator(&hop2Edges))!= NULL) {
-      ChunkInstanceT *endCI;
-      ChunkOrientationType combinedOrient;
-      double combinedMean, combinedVariance;
-      GraphEdgeIterator confirmEdges;
-      CIEdgeT *confirmEdge;
+      ChunkInstanceT        *AendCI    = GetGraphNode(graph->ContigGraph, ((Ahop2->idA == AmidCID) ? Ahop2->idB : Ahop2->idA));
+      ChunkOrientationType   AendOri   = TransitiveEdgeOrientation(AmidOri, GetEdgeOrientationWRT(Ahop2, AmidCID));
+      double                 AMean     = Ahop1->distance.mean     + AmidCI->bpLength.mean     + Ahop2->distance.mean;
+      double                 AVariance = Ahop1->distance.variance + AmidCI->bpLength.variance + Ahop2->distance.variance;
 
-      if (!hop2Edge->flags.bits.isActive || !hop2Edge->flags.bits.isUniquetoUnique)
-	// Do not use inactive edges - only interested in edges between Unique CIs.
-	continue;
+      //  Only use edges on the same end of thisCI to confirm a two hop edge.  Use a copy of the
+      //  original iterator so that we do not find the same pair of two hop paths twice.
 
-      if (isSingletonOverlapEdge(hop2Edge))
-        //  Do not use overlap edges in two hops
-	continue;
+      GraphEdgeIterator   Bhop1s = Ahop1s;
+      CIEdgeT            *Bhop1;
 
-      endCI = GetGraphNode(graph->ContigGraph, ((hop2Edge->idA == middleCID) ? hop2Edge->idB : hop2Edge->idA));
-      combinedOrient = TransitiveEdgeOrientation(pathEdge.orient, GetEdgeOrientationWRT(hop2Edge, middleCID));
-      combinedMean = pathEdge.distance.mean + hop2Edge->distance.mean;
-      combinedVariance = pathEdge.distance.variance + hop2Edge->distance.variance;
+      while((Bhop1 = NextGraphEdgeIterator(&Bhop1s))!= NULL) {
+        if ((!Bhop1->flags.bits.isActive) ||
+            (!Bhop1->flags.bits.isUniquetoUnique) ||
+            (isSingletonOverlapEdge(Bhop1)))
+          continue;
 
-      // Only use edges on the same end of thisCI to confirm a two hop edge.
-      // Use a copy of the original iterator so that we do not find the
-      // same pair of two hop paths twice.
+        CDS_CID_t             BmidCID = (Bhop1->idA == thisCI->id) ? Bhop1->idB : Bhop1->idA;
+        ChunkInstanceT       *BmidCI  = GetGraphNode(graph->ContigGraph, BmidCID);
+        ChunkOrientationType  BmidOri = GetEdgeOrientationWRT(Bhop1, thisCI->id);
 
-      confirmEdges = edges;
-      while((confirmEdge = NextGraphEdgeIterator(&confirmEdges))!= NULL) {
-	GraphEdgeIterator confirmHop2Edges;
-	CIEdgeT confirmPathEdge;
-	CIEdgeT *confirmHop2Edge;
-	CDS_CID_t confirmMiddleCID;
-	ChunkInstanceT *confirmMiddleCI;
+        GraphEdgeIterator  Bhop2s;
+        CIEdgeT           *Bhop2;
 
-	if (!confirmEdge->flags.bits.isActive || !confirmEdge->flags.bits.isUniquetoUnique)
-	  // Do not use inactive edges - only interested in edges between Unique CIs.
-	  continue;
+        InitGraphEdgeIterator(graph->ContigGraph, BmidCID,
+                              (BmidOri == AB_AB) || (BmidOri == BA_AB) ? B_END : A_END,
+                              ALL_EDGES, GRAPH_EDGE_DEFAULT, &Bhop2s);// Use merged edges
 
-	if (isSingletonOverlapEdge(confirmEdge))
-          //  Do not use overlap edges in two hops
-	  continue;
+        while((Bhop2 = NextGraphEdgeIterator(&Bhop2s))!= NULL) {
+          if ((!Bhop2->flags.bits.isActive) ||
+              (!Bhop2->flags.bits.isUniquetoUnique) ||
+              (isSingletonOverlapEdge(Bhop2)))
+            continue;
 
-	confirmMiddleCID = (confirmEdge->idA == thisCI->id) ? confirmEdge->idB : confirmEdge->idA;
-	confirmMiddleCI = GetGraphNode(graph->ContigGraph, confirmMiddleCID);
+          ChunkInstanceT        *BendCI    = GetGraphNode(graph->ContigGraph, ((Bhop2->idA == BmidCID) ? Bhop2->idB : Bhop2->idA));
+          ChunkOrientationType   BendOri   = TransitiveEdgeOrientation(BmidOri, GetEdgeOrientationWRT(Bhop2, BmidCID));
+          double                 BMean     = Bhop1->distance.mean     + BmidCI->bpLength.mean     + Bhop2->distance.mean;
+          double                 BVariance = Bhop1->distance.variance + BmidCI->bpLength.variance + Bhop2->distance.variance;
 
-	confirmPathEdge = *confirmEdge;
-	confirmPathEdge.idA = thisCI->id;
-	confirmPathEdge.idB = confirmMiddleCID;
-	confirmPathEdge.orient = GetEdgeOrientationWRT(confirmEdge, thisCI->id);
-	confirmPathEdge.distance.mean += confirmMiddleCI->bpLength.mean;
-	confirmPathEdge.distance.variance += confirmMiddleCI->bpLength.variance;
+          float   chiSquaredValue = 0.0;
 
-	if ((confirmPathEdge.orient == AB_AB) ||
-            (confirmPathEdge.orient == BA_AB))
-	  //  hop2Edge must be a B_END edge
-	  InitGraphEdgeIterator(graph->ContigGraph, confirmMiddleCID, B_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &confirmHop2Edges);// Use merged edges
-	else
-	  //  hop2Edge must be a A_END edge
-	  InitGraphEdgeIterator(graph->ContigGraph, confirmMiddleCID, A_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &confirmHop2Edges);// Use merged edges
-
-	while((confirmHop2Edge = NextGraphEdgeIterator(&confirmHop2Edges))!= NULL) {
-	  ChunkInstanceT *confirmEndCI;
-	  ChunkOrientationType confirmOrient;
-	  double confirmMean, confirmVariance;
-	  float chiSquaredValue;
-
-	  if (!confirmHop2Edge->flags.bits.isActive || !confirmHop2Edge->flags.bits.isUniquetoUnique)
-	    // Do not use inactive edges - only interested in edges between Unique CIs.
-	    continue;
-
-	  if (isSingletonOverlapEdge(confirmHop2Edge))
-            //  Do not use overlap edges in two hops
-	    continue;
-
-	  confirmEndCI = GetGraphNode(graph->ContigGraph,
-                                      ((confirmHop2Edge->idA == confirmMiddleCID) ? confirmHop2Edge->idB : confirmHop2Edge->idA));
-	  confirmOrient = TransitiveEdgeOrientation(confirmPathEdge.orient,
-                                                    GetEdgeOrientationWRT(confirmHop2Edge, confirmMiddleCID));
-
-	  confirmMean = confirmPathEdge.distance.mean + confirmHop2Edge->distance.mean;
-	  confirmVariance = confirmPathEdge.distance.variance + confirmHop2Edge->distance.variance;
-
-	  if ((endCI == confirmEndCI) && (combinedOrient == confirmOrient) &&
-              PairwiseChiSquare((float)combinedMean, (float)combinedVariance,
-                                (float)confirmMean, (float)confirmVariance,
-                                (LengthT *)NULL, &chiSquaredValue,
-                                (float)PAIRWISECHI2THRESHOLD_CGW)) {
-
-	    edge->flags.bits.isConfirmed = TRUE;
-	    hop2Edge->flags.bits.isConfirmed = TRUE;
-	    confirmEdge->flags.bits.isConfirmed = TRUE;
-	    confirmHop2Edge->flags.bits.isConfirmed = TRUE;
-
-            //PrintGraphEdge(stderr, graph->ContigGraph, "2Hop\t1 ", edge, thisCI->id);
-            //PrintGraphEdge(stderr, graph->ContigGraph, "\t2 ", hop2Edge, middleCID);
-            //PrintGraphEdge(stderr, graph->ContigGraph, "\tC ", confirmEdge, thisCI->id);
-            //PrintGraphEdge(stderr, graph->ContigGraph, "\t2 ", confirmHop2Edge, confirmMiddleCID);
-	  }
-	}
+          if ((AendCI == BendCI) &&
+              (AendOri == BendOri) &&
+              (PairwiseChiSquare((float)AMean, (float)AVariance,
+                                 (float)BMean, (float)BVariance,
+                                 (LengthT *)NULL, &chiSquaredValue,
+                                 (float)PAIRWISECHI2THRESHOLD_CGW))) {
+            Ahop1->flags.bits.isConfirmed = TRUE;
+            Ahop2->flags.bits.isConfirmed = TRUE;
+            Bhop1->flags.bits.isConfirmed = TRUE;
+            Bhop2->flags.bits.isConfirmed = TRUE;
+          }
+        }
       }
     }
   }
 }
 
+
 static
 void
 MarkTwoHopConfirmedEdges(ScaffoldGraphT *graph) {
-  ChunkInstanceT *thisCI;
   GraphNodeIterator nodes;
+  ChunkInstanceT   *node;
 
   InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
-  while((thisCI = NextGraphNodeIterator(&nodes)) != NULL) {
-    MarkTwoHopConfirmedEdgesOneEnd(graph, thisCI, A_END);
-    MarkTwoHopConfirmedEdgesOneEnd(graph, thisCI, B_END);
+  while((node = NextGraphNodeIterator(&nodes)) != NULL) {
+    MarkTwoHopConfirmedEdgesOneEnd(graph, node, A_END);
+    MarkTwoHopConfirmedEdgesOneEnd(graph, node, B_END);
   }
 }
+
+
 
 static
 int
@@ -454,50 +489,47 @@ CompareBestCIEdgeT(const void *c1, const void *c2) {
   return 0;
 }
 
+
 static
 void
 MarkRedundantUniqueToUniqueEdges(ScaffoldGraphT *graph) {
-
-  CDS_CID_t cid;
-  ChunkInstanceT *thisCI;
   GraphNodeIterator nodes;
+  ChunkInstanceT   *node;
 
   InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
-  while((thisCI = NextGraphNodeIterator(&nodes)) != NULL) {
+  while((node = NextGraphNodeIterator(&nodes)) != NULL) {
     GraphEdgeIterator edges;
-    CIEdgeT *edge;
+    CIEdgeT          *edge;
 
-    cid = thisCI->id;
-
-    InitGraphEdgeIterator(graph->ContigGraph, thisCI->id , ALL_END,	ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
+    InitGraphEdgeIterator(graph->ContigGraph, node->id , ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
     edge = NextGraphEdgeIterator(&edges);
     while(edge != NULL) {
-      CIEdgeT *bestEdge;
 
-      if ((edge->idA != thisCI->id) || !edge->flags.bits.isActive || !edge->flags.bits.isUniquetoUnique) {
-	// Only check canonical edges so as not to repeat the work.  No need to check inactive edges
-	// - only interested in edges between Unique CIs.
-	edge = NextGraphEdgeIterator(&edges);
-	continue;
+      if ((edge->idA != node->id) ||
+          (!edge->flags.bits.isActive) ||
+          (!edge->flags.bits.isUniquetoUnique)) {
+        edge = NextGraphEdgeIterator(&edges);
+        continue;
       }
 
-      bestEdge = edge;
+      CIEdgeT *bestEdge = edge;
 
-      // We make the assumption that the edges are sorted such that the edges
-      // between a pair of CIs are contiguous.
+      // We make the assumption that the edges are sorted such that the edges between a pair of CIs
+      // are contiguous.
+
       while(((edge = NextGraphEdgeIterator(&edges)) != NULL) &&
-	    (edge->idB == bestEdge->idB)) {
-	if (!edge->flags.bits.isActive)
-	  // No need to check inactive edges.
-	  continue;
-	if (CompareBestCIEdgeT(bestEdge, edge) < 0) {
-	  bestEdge->flags.bits.isActive = FALSE;
-	  bestEdge->flags.bits.isRedundantRemoved = TRUE;
-	  bestEdge = edge;
-	}else{
-	  edge->flags.bits.isActive = FALSE;
-	  edge->flags.bits.isRedundantRemoved = TRUE;
-	}
+            (edge->idB == bestEdge->idB)) {
+        if (!edge->flags.bits.isActive)
+          continue;
+
+        if (CompareBestCIEdgeT(bestEdge, edge) < 0) {
+          bestEdge->flags.bits.isActive = FALSE;
+          bestEdge->flags.bits.isRedundantRemoved = TRUE;
+          bestEdge = edge;
+        } else {
+          edge->flags.bits.isActive = FALSE;
+          edge->flags.bits.isRedundantRemoved = TRUE;
+        }
       }
     }
   }
@@ -532,11 +564,11 @@ FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
     if (otherCID == targetId) {
       // If there is an overlap edge with the 'right' orientation, remember it
       if (isOverlapEdge(edge) && (GetEdgeOrientationWRT(edge, sourceCI->id) == edgeOrient))
-	overlapEdgeExists = TRUE;
+        overlapEdgeExists = TRUE;
 
       // Is this the best edge irrespective of orientation?
       if ((bestEdge == (CIEdgeT *)NULL) || (CompareBestCIEdgeT((const void *)edge, (const void *)bestEdge) > 0))
-	bestEdge = edge;
+        bestEdge = edge;
     }
   }
   // Were any edges found irrespective of orientation between source,target?
@@ -549,12 +581,9 @@ FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
     if (GetEdgeOrientationWRT(bestEdge, sourceCI->id) != edgeOrient) {
       // and the edge is essential, return NULL
       if (getEssentialEdgeStatus(bestEdge) == TRUE)
-	return((CIEdgeT *)NULL);
+        return((CIEdgeT *)NULL);
 
     }else // If the orientation is 'right', check for Chi Square compatibility
-#if 0
-      if ( inferredVariance > FLT_MAX ) inferredVariance = FLT_MAX;  // hack instituted on 5/15/01 to help mouse_20010508
-#endif
     if (PairwiseChiSquare((float)inferredMean, (float)inferredVariance,
                           (float)bestEdge->distance.mean,
                           (float)bestEdge->distance.variance,
@@ -565,7 +594,7 @@ FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
     }else{ // If right orientation, but not chi square compatible
       // If marked essential, return NULL
       if (getEssentialEdgeStatus(bestEdge) == TRUE)
-	return((CIEdgeT *)NULL);
+        return((CIEdgeT *)NULL);
     }
   }
 
@@ -583,7 +612,7 @@ FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
 
     delta = 3 * minVariance;
     minOverlap = MAX(CGW_MISSED_OVERLAP,
-		     -(inferredMean + delta));
+                     -(inferredMean + delta));
     maxOverlap = -(inferredMean - delta);
     if (maxOverlap >= CGW_MISSED_OVERLAP) {
       ChunkOverlapCheckT olap;
@@ -596,7 +625,7 @@ FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
       assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
       olap = OverlapChunks(graph,
                            sourceCI->id, targetId, // handles suspicious
-			   edgeOrient, minOverlap, maxOverlap,
+                           edgeOrient, minOverlap, maxOverlap,
                            AS_CGW_ERROR_RATE, TRUE);
       // We found an overlap between source and target in the right orientation
       if (olap.suspicious) {
@@ -610,7 +639,7 @@ FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
                 olap.overlap,olap.overlap+olap.ahg+olap.bhg);
       }else if (olap.overlap) {
       }else if (bestEdge == (CIEdgeT *)NULL) { // If we didn't find an overlap, and there was no other edge return NULL
-	return((CIEdgeT *)NULL);
+        return((CIEdgeT *)NULL);
       }
     }else if (bestEdge == (CIEdgeT *)NULL) { // There was no potential overlap, and there was no other edge return NULL
       return((CIEdgeT *)NULL);
@@ -643,19 +672,15 @@ FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
         (GetEdgeOrientationWRT(edge, sourceCI->id) == edgeOrient) &&
         PairwiseChiSquare((float)inferredMean,
                           (float)inferredVariance,
-#if 0
-                          (float) ( inferredVariance > FLT_MAX ? FLT_MAX : inferredVariance),  // hack instituted on 5/15/01
-                          // to help mouse_20010508
-#endif
                           (float)edge->distance.mean,
                           (float)edge->distance.variance,
                           (LengthT *)NULL, &chiSquaredValue,
                           (float)chiSquareThreshold)) {
       if (bestEdge == (CIEdgeT *)NULL ||
           (chiSquaredValue < bestChiSquaredValue)) {
-	bestEdge = edge;
-	bestChiSquaredValue = chiSquaredValue;
-	*isEssential = getEssentialEdgeStatus(bestEdge);
+        bestEdge = edge;
+        bestChiSquaredValue = chiSquaredValue;
+        *isEssential = getEssentialEdgeStatus(bestEdge);
       }
     }
   }
@@ -723,8 +748,8 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
     InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end,ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
     while((edge = NextGraphEdgeIterator(&edges))!= NULL) {
       if (!getEssentialEdgeStatus(edge))
-	// Skip nonessential edges.
-	continue;
+        // Skip nonessential edges.
+        continue;
 
       assert(sourceCI == (ChunkInstanceT *)NULL);
       sourceCI = GetGraphNode(graph->ContigGraph, ((edge->idA == thisCI->id) ? edge->idB : edge->idA));
@@ -853,7 +878,7 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
     }
     if ((branchEnd - branchEdges) != numBranch) {
       fprintf(stderr, "RecSub numBranch %d,%d\n",
-	      (int)(branchEnd - branchEdges), numBranch);
+              (int)(branchEnd - branchEdges), numBranch);
       DumpChunkInstance(stderr, graph, thisCI, FALSE, TRUE, TRUE, FALSE);
       fflush(NULL);
       assert(FALSE);
@@ -921,8 +946,8 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
 
         if (!existingEdge->flags.bits.isEssential) {
           setEssentialEdgeStatus(existingEdge, TRUE);
-          //	existingEdge->flags.bits.isEssential = TRUE;
-          //	assert(!isSloppyEdge(existingEdge));
+          //existingEdge->flags.bits.isEssential = TRUE;
+          //assert(!isSloppyEdge(existingEdge));
           numEssentialAdded++;
         }
         targetEdge->flags.bits.isInferredRemoved = TRUE;
@@ -1023,7 +1048,7 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
       for(existingPtr = existingEdges; existingPtr < existingEnd; existingPtr++) {
         CIEdgeT *existingEdge = GetGraphEdge(graph->ContigGraph, *existingPtr);
         setEssentialEdgeStatus(existingEdge, existingEdge->flags.bits.wasEssential);
-        //      existingEdge->flags.bits.isEssential =	existingEdge->flags.bits.wasEssential;
+        //existingEdge->flags.bits.isEssential = existingEdge->flags.bits.wasEssential;
       }
       for(branchTarget = branchEdges + 1; branchTarget < branchEnd;
           branchTarget++) {
@@ -1038,8 +1063,8 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
         targetCI->smoothExpectedCID = NULLINDEX;
         targetEdge->flags.bits.isInferredRemoved = FALSE;
         setEssentialEdgeStatus(targetEdge, TRUE);
-        //      targetEdge->flags.bits.isEssential = TRUE;
-        //      assert(!isSloppyEdge(targetEdge));
+        //targetEdge->flags.bits.isEssential = TRUE;
+        //assert(!isSloppyEdge(targetEdge));
 
       }
 
@@ -1091,8 +1116,8 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
             existingPtr++) {
           CIEdgeT *existingEdge = GetGraphEdge(graph->ContigGraph, *existingPtr);
           setEssentialEdgeStatus(existingEdge, existingEdge->flags.bits.wasEssential);
-          //	existingEdge->flags.bits.isEssential =
-          //	  existingEdge->flags.bits.wasEssential;
+          //existingEdge->flags.bits.isEssential =
+          //existingEdge->flags.bits.wasEssential;
         }
         for(branchTarget = branchEdges + 1; branchTarget < branchEnd;
             branchTarget++) {
@@ -1108,7 +1133,7 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
           targetEdge->flags.bits.isInferredRemoved = FALSE;
           assert(!isSloppyEdge(targetEdge));
           setEssentialEdgeStatus(targetEdge, TRUE);
-          //	targetEdge->flags.bits.isEssential = TRUE;
+          //targetEdge->flags.bits.isEssential = TRUE;
         }
 
         safe_free(branchEdges);
@@ -1170,25 +1195,29 @@ static
 int
 CountEssentialEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI,
                           int end, CDS_CID_t *essentialEdge) {
-
-  int count = 0;
+  int               count = 0;
   GraphEdgeIterator edges;
-  CIEdgeT *edge;
-  InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
+  CIEdgeT          *edge;
+
   *essentialEdge = (CDS_CID_t)NULLINDEX;
+
+  InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
+
   while((edge = NextGraphEdgeIterator(&edges))!= NULL) {
-    if (!edge->flags.bits.isActive || !edge->flags.bits.isConfirmed ||
-        !edge->flags.bits.isUniquetoUnique ||
-        edge->flags.bits.isTransitivelyRemoved ||
-        edge->flags.bits.isRedundantRemoved) {
-      // Inactive, unconfirmed, and edges between nonUnique CIs are not essential.
+    if ((!edge->flags.bits.isActive) ||
+        (!edge->flags.bits.isConfirmed) ||
+        (!edge->flags.bits.isUniquetoUnique) ||
+        (edge->flags.bits.isTransitivelyRemoved) ||
+        (edge->flags.bits.isRedundantRemoved)) {
       setEssentialEdgeStatus(edge, FALSE);
       continue;
     }
+
     setEssentialEdgeStatus(edge, TRUE);
     count++;
     *essentialEdge = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->ContigGraph->edges, edge);
   }
+
   return(count);
 }
 
@@ -1590,44 +1619,44 @@ LabelCIScaffolds(void) {
     thisCI->scaffoldID = currentScaffoldID;
     while(neighbor != (ChunkInstanceT *)NULL) {
       ChunkOrientationType edgeOrient = GetEdgeOrientationWRT(edge,
-							      thisCI->id);
+                                                              thisCI->id);
       if (orientCI == A_B) {
-	if (edgeOrient == AB_AB) {
-	  orientCI = A_B;
-	}else if (edgeOrient == AB_BA) {
-	  orientCI = B_A;
-	}else{
-	  assert(0);
-	}
+        if (edgeOrient == AB_AB) {
+          orientCI = A_B;
+        }else if (edgeOrient == AB_BA) {
+          orientCI = B_A;
+        }else{
+          assert(0);
+        }
       }else{// orientCI == B_A
-	if (edgeOrient == BA_AB) {
-	  orientCI = A_B;
-	}else if (edgeOrient == BA_BA) {
-	  orientCI = B_A;
-	}else{
-	  assert(0);
-	}
+        if (edgeOrient == BA_AB) {
+          orientCI = A_B;
+        }else if (edgeOrient == BA_BA) {
+          orientCI = B_A;
+        }else{
+          assert(0);
+        }
       }
       thisCI = neighbor;
       thisCI->scaffoldID = currentScaffoldID;
       if (orientCI == A_B) {
-	if (thisCI->essentialEdgeB != NULLINDEX) {
-	  edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeB);
-	  neighbor = GetGraphNode(ScaffoldGraph->ContigGraph,
-				  (edge->idA == thisCI->id) ? edge->idB : edge->idA);
-	}else{// End of Scaffold
-	  edge = (CIEdgeT *)NULL;
-	  neighbor = (ChunkInstanceT *)NULL;
-	}
+        if (thisCI->essentialEdgeB != NULLINDEX) {
+          edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeB);
+          neighbor = GetGraphNode(ScaffoldGraph->ContigGraph,
+                                  (edge->idA == thisCI->id) ? edge->idB : edge->idA);
+        }else{// End of Scaffold
+          edge = (CIEdgeT *)NULL;
+          neighbor = (ChunkInstanceT *)NULL;
+        }
       }else{// orientCI == B_A
-	if (thisCI->essentialEdgeA != NULLINDEX) {
-	  edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeA);
-	  neighbor = GetGraphNode(ScaffoldGraph->ContigGraph,
-				  (edge->idA == thisCI->id) ? edge->idB : edge->idA);
-	}else{// End of Scaffold
-	  edge = (CIEdgeT *)NULL;
-	  neighbor = (ChunkInstanceT *)NULL;
-	}
+        if (thisCI->essentialEdgeA != NULLINDEX) {
+          edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeA);
+          neighbor = GetGraphNode(ScaffoldGraph->ContigGraph,
+                                  (edge->idA == thisCI->id) ? edge->idB : edge->idA);
+        }else{// End of Scaffold
+          edge = (CIEdgeT *)NULL;
+          neighbor = (ChunkInstanceT *)NULL;
+        }
       }
     }
     currentScaffoldID++;
@@ -1870,7 +1899,7 @@ MarkBifurcations(ScaffoldGraphT *graph) {
             thisCI->essentialEdgeB = NULLINDEX;
           }
         }
-	break;
+        break;
       default:
         thisCI->essentialEdgeB = NULLINDEX;
         break;
@@ -1890,7 +1919,7 @@ AddScaffoldInferredEdges(ScaffoldGraphT *graph) {
   CIScaffoldT      *scaffold;
 
   fprintf(stderr,"* AddScaffoldInferredEdges   scaffolds = %d\n",
-	  (int) GetNumGraphNodes(graph->ScaffoldGraph));
+          (int) GetNumGraphNodes(graph->ScaffoldGraph));
 
   InitGraphNodeIterator(&scaffolds, graph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
   while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL) {
@@ -1907,25 +1936,25 @@ AddScaffoldInferredEdges(ScaffoldGraphT *graph) {
              !prevCI->flags.bits.isDead);
 
       if (GetNodeOrient(prevCI) == A_B) {
-	if (GetNodeOrient(thisCI) == A_B) {
-	  inferredEdgeOrient = AB_AB;
-	  inferredDistance.mean = thisCI->offsetAEnd.mean - prevCI->offsetBEnd.mean;
-	  inferredDistance.variance = thisCI->offsetAEnd.variance - prevCI->offsetBEnd.variance;
-	}else{// GetNodeOrient(thisCI) == B_A
-	  inferredEdgeOrient = AB_BA;
-	  inferredDistance.mean = thisCI->offsetBEnd.mean - prevCI->offsetBEnd.mean;
-	  inferredDistance.variance = thisCI->offsetBEnd.variance - prevCI->offsetBEnd.variance;
-	}
+        if (GetNodeOrient(thisCI) == A_B) {
+          inferredEdgeOrient = AB_AB;
+          inferredDistance.mean = thisCI->offsetAEnd.mean - prevCI->offsetBEnd.mean;
+          inferredDistance.variance = thisCI->offsetAEnd.variance - prevCI->offsetBEnd.variance;
+        }else{// GetNodeOrient(thisCI) == B_A
+          inferredEdgeOrient = AB_BA;
+          inferredDistance.mean = thisCI->offsetBEnd.mean - prevCI->offsetBEnd.mean;
+          inferredDistance.variance = thisCI->offsetBEnd.variance - prevCI->offsetBEnd.variance;
+        }
       }else{// GetNodeOrient(prevCI) == B_A
-	if (GetNodeOrient(thisCI) == A_B) {
-	  inferredEdgeOrient = BA_AB;
-	  inferredDistance.mean = thisCI->offsetAEnd.mean - prevCI->offsetAEnd.mean;
-	  inferredDistance.variance = thisCI->offsetAEnd.variance - prevCI->offsetAEnd.variance;
-	}else{// GetNodeOrient(thisCI) == B_A
-	  inferredEdgeOrient = BA_BA;
-	  inferredDistance.mean = thisCI->offsetBEnd.mean - prevCI->offsetAEnd.mean;
-	  inferredDistance.variance = thisCI->offsetBEnd.variance - prevCI->offsetAEnd.variance;
-	}
+        if (GetNodeOrient(thisCI) == A_B) {
+          inferredEdgeOrient = BA_AB;
+          inferredDistance.mean = thisCI->offsetAEnd.mean - prevCI->offsetAEnd.mean;
+          inferredDistance.variance = thisCI->offsetAEnd.variance - prevCI->offsetAEnd.variance;
+        }else{// GetNodeOrient(thisCI) == B_A
+          inferredEdgeOrient = BA_BA;
+          inferredDistance.mean = thisCI->offsetBEnd.mean - prevCI->offsetAEnd.mean;
+          inferredDistance.variance = thisCI->offsetBEnd.variance - prevCI->offsetAEnd.variance;
+        }
       }
 
       if ( inferredDistance.variance > 0.0 ) {// SAK HACK!
@@ -1965,11 +1994,11 @@ AddScaffoldInferredEdges(ScaffoldGraphT *graph) {
 #endif
 
       }else{
-	// This is a containment edge
-	fprintf(stderr,"* Did NOT add inferred edge ("F_CID ","F_CID ",%c) offsets [%g,%g] [%g,%g]... a containment?\n",
-		prevCI->id, thisCI->id, inferredEdgeOrient,
-		thisCI->offsetAEnd.mean, thisCI->offsetBEnd.mean,
-		prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean);
+        // This is a containment edge
+        fprintf(stderr,"* Did NOT add inferred edge ("F_CID ","F_CID ",%c) offsets [%g,%g] [%g,%g]... a containment?\n",
+                prevCI->id, thisCI->id, inferredEdgeOrient,
+                thisCI->offsetAEnd.mean, thisCI->offsetBEnd.mean,
+                prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean);
       }
       prevCI = thisCI;
     }
@@ -1991,15 +2020,15 @@ ResetEdgeStatus(ScaffoldGraphT *graph) {
     CIEdgeT          *edge;
 
     InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, node->id, ALL_END, ALL_EDGES,
-			  GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
+                          GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
     while ((edge = NextGraphEdgeIterator(&edges)) != NULL) {
       ChunkInstanceT *otherCI = GetGraphNode(ScaffoldGraph->ContigGraph,
-					     (edge->idA == node->id) ?
-					     edge->idB : edge->idA);
+                                             (edge->idA == node->id) ?
+                                             edge->idB : edge->idA);
 
       if ((edge->idA != node->id) && otherCI->flags.bits.isUnique)
-	// Only reset canonical edges so as not to repeat the work.
-	continue;
+        // Only reset canonical edges so as not to repeat the work.
+        continue;
 
       InitGraphEdgeFlags(ScaffoldGraph->ContigGraph, edge);
     }
@@ -2024,7 +2053,7 @@ DeleteInferredEdges(ScaffoldGraphT *graph) {
     InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, node->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
     while ((edge = NextGraphEdgeIterator(&edges)) != NULL)
       if (edge->flags.bits.isInferred)
-	DeleteGraphEdge(ScaffoldGraph->ContigGraph, edge);
+        DeleteGraphEdge(ScaffoldGraph->ContigGraph, edge);
   }
 }
 
