@@ -893,14 +893,12 @@ sub findFirstCheckpoint ($) {
 
     $dir = "$wrk/$dir" if (! -d $dir);
 
-    open(F, "ls -1 $dir/*ckp* |");
+    open(F, "ls -1 $dir/$asm.ckp.[0-9]* |");
     while (<F>) {
         chomp;
 
         if (m/ckp.(\d+)$/) {
             $firstckp = $1 if ($1 < $firstckp);
-        } else {
-            caFailure("Can't parse checkpoint number from '$_'", undef);
         }
     }
     close(F);
@@ -914,14 +912,12 @@ sub findLastCheckpoint ($) {
 
     $dir = "$wrk/$dir" if (-d "$wrk/$dir");
 
-    open(F, "ls -1 $dir/*ckp* |");
+    open(F, "ls -1 $dir/$asm.ckp.[0-9]* |");
     while (<F>) {
         chomp;
 
         if (m/ckp.(\d+)$/) {
             $lastckp = $1 if ($1 > $lastckp);
-        } else {
-            caFailure("Can't parse checkpoint number from '$_'", undef);
         }
     }
     close(F);
