@@ -22,7 +22,7 @@
 #ifndef INSTRUMENT_CGW_H
 #define INSTRUMENT_CGW_H
 
-static const char *rcsid_INSTRUMENT_CGW_H = "$Id: Instrument_CGW.h,v 1.10 2009-07-30 10:42:56 brianwalenz Exp $";
+static const char *rcsid_INSTRUMENT_CGW_H = "$Id: Instrument_CGW.h,v 1.11 2010-01-14 00:44:54 brianwalenz Exp $";
 
 #include <math.h>
 
@@ -218,6 +218,7 @@ typedef struct
   VA_TYPE(FragDetail) * noMate;
 } MateInstrumenter;
 
+typedef MateInstrumenter * MateInstrumenterP;
 /*
   Structure to keep track of a position of a fragment in a surrogate in
   a contig or scaffold

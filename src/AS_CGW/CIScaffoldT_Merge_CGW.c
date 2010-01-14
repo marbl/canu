@@ -18,14 +18,13 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.50 2009-10-27 12:26:40 skoren Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.51 2010-01-14 00:44:54 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
 //
 
 #undef DEBUG_MERGE_EDGE_INVERT
-#undef DEBUG_BAD_MATE_RATIO
 
 //  Define this to check (and assert) if the graph is not internally
 //  connected before recomputing offsets.  It's expensive, and if you
@@ -61,9 +60,6 @@ static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.50 2009-10-27 12:26:40 sk
 
 #define EDGE_WEIGHT_FACTOR  MIN_EDGES
 
-#undef REQUIRE_MORE_THAN_ONE_BAD_TO_REJECT
-#define REQUIRE_BAD_APPROACHING_HAPPY_TO_REJECT
-#define MAX_FRAC_BAD_TO_GOOD .3
 
 
 static
@@ -2032,151 +2028,118 @@ FindMoreAttractiveMergeEdge(SEdgeT *curEdge,
 
 static
 int
-isQualityScaffoldMergingEdge(SEdgeT * curEdge,
-                             CIScaffoldT * scaffoldA,
-                             CIScaffoldT * scaffoldB,
-                             ScaffoldInstrumenter * si,
-                             VA_TYPE(PtrT) * MIs,
-                             float minSatisfied,
-                             float maxDelta) {
-  fprintf(stderr,"***** MERGE CANDIDATE: Trying to merge scaffold " F_CID " (%.1f bp) with scaffold " F_CID " (%.1f bp) based on gap of %.1f from %d weight edge\n",
-          scaffoldA->id,
-          scaffoldA->bpLength.mean,
-          scaffoldB->id,
-          scaffoldB->bpLength.mean,
+isQualityScaffoldMergingEdge(SEdgeT                     *curEdge,
+                             CIScaffoldT                *scaffoldA,
+                             CIScaffoldT                *scaffoldB,
+                             ScaffoldInstrumenter       *si,
+                             VA_TYPE(MateInstrumenterP) *MIs,
+                             float                       minSatisfied,
+                             float                       maxDelta) {
+
+  assert(si != NULL);
+
+  if ((minSatisfied <= 0.0) &&
+      (maxDelta     <= 0.0))
+    return(TRUE);
+
+  fprintf(stderr,"isQualityScaffoldMergingEdge()-- Merge scaffolds "F_CID" (%.1fbp) and "F_CID" (%.1fbp): gap %.1fbp +- %.1fbp weight %d %s edge\n",
+          scaffoldA->id, scaffoldA->bpLength.mean,
+          scaffoldB->id, scaffoldB->bpLength.mean,
           curEdge->distance.mean,
-          curEdge->edgesContributing);
+          curEdge->distance.variance,
+          curEdge->edgesContributing,
+          ((curEdge->orient == AB_AB) ? "AB_AB" :
+           ((curEdge->orient == AB_BA) ? "AB_BA" :
+            ((curEdge->orient == BA_AB) ? "BA_AB" : "BA_BA"))));
 
-  if (si != NULL && (minSatisfied > 0.0 || maxDelta > 0.0)) {
-    MateInstrumenter matesAfter;
-    MateInstrumenter * sABefore;
-    MateInstrumenter * sBBefore;
-    float fractMatesHappyAfter;
-    MateInstrumenter matesBefore;
-    float fractMatesHappyBefore;
+  MateInstrumenter matesBefore;
+  MateInstrumenter matesAfter;
 
-    if (GetNumVA_PtrT(MIs) > scaffoldA->id &&
-        *GetVA_PtrT(MIs, scaffoldA->id) != NULL) {
-      sABefore = (MateInstrumenter *) *GetVA_PtrT(MIs, scaffoldA->id);
-    } else {
-      sABefore = (MateInstrumenter *) safe_calloc(1, sizeof(MateInstrumenter));
-      InstrumentScaffold(ScaffoldGraph,
-                         scaffoldA,
-                         si,
-                         InstrumenterVerbose2,
-                         stderr);
-      GetMateInstrumenterFromScaffoldInstrumenter(sABefore, si);
-      SetVA_PtrT(MIs, scaffoldA->id, (void **) &sABefore);
-    }
-    ResetMateInstrumenterCounts(&matesBefore);
-    AddMateInstrumenterCounts(&matesBefore, sABefore);
+  MateInstrumenter *sABefore = (GetNumVA_MateInstrumenterP(MIs) > scaffoldA->id) ? ((MateInstrumenter *)*GetVA_MateInstrumenterP(MIs, scaffoldA->id)) : NULL;
+  MateInstrumenter *sBBefore = (GetNumVA_MateInstrumenterP(MIs) > scaffoldB->id) ? ((MateInstrumenter *)*GetVA_MateInstrumenterP(MIs, scaffoldB->id)) : NULL;
 
+  double fractMatesHappyAfter  = 1.0;
+  double fractMatesHappyBefore = 1.0;
 
-    if (GetNumVA_PtrT(MIs) > scaffoldB->id &&
-        *GetVA_PtrT(MIs, scaffoldB->id) != NULL) {
-      sBBefore = (MateInstrumenter *) *GetVA_PtrT(MIs, scaffoldB->id);
-    } else {
-      sBBefore = (MateInstrumenter *) safe_calloc(1, sizeof(MateInstrumenter));
-      InstrumentScaffold(ScaffoldGraph,
-                         scaffoldB,
-                         si,
-                         InstrumenterVerbose2,
-                         stderr);
-      GetMateInstrumenterFromScaffoldInstrumenter(sBBefore, si);
-      SetVA_PtrT(MIs, scaffoldB->id, (void **) &sBBefore);
-    }
-    AddMateInstrumenterCounts(&matesBefore, sBBefore);
+  ResetMateInstrumenterCounts(&matesBefore);
+  ResetMateInstrumenterCounts(&matesAfter);
 
-    InstrumentScaffoldPair(ScaffoldGraph,
-                           curEdge,
-                           si,
-                           InstrumenterVerbose2,
-                           stderr);
-    GetMateInstrumenterFromScaffoldInstrumenter(&matesAfter,
-                                                si);
+  if (sABefore == NULL) {
+    InstrumentScaffold(ScaffoldGraph, scaffoldA, si, InstrumenterVerbose2, stderr);
 
-    fractMatesHappyAfter =
-      ((float) (GetMateStatsHappy(&(matesAfter.intra)) +
-                GetMateStatsHappy(&(matesAfter.inter)))) /
-      (GetMateStatsBad(&(matesAfter.intra)) +
-       GetMateStatsBad(&(matesAfter.inter)) +
-       GetMateStatsHappy(&(matesAfter.intra)) +
-       GetMateStatsHappy(&(matesAfter.inter)));
-
-
-    if (GetMateStatsBad(&(matesBefore.intra)) +
-        GetMateStatsBad(&(matesBefore.inter)) +
-        GetMateStatsHappy(&(matesBefore.intra)) +
-        GetMateStatsHappy(&(matesBefore.inter)) > 0) {
-      fractMatesHappyBefore =
-        ((float) (GetMateStatsHappy(&(matesBefore.intra)) +
-                  GetMateStatsHappy(&(matesBefore.inter)))) /
-        (GetMateStatsBad(&(matesBefore.intra)) +
-         GetMateStatsBad(&(matesBefore.inter)) +
-         GetMateStatsHappy(&(matesBefore.intra)) +
-         GetMateStatsHappy(&(matesBefore.inter)));
-      fprintf(stderr,
-              "* %.3f mates satisfied if scaffolds " F_CID "," F_CID " instrumented separately\n",
-              fractMatesHappyBefore, curEdge->idA, curEdge->idB);
-    } else {
-      fractMatesHappyBefore = 1.0;
-      fprintf(stderr,
-              "* %.3f mates satisfied if scaffolds " F_CID "," F_CID " instrumented separately (no mates)\n",
-              fractMatesHappyBefore, curEdge->idA, curEdge->idB);
-    }
-
-    fprintf(stderr,
-            "* %.3f mates satisfied if scaffolds " F_CID "," F_CID " merged via (%.2f,%.2f,%s)\n",
-            fractMatesHappyAfter, curEdge->idA, curEdge->idB,
-            curEdge->distance.mean, curEdge->distance.variance,
-            ((curEdge->orient == AB_AB) ? "AB_AB" :
-             ((curEdge->orient == AB_BA) ? "AB_BA" :
-              ((curEdge->orient == BA_AB) ? "BA_AB" : "BA_BA"))));
-
-#if 1
-    fprintf(stderr, "******** after bad mates: %d\n", GetMateStatsBad(&(matesAfter.inter))+GetMateStatsBad(&(matesAfter.intra)));
-    fprintf(stderr, "******** after good mates: %d\n", GetMateStatsHappy(&(matesAfter.inter))+GetMateStatsHappy(&(matesAfter.intra)));
-    fprintf(stderr, "******** before bad mates: %d\n", GetMateStatsBad(&(matesBefore.inter))+GetMateStatsBad(&(matesBefore.intra)));
-    fprintf(stderr, "******** before good mates: %d\n", GetMateStatsHappy(&(matesBefore.inter))+GetMateStatsHappy(&(matesBefore.intra)));
-#endif
-
-    if (fractMatesHappyAfter < minSatisfied &&
-        fractMatesHappyAfter < fractMatesHappyBefore
-#ifdef REQUIRE_MORE_THAN_ONE_BAD_TO_REJECT
-        &&  GetMateStatsBad(&(matesAfter.inter)) +  GetMateStatsBad(&(matesAfter.intra))  -
-        (GetMateStatsBad(&(matesBefore.inter)) +  GetMateStatsBad(&(matesBefore.intra)))
-        >1
-#endif
-#ifdef REQUIRE_BAD_APPROACHING_HAPPY_TO_REJECT
-        &&( (          (float) (GetMateStatsHappy(&(matesAfter.inter)) +  GetMateStatsHappy(&(matesAfter.intra))  -
-                                GetMateStatsHappy(&(matesBefore.inter)) +  GetMateStatsHappy(&(matesBefore.intra)))
-                       <= 0.) ? TRUE :
-            ((float) (GetMateStatsBad(&(matesAfter.inter)) +  GetMateStatsBad(&(matesAfter.intra))  -
-                      GetMateStatsBad(&(matesBefore.inter)) +  GetMateStatsBad(&(matesBefore.intra)))
-             /
-             (float) (GetMateStatsHappy(&(matesAfter.inter)) +  GetMateStatsHappy(&(matesAfter.intra))  -
-                      GetMateStatsHappy(&(matesBefore.inter)) +  GetMateStatsHappy(&(matesBefore.intra)))
-             > MAX_FRAC_BAD_TO_GOOD)
-            )
-#endif
-        )
-      {
-        fprintf(stderr, "***** Merging would result in too low a satisfied mate fraction (%.3f < %.3f) - shouldn't merge\n", fractMatesHappyAfter, minSatisfied);
-        fprintf(stderr, "******** inter bad mates: %d\n",GetMateStatsBad(&(matesAfter.inter)));
-        fprintf(stderr, "******** inter good mates: %d\n",GetMateStatsHappy(&(matesAfter.inter)));
-#ifdef DEBUG_BAD_MATE_RATIO
-        DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffoldA,FALSE);
-        DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffoldB,FALSE);
-#endif
-        return FALSE;
-      }
-
-    if (maxDelta > 0.0 && fractMatesHappyBefore - fractMatesHappyAfter > maxDelta) {
-      fprintf(stderr, "***** Merging would decrease satisfied mate fraction by too much (%.3f > %.3f) - shouldn't merge\n", fractMatesHappyBefore - fractMatesHappyAfter, maxDelta);
-      return FALSE;
-    }
+    sABefore = (MateInstrumenter *)safe_calloc(1, sizeof(MateInstrumenter));
+    GetMateInstrumenterFromScaffoldInstrumenter(sABefore, si);
+    SetVA_MateInstrumenterP(MIs, scaffoldA->id, &sABefore);
   }
-  return TRUE;
+
+  if (sBBefore == NULL) {
+    InstrumentScaffold(ScaffoldGraph, scaffoldB, si, InstrumenterVerbose2, stderr);
+
+    sBBefore = (MateInstrumenter *) safe_calloc(1, sizeof(MateInstrumenter));
+    GetMateInstrumenterFromScaffoldInstrumenter(sBBefore, si);
+    SetVA_MateInstrumenterP(MIs, scaffoldB->id, &sBBefore);
+  }
+
+  AddMateInstrumenterCounts(&matesBefore, sABefore);
+  AddMateInstrumenterCounts(&matesBefore, sBBefore);
+
+  InstrumentScaffoldPair(ScaffoldGraph, curEdge, si, InstrumenterVerbose2, stderr);
+
+  GetMateInstrumenterFromScaffoldInstrumenter(&matesAfter, si);
+
+  int32   mBeforeGood = GetMateStatsHappy(&matesBefore.intra) + GetMateStatsHappy(&matesBefore.inter);
+  int32   mBeforeBad  = GetMateStatsBad(&matesBefore.intra)   + GetMateStatsBad(&matesBefore.inter);
+
+  int32   mAfterGood  = GetMateStatsHappy(&matesAfter.intra)  + GetMateStatsHappy(&matesAfter.inter);
+  int32   mAfterBad   = GetMateStatsBad(&matesAfter.intra)    + GetMateStatsBad(&matesAfter.inter);
+
+  int32   mBeforeSum  = mBeforeGood + mBeforeBad;
+  int32   mAfterSum   = mAfterGood  + mAfterBad;
+
+  if (mBeforeSum > 0)
+    fractMatesHappyBefore = (double)mBeforeGood / mBeforeSum;
+
+  if (mAfterSum > 0)
+    fractMatesHappyAfter  = (double)mAfterGood / mAfterSum;
+
+  fprintf(stderr, "isQualityScaffoldMergingEdge()--   before: %.3f satisfied (%d/%d good/bad mates)  after: %.3f satisfied (%d/%d good/bad mates)\n",
+          fractMatesHappyBefore, mBeforeGood, mBeforeBad,
+          fractMatesHappyAfter,  mAfterGood,  mAfterBad);
+
+  if ((maxDelta > 0.0) &&
+      (fractMatesHappyBefore - fractMatesHappyAfter > maxDelta)) {
+    fprintf(stderr, "isQualityScaffoldMergingEdge()--   satisfied dropped by too much (%.3f > %.3f) - won't merge\n",
+            fractMatesHappyBefore - fractMatesHappyAfter, maxDelta);
+    return(FALSE);
+  }
+
+  //  failsMinimum       -- true if the fraction happy after merging is below some arbitrary threshold.
+  //
+  //  failsToGetHappier1 -- true if the merged result is less happy than individually.
+  //                     -- (but special case to allow exactly one bad mate in the merge -- old
+  //                         option never used)
+  //
+  //  failsToGetHappier2 -- true if there are fewer happy mates after, or there are a whole lot more
+  //                        bad mates after.  The original version of this test was screwing up the
+  //                        compute of badGoodRatio, by omitting some parens.
+
+#define MAX_FRAC_BAD_TO_GOOD .3
+
+  double badGoodRatio      = (double)(mAfterBad - mBeforeBad) / (double)(mAfterGood - mBeforeGood);
+
+  bool  failsMinimum       = (fractMatesHappyAfter < minSatisfied);
+  bool  failsToGetHappier1 = (fractMatesHappyAfter < fractMatesHappyBefore);
+  bool  failsToGetHappier2 = (mAfterGood < mBeforeGood) || (badGoodRatio > MAX_FRAC_BAD_TO_GOOD);
+
+  if (failsMinimum && failsToGetHappier1 && failsToGetHappier2) {
+    fprintf(stderr, "isQualityScaffoldMergingEdge()--   not happy enough to merge (%.3f < %.3f) && (%.3f < %.3f) && ((%d < %d) || (%0.3f > %.3f)) - won't merge\n",
+            fractMatesHappyAfter, minSatisfied,
+            fractMatesHappyAfter, fractMatesHappyBefore,
+            mAfterGood, mBeforeGood, badGoodRatio, MAX_FRAC_BAD_TO_GOOD);
+    return(FALSE);
+  }
+
+  return(TRUE);
 }
 
 
@@ -3432,7 +3395,7 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
   iSpec.checkAbutting          = TRUE;
   iSpec.minSatisfied           = 0.985;  //  0.985 default
   iSpec.maxDelta               = -1;     //  0.005
-  iSpec.MIs                    = CreateVA_PtrT(GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph));
+  iSpec.MIs                    = CreateVA_MateInstrumenterP(GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph));
   iSpec.badSEdges              = CreateChunkOverlapper();
 
   if (GlobalData->doInterleavedScaffoldMerging) {
