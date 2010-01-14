@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.120 2009-12-19 05:36:16 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.121 2010-01-14 03:12:50 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -1245,7 +1245,7 @@ UnitigGraph::placeZombies(void) {
   if (numZombies > 0)
     fprintf(stderr, "RESURRECTED %d ZOMBIE FRAGMENTS.\n", numZombies);
 
-  delete inUnitig;
+  delete [] inUnitig;
 }
 
 
@@ -1341,6 +1341,9 @@ UnitigGraph::popBubbles(void) {
           (conflicts == 0)) {
         DoveTailNode place5;
         DoveTailNode place3;
+
+        place5.ident = frgID;
+        place3.ident = frgID;
 
         int32 bidx5 = -1;
         int32 bidx3 = -1;
@@ -1729,8 +1732,11 @@ void UnitigGraph::filterBreakPoints(ContainerMap &cMap,
       }
     } else {
       //  Not a big breaker.  Save the small breaker if we've not seen it yet.
-      if (newBPs.empty() || ((nextBP.fragEnd != newBPs.back().fragEnd) &&
-                             (nextBP.fragEnd != smallBPs.back().fragEnd)))
+#warning THIS IS VALGRIND UNCLEAN
+      if (newBPs.empty() ||
+          smallBPs.empty() ||
+          ((nextBP.fragEnd != newBPs.back().fragEnd) &&
+           (nextBP.fragEnd != smallBPs.back().fragEnd)))
         smallBPs.push_back(nextBP);
     }
   }

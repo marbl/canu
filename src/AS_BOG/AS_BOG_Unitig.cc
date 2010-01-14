@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.16 2009-12-18 05:29:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.17 2010-01-14 03:12:50 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -89,11 +89,8 @@ DoveTailNode Unitig::getLastBackboneNode(uint32 &prevID) {
 //  position of the fragment in this unitig.  If both edges are given, both will independently
 //  compute a placement, which might disagree.
 //
-//  If the bidx is already known for an edge, a linear search is avoided.  This can occur if this
-//  function is called once to see if the placements are consistent, and again to actually place the
-//  fragment.
-//
-//  If a placement is not found for an edge, the corresponding bidx value is set to -1.
+//  If a placement is not found for an edge, the corresponding bidx value is set to -1.  Otherwise,
+//  it is set to the position in the fragment list of the fragment in this unitig (from above).
 //
 //  Returns true if any placement is found, false otherwise.
 //  The bidx value is set to -1 if no placement is found for that end.
@@ -124,6 +121,12 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
   frag3.position.end = 0;
   frag3.delta_length = 0;
   frag3.delta        = NULL;
+
+  assert(frag3.ident > 0);
+  assert(frag5.ident > 0);
+
+  assert(frag3.ident <= debugfi->numFragments());
+  assert(frag5.ident <= debugfi->numFragments());
 
   bidx5              = -1;
   bidx3              = -1;
@@ -192,6 +195,7 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
     //
     //  See comments on other instances of this warning.
     //
+
 #warning not knowing the overlap length really hurts.
     end = bgn + debugfi->fragmentLength(frag5.ident);
     if (end <= MAX(parent->position.bgn, parent->position.end))

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.83 2009-12-18 05:18:37 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.84 2010-01-14 03:12:49 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -642,20 +642,24 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
 
       thisUnitig->dovetail_path_ptr = new DoveTailPath;
 
-      //  No need to resort.  Offsets only need adjustment if
-      //  the first fragment is thrown out.  If not,
-      //  splitOffset will be zero.
+      //  Occasionally, we move all fragments out of the original unitig.  Might be worth checking
+      //  if that makes sense!!
       //
-      int splitOffset = -MIN(frags[0].position.bgn, frags[0].position.end);
+#warning EMPTIED OUT A UNITIG
+      if (fragsLen > 0) {
+        //  No need to resort.  Offsets only need adjustment if the first fragment is thrown out.
+        //  If not, splitOffset will be zero.
+        //
+        int splitOffset = -MIN(frags[0].position.bgn, frags[0].position.end);
 
-      //  This is where we clean up from the splitting not
-      //  dealing with contained fragments -- we force the
-      //  first frag to be uncontained.
-      //
-      frags[0].contained = 0;
+        //  This is where we clean up from the splitting not dealing with contained fragments -- we
+        //  force the first frag to be uncontained.
+        //
+        frags[0].contained = 0;
 
-      for (int i=0; i<fragsLen; i++)
-        thisUnitig->addFrag(frags[i], splitOffset, verbose);
+        for (int i=0; i<fragsLen; i++)
+          thisUnitig->addFrag(frags[i], splitOffset, verbose);
+      }
     }
 
     delete [] frags;
