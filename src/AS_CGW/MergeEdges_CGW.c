@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.26 2009-10-13 10:43:38 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.27 2010-01-15 21:24:20 brianwalenz Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -60,7 +60,7 @@ static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
     return FALSE;
 
   if(endB){
-    maxOffset = CI->bpLength.mean;
+    maxOffset = (int32)CI->bpLength.mean;
     minOffset = maxOffset + overlap;
   }else{
     minOffset = 0;
@@ -75,12 +75,11 @@ static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
      than the fragment at endB, that overlap the (minOffset,maxOffset)
      interval */
   {
-    int i;
     CIFragT *frag;
     MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(CI->id, (graph->type == CI_GRAPH));
 
     int32 overlap;
-    for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
+    for(uint32 i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
       IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
       frag = GetCIFragT(ScaffoldGraph->CIFrags, mp->ident);
 
@@ -90,9 +89,11 @@ static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
 	 frag->flags.bits.chunkLabel == AS_SINGLETON){
 	continue;
       }
-      if((overlap = IntervalsOverlap(frag->offset3p.mean,
-                                     frag->offset5p.mean, minOffset,
-                                     maxOffset,  CGW_DP_MINLEN)) != 0)
+      if((overlap = IntervalsOverlap((int32)frag->offset3p.mean,
+                                     (int32)frag->offset5p.mean,
+                                     minOffset,
+                                     maxOffset,
+                                     CGW_DP_MINLEN)) != 0)
 	return TRUE;
     }
   }
@@ -116,7 +117,7 @@ static int ConfirmOverlap(GraphCGW_T *graph,
     return TRUE;
   }
 
-  overlap = overlapEdge->distance.mean;
+  overlap = (int32)overlapEdge->distance.mean;
 
   if(mateEdge->flags.bits.hasExtremalAFrag){
     if(mateEdge->orient == AB_BA || mateEdge->orient == AB_AB){
@@ -236,8 +237,8 @@ static
 float
 gammq(float a, float x) {
 
- assert(x >= 0.0);
  assert(a >  0.0);
+ assert(x >= 0.0);
 
  if (x == 0.0)
    return(0.0);
@@ -256,44 +257,66 @@ gammq(float a, float x) {
 //
 //  Returns 1 if test SUCCEEDS
 //
-static int ComputeChiSquared(Chi2ComputeT *edges, int numEdges,
-                             CDS_CID_t skip,
-			     LengthT *distance, float *score){
-  CDS_CID_t edgeIndex;
-  double cumScore;
-  double cumWeightedMean;
-  double cumInverseVariance;
-  double leastSquaresMean;
-  int numEdgesCorrection = 1;
+static
+int
+ComputeChiSquared(Chi2ComputeT *edges,
+                  int           numEdges,
+                  CDS_CID_t     skip,
+                  LengthT      *distance,
+                  float        *score) {
+  double  cumScore           = 0.0;
+  double  cumWeightedMean    = 0.0;
+  double  cumInverseVariance = 0.0;
+  double  leastSquaresMean   = 0.0;
+  int     numEdgesCorrection = 1;
 
-  for (cumWeightedMean = 0.0, cumInverseVariance = 0.0, edgeIndex = 0;
-       edgeIndex < numEdges; edgeIndex++){
-    Chi2ComputeT *edge;
-
-    if(edgeIndex == skip){
+  for (int32 edgeIndex = 0; edgeIndex < numEdges; edgeIndex++) {
+    if (edgeIndex == skip) {
       numEdgesCorrection++;
-      continue;
+    } else {
+      cumWeightedMean    += edges[edgeIndex].weightedMean;
+      cumInverseVariance += edges[edgeIndex].inverseVariance;
     }
-    edge = edges + edgeIndex;
-    cumWeightedMean += (double)edge->weightedMean;
-    cumInverseVariance += (double)edge->inverseVariance;
   }
-  leastSquaresMean = cumWeightedMean / cumInverseVariance;
-  distance->mean = leastSquaresMean;
-  distance->variance = 1.0 / cumInverseVariance;
-  for (cumScore = 0.0, edgeIndex = 0; edgeIndex < numEdges; edgeIndex++){
-    double deviation;
-    Chi2ComputeT *edge;
 
-    if(edgeIndex == skip){
-      continue;
-    }
-    edge = edges + edgeIndex;
-    deviation = (double)edge->distance.mean - leastSquaresMean;
-    deviation *= deviation;
-    cumScore += deviation / (double)edge->distance.variance;
+  leastSquaresMean = cumWeightedMean / cumInverseVariance;
+
+  distance->mean     = leastSquaresMean;
+  distance->variance = 1.0 / cumInverseVariance;
+
+  for (int32 edgeIndex = 0; edgeIndex < numEdges; edgeIndex++) {
+    if (edgeIndex != skip)
+      cumScore += (((edges[edgeIndex].distance.mean - leastSquaresMean) * 
+                    (edges[edgeIndex].distance.mean - leastSquaresMean)) /
+                   edges[edgeIndex].distance.variance);
   }
-  *score = (float)cumScore;
+
+  *score = cumScore;
+
+  //  It'd be a bad day if this fails.
+  assert(numEdges > numEdgesCorrection);
+
+  //  This one, on the other hand, fails occasionally.
+  if (cumScore < 0.0) {
+    fprintf(stderr, "ComputeChiSquared()-- WARNING:  negative variance fails test.\n");
+    for (int32 edgeIndex = 0; edgeIndex < numEdges; edgeIndex++) {
+      fprintf(stderr, "ComputeChiSquared()--    (cumWeightedMean += %f;  cumInverseVariance += %f\n",
+              edges[edgeIndex].weightedMean, edges[edgeIndex].inverseVariance);
+    }
+    fprintf(stderr, "ComputeChiSquared()--    distance->mean = leastSquaresMean = cumWeightedMean / cumInverseVariance = %f;  distance->variance = %f\n",
+            leastSquaresMean, 1.0 / cumInverseVariance);
+    for (int32 edgeIndex = 0; edgeIndex < numEdges; edgeIndex++) {
+      fprintf(stderr, "ComputeChiSquared()--    (mean - leastSquaresMean) ^ 2 / variance = (%f - %f) ^ 2 / %f = %f%s\n",
+              edges[edgeIndex].distance.mean, leastSquaresMean, edges[edgeIndex].distance.variance,
+              (((edges[edgeIndex].distance.mean - leastSquaresMean) * 
+                (edges[edgeIndex].distance.mean - leastSquaresMean)) /
+               edges[edgeIndex].distance.variance),
+              (edgeIndex != skip) ? "" : " (SKIPPED)");
+    }
+
+    return(FALSE);
+  }
+
   return(gammq(numEdges - numEdgesCorrection, cumScore) > 0.005);
 }
 
@@ -381,7 +404,7 @@ static void InitializeMergedEdge(CIEdgeT *newEdge, CIEdgeT *overlapEdgeAll,
 
   newEdge->edgesContributing = numEdges;
   {
-    int32 fudge = 3.0 * sqrt(distance.variance);
+    double fudge = 3.0 * sqrt(distance.variance);
     newEdge->minDistance = distance.mean - fudge;
     newEdge->distance = distance;
 #if 0
@@ -858,8 +881,8 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
       }
     }
     ResetCDS_CID_t(inputEdges);
-    for(edgeIndex = 0; edgeIndex < GetNumCDS_CID_ts(tmpInputEdges); edgeIndex++){
-      AppendCDS_CID_t(inputEdges, GetCDS_CID_t(tmpInputEdges, edgeIndex));
+    for(uint32 ei = 0; ei < GetNumCDS_CID_ts(tmpInputEdges); ei++){
+      AppendCDS_CID_t(inputEdges, GetCDS_CID_t(tmpInputEdges, ei));
     }
     edge = GetGraphEdge(graph, *GetCDS_CID_t(inputEdges, 0));
     if (GlobalData->verbose)
@@ -884,8 +907,8 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
             break;
         }
 
-        for(edgeIndex = 0; edgeIndex < GetNumCDS_CID_ts(inputEdges); edgeIndex++){
-          edge = GetGraphEdge(graph, *GetCDS_CID_t(inputEdges, edgeIndex));
+        for(uint32 ei = 0; ei < GetNumCDS_CID_ts(inputEdges); ei++){
+          edge = GetGraphEdge(graph, *GetCDS_CID_t(inputEdges, ei));
           PrintGraphEdge(stderr, graph," *  ", edge, edge->idA);
         }
       }
@@ -913,9 +936,9 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 
   if (GlobalData->verbose)
     {
-      for(edgeIndex = 0; edgeIndex < numEdges; edgeIndex++)
+      for(int32 ei = 0; ei < numEdges; ei++)
 	{
-	  edge = GetGraphEdge(graph, *GetCDS_CID_t(inputEdges, edgeIndex));
+	  edge = GetGraphEdge(graph, *GetCDS_CID_t(inputEdges, ei));
 	  PrintGraphEdge(stderr, graph," *  ", edge, edge->idA);
 	}
     }
