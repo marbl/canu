@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.61 2009-10-27 12:26:41 skoren Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.62 2010-01-15 17:52:11 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -7401,7 +7401,7 @@ static int  Insert_Chunks_In_Graph_One_Scaffold
 
               InsertCIInScaffold (sgraph, insert_id, scaff_id,
                                   this_chunk -> start, this_chunk -> end,
-                                  TRUE, NO_CONTIGGING);
+                                  TRUE, FALSE);
               inserted ++;
             }
         }

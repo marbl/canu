@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.62 2009-10-27 12:26:40 skoren Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.63 2010-01-15 17:52:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1184,7 +1184,7 @@ void  ReplaceContigsInScaffolds(CIScaffoldT *scaffold, ContigT *newContig, VA_TY
   SetCIScaffoldTLength(ScaffoldGraph, scaffold, TRUE);
 
 
-  InsertCIInScaffold(ScaffoldGraph, newContig->id, scaffold->id, offsetAEnd, offsetBEnd, TRUE, NO_CONTIGGING);
+  InsertCIInScaffold(ScaffoldGraph, newContig->id, scaffold->id, offsetAEnd, offsetBEnd, TRUE, FALSE);
 
 
   if(newContig->AEndNext == NULLINDEX){ // Make sure we atart at the end
@@ -1198,7 +1198,7 @@ void  ReplaceContigsInScaffolds(CIScaffoldT *scaffold, ContigT *newContig, VA_TY
       offset.variance = -newContig->offsetBEnd.variance;
     }
 
-    fprintf(stderr,"* newContig "F_CID " at AEND offset [%g,%g] \n", newContig->id, newContig->offsetAEnd.mean, newContig->offsetBEnd.mean);
+    //fprintf(stderr,"* newContig "F_CID " at AEND offset [%g,%g] \n", newContig->id, newContig->offsetAEnd.mean, newContig->offsetBEnd.mean);
     AddDeltaToScaffoldOffsets(ScaffoldGraph,
 			      scaffold->id,
 			      newContig->id,
@@ -1824,105 +1824,6 @@ int CheckForContigs(ScaffoldGraphT *sgraph,
   return(retVal);
 }
 
-//#include "obsolete/checkforcontigs"
-
-/***************************************************************************/
-// CheckForContainmentContigs
-// Insert chunk instance ci int scaffold sid at offset with orientation orient.
-// offsetFromAEnd = offset of the end of the CI that is closest to the A end of the scaffold
-// orient
-
-int CheckForContainmentContigs(ScaffoldGraphT *sgraph, CDS_CID_t cid, CDS_CID_t sid, LengthT offsetAEnd, LengthT offsetBEnd){
-  ChunkInstanceT *CI = GetGraphNode(sgraph->ContigGraph, cid);
-  ChunkInstanceT *otherCI;
-  CIScaffoldT *scaffold = GetGraphNode(sgraph->ScaffoldGraph, sid);
-  IntElementPos pos, *basePos;
-  CIScaffoldTIterator CIs;
-  UnitigOverlapType overlapType;
-  int foundContainment;
-  LengthT aEnd, bEnd;
-  int retVal = FALSE;
-
-  CI->offsetAEnd = offsetAEnd;
-  CI->offsetBEnd = offsetBEnd;
-  fprintf(stderr,"* CheckForContainmentContigs scaffold "F_CID "\n", scaffold->id);
-  CI->scaffoldID = NULLINDEX; // test!!!
-
-  VA_TYPE(IntElementPos) *ContigPositions = CreateVA_IntElementPos(10);
-
-  pos.type = AS_CONTIG;
-  pos.ident = cid;
-  // Orientation of inserted chunk is always A_B
-  pos.position.bgn = offsetAEnd.mean;
-  pos.position.end = offsetBEnd.mean;
-  AppendIntElementPos(ContigPositions, &pos);
-  basePos = GetIntElementPos(ContigPositions,0);
-  aEnd = offsetAEnd;
-  bEnd = offsetBEnd;
-
-  foundContainment = FALSE;
-
-  /* See if the inserted element is contained, or contains an existing
-     scaffold element(s).  If so, contig them. */
-
-  InitCIScaffoldTIterator(sgraph, scaffold, TRUE, FALSE, &CIs);
-  while((otherCI = NextCIScaffoldTIterator(&CIs)) != NULL){
-    overlapType = existsContainmentRelationship(otherCI,CI);
-    if(overlapType == AS_1_CONTAINS_2_OVERLAP ||
-       overlapType == AS_2_CONTAINS_1_OVERLAP){
-      foundContainment = TRUE;
-      pos.ident = otherCI->id;
-      pos.position.bgn = otherCI->offsetAEnd.mean;
-      pos.position.end = otherCI->offsetBEnd.mean;
-      if(pos.position.bgn < pos.position.end){
-	if(pos.position.bgn < aEnd.mean){
-	  aEnd = otherCI->offsetAEnd;
-	}
-	if(pos.position.end > bEnd.mean){
-	  bEnd = otherCI->offsetBEnd;
-	}
-      }else{
-	if(pos.position.end < aEnd.mean){
-	  aEnd = otherCI->offsetBEnd;
-	}
-	if(pos.position.bgn > bEnd.mean){
-	  bEnd = otherCI->offsetAEnd;
-	}
-      }
-      AppendIntElementPos(ContigPositions, &pos);
-    }
-  }
-
-  if ((foundContainment) &&
-      (GetNumIntElementPoss(ContigPositions) > 1)) {
-    GraphEdgeIterator edges;
-    EdgeCGW_T *edge;
-    int32 i;
-
-    for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
-      IntElementPos *ctg = GetIntElementPos(ContigPositions,i);
-      fprintf(stderr,"* Inserting cid:"F_CID " into scaffold"F_CID " implied contigging with "F_CID "\n",
-              cid,sid, ctg->ident);
-
-      // Save the edge status in the frags so we can reconstitute it later
-      // in BuildGraphEdgesFromMultiAlign
-
-      InitGraphEdgeIterator(sgraph->ContigGraph, ctg->ident,
-                            ALL_END, ALL_EDGES,
-                            GRAPH_EDGE_DEFAULT,
-                            &edges);
-
-      while((edge = NextGraphEdgeIterator(&edges)) != NULL)
-        PropagateEdgeStatusToFrag(sgraph->ContigGraph, edge);
-    }
-
-    retVal = CreateAContigInScaffold(scaffold, ContigPositions, aEnd, bEnd);
-  }
-
-  Delete_VA(ContigPositions);
-
- return(retVal);
-}
 
 
 void DumpMultiAlignT(FILE * fp, ScaffoldGraphT * graph,

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.51 2010-01-14 00:44:54 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.52 2010-01-15 17:52:08 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -73,55 +73,6 @@ SaveEdgeMeanForLater(SEdgeT * edge) {
 
 
 
-static
-int
-ContigCoordinatesOkay(CIScaffoldT * scaffold) {
-  CIScaffoldTIterator CIs;
-  ChunkInstanceT * CI;
-  LengthT lastMin = {0,0};
-  LengthT lastMax = {0,0};
-  int i = 0;
-
-  InitCIScaffoldTIterator(ScaffoldGraph, scaffold, TRUE, FALSE, &CIs);
-  while ((CI = NextCIScaffoldTIterator(&CIs)) != NULL) {
-    LengthT thisMin;
-    LengthT thisMax;
-    if (CI->offsetAEnd.mean < 0.0 || CI->offsetAEnd.variance < 0.0 ||
-        CI->offsetBEnd.mean < 0.0 || CI->offsetBEnd.variance < 0.0) {
-      fprintf(stderr, "Negative contig mean or variance\n");
-      DumpCIScaffold(stderr, ScaffoldGraph, scaffold, FALSE);
-      return FALSE;
-    }
-    if (i != 0 &&
-        (CI->offsetAEnd.mean == 0.0 ||
-         CI->offsetBEnd.mean == 0.0)) {
-      fprintf(stderr, "Zero offset of internal contig\n");
-      DumpCIScaffold(stderr, ScaffoldGraph, scaffold, FALSE);
-      return FALSE;
-    }
-
-    thisMin = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
-    thisMax = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
-
-    if (thisMax.mean < lastMin.mean) {
-      fprintf(stderr, "Seriously out of order contigs\n");
-      DumpCIScaffold(stderr, ScaffoldGraph, scaffold, FALSE);
-      return FALSE;
-    }
-
-    if (thisMin.mean < lastMin.mean) {
-      fprintf(stderr, "Out of order contigs\n");
-      DumpCIScaffold(stderr, ScaffoldGraph, scaffold, FALSE);
-      return FALSE;
-    }
-
-    lastMin = thisMin;
-    lastMax = thisMax;
-
-    i++;
-  }
-  return TRUE;
-}
 
 
 static
@@ -165,7 +116,7 @@ GetVarianceOffset(CIScaffoldT * scaffold, double meanOffset, int isAB) {
 
 
 static
-int
+void
 InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
                                    CDS_CID_t newScaffoldID,
                                    CDS_CID_t oldScaffoldID,
@@ -174,89 +125,112 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
                                    int contigNow) {
   CIScaffoldT *oldScaffold = GetCIScaffoldT(sgraph->CIScaffolds, oldScaffoldID);
   CIScaffoldT *newScaffold = GetCIScaffoldT(sgraph->CIScaffolds, newScaffoldID);
-  CIScaffoldTIterator CIs;
-  ChunkInstanceT *CI;
 
   // CheckCIScaffoldTLength(sgraph, oldScaffold);
   // CheckCIScaffoldTLength(sgraph, newScaffold);
 
-#ifdef DEBUG_INSERTSCAFFOLDCONTENTS
-  fprintf(stderr,"* InsertContents of Scaffold " F_CID " into scaffold " F_CID " at offset %g +/- %g orient %c oldScaffold length %g\n",
-          oldScaffoldID, newScaffoldID, offset->mean, sqrt(offset->variance), orient, oldScaffold->bpLength.mean);
-#endif
-  assert(offset->mean >= 0.0 && offset->variance >= 0.0);
+  fprintf(stderr,"InsertScaffoldContentsIntoScaffold()-- Insert scaffold "F_CID" (%.0fbp) into scaffold "F_CID" (%.0fbp) at offset %.3f +/- %.3f orient %c\n",
+          oldScaffoldID, oldScaffold->bpLength.mean,
+          newScaffoldID, newScaffold->bpLength.mean,
+          offset->mean, sqrt(offset->variance),
+          orient);
+
+  assert(offset->mean     >= 0.0);
+  assert(offset->variance >= 0.0);
+
+  //  Shouldn't be necessary, occasionally (in GOSIII) the length was wrong.
+  SetCIScaffoldTLength(sgraph, newScaffold, FALSE);
+  SetCIScaffoldTLength(sgraph, oldScaffold, FALSE);
+
+  CIScaffoldTIterator CIs;
+  ChunkInstanceT     *CI;
 
   InitCIScaffoldTIterator(sgraph, oldScaffold, (orient == A_B), FALSE, &CIs);
   while ((CI = NextCIScaffoldTIterator(&CIs)) != NULL) {
-    LengthT offsetAEnd, offsetBEnd;
+    LengthT offsetAEnd;
+    LengthT offsetBEnd;
 
-#ifdef DEBUG_INSERTSCAFFOLDCONTENTS
-    fprintf(stderr, "* CI->offsetAEnd=%d  CI->offsetBEnd=%d  oldScaffold->bpLength=%d\n",
-            (int)CI->offsetAEnd.mean, (int)CI->offsetBEnd.mean, (int)oldScaffold->bpLength.mean);
-#endif
+    //  These should be guaranteed by the SetCIScaffoldTLength() above.
+    assert(CI->offsetAEnd.mean <= oldScaffold->bpLength.mean);
+    assert(CI->offsetBEnd.mean <= oldScaffold->bpLength.mean);
+
+    //  These guaranteed too.  Previous versions would detect the case and simply reset the variance
+    //  of the placed contig (that's offsetBEnd) to the variance of the 'offset'.  That is:
+    //    offsetBEnd.variance = offset->variance
+    //    offsetAEnd.variance = offset->variance
+    assert(CI->offsetBEnd.variance <= oldScaffold->bpLength.variance);
+    assert(CI->offsetAEnd.variance <= oldScaffold->bpLength.variance);
 
     if (orient == A_B) {
-      offsetAEnd.mean      = offset->mean     + CI->offsetAEnd.mean;
-      offsetAEnd.variance  = offset->variance + CI->offsetAEnd.variance;
-      offsetBEnd.mean      = offset->mean     + CI->offsetBEnd.mean;
-      offsetBEnd.variance  = offset->variance + CI->offsetBEnd.variance;
+      offsetAEnd.mean     = offset->mean     + CI->offsetAEnd.mean;
+      offsetAEnd.variance = offset->variance + CI->offsetAEnd.variance;
+      offsetBEnd.mean     = offset->mean     + CI->offsetBEnd.mean;
+      offsetBEnd.variance = offset->variance + CI->offsetBEnd.variance;
     } else {
-      if ((CI->offsetAEnd.mean > oldScaffold->bpLength.mean) ||
-          (CI->offsetBEnd.mean > oldScaffold->bpLength.mean)) {
-        fprintf(stderr, "* CI extends beyond end of scaffold!\n");
-        fprintf(stderr, "* offsetAEnd = %d offsetBEnd = %d scaffoldLength = %d\n",
-                (int)CI->offsetAEnd.mean, (int)CI->offsetBEnd.mean, (int)oldScaffold->bpLength.mean);
-        assert(0);
-      }
       offsetAEnd.mean     = offset->mean     + (oldScaffold->bpLength.mean     - CI->offsetAEnd.mean);
       offsetAEnd.variance = offset->variance + (oldScaffold->bpLength.variance - CI->offsetAEnd.variance);
       offsetBEnd.mean     = offset->mean     + (oldScaffold->bpLength.mean     - CI->offsetBEnd.mean);
       offsetBEnd.variance = offset->variance + (oldScaffold->bpLength.variance - CI->offsetBEnd.variance);
-
-      if (CI->offsetBEnd.variance > oldScaffold->bpLength.variance) {
-        if (GlobalData->debugLevel > 0)
-          fprintf(stderr,"* CI " F_CID " has BEnd variance %g > scaffold bpLength.variance %g\n",
-                  CI->id, CI->offsetBEnd.variance, oldScaffold->bpLength.variance);
-        offsetBEnd.variance = offset->variance;
-      }
-      if (CI->offsetAEnd.variance > oldScaffold->bpLength.variance) {
-        if (GlobalData->debugLevel > 0)
-          fprintf(stderr,"* CI " F_CID " has AEnd variance %g > scaffold bpLength.variance %g\n",
-                  CI->id, CI->offsetAEnd.variance, oldScaffold->bpLength.variance);
-        offsetAEnd.variance = offset->variance;
-      }
     }
 
-    if ((offsetBEnd.variance < 0.0) || (offsetAEnd.variance < 0.0)) {
-      fprintf(stderr, "oldScaffold:\n");
-      DumpCIScaffold(stderr, sgraph, oldScaffold, FALSE);
+    assert(offsetBEnd.variance >= 0.0);
+    assert(offsetAEnd.variance >= 0.0);
 
-      fprintf(stderr, "newScaffold:\n");
-      DumpCIScaffold(stderr, sgraph, newScaffold, FALSE);
-
-      fprintf(stderr,"offsetAEnd mean:%d variance:%g offsetBEnd mean:%d variance:%g < 0...sigh...\n",
-              (int)offsetAEnd.mean, offsetAEnd.variance,
-              (int)offsetBEnd.mean, offsetBEnd.variance);
-      assert(0);
-    }
-
-#ifdef DEBUG_INSERTSCAFFOLDCONTENTS
-    fprintf(stderr,"* Inserting CI " F_CID " at offset (%d,%d) was at (%d,%d)\n",
+    fprintf(stderr,"InsertScaffoldContentsIntoScaffold()-- Insert CI "F_CID" (%.0fbp) at offset (%.0f,%.0f); was at (%.0f,%.0f)\n",
             CI->id,
-            (int) offsetAEnd.mean, (int) offsetBEnd.mean,
-            (int) CI->offsetAEnd.mean, (int) CI->offsetBEnd.mean);
-#endif
-    InsertCIInScaffold(sgraph, CI->id, newScaffoldID,
-                       offsetAEnd, offsetBEnd,
-                       TRUE, contigNow);
-#if 1
-    if (!ContigCoordinatesOkay(newScaffold))
-      fprintf(stderr, "Problem with contig coordinates!\n");
-#endif
-  }
-  CheckCIScaffoldTLength(sgraph, newScaffold);
+            CI->bpLength.mean,
+            offsetAEnd.mean,     offsetBEnd.mean,
+            CI->offsetAEnd.mean, CI->offsetBEnd.mean);
 
-  return TRUE;
+    InsertCIInScaffold(sgraph, CI->id, newScaffoldID, offsetAEnd, offsetBEnd, TRUE, contigNow);
+  }
+
+  //  Shouldn't be necessary, occasionally (in GOSIII) the length was wrong.
+  SetCIScaffoldTLength(sgraph, newScaffold, FALSE);
+
+  //  Check all the contig coordinatess in the new scaffold.
+#if 1
+  LengthT lastMin   = {0, 0};
+  LengthT lastMax   = {0, 0};
+  int     thisIdx   = 0;
+  int     thisFails = 0;
+
+  InitCIScaffoldTIterator(ScaffoldGraph, newScaffold, TRUE, FALSE, &CIs);
+  while ((CI = NextCIScaffoldTIterator(&CIs)) != NULL) {
+
+    if ((CI->offsetAEnd.mean < 0.0) || (CI->offsetAEnd.variance < 0.0) ||
+        (CI->offsetBEnd.mean < 0.0) || (CI->offsetBEnd.variance < 0.0)) {
+      fprintf(stderr, "InsertScaffoldContentsIntoScaffold()-- Negative contig mean or variance\n");
+      thisFails++;
+    }
+
+    if ((thisIdx++ != 0) && ((CI->offsetAEnd.mean == 0.0) ||
+                             (CI->offsetBEnd.mean == 0.0))) {
+      fprintf(stderr, "InsertScaffoldContentsIntoScaffold()-- Zero offset of internal contig\n");
+      thisFails++;
+    }
+
+    LengthT thisMin = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
+    LengthT thisMax = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
+
+    if (thisMax.mean < lastMin.mean) {
+      fprintf(stderr, "InsertScaffoldContentsIntoScaffold()-- Seriously out of order contigs\n");
+      thisFails++;
+    }
+
+    if (thisMin.mean < lastMin.mean) {
+      fprintf(stderr, "InsertScaffoldContentsIntoScaffold()-- Out of order contigs\n");
+      thisFails++;
+    }
+
+    lastMin = thisMin;
+    lastMax = thisMax;
+  }
+
+  if (thisFails)
+    DumpCIScaffold(stderr, ScaffoldGraph, newScaffold, FALSE);
+  //assert(thisFails == 0);
+#endif
 }
 
 
@@ -2157,13 +2131,13 @@ SaveBadScaffoldMergeEdge(SEdgeT * edge,
     ChunkOverlapCheckT olap = {0};
     // create
     FillChunkOverlapWithEdge(edge, &olap);
-    olap.minOverlap = -edge->distance.mean - delta;
-    olap.maxOverlap = -edge->distance.mean + delta;
+    olap.minOverlap = (int32)(-edge->distance.mean - delta);
+    olap.maxOverlap = (int32)(-edge->distance.mean + delta);
     InsertChunkOverlap(overlapper, &olap);
   } else {
     // update
-    lookup->minOverlap = MIN(lookup->minOverlap, -edge->distance.mean - delta);
-    lookup->maxOverlap = MAX(lookup->maxOverlap, -edge->distance.mean + delta);
+    lookup->minOverlap = (int32)MIN(lookup->minOverlap, -edge->distance.mean - delta);
+    lookup->maxOverlap = (int32)MAX(lookup->maxOverlap, -edge->distance.mean + delta);
   }
 }
 
@@ -2269,8 +2243,8 @@ isBadScaffoldMergeEdge(SEdgeT * edge, ChunkOverlapperT * overlapper) {
   ChunkOverlapCheckT * lookup;
   ChunkOverlapSpecT spec;
   double delta = sqrt(edge->distance.variance) * 3.;
-  int32 minOverlap = (int32) -edge->distance.mean - delta;
-  int32 maxOverlap = (int32) -edge->distance.mean + delta;
+  int32 minOverlap = (int32)(-edge->distance.mean - delta);
+  int32 maxOverlap = (int32)(-edge->distance.mean + delta);
 
   InitCanonicalOverlapSpec(edge->idA, edge->idB, edge->orient, &spec);
   if ((lookup = LookupCanonicalOverlap(overlapper, &spec)) != NULL) {
@@ -2608,7 +2582,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
         } else {
           mergeEdge->distance.mean = overlapEdge->distance.mean;
         }
-        if (abs(overlapEdge->distance.mean - mergeEdge->distance.mean) >
+        if (fabs(overlapEdge->distance.mean - mergeEdge->distance.mean) >
             MAX_OVERLAP_SLOP_CGW) {
           SaveEdgeMeanForLater(mergeEdge);
           mergeEdge->distance.mean = overlapEdge->distance.mean;
@@ -3195,21 +3169,12 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
 
       //AppendVA_CDS_CID_t(deadScaffoldIDs, &(thisScaffold->id));
 
-      if (0 == InsertScaffoldContentsIntoScaffold(ScaffoldGraph,
-                                                  newScaffoldID, thisScaffold->id,
-                                                  orientCI, &currentOffset,
-                                                  iSpec->contigNow)) {
+      InsertScaffoldContentsIntoScaffold(ScaffoldGraph,
+                                         newScaffoldID, thisScaffold->id,
+                                         orientCI, &currentOffset,
+                                         iSpec->contigNow);
 
-        //  Shucks, we failed to insert the scaffold.  Remove all the
-        //  work we did, and return that nothing got merged.
-        //
-        //  OK, it might just be easier to reconstruct this function,
-        //  but only have it return success/fail, and do no other
-        //  modifications.
-
-      }
-
-      if (iSpec->contigNow != NO_CONTIGGING)
+      if (iSpec->contigNow == TRUE)
         // remove references to edges of dead contigs from scaffold edge
         RemoveDeadRefsFromSEdge(ScaffoldGraph, edge);
       else
@@ -3260,7 +3225,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
 
     // New scaffold fully popuated now.
 
-    if (iSpec->contigNow != NO_CONTIGGING &&
+    if (iSpec->contigNow == TRUE &&
         GetGraphNode(ScaffoldGraph->ScaffoldGraph,
                      newScaffoldID)->info.Scaffold.numElements > 1) {
       int status = RECOMPUTE_SINGULAR;
@@ -3292,7 +3257,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
       }
       if (status != RECOMPUTE_OK)
         fprintf(stderr, "ReomputeOffsetsInScaffold failed (%d) for scaffold " F_CID " in MergeScaffolds\n", status, newScaffoldID);
-    }  //  if (iSpec->contigNow != NO_CONTIGGING && .....)
+    }  //  if (iSpec->contigNow == TRUE && .....)
 
     ScaffoldGraph->numLiveScaffolds += (1 - numMerged);
     currentSetID++;
@@ -3390,7 +3355,7 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
   fprintf(stderr, "* Successfully passed checks at beginning of scaffold merging\n");
 
   iSpec.sai                    = CreateScaffoldAlignmentInterface();
-  iSpec.contigNow              = ALL_CONTIGGING;
+  iSpec.contigNow              = TRUE;
   iSpec.checkForTinyScaffolds  = FALSE;
   iSpec.checkAbutting          = TRUE;
   iSpec.minSatisfied           = 0.985;  //  0.985 default

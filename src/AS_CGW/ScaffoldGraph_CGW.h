@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.40 2009-10-27 12:26:41 skoren Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.41 2010-01-15 17:52:08 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -35,11 +35,6 @@ static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.40 200
 #include "MultiAlignStore.h"
 #include "AS_OVS_overlapStore.h"
 #include "AS_CGW_dataTypes.h"
-
-#define NO_CONTIGGING 0
-#define DOVETAIL_CONTIGGING 1
-#define CONTAINMENT_CONTIGGING 2
-#define ALL_CONTIGGING (DOVETAIL_CONTIGGING | CONTAINMENT_CONTIGGING)
 
 #define CGW_MISSED_OVERLAP CGW_DP_MINLEN /* size the overlapper may have missed */
 #define MAX_OVERLAP_SLOP_CGW 10
@@ -525,9 +520,6 @@ void CheckInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 int CheckForContigs(ScaffoldGraphT *sgraph,
                     CDS_CID_t cid, CDS_CID_t sid,
                     LengthT offsetAEnd, LengthT offsetBEnd);
-int CheckForContainmentContigs(ScaffoldGraphT *sgraph,
-                               CDS_CID_t cid, CDS_CID_t sid,
-                               LengthT offsetAEnd, LengthT offsetBEnd);
 
 /* DemoteSmallSingletonScaffolds
    We want to demote the contigs/unitigs in small singleton scaffolds so

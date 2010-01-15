@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: UpdateREZ.c,v 1.17 2009-10-27 12:26:42 skoren Exp $";
+static const char *rcsid = "$Id: UpdateREZ.c,v 1.18 2010-01-15 17:52:12 brianwalenz Exp $";
 
 /**********************************************************************
 
@@ -592,7 +592,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
                                       (int) kind);
                           }
 			InsertCIInScaffold(sgraph, cid, scaff_id,
-							   fc->chunk[k].start, fc->chunk[k].end, TRUE, NO_CONTIGGING);
+							   fc->chunk[k].start, fc->chunk[k].end, TRUE, FALSE);
 		  }
 		  else
 		  {
@@ -652,7 +652,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
                                       (int) kind);
                           }
 			InsertCIInScaffold(sgraph, splitCid, scaff_id,
-							   fc->chunk[k].start, fc->chunk[k].end, TRUE, NO_CONTIGGING);
+							   fc->chunk[k].start, fc->chunk[k].end, TRUE, FALSE);
 		  }
 
 		  chunk = GetGraphNode(sgraph->ContigGraph, cid);

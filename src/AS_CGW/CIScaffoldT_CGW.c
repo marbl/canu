@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.44 2009-10-27 12:26:40 skoren Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.45 2010-01-15 17:52:00 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -172,19 +172,13 @@ void DumpCIScaffold(FILE *stream, ScaffoldGraphT *graph, CIScaffoldT *scaffold, 
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
 
   while((CI = NextCIScaffoldTIterator(&CIs)) != NULL){
-    //      double ratio = 0.0;
-    //      if(CI->offsetAEnd.mean > 0){
-    //	ratio = ComputeFudgeVariance(CI->offsetAEnd.mean)/ CI->offsetAEnd.variance;
-    //
-    //      }
-    fprintf(stream," \t %5d: CI %6"F_CIDP " sid:"F_CID " len:%6d,%6.2g ends:%6d,%6d var:%6.2g,%6.2g orient:%c\n",
+    fprintf(stream," \t %5d: CI %8d sid %8d len %7d,%9.1f ends %7d,%7d var %9.1f,%9.1f orient %c\n",
             CI->indexInScaffold,
             CI->id,
             CI->scaffoldID,
             (int)CI->bpLength.mean, CI->bpLength.variance,
             (int)CI->offsetAEnd.mean, (int)CI->offsetBEnd.mean,
             CI->offsetAEnd.variance, CI->offsetBEnd.variance,
-            //      ratio,
             (GetNodeOrient(CI) == A_B? 'A':'B'));
   }
   fprintf(stream, "> %s Edges A \n",  (raw?" R ":" M "));
@@ -240,9 +234,7 @@ void DumpACIScaffoldNew(FILE *stream, ScaffoldGraphT *graph,
 }
 /***************************************************************************/
 void DumpCIScaffolds(FILE *stream, ScaffoldGraphT *graph, int raw){
-  CDS_CID_t sid;
-  /* For each chunk */
-  for(sid = 0; sid < GetNumCIScaffoldTs(graph->CIScaffolds); sid++){
+  for (uint32 sid = 0; sid < GetNumCIScaffoldTs(graph->CIScaffolds); sid++){
     CIScaffoldT *scaffold = GetGraphNode(graph->ScaffoldGraph,sid);
     if(isDeadCIScaffoldT(scaffold))
       continue;
@@ -287,69 +279,62 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
                    int AEndToBend,
                    int contigNow) {
 
-  CIScaffoldT *ciScaffold = GetGraphNode(sgraph->ScaffoldGraph, sid);
+  CIScaffoldT    *ciScaffold = GetGraphNode(sgraph->ScaffoldGraph, sid);
   ChunkInstanceT *chunkInstance = GetGraphNode(sgraph->ContigGraph, ci);
-  int32 reversed;
-  LengthT *maxOffset, *minOffset;
 
-  assert(!chunkInstance->flags.bits.isDead);
-  assert(!ciScaffold->flags.bits.isDead);
+  assert(chunkInstance->flags.bits.isDead == FALSE);
+  assert(ciScaffold->flags.bits.isDead    == FALSE);
 
-#ifdef DEBUG_INSERT
-  fprintf(stderr, "InsertCIInScaffold()--  Insert CI %d into scaffold %d at offset %.0f-%.0f orient %d\n",
-          ci, sid, aEndOffset.mean, bEndOffset.mean, AEndToBend);
-#endif
+  //fprintf(stderr, "InsertCIInScaffold()--  Insert CI %d into scaffold %d at offset %.0f,%.0f orient %d\n",
+  //        ci, sid, aEndOffset.mean, bEndOffset.mean, AEndToBend);
 
-  // check for bad variances on ends
+  //  Check for bad variances on ends -- hit in gos bunches of times
+  //
+  //*** Variance Fixup Alert ***
+  //chunkInstance->id: 9653113
+  //aEndOffset.mean: 7348.000000, bEndOffset.mean: 8305.995965
+  //aEndOffset.variance: 2230432.164665, bEndOffset.variance: 2230432.164665
+  //chunkInstance->bpLength.mean: 958.000000
+  //chunkInstance->bpLength.variance: 24.908000
+  //
+  //chunkInstance->offsetAEnd.mean: 0.000000, offsetAEnd.variance: 0.000000
+  //chunkInstance->offsetBEnd.mean: 958.000000, offsetBEnd.variance: 24.908000
+  //chunkInstance->bpLength.mean: 958.000000, bpLength.variance: 24.908000
+  //
+  //
   if ( fabs (fabs(aEndOffset.variance - bEndOffset.variance) - chunkInstance->bpLength.variance) > 1.0 ) {
-      fprintf( stderr, "*** Variance Fixup Alert ***\n");
+    fprintf( stderr, "*** Variance Fixup Alert ***\n");
+    fprintf( stderr, "chunkInstance->id: "F_CID "\n", chunkInstance->id);
+    fprintf( stderr, "aEndOffset.mean: %f, bEndOffset.mean: %f\n", aEndOffset.mean, bEndOffset.mean);
+    fprintf( stderr, "aEndOffset.variance: %f, bEndOffset.variance: %f\n", aEndOffset.variance, bEndOffset.variance);
+    fprintf( stderr, "chunkInstance->bpLength.mean: %f\n", chunkInstance->bpLength.mean);
+    fprintf( stderr, "chunkInstance->bpLength.variance: %f\n", chunkInstance->bpLength.variance);
+    fprintf( stderr, "chunkInstance->offsetAEnd.mean: %f, offsetAEnd.variance: %f\n", chunkInstance->offsetAEnd.mean, chunkInstance->offsetAEnd.variance);
+    fprintf( stderr, "chunkInstance->offsetBEnd.mean: %f, offsetBEnd.variance: %f\n", chunkInstance->offsetBEnd.mean, chunkInstance->offsetBEnd.variance);
+    fprintf( stderr, "chunkInstance->bpLength.mean: %f, bpLength.variance: %f\n", chunkInstance->bpLength.mean, chunkInstance->bpLength.variance);
 
-      fprintf( stderr, "chunkInstance->id: "F_CID "\n", chunkInstance->id);
-      fprintf( stderr, "aEndOffset.mean: %f, bEndOffset.mean: %f\n", aEndOffset.mean, bEndOffset.mean);
-      fprintf( stderr, "aEndOffset.variance: %f, bEndOffset.variance: %f\n", aEndOffset.variance, bEndOffset.variance);
-      fprintf( stderr, "chunkInstance->bpLength.mean: %f\n", chunkInstance->bpLength.mean);
-      fprintf( stderr, "chunkInstance->bpLength.variance: %f\n\n", chunkInstance->bpLength.variance);
+    //  If we're too far off assert
+    //assert(fabs(aEndOffset.variance - bEndOffset.variance) >= 0.5 * chunkInstance->bpLength.variance);
 
-      fprintf( stderr, "chunkInstance->offsetAEnd.mean: %f, offsetAEnd.variance: %f\n",
-               chunkInstance->offsetAEnd.mean, chunkInstance->offsetAEnd.variance);
-      fprintf( stderr, "chunkInstance->offsetBEnd.mean: %f, offsetBEnd.variance: %f\n",
-               chunkInstance->offsetBEnd.mean, chunkInstance->offsetBEnd.variance);
-      fprintf( stderr, "chunkInstance->bpLength.mean: %f, bpLength.variance: %f\n",
-               chunkInstance->bpLength.mean, chunkInstance->bpLength.variance);
-
-      // now if we're too far off assert
-      // assert ( fabs(aEndOffset.variance - bEndOffset.variance) >= 0.5 * chunkInstance->bpLength.variance);
-
-      // we're in the ballpark, so just fixup the ends
-      if (aEndOffset.mean < bEndOffset.mean)
-        bEndOffset.variance = aEndOffset.variance + chunkInstance->bpLength.variance;
-      else
-        aEndOffset.variance = bEndOffset.variance + chunkInstance->bpLength.variance;
-    }
-
-#ifdef DEBUG_INSERT
-  fprintf(stderr,"* Insert ci:"F_CID " sid:"F_CID " contigNow:0x%x [%g,%g]\n",
-    	  ci,sid,contigNow, aEndOffset.mean, bEndOffset.mean);
-#endif
-
-  {
-    double diff = abs(aEndOffset.mean - bEndOffset.mean);
-    if( diff > 1.2 * chunkInstance->bpLength.mean){
-      fprintf(stderr,"***** SERIOUS: InsertCIInScaffold "F_CID " [%g,%g] = %g, length only %g\n",
-	      ci, aEndOffset.mean, bEndOffset.mean, diff, chunkInstance->bpLength.mean);
-    }
+    //  Fix the ends.
+    if (aEndOffset.mean < bEndOffset.mean)
+      bEndOffset.variance = aEndOffset.variance + chunkInstance->bpLength.variance;
+    else
+      aEndOffset.variance = bEndOffset.variance + chunkInstance->bpLength.variance;
   }
 
-  // This loop insures that we do not try to insert the same chunk
-  // twice into a scaffold.
+  //  Check that the placement is more or less the same as the length.
+  //
+  assert(fabs(aEndOffset.mean - bEndOffset.mean) < (1.2 * chunkInstance->bpLength.mean));
+
+  //  Check that the CI isn't already in the scaffold.
   {
     CIScaffoldTIterator CIs;
-    ChunkInstanceT *CI;
+    ChunkInstanceT     *CI;
 
     InitCIScaffoldTIterator(sgraph, ciScaffold, TRUE, FALSE, &CIs);
-    while((CI = NextCIScaffoldTIterator(&CIs)) != NULL){
+    while ((CI = NextCIScaffoldTIterator(&CIs)) != NULL) {
       if (CI->id == ci)
-        // chunk is already in scaffold due to being a member of a previous path
 	return;
     }
   }
@@ -358,45 +343,23 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
   chunkInstance->offsetBEnd = bEndOffset;
 
 #ifdef DEBUG_INSERT
-  fprintf(stderr,"*&&& BEFORE inserting ci "F_CID " in scaffold "F_CID " at (%g,%g) (%g,%g)\n",
-          ci,sid,
-          aEndOffset.mean, aEndOffset.variance,
-          bEndOffset.mean, bEndOffset.variance);
+  fprintf(stderr,"InsertCIInScaffold()--  Before Inserting:\n");
   DumpCIScaffold(stderr, sgraph, ciScaffold, FALSE);
 #endif
 
-#if 0
-  if(contigNow & CONTAINMENT_CONTIGGING){
-    if( CheckForContainmentContigs(sgraph, ci, sid, aEndOffset, bEndOffset)){
 
+  if ((contigNow == TRUE) &&
+      (CheckForContigs(sgraph, ci, sid, aEndOffset, bEndOffset))) {
 #ifdef DEBUG_INSERT
-      fprintf(stderr,"* InsertCI "F_CID " InScaffold  "F_CID " returned after CheckForContigs\n", ci, sid);
-      fprintf(stderr,"* AFTER\n");
-      DumpCIScaffold(stderr,sgraph, ciScaffold, FALSE);
+    fprintf(stderr,"InsertCIInScaffold()--  After Inserting:\n");
+    DumpCIScaffold(stderr,sgraph, ciScaffold, FALSE);
 #endif
-      return;  // we did it already
-#ifdef DEBUG_INSERT
-    }else{
-      fprintf(stderr,"* InsertCI "F_CID " InScaffold  "F_CID " *Old Fashioned way *\n", ci, sid);
-#endif
-    }
+    return;
   }
-#endif  //  if 0
 
-  if(contigNow & DOVETAIL_CONTIGGING){
-    if(CheckForContigs(sgraph, ci, sid, aEndOffset, bEndOffset)){
-#ifdef DEBUG_INSERT
-      fprintf(stderr,"* InsertCI "F_CID " InScaffold  "F_CID " returned after CheckForContigs\n", ci, sid);
-      fprintf(stderr,"* AFTER\n");
-      DumpCIScaffold(stderr,sgraph, ciScaffold, FALSE);
-#endif
-      return; // we did it already
-#ifdef DEBUG_INSERT
-    }else{
-      fprintf(stderr,"* InsertCI "F_CID " InScaffold  "F_CID " *Old Fashioned way *\n", ci, sid);
-#endif
-    }
-  }
+  //
+  //  New contig doesn't intersect any other contig, insert as is.
+  //
 
   //  Reget the pointers.
   ciScaffold    = GetGraphNode(sgraph->ScaffoldGraph, sid);
@@ -405,121 +368,85 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
   assert(!chunkInstance->flags.bits.isDead);
   MarkCIElementsForScaffoldMembership(chunkInstance, sid);
 
-  if((aEndOffset.mean > bEndOffset.mean)){
-    reversed = TRUE;
-    minOffset = &bEndOffset;
-    maxOffset = &aEndOffset;
-  }else{
-    reversed = FALSE;
-    minOffset = &aEndOffset;
-    maxOffset = &bEndOffset;
-  }
+  LengthT *minOffset = (aEndOffset.mean > bEndOffset.mean) ? &bEndOffset : &aEndOffset;
+  LengthT *maxOffset = (aEndOffset.mean > bEndOffset.mean) ? &aEndOffset : &bEndOffset;
 
-  AssertPtr(ciScaffold);
-  AssertPtr(chunkInstance);
-
-  chunkInstance->scaffoldID = sid;
+  chunkInstance->scaffoldID         = sid;
   chunkInstance->flags.bits.isChaff = FALSE;  // we need this one in the output
-
-
 
   ciScaffold->info.Scaffold.numElements++;
 
-#ifdef DEBUG_INSERT
-  fprintf(stderr,"* Inserting cid "F_CID " into scaffold "F_CID " at offset %d,%d\n",
-          ci, sid, (int) aEndOffset.mean, (int) bEndOffset.mean);
-#endif
-
-  if(ciScaffold->info.Scaffold.AEndCI == NULLINDEX){ /* Empty scaffold */
-    ciScaffold->info.Scaffold.AEndCI = ciScaffold->info.Scaffold.BEndCI = ci;
-    chunkInstance->AEndNext = chunkInstance->BEndNext = NULLINDEX;
-    ciScaffold->bpLength = *maxOffset;
-
-  }else{
-    CIScaffoldTIterator CIs;
-    ChunkInstanceT *CI;
-
-    int32 chunkInstanceMin = (int32) MIN(chunkInstance->offsetAEnd.mean,
-                                                     chunkInstance->offsetBEnd.mean);
-
-    InitCIScaffoldTIterator(sgraph, ciScaffold, AEndToBend, FALSE, &CIs);
-    while((CI = NextCIScaffoldTIterator(&CIs)) != NULL){
-      int32 CImin = (int32) MIN(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-
-      if(CImin > chunkInstanceMin) {
-	ChunkInstanceT *prevCI;
-
-	// WARNING: this condition is ok ONLY if AEndToBend == TRUE
-	// When we traverse the list of CIs from the Bend, the condition
-	// (CImin > chunkInstanceMin) will be satisfied immediately and therefore
-	// the chunk will end up in the wrong position (SteLo)
-        //
-	assert(AEndToBend);
-
-	chunkInstance->BEndNext = CI->id;
-	chunkInstance->AEndNext = CI->AEndNext;
-	if (CI->AEndNext != NULLINDEX) {
-	  prevCI = GetGraphNode(sgraph->ContigGraph, CI->AEndNext);
-	  AssertPtr(prevCI);
-	  prevCI->BEndNext = ci;
-	}
-
-	CI->AEndNext = ci;
-
-	if(CI->id == ciScaffold->info.Scaffold.AEndCI){
-	  ciScaffold->info.Scaffold.AEndCI = ci;
-	}
-
-
-	break;
-      }else if(CI->id == ciScaffold->info.Scaffold.BEndCI && CImin <= chunkInstanceMin ){
-        // append
-	ciScaffold->info.Scaffold.BEndCI = ci;
-	CI->BEndNext = ci;
-	chunkInstance->AEndNext = CI->id;
-	chunkInstance->BEndNext = NULLINDEX;
-
-	// Due to containments, the CI with the maximal mean does not
-	// have the maximal variance.
-
-	if(ciScaffold->bpLength.mean < maxOffset->mean)
-	  ciScaffold->bpLength.mean = maxOffset->mean;
-
-	if(ciScaffold->bpLength.variance < maxOffset->variance)
-	  ciScaffold->bpLength.variance = maxOffset->variance;
-
-	break;
-      }
-    }  //  end of while()
-
-
-#ifndef DEBUG_INSERT
-    fprintf(stderr,"* Inserted CI "F_CID " in scaffold "F_CID " at offset %d,%d  Anext = "F_CID "   Bnext = "F_CID "\n",
-	    chunkInstance->id, sid, (int)aEndOffset.mean, (int)bEndOffset.mean, chunkInstance->AEndNext, chunkInstance->BEndNext);
-#endif
-
-    // Due to containments, the CI with the maximal mean does not
-    // have the maximal variance.
-
-    if(ciScaffold->bpLength.mean < maxOffset->mean)
-      ciScaffold->bpLength.mean = maxOffset->mean;
-
-    if(ciScaffold->bpLength.variance < maxOffset->variance)
-      ciScaffold->bpLength.variance = maxOffset->variance;
-
-    if(GlobalData->debugLevel > 0){
-      NodeCGW_T *previous = GetGraphNode(ScaffoldGraph->ContigGraph, chunkInstance->AEndNext);
-
-      if(previous &&
-	 MAX(previous->offsetAEnd.variance, previous->offsetBEnd.variance) >
-	 MIN(chunkInstance->offsetAEnd.variance, chunkInstance->offsetBEnd.variance)){
-	fprintf(stderr,"**** VARIANCES ARE SCREWED UP ****\n");
-      }
-
-      fprintf(stderr,"* AFTER\n");
-      DumpCIScaffold(stderr,sgraph, ciScaffold, FALSE);
-    }
+  if (ciScaffold->info.Scaffold.AEndCI == NULLINDEX) {
+    //  Inserting into an empty scaffold
+    chunkInstance->AEndNext          = NULLINDEX;
+    chunkInstance->BEndNext          = NULLINDEX;
+    ciScaffold->info.Scaffold.AEndCI = ci;
+    ciScaffold->info.Scaffold.BEndCI = ci;
+    ciScaffold->bpLength             = *maxOffset;
+    return;
   }
+
+  CIScaffoldTIterator CIs;
+  ChunkInstanceT     *CI;
+
+  int32 chunkInstanceMin = (int32)MIN(chunkInstance->offsetAEnd.mean, chunkInstance->offsetBEnd.mean);
+
+  InitCIScaffoldTIterator(sgraph, ciScaffold, AEndToBend, FALSE, &CIs);
+  while((CI = NextCIScaffoldTIterator(&CIs)) != NULL){
+    int32 CImin = (int32) MIN(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
+
+    if (CImin > chunkInstanceMin) {
+      // WARNING: this condition is ok ONLY if AEndToBend == TRUE
+      // When we traverse the list of CIs from the Bend, the condition
+      // (CImin > chunkInstanceMin) will be satisfied immediately and therefore
+      // the chunk will end up in the wrong position (SteLo)
+      //
+      assert(AEndToBend);
+
+      chunkInstance->BEndNext = CI->id;
+      chunkInstance->AEndNext = CI->AEndNext;
+
+      //  Set the previous CI's next pointer to us
+      if (CI->AEndNext != NULLINDEX)
+        GetGraphNode(sgraph->ContigGraph, CI->AEndNext)->BEndNext = ci;
+
+      CI->AEndNext = ci;
+
+      if (CI->id == ciScaffold->info.Scaffold.AEndCI)
+        ciScaffold->info.Scaffold.AEndCI = ci;
+
+      break;
+
+    } else if ((CI->id == ciScaffold->info.Scaffold.BEndCI) &&
+               (CImin <= chunkInstanceMin)) {
+      // append
+      ciScaffold->info.Scaffold.BEndCI = ci;
+      CI->BEndNext                     = ci;
+      chunkInstance->AEndNext          = CI->id;
+      chunkInstance->BEndNext          = NULLINDEX;
+
+      // Due to containments, the CI with the maximal mean does not
+      // have the maximal variance.
+
+      if (ciScaffold->bpLength.mean < maxOffset->mean)
+        ciScaffold->bpLength.mean = maxOffset->mean;
+
+      if (ciScaffold->bpLength.variance < maxOffset->variance)
+        ciScaffold->bpLength.variance = maxOffset->variance;
+
+      break;
+    }
+  }  //  end of while()
+
+
+  // Due to containments, the CI with the maximal mean does not
+  // have the maximal variance.
+
+  if(ciScaffold->bpLength.mean < maxOffset->mean)
+    ciScaffold->bpLength.mean = maxOffset->mean;
+
+  if(ciScaffold->bpLength.variance < maxOffset->variance)
+    ciScaffold->bpLength.variance = maxOffset->variance;
 }
 
 
@@ -1197,52 +1124,48 @@ void CheckCIScaffoldTLengths(ScaffoldGraphT *sgraph){
 }
 
 
-void  SetCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold, int32 verbose){
+void
+SetCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold, int32 verbose) {
   CIScaffoldTIterator CIs;
-  ChunkInstanceT *chunk;
-  LengthT maxOffset = {0.0,0.0};
+  ChunkInstanceT     *CI;
+  LengthT             maxOffset = {0.0,0.0};
+
+  if (scaffold->type != REAL_SCAFFOLD)
+    return;
+
+  if (scaffold->flags.bits.isDead)
+    //  Should assert, but somebody calls us on dead scaffolds.
+    return;
+
+  assert(scaffold->flags.bits.isDead == FALSE);
 
   InitCIScaffoldTIterator(sgraph, scaffold, TRUE, FALSE, &CIs);
-  while((chunk = NextCIScaffoldTIterator(&CIs)) != NULL){
-
-    if(chunk->offsetAEnd.mean > maxOffset.mean){
-      maxOffset.mean = chunk->offsetAEnd.mean;
-    }
-    if(chunk->offsetBEnd.mean > maxOffset.mean){
-      maxOffset.mean = chunk->offsetBEnd.mean;
-    }
-    if(chunk->offsetAEnd.variance > maxOffset.variance){
-      maxOffset.variance = chunk->offsetAEnd.variance;
-    }
-    if(chunk->offsetBEnd.variance > maxOffset.variance){
-      maxOffset.variance = chunk->offsetBEnd.variance;
-    }
+  while((CI = NextCIScaffoldTIterator(&CIs)) != NULL){
+    if (CI->offsetAEnd.mean     > maxOffset.mean)     maxOffset.mean     = CI->offsetAEnd.mean;
+    if (CI->offsetBEnd.mean     > maxOffset.mean)     maxOffset.mean     = CI->offsetBEnd.mean;
+    if (CI->offsetAEnd.variance > maxOffset.variance) maxOffset.variance = CI->offsetAEnd.variance;
+    if (CI->offsetBEnd.variance > maxOffset.variance) maxOffset.variance = CI->offsetBEnd.variance;
   }
 
-  if(verbose && (scaffold->bpLength.mean != maxOffset.mean ||
-                 scaffold->bpLength.variance != maxOffset.variance)){
-    fprintf(stderr, "SetCIScaffoldTLength adjusted length of scaffold "F_CID " from (%g,%g) to (%g,%g)\n",
-            scaffold->id, scaffold->bpLength.mean, scaffold->bpLength.variance,
-            maxOffset.mean, maxOffset.variance);
-    if (verbose > 2)
-      DumpCIScaffold(stderr, sgraph, scaffold, FALSE);
-  }
+  if ((scaffold->bpLength.mean     != maxOffset.mean) ||
+      (scaffold->bpLength.variance != maxOffset.variance))
+    fprintf(stderr, "SetCIScaffoldTLength()-- adjusted scaffold "F_CID" from (%g,%g) to (%g,%g)\n",
+            scaffold->id,
+            scaffold->bpLength.mean, scaffold->bpLength.variance,
+            maxOffset.mean,          maxOffset.variance);
 
   scaffold->bpLength = maxOffset;
 }
 
-void SetCIScaffoldTLengths(ScaffoldGraphT *sgraph, int verbose){
+
+void
+SetCIScaffoldTLengths(ScaffoldGraphT *sgraph, int verbose){
   GraphNodeIterator scaffolds;
-  CIScaffoldT *scaffold;
+  CIScaffoldT      *scaffold;
 
   InitGraphNodeIterator(&scaffolds, sgraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
-  while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL){
-    if(scaffold->type != REAL_SCAFFOLD)
-      continue;
-    assert(!scaffold->flags.bits.isDead);
+  while ((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL)
     SetCIScaffoldTLength(sgraph, scaffold, verbose);
-  }
-
 }
 
 
