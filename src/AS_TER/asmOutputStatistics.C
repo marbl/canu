@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: asmOutputStatistics.C,v 1.4 2009-09-30 18:32:22 brianwalenz Exp $";
+const char *mainid = "$Id: asmOutputStatistics.C,v 1.5 2010-01-15 21:30:23 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -32,6 +32,10 @@ const char *mainid = "$Id: asmOutputStatistics.C,v 1.4 2009-09-30 18:32:22 brian
 #include  <algorithm>
 
 using namespace std;
+
+#define F10U         "%10"F_U64P
+#define F00U         "%"F_U64P
+#define UNDEFINED  (uint64)0
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -79,6 +83,7 @@ vector<uint64>     otherUnitigs;
 vector<uint32>     contigLength;
 vector<uint32>     contigGCBases;
 
+//  frgLength (from the asm file) should be the same as frgClearLen[0] (from the store)
 vector<uint32>     frgLength;
 
 uint64             surrogateInstances;
@@ -421,16 +426,15 @@ processSLK(SnapScaffoldLinkMesg *slk) {
 
 
 
-
-
-
+template <class T>
 uint64
-getNum(vector<uint64> v) {
+getNum(vector<T> v) {
   return((uint64)v.size());
 }
 
+template <class T>
 uint64
-getSum(vector<uint64> v) {
+getSum(vector<T> v) {
   if (v.size() == 0)
     return(0);
   uint64 r = 0;
@@ -439,8 +443,9 @@ getSum(vector<uint64> v) {
   return(r);
 }
 
+template <class T>
 uint64
-getAve(vector<uint64> v) {
+getAve(vector<T> v) {
   if (v.size() == 0)
     return(0);
   uint64 r = 0;
@@ -449,8 +454,9 @@ getAve(vector<uint64> v) {
   return(r / v.size());
 }
 
+template <class T>
 uint64
-getMin(vector<uint64> v) {
+getMin(vector<T> v) {
   if (v.size() == 0)
     return(0);
   uint64 r = v[0];
@@ -459,8 +465,9 @@ getMin(vector<uint64> v) {
   return(r);
 }
 
+template <class T>
 uint64
-getMax(vector<uint64> v) {
+getMax(vector<T> v) {
   if (v.size() == 0)
     return(0);
   uint64 r = v[0];
@@ -469,8 +476,9 @@ getMax(vector<uint64> v) {
   return(r);
 }
 
+template <class T>
 uint64
-getN(uint32 n, vector<uint64> v) {
+getN(uint32 n, vector<T> v) {
   if (v.size() == 0)
     return(0);
   sort(v.rbegin(), v.rend());
@@ -484,8 +492,9 @@ getN(uint32 n, vector<uint64> v) {
   return(v[i-1]);
 }
 
+template <class T>
 double
-getNfrac(uint32 n, vector<uint64> v) {
+getNfrac(uint32 n, vector<T> v) {
   if (v.size() == 0)
     return(0);
   sort(v.rbegin(), v.rend());
@@ -500,8 +509,9 @@ getNfrac(uint32 n, vector<uint64> v) {
   return(100.0 * s / M);
 }
 
+template <class T>
 uint64
-getNidx(uint32 n, vector<uint64> v) {
+getNidx(uint32 n, vector<T> v) {
   if (v.size() == 0)
     return(0);
   sort(v.rbegin(), v.rend());
@@ -520,47 +530,15 @@ getNidx(uint32 n, vector<uint64> v) {
 
 
 
-int main (int argc, char *argv[]) {
-  char *outputPrefix       = NULL;
-  char *asmName            = NULL;
-  FILE *asmFile            = NULL;
-
+void
+generateStatisticsFromASMFile(char *progName, char *asmName) {
   GenericMesg *pmesg       = NULL;
 
-  argc = AS_configure(argc, argv);
-
-  int arg=1;
-  int err=0;
-  while (arg < argc) {
-    if        (strcmp(argv[arg], "-o") == 0) {
-      outputPrefix = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-a") == 0) {
-      asmName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-h") == 0) {
-      err++;
-
-    } else {
-      fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);
-      err++;
-    }
-    arg++;
-  }
-  if ((asmName == NULL) || (outputPrefix == NULL) || (err)) {
-    fprintf(stderr, "usage: %s -o prefix -a asmFile [-h]\n", argv[0]);
-    fprintf(stderr, "  -a asmFile       read the assembly from here\n");
-    fprintf(stderr, "  -o prefix        write the output here\n");
-    fprintf(stderr, "  -h               print help\n");
-    fprintf(stderr, "\n");
-    exit(1);
-  }
-
   errno = 0;
-  asmFile = fopen(asmName, "r");
+  FILE *asmFile = fopen(asmName, "r");
   if (errno)
     fprintf(stderr, "%s: failed to open '%s' for reading: %s\n",
-            argv[0], asmName, strerror(errno));
+            progName, asmName, strerror(errno));
 
   uid2iid = CreateScalarHashTable_AS();
 
@@ -602,10 +580,268 @@ int main (int argc, char *argv[]) {
         break;
     }
   }
+}
 
-#define F10U         "%10"F_U64P
-#define F00U         "%"F_U64P
-#define UNDEFINED  (uint64)0
+
+
+void
+generateStatisticsFromGKPStore(char *progName, char *gkpName) {
+  //  Open the gkStore, but discard UID info for now.
+  gkStore    *gkp = new gkStore(gkpName, FALSE, TRUE);
+  gkStream   *gks = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
+  gkFragment  gkf;
+
+  //for (uint32 c=0; c<AS_READ_CLEAR_NUM; c++)
+  //  frgClearLength[c].reserve(gkp->gkStore_getNumFragments());
+
+  class frgInfoPerLibrary {
+  public:
+    frgInfoPerLibrary() {
+      numActiveFrag  = 0;
+      numDeletedFrag = 0;
+      numMatedFrag   = 0;
+    };
+    ~frgInfoPerLibrary() {
+    };
+
+    uint32             numActiveFrag;
+    uint32             numDeletedFrag;
+    uint32             numMatedFrag;
+
+    vector<uint32>     readLen;
+
+    vector<uint32>     clearBgn[AS_READ_CLEAR_NUM];
+    vector<uint32>     clearEnd[AS_READ_CLEAR_NUM];
+    vector<uint32>     clearLen[AS_READ_CLEAR_NUM];
+  };
+
+  frgInfoPerLibrary    global;
+  frgInfoPerLibrary   *lib    = new frgInfoPerLibrary [gkp->gkStore_getNumLibraries() + 1];
+
+  //  Scan the fragments.  Remember:
+  //    untrimmed read length
+  //    clear lengths for all clear types
+  //    number deleted
+  //    number alive
+  //    number mated
+  //  Complicated by also remembering all this per library.
+  //
+  while (gks->next(&gkf)) {
+    AS_IID  l = gkf.gkFragment_getLibraryIID();
+
+    if (gkf.gkFragment_getIsDeleted()) {
+      global.numDeletedFrag++;
+      lib[l].numDeletedFrag++;
+      continue;
+    }
+
+    global.numActiveFrag++;
+    lib[l].numActiveFrag++;
+
+    if (gkf.gkFragment_getMateIID() > 0) {
+      global.numMatedFrag++;
+      lib[l].numMatedFrag++;
+    }
+
+    global.readLen.push_back(gkf.gkFragment_getSequenceLength());
+    lib[l].readLen.push_back(gkf.gkFragment_getSequenceLength());
+
+    for (uint32 c=0; c<AS_READ_CLEAR_NUM; c++) {
+      uint32  b = gkf.gkFragment_getClearRegionBegin(c);
+      uint32  e = gkf.gkFragment_getClearRegionEnd(c);
+
+      if (b > e)
+        continue;
+
+      global.clearBgn[c].push_back(b);
+      lib[l].clearBgn[c].push_back(b);
+
+      global.clearEnd[c].push_back(e);
+      lib[l].clearEnd[c].push_back(e);
+
+      global.clearLen[c].push_back(e - b);
+      lib[l].clearLen[c].push_back(e - b);
+    }
+  }
+
+  uint64   basesInReads = getSum(global.readLen);
+
+  fprintf(stdout, "<< all reads, untrimmed >>\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "num reads                  = "F10U"\n", getNum(global.readLen));
+  fprintf(stdout, "bases in reads             = "F10U" %7.3f%%\n", getSum(global.readLen), 100.0 * getSum(global.readLen) / basesInReads);
+  fprintf(stdout, "bases in reads ave         = "F10U"\n", getAve(global.readLen));
+  fprintf(stdout, "bases in reads min         = "F10U"\n", getMin(global.readLen));
+  fprintf(stdout, "bases in reads max         = "F10U"\n", getMax(global.readLen));
+  fprintf(stdout, "\n");
+  fprintf(stdout, "bases in reads N25         = "F10U", N=%06.2f I="F00U"\n", getN(25, global.readLen), getNfrac(25, global.readLen), getNidx(25, global.readLen));
+  fprintf(stdout, "bases in reads N50         = "F10U", N=%06.2f I="F00U"\n", getN(50, global.readLen), getNfrac(50, global.readLen), getNidx(50, global.readLen));
+  fprintf(stdout, "bases in reads N75         = "F10U", N=%06.2f I="F00U"\n", getN(75, global.readLen), getNfrac(75, global.readLen), getNidx(75, global.readLen));
+  fprintf(stdout, "\n");
+
+  for (uint32 c=1; c<AS_READ_CLEAR_NUM; c++) {
+    if (getNum(global.clearLen[c]) == 0)
+      continue;
+    fprintf(stdout, "<< all reads, trimmed %s >>\n", AS_READ_CLEAR_NAMES[c]);
+    fprintf(stdout, "\n");
+    fprintf(stdout, "num reads                  = "F10U"\n", getNum(global.clearLen[c]));
+    fprintf(stdout, "bases in reads             = "F10U" %7.3f%%\n", getSum(global.clearLen[c]), 100.0 * getSum(global.clearLen[c]) / basesInReads);
+    fprintf(stdout, "bases in reads ave         = "F10U"\n", getAve(global.clearLen[c]));
+    fprintf(stdout, "bases in reads min         = "F10U"\n", getMin(global.clearLen[c]));
+    fprintf(stdout, "bases in reads max         = "F10U"\n", getMax(global.clearLen[c]));
+    fprintf(stdout, "\n");
+    fprintf(stdout, "bases in reads N25         = "F10U", N=%06.2f I="F00U"\n", getN(25, global.clearLen[c]), getNfrac(25, global.clearLen[c]), getNidx(25, global.clearLen[c]));
+    fprintf(stdout, "bases in reads N50         = "F10U", N=%06.2f I="F00U"\n", getN(50, global.clearLen[c]), getNfrac(50, global.clearLen[c]), getNidx(50, global.clearLen[c]));
+    fprintf(stdout, "bases in reads N75         = "F10U", N=%06.2f I="F00U"\n", getN(75, global.clearLen[c]), getNfrac(75, global.clearLen[c]), getNidx(75, global.clearLen[c]));
+    fprintf(stdout, "\n");
+  }
+
+
+
+  for (uint32 l=0; l<gkp->gkStore_getNumLibraries() + 1; l++) {
+    fprintf(stdout, "<< reads in library %d, untrimmed >>\n", l);
+    fprintf(stdout, "\n");
+    fprintf(stdout, "num reads                  = "F10U"\n", getNum(lib[l].readLen));
+    fprintf(stdout, "bases in reads             = "F10U" %7.3f%%\n", getSum(lib[l].readLen), 100.0 * getSum(lib[l].readLen) / basesInReads);
+    fprintf(stdout, "bases in reads ave         = "F10U"\n", getAve(lib[l].readLen));
+    fprintf(stdout, "bases in reads min         = "F10U"\n", getMin(lib[l].readLen));
+    fprintf(stdout, "bases in reads max         = "F10U"\n", getMax(lib[l].readLen));
+    fprintf(stdout, "\n");
+    fprintf(stdout, "bases in reads N25         = "F10U", N=%06.2f I="F00U"\n", getN(25, lib[l].readLen), getNfrac(25, lib[l].readLen), getNidx(25, lib[l].readLen));
+    fprintf(stdout, "bases in reads N50         = "F10U", N=%06.2f I="F00U"\n", getN(50, lib[l].readLen), getNfrac(50, lib[l].readLen), getNidx(50, lib[l].readLen));
+    fprintf(stdout, "bases in reads N75         = "F10U", N=%06.2f I="F00U"\n", getN(75, lib[l].readLen), getNfrac(75, lib[l].readLen), getNidx(75, lib[l].readLen));
+    fprintf(stdout, "\n");
+
+    for (uint32 c=1; c<AS_READ_CLEAR_NUM; c++) {
+      if (getNum(lib[l].clearLen[c]) == 0)
+        continue;
+      fprintf(stdout, "<< reads in library %d, trimmed %s >>\n", l, AS_READ_CLEAR_NAMES[c]);
+      fprintf(stdout, "\n");
+      fprintf(stdout, "num reads                  = "F10U"\n", getNum(lib[l].clearLen[c]));
+      fprintf(stdout, "bases in reads             = "F10U" %7.3f%%\n", getSum(lib[l].clearLen[c]), 100.0 * getSum(lib[l].clearLen[c]) / basesInReads);
+      fprintf(stdout, "bases in reads ave         = "F10U"\n", getAve(lib[l].clearLen[c]));
+      fprintf(stdout, "bases in reads min         = "F10U"\n", getMin(lib[l].clearLen[c]));
+      fprintf(stdout, "bases in reads max         = "F10U"\n", getMax(lib[l].clearLen[c]));
+      fprintf(stdout, "\n");
+      fprintf(stdout, "bases in reads N25         = "F10U", N=%06.2f I="F00U"\n", getN(25, lib[l].clearLen[c]), getNfrac(25, lib[l].clearLen[c]), getNidx(25, lib[l].clearLen[c]));
+      fprintf(stdout, "bases in reads N50         = "F10U", N=%06.2f I="F00U"\n", getN(50, lib[l].clearLen[c]), getNfrac(50, lib[l].clearLen[c]), getNidx(50, lib[l].clearLen[c]));
+      fprintf(stdout, "bases in reads N75         = "F10U", N=%06.2f I="F00U"\n", getN(75, lib[l].clearLen[c]), getNfrac(75, lib[l].clearLen[c]), getNidx(75, lib[l].clearLen[c]));
+      fprintf(stdout, "\n");
+    }
+  }
+
+  delete [] lib;
+}
+
+
+
+void
+generateStatisticsFromStores(char *progName,
+                             char *gkpName,
+                             char *ovlName,
+                             char *tigName, uint32 tigVersion,
+                             char *ckpName, uint32 ckpVersion) {
+
+}
+
+
+
+
+int main (int argc, char *argv[]) {
+  char   *outputPrefix       = NULL;
+  char   *gkpName            = NULL;
+  char   *ovlName            = NULL;
+  char   *tigName            = NULL;
+  uint32  tigVers            = 0;
+  char   *ckpName            = NULL;
+  uint32  ckpVers            = 0;
+  char   *asmName            = NULL;
+
+  argc = AS_configure(argc, argv);
+
+  int arg=1;
+  int err=0;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-o") == 0) {
+      outputPrefix = argv[++arg];
+
+
+    } else if (strcmp(argv[arg], "-G") == 0) {
+      gkpName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-O") == 0) {
+      ovlName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-T") == 0) {
+      tigName = argv[++arg];
+      tigVers = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-C") == 0) {
+      ckpName = argv[++arg];
+      ckpVers = atoi(argv[++arg]);
+
+
+    } else if (strcmp(argv[arg], "-a") == 0) {
+      asmName = argv[++arg];
+
+
+    } else if (strcmp(argv[arg], "-h") == 0) {
+      err++;
+
+    } else {
+      fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);
+      err++;
+    }
+    arg++;
+  }
+  if ((asmName == NULL) || (outputPrefix == NULL) || (err)) {
+    fprintf(stderr, "usage: %s -o prefix -a asmFile [-h]\n", argv[0]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Assembly Statistics from a .asm file:\n");
+    fprintf(stderr, "  -a asmFile       read the assembly from here\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Assembly Statistics from binary stores:\n");
+    fprintf(stderr, "  -G gkpStore      gatekeeper store\n");
+    fprintf(stderr, "  -O ovlStore      overlap store\n");
+    fprintf(stderr, "  -T tigStore v    tigStore and version\n");
+    fprintf(stderr, "  -C ckpname v     scaffolder checkpoint file name and version\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Outputs:\n");
+    fprintf(stderr, "  -o prefix        write the output here\n");
+    fprintf(stderr, "  -h               print help\n");
+
+    fprintf(stderr, "\n");
+    exit(1);
+  }
+
+
+  if (gkpName) {
+    generateStatisticsFromGKPStore(argv[0], gkpName);
+    exit(0);
+  }
+
+  if (ovlName) {
+    //generateStatisticsFromOVLStore(argv[0], ovlName);
+    exit(0);
+  }
+
+  if (tigName && ckpName) {
+    //generateStatisticsFromStores(gkpName, ovlName, tigName, tigVersion, ckpName, ckpVersion);
+    exit(0);
+  }
+
+  if (tigName) {
+    //generateStatisticsFromStores(gkpName, ovlName, tigName, tigVersion, ckpName, ckpVersion);
+    exit(0);
+  }
+
+  if (asmName) {
+    generateStatisticsFromASMFile(argv[0], asmName);
+    exit(0);
+  }
+
+
+  //writeStatistics();
 
   //  NOTE!  The "N=%06.2f" format is IMPORTANT.  This will print N=100.00 and N=059.32, both of
   //  which have no whitespace between the N= and the number.
