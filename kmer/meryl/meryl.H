@@ -29,6 +29,7 @@ public:
   ~merylArgs();
 
   void              usage(void);
+  void              clear(void);
 
   u64bit            hash(kMer const &mer) {
     return(mer.startOfMer(numBuckets_log2));

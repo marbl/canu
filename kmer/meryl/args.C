@@ -199,41 +199,38 @@ merylArgs::usage(void) {
 
 
 
+void
+merylArgs::clear(void) {
 
-
-
-
-merylArgs::merylArgs(int argc, char **argv) {
-  execName           = duplString(argv[0]);
+  execName           = 0L;
   options            = 0L;
 
   beVerbose          = false;
+  doForward          = true;
+  doReverse          = false;
+  doCanonical        = false;
 
   inputFile          = 0L;
   outputFile         = 0L;
+  queryFile          = 0L;
 
   merSize            = 20;
   merComp            = 0;
   positionsEnabled   = false;
 
-  doForward          = true;
-  doReverse          = false;
-  doCanonical        = false;
-
   numMersEstimated   = 0;
   numMersActual      = 0;
 
+  mersPerBatch       = 0;
   numBuckets         = 0;
   numBuckets_log2    = 0;
-  mersPerBatch       = 0;
   merDataWidth       = 0;
   merDataMask        = u64bitZERO;
   bucketPointerWidth = 0;
-  //bucketPointerMask  = u64bitZERO;
 
+  numThreads         = 0;
   memoryLimit        = 0;
   segmentLimit       = 0;
-  numThreads         = 0;
   configBatch        = false;
   countBatch         = false;
   mergeBatch         = false;
@@ -242,20 +239,31 @@ merylArgs::merylArgs(int argc, char **argv) {
   sgeJobName         = 0L;
   sgeBuildOpt        = 0L;
   sgeMergeOpt        = 0L;
-
-  //  We could possibly do (getenv("SGE_TASK_ID") != 0L), but then we
-  //  break on non-SGE grids.
   isOnGrid           = false;
 
   lowCount           = 0;
   highCount          = ~lowCount;
   desiredCount       = 0;
 
+  outputCount        = 0;
+  outputAll          = 0;
+  outputPosition     = 0;
+
   mergeFilesMax      = 0;
   mergeFilesLen      = 0;
   mergeFiles         = 0L;
 
   personality        = 0;
+}
+
+
+
+
+merylArgs::merylArgs(int argc, char **argv) {
+
+  clear();
+
+  execName           = duplString(argv[0]);
 
   if (argc == 1) {
     usage();
@@ -484,10 +492,10 @@ merylArgs::merylArgs(int argc, char **argv) {
 
 
 merylArgs::merylArgs(const char *prefix) {
-  char *filename;
-  char  magic[17];
 
-  filename = new char [strlen(prefix) + 17];
+  clear();
+
+  char *filename = new char [strlen(prefix) + 17];
   sprintf(filename, "%s.merylArgs", prefix);
 
   errno = 0;
@@ -497,22 +505,28 @@ merylArgs::merylArgs(const char *prefix) {
     exit(1);
   }
 
+  char  magic[17] = {0};
   fread(magic, sizeof(char), 16, F);
   if (strncmp(magic, "merylBatcherv02", 16) != 0) {
     fprintf(stderr, "merylArgs::readConfig()-- '%s' doesn't appear to be a merylArgs file.\n", filename);
     exit(1);
   }
 
+  //  Load the config, then reset the pointers.
+
   fread(this, sizeof(merylArgs), 1, F);
 
   execName    = readString(F);
+  options     = 0L;
   inputFile   = readString(F);
   outputFile  = readString(F);
+  queryFile   = 0L;
   sgeJobName  = readString(F);
   sgeBuildOpt = readString(F);
   sgeMergeOpt = readString(F);
 
-  mergeFiles = new char* [mergeFilesLen];
+  mergeFiles  = new char* [mergeFilesLen];
+
   for (u32bit i=0; i<mergeFilesLen; i++)
     mergeFiles[i] = readString(F);
 
