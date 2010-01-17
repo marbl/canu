@@ -22,7 +22,7 @@
 #ifndef ChiSquareTest_CGW_H
 #define ChiSquareTest_CGW_H
 
-static const char *rcsid_ChiSquareTest_CGW_H = "$Id: ChiSquareTest_CGW.h,v 1.6 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid_ChiSquareTest_CGW_H = "$Id: ChiSquareTest_CGW.h,v 1.7 2010-01-17 07:11:14 brianwalenz Exp $";
 
 /* Data structures for clustering edges based on Chi Squared tests on
    combinations of edges */
@@ -62,38 +62,45 @@ typedef struct ClusterChi2{ // The statistics of a cluster
   LengthT distance; // The statistics of a cluster
 }ClusterChi2T;
 
-static int PairwiseChiSquare(float mean1, float variance1, float mean2,
-                             float variance2, LengthT *distance,
+static int PairwiseChiSquare(float mean1, float variance1,
+                             float mean2, float variance2,
+                             LengthT *distance,
                              float *chiSquaredValue,
                              float chiSquaredThreshold){
 
-  float compMean, compVariance;
-  float chiSquared, chiTemp;
+  //  Negative variance in GOS III was causing significant problems.  These used to be asserts, now
+  //  we just fail the test.
+  //
+  if ((variance1 <= 0.0) ||
+      (variance2 <= 0.0))
+    return(FALSE);
 
   assert(variance1 > 0.0);
   assert(variance2 > 0.0);
-  /* Kludge because some overlaps are conflicting with each other
-     and we need to figure out why!!! */
-  if(variance1 < 25.0){
+
+  //  Kludge because some overlaps are conflicting with each other and we need to figure out why!!!
+  if(variance1 < 25.0)
     variance1 = 25.0;
-  }
-  if(variance2 < 25.0){
+  if(variance2 < 25.0)
     variance2 = 25.0;
-  }
-  compVariance = 1.0 / ((1.0 / variance1) + (1.0 / variance2));
-  compMean = ((mean1 / variance1) + (mean2 / variance2)) * compVariance;
-  chiTemp = mean1 - compMean;
-  chiTemp *= chiTemp;
-  chiSquared = chiTemp / variance1;
-  chiTemp = mean2 - compMean;
-  chiTemp *= chiTemp;
-  chiSquared += chiTemp / variance2;
+
+  variance1 = 1.0 / variance1;
+  variance2 = 1.0 / variance2;
+
+  float compVariance = 1.0 / (variance1 + variance2);
+  float compMean     = ((mean1 * variance1) + (mean2 * variance2)) * compVariance;
+
+  float chiSquared  = ((mean1 - compMean) * (mean1 - compMean) * variance1 +
+                       (mean2 - compMean) * (mean2 - compMean) * variance2);
+
   *chiSquaredValue = chiSquared;
-  if(distance != NULL){
-    distance->mean = compMean;
+
+  if (distance != NULL) {
+    distance->mean     = compMean;
     distance->variance = compVariance;
     assert(compVariance >= 0.0);
   }
+
   return(chiSquared < chiSquaredThreshold);
 }
 
