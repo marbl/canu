@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.68 2009-10-12 04:01:38 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.69 2010-01-17 03:10:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -103,6 +103,11 @@ int ProcessInput(int optind, int argc, char *argv[]){
 
   fprintf(stderr, "Reading unitigs.\n");
 
+  //  We flush the cache while loading, as each unitig is immediately copied to a contig.  Even
+  //  thought the immediate next step (of checking for chimeric unitigs) will reload all unitigs
+  //  again, the flush is useful (it gets rid of that second copy in a unitig).  During assembly, we
+  //  usually never need ALL this stuff loaded at the same time.
+
   for (int32 i=0; i<ScaffoldGraph->tigStore->numUnitigs(); i++) {
     MultiAlignT   *uma = ScaffoldGraph->tigStore->loadMultiAlign(i, TRUE);
     MultiAlignT   *cma = CopyMultiAlignT(NULL, uma);
@@ -120,6 +125,8 @@ int ProcessInput(int optind, int argc, char *argv[]){
       ScaffoldGraph->tigStore->flushCache();
     }
   }
+
+  ScaffoldGraph->tigStore->flushCache();
 
   fprintf(stderr,"Processed %d unitigs with %d fragments\n",
           numUTG, numFRG);

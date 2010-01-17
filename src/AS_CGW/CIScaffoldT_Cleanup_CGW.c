@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.63 2010-01-15 17:52:07 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.64 2010-01-17 03:10:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1291,12 +1291,12 @@ int CleanupScaffolds(ScaffoldGraphT *sgraph, int lookForSmallOverlaps,
       didSomething |= CleanupAScaffold(sgraph,scaffold, lookForSmallOverlaps, maxContigsInMerge, deleteUnMergedSurrogates);
 
     if((scaffold->id % 10000) == 0){
-      ScaffoldGraph->tigStore->flushCache();
       fprintf(stderr,"* CleanupScaffolds through scaffold "F_CID "\n", scaffold->id);
+      //ScaffoldGraph->tigStore->flushCache();
     }
   }
 
-  ScaffoldGraph->tigStore->flushCache();
+  //ScaffoldGraph->tigStore->flushCache();
 
   RecycleDeletedGraphElements(sgraph->ContigGraph);
   return didSomething;
@@ -1352,11 +1352,11 @@ int CleanupFailedMergesInScaffolds(ScaffoldGraphT *sgraph){
 
       iteration++;
     }
-
-    //  A little aggressive to do this every scaffold.  Hopefully
-    //  won't kill performance.
-    ScaffoldGraph->tigStore->flushCache();
   }
+
+  //  Flushing after every scaffold is very expensive on larger (metagenomic) assemblies.
+  //  Flushing is of debatable value anyway.
+  //ScaffoldGraph->tigStore->flushCache();
 
   RecycleDeletedGraphElements(sgraph->ContigGraph);
   return madeChanges;

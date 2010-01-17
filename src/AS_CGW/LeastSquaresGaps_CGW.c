@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.38 2009-10-27 12:26:41 skoren Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.39 2010-01-17 03:10:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2337,10 +2337,5 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
         if (!redo)
           CheckCIScaffoldT(graph, scaffold);
       }
-
-      if ((sID % 100000) == 0)
-        ScaffoldGraph->tigStore->flushCache();
-
     }  //  end of sID loop
-  return;
 }

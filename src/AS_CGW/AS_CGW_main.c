@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.82 2009-12-01 00:20:29 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.83 2010-01-17 03:10:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -314,7 +314,7 @@ main(int argc, char **argv) {
     //  Create the checkpoint from scratch
     ScaffoldGraph = CreateScaffoldGraph(GlobalData->outputPrefix);
 
-    ProcessInput(firstFileArg, argc, argv);    // Handle the rest of the first file
+    ProcessInput(firstFileArg, argc, argv);
 
     LoadDistData();
 
@@ -373,6 +373,9 @@ main(int argc, char **argv) {
   }
 
 
+  //  We DO want to flush unused unitigs/contigs at this point.  They're not in
+  //  a scaffold, and possibly will never be used again (except as rocks/stones).
+  //
   ScaffoldGraph->tigStore->flushCache();
 
 
@@ -439,6 +442,12 @@ main(int argc, char **argv) {
   //  else TidyUpScaffolds (ScaffoldGraph);
 
 
+  //  We DO want to flush unused unitigs/contigs at this point.  They're not in
+  //  a scaffold, and possibly will never be used again (except as rocks/stones).
+  //
+  ScaffoldGraph->tigStore->flushCache();
+
+
   if (strcasecmp(restartFromLogical, CHECKPOINT_AFTER_1ST_SCAFF_MERGE) < 0) {
     fprintf(stderr, "Beginning CHECKPOINT_AFTER_1ST_SCAFF_MERGE\n");
 
@@ -466,6 +475,9 @@ main(int argc, char **argv) {
   }
 
 
+  //  We DO want to flush unused unitigs/contigs at this point.  They're not in
+  //  a scaffold, and possibly will never be used again (except as rocks/stones).
+  //
   ScaffoldGraph->tigStore->flushCache();
 
 
@@ -539,6 +551,9 @@ main(int argc, char **argv) {
   }
 
 
+  //  We DO want to flush unused unitigs/contigs at this point.  They're not in
+  //  a scaffold, and possibly will never be used again (except as rocks/stones).
+  //
   ScaffoldGraph->tigStore->flushCache();
 
   if ((strcasecmp(restartFromLogical, CHECKPOINT_AFTER_FINAL_ROCKS) < 0) &&
@@ -552,7 +567,7 @@ main(int argc, char **argv) {
       extra_rocks = Fill_Gaps(GlobalData->outputPrefix, GlobalData->repeatRezLevel, iter);
       fprintf(stderr, "Threw additional %d rocks on iter %d\n", extra_rocks, iter);
 
-      ScaffoldGraph->tigStore->flushCache();
+      //ScaffoldGraph->tigStore->flushCache();
     } while (extra_rocks > 1 && iter < MAX_EXTRA_ROCKS_ITERS);
 
     CheckpointScaffoldGraph(CHECKPOINT_AFTER_FINAL_ROCKS, "after final rocks");
@@ -569,7 +584,7 @@ main(int argc, char **argv) {
     CheckCIScaffoldTs (ScaffoldGraph);
     ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
 
-    ScaffoldGraph->tigStore->flushCache();
+    //ScaffoldGraph->tigStore->flushCache();
 
     fprintf (stderr, "Threw %d partial stones\n", partial_stones);
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
@@ -601,7 +616,6 @@ main(int argc, char **argv) {
     fprintf (stderr, "**** Finished Final Contained Stones level %d ****\n", GlobalData->stoneLevel);
 
     CleanupScaffolds (ScaffoldGraph, FALSE, NULLINDEX, FALSE);
-    ScaffoldGraph->tigStore->flushCache();
 
     fprintf(stderr, "Threw %d contained stones\n", contained_stones);
 
@@ -625,6 +639,11 @@ main(int argc, char **argv) {
     //GenerateLinkStats(ScaffoldGraph->ContigGraph, "CStones", 0);
     //GenerateScaffoldGraphStats ("CStones", 0);
   }
+
+  //  We DO want to flush unused unitigs/contigs at this point.  They're not in
+  //  a scaffold, and possibly will never be used again (except as rocks/stones).
+  //
+  ScaffoldGraph->tigStore->flushCache();
 
 
   if (strcasecmp(restartFromLogical, CHECKPOINT_AFTER_FINAL_CLEANUP) < 0) {
@@ -696,6 +715,11 @@ main(int argc, char **argv) {
   }
 #endif
 
+  //  We DO want to flush unused unitigs/contigs at this point.  They're not in
+  //  a scaffold, and possibly will never be used again (except as rocks/stones).
+  //
+  //  (This assumes that output doesn't load unitigs/contigs again)
+  //
   ScaffoldGraph->tigStore->flushCache();
 
   FixupLengthsScaffoldTs(ScaffoldGraph);

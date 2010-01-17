@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.13 2009-12-12 11:54:03 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.14 2010-01-17 03:10:10 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -534,19 +534,25 @@ MultiAlignStore::copyMultiAlign(int32 maID, bool isUnitig, MultiAlignT *macopy) 
 void
 MultiAlignStore::flushCache(void) {
 
-  for (uint32 i=0; i<utgLen; i++)
-    DeleteMultiAlignT(utgCache[i]);
+  for (uint32 i=0; i<utgLen; i++) {
+    if (utgCache[i]) {
+      DeleteMultiAlignT(utgCache[i]);
+      utgCache[i] = NULL;
+    }
+  }
 
-  memset(utgCache, 0, utgMax * sizeof(MultiAlignT *));
+  for (uint32 i=0; i<ctgLen; i++) {
+    if (ctgCache[i]) {
+      DeleteMultiAlignT(ctgCache[i]);
+      ctgCache[i] = NULL;
+    }
+  }
 
-  for (uint32 i=0; i<ctgLen; i++)
-    DeleteMultiAlignT(ctgCache[i]);
-
-  memset(ctgCache, 0, ctgMax * sizeof(MultiAlignT *));
-
+#if 0
   for (uint32 p=0; p<MAX_PART; p++)
     if (dataFile[currentVersion][p].FP)
       fflush(dataFile[currentVersion][p].FP);
+#endif
 }
 
 
