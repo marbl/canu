@@ -211,6 +211,9 @@ sub readXML () {
             if ($useSLI == 0) {
                 $lib = $1;
             }
+            if (($useSLI != 0) && ($lib eq ".")) {
+                $lib = $1;
+            }
         }
 
         #if (m!^\s*<RUN_GROUP_ID>(.*)</!i) {
