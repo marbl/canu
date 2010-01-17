@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.52 2010-01-15 17:52:08 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.53 2010-01-17 07:12:53 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -158,8 +158,8 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
     //  of the placed contig (that's offsetBEnd) to the variance of the 'offset'.  That is:
     //    offsetBEnd.variance = offset->variance
     //    offsetAEnd.variance = offset->variance
-    assert(CI->offsetBEnd.variance <= oldScaffold->bpLength.variance);
     assert(CI->offsetAEnd.variance <= oldScaffold->bpLength.variance);
+    assert(CI->offsetBEnd.variance <= oldScaffold->bpLength.variance);
 
     if (orient == A_B) {
       offsetAEnd.mean     = offset->mean     + CI->offsetAEnd.mean;
@@ -173,8 +173,9 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
       offsetBEnd.variance = offset->variance + (oldScaffold->bpLength.variance - CI->offsetBEnd.variance);
     }
 
-    assert(offsetBEnd.variance >= 0.0);
-    assert(offsetAEnd.variance >= 0.0);
+    //  Unfortunately, if oldScaffold has screwed up variances, 
+    //assert(offsetAEnd.variance >= 0.0);
+    //assert(offsetBEnd.variance >= 0.0);
 
     fprintf(stderr,"InsertScaffoldContentsIntoScaffold()-- Insert CI "F_CID" (%.0fbp) at offset (%.0f,%.0f); was at (%.0f,%.0f)\n",
             CI->id,
