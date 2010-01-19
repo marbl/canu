@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.45 2010-01-15 17:52:00 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.46 2010-01-19 01:33:12 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -302,16 +302,13 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
   //chunkInstance->bpLength.mean: 958.000000, bpLength.variance: 24.908000
   //
   //
-  if ( fabs (fabs(aEndOffset.variance - bEndOffset.variance) - chunkInstance->bpLength.variance) > 1.0 ) {
-    fprintf( stderr, "*** Variance Fixup Alert ***\n");
-    fprintf( stderr, "chunkInstance->id: "F_CID "\n", chunkInstance->id);
-    fprintf( stderr, "aEndOffset.mean: %f, bEndOffset.mean: %f\n", aEndOffset.mean, bEndOffset.mean);
-    fprintf( stderr, "aEndOffset.variance: %f, bEndOffset.variance: %f\n", aEndOffset.variance, bEndOffset.variance);
-    fprintf( stderr, "chunkInstance->bpLength.mean: %f\n", chunkInstance->bpLength.mean);
-    fprintf( stderr, "chunkInstance->bpLength.variance: %f\n", chunkInstance->bpLength.variance);
-    fprintf( stderr, "chunkInstance->offsetAEnd.mean: %f, offsetAEnd.variance: %f\n", chunkInstance->offsetAEnd.mean, chunkInstance->offsetAEnd.variance);
-    fprintf( stderr, "chunkInstance->offsetBEnd.mean: %f, offsetBEnd.variance: %f\n", chunkInstance->offsetBEnd.mean, chunkInstance->offsetBEnd.variance);
-    fprintf( stderr, "chunkInstance->bpLength.mean: %f, bpLength.variance: %f\n", chunkInstance->bpLength.mean, chunkInstance->bpLength.variance);
+  if (fabs(aEndOffset.variance - bEndOffset.variance) > 1.0 + chunkInstance->bpLength.variance) {
+    fprintf(stderr, "InsertCIInScaffold()-- VARIANCE FIXUP ALERT for CI %d length %.0f variance %.0f\n",
+            chunkInstance->id,chunkInstance->bpLength.mean, chunkInstance->bpLength.variance);
+    fprintf(stderr, "                       supplied placement has larger variance (%.0f) than 1.0 + chunk (%.0f).\n",
+            fabs(aEndOffset.variance - bEndOffset.variance), 1.0 + chunkInstance->bpLength.variance);
+    fprintf(stderr, "                       aEndOffset mean %12.0f variance %12.0f\n", aEndOffset.mean, aEndOffset.variance);
+    fprintf(stderr, "                       bEndOffset mean %12.0f variance %12.0f\n", bEndOffset.mean, bEndOffset.variance);
 
     //  If we're too far off assert
     //assert(fabs(aEndOffset.variance - bEndOffset.variance) >= 0.5 * chunkInstance->bpLength.variance);
@@ -325,6 +322,39 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
 
   //  Check that the placement is more or less the same as the length.
   //
+  if (fabs(aEndOffset.mean - bEndOffset.mean) >= (1.2 * chunkInstance->bpLength.mean)) {
+    fprintf(stderr, "InsertCIInScaffold()-- LENGTH FIXUP ALERT for CI %d length %.0f variance %.0f\n",
+            chunkInstance->id,chunkInstance->bpLength.mean, chunkInstance->bpLength.variance);
+    fprintf(stderr, "                       supplied placement has larger length (%.0f) than 1.2 * chunk (%.0f).\n",
+            fabs(aEndOffset.mean - bEndOffset.mean), 1.2 * chunkInstance->bpLength.mean);
+    fprintf(stderr, "                       aEndOffset mean %12.0f variance %12.0f\n", aEndOffset.mean, aEndOffset.variance);
+    fprintf(stderr, "                       bEndOffset mean %12.0f variance %12.0f\n", bEndOffset.mean, bEndOffset.variance);
+
+    //  This is probably a bad thing to do...
+    //
+    //  The one time BPW has seen this was from AS_REZ/Update_Scaffold_Graph() (the second call) on
+    //  nasonia vitripennis, 6x sanger, ~300Mbp genome, reads from TraceDB, with little QC on the
+    //  reads.
+    //
+    //SplitUnresolvedCI()--  Cloned surrogate ma of CI 161408 (length 2226) has length (2226) 2226
+    //SplitUnresolvedCI()--  Split base CI=161408 (now with 1 instances) into new CI=365714
+    //SplitUnresolvedContig()-- Split base CI=161408 contig=161408 into new CI=365714 contig=386443
+    //InsertCIInScaffold()-- VARIANCE FIXUP ALERT for CI 386443 length 2226 variance 58
+    //                       supplied placement has larger variance (640) than 1.0 + chunk (59).
+    //                       aEndOffset mean       275483 variance     35086224
+    //                       bEndOffset mean       300090 variance     35086864
+    //InsertCIInScaffold()-- LENGTH FIXUP ALERT for CI 386443 length 2226 variance 58
+    //                       supplied placement has larger length (24607) than 1.2 * chunk (2671).
+    //                       aEndOffset mean       275483 variance     35086224
+    //                       bEndOffset mean       300090 variance     35086282
+    //
+#if 0
+    if (aEndOffset.mean < bEndOffset.mean)
+      bEndOffset.mean = aEndOffset.mean + chunkInstance->bpLength.mean;
+    else
+      aEndOffset.mean = bEndOffset.mean + chunkInstance->bpLength.mean;
+#endif
+  }
   assert(fabs(aEndOffset.mean - bEndOffset.mean) < (1.2 * chunkInstance->bpLength.mean));
 
   //  Check that the CI isn't already in the scaffold.
