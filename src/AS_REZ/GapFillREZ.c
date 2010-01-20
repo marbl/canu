@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.62 2010-01-15 17:52:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.63 2010-01-20 00:06:48 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -8400,9 +8400,9 @@ static void  Print_Scaffolds
                        chunk -> id, scaff_id,
                        chunk -> offsetAEnd . variance,
                        chunk -> offsetBEnd . variance);
-              if  (fp != NULL)
-                fclose (fp);
-              assert (FALSE);
+              //if  (fp != NULL)
+              //  fclose (fp);
+              //assert (FALSE);
             }
           if  ((dip = chunk -> offsetAEnd . variance - prev_variance) < 0.0
                || (dip = chunk -> offsetBEnd . variance - prev_variance) < 0.0)
@@ -8413,9 +8413,9 @@ static void  Print_Scaffolds
                        chunk -> offsetAEnd . variance,
                        chunk -> offsetBEnd . variance,
                        prev_variance);
-              if  (fp != NULL)
-                fclose (fp);
-              assert (FALSE);
+              //if  (fp != NULL)
+              //  fclose (fp);
+              //assert (FALSE);
             }
 
 #if  MAKE_CAM_FILE
