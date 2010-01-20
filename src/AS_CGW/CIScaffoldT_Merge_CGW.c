@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.53 2010-01-17 07:12:53 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.54 2010-01-20 00:20:09 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -3033,6 +3033,13 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
       continue;
     }
 
+    //  This is guarding against a failure in GOS III; the very first edge in a scaffold merge
+    //  had negative variance, which would trigger an assert in the while() loop below.  In general,
+    //  we should be checking all edges used in the merge, not just the first edge.
+    //
+    if (edge->distance.variance <= 0.0)
+      continue;
+
     //  This is our last chance to abort before we create a new scaffold!
 
     InitializeScaffold(&CIScaffold, REAL_SCAFFOLD);
@@ -3086,10 +3093,14 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
       ChunkOrientationType edgeOrient = GetEdgeOrientationWRT(edge, thisScaffold->id);
 
       cnt++;
+
       assert(orientCI == A_B || orientCI == B_A);
+
       assert(edge->distance.variance >= 0);
+
       assert(currentOffset.mean >= 0);
       assert(currentOffset.variance >= 0);
+
       assert(thisScaffold->bpLength.variance >= 0);
       assert(neighbor->bpLength.variance >= 0);
 
