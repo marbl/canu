@@ -5,7 +5,10 @@ sub overlapTrim {
     return if (getGlobal("doOverlapTrimming") == 0);
     return if (getGlobal("ovlOverlapper") eq "umd");
 
+    #  Skip overlap based trimming if it is done, or if the ovlStore already exists.
+    #
     goto alldone if (-e "$wrk/0-overlaptrim/overlaptrim.success");
+    goto alldone if (-d "$wrk/$asm.ovlStore");
 
     system("mkdir $wrk/0-overlaptrim")         if (! -d "$wrk/0-overlaptrim");
     system("mkdir $wrk/0-overlaptrim-overlap") if (! -d "$wrk/0-overlaptrim-overlap");
