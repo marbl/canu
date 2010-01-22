@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlign.c,v 1.13 2009-12-11 03:00:33 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlign.c,v 1.14 2010-01-22 04:48:42 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -472,7 +472,7 @@ ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma) {
   size_t   memorySize = 0;
   char    *memory     = NULL;
   char    *memoryBase = NULL;
-  int      status = 0;
+  size_t   status     = 0;
 
   assert(ma != NULL);
 
