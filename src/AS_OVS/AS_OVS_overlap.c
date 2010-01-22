@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlap.c,v 1.9 2009-10-28 19:30:14 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlap.c,v 1.10 2010-01-22 05:24:47 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,7 +122,8 @@ AS_OVS_convertOVLdumpToOVSoverlap(char *line, OVSoverlap *olap) {
   char *ptrs[16] = {0};
   int   items    = stringSplit(line, ptrs, 16);
 
-  if (items == 7) {
+  if ((items == 7) ||
+      (items == 8)) {
     olap->a_iid              = atoi(ptrs[0]);
     olap->b_iid              = atoi(ptrs[1]);
     olap->dat.ovl.flipped    = (ptrs[2][0] == 'i') || (ptrs[2][0] == 'I');
@@ -130,24 +131,24 @@ AS_OVS_convertOVLdumpToOVSoverlap(char *line, OVSoverlap *olap) {
     olap->dat.ovl.b_hang     = atoi(ptrs[4]);
     olap->dat.ovl.orig_erate = AS_OVS_encodeQuality(atof(ptrs[5]) / 100.0);
     olap->dat.ovl.corr_erate = AS_OVS_encodeQuality(atof(ptrs[6]) / 100.0);
+    olap->dat.ovl.seed_value = (ptrs[7] == NULL) ? 0 : atoi(ptrs[7]);
     olap->dat.ovl.type       = AS_OVS_TYPE_OVL;
 
-#if 0
-    fprintf(stderr, "%u %u %f\n",
-            (uint32)olap->dat.ovl.orig_erate,
-            (uint32)AS_OVS_encodeQuality(atof(ptrs[5]) / 100.0),
-            atof(ptrs[5]) / 100.0);
-#endif
-
-    assert(olap->dat.ovl.a_hang     == atoi(ptrs[3]));
-    assert(olap->dat.ovl.b_hang     == atoi(ptrs[4]));
-    assert(olap->dat.ovl.orig_erate == AS_OVS_encodeQuality(atof(ptrs[5]) / 100.0));
-    assert(olap->dat.ovl.corr_erate == AS_OVS_encodeQuality(atof(ptrs[6]) / 100.0));
   } else {
-    //  Should report the line, but we munged it.
+    fprintf(stderr, "AS_OVS_convertOVLdumpToOVSoverlap()-- invalid line (%d items):", items);
+    for (uint32 i=0; i<items; i++)
+      fprintf(stderr, " %s", ptrs[i]);
+    fprintf(stderr, "\n");
+
+    return(false);
   }
 
-  return(items == 7);
+  assert(olap->dat.ovl.a_hang     == atoi(ptrs[3]));
+  assert(olap->dat.ovl.b_hang     == atoi(ptrs[4]));
+  assert(olap->dat.ovl.orig_erate == AS_OVS_encodeQuality(atof(ptrs[5]) / 100.0));
+  assert(olap->dat.ovl.corr_erate == AS_OVS_encodeQuality(atof(ptrs[6]) / 100.0));
+
+  return(true);
 }
 
 
@@ -170,14 +171,20 @@ AS_OVS_convertOBTdumpToOVSoverlap(char *line, OVSoverlap *olap) {
     olap->dat.obt.erate    = AS_OVS_encodeQuality(atof(ptrs[7]) / 100.0);
     olap->dat.ovl.type     = AS_OVS_TYPE_OBT;
 
-    assert(olap->dat.obt.a_beg == atoi(ptrs[3]));
-    assert(olap->dat.obt.a_end == atoi(ptrs[4]));
-    assert(olap->dat.obt.b_beg == atoi(ptrs[5]));
-    assert(((olap->dat.obt.b_end_hi << 9) | (olap->dat.obt.b_end_lo)) == atoi(ptrs[6]));
   } else {
-    //  Should report the line, but we munged it.
+    fprintf(stderr, "AS_OVS_convertOBTdumpToOVSoverlap()-- invalid line (%d items):", items);
+    for (uint32 i=0; i<items; i++)
+      fprintf(stderr, " %s", ptrs[i]);
+    fprintf(stderr, "\n");
+
+    return(false);
   }
 
-  return(items == 10);
+  assert(olap->dat.obt.a_beg == atoi(ptrs[3]));
+  assert(olap->dat.obt.a_end == atoi(ptrs[4]));
+  assert(olap->dat.obt.b_beg == atoi(ptrs[5]));
+  assert(((olap->dat.obt.b_end_hi << 9) | (olap->dat.obt.b_end_lo)) == atoi(ptrs[6]));
+
+  return(true);
 }
 
