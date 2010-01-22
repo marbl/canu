@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.46 2010-01-19 01:33:12 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.47 2010-01-22 04:49:54 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -347,6 +347,14 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
     //                       supplied placement has larger length (24607) than 1.2 * chunk (2671).
     //                       aEndOffset mean       275483 variance     35086224
     //                       bEndOffset mean       300090 variance     35086282
+    //
+    //  And once in GOSIII
+    //
+    //YIKES!!  old_len = 342  new_len = 415 for chunk 9959948
+    //InsertCIInScaffold()-- LENGTH FIXUP ALERT for CI 9959948 length 342 variance 9
+    //                       supplied placement has larger length (415) than 1.2 * chunk (410).
+    //                       aEndOffset mean            0 variance           36
+    //                       bEndOffset mean          415 variance           45
     //
 #if 0
     if (aEndOffset.mean < bEndOffset.mean)
