@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.14 2010-01-17 03:10:10 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.15 2010-01-22 04:46:56 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -127,12 +127,23 @@ MultiAlignStore::MultiAlignStore(const char *path_,
   }
 
   //  Open the next version for writing, and keep the data that is currently there.
-
+  //
+  //  Special cases for partitioned stores (consensus).  Do NOT load the next version of the
+  //  unpartitioned data.  For contig consensus, we want to update the contig data with the stuff in
+  //  the next version.  This lets us resume failed ctgcns runs.  However, we do not want any of the
+  //  unitig data in the next version.  Unitigs shouldn't change, and likely cannot change since the
+  //  store is currently partitioned on contigs.
+  //
   if (append == true) {
     currentVersion++;
 
-    loadMASR(utgRecord, utgLen, utgMax, currentVersion, TRUE,  TRUE);
-    loadMASR(ctgRecord, ctgLen, ctgMax, currentVersion, FALSE, TRUE);
+    if (contigPart == 0)
+      //  Contigs are partitioned, so do NOT load the next version of unitigs.  They shouldn't be changing.
+      loadMASR(utgRecord, utgLen, utgMax, currentVersion, TRUE,  TRUE);
+
+    if (unitigPart == 0)
+      //  Unitigs are partitioned, so do NOT load the next version of contigs.  They shouldn't be changing.
+      loadMASR(ctgRecord, ctgLen, ctgMax, currentVersion, FALSE, TRUE);
   }
 
   if ((utgLen == 0) && (ctgLen == 0)) {
@@ -146,10 +157,15 @@ MultiAlignStore::~MultiAlignStore() {
 
   flushCache();
 
-  if (writable) {
+  //  If writable, and we aren't working on contig-partitioned data, write the unitig data.  If we
+  //  are working on contig-partitioned data, when we load the store the next time, we'll fall back
+  //  to the previous version for unitigs.
+
+  if ((writable) && (contigPart == 0))
     dumpMASR(utgRecord, utgLen, utgMax, currentVersion, TRUE);
+
+  if ((writable) && (unitigPart == 0))
     dumpMASR(ctgRecord, ctgLen, ctgMax, currentVersion, FALSE);
-  }
 
   //  If new tigs were added, AND we are partitioned, update the global
   //  partition.
@@ -280,6 +296,15 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
   assert(ma->data.unitig_status      != 0);
   assert(ma->data.unitig_unique_rept != 0);
   assert(ma->data.contig_status      != 0);
+
+  //  We can add unitigs only if we are not contig-partitioned, likewise for contigs.
+  if ((isUnitig == 1) && (contigPart != 0))
+    fprintf(stderr, "MultiAlignStore::insertMultiAlign()-- ERROR: attempted to add a unitig when the store is partitioned on contigs.\n");
+  assert((contigPart == 0) || (isUnitig == 0));
+
+  if ((isUnitig == 0) && (unitigPart != 0))
+    fprintf(stderr, "MultiAlignStore::insertMultiAlign()-- ERROR: attempted to add a contig when the store is partitioned on unitigs.\n");
+  assert((unitigPart == 0) || (isUnitig == 1));
 
   if (isUnitig == 1) {
     if (ma->maID < 0) {
