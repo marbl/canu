@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.44 2009-10-26 13:20:26 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.45 2010-01-23 04:04:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1155,6 +1155,20 @@ static void Write_DST_Mesg(FILE *fout, void *vmesg)
 
 static void Write_VER_Mesg(FILE *fout, void *vmesg) {
   VersionMesg *mesg = (VersionMesg *) vmesg;
+
+  switch (mesg->version) {
+    case 1:
+      AS_MSG_setFormatVersion1();
+      break;
+    case 2:
+      AS_MSG_setFormatVersion2();
+      break;
+    default:
+      fprintf(stderr,"ERROR: Unknown version "F_U32".\n", mesg->version);
+      assert((mesg->version == 1) ||
+             (mesg->version == 2));
+      break;
+  }
 
   fprintf(fout,"{VER\n");
   fprintf(fout,"ver:"F_U32"\n", mesg->version);
