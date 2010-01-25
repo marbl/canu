@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.29 2009-06-15 07:01:37 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.30 2010-01-25 12:58:37 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -70,18 +70,8 @@ ChunkGraph::countFullWidth(BestOverlapGraph *BOG, uint32 *pathLen, uint32 firstF
 
     //  Follow the path of lastEnd
 
-    uint32 frag = ((lastEnd.fragEnd() == FIVE_PRIME) ?
-                 BOG->getBestEdgeOverlap(lastEnd.fragId(), FIVE_PRIME) ->frag_b_id :
-                 BOG->getBestEdgeOverlap(lastEnd.fragId(), THREE_PRIME)->frag_b_id);
-
-    if (frag == 0) {
-      lastEnd = FragmentEnd();
-    } else {
-      BOG->followOverlap( &lastEnd );
-      assert(frag == lastEnd.fragId());
-    }
-
-    index = lastEnd.fragId() * 2 + lastEnd.fragEnd();
+    lastEnd = BOG->followOverlap(lastEnd);
+    index   = lastEnd.fragId() * 2 + lastEnd.fragEnd();
   }
 
   //  Check why we stopped.  If we've seen this fragment before, we
@@ -107,7 +97,7 @@ ChunkGraph::countFullWidth(BestOverlapGraph *BOG, uint32 *pathLen, uint32 firstF
 
     do {
       pathLen[index] = circleLen;
-      BOG->followOverlap(&currEnd);
+      currEnd = BOG->followOverlap(currEnd);
 
       index = currEnd.fragId() * 2 + currEnd.fragEnd();
     } while (lastEnd != currEnd);
@@ -130,7 +120,7 @@ ChunkGraph::countFullWidth(BestOverlapGraph *BOG, uint32 *pathLen, uint32 firstF
 
   while (currEnd.fragId() != lastEnd.fragId()) {
     pathLen[currEnd.fragId() * 2 + currEnd.fragEnd()] = cnt--;
-    BOG->followOverlap( &currEnd );
+    currEnd = BOG->followOverlap(currEnd);
   }
 
   return(cntMax);

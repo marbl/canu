@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.68 2009-08-07 19:17:36 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.69 2010-01-25 12:58:37 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -181,48 +181,6 @@ BestOverlapGraph::~BestOverlapGraph(){
   delete[] _best_contains;
 }
 
-
-//  Given a fragment UINT32 and which end, returns pointer to
-//  BestOverlap node.
-BestEdgeOverlap *BestOverlapGraph::getBestEdgeOverlap(uint32 frag_id, uint32 which_end){
-  if(which_end == FIVE_PRIME)
-    return(&_best_overlaps[frag_id].five_prime);
-  if(which_end == THREE_PRIME)
-    return(&_best_overlaps[frag_id].three_prime);
-  return(NULL);
-}
-
-BestEdgeOverlap *BestOverlapGraph::getBestEdgeOverlap(FragmentEnd* end) {
-  return getBestEdgeOverlap(end->fragId(),end->fragEnd());
-}
-
-void BestOverlapGraph::followOverlap(FragmentEnd* end) {
-  BestEdgeOverlap* edge = getBestEdgeOverlap(end);
-  *end = FragmentEnd(edge->frag_b_id, (edge->bend == FIVE_PRIME) ? THREE_PRIME : FIVE_PRIME);
-}
-
-bool BestOverlapGraph::containHaveEdgeTo(uint32 contain, uint32 otherRead) {
-  BestContainment  *c = &_best_contains[contain];
-  bool              r = false;
-
-  if (c->isContained) {
-    if (c->olapsLen < 16) {
-      for (int i=0; i<c->olapsLen; i++)
-        if (c->olaps[i] == otherRead) {
-          r = true;
-          break;
-        }
-    } else {
-      if (c->olapsSorted == false) {
-        std::sort(c->olaps, c->olaps + c->olapsLen);
-        c->olapsSorted = true;
-      }
-      r = std::binary_search(c->olaps, c->olaps + c->olapsLen, otherRead);
-    }
-  }
-
-  return(r);
-}
 
 
 void BestOverlapGraph::scoreContainment(const OVSoverlap& olap) {

@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.53 2009-08-07 19:17:36 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.54 2010-01-25 12:58:37 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -30,13 +30,24 @@ struct BestOverlapGraph {
   BestOverlapGraph(FragmentInfo *fi, OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept, double erate);
   ~BestOverlapGraph();
 
-  // Accessor Functions
-  BestEdgeOverlap *getBestEdgeOverlap(uint32 frag_id, uint32 which_end);
-  BestEdgeOverlap *getBestEdgeOverlap(FragmentEnd*);
+  //  Given a fragment UINT32 and which end, returns pointer to
+  //  BestOverlap node.
+  BestEdgeOverlap *getBestEdgeOverlap(uint32 frag_id, uint32 which_end) {
+    if(which_end == FIVE_PRIME)    return(&_best_overlaps[frag_id].five_prime);
+    if(which_end == THREE_PRIME)   return(&_best_overlaps[frag_id].three_prime);
+    return(NULL);
+  };
 
   // given a FragmentEnd sets it to the next FragmentEnd after following the
   // best edge
-  void followOverlap(FragmentEnd*);
+  FragmentEnd   followOverlap(FragmentEnd end) {
+    if (end.fragId() == 0)
+      return(FragmentEnd());
+
+    BestEdgeOverlap *edge = getBestEdgeOverlap(end.fragId(), end.fragEnd());
+
+    return(FragmentEnd(edge->frag_b_id, (edge->bend == FIVE_PRIME) ? THREE_PRIME : FIVE_PRIME));
+  };
 
   bool isContained(const uint32 fragid) {
     return(_best_contains[fragid].isContained);
@@ -47,7 +58,28 @@ struct BestOverlapGraph {
     return((isContained(fragid)) ? &_best_contains[fragid] : NULL);
   };
 
-  bool containHaveEdgeTo( uint32, uint32);
+  bool containHaveEdgeTo(uint32 contain, uint32 otherRead) {
+    BestContainment  *c = &_best_contains[contain];
+    bool              r = false;
+
+    if (c->isContained) {
+      if (c->olapsLen < 16) {
+        for (int i=0; i<c->olapsLen; i++)
+          if (c->olaps[i] == otherRead) {
+            r = true;
+            break;
+          }
+      } else {
+        if (c->olapsSorted == false) {
+          std::sort(c->olaps, c->olaps + c->olapsLen);
+          c->olapsSorted = true;
+        }
+        r = std::binary_search(c->olaps, c->olaps + c->olapsLen, otherRead);
+      }
+    }
+
+    return(r);
+  };
 
   // Graph building methods
   uint32  AEnd(const OVSoverlap& olap);
