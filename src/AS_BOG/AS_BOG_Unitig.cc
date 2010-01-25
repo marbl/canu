@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.17 2010-01-14 03:12:50 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.18 2010-01-25 12:47:57 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -592,8 +592,8 @@ float Unitig::getAvgRho(FragmentInfo *fi){
   _avgRho = unitig_length - avg_frag_len;
 
   if (_avgRho <= 0 ) {
-    fprintf(stderr, "Negative Rho ident1 "F_IID" ident2 "F_IID" unitig_length %d first_frag_len %d last_frag_len %d avg_frag_len %f\n",
-            ident1, ident2, unitig_length, first_frag_len, last_frag_len, avg_frag_len);
+    //fprintf(stderr, "Negative Rho ident1 "F_IID" ident2 "F_IID" unitig_length %d first_frag_len %d last_frag_len %d avg_frag_len %f\n",
+    //        ident1, ident2, unitig_length, first_frag_len, last_frag_len, avg_frag_len);
     _avgRho = 1;
   }
   return(_avgRho);
