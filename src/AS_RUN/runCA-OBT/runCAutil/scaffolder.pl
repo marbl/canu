@@ -162,6 +162,10 @@ sub eCR ($$$) {
         if (runCommand("$wrk/$thisDir", $cmd)) {
             caFailure("extendClearRanges partitioning failed", "$wrk/$thisDir/extendClearRanges.partitionInfo.err");
         }
+
+        #  Remove any existing eCR scripts -- possibly left behind by the user deleting
+        #  the partitioinInfo and restarting.
+        system("rm $wrk/$thisDir/extendClearRanges-scaffold.*");
     }
 
     #  Read the partitioning info, create jobs.  No partitions?  No ECR jobs.
@@ -182,32 +186,34 @@ sub eCR ($$$) {
         if (! -e "$j.success") {
             my $bin = getBinDirectory();
 
-            open(F, "> $j.sh");
-            print F "#!" . getGlobal("shell") . "\n\n";
-            print F "\n";
-            print F "AS_OVL_ERROR_RATE=", getGlobal("ovlErrorRate"), "\n";
-            print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
-            print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
-            print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
-            print F "\n";
-            print F "$bin/extendClearRanges \\\n";
-            print F " -g $wrk/$asm.gkpStore \\\n";
-            print F " -t $wrk/$asm.tigStore \\\n";
-            print F " -n $lastckp \\\n";
-            print F " -c $asm \\\n";
-            print F " -b $curScaffold -e $endScaffold \\\n";
-            print F " -i $iter \\\n";
-            print F " > $j.err 2>&1\n";
-            close(F);
+            if (! -e "$j.sh") {
+                open(F, "> $j.sh");
+                print F "#!" . getGlobal("shell") . "\n\n";
+                print F "\n";
+                print F "AS_OVL_ERROR_RATE=", getGlobal("ovlErrorRate"), "\n";
+                print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
+                print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
+                print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
+                print F "\n";
+                print F "$bin/extendClearRanges \\\n";
+                print F " -g $wrk/$asm.gkpStore \\\n";
+                print F " -t $wrk/$asm.tigStore \\\n";
+                print F " -n $lastckp \\\n";
+                print F " -c $asm \\\n";
+                print F " -b $curScaffold -e $endScaffold \\\n";
+                print F " -i $iter \\\n";
+                print F " > $j.err 2>&1\n";
+                close(F);
 
-            system("chmod +x $j.sh");
+                system("chmod +x $j.sh");
+            }
 
             push @jobs, "$j";
 
             $lastckp++;
         }
     }
-    close(F);
+    close(P);
 
     #  Run jobs.
 
