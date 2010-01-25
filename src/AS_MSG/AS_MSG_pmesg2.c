@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg2.c,v 1.17 2009-08-14 13:37:07 skoren Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg2.c,v 1.18 2010-01-25 17:34:27 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,14 +67,13 @@ Read_LIB_Mesg(FILE *fin) {
   //  Munge the feature string into a list of features
   //
   if (lmesg.num_features > 0) {
-    int      i;
     char    *fb = features;
     char    *fn = fb;
 
     lmesg.features = (char **)safe_realloc(lmesg.features, sizeof(char *) * lmesg.num_features);
     lmesg.values   = (char **)safe_realloc(lmesg.values,   sizeof(char *) * lmesg.num_features);
 
-    for (i=0; i<lmesg.num_features; i++) {
+    for (uint32 i=0; i<lmesg.num_features; i++) {
       //  get rid of spaces in the label
       while (isspace(*fb))
         fb++;
@@ -124,7 +123,6 @@ static
 void
 Write_LIB_Mesg(FILE *fout,void *mesg) {
   LibraryMesg  *lmesg = (LibraryMesg *)mesg;
-  int           i;
 
   fprintf(fout,"{LIB\n");
   fprintf(fout,"act:%c\n", lmesg->action);
@@ -145,7 +143,7 @@ Write_LIB_Mesg(FILE *fout,void *mesg) {
 
     fprintf(fout,"nft:%d\n",lmesg->num_features);
     fprintf(fout,"fea:\n");
-    for (i=0; i<lmesg->num_features; i++)
+    for (uint32 i=0; i<lmesg->num_features; i++)
       fprintf(fout,"%s=%s\n", lmesg->features[i], lmesg->values[i]);
     fprintf(fout,".\n");
   }

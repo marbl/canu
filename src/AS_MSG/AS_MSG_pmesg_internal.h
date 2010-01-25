@@ -22,7 +22,7 @@
 #ifndef AS_MSG_PMESG_INTERNAL_H
 #define AS_MSG_PMESG_INTERNAL_H
 
-static const char *rcsid_AS_MSG_PMESG_INTERNAL_H = "$Id: AS_MSG_pmesg_internal.h,v 1.10 2009-03-05 18:50:20 skoren Exp $";
+static const char *rcsid_AS_MSG_PMESG_INTERNAL_H = "$Id: AS_MSG_pmesg_internal.h,v 1.11 2010-01-25 17:34:27 brianwalenz Exp $";
 
 //  FreeBSD 6.1 fgets() sporadically replaces \n with \0, which
 //  horribly breaks this reader.  Defined this to replace
@@ -51,16 +51,14 @@ typedef struct {
   size_t               size;
 } AS_MSG_callrecord;
 
-#define MAX_MESG_LEN (256 * 1024 * 1024)
-#define MAX_LINE_LEN ( 16 * 1024 * 1024)
 
 typedef struct {
   GenericMesg readMesg;     //  Where we read messages into
 
   const char *msgCode;      //  3-code of current read/write routine
 
-  int         msgMax;       //  -- amount allocated
-  int         msgLen;       //  -- next free bit
+  uint64      msgMax;       //  -- amount allocated
+  uint64      msgLen;       //  -- next free bit
   char       *msgBuffer;    //  Memory allocation buffer for messages, and the current ceiling/top.
 
   char       *curLine;      //  The current line
@@ -70,9 +68,8 @@ typedef struct {
   AS_MSG_callrecord CallTable[NUM_OF_REC_TYPES+1];
 } AS_MSG_global_t;
 
+
 extern AS_MSG_global_t  *AS_MSG_globals;
-
-
 
 char   *GetMemory(size_t nbytes);
 char   *ReadLine(FILE *fin, int skipComment);
