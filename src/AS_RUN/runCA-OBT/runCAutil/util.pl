@@ -182,6 +182,9 @@ sub setDefaults () {
     $global{"utgErrorRate"}                = 0.015;
     $synops{"utgErrorRate"}                = "Overlaps above this error rate are not used to construct unitigs";
 
+    $global{"utgErrorLimit"}               = 0;
+    $synops{"utgErrorLimit"}               = "Overlaps with more than this number of errors are not used to construct unitigs";
+
     $global{"cnsErrorRate"}                = 0.06;
     $synops{"cnsErrorRate"}                = "Consensus expects alignments at about this error rate";
 

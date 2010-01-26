@@ -28,6 +28,7 @@ sub unitigger () {
 
         my $l = getGlobal("utgGenomeSize");
         my $e = getGlobal("utgErrorRate");
+        my $E = getGlobal("utgErrorLimit");
 
         my $B = int($numFrags / getGlobal("cnsPartitions"));
         $B = getGlobal("cnsMinFrags") if ($B < getGlobal("cnsMinFrags"));
@@ -47,6 +48,7 @@ sub unitigger () {
             $cmd .= " -T $wrk/$asm.tigStore ";
             $cmd .= " -B $B ";
             $cmd .= " -e $e ";
+            $cmd .= " -E $E ";
             $cmd .= " -s $l "   if (defined($l));
             $cmd .= " -b "      if (getGlobal("bogBreakAtIntersections") == 1);
             $cmd .= " -m $bmd " if (defined($bmd));

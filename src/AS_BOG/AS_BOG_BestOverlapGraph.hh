@@ -22,12 +22,12 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.55 2010-01-26 02:23:55 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.56 2010-01-26 03:51:43 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
 struct BestOverlapGraph {
-  BestOverlapGraph(FragmentInfo *fi, OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept, double erate);
+  BestOverlapGraph(FragmentInfo *fi, OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept, double erate, double elimit);
   ~BestOverlapGraph();
 
   //  Given a fragment UINT32 and which end, returns pointer to
@@ -86,6 +86,54 @@ struct BestOverlapGraph {
   uint32  BEnd(const OVSoverlap& olap);
   void    processOverlap(const OVSoverlap& olap);
 
+  bool    isOverlapBadQuality(const OVSoverlap& olap) {
+
+    if ((olap.dat.ovl.orig_erate <= consensusCutoff) &&
+        (olap.dat.ovl.corr_erate <= mismatchCutoff)) {
+      if (logFile)
+        fprintf(logFile, "OVERLAP GOOD:     %d %d %c  hangs %d %d err %.3f %.3f\n",
+                olap.a_iid, olap.b_iid,
+                olap.dat.ovl.flipped ? 'A' : 'N',
+                olap.dat.ovl.a_hang,
+                olap.dat.ovl.b_hang,
+                AS_OVS_decodeQuality(olap.dat.ovl.orig_erate),
+                AS_OVS_decodeQuality(olap.dat.ovl.corr_erate));
+      return(false);
+    }
+
+    //  There are a few cases where the orig_erate is _better_ than the corr_erate -- the orig is 0%
+    //  and the corrected is > 0%.  Regardless, we probably want to be using the correct erate here.
+    //
+    double olen = olapLength(olap);
+    double nerr = olen * AS_OVS_decodeQuality(olap.dat.ovl.corr_erate);
+
+    assert(nerr >= 0);
+
+    if (nerr <= mismatchLimit) {
+      if (logFile)
+        fprintf(logFile, "OVERLAP SAVED:    %d %d %c  hangs %d %d err %.3f %.3f olen %f nerr %f\n",
+                olap.a_iid, olap.b_iid,
+                olap.dat.ovl.flipped ? 'A' : 'N',
+                olap.dat.ovl.a_hang,
+                olap.dat.ovl.b_hang,
+                AS_OVS_decodeQuality(olap.dat.ovl.orig_erate),
+                AS_OVS_decodeQuality(olap.dat.ovl.corr_erate),
+                olen, nerr);
+      return(false);
+    }
+
+    if (logFile)
+      fprintf(logFile, "OVERLAP REJECTED: %d %d %c  hangs %d %d err %.3f %.3f olen %f nerr %f\n",
+              olap.a_iid, olap.b_iid,
+              olap.dat.ovl.flipped ? 'A' : 'N',
+              olap.dat.ovl.a_hang,
+              olap.dat.ovl.b_hang,
+              AS_OVS_decodeQuality(olap.dat.ovl.orig_erate),
+              AS_OVS_decodeQuality(olap.dat.ovl.corr_erate),
+              olen, nerr);
+    return(true);
+  };
+
   uint64  scoreOverlap(const OVSoverlap& olap) {
 
     //  BPW's newer new score.  For
@@ -98,10 +146,8 @@ struct BestOverlapGraph {
     //
     //  (Well, 12 == AS_OVS_ERRBITS)
 
-    if (olap.dat.ovl.orig_erate > consensusCutoff)
-      return 0;
-    if (olap.dat.ovl.corr_erate > mismatchCutoff)
-      return 0;
+    if (isOverlapBadQuality(olap))
+      return(0);
 
     uint64  leng = 0;
     uint64  corr = (AS_OVS_MAX_ERATE - olap.dat.ovl.corr_erate);
@@ -138,20 +184,35 @@ struct BestOverlapGraph {
   };
 
   uint32  olapLength(uint32 a_iid, uint32 b_iid, short a_hang, short b_hang) {
-    uint32 alen = _fi->fragmentLength(a_iid);
-    uint32 blen = _fi->fragmentLength(b_iid);
+    int32  ooff = 0;
+    int32  alen = _fi->fragmentLength(a_iid);
+    int32  blen = _fi->fragmentLength(b_iid);
+    int32  aovl = 0;
+    int32  bovl = 0;
 
     if (a_hang < 0) {
       if (b_hang < 0 )
-        return alen + b_hang;
+        ooff = b_hang;
       else
-        return alen + a_hang - b_hang; // spur or containment
+        ooff = 0;
     } else {
       if (b_hang < 0 )
-        return alen - a_hang + b_hang; // spur or containment
+        ooff = b_hang - a_hang;
       else
-        return alen - a_hang;
+        ooff = -a_hang;
     }
+
+    //  WARNING!  Using unsigned ints for alen causes this test to be invalid.  (!!?)
+    if ((ooff > 0) ||
+        (ooff >= alen)) {
+      fprintf(stderr, "olapLength()--  ERROR:  Read length less than overlap length.\n");
+      fprintf(stderr, "olapLength()--  ooff %d iids %d %d lengths %d %d hang %d %d\n",
+              ooff, a_iid, b_iid, alen, blen, a_hang, b_hang);
+    }
+    assert(ooff <= 0);
+    assert(ooff < alen);
+
+    return((uint32)(alen + ooff));
   };
 
   uint32 olapLength(const OVSoverlap& olap) {
@@ -178,6 +239,7 @@ private:
 public:
   uint64 mismatchCutoff;
   uint64 consensusCutoff;
+  double mismatchLimit;
 }; //BestOverlapGraph
 
 

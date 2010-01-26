@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.70 2010-01-26 02:27:04 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.71 2010-01-26 03:51:43 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -72,7 +72,8 @@ uint32 BestOverlapGraph::BEnd(const OVSoverlap& olap) {
 BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
                                    OverlapStore        *ovlStoreUniq,
                                    OverlapStore        *ovlStoreRept,
-                                   double               AS_UTG_ERROR_RATE) {
+                                   double               AS_UTG_ERROR_RATE,
+                                   double               AS_UTG_ERROR_LIMIT) {
   OVSoverlap olap;
 
   _fi = fi;
@@ -94,6 +95,8 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
 
   mismatchCutoff  = AS_OVS_encodeQuality(AS_UTG_ERROR_RATE);
   consensusCutoff = AS_OVS_encodeQuality(AS_CNS_ERROR_RATE);
+
+  mismatchLimit   = AS_UTG_ERROR_LIMIT;
 
   //  Pass 1 through overlaps -- find the contained fragments.
 
@@ -153,7 +156,7 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
   _best_overlaps_5p_score = NULL;
   _best_overlaps_3p_score = NULL;
 
- //setLogFile("unitigger", NULL);
+  //setLogFile("unitigger", NULL);
 
   //  Diagnostic.  Dump the best edges, count the number of contained
   //  reads, etc.
@@ -191,8 +194,7 @@ BestOverlapGraph::~BestOverlapGraph(){
 
 void BestOverlapGraph::scoreContainment(const OVSoverlap& olap) {
 
-  if ((olap.dat.ovl.orig_erate > consensusCutoff) ||
-      (olap.dat.ovl.corr_erate > mismatchCutoff))
+  if (isOverlapBadQuality(olap))
     return;
 
   //  Count the number of good containment and near-containment
@@ -237,8 +239,7 @@ void BestOverlapGraph::scoreContainment(const OVSoverlap& olap) {
 
 void BestOverlapGraph::scoreEdge(const OVSoverlap& olap) {
 
-  if ((olap.dat.ovl.orig_erate > consensusCutoff) ||
-      (olap.dat.ovl.corr_erate > mismatchCutoff))
+  if (isOverlapBadQuality(olap))
     return;
 
   //  Store edges from contained frags to help with unhappy mate

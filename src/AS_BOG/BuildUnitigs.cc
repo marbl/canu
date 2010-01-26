@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.67 2010-01-26 02:27:04 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.68 2010-01-26 03:51:43 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -134,6 +134,7 @@ main (int argc, char * argv []) {
   char      *tigStorePath           = NULL;
 
   double    erate                   = 0.015;
+  double    elimit                  = 0.0;
   long      genome_size             = 0;
 
   int       fragment_count_target   = 0;
@@ -181,6 +182,9 @@ main (int argc, char * argv []) {
     } else if (strcmp(argv[arg], "-e") == 0) {
       erate = atof(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-E") == 0) {
+      elimit = atof(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-m") == 0) {
       badMateBreakThreshold = -atoi(argv[++arg]);
 
@@ -195,6 +199,8 @@ main (int argc, char * argv []) {
   }
 
   if ((erate < 0.0) || (AS_MAX_ERROR_RATE < erate))
+    err++;
+  if (elimit < 0.0)
     err++;
   if (output_prefix == NULL)
     err++;
@@ -213,7 +219,7 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -T         Mandatory path to a tigStore (can exist or not).\n");
     fprintf(stderr, "  -o prefix  Mandatory name for the output files\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -B b       Target number of fragments per IUM batch.\n");
+    fprintf(stderr, "  -B b       Target number of fragments per tigStore (consensus) partition\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -s size    If the genome size is set to 0, this will cause the unitigger\n");
     fprintf(stderr, "             to try to estimate the genome size based on the constructed\n");
@@ -223,13 +229,20 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -J         Enable EXPERIMENTAL long unitig joining.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -b         Break promisciuous unitigs at unitig intersection points\n");
-    fprintf(stderr, "  -e         Fraction error to generate unitigs for; default is 0.015\n");
-    fprintf(stderr, "  -m num     Number of bad mates in a region required to break a unitig; default is 7\n");
+    fprintf(stderr, "  -m 7       Break a unitig if a region has more than 7 bad mates\n");
     fprintf(stderr, " \n");
+    fprintf(stderr, "Overlap Selection - an overlap will be considered for use in a unitig if either of\n");
+    fprintf(stderr, "                    the following conditions hold:\n");
+    fprintf(stderr, "  -e 0.015   no more than 0.015 fraction (1.5%%) error\n");
+    fprintf(stderr, "  -E 0       no more than 0 errors\n");
+    fprintf(stderr, "\n");
 
     if ((erate < 0.0) || (AS_MAX_ERROR_RATE < erate))
       fprintf(stderr, "Invalid overlap error threshold (-e option); must be between 0.00 and %.2f.\n",
               AS_MAX_ERROR_RATE);
+
+    if (elimit < 0.0)
+      fprintf(stderr, "Invalid overlap error limit (-E option); must be above 0.\n");
 
     if (output_prefix == NULL)
       fprintf(stderr, "No output prefix name (-o option) supplied.\n");
@@ -253,7 +266,8 @@ main (int argc, char * argv []) {
   fprintf(stderr, "Bubble popping        = %s\n", (popBubbles) ? "on" : "off");
   fprintf(stderr, "Intersection breaking = %s\n", (breakIntersections) ? "on" : "off");
   fprintf(stderr, "Bad mate threshold    = %d\n", badMateBreakThreshold);
-  fprintf(stderr, "Error threshold       = %.3f%%\n", erate * 100);
+  fprintf(stderr, "Error threshold       = %.3f (%.3f%%)\n", erate, erate * 100);
+  fprintf(stderr, "Error limit           = %.3f errors\n", elimit);
   fprintf(stderr, "Genome Size           = "F_S64"\n", genome_size);
   fprintf(stderr, "\n");
 
@@ -265,7 +279,7 @@ main (int argc, char * argv []) {
 
   debugfi = fragInfo;
 
-  BestOverlapGraph      *BOG = new BestOverlapGraph(fragInfo, ovlStoreUniq, ovlStoreRept, erate);
+  BestOverlapGraph      *BOG = new BestOverlapGraph(fragInfo, ovlStoreUniq, ovlStoreRept, erate, elimit);
 
   bog = BOG;
 
