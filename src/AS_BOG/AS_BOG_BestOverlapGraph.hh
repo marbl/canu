@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.54 2010-01-25 12:58:37 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.55 2010-01-26 02:23:55 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -145,10 +145,10 @@ struct BestOverlapGraph {
       if (b_hang < 0 )
         return alen + b_hang;
       else
-        return blen + a_hang - b_hang; // spur or containment
+        return alen + a_hang - b_hang; // spur or containment
     } else {
       if (b_hang < 0 )
-        return alen + b_hang - a_hang; // spur or containment
+        return alen - a_hang + b_hang; // spur or containment
       else
         return alen - a_hang;
     }
