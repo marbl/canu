@@ -18,13 +18,13 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.50 2010-01-25 17:34:27 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.51 2010-01-26 16:09:43 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg_internal.h"
 
 AS_MSG_global_t *AS_MSG_globals = NULL;
 
-#define MAX_LINE_LEN  (8 * 1024 * 1024)
+#define MAX_LINE_LEN  (16 * 1024 * 1024)
 
 char *
 GetMemory(size_t nbytes) {
@@ -300,10 +300,10 @@ AS_MSG_globalsInitialize(void) {
   if (AS_MSG_globals == NULL) {
     AS_MSG_globals = (AS_MSG_global_t *)safe_calloc(1, sizeof(AS_MSG_global_t));
 
-    AS_MSG_globals->msgMax    = 8;
+    AS_MSG_globals->msgMax    = 256;
     AS_MSG_globals->msgMax   *= 1024;
     AS_MSG_globals->msgMax   *= 1024;
-    //AS_MSG_globals->msgMax   *= 1024;  //  Needed for GOSIII
+    //AS_MSG_globals->msgMax   *= 1024;  //  8GB needed for GOSIII
 
     AS_MSG_globals->msgLen    = 0;
     AS_MSG_globals->msgBuffer = (char *)safe_malloc(sizeof(char) * AS_MSG_globals->msgMax);
