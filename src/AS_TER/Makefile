@@ -33,6 +33,7 @@ CXX_PROGS = terminator asmOutputFasta asmOutputStatistics fragsInVars buildPosMa
 include $(LOCAL_WORK)/src/c_make.as
 
 all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
+	@test -n nop
 
 terminator:              terminator.o               libCA.a
 asmOutputFasta:          asmOutputFasta.o           libCA.a
