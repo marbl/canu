@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.69 2010-01-25 12:58:37 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.70 2010-01-26 02:27:04 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -97,6 +97,8 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
 
   //  Pass 1 through overlaps -- find the contained fragments.
 
+  //setLogFile("unitigger", "bestoverlapgraph-containments");
+
   _best_contains_score    = new uint64 [fi->numFragments() + 1];
   memset(_best_contains_score,    0, sizeof(uint64) * (fi->numFragments() + 1));
 
@@ -127,6 +129,8 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
   //  Pass 2 through overlaps -- find dovetails, build the overlap graph.  For each
   //  contained fragment, remember some of the almost containment overlaps.
 
+  //setLogFile("unitigger", "bestoverlapgraph-dovetails");
+
   _best_overlaps_5p_score = new uint64 [fi->numFragments() + 1];
   _best_overlaps_3p_score = new uint64 [fi->numFragments() + 1];
 
@@ -148,6 +152,8 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
 
   _best_overlaps_5p_score = NULL;
   _best_overlaps_3p_score = NULL;
+
+ //setLogFile("unitigger", NULL);
 
   //  Diagnostic.  Dump the best edges, count the number of contained
   //  reads, etc.

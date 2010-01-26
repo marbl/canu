@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.37 2009-08-07 19:17:36 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.38 2010-01-26 02:27:04 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -44,6 +44,12 @@ using namespace std;
 #warning there is a comparison assuming fragment_end_type FIVE_PRIME < THREE_PRIME
 #define FIVE_PRIME   0
 #define THREE_PRIME  1
+
+//  Lack of a better place....
+
+extern FILE *logFile;
+void  setLogFile(char *prefix, char *name);
+
 
 typedef std::list<SeqInterval> IntervalList;
 

@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.66 2009-12-19 05:36:16 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.67 2010-01-26 02:27:04 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -31,6 +31,35 @@ const char *mainid = "$Id: BuildUnitigs.cc,v 1.66 2009-12-19 05:36:16 brianwalen
 //  Used in AS_BOG_Unitig.cc
 FragmentInfo     *debugfi = 0L;
 BestOverlapGraph *bog     = 0L;
+
+FILE             *logFile      = NULL;
+uint32            logFileOrder = 1;
+
+//  Closes the current logFile, opens a new one called 'prefix.logFileOrder.name'.  If 'name' is
+//  NULL, the logFile is reset to stderr.
+void
+setLogFile(char *prefix, char *name) {
+  char  logFileName[FILENAME_MAX];
+
+  if (logFile != stderr)
+    fclose(logFile);
+
+  if (name == NULL) {
+    logFile = stderr;
+    return;
+  }
+
+  sprintf(logFileName, "%s.%03u.%s", prefix, logFileOrder++, name);
+
+  errno = 0;
+  logFile = fopen(logFileName, "w");
+  if (errno) {
+    fprintf(stderr, "setLogFile()-- Failed to open logFile '%s': %s.\n", logFileName, strerror(errno));
+    fprintf(stderr, "setLogFile()-- Will now log to stderr instead.\n");
+    logFile = stderr;
+  }
+}
+
 
 void outputHistograms(UnitigGraph *utg, FragmentInfo *fi, FILE *stats) {
   const int nsample=500;
