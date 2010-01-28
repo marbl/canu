@@ -2,7 +2,7 @@ use strict;
 
 sub overlapTrim {
 
-    return if (getGlobal("doOverlapTrimming") == 0);
+    return if (getGlobal("doOverlapBasedTrimming") == 0);
     return if (getGlobal("ovlOverlapper") eq "umd");
 
     #  Skip overlap based trimming if it is done, or if the ovlStore already exists.

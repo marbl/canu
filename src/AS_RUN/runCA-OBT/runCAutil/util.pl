@@ -125,33 +125,47 @@ sub getGlobal ($) {
 sub setGlobal ($$) {
     my $var = shift @_;
     my $val = shift @_;
+
     #  If no value, set the field to undefined, the default for many of the options.
-    if ($val eq "") {
-        $val = undef;
-    }
-    #  Special case -- merSize sets both obtMerSize and ovlMerSize.
+
+    $val = undef  if ($val eq "");
+
+    #  Handle special cases.
+
     if ($var eq "merSize") {
         setGlobal("obtMerSize", $val);
         setGlobal("ovlMerSize", $val);
         return;
     }
-    #  Special case -- overlapper sets both obtOverlapper and ovlOverlapper.
+
     if ($var eq "overlapper") {
         setGlobal("obtOverlapper", $val);
         setGlobal("ovlOverlapper", $val);
         return;
     }
+
+    #  Update obsolete usage.
+
+    if ($var eq "doOverlapTrimming") {
+        print STDERR "WARNING:  option doOverlapTrimming deprecated.  Use doOverlapBasedTrimming in the future.\n";
+        $var = "doOverlapBasedTrimming";
+    }
+
+    #  Update aliases.
+
+    $var = "doOverlapBasedTrimming"    if ($var eq "doOBT");
+
+    #  If "help" exists, we're parsing command line options, and will catch this failure in
+    #  printHelp().  Otherwise, this is an internal error, and we should bomb now.
+    #
     if (!exists($global{$var})) {
-        #  If "help" exists, we're parsing command line options, and
-        #  will catch this failure in printHelp().  Otherwise, this is
-        #  an internal error, and we should bomb now.
-        #
         if (exists($global{"help"})) {
             setGlobal("help", getGlobal("help") . "'$var' is not a valid option; see 'runCA -options' for a list of valid options.\n");
         } else {
-            caFailure("'$var' is not a valid Global variable", undef);
+            caFailure("'$var' is not a valid option Global variable.", undef);
         }
     }
+
     $global{$var} = $val;
 }
 
@@ -270,8 +284,8 @@ sub setDefaults () {
     $global{"perfectTrimming"}             = undef;  #  SECRET!
     $synops{"perfectTrimming"}             = undef;  #  SECRET!
 
-    $global{"doOverlapTrimming"}           = 1;
-    $synops{"doOverlapTrimming"}           = "Enable the Overlap Based Trimming module";
+    $global{"doOverlapBasedTrimming"}      = 1;
+    $synops{"doOverlapBasedTrimming"}      = "Enable the Overlap Based Trimming module (doOBT and doOverlapTrimming are aliases)";
 
     $global{"doDeDuplication"}             = 1;
     $synops{"doDeDuplication"}             = "Enable the OBT duplication detection and cleaning module for 454 reads, enabled automatically";
