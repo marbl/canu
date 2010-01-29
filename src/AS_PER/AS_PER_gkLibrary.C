@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.5 2009-10-26 13:20:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.6 2010-01-29 13:07:12 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -96,7 +96,7 @@ gkLibrary::gkLibrary_decodeFeatures(LibraryMesg *lmesg) {
 
     else if (strcasecmp(fea, "illuminaQSequence") == 0)
       ;
-    else if (strcasecmp(fea, "illunimaSequence") == 0)
+    else if (strcasecmp(fea, "illuminaSequence") == 0)
       ;
     //  Library options (orientation is not a feature, it's part of the library)
 
