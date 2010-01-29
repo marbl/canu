@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_dump.c,v 1.15 2009-11-04 16:56:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_dump.c,v 1.16 2010-01-29 07:15:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -153,7 +153,7 @@ sortOBT(const void *a, const void *b) {
 
 
 void
-dumpPicture(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 qryIID, uint32 clearRange) {
+dumpPicture(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 clearRegion, uint32 qryIID) {
   char           ovl[256] = {0};
   gkFragment     A;
   gkFragment     B;
@@ -161,7 +161,7 @@ dumpPicture(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 qryIID,
   uint32  clrBgnA, clrEndA;
 
   gkpStore->gkStore_getFragment(qryIID, &A, GKFRAGMENT_INF);
-  A.gkFragment_getClearRegion(clrBgnA, clrEndA, clearRange);
+  A.gkFragment_getClearRegion(clrBgnA, clrEndA, clearRegion);
 
   uint32  frgLenA = clrEndA - clrBgnA;
 
@@ -186,7 +186,7 @@ dumpPicture(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 qryIID,
     uint32 clrBgnB, clrEndB;
 
     gkpStore->gkStore_getFragment(overlaps[o].b_iid, &B, GKFRAGMENT_INF);
-    B.gkFragment_getClearRegion(clrBgnB, clrEndB, clearRange);
+    B.gkFragment_getClearRegion(clrBgnB, clrEndB, clearRegion);
 
     uint32 frgLenB = clrEndB - clrBgnB;
 
@@ -254,7 +254,7 @@ dumpPicture(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 qryIID,
 
 
 void
-dumpPictureOBT(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 qryIID) {
+dumpPictureOBT(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 clearRegion, uint32 qryIID) {
 
 #if 0
   for (uint32 o=0; o<novl; o++) {
@@ -282,13 +282,13 @@ dumpPictureOBT(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 qryI
   }
 #endif
 
-  dumpPicture(overlaps, novl, gkpStore, qryIID, AS_READ_CLEAR_OBTINITIAL);
+  dumpPicture(overlaps, novl, gkpStore, clearRegion, qryIID);
 }
 
 
 
 void
-dumpPictureOVL(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 qryIID) {
+dumpPictureOVL(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 clearRegion, uint32 qryIID) {
   char           ovl[256] = {0};
   gkFragment     A;
   gkFragment     B;
@@ -296,7 +296,7 @@ dumpPictureOVL(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 qryI
   uint32  clrBgnA, clrEndA;
 
   gkpStore->gkStore_getFragment(qryIID, &A, GKFRAGMENT_INF);
-  A.gkFragment_getClearRegion(clrBgnA, clrEndA, AS_READ_CLEAR_ECR_0);
+  A.gkFragment_getClearRegion(clrBgnA, clrEndA, clearRegion);
 
   uint32  frgLenA = clrEndA - clrBgnA;
 
@@ -306,7 +306,7 @@ dumpPictureOVL(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 qryI
     uint32  clrBgnB, clrEndB;
 
     gkpStore->gkStore_getFragment(overlaps[o].b_iid, &B, GKFRAGMENT_INF);
-    B.gkFragment_getClearRegion(clrBgnB, clrEndB, AS_READ_CLEAR_ECR_0);
+    B.gkFragment_getClearRegion(clrBgnB, clrEndB, clearRegion);
 
     uint32  frgLenB = clrEndB - clrBgnB;
 
@@ -336,14 +336,17 @@ dumpPictureOVL(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 qryI
 
   //  ...and the dump function is already written.
 
-  dumpPicture(overlaps, novl, gkpStore, qryIID, AS_READ_CLEAR_ECR_0);
+  dumpPicture(overlaps, novl, gkpStore, clearRegion, qryIID);
 }
 
 
 
 
 void
-dumpPicture(char *ovlName, char *gkpName, double dumpERate, uint32 dumpType, uint32 qryIID) {
+dumpPicture(char *ovlName, char *gkpName, uint32 clearRegion, double dumpERate, uint32 dumpType, uint32 qryIID) {
+  fprintf(stderr, "DUMPING PICTURE for ID "F_IID" in store %s (gkp %s clear %s)\n",
+          qryIID, ovlName, gkpName, AS_READ_CLEAR_NAMES[clearRegion]);
+
   OverlapStore  *ovlStore = AS_OVS_openOverlapStore(ovlName);
   gkStore       *gkpStore = new gkStore(gkpName, FALSE, FALSE);
 
@@ -393,11 +396,11 @@ dumpPicture(char *ovlName, char *gkpName, double dumpERate, uint32 dumpType, uin
 
 
   if (overlaps[0].dat.obt.type == AS_OVS_TYPE_OBT) {
-    dumpPictureOBT(overlaps, novl, gkpStore, qryIID);
+    dumpPictureOBT(overlaps, novl, gkpStore, clearRegion, qryIID);
   }
 
 
   if (overlaps[0].dat.ovl.type == AS_OVS_TYPE_OVL) {
-    dumpPictureOVL(overlaps, novl, gkpStore, qryIID);
+    dumpPictureOVL(overlaps, novl, gkpStore, clearRegion, qryIID);
   }
 }

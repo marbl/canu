@@ -19,10 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.24 2009-11-04 16:56:31 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.25 2010-01-29 07:15:25 brianwalenz Exp $";
 
 #include "overlapStore.h"
-#include "AS_OVS_overlap.h"  //  Just to know the sizes of structs
+#include "AS_OVS_overlap.h"   //  Just to know the sizes of structs
+#include "AS_PER_gkpStore.h"  //  Just to know clear region labels
 
 #include <ctype.h>
 #include <unistd.h>  //  sysconf()
@@ -32,6 +33,7 @@ main(int argc, char **argv) {
   uint32          operation   = OP_NONE;
   char           *storeName   = NULL;
   char           *gkpName     = NULL;
+  uint32          clearRegion = AS_READ_CLEAR_ERROR;
   uint32          dumpBinary  = FALSE;
   double          dumpERate   = 100.0;
   uint32          dumpType    = 0;
@@ -70,11 +72,13 @@ main(int argc, char **argv) {
       storeName   = argv[++arg];
       operation   = OP_DUMP;
 
-    } else if (strcmp(argv[arg], "-dp") == 0) {
+    } else if (strcmp(argv[arg], "-p") == 0) {
       if (storeName)
         fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S or -u may be supplied.\n"), err++;
       qryIID      = atoi(argv[++arg]);
       storeName   = argv[++arg];
+      gkpName     = argv[++arg];
+      clearRegion = gkStore_decodeClearRegionLabel(argv[++arg]);
       operation   = OP_DUMP_PICTURE;
 
     } else if (strcmp(argv[arg], "-s") == 0) {
@@ -200,14 +204,16 @@ main(int argc, char **argv) {
     fprintf(stderr, "       %s -d storeName [-B] [-E erate] [-b beginIID] [-e endIID]\n", argv[0]);
     fprintf(stderr, "       %s -s storeName\n", argv[0]);
     fprintf(stderr, "       %s -S storeName -g gkpStore\n", argv[0]);
-    fprintf(stderr, "       %s -q a b storeName\n", argv[0]);
+    fprintf(stderr, "       %s -q iid iid storeName\n", argv[0]);
+    fprintf(stderr, "       %s -p iid storeName gkpStore clr\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -c  create a new store, fails if the store exists\n");
     fprintf(stderr, "  -m  merge store mergeName into store storeName\n");
     fprintf(stderr, "  -d  dump a store\n");
     fprintf(stderr, "  -s  dump statistics about a store\n");
     fprintf(stderr, "  -S  recompute overlap statistics\n");
-    fprintf(stderr, "  -q  Report the a,b overlap, if it exists.\n");
+    fprintf(stderr, "  -q  report the a,b overlap, if it exists.\n");
+    fprintf(stderr, "  -p  dump a picture of overlaps to fragment 'iid', using clear region 'clr'.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "CREATION\n");
     fprintf(stderr, "\n");
@@ -232,6 +238,13 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -dc               Dump only overlaps that are containing the A frag (A contained in B).\n");
     fprintf(stderr, "  -b beginIID       Start dumping at 'beginIID'.\n");
     fprintf(stderr, "  -e endIID         Stop dumping after 'endIID'.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "DUMPING PICTURES\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -p iid storeName gkpStore clr\n");
+    fprintf(stderr, "                    clr is usually OBTINITIAL for obtStore.\n");
+    fprintf(stderr, "                    clr is usually OBTCHIMERA for ovlStore when OBT is used.\n");
+    fprintf(stderr, "                    clr is usually CLR        for ovlStore when OBT is not used.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Limited to %d open files.\n", sysconf(_SC_OPEN_MAX));
     fprintf(stderr, "\n");
@@ -260,7 +273,7 @@ main(int argc, char **argv) {
       dumpStore(storeName, dumpBinary, dumpERate, dumpType, bgnIID, endIID, qryIID);
       break;
     case OP_DUMP_PICTURE:
-      dumpPicture(storeName, gkpName, dumpERate, dumpType, qryIID);
+      dumpPicture(storeName, gkpName, clearRegion, dumpERate, dumpType, qryIID);
       break;
     case OP_STATS_DUMP:
       dumpStats(storeName);
