@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.5 2010-01-04 20:23:22 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.6 2010-01-29 13:08:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -189,6 +189,12 @@ static
 uint64
 readQSeq(FILE *F, char *N, ilFragment *fr, char end) {
 
+  fr->fr.gkFragment_setType(GKFRAGMENT_PACKED);
+  fr->fr.gkFragment_setIsDeleted(1);
+
+  fr->fr.gkFragment_setMateIID(0);
+  fr->fr.gkFragment_setLibraryIID(0);
+
   fgets(fr->qstr, AS_READ_MAX_NORMAL_LEN, F);  chomp(fr->qstr);
 
   if (feof(F))
@@ -225,6 +231,12 @@ readQSeq(FILE *F, char *N, ilFragment *fr, char end) {
 static
 uint64
 readSeq(FILE *F, char *N, ilFragment *fr, char end) {
+
+  fr->fr.gkFragment_setType(GKFRAGMENT_PACKED);
+  fr->fr.gkFragment_setIsDeleted(1);
+
+  fr->fr.gkFragment_setMateIID(0);
+  fr->fr.gkFragment_setLibraryIID(0);
 
   fgets(fr->snam, AS_READ_MAX_NORMAL_LEN, F);  chomp(fr->snam);
   fgets(fr->sstr, AS_READ_MAX_NORMAL_LEN, F);  chomp(fr->sstr);
