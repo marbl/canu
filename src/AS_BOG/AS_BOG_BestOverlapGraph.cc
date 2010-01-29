@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.71 2010-01-26 03:51:43 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.72 2010-01-29 07:36:36 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -288,7 +288,6 @@ void BestOverlapGraph::scoreEdge(const OVSoverlap& olap) {
   //  Dove tailing overlap
   uint32           aend    = AEnd(olap);
   BestEdgeOverlap *best    = getBestEdgeOverlap(olap.a_iid, aend);
-  uint32           olapLen = olapLength(olap);
   uint64           score   = 0;
 
   // Store the overlap if:
