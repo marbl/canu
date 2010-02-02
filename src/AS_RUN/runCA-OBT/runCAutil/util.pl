@@ -239,6 +239,9 @@ sub setDefaults () {
     $global{"sge"}                         = undef;
     $synops{"sge"}                         = "SGE options applied to all SGE jobs";
 
+    $global{"sgeName"}                     = undef;
+    $synops{"sgeName"}                     = "SGE jobs name suffix";
+
     $global{"sgeScript"}                   = undef;
     $synops{"sgeScript"}                   = "SGE options applied to runCA jobs (and unitigger, scaffolder, other sequential phases)";
 
@@ -1058,18 +1061,19 @@ sub submitScript ($) {
     system("chmod +x $script");
 
     my $sge         = getGlobal("sge");
+    my $sgeName     = getGlobal("sgeName");
     my $sgeScript   = getGlobal("sgeScript");
     my $sgePropHold = getGlobal("sgePropagateHold");
 
+    $sgeName = "_$sgeName"              if (defined($sgeName));
     $waitTag = "-hold_jid \"$waitTag\"" if (defined($waitTag));
 
-    my $qcmd = "qsub $sge $sgeScript -cwd -N \"runCA_${asm}\" -j y -o $output $waitTag $script";
+    my $qcmd = "qsub $sge $sgeScript -cwd -N \"rCA_$asm$sgeName\" -j y -o $output $waitTag $script";
 
     system($qcmd) and caFailure("Failed to submit script.\n");
 
     if (defined($sgePropHold)) {
-        my $acmd = "qalter -hold_jid \"runCA_${asm}\" \"$sgePropHold\"";
-        print STDERR "$acmd\n";
+        my $acmd = "qalter -hold_jid \"rCA_$asm$sgeName\" \"$sgePropHold\"";
         system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$sgePropHold'.\n";
     }
 

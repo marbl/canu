@@ -260,15 +260,18 @@ sub merOverlapper($) {
         if (findOvermerrySuccess($outDir, $ovmJobs) == 0) {
             if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
                 my $sge        = getGlobal("sge");
+                my $sgeName    = getGlobal("sgeName");
                 my $sgeOverlap = getGlobal("sgeMerOverlapSeed");
 
+                $sgeName = "_$sgeName" if (defined($sgeName));
+
                 my $SGE;
-                $SGE  = "qsub $sge $sgeOverlap -cwd -N mer_$asm \\\n";
+                $SGE  = "qsub $sge $sgeOverlap -cwd -N mer_$asm$sgeName \\\n";
                 $SGE .= "  -t 1-$ovmJobs \\\n";
                 $SGE .= "  -j y -o $wrk/$outDir/seeds/\\\$TASK_ID.err \\\n";
                 $SGE .= "  $wrk/$outDir/overmerry.sh\n";
 
-                submitBatchJobs($SGE, "mer_$asm");
+                submitBatchJobs($SGE, "mer_$asm$sgeName");
                 exit(0);
             } else {
                 for (my $i=1; $i<=$ovmJobs; $i++) {
@@ -339,15 +342,18 @@ sub merOverlapper($) {
     if (findOlapFromSeedsSuccess($outDir, $ovmJobs) == 0) {
         if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
             my $sge        = getGlobal("sge");
+            my $sgeName    = getGlobal("sgeName");
             my $sgeOverlap = getGlobal("sgeMerOverlapExtend");
 
+            $sgeName = "_$sgeName" if (defined($sgeName));
+
             my $SGE;
-            $SGE  = "qsub $sge $sgeOverlap -cwd -N olp_$asm \\\n";
+            $SGE  = "qsub $sge $sgeOverlap -cwd -N olp_$asm$sgeName \\\n";
             $SGE .= "  -t 1-$olpJobs \\\n";
             $SGE .= "  -j y -o $wrk/$outDir/olaps/\\\$TASK_ID.err \\\n";
             $SGE .= "  $wrk/$outDir/olap-from-seeds.sh\n";
 
-            submitBatchJobs($SGE, "olp_$asm");
+            submitBatchJobs($SGE, "olp_$asm$sgeName");
             exit(0);
         } else {
             for (my $i=1; $i<=$olpJobs; $i++) {
