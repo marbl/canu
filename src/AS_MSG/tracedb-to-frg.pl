@@ -253,10 +253,10 @@ sub readXML () {
         $_= <X>;
     }
 
-    #  Yes, OR.  We check for incomplete clear ranges later.
-    $clr = "$clrl,$clrr" if (defined($clrl) || defined($clrr));
-    $clv = "$clvl,$clvr" if (defined($clvl) || defined($clvr));
-    $clq = "$clql,$clqr" if (defined($clql) || defined($clqr));
+    #  We check for incomplete clear ranges later.
+    $clr = "$clrl,$clrr";
+    $clv = "$clvl,$clvr";
+    $clq = "$clql,$clqr";
 
     $template =~ s/\s+/_/g;
     $lib      =~ s/\s+/_/g;
@@ -543,7 +543,7 @@ sub runLIB (@) {
 
         while (<F>) {
             chomp;
-            my ($id, $template, $end, $lib, $mn, $sd, $clr, $clv, $clq) = split '\s+', $_;
+            my ($id, $template, $end, $lib, $mn, $sd, $clr, $clv, $clq) = split '\t', $_;
 
             #  Keep track of all the libraries we've seen.
             $dist{$lib} = $lib;
@@ -652,7 +652,7 @@ sub runLIB (@) {
         open(F, "< $tmpDir/$xmlNam.$xmlIdx.lib") or die "Failed to open '$tmpDir/$xmlNam.$xmlIdx.lib' for read\n";
 
         while (<F>) {
-            my ($id, $template, $end, $lib, $mn, $sd, $clr, $clv, $clq) = split '\s+', $_;
+            my ($id, $template, $end, $lib, $mn, $sd, $clr, $clv, $clq) = split '\t', $_;
 
             #  Remember which library this frag came from.
             #
@@ -853,6 +853,10 @@ sub runFRG ($) {
 
         my $len = length $seq;
 
+        $clv = undef      if ($clv eq ",");
+        $clq = undef      if ($clq eq ",");
+        $clr = undef      if ($clr eq ",");
+
         #  Incomplete clear; WUGSC Dros Yakuba only gave the left
         #  vector clear.
         #
@@ -864,7 +868,25 @@ sub runFRG ($) {
         $clq = "$clq$len" if ($clq =~ m/^\d+,$/);
         $clr = "$clr$len" if ($clr =~ m/^\d+,$/);
 
-        $clr = "0,$len" if (!defined($clr));
+        #  If no clr defined, make up one from clq and clv.  Note that 
+        #  clq is not propagated to the gkpStore.
+        #
+        if (!defined($clr)) {
+            my $l = 0;
+            my $r = $len;
+
+            if (defined($clv)) {
+                my ($a,$b) = split ',', $clv;
+                $l = $a if ($l < $a);
+                $r = $b if ($b < $r);
+            }
+            if (defined($clq)) {
+                my ($a,$b) = split ',', $clq;
+                $l = $a if ($l < $a);
+                $r = $b if ($b < $r);
+            }
+            $clr = "$l,$r";
+        }
 
         #  Because some centers apparently cannot count, we need
         #  to check the clear ranges.
@@ -904,7 +926,7 @@ sub runFRG ($) {
                 print FRG "qlt:\n$qlt\n.\n";
                 print FRG "hps:\n.\n";
                 print FRG "clv:$clv\n" if (defined($clv));
-                print FRG "clq:$clq\n" if (defined($clq));
+                #print FRG "clq:$clq\n" if (defined($clq));
                 print FRG "clr:$clr\n";
                 print FRG "}\n";
             }
