@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.18 2010-01-25 12:47:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.19 2010-02-03 14:34:11 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -507,7 +507,11 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
   //  of working, though it'll fail if the fragment is chimeric or spans something it shouldn't,
   //  etc.
 
-  assert((blen5 > 0) || (blen3 > 0));
+  if ((blen5 == 0) && (blen3 == 0)) {
+    fprintf(stderr, "Unitig::addAndPlaceFrag()-- WARNING:  Failed to place frag %d into unitig %d; no edges to the unitig.\n",
+            fid, id());
+    return(false);
+  }
 
   if (blen5 < blen3)
     bestedge5 = NULL;

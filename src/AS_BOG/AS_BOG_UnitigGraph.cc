@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.121 2010-01-14 03:12:50 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.122 2010-02-03 14:34:12 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -1438,18 +1438,49 @@ UnitigGraph::popBubbles(void) {
             mergeTig->id(), mergeTig->getLength());
 #endif
 
-    for (int fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
-      DoveTailNode  *frag = &(*utg->dovetail_path_ptr)[fi];
+    //  Every once in a while, we get a unitig that is misordered, caused by conflicting best overlaps.
+    //  For example:
+    //
+    //  A          <---------                    <----------
+    //  B                ------------>                  ----------->
+    //  C    <--------                                          <------------
+    //
+    //  Where the C fragment has edges off both A and B.  If the layout is the one on the right,
+    //  when we go to move the A fragment to mergeTig, it has no edges to any fragment there (since
+    //  the picture on the left shows it has edges to B and C), and so we cannot place A until
+    //  either B or C is placed.
 
-      if (bog_ptr->getBestContainer(frag->ident))
-        mergeTig->addContainedFrag(frag->ident,
-                                   bog_ptr->getBestContainer(frag->ident),
-                                   verboseMerge);
-      else
-        mergeTig->addAndPlaceFrag(frag->ident,
-                                  bog_ptr->getBestEdgeOverlap(frag->ident, FIVE_PRIME),
-                                  bog_ptr->getBestEdgeOverlap(frag->ident, THREE_PRIME),
-                                  verboseMerge);
+    bool  tryAgain = true;
+    bool  isStuck  = false;
+
+    while (tryAgain) {
+      tryAgain = false;
+      isStuck  = true;
+
+      for (int fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
+        DoveTailNode  *frag = &(*utg->dovetail_path_ptr)[fi];
+
+        if (mergeTig->fragIn(frag->ident) == mergeTig->id())
+          //  Already placed in mergeTig.
+          continue;
+
+        if (bog_ptr->getBestContainer(frag->ident))
+          mergeTig->addContainedFrag(frag->ident,
+                                     bog_ptr->getBestContainer(frag->ident),
+                                     verboseMerge);
+        else
+          mergeTig->addAndPlaceFrag(frag->ident,
+                                    bog_ptr->getBestEdgeOverlap(frag->ident, FIVE_PRIME),
+                                    bog_ptr->getBestEdgeOverlap(frag->ident, THREE_PRIME),
+                                    verboseMerge);
+
+        if (mergeTig->fragIn(frag->ident) == mergeTig->id())
+          //  Placed something, making progress!
+          isStuck == false;
+        else
+          //  Failed to place, gotta do the loop again.
+          tryAgain = true;
+      }
     }
 
     mergeTig->sort();
