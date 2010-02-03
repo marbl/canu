@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.53 2009-12-02 12:52:22 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.54 2010-02-03 14:55:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -537,7 +537,7 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
         lmesg.stddev       = gkpl->stddev;
         lmesg.source       = NULL;
 #warning unsafe conversion of orient
-        lmesg.link_orient = (OrientType)AS_READ_ORIENT_NAMES[fr.gkFragment_getOrientation()][0];
+        lmesg.link_orient = (OrientType)AS_READ_ORIENT_NAMES[gkpl->orientation][0];
 
         gkpl->gkLibrary_encodeFeatures(&lmesg);
       }
