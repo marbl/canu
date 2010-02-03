@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.86 2009-12-02 12:52:25 skoren Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.87 2010-02-03 14:55:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -485,7 +485,7 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-randommated") == 0) {
       dumpRandLib      = atoi(argv[++arg]);
-      dumpRandMateNum  = atoi(argv[++arg]);
+      dumpRandMateNum  = atoi(argv[++arg]) * 2;
       if (dumpRandMateNum == 0) {
         fprintf(stderr, "%s: -randommated told to dump 0 mates; exit.\n", argv[0]);
         exit(0);
