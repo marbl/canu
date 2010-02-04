@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_cga.c,v 1.24 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_cga.c,v 1.25 2010-02-04 21:52:59 brianwalenz Exp $";
 
 //  A chunk graph analyzer. This functional unit computes graph
 //  statistics, and writes the chunk graph in the term representation
@@ -975,14 +975,14 @@ static void analyze_the_chunks(FILE *fout,
   Histogram_t * nbase_essential_in_chunk_histogram = create_histogram(nsample,nbucket,0,TRUE);
   Histogram_t * fragment_timesinchunks_histogram = create_histogram(nsample,nbucket,0,TRUE);
 
+  Histogram_t * cov_stat_histogram = create_histogram(nsample,nbucket,0,TRUE);
   Histogram_t * labeled_unitig_histogram[MAX_NUM_CHUNK_LABELS];
 
-  {
-    int ii;
-    for(ii=0;ii<MAX_NUM_CHUNK_LABELS;ii++){
-      labeled_unitig_histogram[ii] = create_histogram(nsample,nbucket,0,TRUE);
-      extend_histogram(labeled_unitig_histogram[ii],sizeof(MyHistoDataType), myindexdata,mysetdata,myaggregate,myprintdata);
-    }
+  extend_histogram(cov_stat_histogram,sizeof(MyHistoDataType), myindexdata,mysetdata,myaggregate,myprintdata);
+
+  for(int ii=0;ii<MAX_NUM_CHUNK_LABELS;ii++){
+    labeled_unitig_histogram[ii] = create_histogram(nsample,nbucket,0,TRUE);
+    extend_histogram(labeled_unitig_histogram[ii],sizeof(MyHistoDataType), myindexdata,mysetdata,myaggregate,myprintdata);
   }
 
   extend_histogram(length_of_unitigs_histogram, sizeof(MyHistoDataType),
@@ -1178,6 +1178,7 @@ static void analyze_the_chunks(FILE *fout,
     zork.max_discr = coverage_index;
 
     add_to_histogram(length_of_unitigs_histogram, nbase_essential_in_chunk,&zork);
+    add_to_histogram(cov_stat_histogram, coverage_index, &zork);
     add_to_histogram(labeled_unitig_histogram[chunk_label], coverage_index, &zork);
 
     { // For Gene Myer^s Jan 2000 paper:
@@ -1469,6 +1470,14 @@ static void analyze_the_chunks(FILE *fout,
 	    "     \t   \t sum       \t fraction\n"
 	    );
 
+    fprintf(fout,"\n\nHistogram of the Unique/Repeat discriminator score\n");
+    print_histogram(fout,cov_stat_histogram, 0, 1);
+
+    for(int ii=0;ii<MAX_NUM_CHUNK_LABELS;ii++){
+      fprintf(fout,"\n\nHistogram of the Unique/Repeat discriminator score for %s\n",
+              ChunkLabelDesc[ii]);
+      print_histogram(fout,labeled_unitig_histogram[ii],0,1);
+    }
   }
   free_histogram(nfrag_in_chunk_histogram);
   free_histogram(nfrag_essential_in_chunk_histogram);
@@ -1476,13 +1485,9 @@ static void analyze_the_chunks(FILE *fout,
   free_histogram(fragment_timesinchunks_histogram);
   free_histogram(rho_histogram);
   free_histogram(coverage_histogram);
-  {
-    int ii;
-    for(ii=0;ii<MAX_NUM_CHUNK_LABELS;ii++){
-      free_histogram(labeled_unitig_histogram[ii]);
-    }
-  }
-
+  free_histogram(cov_stat_histogram);
+  for(int ii=0;ii<MAX_NUM_CHUNK_LABELS;ii++)
+    free_histogram(labeled_unitig_histogram[ii]);
   free_histogram(length_of_unitigs_histogram);
   safe_free(fragment_visited);
   safe_free(fragment_timesinchunks);
