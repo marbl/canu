@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.69 2010-02-04 21:53:28 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.70 2010-02-04 21:56:53 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -111,19 +111,19 @@ void outputHistograms(UnitigGraph *utg, FragmentInfo *fi, FILE *stats) {
     add_to_histogram(arate_histogram, arate, &zork);
   }
 
-  fprintf(fout,
+  fprintf(stats,
           "\n\nUnitig Length\n\n"
           "label\tsum\tcummulative\tcummulative   min  average  max\n"
           "     \t   \t sum       \t fraction\n");
   print_histogram(stats,length_of_unitigs_histogram, 0, 1);
 
-  fprintf(fout,
+  fprintf(stats,
           "\n\nUnitig Coverage Stat\n\n"
           "label\tsum\tcummulative\tcummulative   min  average  max\n"
           "     \t   \t sum       \t fraction\n");
   print_histogram(stats,covg_histogram, 0, 1);
 
-  fprintf(fout,
+  fprintf(stats,
           "\n\nUnitig Arrival Rate\n\n"
           "label\tsum\tcummulative\tcummulative   min  average  max\n"
           "     \t   \t sum       \t fraction\n");
