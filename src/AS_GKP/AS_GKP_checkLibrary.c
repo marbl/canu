@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.32 2009-09-25 19:44:02 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.33 2010-02-05 13:45:11 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,7 +41,7 @@ Check_DistanceMesg(DistanceMesg    *dst_mesg,
   lmesg.mean         = dst_mesg->mean;
   lmesg.stddev       = dst_mesg->stddev;
   lmesg.source       = NULL;
-  lmesg.link_orient  = (OrientType)AS_READ_ORIENT_INNIE;
+  lmesg.link_orient  = (OrientType)'I';
   lmesg.num_features = 0;
   lmesg.features     = NULL;
   lmesg.values       = NULL;
