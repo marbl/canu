@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.15 2010-01-22 04:46:56 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.16 2010-02-05 13:47:06 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -951,7 +951,7 @@ MultiAlignStore::dumpMultiAlignR(int32 maID, bool isUnitig) {
   fprintf(stdout, "maRecord.isDeleted   = "F_U64"\n", maRecord[maID].isDeleted);
   fprintf(stdout, "maRecord.ptID        = "F_U64"\n", maRecord[maID].ptID);
   fprintf(stdout, "maRecord.svID        = "F_U64"\n", maRecord[maID].svID);
-  fprintf(stdout, "maRecord.fileOffset  = "F_U64"\n", maRecord[maID].fileOffset);
+  if (isUnitig) { fprintf(stdout, "maRecord.fileOffset  = "F_U64"\n", maRecord[maID].fileOffset); }
 }
 
 
@@ -961,7 +961,9 @@ MultiAlignStore::dumpMultiAlignRTable(bool isUnitig) {
   MultiAlignR  *maRecord = (isUnitig) ? utgRecord : ctgRecord;
   uint32        len      = (isUnitig) ? utgLen    : ctgLen;
 
-  fprintf(stdout, "maID\tisPresent\tisDeleted\tptID\tsvID\tfileOffset\n");
+  fprintf(stdout, "maID\tisPresent\tisDeleted\tptID\tsvID\tfileOffset");
+  if (isUnitig) fprintf(stdout, "\tcovStat");
+  fprintf(stdout, "\n");
 
   for (uint32 i=0; i<len; i++) {
     fprintf(stdout, ""F_U32"\t", i);
@@ -969,6 +971,8 @@ MultiAlignStore::dumpMultiAlignRTable(bool isUnitig) {
     fprintf(stdout, ""F_U64"\t", maRecord[i].isDeleted);
     fprintf(stdout, ""F_U64"\t", maRecord[i].ptID);
     fprintf(stdout, ""F_U64"\t", maRecord[i].svID);
-    fprintf(stdout, ""F_U64"\n", maRecord[i].fileOffset);
+    fprintf(stdout, ""F_U64, maRecord[i].fileOffset);
+    if (isUnitig) fprintf(stdout, "\t%d",  getUnitigCoverageStat(i));
+    fprintf(stdout, "\n");
   }
 }
