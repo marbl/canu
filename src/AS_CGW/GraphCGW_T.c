@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.82 2010-01-07 21:40:37 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.83 2010-02-09 20:19:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2159,15 +2159,16 @@ ciEdgeOrientFromFragment(int          orient,
 
 
 
-int CreateGraphEdge(GraphCGW_T *graph,
-                    CIFragT *frag,
-                    CIFragT *mfrag,
-                    DistT *dist,
-                    int type,
-                    int orient,
-                    int inducedByUnknownOrientation,
-                    GraphEdgeStatT *stat,
-                    int buildAll){
+static
+int
+CreateGraphEdge(GraphCGW_T *graph,
+                CIFragT *frag,
+                CIFragT *mfrag,
+                DistT *dist,
+                int orient,
+                int inducedByUnknownOrientation,
+                GraphEdgeStatT *stat,
+                int buildAll) {
   int isCI;
   NodeCGW_T *node, *mnode;
   CDS_CID_t fragID = GetVAIndex_CIFragT(ScaffoldGraph->CIFrags, frag);
@@ -2177,7 +2178,6 @@ int CreateGraphEdge(GraphCGW_T *graph,
   ChunkOrient ciOrient, mciOrient;
   ChunkOrientationType ciEdgeOrient;
   EdgeStatus status;
-  int insert = TRUE ; // (type == AS_MATE); // BOGUS
 
   assert(dist);
 
@@ -2209,8 +2209,7 @@ int CreateGraphEdge(GraphCGW_T *graph,
   if(!buildAll && (node->id >  mnode->id))
     return TRUE; // there ARE external edges, we just aren't building them
 
-  if(type == AS_MATE)
-    assert(mfragID == frag->mate_iid);
+  assert(mfragID == frag->mate_iid);
 
   if(GlobalData->verbose)
     fprintf(stderr,
@@ -2248,13 +2247,17 @@ int CreateGraphEdge(GraphCGW_T *graph,
   distance.variance = dist->sigma * dist->sigma + ciOffset.variance + mciOffset.variance;
 
 #ifdef DEBUG_CIEDGES_1
-  fprintf(stderr,"* Adding edge ("F_CID ","F_CID ",%c) insert:%d induced by fragments ("F_CID ","F_CID ",%c) with distance %g and status %d\n",
-          node->id, mnode->id, ciEdgeOrient, insert, frag->read_iid, mfrag->read_iid, (frag->flags.bits.innieMate == 1?'I':'O'),
+  fprintf(stderr,"* Adding edge ("F_CID ","F_CID ",%c) induced by fragments ("F_CID ","F_CID ",%c) with distance %g and status %d\n",
+          node->id, mnode->id, ciEdgeOrient, frag->read_iid, mfrag->read_iid, (frag->flags.bits.innieMate == 1?'I':'O'),
           distance.mean, frag->flags.bits.edgeStatus);
 #endif
 
   //status = frag->flags.bits.edgeStatus;
   status = AS_CGW_SafeConvert_uintToEdgeStatus(frag->flags.bits.edgeStatus);
+
+  // Insert a chunk Overlap in preparation for ComputeOverlaps when we are building the extended
+  // Unitig Graph.  With contigs, overlaps will be discovered as needed, and no call to
+  // ComputeOverlaps is performed.
 
   AddGraphEdge(graph,
                node->id,
@@ -2275,10 +2278,7 @@ int CreateGraphEdge(GraphCGW_T *graph,
                extremalB,
                status,
                graph->type == CI_GRAPH,
-               // Insert a chunk Overlap in preparation for ComputeOverlaps when we are building
-               // the extended Unitig Graph.  With contigs, overlaps will be discovered as needed, and no call to
-               // ComputeOverlaps is performed.
-               insert); // insert only if this is a mate
+               TRUE);
 
   return TRUE;
 }
@@ -2378,7 +2378,6 @@ BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph,
                                         frag,
                                         mfrag,
                                         dist,
-                                        AS_MATE,
                                         frag->flags.bits.innieMate ? AS_READ_ORIENT_INNIE : AS_READ_ORIENT_OUTTIE,
                                         FALSE,
                                         stat,

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.45 2010-01-23 04:04:56 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.46 2010-02-09 20:19:33 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,7 +34,28 @@ static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.45 2010-01-23 04:04:56 brianwalenz
 
 
 static
-char
+LinkType
+DecodeLinkType(char l) {
+LinkType lt;
+
+  switch (l) {
+    case 'M':
+      lt.setIsMatePair();
+      break;
+    case 'X':
+      lt.setIsOverlap();
+      break;
+    default:
+      fprintf(stderr, "Read_LKG_Mesg()-- invalid link type '%c'\n", l);
+      assert(0);
+      break;
+  }
+
+  return(lt);
+}
+
+static
+LinkType
 GetIIDIIDMatePairType(AS_IID *IID1, AS_IID *IID2, FILE *fin) {
 
   ReadLine(fin,TRUE);
@@ -54,12 +75,12 @@ GetIIDIIDMatePairType(AS_IID *IID1, AS_IID *IID2, FILE *fin) {
   while (*str != ',')  str++;
   str++;
 
-  return(*str);
+  return(DecodeLinkType(*str));
 }
 
 
 static
-char
+LinkType
 GetUIDUIDMatePairType(AS_UID *UID1, AS_UID *UID2, FILE *fin) {
 
   ReadLine(fin,TRUE);
@@ -82,7 +103,7 @@ GetUIDUIDMatePairType(AS_UID *UID1, AS_UID *UID2, FILE *fin) {
   (*UID2) = AS_UID_lookup(str, NULL);
 
   // return the type value
-  return(*(++currLoc));
+  return(DecodeLinkType(*(++currLoc)));
 }
 
 /******************** VAR message ***************************/
@@ -353,7 +374,7 @@ Read_LKG_Mesg(FILE *fin) {
   static LinkMesg lmesg;
 
   lmesg.action = (ActionType)GetType("act:%c","action", fin);
-  lmesg.type   = (LinkType)  GetType("typ:%c","link", fin);
+  lmesg.type   = DecodeLinkType(GetType("typ:%c","link", fin));
 
   lmesg.frag1 = GetUID("fg1:",fin);
   lmesg.frag2 = GetUID("fg2:",fin);
@@ -564,7 +585,7 @@ Read_IUL_Mesg(FILE *fin) {
     for (i=0; i < size; ++i) {
       IntMate_Pairs *imp = mesg.jump_list + i;
       //GET_TRIPLE(imp->in1,imp->in2,ch,F_IID","F_IID",%1[MSBRYT]","mate pair");
-      imp->type = (LinkType)GetIIDIIDMatePairType(&imp->in1, &imp->in2, fin);;
+      imp->type = GetIIDIIDMatePairType(&imp->in1, &imp->in2, fin);;
     }
   }
   GetEOM(fin);
@@ -598,7 +619,7 @@ Read_ICL_Mesg(FILE *fin) {
     for (i=0; i < size; ++i) {
       IntMate_Pairs *imp = mesg.jump_list + i;
       //GET_TRIPLE(imp->in1,imp->in2,ch, F_IID","F_IID",%1[MSBRYT]","mate pair");
-      imp->type = (LinkType)GetIIDIIDMatePairType(&imp->in1, &imp->in2, fin);
+      imp->type = GetIIDIIDMatePairType(&imp->in1, &imp->in2, fin);
     }
   }
   GetEOM(fin);
@@ -626,7 +647,7 @@ Read_ISL_Mesg(FILE *fin) {
   for (i=0; i < size; ++i) {
     IntMate_Pairs *imp = mesg.jump_list + i;
     //GET_TRIPLE(imp->in1,imp->in2,ch, F_IID","F_IID",%1[MSBRYT]","mate pair");
-    imp->type = (LinkType)GetIIDIIDMatePairType(&imp->in1, &imp->in2, fin);
+    imp->type = GetIIDIIDMatePairType(&imp->in1, &imp->in2, fin);
   }
   GetEOM(fin);
   return(&mesg);
@@ -951,7 +972,7 @@ static void *Read_ULK_Mesg(FILE *fin) {
     mesg.jump_list = (SnapMate_Pairs *)GetMemory(sizeof(SnapMate_Pairs)*size);
     for (i=0; i < size; ++i) {
       SnapMate_Pairs *imp = mesg.jump_list + i;
-      imp->type = (LinkType)GetUIDUIDMatePairType(&imp->in1, &imp->in2, fin);  //  valid MSBRYT
+      imp->type = GetUIDUIDMatePairType(&imp->in1, &imp->in2, fin);  //  valid MSBRYT
     }
   }
   else
@@ -1040,7 +1061,7 @@ static void *Read_CLK_Mesg(FILE *fin)
     mesg.jump_list = (SnapMate_Pairs *)GetMemory(sizeof(SnapMate_Pairs)*size);
     for (i=0; i < size; ++i) {
       SnapMate_Pairs *imp = mesg.jump_list + i;
-      imp->type = (LinkType)GetUIDUIDMatePairType(&imp->in1, &imp->in2, fin);  //  valid MSBRYT
+      imp->type = GetUIDUIDMatePairType(&imp->in1, &imp->in2, fin);  //  valid MSBRYT
     }
   }
 
@@ -1068,7 +1089,7 @@ static void *Read_SLK_Mesg(FILE *fin)
   mesg.jump_list = (SnapMate_Pairs *)GetMemory(sizeof(SnapMate_Pairs)*size);
   for (i=0; i < size; ++i) {
     SnapMate_Pairs *imp = mesg.jump_list + i;
-    imp->type = (LinkType)GetUIDUIDMatePairType(&imp->in1, &imp->in2, fin);  //  valid MSBRYT
+    imp->type = GetUIDUIDMatePairType(&imp->in1, &imp->in2, fin);  //  valid MSBRYT
   }
 
   GetEOM(fin);
@@ -1180,7 +1201,7 @@ static void Write_LKG_Mesg(FILE *fout, void *vmesg)
 
   fprintf(fout,"{LKG\n");
   fprintf(fout,"act:%c\n",mesg->action);
-  fprintf(fout,"typ:%c\n",(char) mesg->type);
+  fprintf(fout,"typ:%c\n",mesg->type.toLetter());
   fprintf(fout,"fg1:%s\n",AS_UID_toString(mesg->frag1));
   fprintf(fout,"fg2:%s\n",AS_UID_toString(mesg->frag2));
   if((mesg->action == AS_ADD) || (mesg->action == AS_IGNORE))
@@ -1399,7 +1420,7 @@ static void Write_IUL_Mesg(FILE *fout, void *vmesg)
     fprintf(fout,F_IID","F_IID",%c\n",
             mesg->jump_list[i].in1,
             mesg->jump_list[i].in2,
-            (char)(mesg->jump_list[i].type));
+            mesg->jump_list[i].type.toLetter());
   fprintf(fout,"}\n");
   return;
 }
@@ -1427,7 +1448,7 @@ static void Write_ICL_Mesg(FILE *fout, void *vmesg)
     fprintf(fout,F_IID","F_IID",%c\n",
             mesg->jump_list[i].in1,
             mesg->jump_list[i].in2,
-            (char)(mesg->jump_list[i].type));
+            mesg->jump_list[i].type.toLetter());
   fprintf(fout,"}\n");
   return;
 }
@@ -1451,7 +1472,7 @@ static void Write_ISL_Mesg(FILE *fout, void *vmesg)
     fprintf(fout,F_IID","F_IID",%c\n",
             mesg->jump_list[i].in1,
             mesg->jump_list[i].in2,
-            (char)(mesg->jump_list[i].type));
+            mesg->jump_list[i].type.toLetter());
   fprintf(fout,"}\n");
   return;
 }
@@ -1665,7 +1686,7 @@ static void Write_ULK_Mesg(FILE *fout, void *vmesg)
     fprintf(fout,"%s,%s,%c\n",
             AS_UID_toString(mesg->jump_list[i].in1),
             AS_UID_toString(mesg->jump_list[i].in2),
-            (char)(mesg->jump_list[i].type));
+            mesg->jump_list[i].type.toLetter());
   fprintf(fout,"}\n");
   return;
 }
@@ -1724,7 +1745,7 @@ static void Write_CLK_Mesg(FILE *fout, void *vmesg)
     fprintf(fout, "%s,%s,%c\n",
             AS_UID_toString(mesg->jump_list[i].in1),
             AS_UID_toString(mesg->jump_list[i].in2),
-            (char)(mesg->jump_list[i].type));
+            mesg->jump_list[i].type.toLetter());
   fprintf(fout,"}\n");
   return;
 }
@@ -1748,7 +1769,7 @@ static void Write_SLK_Mesg(FILE *fout, void *vmesg)
     fprintf(fout, "%s,%s,%c\n",
             AS_UID_toString(mesg->jump_list[i].in1),
             AS_UID_toString(mesg->jump_list[i].in2),
-            (char)(mesg->jump_list[i].type));
+            mesg->jump_list[i].type.toLetter());
   fprintf(fout,"}\n");
   return;
 }

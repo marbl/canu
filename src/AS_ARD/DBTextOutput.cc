@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: DBTextOutput.cc,v 1.10 2009-10-06 02:35:29 brianwalenz Exp $";
+static const char *rcsid = "$Id: DBTextOutput.cc,v 1.11 2010-02-09 20:19:09 brianwalenz Exp $";
 
 #include <iostream>
 #include <assert.h>
@@ -214,8 +214,7 @@ bool DBTextOutput::storeJMP2DB(int jmpType, AS_UID jmpID, AS_UID ulkID, LinkType
    }
 
    std::cerr << AS_UID_toInteger(ulkID) << "\t"
-         //what is status?
-         << static_cast<char>(type) << "\n";
+             << type.toLetter() << "\n";
 
    return true;
 }

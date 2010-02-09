@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.41 2009-12-02 19:00:32 skoren Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.42 2010-02-09 20:19:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1698,7 +1698,7 @@ dumpFragFile(char *outName, FILE *outFile) {
       pmesg.t = MESG_LKG;
 
       lnkMesg.action      = AS_ADD;
-      lnkMesg.type        = AS_MATE;
+      lnkMesg.type.setIsMatePair();
 #warning unsafe conversion of orient
       lnkMesg.link_orient = (OrientType)AS_READ_ORIENT_NAMES[fr.gkFragment_getOrientation()][0];
       lnkMesg.frag1       = frgUID[fr.gkFragment_getMateIID()];

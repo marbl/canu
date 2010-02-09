@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg2.c,v 1.18 2010-01-25 17:34:27 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg2.c,v 1.19 2010-02-09 20:19:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -296,12 +296,12 @@ void *
 Read_LKG_Mesg(FILE *fin) {
   static LinkMesg lmesg;
 
-  lmesg.action = (ActionType)GetType("act:%c","action",fin);
-  lmesg.type = AS_MATE;
+  lmesg.action      = (ActionType)GetType("act:%c","action",fin);
+  lmesg.type.setIsMatePair();
   lmesg.link_orient = (OrientType)AS_READ_ORIENT_UNKNOWN;
-  lmesg.frag1 = GetUID("frg:",fin);
-  lmesg.frag2 = GetUID("frg:",fin);
-  lmesg.distance = AS_UID_undefined();
+  lmesg.frag1       = GetUID("frg:",fin);
+  lmesg.frag2       = GetUID("frg:",fin);
+  lmesg.distance    = AS_UID_undefined();
   GetEOM(fin);
   return (&lmesg);
 }

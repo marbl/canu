@@ -18,20 +18,18 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_types.h,v 1.1 2010-02-09 18:12:02 brianwalenz Exp $   */
+/* $Id: AS_MSG_types.h,v 1.2 2010-02-09 20:19:37 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_TYPES_H
 #define AS_MSG_PMESG_TYPES_H
 
-static const char *rcsid_AS_MSG_PMESG_TYPES_H = "$Id: AS_MSG_types.h,v 1.1 2010-02-09 18:12:02 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_TYPES_H = "$Id: AS_MSG_types.h,v 1.2 2010-02-09 20:19:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <time.h>
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
-
-
 
 typedef AS_IID      IntLibrary_ID;
 typedef AS_IID      IntDist_ID;
@@ -44,12 +42,36 @@ typedef AS_IID      IntScaffold_ID;
 
 
 
-typedef enum {
-  AS_MATE       = (int)'M', // Mate
-  AS_UNMATED    = (int)'X'
-  //AS_REREAD     = (int)'R', // Reread
-  //AS_UNKNOWN	= (int)'U'  // the initial value, can't be defined here as it is in OrientType
-} LinkType;
+class LinkType {
+public:
+  LinkType()       { linkType = 0; };
+  ~LinkType()      {};
+
+  //  This operator is dangerous.  In a printf, where we'd usually want to have an implicit cast,
+  //  the compiler warns that it doesn't cast, and will crash at runtime.  Use the toLetter() method
+  //  instead.
+  //
+  //operator char()  { return(toLetter()); };
+
+  char  toLetter(void) {
+    return(linkType);
+  };
+
+public:
+  bool  isMatePair(void)     { return(linkType == 'M'); };
+  bool  isOverlap(void)      { return(linkType == 'X'); };  //  Really should be 'O', but that changes the asm
+
+  void  setIsMatePair(void)  { linkType = 'M'; };
+  void  setIsOverlap(void)   { linkType = 'X'; };
+
+private:
+  char  linkType;
+};
+
+
+
+
+
 
 typedef enum {
   AS_UNKNOWN	= (int)'U',
@@ -58,6 +80,9 @@ typedef enum {
   AS_NORMAL     = (int)'N',
   AS_ANTI	= (int)'A'
 } OrientType;
+
+
+
 
 
 

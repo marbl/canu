@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLink.c,v 1.21 2010-01-04 21:22:50 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLink.c,v 1.22 2010-02-09 20:19:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,9 +51,11 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
 
   //  Check that it's a currently supported link type
   //
-  if (lkg_mesg->type != AS_MATE) {
+  if (lkg_mesg->type.isMatePair() == false) {
     AS_GKP_reportError(AS_GKP_LKG_UNSUPPORTED_TYPE,
-                       lkg_mesg->type, AS_UID_toString(lkg_mesg->frag1), AS_UID_toString(lkg_mesg->frag2), AS_UID_toString(lkg_mesg->distance));
+                       lkg_mesg->type.toLetter(),
+                       AS_UID_toString(lkg_mesg->frag1),
+                       AS_UID_toString(lkg_mesg->frag2), AS_UID_toString(lkg_mesg->distance));
     if (lkg_mesg->action == AS_ADD)
       gkpStore->inf.lkgErrors++;
     return(1);

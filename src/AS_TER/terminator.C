@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: terminator.C,v 1.3 2009-10-27 12:26:43 skoren Exp $";
+const char *mainid = "$Id: terminator.C,v 1.4 2010-02-09 20:19:37 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly pipeline and replaces internal
 //  accession numbers by external accession numbers.
@@ -408,7 +408,7 @@ writeULK(FILE *asmFile, bool doWrite) {
 
         ulk.jump_list[edgeCount].in1  = FRGmap.lookup(edge->fragA);
         ulk.jump_list[edgeCount].in2  = FRGmap.lookup(edge->fragB);
-        ulk.jump_list[edgeCount].type = AS_MATE;
+        ulk.jump_list[edgeCount].type.setIsMatePair();
 
         edgeCount++;
       } else {
@@ -429,7 +429,7 @@ writeULK(FILE *asmFile, bool doWrite) {
 
           ulk.jump_list[edgeCount].in1  = FRGmap.lookup(redge->fragA);
           ulk.jump_list[edgeCount].in2  = FRGmap.lookup(redge->fragB);
-          ulk.jump_list[edgeCount].type = AS_MATE;
+          ulk.jump_list[edgeCount].type.setIsMatePair();
 
           edgeCount++;
         }
@@ -669,12 +669,12 @@ writeCLK(FILE *asmFile, bool doWrite) {
 	if (clk.overlap_type == AS_NO_OVERLAP) {
 	  clk.jump_list[edgeCount].in1  = FRGmap.lookup(edge->fragA);
 	  clk.jump_list[edgeCount].in2  = FRGmap.lookup(edge->fragB);
-          clk.jump_list[edgeCount].type = AS_MATE;
+          clk.jump_list[edgeCount].type.setIsMatePair();
 	} else {
 	  assert(GlobalData->outputOverlapOnlyContigEdges);
 	  clk.jump_list[edgeCount].in1  = AS_UID_undefined();
           clk.jump_list[edgeCount].in2  = AS_UID_undefined();
-	  clk.jump_list[edgeCount].type = AS_UNMATED;
+	  clk.jump_list[edgeCount].type.setIsOverlap();
 	}
 
         edgeCount++;
@@ -695,7 +695,7 @@ writeCLK(FILE *asmFile, bool doWrite) {
 
 	  clk.jump_list[edgeCount].in1  = FRGmap.lookup(redge->fragA);
 	  clk.jump_list[edgeCount].in2  = FRGmap.lookup(redge->fragB);
-          clk.jump_list[edgeCount].type = AS_MATE;
+          clk.jump_list[edgeCount].type.setIsMatePair();
 
           edgeCount++;
 	}
@@ -868,7 +868,7 @@ writeSLK(FILE *asmFile, bool doWrite) {
           slk.jump_list[edgeCount].in2 = AS_UID_undefined();
         }
 
-        slk.jump_list[edgeCount].type = AS_MATE;
+        slk.jump_list[edgeCount].type.setIsMatePair();
 
         edgeCount++;
 
@@ -886,7 +886,7 @@ writeSLK(FILE *asmFile, bool doWrite) {
 
           slk.jump_list[edgeCount].in1  = FRGmap.lookup(redge->fragA);
           slk.jump_list[edgeCount].in2  = FRGmap.lookup(redge->fragB);
-          slk.jump_list[edgeCount].type = AS_MATE;
+          slk.jump_list[edgeCount].type.setIsMatePair();
 
           edgeCount++;
         }
