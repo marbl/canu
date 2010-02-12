@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.13 2010-02-12 20:33:12 brianwalenz Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.14 2010-02-12 20:40:09 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -245,7 +245,7 @@ processUTG(SnapUnitigMesg *utg) {
 void
 processULK(SnapUnitigLinkMesg *ulk) {
 
-  fprintf(utglkg, "%s\t%s\t%c\t%c\t%c\t%f\t%f\t%d\t%c\n",
+  fprintf(utglkg, "%s\t%s\t%c\t%c\t%c\t%f\t%f\t%d\t%c",
           AS_UID_toString(ulk->eunitig1),
           AS_UID_toString(ulk->eunitig2),
           ulk->orientation,
@@ -255,6 +255,12 @@ processULK(SnapUnitigLinkMesg *ulk) {
           ulk->std_deviation,
           ulk->num_contributing,
           ulk->status);
+  for (uint32 i=0; i<ulk->num_contributing; i++)
+    fprintf(utglkg, "\t%s,%s,%c",
+            AS_UID_toString(ulk->jump_list[i].in1),
+            AS_UID_toString(ulk->jump_list[i].in2),
+            ulk->jump_list[i].type.toLetter());
+  fprintf(utglkg, "\n");
 }
 
 
@@ -369,7 +375,7 @@ processCCO(SnapConConMesg *cco) {
 void
 processCLK(SnapContigLinkMesg *clk) {
 
-  fprintf(ctglkg, "%s\t%s\t%c\t%c\t%c\t%f\t%f\t%d\t%c\n",
+  fprintf(ctglkg, "%s\t%s\t%c\t%c\t%c\t%f\t%f\t%d\t%c",
           AS_UID_toString(clk->econtig1),
           AS_UID_toString(clk->econtig2),
           clk->orientation,
@@ -379,6 +385,12 @@ processCLK(SnapContigLinkMesg *clk) {
           clk->std_deviation,
           clk->num_contributing,
           clk->status);
+  for (uint32 i=0; i<clk->num_contributing; i++)
+    fprintf(ctglkg, "\t%s,%s,%c",
+            AS_UID_toString(clk->jump_list[i].in1),
+            AS_UID_toString(clk->jump_list[i].in2),
+            clk->jump_list[i].type.toLetter());
+  fprintf(ctglkg, "\n");
 }
 
 
@@ -478,13 +490,19 @@ processSCF(SnapScaffoldMesg *scf) {
 void
 processSLK(SnapScaffoldLinkMesg *slk) {
 
-  fprintf(scflkg, "%s\t%s\t%c\t%f\t%f\t%d\n",
+  fprintf(scflkg, "%s\t%s\t%c\t%f\t%f\t%d",
           AS_UID_toString(slk->escaffold1),
           AS_UID_toString(slk->escaffold2),
           slk->orientation,
           slk->mean_distance,
           slk->std_deviation,
           slk->num_contributing);
+  for (uint32 i=0; i<slk->num_contributing; i++)
+    fprintf(scflkg, "\t%s,%s,%c",
+            AS_UID_toString(slk->jump_list[i].in1),
+            AS_UID_toString(slk->jump_list[i].in2),
+            slk->jump_list[i].type.toLetter());
+  fprintf(scflkg, "\n");
 }
 
 
