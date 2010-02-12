@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: BCPOutput.cc,v 1.12 2009-10-06 02:35:29 brianwalenz Exp $";
+static const char *rcsid = "$Id: BCPOutput.cc,v 1.13 2010-02-12 20:32:34 brianwalenz Exp $";
 
 #ifdef SYBASE
 
@@ -385,7 +385,6 @@ bool BCPOutput::storeULK2DB (
          << static_cast<char>(orientation) << "\t"
          << static_cast<char>(overlap_type) << "\t"
          << is_possible_chimera << "\t"
-         //smp->includes_guide, - why no guide included?
          << mean_distance << "\t"
          << std_deviation << "\t"
          << num_contributing << "\t"
@@ -647,7 +646,6 @@ bool BCPOutput::storeCLK2DB(
                   ChunkOrientationType orientation,
                   UnitigOverlapType overlap_type,
                   uint32 is_possible_chimera,
-                  uint32 includes_guide,
                   float mean_distance,
                   float std_deviation,
                   uint32 num_contributing,
@@ -662,7 +660,6 @@ bool BCPOutput::storeCLK2DB(
                   << static_cast<char>(orientation) << "\t"
                   << static_cast<char>(overlap_type) << "\t"
                   << is_possible_chimera << "\t"
-                  << includes_guide << "\t"
                   << mean_distance << "\t"
                   << std_deviation << "\t"
                   << num_contributing << "\t"

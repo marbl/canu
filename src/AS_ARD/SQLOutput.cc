@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: SQLOutput.cc,v 1.13 2009-10-06 02:35:29 brianwalenz Exp $";
+static const char *rcsid = "$Id: SQLOutput.cc,v 1.14 2010-02-12 20:33:02 brianwalenz Exp $";
 
 #ifdef SYBASE
 
@@ -632,7 +632,6 @@ bool SQLOutput::storeCLK2DB(
                   ChunkOrientationType orientation,
                   UnitigOverlapType overlap_type,
                   uint32 is_possible_chimera,
-                  uint32 includes_guide,
                   float mean_distance,
                   float std_deviation,
                   uint32 num_contributing,
@@ -643,14 +642,13 @@ bool SQLOutput::storeCLK2DB(
             "INSERT INTO CLK " \
             "(clk_AssemblyID, clk_EUID, clk_CIID, clk_ori, clk_ovt, clk_ipc, " \
             " clk_gui, clk_mea, clk_std, clk_num, clk_sta) " \
-            "VALUES ("F_U64", '"F_U64"', "F_CID", '%c', '%c', "F_S32", "F_S32", %f, %f, "F_S32", '%c')",
+            "VALUES ("F_U64", '"F_U64"', "F_CID", '%c', '%c', "F_S32", %f, %f, "F_S32", '%c')",
                      assemblyID,
                      AS_UID_toInteger(euid),
                      ciid,
                      static_cast<char>(orientation),
                      static_cast<char>(overlap_type),
                      is_possible_chimera,
-                     includes_guide,
                      mean_distance,
                      std_deviation,
                      num_contributing,

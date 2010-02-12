@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: DBTextOutput.cc,v 1.11 2010-02-09 20:19:09 brianwalenz Exp $";
+static const char *rcsid = "$Id: DBTextOutput.cc,v 1.12 2010-02-12 20:32:44 brianwalenz Exp $";
 
 #include <iostream>
 #include <assert.h>
@@ -181,7 +181,6 @@ bool DBTextOutput::storeULK2DB (
          << orientation << "\t"
          << overlap_type << "\t"
          << is_possible_chimera << "\t"
-         //smp->includes_guide, - why no guide included?
          << mean_distance << "\t"
          << std_deviation << "\t"
          << num_contributing << "\t"
@@ -368,7 +367,6 @@ bool DBTextOutput::storeCLK2DB(
                   ChunkOrientationType orientation,
                   UnitigOverlapType overlap_type,
                   uint32 is_possible_chimera,
-                  uint32 includes_guide,
                   float mean_distance,
                   float std_deviation,
                   uint32 num_contributing,
@@ -379,7 +377,6 @@ bool DBTextOutput::storeCLK2DB(
                   << static_cast<char>(orientation) << "\t"
                   << static_cast<char>(overlap_type) << "\t"
                   << is_possible_chimera << "\t"
-                  << includes_guide << "\t"
                   << mean_distance << "\t"
                   << std_deviation << "\t"
                   << num_contributing << "\t"

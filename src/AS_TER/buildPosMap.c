@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.12 2009-09-29 18:45:43 brianwalenz Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.13 2010-02-12 20:33:12 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -52,6 +52,10 @@ ctgInfo_t   *ctgInfo    = NULL;
 
 FILE *frags  = NULL;
 FILE *mates  = NULL;
+
+FILE *utglkg = NULL;
+FILE *ctglkg = NULL;
+FILE *scflkg = NULL;
 
 FILE *frgutg = NULL;
 
@@ -240,6 +244,17 @@ processUTG(SnapUnitigMesg *utg) {
 
 void
 processULK(SnapUnitigLinkMesg *ulk) {
+
+  fprintf(utglkg, "%s\t%s\t%c\t%c\t%c\t%f\t%f\t%d\t%c\n",
+          AS_UID_toString(ulk->eunitig1),
+          AS_UID_toString(ulk->eunitig2),
+          ulk->orientation,
+          ulk->overlap_type,
+          ulk->is_possible_chimera ? 'chimeric' : '.',
+          ulk->mean_distance,
+          ulk->std_deviation,
+          ulk->num_contributing,
+          ulk->status);
 }
 
 
@@ -353,6 +368,17 @@ processCCO(SnapConConMesg *cco) {
 
 void
 processCLK(SnapContigLinkMesg *clk) {
+
+  fprintf(ctglkg, "%s\t%s\t%c\t%c\t%c\t%f\t%f\t%d\t%c\n",
+          AS_UID_toString(clk->econtig1),
+          AS_UID_toString(clk->econtig2),
+          clk->orientation,
+          clk->overlap_type,
+          clk->is_possible_chimera ? 'chimeric' : '.',
+          clk->mean_distance,
+          clk->std_deviation,
+          clk->num_contributing,
+          clk->status);
 }
 
 
@@ -451,6 +477,14 @@ processSCF(SnapScaffoldMesg *scf) {
 
 void
 processSLK(SnapScaffoldLinkMesg *slk) {
+
+  fprintf(scflkg, "%s\t%s\t%c\t%f\t%f\t%d\n",
+          AS_UID_toString(slk->escaffold1),
+          AS_UID_toString(slk->escaffold2),
+          slk->orientation,
+          slk->mean_distance,
+          slk->std_deviation,
+          slk->num_contributing);
 }
 
 
@@ -607,6 +641,10 @@ int main (int argc, char *argv[]) {
   frags  = openFile("frags",  outputPrefix, 1);
   mates  = openFile("mates",  outputPrefix, 1);
 
+  utglkg = openFile("utglkg", outputPrefix, 1);
+  ctglkg = openFile("ctglkg", outputPrefix, 1);
+  scflkg = openFile("scflkg", outputPrefix, 1);
+
   frgutg = openFile("frgutg", outputPrefix, 1);
 
   frgdeg = openFile("frgdeg", outputPrefix, 1);
@@ -645,21 +683,21 @@ int main (int argc, char *argv[]) {
         processUTG((SnapUnitigMesg *)pmesg->m);
         break;
       case MESG_ULK:
-        //processULK(pmesg->m);
+        processULK((SnapUnitigLinkMesg *)pmesg->m);
         break;
 
       case MESG_CCO:
         processCCO((SnapConConMesg *)pmesg->m);
         break;
       case MESG_CLK:
-        //processCLK(pmesg->m);
+        processCLK((SnapContigLinkMesg *)pmesg->m);
         break;
 
       case MESG_SCF:
         processSCF((SnapScaffoldMesg *)pmesg->m);
         break;
       case MESG_SLK:
-        //processSLK(pmesg->m);
+        processSLK((SnapScaffoldLinkMesg *)pmesg->m);
         break;
 
       default:

@@ -21,7 +21,7 @@
 #ifndef DBTextOutput_HH
 #define DBTextOutput_HH
 
-static const char *rcsid_DBTextOutput_HH = "$Id: DBTextOutput.hh,v 1.9 2009-10-06 02:35:29 brianwalenz Exp $";
+static const char *rcsid_DBTextOutput_HH = "$Id: DBTextOutput.hh,v 1.10 2010-02-12 20:32:48 brianwalenz Exp $";
 
 #include "IDBOutput.hh"
 
@@ -146,7 +146,6 @@ namespace AS_ARD {
                   ChunkOrientationType orientation,
                   UnitigOverlapType overlap_type,
                   uint32 is_possible_chimera,
-                  uint32 includes_guide,
                   float mean_distance,
                   float std_deviation,
                   uint32 num_contributing,

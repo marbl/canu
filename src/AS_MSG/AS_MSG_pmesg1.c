@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.46 2010-02-09 20:19:33 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.47 2010-02-12 20:33:08 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -569,7 +569,6 @@ Read_IUL_Mesg(FILE *fin) {
   mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
   mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXYZ]","overlap type", fin);
   GET_FIELD(mesg.is_possible_chimera,"ipc:"F_S32,"warning");
-  GET_FIELD(mesg.includes_guide,"gui:"F_S32,"guide flag");
   GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
   GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
@@ -603,7 +602,6 @@ Read_ICL_Mesg(FILE *fin) {
   mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
   mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXYZ]","overlap type", fin);
   GET_FIELD(mesg.is_possible_chimera,"ipc:"F_S32,"warning");
-  GET_FIELD(mesg.includes_guide,"gui:"F_S32,"guide flag");
   GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
   GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
@@ -635,7 +633,6 @@ Read_ISL_Mesg(FILE *fin) {
   GET_FIELD(mesg.iscaffold1,"sc1:"F_IID,"scaffold 1 field");
   GET_FIELD(mesg.iscaffold2,"sc2:"F_IID,"scaffold 2 field");
   mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
-  GET_FIELD(mesg.includes_guide,"gui:"F_S32,"guide flag");
   GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
   GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
@@ -958,7 +955,6 @@ static void *Read_ULK_Mesg(FILE *fin) {
   mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
   mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXYZ]","overlap type", fin);
   GET_FIELD(mesg.is_possible_chimera,"ipc:"F_S32,"warning");
-  GET_FIELD(mesg.includes_guide,"gui:"F_S32,"guide flag");
   GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
   GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
@@ -1044,7 +1040,6 @@ static void *Read_CLK_Mesg(FILE *fin)
   mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
   mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXYZ]","overlap type", fin);
   GET_FIELD(mesg.is_possible_chimera,"ipc:"F_S32,"warning");
-  GET_FIELD(mesg.includes_guide,"gui:"F_S32,"guide flag");
   GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
   GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
@@ -1078,7 +1073,6 @@ static void *Read_SLK_Mesg(FILE *fin)
   mesg.escaffold2 = GetUID("sc2:",fin);
 
   mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
-  GET_FIELD(mesg.includes_guide,"gui:"F_S32,"guide flag");
   GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
   GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
@@ -1407,7 +1401,6 @@ static void Write_IUL_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"ori:%c\n",mesg->orientation);
   fprintf(fout,"ovt:%c\n",mesg->overlap_type);
   fprintf(fout,"ipc:"F_S32"\n",mesg->is_possible_chimera);
-  fprintf(fout,"gui:"F_S32"\n",mesg->includes_guide);
   fprintf(fout,"mea:%.3f\n",mesg->mean_distance);
   fprintf(fout,"std:%.3f\n",mesg->std_deviation);
   fprintf(fout,"num:"F_S32"\n",mesg->num_contributing);
@@ -1435,7 +1428,6 @@ static void Write_ICL_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"ori:%c\n",mesg->orientation);
   fprintf(fout,"ovt:%c\n",mesg->overlap_type);
   fprintf(fout,"ipc:"F_S32"\n",mesg->is_possible_chimera);
-  fprintf(fout,"gui:"F_S32"\n",mesg->includes_guide);
   fprintf(fout,"mea:%.3f\n",mesg->mean_distance);
   fprintf(fout,"std:%.3f\n",mesg->std_deviation);
   fprintf(fout,"num:"F_S32"\n",mesg->num_contributing);
@@ -1461,7 +1453,6 @@ static void Write_ISL_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"sc1:"F_IID"\n",mesg->iscaffold1);
   fprintf(fout,"sc2:"F_IID"\n",mesg->iscaffold2);
   fprintf(fout,"ori:%c\n",mesg->orientation);
-  fprintf(fout,"gui:"F_S32"\n",mesg->includes_guide);
   fprintf(fout,"mea:%.3f\n",mesg->mean_distance);
   fprintf(fout,"std:%.3f\n",mesg->std_deviation);
   fprintf(fout,"num:"F_S32"\n",mesg->num_contributing);
@@ -1673,7 +1664,6 @@ static void Write_ULK_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"ori:%c\n",mesg->orientation);
   fprintf(fout,"ovt:%c\n",mesg->overlap_type);
   fprintf(fout,"ipc:"F_S32"\n",mesg->is_possible_chimera);
-  fprintf(fout,"gui:"F_S32"\n",mesg->includes_guide);
   fprintf(fout,"mea:%.3f\n",mesg->mean_distance);
   fprintf(fout,"std:%.3f\n",mesg->std_deviation);
   fprintf(fout,"num:"F_S32"\n",mesg->num_contributing);
@@ -1732,7 +1722,6 @@ static void Write_CLK_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"ori:%c\n",mesg->orientation);
   fprintf(fout,"ovt:%c\n",mesg->overlap_type);
   fprintf(fout,"ipc:"F_S32"\n",mesg->is_possible_chimera);
-  fprintf(fout,"gui:"F_S32"\n",mesg->includes_guide);
   fprintf(fout,"mea:%.3f\n",mesg->mean_distance);
   fprintf(fout,"std:%.3f\n",mesg->std_deviation);
   fprintf(fout,"num:"F_S32"\n",mesg->num_contributing);
@@ -1758,7 +1747,6 @@ static void Write_SLK_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"sc1:%s\n",AS_UID_toString(mesg->escaffold1));
   fprintf(fout,"sc2:%s\n",AS_UID_toString(mesg->escaffold2));
   fprintf(fout,"ori:%c\n",mesg->orientation);
-  fprintf(fout,"gui:"F_S32"\n",mesg->includes_guide);
   fprintf(fout,"mea:%.3f\n",mesg->mean_distance);
   fprintf(fout,"std:%.3f\n",mesg->std_deviation);
   fprintf(fout,"num:"F_S32"\n",mesg->num_contributing);

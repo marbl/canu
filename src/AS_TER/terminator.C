@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: terminator.C,v 1.4 2010-02-09 20:19:37 brianwalenz Exp $";
+const char *mainid = "$Id: terminator.C,v 1.5 2010-02-12 20:33:15 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly pipeline and replaces internal
 //  accession numbers by external accession numbers.
@@ -350,7 +350,6 @@ writeULK(FILE *asmFile, bool doWrite) {
       ulk.overlap_type = (isOverlapEdge(edge)) ? AS_OVERLAP : AS_NO_OVERLAP;
 
       ulk.is_possible_chimera = edge->flags.bits.isPossibleChimera;
-      ulk.includes_guide      = FALSE;
       ulk.mean_distance       = edge->distance.mean;
       ulk.std_deviation       = sqrt(edge->distance.variance);
       ulk.num_contributing    = edge->edgesContributing;
@@ -647,7 +646,6 @@ writeCLK(FILE *asmFile, bool doWrite) {
       }
 
       clk.is_possible_chimera = edge->flags.bits.isPossibleChimera;
-      clk.includes_guide      = FALSE;
       clk.mean_distance       = edge->distance.mean;
       clk.std_deviation       = sqrt(edge->distance.variance);
       clk.num_contributing    = edge->edgesContributing;
@@ -844,7 +842,6 @@ writeSLK(FILE *asmFile, bool doWrite) {
 
       slk.orientation      = edge->orient;
 
-      slk.includes_guide   = FALSE;
       slk.mean_distance    = edge->distance.mean;
       slk.std_deviation    = sqrt(edge->distance.variance);
       slk.num_contributing = edge->edgesContributing;

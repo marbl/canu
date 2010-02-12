@@ -21,7 +21,7 @@
 #ifndef IDBOutput_HH
 #define IDBOutput_HH
 
-static const char *rcsid_IDBOutput_HH = "$Id: IDBOutput.hh,v 1.11 2009-10-06 02:35:29 brianwalenz Exp $";
+static const char *rcsid_IDBOutput_HH = "$Id: IDBOutput.hh,v 1.12 2010-02-12 20:32:50 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -155,7 +155,6 @@ namespace AS_ARD {
                   ChunkOrientationType orientation,
                   UnitigOverlapType overlap_type,
                   uint32 is_possible_chimera,
-                  uint32 includes_guide,
                   float mean_distance,
                   float std_deviation,
                   uint32 num_contributing,

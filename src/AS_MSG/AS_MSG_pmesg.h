@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.84 2010-02-09 18:11:58 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.85 2010-02-12 20:33:05 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.84 2010-02-09 18:11:58 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.85 2010-02-12 20:33:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <time.h>
@@ -306,7 +306,6 @@ typedef struct {
   ChunkOrientationType	orientation;
   UnitigOverlapType	overlap_type;
   int32			is_possible_chimera;
-  int32			includes_guide;
   float  		mean_distance;
   float  		std_deviation;
   int32			num_contributing;
@@ -320,7 +319,6 @@ typedef struct {
   ChunkOrientationType	orientation;
   UnitigOverlapType	overlap_type;
   int32			is_possible_chimera;
-  int32			includes_guide;
   float  		mean_distance;
   float  		std_deviation;
   int32			num_contributing;
@@ -332,7 +330,6 @@ typedef struct {
   IntScaffold_ID	iscaffold1;
   IntScaffold_ID	iscaffold2;
   ChunkOrientationType	orientation;
-  int32			includes_guide;
   float  		mean_distance;
   float  		std_deviation;
   int32			num_contributing;
@@ -432,7 +429,6 @@ typedef struct {
   ChunkOrientationType	orientation;
   UnitigOverlapType	overlap_type;
   int32			is_possible_chimera;
-  int32			includes_guide;
   float  		mean_distance;
   float  		std_deviation;
   int32			num_contributing;
@@ -462,7 +458,6 @@ typedef struct {
   ChunkOrientationType	orientation;
   UnitigOverlapType	overlap_type;
   int32			is_possible_chimera;
-  int32			includes_guide;
   float  		mean_distance;
   float  		std_deviation;
   int32			num_contributing;
@@ -474,7 +469,6 @@ typedef struct {
   AS_UID                escaffold1;
   AS_UID                escaffold2;
   ChunkOrientationType	orientation;
-  int32			includes_guide;
   float  		mean_distance;
   float  		std_deviation;
   int32			num_contributing;

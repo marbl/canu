@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ARD_database.cc,v 1.12 2009-09-29 18:45:41 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ARD_database.cc,v 1.13 2010-02-12 20:32:12 brianwalenz Exp $";
 
 #include <iostream>
 #include <string>
@@ -133,7 +133,6 @@ bool AS_ARD_database::addULK2DB(SnapUnitigLinkMesg * ulk) {
             ulk->orientation,
             ulk->overlap_type,
             ulk->is_possible_chimera,
-            //smp->includes_guide, - why no guide included?
             ulk->mean_distance,
             ulk->std_deviation,
             ulk->num_contributing,
@@ -343,7 +342,6 @@ bool AS_ARD_database::addCLK2DB(SnapContigLinkMesg * clk) {
             clk->orientation,
             clk->overlap_type,
             clk->is_possible_chimera,
-            clk->includes_guide,
             clk->mean_distance,
             clk->std_deviation,
             clk->num_contributing,

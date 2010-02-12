@@ -23,7 +23,7 @@
 #ifndef BCPOutput_H
 #define BCPOutput_H
 
-static const char *rcsid_BCPOutput_H = "$Id: BCPOutput.hh,v 1.8 2009-10-06 02:35:29 brianwalenz Exp $";
+static const char *rcsid_BCPOutput_H = "$Id: BCPOutput.hh,v 1.9 2010-02-12 20:32:44 brianwalenz Exp $";
 
 #include <iostream>
 #include "SQLOutput.hh"
@@ -228,7 +228,6 @@ namespace AS_ARD {
                   ChunkOrientationType orientation,
                   UnitigOverlapType overlap_type,
                   uint32 is_possible_chimera,
-                  uint32 includes_guide,
                   float mean_distance,
                   float std_deviation,
                   uint32 num_contributing,

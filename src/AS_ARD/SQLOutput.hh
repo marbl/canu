@@ -21,7 +21,7 @@
 #ifndef SQLOutput_H
 #define SQLOutput_H
 
-static const char *rcsid_SQLOutput_H = "$Id: SQLOutput.hh,v 1.10 2009-10-06 02:35:29 brianwalenz Exp $";
+static const char *rcsid_SQLOutput_H = "$Id: SQLOutput.hh,v 1.11 2010-02-12 20:33:02 brianwalenz Exp $";
 
 #include <iostream>
 #include "IDBOutput.hh"
@@ -172,7 +172,6 @@ protected:
                   ChunkOrientationType orientation,
                   UnitigOverlapType overlap_type,
                   uint32 is_possible_chimera,
-                  uint32 includes_guide,
                   float mean_distance,
                   float std_deviation,
                   uint32 num_contributing,
