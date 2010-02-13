@@ -84,7 +84,10 @@ else
 fi
 
 if [ x$python != x ] ; then
-  if [ -e $python/include/python2.5/Python.h ]
+  if [ -e $python/include/python2.6/Python.h ]
+  then
+    CFLAGS_PYTHON="-I$python/include/python2.6"
+  elif [ -e $python/include/python2.5/Python.h ]
   then
     CFLAGS_PYTHON="-I$python/include/python2.5"
   elif [ -e $python/include/python2.4/Python.h ]
@@ -96,6 +99,9 @@ if [ x$python != x ] ; then
   elif [ -e $python/include/python2.2/Python.h ]
   then
     CFLAGS_PYTHON="-I$python/include/python2.2"
+  elif [ -e /usr/local/include/python2.6/Python.h ]
+  then
+    CFLAGS_PYTHON="-I/usr/local/include/python2.6"
   elif [ -e /usr/local/include/python2.5/Python.h ]
   then
     CFLAGS_PYTHON="-I/usr/local/include/python2.5"
