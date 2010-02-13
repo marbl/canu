@@ -8,6 +8,7 @@ sub overlapCorrection {
     return if (getGlobal("doFragmentCorrection") == 0);
 
     return if (-e "$wrk/3-overlapcorrection/$asm.erates.updated");
+    return if (-e "$wrk/$asm.ovlStore/corrected");
 
     system("mkdir $wrk/3-overlapcorrection") if (! -e "$wrk/3-overlapcorrection");
 
@@ -282,6 +283,7 @@ sub overlapCorrection {
         }
 
         touch("$wrk/3-overlapcorrection/$asm.erates.updated");
+        touch("$wrk/$asm.ovlStore/corrected");
 
         if ($cleanup) {
             open(F, "< $wrk/3-overlapcorrection/cat-erates.eratelist");
