@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.19 2009-06-10 18:05:14 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.20 2010-02-16 05:04:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -244,7 +244,10 @@ ReallocHashTable_AS(HashTable_AS *htable) {
   InitHeapIterator_AS(htable->nodeheap, &iterator);
   while (NULL != (node = (HashNode_AS *)NextHeapIterator_AS(&iterator)))
     if (node->isFree == 0)
-      InsertNodeInHashBucket(htable, node);
+      if (InsertNodeInHashBucket(htable, node) == HASH_FAILURE) {
+        fprintf(stderr, "ReallocHashTable_AS()-- Failed to insert node; duplicate?\n");
+        assert(0);
+      }
 }
 
 
@@ -377,7 +380,23 @@ InsertInHashTable_AS(HashTable_AS  *table,
   node->valueType    = valuetype;
   node->next         = NULL;
 
-  return(InsertNodeInHashBucket(table, node));
+  if (InsertNodeInHashBucket(table, node) == HASH_SUCCESS) {
+    table->numNodes++;
+    return(HASH_SUCCESS);
+  }
+
+  //  Otherwise, the key is already there.  Return this node to the free list.
+
+  node->key          = 0;
+  node->value        = 0;
+  node->keyLength    = 0;
+  node->valueType    = 0;
+  node->isFree       = 1;
+  node->next         = table->freeList;
+
+  table->freeList = node;
+
+  return(HASH_FAILURE);
 }
 
 
