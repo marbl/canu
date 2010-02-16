@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.83 2010-02-09 20:19:15 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.84 2010-02-16 05:19:40 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,14 +78,8 @@ GraphCGW_T *CreateGraphCGW(GraphType type,
   graph->type = type;
   graph->nodes = CreateVA_NodeCGW_T((size_t) MAX(1024, numNodes));
   graph->edges = CreateVA_EdgeCGW_T((size_t) MAX(1024, numNodes));
-  if(graph->type == SCAFFOLD_GRAPH){
-    graph->overlapper = NULL;
-  }else{
-    graph->overlapper = CreateChunkOverlapper();
-  }
 
   return graph;
-
 }
 
 
@@ -118,9 +112,6 @@ void SaveGraphCGWToStream(GraphCGW_T *graph, FILE *stream){
   AS_UTL_safeWrite(stream, &graph->freeNodeHead,     "SaveGraphCGWToStream", sizeof(CDS_CID_t), 1);
   AS_UTL_safeWrite(stream, &graph->tobeFreeNodeHead, "SaveGraphCGWToStream", sizeof(CDS_CID_t), 1);
   AS_UTL_safeWrite(stream, &graph->deadNodeHead,     "SaveGraphCGWToStream", sizeof(CDS_CID_t), 1);
-
-  if(graph->type != SCAFFOLD_GRAPH)
-    SaveChunkOverlapperToStream(graph->overlapper,stream);
 }
 
 
@@ -157,10 +148,6 @@ GraphCGW_T *LoadGraphCGWFromStream(FILE *stream){
   status += AS_UTL_safeRead(stream, &graph->deadNodeHead,     "LoadGraphCGWFromStream", sizeof(CDS_CID_t), 1);
   assert(status == 8);
 
-  graph->overlapper = NULL;
-  if(graph->type != SCAFFOLD_GRAPH)
-    graph->overlapper = LoadChunkOverlapperFromStream(stream);
-
   return graph;
 }
 
@@ -181,8 +168,6 @@ void DeleteGraphCGW(GraphCGW_T *graph){
 
   DeleteVA_NodeCGW_T(graph->nodes);
   DeleteVA_EdgeCGW_T(graph->edges);
-  if(graph->type != SCAFFOLD_GRAPH)
-    DestroyChunkOverlapper(graph->overlapper);
   safe_free(graph);
 }
 

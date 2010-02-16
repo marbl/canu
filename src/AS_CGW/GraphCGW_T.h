@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.42 2009-10-27 12:26:40 skoren Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.43 2010-02-16 05:19:40 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_ALN_aligners.h"
@@ -407,7 +407,6 @@ typedef struct{
   CDS_CID_t freeNodeHead;
   CDS_CID_t tobeFreeNodeHead; // staging area for nodes waiting to be moved to the free list
   CDS_CID_t deadNodeHead;
-  ChunkOverlapperT *overlapper;
 }GraphCGW_T;
 
 
@@ -428,7 +427,6 @@ static void InitializeGraph(GraphCGW_T *graph){
   graph->freeNodeHead = NULLINDEX;
   graph->tobeFreeNodeHead = NULLINDEX;
   graph->deadNodeHead = NULLINDEX;
-  graph->overlapper = NULL;
 }
 
 

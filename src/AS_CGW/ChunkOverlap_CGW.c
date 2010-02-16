@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.46 2009-10-27 12:26:40 skoren Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.47 2010-02-16 05:19:40 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -123,6 +123,31 @@ static
 int CanOlapCmp(uint64 cO1, uint64 cO2){
   ChunkOverlapSpecT *c1 = (ChunkOverlapSpecT *)(INTPTR)cO1;
   ChunkOverlapSpecT *c2 = (ChunkOverlapSpecT *)(INTPTR)cO2;
+
+
+  if (c1->cidA < c2->cidA)
+    return(-1);
+  if (c1->cidA > c2->cidA)
+    return(1);
+
+  if (c1->cidB < c2->cidB)
+    return(-1);
+  if (c1->cidB > c2->cidB)
+    return(1);
+
+  if (c1->orientation < c2->orientation)
+    return(-1);
+  if (c1->orientation > c2->orientation)
+    return(1);
+
+  //if (c1->orientation.toLetter() < c2->orientation.toLetter())
+  //  return(-1);
+  //if (c1->orientation.toLetter() > c2->orientation.toLetter())
+  //  return(1);
+
+  return(0);
+
+#if 0
   int diff;
 
   diff = c1->cidA - c2->cidA;
@@ -136,11 +161,22 @@ int CanOlapCmp(uint64 cO1, uint64 cO2){
   if(c1->orientation == c2->orientation)
     return 0;
   else return (c1 - c2);
+#endif
 }
 
 static
 int CanOlapHash(uint64 cO, uint32 length){
-  return  Hash_AS((uint8 *)(INTPTR)cO, length, 37);
+  assert(length == sizeof(ChunkOverlapSpecT));
+
+  uint64  arr[3];
+
+  ChunkOverlapSpecT *spec = (ChunkOverlapSpecT *)(INTPTR)cO;
+
+  arr[0] = spec->cidA;
+  arr[1] = spec->cidB;
+  arr[2] = spec->orientation;
+
+  return  Hash_AS((uint8 *)arr, sizeof(uint64) * 3, 37);
 }
 
 
@@ -160,17 +196,90 @@ void DestroyChunkOverlapper(ChunkOverlapperT *chunkOverlapper){
 }
 
 
+
+static
+void
+printChunkOverlapCheckT(char *label, ChunkOverlapCheckT *olap) {
+  fprintf(stderr, "%s %d,%d,%c - min/max %d/%d %d/%d erate %f flags %d%d%d%d%d overlap %d hang %d,%d qual %d offset %d,%d\n",
+          label,
+          olap->spec.cidA, olap->spec.cidB, olap->spec.orientation, //.toLetter(),
+          olap->minOverlap, olap->maxOverlap,
+          olap->cgbMinOverlap, olap->cgbMaxOverlap,
+          olap->errorRate,
+          olap->computed, olap->fromCGB, olap->AContainsB, olap->BContainsA, olap->suspicious,
+          olap->overlap, olap->ahg, olap->bhg, olap->quality, olap->min_offset, olap->max_offset);
+}
+
+
+
+
+static
+int
+ExistsChunkOverlap(ChunkOverlapperT *chunkOverlapper,
+                   ChunkOverlapCheckT *olap) {
+  return(ExistsInHashTable_AS(chunkOverlapper->hashTable,
+                              (uint64)(INTPTR)&olap->spec,
+                              sizeof(ChunkOverlapSpecT)));
+}
+
+
+static
+void
+DeleteChunkOverlap(ChunkOverlapperT *chunkOverlapper,
+                   ChunkOverlapCheckT *olap){
+
+  if (ExistsChunkOverlap(chunkOverlapper, olap) == FALSE)
+    return;
+
+  if (DeleteFromHashTable_AS(chunkOverlapper->hashTable,
+                             (uint64)(INTPTR)&olap->spec,
+                             sizeof(ChunkOverlapSpecT)) != HASH_SUCCESS) {
+    //  This is triggered if the overlap DOESN'T exist in the table.  Which, since
+    //  we just checked that it does exist, should never occur.
+    printChunkOverlapCheckT("WARNING:  Failed to delete overlap", olap);
+    assert(0);
+  }
+
+  if (ExistsChunkOverlap(chunkOverlapper, olap) == TRUE) {
+    //  This is triggered if the overlap STILL exists in the table.
+    printChunkOverlapCheckT("WARNING:  Deleted overlap still exists", olap);
+    assert(0);
+  }
+}
+
 //external
 int InsertChunkOverlap(ChunkOverlapperT *chunkOverlapper,
                        ChunkOverlapCheckT *olap){
   ChunkOverlapCheckT *nolap = (ChunkOverlapCheckT *)GetHeapItem_AS(chunkOverlapper->ChunkOverlaps);
+
   *nolap = *olap;
-  assert(nolap->overlap==0||nolap->errorRate >= 0.0);
-  return(InsertInHashTable_AS(chunkOverlapper->hashTable,
-                              (uint64)(INTPTR)&nolap->spec,
-                              sizeof(olap->spec),
-                              (uint64)(INTPTR)nolap,
-                              0));
+
+  assert((nolap->overlap == 0) || (nolap->errorRate >= 0.0));
+
+  int exists = ExistsInHashTable_AS(chunkOverlapper->hashTable,
+                                    (uint64)(INTPTR)&olap->spec,
+                                    sizeof(ChunkOverlapSpecT));
+
+  if (exists == HASH_SUCCESS) {
+    ChunkOverlapCheckT  *old = LookupCanonicalOverlap(chunkOverlapper, &olap->spec);
+
+    fprintf(stderr, "WARNING:  InsertChunkOverlap()-- Chunk overlap already exists.\n");
+    printChunkOverlapCheckT("NEW", olap);
+    printChunkOverlapCheckT("OLD", old);
+  }
+
+  int inserted = InsertInHashTable_AS(chunkOverlapper->hashTable,
+                                    (uint64)(INTPTR)&nolap->spec,
+                                    sizeof(ChunkOverlapSpecT),
+                                    (uint64)(INTPTR)nolap,
+                                    0);
+
+  //  Either the overlap didn't exist (in which case we should have inserted it), or
+  //  the overlap existed already (in which case we should not have inserted it).
+  //
+  assert((exists == HASH_FAILURE) || (inserted == HASH_FAILURE));
+
+  return(inserted);
 }
 
 
@@ -209,25 +318,25 @@ void  SaveChunkOverlapperToStream(ChunkOverlapperT *chunkOverlapper, FILE *strea
 
 //external
 ChunkOverlapperT *  LoadChunkOverlapperFromStream(FILE *stream){
-  int64 numOverlaps;
-  int status;
-  int64 overlap;
-  ChunkOverlapCheckT olap = {0};
-  ChunkOverlapperT *chunkOverlapper;
+  ChunkOverlapperT  *chunkOverlapper = CreateChunkOverlapper();
+  int64              numOverlaps;
 
-  // open the chunkStore at chunkStorepath
-  status = AS_UTL_safeRead(stream, &numOverlaps, "LoadChunkOverlapperFromStream", sizeof(int64), 1);
+  int status = AS_UTL_safeRead(stream, &numOverlaps, "LoadChunkOverlapperFromStream", sizeof(int64), 1);
+
   assert(status == 1);
 
-  chunkOverlapper = (ChunkOverlapperT *)safe_malloc(sizeof(ChunkOverlapperT));
-  chunkOverlapper->hashTable = CreateGenericHashTable_AS(CanOlapHash, CanOlapCmp);
-  chunkOverlapper->ChunkOverlaps = AllocateHeap_AS(sizeof(ChunkOverlapCheckT));
+  for (int64 overlap = 0; overlap < numOverlaps; overlap++) {
+    ChunkOverlapCheckT olap;
 
-  for(overlap = 0; overlap < numOverlaps; overlap++){
     status = AS_UTL_safeRead(stream, &olap, "LoadChunkOverlapperFromStream", sizeof(ChunkOverlapCheckT), 1);
+
     assert(status == 1);
     assert(olap.errorRate > 0.0);
-    InsertChunkOverlap(chunkOverlapper, &olap);
+
+    if (InsertChunkOverlap(chunkOverlapper, &olap) != HASH_SUCCESS) {
+      fprintf(stderr, "LoadChunkOverlapperFromStream()-- Failed to insert.\n");
+      assert(0);
+    }
   }
 
   return chunkOverlapper;
@@ -304,7 +413,7 @@ void CreateChunkOverlapFromEdge(GraphCGW_T *graph,
   olap.quality = edge->quality;
   olap.ahg = olap.bhg = 0;
   olap.min_offset = olap.max_offset = 0;
-  InsertChunkOverlap(graph->overlapper, &olap);
+  InsertChunkOverlap(ScaffoldGraph->ChunkOverlaps, &olap);
 }
 
 
@@ -480,12 +589,11 @@ int LookupOverlap(GraphCGW_T *graph,
 		  CDS_CID_t cidA, CDS_CID_t cidB,
 		  ChunkOrientationType orientation,
 		  ChunkOverlapCheckT *olap){
-  ChunkOverlapperT *chunkOverlapper = graph->overlapper;
   int isCanonical ;
   ChunkOverlapSpecT spec;
   ChunkOverlapCheckT *lookup;
   isCanonical = InitCanonicalOverlapSpec(cidA, cidB, orientation, &spec);
-  lookup = LookupCanonicalOverlap(chunkOverlapper, &spec);
+  lookup = LookupCanonicalOverlap(ScaffoldGraph->ChunkOverlaps, &spec);
   if(!lookup)  // We didn't find anything
     return FALSE;
 
@@ -544,15 +652,6 @@ int LookupOverlap(GraphCGW_T *graph,
 
   return TRUE;
 
-}
-
-
-
-
-static
-int DeleteChunkOverlap(ChunkOverlapperT *chunkOverlapper,
-                       ChunkOverlapCheckT *olap){
-  return DeleteFromHashTable_AS(chunkOverlapper->hashTable, (uint64)(INTPTR)&olap->spec, sizeof(olap->spec));
 }
 
 
@@ -620,7 +719,6 @@ void CollectChunkOverlap(GraphCGW_T *graph,
                          float   quality, int bayesian,
                          int fromCGB,
 			 int verbose){
-  ChunkOverlapperT *chunkOverlapper = graph->overlapper;
   ChunkOverlapCheckT canOlap={0}, *olap;
   int32 delta;
   int32 minOverlap,maxOverlap;
@@ -639,7 +737,7 @@ void CollectChunkOverlap(GraphCGW_T *graph,
   InitCanonicalOverlapSpec(cidA, cidB, orientation, &canOlap.spec);
 
   // Lookup to see if we've already stored such an overlap
-  olap = LookupCanonicalOverlap(chunkOverlapper, &canOlap.spec);
+  olap = LookupCanonicalOverlap(ScaffoldGraph->ChunkOverlaps, &canOlap.spec);
   if(!olap){
     assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
     canOlap.computed = FALSE;
@@ -658,7 +756,7 @@ void CollectChunkOverlap(GraphCGW_T *graph,
     canOlap.errorRate = AS_CGW_ERROR_RATE;
 
     // Add it to the symbol table
-    if(InsertChunkOverlap(chunkOverlapper, &canOlap) != HASH_SUCCESS)
+    if(InsertChunkOverlap(ScaffoldGraph->ChunkOverlaps, &canOlap) != HASH_SUCCESS)
       assert(0);
 
   }else{ // we found an overlap
@@ -811,7 +909,6 @@ void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
                                  ChunkOverlapCheckT *canOlap)
 {
   int32 lengthA, lengthB;
-  ChunkOverlapperT *chunkOverlapper = graph->overlapper;
   Overlap * tempOlap1;
   ChunkOverlapSpecT inSpec;
 
@@ -900,7 +997,7 @@ void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
         // so we can't screw around with these, without removing the
         // entry and reinserting it.
 
-        DeleteChunkOverlap(chunkOverlapper, canOlap);
+        DeleteChunkOverlap(ScaffoldGraph->ChunkOverlaps, canOlap);
 
         canOlap->suspicious = TRUE;
         canOlap -> overlap = tempOlap1 -> length;
@@ -944,7 +1041,13 @@ void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
                 canOlap->overlap);
 
         // Add it to the symbol table
-        InsertChunkOverlap(chunkOverlapper, canOlap);
+
+        DeleteChunkOverlap(ScaffoldGraph->ChunkOverlaps, canOlap);
+
+        if (InsertChunkOverlap(ScaffoldGraph->ChunkOverlaps, canOlap) != HASH_SUCCESS) {
+          fprintf(stderr, "ComputeCanonicalOverlap_new()-- Failed to insert.\n");
+          assert(0);
+        }
       }
     }
   }
@@ -1004,7 +1107,7 @@ ChunkOverlapCheckT OverlapChunks( GraphCGW_T *graph,
   // initalize olap with the chunk IDs and their orientation and record
   // whether the orientation was already canonical or not
 
-  lookup = LookupCanonicalOverlap(graph->overlapper,&olap.spec);
+  lookup = LookupCanonicalOverlap(ScaffoldGraph->ChunkOverlaps,&olap.spec);
   // lookup whether the overlap had already been computed
 
 
@@ -1043,20 +1146,20 @@ ChunkOverlapCheckT OverlapChunks( GraphCGW_T *graph,
         int suspicious = olap.suspicious;
         if(olap.suspicious){
           olap.suspicious = FALSE;
-          lookup = LookupCanonicalOverlap(graph->overlapper,&olap.spec); // see if it is already in the table
+          lookup = LookupCanonicalOverlap(ScaffoldGraph->ChunkOverlaps,&olap.spec); // see if it is already in the table
           if(!lookup){
-            if(InsertChunkOverlap(graph->overlapper, &olap) != HASH_SUCCESS) {
+            if(InsertChunkOverlap(ScaffoldGraph->ChunkOverlaps, &olap) != HASH_SUCCESS) {
               fprintf(stderr, "Failed to insert overlap into hash table.\n");
               assert(0);
             }
           }
         }else{
-          if(InsertChunkOverlap(graph->overlapper, &olap) != HASH_SUCCESS) {
+          if(InsertChunkOverlap(ScaffoldGraph->ChunkOverlaps, &olap) != HASH_SUCCESS) {
             fprintf(stderr, "Failed to insert overlap into hash table.\n");
             assert(0);
           }
         }
-        lookup = LookupCanonicalOverlap(graph->overlapper,&olap.spec);
+        lookup = LookupCanonicalOverlap(ScaffoldGraph->ChunkOverlaps,&olap.spec);
         assert(lookup != NULL);
         // ComputeCanonicalOverlap does not return the olap, so we look it up again.
 
@@ -1208,7 +1311,7 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
                   sectionOuterMin, sectionOuterMax,
                   sectionInnerMin, sectionInnerMax);
 
-	  InitializeHashTable_Iterator_AS(graph->overlapper->hashTable, &iterator);
+	  InitializeHashTable_Iterator_AS(ScaffoldGraph->ChunkOverlaps->hashTable, &iterator);
 
 	  while(NextHashTable_Iterator_AS(&iterator, &key, &value, &valuetype))
             {

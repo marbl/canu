@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.41 2010-01-15 17:52:08 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.42 2010-02-16 05:19:40 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -87,10 +87,10 @@ typedef struct{
   int32                   numLiveCIs; // Number of currently instantiated CIs, including splits
   int32                   numDiscriminatorUniqueCIs;
   int32                   numLiveScaffolds;
-  ChunkOverlapperT       *overlapper;
   GraphCGW_T             *CIGraph;
   GraphCGW_T             *ContigGraph;
   GraphCGW_T             *ScaffoldGraph;
+  ChunkOverlapperT       *ChunkOverlaps;
   gkStore                *gkpStore;
   MultiAlignStore        *tigStore;
   OverlapStore           *frgOvlStore;

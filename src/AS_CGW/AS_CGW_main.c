@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.83 2010-01-17 03:10:10 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.84 2010-02-16 05:19:40 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -346,13 +346,6 @@ main(int argc, char **argv) {
       DemoteUnitigsWithRBP(stderr, ScaffoldGraph->CIGraph);
 
     //  At this Point we've constructed the CIGraph
-
-    {
-      /* Looks like we never keep BOTH the CIGraph overlaps and the ContigGraph overlaps */
-      ChunkOverlapperT *tmp = ScaffoldGraph->ContigGraph->overlapper;
-      ScaffoldGraph->ContigGraph->overlapper = ScaffoldGraph->CIGraph->overlapper;
-      ScaffoldGraph->CIGraph->overlapper = tmp;
-    }
 
     BuildInitialContigs(ScaffoldGraph);
 

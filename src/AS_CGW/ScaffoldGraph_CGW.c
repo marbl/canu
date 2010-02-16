@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.50 2009-10-27 12:26:41 skoren Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.51 2010-02-16 05:19:40 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -97,6 +97,8 @@ LoadScaffoldGraphFromCheckpoint(char   *name,
   ScaffoldGraph->ContigGraph   = LoadGraphCGWFromStream(F);
   ScaffoldGraph->ScaffoldGraph = LoadGraphCGWFromStream(F);
 
+  ScaffoldGraph->ChunkOverlaps = LoadChunkOverlapperFromStream(F);
+
   CheckGraph(ScaffoldGraph->CIGraph);
   CheckGraph(ScaffoldGraph->ContigGraph);
   CheckGraph(ScaffoldGraph->ScaffoldGraph);
@@ -119,7 +121,6 @@ LoadScaffoldGraphFromCheckpoint(char   *name,
   ScaffoldGraph->CIEdges        = ScaffoldGraph->CIGraph->edges;
   ScaffoldGraph->ContigEdges    = ScaffoldGraph->ContigGraph->edges;
   ScaffoldGraph->SEdges         = ScaffoldGraph->ScaffoldGraph->edges;
-  ScaffoldGraph->overlapper     = ScaffoldGraph->CIGraph->overlapper;
 
   status  = AS_UTL_safeRead(F, &ScaffoldGraph->checkPointIteration,       "LoadScaffoldGraphFromCheckpoint", sizeof(int32), 1);
   status += AS_UTL_safeRead(F, &ScaffoldGraph->numContigs,                "LoadScaffoldGraphFromCheckpoint", sizeof(int32), 1);
@@ -177,6 +178,8 @@ CheckpointScaffoldGraph(const char *logicalname, const char *location) {
   SaveGraphCGWToStream(ScaffoldGraph->CIGraph,F);
   SaveGraphCGWToStream(ScaffoldGraph->ContigGraph,F);
   SaveGraphCGWToStream(ScaffoldGraph->ScaffoldGraph,F);
+
+  SaveChunkOverlapperToStream(ScaffoldGraph->ChunkOverlaps, F);
 
   //  Save the distance estimate histograms -- terminator needs these to output
   //
@@ -277,6 +280,8 @@ ScaffoldGraphT *CreateScaffoldGraph(char *name) {
   sgraph->ContigGraph   = CreateGraphCGW(CONTIG_GRAPH, 1, 1);
   sgraph->ScaffoldGraph = CreateGraphCGW(SCAFFOLD_GRAPH, NULLINDEX, NULLINDEX);
 
+  sgraph->ChunkOverlaps = CreateChunkOverlapper();
+
   sgraph->gkpStore      = gkpStore = new gkStore(GlobalData->gkpStoreName, FALSE, TRUE);
 
   int numFrags = sgraph->gkpStore->gkStore_getNumFragments();
@@ -284,8 +289,6 @@ ScaffoldGraphT *CreateScaffoldGraph(char *name) {
 
   sgraph->Dists          = CreateVA_DistT(numDists);
   sgraph->CIFrags        = CreateVA_CIFragT(numFrags);
-
-  sgraph->overlapper = sgraph->CIGraph->overlapper;
 
   sgraph->checkPointIteration = 3;
 
@@ -310,6 +313,8 @@ void DestroyScaffoldGraph(ScaffoldGraphT *sgraph){
   DeleteGraphCGW(sgraph->CIGraph);
   DeleteGraphCGW(sgraph->ContigGraph);
   DeleteGraphCGW(sgraph->ScaffoldGraph);
+
+  DestroyChunkOverlapper(sgraph->ChunkOverlaps);
 
   for (int32 i=0; i<GetNumDistTs(ScaffoldGraph->Dists); i++) {
     DistT *dptr = GetDistT(ScaffoldGraph->Dists, i);
