@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.20 2010-02-16 05:04:13 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.21 2010-02-16 05:09:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -361,8 +361,6 @@ InsertInHashTable_AS(HashTable_AS  *table,
                      uint32         valuetype) {
 
   HashNode_AS *node;
-
-  table->numNodes++;
 
   if (table->freeList) {
     node = table->freeList;
